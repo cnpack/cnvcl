@@ -1,0 +1,178 @@
+CNPack - MultiLang 多国语言翻译元件包需求规范说明书 By Riceball<riceball@cq118.com>
+开发平台：D34567, C456, K123 以上版本
+主要目的：通过开发该元件包，我们期望用最简单的方式轻松的将应用程序从一种语言翻译为另一种语言（在程序内部）并且可以实时切换，不需要大量的编程处理（只需要将翻译元件放到窗体或数据模块上），你所作的只是集中精力在翻译上即可。
+
+介绍：
+一、核心元件介绍
+MultiLang 多国语言翻译元件包主要有三种核心元件组成: 多国语言贮藏库元件, 多国语言管理器元件, 多国语言翻译者元件。
+
+
+
+1、多国语言贮藏库元件（Language DataStorage Components）
+
+我们在多国语言贮藏库元件中保存翻译的语言字符串，通过选择不同的多国语言贮藏库元件派生类，你可以将多国语言保存到 Ini
+文件，XML 文件，数据库或者内部 Exe 文件中。
+
+注[riceball]：
+
+I.在第一阶段的开发中我们将只实现 TIniLanguageFileStorage
+多国语言贮藏库元件，将多国语言保存到Ini文件中。另外，当然你也可以开发自己的多国语言贮藏库元件，欢迎加入开发的队伍。
+
+II.创建新语言(文件)，翻译的文本，保存，选择语言，也就是语言文件的管理的实际实现也要在此。
+
+
+
+有效的多国语言（已翻译的）可以通过属性 TCustomLanguageStorage.Languages 和
+TCustomLanguageStorage.LanguageCount 访问。当前使用的语言可以通过
+TCustomLanguageStorage.CurrentLanguage 属性访问或设置。
+
+元件列表：
+    *   TCustomLanguageStorage (抽象元件类只供开发用户派生用。)
+    *   TCustomLanguageFileStorage(抽象元件类只供开发用户派生用。)
+    *   TIniLanguageFileStorage (供开发用户派生用。)
+    *   TCnIniLanguageFileStorage (放在元件面板上供一般用户使用。)
+
+2、多国语言管理器元件（Language Manager Components）
+
+多国语言管理器元件是多国语言翻译开发包的核心元件。该元件有能力管理多种语言，语言的实时切换以及自动套用默认语言显示应用程序。
+
+注意: 一个应用程序有且只能拥有一个多国语言管理器元件! 换句话说，一个应用有且只能有一个 TCustomLanguageManager  实例, 你可以通过GLanguageManager函数访问这个唯一实例.
+
+元件列表：
+    *   TCustomLanguageManager (供开发用户派生用。)
+    *   TCnLanguageManager (放在元件面板上供一般用户使用。)
+    *   TCustomLanguageFormManager(供开发用户派生用。)
+    *   TCnLanguageFormManager (放在元件面板上供一般用户使用。)
+
+3、多国语言翻译者元件（Translator Component）
+
+多国语言翻译者元件是多国语言翻译开发包的辅助元件（辅助懒人的），一般放在窗体上（每个窗体只允许有一个翻译者元件），这等于告诉翻译管理器该窗体需要翻译。与此同时用于在
+Delphi IDE 集成环境下的辅助翻译（如创建该窗体的指定语言的翻译文件，编辑窗体的翻译文件等等）。
+
+元件列表：
+    *   TCustomTranslator (供开发用户派生用。)
+    *   TCnTranslator (放在元件面板上供一般用户使用。)
+
+
+二、使用指南
+使用步骤如下：
+1).在主窗体或数据模块（供其它模块、窗体调用的）上放置一个适当多国语言贮藏库元件，根据你自己的需要，如 TIniLanguageFileStorage 元件并设置好适当的属性（<TODO 需要扩展>）。
+
+2).然后放上一个适当的多国语言管理器元件（通常是元件语言管理器：可以翻译元件和窗体的），并设置 DataStorage 属性为第一步的多国语言贮藏库元件。如果多国语言贮藏库元件也在同一窗体或模块上，多国语言管理器元件可以自动设置该属性（使用它找到的第一个多国语言贮藏库元件），用户可以不必操心。
+在多国语言管理器元件双击即可调出多国语言管理器应用（第二阶段的事情[riceball]），等同于在元件上按下右键选择多国语言管理器菜单项。
+
+3).放置翻译者元件到你想翻译的窗体上。当然不需要翻译者元件也可以完成翻译，只要在要翻译的窗体的 FormCreate 事件写一句：
+    aLanguageManager.Translate(Self);
+即可。
+
+最好是建议使用窗体模板，只要使用（继承）该窗体模板的，都可以自动获得翻译能力，该窗体模板可以放到项目仓库中：
+  TCustomTranslationForm = class(TForm)
+  private
+  protected
+    procedure DoCreate; override;
+  public
+    procedure Translate; virtual;
+  end;
+
+procedure TCustomTranslationForm.DoCreate;
+begin
+  inherited;
+  Translate;
+end;
+
+procedure TCustomTranslationForm.Translate;
+begin
+  if Assigned(GLanguageManager)then 
+    GLanguageManager.Translate(Self);
+end;
+
+在进一步，就是创建翻译项目向导（这是第二阶段考虑的事情了），建立项目。
+
+在翻译者元件上双击将激活窗体翻译管理器(Form Translation Manager)。如果该窗体是第一次运行窗体翻译管理器，将列出该窗体上的所有元件以及对应需要显示的属性让你选择，那些需要翻译。否则直接开始窗体翻译。
+在翻译者元件上单击右键，将弹出以下菜单：
+  [&C]创建语言文件
+      分析窗体上所有的元件属性，创建指定的语言文件。如果该语言文件存在有用户决定是否覆盖或者更新。
+      由于第一阶段暂不实现窗体翻译管理器，所以该菜单才有存在的必要。
+  [&U]更新语言文件
+      当你在窗体上添加了新元件后使用，更新指定的语言文件。
+  [&T]窗体翻译管理器
+_____________________________________________________________________________
+
+China Pack - MultiLanguage Translation Component Packadge Requirement Specification
+By Riceball<riceball@cq118.com>
+Platform: D34567, C456, K123 above
+introduction:
+Main Purpose:
+the most simplify the translation of an application from one language to another without a great deal of programming(just put the MultiLanguage Translation Components on the form or DataModule, no extra programming needed), and switch between the languages instantly.
+
+1. Kernel Components
+MultiLanguage Translation core Components are made up of the Language DataStorage Component, the Language Manager Component, the Translator Component.
+
+1). Language DataStorage Components
+  the Language DataStorage Components use to hold language strings which can be stored in Ini file , XML file, database, or internal EXE file.
+ NOTE[riceball]: 
+   I. In the first phase we will implement the TIniLanguageFileStorage to hold language strings in Ini files. Of cause, u can develope ur own Language DataStorage Components(welcome to join us).
+   II. Create New Language , Save Language, Set Current Language(Languages Files Manage) are here.
+The valid languages(translated) are accessible via the Languages and LanguageCount properties. The current language is accessible by the CurrentLanguage property.
+
+Components:
+    *   TCustomLanguageStorage (Abstract Class for the component developers.)
+    *   TCustomLanguageFileStorage(Abstract Class for the component developers.)
+    *   TIniLanguageFileStorage (for the component developers.)
+    *   TCnIniLanguageFileStorage (the Component on the Palette for users.)
+
+2). Language Manager Components
+  The Language Manager are the core components of the translation suite. This component has the ability to manage multiple languages.
+  Double click on the Language Manager Component to show Language Manager application. Or right click on it , choose the Language Manager menu item.
+Note: One App must have one and only one TCustomLanguageManager instance!
+      You can visit this instance via the GLanguageManager function.
+  
+Components:
+    *   TCustomLanguageManager (Abstract Class for the component developers.)
+    *   TCnLanguageManager  (the Component on the Palette for users.)
+    *   TCustomLanguageFormManager(for the component developers.)
+    *   TCnLanguageFormManager  (the Component on the Palette for users.)
+
+3). Translator Component
+  This is the helper component of the translation suite to make translated language easy in Delphi IDE(for lazy men). U should put a translator component to the form u wanna translated(Only one translator per form).
+
+Components:
+    *   TCustomTranslator(for the component developers.)
+    *   TCnTranslator (the Component on the Palette for users.)
+
+2. Usage: 
+1). put a proper Language DataStorage on the main form or a DataModule. And set the proper properties. <TODO Need Expand: How to set proper properties>
+2). then put a proper Language Manager(we use the Component Language Manager generally , this can translate the Components and Forms) on the main form or a DataModule, assign the DataStorage property(if the Language DataStorage component is on the same Form or DataModule, it can automatically assign the DataStorage component to itself). 
+3). Put a translator component to the form u wanna translated.  Or don't put the translator component , write the following code on the FormCreate Event instead:
+    aLanguageManager.Translate(Self);
+[Suggestion] create a tranlation form template, u can inherit the form to get the translation ability:
+  TCustomTranslationForm = class(TForm)
+  private
+  protected
+    procedure DoCreate; override;
+  public
+    procedure Translate; virtual;
+  end;
+
+procedure TCustomTranslationForm.DoCreate;
+begin
+  inherited;
+  Translate;
+end;
+
+procedure TCustomTranslationForm.Translate;
+begin
+  if Assigned(GLanguageManager)then 
+    GLanguageManager.Translate(Self);
+end;
+
+Of cause u can create a translation Project wizards. this would be done on second phase.
+
+Double click on the translator component to active the Form Translation Manager.
+the Form Translation Manager let u choose which properties of these components on the form need be translated(first run). Or begin to translate online.
+Right click on the translator component to popup the menu :
+ &Create Language files
+   Create ur specified Language files. U can choose whether override the exists files.
+ &Update Language files
+   Update ur specified Language files when u add some new components on it. 
+  Form &Translation Manager

@@ -1,0 +1,39 @@
+开发成员们，您好！
+
+    CnPack 的进展似乎总比预期的慢，让人联想到大作游戏的跳票。不过大家放心，CnPack 的活力仍在，精工细作才会出好东西嘛:)
+
+    一、6月份取得的主要进展有：
+    1、数据库报表组 铁男 兄终于发布了 CnReport 的打印样张和功能说明，虽然不知道什么时候才可看到正式的作品，但该组已是当前进展最快的了。
+    相信 CnReport 会带给大家一个惊喜，而今年发布的 CnPack 也将因它而闪光，感谢 铁男 兄！
+    2、开发组美工 LiuXiao 兄制作了第一批精美的 CnPack 组件图标，感谢 LiuXiao。
+    3、本月通过邮件列表发出的邮件大幅增长，更多的成员通过它来交流，而不再只是管理员用来发布信息，这是一个很好的开端。项目匿名 FTP服务器启动(ftp://cnpack.cosoft.org.cn)，并已上传部分资料和工具。
+    4、6月份又有数名新成员加入，他们是：token、DelAda、肖恩、陈刚、xiaolv、雨云，这样开发组成员已达到 49名，让我们对他们的到来表示最热烈的欢迎！
+    5、界面组因故没有完成计划工作，将改在 7、8月进行，预计在 9月发布第一批内部测试组件。另外，CnPack 获得了 ISeeExplorer 组(http://isee.126.com)的支持，将在图像包中增加 ISee 图像插件的接口组件，以实现多种格式图像文件的读写支持(当前已可支持20多种格式)。
+    
+    二、7月份的工作计划：
+    1、界面组继续进行详细设计和图像库开发工作。
+    2、当前有部分成员在(准备)开发相对独立的组件，希望有更多的成员能主动选择感兴趣的内容来参与开发。
+    3、受开发成员工作、学习的影响，各小组具体的开发计划由小组自己把握。
+    4、论坛始终没怎么用起来，邮件列表倒有些发展，希望开发组中时间精力较多的成员能多多发言，增强内部交流，提高开发组的活力和人气。
+    5、部分文档资料的翻译工作。
+    6、开发网站管理员 holin 因故暂时不能继续维护网站，哪位成员愿意接手网站维护工作，请与项目管理员联系 master@cnpack.org。感谢 holin 在过去的几个月为 CnPack 做出的一切！
+
+    开发网站：http://www.cnpack.org
+    开发论坛：http://bbs.6to23.com/1/default.asp?name=cnpack
+    匿名FTP空间：ftp://cnpack.cosoft.org.cn
+    项目邮件列表：cnpack-group@cosoft.org.cn
+    管理员信息：master@cnpack.org
+
+    内部测试包：http://cnpack.cosoft.org.cn/down/cnpack_test.zip
+    CnReport样张：http://cnpack.cosoft.org.cn/CnReport.GIF
+    界面设计文档：http://cnpack.cosoft.org.cn/down/cnpack_graph_doc.zip
+
+
+    团结奋斗！！
+    共同进步！！
+
+                CnPack开发组  周劲羽
+                http://www.cnpack.org
+                   master@cnpack.org
+                      2002-07-07 
+

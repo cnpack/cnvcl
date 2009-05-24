@@ -1,0 +1,32 @@
+开发成员们，您好！
+
+    经过了一个漫长的冬季后，我们又迎来了明媚的春天。
+    值得高兴的是，在过去的一个季度里，CnPack 保持了稳定的成长和进步。随着 IDE 专家包开发的进展，我们没有理由不会相信 CnPack 最终将会成为一个真正优秀的作品。
+
+    一、2003年第一季度取得的主要成果：
+    1、IDE 专家包的开发取得了阶段性的进展，其中由 LiuXiao、Shenloqi、Pan Ying 等成员贡献了较多的代码。
+    2、开发组启用 QQ 群作为交流工具，有效地增进了成员内部的交流和团队凝聚力。
+    3、启用任务发布和错误跟踪，CnPack 的开发变得更规范和有序。
+
+    二、2003年第二季度计划：
+    1、计划在 5月份发布 IDE 专家包的外部测试版。
+    2、发布新的基于 PHP+MySQL 的开发网站，启用新的服务器。
+    3、完善相关的文档，加强开发的规范性，增进成员内部交流。
+    4、如果 IDE 专家包发布顺利，考虑启动图像界面包的开发。
+
+    开发网站：http://www.cnpack.org
+    开发论坛：http://bbs.cnpack.org
+    管理员信箱：master@cnpack.org
+
+    项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip
+    IDE专家包：http://cnpack.cosoft.org.cn/download/CnWizards.exe
+
+
+    团结奋斗！！
+    共同进步！！
+
+                CnPack开发组  周劲羽
+                http://www.cnpack.org
+                   master@cnpack.org
+                      2003-04-04
+

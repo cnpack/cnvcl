@@ -1,0 +1,106 @@
+CnPack开发组2007年下半年度工作总结
+
+    CnPack 在 2007 年下半年取得的主要成绩如下：
+
+一、暨 2006 中国第二届开源软件竞赛专业组金奖之后，CnPack IDE 专家包再次荣获 2007“金企鹅杯”两岸四地开源软件比赛一等奖。2007年9月管理员周劲羽代表 CnPack 开发组赴北京参加了颁奖仪式。
+
+    相关报道：
+    http://www.cnii.com.cn/20070520/ca428879.htm
+    http://tech.sina.com.cn/it/2007-09-11/1823421356.shtml
+    http://bbs.cnpack.org/viewthread.php?tid=1793&extra=page%3D3
+   
+二、CnPack IDE 专家包为 0.8.2 的发布继续做工作，已于下半年发布了 Release Candidate 1 与 Release Candidate 2版。由于人力不足和用户报告了众多问题，0.8.2 的正式版将推迟到明年发布。目前 0.8.2 的每日构建版以及新功能预览版中已经增加了对 RAD Studio 2007 的支持，用户报告的许多其它问题也得到了修正。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+
+三、CnPack 公益基金的淘宝帐户，继续公开接受用户捐助。
+    链接：
+    http://www.cnpack.org/foundation.php
+
+四、CnMISFrame 由于其主力开发者拟修改其发布协议而不再保持开源，因此作为开源团体，CnPack 开发组对此产品的支持便就此中止。
+
+五、Pascal 代码格式化功能取得一定进展。目前专家包最新代码中已包含一测试程序，可对大部分 Pascal 代码进行格式化，但尚不十分完善。
+
+    明年 CnPack 开发组的计划如下：
+
+一、CnWizards 继续进行功能完善与问题修复，准备发布 0.8.2 正式版，增加对 RAD Studio 2007 和 Windows Vista 等的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。目前据升级数据统计，CnWizards 的国内外用户数目保守估计已经超过了五千，希望能继续进一步扩大用户群。
+
+三、补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部邮件列表：bbs@cnpack.org
+    CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
+                             CnPack III: 32712412，CnPack IV: 130970（满）
+
+    （注：邮件列表与 QQ 群原则上只供开发组成员与用户加入，不欢迎讨论和 CnPack 无关的问题）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2007-12-25
+
+
+========================================================================
+
+CnPack Working Report in the Second Half of 2007
+
+    Below are the achievements of CnPack in the Second Half of 2007:
+
+1. CnPack IDE Wizards Gets 1st Award of 2007 Golden Penguin Cup Open Source Software Contest of Chinese Mainland, Taiwan Province, Hongkong and Macao. CnPack Administrator Zhou JingYu, on behalf of CnPack Team, attend the victory ceremony in Beijing in September.
+
+    Links(Chinese):
+    http://www.cnii.com.cn/20070520/ca428879.htm
+    http://tech.sina.com.cn/it/2007-09-11/1823421356.shtml
+    http://bbs.cnpack.org/viewthread.php?tid=1793&extra=page%3D3
+
+2. CnPack IDE Wizards is preparing for 0.8.2. Now 0.8.2 RC1 and 0.8.2 RC2 has been published and are beta testing. The change list includes:
+
+    I. Add support to RAD Studio 2007.
+    II. Other enhancements and new functions.
+    III. Other bugs fixed. 
+
+3. CnPack Foundation accepts Donation at taobao.com (Chinese). For English, please visit SourceForge:
+   https://sourceforge.net/project/project_donations.php?group_id=110999   
+
+4. CnMisFrame Canceled for the author rejecting Open Source.
+
+5. Code Formatter partly done.
+
+    Below is the plan of CnPack for next year 2008:
+
+1. Publish CnWizards 0.8.2 with support to RAD Studio 2007 and Windows Vista.
+
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're more than 5000 CnWizards users by the end of 2007. We hope this number can increase considerably in the next year.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack Team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125
+                         CnPack III: 32712412，CnPack IV: 130970
+
+    (Note: Mailing list and QQ group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2007-12-25

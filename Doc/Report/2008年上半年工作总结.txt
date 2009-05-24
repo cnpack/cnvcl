@@ -1,0 +1,99 @@
+CnPack开发组2008年上半年度工作总结
+
+    CnPack 在 2008 年上半年取得的主要成绩如下：
+
+一、CnPack IDE 专家包已发布 0.8.2 与 0.8.3 正式版。而 0.8.4 的发布也在紧锣密鼓进展中。0.8.4 引人注目地增加了代码高亮画线的功能，并且支持 BDS/RAD Studio。目前 0.8.4 已发布了部分预览版，预计 2008 奥运期间发布正式版本。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+
+二、中国大地 5 月发生了举世震惊的汶川 8 级大地震，CnPack 公益基金谨代表 CnPack 开发组向北京红十字会以及中国红十字总会共捐款 1000 元，为灾民们献上一份微薄的心意。
+    CnPack 公益基金的支付宝帐户继续公开接受用户捐助，但拍卖的方式已取消，另外增加了腾讯财付通的捐助方式。
+
+    链接：
+    http://www.cnpack.org/foundation.php
+    公开帐目：
+    http://www.cnpack.org/showdetail.php?id=529
+
+三、Pascal 代码格式化功能继续进展中，已发布单独的测试程序供用户体验。
+
+四、CnPack 组件包得到了一定程度的扩充。Delphi Hibernate 由其作者捐献给了 CnPack 开发组并授权维护，另外还有不少新成员新朋友为之贡献出力，在此对大家的支持表示感谢。
+
+    下半年 CnPack 开发组的计划如下：
+
+一、CnWizards 准备于奥运前后发布 0.8.4 正式版，另外也将计划对未来 Delphi 2008/2009 的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。目前据升级数据统计，CnWizards 的国内外用户数目保守估计已经超过了六千，希望能继续进一步扩大用户群。
+
+三、继续扩充及移植 CnPack 组件包，补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部邮件列表：bbs@cnpack.org
+    CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
+                             CnPack III: 32712412（满），CnPack IV: 130970（满）
+                             CnPack V: 16067960
+
+    （注：邮件列表与 QQ 群原则上只供开发组成员与用户加入，不欢迎讨论和 CnPack 无关的问题）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2008-07-24
+
+
+========================================================================
+
+CnPack Working Report in the First Half of 2008
+
+    Below are the achievements of CnPack in the First Half of 2008:
+
+1. CnPack IDE Wizards 0.8.2 and 0.8.3 published. 0.8.4 is also coming. Now 0.8.4 preview is published. The main changes include Source Highlight Line and Support to BDS/RAD Studio. The stable version of 0.8.4 will publish during 2008 Olympic Games. ;-)
+
+   Our nightly build version:
+   http://www.cnpack.org/downbuilds.php
+
+2. CnPack Foundation Donates 1000 RMB for the Earthquake Disaster in SiChuan.
+
+3. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
+   https://sourceforge.net/project/project_donations.php?group_id=110999   
+
+4. The Alpha version of Code Formatter (stand-alone executable) can be download from our Website.
+
+5. The author donates Delphi Hibernate to CnPack Team. CnPack Components Package also enlarged.
+
+    Below is the plan of CnPack for the Second Half of 2008:
+
+1. Publish CnWizards 0.8.4. Prepare the support to Delphi 2008/2009 in future.
+
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're more than 6000 CnWizards users by the middle of 2008. We hope this number can increase considerably in the next half of 2008.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack Team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125
+                         CnPack III: 32712412; CnPack IV: 130970
+                         CnPack V: 16067960
+
+    (Note: Mailing list and QQ group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2008-07-24

@@ -1,0 +1,119 @@
+CnPack开发组2008年下半年度工作总结
+
+    CnPack 在 2008 年下半年取得的主要成绩如下：
+
+一、为迎接北京奥运的召开，2008 年 8 月 8 日 CnPack IDE 专家包发布新版本，版本号从原有的 0.8.4 直接升至 0.8.8。新版本的专家包提供了对 Delphi 2009 正式版及后续版本的支持，但由于其编译兼容性的原因，专家包不直接支持 Delphi 2009 的内测版。如用户需要对 Delphi 2009 的内测版的支持，用户需要自行下载专家包的源码进行编译。
+    11 月与 12 月 CnPack IDE 专家包也继续发布了 0.8.9 版与 0.9.0 版。此三个新版本的主要增强内容包括但不限于：
+
+    1. 支持 Delphi 2009 / RAD Studio 2009。
+    2. 代码高亮增加画线与匹配背景色高亮的功能。
+    3. 代码编辑器专家增加跳至光标下匹配关键字的功能，默认热键“Ctrl+,”。
+    4. 代码高亮增加当前光标处标识符背景色高亮的功能，但默认禁用。
+    5. 增加函数列表编辑器工具栏，目前只支持 Pascal 文件。
+    6. 代码带格式输出增加对 C/C++ 文件的支持，允许指定编码。
+    7. MessageBox 专家增加对 MessageDlg 函数的支持。
+    8. 其它问题的修复。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+
+二、CnPack IDE 专家包今年下半年申请成为 Codegear 合作伙伴，失败了；CnPack IDE 专家包参加金山优秀软件创新大赛，也失败了。我们必须从中总结经验、吸取教训，继续奋斗，再接再厉。
+
+三、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
+
+    链接：
+    http://www.cnpack.org/foundation.php
+    公开帐目：
+    http://www.cnpack.org/showdetail.php?id=529
+
+四、CnPack 组件包继续在扩充，增加了部分组件，包括界面部分的颜色网格组件、LED 显示组件、错误信息显示组件，以及核心组成员橙子的部分网络、数据库、不可视组件等作品的移植内容。
+
+    2009 年上半年 CnPack 开发组的计划如下：
+
+一、CnWizards 准备于春节后发布 0.9.1 版，继续增加新功能，包括 F2 重命名光标下的标识符、高亮当前行的功能等。同时也修复问题并完善对 Delphi 2009 的支持，包括 Pascal Script 脚本的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。目前据升级数据统计，2008 年底，CnWizards 的国内外用户数目保守估计已经接近了九千，希望能继续进一步扩大用户群。
+
+三、由于目前 CnPack 服务器所提供的各项服务包括 CVS/CVSTrac/Web/FTP/Mail 等负担较重，考虑将 CVS/CVSTrac 等迁移到 Google Code 的 SVN 上，在不降低国内用户访问速度的前提下，减轻现有服务器负担，同时也有利于国外用户的下载与访问。
+
+四、继续扩充及移植 CnPack 组件包，补充和完善各类文档。
+
+五、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部邮件列表：bbs@cnpack.org
+    CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
+                             CnPack III: 32712412，CnPack IV: 130970（满）
+                             CnPack V: 16067960（满）
+
+    （注：邮件列表与 QQ 群原则上只供开发组成员与用户加入，不建议讨论和 CnPack 无关的问题）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2009-01-14
+
+========================================================================
+
+CnPack Working Report in the Second Half of 2008
+
+    Below are the achievements of CnPack in the Second Half of 2008:
+
+1. CnPack IDE Wizards 0.8.8 was published at 2008-08-08 to celebrate for Beijing 2008 Olympic Games. CnPack IDE Wizards 0.8.8 Supports Delphi 2009 (12.0.3170.16989 or later). But does NOT support Delphi 2009 beta versions due to its compiling incompatibility. If want support to beta versions of Delphi 2009, please download CnWizards' source and compile it manually.
+   CnPack IDE Wizards 0.8.9 and 0.9.0 was also published in Nov and Dec 2008. The changes of these 3 versions include but not limited below:
+
+    1. Add Support to Delphi 2009 but Some Features Disabled.
+    2. Add Lines and Structure Background Highlight.
+    3. Add Jump to Matched Keyword Function with the Default Shortcut "Ctrl+," in Code Editor Wizard.
+    4. Add Background Highlight Current Identifier at Cursor in Source Highlight. Defaultly Disabled.
+    5. Add Procedure List Editor ToolBar. Only Support Pascal Files.
+    6. Add C/C++ File and HTML Encode Support to Source Format Convert Wizard.
+    7. MessageBox Wizards Supports MessageDlg Function.
+    8. Other Bugs Fixed.
+
+   Our nightly build version:
+   http://www.cnpack.org/downbuilds.php
+
+2. CnPack IDE Wizards failed to apply to become a CodeGear Technical Partner. And failed when attend to a JinShan Software Contest. We'll work more hard. 
+
+3. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
+   https://sourceforge.net/project/project_donations.php?group_id=110999 
+
+4. Some components are added into CnPack Component Package, including LED, ColorBox, Error Provider components by other friends, and some Network, Database, non-visual components by rarnu.
+
+    Below is the plan of CnPack for the First Half of 2009:
+
+1. Publish CnWizards 0.9.1. Prepare some new Features including F2 rename variable, Highlight current line. And some old Features will support Delphi 2009.
+
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're nearly 9000 CnWizards users by the end of 2008. We hope this number can increase considerably in the first half of 2009.
+
+3. To reduce our server's workload of CVS/CVSTrac/Web/FTP/Mail, we're discussing to migrate our CVS/CVSTrac to Google Code's SVN.
+
+4. Continue documentation.
+
+5. Continue to build the CnPack Team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682(Full);  CnPack II: 16797125(Full)
+                         CnPack III: 32712412; CnPack IV: 130970(Full)
+                         CnPack V: 16067960(Full)
+
+    (Note: Mailing list and QQ group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2009-01-29

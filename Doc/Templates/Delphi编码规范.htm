@@ -1,0 +1,1412 @@
+<html>
+
+<head>
+<title>Delphi编码规范</title>
+<meta name="GENERATOR"
+content="Microsoft FrontPage 4.0">
+<meta name="ProgId"
+content="FrontPage.Editor.Document">
+<style>
+<!--
+.codeblock   { background-color: #CCCCCC }
+body         { font-family: Verdana, Arial, Helvetica; font-size: 10pt; color: #000000 }
+h1           { font-family: Verdana, Arial, Helvetica; font-size: 18pt; font-weight: bold }
+h2           { font-family: Verdana, Arial, Helvetica; font-size: 14pt; font-weight: bold }
+h3           { font-family: Verdana, Arial, Helvetica; font-size: 12pt; font-weight: bold }
+h4           { font-family: Verdana, Arial, Helvetica; font-size: 11pt; font-weight: bold }
+h5           { font-family: Verdana, Arial, Helvetica; font-size: 9pt; font-weight: bold; color: #0000FF }
+h6           { font-family: Verdana, Arial, Helvetica; font-size: 9pt; color: #0000FF }
+button       { font-size: 9pt; font-family: Arial, Helvetica; font-style: normal;
+               border-style: solid; border-width: 1pt }
+label, .MSTHEME-LABEL { font-size: 9pt; font-family: Arial, Helvetica; font-style: normal }
+textarea     { font-size: 9pt; font-family: Arial, Helvetica; font-style: normal;
+               border-style: solid; border-width: 1pt }
+fieldset     { font-size: 9pt; font-family: Arial, Helvetica; font-style: normal;
+               border-style: solid; border-width: 1pt }
+legend       { font-size: 8pt; font-family: Verdana, Arial, Helvetica; font-style: Normal }
+select       { font-size: 9pt; font-family: Arial, Helvetica; font-style: normal;
+               border-style: solid; border-width: 1pt }
+TABLE
+{
+	font-family: Verdana, Arial, Helvetica;
+	font-style: normal;
+	font-size: 10pt;
+	color: rgb(0,0,0);
+}
+CAPTION
+{
+	font-size: 10pt;
+	font-family: Verdana, Arial, Helvetica;
+	font-style: Normal;
+}
+TH
+{
+	font-family: Verdana, Arial, Helvetica;
+	font-style: normal;
+}
+MARQUEE
+{
+	font-size: 10pt;
+	font-family: Verdana, Arial, Helvetica;
+}
+!-->
+</style>
+</head>
+
+<body>
+
+<p align="center"
+style="border-style: groove; border-color: #0000FF; padding-left: 1; padding-right: 1; padding-top: 50; padding-bottom: 80"><b><font
+color="#000000" size="6">Delphi代码标准文档<br>
+</font><font color="#000000" size="3">Revision 1.0.0.6</font><font color="#000000" 
+size="6"><br> 
+</font></b><font size="2" 
+color="#000000">编者：<a 
+href="mailto:riceball@cq118.com">Riceball</a>(</font><a 
+href="mailto:riceball@cq118.com">riceball@cq118.com</a><font size="2" 
+color="#000000">)</font></p> 
+<p>&nbsp; 本文主要基于“<a  
+href="http://www.xapware.com/ddg"  
+target="_blank">Delphi Development Guide</a>”一书的<a  
+href="http://www.xapware.com/ddg">代码标准部分</a>而来，编者参考其它的Delphi代码标准规范，以及结合现目前Delphi社区中流行的程序书写惯例，作了一些修改和裁剪，你也可以根据自己的需要进行裁剪和修改。如果你有什么建议，或是希望编者加上你认为遗漏的东西，欢迎Email至：<a  
+href="mailto:riceball@cq118.com">riceball@cq118.com</a></p>  
+<p>目录：</p>  
+<ol>  
+  <li><a href="#前言">前言</a></li>  
+  <li><a href="#源程序书写规范">源程序书写规范</a>  
+    <ol>  
+      <li><a  
+        href="#一般源代码格式规则">通用源代码书写规范</a></li>  
+      <li><a  
+        href="#Object Pascal语句格式语句书写规范与用法">Object  
+        Pascal语句书写规范与用法</a></li>  
+    </ol>  
+  </li>  
+  <li><a href="#命名规范">命名规范</a>  
+    <ol>  
+      <li><a  
+        href="#过程(Procedure)与函数(Function)">过程(Procedure)与函数(Function)</a></li>  
+      <li><a href="#变量(Variable)">常量（Constants）和变量(Variable)</a></li> 
+      <li><a href="#类型(Type)">类型(Type)</a> 
+        <ol> 
+          <li><a href="#一般类型">一般类型</a></li> 
+          <li><a href="#构造类型">构造类型</a></li> 
+          <li><a 
+            href="#类类型(Class)">类类型(Class)</a> 
+            <ol> 
+              <li>字段</li> 
+              <li>方法</li> 
+              <li>属性</li> 
+            </ol> 
+          </li> 
+          <li><a href="#元件类型">元件类型</a></li> 
+          <li><a href="#窗体类型">窗体与对话框类型</a></li> 
+          <li><a 
+            href="#数据模块类型">数据模块类型</a></li> 
+        </ol> 
+      </li> 
+      <li><a href="#文件">文件</a> 
+        <ol> 
+          <li><a href="#项目文件">项目文件(.dpr)</a></li> 
+          <li><a href="#窗体文件">窗体文件(.dfm)</a></li> 
+          <li><a 
+            href="#数据模块文件">数据模块文件</a></li> 
+          <li><a 
+            href="#远程数据模块文件">远程数据模块文件</a></li> 
+          <li><a href="#单元文件">单元文件(.pas)</a> 
+            <ol> 
+              <li>普通单元</li> 
+              <li>窗体单元</li> 
+              <li>通用单元</li> 
+              <li>元件单元</li> 
+            </ol> 
+          </li> 
+          <li><a 
+            href="#包文件（.dpk）命名规则">包文件(.dpk)</a></li> 
+        </ol> 
+      </li> 
+      <li><a href="#内置汇编">内置汇编</a></li> 
+    </ol> 
+  </li> 
+  <li><a href="#源程序文档注释规范">源程序文档注释规范</a> 
+    <ol> 
+      <li><a href="#注释文档的一般规范">注释文档的一般规范</a></li> 
+      <li><a href="#单元文件注释文档格式">单元文件注释文档格式</a></li> 
+      <li><a href="#函数（属性）的注释文档格式">函数（属性）的注释文档格式</a></li> 
+    </ol> 
+  </li> 
+  <li><a 
+    href="#Delphi代码自动格式化工具">Delphi代码自动格式化工具</a></li> 
+  <li><a href="#7">代码标准文档更新</a></li> 
+  <li><a href="#参考">附录：参考文献</a></li> 
+</ol> 
+<hr align="center"> 
+<h1><b>1.<a name="前言">前言</a></b></h1> 
+<p>&nbsp; 本文档主要是为Delphi开发人员提供一个源代码书写标准，以及程序和文件的命名标准，使他们在编程时有一致格式可遵循。这样，每个编程人员编写的代码能够被其他人理解。</p>  
+<p align="center">本文档还没能包括代码标准的每个细节，因此你可以在下面网址留意本文档的最新版本:<a  
+href="http://jediedit.heha.net"><br>  
+</a><a href="http://dev.cq118.com/web/">http://dev.cq118.com/web/</a>&nbsp;</p>  
+<p>&nbsp; 本文档不包含用户界面标准。用户界面标准是独立于其他标准的，并且同样是重要的。</p>  
+<p>&nbsp;  
+如果你有什么建议，或是希望编者加上你认为遗漏的东西，欢迎Email至：<a  
+href="mailto:riceball@cq118.com">riceball@cq118.com</a></p>  
+<hr align="center">  
+<h1>2.<a name="源程序书写规范">源程序书写规范</a></h1>  
+<h2>2.1.<a  
+name="通用源代码格式规则">通用源代码格式规则</a></h2>  
+<h3>1). 缩进</h3>  
+<p>&nbsp;  
+缩进就是每级间有两个空格。不要在源代码中放置制表符。这是因为，制表符的宽度随着不同的设置和代码管理实用程序(打印、文档及版本控制等)而不同。</p>  
+<p>&nbsp; 通过使用Tools|Environment  
+菜单，在Environment Options  
+对话框的General页上，不要选中Use  
+Tab Character 和Optional Fill  
+复选框，这样，制表符就不会被保存。</p>  
+<h3>2). 边距</h3>  
+<p>&nbsp; 边距设置为80个字符。源代码一般不会因写一个单词而超过边距，但本规则比较灵活。只要可能，长度超过一行的语句应当用逗号或运算符换行。换行后，应缩进两个字符。</p>  
+<h3>3). <b>begin</b>...<b>end </b>语句</h3>  
+<p><b>begin</b>  
+语句必须单独占一行。例如，下面第一行是错误的，而第二行正确：</p>  
+<blockquote>  
+  <p><b>for</b> i:=0 <b>to</b> 10 <b>do  
+  begin</b> <i>// 错, begin 与f o r  
+  在同一行</i></p>  
+  <p><b>for</b> i:=0 <b>to</b> 10 <b>do</b>  
+  <i>// 对, begin 在另外一行中<br>  
+  </i><b>begin</b></p>  
+</blockquote>  
+<p>本规则的一个特殊情况是，当<b>begin</b>  
+为<b>else</b>  
+语句的一部分时，例如：</p>  
+<blockquote>  
+  <p><b>if</b> some statement = <b>then<br>  
+  begin</b><br>  
+  &nbsp; . . .<br>  
+  <b>end<br>  
+  else begin</b><br>  
+  &nbsp; Some Other Statement;<br>  
+  <b>end</b>;</p>  
+</blockquote>  
+<p>注意：end  
+语句总单独一行。当begin 不为else  
+语句的一部分时，相应的end  
+语句与begin  
+语句的缩进量相同。</p>  
+<h3>4).注释</h3>  
+<p>&nbsp; 我们通常使用“{...}”类型的块注释，以前的“(*...*)”类型的块注释用于临时注释掉暂不使用的代码，从Delphi  
+2开始支持“//”行注释，如果决定不在支持Delphi  
+2.0以下的版本，可以使用“//”注释。</p>  
+<h2>2.2.<a  
+name="Object Pascal语句格式语句书写规范与用法">Object  
+Pascal语句格式语句书写规范与用法</a></h2>  
+<h3>1). 括号</h3>  
+<p>&nbsp;  
+在左括号与下一字符之间没有空格。同样，右括号与前一字符也没有空格。下面的例子演示了正确与不正确的空格。</p>  
+<blockquote>  
+  <p>CallProc( Aparameter ); <font  
+  color="#0000FF"><i>// 错!</i><br>  
+  </font>CallProc(Aparameter); <i><font  
+  color="#0000FF">// 正确!</font></i></p>  
+</blockquote>  
+<p>&nbsp;  
+不要在语句中包含多余的括号。在源代码中，括号只有在确实需要时才使用。下面的例子演示了正确与不正确用法：</p>  
+<blockquote>  
+  <p><b>if</b> (I=42) <b>then</b> <font  
+  color="#0000FF"><i>//  
+  错，括号是多余的</i><br>  
+  </font><b>if</b> (I=42) <b>or</b>  
+  (J=42) <b>then</b> <i><font  
+  color="#0000FF">//  
+  正确，必须使用括号</font></i></p>  
+</blockquote>  
+<h3>2). 保留字和关键字</h3>  
+<p>&nbsp; Object Pascal  
+语言的保留字和关键字总是完全的小写。下面是Delphi  
+5保留字列表:</p>  
+<table border="1" width="100%">  
+  <tr>  
+    <td>  
+      <p>and</p>  
+    </td>  
+    <td>  
+      <p>array</p>  
+    </td>  
+    <td>  
+      <p>as</p>  
+    </td>  
+    <td>  
+      <p>asm</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>begin</p>  
+    </td>  
+    <td>  
+      <p>case</p>  
+    </td>  
+    <td>  
+      <p>class</p>  
+    </td>  
+    <td>  
+      <p>const</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>constructor</p>  
+    </td>  
+    <td>  
+      <p>destructor</p>  
+    </td>  
+    <td>  
+      <p>dispinterface</p>  
+    </td>  
+    <td>  
+      <p>div</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>do</p>  
+    </td>  
+    <td>  
+      <p>downto</p>  
+    </td>  
+    <td>  
+      <p>else</p>  
+    </td>  
+    <td>  
+      <p>end</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>except</p>  
+    </td>  
+    <td>  
+      <p>exports</p>  
+    </td>  
+    <td>  
+      <p>file</p>  
+    </td>  
+    <td>  
+      <p>finalization</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>finally</p>  
+    </td>  
+    <td>  
+      <p>for</p>  
+    </td>  
+    <td>  
+      <p>function</p>  
+    </td>  
+    <td>  
+      <p>goto</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>if</p>  
+    </td>  
+    <td>  
+      <p>implementation</p>  
+    </td>  
+    <td>  
+      <p>in</p>  
+    </td>  
+    <td>  
+      <p>inherited</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>initialization</p>  
+    </td>  
+    <td>  
+      <p>inline</p>  
+    </td>  
+    <td>  
+      <p>interface</p>  
+    </td>  
+    <td>  
+      <p>is</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>label</p>  
+    </td>  
+    <td>  
+      <p>library</p>  
+    </td>  
+    <td>  
+      <p>mod</p>  
+    </td>  
+    <td>  
+      <p>nil</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>not</p>  
+    </td>  
+    <td>  
+      <p>object</p>  
+    </td>  
+    <td>  
+      <p>of</p>  
+    </td>  
+    <td>  
+      <p>or</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>out</p>  
+    </td>  
+    <td>  
+      <p>packed</p>  
+    </td>  
+    <td>  
+      <p>procedure</p>  
+    </td>  
+    <td>  
+      <p>program</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>property</p>  
+    </td>  
+    <td>  
+      <p>raise</p>  
+    </td>  
+    <td>  
+      <p>record</p>  
+    </td>  
+    <td>  
+      <p>repeat</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>resourcestring</p>  
+    </td>  
+    <td>  
+      <p>set</p>  
+    </td>  
+    <td>  
+      <p>shl</p>  
+    </td>  
+    <td>  
+      <p>shr</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>string</p>  
+    </td>  
+    <td>  
+      <p>then</p>  
+    </td>  
+    <td>  
+      <p>threadvar</p>  
+    </td>  
+    <td>  
+      <p>to</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>try</p>  
+    </td>  
+    <td>  
+      <p>type</p>  
+    </td>  
+    <td>  
+      <p>unit</p>  
+    </td>  
+    <td>  
+      <p>until</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>uses</p>  
+    </td>  
+    <td>  
+      <p>var</p>  
+    </td>  
+    <td>  
+      <p>while</p>  
+    </td>  
+    <td>  
+      <p>with</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>  
+      <p>xor</p>  
+    </td>  
+    <td>  
+      <p>private</p>  
+    </td>  
+    <td>  
+      <p>protected</p>  
+    </td>  
+    <td>  
+      <p>public</p>  
+    </td>  
+  </tr>  
+  <tr>  
+    <td>published</td>  
+    <td>automated</td>  
+    <td>　</td>
+    <td>　</td>
+  </tr>
+</table>
+<h3>　</h3>
+<h3>3). 过程和函数</h3>  
+<h4>(1). 格式</h4>  
+<p>&nbsp;  
+过程名应当以大写字母开始，且大小写交错以增加可读性。下面是一个不正确的写法：</p>  
+<blockquote>  
+  <p><b>procedure</b>  
+  thisisapoorlyformattedroutinename;</p>  
+</blockquote>  
+<p>改成这样写就对了：</p>  
+<blockquote>  
+  <p><b>procedure</b>  
+  ThisIsMuchMoreReadableRoutineName;</p>  
+</blockquote>  
+<h4>(2). 形参</h4>  
+<h5>(1) 格式</h5>  
+<p>&nbsp;  
+只要可能，同一类型的形参应当归并在一起：</p>  
+<blockquote>  
+  <p><b>procedure</b>  
+  Foo(Param1,Param2,Param3:Integer;Param4:string);</p>  
+</blockquote>  
+<h5>(2) 参数顺序</h5>  
+<p>&nbsp;  
+形参的顺序主要要考虑寄存器调用规则。最常用的参数应当作为第一个参数，按使用频率依次从左到右排。输入参数位于输出参数之前。范围大的参数应当放在范围小的参数之前。例如：</p>  
+<blockquote>  
+  <p>SomeProc(aPlanet, aContinent,  
+  aCountry, aState, aCity).</p>  
+</blockquote>  
+<p>&nbsp;  
+有些则例外。例如，在事件处理过程中，TObject  
+类型的Sender  
+参数往往是第一个要传递的参数。</p>  
+<h5>(3) 常量参数</h5>  
+<p>&nbsp; 要使记录、数组、短字符串或接口类型的参数不能被过程修改，就应当把形参标以<b>const</b>  
+。这样，编译器将以最有效的方式生成代码，保证传递的参数不可变。</p>  
+<p>&nbsp; 如果其他类型的参数希望不被过程所修改，也可以标上<b>const</b>  
+。尽管这对效率没有影响，但这给过程的调用者带来了更多的信息。</p>  
+<h3>4). 变量</h3>  
+<h4>(1). 局部变量</h4>  
+<p>&nbsp;  
+局部变量用于过程内部，如果需要的话，应当在过程的入口处立即初始化变量。局部的AnsiString  
+类型的变量自动被初始化为空字符串，局部的接口和dispinterface类型的变量自动被初始化为nil，局部的Variant和OleVariant类型的变量自动被初始化为Unassigned。</p>  
+<h4>(2). 全局变量</h4>  
+<p>&nbsp;  
+一般不鼓励使用全局变量。不过，有时候需要用到。即使如此，也应当把全局变量限制在需要的环境中。例如，一个全局变量可能只在单元的实现部分是全局的。</p>  
+<p>&nbsp;  
+全局数据如果将由许多单元使用，就应移动到一个公用单元里被所有对象使用。全局数据可在声明时直接初始化为一个值。注意，所有全局变量自动进行零初始化，因此，不要将全局变量初始化为诸如0  
+、nil、或Unassigned等空值。零初始化的全局变量在.EXE文件中不占空间。零初始化的数据保存在虚拟的数据段中，而虚拟数据段只在应用程序启动时才分配内存。非零初始化的全局数据则在.EXE文件中占空间。</p>  
+<h3><b>5). 类型</b></h3>  
+<h4>(1). 大小写规则</h4>  
+<p>&nbsp;  
+类型标识符是保留字，应当全部小写。Win32  
+API  
+类型常常全部大写，并且遵循诸如Windows.pas或其他API单元中关于特定类型名的规则。对于其他变量名，第一个字母应大写，其他字母则大小写交错。下面是一些例子：</p>  
+<blockquote>  
+  <p><b>var</b><br>  
+  &nbsp; MyString: <b>string</b>; <i><font  
+  color="#0000FF">//  
+  保留字</font><br>  
+  </i>&nbsp; WindowsHandle: HWND; <i><font  
+  color="#0000FF">//  
+  Win32 API 类型</font><br>  
+  </i>&nbsp; I: Integer; <i><font  
+  color="#0000FF">//在System单元中引入的类型标识</font></i></p>  
+</blockquote>  
+<h4>(2). 浮点型</h4>  
+<p>&nbsp; 不鼓励使用Real类型，因为它只是为了与老的Pascal代码兼容而保留的。通常情况下，对于浮点数应当使用Double。Double可被处理器优化，是IEEE定义的标准的数据格式。当需要比Double提供的范围更大时，可以使用Extend。Extend是intel专用的类型，Java不支持。当浮点变量的物理字节数很重要时(可能使用其他语言编写DLL)，则应当使用Single。</p>  
+<h4>(3).Variant和OleVariant</h4>  
+<p>&nbsp; 一般不建议使用Variant和OleVariant。但是，当数据类型只有在运行期才知道时(常常是在COM和数据库应用的程序中)，这两个类型对编程就有必要。当进行诸如自动化ActiveX控件的COM编程时，应当使用OleVariant；而对于非COM编程，则应当使用Variant。这是因为，Variant能够有效地保存Delphi的原生字符串，而OleVariant则将所有字符串转换为OLE字符串(即WideChar字符串)，且没有引用计数功能。</p>  
+<h3>6). 语句</h3>  
+<h4>(1). <b>If</b> 语句</h4>  
+<p>&nbsp; 在<b>if</b>/<b>then</b>/<b>else</b>语句中，最有可能执行的情况应放在<b>then</b>子句中，不太可能的情况放在else子句中。为了避免出现许多<b>if</b>语句，可以使用<b>case</b>语句代替。如果多于5级，不要使用if语句。请改用更清楚的方法。不要在<b>if</b>语句中使用多余的括号。</p>  
+<p>&nbsp; 如果在<b>if</b>语句中有多个条件要测试，应按照计算的复杂程度从右向左排。这样，可以使代码充分利用编译器的短路估算逻辑。例如，如果Condition1比Condition2快，Condition2比Condition3快，则<b>if</b>语句一般应这样构造：</p>  
+<blockquote>  
+  <p><b>if</b> Condition1 <b>and</b>  
+  Condition2 <b>and</b> Condition3 <b>then</b></p>  
+</blockquote>  
+<p>&nbsp; 如果Condition3为False的机会很大，利用短路估算逻辑，我们也可以将Condition3放在最前面：</p>  
+<blockquote>  
+  <p><b>if</b> Condition3 <b>and</b>  
+  Condition1 <b>and</b> Condition2 <b>then</b></p>  
+</blockquote>  
+<h4>(2). <b>case</b> 语句</h4>  
+<h5>(1) 概述</h5>  
+<p><b>&nbsp; case</b>语句中每种情况的常量应当按数字或字母的顺序排列。每种情况的动作语句应当简短且通常不超过4  
+- 5  
+行代码。如果动作太复杂，应将代码单独放在一个过程或函数中。<b>Case</b>语句的<b>else</b>子句只用于默认情况或错误检测。</p>  
+<h5>(2) 格式</h5>  
+<p><b>&nbsp; case</b>语句遵循一般的缩进和命名规则。</p>  
+<h4>(3). <b>while</b> 语句</h4>  
+<p>&nbsp; 建议不要使用Exit过程来退出<b>while</b>循环。如果需要的话，应当使用循环条件退出循环。所有对while循环进行初始化的代码应当位于while入口前，且不要被无关的语句隔开。任何业务的辅助工作都应在循环后立即进行。</p>  
+<h4>(4). <b>for</b> 语句</h4>  
+<p>&nbsp;  
+如果循环次数是确定的，应当用<b>for</b>语句代替<b>while</b>语句。</p>  
+<h4>(5). <b>repeat</b> 语句</h4>  
+<p><b>&nbsp; repeat</b>语句类似于<b>while</b>循环，且遵循同样的规则。</p>  
+<h4>(6). <b>with</b> 语句</h4>  
+<h5>(1) 概述</h5>  
+<p><b>&nbsp; with</b>语句应小心使用。要避免过度使用with语句，尤其是在with语句中使用多个对象或记录。例如：</p>  
+<blockquote>  
+  <p><b>with</b> Record1,Record2 <b>do</b></p>  
+</blockquote>  
+<p>&nbsp;  
+这些情况很容易迷惑编程人员，且导致调试困难。</p>  
+<h5>(2) 格式</h5>  
+<p><b>&nbsp; with</b>语句也遵循本章关于命名和缩进的规则。</p>  
+<h3><b>7). 结构化异常处理</b></h3>  
+<h4>(1). 概述</h4>  
+<p>&nbsp;  
+异常处理主要用于纠正错误和保护资源。这意味着，凡是分配资源的地方，都必须使用<b>try</b>...<b>finally</b>来保证资源得到释放。不过，如果是在单元的初始/结束部分或者对象的构造器/析构器中来分配/释放资源则例外。</p>  
+<h4>(2). <b>try</b>...<b>finally</b>的用法</h4>  
+<p>&nbsp;  
+在可能的情况下，每个资源分配应当与<b>try</b>...<b>finally</b>结构匹配，例如，下面代码可能导致错误：</p>  
+<blockquote>  
+  <p>SomeClass1 := TSomeClass.Create;<br>  
+  SomeClass2 := TSomeClass.Create;<br>  
+  <b>try</b><br>  
+  &nbsp; <i><font color="#0000FF">{ do some code }</font></i><br>  
+  <b>finally</b><br>  
+  &nbsp; SomeClass1.Free;<br>  
+  &nbsp; SomeClass2.Free;<br>  
+  <b>end</b>;</p>  
+</blockquote>  
+<p>&nbsp;  
+上述资源分配的一个安全方案是：</p>  
+<blockquote>  
+  <p>SomeClass1 := TSomeClass.Create;<br>  
+  <b>try</b><br>  
+  &nbsp; SomeClass2 :=  
+  TSomeClass.Create;<br>  
+  &nbsp; <b>try</b><br>  
+  &nbsp;&nbsp;&nbsp; <i><font  
+  color="#0000FF">{ do some code }</font></i><br>  
+  &nbsp; <b>finally</b><br>  
+  &nbsp;&nbsp;&nbsp; SomeClass2.Free;<br>  
+  &nbsp; <b>end</b>;<b><br>  
+  finally</b><br>  
+  &nbsp; SomeClass1.Free;<br>  
+  <b>end</b>;</p>  
+</blockquote>  
+<p>&nbsp;  
+但有时如果有许多类都需要同时创建，上述方案就显得非常累赘。这时候，我建议使用下述的一个安全方案：</p>  
+<blockquote>  
+  <p>SomeClass1 := nil;<br>  
+  SomeClass2 := nil;<br>  
+  <b>try</b><br>  
+  &nbsp; <i><font color="#0000FF"></font></i>SomeClass1 := TSomeClass.Create;<br>  
+  &nbsp; <i><font color="#0000FF"></font></i>SomeClass2 := TSomeClass.Create;<br>  
+  <b></b>  
+  &nbsp; <i><font color="#0000FF">{ do some code }</font></i><br>  
+  <b>finally</b><br>  
+  &nbsp; FreeAndNil(SomeClass1);<br>  
+  &nbsp; FreeAndNil(SomeClass2);<br>  
+  <b>end</b>;</p>  
+</blockquote>  
+<h4>(3). <b>try</b>...<b>except</b>的用法</h4>  
+<p>&nbsp;  
+如果你希望在发生异常时执行一些任务，可以使用<b>try</b>...<b>except</b>。通常，没有必要为了简单地显示一个错误信息而使用<b>try</b>...<b>except</b>，因为Application对象能够自动根据上下文做到这一点。如果要在子句中激活默认的异常处理，可以再次触发异常。</p>  
+<h4>(4). <b>try</b>...<b>except</b>...<b>else</b>的用法</h4>  
+<p>&nbsp; 不鼓励使用带<b>else</b>子句的<b>try</b>...<b>except</b>，因为这将阻塞所有的异常，包括你没有准备处理的异常。</p>  
+<h1>3.<a name="命名规范">命名规范</a></h1>  
+<h2>3.1.<a  
+name="过程(Procedure)与函数(Function)">过程(Procedure)与函数(Function)</a></h2>  
+<h3>1).命名</h3>  
+<p>&nbsp;  
+过程与函数名应当有意义。进行一个动作的过程最好在名称前加上表示动作的动词为前缀。例如：</p>  
+<blockquote>  
+  <p><b>procedure</b> FormatHardDrive;</p>  
+</blockquote>  
+<p>&nbsp;  
+设置输入参数值的过程名应当以Set  
+为其前缀，例如：</p>  
+<blockquote>  
+  <p><b>procedure</b> SetUserName;</p>  
+</blockquote>  
+<p>&nbsp;  
+获取数值的过程名应当以Get  
+为其前缀，例如：</p>  
+<blockquote>  
+  <p><b>function</b> GetUserName:string;</p>  
+</blockquote>  
+<h3>2).形参</h3>  
+<p>&nbsp;  
+所有形参的名称都应当表达出它的用途。如果合适的话，形参的名称最好以字母a  
+为前缀，例如：</p>  
+<blockquote>  
+  <p><b>procedure</b>  
+  SomeProc(aUserName:string;  
+  aUserAge:integer);</p>  
+</blockquote>  
+<p>&nbsp;  
+当参数名与类的特性或字段同名时，前缀a  
+就有必要了。</p>  
+<h3>3).命名冲突</h3>  
+<p>&nbsp;  
+当两个单元中含有相同名称的过程时，如果调用该过程，实际被调用的是Uses  
+子句中较后出现的那个单元中的过程。为避免这种情况，可在方法名前加想要的单元名，例如：</p>  
+<blockquote>  
+  <p>SysUtils.FindClose(SR);</p>  
+  <p>或Windows.FindClose(Handle);</p>  
+</blockquote>  
+<h2>3.2.常量（Constants）和<a name="变量(Variable)">变量(Variable)</a></h2> 
+<h3>1). 常量</h3> 
+<p>&nbsp;  
+常量的名称应当能够表达出它的用途。字符串资源常量（<b>ResourceString</b>）一般是以rs为前缀。</p> 
+<h3>2). 变量</h3> 
+<p>&nbsp;  
+变量的名称应当能够表达出它的用途。循环控制变量常常为单个字母，诸如I  
+、J 或K  
+。也可以使用更有意义的名称，例如UserIndex。布尔变量名必须能清楚表示出True  
+和False 值的意义。</p>  
+<h4>(1). 局部变量</h4>  
+<p>&nbsp;  
+局部变量遵循其他变量的命名规则。</p>  
+<h4>(2). 全局变量</h4>  
+<p>&nbsp; 全局变量一般以大写字母“G”打头，并遵循其他变量的命名规则。</p> 
+<h2>3.3.<a name="类型(Type)">类型(Type)</a></h2> 
+<h3>3.3.1.<a name="一般类型">一般类型</a></h3> 
+<h4>1). 枚举型</h4>  
+<p>&nbsp;  
+枚举类型名必须代表枚举的用途。名称前要加T字符作为前缀，表示这是个数据类型。枚举类型的标识符列表的前缀应包含2  
+- 3  
+个小写字符，来彼此关联。例如：</p>  
+<blockquote>  
+  <p>TSongType=(stRock, stClassical,  
+  stCountry, stAlternative,  
+  stHeavyMetal, stRB);</p>  
+</blockquote>  
+<p>&nbsp;  
+枚举类型的变量实例的名称与类型相同，但没有前缀T  
+，也可以给变量一个更加特殊名称，诸如：FavoriteSongTypel、FavoriteSongType2等等。</p>  
+<h3>3.3.2.<a name="构造类型">构造类型</a></h3>  
+<h4>1). 数组类型</h4>  
+<p>&nbsp;  
+数组类型名应表达出该数组的用途。类型名必须加字母“T”为前缀。如果要声明一个指向数组类型的指针，则必须加字母P  
+为前缀，且声明在类型声明之前。例如：</p>  
+<blockquote>  
+  <p><b>type</b><br>  
+  &nbsp; PCycleArray = ^TCycleArray;<br>  
+  &nbsp; TCycleArray=<b>array</b>[1..100]  
+  <b>of</b> integer;</p>  
+</blockquote>  
+<p>实际上，数组类型的变量实例与类型名称相同，但没有“T”前缀。</p>  
+<h4>2). 记录类型</h4>  
+<p>&nbsp;  
+记录类型名应表达出记录的用途。类型名必须加字母T为前缀。如果要声明一个指向记录类型的指计，则必须加字母P为前缀，且其声明在类型声明之前。例如：</p>  
+<blockquote>  
+  <p><b>type</b><br>  
+  &nbsp; PEmployee = ^TEmployee;<br>  
+  &nbsp; TEmployee = <b>record</b><br>  
+  &nbsp;&nbsp;&nbsp; EmployeeName: <b>string</b>;<br>  
+  &nbsp;&nbsp;&nbsp; EmployeeRate:  
+  Double;<br>  
+  &nbsp; <b>end</b>;</p>  
+</blockquote>  
+<h3>3.3.3.<a name="类类型(Class)">类类型(Class)</a></h3>  
+<h4>1). 命名与格式</h4>  
+<p>&nbsp;  
+类的名称应当表达出类的用途。一般的类名前要加字母“T”，如果是接口类那么类名前要加“I”，错误异常类的类名前要加“E”，而类引用类型（Class-reference  
+type）则要在类名后加“Class”，抽象类一般是在类名前还要加“Custom”。例如：</p>  
+<blockquote>  
+  <p><b>type</b><br>  
+  &nbsp; TCustomCipher = <b>class</b>(TObject);<br>  
+  &nbsp; TCipher = <b>class</b>(TCustomCipher);<br>  
+  &nbsp; ICipher = <b>interface</b>;<br>  
+  &nbsp; TCipherClass = <b>class of</b>  
+  TCustomer<br>  
+  &nbsp; ECipherException = class(Exception);</p>  
+</blockquote>  
+<p>&nbsp;  
+类的实例名称通常与类名相同，只不过没有前缀“T”。</p>  
+<blockquote>  
+  <p><b>var</b><br>  
+  &nbsp; Customer: TCustomer;</p>  
+</blockquote>  
+<p>注意:关于元件的命名，请参阅“<a  
+href="#元件类型">元件类型</a>”。</p>  
+<h4>2).字段</h4>  
+<h5>(1) 命名与格式</h5>  
+<p>&nbsp;  
+字段的命名遵循与变量相同的规则，只不过要加前缀F  
+，表示这是字段。</p>  
+<h5>(2) 可见性</h5>  
+<p>&nbsp;  
+所有字段必须为私有。如果要在类的作用域之外访问字段，可借助于类的属性来实现。</p>  
+<h4>3).方法</h4>  
+<h5>(1) 命名与格式</h5>  
+<p>&nbsp;  
+方法的命名遵循与过程和函数相同的规则。</p>  
+<h5>(2) 静态方法</h5>  
+<p>&nbsp;  
+当你不希望一个方法被派生类覆盖时，应当使用静态方法。</p>  
+<h5>(3) 虚拟方法(<b>virtual</b>)与动态方法(<b>dynamic</b>)</h5>  
+<p>&nbsp;  
+当你希望一个方法能被派生类覆盖，应当使用虚拟方法(<b>virtual</b>)。如果类的方法要被多个派生类直接或间接地使用，则应当用动态方法(<b>dynamic</b>)。例如，某一个类含有一个被频繁覆盖的方法，并有100个派生类，则应将方法定义为动态的，这样可以减少内存的开销。</p>  
+<h5>(4) 抽象方法(<b>abstract</b>)</h5>  
+<p>&nbsp;  
+如果一个类要创建实例，则不要使用抽象方法。抽象方法只能在那些从不创建实例的基类中使用。</p>  
+<h5>(5) 属性访问方法</h5>  
+<p>&nbsp;  
+所有属性访问方法应当定义在类的私有或保护部分。属性访问方法遵循与过程和函数相同的规则。用于读的方法应当加“Get”前缀，用于写的方法应当加“Set”前缀，并且有一个叫Value的参数，其类型与属性的类型相同。例如：</p>  
+<blockquote>  
+  <p>TSomeClass = <b>class</b>(TObject)<br>  
+  <b>private</b><br>  
+  &nbsp; FSomeField: Integer;<br>  
+  <b>protected</b><br>  
+  &nbsp;  
+  <b>function</b> GetSomeField: Integer;<br>  
+  &nbsp;  
+  <b>procedure</b> SetSomeField(Value:  
+  Integer);<br>  
+  <b>public<br>  
+ </b>&nbsp;  
+  <b>property </b>SomeField: Integer <b>read  
+  </b>GetSomeField <b>write</b>  
+  SetSomeField;<br>  
+  <b>end</b>;</p>  
+</blockquote>  
+<p>&nbsp;  
+尽管不是必须，但还是建议你使用写访问方法来访问代表私有字段属性。</p>  
+<h4>4).属性</h4>  
+<p>&nbsp;  
+属性作为私有字段的访问器，遵循与字段相同的命名规则，只不过没有F前缀。属性名应为名词，而不是动词。属性是数据，而方法是动作。数组属性名应当是复数，而一般的属性应当是单数。</p>  
+<h3>3.3.4.<a name="元件类型">元件类型</a></h3>  
+<h4>1). <a  
+name="元件类型的命名标准">元件类型的命名标准</a></h4>  
+<p>&nbsp;  
+元件的命名与类的命名类似，只不过当它与其它元件名称冲突时，你可以加上3个字符的前缀，用以标识公司、个人或其他实体。例如，一个时钟元件可以这样声明：</p>  
+<blockquote>  
+  <p>TddgClock = <b>class</b>(TComponent)</p>  
+</blockquote>  
+<p>注意，作为前缀的3  
+个字符要小写。</p>  
+<h4>2). <a  
+name="元件实例的命名规则">元件实例的命名规则</a></h4>  
+<p>&nbsp;  
+元件实例的名称应当能够描述其实际意义，这里命名规则使用了一个变更的匈牙利前缀命名规范。使用前缀而不使用后缀的原因是在搜寻时，在对象检查器和代码探索器中搜寻构件的名字比搜寻构件的类型更容易。在这个标准中，元件实例名包括两个部分：前缀和性质标识名。</p>  
+<h5>(1). 元件的前缀</h5>  
+<p>&nbsp;  
+元件的前缀多是表现元件类型的字母缩写。参见下面表中的元件前缀：</p>  
+<table border="1" width="639">  
+  <tr>  
+    <td width="458">元件类名</td>  
+    <td width="165">元件前缀</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TActionList, TAction表示动作的列表项</td>  
+    <td width="165">act</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TButton,  
+      TSpeedButton, TBitBtn等所有的按钮类</td>  
+    <td width="165">btn</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TCheckBox,  
+      TDBCheckBox等所有的检查框</td>  
+    <td width="165">chk</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TRadioButton单选按钮类</td>  
+    <td width="165">rdo</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TToolBar工具条</td>  
+    <td width="165">tb</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TMainMenu所有的主菜单类</td>  
+    <td width="165">mm</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TMainMenuItem所有的菜单项类</td>  
+    <td width="165">mi</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TPopupMenu所有的弹出式菜单类</td>  
+    <td width="165">pm</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TPopupMenuItem所有的弹出式菜单项类</td>  
+    <td width="165">pmi</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TLabel, TStaticText等所有用来显示的标签类</td>  
+    <td width="165">lbl</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TPanel等所有的面板类</td>  
+    <td width="165">pnl</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TPageControl等所有的页式控件类</td>  
+    <td width="165">pgc</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TEdit, TMaskEdit等所有的单行编辑框类</td>  
+    <td width="165">edt</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TMemo, TRichEdit等所有的多行编辑框类</td>  
+    <td width="165">mmo</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TDrawGrid,  
+      TStringGrid等所有的网格类</td>  
+    <td width="165">grd</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TAnimate等所有的动画类</td>  
+    <td width="165">ani</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TImageList等所有的图片列表类</td>  
+    <td width="165">il</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TImage等图片类</td>  
+    <td width="165">img</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TChart图表类</td>  
+    <td width="165">cht</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TComboBox,  
+      TDBComboBox等所有的下拉式列表框类</td>  
+    <td width="165">cbo</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TListBox, TDBList等所有的列表框类</td>  
+    <td width="165">lst</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TTreeView</td>  
+    <td width="165">tv</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TListView</td>  
+    <td width="165">lv</td>  
+  </tr>  
+  <tr>  
+    <td width="458">THotKey</td>  
+    <td width="165">hk</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TSplitter等所有的分隔符类</td>  
+    <td width="165">spt</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TOpenDialog等所有的对话框元件类</td>  
+    <td width="165">dlg</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TTable等所有的数据表类</td>  
+    <td width="165">tbl</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TQuery等所有的SQL查询类元件</td>  
+    <td width="165">qry</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TClientDataSet所有的客户数据集元件</td>  
+    <td width="165">cds</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TDataSource</td>  
+    <td width="165">ds</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TDatabase</td>  
+    <td width="165">db</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TSockConnection,TDCOMConnection等连接元件类</td>  
+    <td width="165">con</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TQuickRep,  
+      TFastReport等所有的报表元件类</td>  
+    <td width="165">rpt</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TDDEClientConv,TDDEClientItem等所有的DDE元件类</td>  
+    <td width="165">dde</td>  
+  </tr>  
+  <tr>  
+    <td width="458">TMonthCalendar等所有的日历类</td>  
+    <td width="165">cal</td>  
+  </tr>  
+  <tr> 
+    <td width="458">TGroupBox等控件类</td>  
+    <td width="165">grp</td>  
+  </tr> 
+  <tr>  
+    <td width="458">TForm等窗体类</td> 
+    <td width="165">frm</td> 
+  </tr> 
+</table> 
+<p>&nbsp;  
+如上所示，元件类型前缀是从分析描述元件的类型性质而来的。通常情况下，下面的规则描述如何定义一个元件类型前缀：</p>  
+<ul>  
+  <li>从元件类型名中移去T前缀。例如TButton变成Button。</li>  
+  <li>除了第一个元音，删去所有元音字母。例如，Button变成bttn，Edit变成edt。</li>  
+  <li>压缩双字母。例如，bttn变成btn。</li>  
+  <li>如发生冲突，则在某一元件前缀中加入一个元音。例如在TBatton元件的前缀中加入元音变为batn，以区别TButton的前缀。</li>  
+</ul>  
+不过，上述规则首先得保证前缀名称必须符合习惯，做到见名知意，如:TDDEClientConv控件的前缀就是一个例外。  
+<p>注意：元件的前缀是为了表示出元件的类型，是按钮，还是标签等等，因此没有必要为每一个特别元件类建立一个元件前缀，如:  
+TMyButton的元件前缀仍为btn。</p>  
+<h5>(2). 元件性质标识名</h5>  
+<p>&nbsp;  
+元件性质标识名是元件意图的描述。例如，一个用于关闭窗体的TButton元件实例可命名为btnClose。一个编辑姓名的元件实例可命名为edtName。</p>  
+<h3><b>3.3.5.<a name="窗体类型">窗体与对话框类型</a></b></h3>  
+<h4>1). <a  
+name="窗体类型的命名标准"> 窗体类型的命名标准</a></h4>  
+<p>&nbsp; 窗体或对话框类型的名称应当表达出窗体的用途，如果是窗体要加“Tfrm”前缀，如果是对话框要加“Tdlg”，后跟描述性名。例如，About窗体类型名称为：</p>  
+<blockquote>  
+  <p>TfrmAbout = <b>class</b>(TForm)</p>  
+</blockquote>  
+<p>主窗体的类型名称为:</p>  
+<blockquote>  
+  <p>TfrmMain = <b>class</b>(TForm)</p>  
+</blockquote>  
+<p>客户登录窗体的类型名称为:</p>  
+<blockquote>  
+  <p>TfrmCustomerEntry = <b>class</b>(TForm)</p>  
+</blockquote>  
+<p>登陆对话框的类型名称为：</p>  
+<blockquote>  
+  <p>TdlgLogin = <b>class</b>(TForm)</p>  
+</blockquote>  
+<h4>2). <a  
+name="窗体实例的命名标准"> 窗体实例的命名标准</a></h4>  
+<p>&nbsp;  
+窗体实例的名称与相应的类型名称相同，但没有前缀T  
+。使用前缀法命名窗体和对话框的好处在于可以在Object  
+Inspector（属性观察器）中快速找到需要的元件类型。例如，前面提到的窗体类型与实例的名称为：</p> 
+<table border="1" width="100%"> 
+  <tr> 
+    <td>类型名</td> 
+    <td>实例名</td> 
+  </tr> 
+  <tr> 
+    <td>TfrmAbout</td> 
+    <td>frmAbout</td> 
+  </tr> 
+  <tr> 
+    <td>TfrmMain</td> 
+    <td>frmMain</td> 
+  </tr> 
+  <tr> 
+    <td>TfrmCustomerEntry</td> 
+    <td>frmCustomerEntry</td> 
+  </tr> 
+  <tr> 
+    <td>TdlgLogin</td> 
+    <td>dlgLogin</td> 
+  </tr> 
+</table> 
+<h4>3). <a name="自动创建的窗体"> 自动创建的窗体</a></h4>  
+<p>&nbsp; 除非特别原因,只有主窗体才自动生成。其他所有窗体必须从Project  
+Options对话框的自动生成列表中删除。更进一步信息,请参阅后面几节。</p>  
+<h4>4). <a  
+name="模式窗体实例化函数"> 模式窗体实例化函数</a></h4>  
+<p>&nbsp;  
+所有窗体单元都应当含有实例化函数，用于创建、设置、模式显示和释放窗体。这个函数将返回由窗体返回的模式结果。传递给这个函数的参数遵循参数传递的规则。之所以要这样封装，是为了便于代码的重用和维护。</p>  
+<p>&nbsp;  
+窗体的变量应当从单元中移走，改在窗体实例化函数中作为局部变量定义(注意，要求从Project  
+Options对话框的自动生成列表中移走该窗体。请看前面的内容。</p>  
+<p>例如，下面的单元文件演示了GetUserData的实例化函数。</p>  
+<p><b>Unit</b> UserDataFrm;</p>  
+<p><b>Interface</b></p>  
+<p><b>Uses<br>  
+&nbsp; </b>Windows, Messages, SysUtils,  
+Classes, Graphics, Controls, Forms,<br>  
+&nbsp; Dialogs, StdCtrls;</p>  
+<p><b>Type</b></p>  
+<p>&nbsp; TfrmUserData = <b>class</b>(TForm)<br>  
+&nbsp;&nbsp;&nbsp; edtUserName: TEdit;<br>  
+&nbsp;&nbsp;&nbsp; edtUserID: TEdit;<br>  
+&nbsp; <b>private<br>  
+&nbsp; </b><i><font color="#0000FF">{  
+Private declarations }</font></i><br>  
+&nbsp; <b>public<br>  
+&nbsp; </b><i><font color="#0000FF">{  
+Public declarations }</font></i><br>  
+&nbsp; <b>end</b>;</p>  
+<p><b>function</b> GetUserData(<b>var</b>  
+aUserName: <b>String</b>;<b>var</b>  
+aUserID: Integer): Word;</p>  
+<p><b>implementation</b></p>  
+<p><i><font color="#0000FF">{$R *.DFM}</font></i></p>  
+<p><b>function</b> GetUserData(<b>var</b>  
+aUserName: <b>String</b>;<b>var</b>  
+aUserID: Integer): Word;<br>  
+<b>var<br>  
+&nbsp; </b>frmUserData: TfrmUserData;<br>  
+<b>begin<br>  
+&nbsp; </b>frmUserData :=  
+TfrmUserData.Create(Application);<br>  
+&nbsp; frmUserData.Caption:='Getting  
+User Data' ;<br>  
+&nbsp; Result : = frmUserData.ShowModal;<br>  
+&nbsp; <b>if </b>Result=mrOK <b>then<br>  
+&nbsp; begin<br>  
+&nbsp;&nbsp;&nbsp; </b>aUserName :=  
+frmUserData.edtUserName.Text;<br>  
+&nbsp;&nbsp;&nbsp; aUserID :=  
+StrToInt(frmUserData.edtUserID.Text);<br>  
+&nbsp; <b>end</b>;<br>  
+&nbsp; <b>finally<br>  
+&nbsp;&nbsp;&nbsp; </b>frmUserData.Free;<br>  
+&nbsp; <b>end</b>;<br>  
+<b>end</b>;</p>  
+<p><b>End</b>.</p>  
+<h4>5).<a  
+name="窗体框架与复合窗体">窗体框架与复合窗体</a></h4>  
+<p>&nbsp;  
+如果一个窗体结构过于复杂，就必须将其分化成为一个主窗体框架以及嵌入到主窗体框架的若干子窗体框架。如：</p>  
+<blockquote>  
+<p>TfrmMainFrame:  
+TfrmInfoFrame,TfrmEditorFrame</p>  
+</blockquote>  
+<p>&nbsp;  
+使用窗体框架，主要是为了解决界面和代码复用问题，以及提高单元代码的内聚力（划分后，每一个窗体框架为一个独立单元），从而提高软件工程质量。你必须提炼出界面关联代码（可复用的）和应用关联代码（不能复用的）。</p>  
+<h3>3.3.6.<a name="数据模块类型">数据模块类型</a></h3>  
+<h4>1). 数据模块的命名标准</h4>  
+<p>&nbsp;  
+数据模块类型名称应表达出它的用途，且要加前缀“Tdm”，后跟描述性名称。例如，Customer数据模块的类型名称为：</p>  
+<blockquote>  
+  <p>TdmCustomer = <b>class</b>(TDataModule)</p>  
+</blockquote>  
+<p>Orders  
+数据模块的类型名称为：</p>  
+<blockquote>  
+  <p>TdmOrder = <b>class</b>(TDataModule)</p>  
+</blockquote>  
+<h4>2).  
+数据模块实例的命名标准</h4>  
+<p>&nbsp;  
+数据模块实例的名称应当与相应的类型名称相同，但没有前缀T  
+。例如，前面的数据模块类型、实例名称如下：</p>  
+<table border="1" width="100%">  
+  <tr>  
+    <td>类型名称</td>  
+    <td>实例名</td>  
+  </tr>  
+  <tr>  
+    <td>TdmCustomer</td>  
+    <td>dmCustomer</td>  
+  </tr>  
+  <tr>  
+    <td>TdmOrder</td>  
+    <td>dmOrder</td>  
+  </tr>  
+</table>  
+<h2>3.4.<a name="文件">文件</a></h2>  
+<p>&nbsp;  
+建议在所有源文件、项目文件和单元文件使用结构化的文件头信息。一个文件头至少应包含以下信息：</p>  
+<blockquote>  
+  <p><i><font color="#0000FF">{<br>  
+  Copyright @ Year by Authors<br>  
+  }</font></i></p>  
+</blockquote>  
+<p>&nbsp; 详细说明，请参阅：<a href="#单元文件注释文档格式">单元文件注释文档格式</a>。</p>  
+<h3>3.4.1.<a name="项目文件">项目文件</a></h3>  
+<p>&nbsp;  
+项目文件的名称应当具有描述意义。例如，“The  
+Delphi 5 Developer’s Guide Bug Manager  
+”的项目名称为DDGBugs.dpr，一个系统信息程序的名称为SysInfo.dpr。</p>  
+<h3>3.4.2.<a name="窗体文件">窗体文件</a></h3>  
+<p>&nbsp;  
+窗体文件的名称应当表达出窗体的用途，且具有Frm后缀。例如，About窗体的文件名叫AboutFrm.dfm，主窗体的文件名叫MainFrm.dfm。</p>  
+<h3>3.4.3.<a name="数据模块文件">数据模块文件</a></h3>  
+<p>&nbsp;  
+数据模块文件的名称应当表达出数据模块的作用，且具有DM后缀。例如，Customers数据模块的文件名叫CustomersDM.dfm。</p>  
+<h3>3.4.4.<a  
+name="远程数据模块文件">远程数据模块文件</a></h3>  
+<p>&nbsp;  
+远程数据模块文件的名称应当表达出远程数据模块的用途。名称后要加RDM后缀。例如，Customers远程数据模块的文件叫CustomersRDM.dfm。</p>  
+<h3>3.4.5.<a name="单元文件">单元文件</a></h3>  
+<h4>1). <a name="普通单元">普通单元</a></h4>  
+<h5>(1) 单元名</h5>  
+<p>&nbsp;  
+单元的名称应当有描述性。例如，应用程序的主窗体单元叫MaimFrm.pas。</p>  
+<h5>(2) <b>Uses</b> 子句</h5>  
+<p>&nbsp; Interface部分的Uses子句应当只包含该部分需要的单元。不要包含可能由Delphi自动添加的单元名。Implementation部分的Uses子句应当只包含该部分需要的单元，不要有多余的单元。</p>  
+<h5>(3) <b>Interface</b> 部分</h5>  
+<p>&nbsp; Interface部分应当只包含需要被外部单元访问的类型、变量、过程与函数的声明。而且，这些声明应当在Implementation部分之前。</p>  
+<h5>(4) <b>Implementation</b> 部分</h5>  
+<p><b>&nbsp; </b>Implementation部分包括本单元私有的类型、变量、过程与函数的实现。</p>  
+<h5>(5) <b>Initialization</b> 部分</h5>  
+<p>&nbsp; 不要在Initialization部分放置花费时间很多的代码。否则，将导致应用程序启动时显得很慢。</p>  
+<h5>(6) <b>Finalization</b> 部分</h5>  
+<p>&nbsp; 确保释放所有在Initialization部分中分配的资源。</p>  
+<h4>2).<a name="窗体单元">窗体单元</a></h4>  
+<p>&nbsp;  
+窗体单元文件的名称与相应的窗体名称相同，只是要将前缀变成后缀。例如，About窗体的单元名称叫AboutFrm.pas。主窗体的单元文件名称叫MainFrm.pas。</p>  
+<h4>3).<a name="数据模块单元">数据模块单元</a></h4>  
+<p>&nbsp;  
+数据模块单元文件的名称与相应的数据模块名称相同。例如，数据模块单元的名称叫CustomersDM.pas。</p>  
+<h4>4).<a name="通用单元">通用单元</a></h4>  
+<p>&nbsp;  
+通用单元是用于存放函数库，一般类型，或常量而非元件的单元。通用单元的名称应当表达出它的用途，名称前要加“u”前缀。例如，一个实用调试工具单元的名称叫uDebugUtilities.pas，包含全局变量的单元名称叫uCustomerGlobals.pas。</p>  
+<p>注意，一个项目中单元名称必须是唯一的。通用单元名不能重名。</p>  
+<h4>5).<a name="元件单元">元件单元</a></h4>  
+<h5>(1). 命名</h5>  
+<p>&nbsp;  
+元件单元应放在单独的路径中，以表明它们是定义元件的单元。它们一般与项目不放在同一路径下。单元文件名称应表达出其内容。</p>  
+<p>注意，有关元件命名标准的更多信息，请参阅<a  
+href="#元件类型的命名标准">“元件类型的命名标准”</a>。</p>  
+<p>&nbsp;  
+元件单元只能含有一个主要元件，这是指出现在元件选项板上的元件。其他辅助性的元件或对象也可以包含在同一单元中。</p>  
+<h5>(2). 注册单元</h5>  
+<p>&nbsp;  
+元件的注册过程应当从元件单元中移走，放在一个单独的单元中。这个注册单元用于注册所有元件、属性编辑器、元件编辑器、向导等。</p>  
+<p>&nbsp;  
+元件注册应当在设计期包中进行。因此，注册单元应当包含在设计期包而不是运行期包中。建议注册单元这样命名：</p>  
+<blockquote>  
+  <p>xxxReg.pas</p>  
+</blockquote>  
+<p>其中，xxx字符前缀，以标识元件包名称或公司、个人、其他实体。例如，注册单元命名为xxxReg.pas。</p>  
+<h4>6).<a  
+name="包文件（.dpk）命名规则">包文件（.dpk）命名规则</a></h4>  
+<h5>(1). 运行期包与设计期包</h5>  
+<p>&nbsp;  
+运行期包中应当只包含所需要的单元。那些属性编辑器和元件编辑器的单元应当放在设计期包中。注册单元也应当放在设计期包中。</p>  
+<h5>(2). 文件命名标准</h5>  
+<p>&nbsp;  
+包的命名遵循下列模式：</p>  
+<blockquote>  
+  <p>dcl<b>iii</b>Desc<b>vvCn</b>.pkg  
+  —设计期包<br>  
+  <b>iii</b>Desc<b>vvCn</b>.pkg&nbsp;&nbsp;&nbsp;  
+  —运行期包</p>  
+</blockquote>  
+<p>&nbsp; 其中，iii代表一个2-3字符的前缀，用于标识公司、个人或其他需要标识的事情，也可不要；Desc表示该控件包的简短描述；vv代表包的版本号，你可以根据需要取舍；前缀“dcl”表示设计期包，没有该前缀表示运行期包；字母“Cn”表示编译器类型与编译器版本号，如：Delphi5=D5,  
+Delphi4=D4, CBuilder3=C3...。</p>  
+<p>注意包名称中的lib或std分别表示这是设计期包还是运行期包。例如：</p>  
+<blockquote>  
+  <p>dclrbStdCompsD5.pkg —Delphi 5的设计期包<br>  
+  rbStdCompsD5.pkg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;—Delphi 5的运行期包</p>  
+</blockquote>  
+<h2>3.5 <a name="内置汇编">内置汇编</a></h2> 
+<p><b>&nbsp;内置汇编</b>也遵循本章关于命名和缩进的规则。</p> 
+<h1>4.<a name="源程序文档注释规范">源程序文档注释规范</a></h1> 
+<p>  我们书写注释的目的主要有二：一是为自己以后阅读源程序提供方便；二是为建立规范的程序文档手册，提供接口说明。我这里主要阐述的是如何建立规范的程序文档手册。</p> 
+<p>我们将通过文档（源程序文件联机注释）定义标准的Delphi  
+类（函数等）的概要设计规范（official Delphi Class API  
+Specification），以及定义Delphi  
+类（函数等）的编程指南手册。因此，我们可以以两种方式来写程序文档（注释），一是作为概要设计的规范，二是作为编程手册。两种程序文档既有差别，又有它们共同的地方，因此，它们可以同时写在源程序文档注释中，它们两者的差别在下面有说明。</p>  
+<blockquote>  
+  <p><b>编写 Delphi 概要设计规范</b></p>  
+  <blockquote>  
+    <p>TODO: &lt;略&gt;</p>  
+  </blockquote>  
+  <p><b>编写编程指南文档</b></p>  
+  <blockquote>  
+    <p>在概要设计规范的基础上，增加了教程，例子程序，等等，并对目录结构进行了重新设计组织和整理。</p>  
+  </blockquote>  
+</blockquote>  
+<h2><a name="注释文档的一般规范">注释文档的一般规范</a></h2>  
+<p><b><a name="注释位置">注释位置</a></b></p>  
+<p>为源程序的相关元素添加文档注释很简单，你只需要将注释放在元素的声明（Interface）部分（如果是接口函数或类方法）或实现（implementation）部分（如果是私有函数）。例如：</p>  
+<p>(for Object Pascal)  
+<div class="codeblock">  
+  <div class="code">  
+    <pre class="code">   { The Sort function sorts the list.}
+   <strong>function</strong> MyList.Sort(Options: Integer): BOOLEAN;
+   <strong>begin</strong>
+     [...]
+   <strong>end</strong>;</pre>  
+  </div>  
+</div>  
+<p>(for C++)  
+<div class="codeblock">  
+  <div class="code">  
+    <pre class="code">   // The Sort function sorts the list.
+   <strong>bool</strong> MyList::Sort(<strong>int</strong> Options)
+   {
+     [...]
+   }</pre>  
+  </div>  
+</div>  
+<p><b><a name="注释块">注释块</a></b></p>  
+注释块是由一系列的没有被空行分开的单行注释构成的，下面就是一个注释块：  
+<div class="codeblock">  
+  <div class="code">  
+    <pre class="code">   // This is the first sentence.
+   // This is the second,
+   // and this the third</pre>  
+  </div>  
+</div>  
+<p class="defaultsectiontext">而下面的注释则是两个注释块，因为它们之间有一个空行把它们分开了：  
+<div class="codeblock">  
+  <div class="code">  
+    <pre class="code">   // This is the first sentence.
+
+   // This is the second,
+   // and this the third</pre>  
+  </div>  
+</div>  
+<p class="defaultsectiontext">许多文档注释分析工具（如：Doc-O-Matic）会将注释块内的所有的句子自动连接在一起，形成一文字段落，如：  
+<div class="codeblock">  
+  <div class="code">  
+    <pre class="code">   // This is the first sentence.
+   // This is the second,
+   // and this the third</pre>  
+  </div>  
+</div>  
+<p class="defaultsectiontext">经过分析工具生成的文档文本为：  
+<pre class="defaultsectiontext">   This is the first sentence. This is the second, and this the third.</pre>  
+<p><b><a name="忽略文档注释">忽略文档注释</a></b></p>  
+<p>当注释行前用“##”开头时，该行注释将被文档注释分析工具忽略，该行不会生成到文档中。如：</p>  
+<div class="codeblock">  
+  <div class="code">  
+    <pre class="code">   //## This line will be ignored.</pre>  
+  </div>  
+</div>  
+<p>包含有如下标识符的注释块也不会被生成到文档中去：</p>  
+<p>&quot;Ignore Text&quot;, &quot;$Log&quot;, &quot;$Filename&quot;,  
+&quot;$Revision&quot;, &quot;$Date&quot;, &quot;$Author&quot;,  
+&quot;$History&quot;, &quot;$Id&quot;</p>  
+<h2><a name="单元文件注释文档格式">单元文件注释文档格式</a></h2>  
+<p>用于描述该单元的用途，作者，功能。放于单元文件的最前面：</p>  
+<div class="codeblock">  
+<pre class="code">
+<font color="#0000FF">{
+  ##Unit Name: %UNIT%
+  ##Initial Date: %DATE%
+  Summary
+    该单元的摘要说明。
+
+  Description
+    该单元的详细说明。
+
+  See Also
+    参阅
+
+  Bugs
+    已知问题。
+
+  Internal
+    内部开发人员参阅，不会对外。
+
+  TODO
+    待作事项。
+
+  Author
+    Riceball LEE(riceball@cq118.com)
+    Riceball LEE(riceballl@hotmail.com)
+
+  Copyright
+    Copyright(C) %YEAR% by Riceball LEE
+
+  Current Version
+    当前版本号
+
+  History
+    版本历史。
+}
+
+</font>
+<b>unit</b> xxx;
+</pre>  
+</div>  
+  
+<h2><a name="函数（属性）的注释文档格式">函数（属性）的注释文档格式</a></h2>  
+<div class="codeblock">  
+<pre class="code">
+<font color="#0000FF">{
+  ##Procedure: %PROCNAME%
+  ##Date:      %DAY%-%MONTHSHORTNAME%-%YEAR%
+  Summary
+    该函数（属性）的摘要说明。
+
+  Parameters
+    %ARGUMENTS%
+
+  Returns
+    %RESULT%
+
+  Conditions
+    调用该方法（函数）可能需要的条件
+
+  Exceptions
+    该方法（函数）有可能触发的异常。
+
+  Description
+    该函数（属性）的详细说明。
+
+  See Also
+    参阅
+
+  Bugs
+    已知问题。
+
+  Internal
+    内部开发人员参阅，在正式发布的文档中不会发布。
+
+  TODO
+    待作事项。
+
+  Author
+    Riceball LEE(riceball@cq118.com)
+    Riceball LEE(riceballl@hotmail.com)
+
+  Copyright
+    Copyright(C) %YEAR% by Riceball LEE
+
+  Current Version
+    当前版本号
+
+  History
+    版本历史。
+}
+</font>
+<b>function</b> xxx;
+</pre>  
+</div>  
+  
+<h1>5.<a name="Delphi代码自动格式化工具">Delphi代码自动格式化工具</a></h1>  
+<p>尽管大多数的代码自动格式化工具能够帮你重排源程序格式，以及更新保留字和标示符的大小写，但是这最好在使用版本控制前进行，如果你已经使用了版本控制，建议你不要轻易使用代码自动格式化工具，哪怕多一个空格，版本控制工具也会认为该行已被修改，从而给程序管理带来不变。</p>  
+<h1>6.<a name="代码标准文档更新">代码标准文档更新</a></h1>  
+<p>关于Delphi代码标准的最新文档，你可以在 <a  
+href="http://dev.cq118.com/web/">http://dev.cq118.com/web/</a>  
+处获得。</p>  
+<h1>7.<a name="参考">参考</a></h1>  
+<p><a href="http://www.xapware.com/ddg" target="_blank">Delphi 程序设计编码规范 For 《Delphi Development Guide》</a>(E)  
+<p><a  
+href="Pascal%20Standards%20FAQ.htm">Pascal Standards FAQ</a> (E)  
+<p><a href="http://java.sun.com/j2se/javadoc">JavaDoc</a> （E）  
+<p><a href="http://www.doc-o-matic.com/">Doc-O-matic Document</a> (E)  
+<p>Artemis Alliance Delphi Coding Standards (E)  
+<p>Borland官方Object Pascal书写风格指南 (E)  
+  
+</body>  
+  
+</html>  

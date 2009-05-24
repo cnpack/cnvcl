@@ -1,0 +1,2 @@
+These Demos can only run after Delphi 6.
+Delphi 5 not supported.

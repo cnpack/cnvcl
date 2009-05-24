@@ -1,0 +1,32 @@
+CnPack开发组2003年四月份工作总结：
+
+春末夏初，非典的流行并未影响到大家的热情，CnPack继续保持了进步和成长。
+
+一、2003年4月份取得的主要成果：
+
+  1. 专家包中增加组件前缀专家（HubDog）、控件对齐缩放专家（王玉宝）以及IDE扩展功能。 
+  2. riceball和周劲羽讨论提出了MutiLang多语言设计方案与文档。 
+  3. 专家包完善了帮助文档，新增错误报告及建议向导，用户反馈明显增多。 
+  4. 启用新CVS服务器，感谢曹晓钢。 
+  5. 随着项目规模的扩大，开发组成员LiuXiao开始负责部分日常管理的任务。 
+
+二、2003年5月初步计划：
+
+  1. 继续完善MutiLang设计并着手开始编码测试等工作。 
+  2. 发布新的基于 PHP+MySQL 的开发网站，并将邮件、FTP等内容逐渐迁移至新的服务器。 
+  3. 继续完善相关的文档，加强开发的规范性，增进成员内部交流。 
+  4. 如果顺利，计划发布CnWizards外部测试版。 
+
+    开发网站：http://www.cnpack.org
+　　开发论坛：http://bbs.cnpack.org
+　　管理员信箱：master@cnpack.org
+
+项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip
+IDE专家包：http://cnpack.cosoft.org.cn/download/CnWizards.exe
+
+
+　　团结奋斗！！
+　　共同进步！！
+
+                                          CnPack开发组 LiuXiao、周劲羽
+                                                              2003-05-07

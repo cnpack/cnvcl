@@ -1,0 +1,104 @@
+CnPack开发组2007年上半年度工作总结
+
+    CnPack 在 2007 年上半年取得的主要成绩如下：
+
+一、CnPack IDE 专家包（CnWizards 0.8.1）荣获 2006 中国第二届开源软件竞赛专业组金奖。2007年3月27日管理员刘啸代表 CnPack 开发组赴北京参加了比赛答辩和颁奖仪式。
+
+    相关报道：
+    http://osscontest.cosoft.org.cn/bjzp4.php
+    http://bbs.cnpack.org/viewthread.php?tid=1508&extra=page%3D1
+
+    InfoQ 对 CnPack 的采访：
+    http://www.infoq.com/cn/news/2007/04/cnpack
+   
+二、CnPack IDE 专家包为 0.8.2 的发布做了大量工作，目前 0.8.2 的每日构建版以及新功能预览版中已经增加了对 Delphi 2007、Windows Vista 等的支持，增加了脚本专家、新式引用对话框等新功能，代码输入助手也增加了对 BDS 的支持；专家包源码中增加了一工具 CnCustBuild，可供高级用户对源码进行自定义编译，以获得只需要某些特定功能的自定义专家版本；用户报告的许多其它问题也得到了修正。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+
+三、CnPack 公益基金开通了淘宝帐户，可以以拍卖的方式接受用户捐助。
+    链接：
+    http://www.cnpack.org/foundation.php
+
+四、CnMISFrame 取得一定进展，但部分代码有问题，暂不能开放给用户下载使用。代码格式化专家开发已停滞。
+
+    今年下半年 CnPack 开发组的计划如下：
+
+一、CnWizards 继续进行功能完善与问题修复，准备发布 0.8.2 正式版，增加对 Delphi 2007 和 Windows Vista 等的支持，也可能包括对 C++Builder 2007 的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。目前据升级数据统计，CnWizards 的国内外用户数目保守估计已经超过了四千，希望能继续进一步扩大用户群。
+
+三、补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部邮件列表：bbs@cnpack.org
+    CnPack 开发组内部 QQ 群：CnPack I: 359682，CnPack IV: 130970
+    （注：邮件列表与 QQ 群原则上只供开发组成员使用与加入）
+
+    团结奋斗！！共同进步！！
+
+
+                                               CnPack开发组 刘啸、周劲羽
+                                                              2007-06-15
+
+
+========================================================================
+
+CnPack Working Report in the First Half of 2007
+
+    Below are the achievements of CnPack in the First Half of 2007:
+
+1. CnPack IDE Wizards (0.8.1) Gets Golden Award of 2006 China's Open Source Software Contest, Professional Team. CnPack Administrator Liu Xiao, on behalf of CnPack Team, attend the victory ceremony in Beijing in 27th, March.
+
+   Links(Chinese):
+   http://osscontest.cosoft.org.cn/bjzp4.php
+   http://bbs.cnpack.org/viewthread.php?tid=1508&extra=page%3D1
+
+   (English):
+   http://www.linux.com/article.pl?sid=07/04/23/1825214
+
+2. CnPack IDE Wizards is preparing for 0.8.2. Now nightly and preview version of 0.8.2 has been published and is beta testing. The change list includes:
+
+    I. Add support to Delphi 2007 and Windows Vista.
+    II. Add Pascal Script Wizard. Users can write Pascal Script to control the IDE.
+    III. Code Input Helper starts to support BDS.
+    IV. A Customized CnWizards Build Tool "CnCustBuild" Added into CnWizards Source Code. Users can build a customized CnWizards only containing the functions they need.
+    V. Other bugs fixed. 
+
+3. CnPack Foundation now can accept Donation at taobao.com (Chinese). For English, please visit SourceForge:
+   https://sourceforge.net/project/project_donations.php?group_id=110999   
+
+4. CnMisFrame partly done, but can not be published for its code problem. And Code formatter stopped.
+
+    Below is the plan of CnPack for next half year of 2007:
+
+1. Publish CnWizards 0.8.2 with support to Delphi 2007 and Windows Vista. Support to C++Builder 2007 is in plan.
+
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're about 4000 CnWizards users by the middle of 2007. We hope this number can increase considerably in the next half year.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack Team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682;  CnPack IV: 130970
+    (Note: Mailing list and QQ group are only used by CnPack Members.)
+
+    Let's do it well!
+
+
+                               CnPack Administrator: Liu Xiao, Zhou JingYu
+                                                                2007-06-15

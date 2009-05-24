@@ -1,0 +1,183 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.06.00"/>
+    <PROJECT value="dclCnPack_CB6.bpl"/>
+    <OBJFILES value="dclCnPack_CB6.obj ..\..\Source\Common\CnPropEditors.obj 
+      ..\..\Source\Common\CnOTAUtils.obj
+      ..\..\Source\Common\CnCompAboutFrm.obj 
+      ..\..\Source\Common\CnPackRegister.obj 
+      ..\..\Source\DbReport\CnDBRegister.obj 
+      ..\..\Source\DbReport\CnDHibernateAbout.obj
+      ..\..\Source\DbReport\CnADOUpdateSQLEditor.obj 
+      ..\..\Source\DbReport\CnADOUpdateSQLFrm.obj 
+      ..\..\Source\Graphics\CnGraphPropEditors.obj 
+      ..\..\Source\Graphics\CnGraphRegister.obj 
+      ..\..\Source\Graphics\CnAAFontEditor.obj
+      ..\..\Source\MultiLang\CnLangEditors.obj 
+      ..\..\Source\MultiLang\CnLangReg.obj 
+      ..\..\Source\MultiLang\CnTransEditor.obj 
+      ..\..\Source\MultiLang\CnTransFilter.obj
+      ..\..\Source\NetComm\CnNetPropEditor.obj 
+      ..\..\Source\NetComm\CnNetRegister.obj 
+      ..\..\Source\NonVisual\CnCompRegister.obj 
+      ..\..\Source\NonVisual\CnASPropEditors.obj
+      ..\..\Source\NonVisual\CnDockPropertyReg.obj"/>
+    <RESFILES value="dclCnPack_CB6.res"/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) ..\..\Source\Common\CnCompAboutFrm.dfm 
+      ..\..\Source\DbReport\CnADOUpdateSQLFrm.dfm ..\..\Source\DbReport\CnDHibernateAbout.dfm 
+      ..\..\Source\MultiLang\CnTransEditor.dfm ..\..\Source\MultiLang\CnTransFilter.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value=""/>
+    <SPARELIBS value="rtl.lib vcl.lib vclx.lib vcldb.lib dclado.lib"/>
+    <PACKAGES value="rtl.bpi vcl.bpi vclx.bpi vcldb.bpi adortl.bpi CnPack_CB6.bpi dclado.bpi designide.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;..\..\Source\Common;..\..\Source\DbReport;..\..\Source\Graphics;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="ilink32"/>
+    <USERDEFINES value="_DEBUG"/>
+    <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
+    <MAINSOURCE value="dclCnPack_CB6.cpp"/>
+    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi"/>
+    <LIBPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;..\;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi"/>
+    <WARNINGS value="-w-par"/>
+    <OTHERFILES value=""/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-I..\..\Source\NonVisual -I..\..\Source\NetComm -I..\..\Source\MultiLang 
+      -I..\..\Source\Graphics -I..\..\Source\Common -I..\..\Source\DbReport -I..\. 
+      -I$(BCB)\include -I$(BCB)\include\vcl 
+      -I$(BCB)\source\toolsapi -src_suffix cpp -D_DEBUG -boa"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Hc -Vx -Ve -X- -r- -a8 
+      -b- -k -y -v -vi- -c -tWM"/>
+    <PFLAGS value="-$YD -$W -$O- -$A8 -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zd"/>
+    <LFLAGS value="-D&quot;CnPack Components Designtime Package&quot; -aa -Tpp -Gpd -x -Gn -Gl -Gi -v"/>
+    <OTHERFILES value=""/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0pkg32.obj $(PACKAGES) Memmgr.Lib sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib"/>
+    <OTHERFILES value=""/>
+  </LINKER>
+  <FILELIST>
+      <FILE FILENAME="dclCnPack_CB6.cpp" FORMNAME="" UNITNAME="dclCnPack_CB6" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="dclCnPack_CB6.res" FORMNAME="" UNITNAME="dclCnPack_CB6.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnPropEditors.pas" FORMNAME="" UNITNAME="CnPropEditors" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnCompAboutFrm.pas" FORMNAME="CnCompAboutForm" UNITNAME="Cncompaboutfrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnPackRegister.pas" FORMNAME="" UNITNAME="CnPackRegister" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\DbReport\CnDBRegister.pas" FORMNAME="" UNITNAME="CnDBRegister" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\DbReport\CnDHibernateAbout.pas" FORMNAME="CnFormDHibernateAbout" UNITNAME="Cndhibernatesbout" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\DbReport\CnADOUpdateSQLEditor.pas" FORMNAME="" UNITNAME="CnADOUpdateSQLEditor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\DbReport\CnADOUpdateSQLFrm.pas" FORMNAME="CnADOUpdateSQLForm" UNITNAME="Cnadoupdatesqlfrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphics\CnGraphPropEditors.pas" FORMNAME="" UNITNAME="CnGraphPropEditors" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphics\CnGraphRegister.pas" FORMNAME="" UNITNAME="CnGraphRegister" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\MultiLang\CnLangEditors.pas" FORMNAME="" UNITNAME="CnLangEditors" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\MultiLang\CnLangReg.pas" FORMNAME="" UNITNAME="CnLangReg" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\MultiLang\CnTransEditor.pas" FORMNAME="FrmTransEditor" UNITNAME="Cntranseditor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NetComm\CnNetPropEditor.pas" FORMNAME="" UNITNAME="CnNetPropEditor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NetComm\CnNetRegister.pas" FORMNAME="" UNITNAME="CnNetRegister" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NonVisual\CnCompRegister.pas" FORMNAME="" UNITNAME="CnCompRegister" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NonVisual\CnASPropEditors.pas" FORMNAME="" UNITNAME="CnASPropEditors" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NonVisual\CnDockPropertyReg.pas" FORMNAME="" UNITNAME="CnDockPropertyReg" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\MultiLang\CnTransFilter.pas" FORMNAME="FrmTransFilter" UNITNAME="CnTransFilter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="rtl.bpi" FORMNAME="" UNITNAME="rtl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="vcl.bpi" FORMNAME="" UNITNAME="vcl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="vclx.bpi" FORMNAME="" UNITNAME="vclx" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="vcldb.bpi" FORMNAME="" UNITNAME="vcldb" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="adortl.bpi" FORMNAME="" UNITNAME="adortl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="CnPack_CB6.bpi" FORMNAME="" UNITNAME="CnPack_CB6" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="dclado.bpi" FORMNAME="" UNITNAME="dclado" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="designide.bpi" FORMNAME="" UNITNAME="designide" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="dbrtl.bpi" FORMNAME="" UNITNAME="dbrtl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="dsnap.bpi" FORMNAME="" UNITNAME="dsnap" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
+  </FILELIST>
+  <BUILDTOOLS>
+  </BUILDTOOLS>
+
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=1
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=2052
+CodePage=936
+
+[Version Info Keys]
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+
+[HistoryLists\hlIncludePath]
+Count=2
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi
+Item1=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=2
+Item0=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi
+Item1=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=1
+Item0=_DEBUG
+
+[Debugging]
+DebugSourceDirs=$(BCB)\source\vcl
+
+[Parameters]
+RunParams=
+Launcher=
+UseLauncher=0
+DebugCWD=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteLauncher=
+RemoteCWD=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=0
+LinkCGLIB=0
+
+[CORBA]
+AddServerUnit=1
+AddClientUnit=1
+PrecompiledHeaders=1
+
+[Linker]
+LibPrefix=
+LibSuffix=
+LibVersion=
+  </IDEOPTIONS>
+</PROJECT>

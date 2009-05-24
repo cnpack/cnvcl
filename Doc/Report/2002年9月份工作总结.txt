@@ -1,0 +1,36 @@
+开发成员们，您好！
+
+    进入收获的金秋，开发组北京聚会和专家包的正式开发使得 CnPack 有了长足的进步！感谢每一位为 CnPack 做出过贡献的成员和支持者，在接下来的日子里，CnPack 将给大家带来更多的惊喜。
+
+    一、9月份取得的主要进展有：
+    1、CnPack IDE 专家包进入正式开发阶段，专家包框架基本完成，并开发了两个实用工具，这也标志着 CnPack 的开发开始走向正轨。
+    2、开发组在北京举行聚会，极大的增加了开发团队的凝聚力，并就一些开发相关问题达成了共识。
+    3、CnPack 嘉宾顾问组成立，我们荣幸地邀请了 曹晓刚、程云、YZ 和 房客 作为开发组的嘉宾顾问。
+    4、本月又有：Coolbaby、CoderSmith、极光、CJ 和 清水 五位新成员加入，仍然让我们对他们的到来表示最热烈的欢迎！
+    5、另外，这个月还完善了部分项目文档、规范和模板，并增加了一些公共代码。
+
+
+    二、10月份的工作计划：
+    1、下个月的开发重点仍是 IDE 专家包，计划发布一个 CnPack IDE 专家包外部测试版，并支持 Delphi5/6/7 和 C++Builder5/6。
+    2、在其它方面，开发包公共代码和不可视组件等部分仍由成员根据条件扩充，或做一些原创作品的移植和改写工作，充实 CnPack。
+    3、继续 CnPack 开发网站的 PHP+MySql 改版工作，由 Alphizw 成员负责。
+    4、报表、界面类等其它一些有条件完成的开发工作。
+
+    开发网站：http://www.cnpack.org
+    开发论坛：http://www.pcjingning.com/
+    匿名FTP空间：ftp://cnpack.cosoft.org.cn
+    项目邮件列表：cnpack-group@cosoft.org.cn
+    管理员信箱：master@cnpack.org
+
+    项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip
+    IDE专家包：http://cnpack.cosoft.org.cn/download/CnWizards.zip
+
+
+    团结奋斗！！
+    共同进步！！
+
+                CnPack开发组  周劲羽
+                http://www.cnpack.org
+                   master@cnpack.org
+                      2002-10-03 
+

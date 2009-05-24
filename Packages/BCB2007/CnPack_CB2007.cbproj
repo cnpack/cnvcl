@@ -1,0 +1,560 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{5e05eb8f-0395-46e2-bfdb-87c6f35c878e}</ProjectGuid>
+    <ProjectType>CppPackage</ProjectType>
+    <MainSource>CnPack_CB2007.cpp</MainSource>
+    <Config Condition="'$(Config)'==''">Release Build</Config>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+    <Base>true</Base>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug Build' or '$(Cfg_1)'!=''">
+    <Base>true</Base>
+    <Cfg_1>true</Cfg_1>
+    <CfgParent>Base</CfgParent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Release Build' or '$(Cfg_2)'!=''">
+    <Base>true</Base>
+    <Cfg_2>true</Cfg_2>
+    <CfgParent>Base</CfgParent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_Optimize>false</DCC_Optimize>
+    <OutputExt>bpl</OutputExt>
+    <DCC_CBuilderOutput>JPHNE</DCC_CBuilderOutput>
+    <DynamicRTL>true</DynamicRTL>
+    <ILINK_FullDebugInfo>true</ILINK_FullDebugInfo>
+    <ILINK_GenerateLibFile>true</ILINK_GenerateLibFile>
+    <BCC_InlineFunctionExpansion>false</BCC_InlineFunctionExpansion>
+    <BCC_UseRegisterVariables>None</BCC_UseRegisterVariables>
+    <ILINK_AppType>Windows</ILINK_AppType>
+    <ILINK_GenerateImportLibrary>true</ILINK_GenerateImportLibrary>
+    <ILINK_ObjectSearchPath>$(BDS)\Components\cnpack\Source\Common;$(BDS)\Components\cnpack\Source\NetComm;$(BDS)\Components\cnpack\Source\MultiLang;$(BDS)\Components\cnpack\Source\Graphics;$(BDS)\Components\cnpack\Source\NonVisual;$(BDS)\Components\cnpack\Source\DbReport</ILINK_ObjectSearchPath>
+    <BCC_DebugLineNumbers>true</BCC_DebugLineNumbers>
+    <UsePackages>true</UsePackages>
+    <BCC_ZeroLengthEmptyMemberFuncs>true</BCC_ZeroLengthEmptyMemberFuncs>
+    <DCC_MakeModifiedUnits>true</DCC_MakeModifiedUnits>
+    <FinalOutputDir>.</FinalOutputDir>
+    <TASM_AdditionalSwitches> /w2</TASM_AdditionalSwitches>
+    <PackageImports>rtl.bpi;vcl.bpi;vclx.bpi;dbrtl.bpi;vcldb.bpi;vclsmp.bpi;adortl.bpi;dsnap.bpi;bcbsmp.bpi;bcbie.bpi</PackageImports>
+    <DCC_UnitSearchPath>.\;$(BDS)\lib;$(BDS)\lib\obj</DCC_UnitSearchPath>
+    <ILINK_Description>CnPack Components Runtime Package</ILINK_Description>
+    <BCC_GenerateMultithreaded>true</BCC_GenerateMultithreaded>
+    <BCC_StackFrames>true</BCC_StackFrames>
+    <ILINK_WinAppType>Package</ILINK_WinAppType>
+    <BRCC_UserSuppliedOptions> -I..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BDS)\include;$(BDS)\include\vcl;$(BDS)\include\dinkumware</BRCC_UserSuppliedOptions>
+    <IncludePath>$(BDS)\Components\cnpack\Source\Common;$(BDS)\Components\cnpack\Source\NetComm;$(BDS)\Components\cnpack\Source\MultiLang;$(BDS)\Components\cnpack\Source\Graphics;$(BDS)\Components\cnpack\Source\NonVisual;$(BDS)\Components\cnpack\Source\DbReport</IncludePath>
+    <BCC_PCHCache>true</BCC_PCHCache>
+    <BCC_IntegerSizedEnums>false</BCC_IntegerSizedEnums>
+    <BCC_IncludePath>..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BDS)\include;$(BDS)\include\vcl;$(BDS)\include\dinkumware</BCC_IncludePath>
+    <TASM_IncludePath>..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BDS)\include;$(BDS)\include\vcl;$(BDS)\include\dinkumware</TASM_IncludePath>
+    <AllPackageLibs>rtl.lib;vcl.lib;vclx.lib;adortl.lib;vcldb.lib;dbrtl.lib;bdertl.lib;vcldbx.lib;ibxpress.lib;dsnap.lib;dsnapcon.lib;dsnap.lib;teeui.lib;teedb.lib;tee.lib;dss.lib;dsnapcon.lib;bcbsmp.lib;wininet.lib;ws2_32.lib</AllPackageLibs>
+    <BRCC_IncludePath>..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BDS)\include;$(BDS)\include\vcl;$(BDS)\include\dinkumware</BRCC_IncludePath>
+    <DCC_IncludePath>.\;$(BDS)\lib;$(BDS)\lib\obj</DCC_IncludePath>
+    <BCC_DisableOptimizations>true</BCC_DisableOptimizations>
+    <BCC_ZeroLengthEmptyBaseClass>true</BCC_ZeroLengthEmptyBaseClass>
+    <ILINK_LibraryPath>..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BDS)\lib\obj;$(BDS)\lib;$(BDS)\Components\cnpack\Source\Common;$(BDS)\Components\cnpack\Source\NetComm;$(BDS)\Components\cnpack\Source\MultiLang;$(BDS)\Components\cnpack\Source\Graphics;$(BDS)\Components\cnpack\Source\NonVisual;$(BDS)\Components\cnpack\Source\DbReport</ILINK_LibraryPath>
+    <BCC_Defines>NO_STRICT</BCC_Defines>
+    <BRCC_Defines>_DEBUG</BRCC_Defines>
+    <TASM_Defines>_DEBUG</TASM_Defines>
+    <Multithreaded>true</Multithreaded>
+    <BCC_SourceDebuggingOn>true</BCC_SourceDebuggingOn>
+    <ILINK_PackageType>Runtime</ILINK_PackageType>
+    <DCC_SymbolReferenceInfo>2</DCC_SymbolReferenceInfo>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Cfg_1)'!=''">
+    <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+    <ILINK_DisableIncrementalLinking>true</ILINK_DisableIncrementalLinking>
+    <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+    <IntermediateOutputDir>Debug_Build</IntermediateOutputDir>
+    <TASM_DisplaySourceLines>true</TASM_DisplaySourceLines>
+    <ILINK_LibraryPath>$(BDS)\lib\debug;$(ILINK_LibraryPath)</ILINK_LibraryPath>
+    <BCC_Defines>_DEBUG;$(BCC_Defines)</BCC_Defines>
+    <TASM_Debugging>Full</TASM_Debugging>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Cfg_2)'!=''">
+    <BCC_OptimizeForSpeed>true</BCC_OptimizeForSpeed>
+    <DCC_Optimize>true</DCC_Optimize>
+    <BCC_InlineFunctionExpansion>true</BCC_InlineFunctionExpansion>
+    <BCC_UseRegisterVariables>Always</BCC_UseRegisterVariables>
+    <DCC_DebugInformation>false</DCC_DebugInformation>
+    <FinalOutputDir>..\..\..\cppBPL\</FinalOutputDir>
+    <IntermediateOutputDir>Release_Build</IntermediateOutputDir>
+    <BCC_StackFrames>false</BCC_StackFrames>
+    <ILINK_LibraryPath>$(BDS)\lib\release;$(ILINK_LibraryPath)</ILINK_LibraryPath>
+    <BCC_Defines>NDEBUG;$(BCC_Defines)</BCC_Defines>
+    <TASM_Debugging>None</TASM_Debugging>
+  </PropertyGroup>
+  <ProjectExtensions>
+    <Borland.Personality>CPlusPlusBuilder.Personality</Borland.Personality>
+    <Borland.ProjectType>CppPackage</Borland.ProjectType>
+    <BorlandProject>
+<BorlandProject><CPlusPlusBuilder.Personality><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">0</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">2052</VersionInfo><VersionInfo Name="CodePage">936</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName"></VersionInfoKeys><VersionInfoKeys Name="FileDescription"></VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="InternalName"></VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName"></VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="Comments"></VersionInfoKeys></VersionInfoKeys><HistoryLists_hlIncludePath><HistoryLists_hlIncludePath Name="Count">2</HistoryLists_hlIncludePath><HistoryLists_hlIncludePath Name="Item0">$(BDS)\Components\cnpack\Source\Common;$(BDS)\Components\cnpack\Source\NetComm;$(BDS)\Components\cnpack\Source\MultiLang;$(BDS)\Components\cnpack\Source\Graphics;$(BDS)\Components\cnpack\Source\NonVisual;$(BDS)\Components\cnpack\Source\DbReport</HistoryLists_hlIncludePath><HistoryLists_hlIncludePath Name="Item1">..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\include;$(BCB)\include\vcl</HistoryLists_hlIncludePath></HistoryLists_hlIncludePath><HistoryLists_hlLibraryPath><HistoryLists_hlLibraryPath Name="Count">1</HistoryLists_hlLibraryPath><HistoryLists_hlLibraryPath Name="Item0">..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\lib\obj;$(BCB)\lib</HistoryLists_hlLibraryPath></HistoryLists_hlLibraryPath><HistoryLists_hlDebugSourcePath><HistoryLists_hlDebugSourcePath Name="Count">1</HistoryLists_hlDebugSourcePath><HistoryLists_hlDebugSourcePath Name="Item0">$(BCB)\source\vcl</HistoryLists_hlDebugSourcePath></HistoryLists_hlDebugSourcePath><HistoryLists_hlConditionals><HistoryLists_hlConditionals Name="Count">1</HistoryLists_hlConditionals><HistoryLists_hlConditionals Name="Item0">_DEBUG</HistoryLists_hlConditionals></HistoryLists_hlConditionals><Debugging><Debugging Name="DebugSourceDirs">$(BCB)\source\vcl</Debugging></Debugging><Parameters><Parameters Name="RunParams"></Parameters><Parameters Name="Launcher"></Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="DebugCWD"></Parameters><Parameters Name="HostApplication"></Parameters><Parameters Name="RemoteHost"></Parameters><Parameters Name="RemotePath"></Parameters><Parameters Name="RemoteLauncher"></Parameters><Parameters Name="RemoteCWD"></Parameters><Parameters Name="RemoteDebug">False</Parameters><Parameters Name="RemoteParams"></Parameters><Parameters Name="UseRemoteLauncher">False</Parameters><Parameters Name="Debug Symbols Search Path"></Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><Compiler><Compiler Name="ShowInfoMsgs">0</Compiler><Compiler Name="LinkDebugVcl">0</Compiler><Compiler Name="LinkCGLIB">0</Compiler></Compiler><CORBA><CORBA Name="AddServerUnit">1</CORBA><CORBA Name="AddClientUnit">1</CORBA><CORBA Name="PrecompiledHeaders">1</CORBA></CORBA><Linker><Linker Name="LibPrefix"></Linker><Linker Name="LibSuffix"></Linker><Linker Name="LibVersion"></Linker></Linker><ProjectProperties><ProjectProperties Name="AutoShowDeps">False</ProjectProperties><ProjectProperties Name="ManagePaths">True</ProjectProperties><ProjectProperties Name="VerifyPackages">True</ProjectProperties></ProjectProperties><Source><Source Name="MainSource">CnPack_CB2007.cpp</Source></Source><HistoryLists_hlILINK_LibraryPath><HistoryLists_hlILINK_LibraryPath Name="Count">1</HistoryLists_hlILINK_LibraryPath><HistoryLists_hlILINK_LibraryPath Name="Item0">$(BDS)\lib\release;..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BDS)\lib\obj;$(BDS)\lib;$(BDS)\Components\cnpack\Source\Common;$(BDS)\Components\cnpack\Source\NetComm;$(BDS)\Components\cnpack\Source\MultiLang;$(BDS)\Components\cnpack\Source\Graphics;$(BDS)\Components\cnpack\Source\NonVisual;$(BDS)\Components\cnpack\Source\DbReport</HistoryLists_hlILINK_LibraryPath></HistoryLists_hlILINK_LibraryPath><HistoryLists_hlIntermediateOutputDir><HistoryLists_hlIntermediateOutputDir Name="Count">1</HistoryLists_hlIntermediateOutputDir><HistoryLists_hlIntermediateOutputDir Name="Item0">Release_Build</HistoryLists_hlIntermediateOutputDir></HistoryLists_hlIntermediateOutputDir><HistoryLists_hlFinalOutputDir><HistoryLists_hlFinalOutputDir Name="Count">1</HistoryLists_hlFinalOutputDir><HistoryLists_hlFinalOutputDir Name="Item0">..\..\..\cppBPL\</HistoryLists_hlFinalOutputDir></HistoryLists_hlFinalOutputDir></CPlusPlusBuilder.Personality></BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(MSBuildBinPath)\Borland.Cpp.Targets" />
+  <ItemGroup>
+    <PackageImport Include="adortl.bpi">
+      <BuildOrder>0</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="bcbie.bpi">
+      <BuildOrder>1</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="bcbsmp.bpi">
+      <BuildOrder>2</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="bdertl.bpi">
+      <BuildOrder>3</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="dbrtl.bpi">
+      <BuildOrder>4</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="dsnap.bpi">
+      <BuildOrder>5</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="inet.bpi">
+      <BuildOrder>6</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="rtl.bpi">
+      <BuildOrder>7</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="vcl.bpi">
+      <BuildOrder>8</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="vcldb.bpi">
+      <BuildOrder>9</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="vclsmp.bpi">
+      <BuildOrder>10</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="vclx.bpi">
+      <BuildOrder>11</BuildOrder>
+    </PackageImport>
+    <PackageImport Include="xmlrtl.bpi">
+      <BuildOrder>12</BuildOrder>
+    </PackageImport>
+    <DelphiCompile Include="..\..\Source\Common\CnBase64.pas">
+      <BuildOrder>13</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnCalendar.pas">
+      <BuildOrder>14</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnClasses.pas">
+      <BuildOrder>15</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnCommon.pas">
+      <BuildOrder>16</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnConsts.pas">
+      <BuildOrder>17</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnCRC32.pas">
+      <BuildOrder>18</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnGraphUtils.pas">
+      <BuildOrder>19</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnHashMap.pas">
+      <BuildOrder>20</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnIni.pas">
+      <BuildOrder>21</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnIniStrUtils.pas">
+      <BuildOrder>22</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnMD5.pas">
+      <BuildOrder>23</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnPack.pas">
+      <BuildOrder>24</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnSQLite.pas">
+      <BuildOrder>26</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnStrDiff.pas">
+      <BuildOrder>27</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnStream.pas">
+      <BuildOrder>28</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnTree.pas">
+      <BuildOrder>29</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnVCLBase.pas">
+      <BuildOrder>30</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnWinSvc.pas">
+      <BuildOrder>31</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnADOBinding.pas">
+      <BuildOrder>33</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDataGrid.pas">
+      <BuildOrder>34</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDBConsts.pas">
+      <BuildOrder>32</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateAppUtils.pas">
+      <BuildOrder>40</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateArrayList.pas">
+      <BuildOrder>41</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateBackupRestore.pas">
+      <BuildOrder>42</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateBase.pas">
+      <BuildOrder>43</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateBatchSQL.pas">
+      <BuildOrder>44</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateCalc.pas">
+      <BuildOrder>45</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateClasses.pas">
+      <BuildOrder>46</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateConsts.pas">
+      <BuildOrder>47</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateDateUtils.pas">
+      <BuildOrder>48</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateExport.pas">
+      <BuildOrder>49</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateImport.pas">
+      <BuildOrder>50</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateMemData.pas">
+      <BuildOrder>51</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateNavigator.pas">
+      <BuildOrder>52</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernatePodoList.pas">
+      <BuildOrder>53</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateQueryAdv.pas">
+      <BuildOrder>54</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateSet.pas">
+      <BuildOrder>55</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateSQLThread.pas">
+      <BuildOrder>56</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateStringUtils.pas">
+      <BuildOrder>57</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateSubQuery.pas">
+      <BuildOrder>58</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateSubQueryAdv.pas">
+      <BuildOrder>59</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateThread.pas">
+      <BuildOrder>60</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnDHibernateUtils.pas">
+      <BuildOrder>39</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnPagedGrid.pas">
+      <BuildOrder>38</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnRunSqlFrame.pas">
+      <BuildOrder>35</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnRunSqlUnit.pas">
+      <BuildOrder>36</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\DbReport\CnSQLAnalyzer.pas">
+      <BuildOrder>37</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnAACtrls.pas">
+      <BuildOrder>81</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnAAFont.pas">
+      <BuildOrder>82</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnAAFontDialog.pas">
+      <BuildOrder>85</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnAOTreeView.pas">
+      <BuildOrder>61</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnAutoOption.pas">
+      <BuildOrder>62</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnButtonEdit.pas">
+      <BuildOrder>84</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnButtons.pas">
+      <BuildOrder>72</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnCheckTreeView.pas">
+      <BuildOrder>63</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnColorGrid.pas">
+      <BuildOrder>76</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnEdit.pas">
+      <BuildOrder>64</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnGauge.pas">
+      <BuildOrder>74</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnGraphConsts.pas">
+      <BuildOrder>65</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnGraphics.pas">
+      <BuildOrder>66</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnHexEditor.pas">
+      <BuildOrder>73</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnHint.pas">
+      <BuildOrder>78</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnImage.pas">
+      <BuildOrder>67</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnListBox.pas">
+      <BuildOrder>68</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnMonthCalendar.pas">
+      <BuildOrder>75</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnShellCtrls.pas">
+      <BuildOrder>69</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnSkinMagic.pas">
+      <BuildOrder>77</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnSpin.pas">
+      <BuildOrder>70</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnTabSet.pas">
+      <BuildOrder>83</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnWaterEffect.pas">
+      <BuildOrder>79</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnWaterImage.pas">
+      <BuildOrder>80</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnWizardImage.pas">
+      <BuildOrder>71</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnHashIniFile.pas">
+      <BuildOrder>86</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnHashLangStorage.pas">
+      <BuildOrder>87</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnIniLangFileStorage.pas">
+      <BuildOrder>88</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnLangCollection.pas">
+      <BuildOrder>89</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnLangConsts.pas">
+      <BuildOrder>90</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnLangMgr.pas">
+      <BuildOrder>91</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnLangStorage.pas">
+      <BuildOrder>92</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\MultiLang\CnLangTranslator.pas">
+      <BuildOrder>93</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnCameraEye.pas">
+      <BuildOrder>101</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnDialUp.pas">
+      <BuildOrder>100</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnIISCtrl.pas">
+      <BuildOrder>102</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnIP.pas">
+      <BuildOrder>98</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnModem.pas">
+      <BuildOrder>94</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnNetConsts.pas">
+      <BuildOrder>95</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnPing.pas">
+      <BuildOrder>99</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnRS232.pas">
+      <BuildOrder>96</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnRS232Dialog.pas">
+      <BuildOrder>97</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnTwain.pas">
+      <BuildOrder>103</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnActionListHook.pas">
+      <BuildOrder>104</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnActiveScript.pas">
+      <BuildOrder>105</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnADOConPool.pas">
+      <BuildOrder>106</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnCompConsts.pas">
+      <BuildOrder>107</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnConsole.pas">
+      <BuildOrder>123</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnControlHook.pas">
+      <BuildOrder>108</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDelphiDockStyle.pas">
+      <BuildOrder>133</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockFormControl.pas">
+      <BuildOrder>126</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockGlobal.pas">
+      <BuildOrder>129</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockHashTable.pas">
+      <BuildOrder>135</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockInfo.pas">
+      <BuildOrder>124</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockSupportClass.pas">
+      <BuildOrder>128</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockSupportControl.pas">
+      <BuildOrder>127</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockSupportProc.pas">
+      <BuildOrder>125</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDockTree.pas">
+      <BuildOrder>134</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnDragResizer.pas">
+      <BuildOrder>109</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnFilePacker.pas">
+      <BuildOrder>116</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnFileSystemWatcher.pas">
+      <BuildOrder>115</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnFormScaler.pas">
+      <BuildOrder>110</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnKeyBlocker.pas">
+      <BuildOrder>111</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnMDIBackGround.pas">
+      <BuildOrder>112</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnMenuHook.pas">
+      <BuildOrder>113</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnObjectPool.pas">
+      <BuildOrder>114</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnRestoreSystemMenu.pas">
+      <BuildOrder>136</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnTaskBar.pas">
+      <BuildOrder>117</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnThreadPool.pas">
+      <BuildOrder>118</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnTimer.pas">
+      <BuildOrder>119</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnTrayIcon.pas">
+      <BuildOrder>120</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnVCDockStyle.pas">
+      <BuildOrder>132</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnVIDDockStyle.pas">
+      <BuildOrder>131</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnVolumeCtrl.pas">
+      <BuildOrder>121</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnVSNETDockStyle.pas">
+      <BuildOrder>130</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnWinampCtrl.pas">
+      <BuildOrder>122</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnSystemDebugControl.pas">
+      <BuildOrder>141</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NonVisual\CnRawInput.pas">
+      <BuildOrder>142</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnValidateImage.pas">
+      <BuildOrder>143</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnIocpSimpleMemPool.pas">
+      <BuildOrder>144</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\NetComm\CnIocpSocketAdapter.pas">
+      <BuildOrder>145</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnErrorProvider.pas">
+      <BuildOrder>146</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnLED.pas">
+      <BuildOrder>147</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnMulticastEvent.pas">
+      <BuildOrder>148</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnSingleton.pas">
+      <BuildOrder>149</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnSingletonComp.pas">
+      <BuildOrder>150</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnFloatConvert.pas">
+      <BuildOrder>151</BuildOrder>
+    </DelphiCompile>
+    <None Include="..\..\Source\Common\CnPack.dcr">
+      <BuildOrder>25</BuildOrder>
+    </None>
+    <LibFiles Include="..\..\..\..\lib\wininet.lib">
+      <BuildOrder>137</BuildOrder>
+    </LibFiles>
+    <LibFiles Include="..\..\..\..\lib\ws2_32.lib">
+      <BuildOrder>138</BuildOrder>
+    </LibFiles>
+    <CppCompile Include="CnPack_CB2007.cpp">
+      <BuildOrder>139</BuildOrder>
+    </CppCompile>
+    <ResFiles Include="CnPack_CB2007.res">
+      <BuildOrder>140</BuildOrder>
+    </ResFiles>
+    <BuildConfiguration Include="Debug Build">
+      <Key>Cfg_1</Key>
+    </BuildConfiguration>
+    <BuildConfiguration Include="Release Build">
+      <Key>Cfg_2</Key>
+    </BuildConfiguration>
+  </ItemGroup>
+</Project>

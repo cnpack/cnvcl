@@ -1,0 +1,34 @@
+开发成员们，您好！
+
+    我们很高兴地看到，CnPack 经过整整一年的发展，已经由一个梦想，逐渐变成触手可及的东西。虽然当前已完成的开发只是整个庞大计划中很少的一部分，但毫无疑问，CnPack 正在乐观的成长之中，开发组也会以更大的恒心和热情来完成后续的开发。
+
+    一、11月份取得的主要进展有：
+    1、CnPack 开发网站启用国际域名 www.cnpack.org。
+    2、IDE 专家包新增三个专家工具，并获得了广泛的支持和较高的评价。
+    3、铁男兄倾力开发的 CnReport 有了大的进展。
+    4、开发组内部交流增加，邮件列表达到了 145 封，更多的成员参与到开发和测试中。
+    5、本月共有七位新成员加入：devid_zhang、itluck、星之瀚海、zhaoning、浩然(ranksun)、jacky_zz、四毛，开发组总人数达到 74 名。
+
+
+    二、12月份的工作计划：
+    1、CnReport 报表包的开发，由 铁男 兄负责，预计年底可在内部测试。
+    2、继续 IDE 专家包的开发，由 周劲羽 负责，重点在稳定性增强和实用工具开发。
+    3、开发网站的改版，由网站维护组负责。
+ 
+    开发网站：http://www.cnpack.org
+    开发论坛：http://www.pcjingning.com/
+    匿名FTP空间：ftp://cnpack.cosoft.org.cn
+    管理员信箱：master@cnpack.org
+
+    项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip
+    IDE专家包：http://cnpack.cosoft.org.cn/download/CnWizards.zip
+
+
+    团结奋斗！！
+    共同进步！！
+
+                CnPack开发组  周劲羽
+                http://www.cnpack.org
+                   master@cnpack.org
+                      2002-12-07 
+

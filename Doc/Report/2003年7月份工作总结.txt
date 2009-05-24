@@ -1,0 +1,33 @@
+CnPack开发组2003年七月份工作总结：
+
+    7月是酷暑的顶峰，多少影响了一些工作进度，所幸 CnPack 并未停顿下来。以下是本月总结内容：
+
+一、2003年7月份取得的主要成果：
+
+    1. 专家包发布0.6.6版，增加了 CPU 窗口扩展专家和 CnPack 专家高级创建设置。
+    2. 多语包开发已经启动。
+    3. CnPack 新网站正在开发中。
+    4. 专家包修正一些其他的问题。
+
+二、2003年8月初步计划：
+
+    1. 继续进行专家包的测试工作，修复发现的问题。 
+    2. 努力开展翻译工作与多语包的测试工作。 
+    3. 继续完善相关的文档，计划开展 Code Review。 
+    4. 继续进行新网站的设计与开发。 
+
+
+    开发网站：http://www.cnpack.org
+　　开发论坛：http://bbs.cnpack.org
+　　管理员信箱：master@cnpack.org
+
+    项目CVS包：http://download.cnpack.org/CnPack.zip
+    IDE专家包：http://download.cnpack.org/CnWizards.exe
+
+　　团结奋斗！！
+　　共同进步！！
+
+
+
+                                         CnPack开发组 LiuXiao、周劲羽
+                                                             2003-08-10 

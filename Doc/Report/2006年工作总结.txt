@@ -1,0 +1,94 @@
+CnPack开发组2006年工作总结
+
+    去年漫长的一年中，CnPack 开发组由于人力不足以及其他原因，造成了部分时间进展缓慢甚至停滞不前，在此向大家表示歉意。2006 年 Borland 推出了 BDS 2006 并要出卖其 IDE 生产线，此类动向也给 CnWizards 的前景带来了一定影响。
+    CnPack 在 2006 年取得的主要进展如下：
+
+一、CnPack的主力产品CnPack IDE 专家包（CnWizards）发布 0.8.0 以及 0.8.1 版，更新内容包括：
+
+    1.CnWizards 增加对 BDS 2006 的支持。
+    2.新增与改进功能：增加在过程内部和局部变量区域移动光标的功能，默认热键 Ctrl+Shift+V；编辑器专家增加插入日期时间工具，增加 F3/Shift+F3 搜索选中文字的功能；增加 FastCode IDE 优化专家；增加 IDE 设置备份恢复工具；增加对 UpdatePack 的版本检测提示；组件面板增加查找组件的功能。ASCII 字符表改为可独立运行。
+    3.CnDebug/CnDebugViewer 调试信息工具集成入 CnWizards 中发布。
+    4.修正大量其他问题。
+    
+二、CnPack IDE 专家包（CnWizards 0.8.1）参加了 2006 中国第二届开源软件竞赛，目前已入围决赛。
+
+三、CnPack 成立公益基金并开通支付宝网上支付，用于公益事业和项目运营。
+    链接：
+    http://www.cnpack.org/foundation.php
+
+四、CnMISFrame与代码格式化专家开发已停滞。
+
+    今年 CnPack 开发组的计划如下：
+
+一、CnWizards 继续进行功能完善与问题修复，并将进一步加强国内外的宣传工作。目前据升级数据统计，CnWizards 的国内外用户数目保守估计大约在三千五百左右，希望能进一步扩大用户群。
+
+二、2006 中国第二届开源软件竞赛决赛备战。
+
+三、补充和完善各类文档。
+
+四、继续进行CnPack开发组的团队建设与规模发展。
+
+    同时，随着CnPack的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack开发组网站：http://www.cnpack.org
+    CnPack开发组论坛：http://bbs.cnpack.org
+    CnPack开发组管理员信箱：master@cnpack.org
+
+    CnPack开发组内部邮件列表：bbs@cnpack.org
+    CnPack开发组内部QQ群：CnPack I: 359682，CnPack IV: 130970
+    （注：邮件列表与QQ群原则上只供开发组成员使用与加入）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2007-01-12
+
+
+========================================================================
+
+CnPack Working Report in 2006
+
+    CnPack's work was postponed for somewhile for the human resource problem this year, and now restored. Here we apologize for it. In 2006, Borland published its BDS 2006 and want to sell its IDE. It brings some effect to CnWizards, which based on Delphi/C++Builder/BDS IDE.
+    Below are the achievements of CnPack in 2006:
+
+1. Our main product CnWizards 0.8.0 and 0.8.1 were published with the changing list:
+
+    I. Add support to BDS 2006.
+    II. Add Moving Cursor between Procedure and Var Field with Ctrl+Shift+V. Add Insert Date Time Tool to Editor Wizard. F3/Shift+F3 to Search Selected Text in Editor Enhancement. Add FastCode IDE Optimizer. Add IDE Config Backup and Restore Tool. Add Detection and Hint to Update Pack Versions. Add "Search Component" Function to Palette. Add Stand-alone ASCII Chart Tool.
+    III. CnDebug/CnDebugViewer integrated into CnWizards and published.
+    IV. Other bugs fixed. 
+    
+2. CnWizards enters the final of the 2nd China OpenSource Contest.
+
+3. CnPack Foundation built, for public, commonweal, non-business purpose, including CnPack management and commonweal, charity fields.
+   Link:
+   https://sourceforge.net/project/project_donations.php?group_id=110999
+
+4. CnMisFrame and Code formatter stopped.
+
+    Below is the plan of CnPack for next year:
+
+1. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're about 3500 CnWizards users by the end of 2006. We hope this number can increase considerably in the new year.
+
+2. Prepare for the final of the 2nd China OpenSource Contest.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682;  CnPack IV: 130970
+    (Note: Mailing list and QQ group are only used by CnPack Members.)
+
+    Let's do it well!
+
+
+                               CnPack Administrator: Liu Xiao, Zhou JingYu
+                                                                2007-01-12

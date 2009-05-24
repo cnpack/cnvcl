@@ -1,0 +1,94 @@
+CnPack开发组2005年第二季度工作总结
+
+    CnPack 在今年第二季度的三个月中取得的主要进展如下：
+
+一、CnPack的主力产品CnPack IDE 专家包（CnWizards）发布了0.7.4与0.7.5版，更新内容包括：
+
+    1.修改了 CnWizards 的发布协议，由 GPL 修改为目前的自定义协议。该协议的基本主题为：CnPack 开发组的作品版权属于 CnPack 开发组所有，可免费使用，但不能用于未授权的商业应用，其余部分的版权需与各自的作者联系。协议详细内容与 GExperts 类似，感谢 GExperts 主管 Erik Berry 的帮助与支持。
+    2. 0.7.5 版本的 CnWizards 增加了完整的英文帮助文件，从形式上完成了 CnWizards 完整的国际版本的发布。
+    3.新增与改进功能：工程扩展工具增加工程目录创建器工具；选择块按钮新增组替换功能；组件前缀专家的改进；代码编辑器扩展增加智能复制粘贴功能。输入助手大量改进和错误修正，支持编译指示字、XML 和 JavaDoc 注释输入，支持自定义符号及模板等。
+    4.CnWizards 对 Delphi 8/Delphi 2005 的支持目前进展也比较缓慢，目前发布版本中集成的相关测试包暂无大的功能改进。
+    5.修正大量其他问题。
+    
+二、CnMisFrame 子项目进展缓慢，此季度基本处于停滞阶段。
+
+三、CVSTracNT 发布新版本，解决部分兼容性问题。
+
+四、CnDebug 开发初步告一段落，其测试版本已经应用于 CnWizards 的调试版本中。
+
+五、由开发组成员 古月春秋 和 beta 负责的代码格式化专家正在开发中。
+
+    下一季度 CnPack 开发组的计划如下：
+
+一、CnWizards 将加强国内外的宣传工作，继续进行功能完善与问题修复，并完善对Delphi 8/Delphi 2005 的支持。
+
+二、继续进行代码格式化专家的开发。
+
+三、补充和完善各类文档。
+
+四、继续进行CnPack开发组的团队建设与规模发展。
+
+    同时，随着CnPack的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack开发组网站：http://www.cnpack.org
+    CnPack开发组论坛：http://bbs.cnpack.org
+    CnPack开发组管理员信箱：master@cnpack.org
+
+    CnPack开发组内部邮件列表：bbs@cnpack.org
+    CnPack开发组内部QQ群：359682
+    （注：邮件列表与QQ群原则上只供开发组成员使用与加入）
+
+    团结奋斗！！共同进步！！
+
+
+                                            CnPack开发组 LiuXiao、周劲羽
+                                                              2005-07-16
+
+
+========================================================================
+
+CnPack Working Report in 2nd Quarter 2005
+
+    Below are the achievements of CnPack in the 3 month of 2nd quarter in 2005:
+
+1. Our product CnWizards 0.7.4 and 0.7.5 were published with the changing list:
+
+    I. New license of CnWizards was applied from GPL to customized license with the main topic that the copywrite of CnPack working contents belong to CnPack team, one can use it in open source project freely but business usage is forbidden without formal authorization from CnPack team. Other part of this license is similar to the one of GExperts. Thanks Erik Berry, the GExperts project manager.
+    II. Full English help file is added in CnWizards 0.7.5. Thus CnWizards has a full international version.
+    III. Add Project Dir Builder in Project Extension Wizard. Add Group Replacement in Selection Button. Add Smart Copy and Paste in Source Editor Enhancements. Add Batch Renaming Mode in Prefix Wizard. Add Compiler Directive, XML and JavaDoc Comments, Customized Symbol and Templates in Code Input Helper.
+    IV. There's no considerable improvements of CnWizards supporting for Delphi 8/Delphi 2005.
+    V.Other bugs fixed.
+    
+2. CnMisFrame almost paused.
+
+3. New version of CVSTracNT published to imporve the compatibility.
+
+4. CnDebug beta version completed and is used in CnWizards debugging version now.
+
+5. Code formatter is in development.
+
+    Below is the plan of CnPack for next quarter:
+
+1. Continue to fix the bugs and do the function improvements for CnWizards, including the supporting for Delphi 8/Delphi 2005. Continue to publicize CnWizards to home and board.
+
+2. Continue to develop code formatter.
+
+3. Continue documentation.
+
+4. Continue to building the CnPack team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     359682
+    (Note: Mailing list and QQ group are only used by CnPack Members.)
+
+    Let's do it well!
+
+
+                               CnPack Administrator: LiuXiao, JinYu Zhou
+                                                              2005-07-16

@@ -1,0 +1,88 @@
+CnPack开发组2005年第三季度工作总结
+
+    CnPack 在今年第三季度的三个月中取得的主要进展如下：
+
+一、CnPack的主力产品CnPack IDE 专家包（CnWizards）发布至0.7.9版，更新内容包括：
+
+    1.新增与改进功能：增加编辑器括号匹配高亮的功能；编辑器专家增加颜色工具和收集面板；工程扩展工具增加工程备份功能；MSDN专家增加对MSDN 2005的支持；增加引用单元清理工具。
+    2.CnWizards 基本支持 Delphi 8/Delphi 2005，部分功能因不兼容而取消。
+    3.其他问题修正和增强。
+    
+二、CnMisFrame 子项目进展缓慢，此季度基本处于停滞阶段。
+
+三、CVSTracNT 升级到官方 1.2.0 版本。
+
+四、CnPack 开展部分宣传工作。目前 Delphi 盒子（2ccc.com）已开设 CnPack 专区。
+
+五、由开发组成员 古月春秋 和 beta 负责的代码格式化专家也已停滞。
+
+    下一季度 CnPack 开发组的计划如下：
+
+一、CnWizards 将加强国内外的宣传工作，继续进行功能完善与问题修复，并完善对Delphi 8/Delphi 2005 的支持。
+
+二、补充和完善各类文档。
+
+三、继续进行CnPack开发组的团队建设与规模发展。
+
+    同时，随着CnPack的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack开发组网站：http://www.cnpack.org
+    CnPack开发组论坛：http://bbs.cnpack.org
+    CnPack开发组管理员信箱：master@cnpack.org
+
+    CnPack开发组内部邮件列表：bbs@cnpack.org
+    CnPack开发组内部QQ群：359682
+    （注：邮件列表与QQ群原则上只供开发组成员使用与加入）
+
+    团结奋斗！！共同进步！！
+
+
+                                               CnPack开发组 刘啸、周劲羽
+                                                              2005-12-xx
+
+
+========================================================================
+
+CnPack Working Report in 3rd Quarter 2005
+
+    Below are the achievements of CnPack in the 3 month of 3rd quarter in 2005:
+
+1. Our product CnWizards upgrated to 0.7.9 with the changing list:
+
+    I. Add highlighting for bracket matching in Editor. Add Insert Color and Collector Tool in Editor Wizard.Add Project Backup in Project Extension Wizard. Add MSDN 2005 support. Add Uses Cleaner.
+    II. CnWizards supports Delphi 8/Delphi 2005 with some limitation.
+    III. Other bugs fixed..
+    
+2. CnMisFrame Stopped.
+
+3. New official version of CVSTracNT(1.2.0) published.
+
+4. CnDebugger is improving.
+
+5. Code formatter is in development but almost paused.
+
+    Below is the plan of CnPack for next quarter:
+
+1. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board.
+
+2. Continue to develop code formatter.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     359682
+    (Note: Mailing list and QQ group are only used by CnPack Members.)
+
+    Let's do it well!
+
+
+                               CnPack Administrator: LiuXiao, JinYu Zhou
+                                                              2005-12-xx

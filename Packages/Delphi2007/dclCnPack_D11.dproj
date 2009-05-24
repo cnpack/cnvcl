@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{a60f473d-5131-45a7-9b23-69c644a43c54}</ProjectGuid>
+    <MainSource>dclCnPack_D11.dpk</MainSource>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+    <DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\5.0\Bpl\dclCnPack_D11.bpl</DCC_DependencyCheckOutputName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Version>7.0</Version>
+    <DCC_DebugInformation>False</DCC_DebugInformation>
+    <DCC_WriteableConstants>True</DCC_WriteableConstants>
+    <DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
+    <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+    <DCC_UnitSearchPath>..\..\Source\Common</DCC_UnitSearchPath>
+    <DCC_ResourcePath>..\..\Source\Common</DCC_ResourcePath>
+    <DCC_ObjPath>..\..\Source\Common</DCC_ObjPath>
+    <DCC_IncludePath>..\..\Source\Common</DCC_IncludePath>
+    <DCC_Define>RELEASE</DCC_Define>
+    <DCC_UNSAFE_TYPE>True</DCC_UNSAFE_TYPE>
+    <DCC_UNSAFE_CODE>True</DCC_UNSAFE_CODE>
+    <DCC_UNSAFE_CAST>True</DCC_UNSAFE_CAST>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <Version>7.0</Version>
+    <DCC_WriteableConstants>True</DCC_WriteableConstants>
+    <DCC_UnitSearchPath>..\..\Source\Common</DCC_UnitSearchPath>
+    <DCC_ResourcePath>..\..\Source\Common</DCC_ResourcePath>
+    <DCC_ObjPath>..\..\Source\Common</DCC_ObjPath>
+    <DCC_IncludePath>..\..\Source\Common</DCC_IncludePath>
+    <DCC_UNSAFE_TYPE>True</DCC_UNSAFE_TYPE>
+    <DCC_UNSAFE_CODE>True</DCC_UNSAFE_CODE>
+    <DCC_UNSAFE_CAST>True</DCC_UNSAFE_CAST>
+  </PropertyGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality</Borland.Personality>
+    <Borland.ProjectType>Package</Borland.ProjectType>
+    <BorlandProject>
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><Package_Options><Package_Options Name="PackageDescription">CnPack Components Designtime Package</Package_Options><Package_Options Name="ImplicitBuild">False</Package_Options><Package_Options Name="DesigntimeOnly">True</Package_Options><Package_Options Name="RuntimeOnly">False</Package_Options></Package_Options><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">0</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">2052</VersionInfo><VersionInfo Name="CodePage">936</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName"></VersionInfoKeys><VersionInfoKeys Name="FileDescription"></VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="InternalName"></VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName"></VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="Comments"></VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">dclCnPack_D11.dpk</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
+  <ItemGroup>
+    <DelphiCompile Include="dclCnPack_D11.dpk">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="..\..\Source\Common\CnCompAboutFrm.pas">
+      <Form>CnCompAboutForm</Form>
+    </DCCReference>
+    <DCCReference Include="..\..\Source\DBReport\CnDHibernateAbout.pas">
+      <Form>CnFormDHibernateAbout</Form>
+    </DCCReference>
+    <DCCReference Include="..\..\Source\Common\CnOTAUtils.pas" />
+    <DCCReference Include="..\..\Source\Common\CnPack.dcr" />
+    <DCCReference Include="..\..\Source\Common\CnPack.pas" />
+    <DCCReference Include="..\..\Source\Common\CnPackRegister.pas" />
+    <DCCReference Include="..\..\Source\Common\CnPropEditors.pas" />
+    <DCCReference Include="..\..\Source\DbReport\CnDBRegister.pas" />
+    <DCCReference Include="..\..\Source\DbReport\CnADOUpdateSQLEditor.pas" />
+    <DCCReference Include="..\..\Source\DbReport\CnADOUpdateSQLFrm.pas">
+      <Form>CnADOUpdateSQLForm</Form>
+    </DCCReference>
+    <DCCReference Include="..\..\Source\Graphics\CnAAFontEditor.pas" />
+    <DCCReference Include="..\..\Source\Graphics\CnGraphPropEditors.pas" />
+    <DCCReference Include="..\..\Source\Graphics\CnGraphRegister.pas" />
+    <DCCReference Include="..\..\Source\MultiLang\CnLangEditors.pas" />
+    <DCCReference Include="..\..\Source\MultiLang\CnLangReg.pas" />
+    <DCCReference Include="..\..\Source\MultiLang\CnTransEditor.pas">
+      <Form>FrmTransEditor</Form>
+    </DCCReference>
+    <DCCReference Include="..\..\Source\MultiLang\CnTransFilter.pas">
+      <Form>FrmTransFilter</Form>
+    </DCCReference>
+    <DCCReference Include="..\..\Source\NetComm\CnNetPropEditor.pas" />
+    <DCCReference Include="..\..\Source\NetComm\CnNetRegister.pas" />
+    <DCCReference Include="..\..\Source\NonVisual\CnASPropEditors.pas" />
+    <DCCReference Include="..\..\Source\NonVisual\CnCompRegister.pas" />
+    <DCCReference Include="..\..\Source\NonVisual\CnDockPropertyReg.pas" />
+    <DCCReference Include="adortl.dcp" />
+    <DCCReference Include="CnPack_D11.dcp" />
+    <DCCReference Include="dclado.dcp" />
+    <DCCReference Include="designide.dcp" />
+    <DCCReference Include="vcl.dcp" />
+    <DCCReference Include="vcldb.dcp" />
+    <DCCReference Include="vclx.dcp" />
+  </ItemGroup>
+</Project>

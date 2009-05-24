@@ -1,0 +1,50 @@
+多语包修改后的设计方案
+
+LiuXiao
+
+2003-08-26
+
+多语包在开发实现过程中对Riceball的设计进行了一些具体的探索，有些类重命名（大多是加上了Cn的前缀），
+一些类的层次重新整理合并了一下，属性等也有了改动。
+
+多语管理器方面：
+
+用TCnBaseLangManager做基类，实现连接多语存储文件，翻译基本字符串的功能。
+去除TLangugageFormManager，将其功能合并到继承自TCnBaseLangManager的TCnCustomLangManager中，具有翻译组件和窗体的能力。（以前的LanguageManager没有翻译组件的能力。）
+
+全局函数改名为CnLanguageManager，返回TCnCustomLangManager型的对象。
+组件面板注册对象为TCnLangManager，两者published的属性相同，避免在使用过程中用全局函数返回的对象和用组件返回的对象使用起来不一致，这也是类层次整理的原因。
+（原来GLanguageManager函数返回的多语管理对象是基类的，没有组件翻译功能，而仍然注册到控件板上，如果用户创建了一个这样的对象，那么窗体翻译功能便怎么都用不上了。）
+
+增加过程CreateLanguageManager，用于非可视化或手工创建多语言管理器的场合。
+
+翻译管理器增加了控制是否翻译TTreeView和TListItem的节点的属性，不翻译TNotebook的Pages属性，避免页面重建而丢失控件。
+
+翻译管理器增加了选项是否翻译 Action 不为 nil 的控件的字符串属性。一般来说 Action 不为 nil 的控件，其 Caption 和 Hint 等随 Action 变化而变化的，不需要单独翻译，所以此属性默认打开（不翻译）。
+
+多语存储组件方面：
+
+为避免INI文件读写效率低下的问题，增加了一新类CnHashLangFileStorage，存储对象文件扩展名为TXT，内容为多行的“翻译字串=翻译字串值”。载入语言时在内存中构建HashMap以加快翻译字串访问的速度。CnPack IDE 专家包采用此存储组件。
+文件多语存储组件统一管理扩展名，但内部的LanguageItem各自标示了自身语言文件名，语言文件名在语言ID赋值的时候会默认生成语言缩写做为文件名的，用户可修改。文件多语组件的语言目录名在重置的时候，会自动搜索新目录下的符合条件的多语文件，搜索到的自动创建并加入多语条目。
+
+以上已经合并入多语包概要设计说明书。
+
+翻译组件方面：
+
+翻译组件本身没有什么功能，只供启动翻译管理器，供用户搜索项目内的窗体生成翻译条目列表。这部分是设计中留待后来完成的，这里提前完成。另外，设计中的创建多语文件等临时措施取消。
+
+2003-12-13
+加入了字体的处理：当某个TControl控件的parent为nil或者ParentFont为false的时候，将其字体转换成一string保存为TForm1.Button1.!Font的字符串保存入langstorage里头。删除了原来的Font的Name处理。
+替LanguageItem也增加了DefaultFont属性，以供设计期修改DefaultFont。filelangstorage从文件中载入语言条目的时候会根据!TranslationFont的字符串来初始化该languageItem的defaultfont，当前langugageindex发生改变的时候，也会从文件中载入!TranslationFont来初始化filelangstorage的当前defaultfont。
+LangugageManager增加了UseDefaultFont属性，指示是否在TranslateForm后，用当前语言的DefaultFont来设置窗体字体。
+LangTranslator的属性编辑器中，也将font的处理改成了!TranslateFont的字符串形式。以前未进行对Font的name、size和charset等的处理。
+此项已经合并入多语包概要设计说明书。
+
+2005-08-19
+多语管理器原先采用单实例的设计模式，后来发现这种模式在设计期有问题。比如一个工程组里头有两个工程，两个工程的主窗口各有一多语管理器，照理两工程应该互相不影响。但单实例的模式会在这两个工程在 IDE 中同时打开时发生冲突，导致后来的那一个管理器不能创建，从而导致其他诸多问题。
+现在修改成允许多实例了，使用了一个 List 来记录每次创建的实例，全局函数 CnLanguagneManager 返回的是 List 中的第一个实例。这样在设计期俩实例也没冲突，也允许各自保存各自的属性。只要这俩实例运行期不同时出现即可。
+此项已经合并入多语包概要设计说明书。
+
+2005-08-19
+为了方便多语包的设计期使用，在多语文件存储的文件名和目录名默认都未设置、为空的情况下，设计期应该能自动搜寻到该多语包所在工程的输出路径为基本路径，以工程名也就是输出EXE文件的名称为多语文件名。在文件名路径名设置了的情况下则按设置好的处理。注意，获取设计期工程等内容不宜在控件内部进行，因为此多语存储控件本身主要针对运行期，不需要也不应该引入 TOOLSAPI 等和 IDE 的接口。对此需要修改部分设计，增加设计期的一些属性供翻译管理器来判断使用。
+此项内容已经合并入多语包概要设计说明书。

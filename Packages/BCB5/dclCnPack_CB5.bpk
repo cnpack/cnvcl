@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.05.03"/>
+    <PROJECT value="dclCnPack_CB5.bpl"/>
+    <OBJFILES value="..\..\Source\Common\CnPropEditors.obj ..\..\Source\Common\CnOTAUtils.obj 
+      ..\..\Source\Common\CnCompAboutFrm.obj 
+      ..\..\Source\Common\CnPackRegister.obj 
+      ..\..\Source\DbReport\CnDBRegister.obj 
+      ..\..\Source\DbReport\CnADOUpdateSQLEditor.obj 
+      ..\..\Source\DbReport\CnADOUpdateSQLFrm.obj 
+      ..\..\Source\Graphics\CnGraphPropEditors.obj 
+      ..\..\Source\Graphics\CnGraphRegister.obj 
+      ..\..\Source\Graphics\CnAAFontEditor.obj 
+      ..\..\Source\MultiLang\CnLangEditors.obj 
+      ..\..\Source\MultiLang\CnLangReg.obj 
+      ..\..\Source\MultiLang\CnTransEditor.obj 
+      ..\..\Source\MultiLang\CnTransFilter.obj 
+      ..\..\Source\NetComm\CnNetPropEditor.obj 
+      ..\..\Source\NetComm\CnNetRegister.obj 
+      ..\..\Source\NonVisual\CnCompRegister.obj 
+      ..\..\Source\NonVisual\CnASPropEditors.obj 
+      ..\..\Source\NonVisual\CnDockPropertyReg.obj dclCnPack_CB5.obj"/>
+    <RESFILES value="dclCnPack_CB5.res"/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) ..\..\Source\Common\CnCompAboutFrm.dfm 
+      ..\..\Source\DbReport\CnADOUpdateSQLFrm.dfm 
+      ..\..\Source\MultiLang\CnTransEditor.dfm 
+      ..\..\Source\MultiLang\CnTransFilter.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value=""/>
+    <SPARELIBS value="Vcl50.lib Vclx50.lib Vcldb50.lib dclado50.lib vclmid50.lib"/>
+    <PACKAGES value="vcl50.bpi Vclx50.bpi Vcldb50.bpi dsnide50.bpi dclado50.bpi vclado50.bpi vclmid50.bpi 
+      CnPack_CB5.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;..\..\Source\Common;..\..\Source\DbReport;..\..\Source\Graphics;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="tlink32"/>
+    <USERDEFINES value="_DEBUG"/>
+    <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
+    <MAINSOURCE value="dclCnPack_CB5.cpp"/>
+    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi"/>
+    <LIBPATH value="$(BCB)\Projects\Lib;..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi"/>
+    <WARNINGS value="-w-par"/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-I..\..\Source\NonVisual -I..\..\Source\NetComm -I..\..\Source\MultiLang 
+      -I..\..\Source\Graphics -I..\..\Source\Common -I..\..\Source\DbReport 
+      -I$(BCB)\include -I$(BCB)\include\vcl -I$(BCB)\source\toolsapi -src_suffix 
+      cpp -D_DEBUG -boa"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -c 
+      -tWM"/>
+    <PFLAGS value="-$YD -$W -$O- -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zd"/>
+    <LFLAGS value="-D&quot;CnPack Components Designtime Package&quot; -aa -Tpp -Gpd -x -Gn -Gl -Gi -v"/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0pkg32.obj $(PACKAGES) Memmgr.Lib sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib"/>
+  </LINKER>
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=1
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=2052
+CodePage=936
+
+[Version Info Keys]
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+
+[HistoryLists\hlIncludePath]
+Count=2
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi
+Item1=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=2
+Item0=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi
+Item1=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=1
+Item0=_DEBUG
+
+[Debugging]
+DebugSourceDirs=$(BCB)\source\vcl
+
+[Parameters]
+RunParams=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=0
+LinkCGLIB=0
+
+[CORBA]
+AddServerUnit=1
+AddClientUnit=1
+PrecompiledHeaders=1
+  </IDEOPTIONS>
+</PROJECT>

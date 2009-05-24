@@ -1,0 +1,212 @@
+======================================================================
+CnClasses 开发包基础类单元
+======================================================================
+
+by 周劲羽 (zjy@cnpack.org) 2002.07.09
+
+CnClasses 单元包含公共的最底层基础类实现。
+该单元位于开发包Source/Common目录下。
+
+----------------------------------------------------------------------
+TCnPersistent
+----------------------------------------------------------------------
+
+TCnPersistent <-- TPersistent
+
+带更新通知的持久性类，派生自 TPersistent，主要扩充了更新通知、计数等功
+能。
+
+  TCnPersistent = class(TPersistent)
+  protected
+    procedure Changing; virtual;
+    procedure Changed; virtual;
+    function GetOwner: TPersistent; override;
+    function IsUpdating: Boolean;
+    procedure OnChildChanging(Sender: TObject); virtual;
+    procedure OnChildChange(Sender: TObject); virtual;
+    procedure SetUpdating(Updating: Boolean); virtual;
+    property Owner: TPersistent;
+  public
+    constructor Create; overload; virtual;
+    constructor Create(AOwner: TPersistent); overload;
+    constructor Create(ChangeProc: TNotifyEvent); overload;
+    constructor Create(ChangingProc, ChangeProc: TNotifyEvent);
+      overload;
+    procedure BeginUpdate; virtual;
+    procedure EndUpdate; virtual;
+  published
+    property OnChanging: TNotifyEvent;
+    property OnChange: TNotifyEvent;
+  end;
+
+1. 更新通知
+------------
+
+在面向对象的系统中，对属性的赋值经常会引发一个操作，比如更改标签的 
+Caption、Font 等属性都会使标签重绘。通常，控件使用一个通用方法来处理大
+部分的属性变更事件，最常见的是在 Paint 方法根据当前属性重绘控件，而属
+性写方法中则用 Invalidate 通知控件重绘。
+
+作为提高组件易用性的一种手段，我们经常把一些相关的属性打包到一起，再为
+它编写属性编辑器，有时还会有多重嵌套，这样会使得属性通知变得复杂，
+TCnPersistent通过定义以下成员以描述这种共性：
+
+  protected
+    procedure Changing; virtual;
+    开始变更，通常在一个较长的操作中调用，如果当前更新记数为0，将产生
+    OnChanging事件。
+
+    procedure Changed; virtual;
+    内容已变更，指示某个属性内容已发生变化，如果当前更新记数为0，将产
+    生OnChange事件。一般用在属性写方法中。
+
+    procedure OnChildChanging(Sender: TObject); virtual;
+    子属性开始变更事件处理代码，默认操作同Changing，但传递子属性为
+    Sender。
+
+    procedure OnChildChange(Sender: TObject); virtual;
+    子属性内容已变更事件处理代码，默认操作同Changed，但传递子属性为
+    Sender。
+
+  public
+    constructor Create(ChangeProc: TNotifyEvent); overload;
+    这个构造器允许传递一个方法来给OnChange事件赋值。
+
+    constructor Create(ChangingProc, ChangeProc: TNotifyEvent);
+      overload;
+    这个构造器允许传递两个方法来给OnChanging和OnChange事件赋值。
+
+  published
+    property OnChanging: TNotifyEvent;
+    属性开始更新事件。
+
+    property OnChange: TNotifyEvent;
+    属性已变更事件。
+
+2. 更新计数
+-----------
+
+有时候，用户会批量设置属性，如果每设置一个属性都引发控件进行大量的处理，
+将使得运行速度变慢，一般采用更新计数的方法来解决：
+
+  protected
+    function IsUpdating: Boolean;
+    正在更新标志，表示当前有一个以上项目正在更新。
+
+    procedure SetUpdating(Updating: Boolean); virtual;
+    更新状态变化处理方法，默认的处理是当Updating为True即开始进入更新状
+    态时调用Changing方法，反之表示更新结束，调用Changed方法。
+
+  public
+    procedure BeginUpdate; virtual;
+    开始更新，增加更新计数，当更新计数大于0时，对Changing和Changed方法
+    的调用不产生相关事件。使用时必须与EndUpdate成对使用，并用
+    try...finally..end保护。嵌套调用该方法时仅第一次调用
+    SetUpdating(True)。
+
+    procedure EndUpdate; virtual;
+    结束更新，减少更新计数，必须与BeginUpdate成对使用，嵌套调用该方法
+    时仅最后一次调用SetUpdating(False)。
+
+3. 提供Owner属性 
+----------------
+(该设计思想由开发组 何清 兄提供)
+
+在某些特殊场合，IDE需要获取类属性的Owner以获得一个完整的命名路径，如
+TCollection派生类要在设计期有效，必须提供Owner属性。Delphi提供了
+TOwnedCollection来完成该功能，而如果一个TCollection派生类在组件的类属
+性甚至多重类属性中，则它的直接和间接拥有者都应该提供Owner属性，使得IDE
+可以获得一个类似ComponentName.Property1.Property2.Collection这样的命名
+路径来唯一标识该TCollection派生类实例及其子项。如果不这样做，你会发现
+在设计期你无法使用TCollection派生类属性的属性编辑器。
+
+TCnPersistent提供以下解决方案：
+
+  protected
+    function GetOwner: TPersistent; override;
+    重载了TPersistent的GetOwner方法，返回Owner属性，子类可不再关心。
+
+    property Owner: TPersistent;
+    允许子类在需要的时候设置实例的Owner属性，支持读写操作。
+
+  public
+    constructor Create(AOwner: TPersistent); overload;
+    类构造器，支持Owner参数，
+
+
+----------------------------------------------------------------------
+TCnThreadPersistent
+----------------------------------------------------------------------
+
+TCnThreadPersistent <-- TCnPersistent <-- TPersistent
+
+线程安全的更新通知持久性类，增加了线程安全的控制代码。
+
+VCL本身并不是线程安全的，如果多个线程同时访问一个控件时，很容易引发错
+误。我们知道，TThread提供了一个Synchronize，利用一种巧妙的方法将线程方
+法通过消息发送到进程的主线程中执行，以获得访问VCL时的同步。而
+TCnThreadPersistent主要是为解决并发访问数据时的冲突而设计，该类的设计
+主要参考了TCanvas的实现方法：
+
+  TCnThreadPersistent = class(TCnPersistent)
+  protected
+    property LockCount: Integer;
+    当前加锁计数，只读属性
+
+  public
+    procedure Lock;
+    加锁，增加加锁计数，进入临界访问区，以避免访问冲突。该方法必须与
+    Unlock成对使用，并用try...finally..end保护。
+
+    function TryLock: Boolean;
+    尝试加锁，如果当前LockCount为0，则加锁，否则放弃。返回成功标志，如
+    果成功，用户应负责解锁。
+
+    procedure Unlock;
+    解锁，减少加锁计数，离开临界访问区。该方法必须与Lock成对使用。
+  end;
+
+需要注意的是，使用了TCnThreadPersistent派生类的代码并不表明它就是线程
+安全的。线程安全性需要由用户自己来保证，TCnThreadPersistent只是提供了
+实现的方法而已。如果有一段数据处理代码允许在多线程中使用，并且不允许在
+执行的过程中被其它线程重入，用户应该用下面的方法来保护这段代码：
+
+bgein
+  CnThreadPersistent.Lock;
+  try
+    ...  // 需要保护的代码
+  finally
+    CnThreadPersistent.Unlock;
+  end;
+end;
+
+
+----------------------------------------------------------------------
+TCnComponent
+----------------------------------------------------------------------
+
+TCnComponent <-- TComponent <-- TPersistent
+
+CnPack不可视组件基类，当前仅增加了版权信息功能，这些信息用在组件的关于
+窗口中。
+
+  TCnComponent = class(TComponent)
+  protected
+    function GetAuthorCount: Integer; virtual;
+    取组件作者数，重载该方法返回组件作者总数，默认为0
+
+    function GetAuthor(Index: Integer): string; virtual;
+    取组件作者函数，参数为作者索引号（从0开始），重载该方法返回组件作
+    者
+
+    function GetEmail(Index: Integer): string; virtual;
+    取组件作者邮箱函数，参数为作者索引号（从0开始），重载该方法返回组
+    件作者邮箱
+
+    function GetComment: string; virtual;
+    取组件注释函数，组件重载该方法返回组件注释
+
+  published
+    property About: TCnCopyright;
+    组件的关于属性，注册有属性编辑器，用于显示版权信息。
+  end;

@@ -1,0 +1,23 @@
+多语包在专家包中的使用说明
+
+LiuXiao
+2003-10-12
+
+新增窗体时，窗体必须继承自CnWizTranslate单元中的TCnTranslateForm。然后再生成整个窗体的翻译字符串，添加入Lang目录下的多语文件中。
+最好在所有功能完成、窗体控件以及文字都确定以后再来实现多语，免得更新的时候因为可能潜在的bug而发生丢失字符串或错位的情况。:=)
+
+生成翻译字符串的步骤如下：
+在控件都放置好后，拖一个CnHashLangFileStorage到窗体上，设置其LanguagePath为一临时目录，用来存放临时生成的多语文件。
+拖一CnLangManager到窗体上，把LangStorage属性设置成CnHashLangFileStorage1。
+编辑CnHashLangFileStorage1的Languages属性，增加一种语言。因为需要的只是目标字符串，所以一种语言足够，而且LangID随便设置。
+拖一CnTranslator到窗体上，双击。在弹出的窗体中左边选中该语言，点击生成按钮，右面会生成字符串，点击复制按钮以生成完整的带翻译值的字符串，点保存按钮。
+在LanguagePath的临时目录中找到该语言文件，打开，复制，剩下的工作就是翻译后加入Lang目录下的多语文件中。
+
+
+新增资源字符串按下列三步走：
+
+第一，在CnWizConst单元里头加入这个字符串变量。
+第二，在WizTranslate翻译单元里头加上这个字符串变量的翻译赋值语句。
+第三，在各个语言文件里头加上新字符串的翻译条目。
+
+GB（GBK）到BIG5码的转换目前采用李志成的ConvertZ 8.02的中文内码转换器。

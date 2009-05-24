@@ -1,0 +1,151 @@
+如何使用编译开关建立可移植的代码
+作者：Riceball(riceball@cq118.com or riceballl@hotmail.com)
+Date: 2002-3-3
+更新：周劲羽(zjy@cnpack.org) 增加对 Delphi/BCB 7 的说明
+Data: 2002-9-10
+
+难度：中
+
+  我们使用编译开关可以帮助我们在同一文件中适应不同版本的Delphi（Pascal）编译器，同时支持多个版本的编译器。下面是不同版本的编译器的条件定义列表。
+
+不同版本编译器的条件定义：
+_____________________________
+版本 		条件定义指令
+Delphi 1 		VER80
+Delphi 2 		VER90
+C++Builder 1 	VER93
+Delphi 3 		VER100
+C++Builder 3 	VER110
+Delphi 4 		VER120
+C++Builder 4 	VER125
+Delphi 5 		VER130
+C++Builder 5 	VER130
+Kylix 1 		VER140
+Delphi 6 		VER140
+C++Builder 6 	VER140
+Delphi 7 		VER150
+C++Builder 7 	VER150
+
+尽管大多数的Delphi代码在不同版本中编译是完全没有问题的，但是依然有少数代码需要在不同的编译器下作稍许的修改，使用编译开关你就可以在同一文件中支持多个版本，象这样：
+
+{$IFDEF VER80}
+Delphi 1 code goes here
+{$ENDIF}
+{$IFDEF VER90}
+Delphi 2 code goes here
+{$ENDIF}
+{$IFDEF VER93}
+C++Builder 1 code goes here
+{$ENDIF}
+{$IFDEF VER100}
+Delphi 3 code goes here
+{$ENDIF}
+{$IFDEF VER110}
+C++Builder 3 code goes here
+{$ENDIF}
+{$IFDEF VER120}
+Delphi 4 and C++Builder 4 code goes here
+{$ENDIF}
+{$IFDEF VER130}
+Delphi and C++Builder 5 code goes here
+{$ENDIF}
+{$IFDEF VER140}
+Delphi 6 and Kylix code goes here
+{$ENDIF}
+{$IFDEF VER150}
+Delphi 7 and Kylix code goes here
+{$ENDIF}
+
+  不过，这并不是一个完整的漂亮的解决方案--看着这些VERxxx，你会觉得如同在读天书。Delphi的每一次的版本变化，功能都有所不同，如：在Delphi3以上的版本中增加对Interface的支持，在Delphi4以上的版本增加了对动态数组的支持等等。
+  在这里提供两个包含文件，供你参考。一个是Jedi.inc文件，它提供了关于编译器的信息以及所支持的功能的条件编译信息。另一个是Setting.inc文件，它将Jedi.inc链接了进来，并设置了程序所需要的参数开关， 你可以根据项目的需要进行更改。
+
+Jedi.inc 提供了如下的条件定义指令：
+一、开发环境指令
+  指令         说明
+  ------------------------------------------------------------------------------
+  DELPHI       当使用 Delphi 编译时该指令被定义
+  BCB          当使用 C++Builder 编译时该指令被定义
+
+二、操作平台指令
+
+  指令         说明
+------------------------------------------------------------------------------
+  MSWINDOWS    当目标平台是 MS Windows [Added By Riceball]
+  WIN16        当目标平台是 16位 Windows [Added By Riceball]
+  WIN32        当目标平台是 32位 Windows
+  LINUX        当目标平台是 Linux
+
+三、Delphi版本指令
+  将 VerXXX 指令映射成容易记住的Delphi版本名称。
+
+  指令         说明
+  ------------------------------------------------------------------------------
+  DELPHI1      当使用 Delphi 1 编译时该指令被定义
+  DELPHI2      当使用 Delphi 2 编译时该指令被定义
+  DELPHI3      当使用 Delphi 3 编译时该指令被定义
+  DELPHI4      当使用 Delphi 4 编译时该指令被定义
+  DELPHI5      当使用 Delphi 5 编译时该指令被定义
+  DELPHI6      当使用 Delphi 6 编译时该指令被定义
+  DELPHI7      当使用 Delphi 7 编译时该指令被定义
+  DELPHI1_UP   当使用 Delphi 1 或更高版本的编译器编译时该指令被定义
+  DELPHI2_UP   当使用 Delphi 2 或更高版本的编译器编译时该指令被定义
+  DELPHI3_UP   当使用 Delphi 3 或更高版本的编译器编译时该指令被定义
+  DELPHI4_UP   当使用 Delphi 4 或更高版本的编译器编译时该指令被定义
+  DELPHI5_UP   当使用 Delphi 5 或更高版本的编译器编译时该指令被定义
+  DELPHI6_UP   当使用 Delphi 6 或更高版本的编译器编译时该指令被定义
+  DELPHI7_UP   当使用 Delphi 7 或更高版本的编译器编译时该指令被定义
+
+四、C++Builder 版本指令
+  将 VerXXX 指令映射成容易记住的C++Builder版本名称。
+  指令         说明
+  ------------------------------------------------------------------------------
+  BCB1         当使用 C++Builder 1 编译时该指令被定义
+  BCB3         当使用 C++Builder 3 编译时该指令被定义
+  BCB4         当使用 C++Builder 4 编译时该指令被定义
+  BCB5         当使用 C++Builder 5 编译时该指令被定义
+  BCB6         当使用 C++Builder 6 编译时该指令被定义
+  BCB7         当使用 C++Builder 7 编译时该指令被定义
+  BCB1_UP      当使用 C++Builder 1 或更高版本的编译器编译时该指令被定义
+  BCB3_UP      当使用 C++Builder 3 或更高版本的编译器编译时该指令被定义
+  BCB4_UP      当使用 C++Builder 4 或更高版本的编译器编译时该指令被定义
+  BCB5_UP      当使用 C++Builder 5 或更高版本的编译器编译时该指令被定义
+  BCB6_UP      当使用 C++Builder 6 或更高版本的编译器编译时该指令被定义
+  BCB7_UP      当使用 C++Builder 7 或更高版本的编译器编译时该指令被定义
+
+五、编译器版本指令
+  将 VerXXX 指令映射成容易记住的编译器版本名称。
+  指令         说明
+  ------------------------------------------------------------------------------
+  COMPILER1    当使用 Delphi 1 编译时该指令被定义
+  COMPILER2    当使用 Delphi 2 或 C++Builder 1 编译时该指令被定义
+  COMPILER3    当使用 Delphi 3 编译时该指令被定义
+  COMPILER35   当使用 C++Builder 3 编译时该指令被定义
+  COMPILER4    当使用 Delphi 4 或 C++Builder 4 编译时该指令被定义
+  COMPILER5    当使用 Delphi 5 或 C++Builder 5 编译时该指令被定义
+  COMPILER6    当使用 Delphi 6 或 C++Builder 6 编译时该指令被定义
+  COMPILER7    当使用 Delphi 7 或 C++Builder 7 编译时该指令被定义
+  COMPILER1_UP 当使用 Delphi 1 或更高版本的编译器编译时该指令被定义
+  COMPILER2_UP 当使用 Delphi 2 或C++Builder 1或更高版本的编译器编译时该指令被定义
+  COMPILER3_UP 当使用 Delphi 3 或更高版本的编译器编译时该指令被定义
+  COMPILER35_UP 当使用 C++Builder 3 或更高版本的编译器编译时该指令被定义
+  COMPILER4_UP 当使用 Delphi 4 或C++Builder 4或更高版本的编译器编译时该指令被定义
+  COMPILER5_UP 当使用 Delphi 5 或C++Builder 5或更高版本的编译器编译时该指令被定义
+  COMPILER6_UP 当使用 Delphi 6 或C++Builder 6或更高版本的编译器编译时该指令被定义
+  COMPILER7_UP 当使用 Delphi 7 或C++Builder 7或更高版本的编译器编译时该指令被定义
+
+六、功能指令
+  这些功能指令可以用来测试是否编译器支持指定的功能，例如，方法重载等，然后调整相应的代码。
+  指令                   说明
+  ------------------------------------------------------------------------------
+  SUPPORTS_WIDESTRING    编译器支持 WideString 类型 (D3/BCB3 up)
+  SUPPORTS_INTERFACE     编译器支持 interfaces 类型(D3/BCB3)
+  SUPPORTS_EXTSYM        编译器支持 $EXTERNALSYM 指令 (D4/BCB3)
+  SUPPORTS_NODEFINE      编译器支持 $NODEFINE 指令 (D4/BCB3)
+  SUPPORTS_INT64         编译器支持 Int64 类型 (D4/BCB4)
+  SUPPORTS_DYNAMICARRAYS 编译器支持动态数组(dynamic arrays) (D4/BCB4)
+  SUPPORTS_DEFAULTPARAMS 编译器支持默认参数(default parameters) (D4/BCB4)
+  SUPPORTS_OVERLOAD      编译器支持重载 overloading (D4/BCB4)
+  SUPPORTS_ENUMVALUES    编译器支持 enum values (D6/KYLIX) [Added by Riceball]
+  SUPPORTS_VARIANTS      编译器支持用户自定义变体类型 Variants user-installable types. (D6/KYLIX) [Added by Riceball]
+  SUPPORTS_IFDIRECTIVE   编译器支持 $IF 指令. (D6/KYLIX) [Added by Riceball]
+

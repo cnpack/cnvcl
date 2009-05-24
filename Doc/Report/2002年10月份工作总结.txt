@@ -1,0 +1,34 @@
+开发成员们，您好！
+
+    报歉这个月没有什么大的进展，小弟工作一直很忙，感冒也持续了很久。不过在后面的日子里，我仍会努力为 CnPack 工作的！
+
+    一、10月份取得的主要进展有：
+    1、CnPack IDE 专家包新增加了一个工具及一些公共代码，支持 Delphi5/6/7 和 C++Builder5/6，并开始外部测试。
+    2、新增部分公共单元，充实开发包公共代码库。
+    3、本月新加入的成员有：天涯、tsbob，仍然让我们对他们的到来表示最热烈的欢迎！
+    4、另外，Alphazw 成员为开发网站增加了一些新东西。
+
+
+    二、11月份的工作计划：
+    1、11月的主要开发任务仍然是 IDE 专家包，计划再增加一些有用的工具。
+    2、测试现有的代码，同时开发包可以支持 Delphi5/6/7 和 C++Builder5/6。
+    3、整理、增加公共代码库及不可视工具组件。
+    4、继续开发网站的改版。
+
+    开发网站：http://www.cnpack.org
+    开发论坛：http://www.pcjingning.com/
+    匿名FTP空间：ftp://cnpack.cosoft.org.cn
+    管理员信箱：master@cnpack.org
+
+    项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip
+    IDE专家包：http://cnpack.cosoft.org.cn/download/CnWizards.zip
+
+
+    团结奋斗！！
+    共同进步！！
+
+                CnPack开发组  周劲羽
+                http://www.cnpack.org
+                   master@cnpack.org
+                      2002-11-05 
+

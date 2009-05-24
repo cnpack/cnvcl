@@ -1,0 +1,34 @@
+CnPack开发组2003年十月份工作总结：
+
+    十月份 CnPack 在管理上上了一个台阶，并为发布新版本作了一些工作，而且CnWizards专家包更强了许多新的特性。本月总结内容如下：
+
+一、2003年10月份取得的主要成果：
+
+    1. Bug修正，这是每个阶段必做的任务，本月份在Bug修正上不但修正了许多重大的Bug，比如BCB5重载函数错误的BUG及由于浮动面板引起的诸多问题；还处理了一些优先级比较低的Bug，比如对话框ESC关闭功能，为0.6.7新版本发布打下了很好的基础；
+    2. 新增了部分专家或增强了部分专家功能，新增了Repository专家、在D56的OI中实现D7的粗体显示功能，MSDN 向导终于支持MSDN.NET，相信这是大家期盼已久的。使用COM Server构架重新设计资源管理专家，使之支持BCB，支持多IDE共享一个资源管理专家进程，并可脱离IDE环境运行。
+    3. CnPack管理的新变化，首先是启用了新的master@cnpack.org管理员电子信箱，启用了news://news.cnvcl.org/新闻组，大大方便了CnPack开发团队成员的交流。启用了新的错误跟踪和任务管理系统CVSTrac，并在短期内起到了明显的作用，所有CVS的改变一目了然；对BUG的反应速度比以前缩短了许多，并可对BUG从报告到最后修正整个过程、任务的提出/任务分配/任务进度整个过程作到统一管理。希望CnPack的开发团队的各成员充分利用好CVSTrac，这是改善CnPack团队管理的必要条件。
+    4. 0.6.7新版本发布前的准备工作。
+
+二、2003年11月初步计划：
+
+    1. 近期发布0.6.7新版本。
+    2. 完善一些新的专家（资源管理专家、件浏览专家、收藏夹专家、ActiveScript引擎、书签专家、FmyExperts 移植、MMC 框架向导移植、DUnit 框架向导移植）的开发和移植工作。
+    3. 补充和重编一些文档。 
+    4. 升级CnWizards V1.1框架。
+
+欢迎对我们提出有价值的意见和建议。
+
+    开发网站：http://www.cnpack.org
+　　开发论坛：http://bbs.cnpack.org
+　　管理员信箱：master@cnpack.org
+
+    项目CVS包：http://download.cnpack.org/CnPack.zip
+    IDE专家包：http://download.cnpack.org/CnWizards.exe
+
+　　团结奋斗！！
+　　共同进步！！
+
+
+
+                                         CnPack开发组 LiuXiao、周劲羽、QSoft
+                                                             2003-11-10 
