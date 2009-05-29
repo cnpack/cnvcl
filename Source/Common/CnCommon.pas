@@ -2339,7 +2339,13 @@ begin
     Exit;
   end;
 
+{$IFDEF DELPHI2010}
+  // D2010 下的编译器兼容性问题，同一语句中的两个_CnPChar调用
+  // 居然会返回同一地址，导致比较无论如何也成功，只能改掉
+  Result := FileNameMatch(PAnsiChar(AnsiString(S)), PAnsiChar(AnsiString(Ext))) = 0;
+{$ELSE}
   Result := FileNameMatch(_CnPChar(S), _CnPChar(Ext)) = 0;
+{$ENDIF}
 end;
 
 // 文件名是否与通配符匹配
@@ -2351,7 +2357,13 @@ begin
     Exit;
   end;
 
+{$IFDEF DELPHI2010}
+  // D2010 下的编译器兼容性问题，同一语句中的两个_CnPChar调用
+  // 居然会返回同一地址，导致比较无论如何也成功，只能改掉
+  Result := FileNameMatch(PAnsiChar(AnsiString(S)), PAnsiChar(AnsiString(FN))) = 0;
+{$ELSE}
   Result := FileNameMatch(_CnPChar(S), _CnPChar(FN)) = 0;
+{$ENDIF}
 end;
 
 // 得到大小写是否敏感的字符串
