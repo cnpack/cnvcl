@@ -962,8 +962,7 @@ function GetParentFont(AControl: TComponent): TFont;
 const
   InvalidFileNameChar: set of AnsiChar = ['\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
-function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar {$ELSE} PChar {$ENDIF};
-{$IFDEF DELPHI2010} inline; {$ENDIF}
+function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
 {* 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用}
 
 implementation
@@ -971,8 +970,7 @@ implementation
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
 // 另外，由于 D2010 测试版下的编译器兼容性问题，同一语句中的两个_CnPChar调用
 // 居然会返回同一地址，导致比较无论如何也成功，只能改成 inline
-function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar {$ELSE} PChar {$ENDIF};
-{$IFDEF DELPHI2010} inline; {$ENDIF}
+function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
 begin
 {$IFDEF UNICODE_STRING}
   Result := PAnsiChar(AnsiString(S));
