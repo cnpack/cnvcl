@@ -968,8 +968,8 @@ function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$
 implementation
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
-// 另外，由于 D2010 测试版下的编译器兼容性问题，同一语句中的两个_CnPChar调用
-// 居然会返回同一地址，导致比较无论如何也成功，只能改成 inline
+// 另外，D2009 或以上版本，必须加 inline，
+// 避免产生实质转换时返回值指向局部被释放的内容
 function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
 begin
 {$IFDEF UNICODE_STRING}
