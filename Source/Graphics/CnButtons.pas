@@ -94,6 +94,8 @@ type
     procedure SetRoundCorner(const Value: Boolean);
     procedure RenewBack;
     {* 刷新底部位图 *}
+    procedure GlyphChanged(Sender: TObject);
+    {* 2009-06-05 添加，处理FGlyph的onchange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure ActionChange(Sender: TObject; CheckDefaults: Boolean); override;
@@ -355,6 +357,8 @@ type
     procedure SetHotTrackBold(const Value: Boolean);
     procedure SetHotTrackColor(const Value: TColor);
     procedure SetRoundCorner(const Value: Boolean);
+    procedure GlyphChanged(Sender: TObject);
+    {* 2009-06-05 添加，处理FGlyph的onchange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
   protected
     FState: TButtonState;
     procedure ActionChange(Sender: TObject; CheckDefaults: Boolean); override;
@@ -999,6 +1003,8 @@ begin
   ControlStyle := [csSetCaption, csCaptureMouse];
 
   FGlyph := TBitmap.Create;
+  FGlyph.OnChange := GlyphChanged;
+  { 2009-06-05 添加，处理FGlyph的onchange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
   FSpacing := 4;
   FMargin := 4;
   FLightColor := clWhite;
@@ -1550,6 +1556,11 @@ begin
   // 2008年08月03日添加，如果不继承原消息处理将会使控件无法改变大小- -
 end;
 
+procedure TCnCustomButton.GlyphChanged(Sender: TObject);
+begin
+  Invalidate;
+end;
+
 { TCnSpeedButton }
 
 constructor TCnSpeedButton.Create(AOwner: TComponent);
@@ -1574,6 +1585,8 @@ begin
   FHotTrackColor := clNone;
   FTransparent := False;
   FGlyph := TBitmap.Create;
+  FGlyph.OnChange := GlyphChanged;
+  { 2009-06-05 添加，处理FGlyph的onchange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
 end;
 
 destructor TCnSpeedButton.Destroy;
@@ -1754,7 +1767,7 @@ end;
 
 procedure TCnSpeedButton.SetGlyph(Value: TBitmap);
 begin
- if Value <> nil then
+  if Value <> nil then
   begin
     FGlyph.Assign(Value);
     if Value.Height <> 0 then
@@ -2100,6 +2113,11 @@ begin
     FRoundCorner := Value;
     Invalidate;
   end;
+end;
+
+procedure TCnSpeedButton.GlyphChanged(Sender: TObject);
+begin
+  Invalidate;
 end;
 
 initialization
