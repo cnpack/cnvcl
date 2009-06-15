@@ -1,0 +1,167 @@
+CnPack开发组2009年上半年度工作总结
+
+    CnPack 在 2009 年上半年取得的主要成绩如下：
+
+一、今年上半年，CnPack IDE 专家包用户数目据保守估计已经超过万人。专家包已发布 0.9.1 正式版，并准备发布 0.9.2 版。
+    2009 年 4 月 4 日发布的 CnWizards 0.9.1 正式版主要改进但不局限于：
+
+    1. 代码高亮增加高亮当前行背景色的功能。
+    2. 编辑器扩展增加 F2 光标下标识符改名的功能。
+    3. 编辑器扩展增加输入分号移动至行尾的功能，默认禁用。
+    4. 删除注释专家增加对目录的处理，增加合并空行的选项。
+    5. 脚本专家增加对 Delphi 2009 的支持，增加部分示例。
+    6. 窗体设计专家增加 F2 修改选中组件名称的机制。
+    7. 帮助文件优化图像减少体积。
+
+    即将发布的 0.9.2 版本也在进行中，目前主要改进如下：
+
+    1. 代码高亮与画线、函数列表工具栏与跳转至匹配关键字等功能增加了对 C++Builder 的支持。
+    2. 代码输入助手使用 IDE 的自动完成来模拟对 C++Builder 的支持。
+    3. 支持 Delphi 2010 Beta 14.0.3417.21151。
+    4. 编辑器扩展增加 begin 后回车时自动输入 end 的功能。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+    或：
+    http://code.google.com/p/cnpack/downloads/list?can=1
+
+二、为减轻 CnPack 服务器负担并给全球朋友提供速度更快的访问方式，CnPack 的 CVS/CVSTrac 已搬迁至 Google Code 的 Hosting 并启用 SVN 服务，原有 CVS/CVSTrac 等目前已停止使用。
+
+    CnPack 的 Google Code 项目首页
+    http://code.google.com/p/cnpack/
+
+    任务单管理：
+    http://code.google.com/p/cnpack/issues/list
+
+    CnPack SVN 代码浏览：
+    http://code.google.com/p/cnpack/source/browse/#svn/trunk
+
+    CnPack SVN 时间线：
+    http://code.google.com/p/cnpack/source/list
+
+    匿名获得代码的说明：
+    http://code.google.com/p/cnpack/source/checkout
+
+    新增的每日构建版下载地址：
+    http://code.google.com/p/cnpack/downloads/list?can=1
+
+三、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
+
+    链接：
+    http://www.cnpack.org/foundation.php
+    公开帐目：
+    http://www.cnpack.org/showdetail.php?id=529
+
+四、CnPack 组件包在 SVN 中的目录名改为 cnvcl，内容在继续改进中。
+
+五、由于已有群接近满员，CnPack 开发组启用第六个 QQ 群 45094292。欢迎不在 I/II/III/IV/V 群中的 CnPack 爱好者加入此群。
+
+    下半年 CnPack 开发组的计划如下：
+
+一、CnWizards 准备发布 0.9.2 版，另外也将计划对未来 Delphi 2010 正式版的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。目前据升级数据统计，CnWizards 的国内外用户数目保守估计已经超万人，这是一个可喜的发展里程碑，希望能继续进一步扩大用户群。
+
+三、继续扩充及移植 CnPack 组件包，补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部邮件列表：bbs@cnpack.org
+    CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
+                             CnPack III: 32712412（满），CnPack IV: 130970（满）
+                             CnPack V: 16067960（满），CnPack VI: 45094292
+
+    （注：邮件列表与 QQ 群原则上只供开发组成员与用户加入，不欢迎讨论和 CnPack 无关的问题）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2009-06-15
+
+
+========================================================================
+
+CnPack Working Report in the First Half of 2009
+
+    Below are the achievements of CnPack in the First Half of 2009:
+
+1. CnPack IDE Wizards 0.9.1 published at 2009-04-04. 0.9.2 is also coming. 0.9.2 will add some supports to C++Builder.
+   0.9.1 changes:
+
+   I.   Add Highlight to Current Line in Source Highlight.
+   II.  Add F2 Shortcut to Rename Identifier under Cursor.
+   III. Add a Function that Auto Put to Line End when Enter Semicolon in Source. Defaultly Disabled.
+   IV.  Comment Cropper Supports Directoires. Add an Merge Blank Lines Option.
+   V.   Script Wizard Supports Delphi 2009. Some Demos Added.
+   VI.  Add F2 Shortcut to Rename Selected Component in Designer.
+   VII. Decrease Help File Size.
+
+   0.9.2 changes (coming soon):
+
+   I.   Support Delphi 2010 Beta 14.0.3417.21151.
+   II.  Simulate Code Input Helper using IDE's Code Insight in C++Builder.
+   III. Source Highlight, Procedure Toolbar, Jump to Matched Keyword/Brace Supports C++Builder.
+   IV.  Auto Enter "begin" after "end" in Editor Enhancement.
+
+   Our nightly build version:
+   http://www.cnpack.org/downbuilds.php
+   Or:
+   http://code.google.com/p/cnpack/downloads/list?can=1
+
+2. CnPack To decrease the pressure of our server, now CnPack use Google Code's SVN to manage code. CnPack's CVS will Stop from now.
+
+   CnPack's Google Code:
+   http://code.google.com/p/cnpack/
+
+   Our Timeline:
+   http://code.google.com/p/cnpack/source/list
+
+   Browse Code:
+   http://code.google.com/p/cnpack/source/browse/#svn/trunk
+
+   To get latest code, just see here:
+   http://code.google.com/p/cnpack/source/checkout
+
+   Newly added nightly build download:
+   http://code.google.com/p/cnpack/downloads/list?can=1
+
+3. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
+   https://sourceforge.net/project/project_donations.php?group_id=110999   
+
+4. CnPack Components Package changes the directory name from "cnpack" to "cnvcl".
+
+    Below is the plan of CnPack for the Second Half of 2009:
+
+1. Publish CnWizards 0.9.2. Prepare the support to Delphi 2010 Stable in future.
+
+2. Continue to fix the bugs and do the function improvements for CnWizards. Continue to publicize CnWizards to home and board. Now according to the upgrade statistics, there're more than 10,000 CnWizards users by the middle of 2009. We hope this number can increase considerably in the next half of 2009.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack Team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125
+                         CnPack III: 32712412; CnPack IV: 130970
+                         CnPack V: 16067960; CnPack VI: 45094292
+
+    (Note: Mailing list and QQ group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2009-06-15
