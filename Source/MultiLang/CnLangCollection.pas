@@ -75,7 +75,9 @@ type
   public
     constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
-
+    
+    procedure Assign(Source: TPersistent); override;
+    {* 赋值过程}
     function IsValidLanguageID(ALanguageID: LongWord): Boolean;
     {* 判断一 ID 是否是合法的语言 ID }
     property OnLanguageIDChanged: TNotifyEvent read FOnLanguageIDChanged
@@ -242,6 +244,22 @@ destructor TCnLanguageItem.Destroy;
 begin
   FDefaultFont.Free;
   inherited;
+end;
+
+procedure TCnLanguageItem.Assign(Source: TPersistent);
+begin
+  if Source is TCnLanguageItem then
+  begin
+    FLanguageName := TCnLanguageItem(Source).LanguageName;
+    FAuthor := TCnLanguageItem(Source).Author;
+    FAuthorEmail := TCnLanguageItem(Source).AuthorEmail;
+    FAbbreviation  := TCnLanguageItem(Source).Abbreviation;
+    FLanguageFileName  := TCnLanguageItem(Source).LanguageFileName;
+    FLanguageDirName  := TCnLanguageItem(Source).LanguageDirName;
+    FLanguageID  := TCnLanguageItem(Source).LanguageID;    
+  end
+  else
+    inherited;
 end;
 
 function TCnLanguageItem.GetDefaultFontStr: string;
