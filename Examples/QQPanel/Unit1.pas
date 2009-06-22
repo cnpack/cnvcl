@@ -3,7 +3,7 @@ unit Unit1;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, CnQQPanel, StdCtrls, ComCtrls;
 
 type
@@ -29,7 +29,7 @@ implementation
 procedure TForm1.FormCreate(Sender: TObject);
 var
   img: string;
-  ico: TCnQQIco;
+  ico: TCnQQIcon;
   p: TCnQQPerson;
   dt: TCnQQIconData;
 begin
@@ -49,7 +49,7 @@ begin
   dt.IconName := 'video icon';
   dt.IconDesc := '拥有摄像头，可以进行视频聊天的用户';
 
-  ico := TCnQQIco.Create(self);
+  ico := TCnQQIcon.Create(self);
   ico.NormalIcon:=img + 'video.bmp';
   ico.HotIcon := img + 'video_hot.bmp';
   ico.Data := dt;
@@ -61,7 +61,7 @@ begin
   dt.IconName := 'qq icon';
   dt.IconDesc := '可以通过手机聊天的用户';
 
-  ico := TCnQQIco.Create(self);
+  ico := TCnQQIcon.Create(self);
   ico.NormalIcon:=img + 'QQ.bmp';
   ico.HotIcon := img + 'QQ_HOT.bmp';
   ico.Data := dt;

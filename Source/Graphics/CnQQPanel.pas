@@ -57,7 +57,7 @@ type
     property IconDesc: string read FIconDesc write FIconDesc;
   end;
   
-  TCnQQIco = class(TPanel)
+  TCnQQIcon = class(TPanel)
   private
     FImage: TImage;
     FData: Pointer;
@@ -81,7 +81,7 @@ type
     property OnIconDoubleClick: TCnIconNotifyEvent read FOnIconDoubleClick write FOnIconDoubleClick;
   end;
 
-  TCnQQIcoArray = array of TCnQQIco;
+  TCnQQIcoArray = array of TCnQQIcon;
 
   TCnQQPerson = class
   private
@@ -92,7 +92,7 @@ type
     FUserHead: string;
     FNameColor: TColor;
   public
-    procedure AddIcon(Ico: TCnQQIco);
+    procedure AddIcon(Ico: TCnQQIcon);
     procedure RemoveIcon(Index: Integer);
     constructor Create;
   public
@@ -129,7 +129,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure AddIcon(Ico: TCnQQIco);
+    procedure AddIcon(Ico: TCnQQIcon);
     procedure RemoveIcon(Index: Integer);
   public
     property Data: Pointer read FData write FData;
@@ -193,7 +193,7 @@ type
     procedure SetPanelHeight;
   public
     constructor Create(AOwner: TComponent); override;
-    function AddGroup(AName: string): boolean;
+    function AddGroup(AName: string): Boolean;
     procedure RemoveGroup(Index: Integer);
     procedure ExpandAll;
     procedure PackupAll;
@@ -211,12 +211,12 @@ implementation
 
 { TCnQQMember }
 
-procedure TCnQQMember.AddIcon(Ico: TCnQQIco);
+procedure TCnQQMember.AddIcon(Ico: TCnQQIcon);
 var
   len: Integer;
 begin
   len := Length(FQQIcos);
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   ico.Image.OnMouseEnter := OnImageMouseEnter;
   ico.Image.OnMouseLeave := OnImageMouseLeave;
 {$ENDIF}
@@ -233,7 +233,7 @@ begin
   BevelOuter := bvNone;
   Height := 54;
   Color := clWindow;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   OnMouseEnter := OnGlassMouseEnter;
   OnMouseLeave := OnGlassMouseLeave;
 {$ENDIF}
@@ -242,7 +242,7 @@ begin
 
   FHeadImage := TImage.Create(self);
   FHeadImage.Parent := self;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FHeadImage.Margins.Top := 7;
   FHeadImage.Margins.Bottom := 7;
   FHeadImage.Margins.Right := 15;
@@ -260,7 +260,7 @@ begin
   FPnlCont.Align := alClient;
   FPnlCont.Color := clWindow;
 
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FPnlCont.OnMouseEnter := OnGlassMouseEnter;
   FPnlCont.OnMouseLeave := OnGlassMouseLeave;
 {$ENDIF}  
@@ -292,7 +292,7 @@ begin
   FPExtension.Align := alClient;
   FPExtension.Color := clWindow;
 
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FHeadImage.OnMouseEnter := OnGlassMouseEnter;
   FHeadImage.OnMouseLeave := OnGlassMouseLeave;
 {$ENDIF}
@@ -318,7 +318,7 @@ begin
   FExtension.Align := alClient;
   FExtension.Layout := tlCenter;
 
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FNickName.OnMouseEnter := OnGlassMouseEnter;
   FNickName.OnMouseLeave := OnGlassMouseLeave;
 {$ENDIF}
@@ -326,14 +326,14 @@ begin
   FNickName.OnClick := OnGlassClick;
   FNickName.OnDblClick := OnGlassDoubleClick;
 
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FDesc.OnMouseEnter := OnGlassMouseEnter;
   FDesc.OnMouseLeave := OnGlassMouseLeave;
 {$ENDIF}
   FDesc.OnClick := OnGlassClick;
   FDesc.OnDblClick := OnGlassDoubleClick;
 
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FExtension.OnMouseEnter := OnGlassMouseEnter;
   FExtension.OnMouseLeave := OnGlassMouseLeave;
 {$ENDIF}
@@ -399,9 +399,9 @@ procedure TCnQQMember.OnImageMouseEnter(Sender: TObject);
 begin
   //
   OnGlassMouseEnter(Self);
-  if FileExists(TCnQQIco(TImage(Sender).Parent).HotIcon) then
+  if FileExists(TCnQQIcon(TImage(Sender).Parent).HotIcon) then
     TImage(Sender).Picture.Bitmap.LoadFromFile(
-      TCnQQIco(TImage(Sender).Parent).HotIcon);
+      TCnQQIcon(TImage(Sender).Parent).HotIcon);
   // TPanel(TImage(Sender).Parent).Color := $00C2804B;
 end;
 
@@ -410,14 +410,14 @@ begin
   //
   OnGlassMouseLeave(Self);
   TImage(Sender).Picture.Bitmap.LoadFromFile(
-    TCnQQIco(TImage(Sender).Parent).NormalIcon);
+    TCnQQIcon(TImage(Sender).Parent).NormalIcon);
  // TPanel(TImage(Sender).Parent).ParentColor := True;
 end;
 
 procedure TCnQQMember.RemoveIcon(Index: Integer);
 var
   len: Integer;
-  i: integer;
+  i: Integer;
 begin
   len := Length(FQQIcos);
   FQQIcos[Index].Free;
@@ -432,10 +432,10 @@ end;
 
 function TCnQQGroup.AddMember(person: TCnQQPerson): Boolean;
 var
-  i: integer;
-  userAdded: boolean;
-  len: integer;
-  j: integer;
+  i: Integer;
+  userAdded: Boolean;
+  len: Integer;
+  j: Integer;
 begin
   userAdded := False;
   for i := 0 to Length(FMembers) - 1 do
@@ -492,8 +492,8 @@ end;
 
 procedure TCnQQGroup.RemoveMember(Index: Integer);
 var
-  i: integer;
-  len: integer;
+  i: Integer;
+  len: Integer;
 begin
   FMembers[Index].Free;
   for i := Index to Length(FMembers) - 2 do
@@ -511,7 +511,7 @@ end;
 
 procedure TCnQQGroup.SetMemberCount(const Value: Integer);
 var
-  i: integer;
+  i: Integer;
 begin
   for i := Length(FMembers) - 1 downto 0 do
     FMembers[i].Free;
@@ -549,13 +549,13 @@ begin
   FTitle.Caption := EmptyStr;
   FTitle.OnClick := OnTitleClick;
   FTitle.Color := clWindow;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FTitle.OnMouseEnter := OnTitleMouseEnter;
   FTitle.OnMouseLeave := OnTitleMouseLeave;
 {$ENDIF}
   FTitleImage:= TImage.Create(Self);
   FTitleImage.Parent := FTitle;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FTitleImage.AlignWithMargins := True;
 {$ENDIF}
   FTitleImage.Align := alLeft;
@@ -563,7 +563,7 @@ begin
   FTitleImage.Width := 16;
   FTitleImage.OnClick := OnTitleClick;
   FTitleImage.Transparent := True;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FTitleImage.OnMouseEnter := OnTitleMouseEnter;
   FTitleImage.OnMouseLeave := OnTitleMouseLeave;
 {$ENDIF}
@@ -571,7 +571,7 @@ begin
 
   FTitleName := TLabel.Create(self);
   FTitleName.Parent := FTitle;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   FTitleName.AlignWithMargins := True;
 {$ENDIF}
   FTitleName.Align := alClient;
@@ -579,16 +579,16 @@ begin
   FTitleName.Layout := tlCenter;
   FTitleName.OnClick := OnTitleClick;
   FTitleName.Color := clWindow;
+{$IFDEF BDS2006_UP}
   FTitleName.OnMouseEnter := OnTitleMouseEnter;
   FTitleName.OnMouseLeave := OnTitleMouseLeave;
-
+{$ENDIF}
   FGroup:= TCnQQGroup.Create(Self);
   FGroup.Parent := self;
   FGroup.Caption := EmptyStr;
   FGroup.Top := 23;
   FGroup.Align := alTop;
   FGroup.Color := clWindow;
-
 end;
 
 procedure TCnQQGroupWTitle.Expand;
@@ -618,7 +618,6 @@ begin
   end
   else
   begin
-
     FGroup.Top := 23;
     FGroup.Show;
     FTitleImage.Picture.Bitmap.LoadFromResourceName(HInstance,'ARROWDOWN');
@@ -655,11 +654,11 @@ end;
 
 { TCnQQPanel }
 
-function TCnQQPanel.AddGroup(AName: string): boolean;
+function TCnQQPanel.AddGroup(AName: string): Boolean;
 var
-  len: integer;
-  i: integer;
-  hasGroup: boolean;
+  len: Integer;
+  i: Integer;
+  hasGroup: Boolean;
 begin
   hasGroup := False;
   len := length(FGroups);
@@ -699,7 +698,7 @@ end;
 
 procedure TCnQQPanel.ExpandAll;
 var
-  i: integer;
+  i: Integer;
 begin
   for i := 0 to length(FGroups) - 1 do
     FGroups[i].Expand;
@@ -712,17 +711,16 @@ end;
 
 procedure TCnQQPanel.PackupAll;
 var
-  i: integer;
+  i: Integer;
 begin
   for i := 0 to length(FGroups) - 1 do
     FGroups[i].Packup;
-
 end;
 
 procedure TCnQQPanel.RemoveGroup(Index: Integer);
 var
-  len: integer;
-  i: integer;
+  len: Integer;
+  i: Integer;
 begin
   len := length(FGroups);
   FGroups[Index].Free;
@@ -734,7 +732,7 @@ end;
 
 procedure TCnQQPanel.SetGroupCount(const Value: Integer);
 var
-  i: integer;
+  i: Integer;
 begin
   SetLength(FGroups, Value);
   for i := 0 to Length(FGroups) - 1 do
@@ -756,25 +754,23 @@ end;
 
 procedure TCnQQPanel.SetPanelHeight;
 var
-  i: integer;
-  h: integer;
+  i: Integer;
+  h: Integer;
 begin
-  //
-
   h := 0;
   for i := 0 to Length(FGroups) - 1 do
     h := h + FGroups[i].Height;
   Height := h;
 end;
 
-{ TCnQQIco }
+{ TCnQQIcon }
 
-constructor TCnQQIco.Create(AOwner: TComponent);
+constructor TCnQQIcon.Create(AOwner: TComponent);
 begin
   inherited;
   BevelOuter := bvNone;
   ParentColor := True;
-{$IFDEF DELPHI2007_UP}
+{$IFDEF BDS2006_UP}
   AlignWithMargins := True;
   Margins.Right :=3;
   Margins.Top := 2;
@@ -795,19 +791,19 @@ begin
 end;
 
 
-procedure TCnQQIco.OnImgClick(Sender: TObject);
+procedure TCnQQIcon.OnImgClick(Sender: TObject);
 begin
   if Assigned(OnIconClick) then
     OnIconClick(Self, Data);
 end;
 
-procedure TCnQQIco.OnImgDblClick(Sender: TObject);
+procedure TCnQQIcon.OnImgDblClick(Sender: TObject);
 begin
   if Assigned(OnIconDoubleClick) then
     OnIconDoubleClick(Self, Data);
 end;
 
-procedure TCnQQIco.SetData(const Value: Pointer);
+procedure TCnQQIcon.SetData(const Value: Pointer);
 begin
   FData := Value;
   FImage.ShowHint := FData <> nil;
@@ -817,7 +813,7 @@ begin
   end;
 end;
 
-procedure TCnQQIco.SetNormalIcon(const Value: string);
+procedure TCnQQIcon.SetNormalIcon(const Value: string);
 begin
   FNormalIcon := Value;
   FImage.Picture.Bitmap.LoadFromFile(Value);
@@ -825,9 +821,9 @@ end;
 
 { TCnQQPerson }
 
-procedure TCnQQPerson.AddIcon(Ico: TCnQQIco);
+procedure TCnQQPerson.AddIcon(Ico: TCnQQIcon);
 var
-  len: integer;
+  len: Integer;
 begin
   len:=length(FUserIcons);
   SetLength(FUserIcons, len + 1);
@@ -841,8 +837,8 @@ end;
 
 procedure TCnQQPerson.RemoveIcon(Index: Integer);
 var
-  i: integer;
-  len: integer;
+  i: Integer;
+  len: Integer;
 begin
   len := length(FUserIcons);
   FUserIcons[Index].Free;
