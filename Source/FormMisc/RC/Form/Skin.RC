@@ -1,0 +1,15 @@
+_CLOSE	BITMAP	_close.bmp
+_CLOSE_HIGH	BITMAP	_close_high.bmp
+_FORMIMG	BITMAP	_formimg.bmp
+_HEAD_LEFT	BITMAP	_head_left.bmp
+_HEAD_RIGHT	BITMAP	_head_right.bmp
+_MAXIMIZE	BITMAP	_maximize.bmp
+_MAXIMIZE_HIGH	BITMAP	_maximize_high.bmp
+_MINIMIZE	BITMAP	_minimize.bmp
+_MINIMIZE_HIGH	BITMAP	_minimize_high.bmp
+_SIDE_LEFT	BITMAP	_side_left.bmp
+_SIDE_RIGHT	BITMAP	_side_right.bmp
+_TILE	BITMAP	_tile.bmp
+_TILE_LEFT	BITMAP	_tile_left.bmp
+_TILE_RIGHT	BITMAP	_tile_right.bmp
+_TITLE	BITMAP	_title.bmp

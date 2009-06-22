@@ -1,0 +1,6 @@
+_BTN	BITMAP	_Btn.bmp
+_BTN_HIGH	BITMAP	_Btn_High.bmp
+_BTN_DISABLE	BITMAP	_Btn_Disable.bmp
+_NOT_INSTALLED	BITMAP	_Not_Installed.bmp
+_INSTALLED	BITMAP	_Installed.bmp
+_UPDATE	BITMAP	_Update.bmp
