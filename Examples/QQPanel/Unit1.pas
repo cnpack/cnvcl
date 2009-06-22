@@ -4,15 +4,14 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, CnFMForm, CnFMQQPane, StdCtrls, WinSkinData, ComCtrls,
-  RaCalendar, RaMonthCalendar;
+  Dialogs, ExtCtrls, CnQQPanel, StdCtrls, ComCtrls;
 
 type
   TForm1 = class(TForm)
-    CnFMQQPanel1: TCnFMQQPanel;
+    CnQQPanel1: TCnQQPanel;
     Splitter1: TSplitter;
     procedure FormCreate(Sender: TObject);
-    procedure CnFMQQPanel1MemberDblClick(Sender: TObject; AData: Pointer);
+    procedure CnQQPanel1MemberDblClick(Sender: TObject; AData: Pointer);
   private
     { Private declarations }
   public
@@ -30,65 +29,63 @@ implementation
 procedure TForm1.FormCreate(Sender: TObject);
 var
   img: string;
-  ico: TCnFMQQIco;
-  p: TCnFMQQPerson;
-  dt: TCnFMQQIcoData;
+  ico: TCnQQIco;
+  p: TCnQQPerson;
+  dt: TCnQQIconData;
 begin
-
   img := ExtractFilePath(ParamStr(0)) + 'Img\';
-  CnFMQQPanel1.AddGroup('Group[1]');
-  CnFMQQPanel1.AddGroup('Group[2]');
+  CnQQPanel1.AddGroup('Group[1]');
+  CnQQPanel1.AddGroup('Group[2]');
 
-  p:= TCnFMQQPerson.Create;
+  p:= TCnQQPerson.Create;
   p.UserID := '1111111111';
   p.UserName := '测试人员';
   p.UserDesc := '2222222222';
   p.UserHead := img+'Head.bmp';
   p.NameColor := clRed;
 
-  dt:= TCnFMQQIcoData.Create;
-  dt.IcoID := 'video';
-  dt.IcoName := 'video icon';
-  dt.IcoDesc := '拥有摄像头，可以进行视频聊天的用户';
+  dt:= TCnQQIconData.Create;
+  dt.IconID := 'video';
+  dt.IconName := 'video icon';
+  dt.IconDesc := '拥有摄像头，可以进行视频聊天的用户';
 
-  ico := TCnFMQQIco.Create(self);
-  ico.NormalIco:=img + 'video.bmp';
-  ico.HotIco := img + 'video_hot.bmp';
+  ico := TCnQQIco.Create(self);
+  ico.NormalIcon:=img + 'video.bmp';
+  ico.HotIcon := img + 'video_hot.bmp';
   ico.Data := dt;
   ico.OnIconClick := OnIcoClick;
   p.AddIcon(ico);
 
-  dt:= TCnFMQQIcoData.Create;
-  dt.IcoID := 'qq';
-  dt.IcoName := 'qq icon';
-  dt.IcoDesc := '可以通过手机聊天的用户';
+  dt:= TCnQQIconData.Create;
+  dt.IconID := 'qq';
+  dt.IconName := 'qq icon';
+  dt.IconDesc := '可以通过手机聊天的用户';
 
-  ico := TCnFMQQIco.Create(self);
-  ico.NormalIco:=img + 'QQ.bmp';
-  ico.HotIco := img + 'QQ_HOT.bmp';
+  ico := TCnQQIco.Create(self);
+  ico.NormalIcon:=img + 'QQ.bmp';
+  ico.HotIcon := img + 'QQ_HOT.bmp';
   ico.Data := dt;
   p.AddIcon(ico);
-  CnFMQQPanel1.Groups[0].QQGroup.AddMember(p);
+  CnQQPanel1.Groups[0].QQGroup.AddMember(p);
 
-  p:= TCnFMQQPerson.Create;
+  p:= TCnQQPerson.Create;
   p.UserID := '11111111';
   p.UserName := '测试';
   p.UserDesc := '22222';
   p.UserHead := img+'Head.bmp';
-  CnFMQQPanel1.Groups[0].QQGroup.AddMember(p);
+  CnQQPanel1.Groups[0].QQGroup.AddMember(p);
 
-  CnFMQQPanel1.Groups[1].QQGroup.AddMember(p);
+  CnQQPanel1.Groups[1].QQGroup.AddMember(p);
 
-  CnFMQQPanel1.PackupAll;
-
+  CnQQPanel1.PackupAll;
 end;
 
 procedure TForm1.OnIcoClick(Sender: TObject; AData: Pointer);
 begin
-  ShowMessage(TCnFMQQIcoData(AData).IcoName);
+  ShowMessage(TCnQQIconData(AData).IconName);
 end;
 
-procedure TForm1.CnFMQQPanel1MemberDblClick(Sender: TObject; AData: Pointer);
+procedure TForm1.CnQQPanel1MemberDblClick(Sender: TObject; AData: Pointer);
 begin
   ShowMessage('Double Clicked');
 end;

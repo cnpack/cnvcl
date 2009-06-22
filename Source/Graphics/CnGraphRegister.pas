@@ -49,7 +49,7 @@ uses
   CnWizardImage, CnEdit, CnShellCtrls, CnWaterImage, CnAOTreeView, CnAACtrls,
   CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit,
   CnSkinMagic, CnButtons, CnHexEditor, CnHint, CnGauge, CnListBox, CnColorGrid,
-  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED;
+  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, CnQQPanel;
 
 procedure Register;
 {* ¿Ø¼þ¡¢×é¼þ±à¼­Æ÷¡¢ÊôÐÔ±à¼­Æ÷×¢²á¹ý³Ì}
@@ -77,6 +77,7 @@ begin
   RegisterComponents(SCnGraphicPalette, [TCnLEDText]);
   RegisterComponents(SCnGraphicPalette, [TCnSkinMagic]);
   RegisterComponents(SCnGraphicPalette, [TCnHint, TCnHintWindow]);
+  RegisterComponents(SCnGraphicPalette, [TCnQQPanel]);
   //RegisterComponents(SCnGraphicPalette, [TCnCheckGroupBox]);
   //RegisterPropertyEditor(TypeInfo(TCnBitmap), nil, '', TCnBitmapProperty);
   RegisterComponents(SCnGraphicPalette, [TCnShellTreeView, TCnShellListView,

@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 0
-  Top = 0
+  Left = 244
+  Top = 95
+  Width = 324
+  Height = 313
   Caption = 'Form1'
-  ClientHeight = 286
-  ClientWidth = 316
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,11 +18,8 @@ object Form1: TForm1
     Left = 161
     Top = 0
     Height = 286
-    ExplicitLeft = 208
-    ExplicitTop = 56
-    ExplicitHeight = 100
   end
-  object CnFMQQPanel1: TCnFMQQPanel
+  object CnQQPanel1: TCnQQPanel
     Left = 0
     Top = 0
     Width = 161
@@ -35,6 +32,6 @@ object Form1: TForm1
     ParentColor = False
     TabOrder = 0
     GroupCount = 0
-    OnMemberDblClick = CnFMQQPanel1MemberDblClick
+    OnMemberDblClick = CnQQPanel1MemberDblClick
   end
 end
