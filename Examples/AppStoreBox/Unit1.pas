@@ -3,8 +3,8 @@ unit Unit1;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, CnFMAppStore;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, CnAppStoreBox;
 
 type
   TForm1 = class(TForm)
@@ -26,13 +26,11 @@ implementation
 
 procedure TForm1.ExtButtonClick(Sender: TObject; AData: Pointer);
 begin
-  //
   ShowMessage('Button Clicked');
 end;
 
 procedure TForm1.ExtItemClick(Sender: TObject; AData: Pointer);
 begin
-  //
   ShowMessage('Item Double Clicked');
 end;
 
@@ -42,10 +40,10 @@ var
   cnt: integer;
 begin
   cnt := 0;
-  for i:=1 to 10 do
+  for i := 1 to 10 do
   begin
     Application.ProcessMessages;
-    with TCnFMAppStore.Create(ScrollBox1) do
+    with TCnAppStoreBox.Create(ScrollBox1) do
     begin
       Parent := ScrollBox1;
       Top := cnt * 46+1;
@@ -54,8 +52,8 @@ begin
       AppSize := '1.0M';
       AppName := 'Test App '+ IntToStr(i);
       AppDesc := AppName;
-      Status := asNotInstalled;
-      Image.Picture.Bitmap.LoadFromFile('Img\Head.bmp');
+      Status := TCnAppStoreStatus(I mod 3);
+      Image.Picture.Bitmap.LoadFromFile('Head.bmp');
       Image.Stretch := True;
       OnItemDblClick := ExtItemClick;
       OnButtonClick := ExtButtonClick;

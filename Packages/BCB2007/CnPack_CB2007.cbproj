@@ -535,6 +535,11 @@
     <DelphiCompile Include="..\..\Source\Common\CnFloatConvert.pas">
       <BuildOrder>151</BuildOrder>
     </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnQQPanel.pas">
+      <BuildOrder>152</BuildOrder>
+    </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnAppStoreBox.pas">
+      <BuildOrder>153</BuildOrder>
     <None Include="..\..\Source\Common\CnPack.dcr">
       <BuildOrder>25</BuildOrder>
     </None>
