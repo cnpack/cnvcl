@@ -39,7 +39,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Graphics, CnButtons;
+  Classes, SysUtils, Controls, StdCtrls, ExtCtrls, Graphics, Messages,
+  CnButtons;
 
 type
   TCnAppStoreStatus = (asNotInstalled, asInstalled, asCanUpdate);
@@ -53,6 +54,7 @@ type
     FCenter: TPanel;
     FLblSize: TLabel;
     FImgInstall: TImage;
+    FLblInstall: TLabel;
     FBtnDown: TCnButton;
     FStatus: TCnAppStoreStatus;
     FlblName: TLabel;
@@ -61,6 +63,10 @@ type
     FOnItemClick: TCnAppStoreBoxItemClick;
     FData: Pointer;
     FOnButtonClick: TCnAppStoreBoxItemClick;
+{$IFNDEF BDS2006_UP}
+    FOnMouseEnter: TNotifyEvent;
+    FOnMouseLeave: TNotifyEvent;
+{$ENDIF}
     function GetAppSize: string;
     procedure SetAppSize(const Value: string);
     procedure SetStatus(const Value: TCnAppStoreStatus);
@@ -69,6 +75,10 @@ type
     procedure SetAppDesc(const Value: string);
     procedure SetAppName(const Value: string);
   protected
+{$IFNDEF BDS2006_UP}    
+    procedure DoMouseEnter(var Msg: TMessage); message CM_MOUSEENTER;
+    procedure DoMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
+{$ENDIF}
     procedure FOnAppStoreMouseEnter(Sender: TObject);
     procedure FOnAppStoreMouseLeave(Sender: TObject);
     procedure FOnAppStoreMouseClick(Sender: TObject);
@@ -89,6 +99,10 @@ type
     property OnItemClick: TCnAppStoreBoxItemClick read FOnItemClick write FOnItemClick;
     property OnItemDblClick: TCnAppStoreBoxItemClick read FOnItemDblClick write FOnItemDblClick;
     property OnButtonClick: TCnAppStoreBoxItemClick read FOnButtonClick write FOnButtonClick;
+{$IFNDEF BDS2006_UP}
+    property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
+    property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
+{$ENDIF}
   end;
 
 implementation
@@ -104,6 +118,9 @@ begin
   Color := clWhite;
   Height := 46;
   Width := 400;
+
+  OnMouseEnter := FOnAppStoreMouseEnter;
+  OnMouseLeave := FOnAppStoreMouseLeave;
 
   FImage := TImage.Create(Self);
   FImage.Parent := Self;
@@ -156,7 +173,7 @@ begin
   FLblSize.Alignment := taCenter;
   FLblSize.Layout := tlCenter;
   FLblSize.Transparent := True;
-{$IFDEF DELPHI6_UP}
+{$IFDEF COMPILER6_UP}
   FLblSize.OnMouseEnter := FOnAppStoreMouseEnter;
   FLblSize.OnMouseLeave := FOnAppStoreMouseLeave;
 {$ENDIF}
@@ -168,7 +185,23 @@ begin
   FImgInstall.Transparent := True;
   FImgInstall.Center := True;
   FImgInstall.Align := alLeft;
-  FImgInstall.Width := 80;
+  FImgInstall.Width := 20;
+
+  FLblInstall := TLabel.Create(Self);
+  FLblInstall.Parent := FRight;
+  FLblInstall.AutoSize := False;
+  FLblInstall.Width := 73;
+  FLblInstall.Align := alLeft;
+  FLblInstall.Layout := tlCenter;
+  FLblInstall.Transparent := True;
+
+{$IFDEF COMPILER6_UP}
+  FLblInstall.OnMouseEnter := FOnAppStoreMouseEnter;
+  FLblInstall.OnMouseLeave := FOnAppStoreMouseLeave;
+{$ENDIF}
+  FLblInstall.OnClick := FOnAppStoreMouseClick;
+  FLblInstall.OnDblClick := FOnAppStoreMouseDblClick;
+
 {$IFDEF BDS2006_UP}
   FImgInstall.OnMouseEnter := FOnAppStoreMouseEnter;
   FImgInstall.OnMouseLeave := FOnAppStoreMouseLeave;
@@ -211,7 +244,7 @@ begin
   FlblName.Top := 7;
   FlblName.Left := 3;
   FlblName.Height := 13;
-{$IFDEF DELPHI6_UP}
+{$IFDEF COMPILER6_UP}
   FlblName.OnMouseEnter := FOnAppStoreMouseEnter;
   FlblName.OnMouseLeave := FOnAppStoreMouseLeave;
 {$ENDIF}
@@ -228,7 +261,7 @@ begin
   FlblDesc.Top := 26;
   FlblDesc.Left := 3;
   FlblDesc.Height := 13;
-{$IFDEF DELPHI6_UP}
+{$IFDEF COMPILER6_UP}
   FlblDesc.OnMouseEnter := FOnAppStoreMouseEnter;
   FlblDesc.OnMouseLeave := FOnAppStoreMouseLeave;
 {$ENDIF}
@@ -266,9 +299,25 @@ begin
     FOnItemDblClick(Self, Data);
 end;
 
+{$IFNDEF BDS2006_UP}    
+
+procedure TCnAppStoreBox.DoMouseEnter(var Msg: TMessage);
+begin
+  if Assigned(FOnMouseEnter) then
+    FOnMouseEnter(Self);
+end;
+
+procedure TCnAppStoreBox.DoMouseLeave(var Msg: TMessage);
+begin
+  if Assigned(FOnMouseLeave) then
+    FOnMouseLeave(Self);
+end;
+
+{$ENDIF}
+
 procedure TCnAppStoreBox.FOnAppStoreMouseEnter(Sender: TObject);
 begin
-  Color := $00F9F0EA;
+  Color := $00E9E0DA;
 end;
 
 procedure TCnAppStoreBox.FOnAppStoreMouseLeave(Sender: TObject);
@@ -315,18 +364,21 @@ begin
         FBtnDown.Caption := 'Download';
         FBtnDown.Enabled := True;
         FImgInstall.Picture.Bitmap.LoadFromResourceName(HInstance, '_NOT_INSTALLED');
+        FLblInstall.Caption := 'Not Installed';
       end;
     asInstalled:
       begin
         FBtnDown.Caption := 'Download';
         FBtnDown.Enabled := False;
         FImgInstall.Picture.Bitmap.LoadFromResourceName(HInstance, '_INSTALLED');
+        FLblInstall.Caption := 'Installed';
       end;
     asCanUpdate:
       begin
         FBtnDown.Caption := 'Upgrade';
         FBtnDown.Enabled := True;
         FImgInstall.Picture.Bitmap.LoadFromResourceName(HInstance, '_UPDATE');
+        FLblInstall.Caption := 'Need Upgrade';
       end;
   end;
 end;
