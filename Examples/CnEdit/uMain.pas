@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, CnEdit;
+  Dialogs, StdCtrls, {$IFNDEF VER130} Variants, {$ENDIF} CnEdit;
 
 type
   TfrmMain = class(TForm)
