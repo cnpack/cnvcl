@@ -39,7 +39,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Classes, SysUtils, StdCtrls, Graphics, ExtCtrls, Controls, Forms;
+  Windows, Classes, SysUtils, StdCtrls, Graphics, ExtCtrls, Controls, Forms,
+  Messages;
 
 type
   TCnMemberNotifyEvent = procedure(Sender: TObject; AData: Pointer) of object;
@@ -81,14 +82,14 @@ type
     property OnIconDoubleClick: TCnIconNotifyEvent read FOnIconDoubleClick write FOnIconDoubleClick;
   end;
 
-  TCnQQIcoArray = array of TCnQQIcon;
+  TCnQQIconArray = array of TCnQQIcon;
 
   TCnQQPerson = class
   private
     FUserID: string;
     FUserDesc: string;
     FUserName: string;
-    FUserIcons: TCnQQIcoArray;
+    FUserIcons: TCnQQIconArray;
     FUserHead: string;
     FNameColor: TColor;
   public
@@ -99,7 +100,7 @@ type
     property UserID: string read FUserID write FUserID;
     property UserName: string read FUserName write FUserName;
     property UserDesc: string read FUserDesc write FUserDesc;
-    property UserIcons: TCnQQIcoArray read FUserIcons write FUserIcons;
+    property UserIcons: TCnQQIconArray read FUserIcons write FUserIcons;
     property UserHead: string read FUserHead write FUserHead;
     property NameColor: TColor read FNameColor write FNameColor default clBlack;
   end;
@@ -116,9 +117,17 @@ type
     FDesc: TLabel;
     FExtension: TLabel;
     FData: Pointer;
-    FQQIcos: TCnQQIcoArray;
+    FQQIcons: TCnQQIconArray;
     FUserID: string;
+{$IFNDEF BDS2006_UP}
+    FOnMouseEnter: TNotifyEvent;
+    FOnMouseLeave: TNotifyEvent;
+{$ENDIF}
   protected
+{$IFNDEF BDS2006_UP}    
+    procedure DoMouseEnter(var Msg: TMessage); message CM_MOUSEENTER;
+    procedure DoMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
+{$ENDIF}
     procedure OnGlassMouseEnter(Sender: TObject);
     procedure OnGlassMouseLeave(Sender: TObject);
     procedure OnGlassClick(Sender: TObject);
@@ -133,13 +142,17 @@ type
     procedure RemoveIcon(Index: Integer);
   public
     property Data: Pointer read FData write FData;
-    property QQIcons: TCnQQIcoArray read  FQQIcos write FQQIcos;
+    property QQIcons: TCnQQIconArray read  FQQIcons write FQQIcons;
   published
     property UserID: string read FUserID write FUserID;
     property HeadImage: TImage read FHeadImage write FHeadImage;
     property NickName: TLabel read FNickName write FNickName;
     property Desc: TLabel read FDesc write FDesc;
     property Extension: TLabel read FExtension write FExtension;
+{$IFNDEF BDS2006_UP}
+    property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
+    property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
+{$ENDIF}
   end;
 
   TCnQQMemberArray = array of TCnQQMember;
@@ -215,16 +228,16 @@ procedure TCnQQMember.AddIcon(Ico: TCnQQIcon);
 var
   len: Integer;
 begin
-  len := Length(FQQIcos);
+  len := Length(FQQIcons);
 {$IFDEF BDS2006_UP}
   ico.Image.OnMouseEnter := OnImageMouseEnter;
   ico.Image.OnMouseLeave := OnImageMouseLeave;
 {$ENDIF}
-  SetLength(FQQIcos, len + 1);
-  FQQIcos[len] := ico;
+  SetLength(FQQIcons, len + 1);
+  FQQIcons[len] := ico;
 
-  FQQIcos[len].Parent := FPExtension;
-  FQQIcos[len].Align := alLeft;
+  FQQIcons[len].Parent := FPExtension;
+  FQQIcons[len].Align := alLeft;
 end;
 
 constructor TCnQQMember.Create(AOwner: TComponent);
@@ -233,10 +246,8 @@ begin
   BevelOuter := bvNone;
   Height := 54;
   Color := clWindow;
-{$IFDEF BDS2006_UP}
   OnMouseEnter := OnGlassMouseEnter;
   OnMouseLeave := OnGlassMouseLeave;
-{$ENDIF}
   OnClick := OnGlassClick;
   OnDblClick := OnGlassDoubleClick;
 
@@ -377,13 +388,29 @@ begin
   end;
 end;
 
+{$IFNDEF BDS2006_UP}    
+
+procedure TCnQQMember.DoMouseEnter(var Msg: TMessage);
+begin
+  if Assigned(FOnMouseEnter) then
+    FOnMouseEnter(Self);
+end;
+
+procedure TCnQQMember.DoMouseLeave(var Msg: TMessage);
+begin
+  if Assigned(FOnMouseLeave) then
+    FOnMouseLeave(Self);
+end;
+
+{$ENDIF} 
+   
 procedure TCnQQMember.OnGlassMouseEnter(Sender: TObject);
 begin
-  Color := $00F9F0EA;
-  FPnlCont.Color := $00F9F0EA;
-  FPNickName.Color := $00F9F0EA;
-  FPDesc.Color := $00F9F0EA;
-  FPExtension.Color := $00F9F0EA;
+  Color := $00E9E0DA;
+  FPnlCont.Color := $00E9E0DA;
+  FPNickName.Color := $00E9E0DA;
+  FPDesc.Color := $00E9E0DA;
+  FPExtension.Color := $00E9E0DA;
 end;
 
 procedure TCnQQMember.OnGlassMouseLeave(Sender: TObject);
@@ -397,21 +424,17 @@ end;
 
 procedure TCnQQMember.OnImageMouseEnter(Sender: TObject);
 begin
-  //
   OnGlassMouseEnter(Self);
   if FileExists(TCnQQIcon(TImage(Sender).Parent).HotIcon) then
     TImage(Sender).Picture.Bitmap.LoadFromFile(
       TCnQQIcon(TImage(Sender).Parent).HotIcon);
-  // TPanel(TImage(Sender).Parent).Color := $00C2804B;
 end;
 
 procedure TCnQQMember.OnImageMouseLeave(Sender: TObject);
 begin
-  //
   OnGlassMouseLeave(Self);
   TImage(Sender).Picture.Bitmap.LoadFromFile(
     TCnQQIcon(TImage(Sender).Parent).NormalIcon);
- // TPanel(TImage(Sender).Parent).ParentColor := True;
 end;
 
 procedure TCnQQMember.RemoveIcon(Index: Integer);
@@ -419,13 +442,13 @@ var
   len: Integer;
   i: Integer;
 begin
-  len := Length(FQQIcos);
-  FQQIcos[Index].Free;
+  len := Length(FQQIcons);
+  FQQIcons[Index].Free;
   for i := Index to len - 2 do
   begin
-    FQQIcos[i] := FQQIcos[i+1];
+    FQQIcons[i] := FQQIcons[i+1];
   end;
-  SetLength(FQQIcos, len - 1);
+  SetLength(FQQIcons, len - 1);
 end;
 
 { TCnQQGroup }
