@@ -1165,7 +1165,11 @@ procedure TCnCustomButton.Paint;
 var
   Bmp: TBitmap;
 begin
-  if not Visible or (csLoading in ComponentState) or (Parent = nil) then
+  if (csLoading in ComponentState) or (Parent = nil) then
+    Exit;
+
+  // 2009-06-29添加判断判断是否在设计期，否则在Visible为FALSE时在设计期无法刷新控件
+  if not Visible and not (csDesigning in ComponentState) then
     Exit;
 
   if FDrawName then
@@ -1604,7 +1608,11 @@ procedure TCnSpeedButton.Paint;
 var
   Down: Boolean;
 begin
-  if not Visible or (csLoading in ComponentState) or (Parent = nil) then
+  if (csLoading in ComponentState) or (Parent = nil) then
+    Exit;
+
+  // 2009-06-29添加判断判断是否在设计期，否则在Visible为FALSE时在设计期无法刷新控件
+  if not Visible and not (csDesigning in ComponentState) then
     Exit;
 
   if not Enabled then
