@@ -169,6 +169,9 @@ cnpack\Source 目录内容说明：
   CnAOTreeView.pas
     自动参数设置 TreeView 组件实现单元
 
+  CnAppStoreBox.pas
+    软件管理界面条目的简易实现单元
+
   CnAutoOption.pas
     自动参数设置类定义单元
 
@@ -217,6 +220,9 @@ cnpack\Source 目录内容说明：
   CnMonthCalendar.pas
     中文月历的界面组件实现单元
 
+  CnQQPanel.pas
+    类似于QQ界面列表框的一简易实现单元
+
   CnShellCtrls.pas
     移植的 ShellCtrls 控件单元
 
@@ -238,7 +244,7 @@ cnpack\Source 目录内容说明：
   CnWizardImage.pas
     向导界面图像控件
 
-               25 文件
+               27 文件
 
 \Lang\2052
 \Lang\1028
