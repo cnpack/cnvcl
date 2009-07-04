@@ -44,7 +44,9 @@ unit CnEdit;
 * 兼容测试：PWin9X/2000/XP + Delphi 6.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnEdit.pas,v 1.13 2009/03/30 14:37:34 liuxiao Exp $
-* 修改记录：2008.06.05 V1.2
+* 修改记录：2009.07.04 V1.3
+*               修正tArightJustify时绘制不正确的问题，感谢jAmEs_
+*           2008.06.05 V1.2
 *               处理粘贴时的限制内容
 *           2007.08.02 V1.1
 *               jAmEs_ 加入 Value 属性，加入标识符型、文字过滤和负数控制功能
@@ -154,6 +156,7 @@ begin
        Text := '0';
     Code := Round(Rs); // 避免编译警告
   end;
+  Invalidate;
 end;
 
 procedure TCnEdit.BoundSChanged;
@@ -426,6 +429,7 @@ begin
           end;
           Brush.Color := Color;
         end;
+
         //是否是密码型
         S := Text;
         if PasswordChAr <> #0 then
@@ -433,12 +437,20 @@ begin
 
         //画文字
         MArgins := GetTextMArgins;
-        case FAlignment of
-          taLeftJustify: Left := MArgins.X;
-          tArightJustify: Left := ClientWidth - TextWidth(S) - MArgins.X - 1;
+        if Focused then
+        begin
+          Left := MArgins.X;
+        end
         else
-          Left := (ClientWidth - TextWidth(S)) div 2;
+        begin
+          case FAlignment of
+            taLeftJustify: Left := MArgins.X;
+            tArightJustify: Left := ClientWidth - TextWidth(S) - MArgins.X - 1;
+          else
+            Left := (ClientWidth - TextWidth(S)) div 2;
+          end;
         end;
+        
         TextRect(R, Left, MArgins.Y, S);
 
         if (FLinkStyle <> lsNone) then   //画按钮
