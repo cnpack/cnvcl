@@ -78,7 +78,7 @@ begin
   RegisterComponents(SCnGraphicPalette, [TCnLEDText]);
   RegisterComponents(SCnGraphicPalette, [TCnSkinMagic]);
   RegisterComponents(SCnGraphicPalette, [TCnHint, TCnHintWindow]);
-  RegisterComponents(SCnGraphicPalette, [TCnQQPanel, TCnAppStoreBox]);
+  //RegisterComponents(SCnGraphicPalette, [TCnQQPanel, TCnAppStoreBox]);
   //RegisterComponents(SCnGraphicPalette, [TCnCheckGroupBox]);
   //RegisterPropertyEditor(TypeInfo(TCnBitmap), nil, '', TCnBitmapProperty);
   RegisterComponents(SCnGraphicPalette, [TCnShellTreeView, TCnShellListView,
