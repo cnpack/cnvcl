@@ -167,7 +167,7 @@ begin
 
   with Option.AddGroup('其它') do
   begin
-    AddItem(FLEDCC,'PointHeight','LED点高度');
+    AddItem(FLEDCC,'PointSize','LED点高度');
     AddItem(FLEDCC,'CellBorderWidth','点边框线宽度');
     AddItem(FLEDCC,'WordBorderWidth','字边框线宽度');
   end;
