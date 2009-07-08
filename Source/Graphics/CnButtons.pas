@@ -361,6 +361,8 @@ type
     procedure SetRoundCorner(const Value: Boolean);
     procedure GlyphChanged(Sender: TObject);
     {* 2009-06-05 添加，处理FGlyph的OnChange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
+    function GetFlat: Boolean;
+    procedure SetFlat(const Value: Boolean);
   protected
     FState: TButtonState;
     procedure ActionChange(Sender: TObject; CheckDefaults: Boolean); override;
@@ -390,6 +392,8 @@ type
     property Color;
     property DownColor: TColor read FDownColor write SetDownColor default clNone;
     property DownBold: Boolean read FDownBold write SetDownBold;
+    property Flat: Boolean read GetFlat write SetFlat stored False;
+    {* 兼容 SpeedButton 而提供的 Flat 属性，实质上是操作 FModernBtnStyle 为 bsFlat}
     property FlatBorder: Boolean read FFlatBorder write SetFlatBorder;
     property HotTrackBold: Boolean read FHotTrackBold write SetHotTrackBold;
     property HotTrackColor: TColor read FHotTrackColor write SetHotTrackColor default clNone;
@@ -2124,6 +2128,22 @@ end;
 procedure TCnSpeedButton.GlyphChanged(Sender: TObject);
 begin
   Invalidate;
+end;
+
+function TCnSpeedButton.GetFlat: Boolean;
+begin
+  Result := FModernBtnStyle = bsFlat;
+end;
+
+procedure TCnSpeedButton.SetFlat(const Value: Boolean);
+begin
+  if Flat <> Value then
+  begin
+    if Value then
+      FModernBtnStyle := bsFlat
+    else
+      FModernBtnStyle := bsNormal;
+  end;
 end;
 
 initialization
