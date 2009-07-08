@@ -2140,9 +2140,9 @@ begin
   if Flat <> Value then
   begin
     if Value then
-      FModernBtnStyle := bsFlat
+      ModernBtnStyle := bsFlat
     else
-      FModernBtnStyle := bsNormal;
+      ModernBtnStyle := bsNormal;
   end;
 end;
 
