@@ -28,14 +28,15 @@ type
     lv1: TListView;
     Button1: TButton;
     procedure Button1Click(Sender: TObject);
-    procedure lv1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure tv1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure FormDestroy(Sender: TObject);
     procedure btnUnpackingClick(Sender: TObject);
     procedure AddfileClick(Sender: TObject);
     procedure btnAddDirectoryClick(Sender: TObject);
     procedure Button5Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure tv1Change(Sender: TObject; Node: TTreeNode);
+    procedure lv1Change(Sender: TObject; Item: TListItem;
+      Change: TItemChange);
   private
     procedure CreateFileAndDirectoryTree;
     procedure Packing;  
@@ -77,7 +78,7 @@ begin
   BrowseInfo.hwndOwner := Form1.Handle;
   BrowseInfo.pszDisplayName := @DisplayName;
   TitleName := 'Please specify a directory';
-  BrowseInfo.lpszTitle := PChar(TitleName);
+  BrowseInfo.lpszTitle := PAnsiChar(TitleName);
   BrowseInfo.ulFlags := BIF_RETURNONLYFSDIRS;
   lpItemID := SHBrowseForFolder(BrowseInfo);
   if lpItemId <> nil then
@@ -109,48 +110,19 @@ begin
     end;
 end;
 
-procedure TForm1.tv1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  Node: TTreeNode;
-  Ftext: string;  //Â·¾¶
-  Ap: TArrayPackFileInformation;
-  i: Integer;
-  FItem: TItem;
-  ListItem: TListItem;
-begin
-  Node := tv1.GetNodeAt(x, y);
-  while Node <> nil do
-  begin
-    Ftext := Node.Text + '\' + Ftext;
-    Node := Node.Parent;
-  end;
-  Delete(Ftext, 1, Length(ExtractFileName(Form1.Caption)) + 1);
-  Ap := fp.PackFileInformation;
-  
-  lv1.Items.Clear;
-  for I := 0 to Length(ap) - 1 do
-  begin
-    if IncludeTrailingBackslash(ExtractFilePath(Ap[i].Name)) = Ftext then
-    begin
-      FItem := TItem.Create;
-      StrCopy(FItem.FPInfo.Name, PChar(ExtractFileName(Ap[i].Name)));
-      FItem.FPInfo.DataStart := Ap[i].DataStart;
-      ListItem := lv1.Items.Add;
-      ListItem.Caption := ExtractFileName(Ap[i].Name);
-      ListItem.Data := FItem;
-    end;
-  end;
-  btnUnpacking.Enabled := True;
-  Button1.Enabled := True;
-end;
-
 procedure TForm1.btnUnpackingClick(Sender: TObject);
+var
+  Path: string;
 begin
-  fp.SavePath := ShowDirectoryDialog;
+  Path := ShowDirectoryDialog;
+  if Path = '' then
+    Exit;
+
+  fp.SavePath := Path;
   DisEnabledAllButton;
   Cursor := crHourGlass;
-  if fp.SavePath <> '' then
-    fp.SaveToFiles;
+  fp.SaveToFiles;
+  
   ShowMessage('UnPacking End!');
   EnabledAllButton;
   Cursor := crDefault;
@@ -160,14 +132,17 @@ begin
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
+var
+  Path: string;
 begin
-  fp.SavePath := ShowDirectoryDialog;
+ Path := ShowDirectoryDialog;
+  if Path = '' then
+    Exit;
+  fp.SavePath := Path;
   DisEnabledAllButton;
   Cursor := crHourGlass;
-  if fp.SavePath <> '' then
-  begin
-    fp.SaveToFile(GItem.FPInfo);
-  end;
+  fp.SaveToFile(GItem.FPInfo);
+
   ShowMessage('UnPacking End!');
   EnabledAllButton;
   Cursor := crDefault;
@@ -269,17 +244,6 @@ begin
   fp := nil;
 end;
 
-procedure TForm1.lv1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  TmpItem: TListItem;
-begin
-  btnUnpacking.Enabled := True;
-  Button1.Enabled := True;
-  TmpItem := lv1.GetItemAt(x, y);
-  if TmpItem <> nil then
-    GItem := TItem(TmpItem.Data)
-end;
-
 procedure TForm1.Packing;
 begin
   if CheckBox1.Checked then
@@ -296,6 +260,51 @@ begin
   EnabledAllButton;
   Cursor := crDefault;
   button5.Enabled := False;
+end;
+
+procedure TForm1.tv1Change(Sender: TObject; Node: TTreeNode);
+var
+  AText: string;  //Â·¾¶
+  Ap: TArrayPackFileInformation;
+  i: Integer;
+  FItem: TItem;
+  ListItem: TListItem;
+begin
+  AText := '';
+  while Node <> nil do
+  begin
+    AText := Node.Text + '\' + AText;
+    Node := Node.Parent;
+  end;
+  Delete(AText, 1, Length(ExtractFileName(Form1.Caption)) + 1);
+  Ap := fp.PackFileInformation;
+
+  lv1.Items.Clear;
+  for I := 0 to Length(ap) - 1 do
+  begin
+    if (AText = '') or (IncludeTrailingBackslash(ExtractFilePath(Ap[i].Name)) = AText) then
+    begin
+      FItem := TItem.Create;
+      StrCopy(FItem.FPInfo.Name, PChar(ExtractFileName(Ap[i].Name)));
+      FItem.FPInfo.DataStart := Ap[i].DataStart;
+      ListItem := lv1.Items.Add;
+      ListItem.Caption := ExtractFileName(Ap[i].Name);
+      ListItem.Data := FItem;
+    end;
+  end;
+  btnUnpacking.Enabled := True;
+  Button1.Enabled := True;
+end;
+
+procedure TForm1.lv1Change(Sender: TObject; Item: TListItem;
+  Change: TItemChange);
+begin
+  if (Change = ctState) and (Item <> nil) then
+  begin
+    GItem := TItem(Item.Data);
+    btnUnpacking.Enabled := True;
+    Button1.Enabled := True;
+  end;
 end;
 
 end.

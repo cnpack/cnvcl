@@ -67,16 +67,21 @@ object Form1: TForm1
     Height = 231
     Indent = 19
     TabOrder = 6
-    OnMouseDown = tv1MouseDown
+    OnChange = tv1Change
   end
   object lv1: TListView
     Left = 216
     Top = 110
     Width = 201
     Height = 231
-    Columns = <>
+    Columns = <
+      item
+        Caption = 'FileName'
+        Width = 180
+      end>
     TabOrder = 7
-    OnMouseDown = lv1MouseDown
+    ViewStyle = vsReport
+    OnChange = lv1Change
   end
   object Button1: TButton
     Left = 120
