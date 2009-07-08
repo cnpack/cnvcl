@@ -29,7 +29,9 @@ unit CnFilePacker;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnFilePacker.pas,v 1.2 2009/01/02 08:27:39 liuxiao Exp $
-* 修改记录：2008.06.27 V0.01
+* 修改记录：2009.07.08 V0.02
+*               修正一处指针释放问题，增加对 D2009 的支持。
+*           2008.06.27 V0.01
 *               创建单元（整理而来）
 ================================================================================
 |</PRE>}
@@ -61,7 +63,7 @@ type
   PPackHeader = ^TPackHeader;
 
   TPackHeader = record
-    ZipName: array[0..7] of Char;      //= ('cnpacker');
+    ZipName: array[0..7] of AnsiChar;      //= ('cnpacker');
     FileInfoCount: Cardinal;
     Compress: TCompressMode;
     FileSize: Int64;
@@ -73,7 +75,7 @@ type
   PPackFileInformation = ^TPackFileInformation;
 
   TPackFileInformation = record
-    Name: array[0..255] of Char;
+    Name: array[0..255] of AnsiChar;
     DataStart: Cardinal;
   end;
 
@@ -83,7 +85,7 @@ type
 // 数据头
 //------------------------------------------------------------------------------
   TDataBlock = record
-    FileName: array[0..255] of Char;
+    FileName: array[0..255] of AnsiChar;
   //MD5:TMD5Digest;
     DataLength: Cardinal;
   end;
@@ -159,7 +161,7 @@ type
     procedure DoDeCompressData(var AStream: TBytes; var ALength: Cardinal); virtual;
     {*得到打包文件的文件头}
     function GetPackHeader: PPackHeader;
-    {*得到打包文件文件的信息}
+    {*分配一块内存并得到打包文件文件的信息，由外部负责释放}
     function GetPackFileInformation: TArrayPackFileInformation;
     
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
@@ -342,7 +344,7 @@ end;
 
 procedure TCnFilePacker.CreateDirectory;
 var
-  i: integer;
+  i: Integer;
   S, DirName: string;
   attr: Byte;
 begin
@@ -379,8 +381,11 @@ end;
 
 destructor TCnFilePacker.Destroy;
 begin
-  //Fms.Free;
-  //fms := nil;
+  if FPackHeaderInfo <> nil then
+  begin
+    FreeMem(FPackHeaderInfo);
+    FPackHeaderInfo := nil;
+  end;
   inherited;
 end;
 
@@ -438,6 +443,12 @@ var
   db: TDataBlock;
   fms: TFileStream;  //临时文件流
 begin
+  if FPackHeaderInfo <> nil then
+  begin
+    FreeMem(FPackHeaderInfo);
+    FPackHeaderInfo := nil;
+  end;
+
   FPackHeaderInfo := GetPackHeader;
   CompressMode := FPackHeaderInfo^.Compress;
   if FPackHeaderInfo^.ZipName <> 'CNPACKER' then//文件头不是cnpacker，退出
@@ -461,7 +472,7 @@ function TCnFilePacker.GetPackHeader: PPackHeader;
 var
   fms: TFileStream;
 begin
-  Getmem(Result, SizeOf(TPackHeader));
+  GetMem(Result, SizeOf(TPackHeader));
   Fms := TFileStream.Create(DestFileName, fmOpenRead);
   Fms.Position := 0;
   Fms.Read(Result^, SizeOf(TPackHeader));
@@ -544,6 +555,11 @@ end;
 
 function TCnFilePacker.PropGetPackHeader: TPackHeader;
 begin
+  if FPackHeaderInfo <> nil then
+  begin
+    FreeMem(FPackHeaderInfo);
+    FPackHeaderInfo := nil;
+  end;
   FPackHeaderInfo := GetPackHeader;
   Result := FPackHeaderInfo^;
 end;
