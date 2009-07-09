@@ -809,7 +809,7 @@ function DataSetLocateThrough(DataSet: TDataSet; const KeyFields: string;
 var
   FieldCount        : Integer;
   Fields            : TList;
-  Bookmark          : {$IFDEF DELPHI2009} TBookmark {$ELSE} string {$ENDIF};
+  Bookmark          : {$IFDEF DELPHI2009_UP} TBookmark {$ELSE} string {$ENDIF};
 
   function CompareField(Field: TField; Value: Variant): Boolean;
   var
@@ -875,7 +875,7 @@ begin
         end;
       finally
         if not Result and
-          DataSet.BookmarkValid({$IFNDEF DELPHI2009}PChar {$ENDIF} (Bookmark)) then
+          DataSet.BookmarkValid({$IFNDEF DELPHI2009_UP}PChar {$ENDIF} (Bookmark)) then
           DataSet.Bookmark := Bookmark;
       end;
     finally
