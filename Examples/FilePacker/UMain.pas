@@ -78,7 +78,7 @@ begin
   BrowseInfo.hwndOwner := Form1.Handle;
   BrowseInfo.pszDisplayName := @DisplayName;
   TitleName := 'Please specify a directory';
-  BrowseInfo.lpszTitle := PAnsiChar(TitleName);
+  BrowseInfo.lpszTitle := PChar(TitleName);
   BrowseInfo.ulFlags := BIF_RETURNONLYFSDIRS;
   lpItemID := SHBrowseForFolder(BrowseInfo);
   if lpItemId <> nil then
@@ -285,7 +285,7 @@ begin
     if (AText = '') or (IncludeTrailingBackslash(ExtractFilePath(Ap[i].Name)) = AText) then
     begin
       FItem := TItem.Create;
-      StrCopy(FItem.FPInfo.Name, PChar(ExtractFileName(Ap[i].Name)));
+      StrCopy(FItem.FPInfo.Name, PAnsiChar(ExtractFileName(Ap[i].Name)));
       FItem.FPInfo.DataStart := Ap[i].DataStart;
       ListItem := lv1.Items.Add;
       ListItem.Caption := ExtractFileName(Ap[i].Name);
