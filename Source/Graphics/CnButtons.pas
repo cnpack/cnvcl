@@ -76,7 +76,6 @@ type
 
     FDown: Boolean;
     FCursorOnButton: Boolean;
-    FDrawName: Boolean;
 
     FDownBold: Boolean;
     FHotTrackBold: Boolean;
@@ -111,9 +110,6 @@ type
     procedure SetModernBtnStyle(const Value: TModernBtnStyle);
     procedure SetShadowColor(const Value: TColor);
     procedure SetBtnColorStyle(const Value: TBtnColorStyle);
-
-    procedure SetName(const NewName: TComponentName); override;
-
     procedure DoMouseEnter(var Msg: TMessage); message CM_MOUSEENTER;
     procedure DoMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
     procedure DoEnable(var Message: TMessage); message WM_ENABLE;
@@ -995,7 +991,6 @@ end;
 
 procedure TCnCustomButton.CMTextChanged(var Message: TMessage);
 begin
-  FDrawName := False;
   Invalidate;
 end;
 
@@ -1027,7 +1022,6 @@ begin
   FCancel := False;
   FRoundCorner := True;
   Color := clBtnFace;
-  FDrawName := True;
 end;
 
 procedure TCnCustomButton.CreateParams(var Params: TCreateParams);
@@ -1035,8 +1029,6 @@ begin
   inherited CreateParams(Params);
   //Params.ExStyle := Params.ExStyle or WS_EX_TRANSPARENT;
     (* 2008-07-22 注释掉，原因是包含WS_EX_TRANSPARENT风格的窗口无法响应WM_WINDOWPOSCHANGED消息 *)
-  if FDrawName then
-    Caption  := Name;
 end;
 
 destructor TCnCustomButton.Destroy;
@@ -1174,13 +1166,10 @@ begin
   if (csLoading in ComponentState) or (Parent = nil) then
     Exit;
 
-  // 2009-06-29添加判断判断是否在设计期，否则在Visible为FALSE时在设计期无法刷新控件
+  // 2009-06-29添加判断判断是否在设计期，否则在Visible为False时在设计期无法刷新控件
   if not Visible and not (csDesigning in ComponentState) then
     Exit;
 
-  if FDrawName then
-    Caption  := Name;
-  
   if FModernBtnStyle = bsModern then // 现代模式直接画，以避免圆角底色问题，但可能闪烁
   begin
   	if FRoundCorner then // 圆角时处理透明问题
@@ -1359,16 +1348,6 @@ procedure TCnCustomButton.SetModalResult(const Value: TModalResult);
 begin
   FModalResult := Value;
   FKind := bkCustom;
-end;
-
-procedure TCnCustomButton.SetName(const NewName: TComponentName);
-begin
-  inherited;
-  if FDrawName then
-  begin
-    Caption := NewName;
-    Invalidate;
-  end;
 end;
 
 procedure TCnCustomButton.SetNumGlyphs(const Value: Integer);
