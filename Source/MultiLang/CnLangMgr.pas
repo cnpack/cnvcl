@@ -31,7 +31,8 @@ unit CnLangMgr;
 * 单元标识：$Id: CnLangMgr.pas,v 1.36 2009/01/02 08:27:39 liuxiao Exp $
 * 修改记录：2009.07.11 V1.4
 *               增加字符串常量的注册机制，注册了的字符串能在改变语言时被自动翻译
-*               而无需在事件中手工调用 TranslateStr，但资源字符串的自动翻译未完成
+*               而无需在事件中手工调用 TranslateStr，资源字符串的自动翻译也已通
+*               过挂接 LoadResString 完成。
 *           2008.05.30 V1.3
 *               不处理只读的 string 属性，加入某 Tag 值不翻译的机制
 *           2007.09.18 V1.10
@@ -69,7 +70,7 @@ interface
 uses
   SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
   Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
-  CnConsts, CnClasses, CnCommon, CnLangStorage, CnIniStrUtils;
+  CnConsts, CnClasses, CnCommon, CnLangStorage, CnIniStrUtils, CnMethodHook;
 
 const
   CN_MULTI_LANG_TAG_NOT_TRANSLATE = 2001;
@@ -122,7 +123,7 @@ type
     procedure SetLanguageStorage(Value: TCnCustomLangStorage);
     procedure AdjustNewLanguage(AID: LongWord);
     function GetCurrentLangugageIndex: Integer;
-
+    function GetResStringNameFromResID(ResID: Integer): string;
   protected
     FLanguageStorage: TCnCustomLangStorage;
     procedure Notification(AComponent: TComponent; Operation: TOperation);
@@ -311,10 +312,6 @@ procedure TranslateStr(var SrcStr: string; const IDStr: string);
 procedure TranslateStrArray(var StrArray: array of string; const IDStr: string);
 {* 翻译某个字符串数组 }
 
-//procedure TranslateResourceString(const AddrResrouceString: Pointer; const IDStr: string);
-{* 翻译某个资源字符串，传入参数是 resourcestring 的地址与名称
-   如无翻译管理器或不存在翻译后的条目，则资源字符串保持不变 }
-
 procedure RegisterTranslateString(const StringAddr: Pointer; const IDStr: string);
 {* 注册一字符串，传入地址与名称，可在语言改变时被自动翻译，无需手工调 Translate}
 
@@ -332,8 +329,41 @@ uses
 type
   TCnIterateByTransName = (itGet, itSet);
 
+  TCnLoadResStringFunction = function (ResStringRec: PResStringRec): string;
+
 var
   FLangMgrList: TList = nil;
+
+  FMethodHook: TCnMethodHook = nil;
+
+  FOldLoadResString: TCnLoadResStringFunction = nil;
+
+function CnLangLoadResString(ResStringRec: PResStringRec): string;
+var
+  AStr: string;
+begin
+  if (CnLanguageManager = nil) or not CnLanguageManager.AutoTranslateStrings
+    or (CnLanguageManager.CurrentLanguageIndex = -1) then
+  begin
+    FMethodHook.UnhookMethod;
+    Result := FOldLoadResString(ResStringRec);
+    FMethodHook.HookMethod;
+  end
+  else
+  begin
+    AStr := CnLanguageManager.GetResStringNameFromResID(ResStringRec^.Identifier);
+    if AStr <> '' then
+      AStr := CnLanguageManager.TranslateString(AStr);
+    if AStr <> '' then
+      Result := AStr
+    else // 无翻译结果则继续从资源读取
+    begin
+      FMethodHook.UnhookMethod;
+      Result := FOldLoadResString(ResStringRec);
+      FMethodHook.HookMethod;
+    end;
+  end;
+end;
 
 // 使用所有多语管理器实例中的第一个作为全局返回的实例
 function CnLanguageManager: TCnCustomLangManager;
@@ -384,18 +414,6 @@ begin
   end;
 end;
 
-//procedure TranslateResourceString(const AddrResrouceString: Pointer; const IDStr: string);
-//var
-//  DstStr: string;
-//begin
-//  if (AddrResrouceString <> nil) and (CnLanguageManager <> nil) then
-//  begin
-//    DstStr := CnLanguageManager.Translate(IDStr);
-//    if DstStr <> '' then
-//      PString(AddrResrouceString)^ := DstStr;
-//  end;
-//end;
-
 procedure RegisterTranslateString(const StringAddr: Pointer; const IDStr: string);
 begin
   if CnLanguageManager <> nil then
@@ -444,7 +462,7 @@ begin
   FRegStrings := TObjectList.Create(True);
   FRegResStrings := TObjectList.Create(True);
   FAutoTranslateStrings := True;
-  
+
   if (csDesigning in ComponentState) then
     for I := 0 to AOwner.ComponentCount - 1 do
       if AOwner.Components[i] is TCnCustomLangFileStorage then
@@ -1357,11 +1375,11 @@ end;
 
 procedure TCnCustomLangManager.DoLanguageChanged;
 var
-  i: Integer;
+  I: Integer;
 begin
   inherited; // 先响应父类的语言改变事件，再实施通知。
-  for i := 0 to FNotifier.Count - 1 do
-    TNotifyEvent(PCnLangChangedNotifierRecord(FNotifier.Items[i])^.Notifier)(Self);
+  for I := 0 to FNotifier.Count - 1 do
+    TNotifyEvent(PCnLangChangedNotifierRecord(FNotifier.Items[I])^.Notifier)(Self);
 end;
 
 function TCnCustomLangManager.DoTranslateObject(AObject: TObject): Boolean;
@@ -1521,9 +1539,31 @@ begin
   end;
 end;
 
+function TCnBaseLangManager.GetResStringNameFromResID(
+  ResID: Integer): string;
+var
+  I: Integer;
+  AObj: TCnResourceStringObj;
+begin
+  Result := '';
+  for I := 0 to FRegResStrings.Count - 1 do
+  begin
+    AObj := TCnResourceStringObj(FRegResStrings[I]);
+    if PResStringRec(AObj.StringRecAddr)^.Identifier = ResID then
+    begin
+      Result := AObj.StringName;
+      Exit;
+    end;
+  end;
+end;
+
 initialization
+  FOldLoadResString := @LoadResString;
+  FMethodHook := TCnMethodHook.Create(CnGetBplMethodAddress(@LoadResString),
+    @CnLangLoadResString);
 
 finalization
+  FreeAndNil(FMethodHook);
   FreeLanguageManagers;
 
 end.
