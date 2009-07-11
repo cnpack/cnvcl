@@ -148,8 +148,10 @@ type
 
     procedure RegisterTranslateString(const StringAddr: Pointer; const IDStr: string);
     {* 注册一字符串，可在语言改变时被自动翻译，无需手工调 Translate}
+
     procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: string);
     {* 注册一资源字符串，可在语言改变时被自动翻译}
+    
     property AutoTranslateStrings: Boolean read FAutoTranslateStrings
       write FAutoTranslateStrings default True;
     {* 是否在语言改变时自动翻译已经注册了的字符串与资源字符串，默认为 True}
@@ -343,7 +345,7 @@ var
   AStr: string;
 begin
   if (CnLanguageManager = nil) or not CnLanguageManager.AutoTranslateStrings
-    or (CnLanguageManager.CurrentLanguageIndex = -1) then
+    or (CnLanguageManager.CurrentLanguageIndex = -1) or (CnLanguageManager.FRegResStrings.Count = 0) then
   begin
     FMethodHook.UnhookMethod;
     Result := FOldLoadResString(ResStringRec);
@@ -1507,6 +1509,14 @@ begin
     AObj.StringRecAddr := ResStringAddr;
     AObj.StringName := IDStr;
     FRegResStrings.Add(AObj);
+
+    // 有第一个资源字符串来注册后才挂接
+    if FMethodHook = nil then
+    begin
+      FOldLoadResString := @LoadResString;
+      FMethodHook := TCnMethodHook.Create(CnGetBplMethodAddress(@LoadResString),
+        @CnLangLoadResString);
+    end;
   end;
 end;
 
@@ -1558,9 +1568,6 @@ begin
 end;
 
 initialization
-  FOldLoadResString := @LoadResString;
-  FMethodHook := TCnMethodHook.Create(CnGetBplMethodAddress(@LoadResString),
-    @CnLangLoadResString);
 
 finalization
   FreeAndNil(FMethodHook);
