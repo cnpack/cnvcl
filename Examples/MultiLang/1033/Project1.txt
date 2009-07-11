@@ -68,3 +68,5 @@ TForm3.!Font=MS Sans Serif,8,,0,clWindowText,DEFAULT_CHARSET
 TForm3.Caption=Another Created Form, Just Showing.
 TForm3.lbl1.Caption=Only a Label Here, too.
 SCnCurrentLang=Active
+SCnLangTestStrToBeAutoTranslated=It's a string to be auto translated after register.
+SCnLangTestResStrToBeAutoTranslated=It's a Resource string to be auto translated after register.

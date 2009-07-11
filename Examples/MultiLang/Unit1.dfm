@@ -1,8 +1,8 @@
 object Form1: TForm1
   Left = 101
   Top = 72
-  Width = 870
-  Height = 640
+  Width = 892
+  Height = 682
   Caption = '多语测试程序 - 当前无已选择语言，程序显示的是程序的原始字符串'
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
@@ -39,7 +39,7 @@ object Form1: TForm1
     Shape = bsTopLine
   end
   object lblLangs: TLabel
-    Left = 432
+    Left = 248
     Top = 524
     Width = 72
     Height = 12
@@ -182,8 +182,8 @@ object Form1: TForm1
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 575
-    Width = 862
+    Top = 617
+    Width = 884
     Height = 19
     Panels = <
       item
@@ -240,7 +240,7 @@ object Form1: TForm1
   object ToolBar1: TToolBar
     Left = 0
     Top = 0
-    Width = 862
+    Width = 884
     Height = 29
     BorderWidth = 1
     ButtonHeight = 20
@@ -301,7 +301,7 @@ object Form1: TForm1
   end
   object Button2: TButton
     Left = 712
-    Top = 528
+    Top = 520
     Width = 139
     Height = 25
     Caption = '运行期 AutoDetect 测试'
@@ -318,8 +318,8 @@ object Form1: TForm1
     OnClick = btn1Click
   end
   object chkStorageMode: TCheckBox
-    Left = 248
-    Top = 532
+    Left = 16
+    Top = 572
     Width = 161
     Height = 17
     Caption = '多语存储模式：基于文件'
@@ -327,10 +327,10 @@ object Form1: TForm1
     OnClick = chkStorageModeClick
   end
   object mmoLangs: TMemo
-    Left = 512
+    Left = 336
     Top = 520
-    Width = 185
-    Height = 41
+    Width = 361
+    Height = 73
     ScrollBars = ssVertical
     TabOrder = 21
   end

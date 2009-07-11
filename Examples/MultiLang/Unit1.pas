@@ -84,6 +84,11 @@ var
 
   SCnCurrentLang: string = '当前语言';
 
+  SCnLangTestStrToBeAutoTranslated: string = '这是被Regsiter而将要被自动翻译的字符串';
+
+resourcestring
+  SCnLangTestResStrToBeAutoTranslated = '这是被Regsiter而将要被自动翻译的资源字符串';
+
 implementation
 
 uses Unit2, Unit3;
@@ -106,6 +111,10 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   CnLanguageManager.AddChangeNotifier(LanguageChanged);
   chkStorageMode.Checked := hfs1.StorageMode = smByFile;
+
+  RegisterTranslateString(@SCnLangTestStrToBeAutoTranslated, 'SCnLangTestStrToBeAutoTranslated');
+  RegisterTranslateResourceString(@SCnLangTestResStrToBeAutoTranslated, 'SCnLangTestResStrToBeAutoTranslated');
+
   UpdateLangsToMemo;
 end;
 
@@ -125,6 +134,8 @@ begin
       mmoLangs.Lines.Add(S);
     end;
 
+  mmoLangs.Lines.Add(SCnLangTestStrToBeAutoTranslated);    
+  mmoLangs.Lines.Add(SCnLangTestResStrToBeAutoTranslated);
   PostMessage(mmoLangs.Handle, WM_KEYDOWN, VK_BACK, 0);
 end;
 

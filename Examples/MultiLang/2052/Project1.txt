@@ -68,3 +68,5 @@ TForm3.!Font=MS Sans Serif,8,,0,clWindowText,DEFAULT_CHARSET
 TForm3.Caption=另外一个已经创建的窗体
 TForm3.lbl1.Caption=这个窗体也就一个测试的 Label
 SCnCurrentLang=当前语言
+SCnLangTestStrToBeAutoTranslated=这是被Regsiter而自动翻译的字符串
+SCnLangTestResStrToBeAutoTranslated=这是被Regsiter而自动翻译的资源字符串
