@@ -70,3 +70,4 @@ TForm3.lbl1.Caption=Only a Label Here, too.
 SCnCurrentLang=Active
 SCnLangTestStrToBeAutoTranslated=It's a string to be auto translated after register.
 SCnLangTestResStrToBeAutoTranslated=It's a Resource string to be auto translated after register.
+SCnLangDetectHint=After Detection, the Languages Items Count and Sequence maybe Different with before, so the CurrentLanguageIndex maybe Points to another Language and Messed Up. It's Recommend to Re-Translate all Forms and Strings after Detection using New "Current Language".

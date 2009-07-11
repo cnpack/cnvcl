@@ -89,6 +89,9 @@ var
 resourcestring
   SCnLangTestResStrToBeAutoTranslated = '这是被Regsiter而将要被自动翻译的资源字符串';
 
+  SCnLangDetectHint = '重新检测并载入语言后，当前的语言条目以及顺序可能和载入前的不同，'
+    + '可能造成当前语言指向的混乱。建议检测载入后重新翻译全部窗体字符串等内容。';
+
 implementation
 
 uses Unit2, Unit3;
@@ -97,14 +100,15 @@ uses Unit2, Unit3;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
-  ShowMessage('Original Path ' + Self.hfs1.LanguagePath);
-  ShowMessage('Language Count = ' + IntToStr(hfs1.LanguageCount));
+  ShowMessage(SCnLangDetectHint);
+  ShowMessage('Now, Original Path ' + Self.hfs1.LanguagePath);
+  ShowMessage('Now, Language Count = ' + IntToStr(hfs1.LanguageCount));
 
   Self.hfs1.AutoDetect := True;
   Self.hfs1.LanguagePath := '.';
 
-  ShowMessage('New Path ' + hfs1.LanguagePath);
-  ShowMessage('Language Count = ' + IntToStr(hfs1.LanguageCount));
+  ShowMessage('After Detection, New Path: ' + hfs1.LanguagePath);
+  ShowMessage('After Detection, New Language Count = ' + IntToStr(hfs1.LanguageCount));
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -114,6 +118,7 @@ begin
 
   RegisterTranslateString(@SCnLangTestStrToBeAutoTranslated, 'SCnLangTestStrToBeAutoTranslated');
   RegisterTranslateResourceString(@SCnLangTestResStrToBeAutoTranslated, 'SCnLangTestResStrToBeAutoTranslated');
+  RegisterTranslateResourceString(@SCnLangDetectHint, 'SCnLangDetectHint');
 
   UpdateLangsToMemo;
 end;

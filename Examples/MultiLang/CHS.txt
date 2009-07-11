@@ -70,3 +70,4 @@ TForm3.lbl1.Caption=这个窗体也就一个测试的 Label
 SCnCurrentLang=当前语言
 SCnLangTestStrToBeAutoTranslated=这是被Regsiter而自动翻译的字符串
 SCnLangTestResStrToBeAutoTranslated=这是被Regsiter而自动翻译的资源字符串
+SCnLangDetectHint=重新检测并载入语言后，当前的语言条目以及顺序可能和载入前的不同，可能造成当前语言指向的混乱。建议检测载入后重新翻译全部窗体字符串等内容。
