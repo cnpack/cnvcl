@@ -29,7 +29,10 @@ unit CnLangMgr;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnLangMgr.pas,v 1.36 2009/01/02 08:27:39 liuxiao Exp $
-* 修改记录：2008.05.30 V1.3
+* 修改记录：2009.07.11 V1.4
+*               增加字符串常量的注册机制，注册了的字符串能在改变语言时被自动翻译
+*               而无需在事件中手工调用 TranslateStr，但资源字符串的自动翻译未完成
+*           2008.05.30 V1.3
 *               不处理只读的 string 属性，加入某 Tag 值不翻译的机制
 *           2007.09.18 V1.10
 *               增加翻译事件以便让用户控制是否翻译某些对象和属性。
@@ -65,7 +68,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
-  Dialogs, ExtCtrls, Controls,{$IFDEF COMPILER6_UP}Variants, {$ENDIF}
+  Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
   CnConsts, CnClasses, CnCommon, CnLangStorage, CnIniStrUtils;
 
 const
@@ -85,13 +88,37 @@ type
 
   TCnTranslationMode = (tmByComponents, tmByStrings);
   {* 翻译模式，根据窗体和控件等遍历还是根据翻译字符串内容遍历 }
+
+  TCnStringObj = class
+  {* 描述一自动翻译的字符串}
+  private
+    FStringAddr: Pointer;
+    FStringName: string;
+  public
+    property StringAddr: Pointer read FStringAddr write FStringAddr;
+    property StringName: string read FStringName write FStringName;
+  end;
+
+  TCnResourceStringObj = class
+  {* 描述一自动翻译的资源字符串}
+  private
+    FStringRecAddr: Pointer;
+    FStringName: string;
+  public
+    property StringRecAddr: Pointer read FStringRecAddr write FStringRecAddr;
+    property StringName: string read FStringName write FStringName;
+  end;
+
   TCnBaseLangManager = class(TCnComponent)
   {* 多语言管理器类 }
   private
+    FRegStrings: TObjectList;
+    FRegResStrings: TObjectList;
     FDefaultLanguageIndex: Integer;
     FCurrentLanguageIndex: Integer;
     FOnStorageChanged: TNotifyEvent;
     FOnLanguageChanged: TNotifyEvent;
+    FAutoTranslateStrings: Boolean;
     procedure SetLanguageStorage(Value: TCnCustomLangStorage);
     procedure AdjustNewLanguage(AID: LongWord);
     function GetCurrentLangugageIndex: Integer;
@@ -103,6 +130,7 @@ type
     procedure DoStorageChanged; virtual;
     procedure DoLanguageChanged; virtual;
     procedure SetCurrentLangugageIndex(const Value: Integer); virtual;
+    procedure TranslateReggedStrings;
 
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
@@ -116,6 +144,15 @@ type
     {* 根据当前语言获得翻译的字符串，无则返回空 }
     function TranslateStrFmt(Src: string; Args: array of const): string;
     {* 根据当前语言获得格式化的翻译字符串 }
+
+    procedure RegisterTranslateString(const StringAddr: Pointer; const IDStr: string);
+    {* 注册一字符串，可在语言改变时被自动翻译，无需手工调 Translate}
+    procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: string);
+    {* 注册一资源字符串，可在语言改变时被自动翻译}
+    property AutoTranslateStrings: Boolean read FAutoTranslateStrings
+      write FAutoTranslateStrings default True;
+    {* 是否在语言改变时自动翻译已经注册了的字符串与资源字符串，默认为 True}
+
     property LanguageStorage: TCnCustomLangStorage read FLanguageStorage
       write SetLanguageStorage;
     {* 多语言存储元件引用 }
@@ -227,6 +264,8 @@ type
     {* 当前语言号，影响到整个程序的语言设置。语言号含义由存储元件条目内容决定 }
     property AutoTranslate;
     {* 是否在当前语言号改变后自动翻译已经存在的窗体和其他内容 }
+    property AutoTranslateStrings;
+    {* 是否在语言改变时自动翻译已经注册了的字符串与资源字符串，默认为 True}
     property TranslationMode;
     {* 翻译模式，默认根据窗体和控件等遍历 }
     property AutoTransOptions;
@@ -271,6 +310,16 @@ procedure TranslateStr(var SrcStr: string; const IDStr: string);
 
 procedure TranslateStrArray(var StrArray: array of string; const IDStr: string);
 {* 翻译某个字符串数组 }
+
+//procedure TranslateResourceString(const AddrResrouceString: Pointer; const IDStr: string);
+{* 翻译某个资源字符串，传入参数是 resourcestring 的地址与名称
+   如无翻译管理器或不存在翻译后的条目，则资源字符串保持不变 }
+
+procedure RegisterTranslateString(const StringAddr: Pointer; const IDStr: string);
+{* 注册一字符串，传入地址与名称，可在语言改变时被自动翻译，无需手工调 Translate}
+
+procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: string);
+{* 注册一资源字符串，传入地址与名称，可在语言改变时被自动翻译}
 
 implementation
 
@@ -335,6 +384,30 @@ begin
   end;
 end;
 
+//procedure TranslateResourceString(const AddrResrouceString: Pointer; const IDStr: string);
+//var
+//  DstStr: string;
+//begin
+//  if (AddrResrouceString <> nil) and (CnLanguageManager <> nil) then
+//  begin
+//    DstStr := CnLanguageManager.Translate(IDStr);
+//    if DstStr <> '' then
+//      PString(AddrResrouceString)^ := DstStr;
+//  end;
+//end;
+
+procedure RegisterTranslateString(const StringAddr: Pointer; const IDStr: string);
+begin
+  if CnLanguageManager <> nil then
+    CnLanguageManager.RegisterTranslateString(StringAddr, IDStr);
+end;
+
+procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: string);
+begin
+  if CnLanguageManager <> nil then
+    CnLanguageManager.RegisterTranslateResourceString(ResStringAddr, IDStr);
+end;
+
 //==============================================================================
 // TCnBaseLangManager
 //==============================================================================
@@ -368,6 +441,10 @@ begin
   FDefaultLanguageIndex := -1;
   FCurrentLanguageIndex := -1;
 
+  FRegStrings := TObjectList.Create(True);
+  FRegResStrings := TObjectList.Create(True);
+  FAutoTranslateStrings := True;
+  
   if (csDesigning in ComponentState) then
     for I := 0 to AOwner.ComponentCount - 1 do
       if AOwner.Components[i] is TCnCustomLangFileStorage then
@@ -380,11 +457,16 @@ end;
 destructor TCnBaseLangManager.Destroy;
 begin
   FLangMgrList.Remove(Self);
+  FRegStrings.Free;
+  FRegResStrings.Free;
   inherited;
 end;
 
 procedure TCnBaseLangManager.DoLanguageChanged;
 begin
+  if FAutoTranslateStrings then
+    TranslateReggedStrings;
+
   if Assigned(FOnLanguageChanged) then
     FOnLanguageChanged(Self);
 end;
@@ -1394,6 +1476,49 @@ begin
   Author := SCnPack_LiuXiao;
   Email := SCnPack_LiuXiaoEmail;
   Comment := SCnLangMgrComment;
+end;
+
+procedure TCnBaseLangManager.RegisterTranslateResourceString(
+  const ResStringAddr: Pointer; const IDStr: string);
+var
+  AObj: TCnResourceStringObj;
+begin
+  if ResStringAddr <> nil then
+  begin
+    AObj := TCnResourceStringObj.Create;
+    AObj.StringRecAddr := ResStringAddr;
+    AObj.StringName := IDStr;
+    FRegResStrings.Add(AObj);
+  end;
+end;
+
+procedure TCnBaseLangManager.RegisterTranslateString(const StringAddr: Pointer;
+  const IDStr: string);
+var
+  AObj: TCnStringObj;
+begin
+  if StringAddr <> nil then
+  begin
+    AObj := TCnStringObj.Create;
+    AObj.StringAddr := StringAddr;
+    AObj.StringName := IDStr;
+    FRegStrings.Add(AObj);
+  end;
+end;
+
+procedure TCnBaseLangManager.TranslateReggedStrings;
+var
+  I: Integer;
+  AObj: TCnStringObj;
+  DstStr: string;
+begin
+  for I := 0 to FRegStrings.Count - 1 do
+  begin
+    AObj := TCnStringObj(FRegStrings[I]);
+    DstStr := TranslateString(AObj.StringName);
+    if DstStr <> '' then
+      PString(AObj.StringAddr)^ := DstStr;
+  end;
 end;
 
 initialization
