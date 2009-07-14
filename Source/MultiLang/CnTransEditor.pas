@@ -28,7 +28,7 @@ unit CnTransEditor;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnTransEditor.pas,v 1.38 2009/01/17 02:42:08 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2008.10.130 V1.4
 *               修正由 Filter 引起的更新时忽略了新属性的问题
 *           2008.05.30 V1.3

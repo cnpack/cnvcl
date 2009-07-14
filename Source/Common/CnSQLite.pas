@@ -50,7 +50,7 @@ unit CnSQLite;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串暂时不符合本地化处理方式
-* 单元标识：$Id: CnSQLite.pas,v 1.9 2009/01/02 08:27:38 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2003.11.17 V1.1 by 何清(QSoft)
 *               取消TLiteDB中创建数据库的默认扩展名，原为.lit，现在的扩展名可由
 *               调用者自己设定。

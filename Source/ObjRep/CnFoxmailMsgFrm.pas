@@ -41,7 +41,7 @@ unit CnFoxmailMsgFrm;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串尚不符合本地化处理方式
-* 单元标识：$Id: CnFoxmailMsgFrm.pas,v 1.7 2009/03/20 12:45:04 zjy Exp $
+* 单元标识：$Id$
 * 修改记录：2002.10.11 V1.1 by Chinbo
 *                改用线程定时器定时，修正关闭程序时出错的问题
 *           2002.04.03 V1.0

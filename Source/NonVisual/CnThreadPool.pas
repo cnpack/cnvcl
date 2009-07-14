@@ -28,7 +28,7 @@ unit CnThreadPool;
 * 开发平台：PWin2000Pro + Delphi 7.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串暂不符合本地化处理方式
-* 单元标识：$Id: CnThreadPool.pas,v 1.8 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2008.4.1
 *               找到了当初这个线程池的主要参考实现单元，补上了原作者
 *                 Aleksej Petrov的版权信息。尽管在原来的基础上修正了很多问题也

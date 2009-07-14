@@ -29,7 +29,7 @@ unit CnConsole;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP + Delphi 5.0
 * 本 地 化：该单元中无字符串资源
-* 单元标识：$Id: CnConsole.pas,v 1.9 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2008.10.14 v1.1
 *               菩提加入控制文本颜色的功能
 *           2006.10.05 v1.0

@@ -28,7 +28,7 @@ unit CnButtons;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnButtons.pas,v 1.23 2009/04/30 12:04:05 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2009.06.29 
 *               修补了当在设计期设置Caption为空时运行期会改为Name的BUG
 *           2007.12.18 V0.2

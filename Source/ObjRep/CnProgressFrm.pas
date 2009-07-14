@@ -37,7 +37,7 @@ unit CnProgressFrm;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串尚不符合本地化处理方式
-* 单元标识：$Id: CnProgressFrm.pas,v 1.10 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2008.03.08 V1.1
 *                xierenxixi 修改其禁用方式
 *           2002.04.03 V1.0

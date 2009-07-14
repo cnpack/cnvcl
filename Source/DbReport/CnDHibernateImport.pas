@@ -57,7 +57,7 @@ unit CnDHibernateImport;
 * 开发平台：PWinXP SP2 + Delphi 2009
 * 兼容测试：Win2000/XP/Vista/2008 + Delphi 2009
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnDHibernateImport.pas,v 1.2 2009/01/02 08:27:38 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2008.08.23 V1.8
 *               移植到 Delphi2009
 *           2006.09.04 V1.0

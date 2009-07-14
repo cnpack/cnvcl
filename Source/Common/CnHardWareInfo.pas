@@ -32,7 +32,7 @@ unit CnHardWareInfo;
 * 开发平台：WindowsXP sp2 + Delphi 6.0 up2
 * 兼容测试：Win2000/XP + Delphi 5、6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnHardWareInfo.pas,v 1.10 2009/01/02 08:27:38 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2008.08.01 V1.3
 *               加入 Bahamut 的获取 BIOS ID 的过程，但只支持小部分 BIOS
 *           2008.04.12 V1.2

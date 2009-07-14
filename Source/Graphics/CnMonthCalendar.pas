@@ -28,7 +28,7 @@ unit CnMonthCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnMonthCalendar.pas,v 1.4 2009/04/26 12:35:16 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2009.04.26 V1.1
 *               不夜人加入几种颜色以及前进后退年月的按钮，刘啸修改
 *           2008.06.05 V1.0

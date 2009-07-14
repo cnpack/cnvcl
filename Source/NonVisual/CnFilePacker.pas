@@ -28,7 +28,7 @@ unit CnFilePacker;
 * 开发平台：PWinXP + Delphi 7.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnFilePacker.pas,v 1.2 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2009.07.08 V0.02
 *               修正一处指针释放问题，增加对 D2009 的支持。
 *           2008.06.27 V0.01

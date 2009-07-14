@@ -28,7 +28,7 @@ unit CnVolumeCtrl;
 * 开发平台：PWin2003 + Delphi 7.0 (Build 8.1)
 * 兼容测试：PWin2003 + Delphi 7.0 (Build 8.1)
 * 本 地 化：该单元中有字符串资源
-* 单元标识：$Id: CnVolumeCtrl.pas,v 1.11 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2005.12.22 v1.1
 *               修正未响应关机事件的问题
 *           2005.09.23 v1.0

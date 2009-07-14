@@ -29,7 +29,7 @@ unit CnRS232Dialog;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元代码中的字符串符合本地化处理方式
 *           该单元窗体中的字符串还不符合本地化处理方式
-* 单元标识：$Id: CnRS232Dialog.pas,v 1.7 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2002.04.18 V1.1
 *                重申明CommConfig和Timeouts为发布属性
 *           2002.04.08 V1.0

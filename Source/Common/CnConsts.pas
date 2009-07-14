@@ -28,7 +28,7 @@ unit CnConsts;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnConsts.pas,v 1.32 2009/05/20 13:38:10 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2004.09.18 V1.2
 *                新增CnMemProf的字符串定义
 *           2002.04.18 V1.1

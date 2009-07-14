@@ -30,7 +30,7 @@ unit CnTree;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnTree.pas,v 1.10 2009/01/02 08:27:38 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2005.05.08 V1.3 by Alan
 *               修正 LoadFromTreeView 方法调用 Clear 方法未考虑 RootLeaf 参数的错误
 *           2004.11.02 V1.2

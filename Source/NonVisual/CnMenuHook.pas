@@ -45,7 +45,7 @@ unit CnMenuHook;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串支持本地化处理方式
-* 单元标识：$Id: CnMenuHook.pas,v 1.10 2009/01/02 08:27:39 liuxiao Exp $
+* 单元标识：$Id$
 * 修改记录：2003.10.11
 *               修改部分标识符，使之更容易理解，增加注释
 *           2003.05.01
