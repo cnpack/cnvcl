@@ -47,7 +47,9 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.04.16 V1.3
+* 修改记录：2009.07.16 V1.4
+*               修正一处伏日计算不正确的问题，增加伏日字符串
+*           2008.04.16 V1.3
 *               增加干支阴阳、纳音、五行、十二建的计算与农历日期字符串的转换
 *           2007.11.15 V1.2
 *               增加二十八宿日的计算
@@ -120,6 +122,10 @@ const
   SCn12JianArray: array[0..11] of string =
     ('建', '除', '满', '平', '定', '执', '破', '危', '成', '收', '开', '闭');
   {* 十二建字符串 }
+
+  SCn3FuArray: array[0..2] of string =
+    ('初伏', '中伏', '末伏');
+  {* 三伏字符串 }
 
   SCnJieQiArray: array[0..23] of string = (
     '立春', // 节气  Beginning of Spring   3
@@ -282,6 +288,9 @@ function Get5XingFromNumber(const AValue: Integer): string;
 function Get12JianFromNumber(const AValue: Integer): string;
 {* 从数字获得十二建名, 0-11}
 
+function Get3FuFromNumber(const AValue: Integer): string;
+{* 从数字获得三伏名, 0-2}
+
 function GetTianGanFromNumber(const AValue: Integer): string;
 {* 从数字获得天干名, 0-9}
 
@@ -394,7 +403,7 @@ function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDa
 {* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9对应一九到九九，False 为不在数九日内}
 
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
-{* 获得公历年月日在三伏日中的第几伏的第几日，1~3,1~10对应初伏到末伏，False 为不在伏日内}
+{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或20）对应初伏到末伏的伏日，False 为不在伏日内}
 
 function GetRuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
 {* 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日}
@@ -1015,6 +1024,14 @@ begin
   Result := '';
   if AValue in [0..11] then
     Result := SCn12JianArray[AValue];
+end;
+
+// 从数字获得三伏名, 0-2
+function Get3FuFromNumber(const AValue: Integer): string;
+begin
+  Result := '';
+  if AValue in [0..2] then
+    Result := SCn3FuArray[AValue];
 end;
 
 // 从数字获得阴阳名, 0-1
@@ -2135,7 +2152,7 @@ begin
   end;
 end;
 
-// 获得公历年月日在三伏日中的第几伏的第几日，1~3,1~10对应初伏到末伏伏日，False 为不在伏日内}
+// 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或20）对应初伏到末伏的伏日，False 为不在伏日内
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
 var
   Days, XiaZhi, LiQiu: Integer;
@@ -2165,16 +2182,16 @@ begin
           if (Days >= F1) and (Days < F1 + 9) then
           begin
             Result := True;
-            FuSeq := 1;
+            FuSeq := 0;
             FuDay := Days - F1 + 1;
           end
           else if Days >= F2 then // 中伏
           begin
-            if (Days < F2 + 10) or // 中伏 10 日内
-              ((Days >= F2 + 10) and (Days < F2 + 20) and (F2 + 20 < LiQiu)) then
+            if (Days < F2 + 10) or // 中伏 10 日内或立秋前 20 日内
+              ((Days >= F2 + 10) and (Days < F2 + 20) and (F2 + 10 <= LiQiu)) then
             begin
               Result := True;
-              FuSeq := 2;
+              FuSeq := 1;
               FuDay := Days - F2 + 1;
             end;
           end;
@@ -2201,7 +2218,7 @@ begin
           if (Days >= F3) and (Days < F3 + 10) then
           begin
             Result := True;
-            FuSeq := 3;
+            FuSeq := 2;
             FuDay := Days - F3 + 1;
           end;
         end;

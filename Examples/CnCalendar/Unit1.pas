@@ -72,6 +72,7 @@ var
   rmMonth, rmDay, cmMonth, cmDay: Integer;
   LunarYear, LunarMonth, LunarDay: Integer;
   IsLeap: Boolean;
+  FSeq, FDay: Integer;
 begin
   mmoResult.Clear;
   ConvertEditToDate;
@@ -95,6 +96,8 @@ begin
   mmoResult.Lines.Add('十二建：'+ Get12JianFromNumber(Get12JianFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('本日节气：' + GetJieQiFromNumber(GetJieQiFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('每日胎神：' + GetTaiShenStringFromDay(AYear, AMonth, ADay));
+  if Get3FuDay(AYear, AMonth, ADay, FSeq, FDay) then
+    mmoResult.Lines.Add(Format('三伏： %s 第 %d 日', [Get3FuFromNumber(FSeq), FDay]));
 
   GetRuMeiDay(AYear, rmMonth, rmDay);
   GetChuMeiDay(AYear, cmMonth, cmDay);
