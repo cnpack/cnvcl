@@ -220,6 +220,9 @@ cnpack\Source 目录内容说明：
   CnMonthCalendar.pas
     中文月历的界面组件实现单元
 
+  CnPanel.pas
+    带透明效果的Panel实现单元
+
   CnQQPanel.pas
     类似于QQ界面列表框的一简易实现单元
 
@@ -244,7 +247,7 @@ cnpack\Source 目录内容说明：
   CnWizardImage.pas
     向导界面图像控件
 
-               27 文件
+               28 文件
 
 \Lang\2052
 \Lang\1028

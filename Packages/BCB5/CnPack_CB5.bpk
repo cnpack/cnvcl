@@ -69,7 +69,7 @@
       ..\..\Source\Graphics\CnWaterEffect.obj ..\..\Source\Graphics\CnValidateImage.obj 
       ..\..\Source\Graphics\CnWaterImage.obj ..\..\Source\Graphics\CnAACtrls.obj 
       ..\..\Source\Graphics\CnAAFont.obj ..\..\Source\Graphics\CnTabSet.obj 
-      ..\..\Source\Graphics\CnButtonEdit.obj 
+      ..\..\Source\Graphics\CnButtonEdit.obj ..\..\Source\Graphics\CnPanel.obj 
       ..\..\Source\Graphics\CnAAFontDialog.obj 
       ..\..\Source\Graphics\CnSkinMagic.obj 
       ..\..\Source\Graphics\CnHint.obj 

@@ -540,6 +540,8 @@
     </DelphiCompile>
     <DelphiCompile Include="..\..\Source\Graphics\CnAppStoreBox.pas">
       <BuildOrder>153</BuildOrder>
+    <DelphiCompile Include="..\..\Source\Graphics\CnPanel.pas">
+      <BuildOrder>154</BuildOrder>
     <None Include="..\..\Source\Common\CnPack.dcr">
       <BuildOrder>25</BuildOrder>
     </None>

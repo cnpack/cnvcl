@@ -121,6 +121,7 @@
 			<DCCReference Include="..\..\Source\Graphics\CnListBox.pas"/>
 			<DCCReference Include="..\..\Source\Graphics\CnTabSet.pas"/>
 			<DCCReference Include="..\..\Source\Graphics\CnButtonEdit.pas"/>
+			<DCCReference Include="..\..\Source\Graphics\CnPanel.pas"/>
 			<DCCReference Include="..\..\Source\Graphics\CnGraphConsts.pas"/>
 			<DCCReference Include="..\..\Source\Graphics\CnGraphics.pas"/>
 			<DCCReference Include="..\..\Source\Graphics\CnImage.pas"/>

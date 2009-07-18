@@ -100,6 +100,7 @@ contains
   CnListBox in '..\..\Source\Graphics\CnListBox.pas',
   CnTabSet in '..\..\Source\Graphics\CnTabSet.pas',
   CnButtonEdit in '..\..\Source\Graphics\CnButtonEdit.pas',
+  CnPanel in '..\..\Source\Graphics\CnPanel.pas',
   CnGraphConsts in '..\..\Source\Graphics\CnGraphConsts.pas',
   CnGraphics in '..\..\Source\Graphics\CnGraphics.pas',
   CnImage in '..\..\Source\Graphics\CnImage.pas',

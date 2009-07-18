@@ -98,6 +98,7 @@ USEUNIT("..\..\Source\Graphics\CnAACtrls.pas");
 USEUNIT("..\..\Source\Graphics\CnAAFont.pas");
 USEUNIT("..\..\Source\Graphics\CnTabSet.pas");
 USEUNIT("..\..\Source\Graphics\CnButtonEdit.pas");
+USEUNIT("..\..\Source\Graphics\CnPanel.pas");
 USEUNIT("..\..\Source\Graphics\CnAAFontDialog.pas");
 USEUNIT("..\..\Source\Graphics\CnSkinMagic.pas");
 USEUNIT("..\..\Source\Graphics\CnHint.pas");

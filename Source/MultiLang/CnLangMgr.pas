@@ -73,7 +73,7 @@ interface
 uses
   SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
   Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
-  CnConsts, CnClasses, CnCommon, CnLangStorage, CnIniStrUtils, CnMethodHook;
+  CnConsts, CnClasses, CnCommon, CnLangStorage, CnIniStrUtils;
 
 const
   CN_MULTI_LANG_TAG_NOT_TRANSLATE = 2001;

@@ -47,7 +47,7 @@ uses
   {$ENDIF}
   CnConsts, CnGraphics, CnImage, CnSpin, CnGraphPropEditors, CnCheckTreeView,
   CnWizardImage, CnEdit, CnShellCtrls, CnWaterImage, CnAOTreeView, CnAACtrls,
-  CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit,
+  CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit, CnPanel,
   CnSkinMagic, CnButtons, CnHexEditor, CnHint, CnGauge, CnListBox, CnColorGrid,
   CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, CnQQPanel,
   CnAppStoreBox;
@@ -62,7 +62,7 @@ begin
   //RegisterComponents(SCnGraphicPalette, [TCnPaintBox]);
   //RegisterComponents(SCnGraphicPalette, [TCnImage]);
   RegisterComponents(SCnGraphicPalette, [TCnButton, TCnBitBtn, TCnSpeedButton]);
-  RegisterComponents(SCnGraphicPalette, [TCnEdit, TCnSpinEdit]);
+  RegisterComponents(SCnGraphicPalette, [TCnPanel, TCnEdit, TCnSpinEdit]);
   RegisterComponents(SCnGraphicPalette, [TCnListBox]);
   RegisterComponents(SCnGraphicPalette, [TCnTabSet, TCnButtonEdit]);
   RegisterComponents(SCnGraphicPalette, [TCnCheckTreeView]);

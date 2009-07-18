@@ -62,6 +62,7 @@
       ..\..\Source\Graphics\CnErrorProvider.obj 
       ..\..\Source\Graphics\CnLED.obj 
       ..\..\Source\Graphics\CnButtonEdit.obj 
+      ..\..\Source\Graphics\CnPanel.obj 
       ..\..\Source\MultiLang\CnHashIniFile.obj 
       ..\..\Source\MultiLang\CnHashLangStorage.obj 
       ..\..\Source\MultiLang\CnIniLangFileStorage.obj 
@@ -298,6 +299,7 @@
       <FILE FILENAME="..\..\Source\Graphics\CnAAFont.pas" FORMNAME="" UNITNAME="CnAAFont" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnTabSet.pas" FORMNAME="" UNITNAME="CnTabSet" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnButtonEdit.pas" FORMNAME="" UNITNAME="CnButtonEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphics\CnPanel.pas" FORMNAME="" UNITNAME="CnPanel" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnAAFontDialog.pas" FORMNAME="" UNITNAME="CnAAFontDialog" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnDockInfo.pas" FORMNAME="" UNITNAME="CnDockInfo" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NonVisual\CnDockSupportProc.pas" FORMNAME="" UNITNAME="CnDockSupportProc" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
