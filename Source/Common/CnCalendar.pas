@@ -47,7 +47,9 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.07.16 V1.4
+* 修改记录：2009.07.27 V1.5
+*               修正一处计算农历日期时可能陷入死循环的问题
+*           2009.07.16 V1.4
 *               修正一处伏日计算不正确的问题，增加伏日字符串
 *           2008.04.16 V1.3
 *               增加干支阴阳、纳音、五行、十二建的计算与农历日期字符串的转换
@@ -2498,8 +2500,13 @@ begin
   end
   else if Result = GetLeapMonth(AYear) then
   begin
-    if (AMonth = 1) and (GetLeapMonth(AYear) <> 12) then
+    // 如果得到的月份数与当年所闰的月相同，比如1612年1月31号。
+    // 上面计算所得的是11月，并且1612年年底有个闰11月，这俩不能混淆
+    if (AMonth in [1, 2]) and (GetLeapMonth(AYear) <> 12) then
     begin
+      // 粗略判断，如果月份在年初，且今年闰月不是12月，就说明两个月不是一个年的，
+      // 所以不是闰月，修正为普通月。但这个修正可能不是太准确
+
       // 比如1984年有闰10月，而1984.1.1的农历月为10，
       // 但这是从1983年阴历接过来的，所以不是1984年的闰10月
       Result := Result + 1;
@@ -2580,6 +2587,7 @@ var
   TempLunarYear, TempLunarMonth, TempLunarDay, OldTempLunarMonth: Integer;
   TempIsLeap, Only2: Boolean;
   Lsd: TLunarSearchDirection;
+  Count: Integer;
 begin
   Result := False;
   if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth) then
@@ -2604,8 +2612,13 @@ begin
   TempLunarYear := StartYear;
   OldTempLunarMonth := 0;
 
+  Count := 0;
   while StartDays < EndDays do
   begin
+    Inc(Count);
+    if Count > 100 then // 避免陷入死循环
+      Exit;
+
     InterDays := (StartDays + EndDays) div 2;
     if Only2 then
       Inc(InterDays);
