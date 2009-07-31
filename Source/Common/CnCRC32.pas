@@ -29,7 +29,9 @@ unit CnCRC32;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.04.16 V1.1
+* 修改记录：2009.07.31 V1.2
+*               修正计算大文件CRC32不正确的问题
+*           2009.04.16 V1.1
 *               修正一处计算有误的问题
 *           2002.08.11 V1.0
 *               创建单元
@@ -46,7 +48,7 @@ uses
 type
   TCRC32 = type DWORD;
 
-function CRC32Calc(OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
+function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
 {* 计算CRC32值
  |<PRE>
    OrgCRC32: DWORD  - 起始CRC32值
@@ -55,10 +57,10 @@ function CRC32Calc(OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
    Result: DWORD    - 返回CRC32计算结果
  |</PRE>}
 
-function StrCRC32(OrgCRC32: DWORD; const Text: string): DWORD;
+function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
 {* 计算字符串的CRC32值 }
 
-function StrCRC32A(OrgCRC32: DWORD; const Text: AnsiString): DWORD;
+function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
 {* 计算 AnsiString 字符串的CRC32值 }
 
 function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Integer = 0;
@@ -121,7 +123,7 @@ asm
 end;
 
 // 计算CRC32值
-function CRC32Calc(OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
+function DoCRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
 asm
         OR      EDX, EDX   // Data = nil?
         JE      @Exit
@@ -129,7 +131,6 @@ asm
         PUSH    ESI
         PUSH    EBX
         MOV     ESI, OFFSET CRC32Table
-        XOR     EAX, -1
 @Upd:
         MOVZX   EBX, AL    // CRC32
         XOR     BL, [EDX]
@@ -140,19 +141,26 @@ asm
         LOOP    @Upd
         POP     EBX
         POP     ESI
-        XOR     EAX, -1
 @Exit:
         RET
 end;
 
+// 计算 CRC32 值
+function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
+begin
+  Result := not OrgCRC32;
+  Result := DoCRC32Calc(Result, Data, Len);
+  Result := not Result;
+end;
+
 // 计算字符串的CRC32值
-function StrCRC32(OrgCRC32: DWORD; const Text: string): DWORD;
+function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
 begin
   Result := CRC32Calc(OrgCRC32, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的CRC32值
-function StrCRC32A(OrgCRC32: DWORD; const Text: AnsiString): DWORD;
+function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
@@ -184,6 +192,8 @@ begin
       Count := Len
     else
       Count := Size - StartPos;         // 长度为零，计算到文件尾
+
+    CRC := not CRC;
     SetFilePointer(Handle, StartPos, nil, FILE_BEGIN);
     while Count > 0 do
     begin
@@ -192,10 +202,11 @@ begin
       else
         ReadCount := Count;
       ReadFile(Handle, Buff, ReadCount, LongWord(ReadCount), nil);
-      CRC := Crc32Calc(CRC, Buff, ReadCount);
+      CRC := DoCrc32Calc(CRC, Buff, ReadCount);
       Dec(Count, ReadCount);
     end;
     CloseHandle(Handle);
+    CRC := not CRC;
   end;
 end;
 
