@@ -30,7 +30,7 @@ unit CnCRC32;
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
 * 修改记录：2009.07.31 V1.2
-*               修正计算大文件CRC32不正确的问题
+*               修正计算大文件CRC32不正确的问题，增加对大于4G文件的支持
 *           2009.04.16 V1.1
 *               修正一处计算有误的问题
 *           2002.08.11 V1.0
@@ -43,10 +43,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows;
+  Windows, SysUtils;
 
 type
-  TCRC32 = type DWORD;
+  TCRC32 = DWORD;
 
 function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
 {* 计算CRC32值
@@ -63,14 +63,14 @@ function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
 function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
 {* 计算 AnsiString 字符串的CRC32值 }
 
-function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Integer = 0;
-  Len: Integer = 0): Boolean;
-{* 计算文件CRC32值
+function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Int64 = 0;
+  Len: Int64 = 0): Boolean;
+{* 计算文件CRC32值，支持超过4G的大文件
  |<PRE>
    const FileName: string   - 目标文件名
    var CRC: TCRC32          - CRC32值，变量参数，传入原始值，输出计算值
-   StartPos: Integer = 0    - 文件起始位置，默认从头开始
-   Len: Integer = 0         - 计算长度，为零默认为整个文件
+   StartPos: Int64 = 0      - 文件起始位置，默认从头开始
+   Len: Int64 = 0           - 计算长度，为零默认为整个文件
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回False
  |</PRE>}
 
@@ -166,13 +166,13 @@ begin
 end;
 
 // 计算文件CRC值，参数分别为：文件名、CRC值、起始地址、计算长度
-function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Integer = 0;
-  Len: Integer = 0): Boolean;
+function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Int64 = 0;
+  Len: Int64 = 0): Boolean;
 var
   Handle: THandle;
   ReadCount: Integer;
-  Size: Integer;
-  Count: Integer;
+  Size: Int64;
+  Count: Int64;
   Buff: TBuff;
 begin
   // 以共享读方式打开文件
@@ -181,8 +181,8 @@ begin
     FILE_ATTRIBUTE_NORMAL, 0);
   Result := Handle <> INVALID_HANDLE_VALUE;
   if Result then
-  begin
-    Size := GetFileSize(Handle, nil);
+  try
+    Int64Rec(Size).Lo := GetFileSize(Handle, @Int64Rec(Size).Hi);
     if Size < StartPos + Len then
     begin
       Result := False;                  // 超过文件长度
@@ -194,7 +194,7 @@ begin
       Count := Size - StartPos;         // 长度为零，计算到文件尾
 
     CRC := not CRC;
-    SetFilePointer(Handle, StartPos, nil, FILE_BEGIN);
+    SetFilePointer(Handle, Int64Rec(StartPos).Lo, @Int64Rec(StartPos).Hi, FILE_BEGIN);
     while Count > 0 do
     begin
       if Count > SizeOf(Buff) then
@@ -205,8 +205,9 @@ begin
       CRC := DoCrc32Calc(CRC, Buff, ReadCount);
       Dec(Count, ReadCount);
     end;
-    CloseHandle(Handle);
     CRC := not CRC;
+  finally
+    CloseHandle(Handle);
   end;
 end;
 
