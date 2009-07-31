@@ -279,8 +279,11 @@ end;
 
 procedure TCnWaterEffect.Render(Src, Dst: TBitmap);
 begin
-  CalcWater;
-  DrawWater(FLightModifier, Src, Dst);
+  if (FWidth > 0) and (FHeight > 0) then
+  begin
+    CalcWater;
+    DrawWater(FLightModifier, Src, Dst);
+  end;
 end;
 
 procedure TCnWaterEffect.SetDamping(Value: TWaterDamping);
