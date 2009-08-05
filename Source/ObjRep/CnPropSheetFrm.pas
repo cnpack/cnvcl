@@ -406,7 +406,7 @@ var
   function GetParamFlagsName(AParamFlags: TParamFlags): string;
   const
     SParamFlag: array[TParamFlag] of string
-      = ('var', 'const', 'array of', 'address', '', 'out');
+      = ('var', 'const', 'array of', 'address', '', 'out'{$IFDEF COMPILER14_UP}, 'result'{$ENDIF});
   var
     I: TParamFlag;
   begin
