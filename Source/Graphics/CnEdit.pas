@@ -283,13 +283,13 @@ begin
   end
   else
   begin
-    if not (Key in [Chr(VK_BACK), Chr(VK_RETURN), #01, #03, #08, #22, #24, #26]) then // Ctrl+A/C/BK/V/X/Z
+    if not CharInSet(Key, [Chr(VK_BACK), Chr(VK_RETURN), #01, #03, #08, #22, #24, #26]) then // Ctrl+A/C/BK/V/X/Z
     begin
       if FTextType = IntegerText then
       begin
         if not FAcceptNegative and (Key = '-') then
           Key := #0
-        else if not (Key in ['0'..'9', '-']) then
+        else if not CharInSet(Key, ['0'..'9', '-']) then
           Key := #0
         else
         begin
@@ -300,7 +300,7 @@ begin
       begin
         if not FAcceptNegative and (Key = '-') then
           Key := #0
-        else if not (Key in ['0'..'9', '.', '-']) then
+        else if not CharInSet(Key, ['0'..'9', '.', '-']) then
           Key := #0
         else
         begin
@@ -535,7 +535,7 @@ begin
       begin
         while I > 0 do
         begin
-          if not (S[I] in ['0'..'9', '-']) then
+          if not CharInSet(S[I], ['0'..'9', '-']) then
             Delete(S, I, 1);
           Dec(I);
         end;
@@ -544,7 +544,7 @@ begin
       begin
         while I > 0 do
         begin
-          if not (S[I] in ['0'..'9', '-', '.']) then
+          if not CharInSet(S[I], ['0'..'9', '-', '.']) then
             Delete(S, I, 1);
           Dec(I);
         end;
