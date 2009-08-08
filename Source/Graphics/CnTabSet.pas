@@ -80,8 +80,11 @@ begin
   inherited;
   DblClick;
 
-  P := Self.ScreenToClient(Mouse.CursorPos);
-  Index := Self.ItemAtPos(P);
+  if not FDblClickClose then
+    Exit;
+
+  P := ScreenToClient(Mouse.CursorPos);
+  Index := ItemAtPos(P);
   if Index >= 0 then
   begin
     CanClose := True;
