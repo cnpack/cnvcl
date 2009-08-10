@@ -31,7 +31,7 @@ type
     procedure CheckBox1Click(Sender: TObject);
     procedure DirectoryListBox1Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure CnFileSystemWatcherChange(FileOperation: TFileOperation;
+    procedure CnFileSystemWatcherChange(Sender: TObject; FileOperation: TFileOperation;
       const FileName1, FileName2: String);
     procedure CheckBox2Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -64,7 +64,7 @@ begin
   FileSystemWatcher1.WatchedDir := DirectoryListBox1.Directory;
 end;
 
-procedure TForm1.CnFileSystemWatcherChange(FileOperation: TFileOperation;
+procedure TForm1.CnFileSystemWatcherChange(Sender: TObject; FileOperation: TFileOperation;
   const FileName1, FileName2: String);
 begin
   case FileOperation of

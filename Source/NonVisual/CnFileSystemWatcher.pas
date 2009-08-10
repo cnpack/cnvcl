@@ -50,7 +50,7 @@ uses
 
 type
   TFileOperation = (foAdded, foRemoved, foModified, foRenamed);
-  TFileDealMethod = procedure(FileOperation: TFileOperation; const FileName1,
+  TFileDealMethod = procedure(Sender: TObject; FileOperation: TFileOperation; const FileName1,
     FileName2: string) of object;
 
   TNotifyFilter = (nfFileNameChange, nfDirNameChange, nfAttributeChange,
@@ -68,8 +68,11 @@ type
     FileName: array[0..0] of WideChar;
   end;
 
+  TCnFileSystemWatcher = class;
+
   TCnShellChangeThread = class(TThread)
   private
+    FParent: TCnFileSystemWatcher;
     FActive: Boolean;
     FDirectoryHandle: Cardinal;
     FCS: TRTLCriticalSection;
@@ -91,7 +94,7 @@ type
     procedure Lock;
     procedure Unlock;
   public
-    constructor Create(ChangeEvent: TFileDealMethod); virtual;
+    constructor Create(AParent: TCnFileSystemWatcher; ChangeEvent: TFileDealMethod); virtual;
     destructor Destroy; override;
     procedure SetDirectoryOptions(Directory : String; Active: Boolean; WatchSubTree : Boolean;
       NotifyOptionFlags : DWORD);
@@ -143,8 +146,10 @@ implementation
 
 { TCnShellChangeThread }
 
-constructor TCnShellChangeThread.Create(ChangeEvent: TFileDealMethod);
+constructor TCnShellChangeThread.Create(AParent: TCnFileSystemWatcher;
+  ChangeEvent: TFileDealMethod);
 begin
+  FParent := AParent;
   FreeOnTerminate := True;
   FChangeEvent := ChangeEvent;
   InitializeCriticalSection(FCS);
@@ -190,7 +195,7 @@ var
           if FileOperation = foRenamed then
             FileName2 := GetTrueFileName(FDirectory + FileName2);
         end;
-        ChangeEvent(FileOperation, FileName1, FileName2);
+        ChangeEvent(FParent, FileOperation, FileName1, FileName2);
       end;
     end;
   end;
@@ -484,7 +489,7 @@ begin
     Exit;
   if Assigned(FOnChange) then
   begin
-    FThread := TCnShellChangeThread.Create(FOnChange);
+    FThread := TCnShellChangeThread.Create(Self, FOnChange);
     FThread.SetDirectoryOptions(FWatchedDir, FActive, LongBool(FWatchSubTree), NotifyOptionFlags);
     FThread.SetFileMasks(FFileMasks);
     FThread.SetIncludePath(FIncludePath);
