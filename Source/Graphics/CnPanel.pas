@@ -46,6 +46,8 @@ type
   private
     FBuffer: TBitmap;
     FTransparent: Boolean;
+    FTransParentChanged: TNotifyEvent;
+    FTransParentChanging: TNotifyEvent;
     procedure CMCtl3DChanged(var Message: TMessage); message CM_CTL3DCHANGED;
     procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMWindowPosChanging(var Message: TWMWindowPosChanging); message WM_WINDOWPOSCHANGING;
@@ -54,12 +56,19 @@ type
     procedure CreateParams(var Params: TCreateParams); override;
     procedure Paint; override;
     procedure Resize; override;
+    procedure Loaded; override;
+    procedure CreateWnd; override;
+
+    procedure DoTransparentChanging; virtual;
+    procedure DoTransparentChanged; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   published
     property Transparent: Boolean read FTransparent write SetTransparent;
     {* 是否透明，透明时会显示其下的内容}
+    property TransParentChanging: TNotifyEvent read FTransParentChanging write FTransParentChanging;
+    property TransParentChanged: TNotifyEvent read FTransParentChanged write FTransParentChanged;
   end;
 
 implementation
@@ -86,6 +95,24 @@ begin
   inherited Destroy;
 end;
 
+procedure TCnPanel.Loaded;
+begin
+  inherited;
+
+end;
+
+procedure TCnPanel.CreateWnd;
+var
+  ES: Cardinal;
+begin
+  inherited;
+  if FTransparent and not (csDesigning in ComponentState) then
+  begin
+    ES := GetWindowLong(Handle, GWL_EXSTYLE) or WS_EX_TRANSPARENT;
+    SetWindowLong(Handle, GWL_EXSTYLE, ES);
+  end;
+end;
+
 procedure TCnPanel.Paint;
 const
   Alignments: array[TAlignment] of LongInt = (DT_LEFT, DT_RIGHT, DT_CENTER);
@@ -104,7 +131,7 @@ begin
     FBuffer.Canvas.FillRect(R);
 
     StretchBlt(FBuffer.Canvas.Handle, 0, 0, Width, Height,
-               Canvas.Handle, 0, 0, Width, Height, cmSrcAnd);
+               Canvas.Handle, 0, 0, Width, Height, cmSrcCopy);
 
     if Ctl3D then DrawEdge(FBuffer.Canvas.Handle, R, BDR_RAISEDINNER, BF_RECT);
     FBuffer.Canvas.Pen.Mode := pmCopy;
@@ -130,7 +157,7 @@ end;
 procedure TCnPanel.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
-  Params.ExStyle := Params.ExStyle + WS_EX_TRANSPARENT;
+  // Params.ExStyle := Params.ExStyle + WS_EX_TRANSPARENT;
 end;
 
 procedure TCnPanel.WMWindowPosChanging(var Message: TWMWindowPosChanging);
@@ -160,20 +187,49 @@ begin
 end;
 
 procedure TCnPanel.SetTransparent(const Value: Boolean);
+var
+  ES: Cardinal;
 begin
   if FTransparent <> Value then
   begin
     FTransparent := Value;
-    if FTransparent and (Parent <> nil) then
+    if csDesigning in ComponentState then
+      Exit;
+
+    if FTransparent and HandleAllocated then
     begin
+      DoTransparentChanging;
+      ES := GetWindowLong(Handle, GWL_EXSTYLE) or WS_EX_TRANSPARENT;
+      SetWindowLong(Handle, GWL_EXSTYLE, ES);
+
+      if Parent <> nil then
       try
         Parent.Invalidate;
       except
         ;
       end;
-    end;
+    end
+    else if HandleAllocated then
+    begin
+      DoTransparentChanging;
+      ES := GetWindowLong(Handle, GWL_EXSTYLE) and not WS_EX_TRANSPARENT;
+      SetWindowLong(Handle, GWL_EXSTYLE, ES);
+    end;  
     Invalidate;
+    DoTransparentChanged;
   end;
+end;
+
+procedure TCnPanel.DoTransparentChanged;
+begin
+  if Assigned(FTransparentChanged) then
+    FTransParentChanged(Self);
+end;
+
+procedure TCnPanel.DoTransparentChanging;
+begin
+  if Assigned(FTransparentChanging) then
+    FTransParentChanging(Self);
 end;
 
 end.
