@@ -30,7 +30,9 @@ unit CnIP;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.04.14 V1.0
+* 修改记录：2009.08.14 V1.1
+*                增加对 D2009 的支持
+*           2008.04.14 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -71,7 +73,7 @@ type
     IPAddress: Cardinal; //IP地址,此处用整形存储
     SubnetMask: Cardinal; //子网掩码,此处用整形存储
     BroadCast: Cardinal; //广播地址,此处用整形存储
-    HostName: array[0..256] of Char; //主机名
+    HostName: array[0..256] of AnsiChar; //主机名
     NetType: TIP_NetType; //IP地址的网络类型
     Notes: TIPNotes; //IP地址的各子节点
     State: Boolean; //状态
@@ -82,7 +84,7 @@ type
 
   sockaddr_gen = packed record
     AddressIn: sockaddr_in;
-    filler: packed array[0..7] of char;
+    filler: packed array[0..7] of AnsiChar;
   end;
 
   TINTERFACE_INFO = packed record
@@ -164,8 +166,8 @@ const
 
 type
   { 从Winsock 2.0导入函数WSAIOCtl -- 在Win98/ME/2K/Xp and 95 OSR2, NT srv pack #3下才有Winsock 2 }
-  TWSAIoctl = function (s: TSocket; cmd: DWORD; lpInBuffer: PCHAR; dwInBufferLen:
-                        DWORD; lpOutBuffer: PCHAR; dwOutBufferLen: DWORD;
+  TWSAIoctl = function (s: TSocket; cmd: DWORD; lpInBuffer: PByte; dwInBufferLen:
+                        DWORD; lpOutBuffer: PByte; dwOutBufferLen: DWORD;
                         lpdwOutBytesReturned: LPDWORD; lpOverLapped: POINTER;
                         lpOverLappedRoutine: POINTER): Integer; stdcall;
 
@@ -372,7 +374,7 @@ end;
 
 function TCnIp.GetComputerName: string;
 var
-  sName: array[0..256] of Char;
+  sName: array[0..255] of AnsiChar;
 begin
   WSAStartup(2, FWSAData);
   try
