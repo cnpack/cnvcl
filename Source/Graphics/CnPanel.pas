@@ -189,6 +189,7 @@ end;
 procedure TCnPanel.SetTransparent(const Value: Boolean);
 var
   ES: Cardinal;
+  I: Integer;
 begin
   if FTransparent <> Value then
   begin
@@ -207,6 +208,15 @@ begin
         Parent.Invalidate;
       except
         ;
+      end;
+
+      for I := 0 to ControlCount - 1 do
+      begin
+        try
+          Controls[I].Invalidate;
+        except
+          ;
+        end;
       end;
     end
     else if HandleAllocated then
