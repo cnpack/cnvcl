@@ -50,7 +50,7 @@ type
     TOS: Byte; // Type Of Service (usually 0)
     Flags: Byte; // IP header flags (usually 0)
     OptionsSize: Byte; // Size of options data (usually 0, max 40)
-    OptionsData: PChar; // Options data buffer
+    OptionsData: PAnsiChar; // Options data buffer
   end;
 
   PCnIcmpEchoReply = ^TCnIcmpEchoReply;
@@ -306,7 +306,7 @@ begin
     SetIP(RemoteIP, RemoteHost, FIP);
     for iCount := 1 to PingCount do
     begin
-      iResult := PingIP_Host(FIP, Pointer(FDataString)^, Length(DataString),
+      iResult := PingIP_Host(FIP, Pointer(FDataString)^, Length(DataString) * SizeOf(Char),
         sReply);
       aReply := aReply + #13#10 + sReply;
       if iResult < 0 then
@@ -345,7 +345,7 @@ function TCnPing.PingIP_Host(const aIP: TIpInfo; const Data;
   Count: Cardinal; var aReply: string): Integer;
 var
   IPOpt: TCnIPOptionInformation; // 发送数据结构
-  pReqData, pRevData: PChar;
+  pReqData, pRevData: PAnsiChar;
   pCIER: PCnIcmpEchoReply;
 begin
   Result := -100;
@@ -445,13 +445,14 @@ function TCnPing.GetIPByName(const aName: string;
 var
   pHost: PHostEnt;
   FWSAData: TWSAData;
-  sName: array[0..256] of Char;
+  sName: array[0..255] of AnsiChar;
 begin
   Result := False;
   StrPCopy(sName, aName);
   aIP := '';
   if aName = '' then
     Exit;
+
   WSAStartup($101, FWSAData);
   try
     pHost := GetHostByName(@sName);
@@ -465,7 +466,7 @@ end;
 
 function TCnPing.SetIP(aIPAddr, aHost: string; var aIP: TIpInfo): Boolean;
 var
-  pIPAddr: PChar;
+  pIPAddr: PAnsiChar;
 begin
   Result := False;
   aIP.Address := INADDR_NONE;
@@ -476,6 +477,7 @@ begin
     if (aIP.Host = '') or (not GetIPByName(aIP.Host, aIP.IP)) then
       Exit;
   end;
+
   GetMem(pIPAddr, Length(aIP.IP) + 1);
   try
     ZeroMemory(pIPAddr, Length(aIP.IP) + 1);
@@ -489,6 +491,7 @@ end;
 
 initialization
   InitIcmpFunctions;
+
 finalization
   FreeIcmpFunctions;
 
