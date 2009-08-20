@@ -1,0 +1,39 @@
+package CnPackFormMisc_D14;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'CnPack Form Misc v1.0'}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  vcl;
+
+contains
+  CnFMForm in '..\..\Source\FormMisc\CnFMForm.pas',
+  CnFMFormReg in '..\..\Source\FormMisc\CnFMFormReg.pas',
+  CnFMQQPane in '..\..\Source\FormMisc\CnFMQQPane.pas',
+  CnFMAppStore in '..\..\Source\FormMisc\CnFMAppStore.pas',
+  CnFMButton in '..\..\Source\FormMisc\CnFMButton.pas';
+
+end.
