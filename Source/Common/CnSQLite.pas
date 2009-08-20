@@ -905,7 +905,7 @@ begin
           begin
             if c <> 'S' then
               exit; //illegal format
-            sql := sql + '''' + VChar + '''';
+            sql := sql + '''' + {$IFDEF DELPHI12_UP}String{$ENDIF}(VChar) + '''';
           end;
         vtExtended:
           begin

@@ -258,9 +258,9 @@ sign exponent      digits
 UseExponent:
           if DecimalExp then
             if Flag = 1 then
-              Exp := 'D' + IntToStr(IntExp)
+              Exp := 'D' + {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(IntToStr(IntExp))
             else
-              Exp := 'D-' + IntToStr(IntExp);
+              Exp := 'D-' + {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(IntToStr(IntExp));
           if Length(Result) >=2 then
             Insert('.', Result, 2);
           Result := Result + Exp;
@@ -476,7 +476,7 @@ UseExponent:
       begin
         // Format exponent
         if DecimalExp then
-          Result := Result + '^D(' + IntToStr(t) + ')'
+          Result := Result + '^D(' + {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(IntToStr(t)) + ')'
         else
         begin
           if ExpFlag = 1 then
@@ -681,7 +681,7 @@ UseExponent:
       begin
         // Format exponent
         if DecimalExp then
-          Result := Result + 'D' + IntToStr(t)
+          Result := Result + 'D' + {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(IntToStr(t))
         else
         begin
           if ExpFlag = 1 then

@@ -309,7 +309,7 @@ begin
     end;
 
     c := (CurrentB shl 2) + (PrevB shr 4);
-    OutPutData := OutPutData + Chr(c);
+    OutPutData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(OutPutData + {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Chr(c)));
 
     // 第二次转换
     Inc(i);
@@ -336,7 +336,7 @@ begin
         Exit;
       end;
       c:=(PrevB shl 4) + (CurrentB shr 2);
-      OutPutData := OutPutData+chr(c);
+      OutPutData := OutPutData+{$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(chr(c));
     end;
 
     // 第三次转换
@@ -358,7 +358,7 @@ begin
        Exit;
      end;
      c := (CurrentB shl 6) + (PrevB);
-     OutPutData := OutPutData + Chr(c);
+     OutPutData := OutPutData + {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Chr(c));
     end;
   until (i >= InputLength);
 
@@ -373,7 +373,7 @@ begin
   Str := TStringStream.Create('');
   try
     Str.CopyFrom(InputData, InputData.Size);
-    Result := Base64Encode(Str.DataString, OutputData);
+    Result := Base64Encode({$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Str.DataString), OutputData);
   finally
     Str.Free;
   end;
@@ -515,7 +515,7 @@ begin
     OutputData[C] := AnsiChar(Chr(x3));
     Inc(C);
   end;
-  OutputData := Trim(OutputData);
+  OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Trim({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData)));
   Result := BASE64_OK;
 end;
 

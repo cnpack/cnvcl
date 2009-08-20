@@ -356,7 +356,7 @@ begin
   
   for I := 0 to FFileinfoCount - 1 do
   begin
-    S := FPackFileInformations[i].Name;
+    S := {$IFDEF DELPHI12_UP}String{$ENDIF}(FPackFileInformations[i].Name);
     if Length(s) < 7 then
       Continue;     //xyz:\16?
       
@@ -406,7 +406,7 @@ var
   Tdb: TBytes;   //临时缓冲区，存中间数据
   S: string;
 begin
-  S := APackFileInfo.Name;
+  S := {$IFDEF DELPHI12_UP}String{$ENDIF}(APackFileInfo.Name);
   if (s = '') or (s[Length(s)] = '?') then
     Exit;
   
@@ -501,7 +501,7 @@ begin
   
   for I := 0 to FFileinfoCount - 1 do
   begin
-    S := FPackFileInformations[i].Name;
+    S := {$IFDEF DELPHI12_UP}String{$ENDIF}(FPackFileInformations[i].Name);
     if S[Length(s)] = '?' then
     begin
       S := IncludeTrailingBackslash(ExtractFilePath(S));
@@ -512,7 +512,7 @@ begin
         SetLength(FImprotPackDirectoryInfo, count);
       end;
       
-      StrPCopy(FImprotPackDirectoryInfo[current].Name, S);
+      StrPCopy(FImprotPackDirectoryInfo[current].Name, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(S));
       FImprotPackDirectoryInfo[current].DataStart := FPackFileInformations[i].DataStart;
       Inc(current);
     end;
@@ -534,7 +534,7 @@ begin
   
   for I := 0 to FFileinfoCount - 1 do
   begin
-    S := FPackFileInformations[i].Name;
+    S := {$IFDEF DELPHI12_UP}String{$ENDIF}(FPackFileInformations[i].Name);
     if S[Length(s)] <> '?' then
     begin
       if current = count then
@@ -595,14 +595,14 @@ begin
   begin
     if FFiles[i].ReadFileName[Length(FFiles[i].ReadFileName)] = '?' then
     begin
-      strpcopy(db.FileName, Ffiles[i].ConvertFileName);
+      strpcopy(db.FileName, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Ffiles[i].ConvertFileName));
       db.DataLength := 0;
       FPack.Write(db, SizeOf(db));
     end
     else
     begin
       f := TFileStream.Create(FFiles[i].ReadFileName, fmOpenRead);
-      strpcopy(db.FileName, Ffiles[i].ConvertFileName);
+      strpcopy(db.FileName, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Ffiles[i].ConvertFileName));
       db.DataLength := F.Size;
       if db.DataLength <> 0 then
       begin

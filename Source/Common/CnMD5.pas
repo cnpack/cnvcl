@@ -528,7 +528,7 @@ var
   Context: TMD5Context;
 begin
   MD5Init(Context);
-  MD5Update(Context, PAnsiChar(Str), Length(Str) * SizeOf(Char));
+  MD5Update(Context, PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
   MD5Final(Context, Result);
 end;
 
@@ -634,8 +634,8 @@ const
 begin
   Result := '';
   for I := 0 to 15 do
-    Result := Result + Digits[(Digest[I] shr 4) and $0f] +
-              Digits[Digest[I] and $0f];
+    Result := Result + {$IFDEF DELPHI12_UP}String{$ENDIF}(Digits[(Digest[I] shr 4) and $0f] +
+              Digits[Digest[I] and $0f]);
 end;
 
 // 比较两个MD5计算值是否相等

@@ -346,7 +346,7 @@ type
       State: TDragState; var Accept: Boolean); override;
     function DoMouseEvent(var Message: TWMMouse; Control: TControl): TWMNCHitMessage; virtual;
     procedure DoRemoveDockClient(Client: TControl); override;
-    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+
     function GetDockClientFromMousePos(MousePos: TPoint): TControl; virtual;
     function GetImageIndex(TabIndex: Integer): Integer; override;
     function GetPageFromDockClient(Client: TControl): TCnDockTabSheet;
@@ -357,6 +357,7 @@ type
     procedure ShowControl(AControl: TControl); override;
     procedure UpdateActivePage; virtual;
   public
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function FindNextPage(CurPage: TCnDockTabSheet;
@@ -2235,7 +2236,7 @@ begin
           S := PChar(Message.NotifyRec.MsgLParam);
           { Search for first CR/LF and end string there }
           for I := 1 to Length(S) do
-            if S[I] in [#13, #10] then
+            if {$IFDEF DELPHI12_UP}CharInSet(S[i], [#13, #10]){$ELSE}S[I] in [#13, #10]{$ENDIF} then
             begin
               SetLength(S, I - 1);
               Break;

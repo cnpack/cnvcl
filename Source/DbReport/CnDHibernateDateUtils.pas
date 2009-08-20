@@ -400,7 +400,7 @@ begin
   ScanBlanks(S, Pos);
   I := Pos;
   N := 0;
-  while (I <= Length(S)) and (Longint(I - Pos) < MaxLength) and (S[I] in ['0'..'9']) and (N < 1000) do
+  while (I <= Length(S)) and (Longint(I - Pos) < MaxLength) and ({$IFDEF DELPHI12_UP}CharInSet(S[I],  ['0'..'9']){$ELSE}S[I] in ['0'..'9']{$ENDIF}) and (N < 1000) do
   begin
     N := N * 10 + (Ord(S[I]) - Ord('0'));
     Inc(I);
@@ -426,9 +426,9 @@ end;
 
 procedure ScanToNumber(const S: string; var Pos: Integer);
 begin
-  while (Pos <= Length(S)) and not (S[Pos] in ['0'..'9']) do
+  while (Pos <= Length(S)) and not ({$IFDEF DELPHI12_UP}CharInSet(S[Pos], ['0'..'9']){$ELSE}S[Pos] in ['0'..'9']{$ENDIF}) do
   begin
-    if S[Pos] in LeadBytes then
+    if {$IFDEF DELPHI12_UP}CharInSet(S[Pos], LeadBytes){$ELSE}S[Pos] in LeadBytes{$ENDIF} then
       Inc(Pos);
     Inc(Pos);
   end;
@@ -532,7 +532,7 @@ begin
   ScanBlanks(S, Pos);
   if SysLocale.FarEast and (System.Pos('ddd', ShortDateFormat) <> 0) then
   begin
-    if ShortTimeFormat[1] in ['0'..'9'] then
+    if {$IFDEF DELPHI12_UP}CharInSet(ShortTimeFormat[1], ['0'..'9']){$ELSE}ShortTimeFormat[1] in ['0'..'9']{$ENDIF} then
       ScanToNumber(S, Pos)
     else
       repeat
@@ -574,19 +574,19 @@ begin
   while (UpCase(Format[J]) = Ch) and (J <= L) do
   begin
     if S[J] <> ' ' then
-      Tmp := Tmp + S[J];
+      Tmp := Tmp + {$IFDEF DELPHI12_UP}ShortString{$ENDIF}(S[J]);
     Inc(J);
   end;
   if Tmp = '' then
     I := Blank
   else if Cnt > 1 then
   begin
-    I := MonthFromName(Tmp, Length(Tmp));
+    I := MonthFromName({$IFDEF DELPHI12_UP}String{$ENDIF}(Tmp), Length(Tmp));
     if I = 0 then
       I := -1;
   end
   else
-    I := StrToIntDef(Tmp, -1);
+    I := StrToIntDef({$IFDEF DELPHI12_UP}String{$ENDIF}(Tmp), -1);
 end;
 
 function ScanDateStr(const Format, S: string; var D, M, Y: Integer): Boolean;

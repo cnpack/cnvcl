@@ -280,30 +280,30 @@ begin
             // set the string properties
             if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
             begin
-              SetStrProp((obj as clazz), pplst[i]^.Name, FieldByName(pplst[i]^.Name).AsString);
+              SetStrProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)).AsString);
             end; 
             // set the integer properties
             if tk = tkInteger then
             begin
               try
-                SetInt64Prop((obj as clazz), pplst[i]^.Name, FieldByName(pplst[i]^.Name).AsInteger);
+                SetInt64Prop((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)).AsInteger);
               except
-                SetInt64Prop((obj as clazz), pplst[i]^.Name, 0);
+                SetInt64Prop((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), 0);
               end;
             end; 
             // set the float properties
             if tk = tkFloat then
             begin
               try
-                SetFloatProp((obj as clazz), pplst[i]^.Name, FieldByName(pplst[i]^.Name).AsFloat);
+                SetFloatProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)).AsFloat);
               except
-                SetFloatProp((obj as clazz), pplst[i]^.Name, 0);
+                SetFloatProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), 0);
               end;
             end; 
             // set the variant properties
             if tk = tkVariant then
             begin
-              SetVariantProp((obj as clazz), pplst[i]^.Name, FieldByName(pplst[i]^.Name).Value);
+              SetVariantProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)).Value);
             end;
           end;
         end;
@@ -426,7 +426,7 @@ begin
       GetPropInfos(Classtypeinfo, Pplst);
       for i := 0 to classDataInfo.PropCount - 1 do
       begin
-        ppName := pplst[i]^.Name; 
+        ppName := {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name);
         // check whether formula attr
         if RightStr(ppName, 4) = '_SQL' then
         begin

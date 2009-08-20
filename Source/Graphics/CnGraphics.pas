@@ -529,7 +529,6 @@ type
     procedure SetPixel(x, y: Integer; const Value: TCnColor);
     procedure ReadData(Stream: TStream);
     procedure WriteData(Stream: TStream);
-    function Equals(Bitmap: TCnBitmap): Boolean;
 
     procedure NormalResize(Dst: TCnBitmap);
     procedure SmoothResize(Dst: TCnBitmap);
@@ -577,6 +576,7 @@ type
     property RowInc: Integer read FRowInc;
     property Gap: Integer read FGap;
   public
+    function Equals(Obj: TObject): Boolean; {$IFDEF DELPHI12_UP}override;{$ENDIF}
     constructor Create; override;
     {* 构造器，用于创建一个该类的实例}
     destructor Destroy; override;
@@ -3131,10 +3131,12 @@ begin
 end;
 
 // 判断两个图像数据是否全等
-function TCnBitmap.Equals(Bitmap: TCnBitmap): Boolean;
+function TCnBitmap.Equals(Obj: TObject): Boolean;
 var
   MyImage, BmpImage: TMemoryStream;
+  Bitmap: TCnBitmap;
 begin
+  Bitmap := TCnBitmap(Obj);
   Result := (Bitmap <> nil) and (ClassType = Bitmap.ClassType);
   if Empty or Bitmap.Empty then
   begin
@@ -3159,6 +3161,7 @@ begin
     end;
   end;
 end;
+{$WARNINGS ON}
 
 //--------------------------------------------------------//
 // 象素访问用代码                                         //

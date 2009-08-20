@@ -3950,7 +3950,7 @@ begin
   while Pos <= LineLen do
   begin
     CurChar := Line[Pos];
-    if CurChar in LeadBytes then
+    if {$IFDEF DELPHI12_UP}CharInSet(CurChar, LeadBytes){$ELSE}CurChar in LeadBytes{$ENDIF} then
     begin
       if Col >= MaxCol - 1 then
       begin
@@ -3972,25 +3972,25 @@ begin
         end;
       end
     end
-    else if CurChar in BreakChars then
+    else if {$IFDEF DELPHI12_UP}CharInSet(CurChar, BreakChars){$ELSE}CurChar in BreakChars{$ENDIF} then
     begin
       if QuoteChar = ' ' then
         BreakPos := Pos
     end
-    else if CurChar in QuoteChars then
+    else if {$IFDEF DELPHI12_UP}CharInSet(CurChar, QuoteChars){$ELSE}CurChar in QuoteChars{$ENDIF} then
       if CurChar = QuoteChar then
         QuoteChar := ' '
       else if QuoteChar = ' ' then
         QuoteChar := CurChar;
     Inc(Pos);
     Inc(Col);
-    if (not (QuoteChar in QuoteChars) and (ExistingBreak or
+    if (not ({$IFDEF DELPHI12_UP}CharInSet(QuoteChar, QuoteChars){$ELSE}QuoteChar in QuoteChars{$ENDIF}) and (ExistingBreak or
       ((Col > MaxCol) and (BreakPos > LinePos)))) or DoubleCharBreak then
     begin
       Col := Pos - BreakPos;
       Result := Result + Copy(Line, LinePos, BreakPos - LinePos + 1);
-      if not (CurChar in QuoteChars) then
-        while (Pos <= LineLen) and (Line[Pos] in BreakChars + [#13, #10]) do
+      if not ({$IFDEF DELPHI12_UP}CharInSet(CurChar, QuoteChars){$ELSE}CurChar in QuoteChars{$ENDIF}) then
+        while (Pos <= LineLen) and ({$IFDEF DELPHI12_UP}CharInSet(Line[Pos], BreakChars + [#13, #10]){$ELSE}Line[Pos] in BreakChars + [#13, #10]{$ENDIF}) do
           Inc(Pos);
       if not ExistingBreak and (Pos < LineLen) then
         Result := Result + BreakStr;

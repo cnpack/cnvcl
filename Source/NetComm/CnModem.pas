@@ -322,7 +322,7 @@ var
 begin
   SInt := '';
   for i := 1 to Length(Str) do
-    if Str[i] in ['0'..'9'] then // 仅取数字字符
+    if {$IFDEF DELPHI12_UP}CharInSet(Str[i], ['0'..'9']){$ELSE}Str[i] in ['0'..'9']{$ENDIF} then // 仅取数字字符
       SInt := SInt + Str[i];
   if SInt <> '' then
     Result := StrToInt(SInt)
@@ -338,9 +338,9 @@ begin
   if (csDesigning in ComponentState) or not CommOpened then
     Exit;
   if Return then
-    s := Command + #13
+    s := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Command) + #13
   else
-    s := Command;
+    s := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Command);
   WriteCommData(PAnsiChar(s), Length(s));
 end;
 
@@ -396,11 +396,11 @@ var
 begin
   if FWaitATResult then       // 正在等待AT命令执行结果
   begin
-    FATResult := Buffer;
+    FATResult := {$IFDEF DELPHI12_UP}String{$ENDIF}(Buffer);
     Exit;
   end;
   s := Buffer;
-  s := Trim(UpperCase(s));
+  s := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Trim(UpperCase({$IFDEF DELPHI12_UP}String{$ENDIF}(s))));
   if (ModemState in [msOffline, msOnlineCommand, msConnecting]) and (s = 'RING') then
     Ring                      // 振铃信号
   else if (ModemState = msOnline) and (s = 'NO CARRIER') then

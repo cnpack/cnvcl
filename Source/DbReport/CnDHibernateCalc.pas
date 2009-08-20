@@ -222,7 +222,7 @@ function TCnDHibernateCalc.GeTCnTree(s: string): pointer;
   begin
     Result := '';
     try
-      while (pos <= length(s)) and (s[pos] in ['0'..'9']) do
+      while (pos <= length(s)) and ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['0'..'9']){$ELSE}s[pos] in ['0'..'9']{$ENDIF}) do
       begin
         Result := Result + s[pos];
         inc(pos);
@@ -233,9 +233,9 @@ function TCnDHibernateCalc.GeTCnTree(s: string): pointer;
       begin
         Result := Result + DecimalSeparator;
         inc(pos);
-        if (pos > length(s)) or not (s[pos] in ['0'..'9']) then
+        if (pos > length(s)) or not ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['0'..'9']){$ELSE}s[pos] in ['0'..'9']{$ENDIF}) then
           Error('Wrong number.');
-        while (pos <= length(s)) and (s[pos] in ['0'..'9']) do
+        while (pos <= length(s)) and ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['0'..'9']){$ELSE}s[pos] in ['0'..'9']{$ENDIF}) do
         begin
           Result := Result + s[pos];
           inc(pos);
@@ -248,15 +248,15 @@ function TCnDHibernateCalc.GeTCnTree(s: string): pointer;
       Result := Result + s[pos];
       inc(pos);
       if pos > length(s) then
-        Error('´íÎóµÄÊý×Ö£¡');
-      if s[pos] in ['-', '+'] then
+        Error('Wrong number.');
+      if {$IFDEF DELPHI12_UP}CharInSet(s[pos], ['-', '+']){$ELSE}s[pos] in ['-', '+']{$ENDIF} then
       begin
         Result := Result + s[pos];
         inc(pos);
       end;
-      if (pos > length(s)) or not (s[pos] in ['0'..'9']) then
+      if (pos > length(s)) or not ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['0'..'9']){$ELSE}s[pos] in ['0'..'9']{$ENDIF}) then
         Error('Wrong number.');
-      while (pos <= length(s)) and (s[pos] in ['0'..'9']) do
+      while (pos <= length(s)) and ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['0'..'9']){$ELSE}s[pos] in ['0'..'9']{$ENDIF}) do
       begin
         Result := Result + s[pos];
         inc(pos);
@@ -286,7 +286,9 @@ function TCnDHibernateCalc.GeTCnTree(s: string): pointer;
       '-':
         begin
           num := 4;
-          if (pos < length(s)) and (s[pos + 1] in ['1'..'9', '0']) and (curlex in [0, 1]) then
+          if (pos < length(s))
+            and ({$IFDEF DELPHI12_UP}CharInSet(s[pos + 1], ['1'..'9', '0']){$ELSE}s[pos + 1] in ['1'..'9', '0']{$ENDIF})
+            and (curlex in [0, 1]) then
           begin
             inc(pos);
             con := '-' + getnumber(s);
@@ -302,7 +304,7 @@ function TCnDHibernateCalc.GeTCnTree(s: string): pointer;
         num := 31;
       'a'..'z', 'A'..'Z', '_':
         begin
-          while (pos <= length(s)) and (s[pos] in ['a'..'z', 'A'..'Z', '_', '1'..'9', '0']) do
+          while (pos <= length(s)) and ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['a'..'z', 'A'..'Z', '_', '1'..'9', '0']){$ELSE}s[pos] in ['a'..'z', 'A'..'Z', '_', '1'..'9', '0']{$ENDIF}) do
           begin
             con := con + s[pos];
             inc(pos);

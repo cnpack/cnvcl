@@ -64,7 +64,7 @@ type
   TCnStringBuffer = class(TStringList)
   public
     constructor Create(Str: string); reintroduce;
-    function toString: string;
+    function ToString: string; {$IFDEF DELPHI12_UP}override;{$ENDIF}
   end; 
 
   { Map table }
@@ -246,7 +246,7 @@ begin
   Self.Text := Str;
 end;
 
-function TCnStringBuffer.toString: string;
+function TCnStringBuffer.ToString: string;
 begin
   Result := Self.Text;
 end;
@@ -261,7 +261,7 @@ var
   i: Integer;
   tk: TTypeKind;
   map: ICnMap; 
-  // i64 : Int64;
+  i64 : Int64;
 begin
   map := TCnDHHashMap.Create;
   clazz := FindClass(Format(DH_CLASS_NAME, [TableName]));
@@ -283,31 +283,31 @@ begin
           // set the string properties
           if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF}  then
           begin
-            map.put(pplst[i]^.Name, GetStrProp((obj as clazz), pplst[i]^.Name));
+            map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), GetStrProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)));
           end; 
           // set the integer properties
           if tk = tkInteger then
           begin
             try
-              // i64 := GetInt64Prop((obj as clazz), pplst[i]^.Name);
-              map.put(pplst[i]^.Name, GetInt64Prop((obj as clazz), pplst[i]^.Name));
+              i64 := GetInt64Prop((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name));
+              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), i64);
             except
-              map.put(pplst[i]^.Name, 0);
+              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), 0);
             end;
           end; 
           // set the float properties
           if tk = tkFloat then
           begin
             try
-              map.put(pplst[i]^.Name, GetFloatProp((obj as clazz), pplst[i]^.Name));
+              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), GetFloatProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)));
             except
-              map.put(pplst[i]^.Name, 0);
+              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), 0);
             end;
           end; 
           // set the variant properties
           if tk = tkVariant then
           begin
-            map.put(pplst[i]^.Name, GetVariantProp((obj as clazz), pplst[i]^.Name));
+            map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), GetVariantProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)));
           end;
         end;
       end;

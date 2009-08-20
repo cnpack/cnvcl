@@ -309,14 +309,14 @@ begin
   with GetQuery(UpdateKind) do
   begin
     SQL.Text := FSQLText[UpdateKind].Text;
-    sSQLText := SQL.Text;
+    sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(SQL.Text);
     for i := 0 to Parameters.Count - 1 do
     begin
-      sFieldName := Parameters.Items[i].Name;
-      bOld := CompareText(Copy(sFieldName, 1, 4), 'OLD_') = 0;
+      sFieldName := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Parameters.Items[i].Name);
+      bOld := CompareText({$IFDEF DELPHI12_UP}String{$ENDIF}(Copy(sFieldName, 1, 4)), 'OLD_') = 0;
       if bOld then System.Delete(sFieldName, 1, 4);
 
-      nField := DeltaDS.FindField(sFieldName);
+      nField := DeltaDS.FindField({$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName));
       if not Assigned(nField) then Continue;
 
       if bOld then //字段参数名中找到OLD_，不更新该字段，即取原值OldValue
@@ -340,47 +340,68 @@ begin
             if not VarIsNull(nValue) then
               nValue := nValue <> 0
             else
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, 'NULL', [rfReplaceAll]);
+              sSQLText :=
+                {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           //字符型
           ftString, ftWideString:
           begin
             if not VarIsNull(nValue) then
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, QuotedStr(VarToStr(nValue)), [rfReplaceAll])
+              sSQLText :=
+                {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), QuotedStr(VarToStr(nValue)), [rfReplaceAll]))
             else
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, 'NULL', [rfReplaceAll]);
+              sSQLText :=
+                {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           //数字型
           ftSmallint, ftInteger, ftBytes, ftLargeint, ftBCD, ftFloat, ftCurrency:
           begin
             if not VarIsNull(nValue) then
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, VarToStr(nValue), [rfReplaceAll])
+              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), VarToStr(nValue), [rfReplaceAll]))
             else
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, 'NULL', [rfReplaceAll])
+              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           //日期型
           ftDate, ftTime, ftDateTime{$IFDEF COMPILER6_UP},  ftTimeStamp {$ENDIF}:
           begin
             if not VarIsNull(nValue) then
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, QuotedStr(VarToStr(nValue)), [rfReplaceAll])
+              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), QuotedStr(VarToStr(nValue)), [rfReplaceAll]))
             else
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, 'NULL', [rfReplaceAll]);
+              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           else begin
             if not VarIsNull(nValue) then
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, VarToStr(nValue), [rfReplaceAll])
+              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), VarToStr(nValue), [rfReplaceAll]))
             else
-              sSQLText := StringReplace(sSQLText, sFieldNameParam, 'NULL', [rfReplaceAll]);
+              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
+                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
         end;
       end;
     end;
 
-    SQL.Text := sSQLText;
+    SQL.Text := {$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText);
   end;
 end;
 

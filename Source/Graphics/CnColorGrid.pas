@@ -508,11 +508,11 @@ begin
         Result := clWindow;
         if FCustomColors.Count = 0 then Exit;
         if Index >= FCustomColors.Count then Exit;
-        S := FCustomColors[index];
+        S := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(FCustomColors[index]);
         case CustomColorType of
-          ccDec: Result := TColor(StrToInt(S));
-          ccHex: Result := StringToColor('$' + Copy(S, 6, 2) + Copy(S, 4, 2) + Copy(S, 2, 2));
-          ccHtml: Result := StringToColor('$' + Copy(S, 6, 2) + Copy(S, 4, 2) + Copy(S, 2, 2));
+          ccDec: Result := TColor(StrToInt({$IFDEF DELPHI12_UP}String{$ENDIF}(S)));
+          ccHex: Result := StringToColor('$' + {$IFDEF DELPHI12_UP}String{$ENDIF}(Copy(S, 6, 2) + Copy(S, 4, 2) + Copy(S, 2, 2)));
+          ccHtml: Result := StringToColor('$' + {$IFDEF DELPHI12_UP}String{$ENDIF}(Copy(S, 6, 2) + Copy(S, 4, 2) + Copy(S, 2, 2)));
         end;
       end;
   else
@@ -629,7 +629,7 @@ end;
 
 procedure TCnColorGridPanel.ColorGridMouseMove(Sender: TObject;Shift: TShiftState; X, Y: Integer);
 begin
-  FLabeTile.Caption:=GetColorGridClew+' ';
+  FLabeTile.Caption:={$IFDEF DELPHI12_UP}String{$ENDIF}(GetColorGridClew)+' ';
   FLabeTile.Font.Color:=GetColor;
 end;
 
@@ -796,11 +796,11 @@ end;
 
 function TCnColorGridPanel.GetHtmlColor(C: TColor): AnsiString;
 begin
-  result := format('#%2.2X%2.2X%2.2X',
+  result := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(format('#%2.2X%2.2X%2.2X',
     [C and $FF,
     (C shr 8) and $FF,
       (C shr 16) and $FF
-      ]);
+      ]));
 end;
 
 function TCnColorGridPanel.GetToolPanelVisible: Boolean;

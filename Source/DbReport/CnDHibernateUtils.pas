@@ -1104,7 +1104,7 @@ begin
   Result := DH_TRUE_EXPRESS;
   if (Date1 = Date2) and (Date1 <> NullDate) then
   begin
-    Result := Format('%s = %s', [FieldName, FormatDateTime(ServerDateFmt,
+    Result := Format('%s = %s', [FieldName, FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt),
         Date1)]);
   end
   else
@@ -1112,15 +1112,15 @@ begin
     begin
       if Date1 = NullDate then
         Result := Format('%s < %s', [FieldName,
-          FormatDateTime(ServerDateFmt, IncDay(Date2, 1))])
+          FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), IncDay(Date2, 1))])
       else
         if Date2 = NullDate then
           Result := Format('%s > %s', [FieldName,
-            FormatDateTime(ServerDateFmt, IncDay(Date1, -1))])
+            FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), IncDay(Date1, -1))])
         else
           Result := Format('(%s < %s) AND (%s > %s)',
-            [FieldName, FormatDateTime(ServerDateFmt, IncDay(Date2, 1)),
-            FieldName, FormatDateTime(ServerDateFmt, IncDay(Date1, -1))]);
+            [FieldName, FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), IncDay(Date2, 1)),
+            FieldName, FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), IncDay(Date1, -1))]);
     end;
 end;
 
@@ -1132,15 +1132,15 @@ begin
   begin
     if Date1 = NullDate then
       Result := Format('%s < %s', [FieldName,
-        FormatDateTime(ServerDateFmt, IncDay(Date2, 1))])
+        FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), IncDay(Date2, 1))])
     else
       if Date2 = NullDate then
         Result := Format('%s >= %s', [FieldName,
-          FormatDateTime(ServerDateFmt, Date1)])
+          FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), Date1)])
       else
         Result := Format('(%s < %s) AND (%s >= %s)',
-          [FieldName, FormatDateTime(ServerDateFmt, IncDay(Date2, 1)),
-          FieldName, FormatDateTime(ServerDateFmt, Date1)]);
+          [FieldName, FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), IncDay(Date2, 1)),
+          FieldName, FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), Date1)]);
   end;
 end;
 
@@ -1198,7 +1198,7 @@ begin
   begin
     DateValue := StrToDateDef(Value, NullDate);
     EmptyValue := (DateValue = NullDate);
-    FieldValue := FormatDateTime(ServerDateFmt, DateValue);
+    FieldValue := FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), DateValue);
   end
   else
   begin
@@ -1230,7 +1230,7 @@ begin
     begin
       DateValue := IncDay(DateValue, 1);
       Result := Format('(%s >= %s) and (%s < %s)', [FieldName, FieldValue,
-        FieldName, FormatDateTime(ServerDateFmt, DateValue)]);
+        FieldName, FormatDateTime({$IFDEF DELPHI12_UP}String{$ENDIF}(ServerDateFmt), DateValue)]);
     end
     else
       Result := Format('%s %s %s', [FieldName, LogicOperator, FieldValue]);
@@ -1386,9 +1386,9 @@ function NormalDir(const DirName: string): string;
 begin
   Result := DirName;
   if (Result <> '') and
-    not (AnsiLastChar(Result)^ in [':', '\']) then
+    not ({$IFDEF DELPHI12_UP}CharInSet(AnsiLastChar(Result)^,  [':', '\']){$ELSE}AnsiLastChar(Result)^ in [':', '\']{$ENDIF}) then
   begin
-    if (Length(Result) = 1) and (UpCase(Result[1]) in ['A'..'Z']) then
+    if (Length(Result) = 1) and ({$IFDEF DELPHI12_UP}CharInSet(UpCase(Result[1]), ['A'..'Z']){$ELSE}UpCase(Result[1]) in ['A'..'Z']{$ENDIF}) then
       Result := Result + ':\'
     else
       Result := Result + '\';
@@ -1433,8 +1433,8 @@ begin
         GetPropInfos(Classtypeinfo, Pplst);
         for j := 0 to classDataInfo.PropCount - 1 do
         begin
-          if (RightStr(Pplst[j]^.Name, 8) = '_FORMULA') or
-            (RightStr(pplst[j]^.Name, 4) = '_SQL') then
+          if (RightStr({$IFDEF DELPHI12_UP}String{$ENDIF}(Pplst[j]^.Name), 8) = '_FORMULA') or
+            (RightStr({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name), 4) = '_SQL') then
             Continue;
           tk := Pplst[j]^.PropType^.Kind;
           if tk <> tkMethod then
@@ -1442,34 +1442,34 @@ begin
             // set the string properties
             if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
             begin
-              SetStrProp((obj as clazz), pplst[j]^.Name,
-                dc.FieldByName(pplst[j]^.Name).AsString);
+              SetStrProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name),
+                dc.FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name)).AsString);
             end;
             // set the integer properties
             if tk = tkInteger then
             begin
               try
-                SetInt64Prop((obj as clazz), pplst[j]^.Name,
-                  DC.FieldByName(pplst[j]^.Name).AsInteger);
+                SetInt64Prop((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name),
+                  DC.FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name)).AsInteger);
               except
-                SetInt64Prop((obj as clazz), pplst[j]^.Name, 0);
+                SetInt64Prop((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name), 0);
               end;
             end;
             // set the float properties
             if tk = tkFloat then
             begin
               try
-                SetFloatProp((obj as clazz), pplst[j]^.Name,
-                  DC.FieldByName(pplst[j]^.Name).AsFloat);
+                SetFloatProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name),
+                  DC.FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name)).AsFloat);
               except
-                SetFloatProp((obj as clazz), pplst[j]^.Name, 0);
+                SetFloatProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name), 0);
               end;
             end;
             // set the variant properties
             if tk = tkVariant then
             begin
-              SetVariantProp((obj as clazz), pplst[j]^.Name,
-                DC.FieldByName(pplst[j]^.Name).Value);
+              SetVariantProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name),
+                DC.FieldByName({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[j]^.Name)).Value);
             end;
           end;
         end;
