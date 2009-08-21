@@ -73,6 +73,32 @@ function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
+function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
+{* 计算CRC64值
+ |<PRE>
+   OrgCRC64: Int64  - 起始CRC64值，默认可传 0
+   const Data       - 要计算的数据块
+   Len: DWORD       - 数据块长度
+   Result: Int64    - 返回CRC64计算结果
+ |</PRE>}
+
+function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
+{* 计算字符串的CRC64值 }
+
+function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
+{* 计算 AnsiString 字符串的CRC64值 }
+
+function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
+  Len: Int64 = 0): Boolean;
+{* 计算文件CRC64值，支持超过4G的大文件
+ |<PRE>
+   const FileName: string   - 目标文件名
+   var CRC: Int64           - CRC64值，变量参数，传入原始值，默认可为 0，输出计算值
+   StartPos: Int64 = 0      - 文件起始位置，默认从头开始
+   Len: Int64 = 0           - 计算长度，为零默认为整个文件
+   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
+ |</PRE>}
+
 implementation
 
 const
@@ -236,7 +262,6 @@ begin
   end;
 end;
 
-
 function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
 var
   I: Integer;
@@ -259,6 +284,64 @@ begin
   Result := not OrgCRC64;
   Result := DoCRC64Calc(Result, Data, Len);
   Result := not Result;
+end;
+
+// 计算字符串的CRC32值
+function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
+begin
+  Result := CRC64Calc(OrgCRC64, PChar(Text)^, Length(Text) * SizeOf(Char));
+end;
+
+// 计算 AnsiString 字符串的CRC32值
+function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
+begin
+  Result := CRC64Calc(OrgCRC64, PAnsiChar(Text)^, Length(Text));
+end;
+
+// 计算文件CRC值，参数分别为：文件名、CRC值、起始地址、计算长度
+function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
+  Len: Int64 = 0): Boolean;
+var
+  Handle: THandle;
+  ReadCount: Integer;
+  Size: Int64;
+  Count: Int64;
+  Buff: TBuff;
+begin
+  // 以共享读方式打开文件
+  Handle := CreateFile(PChar(FileName), GENERIC_READ,
+    FILE_SHARE_READ, nil, OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL, 0);
+  Result := Handle <> INVALID_HANDLE_VALUE;
+  if Result then
+  try
+    Int64Rec(Size).Lo := GetFileSize(Handle, @Int64Rec(Size).Hi);
+    if Size < StartPos + Len then
+    begin
+      Result := False;                  // 超过文件长度
+      Exit;
+    end;
+    if Len > 0 then
+      Count := Len
+    else
+      Count := Size - StartPos;         // 长度为零，计算到文件尾
+
+    CRC := not CRC;
+    SetFilePointer(Handle, Int64Rec(StartPos).Lo, @Int64Rec(StartPos).Hi, FILE_BEGIN);
+    while Count > 0 do
+    begin
+      if Count > SizeOf(Buff) then
+        ReadCount := SizeOf(Buff)
+      else
+        ReadCount := Count;
+      ReadFile(Handle, Buff, ReadCount, LongWord(ReadCount), nil);
+      CRC := DoCrc64Calc(CRC, Buff, ReadCount);
+      Dec(Count, ReadCount);
+    end;
+    CRC := not CRC;
+  finally
+    CloseHandle(Handle);
+  end;
 end;
 
 initialization
