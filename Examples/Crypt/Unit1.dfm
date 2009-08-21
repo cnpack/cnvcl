@@ -21,7 +21,7 @@ object Form1: TForm1
     Top = 24
     Width = 329
     Height = 361
-    ActivePage = tsCRC32
+    ActivePage = ts64
     TabOrder = 0
     object ts1: TTabSheet
       Caption = 'DES'
@@ -286,6 +286,59 @@ object Form1: TForm1
           Caption = 'File CRC32'
           TabOrder = 3
           OnClick = btnFileCRC32Click
+        end
+      end
+    end
+    object ts64: TTabSheet
+      Caption = 'CRC64'
+      ImageIndex = 4
+      object grp1: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 273
+        Height = 289
+        Caption = 'CRC64'
+        TabOrder = 0
+        object lbl5: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object edtCRC64: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnCRC64: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC64'
+          TabOrder = 1
+          OnClick = btnCRC64Click
+        end
+        object pnlCRC64: TPanel
+          Left = 24
+          Top = 144
+          Width = 233
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+        end
+        object btnFileCRC64: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File CRC64'
+          TabOrder = 3
+          OnClick = btnFileCRC64Click
         end
       end
     end

@@ -46,6 +46,13 @@ type
     btnMd5File: TButton;
     OpenDialog1: TOpenDialog;
     btnFileCRC32: TButton;
+    ts64: TTabSheet;
+    grp1: TGroupBox;
+    lbl5: TLabel;
+    edtCRC64: TEdit;
+    btnCRC64: TButton;
+    pnlCRC64: TPanel;
+    btnFileCRC64: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -55,6 +62,8 @@ type
     procedure btnMd5FileClick(Sender: TObject);
     procedure btnFileCRC32Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btnCRC64Click(Sender: TObject);
+    procedure btnFileCRC64Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -123,7 +132,7 @@ end;
 
 procedure TForm1.btnFileCRC32Click(Sender: TObject);
 var
-  Crc: TCRC32;
+  Crc: DWORD;
 begin
   Crc := 0;
   if OpenDialog1.Execute then
@@ -134,6 +143,25 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   PageControl1.ActivePageIndex := 0;
+end;
+
+procedure TForm1.btnCRC64Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlCRC64.Caption := IntToHex(StrCRC64A(0, AnsiString(edtCRC64.Text)), 2);
+{$ELSE}
+  pnlCRC64.Caption := IntToHex(StrCRC64(0, edtCRC64.Text), 2);
+{$ENDIF}
+end;
+
+procedure TForm1.btnFileCRC64Click(Sender: TObject);
+var
+  Crc: Int64;
+begin
+  Crc := 0;
+  if OpenDialog1.Execute then
+    if FileCRC64(OpenDialog1.FileName, Crc) then
+      pnlCRC64.Caption := IntToHex(Crc, 2);
 end;
 
 end.
