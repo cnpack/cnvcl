@@ -53,21 +53,21 @@ interface
 uses
   SysUtils, Classes;
 
-  function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
-  function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
-  {* 对数据进行BASE64编码，如编码成功返回Base64_OK
-  |<PRE>
-    InputData:AnsiString        - 要编码的数据
-    var OutputData: AnsiString  - 编码后的数据
-  |</PRE>}
+function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
+function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
+{* 对数据进行BASE64编码，如编码成功返回Base64_OK
+|<PRE>
+  InputData:AnsiString        - 要编码的数据
+  var OutputData: AnsiString  - 编码后的数据
+|</PRE>}
 
-  function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString): Byte; overload;
-  function Base64Decode(const InputData: AnsiString; OutputData: TStream): Byte; overload;
-  {* 对数据进行BASE64解码，如解码成功返回Base64_OK
-  |<PRE>
-    InputData:AnsiString        - 要解码的数据
-    var OutputData: AnsiString  - 解码后的数据
-  |</PRE>}
+function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString): Byte; overload;
+function Base64Decode(const InputData: AnsiString; OutputData: TStream): Byte; overload;
+{* 对数据进行BASE64解码，如解码成功返回Base64_OK
+|<PRE>
+  InputData:AnsiString        - 要解码的数据
+  var OutputData: AnsiString  - 解码后的数据
+|</PRE>}
 
 // 原始移植的版本，比较慢
 function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;

@@ -79,6 +79,9 @@ implementation
 const
   csBuff_Size = 4096;
   
+  csCRC64_HIGH = $42F0E1EB;
+  csCRC64_LOW  = $A9EA3693;
+  
 type
   // 文件缓冲区
   PBuff = ^TBuff;
@@ -86,9 +89,13 @@ type
 
   // CRC32表
   TCRC32Table = array[0..255] of DWORD;
-
+  
 var
   CRC32Table: TCRC32Table;
+  
+  // CRC64表
+  CRC64TableHigh: TCRC32Table;
+  CRC64TableLow: TCRC32Table;
 
 // 生成CRC32表
 procedure Make_CRC32Table;
@@ -211,8 +218,73 @@ begin
   end;
 end;
 
+procedure Make_CRC64Table;
+var
+  I, J: Integer;
+  Data, Accum: array[0..1] of DWORD;
+begin
+  Data[0] := 0;
+  Data[1] := 0;
+  
+  for I := 0 to 255 do
+  begin
+    Accum[0] := 0;
+    Accum[1] := 0;
+    Data[1] := I;
+    
+    Data[0] := Data[1] shl 24;
+    Data[1] := 0;
+    
+    for J := 0 to 7 do
+    begin
+      if ((Data[0] xor Accum[0]) and $80000000) <> 0 then
+      begin
+        Accum[0] := (Accum[0] shl 1) or ((Accum[1] and $80000000) shr 31) xor csCRC64_HIGH;
+        Accum[1] := (Accum[1] shl 1) xor csCRC64_LOW;
+      end
+      else
+      begin
+        Accum[0] := (Accum[0] shl 1) or ((Accum[1] and $80000000) shr 31);
+        Accum[1] := Accum[1] shl 1;
+      end;
+      
+      Data[0] := (Data[0] shl 1) or ((Data[1] and $80000000) shr 31);
+      Data[1] := Data[1] shl 1;
+    end;
+
+    CRC64TableHigh[I] := Accum[0];
+    CRC64TableLow[I] := Accum[1];
+  end;
+end;
+
+
+function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
+var
+  I: Integer;
+  
+begin
+  Result := OrgCRC64;
+  
+  for I := 0 to Len - 1 do
+  begin
+  
+  end;
+  
+  
+end;
+
+// 计算 CRC64 值
+function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
+begin
+  Result := not OrgCRC64;
+  Result := DoCRC64Calc(Result, Data, Len);
+  Result := not OrgCRC64;
+end;
+
 initialization
   Make_CRC32Table; // 初始化CRC32表
+  
+  Make_CRC64Table; // 初始化CRC64表
 
 end.
 

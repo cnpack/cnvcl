@@ -429,56 +429,60 @@ begin
   GetMem(PropListPtr, APropCount * SizeOf(Pointer));
   GetPropList(PTypeInfo(Self.ClassInfo), tkAny, PropListPtr);
 
-  for I := 0 to APropCount - 1 do
-  begin
-    PropInfo := PropListPtr^[I];
-    if PropInfo^.PropType^^.Kind in [tkInteger] then // 暂时只挂接 Integer 的属性
+  try
+    for I := 0 to APropCount - 1 do
     begin
-      // 注意预防对不同子类的同一个方法的重复挂接
-      if PropInfo^.GetProc <> nil then // 挂接处理 Get 过程
+      PropInfo := PropListPtr^[I];
+      if PropInfo^.PropType^^.Kind in [tkInteger] then // 暂时只挂接 Integer 的属性
       begin
-        if not AProcHooked(PropInfo^.GetProc) then
+        // 注意预防对不同子类的同一个方法的重复挂接
+        if PropInfo^.GetProc <> nil then // 挂接处理 Get 过程
         begin
-          if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
-            raise EHookException.Create('Hook Pool Overflow!');
-
-          AGet := PCnGetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
-          Inc(FEmptyPtr);
-
-          Move(SCnGetCall, AGet^.Code1, SizeOf(SCnGetCall));
-          AGet^.AddrGet := Pointer(Integer(PropInfo^.GetProc) - Integer(AGet) - 27);
-          // 27 为相对跳转指令相对于AGet头部的偏移，包括跳转指令本身
-          AGet^.OffSetConvert := $0C; // GetConvert 方法在本类 VMT 中的偏移 $0c
-
-          AHooker := TCnMethodHook.Create(PropInfo^.GetProc, AGet);
-          AGet^.HookInst1 := AHooker;
-          AGet^.HookInst2 := AHooker;
-          HookItem.AddHooker(AHooker, PropInfo^.GetProc);
+          if not AProcHooked(PropInfo^.GetProc) then
+          begin
+            if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
+              raise EHookException.Create('Hook Pool Overflow!');
+    
+            AGet := PCnGetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
+            Inc(FEmptyPtr);
+    
+            Move(SCnGetCall, AGet^.Code1, SizeOf(SCnGetCall));
+            AGet^.AddrGet := Pointer(Integer(PropInfo^.GetProc) - Integer(AGet) - 27);
+            // 27 为相对跳转指令相对于AGet头部的偏移，包括跳转指令本身
+            AGet^.OffSetConvert := $0C; // GetConvert 方法在本类 VMT 中的偏移 $0c
+    
+            AHooker := TCnMethodHook.Create(PropInfo^.GetProc, AGet);
+            AGet^.HookInst1 := AHooker;
+            AGet^.HookInst2 := AHooker;
+            HookItem.AddHooker(AHooker, PropInfo^.GetProc);
+          end;
         end;
-      end;
-
-      if PropInfo^.SetProc <> nil then // 挂接处理 Set 过程
-      begin
-        if not AProcHooked(PropInfo^.SetProc) then
+    
+        if PropInfo^.SetProc <> nil then // 挂接处理 Set 过程
         begin
-          if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
-            raise EHookException.Create('Hook Pool Overflow!');
-
-          ASet := PCnSetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
-          Inc(FEmptyPtr);
-
-          Move(SCnSetCall, ASet^.Code1, SizeOf(SCnSetCall));
-          ASet^.AddrSet := Pointer(Integer(PropInfo^.SetProc) - Integer(ASet) - 43);
-          // 43 为相对跳转指令相对于ASet头部的偏移，包括跳转指令本身
-          ASet^.OffSetConvert := $10; // SetConvert 方法在本类 VMT 中的偏移 $10
-
-          AHooker := TCnMethodHook.Create(PropInfo^.SetProc, ASet);
-          ASet^.HookInst1 := AHooker;
-          ASet^.HookInst2 := AHooker;
-          HookItem.AddHooker(AHooker, PropInfo^.SetProc);
+          if not AProcHooked(PropInfo^.SetProc) then
+          begin
+            if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
+              raise EHookException.Create('Hook Pool Overflow!');
+    
+            ASet := PCnSetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
+            Inc(FEmptyPtr);
+    
+            Move(SCnSetCall, ASet^.Code1, SizeOf(SCnSetCall));
+            ASet^.AddrSet := Pointer(Integer(PropInfo^.SetProc) - Integer(ASet) - 43);
+            // 43 为相对跳转指令相对于ASet头部的偏移，包括跳转指令本身
+            ASet^.OffSetConvert := $10; // SetConvert 方法在本类 VMT 中的偏移 $10
+    
+            AHooker := TCnMethodHook.Create(PropInfo^.SetProc, ASet);
+            ASet^.HookInst1 := AHooker;
+            ASet^.HookInst2 := AHooker;
+            HookItem.AddHooker(AHooker, PropInfo^.SetProc);
+          end;
         end;
       end;
     end;
+  finally
+    FreeMem(PropListPtr);
   end;
 
   SetSelfClassHooked(Self, True);
