@@ -29,7 +29,9 @@ unit CnCRC32;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.07.31 V1.2
+* 修改记录：2009.08.21 V1.3
+*               增加CRC64的支持
+*           2009.07.31 V1.2
 *               修正计算大文件CRC32不正确的问题，增加对大于4G文件的支持
 *           2009.04.16 V1.1
 *               修正一处计算有误的问题
@@ -45,13 +47,10 @@ interface
 uses
   Windows, SysUtils;
 
-type
-  TCRC32 = DWORD;
-
 function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
 {* 计算CRC32值
  |<PRE>
-   OrgCRC32: DWORD  - 起始CRC32值
+   OrgCRC32: DWORD  - 起始CRC32值，默认可传 0
    const Data       - 要计算的数据块
    Len: DWORD       - 数据块长度
    Result: DWORD    - 返回CRC32计算结果
@@ -63,24 +62,22 @@ function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
 function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
 {* 计算 AnsiString 字符串的CRC32值 }
 
-function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Int64 = 0;
+function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 {* 计算文件CRC32值，支持超过4G的大文件
  |<PRE>
    const FileName: string   - 目标文件名
-   var CRC: TCRC32          - CRC32值，变量参数，传入原始值，输出计算值
+   var CRC: DWORD           - CRC32值，变量参数，传入原始值，默认可为 0，输出计算值
    StartPos: Int64 = 0      - 文件起始位置，默认从头开始
    Len: Int64 = 0           - 计算长度，为零默认为整个文件
-   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回False
+   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
 implementation
 
 const
   csBuff_Size = 4096;
-  
-  csCRC64_HIGH = $42F0E1EB;
-  csCRC64_LOW  = $A9EA3693;
+  csCRC64 = $C96C5795D7870F42;
   
 type
   // 文件缓冲区
@@ -90,12 +87,13 @@ type
   // CRC32表
   TCRC32Table = array[0..255] of DWORD;
   
+  // CRC64表
+  TCRC64Table = array[0..255] of Int64;
+  
 var
   CRC32Table: TCRC32Table;
   
-  // CRC64表
-  CRC64TableHigh: TCRC32Table;
-  CRC64TableLow: TCRC32Table;
+  CRC64Table: TCRC64Table;
 
 // 生成CRC32表
 procedure Make_CRC32Table;
@@ -173,7 +171,7 @@ begin
 end;
 
 // 计算文件CRC值，参数分别为：文件名、CRC值、起始地址、计算长度
-function FileCRC32(const FileName: string; var CRC: TCRC32; StartPos: Int64 = 0;
+function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 var
   Handle: THandle;
@@ -221,39 +219,20 @@ end;
 procedure Make_CRC64Table;
 var
   I, J: Integer;
-  Data, Accum: array[0..1] of DWORD;
+  Data: Int64;
 begin
-  Data[0] := 0;
-  Data[1] := 0;
-  
   for I := 0 to 255 do
   begin
-    Accum[0] := 0;
-    Accum[1] := 0;
-    Data[1] := I;
-    
-    Data[0] := Data[1] shl 24;
-    Data[1] := 0;
-    
+    Data := I;
     for J := 0 to 7 do
     begin
-      if ((Data[0] xor Accum[0]) and $80000000) <> 0 then
-      begin
-        Accum[0] := (Accum[0] shl 1) or ((Accum[1] and $80000000) shr 31) xor csCRC64_HIGH;
-        Accum[1] := (Accum[1] shl 1) xor csCRC64_LOW;
-      end
+      if (Data and 1) <> 0 then
+        Data := Data shr 1 xor csCRC64
       else
-      begin
-        Accum[0] := (Accum[0] shl 1) or ((Accum[1] and $80000000) shr 31);
-        Accum[1] := Accum[1] shl 1;
-      end;
+        Data := Data shr 1;
       
-      Data[0] := (Data[0] shl 1) or ((Data[1] and $80000000) shr 31);
-      Data[1] := Data[1] shl 1;
+      CRC64Table[I] := Data;   
     end;
-
-    CRC64TableHigh[I] := Accum[0];
-    CRC64TableLow[I] := Accum[1];
   end;
 end;
 
@@ -261,16 +240,17 @@ end;
 function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
 var
   I: Integer;
-  
+  DataAddr: PByte;
 begin
+  DataAddr := @Data;
   Result := OrgCRC64;
   
   for I := 0 to Len - 1 do
   begin
-  
+    Result := Result shr 8 xor 
+      CRC64Table[Cardinal(Result) and $FF xor DataAddr^]; 
+    Inc(DataAddr);   
   end;
-  
-  
 end;
 
 // 计算 CRC64 值
@@ -278,7 +258,7 @@ function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
 begin
   Result := not OrgCRC64;
   Result := DoCRC64Calc(Result, Data, Len);
-  Result := not OrgCRC64;
+  Result := not Result;
 end;
 
 initialization
