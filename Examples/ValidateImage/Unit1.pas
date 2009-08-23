@@ -23,11 +23,17 @@ type
     Label5: TLabel;
     Label6: TLabel;
     CnSpinEdit4: TCnSpinEdit;
+    chkFixStyle: TCheckBox;
+    chkFixColor: TCheckBox;
+    chkFixPos: TCheckBox;
     procedure Button1Click(Sender: TObject);
     procedure CheckBox1Click(Sender: TObject);
     procedure CnSpinEdit1Change(Sender: TObject);
     procedure CnSpinEdit2Change(Sender: TObject);
     procedure CnSpinEdit4Change(Sender: TObject);
+    procedure chkFixStyleClick(Sender: TObject);
+    procedure chkFixColorClick(Sender: TObject);
+    procedure chkFixPosClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -80,6 +86,21 @@ end;
 procedure TForm1.CnSpinEdit4Change(Sender: TObject);
 begin
   CnValidateImage1.ValueLength := CnSpinEdit4.Value
+end;
+
+procedure TForm1.chkFixStyleClick(Sender: TObject);
+begin
+  CnValidateImage1.FixStyle := chkFixStyle.Checked;
+end;
+
+procedure TForm1.chkFixColorClick(Sender: TObject);
+begin
+  CnValidateImage1.FixColor := chkFixColor.Checked;
+end;
+
+procedure TForm1.chkFixPosClick(Sender: TObject);
+begin
+  CnValidateImage1.FixPosition := chkFixPos.Checked;
 end;
 
 end.

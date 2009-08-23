@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 0
-  Top = 0
+  Left = 122
+  Top = 208
+  Width = 288
+  Height = 379
   Caption = 'Validate Image Test'
-  ClientHeight = 322
-  ClientWidth = 264
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,11 +18,19 @@ object Form1: TForm1
     Top = 8
     Width = 193
     Height = 65
+    Color = clWhite
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentColor = False
+    ParentFont = False
   end
   object Label1: TLabel
     Left = 25
-    Top = 286
-    Width = 77
+    Top = 310
+    Width = 88
     Height = 13
     Caption = 'Last Correct Value'
   end
@@ -35,7 +43,7 @@ object Form1: TForm1
   end
   object Label3: TLabel
     Left = 25
-    Top = 228
+    Top = 244
     Width = 52
     Height = 13
     Caption = 'InputValue'
@@ -50,7 +58,7 @@ object Form1: TForm1
   object Label5: TLabel
     Left = 25
     Top = 167
-    Width = 105
+    Width = 92
     Height = 13
     Caption = 'Limited Input Times'
   end
@@ -63,26 +71,26 @@ object Form1: TForm1
   end
   object Edit1: TEdit
     Left = 121
-    Top = 225
+    Top = 241
     Width = 121
     Height = 21
-    TabOrder = 0
+    TabOrder = 8
   end
   object Button1: TButton
     Left = 121
-    Top = 252
+    Top = 272
     Width = 75
     Height = 25
     Caption = 'Validate'
-    TabOrder = 1
+    TabOrder = 9
     OnClick = Button1Click
   end
   object Edit2: TEdit
     Left = 121
-    Top = 283
+    Top = 307
     Width = 121
     Height = 21
-    TabOrder = 2
+    TabOrder = 10
   end
   object CnSpinEdit1: TCnSpinEdit
     Left = 176
@@ -91,7 +99,7 @@ object Form1: TForm1
     Height = 22
     MaxValue = 10
     MinValue = 0
-    TabOrder = 3
+    TabOrder = 0
     Value = 6
     OnChange = CnSpinEdit1Change
   end
@@ -112,7 +120,7 @@ object Form1: TForm1
     Increment = 50
     MaxValue = 1000
     MinValue = 0
-    TabOrder = 5
+    TabOrder = 1
     Value = 100
     OnChange = CnSpinEdit2Change
   end
@@ -123,7 +131,7 @@ object Form1: TForm1
     Height = 22
     MaxValue = 10
     MinValue = 0
-    TabOrder = 6
+    TabOrder = 3
     Value = 3
     OnChange = CnSpinEdit2Change
   end
@@ -134,8 +142,35 @@ object Form1: TForm1
     Height = 22
     MaxValue = 10
     MinValue = 0
-    TabOrder = 7
+    TabOrder = 2
     Value = 4
     OnChange = CnSpinEdit4Change
+  end
+  object chkFixStyle: TCheckBox
+    Left = 152
+    Top = 192
+    Width = 97
+    Height = 17
+    Caption = 'Fixed Style'
+    TabOrder = 5
+    OnClick = chkFixStyleClick
+  end
+  object chkFixColor: TCheckBox
+    Left = 152
+    Top = 216
+    Width = 97
+    Height = 17
+    Caption = 'Fixed Color'
+    TabOrder = 7
+    OnClick = chkFixColorClick
+  end
+  object chkFixPos: TCheckBox
+    Left = 24
+    Top = 216
+    Width = 97
+    Height = 17
+    Caption = 'Fixed Position'
+    TabOrder = 6
+    OnClick = chkFixPosClick
   end
 end

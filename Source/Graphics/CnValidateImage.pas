@@ -53,12 +53,18 @@ type
     FValidateCount: Integer;
     FValueLength: Integer;
     FValue: string;
+    FFixStyle: Boolean;
+    FFixColor: Boolean;
+    FFixPosition: Boolean;
     function GetCanvas: TCanvas;
     procedure PictureChanged(Sender: TObject);
     procedure SetFontRandomSeed(const Value: Integer);
     procedure SetnoiseCount(const Value: Integer);
     procedure SetValueLength(const Value: Integer);
     procedure SetTransparent(Value: Boolean);
+    procedure SetFixStyle(const Value: Boolean);
+    procedure SetFixColor(const Value: Boolean);
+    procedure SetFixPosition(const Value: Boolean);
   protected
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
     function DestRect: TRect;
@@ -82,6 +88,13 @@ type
     property CaseSensitive: Boolean read FCaseSensitive write FCaseSensitive default False;
     property FontRandomSeed: Integer read FFontRandomSeed write SetFontRandomSeed default 6;
     property ValueLength: Integer read FValueLength write SetValueLength default 4;
+
+    property FixStyle: Boolean read FFixStyle write SetFixStyle default False;
+    {* 是否固定输出的验证码的Style，不随机使用斜体粗体}
+    property FixColor: Boolean read FFixColor write SetFixColor default False;
+    {* 是否固定输出的验证码的颜色，使用Font.Color而不随机使用其他颜色}
+    property FixPosition: Boolean read FFixPosition write SetFixPosition default False;
+    {* 是否固定输出的验证码的位置，不随机使用高低}
   end;
 
 implementation
@@ -332,29 +345,44 @@ begin
     Width := Round(FValueLength * (Canvas.TextWidth('Wg') / 2 + 4) + vHoz * (FValueLength + 1));
     Height := Canvas.TextHeight('g') + 5 + vVert * 2;
 
+    Canvas.Brush.Color := Color;
+    Canvas.Brush.Style := bsSolid;
+    Canvas.FillRect(Rect(0, 0, Self.Width, Self.Height));
+
     for I := 0 to FNoiseCount - 1 do
     begin
       vPoint.X := Random(Width);
       vPoint.Y := Random(Height);
-      Canvas.Pixels[vPoint.X,vPoint.Y]:=
+      Canvas.Pixels[vPoint.X, vPoint.Y] :=
         RGB(Random(256) and $C0, Random(256) and $C0, Random(256) and $C0);
     end;
 
     for I := 1 to FValueLength do
     begin
-      Canvas.Font.Size := Random(FFontRandomSeed) + 9;
-      Canvas.Font.Color := RGB(Random(256) and $C0, Random(256) and
-        $C0, Random(256) and $C0);
+      Canvas.Font.Size := Random(FFontRandomSeed) + Font.Size;
+      if FFixColor then
+        Canvas.Font.Color := Font.Color
+      else
+        Canvas.Font.Color := RGB(Random(256) and $C0, Random(256) and
+          $C0, Random(256) and $C0);
 
       aFontStyle := [];
-      if Random(2) = 1 then
+      if not FFixStyle and (Random(2) = 1) then
         aFontStyle := aFontStyle + [fsBold];
-      if Random(2) = 1 then
+      if not FFixStyle and (Random(2) = 1) then
         aFontStyle := aFontStyle + [fsItalic];
       Canvas.Font.Style := aFontStyle;
 
-      vPoint.X := Random(4) + vHoz;
-      vPoint.Y := Random(5);
+      if not FFixPosition then
+      begin
+        vPoint.X := Random(4) + vHoz;
+        vPoint.Y := Random(5);
+      end
+      else
+      begin
+        vPoint.X := vHoz;
+        vPoint.Y := 0;
+      end;
       Canvas.TextOut(vPoint.X, vPoint.Y, FValue[I]);
       vHoz := vPoint.X + Canvas.TextWidth(FValue[I]);
     end;
@@ -410,6 +438,24 @@ begin
     RandomValue;
     Inc(FValidateCount);
   end;
+end;
+
+procedure TCnValidateImage.SetFixStyle(const Value: Boolean);
+begin
+  FFixStyle := Value;
+  RandomValue;
+end;
+
+procedure TCnValidateImage.SetFixColor(const Value: Boolean);
+begin
+  FFixColor := Value;
+  RandomValue;
+end;
+
+procedure TCnValidateImage.SetFixPosition(const Value: Boolean);
+begin
+  FFixPosition := Value;
+  RandomValue;
 end;
 
 end.
