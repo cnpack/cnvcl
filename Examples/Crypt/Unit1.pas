@@ -83,7 +83,7 @@ uses
 procedure TForm1.btnMd5Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
-  pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtFrom.Text)))
+  pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtFrom.Text)));
 {$ELSE}
   pnlMd5.Caption := MD5Print(MD5String(edtFrom.Text));
 {$ENDIF}
