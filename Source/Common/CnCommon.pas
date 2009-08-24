@@ -3328,7 +3328,7 @@ end;
 function StrRight(Str: string; Len: Integer): string;
 begin
   if Len >= Length(Str) then
-    Result := ''
+    Result := Str
   else
     Result := Copy(Str, Length(Str) - Len + 1, Len);
 end;
@@ -3336,7 +3336,7 @@ end;
 // ·µ»Ø×Ö·û´®×ó±ßµÄ×Ö·û
 function StrLeft(Str: string; Len: Integer): string;
 begin
-  if Len >= Length(Str) then
+  if Len > Length(Str) then
     Result := Str
   else
     Result := Copy(Str, 1, Len);
