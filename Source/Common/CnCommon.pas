@@ -754,6 +754,9 @@ function CheckWindows9598: Boolean;
 function CheckWinXP: Boolean;
 {* 检测是否WinXP以上平台}
 
+function CheckWinVista: Boolean;
+{* 检查是否 Vista/Win7 以上系统 }
+
 function DllGetVersion(const dllname: string;
   var DVI: TDLLVERSIONINFO2): Boolean;
 {* 获得Dll的版本信息}
@@ -4702,6 +4705,12 @@ function CheckWinXP: Boolean;
 begin
   Result := (Win32MajorVersion > 5) or
     ((Win32MajorVersion = 5) and (Win32MinorVersion >= 1));
+end;
+
+// 检查是否 Vista/Win7 以上系统
+function CheckWinVista: Boolean;
+begin
+  Result := Win32MajorVersion >= 6;
 end;
 
 // 获得Dll的版本信息
