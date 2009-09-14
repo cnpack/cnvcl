@@ -433,7 +433,7 @@ begin
   end;
 end;
 
-procedure TCnTrayIcon.SetHint(const Value: String);
+procedure TCnTrayIcon.SetHint(const Value: string);
 begin
   if Value <> FHint then
   begin
@@ -487,12 +487,22 @@ begin
 end;
 
 procedure TCnTrayIcon.UpdateNotifyData;
+var
+  ShortHint: AnsiString;
 begin
   FIconData.cbSize := SizeOf(TNotifyIconData);
   FIconData.Wnd := FHandle;
   FIconData.uFlags := NIF_ICON or NIF_MESSAGE or NIF_TIP or NIF_INFO;
   FIconData.hIcon := FIcon.Handle;
-  StrPLCopy(FIconData.szTip, GetShortHint(FHint), 63);
+  ShortHint := GetShortHint(FHint);
+{$IFDEF UNICODE}
+  if ShortHint <> '' then
+    CopyMemory(@FIconData.szTip, Pointer(ShortHint), 63)
+  else
+    FIconData.szTip[0] := #0;
+{$ELSE}
+  StrPLCopy(FIconData.szTip, ShortHint, 63);
+{$ENDIF}
   FIconData.uCallbackMessage := WM_CNTRAYICONCALLBACK;
   FIconData.uID := 0;
 end;
