@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Common
+SearchPath=..\..\Source\Common;..\..\Source\Nonvisual
 Packages=
 Conditionals=
 DebugSourceDirs=
@@ -80,10 +80,10 @@ OriginalFilename=
 ProductName=Made in ÐËÄþ
 ProductVersion=1.0.0.0
 Comments=http://www.tengco.cn
-
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=..\..\Source\Common
+Count=2
+Item0=..\..\Source\Common;..\..\Source\Nonvisual
+Item1=..\..\Source\Common
