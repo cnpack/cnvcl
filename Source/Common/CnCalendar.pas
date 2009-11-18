@@ -1674,6 +1674,10 @@ var
   I, OneYearDays, Diff: Integer;
 begin
   Result := False;
+  AYear := 0;
+  AMonth := 0;
+  ADay := 0;
+
   if EquDays < 0 then Exit; // 暂不处理公元前的等效标准日
 
   Diff := EquDays div (365 * 100) - EquDays div (365 * 400);
@@ -1714,7 +1718,6 @@ begin
     end;
   end;
 end;
-
 
 // 获得某日期是星期几，0-6
 function GetWeek(const AValue: TDateTime): Integer; overload;
