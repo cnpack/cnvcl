@@ -1798,6 +1798,13 @@ begin
 
     Days := Days * 24 - AHour;
     AMinitue := Round(Days * 60);
+  end
+  else
+  begin
+    AMonth := 0;
+    ADay := 0;
+    AHour := 0;
+    AMinitue := 0;
   end;
 end;
 
