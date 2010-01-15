@@ -109,8 +109,8 @@ begin
       if FEmptyPtr = (THUNK_SIZE div SizeOf(TCnCallback)) then
         raise ECallBackException.Create('Callback Pool Overflow!');
 
-      Instance := PCnCallback(Integer(FCallBackPool) + FEmptyPtr * SizeOf(TCnCallback));
       Inc(FEmptyPtr);
+      Instance := PCnCallback(Integer(FCallBackPool) + FEmptyPtr * SizeOf(TCnCallback));
     end;
   finally
     LeaveCriticalSection(FCS);
