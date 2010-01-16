@@ -48,29 +48,29 @@ type
   TCnLanguageItem = class (TCollectionItem)
   {* 语言条目描述类 }
   private
-    FLanguageName: String;
-    FAuthor: string;
-    FAuthorEmail: string;
-    FAbbreviation: string;
-    FLanguageFileName: string;
-    FLanguageDirName: string;
+    FLanguageName: WideString;
+    FAuthor: WideString;
+    FAuthorEmail: WideString;
+    FAbbreviation: WideString;
+    FLanguageFileName: WideString;
+    FLanguageDirName: WideString;
     FLanguageID: LongWord;
     FOnLanguageIDChanged: TNotifyEvent;
     FDefaultFont: TFont;
-    function GetAbbreviation: string;
-    function GetLanguageName: string;
-    procedure SetAbbreviation(Value: string);
-    function GetLanguageFileName: String;
-    procedure SetLanguageFileName(const Value: String);
+    function GetAbbreviation: WideString;
+    function GetLanguageName: WideString;
+    procedure SetAbbreviation(Value: WideString);
+    function GetLanguageFileName: WideString;
+    procedure SetLanguageFileName(const Value: WideString);
     procedure SetDefaultFont(Value: TFont);
-    function GetDefaultFontStr: string;
-    function GetLanguageDirName: string;
-    procedure SetLanguageDirName(const Value: string);
+    function GetDefaultFontStr: WideString;
+    function GetLanguageDirName: WideString;
+    procedure SetLanguageDirName(const Value: WideString);
   protected
-    procedure SetAuthor(Value: string);
-    procedure SetAuthorEmail(Value: string);
+    procedure SetAuthor(Value: WideString);
+    procedure SetAuthorEmail(Value: WideString);
     procedure SetLanguageID(Value: LongWord);
-    procedure SetLanguageName(Value: string);
+    procedure SetLanguageName(Value: WideString);
     procedure DoLanguageIDChanged; virtual;
   public
     constructor Create(Collection: TCollection); override;
@@ -83,23 +83,23 @@ type
     property OnLanguageIDChanged: TNotifyEvent read FOnLanguageIDChanged
       write FOnLanguageIDChanged;
     {* 当语言 ID 发生改变时触发 }
-    property DefaultFontStr: string read GetDefaultFontStr;
+    property DefaultFontStr: WideString read GetDefaultFontStr;
     {* 默认的语言 Font 的 Str}
   published
-    property Abbreviation: string read GetAbbreviation write SetAbbreviation;
+    property Abbreviation: WideString read GetAbbreviation write SetAbbreviation;
     {* 该语言的缩写，在设置 LanguageID 时会自动设置 }
-    property Author: string read FAuthor write SetAuthor;
+    property Author: WideString read FAuthor write SetAuthor;
     {* 该语言的翻译条目的作者 }
-    property AuthorEmail: string read FAuthorEmail write SetAuthorEmail;
+    property AuthorEmail: WideString read FAuthorEmail write SetAuthorEmail;
     {* 该语言的翻译条目的作者的电子邮件地址 }
     property LanguageID: LongWord read FLanguageID write SetLanguageID;
     {* 该语言的 ID 号 }
-    property LanguageName: string read GetLanguageName write SetLanguageName;
+    property LanguageName: WideString read GetLanguageName write SetLanguageName;
     {* 该语言的名称，在设置 LanguageID 时会自动设置 }
-    property LanguageFileName: string read GetLanguageFileName
+    property LanguageFileName: WideString read GetLanguageFileName
       write SetLanguageFileName;
     {* 返回可用的保存文件名供多语言存储组件使用，以文件方式存储时其结果有效 }
-    property LanguageDirName: string read GetLanguageDirName
+    property LanguageDirName: WideString read GetLanguageDirName
       write SetLanguageDirName;
     {* 返回可用的保存多语的目录名，以目录方式存储时其结果有效 }
     property DefaultFont: TFont read FDefaultFont write SetDefaultFont;
@@ -117,7 +117,7 @@ type
     {* 增加一新的语言条目 }
     function Find(ALanguageID: LongWord): Integer; overload;
     {* 根据语言 ID 查找语言条目 }
-    function Find(ALanguageName: string): Integer; overload;
+    function Find(ALanguageName: WideString): Integer; overload;
     {* 根据语言名称查找语言条目 }
     property Items[Index: Integer]: TCnLanguageItem read GetItems write
       SetItems; default;
@@ -137,17 +137,17 @@ begin
     FOnLanguageIDChanged(Self);
 end;
 
-function TCnLanguageItem.GetAbbreviation: string;
+function TCnLanguageItem.GetAbbreviation: WideString;
 begin
   Result := FAbbreviation;
 end;
 
-function TCnLanguageItem.GetLanguageFileName: String;
+function TCnLanguageItem.GetLanguageFileName: WideString;
 begin
   Result := FLanguageFileName;
 end;
 
-function TCnLanguageItem.GetLanguageName: string;
+function TCnLanguageItem.GetLanguageName: WideString;
 begin
   Result := FLanguageName;
 end;
@@ -161,13 +161,13 @@ begin
   end;
 end;
 
-procedure TCnLanguageItem.SetAbbreviation(Value: string);
+procedure TCnLanguageItem.SetAbbreviation(Value: WideString);
 begin
   if FAbbreviation <> Value then
     FAbbreviation := Value;
 end;
 
-procedure TCnLanguageItem.SetAuthor(Value: string);
+procedure TCnLanguageItem.SetAuthor(Value: WideString);
 begin
   if FAuthor <> Value then
   begin
@@ -176,7 +176,7 @@ begin
   end;
 end;
 
-procedure TCnLanguageItem.SetAuthorEmail(Value: string);
+procedure TCnLanguageItem.SetAuthorEmail(Value: WideString);
 begin
   if FAuthorEmail <> Value then
   begin
@@ -185,7 +185,7 @@ begin
   end;
 end;
 
-procedure TCnLanguageItem.SetLanguageFileName(const Value: String);
+procedure TCnLanguageItem.SetLanguageFileName(const Value: WideString);
 begin
   FLanguageFileName := Value;
 end;
@@ -220,7 +220,7 @@ begin
   end;
 end;
 
-procedure TCnLanguageItem.SetLanguageName(Value: string);
+procedure TCnLanguageItem.SetLanguageName(Value: WideString);
 begin
   if FLanguageName <> Value then
   begin
@@ -262,7 +262,7 @@ begin
     inherited;
 end;
 
-function TCnLanguageItem.GetDefaultFontStr: string;
+function TCnLanguageItem.GetDefaultFontStr: WideString;
 begin
   Result := FontToString(FDefaultFont);
 end;
@@ -290,7 +290,7 @@ begin
     end;
 end;
 
-function TCnLanguageCollection.Find(ALanguageName: string): Integer;
+function TCnLanguageCollection.Find(ALanguageName: WideString): Integer;
 var
   i: Integer;
 begin
@@ -313,12 +313,12 @@ begin
   inherited Items[Index] := Value;
 end;
 
-function TCnLanguageItem.GetLanguageDirName: string;
+function TCnLanguageItem.GetLanguageDirName: WideString;
 begin
   Result := FLanguageDirName;
 end;
 
-procedure TCnLanguageItem.SetLanguageDirName(const Value: string);
+procedure TCnLanguageItem.SetLanguageDirName(const Value: WideString);
 begin
   FLanguageDirName := Value;
 end;

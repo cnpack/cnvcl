@@ -44,7 +44,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, IniFiles, Dialogs, FileCtrl,
-  CnConsts, CnLangConsts, CnHashMap, CnLangStorage, CnIniStrUtils;
+  CnConsts, CnLangConsts, CnHashMap, CnWideStrings, CnLangStorage, CnIniStrUtils;
 
 type
   TCnCustomHashLangStorage = class;
@@ -54,19 +54,19 @@ type
     FHashStorage: TCnCustomHashLangStorage;
     FEof: Boolean;
     FBof: Boolean;
-    FFrontPattern: string;
-    FKey: string;
-    FValue: string;
+    FFrontPattern: WideString;
+    FKey: WideString;
+    FValue: WideString;
   public
     constructor Create(AHashStorage: TCnCustomHashLangStorage);
     destructor Destroy; override;
 
-    procedure StartIterate(const FrontPattern: string = '');
+    procedure StartIterate(const FrontPattern: WideString = '');
     procedure Previous;
     procedure Next;
     procedure EndIterate;
-    procedure GetCurrentKeyValue(var Key:string; var Value: string);
-    function GetCurrentString: string;
+    procedure GetCurrentKeyValue(var Key:WideString; var Value: WideString);
+    function GetCurrentString: WideString;
     function GetEof: Boolean;
     function GetBof: Boolean;
 
@@ -76,30 +76,30 @@ type
 
   TCnCustomHashLangStorage = class(TCnCustomLangFileStorage)
   private
-    FHashMap: TCnStrToStrHashMap;
+    FHashMap: TCnWideStrToWideStrHashMap;
     FListLength: Integer;
     FIncSize: Integer;
     procedure SetIncSize(const Value: Integer);
     procedure SetListLength(const Value: Integer);
   protected
     procedure InitHashMap;
-    procedure AddStringToHashMap(const Key: string; const Value: string);
-    procedure InitFromAFile(const AFileName: string); override;
+    procedure AddStringToHashMap(const Key: WideString; const Value: WideString);
+    procedure InitFromAFile(const AFileName: WideString); override;
     procedure CreateCurrentLanguage; override;
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
-    property HashMap: TCnStrToStrHashMap read FHashMap;
+    property HashMap: TCnWideStrToWideStrHashMap read FHashMap;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    class function GetLanguageFileExt: string; override;
+    class function GetLanguageFileExt: WideString; override;
     {* 返回多语言文件的扩展名.TXT }
-    function GetString(Name: string; var Value: string): Boolean; override;
+    function GetString(Name: WideString; var Value: WideString): Boolean; override;
     {* 获得一语言条目的翻译后的字符串 }
     procedure GetNamesList(List: TStrings); override;
     {* 获得当前语言的所有语言条目名称列表 }
-    function IsLanguageFile(const FileName: string): Boolean; override;
+    function IsLanguageFile(const FileName: WideString): Boolean; override;
     {* 判断一文件是否合法的语言文件 }
-    procedure SetString(Name, Value: string); override;
+    procedure SetString(Name, Value: WideString); override;
     {* 保存一语言条目，如存在则覆盖，否则新增 }
     function CreateIterator: ICnLangStringIterator; override;
     {* 获得遍历器，如果子类不支持遍历，则必须返回 nil}
@@ -167,7 +167,7 @@ begin
   InitHashMap;
 end;
 
-function TCnCustomHashLangStorage.GetString(Name: string; var Value: string):
+function TCnCustomHashLangStorage.GetString(Name: WideString; var Value: WideString):
   Boolean;
 begin
   Result := False;
@@ -183,14 +183,14 @@ end;
 
 function TCnCustomHashLangStorage.LoadCurrentLanguage: Boolean;
 var
-  List: TStrings;
+  List: TCnWideStringList;
   i, EPos: Integer;
-  S: string;
+  S: WideString;
 begin
   Result := True;
   InitHashMap;
   
-  List := TStringList.Create;
+  List := TCnWideStringList.Create;
   try
     S := LanguagePath + GetCurrentLanguageFileName;
     List.LoadFromFile(S);
@@ -215,34 +215,37 @@ end;
 
 procedure TCnCustomHashLangStorage.SaveCurrentLanguage;
 var
-  Key, Value, aFileName: string;
-  List: TStringList;
+  Key, Value, aFileName: WideString;
+  List: TCnWideStringList;
 begin
   if Assigned(FHashMap) then
   begin
-    List := TStringList.Create;
-    FHashMap.StartEnum;
-    while FHashMap.GetNext(Key, Value) do
-      List.Add(Key + DefEqual + Value);
-    List.Sort;
+    List := TCnWideStringList.Create;
+    try
+      FHashMap.StartEnum;
+      while FHashMap.GetNext(Key, Value) do
+        List.Add(Key + DefEqual + Value);
+      List.Sort;
 
-    // 设计期如果被赋值了设计期文件存储的目录，则存到此目录下
-    if (csDesigning in ComponentState) and (LanguagePath = '') and (DesignLangPath <> '') then
-      aFileName := IncludeTrailingBackslash(DesignLangPath) + GetCurrentLanguageFileName
-    else
-      aFileName := IncludeTrailingBackslash(LanguagePath) + GetCurrentLanguageFileName;
+      // 设计期如果被赋值了设计期文件存储的目录，则存到此目录下
+      if (csDesigning in ComponentState) and (LanguagePath = '') and (DesignLangPath <> '') then
+        aFileName := IncludeTrailingBackslash(DesignLangPath) + GetCurrentLanguageFileName
+      else
+        aFileName := IncludeTrailingBackslash(LanguagePath) + GetCurrentLanguageFileName;
 
-    if not ForceDirectories(ExtractFilePath(aFileName)) then
-      raise ELanguageStorageError.Create(SCnCanNotCreateDir + ExtractFilePath(aFileName));
+      if not ForceDirectories(ExtractFilePath(aFileName)) then
+        raise ELanguageStorageError.Create(SCnCanNotCreateDir + ExtractFilePath(aFileName));
 
-    List.SaveToFile(aFileName);
-    List.Free;
+      List.SaveToFile(aFileName, wlfUtf8);
+    finally
+      List.Free;
+    end;
   end;
 end;
 
-procedure TCnCustomHashLangStorage.SetString(Name, Value: string);
+procedure TCnCustomHashLangStorage.SetString(Name, Value: WideString);
 var
-  myValue: string;
+  myValue: WideString;
 begin
   if Assigned(FHashMap) then
   begin
@@ -254,7 +257,7 @@ end;
 
 procedure TCnCustomHashLangStorage.GetNamesList(List: TStrings);
 var
-  Key, Value: string;
+  Key, Value: WideString;
 begin
   if List <> nil then
   begin
@@ -276,36 +279,33 @@ begin
   SaveCurrentLanguage;
 end;
 
-class function TCnCustomHashLangStorage.GetLanguageFileExt: string;
+class function TCnCustomHashLangStorage.GetLanguageFileExt: WideString;
 begin
   Result := '.txt';
 end;
 
 function TCnCustomHashLangStorage.IsLanguageFile(
-  const FileName: string): Boolean;
+  const FileName: WideString): Boolean;
 var
-  F: Text;
-  S: String;
+  List: TCnWideStringList;
 begin
   Result := False;
+  List := TCnWideStringList.Create;
   try
-    AssignFile(F, FileName);
-    Reset(F);
-  except
-    Exit;
+    List.LoadFromFile(FileName);
+    if List.Count > 0 then
+      Result := Copy(List[0], 1, Length(SystemNamePrefix + SCnLanguageID)) =
+        SystemNamePrefix + SCnLanguageID;
+  finally
+    List.Free;
   end;
-  Readln(F, S);
-  CloseFile(F);
-
-  Result := Copy(S, 1, Length(SystemNamePrefix + SCnLanguageID)) =
-    SystemNamePrefix + SCnLanguageID;
 end;
 
 procedure TCnCustomHashLangStorage.InitHashMap;
 begin
   if Assigned(FHashMap) then
     FreeAndNil(FHashMap);
-  FHashMap := TCnStrToStrHashMap.Create(FListLength, FIncSize);
+  FHashMap := TCnWideStrToWideStrHashMap.Create(FListLength, FIncSize);
 end;
 
 procedure TCnCustomHashLangStorage.SetIncSize(const Value: Integer);
@@ -325,48 +325,40 @@ begin
   Result := TCnHashStringIterator.Create(Self);
 end;
 
-procedure TCnCustomHashLangStorage.InitFromAFile(const AFileName: string);
+procedure TCnCustomHashLangStorage.InitFromAFile(const AFileName: WideString);
 var
-  F: Text;
-  List: TStrings;
-  I: Integer;
-  S: string;
+  List: TCnWideStringList;
 begin
-  List := TStringList.Create;
-
-  with Languages.Add do
-  begin
-    LanguageFileName := ExtractFileName(ChangeFileExt(AFileName, ''));
-    AssignFile(F, AFileName); Reset(F); List.Clear;
-
-    for I := 0 to 4 do
+  List := TCnWideStringList.Create;
+  try
+    with Languages.Add do
     begin
-      Readln(F, S);
-      List.Add(S);
-    end;
-    Close(F);
+      LanguageFileName := ExtractFileName(ChangeFileExt(AFileName, ''));
+      List.LoadFromFile(AFileName);
 
-    try
-      LanguageID := StrToIntDef(List.Values[SystemNamePrefix + SCnLanguageID], 0);
-    except
-      LanguageID := 0;
-    end;
+      try
+        LanguageID := StrToIntDef(List.Values[SystemNamePrefix + SCnLanguageID], 0);
+      except
+        LanguageID := 0;
+      end;
 
-    if LanguageID <> 0 then
-    begin
-      LanguageName := List.Values[SystemNamePrefix + SCnLanguageName];
-      Author := List.Values[SystemNamePrefix + SCnAuthor];
-      AuthorEmail := List.Values[SystemNamePrefix + SCnAuthorEmail];
-      if List.Values[SystemNamePrefix + SCnDefaultFont] <> '' then
-        StringToFont(List.Values[SystemNamePrefix + SCnDefaultFont], DefaultFont);
-    end
-    else
-    begin
-      Self.FCurrentLanguageIndex := -1;
-      Self.Languages.Delete(Index);
+      if LanguageID <> 0 then
+      begin
+        LanguageName := List.Values[SystemNamePrefix + SCnLanguageName];
+        Author := List.Values[SystemNamePrefix + SCnAuthor];
+        AuthorEmail := List.Values[SystemNamePrefix + SCnAuthorEmail];
+        if List.Values[SystemNamePrefix + SCnDefaultFont] <> '' then
+          StringToFont(List.Values[SystemNamePrefix + SCnDefaultFont], DefaultFont);
+      end
+      else
+      begin
+        Self.FCurrentLanguageIndex := -1;
+        Self.Languages.Delete(Index);
+      end;
     end;
+  finally
+    List.Free;
   end;
-  List.Free;
 end;
 
 procedure TCnCustomHashLangStorage.GetComponentInfo(var AName, Author,
@@ -379,15 +371,14 @@ begin
 end;
 
 procedure TCnCustomHashLangStorage.AddStringToHashMap(const Key,
-  Value: string);
+  Value: WideString);
 begin
   FHashMap.Add(Key, Value);
 end;
 
 { TCnHashStringIterator }
 
-constructor TCnHashStringIterator.Create(
-  AHashStorage: TCnCustomHashLangStorage);
+constructor TCnHashStringIterator.Create(AHashStorage: TCnCustomHashLangStorage);
 begin
   inherited Create;
   FHashStorage := AHashStorage;
@@ -411,13 +402,13 @@ begin
   Result := FBof;
 end;
 
-procedure TCnHashStringIterator.GetCurrentKeyValue(var Key, Value: string);
+procedure TCnHashStringIterator.GetCurrentKeyValue(var Key, Value: WideString);
 begin
   Key := FKey;
   Value := FValue;
 end;
 
-function TCnHashStringIterator.GetCurrentString: string;
+function TCnHashStringIterator.GetCurrentString: WideString;
 begin
   Result := FKey + DefEqual + FValue;
 end;
@@ -444,7 +435,7 @@ begin
   raise ELanguageStorageError.Create('Previous operation NOT supported.');
 end;
 
-procedure TCnHashStringIterator.StartIterate(const FrontPattern: string);
+procedure TCnHashStringIterator.StartIterate(const FrontPattern: WideString);
 begin
   Assert(FHashStorage <> nil);
 

@@ -736,7 +736,7 @@ procedure TFrmTransEditor.UpdateLangDisplay(Storage: TCnCustomLangStorage;
 var
   List: TStringList;
   i: Integer;
-  S: string;
+  S: WideString;
   bPrompted: Boolean;
 begin
   Self.lblLangNameValue.Caption := Item.LanguageName;

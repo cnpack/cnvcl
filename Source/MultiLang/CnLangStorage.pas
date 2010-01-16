@@ -78,12 +78,12 @@ type
   ICnLangStringIterator = interface(IUnknown)
   {* 获得全部字符串的 Iterator 接口定义 }
     ['{247CB225-2257-41C0-87F8-F43834E2966F}']
-    procedure StartIterate(const FrontPattern: string = '');
+    procedure StartIterate(const FrontPattern: WideString = '');
     procedure Previous;
     procedure Next;
     procedure EndIterate;
-    procedure GetCurrentKeyValue(var Key: string; var Value: string);
-    function GetCurrentString: string;
+    procedure GetCurrentKeyValue(var Key: WideString; var Value: WideString);
+    function GetCurrentString: WideString;
     function GetEof: Boolean;
     function GetBof: Boolean;
     
@@ -109,9 +109,9 @@ type
     procedure DoLanguageChanging(ALanguageIndex: Integer;
       var AllowChange: Boolean); virtual;
 
-    function GetAuthor(var Value: string): Boolean;
+    function GetAuthor(var Value: WideString): Boolean;
 
-    function GetAuthorEmail(var Value: string): Boolean;
+    function GetAuthorEmail(var Value: WideString): Boolean;
 
     function GetDefaultFont(const Value: TFont): Boolean;
     
@@ -129,7 +129,7 @@ type
     
     procedure AddLanguage(ALanguageID: LongWord);
     {* 增加一种语言 }
-    function GetString(Name: string; var Value: string): Boolean; virtual;
+    function GetString(Name: WideString; var Value: WideString): Boolean; virtual;
       abstract;
     {* 抽象方法，获得翻译字串 }
     procedure GetNamesList(List: TStrings); virtual; abstract;
@@ -140,7 +140,7 @@ type
     {* 抽象方法，可以是从存储介质中载入当前语言条目，为翻译字串做准备 }
     procedure SaveCurrentLanguage; virtual; abstract;
     {* 抽象方法，可以是保存当前语言条目到存储介质中 }
-    procedure SetString(Name, Value: string); virtual; abstract;
+    procedure SetString(Name, Value: WideString); virtual; abstract;
     {* 抽象方法，设置翻译字串 }
     function CreateIterator: ICnLangStringIterator; virtual;
     {* 抽象方法，获得遍历器，如果子类不支持遍历，则必须返回 nil}
@@ -174,42 +174,42 @@ type
 
   TCnCustomLangFileStorage = class (TCnCustomLangStorage)
   private
-    FLanguagePath: string;
+    FLanguagePath: WideString;
     FAutoDetect: Boolean;
     FStorageMode: TCnStorageMode;
-    FFileName: string;
-    FDesignLangPath: string;
-    FDesignLangFile: string;
-    procedure SetLanguagePath(Value: string);
+    FFileName: WideString;
+    FDesignLangPath: WideString;
+    FDesignLangFile: WideString;
+    procedure SetLanguagePath(Value: WideString);
     procedure SetAutoDetect(const Value: Boolean);
     procedure SetStorageMode(const Value: TCnStorageMode);
-    procedure SetFileName(const Value: string);
+    procedure SetFileName(const Value: WideString);
     // LanguagePath 为空时，调整为需要的目录
     procedure AdjustLangPath;
     procedure AdjustLangFile;
   protected
     procedure InternalInit; override;
     procedure Loaded; override;
-    procedure InitFromAFile(const AFileName: string); virtual;
+    procedure InitFromAFile(const AFileName: WideString); virtual;
 
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure SetDesignLangPath(const aPath: string);
-    procedure SetDesignLangFile(const aFile: string);
+    procedure SetDesignLangPath(const aPath: WideString);
+    procedure SetDesignLangFile(const aFile: WideString);
 
-    function GetCurrentLanguageFileName: string; virtual;
+    function GetCurrentLanguageFileName: WideString; virtual;
    {* 获得当前语言的语言文件名，包括扩展名 }
-    class function GetLanguageFileExt: string; virtual;
+    class function GetLanguageFileExt: WideString; virtual;
     {* 抽象方法，获得所有语言文件的统一扩展名 }
-    function IsLanguageFile(const FileName: string): Boolean; virtual; abstract;
+    function IsLanguageFile(const FileName: WideString): Boolean; virtual; abstract;
     {* 抽象方法，判断某一文件是否是合法的语言文件 }
 
     property StorageMode: TCnStorageMode read FStorageMode write SetStorageMode;
     {* 多语文件按目录存储还是按文件存储 }
-    property LanguagePath: string read FLanguagePath write SetLanguagePath;
+    property LanguagePath: WideString read FLanguagePath write SetLanguagePath;
     {* 所有语言文件存储的统一目录名 }
-    property FileName: string read FFileName write SetFileName;
+    property FileName: WideString read FFileName write SetFileName;
     {* 多语文件按目录存储时具有的统一文件名 }
     property AutoDetect: Boolean read FAutoDetect write SetAutoDetect default True;
     {* LanguagePath 改变时是否自动检测语言 }
@@ -217,8 +217,8 @@ type
     // 此两属性用来做设计期的实际的 LangPath/File 使用，
     // 适用于 LanguagePath/File 为空而具体需要设置目录/文件的场合
     // 只能由 Translator 的组件编辑器赋值。不对用户开放
-    property DesignLangPath: string read FDesignLangPath;
-    property DesignLangFile: string read FDesignLangFile;
+    property DesignLangPath: WideString read FDesignLangPath;
+    property DesignLangFile: WideString read FDesignLangFile;
   end;
 
 implementation
@@ -274,12 +274,12 @@ begin
     FOnLanguageChanging(Self, ALanguageIndex, AllowChange);
 end;
 
-function TCnCustomLangStorage.GetAuthor(var Value: string): Boolean;
+function TCnCustomLangStorage.GetAuthor(var Value: WideString): Boolean;
 begin
   Result := GetString(SystemNamePrefix + SCnAuthor, Value);
 end;
 
-function TCnCustomLangStorage.GetAuthorEmail(var Value: string): Boolean;
+function TCnCustomLangStorage.GetAuthorEmail(var Value: WideString): Boolean;
 begin
   Result := GetString(SystemNamePrefix + SCnAuthorEmail, Value);
 end;
@@ -294,7 +294,7 @@ end;
 
 function TCnCustomLangStorage.GetDefaultFont(const Value: TFont): Boolean;
 var
-  S: string;
+  S: WideString;
 begin
   S := '';
   if GetString(SystemNamePrefix + SCnDefaultFont, S) then
@@ -309,7 +309,7 @@ end;
 
 function TCnCustomLangStorage.GetLanguageID(var Value: LongWord): Boolean;
 var
-  S: string;
+  S: WideString;
 begin
   Result := GetString(SystemNamePrefix + SCnLanguageID, S);
   if Result then
@@ -387,7 +387,7 @@ begin
   inherited;
 end;
 
-function TCnCustomLangFileStorage.GetCurrentLanguageFileName: string;
+function TCnCustomLangFileStorage.GetCurrentLanguageFileName: WideString;
 begin
   if Assigned(CurrentLanguage) then
   begin
@@ -405,14 +405,14 @@ begin
 end;
 
 // 返回语言文件的扩展名，默认为txt，子类一般重载。
-class function TCnCustomLangFileStorage.GetLanguageFileExt: string;
+class function TCnCustomLangFileStorage.GetLanguageFileExt: WideString;
 begin
   Result := '.txt';
 end;
 
-procedure TCnCustomLangFileStorage.InitFromAFile(const AFileName: string);
+procedure TCnCustomLangFileStorage.InitFromAFile(const AFileName: WideString);
 var
-  AStr: string;
+  AStr: WideString;
   AID: LongWord;
 begin
   // 几乎没用，可以不写
@@ -443,7 +443,7 @@ end;
 procedure TCnCustomLangFileStorage.InternalInit;
 var
   Sr: TSearchRec;
-  ActualPath,  AFileName, ASearchPath: string;
+  ActualPath,  AFileName, ASearchPath: WideString;
 begin
   Languages.BeginUpdate;
   try
@@ -531,7 +531,7 @@ begin
   end;
 end;
 
-procedure TCnCustomLangFileStorage.SetFileName(const Value: string);
+procedure TCnCustomLangFileStorage.SetFileName(const Value: WideString);
 begin
   FFileName := Value;
   if FAutoDetect and (StorageMode = smByDirectory) then
@@ -542,7 +542,7 @@ begin
   end;
 end;
 
-procedure TCnCustomLangFileStorage.SetLanguagePath(Value: string);
+procedure TCnCustomLangFileStorage.SetLanguagePath(Value: WideString);
 begin
   if FLanguagePath <> Value then
   begin
@@ -560,13 +560,13 @@ begin
   end;
 end;
 
-procedure TCnCustomLangFileStorage.SetDesignLangPath(const aPath: string);
+procedure TCnCustomLangFileStorage.SetDesignLangPath(const aPath: WideString);
 begin
   if csDesigning in ComponentState then
     FDesignLangPath := aPath;
 end;
 
-procedure TCnCustomLangFileStorage.SetDesignLangFile(const aFile: string);
+procedure TCnCustomLangFileStorage.SetDesignLangFile(const aFile: WideString);
 begin
   if csDesigning in ComponentState then
     FDesignLangFile := aFile;

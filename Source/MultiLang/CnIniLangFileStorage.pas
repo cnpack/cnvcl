@@ -42,7 +42,7 @@ interface
 
 uses
   SysUtils, Classes, IniFiles, Dialogs, FileCtrl,
-  CnConsts, CnIniStrUtils, CnLangStorage, CnHashLangStorage;
+  CnConsts, CnIniStrUtils, CnWideStrings, CnLangStorage, CnHashLangStorage;
 
 const
   SCnGlobalSectionName = SystemNamePrefix + 'Global';
@@ -55,15 +55,15 @@ type
   protected
     procedure InternalInit; override;
     procedure CreateCurrentLanguage; override;
-    procedure InitFromAFile(const AFileName: string); override;
+    procedure InitFromAFile(const AFileName: WideString); override;
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    class function GetLanguageFileExt: string; override;
+    class function GetLanguageFileExt: WideString; override;
     {* 返回多语言文件的扩展名.INI }
 
-    function IsLanguageFile(const FileName: string): Boolean; override;
+    function IsLanguageFile(const FileName: WideString): Boolean; override;
     {* 判断一文件是否合法的语言文件 }
     function LoadCurrentLanguage: Boolean; override;
     {* 从 Ini 文件中载入当前语言条目，为翻译字串做准备 }
@@ -110,7 +110,7 @@ begin
 
 end;
 
-class function TCnCustomIniLangFileStorage.GetLanguageFileExt: string;
+class function TCnCustomIniLangFileStorage.GetLanguageFileExt: WideString;
 begin
   Result := '.ini';
 end;
@@ -121,7 +121,7 @@ begin
 
 end;
 
-function TCnCustomIniLangFileStorage.IsLanguageFile(const FileName: string): Boolean;
+function TCnCustomIniLangFileStorage.IsLanguageFile(const FileName: WideString): Boolean;
 var
   IniFile: TIniFile;
 begin
@@ -201,7 +201,7 @@ end;
 procedure TCnCustomIniLangFileStorage.SaveCurrentLanguage;
 var
   Sections, List: TStringList;
-  Key, Value, Sec: string;
+  Key, Value, Sec: WideString;
   I, EPos: Integer;
 begin
   if Assigned(FIniFile) then
@@ -257,7 +257,7 @@ begin
   end;
 end;
 
-procedure TCnCustomIniLangFileStorage.InitFromAFile(const AFileName: string);
+procedure TCnCustomIniLangFileStorage.InitFromAFile(const AFileName: WideString);
 begin
   // 从一语言文件读入语言内容
   if Assigned(FIniFile) then

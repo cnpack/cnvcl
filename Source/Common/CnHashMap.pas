@@ -156,6 +156,18 @@ type
     function GetNext(var AKey, AValue: string): Boolean; reintroduce; overload;
   end;
 
+  TCnWideStrToWideStrHashMap = class(TCnBaseHashMap)
+  private
+    function VariantHashCode(AKey: Variant): Integer; override;
+
+  public
+    procedure Add(AKey, AValue: WideString); reintroduce; overload;
+    function Delete(AKey: WideString): Boolean; reintroduce; overload;
+    function Find(AKey: WideString; var AValue: WideString): Boolean; reintroduce; overload;
+
+    function GetNext(var AKey, AValue: WideString): Boolean; reintroduce; overload;
+  end;
+
   TCnStrToPtrHashMap = class(TCnBaseHashMap)
   private
     function VariantHashCode(AKey: Variant): Integer; override;
@@ -581,6 +593,56 @@ function TCnStrToStrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
   myHashCode, i: Integer;
   HashString: string;
+begin
+  myHashCode := 0;
+  HashString := AKey;
+
+  for i := 1 to Length(HashString) do
+    myHashCode := myHashCode shl 5 + ord(HashString[i]) + myHashCode;
+
+  Result := Abs(myHashCode);
+end;
+
+{ TCnWideStrToWideStrHashMap }
+
+procedure TCnWideStrToWideStrHashMap.Add(AKey, AValue: WideString);
+begin
+  AddInternal(AKey, AValue);
+end;
+
+function TCnWideStrToWideStrHashMap.Delete(AKey: WideString): Boolean;
+begin
+  Result := DeleteInternal(AKey);
+end;
+
+function TCnWideStrToWideStrHashMap.Find(AKey: WideString;
+  var AValue: WideString): Boolean;
+var
+  myValue: Variant;
+begin
+  Result := FindInternal(Variant(AKey), myValue);
+
+  if Result then
+    AValue := myValue;
+end;
+
+function TCnWideStrToWideStrHashMap.GetNext(var AKey, AValue: WideString): Boolean;
+var
+  myKey, myValue: Variant;
+begin
+  Result := GetNextInternal(myKey, myValue);
+
+  if Result then
+  begin
+    AKey := myKey;
+    AValue := myValue;
+  end;
+end;
+
+function TCnWideStrToWideStrHashMap.VariantHashCode(AKey: Variant): Integer;
+var
+  myHashCode, i: Integer;
+  HashString: WideString;
 begin
   myHashCode := 0;
   HashString := AKey;

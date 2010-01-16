@@ -60,7 +60,7 @@ begin
     TCnLanguageItemProperty);
   RegisterPropertyEditor(TypeInfo(Integer), TCnLangManager, 'CurrentLanguageIndex',
     TCnLangManagerProperty);
-  RegisterPropertyEditor(TypeInfo(string), TCnCustomLangFileStorage, 'LanguagePath',
+  RegisterPropertyEditor(TypeInfo(WideString), TCnCustomLangFileStorage, 'LanguagePath',
     TCnLanguagePathProperty);
   RegisterComponentEditor(TCnLangTranslator, TCnTranslatorEditor);
 {$IFDEF DELPHI}
