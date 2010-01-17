@@ -1,63 +1,62 @@
-**********************************************************************
+﻿**********************************************************************
                      CnPack For Delphi/C++Builder
-                   ����H�ۤv���}�񷽽X�ĤT��}�o�]
-                 (C)Copyright 2001-2009 CnPack �}�o��
+                   中國人自己的開放源碼第三方開發包
+                 (C)Copyright 2001-2009 CnPack 開發組
 **********************************************************************
 
-                          CnPack �������եN�X�]
+                          CnPack 內部測試代碼包
                            Version 2010.01.01
                          =======================
-                          CnPack �}�o�� 2010.01
+                          CnPack 開發組 2010.01
 
 
 ======================================================================
-1. �\�i��ĳ
+1. 許可協議
 ======================================================================
 
-    CnPack �}�o�]�H�}�񷽽X (Open Source) ���Φ��o�G�A���u CnPack ���\
-�i��w�A�� CnPack �\�i��w���O�@�C
+    CnPack 開發包以開放源碼 (Open Source) 的形式發佈，遵守 CnPack 的許
+可協定，受 CnPack 許可協定的保護。
 
-    License �ɤ����Ө�ĳ���ԲӴy�z�A���餺�e�i�ѦҨ�w�ɡC
+    License 檔中有該協議的詳細描述，具體內容可參考協定檔。
 
-    �гX�� CnPack �}�o�����A�H��o�̷s����s�����G
+    請訪問 CnPack 開發網站，以獲得最新的更新消息：
 
     http://www.cnpack.org
 
 ======================================================================
-2. ���ե]���e
+2. 測試包內容
 ======================================================================
 
-    �ӥN�X�]�ȥΩ�}�o�դ������աA�å������o�G�A�����˱N�䪽���Ω󦨫~
-�n�餤�A�p�G�z�b�ϥΤ��o�{������D�лP CnPack �}�o���pô�G
+    該代碼包僅用於開發組內部測試，並未正式發佈，不推薦將其直接用於成品
+軟體中，如果您在使用中發現任何問題請與 CnPack 開發組聯繫：
 
     http://www.cnpack.org
     mailto:master@cnpack.org
 
-    �N�X�]���]�t�H�U�X�ӥؿ��G
-    1�BDoc �}�o�]���ɥؿ��A�ح��]�t�F�Ҧ� CnPack �]�p�}�o���ɥH�ΦU��
-�}�o�W�d���ɡC
-    2�BPackages �w�˥]�ؿ��A�]�t Delphi �U���]�w���ɡC
-    3�BExamples �t�ܵ{���ؿ��A�]�t�}�o�H�����N�X�s�g���t�ܵ{���M���X�C
-    4�BSource �}�o�]���N�X�ؿ��A�Ҧ��� CnPack ���X���ӥؿ��U�C
+    代碼包中包含以下幾個目錄：
+    1、Doc 開發包文檔目錄，裏面包含了所有 CnPack 設計開發文檔以及各種
+開發規範文檔。
+    2、Packages 安裝包目錄，包含 Delphi 下的包安裝檔。
+    3、Examples 演示程式目錄，包含開發人員為代碼編寫的演示程式和源碼。
+    4、Source 開發包源代碼目錄，所有的 CnPack 源碼放於該目錄下。
 
 ======================================================================
-3. �w�˨ϥ�
+3. 安裝使用
 ======================================================================
 
-    �}�o�]��� Delphi 5/6/7/2005/2006/2007/2009 �M C++Builder 5/6�C�Τ�
-�ݭn�b IDE �����} Packages �ؿ��U���]���]�`�N�������^�A�A�b�]��󵡤f
-���i��sĶ�w�ˡC�䤤�a dcl �e�󪺬��]�p���]�A�L���e�󪺬��B����]�C�`�N
-���ӥ��sĶ�B����]�A�A�w�˳]�p���]�C
+    開發包支持 Delphi 5/6/7/2005/2006/2007/2009 和 C++Builder 5/6。用戶
+需要在 IDE 中打開 Packages 目錄下的包文件（注意版本號），再在包文件窗口
+中進行編譯安裝。其中帶 dcl 前綴的為設計期包，無此前綴的為運行期包。注意
+應該先編譯運行期包，再安裝設計期包。
 
-    �I�� Delphi �� Tools ���U�� Environment Options�A�i�J�]�m���
-�ءA�I�� Library �������� Library Path ���k�䪺���s�A�N�}�o�] Source
-�ؿ��U�U�Ӥl�ؿ����O�[�J��j�����|���C
+    點擊 Delphi 的 Tools 菜單下的 Environment Options，進入設置對話
+框，點擊 Library 頁面中的 Library Path 項右邊的按鈕，將開發包 Source
+目錄下各個子目錄分別加入到搜索路徑中。
 
-    �p�ݭn��L�y���������ե�]�A�i�b Source\Lang �ؿ��U�����y�� ID ����
-�����N���y�ت��r�Ŧ�`�q�w�q���M dfm ����л\ Source �U�ӥؿ��U���P�W
-���A���s�sĶ�A�ιB�� Source �ؿ����� ToENU.bat �ι����y�ت���B�z���
-�i��۰��л\�Y�i�C
+    如需要其他語言種類的組件包，可在 Source\Lang 目錄下對應語言 ID 的目
+錄中將此語種的字符串常量定義文件和 dfm 文件覆蓋 Source 各個目錄下的同名
+文件再重新編譯，或運行 Source 目錄中的 ToENU.bat 或對應語種的批處理文件
+進行自動覆蓋即可。
 
-    �`�G�ӥN�X�]�ȥΩ�}�o�դ������աA�å������o�G�A�����˱N�䪽���Ω�
-���~�n�餤�C
-
+    注：該代碼包僅用於開發組內部測試，並未正式發佈，不推薦將其直接用於
+成品軟體中。

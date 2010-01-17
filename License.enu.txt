@@ -1,4 +1,4 @@
-CnPack Agreement License
+﻿CnPack Agreement License
 
 CnPack products are copyright 2001-2009 by CnPack Team and several other authors who have submitted their code for inclusion. This license agreement only covers code written by CnPack Team. You should contact the other authors concerning their respective copyrights and conditions. 
 
