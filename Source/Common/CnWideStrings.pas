@@ -39,11 +39,11 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes;
+  Windows, SysUtils, Classes, IniFiles;
 
 type
 
-{ TCnWideStringList class }
+{ TCnWideStringList }
 
   TCnWideListFormat = (wlfAnsi, wlfUtf8, wlfUnicode);
 
@@ -92,6 +92,14 @@ type
     property Values[const Name: WideString]: WideString read GetValue write SetValue;
     property Strings[Index: Integer]: WideString read Get write Put; default;
     property Text: WideString read GetTextStr write SetTextStr;
+  end;
+
+{ TCnWideMemIniFile }
+
+  TCnWideMemIniFile = class(TMemIniFile)
+  public
+    constructor Create(const FileName: string);
+    procedure UpdateFile; override;
   end;
 
 implementation
@@ -440,6 +448,47 @@ end;
 procedure TCnWideStringList.Sort;
 begin
   CustomSort(StringListCompareStrings);
+end;
+
+{ TCnWideMemIniFile }
+
+constructor TCnWideMemIniFile.Create(const FileName: string);
+var
+  WList: TCnWideStringList;
+  List: TStringList;
+begin
+  inherited;
+  WList := nil;
+  List := nil;
+  try
+    WList := TCnWideStringList.Create;
+    WList.LoadFromFile(FileName);
+    List := TStringList.Create;
+    List.Text := WList.Text;
+    SetStrings(List);
+  finally
+    WList.Free;
+    List.Free;
+  end;   
+end;
+
+procedure TCnWideMemIniFile.UpdateFile;
+var
+  WList: TCnWideStringList;
+  List: TStringList;
+begin
+  WList := nil;
+  List := nil;
+  try
+    List := TStringList.Create;
+    GetStrings(List);
+    WList := TCnWideStringList.Create;
+    WList.Text := List.Text;
+    WList.SaveToFile(FileName, wlfUtf8);
+  finally
+    WList.Free;
+    List.Free;
+  end;   
 end;
 
 end.
