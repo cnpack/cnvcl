@@ -128,14 +128,14 @@ type
     FAutoTranslateStrings: Boolean;
     procedure SetLanguageStorage(Value: TCnCustomLangStorage);
     procedure AdjustNewLanguage(AID: LongWord);
-    function GetCurrentLangugageIndex: Integer;
+    function GetCurrentLanguageIndex: Integer;
   protected
     FLanguageStorage: TCnCustomLangStorage;
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
     procedure DoStorageChanged; virtual;
     procedure DoLanguageChanged; virtual;
-    procedure SetCurrentLangugageIndex(const Value: Integer); virtual;
+    procedure SetCurrentLanguageIndex(const Value: Integer); virtual;
 
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
@@ -157,8 +157,8 @@ type
     property LanguageStorage: TCnCustomLangStorage read FLanguageStorage
       write SetLanguageStorage;
     {* 多语言存储元件引用 }
-    property CurrentLanguageIndex: Integer read GetCurrentLangugageIndex
-      write SetCurrentLangugageIndex default -1;
+    property CurrentLanguageIndex: Integer read GetCurrentLanguageIndex
+      write SetCurrentLanguageIndex default -1;
     {* 当前语言号，影响到整个程序的语言设置。语言号含义由存储元件条目内容决定 }
     property OnStorageChanged: TNotifyEvent read FOnStorageChanged
       write FOnStorageChanged;
@@ -205,7 +205,7 @@ type
     {* 回溯获得一 Component 的祖先标识字符串 }
     procedure TranslateKeyToValue(const Key, Value: WideString);
     {* 翻译级联的字符串 }
-    procedure SetCurrentLangugageIndex(const Value: Integer); override;
+    procedure SetCurrentLanguageIndex(const Value: Integer); override;
     procedure DoLanguageChanged; override;
     function DoTranslateObject(AObject: TObject): Boolean; virtual;
     function DoTranslateObjectProperty(AObject: TObject;
@@ -484,7 +484,7 @@ begin
     FOnStorageChanged(Self);
 end;
 
-function TCnBaseLangManager.GetCurrentLangugageIndex: Integer;
+function TCnBaseLangManager.GetCurrentLanguageIndex: Integer;
 begin
   Result := FCurrentLanguageIndex;
 end;
@@ -497,7 +497,7 @@ begin
     FLanguageStorage := nil;
 end;
 
-procedure TCnBaseLangManager.SetCurrentLangugageIndex(
+procedure TCnBaseLangManager.SetCurrentLanguageIndex(
   const Value: Integer);
 begin
   FCurrentLanguageIndex := Value;
@@ -1274,49 +1274,47 @@ begin
   end;
 end;
 
-procedure TCnCustomLangManager.SetCurrentLangugageIndex(
+procedure TCnCustomLangManager.SetCurrentLanguageIndex(
   const Value: Integer);
 var
   I: Integer;
   Iterator: ICnLangStringIterator;
   AKey, AValue: WideString;
 begin
-  if Value <> CurrentLanguageIndex then
+  inherited;
+
+  // 设计期不进行翻译
+  if not (csDesigning in ComponentState) and FAutoTranslate
+    and (LanguageStorage <> nil) then
   begin
-    inherited;  // 设计期不进行翻译
-
-    if not (csDesigning in ComponentState) and FAutoTranslate
-      and (LanguageStorage <> nil) then
+    if FTranslationMode = tmByComponents then
     begin
-      if FTranslationMode = tmByComponents then
-      begin
-        if atForms in FAutoTransOptions then
-          for I := 0 to Screen.CustomFormCount - 1 do
-            TranslateForm(Screen.CustomForms[I]);
+      if atForms in FAutoTransOptions then
+        for I := 0 to Screen.CustomFormCount - 1 do
+          TranslateForm(Screen.CustomForms[I]);
 
-        if atDataModules in FAutoTransOptions then
-          for I := 0 to Screen.DataModuleCount - 1 do
-            TranslateComponent(Screen.DataModules[I]);
+      if atDataModules in FAutoTransOptions then
+        for I := 0 to Screen.DataModuleCount - 1 do
+          TranslateComponent(Screen.DataModules[I]);
 
-        if atApplication in FAutoTransOptions then
-          TranslateComponent(Application);
-      end
-      else // 基于翻译条目
+      if atApplication in FAutoTransOptions then
+        TranslateComponent(Application);
+    end
+    else // 基于翻译条目
+    begin
+      Iterator := FLanguageStorage.CreateIterator;
+      if Iterator <> nil then
       begin
-        Iterator := FLanguageStorage.CreateIterator;
-        if Iterator <> nil then
-        begin
-          Iterator.StartIterate;
-          try
-            while not Iterator.Eof do
-            begin
-              Iterator.GetCurrentKeyValue(AKey, AValue);
-              TranslateKeyToValue(AKey, AValue);
-              Iterator.Next;
-            end;
-          finally
-            Iterator.EndIterate;
+        Iterator.StartIterate;
+        try
+          while not Iterator.Eof do
+          begin
+            Iterator.GetCurrentKeyValue(AKey, AValue);
+            TranslateKeyToValue(AKey, AValue);
+            Iterator.Next;
           end;
+        finally
+          Iterator.EndIterate;
         end;
       end;
     end;

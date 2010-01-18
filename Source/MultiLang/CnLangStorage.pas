@@ -322,7 +322,7 @@ var
 begin
   if (Value >= 0) and (Value < LanguageCount) then
   begin
-    if Value <> FCurrentLanguageIndex then
+    //if Value <> FCurrentLanguageIndex then
     begin
       AllowChange := True;
       DoLanguageChanging(Value, AllowChange);
