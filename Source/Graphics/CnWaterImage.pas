@@ -187,6 +187,7 @@ procedure TCnWaterImage.Paint;
 var
   Save: Boolean;
 begin
+  Canvas.Lock;
   if csDesigning in ComponentState then
     with inherited Canvas do
     begin
@@ -201,6 +202,7 @@ begin
       with inherited Canvas do
         Draw(0, 0, FDstBmp);
   finally
+    Canvas.UnLock;
     FDrawing := Save;
   end;
 end;
@@ -228,6 +230,8 @@ procedure TCnWaterImage.UpdateWaterData;
 begin
   if [csLoading, csDestroying] * ComponentState = [] then
   begin
+    FDstBmp.Canvas.Lock;
+    FSrcBmp.Canvas.lock;
     FSrcBmp.Width := Width;
     FSrcBmp.Height := Height;
     FSrcBmp.PixelFormat := pf24bit;
@@ -243,6 +247,8 @@ begin
       FSrcBmp.Canvas.StretchDraw(ClientRect, Picture.Graphic);
       FDstBmp.Assign(FSrcBmp);
     end;
+    FDstBmp.Canvas.UnLock;
+    FSrcBmp.Canvas.Unlock;
   end;    
 end;
 
