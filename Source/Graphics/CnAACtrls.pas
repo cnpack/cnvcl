@@ -457,6 +457,7 @@ type
     FSteps: Integer;
     FScrollStep: Word;
     FCurrentStep: Integer;
+    FTextWidth: Integer;
     FScrollDelay: Word;
     FTimer: TTimer;
     FEffect: TCnAAFontEffect;
@@ -1858,10 +1859,17 @@ begin
       tlBottom: Y := R.Bottom - R.Top - MemBmp.Canvas.TextHeight(Caption);
       else Y := 0;
     end;
-    if FScrollType = stRightToLeft then
-      X := Width - FCurrentStep
-    else
-      X := - Canvas.TextWidth(Caption) + FCurrentStep;
+    case FScrollType of
+      stRightToLeft: X := Width - FCurrentStep;
+      stLeftToRight: X := - FTextWidth + FCurrentStep;
+      stNone:
+        case FEffect.Alignment of
+          taCenter: X := (Width - FTextWidth) div 2;
+          taLeftJustify: X := 0;
+          taRightJustify: X := Width - FTextWidth;
+        end;
+    else X := 0;
+    end;
     MemBmp.Height := ClientHeight;
     MemBmp.Width := ClientWidth;
     MemBmp.Canvas.Brush.Color := Color;
@@ -1908,7 +1916,8 @@ begin
       Height := FEffect.BackGround.Height;
     end;
     Bmp.Canvas.Font.Assign(Font);
-    FSteps := Bmp.Canvas.TextWidth(Caption) + Width;
+    FTextWidth := Bmp.Canvas.TextWidth(Caption);
+    FSteps := FTextWidth + Width;
   finally
     Bmp.Free;
   end;
