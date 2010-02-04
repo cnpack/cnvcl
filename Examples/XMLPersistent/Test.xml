@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XMLPersistent><Test PersistentType="TComponent" ClassType="TfrmTest" Align="alNone" AlphaBlend="False" AlphaBlendValue="255" Anchors="akLeft,akTop" AutoScroll="True" AutoSize="False" BiDiMode="bdLeftToRight" BorderIcons="biSystemMenu,biMinimize,biMaximize" BorderStyle="bsSizeable" BorderWidth="0" Caption="frmTest" ClientHeight="446" ClientWidth="688" Color="-16777201" Ctl3D="True" Cursor="0" DefaultMonitor="dmActiveForm" DockSite="False" DragKind="dkDrag" DragMode="dmManual" Enabled="True" FormStyle="fsNormal" Height="480" HelpContext="0" HelpFile="" HelpKeyword="" HelpType="htContext" Hint="" KeyPreview="False" Left="230" Name="frmTest" OldCreateOrder="False" ParentBiDiMode="True" ParentFont="False" PixelsPerInch="96" Position="poDesigned" PrintScale="poProportional" Scaled="True" ScreenSnap="False" ShowHint="False" SnapBuffer="10" Tag="0" Top="190" TransparentColor="False" TransparentColorValue="0" UseDockManager="False" Visible="False" Width="696" WindowState="wsNormal"><Constraints PersistentType="TPersistent" ClassType="TSizeConstraints" MaxHeight="0" MaxWidth="0" MinHeight="0" MinWidth="0"/><Font PersistentType="TPersistent" ClassType="TFont" Charset="1" Color="-16777208" Height="-11" Name="MS Sans Serif" Pitch="fpDefault" Size="8" Style=""/><HorzScrollBar PersistentType="TPersistent" ClassType="TControlScrollBar" ButtonSize="0" Color="-16777196" Increment="8" Margin="0" ParentColor="True" Position="0" Range="569" Size="0" Smooth="False" Style="ssRegular" ThumbSize="0" Tracking="False" Visible="True"/><Icon PersistentType="TGraphic" ClassType="TIcon">AAABAAIAICAQAAAAAADoAgAAJgAAABAQEAAAAAAAKAEAAA4DAAAoAAAAIAAAAEAAAAABAAQAAAAA
+AIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAgAAAAICAAIAAAACAAIAAgIAAAICAgADAwMAA
+AAD/AAD/AAAA//8A/wAAAP8A/wD//wAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABmZmZmZmZm
+ZmYAAAAAAAAAB3d3d3d3d3d3AHAAAAAAcHAP////////9wB/8AAA+HCPf/////////cAf/////hw
+d//////////3AH/////4cHf/9ERERERP9wB/////+HBwD/////////cAf/////hwj3/0RERERE/3
+AH/////4cHf/////////9wB/////+HB3//RERERET/cAf/////hwcA/////////3AH/////4cI9/
+9ERERERP9wB/////+HB3//////////cAf/////hwd//0RERERE/3AH/////4cHAP////////9wB/
+////+HCPf/RERERET/cAf/////hwd//////////3AH/////4cHf/9ERERERP9wB/////+HBwD///
+//////cAf/////hwj3//////AAD3AH/////4cHf/////AIiIAAB/////+HB/////94iIiIgAf///
+//hwd3d3d3eP//+IAH/////4AAAAAAB/////+IAHf///AAAAAAAAf//wAAiAAAd3dwAAAAAAAH//
+8P/4gAAAAAAAAAAAAAB///D//4AAAAAAAAAAAAAAB//w//9wAAAAAAAAAAAAAAf////4cAAAAAAA
+AAAAAAAAd///dwAAAAAAAAAAAAAAAAB3dwAA//AAAf/gAAF/wAABHwAAAQAAAAEAAAABAAAAAQAA
+AAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAA
+AQAAAAEAAAABAB/wAIA/8ADg//AA///wAP//+AH///gB///8A////w8oAAAAEAAAACAAAAABAAQA
+AAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAgAAAAICAAIAAAACAAIAAgIAAAMDAwACA
+gIAAAAD/AAD/AAAA//8A/wAAAP8A/wD//wAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAHd3d3AIAA
+AI90RE8AjwAHB////wCP/3ePdERPAI//dwf///8Aj/93j3RETwCP/3cH/wAAAI//d494d3cAj/93
+D49/d3CP/3gIj/AAcAj/eACPcH9wAIiAAI/w9/AAAAAACP//AAAAAAAAiIgA//8AAP4BAAB8AQAA
+OAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAAACAAAAgwAAAMcAAAD/gQAA/8MAAA==</Icon><VertScrollBar PersistentType="TPersistent" ClassType="TControlScrollBar" ButtonSize="0" Color="-16777196" Increment="8" Margin="0" ParentColor="True" Position="0" Range="241" Size="0" Smooth="False" Style="ssRegular" ThumbSize="0" Tracking="False" Visible="True"/></Test></XMLPersistent>
