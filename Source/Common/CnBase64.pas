@@ -515,7 +515,7 @@ begin
     OutputData[C] := AnsiChar(Chr(x3));
     Inc(C);
   end;
-  OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Trim({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData)));
+  OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData));
   Result := BASE64_OK;
 end;
 
