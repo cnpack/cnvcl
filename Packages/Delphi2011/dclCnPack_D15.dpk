@@ -1,0 +1,63 @@
+package dclCnPack_D15;
+
+{$R *.res}
+{$R '..\..\Source\Common\CnPack.dcr'}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS OFF}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'CnPack Components Designtime Package'}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+{$DEFINE RELEASE}
+
+requires
+  vcl,
+  vclx,
+  vcldb,
+  dclado,
+  adortl,
+  designide,
+  CnPack_D15;
+
+contains
+  CnPack in '..\..\Source\Common\CnPack.pas',
+  CnOTAUtils in '..\..\Source\Common\CnOTAUtils.pas',
+  CnPackRegister in '..\..\Source\Common\CnPackRegister.pas',
+  CnPropEditors in '..\..\Source\Common\CnPropEditors.pas',
+  CnCompAboutFrm in '..\..\Source\Common\CnCompAboutFrm.pas' {CnCompAboutForm},
+  CnDHibernateAbout in '..\..\Source\DbReport\CnDHibernateAbout.pas' {CnFormDHibernateAbout},
+  CnDBRegister in '..\..\Source\DbReport\CnDBRegister.pas',
+  CnADOUpdateSQLEditor in '..\..\Source\DbReport\CnADOUpdateSQLEditor.pas',
+  CnADOUpdateSQLFrm in '..\..\Source\DbReport\CnADOUpdateSQLFrm.pas' {CnADOUpdateSQLForm},
+  CnGraphRegister in '..\..\Source\Graphics\CnGraphRegister.pas',
+  CnGraphPropEditors in '..\..\Source\Graphics\CnGraphPropEditors.pas',
+  CnLangEditors in '..\..\Source\MultiLang\CnLangEditors.pas',
+  CnLangReg in '..\..\Source\MultiLang\CnLangReg.pas',
+  CnNetPropEditor in '..\..\Source\NetComm\CnNetPropEditor.pas',
+  CnNetRegister in '..\..\Source\NetComm\CnNetRegister.pas',
+  CnCompRegister in '..\..\Source\NonVisual\CnCompRegister.pas',
+  CnASPropEditors in '..\..\Source\NonVisual\CnASPropEditors.pas',
+  CnAAFontEditor in '..\..\Source\Graphics\CnAAFontEditor.pas',
+  CnTransEditor in '..\..\Source\MultiLang\CnTransEditor.pas' {FrmTransEditor},
+  CnTransFilter in '..\..\Source\MultiLang\CnTransFilter.pas' {FrmTransFilter},
+  CnDockPropertyReg in '..\..\Source\NonVisual\CnDockPropertyReg.pas';
+
+end.

@@ -1846,6 +1846,7 @@ var
   MemBmp: TBitmap;
 begin
   inherited;
+  X := 0;
   BeginPaint(Canvas.Handle, lpPaint);
   MemBmp := TBitmap.Create;
   try

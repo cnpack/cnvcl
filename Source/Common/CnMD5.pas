@@ -528,7 +528,7 @@ var
   Context: TMD5Context;
 begin
   MD5Init(Context);
-  MD5Update(Context, PAnsiChar(Str), Length(Str) * SizeOf(Char));
+  MD5Update(Context, PAnsiChar({$IFDEF DELPHI2009_UP}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
   MD5Final(Context, Result);
 end;
 

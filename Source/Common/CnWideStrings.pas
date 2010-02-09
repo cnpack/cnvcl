@@ -325,7 +325,7 @@ begin
       
   SetString(SA, nil, Size);
   Stream.Read(Pointer(SA)^, Size);
-  SetTextStr(SA);
+  SetTextStr({$IFDEF DELPHI2009_UP}string{$ENDIF}(SA));
 end;
 
 procedure TCnWideStringList.Put(Index: Integer; const S: WideString);
@@ -385,7 +385,7 @@ begin
   S := GetTextStr;
   if AFormat = wlfAnsi then
   begin
-    SA := S;
+    SA := AnsiString(S);
     Stream.WriteBuffer(Pointer(SA)^, Length(SA) * SizeOf(AnsiChar));
   end
   else if AFormat = wlfUtf8 then

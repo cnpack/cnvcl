@@ -1551,7 +1551,7 @@ begin
       if AObj.IsWide then
         PWideString(AObj.FStringAddr)^ := DstStr
       else
-        PAnsiString(AObj.FStringAddr)^ := DstStr;
+        PAnsiString(AObj.FStringAddr)^ := AnsiString(DstStr);
     end;
   end;
 
