@@ -28,7 +28,7 @@ unit CnLinkedList;
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 备    注：2010.01.01
+* 备    注：2010.01.20
 *               加入部分新功能
 *           2008.05.23
 *               移植单元，实现功能
@@ -87,12 +87,16 @@ type
   end;
 
 type
-  TCnLinkedListEvent = procedure(Sender: TObject; Item: Pointer) of object;
+  TCnLinkedListEvent = procedure(Sender: TObject; AItem: Pointer) of object;
   TCnLinkedObjectListEvent = procedure(Sender: TObject; AObject: TObject) of object;
+  TCnLinkedClassListEvent = procedure(Sender: TObject; AClass: TClass) of object;
   TCnLinkedPAnsiCharsEvent = procedure(Sender: TObject; AString: PAnsiChar) of object;
   TCnLinkedAnsiStringsEvent = procedure(Sender: TObject; AString: AnsiString) of object;
   TCnLinkedPWideCharsEvent = procedure(Sender: TObject; AString: PWideChar) of object;
   TCnLinkedWideStringsEvent = procedure(Sender: TObject; AString: WideString) of object;
+
+  TCnLinkedOrderedListEvent = procedure(Sender: TObject; AItem: Pointer) of object;
+  TCnLinkedOrderedObjectListEvent = procedure(Sender: TObject; AObject: TObject) of object;
 
 type
   ICnCustomLinkedListIterator = interface(IUnknown)
@@ -144,7 +148,7 @@ type
     function GetItem(const Index: Integer): PCnLinkedNode;
     //function GetList: TList;
   protected
-    procedure ClearEvent(); virtual;
+    procedure ClearEvent; virtual;
 
     function Get(Index: Integer): Pointer;
     procedure Put(Index: Integer; Item: Pointer);
@@ -249,7 +253,7 @@ type
     procedure DoExtractItem(Item: Pointer); dynamic;
     procedure DoDeleteItem(Item: Pointer); dynamic;
 
-    procedure ClearEvent(); override;
+    procedure ClearEvent; override;
   public
     constructor Create(const AAutoClear: Boolean); overload;
 
@@ -285,20 +289,20 @@ type
 type
   TCnLinkedObjectList = class(TCnCustomLinkedList)
   private
-    FOnAddItem: TCnLinkedObjectListEvent;
-    FOnExtractItem: TCnLinkedObjectListEvent;
-    FOnDeleteItem: TCnLinkedObjectListEvent;
+    FOnAddObject: TCnLinkedObjectListEvent;
+    FOnExtractObject: TCnLinkedObjectListEvent;
+    FOnDeleteObject: TCnLinkedObjectListEvent;
     function GetObjects(Index: Integer): TObject;
     procedure SetObjects(Index: Integer; const AObject: TObject);
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(AObject: TObject); dynamic;
 
-    procedure DoAddItem(AObject: TObject); dynamic;
-    procedure DoExtractItem(AObject: TObject); dynamic;
-    procedure DoDeleteItem(AObject: TObject); dynamic;
+    procedure DoAddObject(AObject: TObject); dynamic;
+    procedure DoExtractObject(AObject: TObject); dynamic;
+    procedure DoDeleteObject(AObject: TObject); dynamic;
 
-    procedure ClearEvent(); override;
+    procedure ClearEvent; override;
   public
     constructor Create(const AAutoClear: Boolean); overload;
 
@@ -320,9 +324,53 @@ type
   published
     property AutoClear;
 
-    property OnAddItem: TCnLinkedObjectListEvent read FOnAddItem write FOnAddItem;
-    property OnExtractItem: TCnLinkedObjectListEvent read FOnExtractItem write FOnExtractItem;
-    property OnDeleteItem: TCnLinkedObjectListEvent read FOnDeleteItem write FOnDeleteItem;
+    property OnAddObject: TCnLinkedObjectListEvent read FOnAddObject write FOnAddObject;
+    property OnExtractObject: TCnLinkedObjectListEvent read FOnExtractObject write FOnExtractObject;
+    property OnDeleteObject: TCnLinkedObjectListEvent read FOnDeleteObject write FOnDeleteObject;
+  end;
+
+type
+  ICnLinkedClassListIterator = interface(ICnCustomLinkedListIterator)
+    ['{F7C947F8-4A8C-4CD8-BFBF-5CD4BA55F596}']
+    function GetCurrentItem: TClass;
+    {* 获得链表当前位置的值}
+  end;
+
+type
+  TCnLinkedClassList = class(TCnCustomLinkedList)
+  private
+    FOnAddClass: TCnLinkedClassListEvent;
+    FOnExtractClass: TCnLinkedClassListEvent;
+    FOnDeleteClass: TCnLinkedClassListEvent;
+    function GetClasses(Index: Integer): TClass;
+    procedure SetClasses(Index: Integer; const AClass: TClass);
+  protected
+    procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
+
+    procedure DoAddClass(AClass: TClass); dynamic;
+    procedure DoExtractClass(AClass: TClass); dynamic;
+    procedure DoDeleteClass(AClass: TClass); dynamic;
+
+    procedure ClearEvent; override;
+  public
+    function Add(const AClass: TClass): Integer;
+    function First: TClass;
+    function Last: TClass;
+    function Previous: TClass;
+    function Next: TClass;
+    function IndexOf(const AClass: TClass): Integer;
+    function Insert(const Index: Integer; const AClass: TClass): Integer;
+    function Extract(const AClass: TClass): TClass;
+    function Remove(const AClass: TClass): Integer;
+    procedure Pack;
+    function CreateIterator: ICnLinkedClassListIterator;
+
+    property Classes[Index: Integer]: TClass read GetClasses write SetClasses; default;
+    property Count;
+  published
+    property OnAddClass: TCnLinkedClassListEvent read FOnAddClass write FOnAddClass;
+    property OnExtractClass: TCnLinkedClassListEvent read FOnExtractClass write FOnExtractClass;
+    property OnDeleteClass: TCnLinkedClassListEvent read FOnDeleteClass write FOnDeleteClass;
   end;
 
 type
@@ -350,6 +398,9 @@ type
     procedure SetText(const Value: PAnsiChar);
 
     procedure ListDeleteItem(Sender: TObject; Item: Pointer);
+    procedure QuickSort(Left, Right: Integer);
+      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
+      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnPAnsiCharItem); dynamic;
@@ -358,11 +409,12 @@ type
     procedure DoExtractItem(Item: PCnPAnsiCharItem); dynamic;
     procedure DoDeleteItem(Item: PCnPAnsiCharItem); dynamic;
 
-    procedure ClearEvent(); override;
-    function CompareStrings(const Value1, Value2: PAnsiChar): Integer; virtual;
+    procedure ClearEvent; override;
+    function CompareStrings(const Value1, Value2: PAnsiChar): Integer; overload; virtual;
       // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
+    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
-    constructor Create(); overload;
+    constructor Create; overload;
     constructor Create(const AAutoClear: Boolean); overload;
     destructor Destroy; override;
 
@@ -381,6 +433,8 @@ type
     function Remove(const AString: PAnsiChar): Integer;
     procedure Pack;
     procedure Assign(const AList: TCnCustomLinkedList); override;
+    procedure Sort;
+
     function CreateIterator: ICnLinkedPAnsiCharsIterator;
 
     property Strings[Index: Integer]: PAnsiChar read GetStrings write SetStrings; default;
@@ -416,6 +470,10 @@ type
 
     function GetText: AnsiString;
     procedure SetText(const Value: AnsiString);
+
+    procedure QuickSort(Left, Right: Integer);
+      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
+      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnAnsiStringItem); dynamic;
@@ -424,9 +482,10 @@ type
     procedure DoExtractItem(Item: PCnAnsiStringItem); dynamic;
     procedure DoDeleteItem(Item: PCnAnsiStringItem); dynamic;
 
-    procedure ClearEvent(); override;
-    function CompareStrings(const Value1, Value2: AnsiString): Integer; virtual;
+    procedure ClearEvent; override;
+    function CompareStrings(const Value1, Value2: AnsiString): Integer; overload; virtual;
       // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
+    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
     constructor Create(const AAutoClear: Boolean); overload;
 
@@ -446,6 +505,7 @@ type
     procedure Pack;
     procedure Assign(const AList: TCnCustomLinkedList); override;
     function CreateIterator: ICnLinkedAnsiStringsIterator;
+    procedure Sort;
 
     property Strings[Index: Integer]: AnsiString read GetStrings write SetStrings; default;
     property Objects[Index: Integer]: TObject read GetObjects write SetObjects;
@@ -484,6 +544,9 @@ type
     procedure SetText(const Value: PWideChar);
 
     procedure ListDeleteItem(Sender: TObject; Item: Pointer);
+    procedure QuickSort(Left, Right: Integer);
+      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
+      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnPWideCharItem); dynamic;
@@ -492,11 +555,12 @@ type
     procedure DoExtractItem(Item: PCnPWideCharItem); dynamic;
     procedure DoDeleteItem(Item: PCnPWideCharItem); dynamic;
 
-    procedure ClearEvent(); override;
-    function CompareStrings(const Value1, Value2: PWideChar): Integer; virtual;
+    procedure ClearEvent; override;
+    function CompareStrings(const Value1, Value2: PWideChar): Integer; overload; virtual;
       // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
+    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
-    constructor Create(); overload;
+    constructor Create; overload;
     constructor Create(const AAutoClear: Boolean); overload;
     destructor Destroy; override;
 
@@ -516,6 +580,7 @@ type
     procedure Pack;
     procedure Assign(const AList: TCnCustomLinkedList); override;
     function CreateIterator: ICnLinkedPWideCharsIterator;
+    procedure Sort;
 
     property Strings[Index: Integer]: PWideChar read GetStrings write SetStrings; default;
     property Objects[Index: Integer]: TObject read GetObjects write SetObjects;
@@ -550,6 +615,10 @@ type
 
     function GetText: WideString;
     procedure SetText(const Value: WideString);
+
+    procedure QuickSort(Left, Right: Integer);
+      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
+      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnWideStringItem); dynamic;
@@ -558,9 +627,10 @@ type
     procedure DoExtractItem(Item: PCnWideStringItem); dynamic;
     procedure DoDeleteItem(Item: PCnWideStringItem); dynamic;
 
-    procedure ClearEvent(); override;
-    function CompareStrings(const Value1, Value2: WideString): Integer; virtual;
+    procedure ClearEvent; override;
+    function CompareStrings(const Value1, Value2: WideString): Integer; overload; virtual;
       // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
+    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
     constructor Create(const AAutoClear: Boolean); overload;
 
@@ -580,6 +650,7 @@ type
     procedure Pack;
     procedure Assign(const AList: TCnCustomLinkedList); override;
     function CreateIterator: ICnLinkedWideStringsIterator;
+    procedure Sort;
 
     property Strings[Index: Integer]: WideString read GetStrings write SetStrings; default;
     property Objects[Index: Integer]: TObject read GetObjects write SetObjects;
@@ -593,11 +664,107 @@ type
     property OnDeleteString: TCnLinkedWideStringsEvent read FOnDeleteString write FOnDeleteString;
   end;
 
+
+type
+  TCnLinkedCustomOrderedList = class(TObject) // 顺序列表 队列和栈的基类 （进出顺序由子类决定）
+  private
+    FList: TCnLinkedList; // 双向列表对象，用来存储节点
+  protected
+    procedure PushItem(AItem: Pointer); virtual; abstract;  // 添加一个节点到列表中
+    function PopItem: Pointer; virtual;                     // 从列表尾取出并删除一个节点
+    function PeekItem: Pointer; virtual;                    // 从列表尾取出一个节点
+
+    property List: TCnLinkedList read FList;
+
+  {* 以下为要发布的方法 *}
+    function Push(AItem: Pointer): Pointer;                 // 添加一个节点（进队/栈）
+    function Pop: Pointer;                                  // 取出并删除一个节点（出队/栈）
+    function Peek: Pointer;                                 // 取出一个节点
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Count: Integer;                                // 总节点数
+    function AtLeast(ACount: Integer): Boolean;             //
+  end;
+
+  TCnLinkedOrderedList = class(TCnLinkedCustomOrderedList)
+  private
+    FOnPush: TCnLinkedOrderedListEvent;
+    FOnPop: TCnLinkedOrderedListEvent;
+    procedure ClearEvent;
+  protected
+    procedure DoPush(AItem: Pointer); dynamic;
+    procedure DoPop(AItem: Pointer); dynamic;
+
+    procedure PushItem(AItem: Pointer); override;
+    function PopItem: Pointer; override;
+
+    property OnPush: TCnLinkedOrderedListEvent read FOnPush write FOnPush;
+    property OnPop: TCnLinkedOrderedListEvent read FOnPop write FOnPop;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Push(AItem: Pointer): Pointer;
+    function Pop: Pointer;
+    function Peek: Pointer;
+  end;
+
+  TCnLinkedOrderedObjectList = class(TCnLinkedCustomOrderedList)
+  private
+    FOnPush: TCnLinkedOrderedObjectListEvent;
+    FOnPop: TCnLinkedOrderedObjectListEvent;
+    procedure ClearEvent;
+  protected
+    procedure DoPush(AObject: TObject); dynamic;
+    procedure DoPop(AObject: TObject); dynamic;
+
+    procedure PushItem(AItem: Pointer); override;
+    function PopItem: Pointer; override;
+
+    property OnPush: TCnLinkedOrderedObjectListEvent read FOnPush write FOnPush;
+    property OnPop: TCnLinkedOrderedObjectListEvent read FOnPop write FOnPop;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Push(AObject: TObject): TObject;
+    function Pop: TObject;
+    function Peek: TObject;
+  end;
+
+  TCnLinkedStack = class(TCnLinkedOrderedList)
+  protected
+    procedure PushItem(AItem: Pointer); override;
+  end;
+
+  TCnLinkedQueue = class(TCnLinkedOrderedList)
+  protected
+    procedure PushItem(AItem: Pointer); override;
+  end;
+
+  TCnLinkedObjectStack = class(TCnLinkedOrderedObjectList)
+  protected
+    procedure PushItem(AItem: Pointer); override;
+  end;
+
+  TCnLinkedObjectQueue = class(TCnLinkedOrderedObjectList)
+  protected
+    procedure PushItem(AItem: Pointer); override;
+  end;
+
 function StrNewA(const Value: PAnsiChar): PAnsiChar;
 procedure StrDisposeA(var Value: PAnsiChar);
 function StrNewW(const Value: PWideChar): PWideChar;
 procedure StrDisposeW(var Value: PWideChar);
-
+{
+procedure DeleteObject(var AObject: TObject);
+procedure DeleteString(var AString: PAnsiChar); overload;
+procedure DeleteString(var AString: AnsiString); overload;
+procedure DeleteString(var AString: PWideChar); overload;
+procedure DeleteString(var AString: WideString); overload;
+}
 implementation
 
 function StrLenA(const Value: PAnsiChar): Cardinal;
@@ -678,9 +845,53 @@ begin
   FreeMem(Value, Cardinal(Value^));
 end;
 
-const
+procedure DeleteObject(var AObject: TObject);
+begin
+  if not Assigned(AObject) then
+    Exit;
+
+  try
+    FreeAndNil(AObject);
+  except
+  end;
+end;
+
+procedure DeleteString(var AString: PAnsiChar); overload;
+begin
+  if AString = nil then
+    Exit;
+
+  try
+    StrDisposeA(AString);
+    AString := nil;
+  except
+  end;
+end;
+
+procedure DeleteString(var AString: AnsiString); overload;
+begin
+end;
+
+procedure DeleteString(var AString: PWideChar); overload;
+begin
+  if AString = nil then
+    Exit;
+
+  try
+    StrDisposeW(AString);
+    AString := nil;
+  except
+  end;
+end;
+
+procedure DeleteString(var AString: WideString); overload;
+begin
+end;
+
+resourcestring
   SListIndexError = 'List Out of Bounds (%d).';
   SListCountError = 'Invalid List Count (%d).';
+  SEmptyString = '';
 
 type
   TCnCustomLinkedListIterator = class(TInterfacedObject, ICnCustomLinkedListIterator)
@@ -706,41 +917,47 @@ type
 type
   TCnLinkedListIterator = class(TCnCustomLinkedListIterator, ICnLinkedListIterator)
   public
-    function GetCurrentItem(): Pointer;
+    function GetCurrentItem: Pointer;
   end;
 
 type
   TCnLinkedObjectListIterator = class(TCnCustomLinkedListIterator, ICnLinkedObjectListIterator)
   public
-    function GetCurrentItem(): TObject;
+    function GetCurrentItem: TObject;
+  end;
+
+type
+  TCnLinkedClassListIterator = class(TCnCustomLinkedListIterator, ICnLinkedClassListIterator)
+  public
+    function GetCurrentItem: TClass;
   end;
 
 type
   TCnLinkedPAnsiCharsIterator = class(TCnCustomLinkedListIterator, ICnLinkedPAnsiCharsIterator)
   public
-    function GetCurrentString(): PAnsiChar;
-    function GetCurrentObject(): TObject;
+    function GetCurrentString: PAnsiChar;
+    function GetCurrentObject: TObject;
   end;
 
 type
   TCnLinkedAnsiStringsIterator = class(TCnCustomLinkedListIterator, ICnLinkedAnsiStringsIterator)
   public
-    function GetCurrentString(): AnsiString;
-    function GetCurrentObject(): TObject;
+    function GetCurrentString: AnsiString;
+    function GetCurrentObject: TObject;
   end;
 
 type
   TCnLinkedPWideCharsIterator = class(TCnCustomLinkedListIterator, ICnLinkedPWideCharsIterator)
   public
-    function GetCurrentString(): PWideChar;
-    function GetCurrentObject(): TObject;
+    function GetCurrentString: PWideChar;
+    function GetCurrentObject: TObject;
   end;
 
 type
   TCnLinkedWideStringsIterator = class(TCnCustomLinkedListIterator, ICnLinkedWideStringsIterator)
   public
-    function GetCurrentString(): WideString;
-    function GetCurrentObject(): TObject;
+    function GetCurrentString: WideString;
+    function GetCurrentObject: TObject;
   end;
 
 { TCnCustomLinkedList }
@@ -817,7 +1034,7 @@ begin
       Exit;
 
     Item_N := GetItem(Index); //当前节点
-    Item_P := GetPrevious();
+    Item_P := GetPrevious;
 
     AItem := New(PCnLinkedNode);
     AItem.Previous := Item_P;
@@ -866,9 +1083,9 @@ end;
 
 constructor TCnCustomLinkedList.Create;
 begin
-  inherited Create();
+  inherited Create;
   InitializeCriticalSection(FLock);
-  ClearEvent();
+  ClearEvent;
 
   FFirst := nil;
   FLast := nil;
@@ -894,12 +1111,12 @@ begin
   begin
     if Index = 0 then //删除首节点
     begin
-      DeleteFirst();
+      DeleteFirst;
       Result := Index;
     end
     else if Index = FCount - 1 then //删除尾节点
     begin
-      DeleteLast();
+      DeleteLast;
       Result := Index;
     end
     else if DeleteMiddle(Index) then
@@ -907,7 +1124,7 @@ begin
   end
   else //如果是删除最后一个节点
   begin
-    DeleteLastNode();
+    DeleteLastNode;
     Result := 0;
   end;
 end;
@@ -998,8 +1215,8 @@ begin
     Exit;
 
   Item := GetItem(Index); //当前节点
-  Item_P := GetPrevious(); //上一节点
-  Item_N := GetNext(); //下一节点
+  Item_P := GetPrevious; //上一节点
+  Item_N := GetNext; //下一节点
 
   Item_P.Next := Item_N;
   Item_N.Previous := Item_P;
@@ -1020,21 +1237,21 @@ end;
 
 destructor TCnCustomLinkedList.Destroy;
 begin
-  Lock();
+  Lock;
   try
     //if Assigned(FList) then
       //FreeAndNil(FList);
     Clear;
-    ClearEvent();
+    ClearEvent;
     FIndex := -1;
     FNode := nil;
     FFirst := nil;
     FLast := nil;
   finally
-    UnLock();
+    UnLock;
     DeleteCriticalSection(FLock);
   end;
-  inherited Destroy();
+  inherited Destroy;
 end;
 
 procedure TCnCustomLinkedList.Exchange(const Index1, Index2: Integer);
@@ -1046,9 +1263,9 @@ begin
   if (Index2 < 0) or (Index2 >= FCount) then
     raise Exception.Create(Format(SListIndexError, [Index2]));
 
-  Item := Get(Index1);
-  Put(Index1, Get(Index2));
-  Put(Index2, Item);
+  Item := GetItem(Index1).Code;
+  GetItem(Index1).Code := GetItem(Index2).Code;
+  GetItem(Index2).Code := Item;
 end;
 
 function TCnCustomLinkedList.Extract(const Item: Pointer): Pointer;
@@ -1072,6 +1289,8 @@ end;
 
 function TCnCustomLinkedList.First: Pointer;
 begin
+  if FFirst = nil then
+    raise Exception.Create(Format(SListIndexError, [0]));
   Result := FFirst.Code;
 end;
 
@@ -1079,6 +1298,9 @@ function TCnCustomLinkedList.Get(Index: Integer): Pointer;
 var
   Item: PCnLinkedNode;
 begin
+  if (Index < 0) or (Index >= FCount) then
+    raise Exception.Create(Format(SListIndexError, [Index]));
+
   Item := GetItem(Index);
   if Item <> nil then
     Result := Item.Code
@@ -1095,7 +1317,7 @@ function TCnCustomLinkedList.GetFirst: PCnLinkedNode;
 begin
   Result := FFirst;
   if FFirst = nil then
-    Exit;
+    raise Exception.Create(Format(SListIndexError, [0]));
 
   FIndex := 0;
   FNode := FFirst;
@@ -1125,7 +1347,7 @@ function TCnCustomLinkedList.GetLast: PCnLinkedNode;
 begin
   Result := FLast;
   if FLast = nil then
-    Exit;
+    raise Exception.Create(Format(SListIndexError, [Count - 1]));
 
   FNode := FLast;
   FIndex := FCount - 1;
@@ -1140,7 +1362,7 @@ begin
   begin
     FList.Add(Get(0));
     for Index := 0 to FCount - 2 do
-      FList.Add(Next());
+      FList.Add(Next);
   end;
 
   Result := FList;
@@ -1208,9 +1430,11 @@ function TCnCustomLinkedList.GetNext(Move: Boolean): PCnLinkedNode;
 begin
   Result := nil;
   if FNode = nil then
-    Exit;
+    raise Exception.Create(Format(SListIndexError, [FIndex]));
 
   Result := FNode.Next;
+  if Result = nil then
+    raise Exception.Create(Format(SListIndexError, [FIndex + 1]));
   if Move then
   begin
     Inc(FIndex);
@@ -1221,10 +1445,12 @@ end;
 function TCnCustomLinkedList.GetPrevious(Move: Boolean): PCnLinkedNode;
 begin
   Result := nil;
-  if FNode.Previous = nil then
-    Exit;
+  if FNode = nil then
+    raise Exception.Create(Format(SListIndexError, [FIndex]));
 
   Result := FNode.Previous;
+  if Result = nil then
+    raise Exception.Create(Format(SListIndexError, [FIndex - 1]));
   if Move then
   begin
     Dec(FIndex);
@@ -1263,6 +1489,8 @@ end;
 
 function TCnCustomLinkedList.Last: Pointer;
 begin
+  if FLast = nil then
+    raise Exception.Create(Format(SListIndexError, [FCount - 1]));
   Result := FLast.Code;
 end;
 
@@ -1292,9 +1520,7 @@ end;
 
 function TCnCustomLinkedList.Next: Pointer;
 begin
-  FNode := FNode.Next;
-  Inc(FIndex);
-  Result := FNode.Code;
+  Result := GetNext(True)^.Code;
 end;
 
 procedure TCnCustomLinkedList.Notify(Ptr: Pointer; Action: TCnLinkedListNotification);
@@ -1312,9 +1538,7 @@ end;
 
 function TCnCustomLinkedList.Previous: Pointer;
 begin
-  FNode := FNode.Previous;
-  Dec(FIndex);
-  Result := FNode.Code;
+  Result := GetPrevious(True)^.Code;
 end;
 
 procedure TCnCustomLinkedList.Put(Index: Integer; Item: Pointer);
@@ -1372,7 +1596,7 @@ end;
 
 procedure TCnLinkedList.ClearEvent;
 begin
-  inherited ClearEvent();
+  inherited ClearEvent;
   FOnAddItem := nil;
   FOnDeleteItem := nil;
   FOnExtractItem := nil;
@@ -1380,7 +1604,7 @@ end;
 
 constructor TCnLinkedList.Create(const AAutoClear: Boolean);
 begin
-  inherited Create();
+  inherited Create;
   AutoClear := AAutoClear;
 end;
 
@@ -1392,7 +1616,10 @@ end;
 procedure TCnLinkedList.DeleteItemCode(Item: Pointer);
 begin
   if Item <> nil then
+  try
     Dispose(Item);
+  except
+  end;
 end;
 
 procedure TCnLinkedList.DoAddItem(Item: Pointer);
@@ -1422,7 +1649,7 @@ end;
 
 function TCnLinkedList.First: Pointer;
 begin
-  Result := inherited First();
+  Result := inherited First;
 end;
 
 function TCnLinkedList.IndexOf(const Item: Pointer): Integer;
@@ -1437,12 +1664,12 @@ end;
 
 function TCnLinkedList.Last: Pointer;
 begin
-  Result := inherited Last();
+  Result := inherited Last;
 end;
 
 function TCnLinkedList.Next: Pointer;
 begin
-  Result := inherited Next();
+  Result := inherited Next;
 end;
 
 procedure TCnLinkedList.Notify(Ptr: Pointer; Action: TCnLinkedListNotification);
@@ -1457,12 +1684,12 @@ end;
 
 procedure TCnLinkedList.Pack;
 begin
-  inherited Pack();
+  inherited Pack;
 end;
 
 function TCnLinkedList.Previous: Pointer;
 begin
-  Result := inherited Previous();
+  Result := inherited Previous;
 end;
 
 function TCnLinkedList.Remove(const Item: Pointer): Integer;
@@ -1479,15 +1706,15 @@ end;
 
 procedure TCnLinkedObjectList.ClearEvent;
 begin
-  inherited ClearEvent();
-  FOnAddItem := nil;
-  FOnDeleteItem := nil;
-  FOnExtractItem := nil;
+  inherited ClearEvent;
+  FOnAddObject := nil;
+  FOnDeleteObject := nil;
+  FOnExtractObject := nil;
 end;
 
 constructor TCnLinkedObjectList.Create(const AAutoClear: Boolean);
 begin
-  inherited Create();
+  inherited Create;
   AutoClear := AAutoClear;
 end;
 
@@ -1498,28 +1725,27 @@ end;
 
 procedure TCnLinkedObjectList.DeleteItemCode(AObject: TObject);
 begin
-  if Assigned(AObject) then
-    AObject.Free;
+  DeleteObject(AObject);
 end;
 
-procedure TCnLinkedObjectList.DoAddItem(AObject: TObject);
+procedure TCnLinkedObjectList.DoAddObject(AObject: TObject);
 begin
-  if Assigned(FOnAddItem) then
-    FOnAddItem(Self, AObject);
+  if Assigned(FOnAddObject) then
+    FOnAddObject(Self, AObject);
 end;
 
-procedure TCnLinkedObjectList.DoDeleteItem(AObject: TObject);
+procedure TCnLinkedObjectList.DoDeleteObject(AObject: TObject);
 begin
-  if Assigned(FOnDeleteItem) then
-    FOnDeleteItem(Self, AObject);
+  if Assigned(FOnDeleteObject) then
+    FOnDeleteObject(Self, AObject);
   if AutoClear then
     DeleteItemCode(AObject);
 end;
 
-procedure TCnLinkedObjectList.DoExtractItem(AObject: TObject);
+procedure TCnLinkedObjectList.DoExtractObject(AObject: TObject);
 begin
-  if Assigned(FOnExtractItem) then
-    FOnExtractItem(Self, AObject);
+  if Assigned(FOnExtractObject) then
+    FOnExtractObject(Self, AObject);
 end;
 
 function TCnLinkedObjectList.Extract(const AObject: TObject): TObject;
@@ -1545,7 +1771,7 @@ end;
 
 function TCnLinkedObjectList.First: TObject;
 begin
-  Result := TObject(inherited First());
+  Result := TObject(inherited First);
 end;
 
 function TCnLinkedObjectList.GetObjects(Index: Integer): TObject;
@@ -1565,12 +1791,12 @@ end;
 
 function TCnLinkedObjectList.Last: TObject;
 begin
-  Result := TObject(inherited Last());
+  Result := TObject(inherited Last);
 end;
 
 function TCnLinkedObjectList.Next: TObject;
 begin
-  Result := TObject(inherited Next());
+  Result := TObject(inherited Next);
 end;
 
 procedure TCnLinkedObjectList.Notify(Ptr: Pointer;
@@ -1578,20 +1804,20 @@ procedure TCnLinkedObjectList.Notify(Ptr: Pointer;
 begin
   inherited Notify(Ptr, Action);
   case Action of
-    lnAdded: DoAddItem(Ptr);
-    lnDeleted: DoDeleteItem(Ptr);
-    lnExtracted: DoExtractItem(Ptr);
+    lnAdded: DoAddObject(Ptr);
+    lnDeleted: DoDeleteObject(Ptr);
+    lnExtracted: DoExtractObject(Ptr);
   end;
 end;
 
 procedure TCnLinkedObjectList.Pack;
 begin
-  inherited Pack();
+  inherited Pack;
 end;
 
 function TCnLinkedObjectList.Previous: TObject;
 begin
-  Result := TObject(inherited Previous());
+  Result := TObject(inherited Previous);
 end;
 
 function TCnLinkedObjectList.Remove(const AObject: TObject): Integer;
@@ -1599,10 +1825,112 @@ begin
   Result := inherited Remove(Pointer(AObject));
 end;
 
-procedure TCnLinkedObjectList.SetObjects(Index: Integer;
-  const AObject: TObject);
+procedure TCnLinkedObjectList.SetObjects(Index: Integer; const AObject: TObject);
 begin
   inherited Items[Index] := Pointer(AObject);
+end;
+
+{ TCnLinkedClassList }
+
+function TCnLinkedClassList.Add(const AClass: TClass): Integer;
+begin
+  Result := inherited Add(Pointer(AClass));
+end;
+
+procedure TCnLinkedClassList.ClearEvent;
+begin
+  inherited ClearEvent;
+  FOnAddClass := nil;
+  FOnDeleteClass := nil;
+  FOnExtractClass := nil;
+end;
+
+function TCnLinkedClassList.CreateIterator: ICnLinkedClassListIterator;
+begin
+  Result := TCnLinkedClassListIterator.Create(Self);
+end;
+
+procedure TCnLinkedClassList.DoAddClass(AClass: TClass);
+begin
+  if Assigned(FOnAddClass) then
+    FOnAddClass(Self, AClass);
+end;
+
+procedure TCnLinkedClassList.DoDeleteClass(AClass: TClass);
+begin
+  if Assigned(FOnDeleteClass) then
+    FOnDeleteClass(Self, AClass);
+end;
+
+procedure TCnLinkedClassList.DoExtractClass(AClass: TClass);
+begin
+  if Assigned(FOnExtractClass) then
+    FOnExtractClass(Self, AClass);
+end;
+
+function TCnLinkedClassList.Extract(const AClass: TClass): TClass;
+begin
+  Result := TClass(inherited Extract(Pointer(AClass)));
+end;
+
+function TCnLinkedClassList.First: TClass;
+begin
+  Result := TClass(inherited First);
+end;
+
+function TCnLinkedClassList.GetClasses(Index: Integer): TClass;
+begin
+  Result := TClass(inherited Items[Index]);
+end;
+
+function TCnLinkedClassList.IndexOf(const AClass: TClass): Integer;
+begin
+  Result := inherited IndexOf(Pointer(AClass));
+end;
+
+function TCnLinkedClassList.Insert(const Index: Integer; const AClass: TClass): Integer;
+begin
+  Result := inherited Insert(Index, Pointer(AClass));
+end;
+
+function TCnLinkedClassList.Last: TClass;
+begin
+  Result := TClass(inherited Last);
+end;
+
+function TCnLinkedClassList.Next: TClass;
+begin
+  Result := TClass(inherited Next);
+end;
+
+procedure TCnLinkedClassList.Notify(Ptr: Pointer; Action: TCnLinkedListNotification);
+begin
+  inherited Notify(Ptr, Action);
+  case Action of
+    lnAdded: DoAddClass(Ptr);
+    lnDeleted: DoDeleteClass(Ptr);
+    lnExtracted: DoExtractClass(Ptr);
+  end;
+end;
+
+procedure TCnLinkedClassList.Pack;
+begin
+  inherited Pack;
+end;
+
+function TCnLinkedClassList.Previous: TClass;
+begin
+  Result := TClass(inherited Previous);
+end;
+
+function TCnLinkedClassList.Remove(const AClass: TClass): Integer;
+begin
+  Result := inherited Remove(Pointer(AClass));
+end;
+
+procedure TCnLinkedClassList.SetClasses(Index: Integer; const AClass: TClass);
+begin
+  inherited Items[Index] := Pointer(AClass);
 end;
 
 { TCnLinkedPAnsiChars }
@@ -1646,15 +1974,15 @@ begin
   Item := AList.Items[0];
   AddObject(Item^.AString, Item^.AObject);
   for Loop := 0 to AList.Count - 2 do
-    begin
-      Item := AList.Next;
-      AddObject(Item^.AString, Item^.AObject);
-    end;
+  begin
+    Item := AList.Next;
+    AddObject(Item^.AString, Item^.AObject);
+  end;
 end;
 
 procedure TCnLinkedPAnsiChars.ClearEvent;
 begin
-  inherited ClearEvent();
+  inherited ClearEvent;
   FOnAddString := nil;
   FOnDeleteString := nil;
   FOnExtractString := nil;
@@ -1668,15 +1996,20 @@ end;
 
 constructor TCnLinkedPAnsiChars.Create;
 begin
-  inherited Create();
+  inherited Create;
   FList := TCnLinkedList.Create;
   FList.OnDeleteItem := ListDeleteItem;
   FText := nil;
 end;
 
+function TCnLinkedPAnsiChars.CompareStrings(Index1, Index2: Integer): Integer;
+begin
+  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
+end;
+
 constructor TCnLinkedPAnsiChars.Create(const AAutoClear: Boolean);
 begin
-  Create();
+  Create;
   AutoClear := AAutoClear;
 end;
 
@@ -1689,10 +2022,8 @@ procedure TCnLinkedPAnsiChars.DeleteItemCode(Item: PCnPAnsiCharItem);
 begin
   if Assigned(Item) then
   begin
-    if Item^.AString <> nil then
-      StrDisposeA(Item^.AString);
-    if Assigned(Item^.AObject) then
-      Item^.AObject.Free;
+    DeleteObject(Item^.AObject);
+    DeleteString(Item^.AString);
   end;
 end;
 
@@ -1700,8 +2031,8 @@ destructor TCnLinkedPAnsiChars.Destroy;
 begin
   if FText <> nil then
     FreeMemory(FText);
-  inherited Destroy();
-  FList.Free;
+  inherited Destroy;
+  DeleteObject(TObject(FList));
 end;
 
 procedure TCnLinkedPAnsiChars.DoAddItem(Item: PCnPAnsiCharItem);
@@ -1723,8 +2054,9 @@ procedure TCnLinkedPAnsiChars.DoExtractItem(Item: PCnPAnsiCharItem);
 begin
   if Assigned(FOnExtractString) then
     FOnExtractString(Self, Item^.AString);
+
   if AutoClear then
-    Item^.AObject.Free;
+    DeleteObject(Item^.AObject);
 end;
 
 function TCnLinkedPAnsiChars.Extract(const AString: PAnsiChar): PAnsiChar;
@@ -1753,7 +2085,7 @@ end;
 
 function TCnLinkedPAnsiChars.First: PAnsiChar;
 begin
-  Result := PCnPAnsiCharItem(inherited First())^.AString;
+  Result := PCnPAnsiCharItem(inherited First)^.AString;
 end;
 
 function TCnLinkedPAnsiChars.GetObjects(Index: Integer): TObject;
@@ -1830,7 +2162,7 @@ end;
 
 function TCnLinkedPAnsiChars.Last: PAnsiChar;
 begin
-  Result := PCnPAnsiCharItem(inherited Last()).AString;
+  Result := PCnPAnsiCharItem(inherited Last)^.AString;
 end;
 
 procedure TCnLinkedPAnsiChars.ListDeleteItem(Sender: TObject;
@@ -1844,7 +2176,7 @@ end;
 
 function TCnLinkedPAnsiChars.Next: PAnsiChar;
 begin
-  Result := PCnPAnsiCharItem(inherited Next()).AString;
+  Result := PCnPAnsiCharItem(inherited Next)^.AString;
 end;
 
 procedure TCnLinkedPAnsiChars.Notify(Ptr: Pointer; Action: TCnLinkedListNotification);
@@ -1874,7 +2206,37 @@ end;
 
 function TCnLinkedPAnsiChars.Previous: PAnsiChar;
 begin
-  Result := PCnPAnsiCharItem(inherited Previous())^.AString;
+  Result := PCnPAnsiCharItem(inherited Previous)^.AString;
+end;
+
+procedure TCnLinkedPAnsiChars.QuickSort(Left, Right: Integer);
+var
+  ALeft, ARight, AOrdinal: Integer;
+begin
+  repeat
+    ALeft := Left;
+    ARight := Right;
+    AOrdinal := (Left + Right) shr 1;
+    repeat
+      while CompareStrings(ALeft, AOrdinal) < 0 do
+        Inc(ALeft);
+      while CompareStrings(ARight, AOrdinal) > 0 do
+        Dec(ARight);
+      if ALeft <= ARight then
+      begin
+        Exchange(ALeft, ARight);
+        if AOrdinal = ALeft then
+          AOrdinal := ARight
+        else if AOrdinal = ARight then
+          AOrdinal := ALeft;
+        Inc(ALeft);
+        Dec(ARight);
+      end;
+    until ALeft > ARight;
+    if Left < ARight then
+      QuickSort(Left, ARight);
+    Left := ALeft;
+  until ALeft >= Right;
 end;
 
 function TCnLinkedPAnsiChars.Remove(const AString: PAnsiChar): Integer;
@@ -1885,13 +2247,32 @@ begin
 end;
 
 procedure TCnLinkedPAnsiChars.SetObjects(Index: Integer; const AObject: TObject);
+var
+  Item: PCnPAnsiCharItem;
 begin
-  PCnPAnsiCharItem(inherited Items[Index])^.AObject := AObject;
+  Item := inherited Items[Index];
+  if Item = nil then
+    Exit;
+
+  if AutoClear then
+    DeleteObject(Item^.AObject);
+  Item^.AObject := AObject;
 end;
 
 procedure TCnLinkedPAnsiChars.SetStrings(Index: Integer; const AString: PAnsiChar);
+var
+  Item: PCnPAnsiCharItem;
 begin
-  PCnPAnsiCharItem(inherited Items[Index])^.AString := AString;
+  Item := inherited Items[Index];
+  if Item = nil then
+    Exit;
+
+  if AutoClear and (Item^.AString <> nil) then
+  try
+    StrDisposeA(Item^.AString);
+  except
+  end;
+  Item^.AString := AString;
 end;
 
 procedure TCnLinkedPAnsiChars.SetText(const Value: PAnsiChar);
@@ -1922,6 +2303,13 @@ begin
     while PValue^ in [#10, #13] do
       Inc(PValue);
   end;
+end;
+
+procedure TCnLinkedPAnsiChars.Sort;
+begin
+  if Count = 0 then
+    Exit;
+  QuickSort(0, Count - 1);
 end;
 
 { TCnLinkedAnsiStrings }
@@ -1964,15 +2352,15 @@ begin
   Item := AList.Items[0];
   AddObject(Item^.AString, Item^.AObject);
   for Loop := 0 to AList.Count - 2 do
-    begin
-      Item := AList.Next;
-      AddObject(Item^.AString, Item^.AObject);
-    end;
+  begin
+    Item := AList.Next;
+    AddObject(Item^.AString, Item^.AObject);
+  end;
 end;
 
 procedure TCnLinkedAnsiStrings.ClearEvent;
 begin
-  inherited ClearEvent();
+  inherited ClearEvent;
   FOnAddString := nil;
   FOnDeleteString := nil;
   FOnExtractString := nil;
@@ -1984,9 +2372,14 @@ begin
     PAnsiChar(Value1), Length(Value1), PAnsiChar(Value2), Length(Value2)) - 2;
 end;
 
+function TCnLinkedAnsiStrings.CompareStrings(Index1, Index2: Integer): Integer;
+begin
+  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
+end;
+
 constructor TCnLinkedAnsiStrings.Create(const AAutoClear: Boolean);
 begin
-  inherited Create();
+  inherited Create;
   AutoClear := AAutoClear;
 end;
 
@@ -1999,9 +2392,8 @@ procedure TCnLinkedAnsiStrings.DeleteItemCode(Item: PCnAnsiStringItem);
 begin
   if Item <> nil then
   begin
-    //SetLength(Item^.AString, 0);
-    if Assigned(Item^.AObject) then
-      Item^.AObject.Free;
+    DeleteObject(Item^.AObject);
+    DeleteString(Item^.AString);
   end;
 end;
 
@@ -2025,7 +2417,7 @@ begin
   if Assigned(FOnExtractString) then
     FOnExtractString(Self, Item^.AString);
   if AutoClear then
-    Item^.AObject.Free;
+    DeleteObject(Item^.AObject);
 end;
 
 function TCnLinkedAnsiStrings.Extract(const AString: AnsiString): AnsiString;
@@ -2054,7 +2446,7 @@ end;
 
 function TCnLinkedAnsiStrings.First: AnsiString;
 begin
-  Result := PCnAnsiStringItem(inherited First())^.AString;
+  Result := PCnAnsiStringItem(inherited First)^.AString;
 end;
 
 function TCnLinkedAnsiStrings.GetObjects(Index: Integer): TObject;
@@ -2125,12 +2517,12 @@ end;
 
 function TCnLinkedAnsiStrings.Last: AnsiString;
 begin
-  Result := PCnAnsiStringItem(inherited Last())^.AString;
+  Result := PCnAnsiStringItem(inherited Last)^.AString;
 end;
 
 function TCnLinkedAnsiStrings.Next: AnsiString;
 begin
-  Result := PCnAnsiStringItem(inherited Next())^.AString;
+  Result := PCnAnsiStringItem(inherited Next)^.AString;
 end;
 
 procedure TCnLinkedAnsiStrings.Notify(Ptr: Pointer; Action: TCnLinkedListNotification);
@@ -2159,7 +2551,37 @@ end;
 
 function TCnLinkedAnsiStrings.Previous: AnsiString;
 begin
-  Result := PCnAnsiStringItem(inherited Previous())^.AString;
+  Result := PCnAnsiStringItem(inherited Previous)^.AString;
+end;
+
+procedure TCnLinkedAnsiStrings.QuickSort(Left, Right: Integer);
+var
+  ALeft, ARight, AOrdinal: Integer;
+begin
+  repeat
+    ALeft := Left;
+    ARight := Right;
+    AOrdinal := (Left + Right) shr 1;
+    repeat
+      while CompareStrings(ALeft, AOrdinal) < 0 do
+        Inc(ALeft);
+      while CompareStrings(ARight, AOrdinal) > 0 do
+        Dec(ARight);
+      if ALeft <= ARight then
+      begin
+        Exchange(ALeft, ARight);
+        if AOrdinal = ALeft then
+          AOrdinal := ARight
+        else if AOrdinal = ARight then
+          AOrdinal := ALeft;
+        Inc(ALeft);
+        Dec(ARight);
+      end;
+    until ALeft > ARight;
+    if Left < ARight then
+      QuickSort(Left, ARight);
+    Left := ALeft;
+  until ALeft >= Right;
 end;
 
 function TCnLinkedAnsiStrings.Remove(const AString: AnsiString): Integer;
@@ -2170,8 +2592,16 @@ begin
 end;
 
 procedure TCnLinkedAnsiStrings.SetObjects(Index: Integer; const AObject: TObject);
+var
+  Item: PCnAnsiStringItem;
 begin
-  PCnAnsiStringItem(inherited Items[Index])^.AObject := AObject;
+  Item := inherited Items[Index];
+  if Item = nil then
+    Exit;
+
+  if AutoClear then
+    DeleteObject(Item^.AObject);
+  Item^.AObject := AObject;
 end;
 
 procedure TCnLinkedAnsiStrings.SetStrings(Index: Integer; const AString: AnsiString);
@@ -2201,6 +2631,11 @@ begin
     while PValue^ in [#10, #13] do
       Inc(PValue);
   end;
+end;
+
+procedure TCnLinkedAnsiStrings.Sort;
+begin
+  QuickSort(0, Count - 1);
 end;
 
 { TCnLinkedPWideChars }
@@ -2244,15 +2679,15 @@ begin
   Item := AList.Items[0];
   AddObject(Item^.AString, Item^.AObject);
   for Loop := 0 to AList.Count - 2 do
-    begin
-      Item := AList.Next;
-      AddObject(Item^.AString, Item^.AObject);
-    end;
+  begin
+    Item := AList.Next;
+    AddObject(Item^.AString, Item^.AObject);
+  end;
 end;
 
 procedure TCnLinkedPWideChars.ClearEvent;
 begin
-  inherited ClearEvent();
+  inherited ClearEvent;
   FOnAddString := nil;
   FOnDeleteString := nil;
   FOnExtractString := nil;
@@ -2267,15 +2702,20 @@ end;
 
 constructor TCnLinkedPWideChars.Create;
 begin
-  inherited Create();
+  inherited Create;
   FList := TCnLinkedList.Create;
   FList.OnDeleteItem := ListDeleteItem;
   FText := nil;
 end;
 
+function TCnLinkedPWideChars.CompareStrings(Index1, Index2: Integer): Integer;
+begin
+  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
+end;
+
 constructor TCnLinkedPWideChars.Create(const AAutoClear: Boolean);
 begin
-  Create();
+  Create;
   AutoClear := AAutoClear;
 end;
 
@@ -2288,10 +2728,8 @@ procedure TCnLinkedPWideChars.DeleteItemCode(Item: PCnPWideCharItem);
 begin
   if Item <> nil then
   begin
-    if Assigned(Item^.AString) then
-      StrDisposeW(Item^.AString);
-    if Assigned(Item^.AObject) then
-      Item^.AObject.Free;
+    DeleteObject(Item^.AObject);
+    DeleteString(Item^.AString);
   end;
 end;
 
@@ -2299,8 +2737,8 @@ destructor TCnLinkedPWideChars.Destroy;
 begin
   if FText <> nil then
     FreeMemory(FText);
-  inherited Destroy();
-  FList.Free;
+  inherited Destroy;
+  DeleteObject(TObject(FList));
 end;
 
 procedure TCnLinkedPWideChars.DoAddItem(Item: PCnPWideCharItem);
@@ -2350,7 +2788,7 @@ end;
 
 function TCnLinkedPWideChars.First: PWideChar;
 begin
-  Result := PCnPWideCharItem(inherited First())^.AString;
+  Result := PCnPWideCharItem(inherited First)^.AString;
 end;
 
 function TCnLinkedPWideChars.GetObjects(Index: Integer): TObject;
@@ -2427,7 +2865,7 @@ end;
 
 function TCnLinkedPWideChars.Last: PWideChar;
 begin
-  Result := PCnPWideCharItem(inherited Last())^.AString;
+  Result := PCnPWideCharItem(inherited Last)^.AString;
 end;
 
 procedure TCnLinkedPWideChars.ListDeleteItem(Sender: TObject; Item: Pointer);
@@ -2440,7 +2878,7 @@ end;
 
 function TCnLinkedPWideChars.Next: PWideChar;
 begin
-  Result := PCnPWideCharItem(inherited Next())^.AString;
+  Result := PCnPWideCharItem(inherited Next)^.AString;
 end;
 
 procedure TCnLinkedPWideChars.Notify(Ptr: Pointer;
@@ -2471,7 +2909,37 @@ end;
 
 function TCnLinkedPWideChars.Previous: PWideChar;
 begin
-  Result := PCnPWideCharItem(inherited Previous())^.AString;
+  Result := PCnPWideCharItem(inherited Previous)^.AString;
+end;
+
+procedure TCnLinkedPWideChars.QuickSort(Left, Right: Integer);
+var
+  ALeft, ARight, AOrdinal: Integer;
+begin
+  repeat
+    ALeft := Left;
+    ARight := Right;
+    AOrdinal := (Left + Right) shr 1;
+    repeat
+      while CompareStrings(ALeft, AOrdinal) < 0 do
+        Inc(ALeft);
+      while CompareStrings(ARight, AOrdinal) > 0 do
+        Dec(ARight);
+      if ALeft <= ARight then
+      begin
+        Exchange(ALeft, ARight);
+        if AOrdinal = ALeft then
+          AOrdinal := ARight
+        else if AOrdinal = ARight then
+          AOrdinal := ALeft;
+        Inc(ALeft);
+        Dec(ARight);
+      end;
+    until ALeft > ARight;
+    if Left < ARight then
+      QuickSort(Left, ARight);
+    Left := ALeft;
+  until ALeft >= Right;
 end;
 
 function TCnLinkedPWideChars.Remove(const AString: PWideChar): Integer;
@@ -2481,16 +2949,34 @@ begin
     Delete(Result);
 end;
 
-procedure TCnLinkedPWideChars.SetObjects(Index: Integer;
-  const AObject: TObject);
+procedure TCnLinkedPWideChars.SetObjects(Index: Integer; const AObject: TObject);
+var
+  Item: PCnPWideCharItem;
 begin
-  PCnPWideCharItem(inherited Items[Index])^.AObject := AObject;
+  Item := inherited Items[Index];
+  if Item = nil then
+    Exit;
+
+  if AutoClear then
+    DeleteObject(Item^.AObject);
+  Item^.AObject := AObject;
 end;
 
 procedure TCnLinkedPWideChars.SetStrings(Index: Integer;
   const AString: PWideChar);
+var
+  Item: PCnPWideCharItem;
 begin
-  PCnPWideCharItem(inherited Items[Index])^.AString := AString;
+  Item := inherited Items[Index];
+  if Item = nil then
+    Exit;
+
+  if AutoClear and (Item^.AString <> nil) then
+  try
+    StrDisposeW(Item^.AString);
+  except
+  end;
+  Item^.AString := AString;
 end;
 
 procedure TCnLinkedPWideChars.SetText(const Value: PWideChar);
@@ -2521,6 +3007,11 @@ begin
     while (PValue^ = #10) or (PValue^ = #13) do
       Inc(PValue);
   end;
+end;
+
+procedure TCnLinkedPWideChars.Sort;
+begin
+  QuickSort(0, Count - 1);
 end;
 
 { TCnLinkedWideStrings }
@@ -2564,15 +3055,15 @@ begin
   Item := AList.Items[0];
   AddObject(Item^.AString, Item^.AObject);
   for Loop := 0 to AList.Count - 2 do
-    begin
-      Item := AList.Next;
-      AddObject(Item^.AString, Item^.AObject);
-    end;
+  begin
+    Item := AList.Next;
+    AddObject(Item^.AString, Item^.AObject);
+  end;
 end;
 
 procedure TCnLinkedWideStrings.ClearEvent;
 begin
-  inherited ClearEvent();
+  inherited ClearEvent;
   FOnAddString := nil;
   FOnDeleteString := nil;
   FOnExtractString := nil;
@@ -2584,9 +3075,14 @@ begin
     PWideChar(Value1), Length(Value1), PWideChar(Value2), Length(Value2)) - 2;
 end;
 
+function TCnLinkedWideStrings.CompareStrings(Index1, Index2: Integer): Integer;
+begin
+  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
+end;
+
 constructor TCnLinkedWideStrings.Create(const AAutoClear: Boolean);
 begin
-  inherited Create();
+  inherited Create;
   AutoClear := AAutoClear;
 end;
 
@@ -2599,9 +3095,8 @@ procedure TCnLinkedWideStrings.DeleteItemCode(Item: PCnWideStringItem);
 begin
   if Item <> nil then
   begin
-    //SetLength(Item^.AString, 0);
-    if Assigned(Item^.AObject) then
-      Item^.AObject.Free;
+    DeleteObject(Item^.AObject);
+    DeleteString(Item^.AString);
   end;
 end;
 
@@ -2652,7 +3147,7 @@ end;
 
 function TCnLinkedWideStrings.First: WideString;
 begin
-  Result := PCnWideStringItem(inherited First())^.AString;
+  Result := PCnWideStringItem(inherited First)^.AString;
 end;
 
 function TCnLinkedWideStrings.GetObjects(Index: Integer): TObject;
@@ -2723,16 +3218,15 @@ end;
 
 function TCnLinkedWideStrings.Last: WideString;
 begin
-  Result := PCnWideStringItem(inherited Last())^.AString;
+  Result := PCnWideStringItem(inherited Last)^.AString;
 end;
 
 function TCnLinkedWideStrings.Next: WideString;
 begin
-  Result := PCnWideStringItem(inherited Next())^.AString;
+  Result := PCnWideStringItem(inherited Next)^.AString;
 end;
 
-procedure TCnLinkedWideStrings.Notify(Ptr: Pointer;
-  Action: TCnLinkedListNotification);
+procedure TCnLinkedWideStrings.Notify(Ptr: Pointer; Action: TCnLinkedListNotification);
 begin
   inherited Notify(Ptr, Action);
   case Action of
@@ -2758,7 +3252,37 @@ end;
 
 function TCnLinkedWideStrings.Previous: WideString;
 begin
-  Result := PCnWideStringItem(inherited Previous())^.AString;
+  Result := PCnWideStringItem(inherited Previous)^.AString;
+end;
+
+procedure TCnLinkedWideStrings.QuickSort(Left, Right: Integer);
+var
+  ALeft, ARight, AOrdinal: Integer;
+begin
+  repeat
+    ALeft := Left;
+    ARight := Right;
+    AOrdinal := (Left + Right) shr 1;
+    repeat
+      while CompareStrings(ALeft, AOrdinal) < 0 do
+        Inc(ALeft);
+      while CompareStrings(ARight, AOrdinal) > 0 do
+        Dec(ARight);
+      if ALeft <= ARight then
+      begin
+        Exchange(ALeft, ARight);
+        if AOrdinal = ALeft then
+          AOrdinal := ARight
+        else if AOrdinal = ARight then
+          AOrdinal := ALeft;
+        Inc(ALeft);
+        Dec(ARight);
+      end;
+    until ALeft > ARight;
+    if Left < ARight then
+      QuickSort(Left, ARight);
+    Left := ALeft;
+  until ALeft >= Right;
 end;
 
 function TCnLinkedWideStrings.Remove(const AString: WideString): Integer;
@@ -2769,8 +3293,16 @@ begin
 end;
 
 procedure TCnLinkedWideStrings.SetObjects(Index: Integer; const AObject: TObject);
+var
+  Item: PCnWideStringItem;
 begin
-  PCnWideStringItem(inherited Items[Index])^.AObject := AObject;
+  Item := inherited Items[Index];
+  if Item = nil then
+    Exit;
+
+  if AutoClear then
+    DeleteObject(Item^.AObject);
+  Item^.AObject := AObject;
 end;
 
 procedure TCnLinkedWideStrings.SetStrings(Index: Integer; const AString: WideString);
@@ -2802,6 +3334,11 @@ begin
   end;
 end;
 
+procedure TCnLinkedWideStrings.Sort;
+begin
+  QuickSort(0, Count - 1);
+end;
+
 { TCnCustomLinkedListIterator }
 
 function TCnCustomLinkedListIterator.Bof: Boolean;
@@ -2811,7 +3348,7 @@ end;
 
 constructor TCnCustomLinkedListIterator.Create(AList: TCnCustomLinkedList);
 begin
-  inherited Create();
+  inherited Create;
 
   FList := AList;
   if FList.Count = 0 then
@@ -2831,8 +3368,7 @@ end;
 procedure TCnCustomLinkedListIterator.First;
 begin
   FCurrent := FList.FFirst;
-  if FCurrent = nil then
-    FBof := True;
+  FBof := FCurrent = nil;
 end;
 
 function TCnCustomLinkedListIterator.GetCurrentItem: Pointer;
@@ -2846,8 +3382,7 @@ end;
 procedure TCnCustomLinkedListIterator.Last;
 begin
   FCurrent := FList.FLast;
-  if FCurrent = nil then
-    FEof := True;
+  FEof := FCurrent = nil;
 end;
 
 procedure TCnCustomLinkedListIterator.Next;
@@ -2857,8 +3392,7 @@ begin
 
   FCurrent := FCurrent^.Next;
   FBof := False;
-  if FCurrent = nil then
-    FEof := True;
+  FEof := FCurrent = nil;
 end;
 
 procedure TCnCustomLinkedListIterator.Previous;
@@ -2868,70 +3402,323 @@ begin
 
   FCurrent := FCurrent^.Previous;
   FEof := False;
-  if FCurrent = nil then
-    FBof := True;
+  FBof := FCurrent = nil;
 end;
 
 { TCnLinkedListIterator }
 
 function TCnLinkedListIterator.GetCurrentItem: Pointer;
 begin
-  Result := inherited GetCurrentItem();
+  Result := inherited GetCurrentItem;
 end;
 
 { TCnLinkedObjectListIterator }
 
 function TCnLinkedObjectListIterator.GetCurrentItem: TObject;
 begin
-  Result := TObject(inherited GetCurrentItem());
+  Result := TObject(inherited GetCurrentItem);
+end;
+
+{ TCnLinkedClassListIterator }
+
+function TCnLinkedClassListIterator.GetCurrentItem: TClass;
+begin
+  Result := TClass(inherited GetCurrentItem);
 end;
 
 { TCnLinkedPAnsiCharsIterator }
 
 function TCnLinkedPAnsiCharsIterator.GetCurrentObject: TObject;
+var
+  Item: PCnPAnsiCharItem;
 begin
-  Result := PCnPAnsiCharItem(inherited GetCurrentItem())^.AObject;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AObject
+  else
+    Result := nil;
 end;
 
 function TCnLinkedPAnsiCharsIterator.GetCurrentString: PAnsiChar;
+var
+  Item: PCnPAnsiCharItem;
 begin
-  Result := PCnPAnsiCharItem(inherited GetCurrentItem())^.AString;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AString
+  else
+    Result := nil;
 end;
 
 { TCnLinkedAnsiStringsIterator }
 
 function TCnLinkedAnsiStringsIterator.GetCurrentObject: TObject;
+var
+  Item: PCnAnsiStringItem;
 begin
-  Result := PCnAnsiStringItem(inherited GetCurrentItem())^.AObject;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AObject
+  else
+    Result := nil;
 end;
 
 function TCnLinkedAnsiStringsIterator.GetCurrentString: AnsiString;
+var
+  Item: PCnAnsiStringItem;
 begin
-  Result := PCnAnsiStringItem(inherited GetCurrentItem())^.AString;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AString
+  else
+    Result := SEmptyString;
 end;
 
 { TCnLinkedPWideCharsIterator }
 
 function TCnLinkedPWideCharsIterator.GetCurrentObject: TObject;
+var
+  Item: PCnPWideCharItem;
 begin
-  Result := PCnPWideCharItem(inherited GetCurrentItem())^.AObject;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AObject
+  else
+    Result := nil;
 end;
 
 function TCnLinkedPWideCharsIterator.GetCurrentString: PWideChar;
+var
+  Item: PCnPWideCharItem;
 begin
-  Result := PCnPWideCharItem(inherited GetCurrentItem())^.AString;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AString
+  else
+    Result := nil;
 end;
 
 { TCnLinkedWideStringsIterator }
 
 function TCnLinkedWideStringsIterator.GetCurrentObject: TObject;
+var
+  Item: PCnWideStringItem;
 begin
-  Result := PCnWideStringItem(inherited GetCurrentItem())^.AObject;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AObject
+  else
+    Result := nil;
 end;
 
 function TCnLinkedWideStringsIterator.GetCurrentString: WideString;
+var
+  Item: PCnWideStringItem;
 begin
-  Result := PCnWideStringItem(inherited GetCurrentItem())^.AString;
+  Item := inherited GetCurrentItem;
+  if Item <> nil then
+    Result := Item^.AString
+  else
+    Result := SEmptyString;
+end;
+
+{ TCnLinkedCustomOrderedList }
+
+function TCnLinkedCustomOrderedList.AtLeast(ACount: Integer): Boolean;
+begin
+  Result := List.Count >= ACount;
+end;
+
+function TCnLinkedCustomOrderedList.Count: Integer;
+begin
+  Result := List.Count;
+end;
+
+constructor TCnLinkedCustomOrderedList.Create;
+begin
+  inherited Create;
+  FList := TCnLinkedList.Create;
+end;
+
+destructor TCnLinkedCustomOrderedList.Destroy;
+begin
+  DeleteObject(TObject(FList));
+  inherited;
+end;
+
+function TCnLinkedCustomOrderedList.Peek: Pointer;
+begin
+  Result := PeekItem;
+end;
+
+function TCnLinkedCustomOrderedList.PeekItem: Pointer;
+begin
+  Result := List.Last;
+end;
+
+function TCnLinkedCustomOrderedList.Pop: Pointer;
+begin
+  Result := PopItem;
+end;
+
+function TCnLinkedCustomOrderedList.PopItem: Pointer;
+begin
+  Result := PeekItem;
+  List.Delete(List.Count - 1);
+end;
+
+function TCnLinkedCustomOrderedList.Push(AItem: Pointer): Pointer;
+begin
+  PushItem(AItem);
+  Result := AItem;
+end;
+
+{ TCnLinkedOrderedList }
+
+procedure TCnLinkedOrderedList.ClearEvent;
+begin
+  FOnPush := nil;
+  FOnPop := nil;
+end;
+
+constructor TCnLinkedOrderedList.Create;
+begin
+  inherited Create;
+  ClearEvent;
+end;
+
+destructor TCnLinkedOrderedList.Destroy;
+begin
+  ClearEvent;
+  inherited Destroy;
+end;
+
+procedure TCnLinkedOrderedList.DoPop(AItem: Pointer);
+begin
+  if Assigned(FOnPop) then
+    FOnPop(Self, AItem);
+end;
+
+procedure TCnLinkedOrderedList.DoPush(AItem: Pointer);
+begin
+  if Assigned(FOnPush) then
+    FOnPush(Self, AItem);
+end;
+
+function TCnLinkedOrderedList.Peek: Pointer;
+begin
+  Result := inherited Peek;
+end;
+
+function TCnLinkedOrderedList.Pop: Pointer;
+begin
+  Result := inherited Pop;
+end;
+
+function TCnLinkedOrderedList.PopItem: Pointer;
+begin
+  Result := inherited PopItem;
+  DoPop(Result);
+end;
+
+function TCnLinkedOrderedList.Push(AItem: Pointer): Pointer;
+begin
+  Result := inherited Push(AItem);
+end;
+
+procedure TCnLinkedOrderedList.PushItem(AItem: Pointer);
+begin
+  DoPush(AItem);
+end;
+
+{ TCnLinkedOrderedObjectList }
+
+procedure TCnLinkedOrderedObjectList.ClearEvent;
+begin
+  FOnPush := nil;
+  FOnPop := nil;
+end;
+
+constructor TCnLinkedOrderedObjectList.Create;
+begin
+  inherited Create;
+  ClearEvent;
+end;
+
+destructor TCnLinkedOrderedObjectList.Destroy;
+begin
+  ClearEvent;
+  inherited Destroy;
+end;
+
+procedure TCnLinkedOrderedObjectList.DoPop(AObject: TObject);
+begin
+  if Assigned(FOnPop) then
+    FOnPop(Self, AObject);
+end;
+
+procedure TCnLinkedOrderedObjectList.DoPush(AObject: TObject);
+begin
+  if Assigned(FOnPush) then
+    FOnPush(Self, AObject);
+end;
+
+function TCnLinkedOrderedObjectList.Peek: TObject;
+begin
+  Result := TObject(inherited Peek);
+end;
+
+function TCnLinkedOrderedObjectList.Pop: TObject;
+begin
+  Result := TObject(inherited Pop);
+end;
+
+function TCnLinkedOrderedObjectList.PopItem: Pointer;
+begin
+  Result := inherited PopItem;
+  DoPop(TObject(Result));
+end;
+
+function TCnLinkedOrderedObjectList.Push(AObject: TObject): TObject;
+begin
+  Result := TObject(inherited Push(Pointer(AObject)));
+end;
+
+procedure TCnLinkedOrderedObjectList.PushItem(AItem: Pointer);
+begin
+  DoPush(TObject(AItem));
+end;
+
+{ TCnLinkedStack }
+
+procedure TCnLinkedStack.PushItem(AItem: Pointer);
+begin
+  inherited PushItem(AItem);
+  List.Add(AItem);
+end;
+
+{ TCnLinkedQueue }
+
+procedure TCnLinkedQueue.PushItem(AItem: Pointer);
+begin
+  inherited PushItem(AItem);
+  List.Insert(0, AItem);
+end;
+
+{ TCnLinkedObjectStack }
+
+procedure TCnLinkedObjectStack.PushItem(AItem: Pointer);
+begin
+  inherited PushItem(AItem);
+  List.Add(AItem);
+end;
+
+{ TCnLinkedObjectQueue }
+
+procedure TCnLinkedObjectQueue.PushItem(AItem: Pointer);
+begin
+  inherited PushItem(AItem);
+  List.Insert(0, AItem);
 end;
 
 end.
