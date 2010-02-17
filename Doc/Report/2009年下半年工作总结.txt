@@ -1,0 +1,102 @@
+CnPack开发组2009年下半年度工作总结
+
+    CnPack 在 2009 年下半年取得的主要成绩如下：
+
+一、2009 年 8 月，CnPack 成为 Embarcadero 的技术合作伙伴（ETP）。
+
+二、CnPack IDE 专家包发布 0.9.2、0.9.3、0.9.4、0.9.5 正式版。其中 0.9.4 加入了对 Delphi 2010 正式版的支持。
+
+三、CnPack IDE 专家包多语界面正在增加对俄语和德语的支持，目前最新的每日构建版中已经加入了这两种语言的界面语言文件，测试中。感谢 Yuri Petrov 与 Ralf Schroedter 两位外国朋友的热心帮助。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+    或：
+    http://code.google.com/p/cnpack/downloads/list?can=1
+
+四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
+
+    链接：
+    http://www.cnpack.org/foundation.php
+    公开帐目：
+    http://www.cnpack.org/showdetail.php?id=529
+
+    2010 年 CnPack 开发组的计划如下：
+
+一、CnWizards 准备发布 0.9.6 版，界面加入对俄语与德语的支持。另外也将计划对未来 Delphi 2011 正式版的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。希望能继续进一步扩大用户群。
+
+三、继续扩充及移植 CnPack 组件包，补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部邮件列表：bbs@cnpack.org
+    CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
+                             CnPack III: 32712412（满），CnPack IV: 130970（满），
+                             CnPack V: 16067960（满），CnPack VI: 45094292（满），
+                             CnPack VII 超级群：47744868
+
+    （注：邮件列表与 QQ 群原则上只供开发组成员与用户加入；不建议同一用户重复加入多个 QQ 群）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2010-02-17
+
+
+========================================================================
+
+CnPack Working Report in the Second Half of 2009
+
+    Below are the achievements of CnPack in the Second Half of 2009:
+
+1. CnPack Becomes Embarcadero Technology Partner (ETP).
+
+2. CnPack IDE Wizards 0.9.2、0.9.3、0.9.4、0.9.5 published. And 0.9.4 supports Delphi 2010.
+
+3. Russian and German UI of CnPack IDE Wizards is under testing in Nightly Build version. Thanks the help of Yuri Petrov and Ralf Schroedter.
+
+   Our nightly build version:
+   http://www.cnpack.org/downbuilds.php
+   Or:
+   http://code.google.com/p/cnpack/downloads/list?can=1
+
+4. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
+   https://sourceforge.net/project/project_donations.php?group_id=110999   
+
+    Below is the plan of CnPack for 2010:
+
+1. Publish CnWizards 0.9.6 to add Russian and German UI support. And prepare the support to Delphi 2011 in future.
+
+2. Continue to fix the bugs and do the function improvements for CnWizards. We hope users number can increase considerably in the next year.
+
+3. Continue documentation.
+
+4. Continue to build the CnPack Team.
+
+To our members: Be more initiative and active for communication and taking part in our work.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack Mailing List: bbs@cnpack.org
+    CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125
+                         CnPack III: 32712412; CnPack IV: 130970
+                         CnPack V: 16067960; CnPack VI: 45094292
+                         CnPack VII: 47744868
+
+    (Note: Mailing list and QQ group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2010-02-17
