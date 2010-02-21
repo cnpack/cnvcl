@@ -2,14 +2,14 @@ object CnAAFontDlg: TCnAAFontDlg
   Left = 172
   Top = 130
   BorderStyle = bsDialog
-  Caption = '平滑特效字体'
+  Caption = 'Anti-Alias Font'
   ClientHeight = 249
   ClientWidth = 518
   Color = clBtnFace
-  Font.Charset = GB2312_CHARSET
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = '宋体'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
@@ -31,35 +31,35 @@ object CnAAFontDlg: TCnAAFontDlg
     Top = 8
     Width = 129
     Height = 185
-    Caption = '阴影(&S)'
+    Caption = '&Shadow'
     TabOrder = 0
     object Label1: TLabel
       Left = 8
       Top = 64
       Width = 42
       Height = 12
-      Caption = '模糊度:'
+      Caption = 'Blur:'
     end
     object Label2: TLabel
       Left = 8
       Top = 96
       Width = 54
       Height = 12
-      Caption = '不透明度:'
+      Caption = 'Transparency:'
     end
     object Label3: TLabel
       Left = 8
       Top = 128
       Width = 54
       Height = 12
-      Caption = '水平偏移:'
+      Caption = 'H. Offset:'
     end
     object Label4: TLabel
       Left = 8
       Top = 160
       Width = 54
       Height = 12
-      Caption = '垂直偏移:'
+      Caption = 'V. Offset:'
     end
     object spShadow: TShape
       Left = 64
@@ -73,14 +73,14 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 40
       Width = 54
       Height = 12
-      Caption = '阴影颜色:'
+      Caption = 'Shadow Color:'
     end
     object cbShadow: TCheckBox
       Left = 8
       Top = 16
       Width = 81
       Height = 17
-      Caption = '显示阴影'
+      Caption = 'Show Shadow'
       TabOrder = 0
       OnClick = cbShadowClick
     end
@@ -138,7 +138,7 @@ object CnAAFontDlg: TCnAAFontDlg
     Top = 8
     Width = 113
     Height = 185
-    Caption = '渐变(&G)'
+    Caption = '&Gradient'
     TabOrder = 1
     object spStartColor: TShape
       Left = 64
@@ -152,7 +152,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 36
       Width = 54
       Height = 12
-      Caption = '起始颜色:'
+      Caption = 'Start Color:'
     end
     object spEndColor: TShape
       Left = 64
@@ -166,14 +166,14 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 57
       Width = 54
       Height = 12
-      Caption = '结束颜色:'
+      Caption = 'End Color:'
     end
     object cbGradual: TCheckBox
       Left = 8
       Top = 16
       Width = 100
       Height = 17
-      Caption = '允许渐变绘制'
+      Caption = 'Use Gradient'
       TabOrder = 0
       OnClick = cbShadowClick
     end
@@ -182,7 +182,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 75
       Width = 100
       Height = 17
-      Caption = '从左到右渐变'
+      Caption = 'Left to Right'
       Checked = True
       TabOrder = 1
       TabStop = True
@@ -193,7 +193,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 92
       Width = 100
       Height = 17
-      Caption = '从右到左渐变'
+      Caption = 'Right to Left'
       TabOrder = 2
       OnClick = seShadowBlurClick
     end
@@ -202,7 +202,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 109
       Width = 100
       Height = 17
-      Caption = '从上到下渐变'
+      Caption = 'Top to Bottom'
       TabOrder = 3
       OnClick = seShadowBlurClick
     end
@@ -211,7 +211,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 142
       Width = 100
       Height = 17
-      Caption = '从中间到左右'
+      Caption = 'Center to Left and Right'
       TabOrder = 5
       OnClick = seShadowBlurClick
     end
@@ -220,7 +220,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 125
       Width = 100
       Height = 17
-      Caption = '从下到上渐变'
+      Caption = 'Bottom to Top'
       TabOrder = 4
       OnClick = seShadowBlurClick
     end
@@ -229,7 +229,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 159
       Width = 100
       Height = 17
-      Caption = '从中间到上下'
+      Caption = 'Center to Top and Bottom'
       TabOrder = 6
       OnClick = seShadowBlurClick
     end
@@ -239,14 +239,14 @@ object CnAAFontDlg: TCnAAFontDlg
     Top = 8
     Width = 113
     Height = 185
-    Caption = '字体纹理(&T)'
+    Caption = '&Texture'
     TabOrder = 2
     object cbTexture: TCheckBox
       Left = 8
       Top = 16
       Width = 100
       Height = 17
-      Caption = '允许字体纹理'
+      Caption = 'Use Texture'
       TabOrder = 0
       OnClick = cbShadowClick
     end
@@ -255,7 +255,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 40
       Width = 50
       Height = 17
-      Caption = '平铺'
+      Caption = 'Tile'
       Checked = True
       TabOrder = 1
       TabStop = True
@@ -266,7 +266,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 40
       Width = 50
       Height = 17
-      Caption = '缩放'
+      Caption = 'Stretch'
       TabOrder = 2
       OnClick = seShadowBlurClick
     end
@@ -275,7 +275,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 61
       Width = 50
       Height = 17
-      Caption = '中心'
+      Caption = 'Center'
       TabOrder = 3
       OnClick = seShadowBlurClick
     end
@@ -284,7 +284,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 61
       Width = 50
       Height = 17
-      Caption = '默认'
+      Caption = 'Default'
       TabOrder = 4
       OnClick = seShadowBlurClick
     end
@@ -293,7 +293,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 104
       Width = 97
       Height = 25
-      Caption = '选择图片(&P)...'
+      Caption = 'Open &Picture...'
       TabOrder = 5
       OnClick = btnOpenPicClick
     end
@@ -302,7 +302,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 144
       Width = 97
       Height = 25
-      Caption = '清除图片(&L)'
+      Caption = 'C&lear'
       TabOrder = 6
       OnClick = btnClearPicClick
     end
@@ -312,49 +312,49 @@ object CnAAFontDlg: TCnAAFontDlg
     Top = 8
     Width = 129
     Height = 185
-    Caption = '其它效果(&O)'
+    Caption = '&Other Effects'
     TabOrder = 3
     object Label7: TLabel
       Left = 8
       Top = 20
       Width = 42
       Height = 12
-      Caption = '模糊度:'
+      Caption = 'Blur:'
     end
     object Label8: TLabel
       Left = 8
       Top = 43
       Width = 54
       Height = 12
-      Caption = '不透明度:'
+      Caption = 'Transparency:'
     end
     object Label9: TLabel
       Left = 8
       Top = 89
       Width = 42
       Height = 12
-      Caption = '噪声点:'
+      Caption = 'Noise:'
     end
     object Label11: TLabel
       Left = 8
       Top = 112
       Width = 54
       Height = 12
-      Caption = '喷溅效果:'
+      Caption = 'Spray:'
     end
     object Label12: TLabel
       Left = 8
       Top = 66
       Width = 54
       Height = 12
-      Caption = '旋转角度:'
+      Caption = 'Rotate Angle:'
     end
     object cbOutline: TCheckBox
       Left = 8
       Top = 131
       Width = 100
       Height = 17
-      Caption = '轮廓效果'
+      Caption = 'Outline'
       TabOrder = 5
       OnClick = seShadowBlurClick
     end
@@ -423,7 +423,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 147
       Width = 100
       Height = 17
-      Caption = '水平镜象效果'
+      Caption = 'Flip Horizontal'
       TabOrder = 6
       OnClick = seShadowBlurClick
     end
@@ -432,7 +432,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Top = 163
       Width = 100
       Height = 17
-      Caption = '垂直镜象效果'
+      Caption = 'Flip Vertical'
       TabOrder = 7
       OnClick = seShadowBlurClick
     end
@@ -442,7 +442,7 @@ object CnAAFontDlg: TCnAAFontDlg
     Top = 216
     Width = 75
     Height = 25
-    Caption = '字体(&F)...'
+    Caption = '&Font...'
     TabOrder = 4
     OnClick = btnFontClick
   end
@@ -451,7 +451,7 @@ object CnAAFontDlg: TCnAAFontDlg
     Top = 216
     Width = 75
     Height = 25
-    Caption = '确定(&O)'
+    Caption = '&OK'
     Default = True
     ModalResult = 1
     TabOrder = 5
@@ -462,7 +462,7 @@ object CnAAFontDlg: TCnAAFontDlg
     Width = 75
     Height = 25
     Cancel = True
-    Caption = '取消(&C)'
+    Caption = '&Cancel'
     ModalResult = 2
     TabOrder = 6
   end

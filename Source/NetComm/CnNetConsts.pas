@@ -29,7 +29,7 @@ unit CnNetConsts;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2002.04.08 V1.0
+* 修改记录：2005.12.24 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -41,45 +41,45 @@ interface
 resourcestring
 
   // CnRS232
-  SInvalidXonXoffChar = 'Xon字符与Xoff字符不能相同';
-  SSerialPortAlreadyOpened = '该串口已经打开了';
-  SSerialPortOpenError = '串口打开失败';
-  SNotACommHandle = '指定的设备不是一个有效的通讯端口';
-  SSetupBuffFail = '设置串口通讯缓冲区失败';
-  SCreateEventFail = '创建事件失败';
-  SCreateReadFail = '创建读数据线程失败';
-  SCreateWriteFail = '创建写数据线程失败';
-  SCnRS232Name = 'RS232串口通讯组件';
-  SCnRS232Comment = 'RS232串口通讯组件';
+  SInvalidXonXoffChar = 'XonChar must differs from XoffChar';
+  SSerialPortAlreadyOpened = 'This serial port already opened';
+  SSerialPortOpenError = 'Error opening serial port';
+  SNotACommHandle = 'File handle is not a comm handle ';
+  SSetupBuffFail = 'Cannot setup comm buffer';
+  SCreateEventFail = 'Unable to create event';
+  SCreateReadFail = 'Unable to create read thread';
+  SCreateWriteFail = 'Unable to create write thread';
+  SCnRS232Name = 'RS232 Cerial Port Communications Component';
+  SCnRS232Comment = 'RS232 Serial Port Communications Component';
 
   // CnModem
-  SCnModemName = '标准调制解调器通讯组件';
-  SCnModemComment = '标准调制解调器通讯组件';
+  SCnModemName = 'Modem Communications Component';
+  SCnModemComment = 'Modem Communications Component';
 
   // CnRS232Dialog
-  SCnRS232DialogName = 'RS232串口设置对话框组件';
-  SCnRS232DialogComment = 'RS232串口设置对话框组件';
-  SRS232Option = '串口设置';
-  SRS232TimeoutsOption = '超时设置';
-  SBaudRateError = '波特率只能输入整数';
-  SInputASCIICode = '请输入ASCII编码(0..255)';
-  SInputInteger = '请输入整数';
+  SCnRS232DialogName = 'RS232 Serial Port Option Dialog Component';
+  SCnRS232DialogComment = 'RS232 Serial Port Option Dialog Component';
+  SRS232Option = 'Comm Option';
+  SRS232TimeoutsOption = 'Timeout Settings';
+  SBaudRateError = 'Baud Rate must be an Integer Value';
+  SInputASCIICode = 'Please Enter an ASCII code (0..255)';
+  SInputInteger = 'Please Enter an Integer';
 
   // CnPing
-  SCnPingName = 'Ping组件';
-  SCnPingComment = 'Ping组件';
-  SInitFailed = 'Winsock 初始化失败，可能是版本不正确';
-  SInvalidAddr = 'IP地址不合法';
-  SNoResponse = '[%0:S] 没有响应';
-  STimeOut = '响应超时';
-  SICMPRunError = 'ICMP运行错误';
-  SPingResultString = '[%0:S]: 字节数:%1:D 时间: %2:Dms TTL: %3:D';
-
+  SCnPingName = 'CnPing Component';
+  SCnPingComment = 'CnPing Component';  
+  SInitFailed = 'Init Failed. Maybe Winsock Verison Error';
+  SInvalidAddr = 'IP Address Error';
+  SNoResponse = '[%0:S] No Response';
+  STimeOut = 'Time Out';    
+  SICMPRunError = 'ICMP Run Error';
+  SPingResultString = '[%0:S]: Bytes:%1:D Time: %2:Dms TTL:%3:D';
+  
   // CnIP
-  SCnIPName = 'IP组件';
-  SCnIPComment = 'IP组件';
-  SCnErrorAddress = '错误的IP地址';
-  SCnErrorAddrRang = '超出IP地址范围';
+  SCnIPName = 'CnIP Component';
+  SCnIPComment = 'CnIP Component'; 
+  SCnErrorAddress = 'Error IP Address';  
+  SCnErrorAddrRang = 'IP Address Range Error';
 
 implementation
 

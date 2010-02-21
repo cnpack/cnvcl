@@ -2,14 +2,14 @@ object CnRS232Dlg: TCnRS232Dlg
   Left = 238
   Top = 123
   BorderStyle = bsDialog
-  Caption = '串口设置'
+  Caption = 'Comm Settings'
   ClientHeight = 316
   ClientWidth = 311
   Color = clBtnFace
-  Font.Charset = GB2312_CHARSET
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = '宋体'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
@@ -18,7 +18,7 @@ object CnRS232Dlg: TCnRS232Dlg
   OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
-  TextHeight = 12
+  TextHeight = 13
   object pcCommConfig: TPageControl
     Left = 8
     Top = 8
@@ -27,42 +27,42 @@ object CnRS232Dlg: TCnRS232Dlg
     ActivePage = tsNormal
     TabOrder = 0
     object tsNormal: TTabSheet
-      Caption = '常规设置'
+      Caption = 'General'
       object lblBaudRate: TLabel
         Left = 16
         Top = 12
-        Width = 60
-        Height = 12
-        Caption = '波特率(&B):'
+        Width = 54
+        Height = 13
+        Caption = '&Baud Rate:'
       end
       object lblByteSize: TLabel
         Left = 16
         Top = 41
-        Width = 60
-        Height = 12
-        Caption = '数据位(&D):'
+        Width = 47
+        Height = 13
+        Caption = 'B&yte Size:'
       end
       object lblParity: TLabel
         Left = 16
         Top = 70
-        Width = 72
-        Height = 12
-        Caption = '奇偶校验(&P):'
+        Width = 29
+        Height = 13
+        Caption = '&Parity:'
       end
       object lblStopBits: TLabel
         Left = 16
         Top = 98
-        Width = 60
-        Height = 12
-        Caption = '停止位(&S):'
+        Width = 45
+        Height = 13
+        Caption = '&Stop Bits:'
       end
       object cbbBaudRate: TComboBox
         Left = 120
         Top = 8
         Width = 145
-        Height = 20
-        Hint = '串口通讯的最大速度'#13#10'单位：bps'
-        ItemHeight = 12
+        Height = 21
+        Hint = 'Max Speed of Serial Comm(bps).'
+        ItemHeight = 13
         TabOrder = 0
         OnExit = cbbBaudRateExit
         Items.Strings = (
@@ -86,10 +86,10 @@ object CnRS232Dlg: TCnRS232Dlg
         Left = 120
         Top = 37
         Width = 145
-        Height = 20
-        Hint = '可用数据位数'
+        Height = 21
+        Hint = 'Byte Size'
         Style = csDropDownList
-        ItemHeight = 12
+        ItemHeight = 13
         TabOrder = 1
         Items.Strings = (
           '5'
@@ -101,27 +101,27 @@ object CnRS232Dlg: TCnRS232Dlg
         Left = 120
         Top = 66
         Width = 145
-        Height = 20
-        Hint = '奇偶校验方式'
+        Height = 21
+        Hint = 'Parity Check Mode'
         Style = csDropDownList
-        ItemHeight = 12
+        ItemHeight = 13
         TabOrder = 2
         OnChange = ControlChanged
         Items.Strings = (
-          '无'
-          '奇校验'
-          '偶校验'
-          '传号校验'
-          '空号校验 ')
+          'No Parity'
+          'Odd Parity'
+          'Even Parity'
+          'Mark Parity'
+          'Space Parity')
       end
       object cbbStopBits: TComboBox
         Left = 120
         Top = 94
         Width = 145
-        Height = 20
-        Hint = '停止位数'
+        Height = 21
+        Hint = 'Stop Bits'
         Style = csDropDownList
-        ItemHeight = 12
+        ItemHeight = 13
         TabOrder = 3
         Items.Strings = (
           '1'
@@ -133,8 +133,8 @@ object CnRS232Dlg: TCnRS232Dlg
         Top = 128
         Width = 200
         Height = 17
-        Hint = '出现奇偶校验错时用指定字符代替'
-        Caption = '奇偶校验错误替换成字符(&ASCII):'
+        Hint = 'when Parity Error, Replace to ASCII Char'
+        Caption = 'On Parity Error, Replace to ASCII Char:'
         TabOrder = 4
         OnClick = ControlChanged
       end
@@ -143,16 +143,16 @@ object CnRS232Dlg: TCnRS232Dlg
         Top = 152
         Width = 200
         Height = 17
-        Hint = '是否丢弃接收到的NULL(ASCII 0)字符'
-        Caption = '忽略NULL字符(&N)'
+        Hint = 'Whether Ignore received NULL Char(ASCII 0)'
+        Caption = 'Ignore &NULL Chars'
         TabOrder = 6
       end
       object seReplacedChar: TCnSpinEdit
         Left = 216
         Top = 126
         Width = 49
-        Height = 21
-        Hint = '替换字符的ASCII码'
+        Height = 22
+        Hint = 'When Parity Error Occured, Replace with this Char(ASCII).'
         MaxLength = 3
         MaxValue = 255
         MinValue = 0
@@ -162,35 +162,35 @@ object CnRS232Dlg: TCnRS232Dlg
       end
     end
     object tsXonXoff: TTabSheet
-      Caption = '软件流量控制'
+      Caption = 'SW Flow Ctrl'
       ImageIndex = 1
       object lblXonLimit: TLabel
         Left = 16
         Top = 87
-        Width = 66
-        Height = 12
-        Caption = 'Xon阈值(&B):'
+        Width = 72
+        Height = 13
+        Caption = '&Xon Threshold:'
       end
       object lblXoffLimit: TLabel
         Left = 16
         Top = 117
         Width = 72
-        Height = 12
-        Caption = 'Xoff阈值(&H):'
+        Height = 13
+        Caption = 'X&off Threshold:'
       end
       object lblXonChar: TLabel
         Left = 16
         Top = 146
-        Width = 108
-        Height = 12
-        Caption = 'Xon字符(ASCII)(&K):'
+        Width = 80
+        Height = 13
+        Caption = 'Xon C&har(ASCII):'
       end
       object lblXoffChar: TLabel
         Left = 16
         Top = 176
-        Width = 114
-        Height = 12
-        Caption = 'Xoff字符(ASCII)(&I):'
+        Width = 80
+        Height = 13
+        Caption = 'Xo&ff Char(ASCII):'
       end
       object cbTxContinueOnXoff: TCheckBox
         Left = 16
@@ -198,12 +198,15 @@ object CnRS232Dlg: TCnRS232Dlg
         Width = 200
         Height = 17
         Hint = 
-          '当接收缓冲区已满，已发送“Xoff字符”后发送是否停止。'#13#10'如果选择，' +
-          '当被填满的接收缓冲区中的字节数未达到“Xoff阈值”'#13#10'并且驱动程序发' +
-          '送了“Xoff字符”后停止接收字节时，继续发送；'#13#10'如果不选，当被排空' +
-          '的缓冲区中的字节数不足“Xon阈值”个字'#13#10'节，且驱动程序发送了“Xon' +
-          '字符”后恢复接收时，继续发送。'
-        Caption = 'Xoff后继续发送数据(&C)'
+          'To decide whether to stop the sending after sending the Xoff cha' +
+          'racter during receive buffer was already full.'#13#10'If checked, the ' +
+          'sending will be continued when the quantity of bytes in the full' +
+          ' filled receive buffer doesn'#39't reach the Xon threshold and the d' +
+          'river will stop to receive bytes after its sending Xoff characte' +
+          'r; If not, the sending will be continued when the quantity of by' +
+          'tes in the cleared buffer is less than the Xon threshold and the' +
+          ' driver resume the receiving after sending the Xon character.'
+        Caption = 'Con&tinue sending data after Xoff'
         TabOrder = 2
       end
       object cbOutx_XonXoffFlow: TCheckBox
@@ -212,9 +215,10 @@ object CnRS232Dlg: TCnRS232Dlg
         Width = 200
         Height = 17
         Hint = 
-          '数据发送时是否使用Xon/Xoff信息流控制'#13#10'如果选择，当接收到“Xoff字' +
-          '符”时暂停发送，并在'#13#10'接收到“Xon字符”时恢复发送。'
-        Caption = '输出Xon/Xoff有效(&O)'
+          'To decide whether to use Xon/Xoff flow control during sending da' +
+          'ta.'#13#10'If checked, sending will be paused when receive Xoff charac' +
+          'ters, and resume it after Xoff characters.'
+        Caption = 'E&nable Xon/Xoff Output'
         TabOrder = 1
       end
       object cbInx_XonXoffFlow: TCheckBox
@@ -223,18 +227,22 @@ object CnRS232Dlg: TCnRS232Dlg
         Width = 200
         Height = 17
         Hint = 
-          '数据接收时是否使用Xon/Xoff信息流控制'#13#10'如果选择，当接收缓冲区快满' +
-          '，只剩“Xoff阈值”个'#13#10'字符空闲时发送“Xoff字符”；当接收缓冲区中' +
-          '只有'#13#10'“Xon阈值”个字符时，发送“Xon字符”。'
-        Caption = '输入Xon/Xoff有效(&F)'
+          'Whether use Xon/Xoff flow control during receiving data.'#13#10'If che' +
+          'cked, a Xoff character will be sent when the receive buffer is a' +
+          'lmost full and only some characters remain, which quantity equal' +
+          's Xoff threshold; If not, a Xon character will be sent when ther' +
+          'e are only few characters in the receive buffer, which amount eq' +
+          'uals Xon threshold.'
+        Caption = '&Enable Xon/Xoff input'
         TabOrder = 0
       end
       object seXonLimit: TCnSpinEdit
         Left = 136
         Top = 83
         Width = 65
-        Height = 21
-        Hint = '指明在发送“Xon字符”之前，接收缓冲区中允许的最少字符数。'
+        Height = 22
+        Hint = 
+          'The minimum count of chars in buffer before sending Xon.'
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -246,8 +254,10 @@ object CnRS232Dlg: TCnRS232Dlg
         Left = 136
         Top = 144
         Width = 65
-        Height = 21
-        Hint = '发送和接收的“Xon字符”的ASCII码，表示允许继续传输。'
+        Height = 22
+        Hint = 
+          'ASCII Code of Xon in Sending or Receiving, which means resume an' +
+          'd continue.'
         MaxLength = 3
         MaxValue = 255
         MinValue = 0
@@ -259,8 +269,8 @@ object CnRS232Dlg: TCnRS232Dlg
         Left = 136
         Top = 174
         Width = 65
-        Height = 21
-        Hint = '发送和接收的“Xoff字符”的ASCII码，表示允许暂停传输。'
+        Height = 22
+        Hint = 'ASCII Code of Xoff in Sending or Receiving, which means Pause.'
         MaxLength = 3
         MaxValue = 255
         MinValue = 0
@@ -272,10 +282,10 @@ object CnRS232Dlg: TCnRS232Dlg
         Left = 136
         Top = 113
         Width = 65
-        Height = 21
+        Height = 22
         Hint = 
-          '指明在发送“Xoff字符”之前，接收缓冲区中允许的最多字符数。'#13#10'接收' +
-          '缓冲区的长度减去该值，即允许的最多字符数。'
+          'The maximum count of chars in buffer before sending Xoff.'#13#10'Buffe' +
+          'rn length - this maximum count = maximun chars in receive.'
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -285,178 +295,179 @@ object CnRS232Dlg: TCnRS232Dlg
       end
     end
     object tsHardware: TTabSheet
-      Caption = '硬件流量控制'
+      Caption = 'HW Flow Ctrl'
       ImageIndex = 2
       object lblDtrControl: TLabel
         Left = 16
         Top = 39
-        Width = 90
-        Height = 12
-        Caption = 'DTR流量控制(&T):'
+        Width = 87
+        Height = 13
+        Caption = '&DTR Flow Control:'
       end
       object lblRtsControl: TLabel
         Left = 16
         Top = 68
-        Width = 90
-        Height = 12
-        Caption = 'RTS流量控制(&R):'
+        Width = 86
+        Height = 13
+        Caption = '&RTS Flow Control:'
       end
       object lblInCtrl: TLabel
         Left = 16
         Top = 16
-        Width = 54
-        Height = 12
-        Caption = '输入控制:'
+        Width = 63
+        Height = 13
+        Caption = '&Input Control:'
       end
       object lblOutCtrl: TLabel
         Left = 16
         Top = 108
-        Width = 54
-        Height = 12
-        Caption = '输出控制:'
+        Width = 71
+        Height = 13
+        Caption = '&Output Control:'
       end
       object cbOutx_CtsFlow: TCheckBox
         Left = 16
         Top = 152
-        Width = 200
+        Width = 225
         Height = 17
-        Hint = 'CTS(清除发送)'
-        Caption = '使用CTS信号进行输出流量控制(&C)'
+        Hint = 'CTS (Clear To Send)'
+        Caption = 'U&se CTS Signal to Control Output Flow'
         TabOrder = 3
       end
       object cbOutx_DsrFlow: TCheckBox
         Left = 16
         Top = 128
-        Width = 200
+        Width = 225
         Height = 17
-        Hint = 'DSR(数据设备就绪)'
-        Caption = '使用DSR信号进行输出流量控制(&B)'
+        Hint = 'DSR (Data Set Ready)'
+        Caption = '&Use DSR Signal to Control Output Flow'
         TabOrder = 2
       end
       object cbDsrSensitivity: TCheckBox
         Left = 16
         Top = 176
-        Width = 200
+        Width = 225
         Height = 17
         Hint = 
-          '指定通信驱动程序对DSR信号的状态是否敏感。'#13#10'如果选择，当Modem的DS' +
-          'R输入线为低时，驱动程序将'#13#10'忽略接收到的任何字节。'
-        Caption = 'DSR敏感度(&E)'
+          'Whether the transmission driver is sensitive to DSR signals.'#13#10'If' +
+          ' checked, when the Modem DSR input pin is low, the driver will i' +
+          'gnore any receiving bytes.'
+        Caption = 'DSR S&ensibility'
         TabOrder = 4
       end
       object cbbDtrControl: TComboBox
         Left = 120
         Top = 35
         Width = 145
-        Height = 20
-        Hint = '使用DTR(数据终端就绪)信号进行流量控制的方式'
+        Height = 21
+        Hint = 'Use DTR (Data Terminal Ready) Signal to Control the Flow'
         Style = csDropDownList
-        ItemHeight = 12
+        ItemHeight = 13
         TabOrder = 0
         Items.Strings = (
-          '允许DTR线并保持'
-          '禁止DTR线并保持'
-          '允许DTR握手')
+          'Enable DTR Line and Hold'
+          'Disable DTR Line and Hold'
+          'Enable DTR Handshake')
       end
       object cbbRtsControl: TComboBox
         Left = 120
         Top = 64
         Width = 145
-        Height = 20
-        Hint = '使用RTS(请求发送)信号进行流量控制的方式'
+        Height = 21
+        Hint = 'Use RTS (Request to Send) Signal to Control the Flow'
         Style = csDropDownList
-        ItemHeight = 12
+        ItemHeight = 13
         TabOrder = 1
         Items.Strings = (
-          '允许RTS并保持'
-          '禁止RTS并保持'
-          '允许RTS握手'
-          '使用触发方式')
+          'Enable RTS and Hold'
+          'Disable RTS and Hold'
+          'Enable RTS Handshake'
+          'Use Burst Mode')
       end
     end
     object tsTimeouts: TTabSheet
-      Caption = '超时设置'
+      Caption = 'Timeout'
       ImageIndex = 3
       object lblReadIntervalTimeout: TLabel
         Left = 16
         Top = 15
-        Width = 84
-        Height = 12
-        Caption = '读间隔超时(&R):'
+        Width = 122
+        Height = 13
+        Caption = '&Reading Timeout Interval:'
       end
       object lblReadTotalTimeoutMultiplier: TLabel
         Left = 16
         Top = 45
-        Width = 96
-        Height = 12
-        Caption = '读总超时系数(&T):'
+        Width = 155
+        Height = 13
+        Caption = 'Total Reading &Timeout Multiplier:'
       end
       object lblMSec1: TLabel
         Left = 240
         Top = 16
-        Width = 24
-        Height = 12
-        Caption = '毫秒'
+        Width = 27
+        Height = 13
+        Caption = 'mSec'
       end
       object lblMSec2: TLabel
         Left = 240
         Top = 46
-        Width = 24
-        Height = 12
-        Caption = '毫秒'
+        Width = 27
+        Height = 13
+        Caption = 'mSec'
       end
       object lblReadTotalTimeoutConstant: TLabel
         Left = 16
         Top = 75
-        Width = 96
-        Height = 12
-        Caption = '读总超时常量(&A):'
+        Width = 156
+        Height = 13
+        Caption = 'Total Re&ading Timeout Constant:'
       end
       object lblMSec3: TLabel
         Left = 240
         Top = 76
-        Width = 24
-        Height = 12
-        Caption = '毫秒'
+        Width = 27
+        Height = 13
+        Caption = 'mSec'
       end
       object lblWriteTotalTimeoutMultiplier: TLabel
         Left = 16
         Top = 105
-        Width = 96
-        Height = 12
-        Caption = '写总超时系数(&W):'
+        Width = 151
+        Height = 13
+        Caption = 'Total  &Writing Timeout Multiplier:'
       end
       object lblMSec4: TLabel
         Left = 240
         Top = 106
-        Width = 24
-        Height = 12
-        Caption = '毫秒'
+        Width = 27
+        Height = 13
+        Caption = 'mSec'
       end
       object lblWriteTotalTimeoutConstant: TLabel
         Left = 16
         Top = 135
-        Width = 96
-        Height = 12
-        Caption = '写总超时常量(&B):'
+        Width = 149
+        Height = 13
+        Caption = 'Total Wr&iting Timeout Constant:'
       end
       object lblMSec5: TLabel
         Left = 240
         Top = 136
-        Width = 24
-        Height = 12
-        Caption = '毫秒'
+        Width = 27
+        Height = 13
+        Caption = 'mSec'
       end
       object seReadIntervalTimeout: TCnSpinEdit
-        Left = 136
+        Left = 176
         Top = 11
-        Width = 97
-        Height = 21
+        Width = 57
+        Height = 22
         Hint = 
-          '指定通信线路上两个字符到达之间的最大时间。'#13#10'在读取操作期间，从接' +
-          '收到第一个字符时开始计时，'#13#10'若任意两个字符到达之间的时间间隔超过' +
-          '这个最大'#13#10'值，则读取操作完成，返回缓冲数据。'#13#10'如果置0，表示不使' +
-          '用间隔超时。'
+          'The maximum time between 2 consecutive chars in serial line.'#13#10'If' +
+          ' the recieving interval of 2 consecutive chars exceeds this valu' +
+          'e, '#13#10'reading operation will finish and the buffer data will be r' +
+          'eturn.'#13#10'0 means no timeout.'#13#10
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -464,14 +475,14 @@ object CnRS232Dlg: TCnRS232Dlg
         Value = 0
       end
       object seReadTotalTimeoutMultiplier: TCnSpinEdit
-        Left = 136
+        Left = 176
         Top = 41
-        Width = 97
-        Height = 21
+        Width = 57
+        Height = 22
         Hint = 
-          '用于设定读总超时时间。'#13#10'读总超时时间 = (总超时系数 X 接收字符数)' +
-          ' + 总超时常量'#13#10'常量和系数可分别为0。'#13#10'如果均为0，则不使用总超时' +
-          '设定。'
+          'Used to calculate the Total reading timeout value.'#13#10#13#10'Total read' +
+          'ing timeout value = (Total Reading Timeout Multiplier * chars co' +
+          'unt) + Total reading timeout constant'#13#10'Both 0 means disabled.'
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -479,14 +490,14 @@ object CnRS232Dlg: TCnRS232Dlg
         Value = 0
       end
       object seReadTotalTimeoutConstant: TCnSpinEdit
-        Left = 136
+        Left = 176
         Top = 71
-        Width = 97
-        Height = 21
+        Width = 57
+        Height = 22
         Hint = 
-          '用于设定读总超时时间。'#13#10'读总超时时间 = (总超时系数 X 接收字符数)' +
-          ' + 总超时常量'#13#10'常量和系数可分别为0。'#13#10'如果均为0，则不使用总超时' +
-          '设定。'
+          'Used to calculate the Total reading timeout value.'#13#10#13#10'Total read' +
+          'ing timeout value = (Total Reading Timeout Multiplier * chars co' +
+          'unt) + Total reading timeout constant'#13#10'Both 0 means disabled.'
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -494,14 +505,14 @@ object CnRS232Dlg: TCnRS232Dlg
         Value = 0
       end
       object seWriteTotalTimeoutMultiplier: TCnSpinEdit
-        Left = 136
+        Left = 176
         Top = 101
-        Width = 97
-        Height = 21
+        Width = 57
+        Height = 22
         Hint = 
-          '用于设定写总超时时间。'#13#10'写总超时时间 = (总超时系数 X 接收字符数)' +
-          ' + 总超时常量'#13#10'常量和系数可分别为0。'#13#10'如果均为0，则不使用总超时' +
-          '设定。'
+          'Used to calculate the Total Writing Timeout value.'#13#10#13#10'Total writ' +
+          'ing timeout value = (Total writing Timeout Multiplier * chars co' +
+          'unt) + Total writing timeout constant'#13#10'Both 0 means disabled.'
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -509,14 +520,14 @@ object CnRS232Dlg: TCnRS232Dlg
         Value = 0
       end
       object seWriteTotalTimeoutConstant: TCnSpinEdit
-        Left = 136
+        Left = 176
         Top = 131
-        Width = 97
-        Height = 21
+        Width = 57
+        Height = 22
         Hint = 
-          '用于设定写总超时时间。'#13#10'写总超时时间 = (总超时系数 X 接收字符数)' +
-          ' + 总超时常量'#13#10'常量和系数可分别为0。'#13#10'如果均为0，则不使用总超时' +
-          '设定。'
+          'Used to calculate the Total Writing Timeout value.'#13#10#13#10'Total writ' +
+          'ing timeout value = (Total writing Timeout Multiplier * chars co' +
+          'unt) + Total writing timeout constant'#13#10'Both 0 means disabled.'
         MaxLength = 5
         MaxValue = 65535
         MinValue = 0
@@ -530,7 +541,7 @@ object CnRS232Dlg: TCnRS232Dlg
     Top = 288
     Width = 75
     Height = 21
-    Caption = '确定(&O)'
+    Caption = '&OK'
     Default = True
     TabOrder = 2
     OnClick = bbtnOkClick
@@ -541,7 +552,7 @@ object CnRS232Dlg: TCnRS232Dlg
     Width = 75
     Height = 21
     Cancel = True
-    Caption = '取消(&C)'
+    Caption = '&Cancel'
     ModalResult = 2
     TabOrder = 3
   end
@@ -550,7 +561,7 @@ object CnRS232Dlg: TCnRS232Dlg
     Top = 290
     Width = 105
     Height = 17
-    Caption = '显示提示信息'
+    Caption = 'Show Hint'
     TabOrder = 1
     OnClick = cbShowHintClick
   end

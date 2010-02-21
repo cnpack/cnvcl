@@ -1,5 +1,5 @@
 @ECHO CnPack Component Package
-@ECHO Original Chinese-Simplified Resource Files will be Copied to Here. 
+@ECHO Original English Resource Files will be Copied to Here. 
 @PAUSE
 copy ..\..\Graphics\CnGraphConsts.pas  CnGraphConsts.pas   /Y
 copy ..\..\MultiLang\CnLangConsts.pas  CnLangConsts.pas    /Y

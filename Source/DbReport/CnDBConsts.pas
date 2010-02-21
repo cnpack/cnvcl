@@ -24,7 +24,6 @@ unit CnDBConsts;
 * 软件名称：CnPack 组件包
 * 单元名称：数据库组件常量定义单元
 * 单元作者：不得闲 (appleak46@yahoo.com.cn)
-*           刘啸 (liuxiao@cnpack.org)
 * 备    注：
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
@@ -41,43 +40,43 @@ interface
 
 const
   // CnSQLAnalyzer
-  SCnSQLAnalyzerName = '查询分析器组件';
-  SCnSQLAnalyzerComment = '查询分析器组件';
+  SCnSQLAnalyzerName = 'SQL Analyzer';
+  SCnSQLAnalyzerComment = 'SQL Analyzer';
   
   // CnADOUpdateSql
-  SCnADOUpdateSqlName = 'ADO 多表更新组件';
-  SCnADOUpdateSqlComment = 'ADO 多表更新组件';
+  SCnADOUpdateSqlName = 'ADO UpdateSQL';
+  SCnADOUpdateSqlComment = 'ADO UpdateSQL';
 
 resourcestring
 
-  SCnIndexOut = '指定索引超过总文字字段数！';
-  SCnSqlFilter = 'SQL 脚本(*.sql)|*.sql|文本文件(*.txt)|*.txt|所有文件(*.*)|*.*';
-  SCnFoundSucced = '全部查找完成！';
-  SCnReplaceSucced = '全部替换完成！';
-  SCnMsg = '消息';
-  SCnErrMsg = '错误';
-  SCnOperateCancel = '操作被取消！';
-  SCnResMsg = '结果';
-  SCnUnUseConstr = '没有指定一个有效的数据连接或数据连接字符串！';
-  SCnUsedTime = '耗时：';
-  SCnVerWar = '对不起，本版本暂时不支持 %s 数据库引擎！';
-  SCnExeSucced = '命令成功执行！';
-  SCnAffectMsg = '（所影响的行数为 %d 行）';
-  SCnCopyMenu = '复制';
-  SCnFindMenu = '查找';
-  SCnReplaceMenu = '替换';
-  SCnOpenHint = '打开文件';
-  SCnSaveHint = '保存文件';
-  SCnFindHint = '查找替换文件';
-  SCnUnDoHint = '撤消';
-  SCnReDoHint = '重做';
-  SCnCutHint = '剪切';
-  SCnCopyHint = '复制';
-  SCnPasteHint = '粘贴';
-  SCnRunHint = '执行';
-  SCnParse = '分析语法';
-  SCnStop = '停止';
-  SCnShowGrid = '显示消息网格';
+  SCnIndexOut = 'Index Out of Field Count';
+  SCnSqlFilter = 'SQL Files(*.sql)|*.sql|Text Files(*.txt)|*.txt|All Files(*.*)|*.*';
+  SCnFoundSucced = 'Find Complete';
+  SCnReplaceSucced = 'Replace Complete';
+  SCnMsg = 'Message';
+  SCnErrMsg = 'Error';
+  SCnOperateCancel = 'Operation Aborted.';
+  SCnResMsg = 'Result';
+  SCnUnUseConstr = 'NO Connection or ConnectionString.';
+  SCnUsedTime = 'Time: ';
+  SCnVerWar = 'Sorry. %s NOT Supported.';
+  SCnExeSucced = 'Command Run Successfully';
+  SCnAffectMsg = '( %d Lines Affected.';
+  SCnCopyMenu = 'Copy';
+  SCnFindMenu = 'Find';
+  SCnReplaceMenu = 'Replace';
+  SCnOpenHint = 'Open';
+  SCnSaveHint = 'Save';
+  SCnFindHint = 'Find/Replace';
+  SCnUnDoHint = 'Undo';
+  SCnReDoHint = 'Redo';
+  SCnCutHint = 'Cut';
+  SCnCopyHint = 'Copy';
+  SCnPasteHint = 'Paste';
+  SCnRunHint = 'Run';
+  SCnParse = 'Parse';
+  SCnStop = 'Stop';
+  SCnShowGrid = 'Show Grid';
      
 implementation
 

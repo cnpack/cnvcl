@@ -75,11 +75,12 @@ var
 const
   // 开发包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.0.8.8';
+  SCnPackVer = 'Ver 0.0.8.9';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
   SCnPackNewsUrl = 'news://news.cnpack.org';
+  SCnPackSourceUrl = 'http://cnpack.googlecode.com';
   SCnPackEmail = 'master@cnpack.org';
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
@@ -141,6 +142,8 @@ var
   SCnPack_BuDeXian: string = '不得闲';
   SCnPack_XiaoXia: string = '小夏';
   SCnPack_ZiMin: string = '子旻';
+  SCnPack_rarnu: string = 'rarnu';
+  SCnPack_dejoy: string = 'dejoy';
 
   // CnCommon
   SUnknowError: string = '未知错误';
@@ -177,7 +180,9 @@ const
   SCnPack_SesameEmail = 'sesamehch@163.com';
   SCnPack_BuDeXianEmail = 'appleak46@yahoo.com.cn';
   SCnPack_XiaoXiaEmail = 'summercore@163.com';
-  SCnPack_ZiMinEmail: string = '441414288@qq.com';
+  SCnPack_ZiMinEmail = '441414288@qq.com';
+  SCnPack_rarnuEmail = 'rarnu@cnpack.org';
+  SCnPack_dejoyEmail = 'dejoybbs@163.com';
 
   // CnMemProf
   SCnPackMemMgr = '内存管理监视器';

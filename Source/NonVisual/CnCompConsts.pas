@@ -41,113 +41,113 @@ interface
 resourcestring
 
   // CnTimer
-  SCnTimerName = '高精度定时器组件';
-  SCnTimerComment = '高精度定时器组件';
-  SCnTimerListName = '高精度定时器列表组件';
-  SCnTimerListComment = '高精度定时器列表组件';
-
+  SCnTimerName = 'Thread Timer Component';
+  SCnTimerComment = 'Thread Timer Component';
+  SCnTimerListName = 'Thread Timer List Component';
+  SCnTimerListComment = 'Thread Timer List Component';
+  
   // CnControlHook
-  SCnControlHookName = '控件挂接组件';
-  SCnControlHookComment = '通过修改控件的 WindowProc 属性来挂接其消息处理主过程';
+  SCnControlHookName = 'Control Hook Component';
+  SCnControlHookComment = 'Control Hooker by Modify WindowProc Property';
 
   // CnActionListHook
-  SCnActionListHookName = 'ActionList 挂接组件';
-  SCnActionListHookComment = '挂接 ActionList 的各个 Action 的组件';
+  SCnActionListHookName = 'ActionList Hook Component';
+  SCnActionListHookComment = 'Hook Actions in ActionList';
 
   // CnActiveScriptSite
-  SCnActiveScriptSiteName = 'ActiveScript Site 封装组件';
-  SCnActiveScriptSiteComment = 'ActiveScript Site 脚本引擎封装组件';
+  SCnActiveScriptSiteName = 'ActiveScript Site Component';
+  SCnActiveScriptSiteComment = 'ActiveScript Site Engine Wrapper Component';
 
   // CnActiveScriptWindow
-  SCnActiveScriptWindowName = 'ActiveScript Window 封装组件';
-  SCnActiveScriptWindowComment = 'ActiveScript Window 脚本引擎封装组件';
+  SCnActiveScriptWindowName = 'ActiveScript Window Component';
+  SCnActiveScriptWindowComment = 'ActiveScript Window Engine Wrapper Component';
 
   // CnADOConPool
-  SCnADOConPoolName = 'ADO Connection 连接池组件';
-  SCnADOConPoolComment = 'ADO Connection 连接池组件';
+  SCnADOConPoolName = 'ADO Connection Pool Component';
+  SCnADOConPoolComment = 'ADO Connection Pool Component';
 
   // CnFormScaler
-  SCnFormScalerName = 'Form Scale 自动处理组件';
-  SCnFormScalerComment = 'Form Scale 自动处理组件';
+  SCnFormScalerName = 'Form Scale Component';
+  SCnFormScalerComment = 'Auto Process Form Scale';
 
   // CnMDIBackGround
-  SCnMDIBackGroundName = 'MDI 主窗体背景组件';
-  SCnMDIBackGroundComment = 'MDI 主窗体背景绘制与控制组件';
+  SCnMDIBackGroundName = 'MDI Background Component';
+  SCnMDIBackGroundComment = 'Draw MDI Window Background';
 
   // CnMenuHook
-  SCnMenuHookName = '菜单挂接组件';
-  SCnMenuHookComment = '实现菜单挂接功能的组件';
+  SCnMenuHookName = 'Menu Hook Component';
+  SCnMenuHookComment = 'Hook Menu and Items';
 
   // CnObjectPool
-  SCnObjectPoolName = '对象池组件';
-  SCnObjectPoolComment = '实现对象池的组件';
+  SCnObjectPoolName = 'Object Pool Component';
+  SCnObjectPoolComment = 'Object Pool Component';
 
   // CnThreadPool
-  SCnThreadPoolName = '线程池组件';
-  SCnThreadPoolComment = '实现线程池的组件';
+  SCnThreadPoolName = 'Thread Pool Component';
+  SCnThreadPoolComment = 'Thread Pool Component';
 
   // CnRestoreSystemMenu
-  SCnRestoreSystemMenuName = '系统菜单恢复组件';
-  SCnRestoreSystemMenuComment = '恢复编辑器控件右键菜单的组件';
-  
+  SCnRestoreSystemMenuName = 'System Menu Restore Component';
+  SCnRestoreSystemMenuComment = 'Component to Restore System Menu';
+
   // CnConsole
-  SCnConsoleName = '控制台组件';
-  SCnConsoleComment = '为 GUI 应用程序增加控制台';
+  SCnConsoleName = 'Console Component';
+  SCnConsoleComment = 'Add Console to GUI Application';
   
   // CnTrayIcon
-  SCnTrayIconName = '系统托盘组件';
-  SCnTrayIconComment = '系统托盘组件';
+  SCnTrayIconName = 'Tray Icon Component';
+  SCnTrayIconComment = 'Tray Icon Component';
 
   // CnVolumnCtrl
-  SCnVolumnCtrlName = '音量控制组件';
-  SCnVolumnCtrlComment = '用于控制系统音量，支持多设备多线路';
-  SCnMixerOpenError         = '打开音频设备失败!';
-  SCnMixerGetDevCapsError   = '获取设备标题失败!';
-  SCnMixerGetLineInfoError  = '打开音频线路失败!';
-  SCnMixerGetVolumeError    = '获取当前音量失败!';
-  SCnMixerGetMuteError      = '获取静音状态失败!';
-  SCnMixerSetVolumeError    = '设置当前音量失败!';
-  SCnMixerSetMuteError      = '设置静音状态失败!';
+  SCnVolumnCtrlName = 'Volume Control Component';
+  SCnVolumnCtrlComment = 'Volume Control Component';
+  SCnMixerOpenError         = 'Open Audio Device Failed!';
+  SCnMixerGetDevCapsError   = 'Get Device Caps Failed!';
+  SCnMixerGetLineInfoError  = 'Get Line Failed!';
+  SCnMixerGetVolumeError    = 'Get Volume Failed!';
+  SCnMixerGetMuteError      = 'Get Mute State Failed!';
+  SCnMixerSetVolumeError    = 'Set Volume Failed!';
+  SCnMixerSetMuteError      = 'Set Mute State Failed!';
 
   // CnWinampCtrl
-  SCnWinampCtrlName = 'Winamp 控制器组件';
-  SCnWinampCtrlComment = 'Winamp 控制器组件，可用来控制 Winamp';
-
+  SCnWinampCtrlName = 'Winamp Control Component';
+  SCnWinampCtrlComment = 'Winamp Control Component';  
+  
   // CnSkinMagic
-  SCnSkinMagicName = '运行期皮肤框架组件';
-  SCnSkinMagicComment = '运行期皮肤框架组件，使用自定义绘制';
+  SCnSkinMagicName = 'Runtime Skin Frame';
+  SCnSkinMagicComment = 'Runtime Skin Frame using Customized Painting';  
 
   // CnDockServer
-  SCnDockServerName = '停靠服务端组件';
-  SCnDockServerComment = '停靠服务端组件，使窗体接受停靠';
+  SCnDockServerName = 'Dock Server Component';
+  SCnDockServerComment = 'Dock Server Component, Makes a DockSite Form';
 
   // CnDockClient
-  SCnDockClientName = '停靠客户端组件';
-  SCnDockClientComment = '停靠客户端组件，使窗体可停靠';
+  SCnDockClientName = 'Dock Client Component';
+  SCnDockClientComment = 'Dock Client Component, Makes a Dockable Form';
 
   // CnDelphiDockStyle
-  SCnDelphiDockStyleName = '类似 Delphi 的停靠风格组件';
-  SCnDelphiDockStyleComment = '类似 Delphi 的停靠风格组件';
+  SCnDelphiDockStyleName = 'Delphi Dock Style Component';
+  SCnDelphiDockStyleComment = 'A Dock Style Component with Delphi Dock Style';
 
   // CnVCDockStyle
-  SCnVCDockStyleName = '类似 Visual C++ 的停靠风格组件';
-  SCnVCDockStyleComment = '类似 Visual C++ 的停靠风格组件';
+  SCnVCDockStyleName = 'Visual C++ Dock Style Component';
+  SCnVCDockStyleComment = 'A Dock Style Component with Visual C++ Dock Style';
 
   // CnVIDDockStyle
-  SCnVIDDockStyleName = '类似 Visual InterDev 的停靠风格组件';
-  SCnVIDDockStyleComment = '类似 Visual InterDev 的停靠风格组件';
+  SCnVIDDockStyleName = 'Visual InterDev Dock Style Component';
+  SCnVIDDockStyleComment = 'A Dock Style Component with Visual InterDev Dock Style';
 
   // CnVSNETDockStyle
-  SCnVSNETDockStyleName = '类似 Visual Studio.NET 的停靠风格组件';
-  SCnVSNETDockStyleComment = '类似 Visual Studio.NET 的停靠风格组件';
+  SCnVSNETDockStyleName = 'Visual Studio.NET Dock Style Component';
+  SCnVSNETDockStyleComment = 'A Dock Style Component with Visual Studio.NET Dock Style';
   
   // CnFileSystemWatcher
-  SCnFileSystemWatcherName = '文件目录监视组件';
-  SCnFileSystemWatcherComment = '文件目录监视组件';
+  SCnFileSystemWatcherName = 'File System Watcher';
+  SCnFileSystemWatcherComment = 'File System Watcher';
   
   // CnFilePacker
-  SCnFilePackerName = '文件目录打包组件';
-  SCnFilePackerComment = '文件目录打包组件';
+  SCnFilePackerName = 'File Packer and Unpacker';
+  SCnFilePackerComment = 'File Packer and Unpacker';
 
 implementation
 

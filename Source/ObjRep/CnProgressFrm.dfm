@@ -3,14 +3,14 @@ object ProgressForm: TProgressForm
   Top = 265
   AutoSize = True
   BorderStyle = bsNone
-  Caption = '进度显示'
+  Caption = 'Progress'
   ClientHeight = 81
   ClientWidth = 297
   Color = clBtnFace
-  Font.Charset = GB2312_CHARSET
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = '宋体'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = False
@@ -36,7 +36,7 @@ object ProgressForm: TProgressForm
     Top = 27
     Width = 54
     Height = 12
-    Caption = '请稍候...'
+    Caption = 'Please Wait...'
   end
   object ProgressBar: TProgressBar
     Left = 8
