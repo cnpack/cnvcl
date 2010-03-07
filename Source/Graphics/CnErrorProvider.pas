@@ -32,7 +32,9 @@ unit CnErrorProvider;
 * 开发平台：PWinXP + Delphi 7.0SP1
 * 兼容测试：PWin2000/XP/2003 + Delphi 7.0
 * 本 地 化：该单元中不含有需本地化的字符串
-* 修改记录：2008-12-02 19:22 v0.1
+* 修改记录：2010-03-07 v0.2
+*               修正一处释放异常的问题
+*           2008-12-02 19:22 v0.1
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -210,7 +212,10 @@ begin
     begin
       obj := FErrorProviderManager[j];
       if (Assigned(obj)) then
-        FreeAndNil(obj);
+      begin
+        obj.Free;
+        FErrorProviderManager.Delete(j);
+      end;
     end;
 end;
 
