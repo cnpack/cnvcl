@@ -262,6 +262,7 @@ var
   i: Integer;
   nTemp: Integer;
 begin
+  FSize := 0;
   SetLength(FList, Length);
 
   for i := Low(FList) to High(FList) do
@@ -467,11 +468,6 @@ begin
 
   //calculate hash code first
   i := HasHashCode(AKey);
-
-  //if smaller,then enlarge the size
-  if Size >= Length(FList) then
-    ReSizeList(Size + Incr);
-
 
   for j := Low(FList) to High(FList) do
   begin
