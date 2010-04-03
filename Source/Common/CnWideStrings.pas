@@ -158,7 +158,7 @@ end;
 
 procedure TCnWideStringList.CustomSort(Compare: TCnWideStringListSortCompare);
 begin
-  if Count > 0 then
+  if Count > 1 then
     QuickSort(0, Count - 1, Compare);
 end;
 
