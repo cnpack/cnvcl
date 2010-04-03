@@ -158,7 +158,8 @@ end;
 
 procedure TCnWideStringList.CustomSort(Compare: TCnWideStringListSortCompare);
 begin
-  QuickSort(0, Count - 1, Compare);
+  if Count > 0 then
+    QuickSort(0, Count - 1, Compare);
 end;
 
 procedure TCnWideStringList.Delete(Index: Integer);
