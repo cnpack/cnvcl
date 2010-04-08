@@ -1625,7 +1625,10 @@ begin
   else
     AUrl := Url;
 
-  RunFile(AUrl);
+  if CheckWindows9598 then
+    RunFile(AUrl)
+  else
+    ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + AUrl), '', SW_HIDE);
 end;
 
 // 发送邮件
@@ -1643,7 +1646,10 @@ begin
   if Subject <> '' then
     Url := Url + csSubject + Subject;
 
-  RunFile(Url);
+  if CheckWindows9598 then
+    RunFile(Url)
+  else
+    ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + Url), '', SW_HIDE);
 end;
 
 // 运行一个文件并立即返回
