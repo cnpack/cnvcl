@@ -104,6 +104,17 @@ type
   end;
 
 //==============================================================================
+// 使用 RTTI 实现了 Assign 方法的 TCollection 类
+//==============================================================================
+
+{ TCnAssignableCollection }
+
+  TCnAssignableCollection = class(TCollection)
+  public
+    procedure Assign(Source: TPersistent); override;
+  end;
+
+//==============================================================================
 // 带更新通知、线程安全的持久性类
 //==============================================================================
 
@@ -407,6 +418,21 @@ begin
   end
   else
     inherited Assign(Source);
+end;
+
+//==============================================================================
+// 使用 RTTI 实现了 Assign 方法的 TCollection 类
+//==============================================================================
+
+{ TCnAssignableCollection }
+
+procedure TCnAssignableCollection.Assign(Source: TPersistent);
+begin
+  if Source is ClassType then
+  begin
+    AssignPersistent(Source, Self);
+  end;
+  inherited Assign(Source);
 end;
 
 //==============================================================================
