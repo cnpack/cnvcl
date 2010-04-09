@@ -198,6 +198,9 @@ function WinExecWithPipe(const CmdLine, Dir: string; var Output: string;
 {* 用管道方式在 Dir 目录执行 CmdLine，Output 返回输出信息，
    dwExitCode 返回退出码。如果成功返回 True }
 
+function CreateGuidString: string;
+{* 创建GUID字符串}
+
 function AppPath: string;
 {* 应用程序路径}
 
@@ -1833,6 +1836,20 @@ begin
   end;
 end;
 
+// 创建GUID字符串
+function CreateGuidString: string;
+var
+  P: PWideChar;
+  GUID: TGUID;
+begin
+  CoCreateGuid(GUID);
+  if not Succeeded(StringFromCLSID(GUID, P)) then
+    Result := ''
+  else
+    Result := P;
+  CoTaskMemFree(P);
+end;
+  
 // 应用程序路径
 function AppPath: string;
 begin
