@@ -60,6 +60,11 @@ uses
   CnClasses, CnTransFilter, CnLangUtils;
 
 type
+
+{$IFNDEF COMPILER6_UP}
+  IDesigner = IFormDesigner;
+{$ENDIF}
+
   TCnTranslatorEditor = class(TComponentEditor)
   private
     FExtractor: TCnLangStringExtractor;

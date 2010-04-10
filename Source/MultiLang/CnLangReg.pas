@@ -66,6 +66,9 @@ begin
 {$IFDEF DELPHI}
   RegisterComponentEditor(TCnCustomLangStorage, TCnStorageEditor);
 {$ENDIF}
+{$IFDEF COMPILER6_UP}
+  RegisterSelectionEditor(TComponent, TCnLangDesignerEditor);
+{$ENDIF}
 end;
 
 end.

@@ -61,6 +61,7 @@ resourcestring
   SCnMultiLangPaletteName = 'CnPack MultiLang';
   SCnFormTranslationManager = '&Translation Manager...';
   SCnEditLanguageStrings = 'Edit Language Items...';
+  SCnLangExtractStrings = '&Extract Language Strings to Clipboard';
   SCnErrorCaption = 'Error';
   SCnErrorNoLangManager = 'NO Language Manager, Please Create it First.';
   SCnErrorNoStorage = 'NO Language Storage, Please Create it First.';

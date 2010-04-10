@@ -40,7 +40,7 @@ interface
 
 uses
   {$IFDEF COMPILER6_UP}
-  DesignIntf, DesignEditors,
+  DesignIntf, DesignEditors, DesignMenus,
   {$ELSE}
   Dsgnintf,
   {$ENDIF}
@@ -84,10 +84,21 @@ type
   end;
 {$ENDIF}
 
+{$IFDEF COMPILER6_UP}
+  TCnLangDesignerEditor = class(TBaseSelectionEditor, ISelectionEditor)
+  public
+    procedure ExecuteVerb(Index: Integer; const List: IDesignerSelections);
+    function GetVerb(Index: Integer): string;
+    function GetVerbCount: Integer;
+    procedure PrepareItem(Index: Integer; const AItem: IMenuItem);
+    procedure RequiresUnits(Proc: TGetStrProc);
+  end;
+{$ENDIF}
+
 implementation
 
 uses
-  CnLangMgr, CnLangStorage, CnLangUtils, CnLangConsts
+  Forms, Windows, Clipbrd, CnLangMgr, CnLangStorage, CnLangUtils, CnLangConsts
   {$IFDEF DELPHI}, ColnEdit{$ENDIF};
 
 { TCnLanguageItemProperty }
@@ -192,6 +203,85 @@ end;
 function TCnStorageEditor.GetVerbCount: Integer;
 begin
   Result := 0;
+end;
+
+{$ENDIF}
+
+{$IFDEF COMPILER6_UP}
+
+{ TCnLangDesignerEditor }
+
+procedure TCnLangDesignerEditor.ExecuteVerb(Index: Integer;
+  const List: IDesignerSelections);
+var
+  i: Integer;
+  Extractor: TCnLangStringExtractor;
+  Lines: TStringList;
+begin
+  if Index = 0 then
+  begin
+    if CnLanguageManager = nil then
+    begin
+      MessageBox(0, PChar(SCnErrorNoLangManager), PChar(SCnErrorCaption),
+        MB_OK or MB_ICONWARNING);
+      Exit;
+    end;
+    
+    if List.Count > 0 then
+    begin
+      Extractor := nil;
+      Lines := nil;
+      try
+        Extractor := TCnLangStringExtractor.Create;
+        Lines := TStringList.Create;
+        if List[0] is TCustomForm then
+          Extractor.GetFormStrings(TComponent(List[0]), Lines, True)
+        else
+        begin
+          for i := 0 to List.Count - 1 do
+          begin
+            if List[i] is TComponent then
+            begin
+              if TComponent(List[i]).Owner is TCustomForm then
+                Extractor.GetComponentStrings(TComponent(List[i]), Lines,
+                  TComponent(List[i]).Owner.ClassName, True)
+              else
+                Extractor.GetComponentStrings(TComponent(List[i]), Lines, '', True);
+            end;  
+          end;  
+        end;
+
+        Lines.Sorted := True;
+        Clipboard.AsText := Lines.Text;
+      finally
+        Extractor.Free;
+        Lines.Free;
+      end;   
+    end;
+  end;  
+end;
+
+function TCnLangDesignerEditor.GetVerb(Index: Integer): string;
+begin
+  if Index = 0 then
+    Result := SCnLangExtractStrings;
+end;
+
+function TCnLangDesignerEditor.GetVerbCount: Integer;
+begin
+  Result := 1;
+end;
+
+procedure TCnLangDesignerEditor.PrepareItem(Index: Integer;
+  const AItem: IMenuItem);
+begin
+  if Index = 0 then
+    AItem.Visible := CnLanguageManager <> nil;
+end;
+
+procedure TCnLangDesignerEditor.RequiresUnits(Proc: TGetStrProc);
+begin
+
 end;
 
 {$ENDIF}

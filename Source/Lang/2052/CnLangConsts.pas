@@ -61,6 +61,7 @@ resourcestring
   SCnMultiLangPaletteName = 'CnPack MultiLang';
   SCnFormTranslationManager = '&T.翻译管理器 ...';
   SCnEditLanguageStrings = '编辑语言条目...';
+  SCnLangExtractStrings = '取出语言字符串到剪贴板(&T)';
   SCnErrorCaption = '错误';
   SCnErrorNoLangManager = '未找到多语言管理器，请先创建多语言管理器实例';
   SCnErrorNoStorage = '未找到多语言存储实例，请先创建多语言存储实例';
