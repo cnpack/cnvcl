@@ -42,6 +42,38 @@ uses
   SysUtils, SysConst, Classes, Windows;
 
 type
+{ TCnLangStringExtractor }
+
+  TLangTransFilter = (tfFont, tfCaption, tfCategory, tfHelpKeyword, tfHint,
+    tfText, tfImeName, tfTitle, tfDefaultExt, tfFilter, tfInitialDir,
+    tfSubItemsText, tfOthers);
+
+  TLangTransFilterSet = set of TLangTransFilter;
+
+  TCnLangStringExtractor = class
+  private
+    FFilterOptions: TLangTransFilterSet;
+  protected
+    procedure GetObjectStrings(AObject: TObject; Strings: TStrings;
+      const BaseName: string);
+    procedure GetRecurComponentStrings(AComponent: TComponent; AList: TList;
+      Strings: TStrings; const BaseName: string = ''); virtual;
+    {* 递归获得一 Component 以及其子 Component 的字串 }
+    procedure GetRecurObjectStrings(AObject: TObject; AList: TList;
+      Strings: TStrings; const BaseName: string = ''); virtual;
+    {* 递归获得一 Object 属性以及其子属性对象的字串 }
+  public
+    constructor Create;
+    {* 取得一个窗体上所有字符串}
+    procedure GetFormStrings(AForm: TComponent; Strings: TStrings);
+    {* 获得一 Form 上的所有字串 }
+    procedure GetComponentStrings(AComponent: TComponent; Strings: TStrings;
+      const BaseName: string = '');
+    {* 获得一 Component 的所有字串 }
+    procedure SetFilterOptions(const AFilterOptions: TLangTransFilterSet);
+    {* 设置过滤 *}
+  end;
+
   {* 从 SysUtils 的 TLanguages 移植而来但修正了 DEP 错误的语言列表类}
   TCnLanguages = class(TObject)
   private
@@ -72,6 +104,12 @@ function CnLanguages: TCnLanguages;
 
 implementation
 
+uses
+  {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
+  Forms, Dialogs, Graphics, Menus, Grids, ComCtrls, Controls, ExtCtrls,
+  ToolWin, ActnList, ImgList, TypInfo, StdCtrls, CnCommon, CnIniStrUtils,
+  Clipbrd, CnLangMgr, CnClasses, CnLangConsts, CnLangStorage;
+  
 const
   THUNK_SIZE = 4096; // x86 页大小
   
@@ -192,6 +230,450 @@ begin
   if FLanguages = nil then
     FLanguages := TCnLanguages.Create;
   Result := FLanguages;
+end;
+
+{ TCnLangStringExtractor }
+
+constructor TCnLangStringExtractor.Create;
+begin
+  SetFilterOptions([]);
+end;
+
+procedure TCnLangStringExtractor.GetComponentStrings(AComponent: TComponent;
+  Strings: TStrings; const BaseName: string);
+var
+  List: TList;
+begin
+  if (Strings <> nil) and (AComponent.ComponentCount > 0) then
+  begin
+    List := TList.Create;
+    List.Add(AComponent);
+    try
+      GetRecurComponentStrings(AComponent, List, Strings, BaseName);
+    finally
+      List.Free;
+    end;
+  end
+  else
+    GetObjectStrings(AComponent, Strings, BaseName);
+end;
+
+procedure TCnLangStringExtractor.GetFormStrings(AForm: TComponent;
+  Strings: TStrings);
+begin
+  GetComponentStrings(AForm, Strings, AForm.ClassName);
+end;
+
+procedure TCnLangStringExtractor.GetObjectStrings(AObject: TObject;
+  Strings: TStrings; const BaseName: string);
+var
+  AList: TList;
+begin
+  AList := TList.Create;
+  AList.Add(AObject);
+  try
+    GetRecurObjectStrings(AObject, AList, Strings, BaseName);
+  finally
+    AList.Free;
+  end;
+end;
+
+procedure TCnLangStringExtractor.GetRecurComponentStrings(AComponent: TComponent;
+  AList: TList; Strings: TStrings; const BaseName: string);
+var
+  I: Integer;
+  T: TComponent;
+begin
+  if (AComponent <> nil) and (AList <> nil) then
+  begin
+    GetObjectStrings(AComponent, Strings, BaseName);
+    for I := 0 to AComponent.ComponentCount - 1 do
+    begin
+      T := AComponent.Components[I];
+      if AList.IndexOf(T) = -1 then
+      begin
+        AList.Add(T);
+        if AComponent is TCustomForm then
+          GetRecurComponentStrings(T, AList, Strings, BaseName)
+        else
+          GetRecurComponentStrings(T, AList, Strings, BaseName + DefDelimeter + AComponent.Name);
+      end;
+    end;
+  end;
+end;
+
+procedure TCnLangStringExtractor.GetRecurObjectStrings(AObject: TObject;
+  AList: TList; Strings: TStrings; const BaseName: string);
+var
+  i: Integer;
+  APropName, APropValue, AStr: string;
+  APropType: TTypeKind;
+  Data: PTypeData;
+  ActionObj, SubObj: TObject;
+  AItem: TCollectionItem;
+  AListItem: TListItem;
+  ATreeNode: TTreeNode;
+  IsForm: Boolean;
+  NeedIgnoreAction: Boolean;
+  ActionCaption, ActionHint: string;
+  Info: PPropInfo;
+begin
+  if (AObject <> nil) and (AList <> nil) then
+  begin
+    // 避免传入一些野了的 AObject 导致死循环，曾在 IDE 内部出现过
+    try
+      if AObject.ClassType = AObject.ClassParent then
+        Exit;
+      
+      if (AObject.ClassParent <> nil) and (AObject.ClassParent.ClassParent = AObject.ClassType) then
+        Exit;
+    except
+      Exit;
+    end;
+  
+    if (AObject is TCnCustomLangStorage) or (AObject is TCnCustomLangStorage)
+      or ((AObject is TComponent) and ((AObject as TComponent).Name = '')) then
+        Exit;
+
+    if (AObject is TStrings) then  // Strings的对象直接加入其 Text 属性。
+    begin
+      if not (tfText in FFilterOptions) then
+        Exit;
+
+      AStr := 'Text';
+      if BaseName <> '' then
+        AStr := BaseName + DefDelimeter + AStr;
+
+      Strings.Add(AStr + DefEqual + (AObject as TStrings).Text);
+      Exit;
+    end
+    else if (AObject is TCollection) then // TCollection 对象遍历其 Item
+    begin
+      for i := 0 to (AObject as TCollection).Count - 1 do
+      begin
+        AItem := (AObject as TCollection).Items[i];
+        if AList.IndexOf(AItem) = -1 then
+        begin
+          AList.Add(AItem);
+          if BaseName <> '' then
+            GetRecurObjectStrings(AItem, AList, Strings, BaseName + DefDelimeter
+              + 'Item' + InttoStr(i))
+          else
+            GetRecurObjectStrings(AItem, AList, Strings, 'Item' + InttoStr(i));
+        end;
+      end;
+    end
+    // ListView 在需要时遍历其 Item
+    else if CnLanguageManager.TranslateListItem and (AObject is TListView) then
+    begin
+      for i := 0 to (AObject as TListView).Items.Count - 1 do
+      begin
+        AListItem := (AObject as TListView).Items[i];
+        if AList.IndexOf(AListItem) = -1 then
+        begin
+          AList.Add(AListItem);
+          if BaseName <> '' then
+            GetRecurObjectStrings(AListItem, AList, Strings, BaseName + DefDelimeter
+              + TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i))
+          else
+            GetRecurObjectStrings(AListItem, AList, Strings,
+              TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i));
+        end;
+      end;
+    end
+    // 是 ListItem 时处理其 Caption 属性和 SubItems 属性
+    else if CnLanguageManager.TranslateListItem and (AObject is TListItem) then
+    begin
+      if (tfCaption in FFilterOptions) then
+        begin
+          AStr := 'Caption';
+          if BaseName <> '' then
+            AStr := BaseName + DefDelimeter + AStr;
+
+          Strings.Add(AStr + DefEqual + (AObject as TListItem).Caption);
+        end;
+
+      if (tfSubItemsText in FFilterOptions) then
+        begin
+          AStr := 'SubItems.Text';
+          if BaseName <> '' then
+            AStr := BaseName + DefDelimeter + AStr;
+
+          Strings.Add(AStr + DefEqual + (AObject as TListItem).SubItems.Text);
+        end;
+      Exit;
+    end
+    // TreeView 在需要时遍历其 Item
+    else if CnLanguageManager.TranslateTreeNode and (AObject is TTreeView) then
+    begin
+      for i := 0 to (AObject as TTreeView).Items.Count - 1 do
+      begin
+        ATreeNode := (AObject as TTreeView).Items[i];
+        if AList.IndexOf(ATreeNode) = -1 then
+        begin
+          AList.Add(ATreeNode);
+          if BaseName <> '' then
+            GetRecurObjectStrings(ATreeNode, AList, Strings, BaseName + DefDelimeter
+              + TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i))
+          else
+            GetRecurObjectStrings(ATreeNode, AList, Strings,
+              TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i));
+        end;
+      end;
+    end
+    // 是 TreeNode 时处理其 Text 属性
+    else if CnLanguageManager.TranslateTreeNode and (AObject is TTreeNode) then
+    begin
+      if not (tfText in FFilterOptions) then
+        Exit;
+
+      AStr := 'Text';
+      if BaseName <> '' then
+        AStr := BaseName + DefDelimeter + AStr;
+
+      Strings.Add(AStr + DefEqual + (AObject as TTreeNode).Text);
+      Exit;
+    end;
+
+    IsForm := (AObject is TCustomForm); // or (AObject is TCustomFrame);
+    // if IsForm then IsForm := (AObject as TWinControl).Parent = nil;
+
+    try
+      Data := GetTypeData(AObject.Classinfo);
+    except
+      Exit; // TChartSeriesList 会在此处出错，不得不抓住屏蔽
+    end;
+
+    NeedIgnoreAction := False;
+    if CnLanguageManager.IgnoreAction then
+    begin
+      // 查找是否有 Action 属性，看是否 nil
+      for I := 0 to Data^.PropCount - 1 do
+      begin
+        APropName := GetPropName(AObject, I);
+        if (PropType(AObject, APropName) = tkClass) and (APropName = 'Action') then
+        begin
+          // 存在 Action 属性，为tkClass
+          ActionObj := GetObjectProp(AObject, APropName);
+          if (ActionObj <> nil) and (ActionObj is TCustomAction)then
+          begin
+            // 有 Action 属性不为 nil 的，需要记录 Caption 和 Hint 供比较
+            NeedIgnoreAction := True;
+            ActionCaption := (ActionObj as TCustomAction).Caption;
+            ActionHint := (ActionObj as TCustomAction).Hint;
+            Break;
+          end;
+        end;
+      end;
+    end;
+
+    for I := 0 to Data^.PropCount - 1 do
+    begin
+      APropName := GetPropName(AObject, I);
+
+      // 不翻译 TComponent 的 Name 属性
+      if (AObject is TComponent) and (APropName = 'Name') then
+        Continue;
+      // 不翻译 TCnComponent 的 About 属性
+      if (AObject is TCnComponent) and (APropName = 'About') then
+        Continue;
+
+      APropType := PropType(AObject, APropName);
+      if (APropType in [tkString, tkWChar, tkLString, tkWString
+        {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}]) then
+      begin
+        try
+          APropValue := VartoStr(GetPropValue(AObject, APropName));
+        except
+          // 部分 OLE 等组件获取 WideString 属性时出错，加个屏蔽
+          Continue;
+        end;
+
+        if NeedIgnoreAction then
+        begin
+          if (APropName = 'Caption') and (ActionCaption = APropValue) then
+            Continue
+          else if (APropName = 'Hint') and (ActionHint = APropValue) then
+            Continue;
+        end;
+
+        Info := GetPropInfo(AObject, APropName);
+        if (Info <> nil) and (Info^.SetProc = nil) then // 只读不能写的，躲开
+          Continue;
+
+        // 处理过滤条件
+        if (APropName = 'Caption') then
+        begin
+          if not (tfCaption in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'Category') then
+        begin
+          if not (tfCategory in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'HelpKeyword') then
+        begin
+          if not (tfHelpKeyword in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'Hint') then
+        begin
+          if not (tfHint in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'ImeName') then
+        begin
+          if not (tfImeName in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'Title') then
+        begin
+          if not (tfTitle in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'DefaultExt') then
+        begin
+          if not (tfDefaultExt in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'Filter') then
+        begin
+          if not (tfFilter in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if (APropName = 'InitialDir') then
+        begin
+          if not (tfInitialDir in FFilterOptions) then
+          begin
+            Continue;
+          end;
+        end
+        else if not (tfOthers in FFilterOptions) then
+        begin
+          Continue;
+        end;
+
+        if IsForm then
+          AStr := AObject.ClassName + DefDelimeter + APropName
+        else if AObject is TComponent then
+          AStr := TComponent(AObject).Name + DefDelimeter + APropName
+        else
+          AStr := APropName;
+
+        if (BaseName <> '') and not IsForm then
+          AStr := BaseName + DefDelimeter + AStr;
+
+        Strings.Add(AStr + DefEqual + APropValue);
+      end
+      else if APropType = tkClass then
+      begin
+        SubObj := GetObjectProp(AObject, APropName);
+        if AObject is TComponent then
+        begin
+          if AList.IndexOf(SubObj) = -1 then
+          begin
+            AList.Add(SubObj);
+
+            if (AObject is TControl) and (SubObj is TFont) and (APropName = 'Font') then
+            begin
+              if (tfFont in FFilterOptions) then
+                if not IsParentFont(AObject as TControl) then // 不使用 ParentFont 时存字体
+                begin
+                  if not IsForm then
+                    AStr := TComponent(AObject).Name + DefDelimeter + SCnControlFont
+                  else
+                    AStr := SCnControlFont;
+
+                  if BaseName <> ''  then
+                    AStr := BaseName + DefDelimeter + AStr;
+
+                  Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
+                    GetParentFont(AObject as TComponent)));
+                end;
+            end // 不按常规处理 TControl的字体
+            else if CnLanguageManager.TranslateOtherFont and (SubObj is TFont) then
+            begin
+              if (tfFont in FFilterOptions) then
+                begin
+                  if not IsForm then
+                    AStr := TComponent(AObject).Name + DefDelimeter +
+                      SystemNamePrefix + APropName
+                  else
+                    AStr := SystemNamePrefix + APropName;
+
+                  if BaseName <> ''  then
+                    AStr := BaseName + DefDelimeter + AStr;
+
+                  Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
+                    GetParentFont(AObject as TComponent)));
+                end;                    
+            end
+            else if not (SubObj is TComponent) or ((SubObj as TComponent).Owner = nil) then
+            begin
+              if IsForm then
+                GetRecurObjectStrings(SubObj, AList, Strings,
+                  TComponent(AObject).ClassName + DefDelimeter + APropName)
+              else if (InheritsFromClassName(AObject, 'TNotebook') or InheritsFromClassName(AObject, 'TTabbedNotebook'))
+                and (APropName = 'Pages') then
+                // 不获取 TNotebook/TTabbedNotebook 的 Pages 属性，以免出现翻译后页面内容丢失。
+              else
+                GetRecurObjectStrings(SubObj, AList, Strings, BaseName +
+                  DefDelimeter + TComponent(AObject).Name + DefDelimeter + APropName);
+            end;
+          end;
+        end
+        else
+        begin
+          if AList.IndexOf(SubObj) = -1 then
+          begin
+            AList.Add(SubObj);
+            GetRecurObjectStrings(SubObj, AList, Strings,
+              BaseName + DefDelimeter + APropName);
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TCnLangStringExtractor.SetFilterOptions(
+  const AFilterOptions: TLangTransFilterSet);
+begin
+  if AFilterOptions = [] then
+  begin
+    Include(FFilterOptions, tfFont);
+    Include(FFilterOptions, tfCaption);
+    Include(FFilterOptions, tfCategory);
+    Include(FFilterOptions, tfHelpKeyword);
+    Include(FFilterOptions, tfHint);
+    Include(FFilterOptions, tfText);
+    Include(FFilterOptions, tfImeName);
+    Include(FFilterOptions, tfTitle);
+    Include(FFilterOptions, tfDefaultExt);
+    Include(FFilterOptions, tfFilter);
+    Include(FFilterOptions, tfInitialDir);
+    Include(FFilterOptions, tfSubItemsText);
+    Include(FFilterOptions, tfOthers);
+  end
+  else
+    FFilterOptions := AFilterOptions;
 end;
 
 initialization

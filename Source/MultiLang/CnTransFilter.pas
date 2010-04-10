@@ -40,15 +40,9 @@ interface
 
 uses
   Windows, Messages, SysUtils, {$IFDEF COMPILER6_UP} Variants, {$ENDIF}
-  Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, CheckLst;
+  Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, CheckLst, CnLangUtils;
 
 type
-  TLangTransFilter = (tfFont, tfCaption, tfCategory, tfHelpKeyword, tfHint,
-    tfText, tfImeName, tfTitle, tfDefaultExt, tfFilter, tfInitialDir,
-    tfSubItemsText, tfOthers);
-
-  TLangTransFilterSet = set of TLangTransFilter;
-
   TFrmTransFilter = class(TForm)
     chklstFilter: TCheckListBox;
     btnCancel: TButton;
