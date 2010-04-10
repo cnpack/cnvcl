@@ -1,7 +1,5 @@
 package CnPack_D7;
 
-{$I CnPack.inc}
-
 {$R *.res}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -31,15 +29,14 @@ package CnPack_D7;
 requires
   vcl,
   vclx,
-{$IFNDEF PERSONAL_EDITION}
   vcldb,
   adortl,
   dsnap,
   xmlrtl,
   soaprtl,
   bdertl,
-{$ENDIF}
-  vclsmp;
+  vclsmp,
+  rtl;
 
 contains
   CnBase64 in '..\..\Source\Common\CnBase64.pas',
@@ -182,6 +179,7 @@ contains
   CnVCDockStyle in '..\..\Source\NonVisual\CnVCDockStyle.pas',
   CnVIDDockStyle in '..\..\Source\NonVisual\CnVIDDockStyle.pas',
   CnVSNETDockStyle in '..\..\Source\NonVisual\CnVSNETDockStyle.pas',
-  CnDelphiDockStyle in '..\..\Source\NonVisual\CnDelphiDockStyle.pas';
+  CnDelphiDockStyle in '..\..\Source\NonVisual\CnDelphiDockStyle.pas',
+  CnWideStrings in '..\..\Source\Common\CnWideStrings.pas';
 
 end.
