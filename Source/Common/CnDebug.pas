@@ -757,6 +757,7 @@ begin
 
   AList.Add('Collection: $' + IntToHex(Integer(Collection), 2) + ' ' + Collection.ClassName);
   AList.Add('  Count = ' + IntToStr(Collection.Count));
+  AddObjectToStringList(Collection, AList, 0);
   for I := 0 to Collection.Count - 1 do
   begin
     AList.Add('');
