@@ -178,10 +178,10 @@ procedure RunFile(const FName: string; Handle: THandle = 0;
   const Param: string = '');
 {* 运行一个文件}
 
-procedure OpenUrl(const Url: string);
+procedure OpenUrl(const Url: string; UseCmd: Boolean = False);
 {* 打开一个链接}
 
-procedure MailTo(const Addr: string; const Subject: string = '');
+procedure MailTo(const Addr: string; const Subject: string = ''; UseCmd: Boolean = False);
 {* 发送邮件}
 
 function WinExecute(FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
@@ -1617,7 +1617,7 @@ begin
 end;
 
 // 打开一个链接
-procedure OpenUrl(const Url: string);
+procedure OpenUrl(const Url: string; UseCmd: Boolean);
 const
   csPrefix = 'http://';
 var
@@ -1628,14 +1628,14 @@ begin
   else
     AUrl := Url;
 
-  if CheckWindows9598 then
+  if CheckWindows9598 or not UseCmd then
     RunFile(AUrl)
   else
     ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + AUrl), '', SW_HIDE);
 end;
 
 // 发送邮件
-procedure MailTo(const Addr: string; const Subject: string = '');
+procedure MailTo(const Addr: string; const Subject: string; UseCmd: Boolean);
 const
   csPrefix = 'mailto:';
   csSubject = '?Subject=';
@@ -1649,7 +1649,7 @@ begin
   if Subject <> '' then
     Url := Url + csSubject + Subject;
 
-  if CheckWindows9598 then
+  if CheckWindows9598 or not UseCmd then
     RunFile(Url)
   else
     ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + Url), '', SW_HIDE);
