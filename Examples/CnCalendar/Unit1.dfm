@@ -21,7 +21,7 @@ object Form1: TForm1
     Top = 8
     Width = 545
     Height = 553
-    ActivePage = tsConvert
+    ActivePage = ts1
     TabOrder = 0
     object ts1: TTabSheet
       Caption = '¹«Àú'

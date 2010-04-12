@@ -47,7 +47,9 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.07.27 V1.5
+* 修改记录：2010.04.12 V1.6
+*               加入纳音五行长字符串的计算
+*           2009.07.27 V1.5
 *               修正一处计算农历日期时可能陷入死循环的问题
 *           2009.07.16 V1.4
 *               修正一处伏日计算不正确的问题，增加伏日字符串
@@ -201,6 +203,19 @@ const
       '外正东', '外东南', '外东南', '外东南', '外东南' );
   {* 每日胎神方位，与六十干支轮排对应}
 
+  SCnNaYinWuXingArray: array[0..29] of string =
+    ( '海中金', '炉中火', '大林木',
+      '路旁土', '剑锋金', '山头火',
+      '涧下水', '城墙土', '白蜡金',
+      '杨柳木', '泉中水', '屋上土',
+      '霹雷火', '松柏木', '长流水',
+      '沙中金', '山下火', '平地木',
+      '壁上土', '金箔金', '佛灯火',
+      '天河水', '大驿土', '钗钏金',
+      '桑柘木', '大溪水', '沙中土',
+      '天上火', '石榴木', '大海水' );
+  {* 纳音五行，与相邻一对六十干支对应}
+
 type
   EDateException = class(Exception);
 
@@ -346,6 +361,15 @@ function Get5XingFromGanZhi(Gan, Zhi: Integer): Integer; overload;
 
 function Get5XingFromDay(AYear, AMonth, ADay: Integer): Integer;
 {* 获得某公历日的纳音五行（短），0-4 对应 金木水火土}
+
+function Get5XingLongFromGanZhi(const GanZhi: Integer): string; overload;
+{* 获得某干支的纳音五行（长），返回字符串}
+
+function Get5XingLongFromGanZhi(Gan, Zhi: Integer): string; overload;
+{* 获得某干支的纳音五行（长），返回字符串}
+
+function Get5XingLongFromDay(AYear, AMonth, ADay: Integer): string;
+{* 获得某公历日的纳音五行（长），返回字符串}
 
 function Get3HeFromZhi(const Zhi: Integer; out He1: Integer;
   out He2: Integer): Boolean;
@@ -1286,6 +1310,35 @@ var
 begin
   ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
   Result := Get5XingFromGanZhi(Gan, Zhi);
+end;
+
+// 获得某干支的纳音五行（长），返回字符串
+function Get5XingLongFromGanZhi(const GanZhi: Integer): string; overload;
+var
+  I: Integer;
+begin
+  I := GanZhi div 2;
+  if I in [0..29] then
+    Result := SCnNaYinWuXingArray[I]
+  else
+    Result := '';
+end;
+
+// 获得某干支的纳音五行（长），返回字符串
+function Get5XingLongFromGanZhi(Gan, Zhi: Integer): string; overload;
+var
+  GanZhi: Integer;
+begin
+  GanZhi := CombineGanZhi(Gan, Zhi);
+  Result := Get5XingLongFromGanZhi(GanZhi);
+end;
+// 获得某公历日的纳音五行（长），返回字符串
+function Get5XingLongFromDay(AYear, AMonth, ADay: Integer): string;
+var
+  Gan, Zhi: Integer;
+begin
+  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  Result := Get5XingLongFromGanZhi(Gan, Zhi);
 end;
 
 // 获得某地支的另两个三合地支
