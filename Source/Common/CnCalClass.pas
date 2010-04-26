@@ -181,6 +181,7 @@ type
 
   { Calendar Classes }
 
+{$M+}
   TCnYearObj = class(TInterfacedObject, ICnYearIntf)
   private
     FYear: Integer;
@@ -216,6 +217,7 @@ type
     property ChuMeiMonth: Integer read GetChuMeiMonth;
     property ChuMeiDay: Integer read GetChuMeiDay;    
   end;
+{$M-}
 
   TCnMonthObj = class(TCnYearObj, ICnMonthIntf)
   private
