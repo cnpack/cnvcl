@@ -237,6 +237,7 @@ constructor TCnMonthCalendar.Create(AOwner: TComponent);
   end;
 begin
   inherited;
+  DoubleBuffered := True;
   ControlStyle := (ControlStyle - [csAcceptsControls, csNoStdEvents, csSetCaption]) + [csReflector];
   FDate := SysUtils.Date;
   FViewDate := FDate;

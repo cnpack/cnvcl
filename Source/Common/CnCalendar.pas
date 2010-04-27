@@ -69,7 +69,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Math;
+  SysUtils, Math;
 
 const
   SCnYinYangArray: array[0..1] of string =
@@ -106,6 +106,12 @@ const
      '奎木狼', '娄金狗', '胃土雉', '昴日鸡', '毕月乌', '觜火猴', '参水猿',  // 西方白虎七宿
      '井木犴', '鬼金羊', '柳土獐', '星日马', '张月鹿', '翼火蛇', '轸水蚓'); // 南方朱雀七宿
   {* 二十八宿完整名称字符串 }
+
+  SCnLunarMonthLeapName: string = '闰';
+  SCnLunarMonthName: string = '月';
+  SCnLunarMonthNameArray: array[0..11] of string =
+    ('一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二');
+  {* 农历月份字符串 }
 
   SCnLunarNumber1Array: array[0..10] of string =
     ('一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '');
@@ -332,6 +338,9 @@ function Get28XiuFromNumber(const AValue: Integer): string;
 function Get28XiuLongFromNumber(const AValue: Integer): string;
 {* 从数字获得二十八宿完整名, 0-27}
 
+function GetLunarMonthFromNumber(const AMonth: Integer; IsLeap: Boolean): string;
+{* 从数字获得农历月名称, 1-12}
+
 function GetLunarDayFromNumber(const ADay: Integer): string;
 {* 从数字获得农历日名称, 1-30}
 
@@ -378,7 +387,8 @@ function Get3HeFromZhi(const Zhi: Integer; out He1: Integer;
 function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 {* 获得某公历时的天干地支，0-59 对应 甲子到癸亥}
 
-function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer;
+function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer; overload;
+function GetGanZhiFromDay(AllDays: Integer): Integer; overload;
 {* 获得某公历日的天干地支，0-59 对应 甲子到癸亥}
 
 function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer;
@@ -1132,6 +1142,18 @@ begin
     Result := SCn28XiuLongArray[AValue];
 end;
 
+// 从数字获得农历月名称, 1-12
+function GetLunarMonthFromNumber(const AMonth: Integer; IsLeap: Boolean): string;
+begin
+  Result := '';
+  if (AMonth >= 1) and (AMonth <= 12) then
+  begin
+    Result := SCnLunarMonthNameArray[AMonth - 1] + SCnLunarMonthName;
+    if IsLeap then
+      Result := SCnLunarMonthLeapName + Result;
+  end;  
+end;
+
 // 从数字获得农历日名称, 1-30
 function GetLunarDayFromNumber(const ADay: Integer): string;
 var
@@ -1374,13 +1396,15 @@ end;
 // 根据公历日期判断当时历法
 function GetCalendarType(AYear, AMonth, ADay: Integer): TCalendarType;
 begin
-  if (AYear < 1582) then
+  if AYear > 1582 then
+    Result := ctGregorian
+  else if AYear < 1582 then
     Result := ctJulian
-  else if (AYear = 1582) and (AMonth < 10) then
+  else if AMonth < 10 then
     Result := ctJulian
-  else if (AYear = 1582) and (AMonth = 10) and (ADay <= 4) then
+  else if (AMonth = 10) and (ADay <= 4) then
     Result := ctJulian
-  else if (AYear = 1582) and (AMonth = 10) and (ADay in [5..14]) then
+  else if (AMonth = 10) and (ADay in [5..14]) then
     Result := ctInvalid
   else
     Result := ctGregorian;
@@ -1611,13 +1635,12 @@ end;
 
 // 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况
 function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer;
-var
-  I: Integer;
+const
+  MonthAbsDays: array [Boolean] of TDayTable =
+    ((0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334),
+     (0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335));
 begin
-  Result := 0;
-  for I := 1 to AMonth - 1 do
-    Inc(Result, GetMonthDays(AYear, I));
-  Inc(Result, ADay);
+  Result := MonthAbsDays[GetIsLeapYear(AYear)][AMonth] + ADay;
 end;
 
 // 从距年首天数返回月和日数，年份用来判断是否是闰年，返回 False 表示不合法日期
@@ -1700,9 +1723,17 @@ end;
 // 获取等效标准天数，此概念系移植而来，似乎是距 Gregorian 历元年元旦的天数
 // 注意此处的 Gregorian 历不包括删去的 10 天，因此等效标准日是连续的
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
+var
+  AType: TCalendarType;
 begin
   Result := 0;
-  if GetCalendarType(AYear, AMonth, ADay) = ctJulian then
+  AType := GetCalendarType(AYear, AMonth, ADay);
+  if AType = ctGregorian then
+  begin
+    Result := (AYear - 1) * 365 + ((AYear - 1) div 4) -((AYear - 1) div 100)
+     + ((AYear - 1) div 400) + GetDayFromYearBegin(AYear, AMonth, ADay);
+  end
+  else if AType = ctJulian then
   begin
     Result := (AYear - 1) * 365 + ((AYear - 1) div 4)
       + GetDayFromYearBegin(AYear, AMonth, ADay) - 2;
@@ -1711,20 +1742,22 @@ begin
       而 Gregory 只删去 10 天，所以留下了 2 天的差值。
       这说明，按 Gregorian 历从 1582.10.4 往前倒推得的 Gregorian 历元年元旦
       和实际公元元年元旦不是同一天。 }
-  end
-  else if GetCalendarType(AYear, AMonth, ADay) = ctGregorian then
-  begin
-    Result := (AYear - 1) * 365 + ((AYear - 1) div 4) -((AYear - 1) div 100)
-     + ((AYear - 1) div 400) + GetDayFromYearBegin(AYear, AMonth, ADay);
   end;
 end;
 
 // 获得等效标准日数对应的某公历日，倒推而来
 function GetDayFromEquStandardDays(EquDays: Integer;
   out AYear, AMonth, ADay: Integer): Boolean;
+const
+  D1 = 365;
+  D4 = D1 * 4 + 1;
+  D100 = D4 * 25 - 1;
+  D400 = D100 * 4 + 1;
 var
-  IsLeap: Boolean;
-  I, OneYearDays, Diff: Integer;
+  Diff: Integer;
+  Y, M, D, I: Word;
+  T: Integer;
+  DayTable: PDayTable;
 begin
   Result := False;
   AYear := 0;
@@ -1733,43 +1766,52 @@ begin
 
   if EquDays < 0 then Exit; // 暂不处理公元前的等效标准日
 
-  Diff := EquDays div (365 * 100) - EquDays div (365 * 400);
   if EquDays <= 577735 then // 如果是 1582.10.4 (577735) 及之前为Julian历，需要修正
   begin
+    Diff := EquDays div (365 * 100) - EquDays div (365 * 400);
     Dec(EquDays, 10); // Gregorian 删去的 10 天
     Inc(EquDays, 12 - Diff); // 补上多闰的 12 天中多闰的部分
   end;
 
-  AYear := 1;
-  OneYearDays := 365;
-  while EquDays > OneYearDays do
+  T := EquDays;
+  Y := 1;
+  while T >= D400 do
   begin
-    IsLeap := IsLeapYear(AYear);
-    // 等效标准日是Gregorian历，因此不必调用考虑 Julian 的 GetIsLeapYear
-
-    if IsLeap then OneYearDays := 366 else OneYearDays := 365;
-
-    if EquDays > OneYearDays then
-    begin
-      Inc(AYear);
-      Dec(EquDays, OneYearDays);
-    end;
+    Dec(T, D400);
+    Inc(Y, 400);
   end;
-
-  for I := 1 to 12 do
+  I := T div D100;
+  D := T mod D100;
+  if I = 4 then
   begin
-    if EquDays > GetMonthDays(AYear, I) then
-    begin
-      EquDays := EquDays - GetMonthDays(AYear, I);
-    end
-    else
-    begin
-      AMonth := I;
-      ADay := EquDays;
-      Result := True;
-      Exit;
-    end;
+    Dec(I);
+    Inc(D, D100);
   end;
+  Inc(Y, I * 100);
+  I := D div D4;
+  D := D mod D4;
+  Inc(Y, I * 4);
+  I := D div D1;
+  D := D mod D1;
+  if I = 4 then
+  begin
+    Dec(I);
+    Inc(D, D1);
+  end;
+  Inc(Y, I);
+  DayTable := @MonthDays[GetIsLeapYear(Y)];
+  M := 1;
+  while True do
+  begin
+    I := DayTable^[M];
+    if D < I then Break;
+    Dec(D, I);
+    Inc(M);
+  end;
+  AYear := Y;
+  AMonth := M;
+  ADay := D + 1;
+  Result := True;
 end;
 
 // 获得某日期是星期几，0-6
@@ -1864,18 +1906,21 @@ end;
 // 获得公历年月日是本年的什么节气，0-23，对应立春到大寒，无则返回 -1
 function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
-  I: Integer;
-  Month, Day, DummyHour, DummyMinute: Integer;
+  Month, Day, Idx, DummyHour, DummyMinute: Integer;
 begin
   Result := -1;
-  for I := 0 to 23 do
+
+  // 每个月两个节气，先算出日期大致对应节气再精确计算，以优化性能
+  Idx := Month * 2;
+  if Day >= 15 then
+    Inc(Idx);
+
+  if GetJieQiInAYear(AYear, Idx, Month, Day, DummyHour, DummyMinute) then
   begin
-    if not GetJieQiInAYear(AYear, I, Month, Day, DummyHour, DummyMinute) then
-      Continue;
     if (AMonth = Month) and (ADay = Day) then
     begin
       // 此时 I 表示 0 是小寒
-      Result := I - 2;
+      Result := Idx - 2;
       // 转换成 0 是立春
       if Result < 0 then
         Inc(Result, 24);
@@ -1931,11 +1976,16 @@ begin
 end;
 
 // 获得某公历日的天干地支，0-59 对应 甲子到癸亥
-function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer;
+function GetGanZhiFromDay(AllDays: Integer): Integer;
 begin
-  Result := (GetAllDays(AYear, AMonth, ADay) + 12) mod 60;
+  Result := (AllDays + 12) mod 60;
   if Result < 0 then
     Inc(Result, 60);
+end;
+
+function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay));
 end;
 
 // 获得某公历月的天干地支，0-59 对应 甲子到癸亥
@@ -2079,27 +2129,26 @@ end;
 // 获得某公历月日的十二建，0-11 对应 建到闭
 function Get12JianFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
-  I, LiChun, JianStart, Days, JieQi: Integer;
-  M, D, Gan, Zhi: Integer;
+  I, LiChun, JianStart, Days, AllDays, JieQi: Integer;
+  DummyGan, Zhi: Integer;
 begin
   Result := -1;
-  
+
   // 十二建类似于地支日轮转，但在非中气的节气那天会重复前一天的
   // 立春后第一个寅日为建日
   JianStart := -1;
   LiChun := Floor(GetJieQiDayTimeFromYear(AYear, 3)); // 获得立春日
+  AllDays := GetAllDays(AYear, 1, 1) - 1;
+
   for I := LiChun + 1 to LiChun + 13 do
   begin
-    if ExtractMonthDay(I, AYear, M, D) then
-    begin
-      ExtractGanZhi(GetGanZhiFromDay(AYear, M, D), Gan, Zhi);
+    ExtractGanZhi(GetGanZhiFromDay(AllDays + I), DummyGan, Zhi);
 
-      // 得到了日支数，判断是否寅
-      if Zhi = 2 then
-      begin
-        JianStart := I;
-        Break;
-      end;
+    // 得到了日支数，判断是否寅
+    if Zhi = 2 then
+    begin
+      JianStart := I;
+      Break;
     end;
   end;
 
@@ -2221,7 +2270,7 @@ end;
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
 var
   Days, XiaZhi, LiQiu: Integer;
-  Month, Day, I: Integer;
+  AllDays, I: Integer;
   Gan, DummyZhi: Integer;
   F1, F2, F3: Integer;
 begin
@@ -2232,60 +2281,59 @@ begin
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
   XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, 12)); // 获得夏至日
   LiQiu := Floor(GetJieQiDayTimeFromYear(AYear, 15)); // 获得立秋日
+  AllDays := GetAllDays(AYear, 1, 1) - 1;
 
   for I := XiaZhi + 1 to XiaZhi + 21 do // 保证包括夏至后第一个庚日的后 10 天，夏至当日不算
   begin
-    if ExtractMonthDay(I, AYear, Month, Day) then
+    if ExtractGanZhi(GetGanZhiFromDay(AllDays + I), Gan, DummyZhi) then
     begin
-      if ExtractGanZhi(GetGanZhiFromDay(AYear, Month, Day), Gan, DummyZhi) then
+      if Gan = 6 then // 夏至后第一个庚日
       begin
-        if Gan = 6 then // 夏至后第一个庚日
-        begin
-          F1 := I + 20; // 初伏日，第三个庚日
-          F2 := I + 30; // 中伏日，第四个庚日
+        ExtractMonthDay(I, AYear, AMonth, ADay);
+        
+        F1 := I + 20; // 初伏日，第三个庚日
+        F2 := I + 30; // 中伏日，第四个庚日
 
-          if (Days >= F1) and (Days < F1 + 9) then
+        if (Days >= F1) and (Days < F1 + 9) then
+        begin
+          Result := True;
+          FuSeq := 0;
+          FuDay := Days - F1 + 1;
+        end
+        else if Days >= F2 then // 中伏
+        begin
+          if (Days < F2 + 10) or // 中伏 10 日内或立秋前 20 日内
+            ((Days >= F2 + 10) and (Days < F2 + 20) and (F2 + 10 <= LiQiu)) then
           begin
             Result := True;
-            FuSeq := 0;
-            FuDay := Days - F1 + 1;
-          end
-          else if Days >= F2 then // 中伏
-          begin
-            if (Days < F2 + 10) or // 中伏 10 日内或立秋前 20 日内
-              ((Days >= F2 + 10) and (Days < F2 + 20) and (F2 + 10 <= LiQiu)) then
-            begin
-              Result := True;
-              FuSeq := 1;
-              FuDay := Days - F2 + 1;
-            end;
+            FuSeq := 1;
+            FuDay := Days - F2 + 1;
           end;
-
-          if Result then
-            Exit;
-
-          Break;
         end;
+
+        if Result then
+          Exit;
+
+        Break;
       end;
-    end
+    end;
   end;
 
   for I := LiQiu + 1 to LiQiu + 21 do // 保证包括立秋后第一个庚日的后 10 天，立秋当日不算
   begin
-    if ExtractMonthDay(I, AYear, Month, Day) then
+    if ExtractGanZhi(GetGanZhiFromDay(AllDays + I), Gan, DummyZhi) then
     begin
-      if ExtractGanZhi(GetGanZhiFromDay(AYear, Month, Day), Gan, DummyZhi) then
+      if Gan = 6 then // 立秋后第一个庚日
       begin
-        if Gan = 6 then // 立秋后第一个庚日
-        begin
-          F3 := I; // 末伏
+        F3 := I; // 末伏
 
-          if (Days >= F3) and (Days < F3 + 10) then
-          begin
-            Result := True;
-            FuSeq := 2;
-            FuDay := Days - F3 + 1;
-          end;
+        if (Days >= F3) and (Days < F3 + 10) then
+        begin
+          ExtractMonthDay(I, AYear, AMonth, ADay);
+          Result := True;
+          FuSeq := 2;
+          FuDay := Days - F3 + 1;
+          Exit;
         end;
       end;
     end;
@@ -2295,23 +2343,22 @@ end;
 // 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日
 function GetRuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
 var
-  I, MangZhong: Integer;
+  I, MangZhong, AllDays: Integer;
   Gan, DummyZhi: Integer;
 begin
   Result := False;
   MangZhong := Floor(GetJieQiDayTimeFromYear(AYear, 11)); // 获得芒种日
+  AllDays := GetAllDays(AYear, 1, 1) - 1;
 
   for I := MangZhong + 1 to MangZhong + 21 do
   begin
-    if ExtractMonthDay(I, AYear, AMonth, ADay) then
+    if ExtractGanZhi(GetGanZhiFromDay(AllDays + I), Gan, DummyZhi) then
     begin
-      if ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, DummyZhi) then
+      if Gan = 2 then // 芒种后第一个丙日
       begin
-        if Gan = 2 then // 芒种后第一个丙日
-        begin
-          Result := True;
-          Exit;
-        end;
+        ExtractMonthDay(I, AYear, AMonth, ADay);
+        Result := True;
+        Exit;
       end;
     end;
   end;
@@ -2320,23 +2367,22 @@ end;
 // 获得某公历年中的出梅日期，梅雨季节的结束日，小暑后的第一个未日
 function GetChuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
 var
-  I, XiaoShu: Integer;
+  I, XiaoShu, AllDays: Integer;
   DummyGan, Zhi: Integer;
 begin
   Result := False;
   XiaoShu := Floor(GetJieQiDayTimeFromYear(AYear, 13)); // 获得小暑日
-
+  AllDays := GetAllDays(AYear, 1, 1) - 1;
+  
   for I := XiaoShu + 1 to XiaoShu + 21 do
   begin
-    if ExtractMonthDay(I, AYear, AMonth, ADay) then
+    if ExtractGanZhi(GetGanZhiFromDay(AllDays + I), DummyGan, Zhi) then
     begin
-      if ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), DummyGan, Zhi) then
+      if Zhi = 7 then // 小暑后第一个未日
       begin
-        if Zhi = 7 then // 小暑后第一个未日
-        begin
-          Result := True;
-          Exit;
-        end;
+        ExtractMonthDay(I, AYear, AMonth, ADay);
+        Result := True;
+        Exit;
       end;
     end;
   end;
@@ -2389,6 +2435,7 @@ var
   Aa, Ab, Ac, F1, J: Real;
   Ms, Leap, Eclip, LunDay, LunDay0, ShuoDay, WangDay: Integer;
   S, R, P, Q: Real;
+  StdDays: Integer;
 begin
   T := (AYear - 1899.5) / 100;
   Ms := Floor((AYear - 1900) * 12.3685);
@@ -2411,6 +2458,7 @@ begin
   WangTime := 0;
 
   K1 := -1; K := -1;
+  StdDays := GetEquStandardDays(AYear, AMonth, ADay);
   while K <= 13 do
   begin
     Aa := Aa0 + 0.507984293 * K;
@@ -2422,7 +2470,7 @@ begin
 
     J := J0 + 28 * K + F1;
 
-    LunDay0 := GetEquStandardDays(AYear, AMonth, ADay) - Floor(J);
+    LunDay0 := StdDays - Floor(J);
     if (K = Floor(K)) and (LunDay0 >= 0) and (LunDay0 <= 29) then
     begin
       K1 := K;
@@ -2433,7 +2481,7 @@ begin
     if (K = K1 + 0.5) then
     begin
       WangTime := GetTail(J);
-      WangDay := Floor(J) - (GetEquStandardDays(AYear, AMonth, ADay) - LunDay + 1) + 1;
+      WangDay := Floor(J) - (StdDays - LunDay + 1) + 1;
     end;
 
     if((LunDay = 1) and (K = K1)) or
