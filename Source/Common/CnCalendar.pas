@@ -2655,10 +2655,9 @@ begin
       LunarMonth := - LunarMonth;
     LunarYear := AYear;
 
-    // 农历年正月初一之前，为上一年
-    if GetDayFromLunar(AYear, 1, 1, False, BYear, BMonth, BDay) then
-      if Compare2Day(AYear, AMonth, ADay, BYear, BMonth, BDay) < 0 then
-        Dec(LunarYear);
+    // 农历在下半年，公历在上半年，则农历应为上一年
+    if (LunarMonth > 6) and (AMonth < 6) then
+      Dec(LunarYear);
 
     Result := True;
   end;
