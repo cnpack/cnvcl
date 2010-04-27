@@ -2643,7 +2643,6 @@ var
   aEclipsType: TEclipseType;
   aMoonPhase: TMoonPhase;
   aTime: Double;
-  BYear, BMonth, BDay: Integer;
 begin
   Result := False;
   if (AYear >= -849) and (AYear <= 2100) then
