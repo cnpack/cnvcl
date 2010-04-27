@@ -59,6 +59,7 @@ type
     function GetChuMeiMonth: Integer;
     function GetChuMeiDay: Integer;
     procedure SetYear(const Value: Integer);
+    procedure SetDateTime(const ADateTime: TDateTime);
 
     property Year: Integer read GetYear write SetYear;
     {* 公历年份 }
@@ -206,6 +207,7 @@ type
     function GetChuMeiMonth: Integer;
     function GetChuMeiDay: Integer;
     procedure SetYear(const Value: Integer);
+    procedure SetDateTime(const ADateTime: TDateTime); virtual;
   published
     property Year: Integer read GetYear write SetYear;
     property YearGan: Integer read GetYearGan;
@@ -235,6 +237,7 @@ type
     function GetMonthZhi: Integer;
     procedure SetMonth(const Value: Integer);
     procedure SetYearMonth(const AYear, AMonth: Integer);
+    procedure SetDateTime(const ADateTime: TDateTime); override;
   published
     property Month: Integer read GetMonth write SetMonth;
     property MonthGan: Integer read GetMonthGan;
@@ -285,6 +288,7 @@ type
     function GetIsLeapMonth: Boolean;
     procedure SetDay(const Value: Integer);
     procedure SetYearMonthDay(const AYear, AMonth, ADay: Integer);
+    procedure SetDateTime(const ADateTime: TDateTime); override;
   published
     property Day: Integer read GetDay write SetDay;
     property Week: Integer read GetWeek;
@@ -322,6 +326,7 @@ type
     function GetHourGanZhi: Integer;
     procedure SetHour(const Value: Integer);
     procedure SetYearMonthDayHour(const AYear, AMonth, ADay, AHour: Integer);    
+    procedure SetDateTime(const ADateTime: TDateTime); override;
   published
     property Hour: Integer read GetHour write SetHour;
     property HourGan: Integer read GetHourGan;
@@ -335,11 +340,8 @@ implementation
 { TCnYearObj }
 
 constructor TCnYearObj.Create;
-var
-  AYear, AMonth, ADay: Word;
 begin
-  DecodeDate(Now, AYear, AMonth, ADay);
-  Year := AYear;
+  SetDateTime(Now);
 end;
 
 function TCnYearObj.GetChuMeiDay: Integer;
@@ -394,6 +396,14 @@ begin
   Update;
 end;
 
+procedure TCnYearObj.SetDateTime(const ADateTime: TDateTime);
+var
+  AYear, AMonth, ADay: Word;
+begin
+  DecodeDate(ADateTime, AYear, AMonth, ADay);
+  SetYear(AYear);
+end;
+
 procedure TCnYearObj.Update;
 begin
   ExtractGanZhi(GetGanZhiFromYear(FYear), FYearGan, FYearZhi);
@@ -404,12 +414,8 @@ end;
 { TCnMonthObj }
 
 constructor TCnMonthObj.Create;
-var
-  AYear, AMonth, ADay: Word;
 begin
   inherited;
-  DecodeDate(Now, AYear, AMonth, ADay);
-  Month := AMonth;
 end;
 
 function TCnMonthObj.GetMonth: Integer;
@@ -447,6 +453,14 @@ begin
   Update;
 end;
 
+procedure TCnMonthObj.SetDateTime(const ADateTime: TDateTime);
+var
+  AYear, AMonth, ADay: Word;
+begin
+  DecodeDate(ADateTime, AYear, AMonth, ADay);
+  SetYearMonth(AYear, AMonth);
+end;
+
 procedure TCnMonthObj.Update;
 begin
   inherited;
@@ -457,12 +471,8 @@ end;
 { TCnDayObj }
 
 constructor TCnDayObj.Create;
-var
-  AYear, AMonth, ADay: Word;
 begin
   inherited;
-  DecodeDate(Now, AYear, AMonth, ADay);
-  Day := ADay;
 end;
 
 function TCnDayObj.GetDay: Integer;
@@ -571,6 +581,14 @@ begin
   Update;
 end;
 
+procedure TCnDayObj.SetDateTime(const ADateTime: TDateTime);
+var
+  AYear, AMonth, ADay: Word;
+begin
+  DecodeDate(ADateTime, AYear, AMonth, ADay);
+  SetYearMonthDay(AYear, AMonth, ADay);
+end;
+
 procedure TCnDayObj.Update;
 begin
   inherited;
@@ -591,12 +609,8 @@ end;
 { TCnHourObj }
 
 constructor TCnHourObj.Create;
-var
-  AHour, AMin, ASec, AMSec: Word;
 begin
   inherited;
-  DecodeTime(Now, AHour, AMin, ASec, AMSec);
-  Hour := AHour;
 end;
 
 function TCnHourObj.GetHour: Integer;
@@ -617,6 +631,16 @@ end;
 function TCnHourObj.GetHourZhi: Integer;
 begin
   Result := FHourZhi;
+end;
+
+procedure TCnHourObj.SetDateTime(const ADateTime: TDateTime);
+var
+  AYear, AMonth, ADay: Word;
+  AHour, AMin, ASec, AMSec: Word;
+begin
+  DecodeDate(ADateTime, AYear, AMonth, ADay);
+  DecodeTime(Now, AHour, AMin, ASec, AMSec);
+  SetYearMonthDayHour(AYear, AMonth, ADay, AHour);
 end;
 
 procedure TCnHourObj.SetHour(const Value: Integer);
