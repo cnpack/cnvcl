@@ -1144,7 +1144,7 @@ begin
         Continue;
 
       APropType := PropType(AObject, APropName);
-      if (APropType in [tkString, tkWChar, tkLString, tkWString
+      if (APropType in [tkString, tkLString, tkWString //, tkWChar
         {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}]) then
       begin
         if NeedIgnoreAction then
