@@ -739,6 +739,9 @@ procedure SetTaskBarVisible(Visible: Boolean);
 procedure SetDesktopVisible(Visible: Boolean);
 {* 设置桌面是否可见}
 
+function CnSetWindowAlphaBlend(Hwnd: THandle; Alpha: Byte): Boolean;
+{* 设置窗体 Alpha 透明值}
+
 function ForceForegroundWindow(HWND: HWND): Boolean;
 {* 强制让一个窗口显示在前台}
 
@@ -4649,6 +4652,43 @@ begin
   ShowWindow(hDesktop, csWndShowFlag[Visible]);
 end;
 
+type
+  TSetLayeredWindowAttributes = function (Hwnd: THandle; crKey: COLORREF;
+    bAlpha: Byte; dwFlags: DWORD): BOOL; stdcall;
+
+var
+  SetLayeredWindowAttributes: TSetLayeredWindowAttributes;
+
+procedure InitSetLayeredWindowAttributesFunc;
+const
+  sUser32 = 'User32.dll';
+var
+  ModH: HMODULE;
+begin
+  ModH := GetModuleHandle(sUser32);
+  if ModH <> 0 then
+     @SetLayeredWindowAttributes := GetProcAddress(ModH, 'SetLayeredWindowAttributes');
+end;
+
+// 设置窗体 Alpha 透明值
+function CnSetWindowAlphaBlend(Hwnd: THandle; Alpha: Byte): Boolean;
+const
+  WS_EX_LAYERED = $00080000;
+  LWA_ALPHA = $00000002;
+var
+  AStyle: Integer;
+begin
+  if Assigned(SetLayeredWindowAttributes) then
+  begin
+    AStyle := GetWindowLong(Hwnd, GWL_EXSTYLE);
+    if (AStyle and WS_EX_LAYERED) = 0 then
+      SetWindowLong(Hwnd, GWL_EXSTYLE, AStyle or WS_EX_LAYERED);
+    Result := SetLayeredWindowAttributes(Hwnd, 0, Alpha, LWA_ALPHA);
+  end
+  else
+    Result := False;
+end;
+
 // 强制让一个窗口显示在前台
 function ForceForegroundWindow(HWND: HWND): Boolean;
 var
@@ -5864,6 +5904,7 @@ end;
 
 initialization
   WndLong := GetWindowLong(Application.Handle, GWL_EXSTYLE);
+  InitSetLayeredWindowAttributesFunc;
 
 end.
 
