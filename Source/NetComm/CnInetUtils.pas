@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, WinInet, Forms, CnCommon;
+  Windows, SysUtils, Classes, WinInet, Forms;
 
 type
 
@@ -129,6 +129,10 @@ type
 function EncodeURL(const URL: string): string;
 {* 将 URL 中的特殊字符转换成 %XX 的形式}
 
+function CnInet_GetStream(const AURL: string; Stream: TStream): Boolean;
+function CnInet_GetString(const AURL: string): AnsiString;
+function CnInet_GetFile(const AURL, FileName: string): Boolean;
+
 implementation
 
 const
@@ -150,6 +154,36 @@ begin
       OutStr := OutStr + InStr[i];
   end;
   Result := string(OutStr);
+end;
+
+function CnInet_GetStream(const AURL: string; Stream: TStream): Boolean;
+begin
+  with TCnInet.Create do
+  try
+    Result := GetStream(AURL, Stream);
+  finally
+    Free;
+  end;
+end;
+
+function CnInet_GetString(const AURL: string): AnsiString;
+begin
+  with TCnInet.Create do
+  try
+    Result := GetString(AURL);
+  finally
+    Free;
+  end;
+end;
+
+function CnInet_GetFile(const AURL, FileName: string): Boolean;
+begin
+  with TCnInet.Create do
+  try
+    Result := GetFile(AURL, FileName);
+  finally
+    Free;
+  end;
 end;
 
 //==============================================================================
@@ -213,7 +247,7 @@ procedure TCnInet.DoProgress(TotalSize, CurrSize: Integer);
 begin
   if Assigned(FOnProgress) then
     FOnProgress(Self, TotalSize, CurrSize, FAborted);
-  if ProcMsg then
+  if ProcMsg and (GetCurrentThreadId = MainThreadID) then
     Application.ProcessMessages;
 end;
 
@@ -279,7 +313,7 @@ begin
   if not InitInet or FAborted then
     Exit;
 
-  if SameText(Info.Protocol, 'http') then
+  if SameText(Info.Protocol, 'http') or SameText(Info.Protocol, 'https') then
     Result := GetHTTPStream(Info, Stream)
   else if SameText(Info.Protocol, 'ftp') then
     Result := GetFTPStream(Info, Stream);
@@ -354,23 +388,38 @@ end;
 
 function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
 var
+  IsHttps: Boolean;
   hConnect, hRequest: HINTERNET;
   SizeStr: array[0..63] of Char;
   BufLen, Index: DWORD;
   i: Integer;
+  Port: Word;
+  Flag: Cardinal;
 begin
   Result := False;
   hConnect := nil;
   hRequest := nil;
   try
-    hConnect := InternetConnect(hSession, PChar(Info.Host),
-      StrToIntDef(Info.Port, INTERNET_DEFAULT_HTTP_PORT), nil, nil,
+    IsHttps := SameText(Info.Protocol, 'https');
+    if IsHttps then
+    begin
+      Port := StrToIntDef(Info.Port, INTERNET_DEFAULT_HTTPS_PORT);
+      Flag := INTERNET_FLAG_RELOAD or INTERNET_FLAG_SECURE or
+        INTERNET_FLAG_IGNORE_CERT_CN_INVALID or INTERNET_FLAG_IGNORE_CERT_DATE_INVALID;
+    end
+    else
+    begin
+      Port := StrToIntDef(Info.Port, INTERNET_DEFAULT_HTTP_PORT);
+      Flag := INTERNET_FLAG_RELOAD;
+    end;
+
+    hConnect := InternetConnect(hSession, PChar(Info.Host), Port, nil, nil,
       INTERNET_SERVICE_HTTP, 0, 0);
     if (hConnect = nil) or FAborted then
       Exit;
 
     hRequest := HttpOpenRequest(hConnect, 'GET', PChar(EncodeURL(Info.PathName)),
-      'HTTP/1.0', nil, nil, INTERNET_FLAG_RELOAD, 0);
+      HTTP_VERSION, nil, nil, Flag, 0);
     if (hRequest = nil) or FAborted then
       Exit;
 
