@@ -5,9 +5,9 @@
 **********************************************************************
 
                     CnPack Component Package (Alpha)
-                           Version 2010.01.01
+                           Version 2010.05.01
                         =======================
-                          CnPack Team 2010.01
+                          CnPack Team 2010.05
 
 
 =====================================================
@@ -44,12 +44,12 @@ development, please contact us:
 3. Installation
 ======================================================================
 
-    Now Delphi 5/6/7/2005/2006/2007/2009 and C++Builder 5/6 are supported by 
-CnPack Component Package. You can open corresponding package files in IDE
-and press "compile" or "install" buttons to compile and install it. The 
-package files with "dcl" prefix are for design time, others for run time.
-Note: please compile run-time package first, then install design-time
-package.
+    Now Delphi 5/6/7/2005/2006/2007/2009/2010 and C++Builder 5/6 are 
+supported by CnPack Component Package. You can open corresponding package 
+files in IDE and press "compile" or "install" buttons to compile and 
+install it. The package files with "dcl" prefix are for design time, 
+others for run time. Note: please compile run-time package first, then 
+install design-time package.
 
     Click "Environment Options" in "Tools" menu to open settings dialog.
 Select "Library" tabset. Click the right button of "Library Path", and 
