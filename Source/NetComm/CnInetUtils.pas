@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, WinInet, Forms;
+  Windows, SysUtils, Classes, WinInet;
 
 type
 
@@ -77,7 +77,6 @@ type
     FAborted: Boolean;
     FGetDataFail: Boolean;
     FOnProgress: TCnInetProgressEvent;
-    FProcMsg: Boolean;
     FUserAgent:string;
     FProxyServer:string;
     FProxyUserName:string;
@@ -109,17 +108,17 @@ type
     {* 是否已被中断}
     property GetDataFail: Boolean read FGetDataFail;
     {* 上一次的数据读取是否成功}
-    property ProcMsg: Boolean read FProcMsg write FProcMsg;
-    {* 设置UserAgent 浏览器识别标示}
+
     property UserAgent: string read FUserAgent write FUserAgent;
-    {* 代理服务器设置: [协议=][协议://]服务器[:端口] 如 127.0.0.1:8080}    
+    {* 设置UserAgent 浏览器识别标示}
     property ProxyServer: string read FProxyServer write FProxyServer;
-    {* 代理服务器用户名}    
+    {* 代理服务器设置: [协议=][协议://]服务器[:端口] 如 127.0.0.1:8080}
     property ProxyUserName: string read FProxyUserName write FProxyUserName;
-    {* 代理服务器用户密码}    
+    {* 代理服务器用户名}
     property ProxyPassWord: string read FProxyPassWord write FProxyPassWord;
-    {* 请求信息头}
+    {* 代理服务器用户密码}
     property HttpRequestHeaders: TStringList read FHttpRequestHeaders;
+    {* 请求信息头}
   end;
 
   TCnHTTP = class(TCnInet);
@@ -196,7 +195,6 @@ constructor TCnInet.Create;
 begin
   inherited;
   FUserAgent := 'CnPack Internet Utils';
-  FProcMsg := True;
   FHttpRequestHeaders := TStringList.Create;
 end;
 
@@ -247,8 +245,6 @@ procedure TCnInet.DoProgress(TotalSize, CurrSize: Integer);
 begin
   if Assigned(FOnProgress) then
     FOnProgress(Self, TotalSize, CurrSize, FAborted);
-  if ProcMsg and (GetCurrentThreadId = MainThreadID) then
-    Application.ProcessMessages;
 end;
 
 function TCnInet.ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
