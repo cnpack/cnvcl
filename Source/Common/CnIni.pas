@@ -145,6 +145,7 @@ type
      Ini 数据。 }
   private
     FFileName: string;
+    FInitData: string;
   protected
 
   public
@@ -686,16 +687,42 @@ end;
 { TCnStreamIniFile }
 
 constructor TCnStreamIniFile.Create(const FileName: string);
+var
+  Strings: TStrings;
 begin
   inherited Create('');
   FFileName := FileName;
   if FileExists(FFileName) then
     LoadFromFile(FFileName);
+
+  if FFileName <> '' then
+  begin
+    Strings := TStringList.Create;
+    try
+      GetStrings(Strings);
+      FInitData := Strings.Text;
+    finally
+      Strings.Free;
+    end;
+  end;    
 end;
 
 destructor TCnStreamIniFile.Destroy;
+var
+  Strings: TStrings;
 begin
-  UpdateFile;
+  if FFileName <> '' then
+  begin
+    // 有变更时才保存
+    Strings := TStringList.Create;
+    try
+      GetStrings(Strings);
+      if CompareStr(Strings.Text, FInitData) <> 0 then
+        UpdateFile;
+    finally
+      Strings.Free;
+    end;
+  end;
   inherited;
 end;
 
@@ -770,7 +797,7 @@ end;
 
 procedure TCnStreamIniFile.UpdateFile;
 begin
-  if FileExists(FFileName) then
+  if FFileName <> '' then
     SaveToFile(FFileName);
 end;
 
