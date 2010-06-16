@@ -31,7 +31,9 @@ unit CnXlsWriter;
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.04.30 V1.0
+* 修改记录：2010.06.16 V1.1
+*               修正对Int64和Extended类型处理不恰当的问题。
+*           2008.04.30 V1.0
 *               solokey从原始代码移植而来。
 ================================================================================
 |</PRE>}
@@ -42,7 +44,7 @@ interface
 
 uses
   Classes, Sysutils, ComObj{$IFDEF COMPILER6_UP}, Variants{$ENDIF};
- 
+
 type
   TCnXlsWriter = class(TObject)
   private
@@ -62,16 +64,16 @@ type
   public
     constructor Create;
     destructor  Destroy; override;
-    
+
     procedure   NewXls;
     {* 将文件清空}
-    
+
     procedure   SaveToXls(const FileName: string);
     {* 保存文件}
-    
+
     property    ADOCompatible: Boolean read FADOCompatible write FADOCompatible;
     {* 兼容ADO，如果需要兼容 ADO，则内部将文件使用Excel Application 来重新保存}
-    
+
     property    Cells[const ACol: Byte; const ARow: Word]: Variant write SetCells;
     {* 写单元格内容的属性，不可读}
   end;
@@ -165,7 +167,7 @@ begin
     Exit;
   XlsEndStream(FStream);
   FStream.SaveToFile(FileName);
-  if FileExists(FileName) and FADOCompatible then 
+  if FileExists(FileName) and FADOCompatible then
   begin
     try
       try
@@ -173,7 +175,7 @@ begin
           TargetFileName := IncludeTrailingBackslash(GetCurrentDir) + FileName
         else
           TargetFileName := FileName;
-          
+
         // 创建Excel对象，需要Excel安装支持，如无安装，拦截异常
         ExcelApp := CreateOleObject( 'Excel.Application' );
         // 隐藏Excel提示(覆盖文件)
@@ -200,8 +202,8 @@ end;
 procedure TCnXlsWriter.SetCells(const ACol: Byte; const ARow: Word; const Value: Variant);
 var
   aStr: string;
-  aInt: Int64;
-  aFloat: Extended;
+  aInt: Integer;
+  aFloat: Double;
   aCode: Integer;
 begin
   case VarType(Value) of
@@ -211,19 +213,19 @@ begin
       XlsWriteCellNumber(FStream, ACol, ARow, Value);
     varString, {$IFDEF DELPHI2009_UP} varUString, {$ENDIF} varOleStr:
       begin
-        aStr := Value;
         Val(aStr, aInt, aCode);
-        if aCode = 0 then 
+        if aCode = 0 then
         begin
-          XlsWriteCellRk(FStream, ACol, ARow, Value);
+          XlsWriteCellLabel(FStream, ACol, ARow, '''' + aStr);
           Exit;
         end;
         Val(aStr, aFloat, aCode);
-        if aCode = 0 then 
+        if aCode = 0 then
         begin
-          XlsWriteCellNumber(FStream, ACol, ARow, Value);
+          XlsWriteCellLabel(FStream, ACol, ARow, '''' + aStr);
           Exit;
         end;
+
         XlsWriteCellLabel(FStream, ACol, ARow, Value);
       end;
     varDate:
