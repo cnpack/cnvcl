@@ -112,7 +112,7 @@ type
   private
     FStringRecAddr: Pointer;
     FStringName: WideString;
-    FDstStr: WideString;
+    FDstStr: string;
   public
     property StringRecAddr: Pointer read FStringRecAddr write FStringRecAddr;
     property StringName: WideString read FStringName write FStringName;
@@ -315,7 +315,7 @@ procedure TranslateWideStrArray(var StrArray: array of WideString; const IDStr: 
 {* 翻译某个字符串数组 }
 
 procedure RegisterTranslateString(const StringAddr: PAnsiString; const IDStr: WideString); overload;
-procedure RegisterTranslateString(const StringAddr: PWideString; const IDStr: WideString); overload;
+procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString); overload;
 {* 注册一字符串，传入地址与名称，可在语言改变时被自动翻译，无需手工调 Translate}
 
 procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: WideString);
@@ -1517,7 +1517,7 @@ begin
   end;
 end;
 
-procedure RegisterTranslateString(const StringAddr: PWideString; const IDStr: WideString);
+procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString);
 var
   AObj: TCnStringObj;
 begin
@@ -1563,7 +1563,7 @@ begin
     begin
       BObj.FDstStr := DstStr; // 保存一份字符串引用
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), PAGE_EXECUTE_READWRITE, @OldProtect);
-      PResStringRec(BObj.StringRecAddr)^.Identifier := Integer(DstStr);
+      PResStringRec(BObj.StringRecAddr)^.Identifier := Integer(BObj.FDstStr);
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), OldProtect, nil);
     end;
   end;
