@@ -315,6 +315,7 @@ type
     FUseShellImages: Boolean;
     FNotifier: TCnShellChangeNotifier;
     FOnAddFolder: TAddFolderEvent;
+    FOnRootChanged: TNotifyEvent;
     FSavePath: string;
     FNodeToMonitor: TTreeNode;
     function FolderExists(FindID: PItemIDList; InNode: TTreeNode): TTreeNode;
@@ -366,6 +367,7 @@ type
     property ShellListView: TCnCustomShellListView read FListView write SetListView;
     property UseShellImages: Boolean read FUseShellImages write SetUseShellImages;
     property OnAddFolder: TAddFolderEvent read FOnAddFolder write FOnAddFolder;
+    property OnRootChanged: TNotifyEvent read FOnRootChanged write FOnRootChanged;
     procedure CommandCompleted(Verb: String; Succeeded: Boolean);
     procedure ExecuteCommand(Verb: String; var Handled: Boolean);
   end;
@@ -433,6 +435,7 @@ type
     property OnEdited;
     property OnGetImageIndex;
     property OnGetSelectedIndex;
+    property OnRootChanged;
   end;
 
 { TCnCustomShellListView }
@@ -451,6 +454,7 @@ type
     FLargeImages,
     FSmallImages: Integer;
     FOnAddFolder: TAddFolderEvent;
+    FOnRootChanged: TNotifyEvent;
     FFolders: TList;
     FTreeView: TCnCustomShellTreeView;
     FNotifier: TCnShellChangeNotifier;
@@ -512,6 +516,7 @@ type
     property Sorted: Boolean read FSorted write SetSorted;
     property OnAddFolder: TAddFolderEvent read FOnAddFolder write FOnAddFolder;
     property OnEditing: TLVEditingEvent read FOnEditing write FOnEditing;
+    property OnRootChanged: TNotifyEvent read FOnRootChanged write FOnRootChanged;
     procedure CommandCompleted(Verb: String; Succeeded: Boolean);
     procedure ExecuteCommand(Verb: String; var Handled: Boolean);
   end;
@@ -562,6 +567,7 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+    property OnRootChanged;
     property ParentColor default False;
     property ParentFont;
     property ParentShowHint;
@@ -1927,6 +1933,8 @@ begin
     CreateRoot;
     if Assigned(FListView) then
       FListView.SetRoot(FRoot);
+    if Assigned(FOnRootChanged) then
+      FOnRootChanged(Self);
   finally
     FUpdating := False;
   end;
@@ -2431,6 +2439,9 @@ begin
     Populate;
     if ViewStyle = vsReport then EnumColumns;
     AutoRefresh := StayFresh;
+    
+    if Assigned(FOnRootChanged) then
+      FOnRootChanged(Self);
   finally
     FUpdating := False;
   end;
