@@ -1911,8 +1911,8 @@ begin
   Result := -1;
 
   // 每个月两个节气，先算出日期大致对应节气再精确计算，以优化性能
-  Idx := Month * 2;
-  if Day >= 15 then
+  Idx := (AMonth - 1) * 2;
+  if ADay >= 15 then
     Inc(Idx);
 
   if GetJieQiInAYear(AYear, Idx, Month, Day, DummyHour, DummyMinute) then
