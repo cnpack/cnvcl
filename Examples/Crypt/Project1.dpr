@@ -6,7 +6,8 @@ uses
   CnMD5 in '..\..\Source\Common\CnMD5.pas',
   CnBase64 in '..\..\Source\Common\CnBase64.pas',
   CnCRC32 in '..\..\Source\Common\CnCRC32.pas',
-  CnDES in '..\..\Source\Common\CnDES.pas';
+  CnDES in '..\..\Source\Common\CnDES.pas',
+  CnSHA1 in '..\..\Source\Common\CnSHA1.pas';
 
 {$R *.RES}
 

@@ -4,7 +4,7 @@ object Form1: TForm1
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 414
-  ClientWidth = 384
+  ClientWidth = 402
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -19,17 +19,18 @@ object Form1: TForm1
   object PageControl1: TPageControl
     Left = 24
     Top = 24
-    Width = 329
+    Width = 353
     Height = 361
-    ActivePage = ts64
+    ActivePage = ts1
     TabOrder = 0
     object ts1: TTabSheet
       Caption = 'DES'
       object grpdES: TGroupBox
         Left = 24
         Top = 24
-        Width = 281
+        Width = 305
         Height = 289
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'DES'
         TabOrder = 0
         object lbl1: TLabel
@@ -116,8 +117,9 @@ object Form1: TForm1
       object grpMd5: TGroupBox
         Left = 24
         Top = 24
-        Width = 273
+        Width = 297
         Height = 289
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'MD5'
         TabOrder = 0
         object lblfROM: TLabel
@@ -169,8 +171,9 @@ object Form1: TForm1
       object GroupBox1: TGroupBox
         Left = 24
         Top = 24
-        Width = 273
+        Width = 297
         Height = 289
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'Base64'
         TabOrder = 0
         object lbl2: TLabel
@@ -242,8 +245,9 @@ object Form1: TForm1
       object grpCRC32: TGroupBox
         Left = 24
         Top = 24
-        Width = 273
+        Width = 297
         Height = 289
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'CRC32'
         TabOrder = 0
         object lblCRC: TLabel
@@ -295,8 +299,9 @@ object Form1: TForm1
       object grp1: TGroupBox
         Left = 24
         Top = 24
-        Width = 273
+        Width = 297
         Height = 289
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'CRC64'
         TabOrder = 0
         object lbl5: TLabel
@@ -339,6 +344,60 @@ object Form1: TForm1
           Caption = 'File CRC64'
           TabOrder = 3
           OnClick = btnFileCRC64Click
+        end
+      end
+    end
+    object tsSha1: TTabSheet
+      Caption = 'SHA1'
+      ImageIndex = 5
+      object grpSha1: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 297
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA1'
+        TabOrder = 0
+        object lblSha1: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object edtSha1: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSha1: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA1'
+          TabOrder = 1
+          OnClick = btnSha1Click
+        end
+        object pnlSha1: TPanel
+          Left = 8
+          Top = 136
+          Width = 281
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+        end
+        object btnFileSha1: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA1'
+          TabOrder = 3
+          OnClick = btnFileSha1Click
         end
       end
     end

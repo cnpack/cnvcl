@@ -53,6 +53,13 @@ type
     btnCRC64: TButton;
     pnlCRC64: TPanel;
     btnFileCRC64: TButton;
+    tsSha1: TTabSheet;
+    grpSha1: TGroupBox;
+    lblSha1: TLabel;
+    edtSha1: TEdit;
+    btnSha1: TButton;
+    pnlSha1: TPanel;
+    btnFileSha1: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -64,6 +71,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btnCRC64Click(Sender: TObject);
     procedure btnFileCRC64Click(Sender: TObject);
+    procedure btnSha1Click(Sender: TObject);
+    procedure btnFileSha1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -76,7 +85,7 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1;
 
 {$R *.DFM}
 
@@ -162,6 +171,21 @@ begin
   if OpenDialog1.Execute then
     if FileCRC64(OpenDialog1.FileName, Crc) then
       pnlCRC64.Caption := IntToHex(Crc, 2);
+end;
+
+procedure TForm1.btnSha1Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlSha1.Caption := SHA1Print(SHA1StringA(AnsiString(edtSha1.Text)));
+{$ELSE}
+  pnlSha1.Caption := SHA1Print(SHA1String(edtSha1.Text));
+{$ENDIF}
+end;
+
+procedure TForm1.btnFileSha1Click(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlSha1.Caption := SHA1Print(SHA1File(OpenDialog1.FileName));
 end;
 
 end.
