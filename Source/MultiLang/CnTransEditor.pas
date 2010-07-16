@@ -457,6 +457,7 @@ begin
     with Sender as TStringGrid do
     begin
       OutStr := Cells[ACol, ARow];
+      Canvas.Brush.Style := bsSolid;
       Canvas.FillRect(Rect);
       Canvas.TextOut(Rect.Left + ((Rect.Right - Rect.Left -
         Canvas.TextWidth(OutStr)) shr 1), Rect.Top + ((Rect.Bottom - Rect.top
@@ -465,6 +466,7 @@ begin
 
   if ACol = 0 then
   begin
+    Canvas.Brush.Style := bsSolid;
     Canvas.FillRect(Rect);
     Canvas.TextOut(Rect.Left + 3, Rect.Top + 2, InttoStr(ARow));
   end;
