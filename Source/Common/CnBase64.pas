@@ -446,7 +446,7 @@ end;
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString): Byte;
 var
-  SrcLen, Times, i: Integer;
+  SrcLen, DstLen, Times, i: Integer;
   x1, x2, x3, x4, xt: Byte;
   C: Integer;
   Data: AnsiString;
@@ -486,7 +486,8 @@ begin
     Data := InputData;
 
   SrcLen := Length(Data);
-  SetLength(OutputData, (SrcLen * 3 div 4));  //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+  DstLen := SrcLen * 3 div 4;
+  SetLength(OutputData, DstLen);  //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
   Times := SrcLen div 4;
   C := 1;
 
@@ -515,6 +516,12 @@ begin
     OutputData[C] := AnsiChar(Chr(x3));
     Inc(C);
   end;
+
+  // 删除尾部的 #0
+  while (DstLen > 0) and (OutputData[DstLen] = #0) do
+    Dec(DstLen);
+  SetLength(OutputData, DstLen);
+  
   OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData));
   Result := BASE64_OK;
 end;
