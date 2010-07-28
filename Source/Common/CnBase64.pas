@@ -61,12 +61,13 @@ function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte
   var OutputData: AnsiString  - 编码后的数据
 |</PRE>}
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString): Byte; overload;
-function Base64Decode(const InputData: AnsiString; OutputData: TStream): Byte; overload;
+function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean = True): Byte; overload;
+function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean = True): Byte; overload;
 {* 对数据进行BASE64解码，如解码成功返回Base64_OK
 |<PRE>
   InputData:AnsiString        - 要解码的数据
   var OutputData: AnsiString  - 解码后的数据
+  FixZero: Boolean            - 是否移去尾部的 #0
 |</PRE>}
 
 // 原始移植的版本，比较慢
@@ -433,18 +434,18 @@ begin
   Result := BASE64_OK;
 end;
 
-function Base64Decode(const InputData: AnsiString; OutputData: TStream): Byte; overload;
+function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte; overload;
 var
   Str: AnsiString;
 begin
-  Result := Base64Decode(InputData, Str);
+  Result := Base64Decode(InputData, Str, FixZero);
   OutputData.Size := Length(Str);
   OutputData.Position := 0;
   if Str <> '' then
     OutputData.Write(Str[1], Length(Str));
 end;
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString): Byte;
+function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Byte;
 var
   SrcLen, DstLen, Times, i: Integer;
   x1, x2, x3, x4, xt: Byte;
@@ -518,10 +519,13 @@ begin
   end;
 
   // 删除尾部的 #0
-  while (DstLen > 0) and (OutputData[DstLen] = #0) do
-    Dec(DstLen);
-  SetLength(OutputData, DstLen);
-  
+  if FixZero then
+  begin
+    while (DstLen > 0) and (OutputData[DstLen] = #0) do
+      Dec(DstLen);
+    SetLength(OutputData, DstLen);
+  end;
+
   OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData));
   Result := BASE64_OK;
 end;
