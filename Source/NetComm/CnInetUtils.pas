@@ -89,19 +89,19 @@ type
     procedure CloseInet;
     function GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
       Stream: TStream): Boolean;
-    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
+    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean;
     function GetFTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Abort;
     {* 中断当前处理}
-    function GetStream(const AURL: string; Stream: TStream): Boolean;
-    {* 从 AURL 地址读取数据到流 Stream}
-    function GetString(const AURL: string): AnsiString;
-    {* 从 AURL 地址返回一个字符串}
-    function GetFile(const AURL, FileName: string): Boolean;
-    {* 从 AURL 地址读取数据保存到文件 FileName}
+    function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
+    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用}
+    function GetString(const AURL: string; APost: TStrings = nil): AnsiString;
+    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用}
+    function GetFile(const AURL, FileName: string; APost: TStrings = nil): Boolean;
+    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用}
     property OnProgress: TCnInetProgressEvent read FOnProgress write FOnProgress;
     {* 数据进度事件}
     property Aborted: Boolean read FAborted;
@@ -128,9 +128,9 @@ type
 function EncodeURL(const URL: string): string;
 {* 将 URL 中的特殊字符转换成 %XX 的形式}
 
-function CnInet_GetStream(const AURL: string; Stream: TStream): Boolean;
-function CnInet_GetString(const AURL: string): AnsiString;
-function CnInet_GetFile(const AURL, FileName: string): Boolean;
+function CnInet_GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
+function CnInet_GetString(const AURL: string; APost: TStrings = nil): AnsiString;
+function CnInet_GetFile(const AURL, FileName: string; APost: TStrings = nil): Boolean;
 
 implementation
 
@@ -155,31 +155,31 @@ begin
   Result := string(OutStr);
 end;
 
-function CnInet_GetStream(const AURL: string; Stream: TStream): Boolean;
+function CnInet_GetStream(const AURL: string; Stream: TStream; APost: TStrings): Boolean;
 begin
   with TCnInet.Create do
   try
-    Result := GetStream(AURL, Stream);
+    Result := GetStream(AURL, Stream, APost);
   finally
     Free;
   end;
 end;
 
-function CnInet_GetString(const AURL: string): AnsiString;
+function CnInet_GetString(const AURL: string; APost: TStrings): AnsiString;
 begin
   with TCnInet.Create do
   try
-    Result := GetString(AURL);
+    Result := GetString(AURL, APost);
   finally
     Free;
   end;
 end;
 
-function CnInet_GetFile(const AURL, FileName: string): Boolean;
+function CnInet_GetFile(const AURL, FileName: string; APost: TStrings): Boolean;
 begin
   with TCnInet.Create do
   try
-    Result := GetFile(AURL, FileName);
+    Result := GetFile(AURL, FileName, APost);
   finally
     Free;
   end;
@@ -297,7 +297,7 @@ begin
   end;
 end;
 
-function TCnInet.GetStream(const AURL: string; Stream: TStream): Boolean;
+function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
 var
   Info: TCnURLInfo;
 begin
@@ -310,7 +310,7 @@ begin
     Exit;
 
   if SameText(Info.Protocol, 'http') or SameText(Info.Protocol, 'https') then
-    Result := GetHTTPStream(Info, Stream)
+    Result := GetHTTPStream(Info, Stream, APost)
   else if SameText(Info.Protocol, 'ftp') then
     Result := GetFTPStream(Info, Stream);
 
@@ -382,7 +382,7 @@ begin
   end;
 end;
 
-function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
+function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean;
 var
   IsHttps: Boolean;
   hConnect, hRequest: HINTERNET;
@@ -391,6 +391,9 @@ var
   i: Integer;
   Port: Word;
   Flag: Cardinal;
+  Verb, Opt: string;
+  POpt: PChar;
+  OptLen: Integer;
 begin
   Result := False;
   hConnect := nil;
@@ -414,7 +417,25 @@ begin
     if (hConnect = nil) or FAborted then
       Exit;
 
-    hRequest := HttpOpenRequest(hConnect, 'GET', PChar(EncodeURL(Info.PathName)),
+    if APost <> nil then
+    begin
+      Verb := 'POST';
+      Opt := '';
+      for i := 0 to APost.Count - 1 do
+        if Opt = '' then
+          Opt := EncodeURL(APost[i])
+        else
+          Opt := Opt + '&' + EncodeURL(APost[i]);
+      POpt := PChar(Opt);
+      OptLen := Length(Opt);
+    end
+    else
+    begin
+      Verb := 'GET';
+      POpt := nil;
+      OptLen := 0;
+    end;
+    hRequest := HttpOpenRequest(hConnect, PChar(Verb), PChar(EncodeURL(Info.PathName)),
       HTTP_VERSION, nil, nil, Flag, 0);
     if (hRequest = nil) or FAborted then
       Exit;
@@ -423,7 +444,7 @@ begin
       HttpAddRequestHeaders(hRequest, PChar(FHttpRequestHeaders[i]),
         Length(FHttpRequestHeaders[i]), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
 
-    if HttpSendRequest(hRequest, nil, 0, nil, 0) then
+    if HttpSendRequest(hRequest, nil, 0, POpt, OptLen) then
     begin
       if FAborted then Exit;
 
@@ -442,14 +463,14 @@ begin
   end;
 end;
 
-function TCnInet.GetString(const AURL: string): AnsiString;
+function TCnInet.GetString(const AURL: string; APost: TStrings): AnsiString;
 var
   Stream: TMemoryStream;
 begin
   try
     Stream := TMemoryStream.Create;
     try
-      if GetStream(AURL, Stream) then
+      if GetStream(AURL, Stream, APost) then
       begin
         SetLength(Result, Stream.Size);
         Move(Stream.Memory^, PAnsiChar(Result)^, Stream.Size);
@@ -464,7 +485,7 @@ begin
   end;
 end;
 
-function TCnInet.GetFile(const AURL, FileName: string): Boolean;
+function TCnInet.GetFile(const AURL, FileName: string; APost: TStrings): Boolean;
 var
   Stream: TFileStream;
 begin
@@ -472,7 +493,7 @@ begin
     Stream := TFileStream.Create(FileName, fmCreate or fmShareDenyWrite);
     try
       Stream.Size := 0;
-      Result := GetStream(AURL, Stream);
+      Result := GetStream(AURL, Stream, APost);
     finally
       Stream.Free;
     end;
