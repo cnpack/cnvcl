@@ -384,6 +384,7 @@ type
     destructor Destroy; override;
 
     procedure UpdateKeyBoardsInfo;
+    function KeyBoardNameFromHandle(KeyHandle: THandle): string;
     property KeyBoardCount: Integer read GetKeyBoardCount;
     property KeyBoardName[Index: Integer]: string read GetKeyBoardName;
   published
@@ -580,8 +581,7 @@ begin
 
             Inc(FKeyBoardCount);
             GetRawInputDeviceInfo(FDevices[I].hDevice, RIDI_DEVICENAME, @KBName, C);
-            FKeyBoardNames.Add({$IFDEF DELPHI12_UP}String{$ENDIF}(KBName));
-
+            FKeyBoardNames.AddObject({$IFDEF DELPHI12_UP}String{$ENDIF}(KBName), TObject(FDevices[I].hDevice));
           end;
         end;
       end;
@@ -593,6 +593,17 @@ function TCnRawKeyBoard.GetKeyBoardName(Index: Integer): string;
 begin
   if (Index > 0) and (Index < FKeyBoardNames.Count) then
     Result := FKeyBoardNames[Index];
+end;
+
+function TCnRawKeyBoard.KeyBoardNameFromHandle(KeyHandle: THandle): string;
+var
+  I: Integer;
+begin
+  I := FKeyBoardNames.IndexOfObject(TObject(KeyHandle));
+  if I >= 0 then
+    Result := FKeyBoardNames[I]
+  else
+    Result := '';
 end;
 
 initialization

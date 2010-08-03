@@ -50,7 +50,7 @@ end;
 procedure TForm1.RawKeyDown(Sender: TObject; Key: Word;
   FromKeyBoard: THandle);
 begin
-  Memo1.Lines.Add(Format('KeyDown: %d, From %d', [Key, FromKeyBoard]));
+  Memo1.Lines.Add(Format('KeyDown: %d, From %d %s', [Key, FromKeyBoard, R.KeyBoardNameFromHandle(FromKeyBoard)]));
 end;
 
 procedure TForm1.btnStartClick(Sender: TObject);
@@ -61,7 +61,7 @@ end;
 procedure TForm1.RawKeyUp(Sender: TObject; Key: Word;
   FromKeyBoard: THandle);
 begin
-  Memo2.Lines.Add(Format('KeyUp: %d, From %d', [Key, FromKeyBoard]));
+  Memo2.Lines.Add(Format('KeyUp: %d, From %d %s', [Key, FromKeyBoard, R.KeyBoardNameFromHandle(FromKeyBoard)]));
 end;
 
 procedure TForm1.btnStopClick(Sender: TObject);
