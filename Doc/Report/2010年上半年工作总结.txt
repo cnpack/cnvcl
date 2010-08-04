@@ -2,7 +2,7 @@ CnPack开发组2010年上半年度工作总结
 
     CnPack 在 2010 年上半年取得的主要成绩如下：
 
-一、2010 年 8 月，CnPack 成为 Embarcadero 的技术合作伙伴（ETP）。
+一、2009 年 8 月，CnPack 成为 Embarcadero 的技术合作伙伴（ETP）。目前继续保持。;-)
 
 二、CnPack IDE 专家包发布 0.9.6 正式版，不再支持Windows 98，并且增加RSS源阅读专家。另外界面语言正式增加对俄语和德语的支持，感谢 Yuri Petrov 与 Ralf Schroedter 两位外国朋友的热心帮助。
 
@@ -57,7 +57,7 @@ CnPack Working Report in the First Half of 2010
 
     Below are the achievements of CnPack in the First Half of 2010:
 
-1. CnPack Becomes Embarcadero Technology Partner (ETP).
+1. CnPack Becomes Embarcadero Technology Partner (ETP) and Keeping.
 
 2. CnPack IDE Wizards 0.9.6 published. Russian and German UI Added. Thanks the help of Yuri Petrov and Ralf Schroedter.
    RSS Feed Wizard also Added. Windows 98 NOT Supported anymore.
