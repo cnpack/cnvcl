@@ -73,6 +73,8 @@
 			<DCCReference Include="..\..\Source\Common\CnIni.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIniStrUtils.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMD5.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnDES.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnSHA1.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMulticastEvent.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSingleton.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSingletonComp.pas"/>

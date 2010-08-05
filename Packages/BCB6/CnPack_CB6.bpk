@@ -11,6 +11,7 @@
       ..\..\Source\Common\CnGraphUtils.obj ..\..\Source\Common\CnHashMap.obj 
       ..\..\Source\Common\CnIni.obj ..\..\Source\Common\CnIniStrUtils.obj 
       ..\..\Source\Common\CnMD5.obj ..\..\Source\Common\CnPack.obj 
+      ..\..\Source\Common\CnDES.obj ..\..\Source\Common\CnSHA1.obj 
       ..\..\Source\Common\CnMulticastEvent.obj ..\..\Source\Common\CnSingleton.obj 
       ..\..\Source\Common\CnSingletonComp.obj 
       ..\..\Source\Common\CnSQLite.obj ..\..\Source\Common\CnStrDiff.obj 
@@ -188,6 +189,8 @@
       <FILE FILENAME="..\..\Source\Common\CnIni.pas" FORMNAME="" UNITNAME="CnIni" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIniStrUtils.pas" FORMNAME="" UNITNAME="CnIniStrUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnDES.pas" FORMNAME="" UNITNAME="CnDES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnSHA1.pas" FORMNAME="" UNITNAME="CnSHA1" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnPack.pas" FORMNAME="" UNITNAME="CnPack" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnPack.dcr" FORMNAME="" UNITNAME="CnPack" CONTAINERID="DcrTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMulticastEvent.pas" FORMNAME="" UNITNAME="CnMulticastEvent" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

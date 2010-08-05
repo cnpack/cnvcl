@@ -20,6 +20,8 @@ USEUNIT("..\..\Source\Common\CnHashMap.pas");
 USEUNIT("..\..\Source\Common\CnIni.pas");
 USEUNIT("..\..\Source\Common\CnIniStrUtils.pas");
 USEUNIT("..\..\Source\Common\CnMD5.pas");
+USEUNIT("..\..\Source\Common\CnDES.pas");
+USEUNIT("..\..\Source\Common\CnSHA1.pas");
 USEUNIT("..\..\Source\Common\CnSingleton.pas");
 USEUNIT("..\..\Source\Common\CnSingletonComp.pas");
 USEUNIT("..\..\Source\Common\CnPack.pas");

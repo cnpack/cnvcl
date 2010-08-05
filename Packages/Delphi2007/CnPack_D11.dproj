@@ -61,6 +61,8 @@
     <DCCReference Include="..\..\Source\Common\CnIni.pas" />
     <DCCReference Include="..\..\Source\Common\CnIniStrUtils.pas" />
     <DCCReference Include="..\..\Source\Common\CnMD5.pas" />
+    <DCCReference Include="..\..\Source\Common\CnDES.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnSHA1.pas"/>
     <DCCReference Include="..\..\Source\Common\CnSQLite.pas" />
     <DCCReference Include="..\..\Source\Common\CnStrDiff.pas" />
     <DCCReference Include="..\..\Source\Common\CnStream.pas" />

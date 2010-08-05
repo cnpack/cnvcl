@@ -50,6 +50,8 @@ contains
   CnIni in '..\..\Source\Common\CnIni.pas',
   CnIniStrUtils in '..\..\Source\Common\CnIniStrUtils.pas',
   CnMD5 in '..\..\Source\Common\CnMD5.pas',
+  CnDES in '..\..\Source\Common\CnDES.pas',
+  CnSHA1 in '..\..\Source\Common\CnSHA1.pas',
   CnSingleton in '..\..\Source\Common\CnSingleton.pas',
   CnSingletonComp in '..\..\Source\Common\CnSingletonComp.pas',
   CnSQLite in '..\..\Source\Common\CnSQLite.pas',
