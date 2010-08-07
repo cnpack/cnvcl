@@ -41,8 +41,9 @@ unit CnOpenGLPaintBox;
           1. 由于OpenGL自身只支持凸多边形，所以使用本画布绘制非凸多边形时会
             有一些显示上的问题。
           2. 输出ASCII文字速度很快，列表被缓存，但输出汉字等文字速度较慢。
-          3. 文字还无法实现响应坐标变换。
-          4. 不支持虚拟机，可能出错并且性能不能令人满意。
+          3. 文字还无法实现响应坐标变换与抗锯齿。
+          4. 绘制位图功能还不完善，一些格式的位图可能无法正常绘制。
+          5. 不支持虚拟机，可能出错并且性能不能令人满意。
 
         编写这个画布的想法来自看了GLScane自带的GLCanvas，但是GLScane自带的画
         布功能太弱，主要缺点是无法实现坐标变换（需要用户自己指定变换矩阵）,
@@ -202,7 +203,7 @@ type
     procedure ActivateSelf;
     procedure CreateBufferBMP;
     procedure FreeBufferBMP;
-    procedure PresentBufferBMP(DC: HDC);
+    procedure PresentBufferBMP(DC: HDC); {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
 
     procedure ApplyTransformation;
     procedure DefaultFontNotify;
@@ -454,6 +455,8 @@ function ARGBToGLColor(color: ARGB): TColorVector; {$IFDEF INLINE_AVAIL}inline;{
 function GLColorToTColor(const glcolor: TColorVector): TColor; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
 function TColorToGLColor(color: TColor; alpha: Byte = 255): TColorVector; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
 
+function ModifyAlphaValue(col: ARGB; alpha: Byte): ARGB; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+
 {$IFNDEF COMPILER7_UP}
 function IsZero(const A: Single; Epsilon: Single = 0): Boolean;
 function SameValue(const A, B: Single; Epsilon: Single = 0): Boolean;
@@ -598,6 +601,12 @@ begin
   Result[1] := GetGValue(color) / 255;
   Result[2] := GetBValue(color) / 255;
   Result[3] := alpha / 255;
+end;
+
+function ModifyAlphaValue(col: ARGB; alpha: Byte): ARGB;
+begin
+   Result := col;
+   TARGB(Result).alpha := alpha;
 end;
 
 { TCnGLFont }
@@ -2441,35 +2450,62 @@ begin
   end;
 end;
 
+var
+   SmallRadiusSinArray, SmallRadiusCosArray,
+   MediumRadiusSinArray, MediumRadiusCosArray: TSingleArray;  // Cache
+
 procedure TCnOpenGLPaintBox.EllipseVertices(const x, y, xRadius, yRadius: Single);
 var
-  i, n: Integer;
-  s, c: TSingleArray;
+   maxRadius: Single;
+   i, n: Integer;
+   s, c: TSingleArray;
 begin
-  if xRadius > yRadius then
-    n := Round(xRadius * 0.1) + 10
-  else
-    n := Round(yRadius * 0.1) + 10;
-  SetLength(s, n);
-  SetLength(c, n);
-  Dec(n);
-  PrepareSinCosCache(s, c, 0, 90);
-  // first quadrant (top right)
-  for i := 0 to n do
-  begin
-    s[i] := s[i] * yRadius;
-    c[i] := c[i] * xRadius;
-    glVertex2f(x + c[i], y - s[i]);
-  end;
-  // second quadrant (top left)
-  for i := n - 1 downto 0 do
-    glVertex2f(x - c[i], y - s[i]);
-  // third quadrant (bottom left)
-  for i := 1 to n do
-    glVertex2f(x - c[i], y + s[i]);
-  // fourth quadrant (bottom right)
-  for i := n - 1 downto 0 do
-    glVertex2f(x + c[i], y + s[i]);
+   if xRadius > yRadius then
+      maxRadius := xRadius
+   else
+      maxRadius := yRadius;
+
+   if maxRadius <= 10 then
+   begin
+      SetLength(s, 4);
+      SetLength(c, 4);
+      Move(SmallRadiusSinArray[0], s[0], SizeOf(Single) * 4);
+      Move(SmallRadiusCosArray[0], c[0], SizeOf(Single) * 4);
+      n := 3;
+   end
+   else if maxRadius < 85 then
+   begin
+      SetLength(s, 12);
+      SetLength(c, 12);
+      Move(MediumRadiusSinArray[0], s[0], SizeOf(Single) * 12);
+      Move(MediumRadiusCosArray[0], c[0], SizeOf(Single) * 12);
+      n := 11;
+   end
+   else
+   begin
+      n := Round(maxRadius * 0.1) + 4;
+      SetLength(s, n);
+      SetLength(c, n);
+      Dec(n);
+      PrepareSinCosCache(s, c, 0, 90);
+   end;
+
+   // first quadrant (top right)
+   for i := 0 to n do
+   begin
+      s[i] := s[i] * yRadius;
+      c[i] := c[i] * xRadius;
+      glVertex2f(x + c[i], y - s[i]);
+   end;
+   // second quadrant (top left)
+   for i := n - 1 downto 0 do
+      glVertex2f(x - c[i], y - s[i]);
+   // third quadrant (bottom left)
+   for i := 1 to n do
+      glVertex2f(x - c[i], y + s[i]);
+   // fourth quadrant (bottom right)
+   for i := n - 1 downto 0 do
+      glVertex2f(x + c[i], y + s[i]);
 end;
 
 function TCnOpenGLPaintBox.EllipseRect(const x1, y1, x2, y2: Single): TCnOpenGLPaintBox;
@@ -2655,5 +2691,14 @@ begin
   glColor4fv(@FPenColor); // Restore color
   Result := Self;
 end;
+
+initialization
+   SetLength(SmallRadiusSinArray, 4);
+   SetLength(SmallRadiusCosArray, 4);
+   PrepareSinCosCache(SmallRadiusSinArray, SmallRadiusCosArray, 0, 90);
+
+   SetLength(MediumRadiusSinArray, 12);
+   SetLength(MediumRadiusCosArray, 12);
+   PrepareSinCosCache(MediumRadiusSinArray, MediumRadiusCosArray, 0, 90);
 
 end.
