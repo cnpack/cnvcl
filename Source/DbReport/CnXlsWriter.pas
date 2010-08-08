@@ -59,7 +59,7 @@ type
     procedure XlsWriteCellNumber(XlsStream: TStream; const ACol: Byte; const ARow: Word;
       const AValue: Double);
     procedure XlsWriteCellLabel(XlsStream: TStream; const ACol: Byte; const ARow: Word;
-      const AValue: string);
+      const AValue: AnsiString);
     procedure XlsWriteCellBlank(XlsStream: TStream; const ACol: Byte; const ARow: Word);
   public
     constructor Create;
@@ -121,7 +121,7 @@ begin
 end;
 
 procedure TCnXlsWriter.XlsWriteCellLabel(XlsStream: TStream; const ACol: Byte; const ARow: Word;
-  const AValue: string);
+  const AValue: AnsiString);
 var
   L: Word;
 begin
@@ -205,31 +205,43 @@ var
   aInt: Integer;
   aFloat: Double;
   aCode: Integer;
+{$IFDEF UNICODE}
+  aUStr: string;
+{$ENDIF}
 begin
   case VarType(Value) of
     varSmallint, varInteger, varByte:
       XlsWriteCellRk(FStream, ACol, ARow, Value);
     varSingle, varDouble, varCurrency:
       XlsWriteCellNumber(FStream, ACol, ARow, Value);
-    varString, {$IFDEF DELPHI2009_UP} varUString, {$ENDIF} varOleStr:
+    varString, varOleStr:
       begin
+        aStr := VarToStr(Value);
         Val(aStr, aInt, aCode);
         if aCode = 0 then
         begin
-          XlsWriteCellLabel(FStream, ACol, ARow, '''' + aStr);
+          XlsWriteCellLabel(FStream, ACol, ARow, AnsiString('''' + aStr));
           Exit;
         end;
         Val(aStr, aFloat, aCode);
         if aCode = 0 then
         begin
-          XlsWriteCellLabel(FStream, ACol, ARow, '''' + aStr);
+          XlsWriteCellLabel(FStream, ACol, ARow, AnsiString('''' + aStr));
           Exit;
         end;
 
-        XlsWriteCellLabel(FStream, ACol, ARow, Value);
+        XlsWriteCellLabel(FStream, ACol, ARow, AnsiString(VarToStr(Value)));
       end;
+{$IFDEF UNICODE}
+    varUString:
+      begin
+        aUStr := VarToWideStr(Value);
+        aStr := WideCharToString(PWideChar(aUStr));
+        XlsWriteCellLabel(FStream, ACol, ARow, AnsiString(aStr));
+      end;
+{$ENDIF}
     varDate:
-      XlsWriteCellLabel(FStream, ACol, ARow, DateTimeToStr(Value));
+      XlsWriteCellLabel(FStream, ACol, ARow, AnsiString(DateTimeToStr(Value)));
   else
     XlsWriteCellBlank(FStream, ACol, ARow);
   end;
