@@ -2602,6 +2602,7 @@ begin
   glPushMatrix;
   glLoadIdentity;
   glRasterPos2i(x, y);
+  list := glGenLists(1);
   for i := 1 to Length(text) do
   begin
     wglUseFontBitmapsW(FBufferHDC, Ord(text[i]), 1, list);
