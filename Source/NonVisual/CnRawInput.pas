@@ -425,7 +425,11 @@ end;
 
 destructor TCnRawKeyBoard.Destroy;
 begin
-  DeallocateHWnd(FHandle);
+  if FHandle <> 0 then
+  begin
+    DeallocateHWnd(FHandle);
+    FHandle := 0;
+  end;
   FKeyBoardNames.Free;
   SetLength(FDevices, 0);
   inherited;
@@ -521,7 +525,13 @@ begin
           DoRawKeyUp(Ri.keyboard.VKey, Ri.header.hDevice);
       end;
     end;
-  end;
+  end
+  else if Message.Msg = WM_ENDSESSION then
+  begin
+    Application.Terminate;
+  end
+  else
+    inherited;
 end;
 
 procedure GetRawInputAPIs;
