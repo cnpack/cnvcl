@@ -538,6 +538,12 @@ function CnDateToStr(Date: TDateTime): string;
 function CnStrToDate(const S: string): TDateTime;
 {* 将 yyyy.mm.dd 格式字符串转换为日期 }
 
+function GetDatePart(DateTime: TDateTime): TDate;
+{* 取日期时间的日期部分（整数）}
+
+function GetTimePart(DateTime: TDateTime): TTime;
+{* 取日期时间的时间部分（小数）}
+
 function DateTimeToFlatStr(const DateTime: TDateTime): string;
 {* 日期时间转 '20030203132345' 式样的 14 位数字字符串}
 
@@ -3620,6 +3626,18 @@ begin
     Result := 0;
   end;
 end;
+
+// 取日期时间的日期部分（整数）
+function GetDatePart(DateTime: TDateTime): TDate;
+begin
+  Result := Trunc(DateTime);
+end;  
+
+// 取日期时间的时间部分（小数）
+function GetTimePart(DateTime: TDateTime): TTime;
+begin
+  Result := Frac(DateTime);
+end;  
 
 // 日期时间转 '20030203132345' 式样的 14 位数字字符串
 function DateTimeToFlatStr(const DateTime: TDateTime): string;
