@@ -77,11 +77,12 @@ type
     FAborted: Boolean;
     FGetDataFail: Boolean;
     FOnProgress: TCnInetProgressEvent;
-    FUserAgent:string;
+    FUserAgent: string;
     FDecoding: Boolean;
-    FProxyServer:string;
-    FProxyUserName:string;
-    FProxyPassWord:string;
+    FDecodingValid: Boolean;
+    FProxyServer: string;
+    FProxyUserName: string;
+    FProxyPassWord: string;
     FHttpRequestHeaders: TStringList;
     function ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
   protected
@@ -243,7 +244,7 @@ begin
     if FDecoding then
     begin
       Flag := True;
-      InternetSetOption(hSession, INTERNET_OPTION_HTTP_DECODING, PChar(@Flag), SizeOf(Flag));
+      FDecodingValid := InternetSetOption(hSession, INTERNET_OPTION_HTTP_DECODING, PChar(@Flag), SizeOf(Flag));
     end;
   end;
   Result := hSession <> nil;
@@ -453,7 +454,7 @@ begin
     if (hRequest = nil) or FAborted then
       Exit;
 
-    if FDecoding then
+    if FDecoding and FDecodingValid then
       HttpAddRequestHeaders(hRequest, PChar(SAcceptEncoding),
         Length(SAcceptEncoding), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
     for i := 0 to FHttpRequestHeaders.Count - 1 do
