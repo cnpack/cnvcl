@@ -78,6 +78,7 @@ type
     FGetDataFail: Boolean;
     FOnProgress: TCnInetProgressEvent;
     FUserAgent:string;
+    FDecoding: Boolean;
     FProxyServer:string;
     FProxyUserName:string;
     FProxyPassWord:string;
@@ -109,6 +110,8 @@ type
     property GetDataFail: Boolean read FGetDataFail;
     {* 上一次的数据读取是否成功}
 
+    property Decoding: Boolean read FDecoding write FDecoding default True;
+    {* 是否支持 gzip, deflate 解压}
     property UserAgent: string read FUserAgent write FUserAgent;
     {* 设置UserAgent 浏览器识别标示}
     property ProxyServer: string read FProxyServer write FProxyServer;
@@ -136,6 +139,8 @@ implementation
 
 const
   csBufferSize = 4096;
+  INTERNET_OPTION_HTTP_DECODING = 65;
+  SAcceptEncoding = 'Accept-Encoding: gzip,deflate';
 
 function EncodeURL(const URL: string): string;
 const
@@ -194,6 +199,7 @@ end;
 constructor TCnInet.Create;
 begin
   inherited;
+  FDecoding := True;
   FUserAgent := 'CnPack Internet Utils';
   FHttpRequestHeaders := TStringList.Create;
 end;
@@ -215,6 +221,8 @@ begin
 end;
 
 function TCnInet.InitInet: Boolean;
+var
+  Flag: LongBool;
 begin
   if hSession = nil then
   begin
@@ -231,6 +239,11 @@ begin
         InternetSetOption(hSession, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyUserName), Length(FProxyUserName));
       if Length(FProxyPassWord) > 0 then
         InternetSetOption(hSession, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyPassWord), Length(FProxyPassWord));
+    end;
+    if FDecoding then
+    begin
+      Flag := True;
+      InternetSetOption(hSession, INTERNET_OPTION_HTTP_DECODING, PChar(@Flag), SizeOf(Flag));
     end;
   end;
   Result := hSession <> nil;
@@ -440,6 +453,9 @@ begin
     if (hRequest = nil) or FAborted then
       Exit;
 
+    if FDecoding then
+      HttpAddRequestHeaders(hRequest, PChar(SAcceptEncoding),
+        Length(SAcceptEncoding), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
     for i := 0 to FHttpRequestHeaders.Count - 1 do
       HttpAddRequestHeaders(hRequest, PChar(FHttpRequestHeaders[i]),
         Length(FHttpRequestHeaders[i]), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
