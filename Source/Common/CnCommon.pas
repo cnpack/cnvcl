@@ -2107,9 +2107,9 @@ var
   fn: array[0..MAX_PATH] of Char;
   pc: PChar;
 begin
-  if (0 = SearchPath(nil, PChar(AName), '.exe', SizeOf(fn), fn, pc)) and
-     (0 = SearchPath(nil, PChar(AName), '.com', SizeOf(fn), fn, pc)) and
-     (0 = SearchPath(nil, PChar(AName), '.bat', SizeOf(fn), fn, pc)) then
+  if (0 = SearchPath(nil, PChar(AName), '.exe', Length(fn), fn, pc)) and
+     (0 = SearchPath(nil, PChar(AName), '.com', Length(fn), fn, pc)) and
+     (0 = SearchPath(nil, PChar(AName), '.bat', Length(fn), fn, pc)) then
   begin
     Result := False;
   end
@@ -2997,7 +2997,7 @@ var
   fn: array[0..MAX_PATH] of Char;
   pc: PChar;
 begin
-  if SearchPath(nil, PChar(FileName), PChar(Ext), SizeOf(fn), fn, pc) <> 0 then
+  if SearchPath(nil, PChar(FileName), PChar(Ext), Length(fn), fn, pc) <> 0 then
     Result := fn;
 end;
 
