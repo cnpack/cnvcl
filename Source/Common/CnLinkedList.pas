@@ -99,6 +99,11 @@ type
   TCnLinkedOrderedObjectListEvent = procedure(Sender: TObject; AObject: TObject) of object;
 
 type
+  TCompare = function(Item1, Item2: Pointer): Integer;
+  TObjectCompare = function(Object1, Object2: TObject): Integer;
+  TClassCompare = function(Class1, Class2: TClass): Integer;
+
+type
   ICnCustomLinkedListIterator = interface(IUnknown)
     ['{0380614D-F455-4FDA-8862-6E1505C0C5D4}']
   {* 双向链表迭代器接口
@@ -211,6 +216,12 @@ type
     {* 返回一个正常的 TList, 包含链表所有内容}
     property AutoClear: Boolean read FAutoClear write FAutoClear;
     {* 是否在删除节点时自动Dispose节点内容}
+
+    procedure QuickSort(Left, Right: Integer; Compare: Pointer);
+      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
+      //   Left为起始序号，Right为终止序号，Compare为对比函数
+    procedure Sort(Compare: TCompare);
+    {* 排序}
   public
     constructor Create;
     destructor Destroy; override;
@@ -268,6 +279,7 @@ type
     function Remove(const Item: Pointer): Integer;
     procedure Pack;
     function CreateIterator: ICnLinkedListIterator;
+    procedure Sort(Compare: TCompare);
 
     property Items;
     property Count;
@@ -318,6 +330,7 @@ type
     function Remove(const AObject: TObject): Integer;
     procedure Pack;
     function CreateIterator: ICnLinkedObjectListIterator;
+    procedure Sort(Compare: TObjectCompare);
 
     property Objects[Index: Integer]: TObject read GetObjects write SetObjects; default;
     property Count;
@@ -364,6 +377,7 @@ type
     function Remove(const AClass: TClass): Integer;
     procedure Pack;
     function CreateIterator: ICnLinkedClassListIterator;
+    procedure Sort(Compare: TClassCompare);
 
     property Classes[Index: Integer]: TClass read GetClasses write SetClasses; default;
     property Count;
@@ -398,9 +412,6 @@ type
     procedure SetText(const Value: PAnsiChar);
 
     procedure ListDeleteItem(Sender: TObject; Item: Pointer);
-    procedure QuickSort(Left, Right: Integer);
-      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
-      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnPAnsiCharItem); dynamic;
@@ -410,9 +421,6 @@ type
     procedure DoDeleteItem(Item: PCnPAnsiCharItem); dynamic;
 
     procedure ClearEvent; override;
-    function CompareStrings(const Value1, Value2: PAnsiChar): Integer; overload; virtual;
-      // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
-    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
     constructor Create; overload;
     constructor Create(const AAutoClear: Boolean); overload;
@@ -470,10 +478,6 @@ type
 
     function GetText: AnsiString;
     procedure SetText(const Value: AnsiString);
-
-    procedure QuickSort(Left, Right: Integer);
-      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
-      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnAnsiStringItem); dynamic;
@@ -483,9 +487,6 @@ type
     procedure DoDeleteItem(Item: PCnAnsiStringItem); dynamic;
 
     procedure ClearEvent; override;
-    function CompareStrings(const Value1, Value2: AnsiString): Integer; overload; virtual;
-      // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
-    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
     constructor Create(const AAutoClear: Boolean); overload;
 
@@ -544,9 +545,6 @@ type
     procedure SetText(const Value: PWideChar);
 
     procedure ListDeleteItem(Sender: TObject; Item: Pointer);
-    procedure QuickSort(Left, Right: Integer);
-      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
-      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnPWideCharItem); dynamic;
@@ -556,9 +554,6 @@ type
     procedure DoDeleteItem(Item: PCnPWideCharItem); dynamic;
 
     procedure ClearEvent; override;
-    function CompareStrings(const Value1, Value2: PWideChar): Integer; overload; virtual;
-      // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
-    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
     constructor Create; overload;
     constructor Create(const AAutoClear: Boolean); overload;
@@ -615,10 +610,6 @@ type
 
     function GetText: WideString;
     procedure SetText(const Value: WideString);
-
-    procedure QuickSort(Left, Right: Integer);
-      // 对列表内的串进行排序（忽略大小写）使用冒泡排序方法
-      //   Left为起始序号，Right为终止序号
   protected
     procedure Notify(Ptr: Pointer; Action: TCnLinkedListNotification); override;
     procedure DeleteItemCode(Item: PCnWideStringItem); dynamic;
@@ -628,9 +619,6 @@ type
     procedure DoDeleteItem(Item: PCnWideStringItem); dynamic;
 
     procedure ClearEvent; override;
-    function CompareStrings(const Value1, Value2: WideString): Integer; overload; virtual;
-      // 判断两个字符串是否相等（忽略大小写）如果相等则返回0
-    function CompareStrings(Index1, Index2: Integer): Integer; overload; virtual;
   public
     constructor Create(const AAutoClear: Boolean); overload;
 
@@ -758,6 +746,8 @@ function StrNewA(const Value: PAnsiChar): PAnsiChar;
 procedure StrDisposeA(var Value: PAnsiChar);
 function StrNewW(const Value: PWideChar): PWideChar;
 procedure StrDisposeW(var Value: PWideChar);
+function StrCmpA(const Value1, Value2: PAnsiChar): Integer;
+function StrCmpW(const Value1, Value2: PWideChar): Integer;
 {
 procedure DeleteObject(var AObject: TObject);
 procedure DeleteString(var AString: PAnsiChar); overload;
@@ -843,6 +833,18 @@ procedure StrDisposeW(var Value: PWideChar);
 begin
   Value := Pointer(Cardinal(Value) - SizeOf(Cardinal));
   FreeMem(Value, Cardinal(Value^));
+end;
+
+function StrCmpA(const Value1, Value2: PAnsiChar): Integer;
+begin
+  Result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+    Value1, StrLenA(Value1), Value2, StrLenA(Value2)) - 2;
+end;
+
+function StrCmpW(const Value1, Value2: PWideChar): Integer;
+begin
+  Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+    Value1, StrLenW(Value1), Value2, StrLenW(Value2)) - 2;
 end;
 
 procedure DeleteObject(var AObject: TObject);
@@ -1460,12 +1462,21 @@ end;
 
 function TCnCustomLinkedList.IndexOf(const Item: Pointer): Integer;
 begin
-  Result := 0;
-  while (Result < FCount) and (Item <> Get(Result)) do
-    Inc(Result);
+  Result := -1;
+  if FCount = 0 then
+    Exit;
 
-  if Result = FCount then
-    Result := -1;
+  if Item = Get(0) then
+    Result := 0
+  else
+  begin
+    Result := 1;
+    while (Result < FCount) and (Item <> Next) do
+      Inc(Result);
+
+    if Result = FCount then
+      Result := -1;
+  end;
 end;
 
 function TCnCustomLinkedList.Insert(const Index: Integer; const Item: Pointer): Integer;
@@ -1559,6 +1570,37 @@ begin
   end;
 end;
 
+procedure TCnCustomLinkedList.QuickSort(Left, Right: Integer;
+  Compare: Pointer);
+var
+  ALeft, ARight, AOrdinal: Integer;
+begin
+  repeat
+    ALeft := Left;
+    ARight := Right;
+    AOrdinal := (Left + Right) shr 1;
+    repeat
+      while TCompare(Compare)(Get(ALeft), Get(AOrdinal)) < 0 do
+        Inc(ALeft);
+      while TCompare(Compare)(Get(ARight), Get(AOrdinal)) > 0 do
+        Dec(ARight);
+      if ALeft <= ARight then
+      begin
+        Exchange(ALeft, ARight);
+        if AOrdinal = ALeft then
+          AOrdinal := ARight
+        else if AOrdinal = ARight then
+          AOrdinal := ALeft;
+        Inc(ALeft);
+        Dec(ARight);
+      end;
+    until ALeft > ARight;
+    if Left < ARight then
+      QuickSort(Left, ARight, Compare);
+    Left := ALeft;
+  until ALeft >= Right;
+end;
+
 function TCnCustomLinkedList.Remove(const Item: Pointer): Integer;
 begin
   Result := IndexOf(Item);
@@ -1580,6 +1622,13 @@ begin
     for Loop := FCount - 1 downto NewCount do
       Delete(Loop);
   FCount := NewCount;
+end;
+
+procedure TCnCustomLinkedList.Sort(Compare: TCompare);
+begin
+  if FCount = 0 then
+    Exit;
+  QuickSort(0, FCount - 1, @Compare);
 end;
 
 procedure TCnCustomLinkedList.UnLock;
@@ -1695,6 +1744,11 @@ end;
 function TCnLinkedList.Remove(const Item: Pointer): Integer;
 begin
   Result := inherited Remove(Item);
+end;
+
+procedure TCnLinkedList.Sort(Compare: TCompare);
+begin
+  inherited Sort(Compare);
 end;
 
 { TCnLinkedObjectList }
@@ -1830,6 +1884,11 @@ begin
   inherited Items[Index] := Pointer(AObject);
 end;
 
+procedure TCnLinkedObjectList.Sort(Compare: TObjectCompare);
+begin
+  inherited QuickSort(0, FCount - 1, @Compare);
+end;
+
 { TCnLinkedClassList }
 
 function TCnLinkedClassList.Add(const AClass: TClass): Integer;
@@ -1933,7 +1992,17 @@ begin
   inherited Items[Index] := Pointer(AClass);
 end;
 
+procedure TCnLinkedClassList.Sort(Compare: TClassCompare);
+begin
+  inherited QuickSort(0, FCount - 1, @Compare);
+end;
+
 { TCnLinkedPAnsiChars }
+
+function CnLinkedPAnsiCharsCompare(Item1, Item2: PCnPAnsiCharItem): Integer;
+begin
+  Result := StrCmpA(Item1^.AString, Item2^.AString);
+end;
 
 function TCnLinkedPAnsiChars.Add(const AString: PAnsiChar): Integer;
 begin
@@ -1988,23 +2057,12 @@ begin
   FOnExtractString := nil;
 end;
 
-function TCnLinkedPAnsiChars.CompareStrings(const Value1, Value2: PAnsiChar): Integer;
-begin
-  Result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-    Value1, StrLenA(Value1), Value2, StrLenA(Value2)) - 2;
-end;
-
 constructor TCnLinkedPAnsiChars.Create;
 begin
   inherited Create;
   FList := TCnLinkedList.Create;
   FList.OnDeleteItem := ListDeleteItem;
   FText := nil;
-end;
-
-function TCnLinkedPAnsiChars.CompareStrings(Index1, Index2: Integer): Integer;
-begin
-  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
 end;
 
 constructor TCnLinkedPAnsiChars.Create(const AAutoClear: Boolean);
@@ -2138,10 +2196,21 @@ end;
 
 function TCnLinkedPAnsiChars.IndexOf(const AString: PAnsiChar): Integer;
 begin
-  for Result := 0 to Count - 1 do
-    if CompareStrings(GetStrings(Result), AString) = 0 then
-      Exit;
   Result := -1;
+  if Count = 0 then
+    Exit;
+
+  if StrCmpA(GetStrings(0), AString) = 0 then
+    Result := 0
+  else
+  begin
+    Result := 1;
+    while (Result < Count) and (StrCmpA(Next, AString) <> 0) do
+      Inc(Result);
+
+    if Result = Count then
+      Result := -1;
+  end;
 end;
 
 function TCnLinkedPAnsiChars.Insert(const Index: Integer; const AString: PAnsiChar): Integer;
@@ -2207,36 +2276,6 @@ end;
 function TCnLinkedPAnsiChars.Previous: PAnsiChar;
 begin
   Result := PCnPAnsiCharItem(inherited Previous)^.AString;
-end;
-
-procedure TCnLinkedPAnsiChars.QuickSort(Left, Right: Integer);
-var
-  ALeft, ARight, AOrdinal: Integer;
-begin
-  repeat
-    ALeft := Left;
-    ARight := Right;
-    AOrdinal := (Left + Right) shr 1;
-    repeat
-      while CompareStrings(ALeft, AOrdinal) < 0 do
-        Inc(ALeft);
-      while CompareStrings(ARight, AOrdinal) > 0 do
-        Dec(ARight);
-      if ALeft <= ARight then
-      begin
-        Exchange(ALeft, ARight);
-        if AOrdinal = ALeft then
-          AOrdinal := ARight
-        else if AOrdinal = ARight then
-          AOrdinal := ALeft;
-        Inc(ALeft);
-        Dec(ARight);
-      end;
-    until ALeft > ARight;
-    if Left < ARight then
-      QuickSort(Left, ARight);
-    Left := ALeft;
-  until ALeft >= Right;
 end;
 
 function TCnLinkedPAnsiChars.Remove(const AString: PAnsiChar): Integer;
@@ -2309,10 +2348,15 @@ procedure TCnLinkedPAnsiChars.Sort;
 begin
   if Count = 0 then
     Exit;
-  QuickSort(0, Count - 1);
+  inherited QuickSort(0, Count - 1, @CnLinkedPAnsiCharsCompare);
 end;
 
 { TCnLinkedAnsiStrings }
+
+function CnLinkedAnsiStringsCompare(Item1, Item2: PCnAnsiStringItem): Integer;
+begin
+  Result := StrCmpA(PAnsiChar(Item1^.AString), PAnsiChar(Item2^.AString));
+end;
 
 function TCnLinkedAnsiStrings.Add(const AString: AnsiString): Integer;
 begin
@@ -2364,17 +2408,6 @@ begin
   FOnAddString := nil;
   FOnDeleteString := nil;
   FOnExtractString := nil;
-end;
-
-function TCnLinkedAnsiStrings.CompareStrings(const Value1, Value2: AnsiString): Integer;
-begin
-  Result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-    PAnsiChar(Value1), Length(Value1), PAnsiChar(Value2), Length(Value2)) - 2;
-end;
-
-function TCnLinkedAnsiStrings.CompareStrings(Index1, Index2: Integer): Integer;
-begin
-  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
 end;
 
 constructor TCnLinkedAnsiStrings.Create(const AAutoClear: Boolean);
@@ -2493,10 +2526,22 @@ end;
 
 function TCnLinkedAnsiStrings.IndexOf(const AString: AnsiString): Integer;
 begin
-  for Result := 0 to Count - 1 do
-    if CompareStrings(GetStrings(Result), AString) = 0 then
-      Exit;
   Result := -1;
+  if Count = 0 then
+    Exit;
+
+  if StrCmpA(PAnsiChar(GetStrings(0)), PAnsiChar(AString)) = 0 then
+    Result := 0
+  else
+    begin
+      Result := 1;
+
+      while (Result < Count) and (StrCmpA(PAnsiChar(Next), PAnsiChar(AString)) <> 0) do
+        Inc(Result);
+
+      if Result = Count then
+        Result := -1;
+    end;
 end;
 
 function TCnLinkedAnsiStrings.Insert(const Index: Integer; const AString: AnsiString): Integer;
@@ -2554,36 +2599,6 @@ begin
   Result := PCnAnsiStringItem(inherited Previous)^.AString;
 end;
 
-procedure TCnLinkedAnsiStrings.QuickSort(Left, Right: Integer);
-var
-  ALeft, ARight, AOrdinal: Integer;
-begin
-  repeat
-    ALeft := Left;
-    ARight := Right;
-    AOrdinal := (Left + Right) shr 1;
-    repeat
-      while CompareStrings(ALeft, AOrdinal) < 0 do
-        Inc(ALeft);
-      while CompareStrings(ARight, AOrdinal) > 0 do
-        Dec(ARight);
-      if ALeft <= ARight then
-      begin
-        Exchange(ALeft, ARight);
-        if AOrdinal = ALeft then
-          AOrdinal := ARight
-        else if AOrdinal = ARight then
-          AOrdinal := ALeft;
-        Inc(ALeft);
-        Dec(ARight);
-      end;
-    until ALeft > ARight;
-    if Left < ARight then
-      QuickSort(Left, ARight);
-    Left := ALeft;
-  until ALeft >= Right;
-end;
-
 function TCnLinkedAnsiStrings.Remove(const AString: AnsiString): Integer;
 begin
   Result := IndexOf(AString);
@@ -2635,10 +2650,17 @@ end;
 
 procedure TCnLinkedAnsiStrings.Sort;
 begin
-  QuickSort(0, Count - 1);
+  if Count = 0 then
+    Exit;
+  inherited QuickSort(0, Count - 1, @CnLinkedAnsiStringsCompare);
 end;
 
 { TCnLinkedPWideChars }
+
+function CnLinkedPWideCharsCompare(Item1, Item2: PCnPWideCharItem): Integer;
+begin
+  Result := StrCmpW(Item1^.AString, Item2^.AString);
+end;
 
 function TCnLinkedPWideChars.Add(const AString: PWideChar): Integer;
 begin
@@ -2693,24 +2715,12 @@ begin
   FOnExtractString := nil;
 end;
 
-function TCnLinkedPWideChars.CompareStrings(const Value1,
-  Value2: PWideChar): Integer;
-begin
-  Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-    Value1, StrLenW(Value1), Value2, StrLenW(Value2)) - 2;
-end;
-
 constructor TCnLinkedPWideChars.Create;
 begin
   inherited Create;
   FList := TCnLinkedList.Create;
   FList.OnDeleteItem := ListDeleteItem;
   FText := nil;
-end;
-
-function TCnLinkedPWideChars.CompareStrings(Index1, Index2: Integer): Integer;
-begin
-  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
 end;
 
 constructor TCnLinkedPWideChars.Create(const AAutoClear: Boolean);
@@ -2841,10 +2851,22 @@ end;
 
 function TCnLinkedPWideChars.IndexOf(const AString: PWideChar): Integer;
 begin
-  for Result := 0 to Count - 1 do
-    if CompareStrings(GetStrings(Result), AString) = 0 then
-      Exit;
   Result := -1;
+  if Count = 0 then
+    Exit;
+
+  if StrCmpW(GetStrings(0), AString) = 0 then
+    Result := 0
+  else
+    begin
+      Result := 1;
+
+      while (Result < Count) and (StrCmpW(Next, AString) <> 0) do
+        Inc(Result);
+
+      if Result = Count then
+        Result := -1;
+    end;
 end;
 
 function TCnLinkedPWideChars.Insert(const Index: Integer; const AString: PWideChar): Integer;
@@ -2910,36 +2932,6 @@ end;
 function TCnLinkedPWideChars.Previous: PWideChar;
 begin
   Result := PCnPWideCharItem(inherited Previous)^.AString;
-end;
-
-procedure TCnLinkedPWideChars.QuickSort(Left, Right: Integer);
-var
-  ALeft, ARight, AOrdinal: Integer;
-begin
-  repeat
-    ALeft := Left;
-    ARight := Right;
-    AOrdinal := (Left + Right) shr 1;
-    repeat
-      while CompareStrings(ALeft, AOrdinal) < 0 do
-        Inc(ALeft);
-      while CompareStrings(ARight, AOrdinal) > 0 do
-        Dec(ARight);
-      if ALeft <= ARight then
-      begin
-        Exchange(ALeft, ARight);
-        if AOrdinal = ALeft then
-          AOrdinal := ARight
-        else if AOrdinal = ARight then
-          AOrdinal := ALeft;
-        Inc(ALeft);
-        Dec(ARight);
-      end;
-    until ALeft > ARight;
-    if Left < ARight then
-      QuickSort(Left, ARight);
-    Left := ALeft;
-  until ALeft >= Right;
 end;
 
 function TCnLinkedPWideChars.Remove(const AString: PWideChar): Integer;
@@ -3011,10 +3003,17 @@ end;
 
 procedure TCnLinkedPWideChars.Sort;
 begin
-  QuickSort(0, Count - 1);
+  if Count = 0 then
+    Exit;
+  inherited QuickSort(0, Count - 1, @CnLinkedPWideCharsCompare);
 end;
 
 { TCnLinkedWideStrings }
+
+function CnLinkedWideStringsCompare(Item1, Item2: PCnWideStringItem): Integer;
+begin
+  Result := StrCmpW(PWideChar(Item1^.AString), PWideChar(Item2^.AString));
+end;
 
 function TCnLinkedWideStrings.Add(const AString: WideString): Integer;
 begin
@@ -3067,17 +3066,6 @@ begin
   FOnAddString := nil;
   FOnDeleteString := nil;
   FOnExtractString := nil;
-end;
-
-function TCnLinkedWideStrings.CompareStrings(const Value1, Value2: WideString): Integer;
-begin
-  Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-    PWideChar(Value1), Length(Value1), PWideChar(Value2), Length(Value2)) - 2;
-end;
-
-function TCnLinkedWideStrings.CompareStrings(Index1, Index2: Integer): Integer;
-begin
-  Result := CompareStrings(GetStrings(Index1), GetStrings(Index2));
 end;
 
 constructor TCnLinkedWideStrings.Create(const AAutoClear: Boolean);
@@ -3194,10 +3182,22 @@ end;
 
 function TCnLinkedWideStrings.IndexOf(const AString: WideString): Integer;
 begin
-  for Result := 0 to Count - 1 do
-    if CompareStrings(GetStrings(Result), AString) = 0 then
-      Exit;
   Result := -1;
+  if Count = 0 then
+    Exit;
+
+  if StrCmpW(PWideChar(GetStrings(0)), PWideChar(AString)) = 0 then
+    Result := 0
+  else
+    begin
+      Result := 1;
+
+      while (Result < Count) and (StrCmpW(PWideChar(Next), PWideChar(AString)) <> 0) do
+        Inc(Result);
+
+      if Result = Count then
+        Result := -1;
+    end;
 end;
 
 function TCnLinkedWideStrings.Insert(const Index: Integer; const AString: WideString): Integer;
@@ -3255,36 +3255,6 @@ begin
   Result := PCnWideStringItem(inherited Previous)^.AString;
 end;
 
-procedure TCnLinkedWideStrings.QuickSort(Left, Right: Integer);
-var
-  ALeft, ARight, AOrdinal: Integer;
-begin
-  repeat
-    ALeft := Left;
-    ARight := Right;
-    AOrdinal := (Left + Right) shr 1;
-    repeat
-      while CompareStrings(ALeft, AOrdinal) < 0 do
-        Inc(ALeft);
-      while CompareStrings(ARight, AOrdinal) > 0 do
-        Dec(ARight);
-      if ALeft <= ARight then
-      begin
-        Exchange(ALeft, ARight);
-        if AOrdinal = ALeft then
-          AOrdinal := ARight
-        else if AOrdinal = ARight then
-          AOrdinal := ALeft;
-        Inc(ALeft);
-        Dec(ARight);
-      end;
-    until ALeft > ARight;
-    if Left < ARight then
-      QuickSort(Left, ARight);
-    Left := ALeft;
-  until ALeft >= Right;
-end;
-
 function TCnLinkedWideStrings.Remove(const AString: WideString): Integer;
 begin
   Result := IndexOf(AString);
@@ -3336,7 +3306,9 @@ end;
 
 procedure TCnLinkedWideStrings.Sort;
 begin
-  QuickSort(0, Count - 1);
+  if Count = 0 then
+    Exit;
+  inherited QuickSort(0, Count - 1, @CnLinkedWideStringsCompare);
 end;
 
 { TCnCustomLinkedListIterator }
