@@ -495,6 +495,7 @@ begin
   FSupportCpuSns.Clear;
   FCPUIds.Clear;
   FCPUOems.Clear;
+  FCPUInfos.Clear;
   
   // 获取 CPU 个数
   GetSystemInfo(SysInfo);
