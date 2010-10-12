@@ -49,7 +49,7 @@ type
 
   TSHA1Context = record
     Hash: array[0..4] of DWORD;
-    Hi, Lo: Integer;
+    Hi, Lo: DWORD;
     Buffer: array[0..63] of Byte;
     Index: Integer;
   end;
