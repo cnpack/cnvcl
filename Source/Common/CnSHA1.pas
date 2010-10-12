@@ -268,7 +268,7 @@ end;
    
 procedure SHA1UpdateLen(var Context: TSHA1Context; Len: Integer);
 var
-  i, k: Integer;
+  i, k: DWORD;
 begin
   for k := 0 to 7 do
   begin
