@@ -446,7 +446,8 @@ function InStr(const sShort: string; const sLong: string): Boolean;
 function IntToStrEx(Value: Integer; Len: Integer; FillChar: Char = '0'): string;
 {* 扩展整数转字符串函数}
 
-function IntToStrSp(Value: Integer; SpLen: Integer = 3; Sp: Char = ','): string;
+function IntToStrSp(Value: Integer; SpLen: Integer = 3; Sp: Char = ',';
+  ShowPlus: Boolean = False): string;
 {* 带分隔符的整数－字符转换}
 
 function IsFloat(const s: String): Boolean;
@@ -3338,19 +3339,22 @@ begin
 end;
 
 // 带分隔符的整数－字符转换
-function IntToStrSp(Value: Integer; SpLen: Integer = 3; Sp: Char = ','): string;
+function IntToStrSp(Value: Integer; SpLen: Integer; Sp: Char; ShowPlus: Boolean): string;
 var
   s: string;
   i, j: Integer;
 begin
   s := IntToStr(Value);
+  if ShowPlus and (Value > 0) then
+    s := '+' + s;
   Result := '';
   j := 0;
   for i := Length(s) downto 1 do
   begin
     Result := s[i] + Result;
     Inc(j);
-    if ((j mod SpLen) = 0) and (i <> 1) then Result := Sp + Result;
+    if ((j mod SpLen) = 0) and (i <> 1) and not (s[i - 1] in ['+', '-']) then
+      Result := Sp + Result;
   end;
 end;
 
