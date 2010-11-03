@@ -312,7 +312,7 @@ end;
 
 procedure TCnUDP.UpdateBinding;
 var
-  Flag: DWORD;
+  Data: DWORD;
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -329,8 +329,14 @@ begin
       Exit;
     end;
     // Allow to send to 255.255.255.255
+    Data := 1;
     WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_BROADCAST,
-      PAnsiChar(@Flag), SizeOf(Flag));
+      PAnsiChar(@Data), SizeOf(Data));
+    Data := 256 * 1024;
+    WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_SNDBUF,
+      PAnsiChar(@Data), SizeOf(Data));
+    WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_RCVBUF,
+      PAnsiChar(@Data), SizeOf(Data));
     WSAAsyncSelect(ThisSocket, FSocketWindow, WM_ASYNCHRONOUSPROCESS, FD_READ);
     FListening := True;
   end;
