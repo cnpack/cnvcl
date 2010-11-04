@@ -38,4 +38,32 @@ object Form1: TForm1
     Caption = 'chkChecked'
     TabOrder = 2
   end
+  object dtpDate: TDateTimePicker
+    Left = 160
+    Top = 16
+    Width = 89
+    Height = 21
+    CalAlignment = dtaLeft
+    Date = 40486.5115592708
+    Time = 40486.5115592708
+    DateFormat = dfShort
+    DateMode = dmComboBox
+    Kind = dtkDate
+    ParseInput = False
+    TabOrder = 3
+  end
+  object dtpTime: TDateTimePicker
+    Left = 256
+    Top = 16
+    Width = 89
+    Height = 21
+    CalAlignment = dtaLeft
+    Date = 40486.5115592708
+    Time = 40486.5115592708
+    DateFormat = dfShort
+    DateMode = dmComboBox
+    Kind = dtkTime
+    ParseInput = False
+    TabOrder = 4
+  end
 end

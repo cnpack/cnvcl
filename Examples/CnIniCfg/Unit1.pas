@@ -4,20 +4,23 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, CnIniCfg,
-  StdCtrls;
+  StdCtrls, ComCtrls;
 
 type
   TCnIniCfgDemo = class(TCnIniCfg)
   protected
-    procedure InitDefaultStrings(Strings: TStringList); override;
+    procedure InitDefaultValues; override;
   published
     property TestBool: Boolean index 0 read GetBoolean write SetBoolean default False;
     property Enable: Boolean index 1 read GetBoolean write SetBoolean default True;
     property Checked: Boolean index 2 read GetBoolean write SetBoolean default True;
 
     property TestInteger: Integer index 0 read GetInteger write SetInteger default 100;
-    property Width: Integer index 1 read GetInteger write SetInteger default 300;
+    property Width: Integer index 1 read GetInteger write SetInteger default 500;
     property Height: Integer index 2 read GetInteger write SetInteger default 400;
+
+    property TestDate: Double index 0 read GetDouble write SetDouble;
+    property TestTime: Double index 1 read GetDouble write SetDouble;
 
     property TestString: string index 0 read GetString write SetString;
     property Caption: string index 1 read GetString write SetString;
@@ -28,6 +31,8 @@ type
     edtTest: TEdit;
     chkEnable: TCheckBox;
     chkChecked: TCheckBox;
+    dtpDate: TDateTimePicker;
+    dtpTime: TDateTimePicker;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
@@ -46,12 +51,14 @@ implementation
 
 { TCnIniCfgDemo }
 
-procedure TCnIniCfgDemo.InitDefaultStrings(Strings: TStringList);
+procedure TCnIniCfgDemo.InitDefaultValues;
 begin
   inherited;
-  Strings.Add('TestString=TestString');
-  Strings.Add('Caption=Test Caption');
-  Strings.Add('Text=Test Text');
+  AddDefaultValue('TestString', 'TestString');
+  AddDefaultValue('Caption', 'Test Caption');
+  AddDefaultValue('Text', 'Test Text');
+  AddDefaultValue('TestDate', Double(EncodeDate(2008, 3, 23)));
+  AddDefaultValue('TestTime', Double(EncodeTime(1, 2, 34, 56)));
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -66,6 +73,8 @@ begin
   edtTest.Text := FCfg.Text;
   chkEnable.Checked := FCfg.Enable;
   chkChecked.Checked := FCfg.Checked;
+  dtpDate.DateTime := FCfg.TestDate;
+  dtpTime.DateTime := FCfg.TestTime;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -76,6 +85,8 @@ begin
   FCfg.Text := edtTest.Text;
   FCfg.Enable := chkEnable.Checked;
   FCfg.Checked := chkChecked.Checked;
+  FCfg.TestDate := dtpDate.DateTime;
+  FCfg.TestTime := dtpTime.DateTime;
   FCfg.Free;
 end;
 
