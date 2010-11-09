@@ -669,18 +669,24 @@ end; {= TCnMonthCalendar.KeyDown =}
 
 procedure TCnMonthCalendar.UpdateHighlight(X, Y: Integer);
 var
-  col, Row: Integer;
+  Col, Row: Integer;
   TempDate: TDate;
   R: TRect;
+  Ye, M, D: Word;
 begin
   if PtInRect(FDaysRect, Point(X, Y)) then
   begin
-    col := X div FCellWidth;
+    Col := X div FCellWidth;
     Row := (Y - FDaysRect.Top) div FCellHeight;
-    TempDate := FFirstDate + col + Row * 7;
+    TempDate := FFirstDate + Col + Row * 7;
+
+    DecodeDate(TempDate, Ye, M, D);
+    if (Ye = 1582) and (M = 10) and (D in [5..30]) then // 31 can in November.
+      TempDate := TempDate + 10;
+
     if TempDate <> FViewDate then
     begin
-      R := Bounds(FDaysRect.Left + FCellWidth * col + 1,
+      R := Bounds(FDaysRect.Left + FCellWidth * Col + 1,
         FDaysRect.Top + FCellHeight * Row + 1, FCellWidth - 2, FCellHeight - 2);
       FViewDate := TempDate;
       InvalidateRect(Handle, @FOldRect, False);
