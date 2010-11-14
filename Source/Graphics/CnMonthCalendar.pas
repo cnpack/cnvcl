@@ -433,74 +433,75 @@ begin
       for I := 0 to 41 do
       begin
         Col := (I - Skip) mod 7;
-        if RectVisible(Canvas.Handle, R) then
+
+        //if RectVisible(Canvas.Handle, R) then  // NOTE: NEVER!
+
+        TempDate := FFirstDate + I;
+        DecodeDate(TempDate, Y, M, D);
+
+        if (Y = 1582) and (M = 10) and (D in [5..14]) then
         begin
-          TempDate := FFirstDate + I;
-          DecodeDate(TempDate, Y, M, D);
+          Inc(Skip);
+          Continue;
+        end;
 
-          if (Y = 1582) and (M = 10) and (D in [5..14]) then
-          begin
-            Inc(Skip);
-            Continue;
-          end;
-
-          if M = FMonth then
-            if Col = 0 then
-              Font.Color := SundayColor
-            else if Col = 6 then
-              Font.Color := SaturdayColor
-            else
-              Font.Color := TextColor
+        if M = FMonth then
+          if Col = 0 then
+            Font.Color := SundayColor
+          else if Col = 6 then
+            Font.Color := SaturdayColor
           else
-            Font.Color := TrailingTextColor;
+            Font.Color := TextColor
+        else
+          Font.Color := TrailingTextColor;
 
-          if TempDate = FViewDate then //高亮显示月历日期
+        if TempDate = FViewDate then //高亮显示月历日期
+        begin
+          Brush.Color := DaySelectColor;   // 增加的颜色设置
+          Font.Color := DaySelectTextColor;    // 增加的颜色设置
+          FillRect(R);
+          FOldRect := R;
+          DR := R;
+          InflateRect(DR, -2, -2);
+          if Focused then
+            Windows.DrawFocusRect(Handle, DR);
+        end
+        else
+        begin
+          Brush.Color := Color;
+          Brush.Style := bsSolid;
+          FillRect(R);
+        end;
+
+        Brush.Style := bsClear;
+
+        if TempDate = SysUtils.Date then //在当前日期画一红色框
+        begin
+          Pen.Color := clRed;
+          Pen.Width := 1;
+          Rectangle(R.Left, R.Top, R.Right, R.Bottom);
+        end;
+        OutputStr := IntToStr(D);
+        Font.Size := FDaySize;
+        if FCalStyle = csNone then
+          DrawString(OutputStr, R, DT_VCENTER or DT_CENTER)
+        else
+        begin
+          if FCalStyle = csRight then
           begin
-            Brush.Color := DaySelectColor;   // 增加的颜色设置
-            Font.Color := DaySelectTextColor;    // 增加的颜色设置
-            FillRect(R);
-            FOldRect := R;
-            DR := R;
-            InflateRect(DR, -2, -2);
-            if Focused then
-              Windows.DrawFocusRect(Handle, DR);
+            DR := Bounds(R.Left, R.Top, FCellWidth div 3 * 2, FCellHeight);
+            DrawString(OutputStr, DR, DT_VCENTER or DT_RIGHT);
+            OffsetRect(DR, FCellWidth div 3 * 2, 0);
           end
           else
           begin
-            Brush.Color := Color;
-            Brush.Style := bsSolid;
-            FillRect(R);
+            DR := Bounds(R.Left, R.Top, FCellWidth, FCellHeight div 5 * 3);
+            DrawString(OutputStr, DR, DT_BOTTOM or DT_CENTER);
+            DR := Bounds(DR.Left, DR.Bottom, FCellWidth, FCellHeight div 5 * 2);
           end;
-
-          Brush.Style := bsClear;
-
-          if TempDate = SysUtils.Date then //在当前日期画一红色框
-          begin
-            Pen.Color := clRed;
-            Pen.Width := 1;
-            Rectangle(R.Left, R.Top, R.Right, R.Bottom);
-          end;
-          OutputStr := IntToStr(D);
-          Font.Size := FDaySize;
-          if FCalStyle = csNone then
-            DrawString(OutputStr, R, DT_VCENTER or DT_CENTER)
-          else
-          begin
-            if FCalStyle = csRight then
-            begin
-              DR := Bounds(R.Left, R.Top, FCellWidth div 3 * 2, FCellHeight);
-              DrawString(OutputStr, DR, DT_VCENTER or DT_RIGHT);
-              OffsetRect(DR, FCellWidth div 3 * 2, 0);
-            end
-            else
-            begin
-              DR := Bounds(R.Left, R.Top, FCellWidth, FCellHeight div 5 * 3);
-              DrawString(OutputStr, DR, DT_BOTTOM or DT_CENTER);
-              DR := Bounds(DR.Left, DR.Bottom, FCellWidth, FCellHeight div 5 * 2);
-            end;
-            DrawLunarDay(DR, TempDate);
-          end;
+          DrawLunarDay(DR, TempDate);
         end;
+
         if Col = 6 then
           OffsetRect(R, FDaysRect.Left - R.Left, FCellHeight)
         else
@@ -617,7 +618,8 @@ end;
 procedure TCnMonthCalendar.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
   inherited;
-  if ssLeft in Shift then UpdateHighlight(X, Y);
+  if ssLeft in Shift then
+    UpdateHighlight(X, Y);
 end;
 
 procedure TCnMonthCalendar.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -681,8 +683,12 @@ begin
     TempDate := FFirstDate + Col + Row * 7;
 
     DecodeDate(TempDate, Ye, M, D);
-    if (Ye = 1582) and (M = 10) and (D in [5..30]) then // 31 can in November.
-      TempDate := TempDate + 10;
+    if (Ye = 1582) and (M = 10) and (D in [5..31]) then
+    begin
+      DecodeDate(FViewDate, Ye, M, D);
+      if M = 10 then
+        TempDate := TempDate + 10;
+    end;
 
     if TempDate <> FViewDate then
     begin
