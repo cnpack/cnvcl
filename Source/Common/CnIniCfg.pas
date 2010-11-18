@@ -226,7 +226,10 @@ begin
   for i := 0 to FPropCount - 1 do
     if (FPropList[i].PropType^ = TypeInfo(Boolean)) and (FPropList[i].Index = Index) then
     begin
-      FIni.WriteBool('Boolean', FPropList[i].Name, Value);
+      if Value = (FPropList[i].Default <> 0) then
+        FIni.WriteBool('Boolean', FPropList[i].Name, Value)
+      else
+        FIni.DeleteKey('Boolean', FPropList[i].Name);
       Exit;
     end;
 end;
@@ -238,7 +241,10 @@ begin
   for i := 0 to FPropCount - 1 do
     if (FPropList[i].PropType^.Kind = tkFloat) and (FPropList[i].Index = Index) then
     begin
-      FIni.WriteFloat('Float', FPropList[i].Name, Value);
+      if Value <> StrToFloatDef(GetDefaultValue(FPropList[i].Name), 0) then
+        FIni.WriteFloat('Float', FPropList[i].Name, Value)
+      else
+        FIni.DeleteKey('Float', FPropList[i].Name);
       Exit;
     end;
 end;
@@ -250,7 +256,10 @@ begin
   for i := 0 to FPropCount - 1 do
     if (FPropList[i].PropType^.Kind = tkInteger) and (FPropList[i].Index = Index) then
     begin
-      FIni.WriteInteger('Integer', FPropList[i].Name, Value);
+      if Value <> FPropList[i].Default then
+        FIni.WriteInteger('Integer', FPropList[i].Name, Value)
+      else
+        FIni.DeleteKey('Integer', FPropList[i].Name);
       Exit;
     end;
 end;
@@ -262,7 +271,10 @@ begin
   for i := 0 to FPropCount - 1 do
     if (FPropList[i].PropType^.Kind in [tkString, tkLString]) and (FPropList[i].Index = Index) then
     begin
-      FIni.WriteString('String', FPropList[i].Name, Value);
+      if Value <> GetDefaultValue(FPropList[i].Name) then
+        FIni.WriteString('String', FPropList[i].Name, Value)
+      else
+        FIni.DeleteKey('String', FPropList[i].Name);
       Exit;
     end;
 end;
