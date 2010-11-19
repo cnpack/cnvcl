@@ -226,7 +226,7 @@ begin
   for i := 0 to FPropCount - 1 do
     if (FPropList[i].PropType^ = TypeInfo(Boolean)) and (FPropList[i].Index = Index) then
     begin
-      if Value = (FPropList[i].Default <> 0) then
+      if Value <> (FPropList[i].Default <> 0) then
         FIni.WriteBool('Boolean', FPropList[i].Name, Value)
       else
         FIni.DeleteKey('Boolean', FPropList[i].Name);
