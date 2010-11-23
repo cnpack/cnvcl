@@ -70,6 +70,9 @@ type
     Password: string;
   end;
 
+  TCnInetProxyMode = (pmDirect, pmIE, pmProxy);
+  {* 使用代理的方式：直连、IE设置、指定代理 }
+
   TCnInet = class
   {* 使用 WinInet 读取 HTTP/FTP 文件的类。}
   private
@@ -84,6 +87,11 @@ type
     FProxyUserName: string;
     FProxyPassWord: string;
     FHttpRequestHeaders: TStringList;
+    FSendTimeOut: Cardinal;
+    FConnectTimeOut: Cardinal;
+    FReceiveTimeOut: Cardinal;
+    FProxyMode: TCnInetProxyMode;
+    FNoCookie: Boolean;
     function ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
   protected
     procedure DoProgress(TotalSize, CurrSize: Integer);
@@ -115,6 +123,8 @@ type
     {* 是否支持 gzip, deflate 解压}
     property UserAgent: string read FUserAgent write FUserAgent;
     {* 设置UserAgent 浏览器识别标示}
+    property ProxyMode: TCnInetProxyMode read FProxyMode write FProxyMode;
+    {* 使用代理的方式}
     property ProxyServer: string read FProxyServer write FProxyServer;
     {* 代理服务器设置: [协议=][协议://]服务器[:端口] 如 127.0.0.1:8080}
     property ProxyUserName: string read FProxyUserName write FProxyUserName;
@@ -123,6 +133,14 @@ type
     {* 代理服务器用户密码}
     property HttpRequestHeaders: TStringList read FHttpRequestHeaders;
     {* 请求信息头}
+    property NoCookie: Boolean read FNoCookie write FNoCookie;
+    {* 是否不使用 Cookie，如果需要在 HttpRequestHeaders 中指定 Cookie，应设为 True}
+    property ConnectTimeOut: Cardinal read FConnectTimeOut write FConnectTimeOut;
+    {* 连接超时}
+    property SendTimeOut: Cardinal read FSendTimeOut write FSendTimeOut;
+    {* 发送超时}
+    property ReceiveTimeOut: Cardinal read FReceiveTimeOut write FReceiveTimeOut;
+    {* 接收超时}
   end;
 
   TCnHTTP = class(TCnInet);
@@ -203,6 +221,7 @@ begin
   FDecoding := True;
   FUserAgent := 'CnPack Internet Utils';
   FHttpRequestHeaders := TStringList.Create;
+  FProxyMode := pmIE;
 end;
 
 destructor TCnInet.Destroy;
@@ -227,10 +246,14 @@ var
 begin
   if hSession = nil then
   begin
-    if Length(FProxyServer) = 0 then
+    if (FProxyMode <> pmProxy) or (Length(FProxyServer) = 0) then
     begin
-      hSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PRECONFIG,
-        nil, nil, 0);
+      if FProxyMode = pmDirect then
+        hSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_DIRECT,
+          nil, nil, 0)
+      else
+        hSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PRECONFIG,
+          nil, nil, 0);
     end
     else
     begin
@@ -240,6 +263,13 @@ begin
         InternetSetOption(hSession, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyUserName), Length(FProxyUserName));
       if Length(FProxyPassWord) > 0 then
         InternetSetOption(hSession, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyPassWord), Length(FProxyPassWord));
+        
+      if FConnectTimeOut <> 0 then
+        InternetSetOption(hSession, INTERNET_OPTION_CONNECT_TIMEOUT, @FConnectTimeOut, SizeOf(Cardinal));
+      if FSendTimeOut <> 0 then
+        InternetSetOption(hSession, INTERNET_OPTION_SEND_TIMEOUT, @FSendTimeOut, SizeOf(Cardinal));
+      if FReceiveTimeOut <> 0 then
+        InternetSetOption(hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, @FReceiveTimeOut, SizeOf(Cardinal));
     end;
     if FDecoding then
     begin
@@ -337,7 +367,7 @@ end;
 function TCnInet.GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
   Stream: TStream): Boolean;
 var
-  CurrSize, Readed: DWORD;
+  CurrSize, Readed: Cardinal;
   Buf: array[0..csBufferSize - 1] of Byte;
 begin
   Result := False;
@@ -401,7 +431,7 @@ var
   IsHttps: Boolean;
   hConnect, hRequest: HINTERNET;
   SizeStr: array[0..63] of Char;
-  BufLen, Index: DWORD;
+  BufLen, Index: Cardinal;
   i: Integer;
   Port: Word;
   Flag: Cardinal;
@@ -425,6 +455,8 @@ begin
       Port := StrToIntDef(Info.Port, INTERNET_DEFAULT_HTTP_PORT);
       Flag := INTERNET_FLAG_RELOAD;
     end;
+    if FNoCookie then
+      Flag := Flag + INTERNET_FLAG_NO_COOKIES;
 
     hConnect := InternetConnect(hSession, PChar(Info.Host), Port, nil, nil,
       INTERNET_SERVICE_HTTP, 0, 0);
