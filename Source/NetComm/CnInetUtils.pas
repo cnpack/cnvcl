@@ -92,6 +92,7 @@ type
     FReceiveTimeOut: Cardinal;
     FProxyMode: TCnInetProxyMode;
     FNoCookie: Boolean;
+    FEncodeUrlPath: Boolean;
     function ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
   protected
     procedure DoProgress(TotalSize, CurrSize: Integer);
@@ -135,6 +136,8 @@ type
     {* 请求信息头}
     property NoCookie: Boolean read FNoCookie write FNoCookie;
     {* 是否不使用 Cookie，如果需要在 HttpRequestHeaders 中指定 Cookie，应设为 True}
+    property EncodeUrlPath: Boolean read FEncodeUrlPath write FEncodeUrlPath default True;
+    {* 是否自动为 Url 路径中的特殊字符编码}
     property ConnectTimeOut: Cardinal read FConnectTimeOut write FConnectTimeOut;
     {* 连接超时}
     property SendTimeOut: Cardinal read FSendTimeOut write FSendTimeOut;
@@ -429,6 +432,7 @@ end;
 function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean;
 var
   IsHttps: Boolean;
+  PathName: string;
   hConnect, hRequest: HINTERNET;
   SizeStr: array[0..63] of Char;
   BufLen, Index: Cardinal;
@@ -481,7 +485,11 @@ begin
       POpt := nil;
       OptLen := 0;
     end;
-    hRequest := HttpOpenRequest(hConnect, PChar(Verb), PChar(EncodeURL(Info.PathName)),
+
+    PathName := Info.PathName;
+    if EncodeUrlPath then
+      PathName := EncodeURL(PathName);
+    hRequest := HttpOpenRequest(hConnect, PChar(Verb), PChar(PathName),
       HTTP_VERSION, nil, nil, Flag, 0);
     if (hRequest = nil) or FAborted then
       Exit;
