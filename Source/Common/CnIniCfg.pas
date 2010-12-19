@@ -42,6 +42,8 @@ uses
   Windows, SysUtils, Classes, TypInfo, IniFiles, Registry;
 
 type
+  ECnIniCfgError = class(Exception);
+  
 {$M+}
   TCnIniCfg = class
   private
@@ -53,6 +55,7 @@ type
     FDefPropValues: array of Variant;
     procedure InitPropLists;
     procedure FreePropLists;
+    procedure CheckProperties;
   protected
     procedure DoCreate;
     function GetBoolean(const Index: Integer): Boolean;
@@ -129,6 +132,7 @@ procedure TCnIniCfg.DoCreate;
 begin
   InitPropLists;
   InitDefaultValues;
+  CheckProperties;
 end;
 
 procedure TCnIniCfg.InitDefaultValues;
@@ -144,6 +148,23 @@ begin
   if FPropCount > 0 then
     FPropList := GetMemory(FPropCount * SizeOf(PPropInfo));
   GetPropList(ClassInfo, csSupportTypes, FPropList);
+end;
+
+procedure TCnIniCfg.CheckProperties;
+var
+  i, j: Integer;
+begin
+  if FPropList <> nil then
+  begin
+    for i := 1 to FPropCount - 1 do
+    begin
+      for j := 0 to i - 1 do
+        if (FPropList[i].PropType^ = FPropList[j].PropType^) and
+          (FPropList[i].Index = FPropList[j].Index) then
+          raise ECnIniCfgError.CreateFmt('Property index does not allow duplicates. Class: %s, Property: %s and %s',
+            [ClassName, FPropList[i].Name, FPropList[j].Name]);
+    end;
+  end;
 end;
 
 procedure TCnIniCfg.FreePropLists;
