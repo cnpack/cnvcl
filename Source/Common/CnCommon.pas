@@ -2048,7 +2048,7 @@ var
   BufSize: Integer;
 begin
   BufSize := GetShortPathName(PChar(FileName), nil, 0) + 1;
-  GetMem(Buf, BufSize);
+  GetMem(Buf, BufSize * SizeOf(Char));
   try
     GetShortPathName(PChar(FileName), Buf, BufSize);
     Result := Buf;
