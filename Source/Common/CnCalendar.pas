@@ -47,7 +47,9 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2010.04.12 V1.6
+* 修改记录：2011.01.05 V1.7
+*               加入一新方法，日干支计算加入小时参数以实现 23 时后是次日的机制
+*           2010.04.12 V1.6
 *               加入纳音五行长字符串的计算
 *           2009.07.27 V1.5
 *               修正一处计算农历日期时可能陷入死循环的问题
@@ -388,6 +390,11 @@ function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 {* 获得某公历时的天干地支，0-59 对应 甲子到癸亥}
 
 function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer; overload;
+{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥}
+
+function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
+{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日}
+
 function GetGanZhiFromDay(AllDays: Integer): Integer; overload;
 {* 获得某公历日的天干地支，0-59 对应 甲子到癸亥}
 
@@ -1986,6 +1993,16 @@ end;
 function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer;
 begin
   Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay));
+end;
+
+// 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日}
+function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer;
+begin
+  AHour := AHour mod 24;
+  if AHour >= 23 then
+    Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay) + 1)
+  else
+    Result := GetGanZhiFromDay(GetAllDays(AYear, AMonth, ADay));
 end;
 
 // 获得某公历月的天干地支，0-59 对应 甲子到癸亥
