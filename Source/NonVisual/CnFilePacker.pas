@@ -235,6 +235,7 @@ var
     tmpCurrentDirectory, tmpLastNameofCurrentDirectory: string;     //保存当前目录层递归没有退栈，nnd
   begin
     if FindFirst(ADirName, faAnyFile, srec) = 0 then
+    begin
       repeat
         CheckFileCellsCounts;
         if (srec.Name = '.') or (srec.Name = '..') then
@@ -262,6 +263,8 @@ var
         FFiles[FCurrent].ConvertFileName := ARootName + LastNameofCurrentDirectory + srec.Name;
         Inc(FCurrent);
       until FindNext(srec) <> 0;
+      SysUtils.FindClose(srec);
+    end;
   end;
 
 begin
