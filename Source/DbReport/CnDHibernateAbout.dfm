@@ -67,7 +67,7 @@ object CnFormDHibernateAbout: TCnFormDHibernateAbout
     Width = 321
     Height = 13
     AutoSize = False
-    Caption = '(C)Copyright 2001-2010 CnPack 开发组 '
+    Caption = '(C)Copyright 2001-2011 CnPack 开发组 '
   end
   object btnOK: TButton
     Left = 80
