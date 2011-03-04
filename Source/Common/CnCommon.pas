@@ -3025,6 +3025,7 @@ begin
   hSnap := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); // 创建当前进程快照
   if hSnap <> INVALID_HANDLE_VALUE then
   try
+    ppe.dwSize := SizeOf(TProcessEntry32);
     if Process32First(hSnap, ppe) then  // 取第一个进程信息
       repeat
         if AnsiCompareText(ExtractFileName(ppe.szExeFile), AName) = 0 then
