@@ -235,7 +235,7 @@ begin
         end;
       end;
     end;
-  Pointer(FileOpNotification) := Pointer(PChar(FileOpNotification) + OffSet);
+  Pointer(FileOpNotification) := Pointer(Integer(FileOpNotification) + OffSet);
   until Offset = 0;
 end;
 
