@@ -2254,7 +2254,7 @@ begin
   DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, 24));
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
 
-  if (Days >= DongZhi) and (Days - DongZhi <= 81) then // 在今年的九九内
+  if (Days >= DongZhi) and (Days - DongZhi < 81) then // 在今年的九九内
   begin
     Result := True;
     JiuSeq := ((Days - DongZhi) div 9) + 1;
@@ -2274,7 +2274,7 @@ begin
     if GetIsLeapYear(AYear) then
       Inc(Days);
 
-    if (Days >= DongZhi) and (Days - DongZhi <= 81) then
+    if (Days >= DongZhi) and (Days - DongZhi < 81) then
     begin
       Result := True;
       JiuSeq := ((Days - DongZhi) div 9) + 1;
