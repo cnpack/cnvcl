@@ -118,6 +118,10 @@ type
     property StringName: WideString read FStringName write FStringName;
   end;
 
+  TTranslateStringEvent = procedure (Sender: TObject; const Src: WideString;
+    var Dst: WideString) of object;
+  {* 翻译字符串事件，可用于统一检查或修改目标字符串 }
+
   TCnBaseLangManager = class(TCnComponent)
   {* 多语言管理器类 }
   private
@@ -125,6 +129,7 @@ type
     FCurrentLanguageIndex: Integer;
     FOnStorageChanged: TNotifyEvent;
     FOnLanguageChanged: TNotifyEvent;
+    FOnTranslateString: TTranslateStringEvent;
     FAutoTranslateStrings: Boolean;
     procedure SetLanguageStorage(Value: TCnCustomLangStorage);
     procedure AdjustNewLanguage(AID: LongWord);
@@ -166,6 +171,9 @@ type
     property OnLanguageChanged: TNotifyEvent read FOnLanguageChanged
       write FOnLanguageChanged;
     {* 当前语言发生改变时触发 }
+    property OnTranslateString: TTranslateStringEvent read FOnTranslateString
+      write FOnTranslateString;
+    {* 当翻译字符串时触发 }
   end;
   
   TCnTranslateObjectEvent = procedure (AObject: TObject; var Translate: Boolean) of object;
@@ -547,6 +555,8 @@ begin
     if CurrentLanguageIndex <> FLanguageStorage.CurrentLanguageIndex then
       FLanguageStorage.CurrentLanguageIndex := CurrentLanguageIndex;
     FLanguageStorage.GetString(Src, Result);
+    if Assigned(FOnTranslateString) then
+      FOnTranslateString(Self, Src, Result);
   end
   else
     Result := '';
