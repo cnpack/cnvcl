@@ -1742,14 +1742,14 @@ var
 
   procedure ReadLinesFromPipe(IsEnd: Boolean);
   var
-    s: string;
+    s: AnsiString;
     ls: TStringList;
     i: Integer;
   begin
     if InStream.Position < InStream.Size then
     begin
       SetLength(s, InStream.Size - InStream.Position);
-      InStream.Read(PChar(s)^, InStream.Size - InStream.Position);
+      InStream.Read(PAnsiChar(s)^, InStream.Size - InStream.Position);
       strTemp := strTemp + s;
       ls := TStringList.Create;
       try
