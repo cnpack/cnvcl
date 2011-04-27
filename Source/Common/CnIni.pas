@@ -38,9 +38,11 @@ interface
 
 {$I CnPack.inc}
 
+{$DEFINE SUPPORT_ZLIB}
+
 uses
   Windows, Classes, SysUtils, TypInfo, Forms, IniFiles, Graphics,
-  CnIniStrUtils, CnStream;
+  CnIniStrUtils, CnStream{$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
 
 type
 
@@ -178,19 +180,26 @@ type
   {* 支持内容 Xor 加密及流操作的 IniFile 类，允许对 INI 数据进行 Xor 加密。 }
   private
     FXorStr: string;
-  protected
-
+  {$IFDEF SUPPORT_ZLIB}
+    FUseZLib: Boolean;
+  {$ENDIF}
   public
-    constructor Create(const FileName: string; const XorStr: string);
+    constructor Create(const FileName: string; const XorStr: string
+      {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
     {* 类构造器。
      |<PRE>
        FileName: string     - INI 文件名，如果文件存在将自动加载
        XorStr: string       - 用于 Xor 操作的字符串
+       UseZLib: string      - 是否使用 ZLib 压缩
      |</PRE>}
     function LoadFromStream(Stream: TStream): Boolean; override;
     {* 从流中装载 INI 数据，流中的数据将用 Xor 解密 }
     function SaveToStream(Stream: TStream): Boolean; override;
     {* 保存 INI 数据到流，流中的数据将用 Xor 加密 }
+  {$IFDEF SUPPORT_ZLIB}
+    property UseZLib: Boolean read FUseZLib;
+  {$ENDIF}
+    {* 是否使用 ZLib 压缩 }
   end;
 
 implementation
@@ -807,33 +816,94 @@ end;
 
 { TCnXorIniFile }
 
-constructor TCnXorIniFile.Create(const FileName, XorStr: string);
+constructor TCnXorIniFile.Create(const FileName, XorStr: string
+  {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean{$ENDIF});
 begin
   FXorStr := XorStr;
+{$IFDEF SUPPORT_ZLIB}
+  FUseZLib := AUseZLib;
+{$ENDIF}
   inherited Create(FileName);
 end;
 
 function TCnXorIniFile.LoadFromStream(Stream: TStream): Boolean;
 var
   XorStream: TCnXorStream;
+{$IFDEF SUPPORT_ZLIB}
+  DecompStream: TDecompressionStream;
+  MemStream: TMemoryStream;
+{$ENDIF}
 begin
-  XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+  XorStream := nil;
+{$IFDEF SUPPORT_ZLIB}
+  DecompStream := nil;
+  MemStream := nil;
+{$ENDIF}
   try
-    Result := inherited LoadFromStream(XorStream);
+  {$IFDEF SUPPORT_ZLIB}
+    if FUseZLib then
+    begin
+      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+      MemStream := TMemoryStream.Create;
+      MemStream.LoadFromStream(XorStream);
+      DecompStream := TDecompressionStream.Create(MemStream);
+      Result := inherited LoadFromStream(DecompStream);
+    end
+    else
+  {$ENDIF}
+    begin
+      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+      Result := inherited LoadFromStream(XorStream);
+    end;
   finally
     XorStream.Free;
+  {$IFDEF SUPPORT_ZLIB}
+    DecompStream.Free;
+    MemStream.Free;
+  {$ENDIF}
   end;
 end;
 
 function TCnXorIniFile.SaveToStream(Stream: TStream): Boolean;
 var
   XorStream: TCnXorStream;
+{$IFDEF SUPPORT_ZLIB}
+  MemStream: TMemoryStream;
+  CompStream: TCompressionStream;
+{$ENDIF}
 begin
-  XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+  XorStream := nil;
+{$IFDEF SUPPORT_ZLIB}
+  CompStream := nil;
+  MemStream := nil;
+{$ENDIF}
   try
-    Result := inherited SaveToStream(XorStream);
+  {$IFDEF SUPPORT_ZLIB}
+    if FUseZLib then
+    begin
+      MemStream := TMemoryStream.Create;
+    {$IFNDEF DELPHI2009_UP}
+      CompStream := TCompressionStream.Create(clMax, MemStream);
+    {$ELSE}
+      CompStream := TCompressionStream.Create(MemStream, zcMax);
+    {$ENDIF}
+      Result := inherited SaveToStream(CompStream);
+      FreeAndNil(CompStream); // 释放时才会完成压缩输出
+      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+      MemStream.SaveToStream(XorStream);
+    end
+    else
+  {$ENDIF}
+    begin
+      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+      Result := inherited SaveToStream(XorStream);
+    end;
   finally
     XorStream.Free;
+  {$IFDEF SUPPORT_ZLIB}
+    MemStream.Free;
+    CompStream.Free;
+  {$ENDIF}
   end;
 end;
 
