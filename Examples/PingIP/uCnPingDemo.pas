@@ -89,8 +89,8 @@ implementation
 
 procedure TfrmCnPingDemo.FormCreate(Sender: TObject);
 begin
-  Ping := TCnPing.Create(Self); //初试化
-  IP := TCnIP.Create(Self); //初试化
+  Ping := TCnPing.Create(Self); //初始化
+  IP := TCnIP.Create(Self); //初始化
   FLocalIP := IP.IPAddress;
   edtStartIP.Text := IP.IPAddress;
   edtEndIP.Text := IP.NextIP(edtStartIP.Text);
