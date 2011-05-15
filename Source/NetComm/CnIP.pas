@@ -30,7 +30,9 @@ unit CnIP;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.08.14 V1.1
+* 修改记录：2011.05.15 V1.2
+*                修正将127.0.0.1作为默认地址的问题
+*           2009.08.14 V1.1
 *                增加对 D2009 的支持
 *           2008.04.14 V1.0
 *                创建单元
@@ -193,12 +195,32 @@ end;
 { TCnIp }
 
 constructor TCnIp.Create(AOwner: TComponent);
+var
+  IPs, I: Integer;
 begin
   inherited Create(AOwner);
-  if EnumLocalIP(FLocalIPs) > 0 then
+  IPs := EnumLocalIP(FLocalIPs);
+  if IPs = 1 then // Only ONE IP address
   begin
     FIP.IPAddress := FLocalIPs[0].IPAddress;
     FIP.SubnetMask := FLocalIPs[0].SubnetMask;
+  end
+  else if IPs > 1 then // IF more than one, do not use 127.0.0.1 as default
+  begin
+    for I := 0 to IPs - 1 do
+    begin
+      if IntToIP(FLocalIPs[I].IPAddress) <> '127.0.0.1' then
+      begin
+        FIP.IPAddress := FLocalIPs[I].IPAddress;
+        FIP.SubnetMask := FLocalIPs[I].SubnetMask;
+        Break;
+      end;
+      if FIP.IPAddress = 0 then
+      begin
+        FIP.IPAddress := FLocalIPs[0].IPAddress;
+        FIP.SubnetMask := FLocalIPs[0].SubnetMask;
+      end;
+    end;
   end;
 end;
 
