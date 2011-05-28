@@ -38,7 +38,9 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF DELPHI}
 {$DEFINE SUPPORT_ZLIB}
+{$ENDIF}
 
 uses
   Windows, Classes, SysUtils, TypInfo, Forms, IniFiles, Graphics,
