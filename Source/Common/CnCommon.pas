@@ -1750,7 +1750,7 @@ var
     begin
       SetLength(s, InStream.Size - InStream.Position);
       InStream.Read(PAnsiChar(s)^, InStream.Size - InStream.Position);
-      strTemp := strTemp + s;
+      strTemp := strTemp + string(s);
       ls := TStringList.Create;
       try
         ls.Text := strTemp;
@@ -3354,7 +3354,7 @@ begin
   begin
     Result := s[i] + Result;
     Inc(j);
-    if ((j mod SpLen) = 0) and (i <> 1) and not (s[i - 1] in ['+', '-']) then
+    if ((j mod SpLen) = 0) and (i <> 1) and not CharInSet(s[i - 1], ['+', '-']) then
       Result := Sp + Result;
   end;
 end;
