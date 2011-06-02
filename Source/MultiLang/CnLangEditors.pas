@@ -217,21 +217,18 @@ var
   i: Integer;
   Extractor: TCnLangStringExtractor;
   Lines: TStringList;
+  Mgr: TCnLangManager;
 begin
   if Index = 0 then
   begin
-    if CnLanguageManager = nil then
-    begin
-      MessageBox(0, PChar(SCnErrorNoLangManager), PChar(SCnErrorCaption),
-        MB_OK or MB_ICONWARNING);
-      Exit;
-    end;
-    
     if List.Count > 0 then
     begin
       Extractor := nil;
       Lines := nil;
+      Mgr := nil;
       try
+        if CnLanguageManager = nil then
+          Mgr := TCnLangManager.Create(nil);
         Extractor := TCnLangStringExtractor.Create;
         Lines := TStringList.Create;
         if List[0] is TCustomForm then
@@ -247,8 +244,8 @@ begin
                   TComponent(List[i]).Owner.ClassName, True)
               else
                 Extractor.GetComponentStrings(TComponent(List[i]), Lines, '', True);
-            end;  
-          end;  
+            end;
+          end;
         end;
 
         Lines.Sorted := True;
@@ -256,9 +253,11 @@ begin
       finally
         Extractor.Free;
         Lines.Free;
-      end;   
+        if Mgr <> nil then
+          Mgr.Free;
+      end;
     end;
-  end;  
+  end;
 end;
 
 function TCnLangDesignerEditor.GetVerb(Index: Integer): string;
@@ -275,8 +274,8 @@ end;
 procedure TCnLangDesignerEditor.PrepareItem(Index: Integer;
   const AItem: IMenuItem);
 begin
-  if Index = 0 then
-    AItem.Visible := CnLanguageManager <> nil;
+//  if Index = 0 then
+//    AItem.Visible := CnLanguageManager <> nil;
 end;
 
 procedure TCnLangDesignerEditor.RequiresUnits(Proc: TGetStrProc);

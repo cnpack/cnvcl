@@ -54,12 +54,12 @@ type
   private
     FFilterOptions: TLangTransFilterSet;
   protected
-    procedure GetObjectStrings(AObject: TObject; Strings: TStrings;
+    procedure GetObjectStrings(AOwner: TComponent; AObject: TObject; Strings: TStrings;
       const BaseName: string; SkipEmptyStr: Boolean);
-    procedure GetRecurComponentStrings(AComponent: TComponent; AList: TList;
-      Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean); virtual;
+    procedure GetRecurComponentStrings(AOwner: TComponent; AComponent: TComponent;
+      AList: TList; Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean); virtual;
     {* 递归获得一 Component 以及其子 Component 的字串 }
-    procedure GetRecurObjectStrings(AObject: TObject; AList: TList;
+    procedure GetRecurObjectStrings(AOwner: TComponent; AObject: TObject; AList: TList;
       Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean); virtual;
     {* 递归获得一 Object 属性以及其子属性对象的字串 }
   public
@@ -242,20 +242,22 @@ end;
 procedure TCnLangStringExtractor.GetComponentStrings(AComponent: TComponent;
   Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean);
 var
-  List: TList;
+  AList: TList;
 begin
   if (Strings <> nil) and (AComponent.ComponentCount > 0) then
   begin
-    List := TList.Create;
-    List.Add(AComponent);
+    AList := TList.Create;
     try
-      GetRecurComponentStrings(AComponent, List, Strings, BaseName, SkipEmptyStr);
+      if AComponent.Owner = nil then
+        GetRecurComponentStrings(AComponent, AComponent, AList, Strings, BaseName, SkipEmptyStr)
+      else
+        GetRecurComponentStrings(nil, AComponent, AList, Strings, BaseName, SkipEmptyStr)
     finally
-      List.Free;
+      AList.Free;
     end;
   end
   else
-    GetObjectStrings(AComponent, Strings, BaseName, SkipEmptyStr);
+    GetObjectStrings(nil, AComponent, Strings, BaseName, SkipEmptyStr);
 end;
 
 procedure TCnLangStringExtractor.GetFormStrings(AForm: TComponent;
@@ -264,46 +266,43 @@ begin
   GetComponentStrings(AForm, Strings, AForm.ClassName, SkipEmptyStr);
 end;
 
-procedure TCnLangStringExtractor.GetObjectStrings(AObject: TObject;
-  Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean);
+procedure TCnLangStringExtractor.GetObjectStrings(AOwner: TComponent;
+  AObject: TObject; Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean);
 var
   AList: TList;
 begin
   AList := TList.Create;
-  AList.Add(AObject);
   try
-    GetRecurObjectStrings(AObject, AList, Strings, BaseName, SkipEmptyStr);
+    GetRecurObjectStrings(AOwner, AObject, AList, Strings, BaseName, SkipEmptyStr);
   finally
     AList.Free;
   end;
 end;
 
-procedure TCnLangStringExtractor.GetRecurComponentStrings(AComponent: TComponent;
-  AList: TList; Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean);
+procedure TCnLangStringExtractor.GetRecurComponentStrings(AOwner: TComponent;
+  AComponent: TComponent; AList: TList; Strings: TStrings; const BaseName: string;
+  SkipEmptyStr: Boolean);
 var
   I: Integer;
   T: TComponent;
 begin
-  if (AComponent <> nil) and (AList <> nil) then
+  if (AComponent <> nil) and (AList <> nil) and (AList.IndexOf(AComponent) = -1) then
   begin
-    GetObjectStrings(AComponent, Strings, BaseName, SkipEmptyStr);
+    GetRecurObjectStrings(AOwner, AComponent, AList, Strings, BaseName, SkipEmptyStr);
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
       T := AComponent.Components[I];
-      if AList.IndexOf(T) = -1 then
-      begin
-        AList.Add(T);
-        if AComponent is TCustomForm then
-          GetRecurComponentStrings(T, AList, Strings, BaseName, SkipEmptyStr)
-        else
-          GetRecurComponentStrings(T, AList, Strings, BaseName + DefDelimeter + AComponent.Name, SkipEmptyStr);
-      end;
+      if AComponent is TCustomForm then
+        GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName, SkipEmptyStr)
+      else
+        GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + AComponent.Name, SkipEmptyStr);
     end;
   end;
 end;
 
-procedure TCnLangStringExtractor.GetRecurObjectStrings(AObject: TObject;
-  AList: TList; Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean);
+procedure TCnLangStringExtractor.GetRecurObjectStrings(AOwner: TComponent;
+  AObject: TObject; AList: TList; Strings: TStrings; const BaseName: string;
+  SkipEmptyStr: Boolean);
 var
   i: Integer;
   APropName, APropValue, AStr: string;
@@ -318,8 +317,10 @@ var
   ActionCaption, ActionHint: string;
   Info: PPropInfo;
 begin
-  if (AObject <> nil) and (AList <> nil) then
+  if (AObject <> nil) and (AList <> nil) and (AList.IndexOf(AObject) = -1) then
   begin
+    AList.Add(AObject);
+
     // 避免传入一些野了的 AObject 导致死循环，曾在 IDE 内部出现过
     try
       if AObject.ClassType = AObject.ClassParent then
@@ -345,7 +346,8 @@ begin
         AStr := BaseName + DefDelimeter + AStr;
 
       if not SkipEmptyStr or ((AObject as TStrings).Text <> '') then
-        Strings.Add(AStr + DefEqual + (AObject as TStrings).Text);
+        Strings.Add(AStr + DefEqual + StringReplace((AObject as TStrings).Text,
+          SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase]));
       Exit;
     end
     else if (AObject is TCollection) then // TCollection 对象遍历其 Item
@@ -353,15 +355,11 @@ begin
       for i := 0 to (AObject as TCollection).Count - 1 do
       begin
         AItem := (AObject as TCollection).Items[i];
-        if AList.IndexOf(AItem) = -1 then
-        begin
-          AList.Add(AItem);
-          if BaseName <> '' then
-            GetRecurObjectStrings(AItem, AList, Strings, BaseName + DefDelimeter
-              + 'Item' + InttoStr(i), SkipEmptyStr)
-          else
-            GetRecurObjectStrings(AItem, AList, Strings, 'Item' + InttoStr(i), SkipEmptyStr);
-        end;
+        if BaseName <> '' then
+          GetRecurObjectStrings(AOwner, AItem, AList, Strings, BaseName + DefDelimeter
+            + 'Item' + InttoStr(i), SkipEmptyStr)
+        else
+          GetRecurObjectStrings(AOwner, AItem, AList, Strings, 'Item' + InttoStr(i), SkipEmptyStr);
       end;
     end
     // ListView 在需要时遍历其 Item
@@ -370,16 +368,12 @@ begin
       for i := 0 to (AObject as TListView).Items.Count - 1 do
       begin
         AListItem := (AObject as TListView).Items[i];
-        if AList.IndexOf(AListItem) = -1 then
-        begin
-          AList.Add(AListItem);
-          if BaseName <> '' then
-            GetRecurObjectStrings(AListItem, AList, Strings, BaseName + DefDelimeter
-              + TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i), SkipEmptyStr)
-          else
-            GetRecurObjectStrings(AListItem, AList, Strings,
-              TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i), SkipEmptyStr);
-        end;
+        if BaseName <> '' then
+          GetRecurObjectStrings(AOwner, AListItem, AList, Strings, BaseName + DefDelimeter
+            + TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i), SkipEmptyStr)
+        else
+          GetRecurObjectStrings(AOwner, AListItem, AList, Strings,
+            TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i), SkipEmptyStr);
       end;
     end
     // 是 ListItem 时处理其 Caption 属性和 SubItems 属性
@@ -412,16 +406,12 @@ begin
       for i := 0 to (AObject as TTreeView).Items.Count - 1 do
       begin
         ATreeNode := (AObject as TTreeView).Items[i];
-        if AList.IndexOf(ATreeNode) = -1 then
-        begin
-          AList.Add(ATreeNode);
-          if BaseName <> '' then
-            GetRecurObjectStrings(ATreeNode, AList, Strings, BaseName + DefDelimeter
-              + TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i), SkipEmptyStr)
-          else
-            GetRecurObjectStrings(ATreeNode, AList, Strings,
-              TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i), SkipEmptyStr);
-        end;
+        if BaseName <> '' then
+          GetRecurObjectStrings(AOwner, ATreeNode, AList, Strings, BaseName + DefDelimeter
+            + TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i), SkipEmptyStr)
+        else
+          GetRecurObjectStrings(AOwner, ATreeNode, AList, Strings,
+            TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i), SkipEmptyStr);
       end;
     end
     // 是 TreeNode 时处理其 Text 属性
@@ -590,12 +580,15 @@ begin
       else if APropType = tkClass then
       begin
         SubObj := GetObjectProp(AObject, APropName);
-        if AObject is TComponent then
+        if (SubObj is TComponent) and (AOwner <> nil) and
+          ((SubObj as TComponent).Owner = AOwner) then
+        begin
+           // 子对象是窗体的直系组件时，不在这里翻译
+        end
+        else if AObject is TComponent then
         begin
           if AList.IndexOf(SubObj) = -1 then
           begin
-            AList.Add(SubObj);
-
             if (AObject is TControl) and (SubObj is TFont) and (APropName = 'Font') then
             begin
               if (tfFont in FFilterOptions) then
@@ -609,6 +602,7 @@ begin
                   if BaseName <> ''  then
                     AStr := BaseName + DefDelimeter + AStr;
 
+                  AList.Add(SubObj);
                   Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
                     GetParentFont(AObject as TComponent)));
                 end;
@@ -626,6 +620,7 @@ begin
                   if BaseName <> ''  then
                     AStr := BaseName + DefDelimeter + AStr;
 
+                  AList.Add(SubObj);
                   Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
                     GetParentFont(AObject as TComponent)));
                 end;                    
@@ -633,25 +628,21 @@ begin
             else if not (SubObj is TComponent) or ((SubObj as TComponent).Owner = nil) then
             begin
               if IsForm then
-                GetRecurObjectStrings(SubObj, AList, Strings,
+                GetRecurObjectStrings(AOwner, SubObj, AList, Strings,
                   TComponent(AObject).ClassName + DefDelimeter + APropName, SkipEmptyStr)
               else if (InheritsFromClassName(AObject, 'TNotebook') or InheritsFromClassName(AObject, 'TTabbedNotebook'))
                 and (APropName = 'Pages') then
                 // 不获取 TNotebook/TTabbedNotebook 的 Pages 属性，以免出现翻译后页面内容丢失。
               else
-                GetRecurObjectStrings(SubObj, AList, Strings, BaseName +
+                GetRecurObjectStrings(AOwner, SubObj, AList, Strings, BaseName +
                   DefDelimeter + TComponent(AObject).Name + DefDelimeter + APropName, SkipEmptyStr);
             end;
           end;
         end
         else
         begin
-          if AList.IndexOf(SubObj) = -1 then
-          begin
-            AList.Add(SubObj);
-            GetRecurObjectStrings(SubObj, AList, Strings,
-              BaseName + DefDelimeter + APropName, SkipEmptyStr);
-          end;
+          GetRecurObjectStrings(AOwner, SubObj, AList, Strings,
+            BaseName + DefDelimeter + APropName, SkipEmptyStr);
         end;
       end;
     end;
