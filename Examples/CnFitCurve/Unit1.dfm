@@ -1,0 +1,200 @@
+object Form1: TForm1
+  Left = 663
+  Top = 214
+  Width = 549
+  Height = 477
+  Caption = 'Form1'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object pb1: TPaintBox
+    Left = 16
+    Top = 160
+    Width = 497
+    Height = 266
+    OnPaint = pb1Paint
+  end
+  object sb1: TScrollBar
+    Left = 16
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 0
+    OnChange = sb1Change
+  end
+  object sb2: TScrollBar
+    Left = 48
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 1
+    OnChange = sb1Change
+  end
+  object sb3: TScrollBar
+    Left = 80
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 2
+    OnChange = sb1Change
+  end
+  object sb4: TScrollBar
+    Left = 112
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 3
+    OnChange = sb1Change
+  end
+  object sb5: TScrollBar
+    Left = 144
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 4
+    OnChange = sb1Change
+  end
+  object sb6: TScrollBar
+    Left = 176
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 5
+    OnChange = sb1Change
+  end
+  object sb7: TScrollBar
+    Left = 208
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 6
+    OnChange = sb1Change
+  end
+  object sb8: TScrollBar
+    Left = 240
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 7
+    OnChange = sb1Change
+  end
+  object sb9: TScrollBar
+    Left = 272
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 8
+    OnChange = sb1Change
+  end
+  object sb10: TScrollBar
+    Left = 304
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 9
+    OnChange = sb1Change
+  end
+  object sb11: TScrollBar
+    Left = 336
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 10
+    OnChange = sb1Change
+  end
+  object sb12: TScrollBar
+    Left = 368
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 11
+    OnChange = sb1Change
+  end
+  object sb13: TScrollBar
+    Left = 400
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 12
+    OnChange = sb1Change
+  end
+  object sb14: TScrollBar
+    Left = 432
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 13
+    OnChange = sb1Change
+  end
+  object sb15: TScrollBar
+    Left = 464
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 14
+    OnChange = sb1Change
+  end
+  object sb16: TScrollBar
+    Left = 496
+    Top = 24
+    Width = 17
+    Height = 121
+    Kind = sbVertical
+    PageSize = 0
+    Position = 50
+    TabOrder = 15
+    OnChange = sb1Change
+  end
+end
