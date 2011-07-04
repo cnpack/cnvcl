@@ -1,17 +1,17 @@
-CnPack开发组2010年下半年度工作总结
+CnPack开发组2011年上半年度工作总结
 
-    CnPack 在 2010 年下半年取得的主要成绩如下：
+    CnPack 在 2011 年上半年取得的主要成绩如下：
 
 一、自 2009 年 8 月以来，CnPack 继续担当 Embarcadero 的技术合作伙伴（ETP）。
 
-二、CnPack IDE 专家包发布 0.9.7 正式版，增加对 Delphi 2011 XE 的支持并修复一些Bug。
+二、CnPack IDE 专家包发布 0.9.8 正式版，以修复一些顽固 Bug 为主。单元清理增加对D2011的兼容，字符串属性编辑器增加对WideString类型的支持。
 
     每日构建版下载地址：
     http://www.cnpack.org/downbuilds.php
     或：
     http://code.google.com/p/cnpack/downloads/list?can=1
 
-三、CnPack 与 DevJET 结为战略合作伙伴。DevJET 也是 ETP 之一，网址：http://www.devjet.net
+三、参与代号为 Pulsar 的 Delphi XE 2 的 Field Test。
 
 四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
 
@@ -20,9 +20,11 @@ CnPack开发组2010年下半年度工作总结
     公开帐目：
     http://www.cnpack.org/showdetail.php?id=529
 
-    2011 年上半年 CnPack 开发组的计划如下：
+五、CnPack 开发组的邮件列表 bbs@cnpack.org 由于技术原因停止使用，烦请用户改用其他方式交流。
 
-一、发布 0.9.8，继续修正 Bug 以及新增功能。
+    2011 年下半年 CnPack 开发组的计划如下：
+
+一、发布 0.9.9，计划新增对即将发布的 Delphi XE 2 的支持，并争取进入 XE2 的 Partner DVD。
 
 二、CnWizards 将进一步加强国内外的宣传工作。希望能继续进一步扩大用户群。
 
@@ -36,7 +38,6 @@ CnPack开发组2010年下半年度工作总结
     CnPack 开发组论坛：http://bbs.cnpack.org
     CnPack 开发组管理员信箱：master@cnpack.org
 
-    CnPack 开发组内部邮件列表：bbs@cnpack.org
     CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
                              CnPack III: 32712412（满），CnPack IV: 130970（满），
                              CnPack V: 16067960（满），CnPack VI: 45094292（满），
@@ -53,9 +54,9 @@ CnPack开发组2010年下半年度工作总结
 
 ========================================================================
 
-CnPack Working Report in the Second Half of 2010
+CnPack Working Report in the First Half of 2011
 
-    Below are the achievements of CnPack in the Second Half of 2010:
+    Below are the achievements of CnPack in the First Half of 2011:
 
 1. CnPack Keeps Embarcadero Technology Partner (ETP) since 2009.08.
 
@@ -71,9 +72,11 @@ CnPack Working Report in the Second Half of 2010
 4. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
    https://sourceforge.net/project/project_donations.php?group_id=110999   
 
-    Below is the plan of CnPack for 2011 First Half:
+5. CnPack Mailing List bbs@cnpack.org Stopped. Please use Other Ways for Communication.
 
-1. Publish CnWizards 0.9.8 with Bug Fixing.
+    Below is the plan of CnPack for 2011 Second Half:
+
+1. Publish CnWizards 0.9.9 to Support Delphi XE 2 in Future. Try to Enter Partner DVD for XE 2.
 
 2. Continue to fix the bugs and do the function improvements for CnWizards. We hope users number can increase considerably in the next year.
 
@@ -87,7 +90,6 @@ To our members: Be more initiative and active for communication and taking part 
     CnPack BBS:     http://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
-    CnPack Mailing List: bbs@cnpack.org
     CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125
                          CnPack III: 32712412; CnPack IV: 130970
                          CnPack V: 16067960; CnPack VI: 45094292
