@@ -5497,7 +5497,7 @@ end;
 // 提升自身权限到SeDebug或取消此权限
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 var
-  Token: Cardinal;
+  Token: THandle;
   
   function InternalEnablePrivilege(Token: Cardinal; PrivName: string; Enable: Boolean): Boolean;
   var
