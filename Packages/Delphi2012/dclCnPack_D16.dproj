@@ -1,0 +1,155 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{0C7103F5-B429-4E50-A20F-E57B099B84AD}</ProjectGuid>
+			<MainSource>dclCnPack_D16.dpk</MainSource>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+			<ProjectVersion>13.3</ProjectVersion>
+			<FrameworkType>VCL</FrameworkType>
+			<Platform Condition="'$(Platform)'==''">Win32</Platform>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UnitSearchPath>..\..\Source\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\8.0\Bpl\dclCnPack_D15.bpl</DCC_DependencyCheckOutputName>
+			<DesignOnlyPackage>true</DesignOnlyPackage>
+			<DCC_Description>CnPack Components Designtime Package</DCC_Description>
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_WriteableConstants>true</DCC_WriteableConstants>
+			<GenPackage>true</GenPackage>
+			<DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
+			<GenDll>true</GenDll>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_Platform>x86</DCC_Platform>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="dclCnPack_D15.dpk">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="..\..\Source\Common\CnPack.dcr"/>
+			<DCCReference Include="vcl.dcp"/>
+			<DCCReference Include="vclx.dcp"/>
+			<DCCReference Include="vcldb.dcp"/>
+			<DCCReference Include="dclado.dcp"/>
+			<DCCReference Include="adortl.dcp"/>
+			<DCCReference Include="designide.dcp"/>
+			<DCCReference Include="CnPack_D15.dcp"/>
+			<DCCReference Include="..\..\Source\Common\CnPack.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnOTAUtils.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnPackRegister.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnPropEditors.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnCompAboutFrm.pas">
+				<Form>CnCompAboutForm</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\Source\DbReport\CnDHibernateAbout.pas">
+				<Form>CnFormDHibernateAbout</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\Source\DbReport\CnDBRegister.pas"/>
+			<DCCReference Include="..\..\Source\DbReport\CnADOUpdateSQLEditor.pas"/>
+			<DCCReference Include="..\..\Source\DbReport\CnADOUpdateSQLFrm.pas">
+				<Form>CnADOUpdateSQLForm</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\Source\Graphics\CnGraphRegister.pas"/>
+			<DCCReference Include="..\..\Source\Graphics\CnGraphPropEditors.pas"/>
+			<DCCReference Include="..\..\Source\MultiLang\CnLangEditors.pas"/>
+			<DCCReference Include="..\..\Source\MultiLang\CnLangReg.pas"/>
+			<DCCReference Include="..\..\Source\NetComm\CnNetPropEditor.pas"/>
+			<DCCReference Include="..\..\Source\NetComm\CnNetRegister.pas"/>
+			<DCCReference Include="..\..\Source\NonVisual\CnCompRegister.pas"/>
+			<DCCReference Include="..\..\Source\NonVisual\CnASPropEditors.pas"/>
+			<DCCReference Include="..\..\Source\Graphics\CnAAFontEditor.pas"/>
+			<DCCReference Include="..\..\Source\MultiLang\CnTransEditor.pas">
+				<Form>FrmTransEditor</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\Source\MultiLang\CnTransFilter.pas">
+				<Form>FrmTransFilter</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\Source\NonVisual\CnDockPropertyReg.pas"/>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType>Package</Borland.ProjectType>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">dclCnPack_D15.dpk</Source>
+					</Source>
+					<Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
+						<VersionInfo Name="MajorVer">1</VersionInfo>
+						<VersionInfo Name="MinorVer">0</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Build">0</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">2052</VersionInfo>
+						<VersionInfo Name="CodePage">936</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="FileDescription"/>
+						<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName"/>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName"/>
+						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+					<Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k120.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclofficexp120.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+					</Excluded_Packages>
+				</Delphi.Personality>
+				<Platforms>
+					<Platform value="Win32">True</Platform>
+				</Platforms>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>
