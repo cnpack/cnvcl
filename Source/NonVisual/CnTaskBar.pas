@@ -40,7 +40,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Classes, Messages, SysUtils, Forms, ShellAPI, CommCtrl, Graphics;
+  Windows, Classes, Messages, SysUtils, Forms, ShellAPI, CommCtrl, Graphics,
+  CnNativeDecl;
 
 type               
   TCnSysToolBarBtn = class(TPersistent)
@@ -273,7 +274,7 @@ var
   ThreadHandle: THandle; //Ïß³Ì¾ä±ú
   Buff: pchar;
   i, BtnCount: Integer;
-  R: Cardinal;
+  R: TCnNativeUInt;
   BtnInfo: TTBButton;
   SysHide: Boolean;
   SysToolBtn: TCnSysToolBarBtn;
@@ -354,7 +355,7 @@ var
   BtnInfo: TTBButton;
   Buff: pointer;
   BtnRect: TRect;
-  WriteNum: Cardinal;
+  WriteNum: TCnNativeUInt;
   SysHide: Boolean;
 begin
   BtnCount :=  SendMessage(FProgramToolBarHandle, TB_BUTTONCOUNT, 0, 0);

@@ -54,7 +54,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Forms, MMSystem, CnClasses, CnConsts, CnCompConsts;
+  Windows, SysUtils, Classes, Forms, MMSystem, CnClasses, CnConsts, CnCompConsts,
+  CnNativeDecl;
 
 type
 
@@ -313,7 +314,7 @@ begin
   inherited Destroy;
 end;
 
-procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: DWORD) stdcall;
+procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: TCnNativePointer) stdcall;
 begin
   TCnTimerMgr(dwUser).Timer;
 end;  

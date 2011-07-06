@@ -41,7 +41,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  CnClasses, CnConsts, CnCompConsts, CnGraphConsts;
+  CnNativeDecl, CnClasses, CnConsts, CnCompConsts, CnGraphConsts;
 
 type
 
@@ -203,7 +203,7 @@ end;
 procedure WriteVmtPtr(VmtPtrAddr: Pointer; AFuncAddr: Pointer);
 var
   ProcessHandle: THandle;
-  WriteBytesCount: DWORD;
+  WriteBytesCount: TCnNativeUInt;
 begin
   ProcessHandle := OpenProcess(PROCESS_VM_OPERATION or PROCESS_VM_WRITE,
     False, GetCurrentProcessId());

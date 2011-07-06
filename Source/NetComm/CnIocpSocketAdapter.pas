@@ -66,7 +66,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, WinSock, CnIocpSimpleMemPool;
+  Windows, SysUtils, Classes, WinSock, CnNativeDecl, CnIocpSimpleMemPool;
 
 const
   CN_MAX_WSABUF_COUNT = 8;
@@ -503,7 +503,7 @@ var
   NumberOfBytesTransferred: Cardinal;
   SocketOverlapped: PSocketOverlapped;
   Error: Cardinal;
-  Tmp: Cardinal;
+  Tmp: TCnNativePointer;
   IsFreeOverlapped: Boolean;
 
   procedure CallbackEvent;

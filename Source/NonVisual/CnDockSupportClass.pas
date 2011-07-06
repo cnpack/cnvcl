@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, Messages, Controls, Forms;
+  Classes, Windows, SysUtils, Messages, Controls, Forms, CnNativeDecl;
 
 type
 
@@ -169,7 +169,7 @@ type
     procedure DoFormOnCreate(Sender: TObject); virtual;
     procedure DoFormOnDeactivate(Sender: TObject); virtual;
     procedure DoFormOnDestroy(Sender: TObject); virtual;
-    function DoFormOnHelp(Command: Word; Data: Longint;
+    function DoFormOnHelp(Command: Word; Data: TCnNativeInt;
       var CallHelp: Boolean): Boolean;
     procedure DoFormOnHide(Sender: TObject); virtual;
     procedure DoFormOnPaint(Sender: TObject); virtual;
@@ -781,7 +781,7 @@ begin
 end;
 
 function TCnBaseGetFormEventComponent.DoFormOnHelp(Command: Word;
-  Data: Integer; var CallHelp: Boolean): Boolean;
+  Data: TCnNativeInt; var CallHelp: Boolean): Boolean;
 begin
   Result := False;
   if Assigned(FOldOnHelp) then

@@ -46,7 +46,7 @@ interface
 
 uses
   Windows, Classes, SysUtils,
-  CnCommon, CnClasses, CnConsts, CnCompConsts;
+  CnNativeDecl, CnCommon, CnClasses, CnConsts, CnCompConsts;
 
 type
   TFileOperation = (foAdded, foRemoved, foModified, foRenamed);
@@ -242,7 +242,7 @@ end;
 procedure TCnShellChangeThread.Execute;
 var
   numBytes: DWORD;
-  CompletionKey: DWORD;
+  CompletionKey: TCnNativePointer;
   PFOverlapped: POverlapped;
   TempDirectoryHandle: Cardinal;
   TempCompletionPort: Cardinal;

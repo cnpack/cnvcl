@@ -47,14 +47,16 @@ uses
   Classes, Windows, SysUtils;
 
 type
-{$IFDEF SUPPORTS_32_64}
+{$IFDEF SUPPORTS_32_AND_64}
   TCnNativeInt     = NativeInt;
   TCnNativeUInt    = NativeUInt;
   TCnNativePointer = NativeUInt;
 {$ELSE}
   TCnNativeInt     = Integer;
   TCnNativeUInt    = Cardinal;
-  TCnNativePointer = Pointer;
+  TCnNativePointer = Cardinal;
 {$ENDIF}
+
+implementation
 
 end.
