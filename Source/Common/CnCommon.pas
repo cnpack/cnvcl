@@ -770,6 +770,12 @@ function CheckWinXP: Boolean;
 function CheckWinVista: Boolean;
 {* 检查是否 Vista/Win7 以上系统 }
 
+function CheckXPManifest(var OSSupport, AppValid: Boolean): Boolean;
+{* 检查系统和当前进程是否支持 XP Manifest
+   OSSupport: 返回操作系统是否支持 XP Manifest
+   AppValid: 返回当前进程是否启用了 XP Manifest
+   Result: 检查是否成功 }
+
 function DllGetVersion(const dllname: string;
   var DVI: TDLLVERSIONINFO2): Boolean;
 {* 获得Dll的版本信息}
@@ -4798,6 +4804,44 @@ function CheckWinVista: Boolean;
 begin
   Result := Win32MajorVersion >= 6;
 end;
+
+// 检查系统和当前进程是否支持 XP Manifest
+function CheckXPManifest(var OSSupport, AppValid: Boolean): Boolean;
+var
+  hProc: THandle;
+  hMods: array[0..1023] of HMODULE;
+  Name: array[0..1023] of AnsiChar;
+  cbNeeded: DWORD;
+  i: Integer;
+  Ver: TVersionNumber;
+begin
+  Result := False;
+  OSSupport := False;
+  AppValid := True;
+  hProc := GetCurrentProcess;
+  EnumProcessModules(hProc, @hMods, SizeOf(hMods), cbNeeded);
+  for i := 0 to cbNeeded div SizeOf(HMODULE) - 1 do
+  begin
+    if GetModuleFileNameExA(hProc, hMods[i], Name, SizeOf(Name)) > 0 then
+    begin
+      if Pos(UpperCase(comctl32), UpperCase(Name)) > 0 then
+      begin
+        Ver := GetFileVersionNumber(Name);
+        if Ver.Major <= 5 then
+        begin
+          AppValid := False;
+        end
+        else if Ver.Major >= 6 then
+        begin
+          OSSupport := True;
+        end;
+      end;
+      Result := True;
+    end;
+  end;
+  if not OSSupport then
+    AppValid := False;
+end;  
 
 // 获得Dll的版本信息
 function DllGetVersion(const dllname: string;
