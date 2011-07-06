@@ -70,7 +70,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Math, Menus,
+  ComCtrls, Math, Menus, PsAPI, 
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
@@ -4824,9 +4824,9 @@ begin
   begin
     if GetModuleFileNameExA(hProc, hMods[i], Name, SizeOf(Name)) > 0 then
     begin
-      if Pos(UpperCase(comctl32), UpperCase(Name)) > 0 then
+      if Pos(UpperCase(comctl32), UpperCase(string(Name))) > 0 then
       begin
-        Ver := GetFileVersionNumber(Name);
+        Ver := GetFileVersionNumber(string(Name));
         if Ver.Major <= 5 then
         begin
           AppValid := False;
