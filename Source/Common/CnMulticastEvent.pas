@@ -171,11 +171,18 @@ begin
 end;
 
 function TCnMethodList.IndexOf(ACode, AData: Pointer): Integer;
+var
+  P: PMethod;
 begin
   Result := 0;
   while Result < Count do
   begin
-    with PMethod(List^[Result])^ do
+{$IFDEF LIST_NEW_POINTER}
+    P := PMethod(List[Result]);
+{$ELSE}
+    P := PMethod(List^[Result]);
+{$ENDIF}
+    with P^ do
     begin
       if (Code <> ACode) or (Data <> AData) then
         Inc(Result)
