@@ -525,11 +525,10 @@ end;
 // 对String类型数据进行MD5转换
 function MD5String(const Str: string): TMD5Digest;
 var
-  Context: TMD5Context;
+  AStr: AnsiString;
 begin
-  MD5Init(Context);
-  MD5Update(Context, PAnsiChar({$IFDEF DELPHI2009_UP}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
-  MD5Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := MD5StringA(AStr);
 end;
 
 // 对AnsiString类型数据进行MD5转换
