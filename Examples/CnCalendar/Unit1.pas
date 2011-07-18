@@ -88,13 +88,18 @@ begin
   mmoResult.Lines.Add('星座：' + GetXingZuoFromNumber(GetXingZuoFromMonthDay(AMonth, ADay)));
 
   mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GetGanZhiFromYear(AYear, AMonth, ADay)));
-  mmoResult.Lines.Add('月：'+ GetGanZhiFromNumber(GetGanZhiFromMonth(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('月：'+ GetGanZhiFromNumber(GetGanZhiFromMonth(AYear, AMonth, ADay, AHour)));
   mmoResult.Lines.Add('日：'+ GetGanZhiFromNumber(GetGanZhiFromDay(AYear, AMonth, ADay, AHour)));
   mmoResult.Lines.Add('时：'+ GetGanZhiFromNumber(GetGanZhiFromHour(AYear, AMonth, ADay, AHour)));
   mmoResult.Lines.Add('二十八宿：'+ Get28XiuFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)) + '/' + Get28XiuLongFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('本日纳音五行：'+ Get5XingFromNumber(Get5XingFromDay(AYear, AMonth, ADay)) + '/' + Get5XingLongFromDay(AYear, AMonth, ADay));
   mmoResult.Lines.Add('十二建：'+ Get12JianFromNumber(Get12JianFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('本日节气：' + GetJieQiFromNumber(GetJieQiFromDay(AYear, AMonth, ADay)));
+  if GetJieQiFromDay(AYear, AMonth, ADay) >= 0 then
+  begin
+    if GetJieQiTimeFromDay(AYear, AMonth, ADay, H1, mi1) >= 0 then
+      mmoResult.Lines.Add(Format('本日交节时刻：%d 时 %d 分', [H1, mi1])); 
+  end;
   mmoResult.Lines.Add('每日胎神：' + GetTaiShenStringFromDay(AYear, AMonth, ADay));
   if Get3FuDay(AYear, AMonth, ADay, FSeq, FDay) then
     mmoResult.Lines.Add(Format('三伏： %s 第 %d 日', [Get3FuFromNumber(FSeq), FDay]));
