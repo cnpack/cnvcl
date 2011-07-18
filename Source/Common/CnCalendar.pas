@@ -48,6 +48,8 @@ unit CnCalendar;
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
 * 修改记录：2011.01.05 V1.7
+*               月份的节气分界精确到分钟
+*           2011.01.05 V1.7
 *               加入一新方法，日干支计算加入小时参数以实现 23 时后是次日的机制
 *           2010.04.12 V1.6
 *               加入纳音五行长字符串的计算
@@ -398,8 +400,11 @@ function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer; overloa
 function GetGanZhiFromDay(AllDays: Integer): Integer; overload;
 {* 获得某公历日的天干地支，0-59 对应 甲子到癸亥}
 
-function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历月的天干地支，需要日是因为月以节气分界。0-59 对应 甲子到癸亥}
+function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer; overload;
+{* 获得某公历月的天干地支，需要日是因为月以节气分界，不考虑时。0-59 对应 甲子到癸亥}
+
+function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
+{* 获得某公历月的天干地支，需要日与时是因为月以节气分界。0-59 对应 甲子到癸亥}
 
 function GetGanZhiFromYear(AYear: Integer): Integer; overload;
 {* 获得某公/农历年的天干地支，0-59 对应 甲子到癸亥}
@@ -441,6 +446,9 @@ function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer;
 
 function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
 {* 获得公历年月日是本年的什么节气，0-23，对应立春到大寒，无则返回 -1}
+
+function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer; out AHour: Integer; out AMinitue: Integer): Integer;
+{* 获得公历年月日是本年的什么节气以及交节时刻，0-23，对应立春到大寒，无则返回 -1}
 
 function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDay: Integer): Boolean;
 {* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9对应一九到九九，False 为不在数九日内}
@@ -1936,6 +1944,36 @@ begin
   end;
 end;
 
+// 获得公历年月日是本年的什么节气以及交节时刻，0-23，对应立春到大寒，无则返回 -1
+function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer; out AHour: Integer;
+  out AMinitue: Integer): Integer;
+var
+  Month, Day, Idx: Integer;
+begin
+  Result := -1;
+
+  // 每个月两个节气，先算出日期大致对应节气再精确计算，以优化性能
+  Idx := (AMonth - 1) * 2;
+  if ADay >= 15 then
+    Inc(Idx);
+
+  if GetJieQiInAYear(AYear, Idx, Month, Day, AHour, AMinitue) then
+  begin
+    if (AMonth = Month) and (ADay = Day) then
+    begin
+      // 此时 I 表示 0 是小寒
+      Result := Idx - 2;
+      // 转换成 0 是立春
+      if Result < 0 then
+        Inc(Result, 24);
+      Exit;
+    end;
+  end;
+  AHour := -1;
+  AMinitue := -1;
+end;
+
+
 // 获得某公历时的天干地支，0-59 对应 甲子到癸亥
 function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
@@ -2007,21 +2045,30 @@ end;
 
 // 获得某公历月的天干地支，0-59 对应 甲子到癸亥
 function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := GetGanZhiFromMonth(AYear, AMonth, ADay, 0);
+end;
+
+// 获得某公历月的天干地支，0-59 对应 甲子到癸亥
+function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, DummyZhi: Integer;
 
   // 调整年和月记录，因为年月的天干地支计算是以立春和各个节气为分界的
-  procedure AdjustByJieQi(var AYear: Integer; var AMonth: Integer; ADay: Integer);
+  procedure AdjustByJieQi(var AYear: Integer; var AMonth: Integer;
+    ADay: Integer; AHour: Integer);
   var
-    I, Days: Integer;
+    I: Integer;
+    Days: Extended;
   begin
-    Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+    Days := GetDayFromYearBegin(AYear, AMonth, ADay) + AHour / 24;
+
     // 如本日是立春日前，则是属于前一年
-    if Days < Floor(GetJieQiDayTimeFromYear(AYear, 3)) then
+    if Days < GetJieQiDayTimeFromYear(AYear, 3) then
     begin
       // 年调整为前一年
       Dec(AYear);
-      if Days < Floor(GetJieQiDayTimeFromYear(AYear, 1)) then // 如果小于小寒则算 11 月
+      if Days < GetJieQiDayTimeFromYear(AYear, 1) then // 如果小于小寒则算 11 月
         AMonth := 11
       else // 小寒和立春间算 12 月
         AMonth := 12;
@@ -2032,7 +2079,7 @@ var
       for I := 1 to 12 do // I 是以节气为分界的月份数
       begin
         // 如果 I 月首节气的距年头的日数小于此日
-        if Days >= Floor(GetJieQiDayTimeFromYear(AYear, 2 * I + 1)) then
+        if Days >= GetJieQiDayTimeFromYear(AYear, 2 * I + 1) then
           AMonth := I
         else
           Break;
@@ -2042,7 +2089,7 @@ var
 
 begin
   // 需要先根据节气调整月和年数
-  AdjustByJieQi(AYear, AMonth, ADay);
+  AdjustByJieQi(AYear, AMonth, ADay, AHour);
 
   Result := -1;
   ExtractGanZhi(GetGanZhiFromYear(AYear), Gan, DummyZhi);
