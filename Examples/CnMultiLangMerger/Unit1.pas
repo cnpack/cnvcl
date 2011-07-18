@@ -16,6 +16,7 @@ type
     lbl2: TLabel;
     lbl3: TLabel;
     btnCopy: TButton;
+    lbl4: TLabel;
     procedure btnMergeClick(Sender: TObject);
     procedure btnCopyClick(Sender: TObject);
   private
