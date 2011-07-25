@@ -70,7 +70,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Math, Menus, PsAPI, 
+  ComCtrls, Math, Menus, PsAPI, Registry, 
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
@@ -221,6 +221,9 @@ function CnGetTempFileName(const Ext: string): string;
 
 function GetSystemDir: string;
 {* 取系统目录}
+
+function GetMyDocumentsDir: string;
+{* 取我的文档目录}
 
 function ShortNameToLongName(const FileName: string): string;
 {* 短文件名转长文件名}
@@ -1985,6 +1988,30 @@ begin
   end;
 end;
 
+function ShellGetFolder(Name: string): string;
+const
+  RegPath = '\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders';
+var
+  Reg: TRegistry;
+  Folder: string;
+begin
+  Reg := TRegistry.Create;
+  try
+    Reg.RootKey := HKEY_CURRENT_USER;
+    if Reg.OpenKey(RegPath, False) then
+      Folder := Reg.ReadString(Name);
+  finally
+    Reg.Free;
+  end;
+  Result := Folder;
+end;
+
+// 取我的文档目录
+function GetMyDocumentsDir: string;
+begin
+  Result := ShellGetFolder('Personal');
+end;
+
 var
   _Kernel32Handle: HMODULE = HMODULE(0);
   _GetLongPathName: function (lpszShortPath: PChar; lpszLongPath: PChar;
@@ -1996,6 +2023,7 @@ begin
     _Kernel32Handle := LoadLibrary(kernel32);
   Result := _Kernel32Handle;
 end;
+
 
 function ShellGetLongPathName(const Path: string): string;
 var
