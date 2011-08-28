@@ -235,6 +235,16 @@ type
     function VirtualKeyToString(AKey: Word): string;
     procedure SetDumpFileName(const Value: string);
     procedure SetDumpToFile(const Value: Boolean);
+    function GetAutoStart: Boolean;
+    function GetChannel: TCnDebugChannel;
+    function GetDumpFileName: string;
+    function GetDumpToFile: Boolean;
+    function GetFilter: TCnDebugFilter;
+    function GetUseAppend: Boolean;
+    procedure SetAutoStart(const Value: Boolean);
+    procedure SetUseAppend(const Value: Boolean);
+    function GetMessageCount: Integer;
+    function GetPostedMessageCount: Integer;
   protected
     function CheckEnabled: Boolean;
     {* 检测当前输出功能是否使能 }
@@ -379,26 +389,26 @@ type
     procedure EvaluateObject(APointer: Pointer); overload;
 
     // 其他属性
-    property Channel: TCnDebugChannel read FChannel;
-    property Filter: TCnDebugFilter read FFilter;
+    property Channel: TCnDebugChannel read GetChannel;
+    property Filter: TCnDebugFilter read GetFilter;
 
     property Active: Boolean read GetActive write SetActive;
     {* 是否使能，也就是是否输出信息}
     property ExceptTracking: Boolean read GetExceptTracking write SetExceptTracking;
     {* 是否捕捉异常}
-    property AutoStart: Boolean read FAutoStart write FAutoStart;
+    property AutoStart: Boolean read GetAutoStart write SetAutoStart;
     {* 是否自动启动 Viewer}
 
-    property DumpToFile: Boolean read FDumpToFile write SetDumpToFile;
+    property DumpToFile: Boolean read GetDumpToFile write SetDumpToFile;
     {* 是否把输出信息同时输出到文件}
-    property DumpFileName: string read FDumpFileName write SetDumpFileName;
+    property DumpFileName: string read GetDumpFileName write SetDumpFileName;
     {* 输出的文件名}
-    property UseAppend: Boolean read FUseAppend write FUseAppend;
+    property UseAppend: Boolean read GetUseAppend write SetUseAppend;
     {* 每次运行时，如果文件已存在，是否追加到已有内容后还是重写}
 
     // 输出消息统计
-    property MessageCount: Integer read FMessageCount;
-    property PostedMessageCount: Integer read FPostedMessageCount;
+    property MessageCount: Integer read GetMessageCount;
+    property PostedMessageCount: Integer read GetPostedMessageCount;
     property DiscardedMessageCount: Integer read GetDiscardedMessageCount;
   end;
 
@@ -934,7 +944,11 @@ end;
 
 function TCnDebugger.GetActive: Boolean;
 begin
+{$IFNDEF NDEBUG}
   Result := FActive;
+{$ELSE}
+  Result := False;
+{$ENDIF}
 end;
 
 function TCnDebugger.GetCurrentIndent(ThrdID: DWORD): Integer;
@@ -958,7 +972,11 @@ end;
 
 function TCnDebugger.GetExceptTracking: Boolean;
 begin
+{$IFNDEF NDEBUG}
   Result := FExceptTracking;
+{$ELSE}
+  Result := False;
+{$ENDIF}
 end;
 
 function TCnDebugger.IncIndent(ThrdID: DWORD): Integer;
@@ -1560,12 +1578,16 @@ end;
 
 procedure TCnDebugger.SetActive(const Value: Boolean);
 begin
+{$IFNDEF NDEBUG}
   FActive := Value;
+{$ENDIF}
 end;
 
 procedure TCnDebugger.SetExceptTracking(const Value: Boolean);
 begin
+{$IFNDEF NDEBUG}
   FExceptTracking := Value;
+{$ENDIF}
 end;
 
 procedure TCnDebugger.StartDebugViewer;
@@ -1751,7 +1773,9 @@ end;
 procedure TCnDebugger.TraceEnter(const AProcName, ATag: string);
 begin
   TraceFull(SCnEnterProc + AProcName, ATag, CurrentLevel, cmtEnterProc);
+{$IFNDEF NDEBUG}
   IncIndent(GetCurrentThreadId);
+{$ENDIF}
 end;
 
 procedure TCnDebugger.TraceFloat(Value: Extended; const AMsg: string);
@@ -1844,7 +1868,9 @@ end;
 
 procedure TCnDebugger.TraceLeave(const AProcName, ATag: string);
 begin
+{$IFNDEF NDEBUG}
   DecIndent(GetCurrentThreadId);
+{$ENDIF}
   TraceFull(SCnLeaveProc + AProcName, ATag, CurrentLevel, cmtLeaveProc);
 end;
 
@@ -1998,7 +2024,11 @@ end;
 
 function TCnDebugger.GetDiscardedMessageCount: Integer;
 begin
+{$IFNDEF NDEBUG}
   Result := FMessageCount - FPostedMessageCount;
+{$ELSE}
+  Result := 0;
+{$ENDIF}
 end;
 
 procedure TCnDebugger.EvaluateObject(AObject: TObject);
@@ -2194,9 +2224,12 @@ begin
 end;
 
 procedure TCnDebugger.SetDumpFileName(const Value: string);
+{$IFNDEF NDEBUG}
 var
   Mode: Word;
+{$ENDIF}
 begin
+{$IFNDEF NDEBUG}
   if FDumpFileName <> Value then
   begin
     FDumpFileName := Value;
@@ -2223,12 +2256,16 @@ begin
         FDumpFile.Seek(0, soFromBeginning); // 移动到开头
     end;
   end;
+{$ENDIF}
 end;
 
 procedure TCnDebugger.SetDumpToFile(const Value: Boolean);
+{$IFNDEF NDEBUG}
 var
   Mode: Word;
+{$ENDIF}
 begin
+{$IFNDEF NDEBUG}
   if FDumptoFile <> Value then
   begin
     FDumpToFile := Value;
@@ -2263,6 +2300,93 @@ begin
       FreeAndNil(FDumpFile);
     end;
   end;
+{$ENDIF}  
+end;
+
+function TCnDebugger.GetAutoStart: Boolean;
+begin
+{$IFNDEF NDEBUG}
+  Result := FAutoStart;
+{$ELSE}
+  Result := False;
+{$ENDIF}
+end;
+
+function TCnDebugger.GetChannel: TCnDebugChannel;
+begin
+{$IFNDEF NDEBUG}
+  Result := FChannel;
+{$ELSE}
+  Result := nil;
+{$ENDIF}
+end;
+
+function TCnDebugger.GetDumpFileName: string;
+begin
+{$IFNDEF NDEBUG}
+  Result := FDumpFileName;
+{$ELSE}
+  Result := '';
+{$ENDIF}
+end;
+
+function TCnDebugger.GetDumpToFile: Boolean;
+begin
+{$IFNDEF NDEBUG}
+  Result := FDumpToFile;
+{$ELSE}
+  Result := False;
+{$ENDIF}
+end;
+
+function TCnDebugger.GetFilter: TCnDebugFilter;
+begin
+{$IFNDEF NDEBUG}
+  Result := FFilter;
+{$ELSE}
+  Result := nil;
+{$ENDIF}
+end;
+
+function TCnDebugger.GetUseAppend: Boolean;
+begin
+{$IFNDEF NDEBUG}
+  Result := FUseAppend;
+{$ELSE}
+  Result := False;
+{$ENDIF}
+end;
+
+procedure TCnDebugger.SetAutoStart(const Value: Boolean);
+begin
+{$IFNDEF NDEBUG}
+  FAutoStart := Value;
+{$ENDIF}
+end;
+
+procedure TCnDebugger.SetUseAppend(const Value: Boolean);
+begin
+{$IFNDEF NDEBUG}
+  FUseAppend := Value;
+{$ENDIF}
+end;
+
+function TCnDebugger.GetMessageCount: Integer;
+begin
+{$IFNDEF NDEBUG}
+  Result := FMessageCount;
+{$ELSE}
+  Result := 0;
+{$ENDIF}
+end;
+
+function TCnDebugger.GetPostedMessageCount: Integer;
+begin
+{$IFNDEF NDEBUG}
+  Result := FPostedMessageCount;
+{$ELSE}
+  Result := 0;
+{$ENDIF}
 end;
 
 { TCnDebugChannel }
