@@ -887,7 +887,11 @@ begin
     {$IFNDEF DELPHI2009_UP}
       CompStream := TCompressionStream.Create(clMax, MemStream);
     {$ELSE}
+      {$IFDEF DELPHIXE2_UP}
+      CompStream := TCompressionStream.Create(MemStream, zcMax, 15);
+      {$ELSE}
       CompStream := TCompressionStream.Create(MemStream, zcMax);
+      {$ENDIF}
     {$ENDIF}
       Result := inherited SaveToStream(CompStream);
       FreeAndNil(CompStream); // 释放时才会完成压缩输出
