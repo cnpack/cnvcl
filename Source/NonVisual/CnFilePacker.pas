@@ -29,7 +29,9 @@ unit CnFilePacker;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.07.08 V0.02
+* 修改记录：2011.09.04 V0.03
+*               修正一处根目录结构错误的问题。
+*           2009.07.08 V0.02
 *               修正一处指针释放问题，增加对 D2009 的支持。
 *           2008.06.27 V0.01
 *               创建单元（整理而来）
@@ -146,9 +148,9 @@ type
     {*传入的自定义压缩类}
     FCompressInterface: ICnCompress;
     {* 属性字段用到的函数，前边加prop区别}
-    function PropGetPackFileDirectoryInfo: TArrayPackFileInformation;
-    function PropGetPackFileInformation: TArrayPackFileInformation;
-    function PropGetPackHeader: TPackHeader;
+    function GetPropGetPackFileDirectoryInfo: TArrayPackFileInformation;
+    function GetPropGetPackFileInformation: TArrayPackFileInformation;
+    function GetPropGetPackHeader: TPackHeader;
     {*压缩数据函数}
     procedure CompressData(var AStream: TBytes; var ALength: Cardinal);
     {*解压缩数据函数}
@@ -185,8 +187,8 @@ type
     {*添加压缩类}
     procedure AddCompressClass(ACompressClass: TInterfacedClass);
     {*得到文件信息}
-    property PackFileInformation: TArrayPackFileInformation read PropGetPackFileInformation;
-    property PackFileDirectoryInfo: TArrayPackFileInformation read PropGetPackFileDirectoryInfo;
+    property PackFileInformation: TArrayPackFileInformation read GetPropGetPackFileInformation;
+    property PackFileDirectoryInfo: TArrayPackFileInformation read GetPropGetPackFileDirectoryInfo;
   published
     property DestFileName: string read FDestFileName write FDestFileName;
     property SavePath: string read FSavePath write FSavePath;
@@ -194,7 +196,7 @@ type
     property Compress: Boolean read FCompress write FCompress;
     property CompressMode: TCompressMode read FCompressMode write FCompressMode;
     {*得到文件头信息}
-    property PackHeaderInformation: TPackHeader read PropGetPackHeader;
+    property PackHeaderInformation: TPackHeader read GetPropGetPackHeader;
   end;
 
 implementation
@@ -231,39 +233,39 @@ var
 
   procedure FindFile(ADirName: string);
   var
-    srec: TSearchRec;
+    SRec: TSearchRec;
     tmpCurrentDirectory, tmpLastNameofCurrentDirectory: string;     //保存当前目录层递归没有退栈，nnd
   begin
-    if FindFirst(ADirName, faAnyFile, srec) = 0 then
+    if FindFirst(ADirName, faAnyFile, SRec) = 0 then
     begin
       repeat
         CheckFileCellsCounts;
-        if (srec.Name = '.') or (srec.Name = '..') then
+        if (SRec.Name = '.') or (SRec.Name = '..') then
           Continue;
           
-        if (srec.Attr and faDirectory) <> 0 then
+        if (SRec.Attr and faDirectory) <> 0 then
         begin
-          FFiles[FCurrent].ReadFileName := CurrentDirectory + srec.Name + '\' + inttostr(srec.Attr) + '?';
-          FFiles[FCurrent].ConvertFileName := ARootName + LastNameofCurrentDirectory + srec.Name + '\' + inttostr(srec.Attr) + '?';
+          FFiles[FCurrent].ReadFileName := CurrentDirectory + SRec.Name + '\' + IntToStr(SRec.Attr) + '?';
+          FFiles[FCurrent].ConvertFileName := ARootName + LastNameofCurrentDirectory + SRec.Name + '\' + IntToStr(SRec.Attr) + '?';
           Inc(FCurrent);
           
           if FPackedSubDirectory then
           begin
             tmpLastNameofCurrentDirectory := LastNameofCurrentDirectory;
             tmpCurrentDirectory := CurrentDirectory;
-            LastNameofCurrentDirectory := LastNameofCurrentDirectory + srec.Name + '\';
-            CurrentDirectory := CurrentDirectory + srec.Name + '\';
-            FindFile(copy(ADirName, 1, Length(ADirName) - 3) + srec.Name + '\*.*');
+            LastNameofCurrentDirectory := LastNameofCurrentDirectory + SRec.Name + '\';
+            CurrentDirectory := CurrentDirectory + SRec.Name + '\';
+            FindFile(copy(ADirName, 1, Length(ADirName) - 3) + SRec.Name + '\*.*');
             LastNameofCurrentDirectory := tmpLastNameofCurrentDirectory;
             CurrentDirectory := tmpCurrentDirectory;
             Continue;
           end;
         end;
-        FFiles[FCurrent].ReadFileName := CurrentDirectory + srec.Name;
-        FFiles[FCurrent].ConvertFileName := ARootName + LastNameofCurrentDirectory + srec.Name;
+        FFiles[FCurrent].ReadFileName := CurrentDirectory + SRec.Name;
+        FFiles[FCurrent].ConvertFileName := ARootName + LastNameofCurrentDirectory + SRec.Name;
         Inc(FCurrent);
-      until FindNext(srec) <> 0;
-      SysUtils.FindClose(srec);
+      until FindNext(SRec) <> 0;
+      SysUtils.FindClose(SRec);
     end;
   end;
 
@@ -280,8 +282,8 @@ begin
   
   if Length(ADirName) = 3 then //is 'xyz:\'
     LastNameofCurrentDirectory := '';
-  FFiles[FCurrent].ReadFileName := ADirName + inttostr(GetFileAttributes(PChar(ADirName))) + '?';
-  FFiles[FCurrent].ConvertFileName := ARootName + GetFileName(ADirName) + inttostr(GetFileAttributes(PChar(ADirName))) + '?';
+  FFiles[FCurrent].ReadFileName := ADirName + IntToStr(GetFileAttributes(PChar(ADirName))) + '?';
+  FFiles[FCurrent].ConvertFileName := ARootName + IntToStr(GetFileAttributes(PChar(ADirName))) + '?';
   Inc(FCurrent);
   ADirName := ADirName + '*.*';
   FindFile(ADirName);
@@ -491,7 +493,7 @@ begin
   Comment := SCnFilePackerComment;
 end;
 
-function TCnFilePacker.PropGetPackFileDirectoryInfo: TArrayPackFileInformation;
+function TCnFilePacker.GetPropGetPackFileDirectoryInfo: TArrayPackFileInformation;
 var
   i: Cardinal;
   S: string;
@@ -524,7 +526,7 @@ begin
   Result := FImprotPackDirectoryInfo;
 end;
 
-function TCnFilePacker.PropGetPackFileInformation: TArrayPackFileInformation;
+function TCnFilePacker.GetPropGetPackFileInformation: TArrayPackFileInformation;
 var
   i: Cardinal;
   S: string;
@@ -556,7 +558,7 @@ begin
   Result := FImportPackFileInfo;
 end;
 
-function TCnFilePacker.PropGetPackHeader: TPackHeader;
+function TCnFilePacker.GetPropGetPackHeader: TPackHeader;
 begin
   if FPackHeaderInfo <> nil then
   begin
