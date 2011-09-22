@@ -53,6 +53,7 @@ contains
   CnHashMap in '..\..\Source\Common\CnHashMap.pas',
   CnIni in '..\..\Source\Common\CnIni.pas',
   CnIniStrUtils in '..\..\Source\Common\CnIniStrUtils.pas',
+  CnNativeDecl in '..\..\Source\Common\CnNativeDecl.pas',
   CnMD5 in '..\..\Source\Common\CnMD5.pas',
   CnDES in '..\..\Source\Common\CnDES.pas',
   CnSHA1 in '..\..\Source\Common\CnSHA1.pas',
