@@ -74,6 +74,9 @@ uses
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
+{$IFDEF SUPPORTS_FMX}
+  CnFmxUtils,
+{$ENDIF}
   FileCtrl, ShellAPI, CommDlg, MMSystem, StdCtrls, TLHelp32, ActiveX, ShlObj,
   CnConsts, CnIni, CnIniStrUtils, CheckLst, IniFiles, MultiMon, TypInfo;
 
@@ -821,10 +824,10 @@ procedure CloneMenuItem(Source, Dest: TMenuItem);
 // 其它过程
 //------------------------------------------------------------------------------
 
-function GetControlScreenRect(AControl: TControl): TRect;
+function GetControlScreenRect(AControl: TComponent): TRect;
 {* 返回控件在屏幕上的坐标区域 }
 
-procedure SetControlScreenRect(AControl: TControl; ARect: TRect);
+procedure SetControlScreenRect(AControl: TComponent; ARect: TRect);
 {* 设置控件在屏幕上的坐标区域 }
 
 function GetMultiMonitorDesktopRect: TRect;
@@ -5129,32 +5132,46 @@ end;
 //------------------------------------------------------------------------------
 
 // 返回控件在屏幕上的坐标区域
-function GetControlScreenRect(AControl: TControl): TRect;
+function GetControlScreenRect(AControl: TComponent): TRect;
 var
   AParent: TWinControl;
 begin
   Assert(Assigned(AControl));
-  AParent := AControl.Parent;
-  Assert(Assigned(AParent));
-  with AControl do
+  if AControl is TControl then
   begin
-    Result.TopLeft := AParent.ClientToScreen(Point(Left, Top));
-    Result.BottomRight := AParent.ClientToScreen(Point(Left + Width, Top + Height));
+    AParent := TControl(AControl).Parent;
+    Assert(Assigned(AParent));
+    with TControl(AControl) do
+    begin
+      Result.TopLeft := AParent.ClientToScreen(Point(Left, Top));
+      Result.BottomRight := AParent.ClientToScreen(Point(Left + Width, Top + Height));
+    end;
+    Exit;
   end;
+{$IFDEF SUPPORTS_FMX}
+  if CnFmxIsInheritedFromControl(AControl) then
+    Result := CnFmxGetControlRect(AControl);
+{$ENDIF}
 end;
 
 // 设置控件在屏幕上的坐标区域
-procedure SetControlScreenRect(AControl: TControl; ARect: TRect);
+procedure SetControlScreenRect(AControl: TComponent; ARect: TRect);
 var
   AParent: TWinControl;
   P1, P2: TPoint;
 begin
   Assert(Assigned(AControl));
-  AParent := AControl.Parent;
-  Assert(Assigned(AParent));
-  P1 := AParent.ScreenToClient(ARect.TopLeft);
-  P2 := AParent.ScreenToClient(ARect.BottomRight);
-  AControl.SetBounds(P1.x, P1.y, P2.x - P1.x, P2.y - P1.y);
+  if AControl is TControl then
+  begin
+    AParent := TControl(AControl).Parent;
+    Assert(Assigned(AParent));
+    P1 := AParent.ScreenToClient(ARect.TopLeft);
+    P2 := AParent.ScreenToClient(ARect.BottomRight);
+    TControl(AControl).SetBounds(P1.x, P1.y, P2.x - P1.x, P2.y - P1.y);
+  end;
+{$IFDEF SUPPORTS_FMX}
+
+{$ENDIF}
 end;
 
 // 获得多显示器情况下，整个桌面相对于主显示器原点的坐标
