@@ -22,9 +22,9 @@ unit CnFmxUtils;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack IDE 专家包
-* 单元名称：公共运行期过程库单元
+* 单元名称：FMX相关的过程库单元
 * 单元作者：CnPack 开发组
-* 备    注：该单元定义了 XE2 下与FMX相关的一些内容
+* 备    注：该单元定义了 XE2 下与FMX相关的一些内容。本单元不使用Vcl的TControl框架
 * 开发平台：WinXP + Delphi XE2
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -36,11 +36,14 @@ unit CnFmxUtils;
 
 interface
 
-//{$I CnWizards.inc}
+{$I CnWizards.inc}
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs;
+
+type
+  TCnFmxPosType = (fptLeft, fptTop, fptRight, fptBottom, fptWidth, fptHeight);
 
 function CnFmxGetObjectParent(AObject: TComponent): TComponent;
 
@@ -54,11 +57,23 @@ function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
 
+procedure CnFmxSetControlRect(AControl: TComponent; ARect: TRect);
+
+function CnFmxGetControlPositionValue(AControl: TComponent;
+  PosType: TCnFmxPosType): Integer;
+
+procedure CnFmxSetControlPositionValue(AControl: TComponent; AValue: Single;
+  PosType: TCnFmxPosType);
+
+procedure CnFmxControlBringToFront(AControl: TComponent);
+
+procedure CnFmxControlSendToBack(AControl: TComponent);
+
 implementation
 
 {$IFDEF DEBUG}
-//uses
-//  CnDebug;
+uses
+  CnDebug;
 {$ENDIF}
 
 type
@@ -126,6 +141,71 @@ begin
       Result.Bottom := Trunc(P.Y);
     end;
   end;
+end;
+
+procedure CnFmxSetControlRect(AControl: TComponent; ARect: TRect);
+begin
+  if (AControl <> nil) and AControl.InheritsFrom(TControl) then
+  begin
+    TControl(AControl).SetBounds(ARect.Left, ARect.Top, ARect.Width, ARect.Height);
+  end;
+end;
+
+function CnFmxGetControlPositionValue(AControl: TComponent;
+  PosType: TCnFmxPosType): Integer;
+begin
+  Result := -1;
+  if (AControl <> nil) and AControl.InheritsFrom(TControl) then
+  begin
+    case PosType of
+      fptLeft:
+        Result := Trunc(TControl(AControl).Position.X);
+      fptTop:
+        Result := Trunc(TControl(AControl).Position.Y);
+      fptRight:
+        Result := Trunc(TControl(AControl).Position.X + TControl(AControl).Width);
+      fptBottom:
+        Result := Trunc(TControl(AControl).Position.Y + TControl(AControl).Height);
+      fptWidth:
+        Result := Trunc(TControl(AControl).Width);
+      fptHeight:
+        Result := Trunc(TControl(AControl).Height);
+    end;
+  end;
+end;
+
+procedure CnFmxSetControlPositionValue(AControl: TComponent; AValue: Single;
+  PosType: TCnFmxPosType);
+begin
+  if (AControl <> nil) and AControl.InheritsFrom(TControl) then
+  begin
+    case PosType of
+      fptLeft:
+        TControl(AControl).Position.X := Trunc(AValue);
+      fptTop:
+        TControl(AControl).Position.Y := Trunc(AValue);
+      fptRight:
+        TControl(AControl).Width := Trunc(AValue - TControl(AControl).Position.X);
+      fptBottom:
+        TControl(AControl).Height := Trunc(AValue - TControl(AControl).Position.Y);
+      fptWidth:
+        TControl(AControl).Width := Trunc(AValue);
+      fptHeight:
+        TControl(AControl).Height := Trunc(AValue);
+    end;
+  end;
+end;
+
+procedure CnFmxControlBringToFront(AControl: TComponent);
+begin
+  if (AControl <> nil) and AControl.InheritsFrom(TFmxObject) then
+    TFmxObject(AControl).BringToFront;
+end;
+
+procedure CnFmxControlSendToBack(AControl: TComponent);
+begin
+  if (AControl <> nil) and AControl.InheritsFrom(TFmxObject) then
+    TFmxObject(AControl).SendToBack;
 end;
 
 end.

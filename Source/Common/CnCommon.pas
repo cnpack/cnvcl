@@ -29,7 +29,9 @@ unit CnCommon;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2007.01.31 by LiuXiao
+* 修改记录：2011.10.03 by LiuXiao
+*               增加一部分封装对Control操作的函数过程以对付 FMX 框架
+*           2007.01.31 by LiuXiao
 *               增加获取一对象所有属性列表的函数
 *           2006.11.29 by shenloqi
 *               修改了ShortNameToLongName函数，使其支持Win95/NT（不支持Linux）
@@ -824,11 +826,44 @@ procedure CloneMenuItem(Source, Dest: TMenuItem);
 // 其它过程
 //------------------------------------------------------------------------------
 
+// FMX Supports Start
 function GetControlScreenRect(AControl: TComponent): TRect;
 {* 返回控件在屏幕上的坐标区域 }
 
 procedure SetControlScreenRect(AControl: TComponent; ARect: TRect);
 {* 设置控件在屏幕上的坐标区域 }
+
+function GetControlTop(AControl: TComponent): Integer;
+{* 封装的获取 Control 的 Top 的过程，封装了 FMX 的实现}
+
+function GetControlLeft(AControl: TComponent): Integer;
+{* 封装的获取 Control 的 Left 的过程，封装了 FMX 的实现}
+
+function GetControlWidth(AControl: TComponent): Integer;
+{* 封装的获取 Control 的 Width 的过程，封装了 FMX 的实现}
+
+function GetControlHeight(AControl: TComponent): Integer;
+{* 封装的获取 Control 的 Height 的过程，封装了 FMX 的实现}
+
+procedure SetControlTop(AControl: TComponent; AValue: Integer);
+{* 封装的设置 Control 的 Top 的过程，封装了 FMX 的实现}
+
+procedure SetControlLeft(AControl: TComponent; AValue: Integer);
+{* 封装的设置 Control 的 Left 的过程，封装了 FMX 的实现}
+
+procedure SetControlWidth(AControl: TComponent; AValue: Integer);
+{* 封装的设置 Control 的 Width 的过程，封装了 FMX 的实现}
+
+procedure SetControlHeight(AControl: TComponent; AValue: Integer);
+{* 封装的设置 Control 的 Height 的过程，封装了 FMX 的实现}
+
+procedure ControlBringToFront(AControl: TComponent);
+{* 封装的设置 Control 的 BringToFront 的过程，封装了 FMX 的实现}
+
+procedure ControlSendToBack(AControl: TComponent);
+{* 封装的设置 Control 的 SendToBack 的过程，封装了 FMX 的实现}
+
+// FMX Supports End
 
 function GetMultiMonitorDesktopRect: TRect;
 {* 获得多显示器情况下，整个桌面相对于主显示器原点的坐标}
@@ -5168,9 +5203,141 @@ begin
     P1 := AParent.ScreenToClient(ARect.TopLeft);
     P2 := AParent.ScreenToClient(ARect.BottomRight);
     TControl(AControl).SetBounds(P1.x, P1.y, P2.x - P1.x, P2.y - P1.y);
+    Exit;
   end;
 {$IFDEF SUPPORTS_FMX}
+  if CnFmxIsInheritedFromControl(AControl) then
+    CnFmxSetControlRect(AControl, ARect);
+{$ENDIF}
+end;
 
+// 封装的获取 Control 的 Top 的过程，封装了 FMX 的实现
+function GetControlTop(AControl: TComponent): Integer;
+begin
+  if AControl is TControl then
+  begin
+    Result := TControl(AControl).Top;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  Result := CnFmxGetControlPositionValue(AControl, fptTop);
+{$ENDIF}
+end;
+
+// 封装的获取 Control 的 Left 的过程，封装了 FMX 的实现
+function GetControlLeft(AControl: TComponent): Integer;
+begin
+  if AControl is TControl then
+  begin
+    Result := TControl(AControl).Left;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  Result := CnFmxGetControlPositionValue(AControl, fptLeft);
+{$ENDIF}
+end;
+
+// 封装的获取 Control 的 Width 的过程，封装了 FMX 的实现}
+function GetControlWidth(AControl: TComponent): Integer;
+begin
+  if AControl is TControl then
+  begin
+    Result := TControl(AControl).Width;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  Result := CnFmxGetControlPositionValue(AControl, fptWidth);
+{$ENDIF}
+end;
+
+// 封装的获取 Control 的 Height 的过程，封装了 FMX 的实现}
+function GetControlHeight(AControl: TComponent): Integer;
+begin
+  if AControl is TControl then
+  begin
+    Result := TControl(AControl).Height;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  Result := CnFmxGetControlPositionValue(AControl, fptHeight);
+{$ENDIF}
+end;
+
+// 封装的设置 Control 的 Top 的过程，封装了 FMX 的实现}
+procedure SetControlTop(AControl: TComponent; AValue: Integer);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).Top := AValue;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  CnFmxSetControlPositionValue(AControl, AValue, fptTop);
+{$ENDIF}
+end;
+
+{* 封装的设置 Control 的 Left 的过程，封装了 FMX 的实现}
+procedure SetControlLeft(AControl: TComponent; AValue: Integer);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).Left := AValue;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  CnFmxSetControlPositionValue(AControl, AValue, fptLeft);
+{$ENDIF}
+end;
+
+{* 封装的设置 Control 的 Width 的过程，封装了 FMX 的实现}
+procedure SetControlWidth(AControl: TComponent; AValue: Integer);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).Width := AValue;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  CnFmxSetControlPositionValue(AControl, AValue, fptWidth);
+{$ENDIF}
+end;
+
+{* 封装的设置 Control 的 Height 的过程，封装了 FMX 的实现}
+procedure SetControlHeight(AControl: TComponent; AValue: Integer);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).Height := AValue;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  CnFmxSetControlPositionValue(AControl, AValue, fptHeight);
+{$ENDIF}
+end;
+
+// 封装的设置 Control 的 BringToFront 的过程，封装了 FMX 的实现
+procedure ControlBringToFront(AControl: TComponent);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).BringToFront;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  CnFmxControlBringToFront(AControl);
+{$ENDIF}
+end;
+
+// 封装的设置 Control 的 SendToBack 的过程，封装了 FMX 的实现
+procedure ControlSendToBack(AControl: TComponent);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).SendToBack;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  CnFmxControlSendToBack(AControl);
 {$ENDIF}
 end;
 
