@@ -119,9 +119,11 @@ end;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
 var
-  AParent: TFmxObject;
   P: TPointF;
+  AParent: TFmxObject;
 begin
+  // Local 与 Absolute 坐标的转换会出 AV，因此没法支持，暂时全使用相对坐标
+  // 也就是说只支持同一 Parent 下的
   if (AControl <> nil) and AControl.InheritsFrom(TControl) then
   begin
     AParent := TControl(AControl).Parent;
@@ -130,13 +132,13 @@ begin
     begin
       P.X := TControl(AControl).Position.X;
       P.Y := TControl(AControl).Position.Y;
-      // P := TControlHack(AParent).LocalToScreen(P);
+      // P := TControl(AParent).LocalToAbsolute(P);
       Result.Left := Trunc(P.X);
       Result.Top := Trunc(P.Y);
 
       P.X := TControl(AControl).Position.X + TControl(AControl).Width;
       P.Y := TControl(AControl).Position.Y + TControl(AControl).Height;
-      // P := TControlHack(AParent).LocalToScreen(P);
+      // P := TControl(AParent).LocalToAbsolute(P);
       Result.Right := Trunc(P.X);
       Result.Bottom := Trunc(P.Y);
     end;
@@ -144,10 +146,24 @@ begin
 end;
 
 procedure CnFmxSetControlRect(AControl: TComponent; ARect: TRect);
+var
+  P1, P2: TPointF;
+  AParent: TFmxObject;
 begin
   if (AControl <> nil) and AControl.InheritsFrom(TControl) then
   begin
-    TControl(AControl).SetBounds(ARect.Left, ARect.Top, ARect.Width, ARect.Height);
+    AParent := TControl(AControl).Parent;
+    if (AParent <> nil)
+      and (AParent.InheritsFrom(TControl) or AParent.InheritsFrom(TForm)) then
+    begin
+      P1.X := ARect.Left;
+      P1.Y := ARect.Top;
+      P2.X := ARect.Right;
+      P2.Y := ARect.Bottom;
+      // P1 := TControl(AParent).AbsoluteToLocal(P1);
+      // P2 := TControl(AParent).AbsoluteToLocal(P2);
+      TControl(AControl).SetBounds(P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
+    end;
   end;
 end;
 
@@ -155,21 +171,41 @@ function CnFmxGetControlPositionValue(AControl: TComponent;
   PosType: TCnFmxPosType): Integer;
 begin
   Result := -1;
-  if (AControl <> nil) and AControl.InheritsFrom(TControl) then
+  if AControl <> nil then
   begin
-    case PosType of
-      fptLeft:
-        Result := Trunc(TControl(AControl).Position.X);
-      fptTop:
-        Result := Trunc(TControl(AControl).Position.Y);
-      fptRight:
-        Result := Trunc(TControl(AControl).Position.X + TControl(AControl).Width);
-      fptBottom:
-        Result := Trunc(TControl(AControl).Position.Y + TControl(AControl).Height);
-      fptWidth:
-        Result := Trunc(TControl(AControl).Width);
-      fptHeight:
-        Result := Trunc(TControl(AControl).Height);
+    if AControl.InheritsFrom(TControl) then
+    begin
+      case PosType of
+        fptLeft:
+          Result := Trunc(TControl(AControl).Position.X);
+        fptTop:
+          Result := Trunc(TControl(AControl).Position.Y);
+        fptRight:
+          Result := Trunc(TControl(AControl).Position.X + TControl(AControl).Width);
+        fptBottom:
+          Result := Trunc(TControl(AControl).Position.Y + TControl(AControl).Height);
+        fptWidth:
+          Result := Trunc(TControl(AControl).Width);
+        fptHeight:
+          Result := Trunc(TControl(AControl).Height);
+      end;
+    end
+    else if AControl.InheritsFrom(TCustomForm) then
+    begin
+      case PosType of
+        fptLeft:
+          Result := Trunc(TCustomForm(AControl).Left);
+        fptTop:
+          Result := Trunc(TCustomForm(AControl).Top);
+        fptRight:
+          Result := Trunc(TCustomForm(AControl).Left + TControl(AControl).Width);
+        fptBottom:
+          Result := Trunc(TCustomForm(AControl).Top + TControl(AControl).Height);
+        fptWidth:
+          Result := Trunc(TCustomForm(AControl).Width);
+        fptHeight:
+          Result := Trunc(TCustomForm(AControl).Height);
+      end;
     end;
   end;
 end;
@@ -177,21 +213,41 @@ end;
 procedure CnFmxSetControlPositionValue(AControl: TComponent; AValue: Single;
   PosType: TCnFmxPosType);
 begin
-  if (AControl <> nil) and AControl.InheritsFrom(TControl) then
+  if AControl <> nil then
   begin
-    case PosType of
-      fptLeft:
-        TControl(AControl).Position.X := Trunc(AValue);
-      fptTop:
-        TControl(AControl).Position.Y := Trunc(AValue);
-      fptRight:
-        TControl(AControl).Width := Trunc(AValue - TControl(AControl).Position.X);
-      fptBottom:
-        TControl(AControl).Height := Trunc(AValue - TControl(AControl).Position.Y);
-      fptWidth:
-        TControl(AControl).Width := Trunc(AValue);
-      fptHeight:
-        TControl(AControl).Height := Trunc(AValue);
+    if  AControl.InheritsFrom(TControl) then
+    begin
+      case PosType of
+        fptLeft:
+          TControl(AControl).Position.X := Trunc(AValue);
+        fptTop:
+          TControl(AControl).Position.Y := Trunc(AValue);
+        fptRight:
+          TControl(AControl).Width := Trunc(AValue - TControl(AControl).Position.X);
+        fptBottom:
+          TControl(AControl).Height := Trunc(AValue - TControl(AControl).Position.Y);
+        fptWidth:
+          TControl(AControl).Width := Trunc(AValue);
+        fptHeight:
+          TControl(AControl).Height := Trunc(AValue);
+      end;
+    end
+    else if AControl.InheritsFrom(TCustomForm) then
+    begin
+      case PosType of
+        fptLeft:
+          TCustomForm(AControl).Left := Trunc(AValue);
+        fptTop:
+          TCustomForm(AControl).Top := Trunc(AValue);
+        fptRight:
+          TCustomForm(AControl).Width := Trunc(AValue - TCustomForm(AControl).Left);
+        fptBottom:
+          TCustomForm(AControl).Height := Trunc(AValue - TCustomForm(AControl).Top);
+        fptWidth:
+          TCustomForm(AControl).Width := Trunc(AValue);
+        fptHeight:
+          TCustomForm(AControl).Height := Trunc(AValue);
+      end;
     end;
   end;
 end;

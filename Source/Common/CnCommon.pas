@@ -828,10 +828,13 @@ procedure CloneMenuItem(Source, Dest: TMenuItem);
 
 // FMX Supports Start
 function GetControlScreenRect(AControl: TComponent): TRect;
-{* 返回控件在屏幕上的坐标区域 }
+{* 返回控件在屏幕上的坐标区域，如果是 FMX，需要返回的是相对于最外层容器的坐标。但目前实现有 Bug，只能使用相对坐标。 }
 
 procedure SetControlScreenRect(AControl: TComponent; ARect: TRect);
-{* 设置控件在屏幕上的坐标区域 }
+{* 设置控件在屏幕上的坐标区域，如果是 FMX，需要传入的是相对于最外层容器的坐标。但目前实现有 Bug，只能使用相对坐标。 }
+
+function GetControlParent(AControl: TComponent): TComponent;
+{* 封装的获取 Conrol 的 Parent 的过程，封装了 FMX 的实现}
 
 function GetControlTop(AControl: TComponent): Integer;
 {* 封装的获取 Control 的 Top 的过程，封装了 FMX 的实现}
@@ -5208,6 +5211,19 @@ begin
 {$IFDEF SUPPORTS_FMX}
   if CnFmxIsInheritedFromControl(AControl) then
     CnFmxSetControlRect(AControl, ARect);
+{$ENDIF}
+end;
+
+// 封装的获取 Conrol 的 Parent 的过程，封装了 FMX 的实现
+function GetControlParent(AControl: TComponent): TComponent;
+begin
+  if AControl is TControl then
+  begin
+    Result := TControl(AControl).Parent;
+    Exit;
+  end;
+{$IFDEF SUPPORTS_FMX}
+  Result := CnFmxGetControlParent(AControl);
 {$ENDIF}
 end;
 
