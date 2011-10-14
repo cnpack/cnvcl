@@ -36,7 +36,7 @@ unit CnFmxUtils;
 
 interface
 
-{$I CnWizards.inc}
+{$I CnPack.inc}
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
