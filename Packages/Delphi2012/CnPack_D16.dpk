@@ -1,6 +1,7 @@
 package CnPack_D16;
 
 {$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -22,10 +23,12 @@ package CnPack_D16;
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$DEFINE RELEASE}
+{$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'CnPack Components Runtime Package'}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
-{$DEFINE RELEASE}
 
 requires
   vcl,
@@ -36,7 +39,8 @@ requires
   xmlrtl,
   soaprtl,
   bdertl,
-  vclsmp;
+  vclsmp,
+  fmx;
 
 contains
   CnBase64 in '..\..\Source\Common\CnBase64.pas',

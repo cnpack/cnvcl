@@ -62,7 +62,7 @@
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<ItemGroup>
-			<DelphiCompile Include="CnPack_D16.dpk">
+			<DelphiCompile Include="$(MainSource)">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="vcl.dcp"/>
@@ -74,6 +74,7 @@
 			<DCCReference Include="soaprtl.dcp"/>
 			<DCCReference Include="bdertl.dcp"/>
 			<DCCReference Include="vclsmp.dcp"/>
+			<DCCReference Include="fmx.dcp"/>
 			<DCCReference Include="..\..\Source\Common\CnBase64.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnCalendar.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnClasses.pas"/>
