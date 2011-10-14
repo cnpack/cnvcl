@@ -414,12 +414,12 @@ end;
 
 function TCnWinampCtrl.GetVolume: Byte;
 begin
-  Result := SendMessageToWinamp(WM_WA_IPC, -666, IPC_SETVOLUME);
+  Result := SendMessageToWinamp(WM_WA_IPC, WPARAM(-666), IPC_SETVOLUME);
 end;
 
 function TCnWinampCtrl.GetVolBalance: Integer;
 begin
-  Result := SendMessageToWinamp(WM_WA_IPC, -666, IPC_SETPANNING);
+  Result := SendMessageToWinamp(WM_WA_IPC, WPARAM(-666), IPC_SETPANNING);
 end;
 
 function TCnWinampCtrl.GetWACurrentTime: Integer;
