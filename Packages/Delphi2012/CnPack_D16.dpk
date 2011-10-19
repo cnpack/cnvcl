@@ -187,7 +187,8 @@ contains
   CnVIDDockStyle in '..\..\Source\NonVisual\CnVIDDockStyle.pas',
   CnVSNETDockStyle in '..\..\Source\NonVisual\CnVSNETDockStyle.pas',
   CnDelphiDockStyle in '..\..\Source\NonVisual\CnDelphiDockStyle.pas',
-  CnWideStrings in '..\..\Source\Common\CnWideStrings.pas';
+  CnWideStrings in '..\..\Source\Common\CnWideStrings.pas',
+  CnFmxUtils in '..\..\Source\Common\CnFmxUtils.pas';
 
 end.
 
