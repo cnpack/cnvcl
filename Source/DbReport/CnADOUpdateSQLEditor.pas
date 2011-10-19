@@ -41,7 +41,9 @@ interface
 {$IFDEF SUPPORT_ADO}
 
 uses
-  Windows, Messages, SysUtils, Classes, Controls, ADODB, Provider,
+  Windows, Messages, SysUtils, Classes, Controls,
+  {$IFDEF SUPPORTS_CROSS_PLATFORM} Data.Win.ADODB {$ELSE} ADODB {$ENDIF},
+  Provider,
   {$IFDEF COMPILER6_UP}
   DesignIntf, DesignEditors
   {$ELSE}

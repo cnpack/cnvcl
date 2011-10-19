@@ -42,7 +42,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, Menus, StdCtrls, ExtCtrls, ComCtrls, ADODB;
+  Dialogs, Menus, StdCtrls, ExtCtrls, ComCtrls,
+  {$IFDEF SUPPORTS_CROSS_PLATFORM} Data.Win.ADODB {$ELSE} ADODB {$ENDIF};
 
 type
   TCnADOUpdateSQLForm = class(TForm)
