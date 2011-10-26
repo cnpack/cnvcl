@@ -5224,6 +5224,8 @@ begin
   end;
 {$IFDEF SUPPORTS_FMX}
   Result := CnFmxGetControlParent(AControl);
+{$ELSE}
+  Result := nil;
 {$ENDIF}
 end;
 
@@ -5237,6 +5239,8 @@ begin
   end;
 {$IFDEF SUPPORTS_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptTop);
+{$ELSE}
+  Result := -1;
 {$ENDIF}
 end;
 
@@ -5250,6 +5254,8 @@ begin
   end;
 {$IFDEF SUPPORTS_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptLeft);
+{$ELSE}
+  Result := -1;
 {$ENDIF}
 end;
 
@@ -5263,6 +5269,8 @@ begin
   end;
 {$IFDEF SUPPORTS_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptWidth);
+{$ELSE}
+  Result := -1;
 {$ENDIF}
 end;
 
@@ -5276,6 +5284,8 @@ begin
   end;
 {$IFDEF SUPPORTS_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptHeight);
+{$ELSE}
+  Result := -1;
 {$ENDIF}
 end;
 
