@@ -29,7 +29,9 @@ unit CnCommon;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2011.10.03 by LiuXiao
+* 修改记录：2011.11.02 by LiuXiao
+*               增加来自于ccrun的把程序钉到Win7任务栏的函数
+*           2011.10.03 by LiuXiao
 *               增加一部分封装对Control操作的函数过程以对付 FMX 框架
 *           2007.01.31 by LiuXiao
 *               增加获取一对象所有属性列表的函数
@@ -72,7 +74,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Math, Menus, PsAPI, Registry, 
+  ComCtrls, Math, Menus, PsAPI, Registry, ComObj, 
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
@@ -325,6 +327,9 @@ function DateTimeToLocalDateTime(DateTime: TDateTime): TDateTime;
 {* UTC 时间转本地时间}
 function LocalDateTimeToDateTime(DateTime: TDateTime): TDateTime;
 {* 本地时间转 UTC 时间}
+
+procedure PinAppToWin7Taskbar(Path, App: string);
+{* 把程序钉到Windows7任务栏，参数为程序路径与文件名}
 
 {$IFDEF COMPILER5}
 type
@@ -2835,6 +2840,35 @@ begin
     Result := DateTime + ((TimeZoneInfo.Bias + TimeZoneInfo.DaylightBias) / MinutesPerDay)
   else
     Result := DateTime + (TimeZoneInfo.Bias / MinutesPerDay);
+end;
+
+// 把程序钉到Windows7任务栏，参数为程序路径与文件名
+procedure PinAppToWin7Taskbar(Path, App: string);
+var
+  Shell, Folder, FolderItem, ItemVerbs: Variant;
+  vPath, vApp: Variant;
+  I: Integer;
+  Str: String;
+  H: HINST;
+  PinName: array[0..255] of Char;
+begin
+  Shell := CreateOleObject('Shell.Application');
+  vPath := Path;
+  Folder := Shell.NameSpace(vPath);
+  vApp := App;
+  FolderItem := Folder.ParseName(vApp);
+  ItemVerbs := FolderItem.Verbs;
+
+  H := LoadLibrary('Shell32.dll');
+  LoadString(H, 5386, PinName, 256);
+  FreeLibrary(H);
+
+  for I := 1 to ItemVerbs.Count do
+  begin
+    Str := ItemVerbs.Item(I).Name;
+    if SameText(Str, PinName) then
+      ItemVerbs.Item(I).DoIt;
+  end;
 end;
 
 {$IFDEF COMPILER5}
