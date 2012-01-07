@@ -111,6 +111,10 @@ type
     procedure ClearQueue;
     {* 清空数据队列。如果用户来不及处理接收到的数据，组件会把新数据包放到数据
        队列中，调用该方法可清空数据队列}
+    procedure ProcessRecv;
+    {* 处理该 UDP 接口的接收内容。由于 CnUDP 组件的 OnDataReceived 是在主线程
+       消息处理中调用的，如果主线程代码需要等待 UDP 接收而不希望处理所有消息，
+       可以调用该函数。}
 
     property LastError: Integer read FLastError;
     {* 最后一次错误的错误号，只读属性}
@@ -508,6 +512,31 @@ begin
     end;
   finally
     Procing := False;
+  end;
+end;
+
+procedure TCnUDP.ProcessRecv;
+var
+  Unicode: Boolean;
+  MsgExists: Boolean;
+  Msg: TMsg;
+begin
+  Unicode := IsWindowUnicode(FSocketWindow);
+  if Unicode then
+    MsgExists := PeekMessageW(Msg, FSocketWindow, 0, 0, PM_REMOVE)
+  else
+    MsgExists := PeekMessageA(Msg, FSocketWindow, 0, 0, PM_REMOVE);
+
+  if MsgExists then
+  begin
+    if Msg.Message <> WM_QUIT then
+    begin
+      TranslateMessage(Msg);
+      if Unicode then
+        DispatchMessageW(Msg)
+      else
+        DispatchMessageA(Msg);
+    end;
   end;
 end;
 
