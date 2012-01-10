@@ -173,18 +173,44 @@ type
   end;
 
 //==============================================================================
+// 支持内容加密及流操作的 IniFile 基类
+//==============================================================================
+
+{ TCnBaseEncryptIniFile }
+
+  TCnBaseEncryptIniFile = class (TCnStreamIniFile)
+  {* 支持内容加密及流操作的 IniFile 抽象基类，允许对 INI 数据进行加密。 }
+  private
+  {$IFDEF SUPPORT_ZLIB}
+    FUseZLib: Boolean;
+  {$ENDIF}
+  protected
+    function CreateEncryptStream(AStream: TStream): TCnEncryptStream; virtual; abstract;
+  public
+    constructor Create(const FileName: string
+      {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
+    function LoadFromStream(Stream: TStream): Boolean; override;
+    {* 从流中装载 INI 数据，流中的数据将自动解密 }
+    function SaveToStream(Stream: TStream): Boolean; override;
+    {* 保存 INI 数据到流，流中的数据将自动加密 }
+  {$IFDEF SUPPORT_ZLIB}
+    property UseZLib: Boolean read FUseZLib;
+  {$ENDIF}
+    {* 是否使用 ZLib 压缩 }
+  end;
+
+//==============================================================================
 // 支持内容 Xor 加密及流操作的 IniFile 类
 //==============================================================================
 
 { TCnXorIniFile }
 
-  TCnXorIniFile = class (TCnStreamIniFile)
+  TCnXorIniFile = class (TCnBaseEncryptIniFile)
   {* 支持内容 Xor 加密及流操作的 IniFile 类，允许对 INI 数据进行 Xor 加密。 }
   private
     FXorStr: string;
-  {$IFDEF SUPPORT_ZLIB}
-    FUseZLib: Boolean;
-  {$ENDIF}
+  protected
+    function CreateEncryptStream(AStream: TStream): TCnEncryptStream; override;
   public
     constructor Create(const FileName: string; const XorStr: string
       {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
@@ -194,14 +220,29 @@ type
        XorStr: string       - 用于 Xor 操作的字符串
        UseZLib: string      - 是否使用 ZLib 压缩
      |</PRE>}
-    function LoadFromStream(Stream: TStream): Boolean; override;
-    {* 从流中装载 INI 数据，流中的数据将用 Xor 解密 }
-    function SaveToStream(Stream: TStream): Boolean; override;
-    {* 保存 INI 数据到流，流中的数据将用 Xor 加密 }
-  {$IFDEF SUPPORT_ZLIB}
-    property UseZLib: Boolean read FUseZLib;
-  {$ENDIF}
-    {* 是否使用 ZLib 压缩 }
+  end;
+
+//==============================================================================
+// 支持内容加密及流操作的 IniFile 类
+//==============================================================================
+
+{ TCnEncryptIniFile }
+
+  TCnEncryptIniFile = class (TCnBaseEncryptIniFile)
+  {* 支持内容加密及流操作的 IniFile 类，允许对 INI 数据进行基于字符映射表的加密。 }
+  private
+    FSeedStr: string;
+  protected
+    function CreateEncryptStream(AStream: TStream): TCnEncryptStream; override;
+  public
+    constructor Create(const FileName: string; const SeedStr: string
+      {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
+    {* 类构造器。
+     |<PRE>
+       FileName: string     - INI 文件名，如果文件存在将自动加载
+       SeedStr: string      - 用于加密的字符串
+       UseZLib: string      - 是否使用 ZLib 压缩
+     |</PRE>}
   end;
 
 implementation
@@ -813,30 +854,29 @@ begin
 end;
 
 //==============================================================================
-// 支持文本 Xor 加密及流操作的 IniFile 类
+// 支持内容加密及流操作的 IniFile 基类
 //==============================================================================
 
-{ TCnXorIniFile }
+{ TCnBaseEncryptIniFile }
 
-constructor TCnXorIniFile.Create(const FileName, XorStr: string
-  {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean{$ENDIF});
+constructor TCnBaseEncryptIniFile.Create(const FileName: string
+  {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
 begin
-  FXorStr := XorStr;
+  inherited Create(FileName);
 {$IFDEF SUPPORT_ZLIB}
   FUseZLib := AUseZLib;
 {$ENDIF}
-  inherited Create(FileName);
 end;
 
-function TCnXorIniFile.LoadFromStream(Stream: TStream): Boolean;
+function TCnBaseEncryptIniFile.LoadFromStream(Stream: TStream): Boolean;
 var
-  XorStream: TCnXorStream;
+  EncryptStream: TCnEncryptStream;
 {$IFDEF SUPPORT_ZLIB}
   DecompStream: TDecompressionStream;
   MemStream: TMemoryStream;
 {$ENDIF}
 begin
-  XorStream := nil;
+  EncryptStream := nil;
 {$IFDEF SUPPORT_ZLIB}
   DecompStream := nil;
   MemStream := nil;
@@ -845,20 +885,20 @@ begin
   {$IFDEF SUPPORT_ZLIB}
     if FUseZLib then
     begin
-      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
+      EncryptStream := CreateEncryptStream(Stream);
       MemStream := TMemoryStream.Create;
-      MemStream.LoadFromStream(XorStream);
+      MemStream.LoadFromStream(EncryptStream);
       DecompStream := TDecompressionStream.Create(MemStream);
       Result := inherited LoadFromStream(DecompStream);
     end
     else
   {$ENDIF}
     begin
-      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
-      Result := inherited LoadFromStream(XorStream);
+      EncryptStream := CreateEncryptStream(Stream);
+      Result := inherited LoadFromStream(EncryptStream);
     end;
   finally
-    XorStream.Free;
+    EncryptStream.Free;
   {$IFDEF SUPPORT_ZLIB}
     DecompStream.Free;
     MemStream.Free;
@@ -866,15 +906,15 @@ begin
   end;
 end;
 
-function TCnXorIniFile.SaveToStream(Stream: TStream): Boolean;
+function TCnBaseEncryptIniFile.SaveToStream(Stream: TStream): Boolean;
 var
-  XorStream: TCnXorStream;
+  EncryptStream: TCnEncryptStream;
 {$IFDEF SUPPORT_ZLIB}
   MemStream: TMemoryStream;
   CompStream: TCompressionStream;
 {$ENDIF}
 begin
-  XorStream := nil;
+  EncryptStream := nil;
 {$IFDEF SUPPORT_ZLIB}
   CompStream := nil;
   MemStream := nil;
@@ -895,22 +935,58 @@ begin
     {$ENDIF}
       Result := inherited SaveToStream(CompStream);
       FreeAndNil(CompStream); // 释放时才会完成压缩输出
-      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
-      MemStream.SaveToStream(XorStream);
+      EncryptStream := CreateEncryptStream(Stream);
+      MemStream.SaveToStream(EncryptStream);
     end
     else
   {$ENDIF}
     begin
-      XorStream := TCnXorStream.Create(Stream, AnsiString(FXorStr));
-      Result := inherited SaveToStream(XorStream);
+      EncryptStream := CreateEncryptStream(Stream);
+      Result := inherited SaveToStream(EncryptStream);
     end;
   finally
-    XorStream.Free;
+    EncryptStream.Free;
   {$IFDEF SUPPORT_ZLIB}
     MemStream.Free;
     CompStream.Free;
   {$ENDIF}
   end;
+end;
+
+//==============================================================================
+// 支持文本 Xor 加密及流操作的 IniFile 类
+//==============================================================================
+
+{ TCnXorIniFile }
+
+constructor TCnXorIniFile.Create(const FileName, XorStr: string
+  {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean{$ENDIF});
+begin
+  FXorStr := XorStr;
+  inherited Create(FileName{$IFDEF SUPPORT_ZLIB}, AUseZLib{$ENDIF});
+end;
+
+function TCnXorIniFile.CreateEncryptStream(AStream: TStream): TCnEncryptStream;
+begin
+  Result := TCnXorStream.Create(AStream, AnsiString(FXorStr));
+end;
+
+//==============================================================================
+// 支持内容加密及流操作的 IniFile 类
+//==============================================================================
+
+{ TCnEncryptIniFile }
+
+constructor TCnEncryptIniFile.Create(const FileName: string; const SeedStr: string
+  {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
+begin
+  FSeedStr := SeedStr;
+  inherited Create(FileName{$IFDEF SUPPORT_ZLIB}, AUseZLib{$ENDIF});
+end;
+
+function TCnEncryptIniFile.CreateEncryptStream(AStream: TStream): TCnEncryptStream;
+begin
+  Result := TCnCodeMapStream.Create(AStream, AnsiString(FSeedStr));
 end;
 
 end.

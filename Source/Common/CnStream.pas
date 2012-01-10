@@ -138,10 +138,10 @@ type
     procedure Encrypt(var Buffer; Count: Longint); virtual; abstract;
     {* 加密方法，抽象方法。}
 
-    procedure DoBeforeEncrypt(const Buffer; Count: Longint); virtual; abstract;
-    procedure DoAfterEncrypt(const Buffer; Count: Longint); virtual; abstract;
-    procedure DoBeforeDeEncrypt(const Buffer; Count: Longint); virtual; abstract;
-    procedure DoAfterDeEncrypt(const Buffer; Count: Longint); virtual; abstract;
+    procedure DoBeforeEncrypt(const Buffer; Count: Longint); virtual;
+    procedure DoAfterEncrypt(const Buffer; Count: Longint); virtual;
+    procedure DoBeforeDeEncrypt(const Buffer; Count: Longint); virtual;
+    procedure DoAfterDeEncrypt(const Buffer; Count: Longint); virtual;
 
   {$IFDEF COMPILER7_UP}
     function GetSize: Int64; override;
@@ -195,11 +195,45 @@ type
     {* 用于加密处理的字符串 }
   end;
 
+//==============================================================================
+// 字符映射表方式加密的 TStream 类
+//==============================================================================
+
+{ TCnCodeMapStream }
+
+  TCnCodeMap = array[Byte] of Byte;
+
+  TCnCodeMapStream = class (TCnEncryptStream)
+  {* 字符映射表方式加密的 TStream 类，支持数据读写时进行加密处理。}
+  private
+    FSeedStr: AnsiString;
+    FEnMap: TCnCodeMap;
+    FDeMap: TCnCodeMap;
+    procedure SetSeedStr(const Value: AnsiString);
+  protected
+    procedure DeEncrypt(var Buffer; Count: Longint); override;
+    procedure Encrypt(var Buffer; Count: Longint); override;
+  public
+    constructor Create(AStream: TStream; const ASeedStr: AnsiString;
+      AOwned: Boolean = False);
+    {* 类构造器
+     |<PRE>
+       AStream: TStream         - 需要进行加密处理的流
+       ASeedStr: string         - 用于加密处理的种子字符串
+       AOwned: Boolean          - 是否在释放加密流时同时释放 AStream
+     |</PRE>}
+    property SeedStr: AnsiString read FSeedStr write SetSeedStr;
+    {* 用于加密处理的字符串 }
+  end;
+
 function CnFastMemoryStreamCopyFrom(Dest, Source: TStream; Count: Int64): Int64;
 {* 快速的 MemoryStream 的 CopyFrom 方法，用于 Dest 或 Source 之一是 MemoryStream
    的情况，直接读写内存，避免了分配缓冲区和重复读写的开销。如传入的俩 Stream 都
    不是 TCustomMemoryStream，则调用原 CopyFrom 方法。}
-  
+
+function CnGenerateCodeMap(ASeedStr: AnsiString; var EnMap, DeMap: TCnCodeMap): Boolean;
+{* 根据一个字符串生成用于字节加解密的编码表，字符串为空时返回为 False *}
+
 implementation
 
 resourcestring
@@ -209,6 +243,7 @@ resourcestring
 const
   csBeginFlagInt = Longint($00FF00FF);
   csEndFlagInt = Longint($FF00FF00);
+  csDefSeedStr = '{A53108FC-BD75-42B8-BD10-DA3DC166D0B0}';
 
 function CnFastMemoryStreamCopyFrom(Dest, Source: TStream; Count: Int64): Int64;
 var
@@ -239,6 +274,34 @@ begin
   else
   begin
     Dest.CopyFrom(Source, Count);
+  end;
+end;
+
+function CnGenerateCodeMap(ASeedStr: AnsiString; var EnMap, DeMap: TCnCodeMap): Boolean;
+var
+  i: Integer;
+  C: Byte;
+  List: TList;
+begin
+  Result := False;
+  if ASeedStr = '' then
+    Exit;
+
+  List := TList.Create;
+  try
+    for i := 0 to 255 do
+      List.Add(Pointer(i));
+    for i := 0 to 255 do
+    begin
+      C := Byte(ASeedStr[i mod Length(ASeedStr) + 1]) xor $3E;
+      C := (C * 3 + 7) mod List.Count;
+      EnMap[i] := Byte(List[C]);
+      DeMap[Byte(List[C])] := i;
+      List.Delete(C);
+    end;
+    Result := True;
+  finally
+    List.Free;
   end;
 end;
 
@@ -527,6 +590,26 @@ begin
   inherited;
 end;
 
+procedure TCnEncryptStream.DoAfterDeEncrypt(const Buffer; Count: Integer);
+begin
+
+end;
+
+procedure TCnEncryptStream.DoAfterEncrypt(const Buffer; Count: Integer);
+begin
+
+end;
+
+procedure TCnEncryptStream.DoBeforeDeEncrypt(const Buffer; Count: Integer);
+begin
+
+end;
+
+procedure TCnEncryptStream.DoBeforeEncrypt(const Buffer; Count: Integer);
+begin
+
+end;
+
 //------------------------------------------------------------------------------
 // 调用被包装的 Stream 访问方法
 //------------------------------------------------------------------------------
@@ -631,6 +714,54 @@ procedure TCnXorStream.DoBeforeDeEncrypt(const Buffer; Count: Integer);
 begin
   // 读写前后需要记录位置，和流中的xor加密的种子字符位置对的上号
   FSeedPos := Position - Count;
+end;
+
+//==============================================================================
+// 字符映射表方式加密的 TStream 类
+//==============================================================================
+
+{ TCnCodeMapStream }
+
+constructor TCnCodeMapStream.Create(AStream: TStream;
+  const ASeedStr: AnsiString; AOwned: Boolean);
+begin
+  inherited Create(AStream, AOwned);
+  SeedStr := ASeedStr;
+end;
+
+procedure TCnCodeMapStream.DeEncrypt(var Buffer; Count: Integer);
+var
+  i: Integer;
+  P: PByte;
+begin
+  P := PByte(@Buffer);
+  for i := 0 to Count - 1 do
+  begin
+    P^ := FDeMap[P^];
+    Inc(P);
+  end;
+end;
+
+procedure TCnCodeMapStream.Encrypt(var Buffer; Count: Integer);
+var
+  i: Integer;
+  P: PByte;
+begin
+  P := PByte(@Buffer);
+  for i := 0 to Count - 1 do
+  begin
+    P^ := FEnMap[P^];
+    Inc(P);
+  end;
+end;
+
+procedure TCnCodeMapStream.SetSeedStr(const Value: AnsiString);
+begin
+  FSeedStr := Value;
+  if FSeedStr = '' then
+    CnGenerateCodeMap(csDefSeedStr, FEnMap, FDeMap)
+  else
+    CnGenerateCodeMap(FSeedStr, FEnMap, FDeMap);
 end;
 
 end.
