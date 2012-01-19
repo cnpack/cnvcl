@@ -29,7 +29,9 @@ unit CnCommon;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2011.11.02 by LiuXiao
+* 修改记录：2012.01.19 by LiuXiao
+*               增加一个移植自外国牛人的快速开根号倒数的函数
+*           2011.11.02 by LiuXiao
 *               增加来自于ccrun的把程序钉到Win7任务栏的函数
 *           2011.10.03 by LiuXiao
 *               增加一部分封装对Control操作的函数过程以对付 FMX 框架
@@ -569,6 +571,9 @@ function RMBFloatToChinese(ARMBCash: Real): string;
 
 function EvalSimpleExpression(const Value: string): Double;
 {* 计算四则运算与乘方的表达式值}
+
+function FastInverseSqrt(X: Single): Single;
+{* 快速计算开根号的倒数}
 
 function StrToRegRoot(const s: string): HKEY;
 {* 字符串转注册表根键，支持 'HKEY_CURRENT_USER' 'HKCR' 长短两种格式}
@@ -4000,6 +4005,21 @@ begin
     FreeAndNil(Consts);
     FreeAndNil(Opers);
   end;
+end;
+
+// 快速计算开根号的倒数
+function FastInverseSqrt(X: Single): Single;
+var
+  xHalf: Single;
+  I: Integer;
+begin
+  xHalf := 0.5 * X;
+  I := (PInteger(@X))^;
+  I := $5f375a86 - (I shr 1);
+  X := (PSingle(@I))^;
+  X := X *(1.5 - xHalf * X * X);
+  X := X *(1.5 - xHalf * X * X);
+  Result := X;
 end;
 
 // 字符串转注册表根键，支持 'HKEY_CURRENT_USER' 'HKCR' 长短两种格式
