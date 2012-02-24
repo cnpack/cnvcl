@@ -87,7 +87,7 @@ begin
     mmoResult.Lines.Add(Format('%d伏第%d天', [vf1, vf2]));
   mmoResult.Lines.Add('星座：' + GetXingZuoFromNumber(GetXingZuoFromMonthDay(AMonth, ADay)));
 
-  mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GetGanZhiFromYear(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GetGanZhiFromYear(AYear, AMonth, ADay, AHour)));
   mmoResult.Lines.Add('月：'+ GetGanZhiFromNumber(GetGanZhiFromMonth(AYear, AMonth, ADay, AHour)));
   mmoResult.Lines.Add('日：'+ GetGanZhiFromNumber(GetGanZhiFromDay(AYear, AMonth, ADay, AHour)));
   mmoResult.Lines.Add('时：'+ GetGanZhiFromNumber(GetGanZhiFromHour(AYear, AMonth, ADay, AHour)));

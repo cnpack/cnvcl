@@ -47,7 +47,9 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2011.01.05 V1.7
+* 修改记录：2012.02.24 V1.8
+*               增加一精确到小时的年干支计算接口
+*           2011.01.05 V1.7
 *               月份的节气分界精确到分钟
 *           2011.01.05 V1.7
 *               加入一新方法，日干支计算加入小时参数以实现 23 时后是次日的机制
@@ -290,8 +292,11 @@ function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
 function GetIsLeapYear(AYear: Integer): Boolean;
 {* 返回某公历是否闰年，自动判断 Julian 还是 Gregorian，支持公元前}
 
-function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer;
+function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
 {* 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况 }
+
+function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer): Extended; overload;
+{* 取某日期到年初的天数，小时数折算入小数，不考虑 1582 年 10 月的特殊情况 }
 
 function ExtractMonthDay(Days: Integer; AYear: Integer; out AMonth: Integer;
   out ADay: Integer): Boolean;
@@ -411,6 +416,9 @@ function GetGanZhiFromYear(AYear: Integer): Integer; overload;
 
 function GetGanZhiFromYear(AYear, AMonth, ADay: Integer): Integer; overload;
 {* 根据公历年月日获得某公历年的天干地支，以立春为年分界，0-59 对应 甲子到癸亥}
+
+function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
+{* 根据公历年月日获得某公历年的天干地支，以立春为年分界，精确到小时，0-59 对应 甲子到癸亥}
 
 function GetGanFromYear(AYear: Integer): Integer;
 {* 获得某公/农历年的天干，0-9 对应 甲到癸}
@@ -1658,6 +1666,13 @@ begin
   Result := MonthAbsDays[GetIsLeapYear(AYear)][AMonth] + ADay;
 end;
 
+// 取某日期到年初的天数，小时数折算入小数，不考虑 1582 年 10 月的特殊情况
+function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer): Extended;
+begin
+  Result := GetDayFromYearBegin(AYear, AMonth, ADay);
+  Result := Result + (AHour / 24.0);
+end;
+
 // 从距年首天数返回月和日数，年份用来判断是否是闰年，返回 False 表示不合法日期
 function ExtractMonthDay(Days: Integer; AYear: Integer; out AMonth: Integer;
   out ADay: Integer): Boolean;
@@ -2061,7 +2076,7 @@ var
     I: Integer;
     Days: Extended;
   begin
-    Days := GetDayFromYearBegin(AYear, AMonth, ADay) + AHour / 24;
+    Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
 
     // 如本日是立春日前，则是属于前一年
     if Days < GetJieQiDayTimeFromYear(AYear, 3) then
@@ -2128,6 +2143,15 @@ function GetGanZhiFromYear(AYear, AMonth, ADay: Integer): Integer; overload;
 begin
   // 如是立春日前，属于前一年
   if GetDayFromYearBegin(AYear, AMonth, ADay) < Floor(GetJieQiDayTimeFromYear(AYear, 3)) then
+    Dec(AYear);
+  Result := GetGanZhiFromYear(AYear);
+end;
+
+// 根据公历年月日获得某公历年的天干地支，以立春为年分界，精确到小时，0-59 对应 甲子到癸亥
+function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
+begin
+  // 如是立春日前，属于前一年，精确到小时判断
+  if GetDayFromYearBegin(AYear, AMonth, ADay, AHour) < GetJieQiDayTimeFromYear(AYear, 3) then
     Dec(AYear);
   Result := GetGanZhiFromYear(AYear);
 end;
