@@ -372,5 +372,24 @@ object CnPropSheetForm: TCnPropSheetForm
         Shape = bsLeftLine
       end
     end
+    object pnlGraphic: TPanel
+      Left = 0
+      Top = 0
+      Width = 362
+      Height = 443
+      Align = alClient
+      BevelInner = bvLowered
+      BevelOuter = bvNone
+      Color = clWhite
+      TabOrder = 8
+      Visible = False
+      object imgGraphic: TImage
+        Left = 1
+        Top = 1
+        Width = 360
+        Height = 441
+        Align = alClient
+      end
+    end
   end
 end

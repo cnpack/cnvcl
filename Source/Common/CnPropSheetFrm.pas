@@ -29,7 +29,9 @@ unit CnPropSheetFrm;
 * 兼容测试：未测试
 * 本 地 化：该窗体中的字符串暂不符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2006.11.23
+* 修改记录：2012.03.10
+*               加入图片对象的可视化显示
+*           2006.11.23
 *               加入对象类继承关系的显示
 *           2006.11.07
 *               创建单元，实现功能
@@ -50,7 +52,7 @@ const
 
 type
   TCnPropContentType = (pctProps, pctEvents, pctCollectionItems, pctStrings,
-    pctComponents, pctControls, pctHierarchy);
+    pctGraphics, pctComponents, pctControls, pctHierarchy);
   TCnPropContentTypes = set of TCnPropContentType;
 
   TCnDisplayObject = class(TObject)
@@ -96,10 +98,19 @@ type
   end;
 
   TCnStringsObject = class(TCnDisplayObject)
+  {* 描述一 TStrings}
   private
 
   public
     procedure Clear;
+  end;
+
+  TCnGraphicsObject = class(TCnDisplayObject)
+  {* 描述一图片}
+  private
+    FGraphic: TObject;
+  public
+    property Graphic: TObject read FGraphic write FGraphic;
   end;
 
   TCnCollectionItemObject = class(TCnDisplayObject)
@@ -156,6 +167,7 @@ type
     FOnAfterEvaluateControls: TNotifyEvent;
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
+    FGraphics: TCnGraphicsObject;
     function GetEventCount: Integer;
     function GetPropCount: Integer;
     function GetInspectComplete: Boolean;
@@ -188,6 +200,7 @@ type
     property Properties: TObjectList read FProperties;
     property Events: TObjectList read FEvents;
     property Strings: TCnStringsObject read FStrings;
+    property Graphics: TCnGraphicsObject read FGraphics;
     property Components: TObjectList read FComponents;
     property Controls: TObjectList read FControls;
     property CollectionItems: TObjectList read FCollectionItems;
@@ -253,6 +266,8 @@ type
     btnEvaluate: TSpeedButton;
     pnlHierarchy: TPanel;
     bvlLine: TBevel;
+    pnlGraphic: TPanel;
+    imgGraphic: TImage;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -284,6 +299,7 @@ type
     FInspectParam: Pointer;
     FCurrObj: TObject;
     FHierarchys: TStrings;
+    FGraphicObject: TObject;
     FHierPanels: TComponentList;
     FOnEvaluateBegin: TNotifyEvent;
     FOnEvaluateEnd: TNotifyEvent;
@@ -352,8 +368,8 @@ type
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
-    ('Properties', 'Events', 'CollectionItems', 'Strings', 'Components',
-     'Controls', 'Hierarchy');
+    ('Properties', 'Events', 'CollectionItems', 'Strings', 'Graphics',
+     'Components', 'Controls', 'Hierarchy');
 
 var
   FSheetList: TComponentList = nil;
@@ -556,6 +572,7 @@ begin
   FProperties := TObjectList.Create(True);
   FEvents := TObjectList.Create(True);
   FStrings := TCnStringsObject.Create;
+  FGraphics := TCnGraphicsObject.Create;
   FComponents := TObjectList.Create(True);
   FControls := TObjectList.Create(True);
   FCollectionItems := TObjectList.Create(True);
@@ -566,6 +583,7 @@ begin
   FCollectionItems.Free;
   FControls.Free;
   FComponents.Free;
+  FGraphics.Free;
   FStrings.Free;
   FEvents.Free;
   FProperties.Free;
@@ -745,6 +763,7 @@ begin
       Controls.Clear;
       CollectionItems.Clear;
       Strings.Clear;
+      Graphics.Graphic := nil;
     end;
 
     ContentTypes := [pctHierarchy];
@@ -946,6 +965,11 @@ begin
 
         DoAfterEvaluateControls;
       end;
+    end
+    else if (ObjectInstance is TGraphic) or (ObjectInstance is TPicture) then
+    begin // 处理图像数据
+      FGraphics.Graphic := ObjectInstance;
+      Include(FContentTypes, pctGraphics);
     end;
   end;
 
@@ -1069,6 +1093,22 @@ begin
 
   mmoText.Lines.Text := FInspector.Strings.DisplayValue;
   FHierarchys.Text := FInspector.Hierarchy;
+  FGraphicObject := FInspector.Graphics.Graphic;
+
+  imgGraphic.Canvas.FillRect(imgGraphic.Canvas.ClipRect);
+  if FGraphicObject <> nil then
+  begin
+    if FGraphicObject is TPicture then
+    begin
+      if (FGraphicObject as TPicture).Graphic <> nil then
+         imgGraphic.Canvas.Draw(0, 0, (FGraphicObject as TPicture).Graphic);
+    end
+    else if FGraphicObject is TGraphic then
+    begin
+      imgGraphic.Canvas.Draw(0, 0, FGraphicObject as TGraphic);
+    end;
+  end;
+
   UpdateHierarchys;
   ContentTypes := FInspector.ContentTypes;
 end;
@@ -1177,6 +1217,7 @@ begin
     pctEvents:            AControl := lvEvent;
     pctCollectionItems:   AControl := lvCollectionItem;
     pctStrings:           AControl := mmoText;
+    pctGraphics:          AControl := pnlGraphic;
     pctComponents:        AControl := lvComp;
     pctControls:          AControl := lvControl;
     pctHierarchy:
