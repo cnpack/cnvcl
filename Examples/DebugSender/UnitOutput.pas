@@ -177,6 +177,7 @@ begin
   cbbLevel.ItemIndex := 3;
   cbbType.ItemIndex := 0;
   CnDebugger.UseAppend := True;
+  Icon := Application.Icon;
 end;
 
 procedure TForm1.btnEnterClick(Sender: TObject);
