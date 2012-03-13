@@ -192,11 +192,8 @@ begin
 end;
 
 destructor TCnButtonEdit.Destroy;
-var
-  Kind: TButtonKind;
 begin
-  for Kind := Low(TButtonKind) to High(TButtonKind) do
-    BtnEdtGlyphs[Kind].Free;
+
   inherited;
 end;
 
@@ -300,5 +297,23 @@ begin
     FOnButtonClick(Self);
 end;
 
-end.
+procedure FreeBtnEdtGlyph;
+var
+  Kind: TButtonKind;
+begin
+  for Kind := Low(TButtonKind) to High(TButtonKind) do
+  begin
+    if BtnEdtGlyphs[Kind] <> nil then
+    begin
+      BtnEdtGlyphs[Kind].Free;
+      BtnEdtGlyphs[Kind] := nil;
+    end;
+  end;
+end;
 
+initialization
+
+finalization
+  FreeBtnEdtGlyph;
+
+end.
