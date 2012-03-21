@@ -1,30 +1,28 @@
-CnPack开发组2011年上半年度工作总结
+CnPack开发组2011年下半年度工作总结
 
-    CnPack 在 2011 年上半年取得的主要成绩如下：
+    CnPack 在 2011 年下半年取得的主要成绩如下：
 
 一、自 2009 年 8 月以来，CnPack 继续担当 Embarcadero 的技术合作伙伴（ETP）。
 
-二、CnPack IDE 专家包发布 0.9.8 正式版，以修复一些顽固 Bug 为主。单元清理增加对D2011的兼容，字符串属性编辑器增加对WideString类型的支持。
+二、CnPack IDE 专家包发布 0.9.9 正式版，增加对 RAD Studio XE 2 的支持。并增加了 ImageList 的组件编辑器，支持 Alpha 通道与在线搜索图标。
 
     每日构建版下载地址：
     http://www.cnpack.org/downbuilds.php
     或：
     http://code.google.com/p/cnpack/downloads/list?can=1
 
-三、参与代号为 Pulsar 的 Delphi XE 2 的 Field Test。
-
-四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
+三、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
 
     链接：
     http://www.cnpack.org/foundation.php
     公开帐目：
     http://www.cnpack.org/showdetail.php?id=529
 
-五、CnPack 开发组的邮件列表 bbs@cnpack.org 由于技术原因停止使用，烦请用户改用其他方式交流。
+四、CnPack 开发组的邮件列表 bbs@cnpack.org 由于技术原因停止使用，烦请用户改用其他方式交流。
 
-    2011 年下半年 CnPack 开发组的计划如下：
+    2012 年上半年 CnPack 开发组的计划如下：
 
-一、发布 0.9.9，计划新增对即将发布的 Delphi XE 2 的支持，并争取进入 XE2 的 Partner DVD。
+一、CnWizards 继续增强功能、修复 Bug 并发布新版，支持 XE2 的各个 Update 包以及 FMX 部分支持。
 
 二、CnWizards 将进一步加强国内外的宣传工作。希望能继续进一步扩大用户群。
 
@@ -49,7 +47,7 @@ CnPack开发组2011年上半年度工作总结
 
 
                                               CnPack 开发组 刘啸、周劲羽
-                                                              2011-07-04
+                                                              2012-03-21
 
 
 ========================================================================
@@ -60,23 +58,21 @@ CnPack Working Report in the First Half of 2011
 
 1. CnPack Keeps Embarcadero Technology Partner (ETP) since 2009.08.
 
-2. CnPack IDE Wizards 0.9.8 published. Fix some bugs. Uses Cleaner supports Delphi 2011 XE.
+2. CnPack IDE Wizards 0.9.9 published. Support Delphi XE2. Add ImageList Component Editor.
 
    Our nightly build version:
    http://www.cnpack.org/downbuilds.php
    Or:
    http://code.google.com/p/cnpack/downloads/list?can=1
 
-3. Participate in the Pulsar(Delphi XE 2) Field Test.
-
-4. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
+3. CnPack Foundation accepts Donation at alipay.com and tenpay.com (Chinese). For English, please visit SourceForge:
    https://sourceforge.net/project/project_donations.php?group_id=110999   
 
-5. CnPack Mailing List bbs@cnpack.org Stopped. Please use Other Ways for Communication.
+4. CnPack Mailing List bbs@cnpack.org Stopped. Please use Other Ways for Communication.
 
-    Below is the plan of CnPack for 2011 Second Half:
+    Below is the plan of CnPack for 2012 First Half:
 
-1. Publish CnWizards 0.9.9 to Support Delphi XE 2 in Future. Try to Enter Partner DVD for XE 2.
+1. Publish news CnWizards to Support Delphi XE 2 Update Packages. Supports some FMX features.
 
 2. Continue to fix the bugs and do the function improvements for CnWizards. We hope users number can increase considerably in the next year.
 
@@ -101,4 +97,4 @@ To our members: Be more initiative and active for communication and taking part 
 
 
                               CnPack Administrators: Liu Xiao, Zhou JingYu
-                                                                2011-07-04
+                                                                2012-03-21
