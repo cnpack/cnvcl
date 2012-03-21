@@ -52,9 +52,9 @@ CnPack开发组2011年下半年度工作总结
 
 ========================================================================
 
-CnPack Working Report in the First Half of 2011
+CnPack Working Report in the Second Half of 2011
 
-    Below are the achievements of CnPack in the First Half of 2011:
+    Below are the achievements of CnPack in the Second Half of 2011:
 
 1. CnPack Keeps Embarcadero Technology Partner (ETP) since 2009.08.
 
