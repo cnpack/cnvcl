@@ -118,7 +118,9 @@ unit CnRS232;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.11.17 V1.1
+* 修改记录：2012.03.22 V1.2
+*                修正一处读入数据成功但长度为0而退出的问题，感谢大雄
+*           2008.11.17 V1.1
 *                增加 D2009 支持后修正问题，感谢大雄
 *           2002.04.08 V1.0
 *                创建单元，增加注释
@@ -563,15 +565,15 @@ begin
   if overlappedRead.hEvent = 0 then
   begin
     PostHangupCall;
-    goto EndReadThread
+    goto EndReadThread;
   end;
 
   // And an event for the CommEvent overlapped structure.
   overlappedCommEvent.hEvent := CreateEvent(nil, True, True, nil);
   if overlappedCommEvent.hEvent = 0 then
   begin
-    PostHangupCall();
-    goto EndReadThread
+    PostHangupCall;
+    goto EndReadThread;
   end;
 
   // We will be waiting on these objects.
@@ -585,7 +587,7 @@ begin
   if not SetCommMask(hCommFile, EV_ERR or EV_RLSD or EV_RING) then
   begin
     PostHangupCall;
-    goto EndReadThread
+    goto EndReadThread;
   end;
 
   // Start waiting for CommEvents (Errors)
@@ -610,7 +612,7 @@ begin
       WAIT_OBJECT_0:                    // Signal to end the thread.
         begin
           // Time to exit.
-          goto EndReadThread
+          goto EndReadThread;
         end;
 
       WAIT_OBJECT_0 + 1:                // CommEvent signaled.
@@ -621,7 +623,7 @@ begin
 
           // Start waiting for the next CommEvent.
           if not SetupCommEvent(@overlappedCommEvent, fdwEvtMask) then
-            goto EndReadThread
+            goto EndReadThread;
               {break;??}
         end;
 
@@ -638,25 +640,25 @@ begin
           if not SetupReadEvent(@overlappedRead,
             PAnsiChar(@szInputBuffer[0]), INPUT_BUFFER_SIZE,
             nNumberOfBytesRead) then
-            goto EndReadThread
+            goto EndReadThread;
               {break;}
         end;
 
       WAIT_FAILED:                      // Wait failed.  Shouldn't happen.
         begin
           PostHangupCall;
-          goto EndReadThread
+          goto EndReadThread;
         end
     else                                // This case should never occur.
       begin
         PostHangupCall;
-        goto EndReadThread
+        goto EndReadThread;
       end
     end                                 {case dwHandleSignaled}
   end;                                  {while True}
 
   // Time to clean up Read Thread.
-  EndReadThread:
+EndReadThread:
 
   PurgeComm(hCommFile, PURGE_RXABORT + PURGE_RXCLEAR);
   CloseHandle(overlappedRead.hEvent);
@@ -673,7 +675,7 @@ label
 begin
   Result := False;
 
-  StartSetupReadEvent:
+StartSetupReadEvent:
 
   // Make sure the CloseEvent hasn't been signaled yet.
   // Check is needed because this function is potentially recursive.
@@ -688,8 +690,9 @@ begin
     // This would only happen if there was data waiting to be read.
 
     // Handle the data.
-    if not HandleReadData(lpszInputBuffer, lpnNumberOfBytesRead) then
-      Exit;
+    if lpnNumberOfBytesRead > 0 then // If got zero, do not handle and continue
+      if not HandleReadData(lpszInputBuffer, lpnNumberOfBytesRead) then
+        Exit;
 
     // Start waiting for more data.
     goto StartSetupReadEvent
@@ -702,7 +705,7 @@ begin
   if dwLastError = ERROR_IO_PENDING then
   begin
     Result := True;
-    Exit
+    Exit;
   end;
 
   // Its possible for this error to occur if the
@@ -711,7 +714,7 @@ begin
     Exit;
 
   // Unexpected error come here. No idea what could cause this to happen.
-  PostHangupCall
+  PostHangupCall;
 end;                                    {TReadThread.SetupReadEvent}
 
 function TReadThread.HandleReadData(lpszInputBuffer: LPCSTR; dwSizeofBuffer: DWord): Boolean;
@@ -724,22 +727,19 @@ begin
   if dwSizeofBuffer <> 0 then
   begin
     // Do something with the bytes read.
-
     lpszPostedBytes := PAnsiChar(LocalAlloc(LPTR, dwSizeofBuffer + 1));
-
     if lpszPostedBytes = nil {NULL} then
     begin
       // Out of memory
-
       PostHangupCall;
-      Exit
+      Exit;
     end;
 
     Move(lpszInputBuffer^, lpszPostedBytes^, dwSizeofBuffer);
     lpszPostedBytes[dwSizeofBuffer] := #0;
 
     Result := ReceiveData(lpszPostedBytes, dwSizeofBuffer)
-  end
+  end;
 end;                                    {TReadThread.HandleReadData}
 
 function TReadThread.HandleReadEvent(lpOverlappedRead: POverlapped;
@@ -767,7 +767,7 @@ begin
     Exit;
 
   // Unexpected error come here. No idea what could cause this to happen.
-  PostHangupCall
+  PostHangupCall;
 end;                                    {TReadThread.HandleReadEvent}
 
 function TReadThread.SetupCommEvent(lpOverlappedCommEvent: POverlapped;
@@ -779,7 +779,7 @@ label
 begin
   Result := False;
 
-  StartSetupCommEvent:
+StartSetupCommEvent:
 
   // Make sure the CloseEvent hasn't been signaled yet.
   // Check is needed because this function is potentially recursive.
@@ -799,7 +799,7 @@ begin
     end;
 
     // What could cause infinite recursion at this point?
-    goto StartSetupCommEvent
+    goto StartSetupCommEvent;
   end;
 
   // We expect ERROR_IO_PENDING returned from WaitCommEvent
@@ -811,7 +811,7 @@ begin
   if dwLastError = ERROR_IO_PENDING then
   begin
     Result := True;
-    Exit
+    Exit;
   end;
 
   // Its possible for this error to occur if the
@@ -820,7 +820,7 @@ begin
     Exit;
 
   // Unexpected error. No idea what could cause this to happen.
-  PostHangupCall
+  PostHangupCall;
 end;                                    {TReadThread.SetupCommEvent}
 
 function TReadThread.HandleCommEvent(lpOverlappedCommEvent: POverlapped;
@@ -849,7 +849,7 @@ begin
         Exit;
 
       PostHangupCall;
-      Exit
+      Exit;
     end
   end;
 
@@ -867,7 +867,7 @@ begin
         Exit;
 
       PostHangupCall;
-      Exit
+      Exit;
     end;
 
     // Its possible that multiple errors occured and were handled
@@ -878,7 +878,7 @@ begin
     if not ReceiveError(dwErrors) then
       Exit;
 
-    Result := True
+    Result := True;
   end;
 
   dwModemEvent := 0;
@@ -893,16 +893,16 @@ begin
     if not ModemStateChange(dwModemEvent) then
     begin
       Result := False;
-      Exit
+      Exit;
     end;
 
-    Result := True
+    Result := True;
   end;
 
   if ((lpfdwEvtMask and EV_ERR) = 0) and (dwModemEvent = 0) then
   begin
     // Should not have gotten here.
-    PostHangupCall
+    PostHangupCall;
   end
 end;                                    {TReadThread.HandleCommEvent}
 
@@ -914,7 +914,7 @@ begin
     WPARAM(dwSizeofNewString), LPARAM(lpNewString)) then
     PostHangupCall
   else
-    Result := True
+    Result := True;
 end;
 
 function TReadThread.ReceiveError(EvtMask: DWord): Bool;
@@ -924,7 +924,7 @@ begin
   if not PostMessage(hComm32Window, PWM_RECEIVEERROR, 0, LPARAM(EvtMask)) then
     PostHangupCall
   else
-    Result := True
+    Result := True;
 end;
 
 function TReadThread.ModemStateChange(ModemEvent: DWord): Bool;
@@ -934,7 +934,7 @@ begin
   if not PostMessage(hComm32Window, PWM_MODEMSTATECHANGE, 0, LPARAM(ModemEvent)) then
     PostHangupCall
   else
-    Result := True
+    Result := True;
 end;
 
 procedure TReadThread.PostHangupCall;
@@ -960,7 +960,7 @@ begin
   if overlappedWrite.hEvent = 0 then
   begin
     PostHangupCall;
-    goto EndWriteThread
+    goto EndWriteThread;
   end;
 
   CompleteOneWriteRequire := True;
@@ -980,7 +980,7 @@ begin
         if not PostMessage(hComm32Window, PWM_SENDDATAEMPTY, 0, 0) then
         begin
           PostHangupCall;
-          goto EndWriteThread
+          goto EndWriteThread;
         end
       end;
 
@@ -993,7 +993,7 @@ begin
         WAIT_OBJECT_0:                  // CloseEvent signaled!
           begin
             // Time to exit.
-            goto EndWriteThread
+            goto EndWriteThread;
           end;
 
         WAIT_OBJECT_0 + 1:              // New message was received.
@@ -1005,13 +1005,13 @@ begin
         WAIT_FAILED:                    // Wait failed.  Shouldn't happen.
           begin
             PostHangupCall;
-            goto EndWriteThread
+            goto EndWriteThread;
           end
 
       else                              // This case should never occur.
         begin
           PostHangupCall;
-          goto EndWriteThread
+          goto EndWriteThread;
         end
       end
     end;
@@ -1027,7 +1027,7 @@ begin
     begin
       TranslateMessage(Msg);
       DispatchMessage(Msg);
-      Continue
+      Continue;
     end;
 
     // Handle the message.
@@ -1055,21 +1055,19 @@ begin
   end;                                  {main loop}
 
   // Thats the end.  Now clean up.
-  EndWriteThread:
+EndWriteThread:
 
   PurgeComm(hCommFile, PURGE_TXABORT + PURGE_TXCLEAR);
   pFSendDataEmpty^ := True;
-  CloseHandle(overlappedWrite.hEvent)
+  CloseHandle(overlappedWrite.hEvent);
 end;                                    {TWriteThread.Execute}
 
 function TWriteThread.HandleWriteData(lpOverlappedWrite: POverlapped;
   pDataToWrite: PAnsiChar; dwNumberOfBytesToWrite: DWord): Boolean;
 var
   dwLastError,
-
   dwNumberOfBytesWritten,
-    dwWhereToStartWriting,
-
+  dwWhereToStartWriting,
   dwHandleSignaled: DWord;
   HandlesToWaitFor: array[0..1] of THandle;
 begin
@@ -1101,7 +1099,7 @@ begin
       if dwLastError <> ERROR_IO_PENDING then
       begin
         PostHangupCall;
-        Exit
+        Exit;
       end;
 
       // This is the expected ERROR_IO_PENDING case.
@@ -1141,13 +1139,13 @@ begin
         WAIT_FAILED:                    // Wait failed.  Shouldn't happen.
           begin
             PostHangupCall;
-            Exit
+            Exit;
           end
 
       else                              // This case should never occur.
         begin
           PostHangupCall;
-          Exit
+          Exit;
         end
       end                               {case}
     end;                                {WriteFile failure}
@@ -1159,7 +1157,7 @@ begin
   until (dwNumberOfBytesToWrite <= 0);  // Write the whole thing!
 
   // Wrote the whole string.
-  Result := True
+  Result := True;
 end;                                    {TWriteThread.HandleWriteData}
 
 procedure TWriteThread.PostHangupCall;
@@ -1659,7 +1657,7 @@ begin
   begin
     CloseHandle(hCommFile);
     hCommFile := 0;
-    raise ERS232Error.Create(SCreateEventFail)
+    raise ERS232Error.Create(SCreateEventFail);
   end;
 
   try
@@ -1685,8 +1683,9 @@ begin
     CloseHandle(hCloseEvent);
     CloseHandle(hCommFile);
     hCommFile := 0;
-    raise ERS232Error.Create(SCreateWriteFail)
+    raise ERS232Error.Create(SCreateWriteFail);
   end;
+
   WriteThread.hCommFile := hCommFile;
   WriteThread.hCloseEvent := hCloseEvent;
   WriteThread.hComm32Window := FHWnd;
@@ -1738,7 +1737,7 @@ begin
   if not GetCommModemStatus(hCommFile, dwModemState) then
     Result := 0
   else
-    Result := dwModemState
+    Result := dwModemState;
 end;
 
 procedure TCnRS232.CloseReadThread;
@@ -1765,7 +1764,7 @@ begin
       WriteThread.Terminate;
     WriteThread.Free;
     WriteThread := nil;
-  end
+  end;
 end;
 
 procedure TCnRS232.ReceiveData(Buffer: PAnsiChar; BufferLength: WORD);
@@ -1827,7 +1826,7 @@ begin
   GetCommProperties(hCommFile, commprop);
   GetCommMask(hCommFile, fdwEvtMask);
   FCommConfig.GetDCB(DCB);
-  SetCommState(hCommFile, DCB)
+  SetCommState(hCommFile, DCB);
 end;
 
 procedure TCnRS232._SetCommTimeout;
@@ -1954,6 +1953,7 @@ begin
     Ini.WriteInteger(Section, csXoffLimit, FXoffLimit);
     Ini.WriteInteger(Section, csXonLimit, FXonLimit);
   end;
+
   with FTimeouts do
   begin
     Ini.WriteInteger(Section, csReadTotalTimeoutConstant, FReadTotalTimeoutConstant);
