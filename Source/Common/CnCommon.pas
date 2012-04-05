@@ -354,6 +354,10 @@ function AnsiCompareTextPos(const ASubText, AText1, AText2: string): TValueRelat
 function CompareTextPos(const ASubText, AText1, AText2: string): TValueRelationship;
 {* 比较 SubText 在两个字符串中出现的位置的大小，如果相等则比较字符串本身，忽略大小写 }
 
+function StringReplaceNonAnsi(const S, OldPattern, NewPattern: string;
+  Flags: TReplaceFlags): string;
+{* 非Ansi方式的字符串替换}
+
 function Deltree(Dir: string; DelRoot: Boolean = True;
   DelEmptyDirOnly: Boolean = False): Boolean;
 {* 删除整个目录, DelRoot 表示是否删除目录本身}
@@ -2931,6 +2935,43 @@ begin
       Pos(UpperCase(ASubText), UpperCase(AText2)));
   if Result = 0 then
     Result := CompareText(AText1, AText2);
+end;
+
+// 非Ansi方式的字符串替换
+function StringReplaceNonAnsi(const S, OldPattern, NewPattern: string;
+  Flags: TReplaceFlags): string;
+var
+  SearchStr, Patt, NewStr: string;
+  Offset: Integer;
+begin
+  if rfIgnoreCase in Flags then
+  begin
+    SearchStr := UpperCase(S);
+    Patt := UpperCase(OldPattern);
+  end else
+  begin
+    SearchStr := S;
+    Patt := OldPattern;
+  end;
+  NewStr := S;
+  Result := '';
+  while SearchStr <> '' do
+  begin
+    Offset := Pos(Patt, SearchStr);
+    if Offset = 0 then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end;
+    Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+    NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+    if not (rfReplaceAll in Flags) then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end;
+    SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
 end;
 
 // 创建备份文件
