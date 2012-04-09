@@ -92,6 +92,7 @@ type
     FUseAppIcon: Boolean;
     FHooked: Boolean;
     FAutoHide: Boolean;
+    FSaveWindowState: TWindowState;
     procedure ChangeIcon;
     procedure SendCancelMode;
     function CheckMenuPopup(X: Integer; Y: Integer): Boolean;
@@ -364,6 +365,7 @@ procedure TCnTrayIcon.HideApplication;
 begin
   if (Application.MainForm <> nil) and (Application.MainForm.WindowState <> wsMinimized) then
   begin
+    FSaveWindowState := Application.MainForm.WindowState;
     Application.Minimize;
     Application.MainForm.Hide;
   end;
@@ -483,7 +485,13 @@ begin
   ShowWindow(Application.Handle, SW_SHOW);
   Application.Restore;
   if Application.MainForm <> nil then
-    Application.MainForm.Visible := True;
+  begin
+    if FSaveWindowState <> wsMinimized then
+      Application.MainForm.WindowState := FSaveWindowState
+    else
+      Application.MainForm.WindowState := wsNormal;
+    Application.MainForm.Show;
+  end;
 end;
 
 procedure TCnTrayIcon.UpdateNotifyData;
