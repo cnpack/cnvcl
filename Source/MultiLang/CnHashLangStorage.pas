@@ -74,11 +74,15 @@ type
     property Bof: Boolean read GetBof;
   end;
 
+  TCnHashLangLoadFile = procedure(Sender: TObject; AFileName: WideString;
+    AList: TCnWideStringList) of object;
+
   TCnCustomHashLangStorage = class(TCnCustomLangFileStorage)
   private
     FHashMap: TCnWideStrToWideStrHashMap;
     FListLength: Integer;
     FIncSize: Integer;
+    FOnLoadFile: TCnHashLangLoadFile;
     procedure SetIncSize(const Value: Integer);
     procedure SetListLength(const Value: Integer);
   protected
@@ -87,6 +91,7 @@ type
     procedure InitFromAFile(const AFileName: WideString); override;
     procedure CreateCurrentLanguage; override;
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
+    procedure DoLoadFile(AFileName: WideString; AList: TCnWideStringList);
     property HashMap: TCnWideStrToWideStrHashMap read FHashMap;
   public
     constructor Create(AOwner: TComponent); override;
@@ -124,6 +129,8 @@ type
     {* 重分配时增加的大小 }
     property AutoDetect;
     {* LanguagePath 改变时是否自动检测语言 }
+    property OnLoadFile: TCnHashLangLoadFile read FOnLoadFile write FOnLoadFile;
+    {* 自定义加载文件事件 }
   end;
 
   TCnHashLangFileStorage = class(TCnCustomHashLangStorage)
@@ -162,6 +169,15 @@ begin
   inherited;
 end;
 
+procedure TCnCustomHashLangStorage.DoLoadFile(AFileName: WideString;
+  AList: TCnWideStringList);
+begin
+  if Assigned(FOnLoadFile) then
+    FOnLoadFile(Self, AFileName, AList)
+  else
+    AList.LoadFromFile(AFileName);
+end;
+
 procedure TCnCustomHashLangStorage.CreateCurrentLanguage;
 begin
   InitHashMap;
@@ -193,7 +209,7 @@ begin
   List := TCnWideStringList.Create;
   try
     S := LanguagePath + GetCurrentLanguageFileName;
-    List.LoadFromFile(S);
+    DoLoadFile(S, List);
   except
     Result := False;
     List.Free;
@@ -292,7 +308,7 @@ begin
   Result := False;
   List := TCnWideStringList.Create;
   try
-    List.LoadFromFile(FileName);
+    DoLoadFile(FileName, List);
     if List.Count > 0 then
       Result := Copy(List[0], 1, Length(SystemNamePrefix + SCnLanguageID)) =
         SystemNamePrefix + SCnLanguageID;
@@ -334,7 +350,7 @@ begin
     with Languages.Add do
     begin
       LanguageFileName := ExtractFileName(ChangeFileExt(AFileName, ''));
-      List.LoadFromFile(AFileName);
+      DoLoadFile(AFileName, List);
 
       try
         LanguageID := StrToIntDef(List.Values[SystemNamePrefix + SCnLanguageID], 0);
