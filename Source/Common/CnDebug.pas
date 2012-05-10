@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.12.31
+* 修改记录：2012.05.10
+*               超长信息将拆分发送而不是截断
+*           2009.12.31
 *               不输出至CnDebugViewer时也可输出至文件
 *           2008.07.16
 *               增加部分声明以区分对宽字符的支持。
@@ -1044,11 +1046,13 @@ var
   TagLen, MsgLen: Integer;
   MsgDesc: TCnMsgDesc;
   ChkReady: Boolean;
-  
-  procedure GenerateMsgDesc;
+  MsgBufPtr: PAnsiChar;
+  MsgBufSize: Integer;
+
+  procedure GenerateMsgDesc(MsgBuf: PAnsiChar; MsgSize: Integer);
   begin
     // 进行具体的组装工作
-    MsgLen := Size;
+    MsgLen := MsgSize;
     if MsgLen > CnMaxMsgLength then
       MsgLen := CnMaxMsgLength;
     TagLen := Length(ATag);
@@ -1075,7 +1079,7 @@ var
     MsgDesc.Annex.MsgCPInterval := CPUPeriod;
     
     CopyMemory(@(MsgDesc.Annex.Tag), Pointer(ATag), TagLen);
-    CopyMemory(@(MsgDesc.Msg), Pointer(AMsg), MsgLen);
+    CopyMemory(@(MsgDesc.Msg), Pointer(MsgBuf), MsgLen);
     
     MsgLen := MsgLen + SizeOf(MsgDesc.Annex) + SizeOf(DWORD);
     MsgDesc.Length := MsgLen;
@@ -1095,34 +1099,45 @@ begin
   if not ChkReady and not FDumpToFile then
     Exit;
 
-  GenerateMsgDesc;
+  MsgBufPtr := @AMsg[1];
+  MsgBufSize := Size;
+  repeat
+    if Size > CnMaxMsgLength then
+      MsgBufSize := CnMaxMsgLength
+    else
+      MsgBufSize := Size;
 
-  if ChkReady then
-  begin
-    if FChannel.CheckFilterChanged then
-      FChannel.RefreshFilter(FFilter);
+    GenerateMsgDesc(MsgBufPtr, MsgBufSize);
+    Dec(Size, MsgBufSize);
+    Inc(MsgBufPtr, MsgBufSize);
 
-    if CheckFiltered(string(ATag), ALevel, AType) then
-      InternalOutput(MsgDesc, MsgLen);    
-  end;
-
-  // 同时 DumpToFile
-  if FDumpToFile and not FIgnoreViewer and (FDumpFile <> nil) then
-  begin
-    if not FAfterFirstWrite then // 第一回写时需要判断是否重写
+    if ChkReady then
     begin
-      if FUseAppend then
-        FDumpFile.Seek(0, soFromEnd)
-      else
-      begin
-        FDumpFile.Size := 0;
-        FDumpFile.Seek(0, soFromBeginning);
-      end;
-      FAfterFirstWrite := True; // 后续写就无需判断了
+      if FChannel.CheckFilterChanged then
+        FChannel.RefreshFilter(FFilter);
+
+      if CheckFiltered(string(ATag), ALevel, AType) then
+        InternalOutput(MsgDesc, MsgLen);
     end;
-    
-    FDumpFile.Write(MsgDesc, MsgLen);
-  end;
+
+    // 同时 DumpToFile
+    if FDumpToFile and not FIgnoreViewer and (FDumpFile <> nil) then
+    begin
+      if not FAfterFirstWrite then // 第一回写时需要判断是否重写
+      begin
+        if FUseAppend then
+          FDumpFile.Seek(0, soFromEnd)
+        else
+        begin
+          FDumpFile.Size := 0;
+          FDumpFile.Seek(0, soFromBeginning);
+        end;
+        FAfterFirstWrite := True; // 后续写就无需判断了
+      end;
+
+      FDumpFile.Write(MsgDesc, MsgLen);
+    end;
+  until Size <= 0;
 end;
 
 procedure TCnDebugger.LogAssigned(Value: Pointer; const AMsg: string);
