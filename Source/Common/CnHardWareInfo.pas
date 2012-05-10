@@ -397,7 +397,7 @@ var
   end;
 
   // 获取 CPU 信息字符串
-  function GetCnCPUInfoString: string;
+  function GetCnCPUInfoString: AnsiString;
   const
     cnIFContinuous = '%.8x%.8x%.8x%.8x';
     cnIFDashed = '%.8x-%.8x-%.8x-%.8x';
@@ -425,7 +425,7 @@ var
   end;
 
   // 获取 CPU 序列号
-  function GetCnCPUID: string;
+  function GetCnCPUID: AnsiString;
   const
     SCnIFContinuous = '%.4x%.4x%.4x%.4x%.4x%.4x';
     SCnIFDashed = '%.4x-%.4x-%.4x-%.4x-%.4x-%.4x';
@@ -471,7 +471,7 @@ var
   end;
 
   // 获得 CPU OEM 厂商名
-  function GetCnCPUOem: string;
+  function GetCnCPUOem: AnsiString;
   var
     iEax, iEbx, iEcx, iEdx: Integer;
   begin
