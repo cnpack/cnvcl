@@ -33,7 +33,9 @@ unit CnHardWareInfo;
 * 兼容测试：Win2000/XP + Delphi 5、6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.08.01 V1.3
+* 修改记录：2012.05.10 V1.4
+*               修正 64 位下的编译问题
+*           2008.08.01 V1.3
 *               加入 Bahamut 的获取 BIOS ID 的过程，但只支持小部分 BIOS
 *           2008.04.12 V1.2
 *               LiuXiao 加入对 CPU 生产厂商名的读取与是否支持 cpuid 指令与序列号
@@ -143,6 +145,9 @@ function CnGetBiosID: string;
 {* 获得 BIOS 的 ID，只支持小部分 BIOS，而且旧式的主板由于不规范，无法获取 ID}
 
 implementation
+
+uses
+  CnNativeDecl;
 
 const
   BiosOffset: array[0..2] of DWORD = ($6577, $7196, $7550);
@@ -371,9 +376,9 @@ var
   Mask: Integer;
   CurrProc: THandle;
   SysInfo: TSystemInfo;
-  ProcessAffinityOld: Cardinal;
-  ProcessAffinity: Cardinal;
-  SystemAffinity: Cardinal;
+  ProcessAffinityOld: TCnNativeUInt;
+  ProcessAffinity: TCnNativeUInt;
+  SystemAffinity: TCnNativeUInt;
 
   function GetCnCpuIdSupport: Boolean;
   asm
