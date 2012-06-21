@@ -1100,7 +1100,6 @@ begin
     Exit;
 
   MsgBufPtr := @AMsg[1];
-  MsgBufSize := Size;
   repeat
     if Size > CnMaxMsgLength then
       MsgBufSize := CnMaxMsgLength
