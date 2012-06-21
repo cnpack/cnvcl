@@ -23,13 +23,15 @@ unit CnTrayIcon;
 ================================================================================
 * 软件名称：不可视工具组件包
 * 单元名称：TCnTrayIcon 单元
-* 单元作者：刘啸（Passion） liuxiao@cnpack.org; http://www.cnpack.org
+* 单元作者：刘啸 liuxiao@cnpack.org; http://www.cnpack.org
 * 备    注：在 Explorer 非法结束重启后能自动恢复图标的系统托盘组件单元
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2005.02.05 V1.2
+* 修改记录：2012.06.21 V1.3
+*               恢复显示时加入一句BringToFront
+*           2005.02.05 V1.2
 *               修正显示气泡提示后弹出菜单和提示失效的问题
 *           2004.03.07 V1.1
 *               加入显示气泡提示和最小化时自动隐藏主窗口的功能
@@ -490,6 +492,7 @@ begin
       Application.MainForm.WindowState := FSaveWindowState
     else
       Application.MainForm.WindowState := wsNormal;
+    Application.BringToFront;
     Application.MainForm.Show;
   end;
 end;
