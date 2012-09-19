@@ -29,7 +29,9 @@ unit CnDHibernateDateUtils;
 * 兼容测试：Win2000/XP/Vista/2008 + Delphi 2009
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.08.23 V1.8
+* 修改记录：2012.09.18 By Shenloqi
+*               移植到 Delphi XE3
+*           2008.08.23 V1.8
 *               移植到 Delphi2009
 *           2006.09.04 V1.0
 *               创建单元
@@ -484,11 +486,11 @@ begin
   M := 0;
   D := 0;
   DateOrder := GeTCnDateOrder(DateFormat);
-  if ShortDateFormat[1] = 'g' then
+  if {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat[1] = 'g' then
     ScanToNumber(S, Pos);
-  if not (ScanNumber(S, MaxInt, Pos, N1) and ScanChar(S, Pos, DateSeparator) and ScanNumber(S, MaxInt, Pos, N2)) then
+  if not (ScanNumber(S, MaxInt, Pos, N1) and ScanChar(S, Pos, {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DateSeparator) and ScanNumber(S, MaxInt, Pos, N2)) then
     Exit;
-  if ScanChar(S, Pos, DateSeparator) then
+  if ScanChar(S, Pos, {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DateSeparator) then
   begin
     if not ScanNumber(S, MaxInt, Pos, N3) then
       Exit;
@@ -528,18 +530,18 @@ begin
       D := N2;
     end;
   end;
-  ScanChar(S, Pos, DateSeparator);
+  ScanChar(S, Pos, {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DateSeparator);
   ScanBlanks(S, Pos);
-  if SysLocale.FarEast and (System.Pos('ddd', ShortDateFormat) <> 0) then
+  if SysLocale.FarEast and (System.Pos('ddd', {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) <> 0) then
   begin
-    if {$IFDEF DELPHI12_UP}CharInSet(ShortTimeFormat[1], ['0'..'9']){$ELSE}ShortTimeFormat[1] in ['0'..'9']{$ENDIF} then
+    if {$IFDEF DELPHI12_UP}CharInSet({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortTimeFormat[1], ['0'..'9']){$ELSE}ShortTimeFormat[1] in ['0'..'9']{$ENDIF} then
       ScanToNumber(S, Pos)
     else
       repeat
         while (Pos <= Length(S)) and (S[Pos] <> ' ') do
           Inc(Pos);
         ScanBlanks(S, Pos);
-      until(Pos > Length(S)) or (AnsiCompareText(TimeAMString, Copy(S, Pos, Length(TimeAMString))) = 0) or (AnsiCompareText(TimePMString, Copy(S, Pos, Length(TimePMString))) = 0);
+      until(Pos > Length(S)) or (AnsiCompareText({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}TimeAMString, Copy(S, Pos, Length({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}TimeAMString))) = 0) or (AnsiCompareText({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}TimePMString, Copy(S, Pos, Length({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}TimePMString))) = 0);
   end;
   Result := IsValidDate(Y, M, D) and (Pos > Length(S));
 end;
@@ -549,7 +551,7 @@ begin
   if Length(S) > 0 then
     for Result := 1 to 12 do
     begin
-      if (Length(LongMonthNames[Result]) > 0) and (AnsiCompareText(Copy(S, 1, MaxLen), Copy(LongMonthNames[Result], 1, MaxLen)) = 0) then
+      if (Length({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}LongMonthNames[Result]) > 0) and (AnsiCompareText(Copy(S, 1, MaxLen), Copy({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}LongMonthNames[Result], 1, MaxLen)) = 0) then
         Exit;
     end;
   Result := 0;
@@ -636,7 +638,7 @@ end;
 
 function StrToDateDef(const S: string; Default: TDateTime): TDateTime;
 begin
-  if not InternalStrToDate(ShortDateFormat, S, Result) then
+  if not InternalStrToDate({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat, S, Result) then
     Result := Trunc(Default);
 end;
 
@@ -650,7 +652,7 @@ function DefDateFormat(FourDigitYear: Boolean): string;
 begin
   if FourDigitYear then
   begin
-    case GeTCnDateOrder(ShortDateFormat) of
+    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY:
         Result := 'MM/DD/YYYY';
       doDMY:
@@ -661,7 +663,7 @@ begin
   end
   else
   begin
-    case GeTCnDateOrder(ShortDateFormat) of
+    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY:
         Result := 'MM/DD/YY';
       doDMY:
@@ -676,7 +678,7 @@ function DefDateMask(BlanksChar: Char; FourDigitYear: Boolean): string;
 begin
   if FourDigitYear then
   begin
-    case GeTCnDateOrder(ShortDateFormat) of
+    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY, doDMY:
         Result := '!99/99/9999;1;';
       doYMD:
@@ -685,7 +687,7 @@ begin
   end
   else
   begin
-    case GeTCnDateOrder(ShortDateFormat) of
+    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY, doDMY:
         Result := '!99/99/99;1;';
       doYMD:
@@ -715,7 +717,7 @@ begin
 end;
 
 initialization
-  FourDigitYear := Pos('YYYY', AnsiUpperCase(ShortDateFormat)) > 0; 
+  FourDigitYear := Pos('YYYY', AnsiUpperCase({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat)) > 0;
 
 {$ENDIF SUPPORT_ADO}
 end.

@@ -29,7 +29,9 @@ unit CnDHibernateCalc;
 * 兼容测试：Win2000/XP/Vista/2008 + Delphi 2009
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.08.23 V1.8
+* 修改记录：2012.09.18 By shenloqi
+*               移植到 Delphi XE3
+*           2008.08.23 V1.8
 *               移植到 Delphi2009
 *           2006.09.04 V1.0
 *               创建单元
@@ -229,9 +231,9 @@ function TCnDHibernateCalc.GeTCnTree(s: string): pointer;
       end;
       if pos > length(s) then
         exit;
-      if s[pos] = DecimalSeparator then
+      if s[pos] = {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DecimalSeparator then
       begin
-        Result := Result + DecimalSeparator;
+        Result := Result + {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DecimalSeparator;
         inc(pos);
         if (pos > length(s)) or not ({$IFDEF DELPHI12_UP}CharInSet(s[pos], ['0'..'9']){$ELSE}s[pos] in ['0'..'9']{$ENDIF}) then
           Error('Wrong number.');
