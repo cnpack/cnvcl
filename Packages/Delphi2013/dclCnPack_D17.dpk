@@ -37,7 +37,7 @@ requires
   dclado,
   adortl,
   designide,
-  CnPack_D16;
+  CnPack_D17;
 
 contains
   CnPack in '..\..\Source\Common\CnPack.pas',
