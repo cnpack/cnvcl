@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2011 CnPack 开发组                       }
+{                   (C)Copyright 2001-2012 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -70,7 +70,9 @@ unit CnStrDiff;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2004.11.15 V1.0
+* 修改记录：2012.09.20 V1.1
+*               修正Unicode版下PChar不兼容的问题
+*           2004.11.15 V1.0
 *               移植单元
 ================================================================================
 |</PRE>}
@@ -111,8 +113,8 @@ type
     fLastAdd, fLastDel, fLastMod: PChangeRec;
     diagVecB: PDiagVectorArray;
     diagVecF: PDiagVectorArray; //forward and backward arrays
-    Array1: PChar;
-    Array2: PChar;
+    Array1: PAnsiChar;
+    Array2: PAnsiChar;
     fCancelled: Boolean;
 
     function RecursiveDiff(x1, y1, x2, y2: Integer): Boolean;
@@ -127,7 +129,7 @@ type
     constructor Create; 
     destructor Destroy; override;
 
-    function Execute(const S1, S2: PChar; Size1, Size2: Integer): Boolean;
+    function Execute(const S1, S2: PAnsiChar; Size1, Size2: Integer): Boolean;
     property ChangeCount: Integer read GetChangeCount;
     property Changes[Index: Integer]: TChangeRec read GetChanges; default;
   end;
@@ -172,7 +174,7 @@ begin
 
   Diff := TCnStrDiff.Create;
   try
-    if Diff.Execute(PChar(S1), PChar(S2), Length(S1), Length(S2)) then
+    if Diff.Execute(PAnsiChar(S1), PAnsiChar(S2), Length(S1), Length(S2)) then
     begin
       Count := 0;
       for i := 0 to Diff.ChangeCount - 1 do
@@ -206,9 +208,9 @@ begin
   inherited;
 end;
 
-function TCnStrDiff.Execute(const S1, S2: PChar; Size1, Size2: Integer): Boolean;
+function TCnStrDiff.Execute(const S1, S2: PAnsiChar; Size1, Size2: Integer): Boolean;
 var
-  IntArr_f, IntArr_b: PChar;
+  IntArr_f, IntArr_b: PAnsiChar;
 begin
   Result := False;
   ClearChanges;
@@ -232,8 +234,8 @@ begin
     GetMem(IntArr_b, SizeOf(Integer) * (MaxD * 2 + 1));
     //Align the forward and backward diagonal vector arrays
     //with the memory which has just been allocated ...
-    PChar(diagVecF) := PChar(IntArr_f) - SizeOf(Integer) * (MAX_DIAGONAL - MaxD);
-    PChar(diagVecB) := PChar(IntArr_b) - SizeOf(Integer) * (MAX_DIAGONAL - MaxD);
+    PAnsiChar(diagVecF) := PAnsiChar(IntArr_f) - SizeOf(Integer) * (MAX_DIAGONAL - MaxD);
+    PAnsiChar(diagVecB) := PAnsiChar(IntArr_b) - SizeOf(Integer) * (MAX_DIAGONAL - MaxD);
 
     fCancelled := False;
     //NOW DO IT HERE...
