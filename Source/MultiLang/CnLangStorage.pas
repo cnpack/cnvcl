@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Forms, FileCtrl,
+  Windows, Messages, SysUtils, Classes, Graphics, Forms, FileCtrl, CnCommon,
   CnConsts, CnClasses, CnLangCollection, CnLangConsts, CnIniStrUtils;
 
 {$IFDEF Linux}
@@ -358,7 +358,7 @@ begin
     if not (csDesigning in ComponentState) then
     begin
       // 运行期，只有采用可执行文件的所在目录
-      FDesignLangPath := IncludeTrailingBackslash(ExtractFilePath(Application.ExeName));
+      FDesignLangPath := IncludeTrailingBackslash(_CnExtractFilePath(Application.ExeName));
     end;
   end;
 end;
@@ -371,7 +371,7 @@ begin
     if not (csDesigning in ComponentState) then
     begin
       // 运行期，只有采用可执行文件的文件名加自己的扩展名
-      FFileName := ChangeFileExt(ExtractFileName(Application.ExeName), GetLanguageFileExt);
+      FFileName := _CnChangeFileExt(_CnExtractFileName(Application.ExeName), GetLanguageFileExt);
     end;
   end;
 end;
@@ -394,11 +394,11 @@ begin
     if FStorageMode = smByFile then
       Result := CurrentLanguage.LanguageFileName + GetLanguageFileExt
     else if (FFileName = '') and (FDesignLangFile <> '') then // 设计期采用组件编辑器设置的工程文件名
-      Result := IncludeTrailingBackslash(CurrentLanguage.LanguageDirName) + ChangeFileExt(FDesignLangFile, GetLanguageFileExt)
+      Result := IncludeTrailingBackslash(CurrentLanguage.LanguageDirName) + _CnChangeFileExt(FDesignLangFile, GetLanguageFileExt)
     else if Pos('.', FFileName) > 0 then
       Result := IncludeTrailingBackslash(CurrentLanguage.LanguageDirName) + FFileName
     else
-      Result := IncludeTrailingBackslash(CurrentLanguage.LanguageDirName) + ChangeFileExt(FFileName, GetLanguageFileExt);
+      Result := IncludeTrailingBackslash(CurrentLanguage.LanguageDirName) + _CnChangeFileExt(FFileName, GetLanguageFileExt);
   end
   else
     Result := '';
@@ -418,7 +418,7 @@ begin
   // 几乎没用，可以不写
   with Languages.Add do
   begin
-    LanguageFileName := ExtractFileName(ChangeFileExt(AFileName, ''));
+    LanguageFileName := _CnExtractFileName(_CnChangeFileExt(AFileName, ''));
     Self.CurrentLanguageIndex := Index;
     try
       if GetLanguageID(AID) then
@@ -459,7 +459,7 @@ begin
       end;
     end
     else if ActualPath = '' then
-      ActualPath := ExtractFileDir(Application.ExeName);
+      ActualPath := _CnExtractFileDir(Application.ExeName);
 
     if ActualPath = '' then
       Exit;
@@ -492,7 +492,7 @@ begin
           if (Sr.Name = '.') or (Sr.Name = '..') or not DirectoryExists(ActualPath + Sr.Name) then
             Continue;
 
-          AFileName := ActualPath + Sr.Name + '\' + ChangeFileExt(FFileName, GetLanguageFileExt);;
+          AFileName := ActualPath + Sr.Name + '\' + _CnChangeFileExt(FFileName, GetLanguageFileExt);;
 
           if FileExists(AFileName) and IsLanguageFile(AFileName) then
             InitFromAFile(AFileName);
@@ -513,10 +513,10 @@ begin
   if csDesigning in ComponentState then Exit;
 
   if Self.FLanguagePath = '' then
-    Self.FLanguagePath := ExtractFilePath(Application.ExeName);
+    Self.FLanguagePath := _CnExtractFilePath(Application.ExeName);
   AdjustLangPath;
   if Self.FFileName = '' then
-    Self.FFileName := ChangeFileExt(ExtractFileName(Application.ExeName), '');
+    Self.FFileName := _CnChangeFileExt(_CnExtractFileName(Application.ExeName), '');
   AdjustLangFile;
 end;
 

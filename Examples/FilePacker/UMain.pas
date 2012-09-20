@@ -209,7 +209,7 @@ begin
   for I := 0 to Length(ap) - 1 do
     ForceDirectories(TempPath + 'CnFilePacker\' + IntToStr(RandomI) + '\' + ap[i].Name);
   tv1.Items.Clear;
-  G_Parent := tv1.Items.AddChild(nil, ExtractFileName(Form1.Caption));
+  G_Parent := tv1.Items.AddChild(nil, _CnExtractFileName(Form1.Caption));
   FindNode(G_parent, TempPath + 'CnFilePacker\' + IntToStr(RandomI) + '\*.*');
 end;
 
@@ -276,19 +276,19 @@ begin
     AText := Node.Text + '\' + AText;
     Node := Node.Parent;
   end;
-  Delete(AText, 1, Length(ExtractFileName(Form1.Caption)) + 1);
+  Delete(AText, 1, Length(_CnExtractFileName(Form1.Caption)) + 1);
   Ap := fp.PackFileInformation;
 
   lv1.Items.Clear;
   for I := 0 to Length(ap) - 1 do
   begin
-    if (AText = '') or (IncludeTrailingBackslash(ExtractFilePath(Ap[i].Name)) = AText) then
+    if (AText = '') or (IncludeTrailingBackslash(_CnExtractFilePath(Ap[i].Name)) = AText) then
     begin
       FItem := TItem.Create;
-      StrCopy(FItem.FPInfo.Name, PAnsiChar(ExtractFileName(Ap[i].Name)));
+      StrCopy(FItem.FPInfo.Name, PAnsiChar(_CnExtractFileName(Ap[i].Name)));
       FItem.FPInfo.DataStart := Ap[i].DataStart;
       ListItem := lv1.Items.Add;
-      ListItem.Caption := ExtractFileName(Ap[i].Name);
+      ListItem.Caption := _CnExtractFileName(Ap[i].Name);
       ListItem.Data := FItem;
     end;
   end;

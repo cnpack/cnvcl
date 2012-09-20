@@ -588,7 +588,7 @@ procedure InvokeContextMenu(Owner: TWinControl; AFolder: TShellFolder; X, Y: Int
 
 implementation
 
-uses ShellAPI, ComObj, TypInfo, Menus, Consts, Math;
+uses ShellAPI, ComObj, TypInfo, Menus, Consts, Math, CnCommon;
 
 resourcestring
   SShellDefaultNameStr = 'Name';
@@ -1255,7 +1255,7 @@ procedure TShellFolder.LoadColumnDetails(RootFolder: TShellFolder;
     case Col of
     //1 : Result := FindData.cFileName; // Name
     1 : Result := IntToStr(CalcFileSize(FindData)); // Size
-    2 : Result := ExtractFileExt(FindData.cFileName); // Type
+    2 : Result := _CnExtractFileExt(FindData.cFileName); // Type
     3 : Result := DateTimeToStr(CalcModifiedDate(FindData)); // Modified
     4 : Result := IntToStr(FindData.dwFileAttributes);
     end;
@@ -1706,7 +1706,7 @@ begin
   begin
     GetCurrentDirectory(MAX_PATH, szPath);
     FSavePath := StrPas(szPath);
-    StrPCopy(szPath, ExtractFilePath(TShellFolder(Selected.Data).PathName));
+    StrPCopy(szPath, _CnExtractFilePath(TShellFolder(Selected.Data).PathName));
     SetCurrentDirectory(szPath);
   end;
 
@@ -1846,7 +1846,7 @@ begin
     else if not Fldr.IsFolder then
     begin
       ShellExecute(Handle, nil, PChar(Fldr.PathName), nil,
-        PChar(ExtractFilePath(Fldr.PathName)), 0);
+        PChar(_CnExtractFilePath(Fldr.PathName)), 0);
     end;
   Node.HasChildren := Node.Count > 0;
 end;
@@ -2393,7 +2393,7 @@ begin
   begin
     GetCurrentDirectory(MAX_PATH, szPath);
     FSavePath := StrPas(szPath);
-    StrPCopy(szPath, ExtractFilePath(Folders[Selected.Index].PathName));
+    StrPCopy(szPath, _CnExtractFilePath(Folders[Selected.Index].PathName));
     SetCurrentDirectory(szPath);
   end;
 end;
@@ -2523,7 +2523,7 @@ begin
         SetPathFromID(AbsoluteID)
       else
         ShellExecute(Handle, nil, PChar(PathName), nil,
-          PChar(ExtractFilePath(PathName)), 1);
+          PChar(_CnExtractFilePath(PathName)), 1);
   inherited DblClick;
 end;
 

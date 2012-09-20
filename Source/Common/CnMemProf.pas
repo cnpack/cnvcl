@@ -87,7 +87,7 @@ procedure SnapToFile(Filename: string);
 implementation
 
 uses
-  Windows, SysUtils, CnConsts{$IFDEF LOGRTTI}, TypInfo{$ENDIF};
+  Windows, SysUtils, CnCommon, CnConsts{$IFDEF LOGRTTI}, TypInfo{$ENDIF};
 
 const
   MaxCount = High(Word);
@@ -363,7 +363,7 @@ finalization
   OutputDebugString(PChar(Format(SMemMgrODSReport,
     [GetMemCount, FreeMemCount, ReallocMemCount])));
   if mmErrLogFile = '' then
-    mmErrLogFile := ExtractFilePath(ParamStr(0)) + 'Memory.Log';
+    mmErrLogFile := _CnExtractFilePath(ParamStr(0)) + 'Memory.Log';
   if mmSaveToLogFile then
     SnapToFile(mmErrLogFile);
 

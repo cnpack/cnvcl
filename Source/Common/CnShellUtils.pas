@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, ActiveX, ComObj, ShellApi, ShlObj;
+  Windows, Messages, SysUtils, ActiveX, ComObj, ShellApi, ShlObj, CnCommon;
 
 type
   TUnicodePath = array[0..MAX_PATH-1] of WideChar;
@@ -126,11 +126,11 @@ var
 begin
   Result := nil;
 {$IFDEF UNICODE_STRING}
-  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PAnsiChar(AnsiString(ExtractFilePath(FileName))), -1, Path, MAX_PATH);
-  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PAnsiChar(AnsiString(ExtractFileName(FileName))), -1, ItemName, MAX_PATH);
+  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PAnsiChar(AnsiString(_CnExtractFilePath(FileName))), -1, Path, MAX_PATH);
+  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PAnsiChar(AnsiString(_CnExtractFileName(FileName))), -1, ItemName, MAX_PATH);
 {$ELSE}
-  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PChar(ExtractFilePath(FileName)), -1, Path, MAX_PATH);
-  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PChar(ExtractFileName(FileName)), -1, ItemName, MAX_PATH);
+  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PChar(_CnExtractFilePath(FileName)), -1, Path, MAX_PATH);
+  MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PChar(_CnExtractFileName(FileName)), -1, ItemName, MAX_PATH);
 {$ENDIF}
 
   if Succeeded(SHGetDesktopFolder(DesktopFolder)) then

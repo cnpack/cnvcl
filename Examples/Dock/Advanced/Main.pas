@@ -133,7 +133,7 @@ var
 
 implementation
 
-uses Unit1, Unit2, Unit3, Unit4, CnDockSupportProc;
+uses Unit1, Unit2, Unit3, Unit4, CnCommon, CnDockSupportProc;
 
 {$R *.DFM}
 
@@ -279,12 +279,12 @@ end;
 
 procedure TMainForm.SaveToFileClick(Sender: TObject);
 begin
-  SaveDockTreeToFile(ExtractFilePath(Application.ExeName) + 'DockInfo.ini');
+  SaveDockTreeToFile(_CnExtractFilePath(Application.ExeName) + 'DockInfo.ini');
 end;
 
 procedure TMainForm.LoadFromFileClick(Sender: TObject);
 begin
-  LoadDockTreeFromFile(ExtractFilePath(Application.ExeName) + 'DockInfo.ini');
+  LoadDockTreeFromFile(_CnExtractFilePath(Application.ExeName) + 'DockInfo.ini');
 end;
 
 procedure TMainForm.SaveToRegClick(Sender: TObject);

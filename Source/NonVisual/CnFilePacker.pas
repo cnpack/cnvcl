@@ -278,7 +278,7 @@ begin
     Check(ARootName);
     
   CurrentDirectory := ADirName;
-  LastNameofCurrentDirectory := ExtractFileName(CurrentDirectory);
+  LastNameofCurrentDirectory := _CnExtractFileName(CurrentDirectory);
   
   if Length(ADirName) = 3 then //is 'xyz:\'
     LastNameofCurrentDirectory := '';
@@ -301,7 +301,7 @@ begin
   FFiles[FCurrent].ConvertFileName := '16' + '?';
   Inc(FCurrent);
   FFiles[FCurrent].ReadFileName := AFileName;
-  FFiles[FCurrent].ConvertFileName := ExtractFilename(AFileName);
+  FFiles[FCurrent].ConvertFileName := _CnExtractFilename(AFileName);
   Inc(FCurrent);
 end;
 
@@ -313,7 +313,7 @@ begin
   FFiles[FCurrent].ConvertFileName := ADirName + '16' + '?';
   Inc(FCurrent);
   FFiles[FCurrent].ReadFileName := AFileName;
-  FFiles[FCurrent].ConvertFileName := ADirName + ExtractFilename(AFileName);
+  FFiles[FCurrent].ConvertFileName := ADirName + _CnExtractFilename(AFileName);
   Inc(FCurrent);
 end;
 
@@ -509,7 +509,7 @@ begin
     S := {$IFDEF DELPHI12_UP}String{$ENDIF}(FPackFileInformations[i].Name);
     if S[Length(s)] = '?' then
     begin
-      S := IncludeTrailingBackslash(ExtractFilePath(S));
+      S := IncludeTrailingBackslash(_CnExtractFilePath(S));
 
       if current = count then
       begin

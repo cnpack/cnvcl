@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ADODB, DB, Grids, DBGrids, DBClient, Provider,
-  CnADOUpdateSQL, DBTables;
+  CnCommon, CnADOUpdateSQL, DBTables;
 
 type
   TForm1 = class(TForm)
@@ -51,7 +51,7 @@ begin
   with con1 do
   begin
     Connected := False;
-    ConnectionString := 'Provider=Microsoft.Jet.OLEDB.4.0;Data Source=' + ExtractFilePath(ParamStr(0)) + 'CnADOUpdateSQL.mdb;Persist Security Info=False';
+    ConnectionString := 'Provider=Microsoft.Jet.OLEDB.4.0;Data Source=' + _CnExtractFilePath(ParamStr(0)) + 'CnADOUpdateSQL.mdb;Persist Security Info=False';
   end;
   cds1.Active := True;
 end;

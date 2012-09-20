@@ -178,11 +178,11 @@ begin
 
   aPath := CnOtaGetOutputDir;
   if aPath = '' then
-    aPath := ExtractFilePath(CnOtaGetFileNameOfCurrentModule);
+    aPath := _CnExtractFilePath(CnOtaGetFileNameOfCurrentModule);
   (Storage as TCnCustomLangFileStorage).SetDesignLangPath(aPath);
 
-  aFile := ChangeFileExt(CnOtaGetCurrentProjectFileName, '');
-  (Storage as TCnCustomLangFileStorage).SetDesignLangFile(ExtractFileName(aFile));
+  aFile := _CnChangeFileExt(CnOtaGetCurrentProjectFileName, '');
+  (Storage as TCnCustomLangFileStorage).SetDesignLangFile(_CnExtractFileName(aFile));
 end;
 
 constructor TCnTranslatorEditor.Create(AComponent: TComponent;
@@ -749,7 +749,7 @@ var
 
   function ExtractUpperFileExt(const FileName: string): string;
   begin
-    Result := UpperCase(ExtractFileExt(FileName));
+    Result := UpperCase(_CnExtractFileExt(FileName));
   end;
 
   function IsCpp(const FileName: string): Boolean;

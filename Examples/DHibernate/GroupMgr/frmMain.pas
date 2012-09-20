@@ -7,7 +7,7 @@ uses
   Dialogs, StdCtrls, ImgList, ExtCtrls, Menus, DB, ADODB,
   PODO_MEMBERS, PODO_WARNINGS, PODO_RESEARCHS, frmAddOrEdit,
   frmAddWarning, frmAddResearch, ComCtrls, ToolWin, Grids, DBGrids,
-  CnDHibernateClasses, CnDHibernateMemData, CnDHibernateQueryAdv,
+  CnDHibernateClasses, CnDHibernateMemData, CnDHibernateQueryAdv, CnCommon,
   CnDHibernateBase, DBClient;
 
 type
@@ -300,7 +300,7 @@ end;
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
   Connection.Close;
-  Connection.ConnectionString := Format('FILE NAME=%s\Conn.udl',[ExtractFilePath(ParamStr(0))]);
+  Connection.ConnectionString := Format('FILE NAME=%s\Conn.udl',[_CnExtractFilePath(ParamStr(0))]);
   Connection.Open;
   setAllNumber(edtPageCode);
   Qry.Open;

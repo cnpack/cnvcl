@@ -66,11 +66,11 @@ function GetAppPath: string;
 
 implementation
 
-uses SysUtils, Dialogs, CnDynObjBuilder, ExtCtrls, StdCtrls;
+uses SysUtils, Dialogs, CnDynObjBuilder, ExtCtrls, StdCtrls, CnCommon;
 
 function GetAppPath: string;
 begin
-  result := ExtractFilePath(Application.ExeName);
+  result := _CnExtractFilePath(Application.ExeName);
 end;
 
 procedure TXMLObjectWriterTestCase.FillPivotField(Index: Integer; tbl:

@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, CnDockFormControl, CnVIDDockStyle, StdCtrls, Spin, ComCtrls,
-  ImgList, CnClasses;
+  ImgList, CnClasses, CnCommon;
 
 type
   TMain_Form = class(TForm)
@@ -130,7 +130,7 @@ end;
 
 procedure TMain_Form.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  //SaveDockTreeToFile(ExtractFilePath(Application.ExeName) + 'DockInfo.ini');
+  //SaveDockTreeToFile(_CnExtractFilePath(Application.ExeName) + 'DockInfo.ini');
 end;
 
 procedure TMain_Form.ActivePanelFont_ButtonClick(Sender: TObject);
@@ -290,7 +290,7 @@ begin
     { 为每一个窗体设置不同的图标 }
     ImageList1.GetIcon(i, DockForms[i].Icon);
   end;
-  LoadDockTreeFromFile(ExtractFilePath(Application.ExeName) + 'DockInfo.ini');
+  LoadDockTreeFromFile(_CnExtractFilePath(Application.ExeName) + 'DockInfo.ini');
   DoReadOption;
 end;
 

@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Sysutils, ComObj{$IFDEF COMPILER6_UP}, Variants{$ENDIF};
+  Classes, Sysutils, CnCommon, ComObj{$IFDEF COMPILER6_UP}, Variants{$ENDIF};
 
 type
   TCnXlsWriter = class(TObject)
@@ -171,7 +171,7 @@ begin
   begin
     try
       try
-        if ExtractFilePath(FileName) = '' then
+        if _CnExtractFilePath(FileName) = '' then
           TargetFileName := IncludeTrailingBackslash(GetCurrentDir) + FileName
         else
           TargetFileName := FileName;

@@ -1045,6 +1045,21 @@ const
 function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
 {* 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用}
 
+function _CnExtractFileExt(const FileName: string): string;
+{* 对ExtractFileExt的封装，Delphi XE3的ExtractFileExt因为调用了TStringHelper.LastDelimiter导致ExtractFileExt('.dpr')不再返回'.dpr'而是返回空值了}
+
+function _CnExtractFileName(const FileName: string): string;
+{* 对ExtractFileName的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
+
+function _CnExtractFileDir(const FileName: string): string;
+{* 对ExtractFileDir的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
+
+function _CnExtractFilePath(const FileName: string): string;
+{* 对ExtractFilePath的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
+
+function _CnChangeFileExt(const FileName, Extension: string): string;
+{* 对ChangeFileExt的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
+
 implementation
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
@@ -1058,6 +1073,93 @@ begin
   Result := PChar(S);
 {$ENDIF}
 end;
+
+// 对ExtractFileExt的封装，Delphi XE3的ExtractFileExt因为调用了
+// TStringHelper.LastDelimiter（0基）导致ExtractFileExt('.dpr')不再返回'.dpr'，
+// 而是返回空值了； XE3下SysUtils.LastDelimiter还是与XE2兼容的
+function _CnExtractFileExt(const FileName: string): string;
+{$IFDEF DelphiXE3_UP}
+var
+  I: Integer;
+begin
+  I := LastDelimiter('.' + PathDelim + DriveDelim, FileName);
+  if (I > 0) and (FileName[I] = '.') then
+    Result := Copy(FileName, I, MaxInt) else
+    Result := '';
+end;
+{$ELSE}
+begin
+  Result := ExtractFileExt(FileName);
+end;
+{$ENDIF}
+
+// 对ExtractFileName的封装，防止Delphi XE3的
+// TStringHelper.LastDelimiter引入的不兼容
+function _CnExtractFileName(const FileName: string): string;
+{$IFDEF DelphiXE3_UP}
+var
+  I: Integer;
+begin
+  I := LastDelimiter(PathDelim + DriveDelim, FileName);
+  Result := Copy(FileName, I + 1, MaxInt);
+end;
+{$ELSE}
+begin
+  Result := ExtractFileName(FileName);
+end;
+{$ENDIF}
+
+// 对ExtractFileDir的封装，防止Delphi XE3的TStringHelper.LastDelimiter
+// 引入的不兼容，XE3的ExtractFileDir('C:\1.dpr')返回的是'C:'而不是'C:\'
+function _CnExtractFileDir(const FileName: string): string;
+{$IFDEF DelphiXE3_UP}
+var
+  I: Integer;
+begin
+  I := LastDelimiter(PathDelim + DriveDelim, Filename);
+  if (I > 1) and (FileName[I] = PathDelim) and
+    (not IsDelimiter( PathDelim + DriveDelim, FileName, I-1)) then Dec(I);
+  Result := Copy(FileName, 1, I);
+end;
+{$ELSE}
+begin
+  Result := ExtractFileDir(FileName);
+end;
+{$ENDIF}
+
+// 对ExtractFilePath的封装，防止Delphi XE3的
+// TStringHelper.LastDelimiter引入的不兼容
+function _CnExtractFilePath(const FileName: string): string;
+{$IFDEF DelphiXE3_UP}
+var
+  I: Integer;
+begin
+  I := LastDelimiter(PathDelim + DriveDelim, FileName);
+  Result := Copy(FileName, 1, I);
+end;
+{$ELSE}
+begin
+  Result := ExtractFilePath(FileName);
+end;
+{$ENDIF}
+
+// 对ChangeFileExt的封装，防止Delphi XE3的
+// TStringHelper.LastDelimiter引入的不兼容
+function _CnChangeFileExt(const FileName, Extension: string): string;
+{$IFDEF DelphiXE3_UP}
+var
+  I: Integer;
+begin
+  I := LastDelimiter('.' + PathDelim + DriveDelim,Filename);
+  if (I = 0) or (FileName[I] <> '.') then I := MaxInt;
+  Result := Copy(FileName, 1, I - 1) + Extension;
+end;
+{$ELSE}
+begin
+  Result := ChangeFileExt(FileName, Extension);
+end;
+{$ENDIF}
+
 
 //==============================================================================
 // Ansi 字符串函数
@@ -1117,9 +1219,9 @@ begin
   end;
   Dir := ExcludeTrailingBackslash(Dir);
   if (Length(Dir) < 3) or DirectoryExists(Dir)
-    or (ExtractFilePath(Dir) = Dir) then
+    or (_CnExtractFilePath(Dir) = Dir) then
     Exit;                                // avoid 'xyz:\' problem.
-  Result := ForceDirectories(ExtractFilePath(Dir)) and CreateDir(Dir);
+  Result := ForceDirectories(_CnExtractFilePath(Dir)) and CreateDir(Dir);
 end;
 
 // 移动文件、目录
@@ -1555,8 +1657,8 @@ begin
   if StrRight(AFrom, 1) = ':' then
     AFrom := AFrom + '\';
 
-  HeadNum := SameCharCounts(AnsiUpperCase(ExtractFilePath(ATo)),
-    AnsiUpperCase(ExtractFilePath(AFrom)));
+  HeadNum := SameCharCounts(AnsiUpperCase(_CnExtractFilePath(ATo)),
+    AnsiUpperCase(_CnExtractFilePath(AFrom)));
   if HeadNum > 0 then
   begin
     ATo := StringReplace(Copy(ATo, HeadNum + 1, MaxInt), '\', PathStr, [rfReplaceAll]);
@@ -1672,7 +1774,7 @@ begin
     i := Pos('..\', ATail);
     while i > 0 do
     begin
-      AHead := ExtractFileDir(AHead);
+      AHead := _CnExtractFileDir(AHead);
       Delete(ATail, 1, 3);
       i := Pos('..\', ATail);
     end;
@@ -1927,7 +2029,7 @@ end;
 // 应用程序路径
 function AppPath: string;
 begin
-  Result := ExtractFilePath(Application.ExeName);
+  Result := _CnExtractFilePath(Application.ExeName);
 end;
 
 // 当前执行模块所在的路径
@@ -1936,7 +2038,7 @@ var
   ModName: array[0..MAX_PATH] of Char;
 begin
   SetString(Result, ModName, GetModuleFileName(HInstance, ModName, SizeOf(ModName)));
-  Result := ExtractFilePath(Result);
+  Result := _CnExtractFilePath(Result);
 end;
 
 const
@@ -2159,7 +2261,7 @@ var
     if SysUtils.FindFirst(FName, faAnyFile, F) = 0 then
       Result := F.Name
     else
-      Result := ExtractFileName(FName);
+      Result := _CnExtractFileName(FName);
     SysUtils.FindClose(F);
   end;
 begin
@@ -2182,7 +2284,7 @@ begin
       else
         Result := FindName + '\' + Result;
 
-      AName := ExtractFileDir(AName);
+      AName := _CnExtractFileDir(AName);
     end;
 
     Result := UpperCase(AName) + Result;
@@ -2503,7 +2605,7 @@ begin
   begin
     if StrScan(PChar(ExtList[i]), '.') <> nil then
     begin
-      ExtList[i] := _CaseSensitive(CaseSensitive, ExtractFileExt(ExtList[i]));
+      ExtList[i] := _CaseSensitive(CaseSensitive, _CnExtractFileExt(ExtList[i]));
     end
     else
     begin
@@ -2529,7 +2631,7 @@ begin
   try
     FileExtsToStrings(FileExts, ExtList, CaseSensitive);
 
-    FExt := _CaseSensitive(CaseSensitive, ExtractFileExt(FileName));
+    FExt := _CaseSensitive(CaseSensitive, _CnExtractFileExt(FileName));
     Result := False;
     for i := 0 to ExtList.Count - 1 do
     begin
@@ -2550,7 +2652,7 @@ var
   FExt: string;
   i: Integer;
 begin
-  FExt := _CaseSensitive(False, ExtractFileExt(FileName));
+  FExt := _CaseSensitive(False, _CnExtractFileExt(FileName));
 
   Result := False;
   for i := 0 to ExtList.Count - 1 do
@@ -2605,7 +2707,7 @@ begin
   try
     FileMasksToStrings(FileMasks, MaskList, CaseSensitive);
 
-    FFileName := _CaseSensitive(CaseSensitive, ExtractFileName(FileName));
+    FFileName := _CaseSensitive(CaseSensitive, _CnExtractFileName(FileName));
     Result := False;
     for i := 0 to MaskList.Count - 1 do
     begin
@@ -2626,7 +2728,7 @@ var
   FFileName: string;
   i: Integer;
 begin
-  FFileName := _CaseSensitive(False, ExtractFileName(FileName));
+  FFileName := _CaseSensitive(False, _CnExtractFileName(FileName));
 
   Result := False;
   for i := 0 to MaskList.Count - 1 do
@@ -3175,7 +3277,7 @@ begin
   Result := False;
   AName := Trim(FileName);
   if AName = '' then Exit;              // 如果为空直接退出
-  if ExtractFileExt(FileName) = '' then // 默认扩展名为 EXE
+  if _CnExtractFileExt(FileName) = '' then // 默认扩展名为 EXE
     AName := AName + '.EXE';
   hSnap := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); // 创建当前进程快照
   if hSnap <> INVALID_HANDLE_VALUE then
@@ -3183,7 +3285,7 @@ begin
     ppe.dwSize := SizeOf(TProcessEntry32);
     if Process32First(hSnap, ppe) then  // 取第一个进程信息
       repeat
-        if AnsiCompareText(ExtractFileName(ppe.szExeFile), AName) = 0 then
+        if AnsiCompareText(_CnExtractFileName(ppe.szExeFile), AName) = 0 then
         begin                           // 比较应用程序名
           Running := True;
           Result := True;
@@ -4220,7 +4322,7 @@ begin
     ExtWild := Copy(FileWildcard, DotPos + 1, Length(FileWildcard));
   end;
 
-  // We could probably modify this to use ExtractFileExt, etc.
+  // We could probably modify this to use _CnExtractFileExt, etc.
   DotPos := LastCharPos(FileName, '.');
   if DotPos = 0 then
     DotPos := Length(FileName) + 1;

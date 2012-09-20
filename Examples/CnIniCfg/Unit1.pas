@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, CnIniCfg,
-  StdCtrls, ComCtrls;
+  StdCtrls, ComCtrls, CnCommon;
 
 type
   TCnIniCfgDemo = class(TCnIniCfg)
@@ -64,8 +64,8 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
 //  FCfg := TCnIniCfgDemo.Create(HKEY_CURRENT_USER, 'Software\' +
-//    ChangeFileExt(ExtractFileName(ParamStr(0)), ''));
-  FCfg := TCnIniCfgDemo.Create(ChangeFileExt(ParamStr(0), '.ini'));
+//    _CnChangeFileExt(_CnExtractFileName(ParamStr(0)), ''));
+  FCfg := TCnIniCfgDemo.Create(_CnChangeFileExt(ParamStr(0), '.ini'));
 
   Caption := FCfg.Caption;
   Width := FCfg.Width;

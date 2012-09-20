@@ -49,7 +49,7 @@ uses
 //------------------------------------------------------------------------------
 // CnPack
 //------------------------------------------------------------------------------
-  CnClasses, CnConsts, CnCompConsts;
+  CnCommon, CnClasses, CnConsts, CnCompConsts;
 
 const
   WinampClassName = 'Winamp v1.x';
@@ -355,7 +355,7 @@ begin
   {获取当前播放列表}
   slPlayList := TStringList.Create;
   slCPlayList := TStringList.Create;
-  slPlayList.LoadFromFile(ChangeFileExt(FWAPath, '.m3u'));
+  slPlayList.LoadFromFile(_CnChangeFileExt(FWAPath, '.m3u'));
   if UpperCase(slPlayList[0]) = '#EXTM3U' then
   begin
     i := 1;
@@ -368,7 +368,7 @@ begin
         Inc(i);
       end else
       begin
-        slCPlayList.Add(ExtractFileName(slPlayList[i]));
+        slCPlayList.Add(_CnExtractFileName(slPlayList[i]));
       end;
       Inc(i);
     end;
@@ -561,7 +561,7 @@ begin
   if strWAPath <> '' then FWAPath := strWAPath;
   if not FileExists(FWAPath) then Exit;
   if ShellExecute(0, '', PChar(FWAPath), PChar('/CLASS="'+WinAmpClassName+'"'),
-    PChar(ExtractFilePath(FWAPath)), SW_MINIMIZE) > 32 then
+    PChar(_CnExtractFilePath(FWAPath)), SW_MINIMIZE) > 32 then
     Result := True;
   if FAutoFind then
   begin

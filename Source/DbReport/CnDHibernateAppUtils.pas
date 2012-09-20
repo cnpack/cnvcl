@@ -145,7 +145,7 @@ implementation
 {$IFDEF SUPPORT_ADO}
 
 uses
-  CnDHibernateUtils, CnDHibernateStringUtils;
+  CnCommon, CnDHibernateUtils, CnDHibernateStringUtils;
 
 function GetDefaultSection(Component: TComponent): string;
 var
@@ -187,7 +187,7 @@ begin
   if Assigned(OnGetDefaultIniName) then
     Result := OnGetDefaultIniName
   else
-    Result := ExtractFileName(ChangeFileExt(Application.ExeName, '.INI'));
+    Result := _CnExtractFileName(_CnChangeFileExt(Application.ExeName, '.INI'));
 end;
 
 function GetDefaultIniRegKey: string;
@@ -195,7 +195,7 @@ begin
   if RegUseAppTitle and (Application.Title <> EmptyStr) then
     Result := Application.Title
   else
-    Result := ExtractFileName(ChangeFileExt(Application.ExeName, EmptyStr));
+    Result := _CnExtractFileName(_CnChangeFileExt(Application.ExeName, EmptyStr));
   if DefCompanyName <> EmptyStr then
     Result := DefCompanyName + '\' + Result;
   Result := 'Software\' + Result;

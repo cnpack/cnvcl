@@ -165,7 +165,7 @@ var
   ProjectDir: string;
   OutputDir: Variant;
 begin
-  ProjectDir := ExtractFileDir(CnOtaGetCurrentProjectFileName);
+  ProjectDir := _CnExtractFileDir(CnOtaGetCurrentProjectFileName);
   if CnOtaGetActiveProjectOption('OutputDir', OutputDir) then
     Result := LinkPath(ProjectDir, OutputDir)
   else
@@ -263,7 +263,7 @@ function IsCpp(const FileName: string): Boolean;
 var
   FileExt: string;
 begin
-  FileExt := UpperCase(ExtractFileExt(FileName));
+  FileExt := UpperCase(_CnExtractFileExt(FileName));
   Result := (FileExt = '.CPP');
 end;
 

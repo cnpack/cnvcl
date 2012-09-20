@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, IniFiles, Dialogs, FileCtrl,
+  SysUtils, Classes, IniFiles, Dialogs, FileCtrl, CnCommon,
   CnConsts, CnIniStrUtils, CnWideStrings, CnLangStorage, CnHashLangStorage;
 
 const
@@ -158,8 +158,8 @@ begin
     else
       S := IncludeTrailingBackslash(LanguagePath) + GetCurrentLanguageFileName;
 
-    if not ForceDirectories(ExtractFilePath(S)) then
-      raise ELanguageStorageError.Create(SCnCanNotCreateDir + ExtractFilePath(S));
+    if not ForceDirectories(_CnExtractFilePath(S)) then
+      raise ELanguageStorageError.Create(SCnCanNotCreateDir + _CnExtractFilePath(S));
 
     FIniFile := TIniFile.Create(S);
     Sections := TStringList.Create;
@@ -265,7 +265,7 @@ begin
 
   with Languages.Add do
   begin
-    LanguageFileName := ExtractFileName(ChangeFileExt(AFileName, ''));
+    LanguageFileName := _CnExtractFileName(_CnChangeFileExt(AFileName, ''));
 
     FIniFile := TIniFile.Create(AFileName);
     try

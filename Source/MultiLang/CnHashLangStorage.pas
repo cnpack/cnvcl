@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, IniFiles, Dialogs, FileCtrl,
+  SysUtils, Classes, Windows, IniFiles, Dialogs, FileCtrl, CnCommon,
   CnConsts, CnLangConsts, CnHashMap, CnWideStrings, CnLangStorage, CnIniStrUtils;
 
 type
@@ -249,8 +249,8 @@ begin
       else
         aFileName := IncludeTrailingBackslash(LanguagePath) + GetCurrentLanguageFileName;
 
-      if not ForceDirectories(ExtractFilePath(aFileName)) then
-        raise ELanguageStorageError.Create(SCnCanNotCreateDir + ExtractFilePath(aFileName));
+      if not ForceDirectories(_CnExtractFilePath(aFileName)) then
+        raise ELanguageStorageError.Create(SCnCanNotCreateDir + _CnExtractFilePath(aFileName));
 
       List.SaveToFile(aFileName, wlfUtf8);
     finally
@@ -349,7 +349,7 @@ begin
   try
     with Languages.Add do
     begin
-      LanguageFileName := ExtractFileName(ChangeFileExt(AFileName, ''));
+      LanguageFileName := _CnExtractFileName(_CnChangeFileExt(AFileName, ''));
       DoLoadFile(AFileName, List);
 
       try

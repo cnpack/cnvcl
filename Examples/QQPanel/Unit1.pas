@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, CnQQPanel, StdCtrls, ComCtrls;
+  Dialogs, ExtCtrls, CnQQPanel, StdCtrls, ComCtrls, CnCommon;
 
 type
   TForm1 = class(TForm)
@@ -32,7 +32,7 @@ var
   p: TCnQQPerson;
   dt: TCnQQIconData;
 begin
-  img := ExtractFilePath(ParamStr(0)) + 'Img\';
+  img := _CnExtractFilePath(ParamStr(0)) + 'Img\';
   CnQQPanel1.AddGroup('Group[1]');
   CnQQPanel1.AddGroup('Group[2]');
 

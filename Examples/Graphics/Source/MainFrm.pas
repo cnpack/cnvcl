@@ -25,7 +25,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, ExtCtrls, CnVCLBase, CnImage, StdCtrls, Buttons, ExtDlgs, CnGraphics,
-  jpeg, Spin;
+  jpeg, Spin, CnCommon;
 
 type
   TMainForm = class(TForm)
@@ -273,10 +273,10 @@ begin
   cbbGradBlend.ItemIndex := 0;
   UpdateImg(2);
   UpdateImg(9);
-  TestName := ExtractFilePath(Application.ExeName) + 'Test.bmp';
+  TestName := _CnExtractFilePath(Application.ExeName) + 'Test.bmp';
   if FileExists(TestName) then
     Back.LoadFromFile(TestName);
-  TestName := ExtractFilePath(Application.ExeName) + 'Test.jpg';
+  TestName := _CnExtractFilePath(Application.ExeName) + 'Test.jpg';
   if FileExists(TestName) then
     Fore.LoadFromFile(TestName);
   UpdateImg;
