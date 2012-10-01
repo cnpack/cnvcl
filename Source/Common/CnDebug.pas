@@ -721,7 +721,7 @@ begin
                 GetEnumName(PropertyType, OrdValue);
               List.Add(NewLine);
             end;
-          tkString, tkLString, tkWString{$IFDEF VER200}, tkUString{$ENDIF}:
+          tkString, tkLString, tkWString{$IFDEF Delphi2009_UP}, tkUString{$ENDIF}:
             begin
               NewLine := Prefix + '  ' + PropertyName + ' = ' + '''' +
                 GetStrProp(PropOwner, PropertyInfo) + '''';
