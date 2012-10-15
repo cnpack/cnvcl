@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2012.05.10
+* 修改记录：2012.10.15
+*               修正tkUString对D2009版本以上的支持
+*           2012.05.10
 *               超长信息将拆分发送而不是截断
 *           2009.12.31
 *               不输出至CnDebugViewer时也可输出至文件
@@ -721,7 +723,7 @@ begin
                 GetEnumName(PropertyType, OrdValue);
               List.Add(NewLine);
             end;
-          tkString, tkLString, tkWString{$IFDEF Delphi2009_UP}, tkUString{$ENDIF}:
+          tkString, tkLString, tkWString {$IF RTLVersion > 19.00}, tkUString{$IFEND}:
             begin
               NewLine := Prefix + '  ' + PropertyName + ' = ' + '''' +
                 GetStrProp(PropOwner, PropertyInfo) + '''';
