@@ -31,7 +31,9 @@ unit CnHexEditor;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2012.03.03 V1.1
+* 修改记录：2012.09.26 V1.2
+*               增加一DataChange方法供修改MemoryStream后更新界面用，感谢veket
+*           2012.03.03 V1.1
 *               暂时屏蔽CMFONTCHANGED的第一次消息以免画错，原因不详
 *           2008.01.15 V1.0 by Guye
 *               优化代码, 修改移植入 CnPack
@@ -155,6 +157,7 @@ type
     property AnchorOffset: Integer read FAnchorOffset write SetAnchorOffset;
     function ScrollIntoView: Boolean;
     procedure UpdateCaret;
+    procedure DataChange;
   published
     { Published declarations }
     property Align;
@@ -952,6 +955,11 @@ begin
   if (FColType = moHex) and (FHexChar <> #0) then
     vPos.X := vPos.X + FItemWidth * 2;
   SetCaretPos(vPos.X, vPos.Y);
+end;
+
+procedure TCnHexEditor.DataChange;
+begin
+  DoChange;
 end;
 
 procedure TCnHexEditor.WMGetDlgCode(var Message: TWMGetDlgCode);
