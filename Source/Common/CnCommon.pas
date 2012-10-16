@@ -1078,7 +1078,7 @@ end;
 // TStringHelper.LastDelimiter（0基）导致ExtractFileExt('.dpr')不再返回'.dpr'，
 // 而是返回空值了； XE3下SysUtils.LastDelimiter还是与XE2兼容的
 function _CnExtractFileExt(const FileName: string): string;
-{$IFDEF DelphiXE3_UP}
+{$IFDEF DELPHIXE3_UP}
 var
   I: Integer;
 begin
@@ -1096,7 +1096,7 @@ end;
 // 对ExtractFileName的封装，防止Delphi XE3的
 // TStringHelper.LastDelimiter引入的不兼容
 function _CnExtractFileName(const FileName: string): string;
-{$IFDEF DelphiXE3_UP}
+{$IFDEF DELPHIXE3_UP}
 var
   I: Integer;
 begin
@@ -1112,7 +1112,7 @@ end;
 // 对ExtractFileDir的封装，防止Delphi XE3的TStringHelper.LastDelimiter
 // 引入的不兼容，XE3的ExtractFileDir('C:\1.dpr')返回的是'C:'而不是'C:\'
 function _CnExtractFileDir(const FileName: string): string;
-{$IFDEF DelphiXE3_UP}
+{$IFDEF DELPHIXE3_UP}
 var
   I: Integer;
 begin
@@ -1130,7 +1130,7 @@ end;
 // 对ExtractFilePath的封装，防止Delphi XE3的
 // TStringHelper.LastDelimiter引入的不兼容
 function _CnExtractFilePath(const FileName: string): string;
-{$IFDEF DelphiXE3_UP}
+{$IFDEF DELPHIXE3_UP}
 var
   I: Integer;
 begin
@@ -1146,7 +1146,7 @@ end;
 // 对ChangeFileExt的封装，防止Delphi XE3的
 // TStringHelper.LastDelimiter引入的不兼容
 function _CnChangeFileExt(const FileName, Extension: string): string;
-{$IFDEF DelphiXE3_UP}
+{$IFDEF DELPHIXE3_UP}
 var
   I: Integer;
 begin

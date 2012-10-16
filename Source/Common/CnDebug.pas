@@ -723,7 +723,7 @@ begin
                 GetEnumName(PropertyType, OrdValue);
               List.Add(NewLine);
             end;
-          tkString, tkLString, tkWString {$IF RTLVersion > 19.00}, tkUString{$IFEND}:
+          tkString, tkLString, tkWString {$IFNDEF VER130} {$IF RTLVersion > 19.00}, tkUString{$IFEND} {$ENDIF}:
             begin
               NewLine := Prefix + '  ' + PropertyName + ' = ' + '''' +
                 GetStrProp(PropOwner, PropertyInfo) + '''';
