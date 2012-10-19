@@ -1060,6 +1060,16 @@ function _CnExtractFilePath(const FileName: string): string;
 function _CnChangeFileExt(const FileName, Extension: string): string;
 {* 对ChangeFileExt的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
 
+{$IFDEF COMPILER6_UP}
+function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
+function CnUtf8ToAnsi2(const Text: string): string;
+{* Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题 }
+
+function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
+function CnAnsiToUtf82(const Text: string): string;
+{* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 D2009 下 AnsiToUtf8 是 UString 的问题 }
+{$ENDIF}
+
 implementation
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
@@ -1160,10 +1170,50 @@ begin
 end;
 {$ENDIF}
 
-
 //==============================================================================
 // Ansi 字符串函数
 //==============================================================================
+
+{$IFDEF COMPILER6_UP}
+
+// Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题
+function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
+begin
+{$IFDEF UNICODE_STRING}
+  Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
+{$ELSE}
+  Result := Utf8ToAnsi(Text);
+{$ENDIF}
+end;
+
+function CnUtf8ToAnsi2(const Text: string): string;
+begin
+{$IFDEF UNICODE_STRING}
+  Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
+{$ELSE}
+  Result := Utf8ToAnsi(Text);
+{$ENDIF}
+end;
+
+function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
+begin
+{$IFDEF UNICODE_STRING}
+  Result := AnsiString(Utf8Encode(Text));
+{$ELSE}
+  Result := AnsiToUtf8(Text);
+{$ENDIF}
+end;
+
+function CnAnsiToUtf82(const Text: string): string;
+begin
+{$IFDEF UNICODE_STRING}
+  Result := string(Utf8Encode(Text));
+{$ELSE}
+  Result := AnsiToUtf8(Text);
+{$ENDIF}
+end;
+
+{$ENDIF}
 
 function AnsiTrim(const S: AnsiString): AnsiString;
 var
