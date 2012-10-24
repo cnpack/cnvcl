@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2011 CnPack 开发组                       }
+{                   (C)Copyright 2001-2012 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -83,7 +83,7 @@ const
   SCnPackDonationUrl = 'http://www.cnpack.org/foundation.php';
   SCnPackDonationUrlSF = 'http://sourceforge.net/donate/index.php?group_id=110999';
   SCnPackGroup = 'CnPack Team';
-  SCnPackCopyright = '(C)Copyright 2001-2011 ' + SCnPackGroup;
+  SCnPackCopyright = '(C)Copyright 2001-2012 ' + SCnPackGroup;
 
   // CnPropEditors
   SCopyrightFmtStr =
