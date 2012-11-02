@@ -479,7 +479,7 @@ begin
     Result := BASE64_OK;
     Exit;
   end;
-  OutPutData:='';
+  OutPutData := '';
 
   if FilterDecodeInput then
     Data := FilterLine(InputData)
@@ -526,7 +526,7 @@ begin
     SetLength(OutputData, DstLen);
   end;
 
-  OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData));
+  // OutputData := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}({$IFDEF DELPHI12_UP}String{$ENDIF}(OutputData));
   Result := BASE64_OK;
 end;
 
