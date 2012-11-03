@@ -3952,7 +3952,7 @@ begin
     CurChar := Line[Pos];
     if {$IFDEF DELPHI12_UP}CharInSet(CurChar, LeadBytes){$ELSE}CurChar in LeadBytes{$ENDIF} then
     begin
-      if Col >= MaxCol - 1 then
+      if Col >= MaxCol then
       begin
         DoubleCharBreak := True;
         BreakPos := Pos - 1;
