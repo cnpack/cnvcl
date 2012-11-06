@@ -77,6 +77,14 @@ function CnOtaIsFileOpen(const FileName: string): Boolean;
 function IsCpp(const FileName: string): Boolean;
 {* 判断是否.Cpp文件}
 
+function CnOtaReplaceToActualPath(const Path: string): string;
+{* 将 $(DELPHI) 这样的符号替换为 Delphi 所在路径}
+
+{$IFDEF DELPHI2009_UP}
+function CnOtaGetActiveProjectOptionsConfigurations(Project: IOTAProject = nil): IOTAProjectOptionsConfigurations;
+{* 取当前工程配置选项，2009 后才有效}
+{$ENDIF}
+
 implementation
 
 { Other DesignTime Utils Routines }
@@ -265,6 +273,64 @@ var
 begin
   FileExt := UpperCase(_CnExtractFileExt(FileName));
   Result := (FileExt = '.CPP');
+end;
+
+{$IFDEF DELPHI2009_UP}
+// * 取当前工程配置选项，2009 后才有效
+function CnOtaGetActiveProjectOptionsConfigurations
+  (Project: IOTAProject): IOTAProjectOptionsConfigurations;
+var
+  ProjectOptions: IOTAProjectOptions;
+begin
+  ProjectOptions := CnOtaGetActiveProjectOptions(Project);
+  if ProjectOptions <> nil then
+    if Supports(ProjectOptions, IOTAProjectOptionsConfigurations, Result) then
+      Exit;
+
+  Result := nil;
+end;
+{$ENDIF}
+
+// 将 $(DELPHI) 这样的符号替换为 Delphi 所在路径
+function CnOtaReplaceToActualPath(const Path: string): string;
+{$IFDEF COMPILER6_UP}
+var
+  Vars: TStringList;
+  i: Integer;
+{$IFDEF DELPHI2011_UP}
+  BC: IOTAProjectOptionsConfigurations;
+{$ENDIF}
+{$ENDIF}
+begin
+{$IFDEF COMPILER6_UP}
+  Result := Path;
+  Vars := TStringList.Create;
+  try
+    GetEnvironmentVars(Vars, True);
+    for i := 0 to Vars.Count - 1 do
+      Result := StringReplace(Result, '$(' + Vars.Names[i] + ')',
+        Vars.Values[Vars.Names[i]], [rfReplaceAll, rfIgnoreCase]);
+    {$IFDEF DELPHI2011_UP}
+      BC := CnOtaGetActiveProjectOptionsConfigurations(nil);
+      if BC <> nil then
+        if BC.GetActiveConfiguration <> nil then
+        begin
+          Result := StringReplace(Result, '$(Config)',
+            BC.GetActiveConfiguration.GetName, [rfReplaceAll, rfIgnoreCase]);
+    {$IFDEF DELPHI2012_UP}
+          Result := StringReplace(Result, '$(Platform)',
+            BC.GetActiveConfiguration.GetPlatform, [rfReplaceAll, rfIgnoreCase]);
+    {$ENDIF}
+        end;
+    {$ENDIF}
+  finally
+    Vars.Free;
+  end;   
+{$ELSE}
+  // Delphi5 下不支持环境变量
+  Result := StringReplace(Path, SCnIDEPathMacro, MakeDir(GetIdeRootDirectory),
+    [rfReplaceAll, rfIgnoreCase]);
+{$ENDIF}
 end;
 
 end.
