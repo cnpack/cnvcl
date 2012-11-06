@@ -29,7 +29,9 @@ unit CnTransEditor;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2008.10.130 V1.4
+* 修改记录：2012.11.06 V1.5
+*               修正未处理环境变量导致输出路径中出现$(Platform)的问题
+*           2008.10.13 V1.4
 *               修正由 Filter 引起的更新时忽略了新属性的问题
 *           2008.05.30 V1.3
 *               不处理只读的 string 属性
@@ -176,7 +178,7 @@ var
 begin
   if Storage = nil then Exit;
 
-  aPath := CnOtaGetOutputDir;
+  aPath := CnOtaReplaceToActualPath(CnOtaGetOutputDir);
   if aPath = '' then
     aPath := _CnExtractFilePath(CnOtaGetFileNameOfCurrentModule);
   (Storage as TCnCustomLangFileStorage).SetDesignLangPath(aPath);
