@@ -78,6 +78,9 @@ procedure CnFmxControlBringToFront(AControl: TComponent);
 
 procedure CnFmxControlSendToBack(AControl: TComponent);
 
+// 为高版本语法的set赋值增加类名，如[seTop]变成[TSide.seTop]
+function CnFmxFixSetValue(const PType: string; const PValue: string): string;
+
 implementation
 
 {$IFDEF DEBUG}
@@ -85,8 +88,25 @@ uses
   CnDebug;
 {$ENDIF}
 
+const
+  CN_FMX_FIX_SET_COUNT = 10;
+  CnFmxFixSetTypeArray: array[0..CN_FMX_FIX_SET_COUNT - 1] of string = (
+    'TCorners', 'TSides', 'TStyledSettings', 'TInteractiveGestureFlags',
+    'TFillTextFlags', 'TStandardGestures', 'TInteractiveGestures',
+    'TGestureTypes', 'TGestureOptions', 'TGestureEngineFlags'
+    );
+
+  CnFmxFixEnumTypeArray: array[0..CN_FMX_FIX_SET_COUNT - 1] of string = (
+    'TCorner', 'TSide', 'TStyledSetting', 'TInteractiveGestureFlag',
+    'TFillTextFlag', 'TStandardGesture', 'TInteractiveGesture', 'TGestureType',
+    'TGestureOption', 'TGestureEngineFlag'
+    );
+
 type
   TControlHack = class(TControl);
+
+var
+  FCnFmxFixEnumNameArray: array[0..CN_FMX_FIX_SET_COUNT - 1] of TStrings;
 
 function CnFmxGetObjectParent(AObject: TComponent): TComponent;
 begin
@@ -293,5 +313,156 @@ begin
   if (AControl <> nil) and AControl.InheritsFrom(TFmxObject) then
     TFmxObject(AControl).SendToBack;
 end;
+
+function CnFmxFixSetValue(const PType: string; const PValue: string): string;
+var
+  I, Idx: Integer;
+begin
+  Result := PValue;
+  if (PType = '') or (PValue = '') then
+    Exit
+  else if Length(PValue) <= 2 then
+    Exit
+  else if PValue[1] <> '['  then
+    Exit
+  else
+  begin
+    Idx := -1;
+    for I := Low(CnFmxFixSetTypeArray) to High(CnFmxFixSetTypeArray) do
+    begin
+      if PType = CnFmxFixSetTypeArray[I] then
+      begin
+        Idx := I;
+        Break;
+      end;
+    end;
+
+    if Idx >= 0 then
+    begin
+      for I := 0 to FCnFmxFixEnumNameArray[Idx].Count - 1 do
+      begin
+        Result := StringReplace(Result, FCnFmxFixEnumNameArray[Idx][I],
+          CnFmxFixEnumTypeArray[Idx] + '.' + FCnFmxFixEnumNameArray[Idx][I],
+          [rfReplaceAll]);
+      end;
+    end;
+  end;
+end;
+
+procedure CreateFmxSetFixArray;
+begin
+  // TCorner
+  FCnFmxFixEnumNameArray[0] := TStringList.Create();
+  FCnFmxFixEnumNameArray[0].Add('crTopLeft');
+  FCnFmxFixEnumNameArray[0].Add('crTopRight');
+  FCnFmxFixEnumNameArray[0].Add('crBottomLeft');
+  FCnFmxFixEnumNameArray[0].Add('crBottomRight');
+
+  // TSide
+  FCnFmxFixEnumNameArray[1] := TStringList.Create();
+  FCnFmxFixEnumNameArray[1].Add('sdTop');
+  FCnFmxFixEnumNameArray[1].Add('sdLeft');
+  FCnFmxFixEnumNameArray[1].Add('sdBottom');
+  FCnFmxFixEnumNameArray[1].Add('sdRight');
+
+  // TStyledSetting
+  FCnFmxFixEnumNameArray[2] := TStringList.Create();
+  FCnFmxFixEnumNameArray[2].Add('ssFamily');
+  FCnFmxFixEnumNameArray[2].Add('ssSize');
+  FCnFmxFixEnumNameArray[2].Add('ssStyle');
+  FCnFmxFixEnumNameArray[2].Add('ssFontColor');
+  FCnFmxFixEnumNameArray[2].Add('ssOther');
+
+  // TInteractiveGestureFlag
+  FCnFmxFixEnumNameArray[3] := TStringList.Create();
+  FCnFmxFixEnumNameArray[3].Add('gfBegin');
+  FCnFmxFixEnumNameArray[3].Add('gfInertia');
+  FCnFmxFixEnumNameArray[3].Add('gfEnd');
+
+  // TFillTextFlag
+  FCnFmxFixEnumNameArray[4] := TStringList.Create();
+  FCnFmxFixEnumNameArray[4].Add('ftRightToLeft');
+
+  // TStandardGesture
+  FCnFmxFixEnumNameArray[5] := TStringList.Create();
+  FCnFmxFixEnumNameArray[5].Add('sgLeft');
+  FCnFmxFixEnumNameArray[5].Add('sgRight');
+  FCnFmxFixEnumNameArray[5].Add('sgUp');
+  FCnFmxFixEnumNameArray[5].Add('sgDown');
+  FCnFmxFixEnumNameArray[5].Add('sgUpLeft');
+  FCnFmxFixEnumNameArray[5].Add('sgUpRight');
+  FCnFmxFixEnumNameArray[5].Add('sgDownLeft');
+  FCnFmxFixEnumNameArray[5].Add('sgDownRight');
+  FCnFmxFixEnumNameArray[5].Add('sgLeftUp');
+  FCnFmxFixEnumNameArray[5].Add('sgLeftDown');
+  FCnFmxFixEnumNameArray[5].Add('sgRightUp');
+  FCnFmxFixEnumNameArray[5].Add('sgRightDown');
+  FCnFmxFixEnumNameArray[5].Add('sgUpDown');
+  FCnFmxFixEnumNameArray[5].Add('sgDownUp');
+  FCnFmxFixEnumNameArray[5].Add('sgLeftRight');
+  FCnFmxFixEnumNameArray[5].Add('sgRightLeft');
+  FCnFmxFixEnumNameArray[5].Add('sgUpLeftLong');
+  FCnFmxFixEnumNameArray[5].Add('sgUpRightLong');
+  FCnFmxFixEnumNameArray[5].Add('sgDownLeftLong');
+  FCnFmxFixEnumNameArray[5].Add('sgDownRightLong');
+  FCnFmxFixEnumNameArray[5].Add('sgScratchout');
+  FCnFmxFixEnumNameArray[5].Add('sgTriangle');
+  FCnFmxFixEnumNameArray[5].Add('sgSquare');
+  FCnFmxFixEnumNameArray[5].Add('sgCheck');
+  FCnFmxFixEnumNameArray[5].Add('sgCurlicue');
+  FCnFmxFixEnumNameArray[5].Add('sgDoubleCurlicue');
+  FCnFmxFixEnumNameArray[5].Add('sgCircle');
+  FCnFmxFixEnumNameArray[5].Add('sgDoubleCircle');
+  FCnFmxFixEnumNameArray[5].Add('sgSemiCircleLeft');
+  FCnFmxFixEnumNameArray[5].Add('sgSemiCircleRight');
+  FCnFmxFixEnumNameArray[5].Add('sgChevronUp');
+  FCnFmxFixEnumNameArray[5].Add('sgChevronDown');
+  FCnFmxFixEnumNameArray[5].Add('sgChevronLeft');
+  FCnFmxFixEnumNameArray[5].Add('sgChevronRight');
+
+  // TInteractiveGesture
+  FCnFmxFixEnumNameArray[6] := TStringList.Create();
+  FCnFmxFixEnumNameArray[6].Add('igZoom');
+  FCnFmxFixEnumNameArray[6].Add('igPan');
+  FCnFmxFixEnumNameArray[6].Add('igRotate');
+  FCnFmxFixEnumNameArray[6].Add('igTwoFingerTap');
+  FCnFmxFixEnumNameArray[6].Add('igPressAndTap');
+
+  // TGestureType
+  FCnFmxFixEnumNameArray[7] := TStringList.Create();
+  FCnFmxFixEnumNameArray[7].Add('gtStandard');
+  FCnFmxFixEnumNameArray[7].Add('gtRecorded');
+  FCnFmxFixEnumNameArray[7].Add('gtRegistered');
+  FCnFmxFixEnumNameArray[7].Add('gtNone');
+
+  // TGestureOption
+  FCnFmxFixEnumNameArray[8] := TStringList.Create();
+  FCnFmxFixEnumNameArray[8].Add('goUniDirectional');
+  FCnFmxFixEnumNameArray[8].Add('goSkew');
+  FCnFmxFixEnumNameArray[8].Add('goEndpoint');
+  FCnFmxFixEnumNameArray[8].Add('goRotate');
+
+  // TGestureEngineFlag
+  FCnFmxFixEnumNameArray[9] := TStringList.Create();
+  FCnFmxFixEnumNameArray[9].Add('efMouseEvents');
+  FCnFmxFixEnumNameArray[9].Add('efTouchEvents');
+end;
+
+procedure FreeFmxSetFixArray;
+var
+  I: Integer;
+begin
+  for I := Low(FCnFmxFixEnumNameArray) to High(FCnFmxFixEnumNameArray) do
+  begin
+    FCnFmxFixEnumNameArray[I].Free;
+    FCnFmxFixEnumNameArray[I] := nil;
+  end;
+end;
+
+initialization
+  CreateFmxSetFixArray;
+
+finalization
+  FreeFmxSetFixArray;
 
 end.
