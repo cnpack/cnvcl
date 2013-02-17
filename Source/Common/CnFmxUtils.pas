@@ -54,7 +54,7 @@ function CnFmxGetControlParent(AControl: TComponent): TComponent;
 
 function CnFmxGetControlsCount(AControl: TComponent): Integer;
 
-function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TControl;
+function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TComponent;
 
 function CnFmxIsInheritedFromClassByName(AObject: TObject; AClassName: string): Boolean;
 
@@ -129,15 +129,27 @@ begin
   if (AControl = nil) or not (AControl is TControl) then
     Result := -1
   else
+  begin
+{$IFDEF DELPHIXE3_UP}
     Result := TControl(AControl).ControlsCount;
+{$ELSE}
+    Result := TControl(AControl).ChildrenCount;
+{$ENDIF}
+  end;
 end;
 
-function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TControl;
+function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TComponent;
 begin
   if (AControl = nil) or not (AControl is TControl) then
     Result := nil
   else
+  begin
+{$IFDEF DELPHIXE3_UP}
     Result := TControl(AControl).Controls[Index];
+{$ELSE}
+    Result := TControl(AControl).Children[Index];
+{$ENDIF}
+  end;
 end;
 
 function CnFmxIsInheritedFromClassByName(AObject: TObject; AClassName: string): Boolean;
