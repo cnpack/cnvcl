@@ -24,7 +24,10 @@ unit CnFmxUtils;
 * 软件名称：CnPack IDE 专家包
 * 单元名称：FMX相关的过程库单元
 * 单元作者：CnPack 开发组
-* 备    注：该单元定义了 XE2 下与FMX相关的一些内容。本单元不使用Vcl的TControl框架
+* 备    注：该单元定义了 XE2 下与FMX相关的一些内容。
+*           本单元不使用Vcl的TControl框架，只使用FMX的。
+*           其他单元均只使用Vcl的TControl框架，如需进行FMX的相关操作，
+*           便需要跳入此单元，以实现俩框架隔离的目的。
 * 开发平台：WinXP + Delphi XE2
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -49,11 +52,17 @@ function CnFmxGetObjectParent(AObject: TComponent): TComponent;
 
 function CnFmxGetControlParent(AControl: TComponent): TComponent;
 
+function CnFmxGetControlsCount(AControl: TComponent): Integer;
+
+function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TControl;
+
 function CnFmxIsInheritedFromClassByName(AObject: TObject; AClassName: string): Boolean;
 
 function CnFmxIsInheritedFromControl(AObject: TObject): Boolean;
 
 function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
+
+function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
 
@@ -95,6 +104,22 @@ begin
     Result := nil;
 end;
 
+function CnFmxGetControlsCount(AControl: TComponent): Integer;
+begin
+  if (AControl = nil) or not (AControl is TControl) then
+    Result := -1
+  else
+    Result := TControl(AControl).ControlsCount;
+end;
+
+function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TControl;
+begin
+  if (AControl = nil) or not (AControl is TControl) then
+    Result := nil
+  else
+    Result := TControl(AControl).Controls[Index];
+end;
+
 function CnFmxIsInheritedFromClassByName(AObject: TObject; AClassName: string): Boolean;
 var
   AClass: TPersistentClass;
@@ -115,6 +140,11 @@ end;
 function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
 begin
   Result := AObject.InheritsFrom(FMX.Forms.TForm);
+end;
+
+function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
+begin
+  Result := AObject.InheritsFrom(FMX.Forms.TCommonCustomForm);
 end;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
