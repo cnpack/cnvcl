@@ -29,7 +29,9 @@ unit CnButtons;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.06.29 
+* 修改记录：2013.07.03 
+*               修补Glyph在某些BPL环境下宽高变为0从而出错的情况
+*           2009.06.29 
 *               修补了当在设计期设置Caption为空时运行期会改为Name的BUG
 *           2007.12.18 V0.2
 *               加入 SpeedButton。
@@ -945,9 +947,13 @@ begin
     FImageList.Height := Glyph.Height;
     FImageList.Width := Glyph.Width;
 
-    // TODO: 用临界区保证绘制不冲突
-    FImageList.Add(Glyph, Glyph);
-    FImageList.Draw(Canvas, GlX, GlY, 0, False);
+    // In some BPL case, Height and Width will be 0 and cause error, so check here.
+    if (FImageList.Height > 0) and (FImageList.Width > 0) then
+    begin
+      // TODO: 用临界区保证绘制不冲突
+      FImageList.Add(Glyph, Glyph);
+      FImageList.Draw(Canvas, GlX, GlY, 0, False);
+    end;
     FImageList.Clear;
   end;
 
