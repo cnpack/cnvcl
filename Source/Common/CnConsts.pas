@@ -71,7 +71,7 @@ var
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.0.0';
+  SCnPackVer = 'Ver 0.1.0.1';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
@@ -84,7 +84,7 @@ const
   SCnPackDonationUrl = 'http://www.cnpack.org/foundation.php';
   SCnPackDonationUrlSF = 'http://sourceforge.net/donate/index.php?group_id=110999';
   SCnPackGroup = 'CnPack Team';
-  SCnPackCopyright = '(C)Copyright 2001-2012 ' + SCnPackGroup;
+  SCnPackCopyright = '(C)Copyright 2001-2013 ' + SCnPackGroup;
 
   // CnPropEditors
   SCopyrightFmtStr =
