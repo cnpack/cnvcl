@@ -29,7 +29,9 @@ unit CnButtons;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2013.07.03 
+* 修改记录：2013.07.24
+*               修正未处理Action的问题
+*           2013.07.03
 *               修补Glyph在某些BPL环境下宽高变为0从而出错的情况
 *           2009.06.29 
 *               修补了当在设计期设置Caption为空时运行期会改为Name的BUG
@@ -975,17 +977,27 @@ end;
 { TCnCustomButton }
 
 procedure TCnCustomButton.Click;
+var
+  Form: TCustomForm;
 begin
   if Visible and Enabled then
   begin
-    if Assigned(FOnClick) then
-      FOnClick(Self);
-
     if FModalResult <> mrNone then
-      GetParentForm(Self).ModalResult := FModalResult;
+    begin
+      Form := GetParentForm(Self);
+      if Form <> nil then
+        Form.ModalResult := FModalResult;
+    end;
 
     if Assigned(PopupMenu) then
       PopupMenu.PopUp(ClientToScreen(Point(0, Height)).X, ClientToScreen(Point(0, Height)).Y);
+
+    if Assigned(FOnClick) and (Action <> nil) and (@FOnClick <> @Action.OnExecute) then
+      FOnClick(Self)
+    else if not (csDesigning in ComponentState) and (ActionLink <> nil) then
+      ActionLink.Execute(Self)
+    else if Assigned(FOnClick) then
+      FOnClick(Self);
   end;
 end;
 
