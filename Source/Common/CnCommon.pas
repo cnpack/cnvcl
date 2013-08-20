@@ -1844,20 +1844,12 @@ end;
 
 // 打开一个链接
 procedure OpenUrl(const Url: string; UseCmd: Boolean);
-const
-  csPrefix = 'http://';
-var
-  AUrl: string;
 begin
-  if Pos(csPrefix, Url) < 1 then
-    AUrl := csPrefix + Url
-  else
-    AUrl := Url;
-
+  // Do not check protocal prefix.
   if CheckWindows9598 or not UseCmd then
-    RunFile(AUrl)
+    RunFile(Url)
   else
-    ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + AUrl), '', SW_HIDE);
+    ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + Url), '', SW_HIDE);
 end;
 
 // 发送邮件
