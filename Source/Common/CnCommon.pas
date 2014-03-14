@@ -677,7 +677,7 @@ const
 
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string; Ini: TCustomIniFile = nil;
-  const Section: string = csDefComboBoxSection): Boolean;
+  const Section: string = csDefComboBoxSection; APassword: Boolean = False): Boolean;
 {* 输入对话框}
 
 function CnInputBox(const ACaption, APrompt, ADefault: string;
@@ -4648,7 +4648,8 @@ end;
 
 // 输入对话框
 function CnInputQuery(const ACaption, APrompt: string;
-  var Value: string; Ini: TCustomIniFile; const Section: string): Boolean;
+  var Value: string; Ini: TCustomIniFile; const Section: string;
+  APassword: Boolean): Boolean;
 var
   Form: TForm;
   Prompt: TLabel;
@@ -4723,6 +4724,8 @@ begin
           Top := MulDiv(19, DialogUnits.Y, 8);
           Width := MulDiv(164, DialogUnits.X, 4);
           MaxLength := 255;
+          if APassword then
+            PasswordChar := '*';
           Text := Value;
           SelectAll;
         end;
