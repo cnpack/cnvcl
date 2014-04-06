@@ -995,7 +995,13 @@ begin
     if Assigned(FOnClick) and (Action <> nil) and (@FOnClick <> @Action.OnExecute) then
       FOnClick(Self)
     else if not (csDesigning in ComponentState) and (ActionLink <> nil) then
-      ActionLink.Execute(Self)
+    begin
+{$IFDEF COMPILER5}
+      ActionLink.Execute;
+{$ELSE}
+      ActionLink.Execute(Self);
+{$ENDIF}
+    end
     else if Assigned(FOnClick) then
       FOnClick(Self);
   end;
