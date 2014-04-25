@@ -574,6 +574,7 @@ var
 //  DevInfo: RID_DEVICE_INFO;
 begin
   FKeyBoardCount := 0;
+  FKeyBoardNames.Clear;
   if GetRawInputDeviceList(nil, C, SizeOf(RAWINPUTDEVICELIST)) = 0 then
   begin
     if C > 0 then
