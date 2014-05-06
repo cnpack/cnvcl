@@ -568,13 +568,14 @@ end;
 
 procedure TCnRawKeyBoard.UpdateKeyBoardsInfo;
 var
-  C: Cardinal;
+  C, Sl: Cardinal;
   KBName: array[0..1023] of AnsiChar;
   I: Integer;
 //  DevInfo: RID_DEVICE_INFO;
 begin
   FKeyBoardCount := 0;
   FKeyBoardNames.Clear;
+  Sl := SizeOf(KBName);
   if GetRawInputDeviceList(nil, C, SizeOf(RAWINPUTDEVICELIST)) = 0 then
   begin
     if C > 0 then
@@ -591,7 +592,7 @@ begin
 //            GetRawInputDeviceInfo(FDevices[I].hDevice, RIDI_DEVICEINFO, @DevInfo, C);
 
             Inc(FKeyBoardCount);
-            GetRawInputDeviceInfo(FDevices[I].hDevice, RIDI_DEVICENAME, @KBName, C);
+            GetRawInputDeviceInfo(FDevices[I].hDevice, RIDI_DEVICENAME, @KBName, Sl);
             FKeyBoardNames.AddObject({$IFDEF DELPHI12_UP}String{$ENDIF}(KBName), TObject(FDevices[I].hDevice));
           end;
         end;
