@@ -602,7 +602,7 @@ end;
 
 function TCnRawKeyBoard.GetKeyBoardName(Index: Integer): string;
 begin
-  if (Index > 0) and (Index < FKeyBoardNames.Count) then
+  if (Index >= 0) and (Index < FKeyBoardNames.Count) then
     Result := FKeyBoardNames[Index];
 end;
 
