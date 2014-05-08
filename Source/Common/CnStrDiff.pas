@@ -24,7 +24,7 @@
 * Date:             24 February 2002                                           *
 * Compilers:        Delphi 3 - Delphi 6                                        *
 * Author:           Angus Johnson - ajohnson@rpi.net.au                        *
-* Copyright:        © 2001-2002 Angus Johnson                                  *
+* Copyright:        ?2001-2002 Angus Johnson                                  *
                                                                                *
 * Licence to use, terms and conditions:                                        *
 *                   The code in the TDiff component is released as freeware    *
@@ -174,7 +174,7 @@ begin
 
   Diff := TCnStrDiff.Create;
   try
-    if Diff.Execute(PAnsiChar(S1), PAnsiChar(S2), Length(S1), Length(S2)) then
+    if Diff.Execute(PAnsiChar(AnsiString(S1)), PAnsiChar(AnsiString(S2)), Length(S1), Length(S2)) then
     begin
       Count := 0;
       for i := 0 to Diff.ChangeCount - 1 do

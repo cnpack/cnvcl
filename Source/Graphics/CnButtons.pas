@@ -1928,7 +1928,7 @@ procedure TCnSpeedButton.CMButtonPressed(var Message: TMessage);
 var
   Sender: TCnSpeedButton;
 begin
-  if Message.WParam = FGroupIndex then
+  if Integer(Message.WParam) = FGroupIndex then
   begin
     Sender := TCnSpeedButton(Message.LParam);
     if Sender <> Self then

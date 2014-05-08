@@ -378,7 +378,7 @@ begin
   case message.Msg of
     MM_MIXM_CONTROL_CHANGE  :
     begin
-      if (message.WParam = Fmx)
+      if (Integer(message.WParam) = Fmx)
         and (message.LParam = Integer(FControlID)) then
       begin
         dwVolume[0] := FCurVolume[0];
@@ -394,7 +394,7 @@ begin
     end;
     MM_MIXM_LINE_CHANGE     :
     begin
-      if (message.WParam = Fmx)
+      if (Integer(message.WParam) = Fmx)
         and (message.LParam = LPARAM(FLineID)) then
       begin
         bMute := FCurMute;

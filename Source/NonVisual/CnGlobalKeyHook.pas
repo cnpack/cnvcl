@@ -316,7 +316,7 @@ begin
   if Message.Msg = WM_HOTKEY then
   begin
     for Index := 0 to FHotKeys.Count-1 do
-      if Message.WParam = FHotKeys[Index].FID then
+      if Integer(Message.WParam) = FHotKeys[Index].FID then
       FHotKeys[Index].DoExecute;
   end else
     Message.Result := DefWindowProc(FHandle, Message.Msg, Message.WParam,
