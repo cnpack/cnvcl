@@ -1123,7 +1123,7 @@ end;
 
 function TCnHashTableMedium.HashOf(const s: string): Cardinal;
 begin
-  Result := CRC16(Pointer(s), Length(s), 0);
+  Result := CRC16(Pointer(s), Length(s) * SizeOf(Char), 0);
 end;
 
 procedure TCnHashTableMedium.RehashTo(NewSize: Integer;
