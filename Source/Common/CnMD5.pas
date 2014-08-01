@@ -598,17 +598,29 @@ begin
       try
         MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
         if MapHandle <> 0 then
+        begin
           try
             ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
             if ViewPointer <> nil then
+            begin
               try
                 MD5Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
               finally
                 UnmapViewOfFile(ViewPointer);
               end;
+            end
+            else
+            begin
+              raise Exception.Create('MapViewOfFile Failed.');
+            end;
           finally
             CloseHandle(MapHandle);
           end;
+        end
+        else
+        begin
+          raise Exception.Create('CreateFileMapping Failed.');
+        end;
       finally
         CloseHandle(FileHandle);
       end;
