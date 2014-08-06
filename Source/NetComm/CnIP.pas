@@ -67,20 +67,22 @@ const
 type
   TIPNotes = array[1..4] of Byte;
   {* IP地址的各子节点,如192.168.20.102,其中Note[1]=192 ... Note[4]=102}
+
   TIP_NetType = (iptNone, iptANet, iptBNet, iptCNet, iptDNet, iptENet,
     iptBroadCast, iptKeepAddr);
   {* IP地址分类, 不是IP地址, A类地址, B类地址, C类地址, D类地址, E类地址,
     广播地址, 保留地址(如127等)}
+
   TIP_Info = packed record
-    IPAddress: Cardinal; //IP地址,此处用整形存储
-    SubnetMask: Cardinal; //子网掩码,此处用整形存储
-    BroadCast: Cardinal; //广播地址,此处用整形存储
-    HostName: array[0..256] of AnsiChar; //主机名
-    NetType: TIP_NetType; //IP地址的网络类型
-    Notes: TIPNotes; //IP地址的各子节点
-    State: Boolean; //状态
-    OnLing: Boolean; //是否在线
-    Supported: Boolean; //是否挂起
+    IPAddress: Cardinal;                 // IP地址,此处用整形存储
+    SubnetMask: Cardinal;                // 子网掩码,此处用整形存储
+    BroadCast: Cardinal;                 // 广播地址,此处用整形存储
+    HostName: array[0..255] of AnsiChar; // 主机名
+    NetType: TIP_NetType;                // IP地址的网络类型
+    Notes: TIPNotes;                     // IP地址的各子节点
+    UpState: Boolean;                    // 启用状态
+    Loopback: Boolean;                   // 是否环回地址
+    SupportBroadcast: Boolean;           // 是否支持广播
   end;
   TIPGroup = array of TIP_Info; //IP地址组
 
@@ -267,25 +269,16 @@ var
     Result := iNote;
   end;
 begin
-  try
-    iPos := Pos(IPJOIN, aIP);
-    aResult[1] := CheckIpNote(Copy(aIP, 1, iPos - 1));
-    sIP := Copy(aIP, iPos + 1, 20);
-    iPos := Pos(IPJOIN, sIP);
-    aResult[2] := CheckIpNote(Copy(sIP, 1, iPos - 1));
-    sIP := Copy(sIP, iPos + 1, 20);
-    iPos := Pos(IPJOIN, sIP);
-    aResult[3] := CheckIpNote(Copy(sIP, 1, iPos - 1));
-    aResult[4] := CheckIpNote(Copy(sIP, iPos + 1, 20));
-    Result := aResult[1] > 0;
-    if not Result then
-      raise Exception.Create('');
-  except
-    on E: Exception do
-    begin
-      raise Exception.Create(SCnErrorAddress + #13#10 + E.Message);
-    end;
-  end;
+  iPos := Pos(IPJOIN, aIP);
+  aResult[1] := CheckIpNote(Copy(aIP, 1, iPos - 1));
+  sIP := Copy(aIP, iPos + 1, 20);
+  iPos := Pos(IPJOIN, sIP);
+  aResult[2] := CheckIpNote(Copy(sIP, 1, iPos - 1));
+  sIP := Copy(sIP, iPos + 1, 20);
+  iPos := Pos(IPJOIN, sIP);
+  aResult[3] := CheckIpNote(Copy(sIP, 1, iPos - 1));
+  aResult[4] := CheckIpNote(Copy(sIP, iPos + 1, 20));
+  Result := aResult[1] > 0;
 end;
 
 function TCnIp.IntToIP(const aIP: Cardinal): string;
@@ -302,7 +295,7 @@ begin
   Result := 0;
   if IPTypeCheck(aIP) = iptNone then
   begin
-    raise Exception.Create(SCnErrorAddress);
+    //raise Exception.Create(SCnErrorAddress);
     Exit;
   end;
   if GetIPNotes(aIP, FNotes) then
@@ -528,13 +521,14 @@ begin
           pAddrInet := Buffer[iIP].iiBroadCastAddress.AddressIn;
           aLocalIP[iIP].BroadCast := IPToInt({$IFDEF DELPHI12_UP}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
           SetFlags := Buffer[iIP].iiFlags;
-          aLocalIP[iIP].State := (SetFlags and IFF_UP) = IFF_UP;
-          aLocalIP[iIP].OnLing := (SetFlags and IFF_LOOPBACK) = IFF_LOOPBACK;
-          aLocalIP[iIP].Supported := (SetFlags and IFF_BROADCAST) =
+          aLocalIP[iIP].UpState := (SetFlags and IFF_UP) = IFF_UP;
+          aLocalIP[iIP].Loopback := (SetFlags and IFF_LOOPBACK) = IFF_LOOPBACK;
+          aLocalIP[iIP].SupportBroadcast := (SetFlags and IFF_BROADCAST) =
             IFF_BROADCAST;
         end;
       end;
     except
+      ;
     end;
     CloseSocket(skLocal);
   finally
