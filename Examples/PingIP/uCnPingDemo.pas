@@ -176,12 +176,27 @@ const
     + '广播地址: %4:S' + #13#10
     + 'IP地址数: %5:D' + #13#10
     + '容纳的主机数: %6:D' + #13#10;
+var
+  I: Integer;
+  IpGroups: TIPGroup;
 begin
   CheckIP(TButton(Sender));
   IP.IPAddress := FLocalIP;
   statDemo.Panels[0].Text := '本机IP信息';
   redtIPInfo.Lines.Text := Format(IPINFO, [IP.ComputerName, IP.IPAddress,
     IP.SubnetMask, IP.MacAddress, IP.BroadCastIP, IP.LocalIPCount, IP.Hosts]);
+
+  IpGroups := IP.LocalIPGroup;
+  for I := Low(IpGroups) to High(IpGroups) do
+  begin
+    redtIPInfo.Lines.Add('================ ' + IntToStr(I));
+    redtIPInfo.Lines.Add(IP.IntToIP(IpGroups[I].IPAddress));
+    redtIPInfo.Lines.Add(IP.IntToIP(IpGroups[I].SubnetMask));
+    redtIPInfo.Lines.Add(IP.IntToIP(IpGroups[I].BroadCast));
+    redtIPInfo.Lines.Add('UpState ' + BoolToStr(IpGroups[I].UpState, True));
+    redtIPInfo.Lines.Add('Loopback ' + BoolToStr(IpGroups[I].Loopback, True));
+    redtIPInfo.Lines.Add('SupportBroadcast ' + BoolToStr(IpGroups[I].SupportBroadcast, True));
+  end;
 end;
 
 end.
