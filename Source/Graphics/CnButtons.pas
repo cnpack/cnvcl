@@ -938,7 +938,7 @@ begin
   DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DT_CENTER or DT_VCENTER);
   if not UseDisabledBitmap then
     DrawGlyph(Glyph, GlX, GlY, GlyphIndex, 0, GlyphWidth, GlyphHeight)
-  else
+  else if Glyph.Handle <> 0 then
   begin
     // DONE: 用 ImageList 来处理 GlyphIndex 0 来绘制生成的 Disable 图片
     if FImageList = nil then
