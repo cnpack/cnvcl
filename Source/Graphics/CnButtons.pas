@@ -561,12 +561,13 @@ var
   Offset: Integer;
   clBackColor: TColor;
   CapX, CapY, GlX, GlY: Integer;
-  aRect: TRect;
+  aRect, oRect: TRect;
   FArrowGlyph: TPicture;
   UseDisabledBitmap: Boolean;
   MonoBmp: TBitmap;
   OldBrushStyle: TBrushStyle;
   OldPenColor: TColor;
+  DrawStyle: LongInt;
 
   procedure DrawColorFade(StartColor, StopColor: TColor; Left, Top, Right, Bottom: Integer);
   var
@@ -934,16 +935,24 @@ begin
   end;
 
   aRect := Rect(CapX, CapY, CapX + CaptionWidth, CapY + CaptionHeight);
+  DrawStyle := DT_CENTER or DT_VCENTER or WordWraps[Wrap];
+
+  // calc rect, and if multi-line, re-adjust rect.
+  oRect := aRect;
+  DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DrawStyle or DT_CALCRECT);
+  OffsetRect(aRect, 0, (oRect.Bottom - aRect.Bottom) div 2);
+  OffsetRect(aRect, (oRect.Right - aRect.Right) div 2, 0);
+
   if not Enabled then
   begin
     OffsetRect(aRect, 1, 1);
     Canvas.Font.Color := clWhite;
-    DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DT_CENTER or DT_VCENTER or WordWraps[Wrap]);
+    DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DrawStyle);
     Canvas.Font.Color := clGray;
     OffsetRect(aRect, -1, -1);
   end;
 
-  DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DT_CENTER or DT_VCENTER or WordWraps[Wrap]);
+  DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DrawStyle);
   if not UseDisabledBitmap then
     DrawGlyph(Glyph, GlX, GlY, GlyphIndex, 0, GlyphWidth, GlyphHeight)
   else if Glyph.Handle <> 0 then
