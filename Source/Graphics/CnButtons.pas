@@ -221,6 +221,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
+    property WordWrap;
     property Name;
 
     property OnClick;
@@ -284,6 +285,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
+    property WordWrap;
     property Name;
 
     property OnClick;
