@@ -45,7 +45,7 @@ interface
 {$IFDEF SUPPORT_ADO}
 
 uses
-  Windows, Registry, Classes, SysUtils, DB, DBTables, IniFiles, Forms, Messages,
+  Windows, Registry, Classes, SysUtils, DB, IniFiles, Forms, Messages,
   Controls, Dialogs, Consts, DBConsts, CnDHibernateConsts, CnDHibernatePodoList,
   DBClient, TypInfo, ComObj, ActiveX, CnDHibernateCalc,
   xmldom, XMLIntf, msxmldom, XMLDoc, ComCtrls, CnDHibernateBase, ADODB;
@@ -53,6 +53,7 @@ uses
 type
 
   { TLocateObject }
+
   TCnLocateObject = class(TObject)
   private
     FDataSet: TDataSet;
@@ -88,6 +89,7 @@ type
 
 const
   CreateLocateObject: TCnCreateLocateObject = nil;
+
 function CreateLocate(DataSet: TDataSet): TCnLocateObject;
 
 { Utility routines }
