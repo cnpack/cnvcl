@@ -71,6 +71,9 @@ function CnOtaGetFileNameOfCurrentModule(GetSourceEditorFileName: Boolean = Fals
 function CnOtaGetCurrentModule: IOTAModule;
 {* 取当前模块}
 
+function GetIdeRootDirectory: string;
+{* 取得 IDE 根目录}
+
 function CnOtaIsFileOpen(const FileName: string): Boolean;
 {* 判断文件是否打开 }
 
@@ -88,6 +91,9 @@ function CnOtaGetActiveProjectOptionsConfigurations(Project: IOTAProject = nil):
 implementation
 
 { Other DesignTime Utils Routines }
+
+const
+  SCnIDEPathMacro = '{$DELPHI}';
 
 // 取当前工程组
 function CnOtaGetProjectGroup: IOTAProjectGroup;
@@ -219,6 +225,12 @@ begin
   Supports(BorlandIDEServices, IOTAModuleServices, iModuleServices);
   if iModuleServices <> nil then
     Result := iModuleServices.CurrentModule;
+end;
+
+// 取得 IDE 根目录
+function GetIdeRootDirectory: string;
+begin
+  Result := _CnExtractFilePath(_CnExtractFileDir(Application.ExeName));
 end;
 
 // 取模块编辑器
