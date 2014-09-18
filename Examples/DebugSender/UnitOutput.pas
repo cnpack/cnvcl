@@ -38,7 +38,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, UnitThread;
+  Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, UnitThread, Buttons,
+  ImgList;
 
 type
   TForm1 = class(TForm)
@@ -60,7 +61,6 @@ type
     btnEnter: TButton;
     btnLeave: TButton;
     Button3: TButton;
-    Bevel2: TBevel;
     edtInt: TEdit;
     udInt: TUpDown;
     btnSendInt: TButton;
@@ -85,6 +85,9 @@ type
     btnEvaColl: TButton;
     btnDatetime: TButton;
     btnFmtError: TButton;
+    btnEval: TBitBtn;
+    btnImageList: TButton;
+    ilTest: TImageList;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -113,6 +116,8 @@ type
     procedure edtMsgKeyPress(Sender: TObject; var Key: Char);
     procedure btnDatetimeClick(Sender: TObject);
     procedure btnFmtErrorClick(Sender: TObject);
+    procedure btnEvalClick(Sender: TObject);
+    procedure btnImageListClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -364,6 +369,16 @@ begin
     CnDebugger.TraceFmt('A Sample Error Format String: %d', [Caption])
   else
     CnDebugger.LogFmt('A Sample Error Format String: %d', [Caption]);
+end;
+
+procedure TForm1.btnEvalClick(Sender: TObject);
+begin
+  CnDebugger.EvaluateObject(Sender);
+end;
+
+procedure TForm1.btnImageListClick(Sender: TObject);
+begin
+  CnDebugger.EvaluateObject(ilTest);
 end;
 
 end.
