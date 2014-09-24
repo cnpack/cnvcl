@@ -452,7 +452,7 @@ object Form1: TForm1
           Height = 25
           Caption = 'File SM3'
           TabOrder = 2
-          OnClick = btnMd5FileClick
+          OnClick = btnFileSM3Click
         end
       end
     end

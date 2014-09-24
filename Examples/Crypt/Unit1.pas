@@ -81,6 +81,7 @@ type
     procedure btnSha1Click(Sender: TObject);
     procedure btnFileSha1Click(Sender: TObject);
     procedure btnSM3Click(Sender: TObject);
+    procedure btnFileSM3Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -199,17 +200,26 @@ end;
 procedure TForm1.btnSM3Click(Sender: TObject);
 var
   S: string;
-  D: TSM3Digest;
 begin
 {$IFDEF UNICODE}
   S := SM3Print(SM3(AnsiString(edtSm3.Text)));
 {$ELSE}
-  //S := SM3Print(SM3String(edtFrom.Text));
-  D := SM3String(edtSm3.Text);
-  S := SM3Print(D); // 光这句毫无问题
+  S := SM3Print(SM3String(edtSm3.Text));
 {$ENDIF}
   Insert(#13#10, S, 33);
   lblSm3Result.Caption := S;
+end;
+
+procedure TForm1.btnFileSM3Click(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := SM3Print(SM3File(OpenDialog1.FileName));
+    Insert(#13#10, S, 33);
+    lblSm3Result.Caption := S;
+  end;
 end;
 
 end.
