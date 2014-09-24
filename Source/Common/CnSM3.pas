@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Classes;
+  Windows, Classes, SysUtils;
 
 type
   TSM3Context = packed record
@@ -65,8 +65,11 @@ procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
 procedure SM3Finish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
 procedure SM3(Input: PAnsiChar; Length: LongWord; var Output: TSM3Digest);
-
-procedure SM3File(const FileName: string; var Output: TSM3Digest);
+{* 对数据块进行SM3计算
+ |<PRE>
+   Input: PAnsiChar  - 要计算的数据块
+   Length: LongWord  - 数据块长度
+ |</PRE>}
 
 procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
 
@@ -94,6 +97,14 @@ function SM3StringW(const Str: WideString): TSM3Digest;
 {* 对 WideString类型数据进行SM3转换
  |<PRE>
    Str: WideString       - 要计算的字符串
+ |</PRE>}
+
+function SM3File(const FileName: string;
+  CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
+{* 对指定文件数据进行SM3计算
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSM3PgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
 function SM3Print(const Digest: TSM3Digest): string;
@@ -386,11 +397,6 @@ begin
   SM3Finish(Ctx, Output);
 end;
 
-procedure SM3File(const FileName: string; var Output: TSM3Digest);
-begin
-
-end;
-
 procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
@@ -471,6 +477,134 @@ begin
   SM3Start(Context);
   SM3UpdateW(Context, PWideChar(Str), Length(Str));
   SM3Finish(Context, Result);
+end;
+
+function InternalSM3Stream(Stream: TStream; const BufSize: Cardinal; var D:
+  TSM3Digest; CallBack: TSM3CalcProgressFunc = nil): Boolean;
+var
+  Context: TSM3Context;
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+  CancelCalc: Boolean;
+begin
+  Result := False;
+  Size := Stream.Size;
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+  if Size = 0 then Exit;
+  if Size < BufSize then BufLen := Size
+  else BufLen := BufSize;
+
+  CancelCalc := False;
+  SM3Start(Context);
+  GetMem(Buf, BufLen);
+  try
+    Stream.Seek(0, soFromBeginning);
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        SM3Update(Context, Buf, ReadBytes);
+        if Assigned(CallBack) then
+        begin
+          CallBack(Size, TotalBytes, CancelCalc);
+          if CancelCalc then Exit;
+        end;
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    SM3Finish(Context, D);
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
+end;
+
+// 对指定文件数据进行SM3转换
+function SM3File(const FileName: string;
+  CallBack: TSM3CalcProgressFunc): TSM3Digest;
+var
+  FileHandle: THandle;
+  MapHandle: THandle;
+  ViewPointer: Pointer;
+  Context: TSM3Context;
+  Stream: TStream;
+
+  function FileSizeIsLargeThan2G(const AFileName: string): Boolean;
+  var
+    H: THandle;
+    Info: BY_HANDLE_FILE_INFORMATION;
+    Rec : Int64Rec;
+  begin
+    Result := False;
+    H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
+    if H = INVALID_HANDLE_VALUE then Exit;
+    try
+      if not GetFileInformationByHandle(H, Info) then Exit;
+    finally
+      CloseHandle(H);
+    end;
+    Rec.Lo := Info.nFileSizeLow;
+    Rec.Hi := Info.nFileSizeHigh;
+    Result := (Rec.Hi > 0) or (Rec.Lo > Cardinal(MaxInt));
+  end;
+
+begin
+  if FileSizeIsLargeThan2G(FileName) then
+  begin
+    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    try
+      InternalSM3Stream(Stream, 4096 * 1024, Result, CallBack);
+    finally
+      Stream.Free;
+    end;
+  end
+  else
+  begin
+    SM3Start(Context);
+    FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
+                  FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
+                  FILE_FLAG_SEQUENTIAL_SCAN, 0);
+    if FileHandle <> INVALID_HANDLE_VALUE then
+    begin
+      try
+        MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
+        if MapHandle <> 0 then
+        begin
+          try
+            ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
+            if ViewPointer <> nil then
+            begin
+              try
+                SM3Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
+              finally
+                UnmapViewOfFile(ViewPointer);
+              end;
+            end
+            else
+            begin
+              raise Exception.Create('MapViewOfFile Failed.');
+            end;
+          finally
+            CloseHandle(MapHandle);
+          end;
+        end
+        else
+        begin
+          raise Exception.Create('CreateFileMapping Failed.');
+        end;
+      finally
+        CloseHandle(FileHandle);
+      end;
+    end;
+    SM3Finish(Context, Result);
+  end;
 end;
 
 function SM3Print(const Digest: TSM3Digest): string;
