@@ -7,7 +7,8 @@ uses
   CnBase64 in '..\..\Source\Common\CnBase64.pas',
   CnCRC32 in '..\..\Source\Common\CnCRC32.pas',
   CnDES in '..\..\Source\Common\CnDES.pas',
-  CnSHA1 in '..\..\Source\Common\CnSHA1.pas';
+  CnSHA1 in '..\..\Source\Common\CnSHA1.pas',
+  CnSM3 in '..\..\Source\Common\CnSM3.pas';
 
 {$R *.RES}
 

@@ -965,6 +965,13 @@ begin
 
         DoAfterEvaluateControls;
       end;
+
+      // 如果是 ImageList，画其子图片
+      if ObjectInstance is TImageList then
+      begin
+        FGraphics.Graphic := ObjectInstance;
+        Include(FContentTypes, pctGraphics);
+      end;
     end
     else if (ObjectInstance is TGraphic) or (ObjectInstance is TPicture) then
     begin // 处理图像数据
@@ -1002,8 +1009,12 @@ begin
 end;
 
 procedure TCnPropSheetForm.InspectObject(Data: Pointer);
+const
+  IMG_MARGIN = 15;
+  IMG_INTERVAL = 30;
 var
-  I: Integer;
+  I, ImgTop, ImgLeft: Integer;
+  ImageList: TImageList;
 begin
   if ObjectInspectorClass = nil then
     Exit;
@@ -1106,6 +1117,27 @@ begin
     else if FGraphicObject is TGraphic then
     begin
       imgGraphic.Canvas.Draw(0, 0, FGraphicObject as TGraphic);
+    end
+    else if FGraphicObject is TImageList then
+    begin
+      if (FGraphicObject as TImageList).Count > 0 then
+      begin
+        // TODO: 根据 ImageList 尺寸以及 Image 尺寸来排版绘制
+        ImageList := FGraphicObject as TImageList;
+        ImgLeft := IMG_MARGIN;
+        ImgTop := IMG_MARGIN;
+
+        for I := 0 to ImageList.Count - 1 do
+        begin
+          ImageList.Draw(imgGraphic.Canvas, ImgLeft, ImgTop, I);
+          Inc(ImgLeft, ImageList.Width + IMG_INTERVAL);
+          if ImgLeft > imgGraphic.Width then
+          begin
+            Inc(ImgTop, ImageList.Height + IMG_INTERVAL);
+            ImgLeft := IMG_MARGIN;
+          end;
+        end;
+      end;
     end;
   end;
 
@@ -1200,6 +1232,7 @@ begin
     APanel.BevelOuter := bvNone;
     APanel.BevelInner := bvRaised;
     APanel.Parent := pnlHierarchy;
+    APanel.Color := clBtnFace;
     FHierPanels.Add(APanel);
   end;
   UpdatePanelPositions;

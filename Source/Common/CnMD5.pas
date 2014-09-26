@@ -44,8 +44,8 @@
 {                        This code is provided "as is" without express or      }
 {                     implied warranty of any kind. Use it at your own risk.   }
 {******************************************************************************}
-unit CnMD5;
 
+unit CnMD5;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
@@ -570,8 +570,11 @@ var
     Result := False;
     H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
     if H = INVALID_HANDLE_VALUE then Exit;
-    if not GetFileInformationByHandle(H, Info) then Exit;
-    CloseHandle(H);
+    try
+      if not GetFileInformationByHandle(H, Info) then Exit;
+    finally
+      CloseHandle(H);
+    end;
     Rec.Lo := Info.nFileSizeLow;
     Rec.Hi := Info.nFileSizeHigh;
     Result := (Rec.Hi > 0) or (Rec.Lo > Cardinal(MaxInt));

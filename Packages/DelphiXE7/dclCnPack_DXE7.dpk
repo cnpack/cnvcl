@@ -1,4 +1,4 @@
-package dclCnPack_DXE3;
+package dclCnPack_DXE7;
 
 {$R *.res}
 {$R '..\..\Source\Common\CnPack.dcr'}
@@ -37,7 +37,7 @@ requires
   dclado,
   adortl,
   designide,
-  CnPack_DXE3;
+  CnPack_DXE7;
 
 contains
   CnPack in '..\..\Source\Common\CnPack.pas',

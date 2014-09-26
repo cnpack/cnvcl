@@ -401,6 +401,61 @@ object Form1: TForm1
         end
       end
     end
+    object tsSM3: TTabSheet
+      Caption = 'SM3'
+      ImageIndex = 6
+      object grpSM3: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 297
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SM3'
+        TabOrder = 0
+        object lblSM3: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSm3Result: TLabel
+          Left = 16
+          Top = 136
+          Width = 273
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+        end
+        object edtSM3: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSM3: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SM3'
+          TabOrder = 1
+          OnClick = btnSM3Click
+        end
+        object btnFileSM3: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SM3'
+          TabOrder = 2
+          OnClick = btnFileSM3Click
+        end
+      end
+    end
   end
   object OpenDialog1: TOpenDialog
     Left = 220

@@ -60,6 +60,13 @@ type
     btnSha1: TButton;
     pnlSha1: TPanel;
     btnFileSha1: TButton;
+    tsSM3: TTabSheet;
+    grpSM3: TGroupBox;
+    lblSM3: TLabel;
+    edtSM3: TEdit;
+    btnSM3: TButton;
+    btnFileSM3: TButton;
+    lblSm3Result: TLabel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -73,6 +80,8 @@ type
     procedure btnFileCRC64Click(Sender: TObject);
     procedure btnSha1Click(Sender: TObject);
     procedure btnFileSha1Click(Sender: TObject);
+    procedure btnSM3Click(Sender: TObject);
+    procedure btnFileSM3Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -85,7 +94,7 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3;
 
 {$R *.DFM}
 
@@ -186,6 +195,31 @@ procedure TForm1.btnFileSha1Click(Sender: TObject);
 begin
   if OpenDialog1.Execute then
     pnlSha1.Caption := SHA1Print(SHA1File(OpenDialog1.FileName));
+end;
+
+procedure TForm1.btnSM3Click(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  S := SM3Print(SM3(AnsiString(edtSm3.Text)));
+{$ELSE}
+  S := SM3Print(SM3String(edtSm3.Text));
+{$ENDIF}
+  Insert(#13#10, S, 33);
+  lblSm3Result.Caption := S;
+end;
+
+procedure TForm1.btnFileSM3Click(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := SM3Print(SM3File(OpenDialog1.FileName));
+    Insert(#13#10, S, 33);
+    lblSm3Result.Caption := S;
+  end;
 end;
 
 end.

@@ -1,4 +1,4 @@
-package CnPack_DXE3;
+package CnPack_DXE7;
 
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
@@ -37,7 +37,6 @@ requires
   dsnap,
   xmlrtl,
   soaprtl,
-  {$IFNDEF WIN64}bdertl,{$ENDIF}
   vclsmp,
   fmx;
 
@@ -190,3 +189,4 @@ contains
   CnFmxUtils in '..\..\Source\Common\CnFmxUtils.pas';
 
 end.
+

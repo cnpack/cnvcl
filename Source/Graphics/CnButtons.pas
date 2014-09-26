@@ -29,7 +29,9 @@ unit CnButtons;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2013.07.24
+* 修改记录：2014.08.29
+*               增加WordWrap属性
+*           2013.07.24
 *               修正未处理Action的问题
 *           2013.07.03
 *               修补Glyph在某些BPL环境下宽高变为0从而出错的情况
@@ -69,7 +71,7 @@ type
     FLightColor: TColor;
     FModalResult: TModalResult;
     FNumGlyphs: Integer;
-
+    FWordWrap: Boolean;
     FOnClick: TNotifyEvent;
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
@@ -100,6 +102,7 @@ type
     procedure RenewBack;
     {* 刷新底部位图 *}
     procedure GlyphChanged(Sender: TObject);
+    procedure SetWordWrap(const Value: Boolean);
     {* 2009-06-05 添加，处理FGlyph的OnChange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
   protected
     procedure CreateParams(var Params: TCreateParams); override;
@@ -171,6 +174,8 @@ type
     {* 按钮绘制风格}
     property Spacing: Integer read FSpacing write SetSpacing default 4;
     {* 图标和文字之间的距离，以象素为单位，默认为 4}
+    property WordWrap: Boolean read FWordWrap write SetWordWrap default False;
+    {* 文字是否自动换行}
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
     property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
@@ -216,6 +221,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
+    property WordWrap;
     property Name;
 
     property OnClick;
@@ -279,6 +285,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
+    property WordWrap;
     property Name;
 
     property OnClick;
@@ -542,23 +549,25 @@ procedure PaintButton(Canvas: TCanvas; IsSpeedButton: Boolean;
   Glyph: TBitmap; Down, DownBold, HotTrackBold, CursorOnButton, Transparent, Enabled,
   PopupArrow, Focused, Default, FlatBorder, RoundCorner: Boolean; ModernBtnStyle: TModernBtnStyle;
   Color, DownColor, HotTrackColor, LightColor, ShadowColor: TColor;
-  Font: TFont; Layout: TButtonLayout; Caption: string; Alignment: TAlignment);
+  Font: TFont; Layout: TButtonLayout; Caption: string; Alignment: TAlignment; Wrap: Boolean);
 const
   clDeepShadow = $00404040;
   DownStyles: array[Boolean] of Integer = (BDR_RAISEDINNER, BDR_SUNKENOUTER);
   FillStyles: array[Boolean] of Integer = (BF_MIDDLE, 0);
+  WordWraps: array[Boolean] of Word = (0, DT_WORDBREAK);
 var
   CaptionHeight, CaptionWidth, GlyphHeight, GlyphWidth: Integer;
   GlyphIndex: Integer;
   Offset: Integer;
   clBackColor: TColor;
   CapX, CapY, GlX, GlY: Integer;
-  aRect: TRect;
+  aRect, oRect: TRect;
   FArrowGlyph: TPicture;
   UseDisabledBitmap: Boolean;
   MonoBmp: TBitmap;
   OldBrushStyle: TBrushStyle;
   OldPenColor: TColor;
+  DrawStyle: LongInt;
 
   procedure DrawColorFade(StartColor, StopColor: TColor; Left, Top, Right, Bottom: Integer);
   var
@@ -926,19 +935,27 @@ begin
   end;
 
   aRect := Rect(CapX, CapY, CapX + CaptionWidth, CapY + CaptionHeight);
+  DrawStyle := DT_CENTER or DT_VCENTER or WordWraps[Wrap];
+
+  // calc rect, and if multi-line, re-adjust rect.
+  oRect := aRect;
+  DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DrawStyle or DT_CALCRECT);
+  OffsetRect(aRect, 0, (oRect.Bottom - aRect.Bottom) div 2);
+  OffsetRect(aRect, (oRect.Right - aRect.Right) div 2, 0);
+
   if not Enabled then
   begin
     OffsetRect(aRect, 1, 1);
     Canvas.Font.Color := clWhite;
-    DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DT_CENTER or DT_VCENTER);
+    DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DrawStyle);
     Canvas.Font.Color := clGray;
     OffsetRect(aRect, -1, -1);
   end;
 
-  DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DT_CENTER or DT_VCENTER);
+  DrawText(Canvas.Handle, PChar(Caption), Length(Caption), aRect, DrawStyle);
   if not UseDisabledBitmap then
     DrawGlyph(Glyph, GlX, GlY, GlyphIndex, 0, GlyphWidth, GlyphHeight)
-  else
+  else if Glyph.Handle <> 0 then
   begin
     // DONE: 用 ImageList 来处理 GlyphIndex 0 来绘制生成的 Disable 图片
     if FImageList = nil then
@@ -1203,7 +1220,7 @@ begin
               FHotTrackBold, FCursorOnButton, False, Enabled,
               Assigned(PopupMenu), Focused, FDefault, FFlatBorder, FRoundCorner, FModernBtnStyle, Color, FDownColor,
               FHotTrackColor, FLightColor, FShadowColor, Font, FLayout,
-              Caption, FAlignment);
+              Caption, FAlignment, FWordWrap);
   end
   else // 其他模式采用一次性绘制，避免闪烁
   begin
@@ -1215,7 +1232,7 @@ begin
               FHotTrackBold, FCursorOnButton{ or Focused}, False, Enabled,
               Assigned(PopupMenu), Focused, FDefault, FFlatBorder, FRoundCorner, FModernBtnStyle, Color, FDownColor,
               FHotTrackColor, FLightColor, FShadowColor, Font, FLayout,
-              Caption, FAlignment);
+              Caption, FAlignment, FWordWrap);
 
     Canvas.Draw(0, 0, Bmp);
     Bmp.Free;
@@ -1570,6 +1587,11 @@ begin
   Invalidate;
 end;
 
+procedure TCnCustomButton.SetWordWrap(const Value: Boolean);
+begin
+  FWordWrap := Value;
+end;
+
 { TCnSpeedButton }
 
 constructor TCnSpeedButton.Create(AOwner: TComponent);
@@ -1679,7 +1701,7 @@ begin
               FHotTrackBold, CursorOnButton{ or Focused}, Transparent and (ModernBtnStyle <> bsModern), Enabled,
               Assigned(PopupMenu), False, False, FFlatBorder, FRoundCorner, FModernBtnStyle, Color, FDownColor,
               FHotTrackColor, FLightColor, FShadowColor, Font, FLayout,
-              Caption, FAlignment);
+              Caption, FAlignment, False);
 end;
 
 procedure TCnSpeedButton.UpdateTracking;
