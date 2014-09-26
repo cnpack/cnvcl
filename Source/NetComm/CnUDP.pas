@@ -43,6 +43,11 @@ interface
 uses
   Windows, Messages, Classes, SysUtils, WinSock, Forms, contnrs;
 
+const
+  csDefRecvBuffSize = 4096;
+  csDefUDPSendBuffSize = 256 * 1024;
+  csDefUDPRecvBuffSize = 256 * 1024;
+
 type
 
 //==============================================================================
@@ -72,17 +77,20 @@ type
     FOnDataReceived: TOnReceive;
     FListening: Boolean;
     Wait_Flag: Boolean;
-    RemoteAddress, RemoteAddress2: TSockAddr;
+    RemoteAddress: TSockAddr;
     RemoteHostS: PHostEnt;
     Succeed: Boolean;
     Procing: Boolean;
-    MyWSAData: TWSAData;
     EventHandle: THandle;
     ThisSocket: TSocket;
     Queue: TQueue;
     FLastError: Integer;
     FRecvBufSize: Cardinal;
     FRecvBuf: Pointer;
+    FBindAddr: string;
+    FSockCount: Integer;
+    FUDPSendBufSize: Cardinal;
+    FUDPRecvBufSize: Cardinal;
     procedure WndProc(var Message: TMessage);
     function ResolveRemoteHost(ARemoteHost: string): Boolean;
     procedure SetLocalPort(NewLocalPort: Integer);
@@ -94,6 +102,11 @@ type
     function GetLocalHost: string;
     procedure UpdateBinding;
     procedure SetRecvBufSize(const Value: Cardinal);
+    procedure SetBindAddr(const Value: string);
+    function SockStartup: Boolean;
+    procedure SockCleanup;
+    procedure SetUDPRecvBufSize(const Value: Cardinal);
+    procedure SetUDPSendBufSize(const Value: Cardinal);
   protected
     procedure Wait;
     procedure Loaded; override;
@@ -122,6 +135,8 @@ type
     {* 表示当前是否正在监听本地端口，只读属性}
     property QueueCount: Integer read GetQueueCount;
     {* 当前数据队列的长度，只读属性}
+    property BindAddr: string read FBindAddr write SetBindAddr;
+    {* 绑定本地地址}
   published
     property RemoteHost: string read FRemoteHost write FRemoteHost;
     {* 要发送 UDP 数据的目标主机地址}
@@ -131,8 +146,12 @@ type
     {* 返回本机 IP 地址，只读属性}
     property LocalPort: Integer read FLocalPort write SetLocalPort;
     {* 本地监听的端口号}
-    property RecvBufSize: Cardinal read FRecvBufSize write SetRecvBufSize default 2048;
-    {* 接收的数据缓冲区大小，默认 2048}
+    property RecvBufSize: Cardinal read FRecvBufSize write SetRecvBufSize default csDefRecvBuffSize;
+    {* 接收的数据缓冲区大小}
+    property UDPSendBufSize: Cardinal read FUDPSendBufSize write SetUDPSendBufSize default csDefUDPSendBuffSize;
+    {* UDP 发送的数据缓冲区大小}
+    property UDPRecvBufSize: Cardinal read FUDPRecvBufSize write SetUDPRecvBufSize default csDefUDPRecvBuffSize;
+    {* UDP 接收的数据缓冲区大小}
     property OnDataReceived: TOnReceive read FOnDataReceived write
       FOnDataReceived;
     {* 接收到 UDP 数据包事件}
@@ -274,18 +293,21 @@ begin
   Queue := TQueue.Create;
   FListening := False;
   Procing := False;
-  FRecvBufSize := 2048;
+  FRecvBufSize := csDefRecvBuffSize;
+  FUDPSendBufSize := csDefUDPSendBuffSize;
+  FUDPRecvBufSize := csDefUDPRecvBuffSize;
+  FBindAddr := '0.0.0.0';
 
   GetMem(RemoteHostS, MAXGETHOSTSTRUCT);
   FSocketWindow := AllocateHWND(WndProc);
   EventHandle := CreateEvent(nil, True, False, '');
-  if WSAStartup($0101, MyWSADATA) = 0 then
+  if SockStartup then
   begin
     ThisSocket := Socket(AF_INET, SOCK_DGRAM, 0);
     if ThisSocket = TSocket(INVALID_SOCKET) then
     begin
       SetupLastError;
-      WSACleanup;
+      SockCleanup;
       Exit;
     end;
     setsockopt(ThisSocket, SOL_SOCKET, SO_DONTLINGER, Const_cmd_true, 4);
@@ -310,35 +332,57 @@ begin
   if ThisSocket <> 0 then
     closesocket(ThisSocket);
   if FListening then
-    WSACleanup;
+    SockCleanup;
   inherited Destroy;
 end;
 
 procedure TCnUDP.UpdateBinding;
 var
   Data: DWORD;
+  Addr: TSockAddr;
 begin
   if not (csDesigning in ComponentState) then
   begin
     FListening := False;
-    RemoteAddress2.sin_addr.S_addr := Inet_Addr('0.0.0.0');
-    RemoteAddress2.sin_family := AF_INET;
-    RemoteAddress2.sin_port := htons(FLocalPort);
+
+    if ThisSocket <> 0 then
+    begin
+      closesocket(ThisSocket);
+      SockCleanup;
+    end;
+
+    if SockStartup then
+    begin
+      ThisSocket := Socket(AF_INET, SOCK_DGRAM, 0);
+      if ThisSocket = TSocket(INVALID_SOCKET) then
+      begin
+        SockCleanup;
+        SetupLastError;
+        Exit;
+      end;
+    end;
+
+    FillChar(Addr, SizeOf(Addr), 0);
+    Addr.sin_addr.S_addr := Inet_Addr(PAnsiChar(AnsiString(FBindAddr)));
+    Addr.sin_family := AF_INET;
+    Addr.sin_port := htons(FLocalPort);
     Wait_Flag := False;
-    if WinSock.Bind(ThisSocket, RemoteAddress2, SizeOf(RemoteAddress2)) =
+    if WinSock.Bind(ThisSocket, Addr, SizeOf(Addr)) =
       SOCKET_ERROR then
     begin
       SetupLastError;
-      WSACleanup;
+      SockCleanup;
       Exit;
     end;
+
     // Allow to send to 255.255.255.255
     Data := 1;
     WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_BROADCAST,
       PAnsiChar(@Data), SizeOf(Data));
-    Data := 256 * 1024;
+    Data := FUDPSendBufSize;
     WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_SNDBUF,
       PAnsiChar(@Data), SizeOf(Data));
+    Data := FUDPRecvBufSize;
     WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_RCVBUF,
       PAnsiChar(@Data), SizeOf(Data));
     WSAAsyncSelect(ThisSocket, FSocketWindow, WM_ASYNCHRONOUSPROCESS, FD_READ);
@@ -352,27 +396,21 @@ begin
   UpdateBinding;
 end;
 
+procedure TCnUDP.SetBindAddr(const Value: string);
+begin
+  if Value <> FBindAddr then
+  begin
+    FBindAddr := Value;
+    UpdateBinding;
+  end;
+end;
+
 procedure TCnUDP.SetLocalPort(NewLocalPort: Integer);
 begin
   if NewLocalPort <> FLocalPort then
   begin
-    FListening := False;
-    if ThisSocket <> 0 then
-      closesocket(ThisSocket);
-    WSACleanup;
-    if WSAStartup($0101, MyWSADATA) = 0 then
-    begin
-      ThisSocket := Socket(AF_INET, SOCK_DGRAM, 0);
-      if ThisSocket = TSocket(INVALID_SOCKET) then
-      begin
-        WSACleanup;
-        SetupLastError;
-        Exit;
-      end;
-    end;
     FLocalPort := NewLocalPort;
-    if not (csLoading in ComponentState) then
-      UpdateBinding;
+    UpdateBinding;
   end;
 end;
 
@@ -619,21 +657,42 @@ begin
   FLastError := WSAGetLastError;
 end;
 
+procedure TCnUDP.SockCleanup;
+begin
+  if FSockCount > 0 then
+  begin
+    Dec(FSockCount);
+    if FSockCount = 0 then
+      WSACleanup;
+  end;
+end;
+
+function TCnUDP.SockStartup: Boolean;
+var
+  wsaData: TWSAData;
+begin
+  if FSockCount = 0 then
+  begin
+    Result := WSAStartup($0101, wsaData) = 0;
+    if not Result then
+      Exit;
+  end;
+  Inc(FSockCount);
+  Result := True;
+end;
+
 function TCnUDP.GetLocalHost: string;
 var
-  wVersionRequested: WORD;
-  wsaData: TWSAData;
   p: PHostEnt;
   s: array[0..256] of AnsiChar;
 begin
-  wVersionRequested := MAKEWORD(1, 1);
-  WSAStartup(wVersionRequested, wsaData);
+  SockStartup;
   try
     GetHostName(@s, 256);
     p := GetHostByName(@s);
     Result := string(inet_ntoa(PInAddr(p^.h_addr_list^)^));
   finally
-    WSACleanup;
+    SockCleanup;
   end;
 end;
 
@@ -648,6 +707,32 @@ begin
       FreeMem(FRecvBuf);
       FRecvBuf := nil;
     end;  
+  end;
+end;
+
+procedure TCnUDP.SetUDPRecvBufSize(const Value: Cardinal);
+var
+  Data: DWORD;
+begin
+  FUDPRecvBufSize := Value;
+  if FListening then
+  begin
+    Data := FUDPRecvBufSize;
+    WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_RCVBUF,
+      PAnsiChar(@Data), SizeOf(Data));
+  end;
+end;
+
+procedure TCnUDP.SetUDPSendBufSize(const Value: Cardinal);
+var
+  Data: DWORD;
+begin
+  FUDPSendBufSize := Value;
+  if FListening then
+  begin
+    Data := FUDPSendBufSize;
+    WinSock.setsockopt(ThisSocket, SOL_SOCKET, SO_SNDBUF,
+      PAnsiChar(@Data), SizeOf(Data));
   end;
 end;
 
