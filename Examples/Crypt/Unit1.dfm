@@ -21,14 +21,14 @@ object Form1: TForm1
     Top = 24
     Width = 353
     Height = 361
-    ActivePage = ts1
+    ActivePage = tsSM4
     TabOrder = 0
     object ts1: TTabSheet
       Caption = 'DES'
       object grpdES: TGroupBox
         Left = 24
         Top = 24
-        Width = 305
+        Width = 297
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'DES'
@@ -61,7 +61,7 @@ object Form1: TForm1
           Height = 13
           Caption = 'Origin:'
         end
-        object edt1: TEdit
+        object edtDesFrom: TEdit
           Left = 72
           Top = 32
           Width = 169
@@ -453,6 +453,95 @@ object Form1: TForm1
           Caption = 'File SM3'
           TabOrder = 2
           OnClick = btnFileSM3Click
+        end
+      end
+    end
+    object tsSM4: TTabSheet
+      Caption = 'SM4'
+      ImageIndex = 7
+      object grpSM4: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 297
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SM3'
+        TabOrder = 0
+        object lblSm4: TLabel
+          Left = 24
+          Top = 36
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSm4Key: TLabel
+          Left = 24
+          Top = 72
+          Width = 22
+          Height = 13
+          Caption = 'Key:'
+        end
+        object lblSm4Dec: TLabel
+          Left = 24
+          Top = 248
+          Width = 32
+          Height = 13
+          Caption = 'Origin:'
+        end
+        object lblSm4Code: TLabel
+          Left = 24
+          Top = 164
+          Width = 29
+          Height = 13
+          Caption = 'Code:'
+        end
+        object edtSm4: TEdit
+          Left = 72
+          Top = 32
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSm4: TButton
+          Left = 72
+          Top = 112
+          Width = 75
+          Height = 25
+          Caption = 'SM4 Encrypt'
+          TabOrder = 2
+          OnClick = btnSm4Click
+        end
+        object edtSm4Key: TEdit
+          Left = 72
+          Top = 72
+          Width = 169
+          Height = 21
+          TabOrder = 1
+          Text = '123456'
+        end
+        object edtSm4Dec: TEdit
+          Left = 72
+          Top = 244
+          Width = 169
+          Height = 21
+          TabOrder = 5
+        end
+        object btnSm4Dec: TButton
+          Left = 72
+          Top = 200
+          Width = 75
+          Height = 25
+          Caption = 'SM4 Decrypt'
+          TabOrder = 4
+          OnClick = btnSm4DecClick
+        end
+        object edtSm4Code: TEdit
+          Left = 72
+          Top = 160
+          Width = 169
+          Height = 21
+          TabOrder = 3
         end
       end
     end

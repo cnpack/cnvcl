@@ -16,7 +16,7 @@ type
     lblKey: TLabel;
     lblCode: TLabel;
     lblOrigin: TLabel;
-    edt1: TEdit;
+    edtDesFrom: TEdit;
     edtKey: TEdit;
     btnDesCrypt: TButton;
     edtCode: TEdit;
@@ -67,6 +67,18 @@ type
     btnSM3: TButton;
     btnFileSM3: TButton;
     lblSm3Result: TLabel;
+    tsSM4: TTabSheet;
+    grpSM4: TGroupBox;
+    lblSm4: TLabel;
+    edtSm4: TEdit;
+    btnSm4: TButton;
+    edtSm4Key: TEdit;
+    lblSm4Key: TLabel;
+    edtSm4Dec: TEdit;
+    btnSm4Dec: TButton;
+    lblSm4Dec: TLabel;
+    edtSm4Code: TEdit;
+    lblSm4Code: TLabel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -82,8 +94,12 @@ type
     procedure btnFileSha1Click(Sender: TObject);
     procedure btnSM3Click(Sender: TObject);
     procedure btnFileSM3Click(Sender: TObject);
+    procedure btnSm4Click(Sender: TObject);
+    procedure btnSm4DecClick(Sender: TObject);
   private
     { Private declarations }
+    function ToHex(Buffer: PAnsiChar; Length: Integer): string;
+    function HexToStr(Hex: string): string;
   public
     { Public declarations }
   end;
@@ -94,7 +110,7 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4;
 
 {$R *.DFM}
 
@@ -109,7 +125,7 @@ end;
 
 procedure TForm1.btnDesCryptClick(Sender: TObject);
 begin
-  edtCode.Text := DESEncryptStrToHex(edt1.Text, edtKey.Text);
+  edtCode.Text := DESEncryptStrToHex(edtDesFrom.Text, edtKey.Text);
 end;
 
 procedure TForm1.btnDesDecryptClick(Sender: TObject);
@@ -219,6 +235,107 @@ begin
     S := SM3Print(SM3File(OpenDialog1.FileName));
     Insert(#13#10, S, 33);
     lblSm3Result.Caption := S;
+  end;
+end;
+
+//var
+//  Sm4Input: array[0..15] of Byte = (
+//    $01, $23, $45, $67, $89, $AB, $CD, $EF,
+//    $FE, $DC, $BA, $98, $76, $54, $32, $10
+//  );
+//  Sm4Key: array[0..15] of Byte = (
+//    $01, $23, $45, $67, $89, $AB, $CD, $EF,
+//    $FE, $DC, $BA, $98, $76, $54, $32, $10
+//  );
+
+procedure TForm1.btnSm4Click(Sender: TObject);
+var
+  Output: AnsiString;
+  Len: Integer;
+//  Ctx: TSM4Context;
+begin
+//  SM4SetKeyEnc(Ctx, @(Sm4Key[0]));
+//  SM4CryptEcb(Ctx, SM4_ENCRYPT, 16, @(Sm4Input[0]), @(Output[0]));
+//
+//  lblSm4Text.Caption := ToHex(@(Output[0]), SizeOf(Output));
+//
+//  SM4SetKeyDec(Ctx, @(Sm4Key[0]));
+//  SM4CryptEcb(Ctx, SM4_DECRYPT, 16, @(Output[0]), @(Output[0]));
+//
+//  lblSm4Text.Caption := ToHex(@(Output[0]), SizeOf(Output));
+
+  Len := Length(edtSm4.Text);
+  if Len < 16 then
+    Len := 16;
+  SetLength(Output, Len);
+  SM4CryptEcbStr(SM4_ENCRYPT, edtSm4Key.Text, edtSm4.Text, @(Output[1]));
+  edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
+end;
+
+function TForm1.ToHex(Buffer: PAnsiChar; Length: Integer): string;
+const
+  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+var
+  I: Integer;
+  B: Byte;
+begin
+  Result := '';
+  for I := 0 to Length - 1 do
+  begin
+    B := PByte(Integer(Buffer) + I)^;
+    Result := Result + {$IFDEF DELPHI12_UP}string{$ENDIF}
+      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+end;
+
+procedure TForm1.btnSm4DecClick(Sender: TObject);
+var
+  S: string;
+  Output: AnsiString;
+  Len: Integer;
+//  Ctx: TSM4Context;
+begin
+  S := HexToStr(edtSm4Code.Text);
+  Len := Length(S);
+  if Len < 16 then
+    Len := 16;
+  SetLength(Output, Len);
+
+  SM4CryptEcbStr(SM4_DECRYPT, edtSm4Key.Text, S, @(Output[1]));
+  edtSm4Dec.Text := Output;
+end;
+
+function HexToInt(Hex: AnsiString): Integer;
+var
+  I, Res: Integer;
+  ch: AnsiChar;
+begin
+  Res := 0;
+  for I := 0 to Length(Hex) - 1 do
+  begin
+    ch := Hex[I + 1];
+    if (ch >= '0') and (ch <= '9') then
+      Res := Res * 16 + Ord(ch) - Ord('0')
+    else if (ch >= 'A') and (ch <= 'F') then
+      Res := Res * 16 + Ord(ch) - Ord('A') + 10
+    else if (ch >= 'a') and (ch <= 'f') then
+      Res := Res * 16 + Ord(ch) - Ord('a') + 10
+    else raise Exception.Create('Error: not a Hex String');
+  end;
+  Result := Res;
+end;
+
+function TForm1.HexToStr(Hex: string): string;
+var
+  S: string;
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Length(Hex) div 2 - 1 do
+  begin
+    S := Copy(Hex, I * 2 + 1, 2);
+    Result := Result + AnsiChar(HexToInt(S));
   end;
 end;
 
