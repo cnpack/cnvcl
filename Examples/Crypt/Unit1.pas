@@ -100,7 +100,7 @@ type
     procedure btnSm4DecClick(Sender: TObject);
   private
     { Private declarations }
-    function ToHex(Buffer: PAnsiChar; Length: Integer): string;
+    function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
     function HexToStr(Hex: string): string;
   public
     { Public declarations }
@@ -308,12 +308,12 @@ end;
 
 procedure TForm1.btnSm4DecClick(Sender: TObject);
 var
-  S: string;
+  S: AnsiString;
   Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..15] of Byte;
 begin
-  S := HexToStr(edtSm4Code.Text);
+  S := AnsiString(HexToStr(edtSm4Code.Text));
   Len := Length(S);
   if Len < 16 then
     Len := 16;
@@ -349,7 +349,7 @@ begin
   Result := Res;
 end;
 
-function TForm1.HexToStr(Hex: string): string;
+function TForm1.HexToStr(Hex: string): AnsiString;
 var
   S: string;
   I: Integer;
