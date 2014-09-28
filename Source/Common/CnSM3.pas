@@ -64,8 +64,8 @@ procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
 
 procedure SM3Finish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
-procedure SM3(Input: PAnsiChar; Length: LongWord; var Output: TSM3Digest);
-{* 对数据块进行SM3计算
+function SM3(Input: PAnsiChar; Length: LongWord): TSM3Digest;
+{* 对数据块进行 SM3 计算
  |<PRE>
    Input: PAnsiChar  - 要计算的数据块
    Length: LongWord  - 数据块长度
@@ -81,36 +81,36 @@ procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   Length: LongWord; var Output: TSM3Digest);
 
 function SM3String(const Str: string): TSM3Digest;
-{* 对String类型数据进行SM3转换，注意D2009或以上版本的string为UnicodeString，
+{* 对 String 类型数据进行 SM3 计算，注意D2009或以上版本的string为UnicodeString，
    因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SM3StringA(const Str: AnsiString): TSM3Digest;
-{* 对AnsiString类型数据进行SM3转换
+{* 对 AnsiString 类型数据进行 SM3 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SM3StringW(const Str: WideString): TSM3Digest;
-{* 对 WideString类型数据进行SM3转换
+{* 对 WideString 类型数据进行 SM3 计算
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SM3File(const FileName: string;
   CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
-{* 对指定文件数据进行SM3计算
+{* 对指定文件数据进行 SM3 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSM3PgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
 function SM3Print(const Digest: TSM3Digest): string;
-{* 以十六进制格式输出SM3计算值
+{* 以十六进制格式输出 SM3 计算值
  |<PRE>
-   Digest: TSM3Digest  - 指定的SM3计算值
+   Digest: TSM3Digest  - 指定的 SM3 计算值
  |</PRE>}
  
 implementation
@@ -388,13 +388,13 @@ begin
   PutULongBe( Ctx.State[7], @Output, 28 );
 end;
 
-procedure SM3(Input: PAnsiChar; Length: LongWord; var Output: TSM3Digest);
+function SM3(Input: PAnsiChar; Length: LongWord): TSM3Digest;
 var
   Ctx: TSM3Context;
 begin
   SM3Start(Ctx);
   SM3Update(Ctx, Input, Length);
-  SM3Finish(Ctx, Output);
+  SM3Finish(Ctx, Result);
 end;
 
 procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
@@ -404,7 +404,7 @@ var
 begin
   if KeyLength > 64 then
   begin
-    SM3(Key, KeyLength, Sum);
+    Sum := SM3(Key, KeyLength);
     KeyLength := 32;
     Key := @(Sum[0]);
   end;
