@@ -220,7 +220,8 @@ var
   S: string;
 begin
 {$IFDEF UNICODE}
-  S := SM3Print(SM3(AnsiString(edtSm3.Text)));
+  S := SM3Print(SM3(PAnsiChar(AnsiString(edtSm3.Text)),
+    Length(AnsiString(edtSm3.Text))));
 {$ELSE}
   S := SM3Print(SM3String(edtSm3.Text));
 {$ENDIF}
