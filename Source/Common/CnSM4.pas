@@ -62,6 +62,17 @@ procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
   Output   output 输出区，其长度必须大于或等于 Input 的长度
  |</PRE>}
 
+procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString;
+  Iv: PAnsiChar; Input: AnsiString; Output: PAnsiChar);
+{* SM4-CBC 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Mode     SM4_ENCRYPT 或 SM4_DECRYPT
+  Key      16 字节密码，太长则截断，不足则补#0
+  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input string
+  Output   output 输出区，其长度必须大于或等于 Input 的长度
+ |</PRE>}
+
 procedure SM4SetKeyEnc(var Ctx: TSM4Context; Key: PAnsiChar);
 {* 使用密钥 Key 进行 SM4 加密初始化
  |<PRE>
@@ -284,7 +295,7 @@ end;
 procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
   Input: AnsiString; Output: PAnsiChar);
 var
-  Ctx: TSM4Context; 
+  Ctx: TSM4Context;
 begin
   if Length(Key) < 16 then
     while Length(Key) < 16 do Key := Key + Chr(0) // 16 bytes at least padding 0.
@@ -312,6 +323,28 @@ begin
     Inc(Input, 16);
     Inc(Output, 16);
     Dec(Length, 16);
+  end;
+end;
+
+procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString; Iv: PAnsiChar;
+  Input: AnsiString; Output: PAnsiChar);
+var
+  Ctx: TSM4Context;
+begin
+  if Length(Key) < 16 then
+    while Length(Key) < 16 do Key := Key + Chr(0) // 16 bytes at least padding 0.
+  else if Length(Key) > 16 then
+    Key := Copy(Key, 1, 16);  // Only keep 16
+
+  if Mode = SM4_ENCRYPT then
+  begin
+    SM4SetKeyEnc(Ctx, @(Key[1]));
+    SM4CryptCbc(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[1]), @(Output[0]));
+  end
+  else if Mode = SM4_DECRYPT then
+  begin
+    SM4SetKeyDec(Ctx, @(Key[1]));
+    SM4CryptCbc(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[1]), @(Output[0]));
   end;
 end;
 
