@@ -58,8 +58,8 @@ procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
  |<PRE>
   Mode     SM4_ENCRYPT 或 SM4_DECRYPT
   Key      16 字节密码，太长则截断，不足则补#0
-  Input    input string
-  Output   output 输出区，其长度必须大于或等于 Input 的长度
+  Input    input 字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
 procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString;
@@ -70,7 +70,7 @@ procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString;
   Key      16 字节密码，太长则截断，不足则补#0
   Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
   Input    input string
-  Output   output 输出区，其长度必须大于或等于 Input 的长度
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
 procedure SM4SetKeyEnc(var Ctx: TSM4Context; Key: PAnsiChar);
@@ -93,9 +93,9 @@ procedure SM4CryptEcb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
  |<PRE>
   Ctx      SM4 context
   Mode     SM4_ENCRYPT or SM4_DECRYPT
-  Length   length of the input data
+  Length   length of the input data，必须 16 的整数倍
   Input    input block
-  Output   output block
+  Output   output block，其容量必须长于或等于 Length
  |</PRE>}
 
 procedure SM4CryptCbc(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
@@ -104,10 +104,10 @@ procedure SM4CryptCbc(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
  |<PRE>
   Ctx      SM4 context
   Mode     SM4_ENCRYPT or SM4_DECRYPT
-  Length   length of the input data
+  Length   length of the input data，必须 16 的整数倍
   Iv       16-byte initialization vector (updated after use)
   Input    input block
-  Output   output block
+  Output   output block，其容量必须长于或等于 Length
  |</PRE>}
 
 implementation
@@ -316,10 +316,22 @@ end;
 
 procedure SM4CryptEcb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Input: PAnsiChar; Output: PAnsiChar);
+var
+  EndBuf: array[0..15] of Byte;
 begin
   while Length > 0 do
   begin
-    SM4OneRound(@(Ctx.Sk[0]), Input, Output);
+    if Length >= 16 then
+    begin
+      SM4OneRound(@(Ctx.Sk[0]), Input, Output);
+    end
+    else
+    begin
+      // 尾部不足 16，补 0
+      ZeroMemory(@(EndBuf[0]), 16);
+      CopyMemory(@(EndBuf[0]), Input, Length);
+      SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
+    end;
     Inc(Input, 16);
     Inc(Output, 16);
     Dec(Length, 16);
@@ -381,7 +393,7 @@ begin
         (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
           xor (PByte(Integer(Iv) + I))^;
 
-      CopyMemory(@(Iv[0]), @(Temp[0]), 16);
+      CopyMemory(@(Iv[0]), Input, 16);
       Inc(Input, 16);
       Inc(Output, 16);
       Dec(Length, 16);
