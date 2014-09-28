@@ -101,7 +101,7 @@ type
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
-    function HexToStr(Hex: string): string;
+    function HexToStr(Hex: string): AnsiString;
   public
     { Public declarations }
   end;
@@ -289,7 +289,7 @@ begin
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
 
-function TForm1.ToHex(Buffer: PAnsiChar; Length: Integer): string;
+function TForm1.ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
 const
   Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
                                   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
