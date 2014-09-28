@@ -21,9 +21,9 @@ object Form1: TForm1
     Top = 24
     Width = 353
     Height = 361
-    ActivePage = tsSM4
+    ActivePage = tsDES
     TabOrder = 0
-    object ts1: TTabSheet
+    object tsDES: TTabSheet
       Caption = 'DES'
       object grpdES: TGroupBox
         Left = 24
@@ -111,7 +111,7 @@ object Form1: TForm1
         end
       end
     end
-    object ts2: TTabSheet
+    object tsMD5: TTabSheet
       Caption = 'MD5'
       ImageIndex = 1
       object grpMd5: TGroupBox
@@ -165,7 +165,7 @@ object Form1: TForm1
         end
       end
     end
-    object ts3: TTabSheet
+    object tsBase64: TTabSheet
       Caption = 'Base64'
       ImageIndex = 2
       object GroupBox1: TGroupBox
@@ -293,7 +293,7 @@ object Form1: TForm1
         end
       end
     end
-    object ts64: TTabSheet
+    object tsCRC64: TTabSheet
       Caption = 'CRC64'
       ImageIndex = 4
       object grp1: TGroupBox
@@ -542,6 +542,24 @@ object Form1: TForm1
           Width = 169
           Height = 21
           TabOrder = 3
+        end
+        object rbSm4Ecb: TRadioButton
+          Left = 168
+          Top = 116
+          Width = 57
+          Height = 17
+          Caption = 'ECB'
+          TabOrder = 6
+        end
+        object rbSm4CBC: TRadioButton
+          Left = 232
+          Top = 116
+          Width = 57
+          Height = 17
+          Caption = 'CBC'
+          Checked = True
+          TabOrder = 7
+          TabStop = True
         end
       end
     end

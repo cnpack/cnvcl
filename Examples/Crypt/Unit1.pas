@@ -9,8 +9,8 @@ uses
 type
   TForm1 = class(TForm)
     PageControl1: TPageControl;
-    ts1: TTabSheet;
-    ts2: TTabSheet;
+    tsDES: TTabSheet;
+    tsMD5: TTabSheet;
     grpdES: TGroupBox;
     lbl1: TLabel;
     lblKey: TLabel;
@@ -27,7 +27,7 @@ type
     edtFrom: TEdit;
     btnMd5: TButton;
     pnlMd5: TPanel;
-    ts3: TTabSheet;
+    tsBase64: TTabSheet;
     GroupBox1: TGroupBox;
     lbl2: TLabel;
     edtBase64from: TEdit;
@@ -46,7 +46,7 @@ type
     btnMd5File: TButton;
     OpenDialog1: TOpenDialog;
     btnFileCRC32: TButton;
-    ts64: TTabSheet;
+    tsCRC64: TTabSheet;
     grp1: TGroupBox;
     lbl5: TLabel;
     edtCRC64: TEdit;
@@ -79,6 +79,8 @@ type
     lblSm4Dec: TLabel;
     edtSm4Code: TEdit;
     lblSm4Code: TLabel;
+    rbSm4Ecb: TRadioButton;
+    rbSm4CBC: TRadioButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -248,10 +250,17 @@ end;
 //    $FE, $DC, $BA, $98, $76, $54, $32, $10
 //  );
 
+var
+  Sm4Iv: array[0..15] of Byte = (
+    $01, $23, $45, $67, $89, $AB, $CD, $EF,
+    $FE, $DC, $BA, $98, $76, $54, $32, $10
+  );
+
 procedure TForm1.btnSm4Click(Sender: TObject);
 var
   Output: AnsiString;
   Len: Integer;
+  TmpSm4Iv: array[0..15] of Byte;
 //  Ctx: TSM4Context;
 begin
 //  SM4SetKeyEnc(Ctx, @(Sm4Key[0]));
@@ -268,7 +277,14 @@ begin
   if Len < 16 then
     Len := 16;
   SetLength(Output, Len);
-  SM4CryptEcbStr(SM4_ENCRYPT, edtSm4Key.Text, edtSm4.Text, @(Output[1]));
+
+  if rbSm4Ecb.Checked then
+    SM4CryptEcbStr(SM4_ENCRYPT, edtSm4Key.Text, edtSm4.Text, @(Output[1]))
+  else
+  begin
+    CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+    SM4CryptCbcStr(SM4_ENCRYPT, edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
+  end;
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
 
@@ -294,7 +310,7 @@ var
   S: string;
   Output: AnsiString;
   Len: Integer;
-//  Ctx: TSM4Context;
+  TmpSm4Iv: array[0..15] of Byte;
 begin
   S := HexToStr(edtSm4Code.Text);
   Len := Length(S);
@@ -302,7 +318,13 @@ begin
     Len := 16;
   SetLength(Output, Len);
 
-  SM4CryptEcbStr(SM4_DECRYPT, edtSm4Key.Text, S, @(Output[1]));
+  if rbSm4Ecb.Checked then
+    SM4CryptEcbStr(SM4_DECRYPT, edtSm4Key.Text, S, @(Output[1]))
+  else
+  begin
+    CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+    SM4CryptCbcStr(SM4_DECRYPT, edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
+  end;
   edtSm4Dec.Text := Output;
 end;
 
