@@ -46,10 +46,13 @@ const
   SM4_ENCRYPT = 1;
   SM4_DECRYPT = 0;
 
+  SM4_KEYSIZE = 16;
+  SM4_BLOCKSIZE = 16;
+
 type
   TSM4Context = packed record
     Mode: Integer;              {!<  encrypt/decrypt   }
-    Sk: array[0..31] of DWORD;  {!<  SM4 subkeys       }
+    Sk: array[0..SM4_KEYSIZE * 2 - 1] of DWORD;  {!<  SM4 subkeys       }
   end;
 
 procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
@@ -113,7 +116,7 @@ procedure SM4CryptCbc(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
 implementation
 
 const
-  SBoxTable: array[0..15] of array[0..15] of Byte = (
+  SBoxTable: array[0..SM4_KEYSIZE - 1] of array[0..SM4_KEYSIZE - 1] of Byte = (
     ($D6, $90, $E9, $FE, $CC, $E1, $3D, $B7, $16, $B6, $14, $C2, $28, $FB, $2C, $05),
     ($2B, $67, $9A, $76, $2A, $BE, $04, $C3, $AA, $44, $13, $26, $49, $86, $06, $99),
     ($9C, $42, $50, $F4, $91, $EF, $98, $7A, $33, $54, $0B, $43, $ED, $CF, $AC, $62),
@@ -134,7 +137,7 @@ const
 
   FK: array[0..3] of DWORD = ($3B1BAC6, $56AA3350, $677D9197, $B27022DC);
 
-  CK: array[0..31] of DWORD = (
+  CK: array[0..SM4_KEYSIZE * 2 - 1] of DWORD = (
     $00070E15, $1C232A31, $383F464D, $545B6269,
     $70777E85, $8C939AA1, $A8AFB6BD, $C4CBD2D9,
     $E0E7EEF5, $FC030A11, $181F262D, $343B4249,
@@ -288,7 +291,7 @@ begin
   Ctx.Mode := SM4_DECRYPT;
   SM4SetKey(@(Ctx.Sk[0]), Key);
 
-  for I := 0 to 15 do
+  for I := 0 to SM4_KEYSIZE - 1 do
     Swap(Ctx.Sk[I], Ctx.Sk[31 - I]);
 end;
 
@@ -297,10 +300,10 @@ procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
 var
   Ctx: TSM4Context;
 begin
-  if Length(Key) < 16 then
-    while Length(Key) < 16 do Key := Key + Chr(0) // 16 bytes at least padding 0.
-  else if Length(Key) > 16 then
-    Key := Copy(Key, 1, 16);  // Only keep 16
+  if Length(Key) < SM4_KEYSIZE then
+    while Length(Key) < SM4_KEYSIZE do Key := Key + Chr(0) // 16 bytes at least padding 0.
+  else if Length(Key) > SM4_KEYSIZE then
+    Key := Copy(Key, 1, SM4_KEYSIZE);  // Only keep 16
 
   if Mode = SM4_ENCRYPT then
   begin
@@ -317,24 +320,24 @@ end;
 procedure SM4CryptEcb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Input: PAnsiChar; Output: PAnsiChar);
 var
-  EndBuf: array[0..15] of Byte;
+  EndBuf: array[0..SM4_BLOCKSIZE - 1] of Byte;
 begin
   while Length > 0 do
   begin
-    if Length >= 16 then
+    if Length >= SM4_BLOCKSIZE then
     begin
       SM4OneRound(@(Ctx.Sk[0]), Input, Output);
     end
     else
     begin
       // 尾部不足 16，补 0
-      ZeroMemory(@(EndBuf[0]), 16);
+      ZeroMemory(@(EndBuf[0]), SM4_BLOCKSIZE);
       CopyMemory(@(EndBuf[0]), Input, Length);
       SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
     end;
-    Inc(Input, 16);
-    Inc(Output, 16);
-    Dec(Length, 16);
+    Inc(Input, SM4_BLOCKSIZE);
+    Inc(Output, SM4_BLOCKSIZE);
+    Dec(Length, SM4_BLOCKSIZE);
   end;
 end;
 
@@ -343,10 +346,10 @@ procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString; Iv: PAnsiChar;
 var
   Ctx: TSM4Context;
 begin
-  if Length(Key) < 16 then
-    while Length(Key) < 16 do Key := Key + Chr(0) // 16 bytes at least padding 0.
-  else if Length(Key) > 16 then
-    Key := Copy(Key, 1, 16);  // Only keep 16
+  if Length(Key) < SM4_KEYSIZE then
+    while Length(Key) < SM4_KEYSIZE do Key := Key + Chr(0) // 16 bytes at least padding 0.
+  else if Length(Key) > SM4_KEYSIZE then
+    Key := Copy(Key, 1, SM4_KEYSIZE);  // Only keep 16
 
   if Mode = SM4_ENCRYPT then
   begin
@@ -364,39 +367,73 @@ procedure SM4CryptCbc(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Iv: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar);
 var
   I: Integer;
-  Temp: array [0..15] of Byte;
+  EndBuf: array[0..SM4_BLOCKSIZE - 1] of Byte;
 begin
   if Mode = SM4_ENCRYPT then
   begin
     while Length > 0 do
     begin
-      for I := 0 to 15 do
-        (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
-          xor (PByte(Integer(Iv) + I))^;
+      if Length >= SM4_BLOCKSIZE then
+      begin
+        for I := 0 to SM4_BLOCKSIZE - 1 do
+          (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
+            xor (PByte(Integer(Iv) + I))^;
 
-      SM4OneRound(@(Ctx.Sk[0]), Output, Output);
-      CopyMemory(@(Iv[0]), @(Output[0]), 16);
+        SM4OneRound(@(Ctx.Sk[0]), Output, Output);
+        CopyMemory(@(Iv[0]), @(Output[0]), 16);
+      end
+      else
+      begin
+        // 尾部不足 16，补 0
+        ZeroMemory(@(EndBuf[0]), SizeOf(EndBuf));
+        CopyMemory(@(EndBuf[0]), Input, Length);
 
-      Inc(Input, 16);
-      Inc(Output, 16);
-      Dec(Length, 16);
+        for I := 0 to SM4_BLOCKSIZE - 1 do
+          (PByte(Integer(Output) + I))^ := EndBuf[I]
+            xor (PByte(Integer(Iv) + I))^;
+
+        SM4OneRound(@(Ctx.Sk[0]), Output, Output);
+        CopyMemory(@(Iv[0]), @(Output[0]), 16);
+      end;
+
+      Inc(Input, SM4_BLOCKSIZE);
+      Inc(Output, SM4_BLOCKSIZE);
+      Dec(Length, SM4_BLOCKSIZE);
     end;
   end
   else if Mode = SM4_DECRYPT then
   begin
     while Length > 0 do
     begin
-      CopyMemory(@(Temp[0]), Input, 16);
-      SM4OneRound(@(Ctx.Sk[0]), Input, Output);
+      if Length >= SM4_BLOCKSIZE then
+      begin
+        // CopyMemory(@(Temp[0]), Input, SM4_BLOCKSIZE);
+        SM4OneRound(@(Ctx.Sk[0]), Input, Output);
 
-      for I := 0 to 15 do
-        (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
-          xor (PByte(Integer(Iv) + I))^;
+        for I := 0 to 15 do
+          (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
+            xor (PByte(Integer(Iv) + I))^;
 
-      CopyMemory(@(Iv[0]), Input, 16);
-      Inc(Input, 16);
-      Inc(Output, 16);
-      Dec(Length, 16);
+        CopyMemory(@(Iv[0]), Input, SM4_BLOCKSIZE);
+      end
+      else
+      begin
+        // 尾部不足 16，补 0
+        ZeroMemory(@(EndBuf[0]), SizeOf(EndBuf));
+        CopyMemory(@(EndBuf[0]), Input, Length);
+
+        SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
+
+        for I := 0 to 15 do
+          (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
+            xor (PByte(Integer(Iv) + I))^;
+
+        CopyMemory(@(Iv[0]), @(EndBuf[0]), SM4_BLOCKSIZE);
+      end;
+
+      Inc(Input, SM4_BLOCKSIZE);
+      Inc(Output, SM4_BLOCKSIZE);
+      Dec(Length, SM4_BLOCKSIZE);
     end;
   end;
 end;
