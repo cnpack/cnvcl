@@ -276,7 +276,9 @@ begin
 
   Len := Length(edtSm4.Text);
   if Len < 16 then
-    Len := 16;
+    Len := 16
+  else
+    Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
 
   if rbSm4Ecb.Checked then
@@ -316,7 +318,9 @@ begin
   S := AnsiString(HexToStr(edtSm4Code.Text));
   Len := Length(S);
   if Len < 16 then
-    Len := 16;
+    Len := 16
+  else
+    Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
 
   if rbSm4Ecb.Checked then
