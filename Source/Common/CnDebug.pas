@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2012.10.15
+* 修改记录：2014.10.03
+*               增加两个记录 Exception 的方法
+*           2012.10.15
 *               修正tkUString对D2009版本以上的支持
 *           2012.05.10
 *               超长信息将拆分发送而不是截断
@@ -323,6 +325,7 @@ type
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
     procedure LogRect(Rect: TRect; const AMsg: string = '');
     procedure LogStrings(Strings: TStrings; const AMsg: string = '');
+    procedure LogException(E: Exception; const AMsg: string = '');
     procedure LogMemDump(AMem: Pointer; Size: Integer);
     procedure LogVirtualKey(AKey: Word);
     procedure LogVirtualKeyWithTag(AKey: Word; const ATag: string);
@@ -371,6 +374,7 @@ type
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
     procedure TraceStrings(Strings: TStrings; const AMsg: string = '');
+    procedure TraceException(E: Exception; const AMsg: string = '');
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
     procedure TraceVirtualKey(AKey: Word);
     procedure TraceVirtualKeyWithTag(AKey: Word; const ATag: string);
@@ -380,6 +384,7 @@ type
     procedure TraceCollectionWithTag(ACollection: TCollection; const ATag: string);
     procedure TraceComponent(AComponent: TComponent);
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
+
     // Trace 系列输出函数 == End ==
 
     // 异常过滤函数
@@ -1268,6 +1273,19 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogException(E: Exception; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if not Assigned(E) then
+    Exit;
+
+  if AMsg = '' then
+    LogFmt('%s %s - %s', [SCnException, E.ClassName, E.Message])
+  else
+    LogFmt('%s %s - %s', [AMsg, E.ClassName, E.Message]);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogFloat(Value: Extended; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -1556,6 +1574,9 @@ end;
 procedure TCnDebugger.LogStrings(Strings: TStrings; const AMsg: string);
 begin
 {$IFDEF DEBUG}
+  if not Assigned(Strings) then
+    Exit;
+
   if AMsg = '' then
     TraceMsg(Strings.Text)
   else
@@ -1794,6 +1815,17 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.TraceException(E: Exception; const AMsg: string);
+begin
+  if not Assigned(E) then
+    Exit;
+
+  if AMsg = '' then
+    TraceFmt('%s %s - %s', [SCnException, E.ClassName, E.Message])
+  else
+    TraceFmt('%s %s - %s', [AMsg, E.ClassName, E.Message]);
+end;
+
 procedure TCnDebugger.TraceFloat(Value: Extended; const AMsg: string);
 begin
   if AMsg = '' then
@@ -2005,6 +2037,9 @@ end;
 
 procedure TCnDebugger.TraceStrings(Strings: TStrings; const AMsg: string);
 begin
+  if not Assigned(Strings) then
+    Exit;
+
   if AMsg = '' then
     TraceMsg(Strings.Text)
   else

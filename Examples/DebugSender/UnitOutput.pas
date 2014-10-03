@@ -268,6 +268,10 @@ end;
 
 procedure TForm1.btnExceptClick(Sender: TObject);
 begin
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceException(Exception.Create('Test Exception for output.'))
+  else
+    CnDebugger.LogException(Exception.Create('Test Exception for output.'));
 {$IFNDEF USE_JCL}
   Application.MessageBox('无 JCL 参与编译，无法捕捉异常。', '提示', MB_OK + 
     MB_ICONWARNING);
