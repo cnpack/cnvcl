@@ -1,0 +1,64 @@
+**********************************************************************
+                           CnPack For Delphi
+                   中国人自己的开放源码第三方开发包
+                 (C)Copyright 2001-2014 CnPack 开发组
+**********************************************************************
+
+                       在 CnPack 开发中使用 SVN
+                            Revision 1.0.0.0
+                       =========================
+                           作者：刘啸
+                           创建：2014.10.07
+
+                           作废：2014.08.01
+
+
+======================================================================
+0. SVN 停用说明
+======================================================================
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! 重要说明：
+!
+! CnPack SVN 已由 Google Code 迁移至 GitHub。本文中有关 CnPack SVN 地址
+! 的说明也已经失效。Google Code 处已停止维护。
+!
+! 欲获得 CnPack 最新代码，烦请参考另一篇文档 CnPack GIT 使用说明。
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+该文档描述了在 CnPack 的开发中使用 CVS 仓库服务的方法。
+要获得该文档的最新版本及相关内容，请访问 CnPack 开发网站：
+
+http://www.cnpack.org
+
+为减轻 CnPack 服务器负担并给全球朋友提供速度更快的访问方式，CnPack 的 CVS/CVSTrac 已搬迁至 Google Code 的 Hosting 并启用 SVN 服务，原有 CVS/CVSTrac 等从即日起停止使用，不过 CnPack 网站、论坛、邮件、FTP 等不受影响，仍使用 cnpack.org 的服务器。
+SVN 客户端工具，可以使用 SVN.exe 命令行，也可用 TotoriseSVN。
+
+CnPack 的 Google Code 项目首页
+http://code.google.com/p/cnpack/
+（说明：Google只提供英文版界面）
+
+任务单管理：
+http://code.google.com/p/cnpack/issues/list
+
+CnPack SVN 代码浏览：
+http://code.google.com/p/cnpack/source/browse/#svn/trunk
+（说明：此处浏览不支持中文，而我们的代码并非UTF8编码，因此查看时注释乱码，但下载到本地后正常。）
+
+另外也可直接在浏览器中打开 SVN 地址以进行简易的代码查看，简陋但支持中文：
+http://cnpack.googlecode.com/svn/trunk/
+
+CnPack SVN 时间线：
+http://code.google.com/p/cnpack/source/list
+
+匿名获得代码的说明：
+http://code.google.com/p/cnpack/source/checkout
+
+欲直接匿名获得代码，也可以在安装了 SVN 命令行的情况下，直接运行：
+svn checkout http://cnpack.googlecode.com/svn/trunk/ 
+便可获得 CnPack 的最新代码。
+
+日后 CnPack IDE 专家包的每日构建版除了在 cnpack.org 上发布之外，也会在 Google Code 上发布，下载地址列表：
+http://code.google.com/p/cnpack/downloads/list?can=1
