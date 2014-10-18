@@ -144,4 +144,40 @@ object FormBigNumber: TFormBigNumber
       '8'
       '4')
   end
+  object btnUAdd: TButton
+    Left = 16
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Unsigned Add'
+    TabOrder = 11
+    OnClick = btnUAddClick
+  end
+  object btnUsub: TButton
+    Left = 104
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Unsigned Sub'
+    TabOrder = 12
+    OnClick = btnUsubClick
+  end
+  object btnSignedAdd: TButton
+    Left = 184
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Signed Add'
+    TabOrder = 13
+    OnClick = btnSignedAddClick
+  end
+  object btnSignedSub: TButton
+    Left = 264
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Signed Sub'
+    TabOrder = 14
+    OnClick = btnSignedSubClick
+  end
 end

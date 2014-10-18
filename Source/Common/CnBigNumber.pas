@@ -25,7 +25,7 @@ unit CnBigNumber;
 * 单元名称：大数算法单元
 * 单元作者：刘啸
 * 备    注：大部分从 Openssl 的 C 代码移植而来
-* 开发平台：PWin2003Std + Delphi 6.0
+* 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2014.10.15 V1.0
@@ -69,12 +69,16 @@ type
   PCnBigNumber = ^TCnBigNumber;
 
 function BigNumerNew(): PCnBigNumber;
-
-procedure BigNumberInit(var Num: TCnBigNumber);
-
-procedure BigNumberClear(var Num: TCnBigNumber);
+{* 创建一个动态分配的大数结构，返回其指针，此指针不用时必须用 BigNumberFree 释放}
 
 procedure BigNumberFree(Num: PCnBigNumber);
+{* 释放一个由 BigNumerNew 函数创建的大数结构指针 }
+
+procedure BigNumberInit(var Num: TCnBigNumber);
+{* 初始化一个大数结构，全为 0}
+
+procedure BigNumberClear(var Num: TCnBigNumber);
+{* 清除一个大数结构，并将其数据空间填 0 }
 
 function BigNumberIsZero(var Num: TCnBigNumber): Boolean;
 {* 返回一个大数结构里的大数是否为 0 }
@@ -135,6 +139,22 @@ procedure BigNumberSwap(var Num1: TCnBigNumber; var Num2: TCnBigNumber);
 
 function BigNumberRandBytes(var Num: TCnBigNumber; BytesCount: Integer): Boolean;
 {* 产生固定字节长度的随机大数 }
+
+function BigNumberUnsignedAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+{* 两个大数结构无符号相加，返回相加是否成功}
+
+function BigNumberUnsignedSub(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+{* 两个大数结构无符号相减，Num1 减 Num2，返回相减是否成功，如 Num1 < Num2 则失败}
+
+function BigNumberAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+{* 两个大数结构带符号相加，返回相加是否成功}
+
+function BigNumberSub(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+{* 两个大数结构带符号相减，返回相减是否成功}
 
 implementation
 
@@ -813,7 +833,7 @@ begin
   else if (not BigNumberIsBitSet(Range, N - 2))
     and (not BigNumberIsBitSet(Range, N - 3)) then
   begin
-
+    // TODO: CONTINUE
   end
 end;
 
@@ -855,7 +875,7 @@ begin
   begin
     A0 := B[0]; A1 := B[1]; A2 := B[2]; A3 := B[3];
     A[0] := A0; A[1] := A1; A[2] := A2; A[3] := A3;
-    
+
     A := PDWordArray(Integer(A) + 4 * SizeOf(DWORD));
     B := PDWordArray(Integer(B) + 4 * SizeOf(DWORD));
   end;
@@ -914,6 +934,347 @@ begin
   // 数据区的属性交换
   Num1.Flags := (OldFlag1 and BN_FLG_MALLOCED) or (OldFlag2 and BN_FLG_STATIC_DATA);
   Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
+end;
+
+function BigNumberAddWords(RP: PDWordArray; AP: PDWordArray; BP: PDWordArray; N: Integer): DWORD;
+var
+  LL: LONGLONG;
+begin
+  Result := 0;
+  if N <= 0 then
+    Exit;
+
+  LL := 0;
+  while (N and (not 3)) <> 0 do
+  begin
+    LL := LL + LONGLONG(AP[0]) + LONGLONG(BP[0]);
+    RP[0] := DWORD(LL) and BN_MASK2;
+    LL := LL shr BN_BITS2;
+
+    LL := LL + LONGLONG(AP[1]) + LONGLONG(BP[1]);
+    RP[1] := DWORD(LL) and BN_MASK2;
+    LL := LL shr BN_BITS2;
+
+    LL := LL + LONGLONG(AP[2]) + LONGLONG(BP[2]);
+    RP[2] := DWORD(LL) and BN_MASK2;
+    LL := LL shr BN_BITS2;
+
+    LL := LL + LONGLONG(AP[3]) + LONGLONG(BP[3]);
+    RP[3] := DWORD(LL) and BN_MASK2;
+    LL := LL shr BN_BITS2;
+
+    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
+    BP := PDWordArray(Integer(BP) + 4 * SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    LL := LL + LONGLONG(AP[0]) + LONGLONG(BP[0]);
+    RP[0] := DWORD(LL) and BN_MASK2;
+    LL := LL shr BN_BITS2;
+
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    BP := PDWordArray(Integer(BP) + SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    Dec(N);
+  end;
+  Result := DWORD(LL);
+end;
+
+function BigNumberUnsignedAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+var
+  Max, Min, Dif: Integer;
+  AP, BP, RP: PDWORD;
+  Carry, T1, T2: DWORD;
+  A, B, Tmp: PCnBigNumber;
+begin
+  Result := False;
+
+  A := @Num1;
+  B := @Num2;
+  if A^.Top < B^.Top then
+  begin
+    Tmp := A;
+    A := B;
+    B := Tmp;
+  end;
+
+  Max := A^.Top;
+  Min := B^.Top;
+  Dif := Max - Min;
+
+  if BigNumberWordExpand(Res, Max + 1) = nil then
+    Exit;
+
+  Res.Top := Max;
+  AP := PDWORD(A^.D);
+  BP := PDWORD(B^.D);
+  RP := PDWORD(Res.D);
+
+  Carry := BigNumberAddWords(PDWordArray(RP), PDWordArray(AP), PDWordArray(BP), Min);
+
+  AP := PDWORD(Integer(AP) + Min * SizeOf(DWORD));
+//  BP := PDWORD(Integer(BP) + Min * SizeOf(DWORD));
+  RP := PDWORD(Integer(RP) + Min * SizeOf(DWORD));
+
+  if Carry <> 0 then
+  begin
+    while Dif <> 0 do
+    begin
+      Dec(Dif);
+      T1 := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      T2 := (T1 + 1) and BN_MASK2;
+
+      RP^ := T2;
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+
+      if T2 <> 0 then
+      begin
+        Carry := 0;
+        Break;
+      end;
+    end;
+
+    if Carry <> 0 then
+    begin
+      RP^ := 1;
+      Inc(Res.Top);
+    end;
+  end;
+
+  if (Dif <> 0) and (RP <> AP) then
+  begin
+    while Dif <> 0 do
+    begin
+      Dec(Dif);
+      RP^ := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+    end;
+  end;
+
+  Res.Neg := 0;
+  Result := True;
+end;
+
+function BigNumberUnsignedSub(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+var
+  Max, Min, Dif, I: Integer;
+  AP, BP, RP: PDWORD;
+  Carry, T1, T2: DWORD;
+begin
+  Result := False;
+
+  Max := Num1.Top;
+  Min := Num2.Top;
+  Dif := Max - Min;
+
+  if Dif < 0 then
+    Exit;
+
+  if BigNumberWordExpand(Res, Max) = nil then
+    Exit;
+
+  AP := PDWORD(Num1.D);
+  BP := PDWORD(Num2.D);
+  RP := PDWORD(Res.D);
+
+  Carry := 0;
+  for I := Min downto 1 do
+  begin
+    T1 := AP^;
+    T2 := BP^;
+    AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+    BP := PDWORD(Integer(BP) + SizeOf(DWORD));
+    if Carry <> 0 then
+    begin
+      if T1 <= T2 then
+        Carry := 1
+      else
+        Carry := 0;
+      T1 := (T1 - T2 - 1) and BN_MASK2;
+    end
+    else
+    begin
+      if T1 < T2 then
+        Carry := 1
+      else
+        Carry := 0;
+      T1 := (T1 - T2) and BN_MASK2;
+    end;
+    RP^ := T1 and BN_MASK2;
+    RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+  end;
+
+  if Carry <> 0 then
+  begin
+    if Dif = 0 then  // Error! Num1 < Num2
+      Exit;
+
+    while Dif <> 0 do
+    begin
+      Dec(Dif);
+      T1 := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      T2 := (T1 - 1) and BN_MASK2;
+
+      RP^ := T2;
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      if T1 <> 0 then
+        Break;
+    end;
+  end;
+
+  if RP <> AP then
+  begin
+    while True do
+    begin
+      if Dif = 0 then Break;
+      Dec(Dif);
+      RP^ := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+
+      if Dif = 0 then Break;
+      Dec(Dif);
+      RP^ := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+
+      if Dif = 0 then Break;
+      Dec(Dif);
+      RP^ := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+
+      if Dif = 0 then Break;
+      Dec(Dif);
+      RP^ := AP^;
+      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+    end;
+  end;
+
+  Res.Top := Max;
+  Res.Neg := 0;
+  BigNumberCorrectTop(Res);
+  Result := True;
+end;
+
+function BigNumberAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+var
+  A, B, Tmp: PCnBigNumber;
+  Neg: Integer;
+begin
+  Result := False;
+  
+  Neg := Num1.Neg;
+  A := @Num1;
+  B := @Num2;
+
+  if Neg <> Num2.Neg then // One is negative
+  begin
+    if Neg <> 0 then
+    begin
+      Tmp := A;
+      A := B;
+      B := Tmp;
+    end;
+
+    // A is positive and B is negative
+    if BigNumberUnsignedCompare(A^, B^) < 0 then
+    begin
+      if not BigNumberUnsignedSub(Res, B^, A^) then
+        Exit;
+      Res.Neg := 1;
+    end
+    else
+    begin
+      if not BigNumberUnsignedSub(Res, A^, B^) then
+        Exit;
+      Res.Neg := 0;
+    end;
+    Result := True;
+    Exit;
+  end;
+
+  Result := BigNumberUnsignedAdd(Res, A^, B^);
+  Res.Neg := Neg;
+end;
+
+function BigNumberSub(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+var
+  A, B, Tmp: PCnBigNumber;
+  Max, Add, Neg: Integer;
+begin
+  Result := False;
+  Add := 0;
+  Neg := 0;
+  A := @Num1;
+  B := @Num2;
+
+  if A^.Neg <> 0 then
+  begin
+    if B^.Neg <> 0 then
+    begin
+      Tmp := A;
+      A := B;
+      B := Tmp;
+    end
+    else // A Negative B Positive
+    begin
+      Add := 1;
+      Neg := 1;
+    end;
+  end
+  else
+  begin
+    if B^.Neg <> 0 then // A Positive B Negative
+    begin
+      Add := 1;
+      Neg := 0;
+    end;
+  end;
+
+  if Add = 1 then
+  begin
+    if not BigNumberUnsignedAdd(Res, A^, B^) then
+      Exit;
+
+    Res.Neg := Neg;
+    Result := True;
+    Exit;
+  end;
+
+  if A^.Top > B^.Top then
+    Max := A^.Top
+  else
+    Max := B^.Top;
+
+  if BigNumberWordExpand(Res, Max) = nil then
+    Exit;
+
+  if BigNumberUnsignedCompare(A^, B^) < 0 then
+  begin
+    if not BigNumberUnsignedSub(Res, B^, A^) then
+      Exit;
+    Res.Neg := 1;
+  end
+  else
+  begin
+    if not BigNumberUnsignedSub(Res, A^, B^) then
+      Exit;
+    Res.Neg := 0;
+  end;
+  Result := True;
 end;
 
 end.

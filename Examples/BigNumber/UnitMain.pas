@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls;
+  StdCtrls, CnBigNumber;
 
 type
   TFormBigNumber = class(TForm)
@@ -22,6 +22,10 @@ type
     btnInverseNeg2: TButton;
     cbbDigits: TComboBox;
     lblBytes: TLabel;
+    btnUAdd: TButton;
+    btnUsub: TButton;
+    btnSignedAdd: TButton;
+    btnSignedSub: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -30,9 +34,14 @@ type
     procedure btnCompareClick(Sender: TObject);
     procedure btnInverseNeg1Click(Sender: TObject);
     procedure btnInverseNeg2Click(Sender: TObject);
+    procedure btnUAddClick(Sender: TObject);
+    procedure btnUsubClick(Sender: TObject);
+    procedure btnSignedAddClick(Sender: TObject);
+    procedure btnSignedSubClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
+    procedure ShowResult(var Res: TCnBigNumber);
   public
     { Public declarations }
   end;
@@ -41,8 +50,6 @@ var
   FormBigNumber: TFormBigNumber;
 
 implementation
-
-uses CnBigNumber;
 
 {$R *.DFM}
 
@@ -124,6 +131,53 @@ end;
 procedure TFormBigNumber.CalcRandomLength;
 begin
   RandomLength := StrToIntDef(cbbDigits.Text, 1024);
+end;
+
+procedure TFormBigNumber.btnUAddClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberUnsignedAdd(Res^, Num1, Num2) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.ShowResult(var Res: TCnBigNumber);
+begin
+  mmoResult.Text := BigNumberToHex(Res);
+end;
+
+procedure TFormBigNumber.btnUsubClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberUnsignedSub(Res^, Num1, Num2) then
+    ShowResult(Res^)
+  else
+    ShowMessage('Num1 < Num2');
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnSignedAddClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberAdd(Res^, Num1, Num2) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnSignedSubClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberSub(Res^, Num1, Num2) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
 end;
 
 end.
