@@ -51,7 +51,7 @@ const
   BN_BYTES              = 4;
   BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
   BN_BITS4              = 16;
-
+  BN_TBIT               = $80000000;
   BN_MASK2              = $FFFFFFFF;
 
 type
@@ -142,19 +142,26 @@ function BigNumberRandBytes(var Num: TCnBigNumber; BytesCount: Integer): Boolean
 
 function BigNumberUnsignedAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
-{* 两个大数结构无符号相加，返回相加是否成功}
+{* 两个大数结构无符号相加，结果放至 Res 中，返回相加是否成功}
 
 function BigNumberUnsignedSub(var Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
-{* 两个大数结构无符号相减，Num1 减 Num2，返回相减是否成功，如 Num1 < Num2 则失败}
+{* 两个大数结构无符号相减，Num1 减 Num2，结果放至 Res 中，
+  返回相减是否成功，如 Num1 < Num2 则失败}
 
 function BigNumberAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
-{* 两个大数结构带符号相加，返回相加是否成功}
+{* 两个大数结构带符号相加，结果放至 Res 中，返回相加是否成功}
 
 function BigNumberSub(var Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
-{* 两个大数结构带符号相减，返回相减是否成功}
+{* 两个大数结构带符号相减，结果放至 Res 中，返回相减是否成功}
+
+function BigNumberShiftLeftOne(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
+{* 将一大数结构左移一位，结果放至 Res 中，返回左移是否成功}
+
+function BigNumberShiftRightOne(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
+{* 将一大数结构右移一位，结果放至 Res 中，返回右移是否成功}
 
 implementation
 
@@ -1274,6 +1281,110 @@ begin
       Exit;
     Res.Neg := 0;
   end;
+  Result := True;
+end;
+
+function BigNumberShiftLeftOne(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
+var
+  RP, AP: PDWORD;
+  I: Integer;
+  T, C: DWORD;
+begin
+  Result := False;
+
+  if @Res <> @Num then
+  begin
+    Res.Neg := Num.Neg;
+    if BigNumberWordExpand(Res, Num.Top + 1) = nil then
+      Exit;
+
+    Res.Top := Num.Top;
+  end
+  else
+  begin
+    if BigNumberWordExpand(Res, Num.Top + 1) = nil then
+      Exit;
+  end;
+
+  AP := Num.D;
+  RP := Res.D;
+  C := 0;
+  for I := 0 to Num.Top - 1 do
+  begin
+    T := AP^;
+    AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+    RP^ := ((T shl 1) or C) and BN_MASK2;
+    RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+
+    if (T and BN_TBIT) <> 0 then
+      C := 1
+    else
+      C := 0;
+  end;
+
+  if C <> 0 then
+  begin
+    RP^ := 1;
+    Inc(Res.Top);
+  end;
+  Result := True;
+end;
+
+function BigNumberShiftRightOne(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
+var
+  RP, AP: PDWORD;
+  I, J: Integer;
+  T, C: DWORD;
+begin
+  Result := False;
+  if BigNumberIsZero(Num) then
+  begin
+    BigNumberSetZero(Res);
+    Result := True;
+    Exit;
+  end;
+
+  I := Num.Top;
+  AP := Num.D;
+
+  if PDWordArray(AP)^[I - 1] = 1 then
+    J := I - 1
+  else
+    J := I;
+
+  if @Res <> @Num then
+  begin
+    if BigNumberWordExpand(Res, J) = nil then
+      Exit;
+    Res.Neg := Num.Neg;
+  end;
+
+  RP := Res.D;
+  Dec(I);
+  T := PDWordArray(AP)^[I];
+
+  if (T and 1) <> 0 then
+    C := BN_TBIT
+  else
+    C := 0;
+
+  T := T shr 1;
+  if T <> 0 then
+    PDWordArray(RP)^[I] := T;
+
+  while I > 0 do
+  begin
+    Dec(I);
+    T := PDWordArray(AP)^[I];
+    PDWordArray(RP)^[I] := ((T shr 1) and BN_MASK2) or C;
+
+    if (T and 1) <> 0 then
+      C := BN_TBIT
+    else
+      C := 0;
+  end;
+
+  Res.Top := J;
   Result := True;
 end;
 

@@ -26,6 +26,8 @@ type
     btnUsub: TButton;
     btnSignedAdd: TButton;
     btnSignedSub: TButton;
+    btnShiftleftOne: TButton;
+    btnShiftRightOne: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -38,6 +40,8 @@ type
     procedure btnUsubClick(Sender: TObject);
     procedure btnSignedAddClick(Sender: TObject);
     procedure btnSignedSubClick(Sender: TObject);
+    procedure btnShiftleftOneClick(Sender: TObject);
+    procedure btnShiftRightOneClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -176,6 +180,26 @@ var
 begin
   Res := BigNumerNew;
   if BigNumberSub(Res^, Num1, Num2) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnShiftleftOneClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberShiftLeftOne(Res^, Num1) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnShiftRightOneClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberShiftRightOne(Res^, Num1) then
     ShowResult(Res^);
   BigNumberFree(Res);
 end;

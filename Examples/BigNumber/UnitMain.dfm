@@ -180,4 +180,22 @@ object FormBigNumber: TFormBigNumber
     TabOrder = 14
     OnClick = btnSignedSubClick
   end
+  object btnShiftleftOne: TButton
+    Left = 344
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Shift Left 1'
+    TabOrder = 15
+    OnClick = btnShiftleftOneClick
+  end
+  object btnShiftRightOne: TButton
+    Left = 432
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Shift Right 1'
+    TabOrder = 16
+    OnClick = btnShiftRightOneClick
+  end
 end
