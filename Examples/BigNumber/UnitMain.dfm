@@ -35,6 +35,13 @@ object FormBigNumber: TFormBigNumber
     Height = 13
     Caption = 'Byte Count:'
   end
+  object lblShift: TLabel
+    Left = 480
+    Top = 224
+    Width = 24
+    Height = 13
+    Caption = 'Shift:'
+  end
   object mmoNum1: TMemo
     Left = 16
     Top = 40
@@ -81,7 +88,7 @@ object FormBigNumber: TFormBigNumber
     TabOrder = 4
   end
   object btnDup: TButton
-    Left = 120
+    Left = 72
     Top = 220
     Width = 75
     Height = 21
@@ -90,7 +97,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnDupClick
   end
   object btnSwap: TButton
-    Left = 240
+    Left = 152
     Top = 220
     Width = 75
     Height = 21
@@ -99,7 +106,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnSwapClick
   end
   object btnCompare: TButton
-    Left = 352
+    Left = 232
     Top = 220
     Width = 75
     Height = 21
@@ -108,7 +115,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnCompareClick
   end
   object btnInverseNeg1: TButton
-    Left = 688
+    Left = 712
     Top = 12
     Width = 99
     Height = 21
@@ -117,7 +124,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnInverseNeg1Click
   end
   object btnInverseNeg2: TButton
-    Left = 688
+    Left = 712
     Top = 220
     Width = 99
     Height = 21
@@ -180,22 +187,59 @@ object FormBigNumber: TFormBigNumber
     TabOrder = 14
     OnClick = btnSignedSubClick
   end
+  object btnShiftRightOne: TButton
+    Left = 392
+    Top = 220
+    Width = 75
+    Height = 21
+    Caption = 'Shift Right 1'
+    TabOrder = 15
+    OnClick = btnShiftRightOneClick
+  end
   object btnShiftleftOne: TButton
+    Left = 312
+    Top = 220
+    Width = 75
+    Height = 21
+    Caption = 'Shift Left 1'
+    TabOrder = 16
+    OnClick = btnShiftleftOneClick
+  end
+  object seShift: TSpinEdit
+    Left = 512
+    Top = 220
+    Width = 41
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 17
+    Value = 2
+  end
+  object btnShiftLeft: TButton
+    Left = 632
+    Top = 220
+    Width = 75
+    Height = 21
+    Caption = 'Shift Right'
+    TabOrder = 18
+    OnClick = btnShiftLeftClick
+  end
+  object btnShiftRight: TButton
+    Left = 552
+    Top = 220
+    Width = 75
+    Height = 21
+    Caption = 'Shift Left'
+    TabOrder = 19
+    OnClick = btnShiftRightClick
+  end
+  object btnSqr: TButton
     Left = 344
     Top = 422
     Width = 75
     Height = 21
-    Caption = 'Shift Left 1'
-    TabOrder = 15
-    OnClick = btnShiftleftOneClick
-  end
-  object btnShiftRightOne: TButton
-    Left = 432
-    Top = 422
-    Width = 75
-    Height = 21
-    Caption = 'Shift Right 1'
-    TabOrder = 16
-    OnClick = btnShiftRightOneClick
+    Caption = 'Sqr'
+    TabOrder = 20
+    OnClick = btnSqrClick
   end
 end

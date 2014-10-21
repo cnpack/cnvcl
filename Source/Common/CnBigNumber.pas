@@ -25,6 +25,8 @@ unit CnBigNumber;
 * 单元名称：大数算法单元
 * 单元作者：刘啸
 * 备    注：大部分从 Openssl 的 C 代码移植而来
+*           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
+*           大数中间的运算过程。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -41,8 +43,8 @@ uses
   Classes, SysUtils, Windows;
 
 const
-  BN_FLG_MALLOCED       = $1;
-  BN_FLG_STATIC_DATA    = $2;
+  BN_FLG_MALLOCED       = $1;    // 本大数结构是动态分配而来
+  BN_FLG_STATIC_DATA    = $2;    // 本大数结构中的 D 内存是静态数据
   BN_FLG_CONSTTIME      = $4;
 
   BN_FLG_FREE           = $8000;
@@ -53,6 +55,9 @@ const
   BN_BITS4              = 16;
   BN_TBIT               = $80000000;
   BN_MASK2              = $FFFFFFFF;
+  BN_MASK2l             = $FFFF;
+  BN_MASK2h             = $FFFF0000;
+  BN_MASK2h1            = $FFFF8000;
 
 type
   TDWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of DWORD;
@@ -68,17 +73,18 @@ type
   end;
   PCnBigNumber = ^TCnBigNumber;
 
-function BigNumerNew(): PCnBigNumber;
+function BigNumerNew: PCnBigNumber;
 {* 创建一个动态分配的大数结构，返回其指针，此指针不用时必须用 BigNumberFree 释放}
 
 procedure BigNumberFree(Num: PCnBigNumber);
-{* 释放一个由 BigNumerNew 函数创建的大数结构指针 }
+{* 按需要释放一个由 BigNumerNew 函数创建的大数结构指针，并按需要释放其 D 结构
+   对于非 BigNumerNew 函数创建的大数结构指针则只按需要释放其 D 结构  }
 
 procedure BigNumberInit(var Num: TCnBigNumber);
-{* 初始化一个大数结构，全为 0}
+{* 初始化一个大数结构，全为 0，并不分配 D 内存}
 
 procedure BigNumberClear(var Num: TCnBigNumber);
-{* 清除一个大数结构，并将其数据空间填 0 }
+{* 清除一个大数结构，并将其数据空间填 0，并不释放 D 内存 }
 
 function BigNumberIsZero(var Num: TCnBigNumber): Boolean;
 {* 返回一个大数结构里的大数是否为 0 }
@@ -163,6 +169,17 @@ function BigNumberShiftLeftOne(var Res: TCnBigNumber; var Num: TCnBigNumber): Bo
 function BigNumberShiftRightOne(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
 {* 将一大数结构右移一位，结果放至 Res 中，返回右移是否成功}
 
+function BigNumberShiftLeft(var Res: TCnBigNumber; var Num: TCnBigNumber;
+  N: Integer): Boolean;
+{* 将一大数结构左移 N 位，结果放至 Res 中，返回左移是否成功}
+
+function BigNumberShiftRight(var Res: TCnBigNumber; var Num: TCnBigNumber;
+  N: Integer): Boolean;
+{* 将一大数结构右移 N 位，结果放至 Res 中，返回右移是否成功}
+
+function BigNumberSqr(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
+{* 计算一大数结构的平方}
+
 implementation
 
 const
@@ -175,6 +192,45 @@ const
   CRYPT_DELETEKEYSET = $10;
 
   PROV_RSA_FULL = 1;
+
+  BN_CTX_POOL_SIZE = 16;
+  BN_CTX_START_FRAMES = 32;
+
+type
+  {* 大数运算的中间结构中的双向链表元素，
+     每个元素包含一数组，容纳 BN_CTX_POOL_SIZE 个大数结构}
+  PBigNumberPoolItem = ^TBigNumberPoolItem;
+  TBigNumberPoolItem = packed record
+    Vals: array[0..BN_CTX_POOL_SIZE - 1] of TCnBigNumber;
+    Prev: PBigNumberPoolItem;
+    Next: PBigNumberPoolItem;
+  end;
+
+  {* 大数运算的中间池，一双向链表 }
+  TBigNumberPool = packed record
+    Head: PBigNumberPoolItem;
+    Current: PBigNumberPoolItem;
+    Tail: PBigNumberPoolItem;
+    Used: DWORD;
+    Size: DWORD;
+  end;
+
+  {* 大数运算堆栈}
+  TBigNumberStack = packed record
+    Indexes: PDWORD;
+    Depth: DWORD;
+    Size: DWORD;
+  end;
+
+  {* 大数运算中间结构 }
+  PBigNumberContext = ^TBigNumberContext;
+  TBigNumberContext = packed record
+    Pool: TBigNumberPool;
+    Stack: TBigNumberStack;
+    Used: DWORD;
+    ErrStack: Integer;
+    TooMany: Integer;
+  end;
 
 function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
   pszProvider: PAnsiChar; dwProvType: DWORD; dwFlags: DWORD): BOOL;
@@ -403,6 +459,11 @@ begin
     ZeroMemory(Num.D, Num.DMax * SizeOf(DWORD));
   Num.Top := 0;
   Num.Neg := 0;
+end;
+
+procedure BigNumberClearFree(var Num: TCnBigNumber);
+begin
+
 end;
 
 function BigNumberSetWord(var Num: TCnBigNumber; W: DWORD): Boolean;
@@ -943,6 +1004,102 @@ begin
   Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
 end;
 
+function LBITS(Num: DWORD): DWORD;
+begin
+  Result := Num and BN_MASK2l;
+end;
+
+function HBITS(Num: DWORD): DWORD;
+begin
+  Result := (Num shr BN_BITS4) and BN_MASK2l;
+end;
+
+function L2HBITS(Num: DWORD): DWORD;
+begin
+  Result := (Num shl BN_BITS4) and BN_MASK2;
+end;
+
+// 计算 BL * BH，结果的高低位分别放 H 和 L
+procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD);
+var
+  M, M1, LT, HT: DWORD;
+begin
+  LT := L;
+  HT := H;
+  M := BH * LT;
+  LT := BL * LT;
+  M1 := BL * HT;
+  HT := BH * HT;
+  M := (M + M1) and BN_MASK2;
+  if M < M1 then
+    HT := HT + L2HBITS(DWORD(1));
+  HT := HT + HBITS(M);
+  M1 := L2HBITS(M);
+  LT := (LT + M1) and BN_MASK2;
+  if LT < M1 then
+    Inc(HT);
+  L := LT;
+  H := HT;
+end;
+
+// 计算 InNum 的平方，结果的高低位分别放 Ho 和 Lo
+procedure Sqr64(var Lo: DWORD; var Ho: DWORD; var InNum: DWORD);
+var
+  L, H, M: DWORD;
+begin
+  H := InNum;
+  L := LBITS(H);
+  H := HBITS(H);
+  M := L * H;
+  L := L * L;
+  H := H * H;
+  H := H + ((M and BN_MASK2h1) shr (BN_BITS4 - 1));
+  M := (M and BN_MASK2l) shl (BN_BITS4 + 1);
+  L := (L + M) and BN_MASK2;
+  if L < M then
+    Inc(H);
+  Lo := L;
+  Ho := H;
+end;
+
+procedure MulAdd(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD);
+var
+  L, H: DWORD;
+begin
+  H := A;
+  L := LBITS(H);
+  H := HBITS(H);
+  Mul64(L, H, BL, BH);
+
+  L := (L + C) and BN_MASK2;
+  if L < C then
+    Inc(H);
+  C := R;
+  L := (L + C) and BN_MASK2;
+  if L < C then
+    Inc(H);
+  C := H and BN_MASK2;
+  R := L;
+end;
+
+procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD);
+var
+  L, H: DWORD;
+begin
+  H := A;
+  L := LBITS(H);
+  H := HBITS(H);
+  Mul64(L, H, BL ,BH);
+
+  L := L + C;
+  if (L and BN_MASK2) < C then
+    Inc(H);
+  C := H and BN_MASK2;
+  R := L and BN_MASK2;
+end;
+
+{* Words 系列内部计算函数开始 }
+
 function BigNumberAddWords(RP: PDWordArray; AP: PDWordArray; BP: PDWordArray; N: Integer): DWORD;
 var
   LL: LONGLONG;
@@ -990,6 +1147,235 @@ begin
   end;
   Result := DWORD(LL);
 end;
+
+function BigNumberSubWords(RP: PDWordArray; AP: PDWordArray; BP: PDWordArray; N: Integer): DWORD;
+var
+  T1, T2, C: DWORD;
+begin
+  Result := 0;
+  if N <= 0 then
+    Exit;
+
+  C := 0;
+  while (N and (not 3)) <> 0 do
+  begin
+    T1 := AP^[0];
+    T2 := BP^[0];
+    RP^[0] := (T1 - T2 - C) and BN_MASK2;
+    if T1 <> T2 then
+      if T1 < T2 then C := 1 else C := 0;
+
+    T1 := AP^[1];
+    T2 := BP^[1];
+    RP^[1] := (T1 - T2 - C) and BN_MASK2;
+    if T1 <> T2 then
+      if T1 < T2 then C := 1 else C := 0;
+
+    T1 := AP^[2];
+    T2 := BP^[2];
+    RP^[2] := (T1 - T2 - C) and BN_MASK2;
+    if T1 <> T2 then
+      if T1 < T2 then C := 1 else C := 0;
+
+    T1 := AP^[3];
+    T2 := BP^[3];
+    RP^[3] := (T1 - T2 - C) and BN_MASK2;
+    if T1 <> T2 then
+      if T1 < T2 then C := 1 else C := 0;
+
+    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
+    BP := PDWordArray(Integer(BP) + 4 * SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    T1 := AP^[0];
+    T2 := BP^[0];
+    RP^[0] := (T1 - T2 - C) and BN_MASK2;
+    if T1 <> T2 then
+      if T1 < T2 then C := 1 else C := 0;
+
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    BP := PDWordArray(Integer(BP) + SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    Dec(N);
+  end;
+  Result := C;
+end;
+
+function BigNumberMulAddWords(RP: PDWordArray; AP: PDWordArray; N: Integer; W: DWORD): DWORD;
+var
+  BL, BH: DWORD;
+begin
+  Result := 0;
+  if N <= 0 then
+    Exit;
+
+  BL := LBITS(W);
+  BH := HBITS(W);
+
+  while (N and (not 3)) <> 0 do
+  begin
+    MulAdd(RP^[0], AP^[0], BL, BH, Result);
+    MulAdd(RP^[1], AP^[1], BL, BH, Result);
+    MulAdd(RP^[2], AP^[2], BL, BH, Result);
+    MulAdd(RP^[3], AP^[3], BL, BH, Result);
+
+    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    MulAdd(RP^[0], AP^[0], BL, BH, Result);
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    Dec(N);
+  end;
+end;
+
+function BigNumberMulWords(RP: PDWordArray; AP: PDWordArray; N: Integer; W: DWORD): DWORD;
+var
+  Carry, BL, BH: DWORD;
+begin
+  Result := 0;
+  if N <= 0 then
+    Exit;
+
+  BL := LBITS(W);
+  BH := HBITS(W);
+
+  Carry := 0;
+  while (N and (not 3)) <> 0 do
+  begin
+    Mul(RP^[0], AP^[0], BL, BH, Carry);
+
+    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    Mul(RP^[0], AP^[0], BL, BH, Carry);
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+
+    Dec(N);
+  end;
+  Result := Carry;
+end;
+
+procedure BigNumberSqrWords(RP: PDWordArray; AP: PDWordArray; N: Integer);
+begin
+  if N = 0 then
+    Exit;
+
+  while (N and (not 3)) <> 0 do
+  begin
+    Sqr64(RP^[0], RP^[1], AP^[0]);
+    Sqr64(RP^[2], RP^[3], AP^[1]);
+    Sqr64(RP^[4], RP^[5], AP^[2]);
+    Sqr64(RP^[6], RP^[7], AP^[3]);
+
+    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + 8 * SizeOf(DWORD));
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    Sqr64(RP^[0], RP^[1], AP^[0]);
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    RP := PDWordArray(Integer(RP) + 2 * SizeOf(DWORD));
+    Dec(N);
+  end;
+end;
+
+function BigNumberDivWords(H: DWORD; L: DWORD; D: DWORD): DWORD;
+var
+  I, Count: Integer;
+  DH, DL, Q, TH, TL, T: DWORD;
+begin
+  if D = 0 then
+  begin
+    Result := BN_MASK2;
+    Exit;
+  end;
+
+  Result := 0;
+  I := BigNumberGetWordBitsCount(D);
+  if (I = BN_BITS2) or (H <= DWORD(1 shl I)) then
+    Exit;
+
+  I := BN_BITS2 - I;
+  if H >= D then
+    H := H - D;
+
+  if I <> 0 then
+  begin
+    D := D shl I;
+    H := (H shl I) or (L shr (BN_BITS2 - I));
+    L := L shl I;
+  end;
+
+  DH := (D and BN_MASK2h) shr BN_BITS4;
+  DL := (D and BN_MASK2l);
+
+  Count := 2;
+  Q := 0;
+  while True do
+  begin
+    if (H shr BN_BITS4) = DH then
+      Q := BN_MASK2l
+    else
+      Q := H div DH;
+
+    TH := Q * DH;
+    TL := DL * Q;
+
+    while True do
+    begin
+      T := H - TH;
+      if ((T and BN_MASK2h) <> 0) or
+        (TL <= ((T shl BN_BITS4) or ((L and BN_MASK2h) shr BN_BITS4))) then
+        Break;
+      Dec(Q);
+      TH := TH - DH;
+      TL := TL - DL;
+    end;
+
+    T := TL shr BN_BITS4;
+    TL := (TL shl BN_BITS4) and BN_MASK2h;
+    TH := TH + T;
+
+    if L < TL then
+      Inc(TH);
+    if H < TH then
+    begin
+      H := H + D;
+      Dec(Q);
+    end;
+    H := H - TH;
+
+    Dec(Count);
+    if Count = 0 then
+      Break;
+
+    Result := Q shl BN_BITS4;
+    H := ((H shl BN_BITS4) or (L shr BN_BITS4)) and BN_MASK2;
+    L := (L and BN_MASK2l) shl BN_BITS4;
+  end;
+
+  Result := Result or Q;
+end;
+
+{*  Words 系列内部计算函数结束 }
 
 function BigNumberUnsignedAdd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
@@ -1386,6 +1772,532 @@ begin
 
   Res.Top := J;
   Result := True;
+end;
+
+function BigNumberShiftLeft(var Res: TCnBigNumber; var Num: TCnBigNumber;
+  N: Integer): Boolean;
+var
+  I, NW, LB, RB: Integer;
+  L: DWORD;
+  T, F: PDWordArray;
+begin
+  Result := False;
+  Res.Neg := Num.Neg;
+  NW := N div BN_BITS2;
+
+  if BigNumberWordExpand(Res, Num.Top + NW + 1) = nil then
+    Exit;
+
+  LB := N mod BN_BITS2;
+  RB := BN_BITS2 - LB;
+
+  F := PDWordArray(Num.D);
+  T := PDWordArray(Res.D);
+
+  T^[Num.Top + NW] := 0;
+  if LB = 0 then
+  begin
+    for I := Num.Top - 1 downto 0 do
+      T^[NW + I] := F^[I];
+  end
+  else
+  begin
+    for I := Num.Top - 1 downto 0 do
+    begin
+      L := F[I];
+      T^[NW + I + 1] := T^[NW + I + 1] or ((L shr RB) and BN_MASK2);
+      T^[NW + I] := (L shl LB) and BN_MASK2;
+    end;
+  end;
+
+  ZeroMemory(Pointer(T), NW * SizeOf(DWORD));
+  Res.Top := Num.Top + NW + 1;
+  BigNumberCorrectTop(Res);
+  Result := True;
+end;
+
+function BigNumberShiftRight(var Res: TCnBigNumber; var Num: TCnBigNumber;
+  N: Integer): Boolean;
+var
+  I, J, NW, LB, RB: Integer;
+  L, Tmp: DWORD;
+  T, F: PDWordArray;
+begin
+  Result := False;
+
+  NW := N div BN_BITS2;
+  RB := N mod BN_BITS2;
+  LB := BN_BITS2 - RB;
+
+  if (NW >= Num.Top) or (Num.Top = 0) then
+  begin
+    BigNumberSetZero(Res);
+    Result := True;
+    Exit;
+  end;
+
+  I := (BigNumberGetBitsCount(Num) - N + (BN_BITS2 - 1)) div BN_BITS2;
+  if @Res <> @Num then
+  begin
+    Res.Neg := Num.Neg;
+    if BigNumberWordExpand(Res, I) = nil then
+      Exit;
+  end
+  else
+  begin
+    if N = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  F := PDWordArray(Integer(Num.D) + NW * SizeOf(DWORD));
+  T := PDWordArray(Res.D);
+  J := Num.Top - NW;
+  Res.Top := I;
+
+  if RB = 0 then
+  begin
+    for I := J downto 1 do
+    begin
+      T^[0] := F^[0];
+      F := PDWordArray(Integer(F) + SizeOf(DWORD));
+      T := PDWordArray(Integer(T) + SizeOf(DWORD));
+    end;
+  end
+  else
+  begin
+    L := F^[0];
+    F := PDWordArray(Integer(F) + SizeOf(DWORD));
+    for I := J - 1 downto 1 do
+    begin
+      Tmp := (L shr RB) and BN_MASK2;
+      L := F^[0];
+      T^[0] := (Tmp or (L shl LB)) and BN_MASK2;
+
+      F := PDWordArray(Integer(F) + SizeOf(DWORD));
+      T := PDWordArray(Integer(T) + SizeOf(DWORD));
+    end;
+
+    L := (L shr RB) and BN_MASK2;
+    if L <> 0 then
+      T^[0] := L;
+  end;
+  Result := True;
+end;
+
+function BigNumberModWord(var Num: TCnBigNumber; W: DWORD): DWORD;
+var
+  I: Integer;
+begin
+  if W = 0 then
+  begin
+    Result := DWORD(-1);
+    Exit;
+  end;
+
+  Result := 0;
+  W := W and BN_MASK2;
+  for I := Num.Top - 1 downto 0 do
+  begin
+    Result := ((Result shl BN_BITS4) or ((PDWordArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or (PDWordArray(Num.D)^[I] and BN_MASK2l)) mod W;
+  end;
+end;
+
+function BigNumberDivWord(var Num: TCnBigNumber; W: DWORD): DWORD;
+var
+  I, J: Integer;
+  L, D: DWORD;
+begin
+  if W = 0 then
+  begin
+    Result := DWORD(-1);
+    Exit;
+  end;
+
+  Result := 0;
+  if Num.Top = 0 then
+    Exit;
+
+  W := W and BN_MASK2;
+  J := BN_BITS2 - BigNumberGetWordBitsCount(W);
+
+  W := W shl J;
+  if not BigNumberShiftLeft(Num, Num, J) then
+  begin
+    Result := DWORD(-1);
+    Exit;
+  end;
+
+  for I := Num.Top - 1 downto 0 do
+  begin
+    L := PDWordArray(Num.D)^[I];
+    D := BigNumberDivWords(Result, L, W);
+    Result := (L - ((D * W) and BN_MASK2)) and BN_MASK2;
+
+    PDWordArray(Num.D)^[I] := D;
+  end;
+
+  if (Num.Top > 0) and (PDWordArray(Num.D)^[Num.Top - 1] = 0) then
+    Dec(Num.Top);
+  Result := Result shr J;
+end;
+
+{* BigNumberPool 双向链表池操作函数开始 }
+
+// 初始化一 BigNumberPool
+procedure BigNumberPoolInit(var Pool: TBigNumberPool);
+begin
+  with Pool do
+  begin
+    Head := nil;
+    Current := nil;
+    Tail := nil;
+    Used := 0;
+    Size := 0;
+  end;
+end;
+
+// 遍历并释放一 BigNumberPool 内的所有元素
+procedure BigNumberPoolFinish(var Pool: TBigNumberPool);
+var
+  I: Integer;
+begin
+  while Pool.Head <> nil do
+  begin
+    // 只会释放 D 内存而不释放大数结构本身，因为没有 MALLOC 标志
+    for I := 0 to BN_CTX_POOL_SIZE - 1 do
+      BigNumberFree(@(Pool.Head.Vals[I]));
+
+    Pool.Current := Pool.Head.Next;
+    FreeMemory(Pool.Head);
+    Pool.Head := Pool.Current;
+  end;
+end;
+
+procedure BigNumberPoolReset(var Pool: TBigNumberPool);
+var
+  Item: PBigNumberPoolItem;
+  I: Integer;
+begin
+  Item := Pool.Head;
+  while Item <> nil do
+  begin
+    for I := 0 to BN_CTX_POOL_SIZE - 1 do
+      BigNumberClear(Item.Vals[I]);
+
+    Item := Item.Next;
+  end;
+
+  Pool.Current := Pool.Head;
+  Pool.Used := 0;
+end;
+
+// 从池中分配并取出一个大数结构地址
+function BigNumberPoolGet(var Pool: TBigNumberPool): PCnBigNumber;
+var
+  I: Integer;
+  Item: PBigNumberPoolItem;
+begin
+  if Pool.Used = Pool.Size then
+  begin
+    // This Item is Full. Get another
+    New(Item);
+    for I := 0 to BN_CTX_POOL_SIZE - 1 do
+      BigNumberInit(Item.Vals[I]);
+
+    Item.Prev := Pool.Tail;
+    Item.Next := nil;
+
+    if Pool.Head = nil then
+    begin
+      Pool.Head := Item;
+      Pool.Current := Item;
+      Pool.Tail := Item;
+    end
+    else
+    begin
+      Pool.Tail.Next := Item;
+      Pool.Tail := Item;
+      Pool.Current := Item;
+    end;
+
+    Inc(Pool.Size, BN_CTX_POOL_SIZE);
+    Inc(Pool.Used);
+    Result := @(Item.Vals[0]);
+    Exit;
+  end;
+
+  if Pool.Used = 0 then
+    Pool.Current := Pool.Head
+  else if (Pool.Used mod BN_CTX_POOL_SIZE) = 0 then
+    Pool.Current := Pool.Current.Next;
+
+  Result := @(Pool.Current.Vals[Pool.Used mod BN_CTX_POOL_SIZE]);
+end;
+
+// 从池尾部缩小 Num 个大数结构，仅作标记，不释放内存
+procedure BigNumberPoolRelease(var Pool: TBigNumberPool; Num: Integer);
+var
+  Offset: Integer;
+begin
+  Offset := (Pool.Used - 1) mod BN_CTX_POOL_SIZE;
+  Dec(Pool.Used, Num);
+  while Num <> 0 do
+  begin
+    if Offset = 0 then
+    begin
+      Offset := BN_CTX_POOL_SIZE - 1;
+      Pool.Current := Pool.Current.Prev;
+    end
+    else
+      Dec(Offset);
+
+    Dec(Num);
+  end;
+end;
+
+{* BigNumberPool 双向链表池操作函数结束 }
+
+{* BigNumberStack 堆栈操作函数开始 }
+
+// 初始化一个大数堆栈
+procedure BigNumberStackInit(var Stack: TBigNumberStack);
+begin
+  Stack.Indexes := nil;
+  Stack.Depth := 0;
+  Stack.Size := 0;
+end;
+
+// 释放一个大数堆栈的内部存储区
+procedure BigNumberStackFinish(var Stack: TBigNumberStack);
+begin
+  if Stack.Size > 0 then
+    FreeMemory(Stack.Indexes);
+end;
+
+// 重置大数堆栈
+procedure BigNumberStackReset(var Stack: TBigNumberStack);
+begin
+  Stack.Depth := 0;
+end;
+
+// 将一个数据推入堆栈
+function BigNumberStackPush(var Stack: TBigNumberStack; Idx: DWORD): Boolean;
+var
+  NewSize: Integer;
+  NewItems: PDWORD;
+begin
+  Result := False;
+  if Stack.Depth = Stack.Size then
+  begin
+    if Stack.Size = 0 then
+      NewSize := BN_CTX_START_FRAMES
+    else
+      NewSize := (Stack.Size * 3) div 2;
+
+    NewItems := PDWORD(GetMemory(NewSize * SizeOf(DWORD)));
+    if NewItems = nil then
+      Exit;
+
+    if Stack.Depth > 0 then
+      CopyMemory(NewItems, Stack.Indexes, Stack.Depth * SizeOf(DWORD));
+    if Stack.Size > 0 then
+      FreeMemory(Stack.Indexes);
+
+    Stack.Indexes := NewItems;
+    Stack.Size := NewSize;
+  end;
+
+  PDWordArray(Stack.Indexes)^[Stack.Depth] := Idx;
+  Inc(Stack.Depth);
+  Result := True;
+end;
+
+// 从堆栈中弹出
+function BigNumberStackPop(var Stack: TBigNumberStack): DWORD;
+begin
+  Dec(Stack.Depth);
+  Result := PDWordArray(Stack.Indexes)^[Stack.Depth];
+end;
+
+{* BigNumberStack 堆栈操作函数结束 }
+
+{* BigNumberContext 中间结构操作函数开始 }
+
+procedure BigNumberContextInit(var Ctx: TBigNumberContext);
+begin
+  BigNumberPoolReset(Ctx.Pool);
+  BigNumberStackReset(Ctx.Stack);
+  Ctx.Used := 0;
+  Ctx.ErrStack := 0;
+  Ctx.TooMany := 0;
+end;
+
+function BigNumberContextNew: PBigNumberContext;
+begin
+  New(Result);
+  if Result = nil then
+    Exit;
+  BigNumberPoolInit(Result^.Pool);
+  BigNumberStackInit(Result^.Stack);
+  Result^.Used := 0;
+  Result^.ErrStack := 0;
+  Result^.TooMany := 0;
+end;
+
+procedure BigNumberContextFree(Ctx: PBigNumberContext);
+begin
+  if Ctx <> nil then
+  begin
+    BigNumberStackFinish(Ctx^.Stack);
+    BigNumberPoolFinish(Ctx^.Pool);
+    FreeMemory(Ctx);
+  end;
+end;
+
+procedure BigNumberContextStart(var Ctx: TBigNumberContext);
+begin
+  if (Ctx.ErrStack <> 0) or (Ctx.TooMany <> 0) then
+    Inc(Ctx.ErrStack)
+  else if not BigNumberStackPush(Ctx.Stack, Ctx.Used) then
+    Inc(Ctx.ErrStack);
+end;
+
+procedure BigNumberContextEnd(var Ctx: TBigNumberContext);
+var
+  FP: DWORD;
+begin
+  if Ctx.ErrStack <> 0 then
+    Dec(Ctx.ErrStack)
+  else
+  begin
+    FP := BigNumberStackPop(Ctx.Stack);
+    if FP < Ctx.Used then
+      BigNumberPoolRelease(Ctx.Pool, Ctx.Used - FP);
+    Ctx.Used := FP;
+    Ctx.TooMany := 0;
+  end;
+end;
+
+function BigNumberContextGet(var Ctx: TBigNumberContext): PCnBigNumber;
+begin
+  Result := nil;
+  if (Ctx.ErrStack <> 0) or (Ctx.TooMany <> 0) then
+    Exit;
+
+  Result := BigNumberPoolGet(Ctx.Pool);
+  if Result = nil then
+  begin
+    Ctx.TooMany := 1;
+    Exit;
+  end;
+
+  BigNumberSetZero(Result^);
+  Inc(Ctx.Used);
+end;
+
+{* BigNumberContext 中间结构操作函数结束 }
+
+// Tmp should have 2 * N DWORDs
+procedure BigNumberSqrNormal(R: PDWORD; A: PDWORD; N: Integer; Tmp: PDWORD);
+var
+  I, J, Max: Integer;
+  AP, RP: PDWordArray;
+begin
+  Max := N * 2;
+  AP := PDWordArray(A);
+  RP := PDWordArray(R);
+  RP[0] := 0;
+  RP[Max - 1] := 0;
+
+  RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+  J := N - 1;
+
+  if J > 0 then
+  begin
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    RP[J] := BigNumberMulWords(RP, AP, J, PDWordArray(Integer(AP) - SizeOf(DWORD))^[0]);
+    RP := PDWordArray(Integer(RP) + 2 * SizeOf(DWORD));
+  end;
+
+  for I := N - 2 downto 1 do
+  begin
+    Dec(J);
+    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
+    RP[J] := BigNumberMulAddWords(RP, AP, J, PDWordArray(Integer(AP) - SizeOf(DWORD))^[0]);
+    RP := PDWordArray(Integer(RP) + 2 * SizeOf(DWORD));
+  end;
+
+  BigNumberAddWords(PDWordArray(R), PDWordArray(R), PDWordArray(R), Max);
+  BigNumberSqrWords(PDWordArray(Tmp), PDWordArray(A), N);
+  BigNumberAddWords(PDWordArray(R), PDWordArray(R), PDWordArray(Tmp), Max);
+end;
+
+function BigNumberSqr(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
+var
+  Ctx: PBigNumberContext;
+  Max, AL: Integer;
+  Tmp, RR: PCnBigNumber;
+  T: array[0..15] of DWORD;
+begin
+  Result := False;
+  AL := Num.Top;
+  if AL <= 0 then
+  begin
+    Res.Top := 0;
+    Res.Neg := 0;
+    Result := True;
+    Exit;
+  end;
+
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+
+  try
+    if @Num <> @Res then
+      RR := @Res
+    else
+      RR := BigNumberContextGet(Ctx^);
+
+    Tmp := BigNumberContextGet(Ctx^);
+    if (RR = nil) or (Tmp = nil) then
+      Exit;
+
+    Max := 2 * AL;
+    if BigNumberWordExpand(RR^, Max) = nil then
+      Exit;
+
+    if AL = 4 then
+    begin
+      BigNumberSqrNormal(RR^.D, Num.D, 4, @(T[0]));
+    end
+    else if AL = 8 then
+    begin
+      BigNumberSqrNormal(RR^.D, Num.D, 8, @(T[0]));
+    end
+    else
+    begin
+      if BigNumberWordExpand(Tmp^, Max) = nil then
+        Exit;
+      BigNumberSqrNormal(RR^.D, Num.D, AL, Tmp^.D);
+    end;
+
+    RR^.Neg := 0;
+    if PDWordArray(Num.D)^[AL - 1] = (PDWordArray(Num.D)^[AL - 1] and BN_MASK2l) then
+      RR^.Top := Max - 1
+    else
+      RR^.Top := Max;
+
+    if RR <> @Res then
+      BigNumberCopy(Res, RR^);
+    Result := True;
+  finally
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
+  end;
 end;
 
 end.

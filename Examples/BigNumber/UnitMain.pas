@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnBigNumber;
+  StdCtrls, CnBigNumber, Spin;
 
 type
   TFormBigNumber = class(TForm)
@@ -26,8 +26,13 @@ type
     btnUsub: TButton;
     btnSignedAdd: TButton;
     btnSignedSub: TButton;
-    btnShiftleftOne: TButton;
     btnShiftRightOne: TButton;
+    btnShiftleftOne: TButton;
+    lblShift: TLabel;
+    seShift: TSpinEdit;
+    btnShiftLeft: TButton;
+    btnShiftRight: TButton;
+    btnSqr: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -42,6 +47,9 @@ type
     procedure btnSignedSubClick(Sender: TObject);
     procedure btnShiftleftOneClick(Sender: TObject);
     procedure btnShiftRightOneClick(Sender: TObject);
+    procedure btnShiftRightClick(Sender: TObject);
+    procedure btnShiftLeftClick(Sender: TObject);
+    procedure btnSqrClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -200,6 +208,40 @@ var
 begin
   Res := BigNumerNew;
   if BigNumberShiftRightOne(Res^, Num1) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnShiftRightClick(Sender: TObject);
+var
+  N: Integer;
+  Res: PCnBigNumber;
+begin
+  N := seShift.Value;
+  Res := BigNumerNew;
+  if BigNumberShiftLeft(Res^, Num1, N) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnShiftLeftClick(Sender: TObject);
+var
+  N: Integer;
+  Res: PCnBigNumber;
+begin
+  N := seShift.Value;
+  Res := BigNumerNew;
+  if BigNumberShiftRight(Res^, Num1, N) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnSqrClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberSqr(Res^, Num1) then
     ShowResult(Res^);
   BigNumberFree(Res);
 end;
