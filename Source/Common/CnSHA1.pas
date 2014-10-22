@@ -29,7 +29,9 @@ unit CnSHA1;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnSHA1.pas 426 2010-02-09 07:01:49Z liuxiao $
-* 修改记录：2010.07.14 V1.0
+* 修改记录：2014.10.22 V1.1
+*               加入 HMAC 方法
+*           2010.07.14 V1.0
 *               创建单元。从网上佚名代码移植而来，加入部分功能
 ================================================================================
 |</PRE>}
@@ -52,6 +54,8 @@ type
     Hi, Lo: DWORD;
     Buffer: array[0..63] of Byte;
     Index: Integer;
+    Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
+    Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
 
   TSHA1CalcProgressFunc = procedure (ATotal, AProgress: Int64;
@@ -124,6 +128,16 @@ function SHA1DigestToStr(aDig: TSHA1Digest): string;
  |<PRE>
    aDig: TSHA1Digest   - 需要转换的SHA1计算值
  |</PRE>}
+
+procedure SHA1HmacInit(var Ctx: TSHA1Context; Key: PAnsiChar; KeyLength: Integer);
+
+procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: LongWord);
+
+procedure SHA1HmacFinal(var Ctx: TSHA1Context; var Output: TSHA1Digest);
+
+procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA1Digest);
+{* Hash-based Message Authentication Code (based on SHA1) }
 
 implementation
 
@@ -541,6 +555,59 @@ begin
   SetLength(Result, 20);
   for I := 1 to 20 do
     Result[I] := Chr(aDig[I - 1]);
+end;
+
+procedure SHA1HmacInit(var Ctx: TSHA1Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TSHA1Digest;
+begin
+  if KeyLength > 64 then
+  begin
+    Sum := SHA1Buffer(Key, KeyLength);
+    KeyLength := 32;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Ctx.Ipad, $36, 64);
+  FillChar(Ctx.Opad, $5C, 64);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Ctx.Ipad[I] := Byte(Ctx.Ipad[I] xor Byte(Key[I]));
+    Ctx.Opad[I] := Byte(Ctx.Opad[I] xor Byte(Key[I]));
+  end;
+
+  SHA1Init(Ctx);
+  SHA1Update(Ctx, @(Ctx.Ipad[0]), 64);
+end;
+
+procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: LongWord);
+begin
+  SHA1Update(Ctx, Input, Length);
+end;
+
+procedure SHA1HmacFinal(var Ctx: TSHA1Context; var Output: TSHA1Digest);
+var
+  Len: Integer;
+  TmpBuf: TSHA1Digest;
+begin
+  Len := 32;
+  SHA1Final(Ctx, TmpBuf);
+  SHA1Init(Ctx);
+  SHA1Update(Ctx, @(Ctx.Opad[0]), 64);
+  SHA1Update(Ctx, @(TmpBuf[0]), Len);
+  SHA1Final(Ctx, Output);
+end;
+
+procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA1Digest);
+var
+  Ctx: TSHA1Context;
+begin
+  SHA1HmacInit(Ctx, Key, KeyLength);
+  SHA1HmacUpdate(Ctx, Input, Length);
+  SHA1HmacFinal(Ctx, Output);
 end;
 
 end.

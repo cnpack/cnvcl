@@ -79,6 +79,7 @@ procedure SM3HmacFinish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
 procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   Length: LongWord; var Output: TSM3Digest);
+{* Hash-based Message Authentication Code (based on SM3) }
 
 function SM3String(const Str: string): TSM3Digest;
 {* 对 String 类型数据进行 SM3 计算，注意D2009或以上版本的string为UnicodeString，
@@ -322,8 +323,7 @@ end;
 
 procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
 var
-  Fill: Integer;
-  Left: DWORD;
+  Fill, Left: DWORD;
 begin
   if Length <= 0 then
     Exit;
