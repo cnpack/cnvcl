@@ -180,6 +180,10 @@ function BigNumberShiftRight(var Res: TCnBigNumber; var Num: TCnBigNumber;
 function BigNumberSqr(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
 {* 计算一大数结构的平方}
 
+function BigNumberMul(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+{* 计算两大数结构的乘积}
+
 implementation
 
 const
@@ -2290,6 +2294,120 @@ begin
       RR^.Top := Max - 1
     else
       RR^.Top := Max;
+
+    if RR <> @Res then
+      BigNumberCopy(Res, RR^);
+    Result := True;
+  finally
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
+  end;
+end;
+
+procedure BigNumberMulNormal(R: PDWORD; A: PDWORD; NA: Integer; B: PDWORD;
+  NB: Integer);
+var
+  RR: PDWORD;
+  Tmp: Integer;
+begin
+  if NA < NB then
+  begin
+    Tmp := NA;
+    NA := NB;
+    NB := Tmp;
+
+    RR := B;
+    B := A;
+    A := RR;
+  end;
+
+  RR := PDWORD(Integer(R) + NA * SizeOf(DWORD));
+  if NB <= 0 then
+  begin
+    BigNumberMulWords(PDWordArray(R), PDWordArray(A), NA, 0);
+    Exit;
+  end
+  else
+    RR^ := BigNumberMulWords(PDWordArray(R), PDWordArray(A), NA, B^);
+
+  while True do
+  begin
+    Dec(NB);
+    if NB <=0 then
+      Exit;
+    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
+    R := PDWORD(Integer(R) + SizeOf(DWORD));
+    B := PDWORD(Integer(B) + SizeOf(DWORD));
+
+    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+
+    Dec(NB);
+    if NB <=0 then
+      Exit;
+    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
+    R := PDWORD(Integer(R) + SizeOf(DWORD));
+    B := PDWORD(Integer(B) + SizeOf(DWORD));
+    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+
+    Dec(NB);
+    if NB <=0 then
+      Exit;
+    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
+    R := PDWORD(Integer(R) + SizeOf(DWORD));
+    B := PDWORD(Integer(B) + SizeOf(DWORD));
+    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+
+    Dec(NB);
+    if NB <=0 then
+      Exit;
+    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
+    R := PDWORD(Integer(R) + SizeOf(DWORD));
+    B := PDWORD(Integer(B) + SizeOf(DWORD));
+    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+  end;
+end;
+
+function BigNumberMul(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+var
+  Ctx: PBigNumberContext;
+  Top, AL, BL: Integer;
+  RR: PCnBigNumber;
+begin
+  Result := False;
+  AL := Num1.Top;
+  BL := Num2.Top;
+
+  if (AL = 0) or (BL = 0) then
+  begin
+    BigNumberSetZero(Res);
+    Result := True;
+    Exit;
+  end;
+  Top := AL + BL;
+
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+
+  try
+    if (@Res = @Num1) or (@Res = @Num2) then
+    begin
+      RR := BigNumberContextGet(Ctx^);
+      if RR = nil then
+        Exit;
+    end
+    else
+      RR := @Res;
+
+    if Num1.Neg <> Num2.Neg then
+      RR^.Neg := 1
+    else
+      RR^.Neg := 0;
+
+    if BigNumberWordExpand(RR^, Top) = nil then
+      Exit;
+    RR^.Top := Top;
+    BigNumberMulNormal(RR^.D, Num1.D, AL, Num2.D, BL);
 
     if RR <> @Res then
       BigNumberCopy(Res, RR^);

@@ -33,6 +33,7 @@ type
     btnShiftLeft: TButton;
     btnShiftRight: TButton;
     btnSqr: TButton;
+    btnMul: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -50,6 +51,7 @@ type
     procedure btnShiftRightClick(Sender: TObject);
     procedure btnShiftLeftClick(Sender: TObject);
     procedure btnSqrClick(Sender: TObject);
+    procedure btnMulClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -242,6 +244,16 @@ var
 begin
   Res := BigNumerNew;
   if BigNumberSqr(Res^, Num1) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnMulClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumerNew;
+  if BigNumberMul(Res^, Num1, Num2) then
     ShowResult(Res^);
   BigNumberFree(Res);
 end;

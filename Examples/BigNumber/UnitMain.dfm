@@ -242,4 +242,13 @@ object FormBigNumber: TFormBigNumber
     TabOrder = 20
     OnClick = btnSqrClick
   end
+  object btnMul: TButton
+    Left = 424
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Mul'
+    TabOrder = 21
+    OnClick = btnMulClick
+  end
 end
