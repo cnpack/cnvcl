@@ -30,10 +30,11 @@ type
     btnShiftleftOne: TButton;
     lblShift: TLabel;
     seShift: TSpinEdit;
-    btnShiftLeft: TButton;
     btnShiftRight: TButton;
+    btnShiftLeft: TButton;
     btnSqr: TButton;
     btnMul: TButton;
+    btnDiv: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -48,10 +49,11 @@ type
     procedure btnSignedSubClick(Sender: TObject);
     procedure btnShiftleftOneClick(Sender: TObject);
     procedure btnShiftRightOneClick(Sender: TObject);
-    procedure btnShiftRightClick(Sender: TObject);
     procedure btnShiftLeftClick(Sender: TObject);
+    procedure btnShiftRightClick(Sender: TObject);
     procedure btnSqrClick(Sender: TObject);
     procedure btnMulClick(Sender: TObject);
+    procedure btnDivClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -151,7 +153,7 @@ procedure TFormBigNumber.btnUAddClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberUnsignedAdd(Res^, Num1, Num2) then
     ShowResult(Res^);
   BigNumberFree(Res);
@@ -166,7 +168,7 @@ procedure TFormBigNumber.btnUsubClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberUnsignedSub(Res^, Num1, Num2) then
     ShowResult(Res^)
   else
@@ -178,7 +180,7 @@ procedure TFormBigNumber.btnSignedAddClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberAdd(Res^, Num1, Num2) then
     ShowResult(Res^);
   BigNumberFree(Res);
@@ -188,7 +190,7 @@ procedure TFormBigNumber.btnSignedSubClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberSub(Res^, Num1, Num2) then
     ShowResult(Res^);
   BigNumberFree(Res);
@@ -198,7 +200,7 @@ procedure TFormBigNumber.btnShiftleftOneClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberShiftLeftOne(Res^, Num1) then
     ShowResult(Res^);
   BigNumberFree(Res);
@@ -208,20 +210,8 @@ procedure TFormBigNumber.btnShiftRightOneClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberShiftRightOne(Res^, Num1) then
-    ShowResult(Res^);
-  BigNumberFree(Res);
-end;
-
-procedure TFormBigNumber.btnShiftRightClick(Sender: TObject);
-var
-  N: Integer;
-  Res: PCnBigNumber;
-begin
-  N := seShift.Value;
-  Res := BigNumerNew;
-  if BigNumberShiftLeft(Res^, Num1, N) then
     ShowResult(Res^);
   BigNumberFree(Res);
 end;
@@ -232,7 +222,19 @@ var
   Res: PCnBigNumber;
 begin
   N := seShift.Value;
-  Res := BigNumerNew;
+  Res := BigNumberNew;
+  if BigNumberShiftLeft(Res^, Num1, N) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnShiftRightClick(Sender: TObject);
+var
+  N: Integer;
+  Res: PCnBigNumber;
+begin
+  N := seShift.Value;
+  Res := BigNumberNew;
   if BigNumberShiftRight(Res^, Num1, N) then
     ShowResult(Res^);
   BigNumberFree(Res);
@@ -242,7 +244,7 @@ procedure TFormBigNumber.btnSqrClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberSqr(Res^, Num1) then
     ShowResult(Res^);
   BigNumberFree(Res);
@@ -252,9 +254,24 @@ procedure TFormBigNumber.btnMulClick(Sender: TObject);
 var
   Res: PCnBigNumber;
 begin
-  Res := BigNumerNew;
+  Res := BigNumberNew;
   if BigNumberMul(Res^, Num1, Num2) then
     ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnDivClick(Sender: TObject);
+var
+  Res, Rem: PCnBigNumber;
+begin
+  Res := BigNumberNew;
+  Rem := BigNumberNew;
+  if BigNumberDiv(Res^, Rem^, Num1, Num2) then
+  begin
+    ShowResult(Res^);
+    ShowMessage(BigNumberToHex(Rem^));
+  end;
+  BigNumberFree(Rem);
   BigNumberFree(Res);
 end;
 

@@ -27,6 +27,7 @@ unit CnBigNumber;
 * 备    注：大部分从 Openssl 的 C 代码移植而来
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
+*           Div 对于数位过大时似乎仍有问题，待进一步修正。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -65,15 +66,15 @@ type
 
   {* 用来代表一个大数的结构体 }
   TCnBigNumber = packed record
-    D: PDWORD;
-    Top: Integer;
-    DMax: Integer;
-    Neg: Integer;
+    D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
+    Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
+    DMax: Integer;      // D 数组的存储上限
+    Neg: Integer;       // 1 为负，0 为正
     Flags: Integer;
   end;
   PCnBigNumber = ^TCnBigNumber;
 
-function BigNumerNew: PCnBigNumber;
+function BigNumberNew: PCnBigNumber;
 {* 创建一个动态分配的大数结构，返回其指针，此指针不用时必须用 BigNumberFree 释放}
 
 procedure BigNumberFree(Num: PCnBigNumber);
@@ -91,6 +92,15 @@ function BigNumberIsZero(var Num: TCnBigNumber): Boolean;
 
 function BigNumberSetZero(var Num: TCnBigNumber): Boolean;
 {* 将一个大数结构里的大数设置为 0 }
+
+function BigNumberIsOne(var Num: TCnBigNumber): Boolean;
+{* 返回一个大数结构里的大数是否为 1 }
+
+function BigNumberSetOne(var Num: TCnBigNumber): Boolean;
+{* 将一个大数结构里的大数设置为 1 }
+
+function BigNumberIsOdd(var Num: TCnBigNumber): Boolean;
+{* 返回一个大数结构里的大数是否为奇数 }
 
 function BigNumberGetBitsCount(var Num: TCnBigNumber): Integer;
 {* 返回一个大数结构里的大数有多少个有效 bit }
@@ -178,11 +188,19 @@ function BigNumberShiftRight(var Res: TCnBigNumber; var Num: TCnBigNumber;
 {* 将一大数结构右移 N 位，结果放至 Res 中，返回右移是否成功}
 
 function BigNumberSqr(var Res: TCnBigNumber; var Num: TCnBigNumber): Boolean;
-{* 计算一大数结构的平方}
+{* 计算一大数结构的平方，结果放 Res 中，返回平方计算是否成功}
 
 function BigNumberMul(var Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
-{* 计算两大数结构的乘积}
+{* 计算两大数结构的乘积，结果放 Res 中，返回乘积计算是否成功}
+
+function BigNumberDiv(var Res: TCnBigNumber; var Remain: TCnBigNumber;
+  var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
+{* 两大数结构相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功}
+
+function BigNumberMod(var Remain: TCnBigNumber;
+  var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
+{* 两大数结构求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功}
 
 implementation
 
@@ -256,7 +274,7 @@ begin
   Result := Num.Flags and N;
 end;
 
-function BigNumerNew(): PCnBigNumber;
+function BigNumberNew: PCnBigNumber;
 begin
   New(Result);
   Result^.Flags := BN_FLG_MALLOCED;
@@ -297,6 +315,38 @@ end;
 function BigNumberSetZero(var Num: TCnBigNumber): Boolean;
 begin
   Result := BigNumberSetWord(Num, 0);
+end;
+
+// 返回一个大数结构里的大数的绝对值是否为指定的 DWORD 值
+function BigNumberAbsIsWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+begin
+  Result := True;
+  if (W = 0) and (Num.Top = 0) then
+    Exit;
+  if (Num.Top = 1) and (PDWordArray(Num.D)^[0] = W) then
+    Exit;
+  Result := False;
+end;
+
+function BigNumberIsOne(var Num: TCnBigNumber): Boolean;
+begin
+  if (Num.Neg = 0) and BigNumberAbsIsWord(Num, 1) then
+    Result := True
+  else
+    Result := False;
+end;
+
+function BigNumberSetOne(var Num: TCnBigNumber): Boolean;
+begin
+  Result := BigNumberSetWord(Num, 1);
+end;
+
+function BigNumberIsOdd(var Num: TCnBigNumber): Boolean;
+begin
+  if (Num.Top > 0) and ((PDWordArray(Num.D)^[0] and 1) <> 0) then
+    Result := True
+  else
+    Result := False;
 end;
 
 function BigNumberGetWordBitsCount(L: DWORD): Integer;
@@ -494,7 +544,16 @@ begin
     Result := 0;
 end;
 
-// 调整 Top 保证其指向最高位非 0 处
+// 某大数是否等于指定 DWORD
+function BigNumberIsWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+begin
+  Result := False;
+  if (W = 0) or (Num.Neg = 0) then
+    if BigNumberAbsIsWord(Num, W) then
+      Result := True;
+end;
+
+// 调整 Top 保证 D[Top - 1] 指向最高位非 0 处
 procedure BigNumberCorrectTop(var Num: TCnBigNumber);
 var
   Ftl: PDWORD;
@@ -508,9 +567,9 @@ begin
       Break;
 
     Ftl := PDWORD(Integer(Ftl) - SizeOf(DWORD));
-    Num.Top := Top;
     Dec(Top);
   end;
+  Num.Top := Top;
 end;
 
 function BigNumberToBinary(var Num: TCnBigNumber; Buf: PAnsiChar): Integer;
@@ -535,7 +594,7 @@ function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): PCnBigNumber;
 var
   I, M, N, L: DWORD;
 begin
-  Result := BigNumerNew;
+  Result := BigNumberNew;
 
   L := 0;
   N := Len;
@@ -911,7 +970,7 @@ end;
 
 function BigNumberDuplicate(var Num: TCnBigNumber): PCnBigNumber;
 begin
-  Result := BigNumerNew;
+  Result := BigNumberNew;
   if Result = nil then
     Exit;
 
@@ -1301,6 +1360,7 @@ begin
   end;
 end;
 
+// 64 位被除数整除 32 位除数，返回商，Result := H L div D
 function BigNumberDivWords(H: DWORD; L: DWORD; D: DWORD): DWORD;
 var
   I, Count: Integer;
@@ -1314,7 +1374,7 @@ begin
 
   Result := 0;
   I := BigNumberGetWordBitsCount(D);
-  if (I = BN_BITS2) or (H <= DWORD(1 shl I)) then
+  if (I <> BN_BITS2) and (H > DWORD(1 shl I)) then
     Exit;
 
   I := BN_BITS2 - I;
@@ -2040,6 +2100,7 @@ begin
     Pool.Current := Pool.Current.Next;
 
   Result := @(Pool.Current.Vals[Pool.Used mod BN_CTX_POOL_SIZE]);
+  Inc(Pool.Used);
 end;
 
 // 从池尾部缩小 Num 个大数结构，仅作标记，不释放内存
@@ -2415,6 +2476,211 @@ begin
   finally
     BigNumberContextEnd(Ctx^);
     BigNumberContextFree(Ctx);
+  end;
+end;
+
+function BigNumberDiv(var Res: TCnBigNumber; var Remain: TCnBigNumber;
+  var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
+var
+  NoBranch: Integer;
+  Ctx: PBigNumberContext;
+  Tmp, SNum, SDiv, SRes: PCnBigNumber;
+  I, NormShift, Loop, NumN, DivN, Neg: Integer;
+  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: DWORD;
+  Resp, WNump: PDWORD;
+  WNum: TCnBigNumber;
+begin
+  Result := False;
+  if (Num.Top > 0) and (PDWordArray(Num.D)^[Num.Top - 1] = 0) then
+    Exit;
+
+  if BigNumberIsZero(Divisor) then
+    Exit;
+
+  if (BigNumberGetFlag(Num, BN_FLG_CONSTTIME) <> 0) or
+    (BigNumberGetFlag(Divisor, BN_FLG_CONSTTIME) <> 0) then
+    NoBranch := 1
+  else
+    NoBranch := 0;
+
+  if (NoBranch = 0) and (BigNumberUnsignedCompare(Num, Divisor) < 0) then
+  begin
+    if BigNumberCopy(Remain, Num) = nil then
+      Exit;
+    BigNumberSetZero(Res);
+    Result := True;
+    Exit;
+  end;
+
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+  
+  try
+    Tmp := BigNumberContextGet(Ctx^);
+    SNum := BigNumberContextGet(Ctx^);
+    SDiv := BigNumberContextGet(Ctx^);
+    SRes := @Res;
+
+    if (Tmp = nil) or (SNum = nil) or (SDiv = nil) or (SRes = nil) then
+      Exit;
+
+    // 把除数左移到最高位是 1，放入SDiv
+    NormShift := BN_BITS2 - (BigNumberGetBitsCount(Divisor) mod BN_BITS2);
+    if not BigNumberShiftLeft(SDiv^, Divisor, NormShift) then
+      Exit;
+
+    SDiv^.Neg := 0;
+    // 把被除数同样左移，并再左移一个字
+    NormShift := NormShift + BN_BITS2;
+    if not BigNumberShiftLeft(SNum^, Num, NormShift) then
+      Exit;
+    SNum^.Neg := 0;
+
+    if NoBranch <> 0 then
+    begin
+      if SNum^.Top <= SDiv^.Top + 1 then
+      begin
+        if BigNumberWordExpand(SNum^, SDiv^.Top + 2) = nil then
+          Exit;
+        for I := SNum^.Top to SDiv^.Top + 1 do
+          PDWordArray(SNum^.D)^[I] := 0;
+        SNum^.Top := SDiv^.Top + 2;
+      end
+      else
+      begin
+        if BigNumberWordExpand(SNum^, SDiv^.Top + 1) = nil then
+          Exit;
+        PDWordArray(SNum^.D)^[SNum^.Top] := 0;
+        Inc(SNum^.Top);
+      end;
+    end;
+
+    DivN := SDiv^.Top;
+    NumN := SNum^.Top;
+    Loop := NumN - DivN;
+
+    WNum.Neg := 0;
+    WNum.D := PDWORD(Integer(SNum^.D) + Loop * SizeOf(DWORD));
+    WNum.Top := DivN;
+    WNum.DMax := SNum^.DMax - Loop;
+
+    D0 := PDWordArray(SDiv.D)^[DivN - 1];
+    if DivN = 1 then
+      D1 := 0
+    else
+      D1 := PDWordArray(SDiv.D)^[DivN - 2];
+    // D0 D1 是 SDiv 的最高俩 DWORD
+
+    WNump := PDWORD(Integer(SNum^.D) + (NumN - 1) * SizeOf(DWORD));
+
+    if Num.Neg <> Divisor.Neg then
+      SRes^.Neg := 1
+    else
+      SRes^.Neg := 0;
+
+    if BigNumberWordExpand(SRes^, Loop + 1) = nil then
+      Exit;
+
+    SRes^.Top := Loop - NoBranch;
+    Resp := PDWORD(Integer(SRes^.D) + (Loop - 1) * SizeOf(DWORD));
+
+    if BigNumberWordExpand(Tmp^, DivN + 1) = nil then
+      Exit;
+
+    if NoBranch = 0 then
+    begin
+      if BigNumberUnsignedCompare(WNum, SDiv^) >= 0 then
+      begin
+        BigNumberSubWords(PDWordArray(WNum.D), PDWordArray(WNum.D),
+          PDWordArray(SDiv^.D), DivN);
+        Resp^ := 1;
+      end
+      else
+        Dec(SRes^.Top);
+    end;
+
+    if SRes^.Top = 0 then
+      SRes^.Neg := 0
+    else
+      Resp := PDWORD(Integer(Resp) - SizeOf(DWORD));
+
+    for I := 0 to Loop - 2 do
+    begin
+//    Rem := 0;
+      // 用 N0/N1/D0/D1 计算出一个 Q 使 | WNum - SDiv * Q | < SDiv
+      N0 := WNump^;
+      N1 := (PDWORD(Integer(WNump) - SizeOf(DWORD)))^;
+
+      if N0 = D0 then
+        Q := BN_MASK2
+      else
+      begin
+        Q := BigNumberDivWords(N0, N1, D0);
+        Rem := (N1 - Q * D0) and BN_MASK2;
+
+        T2L := LBITS(D1);
+        T2H := HBITS(D1);
+        QL := LBITS(Q);
+        QH := HBITS(Q);
+        Mul64(T2L, T2H, QL, QH);
+
+        while True do
+        begin
+          if (T2H < Rem) or ((T2H = Rem) and
+             (T2L <= (PDWORD(Integer(WNump) - 2 * SizeOf(DWORD)))^)) then
+             Break;
+          Dec(Q);
+          Inc(Rem, D0);
+          if Rem < D0 then
+            Break;
+          if T2L < D1 then
+            Dec(T2H);
+          Dec(T2L, D1);
+        end;
+      end;
+
+      L0 := BigNumberMulWords(PDWordArray(Tmp^.D), PDWordArray(SDiv^.D), DivN, Q);
+      PDWordArray(Tmp^.D)^[DivN] := L0;
+      WNum.D := PDWORD(Integer(WNum.D) - SizeOf(DWORD));
+
+      if BigNumberSubWords(PDWordArray(WNum.D), PDWordArray(WNum.D),
+        PDWordArray(Tmp^.D), DivN + 1) <> 0 then
+      begin
+        Dec(Q);
+        if BigNumberAddWords(PDWordArray(WNum.D), PDWordArray(WNum.D),
+          PDWordArray(SDiv^.D), DivN) <> 0 then
+          WNump^ := WNump^ + 1;
+      end;
+
+      Resp^ := Q;
+      WNump := PDWORD(Integer(WNump) - SizeOf(DWORD));
+      Resp := PDWORD(Integer(Resp) - SizeOf(DWORD));
+    end;
+
+    BigNumberCorrectTop(SNum^);
+    Neg := Num.Neg;
+    BigNumberShiftRight(Remain, SNum^, NormShift);
+    if not BigNumberIsZero(Remain) then
+      Remain.Neg := Neg;
+    if NoBranch <> 0 then
+      BigNumberCorrectTop(SRes^);
+    Result := True;
+  finally
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
+  end;
+end;
+
+function BigNumberMod(var Remain: TCnBigNumber;
+  var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumberNew;
+  try
+    Result := BigNumberDiv(Res^, Remain, Num, Divisor);
+  finally
+    BigNumberFree(Res);
   end;
 end;
 

@@ -215,23 +215,23 @@ object FormBigNumber: TFormBigNumber
     TabOrder = 17
     Value = 2
   end
-  object btnShiftLeft: TButton
+  object btnShiftRight: TButton
     Left = 632
     Top = 220
     Width = 75
     Height = 21
     Caption = 'Shift Right'
     TabOrder = 18
-    OnClick = btnShiftLeftClick
+    OnClick = btnShiftRightClick
   end
-  object btnShiftRight: TButton
+  object btnShiftLeft: TButton
     Left = 552
     Top = 220
     Width = 75
     Height = 21
     Caption = 'Shift Left'
     TabOrder = 19
-    OnClick = btnShiftRightClick
+    OnClick = btnShiftLeftClick
   end
   object btnSqr: TButton
     Left = 344
@@ -250,5 +250,14 @@ object FormBigNumber: TFormBigNumber
     Caption = 'Mul'
     TabOrder = 21
     OnClick = btnMulClick
+  end
+  object btnDiv: TButton
+    Left = 504
+    Top = 422
+    Width = 75
+    Height = 21
+    Caption = 'Div'
+    TabOrder = 22
+    OnClick = btnDivClick
   end
 end
