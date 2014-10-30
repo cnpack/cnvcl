@@ -28,6 +28,7 @@ unit CnBigNumber;
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
 *           Div 对于数位过大时似乎仍有问题，待进一步修正。
+*           转十进制的长度有问题。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -114,6 +115,21 @@ function BigNumberGetWord(var Num: TCnBigNumber): DWORD;
 function BigNumberSetWord(var Num: TCnBigNumber; W: DWORD): Boolean;
 {* 给一个大数结构赋首值 }
 
+function BigNumberAddWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+{* 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功}
+
+function BigNumberSubWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+{* 大数减去一个 DWORD，结果仍放 Num 中，返回相减是否成功}
+
+function BigNumberMulWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+{* 大数乘以一个 DWORD，结果仍放 Num 中，返回相乘是否成功}
+
+function BigNumberModWord(var Num: TCnBigNumber; W: DWORD): DWORD;
+{* 大数对一个 DWORD 求余，返回余数}
+
+function BigNumberDivWord(var Num: TCnBigNumber; W: DWORD): DWORD;
+{* 大数除以一个 DWORD，结果重新放在 Num 中，返回余数}
+
 procedure BigNumberSetNegative(var Num: TCnBigNumber; Negative: Boolean);
 {* 给一个大数结构设置是否负值 }
 
@@ -137,6 +153,9 @@ function BigNumberToString(var Num: TCnBigNumber): string;
 
 function BigNumberToHex(var Num: TCnBigNumber): string;
 {* 将一个大数结构转成十六进制字符串}
+
+function BigNumberToDec(var Num: TCnBigNumber): string;
+{* 将一个大数结构转成十进制字符串}
 
 function BigNumberCompare(var Num1: TCnBigNumber; var Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数结构，前者大于等于小于后者分别返回 1、0、-1 }
@@ -202,6 +221,19 @@ function BigNumberMod(var Remain: TCnBigNumber;
   var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
 {* 两大数结构求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功}
 
+function BigNumberNonNegativeMod(var Remain: TCnBigNumber;
+  var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
+{* 两大数结构非负求余，Num mod Divisor，余数放 Remain 中，0 <= Remain < |Divisor|
+   Remain 始终大于零，返回求余计算是否成功}
+
+function BigNumberExp(var Res: TCnBigNumber; var Num: TCnBigNumber;
+  var Exponent: TCnBigNumber): Boolean;
+{* 求大数 Num 的 Exponent  次方，返回乘方计算是否成功，极其耗时}
+
+function BigNumberGcd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+{* 求俩大数 Num1 与 Num2 的最大公约数}
+
 implementation
 
 const
@@ -217,6 +249,9 @@ const
 
   BN_CTX_POOL_SIZE = 16;
   BN_CTX_START_FRAMES = 32;
+  BN_DEC_CONV = 1000000000;
+  BN_DEC_FMT = '%u';
+  BN_DEC_FMT2 = '%.9u';
 
 type
   {* 大数运算的中间结构中的双向链表元素，
@@ -841,67 +876,6 @@ begin
   Result := 0;
 end;
 
-function BigNumberToString(var Num: TCnBigNumber): string;
-var
-  I, J, V, Z: Integer;
-begin
-  Result := '';
-  if BigNumberIsZero(Num) then
-  begin
-    Result := '0';
-    Exit;
-  end;
-  if BigNumberIsNegative(Num) then
-    Result := '-';
-
-  Z := 0;
-  for I := Num.Top - 1 downto 0 do
-  begin
-    J := BN_BITS2 - 4;
-    while J >= 0 do
-    begin
-      V := ((PDWordArray(Num.D)^[I]) shr DWORD(J)) and $0F;
-      if (Z <> 0) or (V <> 0) then
-      begin
-        Result := Result + Hex[V + 1];
-        Z := 1;
-      end;
-      Dec(J, 4);
-    end;
-  end;
-end;
-
-function BigNumberToHex(var Num: TCnBigNumber): string;
-var
-  I, J, V, Z: Integer;
-begin
-  Result := '';
-  if BigNumberIsZero(Num) then
-  begin
-    Result := '0';
-    Exit;
-  end;
-  if BigNumberIsNegative(Num) then
-    Result := '-';
-
-  Z := 0;
-  for I := Num.Top - 1 downto 0 do
-  begin
-    J := BN_BITS2 - 8;
-    while J >= 0 do
-    begin
-      V := ((PDWordArray(Num.D)^[I]) shr DWORD(J)) and $FF;
-      if (Z <> 0) or (V <> 0) then
-      begin
-        Result := Result + Hex[(V shr 4) + 1];
-        Result := Result + Hex[(V and $0F) + 1];
-        Z := 1;
-      end;
-      Dec(J, 8);
-    end;
-  end;
-end;
-
 // 使用 Windows API 实现区块随机填充
 function InternalRandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 var
@@ -1301,6 +1275,7 @@ begin
   end;
 end;
 
+// AP 指向的 N 个数字都乘以 W，结果放 RP 中
 function BigNumberMulWords(RP: PDWordArray; AP: PDWordArray; N: Integer; W: DWORD): DWORD;
 var
   Carry, BL, BH: DWORD;
@@ -1951,6 +1926,143 @@ begin
   Result := True;
 end;
 
+{* 大数与 Word 运算系列函数开始}
+
+// 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功
+function BigNumberAddWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+var
+  I: Integer;
+  L: DWORD;
+begin
+  Result := False;
+  W := W and BN_MASK2;
+
+  if W = 0 then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if BigNumberIsZero(Num) then
+  begin
+    Result := BigNumberSetWord(Num, W);
+    Exit;
+  end;
+
+  if Num.Neg <> 0 then // 负就用减法
+  begin
+    Num.Neg := 0;
+    Result := BigNumberSubWord(Num, W);
+    if not BigNumberIsZero(Num) then
+      Num.Neg := 1 - Num.Neg;
+    Exit;
+  end;
+
+  I := 0;
+  while (W <> 0) and (I < Num.Top) do
+  begin
+    L := (PDWordArray(Num.D)^[I] + W) and BN_MASK2;
+    PDWordArray(Num.D)^[I] := L;
+    if W > L then // 结果比加数小，说明溢出或者进位了，把进位置给 W，继续加
+      W := 1
+    else
+      W := 0;
+    Inc(I);
+  end;
+
+  if (W <> 0) and (I = Num.Top) then // 如果进位竟然超过了最高位
+  begin
+    if BigNumberWordExpand(Num, Num.Top + 1) = nil then
+      Exit;
+    Inc(Num.Top);
+    PDWordArray(Num.D)^[I] := W;
+  end;
+  Result := True;
+end;
+
+// 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功
+function BigNumberSubWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+var
+  I: Integer;
+begin
+  W := W and BN_MASK2;
+
+  if W = 0 then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if BigNumberIsZero(Num) then
+  begin
+    Result := BigNumberSetWord(Num, W);
+    if Result then
+      BigNumberSetNegative(Num, True);
+    Exit;
+  end;
+
+  if Num.Neg <> 0 then
+  begin
+    Num.Neg := 0;
+    Result := BigNumberAddWord(Num, W);
+    Num.Neg := 1;
+    Exit;
+  end;
+
+  if (Num.Top = 1) and (PDWordArray(Num.D)^[0] < W) then // 不够减
+  begin
+    PDWordArray(Num.D)^[0] := W - PDWordArray(Num.D)^[0];
+    Num.Neg := 1;
+    Result := True;
+    Exit;
+  end;
+
+  I := 0;
+  while True do
+  begin
+    if PDWordArray(Num.D)^[I] >= W then // 够减直接减
+    begin
+      PDWordArray(Num.D)^[I] := PDWordArray(Num.D)^[I] - W;
+      Break;
+    end
+    else
+    begin
+      PDWordArray(Num.D)^[I] := (PDWordArray(Num.D)^[I] - W) and BN_MASK2;
+      Inc(I);
+      W := 1;  // 不够减有借位
+    end;
+  end;
+
+  if (PDWordArray(Num.D)^[I] = 0) and (I = Num.Top - 1) then
+    Dec(Num.Top);
+  Result := True;
+end;
+
+function BigNumberMulWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+var
+  L: DWORD;
+begin
+  Result := False;
+  W := W and BN_MASK2;
+  if Num.Top <> 0 then
+  begin
+    if W = 0 then
+      BigNumberSetZero(Num)
+    else
+    begin
+      L := BigNumberMulWords(PDWordArray(Num.D), PDWordArray(Num.D), Num.Top, W);
+      if L <> 0 then
+      begin
+        if BigNumberWordExpand(Num, Num.Top + 1) = nil then
+          Exit;
+        PDWordArray(Num.D)^[Num.Top] := L;
+        Inc(Num.Top);
+      end;
+    end;
+  end;
+  Result := True;
+end;
+
 function BigNumberModWord(var Num: TCnBigNumber; W: DWORD): DWORD;
 var
   I: Integer;
@@ -2007,6 +2119,148 @@ begin
   if (Num.Top > 0) and (PDWordArray(Num.D)^[Num.Top - 1] = 0) then
     Dec(Num.Top);
   Result := Result shr J;
+end;
+
+{* 大数与 Word 运算系列函数结束}
+
+function BigNumberToString(var Num: TCnBigNumber): string;
+var
+  I, J, V, Z: Integer;
+begin
+  Result := '';
+  if BigNumberIsZero(Num) then
+  begin
+    Result := '0';
+    Exit;
+  end;
+  if BigNumberIsNegative(Num) then
+    Result := '-';
+
+  Z := 0;
+  for I := Num.Top - 1 downto 0 do
+  begin
+    J := BN_BITS2 - 4;
+    while J >= 0 do
+    begin
+      V := ((PDWordArray(Num.D)^[I]) shr DWORD(J)) and $0F;
+      if (Z <> 0) or (V <> 0) then
+      begin
+        Result := Result + Hex[V + 1];
+        Z := 1;
+      end;
+      Dec(J, 4);
+    end;
+  end;
+end;
+
+function BigNumberToHex(var Num: TCnBigNumber): string;
+var
+  I, J, V, Z: Integer;
+begin
+  Result := '';
+  if BigNumberIsZero(Num) then
+  begin
+    Result := '0';
+    Exit;
+  end;
+  if BigNumberIsNegative(Num) then
+    Result := '-';
+
+  Z := 0;
+  for I := Num.Top - 1 downto 0 do
+  begin
+    J := BN_BITS2 - 8;
+    while J >= 0 do
+    begin
+      V := ((PDWordArray(Num.D)^[I]) shr DWORD(J)) and $FF;
+      if (Z <> 0) or (V <> 0) then
+      begin
+        Result := Result + Hex[(V shr 4) + 1];
+        Result := Result + Hex[(V and $0F) + 1];
+        Z := 1;
+      end;
+      Dec(J, 8);
+    end;
+  end;
+end;
+
+function BigNumberToDec(var Num: TCnBigNumber): AnsiString;
+var
+  I, N: Integer;
+  BnData, LP: PDWORD;
+  T: PCnBigNumber;
+  P: PAnsiChar;
+
+  function BufRemain(Nu: Integer; Pt: PAnsiChar; Res: PAnsiChar): Integer;
+  begin
+    Result := Nu + 3 - (Integer(Pt) - Integer(Res));
+  end;
+
+begin
+  Result := '';
+
+  I := BigNumberGetBitsCount(Num) * 3;
+  N := ((I div 10) + (I div 1000) + 1) + 1;
+
+  BnData := nil;
+  T := nil;
+  try
+    BnData := PDWORD(GetMemory(((N div 9) + 1) * SizeOf(DWORD)));
+    if BnData = nil then
+      Exit;
+
+    SetLength(Result, N + 3);
+    FillChar(Result[1], Length(Result), 0);
+
+    T := BigNumberNew;
+    if T = nil then
+      Exit;
+
+    if BigNumberCopy(T^, Num) = nil then
+      Exit;
+
+    P := @(Result[1]);
+    LP := BnData;
+
+    if BigNumberIsZero(T^) then
+    begin
+      P^ := '0';
+      Inc(P);
+      P^ := Chr(0);
+    end
+    else
+    begin
+      if BigNumberIsNegative(T^) then
+      begin
+        P^ := '-';
+        Inc(P);
+      end;
+
+      while not BigNumberIsZero(T^) do
+      begin
+        LP^ := BigNumberDivWord(T^, BN_DEC_CONV);
+        LP := PDWORD(Integer(LP) + SizeOf(DWORD));
+      end;
+      LP := PDWORD(Integer(LP) - SizeOf(DWORD));
+
+      FormatBuf(P^, BufRemain(N, P, @(Result[1])), BN_DEC_FMT, Length(BN_DEC_FMT), [LP^]);
+      while P^ <> #0 do
+        Inc(P);
+      while LP <> BnData do
+      begin
+        LP := PDWORD(Integer(LP) - SizeOf(DWORD));
+        FormatBuf(P^, BufRemain(N, P, @(Result[1])), BN_DEC_FMT2, Length(BN_DEC_FMT2), [LP^]);
+        while P^ <> #0 do
+          Inc(P);
+      end;
+    end;
+
+  finally
+    if BnData <> nil then
+      FreeMemory(BnData);
+    if T <> nil then
+      BigNumberFree(T);
+  end;
 end;
 
 {* BigNumberPool 双向链表池操作函数开始 }
@@ -2681,6 +2935,193 @@ begin
     Result := BigNumberDiv(Res^, Remain, Num, Divisor);
   finally
     BigNumberFree(Res);
+  end;
+end;
+
+function BigNumberNonNegativeMod(var Remain: TCnBigNumber;
+  var Num: TCnBigNumber; var Divisor: TCnBigNumber): Boolean;
+begin
+  Result := False;
+  if not BigNumberMod(Remain, Num, Divisor) then
+    Exit;
+  Result := True;
+  if Remain.Neg = 0 then
+    Exit;
+
+  // 现在 -|Divisor| < Remain < 0，所以需要 Remain := Remain + |Divisor|
+  if Divisor.Neg <> 0 then
+    Result := BigNumberSub(Remain, Remain, Divisor)
+  else
+    Result := BigNumberAdd(Remain, Remain, Divisor);
+end;
+
+function BigNumberExp(var Res: TCnBigNumber; var Num: TCnBigNumber;
+  var Exponent: TCnBigNumber): Boolean;
+var
+  I, Bits: Integer;
+  V, RR: PCnBigNumber;
+  Ctx: PBigNumberContext;
+begin
+  Result := False;
+  if BigNumberGetFlag(Exponent, BN_FLG_CONSTTIME) <> 0 then
+    Exit;
+
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+  try
+    if (@Res = @Num) or (@Res = @Exponent) then
+      RR := BigNumberContextGet(Ctx^)
+    else
+      RR := @Res;
+    V := BigNumberContextGet(Ctx^);
+    if (RR = nil) or (V = nil) then
+      Exit;
+
+    if BigNumberCopy(V^, Num) = nil then
+      Exit;
+
+    Bits := BigNumberGetBitsCount(Exponent);
+    if BigNumberIsOdd(Exponent) then
+    begin
+      if BigNumberCopy(RR^, Num) = nil then
+        Exit;
+    end
+    else
+    begin
+      if not BigNumberSetOne(RR^) then
+        Exit;
+    end;
+
+    for I := 1 to Bits - 1 do
+    begin
+      if not BigNumberSqr(V^, V^) then
+        Exit;
+
+      if BigNumberIsBitSet(Exponent, I) then
+        if not BigNumberMul(RR^, RR^, V^) then
+          Exit;
+    end;
+
+    if @Res <> RR then
+      BigNumberCopy(Res, RR^);
+    Result := True;
+  finally
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
+  end;
+end;
+
+// 辗转相除法求 Num1 和 Num2 的最大公约数，公约数放在 A 或 B 中，返回地址
+function EuclidGcd(A: PCnBigNumber; B: PCnBigNumber): PCnBigNumber;
+var
+  T: PCnBigNumber;
+  Shifts: Integer;
+begin
+  Result := nil;
+  Shifts := 0;
+  while not BigNumberIsZero(B^) do
+  begin
+    if BigNumberIsOdd(A^) then
+    begin
+      if BigNumberIsOdd(B^) then
+      begin
+        // A 奇 B 奇
+        if not BigNumberSub(A^, A^, B^) then
+          Exit;
+        if not BigNumberShiftRightOne(A^, A^) then
+          Exit;
+        if BigNumberCompare(A^, B^) < 0 then
+        begin
+          T := A;
+          A := B;
+          B := T;
+        end;
+      end
+      else  // A 奇 B 偶
+      begin
+        if not BigNumberShiftRightOne(B^, B^) then
+          Exit;
+        if BigNumberCompare(A^, B^) < 0 then
+        begin
+          T := A;
+          A := B;
+          B := T;
+        end;
+      end;
+    end
+    else // A 偶
+    begin
+      if BigNumberIsOdd(B^) then
+      begin
+        // A 偶 B 奇
+        if not BigNumberShiftRightOne(A^, A^) then
+          Exit;
+        if BigNumberCompare(A^, B^) < 0 then
+        begin
+          T := A;
+          A := B;
+          B := T;
+        end;
+      end
+      else // A 偶 B 偶
+      begin
+        if not BigNumberShiftRightOne(A^, A^) then
+          Exit;
+        if not BigNumberShiftRightOne(B^, B^) then
+          Exit;
+        Inc(Shifts);
+      end;
+    end;
+  end;
+
+  if Shifts <> 0 then
+    if not BigNumberShiftLeft(A^, A^, Shifts) then
+      Exit;
+  Result := A;
+end;
+
+function BigNumberGcd(var Res: TCnBigNumber; var Num1: TCnBigNumber;
+  var Num2: TCnBigNumber): Boolean;
+var
+  T, A, B: PCnBigNumber;
+  Ctx: PBigNumberContext;
+begin
+  Result := False;
+
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+
+  try
+    A := BigNumberContextGet(Ctx^);
+    B := BigNumberContextGet(Ctx^);
+    if (A = nil) or (B = nil) then
+      Exit;
+
+    if BigNumberCopy(A^, Num1) = nil then
+      Exit;
+    if BigNumberCopy(B^, Num2) = nil then
+      Exit;
+
+    A^.Neg := 0;
+    B^.Neg := 0;
+    if BigNumberCompare(A^, B^) < 0 then
+    begin
+      T := A;
+      A := B;
+      B := T;
+    end;
+
+    T := EuclidGcd(A, B);
+    if T = nil then
+      Exit;
+
+    if BigNumberCopy(Res, T^) = nil then
+      Exit;
+
+    Result := True;
+  finally
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
   end;
 end;
 

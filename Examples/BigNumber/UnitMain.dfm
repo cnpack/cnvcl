@@ -1,6 +1,6 @@
 object FormBigNumber: TFormBigNumber
-  Left = 160
-  Top = 30
+  Left = 253
+  Top = 105
   Width = 920
   Height = 679
   Caption = 'Big Number Test'
@@ -29,7 +29,7 @@ object FormBigNumber: TFormBigNumber
     Caption = 'Number 2'
   end
   object lblBytes: TLabel
-    Left = 344
+    Left = 472
     Top = 16
     Width = 55
     Height = 13
@@ -133,7 +133,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnInverseNeg2Click
   end
   object cbbDigits: TComboBox
-    Left = 404
+    Left = 532
     Top = 12
     Width = 145
     Height = 21
@@ -236,28 +236,93 @@ object FormBigNumber: TFormBigNumber
   object btnSqr: TButton
     Left = 344
     Top = 422
-    Width = 75
+    Width = 41
     Height = 21
     Caption = 'Sqr'
     TabOrder = 20
     OnClick = btnSqrClick
   end
   object btnMul: TButton
-    Left = 424
+    Left = 392
     Top = 422
-    Width = 75
+    Width = 41
     Height = 21
     Caption = 'Mul'
     TabOrder = 21
     OnClick = btnMulClick
   end
   object btnDiv: TButton
-    Left = 504
+    Left = 440
     Top = 422
-    Width = 75
+    Width = 41
     Height = 21
     Caption = 'Div'
     TabOrder = 22
     OnClick = btnDivClick
+  end
+  object btnMod: TButton
+    Left = 488
+    Top = 422
+    Width = 41
+    Height = 21
+    Caption = 'Mod'
+    TabOrder = 23
+    OnClick = btnModClick
+  end
+  object btnExp: TButton
+    Left = 536
+    Top = 422
+    Width = 41
+    Height = 21
+    Caption = 'Exp'
+    TabOrder = 24
+    OnClick = btnExpClick
+  end
+  object seExponent: TSpinEdit
+    Left = 584
+    Top = 422
+    Width = 41
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 25
+    Value = 2
+  end
+  object pnlDisplay: TPanel
+    Left = 136
+    Top = 4
+    Width = 177
+    Height = 33
+    BevelOuter = bvNone
+    TabOrder = 26
+    object rbHex: TRadioButton
+      Left = 16
+      Top = 8
+      Width = 57
+      Height = 17
+      Caption = 'Hex'
+      Checked = True
+      TabOrder = 0
+      TabStop = True
+      OnClick = rbDecClick
+    end
+    object rbDec: TRadioButton
+      Left = 80
+      Top = 8
+      Width = 73
+      Height = 17
+      Caption = 'Dec'
+      TabOrder = 1
+      OnClick = rbDecClick
+    end
+  end
+  object btnGcd: TButton
+    Left = 632
+    Top = 422
+    Width = 41
+    Height = 21
+    Caption = 'Gcd'
+    TabOrder = 27
+    OnClick = btnGcdClick
   end
 end

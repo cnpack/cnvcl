@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnBigNumber, Spin;
+  StdCtrls, CnBigNumber, Spin, ExtCtrls;
 
 type
   TFormBigNumber = class(TForm)
@@ -35,6 +35,13 @@ type
     btnSqr: TButton;
     btnMul: TButton;
     btnDiv: TButton;
+    btnMod: TButton;
+    btnExp: TButton;
+    seExponent: TSpinEdit;
+    pnlDisplay: TPanel;
+    rbHex: TRadioButton;
+    rbDec: TRadioButton;
+    btnGcd: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -54,6 +61,10 @@ type
     procedure btnSqrClick(Sender: TObject);
     procedure btnMulClick(Sender: TObject);
     procedure btnDivClick(Sender: TObject);
+    procedure btnModClick(Sender: TObject);
+    procedure btnExpClick(Sender: TObject);
+    procedure rbDecClick(Sender: TObject);
+    procedure btnGcdClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -134,8 +145,16 @@ end;
 
 procedure TFormBigNumber.ShowNumbers;
 begin
-  mmoNum1.Text := BigNumberToHex(Num1);
-  mmoNum2.Text := BigNumberToHex(Num2);
+  if rbHex.Checked then
+  begin
+    mmoNum1.Text := BigNumberToHex(Num1);
+    mmoNum2.Text := BigNumberToHex(Num2);
+  end
+  else
+  begin
+    mmoNum1.Text := BigNumberToDec(Num1);
+    mmoNum2.Text := BigNumberToDec(Num2);
+  end;
 end;
 
 procedure TFormBigNumber.btnInverseNeg2Click(Sender: TObject);
@@ -272,6 +291,42 @@ begin
     ShowMessage(BigNumberToHex(Rem^));
   end;
   BigNumberFree(Rem);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnModClick(Sender: TObject);
+var
+  Rem: PCnBigNumber;
+begin
+  Rem := BigNumberNew;
+  if BigNumberMod(Rem^, Num1, Num2) then
+    ShowResult(Rem^);
+  BigNumberFree(Rem);
+end;
+
+procedure TFormBigNumber.btnExpClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumberNew;
+  BigNumberSetWord(Num2, seExponent.Value);
+  if BigNumberExp(Res^, Num1, Num2) then
+    ShowResult(Res^);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.rbDecClick(Sender: TObject);
+begin
+  ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnGcdClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumberNew;
+  if BigNumberGcd(Res^, Num1, Num2) then
+    ShowResult(Res^);
   BigNumberFree(Res);
 end;
 
