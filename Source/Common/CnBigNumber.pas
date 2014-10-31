@@ -128,7 +128,7 @@ function BigNumberModWord(var Num: TCnBigNumber; W: DWORD): DWORD;
 {* 大数对一个 DWORD 求余，返回余数}
 
 function BigNumberDivWord(var Num: TCnBigNumber; W: DWORD): DWORD;
-{* 大数除以一个 DWORD，结果重新放在 Num 中，返回余数}
+{* 大数除以一个 DWORD，商重新放在 Num 中，返回余数}
 
 procedure BigNumberSetNegative(var Num: TCnBigNumber; Negative: Boolean);
 {* 给一个大数结构设置是否负值 }
@@ -2087,6 +2087,7 @@ var
   I, J: Integer;
   L, D: DWORD;
 begin
+  W := W and BN_MASK2;
   if W = 0 then
   begin
     Result := DWORD(-1);
@@ -2097,7 +2098,6 @@ begin
   if Num.Top = 0 then
     Exit;
 
-  W := W and BN_MASK2;
   J := BN_BITS2 - BigNumberGetWordBitsCount(W);
 
   W := W shl J;
@@ -2186,7 +2186,7 @@ end;
 
 function BigNumberToDec(var Num: TCnBigNumber): AnsiString;
 var
-  I, N: Integer;
+  I, N, R: Integer;
   BnData, LP: PDWORD;
   T: PCnBigNumber;
   P: PAnsiChar;
@@ -2243,13 +2243,15 @@ begin
       end;
       LP := PDWORD(Integer(LP) - SizeOf(DWORD));
 
-      FormatBuf(P^, BufRemain(N, P, @(Result[1])), BN_DEC_FMT, Length(BN_DEC_FMT), [LP^]);
+      R := BufRemain(N, P, @(Result[1]));
+      FormatBuf(P^, R, BN_DEC_FMT, Length(BN_DEC_FMT), [LP^]);
       while P^ <> #0 do
         Inc(P);
       while LP <> BnData do
       begin
         LP := PDWORD(Integer(LP) - SizeOf(DWORD));
-        FormatBuf(P^, BufRemain(N, P, @(Result[1])), BN_DEC_FMT2, Length(BN_DEC_FMT2), [LP^]);
+        R := BufRemain(N, P, @(Result[1]));
+        FormatBuf(P^, R, BN_DEC_FMT2, Length(BN_DEC_FMT2), [LP^]);
         while P^ <> #0 do
           Inc(P);
       end;
@@ -3011,7 +3013,7 @@ begin
   end;
 end;
 
-// 辗转相除法求 Num1 和 Num2 的最大公约数，公约数放在 A 或 B 中，返回地址
+// 辗转相除法求 A 和 B 的最大公约数，公约数放在 A 或 B 中，返回地址
 function EuclidGcd(A: PCnBigNumber; B: PCnBigNumber): PCnBigNumber;
 var
   T: PCnBigNumber;

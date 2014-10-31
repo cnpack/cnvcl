@@ -42,6 +42,13 @@ type
     rbHex: TRadioButton;
     rbDec: TRadioButton;
     btnGcd: TButton;
+    btnGenWord: TButton;
+    edtWord: TEdit;
+    btnWordAdd: TButton;
+    btnSubWord: TButton;
+    btnMulWord: TButton;
+    btnDivWord: TButton;
+    btnModWord: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -65,6 +72,12 @@ type
     procedure btnExpClick(Sender: TObject);
     procedure rbDecClick(Sender: TObject);
     procedure btnGcdClick(Sender: TObject);
+    procedure btnGenWordClick(Sender: TObject);
+    procedure btnWordAddClick(Sender: TObject);
+    procedure btnSubWordClick(Sender: TObject);
+    procedure btnMulWordClick(Sender: TObject);
+    procedure btnDivWordClick(Sender: TObject);
+    procedure btnModWordClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -86,6 +99,7 @@ const
 var
   Num1: TCnBigNumber;
   Num2: TCnBigNumber;
+  AWord: DWORD;
   RandomLength: Integer = 4096;
 
 procedure TFormBigNumber.FormCreate(Sender: TObject);
@@ -149,11 +163,13 @@ begin
   begin
     mmoNum1.Text := BigNumberToHex(Num1);
     mmoNum2.Text := BigNumberToHex(Num2);
+    edtWord.Text := IntToHex(AWord, 8);
   end
   else
   begin
     mmoNum1.Text := BigNumberToDec(Num1);
     mmoNum2.Text := BigNumberToDec(Num2);
+    edtWord.Text := IntToStr(AWord);
   end;
 end;
 
@@ -328,6 +344,61 @@ begin
   if BigNumberGcd(Res^, Num1, Num2) then
     ShowResult(Res^);
   BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnGenWordClick(Sender: TObject);
+var
+  Res: PCnBigNumber;
+begin
+  Res := BigNumberNew;
+  if BigNumberRandBytes(Res^, SizeOf(DWORD)) then
+  begin
+    AWord := Res^.D^;
+    ShowNumbers;
+  end;
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnWordAddClick(Sender: TObject);
+begin
+  if BigNumberAddWord(Num1, AWord) then
+    ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnSubWordClick(Sender: TObject);
+begin
+  if BigNumberSubWord(Num1, AWord) then
+    ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnMulWordClick(Sender: TObject);
+begin
+  if BigNumberMulWord(Num1, AWord) then
+    ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnDivWordClick(Sender: TObject);
+var
+  Rem: DWORD;
+begin
+  Rem := BigNumberDivWord(Num1, AWord);
+  ShowNumbers;
+  if rbHex.Checked then
+    ShowMessage(IntToHex(Rem, 8))
+  else
+    ShowMessage(IntToStr(Rem));
+end;
+
+procedure TFormBigNumber.btnModWordClick(Sender: TObject);
+var
+  Rem: DWORD;
+begin
+  Rem := BigNumberModWord(Num1, AWord);
+  ShowNumbers;  
+  if rbHex.Checked then
+    ShowMessage(IntToHex(Rem, 8))
+  else
+    ShowMessage(IntToStr(Rem));
 end;
 
 end.
