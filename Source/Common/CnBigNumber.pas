@@ -476,8 +476,8 @@ begin
       PDWordArray(TmpA)^[3] := A3;
 
       Dec(I);
-      TmpA := PDWORD(Integer(TmpA) + SizeOf(DWORD));
-      B := PDWORD(Integer(B) + SizeOf(DWORD));
+      TmpA := PDWORD(Integer(TmpA) + 4 * SizeOf(DWORD));
+      B := PDWORD(Integer(B) + 4 * SizeOf(DWORD));
     end;
 
     case Num.Top and 3 of

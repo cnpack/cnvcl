@@ -1,6 +1,6 @@
 object FormBigNumber: TFormBigNumber
-  Left = 73
-  Top = 129
+  Left = 153
+  Top = 61
   Width = 920
   Height = 656
   Caption = 'Big Number Test'
