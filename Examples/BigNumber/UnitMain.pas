@@ -49,6 +49,7 @@ type
     btnMulWord: TButton;
     btnDivWord: TButton;
     btnModWord: TButton;
+    btnVerifyDiv: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -78,9 +79,11 @@ type
     procedure btnMulWordClick(Sender: TObject);
     procedure btnDivWordClick(Sender: TObject);
     procedure btnModWordClick(Sender: TObject);
+    procedure btnVerifyDivClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
+    procedure CheckNumber(var Num: TCnBigNumber);
     procedure ShowResult(var Res: TCnBigNumber);
   public
     { Public declarations }
@@ -114,7 +117,10 @@ begin
   BigNumberClear(Num1);
   CalcRandomLength;
   if BigNumberRandBytes(Num1, RandomLength) then
+  begin
     ShowNumbers;
+    CheckNumber(Num1);
+  end;
 end;
 
 procedure TFormBigNumber.btnGen2Click(Sender: TObject);
@@ -122,7 +128,10 @@ begin
   BigNumberClear(Num2);
   CalcRandomLength;
   if BigNumberRandBytes(Num2, RandomLength) then
+  begin
     ShowNumbers;
+    CheckNumber(Num2);
+  end;
 end;
 
 procedure TFormBigNumber.btnDupClick(Sender: TObject);
@@ -399,6 +408,30 @@ begin
     ShowMessage(IntToHex(Rem, 8))
   else
     ShowMessage(IntToStr(Rem));
+end;
+
+procedure TFormBigNumber.CheckNumber(var Num: TCnBigNumber);
+var
+  Bin: AnsiString;
+  N: PCnBigNumber;
+  Len: Integer;
+begin
+  SetLength(Bin, 65536); // 假设足够长，大于 Num 的 BytesCount
+  Len := BigNumberToBinary(Num, @Bin[1]);
+  N := BigNumberFromBinary(@Bin[1], Len);
+  if BigNumberCompare(Num, N^) <> 0 then
+    ShowMessage('Error');
+  BigNumberFree(N);
+end;
+
+procedure TFormBigNumber.btnVerifyDivClick(Sender: TObject);
+var
+  Rem: DWORD;
+begin
+  Rem := BigNumberDivWord(Num1, AWord); // 超过16位的divword就开始出错
+  if BigNumberMulWord(Num1, AWord) then
+    if BigNumberAddWord(Num1, Rem) then
+      ShowNumbers;
 end;
 
 end.

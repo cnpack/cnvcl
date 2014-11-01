@@ -1,6 +1,6 @@
 object FormBigNumber: TFormBigNumber
-  Left = 153
-  Top = 61
+  Left = 79
+  Top = 41
   Width = 920
   Height = 656
   Caption = 'Big Number Test'
@@ -386,5 +386,14 @@ object FormBigNumber: TFormBigNumber
     Caption = 'Mod Word'
     TabOrder = 21
     OnClick = btnModWordClick
+  end
+  object btnVerifyDiv: TButton
+    Left = 680
+    Top = 230
+    Width = 75
+    Height = 21
+    Caption = 'Verify Div'
+    TabOrder = 35
+    OnClick = btnVerifyDivClick
   end
 end

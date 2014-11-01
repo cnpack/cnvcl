@@ -148,6 +148,14 @@ function BigNumberIsBitSet(var Num: TCnBigNumber; N: Integer): Boolean;
 function BigNumberWordExpand(var Num: TCnBigNumber; Words: Integer): PCnBigNumber;
 {* 将一个大数结构扩展成支持 Words 个 DWORD，成功返回扩展的大数结构地址，失败返回 nil}
 
+function BigNumberToBinary(var Num: TCnBigNumber; Buf: PAnsiChar): Integer;
+{* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
+   返回 Buf 写入的长度}
+
+function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): PCnBigNumber;
+{* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
+   返回 Buf 写入的长度}
+   
 function BigNumberToString(var Num: TCnBigNumber): string;
 {* 将一个大数结构转成字符串 }
 
@@ -616,10 +624,10 @@ begin
   I := N;
   while I > 0 do
   begin
+    Dec(I);
     L := PDWordArray(Num.D)^[I div BN_BYTES];
     Buf^ := Chr(L shr (8 * (I mod BN_BYTES)) and $FF);
 
-    Dec(I);
     Buf := PAnsiChar(Integer(Buf) + 1);
   end;
   Result := N;
