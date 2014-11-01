@@ -115,6 +115,9 @@ function BigNumberGetWord(var Num: TCnBigNumber): DWORD;
 function BigNumberSetWord(var Num: TCnBigNumber; W: DWORD): Boolean;
 {* 给一个大数结构赋首值 }
 
+function BigNumberIsWord(var Num: TCnBigNumber; W: DWORD): Boolean;
+{* 某大数是否等于指定 DWORD}
+
 function BigNumberAddWord(var Num: TCnBigNumber; W: DWORD): Boolean;
 {* 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功}
 
@@ -153,8 +156,7 @@ function BigNumberToBinary(var Num: TCnBigNumber; Buf: PAnsiChar): Integer;
    返回 Buf 写入的长度}
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): PCnBigNumber;
-{* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-   返回 Buf 写入的长度}
+{* 将一个二进制块转换成大数结构，其结果不用时必须用 BigNumberFree 释放}
    
 function BigNumberToString(var Num: TCnBigNumber): string;
 {* 将一个大数结构转成字符串 }
@@ -162,8 +164,14 @@ function BigNumberToString(var Num: TCnBigNumber): string;
 function BigNumberToHex(var Num: TCnBigNumber): string;
 {* 将一个大数结构转成十六进制字符串}
 
+function BigNumberFromHex(const Buf: AnsiString): PCnBigNumber;
+{* 将一串十六进制字符串转换为大数结构，其结果不用时必须用 BigNumberFree 释放}
+
 function BigNumberToDec(var Num: TCnBigNumber): string;
 {* 将一个大数结构转成十进制字符串}
+
+function BigNumberFromDec(const Buf: AnsiString): PCnBigNumber;
+{* 将一串十进制字符串转换为大数结构，其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberCompare(var Num1: TCnBigNumber; var Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数结构，前者大于等于小于后者分别返回 1、0、-1 }
@@ -2192,6 +2200,83 @@ begin
   end;
 end;
 
+function BigNumberFromHex(const Buf: AnsiString): PCnBigNumber;
+var
+  P: PAnsiChar;
+  Neg, H, M, J, I, K, C: Integer;
+  L: DWORD;
+begin
+  Result := nil;
+  if Buf = '' then
+    Exit;
+
+  P := @Buf[1];
+  if P^ = '-' then
+  begin
+    Neg := 1;
+    Inc(P);
+  end
+  else
+    Neg := 0;
+
+  // 求有效长度
+  I := 0;
+  while PAnsiChar(Integer(P) + I)^ in ['0'..'9', 'A'..'F', 'a'..'f'] do
+    Inc(I);
+
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  BigNumberSetZero(Result^);
+
+  if BigNumberWordExpand(Result^, I * 4) = nil then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+    Exit;
+  end;
+
+  J := I;
+  H := 0;
+  while J > 0 do
+  begin
+    L := 0;
+    if BN_BYTES * 2 <= J then
+      M := BN_BYTES * 2
+    else
+      M := J;
+
+    while True do
+    begin
+      C := Ord(PAnsiChar(Integer(P) + J - M)^);
+      if (C >= Ord('0')) and (C <= Ord('9')) then
+        K := C - Ord('0')
+      else if (C >= Ord('a')) and (C <= Ord('f')) then
+        K := C - Ord('a') + 10
+      else if (C >= Ord('A')) and (C <= Ord('F')) then
+        K := C - Ord('A') + 10
+      else
+        K := 0;
+
+      L := (L shl 4) or DWORD(K);
+
+      Dec(M);
+      if M <= 0 then
+      begin
+        PDWordArray(Result^.D)^[H] := L;
+        Inc(H);
+        Break;
+      end;
+    end;
+    Dec(J, BN_BYTES * 2);
+  end;
+
+  Result^.Top := H;
+  BigNumberCorrectTop(Result^);
+  Result^.Neg := Neg;
+end;
+
 function BigNumberToDec(var Num: TCnBigNumber): AnsiString;
 var
   I, N, R: Integer;
@@ -2271,6 +2356,11 @@ begin
     if T <> nil then
       BigNumberFree(T);
   end;
+end;
+
+function BigNumberFromDec(const Buf: AnsiString): PCnBigNumber;
+begin
+  Result := nil;
 end;
 
 {* BigNumberPool 双向链表池操作函数开始 }

@@ -84,6 +84,7 @@ type
     procedure CalcRandomLength;
     procedure ShowNumbers;
     procedure CheckNumber(var Num: TCnBigNumber);
+    procedure CheckStringAndNumber(S: string; var Num: TCnBigNumber);
     procedure ShowResult(var Res: TCnBigNumber);
   public
     { Public declarations }
@@ -120,6 +121,7 @@ begin
   begin
     ShowNumbers;
     CheckNumber(Num1);
+    CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
   end;
 end;
 
@@ -432,6 +434,25 @@ begin
   if BigNumberMulWord(Num1, AWord) then
     if BigNumberAddWord(Num1, Rem) then
       ShowNumbers;
+end;
+
+procedure TFormBigNumber.CheckStringAndNumber(S: string;
+  var Num: TCnBigNumber);
+var
+  N: PCnBigNumber;
+begin
+  if rbHex.Checked then
+  begin
+    N := BigNumberFromHex(S);
+    if BigNumberCompare(Num, N^) <> 0 then
+      ShowMessage('Error');
+  end
+  else
+  begin
+    N := BigNumberFromDec(S);
+    if BigNumberCompare(Num, N^) <> 0 then
+      ShowMessage('Error');
+  end;
 end;
 
 end.

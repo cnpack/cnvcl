@@ -390,9 +390,9 @@ object FormBigNumber: TFormBigNumber
   object btnVerifyDiv: TButton
     Left = 680
     Top = 230
-    Width = 75
+    Width = 97
     Height = 21
-    Caption = 'Verify Div'
+    Caption = 'Verify Div Word'
     TabOrder = 35
     OnClick = btnVerifyDivClick
   end
