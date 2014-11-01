@@ -133,6 +133,7 @@ begin
   begin
     ShowNumbers;
     CheckNumber(Num2);
+    CheckStringAndNumber(mmoNum2.Lines.Text, Num2);
   end;
 end;
 
@@ -453,6 +454,7 @@ begin
     if BigNumberCompare(Num, N^) <> 0 then
       ShowMessage('Error');
   end;
+  BigNumberFree(N);
 end;
 
 end.

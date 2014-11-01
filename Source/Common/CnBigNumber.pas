@@ -2359,9 +2359,66 @@ begin
 end;
 
 function BigNumberFromDec(const Buf: AnsiString): PCnBigNumber;
+var
+  P: PAnsiChar;
+  Neg, J, I: Integer;
+  L: DWORD;
 begin
   Result := nil;
+  if Buf = '' then
+    Exit;
+
+  P := @Buf[1];
+  if P^ = '-' then
+  begin
+    Neg := 1;
+    Inc(P);
+  end
+  else
+    Neg := 0;
+
+  // 求有效长度
+  I := 0;
+  while PAnsiChar(Integer(P) + I)^ in ['0'..'9'] do
+    Inc(I);
+
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  BigNumberSetZero(Result^);
+
+  if BigNumberWordExpand(Result^, I * 4) = nil then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+    Exit;
+  end;
+
+  J := 9 - (I mod 9);
+  if J = 9 then
+    J := 0;
+  L := 0;
+
+  while P^ <> #0 do
+  begin
+    L := L * 10;
+    L := L + Ord(P^) - Ord('0');
+    Inc(P);
+    Inc(J);
+    if J = 9 then
+    begin
+      BigNumberMulWord(Result^, BN_DEC_CONV);
+      BigNumberAddWord(Result^, L);
+      L := 0;
+      J := 0;
+    end;
+  end;
+
+  BigNumberCorrectTop(Result^);
+  Result^.Neg := Neg;
 end;
+
 
 {* BigNumberPool 双向链表池操作函数开始 }
 
