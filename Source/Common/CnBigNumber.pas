@@ -1072,24 +1072,25 @@ begin
   Result := (Num shl BN_BITS4) and BN_MASK2;
 end;
 
-// 计算 BL * BH，结果的高低位分别放 H 和 L
+// 计算两个 32 位数（分别用高低 16 位表示）的 64 位积 HL * BHBL，
+// 传入的 LHBLBL 皆为 16 位，结果的高低位分别放 H 和 L，溢出不管
 procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD);
 var
-  M, M1, LT, HT: DWORD;
+  M, ML, LT, HT: DWORD;
 begin
   LT := L;
   HT := H;
   M := BH * LT;
   LT := BL * LT;
-  M1 := BL * HT;
+  ML := BL * HT;
   HT := BH * HT;
-  M := (M + M1) and BN_MASK2;
-  if M < M1 then
+  M := (M + ML) and BN_MASK2;
+  if M < ML then
     HT := HT + L2HBITS(DWORD(1));
   HT := HT + HBITS(M);
-  M1 := L2HBITS(M);
-  LT := (LT + M1) and BN_MASK2;
-  if LT < M1 then
+  ML := L2HBITS(M);
+  LT := (LT + ML) and BN_MASK2;
+  if LT < ML then
     Inc(HT);
   L := LT;
   H := HT;
@@ -1135,6 +1136,7 @@ begin
   R := L;
 end;
 
+// 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C
 procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD);
 var
   L, H: DWORD;
@@ -1291,10 +1293,10 @@ begin
   end;
 end;
 
-// AP 指向的 N 个数字都乘以 W，结果放 RP 中
+// AP 指向的 N 个数字都乘以 W，结果的低 N 位放 RP 中，高位放返回值
 function BigNumberMulWords(RP: PDWordArray; AP: PDWordArray; N: Integer; W: DWORD): DWORD;
 var
-  Carry, BL, BH: DWORD;
+  BL, BH: DWORD;
 begin
   Result := 0;
   if N <= 0 then
@@ -1303,10 +1305,12 @@ begin
   BL := LBITS(W);
   BH := HBITS(W);
 
-  Carry := 0;
   while (N and (not 3)) <> 0 do
   begin
-    Mul(RP^[0], AP^[0], BL, BH, Carry);
+    Mul(RP^[0], AP^[0], BL, BH, Result);
+    Mul(RP^[1], AP^[1], BL, BH, Result);
+    Mul(RP^[2], AP^[2], BL, BH, Result);
+    Mul(RP^[3], AP^[3], BL, BH, Result);
 
     AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
     RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
@@ -1316,13 +1320,12 @@ begin
 
   while N <> 0 do
   begin
-    Mul(RP^[0], AP^[0], BL, BH, Carry);
+    Mul(RP^[0], AP^[0], BL, BH, Result);
     AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
     RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
 
     Dec(N);
   end;
-  Result := Carry;
 end;
 
 procedure BigNumberSqrWords(RP: PDWordArray; AP: PDWordArray; N: Integer);
@@ -1944,7 +1947,6 @@ end;
 
 {* 大数与 Word 运算系列函数开始}
 
-// 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功
 function BigNumberAddWord(var Num: TCnBigNumber; W: DWORD): Boolean;
 var
   I: Integer;
@@ -1996,7 +1998,6 @@ begin
   Result := True;
 end;
 
-// 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功
 function BigNumberSubWord(var Num: TCnBigNumber; W: DWORD): Boolean;
 var
   I: Integer;
