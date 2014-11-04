@@ -431,7 +431,7 @@ procedure TFormBigNumber.btnVerifyDivClick(Sender: TObject);
 var
   Rem: DWORD;
 begin
-  Rem := BigNumberDivWord(Num1, AWord); // 超过16位的divword就开始出错
+  Rem := BigNumberDivWord(Num1, AWord);
   if BigNumberMulWord(Num1, AWord) then
     if BigNumberAddWord(Num1, Rem) then
       ShowNumbers;

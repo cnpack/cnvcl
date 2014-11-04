@@ -27,8 +27,7 @@ unit CnBigNumber;
 * 备    注：大部分从 Openssl 的 C 代码移植而来
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
-*           Div 对于数位过大时似乎仍有问题，待进一步修正。
-*           转十进制的长度有问题。
+*           Div 使用汇编通了，但 Mod Word 似乎还有问题。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -564,11 +563,6 @@ begin
     ZeroMemory(Num.D, Num.DMax * SizeOf(DWORD));
   Num.Top := 0;
   Num.Neg := 0;
-end;
-
-procedure BigNumberClearFree(var Num: TCnBigNumber);
-begin
-
 end;
 
 function BigNumberSetWord(var Num: TCnBigNumber; W: DWORD): Boolean;
@@ -1354,11 +1348,67 @@ begin
   end;
 end;
 
+// Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
+// 来自 Delphi 的 Unsigned Int64 Div 汇编实现
+procedure _LLUDiv;
+asm
+        PUSH    EBP
+        PUSH    EBX
+        PUSH    ESI
+        PUSH    EDI
+
+        MOV     EBX,20[ESP]             // GET THE FIRST LOW WORD
+        MOV     ECX,24[ESP]             // GET THE FIRST HIGH WORD
+
+        OR      ECX,ECX
+        JNZ     @__LLUDIV@SLOW_LDIV     // BOTH HIGH WORDS ARE ZERO
+
+        OR      EDX,EDX
+        JZ      @__LLUDIV@QUICK_LDIV
+
+        OR      EBX,EBX
+        JZ      @__LLUDIV@QUICK_LDIV    // IF ECX:EBX == 0 FORCE A ZERO DIVIDE
+
+@__LLUDIV@SLOW_LDIV:
+        MOV     EBP,ECX
+        MOV     ECX,64                  // SHIFT COUNTER
+        XOR     EDI,EDI                 // FAKE A 64 BIT DIVIDEND
+        XOR     ESI,ESI
+
+@__LLUDIV@XLOOP:
+        SHL     EAX,1                   // SHIFT DIVIDEND LEFT ONE BIT
+        RCL     EDX,1
+        RCL     ESI,1
+        RCL     EDI,1
+        CMP     EDI,EBP                 // DIVIDEND LARGER?
+        JB      @__LLUDIV@NOSUB
+        JA      @__LLUDIV@SUBTRACT
+        CMP     ESI,EBX                 // MAYBE
+        JB      @__LLUDIV@NOSUB
+
+@__LLUDIV@SUBTRACT:
+        SUB     ESI,EBX
+        SBB     EDI,EBP                 // SUBTRACT THE DIVISOR
+        INC     EAX                     // BUILD QUOTIENT
+
+@__LLUDIV@NOSUB:
+        LOOP    @__LLUDIV@XLOOP
+
+@__LLUDIV@FINISH:
+        POP     EDI
+        POP     ESI
+        POP     EBX
+        POP     EBP
+        RET     8
+
+@__LLUDIV@QUICK_LDIV:
+        DIV     EBX                     // UNSIGNED DIVIDE
+        XOR     EDX,EDX
+        JMP     @__LLUDIV@FINISH
+end;
+
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D
 function BigNumberDivWords(H: DWORD; L: DWORD; D: DWORD): DWORD;
-var
-  I, Count: Integer;
-  DH, DL, Q, TH, TL, T: DWORD;
 begin
   if D = 0 then
   begin
@@ -1367,70 +1417,14 @@ begin
   end;
 
   Result := 0;
-  I := BigNumberGetWordBitsCount(D);
-  if (I <> BN_BITS2) and (H > DWORD(1 shl I)) then
-    Exit;
-
-  I := BN_BITS2 - I;
-  if H >= D then
-    H := H - D;
-
-  if I <> 0 then
-  begin
-    D := D shl I;
-    H := (H shl I) or (L shr (BN_BITS2 - I));
-    L := L shl I;
+  asm
+    PUSH 0
+    PUSH D
+    MOV EAX, L
+    MOV EDX, H
+    CALL _LLUDiv            // 使用汇编实现的 64 位无符号除法函数
+    MOV Result, EAX
   end;
-
-  DH := (D and BN_MASK2h) shr BN_BITS4;
-  DL := (D and BN_MASK2l);
-
-  Count := 2;
-  Q := 0;
-  while True do
-  begin
-    if (H shr BN_BITS4) = DH then
-      Q := BN_MASK2l
-    else
-      Q := H div DH;
-
-    TH := Q * DH;
-    TL := DL * Q;
-
-    while True do
-    begin
-      T := H - TH;
-      if ((T and BN_MASK2h) <> 0) or
-        (TL <= ((T shl BN_BITS4) or ((L and BN_MASK2h) shr BN_BITS4))) then
-        Break;
-      Dec(Q);
-      TH := TH - DH;
-      TL := TL - DL;
-    end;
-
-    T := TL shr BN_BITS4;
-    TL := (TL shl BN_BITS4) and BN_MASK2h;
-    TH := TH + T;
-
-    if L < TL then
-      Inc(TH);
-    if H < TH then
-    begin
-      H := H + D;
-      Dec(Q);
-    end;
-    H := H - TH;
-
-    Dec(Count);
-    if Count = 0 then
-      Break;
-
-    Result := Q shl BN_BITS4;
-    H := ((H shl BN_BITS4) or (L shr BN_BITS4)) and BN_MASK2;
-    L := (L and BN_MASK2l) shl BN_BITS4;
-  end;
-
-  Result := Result or Q;
 end;
 
 {*  Words 系列内部计算函数结束 }
