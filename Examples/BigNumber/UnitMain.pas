@@ -80,12 +80,13 @@ type
     procedure btnDivWordClick(Sender: TObject);
     procedure btnModWordClick(Sender: TObject);
     procedure btnVerifyDivClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
-    procedure CheckNumber(var Num: TCnBigNumber);
-    procedure CheckStringAndNumber(S: string; var Num: TCnBigNumber);
-    procedure ShowResult(var Res: TCnBigNumber);
+    procedure CheckNumber(const Num: TCnBigNumber);
+    procedure CheckStringAndNumber(S: string; const Num: TCnBigNumber);
+    procedure ShowResult(const Res: TCnBigNumber);
   public
     { Public declarations }
   end;
@@ -101,13 +102,15 @@ const
   DEFAULT_RANDOM_LENGTH: Integer = 4096;
 
 var
-  Num1: TCnBigNumber;
-  Num2: TCnBigNumber;
+  Num1: TCnBigNumber = nil;
+  Num2: TCnBigNumber = nil;
   AWord: DWORD;
   RandomLength: Integer = 4096;
 
 procedure TFormBigNumber.FormCreate(Sender: TObject);
 begin
+  Num1 := BigNumberNew;
+  Num2 := BigNumberNew;
   BigNumberClear(Num1);
   BigNumberClear(Num2);
   ShowNumbers;
@@ -198,26 +201,29 @@ end;
 
 procedure TFormBigNumber.btnUAddClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberUnsignedAdd(Res^, Num1, Num2) then
-    ShowResult(Res^);
+  if BigNumberUnsignedAdd(Res, Num1, Num2) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
-procedure TFormBigNumber.ShowResult(var Res: TCnBigNumber);
+procedure TFormBigNumber.ShowResult(const Res: TCnBigNumber);
 begin
-  mmoResult.Text := BigNumberToHex(Res);
+  if rbHex.Checked then
+    mmoResult.Text := BigNumberToHex(Res)
+  else
+    mmoResult.Text := BigNumberToDec(Res);
 end;
 
 procedure TFormBigNumber.btnUsubClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberUnsignedSub(Res^, Num1, Num2) then
-    ShowResult(Res^)
+  if BigNumberUnsignedSub(Res, Num1, Num2) then
+    ShowResult(Res)
   else
     ShowMessage('Num1 < Num2');
   BigNumberFree(Res);
@@ -225,98 +231,98 @@ end;
 
 procedure TFormBigNumber.btnSignedAddClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberAdd(Res^, Num1, Num2) then
-    ShowResult(Res^);
+  if BigNumberAdd(Res, Num1, Num2) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnSignedSubClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberSub(Res^, Num1, Num2) then
-    ShowResult(Res^);
+  if BigNumberSub(Res, Num1, Num2) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnShiftleftOneClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberShiftLeftOne(Res^, Num1) then
-    ShowResult(Res^);
+  if BigNumberShiftLeftOne(Res, Num1) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnShiftRightOneClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberShiftRightOne(Res^, Num1) then
-    ShowResult(Res^);
+  if BigNumberShiftRightOne(Res, Num1) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnShiftLeftClick(Sender: TObject);
 var
   N: Integer;
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   N := seShift.Value;
   Res := BigNumberNew;
-  if BigNumberShiftLeft(Res^, Num1, N) then
-    ShowResult(Res^);
+  if BigNumberShiftLeft(Res, Num1, N) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnShiftRightClick(Sender: TObject);
 var
   N: Integer;
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   N := seShift.Value;
   Res := BigNumberNew;
-  if BigNumberShiftRight(Res^, Num1, N) then
-    ShowResult(Res^);
+  if BigNumberShiftRight(Res, Num1, N) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnSqrClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberSqr(Res^, Num1) then
-    ShowResult(Res^);
+  if BigNumberSqr(Res, Num1) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnMulClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberMul(Res^, Num1, Num2) then
-    ShowResult(Res^);
+  if BigNumberMul(Res, Num1, Num2) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnDivClick(Sender: TObject);
 var
-  Res, Rem: PCnBigNumber;
+  Res, Rem: TCnBigNumber;
 begin
   Res := BigNumberNew;
   Rem := BigNumberNew;
-  if BigNumberDiv(Res^, Rem^, Num1, Num2) then
+  if BigNumberDiv(Res, Rem, Num1, Num2) then
   begin
-    ShowResult(Res^);
-    ShowMessage(BigNumberToHex(Rem^));
+    ShowResult(Res);
+    ShowMessage(BigNumberToHex(Rem));
   end;
   BigNumberFree(Rem);
   BigNumberFree(Res);
@@ -324,22 +330,22 @@ end;
 
 procedure TFormBigNumber.btnModClick(Sender: TObject);
 var
-  Rem: PCnBigNumber;
+  Rem: TCnBigNumber;
 begin
   Rem := BigNumberNew;
-  if BigNumberMod(Rem^, Num1, Num2) then
-    ShowResult(Rem^);
+  if BigNumberMod(Rem, Num1, Num2) then
+    ShowResult(Rem);
   BigNumberFree(Rem);
 end;
 
 procedure TFormBigNumber.btnExpClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
   BigNumberSetWord(Num2, seExponent.Value);
-  if BigNumberExp(Res^, Num1, Num2) then
-    ShowResult(Res^);
+  if BigNumberExp(Res, Num1, Num2) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
@@ -350,22 +356,22 @@ end;
 
 procedure TFormBigNumber.btnGcdClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberGcd(Res^, Num1, Num2) then
-    ShowResult(Res^);
+  if BigNumberGcd(Res, Num1, Num2) then
+    ShowResult(Res);
   BigNumberFree(Res);
 end;
 
 procedure TFormBigNumber.btnGenWordClick(Sender: TObject);
 var
-  Res: PCnBigNumber;
+  Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberRandBytes(Res^, SizeOf(DWORD)) then
+  if BigNumberRandBytes(Res, SizeOf(DWORD)) then
   begin
-    AWord := Res^.D^;
+    AWord := Res.D^;
     ShowNumbers;
   end;
   BigNumberFree(Res);
@@ -413,16 +419,16 @@ begin
     ShowMessage(IntToStr(Rem));
 end;
 
-procedure TFormBigNumber.CheckNumber(var Num: TCnBigNumber);
+procedure TFormBigNumber.CheckNumber(const Num: TCnBigNumber);
 var
   Bin: AnsiString;
-  N: PCnBigNumber;
+  N: TCnBigNumber;
   Len: Integer;
 begin
   SetLength(Bin, 65536); // 假设足够长，大于 Num 的 BytesCount
   Len := BigNumberToBinary(Num, @Bin[1]);
   N := BigNumberFromBinary(@Bin[1], Len);
-  if BigNumberCompare(Num, N^) <> 0 then
+  if BigNumberCompare(Num, N) <> 0 then
     ShowMessage('Error');
   BigNumberFree(N);
 end;
@@ -438,23 +444,29 @@ begin
 end;
 
 procedure TFormBigNumber.CheckStringAndNumber(S: string;
-  var Num: TCnBigNumber);
+  const Num: TCnBigNumber);
 var
-  N: PCnBigNumber;
+  N: TCnBigNumber;
 begin
   if rbHex.Checked then
   begin
     N := BigNumberFromHex(S);
-    if BigNumberCompare(Num, N^) <> 0 then
+    if BigNumberCompare(Num, N) <> 0 then
       ShowMessage('Error');
   end
   else
   begin
     N := BigNumberFromDec(S);
-    if BigNumberCompare(Num, N^) <> 0 then
+    if BigNumberCompare(Num, N) <> 0 then
       ShowMessage('Error');
   end;
   BigNumberFree(N);
+end;
+
+procedure TFormBigNumber.FormDestroy(Sender: TObject);
+begin
+  BigNumberFree(Num1);
+  BigNumberFree(Num2);
 end;
 
 end.

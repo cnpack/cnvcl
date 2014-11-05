@@ -12,6 +12,7 @@ object FormBigNumber: TFormBigNumber
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object lblNumber1: TLabel
