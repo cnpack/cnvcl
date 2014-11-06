@@ -1024,23 +1024,23 @@ begin
   end;
 end;
 
-function BigNumberRandRange(const Num: TCnBigNumber; var Range: TCnBigNumber): Boolean;
-var
-  N: Integer;
-begin
-  Result := False;
-  if (Range.Neg <> 0) or BigNumberIsZero(Range) then
-    Exit;
-
-  N := BigNumberGetBitsCount(Range);
-  if N = 1 then
-    BigNumberSetZero(Num)
-  else if (not BigNumberIsBitSet(Range, N - 2))
-    and (not BigNumberIsBitSet(Range, N - 3)) then
-  begin
-    // TODO: CONTINUE
-  end
-end;
+//function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
+//var
+//  N: Integer;
+//begin
+//  Result := False;
+//  if (Range = nil) or (Num = nil) or (Range.Neg <> 0) or BigNumberIsZero(Range) then
+//    Exit;
+//
+//  N := BigNumberGetBitsCount(Range);
+//  if N = 1 then
+//    BigNumberSetZero(Num)
+//  else if (not BigNumberIsBitSet(Range, N - 2))
+//    and (not BigNumberIsBitSet(Range, N - 3)) then
+//  begin
+//    // TODO: CONTINUE
+//  end
+//end;
 
 function BigNumberDuplicate(const Num: TCnBigNumber): TCnBigNumber;
 begin
