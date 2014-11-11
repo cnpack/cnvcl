@@ -1008,7 +1008,7 @@ function TCnDataRowList.FillRowList(DataSet: TCustomADoDataSet;
   var Canceled: Boolean): boolean;
 var
   I: Integer;
-  Ver: Double;
+//  Ver: Double;
   Rst: _ReCordSet;
 
   function IsCanceled: Boolean;
@@ -1031,11 +1031,11 @@ begin
 
     if Rst.Supports(adMovePrevious) then Rst.MoveFirst;
 
-    Ver := StrToFloat(DataSet.Connection.Version);
-    if Ver >= 2.0 then // 用ADO Binding效率会高一些.
-      result := FillRowListByBinding(DataSet,Canceled)
-    else
-      Result := self.FillRowListByNormal(DataSet,Canceled)
+    //Ver := StrToFloat(DataSet.Connection.Version);
+    //if Ver >= 2.0 then // 用ADO Binding效率会高一些.
+    //  result := FillRowListByBinding(DataSet,Canceled)
+    //else
+    Result := self.FillRowListByNormal(DataSet,Canceled)
   end;
 
 end;
