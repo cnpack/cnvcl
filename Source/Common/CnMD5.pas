@@ -56,7 +56,9 @@ unit CnMD5;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2003.09.18 V1.1
+* 修改记录：2014.11.14 V1.2
+*               汇编切换至 Pascal 以支持跨平台
+*           2003.09.18 V1.1
 *               好不容易找到了该单元原作者的版权声明
 *           2003.09.18 V1.0
 *               创建单元
@@ -175,83 +177,82 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-
 function F(x, y, z: DWORD): DWORD;
-asm
-  // Result := (x and y) or ((not x) and z);
-  AND EDX, EAX
-  NOT EAX
-  AND EAX, ECX
-  OR EAX, EDX
+begin
+  Result := (x and y) or ((not x) and z);
+//  AND EDX, EAX
+//  NOT EAX
+//  AND EAX, ECX
+//  OR EAX, EDX
 end;
 
 function G(x, y, z: DWORD): DWORD;
-asm
-  //Result := (x and z) or (y and (not z));
-  AND EAX, ECX
-  NOT ECX
-  AND EDX, ECX
-  OR EAX, EDX
+begin
+  Result := (x and z) or (y and (not z));
+//  AND EAX, ECX
+//  NOT ECX
+//  AND EDX, ECX
+//  OR EAX, EDX
 end;
 
 function H(x, y, z: DWORD): DWORD;
-asm
-  //Result := x xor y xor z;
-  XOR EAX, EDX
-  XOR EAX, ECX
+begin
+  Result := x xor y xor z;
+//  XOR EAX, EDX
+//  XOR EAX, ECX
 end;
 
 function I(x, y, z: DWORD): DWORD;
-asm
-  //Result := y xor (x or (not z));
-  NOT ECX
-  OR EAX, ECX
-  XOR EAX, EDX
+begin
+  Result := y xor (x or (not z));
+//  NOT ECX
+//  OR EAX, ECX
+//  XOR EAX, EDX
 end;
 
 
-procedure rot(var x: DWORD; n: BYTE);
-asm
-  //x := (x shl n) or (x shr (32 - n));
-  PUSH EBX
-  MOV CL, $20
-  SUB CL, DL
-  MOV EBX, [EAX]
-  SHR EBX, CL
-  MOV ECX, EDX
-  MOV EDX, [EAX]
-  SHL EDX, CL
-  OR EBX, EDX
-  MOV [EAX], EBX
-  POP EBX
+procedure ROT(var x: DWORD; n: BYTE);
+begin
+  x := (x shl n) or (x shr (32 - n));
+//  PUSH EBX
+//  MOV CL, $20
+//  SUB CL, DL
+//  MOV EBX, [EAX]
+//  SHR EBX, CL
+//  MOV ECX, EDX
+//  MOV EDX, [EAX]
+//  SHL EDX, CL
+//  OR EBX, EDX
+//  MOV [EAX], EBX
+//  POP EBX
 end;
 
 procedure FF(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
 begin
-  inc(a, F(b, c, d) + x + ac);
-  rot(a, s);
-  inc(a, b);
+  Inc(a, F(b, c, d) + x + ac);
+  ROT(a, s);
+  Inc(a, b);
 end;
 
 procedure GG(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
 begin
-  inc(a, G(b, c, d) + x + ac);
-  rot(a, s);
-  inc(a, b);
+  Inc(a, G(b, c, d) + x + ac);
+  ROT(a, s);
+  Inc(a, b);
 end;
 
 procedure HH(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
 begin
-  inc(a, H(b, c, d) + x + ac);
-  rot(a, s);
-  inc(a, b);
+  Inc(a, H(b, c, d) + x + ac);
+  ROT(a, s);
+  Inc(a, b);
 end;
 
 procedure II(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
 begin
-  inc(a, I(b, c, d) + x + ac);
-  rot(a, s);
-  inc(a, b);
+  Inc(a, I(b, c, d) + x + ac);
+  ROT(a, s);
+  Inc(a, b);
 end;
 
 // Encode Count bytes at Source into (Count / 4) DWORDs at Target
@@ -266,14 +267,14 @@ begin
   for I := 1 to Count div 4 do
   begin
     T^ := S^;
-    inc(S);
+    Inc(S);
     T^ := T^ or (S^ shl 8);
-    inc(S);
+    Inc(S);
     T^ := T^ or (S^ shl 16);
-    inc(S);
+    Inc(S);
     T^ := T^ or (S^ shl 24);
-    inc(S);
-    inc(T);
+    Inc(S);
+    Inc(T);
   end;
 end;
 
@@ -289,14 +290,14 @@ begin
   for I := 1 to Count do
   begin
     T^ := S^ and $ff;
-    inc(T);
+    Inc(T);
     T^ := (S^ shr 8) and $ff;
-    inc(T);
+    Inc(T);
     T^ := (S^ shr 16) and $ff;
-    inc(T);
+    Inc(T);
     T^ := (S^ shr 24) and $ff;
-    inc(T);
-    inc(S);
+    Inc(T);
+    Inc(S);
   end;
 end;
 
@@ -375,10 +376,10 @@ begin
   II (d, a, b, c, Block[11], 10, $bd3af235);
   II (c, d, a, b, Block[ 2], 15, $2ad7d2bb);
   II (b, c, d, a, Block[ 9], 21, $eb86d391);
-  inc(State[0], a);
-  inc(State[1], b);
-  inc(State[2], c);
-  inc(State[3], d);
+  Inc(State[0], a);
+  Inc(State[1], b);
+  Inc(State[2], c);
+  Inc(State[3], d);
 end;
 
 // Initialize given Context
@@ -406,9 +407,9 @@ begin
   with Context do
   begin
     Index := (Count[0] shr 3) and $3f;
-    inc(Count[0], Length shl 3);
-    if Count[0] < (Length shl 3) then inc(Count[1]);
-    inc(Count[1], Length shr 29);
+    Inc(Count[0], Length shl 3);
+    if Count[0] < (Length shl 3) then Inc(Count[1]);
+    Inc(Count[1], Length shr 29);
   end;
 
   PartLen := 64 - Index;
@@ -420,7 +421,7 @@ begin
     while I + 63 < Length do
     begin
       Transform(@Input[I], Context.State);
-      inc(I, 64);
+      Inc(I, 64);
     end;
     Index := 0;
   end
@@ -662,7 +663,7 @@ begin
   while Result and (I < 16) do
   begin
     Result := D1[I] = D2[I];
-    inc(I);
+    Inc(I);
   end;
 end;
 
