@@ -280,6 +280,7 @@ begin
   else
     Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
+  ZeroMemory(@(Output[1]), Len);
 
   if rbSm4Ecb.Checked then
     SM4CryptEcbStr(SM4_ENCRYPT, edtSm4Key.Text, edtSm4.Text, @(Output[1]))
@@ -322,6 +323,7 @@ begin
   else
     Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
+  ZeroMemory(@(Output[1]), Len);
 
   if rbSm4Ecb.Checked then
     SM4CryptEcbStr(SM4_DECRYPT, edtSm4Key.Text, S, @(Output[1]))
