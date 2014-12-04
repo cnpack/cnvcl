@@ -35,6 +35,7 @@ unit CnHardWareInfo;
 * 单元标识：$Id$
 * 修改记录：2014.12.04 V1.5
 *               加入读取物理磁盘数以及序列号的功能，暂未支持 Win9X
+*               加入读取逻辑驱动器数以及卷标的功能
 *           2012.05.10 V1.4
 *               修正 64 位下的编译问题
 *           2008.08.01 V1.3
@@ -147,21 +148,35 @@ type
   private
     FHardDiskCount: Integer;
     FHardDiskSns: TStrings;
+    FVolumnCount: Integer;
+    FVolumnLetters: TStrings;
+    FVolumnNames: TStrings;
+
+    function GetVolumnLetter(Index: Integer): string;
+    function GetVolumnName(Index: Integer): string;
     function GetDiskSerialNo(Index: Integer): string;
 
     procedure ReadPhysicalDriveInNTWithZeroRights;
+    procedure ReadVolumnInfo;
   public
     constructor Create;
     {* 构造函数，创建列表并调用 ReadHardDisk}
     destructor Destroy; override;
 
     procedure ReadHardDisk;
-    {* 读取物理硬盘的信息}
+    {* 读取物理硬盘以及分区的信息}
     
     property HardDiskCount: Integer read FHardDiskCount;
     {* 物理硬盘个数}
     property DiskSerialNo[Index: Integer]: string read GetDiskSerialNo;
     {* 物理硬盘的序列号}
+
+    property VolumnCount: Integer read FVolumnCount;
+    {* 逻辑驱动器个数}
+    property VolumnLetter[Index: Integer]: string read GetVolumnLetter;
+    {* 逻辑驱动器盘符}
+    property VolumnName[Index: Integer]: string read GetVolumnName;
+    {* 逻辑驱动器卷标}
   end;
 
 function CnGetBiosID: string;
@@ -1053,11 +1068,15 @@ constructor TCnHardDiskInfo.Create;
 begin
   inherited;
   FHardDiskSns := TStringList.Create;
+  FVolumnLetters := TStringList.Create;
+  FVolumnNames := TStringList.Create;
   ReadHardDisk;
 end;
 
 destructor TCnHardDiskInfo.Destroy;
 begin
+  FVolumnNames.Free;
+  FVolumnLetters.Free;
   FHardDiskSns.Free;
   inherited;
 end;
@@ -1066,6 +1085,22 @@ function TCnHardDiskInfo.GetDiskSerialNo(Index: Integer): string;
 begin
   if (Index >= 0) or (Index < FHardDiskSns.Count) then
     Result := FHardDiskSns[Index]
+  else
+    Result := '';
+end;
+
+function TCnHardDiskInfo.GetVolumnLetter(Index: Integer): string;
+begin
+  if (Index >= 0) or (Index < FVolumnLetters.Count) then
+    Result := FVolumnLetters[Index]
+  else
+    Result := '';
+end;
+
+function TCnHardDiskInfo.GetVolumnName(Index: Integer): string;
+begin
+  if (Index >= 0) or (Index < FVolumnNames.Count) then
+    Result := FVolumnNames[Index]
   else
     Result := '';
 end;
@@ -1080,6 +1115,8 @@ begin
   begin
     // TODO: Win9x
   end;
+
+  ReadVolumnInfo;
 end;
 
 function        LoCase( ch : AnsiChar ) : AnsiChar;
@@ -1095,7 +1132,7 @@ begin
 //        ADD     AL,'a' - 'A'
 //@@exit:
   if Ch in ['A'..'Z'] then
-    Result := Chr(Ord(Ch) + (Ord('a') - Ord('A')))
+    Result := AnsiChar(Chr(Ord(Ch) + (Ord('a') - Ord('A'))))
   else
     Result := Ch;
 end;
@@ -1140,11 +1177,11 @@ var
         C := '0';
 
       Inc(P);
-      Buf[K] := Chr(Ord(Buf[K]) shl 4);
+      Buf[K] := AnsiChar(Chr((Ord(Buf[K]) shl 4)));
       if C in ['0'..'9'] then
-        Buf[K] := Chr(Ord(Buf[K]) or (Ord(C) - Ord('0')))
+        Buf[K] := AnsiChar(Chr(Ord(Buf[K]) or (Ord(C) - Ord('0'))))
       else if C in ['a'..'f'] then
-        Buf[K] := Chr(Ord(Buf[K]) or (Ord(C) - Ord('a') + 10))
+        Buf[K] := AnsiChar(Chr(Ord(Buf[K]) or (Ord(C) - Ord('a') + 10)))
       else
       begin
         J := 0;
@@ -1233,6 +1270,32 @@ begin
     finally
       CloseHandle(H);
     end
+  end;
+end;
+
+procedure TCnHardDiskInfo.ReadVolumnInfo;
+var
+  Letter: Char;
+  Drive: string;
+  NotUsed: DWORD;
+  VolumeFlags: DWORD;
+  VSNumber: DWORD;
+  PType: array[0..63] of Char;
+  VName: array[0..63] of Char;
+begin
+  Letter := 'C';
+  while Ord(Letter) <= Ord('Z') do
+  begin
+    Drive := Letter + ':\';
+    if GetVolumeInformation(PChar(Drive), @VName, SizeOf(VName),
+      @VSNumber, NotUsed, VolumeFlags, PType, 64) then
+    begin
+      FVolumnLetters.Add(Drive);
+      FVolumnNames.Add(VName);
+      Inc(FVolumnCount);
+    end;
+
+    Inc(Letter);
   end;
 end;
 
