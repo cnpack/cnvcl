@@ -3,7 +3,7 @@ object FrmCPUIDs: TFrmCPUIDs
   Top = 201
   Width = 544
   Height = 375
-  Caption = 'TCnCpuId Demo 获取多核CPU指定的序列号'
+  Caption = 'TCnCpuId Demo 获取多核CPU指定的序列号以及硬盘序列号'
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
   Font.Color = clWindowText
