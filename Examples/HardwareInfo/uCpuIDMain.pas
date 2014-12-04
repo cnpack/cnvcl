@@ -29,6 +29,7 @@ type
     btnInfoStr: TButton;
     btnGetBios: TButton;
     btnHardDiskSn: TButton;
+    btnVolumnInfos: TButton;
     procedure BtnGetCpuIDsClick(Sender: TObject);
     procedure btnGetUsageClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -37,6 +38,7 @@ type
     procedure btnInfoStrClick(Sender: TObject);
     procedure btnGetBiosClick(Sender: TObject);
     procedure btnHardDiskSnClick(Sender: TObject);
+    procedure btnVolumnInfosClick(Sender: TObject);
   private
     { Private declarations }
     procedure log(const Info: string);
@@ -167,6 +169,16 @@ begin
   Log('硬盘数量：' + IntToStr(CnHardDiskInfo.HardDiskCount));
   for I := 0 to CnHardDiskInfo.HardDiskCount - 1 do
     Log('硬盘' + IntToStr(I) + '序列号：' + CnHardDiskInfo.DiskSerialNo[I]);
+end;
+
+procedure TFrmCPUIDs.btnVolumnInfosClick(Sender: TObject);
+var
+  I: Integer;
+begin
+  Log('分区数量：' + IntToStr(CnHardDiskInfo.VolumnCount));
+  for I := 0 to CnHardDiskInfo.VolumnCount - 1 do
+    Log('分区' + IntToStr(I) + '盘符' + CnHardDiskInfo.VolumnLetter[I] + '。卷标：' + CnHardDiskInfo.VolumnName[I]);
+
 end;
 
 end.

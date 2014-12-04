@@ -80,4 +80,13 @@ object FrmCPUIDs: TFrmCPUIDs
     TabOrder = 6
     OnClick = btnHardDiskSnClick
   end
+  object btnVolumnInfos: TButton
+    Left = 16
+    Top = 214
+    Width = 121
+    Height = 21
+    Caption = '获得分区卷标'
+    TabOrder = 7
+    OnClick = btnVolumnInfosClick
+  end
 end
