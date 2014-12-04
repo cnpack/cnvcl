@@ -28,12 +28,14 @@ unit CnHardWareInfo;
 *           Yock
 *           Bahamut
 * 备    注：硬件信息单元，目前只实现获取多核、多CPU系统中指定CPU的序列号与占用率
-*           以及部分 BIOS 的 ID.
+*           以及部分 BIOS 的 ID，部分硬盘的物理序列号.
 * 开发平台：WindowsXP sp2 + Delphi 6.0 up2
 * 兼容测试：Win2000/XP + Delphi 5、6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2012.05.10 V1.4
+* 修改记录：2014.12.04 V1.5
+*               加入读取物理磁盘数以及序列号的功能，暂未支持 Win9X
+*           2012.05.10 V1.4
 *               修正 64 位下的编译问题
 *           2008.08.01 V1.3
 *               加入 Bahamut 的获取 BIOS ID 的过程，但只支持小部分 BIOS
@@ -139,6 +141,27 @@ type
     {* 获得平均 CPU 占用率，0 到 100}
     property FirstCPUUsage: Integer read GetFirstCPUUsage;
     {* 获得首个 CPU 的占用率，0 到 100，用于单 CPU 系统}
+  end;
+
+  TCnHardDiskInfo = class(TPersistent)
+  private
+    FHardDiskCount: Integer;
+    FHardDiskSns: TStrings;
+    function GetDiskSerialNo(Index: Integer): string;
+
+    procedure ReadPhysicalDriveInNTWithZeroRights;
+  public
+    constructor Create;
+    {* 构造函数，创建列表并调用 ReadHardDisk}
+    destructor Destroy; override;
+
+    procedure ReadHardDisk;
+    {* 读取物理硬盘的信息}
+    
+    property HardDiskCount: Integer read FHardDiskCount;
+    {* 物理硬盘个数}
+    property DiskSerialNo[Index: Integer]: string read GetDiskSerialNo;
+    {* 物理硬盘的序列号}
   end;
 
 function CnGetBiosID: string;
@@ -273,8 +296,128 @@ type
 
   TZwUnmapViewOfSection = function (hWnd: THandle; PBaseAddr: Pointer): DWORD; stdcall;
 
+  // Hard Disk begin
+
+  TStorageQueryType = ( PropertyStandardQuery, PropertyExistsQuery,
+    PropertyMaskQuery, PropertyQueryMaxDefined);
+
+  TStoragePropertyId = (StorageDeviceProperty, StorageAdapterProperty);
+
+  TStoragePropertyQuery = packed record
+    PropertyId: TStoragePropertyId;
+    QueryType: TStorageQueryType;
+    AdditionalParameters: array[0..9] of Char;
+  end;
+
+  TStorageBusType = (
+    BusTypeUnknown,
+    BusTypeScsi,
+    BusTypeAtapi, 
+    BusTypeAta, 
+    BusType1394, 
+    BusTypeSsa, 
+    BusTypeFibre,
+    BusTypeUsb,
+    BusTypeRAID,
+    BusTypeiScsi,
+    BusTypeSas,
+    BusTypeSata,
+    BusTypeSD,
+    BusTypeMmc,
+    BusTypeVirtual,
+    BusTypeFileBackedVirtual,
+    BusTypeSpaces,
+    BusTypeMax,
+    BusTypeMaxReserved);
+
+  TStorageDeviceDescriptor = packed record
+    Version: DWORD;
+    Size: DWORD;
+    DeviceType: Byte;
+    DeviceTypeModifier: Byte;
+    RemovableMedia: Boolean;
+    CommandQueueing: Boolean;
+    VendorIdOffset: DWORD;
+    ProductIdOffset: DWORD;
+    ProductRevisionOffset: DWORD;
+    SerialNumberOffset: DWORD;
+    BusType: TStorageBusType;
+    RawPropertiesLength: DWORD;
+    RawDeviceProperties: array [0..0] of AnsiChar;
+  end;
+  PStorageDeviceDescriptor = ^TStorageDeviceDescriptor;
+
+  TIDERegs = packed record
+    bFeaturesReg: BYTE;
+    bSectorCountReg: BYTE;
+    bSectorNumberReg: BYTE;
+    bCylLowReg: BYTE;
+    bCylHighReg: BYTE;
+    bDriveHeadReg: BYTE;
+    bCommandReg: BYTE;
+    bReserved: BYTE;
+  end;
+
+  TSendCmdInParams = packed record
+    cBufferSize: DWORD;
+    irDriveRegs: TIDERegs;
+    bDriveNumber: BYTE;
+    bReserved: array[0..2] of Byte;
+    dwReserved: array[0..3] of DWORD;
+    bBuffer: array[0..0] of Byte;
+  end;
+
+  TIdSector = packed record
+    wGenConfig: Word;
+    wNumCyls: Word;
+    wReserved: Word;
+    wNumHeads: Word;
+    wBytesPerTrack: Word;
+    wBytesPerSector: Word;
+    wSectorsPerTrack: Word;
+    wVendorUnique: array[0..2] of Word;
+    sSerialNumber: array[0..19] of CHAR;
+    wBufferType: Word;
+    wBufferSize: Word;
+    wECCSize: Word;
+    sFirmwareRev: array[0..7] of Char;
+    sModelNumber: array[0..39] of Char;
+    wMoreVendorUnique: Word;
+    wDoubleWordIO: Word;
+    wCapabilities: Word;
+    wReserved1: Word;
+    wPIOTiming: Word;
+    wDMATiming: Word;
+    wBS: Word;
+    wNumCurrentCyls: Word;
+    wNumCurrentHeads: Word;
+    wNumCurrentSectorsPerTrack: Word;
+    ulCurrentSectorCapacity: DWORD;
+    wMultSectorStuff: Word;
+    ulTotalAddressableSectors: DWORD;
+    wSingleWordDMA: Word;
+    wMultiWordDMA: Word;
+    bReserved: array[0..127] of BYTE;
+  end;
+  PIdSector = ^TIdSector;
+
+  TDriverStatus = packed record
+    bDriverError: Byte;
+    bIDEStatus: Byte;
+    bReserved: array[0..1] of Byte;
+    dwReserved: array[0..1] of DWORD;
+  end;
+
+  TSendCmdOutParams = packed record
+    cBufferSize: DWORD;
+    DriverStatus: TDriverStatus;
+    bBuffer: array[0..0] of BYTE;
+  end;
+  // Hard Disk end.
+
 const
   STATUS_SUCCESS = $00000000;
+  IOCTL_STORAGE_QUERY_PROPERTY = $002D1400; // ($2D shl 16) or ($0500 shl 2); // 
 
 var
   NtDllHandle: THandle = 0;
@@ -901,6 +1044,103 @@ begin
   begin
     SetLength(Result, ReturnLen);
     MoveMemory(@Result[1], @szSystemInfo[0], ReturnLen);
+  end;
+end;
+
+{ TCnHardDiskInfo }
+
+constructor TCnHardDiskInfo.Create;
+begin
+  inherited;
+  FHardDiskSns := TStringList.Create;
+  ReadHardDisk;
+end;
+
+destructor TCnHardDiskInfo.Destroy;
+begin
+  FHardDiskSns.Free;
+  inherited;
+end;
+
+function TCnHardDiskInfo.GetDiskSerialNo(Index: Integer): string;
+begin
+  if (Index >= 0) or (Index < FHardDiskSns.Count) then
+    Result := FHardDiskSns[Index]
+  else
+    Result := '';
+end;
+
+procedure TCnHardDiskInfo.ReadHardDisk;
+begin
+  if Win32Platform = VER_PLATFORM_WIN32_NT then
+  begin
+    ReadPhysicalDriveInNTWithZeroRights;
+  end
+  else
+  begin
+    // TODO: Win9x
+  end;
+end;
+
+procedure TCnHardDiskInfo.ReadPhysicalDriveInNTWithZeroRights;
+var
+  I: Integer;
+  H: THandle;
+  Drive: string;
+  BytesReturned: Cardinal;
+  Query: TStoragePropertyQuery;
+  Buf: array[0..8191] of Byte;
+  Descriptor: PStorageDeviceDescriptor;
+  Sn: AnsiString;
+
+  procedure ChangeByteOrder(var Data; Size: Integer);
+  var
+    P: PAnsiChar;
+    I: Integer;
+    C: AnsiChar;
+  begin
+    P := @Data;
+    for I := 0 to (Size shr 1) - 1 do
+    begin
+      C := P^;
+      P^ := (P + 1)^;
+      (P + 1)^ := C;
+      Inc(P, 2);
+    end;
+  end;
+
+begin
+  for I := 0 to 15 do  // Max Disk number is 16
+  begin
+    Drive := '\\.\PhysicalDrive' + IntToStr(I);
+    H := CreateFile(PChar(Drive), 0, FILE_SHARE_READ or FILE_SHARE_WRITE, nil,
+      OPEN_EXISTING, 0, 0);
+    if H = INVALID_HANDLE_VALUE then
+      Exit;
+
+    try
+      FillChar(Buf, SizeOf(Buf), 0);
+      FillChar(Query, SizeOf(Query), 0);
+      Query.PropertyId := StorageDeviceProperty;
+      Query.QueryType := PropertyStandardQuery;
+
+      BytesReturned := 0;
+      if DeviceIoControl(H, IOCTL_STORAGE_QUERY_PROPERTY, @Query, SizeOf(Query),
+        @(Buf[0]), SizeOf(Buf), BytesReturned, nil) then
+      begin
+        Descriptor := PStorageDeviceDescriptor(@(Buf[0]));
+        SetLength(Sn, 1024);
+        ZeroMemory(@(Sn[1]), Length(Sn));
+        
+        StrCopy(PAnsiChar(@(Sn[1])), PAnsiChar(@(Buf[Descriptor^.SerialNumberOffset])));
+        Sn := Trim(Sn);
+        ChangeByteOrder(Sn[1], Length(Sn));
+        FHardDiskSns.Add(Trim(Sn));
+        Inc(FHardDiskCount);
+      end;
+    finally
+      CloseHandle(H);
+    end
   end;
 end;
 
