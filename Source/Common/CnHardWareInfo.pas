@@ -1118,6 +1118,12 @@ var
     C, T: AnsiChar;
     Buf: PAnsiChar;
   begin
+    if Offset <= 0 then // If offset 0, no serial number.
+    begin
+      Result := '';
+      Exit;
+    end;
+
     SetLength(Result, 1024);
     ZeroMemory(@(Result[1]), Length(Result));
 
