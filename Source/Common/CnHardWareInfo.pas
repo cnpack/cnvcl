@@ -1082,6 +1082,24 @@ begin
   end;
 end;
 
+function        LoCase( ch : AnsiChar ) : AnsiChar;
+begin
+//asm
+//{ ->    AL      Character       }
+//{ <-    AL      Result          }
+//
+//        CMP     AL,'A'
+//        JB      @@exit
+//        CMP     AL,'Z'
+//        JA      @@exit
+//        ADD     AL,'a' - 'A'
+//@@exit:
+  if Ch in ['A'..'Z'] then
+    Result := Chr(Ord(Ch) + (Ord('a') - Ord('A')))
+  else
+    Result := Ch;
+end;
+
 procedure TCnHardDiskInfo.ReadPhysicalDriveInNTWithZeroRights;
 var
   I: Integer;
@@ -1089,24 +1107,92 @@ var
   Drive: string;
   BytesReturned: Cardinal;
   Query: TStoragePropertyQuery;
-  Buf: array[0..8191] of Byte;
+  Buffer: array[0..8191] of Byte;
   Descriptor: PStorageDeviceDescriptor;
   Sn: AnsiString;
 
-  procedure ChangeByteOrder(var Data; Size: Integer);
+  function flipAndCodeBytes(Str: PAnsiChar; Offset: Integer): AnsiString;
   var
-    P: PAnsiChar;
-    I: Integer;
-    C: AnsiChar;
+    I, J, K: Integer;
+    P: Integer;
+    C, T: AnsiChar;
+    Buf: PAnsiChar;
   begin
-    P := @Data;
-    for I := 0 to (Size shr 1) - 1 do
+    SetLength(Result, 1024);
+    ZeroMemory(@(Result[1]), Length(Result));
+
+    K := 0;
+    Buf := @(Result[1]);
+
+    P := 0;
+    J := 1;
+    I := Offset;
+    while (J > 0) and (Str[I] <> #0) do  // 十六进制解码
     begin
-      C := P^;
-      P^ := (P + 1)^;
-      (P + 1)^ := C;
-      Inc(P, 2);
+      C := LoCase(Str[I]);
+      if C = ' ' then
+        C := '0';
+
+      Inc(P);
+      Buf[K] := Chr(Ord(Buf[K]) shl 4);
+      if C in ['0'..'9'] then
+        Buf[K] := Chr(Ord(Buf[K]) or (Ord(C) - Ord('0')))
+      else if C in ['a'..'f'] then
+        Buf[K] := Chr(Ord(Buf[K]) or (Ord(C) - Ord('a') + 10))
+      else
+      begin
+        J := 0;
+        Break;
+      end;
+
+      if P = 2 then
+      begin
+        if (Buf[K] <> #0) and (Ord(Buf[K]) <= $1F) then
+        begin
+          J := 0;
+          Break;
+        end;
+        Inc(K);
+        P := 0;
+        Buf[K] := #0;
+      end;
+
+      Inc(I);
     end;
+
+    if J = 0 then
+    begin
+      J := 1;
+      K := 0;
+      I := Offset;
+      while (J <> 0) and (Str[I] <> #0) do
+      begin
+        if Ord(Str[I]) <= $1F then
+        begin
+          J := 0;
+          Break;
+        end;
+        Buf[K] := Str[I];
+        Inc(K);
+        Inc(I);
+      end;
+    end;
+
+    if J = 0 then
+      K := 0;
+
+    // 翻转前后字节
+    Buf[K] := #0;
+    J := 0;
+    while J < K do
+    begin
+      T := Buf[J];
+      Buf[J] := Buf[J + 1];
+      Buf[J + 1] := T;
+      Inc(J, 2);
+    end;
+
+    Result := Trim(Result);
   end;
 
 begin
@@ -1119,22 +1205,22 @@ begin
       Exit;
 
     try
-      FillChar(Buf, SizeOf(Buf), 0);
+      FillChar(Buffer, SizeOf(Buffer), 0);
       FillChar(Query, SizeOf(Query), 0);
       Query.PropertyId := StorageDeviceProperty;
       Query.QueryType := PropertyStandardQuery;
 
       BytesReturned := 0;
       if DeviceIoControl(H, IOCTL_STORAGE_QUERY_PROPERTY, @Query, SizeOf(Query),
-        @(Buf[0]), SizeOf(Buf), BytesReturned, nil) then
+        @(Buffer[0]), SizeOf(Buffer), BytesReturned, nil) then
       begin
-        Descriptor := PStorageDeviceDescriptor(@(Buf[0]));
+        Descriptor := PStorageDeviceDescriptor(@(Buffer[0]));
         SetLength(Sn, 1024);
         ZeroMemory(@(Sn[1]), Length(Sn));
-        
-        StrCopy(PAnsiChar(@(Sn[1])), PAnsiChar(@(Buf[Descriptor^.SerialNumberOffset])));
+
+        StrCopy(PAnsiChar(@(Sn[1])), PAnsiChar(flipAndCodeBytes(@(Buffer[0]), Descriptor^.SerialNumberOffset)));
         Sn := Trim(Sn);
-        ChangeByteOrder(Sn[1], Length(Sn));
+
         FHardDiskSns.Add(Trim(Sn));
         Inc(FHardDiskCount);
       end;
