@@ -28,6 +28,7 @@ type
     btnGetCpuOems: TButton;
     btnInfoStr: TButton;
     btnGetBios: TButton;
+    btnHardDiskSn: TButton;
     procedure BtnGetCpuIDsClick(Sender: TObject);
     procedure btnGetUsageClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -35,6 +36,7 @@ type
     procedure btnGetCpuOemsClick(Sender: TObject);
     procedure btnInfoStrClick(Sender: TObject);
     procedure btnGetBiosClick(Sender: TObject);
+    procedure btnHardDiskSnClick(Sender: TObject);
   private
     { Private declarations }
     procedure log(const Info: string);
@@ -52,6 +54,7 @@ uses
 
 var
   CnCpuID: TCnCpuID;
+  CnHardDiskInfo: TCnHardDiskInfo;
   
 {$R *.dfm}
 
@@ -116,10 +119,12 @@ end;
 procedure TFrmCPUIDs.FormCreate(Sender: TObject);
 begin
   CnCpuID := TCnCpuId.Create;
+  CnHardDiskInfo := TCnHardDiskInfo.Create;
 end;
 
 procedure TFrmCPUIDs.FormDestroy(Sender: TObject);
 begin
+  CnHardDiskInfo.Free;
   CnCpuID.Free;
 end;
 
@@ -153,6 +158,15 @@ end;
 procedure TFrmCPUIDs.btnGetBiosClick(Sender: TObject);
 begin
   Log(CnGetBiosID);
+end;
+
+procedure TFrmCPUIDs.btnHardDiskSnClick(Sender: TObject);
+var
+  I: Integer;
+begin
+  Log('”≤≈Ã ˝¡ø£∫' + IntToStr(CnHardDiskInfo.HardDiskCount));
+  for I := 0 to CnHardDiskInfo.HardDiskCount - 1 do
+    Log('”≤≈Ã' + IntToStr(I) + '–Ú¡–∫≈£∫' + CnHardDiskInfo.DiskSerialNo[I]);
 end;
 
 end.
