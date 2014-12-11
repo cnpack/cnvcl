@@ -3,7 +3,7 @@ program Project1;
 uses
   Forms,
   Unit1 in 'Unit1.pas' {Form1},
-  CnHint in 'CnHint.pas';
+  CnHint in '..\..\Source\Graphics\CnHint.pas';
 
 {$R *.res}
 

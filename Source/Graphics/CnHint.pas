@@ -537,7 +537,7 @@ begin
     end;
 
     IsBalloonHint := (AHintStyle = hsBalloonHint) or
-      ((AHintStyle = hsAuto) and ((ATitle <> '') or (FHint.Title <> '')));
+      ((AHintStyle = hsAuto) and ((ATitle <> '') or ((FHint <> nil) and (FHint.Title <> ''))));
 
     AWidth := 0;
     AHeight := 0;
