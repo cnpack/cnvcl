@@ -52,7 +52,7 @@ CnPack开发组2014年工作总结
 
 CnPack Working Report in 2014
 
-    Below are the achievements of CnPack in 2013:
+    Below are the achievements of CnPack in 2014:
 
 1. CnPack IDE Wizards 1.0.2/1.0.3/1.0.4 published. Support RAD Studio XE5/XE6/XE7.
 
