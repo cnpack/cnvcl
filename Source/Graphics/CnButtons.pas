@@ -554,14 +554,14 @@ const
   clDeepShadow = $00404040;
   DownStyles: array[Boolean] of Integer = (BDR_RAISEDINNER, BDR_SUNKENOUTER);
   FillStyles: array[Boolean] of Integer = (BF_MIDDLE, 0);
-  WordWraps: array[Boolean] of Word = (0, DT_WORDBREAK);
+  WordWraps: array[Boolean] of Word = (0, DT_WORDBREAK or DT_EDITCONTROL);
 var
   CaptionHeight, CaptionWidth, GlyphHeight, GlyphWidth: Integer;
   GlyphIndex: Integer;
   Offset: Integer;
   clBackColor: TColor;
   CapX, CapY, GlX, GlY: Integer;
-  aRect, oRect: TRect;
+  aRect, oRect, wRect: TRect;
   FArrowGlyph: TPicture;
   UseDisabledBitmap: Boolean;
   MonoBmp: TBitmap;
@@ -802,14 +802,31 @@ begin
   if Glyph.Empty then
     Spacing := 0;
 
-  CaptionHeight := Canvas.TextHeight(Caption);
-  CaptionWidth := Canvas.TextWidth(Caption);
   GlyphHeight := Glyph.Height;
-
   if NumGlyphs <> 0 then
     GlyphWidth := Glyph.Width div NumGlyphs
   else
     GlyphWidth := 0;
+
+  if Wrap then
+  begin
+    // 根据图片与排版方式预先计算一个可绘制区域的大小，用 Wrap 方式进行排版
+    wRect := Rect(0, 0, Width - Margin * 2, Height - Margin * 2);
+    if Layout in [blGlyphLeft, blGlyphRight] then
+      wRect.Right := wRect.Right - GlyphWidth - Spacing;
+    if Layout in [blGlyphTop, blGlyphBottom] then
+      wRect.Bottom := wRect.Bottom - GlyphHeight - Spacing;
+
+    DrawStyle := DT_CENTER or DT_VCENTER or WordWraps[Wrap] or DT_CALCRECT;
+    DrawText(Canvas.Handle, PChar(Caption), Length(Caption), wRect, DrawStyle);
+    CaptionHeight := wRect.Bottom - wRect.Top;
+    CaptionWidth := wRect.Right - wRect.Left;
+  end
+  else
+  begin
+    CaptionHeight := Canvas.TextHeight(Caption);
+    CaptionWidth := Canvas.TextWidth(Caption);
+  end;
 
   GlyphIndex := 0;
 

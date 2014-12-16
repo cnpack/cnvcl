@@ -61,6 +61,10 @@ type
     btn43: TCnBitBtn;
     btn44: TCnBitBtn;
     img1: TImage;
+    cnbtbtnWrap1: TCnBitBtn;
+    cnbtbtnWrap2: TCnBitBtn;
+    cnbtbtnWrap3: TCnBitBtn;
+    cnbtbtnWrap4: TCnBitBtn;
     procedure chk1Click(Sender: TObject);
     procedure chk2Click(Sender: TObject);
     procedure chk3Click(Sender: TObject);
