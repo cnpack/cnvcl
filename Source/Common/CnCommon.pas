@@ -792,6 +792,9 @@ function CheckWinXP: Boolean;
 function CheckWinVista: Boolean;
 {* 检查是否 Vista/Win7 以上系统 }
 
+function CheckWow64: Boolean;
+{* 检查是否 64bit 系统 }
+
 function CheckXPManifest(var OSSupport, AppValid: Boolean): Boolean;
 {* 检查系统和当前进程是否支持 XP Manifest
    OSSupport: 返回操作系统是否支持 XP Manifest
@@ -5114,6 +5117,23 @@ end;
 function CheckWinVista: Boolean;
 begin
   Result := Win32MajorVersion >= 6;
+end;
+
+// 检查是否 64bit 系统
+function CheckWow64: Boolean;
+type
+  TIsWow64ProcessProc = function(Handle: THandle; var IsWow64: LongBool): LongBool stdcall;
+var
+  proc: TIsWow64ProcessProc;
+  IsWow64: LongBool;
+begin
+  Result := False;
+  proc := TIsWow64ProcessProc(GetProcAddress(GetModuleHandle('kernel32'), 'IsWow64Process'));
+  if Assigned(proc) then
+  begin
+    if proc(GetCurrentProcess, IsWow64) then
+      Result := IsWow64;
+  end;
 end;
 
 // 检查系统和当前进程是否支持 XP Manifest
