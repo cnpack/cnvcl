@@ -1923,6 +1923,21 @@ begin
 
     Days := Days * 24 - AHour;
     AMinitue := Round(Days * 60);
+
+    // 如果分恰好等于 60，则小时数要加一，如果小时恰好到了 24，则天数要加一
+    if AMinitue >= 60 then
+    begin
+      Dec(AMinitue, 60);
+      Inc(AHour);
+
+      if AHour >= 24 then
+      begin
+        Dec(AHour, 24);
+        Inc(ADay);
+      end;
+
+      // 节气不在月底，因此一般不用考虑天数加一后月份改变的情况
+    end;
   end
   else
   begin
