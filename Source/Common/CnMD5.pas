@@ -165,6 +165,10 @@ function MD5DigestToStr(aDig: TMD5Digest): string;
 
 implementation
 
+const
+  MAX_FILE_SIZE = 512 * 1024 * 1024;
+  // If file size <= this size (bytes), using Mapping, else stream
+
 var
   PADDING: TMD5Buffer = (
     $80, $00, $00, $00, $00, $00, $00, $00,
@@ -562,7 +566,7 @@ var
   Context: TMD5Context;
   Stream: TStream;
 
-  function FileSizeIsLargeThan2G(const AFileName: string): Boolean;
+  function FileSizeIsLargeThanMax(const AFileName: string): Boolean;
   var
     H: THandle;
     Info: BY_HANDLE_FILE_INFORMATION;
@@ -578,11 +582,11 @@ var
     end;
     Rec.Lo := Info.nFileSizeLow;
     Rec.Hi := Info.nFileSizeHigh;
-    Result := (Rec.Hi > 0) or (Rec.Lo > Cardinal(MaxInt));
+    Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
   end;
 
 begin
-  if FileSizeIsLargeThan2G(FileName) then
+  if FileSizeIsLargeThanMax(FileName) then
   begin
     // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
