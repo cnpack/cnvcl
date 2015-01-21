@@ -81,6 +81,22 @@ type
     lblSm4Code: TLabel;
     rbSm4Ecb: TRadioButton;
     rbSm4CBC: TRadioButton;
+    tsAES: TTabSheet;
+    grpAes: TGroupBox;
+    lblAesFrom: TLabel;
+    lblAesKey: TLabel;
+    lblAesOrigin: TLabel;
+    lblAesCode: TLabel;
+    edtAes: TEdit;
+    btnAesEncrypt: TButton;
+    edtAesKey: TEdit;
+    edtAesDecrypt: TEdit;
+    btnAesDecrypt: TButton;
+    edtAesResult: TEdit;
+    rbAesecb: TRadioButton;
+    rbAescbc: TRadioButton;
+    cbbAesKeyBitType: TComboBox;
+    lblKeyBit: TLabel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -98,6 +114,8 @@ type
     procedure btnFileSM3Click(Sender: TObject);
     procedure btnSm4Click(Sender: TObject);
     procedure btnSm4DecClick(Sender: TObject);
+    procedure btnAesEncryptClick(Sender: TObject);
+    procedure btnAesDecryptClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -112,7 +130,7 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES;
 
 {$R *.DFM}
 
@@ -179,6 +197,7 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   PageControl1.ActivePageIndex := 0;
+  cbbAesKeyBitType.ItemIndex := 0;
 end;
 
 procedure TForm1.btnCRC64Click(Sender: TObject);
@@ -253,6 +272,11 @@ end;
 
 var
   Sm4Iv: array[0..15] of Byte = (
+    $01, $23, $45, $67, $89, $AB, $CD, $EF,
+    $FE, $DC, $BA, $98, $76, $54, $32, $10
+  );
+
+  AesIv: TAESBuffer = (
     $01, $23, $45, $67, $89, $AB, $CD, $EF,
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
@@ -365,6 +389,64 @@ begin
   begin
     S := Copy(Hex, I * 2 + 1, 2);
     Result := Result + AnsiChar(HexToInt(S));
+  end;
+end;
+
+procedure TForm1.btnAesEncryptClick(Sender: TObject);
+var
+  TmpAesIv: TAESBuffer;
+begin
+  if rbAesecb.Checked then
+  begin
+    case cbbAesKeyBitType.ItemIndex of
+      0:                       
+        edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt128);
+      1:
+        edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt192);
+      2:
+        edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt256);
+    end;
+  end
+  else
+  begin
+    CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+    case cbbAesKeyBitType.ItemIndex of
+      0:
+        edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
+      1:
+        edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt192);
+      2:
+        edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt256);
+    end;
+  end;
+end;
+
+procedure TForm1.btnAesDecryptClick(Sender: TObject);
+var
+  TmpAesIv: TAESBuffer;
+begin
+  if rbAesecb.Checked then
+  begin
+    case cbbAesKeyBitType.ItemIndex of
+      0:
+        edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt128);
+      1:
+        edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt192);
+      2:
+        edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt256);
+    end;
+  end
+  else
+  begin
+    CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+    case cbbAesKeyBitType.ItemIndex of
+      0:
+        edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt128);
+      1:
+        edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt192);
+      2:
+        edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt256);
+    end;
   end;
 end;
 

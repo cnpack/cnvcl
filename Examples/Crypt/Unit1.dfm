@@ -21,7 +21,7 @@ object Form1: TForm1
     Top = 24
     Width = 353
     Height = 361
-    ActivePage = tsDES
+    ActivePage = tsAES
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -560,6 +560,133 @@ object Form1: TForm1
           Checked = True
           TabOrder = 7
           TabStop = True
+        end
+      end
+    end
+    object tsAES: TTabSheet
+      Caption = 'AES'
+      ImageIndex = 8
+      object grpAes: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 297
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'AES'
+        TabOrder = 0
+        object lblAesFrom: TLabel
+          Left = 24
+          Top = 36
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblAesKey: TLabel
+          Left = 24
+          Top = 66
+          Width = 22
+          Height = 13
+          Caption = 'Key:'
+        end
+        object lblAesOrigin: TLabel
+          Left = 24
+          Top = 248
+          Width = 32
+          Height = 13
+          Caption = 'Origin:'
+        end
+        object lblAesCode: TLabel
+          Left = 24
+          Top = 180
+          Width = 29
+          Height = 13
+          Caption = 'Code:'
+        end
+        object lblKeyBit: TLabel
+          Left = 24
+          Top = 98
+          Width = 34
+          Height = 13
+          Caption = 'KeyBit:'
+        end
+        object edtAes: TEdit
+          Left = 72
+          Top = 32
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnAesEncrypt: TButton
+          Left = 72
+          Top = 128
+          Width = 75
+          Height = 25
+          Caption = 'AES Encrypt'
+          TabOrder = 2
+          OnClick = btnAesEncryptClick
+        end
+        object edtAesKey: TEdit
+          Left = 72
+          Top = 64
+          Width = 169
+          Height = 21
+          TabOrder = 1
+          Text = '123456'
+        end
+        object edtAesDecrypt: TEdit
+          Left = 72
+          Top = 244
+          Width = 169
+          Height = 21
+          TabOrder = 5
+        end
+        object btnAesDecrypt: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'AES Decrypt'
+          TabOrder = 4
+          OnClick = btnAesDecryptClick
+        end
+        object edtAesResult: TEdit
+          Left = 72
+          Top = 176
+          Width = 169
+          Height = 21
+          TabOrder = 3
+        end
+        object rbAesecb: TRadioButton
+          Left = 168
+          Top = 132
+          Width = 57
+          Height = 17
+          Caption = 'ECB'
+          TabOrder = 6
+        end
+        object rbAescbc: TRadioButton
+          Left = 232
+          Top = 132
+          Width = 57
+          Height = 17
+          Caption = 'CBC'
+          Checked = True
+          TabOrder = 7
+          TabStop = True
+        end
+        object cbbAesKeyBitType: TComboBox
+          Left = 72
+          Top = 96
+          Width = 169
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 8
+          Items.Strings = (
+            '128 Bit'
+            '192 Bit'
+            '256 Bit')
         end
       end
     end

@@ -9,7 +9,8 @@ uses
   CnDES in '..\..\Source\Common\CnDES.pas',
   CnSHA1 in '..\..\Source\Common\CnSHA1.pas',
   CnSM3 in '..\..\Source\Common\CnSM3.pas',
-  CnSM4 in '..\..\Source\Common\CnSM4.pas';
+  CnSM4 in '..\..\Source\Common\CnSM4.pas',
+  CnAES in '..\..\Source\Common\CnAES.pas';
 
 {$R *.RES}
 
