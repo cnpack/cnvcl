@@ -78,6 +78,8 @@ procedure CnFmxControlBringToFront(AControl: TComponent);
 
 procedure CnFmxControlSendToBack(AControl: TComponent);
 
+function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;
+
 // 为高版本语法的set赋值增加类名，如[seTop]变成[TSide.seTop]
 function CnFmxFixSetValue(const PType: string; const PValue: string): string;
 
@@ -324,6 +326,13 @@ procedure CnFmxControlSendToBack(AControl: TComponent);
 begin
   if (AControl <> nil) and AControl.InheritsFrom(TFmxObject) then
     TFmxObject(AControl).SendToBack;
+end;
+
+function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;
+begin
+  Result := '';
+  if (AForm <> nil) and CnFmxIsInheritedFromCommonCustomForm(AForm) then
+    Result := FMX.Forms.TCommonCustomForm(AForm).Caption;
 end;
 
 function CnFmxFixSetValue(const PType: string; const PValue: string): string;
