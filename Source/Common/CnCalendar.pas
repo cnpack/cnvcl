@@ -2536,7 +2536,7 @@ var
   K, K1: Real;
   T, Rpi, Zone, F0, Fc, J0, Aa0, Ab0, Ac0, ShuoTime, WangTime: Real;
   Aa, Ab, Ac, F1, J: Real;
-  Ms, Leap, Eclip, LunDay, LunDay0, ShuoDay, WangDay: Integer;
+  Ms, LunDay, LunDay0, WangDay: Integer;
   S, R, P, Q: Real;
   StdDays: Integer;
 begin
@@ -2552,10 +2552,9 @@ begin
   Ab0 := GetAng(Ms, T, 7.171366127999999e-2, 306.0253/Rpi, -0.0107306/Rpi, -0.00001236/Rpi);
   Ac0 := GetAng(Ms, T, 0.08519585128, 21.2964/Rpi, 0.0016528/Rpi, 0.00000239/Rpi);
 
-  Leap := 0;
   EclipseType := etNone;
   LunDay := -1;
-  ShuoDay := 0;
+
   ShuoTime := 0;
   WangDay := 0;
   WangTime := 0;
