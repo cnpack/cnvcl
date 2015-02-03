@@ -62,6 +62,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFNDEF WIN64}
+
 uses
   SysUtils;
 
@@ -77,7 +79,11 @@ function FloatDecimalToOctExtended(fIn: Extended; DecimalExp,
 function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
 
+{$ENDIF}
+
 implementation
+
+{$IFNDEF WIN64}
 
 type
   PConvertFloatSystem = ^TConvertFloatSystem;
@@ -750,4 +756,5 @@ UseExponent:
   end;
 end;
 
+{$ENDIF}
 end.

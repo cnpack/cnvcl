@@ -363,7 +363,11 @@ begin
   end
   else if FInplaceEdit is TMemo then
   begin
+{$IFDEF WIN64}
+    Obj := TObject(Integer(Item.Value));
+{$ELSE}
     Integer(Obj) := Item.Value;
+{$ENDIF}
     if Obj is TStrings then
       TStrings(Obj).Text := TMemo(FInplaceEdit).Lines.Text;
     FModified := True;
@@ -531,7 +535,11 @@ var
   var
     Obj: TPersistent;
   begin
+{$IFDEF WIN64}
+    Obj := TPersistent(Integer(Value));
+{$ELSE}
     Integer(Obj) := Value;
+{$ENDIF}
     Assert(Obj is TStrings);
     FInplaceEdit := TMemo.Create(Self);
     FInplaceEdit.Width := csInplaceMemoWidth;
@@ -757,7 +765,11 @@ begin
         end;
       tkClass:
         begin
+{$IFDEF WIN64}
+          Obj := TObject(Integer(Item.Value));
+{$ELSE}
           Integer(Obj) := Item.Value;
+{$ENDIF}
           if Obj is TFont then
             Result := okFont
           else if Obj is TStrings then
@@ -815,7 +827,11 @@ begin
 
   Node := TTreeNode(FInplaceEdit.Tag);
   Item := TCnOptionItem(Node.Data);
+{$IFDEF WIN64}
+  Obj := TFont(Integer(Item.Value));
+{$ELSE}
   Integer(Obj) := Item.Value;
+{$ENDIF}
   with TFontDialog.Create(Self) do
   try
     Font.Assign(Obj);
@@ -902,7 +918,11 @@ var
   var
     Obj: TObject;
   begin
+{$IFDEF WIN64}
+    Obj := TObject(Integer(Value));
+{$ELSE}
     Integer(Obj) := Value;
+{$ENDIF}
     if Obj is TFont then
       Result := Format('%s,%d', [TFont(Obj).Name, TFont(Obj).Size])
     else
@@ -913,7 +933,11 @@ var
   var
     Obj: TObject;
   begin
+{$IFDEF WIN64}
+    Obj := TObject(Integer(Value));
+{$ELSE}
     Integer(Obj) := Value;
+{$ENDIF}
     if Obj is TStrings then
       Result := StringReplace(TStrings(Obj).Text, #13#10, ' ', [rfReplaceAll])
     else

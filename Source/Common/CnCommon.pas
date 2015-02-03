@@ -943,8 +943,10 @@ function RectHeight(Rect: TRect): Integer;
 procedure Delay(const uDelay: DWORD);
 {* 延时}
 
+{$IFNDEF WIN64}
 procedure BeepEx(const Freq: WORD = 1200; const Delay: WORD = 1);
 {* 在Win9X下让喇叭发声}
+{$ENDIF}
 
 function GetLastErrorMsg(IncludeErrorCode: Boolean = False): string;
 {* 取得最后一次错误信息}
@@ -5844,6 +5846,8 @@ begin
     Application.ProcessMessages;
 end;
 
+{$IFNDEF WIN64}
+
 // 在Win9X下让喇叭发声
 procedure BeepEx(const Freq: WORD = 1200; const Delay: WORD = 1);
 const
@@ -5870,6 +5874,8 @@ begin
     out $61,al;
   end;
 end;
+
+{$ENDIF}
 
 function GetLastErrorMsg(IncludeErrorCode: Boolean): string;
 var

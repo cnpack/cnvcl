@@ -1573,7 +1573,11 @@ begin
     begin
       BObj.FDstStr := DstStr; // 保存一份字符串引用
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), PAGE_EXECUTE_READWRITE, @OldProtect);
+{$IFDEF WIN64}
+      PResStringRec(BObj.StringRecAddr)^.Identifier := NativeUint(BObj.FDstStr);
+{$ELSE}
       PResStringRec(BObj.StringRecAddr)^.Identifier := Integer(BObj.FDstStr);
+{$ENDIF}
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), OldProtect, nil);
     end;
   end;

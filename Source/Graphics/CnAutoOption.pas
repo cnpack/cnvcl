@@ -358,8 +358,13 @@ var
 begin
   if (PropKind = tkClass) and not VarIsNull(Value) then
   begin
+{$IFDEF WIN64}
+    SrcObj := TPersistent(Integer(Value));
+    DstObj := TPersistent(Integer(PropValue));
+{$ELSE}
     Integer(SrcObj) := Value;
     Integer(DstObj) := PropValue;
+{$ENDIF}
     if (SrcObj is TPersistent) and (DstObj is TPersistent) and (SrcObj <> DstObj) then
       DstObj.Assign(SrcObj)
     else
@@ -377,7 +382,11 @@ var
 begin
   if (PropKind = tkClass) and not VarIsNull(Value) and (Value <> PropValue) then
   begin
+{$IFDEF WIN64}
+    Obj := TObject(Integer(Value));
+{$ELSE}
     Integer(Obj) := Value;
+{$ENDIF}
     Obj.Free;
   end;
   Value := Null;
@@ -389,8 +398,13 @@ var
 begin
   if (PropKind = tkClass) and not VarIsNull(DefaultValue) then
   begin
+{$IFDEF WIN64}
+    SrcObj := TPersistent(Integer(DefaultValue));
+    DstObj := TPersistent(Integer(PropValue));
+{$ELSE}
     Integer(SrcObj) := DefaultValue;
     Integer(DstObj) := PropValue;
+{$ENDIF}
     if (SrcObj is TPersistent) and (DstObj is TPersistent) and (SrcObj <> DstObj) then
       DstObj.Assign(SrcObj)
     else
@@ -410,7 +424,11 @@ begin
   ClearValue;
   if PropKind = tkClass then
   begin
+{$IFDEF WIN64}
+    SrcObj := TPersistent(Integer(PropValue));
+{$ELSE}
     Integer(SrcObj) := PropValue;
+{$ENDIF}
     if SrcObj is TFont then
       DstObj := TFont.Create
     else if SrcObj is TStrings then
@@ -518,7 +536,11 @@ begin
       end;
     tkClass:
       begin
+{$IFDEF WIN64}
+        Obj := TObject(Integer(Value));
+{$ELSE}
         Integer(Obj) := Value;
+{$ENDIF}
         SetObjectProp(Instance, PropInfo, Obj);
       end;
   else

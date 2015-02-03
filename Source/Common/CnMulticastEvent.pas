@@ -38,6 +38,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFNDEF WIN64}
+
 {.$DEFINE TEST}
 
 {$DEFINE SINGLETON}
@@ -138,7 +140,11 @@ function CnMakeMethod(ACode, AData: Pointer): TMethod;
 
 function CnMakePMethod(ACode, AData: Pointer): PMethod;
 
+{$ENDIF}
+
 implementation
+
+{$IFNDEF WIN64}
 
 function CnMakeMethod(ACode, AData: Pointer): TMethod;
 begin
@@ -1109,4 +1115,5 @@ initialization
 finalization
   {$IFNDEF SINGLETON}FMulticastEventManager.Free;{$ENDIF}
 
+{$ENDIF}
 end.

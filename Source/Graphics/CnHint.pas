@@ -310,17 +310,40 @@ var
   Bits: Pointer;
   BytesPerScanline: Integer;
 
+{$IFDEF WIN64}
+  function FindScanline(Source: Pointer; MaxLen: Cardinal; Value: Cardinal): Cardinal;
+  var
+    I: Integer;
+    V: Byte;
+    P: PByte;
+  begin
+    //  Pascal Impl.
+    Result := MaxLen;
+    V := Byte(Value);
+    P := PByte(Source);
+    for I := MaxLen downto 0 do
+    begin
+      if P^ = V then
+      begin
+        Result := I;
+        Exit;
+      end;
+      Inc(P);
+    end;
+  end;
+{$ELSE}
   function FindScanline(Source: Pointer; MaxLen: Cardinal; Value: Cardinal): Cardinal; assembler;
-  asm
+  asm                // EAX              EDX               ECX
         PUSH    ECX
-        MOV     ECX, EDX
+        MOV     ECX, EDX     // MaxLen  -> ECX
         MOV     EDX, EDI
-        MOV     EDI, EAX
-        POP     EAX
+        MOV     EDI, EAX     // Source  -> EDI
+        POP     EAX          // Pattern -> EAX
         REPE    SCASB
         MOV     EAX, ECX
         MOV     EDI, EDX
   end;
+{$ENDIF}
 
 begin
   Result := GetSystemMetrics(SM_CYCURSOR);

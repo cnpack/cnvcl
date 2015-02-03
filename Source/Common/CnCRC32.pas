@@ -44,6 +44,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFNDEF WIN64}
+
 uses
   Windows, SysUtils;
 
@@ -99,7 +101,11 @@ function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
+{$ENDIF}
+
 implementation
+
+{$IFNDEF WIN64}
 
 const
   csBuff_Size = 4096;
@@ -349,5 +355,6 @@ initialization
   
   Make_CRC64Table; // 初始化CRC64表
 
+{$ENDIF}
 end.
 
