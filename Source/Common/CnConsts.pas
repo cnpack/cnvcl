@@ -76,7 +76,7 @@ const
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
   SCnPackNewsUrl = 'news://news.cnpack.org';
-  SCnPackSourceUrl = 'http://cnpack.googlecode.com';
+  SCnPackSourceUrl = 'http://github.com/cnpack';
   SCnPackEmail = 'master@cnpack.org';
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
