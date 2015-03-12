@@ -117,6 +117,7 @@ var
   SCnPack_Wyb_star: string = 'wyb_star';
   SCnPack_Licwing: string = 'Licwing zue';
   SCnPack_Alan: string = 'Alan';
+  SCnPack_GuYueChunQiu: string = 'GuYueChunQiu';
   SCnPack_Aimingoo: string = 'Aimingoo';
   SCnPack_QSoft: string = 'QSoft';
   SCnPack_Hospitality: string = 'ZhangJiongXuan (Hospitality)';
@@ -156,6 +157,7 @@ const
   SCnPack_Wyb_starMail = 'wyb_star@sina.com';
   SCnPack_LicwingEmail = 'licwing@chinasystemsn.com';
   SCnPack_AlanEmail = 'BeyondStudio@163.com';
+  SCnPack_GuYueChunQiuEmail = 'guyuechunqiu@cnpack.org';
   SCnPack_AimingooEmail = 'aim@263.net';
   SCnPack_QSoftEmail = 'hq.com@263.net';
   SCnPack_HospitalityEmail = 'Hospitality_ZJX@msn.com';
