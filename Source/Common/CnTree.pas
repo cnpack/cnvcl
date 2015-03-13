@@ -168,11 +168,12 @@ type
     FOnDFTLeaf: TNotifyEvent;
     FOnSaveANode: TCnTreeNodeEvent;
     FOnLoadANode: TCnTreeNodeEvent;
+  protected
     function GetRoot: TCnLeaf;
     function GetItems(AbsoluteIndex: Integer): TCnLeaf;
     function GetCount: Integer;
     function GetRegisteredCount: Integer;
-  protected
+
     function CreateLeaf(ATree: TCnTree): TCnLeaf; virtual;
     procedure DoDFTLeaf(ALeaf: TCnLeaf); virtual;
     procedure DoWFTLeaf(ALeaf: TCnLeaf); virtual;
@@ -728,7 +729,7 @@ begin
   if (ASibing <> nil) and (ASibing.Tree = Self) and (ASibing.Parent <> nil) then
   begin
     Result := CreateLeaf(Self);
-    if ASibing.Parent.AddChildFirst(Result) = nil then
+    if ASibing.Parent.AddChild(Result) = nil then
     begin
       Result.Free;
       Result := nil;
