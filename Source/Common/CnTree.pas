@@ -61,6 +61,7 @@ type
     FParent: TCnLeaf;
     FText: string;
     FTree: TCnTree;
+  protected
     function GetAbsoluteIndex: Integer;
     function GetAllCount: Integer;
     function GetCount: Integer;
@@ -68,7 +69,7 @@ type
     function GetIndex: Integer;
     function GetItems(Index: Integer): TCnLeaf;
     function GetLevel: Integer;
-  protected
+      
     procedure DoDepthFirstTravel;
     procedure DoWidthFirstTravel;
     function SetChild(ALeaf: TCnLeaf; Index: Integer): TCnLeaf;
