@@ -164,8 +164,8 @@ type
     FBatchUpdating: Boolean;
     FLeaves: TObjectList;
     FRoot: TCnLeaf;
-    FOnWFTLeaf: TNotifyEvent;
-    FOnDFTLeaf: TNotifyEvent;
+    FOnWidthFirstTravelLeaf: TNotifyEvent;
+    FOnDepthFirstTravelLeaf: TNotifyEvent;
     FOnSaveANode: TCnTreeNodeEvent;
     FOnLoadANode: TCnTreeNodeEvent;
   protected
@@ -175,8 +175,8 @@ type
     function GetRegisteredCount: Integer;
 
     function CreateLeaf(ATree: TCnTree): TCnLeaf; virtual;
-    procedure DoDFTLeaf(ALeaf: TCnLeaf); virtual;
-    procedure DoWFTLeaf(ALeaf: TCnLeaf); virtual;
+    procedure DoDepthFirstTravelLeaf(ALeaf: TCnLeaf); virtual;
+    procedure DoWidthFirstTravelLeaf(ALeaf: TCnLeaf); virtual;
     function DoLoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode): Boolean; virtual;
     function DoSaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode): Boolean; virtual;
 
@@ -249,15 +249,15 @@ type
     property Root: TCnLeaf read GetRoot;
     {* 根节点，总是存在 }
     property Items[AbsoluteIndex: Integer]: TCnLeaf read GetItems;
-    {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制 }
+    {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制，0 代表 Root }
     property Count: Integer read GetCount;
-    {* 返回树中所有子节点的数目 }
+    {* 返回树中所有节点的数目，包括 Root }
     property RegisteredCount: Integer read GetRegisteredCount;
     {* 返回树中所有注册过的子节点的数目 }
   published
-    property OnDFTLeaf: TNotifyEvent read FOnDFTLeaf write FOnDFTLeaf;
+    property OnDepthFirstTravelLeaf: TNotifyEvent read FOnDepthFirstTravelLeaf write FOnDepthFirstTravelLeaf;
     {* 深度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点 }
-    property OnWFTLeaf: TNotifyEvent read FOnWFTLeaf write FOnWFTLeaf;
+    property OnWidthFirstTravelLeaf: TNotifyEvent read FOnWidthFirstTravelLeaf write FOnWidthFirstTravelLeaf;
     {* 广度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点 }
     property OnLoadANode: TCnTreeNodeEvent read FOnLoadANode write FOnLoadANode;
     {* 从 TreeView 中载入节点时针对每一个节点的触发事件 }
@@ -368,7 +368,7 @@ var
   I: Integer;
 begin
   if FTree <> nil then
-    FTree.DoDFTLeaf(Self);
+    FTree.DoDepthFirstTravelLeaf(Self);
   for I := 0 to FList.Count - 1 do
     Items[I].DoDepthFirstTravel;
 end;
@@ -378,7 +378,7 @@ var
   I: Integer;
 begin
   for I := 0 to FList.Count - 1 do
-    FTree.DoWFTLeaf(TCnLeaf(Items[I]));
+    FTree.DoWidthFirstTravelLeaf(TCnLeaf(Items[I]));
   for I := 0 to FList.Count - 1 do
     Items[I].DoWidthFirstTravel;
 end;
@@ -603,16 +603,16 @@ begin
   end;
 end;
 
-procedure TCnTree.DoDFTLeaf(ALeaf: TCnLeaf);
+procedure TCnTree.DoDepthFirstTravelLeaf(ALeaf: TCnLeaf);
 begin
-  if Assigned(FOnDFTLeaf) then
-    FOnDFTLeaf(ALeaf);
+  if Assigned(FOnDepthFirstTravelLeaf) then
+    FOnDepthFirstTravelLeaf(ALeaf);
 end;
 
-procedure TCnTree.DoWFTLeaf(ALeaf: TCnLeaf);
+procedure TCnTree.DoWidthFirstTravelLeaf(ALeaf: TCnLeaf);
 begin
-  if Assigned(FOnWFTLeaf) then
-    FOnWFTLeaf(ALeaf);
+  if Assigned(FOnWidthFirstTravelLeaf) then
+    FOnWidthFirstTravelLeaf(ALeaf);
 end;
 
 function TCnTree.GetRoot: TCnLeaf;
@@ -628,7 +628,7 @@ end;
 
 procedure TCnTree.WidthFirstTravel;
 begin
-  DoWFTLeaf(FRoot);
+  DoWidthFirstTravelLeaf(FRoot);
   FRoot.DoWidthFirstTravel;
 end;
 
