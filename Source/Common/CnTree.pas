@@ -31,7 +31,9 @@ unit CnTree;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2005.05.08 V1.3 by Alan
+* 修改记录：2015.03.16 V1.4 by LiuXiao
+*               修正广度优先遍历的错误，将 Root 的 Level 改成 0。
+*           2005.05.08 V1.3 by Alan
 *               修正 LoadFromTreeView 方法调用 Clear 方法未考虑 RootLeaf 参数的错误
 *           2004.11.02 V1.2
 *               加入流化的接口
@@ -134,7 +136,7 @@ type
     {* 直属叶节点数组 }
 
     property Level: Integer read GetLevel;
-    {* 本节点层数，树顶节点 Level 为 1 }
+    {* 本节点层数，Root 节点 Level 为 0 }
     property Parent: TCnLeaf read FParent;
     {* 父节点，不可写 }
     property Tree: TCnTree read FTree;
@@ -375,12 +377,31 @@ end;
 
 procedure TCnLeaf.DoWidthFirstTravel;
 var
+  Queue: TQueue;
   I: Integer;
+  Node: TCnLeaf;
 begin
-  for I := 0 to FList.Count - 1 do
-    FTree.DoWidthFirstTravelLeaf(TCnLeaf(Items[I]));
-  for I := 0 to FList.Count - 1 do
-    Items[I].DoWidthFirstTravel;
+  // 广度优先遍历并非子节点的递归，而是看成一体地使用队列
+  if FTree <> nil then
+    FTree.DoWidthFirstTravelLeaf(Self);
+  Queue := TQueue.Create;
+  try
+    for I := 0 to FList.Count - 1 do
+      Queue.Push(Items[I]);
+
+    while Queue.Count > 0 do
+    begin
+      Node := TCnLeaf(Queue.Pop);
+      if FTree <> nil then
+        FTree.DoWidthFirstTravelLeaf(Node);
+
+      if Node.Count > 0 then
+        for I := 0 to Node.Count - 1 do
+          Queue.Push(Node.Items[I]);
+    end;
+  finally
+    Queue.Free;
+  end;
 end;
 
 function TCnLeaf.GetAbsoluteIndex: Integer;
@@ -472,7 +493,7 @@ end;
 function TCnLeaf.GetLevel: Integer;
 begin
   if FParent = nil then
-    Result := 1
+    Result := 0
   else
     Result := FParent.Level + 1;
 end;
@@ -628,7 +649,6 @@ end;
 
 procedure TCnTree.WidthFirstTravel;
 begin
-  DoWidthFirstTravelLeaf(FRoot);
   FRoot.DoWidthFirstTravel;
 end;
 
