@@ -1065,7 +1065,6 @@ function _CnExtractFilePath(const FileName: string): string;
 function _CnChangeFileExt(const FileName, Extension: string): string;
 {* 对ChangeFileExt的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
 
-{$IFDEF COMPILER6_UP}
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
 function CnUtf8ToAnsi2(const Text: string): string;
 {* Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题 }
@@ -1073,7 +1072,6 @@ function CnUtf8ToAnsi2(const Text: string): string;
 function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 function CnAnsiToUtf82(const Text: string): string;
 {* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 D2009 下 AnsiToUtf8 是 UString 的问题 }
-{$ENDIF}
 
 implementation
 
@@ -1179,7 +1177,180 @@ end;
 // Ansi 字符串函数
 //==============================================================================
 
-{$IFDEF COMPILER6_UP}
+{$IFDEF COMPILER5}
+
+// D5 下没有内置 UTF8/Ansi 转换函数
+
+function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
+  Source: PWideChar; SourceChars: Cardinal): Cardinal;
+var
+  I, Cnt: Cardinal;
+  C: Cardinal;
+begin
+  Result := 0;
+  if Source = nil then Exit;
+  Cnt := 0;
+  I := 0;
+  if Dest <> nil then
+  begin
+    while (I < SourceChars) and (Cnt < MaxDestBytes) do
+    begin
+      C := Cardinal(Source[I]);
+      Inc(I);
+      if C <= $7F then
+      begin
+        Dest[Cnt] := Char(C);
+        Inc(Cnt);
+      end
+      else if C > $7FF then
+      begin
+        if Cnt + 3 > MaxDestBytes then
+          break;
+        Dest[Cnt] := Char($E0 or (C shr 12));
+        Dest[Cnt + 1] := Char($80 or ((C shr 6) and $3F));
+        Dest[Cnt + 2] := Char($80 or (C and $3F));
+        Inc(Cnt, 3);
+      end
+      else //  $7F < Source[i] <= $7FF
+      begin
+        if Cnt + 2 > MaxDestBytes then
+          break;
+        Dest[Cnt] := Char($C0 or (C shr 6));
+        Dest[Cnt + 1] := Char($80 or (C and $3F));
+        Inc(Cnt,2);
+      end;
+    end;
+    if Cnt >= MaxDestBytes then Cnt := MaxDestBytes - 1;
+    Dest[Cnt] := #0;
+  end
+  else
+  begin
+    while I < SourceChars do
+    begin
+      C := Integer(Source[I]);
+      Inc(I);
+      if C > $7F then
+      begin
+        if C > $7FF then
+          Inc(Cnt);
+        Inc(Cnt);
+      end;
+      Inc(Cnt);
+    end;
+  end;
+  Result := Cnt + 1;  // convert zero based index to byte count
+end;
+
+function InternalUtf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal;
+  Source: PChar; SourceBytes: Cardinal): Cardinal;
+var
+  I, Cnt: Cardinal;
+  C: Byte;
+  WC: Cardinal;
+begin
+  if Source = nil then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := Cardinal(-1);
+  Cnt := 0;
+  I := 0;
+  if Dest <> nil then
+  begin
+    while (I < SourceBytes) and (Cnt < MaxDestChars) do
+    begin
+      WC := Cardinal(Source[I]);
+      Inc(I);
+      if (WC and $80) <> 0 then
+      begin
+        if I >= SourceBytes then Exit;          // incomplete multibyte char
+        WC := WC and $3F;
+        if (WC and $20) <> 0 then
+        begin
+          C := Byte(Source[I]);
+          Inc(I);
+          if (C and $C0) <> $80 then Exit;      // malformed trail byte or out of range char
+          if I >= SourceBytes then Exit;        // incomplete multibyte char
+          WC := (WC shl 6) or (C and $3F);
+        end;
+        C := Byte(Source[I]);
+        Inc(I);
+        if (C and $C0) <> $80 then Exit;       // malformed trail byte
+
+        Dest[Cnt] := WideChar((WC shl 6) or (C and $3F));
+      end
+      else
+        Dest[Cnt] := WideChar(WC);
+      Inc(Cnt);
+    end;
+    if Cnt >= MaxDestChars then Cnt := MaxDestChars-1;
+    Dest[Cnt] := #0;
+  end
+  else
+  begin
+    while (I < SourceBytes) do
+    begin
+      C := Byte(Source[I]);
+      Inc(I);
+      if (C and $80) <> 0 then
+      begin
+        if I >= SourceBytes then Exit;          // incomplete multibyte char
+        C := C and $3F;
+        if (C and $20) <> 0 then
+        begin
+          C := Byte(Source[I]);
+          Inc(I);
+          if (C and $C0) <> $80 then Exit;      // malformed trail byte or out of range char
+          if I >= SourceBytes then Exit;        // incomplete multibyte char
+        end;
+        C := Byte(Source[I]);
+        Inc(I);
+        if (C and $C0) <> $80 then Exit;       // malformed trail byte
+      end;
+      Inc(Cnt);
+    end;
+  end;
+  Result := Cnt + 1;
+end;
+
+function _CnUtf8Encode(const S: AnsiString): AnsiString;
+var
+  L: Integer;
+  Temp: AnsiString;
+  WS: WideString;
+begin
+  Result := '';
+  if S = '' then Exit;
+  WS := WideString(S);
+  SetLength(Temp, Length(WS) * 3); // SetLength includes space for null terminator
+
+  L := InternalUnicodeToUtf8(PAnsiChar(Temp), Length(Temp) + 1, PWideChar(WS), Length(WS));
+  if L > 0 then
+    SetLength(Temp, L - 1)
+  else
+    Temp := '';
+  Result := Temp;
+end;
+
+function _CnUtf8Decode(const S: AnsiString): AnsiString;
+var
+  L: Integer;
+  Temp: WideString;
+begin
+  Result := '';
+  if S = '' then Exit;
+  SetLength(Temp, Length(S));
+
+  L := InternalUtf8ToUnicode(PWideChar(Temp), Length(Temp) + 1, PAnsiChar(S), Length(S));
+  if L > 0 then
+    SetLength(Temp, L - 1)
+  else
+    Temp := '';
+  Result := AnsiString(Temp);
+end;
+
+{$ENDIF}
 
 // Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
@@ -1187,7 +1358,11 @@ begin
 {$IFDEF UNICODE_STRING}
   Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
 {$ELSE}
+  {$IFDEF COMPILER6_UP}
   Result := Utf8ToAnsi(Text);
+  {$ELSE}
+  Result := _CnUtf8Decode(Text);
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1196,7 +1371,11 @@ begin
 {$IFDEF UNICODE_STRING}
   Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
 {$ELSE}
+  {$IFDEF COMPILER6_UP}
   Result := Utf8ToAnsi(Text);
+  {$ELSE}
+  Result := _CnUtf8Decode(Text);
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1205,7 +1384,11 @@ begin
 {$IFDEF UNICODE_STRING}
   Result := AnsiString(Utf8Encode(Text));
 {$ELSE}
+  {$IFDEF COMPILER6_UP}
   Result := AnsiToUtf8(Text);
+  {$ELSE}
+  Result := _CnUtf8Encode(Text);
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1214,11 +1397,13 @@ begin
 {$IFDEF UNICODE_STRING}
   Result := string(Utf8Encode(Text));
 {$ELSE}
+  {$IFDEF COMPILER6_UP}
   Result := AnsiToUtf8(Text);
+  {$ELSE}
+  Result := _CnUtf8Encode(Text);
+  {$ENDIF}
 {$ENDIF}
 end;
-
-{$ENDIF}
 
 function AnsiTrim(const S: AnsiString): AnsiString;
 var
