@@ -208,7 +208,12 @@ begin
   
   List := TCnWideStringList.Create;
   try
-    S := LanguagePath + GetCurrentLanguageFileName;
+    // 子类也要检查设计期是否有指定路径，类似于 Ini 那个
+    if (csDesigning in ComponentState) and (LanguagePath = '') and (DesignLangPath <> '') then
+      S := IncludeTrailingBackslash(DesignLangPath) + GetCurrentLanguageFileName
+    else
+      S := IncludeTrailingBackslash(LanguagePath) + GetCurrentLanguageFileName;
+
     DoLoadFile(S, List);
   except
     Result := False;
