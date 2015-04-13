@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2014.10.03
+* 修改记录：2015.04.13
+*               增加两个记录字符串的方法，带十六进制输出，可供 Ansi/Unicode 使用
+*           2014.10.03
 *               增加两个记录 Exception 的方法
 *           2012.10.15
 *               修正tkUString对D2009版本以上的支持
@@ -324,6 +326,7 @@ type
     procedure LogPointer(Value: Pointer; const AMsg: string = '');
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
     procedure LogRect(Rect: TRect; const AMsg: string = '');
+    procedure LogRawString(const Value: string);
     procedure LogStrings(Strings: TStrings; const AMsg: string = '');
     procedure LogException(E: Exception; const AMsg: string = '');
     procedure LogMemDump(AMem: Pointer; Size: Integer);
@@ -373,6 +376,7 @@ type
     procedure TracePointer(Value: Pointer; const AMsg: string = '');
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
+    procedure TraceRawString(const Value: string);
     procedure TraceStrings(Strings: TStrings; const AMsg: string = '');
     procedure TraceException(E: Exception; const AMsg: string = '');
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
@@ -1571,6 +1575,15 @@ begin
 {$ENDIF}
 end;
 
+
+procedure TCnDebugger.LogRawString(const Value: string);
+begin
+{$IFDEF DEBUG}
+  if Value <> '' then
+    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(Char));
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogStrings(Strings: TStrings; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -1581,7 +1594,7 @@ begin
     TraceMsg(Strings.Text)
   else
     TraceMsg(AMsg + SCnCRLF + Strings.Text);
-{$ENDIF}    
+{$ENDIF}
 end;
 
 function TCnDebugger.PointToString(APoint: TPoint): string;
@@ -2033,6 +2046,12 @@ end;
 procedure TCnDebugger.TraceSeparator;
 begin
   TraceFull('-', CurrentTag, CurrentLevel, cmtSeparator);
+end;
+
+procedure TCnDebugger.TraceRawString(const Value: string);
+begin
+  if Value <> '' then
+    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(Char));
 end;
 
 procedure TCnDebugger.TraceStrings(Strings: TStrings; const AMsg: string);
