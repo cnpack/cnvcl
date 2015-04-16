@@ -542,9 +542,6 @@ const
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
   CnDebugFlushEventTime = 100;     // 写队列后等待读取完成的时间顶多 0.1 秒
 
-type
-  ECnDumpCurrentStack = class(Exception); // 用于内部输出堆栈
-
 var
   FCnDebugger: TCnDebugger = nil;
 
@@ -553,6 +550,11 @@ var
 {$IFDEF USE_JCL}
   FCSExcept: TRTLCriticalSection;
 {$ENDIF}
+
+function GetEBP: Pointer;
+asm
+        MOV     EAX, EBP
+end;
 
 function GetCPUPeriod: Int64; assembler;
 asm
@@ -2464,22 +2466,50 @@ begin
 end;
 
 procedure TCnDebugger.LogCurrentStack(const AMsg: string);
+{$IFDEF DEBUG}
+var
+  Ebp: Pointer;
+  List: TJclStackInfoList;
+  Strings: TStrings;
+{$ENDIF}
 begin
 {$IFDEF DEBUG}
+  Strings := nil;
+  List := nil;
+
   try
-    raise ECnDumpCurrentStack.Create(AMsg);
-  except
-    ;
+    Strings := TStringList.Create;
+    Ebp := GetEBP;
+    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
+    List.AddToStrings(Strings, True, True, True, False);
+
+    LogMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
+  finally
+    List.Free;
+    Strings.Free;
   end;
 {$ENDIF}
 end;
 
 procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
+var
+  Ebp: Pointer;
+  List: TJclStackInfoList;
+  Strings: TStrings;
 begin
+  Strings := nil;
+  List := nil;
+
   try
-    raise ECnDumpCurrentStack.Create(AMsg);
-  except
-    ;
+    Strings := TStringList.Create;
+    Ebp := GetEBP;
+    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
+    List.AddToStrings(Strings, True, True, True, False);
+
+    TraceMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
+  finally
+    List.Free;
+    Strings.Free;
   end;
 end;
 
@@ -2835,7 +2865,6 @@ end;
 procedure ExceptNotifyProc(ExceptObj: TObject; ExceptAddr: Pointer; OSException: Boolean);
 var
   Strings: TStrings;
-  IsDump: Boolean;
 begin
   if not FCnDebugger.Active or not FCnDebugger.ExceptTracking then Exit;
 
@@ -2846,23 +2875,17 @@ begin
     LeaveCriticalSection(FCSExcept);
   end;
 
-  IsDump := ExceptObj is ECnDumpCurrentStack;
-
   if OSException then
     FCnDebugger.TraceMsgWithType('OS Exceptions', cmtError)
-  else if not IsDump then
+  else
     with Exception(ExceptObj) do
       FCnDebugger.TraceMsgWithType(ClassName + ': ' + Message, cmtError);
 
   Strings := TStringList.Create;
   try
     JclLastExceptStackListToStrings(Strings, True, True, True);
-    if IsDump then
-      FCnDebugger.TraceMsgWithType('Dump call stack: ' + Exception(ExceptObj).Message
-        + SCnCRLF + Strings.Text, cmtInformation)
-    else
-      FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
-        Strings.Text, cmtException);
+    FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
+      Strings.Text, cmtException);
   finally
     Strings.Free;
   end;
