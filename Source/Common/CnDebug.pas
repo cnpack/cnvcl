@@ -338,6 +338,7 @@ type
     procedure LogCollectionWithTag(ACollection: TCollection; const ATag: string);
     procedure LogComponent(AComponent: TComponent);
     procedure LogComponentWithTag(AComponent: TComponent; const ATag: string);
+    procedure LogCurrentStack(const AMsg: string = '');
     // Log 系列输出函数 == End ==
 
     // Trace 系列输出函数 == Start ==
@@ -388,7 +389,7 @@ type
     procedure TraceCollectionWithTag(ACollection: TCollection; const ATag: string);
     procedure TraceComponent(AComponent: TComponent);
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
-
+    procedure TraceCurrentStack(const AMsg: string = '');
     // Trace 系列输出函数 == End ==
 
     // 异常过滤函数
@@ -540,6 +541,9 @@ const
   CnDebugWaitingMutexTime = 1000;  // Mutex 的等待时间顶多 1 秒
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
   CnDebugFlushEventTime = 100;     // 写队列后等待读取完成的时间顶多 0.1 秒
+
+type
+  ECnDumpCurrentStack = class(Exception); // 用于内部输出堆栈
 
 var
   FCnDebugger: TCnDebugger = nil;
@@ -2459,6 +2463,26 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogCurrentStack(const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  try
+    raise ECnDumpCurrentStack.Create(AMsg);
+  except
+    ;
+  end;
+{$ENDIF}
+end;
+
+procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
+begin
+  try
+    raise ECnDumpCurrentStack.Create(AMsg);
+  except
+    ;
+  end;
+end;
+
 { TCnDebugChannel }
 
 function TCnDebugChannel.CheckFilterChanged: Boolean;
@@ -2807,9 +2831,11 @@ begin
 end;
 
 {$IFDEF USE_JCL}
+
 procedure ExceptNotifyProc(ExceptObj: TObject; ExceptAddr: Pointer; OSException: Boolean);
 var
   Strings: TStrings;
+  IsDump: Boolean;
 begin
   if not FCnDebugger.Active or not FCnDebugger.ExceptTracking then Exit;
 
@@ -2820,21 +2846,28 @@ begin
     LeaveCriticalSection(FCSExcept);
   end;
 
+  IsDump := ExceptObj is ECnDumpCurrentStack;
+
   if OSException then
     FCnDebugger.TraceMsgWithType('OS Exceptions', cmtError)
-  else
+  else if not IsDump then
     with Exception(ExceptObj) do
       FCnDebugger.TraceMsgWithType(ClassName + ': ' + Message, cmtError);
 
   Strings := TStringList.Create;
   try
     JclLastExceptStackListToStrings(Strings, True, True, True);
-    FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
-      Strings.Text, cmtException);
+    if IsDump then
+      FCnDebugger.TraceMsgWithType('Dump call stack: ' + Exception(ExceptObj).Message
+        + SCnCRLF + Strings.Text, cmtInformation)
+    else
+      FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
+        Strings.Text, cmtException);
   finally
     Strings.Free;
   end;
 end;
+
 {$ENDIF}
 
 initialization
