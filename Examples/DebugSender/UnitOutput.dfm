@@ -524,7 +524,7 @@ object Form1: TForm1
   object btnImageList: TButton
     Left = 248
     Top = 256
-    Width = 209
+    Width = 97
     Height = 21
     Hint = 'OutputDebugString'
     Caption = '¿´ImageList'
@@ -532,6 +532,15 @@ object Form1: TForm1
     ShowHint = True
     TabOrder = 38
     OnClick = btnImageListClick
+  end
+  object btnStack: TButton
+    Left = 360
+    Top = 256
+    Width = 97
+    Height = 21
+    Caption = 'Êä³ö¶ÑÕ»'
+    TabOrder = 39
+    OnClick = btnStackClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True

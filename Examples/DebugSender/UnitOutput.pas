@@ -88,6 +88,7 @@ type
     btnEval: TBitBtn;
     btnImageList: TButton;
     ilTest: TImageList;
+    btnStack: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -118,6 +119,7 @@ type
     procedure btnFmtErrorClick(Sender: TObject);
     procedure btnEvalClick(Sender: TObject);
     procedure btnImageListClick(Sender: TObject);
+    procedure btnStackClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -258,8 +260,8 @@ procedure TForm1.btnDumpClick(Sender: TObject);
 var
   xx: array[0..255] of char;
 begin
-  xx[0]:='y';
-  xx[1]:='x';
+  xx[0] := 'y';
+  xx[1] := 'x';
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceMemDump(@xx, 256)
   else
@@ -383,6 +385,14 @@ end;
 procedure TForm1.btnImageListClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(ilTest);
+end;
+
+procedure TForm1.btnStackClick(Sender: TObject);
+begin
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceCurrentStack('Trace Here')
+  else
+    CnDebugger.LogCurrentStack;
 end;
 
 end.
