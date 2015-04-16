@@ -2467,13 +2467,16 @@ end;
 
 procedure TCnDebugger.LogCurrentStack(const AMsg: string);
 {$IFDEF DEBUG}
+{$IFDEF USE_JCL}
 var
   Ebp: Pointer;
   List: TJclStackInfoList;
   Strings: TStrings;
 {$ENDIF}
+{$ENDIF}
 begin
 {$IFDEF DEBUG}
+{$IFDEF USE_JCL}
   Strings := nil;
   List := nil;
 
@@ -2489,14 +2492,18 @@ begin
     Strings.Free;
   end;
 {$ENDIF}
+{$ENDIF}
 end;
 
 procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
+{$IFDEF USE_JCL}
 var
   Ebp: Pointer;
   List: TJclStackInfoList;
   Strings: TStrings;
+{$ENDIF}
 begin
+{$IFDEF USE_JCL}
   Strings := nil;
   List := nil;
 
@@ -2511,6 +2518,7 @@ begin
     List.Free;
     Strings.Free;
   end;
+{$ENDIF}
 end;
 
 { TCnDebugChannel }
