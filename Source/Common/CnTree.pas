@@ -31,7 +31,9 @@ unit CnTree;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.03.16 V1.4 by LiuXiao
+* 修改记录：2015.05.03 V1.5 by LiuXiao
+*               加入二叉树的实现。
+*           2015.03.16 V1.4 by LiuXiao
 *               修正广度优先遍历的错误，将 Root 的 Level 改成 0。
 *           2005.05.08 V1.3 by Alan
 *               修正 LoadFromTreeView 方法调用 Clear 方法未考虑 RootLeaf 参数的错误
@@ -49,7 +51,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, ComCtrls;
+  SysUtils, Classes, Contnrs, ComCtrls, Math;
 
 type
   ECnTreeException = class(Exception);
@@ -57,12 +59,16 @@ type
   TCnTree = class;
 
   TCnLeaf = class(TPersistent)
+  {* 树叶基类}
   private
     FData: Integer;
     FList: TList;
     FParent: TCnLeaf;
     FText: string;
     FTree: TCnTree;
+    procedure SetItems(Index: Integer; const Value: TCnLeaf);
+    function GetTree: TCnTree;
+    function GetAllNonNilCount: Integer;
   protected
     function GetAbsoluteIndex: Integer;
     function GetAllCount: Integer;
@@ -76,6 +82,8 @@ type
     procedure DoWidthFirstTravel;
     function SetChild(ALeaf: TCnLeaf; Index: Integer): TCnLeaf;
     {* 将某节点赋值为第 Index 个子节点，返回原节点值 }
+    property AllNonNilCount: Integer read GetAllNonNilCount;
+    {* 所有非 nil 的子孙节点数目 }
   public
     constructor Create(ATree: TCnTree); virtual;
     {* 构造方法，需要一 Tree 做容器 }
@@ -87,9 +95,9 @@ type
     {* 添加一指定的子节点作为第一直属子节点 }
     function InsertChild(ALeaf: TCnLeaf; AIndex: Integer): TCnLeaf;
     {* 在指定的子索引后增加一子节点 }
-    procedure Clear;
+    procedure Clear; virtual;
     {* 清除所有直属子节点，子节点以下也会被删除释放  }
-    procedure DeleteChild(AIndex: Integer);
+    procedure DeleteChild(AIndex: Integer); virtual;
     {* 删除一直属子节点，子节点以下会被删除释放 }
     procedure Delete;
     {* 删除本身和子节点 }
@@ -132,14 +140,14 @@ type
     {* 是否有子节点 }
     property Index: Integer read GetIndex;
     {* 本叶节点在父节点列表中的顺序索引，从 0 开始。无父则为 -1 }
-    property Items[Index: Integer]: TCnLeaf read GetItems; default;
+    property Items[Index: Integer]: TCnLeaf read GetItems write SetItems; default;
     {* 直属叶节点数组 }
 
     property Level: Integer read GetLevel;
     {* 本节点层数，Root 节点 Level 为 0 }
     property Parent: TCnLeaf read FParent;
     {* 父节点，不可写 }
-    property Tree: TCnTree read FTree;
+    property Tree: TCnTree read GetTree;
     {* 所属树，一个叶必须属于一棵树 }
   published
     property Data: Integer read FData write FData;
@@ -161,6 +169,7 @@ type
     var Valid: Boolean) of object;
 
   TCnTree = class(TPersistent)
+  {* 单根有序树实现类}
   private
     FLeafClass: TCnLeafClass;
     FBatchUpdating: Boolean;
@@ -170,7 +179,10 @@ type
     FOnDepthFirstTravelLeaf: TNotifyEvent;
     FOnSaveANode: TCnTreeNodeEvent;
     FOnLoadANode: TCnTreeNodeEvent;
+    function GetMaxLevel: Integer;
   protected
+    function DefaultLeafClass: TCnLeafClass; virtual;
+
     function GetRoot: TCnLeaf;
     function GetItems(AbsoluteIndex: Integer): TCnLeaf;
     function GetCount: Integer;
@@ -181,6 +193,9 @@ type
     procedure DoWidthFirstTravelLeaf(ALeaf: TCnLeaf); virtual;
     function DoLoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode): Boolean; virtual;
     function DoSaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode): Boolean; virtual;
+
+    procedure ValidateComingLeaf(AParent, AChild: TCnLeaf); virtual;
+    {* 当某节点需要插入一个子节点时被调用，供树的子类根据条件抛出异常来拦截控制}
 
     procedure RegisterLeaf(ALeaf: TCnLeaf);
     {* 仅供叶节点调用，在树中登记此叶节点 }
@@ -254,6 +269,8 @@ type
     {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制，0 代表 Root }
     property Count: Integer read GetCount;
     {* 返回树中所有节点的数目，包括 Root }
+    property MaxLevel: Integer read GetMaxLevel;
+    {* 返回树中最深层节点的层数，Root 为 0}
     property RegisteredCount: Integer read GetRegisteredCount;
     {* 返回树中所有注册过的子节点的数目 }
   published
@@ -265,6 +282,114 @@ type
     {* 从 TreeView 中载入节点时针对每一个节点的触发事件 }
     property OnSaveANode: TCnTreeNodeEvent read FOnSaveANode write FOnSaveANode;
     {* 将节点存入 TreeView 时针对每一个节点的触发事件 }
+  end;
+
+  ECnBinaryTreeException = class(Exception);
+
+  TCnBinaryTree = class;
+
+  TCnBinaryLeaf = class(TCnLeaf)
+  {* 二叉树节点子类，有左右子节点的封装}
+  private
+    function GetLeftLeaf: TCnBinaryLeaf;
+    function GetRightLeaf: TCnBinaryLeaf;
+    procedure SetLeftLeaf(const Value: TCnBinaryLeaf);
+    procedure SetRightLeaf(const Value: TCnBinaryLeaf);
+    function GetTree: TCnBinaryTree;
+  protected
+    procedure DoPreOrderTravel;
+    procedure DoInOrderTravel;
+    procedure DoPostOrderTravel;
+  public
+    constructor Create(ATree: TCnTree); override;
+    property LeftLeaf: TCnBinaryLeaf read GetLeftLeaf write SetLeftLeaf;
+    {* 左子节点，使用第 0 个子节点，无则返回 nil}
+    property RightLeaf: TCnBinaryLeaf read GetRightLeaf write SetRightLeaf;
+    {* 右子节点，使用第 1 个子节点，无则返回 nil}
+
+    property Tree: TCnBinaryTree read GetTree;
+    {* 所属树，一个叶必须属于一棵树 }
+  end;
+
+  TCnBinaryLeafClass = class of TCnBinaryLeaf;
+
+  TCnBinaryTree = class(TCnTree)
+  {* 二叉树实现类}
+  private
+    FOnPostOrderTravelLeaf: TNotifyEvent;
+    FOnInOrderTravelLeaf: TNotifyEvent;
+    FOnPreOrderTravelLeaf: TNotifyEvent;
+  protected
+    function DefaultLeafClass: TCnLeafClass; override;
+    procedure ValidateComingLeaf(AParent, AChild: TCnLeaf); override;
+
+    function GetRoot: TCnBinaryLeaf;
+    function GetCount: Integer;
+
+    procedure DoPreOrderTravelLeaf(ALeaf: TCnBinaryLeaf); virtual;
+    procedure DoInOrderTravelLeaf(ALeaf: TCnBinaryLeaf); virtual;
+    procedure DoPostOrderTravelLeaf(ALeaf: TCnBinaryLeaf); virtual;
+
+    procedure LoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); override;
+    {* 从一 TreeNode 节点载入其子节点，供递归调用，较基类增加了俩子节点的限制 }
+    procedure SaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); override;
+    {* 将节点本身以及子节点写入一 TreeNode，供递归调用 }
+  public
+    constructor Create; overload;
+    {* 构造方法 }
+    constructor Create(LeafClass: TCnBinaryLeafClass); overload;
+    {* 另一构造方法}
+
+    function AddLeftChild(AParent: TCnBinaryLeaf): TCnBinaryLeaf;
+    {* 替指定节点增加左子节点，如已存在则返回 nil}
+    function AddRightChild(AParent: TCnBinaryLeaf): TCnBinaryLeaf;
+    {* 替指定节点增加右子节点，如已存在则返回 nil}
+    procedure DeleteLeftChild(AParent: TCnBinaryLeaf);
+    {* 删除指定节点的左子节点，也就是置 nil}
+    procedure DeleteRightChild(AParent: TCnBinaryLeaf);
+    {* 删除指定节点的右子节点，也就是置 nil}
+
+    // 和 TreeView 的交互方法，注意 Root 不参与交互
+    procedure LoadFromTreeView(ATreeView: TTreeView; RootNode: TTreeNode = nil;
+      RootLeaf: TCnBinaryLeaf = nil);
+    {* 从一 TreeView 读入节点内容。RootNode 的子节点被读入成 RootLeaf 所指明的
+    节点的子节点，RootNode 为 nil 表示从根扫描全部 TreeNodes，RootLeaf 为 nil 表示
+    载入的为 Tree.Root 的直属节点，也就是所有节点。
+    对于任意一个 TreeNode，其第一个子节点作为左子树，第二个作为右子树，超过二个的忽略}
+    procedure SaveToTreeView(ATreeView: TTreeView; RootNode: TTreeNode = nil;
+      RootLeaf: TCnBinaryLeaf = nil);
+    {* 将节点内容写入一 TreeView。 RootLeaf 的子节点被写入成 RootNode 所指明的
+    节点的子节点，RootLeaf 为 nil 表示写入 Root 的所有子节点，其实也就是所有节
+    点，RootNode 为 nil 表示写入的将成为 TreeView 的根 TreeNodes}
+
+    function IsFull: Boolean;
+    {* 是否是满二叉树，所有底层叶节点均全满并且层次相同}
+    function IsComplete: Boolean;
+    {* 是否是完全二叉树}
+    function IsBalance: Boolean;
+    {* 是否是平衡二叉树}
+
+    procedure PreOrderTravel;
+    {* 先根次序遍历，中左右}
+    procedure InOrderTravel;
+    {* 中根次序遍历，左中右}
+    procedure PostOrderTravel;
+    {* 后根次序遍历，左右中}
+
+    property Root: TCnBinaryLeaf read GetRoot;
+    {* 根节点，总是存在 }
+    property Count: Integer read GetCount;
+    {* 返回树中所有节点的数目，包括 Root }
+
+    property OnPreOrderTravelLeaf: TNotifyEvent read FOnPreOrderTravelLeaf
+      write FOnPreOrderTravelLeaf;
+    {* 先根次序遍历时触发的事件}
+    property OnInOrderTravelLeaf: TNotifyEvent read FOnInOrderTravelLeaf
+      write FOnInOrderTravelLeaf;
+    {* 中根次序遍历时触发的事件}
+    property OnPostOrderTravelLeaf: TNotifyEvent read FOnPostOrderTravelLeaf
+      write FOnPostOrderTravelLeaf;
+    {* 后根次序遍历时触发的事件}
   end;
 
 implementation
@@ -299,6 +424,7 @@ end;
 function TCnLeaf.AddChild(ALeaf: TCnLeaf): TCnLeaf;
 begin
   Assert(ALeaf.Tree = Self.FTree);
+  FTree.ValidateComingLeaf(Self, ALeaf);
   Result := ALeaf;
   FList.Add(Result);
   Result.FParent := Self;
@@ -307,6 +433,7 @@ end;
 function TCnLeaf.AddChildFirst(ALeaf: TCnLeaf): TCnLeaf;
 begin
   Assert(ALeaf.Tree = Self.FTree);
+  FTree.ValidateComingLeaf(Self, ALeaf);
   Result := ALeaf;
   FList.Insert(0, Result);
   Result.FParent := Self;
@@ -448,7 +575,8 @@ var
 begin
   Result := Count;
   for I := 0 to Self.Count - 1 do
-    Result := Result + Self.Items[I].AllCount;
+    if Items[I] <> nil then
+      Result := Result + Self.Items[I].AllCount;
 end;
 
 function TCnLeaf.GetCount: Integer;
@@ -498,6 +626,21 @@ begin
     Result := FParent.Level + 1;
 end;
 
+function TCnLeaf.GetAllNonNilCount: Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to Self.Count - 1 do
+    if Items[I] <> nil then
+      Result := Result + Self.Items[I].AllNonNilCount + 1;
+end;
+
+function TCnLeaf.GetTree: TCnTree;
+begin
+  Result := FTree;
+end;
+
 function TCnLeaf.HasAsParent(Value: TCnLeaf): Boolean;
 var
   AParent: TCnLeaf;
@@ -522,6 +665,18 @@ end;
 function TCnLeaf.IndexOf(ALeaf: TCnLeaf): Integer;
 begin
   Result := FList.IndexOf(ALeaf);
+end;
+
+function TCnLeaf.InsertChild(ALeaf: TCnLeaf; AIndex: Integer): TCnLeaf;
+begin
+  if (ALeaf <> nil) and (AIndex >= 0) and (AIndex <= Count) then
+  begin
+    Result := ALeaf;
+    FList.Insert(AIndex, ALeaf);
+    ALeaf.FParent := Self;
+  end
+  else
+    Result := nil;
 end;
 
 function TCnLeaf.GetNext: TCnLeaf;
@@ -583,6 +738,12 @@ begin
     Result := nil;
 end;
 
+procedure TCnLeaf.SetItems(Index: Integer; const Value: TCnLeaf);
+begin
+  if (Index >= 0) and (Index < Count) then
+    FList.Items[Index] := Value;
+end;
+
 //==============================================================================
 // TCnTree
 //==============================================================================
@@ -592,7 +753,7 @@ begin
   inherited;
   FLeaves := TObjectList.Create(True);
   if FLeafClass = nil then
-    FLeafClass := TCnLeaf;
+    FLeafClass := DefaultLeafClass;
   FRoot := CreateLeaf(Self);
 end;
 
@@ -678,18 +839,6 @@ begin
     if ALeaf.Parent <> nil then
       Result := ALeaf.Parent.ExtractChild(ALeaf.Index);
   end;
-end;
-
-function TCnLeaf.InsertChild(ALeaf: TCnLeaf; AIndex: Integer): TCnLeaf;
-begin
-  if (ALeaf <> nil) and (AIndex >= 0) and (AIndex <= Count) then
-  begin
-    Result := ALeaf;
-    FList.Insert(AIndex, ALeaf);
-    ALeaf.FParent := Self;
-  end
-  else
-    Result := nil;
 end;
 
 function TCnTree.AddChild(AParent: TCnLeaf): TCnLeaf;
@@ -848,6 +997,16 @@ begin
   Result := FRoot.AllCount + 1;
 end;
 
+function TCnTree.GetMaxLevel: Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to Count - 1 do
+    if Items[I].Level > Result then
+      Result := Items[I].Level;
+end;
+
 function TCnTree.GetRegisteredCount: Integer;
 begin
   Result := FLeaves.Count;
@@ -868,7 +1027,7 @@ begin
       Self.Clear
     else
       RootLeaf.Clear;
-      
+
     if ATreeView.Items.Count > 0 then
     begin
       if RootNode = nil then
@@ -922,6 +1081,8 @@ begin
         for I := 0 to RootLeaf.Count - 1 do
         begin
           ALeaf := RootLeaf.Items[I]; // RootLeaf 的子节点，RootLeaf 不参与交互
+          if ALeaf = nil then
+            Continue;
           ANode := ATreeView.Items.Add(ANode, '');
           SaveToATreeNode(ALeaf, ANode);
         end;
@@ -978,6 +1139,8 @@ begin
     begin
       for I := 0 to ALeaf.Count - 1 do
       begin
+        if ALeaf.Items[I] = nil then
+          Continue;
         Node := (ANode.TreeView as TTreeView).Items.AddChild(ANode, '');
         SaveToATreeNode(ALeaf.Items[I], Node);
       end;
@@ -1013,6 +1176,297 @@ begin
     ANode.Text := ALeaf.Text;
     ANode.Data := Pointer(ALeaf.Data);
   end;
+end;
+
+procedure TCnTree.ValidateComingLeaf(AParent, AChild: TCnLeaf);
+begin
+
+end;
+
+{ TCnBinaryTree }
+
+constructor TCnBinaryTree.Create;
+begin
+  inherited;
+
+end;
+
+function TCnBinaryTree.AddLeftChild(AParent: TCnBinaryLeaf): TCnBinaryLeaf;
+begin
+  if (AParent.Tree = Self) and (AParent.LeftLeaf = nil) then
+  begin
+    Result := TCnBinaryLeaf(CreateLeaf(Self));
+    AParent.LeftLeaf := Result;
+  end
+  else
+    Result := nil;
+end;
+
+function TCnBinaryTree.AddRightChild(AParent: TCnBinaryLeaf): TCnBinaryLeaf;
+begin
+  if (AParent.Tree = Self) and (AParent.RightLeaf = nil) then
+  begin
+    Result := TCnBinaryLeaf(CreateLeaf(Self));
+    AParent.RightLeaf := Result;
+  end
+  else
+    Result := nil;
+end;
+
+constructor TCnBinaryTree.Create(LeafClass: TCnBinaryLeafClass);
+begin
+  inherited Create(LeafClass);
+end;
+
+function TCnBinaryTree.DefaultLeafClass: TCnLeafClass;
+begin
+  Result := TCnBinaryLeaf;
+end;
+
+function TCnBinaryTree.IsBalance: Boolean;
+begin
+  // TODO: To Implement
+  Result := False;
+end;
+
+function TCnBinaryTree.IsComplete: Boolean;
+begin
+  // TODO: To Implement
+  Result := False;
+end;
+
+function TCnBinaryTree.IsFull: Boolean;
+var
+  Deep: Integer;
+begin
+  Deep := MaxLevel + 1;
+  Result := Count = Power(2, Deep - 1);
+end;
+
+procedure TCnBinaryTree.ValidateComingLeaf(AParent, AChild: TCnLeaf);
+begin
+  if AParent.Count >= 2 then
+    raise ECnBinaryTreeException.Create('Binary TreeNode Can Only Contains 2 Child.');
+end;
+
+function TCnTree.DefaultLeafClass: TCnLeafClass;
+begin
+  Result := TCnLeaf;
+end;
+
+procedure TCnBinaryTree.DeleteLeftChild(AParent: TCnBinaryLeaf);
+begin
+  if (AParent.Tree = Self) then
+    AParent.LeftLeaf := nil;
+end;
+
+procedure TCnBinaryTree.DeleteRightChild(AParent: TCnBinaryLeaf);
+begin
+  if (AParent.Tree = Self) then
+    AParent.RightLeaf := nil;
+end;
+
+procedure TCnBinaryTree.DoInOrderTravelLeaf(ALeaf: TCnBinaryLeaf);
+begin
+  if Assigned(FOnInOrderTravelLeaf) then
+    FOnInOrderTravelLeaf(ALeaf);
+end;
+
+procedure TCnBinaryTree.DoPostOrderTravelLeaf(ALeaf: TCnBinaryLeaf);
+begin
+  if Assigned(FOnPostOrderTravelLeaf) then
+    FOnPostOrderTravelLeaf(ALeaf);
+end;
+
+procedure TCnBinaryTree.DoPreOrderTravelLeaf(ALeaf: TCnBinaryLeaf);
+begin
+  if Assigned(FOnPreOrderTravelLeaf) then
+    FOnPreOrderTravelLeaf(ALeaf);
+end;
+
+procedure TCnBinaryTree.InOrderTravel;
+begin
+  Root.DoInOrderTravel;
+end;
+
+procedure TCnBinaryTree.PostOrderTravel;
+begin
+  Root.DoPostOrderTravel;
+end;
+
+procedure TCnBinaryTree.PreOrderTravel;
+begin
+  Root.DoPreOrderTravel;
+end;
+
+function TCnBinaryTree.GetRoot: TCnBinaryLeaf;
+begin
+  Result := TCnBinaryLeaf(inherited GetRoot);
+end;
+
+procedure TCnBinaryTree.LoadFromATreeNode(ALeaf: TCnLeaf;
+  ANode: TTreeNode);
+var
+  Leaf: TCnLeaf;
+begin
+  if (ANode <> nil) and (ALeaf <> nil) then
+  begin
+    if DoLoadFromATreeNode(ALeaf, ANode) then
+    begin
+      if ANode.Count > 0 then
+      begin
+        Leaf := AddLeftChild(ALeaf as TCnBinaryLeaf);
+        LoadFromATreeNode(Leaf, ANode.Item[0]);
+      end;
+      if ANode.Count > 1 then
+      begin
+        Leaf := AddRightChild(ALeaf as TCnBinaryLeaf);
+        LoadFromATreeNode(Leaf, ANode.Item[1]);
+      end;
+    end
+    else
+    begin
+      ALeaf.Delete;
+    end;
+  end;
+end;
+
+procedure TCnBinaryTree.LoadFromTreeView(ATreeView: TTreeView;
+  RootNode: TTreeNode; RootLeaf: TCnBinaryLeaf);
+var
+  ANode: TTreeNode;
+  ALeaf: TCnLeaf;
+begin
+  if (RootLeaf <> nil) and (RootLeaf.Tree <> Self) then Exit;
+  if (RootNode <> nil) and (RootNode.TreeView <> ATreeView) then Exit;
+
+  if ATreeView <> nil then
+  begin
+    if RootLeaf = nil then
+      Self.Clear
+    else
+      RootLeaf.Clear;
+
+    if ATreeView.Items.Count > 0 then
+    begin
+      if RootNode = nil then
+        ANode := ATreeView.Items[0]
+      else
+        ANode := RootNode;
+      // 第一个节点
+      if RootLeaf = nil then
+        RootLeaf := Root;
+
+      ALeaf := AddLeftChild(RootLeaf);
+      LoadFromATreeNode(ALeaf, ANode);
+      if RootNode <> nil then Exit;
+      // 声明了 RootNode 时以 RootNode 为根，所以不处理 RootNode 的同层节点
+
+      ANode := ANode.GetNextSibling; // 此层如有下一个后继节点，做右子树
+      if ANode <> nil then
+      begin
+        ALeaf := AddRightChild(RootLeaf);
+        LoadFromATreeNode(ALeaf, ANode);
+      end;
+    end;
+  end;
+end;
+
+procedure TCnBinaryTree.SaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode);
+begin
+  inherited SaveToATreeNode(ALeaf, ANode);
+end;
+
+procedure TCnBinaryTree.SaveToTreeView(ATreeView: TTreeView;
+  RootNode: TTreeNode; RootLeaf: TCnBinaryLeaf);
+begin
+  inherited SaveToTreeView(ATreeView, RootNode, RootLeaf);
+end;
+
+function TCnBinaryTree.GetCount: Integer;
+begin
+  Result := Root.AllNonNilCount + 1;
+end;
+
+{ TCnBinaryLeaf }
+
+constructor TCnBinaryLeaf.Create(ATree: TCnTree);
+begin
+  inherited;
+  FList.Add(nil);  // 左子节点
+  FList.Add(nil);  // 右子节点
+end;
+
+procedure TCnBinaryLeaf.DoInOrderTravel;
+begin
+  if LeftLeaf <> nil then
+    LeftLeaf.DoInOrderTravel;
+  Tree.DoInOrderTravelLeaf(Self);
+  if RightLeaf <> nil then
+    RightLeaf.DoInOrderTravel;
+end;
+
+procedure TCnBinaryLeaf.DoPostOrderTravel;
+begin
+  if LeftLeaf <> nil then
+    LeftLeaf.DoPostOrderTravel;
+  if RightLeaf <> nil then
+    RightLeaf.DoPostOrderTravel;
+  Tree.DoPostOrderTravelLeaf(Self);
+end;
+
+procedure TCnBinaryLeaf.DoPreOrderTravel;
+begin
+  Tree.DoPreOrderTravelLeaf(Self);
+  if LeftLeaf <> nil then
+    LeftLeaf.DoPreOrderTravel;
+  if RightLeaf <> nil then
+    RightLeaf.DoPreOrderTravel;
+end;
+
+function TCnBinaryLeaf.GetLeftLeaf: TCnBinaryLeaf;
+begin
+  Result := nil;
+  if Count > 0 then
+    Result := TCnBinaryLeaf(Items[0]);
+end;
+
+function TCnBinaryLeaf.GetRightLeaf: TCnBinaryLeaf;
+begin
+  Result := nil;
+  if Count > 1 then
+    Result := TCnBinaryLeaf(Items[1]);
+end;
+
+function TCnBinaryLeaf.GetTree: TCnBinaryTree;
+begin
+  Result := TCnBinaryTree(inherited GetTree);
+end;
+
+procedure TCnBinaryLeaf.SetLeftLeaf(const Value: TCnBinaryLeaf);
+begin
+  if Value <> nil then
+    Assert(Value.Tree = Self.FTree);
+
+  if (Value <> Items[0]) and (Items[0] <> nil) then
+    Items[0].Delete;
+
+  Items[0] := Value;
+  if Value <> nil then
+    Value.FParent := Self;
+end;
+
+procedure TCnBinaryLeaf.SetRightLeaf(const Value: TCnBinaryLeaf);
+begin
+  if Value <> nil then
+    Assert(Value.Tree = Self.FTree);
+
+  if (Value <> Items[1]) and (Items[1] <> nil) then
+    Items[1].Delete;
+
+  Items[1] := Value;
+  if Value <> nil then
+    Value.FParent := Self;
 end;
 
 end.

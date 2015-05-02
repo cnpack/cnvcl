@@ -9,22 +9,38 @@ uses
 type
   TCnTreeTestForm = class(TForm)
     tvData: TTreeView;
+    grpTree: TGroupBox;
     btnLoadFromTreeView: TButton;
     btnSaveToTreeView: TButton;
-    btnDepthFirstTraval: TButton;
-    btnWidthFirstTraval: TButton;
+    btnDepthFirstTravel: TButton;
+    btnWidthFirstTravel: TButton;
+    grpBTree: TGroupBox;
+    btnBLoad: TButton;
+    btnBSave: TButton;
+    btnPreOrderTravel: TButton;
+    btnInOrderTravel: TButton;
+    btnPostOrderTravel: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
     procedure btnSaveToTreeViewClick(Sender: TObject);
-    procedure btnDepthFirstTravalClick(Sender: TObject);
-    procedure btnWidthFirstTravalClick(Sender: TObject);
+    procedure btnDepthFirstTravelClick(Sender: TObject);
+    procedure btnWidthFirstTravelClick(Sender: TObject);
+    procedure btnBLoadClick(Sender: TObject);
+    procedure btnBSaveClick(Sender: TObject);
+    procedure btnPreOrderTravelClick(Sender: TObject);
+    procedure btnInOrderTravelClick(Sender: TObject);
+    procedure btnPostOrderTravelClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
+    FBinaryTree: TCnBinaryTree;
     FTravalResult: string;
     procedure TreeWidthFirstTrav(Sender: TObject);
     procedure TreeDepthFirstTrav(Sender: TObject);
+    procedure TreePreOrderTrav(Sender: TObject);
+    procedure TreeInOrderTrav(Sender: TObject);
+    procedure TreePostOrderTrav(Sender: TObject);
   public
     { Public declarations }
   end;
@@ -42,10 +58,16 @@ begin
   FTree := TCnTree.Create;
   FTree.OnDepthFirstTravelLeaf := TreeDepthFirstTrav;
   FTree.OnWidthFirstTravelLeaf := TreeWidthFirstTrav;
+
+  FBinaryTree := TCnBinaryTree.Create;
+  FBinaryTree.OnPreOrderTravelLeaf := TreePreOrderTrav;
+  FBinaryTree.OnInOrderTravelLeaf := TreeInOrderTrav;
+  FBinaryTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
 end;
 
 procedure TCnTreeTestForm.FormDestroy(Sender: TObject);
 begin
+  FBinaryTree.Free;
   FTree.Free;
 end;
 
@@ -77,17 +99,72 @@ begin
   FTravalResult := FTravalResult + TCnLeaf(Sender).Text + ' ';
 end;
 
-procedure TCnTreeTestForm.btnDepthFirstTravalClick(Sender: TObject);
+procedure TCnTreeTestForm.btnDepthFirstTravelClick(Sender: TObject);
 begin
   FTravalResult := '';
   FTree.DepthFirstTravel;
   ShowMessage(FTravalResult);
 end;
 
-procedure TCnTreeTestForm.btnWidthFirstTravalClick(Sender: TObject);
+procedure TCnTreeTestForm.btnWidthFirstTravelClick(Sender: TObject);
 begin
   FTravalResult := '';
   FTree.WidthFirstTravel;
+  ShowMessage(FTravalResult);
+end;
+
+procedure TCnTreeTestForm.btnBLoadClick(Sender: TObject);
+begin
+  FBinaryTree.LoadFromTreeView(tvData);
+  FBinaryTree.Root.Text := 'Root';
+  ShowMessage('Load OK. Count(Include Root) ' + IntToStr(FBinaryTree.Count));
+end;
+
+procedure TCnTreeTestForm.btnBSaveClick(Sender: TObject);
+begin
+  if FBinaryTree.Count = 1 then
+  begin
+    ShowMessage('No Content. Do not Save.');
+    Exit;
+  end;
+  FBinaryTree.SaveToTreeView(tvData);
+  tvData.FullExpand;
+  ShowMessage('Save OK. Count ' + IntToStr(tvData.Items.Count));
+end;
+
+procedure TCnTreeTestForm.TreeInOrderTrav(Sender: TObject);
+begin
+  FTravalResult := FTravalResult + TCnBinaryLeaf(Sender).Text + ' ';
+end;
+
+procedure TCnTreeTestForm.TreePostOrderTrav(Sender: TObject);
+begin
+  FTravalResult := FTravalResult + TCnBinaryLeaf(Sender).Text + ' ';
+end;
+
+procedure TCnTreeTestForm.TreePreOrderTrav(Sender: TObject);
+begin
+  FTravalResult := FTravalResult + TCnBinaryLeaf(Sender).Text + ' ';
+end;
+
+procedure TCnTreeTestForm.btnPreOrderTravelClick(Sender: TObject);
+begin
+  FTravalResult := '';
+  FBinaryTree.PreOrderTravel;
+  ShowMessage(FTravalResult);
+end;
+
+procedure TCnTreeTestForm.btnInOrderTravelClick(Sender: TObject);
+begin
+  FTravalResult := '';
+  FBinaryTree.InOrderTravel;
+  ShowMessage(FTravalResult);
+end;
+
+procedure TCnTreeTestForm.btnPostOrderTravelClick(Sender: TObject);
+begin
+  FTravalResult := '';
+  FBinaryTree.PostOrderTravel;
   ShowMessage(FTravalResult);
 end;
 

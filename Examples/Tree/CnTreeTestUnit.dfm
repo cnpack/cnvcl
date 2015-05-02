@@ -1,8 +1,8 @@
 object CnTreeTestForm: TCnTreeTestForm
-  Left = 192
-  Top = 130
+  Left = 27
+  Top = 129
   Width = 928
-  Height = 480
+  Height = 500
   Caption = 'CnTree Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,10 +17,10 @@ object CnTreeTestForm: TCnTreeTestForm
   PixelsPerInch = 96
   TextHeight = 13
   object tvData: TTreeView
-    Left = 24
-    Top = 32
+    Left = 16
+    Top = 24
     Width = 273
-    Height = 385
+    Height = 433
     Indent = 19
     TabOrder = 0
     Items.Data = {
@@ -37,40 +37,101 @@ object CnTreeTestForm: TCnTreeTestForm
       0000033333331C0000000000000000000000FFFFFFFFFFFFFFFF000000000000
       000003333131}
   end
-  object btnLoadFromTreeView: TButton
+  object grpTree: TGroupBox
     Left = 312
-    Top = 32
-    Width = 185
-    Height = 25
-    Caption = 'Load From TreeView'
+    Top = 24
+    Width = 225
+    Height = 193
+    Caption = 'Common Tree'
     TabOrder = 1
-    OnClick = btnLoadFromTreeViewClick
+    object btnLoadFromTreeView: TButton
+      Left = 16
+      Top = 24
+      Width = 185
+      Height = 25
+      Caption = 'Load From TreeView'
+      TabOrder = 0
+      OnClick = btnLoadFromTreeViewClick
+    end
+    object btnSaveToTreeView: TButton
+      Left = 16
+      Top = 64
+      Width = 185
+      Height = 25
+      Caption = 'Save To TreeView'
+      TabOrder = 1
+      OnClick = btnSaveToTreeViewClick
+    end
+    object btnDepthFirstTravel: TButton
+      Left = 16
+      Top = 104
+      Width = 185
+      Height = 25
+      Caption = 'Depth First Travel'
+      TabOrder = 2
+      OnClick = btnDepthFirstTravelClick
+    end
+    object btnWidthFirstTravel: TButton
+      Left = 16
+      Top = 144
+      Width = 185
+      Height = 25
+      Caption = 'Width First Travel'
+      TabOrder = 3
+      OnClick = btnWidthFirstTravelClick
+    end
   end
-  object btnSaveToTreeView: TButton
+  object grpBTree: TGroupBox
     Left = 312
-    Top = 72
-    Width = 185
-    Height = 25
-    Caption = 'Save To TreeView'
+    Top = 232
+    Width = 225
+    Height = 225
+    Caption = 'Binary Tree'
     TabOrder = 2
-    OnClick = btnSaveToTreeViewClick
-  end
-  object btnDepthFirstTraval: TButton
-    Left = 312
-    Top = 112
-    Width = 185
-    Height = 25
-    Caption = 'Depth First Traval'
-    TabOrder = 3
-    OnClick = btnDepthFirstTravalClick
-  end
-  object btnWidthFirstTraval: TButton
-    Left = 312
-    Top = 152
-    Width = 185
-    Height = 25
-    Caption = 'Width First Traval'
-    TabOrder = 4
-    OnClick = btnWidthFirstTravalClick
+    object btnBLoad: TButton
+      Left = 16
+      Top = 24
+      Width = 185
+      Height = 25
+      Caption = 'Load From TreeView'
+      TabOrder = 0
+      OnClick = btnBLoadClick
+    end
+    object btnBSave: TButton
+      Left = 16
+      Top = 64
+      Width = 185
+      Height = 25
+      Caption = 'Save To TreeView'
+      TabOrder = 1
+      OnClick = btnBSaveClick
+    end
+    object btnPreOrderTravel: TButton
+      Left = 16
+      Top = 104
+      Width = 185
+      Height = 25
+      Caption = 'PreOrder Travel'
+      TabOrder = 2
+      OnClick = btnPreOrderTravelClick
+    end
+    object btnInOrderTravel: TButton
+      Left = 16
+      Top = 144
+      Width = 185
+      Height = 25
+      Caption = 'InOrder Travel'
+      TabOrder = 3
+      OnClick = btnInOrderTravelClick
+    end
+    object btnPostOrderTravel: TButton
+      Left = 16
+      Top = 184
+      Width = 185
+      Height = 25
+      Caption = 'PostOrder Travel'
+      TabOrder = 4
+      OnClick = btnPostOrderTravelClick
+    end
   end
 end
