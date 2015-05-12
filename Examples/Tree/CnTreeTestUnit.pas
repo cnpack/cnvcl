@@ -20,6 +20,9 @@ type
     btnPreOrderTravel: TButton;
     btnInOrderTravel: TButton;
     btnPostOrderTravel: TButton;
+    btnIsFull: TButton;
+    btnIsComplete: TButton;
+    btnIsBalance: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -31,6 +34,9 @@ type
     procedure btnPreOrderTravelClick(Sender: TObject);
     procedure btnInOrderTravelClick(Sender: TObject);
     procedure btnPostOrderTravelClick(Sender: TObject);
+    procedure btnIsFullClick(Sender: TObject);
+    procedure btnIsCompleteClick(Sender: TObject);
+    procedure btnIsBalanceClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
@@ -166,6 +172,30 @@ begin
   FTravalResult := '';
   FBinaryTree.PostOrderTravel;
   ShowMessage(FTravalResult);
+end;
+
+procedure TCnTreeTestForm.btnIsFullClick(Sender: TObject);
+begin
+  if FBinaryTree.IsFull then
+    ShowMessage('Full!')
+  else
+    ShowMessage('NOT Full!');
+end;
+
+procedure TCnTreeTestForm.btnIsCompleteClick(Sender: TObject);
+begin
+  if FBinaryTree.IsComplete then
+    ShowMessage('Complete!')
+  else
+    ShowMessage('NOT Complete!');
+end;
+
+procedure TCnTreeTestForm.btnIsBalanceClick(Sender: TObject);
+begin
+  if FBinaryTree.IsBalance then
+    ShowMessage('Balance!')
+  else
+    ShowMessage('NOT Balance!');
 end;
 
 end.

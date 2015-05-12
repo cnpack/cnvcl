@@ -83,8 +83,8 @@ object CnTreeTestForm: TCnTreeTestForm
   end
   object grpBTree: TGroupBox
     Left = 312
-    Top = 232
-    Width = 225
+    Top = 224
+    Width = 425
     Height = 225
     Caption = 'Binary Tree'
     TabOrder = 2
@@ -132,6 +132,33 @@ object CnTreeTestForm: TCnTreeTestForm
       Caption = 'PostOrder Travel'
       TabOrder = 4
       OnClick = btnPostOrderTravelClick
+    end
+    object btnIsFull: TButton
+      Left = 224
+      Top = 24
+      Width = 185
+      Height = 25
+      Caption = 'Is Full?'
+      TabOrder = 5
+      OnClick = btnIsFullClick
+    end
+    object btnIsComplete: TButton
+      Left = 224
+      Top = 64
+      Width = 185
+      Height = 25
+      Caption = 'Is Complete?'
+      TabOrder = 6
+      OnClick = btnIsCompleteClick
+    end
+    object btnIsBalance: TButton
+      Left = 224
+      Top = 104
+      Width = 185
+      Height = 25
+      Caption = 'Is Balance?'
+      TabOrder = 7
+      OnClick = btnIsBalanceClick
     end
   end
 end

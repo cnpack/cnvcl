@@ -557,7 +557,11 @@ begin
         Exit;
       end;
 
-      ACount := Items[I].AllCount + 1;
+      if Items[I] <> nil then
+        ACount := Items[I].AllCount + 1
+      else
+        ACount := 1;
+
       if IndexCount + ACount > AAbsoluteIndex then
       begin
         Result := Items[I].GetAbsoluteItems(AAbsoluteIndex - IndexCount - 1);
@@ -1003,7 +1007,7 @@ var
 begin
   Result := 0;
   for I := 0 to Count - 1 do
-    if Items[I].Level > Result then
+    if (Items[I] <> nil) and (Items[I].Level > Result) then
       Result := Items[I].Level;
 end;
 
@@ -1230,9 +1234,41 @@ begin
 end;
 
 function TCnBinaryTree.IsComplete: Boolean;
+var
+  Queue: TQueue;
+  Node: TCnBinaryLeaf;
 begin
-  // TODO: To Implement
-  Result := False;
+  Result := True;
+  Queue := TQueue.Create;
+  try
+    Queue.Push(Root);
+    Node := TCnBinaryLeaf(Queue.Pop);
+    while Node <> nil do
+    begin
+      Queue.Push(Node.LeftLeaf);
+      Queue.Push(Node.RightLeaf);
+      Node := TCnBinaryLeaf(Queue.Pop);
+    end;
+
+    // 进行广度优先遍历，第一次碰到 Node 是 nil 时，它上一层的节点的后续子节点已经都进了队列
+    // 此时找队列中的非 nil 点，如果有，说明非完全
+
+    if Queue.Count = 0 then // 如果所有遍历的节点都不是 nil，说明可能是满二叉树？
+      Exit;
+
+    // 此时碰到 nil 了，找队列里的剩余节点
+    while Queue.Count > 0 do
+    begin
+      Node := TCnBinaryLeaf(Queue.Pop);
+      if Node <> nil then // 如果还有，则不是完全二叉树
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  finally
+    Queue.Free;
+  end;
 end;
 
 function TCnBinaryTree.IsFull: Boolean;
