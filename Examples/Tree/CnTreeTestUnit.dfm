@@ -40,7 +40,7 @@ object CnTreeTestForm: TCnTreeTestForm
   object grpTree: TGroupBox
     Left = 312
     Top = 24
-    Width = 225
+    Width = 425
     Height = 193
     Caption = 'Common Tree'
     TabOrder = 1
@@ -79,6 +79,15 @@ object CnTreeTestForm: TCnTreeTestForm
       Caption = 'Width First Travel'
       TabOrder = 3
       OnClick = btnWidthFirstTravelClick
+    end
+    object btnTreeHeight: TButton
+      Left = 224
+      Top = 24
+      Width = 185
+      Height = 25
+      Caption = 'Show Tree Height'
+      TabOrder = 4
+      OnClick = btnTreeHeightClick
     end
   end
   object grpBTree: TGroupBox
@@ -159,6 +168,15 @@ object CnTreeTestForm: TCnTreeTestForm
       Caption = 'Is Balance?'
       TabOrder = 7
       OnClick = btnIsBalanceClick
+    end
+    object btnBTreeHeight: TButton
+      Left = 224
+      Top = 144
+      Width = 185
+      Height = 25
+      Caption = 'Show Tree Height'
+      TabOrder = 8
+      OnClick = btnBTreeHeightClick
     end
   end
 end

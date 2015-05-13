@@ -23,6 +23,8 @@ type
     btnIsFull: TButton;
     btnIsComplete: TButton;
     btnIsBalance: TButton;
+    btnBTreeHeight: TButton;
+    btnTreeHeight: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -37,6 +39,8 @@ type
     procedure btnIsFullClick(Sender: TObject);
     procedure btnIsCompleteClick(Sender: TObject);
     procedure btnIsBalanceClick(Sender: TObject);
+    procedure btnBTreeHeightClick(Sender: TObject);
+    procedure btnTreeHeightClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
@@ -196,6 +200,16 @@ begin
     ShowMessage('Balance!')
   else
     ShowMessage('NOT Balance!');
+end;
+
+procedure TCnTreeTestForm.btnBTreeHeightClick(Sender: TObject);
+begin
+  ShowMessage('Tree Height: ' + IntToStr(FBinaryTree.Height));
+end;
+
+procedure TCnTreeTestForm.btnTreeHeightClick(Sender: TObject);
+begin
+  ShowMessage('Tree Height: ' + IntToStr(FTree.Height));
 end;
 
 end.

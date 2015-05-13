@@ -69,6 +69,7 @@ type
     procedure SetItems(Index: Integer; const Value: TCnLeaf);
     function GetTree: TCnTree;
     function GetAllNonNilCount: Integer;
+    function GetSubTreeHeight: Integer; virtual;
   protected
     function GetAbsoluteIndex: Integer;
     function GetAllCount: Integer;
@@ -142,6 +143,8 @@ type
     {* 本叶节点在父节点列表中的顺序索引，从 0 开始。无父则为 -1 }
     property Items[Index: Integer]: TCnLeaf read GetItems write SetItems; default;
     {* 直属叶节点数组 }
+    property SubTreeHeight: Integer read GetSubTreeHeight;
+    {* 此节点下属子树的最大高度，无子节点时为 0}
 
     property Level: Integer read GetLevel;
     {* 本节点层数，Root 节点 Level 为 0 }
@@ -180,6 +183,7 @@ type
     FOnSaveANode: TCnTreeNodeEvent;
     FOnLoadANode: TCnTreeNodeEvent;
     function GetMaxLevel: Integer;
+    function GetHeight: Integer; virtual;
   protected
     function DefaultLeafClass: TCnLeafClass; virtual;
 
@@ -271,6 +275,8 @@ type
     {* 返回树中所有节点的数目，包括 Root }
     property MaxLevel: Integer read GetMaxLevel;
     {* 返回树中最深层节点的层数，Root 为 0}
+    property Height: Integer read GetHeight;
+    {* 树高度，只有 Root 时为 1}
     property RegisteredCount: Integer read GetRegisteredCount;
     {* 返回树中所有注册过的子节点的数目 }
   published
@@ -295,6 +301,7 @@ type
     function GetRightLeaf: TCnBinaryLeaf;
     procedure SetLeftLeaf(const Value: TCnBinaryLeaf);
     procedure SetRightLeaf(const Value: TCnBinaryLeaf);
+    function GetSubTreeHeight: Integer; override;
     function GetTree: TCnBinaryTree;
   protected
     procedure DoPreOrderTravel;
@@ -302,6 +309,8 @@ type
     procedure DoPostOrderTravel;
   public
     constructor Create(ATree: TCnTree); override;
+    function IsBalance: Boolean;
+    {* 以此节点为根节点的子二叉树是否是平衡二叉树}
     property LeftLeaf: TCnBinaryLeaf read GetLeftLeaf write SetLeftLeaf;
     {* 左子节点，使用第 0 个子节点，无则返回 nil}
     property RightLeaf: TCnBinaryLeaf read GetRightLeaf write SetRightLeaf;
@@ -319,6 +328,7 @@ type
     FOnPostOrderTravelLeaf: TNotifyEvent;
     FOnInOrderTravelLeaf: TNotifyEvent;
     FOnPreOrderTravelLeaf: TNotifyEvent;
+    function GetHeight: Integer; override;
   protected
     function DefaultLeafClass: TCnLeafClass; override;
     procedure ValidateComingLeaf(AParent, AChild: TCnLeaf); override;
@@ -380,6 +390,8 @@ type
     {* 根节点，总是存在 }
     property Count: Integer read GetCount;
     {* 返回树中所有节点的数目，包括 Root }
+    property Height: Integer read GetHeight;
+    {* 树高度}
 
     property OnPreOrderTravelLeaf: TNotifyEvent read FOnPreOrderTravelLeaf
       write FOnPreOrderTravelLeaf;
@@ -638,6 +650,29 @@ begin
   for I := 0 to Self.Count - 1 do
     if Items[I] <> nil then
       Result := Result + Self.Items[I].AllNonNilCount + 1;
+end;
+
+function TCnLeaf.GetSubTreeHeight: Integer;
+var
+  I, MaxChildHeight: Integer;
+begin
+  Result := 0;
+  if not HasChildren then
+    Exit;
+
+  MaxChildHeight := 0;
+  for I := 0 to FList.Count - 1 do
+  begin
+    if FList[I] <> nil then
+    begin
+      if MaxChildHeight = 0 then // 有不为 nil 的子节点，深度至少 1
+        MaxChildHeight := 1;
+
+      if TCnLeaf(FList[I]).SubTreeHeight > MaxChildHeight then
+        MaxChildHeight := TCnLeaf(FList[I]).SubTreeHeight;
+    end;
+  end;
+  Result := MaxChildHeight + 1;
 end;
 
 function TCnLeaf.GetTree: TCnTree;
@@ -1229,8 +1264,10 @@ end;
 
 function TCnBinaryTree.IsBalance: Boolean;
 begin
-  // TODO: To Implement
-  Result := False;
+  if Root = nil then
+    Result := True
+  else
+    Result := Root.IsBalance;
 end;
 
 function TCnBinaryTree.IsComplete: Boolean;
@@ -1424,6 +1461,14 @@ begin
   Result := Root.AllNonNilCount + 1;
 end;
 
+function TCnBinaryTree.GetHeight: Integer;
+begin
+  if Root = nil then
+    Result := 0
+  else
+    Result := Root.SubTreeHeight + 1;
+end;
+
 { TCnBinaryLeaf }
 
 constructor TCnBinaryLeaf.Create(ATree: TCnTree);
@@ -1474,9 +1519,58 @@ begin
     Result := TCnBinaryLeaf(Items[1]);
 end;
 
+function TCnBinaryLeaf.GetSubTreeHeight: Integer;
+var
+  L, R: Integer;
+begin
+  Result := 0;
+  if Self = nil then
+    Exit;
+
+  if (LeftLeaf = nil) and (RightLeaf = nil) then
+    Result := 0
+  else
+  begin
+    if LeftLeaf = nil then
+      L := 0
+    else
+      L := LeftLeaf.SubTreeHeight;
+    if RightLeaf = nil then
+      R := 0
+    else
+      R := RightLeaf.SubTreeHeight;
+
+    Result := Max(L, R) + 1;
+  end;
+end;
+
 function TCnBinaryLeaf.GetTree: TCnBinaryTree;
 begin
   Result := TCnBinaryTree(inherited GetTree);
+end;
+
+function TCnBinaryLeaf.IsBalance: Boolean;
+var
+  L, R: Integer;
+  LB, RB: Boolean;
+begin
+  L := 0;
+  R := 0;
+  LB := True;
+  RB := True;
+
+  if LeftLeaf <> nil then
+  begin
+    L := LeftLeaf.SubTreeHeight;
+    LB := LeftLeaf.IsBalance;
+  end;
+  if RightLeaf <> nil then
+  begin
+    R := RightLeaf.SubTreeHeight;
+    RB := RightLeaf.IsBalance;
+  end;
+
+  Result := LB and RB and ((L - R) <= 1) and ((L - R) >= -1);
 end;
 
 procedure TCnBinaryLeaf.SetLeftLeaf(const Value: TCnBinaryLeaf);
@@ -1503,6 +1597,14 @@ begin
   Items[1] := Value;
   if Value <> nil then
     Value.FParent := Self;
+end;
+
+function TCnTree.GetHeight: Integer;
+begin
+  if Root = nil then
+    Result := 0
+  else
+    Result := Root.SubTreeHeight + 1;
 end;
 
 end.
