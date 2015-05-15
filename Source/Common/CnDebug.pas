@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.04.13
+* 修改记录：2015.05.15
+*               修正多线程同时启动 CnDebugViewer 时可能导致丢信息的问题
+*           2015.04.13
 *               增加两个记录字符串的方法，带十六进制输出，可供 Ansi/Unicode 使用
 *           2014.10.03
 *               增加两个记录 Exception 的方法
@@ -544,6 +546,7 @@ const
 
 var
   FCnDebugger: TCnDebugger = nil;
+  FStartCriticalSection: TRTLCriticalSection; // 用于多线程内控制启动 CnDebugViewer
 
   FFixedCalling: Cardinal = 0;
 
@@ -1103,10 +1106,15 @@ var
   end;
 
 begin
-  if FAutoStart and not FIgnoreViewer and not FViewerAutoStartCalled then
-  begin
-    StartDebugViewer;
-    FViewerAutoStartCalled := True;
+  EnterCriticalSection(FStartCriticalSection);
+  try
+    if FAutoStart and not FIgnoreViewer and not FViewerAutoStartCalled then
+    begin
+      StartDebugViewer;
+      FViewerAutoStartCalled := True;
+    end;
+  finally
+    LeaveCriticalSection(FStartCriticalSection);
   end;
 
   Inc(FMessageCount);
@@ -2903,6 +2911,7 @@ end;
 
 initialization
 {$IFNDEF NDEBUG}
+  InitializeCriticalSection(FStartCriticalSection);
   FCnDebugger := TCnDebugger.Create;
   FixCallingCPUPeriod;
   {$IFDEF USE_JCL}
@@ -2916,6 +2925,7 @@ initialization
 {$ENDIF}
 
 finalization
+  DeleteCriticalSection(FStartCriticalSection);
 {$IFDEF USE_JCL}
   DeleteCriticalSection(FCSExcept);
 {$ENDIF}
