@@ -347,6 +347,9 @@ function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
+function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
+{* 使用 Windows API 实现区块随机填充}
+
 implementation
 
 const
@@ -977,7 +980,7 @@ begin
 end;
 
 // 使用 Windows API 实现区块随机填充
-function InternalRandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
+function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 var
   HProv: Cardinal;
 begin
@@ -1015,7 +1018,7 @@ begin
 
   if BigNumberWordExpand(Num, (BytesCount + 3) div 4) <> nil then
   begin
-    Result := InternalRandBytes(PAnsiChar(Num.D), BytesCount);
+    Result := RandBytes(PAnsiChar(Num.D), BytesCount);
     if Result then
     begin
       Num.Top := (BytesCount + 3) div 4;
