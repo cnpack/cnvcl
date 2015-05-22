@@ -31,7 +31,9 @@ unit CnTree;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.05.03 V1.5 by LiuXiao
+* 修改记录：2015.05.22 V1.6 by LiuXiao
+*               加入字典树的实现。
+*           2015.05.03 V1.5 by LiuXiao
 *               加入二叉树的实现。
 *           2015.03.16 V1.4 by LiuXiao
 *               修正广度优先遍历的错误，将 Root 的 Level 改成 0。
@@ -391,7 +393,7 @@ type
     property Count: Integer read GetCount;
     {* 返回树中所有节点的数目，包括 Root }
     property Height: Integer read GetHeight;
-    {* 树高度}
+    {* 树高度，只有根节点时为 1}
 
     property OnPreOrderTravelLeaf: TNotifyEvent read FOnPreOrderTravelLeaf
       write FOnPreOrderTravelLeaf;
@@ -402,6 +404,38 @@ type
     property OnPostOrderTravelLeaf: TNotifyEvent read FOnPostOrderTravelLeaf
       write FOnPostOrderTravelLeaf;
     {* 后根次序遍历时触发的事件}
+  end;
+
+  TCnTrieLeaf = class(TCnLeaf)
+  {* 字典树的树叶类，使用 Data 存储前缀字符}
+  private
+    FCharacter: Char;
+    function GetCharacter: Char;
+    procedure SetCharacter(const Value: Char);
+    function GetItems(Index: Integer): TCnTrieLeaf;
+    procedure SetItems(Index: Integer; const Value: TCnTrieLeaf);
+  protected
+    function DoInsertChar(P: PChar): TCnTrieLeaf;
+    function DoSearchChar(P: PChar): TCnTrieLeaf;
+  public
+    property Character: Char read GetCharacter write SetCharacter;
+    property Items[Index: Integer]: TCnTrieLeaf read GetItems write SetItems; default;
+    {* 转换了类型的直属叶节点数组 }
+  end;
+
+  TCnTrieTree = class(TCnTree)
+  {* 字典树实现类}
+  protected
+    function GetRoot: TCnTrieLeaf;
+    function DefaultLeafClass: TCnLeafClass; override;
+  public
+    function InsertString(const Str: string): TCnTrieLeaf;
+    {* 插入字符串，返回插入的叶节点供外界设置内容，如果已存在则返回 nil}
+    function SearchString(const Str: string): TCnTrieLeaf;
+    {* 查找字符串，返回查找到的叶节点，如果未找到则返回 nil}
+
+    property Root: TCnTrieLeaf read GetRoot;
+    {* 根节点 }
   end;
 
 implementation
@@ -1605,6 +1639,142 @@ begin
     Result := 0
   else
     Result := Root.SubTreeHeight + 1;
+end;
+
+{ TCnTrieLeaf }
+
+function TCnTrieLeaf.DoInsertChar(P: PChar): TCnTrieLeaf;
+var
+  C: Char;
+  I, Idx, Gt: Integer;
+  Leaf: TCnTrieLeaf;
+begin
+  Result := nil;
+  if (P = nil) or (P^ = #0) then
+    Exit;
+
+  C := P^;
+  if Count = 0 then // 无子节点，直接创建
+  begin
+    Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
+    Leaf.Character := C;
+    AddChild(Leaf);
+    Leaf.Text := Leaf.Parent.Text + C;
+
+    Inc(P);
+    if P^ = #0 then
+      Result := Leaf
+    else
+      Result := Leaf.DoInsertChar(P);
+    Exit;
+  end;
+
+  Idx := -1;
+  Gt := -1;
+  for I := 0 to Count - 1 do
+  begin
+    if Items[I].Character = C then
+    begin
+      Idx := I;
+      Break;
+    end
+    else if Items[I].Character > C then
+    begin
+      Gt := I;
+      Break;
+    end;
+  end;
+
+  if Idx >= 0 then // 找到有这个字符的节点
+  begin
+    Inc(P);
+    if P^ = #0 then // 结束，字符串已经存在
+      Result := nil
+    else
+      Result := Items[Idx].DoInsertChar(P);
+  end
+  else // 没这个字符的节点，要创建
+  begin
+    Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
+    Leaf.Character := C;
+
+    if Gt = -1 then  // 没有比这字符大的节点，添加在最后
+      AddChild(Leaf)
+    else
+      InsertChild(Leaf, Gt); // 否则插在第一个比这个字符大的节点的前面
+
+    Leaf.Text := Leaf.Parent.Text + C;
+    Inc(P);
+    if P^ = #0 then
+      Result := Leaf
+    else
+      Result := Leaf.DoInsertChar(P);
+  end;
+end;
+
+function TCnTrieLeaf.DoSearchChar(P: PChar): TCnTrieLeaf;
+var
+  C: Char;
+  I: Integer;
+begin
+  Result := nil;
+  if (P = nil) or (P^ = #0) then
+    Exit;
+
+  C := P^;
+  for I := 0 to Count - 1 do
+  begin
+    if Items[I].Character = C then
+    begin
+      Inc(P);
+      if P^ = #0 then
+        Result := Items[I]
+      else
+        Result := Items[I].DoSearchChar(P);
+    end;
+  end;
+end;
+
+function TCnTrieLeaf.GetCharacter: Char;
+begin
+  Result := FCharacter;
+end;
+
+function TCnTrieLeaf.GetItems(Index: Integer): TCnTrieLeaf;
+begin
+  Result := TCnTrieLeaf(inherited GetItems(Index));
+end;
+
+procedure TCnTrieLeaf.SetCharacter(const Value: Char);
+begin
+  FCharacter := Value;
+end;
+
+procedure TCnTrieLeaf.SetItems(Index: Integer; const Value: TCnTrieLeaf);
+begin
+  inherited SetItems(Index, Value);
+end;
+
+{ TCnTrieTree }
+
+function TCnTrieTree.DefaultLeafClass: TCnLeafClass;
+begin
+  Result := TCnTrieLeaf;
+end;
+
+function TCnTrieTree.GetRoot: TCnTrieLeaf;
+begin
+  Result := TCnTrieLeaf(inherited GetRoot);
+end;
+
+function TCnTrieTree.InsertString(const Str: string): TCnTrieLeaf;
+begin
+  Result := Root.DoInsertChar(PChar(Str));
+end;
+
+function TCnTrieTree.SearchString(const Str: string): TCnTrieLeaf;
+begin
+  Result := Root.DoSearchChar(PChar(Str));
 end;
 
 end.
