@@ -25,6 +25,12 @@ type
     btnIsBalance: TButton;
     btnBTreeHeight: TButton;
     btnTreeHeight: TButton;
+    grpTrieTree: TGroupBox;
+    btnSaveTrie: TButton;
+    btnGenerateTrie: TButton;
+    btnShowTrieHeight: TButton;
+    btnSearch: TButton;
+    edtSearch: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -41,10 +47,15 @@ type
     procedure btnIsBalanceClick(Sender: TObject);
     procedure btnBTreeHeightClick(Sender: TObject);
     procedure btnTreeHeightClick(Sender: TObject);
+    procedure btnGenerateTrieClick(Sender: TObject);
+    procedure btnSaveTrieClick(Sender: TObject);
+    procedure btnShowTrieHeightClick(Sender: TObject);
+    procedure btnSearchClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
     FBinaryTree: TCnBinaryTree;
+    FTrieTree: TCnTrieTree;
     FTravalResult: string;
     procedure TreeWidthFirstTrav(Sender: TObject);
     procedure TreeDepthFirstTrav(Sender: TObject);
@@ -62,6 +73,315 @@ implementation
 
 {$R *.DFM}
 
+const
+  // 汉语拼音方案，不全，缺 uang 等，不可作拼音参考，仅用来演示字符串插入
+  PinYins: array[0..303] of string = ( // ü用 v 代替
+    'a',
+    'o',
+    'e',
+    'i',
+    'u',
+    'v',
+    'ai',
+    'ei',
+    'ui',
+    'ao',
+    'ou',
+    'iu',
+    'ie',
+    've',
+    'er',
+    'an',
+    'en',
+    'in',
+    'un',
+    'ang',
+    'eng',
+    'ing',
+    'ong',
+    'b',
+    'ba',
+    'bo',
+    'bai',
+    'bei',
+    'bao',
+    'ban',
+    'ben',
+    'bang',
+    'beng',
+    'bi',
+    'bie',
+    'biao',
+    'bian',
+    'bin',
+    'bing',
+    'p',
+    'pa',
+    'po',
+    'pai',
+    'pao',
+    'pou',
+    'pan',
+    'pen',
+    'pang',
+    'peng',
+    'pi',
+    'pie',
+    'piao',
+    'pian',
+    'pin',
+    'ping',
+    'm',
+    'ma',
+    'mo',
+    'me',
+    'mai',
+    'mao',
+    'mou',
+    'man',
+    'men',
+    'mang',
+    'meng',
+    'mi',
+    'mie',
+    'miao',
+    'miu',
+    'mian',
+    'min',
+    'ming',
+    'f',
+    'fa',
+    'fo',
+    'fei',
+    'fou',
+    'fan',
+    'fen',
+    'fang',
+    'feng',
+    'd',
+    'da',
+    'de',
+    'dai',
+    'dei',
+    'dao',
+    'dou',
+    'dan',
+    'dang',
+    'deng',
+    'di',
+    'die',
+    'diao',
+    'diu',
+    'dian',
+    'ding',
+    't',
+    'ta',
+    'te',
+    'tai',
+    'tao',
+    'tou',
+    'tan',
+    'tang',
+    'teng',
+    'ti',
+    'tie',
+    'tiao',
+    'tian',
+    'ting',
+    'n',
+    'na',
+    'nai',
+    'nei',
+    'nao',
+    'no',
+    'nen',
+    'nang',
+    'neng',
+    'ni',
+    'nie',
+    'niao',
+    'niu',
+    'nian',
+    'nin',
+    'niang',
+    'ning',
+    'l',
+    'la',
+    'le',
+    'lai',
+    'lei',
+    'lao',
+    'lou',
+    'lan',
+    'lang',
+    'leng',
+    'li',
+    'lia',
+    'lie',
+    'liao',
+    'liu',
+    'lian',
+    'lin',
+    'liang',
+    'ling',
+    'g',
+    'ga',
+    'ge',
+    'gai',
+    'gei',
+    'gao',
+    'gou',
+    'gan',
+    'gen',
+    'gang',
+    'geng',
+    'k',
+    'ka',
+    'ke',
+    'kai',
+    'kou',
+    'kan',
+    'ken',
+    'kang',
+    'keng',
+    'h',
+    'ha',
+    'he',
+    'hai',
+    'hei',
+    'hao',
+    'hou',
+    'hen',
+    'hang',
+    'heng',
+    'j',
+    'ji',
+    'jia',
+    'jie',
+    'jiao',
+    'jiu',
+    'jian',
+    'jin',
+    'jiang',
+    'jing',
+    'q',
+    'qi',
+    'qia',
+    'qie',
+    'qiao',
+    'qiu',
+    'qian',
+    'qin',
+    'qiang',
+    'qing',
+    'x',
+    'xi',
+    'xia',
+    'xie',
+    'xiao',
+    'xiu',
+    'xian',
+    'xin',
+    'xiang',
+    'xing',
+    'zh',
+    'zha',
+    'zhe',
+    'zhi',
+    'zhai',
+    'zhao',
+    'zhou',
+    'zhan',
+    'zhen',
+    'zhang',
+    'zheng',
+    'ch',
+    'cha',
+    'che',
+    'chi',
+    'chai',
+    'chou',
+    'chan',
+    'chen',
+    'chang',
+    'cheng',
+    'sh',
+    'sha',
+    'she',
+    'shi',
+    'shai',
+    'shao',
+    'shou',
+    'shan',
+    'shen',
+    'shang',
+    'sheng',
+    'r',
+    're',
+    'ri',
+    'rao',
+    'rou',
+    'ran',
+    'ren',
+    'rang',
+    'reng',
+    'z',
+    'za',
+    'ze',
+    'zi',
+    'zai',
+    'zao',
+    'zou',
+    'zang',
+    'zeng',
+    'c',
+    'ca',
+    'ce',
+    'ci',
+    'cai',
+    'cao',
+    'cou',
+    'can',
+    'cen',
+    'cang',
+    'ceng',
+    's',
+    'sa',
+    'se',
+    'si',
+    'sai',
+    'sao',
+    'sou',
+    'san',
+    'sen',
+    'sang',
+    'seng',
+    'y',
+    'ya',
+    'yao',
+    'you',
+    'yan',
+    'yang',
+    'yu',
+    'ye',
+    'yue',
+    'yuan',
+    'yi',
+    'yin',
+    'yun',
+    'ying',
+    'w',
+    'wa',
+    'wo',
+    'wai',
+    'wei',
+    'wan',
+    'wen',
+    'wang',
+    'weng',
+    'wu'
+  );
+
 procedure TCnTreeTestForm.FormCreate(Sender: TObject);
 begin
   tvData.FullExpand;
@@ -73,10 +393,13 @@ begin
   FBinaryTree.OnPreOrderTravelLeaf := TreePreOrderTrav;
   FBinaryTree.OnInOrderTravelLeaf := TreeInOrderTrav;
   FBinaryTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
+
+  FTrieTree := TCnTrieTree.Create;
 end;
 
 procedure TCnTreeTestForm.FormDestroy(Sender: TObject);
 begin
+  FTrieTree.Free;
   FBinaryTree.Free;
   FTree.Free;
 end;
@@ -210,6 +533,59 @@ end;
 procedure TCnTreeTestForm.btnTreeHeightClick(Sender: TObject);
 begin
   ShowMessage('Tree Height: ' + IntToStr(FTree.Height));
+end;
+
+procedure TCnTreeTestForm.btnGenerateTrieClick(Sender: TObject);
+var
+  I, C, T: Integer;
+  Leaf: TCnTrieLeaf;
+begin
+  C := 0;
+  for I := Low(PinYins) to High(PinYins) do
+  begin
+    Leaf := FTrieTree.InsertString(PinYins[I]);
+    if Leaf <> nil then
+    begin
+      Inc(C);
+      Leaf.Data := 1;
+    end;
+  end;
+
+  T := 0;
+  for I := 0 to FTrieTree.Count - 1 do
+    if FTrieTree.Items[I].Data = 1 then
+      Inc(T);
+
+  ShowMessage('Generate OK: ' + IntToStr(C) + ' Check OK: ' + IntToStr(T) + #13#10 +
+    'TrieTree Leaf Count(Include Root): ' + IntToStr(FTrieTree.Count));
+end;
+
+procedure TCnTreeTestForm.btnSaveTrieClick(Sender: TObject);
+begin
+  if FTrieTree.Count = 1 then
+  begin
+    ShowMessage('No Content. Do not Save.');
+    Exit;
+  end;
+  FTrieTree.SaveToTreeView(tvData);
+  tvData.FullExpand;
+  ShowMessage('Save OK. Count ' + IntToStr(tvData.Items.Count));
+end;
+
+procedure TCnTreeTestForm.btnShowTrieHeightClick(Sender: TObject);
+begin
+  ShowMessage('TrieTree Height: ' + IntToStr(FTrieTree.Height));
+end;
+
+procedure TCnTreeTestForm.btnSearchClick(Sender: TObject);
+var
+  Leaf: TCnTrieLeaf;
+begin
+  Leaf := FTrieTree.SearchString(edtSearch.Text);
+  if Leaf <> nil then
+    ShowMessage('Found: ' + Leaf.Text)
+  else
+    ShowMessage('NOT Found.');
 end;
 
 end.

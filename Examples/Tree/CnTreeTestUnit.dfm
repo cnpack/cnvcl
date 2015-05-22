@@ -40,14 +40,14 @@ object CnTreeTestForm: TCnTreeTestForm
   object grpTree: TGroupBox
     Left = 312
     Top = 24
-    Width = 425
-    Height = 193
+    Width = 345
+    Height = 145
     Caption = 'Common Tree'
     TabOrder = 1
     object btnLoadFromTreeView: TButton
       Left = 16
       Top = 24
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Load From TreeView'
       TabOrder = 0
@@ -56,34 +56,34 @@ object CnTreeTestForm: TCnTreeTestForm
     object btnSaveToTreeView: TButton
       Left = 16
       Top = 64
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Save To TreeView'
-      TabOrder = 1
+      TabOrder = 2
       OnClick = btnSaveToTreeViewClick
     end
     object btnDepthFirstTravel: TButton
-      Left = 16
-      Top = 104
-      Width = 185
+      Left = 176
+      Top = 24
+      Width = 145
       Height = 25
       Caption = 'Depth First Travel'
-      TabOrder = 2
+      TabOrder = 1
       OnClick = btnDepthFirstTravelClick
     end
     object btnWidthFirstTravel: TButton
-      Left = 16
-      Top = 144
-      Width = 185
+      Left = 176
+      Top = 64
+      Width = 145
       Height = 25
       Caption = 'Width First Travel'
       TabOrder = 3
       OnClick = btnWidthFirstTravelClick
     end
     object btnTreeHeight: TButton
-      Left = 224
-      Top = 24
-      Width = 185
+      Left = 176
+      Top = 104
+      Width = 145
       Height = 25
       Caption = 'Show Tree Height'
       TabOrder = 4
@@ -92,15 +92,15 @@ object CnTreeTestForm: TCnTreeTestForm
   end
   object grpBTree: TGroupBox
     Left = 312
-    Top = 224
-    Width = 425
+    Top = 184
+    Width = 345
     Height = 225
     Caption = 'Binary Tree'
-    TabOrder = 2
+    TabOrder = 3
     object btnBLoad: TButton
       Left = 16
       Top = 24
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Load From TreeView'
       TabOrder = 0
@@ -109,74 +109,126 @@ object CnTreeTestForm: TCnTreeTestForm
     object btnBSave: TButton
       Left = 16
       Top = 64
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Save To TreeView'
-      TabOrder = 1
+      TabOrder = 2
       OnClick = btnBSaveClick
     end
     object btnPreOrderTravel: TButton
       Left = 16
       Top = 104
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'PreOrder Travel'
-      TabOrder = 2
+      TabOrder = 4
       OnClick = btnPreOrderTravelClick
     end
     object btnInOrderTravel: TButton
       Left = 16
       Top = 144
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'InOrder Travel'
-      TabOrder = 3
+      TabOrder = 6
       OnClick = btnInOrderTravelClick
     end
     object btnPostOrderTravel: TButton
       Left = 16
       Top = 184
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'PostOrder Travel'
-      TabOrder = 4
+      TabOrder = 8
       OnClick = btnPostOrderTravelClick
     end
     object btnIsFull: TButton
-      Left = 224
+      Left = 176
       Top = 24
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Is Full?'
-      TabOrder = 5
+      TabOrder = 1
       OnClick = btnIsFullClick
     end
     object btnIsComplete: TButton
-      Left = 224
+      Left = 176
       Top = 64
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Is Complete?'
-      TabOrder = 6
+      TabOrder = 3
       OnClick = btnIsCompleteClick
     end
     object btnIsBalance: TButton
-      Left = 224
+      Left = 176
       Top = 104
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Is Balance?'
-      TabOrder = 7
+      TabOrder = 5
       OnClick = btnIsBalanceClick
     end
     object btnBTreeHeight: TButton
-      Left = 224
+      Left = 176
       Top = 144
-      Width = 185
+      Width = 145
       Height = 25
       Caption = 'Show Tree Height'
-      TabOrder = 8
+      TabOrder = 7
       OnClick = btnBTreeHeightClick
+    end
+  end
+  object grpTrieTree: TGroupBox
+    Left = 680
+    Top = 24
+    Width = 185
+    Height = 265
+    Caption = 'Trie Tree'
+    TabOrder = 2
+    object btnSaveTrie: TButton
+      Left = 16
+      Top = 64
+      Width = 145
+      Height = 25
+      Caption = 'Save To TreeView'
+      TabOrder = 1
+      OnClick = btnSaveTrieClick
+    end
+    object btnGenerateTrie: TButton
+      Left = 16
+      Top = 24
+      Width = 145
+      Height = 25
+      Caption = 'Generate Tree'
+      TabOrder = 0
+      OnClick = btnGenerateTrieClick
+    end
+    object btnShowTrieHeight: TButton
+      Left = 16
+      Top = 144
+      Width = 145
+      Height = 25
+      Caption = 'Show Tree Height'
+      TabOrder = 4
+      OnClick = btnShowTrieHeightClick
+    end
+    object btnSearch: TButton
+      Left = 96
+      Top = 104
+      Width = 65
+      Height = 25
+      Caption = 'Search'
+      TabOrder = 2
+      OnClick = btnSearchClick
+    end
+    object edtSearch: TEdit
+      Left = 16
+      Top = 106
+      Width = 73
+      Height = 21
+      TabOrder = 3
+      Text = 'pie'
     end
   end
 end
