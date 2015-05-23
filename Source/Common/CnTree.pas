@@ -56,6 +56,11 @@ uses
   SysUtils, Classes, Contnrs, ComCtrls, Math;
 
 type
+
+//==============================================================================
+// 树的基类，单根有序树的实现
+//==============================================================================
+
   ECnTreeException = class(Exception);
 
   TCnTree = class;
@@ -292,6 +297,10 @@ type
     {* 将节点存入 TreeView 时针对每一个节点的触发事件 }
   end;
 
+//==============================================================================
+// 二叉树的实现
+//==============================================================================
+
   ECnBinaryTreeException = class(Exception);
 
   TCnBinaryTree = class;
@@ -406,6 +415,12 @@ type
     {* 后根次序遍历时触发的事件}
   end;
 
+//==============================================================================
+// 字典树的实现
+//==============================================================================
+
+  TCnTrieTree = class;
+
   TCnTrieLeaf = class(TCnLeaf)
   {* 字典树的树叶类，使用 Data 存储前缀字符}
   private
@@ -414,6 +429,7 @@ type
     procedure SetCharacter(const Value: Char);
     function GetItems(Index: Integer): TCnTrieLeaf;
     procedure SetItems(Index: Integer; const Value: TCnTrieLeaf);
+    function GetTree: TCnTrieTree;
   protected
     function DoInsertChar(P: PChar): TCnTrieLeaf;
     function DoSearchChar(P: PChar): TCnTrieLeaf;
@@ -421,14 +437,23 @@ type
     property Character: Char read GetCharacter write SetCharacter;
     property Items[Index: Integer]: TCnTrieLeaf read GetItems write SetItems; default;
     {* 转换了类型的直属叶节点数组 }
+    property Tree: TCnTrieTree read GetTree;
+    {* 转换了类型的所属树，一个叶必须属于一棵树 }
   end;
 
   TCnTrieTree = class(TCnTree)
   {* 字典树实现类}
+  private
+    FCaseSensitive: Boolean;
+    function ConvertCharWithCase(C: Char): Char; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+    {* 根据大小写设置，返回原字符或大写字母（如果是小写字母）}
   protected
     function GetRoot: TCnTrieLeaf;
     function DefaultLeafClass: TCnLeafClass; override;
   public
+    constructor Create(ACaseSensitive: Boolean); reintroduce; virtual;
+    {* 字典树构造函数，参数指定是否区分大小写}
+
     function InsertString(const Str: string): TCnTrieLeaf;
     {* 插入字符串，返回插入的叶节点供外界设置内容，如果已存在则返回 nil}
     function SearchString(const Str: string): TCnTrieLeaf;
@@ -436,6 +461,9 @@ type
 
     property Root: TCnTrieLeaf read GetRoot;
     {* 根节点 }
+    property CaseSensitive: Boolean read FCaseSensitive;
+    {* 是否区分大小写。注意，如果不区分大小写，
+       查找到的节点其内容可能不符合存入时的大小写情况}
   end;
 
 implementation
@@ -1256,7 +1284,9 @@ begin
 
 end;
 
-{ TCnBinaryTree }
+//==============================================================================
+// TCnBinaryTree
+//==============================================================================
 
 constructor TCnBinaryTree.Create;
 begin
@@ -1503,7 +1533,9 @@ begin
     Result := Root.SubTreeHeight + 1;
 end;
 
-{ TCnBinaryLeaf }
+//==============================================================================
+// TCnBinaryLeaf
+//==============================================================================
 
 constructor TCnBinaryLeaf.Create(ATree: TCnTree);
 begin
@@ -1641,11 +1673,13 @@ begin
     Result := Root.SubTreeHeight + 1;
 end;
 
-{ TCnTrieLeaf }
+//==============================================================================
+// TCnTrieLeaf
+//==============================================================================
 
 function TCnTrieLeaf.DoInsertChar(P: PChar): TCnTrieLeaf;
 var
-  C: Char;
+  C, CaseC: Char;
   I, Idx, Gt: Integer;
   Leaf: TCnTrieLeaf;
 begin
@@ -1654,10 +1688,11 @@ begin
     Exit;
 
   C := P^;
+  CaseC := Tree.ConvertCharWithCase(C);
   if Count = 0 then // 无子节点，直接创建
   begin
     Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
-    Leaf.Character := C;
+    Leaf.Character := CaseC;
     AddChild(Leaf);
     Leaf.Text := Leaf.Parent.Text + C;
 
@@ -1673,12 +1708,12 @@ begin
   Gt := -1;
   for I := 0 to Count - 1 do
   begin
-    if Items[I].Character = C then
+    if Items[I].Character = CaseC then
     begin
       Idx := I;
       Break;
     end
-    else if Items[I].Character > C then
+    else if Items[I].Character > CaseC then
     begin
       Gt := I;
       Break;
@@ -1696,14 +1731,14 @@ begin
   else // 没这个字符的节点，要创建
   begin
     Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
-    Leaf.Character := C;
+    Leaf.Character := CaseC; // 如果大小写不敏感，则 Character 中存储大写字母
 
     if Gt = -1 then  // 没有比这字符大的节点，添加在最后
       AddChild(Leaf)
     else
       InsertChild(Leaf, Gt); // 否则插在第一个比这个字符大的节点的前面
 
-    Leaf.Text := Leaf.Parent.Text + C;
+    Leaf.Text := Leaf.Parent.Text + C; // 真实文字保持原样
     Inc(P);
     if P^ = #0 then
       Result := Leaf
@@ -1714,17 +1749,17 @@ end;
 
 function TCnTrieLeaf.DoSearchChar(P: PChar): TCnTrieLeaf;
 var
-  C: Char;
+  CaseC: Char;
   I: Integer;
 begin
   Result := nil;
   if (P = nil) or (P^ = #0) then
     Exit;
 
-  C := P^;
+  CaseC := Tree.ConvertCharWithCase(P^);
   for I := 0 to Count - 1 do
   begin
-    if Items[I].Character = C then
+    if Items[I].Character = CaseC then
     begin
       Inc(P);
       if P^ = #0 then
@@ -1745,6 +1780,11 @@ begin
   Result := TCnTrieLeaf(inherited GetItems(Index));
 end;
 
+function TCnTrieLeaf.GetTree: TCnTrieTree;
+begin
+  Result := TCnTrieTree(inherited GetTree);
+end;
+
 procedure TCnTrieLeaf.SetCharacter(const Value: Char);
 begin
   FCharacter := Value;
@@ -1755,7 +1795,22 @@ begin
   inherited SetItems(Index, Value);
 end;
 
-{ TCnTrieTree }
+//==============================================================================
+// TCnTrieTree
+//==============================================================================
+
+function TCnTrieTree.ConvertCharWithCase(C: Char): Char;
+begin
+  Result := C;
+  if not FCaseSensitive and (C in ['a'..'z']) then
+    Dec(Result, 32);
+end;
+
+constructor TCnTrieTree.Create(ACaseSensitive: Boolean);
+begin
+  inherited Create(TCnTrieLeaf);
+  FCaseSensitive := ACaseSensitive;
+end;
 
 function TCnTrieTree.DefaultLeafClass: TCnLeafClass;
 begin
