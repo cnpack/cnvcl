@@ -445,25 +445,31 @@ type
   {* 字典树实现类}
   private
     FCaseSensitive: Boolean;
+    FOnlyChar: Boolean;
     function ConvertCharWithCase(C: Char): Char; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
     {* 根据大小写设置，返回原字符或大写字母（如果是小写字母）}
   protected
     function GetRoot: TCnTrieLeaf;
     function DefaultLeafClass: TCnLeafClass; override;
   public
-    constructor Create(ACaseSensitive: Boolean); reintroduce; virtual;
-    {* 字典树构造函数，参数指定是否区分大小写}
+    constructor Create(ACaseSensitive: Boolean = True;
+      AOnlyChar: Boolean = False); reintroduce; virtual;
+    {* 字典树构造函数，参数指定是否区分大小写，以及节点上是否只存储字母}
 
     function InsertString(const Str: string): TCnTrieLeaf;
     {* 插入字符串，返回插入的叶节点供外界设置内容，如果已存在则返回 nil}
     function SearchString(const Str: string): TCnTrieLeaf;
     {* 查找字符串，返回查找到的叶节点，如果未找到则返回 nil}
+    function StringExists(const Str: string): Boolean;
+    {* 查找字符串，返回是否存在}
 
     property Root: TCnTrieLeaf read GetRoot;
     {* 根节点 }
+    property OnlyChar: Boolean read FOnlyChar;
+    {* 是否只存储字母}
     property CaseSensitive: Boolean read FCaseSensitive;
-    {* 是否区分大小写。注意，如果不区分大小写，
-       查找到的节点其内容可能不符合存入时的大小写情况}
+    {* 是否区分大小写。注意，如果不区分大小写且 OnlyChar 为 False，
+       查找到的节点其存储的字符串内容可能不符合存入时的大小写情况}
   end;
 
 implementation
@@ -1694,7 +1700,8 @@ begin
     Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
     Leaf.Character := CaseC;
     AddChild(Leaf);
-    Leaf.Text := Leaf.Parent.Text + C;
+    if not Tree.OnlyChar then
+      Leaf.Text := Leaf.Parent.Text + C;
 
     Inc(P);
     if P^ = #0 then
@@ -1738,7 +1745,9 @@ begin
     else
       InsertChild(Leaf, Gt); // 否则插在第一个比这个字符大的节点的前面
 
-    Leaf.Text := Leaf.Parent.Text + C; // 真实文字保持原样
+    if not Tree.OnlyChar then
+      Leaf.Text := Leaf.Parent.Text + C; // 真实文字保持原样
+
     Inc(P);
     if P^ = #0 then
       Result := Leaf
@@ -1806,10 +1815,11 @@ begin
     Dec(Result, 32);
 end;
 
-constructor TCnTrieTree.Create(ACaseSensitive: Boolean);
+constructor TCnTrieTree.Create(ACaseSensitive: Boolean; AOnlyChar: Boolean);
 begin
   inherited Create(TCnTrieLeaf);
   FCaseSensitive := ACaseSensitive;
+  FOnlyChar := AOnlyChar;
 end;
 
 function TCnTrieTree.DefaultLeafClass: TCnLeafClass;
@@ -1830,6 +1840,11 @@ end;
 function TCnTrieTree.SearchString(const Str: string): TCnTrieLeaf;
 begin
   Result := Root.DoSearchChar(PChar(Str));
+end;
+
+function TCnTrieTree.StringExists(const Str: string): Boolean;
+begin
+  Result := (SearchString(Str) <> nil);
 end;
 
 end.
