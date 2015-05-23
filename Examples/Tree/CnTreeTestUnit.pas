@@ -394,7 +394,7 @@ begin
   FBinaryTree.OnInOrderTravelLeaf := TreeInOrderTrav;
   FBinaryTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
 
-  FTrieTree := TCnTrieTree.Create;
+  FTrieTree := TCnTrieTree.Create(False);
 end;
 
 procedure TCnTreeTestForm.FormDestroy(Sender: TObject);
