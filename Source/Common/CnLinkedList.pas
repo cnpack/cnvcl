@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils;
+  Windows, SysUtils, Classes;
 
 {$IFNDEF COMPILER6_UP}
 const
@@ -142,7 +142,7 @@ type
   end;
 
 type
-  TCnCustomLinkedList = class(TObject)
+  TCnCustomLinkedList = class(TPersistent)
   private
     FFirst, FLast, FNode: PCnLinkedNode;
     FCount, FIndex: Integer;
@@ -238,7 +238,7 @@ type
     {* 移动节点}
     procedure Exchange(const Index1, Index2: Integer);
     {* 交换两个条目位置}
-    procedure Assign(const AList: TCnCustomLinkedList); virtual;
+    procedure Assign(const AList: TCnCustomLinkedList); reintroduce; virtual;
     {* 从另一双向链表复制}
   published
   end;
@@ -1430,7 +1430,6 @@ end;
 
 function TCnCustomLinkedList.GetNext(Move: Boolean): PCnLinkedNode;
 begin
-  Result := nil;
   if FNode = nil then
     raise Exception.Create(Format(SListIndexError, [FIndex]));
 
@@ -1446,7 +1445,6 @@ end;
 
 function TCnCustomLinkedList.GetPrevious(Move: Boolean): PCnLinkedNode;
 begin
-  Result := nil;
   if FNode = nil then
     raise Exception.Create(Format(SListIndexError, [FIndex]));
 
