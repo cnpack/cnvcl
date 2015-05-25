@@ -11,10 +11,13 @@
       ..\..\Source\Common\CnHashMap.obj ..\..\Source\Common\CnIni.obj 
       ..\..\Source\Common\CnIniStrUtils.obj ..\..\Source\Common\CnMD5.obj 
       ..\..\Source\Common\CnDES.obj ..\..\Source\Common\CnSHA1.obj 
+      ..\..\Source\Common\CnSM3.obj ..\..\Source\Common\CnSM4.obj 
       ..\..\Source\Common\CnSingleton.obj ..\..\Source\Common\CnSingletonComp.obj 
       ..\..\Source\Common\CnPack.obj ..\..\Source\Common\CnSQLite.obj 
       ..\..\Source\Common\CnStrDiff.obj ..\..\Source\Common\CnStream.obj 
-      ..\..\Source\Common\CnTree.obj ..\..\Source\Common\CnVCLBase.obj 
+      ..\..\Source\Common\CnTree.obj ..\..\Source\Common\CnLinkedList.obj 
+      ..\..\Source\Common\CnBigNumber.obj ..\..\Source\Common\CnBloomFilter.obj 
+      ..\..\Source\Common\CnSkipList.obj ..\..\Source\Common\CnVCLBase.obj 
       ..\..\Source\Common\CnWinSvc.obj ..\..\Source\DbReport\CnDBConsts.obj 
       ..\..\Source\Common\CnNativeDecl.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj ..\..\Source\DbReport\CnPagedGrid.obj 
