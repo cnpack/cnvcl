@@ -3441,7 +3441,7 @@ begin
   if Item <> nil then
     Result := Item^.AString
   else
-    Result := SEmptyString;
+    Result := AnsiString(SEmptyString);
 end;
 
 { TCnLinkedPWideCharsIterator }

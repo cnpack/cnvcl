@@ -154,7 +154,7 @@ type
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象}
 
-    function ToString: string;
+    function ToString: string; {$IFDEF DELPHI2009_UP} override; {$ENDIF}
     {* 将大数转成字符串 }
 
     function ToHex: string;
@@ -264,7 +264,7 @@ function BigNumberToHex(const Num: TCnBigNumber): string;
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十六进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
 
-function BigNumberToDec(const Num: TCnBigNumber): string;
+function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 {* 将一个大数对象转成十进制字符串}
 
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
@@ -721,7 +721,7 @@ begin
   begin
     Dec(I);
     L := PDWordArray(Num.D)^[I div BN_BYTES];
-    Buf^ := Chr(L shr (8 * (I mod BN_BYTES)) and $FF);
+    Buf^ := AnsiChar(Chr(L shr (8 * (I mod BN_BYTES)) and $FF));
 
     Buf := PAnsiChar(Integer(Buf) + 1);
   end;
@@ -3544,7 +3544,7 @@ end;
 
 function TCnBigNumber.ToDec: string;
 begin
-  Result := BigNumberToDec(Self);
+  Result := string(BigNumberToDec(Self));
 end;
 
 function TCnBigNumber.ToHex: string;
