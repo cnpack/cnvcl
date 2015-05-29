@@ -2,8 +2,20 @@ cnpack\Source 目录内容说明：
 
 \Common －公共库目录
 
+  CnAES.pas
+    AES 算法单元
+
+  CnAntiCheater.pas
+    使用内存变换防明文搜索的工具类
+
   CnBase64.pas
     Base64 编码解码算法单元
+
+  CnBigNumber.pas
+    大数计算单元
+
+  CnBloomFilter.pas
+    散花过滤实现单元，用多散列函数配合 bit 位记录字符串
 
   CnCalClass.pas
     历法计算类库
@@ -32,6 +44,9 @@ cnpack\Source 目录内容说明：
   CnCRC32.pas
     CRC32循环冗余校验单元
 
+  CnDancingLinks.pas
+    十字循环双向链表的稀疏矩阵以及跳舞链表的实现单元
+
   CnDebug.pas
     CnDebug 调试信息输出接口单元
 
@@ -40,6 +55,9 @@ cnpack\Source 目录内容说明：
 
   CnFloatConvert.pas
     浮点数转换为二、八、十六进制的实现单元
+
+  CnFmxUtils.pas
+    FMX 辅助库单元
 
   CnGraphUtils.pas
     公共图像函数库
@@ -65,6 +83,21 @@ cnpack\Source 目录内容说明：
   CnMemProf.pas
     一个简单的内存防护管理器实现单元
 
+  CnMethodHook.pas
+    方法挂接类
+
+  CnMulticastEvent.pas
+    多播实现类
+
+  CnNativeDecl.pas
+    Win32/64 的部分通用声明单元
+
+  CnObjAuto.pas
+    部分自动化对象实现单元
+
+  CnOTAUtils.pas
+    设计期组件包工具类
+
   CnPack.pas
     用于在 C++Builder 设计期包中引入 CnPack.dcr 文件的空单元
 
@@ -77,6 +110,9 @@ cnpack\Source 目录内容说明：
   CnQueue.pas
     简单的链表队列类实现单元
 
+  CnSHA1.pas
+    SHA1 算法单元
+
   CnShellUtils.pas
     Shell 工具单元
 
@@ -85,6 +121,15 @@ cnpack\Source 目录内容说明：
 
   CnSingletonComp.pas
     单实例组件实现单元
+
+  CnSkipList.pas
+    跳跃链表实现单元
+
+  CnSM3.pas
+    中国国家密码管理局发布的 SM3 密码杂凑算法实现单元
+
+  CnSM4.pas
+    中国国家密码管理局发布的 SM4 分组密码算法实现单元
 
   CnSQLite.pas
     SQLite 数据库的 Delphi 封装
@@ -95,8 +140,11 @@ cnpack\Source 目录内容说明：
   CnStream.pas
     扩展的 Stream 类实现
 
+  CnStrings.pas
+    Ansi 版 StringList 实现单元
+
   CnTree.pas
-    单根无序树的类实现单元
+    单根无序树、二叉树、字典搜索树等的类实现单元
 
   CnVarList.pas
     变体列表实现单元
@@ -104,10 +152,16 @@ cnpack\Source 目录内容说明：
   CnVCLBase.pas
     基本类定义单元
 
+  CnWideStrings.pas
+    Wide 版 StringList 实现单元
+
   CnWinSvc.pas
     Windows 服务封装单元
 
-              32 文件
+  CnXMLPersistent.pas
+    XML 流化类的工具类单元
+
+              59 文件
 
 \DbReport －数据库组件与报表库目录
 
