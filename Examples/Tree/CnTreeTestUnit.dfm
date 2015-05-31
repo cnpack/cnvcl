@@ -183,7 +183,7 @@ object CnTreeTestForm: TCnTreeTestForm
     Left = 680
     Top = 24
     Width = 185
-    Height = 265
+    Height = 241
     Caption = 'Trie Tree'
     TabOrder = 2
     object btnSaveTrie: TButton
@@ -229,6 +229,22 @@ object CnTreeTestForm: TCnTreeTestForm
       Height = 21
       TabOrder = 3
       Text = 'pie'
+    end
+    object chkAnsi: TCheckBox
+      Left = 16
+      Top = 184
+      Width = 145
+      Height = 17
+      Caption = 'Ansi Fast Mode'
+      TabOrder = 5
+    end
+    object chkCase: TCheckBox
+      Left = 16
+      Top = 208
+      Width = 145
+      Height = 17
+      Caption = 'Case Sensitive'
+      TabOrder = 6
     end
   end
 end

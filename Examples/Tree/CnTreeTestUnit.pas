@@ -31,6 +31,8 @@ type
     btnShowTrieHeight: TButton;
     btnSearch: TButton;
     edtSearch: TEdit;
+    chkAnsi: TCheckBox;
+    chkCase: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -394,7 +396,7 @@ begin
   FBinaryTree.OnInOrderTravelLeaf := TreeInOrderTrav;
   FBinaryTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
 
-  FTrieTree := TCnTrieTree.Create(False);
+  // FTrieTree := TCnTrieTree.Create(False);
 end;
 
 procedure TCnTreeTestForm.FormDestroy(Sender: TObject);
@@ -540,6 +542,9 @@ var
   I, C, T: Integer;
   Leaf: TCnTrieLeaf;
 begin
+  FreeAndNil(FTrieTree);
+  FTrieTree := TCnTrieTree.Create(chkCase.Checked, False, chkAnsi.Checked);
+
   C := 0;
   for I := Low(PinYins) to High(PinYins) do
   begin
@@ -553,7 +558,7 @@ begin
 
   T := 0;
   for I := 0 to FTrieTree.Count - 1 do
-    if FTrieTree.Items[I].Data = 1 then
+    if (FTrieTree.Items[I] <> nil) and (FTrieTree.Items[I].Data = 1) then
       Inc(T);
 
   ShowMessage('Generate OK: ' + IntToStr(C) + ' Check OK: ' + IntToStr(T) + #13#10 +
@@ -562,6 +567,9 @@ end;
 
 procedure TCnTreeTestForm.btnSaveTrieClick(Sender: TObject);
 begin
+  if FTrieTree = nil then
+    Exit;
+
   if FTrieTree.Count = 1 then
   begin
     ShowMessage('No Content. Do not Save.');
@@ -574,6 +582,9 @@ end;
 
 procedure TCnTreeTestForm.btnShowTrieHeightClick(Sender: TObject);
 begin
+  if FTrieTree = nil then
+    Exit;
+
   ShowMessage('TrieTree Height: ' + IntToStr(FTrieTree.Height));
 end;
 
@@ -581,6 +592,9 @@ procedure TCnTreeTestForm.btnSearchClick(Sender: TObject);
 var
   Leaf: TCnTrieLeaf;
 begin
+  if FTrieTree = nil then
+    Exit;
+
   Leaf := FTrieTree.SearchString(edtSearch.Text);
   if Leaf <> nil then
     ShowMessage('Found: ' + Leaf.Text)

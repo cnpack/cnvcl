@@ -22,16 +22,19 @@ unit CnTree;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack 公共单元
-* 单元名称：实现单根无序树的类单元
+* 单元名称：实现单根无序树、二叉树、字典搜索树的类单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
-* 备    注：该单元为 TCnTree 和 TCnLeaf 的单根无序树的实现单元。
-*           类似于 TTreeNodes 和 TTreeNode 的关系，支持深度和广度优先遍历，
+* 备    注：该单元为 TCnTree 和 TCnLeaf 的单根无序树的实现单元，以及其子类
+*           二叉树 TCnBinaryTree/Leaf、字典搜索树 TCnTrieTree/Leaf。
+*           TCnTree/Leaf 类似于 TTreeNodes/Node 的关系，支持深度和广度优先遍历，
 *           支持按深度优先的顺序以索引值的形式直接访问各个节点。
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.05.22 V1.6 by LiuXiao
+* 修改记录：2015.05.30 V1.7 by LiuXiao
+*               字典树加入 Ansi 快速查找模式。
+*           2015.05.22 V1.6 by LiuXiao
 *               加入字典树的实现。
 *           2015.05.03 V1.5 by LiuXiao
 *               加入二叉树的实现。
@@ -446,15 +449,21 @@ type
   private
     FCaseSensitive: Boolean;
     FOnlyChar: Boolean;
+    FAnsiFastMode: Boolean;
     function ConvertCharWithCase(C: Char): Char; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
     {* 根据大小写设置，返回原字符或大写字母（如果是小写字母）}
   protected
     function GetRoot: TCnTrieLeaf;
     function DefaultLeafClass: TCnLeafClass; override;
+    function CreateTrieLeaf: TCnTrieLeaf;
   public
     constructor Create(ACaseSensitive: Boolean = True;
-      AOnlyChar: Boolean = False); reintroduce; virtual;
-    {* 字典树构造函数，参数指定是否区分大小写，以及节点上是否只存储字母}
+      AOnlyChar: Boolean = False; AnAnsiFastMode: Boolean = False); reintroduce; virtual;
+    {* 字典树构造函数，参数指定：
+      ACaseSensitive：是否区分大小写
+      AOnlyChar：节点上是否只存储字母，如为否，则节点的 Text 属性会存储字符串值
+      AnAnsiFastMode：是否使用 Ansi 快速模式，在 Unicode 编译环境下此属性无效
+        如为 True，则节点将提前创建 256 个空白子节点供快速搜索，否则线性增序存储}
 
     function InsertString(const Str: string): TCnTrieLeaf;
     {* 插入字符串，返回插入的叶节点供外界设置内容，如果已存在则返回 nil}
@@ -470,6 +479,8 @@ type
     property CaseSensitive: Boolean read FCaseSensitive;
     {* 是否区分大小写。注意，如果不区分大小写且 OnlyChar 为 False，
        查找到的节点其存储的字符串内容可能不符合存入时的大小写情况}
+    property AnsiFastMode: Boolean read FAnsiFastMode;
+    {* Ansi 模式下是否预先创建 255 个子节点供快速定位，否则使用线性搜索}
   end;
 
 implementation
@@ -848,7 +859,10 @@ end;
 procedure TCnLeaf.SetItems(Index: Integer; const Value: TCnLeaf);
 begin
   if (Index >= 0) and (Index < Count) then
+  begin
     FList.Items[Index] := Value;
+    Value.FParent := Self;
+  end;
 end;
 
 //==============================================================================
@@ -1695,9 +1709,39 @@ begin
 
   C := P^;
   CaseC := Tree.ConvertCharWithCase(C);
+
+  if Tree.AnsiFastMode then
+  begin
+    I := Ord(CaseC);
+    if Items[I] = nil then // 无此字母对应子节点，直接创建
+    begin
+      Leaf := Tree.CreateTrieLeaf;
+      Leaf.Character := CaseC;
+      Items[I] := Leaf;
+
+      if not Tree.OnlyChar then
+        Leaf.Text := Leaf.Parent.Text + C;
+
+      Inc(P);
+      if P^ = #0 then
+        Result := Leaf
+      else
+        Result := Leaf.DoInsertChar(P);
+    end
+    else
+    begin
+      Inc(P);
+      if P^ = #0 then // 结束，字符串已经存在
+        Result := nil
+      else
+        Result := Items[I].DoInsertChar(P);
+    end;
+    Exit;
+  end;
+
   if Count = 0 then // 无子节点，直接创建
   begin
-    Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
+    Leaf := Tree.CreateTrieLeaf;
     Leaf.Character := CaseC;
     AddChild(Leaf);
     if not Tree.OnlyChar then
@@ -1737,7 +1781,7 @@ begin
   end
   else // 没这个字符的节点，要创建
   begin
-    Leaf := TCnTrieLeaf(Tree.CreateLeaf(Tree));
+    Leaf := Tree.CreateTrieLeaf;
     Leaf.Character := CaseC; // 如果大小写不敏感，则 Character 中存储大写字母
 
     if Gt = -1 then  // 没有比这字符大的节点，添加在最后
@@ -1766,15 +1810,30 @@ begin
     Exit;
 
   CaseC := Tree.ConvertCharWithCase(P^);
-  for I := 0 to Count - 1 do
+  if Tree.AnsiFastMode then
   begin
-    if Items[I].Character = CaseC then
+    I := Ord(CaseC);
+    if Items[I] <> nil then
     begin
       Inc(P);
       if P^ = #0 then
         Result := Items[I]
       else
         Result := Items[I].DoSearchChar(P);
+    end;
+  end
+  else
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      if Items[I].Character = CaseC then
+      begin
+        Inc(P);
+        if P^ = #0 then
+          Result := Items[I]
+        else
+          Result := Items[I].DoSearchChar(P);
+      end;
     end;
   end;
 end;
@@ -1805,7 +1864,7 @@ begin
 end;
 
 //==============================================================================
-// TCnTrieTree
+// TCnTrieTree 字典搜索树
 //==============================================================================
 
 function TCnTrieTree.ConvertCharWithCase(C: Char): Char;
@@ -1815,11 +1874,33 @@ begin
     Dec(Result, 32);
 end;
 
-constructor TCnTrieTree.Create(ACaseSensitive: Boolean; AOnlyChar: Boolean);
+constructor TCnTrieTree.Create(ACaseSensitive: Boolean; AOnlyChar: Boolean;
+  AnAnsiFastMode: Boolean);
+var
+  I: Char;
 begin
   inherited Create(TCnTrieLeaf);
   FCaseSensitive := ACaseSensitive;
   FOnlyChar := AOnlyChar;
+
+{$IFDEF UNICODE}
+  FAnsiFastMode := False;
+{$ELSE}
+  FAnsiFastMode := AnAnsiFastMode;
+{$ENDIF}
+  if FAnsiFastMode then
+    for I := Low(Char) to High(Char) do // 预先加入 256 个空子树
+      Root.FList.Add(nil);
+end;
+
+function TCnTrieTree.CreateTrieLeaf: TCnTrieLeaf;
+var
+  I: Char;
+begin
+  Result := TCnTrieLeaf(CreateLeaf(Self));
+  if FAnsiFastMode then
+    for I := Low(Char) to High(Char) do // 预先加入 256 个空子树
+      Result.FList.Add(nil);
 end;
 
 function TCnTrieTree.DefaultLeafClass: TCnLeafClass;
