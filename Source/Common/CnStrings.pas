@@ -22,13 +22,15 @@ unit CnStrings;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack 组件包
-* 单元名称：CnStrings 实现单元
+* 单元名称：CnStrings 实现单元，包括 AnsiStringList 以及一个快速子串搜索算法
 * 单元作者：CnPack 开发组 刘啸 (liuxiao@cnpack.org)
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
-* 备　　注：移植自 Delphi 7 的
+* 备　　注：AnsiStringList 移植自 Delphi 7 的 StringList
 * 单元标识：$Id$
-* 最后更新：2013.03.04
+* 最后更新：2015.06.01
+*               增加快速搜索子串算法 FastPosition
+*           2013.03.04
 ================================================================================
 |</PRE>}
 
@@ -236,6 +238,9 @@ type
     function IndexOfName(const Name: AnsiString): Integer; override;
   end;
 
+function FastPosition(const Str, Pattern: PChar; FromIndex: Integer = 0): Integer;
+{* 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1}
+
 implementation
 
 const
@@ -245,6 +250,74 @@ resourcestring
   SDuplicateString = 'AnsiString list does not allow duplicates';
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
+
+// 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1
+function FastPosition(const Str, Pattern: PChar; FromIndex: Integer): Integer;
+var
+  C: Char;
+  I, L, X, Y, PLen, SLen: Integer;
+  BCS: array[0..255] of Integer;
+begin
+  Result := -1;
+  if (Str = nil) or (Pattern = nil) then
+    Exit;
+
+  PLen := StrLen(Pattern);
+  if PLen = 0 then
+    Exit;
+  SLen := StrLen(Str);
+
+  // 如果是单字符搜索模式
+  if PLen = 1 then
+  begin
+    for I := FromIndex to SLen - 1 do
+    begin
+      if Str[I] = Pattern[0] then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+    Exit;
+  end;
+
+  // 填充快速跃进表
+  for I := Low(BCS) to High(BCS) do
+    BCS[I] := PLen;
+
+  for I := 0 to PLen - 2 do
+  begin
+    C := Pattern[I];
+    L := Ord(C) and $FF;
+    if PLen - I - 1 < BCS[L] then
+      BCS[L] := PLen - I - 1;
+  end;
+
+  // 再进行搜索
+  I := FromIndex + PLen - 1;
+  while I < SLen do
+  begin
+    X := I;
+    Y := PLen - 1;
+    while True do
+    begin
+      if Pattern[Y] <> Str[X] then
+      begin
+        Inc(I, BCS[Ord(Str[X]) and $FF]);
+        Break;
+      end;
+
+      if Y = 0 then
+      begin
+        Result := X;
+        Exit;
+      end;
+
+      Dec(X);
+      Dec(Y);
+    end;
+  end;
+end;
 
 { TCnAnsiStrings }
 
