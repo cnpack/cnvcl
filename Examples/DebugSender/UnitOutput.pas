@@ -89,6 +89,7 @@ type
     btnImageList: TButton;
     ilTest: TImageList;
     btnStack: TButton;
+    btnConstArray: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -120,6 +121,7 @@ type
     procedure btnEvalClick(Sender: TObject);
     procedure btnImageListClick(Sender: TObject);
     procedure btnStackClick(Sender: TObject);
+    procedure btnConstArrayClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -392,7 +394,53 @@ begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceCurrentStack('Trace Here')
   else
-    CnDebugger.LogCurrentStack;
+    CnDebugger.LogCurrentStack('Log Here');
+end;
+
+procedure TForm1.btnConstArrayClick(Sender: TObject);
+var
+  a: Integer;
+  b: Boolean;
+  c: Char;
+  d: Extended;
+  e: ShortString;
+  f: Pointer;
+  g: PChar;
+  h: TButton;
+  i: TClass;
+  j: WideChar;
+  k: PWideChar;
+  l: AnsiString;
+  m: Currency;
+  n: Variant;
+  o: IUnknown;
+  p: WideString;
+  q: Int64;
+  s: string; // Will be UnicodeString if under Unicode Env.
+begin
+  a := 10;
+  b := True;
+  c := 'a';
+  d := 2;
+  e := 'Sit';
+  f := Pointer(Self);
+  g := 'Q';
+  h := TButton(Sender);
+  i := TScreen;
+  j := #20976;
+  k := '³Ô';
+  l := 'Abcs';
+  m := 4.453;
+  n := 5;
+  o := nil;
+  p := 'CnPack';
+  q := 733;
+  s := 'Ë¯¾õ';
+
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceConstArray([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, s])
+  else
+    CnDebugger.LogConstArray([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, s]);
 end;
 
 end.

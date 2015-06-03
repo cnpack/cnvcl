@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.05.15
+* 修改记录：2015.06.03
+*               增加两个记录 array of const 的方法
+*           2015.05.15
 *               修正多线程同时启动 CnDebugViewer 时可能导致丢信息的问题
 *           2015.04.13
 *               增加两个记录字符串的方法，带十六进制输出，可供 Ansi/Unicode 使用
@@ -272,6 +274,7 @@ type
 
     // 统一处理 Format
     function FormatMsg(const AFormat: string; Args: array of const): string;
+    function FormatConstArray(Args: array of const): string;
 
     procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
       ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: DWORD; CPUPeriod: Int64);
@@ -341,6 +344,7 @@ type
     procedure LogComponent(AComponent: TComponent);
     procedure LogComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure LogCurrentStack(const AMsg: string = '');
+    procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
     // Log 系列输出函数 == End ==
 
     // Trace 系列输出函数 == Start ==
@@ -392,6 +396,7 @@ type
     procedure TraceComponent(AComponent: TComponent);
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure TraceCurrentStack(const AMsg: string = '');
+    procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
     // Trace 系列输出函数 == End ==
 
     // 异常过滤函数
@@ -539,6 +544,7 @@ const
   SCnObjException = '*** Exception ***';
   SCnUnknownError = 'Unknown Error! ';
   SCnLastErrorFmt = 'Last Error (Code: %d): %s';
+  SCnConstArray = 'Array of Const:';
 
   CnDebugWaitingMutexTime = 1000;  // Mutex 的等待时间顶多 1 秒
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
@@ -1611,6 +1617,49 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogCurrentStack(const AMsg: string);
+{$IFDEF DEBUG}
+{$IFDEF USE_JCL}
+var
+  Ebp: Pointer;
+  List: TJclStackInfoList;
+  Strings: TStrings;
+{$ENDIF}
+{$ENDIF}
+begin
+{$IFDEF DEBUG}
+{$IFDEF USE_JCL}
+  Strings := nil;
+  List := nil;
+
+  try
+    Strings := TStringList.Create;
+    Ebp := GetEBP;
+    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
+    List.AddToStrings(Strings, True, True, True, False);
+
+    LogMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
+  finally
+    List.Free;
+    Strings.Free;
+  end;
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogConstArray(const Arr: array of const;
+  const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFull(FormatMsg('%s %s', [SCnConstArray, FormatConstArray(Arr)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    LogFull(FormatMsg('%s %s', [AMsg, FormatConstArray(Arr)]), CurrentTag,
+      CurrentLevel, CurrentMsgType);
+{$ENDIF}
+end;
+
 function TCnDebugger.PointToString(APoint: TPoint): string;
 begin
   Result := '(' + IntToStr(APoint.x) + ',' + IntToStr(APoint.y) + ')';
@@ -2106,6 +2155,43 @@ begin
   TraceErrorFmt(SCnLastErrorFmt, [ErrNo, Buf]);
 end;
 
+procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
+{$IFDEF USE_JCL}
+var
+  Ebp: Pointer;
+  List: TJclStackInfoList;
+  Strings: TStrings;
+{$ENDIF}
+begin
+{$IFDEF USE_JCL}
+  Strings := nil;
+  List := nil;
+
+  try
+    Strings := TStringList.Create;
+    Ebp := GetEBP;
+    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
+    List.AddToStrings(Strings, True, True, True, False);
+
+    TraceMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
+  finally
+    List.Free;
+    Strings.Free;
+  end;
+{$ENDIF}
+end;
+
+procedure TCnDebugger.TraceConstArray(const Arr: array of const;
+  const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceFull(FormatMsg('%s %s', [SCnConstArray, FormatConstArray(Arr)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    TraceFull(FormatMsg('%s %s', [AMsg, FormatConstArray(Arr)]), CurrentTag,
+      CurrentLevel, CurrentMsgType);
+end;
+
 function TCnDebugger.GetDiscardedMessageCount: Integer;
 begin
 {$IFNDEF NDEBUG}
@@ -2473,60 +2559,67 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.LogCurrentStack(const AMsg: string);
-{$IFDEF DEBUG}
-{$IFDEF USE_JCL}
+function TCnDebugger.FormatConstArray(Args: array of const): string;
+const
+  CRLF = #13#10;
+{$IFDEF WIN64}
+  Digits = 16;
+{$ELSE}
+  Digits = 8;
+{$ENDIF}
 var
-  Ebp: Pointer;
-  List: TJclStackInfoList;
-  Strings: TStrings;
-{$ENDIF}
-{$ENDIF}
+  I: Integer;
 begin
-{$IFDEF DEBUG}
-{$IFDEF USE_JCL}
-  Strings := nil;
-  List := nil;
-
-  try
-    Strings := TStringList.Create;
-    Ebp := GetEBP;
-    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
-    List.AddToStrings(Strings, True, True, True, False);
-
-    LogMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
-  finally
-    List.Free;
-    Strings.Free;
+  Result := 'Count ' + IntToStr(High(Args) - Low(Args) + 1) + CRLF;
+  for I := Low(Args) to High(Args) do
+  begin
+    case Args[I].VType of
+      vtInteger:
+        Result := Result + 'Integer: ' + IntToStr(Args[I].VInteger) + CRLF;
+      vtBoolean:
+        begin
+          if Args[I].VBoolean then
+            Result := Result + 'Boolean: ' + 'True' + CRLF
+          else
+            Result := Result + 'Boolean: ' + 'False' + CRLF;
+        end;
+      vtChar:
+        Result := Result + 'Char: ' + Args[I].VChar + CRLF;
+      vtExtended:
+        Result := Result + 'Extended: ' + FloatToStr(Args[I].VExtended^) + CRLF;
+      vtString:
+        Result := Result + 'String: ' + PShortString(Args[I].VString)^ + CRLF;
+      vtPointer:
+        Result := Result + 'Pointer: ' + IntToHex(Integer(Args[I].VPointer), Digits) + CRLF;
+      vtPChar:
+        Result := Result + 'PChar: ' + Args[I].VPChar + CRLF;
+      vtObject:
+        Result := Result + 'Object: ' + Args[I].VObject.ClassName + IntToHex(Integer
+          (Args[I].VObject), Digits) + CRLF;
+      vtClass:
+        Result := Result + 'Class: ' + Args[I].VClass.ClassName + CRLF;
+      vtWideChar:
+        Result := Result + 'WideChar: ' + Args[I].VWideChar + CRLF;
+      vtPWideChar:
+        Result := Result + 'PWideChar: ' + Args[I].VPWideChar + CRLF;
+      vtAnsiString:
+        Result := Result + 'AnsiString: ' + AnsiString(PAnsiChar(Args[I].VAnsiString)) + CRLF;
+      vtCurrency:
+        Result := Result + 'Currency: ' + CurrToStr(Args[I].VCurrency^) + CRLF;
+      vtVariant:
+        Result := Result + 'Variant: ' + string(Args[I].VVariant^) + CRLF;
+      vtInterface:
+        Result := Result + 'Interface: ' + IntToHex(Integer(Args[I].VInterface), Digits) + CRLF;
+      vtWideString:
+        Result := Result + 'WideString: ' + WideString(PWideChar(Args[I].VWideString)) + CRLF;
+      vtInt64:
+        Result := Result + 'Int64: ' + IntToStr(Args[I].VInt64^) + CRLF;
+{$IFDEF UNICODE}
+      vtUnicodeString:
+        Result := Result + 'UnicodeString: ' + string(PWideChar(Args[I].VUnicodeString)) + CRLF;
+{$ENDIF}
+    end;
   end;
-{$ENDIF}
-{$ENDIF}
-end;
-
-procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
-{$IFDEF USE_JCL}
-var
-  Ebp: Pointer;
-  List: TJclStackInfoList;
-  Strings: TStrings;
-{$ENDIF}
-begin
-{$IFDEF USE_JCL}
-  Strings := nil;
-  List := nil;
-
-  try
-    Strings := TStringList.Create;
-    Ebp := GetEBP;
-    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
-    List.AddToStrings(Strings, True, True, True, False);
-
-    TraceMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
-  finally
-    List.Free;
-    Strings.Free;
-  end;
-{$ENDIF}
 end;
 
 { TCnDebugChannel }

@@ -45,7 +45,7 @@ object Form1: TForm1
     Width = 49
     Height = 21
     Caption = '发送'
-    TabOrder = 10
+    TabOrder = 26
     OnClick = Button1Click
   end
   object cbbLevel: TComboBox
@@ -55,7 +55,7 @@ object Form1: TForm1
     Height = 20
     Style = csDropDownList
     ItemHeight = 12
-    TabOrder = 2
+    TabOrder = 10
     Items.Strings = (
       '0'
       '1'
@@ -70,7 +70,7 @@ object Form1: TForm1
     Caption = '使用Level参数'
     Checked = True
     State = cbChecked
-    TabOrder = 1
+    TabOrder = 9
   end
   object chkType: TCheckBox
     Left = 8
@@ -80,7 +80,7 @@ object Form1: TForm1
     Caption = '使用 Type参数'
     Checked = True
     State = cbChecked
-    TabOrder = 3
+    TabOrder = 13
   end
   object cbbType: TComboBox
     Left = 120
@@ -89,7 +89,7 @@ object Form1: TForm1
     Height = 20
     Style = csDropDownList
     ItemHeight = 12
-    TabOrder = 4
+    TabOrder = 14
     Items.Strings = (
       '0'
       '1'
@@ -113,7 +113,7 @@ object Form1: TForm1
     Width = 97
     Height = 17
     Caption = '使用 Tag 参数'
-    TabOrder = 5
+    TabOrder = 17
   end
   object cbbTag: TComboBox
     Left = 120
@@ -121,14 +121,14 @@ object Form1: TForm1
     Width = 97
     Height = 20
     ItemHeight = 12
-    TabOrder = 6
+    TabOrder = 18
   end
   object edtMsg: TEdit
     Left = 72
     Top = 152
     Width = 145
     Height = 20
-    TabOrder = 7
+    TabOrder = 21
     Text = 'Test Message'
     OnKeyPress = edtMsgKeyPress
   end
@@ -137,7 +137,7 @@ object Form1: TForm1
     Top = 176
     Width = 73
     Height = 20
-    TabOrder = 8
+    TabOrder = 24
     Text = '1'
   end
   object udCount: TUpDown
@@ -149,7 +149,7 @@ object Form1: TForm1
     Min = 1
     Max = 1000
     Position = 1
-    TabOrder = 9
+    TabOrder = 25
     Wrap = False
   end
   object Button2: TButton
@@ -158,7 +158,7 @@ object Form1: TForm1
     Width = 65
     Height = 21
     Caption = '计时开始'
-    TabOrder = 11
+    TabOrder = 31
     OnClick = Button2Click
   end
   object rgMethod: TRadioGroup
@@ -179,7 +179,7 @@ object Form1: TForm1
     Width = 41
     Height = 21
     Caption = '进入'
-    TabOrder = 12
+    TabOrder = 32
     OnClick = btnEnterClick
   end
   object btnLeave: TButton
@@ -188,7 +188,7 @@ object Form1: TForm1
     Width = 41
     Height = 21
     Caption = '退出'
-    TabOrder = 13
+    TabOrder = 33
     OnClick = btnLeaveClick
   end
   object Button3: TButton
@@ -197,7 +197,7 @@ object Form1: TForm1
     Width = 41
     Height = 21
     Caption = '分隔'
-    TabOrder = 14
+    TabOrder = 34
     OnClick = Button3Click
   end
   object edtInt: TEdit
@@ -205,7 +205,7 @@ object Form1: TForm1
     Top = 12
     Width = 73
     Height = 20
-    TabOrder = 15
+    TabOrder = 1
     Text = '1'
   end
   object udInt: TUpDown
@@ -217,7 +217,7 @@ object Form1: TForm1
     Min = 1
     Max = 1000
     Position = 1
-    TabOrder = 16
+    TabOrder = 2
     Wrap = False
   end
   object btnSendInt: TButton
@@ -226,7 +226,7 @@ object Form1: TForm1
     Width = 113
     Height = 21
     Caption = '发送整数'
-    TabOrder = 17
+    TabOrder = 3
     OnClick = btnSendIntClick
   end
   object edtFloat: TEdit
@@ -234,7 +234,7 @@ object Form1: TForm1
     Top = 36
     Width = 73
     Height = 20
-    TabOrder = 18
+    TabOrder = 4
     Text = '3.14159'
   end
   object btnSendFloat: TButton
@@ -243,7 +243,7 @@ object Form1: TForm1
     Width = 113
     Height = 21
     Caption = '发送浮点'
-    TabOrder = 19
+    TabOrder = 5
     OnClick = btnSendFloatClick
   end
   object btnSendColor: TButton
@@ -252,7 +252,7 @@ object Form1: TForm1
     Width = 65
     Height = 21
     Caption = '发送颜色'
-    TabOrder = 21
+    TabOrder = 7
     OnClick = btnSendColorClick
   end
   object btnSendBool: TButton
@@ -261,7 +261,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '发送布尔'
-    TabOrder = 22
+    TabOrder = 8
     OnClick = btnSendBoolClick
   end
   object btnSendPoint: TButton
@@ -270,7 +270,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '发送点点'
-    TabOrder = 23
+    TabOrder = 11
     OnClick = btnSendPointClick
   end
   object btnSendRect: TButton
@@ -279,7 +279,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '发送框框'
-    TabOrder = 24
+    TabOrder = 12
     OnClick = btnSendRectClick
   end
   object pnlColor: TPanel
@@ -288,7 +288,7 @@ object Form1: TForm1
     Width = 17
     Height = 17
     BevelOuter = bvLowered
-    TabOrder = 20
+    TabOrder = 6
     OnClick = pnlColorClick
   end
   object btnDump: TButton
@@ -297,7 +297,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '倒内存'
-    TabOrder = 25
+    TabOrder = 15
     OnClick = btnDumpClick
   end
   object btnExcept: TButton
@@ -306,7 +306,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '抛异常'
-    TabOrder = 26
+    TabOrder = 16
     OnClick = btnExceptClick
   end
   object btnWriteComp: TButton
@@ -315,7 +315,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '写组件'
-    TabOrder = 27
+    TabOrder = 19
     OnClick = btnWriteCompClick
   end
   object btnWriteObj: TButton
@@ -324,7 +324,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '写对象'
-    TabOrder = 28
+    TabOrder = 20
     OnClick = btnWriteObjClick
   end
   object btnWriteCol: TButton
@@ -333,7 +333,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '写Collection'
-    TabOrder = 29
+    TabOrder = 22
     OnClick = btnWriteColClick
   end
   object StatusBar1: TStatusBar
@@ -359,7 +359,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '线程内发送'
-    TabOrder = 30
+    TabOrder = 23
     OnClick = btnThreadClick
   end
   object Button4: TButton
@@ -371,7 +371,7 @@ object Form1: TForm1
     Caption = 'Debug API'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 31
+    TabOrder = 27
     OnClick = Button4Click
   end
   object btnEvaluate: TButton
@@ -380,7 +380,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '查看窗体Object'
-    TabOrder = 33
+    TabOrder = 29
     OnClick = btnEvaluateClick
   end
   object btnEvaColl: TButton
@@ -389,7 +389,7 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '查看 Collection'
-    TabOrder = 34
+    TabOrder = 30
     OnClick = btnEvaCollClick
   end
   object btnDatetime: TButton
@@ -398,19 +398,19 @@ object Form1: TForm1
     Width = 97
     Height = 21
     Caption = '发送时间'
-    TabOrder = 35
+    TabOrder = 28
     OnClick = btnDatetimeClick
   end
   object btnFmtError: TButton
     Left = 248
     Top = 228
-    Width = 209
+    Width = 97
     Height = 21
     Hint = 'OutputDebugString'
-    Caption = '发个错误的 Format'
+    Caption = '发错误 Format'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 36
+    TabOrder = 35
     OnClick = btnFmtErrorClick
   end
   object btnEval: TBitBtn
@@ -542,6 +542,18 @@ object Form1: TForm1
     TabOrder = 39
     OnClick = btnStackClick
   end
+  object btnConstArray: TButton
+    Left = 360
+    Top = 228
+    Width = 97
+    Height = 21
+    Hint = 'OutputDebugString'
+    Caption = 'array of const'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 36
+    OnClick = btnConstArrayClick
+  end
   object dlgColor: TColorDialog
     Ctl3D = True
     Left = 256
@@ -556,7 +568,7 @@ object Form1: TForm1
     Left = 264
     Top = 248
     Bitmap = {
-      494C010104000500040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010104000500040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -824,6 +836,7 @@ object Form1: TForm1
       FFFC01FFC000FFFF00000000E0001FFF00000000E0000FFF00000000F0010FFF
       00000000F0010FFF00000000F8000FFF22000000FC001FFFC4600000FC00FFFF
       88C40000FE00FFFF11880000FF00FFFF23100000FF80FFFF46200000FFC0FFFF
-      8C440000FFF0FFFF188C0000FFF8FFFF}
+      8C440000FFF0FFFF188C0000FFF8FFFF00000000000000000000000000000000
+      000000000000}
   end
 end
