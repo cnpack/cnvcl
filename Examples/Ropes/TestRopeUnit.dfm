@@ -26,7 +26,7 @@ object TestRopeForm: TTestRopeForm
       Top = 28
       Width = 81
       Height = 21
-      TabOrder = 0
+      TabOrder = 1
       Text = 'sad'
     end
     object edtStr: TEdit
@@ -34,7 +34,7 @@ object TestRopeForm: TTestRopeForm
       Top = 28
       Width = 609
       Height = 21
-      TabOrder = 1
+      TabOrder = 2
       Text = 'I am sad for the world.'
     end
     object btnSearch: TButton
@@ -43,7 +43,7 @@ object TestRopeForm: TTestRopeForm
       Width = 73
       Height = 25
       Caption = 'Search'
-      TabOrder = 2
+      TabOrder = 0
       OnClick = btnSearchClick
     end
   end
@@ -54,6 +54,13 @@ object TestRopeForm: TTestRopeForm
     Height = 449
     Caption = 'Ropes'
     TabOrder = 1
+    object lbl1: TLabel
+      Left = 344
+      Top = 164
+      Width = 13
+      Height = 13
+      Caption = 'To'
+    end
     object mmoRope: TMemo
       Left = 24
       Top = 32
@@ -87,7 +94,7 @@ object TestRopeForm: TTestRopeForm
       Width = 809
       Height = 113
       ReadOnly = True
-      TabOrder = 3
+      TabOrder = 11
     end
     object btnTrim: TButton
       Left = 280
@@ -95,7 +102,7 @@ object TestRopeForm: TTestRopeForm
       Width = 75
       Height = 25
       Caption = 'Trim'
-      TabOrder = 4
+      TabOrder = 5
       OnClick = btnTrimClick
     end
     object btnEqual: TButton
@@ -104,7 +111,7 @@ object TestRopeForm: TTestRopeForm
       Width = 75
       Height = 25
       Caption = 'Equal?'
-      TabOrder = 5
+      TabOrder = 3
       OnClick = btnEqualClick
     end
     object btnReverse: TButton
@@ -116,5 +123,70 @@ object TestRopeForm: TTestRopeForm
       TabOrder = 6
       OnClick = btnReverseClick
     end
+    object udStart: TUpDown
+      Left = 321
+      Top = 160
+      Width = 15
+      Height = 21
+      Associate = edtStart
+      Min = 0
+      Position = 4
+      TabOrder = 8
+      Wrap = False
+    end
+    object edtStart: TEdit
+      Left = 280
+      Top = 160
+      Width = 41
+      Height = 21
+      TabOrder = 7
+      Text = '4'
+    end
+    object btnDelete: TButton
+      Left = 432
+      Top = 160
+      Width = 75
+      Height = 25
+      Caption = 'Delete'
+      TabOrder = 9
+      OnClick = btnDeleteClick
+    end
+    object btnSubStr: TButton
+      Left = 520
+      Top = 160
+      Width = 75
+      Height = 25
+      Caption = 'SubStr'
+      TabOrder = 10
+      OnClick = btnSubStrClick
+    end
+    object btnPos: TButton
+      Left = 600
+      Top = 32
+      Width = 75
+      Height = 25
+      Caption = 'Position'
+      TabOrder = 4
+      OnClick = btnPosClick
+    end
+  end
+  object udEnd: TUpDown
+    Left = 425
+    Top = 272
+    Width = 15
+    Height = 21
+    Associate = edtEnd
+    Min = 0
+    Position = 9
+    TabOrder = 3
+    Wrap = False
+  end
+  object edtEnd: TEdit
+    Left = 384
+    Top = 272
+    Width = 41
+    Height = 21
+    TabOrder = 2
+    Text = '9'
   end
 end

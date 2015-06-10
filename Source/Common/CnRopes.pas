@@ -389,6 +389,9 @@ end;
 
 function TCnFlatRope.SubStr(StartIndex, EndIndex: Integer): ICnRope;
 begin
+  if (StartIndex <= 0) or (StartIndex > EndIndex) then
+    raise ECnRopeIndexException.Create('Invalid Start and End Index.');
+
   if (StartIndex = 1) and (EndIndex > FLength) then
     Result := Self
   else if EndIndex - StartIndex < CN_COMBINE_LENGTH then
@@ -436,10 +439,10 @@ end;
 
 function TCnRope.Delete(StartIndex, EndIndex: Integer): ICnRope;
 begin
-  if StartIndex = EndIndex then
+  if StartIndex > EndIndex then
     Result := Self
   else
-    Result := SubStr(1, StartIndex).AppendRope(SubStr(EndIndex, Length));
+    Result := SubStr(1, StartIndex - 1).AppendRope(SubStr(EndIndex + 1, Length));
 end;
 
 destructor TCnRope.Destroy;
@@ -519,7 +522,7 @@ var
   I, L, X, Y, PLen: Integer;
   BCS: array[0..255] of Integer;
 begin
-  Result := -1;
+  Result := 0;
   PLen := System.Length(Pattern);
   if (PLen = 0) or (Length = 0) then
     Exit;

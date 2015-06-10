@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnStrings, StdCtrls, CnRopes;
+  CnStrings, StdCtrls, CnRopes, ComCtrls;
 
 type
   TTestRopeForm = class(TForm)
@@ -20,6 +20,14 @@ type
     btnTrim: TButton;
     btnEqual: TButton;
     btnReverse: TButton;
+    udStart: TUpDown;
+    edtStart: TEdit;
+    udEnd: TUpDown;
+    edtEnd: TEdit;
+    lbl1: TLabel;
+    btnDelete: TButton;
+    btnSubStr: TButton;
+    btnPos: TButton;
     procedure btnSearchClick(Sender: TObject);
     procedure mmoRopeChange(Sender: TObject);
     procedure btnAppendClick(Sender: TObject);
@@ -27,6 +35,9 @@ type
     procedure btnTrimClick(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
     procedure btnReverseClick(Sender: TObject);
+    procedure btnDeleteClick(Sender: TObject);
+    procedure btnSubStrClick(Sender: TObject);
+    procedure btnPosClick(Sender: TObject);
   private
     { Private declarations }
     FRope: ICnRope;
@@ -86,6 +97,21 @@ end;
 procedure TTestRopeForm.btnReverseClick(Sender: TObject);
 begin
   ShowResult(FRope.Reverse);
+end;
+
+procedure TTestRopeForm.btnDeleteClick(Sender: TObject);
+begin
+  ShowResult(FRope.Delete(udStart.Position, udEnd.Position));
+end;
+
+procedure TTestRopeForm.btnSubStrClick(Sender: TObject);
+begin
+  ShowResult(FRope.SubStr(udStart.Position, udEnd.Position));
+end;
+
+procedure TTestRopeForm.btnPosClick(Sender: TObject);
+begin
+  ShowMessage(IntToStr(FRope.Position(edtAppend.Text)));
 end;
 
 end.
