@@ -1,0 +1,91 @@
+unit TestRopeUnit;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  CnStrings, StdCtrls, CnRopes;
+
+type
+  TTestRopeForm = class(TForm)
+    grpFastPos: TGroupBox;
+    edtPattern: TEdit;
+    edtStr: TEdit;
+    btnSearch: TButton;
+    grpRopes: TGroupBox;
+    mmoRope: TMemo;
+    edtAppend: TEdit;
+    btnAppend: TButton;
+    mmoResult: TMemo;
+    btnTrim: TButton;
+    btnEqual: TButton;
+    btnReverse: TButton;
+    procedure btnSearchClick(Sender: TObject);
+    procedure mmoRopeChange(Sender: TObject);
+    procedure btnAppendClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure btnTrimClick(Sender: TObject);
+    procedure btnEqualClick(Sender: TObject);
+    procedure btnReverseClick(Sender: TObject);
+  private
+    { Private declarations }
+    FRope: ICnRope;
+    procedure ShowResult(Rope: ICnRope);
+  public
+    { Public declarations }
+  end;
+
+var
+  TestRopeForm: TTestRopeForm;
+
+implementation
+
+{$R *.DFM}
+
+procedure TTestRopeForm.btnSearchClick(Sender: TObject);
+var
+  R: Integer;
+begin
+  R := FastPosition(PChar(edtStr.Text), PChar(edtPattern.Text));
+  ShowMessage('Search Result: ' + IntToStr(R));
+end;
+
+procedure TTestRopeForm.mmoRopeChange(Sender: TObject);
+begin
+  FRope := CreateRope(mmoRope.Lines.Text);
+end;
+
+procedure TTestRopeForm.ShowResult(Rope: ICnRope);
+begin
+  mmoResult.Lines.Text := Rope.ToString;
+end;
+
+procedure TTestRopeForm.btnAppendClick(Sender: TObject);
+begin
+  ShowResult(FRope.Append(edtAppend.Text));
+end;
+
+procedure TTestRopeForm.FormCreate(Sender: TObject);
+begin
+  FRope := CreateRope(mmoRope.Lines.Text);
+end;
+
+procedure TTestRopeForm.btnTrimClick(Sender: TObject);
+begin
+  ShowResult(FRope.Trim);
+end;
+
+procedure TTestRopeForm.btnEqualClick(Sender: TObject);
+begin
+  if FRope.Trim.EqualsStr(edtAppend.Text) then
+    ShowMessage('Equal')
+  else
+    ShowMessage('Not Equal');
+end;
+
+procedure TTestRopeForm.btnReverseClick(Sender: TObject);
+begin
+  ShowResult(FRope.Reverse);
+end;
+
+end.
