@@ -28,6 +28,11 @@ type
     btnDelete: TButton;
     btnSubStr: TButton;
     btnPos: TButton;
+    edtInsert: TEdit;
+    edtInsertPos: TEdit;
+    udInsertPos: TUpDown;
+    btnInsert: TButton;
+    btnDup: TButton;
     procedure btnSearchClick(Sender: TObject);
     procedure mmoRopeChange(Sender: TObject);
     procedure btnAppendClick(Sender: TObject);
@@ -38,6 +43,8 @@ type
     procedure btnDeleteClick(Sender: TObject);
     procedure btnSubStrClick(Sender: TObject);
     procedure btnPosClick(Sender: TObject);
+    procedure btnInsertClick(Sender: TObject);
+    procedure btnDupClick(Sender: TObject);
   private
     { Private declarations }
     FRope: ICnRope;
@@ -112,6 +119,16 @@ end;
 procedure TTestRopeForm.btnPosClick(Sender: TObject);
 begin
   ShowMessage(IntToStr(FRope.Position(edtAppend.Text)));
+end;
+
+procedure TTestRopeForm.btnInsertClick(Sender: TObject);
+begin
+  ShowResult(FRope.Insert(edtInsert.Text, udInsertPos.Position));
+end;
+
+procedure TTestRopeForm.btnDupClick(Sender: TObject);
+begin
+  ShowResult(FRope.Duplicate);
 end;
 
 end.

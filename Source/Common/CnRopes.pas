@@ -44,36 +44,64 @@ type
   ECnRopeIndexException = class(Exception);
 
   ICnRope = interface
+  {* 所有 Ropes 字符串对象的公共基础接口，供外界使用}
     ['{D1E1DF7C-DE30-4D4A-A383-BF0ACACB5D9B}']
     function GetLength: Integer;
     function GetDepth: Integer;
     function GetCharAt(Index: Integer): Char;
+
     function Position(Pattern: Char; FromIndex: Integer = 1): Integer; overload;
+    {* 查找字符，返回字符位置}
     function Position(const Pattern: string; FromIndex: Integer = 1): Integer; overload;
+    {* 查找字符串，返回字符串位置}
     function Reverse: ICnRope;
+    {* 返回本字符串的反向字符串}
     function ReBalance: ICnRope;
+    {* 重新调整平衡，返回调整后的字符串}
     function ToString: string;
+    {* 输出成字符串}
 
     function Append(const Str: string): ICnRope;
+    {* 后面增加字符串，返回增加后的字符串}
+    function AppendTo(const Str: string): ICnRope;
+    {* 将自身增加在字符串后面，返回增加后的字符串}
     function AppendRope(const Rope: ICnRope): ICnRope;
+    {* 后面增加字符串，返回增加后的字符串}
     function SubStr(StartIndex, EndIndex: Integer): ICnRope;
+    {* 取从 StartIndex 到 EndIndex 的子串，返回子串}
     function Delete(StartIndex, EndIndex: Integer): ICnRope;
+    {* 删除从 StartIndex 到 EndIndex 的子串，返回删除后的字符串}
+    function Insert(const Str: string; StartIndex: Integer): ICnRope;
+    {* 在第 StartIndex 个字符前插入字符串}
+    function InsertRope(const Rope: ICnRope; StartIndex: Integer): ICnRope;
+    {* 在第 StartIndex 个字符前插入字符串}
+    function Duplicate: ICnRope;
+    {* 复制一份字符串}
 
     function Equals(ARope: ICnRope): Boolean;
+    {* 判断字符串内容是否相等，区分大小写}
     function EqualsStr(const AStr: string): Boolean;
+    {* 判断字符串内容是否相等，区分大小写}
 
     function Trim: ICnRope;
+    {* 修剪两端的空格与不可见字符，返回修剪后的字符串}
     function TrimStart: ICnRope;
+    {* 修剪首端的空格与不可见字符，返回修剪后的字符串}
     function TrimEnd: ICnRope;
+    {* 修剪尾端的空格与不可见字符，返回修剪后的字符串}
 
     property Depth: Integer read GetDepth;
+    {* 树深度}
     property Length: Integer read GetLength;
+    {* 字符串长度}
     property CharAt[Index: Integer]: Char read GetCharAt;
+    {* 下标字符，从 1 开始}
   end;
 
   ICnFlatRope = interface(ICnRope)
     ['{994B424D-A521-4A33-A788-C5C823870CE6}']
     function SubString(StartIndex, Len: Integer): string;
+    {* 返回 StartIndex 起长度为 Len 的子串}
   end;
 
   ICnReverseRope = interface(ICnRope)
@@ -90,7 +118,9 @@ type
     function GetRight: ICnRope;
 
     property Left: ICnRope read GetLeft;
+    {* 左子树}
     property Right: ICnRope read GetRight;
+    {* 右子树}
   end;
 
 function CreateRope(const Str: string): ICnRope;
@@ -126,9 +156,13 @@ type
     function ToString: string; virtual;
 
     function Append(const Str: string): ICnRope; virtual;
+    function AppendTo(const Str: string): ICnRope; virtual;
     function AppendRope(const Rope: ICnRope): ICnRope; virtual;
     function SubStr(StartIndex, EndIndex: Integer): ICnRope; virtual;
     function Delete(StartIndex, EndIndex: Integer): ICnRope; virtual;
+    function Insert(const Str: string; StartIndex: Integer): ICnRope; virtual;
+    function InsertRope(const Rope: ICnRope; StartIndex: Integer): ICnRope; virtual;
+    function Duplicate: ICnRope;
 
     function Equals(ARope: ICnRope): Boolean;
     function EqualsStr(const AStr: string): Boolean;
@@ -140,7 +174,6 @@ type
     property Depth: Integer read GetDepth;
     property Length: Integer read GetLength;
     property CharAt[Index: Integer]: Char read GetCharAt;
-    {* 下标字符，从 1 开始}
   end;
 
   TCnFlatRope = class(TCnRope, ICnFlatRope)
@@ -431,6 +464,11 @@ begin
   Result := ConcatRopes(Self, Rope);
 end;
 
+function TCnRope.AppendTo(const Str: string): ICnRope;
+begin
+  Result := ConcatRopes(TCnFlatRope.Create(Str), Self);
+end;
+
 constructor TCnRope.Create;
 begin
   inherited;
@@ -513,6 +551,21 @@ begin
       Result := I;
       Exit;
     end;
+  end;
+end;
+
+function TCnRope.Insert(const Str: string; StartIndex: Integer): ICnRope;
+begin
+  if StartIndex < 0 then
+    raise ECnRopeIndexException.Create('Invalid Insert Index.');
+
+  if Str = '' then
+    Result := Self
+  else if StartIndex = 1 then
+    Result := TCnFlatRope.Create(Str).AppendRope(Self)
+  else
+  begin
+    Result := SubStr(1, StartIndex - 1).Append(Str).AppendRope(SubStr(StartIndex, Length));
   end;
 end;
 
@@ -633,6 +686,26 @@ begin
     Result := Self
   else
     Result := SubStr(L, Length);
+end;
+
+function TCnRope.InsertRope(const Rope: ICnRope; StartIndex: Integer): ICnRope;
+begin
+  if StartIndex < 0 then
+    raise ECnRopeIndexException.Create('Invalid Insert Index.');
+
+  if (Rope = nil) or (Rope.Length = 0) then
+    Result := Self
+  else if StartIndex = 1 then
+    Result := Rope.AppendRope(Self)
+  else
+  begin
+    Result := SubStr(1, StartIndex - 1).AppendRope(Rope).AppendRope(SubStr(StartIndex, Length));
+  end;
+end;
+
+function TCnRope.Duplicate: ICnRope;
+begin
+  Result := TCnFlatRope.Create(ToString);
 end;
 
 { TCnReverseRope }

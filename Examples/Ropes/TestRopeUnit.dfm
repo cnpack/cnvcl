@@ -169,6 +169,51 @@ object TestRopeForm: TTestRopeForm
       TabOrder = 4
       OnClick = btnPosClick
     end
+    object edtInsert: TEdit
+      Left = 280
+      Top = 200
+      Width = 121
+      Height = 21
+      TabOrder = 12
+      Text = 'To Insert'
+    end
+    object edtInsertPos: TEdit
+      Left = 416
+      Top = 200
+      Width = 41
+      Height = 21
+      TabOrder = 13
+      Text = '6'
+    end
+    object udInsertPos: TUpDown
+      Left = 457
+      Top = 200
+      Width = 16
+      Height = 21
+      Associate = edtInsertPos
+      Min = 0
+      Position = 6
+      TabOrder = 14
+      Wrap = False
+    end
+    object btnInsert: TButton
+      Left = 488
+      Top = 200
+      Width = 75
+      Height = 25
+      Caption = 'Insert'
+      TabOrder = 15
+      OnClick = btnInsertClick
+    end
+    object btnDup: TButton
+      Left = 280
+      Top = 232
+      Width = 75
+      Height = 25
+      Caption = 'Duplicate'
+      TabOrder = 16
+      OnClick = btnDupClick
+    end
   end
   object udEnd: TUpDown
     Left = 425
