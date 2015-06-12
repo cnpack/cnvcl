@@ -67,6 +67,7 @@ contains
   CnBigNumber in '..\..\Source\Common\CnBigNumber.pas',
   CnBloomFilter in '..\..\Source\Common\CnBloomFilter.pas',
   CnSkipList in '..\..\Source\Common\CnSkipList.pas',
+  CnRopes in '..\..\Source\Common\CnRopes.pas',
   CnVCLBase in '..\..\Source\Common\CnVCLBase.pas',
   CnWinSvc in '..\..\Source\Common\CnWinSvc.pas',
   CnDBConsts in '..\..\Source\DbReport\CnDBConsts.pas',

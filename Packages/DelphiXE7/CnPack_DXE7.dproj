@@ -127,6 +127,7 @@
         <DCCReference Include="..\..\Source\Common\CnBigNumber.pas"/>
         <DCCReference Include="..\..\Source\Common\CnBloomFilter.pas"/>
         <DCCReference Include="..\..\Source\Common\CnSkipList.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnRopes.pas"/>
         <DCCReference Include="..\..\Source\Common\CnVCLBase.pas"/>
         <DCCReference Include="..\..\Source\Common\CnWinSvc.pas"/>
         <DCCReference Include="..\..\Source\DbReport\CnDBConsts.pas"/>

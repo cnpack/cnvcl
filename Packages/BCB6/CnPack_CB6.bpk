@@ -20,7 +20,7 @@
       ..\..\Source\Common\CnLinkedList.obj ..\..\Source\Common\CnBigNumber.obj 
       ..\..\Source\Common\CnBloomFilter.obj ..\..\Source\Common\CnSkipList.obj 
       ..\..\Source\Common\CnVCLBase.obj ..\..\Source\Common\CnWinSvc.obj 
-      ..\..\Source\DbReport\CnDBConsts.obj 
+      ..\..\Source\DbReport\CnDBConsts.obj ..\..\Source\Common\CnRopes.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnDataGrid.obj 
       ..\..\Source\DbReport\CnRunSqlFrame.obj 
@@ -210,6 +210,7 @@
       <FILE FILENAME="..\..\Source\Common\CnBigNumber.pas" FORMNAME="" UNITNAME="CnBigNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBloomFilter.pas" FORMNAME="" UNITNAME="CnBloomFilter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSkipList.pas" FORMNAME="" UNITNAME="CnSkipList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnRopes.pas" FORMNAME="" UNITNAME="CnRopes" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnVCLBase.pas" FORMNAME="" UNITNAME="CnVCLBase" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWinSvc.pas" FORMNAME="" UNITNAME="CnWinSvc" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnDBConsts.pas" FORMNAME="" UNITNAME="CnDBConsts" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

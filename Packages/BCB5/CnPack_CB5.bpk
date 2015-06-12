@@ -19,7 +19,7 @@
       ..\..\Source\Common\CnBigNumber.obj ..\..\Source\Common\CnBloomFilter.obj 
       ..\..\Source\Common\CnSkipList.obj ..\..\Source\Common\CnVCLBase.obj 
       ..\..\Source\Common\CnWinSvc.obj ..\..\Source\DbReport\CnDBConsts.obj 
-      ..\..\Source\Common\CnNativeDecl.obj 
+      ..\..\Source\Common\CnNativeDecl.obj ..\..\Source\Common\CnRopes.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj ..\..\Source\DbReport\CnPagedGrid.obj 
       ..\..\Source\Graphics\CnAOTreeView.obj ..\..\Source\Graphics\CnAutoOption.obj 
       ..\..\Source\Graphics\CnCheckTreeView.obj ..\..\Source\Graphics\CnEdit.obj 
