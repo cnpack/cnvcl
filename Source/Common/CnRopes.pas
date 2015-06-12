@@ -386,7 +386,7 @@ begin
     begin
       FChars := GetMemory((Len + 1) * SizeOf(Char));
       CopyMemory(FChars, Str, Len * SizeOf(Char));
-      FChars[Len + 1] := #0;
+      FChars[Len] := #0;
       FLength := Len;
     end;
   end;
