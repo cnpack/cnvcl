@@ -29,7 +29,9 @@ unit CnCRC32;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2009.08.21 V1.3
+* 修改记录：2015.06.12 V1.4
+*               把汇编改写为 Pascal 以适应 64 位编译器
+*           2009.08.21 V1.3
 *               增加CRC64的支持
 *           2009.07.31 V1.2
 *               修正计算大文件CRC32不正确的问题，增加对大于4G文件的支持
@@ -44,68 +46,62 @@ interface
 
 {$I CnPack.inc}
 
-{$IFNDEF WIN64}
-
 uses
   Windows, SysUtils;
 
 function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
-{* 计算CRC32值
+{* 计算 CRC32 值
  |<PRE>
-   OrgCRC32: DWORD  - 起始CRC32值，默认可传 0
+   OrgCRC32: DWORD  - 起始 CRC32 值，默认可传 0
    const Data       - 要计算的数据块
    Len: DWORD       - 数据块长度
-   Result: DWORD    - 返回CRC32计算结果
+   Result: DWORD    - 返回 CRC32 计算结果
  |</PRE>}
 
 function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
-{* 计算字符串的CRC32值 }
+{* 计算字符串的 CRC32 值 }
 
 function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
-{* 计算 AnsiString 字符串的CRC32值 }
+{* 计算 AnsiString 字符串的 CRC32 值 }
 
 function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
-{* 计算文件CRC32值，支持超过4G的大文件
+{* 计算文件 CRC32 值，支持超过 4G 的大文件
  |<PRE>
    const FileName: string   - 目标文件名
-   var CRC: DWORD           - CRC32值，变量参数，传入原始值，默认可为 0，输出计算值
+   var CRC: DWORD           - CRC32 值，变量参数，传入原始值，默认可为 0，输出计算值
    StartPos: Int64 = 0      - 文件起始位置，默认从头开始
    Len: Int64 = 0           - 计算长度，为零默认为整个文件
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
 function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
-{* 计算CRC64值
+{* 计算 CRC64 值
  |<PRE>
-   OrgCRC64: Int64  - 起始CRC64值，默认可传 0
+   OrgCRC64: Int64  - 起始 CRC64 值，默认可传 0
    const Data       - 要计算的数据块
    Len: DWORD       - 数据块长度
    Result: Int64    - 返回CRC64计算结果
  |</PRE>}
 
 function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
-{* 计算字符串的CRC64值 }
+{* 计算字符串的 CRC64 值 }
 
 function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
-{* 计算 AnsiString 字符串的CRC64值 }
+{* 计算 AnsiString 字符串的 CRC64 值 }
 
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
-{* 计算文件CRC64值，支持超过4G的大文件
+{* 计算文件 CRC64 值，支持超过 4G 的大文件
  |<PRE>
    const FileName: string   - 目标文件名
-   var CRC: Int64           - CRC64值，变量参数，传入原始值，默认可为 0，输出计算值
+   var CRC: Int64           - CRC64 值，变量参数，传入原始值，默认可为 0，输出计算值
    StartPos: Int64 = 0      - 文件起始位置，默认从头开始
    Len: Int64 = 0           - 计算长度，为零默认为整个文件
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
-{$ENDIF}
-
 implementation
-
-{$IFNDEF WIN64}
 
 const
   csBuff_Size = 4096;
@@ -116,71 +112,152 @@ type
   PBuff = ^TBuff;
   TBuff = array[0..csBuff_Size - 1] of Byte;
 
-  // CRC32表
+  // CRC32 表
   TCRC32Table = array[0..255] of DWORD;
-  
-  // CRC64表
+
+  // CRC64 表
   TCRC64Table = array[0..255] of Int64;
-  
+
 var
-  CRC32Table: TCRC32Table;
+  CRC32Table: TCRC32Table = (
+    $00000000, $77073096, $EE0E612C, $990951BA,
+    $076DC419, $706AF48F, $E963A535, $9E6495A3,
+    $0EDB8832, $79DCB8A4, $E0D5E91E, $97D2D988,
+    $09B64C2B, $7EB17CBD, $E7B82D07, $90BF1D91,
+    $1DB71064, $6AB020F2, $F3B97148, $84BE41DE,
+    $1ADAD47D, $6DDDE4EB, $F4D4B551, $83D385C7,
+    $136C9856, $646BA8C0, $FD62F97A, $8A65C9EC,
+    $14015C4F, $63066CD9, $FA0F3D63, $8D080DF5,
+    $3B6E20C8, $4C69105E, $D56041E4, $A2677172,
+    $3C03E4D1, $4B04D447, $D20D85FD, $A50AB56B,
+    $35B5A8FA, $42B2986C, $DBBBC9D6, $ACBCF940,
+    $32D86CE3, $45DF5C75, $DCD60DCF, $ABD13D59,
+    $26D930AC, $51DE003A, $C8D75180, $BFD06116,
+    $21B4F4B5, $56B3C423, $CFBA9599, $B8BDA50F,
+    $2802B89E, $5F058808, $C60CD9B2, $B10BE924,
+    $2F6F7C87, $58684C11, $C1611DAB, $B6662D3D,
+    $76DC4190, $01DB7106, $98D220BC, $EFD5102A,
+    $71B18589, $06B6B51F, $9FBFE4A5, $E8B8D433,
+    $7807C9A2, $0F00F934, $9609A88E, $E10E9818,
+    $7F6A0DBB, $086D3D2D, $91646C97, $E6635C01,
+    $6B6B51F4, $1C6C6162, $856530D8, $F262004E,
+    $6C0695ED, $1B01A57B, $8208F4C1, $F50FC457,
+    $65B0D9C6, $12B7E950, $8BBEB8EA, $FCB9887C,
+    $62DD1DDF, $15DA2D49, $8CD37CF3, $FBD44C65,
+    $4DB26158, $3AB551CE, $A3BC0074, $D4BB30E2,
+    $4ADFA541, $3DD895D7, $A4D1C46D, $D3D6F4FB,
+    $4369E96A, $346ED9FC, $AD678846, $DA60B8D0,
+    $44042D73, $33031DE5, $AA0A4C5F, $DD0D7CC9,
+    $5005713C, $270241AA, $BE0B1010, $C90C2086,
+    $5768B525, $206F85B3, $B966D409, $CE61E49F,
+    $5EDEF90E, $29D9C998, $B0D09822, $C7D7A8B4,
+    $59B33D17, $2EB40D81, $B7BD5C3B, $C0BA6CAD,
+    $EDB88320, $9ABFB3B6, $03B6E20C, $74B1D29A,
+    $EAD54739, $9DD277AF, $04DB2615, $73DC1683,
+    $E3630B12, $94643B84, $0D6D6A3E, $7A6A5AA8,
+    $E40ECF0B, $9309FF9D, $0A00AE27, $7D079EB1,
+    $F00F9344, $8708A3D2, $1E01F268, $6906C2FE,
+    $F762575D, $806567CB, $196C3671, $6E6B06E7,
+    $FED41B76, $89D32BE0, $10DA7A5A, $67DD4ACC,
+    $F9B9DF6F, $8EBEEFF9, $17B7BE43, $60B08ED5,
+    $D6D6A3E8, $A1D1937E, $38D8C2C4, $4FDFF252,
+    $D1BB67F1, $A6BC5767, $3FB506DD, $48B2364B,
+    $D80D2BDA, $AF0A1B4C, $36034AF6, $41047A60,
+    $DF60EFC3, $A867DF55, $316E8EEF, $4669BE79,
+    $CB61B38C, $BC66831A, $256FD2A0, $5268E236,
+    $CC0C7795, $BB0B4703, $220216B9, $5505262F,
+    $C5BA3BBE, $B2BD0B28, $2BB45A92, $5CB36A04,
+    $C2D7FFA7, $B5D0CF31, $2CD99E8B, $5BDEAE1D,
+    $9B64C2B0, $EC63F226, $756AA39C, $026D930A,
+    $9C0906A9, $EB0E363F, $72076785, $05005713,
+    $95BF4A82, $E2B87A14, $7BB12BAE, $0CB61B38,
+    $92D28E9B, $E5D5BE0D, $7CDCEFB7, $0BDBDF21,
+    $86D3D2D4, $F1D4E242, $68DDB3F8, $1FDA836E,
+    $81BE16CD, $F6B9265B, $6FB077E1, $18B74777,
+    $88085AE6, $FF0F6A70, $66063BCA, $11010B5C,
+    $8F659EFF, $F862AE69, $616BFFD3, $166CCF45,
+    $A00AE278, $D70DD2EE, $4E048354, $3903B3C2,
+    $A7672661, $D06016F7, $4969474D, $3E6E77DB,
+    $AED16A4A, $D9D65ADC, $40DF0B66, $37D83BF0,
+    $A9BCAE53, $DEBB9EC5, $47B2CF7F, $30B5FFE9,
+    $BDBDF21C, $CABAC28A, $53B39330, $24B4A3A6,
+    $BAD03605, $CDD70693, $54DE5729, $23D967BF,
+    $B3667A2E, $C4614AB8, $5D681B02, $2A6F2B94,
+    $B40BBE37, $C30C8EA1, $5A05DF1B, $2D02EF8D
+  );
   
   CRC64Table: TCRC64Table;
 
-// 生成CRC32表
-procedure Make_CRC32Table;
-asm
-        PUSH    EBX
-        MOV     EDX, OFFSET CRC32Table
+// 生成 CRC32 表，现用常量直接代替
+//procedure Make_CRC32Table;
+//asm
+//        PUSH    EBX
+//        MOV     EDX, OFFSET CRC32Table
+//
+//        XOR     EBX, EBX
+//@MakeCRC32Loop:
+//        CMP     EBX, $100
+//        JE      @MakeCRC32_Succ
+//        MOV     EAX, EBX
+//        MOV     ECX, 8
+//@MakeLoop:
+//        TEST    EAX, 1
+//        JZ      @MakeIsZero
+//        SHR     EAX, 1
+//        XOR     EAX, $EDB88320
+//        JMP     @MakeNext
+//@MakeIsZero:
+//        SHR     EAX, 1
+//@MakeNext:
+//        LOOP    @MakeLoop
+//        MOV     DWORD PTR [EDX], EAX
+//        ADD     EDX, 4
+//        INC     EBX
+//        JMP     @MakeCRC32Loop
+//
+//@MakeCRC32_Succ:
+//        POP     EBX
+//        RET
+//end;
 
-        XOR     EBX, EBX
-@MakeCRC32Loop:
-        CMP     EBX, $100
-        JE      @MakeCRC32_Succ
-        MOV     EAX, EBX
-        MOV     ECX, 8
-@MakeLoop:
-        TEST    EAX, 1
-        JZ      @MakeIsZero
-        SHR     EAX, 1
-        XOR     EAX, $EDB88320
-        JMP     @MakeNext
-@MakeIsZero:
-        SHR     EAX, 1
-@MakeNext:
-        LOOP    @MakeLoop
-        MOV     DWORD PTR [EDX], EAX
-        ADD     EDX, 4
-        INC     EBX
-        JMP     @MakeCRC32Loop
-
-@MakeCRC32_Succ:
-        POP     EBX
-        RET
-end;
-
-// 计算CRC32值
+// 计算 CRC32 值
 function DoCRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
-asm
-        OR      EDX, EDX   // Data = nil?
-        JE      @Exit
-        JECXZ   @Exit      // Len = 0?
-        PUSH    ESI
-        PUSH    EBX
-        MOV     ESI, OFFSET CRC32Table
-@Upd:
-        MOVZX   EBX, AL    // CRC32
-        XOR     BL, [EDX]
-        SHR     EAX, 8
-        AND     EAX, $00FFFFFF
-        XOR     EAX, [EBX * 4 + ESI]
-        INC     EDX
-        LOOP    @Upd
-        POP     EBX
-        POP     ESI
-@Exit:
-        RET
+var
+  P: PByte;
+begin
+  Result := OrgCRC32;
+  if (@Data = nil) or (Len = 0) then
+    Exit;
+
+  P := PByte(@Data);
+  while Len > 0 do
+  begin
+    Result := ((Result shr 8) and $FFFFFF) xor CRC32Table[(Result and $FF) xor P^];
+
+    Inc(P);
+    Dec(Len);
+  end;
 end;
+//asm
+//        OR      EDX, EDX   // Data = nil?
+//        JE      @Exit
+//        JECXZ   @Exit      // Len = 0?
+//        PUSH    ESI
+//        PUSH    EBX
+//        MOV     ESI, OFFSET CRC32Table
+//@Upd:
+//        MOVZX   EBX, AL    // CRC32
+//        XOR     BL, [EDX]
+//        SHR     EAX, 8
+//        AND     EAX, $00FFFFFF
+//        XOR     EAX, [EBX * 4 + ESI]
+//        INC     EDX
+//        LOOP    @Upd
+//        POP     EBX
+//        POP     ESI
+//@Exit:
+//        RET
+//end;
 
 // 计算 CRC32 值
 function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
@@ -190,19 +267,19 @@ begin
   Result := not Result;
 end;
 
-// 计算字符串的CRC32值
+// 计算字符串的 CRC32 值
 function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
 begin
   Result := CRC32Calc(OrgCRC32, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
-// 计算 AnsiString 字符串的CRC32值
+// 计算 AnsiString 字符串的 CRC32 值
 function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
 
-// 计算文件CRC值，参数分别为：文件名、CRC值、起始地址、计算长度
+// 计算文件 CRC 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 var
@@ -292,19 +369,19 @@ begin
   Result := not Result;
 end;
 
-// 计算字符串的CRC32值
+// 计算字符串的 CRC64 值
 function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
-// 计算 AnsiString 字符串的CRC32值
+// 计算 AnsiString 字符串的 CRC64 值
 function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Text)^, Length(Text));
 end;
 
-// 计算文件CRC值，参数分别为：文件名、CRC值、起始地址、计算长度
+// 计算文件 CRC64 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 var
@@ -351,10 +428,9 @@ begin
 end;
 
 initialization
-  Make_CRC32Table; // 初始化CRC32表
+//  Make_CRC32Table; // 初始化CRC32表
   
   Make_CRC64Table; // 初始化CRC64表
 
-{$ENDIF}
 end.
 
