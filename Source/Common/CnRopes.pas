@@ -153,7 +153,7 @@ type
     function Position(const Pattern: string; FromIndex: Integer = 1): Integer; overload; virtual;
     function Reverse: ICnRope; virtual;
     function ReBalance: ICnRope; virtual;
-    function ToString: string; virtual;
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ELSE} virtual; {$ENDIF}
 
     function Append(const Str: string): ICnRope; virtual;
     function AppendTo(const Str: string): ICnRope; virtual;
@@ -164,7 +164,7 @@ type
     function InsertRope(const Rope: ICnRope; StartIndex: Integer): ICnRope; virtual;
     function Duplicate: ICnRope;
 
-    function Equals(ARope: ICnRope): Boolean;
+    function Equals(ARope: ICnRope): Boolean; {$IFDEF OBJECT_HAS_TOSTRING} reintroduce; {$ENDIF}
     function EqualsStr(const AStr: string): Boolean;
 
     function Trim: ICnRope;
