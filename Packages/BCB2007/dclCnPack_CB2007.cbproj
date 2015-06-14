@@ -154,11 +154,17 @@
     <DelphiCompile Include="..\..\Source\NonVisual\CnCompRegister.pas">
       <BuildOrder>25</BuildOrder>
     </DelphiCompile>
-    <CppCompile Include="dclCnPack_CB2007.cpp">
+    <LibFiles Include="..\..\..\..\lib\wininet.lib">
       <BuildOrder>26</BuildOrder>
+    </LibFiles>
+    <LibFiles Include="..\..\..\..\lib\ws2_32.lib">
+      <BuildOrder>27</BuildOrder>
+    </LibFiles>
+    <CppCompile Include="dclCnPack_CB2007.cpp">
+      <BuildOrder>28</BuildOrder>
     </CppCompile>
     <ResFiles Include="dclCnPack_CB2007.res">
-      <BuildOrder>27</BuildOrder>
+      <BuildOrder>29</BuildOrder>
     </ResFiles>
     <BuildConfiguration Include="Debug">
       <Key>Cfg_1</Key>
