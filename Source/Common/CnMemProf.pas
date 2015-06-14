@@ -92,6 +92,13 @@ uses
 const
   MaxCount = High(Word);
 
+type
+{$IFDEF SUPPORTS_32_AND_64}
+  TCnMemProofInteger = NativeInt;
+{$ELSE}
+  TCnMemProofInteger = Integer;
+{$ENDIF}
+
 var
   OldMemMgr: TMemoryManager;
   ObjList: array[0..MaxCount] of Pointer;
@@ -292,7 +299,7 @@ end;
   分配内存
 -----------------------------------------------------------------------------}
 
-function NewGetMem(Size: Integer): Pointer;
+function NewGetMem(Size: TCnMemProofInteger): Pointer;
 begin
   Inc(GetMemCount);
   Result := OldMemMgr.GetMem(Size);
@@ -326,7 +333,7 @@ end;
   重新分配
 -----------------------------------------------------------------------------}
 
-function NewReallocMem(P: Pointer; Size: Integer): Pointer;
+function NewReallocMem(P: Pointer; Size: TCnMemProofInteger): Pointer;
 begin
   Inc(ReallocMemCount);
   Result := OldMemMgr.ReallocMem(P, Size);
