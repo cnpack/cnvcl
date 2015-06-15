@@ -213,6 +213,30 @@ type
   end;
 
 //==============================================================================
+// 带更新通知的持久性类
+//==============================================================================
+
+{ TCnNotifyClass }
+
+  TCnNotifyClass = class(TPersistent)
+  {* 带更新通知的持久性类，控件包中大部分持久类的基类，一般不需要直接使用}
+  private
+    FOnChanged: TNotifyEvent;
+  protected
+    FOwner: TPersistent;
+    procedure Changed; virtual;
+    procedure OnChildChanged(Sender: TObject); virtual;
+    function GetOwner: TPersistent; override;
+  public
+    constructor Create(ChangedProc: TNotifyEvent); virtual;
+    {* 类构造器，参数为通知事件}
+    procedure Assign(Source: TPersistent); override;
+    {* 对象赋值方法}
+    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
+    {* 属性已变更事件}
+  end;
+
+//==============================================================================
 // 不可视组件基础类
 //==============================================================================
 
@@ -615,6 +639,46 @@ begin
     Changed;
     FEnabled := Value;
   end;
+end;
+
+{ TCnNotifyClass }
+
+//--------------------------------------------------------//
+//带更新通知的持久性类                                    //
+//--------------------------------------------------------//
+
+//赋值
+procedure TCnNotifyClass.Assign(Source: TPersistent);
+begin
+  if Source is TCnNotifyClass then
+    //
+  else
+    inherited Assign(Source);
+end;
+
+//更新通知
+procedure TCnNotifyClass.Changed;
+begin
+  if Assigned(FOnChanged) then
+    FOnChanged(Self);
+end;
+
+//创建
+constructor TCnNotifyClass.Create(ChangedProc: TNotifyEvent);
+begin
+  FOnChanged := ChangedProc;
+end;
+
+//取所有者
+function TCnNotifyClass.GetOwner: TPersistent;
+begin
+  Result := FOwner;
+end;
+
+//子单位更新通知
+procedure TCnNotifyClass.OnChildChanged(Sender: TObject);
+begin
+  Changed;
 end;
 
 //==============================================================================

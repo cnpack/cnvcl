@@ -30,7 +30,10 @@ unit CnAAFont;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：平滑字体算法由李文松朋友提供的AAFont修改而来
 * 单元标识：$Id$
-* 最后更新：2004.11.29
+* 最后更新：2015.06.15
+*               修改输出名以躲过 BCB Unicode 下命名混淆的问题
+*           2004.11.29
+*               写成
 * 移植日期：2006.08.18
 ================================================================================
 |</PRE>}
@@ -41,7 +44,7 @@ interface
 
 uses
   Windows, Messages, Classes, Graphics, SysUtils, Consts, Controls, Forms,
-  Registry, StdCtrls, ExtCtrls, Math, IniFiles;
+  Registry, StdCtrls, ExtCtrls, Math, IniFiles, CnClasses;
 
 type
 
@@ -95,26 +98,6 @@ type
   TCnAABlend = class;
   TCnAAFont = class;
   TCnAAFontEx = class;
-
-{ TCnNotifyClass }
-
-  TCnNotifyClass = class(TPersistent)
-  {* 带更新通知的持久性类，控件包中大部分持久类的基类，一般不需要直接使用}
-  private
-    FOnChanged: TNotifyEvent;
-  protected
-    FOwner: TPersistent;
-    procedure Changed; virtual;
-    procedure OnChildChanged(Sender: TObject); virtual;
-    function GetOwner: TPersistent; override;
-  public
-    constructor Create(ChangedProc: TNotifyEvent); virtual;
-    {* 类构造器，参数为通知事件}
-    procedure Assign(Source: TPersistent); override;
-    {* 对象赋值方法}
-    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
-    {* 属性已变更事件}
-  end;
 
 { TCnEnabledClass }
 
@@ -424,7 +407,7 @@ type
      |<BR> 允许为nil，如果为nil，请在调用文本方法前对Canvas属性赋值}
     destructor Destroy; override;
     {* 类析构器}
-    procedure TextOut(x, y: Integer; s: string; Alpha: TAlpha = 100;
+    procedure TextOutput(x, y: Integer; s: string; Alpha: TAlpha = 100;
       Blur: TBlurStrength = 0);
     {* 输出平滑字体文本到当前设置的Canvas中，使用它的字体属性和画刷设置。
      |<BR> 如果要输出背景透明的文本，需要将Canvas.Brush.Style设为bsClear。
@@ -472,7 +455,7 @@ type
     function TextExtent(s: string): TSize; override;
     {* 返回文本高、宽
      |<BR> 注：Effect参数中的阴影、旋转角度等设置将影响返回结果}
-    procedure TextOut(x, y: Integer; s: string);
+    procedure TextOutput(x, y: Integer; s: string);
     {* 使用Effect设置的字体特效，输出平滑字体文本到当前设置的Canvas中，使用它的字体属性和画刷设置。
      |<BR> 如果要输出背景透明的文本，需要将Canvas.Brush.Style设为bsClear。
      |<BR> 注：该方法不支持多行文本。
@@ -1899,7 +1882,7 @@ begin
 end;
 
 //平滑文本输出
-procedure TCnAAFont.TextOut(x, y: Integer; s: string; Alpha: TAlpha;
+procedure TCnAAFont.TextOutput(x, y: Integer; s: string; Alpha: TAlpha;
   Blur: TBlurStrength);
 begin
   if (Canvas = nil) or (s = '') then
@@ -2130,7 +2113,7 @@ begin
 end;
 
 //增强平滑文本输出
-procedure TCnAAFontEx.TextOut(x, y: Integer; s: string);
+procedure TCnAAFontEx.TextOutput(x, y: Integer; s: string);
 var
   TextPoint, ShadowPoint: TPoint;
   OldBrushStyle: TBrushStyle;
@@ -2306,46 +2289,6 @@ begin
   end;
 end;
 
-{ TCnNotifyClass }
-
-//--------------------------------------------------------//
-//带更新通知的持久性类                                    //
-//--------------------------------------------------------//
-
-//赋值
-procedure TCnNotifyClass.Assign(Source: TPersistent);
-begin
-  if Source is TCnNotifyClass then
-    //
-  else
-    inherited Assign(Source);
-end;
-
-//更新通知
-procedure TCnNotifyClass.Changed;
-begin
-  if Assigned(FOnChanged) then
-    FOnChanged(Self);
-end;
-
-//创建
-constructor TCnNotifyClass.Create(ChangedProc: TNotifyEvent);
-begin
-  FOnChanged := ChangedProc;
-end;
-
-//取所有者
-function TCnNotifyClass.GetOwner: TPersistent;
-begin
-  Result := FOwner;
-end;
-
-//子单位更新通知
-procedure TCnNotifyClass.OnChildChanged(Sender: TObject);
-begin
-  Changed;
-end;
-
 { TCnEnabledClass }
 
 //--------------------------------------------------------//
@@ -2382,8 +2325,8 @@ begin
   if FEnabled <> Value then
   begin
     FEnabled := Value;
-    if Assigned(FOnChanged) then
-      FOnChanged(Self);
+    if Assigned(OnChanged) then
+      OnChanged(Self);
   end;
 end;
 

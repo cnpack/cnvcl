@@ -36,7 +36,9 @@ unit CnAACtrls;
 *           平滑字幕文本控件 TCnAAMarqueeText
 *           平滑特效渐隐文本控件 TCnAAFadeText
 * 单元标识：$Id$
-* 最后更新：2007.12.29
+* 最后更新：2015.06.15
+*               修改输出名以躲过 BCB Unicode 下命名混淆的问题
+*           2007.12.29
 * 移植日期：2006.08.18
 ================================================================================
 |</PRE>}
@@ -771,7 +773,7 @@ begin
     MemBmp.Canvas.FillRect(ClientRect);
   end;
   MemBmp.Canvas.Brush.Style := bsClear;
-  AAFont.TextOut(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
+  AAFont.TextOutput(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
 end;
 
 // 透明绘制
@@ -802,7 +804,7 @@ begin
   Canvas.Brush.Color := Color;
   Canvas.Brush.Style := bsSolid;
   Canvas.Brush.Style := bsClear;
-  AAFont.TextOut(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
+  AAFont.TextOutput(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
 end;
 
 //控件重绘
@@ -994,7 +996,7 @@ begin
       HotBmp.Canvas.FillRect(ClientRect);
     end;
     HotBmp.Canvas.Brush.Style := bsClear;
-    AAFont.TextOut(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
+    AAFont.TextOutput(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
 
     AAFont.Effect.Assign(AAEffect);
     AAEffect.Free;
@@ -1293,7 +1295,7 @@ begin
             taRightJustify: x := ClientWidth - Border - TextWidth;
           else x := 0;
           end;
-          AAFont.TextOut(x, y, CurrText);
+          AAFont.TextOutput(x, y, CurrText);
           y := y + Round(TextHeight * (1 + RowPitch / 100));
         end;
       end;
@@ -1641,7 +1643,7 @@ begin
           else x := 0;
           end;
           y := CurrHeight;      //行间距
-          AAFont.TextOut(x, y, CurrText);
+          AAFont.TextOutput(x, y, CurrText);
           CurrHeight := CurrHeight + Round(TextHeight * (1 + RowPitch / 100));
         end;
       end;
@@ -1887,7 +1889,7 @@ begin
       MemBmp.Canvas.FillRect(ClientRect);
     end;
     MemBmp.Canvas.Brush.Style := bsClear;
-    AAFont.TextOut(X, Y, Caption); //平滑字体输出
+    AAFont.TextOutput(X, Y, Caption); //平滑字体输出
     Bitblt(Canvas.Handle, 0, 0, Width, Height, MemBmp.Canvas.Handle, 0, 0,
       SRCCOPY);
   finally
@@ -2174,7 +2176,7 @@ begin
     Bmp.Canvas.FillRect(ClientRect);
   end;
   Bmp.Canvas.Brush.Style := bsClear;
-  AAFont.TextOut(OffPoint.x, OffPoint.y, AText); //平滑字体输出
+  AAFont.TextOutput(OffPoint.x, OffPoint.y, AText); //平滑字体输出
 end;
 
 //渐隐到指定行
