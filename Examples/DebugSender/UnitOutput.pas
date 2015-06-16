@@ -90,6 +90,8 @@ type
     ilTest: TImageList;
     btnStack: TButton;
     btnConstArray: TButton;
+    btnClass: TButton;
+    btnInterface: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -122,6 +124,8 @@ type
     procedure btnImageListClick(Sender: TObject);
     procedure btnStackClick(Sender: TObject);
     procedure btnConstArrayClick(Sender: TObject);
+    procedure btnClassClick(Sender: TObject);
+    procedure btnInterfaceClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -441,6 +445,22 @@ begin
     CnDebugger.TraceConstArray([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, s])
   else
     CnDebugger.LogConstArray([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, s]);
+end;
+
+procedure TForm1.btnClassClick(Sender: TObject);
+begin
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceClass(TForm1)
+  else
+    CnDebugger.LogClass(TForm1);
+end;
+
+procedure TForm1.btnInterfaceClick(Sender: TObject);
+begin
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceInterface(TInterfacedObject.Create)
+  else
+    CnDebugger.LogInterface(TInterfacedObject.Create);
 end;
 
 end.

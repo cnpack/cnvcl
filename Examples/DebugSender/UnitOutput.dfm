@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 263
   BorderStyle = bsDialog
   Caption = 'Send Debug'
-  ClientHeight = 306
+  ClientHeight = 329
   ClientWidth = 469
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
@@ -338,7 +338,7 @@ object Form1: TForm1
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 287
+    Top = 310
     Width = 469
     Height = 19
     Panels = <
@@ -417,7 +417,7 @@ object Form1: TForm1
     Left = 8
     Top = 236
     Width = 209
-    Height = 45
+    Height = 67
     Caption = '看这按钮自己'
     TabOrder = 37
     OnClick = btnEvalClick
@@ -523,7 +523,7 @@ object Form1: TForm1
   end
   object btnImageList: TButton
     Left = 248
-    Top = 256
+    Top = 254
     Width = 97
     Height = 21
     Hint = 'OutputDebugString'
@@ -535,7 +535,7 @@ object Form1: TForm1
   end
   object btnStack: TButton
     Left = 360
-    Top = 256
+    Top = 254
     Width = 97
     Height = 21
     Caption = '输出堆栈'
@@ -553,6 +553,30 @@ object Form1: TForm1
     ShowHint = True
     TabOrder = 36
     OnClick = btnConstArrayClick
+  end
+  object btnClass: TButton
+    Left = 248
+    Top = 280
+    Width = 97
+    Height = 21
+    Hint = 'OutputDebugString'
+    Caption = '看Class'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 41
+    OnClick = btnClassClick
+  end
+  object btnInterface: TButton
+    Left = 360
+    Top = 280
+    Width = 97
+    Height = 21
+    Hint = 'OutputDebugString'
+    Caption = '看Interface'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 42
+    OnClick = btnInterfaceClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True

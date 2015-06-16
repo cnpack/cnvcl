@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.06.03
+* 修改记录：2015.06.16
+*               增加四个记录 Class/Interface 的方法
+*           2015.06.03
 *               增加两个记录 array of const 的方法
 *           2015.05.15
 *               修正多线程同时启动 CnDebugViewer 时可能导致丢信息的问题
@@ -345,6 +347,8 @@ type
     procedure LogComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure LogCurrentStack(const AMsg: string = '');
     procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
+    procedure LogClass(const AClass: TClass; const AMsg: string = '');
+    procedure LogInterface(const AIntf: IUnknown; const AMsg: string = '');
     // Log 系列输出函数 == End ==
 
     // Trace 系列输出函数 == Start ==
@@ -397,6 +401,8 @@ type
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure TraceCurrentStack(const AMsg: string = '');
     procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
+    procedure TraceClass(const AClass: TClass; const AMsg: string = '');
+    procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
     // Trace 系列输出函数 == End ==
 
     // 异常过滤函数
@@ -545,10 +551,20 @@ const
   SCnUnknownError = 'Unknown Error! ';
   SCnLastErrorFmt = 'Last Error (Code: %d): %s';
   SCnConstArray = 'Array of Const:';
+  SCnClass = 'Class:';
+  SCnClassFmt = '%s ClassName %s. InstanceSize %d';
+  SCnInterface = 'Interface: ';
+  SCnInterfaceFmt = '%s %s';
 
   CnDebugWaitingMutexTime = 1000;  // Mutex 的等待时间顶多 1 秒
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
   CnDebugFlushEventTime = 100;     // 写队列后等待读取完成的时间顶多 0.1 秒
+
+{$IFDEF WIN64}
+  CN_HEX_DIGITS = 16;
+{$ELSE}
+  CN_HEX_DIGITS = 8;
+{$ENDIF}
 
 var
   FCnDebugger: TCnDebugger = nil;
@@ -793,7 +809,7 @@ var
 begin
   if (AList = nil) or (Collection = nil) then Exit;
 
-  AList.Add('Collection: $' + IntToHex(Integer(Collection), 2) + ' ' + Collection.ClassName);
+  AList.Add('Collection: $' + IntToHex(Integer(Collection), CN_HEX_DIGITS) + ' ' + Collection.ClassName);
   AList.Add('  Count = ' + IntToStr(Collection.Count));
   AddObjectToStringList(Collection, AList, 0);
   for I := 0 to Collection.Count - 1 do
@@ -1560,7 +1576,7 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    LogMsgWithType('Object: $' + IntToHex(Integer(AObject), 2) + SCnCRLF +
+    LogMsgWithType('Object: $' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
       List.Text, cmtObject);
   finally
     List.Free;
@@ -2082,7 +2098,7 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    TraceMsgWithType('Object: ' + IntToHex(Integer(AObject), 2) + SCnCRLF +
+    TraceMsgWithType('Object: ' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
       List.Text, cmtObject);
   finally
     List.Free;
@@ -2562,11 +2578,6 @@ end;
 function TCnDebugger.FormatConstArray(Args: array of const): string;
 const
   CRLF = #13#10;
-{$IFDEF WIN64}
-  Digits = 16;
-{$ELSE}
-  Digits = 8;
-{$ENDIF}
 var
   I: Integer;
 begin
@@ -2590,12 +2601,12 @@ begin
       vtString:
         Result := Result + 'String: ' + PShortString(Args[I].VString)^ + CRLF;
       vtPointer:
-        Result := Result + 'Pointer: ' + IntToHex(Integer(Args[I].VPointer), Digits) + CRLF;
+        Result := Result + 'Pointer: ' + IntToHex(Integer(Args[I].VPointer), CN_HEX_DIGITS) + CRLF;
       vtPChar:
         Result := Result + 'PChar: ' + Args[I].VPChar + CRLF;
       vtObject:
         Result := Result + 'Object: ' + Args[I].VObject.ClassName + IntToHex(Integer
-          (Args[I].VObject), Digits) + CRLF;
+          (Args[I].VObject), CN_HEX_DIGITS) + CRLF;
       vtClass:
         Result := Result + 'Class: ' + Args[I].VClass.ClassName + CRLF;
       vtWideChar:
@@ -2609,7 +2620,7 @@ begin
       vtVariant:
         Result := Result + 'Variant: ' + string(Args[I].VVariant^) + CRLF;
       vtInterface:
-        Result := Result + 'Interface: ' + IntToHex(Integer(Args[I].VInterface), Digits) + CRLF;
+        Result := Result + 'Interface: ' + IntToHex(Integer(Args[I].VInterface), CN_HEX_DIGITS) + CRLF;
       vtWideString:
         Result := Result + 'WideString: ' + WideString(PWideChar(Args[I].VWideString)) + CRLF;
       vtInt64:
@@ -2620,6 +2631,42 @@ begin
 {$ENDIF}
     end;
   end;
+end;
+
+procedure TCnDebugger.LogClass(const AClass: TClass; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFmt(SCnClassFmt, [SCnClass, AClass.ClassName, AClass.InstanceSize])
+  else
+    LogFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize]);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogInterface(const AIntf: IUnknown; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFmt(SCnInterfaceFmt, [SCnInterface, IntToHex(Integer(AIntf), CN_HEX_DIGITS)])
+  else
+    LogFmt(SCnInterfaceFmt, [AMsg, IntToHex(Integer(AIntf), CN_HEX_DIGITS)]);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.TraceClass(const AClass: TClass; const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceFmt(SCnClassFmt, [SCnClass, AClass.ClassName, AClass.InstanceSize])
+  else
+    TraceFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize]);
+end;
+
+procedure TCnDebugger.TraceInterface(const AIntf: IUnknown; const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceFmt(SCnInterfaceFmt, [SCnInterface, IntToHex(Integer(AIntf), CN_HEX_DIGITS)])
+  else
+    TraceFmt(SCnInterfaceFmt, [AMsg, IntToHex(Integer(AIntf), CN_HEX_DIGITS)]);
 end;
 
 { TCnDebugChannel }
