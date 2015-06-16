@@ -277,6 +277,7 @@ type
     // 统一处理 Format
     function FormatMsg(const AFormat: string; Args: array of const): string;
     function FormatConstArray(Args: array of const): string;
+    function FormatInterfaceString(AIntf: IUnknown): string;
 
     procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
       ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: DWORD; CPUPeriod: Int64);
@@ -566,6 +567,18 @@ const
   CN_HEX_DIGITS = 8;
 {$ENDIF}
 
+{$IFNDEF SUPPORTS_INTERFACE_AS_OBJECT}
+type
+  PPointer = ^Pointer;
+  TObjectFromInterfaceStub = packed record
+    Stub: Cardinal;
+    case Integer of
+      0: (ShortJmp: ShortInt);
+      1: (LongJmp:  LongInt)
+  end;
+  PObjectFromInterfaceStub = ^TObjectFromInterfaceStub;
+{$ENDIF}
+
 var
   FCnDebugger: TCnDebugger = nil;
   FStartCriticalSection: TRTLCriticalSection; // 用于多线程内控制启动 CnDebugViewer
@@ -622,6 +635,25 @@ end;
 function TypeInfoName(TypeInfo: PTypeInfo): string;
 begin
   Result := string(TypeInfo^.Name);
+end;
+
+// 移植自 A.Bouchez 的实现
+function ObjectFromInterface(const AIntf: IUnknown): TObject;
+begin
+  Result := nil;
+  if AIntf = nil then
+    Exit;
+
+{$IFDEF SUPPORTS_INTERFACE_AS_OBJECT}
+  Result := AIntf as TObject;
+{$ELSE}
+  with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do
+  case Stub of
+    $04244483: Result := Pointer(Integer(AIntf) + ShortJmp);
+    $04244481: Result := Pointer(Integer(AIntf) + LongJmp);
+    else       Result := nil;
+  end;
+{$ENDIF}
 end;
 
 // 移植自 uDbg
@@ -2647,9 +2679,11 @@ procedure TCnDebugger.LogInterface(const AIntf: IUnknown; const AMsg: string);
 begin
 {$IFDEF DEBUG}
   if AMsg = '' then
-    LogFmt(SCnInterfaceFmt, [SCnInterface, IntToHex(Integer(AIntf), CN_HEX_DIGITS)])
+    LogFmt(SCnInterfaceFmt, [SCnInterface, FormatInterfaceString(AIntf)])
   else
-    LogFmt(SCnInterfaceFmt, [AMsg, IntToHex(Integer(AIntf), CN_HEX_DIGITS)]);
+    LogFmt(SCnInterfaceFmt, [AMsg, FormatInterfaceString(AIntf)]);
+
+  LogObject(ObjectFromInterface(AIntf));
 {$ENDIF}
 end;
 
@@ -2664,9 +2698,23 @@ end;
 procedure TCnDebugger.TraceInterface(const AIntf: IUnknown; const AMsg: string);
 begin
   if AMsg = '' then
-    TraceFmt(SCnInterfaceFmt, [SCnInterface, IntToHex(Integer(AIntf), CN_HEX_DIGITS)])
+    TraceFmt(SCnInterfaceFmt, [SCnInterface, FormatInterfaceString(AIntf)])
   else
-    TraceFmt(SCnInterfaceFmt, [AMsg, IntToHex(Integer(AIntf), CN_HEX_DIGITS)]);
+    TraceFmt(SCnInterfaceFmt, [AMsg, FormatInterfaceString(AIntf)]);
+end;
+
+function TCnDebugger.FormatInterfaceString(AIntf: IUnknown): string;
+var
+  Obj: TObject;
+begin
+  Result := IntToHex(Integer(AIntf), CN_HEX_DIGITS);
+  if AIntf <> nil then
+  begin
+    Obj := ObjectFromInterface(AIntf);
+    if Obj <> nil then
+      Result := Result + ' ' + SCnCRLF + Obj.ClassName + ': ' +
+        IntToHex(Integer(Obj), CN_HEX_DIGITS);
+  end;
 end;
 
 { TCnDebugChannel }
