@@ -278,6 +278,7 @@ type
     function FormatMsg(const AFormat: string; Args: array of const): string;
     function FormatConstArray(Args: array of const): string;
     function FormatInterfaceString(AIntf: IUnknown): string;
+    function FormatObjectInterface(AObj: TObject): string;
     function GUIDToString(const GUID: TGUID): string;
 
     procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
@@ -1598,6 +1599,7 @@ procedure TCnDebugger.LogObjectWithTag(AObject: TObject;
 {$IFDEF DEBUG}
 var
   List: TStringList;
+  Intfs: string;
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
@@ -1606,6 +1608,12 @@ begin
     List := TStringList.Create;
     try
       AddObjectToStringList(AObject, List, 0);
+      Intfs := FormatObjectInterface(AObject);
+      if Intfs <> '' then
+      begin
+        List.Add('Supports Interfaces:');
+        List.Add(Intfs);
+      end;
     except
       List.Add(SCnObjException);
     end;
@@ -2120,6 +2128,7 @@ procedure TCnDebugger.TraceObjectWithTag(AObject: TObject;
 {$IFNDEF NDEBUG}
 var
   List: TStringList;
+  Intfs: string;
 {$ENDIF}  
 begin
 {$IFNDEF NDEBUG}
@@ -2128,6 +2137,12 @@ begin
     List := TStringList.Create;
     try
       AddObjectToStringList(AObject, List, 0);
+      Intfs := FormatObjectInterface(AObject);
+      if Intfs <> '' then
+      begin
+        List.Add('Supports Interfaces:');
+        List.Add(Intfs);
+      end;
     except
       List.Add(SCnObjException);
     end;
@@ -2705,10 +2720,7 @@ end;
 function TCnDebugger.FormatInterfaceString(AIntf: IUnknown): string;
 var
   Obj: TObject;
-  ClassPtr: TClass;
-  IntfTable: PInterfaceTable;
-  IntfEntry: PInterfaceEntry;
-  I: Integer;
+  Intfs: string;
 begin
   Result := IntToHex(Integer(AIntf), CN_HEX_DIGITS);
   if AIntf <> nil then
@@ -2719,21 +2731,9 @@ begin
       Result := Result + ' ' + SCnCRLF + Obj.ClassName + ': ' +
         IntToHex(Integer(Obj), CN_HEX_DIGITS);
 
-      Result := Result + ' ' + SCnCRLF + 'Supports Interface:';
-      ClassPtr := Obj.ClassType;
-      while ClassPtr <> nil do
-      begin
-        IntfTable := ClassPtr.GetInterfaceTable;
-        if IntfTable <> nil then
-        begin
-          for I := 0 to IntfTable.EntryCount-1 do
-          begin
-            IntfEntry := @IntfTable.Entries[I];
-            Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID);
-          end;
-        end;
-        ClassPtr := ClassPtr.ClassParent;
-      end;
+      Intfs := FormatObjectInterface(Obj);
+      if Intfs <> '' then
+        Result := Result + ' ' + SCnCRLF + 'Supports Interfaces:' + Intfs;
     end;
   end;
 end;
@@ -2744,6 +2744,33 @@ begin
   StrLFmt(PChar(Result), 38,'{%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x}',
     [GUID.D1, GUID.D2, GUID.D3, GUID.D4[0], GUID.D4[1], GUID.D4[2], GUID.D4[3],
     GUID.D4[4], GUID.D4[5], GUID.D4[6], GUID.D4[7]]);
+end;
+
+function TCnDebugger.FormatObjectInterface(AObj: TObject): string;
+var
+  ClassPtr: TClass;
+  IntfTable: PInterfaceTable;
+  IntfEntry: PInterfaceEntry;
+  I: Integer;
+begin
+  Result := '';
+  if AObj = nil then
+    Exit;
+
+  ClassPtr := AObj.ClassType;
+  while ClassPtr <> nil do
+  begin
+    IntfTable := ClassPtr.GetInterfaceTable;
+    if IntfTable <> nil then
+    begin
+      for I := 0 to IntfTable.EntryCount-1 do
+      begin
+        IntfEntry := @IntfTable.Entries[I];
+        Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID);
+      end;
+    end;
+    ClassPtr := ClassPtr.ClassParent;
+  end;
 end;
 
 { TCnDebugChannel }
