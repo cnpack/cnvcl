@@ -364,13 +364,6 @@ object CnPropSheetForm: TCnPropSheetForm
       BevelOuter = bvNone
       Color = clWhite
       TabOrder = 7
-      object bvlLine: TBevel
-        Left = 96
-        Top = 0
-        Width = 17
-        Height = 50
-        Shape = bsLeftLine
-      end
     end
     object pnlGraphic: TPanel
       Left = 0

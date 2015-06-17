@@ -265,7 +265,6 @@ type
     lblDollar: TLabel;
     btnEvaluate: TSpeedButton;
     pnlHierarchy: TPanel;
-    bvlLine: TBevel;
     pnlGraphic: TPanel;
     imgGraphic: TImage;
     procedure FormCreate(Sender: TObject);
@@ -301,6 +300,7 @@ type
     FHierarchys: TStrings;
     FGraphicObject: TObject;
     FHierPanels: TComponentList;
+    FHierLines: TComponentList;
     FOnEvaluateBegin: TNotifyEvent;
     FOnEvaluateEnd: TNotifyEvent;
     FOnAfterEvaluateHierarchy: TNotifyEvent;
@@ -993,6 +993,7 @@ begin
   FContentTypes := [];
   FHierarchys := TStringList.Create;
   FHierPanels := TComponentList.Create(True);
+  FHierLines := TComponentList.Create(True);
   btnInspect.Height := lvProp.Canvas.TextHeight('lj') - 1;
   btnInspect.Width := btnInspect.Height;
   UpdateUIStrings;
@@ -1207,6 +1208,7 @@ end;
 procedure TCnPropSheetForm.FormDestroy(Sender: TObject);
 begin
   FHierarchys.Free;
+  FHierLines.Free;
   FHierPanels.Free;
   if FInspector <> nil then
     FreeAndNil(FInspector);
@@ -1222,6 +1224,7 @@ procedure TCnPropSheetForm.UpdateHierarchys;
 var
   I: Integer;
   APanel: TPanel;
+  ABevel: TBevel;
 begin
   // ¸ù¾Ý FHierarchys »æÖÆ Hierarchy Í¼
   FHierPanels.Clear;
@@ -1234,6 +1237,11 @@ begin
     APanel.Parent := pnlHierarchy;
     APanel.Color := clBtnFace;
     FHierPanels.Add(APanel);
+
+    ABevel := TBevel.Create(nil);
+    ABevel.Shape := bsLeftLine;
+    ABevel.Parent := pnlHierarchy;
+    FHierLines.Add(ABevel);
   end;
   UpdatePanelPositions;
 end;
@@ -1417,6 +1425,7 @@ const
 var
   I: Integer;
   APanel: TPanel;
+  ABevel: TBevel;
 begin
   APanel := nil;
   for I := 0 to FHierPanels.Count - 1 do
@@ -1426,19 +1435,13 @@ begin
     APanel.Width := Width - PanelMargin * 2;
     APanel.Top := PanelMargin + I * PanelStep;
     APanel.Height := PanelStep - PanelMargin;
-  end;
+    APanel.Color := clBtnFace;
 
-  if (APanel <> nil) and (FHierPanels.Count > 1) then
-  begin
-    bvlLine.Left := pnlHierarchy.Width div 2;
-    bvlLine.Top := PanelMargin;
-    bvlLine.Height := APanel.Top - bvlLine.Top;
-    bvlLine.SendToBack;
-    bvlLine.Visible := True;
-  end
-  else
-  begin
-    bvlLine.Visible := False;
+    ABevel := TBevel(FHierLines.Items[I]);
+    ABevel.Left := pnlHierarchy.Width div 2;
+    ABevel.Top := APanel.Top + APanel.Height;
+    ABevel.Height := PanelMargin;
+    ABevel.Visible := I <> FHierLines.Count - 1;
   end;
 end;
 
