@@ -1427,7 +1427,6 @@ var
   APanel: TPanel;
   ABevel: TBevel;
 begin
-  APanel := nil;
   for I := 0 to FHierPanels.Count - 1 do
   begin
     APanel := TPanel(FHierPanels.Items[I]);
