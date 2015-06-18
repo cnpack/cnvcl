@@ -2643,15 +2643,15 @@ begin
             Result := Result + 'Boolean: ' + 'False' + CRLF;
         end;
       vtChar:
-        Result := Result + 'Char: ' + Args[I].VChar + CRLF;
+        Result := Result + 'Char: ' + string(Args[I].VChar) + CRLF;
       vtExtended:
         Result := Result + 'Extended: ' + FloatToStr(Args[I].VExtended^) + CRLF;
       vtString:
-        Result := Result + 'String: ' + PShortString(Args[I].VString)^ + CRLF;
+        Result := Result + 'String: ' + string(PShortString(Args[I].VString)^) + CRLF;
       vtPointer:
         Result := Result + 'Pointer: ' + IntToHex(Integer(Args[I].VPointer), CN_HEX_DIGITS) + CRLF;
       vtPChar:
-        Result := Result + 'PChar: ' + Args[I].VPChar + CRLF;
+        Result := Result + 'PChar: ' + string(Args[I].VPChar) + CRLF;
       vtObject:
         Result := Result + 'Object: ' + Args[I].VObject.ClassName + IntToHex(Integer
           (Args[I].VObject), CN_HEX_DIGITS) + CRLF;
@@ -2662,7 +2662,7 @@ begin
       vtPWideChar:
         Result := Result + 'PWideChar: ' + Args[I].VPWideChar + CRLF;
       vtAnsiString:
-        Result := Result + 'AnsiString: ' + AnsiString(PAnsiChar(Args[I].VAnsiString)) + CRLF;
+        Result := Result + 'AnsiString: ' + string(AnsiString(PAnsiChar(Args[I].VAnsiString))) + CRLF;
       vtCurrency:
         Result := Result + 'Currency: ' + CurrToStr(Args[I].VCurrency^) + CRLF;
       vtVariant:
