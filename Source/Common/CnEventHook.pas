@@ -470,11 +470,11 @@ begin
       end
       else if Name = 'ONMOUSEWHEELDOWN' then
       begin
-        TControlHack(FObject)OnMouseWheelDown := TMouseWheelUpDownEvent(Method);
+        TControlHack(FObject).OnMouseWheelDown := TMouseWheelUpDownEvent(Method);
       end
       else if Name = 'ONMOUSEWHEELUP' then
       begin
-        TControlHack(FObject)OnMouseWheelUp := TMouseWheelUpDownEvent(Method);
+        TControlHack(FObject).OnMouseWheelUp := TMouseWheelUpDownEvent(Method);
       end
 {$ENDIF}
       else if Name = 'ONRESIZE' then
