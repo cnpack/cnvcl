@@ -212,8 +212,9 @@ begin
         TWinControlHack(FObject).OnUnDock := TUnDockEvent(Method);
         FHooked := True;
       end;
-    end
-    else if FObject is TControl then
+    end;
+
+    if FObject is TControl then
     begin
       if Name = 'ONCANRESIZE' then
       begin
@@ -412,8 +413,9 @@ begin
       begin
         TWinControlHack(FObject).OnUnDock := TUnDockEvent(Method);
       end;
-    end
-    else if FObject is TControl then
+    end;
+
+    if FObject is TControl then
     begin
       if Name = 'ONCANRESIZE' then
       begin
