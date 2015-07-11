@@ -1,8 +1,8 @@
 object FormEventHook: TFormEventHook
-  Left = 192
-  Top = 130
-  Width = 928
-  Height = 480
+  Left = 216
+  Top = 149
+  Width = 309
+  Height = 343
   Caption = 'Test Event Hook'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,12 +16,21 @@ object FormEventHook: TFormEventHook
   PixelsPerInch = 96
   TextHeight = 13
   object Button1: TButton
-    Left = 256
-    Top = 152
-    Width = 75
+    Left = 88
+    Top = 72
+    Width = 129
     Height = 25
-    Caption = 'Button1'
+    Caption = 'Event Hooked'
     TabOrder = 0
     OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 88
+    Top = 192
+    Width = 129
+    Height = 25
+    Caption = 'Show Hooked Status'
+    TabOrder = 1
+    OnClick = Button2Click
   end
 end
