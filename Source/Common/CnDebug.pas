@@ -438,8 +438,11 @@ type
 
     // 输出消息统计
     property MessageCount: Integer read GetMessageCount;
+    {* 调用而输出的拆包消息数。注意一条长消息可能会被拆包拆成多条消息}
     property PostedMessageCount: Integer read GetPostedMessageCount;
+    {* 实际输出成功的拆包后的消息数。}
     property DiscardedMessageCount: Integer read GetDiscardedMessageCount;
+    {* 未输出的拆包消息数。}
   end;
 
   TCnDebugChannel = class(TObject)
@@ -1111,7 +1114,7 @@ begin
   if Size > 0 then
   begin
     FChannel.SendContent(Data, Size);
-    Inc(FPostedMessageCount);
+    InterlockedIncrement(FPostedMessageCount);
   end;
 end;
 
@@ -1121,7 +1124,7 @@ procedure TCnDebugger.InternalOutputMsg(const AMsg: AnsiString; Size: Integer;
 var
   TagLen, MsgLen: Integer;
   MsgDesc: TCnMsgDesc;
-  ChkReady: Boolean;
+  ChkReady, IsFirst: Boolean;
   MsgBufPtr: PAnsiChar;
   MsgBufSize: Integer;
 
@@ -1173,14 +1176,22 @@ begin
     LeaveCriticalSection(FStartCriticalSection);
   end;
 
-  Inc(FMessageCount);
-  if not CheckEnabled then 
+  InterlockedIncrement(FMessageCount);
+  if not CheckEnabled then
+  begin
+    Sleep(0);
     Exit;
+  end;
   ChkReady := FChannel.CheckReady;
+
   if not ChkReady and not FDumpToFile then
+  begin
+    Sleep(0);
     Exit;
+  end;
 
   MsgBufPtr := @AMsg[1];
+  IsFirst := True;
   repeat
     if Size > CnMaxMsgLength then
       MsgBufSize := CnMaxMsgLength
@@ -1190,6 +1201,11 @@ begin
     GenerateMsgDesc(MsgBufPtr, MsgBufSize);
     Dec(Size, MsgBufSize);
     Inc(MsgBufPtr, MsgBufSize);
+
+    if IsFirst then
+      IsFirst := False
+    else
+      InterlockedIncrement(FMessageCount); // 拆包消息也要计数，但第一条在上头已计了
 
     if ChkReady then
     begin
