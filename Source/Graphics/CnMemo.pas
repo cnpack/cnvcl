@@ -39,7 +39,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Classes, Messages, Controls, Graphics, StdCtrls, ExtCtrls;
+  SysUtils, Windows, Classes, Messages, Controls, Graphics, StdCtrls, ExtCtrls,
+  Dialogs;
 
 type
   TCnMemo = class(TMemo)
@@ -98,14 +99,23 @@ type
     procedure SetBounds(ALeft: Integer; ATop: Integer; AWidth: Integer; AHeight: Integer); override;
   published
     property ShowLineNumber: Boolean read FShowLineNumber write SetShowLineNumber;
+    {* 是否显示左边的行号区域}
     property HighlightNumber: Boolean read FHighlightNumber write SetHighlightNumber;
+    {* 是否高亮显示行号区域中的当前行号}
     property LineNumberColor: TColor read FLineNumberColor write SetLineNumberColor;
+    {* 行号区域的行号文字显示颜色}
     property LineNumberBkColor: TColor read FLineNumberBkColor write SetLineNumberBkColor;
+    {* 行号区域的背景色}
     property HighlightNumberColor: TColor read FHighlightNumberColor write SetHighlightNumberColor;
+    {* 行号区域当前行的文字显示颜色}
     property LineNumberLeftMargin: Integer read FLineNumberLeftMargin write SetLineNumberLeftMargin;
+    {* 行号区域左边距}
     property LineNumberRightMargin: Integer read FLineNumberRightMargin write SetLineNumberRightMargin;
+    {* 行号区域右边距}
     property HighlightLine: Boolean read FHighlightLine write SetHighlightLine;
+    {* 是否高亮当前行背景，未实现}
     property HighlightBkColor: TColor read FHighlightBkColor write SetHighlightBkColor;
+    {* 高亮当前行的背景色，未实现}
   end;
 
 implementation
@@ -115,7 +125,7 @@ const
   csDefaultLineNumberHighlightColor = clRed;
   csDefaultLineNumberColor = clBtnText;
 
-  csInternalMargin = 0;
+  csInternalMargin = 1;
   csDefaultMargin = 5;
 
 type
@@ -405,7 +415,20 @@ begin
       Canvas.Free;
     end;
     // InvalidateGutter;
+  end
+  else if (Message.Msg >= WM_KEYFIRST) and (Message.Msg <= WM_KEYLAST) then
+  begin
+    CalcLineDigits;
+    FLineGutter.Invalidate;
   end;
+//  else if (Message.Msg = EM_SCROLL) or (Message.Msg = EM_LINESCROLL) or (Message.Msg = EM_SCROLLCARET) then
+//  begin
+//    case Message.Msg of
+//      EM_SCROLL: ShowMessage('SCROLL');
+//      EM_LINESCROLL: ShowMessage('EM_LINESCROLL');
+//      EM_SCROLLCARET: ShowMessage('EM_SCROLLCARET');
+//    end;
+//  end;   // 拦截不着
 
   inherited WndProc(Message);
 end;
@@ -501,20 +524,20 @@ begin
     Exit;
 
   // SendMessage(Handle, EM_GETRECT, 0, LongInt(@R));
-  R.Top := 4;
+  R.Top := csDefaultMargin - csInternalMargin;
   R.Right := ClientWidth;
-  R.Bottom := ClientWidth;
+  R.Bottom := ClientHeight;
 
   if FShowLineNumber then
   begin
     // SendMessage(Handle, EM_SETMARGINS, EC_LEFTMARGIN,
     //  MakeLParam(FLineNumberRegionWidth + csInternalMargin, 0))
-    R.Left := FLineNumberRegionWidth + 1;
+    R.Left := FLineNumberRegionWidth + csInternalMargin;
   end
   else
   begin
     // SendMessage(Handle, EM_SETMARGINS, EC_LEFTMARGIN, 0);
-    R.Left := 1;
+    R.Left := csInternalMargin;
   end;
 
   SendMessage(Handle, EM_SETRECT, 0, LongInt(@R));
@@ -524,6 +547,8 @@ procedure TCnMemo.CreateWnd;
 begin
   inherited;
   FOriginMargin := SendMessage(Handle, EM_GETMARGINS, 0, 0);
+
+  // TODO: 挂接以得到 SCROLL 事件通知
 end;
 
 procedure TCnMemo.InvalidateGutter;
