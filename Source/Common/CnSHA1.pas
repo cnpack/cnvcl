@@ -29,7 +29,9 @@ unit CnSHA1;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnSHA1.pas 426 2010-02-09 07:01:49Z liuxiao $
-* 修改记录：2014.10.22 V1.1
+* 修改记录：2015.08.14 V1.2
+*               汇编切换至 Pascal 以支持跨平台
+*           2014.10.22 V1.1
 *               加入 HMAC 方法
 *           2010.07.14 V1.0
 *               创建单元。从网上佚名代码移植而来，加入部分功能
@@ -148,31 +150,35 @@ const
 {$R-}
 
 function LRot16(X: Word; c: Integer): Word; assembler;
-asm
-        mov     ecx, &c
-        mov     ax, &X
-        rol     ax, cl
-        mov     &Result, ax
+begin
+  Result := X shl (c and 15) + X shr (16 - c and 15);
+//        mov     ecx, &c
+//        mov     ax, &X
+//        rol     ax, cl
+//        mov     &Result, ax
 end;
 
 function RRot16(X: Word; c: Integer): Word; assembler;
-asm
-        mov     ecx, &c
-        mov     ax, &X
-        ror     ax, cl
-        mov     &Result, ax
+begin
+  Result := X shr (c and 15) + X shl (16 - c and 15);
+//        mov     ecx, &c
+//        mov     ax, &X
+//        ror     ax, cl
+//        mov     &Result, ax
 end;
 
 function LRot32(X: DWORD; c: Integer): DWORD; register; assembler;
-asm
-        mov     ecx, edx
-        rol     eax, cl
+begin
+  Result := X shl (c and 31) + X shr (32 - c and 31);
+//        mov     ecx, edx
+//        rol     eax, cl
 end;
 
 function RRot32(X: DWORD; c: Integer): DWORD; register; assembler;
-asm
-        mov     ecx, edx
-        ror     eax, cl
+begin
+  Result := X shr (c and 31) + X shl (32 - c and 31);
+//        mov     ecx, edx
+//        ror     eax, cl
 end;
 
 procedure XorBlock(I1, I2, O1: PByteArray; Len: Integer);

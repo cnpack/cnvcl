@@ -21,7 +21,7 @@ object Form1: TForm1
     Top = 24
     Width = 353
     Height = 361
-    ActivePage = tsAES
+    ActivePage = tsBase64
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -281,6 +281,7 @@ object Form1: TForm1
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2
+          OnDblClick = ResultDblClick
         end
         object btnFileCRC32: TButton
           Left = 72
@@ -335,6 +336,7 @@ object Form1: TForm1
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2
+          OnDblClick = ResultDblClick
         end
         object btnFileCRC64: TButton
           Left = 72
@@ -389,6 +391,7 @@ object Form1: TForm1
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2
+          OnDblClick = ResultDblClick
         end
         object btnFileSha1: TButton
           Left = 72
@@ -427,6 +430,7 @@ object Form1: TForm1
           Alignment = taCenter
           AutoSize = False
           Layout = tlCenter
+          OnDblClick = ResultDblClick
         end
         object edtSM3: TEdit
           Left = 72

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, ComCtrls;
+  ExtCtrls, StdCtrls, ComCtrls, Clipbrd;
 
 type
   TForm1 = class(TForm)
@@ -116,6 +116,7 @@ type
     procedure btnSm4DecClick(Sender: TObject);
     procedure btnAesEncryptClick(Sender: TObject);
     procedure btnAesDecryptClick(Sender: TObject);
+    procedure ResultDblClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -448,6 +449,14 @@ begin
         edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt256);
     end;
   end;
+end;
+
+procedure TForm1.ResultDblClick(Sender: TObject);
+begin
+  if Sender is TPanel then
+    Clipboard.AsText := (Sender as TPanel).Caption
+  else if Sender is TLabel then
+    Clipboard.AsText := (Sender as TLabel).Caption;
 end;
 
 end.
