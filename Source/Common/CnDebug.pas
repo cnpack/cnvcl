@@ -98,6 +98,10 @@ interface
   {$DEFINE SUPPORT_EVALUATE}
 {$ENDIF}
 
+{$IFDEF WIN64}
+  {$UNDEF USE_JCL} // JCL Does NOT Support WIN64.
+{$ENDIF}
+
 uses
   SysUtils, Classes, Windows, TypInfo, Graphics, Registry
   {$IFDEF USE_JCL}
@@ -570,6 +574,13 @@ const
   CN_HEX_DIGITS = 16;
 {$ELSE}
   CN_HEX_DIGITS = 8;
+{$ENDIF}
+
+type
+{$IFDEF WIN64}
+  TCnNativeInt = NativeInt;
+{$ELSE}
+  TCnNativeInt = Integer;
 {$ENDIF}
 
 {$IFNDEF SUPPORTS_INTERFACE_AS_OBJECT}
@@ -2738,7 +2749,7 @@ var
   Obj: TObject;
   Intfs: string;
 begin
-  Result := IntToHex(Integer(AIntf), CN_HEX_DIGITS);
+  Result := IntToHex(TCnNativeInt(AIntf), CN_HEX_DIGITS);
   if AIntf <> nil then
   begin
     Obj := ObjectFromInterface(AIntf);

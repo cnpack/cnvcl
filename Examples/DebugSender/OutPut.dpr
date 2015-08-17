@@ -1,5 +1,9 @@
 program OutPut;
 
+{$IFDEF WIN64}
+  {$UNDEF USE_JCL} // JCL Does NOT Support WIN64.
+{$ENDIF}
+
 uses
   Forms,
   UnitOutput in 'UnitOutput.pas' {Form1},
