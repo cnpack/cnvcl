@@ -334,6 +334,7 @@ type
     procedure LogColor(Color: TColor; const AMsg: string = '');
     procedure LogFloat(Value: Extended; const AMsg: string = '');
     procedure LogInteger(Value: Integer; const AMsg: string = '');
+    procedure LogInt64(Value: Int64; const AMsg: string = '');
     procedure LogChar(Value: Char; const AMsg: string = '');
     procedure LogDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
@@ -388,6 +389,7 @@ type
     procedure TraceColor(Color: TColor; const AMsg: string = '');
     procedure TraceFloat(Value: Extended; const AMsg: string = '');
     procedure TraceInteger(Value: Integer; const AMsg: string = '');
+    procedure TraceInt64(Value: Int64; const AMsg: string = '');
     procedure TraceChar(Value: Char; const AMsg: string = '');
     procedure TraceDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
@@ -548,6 +550,7 @@ const
 
   SCnColor = 'Color: ';
   SCnInteger = 'Integer: ';
+  SCnInt64 = 'Int64: ';
   SCnCharFmt = 'Char: ''%s''(%d/$%2.2x)';
   SCnDateTime = 'A Date/Time: ';
   SCnPointer = 'Pointer Address: ';
@@ -1479,6 +1482,16 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogInt64(Value: Int64; const AMsg: string = '');
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogMsg(SCnInt64 + IntToStr(Value))
+  else
+    LogFmt('%s %d', [AMsg, Value]);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogChar(Value: Char; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -2038,6 +2051,15 @@ procedure TCnDebugger.TraceInteger(Value: Integer;
 begin
   if AMsg = '' then
     TraceMsg(SCnInteger + IntToStr(Value))
+  else
+    TraceFmt('%s %d', [AMsg, Value]);
+end;
+
+procedure TCnDebugger.TraceInt64(Value: Int64;
+  const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceMsg(SCnInt64 + IntToStr(Value))
   else
     TraceFmt('%s %d', [AMsg, Value]);
 end;
