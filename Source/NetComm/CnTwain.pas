@@ -864,7 +864,10 @@ begin
               GlobalUnlock(hbm_acq);
             end;
           if hbm_acq > VALID_HANDLE then
-            DoXferDone(hbm_acq)
+          begin
+            DoXferDone(hbm_acq);
+            GlobalFree(hbm_acq);
+          end
           else
             DoXferDone(0);
         end;
@@ -965,6 +968,7 @@ begin
                   Inc(ptr, num);
                 end;
                 GlobalUnlock(hbm_acq);
+                GlobalFree(hbm_acq);
               end;
               _lclose(hF);
             end;
@@ -974,6 +978,7 @@ begin
             if twPendingXfer.Count = 0 then
               Terminate;
             DoXferDone(hbm_acq);
+            GlobalFree(hbm_acq);
           end;
         TWRC_CANCEL:
           begin
@@ -1202,6 +1207,7 @@ begin
                     if twPendingXfer.Count = 0 then
                       Terminate;
                     DoXferDone(hbm_acq);
+                    GlobalFree(hbm_acq);
                   end;
                 TWRC_CANCEL:
                   begin
