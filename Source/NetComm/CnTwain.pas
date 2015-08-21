@@ -978,7 +978,6 @@ begin
             if twPendingXfer.Count = 0 then
               Terminate;
             DoXferDone(hbm_acq);
-            GlobalFree(hbm_acq);
           end;
         TWRC_CANCEL:
           begin
