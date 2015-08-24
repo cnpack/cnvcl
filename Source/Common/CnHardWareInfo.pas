@@ -98,6 +98,10 @@ type
     function GetFirstSupportCPUSn: Boolean;
     function GetCPUInfoString(Index: Integer): string;
     function GetFirstCPUInfoString: string;
+
+    function GetCnCPUOem: AnsiString;
+    function GetCnCPUInfoString: AnsiString;
+    function GetCnCPUID: AnsiString;
   public
     constructor Create;
     {* 构造函数，创建 FCPUIds 并调用 ReadCPUId}
@@ -189,8 +193,11 @@ uses
 
 const
   BiosOffset: array[0..2] of DWORD = ($6577, $7196, $7550);
+  SCN_CPUID_BIT = $200000; //CPU ID 位标记
 
 type
+  TCnCPUIDResult = array[0..3] of Longint;
+
   PUNICODE_STRING = ^TUNICODE_STRING;
   _UNICODE_STRING = record
     Length: Word;
@@ -241,7 +248,7 @@ type
   end;
   TSystemProcessorTimes = SYSTEM_PROCESSOR_TIMES;
   PSystemProcessorTimes = ^TSystemProcessorTimes;
-  
+
   SYSTEM_INFORMATION_CLASS = (
           SystemBasicInformation,
           SystemProcessorInformation,
@@ -298,7 +305,7 @@ type
           SystemAddVerifier,
           SystemSessionProcessesInformation);
   TSystemInformationClass = SYSTEM_INFORMATION_CLASS;
-  
+
   TNativeQuerySystemInformation = function(SystemInformationClass:
     TSystemInformationClass; SystemInformation: Pointer; SystemInformationLength:
     Cardinal; ReturnLength: PDWORD): Cardinal; stdcall;
@@ -327,10 +334,10 @@ type
   TStorageBusType = (
     BusTypeUnknown,
     BusTypeScsi,
-    BusTypeAtapi, 
-    BusTypeAta, 
-    BusType1394, 
-    BusTypeSsa, 
+    BusTypeAtapi,
+    BusTypeAta,
+    BusType1394,
+    BusTypeSsa,
     BusTypeFibre,
     BusTypeUsb,
     BusTypeRAID,
@@ -432,7 +439,7 @@ type
 
 const
   STATUS_SUCCESS = $00000000;
-  IOCTL_STORAGE_QUERY_PROPERTY = $002D1400; // ($2D shl 16) or ($0500 shl 2); // 
+  IOCTL_STORAGE_QUERY_PROPERTY = $002D1400; // ($2D shl 16) or ($0500 shl 2); //
 
 var
   NtDllHandle: THandle = 0;
@@ -495,6 +502,58 @@ begin
   end;
 end;
 
+{$IFDEF WIN64}
+
+function GetCPUInfo64: TCnCPUIDResult; assembler; register;
+asm
+        PUSH    RBX
+        PUSH    RDI
+        MOV     RDI, RCX
+        MOV     EAX, 1
+        CPUID
+        MOV     [RDI], EAX;
+        MOV     [RDI + 4], EBX;
+        MOV     [RDI + 8], ECX;
+        MOV     [RDI + 12], EDX;
+        POP     RDI
+        POP     RBX
+end;
+
+function GetCPUID64: TCnCPUIDResult; assembler; register;
+asm
+        PUSH    RBX
+        PUSH    RDI
+        MOV     RDI, RCX
+        MOV     EAX, 1
+        CPUID
+        MOV     [RDI], EAX;
+        MOV     [RDI + 4], EDX;
+        MOV EAX, $3
+        CPUID
+        MOV     [RDI], EAX;
+        MOV     [RDI + 8], ECX;
+        MOV     [RDI + 12], EDX;
+        POP     RDI
+        POP     RBX
+end;
+
+function GetCPUOem64: TCnCPUIDResult; assembler; register;
+asm
+        PUSH    RBX
+        PUSH    RDI
+        MOV     RDI, RCX
+        MOV     EAX, 0
+        CPUID
+        MOV     [RDI], EAX;
+        MOV     [RDI + 4], EBX;
+        MOV     [RDI + 8], ECX;
+        MOV     [RDI + 12], EDX;
+        POP     RDI
+        POP     RBX
+end;
+
+{$ENDIF}
+
 constructor TCnCpuId.Create;
 begin
   FSupportCpuIds := TList.Create;
@@ -525,10 +584,161 @@ begin
   FSupportCpuIds.Free;
 end;
 
+// 获取 CPU 信息字符串
+function TCnCpuId.GetCnCPUInfoString: AnsiString;
+const
+  cnIFContinuous = '%.8x%.8x%.8x%.8x';
+  cnIFDashed = '%.8x-%.8x-%.8x-%.8x';
+var
+  iEax,iEbx,iEcx,iEdx: Integer;
+{$IFDEF WIN64}
+  Rec64: TCnCPUIDResult;
+{$ENDIF}
+begin
+{$IFDEF WIN64}
+  Rec64 := GetCPUInfo64;
+  iEax := Rec64[0];
+  iEbx := Rec64[1];
+  iEcx := Rec64[2];
+  iEdx := Rec64[3];
+{$ELSE}
+  asm
+    PUSH EBX
+    PUSH ECX
+    PUSH EDX
+    MOV  EAX, $1
+    DW $A20F      //CPUID
+    MOV IEAX, EAX
+    MOV IEBX, EBX
+    MOV IECX, ECX
+    MOV IEDX, EDX
+    POP EDX
+    POP ECX
+    POP EBX
+  end;
+{$ENDIF}
+
+  if FCPUIdFormat = ifContinuous then
+    Result := Format(cnIFContinuous, [iEax, iEbx, iEcx, iEdx])
+  else
+    Result := Format(cnIFDashed, [iEax, iEbx, iEcx, iEdx])
+end;
+
+// 获取 CPU 序列号
+function TCnCpuId.GetCnCPUID: AnsiString;
+const
+  SCnIFContinuous = '%.4x%.4x%.4x%.4x%.4x%.4x';
+  SCnIFDashed = '%.4x-%.4x-%.4x-%.4x-%.4x-%.4x';
+var
+  SFmt: string;
+  iEax, iEcx, iEdx, iEdx1: Integer;
+{$IFDEF WIN64}
+  Rec64: TCnCPUIDResult;
+{$ENDIF}
+begin
+{$IFDEF WIN64}
+  Rec64 := GetCPUID64;
+  iEax := Rec64[0];
+  iEdx1 := Rec64[1];
+  iEcx := Rec64[2];
+  iEdx := Rec64[3];
+{$ELSE}
+  asm
+    PUSH EBX
+    PUSH ECX
+    PUSH EDX
+    MOV  EAX, $1
+    DW $A20F      //CPUID
+    MOV IEAX, EAX
+    MOV IEDX1, EDX
+    MOV EAX, $3
+    DW $A20F
+    MOV IECX, ECX
+    MOV IEDX, EDX
+    POP EDX
+    POP ECX
+    POP EBX
+  end;
+{$ENDIF}
+
+  if FCPUIdFormat = ifContinuous then
+    SFmt := SCnIFContinuous
+  else
+    SFmt := SCnIFDashed;
+
+  if iEdx1 and (1 shr 18) = 0 then // Cpu 序列号不能读，返回全0
+  begin
+    Result := Format(SFmt, [0, 0, 0, 0, 0, 0]);
+    FSupportCpuSns.Add(nil); // 加 False
+  end
+  else
+  begin
+    FSupportCpuSns.Add(Pointer(True));
+    Result := Format(SFmt,
+      [(iEax and $FFFF0000) shr 16, iEax and $FFFF,
+       (iEcx and $FFFF0000) shr 16, iEcx and $FFFF,
+       (iEdx and $FFFF0000) shr 16, iEdx and $FFFF]);
+  end;
+end;
+
+// 获得 CPU OEM 厂商名
+function TCnCpuId.GetCnCPUOem: AnsiString;
+var
+  iEax, iEbx, iEcx, iEdx: Integer;
+{$IFDEF WIN64}
+  Rec64: TCnCPUIDResult;
+{$ENDIF}
+begin
+{$IFDEF WIN64}
+  Rec64 := GetCPUOem64;
+  iEax := Rec64[0];
+  iEbx := Rec64[1];
+  iEcx := Rec64[2];
+  iEdx := Rec64[3];
+{$ELSE}
+  asm
+    PUSH EBX
+    PUSH ECX
+    PUSH EDX
+    MOV  EAX, $0
+    DW $A20F      //CPUID
+    MOV IEAX, EAX
+    MOV IEBX, EBX
+    MOV IECX, ECX
+    MOV IEDX, EDX
+    POP EDX
+    POP ECX
+    POP EBX
+  end;
+{$ENDIF}
+  SetLength(Result, 3 * SizeOf(Integer));
+  CopyMemory(@Result[1], @iEbx, SizeOf(Integer));
+  CopyMemory(@Result[1 + SizeOf(Integer)], @iEdx, SizeOf(Integer));
+  CopyMemory(@Result[1 + 2 * SizeOf(Integer)], @iEcx, SizeOf(Integer));
+end;
+
+function GetCnCpuIdSupport: Boolean;
+asm
+{$IFDEF WIN64}
+  MOV     AL, 1  // 64 位暂返回支持
+{$ELSE}
+  PUSHFD   //不允许直接存取，必须通过堆栈
+  POP     EAX
+  MOV     EDX, EAX
+  XOR     EAX, SCN_CPUID_BIT
+  PUSH    EAX
+  POPFD
+  PUSHFD
+  POP     EAX
+  XOR     EAX,EDX  // 检测 ID 位是否受影响
+  JZ      @exit    // CPUID 无效
+  MOV     AL, 1  // CPUID 有效
+@exit:
+{$ENDIF}
+end;
+
 // 获取所有 CPU 的序列号
 procedure TCnCpuId.ReadCPUId;
-const
-  SCN_CPUID_BIT = $200000; //CPU ID 位标记
 var
   I: Integer;
   Mask: Integer;
@@ -537,121 +747,6 @@ var
   ProcessAffinityOld: TCnNativeUInt;
   ProcessAffinity: TCnNativeUInt;
   SystemAffinity: TCnNativeUInt;
-
-  function GetCnCpuIdSupport: Boolean;
-  asm
-    PUSHFD   //不允许直接存取，必须通过堆栈
-    POP     EAX
-    MOV     EDX, EAX
-    XOR     EAX, SCN_CPUID_BIT
-    PUSH    EAX
-    POPFD
-    PUSHFD
-    POP     EAX
-    XOR     EAX,EDX  // 检测 ID 位是否受影响
-    JZ      @exit    // CPUID 无效
-    MOV     AL, 1  // CPUID 有效
-  @exit:
-  end;
-
-  // 获取 CPU 信息字符串
-  function GetCnCPUInfoString: AnsiString;
-  const
-    cnIFContinuous = '%.8x%.8x%.8x%.8x';
-    cnIFDashed = '%.8x-%.8x-%.8x-%.8x';
-  var
-    iEax,iEbx,iEcx,iEdx: Integer;
-  begin
-    asm
-      push ebx
-      push ecx
-      push edx
-      mov  eax, $1
-      dw $A20F      //CPUID
-      mov iEax, eax
-      mov iEbx, ebx
-      mov iEcx, ecx
-      mov iEdx, edx
-      pop edx
-      pop ecx
-      pop ebx
-    end;
-    if FCPUIdFormat = ifContinuous then
-      Result := Format(cnIFContinuous, [iEax, iEbx, iEcx, iEdx])
-    else
-      Result := Format(cnIFDashed, [iEax, iEbx, iEcx, iEdx])
-  end;
-
-  // 获取 CPU 序列号
-  function GetCnCPUID: AnsiString;
-  const
-    SCnIFContinuous = '%.4x%.4x%.4x%.4x%.4x%.4x';
-    SCnIFDashed = '%.4x-%.4x-%.4x-%.4x-%.4x-%.4x';
-  var
-    SFmt: string;
-    iEax, iEcx, iEdx, iEdx1: Integer;
-  begin
-    asm
-      push ebx
-      push ecx
-      push edx
-      mov  eax, $1
-      dw $A20F      //CPUID
-      mov iEax, eax
-      mov iEdx1, edx
-      mov eax, $3
-      dw $A20F
-      mov iEcx, ecx
-      mov iEdx, edx
-      pop edx
-      pop ecx
-      pop ebx
-    end;
-
-    if FCPUIdFormat=ifContinuous then
-      SFmt := SCnIFContinuous
-    else
-      SFmt := SCnIFDashed;
-
-    if iEdx1 and (1 shr 18) = 0 then // Cpu 序列号不能读，返回全0
-    begin
-      Result := Format(SFmt, [0, 0, 0, 0, 0, 0]);
-      FSupportCpuSns.Add(nil); // 加 False
-    end
-    else
-    begin
-      FSupportCpuSns.Add(Pointer(True));
-      Result := Format(SFmt,
-        [(iEax and $FFFF0000) shr 16, iEax and $FFFF,
-         (iEcx and $FFFF0000) shr 16, iEcx and $FFFF,
-         (iEdx and $FFFF0000) shr 16, iEdx and $FFFF]);
-    end;
-  end;
-
-  // 获得 CPU OEM 厂商名
-  function GetCnCPUOem: AnsiString;
-  var
-    iEax, iEbx, iEcx, iEdx: Integer;
-  begin
-    asm
-      push ebx
-      push ecx
-      push edx
-      mov  eax, $0
-      dw $A20F      //CPUID
-      mov iEax, eax
-      mov iEbx, ebx
-      mov iEcx, ecx
-      mov iEdx, edx
-      pop edx
-      pop ecx
-      pop ebx
-    end;
-    SetLength(Result, 3 * SizeOf(Integer));
-    CopyMemory(@Result[1], @iEbx, SizeOf(Integer));
-    CopyMemory(@Result[1 + SizeOf(Integer)], @iEdx, SizeOf(Integer));
-    CopyMemory(@Result[1 + 2 * SizeOf(Integer)], @iEcx, SizeOf(Integer));
-  end;
 begin
   FCPUCount := 0;
   FSupportCpuIds.Clear;
@@ -688,7 +783,7 @@ begin
       begin
         FCPUIds.Add('');
         FCPUInfos.Add('');
-        FCPUOems.Add('');      	
+        FCPUOems.Add('');
       end;
     end;
   finally

@@ -17,8 +17,8 @@ unit uCpuIDMain;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls;
 
 type
   TFrmCPUIDs = class(TForm)
@@ -57,7 +57,7 @@ uses
 var
   CnCpuID: TCnCpuID;
   CnHardDiskInfo: TCnHardDiskInfo;
-  
+
 {$R *.dfm}
 
 procedure TFrmCPUIDs.log(const Info: string);
@@ -69,40 +69,40 @@ procedure TFrmCPUIDs.BtnGetCpuIDsClick(Sender: TObject);
 var
   I: Integer;
 begin
-  for I:=0 to CnCpuID.CPUCount-1 do
+  for I := 0 to CnCpuID.CPUCount - 1 do
     if CnCpuID.SupportCPUId[I] then
-      Log('第 '+IntToStr(I)+' 个 CPU 支持 cpuid 指令。')
+      Log('第 ' + IntToStr(I) + ' 个 CPU 支持 cpuid 指令。')
     else
-      Log('第 '+IntToStr(I)+' 个 CPU 不支持 cpuid 指令。');
+      Log('第 ' + IntToStr(I) + ' 个 CPU 不支持 cpuid 指令。');
 
   Log('');
-  for I:=0 to CnCpuID.CPUCount-1 do
+  for I := 0 to CnCpuID.CPUCount - 1 do
     if CnCpuID.SupportCPUSn[I] then
-      Log('第 '+IntToStr(I)+' 个 CPU 支持读取序列号。')
+      Log('第 ' + IntToStr(I) + ' 个 CPU 支持读取序列号。')
     else
-      Log('第 '+IntToStr(I)+' 个 CPU 不支持读取序列号。');
+      Log('第 ' + IntToStr(I) + ' 个 CPU 不支持读取序列号。');
 
   //默认样式
   Log('');
   Log('默认样式');
-  Log('CPU的个数：'+IntToStr(CnCpuID.CPUCount));
-  Log('单机CPU：'+CnCpuID.FirstCPUId);
+  Log('CPU的个数：' + IntToStr(CnCpuID.CPUCount));
+  Log('单机CPU：' + CnCpuID.FirstCPUId);
 
-  for I:=0 to CnCpuID.CPUCount-1 do
+  for I := 0 to CnCpuID.CPUCount - 1 do
   begin
-    Log('第 '+IntToStr(I)+' 个 CPU的序列号：'+CnCpuID.CPUId[I]);
+    Log('第 ' + IntToStr(I) + ' 个 CPU的序列号：' + CnCpuID.CPUId[I]);
   end;
 
   //修改显示样式
   Log('');
   Log('分隔符样式');
   CnCpuID.CPUIdFormat := ifDashed;
-  Log('CPU的个数：'+IntToStr(CnCpuID.CPUCount));
-  Log('单机CPU：'+CnCpuID.FirstCPUId);
+  Log('CPU的个数：' + IntToStr(CnCpuID.CPUCount));
+  Log('单机CPU：' + CnCpuID.FirstCPUId);
 
-  for I:=0 to CnCpuID.CPUCount-1 do
+  for I := 0 to CnCpuID.CPUCount - 1 do
   begin
-    Log('第 '+IntToStr(I)+' 个 CPU的序列号：'+CnCpuID.CPUId[I]);
+    Log('第 ' + IntToStr(I) + ' 个 CPU的序列号：' + CnCpuID.CPUId[I]);
   end;
 end;
 
@@ -112,9 +112,9 @@ var
 begin
   for I := 0 to CnCpuID.CPUCount - 1 do
   begin
-    Log('第 '+IntToStr(I)+' 个 CPU的占用率：'+ InttoStr(CnCpuID.CPUUsage[I]));
+    Log('第 ' + IntToStr(I) + ' 个 CPU的占用率：' + InttoStr(CnCpuID.CPUUsage[I]));
   end;
-  Log('CPU平均占用率：'+ InttoStr(CnCpuID.AverageCPUUsage));
+  Log('CPU平均占用率：' + InttoStr(CnCpuID.AverageCPUUsage));
   Log('');
 end;
 
@@ -135,8 +135,8 @@ var
   I: Integer;
 begin
   Log('');
-  for I := 0 to CnCpuID.CPUCount-1 do
-    Log('第 '+IntToStr(I)+' 个 CPU的生产厂商：'+CnCpuID.CPUOem[I]);
+  for I := 0 to CnCpuID.CPUCount - 1 do
+    Log('第 ' + IntToStr(I) + ' 个 CPU的生产厂商：' + CnCpuID.CPUOem[I]);
   Log('');
 end;
 
@@ -148,12 +148,12 @@ begin
   Log('');
   Log('分隔符样式');
   CnCpuID.CPUIdFormat := ifDashed;
-  Log('CPU的个数：'+IntToStr(CnCpuID.CPUCount));
-  Log('单机CPU：'+CnCpuID.FirstCPUInfoString);
+  Log('CPU的个数：' + IntToStr(CnCpuID.CPUCount));
+  Log('单机CPU：' + CnCpuID.FirstCPUInfoString);
 
-  for I:=0 to CnCpuID.CPUCount-1 do
+  for I := 0 to CnCpuID.CPUCount - 1 do
   begin
-    Log('第 '+IntToStr(I)+' 个 CPU的信息串：'+CnCpuID.CPUInfoString[I]);
+    Log('第 ' + IntToStr(I) + ' 个 CPU的信息串：' + CnCpuID.CPUInfoString[I]);
   end;
 end;
 
@@ -182,3 +182,4 @@ begin
 end;
 
 end.
+
