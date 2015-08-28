@@ -342,6 +342,9 @@ type
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
     procedure LogRect(Rect: TRect; const AMsg: string = '');
     procedure LogRawString(const Value: string);
+    procedure LogRawAnsiString(const Value: AnsiString);
+    procedure LogRawWideString(const Value: WideString);
+
     procedure LogStrings(Strings: TStrings; const AMsg: string = '');
     procedure LogException(E: Exception; const AMsg: string = '');
     procedure LogMemDump(AMem: Pointer; Size: Integer);
@@ -397,6 +400,8 @@ type
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
     procedure TraceRawString(const Value: string);
+    procedure TraceRawAnsiString(const Value: AnsiString);
+    procedure TraceRawWideString(const Value: WideString);
     procedure TraceStrings(Strings: TStrings; const AMsg: string = '');
     procedure TraceException(E: Exception; const AMsg: string = '');
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
@@ -1701,6 +1706,22 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogRawAnsiString(const Value: AnsiString);
+begin
+{$IFDEF DEBUG}
+  if Value <> '' then
+    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(AnsiChar));
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogRawWideString(const Value: WideString);
+begin
+{$IFDEF DEBUG}
+  if Value <> '' then
+    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(WideChar));
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogStrings(Strings: TStrings; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -2228,6 +2249,18 @@ procedure TCnDebugger.TraceRawString(const Value: string);
 begin
   if Value <> '' then
     TraceMemDump(Pointer(Value), Length(Value) * SizeOf(Char));
+end;
+
+procedure TCnDebugger.TraceRawAnsiString(const Value: AnsiString);
+begin
+  if Value <> '' then
+    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(AnsiChar));
+end;
+
+procedure TCnDebugger.TraceRawWideString(const Value: WideString);
+begin
+  if Value <> '' then
+    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(WideChar));
 end;
 
 procedure TCnDebugger.TraceStrings(Strings: TStrings; const AMsg: string);
