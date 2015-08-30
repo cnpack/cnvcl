@@ -4,6 +4,12 @@ object CnFrameRunSql: TCnFrameRunSql
   Width = 443
   Height = 277
   Align = alClient
+  Font.Charset = GB2312_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'ËÎÌו'
+  Font.Style = []
+  ParentFont = False
   TabOrder = 0
   OnResize = FrameResize
   object Splitter1: TSplitter
@@ -25,12 +31,6 @@ object CnFrameRunSql: TCnFrameRunSql
     Align = alBottom
     BevelInner = bvRaised
     BevelOuter = bvLowered
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'MS Sans Serif'
-    Font.Style = []
-    ParentFont = False
     TabOrder = 0
     Visible = False
     object PageControl1: TPageControl
@@ -63,7 +63,7 @@ object CnFrameRunSql: TCnFrameRunSql
           Left = 0
           Top = 0
           Width = 431
-          Height = 148
+          Height = 149
           Align = alClient
           TabOrder = 0
         end
