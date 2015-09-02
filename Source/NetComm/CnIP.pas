@@ -394,7 +394,7 @@ begin
   WSAStartup(2, FWSAData);
   try
     GetHostName(@sName, SizeOf(sName));
-    Result := {$IFDEF DELPHI12_UP}String{$ENDIF}(sName);
+    Result := {$IFDEF UNICODE}String{$ENDIF}(sName);
   finally
     WSACleanup;
   end;
@@ -448,11 +448,11 @@ begin
   WSAStartup($101, FWSAData);
   try
     if sName = '' then
-      GetHostName(PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ELSE}string{$ENDIF}(sName)), SizeOf(sName));
+      GetHostName(PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(sName)), SizeOf(sName));
     pHost := GetHostByName(@sName);
     Result := pHost <> nil;
     if Result then
-      aIP := {$IFDEF DELPHI12_UP}String{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
+      aIP := {$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
   finally
     WSACleanup;
   end;
@@ -471,11 +471,11 @@ begin
     Exit;
   WSAStartup(2, FWSAData);
   try
-    InetAddr := inet_addr(PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(sIP)));
+    InetAddr := inet_addr(PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(sIP)));
     HostEnt := GetHostByAddr(@InetAddr, Length(sIP), PF_Inet);
     Result := HostEnt <> nil;
     if Result then
-      aName := {$IFDEF DELPHI12_UP}String{$ENDIF}(StrPas(Hostent^.h_name));
+      aName := {$IFDEF UNICODE}String{$ENDIF}(StrPas(Hostent^.h_name));
   finally
     WSACleanup;
   end;
@@ -515,11 +515,11 @@ begin
         for iIP := 0 to Result - 1 do // For every interface
         begin
           pAddrInet := Buffer[iIP].iiAddress.AddressIn;
-          aLocalIP[iIP].IPAddress := IPToInt({$IFDEF DELPHI12_UP}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
+          aLocalIP[iIP].IPAddress := IPToInt({$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
           pAddrInet := Buffer[iIP].iiNetMask.AddressIn;
-          aLocalIP[iIP].SubnetMask := IPToInt({$IFDEF DELPHI12_UP}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
+          aLocalIP[iIP].SubnetMask := IPToInt({$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
           pAddrInet := Buffer[iIP].iiBroadCastAddress.AddressIn;
-          aLocalIP[iIP].BroadCast := IPToInt({$IFDEF DELPHI12_UP}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
+          aLocalIP[iIP].BroadCast := IPToInt({$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
           SetFlags := Buffer[iIP].iiFlags;
           aLocalIP[iIP].UpState := (SetFlags and IFF_UP) = IFF_UP;
           aLocalIP[iIP].Loopback := (SetFlags and IFF_LOOPBACK) = IFF_LOOPBACK;

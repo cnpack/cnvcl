@@ -314,7 +314,7 @@ begin
     GoOffline;
     FillChar(DialParams, SizeOf(TRasDialParams), 0);
     DialParams.dwSize := SizeOf(TRasDialParams);
-    StrPCopy(DialParams.szEntryName, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(FConnectTo));
+    StrPCopy(DialParams.szEntryName, {$IFDEF UNICODE}AnsiString{$ENDIF}(FConnectTo));
     B := False;
     R := RasGetEntryDialParams(nil, DialParams, B);
     if R <> 0 then
@@ -326,8 +326,8 @@ begin
       Exit;
     end;
     DialParams.dwSize := SizeOf(TRasDialParams);
-    StrPCopy(DialParams.szUserName, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(FUsername));
-    StrPCopy(DialParams.szPassword, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(FPassword));
+    StrPCopy(DialParams.szUserName, {$IFDEF UNICODE}AnsiString{$ENDIF}(FUsername));
+    StrPCopy(DialParams.szPassword, {$IFDEF UNICODE}AnsiString{$ENDIF}(FPassword));
     R := RasSetEntryDialParams(nil, DialParams, False);
     if R <> 0 then
     begin
@@ -344,7 +344,7 @@ begin
     if R <> 0 then
     begin
       Result := False;
-      RasGetErrorString(R, PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ELSE}string{$ENDIF}(C)), 100);
+      RasGetErrorString(R, PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(C)), 100);
       GoOffline;
       if Assigned(FOnStatusEvent) then
         FOnStatusEvent(Self, C, True);
@@ -373,7 +373,7 @@ begin
   BuffSize := SizeOf(TRasEntryName) * 100;
   R := RasEnumEntries(nil, nil, @Entry[1], BuffSize, Entries);
   if (R = 0) and (Entries > 0) then
-    for I := 1 to Entries do SL.Add({$IFDEF DELPHI12_UP}String{$ENDIF}(Entry[I].szEntryName));
+    for I := 1 to Entries do SL.Add({$IFDEF UNICODE}String{$ENDIF}(Entry[I].szEntryName));
 end;
 
 function TCnDialUp.GetActiveConnection: string;
@@ -396,7 +396,7 @@ begin
       for I := 1 to NumEntries do begin
         RasGetConnectStatus(Entries[I].hrasconn, Stat);
         if Stat.rasconnstate = RASCS_Connected then
-          Result := Entries[I].szEntryName + ' (' + {$IFDEF DELPHI12_UP}string{$ENDIF}(Entries[I].szDeviceName) + ')'
+          Result := Entries[I].szEntryName + ' (' + {$IFDEF UNICODE}string{$ENDIF}(Entries[I].szDeviceName) + ')'
       end;
 end;
 
@@ -431,7 +431,7 @@ begin
 
   if Error <> 0 then
   begin
-    RasGetErrorString(Error, PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ELSE}string{$ENDIF}(C)), 100);
+    RasGetErrorString(Error, PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(C)), 100);
     ES := True;
     S := C;
   end

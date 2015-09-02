@@ -2506,9 +2506,9 @@ var
   C: Char;
 begin
   C := SCnLeapMonth[AYear + 850]; // 字符串下标以 1 开始。
-  if {$IFDEF DELPHI12_UP}CharInSet(C, ['0'..'9']){$ELSE}C in ['0'..'9']{$ENDIF} then
+  if {$IFDEF UNICODE}CharInSet(C, ['0'..'9']){$ELSE}C in ['0'..'9']{$ENDIF} then
     Result := StrToInt(C)
-  else if {$IFDEF DELPHI12_UP}CharInSet(C , ['a'..'c']){$ELSE}C in ['a'..'c']{$ENDIF} then
+  else if {$IFDEF UNICODE}CharInSet(C , ['a'..'c']){$ELSE}C in ['a'..'c']{$ENDIF} then
     Result := 10 + Ord(C) - Ord('a')
   else
     Result := -1;

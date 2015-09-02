@@ -122,14 +122,14 @@ function StrToOem(const AnsiStr: string): string;
 begin
   SetLength(Result, Length(AnsiStr));
   if Length(Result) > 0 then
-    CharToOemBuff({$IFDEF UNICODE} PWideChar{$ELSE}PAnsiChar{$ENDIF}(AnsiStr), PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Result)), Length(Result));
+    CharToOemBuff({$IFDEF UNICODE} PWideChar{$ELSE}PAnsiChar{$ENDIF}(AnsiStr), PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Result)), Length(Result));
 end;
 
 function OemToAnsiStr(const OemStr: string): string;
 begin
   SetLength(Result, Length(OemStr));
   if Length(Result) > 0 then
-    OemToCharBuff(PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(OemStr)), {$IFDEF UNICODE} PWideChar{$ELSE}PAnsiChar{$ENDIF}(Result), Length(Result));
+    OemToCharBuff(PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(OemStr)), {$IFDEF UNICODE} PWideChar{$ELSE}PAnsiChar{$ENDIF}(Result), Length(Result));
 end;
 
 function IsEmptyStr(const S: string; const EmptyChars: TCnCharSet): Boolean;
@@ -140,7 +140,7 @@ begin
   I := 1;
   while I <= SLen do
   begin
-    if not ({$IFDEF DELPHI12_UP}CharInSet(S[I], EmptyChars){$ELSE}S[I] in EmptyChars{$ENDIF}) then
+    if not ({$IFDEF UNICODE}CharInSet(S[I], EmptyChars){$ELSE}S[I] in EmptyChars{$ENDIF}) then
     begin
       Result := False;
       Exit;
@@ -355,11 +355,11 @@ begin
   SLen := Length(Result);
   while I <= SLen do
   begin
-    while (I <= SLen) and ({$IFDEF DELPHI12_UP}CharInSet(Result[I], WordDelims){$ELSE}Result[I] in WordDelims{$ENDIF}) do
+    while (I <= SLen) and ({$IFDEF UNICODE}CharInSet(Result[I], WordDelims){$ELSE}Result[I] in WordDelims{$ENDIF}) do
       Inc(I);
     if I <= SLen then
       Result[I] := AnsiUpperCase(Result[I])[1];
-    while (I <= SLen) and not ({$IFDEF DELPHI12_UP}CharInSet(Result[I], WordDelims){$ELSE}Result[I] in WordDelims{$ENDIF}) do
+    while (I <= SLen) and not ({$IFDEF UNICODE}CharInSet(Result[I], WordDelims){$ELSE}Result[I] in WordDelims{$ENDIF}) do
       Inc(I);
   end;
 end;
@@ -373,11 +373,11 @@ begin
   SLen := Length(S);
   while I <= SLen do
   begin
-    while (I <= SLen) and ({$IFDEF DELPHI12_UP}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
+    while (I <= SLen) and ({$IFDEF UNICODE}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
       Inc(I);
     if I <= SLen then
       Inc(Result);
-    while (I <= SLen) and not ({$IFDEF DELPHI12_UP}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
+    while (I <= SLen) and not ({$IFDEF UNICODE}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
       Inc(I);
   end;
 end;
@@ -393,14 +393,14 @@ begin
   while (I <= Length(S)) and (Count <> N) do
   begin
 
-    while (I <= Length(S)) and ({$IFDEF DELPHI12_UP}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
+    while (I <= Length(S)) and ({$IFDEF UNICODE}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
       Inc(I);
 
     if I <= Length(S) then
       Inc(Count);
 
     if Count <> N then
-      while (I <= Length(S)) and not ({$IFDEF DELPHI12_UP}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
+      while (I <= Length(S)) and not ({$IFDEF UNICODE}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
         Inc(I)
     else
       Result := I;
@@ -417,7 +417,7 @@ begin
   I := WordPosition(N, S, WordDelims);
   if I <> 0 then
 
-    while (I <= Length(S)) and not ({$IFDEF DELPHI12_UP}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
+    while (I <= Length(S)) and not ({$IFDEF UNICODE}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
     begin
 
       Inc(Len);
@@ -438,7 +438,7 @@ begin
   Pos := I;
   if I <> 0 then
 
-    while (I <= Length(S)) and not ({$IFDEF DELPHI12_UP}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
+    while (I <= Length(S)) and not ({$IFDEF UNICODE}CharInSet(S[I], WordDelims){$ELSE}S[I] in WordDelims{$ENDIF}) do
     begin
 
       Inc(Len);
@@ -462,7 +462,7 @@ begin
   SetLength(Result, 0);
   while (I <= SLen) and (CurWord <> N) do
   begin
-    if {$IFDEF DELPHI12_UP}CharInSet(S[I], Delims){$ELSE}S[I] in Delims{$ENDIF} then
+    if {$IFDEF UNICODE}CharInSet(S[I], Delims){$ELSE}S[I] in Delims{$ENDIF} then
       Inc(CurWord)
     else
     begin
@@ -483,10 +483,10 @@ var
   I                 : Integer;
 begin
   I := Pos;
-  while (I <= Length(S)) and not ({$IFDEF DELPHI12_UP}CharInSet(S[I], Delims){$ELSE}S[I] in Delims{$ENDIF}) do
+  while (I <= Length(S)) and not ({$IFDEF UNICODE}CharInSet(S[I], Delims){$ELSE}S[I] in Delims{$ENDIF}) do
     Inc(I);
   Result := Copy(S, Pos, I - Pos);
-  if (I <= Length(S)) and ({$IFDEF DELPHI12_UP}CharInSet(S[I], Delims){$ELSE}S[I] in Delims{$ENDIF}) then
+  if (I <= Length(S)) and ({$IFDEF UNICODE}CharInSet(S[I], Delims){$ELSE}S[I] in Delims{$ENDIF}) then
     Inc(I);
   Pos := I;
 end;
@@ -654,13 +654,13 @@ begin
   begin
     Inc(I);
     Index := UpCase(S[I]);
-    if {$IFDEF DELPHI12_UP}CharInSet(Index, RomanChars){$ELSE}Index in RomanChars{$ENDIF} then
+    if {$IFDEF UNICODE}CharInSet(Index, RomanChars){$ELSE}Index in RomanChars{$ENDIF} then
     begin
       if Succ(I) <= Length(S) then
         Next := UpCase(S[I + 1])
       else
         Next := #0;
-      if ({$IFDEF DELPHI12_UP}CharInSet(Next, RomanChars){$ELSE}Next in RomanChars{$ENDIF}) and (RomanValues[Index] < RomanValues[Next]) then
+      if ({$IFDEF UNICODE}CharInSet(Next, RomanChars){$ELSE}Next in RomanChars{$ENDIF}) and (RomanValues[Index] < RomanValues[Next]) then
       begin
         Inc(Result, RomanValues[Next]);
         Dec(Result, RomanValues[Index]);
@@ -994,7 +994,7 @@ begin
   while I <= ParamCount do
   begin
     S := ParamStr(I);
-    if (SwitchChars = []) or (({$IFDEF DELPHI12_UP}CharInSet(S[1], SwitchChars){$ELSE}S[1] in SwitchChars{$ENDIF}) and (Length(S) > 1)) then
+    if (SwitchChars = []) or (({$IFDEF UNICODE}CharInSet(S[1], SwitchChars){$ELSE}S[1] in SwitchChars{$ENDIF}) and (Length(S) > 1)) then
     begin
       if (AnsiCompareText(Copy(S, 2, MaxInt), Switch) = 0) then
       begin

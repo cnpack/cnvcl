@@ -157,13 +157,13 @@ begin
     if Trim(FModifySQL.Text) <> '' then
     begin
       //从ModifySQL字符串中获取表名
-      FTableName := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Trim(FModifySQL.Strings[0]));
+      FTableName := {$IFDEF UNICODE}AnsiString{$ENDIF}(Trim(FModifySQL.Strings[0]));
       System.Delete(FTableName, 1, 7);
-      FTableName := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Trim({$IFDEF DELPHI12_UP}String{$ENDIF}(FTableName)));
-      cbbTables.ItemIndex := cbbTables.Items.IndexOf({$IFDEF DELPHI12_UP}String{$ENDIF}(FTableName));
+      FTableName := {$IFDEF UNICODE}AnsiString{$ENDIF}(Trim({$IFDEF UNICODE}String{$ENDIF}(FTableName)));
+      cbbTables.ItemIndex := cbbTables.Items.IndexOf({$IFDEF UNICODE}String{$ENDIF}(FTableName));
 
       //根据FTableName表名获取字段名
-      FConnection.GetFieldNames({$IFDEF DELPHI12_UP}String{$ENDIF}(FTableName), lstKeyFields.Items);
+      FConnection.GetFieldNames({$IFDEF UNICODE}String{$ENDIF}(FTableName), lstKeyFields.Items);
       lstUpdateFields.Items.Text := lstKeyFields.Items.Text;
 
       //根据FModifySQL来选中列表框字段
@@ -258,22 +258,22 @@ begin
   begin
     if lstUpdateFields.Selected[i] then
     begin
-      sFieldName := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(lstUpdateFields.Items.Strings[i]);
+      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(lstUpdateFields.Items.Strings[i]);
       if (lstUpdateFields.SelCount - 1) <> j then //不是选中项的最后一项时
       begin
-        FModifySQL.Add('    ' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' = :' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ',');
+        FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ',');
         sFieldNames := sFieldNames + sFieldName + ',';
         sValuesParams := sValuesParams + ':' + sFieldName + ',';
       end
       else begin                                  //是选中项的最后一项时
-        FModifySQL.Add('    ' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' = :' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName));
+        FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName));
         sFieldNames := sFieldNames + sFieldName;
         sValuesParams := sValuesParams + ':' + sFieldName;
       end;
       Inc(j);
     end;
   end;
-  FInsertSQL.Add({$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNames) + ')' + #13 + #10 + {$IFDEF DELPHI12_UP}String{$ENDIF}(sValuesParams) + ')');
+  FInsertSQL.Add({$IFDEF UNICODE}String{$ENDIF}(sFieldNames) + ')' + #13 + #10 + {$IFDEF UNICODE}String{$ENDIF}(sValuesParams) + ')');
   FModifySQL.Add(' WHERE ');
   FDeleteSQL.Add('DELETE FROM ' + cbbTables.Text);
   FDeleteSQL.Add(' WHERE ');
@@ -284,15 +284,15 @@ begin
   begin
     if lstKeyFields.Selected[i] then
     begin
-      sFieldName := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(lstKeyFields.Items.Strings[i]);
+      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(lstKeyFields.Items.Strings[i]);
       if (lstKeyFields.SelCount - 1) <> j then //不是选中项的最后一项时
       begin
-        FModifySQL.Add('    ' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' and ');
-        FDeleteSQL.Add('    ' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' and ');
+        FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' and ');
+        FDeleteSQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' and ');
       end
       else begin                              //是选中项的最后一项时
-        FModifySQL.Add('    ' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName));
-        FDeleteSQL.Add('    ' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName));
+        FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName));
+        FDeleteSQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName));
       end;
       Inc(j);
     end;

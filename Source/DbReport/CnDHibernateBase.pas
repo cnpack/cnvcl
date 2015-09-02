@@ -64,7 +64,7 @@ type
   TCnStringBuffer = class(TStringList)
   public
     constructor Create(Str: string); reintroduce;
-    function ToString: string; {$IFDEF DELPHI12_UP}override;{$ENDIF}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING}override;{$ENDIF}
   end; 
 
   { Map table }
@@ -283,31 +283,31 @@ begin
           // set the string properties
           if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF}  then
           begin
-            map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), GetStrProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)));
+            map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), GetStrProp((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name)));
           end; 
           // set the integer properties
           if tk = tkInteger then
           begin
             try
-              i64 := GetInt64Prop((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name));
-              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), i64);
+              i64 := GetInt64Prop((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name));
+              map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), i64);
             except
-              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), 0);
+              map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), 0);
             end;
           end; 
           // set the float properties
           if tk = tkFloat then
           begin
             try
-              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), GetFloatProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)));
+              map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), GetFloatProp((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name)));
             except
-              map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), 0);
+              map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), 0);
             end;
           end; 
           // set the variant properties
           if tk = tkVariant then
           begin
-            map.put({$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name), GetVariantProp((obj as clazz), {$IFDEF DELPHI12_UP}String{$ENDIF}(pplst[i]^.Name)));
+            map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), GetVariantProp((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name)));
           end;
         end;
       end;

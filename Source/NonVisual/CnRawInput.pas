@@ -593,7 +593,7 @@ begin
 
             Inc(FKeyBoardCount);
             GetRawInputDeviceInfo(FDevices[I].hDevice, RIDI_DEVICENAME, @KBName, Sl);
-            FKeyBoardNames.AddObject({$IFDEF DELPHI12_UP}String{$ENDIF}(KBName), TObject(FDevices[I].hDevice));
+            FKeyBoardNames.AddObject({$IFDEF UNICODE}String{$ENDIF}(KBName), TObject(FDevices[I].hDevice));
           end;
         end;
       end;

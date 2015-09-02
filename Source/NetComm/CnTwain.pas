@@ -924,7 +924,7 @@ begin
     end;
     setup.Format := TWFF_BMP;
     setup.VRefNum := 0;
-    hF := OpenFile(PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ELSE}string{$ENDIF}(setup.Filename)), ofs, OF_CREATE);
+    hF := OpenFile(PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(setup.Filename)), ofs, OF_CREATE);
     if hF = HFILE_ERROR then
     begin
       DoTwMessage('Unable to create file for file transfer', False);
@@ -943,7 +943,7 @@ begin
           begin
             FillChar(ofs, sizeof(OFSTRUCT), #0);
             FillChar(header, sizeof(BITMAPFILEHEADER), #0);
-            hF := OpenFile(PAnsiChar({$IFDEF DELPHI12_UP}AnsiString{$ELSE}string{$ENDIF}(setup.FileName)), ofs, OF_READ);
+            hF := OpenFile(PAnsiChar({$IFDEF UNICODE}AnsiString{$ELSE}string{$ENDIF}(setup.FileName)), ofs, OF_READ);
             hbm_acq := 0;
             if hF <> Longword(-1) then
             begin

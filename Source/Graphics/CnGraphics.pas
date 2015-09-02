@@ -576,7 +576,7 @@ type
     property RowInc: Integer read FRowInc;
     property Gap: Integer read FGap;
   public
-    function Equals(Obj: TObject): Boolean; {$IFDEF DELPHI12_UP}override;{$ENDIF}
+    function Equals(Obj: TObject): Boolean; {$IFDEF OBJECT_HAS_EQUAL}override;{$ENDIF}
     constructor Create; override;
     {* 构造器，用于创建一个该类的实例}
     destructor Destroy; override;

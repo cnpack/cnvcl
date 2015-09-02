@@ -421,7 +421,7 @@ begin
   Result := False;
   if not FListening then Exit;
   try
-    RemoteAddress.sin_addr.S_addr := Inet_Addr(PAnsiChar(StrPCopy(Buf, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(ARemoteHost))));
+    RemoteAddress.sin_addr.S_addr := Inet_Addr(PAnsiChar(StrPCopy(Buf, {$IFDEF UNICODE}AnsiString{$ENDIF}(ARemoteHost))));
     if RemoteAddress.sin_addr.S_addr = SOCKET_ERROR then
     begin
       Wait_Flag := False;

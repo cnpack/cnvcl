@@ -619,7 +619,7 @@ const
 begin
   Result := '';
   for I := 0 to 31 do
-    Result := Result + {$IFDEF DELPHI12_UP}string{$ENDIF}(Digits[(Digest[I] shr 4) and $0f] +
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4) and $0f] +
               Digits[Digest[I] and $0F]);
 end;
 

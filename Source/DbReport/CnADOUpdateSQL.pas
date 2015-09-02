@@ -309,14 +309,14 @@ begin
   with GetQuery(UpdateKind) do
   begin
     SQL.Text := FSQLText[UpdateKind].Text;
-    sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(SQL.Text);
+    sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(SQL.Text);
     for i := 0 to Parameters.Count - 1 do
     begin
-      sFieldName := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Parameters.Items[i].Name);
-      bOld := CompareText({$IFDEF DELPHI12_UP}String{$ENDIF}(Copy(sFieldName, 1, 4)), 'OLD_') = 0;
+      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(Parameters.Items[i].Name);
+      bOld := CompareText({$IFDEF UNICODE}String{$ENDIF}(Copy(sFieldName, 1, 4)), 'OLD_') = 0;
       if bOld then System.Delete(sFieldName, 1, 4);
 
-      nField := DeltaDS.FindField({$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldName));
+      nField := DeltaDS.FindField({$IFDEF UNICODE}String{$ENDIF}(sFieldName));
       if not Assigned(nField) then Continue;
 
       if bOld then //字段参数名中找到OLD_，不更新该字段，即取原值OldValue
@@ -341,9 +341,9 @@ begin
               nValue := nValue <> 0
             else
               sSQLText :=
-                {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
+                {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           //字符型
@@ -351,57 +351,57 @@ begin
           begin
             if not VarIsNull(nValue) then
               sSQLText :=
-                {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), QuotedStr(VarToStr(nValue)), [rfReplaceAll]))
+                {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), QuotedStr(VarToStr(nValue)), [rfReplaceAll]))
             else
               sSQLText :=
-                {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
+                {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           //数字型
           ftSmallint, ftInteger, ftBytes, ftLargeint, ftBCD, ftFloat, ftCurrency:
           begin
             if not VarIsNull(nValue) then
-              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), VarToStr(nValue), [rfReplaceAll]))
+              sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), VarToStr(nValue), [rfReplaceAll]))
             else
-              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
+              sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           //日期型
           ftDate, ftTime, ftDateTime{$IFDEF COMPILER6_UP},  ftTimeStamp {$ENDIF}:
           begin
             if not VarIsNull(nValue) then
-              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), QuotedStr(VarToStr(nValue)), [rfReplaceAll]))
+              sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), QuotedStr(VarToStr(nValue)), [rfReplaceAll]))
             else
-              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
+              sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
 
           else begin
             if not VarIsNull(nValue) then
-              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), VarToStr(nValue), [rfReplaceAll]))
+              sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), VarToStr(nValue), [rfReplaceAll]))
             else
-              sSQLText := {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(
-                StringReplace({$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText),
-                {$IFDEF DELPHI12_UP}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
+              sSQLText := {$IFDEF UNICODE}AnsiString{$ENDIF}(
+                StringReplace({$IFDEF UNICODE}String{$ENDIF}(sSQLText),
+                {$IFDEF UNICODE}String{$ENDIF}(sFieldNameParam), 'NULL', [rfReplaceAll]));
           end;
         end;
       end;
     end;
 
-    SQL.Text := {$IFDEF DELPHI12_UP}String{$ENDIF}(sSQLText);
+    SQL.Text := {$IFDEF UNICODE}String{$ENDIF}(sSQLText);
   end;
 end;
 

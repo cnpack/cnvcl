@@ -402,7 +402,7 @@ begin
   ScanBlanks(S, Pos);
   I := Pos;
   N := 0;
-  while (I <= Length(S)) and (Longint(I - Pos) < MaxLength) and ({$IFDEF DELPHI12_UP}CharInSet(S[I],  ['0'..'9']){$ELSE}S[I] in ['0'..'9']{$ENDIF}) and (N < 1000) do
+  while (I <= Length(S)) and (Longint(I - Pos) < MaxLength) and ({$IFDEF UNICODE}CharInSet(S[I],  ['0'..'9']){$ELSE}S[I] in ['0'..'9']{$ENDIF}) and (N < 1000) do
   begin
     N := N * 10 + (Ord(S[I]) - Ord('0'));
     Inc(I);
@@ -428,9 +428,9 @@ end;
 
 procedure ScanToNumber(const S: string; var Pos: Integer);
 begin
-  while (Pos <= Length(S)) and not ({$IFDEF DELPHI12_UP}CharInSet(S[Pos], ['0'..'9']){$ELSE}S[Pos] in ['0'..'9']{$ENDIF}) do
+  while (Pos <= Length(S)) and not ({$IFDEF UNICODE}CharInSet(S[Pos], ['0'..'9']){$ELSE}S[Pos] in ['0'..'9']{$ENDIF}) do
   begin
-    if {$IFDEF DELPHI12_UP}CharInSet(S[Pos], LeadBytes){$ELSE}S[Pos] in LeadBytes{$ENDIF} then
+    if {$IFDEF UNICODE}CharInSet(S[Pos], LeadBytes){$ELSE}S[Pos] in LeadBytes{$ENDIF} then
       Inc(Pos);
     Inc(Pos);
   end;
@@ -534,7 +534,7 @@ begin
   ScanBlanks(S, Pos);
   if SysLocale.FarEast and (System.Pos('ddd', {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) <> 0) then
   begin
-    if {$IFDEF DELPHI12_UP}CharInSet({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortTimeFormat[1], ['0'..'9']){$ELSE}ShortTimeFormat[1] in ['0'..'9']{$ENDIF} then
+    if {$IFDEF UNICODE}CharInSet({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortTimeFormat[1], ['0'..'9']){$ELSE}ShortTimeFormat[1] in ['0'..'9']{$ENDIF} then
       ScanToNumber(S, Pos)
     else
       repeat
@@ -576,19 +576,19 @@ begin
   while (UpCase(Format[J]) = Ch) and (J <= L) do
   begin
     if S[J] <> ' ' then
-      Tmp := Tmp + {$IFDEF DELPHI12_UP}ShortString{$ENDIF}(S[J]);
+      Tmp := Tmp + {$IFDEF UNICODE}ShortString{$ENDIF}(S[J]);
     Inc(J);
   end;
   if Tmp = '' then
     I := Blank
   else if Cnt > 1 then
   begin
-    I := MonthFromName({$IFDEF DELPHI12_UP}String{$ENDIF}(Tmp), Length(Tmp));
+    I := MonthFromName({$IFDEF UNICODE}String{$ENDIF}(Tmp), Length(Tmp));
     if I = 0 then
       I := -1;
   end
   else
-    I := StrToIntDef({$IFDEF DELPHI12_UP}String{$ENDIF}(Tmp), -1);
+    I := StrToIntDef({$IFDEF UNICODE}String{$ENDIF}(Tmp), -1);
 end;
 
 function ScanDateStr(const Format, S: string; var D, M, Y: Integer): Boolean;

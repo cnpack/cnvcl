@@ -2236,7 +2236,7 @@ begin
           S := PChar(Message.NotifyRec.MsgLParam);
           { Search for first CR/LF and end string there }
           for I := 1 to Length(S) do
-            if {$IFDEF DELPHI12_UP}CharInSet(S[i], [#13, #10]){$ELSE}S[I] in [#13, #10]{$ENDIF} then
+            if {$IFDEF UNICODE}CharInSet(S[i], [#13, #10]){$ELSE}S[I] in [#13, #10]{$ENDIF} then
             begin
               SetLength(S, I - 1);
               Break;

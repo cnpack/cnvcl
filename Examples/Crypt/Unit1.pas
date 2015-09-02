@@ -329,7 +329,7 @@ begin
   for I := 0 to Length - 1 do
   begin
     B := PByte(Integer(Buffer) + I)^;
-    Result := Result + {$IFDEF DELPHI12_UP}string{$ENDIF}
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
       (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
   end;
 end;

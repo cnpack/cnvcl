@@ -448,7 +448,7 @@ var
   sName: array[0..255] of AnsiChar;
 begin
   Result := False;
-  StrPCopy(sName, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(aName));
+  StrPCopy(sName, {$IFDEF UNICODE}AnsiString{$ENDIF}(aName));
   aIP := '';
   if aName = '' then
     Exit;
@@ -458,7 +458,7 @@ begin
     pHost := GetHostByName(@sName);
     Result := pHost <> nil;
     if Result then
-      aIP := {$IFDEF DELPHI12_UP}String{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
+      aIP := {$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
   finally
     WSACleanup;
   end;
@@ -481,7 +481,7 @@ begin
   GetMem(pIPAddr, Length(aIP.IP) + 1);
   try
     ZeroMemory(pIPAddr, Length(aIP.IP) + 1);
-    StrPCopy(pIPAddr, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(aIP.IP));
+    StrPCopy(pIPAddr, {$IFDEF UNICODE}AnsiString{$ENDIF}(aIP.IP));
     aIP.Address := inet_addr(PAnsiChar(pIPAddr)); // IP转换成无点整型
   finally
     FreeMem(pIPAddr); // 释放申请的动态内存

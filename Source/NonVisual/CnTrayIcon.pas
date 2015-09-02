@@ -217,8 +217,8 @@ begin
     FIconXP.cbSize := SizeOf(FIconXP);
     FIconXP.Wnd := FHandle;
     FIconXP.hIcon := FIcon.Handle;
-    StrPLCopy(FIconXP.szInfoTitle, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Title), SizeOf(FIconXP.szInfoTitle) - 1);
-    StrPLCopy(FIconXP.szInfo, {$IFDEF DELPHI12_UP}AnsiString{$ENDIF}(Value), SizeOf(FIconXP.szInfo) - 1);
+    StrPLCopy(FIconXP.szInfoTitle, {$IFDEF UNICODE}AnsiString{$ENDIF}(Title), SizeOf(FIconXP.szInfoTitle) - 1);
+    StrPLCopy(FIconXP.szInfo, {$IFDEF UNICODE}AnsiString{$ENDIF}(Value), SizeOf(FIconXP.szInfo) - 1);
     FIconXP.uFlags := NIF_ICON or NIF_INFO; // 此处如加其他标志会导致其他标志失效
     FIconXP.uTimeOut := DelaySeconds;
     case BalloonType of
