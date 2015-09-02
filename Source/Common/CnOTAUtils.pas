@@ -83,7 +83,7 @@ function IsCpp(const FileName: string): Boolean;
 function CnOtaReplaceToActualPath(const Path: string): string;
 {* 将 $(DELPHI) 这样的符号替换为 Delphi 所在路径}
 
-{$IFDEF DELPHI2009_UP}
+{$IFDEF SUPPORT_OTA_PROJECT_CONFIGURATION}
 function CnOtaGetActiveProjectOptionsConfigurations(Project: IOTAProject = nil): IOTAProjectOptionsConfigurations;
 {* 取当前工程配置选项，2009 后才有效}
 {$ENDIF}
@@ -287,7 +287,7 @@ begin
   Result := (FileExt = '.CPP');
 end;
 
-{$IFDEF DELPHI2009_UP}
+{$IFDEF SUPPORT_OTA_PROJECT_CONFIGURATION}
 // * 取当前工程配置选项，2009 后才有效
 function CnOtaGetActiveProjectOptionsConfigurations
   (Project: IOTAProject): IOTAProjectOptionsConfigurations;

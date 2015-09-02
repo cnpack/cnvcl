@@ -154,7 +154,7 @@ type
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象}
 
-    function ToString: string; {$IFDEF DELPHI2009_UP} override; {$ENDIF}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串 }
 
     function ToHex: string;

@@ -326,7 +326,7 @@ begin
       
   SetString(SA, nil, Size);
   Stream.Read(Pointer(SA)^, Size);
-  SetTextStr({$IFDEF DELPHI2009_UP}string{$ENDIF}(SA));
+  SetTextStr({$IFDEF UNICODE}string{$ENDIF}(SA));
 end;
 
 procedure TCnWideStringList.Put(Index: Integer; const S: WideString);

@@ -372,7 +372,7 @@ var
   Context: TSHA1Context;
 begin
   SHA1Init(Context);
-  SHA1Update(Context, PAnsiChar({$IFDEF DELPHI2009_UP}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
+  SHA1Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
   SHA1Final(Context, Result);
 end;
 

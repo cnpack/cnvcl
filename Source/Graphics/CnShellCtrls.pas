@@ -895,7 +895,7 @@ begin
   { This is a hack bug fix to get around Windows Shell Controls returning
     spurious "?"s in date/time detail fields }
   if (Length(Result) > 1) and (Result[1] = '?') and (
-    {$IFDEF DELPHI2009_UP}CharInSet(Result[2], ['0'..'9']){$ELSE}Result[2] in ['0'..'9']{$ENDIF}) then
+    {$IFDEF UNICODE}CharInSet(Result[2], ['0'..'9']){$ELSE}Result[2] in ['0'..'9']{$ENDIF}) then
     Result := StringReplace(Result,'?','',[rfReplaceAll]);
 end;
 
@@ -965,7 +965,7 @@ begin
     begin
       ICmd := LongInt(Command) - 1;
       HR := CM.GetCommandString(ICmd, GCS_VERBA, nil, ZVerb, SizeOf(ZVerb));
-      Verb := {$IFDEF DELPHI2009_UP}string{$ENDIF}(StrPas(ZVerb));
+      Verb := {$IFDEF UNICODE}string{$ENDIF}(StrPas(ZVerb));
       Handled := False;
       if Supports(Owner, IShellCommandVerb, SCV) then
       begin

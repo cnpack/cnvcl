@@ -505,7 +505,7 @@ begin
   FIconData.Wnd := FHandle;
   FIconData.uFlags := NIF_ICON or NIF_MESSAGE or NIF_TIP or NIF_INFO;
   FIconData.hIcon := FIcon.Handle;
-  ShortHint := {$IFDEF DELPHI2009_UP}AnsiString{$ENDIF}(GetShortHint(FHint));
+  ShortHint := {$IFDEF UNICODE}AnsiString{$ENDIF}(GetShortHint(FHint));
 {$IFDEF UNICODE}
   if ShortHint <> '' then
     CopyMemory(@FIconData.szTip, Pointer(ShortHint), 63)

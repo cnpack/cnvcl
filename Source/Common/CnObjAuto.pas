@@ -56,10 +56,6 @@ uses TypInfo;
   Not Support Delphi 1
 {$ENDIF}
 
-{$IFDEF VER200}
-  {$DEFINE DELPHI2009}
-{$ENDIF}
-
 const
   paEAX     = Word(0);
   paEDX     = Word(1);
@@ -164,7 +160,7 @@ begin
           Result := -1;
       end;
     end;
-    tkString, tkLString,{$IFDEF DELPHI2009}tkUString,{$ENDIF} tkWString, tkInterface, tkClass:
+    tkString, tkLString,{$IFDEF UNICODE}tkUString,{$ENDIF} tkWString, tkInterface, tkClass:
       Result := 4;
     tkMethod, tkInt64:
       Result := 8;
@@ -184,30 +180,30 @@ const
   none = ckNone;
   cvt  = ckConvert;
   err  = ckError;
-  Codes: array[varEmpty..{$IFDEF DELPHI2009}varUInt64{$ELSE}varInt64{$ENDIF}, varEmpty..{$IFDEF DELPHI2009}varUInt64{$ELSE}varInt64{$ENDIF}] of TConvertKind =
+  Codes: array[varEmpty..{$IFDEF UNICODE}varUInt64{$ELSE}varInt64{$ENDIF}, varEmpty..{$IFDEF UNICODE}varUInt64{$ELSE}varInt64{$ENDIF}] of TConvertKind =
     ({v From} {To >}{vt_empty} {vt_null} {vt_i2} {vt_i4} {vt_r4} {vt_r8} {vt_cy} {vt_date} {vt_bstr} {vt_dispatch} {vt_error} {vt_bool} {vt_variant} {vt_unknown} {vt_decimal} {0x0f } {vt_i1} {vt_ui1} {vt_ui2} {vt_ui4} {vt_i8} {vt_ui8}
-    {vt_empty}      (none,      err,      err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        err,         err,         err,    err,    err,     err,     err,     err    {$IFDEF DELPHI2009},err{$ENDIF}),
-    {vt_null}       (err,       none,     err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        err,         err,         err,    err,    err,     err,     err,     err    {$IFDEF DELPHI2009},err{$ENDIF}),
-    {vt_i2}         (err,       err,      none,   cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_i4}         (err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_r4}         (err,       err,      cvt,    cvt,    none,   cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_r8}         (err,       err,      cvt,    cvt,    cvt,    none,   none,   none,     cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_cy}         (err,       err,      cvt,    cvt,    cvt,    none,   none,   none,     cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_date}       (err,       err,      cvt,    cvt,    cvt,    none,   none,   none,     cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_bstr}       (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      none,     err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_dispatch}   (err,       err,      err,    err,    err,    err,    err,    err,      err,      none,         err,       err,      none,        none,        err,         err,    err,    err,     err,     err,     err    {$IFDEF DELPHI2009},err{$ENDIF}),
-    {vt_error}      (err,       err,      err,    err,    err,    err,    err,    err,      err,      err,          none,      err,      none,        err,         err,         err,    err,    err,     err,     err,     err    {$IFDEF DELPHI2009},err{$ENDIF}),
-    {vt_bool}       (err,       err,      cvt,    cvt,    err,    err,    err,    err,      cvt,      err,          err,       none,     none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_variant}    (cvt,       cvt,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      cvt,          cvt,       cvt,      none,        cvt,         cvt,         cvt,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_unknown}    (err,       err,      err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        none,        err,         err,    err,    err,     err,     err,     err    {$IFDEF DELPHI2009},err{$ENDIF}),
-    {vt_decimal}    (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         none,        err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {0x0f }         (err,       err,      err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        err,         err,         none,   err,    err,     err,     err,     err    {$IFDEF DELPHI2009},err{$ENDIF}),
-    {vt_i1}         (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_ui1}        (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    cvt,     cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_ui2}        (err,       err,      none,   cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    cvt,     cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_ui4}        (err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    none,    cvt    {$IFDEF DELPHI2009},cvt{$ENDIF}),
-    {vt_i8}         (err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    none,    none   {$IFDEF DELPHI2009},none{$ENDIF})
-{$IFDEF DELPHI2009}    
+    {vt_empty}      (none,      err,      err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        err,         err,         err,    err,    err,     err,     err,     err    {$IFDEF UNICODE},err{$ENDIF}),
+    {vt_null}       (err,       none,     err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        err,         err,         err,    err,    err,     err,     err,     err    {$IFDEF UNICODE},err{$ENDIF}),
+    {vt_i2}         (err,       err,      none,   cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_i4}         (err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_r4}         (err,       err,      cvt,    cvt,    none,   cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_r8}         (err,       err,      cvt,    cvt,    cvt,    none,   none,   none,     cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_cy}         (err,       err,      cvt,    cvt,    cvt,    none,   none,   none,     cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_date}       (err,       err,      cvt,    cvt,    cvt,    none,   none,   none,     cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_bstr}       (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      none,     err,          err,       cvt,      none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_dispatch}   (err,       err,      err,    err,    err,    err,    err,    err,      err,      none,         err,       err,      none,        none,        err,         err,    err,    err,     err,     err,     err    {$IFDEF UNICODE},err{$ENDIF}),
+    {vt_error}      (err,       err,      err,    err,    err,    err,    err,    err,      err,      err,          none,      err,      none,        err,         err,         err,    err,    err,     err,     err,     err    {$IFDEF UNICODE},err{$ENDIF}),
+    {vt_bool}       (err,       err,      cvt,    cvt,    err,    err,    err,    err,      cvt,      err,          err,       none,     none,        err,         cvt,         err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_variant}    (cvt,       cvt,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      cvt,          cvt,       cvt,      none,        cvt,         cvt,         cvt,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_unknown}    (err,       err,      err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        none,        err,         err,    err,    err,     err,     err,     err    {$IFDEF UNICODE},err{$ENDIF}),
+    {vt_decimal}    (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         none,        err,    cvt,    cvt,     cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {0x0f }         (err,       err,      err,    err,    err,    err,    err,    err,      err,      err,          err,       err,      none,        err,         err,         none,   err,    err,     err,     err,     err    {$IFDEF UNICODE},err{$ENDIF}),
+    {vt_i1}         (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_ui1}        (err,       err,      cvt,    cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    cvt,     cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_ui2}        (err,       err,      none,   cvt,    cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    cvt,     cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_ui4}        (err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    none,    cvt    {$IFDEF UNICODE},cvt{$ENDIF}),
+    {vt_i8}         (err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    none,    none   {$IFDEF UNICODE},none{$ENDIF})
+{$IFDEF UNICODE}
     {vt_ui8}       ,(err,       err,      none,   none,   cvt,    cvt,    cvt,    cvt,      cvt,      err,          err,       cvt,      none,        err,         cvt,         err,    none,   none,    none,    none,    none,   none)
 {$ENDIF}
   );
@@ -285,7 +281,7 @@ begin
     end;
     tkString:  Result := varString;
     tkLString: Result := varString;
-	{$IFDEF DELPHI2009}
+	{$IFDEF UNICODE}
     tkUString: Result := varUString;
 	{$ENDIF}
     tkWString: Result := varOleStr;
@@ -299,7 +295,7 @@ begin
     end;
     tkVariant: Result := varVariant;
     tkInt64: 
-	{$IFDEF DELPHI2009}
+	{$IFDEF UNICODE}
       begin
         TypeData := GetTypeData(TypeInfo);
         if TypeData^.MinInt64Value >= 0 then
@@ -410,7 +406,7 @@ begin
       while Count > 0 do
       begin
         Result := MethodInfo;
-        if {$IFDEF DELPHI2009}SamePropTypeName{$ELSE}SameText{$ENDIF}(Result^.Name, MethodName) then
+        if {$IFDEF UNICODE}SamePropTypeName{$ELSE}SameText{$ENDIF}(Result^.Name, MethodName) then
           Exit;
         Inc(Integer(MethodInfo), PMethodInfoHeader(MethodInfo)^.Len);
         Dec(Count);
@@ -490,7 +486,7 @@ var
   PushData:      Pointer;
   ParamBytes:    Integer;
   Size:          Integer;
-  Frame:         {$IFDEF DELPHI2009}PByte{$ELSE}PChar{$ENDIF};
+  Frame:         {$IFDEF UNICODE}PByte{$ELSE}PChar{$ENDIF};
   ResultParam:   Pointer;
   ResultPointer: Pointer;
   ParamInfos:    array[0..MaxParams - 1] of PParamInfo;
@@ -501,7 +497,7 @@ begin
   // MethodInfo now points to the method we found.
   MethodInfo := MethodHeader;
   MethodAddr := MethodHeader^.Addr;
-  MethodName := {$IFDEF DELPHI2009}UTF8ToString({$ENDIF} PMethodInfoHeader(MethodInfo)^.Name{$IFDEF DELPHI2009}){$ENDIF};
+  MethodName := {$IFDEF UNICODE}UTF8ToString({$ENDIF} PMethodInfoHeader(MethodInfo)^.Name{$IFDEF UNICODE}){$ENDIF};
   Inc(Integer(MethodInfo), SizeOf(TMethodInfoHeader) - SizeOf(ShortString) + 1 +
     Length(MethodName));
   ReturnInfo := MethodInfo;
@@ -604,7 +600,7 @@ begin
     Param    := ParamInfos[I];
     PushData := ParamData[I];
     if PushData = nil then
-      if (Param^.ParamType^.Kind = tkClass) and {$IFDEF DELPHI2009}SamePropTypeName{$ELSE}SameText{$ENDIF}(Param^.Name, 'SELF') then
+      if (Param^.ParamType^.Kind = tkClass) and {$IFDEF UNICODE}SamePropTypeName{$ELSE}SameText{$ENDIF}(Param^.Name, 'SELF') then
         // Self is special. It doesn't appear in the ParamData array since it
         // is not represented in the Params array.
         PushData := @Instance
@@ -756,19 +752,19 @@ type
 
 function AdditionalInfoOf(TypeData: PTypeData): Pointer;
 var
-  P: {$IFDEF DELPHI2009}PByte{$ELSE}PChar{$ENDIF};
+  P: {$IFDEF UNICODE}PByte{$ELSE}PChar{$ENDIF};
   I: Integer;
 begin
   P := @TypeData^.ParamList;
   // Skip parameter names and types
   for I := 1 to TypeData^.ParamCount do
   begin
-    Inc(P, 1 + {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[1]) + 1);
-    Inc(P, {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[0]) + 1);
+    Inc(P, 1 + {$IFNDEF UNICODE}Byte{$ENDIF}(P[1]) + 1);
+    Inc(P, {$IFNDEF UNICODE}Byte{$ENDIF}(P[0]) + 1);
   end;
   if TypeData^.MethodKind = mkFunction then
     // Skip return type name and info
-    Inc(P, {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[0]) + 1 + 4);
+    Inc(P, {$IFNDEF UNICODE}Byte{$ENDIF}(P[0]) + 1 + 4);
   Result := P;
 end;
 
@@ -801,7 +797,7 @@ end;
 
 constructor TBaseMethodHandlerInstance.Create(TypeData: PTypeData);
 var
-  P:      {$IFDEF DELPHI2009}PByte{$ELSE}PChar{$ENDIF};
+  P:      {$IFDEF UNICODE}PByte{$ELSE}PChar{$ENDIF};
   Offset: Integer;
   CurReg: Integer;
   I:      Integer;
@@ -826,8 +822,8 @@ begin
       Inc(CurReg)
     else
       Inc(StackSize, Size);
-    Inc(P, 1 + {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[1]) + 1);
-    Inc(P, {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[0]) + 1);
+    Inc(P, 1 + {$IFNDEF UNICODE}Byte{$ENDIF}(P[1]) + 1);
+    Inc(P, {$IFNDEF UNICODE}Byte{$ENDIF}(P[0]) + 1);
   end;
 
   // Calculate parameter offsets
@@ -851,8 +847,8 @@ begin
       Dec(Offset, Size);
       ParamOffsets[I] := Offset;
     end;
-    Inc(P, 1 + {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[1]) + 1);
-    Inc(P, {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[0]) + 1);
+    Inc(P, 1 + {$IFNDEF UNICODE}Byte{$ENDIF}(P[1]) + 1);
+    Inc(P, {$IFNDEF UNICODE}Byte{$ENDIF}(P[0]) + 1);
   end;
 end;
 
@@ -911,7 +907,7 @@ procedure TMethodHandlerInstance.Handler(Params: Pointer);
 const
   MaxParams = 10;
 var
-  P:           {$IFDEF DELPHI2009}PByte{$ELSE}PChar{$ENDIF};
+  P:           {$IFDEF UNICODE}PByte{$ELSE}PChar{$ENDIF};
   Parameters:  PParameters;
   ReturnValue: Variant;
   ParamValues: array[0..MaxParams - 1] of Variant;
@@ -949,15 +945,15 @@ begin
         TVarData(Temp).VPointer := Data;
       ParamValues[TypeData^.ParamCount - I - 1] := Temp;
     end;
-    Inc(P, 1 + {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[1]) + 1);
-    Inc(P, {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[0]) + 1);
+    Inc(P, 1 + {$IFNDEF UNICODE}Byte{$ENDIF}(P[1]) + 1);
+    Inc(P, {$IFNDEF UNICODE}Byte{$ENDIF}(P[0]) + 1);
   end;
   // P is left pointing to the return type name if there is one.
 
   ReturnValue := MethodHandler.Execute(Slice(ParamValues, TypeData^.ParamCount));
   if TypeData^.MethodKind = mkFunction then
   begin
-    Inc(P, {$IFNDEF DELPHI2009}Byte{$ENDIF}(P[0]) + 1);
+    Inc(P, {$IFNDEF UNICODE}Byte{$ENDIF}(P[0]) + 1);
     ReturnValue := VarAsType(ReturnValue, GetVariantType(PPTypeInfo(P)^));
     if PPTypeInfo(P)^.Kind = tkFloat then
 

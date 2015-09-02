@@ -150,7 +150,7 @@ begin
     Result := CText[AType and varTypeMask]
   else if AType = varString then
     Result := 'String' //Do not localize
-{$IFDEF DELPHI2009_UP}
+{$IFDEF UNICODE}
   else if AType = varUString then
     Result := 'UString' //Do not localize
 {$ENDIF}
@@ -278,7 +278,7 @@ function TCnVarList.FromString(Text: WideString;
       v: Variant;
     begin
       case eType of
-        varString {$IFDEF DELPHI2009_UP}, varUString {$ENDIF}:  v := AnsiDequotedStr(Element, '''');
+        varString {$IFDEF UNICODE}, varUString {$ENDIF}:  v := AnsiDequotedStr(Element, '''');
         varInteger: v := StrToInt(Element);
         varDouble:  v := StrToFloat(Element);
         varBoolean: v := StrToBool(Element);
@@ -544,7 +544,7 @@ begin
         Result := Result + QuotedStr(cList.ValType[I])
       else
         case VarType(v) of
-          varString, {$IFDEF DELPHI2009_UP} varUString, {$ENDIF} varOleStr:
+          varString, {$IFDEF UNICODE} varUString, {$ENDIF} varOleStr:
             Result := Result + QuotedStr(v);
           varByte, {$IFDEF COMPILER6_UP}varShortInt,{$ENDIF} varSmallint,
           varInteger, varSingle, varDouble,
