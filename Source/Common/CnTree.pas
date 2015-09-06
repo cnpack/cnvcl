@@ -1870,7 +1870,9 @@ end;
 function TCnTrieTree.ConvertCharWithCase(C: Char): Char;
 begin
   Result := C;
-  if not FCaseSensitive and (C in ['a'..'z']) then
+  if not FCaseSensitive and
+    {$IFDEF COMPILER12_UP}(Ord(C) <= $FF) and{$ENDIF}
+    (AnsiChar(C) in ['a'..'z']) then
     Dec(Result, 32);
 end;
 
