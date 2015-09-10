@@ -85,6 +85,10 @@ interface
 // 定义此条件可重定向到文件.
 // Define this flag to log message to a file.
 
+// {$DEFINE LOCAL_SESSION}
+// 定义此条件可将发送限制在当前用户会话内，不走全局，相应的 DebugViewer 也需要改动
+// Define this flag to use local session, not global.
+
 {$IFDEF NDEBUG}
   {$UNDEF DEBUG}
   {$UNDEF USE_JCL}
@@ -115,7 +119,11 @@ const
   CnDebugMagicLength = 8;
   CnDebugMapEnabled = $7F3D92E0; // 定义的一个 Magic 值表示 MapEnable
 
+{$IFDEF LOCAL_SESSION}
+  SCnDebugPrefix = '';
+{$ELSE}
   SCnDebugPrefix = 'Global\';
+{$ENDIF}
   SCnDebugMapName = SCnDebugPrefix + 'CnDebugMap';
   SCnDebugQueueEventName = SCnDebugPrefix + 'CnDebugQueueEvent';
   SCnDebugQueueMutexName = SCnDebugPrefix + 'CnDebugQueueMutex';
