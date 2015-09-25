@@ -262,7 +262,7 @@ begin
         begin
           if Affected <> -1 then
           begin
-             msg := Format(SCnAffectMsg,[Affected])+ #13#10#13#10;
+             msg := Format(SCnAffectMsg, [Integer(Affected)])+ #13#10#13#10;
              FMsgList.Add(strNew(PChar(msg)));
           end
           else
