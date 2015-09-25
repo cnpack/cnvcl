@@ -56,7 +56,8 @@ end;
 
 procedure TReceiver.OnEvent(Event: ICnEvent);
 begin
-  ShowMessage('Got an Event. Data: ' + IntToStr(Integer(Event.EventData)));
+  ShowMessage('Got an Event. Data: ' + IntToStr(Integer(Event.EventData)) + ', Tag '
+    + IntToStr(Integer(Event.EventTag)));
 end;
 
 procedure TEventBusForm.FormCreate(Sender: TObject);
@@ -83,7 +84,7 @@ end;
 
 procedure TEventBusForm.btnPostClick(Sender: TObject);
 begin
-  EventBus.PostEvent(EVENT_NAME, Pointer(3));
+  EventBus.PostEvent(EVENT_NAME, Pointer(3), Pointer(5));
 end;
 
 end.

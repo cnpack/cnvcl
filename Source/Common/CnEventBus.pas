@@ -53,11 +53,15 @@ type
     procedure SetEventName(const AEventName: string);
     function GetEventData: Pointer;
     procedure SetEventData(AEventData: Pointer);
+    function GetEventTag: Pointer;
+    procedure SetEventTag(AEventTag: Pointer);
 
     property EventName: string read GetEventName write SetEventName;
     {* 事件名称}
     property EventData: Pointer read GetEventData write SetEventData;
     {* 事件携带的数据}
+    property EventTag: Pointer read GetEventTag write SetEventTag;
+    {* 事件携带的标签}
   end;
 
   TCnEvent = class(TInterfacedObject, ICnEvent)
@@ -65,17 +69,23 @@ type
   private
     FEventName: string;
     FEventData: Pointer;
+    FEventTag: Pointer;
   public
-    constructor Create(const AEventName: string; AEventData: Pointer = nil);
+    constructor Create(const AEventName: string; AEventData: Pointer = nil;
+      AEventTag: Pointer = nil);
+
     destructor Destroy; override;
     
     function GetEventName: string;
     procedure SetEventName(const AEventName: string);
     function GetEventData: Pointer;
     procedure SetEventData(AEventData: Pointer);
+    function GetEventTag: Pointer;
+    procedure SetEventTag(AEventTag: Pointer);
 
     property EventName: string read GetEventName write SetEventName;
     property EventData: Pointer read GetEventData write SetEventData;
+    property EventTag: Pointer read GetEventTag write SetEventTag;
   end;
 
   ICnEventBusReceiver = interface
@@ -111,6 +121,8 @@ type
     {* 触发一个事件，参数为事件名，事件实例将在内部创建}
     procedure PostEvent(const EventName: string; EventData: Pointer); overload;
     {* 触发一个事件，参数为事件名与数据，事件实例将在内部创建}
+    procedure PostEvent(const EventName: string; EventData: Pointer; EventTag: Pointer); overload;
+    {* 触发一个事件，参数为事件名、数据与标签，事件实例将在内部创建}
   end;
 
 function EventBus: TCnEventBus;
@@ -136,11 +148,13 @@ end;
 
 { TCnEvent }
 
-constructor TCnEvent.Create(const AEventName: string; AEventData: Pointer);
+constructor TCnEvent.Create(const AEventName: string; AEventData: Pointer;
+  AEventTag: Pointer);
 begin
   inherited Create;
   FEventName := AEventName;
   FEventData := AEventData;
+  FEventTag := AEventTag;
 end;
 
 destructor TCnEvent.Destroy;
@@ -159,6 +173,11 @@ begin
   Result := FEventName;
 end;
 
+function TCnEvent.GetEventTag: Pointer;
+begin
+  Result := FEventTag;
+end;
+
 procedure TCnEvent.SetEventData(AEventData: Pointer);
 begin
   FEventData := AEventData;
@@ -167,6 +186,11 @@ end;
 procedure TCnEvent.SetEventName(const AEventName: string);
 begin
   FEventName := AEventName;
+end;
+
+procedure TCnEvent.SetEventTag(AEventTag: Pointer);
+begin
+  FEventTag := AEventTag;
 end;
 
 { TCnEventBus }
@@ -227,6 +251,12 @@ begin
     TList(List).Free;
 
   FSynchronizer.EndWrite;
+end;
+
+procedure TCnEventBus.PostEvent(const EventName: string; EventData,
+  EventTag: Pointer);
+begin
+  PostEvent(TCnEvent.Create(EventName, EventData, EventTag));
 end;
 
 procedure TCnEventBus.PostEvent(const EventName: string; EventData: Pointer);
