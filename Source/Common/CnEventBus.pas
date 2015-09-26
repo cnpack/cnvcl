@@ -285,6 +285,9 @@ begin
       vtString: RegisterReceiver(Receiver, string(EventNames[I].VString^));
       vtAnsiString: RegisterReceiver(Receiver, string(AnsiString(PAnsiChar(EventNames[I].VAnsiString))));
       vtWideString: RegisterReceiver(Receiver, string(WideString(PWideChar(EventNames[I].VWideString))));
+{$IFDEF UNICODE}
+      vtUnicodeString: RegisterReceiver(Receiver, string(PWideChar(EventNames[I].VUnicodeString)));
+{$ENDIF}
     else
       raise ECnEventBusException.Create('Invalid Event Name. Must Be String.');
     end;
