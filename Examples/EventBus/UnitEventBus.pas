@@ -12,7 +12,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure OnEvent(Event: ICnEvent);
+    procedure OnEvent(Event: TCnEvent);
   end;
 
   TEventBusForm = class(TForm)
@@ -54,7 +54,7 @@ begin
 
 end;
 
-procedure TReceiver.OnEvent(Event: ICnEvent);
+procedure TReceiver.OnEvent(Event: TCnEvent);
 begin
   ShowMessage('Got an Event. Data: ' + IntToStr(Integer(Event.EventData)) + ', Tag '
     + IntToStr(Integer(Event.EventTag)));

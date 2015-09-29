@@ -41,14 +41,28 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Messages, Classes, CnHashMap;
+  SysUtils, Windows, Messages, Classes, Contnrs, CnHashMap;
 
 type
   ECnEventBusException = class(Exception);
 
-  ICnEvent = interface
-  {* 事件接口}
-  ['{766BAE68-ABDA-4DE2-A76A-130FA78978D3}']
+  TCnEvent = class(TObject)
+  {* 事件的实现类}
+  private
+    FEventName: string;
+    FEventData: Pointer;
+    FEventTag: Pointer;
+    constructor Create(const AEventName: string; AEventData: Pointer = nil;
+      AEventTag: Pointer = nil);
+  public
+    destructor Destroy; override;
+    procedure Clear;
+    procedure Assign(Source: TCnEvent); virtual;
+
+    class function ObtainEvent(const AEventName: string; AEventData: Pointer = nil;
+      AEventTag: Pointer = nil): TCnEvent;
+    class procedure RecycleEvent(AEvent: TCnEvent);
+
     function GetEventName: string;
     procedure SetEventName(const AEventName: string);
     function GetEventData: Pointer;
@@ -64,34 +78,10 @@ type
     {* 事件携带的标签}
   end;
 
-  TCnEvent = class(TInterfacedObject, ICnEvent)
-  {* 事件的实现类}
-  private
-    FEventName: string;
-    FEventData: Pointer;
-    FEventTag: Pointer;
-  public
-    constructor Create(const AEventName: string; AEventData: Pointer = nil;
-      AEventTag: Pointer = nil);
-
-    destructor Destroy; override;
-    
-    function GetEventName: string;
-    procedure SetEventName(const AEventName: string);
-    function GetEventData: Pointer;
-    procedure SetEventData(AEventData: Pointer);
-    function GetEventTag: Pointer;
-    procedure SetEventTag(AEventTag: Pointer);
-
-    property EventName: string read GetEventName write SetEventName;
-    property EventData: Pointer read GetEventData write SetEventData;
-    property EventTag: Pointer read GetEventTag write SetEventTag;
-  end;
-
   ICnEventBusReceiver = interface
   {* 通知接收器接口}
   ['{F03E825C-FD29-4AD8-B48E-D3BBF1DDE045}']
-    procedure OnEvent(Event: ICnEvent);
+    procedure OnEvent(Event: TCnEvent);
     {* 发生事件通知时调用}
   end;
 
@@ -115,14 +105,14 @@ type
     procedure UnRegisterReceiver(Receiver: ICnEventBusReceiver);
     {* 取消注册一个通知接收器}
 
-    procedure PostEvent(Event: ICnEvent); overload;
+    procedure PostEvent(Event: TCnEvent); overload;
     {* 触发一个事件，参数为事件实例}
     procedure PostEvent(const EventName: string); overload;
-    {* 触发一个事件，参数为事件名，事件实例将在内部创建}
+    {* 触发一个事件，参数为事件名，事件实例将在内部创建，通知调用完后自动释放}
     procedure PostEvent(const EventName: string; EventData: Pointer); overload;
-    {* 触发一个事件，参数为事件名与数据，事件实例将在内部创建}
+    {* 触发一个事件，参数为事件名与数据，事件实例将在内部创建，通知调用完后自动释放}
     procedure PostEvent(const EventName: string; EventData: Pointer; EventTag: Pointer); overload;
-    {* 触发一个事件，参数为事件名、数据与标签，事件实例将在内部创建}
+    {* 触发一个事件，参数为事件名、数据与标签，事件实例将在内部创建，通知调用完后自动释放}
   end;
 
 function EventBus: TCnEventBus;
@@ -138,6 +128,8 @@ type
 
 var
   FEventBus: TCnEventBus = nil;
+  FEventPool: TObjectList = nil;
+  FEventPoolMutex: TRTLCriticalSection;
 
 function EventBus: TCnEventBus;
 begin
@@ -147,6 +139,23 @@ begin
 end;
 
 { TCnEvent }
+
+procedure TCnEvent.Assign(Source: TCnEvent);
+begin
+  if Source <> nil then
+  begin
+    FEventName := Source.EventName;
+    FEventData := Source.EventData;
+    FEventTag := Source.EventTag;
+  end;
+end;
+
+procedure TCnEvent.Clear;
+begin
+  FEventTag := nil;
+  FEventData := nil;
+  FEventName := '';
+end;
 
 constructor TCnEvent.Create(const AEventName: string; AEventData: Pointer;
   AEventTag: Pointer);
@@ -176,6 +185,35 @@ end;
 function TCnEvent.GetEventTag: Pointer;
 begin
   Result := FEventTag;
+end;
+
+class function TCnEvent.ObtainEvent(const AEventName: string; AEventData,
+  AEventTag: Pointer): TCnEvent;
+begin
+  EnterCriticalSection(FEventPoolMutex);
+  if FEventPool.Count = 0 then
+  begin
+    Result := TCnEvent.Create(AEventName, AEventData, AEventTag);
+  end
+  else
+  begin
+    Result := TCnEvent(FEventPool[FEventPool.Count - 1]);
+    FEventPool.Extract(Result);
+
+    Result.EventName := AEventName;
+    Result.EventData := AEventData;
+    Result.EventTag := AEventTag;
+  end;
+
+  LeaveCriticalSection(FEventPoolMutex);
+end;
+
+class procedure TCnEvent.RecycleEvent(AEvent: TCnEvent);
+begin
+  AEvent.Clear;
+  EnterCriticalSection(FEventPoolMutex);
+  FEventPool.Add(AEvent);
+  LeaveCriticalSection(FEventPoolMutex);
 end;
 
 procedure TCnEvent.SetEventData(AEventData: Pointer);
@@ -210,7 +248,7 @@ begin
   inherited;
 end;
 
-procedure TCnEventBus.PostEvent(Event: ICnEvent);
+procedure TCnEventBus.PostEvent(Event: TCnEvent);
 var
   I: Integer;
   List: Pointer;
@@ -255,18 +293,30 @@ end;
 
 procedure TCnEventBus.PostEvent(const EventName: string; EventData,
   EventTag: Pointer);
+var
+  Event: TCnEvent;
 begin
-  PostEvent(TCnEvent.Create(EventName, EventData, EventTag));
+  Event := TCnEvent.ObtainEvent(EventName, EventData, EventTag);
+  PostEvent(Event);
+  TCnEvent.RecycleEvent(Event);
 end;
 
 procedure TCnEventBus.PostEvent(const EventName: string; EventData: Pointer);
+var
+  Event: TCnEvent;
 begin
-  PostEvent(TCnEvent.Create(EventName, EventData));
+  Event := TCnEvent.ObtainEvent(EventName, EventData);
+  PostEvent(Event);
+  TCnEvent.RecycleEvent(Event);
 end;
 
 procedure TCnEventBus.PostEvent(const EventName: string);
+var
+  Event: TCnEvent;
 begin
-  PostEvent(TCnEvent.Create(EventName));
+  Event := TCnEvent.ObtainEvent(EventName);
+  PostEvent(Event);
+  TCnEvent.RecycleEvent(Event);
 end;
 
 procedure TCnEventBus.RegisterReceiver(Receiver: ICnEventBusReceiver);
@@ -331,8 +381,12 @@ begin
 end;
 
 initialization
+  InitializeCriticalSection(FEventPoolMutex);
+  FEventPool := TObjectList.Create(True);
 
 finalization
+  FEventPool.Free;
+  DeleteCriticalSection(FEventPoolMutex);
   FEventBus.Free;
 
 end.
