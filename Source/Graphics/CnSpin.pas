@@ -37,7 +37,8 @@ interface
 
 {$I CnPack.inc}
 
-uses Windows, Classes, StdCtrls, ExtCtrls, Controls, Messages, SysUtils,
+uses
+  Windows, Classes, StdCtrls, ExtCtrls, Controls, Messages, SysUtils,
   Forms, Graphics, Menus, Buttons, CnConsts;
 
 const
@@ -45,22 +46,21 @@ const
   RepeatPause     = 100;  { pause before hint window displays (ms)}
 
 type
-
   TNumGlyphs = Buttons.TNumGlyphs;
 
-  TTimerSpeedButton = class;
+  TCnTimerSpeedButton = class;
 
 { TCnSpinButton }
 
-  TCnSpinButton = class (TWinControl)
+  TCnSpinButton = class(TWinControl)
   private
-    FUpButton: TTimerSpeedButton;
-    FDownButton: TTimerSpeedButton;
-    FFocusedButton: TTimerSpeedButton;
+    FUpButton: TCnTimerSpeedButton;
+    FDownButton: TCnTimerSpeedButton;
+    FFocusedButton: TCnTimerSpeedButton;
     FFocusControl: TWinControl;
     FOnUpClick: TNotifyEvent;
     FOnDownClick: TNotifyEvent;
-    function CreateButton: TTimerSpeedButton;
+    function CreateButton: TCnTimerSpeedButton;
     function GetUpGlyph: TBitmap;
     function GetDownGlyph: TBitmap;
     procedure SetUpGlyph(Value: TBitmap);
@@ -70,10 +70,10 @@ type
     procedure SetUpNumGlyphs(Value: TNumGlyphs);
     procedure SetDownNumGlyphs(Value: TNumGlyphs);
     procedure BtnClick(Sender: TObject);
-    procedure BtnMouseDown (Sender: TObject; Button: TMouseButton;
+    procedure BtnMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure SetFocusBtn (Btn: TTimerSpeedButton);
-    procedure AdjustSize (var W, H: Integer); reintroduce;
+    procedure SetFocusBtn(Btn: TCnTimerSpeedButton);
+    procedure AdjustSize(var W, H: Integer); reintroduce;
     procedure WMSize(var Message: TWMSize);  message WM_SIZE;
     procedure WMSetFocus(var Message: TWMSetFocus); message WM_SETFOCUS;
     procedure WMKillFocus(var Message: TWMKillFocus); message WM_KILLFOCUS;
@@ -199,7 +199,7 @@ type
 
   TTimeBtnState = set of (tbFocusRect, tbAllowTimer);
 
-  TTimerSpeedButton = class(TSpeedButton)
+  TCnTimerSpeedButton = class(TSpeedButton)
   private
     FRepeatTimer: TTimer;
     FTimeBtnState: TTimeBtnState;
@@ -237,9 +237,9 @@ begin
   FFocusedButton := FUpButton;
 end;
 
-function TCnSpinButton.CreateButton: TTimerSpeedButton;
+function TCnSpinButton.CreateButton: TCnTimerSpeedButton;
 begin
-  Result := TTimerSpeedButton.Create (Self);
+  Result := TCnTimerSpeedButton.Create (Self);
   Result.OnClick := BtnClick;
   Result.OnMouseDown := BtnMouseDown;
   Result.Visible := True;
@@ -270,8 +270,8 @@ var
 begin
   W := AWidth;
   H := AHeight;
-  AdjustSize (W, H);
-  inherited SetBounds (ALeft, ATop, W, H);
+  AdjustSize(W, H);
+  inherited SetBounds(ALeft, ATop, W, H);
 end;
 
 procedure TCnSpinButton.WMSize(var Message: TWMSize);
@@ -280,10 +280,9 @@ var
 begin
   inherited;
 
-  { check for minimum size }
   W := Width;
   H := Height;
-  AdjustSize (W, H);
+  AdjustSize(W, H);
   if (W <> Width) or (H <> Height) then
     inherited SetBounds(Left, Top, W, H);
   Message.Result := 0;
@@ -306,12 +305,12 @@ begin
   case Key of
     VK_UP:
       begin
-        SetFocusBtn (FUpButton);
+        SetFocusBtn(FUpButton);
         FUpButton.Click;
       end;
     VK_DOWN:
       begin
-        SetFocusBtn (FDownButton);
+        SetFocusBtn(FDownButton);
         FDownButton.Click;
       end;
     VK_SPACE:
@@ -319,12 +318,12 @@ begin
   end;
 end;
 
-procedure TCnSpinButton.BtnMouseDown (Sender: TObject; Button: TMouseButton;
+procedure TCnSpinButton.BtnMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   if Button = mbLeft then
   begin
-    SetFocusBtn (TTimerSpeedButton (Sender));
+    SetFocusBtn(TCnTimerSpeedButton(Sender));
     if (FFocusControl <> nil) and FFocusControl.TabStop and
         FFocusControl.CanFocus and (GetFocus <> FFocusControl.Handle) then
       FFocusControl.SetFocus
@@ -343,9 +342,9 @@ begin
     if Assigned(FOnDownClick) then FOnDownClick(Self);
 end;
 
-procedure TCnSpinButton.SetFocusBtn (Btn: TTimerSpeedButton);
+procedure TCnSpinButton.SetFocusBtn(Btn: TCnTimerSpeedButton);
 begin
-  if TabStop and CanFocus and  (Btn <> FFocusedButton) then
+  if TabStop and CanFocus and (Btn <> FFocusedButton) then
   begin
     FFocusedButton.TimeBtnState := FFocusedButton.TimeBtnState - [tbFocusRect];
     FFocusedButton := Btn;
@@ -369,9 +368,9 @@ begin
   inherited Loaded;
   W := Width;
   H := Height;
-  AdjustSize (W, H);
+  AdjustSize(W, H);
   if (W <> Width) or (H <> Height) then
-    inherited SetBounds (Left, Top, W, H);
+    inherited SetBounds(Left, Top, W, H);
 end;
 
 function TCnSpinButton.GetUpGlyph: TBitmap;
@@ -433,7 +432,7 @@ end;
 constructor TCnSpinEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FButton := TCnSpinButton.Create (Self);
+  FButton := TCnSpinButton.Create(Self);
   FButton.Width := 15;
   FButton.Height := 17;
   FButton.Visible := True;
@@ -459,8 +458,8 @@ end;
 
 procedure TCnSpinEdit.KeyDown(var Key: Word; Shift: TShiftState);
 begin
-  if Key = VK_UP then UpClick (Self)
-  else if Key = VK_DOWN then DownClick (Self);
+  if Key = VK_UP then UpClick(Self)
+  else if Key = VK_DOWN then DownClick(Self);
   inherited KeyDown(Key, Shift);
 end;
 
@@ -487,7 +486,7 @@ procedure TCnSpinEdit.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
 {  Params.Style := Params.Style and not WS_BORDER;  }
-  Params.Style := Params.Style or WS_CLIPCHILDREN;
+  Params.Style := Params.Style {or ES_MULTILINE} or WS_CLIPCHILDREN;
 end;
 
 procedure TCnSpinEdit.CreateWnd;
@@ -523,7 +522,7 @@ begin
   begin
     if NewStyleControls and Ctl3D then
       FButton.SetBounds(Width - FButton.Width - 5, 0, FButton.Width, Height - 5)
-    else FButton.SetBounds (Width - FButton.Width, 1, FButton.Width, Height - 3);
+    else FButton.SetBounds(Width - FButton.Width, 1, FButton.Width, Height - 3);
     SetEditRect;
   end;
 end;
@@ -546,13 +545,13 @@ begin
   Result := Metrics.tmHeight + I div 4 + GetSystemMetrics(SM_CYBORDER) * 4 + 2;
 end;
 
-procedure TCnSpinEdit.UpClick (Sender: TObject);
+procedure TCnSpinEdit.UpClick(Sender: TObject);
 begin
   if ReadOnly then MessageBeep(0)
   else Value := Value + FIncrement;
 end;
 
-procedure TCnSpinEdit.DownClick (Sender: TObject);
+procedure TCnSpinEdit.DownClick(Sender: TObject);
 begin
   if ReadOnly then MessageBeep(0)
   else Value := Value - FIncrement;
@@ -573,8 +572,8 @@ end;
 procedure TCnSpinEdit.CMExit(var Message: TCMExit);
 begin
   inherited;
-  if CheckValue (Value) <> Value then
-    SetValue (Value);
+  if CheckValue(Value) <> Value then
+    SetValue(Value);
 end;
 
 function TCnSpinEdit.GetValue: LongInt;
@@ -582,12 +581,12 @@ begin
   Result := StrToIntDef (Text, FMinValue);
 end;
 
-procedure TCnSpinEdit.SetValue (NewValue: LongInt);
+procedure TCnSpinEdit.SetValue(NewValue: LongInt);
 begin
-  Text := IntToStr (CheckValue (NewValue));
+  Text := IntToStr(CheckValue(NewValue));
 end;
 
-function TCnSpinEdit.CheckValue (NewValue: LongInt): LongInt;
+function TCnSpinEdit.CheckValue(NewValue: LongInt): LongInt;
 begin
   Result := NewValue;
   if (FMaxValue <> FMinValue) then
@@ -608,17 +607,17 @@ end;
 
 {TTimerSpeedButton}
 
-destructor TTimerSpeedButton.Destroy;
+destructor TCnTimerSpeedButton.Destroy;
 begin
   if FRepeatTimer <> nil then
     FRepeatTimer.Free;
   inherited Destroy;
 end;
 
-procedure TTimerSpeedButton.MouseDown(Button: TMouseButton; Shift: TShiftState;
+procedure TCnTimerSpeedButton.MouseDown(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
 begin
-  inherited MouseDown (Button, Shift, X, Y);
+  inherited MouseDown(Button, Shift, X, Y);
   if tbAllowTimer in FTimeBtnState then
   begin
     if FRepeatTimer = nil then
@@ -630,15 +629,15 @@ begin
   end;
 end;
 
-procedure TTimerSpeedButton.MouseUp(Button: TMouseButton; Shift: TShiftState;
+procedure TCnTimerSpeedButton.MouseUp(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
 begin
-  inherited MouseUp (Button, Shift, X, Y);
+  inherited MouseUp(Button, Shift, X, Y);
   if FRepeatTimer <> nil then
     FRepeatTimer.Enabled  := False;
 end;
 
-procedure TTimerSpeedButton.TimerExpired(Sender: TObject);
+procedure TCnTimerSpeedButton.TimerExpired(Sender: TObject);
 begin
   FRepeatTimer.Interval := RepeatPause;
   if (FState = bsDown) and MouseCapture then
@@ -652,7 +651,7 @@ begin
   end;
 end;
 
-procedure TTimerSpeedButton.Paint;
+procedure TCnTimerSpeedButton.Paint;
 var
   R: TRect;
 begin
