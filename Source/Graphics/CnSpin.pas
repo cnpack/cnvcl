@@ -486,7 +486,7 @@ procedure TCnSpinEdit.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
 {  Params.Style := Params.Style and not WS_BORDER;  }
-  Params.Style := Params.Style {or ES_MULTILINE} or WS_CLIPCHILDREN;
+  Params.Style := Params.Style or ES_MULTILINE or WS_CLIPCHILDREN;
 end;
 
 procedure TCnSpinEdit.CreateWnd;
