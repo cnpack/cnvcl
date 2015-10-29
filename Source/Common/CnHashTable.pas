@@ -159,6 +159,9 @@ type
 
 implementation
 
+uses
+  CnNativeDecl;
+
 type
   QWORD = array[0..1] of LongWord;
 
@@ -499,13 +502,13 @@ type
   PByte = ^Byte;
   TByteArray = array[0..0] of Byte;
   PByteArray = ^TByteArray;
-  PInteger = ^Integer;
+  PInteger = ^TCnNativeInt;
 var
   LStr1, LStr2, LStr1Char1, LStr2Char1, LLength1, LLength2,
-    LCompInd, LLengthDif, LChars1, LChars2: Integer;
+    LCompInd, LLengthDif, LChars1, LChars2: TCnNativeInt;
 begin
-  LStr1 := Integer(S1);
-  LStr2 := Integer(S2);
+  LStr1 := TCnNativeInt(S1);
+  LStr2 := TCnNativeInt(S2);
   if LStr1 <> LStr2 then
   begin
     if LStr1 <> 0 then

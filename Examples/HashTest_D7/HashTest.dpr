@@ -3,7 +3,8 @@ program HashTest;
 uses
   Forms,
   fMainUnit in 'fMainUnit.pas' {Form3},
-  CnHashTable in '..\..\Source\Common\CnHashTable.pas';
+  CnHashTable in '..\..\Source\Common\CnHashTable.pas',
+  CnNativeDecl in '..\..\Source\Common\CnNativeDecl.pas';
 
 {$R *.res}
 
