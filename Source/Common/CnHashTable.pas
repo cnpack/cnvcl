@@ -502,7 +502,7 @@ type
   PByte = ^Byte;
   TByteArray = array[0..0] of Byte;
   PByteArray = ^TByteArray;
-  PInteger = ^TCnNativeInt;
+  PInteger = ^Integer;
 var
   LStr1, LStr2, LStr1Char1, LStr2Char1, LLength1, LLength2,
     LCompInd, LLengthDif, LChars1, LChars2: TCnNativeInt;
@@ -523,8 +523,8 @@ begin
         end
         else
         begin
-          LLength1 := PInteger(LStr1 - 4)^;
-          LLength2 := PInteger(LStr2 - 4)^;
+          LLength1 := PInteger(LStr1 - SizeOf(Integer))^;
+          LLength2 := PInteger(LStr2 - SizeOf(Integer))^;
           LLengthDif := LLength1 - LLength2;
           if LLengthDif >= 0 then
             LCompInd := - LLength2
@@ -554,7 +554,7 @@ begin
                   exit;
                 end;
               end;
-              Inc(LCompInd, 4);
+              Inc(LCompInd, SizeOf(Integer));
             until LCompInd >= 0;
           end;
           Result := LLengthDif;
@@ -562,12 +562,12 @@ begin
       end
       else
       begin
-        Result := PInteger(LStr1 - 4)^;
+        Result := PInteger(LStr1 - SizeOf(Integer))^;
       end;
     end
     else
     begin
-      Result := LStr1 - PInteger(LStr2 - 4)^;
+      Result := LStr1 - PInteger(LStr2 - SizeOf(Integer))^;
     end;
   end
   else
