@@ -9,6 +9,7 @@
       ..\..\Source\Common\CnClasses.obj ..\..\Source\Common\CnCommon.obj 
       ..\..\Source\Common\CnConsts.obj ..\..\Source\Common\CnCRC32.obj 
       ..\..\Source\Common\CnGraphUtils.obj ..\..\Source\Common\CnHashMap.obj 
+      ..\..\Source\Common\CnHashTable.obj 
       ..\..\Source\Common\CnIni.obj ..\..\Source\Common\CnIniStrUtils.obj 
       ..\..\Source\Common\CnMD5.obj ..\..\Source\Common\CnPack.obj 
       ..\..\Source\Common\CnDES.obj ..\..\Source\Common\CnSHA1.obj 
@@ -189,6 +190,7 @@
       <FILE FILENAME="..\..\Source\Common\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnGraphUtils.pas" FORMNAME="" UNITNAME="CnGraphUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnHashMap.pas" FORMNAME="" UNITNAME="CnHashMap" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnHashTable.pas" FORMNAME="" UNITNAME="CnHashTable" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIni.pas" FORMNAME="" UNITNAME="CnIni" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIniStrUtils.pas" FORMNAME="" UNITNAME="CnIniStrUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnNativeDecl.pas" FORMNAME="" UNITNAME="CnNativeDecl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

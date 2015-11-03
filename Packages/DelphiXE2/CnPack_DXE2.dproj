@@ -84,6 +84,7 @@
 			<DCCReference Include="..\..\Source\Common\CnFloatConvert.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnGraphUtils.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnHashMap.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnHashTable.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIni.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIniStrUtils.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnNativeDecl.pas"/>

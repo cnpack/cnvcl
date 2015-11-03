@@ -48,6 +48,7 @@ contains
   CnFloatConvert in '..\..\Source\Common\CnFloatConvert.pas',
   CnGraphUtils in '..\..\Source\Common\CnGraphUtils.pas',
   CnHashMap in '..\..\Source\Common\CnHashMap.pas',
+  CnHashTable in '..\..\Source\Common\CnHashTable.pas',
   CnIni in '..\..\Source\Common\CnIni.pas',
   CnIniStrUtils in '..\..\Source\Common\CnIniStrUtils.pas',
   CnNativeDecl in '..\..\Source\Common\CnNativeDecl.pas',
