@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 379
-  Top = 263
+  Left = 393
+  Top = 172
   BorderStyle = bsDialog
   Caption = 'Send Debug'
-  ClientHeight = 329
+  ClientHeight = 353
   ClientWidth = 469
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
@@ -338,7 +338,7 @@ object Form1: TForm1
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 310
+    Top = 334
     Width = 469
     Height = 19
     Panels = <
@@ -406,7 +406,6 @@ object Form1: TForm1
     Top = 228
     Width = 97
     Height = 21
-    Hint = 'OutputDebugString'
     Caption = '发错误 Format'
     ParentShowHint = False
     ShowHint = True
@@ -417,7 +416,7 @@ object Form1: TForm1
     Left = 8
     Top = 236
     Width = 209
-    Height = 67
+    Height = 91
     Caption = '看这按钮自己'
     TabOrder = 37
     OnClick = btnEvalClick
@@ -526,7 +525,6 @@ object Form1: TForm1
     Top = 254
     Width = 97
     Height = 21
-    Hint = 'OutputDebugString'
     Caption = '看ImageList'
     ParentShowHint = False
     ShowHint = True
@@ -547,7 +545,6 @@ object Form1: TForm1
     Top = 228
     Width = 97
     Height = 21
-    Hint = 'OutputDebugString'
     Caption = 'array of const'
     ParentShowHint = False
     ShowHint = True
@@ -559,7 +556,6 @@ object Form1: TForm1
     Top = 280
     Width = 97
     Height = 21
-    Hint = 'OutputDebugString'
     Caption = '看Class'
     ParentShowHint = False
     ShowHint = True
@@ -571,12 +567,33 @@ object Form1: TForm1
     Top = 280
     Width = 97
     Height = 21
-    Hint = 'OutputDebugString'
     Caption = '看Interface'
     ParentShowHint = False
     ShowHint = True
     TabOrder = 42
     OnClick = btnInterfaceClick
+  end
+  object btnAddr: TButton
+    Left = 248
+    Top = 306
+    Width = 97
+    Height = 21
+    Caption = '看异常地址'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 43
+    OnClick = btnAddrClick
+  end
+  object btnEBPAddr: TButton
+    Left = 360
+    Top = 306
+    Width = 97
+    Height = 21
+    Caption = '看调用地址'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 44
+    OnClick = btnEBPAddrClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True

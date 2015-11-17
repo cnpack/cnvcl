@@ -293,6 +293,8 @@ type
     function FormatObjectInterface(AObj: TObject): string;
     function GUIDToString(const GUID: TGUID): string;
 
+    procedure GetTraceFromAddr(Addr: Pointer; Strings: TStrings);
+
     procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
       ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: DWORD; CPUPeriod: Int64);
     procedure InternalOutput(var Data; Size: Integer);
@@ -368,6 +370,7 @@ type
     procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
     procedure LogClass(const AClass: TClass; const AMsg: string = '');
     procedure LogInterface(const AIntf: IUnknown; const AMsg: string = '');
+    procedure LogStackFromAddress(Addr: Pointer; const AMsg: string = '');
     // Log 系列输出函数 == End ==
 
     // Trace 系列输出函数 == Start ==
@@ -425,6 +428,7 @@ type
     procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
     procedure TraceClass(const AClass: TClass; const AMsg: string = '');
     procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
+    procedure TraceStackFromAddress(Addr: Pointer; const AMsg: string = '');
     // Trace 系列输出函数 == End ==
 
     // 异常过滤函数
@@ -581,6 +585,10 @@ const
   SCnClassFmt = '%s ClassName %s. InstanceSize %d';
   SCnInterface = 'Interface: ';
   SCnInterfaceFmt = '%s %s';
+  SCnStackTraceFromAddress = 'Stack Trace';
+  SCnStackTraceFromAddressFmt = '';
+  SCnStackTraceNil = 'No Stack Trace.';
+  SCnStackTraceNotSupport = 'Stack Trace NOT Support.';
 
   CnDebugWaitingMutexTime = 1000;  // Mutex 的等待时间顶多 1 秒
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
@@ -1747,8 +1755,6 @@ procedure TCnDebugger.LogCurrentStack(const AMsg: string);
 {$IFDEF DEBUG}
 {$IFDEF USE_JCL}
 var
-  Ebp: Pointer;
-  List: TJclStackInfoList;
   Strings: TStrings;
 {$ENDIF}
 {$ENDIF}
@@ -1756,17 +1762,13 @@ begin
 {$IFDEF DEBUG}
 {$IFDEF USE_JCL}
   Strings := nil;
-  List := nil;
 
   try
     Strings := TStringList.Create;
-    Ebp := GetEBP;
-    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
-    List.AddToStrings(Strings, True, True, True, False);
+    GetTraceFromAddr(GetEBP, Strings);
 
     LogMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
   finally
-    List.Free;
     Strings.Free;
   end;
 {$ENDIF}
@@ -2312,24 +2314,18 @@ end;
 procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
 {$IFDEF USE_JCL}
 var
-  Ebp: Pointer;
-  List: TJclStackInfoList;
   Strings: TStrings;
 {$ENDIF}
 begin
 {$IFDEF USE_JCL}
   Strings := nil;
-  List := nil;
 
   try
     Strings := TStringList.Create;
-    Ebp := GetEBP;
-    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Ebp, nil);
-    List.AddToStrings(Strings, True, True, True, False);
+    GetTraceFromAddr(GetEBP, Strings);
 
     TraceMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
   finally
-    List.Free;
     Strings.Free;
   end;
 {$ENDIF}
@@ -2861,6 +2857,81 @@ begin
     end;
     ClassPtr := ClassPtr.ClassParent;
   end;
+end;
+
+procedure TCnDebugger.GetTraceFromAddr(Addr: Pointer; Strings: TStrings);
+{$IFDEF USE_JCL}
+var
+  List: TJclStackInfoList;
+{$ENDIF}
+begin
+  if Strings = nil then
+    Exit;
+  Strings.Clear;
+
+  if Addr = nil then
+  begin
+    Strings.Add(SCnStackTraceNil);
+    Exit;
+  end;
+
+{$IFDEF USE_JCL}
+  List := nil;
+  try
+    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Addr, nil);
+    List.AddToStrings(Strings, True, True, True, False);
+  finally
+    List.Free;
+  end;
+{$ELSE}
+  Strings.Add(SCnStackTraceNotSupport);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogStackFromAddress(Addr: Pointer;
+  const AMsg: string);
+{$IFDEF DEBUG}
+{$IFDEF USE_JCL}
+var
+  Strings: TStringList;
+{$ENDIF}
+{$ENDIF}
+begin
+{$IFDEF DEBUG}
+{$IFDEF USE_JCL}
+  Strings := nil;
+  try
+    Strings := TStringList.Create;
+    GetTraceFromAddr(Addr, Strings);
+    LogMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
+  finally
+    Strings.Free;
+  end;
+{$ELSE}
+  LogPointer(Addr, AMsg);
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TCnDebugger.TraceStackFromAddress(Addr: Pointer;
+  const AMsg: string);
+{$IFDEF USE_JCL}
+var
+  Strings: TStringList;
+{$ENDIF}
+begin
+{$IFDEF USE_JCL}
+  Strings := nil;
+  try
+    Strings := TStringList.Create;
+    GetTraceFromAddr(Addr, Strings);
+    TraceMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
+  finally
+    Strings.Free;
+  end;
+{$ELSE}
+  TracePointer(Addr, AMsg);
+{$ENDIF}
 end;
 
 { TCnDebugChannel }

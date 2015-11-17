@@ -92,6 +92,8 @@ type
     btnConstArray: TButton;
     btnClass: TButton;
     btnInterface: TButton;
+    btnAddr: TButton;
+    btnEBPAddr: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -126,6 +128,8 @@ type
     procedure btnConstArrayClick(Sender: TObject);
     procedure btnClassClick(Sender: TObject);
     procedure btnInterfaceClick(Sender: TObject);
+    procedure btnAddrClick(Sender: TObject);
+    procedure btnEBPAddrClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -461,6 +465,31 @@ begin
     CnDebugger.TraceInterface(TInterfacedObject.Create)
   else
     CnDebugger.LogInterface(TInterfacedObject.Create);
+end;
+
+procedure TForm1.btnAddrClick(Sender: TObject);
+begin
+  try
+    raise Exception.Create('Test Address of Exception.');
+  except
+    if rgMethod.ItemIndex = 1 then
+      CnDebugger.TraceStackFromAddress(ExceptAddr)
+    else
+      CnDebugger.LogStackFromAddress(ExceptAddr);
+  end;
+end;
+
+function GetEBP: Pointer;
+asm
+        MOV     EAX, EBP
+end;
+
+procedure TForm1.btnEBPAddrClick(Sender: TObject);
+begin
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceStackFromAddress(GetEBP)
+  else
+    CnDebugger.LogStackFromAddress(GetEBP);
 end;
 
 end.
