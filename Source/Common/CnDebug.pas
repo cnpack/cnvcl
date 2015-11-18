@@ -2902,6 +2902,7 @@ begin
   Strings := nil;
   try
     Strings := TStringList.Create;
+    Strings.Add(GetLocationInfoStr(Addr, True, True, True, False));
     GetTraceFromAddr(Addr, Strings);
     LogMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
   finally
@@ -2924,6 +2925,7 @@ begin
   Strings := nil;
   try
     Strings := TStringList.Create;
+    Strings.Add(GetLocationInfoStr(Addr, True, True, True, False));
     GetTraceFromAddr(Addr, Strings);
     TraceMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
   finally
