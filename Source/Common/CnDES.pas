@@ -152,7 +152,7 @@ type
   TKeyByte = array[0..5] of Byte;
   TDesMode = (dmEncry, dmDecry);
 
-var
+threadvar
   subKey: array[0..15] of TKeyByte;
   {
 procedure InitPermutation(var inData: array of Byte);
