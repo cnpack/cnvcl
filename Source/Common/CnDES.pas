@@ -151,9 +151,11 @@ const
 type
   TKeyByte = array[0..5] of Byte;
   TDesMode = (dmEncry, dmDecry);
+  TSubKey = array[0..15] of TKeyByte;
 
 threadvar
-  subKey: array[0..15] of TKeyByte;
+  subKey: TSubKey;
+
   {
 procedure InitPermutation(var inData: array of Byte);
 procedure ConversePermutation(var inData: array of Byte);
@@ -293,14 +295,14 @@ begin
   end;
 end;
 
-procedure Encry(inData, subKey: array of Byte; var outData: array of Byte);
+procedure Encry(inData, aSubKey: array of Byte; var outData: array of Byte);
 var
   outBuf: array[0..5] of Byte;
   buf: array[0..7] of Byte;
   I: Integer;
 begin
   expand(inData, outBuf);
-  for I := 0 to 5 do outBuf[I] := outBuf[I] xor subKey[I];
+  for I := 0 to 5 do outBuf[I] := outBuf[I] xor aSubKey[I];
   buf[0] := outBuf[0] shr 2;
   buf[1] := ((outBuf[0] and $03) shl 4) or (outBuf[1] shr 4);
   buf[2] := ((outBuf[1] and $0F) shl 2) or (outBuf[2] shr 6);
