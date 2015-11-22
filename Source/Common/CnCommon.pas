@@ -540,6 +540,9 @@ function MyDateToStr(Date: TDate): string;
 function RegReadStringDef(const RootKey: HKEY; const Key, Name, Def: string): string;
 {* 取注册表键值}
 
+function GetKeysInRegistryKey(const Key: string; List: TStrings): Boolean;
+{* 取注册表某键的子键列表}
+
 procedure ReadStringsFromIni(Ini: TCustomIniFile; const Section: string; Strings: TStrings);
 {* 从 INI 中读取字符串列表}
 
@@ -2307,6 +2310,23 @@ begin
         end;
       end;
     RegCloseKey(RegKey);
+  end;
+end;
+
+function GetKeysInRegistryKey(const Key: string; List: TStrings): Boolean;
+var
+  Reg: TRegistry;
+begin
+  Result := False;
+  Reg := TRegistry.Create(KEY_READ);
+  try
+    if Reg.OpenKey(Key, False) then
+    begin
+      Reg.GetKeyNames(List);
+      Result := True;
+    end;
+  finally
+    Reg.Free;
   end;
 end;
 
