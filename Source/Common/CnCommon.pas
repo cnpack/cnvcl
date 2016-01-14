@@ -429,6 +429,9 @@ function LoadStringFromFile(const FileName: string): string;
 function SaveStringToFile(const S, FileName: string): Boolean;
 {* 保存字符串到为文件}
 
+procedure QuickSortStringList(List: TStringList; L, R: Integer; SCompare: TStringListSortCompare);
+{* StringList 快排，弥补 D5、6 下排序不开放的局限}
+
 //------------------------------------------------------------------------------
 // 环境变量相关
 //------------------------------------------------------------------------------
@@ -455,6 +458,8 @@ function SetEnvironmentVar(const Name, Value: string): Boolean;
 
 type
   TAnsiCharSet = set of AnsiChar;
+
+  TCharSet = set of Char;
 
 function CharInSet(C: Char; CharSet: TAnsiCharSet): Boolean;
 {* 判断字符是否在集合内}
@@ -522,6 +527,11 @@ function CountCharInStr(const Sub: Char; const AStr: string): Integer;
 
 function IsValidIdentChar(C: Char; First: Boolean = False): Boolean;
 {* 判断字符是否有效标识符字符，First 表示是否为首字符}
+
+{$IFDEF UNICODE}
+function IsValidIdentW(const Ident: string): Boolean;
+{* 判断字符串是否是有效的 Unicode 标识符}
+{$ENDIF}
 
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
@@ -3666,6 +3676,49 @@ begin
   end;
 end;
 
+// StringList 快排，弥补 D5、6 下排序不开放的局限
+procedure QuickSortStringList(List: TStringList; L, R: Integer; SCompare: TStringListSortCompare);
+var
+  I, J, P: Integer;
+
+  procedure ExchangeItems(Index1, Index2: Integer);
+  var
+    TempS: string;
+    TempObj: TObject;
+  begin
+    TempS := List[Index1];
+    List[Index1] := List[Index2];
+    List[Index2] := TempS;
+
+    TempObj := List.Objects[Index1];
+    List.Objects[Index1] := List.Objects[Index2];
+    List.Objects[Index2] := TempObj;
+  end;
+
+begin
+  repeat
+    I := L;
+    J := R;
+    P := (L + R) shr 1;
+    repeat
+      while SCompare(List, I, P) < 0 do Inc(I);
+      while SCompare(List, J, P) > 0 do Dec(J);
+      if I <= J then
+      begin
+        ExchangeItems(I, J);
+        if P = I then
+          P := J
+        else if P = J then
+          P := I;
+        Inc(I);
+        Dec(J);
+      end;
+    until I > J;
+    if L < J then QuickSortStringList(List, L, J, SCompare);
+    L := I;
+  until I >= R;
+end;
+
 //------------------------------------------------------------------------------
 // 环境变量相关
 //------------------------------------------------------------------------------
@@ -4025,6 +4078,27 @@ begin
   else
     Result := CharInSet(C, AlphaNumeric);
 end;
+
+{$IFDEF UNICODE}
+
+// 判断字符串是否是有效的 Unicode 标识符
+function IsValidIdentW(const Ident: string): Boolean;
+const
+  Alpha = ['A'..'Z', 'a'..'z', '_'];
+  AlphaNumeric = Alpha + ['0'..'9'];
+var
+  I: Integer;
+begin
+  Result := False;
+  if (Length(Ident) = 0) or not ((Ident[1] in Alpha) or (Ord(Ident[1]) > 127)) then
+    Exit;
+  for I := 2 to Length(Ident) do
+    if not ((Ident[I] in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+      Exit;
+  Result := True;
+end;
+
+{$ENDIF}
 
 const
   csLinesCR = #13#10;
