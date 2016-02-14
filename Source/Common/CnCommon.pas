@@ -3696,6 +3696,9 @@ var
   end;
 
 begin
+  if (List = nil) or (List.Count = 0) then
+    Exit;
+
   repeat
     I := L;
     J := R;
