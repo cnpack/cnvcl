@@ -91,7 +91,6 @@ uses
 //------------------------------------------------------------------------------
 
 type
-
   PRGBColor = ^TRGBColor;
   TRGBColor = packed record
     b, g, r: Byte;
@@ -719,6 +718,7 @@ function GetMSecond(Time: TTime): Integer;
 //------------------------------------------------------------------------------
 // 位操作函数
 //------------------------------------------------------------------------------
+
 type
   TByteBit = 0..7;
   {* Byte类型位数范围}
@@ -744,6 +744,7 @@ function GetBit(Value: DWORD; Bit: TDWordBit): Boolean; overload;
 //------------------------------------------------------------------------------
 // 系统功能函数
 //------------------------------------------------------------------------------
+
 type
   PDLLVERSIONINFO = ^TDLLVERSIONINFO;
   TDLLVERSIONINFO = packed record
@@ -1086,7 +1087,37 @@ function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 function CnAnsiToUtf82(const Text: string): string;
 {* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 D2009 下 AnsiToUtf8 是 UString 的问题 }
 
+function DoubleEqual(const D1, D2: Double): Boolean;
+{* 判断浮点数是否相等（差足够小）}
+
+function ExtendedEqual(const E1, E2: Extended): Boolean;
+{* 判断浮点数是否相等（差足够小）}
+
+function SingleEqual(const S1, S2: Single): Boolean;
+{* 判断浮点数是否相等（差足够小）}
+
 implementation
+
+const
+  MINOR_DOUBLE = 1E-8;
+  MINOR_EXTENDED = 1E-10;
+  MINOR_SINGLE = 1E-6;
+  // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
+
+function DoubleEqual(const D1, D2: Double): Boolean;
+begin
+  Result := Abs(D1 - D2) < MINOR_DOUBLE;
+end;
+
+function ExtendedEqual(const E1, E2: Extended): Boolean;
+begin
+  Result := Abs(E1 - E2) < MINOR_EXTENDED;
+end;
+
+function SingleEqual(const S1, S2: Single): Boolean;
+begin
+  Result := Abs(S1 - S2) < MINOR_SINGLE;
+end;
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
 // 另外，D2009 或以上版本，必须加 inline，
