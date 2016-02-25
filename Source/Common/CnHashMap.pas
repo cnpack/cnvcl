@@ -178,6 +178,16 @@ type
     function GetNext(var AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
   end;
 
+  TCnStrToVariantHashMap = class(TCnBaseHashMap)
+  private
+    function VariantHashCode(AKey: Variant): Integer; override;
+  public
+    procedure Add(AKey: string; AValue: Variant); reintroduce; overload;
+    function Delete(AKey: string): Boolean; reintroduce; overload;
+    function Find(AKey: string; var AValue: Variant): Boolean; reintroduce; overload;
+    function GetNext(var AKey: string; var AValue: Variant): Boolean; reintroduce; overload;
+  end;
+
 implementation
 
 { TCnBaseHashMap }
@@ -685,8 +695,7 @@ begin
     AValue := Pointer(Integer(vValue));
 end;
 
-function TCnStrToPtrHashMap.GetNext(var AKey: string; var AValue: Pointer
-  ): Boolean;
+function TCnStrToPtrHashMap.GetNext(var AKey: string; var AValue: Pointer): Boolean;
 var
   vKey, vValue: Variant;
 begin
@@ -697,6 +706,49 @@ begin
     AKey := vKey;
     AValue := Pointer(Integer(vValue));
   end;
+end;
+
+{ TCnStrToVariantHashMap }
+
+procedure TCnStrToVariantHashMap.Add(AKey: string; AValue: Variant);
+begin
+  AddInternal(AKey, AValue);
+end;
+
+function TCnStrToVariantHashMap.Delete(AKey: string): Boolean;
+begin
+  Result := DeleteInternal(AKey);
+end;
+
+function TCnStrToVariantHashMap.Find(AKey: string;
+  var AValue: Variant): Boolean;
+begin
+  Result := FindInternal(Variant(AKey), AValue);
+end;
+
+function TCnStrToVariantHashMap.GetNext(var AKey: string;
+  var AValue: Variant): Boolean;
+var
+  vKey, vValue: Variant;
+begin
+  Result := GetNextInternal(vKey, AValue);
+
+  if Result then
+    AKey := vKey;
+end;
+
+function TCnStrToVariantHashMap.VariantHashCode(AKey: Variant): Integer;
+var
+  iHashCode, i: Integer;
+  HashString: string;
+begin
+  iHashCode := 0;
+  HashString := AKey;
+
+  for i := 1 to Length(HashString) do
+    iHashCode := iHashCode shl 5 + Ord(HashString[i]) + iHashCode;
+
+  Result := Abs(iHashCode);
 end;
 
 end.
