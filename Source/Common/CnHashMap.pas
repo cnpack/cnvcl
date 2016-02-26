@@ -729,7 +729,7 @@ end;
 function TCnStrToVariantHashMap.GetNext(var AKey: string;
   var AValue: Variant): Boolean;
 var
-  vKey, vValue: Variant;
+  vKey: Variant;
 begin
   Result := GetNextInternal(vKey, AValue);
 
