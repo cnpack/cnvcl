@@ -455,7 +455,7 @@ begin
         else
           Font.Color := TrailingTextColor;
 
-        if TempDate = FViewDate then //高亮显示月历日期
+        if Trunc(TempDate) = Trunc(FViewDate) then //高亮显示月历日期
         begin
           Brush.Color := DaySelectColor;   // 增加的颜色设置
           Font.Color := DaySelectTextColor;    // 增加的颜色设置
@@ -752,6 +752,8 @@ begin
     oldFirstDate := FFirstDate;
     GetFirstDay;
     Changed;
+    FNeedUpdate := True;
+
     if oldFirstDate <> FFirstDate then
     begin
       InvalidateRect(Handle, @FTitleRect, False);
@@ -767,7 +769,6 @@ begin
     begin
       InvalidateRect(Handle, @FTitleRect, False);
     end;
-
   end;
 end; {= TCnMonthCalendar.SetDate =}
 

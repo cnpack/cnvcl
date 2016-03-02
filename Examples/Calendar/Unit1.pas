@@ -36,6 +36,7 @@ type
     mmoLunar: TMemo;
     chkMonthButton: TCheckBox;
     chkYearButton: TCheckBox;
+    dtpSet: TDateTimePicker;
     procedure btnCalcClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -43,6 +44,7 @@ type
     procedure btnCalcLunarClick(Sender: TObject);
     procedure chkMonthButtonClick(Sender: TObject);
     procedure chkYearButtonClick(Sender: TObject);
+    procedure dtpSetChange(Sender: TObject);
   private
     { Private declarations }
     procedure ConvertEditToDate;
@@ -147,6 +149,7 @@ begin
 
   chkMonthButton.Checked := CnMonthCalendar1.ShowMonthButton;
   chkYearButton.Checked := CnMonthCalendar1.ShowYearButton;
+  CnMonthCalendar1.Date := Now;
   pgc1.ActivePageIndex := 0;
 end;
 
@@ -238,6 +241,11 @@ end;
 procedure TForm1.chkYearButtonClick(Sender: TObject);
 begin
   CnMonthCalendar1.ShowYearButton := chkYearButton.Checked;
+end;
+
+procedure TForm1.dtpSetChange(Sender: TObject);
+begin
+  CnMonthCalendar1.Date := dtpSet.Date;
 end;
 
 end.

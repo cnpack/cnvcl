@@ -134,7 +134,7 @@ object Form1: TForm1
       end
       object chkGanZhi: TCheckBox
         Left = 40
-        Top = 400
+        Top = 352
         Width = 97
         Height = 17
         Caption = '显示干支'
@@ -143,7 +143,7 @@ object Form1: TForm1
       end
       object chkMonthButton: TCheckBox
         Left = 160
-        Top = 400
+        Top = 352
         Width = 177
         Height = 17
         Caption = '显示月份前进后退按钮'
@@ -152,12 +152,27 @@ object Form1: TForm1
       end
       object chkYearButton: TCheckBox
         Left = 352
-        Top = 400
+        Top = 352
         Width = 177
         Height = 17
         Caption = '显示年份前进后退按钮'
         TabOrder = 3
         OnClick = chkYearButtonClick
+      end
+      object dtpSet: TDateTimePicker
+        Left = 32
+        Top = 400
+        Width = 186
+        Height = 20
+        CalAlignment = dtaLeft
+        Date = 42431.4619409954
+        Time = 42431.4619409954
+        DateFormat = dfShort
+        DateMode = dmComboBox
+        Kind = dtkDate
+        ParseInput = False
+        TabOrder = 4
+        OnChange = dtpSetChange
       end
     end
     object tsConvert: TTabSheet
