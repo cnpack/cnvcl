@@ -120,7 +120,7 @@ const
   CnDebugMapEnabled = $7F3D92E0; // 定义的一个 Magic 值表示 MapEnable
 
 {$IFDEF LOCAL_SESSION}
-  SCnDebugPrefix = '';
+  SCnDebugPrefix = 'Local\';
 {$ELSE}
   SCnDebugPrefix = 'Global\';
 {$ENDIF}
