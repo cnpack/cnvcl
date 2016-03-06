@@ -3018,9 +3018,15 @@ begin
         begin
           UpdateFlush;
           Result := IsInitedFromHeader;
-        end;
-      end;
-    end;
+        end
+        else
+          OutputDebugString(PChar('CnDebug: OpenEvent Fail: ' + IntToStr(GetLastError)));
+      end
+      else
+        OutputDebugString(PChar('CnDebug: MapViewOfFile Fail: ' + IntToStr(GetLastError)));
+    end
+    else
+      OutputDebugString(PChar('CnDebug: OpenFileMapping Fail: ' + IntToStr(GetLastError)));
   end
   else // 区域都有效
     Result := PCnMapHeader(FMapHeader)^.MapEnabled = CnDebugMapEnabled;
