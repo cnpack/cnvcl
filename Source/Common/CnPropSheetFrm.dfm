@@ -1,6 +1,6 @@
 object CnPropSheetForm: TCnPropSheetForm
-  Left = 492
-  Top = 220
+  Left = 713
+  Top = 100
   Width = 370
   Height = 521
   BorderStyle = bsSizeToolWin
@@ -202,7 +202,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ReadOnly = True
       RowSelect = True
       ParentFont = False
-      TabOrder = 0
+      TabOrder = 9
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
@@ -293,6 +293,35 @@ object CnPropSheetForm: TCnPropSheetForm
       ParentFont = False
       ShowWorkAreas = True
       TabOrder = 4
+      ViewStyle = vsReport
+      OnCustomDrawItem = lvPropCustomDrawItem
+      OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnSelectItem = lvPropSelectItem
+    end
+    object lvMenuItem: TListView
+      Left = 8
+      Top = 136
+      Width = 321
+      Height = 57
+      Columns = <
+        item
+          Caption = 'MenuItems[]'
+          Width = 180
+        end
+        item
+          Caption = 'Item Value'
+          Width = 130
+        end>
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ReadOnly = True
+      RowSelect = True
+      ParentFont = False
+      ShowWorkAreas = True
+      TabOrder = 0
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem

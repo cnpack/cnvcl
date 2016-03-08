@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 172
   BorderStyle = bsDialog
   Caption = 'Send Debug'
-  ClientHeight = 353
+  ClientHeight = 380
   ClientWidth = 469
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
@@ -338,7 +338,7 @@ object Form1: TForm1
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 334
+    Top = 361
     Width = 469
     Height = 19
     Panels = <
@@ -594,6 +594,17 @@ object Form1: TForm1
     ShowHint = True
     TabOrder = 44
     OnClick = btnEBPAddrClick
+  end
+  object btnEvaluateMenu: TButton
+    Left = 248
+    Top = 332
+    Width = 97
+    Height = 21
+    Caption = '¿´²Ëµ¥'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 45
+    OnClick = btnEvaluateMenuClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True
@@ -879,5 +890,24 @@ object Form1: TForm1
       88C40000FE00FFFF11880000FF00FFFF23100000FF80FFFF46200000FFC0FFFF
       8C440000FFF0FFFF188C0000FFF8FFFF00000000000000000000000000000000
       000000000000}
+  end
+  object pm1: TPopupMenu
+    Left = 72
+    Top = 88
+    object Test11: TMenuItem
+      Caption = 'Test1'
+    end
+    object N1: TMenuItem
+      Caption = '-'
+    end
+    object Test21: TMenuItem
+      Caption = 'Test2'
+      object Test211: TMenuItem
+        Caption = 'Test 21'
+      end
+      object Test221: TMenuItem
+        Caption = 'Test 22'
+      end
+    end
   end
 end

@@ -39,7 +39,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, UnitThread, Buttons,
-  ImgList;
+  ImgList, Menus;
 
 type
   TForm1 = class(TForm)
@@ -94,6 +94,13 @@ type
     btnInterface: TButton;
     btnAddr: TButton;
     btnEBPAddr: TButton;
+    pm1: TPopupMenu;
+    Test11: TMenuItem;
+    N1: TMenuItem;
+    Test21: TMenuItem;
+    Test211: TMenuItem;
+    Test221: TMenuItem;
+    btnEvaluateMenu: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -130,6 +137,7 @@ type
     procedure btnInterfaceClick(Sender: TObject);
     procedure btnAddrClick(Sender: TObject);
     procedure btnEBPAddrClick(Sender: TObject);
+    procedure btnEvaluateMenuClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -490,6 +498,11 @@ begin
     CnDebugger.TraceStackFromAddress(GetEBP)
   else
     CnDebugger.LogStackFromAddress(GetEBP);
+end;
+
+procedure TForm1.btnEvaluateMenuClick(Sender: TObject);
+begin
+  CnDebugger.EvaluateObject(pm1);
 end;
 
 end.

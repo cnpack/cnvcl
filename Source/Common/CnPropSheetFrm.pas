@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl
   {$IFDEF VER130}{$ELSE}, Variants{$ENDIF};
 
@@ -51,8 +51,8 @@ const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
 
 type
-  TCnPropContentType = (pctProps, pctEvents, pctCollectionItems, pctStrings,
-    pctGraphics, pctComponents, pctControls, pctHierarchy);
+  TCnPropContentType = (pctProps, pctEvents, pctCollectionItems, pctMenuItems,
+    pctStrings, pctGraphics, pctComponents, pctControls, pctHierarchy);
   TCnPropContentTypes = set of TCnPropContentType;
 
   TCnDisplayObject = class(TObject)
@@ -123,6 +123,16 @@ type
     property Index: Integer read FIndex write FIndex;
   end;
 
+  TCnMenuItemObject = class(TCnDisplayObject)
+  {* 描述一 MenuItem }
+  private
+    FIndex: Integer;
+    FItemName: string;
+  public
+    property ItemName: string read FItemName write FItemName;
+    property Index: Integer read FIndex write FIndex;
+  end;
+
   TCnComponentObject = class(TCnDisplayObject)
   {* 描述一 Component }
   private
@@ -161,9 +171,11 @@ type
     FStrings: TCnStringsObject;
     FIsRefresh: Boolean;
     FCollectionItems: TObjectList;
+    FMenuItems: TObjectList;
     FHierarchy: string;
     FOnAfterEvaluateHierarchy: TNotifyEvent;
     FOnAfterEvaluateCollections: TNotifyEvent;
+    FOnAfterEvaluateMenuItems: TNotifyEvent;
     FOnAfterEvaluateControls: TNotifyEvent;
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
@@ -175,12 +187,14 @@ type
     function GetControlCount: Integer;
     function GetCollectionItemCount: Integer;
     procedure SetInspectComplete(const Value: Boolean);
+    function GetMenuItemCount: Integer;
   protected
     procedure SetObjectAddr(const Value: Pointer); virtual;
     procedure DoEvaluate; virtual; abstract;
     procedure DoAfterEvaluateComponents; virtual;
     procedure DoAfterEvaluateControls; virtual;
     procedure DoAfterEvaluateCollections; virtual;
+    procedure DoAfterEvaluateMenuItems; virtual;
     procedure DoAfterEvaluateProperties; virtual;
     procedure DoAfterEvaluateHierarchy; virtual;    
 
@@ -204,12 +218,14 @@ type
     property Components: TObjectList read FComponents;
     property Controls: TObjectList read FControls;
     property CollectionItems: TObjectList read FCollectionItems;
+    property MenuItems: TObjectList read FMenuItems;
 
     property PropCount: Integer read GetPropCount;
     property EventCount: Integer read GetEventCount;
     property CompCount: Integer read GetCompCount;
     property ControlCount: Integer read GetControlCount;
     property CollectionItemCount: Integer read GetCollectionItemCount;
+    property MenuItemCount: Integer read GetMenuItemCount;
 
     property IsRefresh: Boolean read FIsRefresh write FIsRefresh;
     property InspectComplete: Boolean read GetInspectComplete
@@ -228,6 +244,8 @@ type
       read FOnAfterEvaluateControls write FOnAfterEvaluateControls;
     property OnAfterEvaluateCollections: TNotifyEvent
       read FOnAfterEvaluateCollections write FOnAfterEvaluateCollections;
+    property OnAfterEvaluateMenuItems: TNotifyEvent
+      read FOnAfterEvaluateMenuItems write FOnAfterEvaluateMenuItems;
     property OnAfterEvaluateHierarchy: TNotifyEvent
       read FOnAfterEvaluateHierarchy write FOnAfterEvaluateHierarchy;
   end;
@@ -267,6 +285,7 @@ type
     pnlHierarchy: TPanel;
     pnlGraphic: TPanel;
     imgGraphic: TImage;
+    lvMenuItem: TListView;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -368,7 +387,7 @@ type
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
-    ('Properties', 'Events', 'CollectionItems', 'Strings', 'Graphics',
+    ('Properties', 'Events', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
      'Components', 'Controls', 'Hierarchy');
 
 var
@@ -576,10 +595,12 @@ begin
   FComponents := TObjectList.Create(True);
   FControls := TObjectList.Create(True);
   FCollectionItems := TObjectList.Create(True);
+  FMenuItems := TObjectList.Create(True);
 end;
 
 destructor TCnObjectInspector.Destroy;
 begin
+  FMenuItems.Free;
   FCollectionItems.Free;
   FControls.Free;
   FComponents.Free;
@@ -720,6 +741,17 @@ begin
     FOnAfterEvaluateProperties(Self);
 end;
 
+function TCnObjectInspector.GetMenuItemCount: Integer;
+begin
+  Result := FMenuItems.Count;
+end;
+
+procedure TCnObjectInspector.DoAfterEvaluateMenuItems;
+begin
+  if Assigned(FOnAfterEvaluateMenuItems) then
+    FOnAfterEvaluateMenuItems(Self);
+end;
+
 { TCnLocalObjectInspector }
 
 procedure TCnLocalObjectInspector.SetObjectAddr(const Value: Pointer);
@@ -743,9 +775,11 @@ var
   AProp: TCnPropertyObject;
   AEvent: TCnEventObject;
   ACollection: TCollection;
+  AMenuItem: TMenuItem;
   AComp: TComponent;
   AControl: TWinControl;
   AItemObj: TCnCollectionItemObject;
+  AMenuObj: TCnMenuItemObject;
   ACompObj: TCnComponentObject;
   AControlObj: TCnControlObject;
   S: string;
@@ -895,6 +929,41 @@ begin
 
       DoAfterEvaluateCollections;
     end
+    else if ObjectInstance is TMenuItem then
+    begin
+      // 获得其 Items
+      AMenuItem := (FObjectInstance as TMenuItem);
+      for I := 0 to AMenuItem.Count - 1 do
+      begin
+        IsExisting := IsRefresh and (I < FMenuItems.Count);
+        if IsExisting then
+          AMenuObj := TCnMenuItemObject(FMenuItems.Items[I])
+        else
+          AMenuObj := TCnMenuItemObject.Create;
+
+        AMenuObj.ObjClassName := AMenuItem.ClassName;
+        AMenuObj.Index := I;
+        if AMenuObj.ObjValue <> AMenuItem.Items[I] then
+        begin
+          AMenuObj.ObjValue := AMenuItem.Items[I];
+          AMenuObj.Changed := True;
+        end
+        else
+          AMenuObj.Changed := False;
+
+        S := AMenuItem.GetNamePath;
+        if S = '' then S := '(noname)';
+        AMenuObj.ItemName := Format('%s.Item[%d]', [S, I]);
+        AMenuObj.DisplayValue := Format('%s: $%8.8x', [AMenuObj.ObjClassName, Integer(AMenuObj.ObjValue)]);
+
+        if not IsExisting then
+          FMenuItems.Add(AMenuObj);
+
+        Include(FContentTypes, pctMenuItems);
+      end;
+
+      DoAfterEvaluateMenuItems;
+    end
     else if ObjectInstance is TComponent then
     begin
       // 获得其 Componets
@@ -1042,6 +1111,7 @@ begin
   lvProp.Items.Clear;
   lvEvent.Items.Clear;
   lvCollectionItem.Items.Clear;
+  lvMenuItem.Items.Clear;
   lvComp.Items.Clear;
   lvControl.Items.Clear;
 
@@ -1080,6 +1150,16 @@ begin
       Data := FInspector.CollectionItems.Items[I];
       Caption := TCnCollectionItemObject(FInspector.CollectionItems.Items[I]).ItemName;
       SubItems.Add(TCnCollectionItemObject(FInspector.CollectionItems.Items[I]).DisplayValue);
+    end;
+  end;
+
+  for I := 0 to FInspector.MenuItemCount - 1 do
+  begin
+    with lvMenuItem.Items.Add do
+    begin
+      Data := FInspector.MenuItems.Items[I];
+      Caption := TCnMenuItemObject(FInspector.MenuItems.Items[I]).ItemName;
+      SubItems.Add(TCnMenuItemObject(FInspector.MenuItems.Items[I]).DisplayValue);
     end;
   end;
 
@@ -1200,6 +1280,7 @@ begin
   lvProp.Columns[1].Width := Self.Width - lvProp.Columns[0].Width - FixWidth;
   lvEvent.Columns[1].Width := Self.Width - lvEvent.Columns[0].Width - FixWidth;
   lvCollectionItem.Columns[1].Width := Self.Width - lvCollectionItem.Columns[0].Width - FixWidth;
+  lvMenuItem.Columns[1].Width := Self.Width - lvMenuItem.Columns[0].Width - FixWidth;
   lvComp.Columns[1].Width := Self.Width - lvComp.Columns[0].Width - FixWidth;
   lvControl.Columns[1].Width := Self.Width - lvControl.Columns[0].Width - FixWidth;
   UpdatePanelPositions;
@@ -1257,6 +1338,7 @@ begin
     pctProps:             AControl := lvProp;
     pctEvents:            AControl := lvEvent;
     pctCollectionItems:   AControl := lvCollectionItem;
+    pctMenuItems:         AControl := lvMenuItem;
     pctStrings:           AControl := mmoText;
     pctGraphics:          AControl := pnlGraphic;
     pctComponents:        AControl := lvComp;
