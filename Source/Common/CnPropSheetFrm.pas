@@ -1289,13 +1289,12 @@ var
   ARect: TRect;
   ALv: TListView;
 begin
+  DefaultDraw := True;
   if Sender is TListView then
   begin
     ALv := Sender as TListView;
-
     ListView_GetSubItemRect(ALv.Handle, Item.Index, 0, LVIR_BOUNDS, @ARect);
     ALv.Canvas.Brush.Color := $00FFBBBB;
-    ALv.Canvas.FillRect(ARect);
 
     if ALv.Focused then
     begin
@@ -1341,12 +1340,12 @@ var
   ARect: TRect;
   ALv: TListView;
 begin
+  DefaultDraw := True;
   if Sender is TListView then
   begin
     ALv := Sender as TListView;
     ListView_GetSubItemRect(ALv.Handle, Item.Index, 1, LVIR_BOUNDS, @ARect);
     ALv.Canvas.Brush.Color := $00AAFFFF;
-    ALv.Canvas.FillRect(ARect);
 
     if (Item <> nil) and (Item.Data <> nil) and TCnDisplayObject(Item.Data).Changed then
     begin
