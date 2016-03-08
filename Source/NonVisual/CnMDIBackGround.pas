@@ -545,18 +545,7 @@ begin
                 cx := (wRect.Right - wRect.Left - FBorderLeft - FBorderRight);
                 cy := (wRect.Bottom - wRect.Top - FBorderTop - FBorderBottom);
 
-                StretchBlt(FBuffer.Canvas.Handle,
-                  DescRect.Left,
-                  DescRect.Top,
-                  cx,
-                  cy,
-                  FBitmap.Canvas.Handle,
-                  0,
-                  0,
-                  FBitmap.Width,
-                  FBitmap.Height,
-                  SRCCOPY);
-
+                FBuffer.Canvas.StretchDraw(Rect(DescRect.Left,DescRect.Top,cx,cy), FBitmap); ///Edit By LXY
                 DoPaintImage(ACanvas);
 
               end;
