@@ -369,6 +369,8 @@ function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
 
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 
+function GetObjValueStr(AObj: TObject): string;
+
 var
   ObjectInspectorClass: TCnObjectInspectorClass = nil;
 
@@ -432,10 +434,27 @@ begin
   Result := string(PropInfo^.Name);
 end;
 
+function GetObjValueStr(AObj: TObject): string;
+var
+  S: string;
+begin
+  if AObj <> nil then
+  begin
+    try
+      S := AObj.ClassName;
+    except
+      S := 'Unknown Object';
+    end;
+    Result := Format('(%s.$%8.8x)', [S, Integer(AObj)])
+  end
+  else
+    Result := 'nil';
+end;
+
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 var
   iTmp: Integer;
-  S, ObjClassName: string;
+  S: string;
   IntToId: TIntToIdent;
 
   function GetParamFlagsName(AParamFlags: TParamFlags): string;
@@ -528,17 +547,7 @@ begin
     tkClass:
       begin
         iTmp := GetOrdProp(Instance, PropInfo);
-        if iTmp <> 0 then
-        begin
-          try
-            ObjClassName := TObject(iTmp).ClassName;
-          except
-            ObjClassName := 'Unknown Object';
-          end;
-          S := Format('(%s.$%8.8x)', [ObjClassName, iTmp])
-        end
-        else
-          S := 'nil';
+        S := GetObjValueStr(TObject(iTmp));
       end;
     tkEnumeration:
       S := GetEnumProp(Instance, PropInfo);
@@ -797,6 +806,7 @@ begin
       Controls.Clear;
       CollectionItems.Clear;
       Strings.Clear;
+      MenuItems.Clear;
       Graphics.Graphic := nil;
     end;
 
@@ -890,6 +900,59 @@ begin
       end;
     end;
     FreeMem(PropListPtr);
+
+    // 额外添加显示不在 published 域的 Owner 和 Parent
+    if ObjectInstance is TComponent then
+    begin
+      if not IsRefresh then
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'Owner');
+
+      AProp.PropName := 'Owner';
+      AProp.PropType := tkClass;
+      AProp.IsObject := True;
+      AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
+      AProp.ObjValue := (FObjectInstance as TComponent).Owner;
+
+      S := GetObjValueStr(AProp.ObjValue);
+      if S <> AProp.DisplayValue then
+      begin
+        AProp.DisplayValue := S;
+        AProp.Changed := True;
+      end
+      else
+        AProp.Changed := False;
+
+      if not IsRefresh then
+        Properties.Add(AProp);
+    end;
+
+    if ObjectInstance is TControl then
+    begin
+      if not IsRefresh then
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'Parent');
+
+      AProp.PropName := 'Parent';
+      AProp.PropType := tkClass;
+      AProp.IsObject := True;
+      AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
+      AProp.ObjValue := (FObjectInstance as TControl).Parent;
+
+      S := GetObjValueStr(AProp.ObjValue);
+      if S <> AProp.DisplayValue then
+      begin
+        AProp.DisplayValue := S;
+        AProp.Changed := True;
+      end
+      else
+        AProp.Changed := False;
+
+      if not IsRefresh then
+        Properties.Add(AProp);
+    end;
 
     DoAfterEvaluateProperties;
 
