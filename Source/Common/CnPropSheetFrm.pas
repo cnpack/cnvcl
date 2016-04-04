@@ -276,7 +276,6 @@ type
     lvCollectionItem: TListView;
     lvComp: TListView;
     lvControl: TListView;
-    lblClassName: TLabel;
     btnRefresh: TSpeedButton;
     btnTop: TSpeedButton;
     edtObj: TEdit;
@@ -286,6 +285,7 @@ type
     pnlGraphic: TPanel;
     imgGraphic: TImage;
     lvMenuItem: TListView;
+    edtClassName: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -1179,12 +1179,12 @@ begin
   lvControl.Items.Clear;
 
   if FInspector.ObjClassName <> '' then
-    lblClassName.Caption := FInspector.ObjClassName
+    edtClassName.Text := FInspector.ObjClassName
   else
-    lblClassName.Caption := 'Unknown Object';
+    edtClassName.Text := 'Unknown Object';
 
   edtObj.Text := Format('%8.8x', [Integer(FInspector.ObjectAddr)]);
-  lblClassName.Caption := Format('%s: $%8.8x', [lblClassName.Caption, Integer(FInspector.ObjectAddr)]);
+  edtClassName.Text := Format('%s: $%8.8x', [edtClassName.Text, Integer(FInspector.ObjectAddr)]);
 
   for I := 0 to FInspector.PropCount - 1 do
   begin

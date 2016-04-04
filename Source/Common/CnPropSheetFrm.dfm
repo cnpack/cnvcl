@@ -1,6 +1,6 @@
 object CnPropSheetForm: TCnPropSheetForm
-  Left = 713
-  Top = 100
+  Left = 641
+  Top = 154
   Width = 370
   Height = 521
   BorderStyle = bsSizeToolWin
@@ -28,13 +28,6 @@ object CnPropSheetForm: TCnPropSheetForm
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
-    object lblClassName: TLabel
-      Left = 168
-      Top = 8
-      Width = 44
-      Height = 13
-      Caption = 'Unknown'
-    end
     object btnRefresh: TSpeedButton
       Left = 138
       Top = 4
@@ -148,6 +141,17 @@ object CnPropSheetForm: TCnPropSheetForm
       TabOrder = 0
       Text = '00000000'
       OnKeyPress = edtObjKeyPress
+    end
+    object edtClassName: TEdit
+      Left = 168
+      Top = 8
+      Width = 145
+      Height = 18
+      BorderStyle = bsNone
+      ParentColor = True
+      ReadOnly = True
+      TabOrder = 1
+      Text = 'Unknown'
     end
   end
   object tsSwitch: TTabSet
