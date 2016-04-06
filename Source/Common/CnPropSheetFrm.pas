@@ -365,7 +365,8 @@ type
   end;
 
 function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
-  AForm: TCnPropSheetForm = nil): TCnPropSheetForm;
+  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False): TCnPropSheetForm;
+{* 执行真正的查看，SyncMode 指是否同步查看。默认异步，Form 内自己发消息查看}
 
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 
@@ -413,7 +414,7 @@ begin
 end;
 
 function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
-  AForm: TCnPropSheetForm = nil): TCnPropSheetForm;
+  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False): TCnPropSheetForm;
 begin
   Result := nil;
   if Address = nil then Exit;
@@ -423,8 +424,20 @@ begin
 
   AForm.ObjectPointer := Address;
   AForm.Clear;
-  // AForm.Show; // Don't show here. Show it after message
-  PostMessage(AForm.Handle, CN_INSPECTOBJECT, WPARAM(Data), 0);
+
+  if SyncMode then
+  begin
+    AForm.DoEvaluateBegin;
+    try
+      AForm.FInspectParam := Data;
+      AForm.InspectObject(AForm.FInspectParam);
+    finally
+      AForm.DoEvaluateEnd;
+      AForm.Show;  // After Evaluation. Show the form.
+    end;
+  end
+  else
+    PostMessage(AForm.Handle, CN_INSPECTOBJECT, WPARAM(Data), 0);
 
   Result := AForm;
 end;

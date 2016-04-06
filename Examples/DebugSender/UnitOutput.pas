@@ -101,6 +101,7 @@ type
     Test211: TMenuItem;
     Test221: TMenuItem;
     btnEvaluateMenu: TButton;
+    btnEvaluateBmp: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -138,6 +139,7 @@ type
     procedure btnAddrClick(Sender: TObject);
     procedure btnEBPAddrClick(Sender: TObject);
     procedure btnEvaluateMenuClick(Sender: TObject);
+    procedure btnEvaluateBmpClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -503,6 +505,22 @@ end;
 procedure TForm1.btnEvaluateMenuClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(pm1);
+end;
+
+procedure TForm1.btnEvaluateBmpClick(Sender: TObject);
+var
+  Bmp: TBitmap;
+  R: TRect;
+begin
+  Bmp := TBitmap.Create;
+  Bmp.Width := 26;
+  Bmp.Height := 26;
+  Bmp.Canvas.Brush.Color := clBtnFace;
+  R := Rect(0, 0, Bmp.Width, Bmp.Height);
+  Bmp.Canvas.FillRect(R);
+
+  CnDebugger.EvaluateObject(Bmp, True);
+  Bmp.Free;
 end;
 
 end.

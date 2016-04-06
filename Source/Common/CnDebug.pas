@@ -438,8 +438,8 @@ type
     procedure RemoveFilterExceptClass(const EClassName: string); overload;
 
     // 查看对象函数
-    procedure EvaluateObject(AObject: TObject); overload;
-    procedure EvaluateObject(APointer: Pointer); overload;
+    procedure EvaluateObject(AObject: TObject; SyncMode: Boolean = False); overload;
+    procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
 
     // 其他属性
     property Channel: TCnDebugChannel read GetChannel;
@@ -2351,17 +2351,17 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.EvaluateObject(AObject: TObject);
+procedure TCnDebugger.EvaluateObject(AObject: TObject; SyncMode: Boolean = False);
 begin
 {$IFDEF SUPPORT_EVALUATE}
-  EvaluatePointer(AObject);
+  EvaluatePointer(AObject, nil, nil, SyncMode);
 {$ENDIF}
 end;
 
-procedure TCnDebugger.EvaluateObject(APointer: Pointer);
+procedure TCnDebugger.EvaluateObject(APointer: Pointer; SyncMode: Boolean = False);
 begin
 {$IFDEF SUPPORT_EVALUATE}
-  EvaluatePointer(APointer);
+  EvaluatePointer(APointer, nil, nil, SyncMode);
 {$ENDIF}
 end;
 

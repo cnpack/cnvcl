@@ -606,6 +606,17 @@ object Form1: TForm1
     TabOrder = 45
     OnClick = btnEvaluateMenuClick
   end
+  object btnEvaluateBmp: TButton
+    Left = 360
+    Top = 332
+    Width = 97
+    Height = 21
+    Caption = '¿´Î»Í¼'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 46
+    OnClick = btnEvaluateBmpClick
+  end
   object dlgColor: TColorDialog
     Ctl3D = True
     Left = 256
