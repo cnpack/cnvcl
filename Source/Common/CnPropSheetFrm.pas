@@ -1161,6 +1161,32 @@ const
 var
   I, ImgTop, ImgLeft: Integer;
   ImageList: TImageList;
+
+  procedure InternalDrawGraphic(AGraphic: TGraphic);
+  const
+    EMPTY_STR = '<Empty>';
+    MARGIN = 10;
+  var
+    W, H: Integer;
+    S: string;
+  begin
+    if AGraphic = nil then
+      Exit;
+
+    imgGraphic.Canvas.Draw(0, 0, AGraphic);
+    imgGraphic.Canvas.Pen.Color := clBtnShadow;
+    if AGraphic.Empty then
+      S := EMPTY_STR
+    else
+      S := Format('Width: %d, Height: %d.', [AGraphic.Width, AGraphic.Height]);
+
+    W := imgGraphic.Canvas.TextWidth(S);
+    H := imgGraphic.Canvas.TextHeight(S);
+
+    imgGraphic.Canvas.TextOut(imgGraphic.Width - MARGIN - W,
+      imgGraphic.Height - MARGIN - H, S);
+  end;
+
 begin
   if ObjectInspectorClass = nil then
     Exit;
@@ -1269,11 +1295,11 @@ begin
     if FGraphicObject is TPicture then
     begin
       if (FGraphicObject as TPicture).Graphic <> nil then
-         imgGraphic.Canvas.Draw(0, 0, (FGraphicObject as TPicture).Graphic);
+        InternalDrawGraphic((FGraphicObject as TPicture).Graphic);
     end
     else if FGraphicObject is TGraphic then
     begin
-      imgGraphic.Canvas.Draw(0, 0, FGraphicObject as TGraphic);
+      InternalDrawGraphic(FGraphicObject as TGraphic);
     end
     else if FGraphicObject is TImageList then
     begin
