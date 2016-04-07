@@ -857,6 +857,9 @@ procedure CloneMenuItem(Source, Dest: TMenuItem);
 // 其它过程
 //------------------------------------------------------------------------------
 
+function GetControlBitmap(AControl: TControl; Bmp: TBitmap): Boolean;
+{* 获取 Control 表面的位图}
+
 // FMX Supports Start
 function GetControlScreenRect(AControl: TComponent): TRect;
 {* 返回控件在屏幕上的坐标区域，如果是 FMX，需要返回的是相对于最外层容器的坐标。但目前实现有 Bug，只能使用相对坐标。 }
@@ -5745,6 +5748,29 @@ end;
 //------------------------------------------------------------------------------
 // 其它过程
 //------------------------------------------------------------------------------
+
+type
+  TWinControlAccess = class(TWinControl);
+  TControlAccess = class(TControl);
+
+// 获取 Control 表面的位图
+function GetControlBitmap(AControl: TControl; Bmp: TBitmap): Boolean;
+begin
+  Result := False;
+  if (AControl = nil) or (Bmp = nil) then
+    Exit;
+
+  Bmp.PixelFormat := pf24Bit;
+  Bmp.Canvas.Brush.Color := TControlAccess(AControl).Color;
+  Bmp.Width := AControl.Width;
+  Bmp.Height := AControl.Height;
+
+  if AControl is TWinControl then
+    TWinControlAccess(AControl).PaintWindow(Bmp.Canvas.Handle)
+  else
+    AControl.Perform(WM_PAINT, Bmp.Canvas.Handle, 0);
+  Result := True;
+end;
 
 // 返回控件在屏幕上的坐标区域
 function GetControlScreenRect(AControl: TComponent): TRect;
