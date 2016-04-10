@@ -210,6 +210,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnDblClick = lvPropDblClick
       OnSelectItem = lvPropSelectItem
     end
     object mmoText: TMemo

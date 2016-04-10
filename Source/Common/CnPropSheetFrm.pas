@@ -29,7 +29,9 @@ unit CnPropSheetFrm;
 * 兼容测试：未测试
 * 本 地 化：该窗体中的字符串暂不符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2012.03.10
+* 修改记录：2016.04.10
+*               加入修改属性的功能
+*           2012.03.10
 *               加入图片对象的可视化显示
 *           2006.11.23
 *               加入对象类继承关系的显示
@@ -78,11 +80,13 @@ type
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
+    FCanModify: Boolean;
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
     property IsObject: Boolean read FIsObject write FIsObject;
     property PropValue: Variant read FPropValue write FPropValue;
+    property CanModify: Boolean read FCanModify write FCanModify;
   end;
 
   TCnEventObject = class(TCnDisplayObject)
@@ -208,6 +212,8 @@ type
 
     procedure InspectObject;
     procedure Clear;
+
+    function ChangePropertyValue(const PropName, Value: string): Boolean; virtual;
     property ObjectAddr: Pointer read FObjectAddr write SetObjectAddr;
     {* 主要供外部写，写入 Object，或 String }
 
@@ -261,6 +267,7 @@ type
 
     procedure DoEvaluate; override;
   public
+    function ChangePropertyValue(const PropName, Value: string): Boolean; override;
     property ObjectInstance: TObject read FObjectInstance;
   end;
 
@@ -306,6 +313,7 @@ type
     procedure btnTopClick(Sender: TObject);
     procedure btnEvaluateClick(Sender: TObject);
     procedure edtObjKeyPress(Sender: TObject; var Key: Char);
+    procedure lvPropDblClick(Sender: TObject);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -392,6 +400,14 @@ const
   SCnPropContentType: array[TCnPropContentType] of string =
     ('Properties', 'Events', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
      'Components', 'Controls', 'Hierarchy');
+
+  SCnInputNewValueCaption = 'Modify Value';
+  SCnInputNewValuePrompt = 'Enter a New Value for %s:';
+  SCnErrorChangeValue = 'Change Property Value Failed!';
+
+  CnCanModifyPropTypes: TTypeKinds =
+    [tkInteger, tkChar, tkEnumeration, tkFloat, tkString, tkSet, tkWChar,
+    tkLString, tkWString, tkInt64];
 
 var
   FSheetList: TComponentList = nil;
@@ -774,6 +790,12 @@ begin
     FOnAfterEvaluateMenuItems(Self);
 end;
 
+function TCnObjectInspector.ChangePropertyValue(const PropName,
+  Value: string): Boolean;
+begin
+  Result := False;
+end;
+
 { TCnLocalObjectInspector }
 
 procedure TCnLocalObjectInspector.SetObjectAddr(const Value: Pointer);
@@ -867,6 +889,11 @@ begin
         AProp.PropName := PropInfoName(PropInfo);
         AProp.PropType := PropInfo^.PropType^^.Kind;
         AProp.IsObject := AProp.PropType = tkClass;
+
+        // 有写入权限，并且指定类型，才可修改，否则界面上没法整
+        AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
+          in CnCanModifyPropTypes);
+
         AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
         if AProp.IsObject then
           AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
@@ -1128,6 +1155,72 @@ begin
   if FContentTypes = [] then
     Include(FContentTypes, pctProps);
   FInspectComplete := True;
+end;
+
+function TCnLocalObjectInspector.ChangePropertyValue(const PropName,
+  Value: string): Boolean;
+var
+  PropInfo: PPropInfo;
+  VInt: Integer;
+  VInt64: Int64;
+  VFloat: Double;
+begin
+  Result := False;
+  if ObjectInstance = nil then
+    Exit;
+
+  PropInfo := GetPropInfo(ObjectInstance, PropName);
+  if (PropInfo = nil) or (PropInfo^.SetProc = nil) then
+    Exit;
+
+  case PropInfo^.PropType^^.Kind of
+    tkInteger:
+      begin
+        try
+          VInt := StrToInt(Value);
+          SetOrdProp(ObjectInstance, PropName, VInt);
+        except
+          Exit;
+        end;
+      end;
+    tkInt64:
+      begin
+        try
+          VInt64 := StrToInt(Value);
+          SetOrdProp(ObjectInstance, PropName, VInt64);
+        except
+          Exit;
+        end;
+      end;
+    tkFloat:
+      begin
+        try
+          VFloat := StrToFloat(Value);
+          SetFloatProp(ObjectInstance, PropName, VFloat);
+        except
+          Exit;
+        end;
+      end;
+    tkChar,
+    tkWChar,
+    tkLString,
+    tkWString,
+    tkString:
+      begin
+        SetStrProp(ObjectInstance, PropName, Value);
+      end;
+    tkEnumeration:
+      begin
+        SetEnumProp(ObjectInstance, PropName, Value);
+      end;
+    tkSet:
+      begin
+        SetSetProp(ObjectInstance, PropName, Value);
+      end;
+    else
+      Exit;
+  end;
+  Result := True;
 end;
 
 { TCnPropSheetForm }
@@ -1679,6 +1772,28 @@ procedure TCnPropSheetForm.AfterEvaluateProperties(Sender: TObject);
 begin
   if Assigned(FOnAfterEvaluateProperties) then
     FOnAfterEvaluateProperties(Sender);
+end;
+
+procedure TCnPropSheetForm.lvPropDblClick(Sender: TObject);
+var
+  Prop: TCnPropertyObject;
+  S: string;
+begin
+  if lvProp.Selected = nil then
+    Exit;
+
+  Prop := TCnPropertyObject(lvProp.Selected.Data);
+  if (Prop = nil) or not Prop.CanModify then
+    Exit;
+
+  S := Prop.DisplayValue;
+  if InputQuery(SCnInputNewValueCaption, Format(SCnInputNewValuePrompt, [Prop.PropName]), S) then
+  begin
+    if FInspector.ChangePropertyValue(Prop.PropName, S) then
+      btnRefresh.Click
+    else
+      ShowMessage(SCnErrorChangeValue);
+  end;
 end;
 
 initialization
