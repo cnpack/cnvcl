@@ -37,6 +37,7 @@ type
     chkMonthButton: TCheckBox;
     chkYearButton: TCheckBox;
     dtpSet: TDateTimePicker;
+    lblDate: TLabel;
     procedure btnCalcClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -45,6 +46,7 @@ type
     procedure chkMonthButtonClick(Sender: TObject);
     procedure chkYearButtonClick(Sender: TObject);
     procedure dtpSetChange(Sender: TObject);
+    procedure CnMonthCalendar1Change(Sender: TObject);
   private
     { Private declarations }
     procedure ConvertEditToDate;
@@ -246,6 +248,11 @@ end;
 procedure TForm1.dtpSetChange(Sender: TObject);
 begin
   CnMonthCalendar1.Date := dtpSet.Date;
+end;
+
+procedure TForm1.CnMonthCalendar1Change(Sender: TObject);
+begin
+  lblDate.Caption := DateTimeToStr(CnMonthCalendar1.Date);
 end;
 
 end.

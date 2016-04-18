@@ -116,6 +116,12 @@ object Form1: TForm1
     object tsCalendar: TTabSheet
       Caption = 'ÔÂÀú'
       ImageIndex = 1
+      object lblDate: TLabel
+        Left = 280
+        Top = 400
+        Width = 6
+        Height = 12
+      end
       object CnMonthCalendar1: TCnMonthCalendar
         Left = 32
         Top = 32
@@ -130,6 +136,7 @@ object Form1: TForm1
         Font.Height = -12
         Font.Name = 'ËÎÌå'
         Font.Style = []
+        OnChange = CnMonthCalendar1Change
         TabOrder = 0
       end
       object chkGanZhi: TCheckBox
