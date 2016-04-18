@@ -857,8 +857,8 @@ procedure CloneMenuItem(Source, Dest: TMenuItem);
 // 其它过程
 //------------------------------------------------------------------------------
 
-function GetControlBitmap(AControl: TControl; Bmp: TBitmap): Boolean;
-{* 获取 Control 表面的位图}
+function GetControlBitmap(AControl: TControl; Bmp: TBitmap; ResetSize: Boolean = False): Boolean;
+{* 获取 Control 表面的位图，ResetSize 为 True 表示使用 Control 尺寸设置位图尺寸}
 
 // FMX Supports Start
 function GetControlScreenRect(AControl: TComponent): TRect;
@@ -5753,17 +5753,21 @@ type
   TWinControlAccess = class(TWinControl);
   TControlAccess = class(TControl);
 
-// 获取 Control 表面的位图
-function GetControlBitmap(AControl: TControl; Bmp: TBitmap): Boolean;
+// 获取 Control 表面的位图，ResetSize 为 True 表示使用 Control 尺寸设置位图尺寸
+function GetControlBitmap(AControl: TControl; Bmp: TBitmap;
+  ResetSize: Boolean): Boolean;
 begin
   Result := False;
   if (AControl = nil) or (Bmp = nil) then
     Exit;
 
-  Bmp.PixelFormat := pf24Bit;
-  Bmp.Canvas.Brush.Color := TControlAccess(AControl).Color;
-  Bmp.Width := AControl.Width;
-  Bmp.Height := AControl.Height;
+  if ResetSize then
+  begin
+    Bmp.PixelFormat := pf24Bit;
+    Bmp.Canvas.Brush.Color := TControlAccess(AControl).Color;
+    Bmp.Width := AControl.Width;
+    Bmp.Height := AControl.Height;
+  end;
 
   if AControl is TWinControl then
     TWinControlAccess(AControl).PaintWindow(Bmp.Canvas.Handle)
