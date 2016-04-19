@@ -512,7 +512,7 @@ begin
             end
             else
             begin
-              raise Exception.Create('MapViewOfFile Failed.');
+              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
             end;
           finally
             CloseHandle(MapHandle);
@@ -520,7 +520,7 @@ begin
         end
         else
         begin
-          raise Exception.Create('CreateFileMapping Failed.');
+          raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
         end;
       finally
         CloseHandle(FileHandle);
