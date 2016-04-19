@@ -565,14 +565,16 @@ var
   ViewPointer: Pointer;
   Context: TMD5Context;
   Stream: TStream;
+  FileIsZeroSize: Boolean;
 
-  function FileSizeIsLargeThanMax(const AFileName: string): Boolean;
+  function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
   var
     H: THandle;
     Info: BY_HANDLE_FILE_INFORMATION;
     Rec : Int64Rec;
   begin
     Result := False;
+    IsEmpty := False;
     H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
     if H = INVALID_HANDLE_VALUE then Exit;
     try
@@ -583,10 +585,12 @@ var
     Rec.Lo := Info.nFileSizeLow;
     Rec.Hi := Info.nFileSizeHigh;
     Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+    IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
   end;
 
 begin
-  if FileSizeIsLargeThanMax(FileName) then
+  FileIsZeroSize := False;
+  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
   begin
     // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
@@ -603,6 +607,7 @@ begin
                   FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
                   FILE_FLAG_SEQUENTIAL_SCAN, 0);
     if FileHandle <> INVALID_HANDLE_VALUE then
+    begin
       try
         MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
         if MapHandle <> 0 then
@@ -627,11 +632,13 @@ begin
         end
         else
         begin
-          raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
+          if not FileIsZeroSize then
+            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
         end;
       finally
         CloseHandle(FileHandle);
       end;
+    end;
     MD5Final(Context, Result);
   end;
 end;
