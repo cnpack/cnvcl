@@ -102,7 +102,7 @@ type
 
   TCnDaysOfWeek = set of TCnDayOfWeekName;
 
-function GeTCnDateOrder(const DateFormat: string): TCnDateOrder;
+function GetCnDateOrder(const DateFormat: string): TCnDateOrder;
 
 function MonthFromName(const S: string; MaxLen: Byte): Byte;
 
@@ -436,7 +436,7 @@ begin
   end;
 end;
 
-function GeTCnDateOrder(const DateFormat: string): TCnDateOrder;
+function GetCnDateOrder(const DateFormat: string): TCnDateOrder;
 var
   I: Integer;
 begin
@@ -485,7 +485,7 @@ begin
   Y := 0;
   M := 0;
   D := 0;
-  DateOrder := GeTCnDateOrder(DateFormat);
+  DateOrder := GetCnDateOrder(DateFormat);
   if {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat[1] = 'g' then
     ScanToNumber(S, Pos);
   if not (ScanNumber(S, MaxInt, Pos, N1) and ScanChar(S, Pos, {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DateSeparator) and ScanNumber(S, MaxInt, Pos, N2)) then
@@ -652,7 +652,7 @@ function DefDateFormat(FourDigitYear: Boolean): string;
 begin
   if FourDigitYear then
   begin
-    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
+    case GetCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY:
         Result := 'MM/DD/YYYY';
       doDMY:
@@ -663,7 +663,7 @@ begin
   end
   else
   begin
-    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
+    case GetCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY:
         Result := 'MM/DD/YY';
       doDMY:
@@ -678,7 +678,7 @@ function DefDateMask(BlanksChar: Char; FourDigitYear: Boolean): string;
 begin
   if FourDigitYear then
   begin
-    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
+    case GetCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY, doDMY:
         Result := '!99/99/9999;1;';
       doYMD:
@@ -687,7 +687,7 @@ begin
   end
   else
   begin
-    case GeTCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
+    case GetCnDateOrder({$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY, doDMY:
         Result := '!99/99/99;1;';
       doYMD:
