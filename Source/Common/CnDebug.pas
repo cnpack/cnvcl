@@ -346,6 +346,8 @@ type
     procedure LogInteger(Value: Integer; const AMsg: string = '');
     procedure LogInt64(Value: Int64; const AMsg: string = '');
     procedure LogChar(Value: Char; const AMsg: string = '');
+    procedure LogAnsiChar(Value: AnsiChar; const AMsg: string = '');
+    procedure LogWideChar(Value: WideChar; const AMsg: string = '');
     procedure LogDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure LogPointer(Value: Pointer; const AMsg: string = '');
@@ -405,6 +407,8 @@ type
     procedure TraceInteger(Value: Integer; const AMsg: string = '');
     procedure TraceInt64(Value: Int64; const AMsg: string = '');
     procedure TraceChar(Value: Char; const AMsg: string = '');
+    procedure TraceAnsiChar(Value: AnsiChar; const AMsg: string = '');
+    procedure TraceWideChar(Value: WideChar; const AMsg: string = '');
     procedure TraceDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure TracePointer(Value: Pointer; const AMsg: string = '');
@@ -568,7 +572,13 @@ const
   SCnColor = 'Color: ';
   SCnInteger = 'Integer: ';
   SCnInt64 = 'Int64: ';
+{$IFDEF UNICODE}
+  SCnCharFmt = 'Char: ''%s''(%d/$%4.4x)';
+{$ELSE}
   SCnCharFmt = 'Char: ''%s''(%d/$%2.2x)';
+{$ENDIF}
+  SCnAnsiCharFmt = 'AnsiChar: ''%s''(%d/$%2.2x)';
+  SCnWideCharFmt = 'WideChar: ''%s''(%d/$%4.4x)';
   SCnDateTime = 'A Date/Time: ';
   SCnPointer = 'Pointer Address: ';
   SCnFloat = 'Float: ';
@@ -1519,7 +1529,33 @@ begin
   if AMsg = '' then
     LogFmt(SCnCharFmt, [Value, Ord(Value), Ord(Value)])
   else
+  begin
+{$IFDEF UNICODE}
+    LogFmt('%s ''%s''(%d/$%4.4x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+{$ELSE}
     LogFmt('%s ''%s''(%d/$%2.2x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+{$ENDIF}
+  end;
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogAnsiChar(Value: AnsiChar; const AMsg: string = '');
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFmt(SCnAnsiCharFmt, [Value, Ord(Value), Ord(Value)])
+  else
+    LogFmt('%s ''%s''(%d/$%2.2x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogWideChar(Value: WideChar; const AMsg: string = '');
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFmt(SCnWideCharFmt, [Value, Ord(Value), Ord(Value)])
+  else
+    LogFmt('%s ''%s''(%d/$%4.4x)', [AMsg, Value, Ord(Value), Ord(Value)]);
 {$ENDIF}
 end;
 
@@ -2100,7 +2136,29 @@ begin
   if AMsg = '' then
     TraceFmt(SCnCharFmt, [Value, Ord(Value), Ord(Value)])
   else
+  begin
+{$IFDEF UNICODE}
+    TraceFmt('%s ''%s''(%d/$%4.4x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+{$ELSE}
     TraceFmt('%s ''%s''(%d/$%2.2x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+{$ENDIF}
+  end;
+end;
+
+procedure TCnDebugger.TraceAnsiChar(Value: AnsiChar; const AMsg: string = '');
+begin
+  if AMsg = '' then
+    TraceFmt(SCnAnsiCharFmt, [Value, Ord(Value), Ord(Value)])
+  else
+    TraceFmt('%s ''%s''(%d/$%2.2x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+end;
+
+procedure TCnDebugger.TraceWideChar(Value: WideChar; const AMsg: string = '');
+begin
+  if AMsg = '' then
+    TraceFmt(SCnWideCharFmt, [Value, Ord(Value), Ord(Value)])
+  else
+    TraceFmt('%s ''%s''(%d/$%4.4x)', [AMsg, Value, Ord(Value), Ord(Value)]);
 end;
 
 procedure TCnDebugger.TraceDateTime(Value: TDateTime; const AMsg: string = '' );
