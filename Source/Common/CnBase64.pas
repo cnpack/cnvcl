@@ -39,7 +39,9 @@ unit CnBase64;
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2006.10.25 V1.1
+* 修改记录：2016.05.03 V1.2
+*               修正字符串中包含#0时可能会被截断的问题
+*           2006.10.25 V1.1
 *               增加 wr960204 的优化版本
 *           2003.10.14 V1.0
 *               创建单元
@@ -55,6 +57,12 @@ uses
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
+{* 对字符串进行BASE64编码，如编码成功返回Base64_OK
+|<PRE>
+  InputData:AnsiString        - 要编码的数据
+  var OutputData: AnsiString  - 编码后的数据
+|</PRE>}
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
 {* 对数据进行BASE64编码，如编码成功返回Base64_OK
 |<PRE>
   InputData:AnsiString        - 要编码的数据
@@ -369,58 +377,63 @@ end;
 // 以下为 wr960204 改进的快速 Base64 编解码算法
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 var
-  Str: TStringStream;
+  Mem: TMemoryStream;
 begin
-  Str := TStringStream.Create('');
+  Mem := TMemoryStream.Create;
   try
-    Str.CopyFrom(InputData, InputData.Size);
-    Result := Base64Encode({$IFDEF UNICODE}AnsiString{$ENDIF}(Str.DataString), OutputData);
+    Mem.CopyFrom(InputData, InputData.Size);
+    Result := Base64Encode(Mem.Memory, Mem.Size, OutputData);
   finally
-    Str.Free;
+    Mem.Free;
   end;
 end;
 
-function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
 var
-  Times, SrcLen, i: Integer;
+  Times, I: Integer;
   x1, x2, x3, x4: AnsiChar;
   xt: byte;
 begin
-  SrcLen := Length(InputData);
-  if SrcLen mod 3 = 0 then
-    Times := SrcLen div 3
+  if (InputData = nil) or (DataLen <= 0) then
+  begin
+    Result := BASE64_LENGTH;
+    Exit;
+  end;
+
+  if DataLen mod 3 = 0 then
+    Times := DataLen div 3
   else
-    Times := SrcLen div 3 + 1;
+    Times := DataLen div 3 + 1;
   SetLength(OutputData, Times * 4);   //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
 
-  for i := 0 to times - 1 do
+  for I := 0 to Times - 1 do
   begin
-    if SrcLen >= (3 + i * 3) then
+    if DataLen >= (3 + I * 3) then
     begin
-      x1 := EnCodeTab[(ord(InputData[1 + i * 3]) shr 2)];
-      xt := (ord(InputData[1 + i * 3]) shl 4) and 48;
-      xt := xt or (ord(InputData[2 + i * 3]) shr 4);
+      x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+      xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+      xt := xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
       x2 := EnCodeTab[xt];
-      xt := (Ord(InputData[2 + i * 3]) shl 2) and 60;
-      xt := xt or (ord(InputData[3 + i * 3]) shr 6);
+      xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+      xt := xt or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
       x3 := EnCodeTab[xt];
-      xt := (ord(InputData[3 + i * 3]) and 63);
+      xt := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
       x4 := EnCodeTab[xt];
     end
-    else if SrcLen >= (2 + i * 3) then
+    else if DataLen >= (2 + I * 3) then
     begin
-      x1 := EnCodeTab[(ord(InputData[1 + i * 3]) shr 2)];
-      xt := (ord(InputData[1 + i * 3]) shl 4) and 48;
-      xt := xt or (ord(InputData[2 + i * 3]) shr 4);
+      x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+      xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+      xt := xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
       x2 := EnCodeTab[xt];
-      xt := (ord(InputData[2 + i * 3]) shl 2) and 60;
+      xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
       x3 := EnCodeTab[xt ];
       x4 := '=';
     end
     else
     begin
-      x1 := EnCodeTab[(ord(InputData[1 + i * 3]) shr 2)];
-      xt := (ord(InputData[1 + i * 3]) shl 4) and 48;
+      x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+      xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
       x2 := EnCodeTab[xt];
       x3 := '=';
       x4 := '=';
@@ -432,6 +445,14 @@ begin
   end;
   OutputData := Trim(OutputData);
   Result := BASE64_OK;
+end;
+
+function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
+begin
+  if InputData <> '' then
+    Result := Base64Encode(@InputData[1], Length(InputData), OutputData)
+  else
+    Result := BASE64_LENGTH;
 end;
 
 function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte; overload;
