@@ -161,14 +161,15 @@ begin
   end;
   Handle := IdTCPClient1.Socket.Binding.Handle;
 
+  cncpsmplmpl1.MemorySize := BufferSize;
   for I := 0 to 100 do
   begin
     // 发出数据，完成后回调事件 SendEvent
-    cncpsmplmpl1.RentMemory( Pointer(SendBuffer), (BufferSize));
+    cncpsmplmpl1.RentMemory(Pointer(SendBuffer));
     cncpscktdptr1.Send(Handle, SendBuffer, BufferSize, SendBuffer);
     // 注册接收数据，等待回调事件 RecvEvent
     //Sleep(10);   Application.ProcessMessages;
-    cncpsmplmpl1.RentMemory( Pointer(RecvBuffer), (BufferSize));
+    cncpsmplmpl1.RentMemory(Pointer(RecvBuffer));
     cncpscktdptr1.Recv(Handle, RecvBuffer, BufferSize, RecvBuffer);
     //Sleep(10);   Application.ProcessMessages;
     //ShowMessage('Waiting..');

@@ -72,7 +72,8 @@ object Form1: TForm1
     Top = 32
   end
   object cncpsmplmpl1: TCnIocpSimpleMemPool
-    BlockMaxCount = 20
+    MemorySize = 216
+    Threshold = 20
     Left = 232
     Top = 152
   end
