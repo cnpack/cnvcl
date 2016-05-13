@@ -1099,6 +1099,16 @@ function ExtendedEqual(const E1, E2: Extended): Boolean;
 function SingleEqual(const S1, S2: Single): Boolean;
 {* 判断浮点数是否相等（差足够小）}
 
+function CodePageOnlySupportsEnglish: Boolean;
+{* 判断当前平台是否只支持英文，用于处理防止 Unicode -> Ansi 时丢字符的问题}
+
+function CalcAnsiLengthForWideString(Text: PWideChar): Integer;
+{* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
+
+function CalcAnsiLengthForWideStringLength(Text: PWideChar; WideLength: Integer): Integer;
+{* 计算 Unicode 宽字符串从 1 到 WideLength 的子串的 Ansi 长度，
+   等于转 Ansi 后的 Copy 加 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
+
 implementation
 
 const
@@ -1106,6 +1116,8 @@ const
   MINOR_EXTENDED = 1E-10;
   MINOR_SINGLE = 1E-6;
   // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
+
+  SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
 
 function DoubleEqual(const D1, D2: Double): Boolean;
 begin
@@ -1120,6 +1132,50 @@ end;
 function SingleEqual(const S1, S2: Single): Boolean;
 begin
   Result := Abs(S1 - S2) < MINOR_SINGLE;
+end;
+
+// 判断当前平台是否只支持英文，用于处理防止 Unicode -> Ansi 时丢字符的问题
+function CodePageOnlySupportsEnglish: Boolean;
+begin
+  Result := (GetACP = 1252); // ANSI LATIN
+end;
+
+// 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
+function CalcAnsiLengthForWideString(Text: PWideChar): Integer;
+begin
+  Result := 0;
+  if Text <> nil then
+  begin
+    while Text^ <> #0 do
+    begin
+      if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+        Inc(Result, SizeOf(WideChar))
+      else
+        Inc(Result, SizeOf(AnsiChar));
+      Inc(Text);
+    end;
+  end;
+end;
+
+// 计算 Unicode 宽字符串从 1 到 WideLength 的子串的 Ansi 长度
+function CalcAnsiLengthForWideStringLength(Text: PWideChar; WideLength: Integer): Integer;
+var
+  Idx: Integer;
+begin
+  Result := 0;
+  if (Text <> nil) and (WideLength > 0) then
+  begin
+    Idx := 1;
+    while (Text^ <> #0) and (Idx <= WideLength) do
+    begin
+      if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+        Inc(Result, SizeOf(WideChar))
+      else
+        Inc(Result, SizeOf(WideChar));
+      Inc(Text);
+      Inc(Idx);
+    end;
+  end;
 end;
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
