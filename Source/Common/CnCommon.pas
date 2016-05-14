@@ -1171,7 +1171,7 @@ begin
       if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
         Inc(Result, SizeOf(WideChar))
       else
-        Inc(Result, SizeOf(WideChar));
+        Inc(Result, SizeOf(AnsiChar));
       Inc(Text);
       Inc(Idx);
     end;
