@@ -1102,12 +1102,17 @@ function SingleEqual(const S1, S2: Single): Boolean;
 function CodePageOnlySupportsEnglish: Boolean;
 {* 判断当前平台是否只支持英文，用于处理防止 Unicode -> Ansi 时丢字符的问题}
 
-function CalcAnsiLengthForWideString(Text: PWideChar): Integer;
+function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
 {* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
 
-function CalcAnsiLengthForWideStringLength(Text: PWideChar; WideLength: Integer): Integer;
-{* 计算 Unicode 宽字符串从 1 到 WideLength 的子串的 Ansi 长度，
-   等于转 Ansi 后的 Copy 加 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
+function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
+{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，
+   等于 Copy 后的子串转 Ansi 加 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符}
+
+function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
+{* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，
+   等于转 Ansi 后的 Copy 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
+   注意 Ansi 后的 Copy 可能会割裂双字节字符。}
 
 implementation
 
@@ -1141,7 +1146,7 @@ begin
 end;
 
 // 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
-function CalcAnsiLengthForWideString(Text: PWideChar): Integer;
+function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
 begin
   Result := 0;
   if Text <> nil then
@@ -1157,16 +1162,16 @@ begin
   end;
 end;
 
-// 计算 Unicode 宽字符串从 1 到 WideLength 的子串的 Ansi 长度
-function CalcAnsiLengthForWideStringLength(Text: PWideChar; WideLength: Integer): Integer;
+// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度
+function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 var
   Idx: Integer;
 begin
   Result := 0;
-  if (Text <> nil) and (WideLength > 0) then
+  if (Text <> nil) and (WideOffset > 0) then
   begin
-    Idx := 1;
-    while (Text^ <> #0) and (Idx <= WideLength) do
+    Idx := 0;
+    while (Text^ <> #0) and (Idx < WideOffset) do
     begin
       if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
         Inc(Result, SizeOf(WideChar))
@@ -1174,6 +1179,27 @@ begin
         Inc(Result, SizeOf(AnsiChar));
       Inc(Text);
       Inc(Idx);
+    end;
+  end;
+end;
+
+// 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度
+function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
+var
+  Idx: Integer;
+begin
+  Result := 0;
+  if (Text <> nil) and (AnsiOffset > 0) then
+  begin
+    Idx := 0;
+    while (Text^ <> #0) and (Idx < AnsiOffset) do
+    begin
+      if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+        Inc(Idx, SizeOf(WideChar))
+      else
+        Inc(Idx, SizeOf(AnsiChar));
+      Inc(Text);
+      Inc(Result);
     end;
   end;
 end;
