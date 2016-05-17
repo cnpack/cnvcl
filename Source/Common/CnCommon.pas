@@ -1146,7 +1146,7 @@ begin
 end;
 
 // 粗略判断一个 Unicode 宽字符是否占两个字符宽度
-function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE}; inline; {$ENDIF}
+function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := Ord(AWChar) > SCN_UTF16_ANSI_WIDE_CHAR_SEP; // 姑且认为比 $900 大的 Utf16 字符才占俩字节
 end;
