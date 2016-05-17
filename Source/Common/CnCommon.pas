@@ -1145,6 +1145,12 @@ begin
   Result := (GetACP = 1252); // ANSI LATIN
 end;
 
+// 粗略判断一个 Unicode 宽字符是否占两个字符宽度
+function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE}; inline; {$ENDIF}
+begin
+  Result := Ord(AWChar) > SCN_UTF16_ANSI_WIDE_CHAR_SEP; // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+end;
+
 // 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
 function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
 begin
@@ -1153,7 +1159,7 @@ begin
   begin
     while Text^ <> #0 do
     begin
-      if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+      if WideCharIsWideLength(Text^) then
         Inc(Result, SizeOf(WideChar))
       else
         Inc(Result, SizeOf(AnsiChar));
@@ -1173,7 +1179,7 @@ begin
     Idx := 0;
     while (Text^ <> #0) and (Idx < WideOffset) do
     begin
-      if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+      if WideCharIsWideLength(Text^) then
         Inc(Result, SizeOf(WideChar))
       else
         Inc(Result, SizeOf(AnsiChar));
@@ -1194,7 +1200,7 @@ begin
     Idx := 0;
     while (Text^ <> #0) and (Idx < AnsiOffset) do
     begin
-      if Ord(Text^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+      if WideCharIsWideLength(Text^) then
         Inc(Idx, SizeOf(WideChar))
       else
         Inc(Idx, SizeOf(AnsiChar));
