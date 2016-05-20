@@ -1106,12 +1106,12 @@ function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
 {* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
 
 function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
-{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，
-   等于 Copy 后的子串转 Ansi 加 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符}
+{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，WideOffset 从 1 开始。
+   等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符}
 
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
-{* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，
-   等于转 Ansi 后的 Copy 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
+{* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
+   等于转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。}
 
 implementation
@@ -1168,7 +1168,7 @@ begin
   end;
 end;
 
-// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度
+// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，WideOffset 从 1 开始。
 function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 var
   Idx: Integer;
@@ -1189,7 +1189,7 @@ begin
   end;
 end;
 
-// 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度
+// 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
 var
   Idx: Integer;
