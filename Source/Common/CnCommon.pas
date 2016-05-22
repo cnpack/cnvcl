@@ -107,6 +107,8 @@ const
   Alpha = ['A'..'Z', 'a'..'z', '_'];
   AlphaNumeric = Alpha + ['0'..'9'];
 
+  SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
+
 //==============================================================================
 // Ansi 字符串函数
 //==============================================================================
@@ -1102,6 +1104,9 @@ function SingleEqual(const S1, S2: Single): Boolean;
 function CodePageOnlySupportsEnglish: Boolean;
 {* 判断当前平台是否只支持英文，用于处理防止 Unicode -> Ansi 时丢字符的问题}
 
+function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+{* 粗略判断一个 Unicode 宽字符是否占两个字符宽度}
+
 function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
 {* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
 
@@ -1121,8 +1126,6 @@ const
   MINOR_EXTENDED = 1E-10;
   MINOR_SINGLE = 1E-6;
   // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
-
-  SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
 
 function DoubleEqual(const D1, D2: Double): Boolean;
 begin
