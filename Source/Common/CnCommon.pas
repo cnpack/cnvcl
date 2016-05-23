@@ -1119,6 +1119,13 @@ function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer
    等于转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。}
 
+{$IFDEF UNICODE}
+
+function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' '): AnsiString;
+{* 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
+
+{$ENDIF}
+
 implementation
 
 const
@@ -1212,6 +1219,52 @@ begin
     end;
   end;
 end;
+
+{$IFDEF UNICODE}
+
+// 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
+function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' '): AnsiString;
+var
+  Len: Integer;
+begin
+  if WideText = nil then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  Len := StrLen(WideText);
+  if Len = 0 then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  SetLength(Result, Len * SizeOf(WideChar));
+  Len := 0;
+  while WideText^ <> #0 do
+  begin
+    if WideCharIsWideLength(WideText^) then
+    begin
+      Inc(Len);
+      Result[Len] := AlterChar;
+      Inc(Len);
+      Result[Len] := AlterChar;
+    end
+    else
+    begin
+      Inc(Len);
+      if Ord(WideText^) < 255 then // Absolutely 'Single' Char
+        Result[Len] := AnsiChar(WideText^)
+      else                         // Extended 'Single' Char, Replace
+        Result[Len] := AlterChar;
+    end;
+    Inc(WideText);
+  end;
+  SetLength(Result, Len);
+end;
+
+{$ENDIF}
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
 // 另外，D2009 或以上版本，必须加 inline，
