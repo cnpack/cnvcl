@@ -29,8 +29,10 @@ unit CnTabSet;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2007.03.06
-              创建单元
+* 修改记录：2016.05.23
+*             加入 Tab 不可见时滚动到第一项的方法
+*           2007.03.06
+*             创建单元
 ================================================================================
 |</PRE>}
 
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Messages, Classes, Controls, Tabs;
+  SysUtils, Windows, Messages, Classes, Controls, Graphics, Tabs;
 
 type
   TCnTabSetCloseEvent = procedure(Sender: TObject; Index: Integer;
@@ -49,9 +51,14 @@ type
   private
     FDblClickClose: Boolean;
     FOnCloseTab: TCnTabSetCloseEvent;
+    function CalcVisibleTabs(Start, Stop: Integer; Canvas: TCanvas;
+      First: Integer): Integer;
     procedure WMLButtonDblClk(var Message: TWMLButtonDblClk); message WM_LBUTTONDBLCLK;
   protected
     procedure DoCloseTab(Index: Integer; var CanClose: Boolean); virtual;
+  public
+    procedure MakeTabVisible;
+    {* 当前无 Tab 显示时滚动至第一个 Tab 处}
   published
     property DblClickClose: Boolean read FDblClickClose write FDblClickClose;
     {* 是否双击时自动关闭当前页面}
@@ -63,12 +70,51 @@ type
 
 implementation
 
+const
+  EdgeWidth = 9;
+
 { TCnTabSet }
+
+function TCnTabSet.CalcVisibleTabs(Start, Stop: Integer; Canvas: TCanvas;
+  First: Integer): Integer;
+var
+  Index, ASize: Integer;
+  W: Integer;
+begin
+  Index := First;
+  while (Start < Stop) and (Index < Tabs.Count) do
+    with Canvas do
+    begin
+      W := TextWidth(Tabs[Index]);
+
+      if (Style = tsOwnerDraw) then MeasureTab(Index, W);
+
+      ASize := W;
+      Inc(Start, ASize + EdgeWidth);    { next usable position }
+
+      if Start <= Stop then
+      begin
+        Inc(Index);
+      end;
+    end;
+  Result := Index - First;
+end;
 
 procedure TCnTabSet.DoCloseTab(Index: Integer; var CanClose: Boolean);
 begin
   if Assigned(FOnCloseTab) then
     FOnCloseTab(Self, Index, CanClose);
+end;
+
+procedure TCnTabSet.MakeTabVisible;
+var
+  VTC: Integer;
+begin
+  // 如果当前无可见 Tab，则滚动到最开始
+  VTC := CalcVisibleTabs(StartMargin + EdgeWidth, Width - EndMargin,
+    Canvas, FirstIndex);
+  if VTC = 0 then
+    FirstIndex := 0;
 end;
 
 procedure TCnTabSet.WMLButtonDblClk(var Message: TWMLButtonDblClk);
@@ -85,6 +131,7 @@ begin
 
   P := ScreenToClient(Mouse.CursorPos);
   Index := ItemAtPos(P);
+
   if Index >= 0 then
   begin
     CanClose := True;
