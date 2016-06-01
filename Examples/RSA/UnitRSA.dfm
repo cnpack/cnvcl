@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 191
-  Top = 140
+  Left = 115
+  Top = 97
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 542
@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 513
-    ActivePage = tsRSA
+    ActivePage = tsEuclid
     TabOrder = 0
     object tsInt64RSA: TTabSheet
       Caption = 'Int64 RSA'
@@ -424,10 +424,19 @@ object FormRSA: TFormRSA
           Left = 696
           Top = 20
           Width = 65
-          Height = 53
+          Height = 21
           Caption = '(p-1)*(q-1)'
           TabOrder = 13
           OnClick = btnBNSendRClick
+        end
+        object btnPQ: TButton
+          Left = 696
+          Top = 50
+          Width = 65
+          Height = 21
+          Caption = 'Send p, q'
+          TabOrder = 14
+          OnClick = btnPQClick
         end
       end
       object grpBNCrypt: TGroupBox
@@ -509,7 +518,7 @@ object FormRSA: TFormRSA
         Top = 16
         Width = 777
         Height = 401
-        Caption = 'grpEuclidean'
+        Caption = 'Extended Euclidean Gcd'
         TabOrder = 0
         object lblEqual: TLabel
           Left = 32
@@ -616,6 +625,159 @@ object FormRSA: TFormRSA
         object edtXP: TEdit
           Left = 56
           Top = 196
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 6
+        end
+      end
+    end
+    object tsModInverse: TTabSheet
+      Caption = 'Modular Multiplicative Inverse'
+      ImageIndex = 3
+      object grpModInverse: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 777
+        Height = 401
+        Caption = 'Modular Multiplicative Inverse'
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ParentFont = False
+        TabOrder = 0
+        object lbl1: TLabel
+          Left = 32
+          Top = 40
+          Width = 642
+          Height = 12
+          Caption = 
+            '(A   * A)  mod B = 1       A   是 A 针对 B 的模逆元，设为 X。模' +
+            '逆元也即不定方程 A * X + B *( -Y) = 1 的解。'
+          Font.Charset = GB2312_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = '宋体'
+          Font.Style = []
+          ParentFont = False
+        end
+        object lblInverse: TLabel
+          Left = 48
+          Top = 32
+          Width = 9
+          Height = 13
+          Caption = '-1'
+        end
+        object lbl2: TLabel
+          Left = 200
+          Top = 32
+          Width = 9
+          Height = 13
+          Caption = '-1'
+        end
+        object lblMA: TLabel
+          Left = 32
+          Top = 72
+          Width = 10
+          Height = 13
+          Caption = 'A:'
+        end
+        object lblMB: TLabel
+          Left = 280
+          Top = 72
+          Width = 10
+          Height = 13
+          Caption = 'B:'
+        end
+        object lblMX: TLabel
+          Left = 32
+          Top = 160
+          Width = 10
+          Height = 13
+          Caption = 'X:'
+        end
+        object lblMY: TLabel
+          Left = 280
+          Top = 160
+          Width = 13
+          Height = 13
+          Caption = '-Y:'
+        end
+        object lblMX0: TLabel
+          Left = 56
+          Top = 184
+          Width = 10
+          Height = 13
+          Caption = 'X:'
+        end
+        object lblMX2: TLabel
+          Left = 32
+          Top = 216
+          Width = 12
+          Height = 13
+          Caption = 'X'#39':'
+        end
+        object lblPY: TLabel
+          Left = 280
+          Top = 216
+          Width = 10
+          Height = 13
+          Caption = 'Y:'
+        end
+        object edtMa: TEdit
+          Left = 56
+          Top = 68
+          Width = 193
+          Height = 21
+          TabOrder = 0
+          Text = '7'
+        end
+        object edtMb: TEdit
+          Left = 320
+          Top = 68
+          Width = 193
+          Height = 21
+          TabOrder = 1
+          Text = '26'
+        end
+        object btnMInt64MI: TButton
+          Left = 56
+          Top = 112
+          Width = 449
+          Height = 21
+          Caption = 'Int64 Extended Euclidean Gcd to Calc  X'
+          TabOrder = 2
+          OnClick = btnMInt64MIClick
+        end
+        object edtMX: TEdit
+          Left = 56
+          Top = 156
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 3
+        end
+        object edtMY: TEdit
+          Left = 320
+          Top = 156
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 4
+        end
+        object edtMXP: TEdit
+          Left = 56
+          Top = 212
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 5
+        end
+        object edtPY: TEdit
+          Left = 320
+          Top = 212
           Width = 193
           Height = 21
           ReadOnly = True

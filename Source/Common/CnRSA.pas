@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.05.27 V1.3
+* 修改记录：2018.06.02 V1.4
+*               能够将公私钥保存成兼容 Openssl 的未加密的公私钥 PEM 格式文件
+*           2018.05.27 V1.3
 *               能够从 Openssl 1.0.2 生成的未加密的公私钥 PEM 格式文件中读入公私钥，如
 *               openssl genrsa -out private_pkcs1.pem 2048
 *                  // PKCS#1 格式的公私钥
@@ -96,7 +98,12 @@ type
 // Int64 范围内的 RSA 加解密实现
 
 function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+procedure Int64ExtendedEuclideanGcd2(A, B: Int64; out X: Int64; out Y: Int64);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
   out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
@@ -190,6 +197,21 @@ begin
     X := Y;
     Y := T - (A div B) * Y;
     Result := R;
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure Int64ExtendedEuclideanGcd2(A, B: Int64; out X: Int64; out Y: Int64);
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+  end
+  else
+  begin
+    Int64ExtendedEuclideanGcd2(B, A mod B, Y, X);
+    Y := Y - X * (A div B);
   end;
 end;
 
@@ -301,7 +323,7 @@ begin
     BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
 
     // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
-    BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, R, PrivateKey.PrivKeyExponent, Y, Rem);
+    BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, R, PrivateKey.PrivKeyExponent, Y);
 
     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上积二 R
     if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
@@ -384,11 +406,11 @@ PKCS#1:
     prime2 INTEGER, – q                              6 私钥
     exponent1 INTEGER, – d mod (p-1)                 7 CRT 系数 1
     exponent2 INTEGER, – d mod (q-1)                 8 CRT 系数 2
-    coefficient INTEGER, – (inverse of q) mod p      9 CRT 系数 3：q 针对 n 的模反系数 mod p
+    coefficient INTEGER, – (1/q) mod p               9 CRT 系数 3：q 针对 p 的模逆元
     otherPrimeInfos OtherPrimeInfos OPTIONAL          10
 
-    q 针对 n 的模反系数 x，是指满足 (q * x) mod n = 1 的正值 x，
-    可以用扩展欧几里得辗转相除法直接求解，CRT 系数 3 即 x mod p 的值
+    模逆元 x = (1/q) mod p 可得 xq = 1 mod p 也即 xq = 1 + yp 也就是 qx + (-p)y = 1
+    可以用扩展欧几里得辗转相除法直接求解
   }
 
 PKCS#8:
@@ -640,7 +662,7 @@ var
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
   List: TStrings;
-  N1, N2, T, R1, R2, Co, X, Y, Rem : TCnBigNumber;
+  N, T, R1, R2, X, Y : TCnBigNumber;
   S: string;
   B: Byte;
 begin
@@ -659,39 +681,30 @@ begin
   T := nil;
   R1 := nil;
   R2 := nil;
-  N1 := nil;
-  N2 := nil;
+  N := nil;
   X := nil;
   Y := nil;
-  Rem := nil;
-  Co := nil;
 
   try
     T := BigNumberNew;
     R1 := BigNumberNew;
     R2 := BigNumberNew;
-    N1 := BigNumberNew;
-    N2 := BigNumberNew;
+    N := BigNumberNew;
     X := BigNumberNew;
     Y := BigNumberNew;
-    Rem := BigNumberNew;
-    Co := BigNumberNew;
     if not T.SetOne then
       Exit;
 
-    BigNumberSub(N1, PrivateKey.PrimeKey1, T);
-    BigNumberMod(R1, PrivateKey.PrivKeyExponent, N1); // R1 = d mod (p - 1)
+    BigNumberSub(N, PrivateKey.PrimeKey1, T);
+    BigNumberMod(R1, PrivateKey.PrivKeyExponent, N); // R1 = d mod (p - 1)
 
-    BigNumberSub(N2, PrivateKey.PrimeKey2, T);
-    BigNumberMod(R2, PrivateKey.PrivKeyExponent, N2); // R2 = d mod (q - 1)
+    BigNumberSub(N, PrivateKey.PrimeKey2, T);
+    BigNumberMod(R2, PrivateKey.PrivKeyExponent, N); // R2 = d mod (q - 1)
 
-    // Co = (q 针对 n 的模反元素) mod p
-    BigNumberExtendedEuclideanGcd(PrivateKey.PrimeKey2, PrivateKey.PrimeKey1,
-      X, Y, Rem);
+    // X = 是不定方程 qx + (-p)y = 1 的解
+    BigNumberExtendedEuclideanGcd(PrivateKey.PrimeKey2, PrivateKey.PrimeKey1, X, Y);
     if BigNumberIsNegative(X) then
-      BigNumberAdd(X, X, PrivateKey.PrivKeyExponent); // 求得模反元素 X。FIXME: 但 X 有问题
-
-    BigNumberMod(Co, X, PrivateKey.PrimeKey1);        // 求得 CRT 系数3
+      BigNumberAdd(X, X, PrivateKey.PrimeKey1);
 
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
@@ -707,7 +720,7 @@ begin
       AddBigNumberToWriter(Writer, PrivateKey.PrimeKey2, Root);
       AddBigNumberToWriter(Writer, R1, Root);
       AddBigNumberToWriter(Writer, R2, Root);
-      AddBigNumberToWriter(Writer, Co, Root);
+      AddBigNumberToWriter(Writer, X, Root);
     end
     else if KeyType = cktPKCS8 then
     begin
@@ -731,7 +744,7 @@ begin
       AddBigNumberToWriter(Writer, PrivateKey.PrimeKey2, Node);
       AddBigNumberToWriter(Writer, R1, Node);
       AddBigNumberToWriter(Writer, R2, Node);
-      AddBigNumberToWriter(Writer, Co, Node);
+      AddBigNumberToWriter(Writer, X, Node);
     end;
 
     // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
@@ -760,12 +773,9 @@ begin
     BigNumberFree(T);
     BigNumberFree(R1);
     BigNumberFree(R2);
-    BigNumberFree(N1);
-    BigNumberFree(N2);
+    BigNumberFree(N);
     BigNumberFree(X);
     BigNumberFree(Y);
-    BigNumberFree(Rem);
-    BigNumberFree(Co);
 
     Mem.Free;
     List.Free;

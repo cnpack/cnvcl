@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnBigNumber, CnRSA, ExtCtrls;
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA;
 
 type
   TFormRSA = class(TForm)
@@ -86,6 +86,26 @@ type
     Bevel1: TBevel;
     btnSendR: TButton;
     btnBNSendR: TButton;
+    tsModInverse: TTabSheet;
+    grpModInverse: TGroupBox;
+    lbl1: TLabel;
+    lblInverse: TLabel;
+    lbl2: TLabel;
+    lblMA: TLabel;
+    edtMa: TEdit;
+    lblMB: TLabel;
+    edtMb: TEdit;
+    btnMInt64MI: TButton;
+    lblMX: TLabel;
+    edtMX: TEdit;
+    lblMY: TLabel;
+    edtMY: TEdit;
+    lblMX0: TLabel;
+    edtMXP: TEdit;
+    lblMX2: TLabel;
+    lblPY: TLabel;
+    edtPY: TEdit;
+    btnPQ: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -102,6 +122,8 @@ type
     procedure btnBNSaveKeysClick(Sender: TObject);
     procedure btnSendRClick(Sender: TObject);
     procedure btnBNSendRClick(Sender: TObject);
+    procedure btnMInt64MIClick(Sender: TObject);
+    procedure btnPQClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: Int64;
     FBNR: TCnBigNumber;
@@ -224,11 +246,13 @@ var
 begin
   A := TCnBigNumber.FromDec(edtA.Text);
   B := TCnBigNumber.FromDec(edtB.Text);
+//  CnDebugger.LogMsg(A.DebugDump);
+//  CnDebugger.LogMsg(B.DebugDump);
   X := BigNumberNew;
   Y := BigNumberNew;
   R := BigNumberNew;
 
-  BigNumberExtendedEuclideanGcd(A, B, X, Y, R);
+  BigNumberExtendedEuclideanGcd(A, B, X, Y);
   edtX.Text := X.ToDec;
   edtY.Text := Y.ToDec;
 
@@ -302,6 +326,8 @@ begin
 end;
 
 procedure TFormRSA.btnBNLoadKeysClick(Sender: TObject);
+var
+  X, Y: TCnBigNumber;
 begin
   if dlgOpenPEM.Execute then
   begin
@@ -313,6 +339,16 @@ begin
       edtBNPrivExp.Text := FPrivateKey.PrivKeyExponent.ToDec;
       mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
       edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+
+      X := BigNumberNew;
+      Y := BigNumberNew;
+      // CnDebugger.LogMsg(FPrivateKey.PrimeKey2.DebugDump);
+      // CnDebugger.LogMsg(FPrivateKey.PrimeKey1.DebugDump);
+      BigNumberExtendedEuclideanGcd(FPrivateKey.PrimeKey2, FPrivateKey.PrimeKey1, X, Y);
+      edtX.Text := X.ToDec;
+      edtY.Text := Y.ToDec;
+      BigNumberFree(Y);
+      BigNumberFree(X);
     end;
   end;
 end;
@@ -368,6 +404,38 @@ begin
   One.Free;
   P2.Free;
   P1.Free;
+end;
+
+procedure TFormRSA.btnMInt64MIClick(Sender: TObject);
+var
+  A, B, X, Y: Int64;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := 0;
+  Y := 0;
+  Int64ExtendedEuclideanGcd2(A, B, X, Y);
+  if X < 0 then
+  begin
+    lblMX0.Caption := 'X < 0. Add B to X.';
+    edtMXP.Text := IntToStr(X + B);
+  end
+  else
+  begin
+    lblMX0.Caption := 'X > 0. OK.';
+    edtMXP.Text := IntToStr(X);
+  end;
+  edtPY.Text := IntToStr(-Y);
+
+  edtMX.Text := IntToStr(X);
+  edtMY.Text := IntToStr(Y);
+end;
+
+procedure TFormRSA.btnPQClick(Sender: TObject);
+begin
+  edtA.Text := FPrivateKey.PrimeKey2.ToDec;
+  edtB.Text := FPrivateKey.PrimeKey1.ToDec;
+  pgc1.ActivePageIndex := 2;
 end;
 
 end.
