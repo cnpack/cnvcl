@@ -83,6 +83,7 @@ type
 {$ENDIF}
     function GetDecString: string;
     function GetHexString: string;
+    function GetDebugDump: string;
   public
     D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
     Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
@@ -194,6 +195,8 @@ type
 
     property DecString: string read GetDecString;
     property HexString: string read GetHexString;
+
+    property DebugDump: string read GetDebugDump;
   end;
   PCnBigNumber = ^TCnBigNumber;
 
@@ -411,10 +414,19 @@ function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 64 位无符号整型范围内的数}
 
 procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
-  Y: TCnBigNumber; Res: TCnBigNumber);
+  Y: TCnBigNumber);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+   A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B}
+
+procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
+  Y: TCnBigNumber);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
    A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
-   X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素}
+   X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
+   （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
+
+function BigNumberDebugDump(const Num: TCnBigNumber): string;
+{* 打印大数内部信息}
 
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
@@ -847,6 +859,7 @@ begin
 
     Dec(N);
   end;
+  BigNumberCorrectTop(Res);
   Result := True;
 end;
 
@@ -3574,31 +3587,28 @@ end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
 procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
-  Y: TCnBigNumber; Res: TCnBigNumber);
+  Y: TCnBigNumber);
 var
-  R, T, P, M: TCnBigNumber;
+  T, P, M: TCnBigNumber;
 begin
   if BigNumberIsZero(B) then
   begin
     BigNumberSetOne(X);
     BigNumberSetZero(Y);
-    BigNumberCopy(Res, A);
   end
   else
   begin
-    R := nil;
     T := nil;
     P := nil;
     M := nil;
 
     try
-      R := ObtainBigNumberFromPool;
       T := ObtainBigNumberFromPool;
       P := ObtainBigNumberFromPool;
       M := ObtainBigNumberFromPool;
       BigNumberMod(P, A, B);
 
-      BigNumberExtendedEuclideanGcd(B, P, X, Y, R);
+      BigNumberExtendedEuclideanGcd(B, P, X, Y);
       BigNumberCopy(T, X);
       BigNumberCopy(X, Y);
 
@@ -3612,14 +3622,74 @@ begin
       BigNumberDiv(P, M, A, B);
       BigNumberMul(P, P, Y);
       BigNumberSub(Y, T, P);
-      BigNumberCopy(Res, R);
     finally
       RecycleBigNumberToPool(M);
       RecycleBigNumberToPool(P);
       RecycleBigNumberToPool(T);
-      RecycleBigNumberToPool(R);
     end;
   end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
+  Y: TCnBigNumber);
+var
+  T, P, M: TCnBigNumber;
+begin
+  if BigNumberIsZero(B) then
+  begin
+    BigNumberSetOne(X);
+    BigNumberSetZero(Y);
+  end
+  else
+  begin
+    T := nil;
+    P := nil;
+    M := nil;
+
+    try
+      T := ObtainBigNumberFromPool;
+      P := ObtainBigNumberFromPool;
+      M := ObtainBigNumberFromPool;
+      BigNumberMod(P, A, B);
+
+      BigNumberExtendedEuclideanGcd2(B, P, Y, X);
+
+      // 须 CorrectTop 否则 Top 值会太大，原因不详
+      BigNumberCorrectTop(X);
+      BigNumberCorrectTop(Y);
+
+      // Y := Y - (A div B) * X;
+      BigNumberDiv(P, M, A, B);
+      BigNumberMul(P, P, X);
+      BigNumberSub(Y, Y, P);
+    finally
+      RecycleBigNumberToPool(M);
+      RecycleBigNumberToPool(P);
+      RecycleBigNumberToPool(T);
+    end;
+  end;
+end;
+
+// 打印大数内部信息
+function BigNumberDebugDump(const Num: TCnBigNumber): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  if Num = nil then
+    Exit;
+
+//    D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
+//    Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
+//    DMax: Integer;      // D 数组的存储上限
+//    Neg: Integer;       // 1 为负，0 为正
+//    Flags: Integer;
+
+  Result := Format('Flag %d. Neg %d. DMax %d. Top %d.', [Num.Flags, Num.Neg, Num.DMax, Num.Top]);
+  if (Num.D <> nil) and (Num.Top > 0) then
+    for I := 0 to Num.Top do
+      Result := Result + Format(' $%8.8x', [PDWordArray(Num.D)^[I]]);
 end;
 
 { TCnBigNumber }
@@ -3830,6 +3900,11 @@ end;
 function TCnBigNumber.GetHexString: string;
 begin
   Result := ToHex;
+end;
+
+function TCnBigNumber.GetDebugDump: string;
+begin
+  Result := BigNumberDebugDump(Self);
 end;
 
 procedure FreeBigNumberPool;
