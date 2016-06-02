@@ -324,6 +324,7 @@ type
     FInspector: TCnObjectInspector;
     FInspectParam: Pointer;
     FCurrObj: TObject;
+    FParentSheetForm: TCnPropSheetForm;
     FHierarchys: TStrings;
     FGraphicObject: TObject;
     FHierPanels: TComponentList;
@@ -335,6 +336,7 @@ type
     FOnAfterEvaluateControls: TNotifyEvent;
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
+
     procedure SetContentTypes(const Value: TCnPropContentTypes);
     procedure UpdateContentTypes;
     procedure UpdateUIStrings;
@@ -357,6 +359,7 @@ type
     procedure Clear;
     property ObjectPointer: Pointer read FObjectPointer write FObjectPointer;
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
+    property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write FParentSheetForm;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -373,7 +376,8 @@ type
   end;
 
 function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
-  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False): TCnPropSheetForm;
+  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False;
+  AParentSheet: TCnPropSheetForm = nil): TCnPropSheetForm;
 {* 执行真正的查看，SyncMode 指是否同步查看。默认异步，Form 内自己发消息查看}
 
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
@@ -430,7 +434,8 @@ begin
 end;
 
 function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
-  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False): TCnPropSheetForm;
+  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False;
+  AParentSheet: TCnPropSheetForm = nil): TCnPropSheetForm;
 begin
   Result := nil;
   if Address = nil then Exit;
@@ -440,6 +445,7 @@ begin
 
   AForm.ObjectPointer := Address;
   AForm.Clear;
+  AForm.ParentSheetForm := AParentSheet;
 
   if SyncMode then
   begin
@@ -1557,7 +1563,7 @@ end;
 procedure TCnPropSheetForm.btnInspectClick(Sender: TObject);
 begin
   if FCurrObj <> nil then
-    EvaluatePointer(FCurrObj, FInspectParam);
+    EvaluatePointer(FCurrObj, FInspectParam, nil, False, Self);
 end;
 
 procedure TCnPropSheetForm.lvPropCustomDrawItem(Sender: TCustomListView;
