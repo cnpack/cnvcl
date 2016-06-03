@@ -1337,7 +1337,7 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    LogMsgWithType(List.Text, cmtObject);
+    LogMsgWithTypeTag(List.Text, cmtObject, ATag);
   finally
     List.Free;
   end;
@@ -1995,7 +1995,7 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    TraceMsgWithType(List.Text, cmtObject);
+    TraceMsgWithTypeTag(List.Text, cmtObject, ATag);
   finally
     List.Free;
   end;
