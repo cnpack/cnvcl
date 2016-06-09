@@ -338,6 +338,8 @@ type
     FOnAfterEvaluateComponents: TNotifyEvent;
 
     procedure SetContentTypes(const Value: TCnPropContentTypes);
+    procedure SetParentSheetForm(const Value: TCnPropSheetForm);
+
     procedure UpdateContentTypes;
     procedure UpdateUIStrings;
     procedure UpdateHierarchys;
@@ -353,13 +355,15 @@ type
     procedure AfterEvaluateCollections(Sender: TObject);
     procedure AfterEvaluateProperties(Sender: TObject);
     procedure AfterEvaluateHierarchy(Sender: TObject);
+  protected
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     procedure SetPropListSize(const Value: Integer);
     procedure InspectObject(Data: Pointer);
     procedure Clear;
     property ObjectPointer: Pointer read FObjectPointer write FObjectPointer;
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
-    property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write FParentSheetForm;
+    property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write SetParentSheetForm;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -1662,6 +1666,12 @@ begin
     finally
       Closing := False;
     end;
+  end
+  else
+  begin
+    // 关闭时，把来源的窗体调到前面
+    if FParentSheetForm <> nil then
+      FParentSheetForm.BringToFront;
   end;
 end;
 
@@ -1800,6 +1810,25 @@ begin
     else
       ShowMessage(SCnErrorChangeValue);
   end;
+end;
+
+procedure TCnPropSheetForm.SetParentSheetForm(const Value: TCnPropSheetForm);
+begin
+  if FParentSheetForm <> Value then
+  begin
+    if FParentSheetForm <> nil then
+      FParentSheetForm.RemoveFreeNotification(Self);
+    FParentSheetForm := Value;
+    FParentSheetForm.FreeNotification(Self);
+  end;
+end;
+
+procedure TCnPropSheetForm.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited;
+  if (AComponent = FParentSheetForm) and (Operation = opRemove) then
+    FParentSheetForm := nil;
 end;
 
 initialization
