@@ -46,8 +46,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
-  Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl
-  {$IFDEF VER130}{$ELSE}, Variants{$ENDIF};
+  Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
+  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF};
 
 const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
@@ -314,6 +314,8 @@ type
     procedure btnEvaluateClick(Sender: TObject);
     procedure edtObjKeyPress(Sender: TObject; var Key: Char);
     procedure lvPropDblClick(Sender: TObject);
+    procedure ListViewKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -1829,6 +1831,26 @@ begin
   inherited;
   if (AComponent = FParentSheetForm) and (Operation = opRemove) then
     FParentSheetForm := nil;
+end;
+
+procedure TCnPropSheetForm.ListViewKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+var
+  Item: TListItem;
+  S: string;
+  I: Integer;
+begin
+  if (Sender is TListView) and (Shift = [ssCtrl]) and (Key = Ord('C')) then
+  begin
+    Item := (Sender as TListView).Selected;
+    if Item <> nil then
+    begin
+      S := Item.Caption;
+      for I := 0 to Item.SubItems.Count - 1 do
+        S := S + ' ' + Item.SubItems[I];
+      ClipBoard.AsText := S;
+    end;
+  end;
 end;
 
 initialization

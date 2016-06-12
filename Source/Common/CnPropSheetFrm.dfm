@@ -211,6 +211,7 @@ object CnPropSheetForm: TCnPropSheetForm
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
       OnDblClick = lvPropDblClick
+      OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end
     object mmoText: TMemo
@@ -249,6 +250,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end
     object pnlInspectBtn: TPanel
@@ -301,6 +303,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end
     object lvMenuItem: TListView
@@ -330,6 +333,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end
     object lvComp: TListView
@@ -358,6 +362,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end
     object lvControl: TListView
@@ -386,6 +391,7 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end
     object pnlHierarchy: TPanel
