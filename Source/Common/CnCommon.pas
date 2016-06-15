@@ -529,10 +529,8 @@ function CountCharInStr(const Sub: Char; const AStr: string): Integer;
 function IsValidIdentChar(C: Char; First: Boolean = False): Boolean;
 {* 判断字符是否有效标识符字符，First 表示是否为首字符}
 
-{$IFDEF UNICODE}
 function IsValidIdentW(const Ident: string): Boolean;
 {* 判断字符串是否是有效的 Unicode 标识符}
-{$ENDIF}
 
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
@@ -1122,6 +1120,9 @@ function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer
 function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' '): AnsiString;
 {* 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
 
+function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '): AnsiString;
+{* 手动将 Utf8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
+
 implementation
 
 const
@@ -1253,14 +1254,89 @@ begin
     else
     begin
       Inc(Len);
-      if Ord(WideText^) < 255 then // Absolutely 'Single' Char
+      if Ord(WideText^) <= 255 then // Absolutely 'Single' Char
         Result[Len] := AnsiChar(WideText^)
-      else                         // Extended 'Single' Char, Replace
+      else                          // Extended 'Single' Char, Replace
         Result[Len] := AlterChar;
     end;
     Inc(WideText);
   end;
   SetLength(Result, Len);
+end;
+
+// 手动将 Utf8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
+function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '): AnsiString;
+var
+  I, J, Len, ByteCount: Integer;
+  C: AnsiChar;
+  W: Word;
+  B, B1, B2: Byte;
+begin
+  Result := '';
+  if Utf8Text = nil then
+    Exit;
+
+  Len := StrLen(Utf8Text);
+  if Len = 0 then
+    Exit;
+
+  SetLength(Result, Len);
+  I := 0;
+  J := 1;
+  while I < Len do
+  begin
+    C := Utf8Text[I];
+    B := Ord(C);
+    W := 0;
+
+    // 根据 B 的值得出这个字符占多少位
+    if B and $80 = 0 then  // 0xxx xxxx
+      ByteCount := 1
+    else if B and $E0 = $C0 then // 110x xxxx 10xxxxxx
+      ByteCount := 2
+    else if B and $F0 = $E0 then // 1110 xxxx 10xxxxxx 10xxxxxx
+      ByteCount := 3
+    else
+      raise Exception.Create('More than UTF16 NOT Support.');
+
+    // 再计算出相应的宽字节字符
+    case ByteCount of
+      1:
+      begin
+        W := B and $7F;
+      end;
+      2:
+      begin
+        B1 := Ord(Utf8Text[I + 1]);
+        W := ((B and $1F) shl 6) or (B1 and $3F);
+      end;
+      3:
+      begin
+        B1 := Ord(Utf8Text[I + 1]);
+        B2 := Ord(Utf8Text[I + 2]);
+        W := ((B and $0F) shl 12) or ((B1 and $3F) shl 6) or (B2 and $3F);
+      end;
+    end;
+
+    if WideCharIsWideLength(WideChar(W)) then
+    begin
+      Result[J] := AlterChar;
+      Inc(J);
+      Result[J] := AlterChar;
+      Inc(J);
+    end
+    else
+    begin
+      if W <= 255 then
+        Result[J] := AnsiChar(W)
+      else
+        Result[J] := AlterChar;
+      Inc(J);
+    end;
+    Inc(I, ByteCount);
+  end;
+
+  SetLength(Result, J);
 end;
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
@@ -4257,8 +4333,6 @@ begin
     Result := CharInSet(C, AlphaNumeric);
 end;
 
-{$IFDEF UNICODE}
-
 // 判断字符串是否是有效的 Unicode 标识符
 function IsValidIdentW(const Ident: string): Boolean;
 const
@@ -4275,8 +4349,6 @@ begin
       Exit;
   Result := True;
 end;
-
-{$ENDIF}
 
 const
   csLinesCR = #13#10;
