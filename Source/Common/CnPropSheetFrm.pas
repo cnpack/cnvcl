@@ -293,6 +293,7 @@ type
     imgGraphic: TImage;
     lvMenuItem: TListView;
     edtClassName: TEdit;
+    btnLocate: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -316,6 +317,7 @@ type
     procedure lvPropDblClick(Sender: TObject);
     procedure ListViewKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure btnLocateClick(Sender: TObject);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -405,6 +407,8 @@ type
     ParamName: ShortString;
     TypeName: ShortString;
   end;
+
+  TGraphicConrolAccess = class(TGraphicControl);
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
@@ -1431,6 +1435,9 @@ begin
 
   UpdateHierarchys;
   ContentTypes := FInspector.ContentTypes;
+
+  btnLocate.Visible := (TObject(FInspector.ObjectAddr) is TGraphicControl) or
+    (TObject(FInspector.ObjectAddr) is TWinControl); 
 end;
 
 procedure TCnPropSheetForm.SetContentTypes(const Value: TCnPropContentTypes);
@@ -1849,6 +1856,61 @@ begin
       for I := 0 to Item.SubItems.Count - 1 do
         S := S + ' ' + Item.SubItems[I];
       ClipBoard.AsText := S;
+    end;
+  end;
+end;
+
+procedure TCnPropSheetForm.btnLocateClick(Sender: TObject);
+var
+  GraphicCtrl: TGraphicConrolAccess;
+  WinCtrl: TWinControl;
+  DC: HDC;
+  ACanvas: TCanvas;
+  AHandle: THandle;
+  OldColor: TColor;
+  OldStyle: TBrushStyle;
+begin
+  // Paint GraphicControl using its Canvas
+  if TObject(FInspector.ObjectAddr) is TGraphicControl then
+  begin
+    GraphicCtrl := TGraphicConrolAccess(FInspector.ObjectAddr);
+    ACanvas := GraphicCtrl.Canvas;
+
+    OldColor := ACanvas.Brush.Color;
+    OldStyle := ACanvas.Brush.Style;
+    try
+      try
+        ACanvas.Brush.Color := clRed;
+        ACanvas.Brush.Style := bsSolid;
+        ACanvas.FillRect(Rect(0, 0, GraphicCtrl.Width, GraphicCtrl.Height));
+      except
+        ;
+      end;
+    finally
+      ACanvas.Brush.Color := OldColor;
+      ACanvas.Brush.Style := OldStyle;
+    end;
+  end
+  else if TObject(FInspector.ObjectAddr) is TWinControl then
+  begin
+    // Paint WinControl using its Window DC
+    WinCtrl := TWinControl(FInspector.ObjectAddr);
+    AHandle := WinCtrl.Handle;
+
+    try
+      DC := GetWindowDC(AHandle);
+      ACanvas := TCanvas.Create;
+      try
+        ACanvas.Handle := DC;
+
+        ACanvas.Brush.Color := clRed;
+        ACanvas.Brush.Style := bsSolid;
+        ACanvas.FillRect(Rect(0, 0, WinCtrl.Width, WinCtrl.Height));
+      finally
+        ACanvas.Free;
+      end;
+    except
+      ;
     end;
   end;
 end;

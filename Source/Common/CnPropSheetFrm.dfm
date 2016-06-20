@@ -1,7 +1,7 @@
 object CnPropSheetForm: TCnPropSheetForm
   Left = 641
   Top = 154
-  Width = 370
+  Width = 379
   Height = 521
   BorderStyle = bsSizeToolWin
   Caption = 'CnDebug Inspector'
@@ -23,7 +23,7 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 362
+    Width = 371
     Height = 30
     Align = alTop
     BevelOuter = bvNone
@@ -67,9 +67,9 @@ object CnPropSheetForm: TCnPropSheetForm
       OnClick = btnRefreshClick
     end
     object btnTop: TSpeedButton
-      Left = 340
+      Left = 349
       Top = 5
-      Width = 16
+      Width = 20
       Height = 21
       Hint = 'Always On Top'
       AllowAllUp = True
@@ -132,6 +132,26 @@ object CnPropSheetForm: TCnPropSheetForm
       ShowHint = True
       OnClick = btnEvaluateClick
     end
+    object btnLocate: TSpeedButton
+      Left = 323
+      Top = 5
+      Width = 20
+      Height = 21
+      Hint = 'Locate Control'
+      AllowAllUp = True
+      Anchors = [akTop, akRight]
+      Caption = '*'
+      Flat = True
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = btnLocateClick
+    end
     object edtObj: TEdit
       Left = 14
       Top = 5
@@ -157,7 +177,7 @@ object CnPropSheetForm: TCnPropSheetForm
   object tsSwitch: TTabSet
     Left = 0
     Top = 473
-    Width = 362
+    Width = 371
     Height = 21
     Align = alBottom
     Font.Charset = ANSI_CHARSET
@@ -179,7 +199,7 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlMain: TPanel
     Left = 0
     Top = 30
-    Width = 362
+    Width = 371
     Height = 443
     Align = alClient
     BevelOuter = bvNone
@@ -397,7 +417,7 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlHierarchy: TPanel
       Left = 0
       Top = 0
-      Width = 362
+      Width = 371
       Height = 443
       Align = alClient
       BevelInner = bvLowered
@@ -408,7 +428,7 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlGraphic: TPanel
       Left = 0
       Top = 0
-      Width = 362
+      Width = 371
       Height = 443
       Align = alClient
       BevelInner = bvLowered
@@ -419,7 +439,7 @@ object CnPropSheetForm: TCnPropSheetForm
       object imgGraphic: TImage
         Left = 1
         Top = 1
-        Width = 360
+        Width = 369
         Height = 441
         Align = alClient
       end
