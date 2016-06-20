@@ -1828,7 +1828,8 @@ begin
     if FParentSheetForm <> nil then
       FParentSheetForm.RemoveFreeNotification(Self);
     FParentSheetForm := Value;
-    FParentSheetForm.FreeNotification(Self);
+    if FParentSheetForm <> nil then
+      FParentSheetForm.FreeNotification(Self);
   end;
 end;
 
