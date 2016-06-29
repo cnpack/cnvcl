@@ -1117,6 +1117,9 @@ function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer
    等于转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。}
 
+function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer;
+{* 计算一个 WideChar 转换成 Utf8 后的字符长度}
+
 function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' '): AnsiString;
 {* 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
 
@@ -1215,6 +1218,24 @@ begin
       Inc(Result);
     end;
   end;
+end;
+
+// 计算一个 WideChar 转换成 Utf8 后的字符长度
+function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer;
+var
+  V: Cardinal;
+begin
+  V := Ord(AChar);
+  if V <= $7F then
+    Result := 1
+  else if V <= $7FF then
+    Result := 2
+  else if V <= $FFFF then
+    Result := 3
+  else if V <= $10FFFF then
+    Result := 4
+  else
+    Result := 0;
 end;
 
 // 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
