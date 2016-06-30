@@ -99,6 +99,8 @@ type
   PRGBArray = ^TRGBArray;
   TRGBArray = array[0..65535] of TRGBColor;
 
+  ENotImplementedException = class(Exception);
+
 const
 {$IFNDEF COMPILER6_UP}
   sLineBreak = {$IFDEF LINUX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
@@ -1105,17 +1107,26 @@ function CodePageOnlySupportsEnglish: Boolean;
 function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 {* 粗略判断一个 Unicode 宽字符是否占两个字符宽度}
 
-function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
-{* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符}
+function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean = True): Integer;
+{* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
+   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
-function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
+function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer; VisualMode: Boolean = True): Integer;
 {* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，WideOffset 从 1 开始。
-   等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符}
+   等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
+   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
-function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
+function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer; VisualMode: Boolean = True): Integer;
 {* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
    等于转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
-   注意 Ansi 后的 Copy 可能会割裂双字节字符。}
+   注意 Ansi 后的 Copy 可能会割裂双字节字符。
+   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
+
+function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Integer;
+  VisualMode: Boolean = True): Integer;
+{* 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
+   等于转 WideString 后 Copy(1, WideOffset) 再转回 Utf8 再取 Length，但不用 Utf8/WideString 互转，以避免额外的编码问题
+   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
 function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer;
 {* 计算一个 WideChar 转换成 Utf8 后的字符长度}
@@ -1162,24 +1173,39 @@ begin
 end;
 
 // 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
-function CalcAnsiLengthFromWideString(Text: PWideChar): Integer;
+function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean): Integer;
 begin
   Result := 0;
   if Text <> nil then
   begin
-    while Text^ <> #0 do
+    if VisualMode then
     begin
-      if WideCharIsWideLength(Text^) then
-        Inc(Result, SizeOf(WideChar))
-      else
-        Inc(Result, SizeOf(AnsiChar));
-      Inc(Text);
+      while Text^ <> #0 do
+      begin
+        if WideCharIsWideLength(Text^) then
+          Inc(Result, SizeOf(WideChar))
+        else
+          Inc(Result, SizeOf(AnsiChar));
+        Inc(Text);
+      end;
+    end
+    else
+    begin
+      while Text^ <> #0 do
+      begin
+        if Ord(Text^) > $FF then
+          Inc(Result, SizeOf(WideChar))
+        else
+          Inc(Result, SizeOf(AnsiChar));
+        Inc(Text);
+      end;
     end;
   end;
 end;
 
 // 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，WideOffset 从 1 开始。
-function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
+function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer;
+  VisualMode: Boolean): Integer;
 var
   Idx: Integer;
 begin
@@ -1187,20 +1213,36 @@ begin
   if (Text <> nil) and (WideOffset > 0) then
   begin
     Idx := 0;
-    while (Text^ <> #0) and (Idx < WideOffset) do
+    if VisualMode then
     begin
-      if WideCharIsWideLength(Text^) then
-        Inc(Result, SizeOf(WideChar))
-      else
-        Inc(Result, SizeOf(AnsiChar));
-      Inc(Text);
-      Inc(Idx);
+      while (Text^ <> #0) and (Idx < WideOffset) do
+      begin
+        if WideCharIsWideLength(Text^) then
+          Inc(Result, SizeOf(WideChar))
+        else
+          Inc(Result, SizeOf(AnsiChar));
+        Inc(Text);
+        Inc(Idx);
+      end;
+    end
+    else
+    begin
+      while (Text^ <> #0) and (Idx < WideOffset) do
+      begin
+        if Ord(Text^) > $FF then
+          Inc(Result, SizeOf(WideChar))
+        else
+          Inc(Result, SizeOf(AnsiChar));
+        Inc(Text);
+        Inc(Idx);
+      end
     end;
   end;
 end;
 
 // 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
-function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
+function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
+  VisualMode: Boolean): Integer;
 var
   Idx: Integer;
 begin
@@ -1208,16 +1250,40 @@ begin
   if (Text <> nil) and (AnsiOffset > 0) then
   begin
     Idx := 0;
-    while (Text^ <> #0) and (Idx < AnsiOffset) do
+    if VisualMode then
     begin
-      if WideCharIsWideLength(Text^) then
-        Inc(Idx, SizeOf(WideChar))
-      else
-        Inc(Idx, SizeOf(AnsiChar));
-      Inc(Text);
-      Inc(Result);
+      while (Text^ <> #0) and (Idx < AnsiOffset) do
+      begin
+        if WideCharIsWideLength(Text^) then
+          Inc(Idx, SizeOf(WideChar))
+        else
+          Inc(Idx, SizeOf(AnsiChar));
+        Inc(Text);
+        Inc(Result);
+      end;
+    end
+    else
+    begin
+      while (Text^ <> #0) and (Idx < AnsiOffset) do
+      begin
+        if Ord(Text^) > $FF then
+          Inc(Idx, SizeOf(WideChar))
+        else
+          Inc(Idx, SizeOf(AnsiChar));
+        Inc(Text);
+        Inc(Result);
+      end;
     end;
   end;
+end;
+
+// 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
+// 等于转 WideString 后 Copy(1, WideOffset) 再转回 Utf8 再取 Length，但不用 Utf8/WideString 互转，以避免额外的编码问题
+// VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
+function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Integer;
+  VisualMode: Boolean = True): Integer;
+begin
+  raise ENotImplementedException.Create('Not Implemented');
 end;
 
 // 计算一个 WideChar 转换成 Utf8 后的字符长度
