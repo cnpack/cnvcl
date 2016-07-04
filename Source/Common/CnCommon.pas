@@ -1283,7 +1283,6 @@ end;
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar;
   WideOffset: Integer): Integer;
 var
-  C: AnsiChar;
   Utf8Len, WideIdx: Integer;
 begin
   Result := 0;
@@ -1291,10 +1290,9 @@ begin
     Exit;
 
   WideIdx := 0;
-  Utf8Len := 0;
-  while (Utf8Text^ <> 0) and (WideIdx < WideOffset) do
+  while (Utf8Text^ <> #0) and (WideIdx < WideOffset) do
   begin
-    Ut8Len := CalcUtf8LengthFromUtf8HeadChar(Utf8Text^);
+    Utf8Len := CalcUtf8LengthFromUtf8HeadChar(Utf8Text^);
     Inc(Result, Utf8Len);
 
     case Utf8Len of
@@ -1324,7 +1322,6 @@ begin
         end;
       else
         Exit;
-      end;
     end;
   end;
 end;
