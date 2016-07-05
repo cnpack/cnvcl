@@ -532,7 +532,10 @@ function IsValidIdentChar(C: Char; First: Boolean = False): Boolean;
 {* 判断字符是否有效标识符字符，First 表示是否为首字符}
 
 function IsValidIdentW(const Ident: string): Boolean;
-{* 判断字符串是否是有效的 Unicode 标识符}
+{* 判断字符串是否是有效的 Unicode 标识符，只在 Unicode 下调用}
+
+function IsValidIdentWide(const Ident: WideString): Boolean;
+{* 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用}
 
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
@@ -4476,7 +4479,7 @@ begin
     Result := CharInSet(C, AlphaNumeric);
 end;
 
-// 判断字符串是否是有效的 Unicode 标识符
+// 判断字符串是否是有效的 Unicode 标识符，只在 Unicode 下调用
 function IsValidIdentW(const Ident: string): Boolean;
 const
   Alpha = ['A'..'Z', 'a'..'z', '_'];
@@ -4491,6 +4494,27 @@ begin
     if not ((Ident[I] in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
       Exit;
   Result := True;
+end;
+
+// 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用
+function IsValidIdentWide(const Ident: WideString): Boolean;
+{$IFDEF BDS}
+const
+  Alpha = ['A'..'Z', 'a'..'z', '_'];
+  AlphaNumeric = Alpha + ['0'..'9'];
+var
+  I: Integer;
+{$ENDIF}
+begin
+  Result := False;
+{$IFDEF BDS}
+  if (Length(Ident) = 0) or not ((Ident[1] in Alpha) or (Ord(Ident[1]) > 127)) then
+    Exit;
+  for I := 2 to Length(Ident) do
+    if not ((Ident[I] in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+      Exit;
+  Result := True;
+{$ENDIF}
 end;
 
 const
