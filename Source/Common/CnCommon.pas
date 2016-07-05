@@ -1129,8 +1129,11 @@ function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Int
 {* 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
    等于转 WideString 后 Copy(1, WideOffset) 再转回 Utf8 再取 Length，但不用 Utf8/WideString 互转，以避免额外的编码问题}
 
-function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer;
+function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 {* 计算一个 WideChar 转换成 Utf8 后的字符长度}
+
+function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
+{* 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换}
 
 function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
 {* 计算一个 Utf8 前导字符所代表的字符长度}
@@ -1345,6 +1348,20 @@ begin
     Result := 4
   else
     Result := 0;
+end;
+
+// 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换
+function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
+begin
+  Result := 0;
+  if Text = nil then
+    Exit;
+
+  while Text^ <> #0 do
+  begin
+    Inc(Result, CalcUtf8LengthFromWideChar(Text^));
+    Inc(Text);
+  end;
 end;
 
 // 计算一个 Utf8 前导字符所代表的字符长度
