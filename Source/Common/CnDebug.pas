@@ -1831,7 +1831,7 @@ end;
 
 function TCnDebugger.RectToString(ARect: TRect): string;
 begin
-  Result := '(' + PointToString(ARect.TopLeft) + ',' +
+  Result := '(Top/Left: ' + PointToString(ARect.TopLeft) + ', Bottom/Right: ' +
     PointToString(ARect.BottomRight) + ')';
 end;
 
