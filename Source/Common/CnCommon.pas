@@ -965,6 +965,9 @@ function RectHeight(Rect: TRect): Integer;
 procedure Delay(const uDelay: DWORD);
 {* 延时}
 
+procedure SetClipboardContent(Format: Word; var Buffer; Size: Integer);
+{* 把指定内存内容以指定格式设置入剪贴板}
+
 {$IFNDEF WIN64}
 procedure BeepEx(const Freq: WORD = 1200; const Delay: WORD = 1);
 {* 在Win9X下让喇叭发声}
@@ -6584,6 +6587,33 @@ begin
   n := GetTickCount;
   while GetTickCount - n <= uDelay do
     Application.ProcessMessages;
+end;
+
+// 把指定内存内容以指定格式设置入剪贴板
+procedure SetClipboardContent(Format: Word; var Buffer; Size: Integer);
+var
+  Data: THandle;
+  DataPtr: Pointer;
+begin
+  OpenClipboard(0);
+  try
+    Data := GlobalAlloc(GMEM_MOVEABLE + GMEM_DDESHARE, Size);
+    try
+      DataPtr := GlobalLock(Data);
+      try
+        Move(Buffer, DataPtr^, Size);
+        EmptyClipboard;
+        SetClipboardData(Format, Data);
+      finally
+        GlobalUnlock(Data);
+      end;
+    except
+      GlobalFree(Data);
+      raise;
+    end;
+  finally
+    CloseClipboard;
+  end;
 end;
 
 {$IFNDEF WIN64}
