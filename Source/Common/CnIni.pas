@@ -862,10 +862,10 @@ end;
 constructor TCnBaseEncryptIniFile.Create(const FileName: string
   {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
 begin
-  inherited Create(FileName);
 {$IFDEF SUPPORT_ZLIB}
   FUseZLib := AUseZLib;
 {$ENDIF}
+  inherited Create(FileName);
 end;
 
 function TCnBaseEncryptIniFile.LoadFromStream(Stream: TStream): Boolean;
