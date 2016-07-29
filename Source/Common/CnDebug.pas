@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2015.06.16
+* 修改记录：2016.07.29
+*               修正 CPU 周期计时时超界的问题，需要同步更新 CnDebugViewer
+*           2015.06.16
 *               增加四个记录 Class/Interface 的方法
 *           2015.06.03
 *               增加两个记录 array of const 的方法
@@ -153,7 +155,7 @@ type
     ThreadId:  DWORD;                              // 调用者的线程 ID
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar; // 自定义 Tag 值，供用户过滤用
     MsgType:   DWORD;                              // 消息类型
-    MsgCPInterval: DWORD;                          // 计时结束时的 CPU 周期数
+    MsgCPInterval: Int64;                          // 计时结束时的 CPU 周期数
     TimeStampType: DWORD;                          // 消息输出的时间戳类型
     case Integer of
       1: (MsgDateTime:   TDateTime);               // 消息输出的时间戳值 DateTime
@@ -205,7 +207,7 @@ type
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar;
     PassCount: Integer;
     StartTime: Int64;
-    AccuTime: Int64;
+    AccuTime: Int64;  // 计时的和
   end;
   PCnTimeDesc = ^TCnTimeDesc;
 
@@ -306,7 +308,10 @@ type
 
     // 利用 CPU 周期计时 == Start ==
     procedure StartTimeMark(const ATag: Integer; const AMsg: string = ''); overload;
+    {* 标记此 Tag 的一次计时开始的时刻，不发送内容}
     procedure StopTimeMark(const ATag: Integer; const AMsg: string = ''); overload;
+    {* 标记此 Tag 的一次计时结束的时刻，并将本次计时耗时叠加至同 Tag 计时上发出}
+
     {* 此两函数不使用局部字符串变量，误差相对较小，所以推荐使用}
 
     // 以下两函数由于使用了 Delphi 字符串，误差较大（几万左右个 CPU 周期）
@@ -1201,7 +1206,7 @@ var
     
     // TimeMarkStop 时所耗 CPU 时钟周期数
     MsgDesc.Annex.MsgCPInterval := CPUPeriod;
-    
+
     CopyMemory(@(MsgDesc.Annex.Tag), Pointer(ATag), TagLen);
     CopyMemory(@(MsgDesc.Msg), Pointer(MsgBuf), MsgLen);
     
@@ -1881,7 +1886,6 @@ var
 begin
 {$IFNDEF NDEBUG}
   // 根据 ATag 找是否存在以前的记录，不存在则新增
-//  if ATag = '' then Exit;
   ADesc := IndexOfTime(ATag);
   if ADesc = nil then
     ADesc := AddTimeDesc(ATag);
@@ -1917,12 +1921,12 @@ begin
 {$IFNDEF NDEBUG}
   // 马上记录当时的 CPU 周期
   Period := GetCPUPeriod;
-  // if ATag = '' then Exit;
   ADesc := IndexOfTime(ATag);
   if ADesc <> nil then
   begin
-    // 得到相应的旧记录，相减，并减去误差，作为记录发出去
-    Inc(ADesc^.AccuTime, Period - ADesc^.StartTime - FFixedCalling);
+    // 得到相应的旧记录，相减，并减去误差，叠加上一次的计时，作为记录发出去
+    ADesc^.AccuTime := ADesc^.AccuTime + (Period - ADesc^.StartTime - FFixedCalling);
+
     if AMsg <> '' then
       TraceFull(AMsg, ATag, CurrentLevel, cmtTimeMarkStop, ADesc^.AccuTime)
     else
