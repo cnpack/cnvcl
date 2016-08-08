@@ -19,8 +19,8 @@
 {******************************************************************************}
 
 {******************************************************************************}
-{        该单元大部分内容基于Stefan Reuther的BDiff / BPatch C 代码翻译而来。   }
-{        下面是BDiff / BPatch的声明:                                           }
+{      该单元大部分内容基于 Stefan Reuther 的 BDiff / BPatch C 代码翻译而来。  }
+{      下面是 BDiff / BPatch 的声明:                                           }
 { -----------------------------------------------------------------------------}
 {(c) copyright 1999 by Stefan Reuther <Streu@gmx.de>. Copying this program is  }
 {allowed, as long as you include source code and document changes you made in a}
@@ -36,11 +36,13 @@ unit CnBinaryDiffPatch;
 * 单元名称：简易的二进制差分以及补丁算法单元
 * 单元作者：刘啸（liuxiao@cnpack.org）
 * 备    注：该单元是简易的二进制差分以及补丁算法实现。
-*           大部分基于Stefan Reuther的BDiff / BPatch C 代码翻译而来。
+*           大部分基于 Stefan Reuther 的 BDiff / BPatch C 代码翻译而来。
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.08.05 V1.0
+* 修改记录：2016.08.08 V1.1
+*               实现 Patch 功能
+*           2016.08.05 V1.0
 *               创建单元，实现 Diff 功能
 ================================================================================
 |</PRE>}
@@ -53,14 +55,16 @@ uses
   SysUtils, Classes, Windows;
 
 const
-  CN_BINARY_DIFF_NAME: AnsiString = 'CnBDiff';
-  CN_BINARY_DIFF_VER: AnsiString = '1';
+  CN_BINARY_DIFF_NAME_VER: AnsiString = 'CnBDiff1';
+
+type
+  ECnPatchFormatError = class(Exception);
 
 function BinaryDiffStream(OldStream, NewStream, PatchStream: TMemoryStream): Boolean;
-{* 二进制差分比较新旧内存块（流），差分结果放入 PatchStream 中}
+{* 二进制差分比较新旧内存块（流），差分结果放入 PatchStream 中，Patch 可输出二进制与文本等格式}
 
 function BinaryPatchStream(OldStream, PatchStream, NewStream: TMemoryStream): Boolean;
-{* 二进制差分补丁旧内存块（流），合成结果放入 NewStream 中}
+{* 二进制差分补丁旧内存块（流），合成结果放入 NewStream 中，只支持二进制格式的 Patch}
 
 function BinaryDiffFile(const OldFile, NewFile, PatchFile: string): Boolean;
 {* 二进制差分比较新旧文件，差分结果存入 PatchFile 中}
@@ -72,6 +76,9 @@ implementation
 
 const
   CN_MIN_LENGTH = 24;
+  ADD_CHAR: AnsiChar = '+';
+  COPY_CHAR: AnsiChar = '@';
+  DOT_CHAR: AnsiChar = '.';
   CRLF: AnsiString = #13#10;
 
 type
@@ -88,7 +95,7 @@ type
   TCnDiffOutputType = (dotBinary, dotFiltered, dotQuoted);
 
 var
-  CnDiffOutputType: TCnDiffOutputType = dotFiltered;
+  CnDiffOutputType: TCnDiffOutputType = dotBinary; // 默认生成二进制方式的 Patch
 
 function BlockSortCompare(BytePosA, BytePosB: Cardinal; Data: PByte; DataLen: Cardinal): Integer;
 var
@@ -250,9 +257,9 @@ begin
   Result := Result + 16777216 * P^;
 end;
 
-function CheckSum(Data: PByte; DataLen: Cardinal): DWORD;
+function CheckSum(Data: PByte; DataLen: Cardinal; InitialSum: Cardinal = 0): Cardinal;
 begin
-  Result := 0;
+  Result := InitialSum;
   while DataLen > 0 do
   begin
     Result := ((Result shr 30) and 3) or (Result shl 2);
@@ -285,6 +292,40 @@ begin
   end;
 end;
 
+procedure CopyStreamData(OldStream, NewStream: TStream; ASize: Cardinal;
+  ACheckSum: Cardinal; FromPatch: Boolean);
+const
+  BUF_SIZE = 4096;
+var
+  ChkRes: Cardinal;
+  Buf: array[0..BUF_SIZE - 1] of AnsiChar;
+  ToReadSize: Cardinal;
+begin
+  if (OldStream = nil) or (NewStream = nil) or (ASize = 0) then
+    Exit;
+
+  ChkRes := 0;
+  while ASize > 0 do
+  begin
+    if ASize > BUF_SIZE then
+      ToReadSize := BUF_SIZE
+    else
+      ToReadSize := ASize;
+
+    if Cardinal(OldStream.Read(Buf[0], ToReadSize)) <> ToReadSize then
+      raise ECnPatchFormatError.Create('Copy Content Read Fail.');
+
+    if Cardinal(NewStream.Write(Buf[0], ToReadSize)) <> ToReadSize then
+      raise ECnPatchFormatError.Create('Copy Content Write Fail.');
+
+    ChkRes := CheckSum(@Buf[0], ToReadSize, ChkRes);
+    Dec(ASize, ToReadSize);
+  end;
+
+  if not FromPatch and (ChkRes <> ACheckSum) then
+    raise ECnPatchFormatError.Create('Patch Checksum Fail.');
+end;
+
 procedure WriteHeader(OutStream: TStream; OldSize, NewSize: Cardinal);
 var
   Buf: array[0..7] of Byte;
@@ -295,8 +336,7 @@ begin
     case CnDiffOutputType of
       dotBinary:
         begin
-          OutStream.Write(CN_BINARY_DIFF_NAME[1], Length(CN_BINARY_DIFF_NAME));
-          OutStream.Write(CN_BINARY_DIFF_VER[1], Length(CN_BINARY_DIFF_VER));
+          OutStream.Write(CN_BINARY_DIFF_NAME_VER[1], Length(CN_BINARY_DIFF_NAME_VER));
           PackLong(@Buf[0], OldSize);
           PackLong(@Buf[4], NewSize);
           OutStream.Write(Buf[0], SizeOf(Buf));
@@ -317,8 +357,6 @@ end;
 
 procedure WriteFilteredOrQuotedData(OutStream: TStream; Data: PByte;
   DataLen: Cardinal; IsFiltered: Boolean);
-const
-  DOT_CHAR: AnsiChar = '.';
 var
   S: AnsiString;
 begin
@@ -353,8 +391,6 @@ begin
 end;
 
 procedure WriteAddContent(OutStream: TStream; Data: PByte; DataLen: Cardinal);
-const
-  ADD_CHAR: AnsiChar = '+';
 var
   Buf: array[0..3] of Byte;
 begin
@@ -378,8 +414,6 @@ end;
 
 procedure WriteCopyContent(OutStream: TStream; NewBase: PByte; NewPos: Cardinal;
   OldBase: PByte; OldPos: Cardinal; DataLen: Cardinal);
-const
-  COPY_CHAR: AnsiChar = '@';
 var
   Buf: array[0..11] of Byte;
   S: AnsiString;
@@ -453,8 +487,64 @@ end;
 
 // 二进制差分补丁旧内存块（流），合成结果放入 NewStream 中
 function BinaryPatchStream(OldStream, PatchStream, NewStream: TMemoryStream): Boolean;
+var
+  Buf: array[0..15] of Byte;
+  SrcLen, DstLen, ASize, AnOffset: Cardinal;
+  AnOperator: AnsiChar;
 begin
+  Result := False;
+  if (OldStream = nil) or (PatchStream = nil) or (NewStream = nil) then
+    Exit;
 
+  if PatchStream.Read(Buf[0], 16) <> 16 then
+    raise ECnPatchFormatError.Create('Patch Header Missing.');
+
+  if not CompareMem(@CN_BINARY_DIFF_NAME_VER[1], @Buf[0], Length(CN_BINARY_DIFF_NAME_VER)) then
+    raise ECnPatchFormatError.Create('Patch Header Name/Version Mismatch.');
+
+  SrcLen := GetLong(@Buf[8]);
+  DstLen := GetLong(@Buf[12]);
+
+  AnOperator := #0;
+  while True do
+  begin
+    if PatchStream.Read(AnOperator, 1) <> 1 then // 流末尾
+      Break;
+
+    case AnOperator of
+    '@':
+      begin
+        if PatchStream.Read(Buf[0], 12) <> 12 then
+          raise ECnPatchFormatError.Create('Patch Copy Area Mismatch.');
+
+        ASize := GetLong(@Buf[4]);
+        AnOffset := GetLong(@Buf[0]);
+
+        if (AnOffset > SrcLen) or (ASize > SrcLen) or (ASize + AnOffset > SrcLen) then
+          raise ECnPatchFormatError.Create('Patch Copy Size Mismatch.');
+
+        OldStream.Seek(AnOffset, soFromBeginning);
+        CopyStreamData(OldStream, NewStream, ASize, GetLong(@Buf[8]), False);
+        Dec(DstLen, ASize);
+      end;
+    '+':
+      begin
+        if PatchStream.Read(Buf[0], 4) <> 4 then
+          raise ECnPatchFormatError.Create('Patch Add Area Mismatch.');
+        ASize := GetLong(@Buf[0]);
+
+        CopyStreamData(PatchStream, NewStream, ASize, 0, True);
+        Dec(DstLen, ASize);
+      end;
+    else
+      raise ECnPatchFormatError.CreateFmt('Patch Operator Unknown %c.', [AnOperator]);
+    end;
+  end;
+
+  if DstLen <> 0 then
+    raise ECnPatchFormatError.Create('Patch Length Mismatch.');
+
+  Result := True;
 end;
 
 // 二进制差分比较新旧文件，差分结果存入 PatchFile 中

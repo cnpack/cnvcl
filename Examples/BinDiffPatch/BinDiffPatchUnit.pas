@@ -18,9 +18,18 @@ type
     btnDiff: TButton;
     dlgOpen: TOpenDialog;
     dlgSave: TSaveDialog;
+    edtPatch: TEdit;
+    lblPatch: TLabel;
+    btnDiffBrowsePatch: TButton;
+    btnBinaryPatch: TButton;
+    edtPatchNew: TEdit;
+    lblPatchNew: TLabel;
+    btnPatchBrowseNew: TButton;
     procedure btnDiffBrowseOldClick(Sender: TObject);
     procedure btnDiffBrowseNewClick(Sender: TObject);
     procedure btnDiffClick(Sender: TObject);
+    procedure btnDiffBrowsePatchClick(Sender: TObject);
+    procedure btnBinaryPatchClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -50,12 +59,29 @@ end;
 
 procedure TBinaryDiffPatchForm.btnDiffClick(Sender: TObject);
 begin
-  if dlgSave.Execute then
+  if Trim(edtPatch.Text) <> '' then
   begin
-    if CnBinaryDiffPatch.BinaryDiffFile(edtDiffOld.Text, edtDiffNew.Text, dlgSave.FileName) then
-      ShowMessage('Diff File Save to ' + dlgSave.FileName)
+    if CnBinaryDiffPatch.BinaryDiffFile(edtDiffOld.Text, edtDiffNew.Text, Trim(edtPatch.Text)) then
+      ShowMessage('Diff File Save to ' + Trim(edtPatch.Text))
     else
       ShowMessage('Diff File Fail !');
+  end;
+end;
+
+procedure TBinaryDiffPatchForm.btnDiffBrowsePatchClick(Sender: TObject);
+begin
+  if dlgSave.Execute then
+    edtPatch.Text := dlgSave.FileName;
+end;
+
+procedure TBinaryDiffPatchForm.btnBinaryPatchClick(Sender: TObject);
+begin
+  if Trim(edtPatch.Text) <> '' then
+  begin
+    if CnBinaryDiffPatch.BinaryPatchFile(edtDiffOld.Text, Trim(edtPatch.Text), edtPatchNew.Text) then
+      ShowMessage('Restore File From Patch Save to ' + edtPatchNew.Text)
+    else
+      ShowMessage('Restore File From Patch Fail !');
   end;
 end;
 
