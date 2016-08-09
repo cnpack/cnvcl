@@ -564,7 +564,8 @@ begin
     if OldFile <> '' then // 旧文件不存在也行
       OldStream.LoadFromFile(OldFile);
     NewStream := TMemoryStream.Create;
-    NewStream.LoadFromFile(NewFile);
+    if NewFile <> '' then // 新文件不存在也行，表示删除
+      NewStream.LoadFromFile(NewFile);
 
     PatchStream := TMemoryStream.Create;
     Result := BinaryDiffStream(OldStream, NewStream, PatchStream);
@@ -594,7 +595,8 @@ begin
 
     NewStream := TMemoryStream.Create;
     Result := BinaryPatchStream(OldStream, PatchStream, NewStream);
-    NewStream.SaveToFile(NewFile);
+    if NewStream.Size > 0 then // 新文件如果无内容则不存
+      NewStream.SaveToFile(NewFile);
   finally
     NewStream.Free;
     PatchStream.Free;
