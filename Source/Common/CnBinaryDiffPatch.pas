@@ -192,10 +192,13 @@ var
   Pm, Sm: PShortInt;
   BlockIntArray: PCardinalArray;
 begin
-  First := 0;
-  Last := DataLen - 1;
   Result := 0;
   Index := 0;
+  if DataLen = 0 then
+    Exit;
+
+  First := 0;
+  Last := DataLen - 1;
 
   BlockIntArray := PCardinalArray(Block);
   while First <= Last do
@@ -451,7 +454,7 @@ begin
     Exit;
 
   Sort := BlockSort(OldStream.Memory, OldStream.Size);
-  if Sort = nil then
+  if (Sort = nil) and (OldStream.Size > 0) then
     Exit;
 
   WriteHeader(PatchStream, OldStream.Size, NewStream.Size);
@@ -558,7 +561,8 @@ begin
 
   try
     OldStream := TMemoryStream.Create;
-    OldStream.LoadFromFile(OldFile);
+    if OldFile <> '' then // 旧文件不存在也行
+      OldStream.LoadFromFile(OldFile);
     NewStream := TMemoryStream.Create;
     NewStream.LoadFromFile(NewFile);
 
@@ -583,7 +587,8 @@ begin
 
   try
     OldStream := TMemoryStream.Create;
-    OldStream.LoadFromFile(OldFile);
+    if OldFile <> '' then // 旧文件不存在也行
+      OldStream.LoadFromFile(OldFile);
     PatchStream := TMemoryStream.Create;
     PatchStream.LoadFromFile(PatchFile);
 
