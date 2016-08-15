@@ -223,9 +223,6 @@ cnpack\Source 目录内容说明：
   CnAOTreeView.pas
     自动参数设置 TreeView 组件实现单元
 
-  CnAppStoreBox.pas
-    软件管理界面条目的简易实现单元
-
   CnAutoOption.pas
     自动参数设置类定义单元
 

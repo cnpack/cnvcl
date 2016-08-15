@@ -596,7 +596,9 @@ begin
     NewStream := TMemoryStream.Create;
     Result := BinaryPatchStream(OldStream, PatchStream, NewStream);
     if NewStream.Size > 0 then // 新文件如果无内容则不存
-      NewStream.SaveToFile(NewFile);
+      NewStream.SaveToFile(NewFile)
+    else
+      DeleteFile(PChar(NewFile));
   finally
     NewStream.Free;
     PatchStream.Free;
