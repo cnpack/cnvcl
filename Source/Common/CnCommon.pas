@@ -368,8 +368,8 @@ function Deltree(Dir: string; DelRoot: Boolean = True;
 procedure DelEmptyTree(Dir: string; DelRoot: Boolean = True);
 {* 删除整个目录中的空目录, DelRoot 表示是否删除目录本身}
 
-function GetDirFiles(Dir: string): Integer;
-{* 取文件夹文件数}
+function GetDirFiles(const Dir: string; FileNames: TStrings = nil): Integer;
+{* 取文件夹下的直系文件列表，不包括子目录。返回文件数}
 
 type
   TFindCallBack = procedure(const FileName: string; const Info: TSearchRec;
@@ -3826,21 +3826,29 @@ begin
     RemoveDir(Dir);
 end;
 
-// 取文件夹文件数
-function GetDirFiles(Dir: string): Integer;
+// 取文件夹下的直系文件列表，不包括子目录，返回文件数
+function GetDirFiles(const Dir: string; FileNames: TStrings): Integer;
 var
-  sr: TSearchRec;
-  fr: Integer;
+  Sr: TSearchRec;
+  Fr: Integer;
 begin
   Result := 0;
-  fr := FindFirst(AddDirSuffix(Dir) + '*.*', faAnyFile, sr);
-  while fr = 0 do
+  if FileNames <> nil then
+    FileNames.Clear;
+
+  Fr := FindFirst(AddDirSuffix(Dir) + '*.*', faAnyFile, Sr);
+  while Fr = 0 do
   begin
-    if (sr.Name <> '.') and (sr.Name <> '..') then
+    if (Sr.Name <> '.') and (Sr.Name <> '..') and // 不是目录
+      (FILE_ATTRIBUTE_DIRECTORY and Sr.Attr = 0) then
+    begin
       Inc(Result);
-    fr := FindNext(sr);
+      if FileNames <> nil then
+        FileNames.Add(Sr.Name);
+    end;
+    Fr := FindNext(Sr);
   end;
-  FindClose(sr);
+  FindClose(Sr);
 end;
 
 function FindFormByClass(AClass: TClass): TForm;
@@ -5278,6 +5286,7 @@ end;
 function CnAuthorEmailToStr(Author, Email: string): string;
 var
   s1, s2: string;
+
   function GetLeftStr(var s: string; Sep: string): string;
   var
     i: Integer;
@@ -5294,6 +5303,7 @@ var
       s := '';
     end;
   end;
+
 begin
   Result := '';
   s1 := GetLeftStr(Author, ';');

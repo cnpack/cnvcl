@@ -40,7 +40,9 @@ unit CnBinaryDiffPatch;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.08.08 V1.1
+* 修改记录：2016.08.16 V1.2
+*               实现目录的批量 Diff/Patch 功能
+*           2016.08.08 V1.1
 *               实现 Patch 功能
 *           2016.08.05 V1.0
 *               创建单元，实现 Diff 功能
@@ -52,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows;
+  SysUtils, Classes, Windows, FileCtrl, CnCommon;
 
 const
   CN_BINARY_DIFF_NAME_VER: AnsiString = 'CnBDiff1';
@@ -72,6 +74,13 @@ function BinaryDiffFile(const OldFile, NewFile, PatchFile: string): Boolean;
 function BinaryPatchFile(const OldFile, PatchFile, NewFile: string): Boolean;
 {* 二进制差分补丁旧文件，合成结果存入 NewFile 中}
 
+function BinaryDiffDirectory(const OldDir, NewDir, PatchDir: string): Boolean;
+{* 二进制差分比较新旧目录，在 PatchDir 中输出形如“旧文件名.patch”的二进制补丁，
+   如无旧文件，则以新文件.patch 为补丁名，不支持子目录}
+
+function BinaryPatchDirectory(const OldDir, PatchDir, NewDir: string): Boolean;
+{* 二进制差分补丁旧目录，并把新内容输出至新目录}
+
 implementation
 
 const
@@ -80,6 +89,7 @@ const
   COPY_CHAR: AnsiChar = '@';
   DOT_CHAR: AnsiChar = '.';
   CRLF: AnsiString = #13#10;
+  PATCH_SUFFIX = '.patch';
 
 type
   TCardinalArray = array[0..65535] of Cardinal;
@@ -604,6 +614,107 @@ begin
     PatchStream.Free;
     OldStream.Free;
   end;
+end;
+
+// 二进制差分比较新旧目录，在 PatchDir 中输出形如“旧文件名.patch”的二进制补丁，
+// 如无旧文件，则以新文件.patch 为补丁名，不支持子目录
+function BinaryDiffDirectory(const OldDir, NewDir, PatchDir: string): Boolean;
+var
+  OldFiles, NewFiles: TStrings;
+  OldFile: string;
+  I, Idx: Integer;
+begin
+  Result := False;
+  if not DirectoryExists(OldDir) or not DirectoryExists(NewDir) then
+    Exit;
+
+  ForceDirectories(PatchDir);
+  OldFiles := nil;
+  NewFiles := nil;
+  try
+    OldFiles := TStringList.Create;
+    NewFiles := TStringList.Create;
+
+    GetDirFiles(OldDir, OldFiles);
+    GetDirFiles(NewDir, NewFiles);
+
+    for I := 0 to OldFiles.Count - 1 do
+    begin
+      OldFile := OldFiles[I];
+      Idx := NewFiles.IndexOf(OldFile);
+      if Idx >= 0 then // 新旧文件都存在
+      begin
+        if not BinaryDiffFile(AddDirSuffix(OldDir) + OldFile, AddDirSuffix(NewDir) + OldFile,
+          AddDirSuffix(PatchDir) + OldFile + PATCH_SUFFIX) then
+          Exit;
+        NewFiles.Delete(Idx);
+      end
+      else // 新文件不存在
+      begin
+        if not BinaryDiffFile(AddDirSuffix(OldDir) + OldFile, '',
+          AddDirSuffix(PatchDir) + OldFile + PATCH_SUFFIX) then
+          Exit;
+      end;
+    end;
+
+    for I := 0 to NewFiles.Count - 1 do
+    begin
+      // 旧文件不存在
+      if not BinaryDiffFile('', AddDirSuffix(NewDir) + NewFiles[I],
+        AddDirSuffix(PatchDir) + NewFiles[I] + PATCH_SUFFIX) then
+        Exit;
+    end;
+    Result := True;
+  finally
+    OldFiles.Free;
+    NewFiles.Free;
+  end;
+end;
+
+// 二进制差分补丁旧目录，并把新内容输出至新目录
+function BinaryPatchDirectory(const OldDir, PatchDir, NewDir: string): Boolean;
+var
+  OldFiles, PatchFiles: TStrings;
+  PatchFile, FileName, OldFile: string;
+  I: Integer;
+begin
+  Result := False;
+  if not DirectoryExists(OldDir) or not DirectoryExists(PatchDir) then
+    Exit;
+
+  ForceDirectories(NewDir);
+  OldFiles := nil;
+  PatchFiles := nil;
+  try
+    OldFiles := TStringList.Create;
+    PatchFiles := TStringList.Create;
+
+    GetDirFiles(OldDir, OldFiles);
+    GetDirFiles(PatchDir, PatchFiles);
+
+    for I := 0 to PatchFiles.Count - 1 do
+    begin
+      PatchFile := PatchFiles[I];
+      if StrRight(PatchFile, Length(PATCH_SUFFIX)) <> PATCH_SUFFIX then
+        Continue;  // .patch 结尾的才认为是补丁
+
+      FileName := PatchFile;
+      Delete(FileName, Pos(PATCH_SUFFIX, FileName), MaxInt);
+
+      OldFile := AddDirSuffix(OldDir) + FileName;
+      if not FileExists(OldFile) then // 允许源文件不存在
+        OldFile := '';
+
+      if not BinaryPatchFile(OldFile, AddDirSuffix(PatchDir) + PatchFile,
+        AddDirSuffix(NewDir) + FileName) then
+        Exit;
+    end;
+    Result := True;
+  finally
+    OldFiles.Free;
+    PatchFiles.Free;
+  end;
+
 end;
 
 end.
