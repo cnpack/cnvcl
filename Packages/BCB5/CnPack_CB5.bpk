@@ -5,6 +5,7 @@
     <VERSION value="BCB.05.03"/>
     <PROJECT value="CnPack_CB5.bpl"/>
     <OBJFILES value="..\..\Source\Common\CnBase64.obj 
+      ..\..\Source\Common\CnBinaryDiffPatch.obj 
       ..\..\Source\Common\CnCalendar.obj ..\..\Source\Common\CnClasses.obj 
       ..\..\Source\Common\CnCommon.obj ..\..\Source\Common\CnConsts.obj 
       ..\..\Source\Common\CnCRC32.obj ..\..\Source\Common\CnGraphUtils.obj 
@@ -23,8 +24,7 @@
       ..\..\Source\DbReport\CnADOUpdateSQL.obj ..\..\Source\DbReport\CnPagedGrid.obj 
       ..\..\Source\Graphics\CnAOTreeView.obj ..\..\Source\Graphics\CnAutoOption.obj 
       ..\..\Source\Graphics\CnCheckTreeView.obj ..\..\Source\Graphics\CnEdit.obj 
-      ..\..\Source\Graphics\CnListBox.obj 
-      ..\..\Source\Graphics\CnGraphConsts.obj 
+      ..\..\Source\Graphics\CnListBox.obj ..\..\Source\Graphics\CnGraphConsts.obj 
       ..\..\Source\Graphics\CnGraphics.obj ..\..\Source\Graphics\CnImage.obj 
       ..\..\Source\Graphics\CnShellCtrls.obj ..\..\Source\Graphics\CnSpin.obj 
       ..\..\Source\Graphics\CnWizardImage.obj 

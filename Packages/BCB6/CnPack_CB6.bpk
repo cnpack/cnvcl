@@ -5,7 +5,7 @@
     <VERSION value="BCB.06.00"/>
     <PROJECT value="CnPack_CB6.bpl"/>
     <OBJFILES value="CnPack_CB6.obj ..\..\Source\Common\CnBase64.obj 
-      ..\..\Source\Common\CnCalendar.obj 
+      ..\..\Source\Common\CnBinaryDiffPatch.obj ..\..\Source\Common\CnCalendar.obj 
       ..\..\Source\Common\CnClasses.obj ..\..\Source\Common\CnCommon.obj 
       ..\..\Source\Common\CnConsts.obj ..\..\Source\Common\CnCRC32.obj 
       ..\..\Source\Common\CnGraphUtils.obj ..\..\Source\Common\CnHashMap.obj 
@@ -182,6 +182,7 @@
       <FILE FILENAME="CnPack_CB6.cpp" FORMNAME="" UNITNAME="CnPack_CB6" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="CnPack_CB6.res" FORMNAME="" UNITNAME="CnPack_CB6.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBase64.pas" FORMNAME="" UNITNAME="CnBase64" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnBinaryDiffPatch.pas" FORMNAME="" UNITNAME="CnBinaryDiffPatch" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCalendar.pas" FORMNAME="" UNITNAME="CnCalendar" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnClasses.pas" FORMNAME="" UNITNAME="CnClasses" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCommon.pas" FORMNAME="" UNITNAME="CnCommon" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

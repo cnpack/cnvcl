@@ -99,6 +99,7 @@
         <DCCReference Include="vclsmp.dcp"/>
         <DCCReference Include="fmx.dcp"/>
         <DCCReference Include="..\..\Source\Common\CnBase64.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnBinaryDiffPatch.pas"/>
         <DCCReference Include="..\..\Source\Common\CnCalendar.pas"/>
         <DCCReference Include="..\..\Source\Common\CnClasses.pas"/>
         <DCCReference Include="..\..\Source\Common\CnCommon.pas"/>

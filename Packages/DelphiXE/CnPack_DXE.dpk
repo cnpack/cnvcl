@@ -40,6 +40,7 @@ requires
 
 contains
   CnBase64 in '..\..\Source\Common\CnBase64.pas',
+  CnBinaryDiffPatch in '..\..\Source\Common\CnBinaryDiffPatch.pas',
   CnCalendar in '..\..\Source\Common\CnCalendar.pas',
   CnClasses in '..\..\Source\Common\CnClasses.pas',
   CnCommon in '..\..\Source\Common\CnCommon.pas',

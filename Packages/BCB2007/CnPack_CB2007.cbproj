@@ -544,6 +544,9 @@
     <DelphiCompile Include="..\..\Source\Common\CnNativeDecl.pas">
       <BuildOrder>155</BuildOrder>
     </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Common\CnBinaryDiffPatch.pas">
+      <BuildOrder>156</BuildOrder>
+    </DelphiCompile>
     <None Include="..\..\Source\Common\CnPack.dcr">
       <BuildOrder>25</BuildOrder>
     </None>
