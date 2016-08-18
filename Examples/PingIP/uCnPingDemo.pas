@@ -176,6 +176,7 @@ const
     + '广播地址: %4:S' + #13#10
     + 'IP地址数: %5:D' + #13#10
     + '容纳的主机数: %6:D' + #13#10;
+  BOOL_STRS: array[False..True] of string = ('False', 'True');
 var
   I: Integer;
   IpGroups: TIPGroup;
@@ -193,9 +194,9 @@ begin
     redtIPInfo.Lines.Add(IP.IntToIP(IpGroups[I].IPAddress));
     redtIPInfo.Lines.Add(IP.IntToIP(IpGroups[I].SubnetMask));
     redtIPInfo.Lines.Add(IP.IntToIP(IpGroups[I].BroadCast));
-    redtIPInfo.Lines.Add('UpState ' + BoolToStr(IpGroups[I].UpState, True));
-    redtIPInfo.Lines.Add('Loopback ' + BoolToStr(IpGroups[I].Loopback, True));
-    redtIPInfo.Lines.Add('SupportBroadcast ' + BoolToStr(IpGroups[I].SupportBroadcast, True));
+    redtIPInfo.Lines.Add('UpState ' + BOOL_STRS[IpGroups[I].UpState]);
+    redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[IpGroups[I].Loopback]);
+    redtIPInfo.Lines.Add('SupportBroadcast ' + BOOL_STRS[IpGroups[I].SupportBroadcast]);
   end;
 end;
 

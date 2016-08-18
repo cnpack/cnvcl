@@ -323,14 +323,14 @@ end;
 function TCnPing.PingOnce(var aReply: string): Boolean;
 begin
   SetIP(RemoteIP, RemoteHost, FIP);
-  Result := PingIP_Host(FIP, pointer(FDataString)^, Length(DataString),
+  Result := PingIP_Host(FIP, Pointer(FDataString)^, Length(DataString) * SizeOf(Char),
     aReply) >= 0;
 end;
 
 function TCnPing.PingOnce(const aIP: string; var aReply: string): Boolean;
 begin
   SetIP(aIP, aIP, FIP);
-  Result := PingIP_Host(FIP, pointer(FDataString)^, Length(DataString),
+  Result := PingIP_Host(FIP, Pointer(FDataString)^, Length(DataString) * SizeOf(Char),
     aReply) >= 0;
 end;
 
