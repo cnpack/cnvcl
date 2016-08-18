@@ -143,7 +143,6 @@ contains
   CnAAFontDialog in '..\..\Source\Graphics\CnAAFontDialog.pas' {CnAAFontDlg},
   CnSkinMagic in '..\..\Source\Graphics\CnSkinMagic.pas',
   CnHint in '..\..\Source\Graphics\CnHint.pas',
-  CnQQPanel in '..\..\Source\Graphics\CnQQPanel.pas',
   CnConsole in '..\..\Source\NonVisual\CnConsole.pas',
   CnFileSystemWatcher in '..\..\Source\NonVisual\CnFileSystemWatcher.pas',
   CnFilePacker in '..\..\Source\NonVisual\CnFilePacker.pas',

@@ -274,9 +274,6 @@ cnpack\Source 目录内容说明：
   CnPanel.pas
     带透明效果的Panel实现单元
 
-  CnQQPanel.pas
-    类似于QQ界面列表框的一简易实现单元
-
   CnShellCtrls.pas
     移植的 ShellCtrls 控件单元
 

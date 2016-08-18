@@ -78,7 +78,6 @@
       ..\..\Source\Graphics\CnAAFontDialog.obj 
       ..\..\Source\Graphics\CnSkinMagic.obj 
       ..\..\Source\Graphics\CnHint.obj 
-      ..\..\Source\Graphics\CnQQPanel.obj 
       ..\..\Source\NonVisual\CnConsole.obj 
       ..\..\Source\NonVisual\CnFileSystemWatcher.obj 
       ..\..\Source\NonVisual\CnFilePacker.obj 

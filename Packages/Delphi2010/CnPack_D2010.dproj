@@ -201,7 +201,6 @@
 			</DCCReference>
 			<DCCReference Include="..\..\Source\Graphics\CnSkinMagic.pas"/>
 			<DCCReference Include="..\..\Source\Graphics\CnHint.pas"/>
-			<DCCReference Include="..\..\Source\Graphics\CnQQPanel.pas"/>
 			<DCCReference Include="..\..\Source\NonVisual\CnConsole.pas"/>
 			<DCCReference Include="..\..\Source\NonVisual\CnFileSystemWatcher.pas"/>
 			<DCCReference Include="..\..\Source\NonVisual\CnFilePacker.pas"/>

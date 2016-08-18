@@ -49,7 +49,7 @@ uses
   CnWizardImage, CnEdit, CnShellCtrls, CnWaterImage, CnAOTreeView, CnAACtrls,
   CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit, CnPanel,
   CnSkinMagic, CnButtons, CnHexEditor, CnHint, CnGauge, CnListBox, CnColorGrid,
-  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, CnQQPanel;
+  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED;
 
 procedure Register;
 {* 控件、组件编辑器、属性编辑器注册过程}

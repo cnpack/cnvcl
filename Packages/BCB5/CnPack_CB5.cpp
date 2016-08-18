@@ -111,7 +111,6 @@ USEUNIT("..\..\Source\Graphics\CnPanel.pas");
 USEUNIT("..\..\Source\Graphics\CnAAFontDialog.pas");
 USEUNIT("..\..\Source\Graphics\CnSkinMagic.pas");
 USEUNIT("..\..\Source\Graphics\CnHint.pas");
-USEUNIT("..\..\Source\Graphics\CnQQPanel.pas");
 USEUNIT("..\..\Source\NonVisual\CnConsole.pas");
 USEUNIT("..\..\Source\NonVisual\CnFilePacker.pas");
 USEUNIT("..\..\Source\NonVisual\CnFileSystemWatcher.pas");
