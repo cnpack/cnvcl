@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2007 CnPack 开发组                       }
+{                   (C)Copyright 2001-2016 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -85,7 +85,7 @@ type
   TCnPing = class(TCnComponent)
   {* 通过调用ICMP.DLL库中的函数来实现Ping功能。}
   private
-    hICMP: THANDLE;
+    FHICMP: THandle;
     FRemoteHost: string;
     FRemoteIP: string;
     FIPAddress: Int64;
@@ -219,15 +219,15 @@ begin
   FTimeOut := 10;
   FDataString := SCnPingData;
 
-  hICMP := IcmpCreateFile(); // 取得DLL句柄
-  if hICMP = INVALID_HANDLE_VALUE then
+  FHICMP := IcmpCreateFile(); // 取得DLL句柄
+  if FHICMP = INVALID_HANDLE_VALUE then
     raise Exception.Create(SICMPRunError);
 end;
 
 destructor TCnPing.Destroy;
 begin
-  if hICMP <> INVALID_HANDLE_VALUE then
-    IcmpCloseHandle(hICMP);
+  if FHICMP <> INVALID_HANDLE_VALUE then
+    IcmpCloseHandle(FHICMP);
   inherited Destroy;
 end;
 
@@ -376,7 +376,7 @@ begin
     try //Ping开始
       if WSAStartup(MAKEWORD(2, 0), FWSAData) <> 0 then
         raise Exception.Create(SInitFailed);
-      if IcmpSendEcho(hICMP, //dll handle
+      if IcmpSendEcho(FHICMP, //dll handle
         aIP.Address, //target
         pReqData, //data
         Count, //data length
