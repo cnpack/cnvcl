@@ -161,9 +161,9 @@ var
 begin
   CheckIP(TButton(Sender));
   statDemo.Panels[0].Text := '测试PingFromBuffer';
-  sData:='中国人自己的开放源码第三CnPing CnIP';
+  sData:='中国人自己的开放源码第三方开发包CnPing CnIP';
   Ping.RemoteIP := IP.IntToIP(IP.IPToInt(edtStartIP.Text));
-  Ping.PingFromBuffer(sData[1], Length(sData), FResult);
+  Ping.PingFromBuffer(sData[1], Length(sData) * SizeOf(Char), FResult);
   redtPingBuffer.Lines.Text := FResult;
 end;
 
