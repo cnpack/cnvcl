@@ -1122,10 +1122,12 @@ function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer
    等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
    VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
-function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer; VisualMode: Boolean = True): Integer;
+function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
+  VisualMode: Boolean = True; AllowExceedEnd: Boolean = False): Integer;
 {* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
    等于转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。
+   AllowExceedEnd 为 False 时，计算到 #0 便会终止，不包括 #0。为 True 时，以补空格方式计算
    VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Integer): Integer;
@@ -1252,7 +1254,7 @@ end;
 
 // 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
-  VisualMode: Boolean): Integer;
+  VisualMode: Boolean; AllowExceedEnd: Boolean): Integer;
 var
   Idx: Integer;
 begin
@@ -1284,6 +1286,9 @@ begin
         Inc(Result);
       end;
     end;
+
+    if AllowExceedEnd and (Text^ = #0) and (Idx < AnsiOffset) then
+      Inc(Result, AnsiOffset - Idx);
   end;
 end;
 
