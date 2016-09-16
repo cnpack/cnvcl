@@ -38,10 +38,6 @@ interface
 
 {$I CnPack.inc}
 
-{$IFNDEF UNICODE}
-  {$MESSAGE ERROR 'Only Unicode Compiler Supported.'}
-{$ENDIF}
-
 uses
   Windows, Messages, SysUtils, Classes, TypInfo, Graphics, ScktComp, Contnrs;
 
@@ -104,7 +100,6 @@ type
 
   TCnRedisAbstractSocketType = class of TCnRedisAbstractSocket;
 
-{$H+}
   TCnRedisBuffer = array of Byte;
 
   TCnRedisDataType = (rdt_none, rdt_string, rdt_list, rdt_set, rdt_zset,
@@ -379,7 +374,6 @@ type
   ICnRedisCommand = interface(ICnRedisCommand280)
     ['{A3162571-61A1-4E6A-8D70-2D77BE43CD6A}']
   end;
-{$H-}
 
   TCnRedisProtocol = class(TInterfacedObject, ICnRedisCommand)
   private
