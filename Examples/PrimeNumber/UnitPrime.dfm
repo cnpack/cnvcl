@@ -50,6 +50,16 @@ object FormPrime: TFormPrime
         ScrollBars = ssBoth
         TabOrder = 2
       end
+      object chkQuickGen: TCheckBox
+        Left = 392
+        Top = 16
+        Width = 97
+        Height = 17
+        Caption = 'Quick Mode'
+        Checked = True
+        State = cbChecked
+        TabOrder = 3
+      end
     end
     object tsIsPrime: TTabSheet
       Caption = 'Is Prime'

@@ -17,6 +17,7 @@ type
     lblCheck: TLabel;
     edtToPrime: TEdit;
     btnIsPrime: TButton;
+    chkQuickGen: TCheckBox;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
   private
@@ -66,19 +67,37 @@ end;
 procedure TFormPrime.btnGenClick(Sender: TObject);
 var
   M, I: Cardinal;
+  List: TStrings;
+  T: DWORD;
 begin
-  M := StrToInt(edtMax.Text);
+  M := StrToInt64(edtMax.Text);
   mmoResult.Clear;
-  for I := 2 to M do
-    if IsPrime(I) then
-      mmoResult.Lines.Add(IntToStr(I) + ',');
+  if chkQuickGen.Checked then
+  begin
+    List := TStringList.Create;
+    T := GetTickCount;
+    for I := 2 to M do
+    begin
+      if CnUInt32IsPrime(I) then
+        List.Add(IntToStr(I) + ',');
+      if I mod 1000000 = 0 then
+        mmoResult.Lines[0] := FloatToStr(I / M) + ' - ' + IntToStr(GetTickCount - T);
+    end;
+    mmoResult.Lines.Assign(List);
+    mmoResult.Lines.SaveToFile('C:\prime.txt');
+    List.Free;
+  end
+  else
+    for I := 2 to M do
+      if IsPrime(I) then
+        mmoResult.Lines.Add(IntToStr(I) + ',');
 end;
 
 procedure TFormPrime.btnIsPrimeClick(Sender: TObject);
 var
   N: Cardinal;
 begin
-  N := Cardinal(StrToInt(edtToPrime.Text));
+  N := Cardinal(StrToInt64(edtToPrime.Text));
   if CnUInt32IsPrime(N) then
     ShowMessage('Is Prime Number.')
   else
