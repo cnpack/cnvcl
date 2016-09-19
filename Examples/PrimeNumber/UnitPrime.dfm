@@ -20,7 +20,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 417
-    ActivePage = tsGenPrime
+    ActivePage = tsIsPrime
     TabOrder = 0
     object tsGenPrime: TTabSheet
       Caption = 'Find Prime Numbers'
@@ -113,9 +113,9 @@ object FormPrime: TFormPrime
         OnClick = btnInt64IsPrimeClick
       end
       object btnCarmichael: TButton
-        Left = 392
+        Left = 336
         Top = 64
-        Width = 153
+        Width = 297
         Height = 25
         Caption = 'Carmichael is Prime?'
         TabOrder = 4
@@ -129,6 +129,15 @@ object FormPrime: TFormPrime
         ReadOnly = True
         ScrollBars = ssBoth
         TabOrder = 5
+      end
+      object btnGen64: TButton
+        Left = 320
+        Top = 24
+        Width = 145
+        Height = 25
+        Caption = 'Generate a Int64 Prime'
+        TabOrder = 6
+        OnClick = btnGen64Click
       end
     end
   end

@@ -33,7 +33,9 @@ unit CnPrimeNumber;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.09.16 V1.0
+* 修改记录：2016.09.19 V1.1
+*               加入 Miller Rabin 素数概率判断方法，生成方法以及 64 位实现
+*           2016.09.16 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -644,7 +646,22 @@ function MultipleMod(A, B, C: Int64): Int64;
 function MontgomeryPowerMod(A, B, C: Int64): Int64;
 {* 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出}
 
+function CnGenerateOnePrime: Int64;
+{* 生成一个随机的 64 位素数}
+
 {$IFDEF WIN64}
+
+function CnUInt64IsPrime(N: NativeUInt): Boolean;
+{* 概率性判断一 64 位无符号整数是否是素数}
+
+function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
+{* 快速计算 (A * B ) mod C，不能直接算，容易溢出}
+
+function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
+{* 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出}
+
+function CnGenerateOnePrime64: NativeUInt;
+{* 生成一个随机的 64 位无符号素数}
 
 {$ENDIF}
 
@@ -784,9 +801,8 @@ begin
 
   // 比 32 位无符号都大，咋整？
   // 使用 Miller Rabin 素数测试算法结合二次探测定理进行概率性判定
-  // Miller-Rabin 算法的理论基础：如果n是一个奇素数， 将n-1表示成2^s*r的形式(r是奇 数)，
-  // a 是和n互素的任何整数，那么a^r≡1(mod n) 或者对某个j(0≤j ≤s -1， j∈Z)
-  // 等式 a^(2^j*r) ≡-1(mod n)成立。
+  // Miller-Rabin 算法的理论基础是费马小定理与二次探测定理。
+  // 二次探测定理：如果p是一个素数，0<x<p,则方程x^2≡1(mod p)的解为x=1,p-1
 
   X := N - 1;
   T := 0;
@@ -799,12 +815,144 @@ begin
   for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
   begin
     Randomize;
-    A := Random(N - 1) + 1;
+    A := Trunc(Random * (N - 1)) + 1;
     if FermatCheckComposite(A, N, X, T) then
       Exit;
   end;
   Result := True;
 end;
+
+// 生成一个随机的 64 位素数
+function CnGenerateOnePrime: Int64;
+begin
+  Randomize;
+  Result := Trunc(Random * High(Int64) - 1) + 1;
+  while not CnInt64IsPrime(Result) do
+  begin
+    Randomize;
+    Result := Trunc(Random * High(Int64) - 1) + 1;
+  end;
+end;
+
+{$IFDEF WIN64}
+
+// 快速计算 (A * B ) mod C，不能直接算，容易溢出
+function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
+begin
+  Result := 0;
+
+  A := A mod C;
+  B := B mod C;
+
+  while B > 0 do
+  begin
+    if B and 1 <> 0 then
+    begin
+      Result := Result + A;
+      Result := Result mod C;
+    end;
+
+    A := A shl 1;
+    if A >= C then
+      A := A mod C;
+
+    B := B shr 1;
+  end;
+end;
+
+// 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出
+function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
+var
+  T: NativeUInt;
+begin
+  T := 1;
+  A := A mod C;
+
+  while B <> 1 do
+  begin
+    if (B and 1) <> 0 then
+      T := MultipleMod64(A, T, C);
+    A := MultipleMod64(A, A, C);
+    B := B shr 1;
+  end;
+  Result := MultipleMod64(A, T, C);
+end;
+
+function FermatCheckComposite64(A, B, C, T: NativeUInt): Boolean;
+var
+  I: Integer;
+  R, L: NativeUInt;
+begin
+  R := MontgomeryPowerMod64(A, C, B);
+  L := R;
+  for I := 1 to T do
+  begin
+    R := MultipleMod64(R, R, B);
+    if (R = 1) and (L <> 1) and (L <> B - 1) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    L := R;
+  end;
+
+  Result := R <> 1;
+end;
+
+function CnUInt64IsPrime(N: NativeUInt): Boolean;
+var
+  I: Integer;
+  T, X, A: NativeUInt;
+begin
+  Result := False;
+  if N < 1 then
+    Exit;
+
+  if N <= High(Cardinal) then
+  begin
+    Result := CnUInt32IsPrime(Cardinal(N));
+    Exit;
+  end;
+
+  if N and 1 = 0 then
+    Exit;
+
+  // 比 32 位无符号都大，咋整？
+  // 使用 Miller Rabin 素数测试算法结合二次探测定理进行概率性判定
+  // Miller-Rabin 算法的理论基础是费马小定理与二次探测定理。
+  // 二次探测定理：如果p是一个素数，0<x<p,则方程x^2≡1(mod p)的解为x=1,p-1
+
+  X := N - 1;
+  T := 0;
+  while X and 1 = 0 do
+  begin
+    X := X shr 1;
+    Inc(T);
+  end;
+
+  for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
+  begin
+    Randomize;
+    A := Trunc(Random * (N - 1)) + 1;
+    if FermatCheckComposite64(A, N, X, T) then
+      Exit;
+  end;
+  Result := True;
+end;
+
+// 生成一个随机的 64 位无符号素数
+function CnGenerateOnePrime64: NativeUInt;
+begin
+  Randomize;
+  Result := Trunc(Random * High(NativeUInt) - 1) + 1;
+  while not CnUInt64IsPrime(Result) do
+  begin
+    Randomize;
+    Result := Trunc(Random * High(NativeUInt) - 1) + 1;
+  end;
+end;
+
+{$ENDIF}
 
 end.
 
