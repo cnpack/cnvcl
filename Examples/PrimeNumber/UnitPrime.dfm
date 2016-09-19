@@ -1,10 +1,10 @@
 object FormPrime: TFormPrime
-  Left = 192
-  Top = 107
+  Left = 136
+  Top = 66
   BorderStyle = bsDialog
   Caption = 'Prime Number Test'
-  ClientHeight = 453
-  ClientWidth = 688
+  ClientHeight = 452
+  ClientWidth = 687
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -71,6 +71,13 @@ object FormPrime: TFormPrime
         Height = 13
         Caption = 'Check'
       end
+      object lblInt64: TLabel
+        Left = 16
+        Top = 68
+        Width = 31
+        Height = 13
+        Caption = 'Check'
+      end
       object edtToPrime: TEdit
         Left = 64
         Top = 24
@@ -87,6 +94,41 @@ object FormPrime: TFormPrime
         Caption = 'Is Prime£¿'
         TabOrder = 1
         OnClick = btnIsPrimeClick
+      end
+      object edtInt64: TEdit
+        Left = 64
+        Top = 64
+        Width = 121
+        Height = 21
+        TabOrder = 2
+        Text = '397796406237767'
+      end
+      object btnInt64IsPrime: TButton
+        Left = 208
+        Top = 64
+        Width = 105
+        Height = 25
+        Caption = 'Is Int64 Prime£¿'
+        TabOrder = 3
+        OnClick = btnInt64IsPrimeClick
+      end
+      object btnCarmichael: TButton
+        Left = 392
+        Top = 64
+        Width = 153
+        Height = 25
+        Caption = 'Carmichael is Prime?'
+        TabOrder = 4
+        OnClick = btnCarmichaelClick
+      end
+      object mmoCar: TMemo
+        Left = 16
+        Top = 112
+        Width = 617
+        Height = 257
+        ReadOnly = True
+        ScrollBars = ssBoth
+        TabOrder = 5
       end
     end
   end

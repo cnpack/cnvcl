@@ -24,7 +24,12 @@ unit CnPrimeNumber;
 * 软件名称：开发包基础库
 * 单元名称：素数算法单元
 * 单元作者：刘啸
-* 备    注：
+* 备    注：2^16 以内的素数表可以预先生成，以用来快速判断 2^32 内的数是否素数，
+*           理论上 2^32 内的素数也可预先生成写代码里，用来快速判断 2^64 内的素数
+*           但经过生成，2^32 内的素数有 203280221 个，写在代码里超过 2.5 个 G……
+*           后来采用基于费马小定理以及二次探测的 Miller Rabin 素数判定概率算法，
+*           无需排除部分已知的 Carmichael 数（Carmichael 数严格符合费马小定理，
+*           但加入二次探测后就被筛了，和其他素数保持同等概率）。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -41,6 +46,9 @@ uses
   SysUtils, Classes;
 
 const
+  // 用 Miller Rabin 素数概率判断算法所进行的次数
+  CN_MILLER_RABIN_DEF_COUNT = 30;
+
   // 65537 内的素数表，由 Examples 目录中的 Prime 测试程序在普通模式下生成
   CN_PRIME_NUMBERS_SQRT_UINT32: array[1..6543] of Cardinal = (2, 3, 5, 7, 11, 13,
     17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97,
@@ -628,7 +636,13 @@ function CnUInt32IsPrime(N: Cardinal): Boolean;
 {* 快速判断一 32 位无符号整数是否是素数}
 
 function CnInt64IsPrime(N: Int64): Boolean;
-{* 判断一 64 位有符号整数是否是素数}
+{* 概率性判断一 64 位有符号整数是否是素数}
+
+function MultipleMod(A, B, C: Int64): Int64;
+{* 快速计算 (A * B ) mod C，不能直接算，容易溢出}
+
+function MontgomeryPowerMod(A, B, C: Int64): Int64;
+{* 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出}
 
 {$IFDEF WIN64}
 
@@ -687,7 +701,73 @@ begin
   end;
 end;
 
+// 快速计算 (A * B ) mod C，不能直接算，容易溢出
+function MultipleMod(A, B, C: Int64): Int64;
+begin
+  Result := 0;
+
+  A := A mod C;
+  B := B mod C;
+
+  while B > 0 do
+  begin
+    if B and 1 <> 0 then
+    begin
+      Result := Result + A;
+      Result := Result mod C;
+    end;
+
+    A := A shl 1;
+    if A >= C then
+      A := A mod C;
+
+    B := B shr 1;
+  end;
+end;
+
+// 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出
+function MontgomeryPowerMod(A, B, C: Int64): Int64;
+var
+  T: Int64;
+begin
+  T := 1;
+  A := A mod C;
+
+  while B <> 1 do
+  begin
+    if (B and 1) <> 0 then
+      T := MultipleMod(A, T, C);
+    A := MultipleMod(A, A, C);
+    B := B shr 1;
+  end;
+  Result := MultipleMod(A, T, C);
+end;
+
+function FermatCheckComposite(A, B, C, T: Int64): Boolean;
+var
+  I: Integer;
+  R, L: Int64;
+begin
+  R := MontgomeryPowerMod(A, C, B);
+  L := R;
+  for I := 1 to T do
+  begin
+    R := MultipleMod(R, R, B);
+    if (R = 1) and (L <> 1) and (L <> B - 1) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    L := R;
+  end;
+
+  Result := R <> 1;
+end;
+
 function CnInt64IsPrime(N: Int64): Boolean;
+var
+  I: Integer;
+  T, X, A: Int64;
 begin
   Result := False;
   if N < 1 then
@@ -699,7 +779,31 @@ begin
     Exit;
   end;
 
-  // TODO: 比 32 位无符号都大，咋整？
+  if N and 1 = 0 then
+    Exit;
+
+  // 比 32 位无符号都大，咋整？
+  // 使用 Miller Rabin 素数测试算法结合二次探测定理进行概率性判定
+  // Miller-Rabin 算法的理论基础：如果n是一个奇素数， 将n-1表示成2^s*r的形式(r是奇 数)，
+  // a 是和n互素的任何整数，那么a^r≡1(mod n) 或者对某个j(0≤j ≤s -1， j∈Z)
+  // 等式 a^(2^j*r) ≡-1(mod n)成立。
+
+  X := N - 1;
+  T := 0;
+  while X and 1 = 0 do
+  begin
+    X := X shr 1;
+    Inc(T);
+  end;
+
+  for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
+  begin
+    Randomize;
+    A := Random(N - 1) + 1;
+    if FermatCheckComposite(A, N, X, T) then
+      Exit;
+  end;
+  Result := True;
 end;
 
 end.
