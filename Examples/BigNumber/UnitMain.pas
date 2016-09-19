@@ -50,6 +50,8 @@ type
     btnDivWord: TButton;
     btnModWord: TButton;
     btnVerifyDiv: TButton;
+    btnMultipleMod: TButton;
+    btnPowerMod: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -81,6 +83,8 @@ type
     procedure btnModWordClick(Sender: TObject);
     procedure btnVerifyDivClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btnMultipleModClick(Sender: TObject);
+    procedure btnPowerModClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -104,6 +108,7 @@ const
 var
   Num1: TCnBigNumber = nil;
   Num2: TCnBigNumber = nil;
+  Num3: TCnBigNumber = nil;
   AWord: DWORD;
   RandomLength: Integer = 4096;
 
@@ -111,8 +116,10 @@ procedure TFormBigNumber.FormCreate(Sender: TObject);
 begin
   Num1 := BigNumberNew;
   Num2 := BigNumberNew;
+  Num3 := BigNumberNew;
   BigNumberClear(Num1);
   BigNumberClear(Num2);
+  BigNumberClear(Num3);
   ShowNumbers;
 end;
 
@@ -467,6 +474,29 @@ procedure TFormBigNumber.FormDestroy(Sender: TObject);
 begin
   BigNumberFree(Num1);
   BigNumberFree(Num2);
+  BigNumberFree(Num3);
+end;
+
+procedure TFormBigNumber.btnMultipleModClick(Sender: TObject);
+var
+  Res: TCnBigNumber;
+begin
+  Num3.SetWord(AWord);
+  Res := BigNumberNew;
+  if BigNumberMulMod(Res, Num1, Num2, Num3) then
+    ShowMessage('BigNumberMultipleMod ' + Res.ToDec);
+  BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnPowerModClick(Sender: TObject);
+var
+  Res: TCnBigNumber;
+begin
+  Num3.SetWord(AWord);
+  Res := BigNumberNew;
+  if BigNumberMontgomeryPowerMod(Res, Num1, Num3, Num2) then
+    ShowMessage('BigNumberMontgomeryPowerMod ' + Res.ToDec);
+  BigNumberFree(Res);
 end;
 
 end.

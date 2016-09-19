@@ -641,10 +641,10 @@ function CnInt64IsPrime(N: Int64): Boolean;
 {* 概率性判断一 64 位有符号整数是否是素数}
 
 function MultipleMod(A, B, C: Int64): Int64;
-{* 快速计算 (A * B ) mod C，不能直接算，容易溢出}
+{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
 function MontgomeryPowerMod(A, B, C: Int64): Int64;
-{* 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出}
+{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
 function CnGenerateOnePrime: Int64;
 {* 生成一个随机的 64 位素数}
@@ -655,10 +655,10 @@ function CnUInt64IsPrime(N: NativeUInt): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
 
 function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
-{* 快速计算 (A * B ) mod C，不能直接算，容易溢出}
+{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
 function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
-{* 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出}
+{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
 function CnGenerateOnePrime64: NativeUInt;
 {* 生成一个随机的 64 位无符号素数}
@@ -718,7 +718,7 @@ begin
   end;
 end;
 
-// 快速计算 (A * B ) mod C，不能直接算，容易溢出
+// 快速计算 (A * B) mod C，不能直接算，容易溢出
 function MultipleMod(A, B, C: Int64): Int64;
 begin
   Result := 0;
@@ -742,7 +742,7 @@ begin
   end;
 end;
 
-// 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出
+// 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
 function MontgomeryPowerMod(A, B, C: Int64): Int64;
 var
   T: Int64;
@@ -860,7 +860,7 @@ begin
   end;
 end;
 
-// 蒙哥马利法快速计算 (A ^ B ) mod C，不能直接算，容易溢出
+// 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
 function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
 var
   T: NativeUInt;

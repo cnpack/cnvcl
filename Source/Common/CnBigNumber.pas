@@ -237,13 +237,13 @@ function BigNumberIsNegative(const Num: TCnBigNumber): Boolean;
 {* 返回一个大数对象是否负值 }
 
 function BigNumberClearBit(const Num: TCnBigNumber; N: Integer): Boolean;
-{* 给一个大数对象的第 N 个 Bit 置 0，返回成功与否 }
+{* 给一个大数对象的第 N 个 Bit 置 0，返回成功与否。N 为 0 时代表二进制最低位。}
 
 function BigNumberSetBit(const Num: TCnBigNumber; N: Integer): Boolean;
-{* 给一个大数对象的第 N 个 Bit 置 1，返回成功与否 }
+{* 给一个大数对象的第 N 个 Bit 置 1，返回成功与否。N 为 0 时代表二进制最低位。}
 
 function BigNumberIsBitSet(const Num: TCnBigNumber; N: Integer): Boolean;
-{* 返回一个大数对象的第 N 个 Bit 是否为 1 }
+{* 返回一个大数对象的第 N 个 Bit 是否为 1。N 为 0 时代表二进制最低位。}
 
 function BigNumberWordExpand(const Num: TCnBigNumber; Words: Integer): TCnBigNumber;
 {* 将一个大数对象扩展成支持 Words 个 DWORD，成功返回扩展的大数对象地址，失败返回 nil}
@@ -346,6 +346,12 @@ function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
 function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
+
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
+
+function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+{* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
 
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
@@ -3381,6 +3387,97 @@ begin
     BigNumberContextEnd(Ctx^);
     BigNumberContextFree(Ctx);
   end;
+end;
+
+// 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C 之一
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+var
+  AA, BB: TCnBigNumber;
+begin
+  Result := False;
+
+  AA := BigNumberNew;
+  BB := BigNumberNew;
+  BigNumberClear(AA);
+  BigNumberClear(BB);  // 使用临时变量，保证 A、B 自身的值不发生变化
+
+  try
+    if not BigNumberMod(AA, A, C) then
+      Exit;
+
+    if not BigNumberMod(BB, B, C) then
+      Exit;
+
+    Res.SetZero; // 如果 Res 是 A 或 B，后面参与运算的是 AA 或 BB，改变 A 或 B不影响
+
+    while not BB.IsZero do
+    begin
+      if BigNumberIsBitSet(BB, 0) then
+      begin
+        if not BigNumberAdd(Res, Res, AA) then
+          Exit;
+
+        if not BigNumberMod(Res, Res, C) then
+          Exit;
+      end;
+
+      if not BigNumberShiftLeftOne(AA, AA) then
+        Exit;
+
+      if BigNumberCompare(AA, C) >= 0 then
+        if not BigNumberMod(AA, AA, C) then
+          Exit;
+
+      if not BigNumberShiftRightOne(BB, BB) then
+        Exit;
+    end;
+  finally
+    BigNumberFree(AA);
+    BigNumberFree(BB);
+  end;
+  Result := True;
+end;
+
+// 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一
+function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+var
+  T, AA, BB: TCnBigNumber;
+begin
+  Result := False;
+  T := TCnBigNumber.FromDec('1');
+
+  AA := BigNumberNew;
+  BB := BigNumberNew;
+  BigNumberClear(AA);
+  BigNumberClear(BB);  // 使用临时变量，保证 A、B 自身的值不发生变化
+
+  try
+    if not BigNumberMod(AA, A, C) then
+      Exit;
+
+    BigNumberCopy(BB, B);
+
+    while not BB.IsOne do
+    begin
+      if BigNumberIsBitSet(BB, 0) then
+        if not BigNumberMulMod(T, AA, T, C) then
+          Exit;
+
+      if not BigNumberMulMod(AA, AA, AA, C) then
+        Exit;
+
+      if not BigNumberShiftRightOne(BB, BB) then
+        Exit;
+    end;
+
+    if not BigNumberMulMod(Res, AA, T, C) then
+      Exit;
+  finally
+    BigNumberFree(T);
+    BigNumberFree(AA);
+    BigNumberFree(BB);
+  end;
+  Result := True;
 end;
 
 { TCnBigNumber }
