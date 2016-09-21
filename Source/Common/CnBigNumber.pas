@@ -46,8 +46,8 @@ uses
   Classes, SysUtils, Windows;
 
 const
-  BN_FLG_MALLOCED       = $1;    // 本大数对象是动态分配而来
-  BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是静态数据
+  BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
+  BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是指向外部的静态数据
   BN_FLG_CONSTTIME      = $4;
 
   BN_FLG_FREE           = $8000;
@@ -347,7 +347,8 @@ function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
-function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber;
+  Context: Pointer = nil): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
@@ -378,34 +379,34 @@ const
 type
   {* 大数运算的中间对象中的双向链表元素，
      每个元素包含一数组，容纳 BN_CTX_POOL_SIZE 个大数对象}
-  PBigNumberPoolItem = ^TBigNumberPoolItem;
-  TBigNumberPoolItem = packed record
+  PCnBigNumberPoolItem = ^TCnBigNumberPoolItem;
+  TCnBigNumberPoolItem = packed record
     Vals: array[0..BN_CTX_POOL_SIZE - 1] of TCnBigNumber;
-    Prev: PBigNumberPoolItem;
-    Next: PBigNumberPoolItem;
+    Prev: PCnBigNumberPoolItem;
+    Next: PCnBigNumberPoolItem;
   end;
 
   {* 大数运算的中间池，一双向链表 }
-  TBigNumberPool = packed record
-    Head: PBigNumberPoolItem;
-    Current: PBigNumberPoolItem;
-    Tail: PBigNumberPoolItem;
+  TCnBigNumberPool = packed record
+    Head: PCnBigNumberPoolItem;
+    Current: PCnBigNumberPoolItem;
+    Tail: PCnBigNumberPoolItem;
     Used: DWORD;
     Size: DWORD;
   end;
 
   {* 大数运算堆栈}
-  TBigNumberStack = packed record
+  TCnBigNumberStack = packed record
     Indexes: PDWORD;
     Depth: DWORD;
     Size: DWORD;
   end;
 
   {* 大数运算中间结构 }
-  PBigNumberContext = ^TBigNumberContext;
-  TBigNumberContext = packed record
-    Pool: TBigNumberPool;
-    Stack: TBigNumberStack;
+  PCnBigNumberContext = ^TCnBigNumberContext;
+  TCnBigNumberContext = packed record
+    Pool: TCnBigNumberPool;
+    Stack: TCnBigNumberStack;
     Used: DWORD;
     ErrStack: Integer;
     TooMany: Integer;
@@ -2517,7 +2518,7 @@ end;
 {* BigNumberPool 双向链表池操作函数开始 }
 
 // 初始化一 BigNumberPool
-procedure BigNumberPoolInit(var Pool: TBigNumberPool);
+procedure BigNumberPoolInit(var Pool: TCnBigNumberPool);
 begin
   with Pool do
   begin
@@ -2530,7 +2531,7 @@ begin
 end;
 
 // 遍历并释放一 BigNumberPool 内的所有元素
-procedure BigNumberPoolFinish(var Pool: TBigNumberPool);
+procedure BigNumberPoolFinish(var Pool: TCnBigNumberPool);
 var
   I: Integer;
 begin
@@ -2548,9 +2549,9 @@ begin
   end;
 end;
 
-procedure BigNumberPoolReset(var Pool: TBigNumberPool);
+procedure BigNumberPoolReset(var Pool: TCnBigNumberPool);
 var
-  Item: PBigNumberPoolItem;
+  Item: PCnBigNumberPoolItem;
   I: Integer;
 begin
   Item := Pool.Head;
@@ -2572,10 +2573,10 @@ begin
 end;
 
 // 从池中分配并取出一个大数结构地址
-function BigNumberPoolGet(var Pool: TBigNumberPool): TCnBigNumber;
+function BigNumberPoolGet(var Pool: TCnBigNumberPool): TCnBigNumber;
 var
   I: Integer;
-  Item: PBigNumberPoolItem;
+  Item: PCnBigNumberPoolItem;
 begin
   if Pool.Used = Pool.Size then
   begin
@@ -2619,7 +2620,7 @@ begin
 end;
 
 // 从池尾部缩小 Num 个大数结构，仅作标记，不释放内存
-procedure BigNumberPoolRelease(var Pool: TBigNumberPool; Num: Integer);
+procedure BigNumberPoolRelease(var Pool: TCnBigNumberPool; Num: Integer);
 var
   Offset: Integer;
 begin
@@ -2644,7 +2645,7 @@ end;
 {* BigNumberStack 堆栈操作函数开始 }
 
 // 初始化一个大数堆栈
-procedure BigNumberStackInit(var Stack: TBigNumberStack);
+procedure BigNumberStackInit(var Stack: TCnBigNumberStack);
 begin
   Stack.Indexes := nil;
   Stack.Depth := 0;
@@ -2652,20 +2653,20 @@ begin
 end;
 
 // 释放一个大数堆栈的内部存储区
-procedure BigNumberStackFinish(var Stack: TBigNumberStack);
+procedure BigNumberStackFinish(var Stack: TCnBigNumberStack);
 begin
   if Stack.Size > 0 then
     FreeMemory(Stack.Indexes);
 end;
 
 // 重置大数堆栈
-procedure BigNumberStackReset(var Stack: TBigNumberStack);
+procedure BigNumberStackReset(var Stack: TCnBigNumberStack);
 begin
   Stack.Depth := 0;
 end;
 
 // 将一个数据推入堆栈
-function BigNumberStackPush(var Stack: TBigNumberStack; Idx: DWORD): Boolean;
+function BigNumberStackPush(var Stack: TCnBigNumberStack; Idx: DWORD): Boolean;
 var
   NewSize: Integer;
   NewItems: PDWORD;
@@ -2697,7 +2698,7 @@ begin
 end;
 
 // 从堆栈中弹出
-function BigNumberStackPop(var Stack: TBigNumberStack): DWORD;
+function BigNumberStackPop(var Stack: TCnBigNumberStack): DWORD;
 begin
   Dec(Stack.Depth);
   Result := PDWordArray(Stack.Indexes)^[Stack.Depth];
@@ -2707,7 +2708,7 @@ end;
 
 {* BigNumberContext 中间结构操作函数开始 }
 
-procedure BigNumberContextInit(var Ctx: TBigNumberContext);
+procedure BigNumberContextInit(var Ctx: TCnBigNumberContext);
 begin
   BigNumberPoolReset(Ctx.Pool);
   BigNumberStackReset(Ctx.Stack);
@@ -2716,7 +2717,7 @@ begin
   Ctx.TooMany := 0;
 end;
 
-function BigNumberContextNew: PBigNumberContext;
+function BigNumberContextNew: PCnBigNumberContext;
 begin
   New(Result);
   if Result = nil then
@@ -2728,7 +2729,7 @@ begin
   Result^.TooMany := 0;
 end;
 
-procedure BigNumberContextFree(Ctx: PBigNumberContext);
+procedure BigNumberContextFree(Ctx: PCnBigNumberContext);
 begin
   if Ctx <> nil then
   begin
@@ -2738,7 +2739,7 @@ begin
   end;
 end;
 
-procedure BigNumberContextStart(var Ctx: TBigNumberContext);
+procedure BigNumberContextStart(var Ctx: TCnBigNumberContext);
 begin
   if (Ctx.ErrStack <> 0) or (Ctx.TooMany <> 0) then
     Inc(Ctx.ErrStack)
@@ -2746,7 +2747,7 @@ begin
     Inc(Ctx.ErrStack);
 end;
 
-procedure BigNumberContextEnd(var Ctx: TBigNumberContext);
+procedure BigNumberContextEnd(var Ctx: TCnBigNumberContext);
 var
   FP: DWORD;
 begin
@@ -2762,7 +2763,7 @@ begin
   end;
 end;
 
-function BigNumberContextGet(var Ctx: TBigNumberContext): TCnBigNumber;
+function BigNumberContextGet(var Ctx: TCnBigNumberContext): TCnBigNumber;
 begin
   Result := nil;
   if (Ctx.ErrStack <> 0) or (Ctx.TooMany <> 0) then
@@ -2818,7 +2819,7 @@ end;
 
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
-  Ctx: PBigNumberContext;
+  Ctx: PCnBigNumberContext;
   Max, AL: Integer;
   Tmp, RR: TCnBigNumber;
   T: array[0..15] of DWORD;
@@ -2946,7 +2947,7 @@ end;
 function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 var
-  Ctx: PBigNumberContext;
+  Ctx: PCnBigNumberContext;
   Top, AL, BL: Integer;
   RR: TCnBigNumber;
 begin
@@ -2998,7 +2999,7 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 var
   NoBranch: Integer;
-  Ctx: PBigNumberContext;
+  Ctx: PCnBigNumberContext;
   Tmp, SNum, SDiv, SRes: TCnBigNumber;
   I, NormShift, Loop, NumN, DivN, Neg: Integer;
   D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: DWORD;
@@ -3224,7 +3225,7 @@ function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
 var
   I, Bits: Integer;
   V, RR: TCnBigNumber;
-  Ctx: PBigNumberContext;
+  Ctx: PCnBigNumberContext;
 begin
   Result := False;
   if BigNumberGetFlag(Exponent, BN_FLG_CONSTTIME) <> 0 then
@@ -3348,7 +3349,7 @@ function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 var
   T, A, B: TCnBigNumber;
-  Ctx: PBigNumberContext;
+  Ctx: PCnBigNumberContext;
 begin
   Result := False;
 
@@ -3390,16 +3391,24 @@ begin
 end;
 
 // 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C 之一
-function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber;
+  Context: Pointer): Boolean;
 var
+  Ctx: PCnBigNumberContext;
   AA, BB: TCnBigNumber;
 begin
   Result := False;
 
-  AA := BigNumberNew;
-  BB := BigNumberNew;
-  BigNumberClear(AA);
-  BigNumberClear(BB);  // 使用临时变量，保证 A、B 自身的值不发生变化
+  Ctx := PCnBigNumberContext(Context);
+  if Ctx = nil then
+  begin
+    Ctx := BigNumberContextNew;
+    BigNumberContextStart(Ctx^);
+  end;
+
+  // 使用临时变量，保证 A、B 自身的值不发生变化
+  AA := BigNumberContextGet(Ctx^);
+  BB := BigNumberContextGet(Ctx^);
 
   try
     if not BigNumberMod(AA, A, C) then
@@ -3432,8 +3441,11 @@ begin
         Exit;
     end;
   finally
-    BigNumberFree(AA);
-    BigNumberFree(BB);
+    if Context = nil then
+    begin
+      BigNumberContextEnd(Ctx^);
+      BigNumberContextFree(Ctx);
+    end;
   end;
   Result := True;
 end;
@@ -3441,15 +3453,19 @@ end;
 // 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 var
+  Ctx: PCnBigNumberContext;
   T, AA, BB: TCnBigNumber;
 begin
   Result := False;
-  T := TCnBigNumber.FromDec('1');
 
-  AA := BigNumberNew;
-  BB := BigNumberNew;
-  BigNumberClear(AA);
-  BigNumberClear(BB);  // 使用临时变量，保证 A、B 自身的值不发生变化
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+
+  AA := BigNumberContextGet(Ctx^);
+  BB := BigNumberContextGet(Ctx^);
+  T := BigNumberContextGet(Ctx^);
+  if not T.SetOne then
+    Exit;
 
   try
     if not BigNumberMod(AA, A, C) then
@@ -3460,22 +3476,21 @@ begin
     while not BB.IsOne do
     begin
       if BigNumberIsBitSet(BB, 0) then
-        if not BigNumberMulMod(T, AA, T, C) then
+        if not BigNumberMulMod(T, AA, T, C, Ctx) then
           Exit;
 
-      if not BigNumberMulMod(AA, AA, AA, C) then
+      if not BigNumberMulMod(AA, AA, AA, C, Ctx) then
         Exit;
 
       if not BigNumberShiftRightOne(BB, BB) then
         Exit;
     end;
 
-    if not BigNumberMulMod(Res, AA, T, C) then
+    if not BigNumberMulMod(Res, AA, T, C, Ctx) then
       Exit;
   finally
-    BigNumberFree(T);
-    BigNumberFree(AA);
-    BigNumberFree(BB);
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
   end;
   Result := True;
 end;
@@ -3509,8 +3524,8 @@ end;
 
 destructor TCnBigNumber.Destroy;
 begin
-  if (D <> nil) and (BigNumberGetFlag(Self, BN_FLG_STATIC_DATA) <> 0) then
-    Dispose(Self.D);
+  if (D <> nil) and (BigNumberGetFlag(Self, BN_FLG_STATIC_DATA) = 0) then
+    FreeMemory(Self.D);     // 不是外部管理的静态数据，需要释放
   if BigNumberGetFlag(Self, BN_FLG_MALLOCED) <> 0 then
   begin
     // Dispose(Num);
