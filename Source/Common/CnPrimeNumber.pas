@@ -646,7 +646,7 @@ function MultipleMod(A, B, C: Int64): Int64;
 function MontgomeryPowerMod(A, B, C: Int64): Int64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function CnGenerateOnePrime: Int64;
+function CnGenerateInt64Prime: Int64;
 {* 生成一个随机的 64 位素数}
 
 {$IFDEF WIN64}
@@ -660,7 +660,7 @@ function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
 function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function CnGenerateOnePrime64: NativeUInt;
+function CnGenerateUInt64Prime: NativeUInt;
 {* 生成一个随机的 64 位无符号素数}
 
 {$ENDIF}
@@ -823,7 +823,7 @@ begin
 end;
 
 // 生成一个随机的 64 位素数
-function CnGenerateOnePrime: Int64;
+function CnGenerateInt64Prime: Int64;
 begin
   Randomize;
   Result := Trunc(Random * High(Int64) - 1) + 1;
@@ -941,7 +941,7 @@ begin
 end;
 
 // 生成一个随机的 64 位无符号素数
-function CnGenerateOnePrime64: NativeUInt;
+function CnGenerateUInt64Prime: NativeUInt;
 begin
   Randomize;
   Result := Trunc(Random * High(NativeUInt) - 1) + 1;

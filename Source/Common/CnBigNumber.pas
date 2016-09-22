@@ -62,6 +62,8 @@ const
   BN_MASK2h             = $FFFF0000;
   BN_MASK2h1            = $FFFF8000;
 
+  BN_MILLER_RABIN_DEF_COUNT = 30;
+
 type
   TDWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of DWORD;
   PDWordArray = ^TDWordArray;
@@ -3546,10 +3548,53 @@ begin
 end;
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber): Boolean;
+var
+  I, T: Integer;
+  X, R, W: TCnBigNumber;
 begin
   Result := False;
+  if Num.IsZero or Num.IsNegative or Num.IsOne or not Num.IsOdd then
+    Exit;
 
-  // TODO: Miller-Rabin Test
+  // Miller-Rabin Test
+  X := BigNumberNew;
+  R := BigNumberNew;
+  W := BigNumberNew;
+
+  try
+    if not BigNumberCopy(X, Num) then
+      Exit;
+
+    if BigNumberSubWord(X, 1) then
+      Exit;
+
+    if not BigNumberCopy(W, X) then  // W := Num - 1;
+      Exit;
+
+    T := 0;
+    while not X.IsOdd do // X and 1 = 0
+    begin
+      if not BigNumberShiftRightOne(X, X) then
+        Exit;
+      Inc(T);
+    end;
+
+    for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
+    begin
+      //Randomize;
+      //R := Trunc(Random * (N - 1)) + 1;
+      // TODO: 生成 0 到 Num - 1 也就是 W 之间的随机大数
+      if not BigNumberAddWord(R, 1) then
+        Exit;
+
+      if BigNumberFermatCheckComposite(R, Num, X, T) then
+        Exit;
+    end;
+  finally
+    BigNumberFree(X);
+    BigNumberFree(R);
+  end;
+  Result := True;
 end;
 
 { TCnBigNumber }
