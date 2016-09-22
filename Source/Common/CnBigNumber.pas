@@ -354,6 +354,9 @@ function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber;
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
 
+function BigNumberIsProbablyPrime(const Num: TCnBigNumber): Boolean;
+{* 概率性判断一个大数是否素数}
+
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
 
@@ -3390,7 +3393,7 @@ begin
   end;
 end;
 
-// 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C 之一
+// 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber;
   Context: Pointer): Boolean;
 var
@@ -3471,7 +3474,8 @@ begin
     if not BigNumberMod(AA, A, C) then
       Exit;
 
-    BigNumberCopy(BB, B);
+    if BigNumberCopy(BB, B) = nil then
+      Exit;
 
     while not BB.IsOne do
     begin
@@ -3493,6 +3497,59 @@ begin
     BigNumberContextFree(Ctx);
   end;
   Result := True;
+end;
+
+function BigNumberFermatCheckComposite(const A, B, C: TCnBigNumber; T: Integer): Boolean;
+var
+  I: Integer;
+  Ctx: PCnBigNumberContext;
+  R, L, S: TCnBigNumber;
+begin
+  Result := False;
+
+  Ctx := BigNumberContextNew;
+  BigNumberContextStart(Ctx^);
+  try
+    R := BigNumberContextGet(Ctx^);
+    if not BigNumberMontgomeryPowerMod(R, A, C, B) then
+      Exit;
+
+    L := BigNumberContextGet(Ctx^);
+    if BigNumberCopy(L, R) = nil then // L := R;
+      Exit;
+
+    S := BigNumberContextGet(Ctx^);
+    for I := 1 to T do
+    begin
+      if not BigNumberMulMod(R, R, R, B, Ctx) then
+        Exit;
+
+      if R.IsOne and not L.IsOne then
+      begin
+        BigNumberSub(S, B, L);
+        if not S.IsOne then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+
+      if BigNumberCopy(L, R) = nil then
+        Exit;
+    end;
+
+    Result := not R.IsOne;
+  finally
+    BigNumberContextEnd(Ctx^);
+    BigNumberContextFree(Ctx);
+  end;
+end;
+
+function BigNumberIsProbablyPrime(const Num: TCnBigNumber): Boolean;
+begin
+  Result := False;
+
+  // TODO: Miller-Rabin Test
 end;
 
 { TCnBigNumber }
