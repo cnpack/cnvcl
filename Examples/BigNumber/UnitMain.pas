@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnBigNumber, Spin, ExtCtrls;
+  StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon;
 
 type
   TFormBigNumber = class(TForm)
@@ -52,6 +52,10 @@ type
     btnVerifyDiv: TButton;
     btnMultipleMod: TButton;
     btnPowerMod: TButton;
+    btnIsPrime: TButton;
+    btnGenPrime: TButton;
+    btnJudgeInt: TButton;
+    btnRandRange: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -85,6 +89,10 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure btnMultipleModClick(Sender: TObject);
     procedure btnPowerModClick(Sender: TObject);
+    procedure btnIsPrimeClick(Sender: TObject);
+    procedure btnGenPrimeClick(Sender: TObject);
+    procedure btnJudgeIntClick(Sender: TObject);
+    procedure btnRandRangeClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -497,6 +505,70 @@ begin
   if BigNumberMontgomeryPowerMod(Res, Num1, Num3, Num2) then
     ShowMessage('BigNumberMontgomeryPowerMod ' + Res.ToDec);
   BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnIsPrimeClick(Sender: TObject);
+var
+  S: string;
+  B: TCnBigNumber;
+begin
+  if not CnInputQuery('Hint', 'Enter a Dec Number. If Cancel, will Use Num1.', S) then
+  begin
+    if BigNumberIsProbablyPrime(Num1) then
+      ShowMessage('Num1 is Prime, maybe.')
+    else
+      ShowMessage('Num1 is NOT Prime.');
+  end
+  else
+  begin
+    B := TCnBigNumber.FromDec(S);
+    if BigNumberIsProbablyPrime(B) then
+      ShowMessage('Enter is Prime, maybe.')
+    else
+      ShowMessage('Enter is NOT Prime.');
+    B.Free;
+  end;
+end;
+
+procedure TFormBigNumber.btnGenPrimeClick(Sender: TObject);
+begin
+  BigNumberClear(Num1);
+  CalcRandomLength;
+  if BigNumberGeneratePrime(Num1, RandomLength) then
+  begin
+    ShowNumbers;
+    CheckNumber(Num1);
+    CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+  end;
+end;
+
+procedure TFormBigNumber.btnJudgeIntClick(Sender: TObject);
+var
+  S: string;
+  N: TCnBigNumber;
+  B1, B2, B3, B4: Boolean;
+begin
+  if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+  begin
+    N := TCnBigNumber.FromDec(S);
+    B1 := BigNumberIsInt32(N);
+    B2 := BigNumberIsUInt32(N);
+    B3 := BigNumberIsInt64(N);
+    B4 := BigNumberIsUInt64(N);
+    ShowMessage(Format('Int32 %s. UInt32 %s. Int64 %s. UInt64 %s.', [BoolToStr(B1, True),
+      BoolToStr(B2, True), BoolToStr(B3, True), BoolToStr(B4, True)]));
+    N.Free;
+  end;
+end;
+
+procedure TFormBigNumber.btnRandRangeClick(Sender: TObject);
+begin
+  if BigNumberRandRange(Num2, Num1) then
+  begin
+    ShowNumbers;
+    CheckNumber(Num1);
+    CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+  end;
 end;
 
 end.

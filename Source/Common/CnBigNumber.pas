@@ -52,7 +52,8 @@ const
 
   BN_FLG_FREE           = $8000;
 
-  BN_BITS               = 64;
+  BN_BITS_UINT_32       = 32;
+  BN_BITS_UINT_64       = 64;
   BN_BYTES              = 4;
   BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
   BN_BITS4              = 16;
@@ -290,6 +291,9 @@ procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 function BigNumberRandBytes(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
 {* 产生固定字节长度的随机大数 }
 
+function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
+{* 产生 [0, Range) 之间的随机大数}
+
 function BigNumberUnsignedAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 {* 两个大数对象无符号相加，结果放至 Res 中，返回相加是否成功}
@@ -358,6 +362,21 @@ function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNum
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber): Boolean;
 {* 概率性判断一个大数是否素数}
+
+function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
+{* 生成一个指定位数的大素数}
+
+function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
+{* 大数是否是一个 32 位有符号整型范围内的数}
+
+function BigNumberIsUInt32(const Num: TCnBigNumber): Boolean;
+{* 大数是否是一个 32 位无符号整型范围内的数}
+
+function BigNumberIsInt64(const Num: TCnBigNumber): Boolean;
+{* 大数是否是一个 64 位有符号整型范围内的数}
+
+function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
+{* 大数是否是一个 64 位无符号整型范围内的数}
 
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
@@ -1039,23 +1058,38 @@ begin
   end;
 end;
 
-//function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
-//var
-//  N: Integer;
-//begin
-//  Result := False;
-//  if (Range = nil) or (Num = nil) or (Range.Neg <> 0) or BigNumberIsZero(Range) then
-//    Exit;
-//
-//  N := BigNumberGetBitsCount(Range);
-//  if N = 1 then
-//    BigNumberSetZero(Num)
-//  else if (not BigNumberIsBitSet(Range, N - 2))
-//    and (not BigNumberIsBitSet(Range, N - 3)) then
-//  begin
-//    // TODO: CONTINUE
-//  end
-//end;
+function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
+var
+  N, C, I: Integer;
+begin
+  Result := False;
+  if (Range = nil) or (Num = nil) or (Range.Neg <> 0) or BigNumberIsZero(Range) then
+    Exit;
+
+  N := BigNumberGetBitsCount(Range);
+  if N = 1 then
+    BigNumberSetZero(Num)
+  else
+  begin
+    // 要产生 N + 1 bits 的随机大数，字节计算也就是 ((N + 1) div 8 + 1 bytes
+    C := ((N + 1) div 8) + 1;
+    if not BigNumberRandBytes(Num, C) then
+      Exit;
+
+    // 但头上可能有多余的，再把 C * 8 - 1 到 N + 1 之间的位清零
+    if N + 1 <= C * 8 - 1 then
+      for I := C * 8 - 1 downto N + 1 do
+        if not BigNumberClearBit(Num, I) then
+          Exit;
+
+    while BigNumberCompare(Num, Range) >= 0 do
+    begin
+      if not BigNumberSub(Num, Num, Range) then
+        Exit;
+    end;
+  end;
+  Result := True;
+end;
 
 function BigNumberDuplicate(const Num: TCnBigNumber): TCnBigNumber;
 begin
@@ -3562,13 +3596,13 @@ begin
   W := BigNumberNew;
 
   try
-    if not BigNumberCopy(X, Num) then
+    if BigNumberCopy(X, Num) = nil then
       Exit;
 
-    if BigNumberSubWord(X, 1) then
+    if not BigNumberSubWord(X, 1) then
       Exit;
 
-    if not BigNumberCopy(W, X) then  // W := Num - 1;
+    if BigNumberCopy(W, X) = nil then  // W := Num - 1;
       Exit;
 
     T := 0;
@@ -3579,11 +3613,11 @@ begin
       Inc(T);
     end;
 
-    for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
+    for I := 1 to BN_MILLER_RABIN_DEF_COUNT do
     begin
-      //Randomize;
-      //R := Trunc(Random * (N - 1)) + 1;
-      // TODO: 生成 0 到 Num - 1 也就是 W 之间的随机大数
+      if not BigNumberRandRange(R, W) then
+        Exit;
+
       if not BigNumberAddWord(R, 1) then
         Exit;
 
@@ -3595,6 +3629,101 @@ begin
     BigNumberFree(R);
   end;
   Result := True;
+end;
+
+// 生成一个指定位数的大素数
+function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
+begin
+  Result := False;
+  if not BigNumberRandBytes(Num, BytesCount) then
+    Exit;
+
+  while not BigNumberIsProbablyPrime(Num) do
+  begin
+    if not BigNumberRandBytes(Num, BytesCount) then
+      Exit;
+  end;
+  Result := True;
+end;
+
+// 大数是否是一个 32 位有符号整型范围内的数
+function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
+var
+  C: Integer;
+begin
+  Result := False;
+
+  C := Num.GetBitsCount;
+  if C > BN_BITS_UINT_32 then // 超界
+    Exit;
+  if C < BN_BITS_UINT_32 then // 小于 32 位，是
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // 32 位
+  if Num.IsNegative then // 负数，小于 -$80000000 则超界
+  begin
+    if not BigNumberIsBitSet(Num, BN_BITS_UINT_32 - 1) then
+      Result := True  // 最高位不为 1，说明绝对值小于 $80000000
+    else
+    begin
+      // 最高位为 1，其他位需要全 0 才属于 Int32
+      for C := 0 to BN_BITS_UINT_32 - 2 do
+        if BigNumberIsBitSet(Num, C) then // 只要有个 1 就表示超界了
+          Exit;
+      Result := True;
+    end;
+  end
+  else // 正数，需要判断最高位是否是 1，是 1 则超界，也就是大于 $7FFFFFFF
+    Result := not BigNumberIsBitSet(Num, BN_BITS_UINT_32 - 1);
+end;
+
+// 大数是否是一个 32 位无符号整型范围内的数
+function BigNumberIsUInt32(const Num: TCnBigNumber): Boolean;
+begin
+  Result := not Num.IsNegative and (Num.GetBitsCount <= BN_BITS_UINT_32);
+end;
+
+// 大数是否是一个 64 位有符号整型范围内的数
+function BigNumberIsInt64(const Num: TCnBigNumber): Boolean;
+var
+  C: Integer;
+begin
+  Result := False;
+
+  C := Num.GetBitsCount;
+  if C > BN_BITS_UINT_64 then // 超界
+    Exit;
+  if C < BN_BITS_UINT_64 then // 小于 32 位，是
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // 64 位
+  if Num.IsNegative then // 负数，小于 -$80000000 00000000 则超界
+  begin
+    if not BigNumberIsBitSet(Num, BN_BITS_UINT_64 - 1) then
+      Result := True  // 最高位不为 1，说明绝对值小于 $80000000 00000000
+    else
+    begin
+      // 最高位为 1，其他位需要全 0 才属于 Int64
+      for C := 0 to BN_BITS_UINT_64 - 2 do
+        if BigNumberIsBitSet(Num, C) then // 只要有个 1 就表示超界了
+          Exit;
+      Result := True;
+    end;
+  end
+  else // 正数，需要判断最高位是否是 1，是 1 则超界，也就是大于 $7FFFFFFF
+    Result := not BigNumberIsBitSet(Num, BN_BITS_UINT_64 - 1);
+end;
+
+// 大数是否是一个 64 位无符号整型范围内的数
+function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
+begin
+  Result := not Num.IsNegative and (Num.GetBitsCount <= BN_BITS_UINT_64);
 end;
 
 { TCnBigNumber }
