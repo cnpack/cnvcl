@@ -68,6 +68,8 @@ const
   BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
 type
+  ERandomAPIError = class(Exception);
+
   TDWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of DWORD;
   PDWordArray = ^TDWordArray;
 
@@ -190,7 +192,7 @@ procedure BigNumberInit(const Num: TCnBigNumber);
 procedure BigNumberClear(const Num: TCnBigNumber);
 {* 清除一个大数对象，并将其数据空间填 0，并不释放 D 内存 }
 
-function BigNumberIsZero(const Num: TCnBigNumber): Boolean;
+function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 {* 返回一个大数对象里的大数是否为 0 }
 
 function BigNumberSetZero(const Num: TCnBigNumber): Boolean;
@@ -403,7 +405,7 @@ const
   BN_DEC_FMT2 = '%.9u';
 
 var
-  FGlobalBigNumberPool: TObjectList = nil;
+  FLocalBigNumberPool: TObjectList = nil;
 
 function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
   pszProvider: PAnsiChar; dwProvType: DWORD; dwFlags: DWORD): BOOL;
@@ -419,14 +421,14 @@ function CryptGenRandom(hProv: ULONG; dwLen: DWORD; pbBuffer: PAnsiChar): BOOL;
 
 function ObtainBigNumberFromPool: TCnBigNumber;
 begin
-  if FGlobalBigNumberPool.Count = 0 then
+  if FLocalBigNumberPool.Count = 0 then
   begin
     Result := TCnBigNumber.Create;
   end
   else
   begin
-    Result := TCnBigNumber(FGlobalBigNumberPool.Items[FGlobalBigNumberPool.Count - 1]);
-    FGlobalBigNumberPool.Delete(FGlobalBigNumberPool.Count - 1);
+    Result := TCnBigNumber(FLocalBigNumberPool.Items[FLocalBigNumberPool.Count - 1]);
+    FLocalBigNumberPool.Delete(FLocalBigNumberPool.Count - 1);
     Result.Clear;
   end;
 end;
@@ -434,7 +436,7 @@ end;
 procedure RecycleBigNumberToPool(Num: TCnBigNumber);
 begin
   if Num <> nil then
-    FGlobalBigNumberPool.Add(Num);
+    FLocalBigNumberPool.Add(Num);
 end;
 
 {* 大数池操作方法结束}
@@ -471,7 +473,7 @@ begin
   Num.Free;
 end;
 
-function BigNumberIsZero(const Num: TCnBigNumber): Boolean;  {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := (Num.Top = 0);
 end;
@@ -494,10 +496,7 @@ end;
 
 function BigNumberIsOne(const Num: TCnBigNumber): Boolean;
 begin
-  if (Num.Neg = 0) and BigNumberAbsIsWord(Num, 1) then
-    Result := True
-  else
-    Result := False;
+  Result := (Num.Neg = 0) and BigNumberAbsIsWord(Num, 1);
 end;
 
 function BigNumberSetOne(const Num: TCnBigNumber): Boolean;
@@ -1011,17 +1010,14 @@ begin
   HProv := 0;
   Result := False;
   if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0) then
-    Exit;
+    raise ERandomAPIError.CreateFmt('Error CryptAcquireContext %d', [GetLastError]);
 
   if HProv <> 0 then
   begin
     try
       Result := CryptGenRandom(HProv, Len, Buf);
-//      if not Result then
-//      begin
-//        Ret := GetLastError;
-//        Result := Ret <> 0;
-//      end;
+      if not Result then
+        raise ERandomAPIError.CreateFmt('Error CryptGenRandom %d', [GetLastError]);
     finally
       CryptReleaseContext(HProv, 0);
     end;
@@ -1751,7 +1747,7 @@ var
   Neg: Integer;
 begin
   Result := False;
-  
+
   Neg := Num1.Neg;
   A := Num1;
   B := Num2;
@@ -2845,7 +2841,7 @@ begin
 
     // 注意 WNum 需要使用外部的 D，把池子里拿出来的东西先备份
     WNum.Neg := 0;
-    WNum.D := PDWORD(Integer(SNum.D) + Loop * SizeOf(DWORD)); 
+    WNum.D := PDWORD(Integer(SNum.D) + Loop * SizeOf(DWORD));
     WNum.Top := DivN;
     WNum.DMax := SNum.DMax - Loop;
 
@@ -3367,7 +3363,8 @@ begin
 end;
 
 // 生成一个指定位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
-function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer; TestCount: Integer): Boolean;
+function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
+  TestCount: Integer): Boolean;
 begin
   Result := False;
   if not BigNumberRandBytes(Num, BytesCount) then
@@ -3644,13 +3641,13 @@ procedure FreeBigNumberPool;
 var
   I: Integer;
 begin
-  for I := 0 to FGlobalBigNumberPool.Count - 1 do
-    TObject(FGlobalBigNumberPool[I]).Free;
-  FreeAndNil(FGlobalBigNumberPool);
+  for I := 0 to FLocalBigNumberPool.Count - 1 do
+    TObject(FLocalBigNumberPool[I]).Free;
+  FreeAndNil(FLocalBigNumberPool);
 end;
 
 initialization
-  FGlobalBigNumberPool := TObjectList.Create(False);
+  FLocalBigNumberPool := TObjectList.Create(False);
 
 finalization
   FreeBigNumberPool;
