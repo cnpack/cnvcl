@@ -534,7 +534,7 @@ procedure TFormBigNumber.btnGenPrimeClick(Sender: TObject);
 begin
   BigNumberClear(Num1);
   CalcRandomLength;
-  if BigNumberGeneratePrime(Num1, RandomLength) then
+  if BigNumberGeneratePrime(Num1, RandomLength, 60) then
   begin
     ShowNumbers;
     CheckNumber(Num1);

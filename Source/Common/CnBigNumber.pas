@@ -65,7 +65,7 @@ const
   BN_MASK2h             = $FFFF0000;
   BN_MASK2h1            = $FFFF8000;
 
-  BN_MILLER_RABIN_DEF_COUNT = 30;
+  BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
 type
   TDWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of DWORD;
@@ -361,11 +361,12 @@ function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
 
-function BigNumberIsProbablyPrime(const Num: TCnBigNumber): Boolean;
-{* 概率性判断一个大数是否素数}
+function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+{* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
-function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
-{* 生成一个指定位数的大素数}
+function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+{* 生成一个指定位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 32 位有符号整型范围内的数}
@@ -3306,12 +3307,16 @@ begin
   end;
 end;
 
-function BigNumberIsProbablyPrime(const Num: TCnBigNumber): Boolean;
+// TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer): Boolean;
 var
   I, T: Integer;
   X, R, W: TCnBigNumber;
 begin
   Result := False;
+  if TestCount <= 1 then
+    Exit;
+
   if Num.IsZero or Num.IsNegative or Num.IsOne or not Num.IsOdd then
     Exit;
 
@@ -3342,7 +3347,7 @@ begin
       Inc(T);
     end;
 
-    for I := 1 to BN_MILLER_RABIN_DEF_COUNT do
+    for I := 1 to TestCount do
     begin
       if not BigNumberRandRange(R, W) then
         Exit;
@@ -3361,14 +3366,14 @@ begin
   Result := True;
 end;
 
-// 生成一个指定位数的大素数
-function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
+// 生成一个指定位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer; TestCount: Integer): Boolean;
 begin
   Result := False;
   if not BigNumberRandBytes(Num, BytesCount) then
     Exit;
 
-  while not BigNumberIsProbablyPrime(Num) do
+  while not BigNumberIsProbablyPrime(Num, TestCount) do
   begin
     if not BigNumberRandBytes(Num, BytesCount) then
       Exit;
