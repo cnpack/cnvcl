@@ -7,7 +7,7 @@ uses
   ExtCtrls, StdCtrls, ComCtrls, Clipbrd;
 
 type
-  TForm1 = class(TForm)
+  TFormCrypt = class(TForm)
     PageControl1: TPageControl;
     tsDES: TTabSheet;
     tsMD5: TTabSheet;
@@ -97,6 +97,13 @@ type
     rbAescbc: TRadioButton;
     cbbAesKeyBitType: TComboBox;
     lblKeyBit: TLabel;
+    tsSHA256: TTabSheet;
+    grpSHA256: TGroupBox;
+    lblSHA256: TLabel;
+    edtSHA256: TEdit;
+    btnSHA256: TButton;
+    pnlSHA256: TPanel;
+    btnFileSHA256: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -117,6 +124,8 @@ type
     procedure btnAesEncryptClick(Sender: TObject);
     procedure btnAesDecryptClick(Sender: TObject);
     procedure ResultDblClick(Sender: TObject);
+    procedure btnSHA256Click(Sender: TObject);
+    procedure btnFileSHA256Click(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -126,16 +135,16 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormCrypt: TFormCrypt;
 
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2;
 
 {$R *.DFM}
 
-procedure TForm1.btnMd5Click(Sender: TObject);
+procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtFrom.Text)));
@@ -144,17 +153,17 @@ begin
 {$ENDIF}
 end;
 
-procedure TForm1.btnDesCryptClick(Sender: TObject);
+procedure TFormCrypt.btnDesCryptClick(Sender: TObject);
 begin
   edtCode.Text := DESEncryptStrToHex(edtDesFrom.Text, edtKey.Text);
 end;
 
-procedure TForm1.btnDesDecryptClick(Sender: TObject);
+procedure TFormCrypt.btnDesDecryptClick(Sender: TObject);
 begin
   edtOrigin.Text := DESDecryptStrFromHex(edtCode.Text, edtKey.Text);
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormCrypt.Button1Click(Sender: TObject);
 var
   S: string;
 begin
@@ -162,7 +171,7 @@ begin
   edt3.Text := S;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TFormCrypt.Button2Click(Sender: TObject);
 var
   S: AnsiString;
 begin
@@ -170,7 +179,7 @@ begin
   edt4.Text := S;
 end;
 
-procedure TForm1.btnCRC32Click(Sender: TObject);
+procedure TFormCrypt.btnCRC32Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   pnlCRC32.Caption := IntToHex(StrCRC32A(0, AnsiString(edtCRC32.Text)), 2);
@@ -179,13 +188,13 @@ begin
 {$ENDIF}
 end;
 
-procedure TForm1.btnMd5FileClick(Sender: TObject);
+procedure TFormCrypt.btnMd5FileClick(Sender: TObject);
 begin
   if OpenDialog1.Execute then
     pnlMd5.Caption := MD5Print(MD5File(OpenDialog1.FileName));
 end;
 
-procedure TForm1.btnFileCRC32Click(Sender: TObject);
+procedure TFormCrypt.btnFileCRC32Click(Sender: TObject);
 var
   Crc: DWORD;
 begin
@@ -195,13 +204,13 @@ begin
       pnlCRC32.Caption := IntToHex(Crc, 2);
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormCrypt.FormCreate(Sender: TObject);
 begin
   PageControl1.ActivePageIndex := 0;
   cbbAesKeyBitType.ItemIndex := 0;
 end;
 
-procedure TForm1.btnCRC64Click(Sender: TObject);
+procedure TFormCrypt.btnCRC64Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   pnlCRC64.Caption := IntToHex(StrCRC64A(0, AnsiString(edtCRC64.Text)), 2);
@@ -210,7 +219,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TForm1.btnFileCRC64Click(Sender: TObject);
+procedure TFormCrypt.btnFileCRC64Click(Sender: TObject);
 var
   Crc: Int64;
 begin
@@ -220,7 +229,7 @@ begin
       pnlCRC64.Caption := IntToHex(Crc, 2);
 end;
 
-procedure TForm1.btnSha1Click(Sender: TObject);
+procedure TFormCrypt.btnSha1Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   pnlSha1.Caption := SHA1Print(SHA1StringA(AnsiString(edtSha1.Text)));
@@ -229,13 +238,13 @@ begin
 {$ENDIF}
 end;
 
-procedure TForm1.btnFileSha1Click(Sender: TObject);
+procedure TFormCrypt.btnFileSha1Click(Sender: TObject);
 begin
   if OpenDialog1.Execute then
     pnlSha1.Caption := SHA1Print(SHA1File(OpenDialog1.FileName));
 end;
 
-procedure TForm1.btnSM3Click(Sender: TObject);
+procedure TFormCrypt.btnSM3Click(Sender: TObject);
 var
   S: string;
 begin
@@ -249,7 +258,7 @@ begin
   lblSm3Result.Caption := S;
 end;
 
-procedure TForm1.btnFileSM3Click(Sender: TObject);
+procedure TFormCrypt.btnFileSM3Click(Sender: TObject);
 var
   S: string;
 begin
@@ -282,7 +291,7 @@ var
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
 
-procedure TForm1.btnSm4Click(Sender: TObject);
+procedure TFormCrypt.btnSm4Click(Sender: TObject);
 var
   Output: AnsiString;
   Len: Integer;
@@ -317,7 +326,7 @@ begin
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
 
-function TForm1.ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
+function TFormCrypt.ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
 const
   Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
                                   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
@@ -334,7 +343,7 @@ begin
   end;
 end;
 
-procedure TForm1.btnSm4DecClick(Sender: TObject);
+procedure TFormCrypt.btnSm4DecClick(Sender: TObject);
 var
   S: AnsiString;
   Output: AnsiString;
@@ -380,7 +389,7 @@ begin
   Result := Res;
 end;
 
-function TForm1.HexToStr(Hex: string): AnsiString;
+function TFormCrypt.HexToStr(Hex: string): AnsiString;
 var
   S: string;
   I: Integer;
@@ -393,7 +402,7 @@ begin
   end;
 end;
 
-procedure TForm1.btnAesEncryptClick(Sender: TObject);
+procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
 begin
@@ -422,7 +431,7 @@ begin
   end;
 end;
 
-procedure TForm1.btnAesDecryptClick(Sender: TObject);
+procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
 begin
@@ -451,12 +460,27 @@ begin
   end;
 end;
 
-procedure TForm1.ResultDblClick(Sender: TObject);
+procedure TFormCrypt.ResultDblClick(Sender: TObject);
 begin
   if Sender is TPanel then
     Clipboard.AsText := (Sender as TPanel).Caption
   else if Sender is TLabel then
     Clipboard.AsText := (Sender as TLabel).Caption;
+end;
+
+procedure TFormCrypt.btnSHA256Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlSha1.Caption := SHA256Print(SHA256StringA(AnsiString(edtSha1.Text)));
+{$ELSE}
+  pnlSha1.Caption := SHA256Print(SHA256String(edtSha1.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnFileSHA256Click(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlSha256.Caption := SHA256Print(SHA256File(OpenDialog1.FileName));
 end;
 
 end.

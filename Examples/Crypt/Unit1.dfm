@@ -1,10 +1,10 @@
-object Form1: TForm1
+object FormCrypt: TFormCrypt
   Left = 192
   Top = 107
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 414
-  ClientWidth = 402
+  ClientWidth = 521
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -19,16 +19,16 @@ object Form1: TForm1
   object PageControl1: TPageControl
     Left = 24
     Top = 24
-    Width = 353
+    Width = 473
     Height = 361
-    ActivePage = tsBase64
+    ActivePage = tsDES
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
       object grpdES: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'DES'
@@ -117,7 +117,7 @@ object Form1: TForm1
       object grpMd5: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'MD5'
@@ -171,7 +171,7 @@ object Form1: TForm1
       object GroupBox1: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Base64'
@@ -245,7 +245,7 @@ object Form1: TForm1
       object grpCRC32: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'CRC32'
@@ -300,7 +300,7 @@ object Form1: TForm1
       object grp1: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'CRC64'
@@ -355,7 +355,7 @@ object Form1: TForm1
       object grpSha1: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA1'
@@ -410,7 +410,7 @@ object Form1: TForm1
       object grpSM3: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM3'
@@ -466,7 +466,7 @@ object Form1: TForm1
       object grpSM4: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM3'
@@ -573,7 +573,7 @@ object Form1: TForm1
       object grpAes: TGroupBox
         Left = 24
         Top = 24
-        Width = 297
+        Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'AES'
@@ -691,6 +691,61 @@ object Form1: TForm1
             '128 Bit'
             '192 Bit'
             '256 Bit')
+        end
+      end
+    end
+    object tsSHA256: TTabSheet
+      Caption = 'SHA256'
+      ImageIndex = 9
+      object grpSHA256: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA1'
+        TabOrder = 0
+        object lblSHA256: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object edtSHA256: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA256: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA256'
+          TabOrder = 1
+          OnClick = btnSHA256Click
+        end
+        object pnlSHA256: TPanel
+          Left = 8
+          Top = 136
+          Width = 281
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+          OnDblClick = ResultDblClick
+        end
+        object btnFileSHA256: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA256'
+          TabOrder = 3
+          OnClick = btnFileSHA256Click
         end
       end
     end
