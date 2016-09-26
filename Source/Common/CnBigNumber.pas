@@ -31,7 +31,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2014.11.05 V1.1
+* 修改记录：2016.09.26 V1.2
+*               加入素数计算；大数池改成全局方式以提高效率
+*           2014.11.05 V1.1
 *               大数从结构方式改为对象方式，增加部分方法
 *           2014.10.15 V1.0
 *               创建单元
@@ -43,7 +45,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows;
+  Classes, SysUtils, Windows, Contnrs;
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -353,8 +355,7 @@ function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
-function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber;
-  Context: Pointer = nil): Boolean;
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
@@ -400,41 +401,8 @@ const
   BN_DEC_FMT = '%u';
   BN_DEC_FMT2 = '%.9u';
 
-type
-  {* 大数运算的中间对象中的双向链表元素，
-     每个元素包含一数组，容纳 BN_CTX_POOL_SIZE 个大数对象}
-  PCnBigNumberPoolItem = ^TCnBigNumberPoolItem;
-  TCnBigNumberPoolItem = packed record
-    Vals: array[0..BN_CTX_POOL_SIZE - 1] of TCnBigNumber;
-    Prev: PCnBigNumberPoolItem;
-    Next: PCnBigNumberPoolItem;
-  end;
-
-  {* 大数运算的中间池，一双向链表 }
-  TCnBigNumberPool = packed record
-    Head: PCnBigNumberPoolItem;
-    Current: PCnBigNumberPoolItem;
-    Tail: PCnBigNumberPoolItem;
-    Used: DWORD;
-    Size: DWORD;
-  end;
-
-  {* 大数运算堆栈}
-  TCnBigNumberStack = packed record
-    Indexes: PDWORD;
-    Depth: DWORD;
-    Size: DWORD;
-  end;
-
-  {* 大数运算中间结构 }
-  PCnBigNumberContext = ^TCnBigNumberContext;
-  TCnBigNumberContext = packed record
-    Pool: TCnBigNumberPool;
-    Stack: TCnBigNumberStack;
-    Used: DWORD;
-    ErrStack: Integer;
-    TooMany: Integer;
-  end;
+var
+  FGlobalBigNumberPool: TObjectList = nil;
 
 function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
   pszProvider: PAnsiChar; dwProvType: DWORD; dwFlags: DWORD): BOOL;
@@ -446,12 +414,36 @@ function CryptReleaseContext(hProv: ULONG; dwFlags: DWORD): BOOL;
 function CryptGenRandom(hProv: ULONG; dwLen: DWORD; pbBuffer: PAnsiChar): BOOL;
   stdcall; external ADVAPI32 name 'CryptGenRandom';
 
-procedure BigNumberSetFlag(const Num: TCnBigNumber; N: Integer);
+{* 大数池操作方法开始}
+
+function ObtainBigNumberFromPool: TCnBigNumber;
+begin
+  if FGlobalBigNumberPool.Count = 0 then
+  begin
+    Result := TCnBigNumber.Create;
+  end
+  else
+  begin
+    Result := TCnBigNumber(FGlobalBigNumberPool.Items[FGlobalBigNumberPool.Count - 1]);
+    FGlobalBigNumberPool.Delete(FGlobalBigNumberPool.Count - 1);
+    Result.Clear;
+  end;
+end;
+
+procedure RecycleBigNumberToPool(Num: TCnBigNumber);
+begin
+  if Num <> nil then
+    FGlobalBigNumberPool.Add(Num);
+end;
+
+{* 大数池操作方法结束}
+
+procedure BigNumberSetFlag(const Num: TCnBigNumber; N: Integer); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Num.Flags := Num.Flags or N;
 end;
 
-function BigNumberGetFlag(const Num: TCnBigNumber; N: Integer): Integer;
+function BigNumberGetFlag(const Num: TCnBigNumber; N: Integer): Integer; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := Num.Flags and N;
 end;
@@ -478,7 +470,7 @@ begin
   Num.Free;
 end;
 
-function BigNumberIsZero(const Num: TCnBigNumber): Boolean;
+function BigNumberIsZero(const Num: TCnBigNumber): Boolean;  {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := (Num.Top = 0);
 end;
@@ -512,7 +504,7 @@ begin
   Result := BigNumberSetWord(Num, 1);
 end;
 
-function BigNumberIsOdd(const Num: TCnBigNumber): Boolean;
+function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   if (Num.Top > 0) and ((PDWordArray(Num.D)^[0] and 1) <> 0) then
     Result := True
@@ -1190,17 +1182,17 @@ begin
   Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
 end;
 
-function LBITS(Num: DWORD): DWORD;
+function LBITS(Num: DWORD): DWORD; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := Num and BN_MASK2l;
 end;
 
-function HBITS(Num: DWORD): DWORD;
+function HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := (Num shr BN_BITS4) and BN_MASK2l;
 end;
 
-function L2HBITS(Num: DWORD): DWORD;
+function L2HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 begin
   Result := (Num shl BN_BITS4) and BN_MASK2;
 end;
@@ -2553,274 +2545,6 @@ begin
   Result.Neg := Neg;
 end;
 
-
-{* BigNumberPool 双向链表池操作函数开始 }
-
-// 初始化一 BigNumberPool
-procedure BigNumberPoolInit(var Pool: TCnBigNumberPool);
-begin
-  with Pool do
-  begin
-    Head := nil;
-    Current := nil;
-    Tail := nil;
-    Used := 0;
-    Size := 0;
-  end;
-end;
-
-// 遍历并释放一 BigNumberPool 内的所有元素
-procedure BigNumberPoolFinish(var Pool: TCnBigNumberPool);
-var
-  I: Integer;
-begin
-  while Pool.Head <> nil do
-  begin
-    // 会释放 D 内存也释放大数对象
-    for I := 0 to BN_CTX_POOL_SIZE - 1 do
-    begin
-      BigNumberFree(Pool.Head.Vals[I]);
-      Pool.Head.Vals[I] := nil;
-    end;
-    Pool.Current := Pool.Head.Next;
-    FreeMemory(Pool.Head);
-    Pool.Head := Pool.Current;
-  end;
-end;
-
-procedure BigNumberPoolReset(var Pool: TCnBigNumberPool);
-var
-  Item: PCnBigNumberPoolItem;
-  I: Integer;
-begin
-  Item := Pool.Head;
-  while Item <> nil do
-  begin
-    for I := 0 to BN_CTX_POOL_SIZE - 1 do
-    begin
-      BigNumberClear(Item.Vals[I]);
-      BigNumberFree(Item.Vals[I]);
-
-      Item.Vals[I] := nil;
-    end;
-
-    Item := Item.Next;
-  end;
-
-  Pool.Current := Pool.Head;
-  Pool.Used := 0;
-end;
-
-// 从池中分配并取出一个大数结构地址
-function BigNumberPoolGet(var Pool: TCnBigNumberPool): TCnBigNumber;
-var
-  I: Integer;
-  Item: PCnBigNumberPoolItem;
-begin
-  if Pool.Used = Pool.Size then
-  begin
-    // This Item is Full. Get another
-    New(Item);
-    for I := 0 to BN_CTX_POOL_SIZE - 1 do
-    begin
-      Item.Vals[I] := BigNumberNew;
-      BigNumberInit(Item.Vals[I]);
-    end;
-
-    Item.Prev := Pool.Tail;
-    Item.Next := nil;
-
-    if Pool.Head = nil then
-    begin
-      Pool.Head := Item;
-      Pool.Current := Item;
-      Pool.Tail := Item;
-    end
-    else
-    begin
-      Pool.Tail.Next := Item;
-      Pool.Tail := Item;
-      Pool.Current := Item;
-    end;
-
-    Inc(Pool.Size, BN_CTX_POOL_SIZE);
-    Inc(Pool.Used);
-    Result := Item.Vals[0];
-    Exit;
-  end;
-
-  if Pool.Used = 0 then
-    Pool.Current := Pool.Head
-  else if (Pool.Used mod BN_CTX_POOL_SIZE) = 0 then
-    Pool.Current := Pool.Current.Next;
-
-  Result := Pool.Current.Vals[Pool.Used mod BN_CTX_POOL_SIZE];
-  Inc(Pool.Used);
-end;
-
-// 从池尾部缩小 Num 个大数结构，仅作标记，不释放内存
-procedure BigNumberPoolRelease(var Pool: TCnBigNumberPool; Num: Integer);
-var
-  Offset: Integer;
-begin
-  Offset := (Pool.Used - 1) mod BN_CTX_POOL_SIZE;
-  Dec(Pool.Used, Num);
-  while Num <> 0 do
-  begin
-    if Offset = 0 then
-    begin
-      Offset := BN_CTX_POOL_SIZE - 1;
-      Pool.Current := Pool.Current.Prev;
-    end
-    else
-      Dec(Offset);
-
-    Dec(Num);
-  end;
-end;
-
-{* BigNumberPool 双向链表池操作函数结束 }
-
-{* BigNumberStack 堆栈操作函数开始 }
-
-// 初始化一个大数堆栈
-procedure BigNumberStackInit(var Stack: TCnBigNumberStack);
-begin
-  Stack.Indexes := nil;
-  Stack.Depth := 0;
-  Stack.Size := 0;
-end;
-
-// 释放一个大数堆栈的内部存储区
-procedure BigNumberStackFinish(var Stack: TCnBigNumberStack);
-begin
-  if Stack.Size > 0 then
-    FreeMemory(Stack.Indexes);
-end;
-
-// 重置大数堆栈
-procedure BigNumberStackReset(var Stack: TCnBigNumberStack);
-begin
-  Stack.Depth := 0;
-end;
-
-// 将一个数据推入堆栈
-function BigNumberStackPush(var Stack: TCnBigNumberStack; Idx: DWORD): Boolean;
-var
-  NewSize: Integer;
-  NewItems: PDWORD;
-begin
-  Result := False;
-  if Stack.Depth = Stack.Size then
-  begin
-    if Stack.Size = 0 then
-      NewSize := BN_CTX_START_FRAMES
-    else
-      NewSize := (Stack.Size * 3) div 2;
-
-    NewItems := PDWORD(GetMemory(NewSize * SizeOf(DWORD)));
-    if NewItems = nil then
-      Exit;
-
-    if Stack.Depth > 0 then
-      CopyMemory(NewItems, Stack.Indexes, Stack.Depth * SizeOf(DWORD));
-    if Stack.Size > 0 then
-      FreeMemory(Stack.Indexes);
-
-    Stack.Indexes := NewItems;
-    Stack.Size := NewSize;
-  end;
-
-  PDWordArray(Stack.Indexes)^[Stack.Depth] := Idx;
-  Inc(Stack.Depth);
-  Result := True;
-end;
-
-// 从堆栈中弹出
-function BigNumberStackPop(var Stack: TCnBigNumberStack): DWORD;
-begin
-  Dec(Stack.Depth);
-  Result := PDWordArray(Stack.Indexes)^[Stack.Depth];
-end;
-
-{* BigNumberStack 堆栈操作函数结束 }
-
-{* BigNumberContext 中间结构操作函数开始 }
-
-procedure BigNumberContextInit(var Ctx: TCnBigNumberContext);
-begin
-  BigNumberPoolReset(Ctx.Pool);
-  BigNumberStackReset(Ctx.Stack);
-  Ctx.Used := 0;
-  Ctx.ErrStack := 0;
-  Ctx.TooMany := 0;
-end;
-
-function BigNumberContextNew: PCnBigNumberContext;
-begin
-  New(Result);
-  if Result = nil then
-    Exit;
-  BigNumberPoolInit(Result^.Pool);
-  BigNumberStackInit(Result^.Stack);
-  Result^.Used := 0;
-  Result^.ErrStack := 0;
-  Result^.TooMany := 0;
-end;
-
-procedure BigNumberContextFree(Ctx: PCnBigNumberContext);
-begin
-  if Ctx <> nil then
-  begin
-    BigNumberStackFinish(Ctx^.Stack);
-    BigNumberPoolFinish(Ctx^.Pool);
-    FreeMemory(Ctx);
-  end;
-end;
-
-procedure BigNumberContextStart(var Ctx: TCnBigNumberContext);
-begin
-  if (Ctx.ErrStack <> 0) or (Ctx.TooMany <> 0) then
-    Inc(Ctx.ErrStack)
-  else if not BigNumberStackPush(Ctx.Stack, Ctx.Used) then
-    Inc(Ctx.ErrStack);
-end;
-
-procedure BigNumberContextEnd(var Ctx: TCnBigNumberContext);
-var
-  FP: DWORD;
-begin
-  if Ctx.ErrStack <> 0 then
-    Dec(Ctx.ErrStack)
-  else
-  begin
-    FP := BigNumberStackPop(Ctx.Stack);
-    if FP < Ctx.Used then
-      BigNumberPoolRelease(Ctx.Pool, Ctx.Used - FP);
-    Ctx.Used := FP;
-    Ctx.TooMany := 0;
-  end;
-end;
-
-function BigNumberContextGet(var Ctx: TCnBigNumberContext): TCnBigNumber;
-begin
-  Result := nil;
-  if (Ctx.ErrStack <> 0) or (Ctx.TooMany <> 0) then
-    Exit;
-
-  Result := BigNumberPoolGet(Ctx.Pool);
-  if Result = nil then
-  begin
-    Ctx.TooMany := 1;
-    Exit;
-  end;
-
-  BigNumberSetZero(Result);
-  Inc(Ctx.Used);
-end;
-
-{* BigNumberContext 中间结构操作函数结束 }
-
 // Tmp should have 2 * N DWORDs
 procedure BigNumberSqrNormal(R: PDWORD; A: PDWORD; N: Integer; Tmp: PDWORD);
 var
@@ -2858,7 +2582,6 @@ end;
 
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
-  Ctx: PCnBigNumberContext;
   Max, AL: Integer;
   Tmp, RR: TCnBigNumber;
   T: array[0..15] of DWORD;
@@ -2873,16 +2596,16 @@ begin
     Exit;
   end;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
+  RR := nil;
+  Tmp := nil;
 
   try
     if Num <> Res then
       RR := Res
     else
-      RR := BigNumberContextGet(Ctx^);
+      RR := ObtainBigNumberFromPool;
 
-    Tmp := BigNumberContextGet(Ctx^);
+    Tmp := ObtainBigNumberFromPool;
     if (RR = nil) or (Tmp = nil) then
       Exit;
 
@@ -2915,8 +2638,8 @@ begin
       BigNumberCopy(Res, RR);
     Result := True;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
+    RecycleBigNumberToPool(RR);
+    RecycleBigNumberToPool(Tmp);
   end;
 end;
 
@@ -2986,7 +2709,6 @@ end;
 function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 var
-  Ctx: PCnBigNumberContext;
   Top, AL, BL: Integer;
   RR: TCnBigNumber;
 begin
@@ -3002,13 +2724,11 @@ begin
   end;
   Top := AL + BL;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
-
+  RR := nil;
   try
     if (Res = Num1) or (Res = Num2) then
     begin
-      RR := BigNumberContextGet(Ctx^);
+      RR := ObtainBigNumberFromPool;
       if RR = nil then
         Exit;
     end
@@ -3029,8 +2749,7 @@ begin
       BigNumberCopy(Res, RR);
     Result := True;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
+    RecycleBigNumberToPool(RR);
   end;
 end;
 
@@ -3038,11 +2757,10 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 var
   NoBranch: Integer;
-  Ctx: PCnBigNumberContext;
   Tmp, SNum, SDiv, SRes: TCnBigNumber;
-  I, NormShift, Loop, NumN, DivN, Neg: Integer;
+  I, NormShift, Loop, NumN, DivN, Neg, BackupTop, BackupDMax, BackupFlag, BackupNeg: Integer;
   D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: DWORD;
-  Resp, WNump: PDWORD;
+  Resp, WNump, BackupD: PDWORD;
   WNum: TCnBigNumber;
 begin
   Result := False;
@@ -3067,14 +2785,17 @@ begin
     Exit;
   end;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
   WNum := nil;
-  
+  Tmp := nil;
+  SNum := nil;
+  SDiv := nil;
+  BackupTop := 0;
+  BackupDMax := 0;
+
   try
-    Tmp := BigNumberContextGet(Ctx^);
-    SNum := BigNumberContextGet(Ctx^);
-    SDiv := BigNumberContextGet(Ctx^);
+    Tmp := ObtainBigNumberFromPool;
+    SNum := ObtainBigNumberFromPool;
+    SDiv := ObtainBigNumberFromPool;
     SRes := Res;
 
     if (Tmp = nil) or (SNum = nil) or (SDiv = nil) or (SRes = nil) then
@@ -3115,9 +2836,15 @@ begin
     NumN := SNum.Top;
     Loop := NumN - DivN;
 
-    WNum := TCnBigNumber.Create;
+    WNum := ObtainBigNumberFromPool;
+    BackupNeg := WNum.Neg;
+    BackupD := WNum.D;
+    BackupTop := WNum.Top;
+    BackupDMax := WNum.DMax;
+
+    // 注意 WNum 需要使用外部的 D，把池子里拿出来的东西先备份
     WNum.Neg := 0;
-    WNum.D := PDWORD(Integer(SNum.D) + Loop * SizeOf(DWORD));
+    WNum.D := PDWORD(Integer(SNum.D) + Loop * SizeOf(DWORD)); 
     WNum.Top := DivN;
     WNum.DMax := SNum.DMax - Loop;
 
@@ -3223,9 +2950,15 @@ begin
       BigNumberCorrectTop(SRes);
     Result := True;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
-    WNum.Free;
+    RecycleBigNumberToPool(Tmp);
+    RecycleBigNumberToPool(SNum);
+    RecycleBigNumberToPool(SDiv);
+    // 恢复 WNum 内容并扔回池子里
+    WNum.Neg := BackupNeg;
+    WNum.D := BackupD;
+    WNum.Top := BackupTop;
+    WNum.DMax := BackupDMax;
+    RecycleBigNumberToPool(WNum);
   end;
 end;
 
@@ -3234,11 +2967,11 @@ function BigNumberMod(const Remain: TCnBigNumber;
 var
   Res: TCnBigNumber;
 begin
-  Res := BigNumberNew;
+  Res := ObtainBigNumberFromPool;
   try
     Result := BigNumberDiv(Res, Remain, Num, Divisor);
   finally
-    BigNumberFree(Res);
+    RecycleBigNumberToPool(Res);
   end;
 end;
 
@@ -3264,20 +2997,19 @@ function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
 var
   I, Bits: Integer;
   V, RR: TCnBigNumber;
-  Ctx: PCnBigNumberContext;
 begin
   Result := False;
   if BigNumberGetFlag(Exponent, BN_FLG_CONSTTIME) <> 0 then
     Exit;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
+  RR := nil;
+  V := nil;
   try
     if (Res = Num) or (Res = Exponent) then
-      RR := BigNumberContextGet(Ctx^)
+      RR := ObtainBigNumberFromPool
     else
       RR := Res;
-    V := BigNumberContextGet(Ctx^);
+    V := ObtainBigNumberFromPool;
     if (RR = nil) or (V = nil) then
       Exit;
 
@@ -3310,8 +3042,8 @@ begin
       BigNumberCopy(Res, RR);
     Result := True;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
+    RecycleBigNumberToPool(RR);
+    RecycleBigNumberToPool(V);
   end;
 end;
 
@@ -3388,16 +3120,15 @@ function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
   var Num2: TCnBigNumber): Boolean;
 var
   T, A, B: TCnBigNumber;
-  Ctx: PCnBigNumberContext;
 begin
   Result := False;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
+  A := nil;
+  B := nil;
 
   try
-    A := BigNumberContextGet(Ctx^);
-    B := BigNumberContextGet(Ctx^);
+    A := ObtainBigNumberFromPool;
+    B := ObtainBigNumberFromPool;
     if (A = nil) or (B = nil) then
       Exit;
 
@@ -3424,32 +3155,25 @@ begin
 
     Result := True;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
+    RecycleBigNumberToPool(A);
+    RecycleBigNumberToPool(B);
   end;
 end;
 
 // 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
-function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber;
-  Context: Pointer): Boolean;
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 var
-  Ctx: PCnBigNumberContext;
   AA, BB: TCnBigNumber;
 begin
   Result := False;
-
-  Ctx := PCnBigNumberContext(Context);
-  if Ctx = nil then
-  begin
-    Ctx := BigNumberContextNew;
-    BigNumberContextStart(Ctx^);
-  end;
-
-  // 使用临时变量，保证 A、B 自身的值不发生变化
-  AA := BigNumberContextGet(Ctx^);
-  BB := BigNumberContextGet(Ctx^);
+  AA := nil;
+  BB := nil;
 
   try
+    // 使用临时变量，保证 A、B 自身的值不发生变化
+    AA := ObtainBigNumberFromPool;
+    BB := ObtainBigNumberFromPool;
+
     if not BigNumberMod(AA, A, C) then
       Exit;
 
@@ -3480,11 +3204,8 @@ begin
         Exit;
     end;
   finally
-    if Context = nil then
-    begin
-      BigNumberContextEnd(Ctx^);
-      BigNumberContextFree(Ctx);
-    end;
+    RecycleBigNumberToPool(AA);
+    RecycleBigNumberToPool(BB);
   end;
   Result := True;
 end;
@@ -3492,21 +3213,22 @@ end;
 // 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 var
-  Ctx: PCnBigNumberContext;
   T, AA, BB: TCnBigNumber;
 begin
   Result := False;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
-
-  AA := BigNumberContextGet(Ctx^);
-  BB := BigNumberContextGet(Ctx^);
-  T := BigNumberContextGet(Ctx^);
-  if not T.SetOne then
-    Exit;
+  AA := nil;
+  BB := nil;
+  T := nil;
 
   try
+    AA := ObtainBigNumberFromPool;
+    BB := ObtainBigNumberFromPool;
+    T := ObtainBigNumberFromPool;
+
+    if not T.SetOne then
+      Exit;
+
     if not BigNumberMod(AA, A, C) then
       Exit;
 
@@ -3516,21 +3238,22 @@ begin
     while not BB.IsOne do
     begin
       if BigNumberIsBitSet(BB, 0) then
-        if not BigNumberMulMod(T, AA, T, C, Ctx) then
+        if not BigNumberMulMod(T, AA, T, C) then
           Exit;
 
-      if not BigNumberMulMod(AA, AA, AA, C, Ctx) then
+      if not BigNumberMulMod(AA, AA, AA, C) then
         Exit;
 
       if not BigNumberShiftRightOne(BB, BB) then
         Exit;
     end;
 
-    if not BigNumberMulMod(Res, AA, T, C, Ctx) then
+    if not BigNumberMulMod(Res, AA, T, C) then
       Exit;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(AA);
+    RecycleBigNumberToPool(BB);
   end;
   Result := True;
 end;
@@ -3538,26 +3261,27 @@ end;
 function BigNumberFermatCheckComposite(const A, B, C: TCnBigNumber; T: Integer): Boolean;
 var
   I: Integer;
-  Ctx: PCnBigNumberContext;
   R, L, S: TCnBigNumber;
 begin
   Result := False;
 
-  Ctx := BigNumberContextNew;
-  BigNumberContextStart(Ctx^);
+  R := nil;
+  L := nil;
+  S := nil;
+
   try
-    R := BigNumberContextGet(Ctx^);
+    R := ObtainBigNumberFromPool;
     if not BigNumberMontgomeryPowerMod(R, A, C, B) then
       Exit;
 
-    L := BigNumberContextGet(Ctx^);
+    L := ObtainBigNumberFromPool;
     if BigNumberCopy(L, R) = nil then // L := R;
       Exit;
 
-    S := BigNumberContextGet(Ctx^);
+    S := ObtainBigNumberFromPool;
     for I := 1 to T do
     begin
-      if not BigNumberMulMod(R, R, R, B, Ctx) then
+      if not BigNumberMulMod(R, R, R, B) then
         Exit;
 
       if R.IsOne and not L.IsOne then
@@ -3576,8 +3300,9 @@ begin
 
     Result := not R.IsOne;
   finally
-    BigNumberContextEnd(Ctx^);
-    BigNumberContextFree(Ctx);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(L);
+    RecycleBigNumberToPool(S);
   end;
 end;
 
@@ -3591,11 +3316,15 @@ begin
     Exit;
 
   // Miller-Rabin Test
-  X := BigNumberNew;
-  R := BigNumberNew;
-  W := BigNumberNew;
+  X := nil;
+  R := nil;
+  W := nil;
 
   try
+    X := ObtainBigNumberFromPool;
+    R := ObtainBigNumberFromPool;
+    W := ObtainBigNumberFromPool;
+
     if BigNumberCopy(X, Num) = nil then
       Exit;
 
@@ -3625,8 +3354,9 @@ begin
         Exit;
     end;
   finally
-    BigNumberFree(X);
-    BigNumberFree(R);
+    RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(W);
   end;
   Result := True;
 end;
@@ -3904,5 +3634,20 @@ function TCnBigNumber.WordExpand(Words: Integer): TCnBigNumber;
 begin
   Result := BigNumberWordExpand(Self, Words);
 end;
+
+procedure FreeBigNumberPool;
+var
+  I: Integer;
+begin
+  for I := 0 to FGlobalBigNumberPool.Count - 1 do
+    TObject(FGlobalBigNumberPool[I]).Free;
+  FreeAndNil(FGlobalBigNumberPool);
+end;
+
+initialization
+  FGlobalBigNumberPool := TObjectList.Create(False);
+
+finalization
+  FreeBigNumberPool;
 
 end.
