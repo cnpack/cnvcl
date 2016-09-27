@@ -537,6 +537,11 @@ begin
   if BigNumberGeneratePrime(Num1, RandomLength, 60) then
   begin
     ShowNumbers;
+    if BigNumberIsProbablyPrime(Num1) then
+      ShowMessage('Generated is Prime Maybe.')
+    else
+      ShowMessage('Generated is NOT Prime.');
+
     CheckNumber(Num1);
     CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
   end;
