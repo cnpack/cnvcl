@@ -397,6 +397,7 @@ const
   CRYPT_DELETEKEYSET = $10;
 
   PROV_RSA_FULL = 1;
+  NTE_BAD_KEYSET = $80090016;
 
   BN_CTX_POOL_SIZE = 16;
   BN_CTX_START_FRAMES = 32;
@@ -1006,18 +1007,28 @@ end;
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 var
   HProv: Cardinal;
+  Res: DWORD;
 begin
   HProv := 0;
   Result := False;
   if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0) then
-    raise ERandomAPIError.CreateFmt('Error CryptAcquireContext %d', [GetLastError]);
+  begin
+    Res := GetLastError;
+    if Res = NTE_BAD_KEYSET then // KeyContainer 不存在，用新建的方式
+    begin
+      if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, CRYPT_NEWKEYSET) then
+        raise ERandomAPIError.CreateFmt('Error CryptAcquireContext NewKeySet $%8.8x', [GetLastError]);
+    end
+    else
+        raise ERandomAPIError.CreateFmt('Error CryptAcquireContext $%8.8x', [Res]);
+  end;
 
   if HProv <> 0 then
   begin
     try
       Result := CryptGenRandom(HProv, Len, Buf);
       if not Result then
-        raise ERandomAPIError.CreateFmt('Error CryptGenRandom %d', [GetLastError]);
+        raise ERandomAPIError.CreateFmt('Error CryptGenRandom $%8.8x', [GetLastError]);
     finally
       CryptReleaseContext(HProv, 0);
     end;
