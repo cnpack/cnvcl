@@ -29,12 +29,14 @@ unit CnNativeDecl;
 *           考虑到兼容性，固定长度的 32 位 Cardinal/Integer 等和 Pointer 这些就
 *           不能再通用了，即使 32 位下也被编译器禁止。因此本单元声明了几个类型，
 *           供同时在低版本和高版本的 Delphi 中使用。
-*           包装的代码部分在自行分配的可执行的内存空间，避免了 DEP 下出错。
+*           后来加入 UInt64 的包装，注意 D567 下不支持UInt64 的运算。
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id: CnCallBack.pas 761 2011-02-07 14:08:58Z liuxiao@cnpack.org $
-* 修改记录：2011.07.06 V1.0
+* 单元标识：$Id: CnNativeDecl.pas 761 2011-02-07 14:08:58Z liuxiao@cnpack.org $
+* 修改记录：2016.09.27 V1.1
+*               加入 64 位整型的一些定义
+*           2011.07.06 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -55,6 +57,22 @@ type
   TCnNativeInt     = Integer;
   TCnNativeUInt    = Cardinal;
   TCnNativePointer = Cardinal;
+{$ENDIF}
+
+{$IFDEF WIN64}
+  TCnUInt64        = NativeUInt;
+  TCnInt64         = NativeInt;
+{$ELSE}
+  {$IFDEF SUPPORTS_UINT64}
+  TCnUInt64        = UInt64;
+  {$ELSE}
+  TCnUInt64 = packed record  // 只能用这样的结构代替
+    case Boolean of
+      True:  (Value: Int64);
+      False: (Low32, Hi32: Cardinal);
+  end;
+  {$ENDIF}
+  TCnInt64         = Int64;
 {$ENDIF}
 
 implementation
