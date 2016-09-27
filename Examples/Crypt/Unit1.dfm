@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
-  Left = 192
-  Top = 107
+  Left = 194
+  Top = 110
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 414
@@ -425,7 +425,7 @@ object FormCrypt: TFormCrypt
         object lblSm3Result: TLabel
           Left = 16
           Top = 136
-          Width = 273
+          Width = 393
           Height = 41
           Alignment = taCenter
           AutoSize = False
@@ -732,7 +732,7 @@ object FormCrypt: TFormCrypt
         object pnlSHA256: TPanel
           Left = 8
           Top = 136
-          Width = 281
+          Width = 401
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2

@@ -471,9 +471,9 @@ end;
 procedure TFormCrypt.btnSHA256Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
-  pnlSha1.Caption := SHA256Print(SHA256StringA(AnsiString(edtSha1.Text)));
+  pnlSha256.Caption := SHA256Print(SHA256StringA(AnsiString(edtSha256.Text)));
 {$ELSE}
-  pnlSha1.Caption := SHA256Print(SHA256String(edtSha1.Text));
+  pnlSha256.Caption := SHA256Print(SHA256String(edtSha256.Text));
 {$ENDIF}
 end;
 
