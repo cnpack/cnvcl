@@ -45,7 +45,10 @@ uses
   SysUtils, Windows, Classes;
 
 type
+  TSHAGeneralDigest = array[0..127] of Byte;
+
   TSHA224Digest = array[0..27] of Byte;
+
   TSHA256Digest = array[0..31] of Byte;
 
   TSHA256Context = record
@@ -56,12 +59,12 @@ type
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
+
   TSHA224Context = TSHA256Context;
 
-  TSHA256CalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
+  TSHACalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
     Boolean) of object;
   {* 进度回调事件类型声明}
-  TSHA224CalcProgressFunc = TSHA256CalcProgressFunc;
 
 function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
 {* 对数据块进行SHA224转换
@@ -115,7 +118,7 @@ function SHA256StringW(const Str: WideString): TSHA256Digest;
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
-function SHA224File(const FileName: string; CallBack: TSHA224CalcProgressFunc =
+function SHA224File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA224Digest;
 {* 对指定文件数据进行SHA256转换
  |<PRE>
@@ -123,7 +126,7 @@ function SHA224File(const FileName: string; CallBack: TSHA224CalcProgressFunc =
    CallBack: TSHA256CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHA224Stream(Stream: TStream; CallBack: TSHA224CalcProgressFunc = nil):
+function SHA224Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA224Digest;
 {* 对指定流数据进行SHA256转换
  |<PRE>
@@ -131,7 +134,7 @@ function SHA224Stream(Stream: TStream; CallBack: TSHA224CalcProgressFunc = nil):
    CallBack: TSHA256CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHA256File(const FileName: string; CallBack: TSHA256CalcProgressFunc =
+function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA256Digest;
 {* 对指定文件数据进行SHA256转换
  |<PRE>
@@ -139,7 +142,7 @@ function SHA256File(const FileName: string; CallBack: TSHA256CalcProgressFunc =
    CallBack: TSHA256CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHA256Stream(Stream: TStream; CallBack: TSHA256CalcProgressFunc = nil):
+function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA256Digest;
 {* 对指定流数据进行SHA256转换
  |<PRE>
@@ -197,6 +200,16 @@ function SHA256DigestToStr(aDig: TSHA256Digest): string;
    aDig: TSHA256Digest   - 需要转换的SHA256计算值
  |</PRE>}
 
+procedure SHA224HmacInit(var Context: TSHA224Context; Key: PAnsiChar; KeyLength: Integer);
+
+procedure SHA224HmacUpdate(var Context: TSHA224Context; Input: PAnsiChar; Length:
+  LongWord);
+
+procedure SHA224HmacFinal(var Context: TSHA224Context; var Output: TSHA224Digest);
+
+procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA224Digest);
+
 procedure SHA256HmacInit(var Context: TSHA256Context; Key: PAnsiChar; KeyLength: Integer);
 
 procedure SHA256HmacUpdate(var Context: TSHA256Context; Input: PAnsiChar; Length:
@@ -210,11 +223,21 @@ procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 
 implementation
 
+type
+  TSHAType = (stSHA224, stSHA256, stSHA384, stSHA512);
+
+{$IFDEF SUPPORTS_UINT64}
+  TUInt64 = UInt64;
+{$ELSE}
+  // 暂且用有符号的 Int64 来代替无符号的 Int64
+  TUInt64 = Int64;
+{$ENDIF}
+
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
 
-  KEYS: array[0..63] of DWORD = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
+  KEYS256: array[0..63] of DWORD = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
     $3956C25B, $59F111F1, $923F82A4, $AB1C5ED5, $D807AA98, $12835B01, $243185BE,
     $550C7DC3, $72BE5D74, $80DEB1FE, $9BDC06A7, $C19BF174, $E49B69C1, $EFBE4786,
     $0FC19DC6, $240CA1CC, $2DE92C6F, $4A7484AA, $5CB0A9DC, $76F988DA, $983E5152,
@@ -224,6 +247,28 @@ const
     $F40E3585, $106AA070, $19A4C116, $1E376C08, $2748774C, $34B0BCB5, $391C0CB3,
     $4ED8AA4A, $5B9CCA4F, $682E6FF3, $748F82EE, $78A5636F, $84C87814, $8CC70208,
     $90BEFFFA, $A4506CEB, $BEF9A3F7, $C67178F2);
+
+  KEYS512: array[0..79] of TUInt64 = ($428A2F98D728AE22, $7137449123EF65CD,
+    $B5C0FBCFEC4D3B2F, $E9B5DBA58189DBBC, $3956C25BF348B538, $59F111F1B605D019,
+    $923F82A4AF194F9B, $AB1C5ED5DA6D8118, $D807AA98A3030242, $12835B0145706FBE,
+    $243185BE4EE4B28C, $550C7DC3D5FFB4E2, $72BE5D74F27B896F, $80DEB1FE3B1696B1,
+    $9BDC06A725C71235, $C19BF174CF692694, $E49B69C19EF14AD2, $EFBE4786384F25E3,
+    $0FC19DC68B8CD5B5, $240CA1CC77AC9C65, $2DE92C6F592B0275, $4A7484AA6EA6E483,
+    $5CB0A9DCBD41FBD4, $76F988DA831153B5, $983E5152EE66DFAB, $A831C66D2DB43210,
+    $B00327C898FB213F, $BF597FC7BEEF0EE4, $C6E00BF33DA88FC2, $D5A79147930AA725,
+    $06CA6351E003826F, $142929670A0E6E70, $27B70A8546D22FFC, $2E1B21385C26C926,
+    $4D2C6DFC5AC42AED, $53380D139D95B3DF, $650A73548BAF63DE, $766A0ABB3C77B2A8,
+    $81C2C92E47EDAEE6, $92722C851482353B, $A2BFE8A14CF10364, $A81A664BBC423001,
+    $C24B8B70D0F89791, $C76C51A30654BE30, $D192E819D6EF5218, $D69906245565A910,
+    $F40E35855771202A, $106AA07032BBD1B8, $19A4C116B8D2D0C8, $1E376C085141AB53,
+    $2748774CDF8EEB99, $34B0BCB5E19B48A8, $391C0CB3C5C95A63, $4ED8AA4AE3418ACB,
+    $5B9CCA4F7763E373, $682E6FF3D6B2B8A3, $748F82EE5DEFB2FC, $78A5636F43172F60,
+    $84C87814A1F0AB72, $8CC702081A6439EC, $90BEFFFA23631E28, $A4506CEBDE82BDE9,
+    $BEF9A3F7B2C67915, $C67178F2E372532B, $CA273ECEEA26619C, $D186B8C721C0C207,
+    $EADA7DD6CDE0EB1E, $F57D4F7FEE6ED178, $06F067AA72176FBA, $0A637DC5A2C898A6,
+    $113F9804BEF90DAE, $1B710B35131C471B, $28DB77F523047D84, $32CAAB7B40C72493,
+    $3C9EBE0A15C9BEBC, $431D67C49C100D4C, $4CC5D4BECB3E42B6, $597F299CFC657E2A,
+    $5FCB6FAB3AD6FAEC, $6C44198C4A475817);
 {$R-}
 
 function ROTLeft256(A, B: DWORD): DWORD;
@@ -300,7 +345,7 @@ begin
   I := 0;
   while I < 64 do
   begin
-    T1 := H + EP1256(E) + CH256(E, F, G) + KEYS[I] + M[I];
+    T1 := H + EP1256(E) + CH256(E, F, G) + KEYS256[I] + M[I];
     T2 := EP0256(A) + MAJ256(A, B, C);
     H := G;
     G := F;
@@ -538,10 +583,9 @@ begin
   SHA256Final(Context, Result);
 end;
 
-function InternalSHA224Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TSHA224Digest; CallBack: TSHA224CalcProgressFunc = nil): Boolean;
+function InternalSHAStream(Stream: TStream; const BufSize: Cardinal; var D:
+  TSHAGeneralDigest; SHAType: TShaType; CallBack: TSHACalcProgressFunc = nil): Boolean;
 var
-  Context: TSHA224Context;
   Buf: PAnsiChar;
   BufLen: Cardinal;
   Size: Int64;
@@ -549,56 +593,52 @@ var
   TotalBytes: Int64;
   SavePos: Int64;
   CancelCalc: Boolean;
-begin
-  Result := False;
-  Size := Stream.Size;
-  SavePos := Stream.Position;
-  TotalBytes := 0;
-  if Size = 0 then
-    Exit;
-  if Size < BufSize then
-    BufLen := Size
-  else
-    BufLen := BufSize;
 
-  CancelCalc := False;
-  SHA224Init(Context);
-  GetMem(Buf, BufLen);
-  try
-    Stream.Seek(0, soFromBeginning);
-    repeat
-      ReadBytes := Stream.Read(Buf^, BufLen);
-      if ReadBytes <> 0 then
-      begin
-        Inc(TotalBytes, ReadBytes);
-        SHA224Update(Context, Buf, ReadBytes);
-        if Assigned(CallBack) then
-        begin
-          CallBack(Size, TotalBytes, CancelCalc);
-          if CancelCalc then
-            Exit;
-        end;
-      end;
-    until (ReadBytes = 0) or (TotalBytes = Size);
-    SHA224Final(Context, D);
-    Result := True;
-  finally
-    FreeMem(Buf, BufLen);
-    Stream.Position := SavePos;
+  Context224: TSHA224Context;
+  Context256: TSHA256Context;
+  Dig224: TSHA224Digest;
+  Dig256: TSHA256Digest;
+
+  procedure _SHAInit;
+  begin
+    case SHAType of
+      stSHA224:
+        SHA224Init(Context224);
+      stSHA256:
+        SHA256Init(Context256);
+    end;
   end;
-end;
 
-function InternalSHA256Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TSHA256Digest; CallBack: TSHA256CalcProgressFunc = nil): Boolean;
-var
-  Context: TSHA256Context;
-  Buf: PAnsiChar;
-  BufLen: Cardinal;
-  Size: Int64;
-  ReadBytes: Cardinal;
-  TotalBytes: Int64;
-  SavePos: Int64;
-  CancelCalc: Boolean;
+  procedure _SHAUpdate;
+  begin
+    case SHAType of
+      stSHA224:
+        SHA224Update(Context224, Buf, ReadBytes);
+      stSHA256:
+        SHA256Update(Context256, Buf, ReadBytes);
+    end;
+  end;
+
+  procedure _SHAFinal;
+  begin
+    case SHAType of
+      stSHA224:
+        SHA224Final(Context224, Dig224);
+      stSHA256:
+        SHA256Final(Context256, Dig256);
+    end;
+  end;
+
+  procedure _CopyResult;
+  begin
+    case SHAType of
+      stSHA224:
+        CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
+      stSHA256:
+        CopyMemory(@D[0], @Dig256[0], SizeOf(TSHA256Digest));
+    end;
+  end;
+
 begin
   Result := False;
   Size := Stream.Size;
@@ -612,7 +652,8 @@ begin
     BufLen := BufSize;
 
   CancelCalc := False;
-  SHA256Init(Context);
+  _SHAInit;
+ 
   GetMem(Buf, BufLen);
   try
     Stream.Seek(0, soFromBeginning);
@@ -621,7 +662,8 @@ begin
       if ReadBytes <> 0 then
       begin
         Inc(TotalBytes, ReadBytes);
-        SHA256Update(Context, Buf, ReadBytes);
+        _SHAUpdate;
+
         if Assigned(CallBack) then
         begin
           CallBack(Size, TotalBytes, CancelCalc);
@@ -630,7 +672,8 @@ begin
         end;
       end;
     until (ReadBytes = 0) or (TotalBytes = Size);
-    SHA256Final(Context, D);
+    _SHAFinal;
+    _CopyResult;
     Result := True;
   finally
     FreeMem(Buf, BufLen);
@@ -639,17 +682,23 @@ begin
 end;
 
 // 对指定流进行SHA224计算
-function SHA224Stream(Stream: TStream; CallBack: TSHA224CalcProgressFunc = nil):
+function SHA224Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA224Digest;
+var
+  Dig: TSHAGeneralDigest;
 begin
-  InternalSHA224Stream(Stream, 4096 * 1024, Result, CallBack);
+  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA224, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
 end;
 
 // 对指定流进行SHA256计算
-function SHA256Stream(Stream: TStream; CallBack: TSHA256CalcProgressFunc = nil):
+function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA256Digest;
+var
+  Dig: TSHAGeneralDigest;
 begin
-  InternalSHA256Stream(Stream, 4096 * 1024, Result, CallBack);
+  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA256, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
 end;
 
 function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
@@ -676,16 +725,60 @@ begin
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 end;
 
-// 对指定文件数据进行SHA224转换
-function SHA224File(const FileName: string; CallBack: TSHA224CalcProgressFunc):
-  TSHA224Digest;
+function InternalSHAFile(const FileName: string; SHAType: TSHAType;
+  CallBack: TSHACalcProgressFunc): TSHAGeneralDigest;
 var
+  Context224: TSHA224Context;
+  Context256: TSHA256Context;
+  Dig224: TSHA224Digest;
+  Dig256: TSHA256Digest;
+
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
-  Context: TSHA256Context;
   Stream: TStream;
   FileIsZeroSize: Boolean;
+
+  procedure _SHAInit;
+  begin
+    case SHAType of
+      stSHA224:
+        SHA224Init(Context224);
+      stSHA256:
+        SHA256Init(Context256);
+    end;
+  end;
+
+  procedure _SHAUpdate;
+  begin
+    case SHAType of
+      stSHA224:
+        SHA224Update(Context224, ViewPointer, GetFileSize(FileHandle, nil));
+      stSHA256:
+        SHA256Update(Context256, ViewPointer, GetFileSize(FileHandle, nil));
+    end;
+  end;
+
+  procedure _SHAFinal;
+  begin
+    case SHAType of
+      stSHA224:
+        SHA224Final(Context224, Dig224);
+      stSHA256:
+        SHA256Final(Context256, Dig256);
+    end;
+  end;
+
+  procedure _CopyResult(var D: TSHAGeneralDigest);
+  begin
+    case SHAType of
+      stSHA224:
+        CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
+      stSHA256:
+        CopyMemory(@D[0], @Dig256[0], SizeOf(TSHA256Digest));
+    end;
+  end;
+
 begin
   FileIsZeroSize := False;
   if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
@@ -693,14 +786,14 @@ begin
     // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalSHA224Stream(Stream, 4096 * 1024, Result, CallBack);
+      InternalSHAStream(Stream, 4096 * 1024, Result, SHAType, CallBack);
     finally
       Stream.Free;
     end;
   end
   else
   begin
-    SHA224Init(Context);
+    _SHAInit;
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
       FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
       FILE_FLAG_SEQUENTIAL_SCAN, 0);
@@ -715,7 +808,7 @@ begin
             if ViewPointer <> nil then
             begin
               try
-                SHA224Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
+                _SHAUpdate;
               finally
                 UnmapViewOfFile(ViewPointer);
               end;
@@ -737,73 +830,29 @@ begin
         CloseHandle(FileHandle);
       end;
     end;
-    SHA224Final(Context, Result);
+    _SHAFinal;
+    _CopyResult(Result);
   end;
 end;
 
+// 对指定文件数据进行SHA224转换
+function SHA224File(const FileName: string; CallBack: TSHACalcProgressFunc):
+  TSHA224Digest;
+var
+  Dig: TSHAGeneralDigest;
+begin
+  Dig := InternalSHAFile(FileName, stSHA224, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
+end;
+
 // 对指定文件数据进行SHA256转换
-function SHA256File(const FileName: string; CallBack: TSHA256CalcProgressFunc):
+function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc):
   TSHA256Digest;
 var
-  FileHandle: THandle;
-  MapHandle: THandle;
-  ViewPointer: Pointer;
-  Context: TSHA256Context;
-  Stream: TStream;
-  FileIsZeroSize: Boolean;
+  Dig: TSHAGeneralDigest;
 begin
-  FileIsZeroSize := False;
-  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
-  begin
-    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
-    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-    try
-      InternalSHA256Stream(Stream, 4096 * 1024, Result, CallBack);
-    finally
-      Stream.Free;
-    end;
-  end
-  else
-  begin
-    SHA256Init(Context);
-    FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
-      FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
-      FILE_FLAG_SEQUENTIAL_SCAN, 0);
-    if FileHandle <> INVALID_HANDLE_VALUE then
-    begin
-      try
-        MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
-        if MapHandle <> 0 then
-        begin
-          try
-            ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
-            if ViewPointer <> nil then
-            begin
-              try
-                SHA256Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
-              finally
-                UnmapViewOfFile(ViewPointer);
-              end;
-            end
-            else
-            begin
-              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
-            end;
-          finally
-            CloseHandle(MapHandle);
-          end;
-        end
-        else
-        begin
-          if not FileIsZeroSize then
-            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
-        end;
-      finally
-        CloseHandle(FileHandle);
-      end;
-    end;
-    SHA256Final(Context, Result);
-  end;
+  Dig := InternalSHAFile(FileName, stSHA256, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
 end;
 
 const
@@ -880,6 +929,50 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
+procedure SHA224HmacInit(var Context: TSHA224Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TSHA224Digest;
+begin
+  if KeyLength > 64 then
+  begin
+    Sum := SHA224Buffer(Key, KeyLength);
+    KeyLength := 28;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Context.Ipad, $36, 64);
+  FillChar(Context.Opad, $5C, 64);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
+  end;
+
+  SHA224Init(Context);
+  SHA224Update(Context, @(Context.Ipad[0]), 64);
+end;
+
+procedure SHA224HmacUpdate(var Context: TSHA224Context; Input: PAnsiChar; Length:
+  LongWord);
+begin
+  SHA224Update(Context, Input, Length);
+end;
+
+procedure SHA224HmacFinal(var Context: TSHA224Context; var Output: TSHA224Digest);
+var
+  Len: Integer;
+  TmpBuf: TSHA224Digest;
+begin
+  Len := 28;
+  SHA224Final(Context, TmpBuf);
+  SHA224Init(Context);
+  SHA224Update(Context, @(Context.Opad[0]), 64);
+  SHA224Update(Context, @(TmpBuf[0]), Len);
+  SHA224Final(Context, Output);
+end;
+
 procedure SHA256HmacInit(var Context: TSHA256Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
@@ -922,6 +1015,16 @@ begin
   SHA256Update(Context, @(Context.Opad[0]), 64);
   SHA256Update(Context, @(TmpBuf[0]), Len);
   SHA256Final(Context, Output);
+end;
+
+procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA224Digest);
+var
+  Context: TSHA224Context;
+begin
+  SHA224HmacInit(Context, Key, KeyLength);
+  SHA224HmacUpdate(Context, Input, Length);
+  SHA224HmacFinal(Context, Output);
 end;
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
