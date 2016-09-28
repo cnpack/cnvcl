@@ -22,7 +22,7 @@ unit CnSHA2;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：SHA2(SHA256)算法单元
+* 单元名称：SHA2(SHA224/256)算法单元
 * 单元作者：刘啸（Liu Xiao）
 * 备    注：
 * 开发平台：PWinXP + Delphi 5.0
@@ -45,6 +45,7 @@ uses
   SysUtils, Windows, Classes;
 
 type
+  TSHA224Digest = array[0..27] of Byte;
   TSHA256Digest = array[0..31] of Byte;
 
   TSHA256Context = record
@@ -55,10 +56,19 @@ type
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
+  TSHA224Context = TSHA256Context;
 
   TSHA256CalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
     Boolean) of object;
   {* 进度回调事件类型声明}
+  TSHA224CalcProgressFunc = TSHA256CalcProgressFunc;
+
+function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
+{* 对数据块进行SHA224转换
+ |<PRE>
+   const Buffer     - 要计算的数据块
+   Count: LongWord  - 数据块长度
+ |</PRE>}
 
 function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
 {* 对数据块进行SHA256转换
@@ -67,11 +77,30 @@ function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
+function SHA224String(const Str: string): TSHA224Digest;
+{* 对String类型数据进行SHA224转换，注意D2009或以上版本的string为UnicodeString，
+   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+ |<PRE>
+   Str: string       - 要计算的字符串
+ |</PRE>}
+
 function SHA256String(const Str: string): TSHA256Digest;
 {* 对String类型数据进行SHA256转换，注意D2009或以上版本的string为UnicodeString，
    因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
  |<PRE>
    Str: string       - 要计算的字符串
+ |</PRE>}
+
+function SHA224StringA(const Str: AnsiString): TSHA224Digest;
+{* 对AnsiString类型数据进行SHA224转换
+ |<PRE>
+   Str: AnsiString       - 要计算的字符串
+ |</PRE>}
+
+function SHA224StringW(const Str: WideString): TSHA224Digest;
+{* 对 WideString类型数据进行SHA224转换
+ |<PRE>
+   Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA256StringA(const Str: AnsiString): TSHA256Digest;
@@ -84,6 +113,22 @@ function SHA256StringW(const Str: WideString): TSHA256Digest;
 {* 对 WideString类型数据进行SHA256转换
  |<PRE>
    Str: WideString       - 要计算的字符串
+ |</PRE>}
+
+function SHA224File(const FileName: string; CallBack: TSHA224CalcProgressFunc =
+  nil): TSHA224Digest;
+{* 对指定文件数据进行SHA256转换
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSHA256CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA224Stream(Stream: TStream; CallBack: TSHA224CalcProgressFunc = nil):
+  TSHA224Digest;
+{* 对指定流数据进行SHA256转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHA256CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
 function SHA256File(const FileName: string; CallBack: TSHA256CalcProgressFunc =
@@ -102,11 +147,23 @@ function SHA256Stream(Stream: TStream; CallBack: TSHA256CalcProgressFunc = nil):
    CallBack: TSHA256CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
+procedure SHA224Init(var Context: TSHA224Context);
+
+procedure SHA224Update(var Context: TSHA224Context; Buffer: PAnsiChar; Len: Cardinal);
+
+procedure SHA224Final(var Context: TSHA224Context; var Digest: TSHA224Digest);
+
 procedure SHA256Init(var Context: TSHA256Context);
 
 procedure SHA256Update(var Context: TSHA256Context; Buffer: PAnsiChar; Len: Cardinal);
 
 procedure SHA256Final(var Context: TSHA256Context; var Digest: TSHA256Digest);
+
+function SHA224Print(const Digest: TSHA224Digest): string;
+{* 以十六进制格式输出SHA224计算值
+ |<PRE>
+   Digest: TSHA224Digest  - 指定的SHA224计算值
+ |</PRE>}
 
 function SHA256Print(const Digest: TSHA256Digest): string;
 {* 以十六进制格式输出SHA256计算值
@@ -114,11 +171,24 @@ function SHA256Print(const Digest: TSHA256Digest): string;
    Digest: TSHA256Digest  - 指定的SHA256计算值
  |</PRE>}
 
+function SHA224Match(const D1, D2: TSHA224Digest): Boolean;
+{* 比较两个SHA224计算值是否相等
+ |<PRE>
+   D1: TSHA224Digest   - 需要比较的SHA224计算值
+   D2: TSHA224Digest   - 需要比较的SHA224计算值
+ |</PRE>}
+
 function SHA256Match(const D1, D2: TSHA256Digest): Boolean;
 {* 比较两个SHA256计算值是否相等
  |<PRE>
    D1: TSHA256Digest   - 需要比较的SHA256计算值
    D2: TSHA256Digest   - 需要比较的SHA256计算值
+ |</PRE>}
+
+function SHA224DigestToStr(aDig: TSHA224Digest): string;
+{* SHA224计算值转 string
+ |<PRE>
+   aDig: TSHA224Digest   - 需要转换的SHA224计算值
  |</PRE>}
 
 function SHA256DigestToStr(aDig: TSHA256Digest): string;
@@ -353,14 +423,68 @@ begin
   end;
 end;
 
+procedure SHA224Init(var Context: TSHA224Context);
+begin
+  Context.DataLen := 0;
+  Context.BitLen := 0;
+  Context.State[0] := $C1059ED8;
+  Context.State[1] := $367CD507;
+  Context.State[2] := $3070DD17;
+  Context.State[3] := $F70E5939;
+  Context.State[4] := $FFC00B31;
+  Context.State[5] := $68581511;
+  Context.State[6] := $64F98FA7;
+  Context.State[7] := $BEFA4FA4;
+  FillChar(Context.Data, SizeOf(Context.Data), 0);
+end;
+
+procedure SHA224Update(var Context: TSHA224Context; Buffer: PAnsiChar; Len: Cardinal);
+begin
+  SHA256Update(Context, Buffer, Len);
+end;
+
+procedure SHA224UpdateW(var Context: TSHA224Context; Buffer: PWideChar; Len: LongWord);
+begin
+  SHA256UpdateW(Context, Buffer, Len);
+end;
+
+procedure SHA224Final(var Context: TSHA224Context; var Digest: TSHA224Digest);
+var
+  Dig: TSHA256Digest;
+begin
+  SHA256Final(Context, Dig);
+  CopyMemory(@Digest[0], @Dig[0], SizeOf(TSHA224Digest));
+end;
+
+// 对数据块进行SHA224转换
+function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
+var
+  Context: TSHA224Context;
+begin
+  SHA224Init(Context);
+  SHA224Update(Context, PAnsiChar(Buffer), Count);
+  SHA224Final(Context, Result);
+end;
+
 // 对数据块进行SHA256转换
-function SHA256Buffer(const Buffer; Count: Longword): TSHA256Digest;
+function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
 var
   Context: TSHA256Context;
 begin
   SHA256Init(Context);
   SHA256Update(Context, PAnsiChar(Buffer), Count);
   SHA256Final(Context, Result);
+end;
+
+// 对String类型数据进行SHA224转换
+function SHA224String(const Str: string): TSHA224Digest;
+var
+  Context: TSHA224Context;
+begin
+  SHA224Init(Context);
+  SHA224Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
+    Length(Str) * SizeOf(Char));
+  SHA224Final(Context, Result);
 end;
 
 // 对String类型数据进行SHA256转换
@@ -372,6 +496,26 @@ begin
   SHA256Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
     Length(Str) * SizeOf(Char));
   SHA256Final(Context, Result);
+end;
+
+// 对AnsiString类型数据进行SHA224转换
+function SHA224StringA(const Str: AnsiString): TSHA224Digest;
+var
+  Context: TSHA224Context;
+begin
+  SHA224Init(Context);
+  SHA224Update(Context, PAnsiChar(Str), Length(Str));
+  SHA224Final(Context, Result);
+end;
+
+// 对WideString类型数据进行SHA224转换
+function SHA224StringW(const Str: WideString): TSHA224Digest;
+var
+  Context: TSHA224Context;
+begin
+  SHA224Init(Context);
+  SHA224UpdateW(Context, PWideChar(Str), Length(Str));
+  SHA224Final(Context, Result);
 end;
 
 // 对AnsiString类型数据进行SHA256转换
@@ -392,6 +536,56 @@ begin
   SHA256Init(Context);
   SHA256UpdateW(Context, PWideChar(Str), Length(Str));
   SHA256Final(Context, Result);
+end;
+
+function InternalSHA224Stream(Stream: TStream; const BufSize: Cardinal; var D:
+  TSHA224Digest; CallBack: TSHA224CalcProgressFunc = nil): Boolean;
+var
+  Context: TSHA224Context;
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+  CancelCalc: Boolean;
+begin
+  Result := False;
+  Size := Stream.Size;
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+  if Size = 0 then
+    Exit;
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
+
+  CancelCalc := False;
+  SHA224Init(Context);
+  GetMem(Buf, BufLen);
+  try
+    Stream.Seek(0, soFromBeginning);
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        SHA224Update(Context, Buf, ReadBytes);
+        if Assigned(CallBack) then
+        begin
+          CallBack(Size, TotalBytes, CancelCalc);
+          if CancelCalc then
+            Exit;
+        end;
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    SHA224Final(Context, D);
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
 end;
 
 function InternalSHA256Stream(Stream: TStream; const BufSize: Cardinal; var D:
@@ -444,11 +638,107 @@ begin
   end;
 end;
 
+// 对指定流进行SHA224计算
+function SHA224Stream(Stream: TStream; CallBack: TSHA224CalcProgressFunc = nil):
+  TSHA224Digest;
+begin
+  InternalSHA224Stream(Stream, 4096 * 1024, Result, CallBack);
+end;
+
 // 对指定流进行SHA256计算
 function SHA256Stream(Stream: TStream; CallBack: TSHA256CalcProgressFunc = nil):
   TSHA256Digest;
 begin
   InternalSHA256Stream(Stream, 4096 * 1024, Result, CallBack);
+end;
+
+function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+var
+  H: THandle;
+  Info: BY_HANDLE_FILE_INFORMATION;
+  Rec: Int64Rec;
+begin
+  Result := False;
+  IsEmpty := False;
+  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
+    OPEN_EXISTING, 0, 0);
+  if H = INVALID_HANDLE_VALUE then
+    Exit;
+  try
+    if not GetFileInformationByHandle(H, Info) then
+      Exit;
+  finally
+    CloseHandle(H);
+  end;
+  Rec.Lo := Info.nFileSizeLow;
+  Rec.Hi := Info.nFileSizeHigh;
+  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+end;
+
+// 对指定文件数据进行SHA224转换
+function SHA224File(const FileName: string; CallBack: TSHA224CalcProgressFunc):
+  TSHA224Digest;
+var
+  FileHandle: THandle;
+  MapHandle: THandle;
+  ViewPointer: Pointer;
+  Context: TSHA256Context;
+  Stream: TStream;
+  FileIsZeroSize: Boolean;
+begin
+  FileIsZeroSize := False;
+  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  begin
+    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    try
+      InternalSHA224Stream(Stream, 4096 * 1024, Result, CallBack);
+    finally
+      Stream.Free;
+    end;
+  end
+  else
+  begin
+    SHA224Init(Context);
+    FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
+      FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
+      FILE_FLAG_SEQUENTIAL_SCAN, 0);
+    if FileHandle <> INVALID_HANDLE_VALUE then
+    begin
+      try
+        MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
+        if MapHandle <> 0 then
+        begin
+          try
+            ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
+            if ViewPointer <> nil then
+            begin
+              try
+                SHA224Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
+              finally
+                UnmapViewOfFile(ViewPointer);
+              end;
+            end
+            else
+            begin
+              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
+            end;
+          finally
+            CloseHandle(MapHandle);
+          end;
+        end
+        else
+        begin
+          if not FileIsZeroSize then
+            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
+        end;
+      finally
+        CloseHandle(FileHandle);
+      end;
+    end;
+    SHA224Final(Context, Result);
+  end;
 end;
 
 // 对指定文件数据进行SHA256转换
@@ -461,31 +751,6 @@ var
   Context: TSHA256Context;
   Stream: TStream;
   FileIsZeroSize: Boolean;
-
-  function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
-  var
-    H: THandle;
-    Info: BY_HANDLE_FILE_INFORMATION;
-    Rec: Int64Rec;
-  begin
-    Result := False;
-    IsEmpty := False;
-    H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil,
-      OPEN_EXISTING, 0, 0);
-    if H = INVALID_HANDLE_VALUE then
-      Exit;
-    try
-      if not GetFileInformationByHandle(H, Info) then
-        Exit;
-    finally
-      CloseHandle(H);
-    end;
-    Rec.Lo := Info.nFileSizeLow;
-    Rec.Hi := Info.nFileSizeHigh;
-    Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
-    IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
-  end;
-
 begin
   FileIsZeroSize := False;
   if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
@@ -541,18 +806,44 @@ begin
   end;
 end;
 
+const
+  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+
+// 以十六进制格式输出SHA224计算值
+function SHA224Print(const Digest: TSHA224Digest): string;
+var
+  I: Byte;
+begin
+  Result := '';
+  for I := 0 to 27 do
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
+      and $0F] + Digits[Digest[I] and $0F]);
+end;
+
 // 以十六进制格式输出SHA256计算值
 function SHA256Print(const Digest: TSHA256Digest): string;
 var
   I: Byte;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 begin
   Result := '';
   for I := 0 to 31 do
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
       and $0F] + Digits[Digest[I] and $0F]);
+end;
+
+// 比较两个SHA224计算值是否相等
+function SHA224Match(const D1, D2: TSHA224Digest): Boolean;
+var
+  I: Byte;
+begin
+  I := 0;
+  Result := TRUE;
+  while Result and (I < 28) do
+  begin
+    Result := D1[I] = D2[I];
+    Inc(I);
+  end;
 end;
 
 // 比较两个SHA256计算值是否相等
@@ -562,11 +853,21 @@ var
 begin
   I := 0;
   Result := TRUE;
-  while Result and (I < 20) do
+  while Result and (I < 32) do
   begin
     Result := D1[I] = D2[I];
     Inc(I);
   end;
+end;
+
+// SHA224计算值转 string
+function SHA224DigestToStr(aDig: TSHA224Digest): string;
+var
+  I: Integer;
+begin
+  SetLength(Result, 28);
+  for I := 1 to 28 do
+    Result[I] := Chr(aDig[I - 1]);
 end;
 
 // SHA256计算值转 string
@@ -574,8 +875,8 @@ function SHA256DigestToStr(aDig: TSHA256Digest): string;
 var
   I: Integer;
 begin
-  SetLength(Result, 20);
-  for I := 1 to 20 do
+  SetLength(Result, 32);
+  for I := 1 to 32 do
     Result[I] := Chr(aDig[I - 1]);
 end;
 

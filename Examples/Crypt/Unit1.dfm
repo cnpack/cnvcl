@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
-  Left = 194
-  Top = 110
+  Left = 320
+  Top = 138
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 414
@@ -703,7 +703,7 @@ object FormCrypt: TFormCrypt
         Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'SHA1'
+        Caption = 'SHA256'
         TabOrder = 0
         object lblSHA256: TLabel
           Left = 24
@@ -746,6 +746,61 @@ object FormCrypt: TFormCrypt
           Caption = 'File SHA256'
           TabOrder = 3
           OnClick = btnFileSHA256Click
+        end
+      end
+    end
+    object tsSHA224: TTabSheet
+      Caption = 'SHA224'
+      ImageIndex = 10
+      object grpSHA224: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA224'
+        TabOrder = 0
+        object lblSHA224: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object edtSHA224: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA224: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA224'
+          TabOrder = 1
+          OnClick = btnSHA224Click
+        end
+        object pnlSHA224: TPanel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+          OnDblClick = ResultDblClick
+        end
+        object btnSHA224File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA224'
+          TabOrder = 3
+          OnClick = btnSHA224FileClick
         end
       end
     end

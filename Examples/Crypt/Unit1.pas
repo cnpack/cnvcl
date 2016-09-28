@@ -104,6 +104,13 @@ type
     btnSHA256: TButton;
     pnlSHA256: TPanel;
     btnFileSHA256: TButton;
+    tsSHA224: TTabSheet;
+    grpSHA224: TGroupBox;
+    lblSHA224: TLabel;
+    edtSHA224: TEdit;
+    btnSHA224: TButton;
+    pnlSHA224: TPanel;
+    btnSHA224File: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -126,6 +133,8 @@ type
     procedure ResultDblClick(Sender: TObject);
     procedure btnSHA256Click(Sender: TObject);
     procedure btnFileSHA256Click(Sender: TObject);
+    procedure btnSHA224Click(Sender: TObject);
+    procedure btnSHA224FileClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -481,6 +490,21 @@ procedure TFormCrypt.btnFileSHA256Click(Sender: TObject);
 begin
   if OpenDialog1.Execute then
     pnlSha256.Caption := SHA256Print(SHA256File(OpenDialog1.FileName));
+end;
+
+procedure TFormCrypt.btnSHA224Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlSha224.Caption := SHA224Print(SHA224StringA(AnsiString(edtSha224.Text)));
+{$ELSE}
+  pnlSha224.Caption := SHA224Print(SHA224String(edtSha224.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnSHA224FileClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlSha224.Caption := SHA224Print(SHA224File(OpenDialog1.FileName));
 end;
 
 end.
