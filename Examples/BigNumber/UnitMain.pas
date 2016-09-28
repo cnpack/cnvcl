@@ -522,6 +522,7 @@ begin
   else
   begin
     B := TCnBigNumber.FromDec(S);
+    MessageBox(Handle, PChar(B.ToDec), 'To Check', MB_OK);
     if BigNumberIsProbablyPrime(B) then
       ShowMessage('Enter is Prime, maybe.')
     else
