@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 361
-    ActivePage = tsDES
+    ActivePage = tsSHA512
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -801,6 +801,62 @@ object FormCrypt: TFormCrypt
           Caption = 'File SHA224'
           TabOrder = 3
           OnClick = btnSHA224FileClick
+        end
+      end
+    end
+    object tsSHA512: TTabSheet
+      Caption = 'SHA512'
+      ImageIndex = 11
+      object grpSHA512: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA512'
+        TabOrder = 0
+        object lblSHA512: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSHA512Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object edtSHA512: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA512: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA512'
+          TabOrder = 1
+          OnClick = btnSHA512Click
+        end
+        object btnSHA512File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA512'
+          TabOrder = 2
+          OnClick = btnSHA512FileClick
         end
       end
     end
