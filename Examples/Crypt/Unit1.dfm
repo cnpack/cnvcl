@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 361
-    ActivePage = tsSHA512
+    ActivePage = tsSHA384
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -694,6 +694,61 @@ object FormCrypt: TFormCrypt
         end
       end
     end
+    object tsSHA224: TTabSheet
+      Caption = 'SHA224'
+      ImageIndex = 10
+      object grpSHA224: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA224'
+        TabOrder = 0
+        object lblSHA224: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object edtSHA224: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA224: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA224'
+          TabOrder = 1
+          OnClick = btnSHA224Click
+        end
+        object pnlSHA224: TPanel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+          OnDblClick = ResultDblClick
+        end
+        object btnSHA224File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA224'
+          TabOrder = 3
+          OnClick = btnSHA224FileClick
+        end
+      end
+    end
     object tsSHA256: TTabSheet
       Caption = 'SHA256'
       ImageIndex = 9
@@ -749,25 +804,35 @@ object FormCrypt: TFormCrypt
         end
       end
     end
-    object tsSHA224: TTabSheet
-      Caption = 'SHA224'
-      ImageIndex = 10
-      object grpSHA224: TGroupBox
+    object tsSHA384: TTabSheet
+      Caption = 'SHA384'
+      ImageIndex = 12
+      object grpSHA384: TGroupBox
         Left = 24
         Top = 24
         Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'SHA224'
+        Caption = 'SHA384'
         TabOrder = 0
-        object lblSHA224: TLabel
+        object lblSHA384: TLabel
           Left = 24
           Top = 44
           Width = 28
           Height = 13
           Caption = 'From:'
         end
-        object edtSHA224: TEdit
+        object lblSHA384Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object edtSHA384: TEdit
           Left = 72
           Top = 40
           Width = 169
@@ -775,32 +840,23 @@ object FormCrypt: TFormCrypt
           TabOrder = 0
           Text = 'Sample Text'
         end
-        object btnSHA224: TButton
+        object btnSHA384: TButton
           Left = 72
           Top = 80
           Width = 75
           Height = 25
-          Caption = 'SHA224'
+          Caption = 'SHA384'
           TabOrder = 1
-          OnClick = btnSHA224Click
+          OnClick = btnSHA384Click
         end
-        object pnlSHA224: TPanel
-          Left = 8
-          Top = 136
-          Width = 401
-          Height = 41
-          BevelOuter = bvNone
-          TabOrder = 2
-          OnDblClick = ResultDblClick
-        end
-        object btnSHA224File: TButton
+        object btnSHA384File: TButton
           Left = 72
           Top = 208
           Width = 75
           Height = 25
-          Caption = 'File SHA224'
-          TabOrder = 3
-          OnClick = btnSHA224FileClick
+          Caption = 'File SHA384'
+          TabOrder = 2
+          OnClick = btnSHA384FileClick
         end
       end
     end

@@ -118,6 +118,13 @@ type
     btnSHA512: TButton;
     btnSHA512File: TButton;
     lblSHA512Result: TLabel;
+    tsSHA384: TTabSheet;
+    grpSHA384: TGroupBox;
+    lblSHA384: TLabel;
+    lblSHA384Result: TLabel;
+    edtSHA384: TEdit;
+    btnSHA384: TButton;
+    btnSHA384File: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -144,6 +151,8 @@ type
     procedure btnSHA224FileClick(Sender: TObject);
     procedure btnSHA512Click(Sender: TObject);
     procedure btnSHA512FileClick(Sender: TObject);
+    procedure btnSHA384Click(Sender: TObject);
+    procedure btnSHA384FileClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -537,6 +546,31 @@ begin
   begin
     S := SHA512Print(SHA512File(OpenDialog1.FileName));
     Insert(#13#10, S, 65);
+    lblSHA512Result.Caption := S;
+  end;
+end;
+
+procedure TFormCrypt.btnSHA384Click(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  S := SHA384Print(SHA384StringA(AnsiString(edtSha384.Text)));
+{$ELSE}
+  S := SHA384Print(SHA384String(edtSha384.Text));
+{$ENDIF}
+  Insert(#13#10, S, 65);
+  lblSHA384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnSHA384FileClick(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := SHA384Print(SHA384File(OpenDialog1.FileName));
+    Insert(#13#10, S, 49);
     lblSHA512Result.Caption := S;
   end;
 end;

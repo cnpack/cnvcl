@@ -24,12 +24,16 @@ unit CnSHA2;
 * 软件名称：开发包基础库
 * 单元名称：SHA2(SHA224/256)算法单元
 * 单元作者：刘啸（Liu Xiao）
-* 备    注：
+* 备    注：D567下可以用有符号 Int64 代替无符号 UInt64 来计算 SHA512/384，原因是
+*           基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
+*           同的是比较，而本单元中没有类似的比较。
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnSHA2.pas 426 2016-09-27 07:01:49Z liuxiao $
-* 修改记录：2016.09.27 V1.0
+* 修改记录：2016.09.30 V1.1
+*               实现 SHA512/384。D567下用有符号 Int64 代替无符号 UInt64
+*           2016.09.27 V1.0
 *               创建单元。从网上佚名 C 代码与 Pascal 代码混合移植而来
 ================================================================================
 |</PRE>}
@@ -95,12 +99,19 @@ function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
+function SHA384Buffer(const Buffer; Count: LongWord): TSHA384Digest;
+{* 对数据块进行SHA384转换
+ |<PRE>
+   const Buffer     - 要计算的数据块
+   Count: LongWord  - 数据块长度
+ |</PRE>}
+
 function SHA512Buffer(const Buffer; Count: LongWord): TSHA512Digest;
 {* 对数据块进行SHA512转换
-|<PRE>
- const Buffer     - 要计算的数据块
- Count: LongWord  - 数据块长度
-|</PRE>}
+ |<PRE>
+  const Buffer     - 要计算的数据块
+  Count: LongWord  - 数据块长度
+ |</PRE>}
 
 function SHA224String(const Str: string): TSHA224Digest;
 {* 对String类型数据进行SHA224转换，注意D2009或以上版本的string为UnicodeString，
@@ -111,6 +122,13 @@ function SHA224String(const Str: string): TSHA224Digest;
 
 function SHA256String(const Str: string): TSHA256Digest;
 {* 对String类型数据进行SHA256转换，注意D2009或以上版本的string为UnicodeString，
+   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+ |<PRE>
+   Str: string       - 要计算的字符串
+ |</PRE>}
+
+function SHA384String(const Str: string): TSHA384Digest;
+{* 对String类型数据进行SHA384转换，注意D2009或以上版本的string为UnicodeString，
    因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
  |<PRE>
    Str: string       - 要计算的字符串
@@ -143,6 +161,18 @@ function SHA256StringA(const Str: AnsiString): TSHA256Digest;
 
 function SHA256StringW(const Str: WideString): TSHA256Digest;
 {* 对 WideString类型数据进行SHA256转换
+ |<PRE>
+   Str: WideString       - 要计算的字符串
+ |</PRE>}
+
+function SHA384StringA(const Str: AnsiString): TSHA384Digest;
+{* 对AnsiString类型数据进行SHA384转换
+ |<PRE>
+   Str: AnsiString       - 要计算的字符串
+ |</PRE>}
+
+function SHA384StringW(const Str: WideString): TSHA384Digest;
+{* 对 WideString类型数据进行SHA384转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
@@ -183,6 +213,30 @@ function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc =
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
+function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
+  TSHA256Digest;
+{* 对指定流数据进行SHA256转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA384File(const FileName: string; CallBack: TSHACalcProgressFunc =
+  nil): TSHA384Digest;
+{* 对指定文件数据进行SHA384转换
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA384Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
+  TSHA384Digest;
+{* 对指定流数据进行SHA384转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
 function SHA512File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA512Digest;
 {* 对指定文件数据进行SHA512转换
@@ -191,9 +245,9 @@ function SHA512File(const FileName: string; CallBack: TSHACalcProgressFunc =
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
-  TSHA256Digest;
-{* 对指定流数据进行SHA256转换
+function SHA512Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
+  TSHA512Digest;
+{* 对指定流数据进行SHA512转换
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -211,6 +265,12 @@ procedure SHA256Update(var Context: TSHA256Context; Buffer: PAnsiChar; Len: Card
 
 procedure SHA256Final(var Context: TSHA256Context; var Digest: TSHA256Digest);
 
+procedure SHA384Init(var Context: TSHA384Context);
+
+procedure SHA384Update(var Context: TSHA384Context; Buffer: PAnsiChar; Len: Cardinal);
+
+procedure SHA384Final(var Context: TSHA384Context; var Digest: TSHA384Digest);
+
 procedure SHA512Init(var Context: TSHA512Context);
 
 procedure SHA512Update(var Context: TSHA512Context; Buffer: PAnsiChar; Len: Cardinal);
@@ -227,6 +287,12 @@ function SHA256Print(const Digest: TSHA256Digest): string;
 {* 以十六进制格式输出SHA256计算值
  |<PRE>
    Digest: TSHA256Digest  - 指定的SHA256计算值
+ |</PRE>}
+
+function SHA384Print(const Digest: TSHA384Digest): string;
+{* 以十六进制格式输出SHA384计算值
+ |<PRE>
+   Digest: TSHA384Digest  - 指定的SHA384计算值
  |</PRE>}
 
 function SHA512Print(const Digest: TSHA512Digest): string;
@@ -249,6 +315,13 @@ function SHA256Match(const D1, D2: TSHA256Digest): Boolean;
    D2: TSHA256Digest   - 需要比较的SHA256计算值
  |</PRE>}
 
+function SHA384Match(const D1, D2: TSHA384Digest): Boolean;
+{* 比较两个SHA384计算值是否相等
+ |<PRE>
+   D1: TSHA384Digest   - 需要比较的SHA384计算值
+   D2: TSHA384Digest   - 需要比较的SHA384计算值
+ |</PRE>}
+
 function SHA512Match(const D1, D2: TSHA512Digest): Boolean;
 {* 比较两个SHA512计算值是否相等
  |<PRE>
@@ -266,6 +339,12 @@ function SHA256DigestToStr(aDig: TSHA256Digest): string;
 {* SHA256计算值转 string
  |<PRE>
    aDig: TSHA256Digest   - 需要转换的SHA256计算值
+ |</PRE>}
+
+function SHA384DigestToStr(aDig: TSHA384Digest): string;
+{* SHA384计算值转 string
+ |<PRE>
+   aDig: TSHA384Digest   - 需要转换的SHA384计算值
  |</PRE>}
 
 function SHA512DigestToStr(aDig: TSHA512Digest): string;
@@ -293,6 +372,27 @@ procedure SHA256HmacFinal(var Context: TSHA256Context; var Output: TSHA256Digest
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   Length: LongWord; var Output: TSHA256Digest);
+
+procedure SHA384HmacInit(var Context: TSHA384Context; Key: PAnsiChar; KeyLength: Integer);
+
+procedure SHA384HmacUpdate(var Context: TSHA384Context; Input: PAnsiChar; Length:
+  LongWord);
+
+procedure SHA384HmacFinal(var Context: TSHA384Context; var Output: TSHA384Digest);
+
+procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA384Digest);
+
+procedure SHA512HmacInit(var Context: TSHA512Context; Key: PAnsiChar; KeyLength: Integer);
+
+procedure SHA512HmacUpdate(var Context: TSHA512Context; Input: PAnsiChar; Length:
+  LongWord);
+
+procedure SHA512HmacFinal(var Context: TSHA512Context; var Output: TSHA512Digest);
+
+procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA512Digest);
+
 {* Hash-based Message Authentication Code (based on SHA256) }
 
 implementation
