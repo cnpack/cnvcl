@@ -559,7 +559,7 @@ begin
 {$ELSE}
   S := SHA384Print(SHA384String(edtSha384.Text));
 {$ENDIF}
-  Insert(#13#10, S, 65);
+  Insert(#13#10, S, 49);
   lblSHA384Result.Caption := S;
 end;
 
