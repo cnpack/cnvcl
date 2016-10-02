@@ -26,6 +26,7 @@ type
     lbl5: TLabel;
     edt7: TEdit;
     procedure btn1Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -58,6 +59,11 @@ begin
   SetTimeText(edt5, TransitTime);
   SetTimeText(edt6, SetTime);
   edt7.Text := GetEnumName(TypeInfo(TSunRiseSetType), Ord(SunType));
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  dtp1.DateTime := Now;
 end;
 
 end.
