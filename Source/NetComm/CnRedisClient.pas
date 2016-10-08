@@ -1044,7 +1044,7 @@ begin
       case PAnsiChar(DWORD(Response) + _Curr)^ of
         Char('*'):
           begin
-            if CurNode.MultiBulkRefs <> nil then
+            if CurNode.MultiBulkRefs.Count > 0 then
             begin
               CurNode := TCnRedisMultiBulkNode(CurNode.MultiBulkRefs[CurNode.CurrIndex]);
               CurNode.CurrIndex := 0;
@@ -1064,7 +1064,7 @@ begin
 
         Char('$'):
           begin
-            if CurNode.MultiBulkRefs = nil then
+            if CurNode.MultiBulkRefs.Count = 0 then
             begin
               _Pos := _ParseCount(DWORD(Response) + _Curr, _Count);
               SetLength(_Value, _Count);
