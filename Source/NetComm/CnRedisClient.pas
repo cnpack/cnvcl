@@ -664,7 +664,7 @@ type
       Boolean; override;
     function SORT(const Key, Param: string; Value: TStrings): Integer; override;
     function _TYPE(const Key: string): TCnRedisDataType; override;
-    function SCAN(cursor: Integer; MATCH: string; Count: Integer):
+    function SCAN(cursor: Integer; MATCH: string = ''; Count: Integer = 0):
       TCnRedisMultiBulk; override;
 
     //-------------------------String---------------------------//
@@ -676,7 +676,7 @@ type
     function DECR(const Key: string): Int64; override;
     function DECRBY(const Key: string; Decrement: Int64): Int64; override;
     function GETRANGE(const Key: string; Start, Stop: Integer): string; override;
-    function _SET(const Key, Value: string; EXSecond: Cardinal; Exist: Byte):
+    function _SET(const Key, Value: string; EXSecond: Cardinal = 0; Exist: Byte = 0):
       Boolean; override;
     function GET(const Key: string): string; override;
     function GETBIT(const Key: string; offset: Integer): Integer; override;
@@ -1103,7 +1103,6 @@ begin
     Result := True;
   except
   end;
-
 end;
 
 destructor TCnRedisProtocol.Destroy;
@@ -1749,7 +1748,7 @@ begin
   Result := SCN_REDIS_EMPTY_VALUE;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
-    if SendAndReceive(Format('HEXISTS %s %s', [Key, Field]), Reply) then
+    if SendAndReceive(Format('HGET %s %s', [Key, Field]), Reply) then
       if Reply.Value <> '' then
         Result := Reply.Value;
   finally
@@ -1915,7 +1914,7 @@ begin
   try
     if SendAndReceive(Format('HSET %s %s %s', [Key, Field, Value]), Reply) then
       if Reply.Value <> '' then
-        Result := Reply.Value = '1';
+        Result := (Reply.Value = '1') or (Reply.Value = '0');
   finally
     RecycleRedisMultiBulkNode(Reply);
   end;
