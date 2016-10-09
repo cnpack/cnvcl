@@ -1,8 +1,8 @@
-program RedisTest;
+program RedisClient;
 
 uses
   Forms,
-  RedisTestMainFrm in 'RedisTestMainFrm.pas' {RedisTestFrm},
+  uMainFrm in 'uMainFrm.pas' {MainFrm},
   CnRedisClient in '..\..\Source\NetComm\CnRedisClient.pas';
 
 {$R *.res}
@@ -10,6 +10,6 @@ uses
 begin
   Application.Initialize;
   // Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TRedisTestFrm, RedisTestFrm);
+  Application.CreateForm(TMainFrm, MainFrm);
   Application.Run;
 end.

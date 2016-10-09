@@ -1,9 +1,9 @@
 object RedisTestFrm: TRedisTestFrm
-  Left = 151
-  Top = 72
+  Left = 0
+  Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  Caption = 'Redis Client Library Test - D7 and Above'
+  Caption = 'Redis Client Library Test'
   ClientHeight = 541
   ClientWidth = 693
   Color = clBtnFace
@@ -25,6 +25,7 @@ object RedisTestFrm: TRedisTestFrm
     Height = 6
     Cursor = crVSplit
     Align = alBottom
+    ExplicitTop = 464
   end
   object mmoResult: TMemo
     Left = 0
@@ -91,6 +92,7 @@ object RedisTestFrm: TRedisTestFrm
       Width = 693
       Height = 46
       Align = alTop
+      BevelKind = bkTile
       BevelOuter = bvNone
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -126,7 +128,7 @@ object RedisTestFrm: TRedisTestFrm
     Top = 83
     Width = 693
     Height = 275
-    ActivePage = TabSheet1
+    ActivePage = TabSheet2
     Align = alClient
     TabOrder = 2
     object TabSheet1: TTabSheet
@@ -519,7 +521,7 @@ object RedisTestFrm: TRedisTestFrm
       end
       object edtKeyParam: TEdit
         Left = 66
-        Top = 111
+        Top = 110
         Width = 159
         Height = 21
         TabOrder = 31
@@ -626,7 +628,6 @@ object RedisTestFrm: TRedisTestFrm
         Width = 106
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
         ItemIndex = 0
         TabOrder = 5
         Text = #22987#32456#35774#32622

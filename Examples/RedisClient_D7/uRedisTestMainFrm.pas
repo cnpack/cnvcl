@@ -1,4 +1,4 @@
-unit RedisTestMainFrm;
+unit uRedisTestMainFrm;
 
 interface
 
@@ -193,7 +193,7 @@ procedure TRedisTestFrm.btnPExpireatClick(Sender: TObject);
 begin
   SetRedisServer;
   mmoResult.Lines.Add('PEXPIREAT:' + booltostr(FRedisClient.PEXPIREAT(edtKeyText.Text,
-    DateTimeToUnix(IncSecond(Now, Sec_SE.Value))), True));
+    DateTimeToUnix(IncSecond(Now, Sec_SE.Value), True)), True));
 end;
 
 procedure TRedisTestFrm.btnKeyRenameNXClick(Sender: TObject);
@@ -307,16 +307,20 @@ begin
   else
     mmoResult.Lines.Add('SETKEY ERR!');
 end;
+{$H+}
 
 procedure TRedisTestFrm.btnSetAddClick(Sender: TObject);
 begin
   RedisSADDSet;
+
 end;
+{$H-}
 
 procedure TRedisTestFrm.btnDisconnectClick(Sender: TObject);
 begin
   FRedisClient.Disconnect;
   mmoResult.Lines.Add('Server is disconnect!');
+
 end;
 
 procedure TRedisTestFrm.btnKeyDelClick(Sender: TObject);
@@ -351,12 +355,12 @@ begin
   SetRedisServer;
   _Date := IncSecond(Now, Sec_SE.Value);
   mmoResult.Lines.Add('EXPIREAT:' + DateTimeToStr(_Date) + '==' + booltostr(FRedisClient.EXPIREAT
-    (edtKeyText.Text, DateTimeToUnix(_Date)), True));
+    (edtKeyText.Text, DateTimeToUnix(_Date, False)), True));
 end;
 
 procedure TRedisTestFrm.FormCreate(Sender: TObject);
 begin
-  // ReportMemoryLeaksOnShutdown := True;
+  ReportMemoryLeaksOnShutdown := True;
   FRedisClient := TCnRedisClient.Create;
 end;
 

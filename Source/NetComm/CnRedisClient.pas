@@ -1886,7 +1886,7 @@ var
   Reply: TCnRedisMultiBulk;
   _Cmd: string;
 begin
-  Result.Value := '(nil)';
+  Result := nil;
   _Cmd := Format('HSCAN %s %d', [Key, Cursor]);
   if MATCH <> '' then
     _Cmd := Format('%s MATCH %s', [_Cmd, MATCH]);
@@ -1894,6 +1894,7 @@ begin
     _Cmd := Format('%s COUNT %d', [_Cmd, Count]);
 
   Reply := ObtainRedisMultiBulkNodeFromPool;
+  Reply.Value := '(nil)';
   try
     if SendAndReceive(_Cmd, Reply) then
     begin
@@ -1901,7 +1902,8 @@ begin
       Result := Reply;
     end;
   finally
-    RecycleRedisMultiBulkNode(Reply);
+    if Result = nil then
+      RecycleRedisMultiBulkNode(Reply);
   end;
 end;
 
@@ -3083,8 +3085,9 @@ function TCnRedisClient.SLOWLOGGET(const Parameter: string): TCnRedisMultiBulk;
 var
   Reply: TCnRedisMultiBulk;
 begin
-  Result.Value := '(nil)';
+  Result := nil;
   Reply := ObtainRedisMultiBulkNodeFromPool;
+  Reply.Value := '(nil)';
   try
     if SendAndReceive(Format('SLOWLOGGET %s', [Parameter]), Reply) then
     begin
@@ -3092,7 +3095,8 @@ begin
       Result := Reply;
     end;
   finally
-    RecycleRedisMultiBulkNode(Reply);
+    if Result = nil then
+      RecycleRedisMultiBulkNode(Reply);
   end;
 end;
 
@@ -3240,7 +3244,7 @@ var
   Reply: TCnRedisMultiBulk;
   _Cmd: string;
 begin
-  Result.Value := '(nil)';
+  Result := nil;
   _Cmd := Format('SSCAN %s %d', [Key, Cursor]);
   if MATCH <> '' then
     _Cmd := Format('%s MATCH %s', [_Cmd, MATCH]);
@@ -3248,6 +3252,7 @@ begin
     _Cmd := Format('%s COUNT %d', [_Cmd, Count]);
 
   Reply := ObtainRedisMultiBulkNodeFromPool;
+  Reply.Value := '(nil)';
   try
     if SendAndReceive(_Cmd, Reply) then
     begin
@@ -3255,7 +3260,8 @@ begin
       Result := Reply;
     end;
   finally
-    RecycleRedisMultiBulkNode(Reply);
+    if Result = nil then
+      RecycleRedisMultiBulkNode(Reply);
   end;
 end;
 
@@ -3702,7 +3708,7 @@ var
   Reply: TCnRedisMultiBulk;
   _Cmd: string;
 begin
-  Result.Value := '(nil)';
+  Result := nil;
   _Cmd := Format('ZSCAN %s %d', [Key, Cursor]);
   if MATCH <> '' then
     _Cmd := Format('%s MATCH %s', [_Cmd, MATCH]);
@@ -3710,6 +3716,7 @@ begin
     _Cmd := Format('%s COUNT %d', [_Cmd, Count]);
 
   Reply := ObtainRedisMultiBulkNodeFromPool;
+  Reply.Value := '(nil)';
   try
     if SendAndReceive(_Cmd, Reply) then
     begin
@@ -3717,7 +3724,8 @@ begin
       Result := Reply;
     end;
   finally
-    RecycleRedisMultiBulkNode(Reply);
+    if Result = nil then
+      RecycleRedisMultiBulkNode(Reply);
   end;
 end;
 
