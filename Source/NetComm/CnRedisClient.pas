@@ -38,6 +38,10 @@ interface
 
 {$I CnPack.inc}
 
+{$IFNDEF COMPILER7_UP}
+  {$MESSAGE ERROR 'CnRedisClient only Supports Delphi 7 or above.'}
+{$ENDIF}
+
 uses
   Windows, Messages, SysUtils, Classes, TypInfo, Graphics, ScktComp, Contnrs;
 
