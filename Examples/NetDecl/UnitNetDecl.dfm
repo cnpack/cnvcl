@@ -20,6 +20,7 @@ object FormNetDecl: TFormNetDecl
     Width = 817
     Height = 409
     ActivePage = tsIP
+    Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsIP: TTabSheet
       Caption = 'IP'
@@ -84,6 +85,7 @@ object FormNetDecl: TFormNetDecl
         Top = 56
         Width = 777
         Height = 313
+        Anchors = [akLeft, akTop, akRight, akBottom]
         ReadOnly = True
         ScrollBars = ssBoth
         TabOrder = 5

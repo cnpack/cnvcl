@@ -388,14 +388,22 @@ begin
 
         // ½âÎö IP °ü
         PIP := @Buf[0];
+        if rbTCP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_TCP) then
+          Continue;
+        if rbUDP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_UDP) then
+          Continue;
+        if rbICMP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_ICMP) then
+          Continue;
+
         mmoIPSniffer.Lines.Add('=== Got an IP Packet. Length: ' + IntToStr(DataLen));
-        mmoIPSniffer.Lines.Add('IP Version: ' + IntToStr(CnGetIPVersionFromIPHeader(PIP)));
-        mmoIPSniffer.Lines.Add('IP Header Length(Bytes): ' + IntToStr(SizeOf(DWORD) * CnGetIPHeaderLengthFromIPHeader(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Precedence: ' + IntToStr(CnGetIPTypeOfServicePrecedenceFromIPHeader(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Delay: ' + IntToStr(CnGetIPTypeOfServiceDelayFromIPHeader(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Throughput: ' + IntToStr(CnGetIPTypeOfServiceThroughputFromIPHeader(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Relibility: ' + IntToStr(CnGetIPTypeOfServiceRelibilityFromIPHeader(PIP)));
-        mmoIPSniffer.Lines.Add('IP TotalLength(Bytes): ' + IntToStr(CnGetIPTotalLengthFromIPHeader(PIP)));
+        mmoIPSniffer.Lines.Add('IP Version: ' + IntToStr(CnGetIPVersion(PIP)));
+        mmoIPSniffer.Lines.Add('IP Header Length(Bytes): ' + IntToStr(SizeOf(DWORD) * CnGetIPHeaderLength(PIP)));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Precedence: ' + IntToStr(CnGetIPTypeOfServicePrecedence(PIP)));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Delay: ' + IntToStr(CnGetIPTypeOfServiceDelay(PIP)));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Throughput: ' + IntToStr(CnGetIPTypeOfServiceThroughput(PIP)));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Relibility: ' + IntToStr(CnGetIPTypeOfServiceRelibility(PIP)));
+        mmoIPSniffer.Lines.Add('IP TotalLength(Bytes): ' + IntToStr(CnGetIPTotalLength(PIP)));
+        mmoIPSniffer.Lines.Add(Format('IP Identification: %8.8x', [PIP^.Identification]));
 
 //        if PIP^.iph_verlen and $F0 <> $40 then // IP must V4
 //          Continue;

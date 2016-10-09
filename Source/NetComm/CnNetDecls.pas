@@ -56,16 +56,28 @@ const
   CN_IP_TOS_PRECEDENCE_INTERNETWORK_CONTROL = 6;
   CN_IP_TOS_PRECEDENCE_NETWORK_CONTROL      = 7;
 
+  CN_IP_TOS_PRECEDENCE_MASK                 = 7;
+
   {* IP 包头中 Type of Service 字段中的其他服务类型标记定义}
   CN_IP_TOS_DELAY_NORMAL         = 0;
   CN_IP_TOS_DELAY_LOW            = $8;
-  CN_IP_TOS_DELAY_MASK           = $8;
   CN_IP_TOS_THROUGHPUT_NORMAL    = 0;
   CN_IP_TOS_THROUGHPUT_HIGH      = $10;
-  CN_IP_TOS_THROUGHPUT_MASK      = $10;
   CN_IP_TOS_RELIBILITY_NORMAL    = 0;
   CN_IP_TOS_RELIBILITY_HIGH      = $20;
+
+  CN_IP_TOS_DELAY_MASK           = $8;
+  CN_IP_TOS_THROUGHPUT_MASK      = $10;
   CN_IP_TOS_RELIBILITY_MASK      = $20;
+
+  {* IP 包头中 Fragment Flag 字段中的分片标记定义}
+  CN_IP_FLAG_MAY_FRAGMENT        = 0;
+  CN_IP_FLAG_DONT_FRAGMENT       = 2;
+  CN_IP_FLAG_LAST_FRAGMENT       = 0;
+  CN_IP_FLAG_MORE_FRAGMENT       = 4;
+
+  CN_IP_FLAG_DONT_FRAGMENT_MASK  = 2;
+  CN_IP_FLAG_MORE_FRAGMENT_MASK  = 4;
 
   {* IP 包头中协议字段的定义，参考自维基百科}
   CN_IP_PROTOCOL_HOPOPT          = $00; // IPv6 Hop-by-Hop Option
@@ -225,7 +237,8 @@ const
 type
 
 {*
-  IP 包头示意图
+  IP 包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
 
    0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -248,7 +261,7 @@ type
     VerionHeaderLength: Byte;           // 版本和包头长度
     TypeOfService:      Byte;           // 服务类型
     TotalLength:        Word;           // 总长度，最大 65535
-    ID:                 Word;           // 标识
+    Identification:     Word;           // 标识
     FlagOffset:         Word;           // 标志和片偏移
     TTL:                Byte;           // 生存时间
     Protocol:           Byte;           // 协议
@@ -260,7 +273,8 @@ type
   PCnIPHeader = ^TCnIPHeader;
 
 {*
-  TCP 包头示意图
+  TCP 包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
 
    0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -297,62 +311,87 @@ type
 
   PCnTCPHeader = ^TCnTCPHeader;
 
-function CnGetIPVersionFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 IP 版本号}
 
-function CnGetIPHeaderLengthFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPHeaderLength(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 IP 包头长度，单位为 4 字节}
 
-function CnGetIPTypeOfServicePrecedenceFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 Type of Service 字段中的 Precedence 值}
 
-function CnGetIPTypeOfServiceDelayFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 Type of Service 字段中的 Delay 值}
 
-function CnGetIPTypeOfServiceThroughputFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 Type of Service 字段中的 Throughput 值}
 
-function CnGetIPTypeOfServiceRelibilityFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 Type of Service 字段中的 Relibility 值}
 
-function CnGetIPTotalLengthFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的包总长度，存在网络字节转换}
+
+function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Integer;
+{* 获得 IP 包头内的是否分段标记}
+
+function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Integer;
+{* 获得 IP 包头内的是否有更多分段标记}
+
+function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
+{* 获得 IP 包头内的分段偏移，存在网络字节转换}
 
 implementation
 
-function CnGetIPVersionFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
 begin
   Result := (IPHeader^.VerionHeaderLength and $F0) shr 4;
 end;
 
-function CnGetIPHeaderLengthFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPHeaderLength(const IPHeader: PCnIPHeader): Integer;
 begin
   Result := IPHeader^.VerionHeaderLength and $0F;
 end;
 
-function CnGetIPTypeOfServicePrecedenceFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := IPHeader^.TypeOfService and $7;
+  Result := IPHeader^.TypeOfService and CN_IP_TOS_PRECEDENCE_MASK;
 end;
 
-function CnGetIPTypeOfServiceDelayFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Integer;
 begin
   Result := IPHeader^.TypeOfService and CN_IP_TOS_DELAY_MASK;
 end;
 
-function CnGetIPTypeOfServiceThroughputFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Integer;
 begin
   Result := IPHeader^.TypeOfService and CN_IP_TOS_THROUGHPUT_MASK;
 end;
 
-function CnGetIPTypeOfServiceRelibilityFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Integer;
 begin
   Result := IPHeader^.TypeOfService and CN_IP_TOS_RELIBILITY_MASK;
 end;
 
-function CnGetIPTotalLengthFromIPHeader(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := ((IPHeader^.TotalLength and $00FF) shl 8) or ((IPHeader^.TotalLength and $FF00) shr 8);
+  Result := ((IPHeader^.TotalLength and $00FF) shl 8) or
+    ((IPHeader^.TotalLength and $FF00) shr 8);
+end;
+
+function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Integer;
+begin
+  Result := IPHeader^.FlagOffset and CN_IP_FLAG_DONT_FRAGMENT_MASK;
+end;
+
+function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Integer;
+begin
+  Result := IPHeader^.FlagOffset and CN_IP_FLAG_MORE_FRAGMENT_MASK;
+end;
+
+function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
+begin
+  Result := IPHeader^.FlagOffset shl 0;
 end;
 
 end.
