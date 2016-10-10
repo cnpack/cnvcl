@@ -3,7 +3,7 @@ object FormNetDecl: TFormNetDecl
   Top = 107
   Width = 864
   Height = 472
-  Caption = 'Test Net Declarations'
+  Caption = '>'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -76,9 +76,7 @@ object FormNetDecl: TFormNetDecl
         Width = 49
         Height = 17
         Caption = 'ICMP'
-        Checked = True
         TabOrder = 4
-        TabStop = True
       end
       object mmoIPSniffer: TMemo
         Left = 16
@@ -89,6 +87,16 @@ object FormNetDecl: TFormNetDecl
         ReadOnly = True
         ScrollBars = ssBoth
         TabOrder = 5
+      end
+      object rbAll: TRadioButton
+        Left = 584
+        Top = 18
+        Width = 49
+        Height = 17
+        Caption = 'All'
+        Checked = True
+        TabOrder = 6
+        TabStop = True
       end
     end
   end

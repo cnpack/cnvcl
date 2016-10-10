@@ -43,8 +43,8 @@ uses
 
 const
   {* IP 包头中的版本字段的定义}
-  CN_IP_VERSION_V4               = 4;
-  CN_IP_VERSION_V6               = 6;
+  CN_IP_VERSION_V4                          = 4;
+  CN_IP_VERSION_V6                          = 6;
 
   {* IP 包头中 Type of Service 字段中的 Precedence 定义}
   CN_IP_TOS_PRECEDENCE_ROUTINE              = 0;
@@ -56,28 +56,15 @@ const
   CN_IP_TOS_PRECEDENCE_INTERNETWORK_CONTROL = 6;
   CN_IP_TOS_PRECEDENCE_NETWORK_CONTROL      = 7;
 
-  CN_IP_TOS_PRECEDENCE_MASK                 = 7;
-
   {* IP 包头中 Type of Service 字段中的其他服务类型标记定义}
-  CN_IP_TOS_DELAY_NORMAL         = 0;
-  CN_IP_TOS_DELAY_LOW            = $8;
-  CN_IP_TOS_THROUGHPUT_NORMAL    = 0;
-  CN_IP_TOS_THROUGHPUT_HIGH      = $10;
-  CN_IP_TOS_RELIBILITY_NORMAL    = 0;
-  CN_IP_TOS_RELIBILITY_HIGH      = $20;
-
-  CN_IP_TOS_DELAY_MASK           = $8;
-  CN_IP_TOS_THROUGHPUT_MASK      = $10;
-  CN_IP_TOS_RELIBILITY_MASK      = $20;
+  CN_IP_TOS_DELAY_MASK                      = $10;
+  CN_IP_TOS_THROUGHPUT_MASK                 = $8;
+  CN_IP_TOS_RELIBILITY_MASK                 = $4;
 
   {* IP 包头中 Fragment Flag 字段中的分片标记定义}
-  CN_IP_FLAG_MAY_FRAGMENT        = 0;
-  CN_IP_FLAG_DONT_FRAGMENT       = 2;
-  CN_IP_FLAG_LAST_FRAGMENT       = 0;
-  CN_IP_FLAG_MORE_FRAGMENT       = 4;
-
-  CN_IP_FLAG_DONT_FRAGMENT_MASK  = 2;
-  CN_IP_FLAG_MORE_FRAGMENT_MASK  = 4;
+  CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK        = $4000;
+  CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK        = $2000;
+  CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK      = $1FFF;
 
   {* IP 包头中协议字段的定义，参考自维基百科}
   CN_IP_PROTOCOL_HOPOPT          = $00; // IPv6 Hop-by-Hop Option
@@ -242,10 +229,11 @@ type
 
    0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |Version|  IHL  |Type of Service|          Total Length         |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |         Identification        |Flags|      Fragment Offset    |
+  |         Identification        |Flags|     Fragment Offset     |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |  Time to Live |    Protocol   |         Header Checksum       |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -278,6 +266,7 @@ type
 
    0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |          Source Port          |       Destination Port        |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -320,28 +309,51 @@ function CnGetIPHeaderLength(const IPHeader: PCnIPHeader): Integer;
 function CnGetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 Type of Service 字段中的 Precedence 值}
 
-function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Integer;
-{* 获得 IP 包头内的 Type of Service 字段中的 Delay 值}
+function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Boolean;
+{* 获得 IP 包头内的 Type of Service 字段中的 Delay 值，True 为 Low，False 为 Normal}
 
-function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Integer;
-{* 获得 IP 包头内的 Type of Service 字段中的 Throughput 值}
+function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Boolean;
+{* 获得 IP 包头内的 Type of Service 字段中的 Throughput 值，True 为 High，False 为 Normal}
 
-function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Integer;
-{* 获得 IP 包头内的 Type of Service 字段中的 Relibility 值}
+function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Boolean;
+{* 获得 IP 包头内的 Type of Service 字段中的 Relibility 值，True 为 High，False 为 Normal}
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的包总长度，存在网络字节转换}
 
-function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Integer;
-{* 获得 IP 包头内的是否分段标记}
+function CnGetIPIdentification(const IPHeader: PCnIPHeader): Integer;
+{* 获得 IP 包头内的标识，存在网络字节转换}
 
-function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Integer;
-{* 获得 IP 包头内的是否有更多分段标记}
+function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Boolean;
+{* 获得 IP 包头内的是否分段标记，返回 True 为不分段，False 为允许分段}
+
+function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
+{* 获得 IP 包头内的是否有更多分段标记，返回 True 为有更多分段，False 为最后一个分段}
 
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的分段偏移，存在网络字节转换}
 
+function CnGetIPCheckSum(const IPHeader: PCnIPHeader): Integer;
+{* 获得 IP 包头内的校验和，存在网络字节转换}
+
+function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
+{* 获得 IP 包头内的源 IP 地址，存在网络字节转换}
+
+function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
+{* 获得 IP 包头内的目的 IP 地址，存在网络字节转换}
+
 implementation
+
+function SwapByteInWord(Value: Word): Word;
+begin
+  Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+end;
+
+function SwapByteInLongWord(Value: LongWord): LongWord;
+begin
+  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
 begin
@@ -355,43 +367,62 @@ end;
 
 function CnGetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := IPHeader^.TypeOfService and CN_IP_TOS_PRECEDENCE_MASK;
+  Result := IPHeader^.TypeOfService shr 5;
 end;
 
-function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := IPHeader^.TypeOfService and CN_IP_TOS_DELAY_MASK;
+  Result := (IPHeader^.TypeOfService and CN_IP_TOS_DELAY_MASK) <> 0;
 end;
 
-function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := IPHeader^.TypeOfService and CN_IP_TOS_THROUGHPUT_MASK;
+  Result := (IPHeader^.TypeOfService and CN_IP_TOS_THROUGHPUT_MASK) <> 0;
 end;
 
-function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := IPHeader^.TypeOfService and CN_IP_TOS_RELIBILITY_MASK;
+  Result := (IPHeader^.TypeOfService and CN_IP_TOS_RELIBILITY_MASK) <> 0;
 end;
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := ((IPHeader^.TotalLength and $00FF) shl 8) or
-    ((IPHeader^.TotalLength and $FF00) shr 8);
+  Result := SwapByteInWord(IPHeader^.TotalLength);
 end;
 
-function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPIdentification(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := IPHeader^.FlagOffset and CN_IP_FLAG_DONT_FRAGMENT_MASK;
+  Result := SwapByteInWord(IPHeader^.Identification);
 end;
 
-function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := IPHeader^.FlagOffset and CN_IP_FLAG_MORE_FRAGMENT_MASK;
+  Result := (SwapByteInWord(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
+end;
+
+function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
+begin
+  Result := (SwapByteInWord(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := IPHeader^.FlagOffset shl 0;
+  Result := SwapByteInWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
+end;
+
+function CnGetIPCheckSum(const IPHeader: PCnIPHeader): Integer;
+begin
+  Result := SwapByteInWord(IPHeader^.CheckSum);
+end;
+
+function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
+begin
+  Result := SwapByteInLongWord(IPHeader^.SourceIp);
+end;
+
+function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
+begin
+  Result := SwapByteInLongWord(IPHeader^.DestIp);
 end;
 
 end.

@@ -18,6 +18,7 @@ type
     rbICMP: TRadioButton;
     mmoIPSniffer: TMemo;
     lblIPCount: TLabel;
+    rbAll: TRadioButton;
     procedure FormCreate(Sender: TObject);
     procedure btnSniffClick(Sender: TObject);
   private
@@ -388,39 +389,33 @@ begin
 
         // 解析 IP 包
         PIP := @Buf[0];
-        if rbTCP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_TCP) then
-          Continue;
-        if rbUDP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_UDP) then
-          Continue;
-        if rbICMP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_ICMP) then
-          Continue;
+        if not rbAll.Checked then
+        begin
+          if rbTCP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_TCP) then
+            Continue;
+          if rbUDP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_UDP) then
+            Continue;
+          if rbICMP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_ICMP) then
+            Continue;
+        end;
 
         mmoIPSniffer.Lines.Add('=== Got an IP Packet. Length: ' + IntToStr(DataLen));
         mmoIPSniffer.Lines.Add('IP Version: ' + IntToStr(CnGetIPVersion(PIP)));
         mmoIPSniffer.Lines.Add('IP Header Length(Bytes): ' + IntToStr(SizeOf(DWORD) * CnGetIPHeaderLength(PIP)));
         mmoIPSniffer.Lines.Add('IP Type Of Service Precedence: ' + IntToStr(CnGetIPTypeOfServicePrecedence(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Delay: ' + IntToStr(CnGetIPTypeOfServiceDelay(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Throughput: ' + IntToStr(CnGetIPTypeOfServiceThroughput(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Relibility: ' + IntToStr(CnGetIPTypeOfServiceRelibility(PIP)));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Delay: ' + IntToStr(Integer(CnGetIPTypeOfServiceDelay(PIP))));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Throughput: ' + IntToStr(Integer(CnGetIPTypeOfServiceThroughput(PIP))));
+        mmoIPSniffer.Lines.Add('IP Type Of Service Relibility: ' + IntToStr(Integer(CnGetIPTypeOfServiceRelibility(PIP))));
         mmoIPSniffer.Lines.Add('IP TotalLength(Bytes): ' + IntToStr(CnGetIPTotalLength(PIP)));
-        mmoIPSniffer.Lines.Add(Format('IP Identification: %8.8x', [PIP^.Identification]));
-
-//        if PIP^.iph_verlen and $F0 <> $40 then // IP must V4
-//          Continue;
-//        if PIP^.iph_dest <> ListeningIP then   // 只抓目标是自己的
-//          Continue;
-//        if PIP^.iph_protocol <> 1 then         // 只抓 ICMP 的
-//          Continue;
-//        if (SrcIp <> INADDR_NONE) and (PIP^.iph_src <> SrcIp) then // 只抓指定源的
-//          Continue;
-//
-//        HdrLen := (PIP^.iph_verlen and $0F) * SizeOf(DWORD);
-//        IGMPBuf := PAnsiChar(Integer(@Buf[0]) + HdrLen + 8); // 8 means IGMP Ping packet header len
-//
-//        PSeq := PCardinal(IGMPBuf);
-//        PLen := PCardinal(Integer(IGMPBuf) + SizeOf(Cardinal));
-//        PFile := PCardinal(Integer(PLen) + SizeOf(Cardinal));
-
+        mmoIPSniffer.Lines.Add(Format('IP Identification: $%4.4x', [CnGetIPIdentification(PIP)]));
+        mmoIPSniffer.Lines.Add('IP Fragment Offset: ' + IntToStr(CnGetIPFragmentOffset(PIP)));
+        mmoIPSniffer.Lines.Add('IP Fragment Dont Flag: ' + IntToStr(Integer(CnGetIPFlagDontFragment(PIP))));
+        mmoIPSniffer.Lines.Add('IP Fragment More Flag: ' + IntToStr(Integer(CnGetIPFlagMoreFragment(PIP))));
+        mmoIPSniffer.Lines.Add('IP TTL: ' + IntToStr(PIP^.TTL));
+        mmoIPSniffer.Lines.Add('IP Protocol: ' + IntToStr(PIP^.Protocol));
+        mmoIPSniffer.Lines.Add('IP Checksum: ' + IntToStr(CnGetIPCheckSum(PIP)));
+        mmoIPSniffer.Lines.Add('IP Source: ' + IntToIP(CnGetIPSourceIP(PIP)));
+        mmoIPSniffer.Lines.Add('IP Destination: ' + IntToIP(CnGetIPDestIP(PIP)));
       end
       else if DataLen = SOCKET_ERROR then
       begin
