@@ -214,12 +214,12 @@ const
   CN_IP_PROTOCOL_RESERVE         = $FF; // Reserved
 
   {* TCP 包头中的标记字段的定义}
-  CN_TCP_FLAG_URG = $0;
-  CN_TCP_FLAG_ACK = $2;
-  CN_TCP_FLAG_PSH = $4;
-  CN_TCP_FLAG_RST = $8;
-  CN_TCP_FLAG_SYN = $10;
-  CN_TCP_FLAG_FYN = $20;
+  CN_TCP_FLAG_URG_MASK = $20;
+  CN_TCP_FLAG_ACK_MASK = $10;
+  CN_TCP_FLAG_PSH_MASK = $8;
+  CN_TCP_FLAG_RST_MASK = $4;
+  CN_TCP_FLAG_SYN_MASK = $2;
+  CN_TCP_FLAG_FIN_MASK = $1;
 
 type
 
@@ -291,7 +291,7 @@ type
     DestPort:              Word;        // 目的端口
     SequenceNumber:        LongWord;    // 序列号
     AcknowledgementNumber: LongWord;    // 响应序列号
-    Offset:                Byte;        // 数据偏移，仅最左 4 bit
+    Offset:                Byte;        // 数据偏移，仅最左 4 bit，等同于包头长度
     Flags:                 Byte;        // TCP 包头标记
     Window:                Word;        // 窗口大小
     Checksum:              Word;        // 校验和
@@ -299,6 +299,8 @@ type
   end;
 
   PCnTCPHeader = ^TCnTCPHeader;
+
+// ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的 IP 版本号}
@@ -342,14 +344,58 @@ function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
 function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
 {* 获得 IP 包头内的目的 IP 地址，存在网络字节转换}
 
+// ======================== TCP 包头系列函数 ===================================
+
+function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
+{* 获得 TCP 包头内的源端口号，存在网络字节转换}
+
+function CnGetTCPDestPort(const TCPHeader: PCnTCPHeader): Integer;
+{* 获得 TCP 包头内的目的端口号，存在网络字节转换}
+
+function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): LongWord;
+{* 获得 TCP 包头内的序列号，存在网络字节转换}
+
+function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): LongWord;
+{* 获得 TCP 包头内的响应号，存在网络字节转换}
+
+function CnGetTCPOffset(const TCPHeader: PCnTCPHeader): Integer;
+{* 获得 TCP 包头内的数据偏移值}
+
+function CnGetTCPFlagURG(const TCPHeader: PCnTCPHeader): Boolean;
+{* 获得 TCP 包头内是否有 URG 标记，是则返回 True，否则返回 False}
+
+function CnGetTCPFlagACK(const TCPHeader: PCnTCPHeader): Boolean;
+{* 获得 TCP 包头内是否有 ACK 标记，是则返回 True，否则返回 False}
+
+function CnGetTCPFlagPSH(const TCPHeader: PCnTCPHeader): Boolean;
+{* 获得 TCP 包头内是否有 PSH 标记，是则返回 True，否则返回 False}
+
+function CnGetTCPFlagRST(const TCPHeader: PCnTCPHeader): Boolean;
+{* 获得 TCP 包头内是否有 RST 标记，是则返回 True，否则返回 False}
+
+function CnGetTCPFlagSYN(const TCPHeader: PCnTCPHeader): Boolean;
+{* 获得 TCP 包头内是否有 SYN 标记，是则返回 True，否则返回 False}
+
+function CnGetTCPFlagFIN(const TCPHeader: PCnTCPHeader): Boolean;
+{* 获得 TCP 包头内是否有 FIN 标记，是则返回 True，否则返回 False}
+
+function CnGetTCPWindow(const TCPHeader: PCnTCPHeader): Integer;
+{* 获得 TCP 包头内的窗口大小，存在网络字节转换}
+
+function CnGetTCPCheckSum(const TCPHeader: PCnTCPHeader): Word;
+{* 获得 TCP 包头内的校验和，存在网络字节转换}
+
+function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
+{* 获得 TCP 包头内的紧急指针，存在网络字节转换}
+
 implementation
 
-function SwapByteInWord(Value: Word): Word;
+function NetworkToHostWord(Value: Word): Word;
 begin
   Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
-function SwapByteInLongWord(Value: LongWord): LongWord;
+function NetworkToHostLongWord(Value: LongWord): LongWord;
 begin
   Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
     or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
@@ -387,42 +433,112 @@ end;
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := SwapByteInWord(IPHeader^.TotalLength);
+  Result := NetworkToHostWord(IPHeader^.TotalLength);
 end;
 
 function CnGetIPIdentification(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := SwapByteInWord(IPHeader^.Identification);
+  Result := NetworkToHostWord(IPHeader^.Identification);
 end;
 
 function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (SwapByteInWord(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
+  Result := (NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (SwapByteInWord(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
+  Result := (NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := SwapByteInWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
+  Result := NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
 end;
 
 function CnGetIPCheckSum(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := SwapByteInWord(IPHeader^.CheckSum);
+  Result := NetworkToHostWord(IPHeader^.CheckSum);
 end;
 
 function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
 begin
-  Result := SwapByteInLongWord(IPHeader^.SourceIp);
+  Result := NetworkToHostLongWord(IPHeader^.SourceIp);
 end;
 
 function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
 begin
-  Result := SwapByteInLongWord(IPHeader^.DestIp);
+  Result := NetworkToHostLongWord(IPHeader^.DestIp);
+end;
+
+function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
+begin
+  Result := NetworkToHostWord(TCPHeader^.SourcePort);
+end;
+
+function CnGetTCPDestPort(const TCPHeader: PCnTCPHeader): Integer;
+begin
+  Result := NetworkToHostWord(TCPHeader^.DestPort);
+end;
+
+function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): LongWord;
+begin
+  Result := NetworkToHostLongWord(TCPHeader^.SequenceNumber);
+end;
+
+function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): LongWord;
+begin
+  Result := NetworkToHostLongWord(TCPHeader^.AcknowledgementNumber);
+end;
+
+function CnGetTCPOffset(const TCPHeader: PCnTCPHeader): Integer;
+begin
+  Result := TCPHeader^.Offset shr 4;
+end;
+
+function CnGetTCPFlagURG(const TCPHeader: PCnTCPHeader): Boolean;
+begin
+  Result := (TCPHeader^.Flags and CN_TCP_FLAG_URG_MASK) <> 0;
+end;
+
+function CnGetTCPFlagACK(const TCPHeader: PCnTCPHeader): Boolean;
+begin
+  Result := (TCPHeader^.Flags and CN_TCP_FLAG_ACK_MASK) <> 0;
+end;
+
+function CnGetTCPFlagPSH(const TCPHeader: PCnTCPHeader): Boolean;
+begin
+  Result := (TCPHeader^.Flags and CN_TCP_FLAG_PSH_MASK) <> 0;
+end;
+
+function CnGetTCPFlagRST(const TCPHeader: PCnTCPHeader): Boolean;
+begin
+  Result := (TCPHeader^.Flags and CN_TCP_FLAG_RST_MASK) <> 0;
+end;
+
+function CnGetTCPFlagSYN(const TCPHeader: PCnTCPHeader): Boolean;
+begin
+  Result := (TCPHeader^.Flags and CN_TCP_FLAG_SYN_MASK) <> 0;
+end;
+
+function CnGetTCPFlagFIN(const TCPHeader: PCnTCPHeader): Boolean;
+begin
+  Result := (TCPHeader^.Flags and CN_TCP_FLAG_FIN_MASK) <> 0;
+end;
+
+function CnGetTCPWindow(const TCPHeader: PCnTCPHeader): Integer;
+begin
+  Result := NetworkToHostWord(TCPHeader^.Window);
+end;
+
+function CnGetTCPCheckSum(const TCPHeader: PCnTCPHeader): Word;
+begin
+  Result := NetworkToHostWord(TCPHeader^.Checksum);
+end;
+
+function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
+begin
+  Result := NetworkToHostWord(TCPHeader^.UrgentPointer);
 end;
 
 end.

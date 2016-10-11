@@ -29,6 +29,8 @@ type
     procedure UpdateButtonState;
     procedure StartSniff;
     procedure StopSniff;
+
+    procedure ParsingPacket(Buf: Pointer; DataLen: Integer);
   public
     { Public declarations }
   end;
@@ -330,7 +332,6 @@ var
   BytesRet, InBufLen: Cardinal;
   CtlBuf: array[0..1023] of AnsiChar;
   DataLen: Integer;
-  PIP: PCnIPHeader;
   ListeningIP: u_long;
 begin
   if FRecving then
@@ -388,34 +389,7 @@ begin
         lblIPCount.Caption := IntToStr(FRecCount);
 
         // ½âÎö IP °ü
-        PIP := @Buf[0];
-        if not rbAll.Checked then
-        begin
-          if rbTCP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_TCP) then
-            Continue;
-          if rbUDP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_UDP) then
-            Continue;
-          if rbICMP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_ICMP) then
-            Continue;
-        end;
-
-        mmoIPSniffer.Lines.Add('=== Got an IP Packet. Length: ' + IntToStr(DataLen));
-        mmoIPSniffer.Lines.Add('IP Version: ' + IntToStr(CnGetIPVersion(PIP)));
-        mmoIPSniffer.Lines.Add('IP Header Length(Bytes): ' + IntToStr(SizeOf(DWORD) * CnGetIPHeaderLength(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Precedence: ' + IntToStr(CnGetIPTypeOfServicePrecedence(PIP)));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Delay: ' + IntToStr(Integer(CnGetIPTypeOfServiceDelay(PIP))));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Throughput: ' + IntToStr(Integer(CnGetIPTypeOfServiceThroughput(PIP))));
-        mmoIPSniffer.Lines.Add('IP Type Of Service Relibility: ' + IntToStr(Integer(CnGetIPTypeOfServiceRelibility(PIP))));
-        mmoIPSniffer.Lines.Add('IP TotalLength(Bytes): ' + IntToStr(CnGetIPTotalLength(PIP)));
-        mmoIPSniffer.Lines.Add(Format('IP Identification: $%4.4x', [CnGetIPIdentification(PIP)]));
-        mmoIPSniffer.Lines.Add('IP Fragment Offset: ' + IntToStr(CnGetIPFragmentOffset(PIP)));
-        mmoIPSniffer.Lines.Add('IP Fragment Dont Flag: ' + IntToStr(Integer(CnGetIPFlagDontFragment(PIP))));
-        mmoIPSniffer.Lines.Add('IP Fragment More Flag: ' + IntToStr(Integer(CnGetIPFlagMoreFragment(PIP))));
-        mmoIPSniffer.Lines.Add('IP TTL: ' + IntToStr(PIP^.TTL));
-        mmoIPSniffer.Lines.Add('IP Protocol: ' + IntToStr(PIP^.Protocol));
-        mmoIPSniffer.Lines.Add('IP Checksum: ' + IntToStr(CnGetIPCheckSum(PIP)));
-        mmoIPSniffer.Lines.Add('IP Source: ' + IntToIP(CnGetIPSourceIP(PIP)));
-        mmoIPSniffer.Lines.Add('IP Destination: ' + IntToIP(CnGetIPDestIP(PIP)));
+        ParsingPacket(@Buf[0], DataLen);
       end
       else if DataLen = SOCKET_ERROR then
       begin
@@ -437,6 +411,60 @@ begin
   if not FRecving then
     Exit;
   FRecving := False;
+end;
+
+procedure TFormNetDecl.ParsingPacket(Buf: Pointer; DataLen: Integer);
+var
+  PIP: PCnIPHeader;
+  PTCP: PCnTCPHeader;
+begin
+  PIP := Buf;
+  if not rbAll.Checked then
+  begin
+    if rbTCP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_TCP) then
+      Exit;
+    if rbUDP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_UDP) then
+      Exit;
+    if rbICMP.Checked and (PIP^.Protocol <> CN_IP_PROTOCOL_ICMP) then
+      Exit;
+  end;
+
+  mmoIPSniffer.Lines.Add('=== Got an IP Packet. Length: ' + IntToStr(DataLen));
+  mmoIPSniffer.Lines.Add('IP Version: ' + IntToStr(CnGetIPVersion(PIP)));
+  mmoIPSniffer.Lines.Add('IP Header Length(Bytes): ' + IntToStr(SizeOf(DWORD) * CnGetIPHeaderLength(PIP)));
+  mmoIPSniffer.Lines.Add('IP Type Of Service Precedence: ' + IntToStr(CnGetIPTypeOfServicePrecedence(PIP)));
+  mmoIPSniffer.Lines.Add('IP Type Of Service Delay: ' + IntToStr(Integer(CnGetIPTypeOfServiceDelay(PIP))));
+  mmoIPSniffer.Lines.Add('IP Type Of Service Throughput: ' + IntToStr(Integer(CnGetIPTypeOfServiceThroughput(PIP))));
+  mmoIPSniffer.Lines.Add('IP Type Of Service Relibility: ' + IntToStr(Integer(CnGetIPTypeOfServiceRelibility(PIP))));
+  mmoIPSniffer.Lines.Add('IP TotalLength(Bytes): ' + IntToStr(CnGetIPTotalLength(PIP)));
+  mmoIPSniffer.Lines.Add(Format('IP Identification: $%4.4x', [CnGetIPIdentification(PIP)]));
+  mmoIPSniffer.Lines.Add('IP Fragment Offset: ' + IntToStr(CnGetIPFragmentOffset(PIP)));
+  mmoIPSniffer.Lines.Add('IP Fragment Dont Flag: ' + IntToStr(Integer(CnGetIPFlagDontFragment(PIP))));
+  mmoIPSniffer.Lines.Add('IP Fragment More Flag: ' + IntToStr(Integer(CnGetIPFlagMoreFragment(PIP))));
+  mmoIPSniffer.Lines.Add('IP TTL: ' + IntToStr(PIP^.TTL));
+  mmoIPSniffer.Lines.Add('IP Protocol: ' + IntToStr(PIP^.Protocol));
+  mmoIPSniffer.Lines.Add('IP Checksum: ' + IntToStr(CnGetIPCheckSum(PIP)));
+  mmoIPSniffer.Lines.Add('IP Source: ' + IntToIP(CnGetIPSourceIP(PIP)));
+  mmoIPSniffer.Lines.Add('IP Destination: ' + IntToIP(CnGetIPDestIP(PIP)));
+
+  if PIP^.Protocol = CN_IP_PROTOCOL_TCP then
+  begin
+    PTCP := PCnTCPHeader(Integer(PIP) + SizeOf(DWORD) * CnGetIPHeaderLength(PIP));
+    mmoIPSniffer.Lines.Add('  TCP Source Port: ' + IntToStr(CnGetTCPSourcePort(PTCP)));
+    mmoIPSniffer.Lines.Add('  TCP Destination Port: ' + IntToStr(CnGetTCPDestPort(PTCP)));
+    mmoIPSniffer.Lines.Add('  TCP Seq Num: ' + IntToStr(CnGetTCPSequenceNumber(PTCP)));
+    mmoIPSniffer.Lines.Add('  TCP Ack Num: ' + IntToStr(CnGetTCPAcknowledgementNumber(PTCP)));
+    mmoIPSniffer.Lines.Add('  TCP Offset(Bytes): ' + IntToStr(SizeOf(DWORD) * CnGetTCPOffset(PTCP)));
+    mmoIPSniffer.Lines.Add('  TCP Flag URG: ' + IntToStr(Integer(CnGetTCPFlagURG(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP Flag ACK: ' + IntToStr(Integer(CnGetTCPFlagACK(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP Flag PSH: ' + IntToStr(Integer(CnGetTCPFlagPSH(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP Flag RST: ' + IntToStr(Integer(CnGetTCPFlagRST(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP Flag SYN: ' + IntToStr(Integer(CnGetTCPFlagSYN(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP Flag FIN: ' + IntToStr(Integer(CnGetTCPFlagFIN(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP Window: ' + IntToStr(Integer(CnGetTCPWindow(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP CheckSum: ' + IntToStr(Integer(CnGetTCPCheckSum(PTCP))));
+    mmoIPSniffer.Lines.Add('  TCP UrgentPointer: ' + IntToStr(Integer(CnGetTCPUrgentPointer(PTCP))));
+  end;
 end;
 
 end.

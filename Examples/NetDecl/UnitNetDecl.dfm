@@ -3,7 +3,7 @@ object FormNetDecl: TFormNetDecl
   Top = 107
   Width = 864
   Height = 472
-  Caption = '>'
+  Caption = 'Net Declaration Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
