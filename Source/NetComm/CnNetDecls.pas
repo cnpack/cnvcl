@@ -243,6 +243,8 @@ type
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                    Options                    |    Padding    |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                             Data                              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }
 
   TCnIPHeader = packed record
@@ -253,7 +255,7 @@ type
     FlagOffset:         Word;           // 标志和片偏移
     TTL:                Byte;           // 生存时间
     Protocol:           Byte;           // 协议
-    CheckSum:           Word;           // 包头校验和
+    Checksum:           Word;           // 包头校验和
     SourceIp:           LongWord;       // 源 IP 地址
     DestIp:             LongWord;       // 目的 IP 地址
   end;
@@ -300,6 +302,31 @@ type
 
   PCnTCPHeader = ^TCnTCPHeader;
 
+{*
+  UDP 包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |          Source Port          |       Destination Port        |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |             Length            |            Checksum           |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                             Data                              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnUDPHeader = packed record
+    SourcePort:            Word;        // 源端口
+    DestPort:              Word;        // 目的端口
+    Length:                Word;        // 数据包长度，包括 UDP 头
+    Checksum:              Word;        // 校验和
+  end;
+
+  PCnUDPHeader = ^TCnUDPHeader;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -335,7 +362,7 @@ function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的分段偏移，存在网络字节转换}
 
-function CnGetIPCheckSum(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPChecksum(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的校验和，存在网络字节转换}
 
 function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
@@ -382,11 +409,25 @@ function CnGetTCPFlagFIN(const TCPHeader: PCnTCPHeader): Boolean;
 function CnGetTCPWindow(const TCPHeader: PCnTCPHeader): Integer;
 {* 获得 TCP 包头内的窗口大小，存在网络字节转换}
 
-function CnGetTCPCheckSum(const TCPHeader: PCnTCPHeader): Word;
+function CnGetTCPChecksum(const TCPHeader: PCnTCPHeader): Word;
 {* 获得 TCP 包头内的校验和，存在网络字节转换}
 
 function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
 {* 获得 TCP 包头内的紧急指针，存在网络字节转换}
+
+// ======================== UDP 包头系列函数 ===================================
+
+function CnGetUDPSourcePort(const UDPHeader: PCnUDPHeader): Integer;
+{* 获得 UDP 包头内的源端口号，存在网络字节转换}
+
+function CnGetUDPDestPort(const UDPHeader: PCnUDPHeader): Integer;
+{* 获得 UDP 包头内的目的端口号，存在网络字节转换}
+
+function CnGetUDPLength(const UDPHeader: PCnUDPHeader): Integer;
+{* 获得 UDP 包头内的包总长度，存在网络字节转换}
+
+function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
+{* 获得 UPD 包头内的校验和，存在网络字节转换}
 
 implementation
 
@@ -456,9 +497,9 @@ begin
   Result := NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
 end;
 
-function CnGetIPCheckSum(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPChecksum(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := NetworkToHostWord(IPHeader^.CheckSum);
+  Result := NetworkToHostWord(IPHeader^.Checksum);
 end;
 
 function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
@@ -531,7 +572,7 @@ begin
   Result := NetworkToHostWord(TCPHeader^.Window);
 end;
 
-function CnGetTCPCheckSum(const TCPHeader: PCnTCPHeader): Word;
+function CnGetTCPChecksum(const TCPHeader: PCnTCPHeader): Word;
 begin
   Result := NetworkToHostWord(TCPHeader^.Checksum);
 end;
@@ -539,6 +580,26 @@ end;
 function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
 begin
   Result := NetworkToHostWord(TCPHeader^.UrgentPointer);
+end;
+
+function CnGetUDPSourcePort(const UDPHeader: PCnUDPHeader): Integer;
+begin
+  Result := NetworkToHostWord(UDPHeader^.SourcePort);
+end;
+
+function CnGetUDPDestPort(const UDPHeader: PCnUDPHeader): Integer;
+begin
+  Result := NetworkToHostWord(UDPHeader^.DestPort);
+end;
+
+function CnGetUDPLength(const UDPHeader: PCnUDPHeader): Integer;
+begin
+  Result := NetworkToHostWord(UDPHeader^.Length);
+end;
+
+function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
+begin
+  Result := NetworkToHostWord(UDPHeader^.Checksum);
 end;
 
 end.
