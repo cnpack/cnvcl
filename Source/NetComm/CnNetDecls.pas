@@ -221,6 +221,25 @@ const
   CN_TCP_FLAG_SYN_MASK = $2;
   CN_TCP_FLAG_FIN_MASK = $1;
 
+  {* ICMP 包头中的消息类型定义}
+  CN_ICMP_TYPE_ECHO_REPLY                   = 0;
+  CN_ICMP_TYPE_DESTINATION_UNREACHABLE      = 3;
+  CN_ICMP_TYPE_SOURCE_QUENCH                = 4;
+  CN_ICMP_TYPE_REDIRECT                     = 5;
+  CN_ICMP_TYPE_ALTERNATE_HOST_ADDRESS       = 6;
+  CN_ICMP_TYPE_ECHO                         = 8;
+  CN_ICMP_TYPE_ROUTER_ADVERTISEMENT         = 9;
+  CN_ICMP_TYPE_ROUTER_SOLICITATION          = 10;
+  CN_ICMP_TYPE_TIME_EXCEEDED                = 11;
+  CN_ICMP_TYPE_PARAMETER_PROBLEM            = 12;
+  CN_ICMP_TYPE_TIMESTAMP                    = 13;
+  CN_ICMP_TYPE_TIMESTAMP_REPLY              = 14;
+  CN_ICMP_TYPE_INFORMATION_REQUEST          = 15;
+  CN_ICMP_TYPE_INFORMATION_REPLY            = 16;
+
+  {* ICMP 包头中的消息代码定义}
+
+
 type
 
 {*
@@ -327,6 +346,36 @@ type
 
   PCnUDPHeader = ^TCnUDPHeader;
 
+{*
+  ICMP 包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     Type      |     Code      |          Checksum             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          变 体 定 义                          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnICMPHeader = packed record
+    MessageType:           Byte;         // 包的消息类型
+    Code:                  Byte;         // 包的消息代码
+    Checksum:              Word;         // 校验和
+    case Integer of
+      0: (Unused:          LongWord);
+      1: (Ptr:             Byte;         // 指针
+          Unused1:         Byte;
+          Unused2:         Word);
+      2: (GatewayAddress:  LongWord);    // 网关地址
+      3: (Identifier:      Word;         // 标识
+          SequenceNumber:  Word);        // 序列号
+  end;
+
+  PCnICMPHeader = ^TCnICMPHeader;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -362,7 +411,7 @@ function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的分段偏移，存在网络字节转换}
 
-function CnGetIPChecksum(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPChecksum(const IPHeader: PCnIPHeader): Word;
 {* 获得 IP 包头内的校验和，存在网络字节转换}
 
 function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
@@ -427,7 +476,30 @@ function CnGetUDPLength(const UDPHeader: PCnUDPHeader): Integer;
 {* 获得 UDP 包头内的包总长度，存在网络字节转换}
 
 function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
-{* 获得 UPD 包头内的校验和，存在网络字节转换}
+{* 获得 UDP 包头内的校验和，存在网络字节转换}
+
+// ======================== ICMP 包头系列函数 ==================================
+
+function CnGetICMPType(const ICMPHeader: PCnICMPHeader): Integer;
+{* 获得 ICMP 包头内的消息类型}
+
+function CnGetICMPCode(const ICMPHeader: PCnICMPHeader): Integer;
+{* 获得 ICMP 包头内的消息代码}
+
+function CnGetICMPChecksum(const ICMPHeader: PCnICMPHeader): Word;
+{* 获得 ICMP 包头内的校验和}
+
+function CnGetICMPPointer(const ICMPHeader: PCnICMPHeader): Integer;
+{* 获得 ICMP 包头内的指针字段值}
+
+function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): LongWord;
+{* 获得 ICMP 包头内的网关地址}
+
+function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
+{* 获得 ICMP 包头内的标识号}
+
+function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
+{* 获得 ICMP 包头内的序列号}
 
 implementation
 
@@ -497,7 +569,7 @@ begin
   Result := NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
 end;
 
-function CnGetIPChecksum(const IPHeader: PCnIPHeader): Integer;
+function CnGetIPChecksum(const IPHeader: PCnIPHeader): Word;
 begin
   Result := NetworkToHostWord(IPHeader^.Checksum);
 end;
@@ -600,6 +672,41 @@ end;
 function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
 begin
   Result := NetworkToHostWord(UDPHeader^.Checksum);
+end;
+
+function CnGetICMPType(const ICMPHeader: PCnICMPHeader): Integer;
+begin
+  Result := ICMPHeader^.MessageType;
+end;
+
+function CnGetICMPCode(const ICMPHeader: PCnICMPHeader): Integer;
+begin
+  Result := ICMPHeader^.Code;
+end;
+
+function CnGetICMPChecksum(const ICMPHeader: PCnICMPHeader): Word;
+begin
+  Result := NetworkToHostWord(ICMPHeader^.Checksum);
+end;
+
+function CnGetICMPPointer(const ICMPHeader: PCnICMPHeader): Integer;
+begin
+  Result := ICMPHeader^.Ptr;
+end;
+
+function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): LongWord;
+begin
+  Result := NetworkToHostLongWord(ICMPHeader^.GatewayAddress);
+end;
+
+function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
+begin
+  Result := NetworkToHostWord(ICMPHeader^.Identifier);
+end;
+
+function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
+begin
+  Result := NetworkToHostWord(ICMPHeader^.SequenceNumber);
 end;
 
 end.
