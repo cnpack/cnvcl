@@ -99,10 +99,10 @@ object FormNetDecl: TFormNetDecl
         TabStop = True
       end
       object btnIPManual: TButton
-        Left = 720
+        Left = 640
         Top = 16
         Width = 75
-        Height = 25
+        Height = 21
         Caption = 'Manual Parse'
         TabOrder = 7
         OnClick = btnIPManualClick

@@ -419,6 +419,7 @@ var
   PIP: PCnIPHeader;
   PTCP: PCnTCPHeader;
   PUDP: PCnUDPHeader;
+  PICMP: PCnICMPHeader;
 begin
   PIP := Buf;
   if not rbAll.Checked then
@@ -486,6 +487,12 @@ begin
     mmoIPSniffer.Lines.Add('  UDP Destination Port: ' + IntToStr(CnGetUDPDestPort(PUDP)));
     mmoIPSniffer.Lines.Add('  UDP Length: ' + IntToStr(CnGetUDPLength(PUDP)));
     mmoIPSniffer.Lines.Add('  UDP CheckSum: ' + IntToStr(Integer(CnGetUDPCheckSum(PUDP))));
+  end
+  else if PIP^.Protocol = CN_IP_PROTOCOL_ICMP then
+  begin
+    PICMP := PCnICMPHeader(Integer(PIP) + SizeOf(DWORD) * CnGetIPHeaderLength(PIP));
+    mmoIPSniffer.Lines.Add('  ICMP Type: ' + IntToStr(CnGetICMPType(PICMP)));
+    mmoIPSniffer.Lines.Add('  ICMP Code: ' + IntToStr(CnGetICMPCode(PICMP)));
   end;
 end;
 

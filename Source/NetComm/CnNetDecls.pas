@@ -236,9 +236,71 @@ const
   CN_ICMP_TYPE_TIMESTAMP_REPLY              = 14;
   CN_ICMP_TYPE_INFORMATION_REQUEST          = 15;
   CN_ICMP_TYPE_INFORMATION_REPLY            = 16;
+  CN_ICMP_TYPE_ADDRESS_MASK_REQUEST         = 17;
+  CN_ICMP_TYPE_ADDRESS_MASK_REPLY           = 18;
+  CN_ICMP_TYPE_TRACEROUTE                   = 30;
+  CN_ICMP_TYPE_DATAGRAM_CONVERSION_ERROR    = 31;
+  CN_ICMP_TYPE_MOBILE_HOST_REDIRECT         = 32;
+  CN_ICMP_TYPE_IPV6_WHERE_ARE_YOU           = 33;
+  CN_ICMP_TYPE_IPV6_I_AM_HERE               = 34;
+  CN_ICMP_TYPE_MOBILE_REGISTRATION_REQUEST  = 35;
+  CN_ICMP_TYPE_MOBILE_REGISTRATION_REPLY    = 36;
+  CN_ICMP_TYPE_DOMAIN_NAME_REQUEST          = 37;
+  CN_ICMP_TYPE_DOMAIN_NAME_REPLY            = 38;
+  CN_ICMP_TYPE_SKIP                         = 39;
+  CN_ICMP_TYPE_PHOTURIS                     = 40;
+  CN_ICMP_TYPE_UTILIZED_BY_MOBILITY         = 41;
 
   {* ICMP 包头中的消息代码定义}
+  CN_ICMP_CODE_NO_CODE                      = 0;
 
+  // 目的不可达类型 CN_ICMP_TYPE_DESTINATION_UNREACHABLE
+  CN_ICMP_CODE_NET_UNREACHABLE              = 0;   // Net Unreachable
+  CN_ICMP_CODE_HOST_UNREACHABLE             = 1;   // Host Unreachable
+  CN_ICMP_CODE_PROTOCOL_UNREACHABLE         = 2;   // Protocol Unreachable
+  CN_ICMP_CODE_PORT_UNREACHABLE             = 3;   // Port Unreachable
+  CN_ICMP_CODE_FRAGMENTATION_NEEDED         = 4;   // Fragmentation Needed and Don't Fragment was Set
+  CN_ICMP_CODE_SOURCE_ROUTE_FAILED          = 5;   // Source Route Failed
+  CN_ICMP_CODE_DEST_NETWORK_UNKNOWN         = 6;   // Destination Network Unknown
+  CN_ICMP_CODE_DEST_HOST_UNKNOWN            = 7;   // Destination Host Unknown
+  CN_ICMP_CODE_SOURCE_HOST_ISOLATED         = 8;   // Source Host Isolated
+  CN_ICMP_CODE_NETWORK_PROHIBITED           = 9;   // Communication with Destination Network is Administratively Prohibited
+  CN_ICMP_CODE_HOST_PROHIBITED              = 10;  // Communication with Destination Host is Administratively Prohibited
+  CN_ICMP_CODE_NETWORK_UNREACHABLE_FOR_TOS  = 11;  // Destination Network Unreachable for Type of Service
+  CN_ICMP_CODE_HOST_UNREACHABLE_FOR_TOS     = 12;  // Destination Host Unreachable for Type of Service
+  CN_ICMP_CODE_COMMUNICATION_PROHIBITED     = 13;  // Communication Administratively Prohibited
+  CN_ICMP_CODE_HOST_PRECEDENCE_VIOLATION    = 14;  // Host Precedence Violation
+  CN_ICMP_CODE_PRECEDENCE_CUTOFF_IN_EFFECT  = 15;  // Precedence cutoff in effect
+
+  // 重定向类型 CN_ICMP_TYPE_REDIRECT
+  CN_ICMP_CODE_REDIRECT_FOR_NETWORK         = 0;
+  CN_ICMP_CODE_REDIRECT_FOR_HOST            = 1;
+  CN_ICMP_CODE_REDIRECT_FOR_TOS_NETWORK     = 2;
+  CN_ICMP_CODE_REDIRECT_FOR_TOS_HOST        = 3;
+
+  // 更改主机地址类型 CN_ICMP_TYPE_ALTERNATE_HOST_ADDRESS
+  CN_ICMP_CODE_ALTERNATE_ADDRESS_FOR_HOST   = 0;
+
+  // 路由公告类型 CN_ICMP_TYPE_ROUTER_ADVERTISEMENT
+  CN_ICMP_CODE_NORMAL_ROUTER_ADVERTISEMENT  = 0;
+  CN_ICMP_CODE_NOT_ROUTE_COMMON_TRAFFIC     = 1;
+
+  // 超时类型 CN_ICMP_TYPE_TIME_EXCEEDED
+  CN_ICMP_CODE_TTL_EXCEEDED_IN_TRANSIT      = 0;
+  CN_ICMP_CODE_FRAGMENT_REASSEMBLY          = 1;
+
+  // 参数问题类型 CN_ICMP_TYPE_PARAMETER_PROBLEM
+  CN_ICMP_CODE_POINTER_INDICATES_THE_ERROR  = 0;
+  CN_ICMP_CODE_MISSING_A_REQUIRED_OPTION    = 1;
+  CN_ICMP_CODE_BAD_LENGTH                   = 2;
+
+  // Photuris 类型 CN_ICMP_TYPE_PHOTURIS
+  CN_ICMP_CODE_BAD_SPI                      = 0;
+  CN_ICMP_CODE_AUTHENTICATION_FAILED        = 1;
+  CN_ICMP_CODE_DECOMPRESSION_FAILED         = 2;
+  CN_ICMP_CODE_DECRYPTION_FAILED            = 3;
+  CN_ICMP_CODE_NEED_AUTHENTICATION          = 4;
+  CN_ICMP_CODE_NEED_AUTHORIZATION           = 5;
 
 type
 
