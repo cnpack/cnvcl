@@ -68,7 +68,7 @@ var
 
 procedure TForm1.btnCalcClick(Sender: TObject);
 var
-  I: Integer;
+  I, GanZhi, Gan, Zhi: Integer;
   M1, D1, H1, mi1: Integer;
   M2, D2, H2, mi2: Integer;
   v91, v92: Integer;
@@ -91,10 +91,21 @@ begin
     mmoResult.Lines.Add(Format('%d伏第%d天', [vf1, vf2]));
   mmoResult.Lines.Add('星座：' + GetXingZuoFromNumber(GetXingZuoFromMonthDay(AMonth, ADay)));
 
-  mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GetGanZhiFromYear(AYear, AMonth, ADay, AHour)));
-  mmoResult.Lines.Add('月：'+ GetGanZhiFromNumber(GetGanZhiFromMonth(AYear, AMonth, ADay, AHour)));
-  mmoResult.Lines.Add('日：'+ GetGanZhiFromNumber(GetGanZhiFromDay(AYear, AMonth, ADay, AHour)));
-  mmoResult.Lines.Add('时：'+ GetGanZhiFromNumber(GetGanZhiFromHour(AYear, AMonth, ADay, AHour)));
+  GanZhi := GetGanZhiFromYear(AYear, AMonth, ADay, AHour);
+  ExtractGanZhi(GanZhi, Gan, Zhi);
+  mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GanZhi) + '，' + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi)));
+
+  GanZhi := GetGanZhiFromMonth(AYear, AMonth, ADay, AHour);
+  ExtractGanZhi(GanZhi, Gan, Zhi);
+  mmoResult.Lines.Add('月：'+ GetGanZhiFromNumber(GanZhi) + '，' + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi)));
+
+  GanZhi := GetGanZhiFromDay(AYear, AMonth, ADay, AHour);
+  ExtractGanZhi(GanZhi, Gan, Zhi);
+  mmoResult.Lines.Add('日：'+ GetGanZhiFromNumber(GanZhi) + '，' + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi)));
+
+  GanZhi := GetGanZhiFromHour(AYear, AMonth, ADay, AHour);
+  ExtractGanZhi(GanZhi, Gan, Zhi);
+  mmoResult.Lines.Add('时：'+ GetGanZhiFromNumber(GanZhi) + '，' + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi)));
   mmoResult.Lines.Add('二十八宿：'+ Get28XiuFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)) + '/' + Get28XiuLongFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('本日纳音五行：'+ Get5XingFromNumber(Get5XingFromDay(AYear, AMonth, ADay)) + '/' + Get5XingLongFromDay(AYear, AMonth, ADay));
   mmoResult.Lines.Add('十二建：'+ Get12JianFromNumber(Get12JianFromDay(AYear, AMonth, ADay)));
