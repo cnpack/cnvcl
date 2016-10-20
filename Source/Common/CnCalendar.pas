@@ -47,7 +47,9 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2012.02.24 V1.8
+* 修改记录：2016.10.20 V1.9
+*               加入三运九星的计算，包括年三元、年的运九星、年月日九星
+*           2012.02.24 V1.8
 *               增加一精确到小时的年干支计算接口
 *           2011.01.05 V1.7
 *               月份的节气分界精确到分钟
@@ -171,9 +173,21 @@ const
   );
   {* 节气字符串，Solar Terms}
 
-  SCn9XingNumber: array[1..9] of string =
+  SCn3YuanArray: array[0..2] of string =
+    ( '上元', '中元', '下元' );
+  {* 三元名称}
+
+  SCn9XingArray: array[0..8] of string =
     ( '一白', '二黑', '三碧', '四绿', '五黄', '六白', '七赤', '八白', '九紫');
   {* 九星名称}
+
+  SCn9Xing5XingArray: array[0..8] of string =
+    ( '水', '土', '木', '木', '土', '金', '金', '土', '火');
+  {* 九星所属五行名称}
+
+  SCn9XingStarArray: array[0..8] of string =
+    ( '贪狼', '巨门', '禄存', '文曲', '廉贞', '武曲', '破军', '左辅', '右弼');
+  {* 九星的星宿名称}
 
   SCnTaiShen1Array: array[0..59] of string =
     ( '占门碓', '碓磨厕', '厨灶炉', '仓库门', '房床厕',
@@ -218,12 +232,16 @@ const
   SCnNaYinWuXingArray: array[0..29] of string =
     ( '海中金', '炉中火', '大林木',
       '路旁土', '剑锋金', '山头火',
+
       '涧下水', '城墙土', '白蜡金',
       '杨柳木', '泉中水', '屋上土',
+
       '霹雷火', '松柏木', '长流水',
       '沙中金', '山下火', '平地木',
+
       '壁上土', '金箔金', '佛灯火',
       '天河水', '大驿土', '钗钏金',
+
       '桑柘木', '大溪水', '沙中土',
       '天上火', '石榴木', '大海水' );
   {* 纳音五行，与相邻一对六十干支对应}
@@ -445,6 +463,27 @@ function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer;
   out TaiShen1: string; out TaiShen2: string): Boolean; overload;
 {* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串}
 
+function Get3YuanFromNumber(A3Yuan: Integer): string;
+{* 从数字获得三元名称，0-2}
+
+function Get9XingFromNumber(A9Xing: Integer): string;
+{* 从数字获得九星名称，0-8}
+
+function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
+{* 获取公历年所属的三元，0-2}
+
+function GetYun9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
+{* 获取公历年的运九星，0-8 对应一白到九紫}
+
+function Get9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
+{* 获取公历年的年九星，0-8 对应一白到九紫}
+
+function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
+{* 获取公历月的月九星，0-8 对应一白到九紫}
+
+function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获取公历日的日九星，0-8 对应一白到九紫}
+
 function GetAllDays(Year, Month, Day: Integer): Integer;
 {* 获得距公元元年 1 月 0 日的绝对天数}
 
@@ -492,6 +531,9 @@ function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer): Integer
 function Compare2LunarDay(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
   Year2, Month2, Day2: Integer; IsLeap2: Boolean): Integer;
 {* 比较两个农历日期（包括闰月信息），1 >=< 2 分别返回 1、0、-1}
+
+function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
+{* 根据公历年月日，返回该日所属的以立春分割的年份，也就是说立春日后是今年，否则为去年}
 
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
 {* 获得某公历日的等效标准日数}
@@ -2026,21 +2068,6 @@ begin
   end;
 
   // Gan 此时是本日干数，根据规则换算成本日首时辰干数
-
-//  case Gan of
-//    0,5:
-//      Gan := 0;
-//    1,6:
-//      Gan := 2;
-//    2,7:
-//      Gan := 4;
-//    3,8:
-//      Gan := 6;
-//    4,9:
-//      Gan := 8;
-//  end;
-
-  // 应该也有口诀，但可不需要，可简化如下
   if Gan >= 5 then
     Dec(Gan, 5);
   Gan := 2 * Gan;
@@ -2328,6 +2355,109 @@ begin
   Result := True;
 end;
 
+// 从数字获得三元名称，0-2
+function Get3YuanFromNumber(A3Yuan: Integer): string;
+begin
+  Result := '';
+  if (A3Yuan >= 0) and (A3Yuan < 3) then
+    Result := SCn3YuanArray[A3Yuan];
+end;
+
+// 从数字获得九星名称，0-8
+function Get9XingFromNumber(A9Xing: Integer): string;
+begin
+  Result := '';
+  if (A9Xing >= 0) and (A9Xing < 9) then
+    Result := SCn9XingArray[A9Xing];
+end;
+
+// 获取公历年所属的三元，0-2 对应上元中元下元
+function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := -1;
+  if AYear = 0 then
+    Exit;
+
+  AYear := GetYearSeperatedByLiChun(AYear, AMonth, ADay);
+  if AYear < 0 then  // 处理无公元 0 年的情况
+    Inc(AYear);
+
+  // 1864 年是某一个上元之始
+  AYear := (AYear - 1864) mod 180;
+  if AYear < 0 then
+    Inc(AYear, 180);
+
+  if AYear in [0..59] then
+    Result := 0
+  else if AYear in [60..119] then
+    Result := 1
+  else
+    Result := 2;
+end;
+
+// 获取公历年的运九星，0-8 对应一白到九紫
+function GetYun9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := -1;
+  if AYear = 0 then
+    Exit;
+
+  AYear := GetYearSeperatedByLiChun(AYear, AMonth, ADay);
+  if AYear < 0 then  // 处理无公元 0 年的情况
+    Inc(AYear);
+
+  // 1864 年是某一个上元也就是九运之始
+  AYear := (AYear - 1864) mod 180;
+  if AYear < 0 then
+    Inc(AYear, 180);
+
+  Result := AYear div 20;
+end;
+
+// 获取公历年的年九星，0-8 对应一白到九紫
+function Get9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
+var
+  Yuan: Integer;
+begin
+  Result := -1;
+  if AYear = 0 then
+    Exit;
+
+  Yuan := Get3YuanFromYear(AYear, AMonth, ADay);
+  AYear := GetYearSeperatedByLiChun(AYear, AMonth, ADay);
+
+  AYear := (AYear - 1864) mod 60;
+  if AYear < 0 then
+    Inc(AYear, 60);
+
+  case Yuan of
+    0:       // 上元甲子起一白
+      begin
+        Result := 8 - ((AYear + 8) mod 9);
+      end;
+    1:       // 中元甲子起四绿
+      begin
+        Result := 8 - ((AYear + 5) mod 9);
+      end;
+    2:       // 下元甲子起七赤
+      begin
+        Result := 8 - ((AYear + 2) mod 9);
+      end;
+  end;
+end;
+
+// 获取公历月的月九星，0-8 对应一白到九紫
+function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
+begin
+
+end;
+
+// 获取公历日的日九星，0-8 对应一白到九紫
+function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
+begin
+
+end;
+
 // 获得公历年月日在数九日中的第几九的第几日，1~9,1~9对应一九到九九，False 为不在数九日内
 function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDay: Integer): Boolean;
 var
@@ -2488,6 +2618,24 @@ begin
         Exit;
       end;
     end;
+  end;
+end;
+
+// 根据公历年月日，返回该日所属的以立春分割的年份，也就是说立春日后是今年，否则为去年
+function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
+var
+  Days: Extended;
+begin
+  Result := AYear;
+  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+
+  // 如本日是立春日前，则是属于前一年
+  if Days < GetJieQiDayTimeFromYear(AYear, 3) then
+  begin
+    // 年调整为前一年
+    Dec(Result);
+    if Result = 0 then // 没有公元 0 年
+      Dec(Result);
   end;
 end;
 
