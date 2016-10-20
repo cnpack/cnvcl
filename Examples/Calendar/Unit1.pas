@@ -96,7 +96,7 @@ begin
   GanZhi := GetGanZhiFromYear(AYear, AMonth, ADay, AHour);
   ExtractGanZhi(GanZhi, Gan, Zhi);
   JiuXing := Get9XingFromYear(AYear, AMonth, ADay);
-
+  mmoResult.Lines.Add('生肖：' + GetShengXiaoFromNumber(Zhi));
   mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GanZhi) + '，五行：'
     + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi))
     + '，九星：' + Get9XingFromNumber(JiuXing));
