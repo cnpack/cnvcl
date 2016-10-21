@@ -117,7 +117,10 @@ begin
 
   GanZhi := GetGanZhiFromHour(AYear, AMonth, ADay, AHour);
   ExtractGanZhi(GanZhi, Gan, Zhi);
-  mmoResult.Lines.Add('时：'+ GetGanZhiFromNumber(GanZhi) + '，五行：' + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi)));
+  JiuXing := Get9XingFromHour(AYear, AMonth, ADay, AHour);
+  mmoResult.Lines.Add('时：'+ GetGanZhiFromNumber(GanZhi) + '，五行：'
+    + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi))
+    + '，九星：' + Get9XingFromNumber(JiuXing));
 
   mmoResult.Lines.Add('二十八宿：'+ Get28XiuFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)) + '/' + Get28XiuLongFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('本日纳音五行：'+ Get5XingFromNumber(Get5XingFromDay(AYear, AMonth, ADay)) + '/' + Get5XingLongFromDay(AYear, AMonth, ADay));

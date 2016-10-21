@@ -463,6 +463,10 @@ function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer;
   out TaiShen1: string; out TaiShen2: string): Boolean; overload;
 {* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串}
 
+function AdjustDateByJieQi(var AYear: Integer; var AMonth: Integer;
+  ADay: Integer; AHour: Integer): Boolean;
+{根据节气与立春为界，调整公历年的年月日，供黄历计算}
+
 function Get3YuanFromNumber(A3Yuan: Integer): string;
 {* 从数字获得三元名称，0-2}
 
@@ -483,6 +487,9 @@ function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
 
 function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
 {* 获取公历日的日九星，0-8 对应一白到九紫}
+
+function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
+{* 获取公历时的时九星，0-8 对应一白到九紫}
 
 function GetAllDays(Year, Month, Day: Integer): Integer;
 {* 获得距公元元年 1 月 0 日的绝对天数}
@@ -2110,43 +2117,9 @@ end;
 function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, DummyZhi: Integer;
-
-  // 调整年和月记录，因为年月的天干地支计算是以立春和各个节气为分界的
-  procedure AdjustByJieQi(var AYear: Integer; var AMonth: Integer;
-    ADay: Integer; AHour: Integer);
-  var
-    I: Integer;
-    Days: Extended;
-  begin
-    Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
-
-    // 如本日是立春日前，则是属于前一年
-    if Days < GetJieQiDayTimeFromYear(AYear, 3) then
-    begin
-      // 年调整为前一年
-      Dec(AYear);
-      if Days < GetJieQiDayTimeFromYear(AYear, 1) then // 如果小于小寒则算 11 月
-        AMonth := 11
-      else // 小寒和立春间算 12 月
-        AMonth := 12;
-    end
-    else
-    begin
-      // 计算本年的节气，看该日落在哪俩节气内
-      for I := 1 to 12 do // I 是以节气为分界的月份数
-      begin
-        // 如果 I 月首节气的距年头的日数小于此日
-        if Days >= GetJieQiDayTimeFromYear(AYear, 2 * I + 1) then
-          AMonth := I
-        else
-          Break;
-      end;
-    end;
-  end;
-
 begin
   // 需要先根据节气调整月和年数
-  AdjustByJieQi(AYear, AMonth, ADay, AHour);
+  AdjustDateByJieQi(AYear, AMonth, ADay, AHour);
 
   Result := -1;
   ExtractGanZhi(GetGanZhiFromYear(AYear), Gan, DummyZhi);
@@ -2355,6 +2328,44 @@ begin
   Result := True;
 end;
 
+// 根据节气与立春为界，调整公历年的年月日，供黄历计算
+function AdjustDateByJieQi(var AYear: Integer; var AMonth: Integer;
+  ADay: Integer; AHour: Integer): Boolean;
+var
+  I: Integer;
+  Days: Extended;
+begin
+  Result := GetDateIsValid(AYear, AMonth, ADay);
+  if not Result then
+    Exit;
+
+  // 调整年和月记录，因为年月的天干地支计算是以立春和各个节气为分界的
+  Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
+
+  // 如本日是立春日前，则是属于前一年
+  if Days < GetJieQiDayTimeFromYear(AYear, 3) then
+  begin
+    // 年调整为前一年
+    Dec(AYear);
+    if Days < GetJieQiDayTimeFromYear(AYear, 1) then // 如果小于小寒则算 11 月
+      AMonth := 11
+    else // 小寒和立春间算 12 月
+      AMonth := 12;
+  end
+  else
+  begin
+    // 计算本年的节气，看该日落在哪俩节气内
+    for I := 1 to 12 do // I 是以节气为分界的月份数
+    begin
+      // 如果 I 月首节气的距年头的日数小于此日
+      if Days >= GetJieQiDayTimeFromYear(AYear, 2 * I + 1) then
+        AMonth := I
+      else
+        Break;
+    end;
+  end;
+end;
+
 // 从数字获得三元名称，0-2
 function Get3YuanFromNumber(A3Yuan: Integer): string;
 begin
@@ -2431,15 +2442,15 @@ begin
     Inc(AYear, 60);
 
   case Yuan of
-    0:       // 上元甲子起一白
+    0:       // 上元起一白
       begin
         Result := 8 - ((AYear + 8) mod 9);
       end;
-    1:       // 中元甲子起四绿
+    1:       // 中元起四绿
       begin
         Result := 8 - ((AYear + 5) mod 9);
       end;
-    2:       // 下元甲子起七赤
+    2:       // 下元起七赤
       begin
         Result := 8 - ((AYear + 2) mod 9);
       end;
@@ -2448,12 +2459,49 @@ end;
 
 // 获取公历月的月九星，0-8 对应一白到九紫
 function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
+var
+  Zhi: Integer;
 begin
-
+  Result := -1;
+  if AdjustDateByJieQi(AYear, AMonth, ADay, 0) then
+  begin
+    // 得到立春分割的年以及节气分割的月后获取年干支
+    Zhi := GetZhiFromYear(AYear);
+    case Zhi of
+      0, 3, 6, 9:
+        begin
+          // 子午卯酉八白起
+          Result := 8 - (AMonth mod 9);
+        end;
+      2, 5, 8, 11:
+        begin
+          // 寅申巳亥二黑求
+          Result := 8 - ((AMonth + 6) mod 9);
+        end;
+      1, 4, 7, 10:
+        begin
+          // 辰戌丑未五黄中
+          Result := 8 - ((AMonth + 3) mod 9);
+        end;
+    end;
+  end;
 end;
 
 // 获取公历日的日九星，0-8 对应一白到九紫
 function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
+const
+  JIEQI_SEQ: array[0..5] of Integer = (0, 4, 8, 12, 16, 20);
+  // 冬至（上一年）、雨水、谷雨、夏至、处暑、霜降六个节气
+var
+  I: Integer;
+  JieQis: array[0..5] of Integer; // 六个节气日期
+  JiaZis: array[0..5] of Integer; // 六个节气后的第一个甲子日的日期
+begin
+
+end;
+
+// 获取公历时的时九星，0-8 对应一白到九紫
+function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 begin
 
 end;
