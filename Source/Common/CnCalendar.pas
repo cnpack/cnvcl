@@ -380,7 +380,7 @@ function GetYinYangFromZhi(const Zhi: Integer): Integer;
 function CombineGanZhi(Gan, Zhi: Integer): Integer;
 {* 将天干地支组合成干支，0-9 0-11 转换成 0-59}
 
-function ExtractGanZhi(GanZhi: Integer; var Gan: Integer; var Zhi: Integer): Boolean;
+function ExtractGanZhi(GanZhi: Integer; out Gan: Integer; out Zhi: Integer): Boolean;
 {* 将干支拆分成天干地支，0-59 转换成 0-9 0-11 }
 
 function Get5XingFromGan(const Gan: Integer): Integer;
@@ -462,6 +462,9 @@ function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer): string; overload
 function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer;
   out TaiShen1: string; out TaiShen2: string): Boolean; overload;
 {* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串}
+
+function GetShiChenFromHour(AHour: Integer): Integer;
+{* 获得小时时刻对应的时辰，0-11 对应子至亥}
 
 function AdjustDateByJieQi(var AYear: Integer; var AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
@@ -1292,7 +1295,7 @@ begin
 end;
 
 // 将干支拆分成天干地支，0-59 转换成 0-9 0-11
-function ExtractGanZhi(GanZhi: Integer; var Gan: Integer; var Zhi: Integer): Boolean;
+function ExtractGanZhi(GanZhi: Integer; out Gan: Integer; out Zhi: Integer): Boolean;
 begin
   if GanZhi in [0..59] then
   begin
@@ -2328,6 +2331,25 @@ begin
   Result := True;
 end;
 
+// 获得小时时刻对应的时辰，0-11 对应子至亥
+function GetShiChenFromHour(AHour: Integer): Integer;
+begin
+  Result := -1;
+  if not AHour in [0..23] then
+    Exit;
+
+  if AHour = 23 then
+  begin
+    // 次日子时
+    Result := 0;
+  end
+  else
+  begin
+    Inc(AHour);
+    Result := AHour div 2;
+  end;
+end;
+
 // 根据节气与立春为界，调整公历年的年月日，供黄历计算
 function AdjustDateByJieQi(var AYear: Integer; var AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
@@ -2502,8 +2524,64 @@ end;
 
 // 获取公历时的时九星，0-8 对应一白到九紫
 function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
+var
+  SCH, Days, DayGanZhi, DayGan, DayZhi, XiaZhi, DongZhi: Integer;
 begin
+  Result := -1;
+  if AYear = 0 then
+    Exit;
 
+  SCH := GetShiChenFromHour(AHour);
+  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+
+  DayGanZhi := GetGanZhiFromDay(AYear, AMonth, ADay, AHour);
+  ExtractGanZhi(DayGanZhi, DayGan, DayZhi);
+
+  DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, 24));
+  XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, 12));
+
+  if (Days >= XiaZhi) and (Days < DongZhi) then
+  begin
+    // 夏至后且冬至前，倒排
+    case DayZhi of
+      0, 3, 6, 9:
+        begin
+          // 子午卯酉日的子时是九紫
+          Result := 8 - (SCH mod 9);
+        end;
+      2, 5, 8, 11:
+        begin
+          // 寅申巳亥日的子时是三碧
+          Result := 8 - ((SCH + 3) mod 9);
+        end;
+      1, 4, 7, 10:
+        begin
+          // 辰戌丑未日的子时是六白
+          Result := 8 - ((SCH + 6) mod 9);
+        end;
+    end;
+  end
+  else
+  begin
+    // 冬至后或夏至前，顺排
+    case DayZhi of
+      0, 3, 6, 9:
+        begin
+          // 子午卯酉日的子时是一白
+          Result := SCH mod 9;
+        end;
+      2, 5, 8, 11:
+        begin
+          // 寅申巳亥日的子时是七赤
+          Result := (SCH + 6) mod 9;
+        end;
+      1, 4, 7, 10:
+        begin
+          // 辰戌丑未日的子时是四绿
+          Result := (SCH + 3) mod 9;
+        end;
+    end;
+  end;
 end;
 
 // 获得公历年月日在数九日中的第几九的第几日，1~9,1~9对应一九到九九，False 为不在数九日内
