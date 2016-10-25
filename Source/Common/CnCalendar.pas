@@ -47,8 +47,8 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2016.10.20 V1.9
-*               加入三运九星的计算，包括年三元、年的运九星、年月日九星
+* 修改记录：2016.10.25 V1.9
+*               加入九星的计算，包括年三元、年的运九星、年月日时九星
 *           2012.02.24 V1.8
 *               增加一精确到小时的年干支计算接口
 *           2011.01.05 V1.7
@@ -2515,11 +2515,83 @@ const
   JIEQI_SEQ: array[0..5] of Integer = (0, 4, 8, 12, 16, 20);
   // 冬至（上一年）、雨水、谷雨、夏至、处暑、霜降六个节气
 var
-  I: Integer;
-  JieQis: array[0..5] of Integer; // 六个节气日期
-  JiaZis: array[0..5] of Integer; // 六个节气后的第一个甲子日的日期
+  I, PreYear, GanZhi, AllDays, Days: Integer;
+  JieQis: array[0..5] of Integer; // 六个节气日期（距离年首天数）
+  JiaZis: array[0..5] of Integer; // 六个节气后的第一个甲子日的日期（距离年首天数）
 begin
+  Result := -1;
+  if AYear = 0 then
+    Exit;
 
+  if AYear = 1 then
+    PreYear := -1
+  else
+    PreYear := AYear - 1;
+
+  for I := Low(JIEQI_SEQ) to High(JIEQI_SEQ) do
+  begin
+    if JIEQI_SEQ[I] > 0 then
+    begin
+      JieQis[I] := Floor(GetJieQiDayTimeFromYear(AYear, JIEQI_SEQ[I]));
+      AllDays := GetAllDays(AYear, 1, 1) - 1;
+    end
+    else
+    begin
+      JieQis[I] := Floor(GetJieQiDayTimeFromYear(PreYear, JIEQI_SEQ[I] + 24));
+      AllDays := GetAllDays(PreYear, 1, 1) - 1;
+    end;
+
+    GanZhi := GetGanZhiFromDay(Alldays + JieQis[I]);  // 得到这个节气日的干支
+    JiaZis[I] := JieQis[I] + (60 - GanZhi);           // 得到六个甲子日的距年首天数，第0个为距上一年的
+  end;
+
+  JiaZis[0] := JiaZis[0] - 365;
+  if IsLeapYear(PreYear) then
+    Dec(JiaZis[0]);
+
+  // JiaZis 内是六个甲子日的距本年年首的天数，第 0 个可能为负值，表示在去年
+  Days := GetDayFromYearBegin(AYear, AMonth, ADay);
+  for I := High(JiaZis) downto Low(JiaZis) do
+  begin
+    if Days >= JiaZis[I] then
+    begin
+      // 刚好大于这个甲子日
+      Days := Days - JiaZis[I];
+      case I of
+        0:
+          begin
+            // 冬至后一白，顺排
+            Result := Days mod 9;
+          end;
+        1:
+          begin
+            // 雨水后七赤，顺排
+            Result := (Days + 6) mod 9;
+          end;
+        2:
+          begin
+            // 谷雨后四碧，顺排
+            Result := (Days + 3) mod 9;
+          end;
+        3:
+          begin
+            // 夏至后九紫，倒排
+            Result := 8 - (Days mod 9);
+          end;
+        4:
+          begin
+            // 处暑后三碧，倒排
+            Result := 8 - ((Days + 6) mod 9);
+          end;
+        5:
+          begin
+            // 霜降后六白，倒排
+            Result := 8 - ((Days + 3) mod 9);
+          end;
+      end;
+      Exit;
+    end;
+  end;
 end;
 
 // 获取公历时的时九星，0-8 对应一白到九紫
