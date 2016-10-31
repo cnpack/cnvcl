@@ -29,7 +29,9 @@ unit CnMethodHook;
 * 兼容测试：
 * 本 地 化：该单元中的字符串支持本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2007.11.05
+* 修改记录：2016.10.31
+*               加入 Hooked 属性
+*           2007.11.05
 *               从 CnWizMethodHook 中移植而来
 ================================================================================
 |</PRE>}
@@ -69,7 +71,9 @@ type
      |</PRE>}
     destructor Destroy; override;
     {* 类析构器，取消挂接}
-    
+
+    property Hooked: Boolean read FHooked;
+    {* 是否已挂接}
     procedure HookMethod; virtual;
     {* 重新挂接，如果需要执行原过程，并使用了 UnhookMethod，请在执行完成后重新挂接}
     procedure UnhookMethod; virtual;

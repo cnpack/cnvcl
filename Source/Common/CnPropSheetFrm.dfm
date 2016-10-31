@@ -167,6 +167,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Top = 8
       Width = 145
       Height = 18
+      Anchors = [akLeft, akTop, akRight]
       BorderStyle = bsNone
       ParentColor = True
       ReadOnly = True
