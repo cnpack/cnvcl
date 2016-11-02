@@ -95,16 +95,18 @@ type
   TCnTranslationMode = (tmByComponents, tmByStrings);
   {* 翻译模式，根据窗体和控件等遍历还是根据翻译字符串内容遍历 }
 
+  TCnStrObjType = (csotString, csotAnsi, csotWide);
+
   TCnStringObj = class
   {* 描述一自动翻译的字符串}
   private
     FStringAddr: Pointer;
     FStringName: WideString;
-    FIsWide: Boolean;
+    FType: TCnStrObjType;
   public
     property StringAddr: Pointer read FStringAddr write FStringAddr;
     property StringName: WideString read FStringName write FStringName;
-    property IsWide: Boolean read FIsWide write FIsWide;
+    property AType: TCnStrObjType read FType write FType;
   end;
 
   TCnResourceStringObj = class
@@ -322,8 +324,12 @@ procedure TranslateStrArray(var StrArray: array of string; const IDStr: string);
 procedure TranslateWideStrArray(var StrArray: array of WideString; const IDStr: WideString);
 {* 翻译某个字符串数组 }
 
-procedure RegisterTranslateString(const StringAddr: PAnsiString; const IDStr: WideString); overload;
-procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString); overload;
+type
+  PCnString = ^string;
+
+procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: WideString);
+procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: WideString);
+procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString);
 {* 注册一字符串，传入地址与名称，可在语言改变时被自动翻译，无需手工调 Translate}
 
 procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: WideString);
@@ -1513,7 +1519,7 @@ begin
   end;
 end;
 
-procedure RegisterTranslateString(const StringAddr: PAnsiString; const IDStr: WideString);
+procedure DoRegisterTranslateString(const StringAddr: Pointer; const IDStr: WideString; AType: TCnStrObjType);
 var
   AObj: TCnStringObj;
 begin
@@ -1522,23 +1528,24 @@ begin
     AObj := TCnStringObj.Create;
     AObj.StringAddr := StringAddr;
     AObj.StringName := IDStr;
-    AObj.IsWide := False;
+    AObj.FType := AType;
     FRegStrings.Add(AObj);
   end;
 end;
 
-procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString);
-var
-  AObj: TCnStringObj;
+procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: WideString);
 begin
-  if StringAddr <> nil then
-  begin
-    AObj := TCnStringObj.Create;
-    AObj.StringAddr := StringAddr;
-    AObj.StringName := IDStr;
-    AObj.IsWide := True;
-    FRegStrings.Add(AObj);
-  end;
+  DoRegisterTranslateString(StringAddr, IDStr, csotString);
+end;
+
+procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: WideString);
+begin
+  DoRegisterTranslateString(StringAddr, IDStr, csotAnsi);
+end;
+
+procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString);
+begin
+  DoRegisterTranslateString(StringAddr, IDStr, csotWide);
 end;
 
 procedure TranslateReggedStrings;
@@ -1558,7 +1565,9 @@ begin
     DstStr := CnLanguageManager.TranslateString(AObj.StringName);
     if DstStr <> '' then
     begin
-      if AObj.IsWide then
+      if AObj.FType = csotString then
+        PCnString(AObj.FStringAddr)^ := string(DstStr)
+      else if AObj.FType = csotWide then
         PWideString(AObj.FStringAddr)^ := DstStr
       else
         PAnsiString(AObj.FStringAddr)^ := AnsiString(DstStr);
