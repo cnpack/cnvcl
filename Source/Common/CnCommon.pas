@@ -462,6 +462,8 @@ function SetEnvironmentVar(const Name, Value: string): Boolean;
 type
   TAnsiCharSet = set of AnsiChar;
 
+  TCharSet = set of AnsiChar;
+
 function CharInSet(C: Char; CharSet: TAnsiCharSet): Boolean;
 {* 判断字符是否在集合内}
 
