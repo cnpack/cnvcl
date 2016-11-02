@@ -462,8 +462,6 @@ function SetEnvironmentVar(const Name, Value: string): Boolean;
 type
   TAnsiCharSet = set of AnsiChar;
 
-  TCharSet = set of Char;
-
 function CharInSet(C: Char; CharSet: TAnsiCharSet): Boolean;
 {* 判断字符是否在集合内}
 
@@ -4521,10 +4519,10 @@ var
   I: Integer;
 begin
   Result := False;
-  if (Length(Ident) = 0) or not ((Ident[1] in Alpha) or (Ord(Ident[1]) > 127)) then
+  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in Alpha) or (Ord(Ident[1]) > 127)) then
     Exit;
   for I := 2 to Length(Ident) do
-    if not ((Ident[I] in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+    if not ((AnsiChar(Ident[I]) in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
       Exit;
   Result := True;
 end;
@@ -4541,10 +4539,10 @@ var
 begin
   Result := False;
 {$IFDEF BDS}
-  if (Length(Ident) = 0) or not ((Ident[1] in Alpha) or (Ord(Ident[1]) > 127)) then
+  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in Alpha) or (Ord(Ident[1]) > 127)) then
     Exit;
   for I := 2 to Length(Ident) do
-    if not ((Ident[I] in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+    if not ((AnsiChar(Ident[I]) in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
       Exit;
   Result := True;
 {$ENDIF}

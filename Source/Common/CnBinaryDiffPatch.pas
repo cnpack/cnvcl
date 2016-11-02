@@ -356,7 +356,7 @@ begin
         end;
       dotFiltered, dotQuoted:
         begin
-          S := Format('%% --- Old (%d bytes)' + #13#10 + '%% +++ New (%d bytes)' + #13#10, [OldSize, NewSize]);
+          S := AnsiString(Format('%% --- Old (%d bytes)' + #13#10 + '%% +++ New (%d bytes)' + #13#10, [OldSize, NewSize]));
           OutStream.Write(S[1], Length(S));
         end;
     end;
@@ -381,7 +381,7 @@ begin
         OutStream.Write(Data^, 1)
       else
       begin
-        S := Format('#$%2.2x', [Data^]);
+        S := AnsiString(Format('#$%2.2x', [Data^]));
         OutStream.Write(S[1], Length(S));
       end;
 
@@ -443,7 +443,7 @@ begin
     end
     else
     begin
-      S := Format('@ -[%d] => +[%d] %d bytes' + #13#10, [OldPos, NewPos, DataLen]);
+      S := AnsiString(Format('@ -[%d] => +[%d] %d bytes' + #13#10, [OldPos, NewPos, DataLen]));
       OutStream.Write(S[1], Length(S));
       WriteFilteredOrQuotedData(OutStream, PByte(Cardinal(NewBase) + NewPos), DataLen,
         CnDiffOutputType = dotFiltered);

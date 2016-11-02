@@ -108,6 +108,7 @@ type
     function GetMaxLevel: Integer;
     function GetCount: Integer;
 
+  protected
     function ValueGreaterThanNode(const Value: Pointer; const Node: TCnSkipListNode): Boolean;
     function ValueEqualsNode(const Value: Pointer; const Node: TCnSkipListNode): Boolean;
     function ValueLessThanNode(const Value: Pointer; const Node: TCnSkipListNode): Boolean;
