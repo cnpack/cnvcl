@@ -55,9 +55,39 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, ExtCtrls;
-  
+  Classes, Windows, SysUtils, ExtCtrls, CnNativeDecl, CnCommon;
+
+const
+  RelationCache = 2;
+  RelationNumaNode = 1;
+  RelationProcessorCore = 0;
+  RelationProcessorPackage = 3;
+
 type
+  TCacheType = (CacheUnified, CacheInstruction, CacheData, CacheTrace);
+
+  TCacheDescriptor = packed record
+    Level: Byte;
+    Associativity: Byte;
+    LineSize: Word;
+    Size: DWORD;
+    CacheType: TCacheType;
+  end;
+
+  TSystemLogicalProcessorInformation = packed record
+    ProcessorMask: TCnNativeUInt;
+    Relationship: DWORD;
+    case Integer of
+      0: (ProcessorCoreFlag: Byte);
+      1: (NumaModeNumber: DWORD);
+      2: (Cache: TCacheDescriptor);
+      3: (Reserved: array[0..1] of Int64);
+  end;
+  PSystemLogicalProcessorInformation = ^TSystemLogicalProcessorInformation;
+
+  TGetLogicalProcessorInformation = function(Buffer: PSystemLogicalProcessorInformation;
+    out ReturnLength: DWORD): BOOL; stdcall;
+
   TCnCPUIdFormat = (ifContinuous, ifDashed);
   {* CPU序列号与信息串显示样式
    |<PRE>
@@ -81,6 +111,13 @@ type
     FCPUUsage: array[0..255] of Integer; // 总不会超过 256 个 CPU 吧？
     FCurCnt, FLastCnt: array[0..255] of Integer;
     FAverageCPUUsage: Integer;
+    FProcessorCoreCount: Integer;
+    FL1CacheCount: Integer;
+    FNumaNodeCount: Integer;
+    FL3CacheCount: Integer;
+    FProcessorPackageCount: Integer;
+    FLogicalProcessorCount: Integer;
+    FL2CacheCount: Integer;
     function GetFirstCPUId: string;
     function GetCPUId(Index: Integer): string;
     procedure SetCPUIdFormat(ACPUIdFormat: TCnCPUIdFormat);
@@ -102,18 +139,23 @@ type
     function GetCnCPUOem: AnsiString;
     function GetCnCPUInfoString: AnsiString;
     function GetCnCPUID: AnsiString;
+
+    procedure ClearLocalCPUInfo;
   public
     constructor Create;
     {* 构造函数，创建 FCPUIds 并调用 ReadCPUId}
     destructor Destroy; override;
 
-    procedure ReadCPUId;
+    procedure ReadCPUInfo;
     {* 获得所有 CPU 内核的序列号和其他信息，并存入各个列表}
+
+    procedure ReadLogicalCPUInfo;
+    {* 通过 GetLogicalProcessorInformation API 获取更多的逻辑 CPU 信息}
 
     property CPUIdFormat: TCnCPUIdFormat read FCPUIdFormat write SetCPUIdFormat;
     {* CPU 序列号显示样式}
     property CPUCount: Integer read FCPUCount;
-    {* 系统中 CPU 核总数}
+    {* 系统中的逻辑 CPU 总数}
     property FirstCPUId: string read GetFirstCPUId;
     {* 获取首个 CPU 的 ID，用于单 CPU 系统}
     property FirstCPUInfoString: string read GetFirstCPUInfoString;
@@ -146,6 +188,22 @@ type
     {* 获得平均 CPU 占用率，0 到 100}
     property FirstCPUUsage: Integer read GetFirstCPUUsage;
     {* 获得首个 CPU 的占用率，0 到 100，用于单 CPU 系统}
+
+    // 以下信息使用 API GetLogicalProcessorInformation 获得
+    property ProcessorPackageCount: Integer read FProcessorPackageCount;
+    {* 物理处理器封装个数}
+    property ProcessorCoreCount: Integer read FProcessorCoreCount;
+    {* 处理器核心数}
+    property LogicalProcessorCount: Integer read FLogicalProcessorCount;
+    {* 逻辑处理器数，等于 CPUCount 值}
+    property NumaNodeCount: Integer read FNumaNodeCount;
+    {* 非统一内存访问架构的节点个数}
+    property L1CacheCount: Integer read FL1CacheCount;
+    {* 第一级高速缓存个数}
+    property L2CacheCount: Integer read FL2CacheCount;
+    {* 第二级高速缓存个数}
+    property L3CacheCount: Integer read FL3CacheCount;
+    {* 第三级高速缓存个数}
   end;
 
   TCnHardDiskInfo = class(TPersistent)
@@ -187,9 +245,6 @@ function CnGetBiosID: string;
 {* 获得 BIOS 的 ID，只支持小部分 BIOS，而且旧式的主板由于不规范，无法获取 ID}
 
 implementation
-
-uses
-  CnNativeDecl;
 
 const
   BiosOffset: array[0..2] of DWORD = ($6577, $7196, $7550);
@@ -453,6 +508,8 @@ var
 
   ZwUnmapViewOfSection: TZwUnmapViewOfSection = nil;
 
+  GetLogicalProcessorInformation: TGetLogicalProcessorInformation = nil;
+
 function GetNtNativeAPIs: Boolean;
 begin
   if Win32Platform = VER_PLATFORM_WIN32_NT then
@@ -490,6 +547,8 @@ begin
       @ZwUnmapViewOfSection := GetProcAddress(NtDllHandle, 'ZwUnmapViewOfSection');
     end;
   end;
+
+  @GetLogicalProcessorInformation := GetProcAddress(GetModuleHandle('KERNEL32.DLL'), 'GetLogicalProcessorInformation');
   Result := NtDllHandle <> 0;
 end;
 
@@ -562,7 +621,9 @@ begin
   FCPUInfos := TStringList.Create;
   FCPUOems := TStringList.Create;
   FCPUIdFormat := ifContinuous;
-  ReadCPUId;
+
+  ReadCPUInfo;
+  ReadLogicalCPUInfo;
 
   FTimer := TTimer.Create(nil);
   FTimer.Interval := 1000;
@@ -738,7 +799,7 @@ asm
 end;
 
 // 获取所有 CPU 的序列号
-procedure TCnCpuId.ReadCPUId;
+procedure TCnCpuId.ReadCPUInfo;
 var
   I: Integer;
   Mask: Integer;
@@ -797,7 +858,7 @@ begin
   if FCPUIdFormat <> ACPUIdFormat then
   begin
     FCPUIdFormat := ACPUIdFormat;
-    ReadCPUId;
+    ReadCPUInfo;
   end;
 end;
 
@@ -1392,6 +1453,66 @@ begin
 
     Inc(Letter);
   end;
+end;
+
+procedure TCnCpuId.ReadLogicalCPUInfo;
+var
+  Buf: array of TSystemLogicalProcessorInformation;
+  RetLen: DWORD;
+  I: Integer;
+begin
+  ClearLocalCPUInfo;
+  if not Assigned(GetLogicalProcessorInformation) then
+    Exit;
+
+  RetLen := 0;
+  if GetLogicalProcessorInformation(nil, RetLen) then
+    Exit;
+
+  if GetLastError <> ERROR_INSUFFICIENT_BUFFER then
+    Exit;
+
+  SetLength(Buf, (RetLen div SizeOf(TSystemLogicalProcessorInformation)) + 1);
+  if not GetLogicalProcessorInformation(@Buf[0], RetLen) then
+    Exit;
+
+  for I := Low(Buf) to High(Buf) do
+  begin
+    case Buf[I].Relationship of
+      RelationCache:
+        begin
+          case Buf[I].Cache.Level of
+            1: Inc(FL1CacheCount);
+            2: Inc(FL2CacheCount);
+            3: Inc(FL3CacheCount);
+          end;
+        end;
+      RelationNumaNode:
+        begin
+          Inc(FNumaNodeCount);
+        end;
+      RelationProcessorCore:
+        begin
+          Inc(FProcessorCoreCount);
+          Inc(FLogicalProcessorCount, CountSetBits(Buf[I].ProcessorMask));
+        end;
+      RelationProcessorPackage:
+        begin
+          Inc(FProcessorPackageCount);
+        end;
+    end;
+  end;
+end;
+
+procedure TCnCpuId.ClearLocalCPUInfo;
+begin
+  FProcessorCoreCount := 0;
+  FL1CacheCount := 0;
+  FNumaNodeCount := 0;
+  FL3CacheCount := 0;
+  FProcessorPackageCount := 0;
+  FLogicalProcessorCount := 0;
+  FL2CacheCount := 0;
 end;
 
 initialization

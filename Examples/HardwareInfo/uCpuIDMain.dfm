@@ -25,10 +25,10 @@ object FrmCPUIDs: TFrmCPUIDs
     OnClick = BtnGetCpuIDsClick
   end
   object Memo1: TMemo
-    Left = 142
+    Left = 150
     Top = 0
     Width = 386
-    Height = 337
+    Height = 348
     Align = alRight
     ImeName = '中文 (简体) - 微软拼音'
     ReadOnly = True
@@ -64,29 +64,38 @@ object FrmCPUIDs: TFrmCPUIDs
   end
   object btnGetBios: TButton
     Left = 16
-    Top = 144
+    Top = 176
     Width = 121
     Height = 21
     Caption = '获得 BIOS ID'
-    TabOrder = 5
+    TabOrder = 6
     OnClick = btnGetBiosClick
   end
   object btnHardDiskSn: TButton
     Left = 16
-    Top = 184
+    Top = 216
     Width = 121
     Height = 21
     Caption = '获得硬盘序列号'
-    TabOrder = 6
+    TabOrder = 7
     OnClick = btnHardDiskSnClick
   end
   object btnVolumnInfos: TButton
     Left = 16
-    Top = 214
+    Top = 246
     Width = 121
     Height = 21
     Caption = '获得分区卷标'
-    TabOrder = 7
+    TabOrder = 8
     OnClick = btnVolumnInfosClick
+  end
+  object btnCPULogical: TButton
+    Left = 16
+    Top = 144
+    Width = 121
+    Height = 25
+    Caption = '获得 CPU 多核信息'
+    TabOrder = 5
+    OnClick = btnCPULogicalClick
   end
 end

@@ -746,6 +746,9 @@ function GetBit(Value: WORD; Bit: TWordBit): Boolean; overload;
 function GetBit(Value: DWORD; Bit: TDWordBit): Boolean; overload;
 {* 取二进制位}
 
+function CountSetBits(const Value: Cardinal): Integer;
+{* 计算二进制数字有多少位被置为 1}
+
 //------------------------------------------------------------------------------
 // 系统功能函数
 //------------------------------------------------------------------------------
@@ -5633,6 +5636,24 @@ end;
 function GetBit(Value: DWORD; Bit: TDWordBit): Boolean;
 begin
   Result := Value and (1 shl Bit) <> 0;
+end;
+
+function CountSetBits(const Value: Cardinal): Integer;
+var
+  LS: DWORD;
+  BT: Int64;
+  I: DWORD;
+begin
+  LS := SizeOf(Cardinal) * 8 - 1;
+  Result := 0;
+  BT := 1 shl LS;
+
+  for I := 0 to LS do
+  begin
+    if (Value and BT) <> 0 then
+      Inc(Result);
+    BT := BT shr 1;
+  end;
 end;
 
 //------------------------------------------------------------------------------

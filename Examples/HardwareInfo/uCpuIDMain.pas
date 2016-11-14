@@ -30,6 +30,7 @@ type
     btnGetBios: TButton;
     btnHardDiskSn: TButton;
     btnVolumnInfos: TButton;
+    btnCPULogical: TButton;
     procedure BtnGetCpuIDsClick(Sender: TObject);
     procedure btnGetUsageClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -39,6 +40,7 @@ type
     procedure btnGetBiosClick(Sender: TObject);
     procedure btnHardDiskSnClick(Sender: TObject);
     procedure btnVolumnInfosClick(Sender: TObject);
+    procedure btnCPULogicalClick(Sender: TObject);
   private
     { Private declarations }
     procedure log(const Info: string);
@@ -178,7 +180,18 @@ begin
   Log('分区数量：' + IntToStr(CnHardDiskInfo.VolumnCount));
   for I := 0 to CnHardDiskInfo.VolumnCount - 1 do
     Log('分区' + IntToStr(I) + '盘符' + CnHardDiskInfo.VolumnLetter[I] + '。卷标：' + CnHardDiskInfo.VolumnName[I]);
+end;
 
+procedure TFrmCPUIDs.btnCPULogicalClick(Sender: TObject);
+begin
+  Log('');
+  Log('ProcessorPackageCount: ' + IntToStr(CnCpuID.ProcessorPackageCount));
+  Log('ProcessorCoreCount: ' + IntToStr(CnCpuID.ProcessorCoreCount));
+  Log('LogicalProcessorCount: ' + IntToStr(CnCpuID.LogicalProcessorCount));
+  Log('NumaNodeCount: ' + IntToStr(CnCpuID.NumaNodeCount));
+  Log('L1CacheCount: ' + IntToStr(CnCpuID.L1CacheCount));
+  Log('L2CacheCount: ' + IntToStr(CnCpuID.L2CacheCount));
+  Log('L3CacheCount: ' + IntToStr(CnCpuID.L3CacheCount));
 end;
 
 end.
