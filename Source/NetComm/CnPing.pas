@@ -212,6 +212,9 @@ end;
 constructor TCnPing.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  if IcmpDllHandle = 0 then
+    InitIcmpFunctions;
+
   FRemoteIP := '127.0.0.1';
   FTTL := 64;
   FPingCount := 4;
@@ -490,7 +493,6 @@ begin
 end;
 
 initialization
-  InitIcmpFunctions;
 
 finalization
   FreeIcmpFunctions;
