@@ -410,6 +410,10 @@ type
 
   TGraphicConrolAccess = class(TGraphicControl);
 
+  TCnByteSet = set of 0..SizeOf(Byte) * 8 - 1;
+  TCnWordSet = set of 0..SizeOf(Word) * 8 - 1;
+  TCnDWordSet = set of 0..SizeOf(DWORD) * 8 - 1;
+
 const
   SCnPropContentType: array[TCnPropContentType] of string =
     ('Properties', 'Events', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
@@ -429,6 +433,33 @@ var
   CnFormLeft: Integer = 50;
   CnFormTop: Integer = 50;
   Closing: Boolean = False;
+
+// 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
+// 而不能是 set of 后的类型，如无 TypInfo，则返回数值
+function GetSetStr(TypInfo: PTypeInfo; Value: Integer): string;
+var
+  I: Integer;
+  S: TIntegerSet;
+begin
+  Result := '';
+  if Value = 0 then
+    Exit;
+
+  Integer(S) := Value;
+  for I := 0 to SizeOf(Integer) * 8 - 1 do
+  begin
+    if I in S then
+    begin
+      if Result <> '' then
+        Result := Result + ',';
+
+      if TypInfo = nil then
+        Result := Result + IntToStr(I)
+      else
+        Result := Result + GetEnumName(TypInfo, I);
+    end;
+  end;
+end;
 
 function IndexOfContentTypeStr(const AStr: string): TCnPropContentType;
 var
@@ -846,6 +877,23 @@ var
   IsExisting: Boolean;
   Hies: TStrings;
   ATmpClass: TClass;
+  ByteSet: TCnByteSet;
+  WordSet: TCnWordSet;
+
+  procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
+  begin
+    if Str <> AProperty.DisplayValue then
+    begin
+      AProperty.DisplayValue := Str;
+      AProperty.Changed := True;
+    end
+    else
+      AProperty.Changed := False;
+
+    if not IsRefresh then
+      Properties.Add(AProperty);
+  end;
+
 begin
   if ObjectInstance <> nil then
   begin
@@ -957,9 +1005,10 @@ begin
     end;
     FreeMem(PropListPtr);
 
-    // 额外添加显示不在 published 域的 Owner 和 Parent
+    // 额外添加显示不在 published 域的一些已知的公用属性
     if ObjectInstance is TComponent then
     begin
+      // 添加 Component 的 Owner
       if not IsRefresh then
         AProp := TCnPropertyObject.Create
       else
@@ -982,6 +1031,53 @@ begin
 
       if not IsRefresh then
         Properties.Add(AProp);
+
+      // 添加 Component 的 ComponentIndex
+      if not IsRefresh then
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'ComponentIndex');
+
+      AProp.PropName := 'ComponentIndex';
+      AProp.PropType := tkInteger;
+      AProp.IsObject := False;
+      AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
+      AProp.ObjValue := nil;
+
+      S := IntToStr(AProp.PropValue);
+      AddNewProp(S, AProp);
+
+      // 添加 Component 的 ComponentState
+      if not IsRefresh then
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'ComponentState');
+
+      AProp.PropName := 'ComponentState';
+      AProp.PropType := tkSet;
+      AProp.IsObject := False;
+      WordSet := TCnWordSet((FObjectInstance as TComponent).ComponentState);
+      AProp.PropValue := Word(WordSet);
+      AProp.ObjValue := nil;
+
+      S := GetSetStr(nil, AProp.PropValue);
+      AddNewProp(S, AProp);
+
+      // 添加 Component 的 ComponentStyle
+      if not IsRefresh then
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'ComponentStyle');
+
+      AProp.PropName := 'ComponentStyle';
+      AProp.PropType := tkSet;
+      AProp.IsObject := False;
+      ByteSet := TCnByteSet((FObjectInstance as TComponent).ComponentStyle);
+      AProp.PropValue := Byte(ByteSet);
+      AProp.ObjValue := nil;
+
+      S := GetSetStr(nil, AProp.PropValue);
+      AddNewProp(S, AProp);
     end;
 
     if ObjectInstance is TControl then
