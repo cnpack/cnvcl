@@ -414,6 +414,31 @@ type
   TCnWordSet = set of 0..SizeOf(Word) * 8 - 1;
   TCnDWordSet = set of 0..SizeOf(DWORD) * 8 - 1;
 
+  // 用以替代 TComponent.ComponentState 的运行期类型信息
+  TCnComponentState = (csLoading, csReading, csWriting, csDestroying,
+    csDesigning, csAncestor, csUpdating, csFixups, csFreeNotification,
+    csInline, csDesignInstance);
+
+  // 用以替代 TComponent.ComponentStyle 的运行期类型信息
+  TCnComponentStyle = (csInheritable, csCheckPropAvail, csSubComponent,
+    csTransient);
+
+  // 用以替代 TControl.ControlState 的运行期类型信息
+  TCnControlState = (csLButtonDown, csClicked, csPalette,
+    csReadingState, csAlignmentNeeded, csFocusing, csCreating,
+    csPaintCopy, csCustomPaint, csDestroyingHandle, csDocking,
+    csDesignerHide, csPanning, csRecreating, csAligning, csGlassPaint,
+    csPrintClient);
+
+  // 用以替代 TControl.ControlStyle 的运行期类型信息
+  TCnControlStyle = (csAcceptsControls, csCaptureMouse,
+    csDesignInteractive, csClickEvents, csFramed, csSetCaption, csOpaque,
+    csDoubleClicks, csFixedWidth, csFixedHeight, csNoDesignVisible,
+    csReplicatable, csNoStdEvents, csDisplayDragImage, csReflector,
+    csActionClient, csMenuEvents, csNeedsBorderPaint, csParentBackground,
+    csPannable, csAlignWithMargins, csGestures, csPaintBlackOpaqueOnGlass,
+    csOverrideStylePaint);
+
 const
   SCnPropContentType: array[TCnPropContentType] of string =
     ('Properties', 'Events', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
@@ -879,6 +904,7 @@ var
   ATmpClass: TClass;
   ByteSet: TCnByteSet;
   WordSet: TCnWordSet;
+  DWordSet: TCnDWordSet;
 
   procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
   begin
@@ -1060,7 +1086,7 @@ begin
       AProp.PropValue := Word(WordSet);
       AProp.ObjValue := nil;
 
-      S := GetSetStr(nil, AProp.PropValue);
+      S := GetSetStr(TypeInfo(TCnComponentState), AProp.PropValue);
       AddNewProp(S, AProp);
 
       // 添加 Component 的 ComponentStyle
@@ -1076,12 +1102,13 @@ begin
       AProp.PropValue := Byte(ByteSet);
       AProp.ObjValue := nil;
 
-      S := GetSetStr(nil, AProp.PropValue);
+      S := GetSetStr(TypeInfo(TCnComponentStyle), AProp.PropValue);
       AddNewProp(S, AProp);
     end;
 
     if ObjectInstance is TControl then
     begin
+      // 添加 Control 的 Parent
       if not IsRefresh then
         AProp := TCnPropertyObject.Create
       else
@@ -1094,16 +1121,39 @@ begin
       AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
       S := GetObjValueStr(AProp.ObjValue);
-      if S <> AProp.DisplayValue then
-      begin
-        AProp.DisplayValue := S;
-        AProp.Changed := True;
-      end
-      else
-        AProp.Changed := False;
+      AddNewProp(S, AProp);
 
+      // 添加 Control 的 ControlState
       if not IsRefresh then
-        Properties.Add(AProp);
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'ControlState');
+
+      AProp.PropName := 'ControlState';
+      AProp.PropType := tkSet;
+      AProp.IsObject := False;
+      WordSet := TCnWordSet((FObjectInstance as TControl).ControlState);
+      AProp.PropValue := Word(WordSet);
+      AProp.ObjValue := nil;
+
+      S := GetSetStr(TypeInfo(TCnControlState), AProp.PropValue);
+      AddNewProp(S, AProp);
+
+      // 添加 Control 的 ControlStyle
+      if not IsRefresh then
+        AProp := TCnPropertyObject.Create
+      else
+        AProp := IndexOfProperty(Properties, 'ControlStyle');
+
+      AProp.PropName := 'ControlStyle';
+      AProp.PropType := tkSet;
+      AProp.IsObject := False;
+      DWordSet := TCnDWordSet((FObjectInstance as TControl).ControlStyle);
+      AProp.PropValue := DWord(DWordSet);
+      AProp.ObjValue := nil;
+
+      S := GetSetStr(TypeInfo(TCnControlStyle), AProp.PropValue);
+      AddNewProp(S, AProp);
     end;
 
     DoAfterEvaluateProperties;
