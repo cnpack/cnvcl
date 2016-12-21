@@ -902,9 +902,7 @@ var
   IsExisting: Boolean;
   Hies: TStrings;
   ATmpClass: TClass;
-  ByteSet: TCnByteSet;
-  WordSet: TCnWordSet;
-  DWordSet: TCnDWordSet;
+  IntSet: Integer;
 
   procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
   begin
@@ -1082,8 +1080,11 @@ begin
       AProp.PropName := 'ComponentState';
       AProp.PropType := tkSet;
       AProp.IsObject := False;
-      WordSet := TCnWordSet((FObjectInstance as TComponent).ComponentState);
-      AProp.PropValue := Word(WordSet);
+
+      IntSet := 0;
+      Move((FObjectInstance as TComponent).ComponentState, IntSet,
+        SizeOf((FObjectInstance as TComponent).ComponentState));
+      AProp.PropValue := IntSet;
       AProp.ObjValue := nil;
 
       S := GetSetStr(TypeInfo(TCnComponentState), AProp.PropValue);
@@ -1098,8 +1099,11 @@ begin
       AProp.PropName := 'ComponentStyle';
       AProp.PropType := tkSet;
       AProp.IsObject := False;
-      ByteSet := TCnByteSet((FObjectInstance as TComponent).ComponentStyle);
-      AProp.PropValue := Byte(ByteSet);
+
+      IntSet := 0;
+      Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
+        SizeOf((FObjectInstance as TComponent).ComponentStyle));
+      AProp.PropValue := IntSet;
       AProp.ObjValue := nil;
 
       S := GetSetStr(TypeInfo(TCnComponentStyle), AProp.PropValue);
@@ -1132,8 +1136,11 @@ begin
       AProp.PropName := 'ControlState';
       AProp.PropType := tkSet;
       AProp.IsObject := False;
-      WordSet := TCnWordSet((FObjectInstance as TControl).ControlState);
-      AProp.PropValue := Word(WordSet);
+
+      IntSet := 0;
+      Move((FObjectInstance as TControl).ControlState, IntSet,
+        SizeOf((FObjectInstance as TControl).ControlState));
+      AProp.PropValue := IntSet;
       AProp.ObjValue := nil;
 
       S := GetSetStr(TypeInfo(TCnControlState), AProp.PropValue);
@@ -1148,8 +1155,11 @@ begin
       AProp.PropName := 'ControlStyle';
       AProp.PropType := tkSet;
       AProp.IsObject := False;
-      DWordSet := TCnDWordSet((FObjectInstance as TControl).ControlStyle);
-      AProp.PropValue := DWord(DWordSet);
+
+      IntSet := 0;
+      Move((FObjectInstance as TControl).ControlStyle, IntSet,
+        SizeOf((FObjectInstance as TControl).ControlStyle));
+      AProp.PropValue := IntSet;
       AProp.ObjValue := nil;
 
       S := GetSetStr(TypeInfo(TCnControlStyle), AProp.PropValue);
