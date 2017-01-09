@@ -28,7 +28,10 @@ unit CnStrings;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：AnsiStringList 移植自 Delphi 7 的 StringList
 * 单元标识：$Id$
-* 最后更新：2015.06.01
+* 最后更新：2017.01.09
+*               增加移植自 Forrest Smith 的字符串模糊匹配算法，
+*               并修正了最后一个匹配字符过于靠后的问题。
+*           2015.06.01
 *               增加快速搜索子串算法 FastPosition
 *           2013.03.04
 ================================================================================
@@ -241,6 +244,14 @@ type
 function FastPosition(const Str, Pattern: PChar; FromIndex: Integer = 0): Integer;
 {* 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1}
 
+function FuzzyMatchStr(const Pattern: string; const Str: string; MatchedIndexes: TList = nil;
+  CaseSensitive: Boolean = False): Boolean;
+{* 模糊匹配子串，MatchedIndexes 中返回 Str 中匹配的下标号}
+
+function FuzzyMatchStrWithScore(const Pattern: string; const Str: string; out Score: Integer;
+  MatchedIndexes: TList = nil; CaseSensitive: Boolean = False): Boolean;
+{* 模糊匹配子串，Score 返回匹配程度，MatchedIndexes 中返回 Str 中匹配的下标号，注意 Score 的比较只有子串以及大小写一致时才有意义}
+
 implementation
 
 const
@@ -317,6 +328,176 @@ begin
       Dec(Y);
     end;
   end;
+end;
+
+function LowChar(AChar: Char): Char; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+begin
+  if AChar in ['A'..'Z'] then
+    Result := Chr(Ord(AChar) + 32)
+  else
+    Result := AChar;
+end;
+
+// 模糊匹配子串
+function FuzzyMatchStr(const Pattern: string; const Str: string;
+  MatchedIndexes: TList; CaseSensitive: Boolean): Boolean;
+var
+  PIdx, SIdx: Integer;
+begin
+  Result := False;
+  if (Pattern = '') or (Str = '') then
+    Exit;
+
+  PIdx := 1;
+  SIdx := 1;
+  if MatchedIndexes <> nil then
+    MatchedIndexes.Clear;
+
+  if CaseSensitive then
+  begin
+    while (PIdx <= Length(Pattern)) and (SIdx <= Length(Str)) do
+    begin
+      if Pattern[PIdx] = Str[SIdx] then
+      begin
+        Inc(PIdx);
+        if MatchedIndexes <> nil then
+          MatchedIndexes.Add(Pointer(SIdx));
+      end;
+      Inc(SIdx);
+    end;
+  end
+  else
+  begin
+    while (PIdx <= Length(Pattern)) and (SIdx <= Length(Str)) do
+    begin
+      if LowChar(Pattern[PIdx]) = LowChar(Str[SIdx]) then
+      begin
+        Inc(PIdx);
+        if MatchedIndexes <> nil then
+          MatchedIndexes.Add(Pointer(SIdx));
+      end;
+      Inc(SIdx);
+    end;
+  end;
+  Result := PIdx > Length(Pattern);
+end;
+
+// 模糊匹配子串，Score 返回匹配程度，注意 Score 的比较只有子串以及大小写一致时才有意义
+function FuzzyMatchStrWithScore(const Pattern: string; const Str: string;
+  out Score: Integer; MatchedIndexes: TList; CaseSensitive: Boolean): Boolean;
+const
+  ADJACENCY_BONUS = 5;
+  SEPARATOR_BONUS = 10;
+  CAMEL_BONUS = 10;
+  LEADING_LETTER_PENALTY = -3;
+  MAX_LEADING_LETTER_PENALTY = -9;
+  UNMATCHED_LETTER_PENALTY = -1;
+var
+  PIdx, SIdx: Integer;
+  PrevMatch, PrevLow, PrevSep: Boolean;
+  BestLetterPtr: PChar;
+  BestLetterScore, NewScore, Penalty: Integer;
+  PatternLetter, StrLetter: Char;
+  ThisMatch, Rematch, Advanced, PatternRepeat: Boolean;
+begin
+  Score := 0;
+  Result := False;
+  if (Pattern = '') or (Str = '') then
+    Exit;
+
+  if MatchedIndexes <> nil then
+    MatchedIndexes.Clear;
+
+  PrevMatch := False;
+  PrevLow := False;
+  PrevSep := True;
+
+  PIdx := 1;
+  SIdx := 1;
+
+  BestLetterPtr := nil;
+  BestLetterScore := 0;
+
+  while SIdx <= Length(Str) do
+  begin
+    if PIdx <= Length(Pattern) then
+      PatternLetter := Pattern[PIdx]
+    else
+      PatternLetter := #0;
+    StrLetter := Str[SIdx];
+
+    if CaseSensitive then
+    begin
+      ThisMatch := (PatternLetter <> #0) and (PatternLetter = StrLetter);
+      Rematch := (BestLetterPtr <> nil) and (BestLetterPtr^ = StrLetter);
+      Advanced := ThisMatch and (BestLetterPtr <> nil);
+      PatternRepeat := (BestLetterPtr <> nil) and (PatternLetter <> #0) and (BestLetterPtr^ = PatternLetter);
+    end
+    else
+    begin
+      ThisMatch := (PatternLetter <> #0) and (LowChar(PatternLetter) = LowChar(StrLetter));
+      Rematch := (BestLetterPtr <> nil) and (LowChar(BestLetterPtr^) = LowChar(StrLetter));
+      Advanced := ThisMatch and (BestLetterPtr <> nil);
+      PatternRepeat := (BestLetterPtr <> nil) and (PatternLetter <> #0) and (LowChar(BestLetterPtr^) = LowChar(PatternLetter));
+    end;
+
+    if ThisMatch and (MatchedIndexes <> nil) then
+      MatchedIndexes.Add(Pointer(SIdx));
+
+    if Advanced or PatternRepeat then
+    begin
+      Inc(Score, BestLetterScore);
+      BestLetterPtr := nil;
+      BestLetterScore := 0;
+    end;
+
+    if ThisMatch or Rematch then
+    begin
+      NewScore := 0;
+      if PIdx = 1 then
+      begin
+        Penalty := LEADING_LETTER_PENALTY * SIdx;
+        if Penalty < MAX_LEADING_LETTER_PENALTY then
+          Penalty := MAX_LEADING_LETTER_PENALTY;
+
+        Inc(Score, Penalty);
+      end;
+
+      if PrevMatch then
+        Inc(NewScore, ADJACENCY_BONUS);
+      if PrevSep then
+        Inc(NewScore, SEPARATOR_BONUS);
+      if PrevLow and (strLetter in ['A'..'Z']) then
+        Inc(NewScore, CAMEL_BONUS);
+
+      if ThisMatch then
+        Inc(PIdx);
+
+      if NewScore >= BestLetterScore then
+      begin
+        if BestLetterPtr <> nil then
+          Inc(Score, UNMATCHED_LETTER_PENALTY);
+        BestLetterPtr := @(Str[SIdx]);
+        BestLetterScore := NewScore;
+      end;
+      PrevMatch := True;
+    end
+    else
+    begin
+      Inc(Score, UNMATCHED_LETTER_PENALTY);
+      PrevMatch := False;
+    end;
+
+    PrevLow := StrLetter in ['a'..'z'];
+    PrevSep := strLetter in ['_', ' ', '/', '\', '.'];
+
+    Inc(SIdx);
+  end;
+
+  if BestLetterPtr <> nil then
+    Inc(Score, BestLetterScore);
+
+  Result := PIdx > Length(Pattern);
 end;
 
 { TCnAnsiStrings }
