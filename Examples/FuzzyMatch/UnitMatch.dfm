@@ -6,22 +6,36 @@ object FormFuzzy: TFormFuzzy
   ClientHeight = 374
   ClientWidth = 668
   Color = clBtnFace
-  Font.Charset = GB2312_CHARSET
+  Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
   Font.Height = -12
-  Font.Name = 'ËÎÌו'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
-  TextHeight = 12
+  TextHeight = 14
   object lblSearch: TLabel
     Left = 16
     Top = 24
-    Width = 42
-    Height = 12
+    Width = 41
+    Height = 14
     Caption = 'Search:'
+  end
+  object pbString: TPaintBox
+    Left = 64
+    Top = 56
+    Width = 569
+    Height = 25
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+    OnPaint = pbStringPaint
   end
   object chkCase: TCheckBox
     Left = 432
@@ -36,15 +50,15 @@ object FormFuzzy: TFormFuzzy
     Left = 64
     Top = 22
     Width = 353
-    Height = 20
+    Height = 22
     TabOrder = 0
     OnChange = edtSearchChange
   end
   object mmoResult: TMemo
     Left = 64
-    Top = 72
+    Top = 96
     Width = 569
-    Height = 273
+    Height = 249
     ScrollBars = ssVertical
     TabOrder = 2
   end

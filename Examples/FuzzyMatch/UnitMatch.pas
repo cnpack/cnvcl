@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls;
+  StdCtrls, ExtCtrls, CnDebug;
 
 type
   TFormFuzzy = class(TForm)
@@ -13,9 +13,16 @@ type
     edtSearch: TEdit;
     mmoResult: TMemo;
     chkScore: TCheckBox;
+    pbString: TPaintBox;
     procedure edtSearchChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure pbStringPaint(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
+    FPaintStr: string;
+    FPaintText: string;
+    FMatchedIndexes: TList;
+    procedure CopyList(Src, Dest: TList);
     function ListToString(List: TList): string;
   public
     { Public declarations }
@@ -1426,16 +1433,30 @@ const
       'Readme.txt'
     );
 
+procedure TFormFuzzy.CopyList(Src, Dest: TList);
+var
+  I: Integer;
+begin
+  if (Src = nil) or (Dest = nil) then
+    Exit;
+
+  Dest.Clear;
+  for I := 0 to Src.Count - 1 do
+    Dest.Add(Src[I]);
+end;
+
 procedure TFormFuzzy.edtSearchChange(Sender: TObject);
 var
   Pattern: string;
   MatchedIndexes: TList;
   I, Score: Integer;
+  FirstMatch: Boolean;
 begin
   mmoResult.Clear;
   Pattern := Trim(edtSearch.Text);
   if Pattern <> '' then
   begin
+    FirstMatch := True;
     MatchedIndexes := TList.Create;
     if chkScore.Checked then
     begin
@@ -1443,7 +1464,16 @@ begin
       begin
         Score := 0;
         if FuzzyMatchStrWithScore(Pattern, SAR_STRS[I], Score, MatchedIndexes, chkCase.Checked) then
+        begin
           mmoResult.Lines.Add(Format('%d - %s - %s', [Score, SAR_STRS[I], ListToString(MatchedIndexes)]));
+
+          if FirstMatch then
+          begin
+            FPaintStr := SAR_STRS[I];
+            CopyList(MatchedIndexes, FMatchedIndexes);
+            FirstMatch := False;
+          end;
+        end;
       end;
     end
     else
@@ -1451,11 +1481,21 @@ begin
       for I := Low(SAR_STRS) to High(SAR_STRS) do
       begin
         if FuzzyMatchStr(Pattern, SAR_STRS[I], MatchedIndexes, chkCase.Checked) then
+        begin
           mmoResult.Lines.Add(Format('%s -%s', [SAR_STRS[I], ListToString(MatchedIndexes)]));
+
+          if FirstMatch then
+          begin
+            FPaintStr := SAR_STRS[I];
+            CopyList(MatchedIndexes, FMatchedIndexes);
+            FirstMatch := False;
+          end;
+        end;
       end;
     end;
     MatchedIndexes.Free;
   end;
+  pbString.Invalidate;
 end;
 
 procedure TFormFuzzy.FormCreate(Sender: TObject);
@@ -1463,6 +1503,7 @@ var
   Score: Integer;
   List: TList;
 begin
+  FMatchedIndexes := TList.Create;
   FuzzyMatchStr('HM', 'CnHint.pas');
   List := TList.Create;
   FuzzyMatchStrWithScore('Hit', 'Hiatet', Score, List);
@@ -1478,6 +1519,59 @@ begin
   if (List <> nil) and (List.Count > 0) then
     for I := 0 to List.Count - 1 do
       Result := Result + ' ' + IntToStr(Integer(List[I]));
+end;
+
+procedure TFormFuzzy.pbStringPaint(Sender: TObject);
+var
+  R: TRect;
+  I, L, W: Integer;
+  C: Char;
+  Size: TSize;
+begin
+  // Draw match strings
+  pbString.Canvas.Brush.Style := bsSolid;
+  pbString.Canvas.Brush.Color := clWhite;
+  R := Rect(0, 0, pbString.Width, pbString.Height);
+  pbString.Canvas.FillRect(R);
+
+  if FPaintStr <> '' then
+  begin
+    pbString.Canvas.TextOut(2, 2, FPaintStr);
+    SetLength(FPaintText, Length(FPaintStr));
+    StrCopy(PChar(FPaintText), PChar(FPaintStr));
+    // CnDebugger.LogRawString(FPaintText);
+    pbString.Canvas.Font.Color := clRed;
+    // CnDebugger.LogMsg('Draw Chars Count: ' +  IntToStr(FMatchedIndexes.Count));
+    for I := FMatchedIndexes.Count - 1 downto 0 do
+    begin
+      L := Integer(FMatchedIndexes[I]);
+      if (L <= 0) or (L > Length(FPaintText)) then
+        Continue;
+      // CnDebugger.LogFmt('Draw #%d Index %d.', [I, L]);
+
+      if L < Length(FPaintText) then
+        FPaintText[L + 1] := #0;
+      C := FPaintText[L];
+      FPaintText[L] := #0;
+
+      Size.cx := 0;
+      Size.cy := 0;
+      if L = 1 then
+        W := 0
+      else
+      begin
+        Windows.GetTextExtentPoint32(pbString.Canvas.Handle, PChar(@(FPaintText[1])), L - 1, Size);
+        W := Size.cx; // 计算需绘制字符前的宽度
+      end;
+      FPaintText[L] := C;
+      Windows.TextOut(pbString.Canvas.Handle, 2 + W, 2, PChar(@(FPaintText[L])), 1);
+    end;
+  end;
+end;
+
+procedure TFormFuzzy.FormDestroy(Sender: TObject);
+begin
+  FMatchedIndexes.Free;
 end;
 
 end.
