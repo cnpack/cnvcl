@@ -55,7 +55,9 @@ unit CnQueue;
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2016.12.02 V1.1
+* 修改记录：2017.01.17 V1.2
+*               加入 TCnObjectRingBuffer 循环缓冲区实现
+*           2016.12.02 V1.1
 *               加入 TCnObjectStack 实现，允许 Clear 等方法
 *           2008.04.30 V1.0
 *               小峰从原始代码移植而来。
@@ -72,14 +74,15 @@ uses
 type
   TCnQueue = class
   private
+    FMultiThread: Boolean;
     FHead: TObject;
     FTail: TObject;
     FSize: Integer;
-    FLock: _RTL_CRITICAL_SECTION;
+    FLock: TRTLCriticalSection;
     procedure FreeNode(Value: TObject);
     function GetSize: Integer;
   public
-    constructor Create;
+    constructor Create(MultiThread: Boolean = False);
     destructor Destroy; override;
     procedure Push(Data: Pointer);
     function Pop: Pointer;
@@ -100,6 +103,57 @@ type
     procedure Push(AObject: TObject);
     function Pop: TObject;
     function Peek: TObject;
+  end;
+
+  ECnRingBufferFullException = class(Exception);
+
+  ECnRingBufferEmptyException = class(Exception);
+
+  TCnObjectRingBuffer = class(TObject)
+  {* 循环队列缓冲区}
+  private
+    FFullOverwrite: Boolean;
+    FMultiThread: Boolean;
+    FSize: Integer;
+    FList: TList;
+    FLock: TRTLCriticalSection;
+    // Idx 可以理解为始终指向相邻位置中间的缝，编号从第 0 到第 Size - 1 ( 第 Size 也即等于第 0 )
+    // 有元素的情况下，FrontIdx 高后始终是元素，前可能是空，或绕回来的尾巴
+    //                 BackIdx 的低前始终是元素，后可能是空，或绕回来的头
+    // 无元素的情况下，FrontIdx 和 BackIdx 相等
+    FFrontIdx: Integer;
+    FBackIdx: Integer;
+    FCount: Integer;
+    function GetCount: Integer;
+  public
+    constructor Create(ASize: Integer; AFullOverwrite: Boolean = False;
+      AMultiThread: Boolean = False);
+    {* 构造函数，ASize 是缓冲区容量；AFullOverwrite 是否允许缓冲区满后再塞东西时
+      覆盖以前的数据，AMultiThread 是否需要多线程互斥}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure PushToFront(AObject: TObject);
+    {* 从循环队列缓冲区前方推入一个 Object，前方是指内部存储索引低的一端，如满且不允许覆盖则抛异常}
+    function PopFromBack: TObject;
+    {* 从循环队列缓冲区后方弹出一个 Object，后方是指内部存储索引高的一端，无可弹则抛异常}
+
+    procedure PushToBack(AObject: TObject);
+    {* 从循环队列缓冲区后方推入一个 Object，后方是指内部存储索引高的一端，如满且不允许覆盖则抛异常}
+    function PopFromFront: TObject;
+    {* 从循环队列缓冲区前方弹出一个 Object，前方是指内部存储索引低的一端，无可弹则抛异常}
+
+    procedure Dump(List: TList; out FrontIdx: Integer; out BackIdx: Integer);
+    {* 把全部内容导出至一 TList，以及指针位置}
+
+    property FullOverwrite: Boolean read FFullOverwrite;
+    {* 该循环队列缓冲区满时是否允许覆盖旧数据}
+    property MultiThread: Boolean read FMultiThread;
+    {* 该循环队列缓冲区是否需要支持多线程并发访问，为 True 时内部有临界区处理}
+    property Size: Integer read FSize;
+    {* 从循环队列缓冲区的尺寸}
+    property Count: Integer read GetCount;
+    {* 从循环队列缓冲区内的有效元素数量}
   end;
 
 implementation
@@ -127,19 +181,22 @@ begin
   FreeNode(Tmp);
 end;
 
-constructor TCnQueue.Create;
+constructor TCnQueue.Create(MultiThread: Boolean);
 begin
+  FMultiThread := MultiThread;
   FHead := nil;
   FTail := nil;
   FSize := 0;
-  InitializeCriticalSection(FLock);
+  if FMultiThread then
+    InitializeCriticalSection(FLock);
 end;
 
 destructor TCnQueue.Destroy;
 begin
   if FHead <> nil then
     FreeNode(FHead);
-  DeleteCriticalSection(FLock);
+  if FMultiThread then
+    DeleteCriticalSection(FLock);
   inherited;
 end;
 
@@ -147,7 +204,8 @@ function TCnQueue.Pop: Pointer;
 var
   Tmp: TCnNode;
 begin
-  EnterCriticalSection(FLock);
+  if FMultiThread then
+    EnterCriticalSection(FLock);
   try
     Result := nil;
     if FHead = nil then
@@ -162,7 +220,8 @@ begin
       FTail := nil;
     FSize := FSize - 1;
   finally
-    LeaveCriticalSection(FLock);
+    if FMultiThread then
+      LeaveCriticalSection(FLock);
   end;
 end;
 
@@ -170,7 +229,8 @@ procedure TCnQueue.Push(Data: Pointer);
 var
   Tmp: TCnNode;
 begin
-  EnterCriticalSection(FLock);
+  if FMultiThread then
+    EnterCriticalSection(FLock);
   try
     if Data = nil then Exit;
     Tmp := TCnNode.Create;
@@ -190,7 +250,8 @@ begin
     
     FSize := FSize + 1;
   finally
-    LeaveCriticalSection(FLock);
+    if FMultiThread then
+      LeaveCriticalSection(FLock);
   end;
 end;
 
@@ -241,6 +302,140 @@ end;
 procedure TCnObjectStack.Push(AObject: TObject);
 begin
   FList.Add(AObject);
+end;
+
+{ TCnRingBuffer }
+
+constructor TCnObjectRingBuffer.Create(ASize: Integer; AFullOverwrite,
+  AMultiThread: Boolean);
+begin
+  Assert(ASize > 0);
+
+  FSize := ASize;
+  FFullOverwrite := AFullOverwrite;
+  FMultiThread := AMultiThread;
+
+  FList := TList.Create;
+  FList.Count := FSize;
+
+  if FMultiThread then
+    InitializeCriticalSection(FLock);
+end;
+
+destructor TCnObjectRingBuffer.Destroy;
+begin
+  if FMultiThread then
+    DeleteCriticalSection(FLock);
+  FList.Free;
+  inherited;
+end;
+
+procedure TCnObjectRingBuffer.Dump(List: TList; out FrontIdx: Integer; out BackIdx: Integer);
+var
+  I: Integer;
+begin
+  FrontIdx := FFrontIdx;
+  BackIdx := FBackIdx;
+  if List <> nil then
+  begin
+    List.Clear;
+    for I := 0 to FList.Count - 1 do
+      List.Add(FList[I]);
+  end;
+end;
+
+function TCnObjectRingBuffer.GetCount: Integer;
+begin
+  Result := FCount;
+end;
+
+function TCnObjectRingBuffer.PopFromBack: TObject;
+begin
+  Result := nil;
+  if FMultiThread then
+    EnterCriticalSection(FLock);
+
+  try
+    if FCount <= 0 then
+      raise ECnRingBufferEmptyException.Create('Ring Buffer Empty. Can NOT Pop From Back.');
+
+    Dec(FBackIdx);
+    if FBackIdx < 0 then
+      FBackIdx := FSize - 1;
+    Result := FList[FBackIdx];
+    FList[FBackIdx] := nil;
+    Dec(FCount);
+  finally
+    if FMultiThread then
+      LeaveCriticalSection(FLock);
+  end;
+end;
+
+function TCnObjectRingBuffer.PopFromFront: TObject;
+begin
+  Result := nil;
+  if FMultiThread then
+    EnterCriticalSection(FLock);
+
+  try
+    if FCount <= 0 then
+      raise ECnRingBufferEmptyException.Create('Ring Buffer Empty. Can NOT Pop From Front.');
+
+    Result := FList[FFrontIdx];
+    FList[FFrontIdx] := nil;
+
+    Inc(FFrontIdx);
+    if FFrontIdx >= FSize then
+      FFrontIdx := 0;
+    Dec(FCount);
+  finally
+    if FMultiThread then
+      LeaveCriticalSection(FLock);
+  end;
+end;
+
+procedure TCnObjectRingBuffer.PushToBack(AObject: TObject);
+begin
+  if FMultiThread then
+    EnterCriticalSection(FLock);
+
+  try
+    if not FFullOverwrite and (FCount >= FSize) then
+      raise ECnRingBufferFullException.Create('Ring Buffer Full. Can NOT Push To Back.');
+
+    FList[FBackIdx] := AObject;
+    Inc(FBackIdx);
+    if FBackIdx >= FSize then
+      FBackIdx := 0;
+
+    if FCount < FSize then
+      Inc(FCount);
+  finally
+    if FMultiThread then
+      LeaveCriticalSection(FLock);
+  end;
+end;
+
+procedure TCnObjectRingBuffer.PushToFront(AObject: TObject);
+begin
+  if FMultiThread then
+    EnterCriticalSection(FLock);
+
+  try
+    if not FFullOverwrite and (FCount >= FSize) then
+      raise ECnRingBufferFullException.Create('Ring Buffer Full. Can NOT Push To Front.');
+
+    Dec(FFrontIdx);
+    if FFrontIdx < 0 then
+      FFrontIdx := FSize - 1;
+    FList[FFrontIdx] := AObject;
+
+    if FCount < FSize then
+      Inc(FCount);
+  finally
+    if FMultiThread then
+      LeaveCriticalSection(FLock);
+  end;
 end;
 
 end.
