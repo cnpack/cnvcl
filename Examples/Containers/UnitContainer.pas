@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnQueue, Grids, StdCtrls;
+  CnContainers, Grids, StdCtrls;
 
 type
   TFormContainers = class(TForm)

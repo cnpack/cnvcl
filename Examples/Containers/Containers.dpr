@@ -3,7 +3,7 @@ program Containers;
 uses
   Forms,
   UnitContainer in 'UnitContainer.pas' {FormContainers},
-  CnQueue in '..\..\Source\Common\CnQueue.pas';
+  CnContainers in '..\..\Source\Common\CnContainers.pas';
 
 {$R *.RES}
 

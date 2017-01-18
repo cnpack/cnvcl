@@ -107,8 +107,8 @@ cnpack\Source 目录内容说明：
   CnPropEditors.pas
     开发包属性组件编辑器
 
-  CnQueue.pas
-    简单的链表队列类实现单元
+  CnContainers.pas
+    包括简单的链表队列类、堆栈、循环队列等的实现单元
 
   CnSHA1.pas
     SHA1 算法单元
