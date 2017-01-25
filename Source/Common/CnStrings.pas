@@ -392,6 +392,7 @@ const
   LEADING_LETTER_PENALTY = -3;
   MAX_LEADING_LETTER_PENALTY = -9;
   UNMATCHED_LETTER_PENALTY = -1;
+  START_BONUS = 6;
 var
   PIdx, SIdx: Integer;
   PrevMatch, PrevLow, PrevSep: Boolean;
@@ -442,7 +443,11 @@ begin
     end;
 
     if ThisMatch and (MatchedIndexes <> nil) then
+    begin
       MatchedIndexes.Add(Pointer(SIdx));
+      if SIdx < START_BONUS then        // 提高前匹配的优先级
+        Inc(Score, START_BONUS - SIdx);
+    end;
 
     if Advanced or PatternRepeat then
     begin
