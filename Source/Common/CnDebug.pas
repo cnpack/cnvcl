@@ -109,7 +109,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Windows, TypInfo, Graphics, Registry
+  SysUtils, Classes, Windows, TypInfo, Controls, Graphics, Registry
   {$IFDEF USE_JCL}
   ,JclDebug, JclHookExcept
   {$ENDIF USE_JCL}
@@ -449,6 +449,7 @@ type
     // 查看对象函数
     procedure EvaluateObject(AObject: TObject; SyncMode: Boolean = False); overload;
     procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
+    procedure EvaluateControlUnderPos(const ScreenPos: TPoint);
 
     // 其他属性
     property Channel: TCnDebugChannel read GetChannel;
@@ -2424,6 +2425,19 @@ procedure TCnDebugger.EvaluateObject(APointer: Pointer; SyncMode: Boolean = Fals
 begin
 {$IFDEF SUPPORT_EVALUATE}
   EvaluatePointer(APointer, nil, nil, SyncMode);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.EvaluateControlUnderPos(const ScreenPos: TPoint);
+{$IFDEF SUPPORT_EVALUATE}
+var
+  Control: TWinControl;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_EVALUATE}
+  Control := FindVCLWindow(ScreenPos);
+  if Control <> nil then
+    EvaluateObject(Control);
 {$ENDIF}
 end;
 
