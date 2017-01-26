@@ -38,10 +38,10 @@ begin
   while not Terminated do
   begin
     Sleep(1000);
-    if Form1.rgMethod.ItemIndex = 1 then
-      CnDebugger.TraceMsg(Form1.edtMsg.Text)
+    if FormSend.rgMethod.ItemIndex = 1 then
+      CnDebugger.TraceMsg(FormSend.edtMsg.Text)
     else
-      CnDebugger.LogMsg(Form1.edtMsg.Text);
+      CnDebugger.LogMsg(FormSend.edtMsg.Text);
   end;
 end;
 

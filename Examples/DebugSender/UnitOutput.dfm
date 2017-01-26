@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormSend: TFormSend
   Left = 393
   Top = 172
   BorderStyle = bsDialog
@@ -616,6 +616,17 @@ object Form1: TForm1
     ShowHint = True
     TabOrder = 46
     OnClick = btnEvaluateBmpClick
+  end
+  object btnSet: TButton
+    Left = 8
+    Top = 332
+    Width = 97
+    Height = 21
+    Caption = '·¢ËÍ¼¯ºÏ'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 47
+    OnClick = btnSetClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True

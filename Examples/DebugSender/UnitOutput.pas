@@ -42,7 +42,7 @@ uses
   ImgList, Menus;
 
 type
-  TForm1 = class(TForm)
+  TFormSend = class(TForm)
     Button1: TButton;
     cbbLevel: TComboBox;
     chkLevel: TCheckBox;
@@ -102,6 +102,7 @@ type
     Test221: TMenuItem;
     btnEvaluateMenu: TButton;
     btnEvaluateBmp: TButton;
+    btnSet: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -140,6 +141,7 @@ type
     procedure btnEBPAddrClick(Sender: TObject);
     procedure btnEvaluateMenuClick(Sender: TObject);
     procedure btnEvaluateBmpClick(Sender: TObject);
+    procedure btnSetClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -149,7 +151,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormSend: TFormSend;
 
 implementation
 
@@ -160,7 +162,7 @@ uses CnDebug;
 var
   I: Integer = 0;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormSend.Button1Click(Sender: TObject);
 var
   AType: TCnMsgType;
   ALevel: Integer;
@@ -184,7 +186,7 @@ begin
     end;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TFormSend.Button2Click(Sender: TObject);
 begin
   if not FTimeStamp then
   begin
@@ -199,7 +201,7 @@ begin
   FTimeStamp := not FTimeStamp;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormSend.FormCreate(Sender: TObject);
 begin
   cbbLevel.ItemIndex := 3;
   cbbType.ItemIndex := 0;
@@ -207,22 +209,22 @@ begin
   Icon := Application.Icon;
 end;
 
-procedure TForm1.btnEnterClick(Sender: TObject);
+procedure TFormSend.btnEnterClick(Sender: TObject);
 begin
   CnDebugger.TraceEnter('A ProcName');
 end;
 
-procedure TForm1.btnLeaveClick(Sender: TObject);
+procedure TFormSend.btnLeaveClick(Sender: TObject);
 begin
   CnDebugger.TraceLeave('A ProcName');
 end;
 
-procedure TForm1.Button3Click(Sender: TObject);
+procedure TFormSend.Button3Click(Sender: TObject);
 begin
   CnDebugger.TraceSeparator;
 end;
 
-procedure TForm1.btnSendIntClick(Sender: TObject);
+procedure TFormSend.btnSendIntClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceInteger(udInt.Position)
@@ -230,7 +232,7 @@ begin
     CnDebugger.LogInteger(udInt.Position);
 end;
 
-procedure TForm1.btnSendFloatClick(Sender: TObject);
+procedure TFormSend.btnSendFloatClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceFloat(StrToFloat(edtFloat.Text))
@@ -238,13 +240,13 @@ begin
     CnDebugger.LogFloat(StrToFloat(edtFloat.Text));
 end;
 
-procedure TForm1.pnlColorClick(Sender: TObject);
+procedure TFormSend.pnlColorClick(Sender: TObject);
 begin
   if dlgColor.Execute then
     pnlColor.Color := dlgColor.Color;
 end;
 
-procedure TForm1.btnSendColorClick(Sender: TObject);
+procedure TFormSend.btnSendColorClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceColor(pnlColor.Color)
@@ -252,7 +254,7 @@ begin
     CnDebugger.LogColor(pnlColor.Color);
 end;
 
-procedure TForm1.btnSendBoolClick(Sender: TObject);
+procedure TFormSend.btnSendBoolClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceBoolean(True)
@@ -260,7 +262,7 @@ begin
     CnDebugger.LogBoolean(False);
 end;
 
-procedure TForm1.btnSendPointClick(Sender: TObject);
+procedure TFormSend.btnSendPointClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TracePoint(Mouse.CursorPos)
@@ -268,7 +270,7 @@ begin
     CnDebugger.LogPoint(Mouse.CursorPos);
 end;
 
-procedure TForm1.btnSendRectClick(Sender: TObject);
+procedure TFormSend.btnSendRectClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceRect(ClientRect)
@@ -276,7 +278,7 @@ begin
     CnDebugger.LogRect(ClientRect);
 end;
 
-procedure TForm1.btnDumpClick(Sender: TObject);
+procedure TFormSend.btnDumpClick(Sender: TObject);
 var
   xx: array[0..255] of char;
 begin
@@ -288,7 +290,7 @@ begin
     CnDebugger.LogMemDump(@xx, 256);
 end;
 
-procedure TForm1.btnExceptClick(Sender: TObject);
+procedure TFormSend.btnExceptClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceException(Exception.Create('Test Exception for output.'))
@@ -301,7 +303,7 @@ begin
   raise Exception.Create('Test Exception.');
 end;
 
-procedure TForm1.btnWriteCompClick(Sender: TObject);
+procedure TFormSend.btnWriteCompClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceComponent(Self)
@@ -309,7 +311,7 @@ begin
     CnDebugger.LogComponent(Self);
 end;
 
-procedure TForm1.btnWriteObjClick(Sender: TObject);
+procedure TFormSend.btnWriteObjClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceObject(Self)
@@ -317,7 +319,7 @@ begin
     CnDebugger.LogObject(Self);
 end;
 
-procedure TForm1.btnWriteColClick(Sender: TObject);
+procedure TFormSend.btnWriteColClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceCollection(Self.StatusBar1.Panels)
@@ -325,7 +327,7 @@ begin
     CnDebugger.LogCollection(Self.StatusBar1.Panels);
 end;
 
-procedure TForm1.btnThreadClick(Sender: TObject);
+procedure TFormSend.btnThreadClick(Sender: TObject);
 begin
   if FThread = nil then
   begin
@@ -343,28 +345,28 @@ begin
   end;  
 end;
 
-procedure TForm1.tmr1Timer(Sender: TObject);
+procedure TFormSend.tmr1Timer(Sender: TObject);
 begin
   StatusBar1.SimpleText := Format('来消息数 %d, 发消息数 %d, 过滤数 %d',
     [CnDebugger.MessageCount, CnDebugger.PostedMessageCount, CnDebugger.DiscardedMessageCount]);
 end;
 
-procedure TForm1.Button4Click(Sender: TObject);
+procedure TFormSend.Button4Click(Sender: TObject);
 begin
   OutputDebugString('Test OutputDebugString.');
 end;
 
-procedure TForm1.btnEvaluateClick(Sender: TObject);
+procedure TFormSend.btnEvaluateClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(Self);
 end;
 
-procedure TForm1.btnEvaCollClick(Sender: TObject);
+procedure TFormSend.btnEvaCollClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(Self.StatusBar1.Panels);
 end;
 
-procedure TForm1.FormKeyDown(Sender: TObject; var Key: Word;
+procedure TFormSend.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   if rgMethod.ItemIndex = 1 then
@@ -373,7 +375,7 @@ begin
     CnDebugger.LogVirtualKey(Key);
 end;
 
-procedure TForm1.edtMsgKeyPress(Sender: TObject; var Key: Char);
+procedure TFormSend.edtMsgKeyPress(Sender: TObject; var Key: Char);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceChar(Key)
@@ -381,7 +383,7 @@ begin
     CnDebugger.LogChar(Key);
 end;
 
-procedure TForm1.btnDatetimeClick(Sender: TObject);
+procedure TFormSend.btnDatetimeClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceDateTime(Date + Time)
@@ -389,7 +391,7 @@ begin
     CnDebugger.LogDateTime(Date + Time);
 end;
 
-procedure TForm1.btnFmtErrorClick(Sender: TObject);
+procedure TFormSend.btnFmtErrorClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceFmt('A Sample Error Format String: %d', [Caption])
@@ -397,17 +399,17 @@ begin
     CnDebugger.LogFmt('A Sample Error Format String: %d', [Caption]);
 end;
 
-procedure TForm1.btnEvalClick(Sender: TObject);
+procedure TFormSend.btnEvalClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(Sender);
 end;
 
-procedure TForm1.btnImageListClick(Sender: TObject);
+procedure TFormSend.btnImageListClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(ilTest);
 end;
 
-procedure TForm1.btnStackClick(Sender: TObject);
+procedure TFormSend.btnStackClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceCurrentStack('Trace Here')
@@ -415,7 +417,7 @@ begin
     CnDebugger.LogCurrentStack('Log Here');
 end;
 
-procedure TForm1.btnConstArrayClick(Sender: TObject);
+procedure TFormSend.btnConstArrayClick(Sender: TObject);
 var
   a: Integer;
   b: Boolean;
@@ -461,15 +463,15 @@ begin
     CnDebugger.LogConstArray([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, s]);
 end;
 
-procedure TForm1.btnClassClick(Sender: TObject);
+procedure TFormSend.btnClassClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
-    CnDebugger.TraceClass(TForm1)
+    CnDebugger.TraceClass(TFormSend)
   else
-    CnDebugger.LogClass(TForm1);
+    CnDebugger.LogClass(TFormSend);
 end;
 
-procedure TForm1.btnInterfaceClick(Sender: TObject);
+procedure TFormSend.btnInterfaceClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceInterface(TInterfacedObject.Create)
@@ -477,7 +479,7 @@ begin
     CnDebugger.LogInterface(TInterfacedObject.Create);
 end;
 
-procedure TForm1.btnAddrClick(Sender: TObject);
+procedure TFormSend.btnAddrClick(Sender: TObject);
 begin
   try
     raise Exception.Create('Test Address of Exception.');
@@ -494,7 +496,7 @@ asm
         MOV     EAX, EBP
 end;
 
-procedure TForm1.btnEBPAddrClick(Sender: TObject);
+procedure TFormSend.btnEBPAddrClick(Sender: TObject);
 begin
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceStackFromAddress(GetEBP)
@@ -502,12 +504,12 @@ begin
     CnDebugger.LogStackFromAddress(GetEBP);
 end;
 
-procedure TForm1.btnEvaluateMenuClick(Sender: TObject);
+procedure TFormSend.btnEvaluateMenuClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(pm1);
 end;
 
-procedure TForm1.btnEvaluateBmpClick(Sender: TObject);
+procedure TFormSend.btnEvaluateBmpClick(Sender: TObject);
 var
   Bmp: TBitmap;
   R: TRect;
@@ -521,6 +523,14 @@ begin
 
   CnDebugger.EvaluateObject(Bmp, True);
   Bmp.Free;
+end;
+
+procedure TFormSend.btnSetClick(Sender: TObject);
+begin
+  if rgMethod.ItemIndex = 1 then  
+    CnDebugger.TraceSet(Anchors, SizeOf(Anchors), TypeInfo(TAnchorKind))
+  else
+    CnDebugger.LogSet(Anchors, SizeOf(Anchors), TypeInfo(TAnchorKind));
 end;
 
 end.

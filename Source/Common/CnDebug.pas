@@ -353,6 +353,8 @@ type
     procedure LogChar(Value: Char; const AMsg: string = '');
     procedure LogAnsiChar(Value: AnsiChar; const AMsg: string = '');
     procedure LogWideChar(Value: WideChar; const AMsg: string = '');
+    procedure LogSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
+      const AMsg: string = '');
     procedure LogDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure LogPointer(Value: Pointer; const AMsg: string = '');
@@ -414,6 +416,8 @@ type
     procedure TraceChar(Value: Char; const AMsg: string = '');
     procedure TraceAnsiChar(Value: AnsiChar; const AMsg: string = '');
     procedure TraceWideChar(Value: WideChar; const AMsg: string = '');
+    procedure TraceSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
+      const AMsg: string = '');
     procedure TraceDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure TracePointer(Value: Pointer; const AMsg: string = '');
@@ -710,6 +714,34 @@ begin
     else       Result := nil;
   end;
 {$ENDIF}
+end;
+
+// 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
+// 而不能是 set of 后的类型，如无 TypInfo，则返回数值
+function GetSetStr(TypInfo: PTypeInfo; Value: Integer): string;
+var
+  I: Integer;
+  S: TIntegerSet;
+begin
+  Result := '';
+  if Value = 0 then
+    Exit;
+
+  Integer(S) := Value;
+  for I := 0 to SizeOf(Integer) * 8 - 1 do
+  begin
+    if I in S then
+    begin
+      if Result <> '' then
+        Result := Result + ',';
+
+      if TypInfo = nil then
+        Result := Result + IntToStr(I)
+      else
+        Result := Result + GetEnumName(TypInfo, I);
+    end;
+  end;
+  Result := '[' + Result + ']';
 end;
 
 // 移植自 uDbg
@@ -1565,6 +1597,27 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogSet(const ASet; ASetSize: Integer;
+  SetElementTypInfo: PTypeInfo; const AMsg: string);
+var
+  SetVal: Integer;
+begin
+{$IFDEF DEBUG}
+  if (ASetSize <= 0) or (ASetSize > SizeOf(Integer)) then
+  begin
+    LogException(EInvalidCast.Create(AMsg));
+    Exit;
+  end;
+
+  SetVal := 0;
+  Move(ASet, SetVal, ASetSize);
+  if AMsg = '' then
+    LogMsg(GetSetStr(SetElementTypInfo, SetVal))
+  else
+    LogFmt('%s %s', [AMsg, GetSetStr(SetElementTypInfo, SetVal)]);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogDateTime(Value: TDateTime; const AMsg: string = '' );
 begin
 {$IFDEF DEBUG}
@@ -2164,6 +2217,25 @@ begin
     TraceFmt(SCnWideCharFmt, [Value, Ord(Value), Ord(Value)])
   else
     TraceFmt('%s ''%s''(%d/$%4.4x)', [AMsg, Value, Ord(Value), Ord(Value)]);
+end;
+
+procedure TCnDebugger.TraceSet(const ASet; ASetSize: Integer;
+  SetElementTypInfo: PTypeInfo; const AMsg: string);
+var
+  SetVal: Integer;
+begin
+  if (ASetSize <= 0) or (ASetSize > SizeOf(Integer)) then
+  begin
+    TraceException(EInvalidCast.Create(AMsg));
+    Exit;
+  end;
+
+  SetVal := 0;
+  Move(ASet, SetVal, ASetSize);
+  if AMsg = '' then
+    TraceMsg(GetSetStr(SetElementTypInfo, SetVal))
+  else
+    TraceFmt('%s %s', [AMsg, GetSetStr(SetElementTypInfo, SetVal)]);
 end;
 
 procedure TCnDebugger.TraceDateTime(Value: TDateTime; const AMsg: string = '' );

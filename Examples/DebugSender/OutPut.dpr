@@ -6,9 +6,8 @@ program OutPut;
 
 uses
   Forms,
-  UnitOutput in 'UnitOutput.pas' {Form1},
+  UnitOutput in 'UnitOutput.pas' {FormSend},
   CnDebug in '..\..\Source\Common\CnDebug.pas',
-  {$IFDEF USE_JCL}
   Jcl8087 in '..\..\..\cnwizards\Source\ThirdParty\JCL\Jcl8087.pas',
   JclAnsiStrings in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclAnsiStrings.pas',
   JclBase in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclBase.pas',
@@ -35,13 +34,12 @@ uses
   JclWideStrings in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclWideStrings.pas',
   JclWin32 in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclWin32.pas',
   Snmp in '..\..\..\cnwizards\Source\ThirdParty\JCL\Snmp.pas',
-  {$ENDIF}
   UnitThread in 'UnitThread.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormSend, FormSend);
   Application.Run;
 end.
