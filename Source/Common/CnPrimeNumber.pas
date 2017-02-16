@@ -33,7 +33,9 @@ unit CnPrimeNumber;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.09.19 V1.1
+* 修改记录：2017.02.16 V1.1
+*               加入针对 Int64 的 RSA 基础加解密实现
+*           2016.09.19 V1.1
 *               加入 Miller Rabin 素数概率判断方法，生成方法以及 64 位实现
 *           2016.09.16 V1.0
 *               创建单元
@@ -45,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes, Windows;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -646,8 +648,24 @@ function MultipleMod(A, B, C: Int64): Int64;
 function MontgomeryPowerMod(A, B, C: Int64): Int64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
+function CnGenerateInt32Prime: Integer;
+{* 生成一个随机的 32 位素数}
+
 function CnGenerateInt64Prime: Int64;
 {* 生成一个随机的 64 位素数}
+
+function CnSimpleRSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
+  out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
+  out PubKeyProduct: Int64; out PubKeyExponent: Int64): Boolean;
+{* 生成 RSA 算法所需的公私钥，素数均不大于 Integer，Keys 均不大于 Int64}
+
+function CnSimpleRSAEncrypt(Data: Int64; PrivKeyProduct: Int64;
+  PrivKeyExponent: Int64; out Res: Int64): Boolean;
+{* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
+
+function CnSimpleRSADecrypt(Res: Int64; PubKeyProduct: Int64;
+  PubKeyExponent: Int64; out Data: Int64): Boolean;
+{* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
 {$IFDEF WIN64}
 
@@ -822,6 +840,18 @@ begin
   Result := True;
 end;
 
+// 生成一个随机的 32 位素数
+function CnGenerateInt32Prime: Integer;
+begin
+  Randomize;
+  Result := Trunc(Random * High(Integer) - 1) + 1;
+  while not CnUInt32IsPrime(Result) do
+  begin
+    Randomize;
+    Result := Trunc(Random * High(Integer) - 1) + 1;
+  end;
+end;
+
 // 生成一个随机的 64 位素数
 function CnGenerateInt64Prime: Int64;
 begin
@@ -832,6 +862,81 @@ begin
     Randomize;
     Result := Trunc(Random * High(Int64) - 1) + 1;
   end;
+end;
+
+// 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
+function SimpleRSACrypt(Data: Int64; Product: Int64; Exponent: Int64;
+  out Res: Int64): Boolean;
+begin
+  Res := MontgomeryPowerMod(Data, Exponent, Product);
+  Result := True;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+function ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+var
+  R, T: Int64;
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+    Result := A;
+  end
+  else
+  begin
+    R := ExtendedEuclideanGcd(B, A mod B, X, Y);
+    T := X;
+    X := Y;
+    Y := T - (A div B) * Y;
+    Result := R;
+  end;
+end;
+
+// 生成 RSA 算法所需的公私钥，素数均不大于 Integer，Keys 均不大于 Int64
+function CnSimpleRSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
+  out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
+  out PubKeyProduct: Int64; out PubKeyExponent: Int64): Boolean;
+var
+  N: Integer;
+  Product, Y: Int64;
+begin
+  PrimeKey1 := CnGenerateInt32Prime;
+
+  N := Trunc(Random * 1000);
+  Sleep(N);
+
+  PrimeKey2 := CnGenerateInt32Prime;
+  PrivKeyProduct := Int64(PrimeKey1) * Int64(PrimeKey2);
+  PubKeyProduct := Int64(PrimeKey2) * Int64(PrimeKey1);   // 积在公私钥中是相同的
+  PubKeyExponent := 65537;                                // 固定
+
+  Product := Int64(PrimeKey1 - 1) * Int64(PrimeKey2 - 1);
+
+  //                      e                d                p
+  // 用辗转相除法求 PubKeyExponent * PrivKeyExponent mod Product = 1 中的 PrivKeyExponent
+  // 也就是解方程 e * d + p * y = 1，其中 e、p 已知，求 d 与 y。
+  ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
+  while PrivKeyExponent < 0 do
+  begin
+     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p，加到大于零为止
+     PrivKeyExponent := PrivKeyExponent + Product;
+  end;
+  Result := True;
+end;
+
+// 利用上面生成的私钥对数据进行加密，返回加密是否成功
+function CnSimpleRSAEncrypt(Data: Int64; PrivKeyProduct: Int64;
+  PrivKeyExponent: Int64; out Res: Int64): Boolean;
+begin
+  Result := SimpleRSACrypt(Data, PrivKeyProduct, PrivKeyExponent, Res);
+end;
+
+// 利用上面生成的公钥对数据进行解密，返回解密是否成功
+function CnSimpleRSADecrypt(Res: Int64; PubKeyProduct: Int64;
+  PubKeyExponent: Int64; out Data: Int64): Boolean;
+begin
+  Result := SimpleRSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
 end;
 
 {$IFDEF WIN64}
