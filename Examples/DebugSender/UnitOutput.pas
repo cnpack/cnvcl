@@ -103,6 +103,7 @@ type
     btnEvaluateMenu: TButton;
     btnEvaluateBmp: TButton;
     btnSet: TButton;
+    btnSize: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -142,6 +143,7 @@ type
     procedure btnEvaluateMenuClick(Sender: TObject);
     procedure btnEvaluateBmpClick(Sender: TObject);
     procedure btnSetClick(Sender: TObject);
+    procedure btnSizeClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -527,10 +529,21 @@ end;
 
 procedure TFormSend.btnSetClick(Sender: TObject);
 begin
-  if rgMethod.ItemIndex = 1 then  
+  if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceSet(Anchors, SizeOf(Anchors), TypeInfo(TAnchorKind))
   else
     CnDebugger.LogSet(Anchors, SizeOf(Anchors), TypeInfo(TAnchorKind));
+end;
+
+procedure TFormSend.btnSizeClick(Sender: TObject);
+var
+  Size: TSize;
+begin
+  Size := Canvas.TextExtent('Test Me');
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceSize(Size)
+  else
+    CnDebugger.LogSize(Size);
 end;
 
 end.

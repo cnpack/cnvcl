@@ -628,6 +628,17 @@ object FormSend: TFormSend
     TabOrder = 47
     OnClick = btnSetClick
   end
+  object btnSize: TButton
+    Left = 120
+    Top = 332
+    Width = 97
+    Height = 21
+    Caption = '·¢ËÍ³ß´ç'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 48
+    OnClick = btnSizeClick
+  end
   object dlgColor: TColorDialog
     Ctl3D = True
     Left = 256

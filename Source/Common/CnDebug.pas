@@ -253,7 +253,7 @@ type
 
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
-
+    function SizeToString(ASize: TSize): string;
     function PointToString(APoint: TPoint): string;
     function RectToString(ARect: TRect): string;
     function GetExceptTracking: Boolean;
@@ -359,6 +359,7 @@ type
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure LogPointer(Value: Pointer; const AMsg: string = '');
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
+    procedure LogSize(Size: TSize; const AMsg: string = '');
     procedure LogRect(Rect: TRect; const AMsg: string = '');
     procedure LogRawString(const Value: string);
     procedure LogRawAnsiString(const Value: AnsiString);
@@ -422,6 +423,7 @@ type
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure TracePointer(Value: Pointer; const AMsg: string = '');
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
+    procedure TraceSize(Size: TSize; const AMsg: string = '');
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
     procedure TraceRawString(const Value: string);
     procedure TraceRawAnsiString(const Value: AnsiString);
@@ -593,6 +595,7 @@ const
   SCnPointer = 'Pointer Address: ';
   SCnFloat = 'Float: ';
   SCnPoint = 'Point: ';
+  SCnSize = 'Size: ';
   SCnRect = 'Rect: ';
   SCnVirtualKeyFmt = 'VirtualKey: %d($%2.2x), %s';
   SCnException = 'Exception:';
@@ -1791,6 +1794,16 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogSize(Size: TSize; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogMsg(SCnSize + SizeToString(Size))
+  else
+    LogFmt('%s %s', [AMsg, SizeToString(Size)]);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogRect(Rect: TRect; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -1886,6 +1899,11 @@ end;
 function TCnDebugger.PointToString(APoint: TPoint): string;
 begin
   Result := '(' + IntToStr(APoint.x) + ',' + IntToStr(APoint.y) + ')';
+end;
+
+function TCnDebugger.SizeToString(ASize: TSize): string;
+begin
+  Result := '(cx: ' + IntToStr(ASize.cx) + ', cy: ' + IntToStr(ASize.cy) + ')';
 end;
 
 function TCnDebugger.RectToString(ARect: TRect): string;
@@ -2375,6 +2393,14 @@ begin
     TraceMsg(SCnPoint + PointToString(Point))
   else
     TraceFmt('%s %s', [AMsg, PointToString(Point)]);
+end;
+
+procedure TCnDebugger.TraceSize(Size: TSize; const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceMsg(SCnSize + SizeToString(Size))
+  else
+    TraceFmt('%s %s', [AMsg, SizeToString(Size)]);
 end;
 
 procedure TCnDebugger.TraceRect(Rect: TRect; const AMsg: string);
