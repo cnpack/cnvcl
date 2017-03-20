@@ -1570,7 +1570,7 @@ begin
     begin
       if (FGraphicObject as TImageList).Count > 0 then
       begin
-        // TODO: 根据 ImageList 尺寸以及 Image 尺寸来排版绘制
+        // 根据 ImageList 尺寸以及 Image 尺寸来排版绘制
         ImageList := FGraphicObject as TImageList;
         ImgLeft := IMG_MARGIN;
         ImgTop := IMG_MARGIN;
@@ -1579,7 +1579,7 @@ begin
         begin
           ImageList.Draw(imgGraphic.Canvas, ImgLeft, ImgTop, I);
           Inc(ImgLeft, ImageList.Width + IMG_INTERVAL);
-          if ImgLeft > imgGraphic.Width then
+          if ImgLeft + IMG_MARGIN > imgGraphic.Width - ImageList.Width then
           begin
             Inc(ImgTop, ImageList.Height + IMG_INTERVAL);
             ImgLeft := IMG_MARGIN;
