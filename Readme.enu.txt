@@ -45,10 +45,12 @@ development, please contact us:
 ======================================================================
 
     Now Delphi 5/6/7/2005/2006/2007/2009/2010/XE/XE2/XE3/XE4/XE5/XE6/XE7/XE8/
-10 Seattle/10.1 Berlin and C++Builder 5/6 are supported by CnPack Component
-Package. You can open corresponding package files in IDE and press "compile" 
+10 Seattle/10.1 Berlin/10.2 Tokyo and C++Builder 5/6 are supported by CnPack 
+Component Package.
+    You can open corresponding package files in IDE and press "compile" 
 or "install" buttons to compile and install it. The package files with "dcl"
-prefix are for design time, others for run time. 
+prefix are for design time, others for run time.
+
 Note: please compile run-time package first, then install design-time package.
 
     Click "Environment Options" in "Tools" menu to open settings dialog.
