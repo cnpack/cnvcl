@@ -2,7 +2,7 @@ object FormBigNumber: TFormBigNumber
   Left = 127
   Top = 6
   Width = 920
-  Height = 656
+  Height = 654
   Caption = 'Big Number Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -401,7 +401,7 @@ object FormBigNumber: TFormBigNumber
   end
   object btnMultipleMod: TButton
     Left = 672
-    Top = 424
+    Top = 422
     Width = 75
     Height = 21
     Caption = 'Multiple Mod'
@@ -410,7 +410,7 @@ object FormBigNumber: TFormBigNumber
   end
   object btnPowerMod: TButton
     Left = 752
-    Top = 424
+    Top = 422
     Width = 75
     Height = 21
     Caption = 'Power Mod'

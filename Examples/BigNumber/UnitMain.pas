@@ -337,7 +337,10 @@ begin
   if BigNumberDiv(Res, Rem, Num1, Num2) then
   begin
     ShowResult(Res);
-    ShowMessage(BigNumberToHex(Rem));
+    if rbHex.Checked then
+      ShowMessage(BigNumberToHex(Rem))
+    else
+      ShowMessage(BigNumberToDec(Rem));
   end;
   BigNumberFree(Rem);
   BigNumberFree(Res);

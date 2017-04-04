@@ -31,7 +31,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.09.26 V1.2
+* 修改记录：2017.04.04 V1.3
+*               修正几处大数池相关的 Bug，但扩展欧几里得求解法还有问题
+*           2016.09.26 V1.2
 *               加入素数计算；大数池改成全局方式以提高效率
 *           2014.11.05 V1.1
 *               大数从结构方式改为对象方式，增加部分方法
@@ -75,6 +77,10 @@ type
 
   {* 用来代表一个大数的对象 }
   TCnBigNumber = class(TObject)
+  private
+{$IFDEF DEBUG}
+    FIsFromPool: Boolean;
+{$ENDIF}
   public
     D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
     Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
@@ -167,11 +173,17 @@ type
     function ToHex: string;
     {* 将大数转成十六进制字符串}
 
+    function SetHex(const Buf: AnsiString): Boolean;
+    {* 根据一串十六进制字符串给自身赋值}
+
     class function FromHex(const Buf: AnsiString): TCnBigNumber;
     {* 根据一串十六进制字符串产生一个新的大数对象}
 
     function ToDec: string;
     {* 将大数转成十进制字符串}
+
+    function SetDec(const Buf: AnsiString): Boolean;
+    {* 根据一串十进制字符串给自身赋值}
 
     class function FromDec(const Buf: AnsiString): TCnBigNumber;
     {* 根据一串十进制字符串产生个新的大数对象}
@@ -268,11 +280,17 @@ function BigNumberToString(const Num: TCnBigNumber): string;
 function BigNumberToHex(const Num: TCnBigNumber): string;
 {* 将一个大数对象转成十六进制字符串}
 
+function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
+{* 将一串十六进制字符串赋值给指定大数对象}
+
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十六进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 {* 将一个大数对象转成十进制字符串}
+
+function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
+{* 将一串十进制字符串赋值给指定大数对象}
 
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
@@ -382,6 +400,10 @@ function BigNumberIsInt64(const Num: TCnBigNumber): Boolean;
 function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 64 位无符号整型范围内的数}
 
+procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
+  Y: TCnBigNumber; Res: TCnBigNumber);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
+
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
 
@@ -425,6 +447,9 @@ begin
   if FLocalBigNumberPool.Count = 0 then
   begin
     Result := TCnBigNumber.Create;
+{$IFDEF DEBUG}
+    Result.FIsFromPool := True;
+{$ENDIF}
   end
   else
   begin
@@ -2334,14 +2359,14 @@ begin
   end;
 end;
 
-function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
+function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
 var
   P: PAnsiChar;
   Neg, H, M, J, I, K, C: Integer;
   L: DWORD;
 begin
-  Result := nil;
-  if Buf = '' then
+  Result := False;
+  if (Buf = '') or (Res = nil) then
     Exit;
 
   P := @Buf[1];
@@ -2358,16 +2383,11 @@ begin
   while PAnsiChar(Integer(P) + I)^ in ['0'..'9', 'A'..'F', 'a'..'f'] do
     Inc(I);
 
-  Result := BigNumberNew;
-  if Result = nil then
-    Exit;
+  BigNumberSetZero(Res);
 
-  BigNumberSetZero(Result);
-
-  if BigNumberWordExpand(Result, I * 4) = nil then
+  if BigNumberWordExpand(Res, I * 4) = nil then
   begin
-    BigNumberFree(Result);
-    Result := nil;
+    BigNumberFree(Res);
     Exit;
   end;
 
@@ -2398,7 +2418,7 @@ begin
       Dec(M);
       if M <= 0 then
       begin
-        PDWordArray(Result.D)^[H] := L;
+        PDWordArray(Res.D)^[H] := L;
         Inc(H);
         Break;
       end;
@@ -2406,9 +2426,23 @@ begin
     Dec(J, BN_BYTES * 2);
   end;
 
-  Result.Top := H;
-  BigNumberCorrectTop(Result);
-  Result.Neg := Neg;
+  Res.Top := H;
+  BigNumberCorrectTop(Res);
+  Res.Neg := Neg;
+  Result := True;
+end;
+
+function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
+begin
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  if not BigNumberSetHex(Buf, Result) then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+  end;
 end;
 
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
@@ -2483,7 +2517,6 @@ begin
           Inc(P);
       end;
     end;
-
   finally
     if BnData <> nil then
       FreeMemory(BnData);
@@ -2492,14 +2525,14 @@ begin
   end;
 end;
 
-function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
+function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
 var
   P: PAnsiChar;
   Neg, J, I: Integer;
   L: DWORD;
 begin
-  Result := nil;
-  if Buf = '' then
+  Result := False;
+  if (Buf = '') or (Res = nil) then
     Exit;
 
   P := @Buf[1];
@@ -2516,16 +2549,11 @@ begin
   while PAnsiChar(Integer(P) + I)^ in ['0'..'9'] do
     Inc(I);
 
-  Result := BigNumberNew;
-  if Result = nil then
-    Exit;
+  BigNumberSetZero(Res);
 
-  BigNumberSetZero(Result);
-
-  if BigNumberWordExpand(Result, I * 4) = nil then
+  if BigNumberWordExpand(Res, I * 4) = nil then
   begin
-    BigNumberFree(Result);
-    Result := nil;
+    BigNumberFree(Res);
     Exit;
   end;
 
@@ -2542,15 +2570,29 @@ begin
     Inc(J);
     if J = 9 then
     begin
-      BigNumberMulWord(Result, BN_DEC_CONV);
-      BigNumberAddWord(Result, L);
+      BigNumberMulWord(Res, BN_DEC_CONV);
+      BigNumberAddWord(Res, L);
       L := 0;
       J := 0;
     end;
   end;
 
-  BigNumberCorrectTop(Result);
-  Result.Neg := Neg;
+  BigNumberCorrectTop(Res);
+  Res.Neg := Neg;
+  Result := True;
+end;
+
+function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
+begin
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  if not BigNumberSetDec(Buf, Result) then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+  end;
 end;
 
 // Tmp should have 2 * N DWORDs
@@ -2593,6 +2635,7 @@ var
   Max, AL: Integer;
   Tmp, RR: TCnBigNumber;
   T: array[0..15] of DWORD;
+  IsFromPool: Boolean;
 begin
   Result := False;
   AL := Num.Top;
@@ -2606,12 +2649,16 @@ begin
 
   RR := nil;
   Tmp := nil;
+  IsFromPool := False;
 
   try
     if Num <> Res then
       RR := Res
     else
+    begin
       RR := ObtainBigNumberFromPool;
+      IsFromPool := True;
+    end;
 
     Tmp := ObtainBigNumberFromPool;
     if (RR = nil) or (Tmp = nil) then
@@ -2646,7 +2693,8 @@ begin
       BigNumberCopy(Res, RR);
     Result := True;
   finally
-    RecycleBigNumberToPool(RR);
+    if IsFromPool then
+      RecycleBigNumberToPool(RR);
     RecycleBigNumberToPool(Tmp);
   end;
 end;
@@ -2719,6 +2767,7 @@ function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
 var
   Top, AL, BL: Integer;
   RR: TCnBigNumber;
+  IsFromPool: Boolean;
 begin
   Result := False;
   AL := Num1.Top;
@@ -2733,10 +2782,13 @@ begin
   Top := AL + BL;
 
   RR := nil;
+  IsFromPool := False;
+
   try
     if (Res = Num1) or (Res = Num2) then
     begin
       RR := ObtainBigNumberFromPool;
+      IsFromPool := True;
       if RR = nil then
         Exit;
     end
@@ -2757,7 +2809,8 @@ begin
       BigNumberCopy(Res, RR);
     Result := True;
   finally
-    RecycleBigNumberToPool(RR);
+    if IsFromPool then
+      RecycleBigNumberToPool(RR);
   end;
 end;
 
@@ -3005,6 +3058,7 @@ function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
 var
   I, Bits: Integer;
   V, RR: TCnBigNumber;
+  IsFromPool: Boolean;
 begin
   Result := False;
   if BigNumberGetFlag(Exponent, BN_FLG_CONSTTIME) <> 0 then
@@ -3012,11 +3066,17 @@ begin
 
   RR := nil;
   V := nil;
+  IsFromPool := False;
+
   try
     if (Res = Num) or (Res = Exponent) then
-      RR := ObtainBigNumberFromPool
+    begin
+      RR := ObtainBigNumberFromPool;
+      IsFromPool := True;
+    end
     else
       RR := Res;
+
     V := ObtainBigNumberFromPool;
     if (RR = nil) or (V = nil) then
       Exit;
@@ -3050,7 +3110,8 @@ begin
       BigNumberCopy(Res, RR);
     Result := True;
   finally
-    RecycleBigNumberToPool(RR);
+    if IsFromPool then
+      RecycleBigNumberToPool(RR);
     RecycleBigNumberToPool(V);
   end;
 end;
@@ -3469,6 +3530,52 @@ begin
   Result := not Num.IsNegative and (Num.GetBitsCount <= BN_BITS_UINT_64);
 end;
 
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
+  Y: TCnBigNumber; Res: TCnBigNumber);
+var
+  R, T, P, M: TCnBigNumber;
+begin
+  if BigNumberIsZero(B) then
+  begin
+    BigNumberSetOne(X);
+    BigNumberSetZero(Y);
+    BigNumberCopy(Res, A);
+  end
+  else
+  begin
+    R := nil;
+    T := nil;
+    P := nil;
+    M := nil;
+
+    try
+      R := ObtainBigNumberFromPool;
+      T := ObtainBigNumberFromPool;
+      P := ObtainBigNumberFromPool;
+      M := ObtainBigNumberFromPool;
+      BigNumberMod(P, A, B);
+
+      BigNumberExtendedEuclideanGcd(B, P, X, Y, R);
+      BigNumberCopy(T, X);
+      BigNumberCopy(X, Y);
+
+      // T := X;
+      // X := Y;
+      // Y := T - (A div B) * Y;
+      BigNumberDiv(P, M, A, B);
+      BigNumberMul(P, P, Y);
+      BigNumberSub(Y, T, P);
+      BigNumberCopy(Res, R);
+    finally
+      RecycleBigNumberToPool(M);
+      RecycleBigNumberToPool(P);
+      RecycleBigNumberToPool(T);
+      RecycleBigNumberToPool(R);
+    end;
+  end;
+end;
+
 { TCnBigNumber }
 
 function TCnBigNumber.AddWord(W: DWORD): Boolean;
@@ -3498,6 +3605,11 @@ end;
 
 destructor TCnBigNumber.Destroy;
 begin
+{$IFDEF DEBUG}
+  if FIsFromPool then
+    raise Exception.Create('Error. Try to Free a Big Number From Pool.');
+{$ENDIF}
+
   if (D <> nil) and (BigNumberGetFlag(Self, BN_FLG_STATIC_DATA) = 0) then
     FreeMemory(Self.D);     // 不是外部管理的静态数据，需要释放
   if BigNumberGetFlag(Self, BN_FLG_MALLOCED) <> 0 then
@@ -3598,6 +3710,16 @@ begin
   Result := BigNumberSetBit(Self, N);
 end;
 
+function TCnBigNumber.SetDec(const Buf: AnsiString): Boolean;
+begin
+  Result := BigNumberSetDec(Buf, Self);
+end;
+
+function TCnBigNumber.SetHex(const Buf: AnsiString): Boolean;
+begin
+  Result := BigNumberSetHex(Buf, Self);
+end;
+
 procedure TCnBigNumber.SetNegative(Negative: Boolean);
 begin
   BigNumberSetNegative(Self, Negative);
@@ -3653,7 +3775,12 @@ var
   I: Integer;
 begin
   for I := 0 to FLocalBigNumberPool.Count - 1 do
+  begin
+{$IFDEF DEBUG}
+    TCnBigNumber(FLocalBigNumberPool[I]).FIsFromPool := False;
+{$ENDIF}
     TObject(FLocalBigNumberPool[I]).Free;
+  end;
   FreeAndNil(FLocalBigNumberPool);
 end;
 

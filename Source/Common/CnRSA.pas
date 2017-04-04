@@ -38,7 +38,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnPrimeNumber;
+  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber;
+
+// Int64 范围内的 RSA 加解密实现
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
   out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
@@ -53,6 +55,11 @@ function CnInt64RSADecrypt(Res: Int64; PubKeyProduct: Int64;
   PubKeyExponent: Int64; out Data: Int64): Boolean;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
+// 大数范围内的 RSA 加解密实现
+function CnRSAGenerateKeys(Bits: Integer; PrimeKey1, PrimeKey2,
+  PrivKeyProduct, PrivKeyExponent, PubKeyProduct, PubKeyExponent: TCnBigNumber): Boolean;
+{* 生成 RSA 算法所需的公私钥，Bits 是素数范围，其余参数均为生成}
+
 implementation
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
@@ -64,7 +71,7 @@ begin
 end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
-function ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
 var
   R, T: Int64;
 begin
@@ -76,7 +83,7 @@ begin
   end
   else
   begin
-    R := ExtendedEuclideanGcd(B, A mod B, X, Y);
+    R := Int64ExtendedEuclideanGcd(B, A mod B, X, Y);
     T := X;
     X := Y;
     Y := T - (A div B) * Y;
@@ -107,7 +114,7 @@ begin
   //                      e                d                p
   // 用辗转相除法求 PubKeyExponent * PrivKeyExponent mod Product = 1 中的 PrivKeyExponent
   // 也就是解方程 e * d + p * y = 1，其中 e、p 已知，求 d 与 y。
-  ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
+  Int64ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
   while PrivKeyExponent < 0 do
   begin
      // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p，加到大于零为止
@@ -128,6 +135,75 @@ function CnInt64RSADecrypt(Res: Int64; PubKeyProduct: Int64;
   PubKeyExponent: Int64; out Data: Int64): Boolean;
 begin
   Result := Int64RSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
+end;
+
+function CnRSAGenerateKeys(Bits: Integer; PrimeKey1, PrimeKey2,
+  PrivKeyProduct, PrivKeyExponent, PubKeyProduct, PubKeyExponent: TCnBigNumber): Boolean;
+var
+  N: Integer;
+  P, Y, R, S1, S2, One: TCnBigNumber;
+begin
+  Result := False;
+  if Bits <= 16 then
+    Exit;
+
+  if not BigNumberGeneratePrime(PrimeKey1, Bits div 8) then
+    Exit;
+
+  N := Trunc(Random * 1000);
+  Sleep(N);
+
+  if not BigNumberGeneratePrime(PrimeKey2, Bits div 8) then
+    Exit;
+
+  if not BigNumberMul(PrivKeyProduct, PrimeKey1, PrimeKey2) then
+    Exit;
+
+  if not BigNumberMul(PubKeyProduct, PrimeKey1, PrimeKey2) then
+    Exit;
+
+  PubKeyExponent.SetDec('65537');
+
+  R := nil;
+  Y := nil;
+  P := nil;
+  S1 := nil;
+  S2 := nil;
+  One := nil;
+
+  try
+    R := TCnBigNumber.Create;
+    Y := TCnBigNumber.Create;
+    P := TCnBigNumber.Create;
+    S1 := TCnBigNumber.Create;
+    S2 := TCnBigNumber.Create;
+    One := TCnBigNumber.Create;
+
+    BigNumberSetOne(One);
+    BigNumberSub(S1, PrimeKey1, One);
+    BigNumberSub(S2, PrimeKey2, One);
+    BigNumberMul(P, S1, S2);
+
+    BigNumberExtendedEuclideanGcd(PubKeyExponent, P, PrivKeyExponent, Y, R);
+    if BigNumberIsNegative(PrivKeyExponent) then
+    begin
+       // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p 的整数倍
+       BigNumberDiv(S1, S2, PrivKeyExponent, P);
+       BigNumberSetNegative(S1, False);
+       BigNumberAdd(S1, S1, One);
+       BigNumberMul(S1, S1, P);
+       BigNumberAdd(PrivKeyExponent, PrivKeyExponent, S1);
+    end;
+  finally
+    One.Free;
+    S2.Free;
+    S1.Free;
+    P.Free;
+    Y.Free;
+    R.Free;
+  end;
+
+  Result := True;
 end;
 
 end.

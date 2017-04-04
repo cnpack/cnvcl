@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls;
+  StdCtrls, ComCtrls, CnBigNumber;
 
 type
   TFormRSA = class(TForm)
@@ -33,11 +33,42 @@ type
     edtDataBack: TEdit;
     btnRSAEn: TButton;
     btnRSADe: TButton;
+    tsRSA: TTabSheet;
+    grpBNKeys: TGroupBox;
+    lblBNP1: TLabel;
+    edtBNPrime1: TEdit;
+    lblBNP2: TLabel;
+    edtBNPrime2: TEdit;
+    lblBNPrivProduct: TLabel;
+    lblBNPrivExp: TLabel;
+    lblBNPubProduct: TLabel;
+    lblBNPubExp: TLabel;
+    btnBNGen: TButton;
+    edtBNPrivExp: TEdit;
+    edtBNPubExp: TEdit;
+    mmoBNPrivProduct: TMemo;
+    mmoBNPubProduct: TMemo;
+    lblBits: TLabel;
+    cbbBits: TComboBox;
+    grpBNCrypt: TGroupBox;
+    lblBNInteger: TLabel;
+    lblBNResult: TLabel;
+    lblBNDecrypt: TLabel;
+    edtBNData: TEdit;
+    edtBNRes: TEdit;
+    edtBNDataBack: TEdit;
+    btnBNRSAEn: TButton;
+    btnBNRSADe: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure btnBNGenClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
+    FBNPrime1, FBNPrime2: TCnBigNumber;
+    FBNPrivKeyProduct, FBNPrivKeyExponent, FBNPubKeyProduct, FBNPubKeyExponent: TCnBigNumber;
   public
     { Public declarations }
   end;
@@ -84,7 +115,6 @@ begin
     edtRes.Text := Format('%d', [Res]);
 end;
 
-
 procedure TFormRSA.btnRSADeClick(Sender: TObject);
 var
   Res, Data: Int64;
@@ -92,6 +122,43 @@ begin
   Res := StrToInt64(edtRes.Text);
   if CnInt64RSADecrypt(Res, FPubKeyProduct, FPubKeyExponent, Data) then
     edtDataBack.Text := Format('%d', [Data]);
+end;
+
+procedure TFormRSA.FormCreate(Sender: TObject);
+begin
+  pgc1.ActivePageIndex := 0;
+  cbbBits.ItemIndex := cbbBits.Items.Count - 1;
+
+  FBNPrivKeyProduct := TCnBigNumber.Create;
+  FBNPrivKeyExponent := TCnBigNumber.Create;
+  FBNPubKeyProduct := TCnBigNumber.Create;
+  FBNPubKeyExponent := TCnBigNumber.Create;
+  FBNPrime1 := TCnBigNumber.Create;
+  FBNPrime2 := TCnBigNumber.Create;
+end;
+
+procedure TFormRSA.FormDestroy(Sender: TObject);
+begin
+  FBNPrivKeyProduct.Free;
+  FBNPrivKeyExponent.Free;
+  FBNPubKeyProduct.Free;
+  FBNPubKeyExponent.Free;
+  FBNPrime1.Free;
+  FBNPrime2.Free;
+end;
+
+procedure TFormRSA.btnBNGenClick(Sender: TObject);
+begin
+  if CnRSAGenerateKeys(StrToIntDef(cbbBits.Text, 256), FBNPrime1, FBNPrime2,
+    FBNPrivKeyProduct, FBNPrivKeyExponent, FBNPubKeyProduct, FBNPubKeyExponent) then
+  begin
+    edtBNPrime1.Text := FBNPrime1.ToDec;
+    edtBNPrime2.Text := FBNPrime2.ToDec;
+    mmoBNPrivProduct.Text := FBNPrivKeyProduct.ToDec;
+    edtBNPrivExp.Text := FBNPrivKeyExponent.ToDec;
+    mmoBNPubProduct.Text := FBNPubKeyProduct.ToDec;
+    edtBNPubExp.Text := FBNPubKeyExponent.ToDec;
+  end;
 end;
 
 end.

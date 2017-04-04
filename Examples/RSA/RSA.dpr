@@ -3,7 +3,7 @@ program RSA;
 uses
   Forms,
   UnitRSA in 'UnitRSA.pas' {FormRSA},
-  CnRSA in '..\..\Source\CnRSA.pas';
+  CnRSA in '..\..\Source\Common\CnRSA.pas';
 
 {$R *.RES}
 
