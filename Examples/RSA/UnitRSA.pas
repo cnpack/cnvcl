@@ -59,12 +59,30 @@ type
     edtBNDataBack: TEdit;
     btnBNRSAEn: TButton;
     btnBNRSADe: TButton;
+    tsEuclid: TTabSheet;
+    grpEuclidean: TGroupBox;
+    lblEqual: TLabel;
+    lblA: TLabel;
+    edtA: TEdit;
+    lblB: TLabel;
+    edtB: TEdit;
+    lblX: TLabel;
+    edtX: TEdit;
+    lblY: TLabel;
+    edtY: TEdit;
+    btnInt64Euc: TButton;
+    btnBNGcd: TButton;
+    lblX0: TLabel;
+    edtXP: TEdit;
+    lblXP: TLabel;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnBNGenClick(Sender: TObject);
+    procedure btnInt64EucClick(Sender: TObject);
+    procedure btnBNGcdClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
     FBNPrime1, FBNPrime2: TCnBigNumber;
@@ -159,6 +177,63 @@ begin
     mmoBNPubProduct.Text := FBNPubKeyProduct.ToDec;
     edtBNPubExp.Text := FBNPubKeyExponent.ToDec;
   end;
+end;
+
+procedure TFormRSA.btnInt64EucClick(Sender: TObject);
+var
+  A, B, X, Y: Int64;
+begin
+  A := StrToInt64(edtA.Text);
+  B := StrToInt64(edtB.Text);
+  X := 0;
+  Y := 0;
+  Int64ExtendedEuclideanGcd(A, B, X, Y);
+  edtX.Text := IntToStr(X);
+  edtY.Text := IntToStr(Y);
+
+  if X < 0 then
+  begin
+    lblX0.Caption := 'X < 0. Add B to X.';
+    edtXP.Text := IntToStr(X + B);
+  end
+  else
+  begin
+    lblX0.Caption := 'X > 0. OK.';
+    edtXP.Text := IntToStr(X);
+  end;
+end;
+
+procedure TFormRSA.btnBNGcdClick(Sender: TObject);
+var
+  A, B, X, Y, R: TCnBigNumber;
+begin
+  A := TCnBigNumber.FromDec(edtA.Text);
+  B := TCnBigNumber.FromDec(edtB.Text);
+  X := BigNumberNew;
+  Y := BigNumberNew;
+  R := BigNumberNew;
+
+  BigNumberExtendedEuclideanGcd(A, B, X, Y, R);
+  edtX.Text := X.ToDec;
+  edtY.Text := Y.ToDec;
+
+  if BigNumberIsNegative(X) then
+  begin
+    lblX0.Caption := 'BN X < 0. Add B to X.';
+    BignumberAdd(X, X, B);
+    edtXP.Text := X.ToDec;
+  end
+  else
+  begin
+    lblX0.Caption := 'BN X > 0. OK.';
+    edtXP.Text := X.ToDec;
+  end;
+
+  BigNumberFree(R);
+  BigNumberFree(Y);
+  BigNumberFree(X);
+  BigNumberFree(B);
+  BigNumberFree(A);
 end;
 
 end.

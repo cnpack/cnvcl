@@ -42,6 +42,9 @@ uses
 
 // Int64 范围内的 RSA 加解密实现
 
+function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
+
 function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
   out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
   out PubKeyProduct: Int64; out PubKeyExponent: Int64): Boolean;
@@ -146,6 +149,13 @@ begin
   Result := False;
   if Bits <= 16 then
     Exit;
+
+  PrimeKey1.Clear;
+  PrimeKey2.Clear;
+  PrivKeyProduct.Clear;
+  PrivKeyExponent.Clear;
+  PubKeyProduct.Clear;
+  PubKeyExponent.Clear;
 
   if not BigNumberGeneratePrime(PrimeKey1, Bits div 8) then
     Exit;

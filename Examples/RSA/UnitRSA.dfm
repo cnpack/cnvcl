@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 166
-  Top = 24
+  Left = 167
+  Top = 268
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 542
@@ -12,6 +12,7 @@ object FormRSA: TFormRSA
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
@@ -21,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 513
-    ActivePage = tsRSA
+    ActivePage = tsEuclid
     TabOrder = 0
     object tsInt64RSA: TTabSheet
       Caption = 'Int64 RSA'
@@ -404,6 +405,128 @@ object FormRSA: TFormRSA
           Height = 25
           Caption = 'RSA Decrypt'
           TabOrder = 3
+        end
+      end
+    end
+    object tsEuclid: TTabSheet
+      Caption = 'Extended Euclidean Gcd'
+      ImageIndex = 2
+      object grpEuclidean: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 777
+        Height = 401
+        Caption = 'grpEuclidean'
+        TabOrder = 0
+        object lblEqual: TLabel
+          Left = 32
+          Top = 24
+          Width = 423
+          Height = 13
+          Caption = 
+            'A     *     X                                  +                ' +
+            '               B     *     Y                   =                ' +
+            '   1'
+        end
+        object lblA: TLabel
+          Left = 32
+          Top = 56
+          Width = 10
+          Height = 13
+          Caption = 'A:'
+        end
+        object lblB: TLabel
+          Left = 280
+          Top = 56
+          Width = 10
+          Height = 13
+          Caption = 'B:'
+        end
+        object lblX: TLabel
+          Left = 32
+          Top = 136
+          Width = 10
+          Height = 13
+          Caption = 'X:'
+        end
+        object lblY: TLabel
+          Left = 280
+          Top = 136
+          Width = 10
+          Height = 13
+          Caption = 'Y:'
+        end
+        object lblX0: TLabel
+          Left = 56
+          Top = 168
+          Width = 10
+          Height = 13
+          Caption = 'X:'
+        end
+        object lblXP: TLabel
+          Left = 32
+          Top = 200
+          Width = 12
+          Height = 13
+          Caption = 'X'#39':'
+        end
+        object edtA: TEdit
+          Left = 56
+          Top = 52
+          Width = 193
+          Height = 21
+          TabOrder = 0
+          Text = '65537'
+        end
+        object edtB: TEdit
+          Left = 320
+          Top = 52
+          Width = 193
+          Height = 21
+          TabOrder = 1
+          Text = '1323312115793911056'
+        end
+        object edtX: TEdit
+          Left = 56
+          Top = 132
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 4
+        end
+        object edtY: TEdit
+          Left = 320
+          Top = 132
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 5
+        end
+        object btnInt64Euc: TButton
+          Left = 56
+          Top = 88
+          Width = 193
+          Height = 25
+          Caption = 'Int64 Extended Euclidean Gcd'
+          TabOrder = 2
+          OnClick = btnInt64EucClick
+        end
+        object btnBNGcd: TButton
+          Left = 320
+          Top = 88
+          Width = 193
+          Height = 25
+          Caption = 'BigNumber Extended Euclidean Gcd'
+          TabOrder = 3
+          OnClick = btnBNGcdClick
+        end
+        object edtXP: TEdit
+          Left = 56
+          Top = 196
+          Width = 193
+          Height = 21
+          ReadOnly = True
+          TabOrder = 6
         end
       end
     end
