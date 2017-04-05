@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 167
-  Top = 268
+  Left = 180
+  Top = 45
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 542
@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 513
-    ActivePage = tsEuclid
+    ActivePage = tsRSA
     TabOrder = 0
     object tsInt64RSA: TTabSheet
       Caption = 'Int64 RSA'
@@ -335,8 +335,7 @@ object FormRSA: TFormRSA
             '512'
             '256'
             '128'
-            '64'
-            '32')
+            '64')
         end
       end
       object grpBNCrypt: TGroupBox
@@ -373,7 +372,7 @@ object FormRSA: TFormRSA
           Width = 577
           Height = 21
           TabOrder = 0
-          Text = '12345678987654321'
+          Text = '1234567890987654321'
         end
         object edtBNRes: TEdit
           Left = 64
@@ -397,6 +396,7 @@ object FormRSA: TFormRSA
           Height = 25
           Caption = 'RSA Encrypt'
           TabOrder = 1
+          OnClick = btnBNRSAEnClick
         end
         object btnBNRSADe: TButton
           Left = 664
@@ -405,6 +405,7 @@ object FormRSA: TFormRSA
           Height = 25
           Caption = 'RSA Decrypt'
           TabOrder = 3
+          OnClick = btnBNRSADeClick
         end
       end
     end
@@ -484,7 +485,7 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 21
           TabOrder = 1
-          Text = '1323312115793911056'
+          Text = '991958164832267712'
         end
         object edtX: TEdit
           Left = 56

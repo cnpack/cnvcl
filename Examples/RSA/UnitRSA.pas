@@ -83,6 +83,8 @@ type
     procedure btnBNGenClick(Sender: TObject);
     procedure btnInt64EucClick(Sender: TObject);
     procedure btnBNGcdClick(Sender: TObject);
+    procedure btnBNRSAEnClick(Sender: TObject);
+    procedure btnBNRSADeClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
     FBNPrime1, FBNPrime2: TCnBigNumber;
@@ -220,7 +222,8 @@ begin
   if BigNumberIsNegative(X) then
   begin
     lblX0.Caption := 'BN X < 0. Add B to X.';
-    BignumberAdd(X, X, B);
+    // B.SetDec(edtB.Text);
+    BigNumberAdd(X, X, B);
     edtXP.Text := X.ToDec;
   end
   else
@@ -234,6 +237,40 @@ begin
   BigNumberFree(X);
   BigNumberFree(B);
   BigNumberFree(A);
+end;
+
+procedure TFormRSA.btnBNRSAEnClick(Sender: TObject);
+var
+  Data, Res: TCnBigNumber;
+begin
+  Data := TCnBigNumber.FromDec(edtBNData.Text);
+  if BigNumberCompare(Data, FBNPrivKeyProduct) >= 0 then
+  begin
+    ShowMessage('Data Greater than Private Keys (Product *). Can NOT Encrypt.');
+    BigNumberFree(Data);
+    Exit;
+  end;
+
+  Res := BigNumberNew;
+  if CnRSAEncrypt(Data, FBNPrivKeyProduct, FBNPrivKeyExponent, Res) then
+    edtBNRes.Text := Res.ToDec;
+
+  BigNumberFree(Res);
+  BigNumberFree(Data);
+end;
+
+procedure TFormRSA.btnBNRSADeClick(Sender: TObject);
+var
+  Data, Res: TCnBigNumber;
+begin
+  Data := BigNumberNew;
+  Res := TCnBigNumber.FromDec(edtBNRes.Text);
+
+  if CnRSADecrypt(Res, FBNPubKeyProduct, FBNPubKeyExponent, Data) then
+    edtBNDataBack.Text := Data.ToDec;
+
+  BigNumberFree(Res);
+  BigNumberFree(Data);
 end;
 
 end.

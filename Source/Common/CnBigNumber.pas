@@ -3560,6 +3560,10 @@ begin
       BigNumberCopy(T, X);
       BigNumberCopy(X, Y);
 
+      // 须 CorrectTop 否则 Top 值会太大，原因不详
+      BigNumberCorrectTop(X);
+      BigNumberCorrectTop(Y);
+
       // T := X;
       // X := Y;
       // Y := T - (A div B) * Y;

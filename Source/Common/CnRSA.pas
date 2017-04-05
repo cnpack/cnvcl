@@ -24,11 +24,13 @@ unit CnRSA;
 * 软件名称：开发包基础库
 * 单元名称：RSA 算法单元
 * 单元作者：刘啸
-* 备    注：包括 Int64 范围内的 RSA 算法以及大数算法（暂未实现）。
+* 备    注：包括 Int64 范围内的 RSA 算法以及大数算法，公钥 Exponent 固定使用 65537。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2017.04.03 V1.0
+* 修改记录：2017.04.05 V1.1
+*               实现大数的 RSA 密钥生成与加解密
+*           2017.04.03 V1.0
 *               创建单元，Int64 范围内的 RSA 从 CnPrimeNumber 中独立出来
 ================================================================================
 |</PRE>}
@@ -59,9 +61,18 @@ function CnInt64RSADecrypt(Res: Int64; PubKeyProduct: Int64;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
 // 大数范围内的 RSA 加解密实现
+
 function CnRSAGenerateKeys(Bits: Integer; PrimeKey1, PrimeKey2,
   PrivKeyProduct, PrivKeyExponent, PubKeyProduct, PubKeyExponent: TCnBigNumber): Boolean;
 {* 生成 RSA 算法所需的公私钥，Bits 是素数范围，其余参数均为生成}
+
+function CnRSAEncrypt(Data: TCnBigNumber; PrivKeyProduct: TCnBigNumber;
+  PrivKeyExponent: TCnBigNumber; Res: TCnBigNumber): Boolean;
+{* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
+
+function CnRSADecrypt(Res: TCnBigNumber; PubKeyProduct: TCnBigNumber;
+  PubKeyExponent: TCnBigNumber; Data: TCnBigNumber): Boolean;
+{* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
 implementation
 
@@ -195,15 +206,10 @@ begin
     BigNumberMul(P, S1, S2);
 
     BigNumberExtendedEuclideanGcd(PubKeyExponent, P, PrivKeyExponent, Y, R);
+
+    // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p
     if BigNumberIsNegative(PrivKeyExponent) then
-    begin
-       // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p 的整数倍
-       BigNumberDiv(S1, S2, PrivKeyExponent, P);
-       BigNumberSetNegative(S1, False);
-       BigNumberAdd(S1, S1, One);
-       BigNumberMul(S1, S1, P);
-       BigNumberAdd(PrivKeyExponent, PrivKeyExponent, S1);
-    end;
+       BigNumberAdd(PrivKeyExponent, PrivKeyExponent, P);
   finally
     One.Free;
     S2.Free;
@@ -214,6 +220,27 @@ begin
   end;
 
   Result := True;
+end;
+
+// 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
+function RSACrypt(Data: TCnBigNumber; Product: TCnBigNumber; Exponent: TCnBigNumber;
+  out Res: TCnBigNumber): Boolean;
+begin
+  Result := BigNumberMontgomeryPowerMod(Res, Data, Exponent, Product);
+end;
+
+// 利用上面生成的私钥对数据进行加密，返回加密是否成功
+function CnRSAEncrypt(Data: TCnBigNumber; PrivKeyProduct: TCnBigNumber;
+  PrivKeyExponent: TCnBigNumber; Res: TCnBigNumber): Boolean;
+begin
+  Result := RSACrypt(Data, PrivKeyProduct, PrivKeyExponent, Res);
+end;
+
+// 利用上面生成的公钥对数据进行解密，返回解密是否成功
+function CnRSADecrypt(Res: TCnBigNumber; PubKeyProduct: TCnBigNumber;
+  PubKeyExponent: TCnBigNumber; Data: TCnBigNumber): Boolean;
+begin
+  Result := RSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
 end;
 
 end.
