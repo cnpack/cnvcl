@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 513
-    ActivePage = tsRSA
+    ActivePage = tsEuclid
     TabOrder = 0
     object tsInt64RSA: TTabSheet
       Caption = 'Int64 RSA'
@@ -348,9 +348,9 @@ object FormRSA: TFormRSA
         object lblBNInteger: TLabel
           Left = 16
           Top = 24
-          Width = 36
+          Width = 41
           Height = 13
-          Caption = 'Integer:'
+          Caption = 'Decimal:'
         end
         object lblBNResult: TLabel
           Left = 16
@@ -362,9 +362,9 @@ object FormRSA: TFormRSA
         object lblBNDecrypt: TLabel
           Left = 16
           Top = 88
-          Width = 36
+          Width = 41
           Height = 13
-          Caption = 'Integer:'
+          Caption = 'Decimal:'
         end
         object edtBNData: TEdit
           Left = 64
@@ -509,6 +509,7 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 25
           Caption = 'Int64 Extended Euclidean Gcd'
+          Enabled = False
           TabOrder = 2
           OnClick = btnInt64EucClick
         end

@@ -44,7 +44,7 @@ uses
 
 // Int64 范围内的 RSA 加解密实现
 
-function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+// function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;

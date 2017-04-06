@@ -146,6 +146,7 @@ end;
 
 procedure TFormRSA.FormCreate(Sender: TObject);
 begin
+  Application.Title := Caption;
   pgc1.ActivePageIndex := 0;
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
 
@@ -182,27 +183,27 @@ begin
 end;
 
 procedure TFormRSA.btnInt64EucClick(Sender: TObject);
-var
-  A, B, X, Y: Int64;
+//var
+//  A, B, X, Y: Int64;
 begin
-  A := StrToInt64(edtA.Text);
-  B := StrToInt64(edtB.Text);
-  X := 0;
-  Y := 0;
-  Int64ExtendedEuclideanGcd(A, B, X, Y);
-  edtX.Text := IntToStr(X);
-  edtY.Text := IntToStr(Y);
-
-  if X < 0 then
-  begin
-    lblX0.Caption := 'X < 0. Add B to X.';
-    edtXP.Text := IntToStr(X + B);
-  end
-  else
-  begin
-    lblX0.Caption := 'X > 0. OK.';
-    edtXP.Text := IntToStr(X);
-  end;
+//  A := StrToInt64(edtA.Text);
+//  B := StrToInt64(edtB.Text);
+//  X := 0;
+//  Y := 0;
+//  Int64ExtendedEuclideanGcd(A, B, X, Y);
+//  edtX.Text := IntToStr(X);
+//  edtY.Text := IntToStr(Y);
+//
+//  if X < 0 then
+//  begin
+//    lblX0.Caption := 'X < 0. Add B to X.';
+//    edtXP.Text := IntToStr(X + B);
+//  end
+//  else
+//  begin
+//    lblX0.Caption := 'X > 0. OK.';
+//    edtXP.Text := IntToStr(X);
+//  end;
 end;
 
 procedure TFormRSA.btnBNGcdClick(Sender: TObject);
