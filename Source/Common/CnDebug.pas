@@ -648,6 +648,8 @@ var
 
   FFixedCalling: Cardinal = 0;
 
+  FUseLocalSession: Boolean = {$IFDEF LOCAL_SESSION}True{$ELSE}False{$ENDIF};
+
 {$IFDEF USE_JCL}
   FCSExcept: TRTLCriticalSection;
 {$ENDIF}
@@ -3437,6 +3439,9 @@ begin
     ViewerExe := AnsiString(S + ' -a ')
   else
     ViewerExe := SCnDebugViewerExeName;
+
+  if FUseLocalSession then
+    ViewerExe := ViewerExe + ' -local ';
   
   hStarting := CreateEvent(nil, False, False, PChar(SCnDebugStartEventName));
   if 31 < WinExec(PAnsiChar(ViewerExe + AnsiString(IntToStr(GetCurrentProcessId))),
