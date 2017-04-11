@@ -31,13 +31,13 @@ unit CnIocpSimpleMemPool;
 *     他将大小(MemorySize)相同的内存块(TCnMemoryBlockItem)放在一个(TCnMemoryTypeItem)中进行管理。
 *     TCnMemPoolMgr类中管理多个内存类型块(TCnMemoryTypeItem)。
 *     一个内存类型块(TCnMemoryTypeItem)中包含了多个内存块(TCnMemoryBlockItem)。
-*     阀值(Threshold)控制在一个TMemoryTypeItem中内存块的个数。
-*       在系统频繁申请内存块的时候，总个数会大于阀值。
-*       当系统对内存块的并发使用数低于阀值的时候释放内存块，让总个数等于阀值。
+*     阈值(Threshold)控制在一个TMemoryTypeItem中内存块的个数。
+*       在系统频繁申请内存块的时候，总个数会大于阈值。
+*       当系统对内存块的并发使用数低于阈值的时候释放内存块，让总个数等于阈值。
 *       这个策略可以避免繁忙的时候频繁申请、释放内存，或者空闲的时候浪费内存。
 *   2.TCnMemoryPool是一个控件。为了能可视化开发而产生的类。
 *     可能出现多个控件的内存块大小相同，这样将对应到同一个内存类型块(TCnMemoryTypeItem)
-*     出现这种情况多个控件将共用内存类型块(TCnMemoryTypeItem)中的内存块。阀值将取他们设置的最大值。
+*     出现这种情况多个控件将共用内存类型块(TCnMemoryTypeItem)中的内存块。阈值将取他们设置的最大值。
 *
 TODO >>>
 *   1.TCnIocpMemPool类增加了一个方法:GetFreeMemoryType, 获取一个空闲的内存类型
@@ -92,7 +92,7 @@ type
     MemorySize: Cardinal;                 //内存块的大小
     CreateMemoryProc: TCreateMemoryEvent; //创建内存方法指针
     FreeMemoryProc: TFreeMemoryEvent;     //释放内存方法指针
-    Threshold: Cardinal;                  //内存块个数的阀值
+    Threshold: Cardinal;                  //内存块个数的阈值
                                           //如果缓存的块数多于该值则要启动清理程序。
     IdelCount: Cardinal;                  //空闲内存块的个数
     Lock: TCriticalSection;               //互锁相关
@@ -137,9 +137,9 @@ type
     {* 注销内存类型块}
     
     procedure SetThreshold(MemoryTypeItem: PCnMemoryTypeItem; Threshold: Cardinal);
-    {* 设置租用内存块的阀值。
-      阀值和上限的区别：
-        阀值表示当系统空闲的时候建议不要超过的值。上限表示任何时候都不能超过该值。
+    {* 设置租用内存块的阈值。
+      阈值和上限的区别：
+        阈值表示当系统空闲的时候建议不要超过的值。上限表示任何时候都不能超过该值。
     }
 
     procedure RentMemory(MemoryTypeItem: PCnMemoryTypeItem; var MemoryPtr: Pointer);
@@ -177,7 +177,7 @@ type
     property MemorySize: Cardinal read FMemorySize write SetMemorySize;
     {* 内存块的大小} 
     property Threshold : Cardinal read FThreshold write SetThreshold;
-    {* 内存块的数量阀值(不是最大值,即可分配更多的内存块)}
+    {* 内存块的数量阈值(不是最大值,即可分配更多的内存块)}
     property OnCreateMemory : TCreateMemoryEvent read FOnCreateMemory write SetOnCreateMemory;
     {* 自定义在系统中分配内存的方法,默认实现采用 GetMemory}
     property OnFreeMemory: TFreeMemoryEvent read FOnFreeMemory write SetOnFreeMemory;
@@ -189,7 +189,7 @@ type
     property MemorySize;
     {* 内存块的大小}
     property Threshold;
-    {* 内存块的数量阀值(不是最大值,即可分配更多的内存块)}
+    {* 内存块的数量阈值(不是最大值,即可分配更多的内存块)}
     property OnCreateMemory;
     {* 自定义在系统中分配内存的方法,默认实现采用 GetMemory}
     property OnFreeMemory;
@@ -347,7 +347,7 @@ end;
 
 procedure TCnSimpleMemPoolMgr.SetThreshold(MemoryTypeItem: PCnMemoryTypeItem; Threshold: Cardinal);
 begin
-  //如果一个MemoryTypeItem有多个引用，则使用最大的阀值
+  //如果一个MemoryTypeItem有多个引用，则使用最大的阈值
   if MemoryTypeItem <> nil then
   begin
     if MemoryTypeItem^.RefCount = 1 then
