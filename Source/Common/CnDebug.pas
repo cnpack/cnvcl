@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2016.07.29
+* 修改记录：2017.04.12
+*               默认改为 LOCAL_SESSION，需要更新 CnDebugViewer 至 1.6
+*           2016.07.29
 *               修正 CPU 周期计时时超界的问题，需要同步更新 CnDebugViewer 至 1.5
 *           2015.06.16
 *               增加四个记录 Class/Interface 的方法
@@ -87,8 +89,9 @@ interface
 // 定义此条件可重定向到文件.
 // Define this flag to log message to a file.
 
-// {$DEFINE LOCAL_SESSION}
-// 定义此条件可将发送限制在当前用户会话内，不走全局，相应的 DebugViewer 也需要改动
+{$DEFINE LOCAL_SESSION}
+// 定义此条件可将发送限制在当前用户会话内，不走全局，
+// 自动启动相应的 DebugViewer 时也将通过命令行参数指定非全局。
 // Define this flag to use local session, not global.
 
 {$IFDEF NDEBUG}
