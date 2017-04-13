@@ -313,7 +313,12 @@ begin
   Result := False;
   List := TCnWideStringList.Create;
   try
-    DoLoadFile(FileName, List);
+    try
+      DoLoadFile(FileName, List);
+    except
+      ; // 加载文件失败则跳过不加载此文件
+    end;
+
     if List.Count > 0 then
       Result := Copy(List[0], 1, Length(SystemNamePrefix + SCnLanguageID)) =
         SystemNamePrefix + SCnLanguageID;
