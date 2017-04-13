@@ -409,6 +409,9 @@ function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 
 implementation
 
+uses
+  CnPrimeNumber;
+
 const
   Hex: string = '0123456789ABCDEF';
 
@@ -3387,6 +3390,13 @@ begin
 
   if Num.IsZero or Num.IsNegative or Num.IsOne or not Num.IsOdd then
     Exit;
+
+  // Using Stored Prime Number to div them First.
+  for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1 to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
+  begin
+    if BigNumberModWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) = 0 then
+      Exit;
+  end;
 
   // Miller-Rabin Test
   X := nil;
