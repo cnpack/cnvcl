@@ -125,6 +125,10 @@ type
     edtSHA384: TEdit;
     btnSHA384: TButton;
     btnSHA384File: TButton;
+    tsZUC: TTabSheet;
+    grpZuc: TGroupBox;
+    lblZuc1: TLabel;
+    btnZUC1: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -153,6 +157,7 @@ type
     procedure btnSHA512FileClick(Sender: TObject);
     procedure btnSHA384Click(Sender: TObject);
     procedure btnSHA384FileClick(Sender: TObject);
+    procedure btnZUC1Click(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -167,7 +172,7 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC;
 
 {$R *.DFM}
 
@@ -235,6 +240,7 @@ procedure TFormCrypt.FormCreate(Sender: TObject);
 begin
   PageControl1.ActivePageIndex := 0;
   cbbAesKeyBitType.ItemIndex := 0;
+  Application.Title := Caption;
 end;
 
 procedure TFormCrypt.btnCRC64Click(Sender: TObject);
@@ -573,6 +579,25 @@ begin
     Insert(#13#10, S, 49);
     lblSHA512Result.Caption := S;
   end;
+end;
+
+procedure TFormCrypt.btnZUC1Click(Sender: TObject);
+var
+  Key, IV: array[0..15] of Byte;
+  KeyStream: array[0..31] of DWORD;
+  List: TStringList;
+  I: Integer;
+begin
+  FillChar(Key[0], SizeOf(Key), 0);
+  FillChar(IV[0], SizeOf(IV), 0);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PDWORD(@KeyStream[0]), 32);
+
+  List := TStringList.Create;
+  for I := Low(KeyStream) to High(KeyStream) do
+    List.Add('$' + IntToHex(KeyStream[I], 2));
+
+  ShowMessage(List.Text);
+  List.Free;
 end;
 
 end.

@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
-  Left = 320
-  Top = 138
+  Left = 125
+  Top = 123
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 414
@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 361
-    ActivePage = tsSHA384
+    ActivePage = tsZUC
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -913,6 +913,38 @@ object FormCrypt: TFormCrypt
           Caption = 'File SHA512'
           TabOrder = 2
           OnClick = btnSHA512FileClick
+        end
+      end
+    end
+    object tsZUC: TTabSheet
+      Caption = 'ZUC'
+      ImageIndex = 13
+      object grpZuc: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'ZUC'
+        TabOrder = 0
+        object lblZuc1: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object btnZUC1: TButton
+          Left = 32
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'ZUC1'
+          TabOrder = 0
+          OnClick = btnZUC1Click
         end
       end
     end
