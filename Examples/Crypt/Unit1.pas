@@ -129,6 +129,7 @@ type
     grpZuc: TGroupBox;
     lblZuc1: TLabel;
     btnZUC1: TButton;
+    btnZUCEIA31: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -158,6 +159,7 @@ type
     procedure btnSHA384Click(Sender: TObject);
     procedure btnSHA384FileClick(Sender: TObject);
     procedure btnZUC1Click(Sender: TObject);
+    procedure btnZUCEIA31Click(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -581,6 +583,12 @@ begin
   end;
 end;
 
+//input:
+// Key: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// IV: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+//output:
+// z1: 27bede74
+// z2: 018082da
 procedure TFormCrypt.btnZUC1Click(Sender: TObject);
 var
   Key, IV: array[0..15] of Byte;
@@ -598,6 +606,27 @@ begin
 
   ShowMessage(List.Text);
   List.Free;
+end;
+
+//Test Set 1
+//Key = (hex) 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+//Count = (hex) 0
+//Bearer = (hex) 0
+//Direction = (hex) 0
+//Length = 1 bits
+//Message:
+//(hex) 00000000
+//MAC: (hex) c8a9595e
+procedure TFormCrypt.btnZUCEIA31Click(Sender: TObject);
+var
+  Key: array[0..15] of Byte;
+  Msg: Byte;
+  Mac: DWORD;
+begin
+  FillChar(Key[0], SizeOf(Key), 0);
+  Msg := 0;
+  ZUCEIA3(PByte(@Key[0]), 0, 0, 0, @Msg, 1, @Mac);
+  ShowMessage('$' + IntToHex(Mac, 2));
 end;
 
 end.

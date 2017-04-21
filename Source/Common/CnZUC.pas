@@ -53,6 +53,7 @@ procedure ZUC(Key: PByte; IV: PByte; KeyStream: PDWORD; KeyStreamLen: DWORD);
   KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(DWORD)
   KeyStreamLen 是要求计算的长度
 }
+
 // EEA3 机密性保护算法，一个流加密系统，使用机密性密钥 CK 来加解密数据块
 procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: DWORD;
   M: PByte; BitLen: DWORD; C: PByte);
@@ -256,9 +257,9 @@ begin
   Result := W;
 end;
 
-function MakeUInt31(A, B, C: Byte): DWORD;
+function MakeUInt31(A, B, C: DWORD): DWORD;
 begin
-  Result := (DWORD(DWORD(0) or Byte(A)) shl 23) or (DWORD(B) shl 8) or DWORD(DWORD(0) or Byte(C));
+  Result := (A shl 23) or (B shl 8) or C;
 end;
 
 procedure ZUCInitialization(Key: PByte; IV: PByte);

@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
-  Left = 125
-  Top = 123
+  Left = 219
+  Top = 114
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 414
@@ -945,6 +945,15 @@ object FormCrypt: TFormCrypt
           Caption = 'ZUC1'
           TabOrder = 0
           OnClick = btnZUC1Click
+        end
+        object btnZUCEIA31: TButton
+          Left = 288
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'ZUCEIA3 1'
+          TabOrder = 1
+          OnClick = btnZUCEIA31Click
         end
       end
     end
