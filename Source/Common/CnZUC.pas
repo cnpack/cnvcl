@@ -26,6 +26,7 @@ unit CnZUC;
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档 祖冲之序列密码算法 ZUC stream cipher algorithm
 *           并参考移植网络上的多份 ZUC 的 C/Cpp 实现代码
+*           主要为：https://github.com/mitshell/CryptoMobile/blob/master/ZUC.c
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -93,7 +94,7 @@ procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: DWORD;
 implementation
 
 const
-  ORIG_S0: array[0..255] of Byte = (
+  S0: array[0..255] of Byte = (
     $3E, $72, $5B, $47, $CA, $E0, $00, $33, $04, $D1, $54, $98, $09, $B9, $6D, $CB,
     $7B, $1B, $F9, $32, $AF, $9D, $6A, $A5, $B8, $2D, $FC, $1D, $08, $53, $03, $90,
     $4D, $4E, $84, $99, $E4, $CE, $D9, $91, $DD, $B6, $85, $48, $8B, $29, $6E, $AC,
@@ -112,7 +113,7 @@ const
     $8D, $27, $1A, $DB, $81, $B3, $A0, $F4, $45, $7A, $19, $DF, $EE, $78, $34, $60
   );
 
-  ORIG_S1: array[0..255] of Byte = (
+  S1: array[0..255] of Byte = (
     $55, $C2, $63, $71, $3B, $C8, $47, $86, $9F, $3C, $DA, $5B, $29, $AA, $FD, $77,
     $8C, $C5, $94, $0C, $A6, $1A, $13, $00, $E3, $A8, $16, $72, $40, $F9, $F8, $42,
     $44, $26, $68, $96, $81, $D9, $45, $3E, $10, $76, $C6, $A7, $8B, $39, $43, $E1,
@@ -141,9 +142,6 @@ var
   F_R1: DWORD = 0;
   F_R2: DWORD = 0;
   BRC_X: array[0..3] of DWORD = (0, 0, 0, 0);
-
-  S0: array[0..255] of Byte;
-  S1: array[0..255] of Byte;
 
 // 32 位处理平台上，两个 31 比特字 a 和 b 模 2^31-1 加法运算 c =a + b mod(2^31-1)
 // 可以通过下面的两步计算实现：
@@ -224,7 +222,7 @@ end;
 
 function ROT(A: DWORD; K: DWORD): DWORD;
 begin
-  Result := (A shl K) or (A shr (31 - k)); 
+  Result := (A shl K) or (A shr (32 - k)); 
 end;  
 
 function L1(X: DWORD): DWORD;
@@ -237,9 +235,9 @@ begin
   Result := (X xor ROT(X, 8) xor ROT(X, 14) xor ROT(X, 22) xor ROT(X, 30));;
 end;
 
-function MakeDWord(A, B, C, D: Byte): DWORD;
+function MakeDWord(A, B, C, D: DWORD): DWORD;
 begin
-  Result := ((DWORD(A)) shl 24) or ((DWORD(B)) shl 16) or ((DWORD(C)) shl 8) or DWORD(D);
+  Result := (A shl 24) or (B shl 16) or (C shl 8) or D;
 end;
 
 // 非线性函数
@@ -425,9 +423,6 @@ begin
   F_R1 := 0;
   F_R2 := 0;
   FillChar(BRC_X[0], SizeOf(BRC_X), 0);
-
-  Move(ORIG_S0[0], S0[0], SizeOf(ORIG_S0));
-  Move(ORIG_S1[0], S1[0], SizeOf(ORIG_S1));
 end;
 
 initialization

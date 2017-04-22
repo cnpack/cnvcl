@@ -130,6 +130,10 @@ type
     lblZuc1: TLabel;
     btnZUC1: TButton;
     btnZUCEIA31: TButton;
+    btnZUC2: TButton;
+    btnZUC3: TButton;
+    btnZUC4: TButton;
+    btnZUCEIA32: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -160,6 +164,10 @@ type
     procedure btnSHA384FileClick(Sender: TObject);
     procedure btnZUC1Click(Sender: TObject);
     procedure btnZUCEIA31Click(Sender: TObject);
+    procedure btnZUC2Click(Sender: TObject);
+    procedure btnZUC3Click(Sender: TObject);
+    procedure btnZUC4Click(Sender: TObject);
+    procedure btnZUCEIA32Click(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -583,26 +591,108 @@ begin
   end;
 end;
 
-//input:
-// Key: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-// IV: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-//output:
+//输入:
+// 密钥 k:      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// 初始向量 iv: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+//输出:
 // z1: 27bede74
 // z2: 018082da
 procedure TFormCrypt.btnZUC1Click(Sender: TObject);
 var
   Key, IV: array[0..15] of Byte;
-  KeyStream: array[0..31] of DWORD;
+  KeyStream: array[0..1] of DWORD;
   List: TStringList;
   I: Integer;
 begin
   FillChar(Key[0], SizeOf(Key), 0);
   FillChar(IV[0], SizeOf(IV), 0);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PDWORD(@KeyStream[0]), 32);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PDWORD(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
     List.Add('$' + IntToHex(KeyStream[I], 2));
+
+  ShowMessage(List.Text);
+  List.Free;
+end;
+
+//输入:
+//  密钥 k:      ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+//  初始向量 iv: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+//输出:
+//  z1: 0657cfa0
+//  z2: 7096398b
+procedure TFormCrypt.btnZUC2Click(Sender: TObject);
+var
+  Key, IV: array[0..15] of Byte;
+  KeyStream: array[0..1] of DWORD;
+  List: TStringList;
+  I: Integer;
+begin
+  FillChar(Key[0], SizeOf(Key), $FF);
+  FillChar(IV[0], SizeOf(IV), $FF);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PDWORD(@KeyStream[0]), 2);
+
+  List := TStringList.Create;
+  for I := Low(KeyStream) to High(KeyStream) do
+    List.Add('$' + IntToHex(KeyStream[I], 2));
+
+  ShowMessage(List.Text);
+  List.Free;
+end;
+
+//输入:
+//  密钥 k:      3d 4c 4b e9 6a 82 fd ae b5 8f 64 1d b1 7b 45 5b
+//  初始向量 iv: 84 31 9a a8 de 69 15 ca 1f 6b da 6b fb d8 c7 66
+//输出:
+//  z1: 14f1c272
+//  z2: 3279c419
+procedure TFormCrypt.btnZUC3Click(Sender: TObject);
+const
+  Key: array[0..15] of Byte = ($3d, $4c, $4b, $e9, $6a, $82, $fd, $ae, $b5, $8f,
+    $64, $1d, $b1, $7b, $45, $5b);
+  IV: array[0..15] of Byte = ($84, $31, $9a, $a8, $de, $69, $15, $ca, $1f, $6b,
+    $da, $6b, $fb, $d8, $c7, $66);
+var
+  KeyStream: array[0..1] of DWORD;
+  List: TStringList;
+  I: Integer;
+begin
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PDWORD(@KeyStream[0]), 2);
+
+  List := TStringList.Create;
+  for I := Low(KeyStream) to High(KeyStream) do
+    List.Add('$' + IntToHex(KeyStream[I], 2));
+
+  ShowMessage(List.Text);
+  List.Free;
+end;
+
+//输入:
+// Key: 4d 32 0b fa d4 c2 85 bf d6 b8 bd 00 f3 9d 8b 41
+// IV: 52 95 9d ab a0 bf 17 6e ce 2d c3 15 04 9e b5 74
+//输出:
+// z1: ed4400e7
+// z2: 0633e5c5
+//……
+// Z2000: 7a574cdb
+procedure TFormCrypt.btnZUC4Click(Sender: TObject);
+const
+  Key: array[0..15] of Byte = ($4d, $32, $0b, $fa, $d4, $c2, $85, $bf, $d6, $b8,
+    $bd, $00, $f3, $9d, $8b, $41);
+  IV: array[0..15] of Byte = ($52, $95, $9d, $ab, $a0, $bf, $17, $6e, $ce, $2d,
+    $c3, $15, $04, $9e, $b5, $74);
+var
+  KeyStream: array[0..1999] of DWORD;
+  List: TStringList;
+begin
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PDWORD(@KeyStream[0]), 2000);
+
+  List := TStringList.Create;
+  List.Add('$' + IntToHex(KeyStream[0], 2));
+  List.Add('$' + IntToHex(KeyStream[1], 2));
+  List.Add('...');
+  List.Add('$' + IntToHex(KeyStream[1999], 2));
 
   ShowMessage(List.Text);
   List.Free;
@@ -626,6 +716,29 @@ begin
   FillChar(Key[0], SizeOf(Key), 0);
   Msg := 0;
   ZUCEIA3(PByte(@Key[0]), 0, 0, 0, @Msg, 1, @Mac);
+  ShowMessage('$' + IntToHex(Mac, 2));
+end;
+
+//Test Set 2
+//Key = 47 05 41 25 56 1e b2 dd a9 40 59 da 05 09 78 50
+//Count = 561eb2dd
+//Bearer = 14
+//Direction = 0
+//Length = 90 bits
+//Message:
+//00000000 00000000 00000000
+//MAC: 6719a088
+procedure TFormCrypt.btnZUCEIA32Click(Sender: TObject);
+const
+  Key: array[0..15] of Byte = ($47, $05, $41, $25, $56, $1e, $b2, $dd, $a9, $40,
+    $59, $da, $05, $09, $78, $50);
+var
+  Msg: array[0..20] of Byte;  // Enough for 90 bits
+  Mac: DWORD;
+begin
+  // FIXME: NOT Ready now.
+  FillChar(Msg[0], SizeOf(Msg), 0);
+  ZUCEIA3(PByte(@Key[0]), $561eb2dd, $14, 0, @(Msg[0]), 90, @Mac);
   ShowMessage('$' + IntToHex(Mac, 2));
 end;
 
