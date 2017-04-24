@@ -142,6 +142,7 @@ var
   F_R1: DWORD = 0;
   F_R2: DWORD = 0;
   BRC_X: array[0..3] of DWORD = (0, 0, 0, 0);
+  // 以上四个变量均在 ZUCInitialization 中被初始化
 
 // 32 位处理平台上，两个 31 比特字 a 和 b 模 2^31-1 加法运算 c =a + b mod(2^31-1)
 // 可以通过下面的两步计算实现：
@@ -342,10 +343,12 @@ begin
   ZUC(CK, PByte(@IV[0]), Z, L);
 
   for I := 0 to L - 1 do
-    (PByte(Integer(C) + I))^ := (PByte(Integer(M) + I))^ xor (PByte(Integer(Z) + I))^;
+    (PDWORD(Integer(C) + I * SizeOf(DWORD)))^ := (PDWORD(Integer(M) + I * SizeOf(DWORD)))^
+      xor (PDWORD(Integer(Z) + I * SizeOf(DWORD)))^;
 
   if LastBits <> 0 then
-    (PByte(Integer(C) + L))^ := (PByte(Integer(C) + L))^ and ($100 - (1 shl LastBits));
+    (PDWORD(Integer(C) + L * SizeOf(DWORD)))^ := (PDWORD(Integer(C) + L * SizeOf(DWORD)))^
+      and ($100000000 - (1 shl LastBits));
 
   FreeMemory(Z);
 end;
@@ -416,16 +419,5 @@ begin
   Mac^ := T xor (PDWORD(Integer(Z) + SizeOf(DWORD) * (L - 1)))^;
   FreeMemory(Z);
 end;
-
-procedure InitZucConsts;
-begin
-  FillChar(LFSR_S[0], SizeOf(LFSR_S), 0);
-  F_R1 := 0;
-  F_R2 := 0;
-  FillChar(BRC_X[0], SizeOf(BRC_X), 0);
-end;
-
-initialization
-  InitZucConsts;
 
 end.

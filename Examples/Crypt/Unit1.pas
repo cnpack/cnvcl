@@ -134,6 +134,7 @@ type
     btnZUC3: TButton;
     btnZUC4: TButton;
     btnZUCEIA32: TButton;
+    btnZUCEEA31: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -168,6 +169,7 @@ type
     procedure btnZUC3Click(Sender: TObject);
     procedure btnZUC4Click(Sender: TObject);
     procedure btnZUCEIA32Click(Sender: TObject);
+    procedure btnZUCEEA31Click(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -740,6 +742,36 @@ begin
   FillChar(Msg[0], SizeOf(Msg), 0);
   ZUCEIA3(PByte(@Key[0]), $561eb2dd, $14, 0, @(Msg[0]), 90, @Mac);
   ShowMessage('$' + IntToHex(Mac, 2));
+end;
+
+//Key = (hex) 17 3d 14 ba 50 03 73 1d 7a 60 04 94 70 f0 0a 29
+//Count = (hex) 66035492
+//Bearer = (hex) f
+//Direction = (hex) 0
+//Length = 193 bits
+//Plaintext:
+//(hex) 6cf65340 735552ab 0c9752fa 6f9025fe 0bd675d9 005875b2 00000000
+//Ciphertext:
+//(hex) a6c85fc6 6afb8533 aafc2518 dfe78494 0ee1e4b0 30238cc8 00000000
+procedure TFormCrypt.btnZUCEEA31Click(Sender: TObject);
+const
+  Key: array[0..15] of Byte = ($17, $3d, $14, $ba, $50, $03, $73, $1d, $7a, $60,
+    $04, $94, $70, $f0, $0a, $29);
+  Plain: array[0..6] of DWORD = ($6cf65340, $735552ab, $0c9752fa, $6f9025fe,
+    $0bd675d9, $005875b2, 0);
+var
+  Cipher: array[0..6] of DWORD;
+  List: TStringList;
+  I: Integer;
+begin
+  FillChar(Cipher[0], SizeOf(Cipher), 0);
+  ZUCEEA3(PByte(@Key[0]), $66035492, $F, 0, PByte(@Plain[0]), 193, PByte(@Cipher[0]));
+
+  List := TStringList.Create;
+  for I := Low(Cipher) to High(Cipher) do
+    List.Add('$' + IntToHex(Cipher[I], 2));
+  ShowMessage(List.Text);
+  List.Free;
 end;
 
 end.

@@ -951,7 +951,7 @@ object FormCrypt: TFormCrypt
           Top = 32
           Width = 75
           Height = 25
-          Caption = 'ZUCEIA3 1'
+          Caption = 'ZUC EIA3 1'
           TabOrder = 1
           OnClick = btnZUCEIA31Click
         end
@@ -987,9 +987,18 @@ object FormCrypt: TFormCrypt
           Top = 72
           Width = 75
           Height = 25
-          Caption = 'ZUCEIA3 2'
+          Caption = 'ZUC EIA3 2'
           TabOrder = 5
           OnClick = btnZUCEIA32Click
+        end
+        object btnZUCEEA31: TButton
+          Left = 168
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'ZUC EEA3 1'
+          TabOrder = 6
+          OnClick = btnZUCEEA31Click
         end
       end
     end
