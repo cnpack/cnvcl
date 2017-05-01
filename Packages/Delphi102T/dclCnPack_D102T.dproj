@@ -102,7 +102,7 @@
         <DCCReference Include="dclado.dcp"/>
         <DCCReference Include="adortl.dcp"/>
         <DCCReference Include="designide.dcp"/>
-        <DCCReference Include="CnPack_D101B.dcp"/>
+        <DCCReference Include="CnPack_D102T.dcp"/>
         <DCCReference Include="..\..\Source\Common\CnPack.pas"/>
         <DCCReference Include="..\..\Source\Common\CnOTAUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnPackRegister.pas"/>
