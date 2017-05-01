@@ -110,8 +110,14 @@ cnpack\Source 目录内容说明：
   CnContainers.pas
     包括简单的链表队列类、堆栈、循环队列等的实现单元
 
+  CnRSA.pas
+    模拟的 RSA 算法实现单元
+
   CnSHA1.pas
     SHA1 算法单元
+
+  CnSHA2.pas
+    SHA2 算法单元
 
   CnShellUtils.pas
     Shell 工具单元
@@ -161,7 +167,10 @@ cnpack\Source 目录内容说明：
   CnXMLPersistent.pas
     XML 流化类的工具类单元
 
-              59 文件
+  CnZUC.pas
+    祖冲之算法实现单元
+
+              62 文件
 
 \DbReport －数据库组件与报表库目录
 
