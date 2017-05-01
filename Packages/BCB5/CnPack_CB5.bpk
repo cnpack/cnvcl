@@ -10,9 +10,11 @@
       ..\..\Source\Common\CnCommon.obj ..\..\Source\Common\CnConsts.obj 
       ..\..\Source\Common\CnCRC32.obj ..\..\Source\Common\CnGraphUtils.obj 
       ..\..\Source\Common\CnHashMap.obj ..\..\Source\Common\CnIni.obj 
-      ..\..\Source\Common\CnIniStrUtils.obj ..\..\Source\Common\CnMD5.obj 
-      ..\..\Source\Common\CnDES.obj ..\..\Source\Common\CnSHA1.obj 
-      ..\..\Source\Common\CnSM3.obj ..\..\Source\Common\CnSM4.obj 
+      ..\..\Source\Common\CnIniStrUtils.obj ..\..\Source\Common\CnPrimeNumber.obj 
+      ..\..\Source\Common\CnMD5.obj ..\..\Source\Common\CnDES.obj 
+      ..\..\Source\Common\CnRSA.obj ..\..\Source\Common\CnSHA1.obj 
+      ..\..\Source\Common\CnSHA2.obj ..\..\Source\Common\CnSM3.obj 
+      ..\..\Source\Common\CnSM4.obj ..\..\Source\Common\CnZUC.obj 
       ..\..\Source\Common\CnSingleton.obj ..\..\Source\Common\CnSingletonComp.obj 
       ..\..\Source\Common\CnPack.obj ..\..\Source\Common\CnSQLite.obj 
       ..\..\Source\Common\CnStrDiff.obj ..\..\Source\Common\CnStream.obj 
