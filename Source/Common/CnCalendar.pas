@@ -2335,7 +2335,7 @@ end;
 function GetShiChenFromHour(AHour: Integer): Integer;
 begin
   Result := -1;
-  if not AHour in [0..23] then
+  if not (AHour in [0..23]) then
     Exit;
 
   if AHour = 23 then

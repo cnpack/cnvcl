@@ -650,9 +650,7 @@ end;
 //¸³Öµ
 procedure TCnNotifyClass.Assign(Source: TPersistent);
 begin
-  if Source is TCnNotifyClass then
-    //
-  else
+  if not (Source is TCnNotifyClass) then
     inherited Assign(Source);
 end;
 
@@ -666,6 +664,7 @@ end;
 //´´½¨
 constructor TCnNotifyClass.Create(ChangedProc: TNotifyEvent);
 begin
+  inherited Create;
   FOnChanged := ChangedProc;
 end;
 

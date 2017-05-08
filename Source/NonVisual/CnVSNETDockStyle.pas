@@ -1822,7 +1822,7 @@ begin
   PaneCount := 0;
   for i := 0 to BlockCount - 1 do
     for j := 0 to Blocks[i].VSPaneCount - 1 do
-      if Blocks[i].VSPanes[j].Visible = True then
+      if Blocks[i].VSPanes[j].Visible then
         Inc(PaneCount);
   { 调整VSChannel的位置，使它总是在服务窗体的客户区的最内层 }
   Visible := PaneCount > 0;

@@ -71,7 +71,7 @@ type
 
   TCnHashTable = class
   private
-    Buckets: TCnBucketDynArray;
+    FBuckets: TCnBucketDynArray;
     FBucketCount: Integer;
     FUpdateCount: Integer;
     FCount: Integer;
@@ -740,7 +740,7 @@ begin
     SetLength(FBucketCounts, FBucketCount);
     for i := 0 to FBucketCount - 1 do
     begin
-      Inc(FCount, Buckets[i].Count);
+      Inc(FCount, FBuckets[i].Count);
       FBucketCounts[i] := FCount;
     end;
   end;
@@ -756,9 +756,9 @@ begin
     Capacity := Self.Count;
     for i := 0 to FBucketCount - 1 do
     begin
-      for j := 0 to Buckets[i].Count - 1 do
+      for j := 0 to FBuckets[i].Count - 1 do
       begin
-        AddObject(Buckets[i].Strings[j], Buckets[i].Objects[j]);
+        AddObject(FBuckets[i].Strings[j], FBuckets[i].Objects[j]);
       end;
     end;
     Sort;
@@ -771,7 +771,7 @@ var
 begin
   for i := 0 to FBucketCount - 1 do
   begin
-    Buckets[i].Clear;
+    FBuckets[i].Clear;
   end;
   NeedRebuildBucketCounts;
 end;
@@ -781,10 +781,10 @@ var
   i: Integer;
 begin
   FBucketCount := LimitBucketCount(BucketSize);
-  SetLength(Buckets, FBucketCount);
+  SetLength(FBuckets, FBucketCount);
   for i := 0 to FBucketCount - 1 do
   begin
-    Buckets[i] := TCnBucket.Create(InitCapacity);
+    FBuckets[i] := TCnBucket.Create(InitCapacity);
   end;
   FAutoRehashPoint := DefaultAutoRehashPoint;
   FSortedList := TCnBucket.Create(0);
@@ -813,7 +813,7 @@ var
 begin
   for i := 0 to FBucketCount - 1 do
   begin
-    Buckets[i].Free;
+    FBuckets[i].Free;
   end;
   FSortedList.Free;
   inherited;
@@ -846,7 +846,7 @@ var
   iHash: Integer;
 begin
   iHash := HashOf(s);
-  Result := Buckets[iHash].IndexOf(s);
+  Result := FBuckets[iHash].IndexOf(s);
   if (Result >= 0) and (iHash > 0) then
   begin
     BuildBucketCounts;
@@ -856,7 +856,7 @@ end;
 
 function TCnHashTable.Find(const s: string): TCnBucket;
 begin
-  Result := Buckets[HashOf(s)];
+  Result := FBuckets[HashOf(s)];
 end;
 
 function TCnHashTable.GetValues(const s: string): TObject;
@@ -912,7 +912,7 @@ function TCnHashTable.GetKeys(const Index: Integer): string;
         begin
           iPrior := FBucketCounts[i - 1];
         end;
-        Result := Buckets[i].Strings[Index - iPrior];
+        Result := FBuckets[i].Strings[Index - iPrior];
         Break;
       end;
     end;
@@ -966,6 +966,7 @@ end;
 
 resourcestring
   StrHashTableInfo = 'Count:%d; Buckets:%d; Max:%d; Min:%d; Spare:%d; Rehash:%d';
+
 function TCnHashTable.Info: string;
 var
   i, iMaxElement, iMinElement, iSpareElement, iCount: Integer;
@@ -976,7 +977,7 @@ begin
   iCount := 0;
   for i := 0 to FBucketCount - 1 do
   begin
-    with Buckets[i] do
+    with FBuckets[i] do
     begin
       if Count = 0 then
       begin
@@ -1061,13 +1062,13 @@ begin
   end;
 
   TmpBucketSize := FBucketCount;
-  TmpBuckets := Copy(Buckets, 0, TmpBucketSize);
+  TmpBuckets := Copy(FBuckets, 0, TmpBucketSize);
 
   FBucketCount := NewSize;
-  SetLength(Buckets, FBucketCount);
+  SetLength(FBuckets, FBucketCount);
   for i := 0 to FBucketCount - 1 do
   begin
-    Buckets[i] := TCnBucket.Create(InitCapacity);
+    FBuckets[i] := TCnBucket.Create(InitCapacity);
   end;
   
   if FUpdateCount > 0 then
@@ -1096,7 +1097,7 @@ var
   i: Integer;
 begin
   for i := 0 to FBucketCount - 1 do
-    Buckets[i].Sorted := not Updating;
+    FBuckets[i].Sorted := not Updating;
 end;
 
 { TCnHashTableSmall }

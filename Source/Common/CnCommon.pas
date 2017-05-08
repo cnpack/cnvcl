@@ -121,10 +121,10 @@ function AnsiTrim(const S: AnsiString): AnsiString;
 // 扩展的文件目录操作函数
 //------------------------------------------------------------------------------
 
-procedure ExploreDir(APath: string; ShowDir: Boolean = True);
+procedure ExploreDir(const APath: string; ShowDir: Boolean = True);
 {* 在资源管理器中打开指定目录 }
 
-procedure ExploreFile(AFile: string; ShowDir: Boolean = True);
+procedure ExploreFile(const AFile: string; ShowDir: Boolean = True);
 {* 在资源管理器中打开指定文件 }
 
 function ForceDirectories(Dir: string): Boolean;
@@ -139,8 +139,8 @@ function DeleteToRecycleBin(const FileName: string): Boolean;
 procedure FileProperties(const FName: string);
 {* 打开文件属性窗口}
 
-function OpenDialog(var FileName: string; Title: string; Filter: string;
-  Ext: string): Boolean;
+function OpenDialog(var FileName: string; const Title: string; const Filter: string;
+  const Ext: string): Boolean;
 {* 打开文件框}
 
 function GetDirectory(const Caption: string; var Dir: string;
@@ -154,10 +154,10 @@ function SelectDirectoryW(hOwn: HWND; var Path: WideString; const Caption,
 function SelectDirectoryEx(hOwn: HWND; const Caption, Root: WideString): WideString;
 {* 对 SelectDirectoryW 的封装}
 
-function FormatPath(APath: string; Width: Integer): string;
+function FormatPath(const APath: string; Width: Integer): string;
 {* 缩短显示不下的长路径名}
 
-procedure DrawCompactPath(Hdc: HDC; Rect: TRect; Str: string);
+procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 {* 通过 DrawText 来画缩略路径}
 
 function SameCharCounts(s1, s2: string): Integer;
@@ -196,10 +196,10 @@ procedure OpenUrl(const Url: string; UseCmd: Boolean = False);
 procedure MailTo(const Addr: string; const Subject: string = ''; UseCmd: Boolean = False);
 {* 发送邮件}
 
-function WinExecute(FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
+function WinExecute(const FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
 {* 运行一个文件并立即返回 }
 
-function WinExecAndWait32(FileName: string; Visibility: Integer = SW_NORMAL;
+function WinExecAndWait32(const FileName: string; Visibility: Integer = SW_NORMAL;
   ProcessMsg: Boolean = False): Integer;
 {* 运行一个文件并等待其结束}
 
@@ -293,7 +293,7 @@ function FileMatchesMasks(const FileName: string; MaskList: TStrings): Boolean; 
 function IsFileInUse(const FName: string): Boolean;
 {* 判断文件是否正在使用}
 
-function IsAscii(FileName: string): Boolean;
+function IsAscii(const FileName: string): Boolean;
 {* 判断文件是否为 Ascii 文件}
 
 function IsValidFileName(const Name: string): Boolean;
@@ -333,7 +333,7 @@ function DateTimeToLocalDateTime(DateTime: TDateTime): TDateTime;
 function LocalDateTimeToDateTime(DateTime: TDateTime): TDateTime;
 {* 本地时间转 UTC 时间}
 
-procedure PinAppToWin7Taskbar(Path, App: string);
+procedure PinAppToWin7Taskbar(const Path, App: string);
 {* 把程序钉到Windows7任务栏，参数为程序路径与文件名}
 
 {$IFDEF COMPILER5}
@@ -361,11 +361,11 @@ function StringReplaceNonAnsi(const S, OldPattern, NewPattern: string;
   Flags: TReplaceFlags): string;
 {* 非Ansi方式的字符串替换}
 
-function Deltree(Dir: string; DelRoot: Boolean = True;
+function Deltree(const Dir: string; DelRoot: Boolean = True;
   DelEmptyDirOnly: Boolean = False): Boolean;
 {* 删除整个目录, DelRoot 表示是否删除目录本身}
 
-procedure DelEmptyTree(Dir: string; DelRoot: Boolean = True);
+procedure DelEmptyTree(const Dir: string; DelRoot: Boolean = True);
 {* 删除整个目录中的空目录, DelRoot 表示是否删除目录本身}
 
 function GetDirFiles(const Dir: string; FileNames: TStrings = nil): Integer;
@@ -489,22 +489,22 @@ function IsDateTime(const s: string): Boolean;
 function IsValidEmail(const s: string): Boolean;
 {* 判断是否有效的邮件地址 }
 
-function StrSpToInt(Value: String; Sp: Char = ','): Int64;
+function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 {* 去掉字符串中的分隔符－字符转换}
 
 function ByteToBin(Value: Byte): string;
 {* 字节转二进制串}
 
-function StrRight(Str: string; Len: Integer): string;
+function StrRight(const Str: string; Len: Integer): string;
 {* 返回字符串右边的字符}
 
-function StrLeft(Str: string; Len: Integer): string;
+function StrLeft(const Str: string; Len: Integer): string;
 {* 返回字符串左边的字符}
 
 function GetLine(C: Char; Len: Integer): string;
 {* 返回字符串行}
 
-function GetTextFileLineCount(FileName: String): Integer;
+function GetTextFileLineCount(const FileName: String): Integer;
 {* 返回文本文件的行数}
 
 function Spc(Len: Integer): string;
@@ -566,7 +566,7 @@ procedure WriteStringsToIni(Ini: TCustomIniFile; const Section: string; Strings:
 function VersionToStr(Version: DWORD): string;
 {* 版本号转成字符串，如 $01020000 --> '1.2.0.0' }
 
-function StrToVersion(s: string): DWORD;
+function StrToVersion(const S: string): DWORD;
 {* 字符串转成版本号，如 '1.2.0.0' --> $01020000，如果格式不正确，返回 $01000000 }
 
 function CnDateToStr(Date: TDateTime): string;
@@ -672,20 +672,20 @@ function CnAuthorEmailToStr(Author, Email: string): string;
 // 扩展的对话框函数
 //------------------------------------------------------------------------------
 
-procedure InfoDlg(Mess: string; Caption: string = ''; Flags: Integer
+procedure InfoDlg(const Mess: string; Caption: string = ''; Flags: Integer
   = MB_OK + MB_ICONINFORMATION);
 {* 显示提示窗口}
 
-function InfoOk(Mess: string; Caption: string = ''): Boolean;
+function InfoOk(const Mess: string; Caption: string = ''): Boolean;
 {* 显示提示确认窗口}
 
-procedure ErrorDlg(Mess: string; Caption: string = '');
+procedure ErrorDlg(const Mess: string; Caption: string = '');
 {* 显示错误窗口}
 
-procedure WarningDlg(Mess: string; Caption: string = '');
+procedure WarningDlg(const Mess: string; Caption: string = '');
 {* 显示警告窗口}
 
-function QueryDlg(Mess: string; DefaultNo: Boolean = False;
+function QueryDlg(const Mess: string; DefaultNo: Boolean = False;
   Caption: string = ''): Boolean;
 {* 显示查询是否窗口}
 
@@ -1012,7 +1012,7 @@ function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 procedure KillProcessByFileName(const FileName: String);
 {* 根据文件名结束进程，不区分路径}
 
-function IndexStr(AText: string; AValues: array of string; IgCase: Boolean = True): Integer;
+function IndexStr(const AText: string; AValues: array of string; IgCase: Boolean = True): Integer;
 {* 查找字符串在动态数组中的索引，用于string类型使用Case语句}
 
 function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
@@ -1862,7 +1862,7 @@ end;
 //------------------------------------------------------------------------------
 
 // 在资源管理器中打开指定目录
-procedure ExploreDir(APath: string; ShowDir: Boolean);
+procedure ExploreDir(const APath: string; ShowDir: Boolean);
 var
   strExecute: AnsiString;
 begin
@@ -1874,7 +1874,7 @@ begin
 end;
 
 // 在资源管理器中打开指定文件
-procedure ExploreFile(AFile: string; ShowDir: Boolean);
+procedure ExploreFile(const AFile: string; ShowDir: Boolean);
 var
   strExecute: AnsiString;
 begin
@@ -1978,7 +1978,7 @@ begin
 end;
 
 // 缩短显示不下的长路径名
-function FormatPath(APath: string; Width: Integer): string;
+function FormatPath(const APath: string; Width: Integer): string;
 var
   SLen: Integer;
   i, j: Integer;
@@ -2010,14 +2010,14 @@ begin
 end;
 
 // 通过 DrawText 来画缩略路径
-procedure DrawCompactPath(Hdc: HDC; Rect: TRect; Str: string);
+procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 begin
   DrawText(Hdc, PChar(Str), Length(Str), Rect, DT_PATH_ELLIPSIS);
 end;
 
 // 打开文件框
-function OpenDialog(var FileName: string; Title: string; Filter: string;
-  Ext: string): Boolean;
+function OpenDialog(var FileName: string; const Title: string; const Filter: string;
+  const Ext: string): Boolean;
 var
   OpenName: TOPENFILENAME;
   TempFilename, ReturnFile: string;
@@ -2502,7 +2502,7 @@ begin
 end;
 
 // 运行一个文件并立即返回
-function WinExecute(FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
+function WinExecute(const FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
 var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
@@ -2517,7 +2517,7 @@ begin
 end;
 
 // 运行一个文件并等待其结束
-function WinExecAndWait32(FileName: string; Visibility: Integer;
+function WinExecAndWait32(const FileName: string; Visibility: Integer;
   ProcessMsg: Boolean): Integer;
 var
   zAppName: array[0..512] of Char;
@@ -2832,7 +2832,7 @@ begin
   end;
 end;
 
-function ShellGetFolder(Name: string): string;
+function ShellGetFolder(const Name: string): string;
 const
   RegPath = '\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders';
 var
@@ -3444,7 +3444,7 @@ begin
 end;
 
 // 判断文件是否为 Ascii 文件
-function IsAscii(FileName: string): Boolean;
+function IsAscii(const FileName: string): Boolean;
 const
   Sett=2048;
 var
@@ -3641,7 +3641,7 @@ begin
 end;
 
 // 把程序钉到Windows7任务栏，参数为程序路径与文件名
-procedure PinAppToWin7Taskbar(Path, App: string);
+procedure PinAppToWin7Taskbar(const Path, App: string);
 var
   Shell, Folder, FolderItem, ItemVerbs: Variant;
   vPath, vApp: Variant;
@@ -3778,7 +3778,7 @@ begin
 end;
 
 // 删除整个目录
-function Deltree(Dir: string; DelRoot: Boolean; DelEmptyDirOnly: Boolean): Boolean;
+function Deltree(const Dir: string; DelRoot: Boolean; DelEmptyDirOnly: Boolean): Boolean;
 var
   sr: TSearchRec;
   fr: Integer;
@@ -3809,7 +3809,7 @@ begin
 end;
 
 // 删除整个目录中的空目录, DelRoot 表示是否删除目录本身
-procedure DelEmptyTree(Dir: string; DelRoot: Boolean = True);
+procedure DelEmptyTree(const Dir: string; DelRoot: Boolean = True);
 var
   sr: TSearchRec;
   fr: Integer;
@@ -3947,11 +3947,12 @@ end;
 // FileName 为不带扩展名的文件名，Ext 为扩展名，成功返回全路径文件名，失败返回空。
 function CnSearchFile(const FileName: string; const Ext: string = '.exe'): string;
 var
-  fn: array[0..MAX_PATH] of Char;
-  pc: PChar;
+  FN: array[0..MAX_PATH] of Char;
+  PC: PChar;
 begin
-  if SearchPath(nil, PChar(FileName), PChar(Ext), Length(fn), fn, pc) <> 0 then
-    Result := fn;
+  Result := '';
+  if SearchPath(nil, PChar(FileName), PChar(Ext), Length(FN), FN, PC) <> 0 then
+    Result := FN;
 end;
 
 // 文件打开方式
@@ -4357,13 +4358,13 @@ begin
   end;
 end;
 
-function StrSpToInt(Value: String; Sp: Char = ','): Int64;
+function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 begin
   Result := StrToInt64(AnsiReplaceText(Value, Sp, ''));
 end;
 
 // 返回字符串右边的字符
-function StrRight(Str: string; Len: Integer): string;
+function StrRight(const Str: string; Len: Integer): string;
 begin
   if Len >= Length(Str) then
     Result := Str
@@ -4372,7 +4373,7 @@ begin
 end;
 
 // 返回字符串左边的字符
-function StrLeft(Str: string; Len: Integer): string;
+function StrLeft(const Str: string; Len: Integer): string;
 begin
   if Len > Length(Str) then
     Result := Str
@@ -4385,10 +4386,11 @@ function ByteToBin(Value: Byte): string;
 const
   V: Byte = 1;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 7 downto 0 do
-    if (V shl i) and Value <> 0 then
+  Result := '';
+  for I := 7 downto 0 do
+    if (V shl I) and Value <> 0 then
       Result := Result + '1'
     else
       Result := Result + '0';
@@ -4401,7 +4403,7 @@ begin
 end;
 
 // 返回文本文件的行数
-function GetTextFileLineCount(FileName: String): Integer;
+function GetTextFileLineCount(const FileName: string): Integer;
 var
   Lines: TStringList;
 begin
@@ -4624,14 +4626,14 @@ begin
 end;
 
 // 字符串转成版本号，如 '1.2.0.0' --> $01020000，如果格式不正确，返回 $01000000
-function StrToVersion(s: string): DWORD;
+function StrToVersion(const S: string): DWORD;
 var
   Strs: TStrings;
 begin
   try
     Strs := TStringList.Create;
     try
-      Strs.Text := StringReplace(s, '.', #13#10, [rfReplaceAll]);
+      Strs.Text := StringReplace(S, '.', #13#10, [rfReplaceAll]);
       if Strs.Count = 4 then
         Result := StrToInt(Strs[0]) * $1000000 + StrToInt(Strs[1]) * $10000 +
           StrToInt(Strs[2]) * $100 + StrToInt(Strs[3])
@@ -5331,7 +5333,7 @@ end;
 //------------------------------------------------------------------------------
 
 // 显示提示窗口
-procedure InfoDlg(Mess: string; Caption: string; Flags: Integer);
+procedure InfoDlg(const Mess: string; Caption: string; Flags: Integer);
 begin
   if Caption = '' then
     Caption := SCnInformation;
@@ -5339,7 +5341,7 @@ begin
 end;
 
 // 显示提示确认窗口
-function InfoOk(Mess: string; Caption: string): Boolean;
+function InfoOk(const Mess: string; Caption: string): Boolean;
 begin
   if Caption = '' then
     Caption := SCnInformation;
@@ -5348,7 +5350,7 @@ begin
 end;
 
 // 显示错误窗口
-procedure ErrorDlg(Mess: string; Caption: string);
+procedure ErrorDlg(const Mess: string; Caption: string);
 begin
   if Caption = '' then
     Caption := SCnError;
@@ -5356,7 +5358,7 @@ begin
 end;
 
 // 显示警告窗口
-procedure WarningDlg(Mess: string; Caption: string);
+procedure WarningDlg(const Mess: string; Caption: string);
 begin
   if Caption = '' then
     Caption := SCnWarning;
@@ -5364,7 +5366,7 @@ begin
 end;
 
 // 显示查询是否窗口
-function QueryDlg(Mess: string; DefaultNo: Boolean; Caption: string): Boolean;
+function QueryDlg(const Mess: string; DefaultNo: Boolean; Caption: string): Boolean;
 const
   Defaults: array[Boolean] of DWORD = (0, MB_DEFBUTTON2);
 begin
@@ -7246,7 +7248,7 @@ begin
 end;
 
 //查找字符串在动态数组中的索引，用于string类型使用Case语句
-function IndexStr(AText: string; AValues: array of string; IgCase: Boolean = True): Integer;
+function IndexStr(const AText: string; AValues: array of string; IgCase: Boolean = True): Integer;
 type
   TSameFunc = function(const S1, S2: string): Boolean;
 var

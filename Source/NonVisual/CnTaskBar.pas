@@ -50,13 +50,13 @@ type
     FBtnInfo: TTBButton;
     FBtnIndex: Integer;
     FBtnCaption: string;
-    SysHide: Boolean;//是否为系统隐藏图标
-    EventHandle: THandle; //事件处理句柄
+    FIsSysHide: Boolean;//是否为系统隐藏图标
+    FHandle: THandle; //事件处理句柄
     FPicture: TBitmap; //图标
     FBtnRect: TRect;  //区域
     FVisible: Boolean;
     FEnabled: Boolean;
-    IsTrayBtn: Boolean;
+    FIsTrayBtn: Boolean;
     procedure SetVisible(const Value: Boolean);
     Constructor Create;
     procedure SetEnabled(const Value: Boolean);
@@ -67,9 +67,9 @@ type
     property BtnCaption: string read FBtnCaption;
     property BtnRect: TRect read FBtnRect;
     procedure AssignBtnInfo(Info: TTBButton);
-    property IsSysHide: Boolean read SysHide;
+    property IsSysHide: Boolean read FIsSysHide;
     property Picture: TBitmap read FPicture;
-    property Handle: THandle read EventHandle;
+    property Handle: THandle read FHandle;
     property Visible: Boolean read FVisible write SetVisible;
     property Enabled: Boolean read FEnabled write SetEnabled;
     procedure Click;
@@ -81,7 +81,7 @@ type
   {* 任务栏操作组件}
   private
     FTrayBtnList, FTaskBtnList: TstringList;
-    HigherThenXp: Boolean; //是否为xp以上的系统版本
+    FHigherThenXp: Boolean; //是否为xp以上的系统版本
     FTrayBarHandle: THandle;
     FTaskBarHandle: THandle;
     FStartBtnHandle: THandle;
@@ -224,7 +224,7 @@ begin
   inherited Create(AOwner);
   FTrayBtnList := TstringList.Create;
   FTaskBtnList := TstringList.Create;
-  HigherThenXp := (Win32MajorVersion > 5) or ((Win32MajorVersion = 5) and (Win32MinorVersion > 0));
+  FHigherThenXp := (Win32MajorVersion > 5) or ((Win32MajorVersion = 5) and (Win32MinorVersion > 0));
   FTaskBarHandle := FindWindow('Shell_TrayWnd', nil);
   FStartBtnHandle := FindWindowEx(FTaskBarHandle, 0, 'Button', nil);
   //if (OS.dwMajorVersion = 4) and (OS.dwMinorVersion = 10)  then //98系统
@@ -233,14 +233,14 @@ begin
   FProgramContrainerHandle := FindWindowEx(FQuitLauchHandle, 0, 'MSTaskSwWClass', nil);
   FImeRecHandle := FindWindowEx(FQuitLauchHandle, 0, 'CiceroUIWndFrame', nil);
 
-  if HigherThenXp then
+  if FHigherThenXp then
     FProgramToolBarHandle := FindWindowEx(FProgramContrainerHandle, 0, 'ToolbarWindow32', nil)
   else FProgramToolBarHandle := FProgramContrainerHandle;
   FTrayBarHandle := FindWindowEx(FTaskBarHandle, 0, 'TrayNotifyWnd', nil);
   FTrayNotifyHandle := FTrayBarHandle;
   FClockHandle := FindWindowEx(FTrayBarHandle, 0, 'TrayClockWClass', nil);
   FHideTrayBtnHandle := FindWindowEx(FTrayBarHandle, 0, 'Button', nil);
-  if HigherThenXp then
+  if FHigherThenXp then
     FTrayBarHandle := FindWindowEx(FTrayBarHandle, 0, 'SysPager', nil);
   if (Win32MajorVersion = 5) and (Win32MinorVersion >= 0) then
     FTrayBarHandle := FindWindowEx(FTrayBarHandle, 0, 'ToolbarWindow32', nil);
@@ -298,17 +298,17 @@ begin
         Continue;
 
       SysToolBtn := TCnSysToolBarBtn.Create;
-      SysToolBtn.SysHide := SysHide;
+      SysToolBtn.FIsSysHide := SysHide;
       SysToolBtn.FVisible := not SysHide;
       SysToolBtn.AssignBtnInfo(BtnInfo);
-      SysToolBtn.IsTrayBtn := True;
+      SysToolBtn.FIsTrayBtn := True;
       //SysToolBtn.FPicture.Canvas
       SysToolBtn.FBtnIndex := BtnInfo.idCommand;
       SendMessage(FTrayBarHandle, TB_GETBUTTONTEXT, SysToolBtn.FBtnInfo.idCommand, Integer(Integer(@Buff[0]) + SizeOf(@SysToolBtn.FBtnInfo)));
       ReadProcessMemory(ThreadHandle,  Pointer(Integer(@Buff[0]) + SizeOf(@SysToolBtn.FBtnInfo)), @S[0], SizeOf(S),  R);
       //if SysToolBtn.FBtnInfo.fsState = 12 then
       SysToolBtn.FBtnCaption := string(s);
-      SysToolBtn.EventHandle := FTrayBarHandle;
+      SysToolBtn.FHandle := FTrayBarHandle;
       if not SysHide then
       begin
         SendMessage(FTrayBarHandle, TB_GETRECT, BtnInfo.idCommand, Integer(Integer(@Buff[0]) + SizeOf(BtnInfo)));
@@ -318,7 +318,7 @@ begin
         SysToolBtn.FPicture.Width :=  BtnRect.Right - BtnRect.Left;
         SysToolBtn.FPicture.Height :=  BtnRect.Bottom - BtnRect.Top;
 
-        BitBlt(SysToolBtn.FPicture.Canvas.Handle, 0, 0, SysToolBtn.FPicture.Width, SysToolBtn.FPicture.Height, 
+        BitBlt(SysToolBtn.FPicture.Canvas.Handle, 0, 0, SysToolBtn.FPicture.Width, SysToolBtn.FPicture.Height,
                GetDc(FTrayBarHandle), BtnRect.Left, BtnRect.Top, SRCCOPY); //抓图
       end;
       FTrayBtnList.AddObject(SysToolBtn.FBtnCaption, SysToolBtn);
@@ -339,7 +339,7 @@ begin
 end;
 
 function TCnTaskBar.GetTaskBtns(Index: Integer): TCnSysToolBarBtn;
-begin                                       
+begin
    if (Index > -1 ) and (Index < FTaskBtnList.Count) then
      Result :=  TCnSysToolBarBtn(FTaskBtnList.Objects[Index])
    else Result :=  nil;
@@ -378,17 +378,17 @@ begin
         Continue;
 
       SysToolBtn := TCnSysToolBarBtn.Create;
-      SysToolBtn.SysHide := SysHide;
+      SysToolBtn.FIsSysHide := SysHide;
       SysToolBtn.FVisible := not SysHide;
       SysToolBtn.AssignBtnInfo(BtnInfo);
-      SysToolBtn.IsTrayBtn := false;
+      SysToolBtn.FIsTrayBtn := false;
       //SysToolBtn.FPicture.Canvas
       SysToolBtn.FBtnIndex := BtnInfo.idCommand;
       SendMessage(FProgramToolBarHandle, TB_GETBUTTONTEXT, SysToolBtn.FBtnInfo.idCommand, Integer(Integer(Buff) + SizeOf(@SysToolBtn.FBtnInfo)));
       ReadProcessMemory(ThreadHandle, Pointer(Integer(Buff) + SizeOf(@SysToolBtn.FBtnInfo)), @VBuffer, SizeOf(VBuffer),  WriteNum);
       SysToolBtn.FBtnCaption := string(VBuffer);
 
-      SysToolBtn.EventHandle :=  FProgramToolBarHandle;
+      SysToolBtn.FHandle :=  FProgramToolBarHandle;
       SysToolBtn.FBtnRect :=  BtnRect;
       FTaskBtnList.AddObject(SysToolBtn.FBtnCaption, SysToolBtn);
     end;
@@ -408,7 +408,7 @@ begin
    if (Index > -1 ) and (Index < FTrayBtnList.Count) then
      Result :=  TCnSysToolBarBtn(FTrayBtnList.Objects[Index])
    else Result :=  nil;
-end;                                      
+end;
 
 procedure TCnTaskBar.HideTrayBtnClick;
 begin
@@ -593,8 +593,8 @@ end;
 
 procedure TCnSysToolBarBtn.Click;
 begin
-  SendMessage(EventHandle, WM_LBUTTONDOWN, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
-  SendMessage(EventHandle, WM_LBUTTONUP, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
+  SendMessage(FHandle, WM_LBUTTONDOWN, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
+  SendMessage(FHandle, WM_LBUTTONUP, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
 end;
 
 constructor TCnSysToolBarBtn.Create;
@@ -606,8 +606,8 @@ end;
 
 procedure TCnSysToolBarBtn.DbClick;
 begin
-   SendMessage(EventHandle, WM_LBUTTONDBLCLK, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
-   SendMessage(EventHandle, WM_LBUTTONUP, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
+   SendMessage(FHandle, WM_LBUTTONDBLCLK, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
+   SendMessage(FHandle, WM_LBUTTONUP, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
 end;
 
 destructor TCnSysToolBarBtn.Destroy;
@@ -623,8 +623,8 @@ end;
 
 procedure TCnSysToolBarBtn.RClick;
 begin
-  SendMessage(EventHandle, WM_RBUTTONDOWN, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
-  SendMessage(EventHandle, WM_RBUTTONUP, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
+  SendMessage(FHandle, WM_RBUTTONDOWN, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
+  SendMessage(FHandle, WM_RBUTTONUP, 0, MakeLong(FBtnRect.Left + 2, FBtnRect.Top + 2));
 end;
 
 procedure TCnSysToolBarBtn.SetEnabled(const Value: Boolean);
@@ -632,7 +632,7 @@ begin
   if FVisible <> Value then
   begin
     FVisible :=  Value;
-    EnableWindow(EventHandle, Value);
+    EnableWindow(FHandle, Value);
   end;
 end;
 
@@ -642,9 +642,9 @@ begin
   begin
     FVisible :=  Value;
     if FVisible then
-      SendMessage(EventHandle, TB_HIDEBUTTON, BtnInfo.idCommand, 0)
+      SendMessage(FHandle, TB_HIDEBUTTON, BtnInfo.idCommand, 0)
     else
-      SendMessage(EventHandle, TB_HIDEBUTTON, BtnInfo.idCommand, 1);
+      SendMessage(FHandle, TB_HIDEBUTTON, BtnInfo.idCommand, 1);
   end;
 end;
 

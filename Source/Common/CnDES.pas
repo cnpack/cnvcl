@@ -46,13 +46,13 @@ function DESEncryptStr(Str, Key: AnsiString): AnsiString;
    注：由于密文可能含有扩展 ASCII 字符，因此在 DELPHI 2009 或以上版本中，请用
    AnsiString 类型的变量接收返回值，以避免出现多余的 Unicode 转换而导致解密出错}
 
-function DESDecryptStr(Str, Key: AnsiString): AnsiString;
+function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
 {* 传入密文与加密 Key，DES 解密返回明文}
 
-function DESEncryptStrToHex(Str, Key: AnsiString): AnsiString;
+function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文}
 
-function DESDecryptStrFromHex(StrHex, Key: AnsiString): AnsiString;
+function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES 解密返回明文}
 
 implementation
@@ -379,7 +379,7 @@ begin
   Result := StrResult;
 end;
 
-function DESDecryptStr(Str, Key: AnsiString): AnsiString;
+function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
 var
   StrByte, OutByte, KeyByte: array[0..7] of Byte;
   StrResult: AnsiString;
@@ -403,7 +403,7 @@ begin
   Result := StrResult;
 end;
 
-function DESEncryptStrToHex(Str, Key: AnsiString): AnsiString;
+function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 var
   StrResult, TempResult, temp: AnsiString;
   I: Integer;
@@ -419,7 +419,7 @@ begin
   Result := StrResult;
 end;
 
-function HexToInt(Hex: AnsiString): Integer;
+function HexToInt(const Hex: AnsiString): Integer;
 var
   I, Res: Integer;
   ch: AnsiChar;
@@ -439,7 +439,7 @@ begin
   Result := Res;
 end;
 
-function DESDecryptStrFromHex(StrHex, Key: AnsiString): AnsiString;
+function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
   Str, temp: AnsiString;
   I: Integer;

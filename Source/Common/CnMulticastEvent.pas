@@ -939,6 +939,7 @@ end;
 
 constructor TCnMulticastEventList.Create;
 begin
+  inherited;
   Sorted := True;
 end;
 

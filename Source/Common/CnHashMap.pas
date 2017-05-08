@@ -149,9 +149,9 @@ type
     function VariantHashCode(AKey: Variant): Integer; override;
 
   public
-    procedure Add(AKey, AValue: string); reintroduce; overload;
-    function Delete(AKey: string): Boolean; reintroduce; overload;
-    function Find(AKey: string; var AValue: string): Boolean; reintroduce; overload;
+    procedure Add(const AKey, AValue: string); reintroduce; overload;
+    function Delete(const AKey: string): Boolean; reintroduce; overload;
+    function Find(const AKey: string; var AValue: string): Boolean; reintroduce; overload;
 
     function GetNext(var AKey, AValue: string): Boolean; reintroduce; overload;
   end;
@@ -161,9 +161,9 @@ type
     function VariantHashCode(AKey: Variant): Integer; override;
 
   public
-    procedure Add(AKey, AValue: WideString); reintroduce; overload;
-    function Delete(AKey: WideString): Boolean; reintroduce; overload;
-    function Find(AKey: WideString; var AValue: WideString): Boolean; reintroduce; overload;
+    procedure Add(const AKey, AValue: WideString); reintroduce; overload;
+    function Delete(const AKey: WideString): Boolean; reintroduce; overload;
+    function Find(const AKey: WideString; var AValue: WideString): Boolean; reintroduce; overload;
 
     function GetNext(var AKey, AValue: WideString): Boolean; reintroduce; overload;
   end;
@@ -172,9 +172,9 @@ type
   private
     function VariantHashCode(AKey: Variant): Integer; override;
   public
-    procedure Add(AKey: string; AValue: Pointer); reintroduce; overload;
-    function Delete(AKey: string): Boolean; reintroduce; overload;
-    function Find(AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
+    procedure Add(const AKey: string; AValue: Pointer); reintroduce; overload;
+    function Delete(const AKey: string): Boolean; reintroduce; overload;
+    function Find(const AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
     function GetNext(var AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
   end;
 
@@ -182,9 +182,9 @@ type
   private
     function VariantHashCode(AKey: Variant): Integer; override;
   public
-    procedure Add(AKey: string; AValue: Variant); reintroduce; overload;
-    function Delete(AKey: string): Boolean; reintroduce; overload;
-    function Find(AKey: string; var AValue: Variant): Boolean; reintroduce; overload;
+    procedure Add(const AKey: string; AValue: Variant); reintroduce; overload;
+    function Delete(const AKey: string): Boolean; reintroduce; overload;
+    function Find(const AKey: string; var AValue: Variant): Boolean; reintroduce; overload;
     function GetNext(var AKey: string; var AValue: Variant): Boolean; reintroduce; overload;
   end;
 
@@ -561,17 +561,17 @@ end;
 
 { TCnStrToStrHashMap }
 
-procedure TCnStrToStrHashMap.Add(AKey, AValue: string);
+procedure TCnStrToStrHashMap.Add(const AKey, AValue: string);
 begin
   AddInternal(AKey, AValue);
 end;
 
-function TCnStrToStrHashMap.Delete(AKey: string): Boolean;
+function TCnStrToStrHashMap.Delete(const AKey: string): Boolean;
 begin
   Result := DeleteInternal(AKey);
 end;
 
-function TCnStrToStrHashMap.Find(AKey: string;
+function TCnStrToStrHashMap.Find(const AKey: string;
   var AValue: string): Boolean;
 var
   myValue: Variant;
@@ -611,17 +611,17 @@ end;
 
 { TCnWideStrToWideStrHashMap }
 
-procedure TCnWideStrToWideStrHashMap.Add(AKey, AValue: WideString);
+procedure TCnWideStrToWideStrHashMap.Add(const AKey, AValue: WideString);
 begin
   AddInternal(AKey, AValue);
 end;
 
-function TCnWideStrToWideStrHashMap.Delete(AKey: WideString): Boolean;
+function TCnWideStrToWideStrHashMap.Delete(const AKey: WideString): Boolean;
 begin
   Result := DeleteInternal(AKey);
 end;
 
-function TCnWideStrToWideStrHashMap.Find(AKey: WideString;
+function TCnWideStrToWideStrHashMap.Find(const AKey: WideString;
   var AValue: WideString): Boolean;
 var
   myValue: Variant;
@@ -675,17 +675,17 @@ begin
   Result := Abs(iHashCode);
 end;
 
-procedure TCnStrToPtrHashMap.Add(AKey: string; AValue: Pointer);
+procedure TCnStrToPtrHashMap.Add(const AKey: string; AValue: Pointer);
 begin
   AddInternal(AKey, Integer(AValue));
 end;
 
-function TCnStrToPtrHashMap.Delete(AKey: string): Boolean;
+function TCnStrToPtrHashMap.Delete(const AKey: string): Boolean;
 begin
   Result := DeleteInternal(AKey);
 end;
 
-function TCnStrToPtrHashMap.Find(AKey: string; var AValue: Pointer): Boolean;
+function TCnStrToPtrHashMap.Find(const AKey: string; var AValue: Pointer): Boolean;
 var
   vValue: Variant;
 begin
@@ -710,17 +710,17 @@ end;
 
 { TCnStrToVariantHashMap }
 
-procedure TCnStrToVariantHashMap.Add(AKey: string; AValue: Variant);
+procedure TCnStrToVariantHashMap.Add(const AKey: string; AValue: Variant);
 begin
   AddInternal(AKey, AValue);
 end;
 
-function TCnStrToVariantHashMap.Delete(AKey: string): Boolean;
+function TCnStrToVariantHashMap.Delete(const AKey: string): Boolean;
 begin
   Result := DeleteInternal(AKey);
 end;
 
-function TCnStrToVariantHashMap.Find(AKey: string;
+function TCnStrToVariantHashMap.Find(const AKey: string;
   var AValue: Variant): Boolean;
 begin
   Result := FindInternal(Variant(AKey), AValue);

@@ -468,6 +468,8 @@ end;
 
 destructor TCnTimerObject.Destroy;
 begin
+
+  inherited;
 end;
 
 function TCnTimerObject.GetFPS: Double;

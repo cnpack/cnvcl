@@ -130,7 +130,7 @@ type
     procedure ShowIcon;
     procedure HideApplication;
     procedure ShowApplication;
-    procedure BalloonHint(Title, Value: string; BalloonType: TBalloonType = btNone;
+    procedure BalloonHint(const Title, Value: string; BalloonType: TBalloonType = btNone;
       DelaySeconds: Integer = 5);
     property Handle: HWND read FHandle;
   published
@@ -209,7 +209,7 @@ begin
   end;
 end;
 
-procedure TCnTrayIcon.BalloonHint(Title, Value: string;
+procedure TCnTrayIcon.BalloonHint(const Title, Value: string;
   BalloonType: TBalloonType; DelaySeconds: Integer);
 begin
   if FAcceptBalloons then

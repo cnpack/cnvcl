@@ -56,7 +56,7 @@ type
   end;
 
 procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
-  Input: AnsiString; Output: PAnsiChar);
+  const Input: AnsiString; Output: PAnsiChar);
 {* SM4-ECB 封装好的针对 AnsiString 的加解密方法
  |<PRE>
   Mode     SM4_ENCRYPT 或 SM4_DECRYPT
@@ -66,7 +66,7 @@ procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
  |</PRE>}
 
 procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString;
-  Iv: PAnsiChar; Input: AnsiString; Output: PAnsiChar);
+  Iv: PAnsiChar; const Input: AnsiString; Output: PAnsiChar);
 {* SM4-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
   Mode     SM4_ENCRYPT 或 SM4_DECRYPT
@@ -296,7 +296,7 @@ begin
 end;
 
 procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
-  Input: AnsiString; Output: PAnsiChar);
+  const Input: AnsiString; Output: PAnsiChar);
 var
   Ctx: TSM4Context;
 begin
@@ -342,7 +342,7 @@ begin
 end;
 
 procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString; Iv: PAnsiChar;
-  Input: AnsiString; Output: PAnsiChar);
+  const Input: AnsiString; Output: PAnsiChar);
 var
   Ctx: TSM4Context;
 begin

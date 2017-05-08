@@ -429,12 +429,14 @@ end;
 
 constructor TCnCriticalSection.Create;
 begin
+  inherited;
   InitializeCriticalSection(FSection)
 end;
 
 destructor TCnCriticalSection.Destroy;
 begin
-  DeleteCriticalSection(FSection)
+  DeleteCriticalSection(FSection);
+  inherited;
 end;
 
 procedure TCnCriticalSection.Enter;

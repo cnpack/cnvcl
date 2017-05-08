@@ -315,12 +315,14 @@ const
 
 constructor TCriticalSection.Create;
 begin
+  inherited;
   InitializeCriticalSection(FSection)
 end;
 
 destructor TCriticalSection.Destroy;
 begin
-  DeleteCriticalSection(FSection)
+  DeleteCriticalSection(FSection);
+  inherited;
 end;
 
 procedure TCriticalSection.Enter;
