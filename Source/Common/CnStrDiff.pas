@@ -107,15 +107,15 @@ type
   TProgressEvent = procedure(Sender: TObject; ProgressPercent: Integer) of object;
 
   TCnStrDiff = class
-    private
-    MaxD: Integer;
-    fChangeList: TList;
-    fLastAdd, fLastDel, fLastMod: PChangeRec;
-    diagVecB: PDiagVectorArray;
-    diagVecF: PDiagVectorArray; //forward and backward arrays
-    Array1: PAnsiChar;
-    Array2: PAnsiChar;
-    fCancelled: Boolean;
+  private
+    FMaxD: Integer;
+    FChangeList: TList;
+    FLastAdd, FLastDel, FLastMod: PChangeRec;
+    FDiagVecB: PDiagVectorArray;
+    FDiagVecF: PDiagVectorArray; //forward and backward arrays
+    FArray1: PAnsiChar;
+    FArray2: PAnsiChar;
+    FCancelled: Boolean;
 
     function RecursiveDiff(x1, y1, x2, y2: Integer): Boolean;
     procedure AddToScript(x1, y1, x2, y2: Integer; ScriptKind: TScriptKind);
@@ -126,7 +126,7 @@ type
     procedure PushDel;
     procedure PushMod;
   public
-    constructor Create; 
+    constructor Create;
     destructor Destroy; override;
 
     function Execute(const S1, S2: PAnsiChar; Size1, Size2: Integer): Boolean;
@@ -198,13 +198,13 @@ end;
 constructor TCnStrDiff.Create;
 begin
   inherited;
-  fChangeList := TList.Create;
+  FChangeList := TList.Create;
 end;
 
 destructor TCnStrDiff.Destroy;
 begin
   ClearChanges;
-  fChangeList.Free;
+  FChangeList.Free;
   inherited;
 end;
 
@@ -216,35 +216,35 @@ begin
   ClearChanges;
 
   if not Assigned(S1) or not Assigned(S2) then Exit;
-  Array1 := S1;
-  Array2 := S2;
+  FArray1 := S1;
+  FArray2 := S2;
 
   //MaxD == Maximum possible deviation from centre diagonal vector
   //which can't be more than the largest intArray (with upperlimit = MAX_DIAGONAL) ...
-  MaxD := Min(Max(Size1, Size2), MAX_DIAGONAL);
+  FMaxD := Min(Max(Size1, Size2), MAX_DIAGONAL);
 
   //estimate the no. Changes == 1/8 total size rounded to a 32bit boundary
-  fChangeList.capacity := (Max(MaxD, 1024) div 32) * 4;
+  FChangeList.Capacity := (Max(FMaxD, 1024) div 32) * 4;
 
   IntArr_f := nil;
   IntArr_b := nil;
   try
     //allocate the vector memory ...
-    GetMem(IntArr_f, SizeOf(Integer) * (MaxD * 2 + 1));
-    GetMem(IntArr_b, SizeOf(Integer) * (MaxD * 2 + 1));
+    GetMem(IntArr_f, SizeOf(Integer) * (FMaxD * 2 + 1));
+    GetMem(IntArr_b, SizeOf(Integer) * (FMaxD * 2 + 1));
     //Align the forward and backward diagonal vector arrays
     //with the memory which has just been allocated ...
-    PAnsiChar(diagVecF) := PAnsiChar(IntArr_f) - SizeOf(Integer) * (MAX_DIAGONAL - MaxD);
-    PAnsiChar(diagVecB) := PAnsiChar(IntArr_b) - SizeOf(Integer) * (MAX_DIAGONAL - MaxD);
+    PAnsiChar(FDiagVecF) := PAnsiChar(IntArr_f) - SizeOf(Integer) * (MAX_DIAGONAL - FMaxD);
+    PAnsiChar(FDiagVecB) := PAnsiChar(IntArr_b) - SizeOf(Integer) * (MAX_DIAGONAL - FMaxD);
 
-    fCancelled := False;
+    FCancelled := False;
     //NOW DO IT HERE...
     Result := RecursiveDiff(0, 0, Size1, Size2);
     //add remaining range buffers onto ChangeList...
     PushAdd;
     PushDel;
 
-    if not Result then ClearChanges; 
+    if not Result then ClearChanges;
   finally
     FreeMem(IntArr_f);
     FreeMem(IntArr_b);
@@ -263,12 +263,12 @@ begin
   //skip over initial and trailing matches...
   D := Min(x2 - x1, y2 - y1);
   k := 0;
-  while (k < D) and (Array1[x1 + k + 1] = Array2[y1 + k + 1]) do Inc(k);
+  while (k < D) and (FArray1[x1 + k + 1] = FArray2[y1 + k + 1]) do Inc(k);
   Inc(x1, k);
   Inc(y1, k);
   Dec(D, k);
   k := 0;
-  while (k < D) and (Array1[x2 - k] = Array2[y2 - k]) do Inc(k);
+  while (k < D) and (FArray1[x2 - k] = FArray2[y2 - k]) do Inc(k);
   Dec(x2, k);
   Dec(y2, k);
 
@@ -287,45 +287,45 @@ begin
   //(recursively) find midpoints of the edit path...
   Delta := (x2 - x1) - (y2 - y1);
   //initialize forward and backward diagonal vectors...
-  diagVecF[0] := x1;
-  diagVecB[Delta] := x2;
+  FDiagVecF[0] := x1;
+  FDiagVecB[Delta] := x2;
   //OUTER LOOP ...
   //MAKE INCREASING OSCILLATIONS ABOUT CENTRE DIAGONAL UNTIL A FORWARD
   //DIAGONAL VECTOR IS GREATER THAN OR EQUAL TO A BACKWARD DIAGONAL.
   //nb: 'D' doesn't needs to start at 0 as there's never an initial match
-  for D := 1 to MaxD do
+  for D := 1 to FMaxD do
   begin
     //forward loop...............................................
     //nb: k == index of current diagonal vector and
-    //    will oscillate (in increasing swings) between -MaxD and MaxD
+    //    will oscillate (in increasing swings) between -FMaxD and FMaxD
     k := -D;
     while k <= D do
     begin
       //derive x from the larger of the adjacent vectors...
-      if (k = -D) or ((k < D) and (diagVecF[k - 1] < diagVecF[k + 1])) then
-        x := diagVecF[k + 1] else
-        x := diagVecF[k - 1] + 1;
+      if (k = -D) or ((k < D) and (FDiagVecF[k - 1] < FDiagVecF[k + 1])) then
+        x := FDiagVecF[k + 1] else
+        x := FDiagVecF[k - 1] + 1;
       y := x - x1 + y1 - k;
       //while (x+1,y+1) match - increment them...
-      while (x < x2) and (y < y2) and (Array1[x + 1] = Array2[y + 1]) do
+      while (x < x2) and (y < y2) and (FArray1[x + 1] = FArray2[y + 1]) do
       begin
         Inc(x);
         Inc(y);
       end;
       //update current vector ...
-      diagVecF[k] := x;
+      FDiagVecF[k] := x;
 
       //check if midpoint reached (ie: when diagVecF[k] & diagVecB[k] vectors overlap)...
       //nb: if midpoint found in forward loop then there must be common sub-sequences ...
-      if odd(Delta) and (k > -D + Delta) and (k < D + Delta) and (diagVecF[k] >=
-        diagVecB[k]) then
+      if odd(Delta) and (k > -D + Delta) and (k < D + Delta) and (FDiagVecF[k] >=
+        FDiagVecB[k]) then
       begin
         //To avoid declaring 2 extra variables in this recursive function ..
         //Delta & k are simply reused to store the x & y values ...
         Delta := x;
         k := y;
         //slide up to top (left) of diagonal...
-        while (x > x1) and (y > y1) and (Array1[x] = Array2[y]) do
+        while (x > x1) and (y > y1) and (FArray1[x] = FArray2[y]) do
         begin
           Dec(x);
           Dec(y);
@@ -341,36 +341,36 @@ begin
     end;
 
     //backward loop..............................................
-    //nb: k will oscillate (in increasing swings) between -MaxD and MaxD
+    //nb: k will oscillate (in increasing swings) between -FMaxD and FMaxD
     k := -D + Delta;
 
     while k <= D + Delta do
     begin
       //make sure we remain within the diagVecB[] and diagVecF[] array bounds...
-      if (k < -MaxD) then
+      if (k < -FMaxD) then
       begin
         Inc(k, 2);
         Continue;
       end
-      else if (k > MaxD) then Break;
+      else if (k > FMaxD) then Break;
 
       //derive x from the adjacent vectors...
-      if (k = D + Delta) or ((k > -D + Delta) and (diagVecB[k + 1] > diagVecB[k - 1]))
+      if (k = D + Delta) or ((k > -D + Delta) and (FDiagVecB[k + 1] > FDiagVecB[k - 1]))
         then
-        x := diagVecB[k - 1] else
-        x := diagVecB[k + 1] - 1;
+        x := FDiagVecB[k - 1] else
+        x := FDiagVecB[k + 1] - 1;
       y := x - x1 + y1 - k;
       //while (x,y) match - decrement them...
-      while (x > x1) and (y > y1) and (Array1[x] = Array2[y]) do
+      while (x > x1) and (y > y1) and (FArray1[x] = FArray2[y]) do
       begin
         Dec(x);
         Dec(y);
       end;
       //update current vector ...
-      diagVecB[k] := x;
+      FDiagVecB[k] := x;
 
       //check if midpoint reached...
-      if not odd(Delta) and (k >= -D) and (k <= D) and (diagVecF[k] >= diagVecB[k])
+      if not odd(Delta) and (k >= -D) and (k <= D) and (FDiagVecF[k] >= FDiagVecB[k])
         then
       begin
         //if D == 1 then the smallest common subsequence must have been found ...
@@ -382,7 +382,7 @@ begin
             AddToScript(x1, y1, x2, y2, skAddDiagAdd)
           else if (x1 + 1 = x2) then
             AddToScript(x1, y1, x2, y2, skAddDel)
-          else if (Array1[x1 + 2] = Array2[y1 + 1]) then
+          else if (FArray1[x1 + 2] = FArray2[y1 + 1]) then
             AddToScript(x1, y1, x2, y2, skDelDiagAdd)
           else
             AddToScript(x1, y1, x2, y2, skAddDiagDel);
@@ -392,7 +392,7 @@ begin
           Result := RecursiveDiff(x1, y1, x, y);
           if not Result then Exit;
           //now slide down to bottom (right) of diagonal...
-          while (x < x2) and (y < y2) and (Array1[x + 1] = Array2[y + 1]) do
+          while (x < x2) and (y < y2) and (FArray1[x + 1] = FArray2[y + 1]) do
           begin
             Inc(x);
             Inc(y);
@@ -449,21 +449,21 @@ the snake must appears as one of: .
 procedure TCnStrDiff.PushAdd;
 begin
   PushMod;
-  if Assigned(fLastAdd) then fChangeList.Add(fLastAdd);
-  fLastAdd := nil;
+  if Assigned(FLastAdd) then FChangeList.Add(FLastAdd);
+  FLastAdd := nil;
 end;
 
 procedure TCnStrDiff.PushDel;
 begin
   PushMod;
-  if Assigned(fLastDel) then fChangeList.Add(fLastDel);
-  fLastDel := nil;
+  if Assigned(FLastDel) then FChangeList.Add(FLastDel);
+  FLastDel := nil;
 end;
 
 procedure TCnStrDiff.PushMod;
 begin
-  if Assigned(fLastMod) then fChangeList.Add(fLastMod);
-  fLastMod := nil;
+  if Assigned(FLastMod) then FChangeList.Add(FLastMod);
+  FLastMod := nil;
 end;
 
 //This is a bit UGLY but simply reduces many adds & deletes to many fewer
@@ -474,41 +474,41 @@ var
 
   procedure TrashAdd;
   begin
-    Dispose(fLastAdd);
-    fLastAdd := nil;
+    Dispose(FLastAdd);
+    FLastAdd := nil;
   end;
 
   procedure TrashDel;
   begin
-    Dispose(fLastDel);
-    fLastDel := nil;
+    Dispose(FLastDel);
+    FLastDel := nil;
   end;
 
   procedure NewAdd(x1, y1: Integer);
   begin
-    New(fLastAdd);
-    fLastAdd.Kind := ckAdd;
-    fLastAdd.x := x1;
-    fLastAdd.y := y1;
-    fLastAdd.Range := 1;
+    New(FLastAdd);
+    FLastAdd.Kind := ckAdd;
+    FLastAdd.x := x1;
+    FLastAdd.y := y1;
+    FLastAdd.Range := 1;
   end;
 
   procedure NewMod(x1, y1: Integer);
   begin
-    New(fLastMod);
-    fLastMod.Kind := ckModify;
-    fLastMod.x := x1;
-    fLastMod.y := y1;
-    fLastMod.Range := 1;
+    New(FLastMod);
+    FLastMod.Kind := ckModify;
+    FLastMod.x := x1;
+    FLastMod.y := y1;
+    FLastMod.Range := 1;
   end;
 
   procedure NewDel(x1: Integer);
   begin
-    New(fLastDel);
-    fLastDel.Kind := ckDelete;
-    fLastDel.x := x1;
-    fLastDel.y := 0;
-    fLastDel.Range := 1;
+    New(FLastDel);
+    FLastDel.Kind := ckDelete;
+    FLastDel.x := x1;
+    FLastDel.y := 0;
+    FLastDel.Range := 1;
   end;
 
   // 1. there can NEVER be concurrent fLastAdd and fLastDel record ranges.
@@ -516,35 +516,35 @@ var
 
   procedure Add(x1, y1: Integer);
   begin
-    if Assigned(fLastAdd) then //OTHER ADDS PENDING
+    if Assigned(FLastAdd) then //OTHER ADDS PENDING
     begin
-      if (fLastAdd.x = x1) and
-        (fLastAdd.y + fLastAdd.Range = y1) then
-        Inc(fLastAdd.Range) //add in series
+      if (FLastAdd.x = x1) and
+        (FLastAdd.y + FLastAdd.Range = y1) then
+        Inc(FLastAdd.Range) //add in series
       else
       begin
         PushAdd;
         NewAdd(x1, y1);
       end; //add NOT in series
     end
-    else if Assigned(fLastDel) then //NO ADDS BUT DELETES PENDING
+    else if Assigned(FLastDel) then //NO ADDS BUT DELETES PENDING
     begin
-      if x1 = fLastDel.x then //add matches pending del so modify ...
+      if x1 = FLastDel.x then //add matches pending del so modify ...
       begin
-        if Assigned(fLastMod) and (fLastMod.x + fLastMod.Range - 1 = x1) and
-          (fLastMod.y + fLastMod.Range - 1 = y1) then
-          Inc(fLastMod.Range) //modify in series
+        if Assigned(FLastMod) and (FLastMod.x + FLastMod.Range - 1 = x1) and
+          (FLastMod.y + FLastMod.Range - 1 = y1) then
+          Inc(FLastMod.Range) //modify in series
         else
         begin
           PushMod;
           NewMod(x1, y1);
         end; //start NEW modify
 
-        if fLastDel.Range = 1 then TrashDel //decrement or remove existing del
+        if FLastDel.Range = 1 then TrashDel //decrement or remove existing del
         else
         begin
-          Dec(fLastDel.Range);
-          Inc(fLastDel.x);
+          Dec(FLastDel.Range);
+          Inc(FLastDel.x);
         end;
       end
       else
@@ -559,33 +559,33 @@ var
 
   procedure Delete(x1: Integer);
   begin
-    if Assigned(fLastDel) then //OTHER DELS PENDING
+    if Assigned(FLastDel) then //OTHER DELS PENDING
     begin
-      if (fLastDel.x + fLastDel.Range = x1) then
-        Inc(fLastDel.Range) //del in series
+      if (FLastDel.x + FLastDel.Range = x1) then
+        Inc(FLastDel.Range) //del in series
       else
       begin
         PushDel;
         NewDel(x1);
       end; //del NOT in series
     end
-    else if Assigned(fLastAdd) then //NO DELS BUT ADDS PENDING
+    else if Assigned(FLastAdd) then //NO DELS BUT ADDS PENDING
     begin
-      if x1 = fLastAdd.x then //del matches pending add so modify ...
+      if x1 = FLastAdd.x then //del matches pending add so modify ...
       begin
-        if Assigned(fLastMod) and (fLastMod.x + fLastMod.Range = x1) then
-          Inc(fLastMod.Range) //mod in series
+        if Assigned(FLastMod) and (FLastMod.x + FLastMod.Range = x1) then
+          Inc(FLastMod.Range) //mod in series
         else
         begin
           PushMod;
-          NewMod(x1, fLastAdd.y);
+          NewMod(x1, FLastAdd.y);
         end; //start NEW modify ...
-        if fLastAdd.Range = 1 then TrashAdd //decrement or remove existing add
+        if FLastAdd.Range = 1 then TrashAdd //decrement or remove existing add
         else
         begin
-          Dec(fLastAdd.Range);
-          Inc(fLastAdd.x);
-          Inc(fLastAdd.y);
+          Dec(FLastAdd.Range);
+          Inc(FLastAdd.x);
+          Inc(FLastAdd.y);
         end;
       end
       else
@@ -634,19 +634,19 @@ procedure TCnStrDiff.ClearChanges;
 var
   i: Integer;
 begin
-  for i := 0 to fChangeList.Count - 1 do
-    dispose(PChangeRec(fChangeList[i]));
-  fChangeList.Clear;
+  for i := 0 to FChangeList.Count - 1 do
+    dispose(PChangeRec(FChangeList[i]));
+  FChangeList.Clear;
 end;
 
 function TCnStrDiff.GetChangeCount: Integer;
 begin
-  Result := fChangeList.Count;
+  Result := FChangeList.Count;
 end;
 
 function TCnStrDiff.GetChanges(Index: Integer): TChangeRec;
 begin
-  Result := PChangeRec(fChangeList[Index])^;
+  Result := PChangeRec(FChangeList[Index])^;
 end;
 
 end.

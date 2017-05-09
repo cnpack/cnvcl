@@ -66,7 +66,7 @@ type
     FOldTime: Integer;
     FNewTime: Integer;
     FRunSucced: Boolean;
-    UseTime: Integer;
+    FUseTime: Integer;
     FRecordList: TList;
     procedure SetConnection(const Value: TADOConnection);
     procedure SetIsStop(const Value: Boolean);
@@ -163,7 +163,7 @@ var
 begin
   inherited;
   FRunSucced := False;
-  UseTime := 0;
+  FUseTime := 0;
   FOld := GetTickCount;
   if FSqlList.Count > 0 then
   begin
@@ -186,7 +186,7 @@ begin
      end;
      CoUninitialize;
      FNew := GetTickCount;
-     UseTime := FNew - FOld;
+     FUseTime := FNew - FOld;
      if ExeFlag then
        for i := 0 to FSqlList.Count - 1 do
        begin
@@ -198,7 +198,7 @@ begin
          end;
        end;
 
-     msg := SCnUsedTime + #13#10#13#10 + inttostr(UseTime);
+     msg := SCnUsedTime + #13#10#13#10 + inttostr(FUseTime);
      FMsgList.Add(strNew(PChar(msg)));
      if not ExeFlag then
        SendMessage(FMsgHandle,CN_MSG_EXEFAIL,Integer(self),0)
@@ -256,7 +256,7 @@ begin
           exit;
         end;
         FNewTime := GetTickCount;
-        useTime := useTime + (FNewTime - FOldTime);
+        FUseTime := FUseTime + (FNewTime - FOldTime);
         Affected := RecordAffected;
         if not FIsParse then
         begin
@@ -320,7 +320,7 @@ begin
         on E: Exception do
         begin
           FNewTime := GetTickCount;
-          UseTime := usetime + (FNewTime - FOldTime);
+          FUseTime := FUseTime + (FNewTime - FOldTime);
           msg := E.Message + #13#10#13#10;
           FMsgList.Add(strNew(PChar(msg)));
           FConnection.RollbackTrans;

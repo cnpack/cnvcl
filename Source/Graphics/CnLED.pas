@@ -98,7 +98,6 @@ type
     procedure DrawHotCell(x: Integer; y: Integer); overload;
     procedure SetTxtDraw(const Value: string);
   protected
-    TimerInx: Integer;
     FTxtDraw: string;
     FBitBmp: TBitmap;
     FBackBmp: TBitmap;

@@ -3463,7 +3463,7 @@ begin
     TotSize := FileSize(AFile);
     IncSize := 0;
     Bool := True;
-    while (IncSize < TotSize) and (Bool = True) do
+    while (IncSize < TotSize) and Bool do
     begin
       ReadSize := Sett;
       if IncSize + ReadSize > TotSize then

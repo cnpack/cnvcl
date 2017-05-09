@@ -85,7 +85,7 @@ type
   TCnArrayList = class(TObject, ICnList)
   private
     FSize: integer;
-    elementData: TCnPodoList;
+    FElementData: TCnPodoList;
     procedure fastRemove(index: integer); stdcall;
   protected
     procedure RangeCheck(index: integer);
@@ -114,7 +114,7 @@ type
     procedure addAll(c: TCollection); overload; stdcall;
     procedure addAll(index: integer; c: TCollection); overload; stdcall;
     //procedure TCnArrayList.removeRange(fromIndex:integer;toIndex:integer);
-  end; 
+  end;
 
 {$ENDIF SUPPORT_ADO}
 
@@ -148,7 +148,7 @@ end;
 function TCnArrayList._Release: Integer;
 begin
   Result := -1;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -157,23 +157,23 @@ end;
 /// </summary>
 procedure TCnArrayList.trimToSize;
 var
-  oldCapacity: integer; 
+  oldCapacity: integer;
   // oldData           : TPodoList;
   i: integer;
 begin
   // modCount := modCount + 1;
-  oldCapacity := elementData.Count;
+  oldCapacity := FElementData.Count;
   if (Fsize < oldCapacity) then
   begin
     if Fsize <> 0 then
     begin
       for i := 0 to(oldCapacity - Fsize - 1) do
-        elementData.Remove(oldCapacity - i);
+        FElementData.Remove(oldCapacity - i);
     end
     else
-      elementData.Clear;
+      FElementData.Clear;
   end
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -188,7 +188,7 @@ var
   i: integer;
 begin
   // modCount := modCount + 1;
-  oldCapacity := elementData.Count;
+  oldCapacity := FElementData.Count;
   if minCapacity > oldCapacity then
   begin
     newCapacity := (oldCapacity * 3) div 2 + 1;
@@ -196,10 +196,10 @@ begin
       newCapacity := minCapacity;
     for i := 0 to(newCapacity - oldCapacity - 1) do
     begin
-      elementData.Add(nil);
+      FElementData.Add(nil);
     end;
   end;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -210,7 +210,7 @@ end;
 function TCnArrayList.size: Integer;
 begin
   result := Fsize;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -221,7 +221,7 @@ end;
 function TCnArrayList.isEmpty: Boolean;
 begin
   result := FSize = 0;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -233,7 +233,7 @@ end;
 function TCnArrayList.contains(elem: TObject): Boolean;
 begin
   result := indexOf(elem) > 0;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -247,9 +247,9 @@ begin
   Result := -1;
   if elem <> nil then
   begin
-    result := elementData.IndexOf(elem);
+    result := FElementData.IndexOf(elem);
   end;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -263,9 +263,9 @@ begin
   Result := -1;
   if elem <> nil then
   begin
-    result := elementData.lastIndexOf(elem);
+    result := FElementData.lastIndexOf(elem);
   end;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -275,8 +275,8 @@ end;
 /// <returns>元素列表</returns>
 function TCnArrayList.toArray: TCnPodoList;
 begin
-  result := elementData;
-end; 
+  result := FElementData;
+end;
 
 (******************************************************************************)
 /// .registed
@@ -288,8 +288,8 @@ end;
 function TCnArrayList._get(index: integer): TObject;
 begin
   RangeCheck(index);
-  result := elementData.Objects[index];
-end; 
+  result := FElementData.Objects[index];
+end;
 
 (******************************************************************************)
 /// .registed
@@ -304,10 +304,10 @@ var
   oldValue: TObject;
 begin
   RangeCheck(index);
-  oldValue := elementData.Objects[index];
-  elementData.Objects[index] := element;
+  oldValue := FElementData.Objects[index];
+  FElementData.Objects[index] := element;
   result := oldValue;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -318,9 +318,9 @@ end;
 /// <returns>old元素</returns>
 procedure TCnArrayList.add(o: TObject);
 begin
-  elementData.Add(o);
+  FElementData.Add(o);
   Fsize := Fsize + 1;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -331,9 +331,9 @@ end;
 /// <param name="element">元素</param>
 procedure TCnArrayList.add(index: integer; element: TObject);
 begin
-  elementData.Insert(index, element);
+  FElementData.Insert(index, element);
   Fsize := Fsize + 1;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -347,12 +347,12 @@ var
   oldValue: TObject;
 begin
   RangeCheck(index);
-  oldValue := elementData.Objects[index];
-  elementData.Remove(index);
-  Fsize := Fsize - 1; 
+  oldValue := FElementData.Objects[index];
+  FElementData.Remove(index);
+  Fsize := Fsize - 1;
   // modCount := modCount + 1;
   result := oldValue;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -363,10 +363,10 @@ end;
 /// <returns>old元素</returns>
 function TCnArrayList.remove(o: TObject): boolean;
 begin
-  result := elementData.Remove(o);
-  Fsize := Fsize - 1; 
+  result := FElementData.Remove(o);
+  Fsize := Fsize - 1;
   // modCount := modCount + 1;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -376,10 +376,10 @@ end;
 /// <param name="index">序号</param>
 procedure TCnArrayList.fastRemove(index: integer);
 begin
-  elementData.Remove(index);
-  Fsize := Fsize - 1; 
+  FElementData.Remove(index);
+  Fsize := Fsize - 1;
   // modCount := modCount + 1;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -388,10 +388,10 @@ end;
 /// </summary>
 procedure TCnArrayList.clear;
 begin
-  elementData.Clear;
-  Fsize := 0; 
+  FElementData.Clear;
+  Fsize := 0;
   // modCount := modCount + 1;
-end; 
+end;
 
 (******************************************************************************)
 procedure TCnArrayList.addAll(c: TCollection);
@@ -400,7 +400,7 @@ var
 begin
   for i := 0 to c.Count - 1 do
   begin
-    elementData.Add(TObject(c.Items[i]));
+    FElementData.Add(TObject(c.Items[i]));
   end;
 end;
 
@@ -410,9 +410,9 @@ var
 begin
   for i := 0 to c.Count - 1 do
   begin
-    elementData.Insert(index, TObject(c.Items[i]));
+    FElementData.Insert(index, TObject(c.Items[i]));
   end;
-end; 
+end;
 
 (******************************************************************************)
 /// .registed
@@ -422,7 +422,7 @@ end;
 /// <param name="index">序号</param>
 procedure TCnArrayList.RangeCheck(index: integer);
 begin
-  if (index < 0) or (index > elementData.Count - 1) then
+  if (index < 0) or (index > FElementData.Count - 1) then
   begin
     raise TCnOutOfArrayListIndexException.Create(OUT_OF_ARRAYLIST_INDEX_EXCEPTION_STRING);
     exit;

@@ -87,8 +87,8 @@ type
     procedure   RunSql;
     procedure   ParaseSql;
     procedure   StopRun;
-    property    DataSourceList: TList read GetSourceList;
-    property    MsgList: TStrings read GetMsgList;
+    property    FDataSourceList: TList read GetSourceList;
+    property    FMsgList: TStrings read GetMsgList;
     property    RunSucced: boolean read GetRunSucced;
   published
     { Published declarations }
@@ -113,12 +113,12 @@ type
   private
     FConnectionString: string;
     FConnection: TADOConnection;
-    RunThread: TRunThread;
+    FRunThread: TRunThread;
     FMsgHandle: THandle;
     FRunSucc: Boolean;
     FOnRunEnd: TRunSqlEvent;
-    DataSourceList: TList;
-    MsgList: TStringList;
+    FDataSourceList: TList;
+    FMsgList: TStringList;
     procedure SetConnection(const Value: TADOConnection);
     procedure SetConnectionString(const Value: string);
     procedure RunEnd(Sender: Tobject);
@@ -322,14 +322,14 @@ procedure TCnSqlRunner.ClearRecords;
 var
   Ds: TDataSource;
 begin
-  while DataSourceList.Count > 0 do
+  while FDataSourceList.Count > 0 do
   begin
-    Ds := TDataSource(DataSourceList.Items[DataSourceList.Count - 1]);
+    Ds := TDataSource(FDataSourceList.Items[FDataSourceList.Count - 1]);
     Ds.DataSet.Free;
     Ds.Free;
-    DataSourceList.Delete(DataSourceList.Count - 1);
+    FDataSourceList.Delete(FDataSourceList.Count - 1);
   end;
-  MsgList.Clear;
+  FMsgList.Clear;
 end;
 
 constructor TCnSqlRunner.CreateEx(AOwner: TComponent; AMsgHandle: THandle);
@@ -341,15 +341,15 @@ end;
 constructor TCnSqlRunner.Create(AOwner: TComponent);
 begin
   inherited;
-  DataSourceList := TList.Create;
-  MsgList := TStringList.Create;
+  FDataSourceList := TList.Create;
+  FMsgList := TStringList.Create;
 end;
 
 destructor TCnSqlRunner.Destroy;
 begin
   ClearRecords;
-  MsgList.Free;
-  DataSourceList.Free;
+  FMsgList.Free;
+  FDataSourceList.Free;
   inherited;
 end;
 
@@ -366,25 +366,25 @@ begin
   for i := 0 to Thread.RecordList.Count - 1 do
   begin
     Ds := Thread.RecordList.Items[i];
-    DataSourceList.Add(ds);
+    FDataSourceList.Add(ds);
   end;
 
   for i := 0 to Thread.MsgList.Count - 1 do
   begin
      tempstr := Thread.MsgList.Items[i];
-     MsgList.Add(string(tempstr));
+     FMsgList.Add(string(tempstr));
   end;
   FRunSucc := Thread.RunSucced;
 
   if Assigned(FOnRunEnd) then
-    FOnRunEnd(Self, DataSourceList, MsgList);
+    FOnRunEnd(Self, FDataSourceList, FMsgList);
 end;
 
 procedure TCnSqlRunner.RunSql(SqlText: string; OnlyParse: Boolean);
 var
   Con: TADOConnection;
 begin
-  RunThread := TRunThread.Create(true,FMsgHandle);
+  FRunThread := TRunThread.Create(true,FMsgHandle);
   if Connection = nil then
   begin
     if Trim(FConnectionString) <> '' then
@@ -393,37 +393,37 @@ begin
       Con.LoginPrompt := False;
       Con.ConnectionString := FConnectionString;
       //Con.ConnectOptions := coAsyncConnect;//使用异步方式查询
-      RunThread.Connection := con;
-      RunThread.DBProvider := Con.Provider;
+      FRunThread.Connection := con;
+      FRunThread.DBProvider := Con.Provider;
     end
     else
     begin
-      RunThread.MsgList.Add(strNew(pchar(SCnUnUseConstr)));
-      RunThread.Terminate;
+      FRunThread.MsgList.Add(strNew(pchar(SCnUnUseConstr)));
+      FRunThread.Terminate;
       raise Exception.Create(SCnUnUseConstr);
     end;
   end
   else
   begin
     //Connection.ConnectOptions := coAsyncConnect;//使用异步方式查询
-    RunThread.Connection := Connection;
-    RunThread.DBProvider := COnnection.Provider;
+    FRunThread.Connection := Connection;
+    FRunThread.DBProvider := COnnection.Provider;
   end;
-  RunThread.OnTerminate := RunEnd;
-  RunThread.IsParse := OnlyParse;
-  RunThread.FreeOnTerminate := True;
-  RunThread.Sql := SqlText;
-  RunThread.Resume;
+  FRunThread.OnTerminate := RunEnd;
+  FRunThread.IsParse := OnlyParse;
+  FRunThread.FreeOnTerminate := True;
+  FRunThread.Sql := SqlText;
+  FRunThread.Resume;
 end;
 
 procedure TCnSqlRunner.RunStop;
 begin
-  if not RunThread.IsStop then
+  if not FRunThread.IsStop then
   begin
-    RunThread.IsStop := True;
-    RunThread.Connection.Cancel;
-    RunThread.MsgList.Add(strNew(pchar(SCnOperateCancel)));
-    RunThread.Terminate;
+    FRunThread.IsStop := True;
+    FRunThread.Connection.Cancel;
+    FRunThread.MsgList.Add(strNew(pchar(SCnOperateCancel)));
+    FRunThread.Terminate;
   end;
 end;
 

@@ -430,7 +430,7 @@ begin
   else
   begin
     H := GetFocus;
-    while IsWindow(H) and (Result = False) do
+    while IsWindow(H) and not Result do
     begin
       if H = WindowHandle then
         Result := True
