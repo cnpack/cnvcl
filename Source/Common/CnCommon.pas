@@ -117,6 +117,8 @@ const
 
 function AnsiTrim(const S: AnsiString): AnsiString;
 
+function TrimBom(const S: AnsiString): AnsiString;
+
 //------------------------------------------------------------------------------
 // 扩展的文件目录操作函数
 //------------------------------------------------------------------------------
@@ -1855,6 +1857,18 @@ begin
     while S[L] <= ' ' do Dec(L);
     Result := Copy(S, I, L - I + 1);
   end;
+end;
+
+function TrimBom(const S: AnsiString): AnsiString;
+const
+  UTF8_BOM = #$EF#$BB#$BF;
+begin
+  if Length(S) < Length(UTF8_BOM) then
+    Result := S
+  else if Pos(UTF8_BOM, S) = 1 then
+    Result := Copy(S, Length(UTF8_BOM) + 1, MaxInt)
+  else
+    Result := S;
 end;
 
 //------------------------------------------------------------------------------
