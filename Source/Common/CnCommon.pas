@@ -550,6 +550,9 @@ function LinesToStr(const Lines: string): string;
 function StrToLines(const Str: string): string;
 {* 单行文本转多行（'\n'转换行符）}
 
+function WideStrToLines(const Str: WideString): WideString;
+{* 单行宽文本转多行（'\n'转换行符）}
+
 function MyDateToStr(Date: TDate): string;
 {* 日期转字符串，使用 yyyy.mm.dd 格式}
 
@@ -1103,6 +1106,15 @@ function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 function CnAnsiToUtf82(const Text: string): string;
 {* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 D2009 下 AnsiToUtf8 是 UString 的问题 }
 
+function CnUtf8EncodeWideString(const S: WideString): AnsiString;
+{* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符}
+
+function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
+{* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符}
+
+function WideStringReplace(const S, OldPattern, NewPattern: Widestring): Widestring;
+{* WideString 的全部替换实现，区分大小写}
+
 function DoubleEqual(const D1, D2: Double): Boolean;
 {* 判断浮点数是否相等（差足够小）}
 
@@ -1617,8 +1629,6 @@ end;
 // Ansi 字符串函数
 //==============================================================================
 
-{$IFDEF COMPILER5}
-
 // D5 下没有内置 UTF8/Ansi 转换函数
 
 function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
@@ -1754,18 +1764,17 @@ begin
   Result := Cnt + 1;
 end;
 
-function _CnUtf8Encode(const S: AnsiString): AnsiString;
+// 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
+function CnUtf8EncodeWideString(const S: WideString): AnsiString;
 var
   L: Integer;
   Temp: AnsiString;
-  WS: WideString;
 begin
   Result := '';
   if S = '' then Exit;
-  WS := WideString(S);
-  SetLength(Temp, Length(WS) * 3); // SetLength includes space for null terminator
+  SetLength(Temp, Length(S) * 3); // SetLength includes space for null terminator
 
-  L := InternalUnicodeToUtf8(PAnsiChar(Temp), Length(Temp) + 1, PWideChar(WS), Length(WS));
+  L := InternalUnicodeToUtf8(PAnsiChar(Temp), Length(Temp) + 1, PWideChar(S), Length(S));
   if L > 0 then
     SetLength(Temp, L - 1)
   else
@@ -1773,24 +1782,47 @@ begin
   Result := Temp;
 end;
 
-function _CnUtf8Decode(const S: AnsiString): AnsiString;
+// 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符
+function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
 var
   L: Integer;
-  Temp: WideString;
 begin
   Result := '';
   if S = '' then Exit;
-  SetLength(Temp, Length(S));
+  SetLength(Result, Length(S));
 
-  L := InternalUtf8ToUnicode(PWideChar(Temp), Length(Temp) + 1, PAnsiChar(S), Length(S));
+  L := InternalUtf8ToUnicode(PWideChar(Result), Length(Result) + 1, PAnsiChar(S), Length(S));
   if L > 0 then
-    SetLength(Temp, L - 1)
+    SetLength(Result, L - 1)
   else
-    Temp := '';
-  Result := AnsiString(Temp);
+    Result := '';
 end;
 
-{$ENDIF}
+// WideString 的全部替换实现，区分大小写
+function WideStringReplace(const S, OldPattern, NewPattern: Widestring): Widestring;
+var
+  SearchStr, Patt, NewStr: Widestring;
+  Offset: Integer;
+begin
+  SearchStr := S;
+  Patt := OldPattern;
+
+  NewStr := S;
+  Result := '';
+  while SearchStr <> '' do
+  begin
+    Offset := Pos(Patt, SearchStr);
+    if Offset = 0 then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end;
+    Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+    NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+
+    SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
+end;
 
 // Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
@@ -1801,7 +1833,7 @@ begin
   {$IFDEF COMPILER6_UP}
   Result := Utf8ToAnsi(Text);
   {$ELSE}
-  Result := _CnUtf8Decode(Text);
+  Result := AnsiString(CnUtf8DecodeToWideString(Text));
   {$ENDIF}
 {$ENDIF}
 end;
@@ -1814,7 +1846,7 @@ begin
   {$IFDEF COMPILER6_UP}
   Result := Utf8ToAnsi(Text);
   {$ELSE}
-  Result := _CnUtf8Decode(Text);
+  Result := AnsiString(CnUtf8DecodeToWideString(Text));
   {$ENDIF}
 {$ENDIF}
 end;
@@ -1827,7 +1859,7 @@ begin
   {$IFDEF COMPILER6_UP}
   Result := AnsiToUtf8(Text);
   {$ELSE}
-  Result := _CnUtf8Encode(Text);
+  Result := CnUtf8EncodeWideString(WideString(Text));
   {$ENDIF}
 {$ENDIF}
 end;
@@ -1840,7 +1872,7 @@ begin
   {$IFDEF COMPILER6_UP}
   Result := AnsiToUtf8(Text);
   {$ELSE}
-  Result := _CnUtf8Encode(Text);
+  Result := CnUtf8EncodeWideString(WideString(Text));
   {$ENDIF}
 {$ENDIF}
 end;
@@ -4600,6 +4632,12 @@ end;
 function StrToLines(const Str: string): string;
 begin
   Result := StringReplace(Str, csStrCR, csLinesCR, [rfReplaceAll]);
+end;
+
+// 单行宽文本转多行（'\n'转换行符）
+function WideStrToLines(const Str: WideString): WideString;
+begin
+  Result := WideStringReplace(Str, csStrCR, csLinesCR);
 end;
 
 // 日期转字符串，使用 yyyy.mm.dd 格式
