@@ -1106,11 +1106,15 @@ function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 function CnAnsiToUtf82(const Text: string): string;
 {* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 D2009 下 AnsiToUtf8 是 UString 的问题 }
 
+{$IFNDEF UNICODE}
+
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
 {* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符}
 
 function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
 {* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符}
+
+{$ENDIF}
 
 function WideStringReplace(const S, OldPattern, NewPattern: Widestring): Widestring;
 {* WideString 的全部替换实现，区分大小写}
@@ -1629,6 +1633,8 @@ end;
 // Ansi 字符串函数
 //==============================================================================
 
+{$IFNDEF UNICODE}
+
 // D5 下没有内置 UTF8/Ansi 转换函数
 
 function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
@@ -1798,10 +1804,12 @@ begin
     Result := '';
 end;
 
+{$ENDIF}
+
 // WideString 的全部替换实现，区分大小写
-function WideStringReplace(const S, OldPattern, NewPattern: Widestring): Widestring;
+function WideStringReplace(const S, OldPattern, NewPattern: WideString): WideString;
 var
-  SearchStr, Patt, NewStr: Widestring;
+  SearchStr, Patt, NewStr: WideString;
   Offset: Integer;
 begin
   SearchStr := S;
