@@ -460,6 +460,9 @@ type
     procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
     procedure EvaluateControlUnderPos(const ScreenPos: TPoint);
 
+    // 辅助过程
+    function ObjectFromInterface(const AIntf: IUnknown): TObject;
+
     // 其他属性
     property Channel: TCnDebugChannel read GetChannel;
     property Filter: TCnDebugFilter read GetFilter;
@@ -703,25 +706,6 @@ end;
 function TypeInfoName(TypeInfo: PTypeInfo): string;
 begin
   Result := string(TypeInfo^.Name);
-end;
-
-// 移植自 A.Bouchez 的实现
-function ObjectFromInterface(const AIntf: IUnknown): TObject;
-begin
-  Result := nil;
-  if AIntf = nil then
-    Exit;
-
-{$IFDEF SUPPORTS_INTERFACE_AS_OBJECT}
-  Result := AIntf as TObject;
-{$ELSE}
-  with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do
-  case Stub of
-    $04244483: Result := Pointer(Integer(AIntf) + ShortJmp);
-    $04244481: Result := Pointer(Integer(AIntf) + LongJmp);
-    else       Result := nil;
-  end;
-{$ENDIF}
 end;
 
 // 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
@@ -2541,6 +2525,25 @@ begin
   Control := FindVCLWindow(ScreenPos);
   if Control <> nil then
     EvaluateObject(Control);
+{$ENDIF}
+end;
+
+// 移植自 A.Bouchez 的实现
+function TCnDebugger.ObjectFromInterface(const AIntf: IUnknown): TObject;
+begin
+  Result := nil;
+  if AIntf = nil then
+    Exit;
+
+{$IFDEF SUPPORTS_INTERFACE_AS_OBJECT}
+  Result := AIntf as TObject;
+{$ELSE}
+  with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do
+  case Stub of
+    $04244483: Result := Pointer(Integer(AIntf) + ShortJmp);
+    $04244481: Result := Pointer(Integer(AIntf) + LongJmp);
+    else       Result := nil;
+  end;
 {$ENDIF}
 end;
 
