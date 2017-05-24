@@ -294,6 +294,7 @@ type
     // 统一处理 Format
     function FormatMsg(const AFormat: string; Args: array of const): string;
     function FormatConstArray(Args: array of const): string;
+    function FormatClassString(AClass: TClass): string;
     function FormatInterfaceString(AIntf: IUnknown): string;
     function FormatObjectInterface(AObj: TObject): string;
     function GUIDToString(const GUID: TGUID): string;
@@ -611,7 +612,7 @@ const
   SCnLastErrorFmt = 'Last Error (Code: %d): %s';
   SCnConstArray = 'Array of Const:';
   SCnClass = 'Class:';
-  SCnClassFmt = '%s ClassName %s. InstanceSize %d';
+  SCnClassFmt = '%s ClassName %s. InstanceSize %d%s%s';
   SCnInterface = 'Interface: ';
   SCnInterfaceFmt = '%s %s';
   SCnStackTraceFromAddress = 'Stack Trace';
@@ -759,6 +760,10 @@ var
   NextObject: TObject;
   FollowObject: Boolean;
 begin
+  List.Clear;
+  if PropOwner.ClassInfo = nil then
+    Exit;
+
   GetMem(PropertyList, SizeOf(TPropList));
   try
     Prefix := StringOfChar(' ', 2 * Level);
@@ -910,6 +915,53 @@ begin
   finally
     if NewLine <> '' then
       List.Add(NewLine);
+    FreeMem(PropertyList);
+  end;
+end;
+
+// 移植自 uDbg
+procedure AddClassToStringList(PropClass: TClass; List: TStrings; Level: Integer);
+type
+  TIntegerSet = set of 0..SizeOf(Integer) * 8 - 1; // see Classes.pas
+var
+  PropIdx: Integer;
+  PropertyList: ^TPropList;
+  PropertyName: string;
+  PropertyInfo: PPropInfo;
+  N: Integer;
+  Prefix: string;
+  NewLine: string;
+  EnumName: string;
+  NextObject: TObject;
+  FollowObject: Boolean;
+begin
+  List.Clear;
+  if PropClass.ClassInfo = nil then
+    Exit;
+
+  GetMem(PropertyList, SizeOf(TPropList));
+  try
+    Prefix := StringOfChar(' ', 2 * Level);
+    // Build list of published properties
+    FillChar(PropertyList^[0], SizeOf(TPropList), #00);
+    GetPropList(PropClass.ClassInfo, tkProperties - [tkArray, tkRecord,
+      tkInterface], @PropertyList^[0]);
+
+    // Process property list
+    PropIdx := 0;
+    while ((PropIdx < High(PropertyList^)) and (nil <> PropertyList^[PropIdx])) do
+    begin
+      // Get information about found properties
+      PropertyInfo := PropertyList^[PropIdx];
+      PropertyName := PropInfoName(PropertyInfo);
+
+      NewLine := Prefix + '  ' + PropertyName;
+      List.Add(NewLine);
+
+      // Next item in the property list
+      Inc(PropIdx);
+    end;
+  finally
     FreeMem(PropertyList);
   end;
 end;
@@ -2953,9 +3005,11 @@ procedure TCnDebugger.LogClass(const AClass: TClass; const AMsg: string);
 begin
 {$IFDEF DEBUG}
   if AMsg = '' then
-    LogFmt(SCnClassFmt, [SCnClass, AClass.ClassName, AClass.InstanceSize])
+    LogFmt(SCnClassFmt, [SCnClass, AClass.ClassName, AClass.InstanceSize,
+      #13#10, FormatClassString(AClass)])
   else
-    LogFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize]);
+    LogFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize,
+      #13#10, FormatClassString(AClass)]);
 {$ENDIF}
 end;
 
@@ -2972,9 +3026,11 @@ end;
 procedure TCnDebugger.TraceClass(const AClass: TClass; const AMsg: string);
 begin
   if AMsg = '' then
-    TraceFmt(SCnClassFmt, [SCnClass, AClass.ClassName, AClass.InstanceSize])
+    TraceFmt(SCnClassFmt, [SCnClass, AClass.ClassName, AClass.InstanceSize,
+      #13#10, FormatClassString(AClass)])
   else
-    TraceFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize]);
+    TraceFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize,
+      #13#10, FormatClassString(AClass)]);
 end;
 
 procedure TCnDebugger.TraceInterface(const AIntf: IUnknown; const AMsg: string);
@@ -2983,6 +3039,24 @@ begin
     TraceFmt(SCnInterfaceFmt, [SCnInterface, FormatInterfaceString(AIntf)])
   else
     TraceFmt(SCnInterfaceFmt, [AMsg, FormatInterfaceString(AIntf)]);
+end;
+
+function TCnDebugger.FormatClassString(AClass: TClass): string;
+var
+  List: TStrings;
+begin
+  List := nil;
+  try
+    try
+      List := TStringList.Create;
+      AddClassToStringList(AClass, List, 0);
+    except
+      List.Add(SCnObjException);
+    end;
+    Result := List.Text;
+  finally
+    List.Free;
+  end;
 end;
 
 function TCnDebugger.FormatInterfaceString(AIntf: IUnknown): string;
