@@ -928,12 +928,8 @@ var
   PropertyList: ^TPropList;
   PropertyName: string;
   PropertyInfo: PPropInfo;
-  N: Integer;
   Prefix: string;
   NewLine: string;
-  EnumName: string;
-  NextObject: TObject;
-  FollowObject: Boolean;
 begin
   List.Clear;
   if PropClass.ClassInfo = nil then
