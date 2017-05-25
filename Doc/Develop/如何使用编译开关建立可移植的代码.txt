@@ -137,15 +137,15 @@ Jedi.inc 提供了如下的条件定义指令：
   这些功能指令可以用来测试是否编译器支持指定的功能，例如，方法重载等，然后调整相应的代码。
   指令                   说明
   ------------------------------------------------------------------------------
-  SUPPORTS_WIDESTRING    编译器支持 WideString 类型 (D3/BCB3 up)
-  SUPPORTS_INTERFACE     编译器支持 interfaces 类型(D3/BCB3)
-  SUPPORTS_EXTSYM        编译器支持 $EXTERNALSYM 指令 (D4/BCB3)
-  SUPPORTS_NODEFINE      编译器支持 $NODEFINE 指令 (D4/BCB3)
-  SUPPORTS_INT64         编译器支持 Int64 类型 (D4/BCB4)
-  SUPPORTS_DYNAMICARRAYS 编译器支持动态数组(dynamic arrays) (D4/BCB4)
-  SUPPORTS_DEFAULTPARAMS 编译器支持默认参数(default parameters) (D4/BCB4)
-  SUPPORTS_OVERLOAD      编译器支持重载 overloading (D4/BCB4)
-  SUPPORTS_ENUMVALUES    编译器支持 enum values (D6/KYLIX) [Added by Riceball]
-  SUPPORTS_VARIANTS      编译器支持用户自定义变体类型 Variants user-installable types. (D6/KYLIX) [Added by Riceball]
-  SUPPORTS_IFDIRECTIVE   编译器支持 $IF 指令. (D6/KYLIX) [Added by Riceball]
+  SUPPORT_WIDESTRING    编译器支持 WideString 类型 (D3/BCB3 up)
+  SUPPORT_INTERFACE     编译器支持 interfaces 类型(D3/BCB3)
+  SUPPORT_EXTSYM        编译器支持 $EXTERNALSYM 指令 (D4/BCB3)
+  SUPPORT_NODEFINE      编译器支持 $NODEFINE 指令 (D4/BCB3)
+  SUPPORT_INT64         编译器支持 Int64 类型 (D4/BCB4)
+  SUPPORT_DYNAMICARRAYS 编译器支持动态数组(dynamic arrays) (D4/BCB4)
+  SUPPORT_DEFAULTPARAMS 编译器支持默认参数(default parameters) (D4/BCB4)
+  SUPPORT_OVERLOAD      编译器支持重载 overloading (D4/BCB4)
+  SUPPORT_ENUMVALUES    编译器支持 enum values (D6/KYLIX) [Added by Riceball]
+  SUPPORT_VARIANTS      编译器支持用户自定义变体类型 Variants user-installable types. (D6/KYLIX) [Added by Riceball]
+  SUPPORT_IFDIRECTIVE   编译器支持 $IF 指令. (D6/KYLIX) [Added by Riceball]
 

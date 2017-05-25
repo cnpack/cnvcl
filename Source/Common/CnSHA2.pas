@@ -400,7 +400,7 @@ implementation
 type
   TSHAType = (stSHA224, stSHA256, stSHA384, stSHA512);
 
-{$IFDEF SUPPORTS_UINT64}
+{$IFDEF SUPPORT_UINT64}
   TUInt64 = UInt64;
 {$ELSE}
   // D 5,6,7 下暂且用有符号的 Int64 来代替无符号的 Int64

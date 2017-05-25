@@ -42,7 +42,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Controls,
-  {$IFDEF SUPPORTS_CROSS_PLATFORM} Data.Win.ADODB {$ELSE} ADODB {$ENDIF},
+  {$IFDEF SUPPORT_CROSS_PLATFORM} Data.Win.ADODB {$ELSE} ADODB {$ENDIF},
   Provider,
   {$IFDEF COMPILER6_UP}
   DesignIntf, DesignEditors

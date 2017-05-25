@@ -167,7 +167,7 @@ type
 
   ICnRedisCommand280 = interface(IInterface)
     ['{3F9E4F71-0F9D-43F9-B4D2-6A6284E5EFFE}']
-{$IFDEF IDE_EDITOR_SUPPORTS_FOLDING}
+{$IFDEF IDE_EDITOR_SUPPORT_FOLDING}
     {$REGION '==========Redis Command v2.8=========='}
 {$ENDIF}
     //--------------------------KEY----------------------------//
@@ -370,7 +370,7 @@ type
     function SLOWLOGRESET: Boolean; //清空当前日志
     function SYNC: string; //用于复制功能(replication)的内部命令。
     function TIME: TCnRedisKeyValue;  //一个包含两个字符串的列表： 第一个字符串是当前时间(以 UNIX 时间戳格式表示)，而第二个字符串是当前这一秒钟已经逝去的微秒数。
-{$IFDEF IDE_EDITOR_SUPPORTS_FOLDING}
+{$IFDEF IDE_EDITOR_SUPPORT_FOLDING}
    {$ENDREGION}
 {$ENDIF}
   end;
@@ -405,7 +405,7 @@ type
     function PipelineEnd(Recv: TCnRedisMultiBulk): Boolean;
     procedure SetRedisServer(const Host: string; Port: Word; const Password: string);
     property Connecting: Boolean read GetConnecting;
-{$IFDEF IDE_EDITOR_SUPPORTS_FOLDING}
+{$IFDEF IDE_EDITOR_SUPPORT_FOLDING}
     {$REGION '==========Redis Command v2.8=========='}
 {$ENDIF}
     //--------------------------KEY----------------------------//
@@ -629,14 +629,14 @@ type
     function SLOWLOGRESET: Boolean; virtual; abstract;
     function SYNC: string; virtual; abstract;
     function TIME: TCnRedisKeyValue; virtual; abstract;
-{$IFDEF IDE_EDITOR_SUPPORTS_FOLDING}
+{$IFDEF IDE_EDITOR_SUPPORT_FOLDING}
    {$ENDREGION}
 {$ENDIF}
   end;
 
   TCnRedisClient = class(TCnRedisProtocol)
   public
-{$IFDEF IDE_EDITOR_SUPPORTS_FOLDING}
+{$IFDEF IDE_EDITOR_SUPPORT_FOLDING}
     {$REGION '==========Redis Command=========='}
 {$ENDIF}
     //--------------------------KEY----------------------------//
@@ -837,7 +837,7 @@ type
     function SLOWLOGGET(const Parameter: string): TCnRedisMultiBulk; override;
     function SLOWLOGRESET: Boolean; override;
     function TIME: TCnRedisKeyValue; override;
-{$IFDEF IDE_EDITOR_SUPPORTS_FOLDING}
+{$IFDEF IDE_EDITOR_SUPPORT_FOLDING}
    {$ENDREGION}
 {$ENDIF}
   end;

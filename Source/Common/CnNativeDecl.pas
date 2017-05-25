@@ -49,7 +49,7 @@ uses
   Classes, Windows, SysUtils;
 
 type
-{$IFDEF SUPPORTS_32_AND_64}
+{$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
   TCnNativeUInt    = NativeUInt;
   TCnNativePointer = NativeUInt;
@@ -63,7 +63,7 @@ type
   TCnUInt64        = NativeUInt;
   TCnInt64         = NativeInt;
 {$ELSE}
-  {$IFDEF SUPPORTS_UINT64}
+  {$IFDEF SUPPORT_UINT64}
   TCnUInt64        = UInt64;
   {$ELSE}
   TCnUInt64 = packed record  // 只能用这样的结构代替

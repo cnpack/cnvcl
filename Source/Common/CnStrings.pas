@@ -330,7 +330,7 @@ begin
   end;
 end;
 
-function LowChar(AChar: Char): Char; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function LowChar(AChar: Char): Char; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if AChar in ['A'..'Z'] then
     Result := Chr(Ord(AChar) + 32)

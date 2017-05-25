@@ -80,7 +80,7 @@ uses
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxUtils,
 {$ENDIF}
   FileCtrl, ShellAPI, CommDlg, MMSystem, StdCtrls, TLHelp32, ActiveX, ShlObj,
@@ -1131,7 +1131,7 @@ function SingleEqual(const S1, S2: Single): Boolean;
 function CodePageOnlySupportsEnglish: Boolean;
 {* 判断当前平台是否只支持英文，用于处理防止 Unicode -> Ansi 时丢字符的问题}
 
-function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 粗略判断一个 Unicode 宽字符是否占两个字符宽度}
 
 function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean = True): Integer;
@@ -1155,7 +1155,7 @@ function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Int
 {* 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
    等于转 WideString 后 Copy(1, WideOffset) 再转回 Utf8 再取 Length，但不用 Utf8/WideString 互转，以避免额外的编码问题}
 
-function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算一个 WideChar 转换成 Utf8 后的字符长度}
 
 function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
@@ -1200,7 +1200,7 @@ begin
 end;
 
 // 粗略判断一个 Unicode 宽字符是否占两个字符宽度
-function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := Ord(AWChar) > SCN_UTF16_ANSI_WIDE_CHAR_SEP; // 姑且认为比 $900 大的 Utf16 字符才占俩字节
 end;
@@ -6291,7 +6291,7 @@ begin
     end;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   if CnFmxIsInheritedFromControl(AControl) then
     Result := CnFmxGetControlRect(AControl);
 {$ENDIF}
@@ -6313,7 +6313,7 @@ begin
     TControl(AControl).SetBounds(P1.x, P1.y, P2.x - P1.x, P2.y - P1.y);
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   if CnFmxIsInheritedFromControl(AControl) then
     CnFmxSetControlRect(AControl, ARect);
 {$ENDIF}
@@ -6327,7 +6327,7 @@ begin
     Result := TControl(AControl).Parent;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   Result := CnFmxGetControlParent(AControl);
 {$ELSE}
   Result := nil;
@@ -6342,7 +6342,7 @@ begin
     Result := TControl(AControl).Top;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptTop);
 {$ELSE}
   Result := -1;
@@ -6357,7 +6357,7 @@ begin
     Result := TControl(AControl).Left;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptLeft);
 {$ELSE}
   Result := -1;
@@ -6372,7 +6372,7 @@ begin
     Result := TControl(AControl).Width;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptWidth);
 {$ELSE}
   Result := -1;
@@ -6387,7 +6387,7 @@ begin
     Result := TControl(AControl).Height;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   Result := CnFmxGetControlPositionValue(AControl, fptHeight);
 {$ELSE}
   Result := -1;
@@ -6402,7 +6402,7 @@ begin
     TControl(AControl).Top := AValue;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxSetControlPositionValue(AControl, AValue, fptTop);
 {$ENDIF}
 end;
@@ -6415,7 +6415,7 @@ begin
     TControl(AControl).Left := AValue;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxSetControlPositionValue(AControl, AValue, fptLeft);
 {$ENDIF}
 end;
@@ -6428,7 +6428,7 @@ begin
     TControl(AControl).Width := AValue;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxSetControlPositionValue(AControl, AValue, fptWidth);
 {$ENDIF}
 end;
@@ -6441,7 +6441,7 @@ begin
     TControl(AControl).Height := AValue;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxSetControlPositionValue(AControl, AValue, fptHeight);
 {$ENDIF}
 end;
@@ -6454,7 +6454,7 @@ begin
     TControl(AControl).BringToFront;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxControlBringToFront(AControl);
 {$ENDIF}
 end;
@@ -6467,7 +6467,7 @@ begin
     TControl(AControl).SendToBack;
     Exit;
   end;
-{$IFDEF SUPPORTS_FMX}
+{$IFDEF SUPPORT_FMX}
   CnFmxControlSendToBack(AControl);
 {$ENDIF}
 end;

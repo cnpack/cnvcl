@@ -450,7 +450,7 @@ type
     FCaseSensitive: Boolean;
     FOnlyChar: Boolean;
     FAnsiFastMode: Boolean;
-    function ConvertCharWithCase(C: Char): Char; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+    function ConvertCharWithCase(C: Char): Char; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     {* 根据大小写设置，返回原字符或大写字母（如果是小写字母）}
   protected
     function GetRoot: TCnTrieLeaf;

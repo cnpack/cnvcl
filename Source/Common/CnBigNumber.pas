@@ -204,7 +204,7 @@ procedure BigNumberInit(const Num: TCnBigNumber);
 procedure BigNumberClear(const Num: TCnBigNumber);
 {* 清除一个大数对象，并将其数据空间填 0，并不释放 D 内存 }
 
-function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 返回一个大数对象里的大数是否为 0 }
 
 function BigNumberSetZero(const Num: TCnBigNumber): Boolean;
@@ -470,12 +470,12 @@ end;
 
 {* 大数池操作方法结束}
 
-procedure BigNumberSetFlag(const Num: TCnBigNumber; N: Integer); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+procedure BigNumberSetFlag(const Num: TCnBigNumber; N: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Num.Flags := Num.Flags or N;
 end;
 
-function BigNumberGetFlag(const Num: TCnBigNumber; N: Integer): Integer; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function BigNumberGetFlag(const Num: TCnBigNumber; N: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := Num.Flags and N;
 end;
@@ -502,7 +502,7 @@ begin
   Num.Free;
 end;
 
-function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Num.Top = 0);
 end;
@@ -533,7 +533,7 @@ begin
   Result := BigNumberSetWord(Num, 1);
 end;
 
-function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if (Num.Top > 0) and ((PDWordArray(Num.D)^[0] and 1) <> 0) then
     Result := True
@@ -1218,17 +1218,17 @@ begin
   Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
 end;
 
-function LBITS(Num: DWORD): DWORD; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function LBITS(Num: DWORD): DWORD; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := Num and BN_MASK2l;
 end;
 
-function HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Num shr BN_BITS4) and BN_MASK2l;
 end;
 
-function L2HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function L2HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Num shl BN_BITS4) and BN_MASK2;
 end;

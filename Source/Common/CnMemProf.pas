@@ -93,7 +93,7 @@ const
   MaxCount = High(Word);
 
 type
-{$IFDEF SUPPORTS_32_AND_64}
+{$IFDEF SUPPORT_32_AND_64}
   TCnMemProofInteger = NativeInt;
 {$ELSE}
   TCnMemProofInteger = Integer;

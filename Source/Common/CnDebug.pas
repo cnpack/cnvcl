@@ -640,7 +640,7 @@ type
   TCnNativeInt = Integer;
 {$ENDIF}
 
-{$IFNDEF SUPPORTS_INTERFACE_AS_OBJECT}
+{$IFNDEF SUPPORT_INTERFACE_AS_OBJECT}
 type
   PPointer = ^Pointer;
   TObjectFromInterfaceStub = packed record
@@ -2605,7 +2605,7 @@ begin
   if AIntf = nil then
     Exit;
 
-{$IFDEF SUPPORTS_INTERFACE_AS_OBJECT}
+{$IFDEF SUPPORT_INTERFACE_AS_OBJECT}
   Result := AIntf as TObject;
 {$ELSE}
   with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do

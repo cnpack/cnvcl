@@ -41,7 +41,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics,
 {$IFDEF SUPPORT_ADO}
-  {$IFDEF SUPPORTS_CROSS_PLATFORM} Data.Win.AdoConEd {$ELSE} AdoConEd {$ENDIF},
+  {$IFDEF SUPPORT_CROSS_PLATFORM} Data.Win.AdoConEd {$ELSE} AdoConEd {$ENDIF},
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
   DesignIntf, DesignEditors,
