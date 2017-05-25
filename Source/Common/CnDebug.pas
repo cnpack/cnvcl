@@ -365,6 +365,7 @@ type
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
     procedure LogSize(Size: TSize; const AMsg: string = '');
     procedure LogRect(Rect: TRect; const AMsg: string = '');
+    procedure LogGUID(const GUID: TGUID; const AMsg: string = '');
     procedure LogRawString(const Value: string);
     procedure LogRawAnsiString(const Value: AnsiString);
     procedure LogRawWideString(const Value: WideString);
@@ -429,6 +430,7 @@ type
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
     procedure TraceSize(Size: TSize; const AMsg: string = '');
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
+    procedure TraceGUID(const GUID: TGUID; const AMsg: string = '');
     procedure TraceRawString(const Value: string);
     procedure TraceRawAnsiString(const Value: AnsiString);
     procedure TraceRawWideString(const Value: WideString);
@@ -604,6 +606,7 @@ const
   SCnPoint = 'Point: ';
   SCnSize = 'Size: ';
   SCnRect = 'Rect: ';
+  SCnGUID = 'GUID: ';
   SCnVirtualKeyFmt = 'VirtualKey: %d($%2.2x), %s';
   SCnException = 'Exception:';
   SCnNilComponent = 'Component is nil.';
@@ -1852,6 +1855,16 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogGUID(const GUID: TGUID; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogMsg(SCnGUID + GUIDToString(GUID))
+  else
+    LogFmt('%s %s', [AMsg, GUIDToString(GUID)]);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogSeparator;
 begin
 {$IFDEF DEBUG}
@@ -2447,6 +2460,14 @@ begin
     TraceMsg(SCnRect + RectToString(Rect))
   else
     TraceFmt('%s %s', [AMsg, RectToString(Rect)]);
+end;
+
+procedure TCnDebugger.TraceGUID(const GUID: TGUID; const AMsg: string);
+begin
+  if AMsg = '' then
+    LogMsg(SCnGUID + GUIDToString(GUID))
+  else
+    LogFmt('%s %s', [AMsg, GUIDToString(GUID)]);
 end;
 
 procedure TCnDebugger.TraceSeparator;
