@@ -699,11 +699,6 @@ begin
   // MessageBox(0, PChar(AMsg), 'Error', MB_OK or MB_ICONWARNING);
 end;
 
-function PropInfoName(PropInfo: PPropInfo): string;
-begin
-  Result := string(PropInfo^.Name);
-end;
-
 function TypeInfoName(TypeInfo: PTypeInfo): string;
 begin
   Result := string(TypeInfo^.Name);
@@ -745,6 +740,7 @@ var
   PropIdx: Integer;
   PropertyList: ^TPropList;
   PropertyName: string;
+  PropertyTypeName: string;
   PropertyInfo: PPropInfo;
   PropertyType: PTypeInfo;
   PropertyKind: TTypeKind;
@@ -779,12 +775,14 @@ begin
       PropertyInfo := PropertyList^[PropIdx];
       PropertyType := PropertyInfo^.PropType^;
       PropertyKind := PropertyType^.Kind;
-      PropertyName := PropInfoName(PropertyInfo);
+      PropertyName := string(PropertyInfo^.Name);
+      PropertyTypeName := string(PropertyType^.Name);
+
       // Write only property
       GetProc := PropertyInfo^.GetProc;
       if not Assigned(GetProc) then
       begin
-        NewLine := Prefix + '  ' + PropertyName + ' = <' +
+        NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = <' +
           TypeInfoName(PropertyType) + '> (can''t be read)';
         List.Add(NewLine);
       end
@@ -796,7 +794,7 @@ begin
               BaseType := GetTypeData(PropertyType)^.CompType^;
               BaseData := GetTypeData(BaseType);
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
-              NewLine := Prefix + '+ ' + PropertyName + ' = [' +
+              NewLine := Prefix + '+ ' + PropertyName + ': ' + PropertyTypeName + ' = [' +
                 TypeInfoName(BaseType) + ']';
               List.Add(NewLine);
               for N := BaseData^.MinValue to BaseData^.MaxValue do
@@ -815,20 +813,20 @@ begin
           tkInteger:
             begin
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
-              NewLine := Prefix + '  ' + PropertyName + ' = ' + IntToStr(OrdValue);
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' + IntToStr(OrdValue);
               List.Add(NewLine);
             end;
           tkChar:
             begin
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
-              NewLine := Prefix + '  ' + PropertyName + ' = ' + '#$' +
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' + '#$' +
                 IntToHex(OrdValue, 2);
               List.Add(NewLine);
             end;
           tkWChar:
             begin
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
-              NewLine := Prefix + '  ' + PropertyName + ' = #$' + IntToHex(OrdValue, 4);
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = #$' + IntToHex(OrdValue, 4);
               List.Add(NewLine);
             end;
           tkClass:
@@ -836,14 +834,14 @@ begin
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
               if OrdValue = 0 then
               begin
-                NewLine := Prefix + '  ' + PropertyName + ' = <' +
+                NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = <' +
                   TypeInfoName(PropertyType) + '> (not assigned)';
                 List.Add(NewLine);
               end
               else
               begin
                 NextObject := TObject(OrdValue);
-                NewLine := Prefix + '  ' + PropertyName + ' = <' +
+                NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = <' +
                   TypeInfoName(PropertyType) + '>';
                 if NextObject is TComponent then
                 begin
@@ -869,39 +867,39 @@ begin
           tkFloat:
             begin
               FloatValue := GetFloatProp(PropOwner, PropertyInfo);
-              NewLine := Prefix + '  ' + PropertyName + ' = ' +
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' +
                 FormatFloat('n', FloatValue);
               List.Add(NewLine);
             end;
           tkEnumeration:
             begin
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
-              NewLine := Prefix + '  ' + PropertyName + ' = ' +
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' +
                 GetEnumName(PropertyType, OrdValue);
               List.Add(NewLine);
             end;
           tkString, tkLString, tkWString {$IFNDEF VER130} {$IF RTLVersion > 19.00}, tkUString{$IFEND} {$ENDIF}:
             begin
-              NewLine := Prefix + '  ' + PropertyName + ' = ' + '''' +
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' + '''' +
                 GetStrProp(PropOwner, PropertyInfo) + '''';
               List.Add(NewLine);
             end;
           tkVariant:
             begin
-              NewLine := Prefix + '  ' + PropertyName + ' = ' +
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' +
                 GetVariantProp(PropOwner, PropertyInfo);
               List.Add(NewLine);
             end;
           tkMethod:
             begin
-              NewLine := Prefix + '  ' + PropertyName + ' = (' +
+              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = (' +
                 GetEnumName(TypeInfo(TMethodKind),
                 Ord(GetTypeData(PropertyType)^.MethodKind)) + ')';
               List.Add(NewLine);
             end;
         else
           begin
-            NewLine := Prefix + '  ' + PropertyName + ' = <' +
+            NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = <' +
               TypeInfoName(PropertyType) + '> ('
               + GetEnumName(TypeInfo(TTypeKind), Ord(PropertyKind)) + ')';
             List.Add(NewLine);
@@ -919,7 +917,6 @@ begin
   end;
 end;
 
-// ÒÆÖ²×Ô uDbg
 procedure AddClassToStringList(PropClass: TClass; List: TStrings; Level: Integer);
 type
   TIntegerSet = set of 0..SizeOf(Integer) * 8 - 1; // see Classes.pas
@@ -928,6 +925,8 @@ var
   PropertyList: ^TPropList;
   PropertyName: string;
   PropertyInfo: PPropInfo;
+  PropertyType: PTypeInfo;
+  PropertyTypeName: string;
   Prefix: string;
   NewLine: string;
 begin
@@ -949,9 +948,11 @@ begin
     begin
       // Get information about found properties
       PropertyInfo := PropertyList^[PropIdx];
-      PropertyName := PropInfoName(PropertyInfo);
+      PropertyName := string(PropertyInfo^.Name);
+      PropertyType := PropertyInfo^.PropType^;
+      PropertyTypeName := string(PropertyType^.Name);
 
-      NewLine := Prefix + '  ' + PropertyName;
+      NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName;
       List.Add(NewLine);
 
       // Next item in the property list
