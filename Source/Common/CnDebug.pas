@@ -615,6 +615,7 @@ const
   SCnLastErrorFmt = 'Last Error (Code: %d): %s';
   SCnConstArray = 'Array of Const:';
   SCnClass = 'Class:';
+  SCnHierarchy = 'Hierarchy:';
   SCnClassFmt = '%s ClassName %s. InstanceSize %d%s%s';
   SCnInterface = 'Interface: ';
   SCnInterfaceFmt = '%s %s';
@@ -735,6 +736,18 @@ begin
   Result := '[' + Result + ']';
 end;
 
+function GetClassHierarchyString(AClass: TClass): string;
+begin
+  Result := '';
+  while AClass <> nil do
+  begin
+    Result := Result + AClass.ClassName;
+    AClass := AClass.ClassParent;
+    if AClass <> nil then
+      Result := Result + ' <- ';
+  end;
+end;
+
 // ÒÆÖ²×Ô uDbg
 procedure AddObjectToStringList(PropOwner: TObject; List: TStrings; Level: Integer);
 type
@@ -759,13 +772,15 @@ var
   NextObject: TObject;
   FollowObject: Boolean;
 begin
-  List.Clear;
   if PropOwner.ClassInfo = nil then
     Exit;
 
+  Prefix := StringOfChar(' ', 2 * Level);
+  List.Add(Prefix + SCnClass + PropOwner.ClassName);
+  List.Add(Prefix + SCnHierarchy + GetClassHierarchyString(PropOwner.ClassType));
+
   GetMem(PropertyList, SizeOf(TPropList));
   try
-    Prefix := StringOfChar(' ', 2 * Level);
     // Build list of published properties
     FillChar(PropertyList^[0], SizeOf(TPropList), #00);
     GetPropList(PropOwner.ClassInfo, tkProperties - [tkArray, tkRecord,
@@ -933,13 +948,15 @@ var
   Prefix: string;
   NewLine: string;
 begin
-  List.Clear;
   if PropClass.ClassInfo = nil then
     Exit;
 
+  Prefix := StringOfChar(' ', 2 * Level);
+  List.Add(Prefix + SCnHierarchy + GetClassHierarchyString(PropClass));
+
   GetMem(PropertyList, SizeOf(TPropList));
   try
-    Prefix := StringOfChar(' ', 2 * Level);
+
     // Build list of published properties
     FillChar(PropertyList^[0], SizeOf(TPropList), #00);
     GetPropList(PropClass.ClassInfo, tkProperties - [tkArray, tkRecord,
@@ -3127,6 +3144,7 @@ begin
       begin
         IntfEntry := @IntfTable.Entries[I];
         Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID);
+        // TODO: If Enhanced RTTI, using IID to Find Actual Interface Type and Parse Methods.
       end;
     end;
     ClassPtr := ClassPtr.ClassParent;
