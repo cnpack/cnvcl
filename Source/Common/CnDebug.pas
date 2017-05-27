@@ -772,12 +772,15 @@ var
   NextObject: TObject;
   FollowObject: Boolean;
 begin
-  if PropOwner.ClassInfo = nil then
+  if PropOwner = nil then  if PropOwner.ClassInfo = nil then
     Exit;
 
   Prefix := StringOfChar(' ', 2 * Level);
   List.Add(Prefix + SCnClass + PropOwner.ClassName);
   List.Add(Prefix + SCnHierarchy + GetClassHierarchyString(PropOwner.ClassType));
+
+  if PropOwner.ClassInfo = nil then
+    Exit;
 
   GetMem(PropertyList, SizeOf(TPropList));
   try
@@ -948,11 +951,11 @@ var
   Prefix: string;
   NewLine: string;
 begin
-  if PropClass.ClassInfo = nil then
-    Exit;
-
   Prefix := StringOfChar(' ', 2 * Level);
   List.Add(Prefix + SCnHierarchy + GetClassHierarchyString(PropClass));
+
+  if PropClass.ClassInfo = nil then
+    Exit;
 
   GetMem(PropertyList, SizeOf(TPropList));
   try
@@ -3098,6 +3101,7 @@ function TCnDebugger.FormatInterfaceString(AIntf: IUnknown): string;
 var
   Obj: TObject;
   Intfs: string;
+  List: TStrings;
 begin
   Result := IntToHex(TCnNativeInt(AIntf), CN_HEX_DIGITS);
   if AIntf <> nil then
@@ -3105,8 +3109,16 @@ begin
     Obj := ObjectFromInterface(AIntf);
     if Obj <> nil then
     begin
-      Result := Result + ' ' + SCnCRLF + Obj.ClassName + ': ' +
+      Result := Result + ' ' + SCnCRLF + ' ' + Obj.ClassName + ': ' +
         IntToHex(Integer(Obj), CN_HEX_DIGITS);
+
+      List := TStringList.Create;
+      try
+        AddObjectToStringList(Obj, List, 0);
+        Result := Result + SCnCRLF + List.Text;
+      finally
+        List.Free;
+      end;
 
       Intfs := FormatObjectInterface(Obj);
       if Intfs <> '' then
