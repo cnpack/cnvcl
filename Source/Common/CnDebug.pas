@@ -786,7 +786,7 @@ begin
   try
     // Build list of published properties
     FillChar(PropertyList^[0], SizeOf(TPropList), #00);
-    GetPropList(PropOwner.ClassInfo, tkProperties - [tkArray, tkRecord,
+    GetPropList(PropOwner.ClassInfo, tkAny - [tkArray, tkRecord, tkUnknown,
       tkInterface], @PropertyList^[0]);
     // Process property list
     PropIdx := 0;
@@ -913,9 +913,13 @@ begin
             end;
           tkMethod:
             begin
-              NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = (' +
-                GetEnumName(TypeInfo(TMethodKind),
-                Ord(GetTypeData(PropertyType)^.MethodKind)) + ')';
+              OrdValue := GetOrdProp(PropOwner, PropertyInfo);
+              if OrdValue = 0 then
+                NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = (nil)'
+              else
+                NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = (' +
+                  GetEnumName(TypeInfo(TMethodKind),
+                  Ord(GetTypeData(PropertyType)^.MethodKind)) + ')';
               List.Add(NewLine);
             end;
         else
@@ -962,7 +966,7 @@ begin
 
     // Build list of published properties
     FillChar(PropertyList^[0], SizeOf(TPropList), #00);
-    GetPropList(PropClass.ClassInfo, tkProperties - [tkArray, tkRecord,
+    GetPropList(PropClass.ClassInfo, tkAny - [tkArray, tkRecord, tkUnknown,
       tkInterface], @PropertyList^[0]);
 
     // Process property list
