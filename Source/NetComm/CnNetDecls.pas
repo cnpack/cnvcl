@@ -302,6 +302,24 @@ const
   CN_ICMP_CODE_NEED_AUTHENTICATION          = 4;
   CN_ICMP_CODE_NEED_AUTHORIZATION           = 5;
 
+  {* NTP 包中的闰秒标记定义}
+  CN_NTP_LEAP_INDICATOR_NONE                = 0;   // 无闰秒
+  CN_NTP_LEAP_INDICATOR_LEAP_61             = 1;   // 本分钟闰秒 61
+  CN_NTP_LEAP_INDICATOR_LEAP_59             = 2;   // 本分钟闰秒 59
+  CN_NTP_LEAP_INDICATOR_LEAP_NO_SYNC        = 3;   // 时钟未同步
+
+  {* NTP 包中的版本号字段值}
+  CN_NTP_VERSION_V3                         = 3;
+
+  {* NTP 包中的模式字段值}
+  CN_NTP_MODE_UNSPECIFIED                   = 0;   // 未指定
+  CN_NTP_MODE_SYMMETRIC_ACTIVE              = 1;   // 对称主动
+  CN_NTP_MODE_SYMMETRIC_PASSIVE             = 2;   // 对称被动
+  CN_NTP_MODE_CLIENT                        = 3;   // 客户端
+  CN_NTP_MODE_SERVER                        = 4;   // 服务器
+  CN_NTP_MODE_BROADCAST                     = 5;   // 广播
+  CN_NTP_MODE_CONTROL_MSG                   = 6;   // NTP 控制消息
+
 type
 
 {*
@@ -482,16 +500,16 @@ type
   .                                                               .
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |                          Key Identifier                       |
+  |                         Key Identifier                        |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  |                            dgst (128)                         |
+  |                          Digest (128)                         |
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }
 
   TCnNTPPacket = packed record
-    LIVNMode:              Byte;         // 闰年标识、版本号、工作模式
+    LIVNMode:              Byte;         // 闰秒标识、版本号、工作模式
     Stratum:               Byte;         // 系统时钟层数
     Poll:                  Byte;         // 轮询间隔
     Precision:             Byte;         // 系统时钟精度
@@ -503,6 +521,8 @@ type
     ReceiveTimestamp:      Int64;
     TransmitTimestamp:     Int64;
   end;
+
+  PCnNTPPacket = ^TCnNTPPacket;
 
 // ======================== IP 包头系列函数 ====================================
 
@@ -628,6 +648,8 @@ function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
 
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 {* 获得 ICMP 包头内的序列号}
+
+// ========================== NTP 包系列函数 ===================================
 
 implementation
 
