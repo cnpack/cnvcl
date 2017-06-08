@@ -651,6 +651,15 @@ function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 
 // ========================== NTP 包系列函数 ===================================
 
+function CnGetNTPLeapIndicator(const NTPPacket: PCnNTPPacket): Integer;
+{* 获得 NTP 包内的闰秒标识}
+
+function CnGetNTPVersionNumber(const NTPPacket: PCnNTPPacket): Integer;
+{* 获得 NTP 包内的版本号}
+
+function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
+{* 获得 NTP 包内的模式}
+
 implementation
 
 function NetworkToHostWord(Value: Word): Word;
@@ -857,6 +866,21 @@ end;
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 begin
   Result := NetworkToHostWord(ICMPHeader^.SequenceNumber);
+end;
+
+function CnGetNTPLeapIndicator(const NTPPacket: PCnNTPPacket): Integer;
+begin
+  Result := (NTPPacket^.LIVNMode and $C0) shr 6;
+end;
+
+function CnGetNTPVersionNumber(const NTPPacket: PCnNTPPacket): Integer;
+begin
+  Result := (NTPPacket^.LIVNMode and $38) shr 3;
+end;
+
+function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
+begin
+  Result := NTPPacket^.LIVNMode and $07;
 end;
 
 end.
