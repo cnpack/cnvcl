@@ -1,0 +1,117 @@
+{
+  "search_pathes": [{
+    "pathes": "Source;Source\\Common;Source\\DbReport;Source\\Graphics;Source\\Lang\\1033;Source\\MultiLang;Source\\NetComm;Source\\NonVisual;Source\\ObjRep;Source\\Skin",
+    "platforms": "Win32;Win64"
+  }],
+  "browsing_pathes": [{
+    "pathes": ";Source\\Common;Source\\DbReport;Source\\Graphics;Source\\Lang\\1033;Source\\MultiLang;Source\\NetComm;Source\\NonVisual;Source\\ObjRep;Source\\Skin",
+    "platforms": "Win32;Win64"
+  }],
+  "source_folders": [{
+    "folder": "."
+  },
+  {
+    "folder": "Doc",
+    "recursive": true
+  },
+  {
+    "folder": "Examples",
+    "recursive": true
+  },
+  {
+    "folder": "Packages",
+    "recursive": true
+  },
+  {
+    "folder": "Source",
+    "recursive": true
+  }],
+  "projects": [{
+    "project": "Packages\\DelphiXE\\CnPack_DXE.dproj",
+    "compiler": 22
+  },
+  {
+    "project": "Packages\\DelphiXE\\dclCnPack_DXE.dproj",
+    "compiler": 22
+  },
+  {
+    "project": "Packages\\DelphiXE2\\dclCnPack_DXE2.dproj",
+    "compiler": 23
+  },
+  {
+    "project": "Packages\\DelphiXE2\\dclCnPack_D6.dpk",
+    "compiler": 23
+  },
+  {
+    "project": "Packages\\DelphiXE3\\CnPack_DXE3.dproj",
+    "compiler": 24
+  },
+  {
+    "project": "Packages\\DelphiXE3\\dclCnPack_DXE3.dproj",
+    "compiler": 24
+  },
+  {
+    "project": "Packages\\DelphiXE4\\CnPack_DXE4.dproj",
+    "compiler": 25
+  },
+  {
+    "project": "Packages\\DelphiXE4\\dclCnPack_DXE4.dproj",
+    "compiler": 25
+  },
+  {
+    "project": "Packages\\DelphiXE5\\CnPack_DXE5.dproj",
+    "compiler": 26
+  },
+  {
+    "project": "Packages\\DelphiXE5\\dclCnPack_DXE5.dproj",
+    "compiler": 26
+  },
+  {
+    "project": "Packages\\DelphiXE6\\CnPack_DXE6.dproj",
+    "compiler": 27
+  },
+  {
+    "project": "Packages\\DelphiXE6\\dclCnPack_DXE6.dproj",
+    "compiler": 27
+  },
+  {
+    "project": "Packages\\DelphiXE7\\CnPack_DXE7.dproj",
+    "compiler": 28
+  },
+  {
+    "project": "Packages\\DelphiXE7\\dclCnPack_DXE7.dproj",
+    "compiler": 28
+  },
+  {
+    "project": "Packages\\DelphiXE8\\CnPack_DXE8.dproj",
+    "compiler": 29
+  },
+  {
+    "project": "Packages\\DelphiXE8\\dclCnPack_DXE8.dproj",
+    "compiler": 29
+  },
+  {
+    "project": "Packages\\Delphi10S\\CnPack_D10S.dproj",
+    "compiler": 30
+  },
+  {
+    "project": "Packages\\Delphi10S\\dclCnPack_D10S.dproj",
+    "compiler": 30
+  },
+  {
+    "project": "Packages\\Delphi101B\\CnPack_D101B.dproj",
+    "compiler": 31
+  },
+  {
+    "project": "Packages\\Delphi101B\\dclCnPack_D101B.dproj",
+    "compiler": 31
+  },
+  {
+    "project": "Packages\\Delphi102T\\CnPack_D102T.dproj",
+    "compiler": 32
+  },
+  {
+    "project": "Packages\\Delphi102T\\dclCnPack_D102T.dproj",
+    "compiler": 32
+  }]
+}

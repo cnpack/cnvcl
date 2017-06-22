@@ -1,0 +1,9 @@
+{
+  "id": "{3C312CF1-7F7E-4D1B-9827-FB43C59383FC}",
+  "name": "CnPack VCL Components",
+  "platforms": "Win32;Win64",
+  "package_compiler_min": 13,
+  "package_compiler_max": 32,
+  "compiler_min": 13,
+  "compiler_max": 32
+}
