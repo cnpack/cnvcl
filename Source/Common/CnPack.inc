@@ -29,8 +29,8 @@
 // 功能配置选项
 //==============================================================================
 
-//{$DEFINE PERSONAL_EDITION}
-{$DEFINE ENTERPRISE_EDITION}
+{$DEFINE PERSONAL_EDITION}
+//{$DEFINE ENTERPRISE_EDITION}
 
 {$IFNDEF PERSONAL_EDITION}
   {$DEFINE SUPPORT_DB}
