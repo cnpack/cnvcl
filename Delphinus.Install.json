@@ -4,7 +4,7 @@
     "platforms": "Win32;Win64"
   }],
   "browsing_pathes": [{
-    "pathes": ";Source\\Common;Source\\DbReport;Source\\Graphics;Source\\Lang\\1033;Source\\MultiLang;Source\\NetComm;Source\\NonVisual;Source\\ObjRep;Source\\Skin",
+    "pathes": "Source;Source\\Common;Source\\DbReport;Source\\Graphics;Source\\Lang\\1033;Source\\MultiLang;Source\\NetComm;Source\\NonVisual;Source\\ObjRep;Source\\Skin",
     "platforms": "Win32;Win64"
   }],
   "source_folders": [{
