@@ -34,7 +34,9 @@ requires
   vcl,
   vclx,
   vcldb,
+{$IFDEF SUPPORT_ADO}
   adortl,
+{$ENDIF}
   dsnap,
   xmlrtl,
   soaprtl,

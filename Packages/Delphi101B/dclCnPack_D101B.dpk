@@ -34,8 +34,10 @@ requires
   vcl,
   vclx,
   vcldb,
+{$IFDEF SUPPORT_ADO}
   dclado,
   adortl,
+{$ENDIF}
   designide,
   CnPack_D101B;
 
