@@ -1,5 +1,7 @@
 package dclCnPack_D2009;
 
+{$I CnPack.inc}
+
 {$R *.res}
 {$R '..\..\Source\Common\CnPack.dcr'}
 {$ALIGN 8}

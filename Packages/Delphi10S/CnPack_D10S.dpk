@@ -1,5 +1,7 @@
 package CnPack_D10S;
 
+{$I CnPack.inc}
+
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}

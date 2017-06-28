@@ -1,5 +1,7 @@
 package dclCnPack_DXE7;
 
+{$I CnPack.inc}
+
 {$R *.res}
 {$R '..\..\Source\Common\CnPack.dcr'}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
