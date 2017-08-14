@@ -523,11 +523,11 @@ procedure TCnTrayIcon.WndProc(var Message: TMessage);
   function GetShiftState: TShiftState;
   begin
     Result := [];
-    if GetKeyState(VK_SHIFT) > 0 then
+    if GetKeyState(VK_SHIFT) < 0 then
       Include(Result, ssShift);
-    if GetKeyState(VK_CONTROL) > 0 then
+    if GetKeyState(VK_CONTROL) < 0 then
       Include(Result, ssCtrl);
-    if GetKeyState(VK_MENU)> 0 then
+    if GetKeyState(VK_MENU) < 0 then
       Include(Result, ssAlt);
   end;
 
