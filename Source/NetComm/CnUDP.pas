@@ -124,7 +124,7 @@ type
     procedure ClearQueue;
     {* 清空数据队列。如果用户来不及处理接收到的数据，组件会把新数据包放到数据
        队列中，调用该方法可清空数据队列}
-    procedure ProcessRecv;
+    function ProcessRecv: Boolean;
     {* 处理该 UDP 接口的接收内容。由于 CnUDP 组件的 OnDataReceived 是在主线程
        消息处理中调用的，如果主线程代码需要等待 UDP 接收而不希望处理所有消息，
        可以调用该函数。}
@@ -553,7 +553,7 @@ begin
   end;
 end;
 
-procedure TCnUDP.ProcessRecv;
+function TCnUDP.ProcessRecv: Boolean;
 var
   Unicode: Boolean;
   MsgExists: Boolean;
@@ -576,6 +576,7 @@ begin
         DispatchMessageA(Msg);
     end;
   end;
+  Result := MsgExists;
 end;
 
 procedure TCnUDP.WndProc(var Message: TMessage);
