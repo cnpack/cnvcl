@@ -1445,6 +1445,11 @@ var
     else
       S := Format('Width: %d, Height: %d.', [AGraphic.Width, AGraphic.Height]);
 
+    if AGraphic.Transparent then
+      S := S + ' Transparent.'
+    else
+      S := S + ' No Transparent.';
+
     W := imgGraphic.Canvas.TextWidth(S);
     H := imgGraphic.Canvas.TextHeight(S);
 
