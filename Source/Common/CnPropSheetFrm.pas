@@ -66,12 +66,14 @@ type
     FObjStr: string;
     FObjValue: TObject;
     FObjClassName: string;
+    FIsNewRTTI: Boolean;
   public
     property Changed: Boolean read FChanged write FChanged;
     property DisplayValue: string read FDisplayValue write FDisplayValue;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property ObjValue: TObject read FObjValue write FObjValue;
     property ObjStr: string read FObjStr write FObjStr;
+    property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
 
   TCnPropertyObject = class(TCnDisplayObject)
@@ -85,7 +87,6 @@ type
     FPropRttiValue: TValue;
 {$ENDIF}
     FCanModify: Boolean;
-    FIsNewRTTI: Boolean;
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
@@ -95,7 +96,6 @@ type
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
 {$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
-    property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
 
   TCnEventObject = class(TCnDisplayObject)
@@ -552,6 +552,23 @@ begin
   Result := string(PropInfo^.Name);
 end;
 
+function GetClassValueStr(AClass: TClass): string;
+var
+ S: string;
+begin
+ if AClass <> nil then
+ begin
+   try
+     S := AClass.ClassName;
+   except
+     S := 'Unknown Object';
+   end;
+   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)])
+ end
+ else
+   Result := 'nil';
+end;
+
 function GetObjValueStr(AObj: TObject): string;
 var
   S: string;
@@ -717,16 +734,21 @@ var
   Buf: array[0..1] of Integer; // for x64?
   APtr: Pointer;
   Intf: IInterface;
+  AMethod: TMethod;
+  AClass: TClass;
 
   function GetSetStr(TypInfo: PTypeInfo; Value: Integer): string;
   var
     I: Integer;
     S: TIntegerSet;
   begin
-    Result := '';
     if Value = 0 then
+    begin
+      Result := '[]';
       Exit;
+    end;
 
+    Result := '';
     Integer(S) := Value;
     for I := 0 to SizeOf(Integer) * 8 - 1 do
     begin
@@ -765,7 +787,17 @@ begin
       S := RttiProperty.GetValue(Instance).AsString;
     tkClass:
       begin
-        S := GetObjValueStr(RttiProperty.GetValue(Instance).AsObject);
+        // 一类属性是 Class，可能根据类名获取运行期实例？published 里头适用？
+        // 一类属性是 Object，public 里头适用？
+        if RttiProperty.GetValue(Instance).IsClass then
+        begin
+          AClass := RttiProperty.GetValue(Instance).AsClass;
+          S := GetClassValueStr(AClass);
+        end
+        else if RttiProperty.GetValue(Instance).IsObject then
+        begin
+          S := GetObjValueStr(RttiProperty.GetValue(Instance).AsObject);
+        end;
       end;
     tkEnumeration:
       begin
@@ -790,15 +822,18 @@ begin
       S := FloatToStr(RttiProperty.GetValue(Instance).AsExtended);
     tkMethod:
       begin
-
-//        iTmp := GetOrdProp(Instance, PropInfo);
-//        if iTmp <> 0 then
-//          S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
-//            Integer(GetMethodProp(Instance, PropInfo).Code),
-//            Integer(GetMethodProp(Instance, PropInfo).Data),
-//             GetMethodDeclare()])
-//        else
-//          S := 'nil';
+        DataSize := RttiProperty.GetValue(Instance).DataSize;
+        if DataSize = SizeOf(TMethod) then
+        begin
+          RttiProperty.GetValue(Instance).ExtractRawData(@AMethod);
+          if AMethod.Code = nil then
+            S := 'nil'
+          else
+          begin
+            S := Format('%s: ($%8.8x, $%8.8x)', [RttiProperty.PropertyType.Name,
+              Integer(AMethod.Code), Integer(AMethod.Data)]);
+          end;
+        end;
       end;
     tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
       S := RttiProperty.GetValue(Instance).AsString;
@@ -1061,7 +1096,6 @@ var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   RttiProperty: TRttiProperty;
-  RttiMethod: TRttiMethod;
 {$ENDIF}
 
   procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
@@ -2056,8 +2090,6 @@ var
   ARect: TRect;
   ALv: TListView;
   DispObj: TCnDisplayObject;
-  PropObj: TCnPropertyObject;
-  EventObj: TCnEventObject;
 begin
   DefaultDraw := True;
   if Sender is TListView then
@@ -2071,18 +2103,8 @@ begin
       DispObj := TCnDisplayObject(Item.Data);
       if DispObj <> nil then
       begin
-        if DispObj is TCnPropertyObject then
-        begin
-          PropObj := DispObj as TCnPropertyObject;
-          if PropObj.IsNewRTTI then
-            ALv.Canvas.Brush.Color := $00FFCCCC;
-        end
-        else if DispObj is TCnEventObject then
-        begin
-          EventObj := DispObj as TCnEventObject;
-          if EventObj.IsNewRTTI then
-            ALv.Canvas.Brush.Color := $00FFCCCC;
-        end;
+        if DispObj.IsNewRTTI then
+          ALv.Canvas.Brush.Color := $00FFCCCC;
       end;
     end;
 

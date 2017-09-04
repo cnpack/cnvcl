@@ -715,10 +715,13 @@ var
   I: Integer;
   S: TIntegerSet;
 begin
-  Result := '';
   if Value = 0 then
+  begin
+    Result := '[]';
     Exit;
+  end;
 
+  Result := '';
   Integer(S) := Value;
   for I := 0 to SizeOf(Integer) * 8 - 1 do
   begin
