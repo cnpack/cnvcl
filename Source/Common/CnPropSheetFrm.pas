@@ -47,7 +47,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
-  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF};
+  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
+  {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF};
 
 const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
@@ -80,13 +81,21 @@ type
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    FPropRttiValue: TValue;
+{$ENDIF}
     FCanModify: Boolean;
+    FIsNewRTTI: Boolean;
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
     property IsObject: Boolean read FIsObject write FIsObject;
     property PropValue: Variant read FPropValue write FPropValue;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
+{$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
+    property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
 
   TCnEventObject = class(TCnDisplayObject)
@@ -95,10 +104,12 @@ type
     FHandlerName: string;
     FEventType: string;
     FEventName: string;
+    FIsNewRTTI: Boolean;
   public
     property EventName: string read FEventName write FEventName;
     property EventType: string read FEventType write FEventType;
     property HandlerName: string read FHandlerName write FHandlerName;
+    property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
 
   TCnStringsObject = class(TCnDisplayObject)
@@ -392,6 +403,12 @@ function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 
 function GetObjValueStr(AObj: TObject): string;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function GetRttiPropValueStr(Instance: TObject; RttiProperty: TRttiProperty): string;
+
+{$ENDIF}
+
 var
   ObjectInspectorClass: TCnObjectInspectorClass = nil;
 
@@ -557,6 +574,9 @@ var
   iTmp: Integer;
   S: string;
   IntToId: TIntToIdent;
+{$IFDEF COMPILER6_UP}
+  Intf: IInterface;
+{$ENDIF}
 
   function GetParamFlagsName(AParamFlags: TParamFlags): string;
   const
@@ -673,9 +693,143 @@ begin
       S := VarToStr(GetVariantProp(Instance, PropInfo));
     tkInt64:
       S := FloatToStr(GetInt64Prop(Instance, PropInfo) + 0.0);
+    tkInterface:
+      begin
+{$IFDEF COMPILER6_UP}
+        Intf := GetInterfaceProp(Instance, PropInfo);
+        S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+{$ELSE}
+        S := '(Interface:<...>)';
+{$ENDIF}
+      end;
   end;
   Result := S;
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function GetRttiPropValueStr(Instance: TObject; RttiProperty: TRttiProperty): string;
+var
+  S: string;
+  IntToId: TIntToIdent;
+  PropTypeInfo, SetElementTypeInfo: PTypeInfo;
+  DataSize: Integer;
+  Buf: array[0..1] of Integer; // for x64?
+  APtr: Pointer;
+  Intf: IInterface;
+
+  function GetSetStr(TypInfo: PTypeInfo; Value: Integer): string;
+  var
+    I: Integer;
+    S: TIntegerSet;
+  begin
+    Result := '';
+    if Value = 0 then
+      Exit;
+
+    Integer(S) := Value;
+    for I := 0 to SizeOf(Integer) * 8 - 1 do
+    begin
+      if I in S then
+      begin
+        if Result <> '' then
+          Result := Result + ',';
+
+        if TypInfo = nil then
+          Result := Result + IntToStr(I)
+        else
+          Result := Result + GetEnumName(TypInfo, I);
+      end;
+    end;
+    Result := '[' + Result + ']';
+  end;
+
+begin
+  Result := '';
+  case RttiProperty.PropertyType.TypeKind of
+    tkInteger:
+      begin
+        S := IntToStr(RttiProperty.GetValue(Instance).AsInteger);
+        PropTypeInfo := RttiProperty.PropertyType.Handle;
+        IntToId := FindIntToIdent(PropTypeInfo);
+        if Assigned(IntToId) and IntToId(RttiProperty.GetValue(Instance).AsInteger, S) then
+        else
+        begin
+          if RttiProperty.Name = 'TColor' then
+            S := Format('$%8.8x', [RttiProperty.GetValue(Instance).AsInteger])
+          else
+            S := IntToStr(RttiProperty.GetValue(Instance).AsInteger);
+        end;
+      end;
+    tkChar, tkWChar:
+      S := RttiProperty.GetValue(Instance).AsString;
+    tkClass:
+      begin
+        S := GetObjValueStr(RttiProperty.GetValue(Instance).AsObject);
+      end;
+    tkEnumeration:
+      begin
+        PropTypeInfo := RttiProperty.PropertyType.Handle;
+        S := GetEnumName(PropTypeInfo, RttiProperty.GetValue(Instance).AsOrdinal);
+      end;
+    tkSet:
+      begin
+        SetElementTypeInfo := nil;
+        if RttiProperty.PropertyType.IsSet then
+          SetElementTypeInfo := RttiProperty.PropertyType.AsSet.ElementType.Handle;
+
+        DataSize := RttiProperty.GetValue(Instance).DataSize;
+        if (DataSize <= SizeOf(Integer)) and (SetElementTypeInfo <> nil) then
+        begin
+          FillChar(Buf[0], SizeOf(Buf), 0);
+          RttiProperty.GetValue(Instance).ExtractRawData((@Buf[0]));
+          S := GetSetStr(SetElementTypeInfo, Buf[0]);
+        end;
+      end;
+    tkFloat:
+      S := FloatToStr(RttiProperty.GetValue(Instance).AsExtended);
+    tkMethod:
+      begin
+
+//        iTmp := GetOrdProp(Instance, PropInfo);
+//        if iTmp <> 0 then
+//          S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
+//            Integer(GetMethodProp(Instance, PropInfo).Code),
+//            Integer(GetMethodProp(Instance, PropInfo).Data),
+//             GetMethodDeclare()])
+//        else
+//          S := 'nil';
+      end;
+    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      S := RttiProperty.GetValue(Instance).AsString;
+    tkVariant:
+      S := VarToStr(RttiProperty.GetValue(Instance).AsVariant);
+    tkInt64:
+      S := FloatToStr(RttiProperty.GetValue(Instance).AsInt64 + 0.0);
+    tkInterface:
+      begin
+        try
+          Intf := RttiProperty.GetValue(Instance).AsInterface;
+          S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+        except
+          on E: Exception do
+            S := Format('(Interface:<Exception: %s>)', [E.Message]);
+        end;
+      end;
+    tkPointer:
+      begin
+        DataSize := RttiProperty.GetValue(Instance).DataSize;
+        if DataSize = SizeOf(Pointer) then
+        begin
+          RttiProperty.GetValue(Instance).ExtractRawData(@APtr);
+          S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
+        end;
+      end;
+  end;
+  Result := S;
+end;
+
+{$ENDIF}
 
 { TCnStringsObject }
 
@@ -903,6 +1057,12 @@ var
   Hies: TStrings;
   ATmpClass: TClass;
   IntSet: Integer;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiProperty: TRttiProperty;
+  RttiMethod: TRttiMethod;
+{$ENDIF}
 
   procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
   begin
@@ -916,6 +1076,42 @@ var
 
     if not IsRefresh then
       Properties.Add(AProperty);
+  end;
+
+  function AlreadyHasProperty(const APropName: string): Boolean;
+  var
+    I: Integer;
+    PropObj: TCnPropertyObject;
+  begin
+    Result := False;
+    for I := 0 to Properties.Count - 1 do
+    begin
+      PropObj := TCnPropertyObject(Properties[I]);
+      if PropObj <> nil then
+        if PropObj.PropName = APropName then
+        begin
+          Result := True;
+          Exit;
+        end;
+    end;
+  end;
+
+  function AlreadyHasEvent(AEventName: string): Boolean;
+  var
+    I: Integer;
+    EventObj: TCnEventObject;
+  begin
+    Result := False;
+    for I := 0 to Events.Count - 1 do
+    begin
+      EventObj := TCnEventObject(Events[I]);
+      if EventObj <> nil then
+        if EventObj.EventName = AEventName then
+        begin
+          Result := True;
+          Exit;
+        end;
+    end;
   end;
 
 begin
@@ -1029,141 +1225,255 @@ begin
     end;
     FreeMem(PropListPtr);
 
-    // 额外添加显示不在 published 域的一些已知的公用属性
-    if ObjectInstance is TComponent then
-    begin
-      // 添加 Component 的 Owner
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'Owner');
-
-      AProp.PropName := 'Owner';
-      AProp.PropType := tkClass;
-      AProp.IsObject := True;
-      AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
-      AProp.ObjValue := (FObjectInstance as TComponent).Owner;
-
-      S := GetObjValueStr(AProp.ObjValue);
-      if S <> AProp.DisplayValue then
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    // D2010 及以上，使用新 RTTI 方法获取更多属性
+    RttiContext := TRttiContext.Create;
+    try
+      RttiType := RttiContext.GetType(FObjectInstance.ClassInfo);
+      if RttiType <> nil then
       begin
-        AProp.DisplayValue := S;
-        AProp.Changed := True;
-      end
-      else
-        AProp.Changed := False;
+        for RttiProperty in RttiType.GetProperties do
+        begin
+          if RttiProperty.PropertyType.TypeKind in tkProperties then
+          begin
+            // 是 Properties，要判断是否重复
+            if not AlreadyHasProperty(RttiProperty.Name) then
+            begin
+              if not IsRefresh then
+              begin
+                AProp := TCnPropertyObject.Create;
+                AProp.IsNewRTTI := True;
+              end
+              else
+                AProp := IndexOfProperty(Properties, RttiProperty.Name);
 
-      if not IsRefresh then
-        Properties.Add(AProp);
+              AProp.PropName := RttiProperty.Name;
+              AProp.PropType := RttiProperty.PropertyType.TypeKind;
+              AProp.IsObject := AProp.PropType = tkClass;
 
-      // 添加 Component 的 ComponentIndex
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ComponentIndex');
+              // 有写入权限，并且指定类型，才可修改，否则界面上没法整
+              AProp.CanModify := (RttiProperty.IsWritable) and (RttiProperty.PropertyType.TypeKind
+                in CnCanModifyPropTypes);
 
-      AProp.PropName := 'ComponentIndex';
-      AProp.PropType := tkInteger;
-      AProp.IsObject := False;
-      AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
-      AProp.ObjValue := nil;
+              try
+                AProp.PropRttiValue := RttiProperty.GetValue(FObjectInstance);
+              except
+                // Getting Some Property causes Exception. Catch it.
+                AProp.PropRttiValue := nil;
+              end;
+              if AProp.IsObject and RttiProperty.GetValue(FObjectInstance).IsObject then
+                AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
+              else
+                AProp.ObjValue := nil;
 
-      S := IntToStr(AProp.PropValue);
-      AddNewProp(S, AProp);
+              S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
+              if S <> AProp.DisplayValue then
+              begin
+                AProp.DisplayValue := S;
+                AProp.Changed := True;
+              end
+              else
+                AProp.Changed := False;
 
-      // 添加 Component 的 ComponentState
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ComponentState');
+              if not IsRefresh then
+                Properties.Add(AProp);
 
-      AProp.PropName := 'ComponentState';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+              Include(FContentTypes, pctProps);
+            end;
+          end
+          else if RttiProperty.PropertyType.TypeKind = tkMethod then
+          begin
+            // 是 Event，要判断是否重复
+            if not AlreadyHasEvent(RttiProperty.Name) then
+            begin
+              if not IsRefresh then
+              begin
+                AEvent := TCnEventObject.Create;
+                AEvent.IsNewRTTI := True;
+              end
+              else
+                AEvent := IndexOfEvent(FEvents, RttiProperty.Name);
 
-      IntSet := 0;
-      Move((FObjectInstance as TComponent).ComponentState, IntSet,
-        SizeOf((FObjectInstance as TComponent).ComponentState));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+              AEvent.EventName := RttiProperty.Name;
+              AEvent.EventType := RttiProperty.PropertyType.Name;
+              S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
+              if S <> AEvent.DisplayValue then
+              begin
+                AEvent.DisplayValue := S;
+                AEvent.Changed := True;
+              end
+              else
+                AEvent.Changed := False;
 
-      S := GetSetStr(TypeInfo(TCnComponentState), AProp.PropValue);
-      AddNewProp(S, AProp);
+              if not IsRefresh then
+                FEvents.Add(AEvent);
 
-      // 添加 Component 的 ComponentStyle
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ComponentStyle');
+              Include(FContentTypes, pctEvents);
+            end;
+          end;
+        end;
+      end;
+    finally
+      RttiContext.Free;
+    end;
+{$ENDIF}
 
-      AProp.PropName := 'ComponentStyle';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+    // 额外添加显示不在 published 域的一些已知的公用属性
+    if FObjectInstance is TComponent then
+    begin
+      if not AlreadyHasProperty('Owner') then
+      begin
+        // 添加 Component 的 Owner
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'Owner');
 
-      IntSet := 0;
-      Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
-        SizeOf((FObjectInstance as TComponent).ComponentStyle));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+        AProp.PropName := 'Owner';
+        AProp.PropType := tkClass;
+        AProp.IsObject := True;
+        AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
+        AProp.ObjValue := (FObjectInstance as TComponent).Owner;
 
-      S := GetSetStr(TypeInfo(TCnComponentStyle), AProp.PropValue);
-      AddNewProp(S, AProp);
+        S := GetObjValueStr(AProp.ObjValue);
+        if S <> AProp.DisplayValue then
+        begin
+          AProp.DisplayValue := S;
+          AProp.Changed := True;
+        end
+        else
+          AProp.Changed := False;
+
+        if not IsRefresh then
+          Properties.Add(AProp);
+      end;
+
+      if not AlreadyHasProperty('ComponentIndex') then
+      begin
+        // 添加 Component 的 ComponentIndex
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ComponentIndex');
+
+        AProp.PropName := 'ComponentIndex';
+        AProp.PropType := tkInteger;
+        AProp.IsObject := False;
+        AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
+        AProp.ObjValue := nil;
+
+        S := IntToStr(AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
+
+      if not AlreadyHasProperty('ComponentState') then
+      begin
+        // 添加 Component 的 ComponentState
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ComponentState');
+
+        AProp.PropName := 'ComponentState';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
+
+        IntSet := 0;
+        Move((FObjectInstance as TComponent).ComponentState, IntSet,
+          SizeOf((FObjectInstance as TComponent).ComponentState));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
+
+        S := GetSetStr(TypeInfo(TCnComponentState), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
+
+      if not AlreadyHasProperty('ComponentStyle') then
+      begin
+        // 添加 Component 的 ComponentStyle
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ComponentStyle');
+
+        AProp.PropName := 'ComponentStyle';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
+
+        IntSet := 0;
+        Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
+          SizeOf((FObjectInstance as TComponent).ComponentStyle));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
+
+        S := GetSetStr(TypeInfo(TCnComponentStyle), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
     end;
 
-    if ObjectInstance is TControl then
+    if FObjectInstance is TControl then
     begin
-      // 添加 Control 的 Parent
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'Parent');
+      if not AlreadyHasProperty('Parent') then
+      begin
+        // 添加 Control 的 Parent
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'Parent');
 
-      AProp.PropName := 'Parent';
-      AProp.PropType := tkClass;
-      AProp.IsObject := True;
-      AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
-      AProp.ObjValue := (FObjectInstance as TControl).Parent;
+        AProp.PropName := 'Parent';
+        AProp.PropType := tkClass;
+        AProp.IsObject := True;
+        AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
+        AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
-      S := GetObjValueStr(AProp.ObjValue);
-      AddNewProp(S, AProp);
+        S := GetObjValueStr(AProp.ObjValue);
+        AddNewProp(S, AProp);
+      end;
 
-      // 添加 Control 的 ControlState
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ControlState');
+      if not AlreadyHasProperty('ControlState') then
+      begin
+        // 添加 Control 的 ControlState
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ControlState');
 
-      AProp.PropName := 'ControlState';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+        AProp.PropName := 'ControlState';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
 
-      IntSet := 0;
-      Move((FObjectInstance as TControl).ControlState, IntSet,
-        SizeOf((FObjectInstance as TControl).ControlState));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+        IntSet := 0;
+        Move((FObjectInstance as TControl).ControlState, IntSet,
+          SizeOf((FObjectInstance as TControl).ControlState));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
 
-      S := GetSetStr(TypeInfo(TCnControlState), AProp.PropValue);
-      AddNewProp(S, AProp);
+        S := GetSetStr(TypeInfo(TCnControlState), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
 
-      // 添加 Control 的 ControlStyle
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ControlStyle');
+      if not AlreadyHasProperty('ControlStyle') then
+      begin
+        // 添加 Control 的 ControlStyle
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ControlStyle');
 
-      AProp.PropName := 'ControlStyle';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+        AProp.PropName := 'ControlStyle';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
 
-      IntSet := 0;
-      Move((FObjectInstance as TControl).ControlStyle, IntSet,
-        SizeOf((FObjectInstance as TControl).ControlStyle));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+        IntSet := 0;
+        Move((FObjectInstance as TControl).ControlStyle, IntSet,
+          SizeOf((FObjectInstance as TControl).ControlStyle));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
 
-      S := GetSetStr(TypeInfo(TCnControlStyle), AProp.PropValue);
-      AddNewProp(S, AProp);
+        S := GetSetStr(TypeInfo(TCnControlStyle), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
     end;
 
     DoAfterEvaluateProperties;
@@ -1745,6 +2055,9 @@ procedure TCnPropSheetForm.lvPropCustomDrawItem(Sender: TCustomListView;
 var
   ARect: TRect;
   ALv: TListView;
+  DispObj: TCnDisplayObject;
+  PropObj: TCnPropertyObject;
+  EventObj: TCnEventObject;
 begin
   DefaultDraw := True;
   if Sender is TListView then
@@ -1752,6 +2065,26 @@ begin
     ALv := Sender as TListView;
     ListView_GetSubItemRect(ALv.Handle, Item.Index, 0, LVIR_BOUNDS, @ARect);
     ALv.Canvas.Brush.Color := $00FFBBBB;
+
+    if Item <> nil then
+    begin
+      DispObj := TCnDisplayObject(Item.Data);
+      if DispObj <> nil then
+      begin
+        if DispObj is TCnPropertyObject then
+        begin
+          PropObj := DispObj as TCnPropertyObject;
+          if PropObj.IsNewRTTI then
+            ALv.Canvas.Brush.Color := $00FFCCCC;
+        end
+        else if DispObj is TCnEventObject then
+        begin
+          EventObj := DispObj as TCnEventObject;
+          if EventObj.IsNewRTTI then
+            ALv.Canvas.Brush.Color := $00FFCCCC;
+        end;
+      end;
+    end;
 
     if ALv.Focused then
     begin
