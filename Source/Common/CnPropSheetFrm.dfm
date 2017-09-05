@@ -1,6 +1,6 @@
 object CnPropSheetForm: TCnPropSheetForm
-  Left = 641
-  Top = 154
+  Left = 494
+  Top = 65
   Width = 379
   Height = 521
   BorderStyle = bsSizeToolWin
@@ -189,6 +189,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Tabs.Strings = (
       'Properties'
       'Events'
+      'Methods'
       'Strings'
       'CollectionItems'
       'Components'
@@ -271,6 +272,36 @@ object CnPropSheetForm: TCnPropSheetForm
       ViewStyle = vsReport
       OnCustomDrawItem = lvPropCustomDrawItem
       OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnKeyDown = ListViewKeyDown
+      OnSelectItem = lvPropSelectItem
+    end
+    object lvMethods: TListView
+      Left = 16
+      Top = 56
+      Width = 321
+      Height = 57
+      Columns = <
+        item
+          Caption = 'Method Name'
+          Width = 130
+        end
+        item
+          Caption = 'Full Method'
+          Width = 180
+        end>
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ReadOnly = True
+      RowSelect = True
+      ParentFont = False
+      TabOrder = 10
+      ViewStyle = vsReport
+      OnCustomDrawItem = lvPropCustomDrawItem
+      OnCustomDrawSubItem = lvPropCustomDrawSubItem
+      OnDblClick = lvPropDblClick
       OnKeyDown = ListViewKeyDown
       OnSelectItem = lvPropSelectItem
     end

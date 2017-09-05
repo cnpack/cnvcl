@@ -104,12 +104,20 @@ type
     FHandlerName: string;
     FEventType: string;
     FEventName: string;
-    FIsNewRTTI: Boolean;
   public
     property EventName: string read FEventName write FEventName;
     property EventType: string read FEventType write FEventType;
     property HandlerName: string read FHandlerName write FHandlerName;
-    property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
+  end;
+
+  TCnMethodObject = class(TCnDisplayObject)
+  {* √Ë ˆ“ª∑Ω∑® }
+  private
+    FMethodSimpleName: string;
+    FFullName: string;
+  public
+    property MethodSimpleName: string read FMethodSimpleName write FMethodSimpleName;
+    property FullName: string read FFullName write FFullName;
   end;
 
   TCnStringsObject = class(TCnDisplayObject)
@@ -178,6 +186,7 @@ type
     FObjectAddr: Pointer;
     FProperties: TObjectList;
     FEvents: TObjectList;
+    FMethods: TObjectList;
     FInspectComplete: Boolean;
     FObjClassName: string;
     FContentTypes: TCnPropContentTypes;
@@ -203,6 +212,7 @@ type
     function GetCollectionItemCount: Integer;
     procedure SetInspectComplete(const Value: Boolean);
     function GetMenuItemCount: Integer;
+    function GetMethodCount: Integer;
   protected
     procedure SetObjectAddr(const Value: Pointer); virtual;
     procedure DoEvaluate; virtual; abstract;
@@ -217,6 +227,8 @@ type
       const APropName: string): TCnPropertyObject;
     function IndexOfEvent(AEvents: TObjectList;
       const AEventName: string): TCnEventObject;
+    function IndexOfMethod(AMethods: TObjectList;
+      const AMethodName: string): TCnMethodObject;
   public
     constructor Create(Data: Pointer); virtual;
     destructor Destroy; override;
@@ -230,6 +242,7 @@ type
 
     property Properties: TObjectList read FProperties;
     property Events: TObjectList read FEvents;
+    property Methods: TObjectList read FMethods;
     property Strings: TCnStringsObject read FStrings;
     property Graphics: TCnGraphicsObject read FGraphics;
     property Components: TObjectList read FComponents;
@@ -239,6 +252,7 @@ type
 
     property PropCount: Integer read GetPropCount;
     property EventCount: Integer read GetEventCount;
+    property MethodCount: Integer read GetMethodCount;
     property CompCount: Integer read GetCompCount;
     property ControlCount: Integer read GetControlCount;
     property CollectionItemCount: Integer read GetCollectionItemCount;
@@ -305,6 +319,7 @@ type
     lvMenuItem: TListView;
     edtClassName: TEdit;
     btnLocate: TSpeedButton;
+    lvMethods: TListView;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -957,6 +972,7 @@ begin
   inherited Create;
   FProperties := TObjectList.Create(True);
   FEvents := TObjectList.Create(True);
+  FMethods := TObjectList.Create(True);
   FStrings := TCnStringsObject.Create;
   FGraphics := TCnGraphicsObject.Create;
   FComponents := TObjectList.Create(True);
@@ -973,6 +989,7 @@ begin
   FComponents.Free;
   FGraphics.Free;
   FStrings.Free;
+  FMethods.Free;
   FEvents.Free;
   FProperties.Free;
   inherited;
@@ -1078,6 +1095,27 @@ begin
   end;
 end;
 
+function TCnObjectInspector.IndexOfMethod(AMethods: TObjectList;
+  const AMethodName: string): TCnMethodObject;
+var
+  I: Integer;
+  AMethod: TCnMethodObject;
+begin
+  Result := nil;
+  if AMethods <> nil then
+  begin
+    for I := 0 to AMethods.Count - 1 do
+    begin
+      AMethod := TCnMethodObject(AMethods.Items[I]);
+      if AMethod.FullName = AMethodName then
+      begin
+        Result := AMethod;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 procedure TCnObjectInspector.DoAfterEvaluateCollections;
 begin
   if Assigned(FOnAfterEvaluateCollections) then
@@ -1125,6 +1163,11 @@ begin
   Result := False;
 end;
 
+function TCnObjectInspector.GetMethodCount: Integer;
+begin
+  Result := FMethods.Count;
+end;
+
 { TCnLocalObjectInspector }
 
 procedure TCnLocalObjectInspector.SetObjectAddr(const Value: Pointer);
@@ -1164,6 +1207,14 @@ var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   RttiProperty: TRttiProperty;
+  RttiMethod: TRttiMethod;
+  AMethod: TCnMethodObject;
+
+  function GetMethodFullName(ARttiMethod: TRttiMethod): string;
+  begin
+    Result := Format('$%8.8x: %s;', [Integer(ARttiMethod.CodeAddress),
+      ARttiMethod.ToString]);
+  end;
 {$ENDIF}
 
   procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
@@ -1413,6 +1464,33 @@ begin
               Include(FContentTypes, pctEvents);
             end;
           end;
+        end;
+
+        for RttiMethod in RttiType.GetMethods do
+        begin
+          S := GetMethodFullName(RttiMethod);
+          if not IsRefresh then
+          begin
+            AMethod := TCnMethodObject.Create;
+            AMethod.IsNewRTTI := True;
+          end
+          else
+            AMethod := IndexOfMethod(FMethods, S);
+
+          AMethod.MethodSimpleName := RttiMethod.Name;
+          AMethod.FullName := S;
+          if S <> AMethod.DisplayValue then
+          begin
+            AMethod.DisplayValue := S;
+            AMethod.Changed := True;
+          end
+          else
+            AMethod.Changed := False;
+
+          if not IsRefresh then
+            FMethods.Add(AMethod);
+
+          Include(FContentTypes, pctMethods);
         end;
       end;
     finally
@@ -1894,6 +1972,7 @@ begin
 
   lvProp.Items.Clear;
   lvEvent.Items.Clear;
+  lvMethods.Items.Clear;
   lvCollectionItem.Items.Clear;
   lvMenuItem.Items.Clear;
   lvComp.Items.Clear;
@@ -1924,6 +2003,16 @@ begin
       Data := FInspector.Events.Items[I];
       Caption := TCnEventObject(FInspector.Events.Items[I]).EventName;
       SubItems.Add(TCnEventObject(FInspector.Events.Items[I]).DisplayValue);
+    end;
+  end;
+
+  for I := 0 to FInspector.MethodCount - 1 do
+  begin
+    with lvMethods.Items.Add do
+    begin
+      Data := FInspector.Methods.Items[I];
+      Caption := TCnMethodObject(FInspector.Methods.Items[I]).MethodSimpleName;
+      SubItems.Add(TCnMethodObject(FInspector.Methods.Items[I]).FullName);
     end;
   end;
 
@@ -2066,6 +2155,7 @@ begin
 
   lvProp.Columns[1].Width := Self.Width - lvProp.Columns[0].Width - FixWidth;
   lvEvent.Columns[1].Width := Self.Width - lvEvent.Columns[0].Width - FixWidth;
+  lvMethods.Columns[1].Width := Self.Width - lvMethods.Columns[0].Width - FixWidth;
   lvCollectionItem.Columns[1].Width := Self.Width - lvCollectionItem.Columns[0].Width - FixWidth;
   lvMenuItem.Columns[1].Width := Self.Width - lvMenuItem.Columns[0].Width - FixWidth;
   lvComp.Columns[1].Width := Self.Width - lvComp.Columns[0].Width - FixWidth;
@@ -2124,6 +2214,7 @@ begin
   case IndexOfContentTypeStr(tsSwitch.Tabs.Strings[NewTab]) of
     pctProps:             AControl := lvProp;
     pctEvents:            AControl := lvEvent;
+    pctMethods:           AControl := lvMethods;
     pctCollectionItems:   AControl := lvCollectionItem;
     pctMenuItems:         AControl := lvMenuItem;
     pctStrings:           AControl := mmoText;
