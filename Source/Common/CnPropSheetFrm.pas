@@ -54,7 +54,7 @@ const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
 
 type
-  TCnPropContentType = (pctProps, pctEvents, pctCollectionItems, pctMenuItems,
+  TCnPropContentType = (pctProps, pctEvents, pctMethods, pctCollectionItems, pctMenuItems,
     pctStrings, pctGraphics, pctComponents, pctControls, pctHierarchy);
   TCnPropContentTypes = set of TCnPropContentType;
 
@@ -458,7 +458,7 @@ type
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
-    ('Properties', 'Events', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
+    ('Properties', 'Events', 'Methods', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
      'Components', 'Controls', 'Hierarchy');
 
   SCnInputNewValueCaption = 'Modify Value';
@@ -586,6 +586,143 @@ begin
     Result := 'nil';
 end;
 
+function GetParamFlagsName(AParamFlags: TParamFlags): string;
+const
+  SParamFlag: array[TParamFlag] of string
+    = ('var', 'const', 'array of', 'address', '', 'out'{$IFDEF COMPILER14_UP}, 'result'{$ENDIF});
+var
+  I: TParamFlag;
+begin
+  Result := '';
+  for I := Low(TParamFlag) to High(TParamFlag) do
+  begin
+    if (I <> pfAddress) and (I in AParamFlags) then
+      Result := Result + SParamFlag[I];
+  end;
+end;
+
+// 根据函数类型信息获得其声明，PropInfo必须为函数类型信息
+function GetMethodDeclare(Instance: TObject; PropInfo: PPropInfo): string;
+var
+  CompName, MthName: string;
+  TypeStr: PShortString;
+  T: PTypeData;
+  P: PParamData;
+  I: Integer;
+  AMethod: TMethod;
+begin
+  CompName := '*';
+  if Instance is TComponent then
+    CompName := (Instance as TComponent).Name;
+  MthName := PropInfoName(PropInfo);
+
+  AMethod := GetMethodProp(Instance, PropInfo);
+  if AMethod.Data <> nil then
+  begin
+    try
+      MthName := TObject(AMethod.Data).MethodName(AMethod.Code);
+      if TObject(AMethod.Data) is TComponent then
+        CompName := (TObject(AMethod.Data) as TComponent).Name;
+    except
+      ;
+    end;
+  end;
+
+  T := GetTypeData(PropInfo^.PropType^);
+
+  if T^.MethodKind = mkFunction then
+    Result := Result + 'function ' + CompName + '.' + MthName + '('
+  else
+    Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
+
+  P := PParamData(@T^.ParamList);
+  for I := 1 to T^.ParamCount do
+  begin
+    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
+      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+    else
+      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^]));
+    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+      Length(P^.ParamName) + Length(TypeStr^) + 2);
+  end;
+
+  Delete(Result, Length(Result), 1);
+  Result := Result + ')';
+  if T^.MethodKind = mkFunction then
+    Result := Result + ': ' + string(PShortString(P)^);
+  Result := Result + ';';
+end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+// 根据函数类型信息获得其声明，2010以上版本使用
+function GetRttiMethodDeclare(Instance: TObject; RttiProperty: TRttiProperty): string;
+var
+  CompName, MthName, S: string;
+  TypeStr: PShortString;
+  T: PTypeData;
+  P: PParamData;
+  I, DataSize: Integer;
+  AMethod: TMethod;
+begin
+  Result := '';
+  DataSize := RttiProperty.GetValue(Instance).DataSize;
+  if DataSize <> SizeOf(TMethod) then
+    Exit;
+
+  RttiProperty.GetValue(Instance).ExtractRawData(@AMethod);
+
+  CompName := '*';
+  if Instance is TComponent then
+    CompName := (Instance as TComponent).Name;
+  MthName := RttiProperty.Name;
+
+  if AMethod.Data <> nil then
+  begin
+    try
+      S := TObject(AMethod.Data).MethodName(AMethod.Code);
+      if S <> '' then
+        MthName := S;
+      if TObject(AMethod.Data) is TComponent then
+        CompName := (TObject(AMethod.Data) as TComponent).Name;
+    except
+      ;
+    end;
+  end;
+
+  T := GetTypeData(RttiProperty.PropertyType.Handle);
+
+  if T^.MethodKind = mkFunction then
+    Result := Result + 'function ' + CompName + '.' + MthName + '('
+  else
+    Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
+
+  P := PParamData(@T^.ParamList);
+  for I := 1 to T^.ParamCount do
+  begin
+    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
+      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+    else
+      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^]));
+    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+      Length(P^.ParamName) + Length(TypeStr^) + 2);
+  end;
+
+  Delete(Result, Length(Result), 1);
+  Result := Result + ')';
+  if T^.MethodKind = mkFunction then
+    Result := Result + ': ' + string(PShortString(P)^);
+  Result := Result + ';';
+end;
+
+{$ENDIF}
+
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 var
   iTmp: Integer;
@@ -594,76 +731,6 @@ var
 {$IFDEF COMPILER6_UP}
   Intf: IInterface;
 {$ENDIF}
-
-  function GetParamFlagsName(AParamFlags: TParamFlags): string;
-  const
-    SParamFlag: array[TParamFlag] of string
-      = ('var', 'const', 'array of', 'address', '', 'out'{$IFDEF COMPILER14_UP}, 'result'{$ENDIF});
-  var
-    I: TParamFlag;
-  begin
-    Result := '';
-    for I := Low(TParamFlag) to High(TParamFlag) do
-    begin
-      if (I <> pfAddress) and (I in AParamFlags) then
-        Result := Result + SParamFlag[I];
-    end;
-  end;
-
-  function GetMethodDeclare: string;
-  var
-    CompName, MthName: string;
-    TypeStr: PShortString;
-    T: PTypeData;
-    P: PParamData;
-    I: Integer;
-    AMethod: TMethod;
-  begin
-    CompName := '*';
-    if Instance is TComponent then
-      CompName := (Instance as TComponent).Name;
-    MthName := PropInfoName(PropInfo);
-
-    AMethod := GetMethodProp(Instance, PropInfo);
-    if AMethod.Data <> nil then
-    begin
-      try
-        MthName := TObject(AMethod.Data).MethodName(AMethod.Code);
-        if TObject(AMethod.Data) is TComponent then
-          CompName := (TObject(AMethod.Data) as TComponent).Name;
-      except
-        ;
-      end;
-    end;
-
-    T := GetTypeData(PropInfo^.PropType^);
-
-    if T^.MethodKind = mkFunction then
-      Result := Result + 'function ' + CompName + '.' + MthName + '('
-    else
-      Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
-
-    P := PParamData(@T^.ParamList);
-    for I := 1 to T^.ParamCount do
-    begin
-      TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
-      if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
-        Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-          (GetParamFlagsName(P^.Flags)), TypeStr^]))
-      else
-        Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-          (P^.ParamName), TypeStr^]));
-      P := PParamData(Integer(P) + SizeOf(TParamFlags) +
-        Length(P^.ParamName) + Length(TypeStr^) + 2);
-    end;
-
-    Delete(Result, Length(Result), 1);
-    Result := Result + ')';
-    if T^.MethodKind = mkFunction then
-      Result := Result + ': ' + string(PShortString(P)^);
-    Result := Result + ';';
-  end;
-
 begin
   Result := '';
   case PropInfo^.PropType^^.Kind of
@@ -700,7 +767,7 @@ begin
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
             Integer(GetMethodProp(Instance, PropInfo).Code),
             Integer(GetMethodProp(Instance, PropInfo).Data),
-             GetMethodDeclare()])
+            GetMethodDeclare(Instance, PropInfo)])
         else
           S := 'nil';
       end;
@@ -830,8 +897,9 @@ begin
             S := 'nil'
           else
           begin
-            S := Format('%s: ($%8.8x, $%8.8x)', [RttiProperty.PropertyType.Name,
-              Integer(AMethod.Code), Integer(AMethod.Data)]);
+            S := Format('%s: ($%8.8x, $%8.8x: %s)', [RttiProperty.PropertyType.Name,
+              Integer(AMethod.Code), Integer(AMethod.Data),
+              GetRttiMethodDeclare(Instance, RttiProperty)]);
           end;
         end;
       end;
