@@ -315,11 +315,14 @@ type
     btnEvaluate: TSpeedButton;
     pnlHierarchy: TPanel;
     pnlGraphic: TPanel;
-    imgGraphic: TImage;
     lvMenuItem: TListView;
     edtClassName: TEdit;
     btnLocate: TSpeedButton;
     lvMethods: TListView;
+    pnlGraphicInfo: TPanel;
+    bxGraphic: TScrollBox;
+    imgGraphic: TImage;
+    lblGraphicInfo: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -859,7 +862,7 @@ begin
         if Assigned(IntToId) and IntToId(RttiProperty.GetValue(Instance).AsInteger, S) then
         else
         begin
-          if RttiProperty.Name = 'TColor' then
+          if RttiProperty.PropertyType.Name = 'TColor' then
             S := Format('$%8.8x', [RttiProperty.GetValue(Instance).AsInteger])
           else
             S := IntToStr(RttiProperty.GetValue(Instance).AsInteger);
@@ -1920,16 +1923,16 @@ var
   procedure InternalDrawGraphic(AGraphic: TGraphic);
   const
     EMPTY_STR = '<Empty>';
-    MARGIN = 10;
   var
-    W, H: Integer;
     S: string;
   begin
     if AGraphic = nil then
       Exit;
 
-    imgGraphic.Canvas.Draw(0, 0, AGraphic);
-    imgGraphic.Canvas.Pen.Color := clBtnShadow;
+    imgGraphic.Height := AGraphic.Height;
+    imgGraphic.Width := AGraphic.Width;
+    imgGraphic.Picture.Assign(AGraphic);
+
     if AGraphic.Empty then
       S := EMPTY_STR
     else
@@ -1940,11 +1943,7 @@ var
     else
       S := S + ' No Transparent.';
 
-    W := imgGraphic.Canvas.TextWidth(S);
-    H := imgGraphic.Canvas.TextHeight(S);
-
-    imgGraphic.Canvas.TextOut(imgGraphic.Width - MARGIN - W,
-      imgGraphic.Height - MARGIN - H, S);
+    lblGraphicInfo.Caption := S;
   end;
 
 begin

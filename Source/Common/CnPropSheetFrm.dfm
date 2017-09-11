@@ -468,12 +468,34 @@ object CnPropSheetForm: TCnPropSheetForm
       Color = clWhite
       TabOrder = 8
       Visible = False
-      object imgGraphic: TImage
+      object pnlGraphicInfo: TPanel
+        Left = 1
+        Top = 401
+        Width = 369
+        Height = 41
+        Align = alBottom
+        BevelOuter = bvNone
+        TabOrder = 0
+        object lblGraphicInfo: TLabel
+          Left = 16
+          Top = 16
+          Width = 3
+          Height = 13
+        end
+      end
+      object bxGraphic: TScrollBox
         Left = 1
         Top = 1
         Width = 369
-        Height = 441
+        Height = 400
         Align = alClient
+        TabOrder = 1
+        object imgGraphic: TImage
+          Left = 0
+          Top = 0
+          Width = 365
+          Height = 396
+        end
       end
     end
   end
