@@ -1,7 +1,7 @@
 object CnPropSheetForm: TCnPropSheetForm
   Left = 494
   Top = 65
-  Width = 379
+  Width = 397
   Height = 521
   BorderStyle = bsSizeToolWin
   Caption = 'CnDebug Inspector'
@@ -23,7 +23,7 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 371
+    Width = 389
     Height = 30
     Align = alTop
     BevelOuter = bvNone
@@ -67,7 +67,7 @@ object CnPropSheetForm: TCnPropSheetForm
       OnClick = btnRefreshClick
     end
     object btnTop: TSpeedButton
-      Left = 349
+      Left = 367
       Top = 5
       Width = 20
       Height = 21
@@ -133,7 +133,7 @@ object CnPropSheetForm: TCnPropSheetForm
       OnClick = btnEvaluateClick
     end
     object btnLocate: TSpeedButton
-      Left = 323
+      Left = 341
       Top = 5
       Width = 20
       Height = 21
@@ -165,7 +165,7 @@ object CnPropSheetForm: TCnPropSheetForm
     object edtClassName: TEdit
       Left = 168
       Top = 8
-      Width = 145
+      Width = 163
       Height = 18
       Anchors = [akLeft, akTop, akRight]
       BorderStyle = bsNone
@@ -178,7 +178,7 @@ object CnPropSheetForm: TCnPropSheetForm
   object tsSwitch: TTabSet
     Left = 0
     Top = 473
-    Width = 371
+    Width = 389
     Height = 21
     Align = alBottom
     Font.Charset = ANSI_CHARSET
@@ -201,7 +201,7 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlMain: TPanel
     Left = 0
     Top = 30
-    Width = 371
+    Width = 389
     Height = 443
     Align = alClient
     BevelOuter = bvNone
@@ -449,7 +449,7 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlHierarchy: TPanel
       Left = 0
       Top = 0
-      Width = 371
+      Width = 389
       Height = 443
       Align = alClient
       BevelInner = bvLowered
@@ -460,7 +460,7 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlGraphic: TPanel
       Left = 0
       Top = 0
-      Width = 371
+      Width = 389
       Height = 443
       Align = alClient
       BevelInner = bvLowered
@@ -471,7 +471,7 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlGraphicInfo: TPanel
         Left = 1
         Top = 401
-        Width = 369
+        Width = 387
         Height = 41
         Align = alBottom
         BevelOuter = bvNone
@@ -482,19 +482,27 @@ object CnPropSheetForm: TCnPropSheetForm
           Width = 3
           Height = 13
         end
+        object lblPixel: TLabel
+          Left = 184
+          Top = 16
+          Width = 3
+          Height = 13
+        end
       end
       object bxGraphic: TScrollBox
         Left = 1
         Top = 1
-        Width = 369
+        Width = 387
         Height = 400
         Align = alClient
+        BorderStyle = bsNone
         TabOrder = 1
         object imgGraphic: TImage
           Left = 0
           Top = 0
-          Width = 365
-          Height = 396
+          Width = 387
+          Height = 400
+          OnMouseMove = imgGraphicMouseMove
         end
       end
     end

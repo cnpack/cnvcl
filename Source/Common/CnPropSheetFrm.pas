@@ -323,6 +323,7 @@ type
     bxGraphic: TScrollBox;
     imgGraphic: TImage;
     lblGraphicInfo: TLabel;
+    lblPixel: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -347,6 +348,8 @@ type
     procedure ListViewKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure btnLocateClick(Sender: TObject);
+    procedure imgGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -1926,7 +1929,7 @@ var
   var
     S: string;
   begin
-    if AGraphic = nil then
+    if (AGraphic = nil) or (imgGraphic.Picture = nil) then
       Exit;
 
     imgGraphic.Height := AGraphic.Height;
@@ -1936,12 +1939,14 @@ var
     if AGraphic.Empty then
       S := EMPTY_STR
     else
-      S := Format('Width: %d, Height: %d.', [AGraphic.Width, AGraphic.Height]);
+    begin
+      S := Format('W: %d, H: %d.', [AGraphic.Width, AGraphic.Height]);
 
-    if AGraphic.Transparent then
-      S := S + ' Transparent.'
-    else
-      S := S + ' No Transparent.';
+      if AGraphic.Transparent then
+        S := S + ' Transparent.'
+      else
+        S := S + ' No Transparent.';
+    end;
 
     lblGraphicInfo.Caption := S;
   end;
@@ -2588,6 +2593,48 @@ begin
       ;
     end;
   end;
+end;
+
+procedure TCnPropSheetForm.imgGraphicMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  S: string;
+  Bmp: TBitmap;
+  Rec: TRect;
+  Pt: TPoint;
+  C: TColor;
+
+  function GetPixelFormatName(Fmt: TPixelFormat): string;
+  begin
+    case Fmt of
+      pfDevice: Result := 'Device';
+      pf1bit: Result := '1 Bit';
+      pf4bit: Result := '4 Bit';
+      pf8bit: Result := '8 Bit';
+      pf15bit: Result := '15 Bit';
+      pf16bit: Result := '16 Bit';
+      pf24bit: Result := '24 Bit';
+      pf32bit: Result := '32 Bit';
+      pfCustom: Result := 'Custom';
+    end;
+  end;
+
+begin
+  S := '';
+  if (imgGraphic.Picture <> nil) and (imgGraphic.Picture.Bitmap <> nil)
+    and not imgGraphic.Picture.Bitmap.Empty then
+  begin
+    Bmp := imgGraphic.Picture.Bitmap;
+    Rec := Rect(0, 0, Bmp.Width, Bmp.Height);
+    Pt := Point(X, Y);
+    if PtInRect(Rec, Pt) then
+    begin
+      C := Bmp.Canvas.Pixels[X, Y];
+      S := Format('%s: X: %d, Y: %d, Color $%8.8x', [GetPixelFormatName(Bmp.PixelFormat),
+        X, Y, C]);
+    end;
+  end;
+  lblPixel.Caption := S;
 end;
 
 initialization
