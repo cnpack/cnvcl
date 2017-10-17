@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 361
-    ActivePage = tsZUC
+    ActivePage = tsCRC64
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -712,6 +712,13 @@ object FormCrypt: TFormCrypt
           Height = 13
           Caption = 'From:'
         end
+        object lblSHA224HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
         object edtSHA224: TEdit
           Left = 72
           Top = 40
@@ -747,6 +754,23 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnSHA224FileClick
         end
+        object edtSHA224HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnSHA224Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA224 Hmac'
+          TabOrder = 5
+          OnClick = btnSHA224HmacClick
+        end
       end
     end
     object tsSHA256: TTabSheet
@@ -766,6 +790,13 @@ object FormCrypt: TFormCrypt
           Width = 28
           Height = 13
           Caption = 'From:'
+        end
+        object lblSHA256HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
         end
         object edtSHA256: TEdit
           Left = 72
@@ -802,6 +833,23 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnFileSHA256Click
         end
+        object edtSHA256HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnSHA256Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA256 Hmac'
+          TabOrder = 5
+          OnClick = btnSHA256HmacClick
+        end
       end
     end
     object tsSHA384: TTabSheet
@@ -832,6 +880,13 @@ object FormCrypt: TFormCrypt
           Layout = tlCenter
           OnDblClick = ResultDblClick
         end
+        object lblSHA384HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
         object edtSHA384: TEdit
           Left = 72
           Top = 40
@@ -857,6 +912,23 @@ object FormCrypt: TFormCrypt
           Caption = 'File SHA384'
           TabOrder = 2
           OnClick = btnSHA384FileClick
+        end
+        object edtSHA384HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 3
+          Text = 'HmacKey'
+        end
+        object btnSHA384Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA384 Hmac'
+          TabOrder = 4
+          OnClick = btnSHA384HmacClick
         end
       end
     end
@@ -888,6 +960,13 @@ object FormCrypt: TFormCrypt
           Layout = tlCenter
           OnDblClick = ResultDblClick
         end
+        object lblSHA512HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
         object edtSHA512: TEdit
           Left = 72
           Top = 40
@@ -913,6 +992,23 @@ object FormCrypt: TFormCrypt
           Caption = 'File SHA512'
           TabOrder = 2
           OnClick = btnSHA512FileClick
+        end
+        object edtSHA512HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 3
+          Text = 'HmacKey'
+        end
+        object btnSHA512Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA512 Hmac'
+          TabOrder = 4
+          OnClick = btnSHA512HmacClick
         end
       end
     end
