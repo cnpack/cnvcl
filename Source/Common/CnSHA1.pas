@@ -586,8 +586,8 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Ctx.Ipad, $36, 64);
-  FillChar(Ctx.Opad, $5C, 64);
+  FillChar(Ctx.Ipad, 64, $36);
+  FillChar(Ctx.Opad, 64, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin

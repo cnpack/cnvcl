@@ -1581,8 +1581,8 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, $36, 64);
-  FillChar(Context.Opad, $5C, 64);
+  FillChar(Context.Ipad, 64, $36);
+  FillChar(Context.Opad, 64, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1625,8 +1625,8 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, $36, 64);
-  FillChar(Context.Opad, $5C, 64);
+  FillChar(Context.Ipad, 64, $36);
+  FillChar(Context.Opad, 64, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1689,8 +1689,8 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, $36, 128);
-  FillChar(Context.Opad, $5C, 128);
+  FillChar(Context.Ipad, 128, $36);
+  FillChar(Context.Opad, 128, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1743,8 +1743,8 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, $36, 128);
-  FillChar(Context.Opad, $5C, 128);
+  FillChar(Context.Ipad, 128, $36);
+  FillChar(Context.Opad, 128, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
