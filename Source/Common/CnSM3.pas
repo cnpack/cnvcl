@@ -71,14 +71,15 @@ function SM3(Input: PAnsiChar; Length: LongWord): TSM3Digest;
    Length: LongWord  - 数据块长度
  |</PRE>}
 
-procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
-
-procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
-
-procedure SM3HmacFinish(var Ctx: TSM3Context; var Output: TSM3Digest);
+//procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
+//
+//procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
+//
+//procedure SM3HmacFinish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
 procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   Length: LongWord; var Output: TSM3Digest);
+
 {* Hash-based Message Authentication Code (based on SM3) }
 
 function SM3String(const Str: string): TSM3Digest;
@@ -127,6 +128,9 @@ const
 
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
+
+  HMAC_SM3_BLOCK_SIZE_BYTE = 64;
+  HMAC_SM3_OUTPUT_LENGTH_BYTE = 32;
 
 type
   TSM3ProcessData = array[0..63] of Byte;
@@ -203,8 +207,6 @@ begin
   Ctx.State[7] := $B0FB0E4E;
 
   ZeroMemory(@Ctx.Buffer, SizeOf(Ctx.Buffer));
-  ZeroMemory(@Ctx.Ipad, SizeOf(Ctx.Ipad));
-  ZeroMemory(@Ctx.Opad, SizeOf(Ctx.Opad));
 end;
 
 // 一次处理 64byte 也就是512bit 数据块
@@ -405,15 +407,15 @@ var
   I: Integer;
   Sum: TSM3Digest;
 begin
-  if KeyLength > 64 then
+  if KeyLength > HMAC_SM3_BLOCK_SIZE_BYTE then
   begin
     Sum := SM3(Key, KeyLength);
-    KeyLength := 32;
+    KeyLength := HMAC_SM3_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Ctx.Ipad, $36, 64);
-  FillChar(Ctx.Opad, $5C, 64);
+  FillChar(Ctx.Ipad, HMAC_SM3_BLOCK_SIZE_BYTE, $36);
+  FillChar(Ctx.Opad, HMAC_SM3_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -422,7 +424,7 @@ begin
   end;
 
   SM3Start(Ctx);
-  SM3Update(Ctx, @(Ctx.Ipad[0]), 64);
+  SM3Update(Ctx, @(Ctx.Ipad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
 end;
 
 procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
@@ -435,10 +437,10 @@ var
   Len: Integer;
   TmpBuf: TSM3Digest;
 begin
-  Len := 32;
+  Len := HMAC_SM3_OUTPUT_LENGTH_BYTE;
   SM3Finish(Ctx, TmpBuf);
   SM3Start(Ctx);
-  SM3Update(Ctx, @(Ctx.Opad[0]), 64);
+  SM3Update(Ctx, @(Ctx.Opad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
   SM3Update(Ctx, @(TmpBuf[0]), Len);
   SM3Finish(Ctx, Output);
 end;

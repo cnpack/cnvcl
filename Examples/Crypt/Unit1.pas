@@ -24,7 +24,7 @@ type
     edtOrigin: TEdit;
     grpMd5: TGroupBox;
     lblfROM: TLabel;
-    edtFrom: TEdit;
+    edtMD5: TEdit;
     btnMd5: TButton;
     pnlMd5: TPanel;
     tsBase64: TTabSheet;
@@ -147,6 +147,15 @@ type
     lblSHA512HmacKey: TLabel;
     edtSHA512HmacKey: TEdit;
     btnSHA512Hmac: TButton;
+    edtSHA1HMacKey: TEdit;
+    btnSHA1Hmac: TButton;
+    lblSHA1HmacKey: TLabel;
+    lblMD5HmacKey: TLabel;
+    edtMD5HmacKey: TEdit;
+    btnMD5Hmac: TButton;
+    lblSM3HmacKey: TLabel;
+    edtSM3HMacKey: TEdit;
+    btnSM3Hmac: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -186,6 +195,9 @@ type
     procedure btnSHA224HmacClick(Sender: TObject);
     procedure btnSHA384HmacClick(Sender: TObject);
     procedure btnSHA512HmacClick(Sender: TObject);
+    procedure btnSHA1HmacClick(Sender: TObject);
+    procedure btnMD5HmacClick(Sender: TObject);
+    procedure btnSM3HmacClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -209,7 +221,7 @@ begin
 {$IFDEF UNICODE}
   pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtFrom.Text));
 {$ELSE}
-  pnlMd5.Caption := MD5Print(MD5String(edtFrom.Text));
+  pnlMd5.Caption := MD5Print(MD5String(edtMD5.Text));
 {$ENDIF}
 end;
 
@@ -836,6 +848,39 @@ begin
   S := SHA512Print(Output);
   Insert(#13#10, S, 65);
   lblSHA512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnSHA1HmacClick(Sender: TObject);
+var
+  Output: TSHA1Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtSHA1HmacKey.Text);
+  S := AnsiString(edtSHA1.Text);
+  SHA1Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlSHA1.Caption := SHA1Print(Output);
+end;
+
+procedure TFormCrypt.btnMD5HmacClick(Sender: TObject);
+var
+  Output: TMD5Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtMD5HmacKey.Text);
+  S := AnsiString(edtMD5.Text);
+  MD5Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlMD5.Caption := MD5Print(Output);
+end;
+
+procedure TFormCrypt.btnSM3HmacClick(Sender: TObject);
+var
+  Output: TSM3Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtSM3HmacKey.Text);
+  S := AnsiString(edtSM3.Text);
+  SM3Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  lblSm3Result.Caption := SM3Print(Output);
 end;
 
 end.

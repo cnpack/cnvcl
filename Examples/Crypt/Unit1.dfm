@@ -3,7 +3,7 @@ object FormCrypt: TFormCrypt
   Top = 115
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
-  ClientHeight = 414
+  ClientHeight = 433
   ClientWidth = 521
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -20,8 +20,9 @@ object FormCrypt: TFormCrypt
     Left = 24
     Top = 24
     Width = 473
-    Height = 361
-    ActivePage = tsCRC64
+    Height = 385
+    ActivePage = tsSM3
+    MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
       Caption = 'DES'
@@ -129,7 +130,14 @@ object FormCrypt: TFormCrypt
           Height = 13
           Caption = 'From:'
         end
-        object edtFrom: TEdit
+        object lblMD5HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtMD5: TEdit
           Left = 72
           Top = 40
           Width = 169
@@ -149,10 +157,11 @@ object FormCrypt: TFormCrypt
         object pnlMd5: TPanel
           Left = 24
           Top = 136
-          Width = 233
+          Width = 369
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2
+          OnDblClick = ResultDblClick
         end
         object btnMd5File: TButton
           Left = 72
@@ -162,6 +171,23 @@ object FormCrypt: TFormCrypt
           Caption = 'File MD5'
           TabOrder = 3
           OnClick = btnMd5FileClick
+        end
+        object edtMD5HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnMD5Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'MD5 Hmac'
+          TabOrder = 5
+          OnClick = btnMD5HmacClick
         end
       end
     end
@@ -277,7 +303,7 @@ object FormCrypt: TFormCrypt
         object pnlCRC32: TPanel
           Left = 24
           Top = 144
-          Width = 233
+          Width = 369
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2
@@ -367,6 +393,13 @@ object FormCrypt: TFormCrypt
           Height = 13
           Caption = 'From:'
         end
+        object lblSHA1HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
         object edtSha1: TEdit
           Left = 72
           Top = 40
@@ -387,7 +420,7 @@ object FormCrypt: TFormCrypt
         object pnlSha1: TPanel
           Left = 8
           Top = 136
-          Width = 281
+          Width = 401
           Height = 41
           BevelOuter = bvNone
           TabOrder = 2
@@ -401,6 +434,23 @@ object FormCrypt: TFormCrypt
           Caption = 'File SHA1'
           TabOrder = 3
           OnClick = btnFileSha1Click
+        end
+        object edtSHA1HMacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnSHA1Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA1 Hmac'
+          TabOrder = 5
+          OnClick = btnSHA1HmacClick
         end
       end
     end
@@ -432,6 +482,13 @@ object FormCrypt: TFormCrypt
           Layout = tlCenter
           OnDblClick = ResultDblClick
         end
+        object lblSM3HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
         object edtSM3: TEdit
           Left = 72
           Top = 40
@@ -457,6 +514,23 @@ object FormCrypt: TFormCrypt
           Caption = 'File SM3'
           TabOrder = 2
           OnClick = btnFileSM3Click
+        end
+        object edtSM3HMacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 3
+          Text = 'HmacKey'
+        end
+        object btnSM3Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SM3 Hmac'
+          TabOrder = 4
+          OnClick = btnSM3HmacClick
         end
       end
     end

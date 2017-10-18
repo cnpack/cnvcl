@@ -87,17 +87,14 @@ type
     State   : TMD5State;
     Count   : TMD5Count;
     Buffer  : TMD5Buffer;
+    Ipad    : array[0..63] of Byte;      {!< HMAC: inner padding        }
+    Opad    : array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
  
   TMD5CalcProgressFunc = procedure (ATotal, AProgress: Int64;
     var Cancel: Boolean) of object;
   {* 进度回调事件类型声明}
     
-procedure MD5Init(var Context: TMD5Context);
-procedure MD5Update(var Context: TMD5Context; Input: PAnsiChar; Length: LongWord);
-procedure MD5UpdateW(var Context: TMD5Context; Input: PWideChar; Length: LongWord);
-procedure MD5Final(var Context: TMD5Context; var Digest: TMD5Digest);
-
 //----------------------------------------------------------------
 // 用户API函数定义
 //----------------------------------------------------------------
@@ -163,11 +160,19 @@ function MD5DigestToStr(aDig: TMD5Digest): string;
    aDig: TMD5Digest   - 需要转换的MD5计算值
  |</PRE>}
 
+procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TMD5Digest);
+
+{* Hash-based Message Authentication Code (based on MD5) }
+
 implementation
 
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
+
+  HMAC_MD5_BLOCK_SIZE_BYTE = 64;
+  HMAC_MD5_OUTPUT_LENGTH_BYTE = 16;
 
 var
   PADDING: TMD5Buffer = (
@@ -392,8 +397,8 @@ begin
   with Context do
   begin
     State[0] := $67452301;
-    State[1] := $efcdab89;
-    State[2] := $98badcfe;
+    State[1] := $EFCDAB89;
+    State[2] := $98BADCFE;
     State[3] := $10325476;
     Count[0] := 0;
     Count[1] := 0;
@@ -448,7 +453,7 @@ begin
   end;
 end;
 
-// Finalize given Context, create Digest and zeroize Context
+// Finalize given Context, create Digest
 procedure MD5Final(var Context: TMD5Context; var Digest: TMD5Digest);
 var
   Bits: TMD5CBits;
@@ -464,7 +469,6 @@ begin
   MD5Update(Context, @PADDING, PadLen);
   MD5Update(Context, @Bits, 8);
   Decode(@Context.State, @Digest, 4);
-  ZeroMemory(@Context, SizeOf(TMD5Context));
 end;
 
 function InternalMD5Stream(Stream: TStream; const BufSize: Cardinal; var D:
@@ -686,6 +690,59 @@ begin
   SetLength(Result, 16);
   for I := 1 to 16 do
     Result[I] := Chr(aDig[I - 1]);
+end;
+
+procedure MD5HmacInit(var Ctx: TMD5Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TMD5Digest;
+begin
+  if KeyLength > HMAC_MD5_BLOCK_SIZE_BYTE then
+  begin
+    Sum := MD5Buffer(Key, KeyLength);
+    KeyLength := HMAC_MD5_OUTPUT_LENGTH_BYTE;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Ctx.Ipad, HMAC_MD5_BLOCK_SIZE_BYTE, $36);
+  FillChar(Ctx.Opad, HMAC_MD5_BLOCK_SIZE_BYTE, $5C);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Ctx.Ipad[I] := Byte(Ctx.Ipad[I] xor Byte(Key[I]));
+    Ctx.Opad[I] := Byte(Ctx.Opad[I] xor Byte(Key[I]));
+  end;
+
+  MD5Init(Ctx);
+  MD5Update(Ctx, @(Ctx.Ipad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
+end;
+
+procedure MD5HmacUpdate(var Ctx: TMD5Context; Input: PAnsiChar; Length: LongWord);
+begin
+  MD5Update(Ctx, Input, Length);
+end;
+
+procedure MD5HmacFinal(var Ctx: TMD5Context; var Output: TMD5Digest);
+var
+  Len: Integer;
+  TmpBuf: TMD5Digest;
+begin
+  Len := HMAC_MD5_OUTPUT_LENGTH_BYTE;
+  MD5Final(Ctx, TmpBuf);
+  MD5Init(Ctx);
+  MD5Update(Ctx, @(Ctx.Opad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
+  MD5Update(Ctx, @(TmpBuf[0]), Len);
+  MD5Final(Ctx, Output);
+end;
+
+procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TMD5Digest);
+var
+  Ctx: TMD5Context;
+begin
+  MD5HmacInit(Ctx, Key, KeyLength);
+  MD5HmacUpdate(Ctx, Input, Length);
+  MD5HmacFinal(Ctx, Output);
 end;
 
 end.

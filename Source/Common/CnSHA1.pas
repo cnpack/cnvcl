@@ -131,14 +131,9 @@ function SHA1DigestToStr(aDig: TSHA1Digest): string;
    aDig: TSHA1Digest   - 需要转换的SHA1计算值
  |</PRE>}
 
-procedure SHA1HmacInit(var Ctx: TSHA1Context; Key: PAnsiChar; KeyLength: Integer);
-
-procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: LongWord);
-
-procedure SHA1HmacFinal(var Ctx: TSHA1Context; var Output: TSHA1Digest);
-
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   Length: LongWord; var Output: TSHA1Digest);
+
 {* Hash-based Message Authentication Code (based on SHA1) }
 
 implementation
@@ -146,6 +141,9 @@ implementation
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
+
+  HMAC_SHA1_BLOCK_SIZE_BYTE = 64;
+  HMAC_SHA1_OUTPUT_LENGTH_BYTE = 20;
 
 {$R-}
 
@@ -353,7 +351,6 @@ begin
   Context.Hash[3] := RB(Context.Hash[3]);
   Context.Hash[4] := RB(Context.Hash[4]);
   Move(Context.Hash, Digest, Sizeof(Digest));
-  FillChar(Context, Sizeof(Context), 0);
 end;
 
 // 对数据块进行SHA1转换
@@ -579,15 +576,15 @@ var
   I: Integer;
   Sum: TSHA1Digest;
 begin
-  if KeyLength > 64 then
+  if KeyLength > HMAC_SHA1_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA1Buffer(Key, KeyLength);
-    KeyLength := 32;
+    KeyLength := HMAC_SHA1_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Ctx.Ipad, 64, $36);
-  FillChar(Ctx.Opad, 64, $5C);
+  FillChar(Ctx.Ipad, HMAC_SHA1_BLOCK_SIZE_BYTE, $36);
+  FillChar(Ctx.Opad, HMAC_SHA1_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -596,7 +593,7 @@ begin
   end;
 
   SHA1Init(Ctx);
-  SHA1Update(Ctx, @(Ctx.Ipad[0]), 64);
+  SHA1Update(Ctx, @(Ctx.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: LongWord);
@@ -609,10 +606,10 @@ var
   Len: Integer;
   TmpBuf: TSHA1Digest;
 begin
-  Len := 32;
+  Len := HMAC_SHA1_OUTPUT_LENGTH_BYTE;
   SHA1Final(Ctx, TmpBuf);
   SHA1Init(Ctx);
-  SHA1Update(Ctx, @(Ctx.Opad[0]), 64);
+  SHA1Update(Ctx, @(Ctx.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
   SHA1Update(Ctx, @(TmpBuf[0]), Len);
   SHA1Final(Ctx, Output);
 end;
