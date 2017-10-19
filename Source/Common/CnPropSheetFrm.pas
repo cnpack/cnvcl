@@ -47,13 +47,14 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
-  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF};
+  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
+  {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF};
 
 const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
 
 type
-  TCnPropContentType = (pctProps, pctEvents, pctCollectionItems, pctMenuItems,
+  TCnPropContentType = (pctProps, pctEvents, pctMethods, pctCollectionItems, pctMenuItems,
     pctStrings, pctGraphics, pctComponents, pctControls, pctHierarchy);
   TCnPropContentTypes = set of TCnPropContentType;
 
@@ -65,12 +66,14 @@ type
     FObjStr: string;
     FObjValue: TObject;
     FObjClassName: string;
+    FIsNewRTTI: Boolean;
   public
     property Changed: Boolean read FChanged write FChanged;
     property DisplayValue: string read FDisplayValue write FDisplayValue;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property ObjValue: TObject read FObjValue write FObjValue;
     property ObjStr: string read FObjStr write FObjStr;
+    property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
 
   TCnPropertyObject = class(TCnDisplayObject)
@@ -80,12 +83,18 @@ type
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    FPropRttiValue: TValue;
+{$ENDIF}
     FCanModify: Boolean;
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
     property IsObject: Boolean read FIsObject write FIsObject;
     property PropValue: Variant read FPropValue write FPropValue;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
+{$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
   end;
 
@@ -99,6 +108,16 @@ type
     property EventName: string read FEventName write FEventName;
     property EventType: string read FEventType write FEventType;
     property HandlerName: string read FHandlerName write FHandlerName;
+  end;
+
+  TCnMethodObject = class(TCnDisplayObject)
+  {* 描述一方法 }
+  private
+    FMethodSimpleName: string;
+    FFullName: string;
+  public
+    property MethodSimpleName: string read FMethodSimpleName write FMethodSimpleName;
+    property FullName: string read FFullName write FFullName;
   end;
 
   TCnStringsObject = class(TCnDisplayObject)
@@ -167,6 +186,7 @@ type
     FObjectAddr: Pointer;
     FProperties: TObjectList;
     FEvents: TObjectList;
+    FMethods: TObjectList;
     FInspectComplete: Boolean;
     FObjClassName: string;
     FContentTypes: TCnPropContentTypes;
@@ -192,6 +212,7 @@ type
     function GetCollectionItemCount: Integer;
     procedure SetInspectComplete(const Value: Boolean);
     function GetMenuItemCount: Integer;
+    function GetMethodCount: Integer;
   protected
     procedure SetObjectAddr(const Value: Pointer); virtual;
     procedure DoEvaluate; virtual; abstract;
@@ -206,6 +227,8 @@ type
       const APropName: string): TCnPropertyObject;
     function IndexOfEvent(AEvents: TObjectList;
       const AEventName: string): TCnEventObject;
+    function IndexOfMethod(AMethods: TObjectList;
+      const AMethodName: string): TCnMethodObject;
   public
     constructor Create(Data: Pointer); virtual;
     destructor Destroy; override;
@@ -219,6 +242,7 @@ type
 
     property Properties: TObjectList read FProperties;
     property Events: TObjectList read FEvents;
+    property Methods: TObjectList read FMethods;
     property Strings: TCnStringsObject read FStrings;
     property Graphics: TCnGraphicsObject read FGraphics;
     property Components: TObjectList read FComponents;
@@ -228,6 +252,7 @@ type
 
     property PropCount: Integer read GetPropCount;
     property EventCount: Integer read GetEventCount;
+    property MethodCount: Integer read GetMethodCount;
     property CompCount: Integer read GetCompCount;
     property ControlCount: Integer read GetControlCount;
     property CollectionItemCount: Integer read GetCollectionItemCount;
@@ -290,10 +315,15 @@ type
     btnEvaluate: TSpeedButton;
     pnlHierarchy: TPanel;
     pnlGraphic: TPanel;
-    imgGraphic: TImage;
     lvMenuItem: TListView;
     edtClassName: TEdit;
     btnLocate: TSpeedButton;
+    lvMethods: TListView;
+    pnlGraphicInfo: TPanel;
+    bxGraphic: TScrollBox;
+    imgGraphic: TImage;
+    lblGraphicInfo: TLabel;
+    lblPixel: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -318,6 +348,8 @@ type
     procedure ListViewKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure btnLocateClick(Sender: TObject);
+    procedure imgGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -392,6 +424,12 @@ function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 
 function GetObjValueStr(AObj: TObject): string;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function GetRttiPropValueStr(Instance: TObject; RttiProperty: TRttiProperty): string;
+
+{$ENDIF}
+
 var
   ObjectInspectorClass: TCnObjectInspectorClass = nil;
 
@@ -441,7 +479,7 @@ type
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
-    ('Properties', 'Events', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
+    ('Properties', 'Events', 'Methods', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
      'Components', 'Controls', 'Hierarchy');
 
   SCnInputNewValueCaption = 'Modify Value';
@@ -535,6 +573,23 @@ begin
   Result := string(PropInfo^.Name);
 end;
 
+function GetClassValueStr(AClass: TClass): string;
+var
+ S: string;
+begin
+ if AClass <> nil then
+ begin
+   try
+     S := AClass.ClassName;
+   except
+     S := 'Unknown Object';
+   end;
+   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)])
+ end
+ else
+   Result := 'nil';
+end;
+
 function GetObjValueStr(AObj: TObject): string;
 var
   S: string;
@@ -552,81 +607,151 @@ begin
     Result := 'nil';
 end;
 
+function GetParamFlagsName(AParamFlags: TParamFlags): string;
+const
+  SParamFlag: array[TParamFlag] of string
+    = ('var', 'const', 'array of', 'address', '', 'out'{$IFDEF COMPILER14_UP}, 'result'{$ENDIF});
+var
+  I: TParamFlag;
+begin
+  Result := '';
+  for I := Low(TParamFlag) to High(TParamFlag) do
+  begin
+    if (I <> pfAddress) and (I in AParamFlags) then
+      Result := Result + SParamFlag[I];
+  end;
+end;
+
+// 根据函数类型信息获得其声明，PropInfo必须为函数类型信息
+function GetMethodDeclare(Instance: TObject; PropInfo: PPropInfo): string;
+var
+  CompName, MthName: string;
+  TypeStr: PShortString;
+  T: PTypeData;
+  P: PParamData;
+  I: Integer;
+  AMethod: TMethod;
+begin
+  CompName := '*';
+  if Instance is TComponent then
+    CompName := (Instance as TComponent).Name;
+  MthName := PropInfoName(PropInfo);
+
+  AMethod := GetMethodProp(Instance, PropInfo);
+  if AMethod.Data <> nil then
+  begin
+    try
+      MthName := TObject(AMethod.Data).MethodName(AMethod.Code);
+      if TObject(AMethod.Data) is TComponent then
+        CompName := (TObject(AMethod.Data) as TComponent).Name;
+    except
+      ;
+    end;
+  end;
+
+  T := GetTypeData(PropInfo^.PropType^);
+
+  if T^.MethodKind = mkFunction then
+    Result := Result + 'function ' + CompName + '.' + MthName + '('
+  else
+    Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
+
+  P := PParamData(@T^.ParamList);
+  for I := 1 to T^.ParamCount do
+  begin
+    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
+      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+    else
+      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^]));
+    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+      Length(P^.ParamName) + Length(TypeStr^) + 2);
+  end;
+
+  Delete(Result, Length(Result), 1);
+  Result := Result + ')';
+  if T^.MethodKind = mkFunction then
+    Result := Result + ': ' + string(PShortString(P)^);
+  Result := Result + ';';
+end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+// 根据函数类型信息获得其声明，2010以上版本使用
+function GetRttiMethodDeclare(Instance: TObject; RttiProperty: TRttiProperty): string;
+var
+  CompName, MthName, S: string;
+  TypeStr: PShortString;
+  T: PTypeData;
+  P: PParamData;
+  I, DataSize: Integer;
+  AMethod: TMethod;
+begin
+  Result := '';
+  DataSize := RttiProperty.GetValue(Instance).DataSize;
+  if DataSize <> SizeOf(TMethod) then
+    Exit;
+
+  RttiProperty.GetValue(Instance).ExtractRawData(@AMethod);
+
+  CompName := '*';
+  if Instance is TComponent then
+    CompName := (Instance as TComponent).Name;
+  MthName := RttiProperty.Name;
+
+  if AMethod.Data <> nil then
+  begin
+    try
+      S := TObject(AMethod.Data).MethodName(AMethod.Code);
+      if S <> '' then
+        MthName := S;
+      if TObject(AMethod.Data) is TComponent then
+        CompName := (TObject(AMethod.Data) as TComponent).Name;
+    except
+      ;
+    end;
+  end;
+
+  T := GetTypeData(RttiProperty.PropertyType.Handle);
+
+  if T^.MethodKind = mkFunction then
+    Result := Result + 'function ' + CompName + '.' + MthName + '('
+  else
+    Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
+
+  P := PParamData(@T^.ParamList);
+  for I := 1 to T^.ParamCount do
+  begin
+    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
+      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+    else
+      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^]));
+    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+      Length(P^.ParamName) + Length(TypeStr^) + 2);
+  end;
+
+  Delete(Result, Length(Result), 1);
+  Result := Result + ')';
+  if T^.MethodKind = mkFunction then
+    Result := Result + ': ' + string(PShortString(P)^);
+  Result := Result + ';';
+end;
+
+{$ENDIF}
+
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 var
   iTmp: Integer;
   S: string;
   IntToId: TIntToIdent;
-
-  function GetParamFlagsName(AParamFlags: TParamFlags): string;
-  const
-    SParamFlag: array[TParamFlag] of string
-      = ('var', 'const', 'array of', 'address', '', 'out'{$IFDEF COMPILER14_UP}, 'result'{$ENDIF});
-  var
-    I: TParamFlag;
-  begin
-    Result := '';
-    for I := Low(TParamFlag) to High(TParamFlag) do
-    begin
-      if (I <> pfAddress) and (I in AParamFlags) then
-        Result := Result + SParamFlag[I];
-    end;
-  end;
-
-  function GetMethodDeclare: string;
-  var
-    CompName, MthName: string;
-    TypeStr: PShortString;
-    T: PTypeData;
-    P: PParamData;
-    I: Integer;
-    AMethod: TMethod;
-  begin
-    CompName := '*';
-    if Instance is TComponent then
-      CompName := (Instance as TComponent).Name;
-    MthName := PropInfoName(PropInfo);
-
-    AMethod := GetMethodProp(Instance, PropInfo);
-    if AMethod.Data <> nil then
-    begin
-      try
-        MthName := TObject(AMethod.Data).MethodName(AMethod.Code);
-        if TObject(AMethod.Data) is TComponent then
-          CompName := (TObject(AMethod.Data) as TComponent).Name;
-      except
-        ;
-      end;
-    end;
-
-    T := GetTypeData(PropInfo^.PropType^);
-
-    if T^.MethodKind = mkFunction then
-      Result := Result + 'function ' + CompName + '.' + MthName + '('
-    else
-      Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
-
-    P := PParamData(@T^.ParamList);
-    for I := 1 to T^.ParamCount do
-    begin
-      TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
-      if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
-        Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-          (GetParamFlagsName(P^.Flags)), TypeStr^]))
-      else
-        Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-          (P^.ParamName), TypeStr^]));
-      P := PParamData(Integer(P) + SizeOf(TParamFlags) +
-        Length(P^.ParamName) + Length(TypeStr^) + 2);
-    end;
-
-    Delete(Result, Length(Result), 1);
-    Result := Result + ')';
-    if T^.MethodKind = mkFunction then
-      Result := Result + ': ' + string(PShortString(P)^);
-    Result := Result + ';';
-  end;
-
+{$IFDEF COMPILER6_UP}
+  Intf: IInterface;
+{$ENDIF}
 begin
   Result := '';
   case PropInfo^.PropType^^.Kind of
@@ -663,7 +788,7 @@ begin
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
             Integer(GetMethodProp(Instance, PropInfo).Code),
             Integer(GetMethodProp(Instance, PropInfo).Data),
-             GetMethodDeclare()])
+            GetMethodDeclare(Instance, PropInfo)])
         else
           S := 'nil';
       end;
@@ -673,9 +798,162 @@ begin
       S := VarToStr(GetVariantProp(Instance, PropInfo));
     tkInt64:
       S := FloatToStr(GetInt64Prop(Instance, PropInfo) + 0.0);
+    tkInterface:
+      begin
+{$IFDEF COMPILER6_UP}
+        Intf := GetInterfaceProp(Instance, PropInfo);
+        S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+{$ELSE}
+        S := '(Interface:<...>)';
+{$ENDIF}
+      end;
   end;
   Result := S;
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function GetRttiPropValueStr(Instance: TObject; RttiProperty: TRttiProperty): string;
+var
+  S: string;
+  IntToId: TIntToIdent;
+  PropTypeInfo, SetElementTypeInfo: PTypeInfo;
+  DataSize: Integer;
+  Buf: array[0..1] of Integer; // for x64?
+  APtr: Pointer;
+  Intf: IInterface;
+  AMethod: TMethod;
+  AClass: TClass;
+
+  function GetSetStr(TypInfo: PTypeInfo; Value: Integer): string;
+  var
+    I: Integer;
+    S: TIntegerSet;
+  begin
+    if Value = 0 then
+    begin
+      Result := '[]';
+      Exit;
+    end;
+
+    Result := '';
+    Integer(S) := Value;
+    for I := 0 to SizeOf(Integer) * 8 - 1 do
+    begin
+      if I in S then
+      begin
+        if Result <> '' then
+          Result := Result + ',';
+
+        if TypInfo = nil then
+          Result := Result + IntToStr(I)
+        else
+          Result := Result + GetEnumName(TypInfo, I);
+      end;
+    end;
+    Result := '[' + Result + ']';
+  end;
+
+begin
+  Result := '';
+  case RttiProperty.PropertyType.TypeKind of
+    tkInteger:
+      begin
+        S := IntToStr(RttiProperty.GetValue(Instance).AsInteger);
+        PropTypeInfo := RttiProperty.PropertyType.Handle;
+        IntToId := FindIntToIdent(PropTypeInfo);
+        if Assigned(IntToId) and IntToId(RttiProperty.GetValue(Instance).AsInteger, S) then
+        else
+        begin
+          if RttiProperty.PropertyType.Name = 'TColor' then
+            S := Format('$%8.8x', [RttiProperty.GetValue(Instance).AsInteger])
+          else
+            S := IntToStr(RttiProperty.GetValue(Instance).AsInteger);
+        end;
+      end;
+    tkChar, tkWChar:
+      S := RttiProperty.GetValue(Instance).AsString;
+    tkClass:
+      begin
+        // 一类属性是 Class，可能根据类名获取运行期实例？published 里头适用？
+        // 一类属性是 Object，public 里头适用？
+        if RttiProperty.GetValue(Instance).IsClass then
+        begin
+          AClass := RttiProperty.GetValue(Instance).AsClass;
+          S := GetClassValueStr(AClass);
+        end
+        else if RttiProperty.GetValue(Instance).IsObject then
+        begin
+          S := GetObjValueStr(RttiProperty.GetValue(Instance).AsObject);
+        end;
+      end;
+    tkEnumeration:
+      begin
+        PropTypeInfo := RttiProperty.PropertyType.Handle;
+        S := GetEnumName(PropTypeInfo, RttiProperty.GetValue(Instance).AsOrdinal);
+      end;
+    tkSet:
+      begin
+        SetElementTypeInfo := nil;
+        if RttiProperty.PropertyType.IsSet then
+          SetElementTypeInfo := RttiProperty.PropertyType.AsSet.ElementType.Handle;
+
+        DataSize := RttiProperty.GetValue(Instance).DataSize;
+        if (DataSize <= SizeOf(Integer)) and (SetElementTypeInfo <> nil) then
+        begin
+          FillChar(Buf[0], SizeOf(Buf), 0);
+          RttiProperty.GetValue(Instance).ExtractRawData((@Buf[0]));
+          S := GetSetStr(SetElementTypeInfo, Buf[0]);
+        end;
+      end;
+    tkFloat:
+      S := FloatToStr(RttiProperty.GetValue(Instance).AsExtended);
+    tkMethod:
+      begin
+        DataSize := RttiProperty.GetValue(Instance).DataSize;
+        if DataSize = SizeOf(TMethod) then
+        begin
+          RttiProperty.GetValue(Instance).ExtractRawData(@AMethod);
+          if AMethod.Code = nil then
+            S := 'nil'
+          else
+          begin
+            S := Format('%s: ($%8.8x, $%8.8x: %s)', [RttiProperty.PropertyType.Name,
+              Integer(AMethod.Code), Integer(AMethod.Data),
+              GetRttiMethodDeclare(Instance, RttiProperty)]);
+          end;
+        end;
+      end;
+    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      S := RttiProperty.GetValue(Instance).AsString;
+    tkVariant:
+      S := VarToStr(RttiProperty.GetValue(Instance).AsVariant);
+    tkInt64:
+      S := FloatToStr(RttiProperty.GetValue(Instance).AsInt64 + 0.0);
+    tkInterface:
+      begin
+        try
+          Intf := RttiProperty.GetValue(Instance).AsInterface;
+          S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+        except
+          on E: Exception do
+            S := Format('(Interface:<Exception: %s>)', [E.Message]);
+        end;
+      end;
+    tkPointer:
+      begin
+        DataSize := RttiProperty.GetValue(Instance).DataSize;
+        if DataSize = SizeOf(Pointer) then
+        begin
+          RttiProperty.GetValue(Instance).ExtractRawData(@APtr);
+          S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
+        end;
+      end;
+  end;
+  Result := S;
+end;
+
+{$ENDIF}
 
 { TCnStringsObject }
 
@@ -700,6 +978,7 @@ begin
   inherited Create;
   FProperties := TObjectList.Create(True);
   FEvents := TObjectList.Create(True);
+  FMethods := TObjectList.Create(True);
   FStrings := TCnStringsObject.Create;
   FGraphics := TCnGraphicsObject.Create;
   FComponents := TObjectList.Create(True);
@@ -716,6 +995,7 @@ begin
   FComponents.Free;
   FGraphics.Free;
   FStrings.Free;
+  FMethods.Free;
   FEvents.Free;
   FProperties.Free;
   inherited;
@@ -821,6 +1101,27 @@ begin
   end;
 end;
 
+function TCnObjectInspector.IndexOfMethod(AMethods: TObjectList;
+  const AMethodName: string): TCnMethodObject;
+var
+  I: Integer;
+  AMethod: TCnMethodObject;
+begin
+  Result := nil;
+  if AMethods <> nil then
+  begin
+    for I := 0 to AMethods.Count - 1 do
+    begin
+      AMethod := TCnMethodObject(AMethods.Items[I]);
+      if AMethod.FullName = AMethodName then
+      begin
+        Result := AMethod;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 procedure TCnObjectInspector.DoAfterEvaluateCollections;
 begin
   if Assigned(FOnAfterEvaluateCollections) then
@@ -868,6 +1169,11 @@ begin
   Result := False;
 end;
 
+function TCnObjectInspector.GetMethodCount: Integer;
+begin
+  Result := FMethods.Count;
+end;
+
 { TCnLocalObjectInspector }
 
 procedure TCnLocalObjectInspector.SetObjectAddr(const Value: Pointer);
@@ -903,6 +1209,19 @@ var
   Hies: TStrings;
   ATmpClass: TClass;
   IntSet: Integer;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiProperty: TRttiProperty;
+  RttiMethod: TRttiMethod;
+  AMethod: TCnMethodObject;
+
+  function GetMethodFullName(ARttiMethod: TRttiMethod): string;
+  begin
+    Result := Format('$%8.8x: %s;', [Integer(ARttiMethod.CodeAddress),
+      ARttiMethod.ToString]);
+  end;
+{$ENDIF}
 
   procedure AddNewProp(Str: string; AProperty: TCnPropertyObject);
   begin
@@ -916,6 +1235,42 @@ var
 
     if not IsRefresh then
       Properties.Add(AProperty);
+  end;
+
+  function AlreadyHasProperty(const APropName: string): Boolean;
+  var
+    I: Integer;
+    PropObj: TCnPropertyObject;
+  begin
+    Result := False;
+    for I := 0 to Properties.Count - 1 do
+    begin
+      PropObj := TCnPropertyObject(Properties[I]);
+      if PropObj <> nil then
+        if PropObj.PropName = APropName then
+        begin
+          Result := True;
+          Exit;
+        end;
+    end;
+  end;
+
+  function AlreadyHasEvent(AEventName: string): Boolean;
+  var
+    I: Integer;
+    EventObj: TCnEventObject;
+  begin
+    Result := False;
+    for I := 0 to Events.Count - 1 do
+    begin
+      EventObj := TCnEventObject(Events[I]);
+      if EventObj <> nil then
+        if EventObj.EventName = AEventName then
+        begin
+          Result := True;
+          Exit;
+        end;
+    end;
   end;
 
 begin
@@ -1029,141 +1384,282 @@ begin
     end;
     FreeMem(PropListPtr);
 
-    // 额外添加显示不在 published 域的一些已知的公用属性
-    if ObjectInstance is TComponent then
-    begin
-      // 添加 Component 的 Owner
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'Owner');
-
-      AProp.PropName := 'Owner';
-      AProp.PropType := tkClass;
-      AProp.IsObject := True;
-      AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
-      AProp.ObjValue := (FObjectInstance as TComponent).Owner;
-
-      S := GetObjValueStr(AProp.ObjValue);
-      if S <> AProp.DisplayValue then
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    // D2010 及以上，使用新 RTTI 方法获取更多属性
+    RttiContext := TRttiContext.Create;
+    try
+      RttiType := RttiContext.GetType(FObjectInstance.ClassInfo);
+      if RttiType <> nil then
       begin
-        AProp.DisplayValue := S;
-        AProp.Changed := True;
-      end
-      else
-        AProp.Changed := False;
+        for RttiProperty in RttiType.GetProperties do
+        begin
+          if RttiProperty.PropertyType.TypeKind in tkProperties then
+          begin
+            // 是 Properties，要判断是否重复
+            if not AlreadyHasProperty(RttiProperty.Name) then
+            begin
+              if not IsRefresh then
+              begin
+                AProp := TCnPropertyObject.Create;
+                AProp.IsNewRTTI := True;
+              end
+              else
+                AProp := IndexOfProperty(Properties, RttiProperty.Name);
 
-      if not IsRefresh then
-        Properties.Add(AProp);
+              AProp.PropName := RttiProperty.Name;
+              AProp.PropType := RttiProperty.PropertyType.TypeKind;
+              AProp.IsObject := AProp.PropType = tkClass;
 
-      // 添加 Component 的 ComponentIndex
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ComponentIndex');
+              // 有写入权限，并且指定类型，才可修改，否则界面上没法整
+              AProp.CanModify := (RttiProperty.IsWritable) and (RttiProperty.PropertyType.TypeKind
+                in CnCanModifyPropTypes);
 
-      AProp.PropName := 'ComponentIndex';
-      AProp.PropType := tkInteger;
-      AProp.IsObject := False;
-      AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
-      AProp.ObjValue := nil;
+              try
+                AProp.PropRttiValue := RttiProperty.GetValue(FObjectInstance);
+              except
+                // Getting Some Property causes Exception. Catch it.
+                AProp.PropRttiValue := nil;
+              end;
+              if AProp.IsObject and RttiProperty.GetValue(FObjectInstance).IsObject then
+                AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
+              else
+                AProp.ObjValue := nil;
 
-      S := IntToStr(AProp.PropValue);
-      AddNewProp(S, AProp);
+              S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
+              if S <> AProp.DisplayValue then
+              begin
+                AProp.DisplayValue := S;
+                AProp.Changed := True;
+              end
+              else
+                AProp.Changed := False;
 
-      // 添加 Component 的 ComponentState
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ComponentState');
+              if not IsRefresh then
+                Properties.Add(AProp);
 
-      AProp.PropName := 'ComponentState';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+              Include(FContentTypes, pctProps);
+            end;
+          end
+          else if RttiProperty.PropertyType.TypeKind = tkMethod then
+          begin
+            // 是 Event，要判断是否重复
+            if not AlreadyHasEvent(RttiProperty.Name) then
+            begin
+              if not IsRefresh then
+              begin
+                AEvent := TCnEventObject.Create;
+                AEvent.IsNewRTTI := True;
+              end
+              else
+                AEvent := IndexOfEvent(FEvents, RttiProperty.Name);
 
-      IntSet := 0;
-      Move((FObjectInstance as TComponent).ComponentState, IntSet,
-        SizeOf((FObjectInstance as TComponent).ComponentState));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+              AEvent.EventName := RttiProperty.Name;
+              AEvent.EventType := RttiProperty.PropertyType.Name;
+              S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
+              if S <> AEvent.DisplayValue then
+              begin
+                AEvent.DisplayValue := S;
+                AEvent.Changed := True;
+              end
+              else
+                AEvent.Changed := False;
 
-      S := GetSetStr(TypeInfo(TCnComponentState), AProp.PropValue);
-      AddNewProp(S, AProp);
+              if not IsRefresh then
+                FEvents.Add(AEvent);
 
-      // 添加 Component 的 ComponentStyle
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ComponentStyle');
+              Include(FContentTypes, pctEvents);
+            end;
+          end;
+        end;
 
-      AProp.PropName := 'ComponentStyle';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+        for RttiMethod in RttiType.GetMethods do
+        begin
+          S := GetMethodFullName(RttiMethod);
+          if not IsRefresh then
+          begin
+            AMethod := TCnMethodObject.Create;
+            AMethod.IsNewRTTI := True;
+          end
+          else
+            AMethod := IndexOfMethod(FMethods, S);
 
-      IntSet := 0;
-      Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
-        SizeOf((FObjectInstance as TComponent).ComponentStyle));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+          AMethod.MethodSimpleName := RttiMethod.Name;
+          AMethod.FullName := S;
+          if S <> AMethod.DisplayValue then
+          begin
+            AMethod.DisplayValue := S;
+            AMethod.Changed := True;
+          end
+          else
+            AMethod.Changed := False;
 
-      S := GetSetStr(TypeInfo(TCnComponentStyle), AProp.PropValue);
-      AddNewProp(S, AProp);
+          if not IsRefresh then
+            FMethods.Add(AMethod);
+
+          Include(FContentTypes, pctMethods);
+        end;
+      end;
+    finally
+      RttiContext.Free;
+    end;
+{$ENDIF}
+
+    // 额外添加显示不在 published 域的一些已知的公用属性
+    if FObjectInstance is TComponent then
+    begin
+      if not AlreadyHasProperty('Owner') then
+      begin
+        // 添加 Component 的 Owner
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'Owner');
+
+        AProp.PropName := 'Owner';
+        AProp.PropType := tkClass;
+        AProp.IsObject := True;
+        AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
+        AProp.ObjValue := (FObjectInstance as TComponent).Owner;
+
+        S := GetObjValueStr(AProp.ObjValue);
+        if S <> AProp.DisplayValue then
+        begin
+          AProp.DisplayValue := S;
+          AProp.Changed := True;
+        end
+        else
+          AProp.Changed := False;
+
+        if not IsRefresh then
+          Properties.Add(AProp);
+      end;
+
+      if not AlreadyHasProperty('ComponentIndex') then
+      begin
+        // 添加 Component 的 ComponentIndex
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ComponentIndex');
+
+        AProp.PropName := 'ComponentIndex';
+        AProp.PropType := tkInteger;
+        AProp.IsObject := False;
+        AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
+        AProp.ObjValue := nil;
+
+        S := IntToStr(AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
+
+      if not AlreadyHasProperty('ComponentState') then
+      begin
+        // 添加 Component 的 ComponentState
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ComponentState');
+
+        AProp.PropName := 'ComponentState';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
+
+        IntSet := 0;
+        Move((FObjectInstance as TComponent).ComponentState, IntSet,
+          SizeOf((FObjectInstance as TComponent).ComponentState));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
+
+        S := GetSetStr(TypeInfo(TCnComponentState), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
+
+      if not AlreadyHasProperty('ComponentStyle') then
+      begin
+        // 添加 Component 的 ComponentStyle
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ComponentStyle');
+
+        AProp.PropName := 'ComponentStyle';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
+
+        IntSet := 0;
+        Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
+          SizeOf((FObjectInstance as TComponent).ComponentStyle));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
+
+        S := GetSetStr(TypeInfo(TCnComponentStyle), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
     end;
 
-    if ObjectInstance is TControl then
+    if FObjectInstance is TControl then
     begin
-      // 添加 Control 的 Parent
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'Parent');
+      if not AlreadyHasProperty('Parent') then
+      begin
+        // 添加 Control 的 Parent
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'Parent');
 
-      AProp.PropName := 'Parent';
-      AProp.PropType := tkClass;
-      AProp.IsObject := True;
-      AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
-      AProp.ObjValue := (FObjectInstance as TControl).Parent;
+        AProp.PropName := 'Parent';
+        AProp.PropType := tkClass;
+        AProp.IsObject := True;
+        AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
+        AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
-      S := GetObjValueStr(AProp.ObjValue);
-      AddNewProp(S, AProp);
+        S := GetObjValueStr(AProp.ObjValue);
+        AddNewProp(S, AProp);
+      end;
 
-      // 添加 Control 的 ControlState
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ControlState');
+      if not AlreadyHasProperty('ControlState') then
+      begin
+        // 添加 Control 的 ControlState
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ControlState');
 
-      AProp.PropName := 'ControlState';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+        AProp.PropName := 'ControlState';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
 
-      IntSet := 0;
-      Move((FObjectInstance as TControl).ControlState, IntSet,
-        SizeOf((FObjectInstance as TControl).ControlState));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+        IntSet := 0;
+        Move((FObjectInstance as TControl).ControlState, IntSet,
+          SizeOf((FObjectInstance as TControl).ControlState));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
 
-      S := GetSetStr(TypeInfo(TCnControlState), AProp.PropValue);
-      AddNewProp(S, AProp);
+        S := GetSetStr(TypeInfo(TCnControlState), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
 
-      // 添加 Control 的 ControlStyle
-      if not IsRefresh then
-        AProp := TCnPropertyObject.Create
-      else
-        AProp := IndexOfProperty(Properties, 'ControlStyle');
+      if not AlreadyHasProperty('ControlStyle') then
+      begin
+        // 添加 Control 的 ControlStyle
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'ControlStyle');
 
-      AProp.PropName := 'ControlStyle';
-      AProp.PropType := tkSet;
-      AProp.IsObject := False;
+        AProp.PropName := 'ControlStyle';
+        AProp.PropType := tkSet;
+        AProp.IsObject := False;
 
-      IntSet := 0;
-      Move((FObjectInstance as TControl).ControlStyle, IntSet,
-        SizeOf((FObjectInstance as TControl).ControlStyle));
-      AProp.PropValue := IntSet;
-      AProp.ObjValue := nil;
+        IntSet := 0;
+        Move((FObjectInstance as TControl).ControlStyle, IntSet,
+          SizeOf((FObjectInstance as TControl).ControlStyle));
+        AProp.PropValue := IntSet;
+        AProp.ObjValue := nil;
 
-      S := GetSetStr(TypeInfo(TCnControlStyle), AProp.PropValue);
-      AddNewProp(S, AProp);
+        S := GetSetStr(TypeInfo(TCnControlStyle), AProp.PropValue);
+        AddNewProp(S, AProp);
+      end;
     end;
 
     DoAfterEvaluateProperties;
@@ -1430,26 +1926,29 @@ var
   procedure InternalDrawGraphic(AGraphic: TGraphic);
   const
     EMPTY_STR = '<Empty>';
-    MARGIN = 10;
   var
-    W, H: Integer;
     S: string;
   begin
-    if AGraphic = nil then
+    if (AGraphic = nil) or (imgGraphic.Picture = nil) then
       Exit;
 
-    imgGraphic.Canvas.Draw(0, 0, AGraphic);
-    imgGraphic.Canvas.Pen.Color := clBtnShadow;
+    imgGraphic.Height := AGraphic.Height;
+    imgGraphic.Width := AGraphic.Width;
+    imgGraphic.Picture.Assign(AGraphic);
+
     if AGraphic.Empty then
       S := EMPTY_STR
     else
-      S := Format('Width: %d, Height: %d.', [AGraphic.Width, AGraphic.Height]);
+    begin
+      S := Format('W: %d, H: %d.', [AGraphic.Width, AGraphic.Height]);
 
-    W := imgGraphic.Canvas.TextWidth(S);
-    H := imgGraphic.Canvas.TextHeight(S);
+      if AGraphic.Transparent then
+        S := S + ' Transparent.'
+      else
+        S := S + ' No Transparent.';
+    end;
 
-    imgGraphic.Canvas.TextOut(imgGraphic.Width - MARGIN - W,
-      imgGraphic.Height - MARGIN - H, S);
+    lblGraphicInfo.Caption := S;
   end;
 
 begin
@@ -1477,6 +1976,7 @@ begin
 
   lvProp.Items.Clear;
   lvEvent.Items.Clear;
+  lvMethods.Items.Clear;
   lvCollectionItem.Items.Clear;
   lvMenuItem.Items.Clear;
   lvComp.Items.Clear;
@@ -1507,6 +2007,16 @@ begin
       Data := FInspector.Events.Items[I];
       Caption := TCnEventObject(FInspector.Events.Items[I]).EventName;
       SubItems.Add(TCnEventObject(FInspector.Events.Items[I]).DisplayValue);
+    end;
+  end;
+
+  for I := 0 to FInspector.MethodCount - 1 do
+  begin
+    with lvMethods.Items.Add do
+    begin
+      Data := FInspector.Methods.Items[I];
+      Caption := TCnMethodObject(FInspector.Methods.Items[I]).MethodSimpleName;
+      SubItems.Add(TCnMethodObject(FInspector.Methods.Items[I]).FullName);
     end;
   end;
 
@@ -1649,6 +2159,7 @@ begin
 
   lvProp.Columns[1].Width := Self.Width - lvProp.Columns[0].Width - FixWidth;
   lvEvent.Columns[1].Width := Self.Width - lvEvent.Columns[0].Width - FixWidth;
+  lvMethods.Columns[1].Width := Self.Width - lvMethods.Columns[0].Width - FixWidth;
   lvCollectionItem.Columns[1].Width := Self.Width - lvCollectionItem.Columns[0].Width - FixWidth;
   lvMenuItem.Columns[1].Width := Self.Width - lvMenuItem.Columns[0].Width - FixWidth;
   lvComp.Columns[1].Width := Self.Width - lvComp.Columns[0].Width - FixWidth;
@@ -1707,6 +2218,7 @@ begin
   case IndexOfContentTypeStr(tsSwitch.Tabs.Strings[NewTab]) of
     pctProps:             AControl := lvProp;
     pctEvents:            AControl := lvEvent;
+    pctMethods:           AControl := lvMethods;
     pctCollectionItems:   AControl := lvCollectionItem;
     pctMenuItems:         AControl := lvMenuItem;
     pctStrings:           AControl := mmoText;
@@ -1740,6 +2252,7 @@ procedure TCnPropSheetForm.lvPropCustomDrawItem(Sender: TCustomListView;
 var
   ARect: TRect;
   ALv: TListView;
+  DispObj: TCnDisplayObject;
 begin
   DefaultDraw := True;
   if Sender is TListView then
@@ -1747,6 +2260,16 @@ begin
     ALv := Sender as TListView;
     ListView_GetSubItemRect(ALv.Handle, Item.Index, 0, LVIR_BOUNDS, @ARect);
     ALv.Canvas.Brush.Color := $00FFBBBB;
+
+    if Item <> nil then
+    begin
+      DispObj := TCnDisplayObject(Item.Data);
+      if DispObj <> nil then
+      begin
+        if DispObj.IsNewRTTI then
+          ALv.Canvas.Brush.Color := $00FFCCCC;
+      end;
+    end;
 
     if ALv.Focused then
     begin
@@ -2070,6 +2593,48 @@ begin
       ;
     end;
   end;
+end;
+
+procedure TCnPropSheetForm.imgGraphicMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  S: string;
+  Bmp: TBitmap;
+  Rec: TRect;
+  Pt: TPoint;
+  C: TColor;
+
+  function GetPixelFormatName(Fmt: TPixelFormat): string;
+  begin
+    case Fmt of
+      pfDevice: Result := 'Device';
+      pf1bit: Result := '1 Bit';
+      pf4bit: Result := '4 Bit';
+      pf8bit: Result := '8 Bit';
+      pf15bit: Result := '15 Bit';
+      pf16bit: Result := '16 Bit';
+      pf24bit: Result := '24 Bit';
+      pf32bit: Result := '32 Bit';
+      pfCustom: Result := 'Custom';
+    end;
+  end;
+
+begin
+  S := '';
+  if (imgGraphic.Picture <> nil) and (imgGraphic.Picture.Bitmap <> nil)
+    and not imgGraphic.Picture.Bitmap.Empty then
+  begin
+    Bmp := imgGraphic.Picture.Bitmap;
+    Rec := Rect(0, 0, Bmp.Width, Bmp.Height);
+    Pt := Point(X, Y);
+    if PtInRect(Rec, Pt) then
+    begin
+      C := Bmp.Canvas.Pixels[X, Y];
+      S := Format('%s: X: %d, Y: %d, Color $%8.8x', [GetPixelFormatName(Bmp.PixelFormat),
+        X, Y, C]);
+    end;
+  end;
+  lblPixel.Caption := S;
 end;
 
 initialization

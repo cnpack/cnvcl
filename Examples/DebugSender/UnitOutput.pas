@@ -517,9 +517,9 @@ var
   R: TRect;
 begin
   Bmp := TBitmap.Create;
-  Bmp.Width := 26;
-  Bmp.Height := 26;
-  Bmp.Canvas.Brush.Color := clBtnFace;
+  Bmp.Width := 760;
+  Bmp.Height := 260;
+  Bmp.Canvas.Brush.Color := clRed;
   R := Rect(0, 0, Bmp.Width, Bmp.Height);
   Bmp.Canvas.FillRect(R);
 
