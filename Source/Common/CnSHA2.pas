@@ -1663,15 +1663,15 @@ var
   I: Integer;
   Sum: TSHA384Digest;
 begin
-  if KeyLength > 128 then
+  if KeyLength > HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA384Buffer(Key, KeyLength);
-    KeyLength := 48;
+    KeyLength := HMAC_SHA_384_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, 128, $36);
-  FillChar(Context.Opad, 128, $5C);
+  FillChar(Context.Ipad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1680,7 +1680,7 @@ begin
   end;
 
   SHA384Init(Context);
-  SHA384Update(Context, @(Context.Ipad[0]), 128);
+  SHA384Update(Context, @(Context.Ipad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA384HmacUpdate(var Context: TSHA384Context; Input: PAnsiChar; Length:
@@ -1694,10 +1694,10 @@ var
   Len: Integer;
   TmpBuf: TSHA384Digest;
 begin
-  Len := 48;
+  Len := HMAC_SHA_384_OUTPUT_LENGTH_BYTE;
   SHA384Final(Context, TmpBuf);
   SHA384Init(Context);
-  SHA384Update(Context, @(Context.Opad[0]), 128);
+  SHA384Update(Context, @(Context.Opad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
   SHA384Update(Context, @(TmpBuf[0]), Len);
   SHA384Final(Context, Output);
 end;
@@ -1717,15 +1717,15 @@ var
   I: Integer;
   Sum: TSHA512Digest;
 begin
-  if KeyLength > 128 then
+  if KeyLength > HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA512Buffer(Key, KeyLength);
-    KeyLength := 64;
+    KeyLength := HMAC_SHA_512_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, 128, $36);
-  FillChar(Context.Opad, 128, $5C);
+  FillChar(Context.Ipad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1734,7 +1734,7 @@ begin
   end;
 
   SHA512Init(Context);
-  SHA512Update(Context, @(Context.Ipad[0]), 128);
+  SHA512Update(Context, @(Context.Ipad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA512HmacUpdate(var Context: TSHA512Context; Input: PAnsiChar; Length:
@@ -1748,10 +1748,10 @@ var
   Len: Integer;
   TmpBuf: TSHA512Digest;
 begin
-  Len := 64;
+  Len := HMAC_SHA_512_OUTPUT_LENGTH_BYTE;
   SHA512Final(Context, TmpBuf);
   SHA512Init(Context);
-  SHA512Update(Context, @(Context.Opad[0]), 128);
+  SHA512Update(Context, @(Context.Opad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
   SHA512Update(Context, @(TmpBuf[0]), Len);
   SHA512Final(Context, Output);
 end;
