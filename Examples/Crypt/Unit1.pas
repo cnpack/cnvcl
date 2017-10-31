@@ -219,7 +219,7 @@ uses
 procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
-  pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtFrom.Text));
+  pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtMD5.Text));
 {$ELSE}
   pnlMd5.Caption := MD5Print(MD5String(edtMD5.Text));
 {$ENDIF}

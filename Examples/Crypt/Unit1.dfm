@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 385
-    ActivePage = tsSM3
+    ActivePage = tsMD5
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
