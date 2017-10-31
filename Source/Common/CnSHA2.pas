@@ -31,7 +31,9 @@ unit CnSHA2;
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id: CnSHA2.pas 426 2016-09-27 07:01:49Z liuxiao $
-* 修改记录：2016.09.30 V1.1
+* 修改记录：2017.10.31 V1.2
+*               修正 SHA512/384 HMAC 计算错误的问题
+*           2016.09.30 V1.1
 *               实现 SHA512/384。D567下用有符号 Int64 代替无符号 UInt64
 *           2016.09.27 V1.0
 *               创建单元。从网上佚名 C 代码与 Pascal 代码混合移植而来
@@ -73,7 +75,7 @@ type
   TSHA512Context = record
     DataLen: DWORD;
     Data: array[0..127] of Byte;
-    BitLen: Int64;
+    TotalLen: Int64;
     State: array[0..7] of Int64;
     Ipad: array[0..127] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..127] of Byte;      {!< HMAC: outer padding        }
@@ -375,7 +377,7 @@ const
 
   HMAC_SHA_224_OUTPUT_LENGTH_BYTE = 28;
   HMAC_SHA_256_OUTPUT_LENGTH_BYTE = 32;
-  HMAC_SHA_384_OUTPUT_LENGTH_BYTE = 56;
+  HMAC_SHA_384_OUTPUT_LENGTH_BYTE = 48;
   HMAC_SHA_512_OUTPUT_LENGTH_BYTE = 64;
 
 type
@@ -563,63 +565,70 @@ begin
   Context.State[7] := Context.State[7] + H;
 end;
 
-procedure SHA512Transform(var Context: TSHA512Context; Data: PAnsiChar);
+procedure SHA512Transform(var Context: TSHA512Context; Data: PAnsiChar; BlockCount: Integer);
 var
   A, B, C, D, E, F, G, H, T1, T2: TUInt64;
   M: array[0..79] of TUInt64;
-  I, J: Integer;
+  I, J, K: Integer;
+  OrigData: PAnsiChar;
 begin
-  I := 0;
-  J := 0;
-  while I < 16 do
+  OrigData := Data;
+  for K := 0 to BlockCount - 1 do
   begin
-    M[I] := (TUInt64(Data[J]) shl 56) or (TUInt64(Data[J + 1]) shl 48) or
-      (TUInt64(Data[J + 2]) shl 40) or (TUInt64(Data[J + 3]) shl 32) or
-      (TUInt64(Data[J + 4]) shl 24) or (TUInt64(Data[J + 5]) shl 16) or
-      (TUInt64(Data[J + 6]) shl 8) or TUInt64(Data[J + 7]);
-    Inc(I);
-    Inc(J, 8);
+    Data := PAnsiChar(Integer(OrigData) + (K shl 7));
+
+    I := 0;
+    J := 0;
+    while I < 16 do
+    begin
+      M[I] := (TUInt64(Data[J]) shl 56) or (TUInt64(Data[J + 1]) shl 48) or
+        (TUInt64(Data[J + 2]) shl 40) or (TUInt64(Data[J + 3]) shl 32) or
+        (TUInt64(Data[J + 4]) shl 24) or (TUInt64(Data[J + 5]) shl 16) or
+        (TUInt64(Data[J + 6]) shl 8) or TUInt64(Data[J + 7]);
+      Inc(I);
+      Inc(J, 8);
+    end;
+
+    while I < 80 do
+    begin
+      M[I] := Gamma1512(M[I - 2]) + M[I - 7] + Gamma0512(M[I - 15]) + M[I - 16];
+      Inc(I);
+    end;
+
+    A := Context.State[0];
+    B := Context.State[1];
+    C := Context.State[2];
+    D := Context.State[3];
+    E := Context.State[4];
+    F := Context.State[5];
+    G := Context.State[6];
+    H := Context.State[7];
+
+    I := 0;
+    while I < 80 do
+    begin
+      T1 := H + SIG1512(E) + CH512(E, F, G) + KEYS512[I] + M[I];
+      T2 := SIG0512(A) + MAJ512(A, B, C);
+      H := G;
+      G := F;
+      F := E;
+      E := D + T1;
+      D := C;
+      C := B;
+      B := A;
+      A := T1 + T2;
+      Inc(I);
+    end;
+
+    Context.State[0] := Context.State[0] + A;
+    Context.State[1] := Context.State[1] + B;
+    Context.State[2] := Context.State[2] + C;
+    Context.State[3] := Context.State[3] + D;
+    Context.State[4] := Context.State[4] + E;
+    Context.State[5] := Context.State[5] + F;
+    Context.State[6] := Context.State[6] + G;
+    Context.State[7] := Context.State[7] + H;
   end;
-
-  while I < 80 do
-  begin
-    M[I] := Gamma1512(M[I - 2]) + M[I - 7] + Gamma0512(M[I - 15]) + M[I - 16];
-    Inc(I);
-  end;
-
-  A := Context.State[0];
-  B := Context.State[1];
-  C := Context.State[2];
-  D := Context.State[3];
-  E := Context.State[4];
-  F := Context.State[5];
-  G := Context.State[6];
-  H := Context.State[7];
-
-  I := 0;
-  while I < 80 do
-  begin
-    T1 := H + SIG1512(E) + CH512(E, F, G) + KEYS512[I] + M[I];
-    T2 := SIG0512(A) + MAJ512(A, B, C);
-    H := G;
-    G := F;
-    F := E;
-    E := D + T1;
-    D := C;
-    C := B;
-    B := A;
-    A := T1 + T2;
-    Inc(I);
-  end;
-
-  Context.State[0] := Context.State[0] + A;
-  Context.State[1] := Context.State[1] + B;
-  Context.State[2] := Context.State[2] + C;
-  Context.State[3] := Context.State[3] + D;
-  Context.State[4] := Context.State[4] + E;
-  Context.State[5] := Context.State[5] + F;
-  Context.State[6] := Context.State[6] + G;
-  Context.State[7] := Context.State[7] + H;
 end;
 
 procedure SHA224Init(var Context: TSHA224Context);
@@ -759,7 +768,7 @@ end;
 procedure SHA384Init(var Context: TSHA384Context);
 begin
   Context.DataLen := 0;
-  Context.BitLen := 0;
+  Context.TotalLen := 0;
   Context.State[0] := $CBBB9D5DC1059ED8;
   Context.State[1] := $629A292A367CD507;
   Context.State[2] := $9159015A3070DD17;
@@ -794,7 +803,7 @@ end;
 procedure SHA512Init(var Context: TSHA512Context);
 begin
   Context.DataLen := 0;
-  Context.BitLen := 0;
+  Context.TotalLen := 0;
   Context.State[0] := $6A09E667F3BCC908;
   Context.State[1] := $BB67AE8584CAA73B;
   Context.State[2] := $3C6EF372FE94F82B;
@@ -808,19 +817,34 @@ end;
 
 procedure SHA512Update(var Context: TSHA512Context; Buffer: PAnsiChar; Len: Cardinal);
 var
-  I: Integer;
+  TempLength, RemainLength, NewLength, BlockCount: Cardinal;
 begin
-  for I := 0 to Len - 1 do
+  TempLength := 128 - Context.DataLen;
+  if Len < TempLength then
+    RemainLength := Len
+  else
+    RemainLength := TempLength;
+
+  CopyMemory(@(Context.Data[Context.DataLen]), Buffer, RemainLength);
+  if Context.DataLen + Len < 128 then
   begin
-    Context.Data[Context.DataLen] := Byte(Buffer[I]);
-    Inc(Context.DataLen);
-    if Context.DataLen = 128 then
-    begin
-      SHA512Transform(Context, @Context.Data[0]);
-      Context.BitLen := Context.BitLen + 1024;
-      Context.DataLen := 0;
-    end;
+    Inc(Context.DataLen, Len);
+    Exit;
   end;
+
+  NewLength := Cardinal(Len) - RemainLength;
+  BlockCount := NewLength div 128;
+  Buffer := PAnsiChar(Cardinal(Buffer) + RemainLength);
+
+  SHA512Transform(Context, @Context.Data[0], 1);
+  SHA512Transform(Context, Buffer, BlockCount);
+
+  RemainLength := NewLength mod 128;
+  Buffer := PAnsiChar(Cardinal(Buffer) + (BlockCount shl 7));
+  CopyMemory(@(Context.Data[Context.DataLen]), Buffer, RemainLength);
+
+  Context.DataLen := RemainLength;
+  Inc(Context.TotalLen, (BlockCount + 1) shl 7);
 end;
 
 procedure SHA512UpdateW(var Context: TSHA512Context; Buffer: PWideChar; Len: LongWord);
@@ -841,41 +865,24 @@ end;
 procedure SHA512Final(var Context: TSHA512Context; var Digest: TSHA512Digest);
 var
   I: Integer;
+  BlockCount, BitLength, PmLength: Cardinal;
 begin
-  I := Context.DataLen;
-  Context.Data[I] := $80;
-  Inc(I);
-
-  if Context.Datalen < 112 then
-  begin
-    while I < 112 do
-    begin
-      Context.Data[I] := 0;
-      Inc(I);
-    end;
-  end
+  if (Context.DataLen mod 128) > 111 then
+    BlockCount := 2
   else
-  begin
-    while I < 128 do
-    begin
-      Context.Data[I] := 0;
-      Inc(I);
-    end;
+    BlockCount := 1;
 
-    SHA512Transform(Context, @(Context.Data[0]));
-    FillChar(Context.Data, 120, 0);
-  end;
+  BitLength := (Context.TotalLen + Context.DataLen) shl 3;
+  PmLength := BlockCount shl 7;
+  ZeroMemory(@(Context.Data[Context.DataLen]), PmLength - Context.DataLen);
+  Context.Data[Context.DataLen] := $80;
 
-  Context.BitLen := Context.BitLen + Context.DataLen * 8;
-  Context.Data[127] := Context.Bitlen;
-  Context.Data[126] := Context.Bitlen shr 8;
-  Context.Data[125] := Context.Bitlen shr 16;
-  Context.Data[124] := Context.Bitlen shr 24;
-  Context.Data[123] := Context.Bitlen shr 32;
-  Context.Data[122] := Context.Bitlen shr 40;
-  Context.Data[121] := Context.Bitlen shr 48;
-  Context.Data[120] := Context.Bitlen shr 56;
-  SHA512Transform(Context, @(Context.Data[0]));
+  Context.Data[PmLength - 1] := Byte(BitLength);
+  Context.Data[PmLength - 2] := Byte(BitLength shr 8);
+  Context.Data[PmLength - 3] := Byte(BitLength shr 16);
+  Context.Data[PmLength - 4] := Byte(BitLength shr 24);
+
+  SHA512Transform(Context, @(Context.Data[0]), BlockCount);
 
   for I := 0 to 7 do
   begin
