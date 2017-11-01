@@ -320,6 +320,36 @@ const
   CN_NTP_MODE_BROADCAST                     = 5;   // 广播
   CN_NTP_MODE_CONTROL_MSG                   = 6;   // NTP 控制消息
 
+  {* Socks 代理协议的握手包中的版本字段的定义}
+  CN_SOCKS_VERSION_V4                       = 4;
+  CN_SOCKS_VERSION_V5                       = 5;
+
+  {* Socks 代理协议的握手包中的方法字段的定义}
+  CN_SOCKS_METHOD_NO_AUTH_REQUIRED          = $00; // 不需身份验证
+  CN_SOCKS_METHOD_GSSAPI                    = $01; // GSSAPI 验证
+  CN_SOCKS_METHOD_USERNAME_PASSWORD         = $02; // 用户名密码验证
+  CN_SOCKS_METHOD_IANA_ASSIGNED_BEGIN       = $03; // IANA 分配开始
+  CN_SOCKS_METHOD_IANA_ASSIGNED_END         = $7F; // IANA 分配结束
+  CN_SOCKS_METHOD_RESERVED_PRIVATE_BEGIN    = $80; // 私有保留开始
+  CN_SOCKS_METHOD_RESERVED_PRIVATE_END      = $FE; // 私有保留结束
+  CN_SOCKS_METHOD_NO_ACCEPTABLE_METHODS     = $FF; // 无可用验证方法
+
+  {* Socks 代理协议请求包中的命令字段的定义}
+  CN_SOCKS_CMD_CONNECT                      = $01;
+  CN_SOCKS_CMD_BIND                         = $02;
+  CN_SOCKS_CMD_UDP                          = $03;
+
+  {* Socks 代理协议请求包中的地址类型字段的定义}
+  CN_SOCKS_ADDRESS_TYPE_IPV4                = $01;
+  CN_SOCKS_ADDRESS_TYPE_DOMAINNAME          = $03;
+  CN_SOCKS_ADDRESS_TYPE_IPV6                = $04;
+
+  {* Socks 代理协议的握手包中用户名密码验证中版本字段的定义}
+  CN_SOCKS_USERNAME_PASSWORD_VER            = $01;
+
+  {* Socks 代理协议的握手包中用户名密码验证中结果字段的定义}
+  CN_SOCKS_USERNAME_PASSWORD_STATUS_SUCCESS = $00; // 身份验证成功
+
 type
 
 {*
@@ -523,6 +553,84 @@ type
   end;
 
   PCnNTPPacket = ^TCnNTPPacket;
+
+{*
+  Socks 代理协议客户端发起连接握手包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |      VER      |    METHOD     |    METHODS   ...              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksNegotiationRequest = packed record
+    Version:               Byte;
+    Method:                Byte;
+    Methods:               array[1..255] of Byte;
+  end;
+
+  PCnSocksNegotiationRequest = ^TCnSocksNegotiationRequest;
+
+{*
+  Socks 代理协议服务端握手回应包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1           
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |      VER      |    METHOD     |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksNegotiationResponse = packed record
+    Version:               Byte;
+    Method:                Byte;
+  end;
+
+  PCnSocksNegotiationResponse = ^TCnSocksNegotiationResponse;
+
+{*
+  Socks 代理协议客户端用户名密码验证请求包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |      VER      | USERNAMELEN   |    USERNAME  1..255           |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | PASSWORDLEN   |  PASSWORD 1..255                              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksUsernamePasswordSubNegotiationRequest = packed record
+    Version:               Byte;
+    UsernameLen:           Byte;
+    Username:              array[0..255] of AnsiChar; // 255 是最大长度，并非真实长度
+    PasswordLen:           Byte;
+    Password:              array[1..255] of AnsiChar; // 255 是最大长度，并非真实长度
+  end;
+
+{*
+  Socks 代理协议客户端用户名密码验证回应包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1           
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |      VER      |    STATUS     |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksUsernamePasswordSubNegotiationResponse = packed record
+    Version:               Byte;
+    Status:                Byte;
+  end;
 
 // ======================== IP 包头系列函数 ====================================
 
