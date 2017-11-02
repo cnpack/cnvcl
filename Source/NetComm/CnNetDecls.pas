@@ -514,19 +514,19 @@ type
   |                          Reference ID                         |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                     Reference Timestamp (64)                  +
+  +        Reference Timestamp (64: 32 Sec, 32 Fraction)          +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                      Origin Timestamp (64)                    +
+  +         Origin Timestamp (64: 32 Sec, 32 Fraction)            +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                      Receive Timestamp (64)                   +
+  +        Receive Timestamp (64: 32 Sec, 32 Fraction)            +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                      Transmit Timestamp (64)                  +
+  +        Transmit Timestamp (64: 32 Sec, 32 Fraction)           +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
@@ -547,6 +547,10 @@ type
   |                          Digest (128)                         |
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+  客户端接收答复时的时间戳 T4 无需存入此包中
+  时间戳为 64 位，前 32 位是 1900 年 1 月 1 日后的秒数，
+  后 32 位是小于秒的内容，值为微秒数的 （2^32/10^6）也就是 4294.967296 倍
 }
 
   TCnNTPPacket = packed record
@@ -558,9 +562,9 @@ type
     RootDispersion:        LongWord;
     ReferenceID:           LongWord;
     ReferenceTimestamp:    Int64;
-    OriginateTimestamp:    Int64;
-    ReceiveTimestamp:      Int64;
-    TransmitTimestamp:     Int64;
+    OriginateTimestamp:    Int64;        // 客户端发送请求时的时间戳 T1
+    ReceiveTimestamp:      Int64;        // 服务器接收到请求的时间戳 T2
+    TransmitTimestamp:     Int64;        // 服务器发送答复时的时间戳 T3
   end;
 
   PCnNTPPacket = ^TCnNTPPacket;
@@ -700,7 +704,7 @@ type
     Reserved:              Byte;
     AddressType:           Byte;
     BindAddress:           TCnSocksAddress;
-    BindPort:              array[0..1] of AnsiChar;   // 上述字段可变长，本字段位置不固定
+    BindPort:              array[0..1] of AnsiChar;   // 上一字段可变长，本字段位置不固定
   end;
 
   PCnSocksResponse = ^TCnSocksResponse;
@@ -840,6 +844,15 @@ function CnGetNTPVersionNumber(const NTPPacket: PCnNTPPacket): Integer;
 
 function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
 {* 获得 NTP 包内的模式}
+
+procedure CnSetNTPLeapIndicator(const NTPPacket: PCnNTPPacket; LeapIndicator: Integer);
+{* 设置 NTP 包内的闰秒标识，使用 CN_NTP_LEAP_INDICATOR_* 系列常数 }
+
+procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: Integer);
+{* 设置 NTP 包内的版本号，使用 CN_NTP_VERSION_* 系列常数}
+
+procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
+{* 设置 NTP 包内的模式，使用 CN_NTP_MODE_* 系列常数}
 
 implementation
 
@@ -1062,6 +1075,21 @@ end;
 function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
 begin
   Result := NTPPacket^.LIVNMode and $07;
+end;
+
+procedure CnSetNTPLeapIndicator(const NTPPacket: PCnNTPPacket; LeapIndicator: Integer);
+begin
+  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or ((LeapIndicator and $03) shl 6);
+end;
+
+procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: Integer);
+begin
+  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or ((VersionNumber and $07) shl 3);
+end;
+
+procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
+begin
+  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or (NTPMode and $07);
 end;
 
 end.
