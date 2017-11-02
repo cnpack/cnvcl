@@ -350,6 +350,17 @@ const
   {* Socks 代理协议的握手包中用户名密码验证中结果字段的定义}
   CN_SOCKS_USERNAME_PASSWORD_STATUS_SUCCESS = $00; // 身份验证成功
 
+  {* Socks 代理协议的应答包中的响应字段的定义}
+  CN_SOCKS_REPLY_SUCCESS                    = $00; // 成功
+  CN_SOCKS_REPLY_GENERAL_FAILURE            = $01; // 服务器错误
+  CN_SOCKS_REPLY_NOT_ALLOWED                = $02; // 规则不允许
+  CN_SOCKS_REPLY_NETWORK_UNREACHABLE        = $03; // 网络不可达
+  CN_SOCKS_REPLY_HOST_UNREACHABLE           = $04; // 主机不可达
+  CN_SOCKS_REPLY_CONNECTION_REFUSED         = $05; // 连接被拒绝
+  CN_SOCKS_REPLY_TTL_EXPIRED                = $06; // TTL 过期
+  CN_SOCKS_REPLY_COMMAND_NOT_SUPPORTED      = $07; // 命令不支持
+  CN_SOCKS_REPLY_ADDRESS_TYPE_NOT_SUPPORTED = $08; // 地址类型不支持
+
 type
 
 {*
@@ -615,6 +626,8 @@ type
     Password:              array[1..255] of AnsiChar; // 255 是最大长度，并非真实长度
   end;
 
+  PCnSocksUsernamePasswordSubNegotiationRequest = ^TCnSocksUsernamePasswordSubNegotiationRequest;
+
 {*
   Socks 代理协议客户端用户名密码验证回应包示意图，字节内左边是高位，右边是低位。
   字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
@@ -631,6 +644,8 @@ type
     Version:               Byte;
     Status:                Byte;
   end;
+
+  PCnSocksUsernamePasswordSubNegotiationResponse = ^TCnSocksUsernamePasswordSubNegotiationResponse;
 
 {*
   Socks 代理协议客户端请求包示意图，字节内左边是高位，右边是低位。
@@ -663,6 +678,32 @@ type
     DestionationPort:      array[0..1] of AnsiChar;   // 上述字段可变长，本字段位置不固定
   end;
 
+  PCnSocksRequest = ^TCnSocksRequest;
+
+{*
+  Socks 代理协议服务端应答包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    |     Reply     |   Reserved    |  Adress Type  |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |         Bind Address          |            Bind Port          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksResponse = packed record
+    Version:               Byte;
+    Reply:                 Byte;
+    Reserved:              Byte;
+    AddressType:           Byte;
+    BindAddress:           TCnSocksAddress;
+    BindPort:              array[0..1] of AnsiChar;   // 上述字段可变长，本字段位置不固定
+  end;
+
+  PCnSocksResponse = ^TCnSocksResponse;
 
 // ======================== IP 包头系列函数 ====================================
 

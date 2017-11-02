@@ -74,7 +74,7 @@ type
   {* 使用代理的方式：直连、IE设置、指定代理 }
 
   TCnInet = class
-  {* 使用 WinInet 读取 HTTP/FTP 文件的类。}
+  {* 使用 WinInet 读取 HTTP(S)/FTP 文件的类。}
   private
     hSession: HINTERNET;
     FAborted: Boolean;
