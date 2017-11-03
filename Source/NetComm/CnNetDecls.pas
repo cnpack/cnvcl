@@ -320,6 +320,9 @@ const
   CN_NTP_MODE_BROADCAST                     = 5;   // 广播
   CN_NTP_MODE_CONTROL_MSG                   = 6;   // NTP 控制消息
 
+  {* NTP 包中的时间戳的秒的小数部分与微秒的换算比例值}
+  CN_NTP_MICRO_SEC_FRACTION                 = 4294.967296;
+
   {* Socks 代理协议的握手包中的版本字段的定义}
   CN_SOCKS_VERSION_V4                       = 4;
   CN_SOCKS_VERSION_V5                       = 5;
@@ -854,9 +857,20 @@ procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: In
 procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
 {* 设置 NTP 包内的模式，使用 CN_NTP_MODE_* 系列常数}
 
+function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
+{* 将 NTP 包中的时间戳值转换成日期时间}
+
+function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
+{* 将日期时间转换成 NTP 包中的时间戳值}
+
 implementation
 
 function NetworkToHostWord(Value: Word): Word;
+begin
+  Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+end;
+
+function HostToNetworkWord(Value: Word): Word;
 begin
   Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
@@ -865,6 +879,40 @@ function NetworkToHostLongWord(Value: LongWord): LongWord;
 begin
   Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
     or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function HostToNetworkLongWord(Value: LongWord): LongWord;
+begin
+  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function NetworkToHostInt64(Value: Int64): Int64;
+var
+  Lo, Hi: LongWord;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := NetworkToHostLongWord(Lo);
+  Hi := NetworkToHostLongWord(Hi);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := Int64(Rec);
+end;
+
+function HostToNetworkInt64(Value: Int64): Int64;
+var
+  Lo, Hi: LongWord;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := NetworkToHostLongWord(Lo);
+  Hi := NetworkToHostLongWord(Hi);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := Int64(Rec);
 end;
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -1090,6 +1138,35 @@ end;
 procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
 begin
   NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or (NTPMode and $07);
+end;
+
+function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
+var
+  Sec, Frac: DWORD;
+begin
+  Stamp := NetworkToHostInt64(Stamp);
+  Sec := Int64Rec(Stamp).Hi;
+  Frac := Int64Rec(Stamp).Lo;
+
+  // Sec 的秒数从 1900年1月1日0点开始，但 TDateTime 的日数从1899年12月30日0点开始，差两天
+  Result := 2 + (Sec div 86400) + (Sec mod 86400) / 86400.00 +
+    Frac / (CN_NTP_MICRO_SEC_FRACTION * 1000 * 1000 * 86400.00);
+end;
+
+function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
+var
+  H, M, S, Ms: Word;
+  Sec, Frac: DWORD;
+begin
+  // Sec 的秒数从 1900年1月1日0点开始，但 TDateTime 的日数从1899年12月30日0点开始，差两天
+  ADateTime := ADateTime - 2;
+  DecodeTime(ADateTime, H, M, S, Ms);
+  Sec := Trunc(ADateTime) * 86400 + H * 3600 + M * 60 + S;
+  Frac := Trunc(Ms * 1000 * CN_NTP_MICRO_SEC_FRACTION);
+
+  Int64Rec(Result).Lo := Frac;
+  Int64Rec(Result).Hi := Sec;
+  Result := HostToNetworkInt64(Result); // 互相转换
 end;
 
 end.
