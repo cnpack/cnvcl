@@ -156,6 +156,12 @@ type
     lblSM3HmacKey: TLabel;
     edtSM3HMacKey: TEdit;
     btnSM3Hmac: TButton;
+    lblCRC32HmacKey: TLabel;
+    edtCRC32HmacKey: TEdit;
+    btnCRC32Hmac: TButton;
+    btnCRC64Hmac: TButton;
+    edtCRC64HmacKey: TEdit;
+    lblCRC64HmacKey: TLabel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -198,6 +204,8 @@ type
     procedure btnSHA1HmacClick(Sender: TObject);
     procedure btnMD5HmacClick(Sender: TObject);
     procedure btnSM3HmacClick(Sender: TObject);
+    procedure btnCRC32HmacClick(Sender: TObject);
+    procedure btnCRC64HmacClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -881,6 +889,28 @@ begin
   S := AnsiString(edtSM3.Text);
   SM3Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
   lblSm3Result.Caption := SM3Print(Output);
+end;
+
+procedure TFormCrypt.btnCRC32HmacClick(Sender: TObject);
+var
+  Output: DWORD;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtCRC32HmacKey.Text);
+  S := AnsiString(edtCRC32.Text);
+  Output := CRC32Hmac(@Key[1], Length(Key), @S[1], Length(S));
+  pnlCRC32.Caption := IntToHex(Output, 2);
+end;
+
+procedure TFormCrypt.btnCRC64HmacClick(Sender: TObject);
+var
+  Output: Int64;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtCRC64HmacKey.Text);
+  S := AnsiString(edtCRC64.Text);
+  Output := CRC64Hmac(@Key[1], Length(Key), @S[1], Length(S));
+  pnlCRC64.Caption := IntToHex(Output, 2);
 end;
 
 end.

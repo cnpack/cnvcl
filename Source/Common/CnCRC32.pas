@@ -101,12 +101,26 @@ function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
+function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord): DWORD;
+
+function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord): Int64;
+
+{* Hash-based Message Authentication Code (based on CRC32/CRC64) }
+
 implementation
 
 const
   csBuff_Size = 4096;
   csCRC64 = $C96C5795D7870F42;
-  
+
+  HMAC_CRC32_BLOCK_SIZE_BYTE = 4;
+  HMAC_CRC32_OUTPUT_LENGTH_BYTE = 4;
+
+  HMAC_CRC64_BLOCK_SIZE_BYTE = 4;
+  HMAC_CRC64_OUTPUT_LENGTH_BYTE = 4;
+
 type
   // 文件缓冲区
   PBuff = ^TBuff;
@@ -425,6 +439,74 @@ begin
   finally
     CloseHandle(Handle);
   end;
+end;
+
+function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord): DWORD;
+var
+  I: Integer;
+  Ipad, Opad: array[0..3] of Byte;
+  Sum, Res: DWORD;
+begin
+  if KeyLength > HMAC_CRC32_BLOCK_SIZE_BYTE then
+  begin
+    Sum := CRC32Calc(0, Key, KeyLength);
+    KeyLength := HMAC_CRC32_OUTPUT_LENGTH_BYTE;
+    Key := @Sum;
+  end;
+
+  FillChar(Ipad, HMAC_CRC32_BLOCK_SIZE_BYTE, $36);
+  FillChar(Opad, HMAC_CRC32_BLOCK_SIZE_BYTE, $5C);
+  
+  for I := 0 to KeyLength - 1 do
+  begin
+    Ipad[I] := Byte(Ipad[I] xor Byte(Key[I]));
+    Opad[I] := Byte(Opad[I] xor Byte(Key[I]));
+  end;
+
+  Res := $FFFFFFFF;
+  Res := DoCRC32Calc(Res, Ipad[0], HMAC_CRC32_BLOCK_SIZE_BYTE);
+  Res := DoCRC32Calc(Res, Input, Length);
+  Res := not Res;
+
+  Result := $FFFFFFFF;
+  Result := DoCRC32Calc(Result, Opad[0], HMAC_CRC32_BLOCK_SIZE_BYTE);
+  Result := DoCRC32Calc(Result, Res, HMAC_CRC32_OUTPUT_LENGTH_BYTE);
+  Result := not Result;
+end;
+
+function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord): Int64;
+var
+  I: Integer;
+  Ipad, Opad: array[0..7] of Byte;
+  Sum, Res: Int64;
+begin
+  if KeyLength > HMAC_CRC64_BLOCK_SIZE_BYTE then
+  begin
+    Sum := CRC64Calc(0, Key, KeyLength);
+    KeyLength := HMAC_CRC64_OUTPUT_LENGTH_BYTE;
+    Key := @Sum;
+  end;
+
+  FillChar(Ipad, HMAC_CRC64_BLOCK_SIZE_BYTE, $36);
+  FillChar(Opad, HMAC_CRC64_BLOCK_SIZE_BYTE, $5C);
+  
+  for I := 0 to KeyLength - 1 do
+  begin
+    Ipad[I] := Byte(Ipad[I] xor Byte(Key[I]));
+    Opad[I] := Byte(Opad[I] xor Byte(Key[I]));
+  end;
+
+  Res := $FFFFFFFF;
+  Res := DoCRC64Calc(Res, Ipad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
+  Res := DoCRC64Calc(Res, Input, Length);
+  Res := not Res;
+
+  Result := $FFFFFFFF;
+  Result := DoCRC64Calc(Result, Opad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
+  Result := DoCRC64Calc(Result, Res, HMAC_CRC64_OUTPUT_LENGTH_BYTE);
+  Result := not Result;
 end;
 
 initialization

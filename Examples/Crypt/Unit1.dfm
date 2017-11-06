@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 385
-    ActivePage = tsMD5
+    ActivePage = tsCRC64
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -283,6 +283,13 @@ object FormCrypt: TFormCrypt
           Height = 13
           Caption = 'From:'
         end
+        object lblCRC32HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
         object edtCRC32: TEdit
           Left = 72
           Top = 40
@@ -318,6 +325,23 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnFileCRC32Click
         end
+        object edtCRC32HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnCRC32Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC32 Hmac'
+          TabOrder = 5
+          OnClick = btnCRC32HmacClick
+        end
       end
     end
     object tsCRC64: TTabSheet
@@ -337,6 +361,13 @@ object FormCrypt: TFormCrypt
           Width = 28
           Height = 13
           Caption = 'From:'
+        end
+        object lblCRC64HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
         end
         object edtCRC64: TEdit
           Left = 72
@@ -372,6 +403,23 @@ object FormCrypt: TFormCrypt
           Caption = 'File CRC64'
           TabOrder = 3
           OnClick = btnFileCRC64Click
+        end
+        object btnCRC64Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC64 Hmac'
+          TabOrder = 4
+          OnClick = btnCRC64HmacClick
+        end
+        object edtCRC64HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 5
+          Text = 'HmacKey'
         end
       end
     end
