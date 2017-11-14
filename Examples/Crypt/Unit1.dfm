@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 385
-    ActivePage = tsCRC64
+    ActivePage = tsSHA3_256
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -1131,6 +1131,324 @@ object FormCrypt: TFormCrypt
           Caption = 'SHA512 Hmac'
           TabOrder = 4
           OnClick = btnSHA512HmacClick
+        end
+      end
+    end
+    object tsSHA3_224: TTabSheet
+      Caption = 'SHA3_224'
+      ImageIndex = 10
+      object grpSHA3_224: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA3_224'
+        TabOrder = 0
+        object lblSHA3_224: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSHA3_224HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtSHA3_224: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA3_224: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_224'
+          TabOrder = 1
+          OnClick = btnSHA3_224Click
+        end
+        object pnlSHA3_224: TPanel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+          OnDblClick = ResultDblClick
+        end
+        object btnSHA3_224File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA3_224'
+          TabOrder = 3
+          OnClick = btnSHA3_224FileClick
+        end
+        object edtSHA3_224HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnSHA3_224Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_224 Hmac'
+          TabOrder = 5
+          OnClick = btnSHA3_224HmacClick
+        end
+      end
+    end
+    object tsSHA3_256: TTabSheet
+      Caption = 'SHA3_256'
+      ImageIndex = 9
+      object grpSHA3_256: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA3_256'
+        TabOrder = 0
+        object lblSHA3_256: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSHA3_256HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtSHA3_256: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA3_256: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_256'
+          TabOrder = 1
+          OnClick = btnSHA3_256Click
+        end
+        object pnlSHA3_256: TPanel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 2
+          OnDblClick = ResultDblClick
+        end
+        object btnFileSHA3_256: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA3_256'
+          TabOrder = 3
+          OnClick = btnFileSHA3_256Click
+        end
+        object edtSHA3_256HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = 'HmacKey'
+        end
+        object btnSHA3_256Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_256 Hmac'
+          TabOrder = 5
+          OnClick = btnSHA3_256HmacClick
+        end
+      end
+    end
+    object tsSHA3_384: TTabSheet
+      Caption = 'SHA3_384'
+      ImageIndex = 12
+      object grpSHA3_384: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA3_384'
+        TabOrder = 0
+        object lblSHA3_384: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSHA3_384Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblSHA3_384HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtSHA3_384: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA3_384: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_384'
+          TabOrder = 1
+          OnClick = btnSHA3_384Click
+        end
+        object btnSHA3_384File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA3_384'
+          TabOrder = 2
+          OnClick = btnSHA3_384FileClick
+        end
+        object edtSHA3_384HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 3
+          Text = 'HmacKey'
+        end
+        object btnSHA3_384Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_384 Hmac'
+          TabOrder = 4
+          OnClick = btnSHA3_384HmacClick
+        end
+      end
+    end
+    object tsSHA3_512: TTabSheet
+      Caption = 'SHA3_512'
+      ImageIndex = 11
+      object grpSHA3_512: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHA3_512'
+        TabOrder = 0
+        object lblSHA3_512: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblSHA3_512Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblSHA3_512HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtSHA3_512: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHA3_512: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_512'
+          TabOrder = 1
+          OnClick = btnSHA3_512Click
+        end
+        object btnSHA3_512File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHA3_512'
+          TabOrder = 2
+          OnClick = btnSHA3_512FileClick
+        end
+        object edtSHA3_512HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 3
+          Text = 'HmacKey'
+        end
+        object btnSHA3_512Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHA3_512 Hmac'
+          TabOrder = 4
+          OnClick = btnSHA3_512HmacClick
         end
       end
     end

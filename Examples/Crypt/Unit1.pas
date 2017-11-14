@@ -125,6 +125,34 @@ type
     edtSHA384: TEdit;
     btnSHA384: TButton;
     btnSHA384File: TButton;
+    tsSHA3_224: TTabSheet;
+    grpSHA3_224: TGroupBox;
+    lblSHA3_224: TLabel;
+    edtSHA3_224: TEdit;
+    btnSHA3_224: TButton;
+    pnlSHA3_224: TPanel;
+    btnSHA3_224File: TButton;
+    tsSHA3_256: TTabSheet;
+    grpSHA3_256: TGroupBox;
+    lblSHA3_256: TLabel;
+    edtSHA3_256: TEdit;
+    btnSHA3_256: TButton;
+    pnlSHA3_256: TPanel;
+    btnFileSHA3_256: TButton;
+    tsSHA3_384: TTabSheet;
+    grpSHA3_384: TGroupBox;
+    lblSHA3_384: TLabel;
+    lblSHA3_384Result: TLabel;
+    edtSHA3_384: TEdit;
+    btnSHA3_384: TButton;
+    btnSHA3_384File: TButton;
+    tsSHA3_512: TTabSheet;
+    grpSHA3_512: TGroupBox;
+    lblSHA3_512: TLabel;
+    edtSHA3_512: TEdit;
+    btnSHA3_512: TButton;
+    btnSHA3_512File: TButton;
+    lblSHA3_512Result: TLabel;
     tsZUC: TTabSheet;
     grpZuc: TGroupBox;
     lblZuc1: TLabel;
@@ -147,6 +175,18 @@ type
     lblSHA512HmacKey: TLabel;
     edtSHA512HmacKey: TEdit;
     btnSHA512Hmac: TButton;
+    lblSHA3_224HmacKey: TLabel;
+    edtSHA3_224HmacKey: TEdit;
+    btnSHA3_224Hmac: TButton;
+    lblSHA3_256HmacKey: TLabel;
+    edtSHA3_256HmacKey: TEdit;
+    btnSHA3_256Hmac: TButton;
+    lblSHA3_384HmacKey: TLabel;
+    edtSHA3_384HmacKey: TEdit;
+    btnSHA3_384Hmac: TButton;
+    lblSHA3_512HmacKey: TLabel;
+    edtSHA3_512HmacKey: TEdit;
+    btnSHA3_512Hmac: TButton;
     edtSHA1HMacKey: TEdit;
     btnSHA1Hmac: TButton;
     lblSHA1HmacKey: TLabel;
@@ -206,6 +246,18 @@ type
     procedure btnSM3HmacClick(Sender: TObject);
     procedure btnCRC32HmacClick(Sender: TObject);
     procedure btnCRC64HmacClick(Sender: TObject);
+    procedure btnSHA3_256Click(Sender: TObject);
+    procedure btnFileSHA3_256Click(Sender: TObject);
+    procedure btnSHA3_224Click(Sender: TObject);
+    procedure btnSHA3_224FileClick(Sender: TObject);
+    procedure btnSHA3_512Click(Sender: TObject);
+    procedure btnSHA3_512FileClick(Sender: TObject);
+    procedure btnSHA3_384Click(Sender: TObject);
+    procedure btnSHA3_384FileClick(Sender: TObject);
+    procedure btnSHA3_256HmacClick(Sender: TObject);
+    procedure btnSHA3_224HmacClick(Sender: TObject);
+    procedure btnSHA3_384HmacClick(Sender: TObject);
+    procedure btnSHA3_512HmacClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -220,7 +272,8 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
+  CnSHA3;
 
 {$R *.DFM}
 
@@ -911,6 +964,70 @@ begin
   S := AnsiString(edtCRC64.Text);
   Output := CRC64Hmac(@Key[1], Length(Key), @S[1], Length(S));
   pnlCRC64.Caption := IntToHex(Output, 2);
+end;
+
+procedure TFormCrypt.btnFileSHA3_256Click(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_224Click(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_224FileClick(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_224HmacClick(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_256Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256StringA(AnsiString(edtSha3_256.Text)));
+{$ELSE}
+  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256String(edtSha3_256.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnSHA3_256HmacClick(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_384Click(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_384FileClick(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_384HmacClick(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_512Click(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_512FileClick(Sender: TObject);
+begin
+  //
+end;
+
+procedure TFormCrypt.btnSHA3_512HmacClick(Sender: TObject);
+begin
+  //
 end;
 
 end.

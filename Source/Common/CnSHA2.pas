@@ -22,7 +22,7 @@ unit CnSHA2;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：SHA2(SHA224/256)算法单元
+* 单元名称：SHA2(SHA224/256/384/512)算法单元
 * 单元作者：刘啸（Liu Xiao）
 * 备    注：D567下可以用有符号 Int64 代替无符号 UInt64 来计算 SHA512/384，原因是
 *           基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
@@ -61,7 +61,7 @@ type
 
   TSHA512Digest = array[0..63] of Byte;
 
-  TSHA256Context = record
+  TSHA256Context = packed record
     DataLen: DWORD;
     Data: array[0..63] of Byte;
     BitLen: Int64;
@@ -72,7 +72,7 @@ type
 
   TSHA224Context = TSHA256Context;
 
-  TSHA512Context = record
+  TSHA512Context = packed record
     DataLen: DWORD;
     Data: array[0..127] of Byte;
     TotalLen: Int64;
@@ -372,16 +372,16 @@ procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 implementation
 
 const
-  HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE = 64;
-  HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE = 128;
+  HMAC_SHA2_224_256_BLOCK_SIZE_BYTE = 64;
+  HMAC_SHA2_384_512_BLOCK_SIZE_BYTE = 128;
 
-  HMAC_SHA_224_OUTPUT_LENGTH_BYTE = 28;
-  HMAC_SHA_256_OUTPUT_LENGTH_BYTE = 32;
-  HMAC_SHA_384_OUTPUT_LENGTH_BYTE = 48;
-  HMAC_SHA_512_OUTPUT_LENGTH_BYTE = 64;
+  HMAC_SHA2_224_OUTPUT_LENGTH_BYTE = 28;
+  HMAC_SHA2_256_OUTPUT_LENGTH_BYTE = 32;
+  HMAC_SHA2_384_OUTPUT_LENGTH_BYTE = 48;
+  HMAC_SHA2_512_OUTPUT_LENGTH_BYTE = 64;
 
 type
-  TSHAType = (stSHA224, stSHA256, stSHA384, stSHA512);
+  TSHAType = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512);
 
 {$IFDEF SUPPORT_UINT64}
   TUInt64 = UInt64;
@@ -1021,7 +1021,7 @@ begin
   SHA256Final(Context, Result);
 end;
 
-// 对AnsiString类型数据进行SHA256转换
+// 对AnsiString类型数据进行SHA384转换
 function SHA384StringA(const Str: AnsiString): TSHA384Digest;
 var
   Context: TSHA384Context;
@@ -1031,7 +1031,7 @@ begin
   SHA384Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA256转换
+// 对WideString类型数据进行SHA384转换
 function SHA384StringW(const Str: WideString): TSHA384Digest;
 var
   Context: TSHA384Context;
@@ -1051,7 +1051,7 @@ begin
   SHA512Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA256转换
+// 对WideString类型数据进行SHA512转换
 function SHA512StringW(const Str: WideString): TSHA512Digest;
 var
   Context: TSHA512Context;
@@ -1084,13 +1084,13 @@ var
   procedure _SHAInit;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         SHA224Init(Context224);
-      stSHA256:
+      stSHA2_256:
         SHA256Init(Context256);
-      stSHA384:
+      stSHA2_384:
         SHA384Init(Context384);
-      stSHA512:
+      stSHA2_512:
         SHA512Init(Context512);
     end;
   end;
@@ -1098,13 +1098,13 @@ var
   procedure _SHAUpdate;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         SHA224Update(Context224, Buf, ReadBytes);
-      stSHA256:
+      stSHA2_256:
         SHA256Update(Context256, Buf, ReadBytes);
-      stSHA384:
+      stSHA2_384:
         SHA384Update(Context384, Buf, ReadBytes);
-      stSHA512:
+      stSHA2_512:
         SHA512Update(Context512, Buf, ReadBytes);
     end;
   end;
@@ -1112,13 +1112,13 @@ var
   procedure _SHAFinal;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         SHA224Final(Context224, Dig224);
-      stSHA256:
+      stSHA2_256:
         SHA256Final(Context256, Dig256);
-      stSHA384:
+      stSHA2_384:
         SHA384Final(Context384, Dig384);
-      stSHA512:
+      stSHA2_512:
         SHA512Final(Context512, Dig512);
     end;
   end;
@@ -1126,13 +1126,13 @@ var
   procedure _CopyResult;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
-      stSHA256:
+      stSHA2_256:
         CopyMemory(@D[0], @Dig256[0], SizeOf(TSHA256Digest));
-      stSHA384:
+      stSHA2_384:
         CopyMemory(@D[0], @Dig384[0], SizeOf(TSHA384Digest));
-      stSHA512:
+      stSHA2_512:
         CopyMemory(@D[0], @Dig512[0], SizeOf(TSHA512Digest));
     end;
   end;
@@ -1185,7 +1185,7 @@ function SHA224Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 var
   Dig: TSHAGeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA224, CallBack);
+  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_224, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
 end;
 
@@ -1195,7 +1195,7 @@ function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 var
   Dig: TSHAGeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA256, CallBack);
+  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_256, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
 end;
 
@@ -1205,7 +1205,7 @@ function SHA384Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 var
   Dig: TSHAGeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA384, CallBack);
+  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_384, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA384Digest));
 end;
 
@@ -1215,7 +1215,7 @@ function SHA512Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 var
   Dig: TSHAGeneralDigest;
 begin
-  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA512, CallBack);
+  InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_512, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA512Digest));
 end;
 
@@ -1264,13 +1264,13 @@ var
   procedure _SHAInit;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         SHA224Init(Context224);
-      stSHA256:
+      stSHA2_256:
         SHA256Init(Context256);
-      stSHA384:
+      stSHA2_384:
         SHA384Init(Context384);
-      stSHA512:
+      stSHA2_512:
         SHA512Init(Context512);
     end;
   end;
@@ -1278,13 +1278,13 @@ var
   procedure _SHAUpdate;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         SHA224Update(Context224, ViewPointer, GetFileSize(FileHandle, nil));
-      stSHA256:
+      stSHA2_256:
         SHA256Update(Context256, ViewPointer, GetFileSize(FileHandle, nil));
-      stSHA384:
+      stSHA2_384:
         SHA384Update(Context384, ViewPointer, GetFileSize(FileHandle, nil));
-      stSHA512:
+      stSHA2_512:
         SHA512Update(Context512, ViewPointer, GetFileSize(FileHandle, nil));
     end;
   end;
@@ -1292,13 +1292,13 @@ var
   procedure _SHAFinal;
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         SHA224Final(Context224, Dig224);
-      stSHA256:
+      stSHA2_256:
         SHA256Final(Context256, Dig256);
-      stSHA384:
+      stSHA2_384:
         SHA384Final(Context384, Dig384);
-      stSHA512:
+      stSHA2_512:
         SHA512Final(Context512, Dig512);
     end;
   end;
@@ -1306,13 +1306,13 @@ var
   procedure _CopyResult(var D: TSHAGeneralDigest);
   begin
     case SHAType of
-      stSHA224:
+      stSHA2_224:
         CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
-      stSHA256:
+      stSHA2_256:
         CopyMemory(@D[0], @Dig256[0], SizeOf(TSHA256Digest));
-      stSHA384:
+      stSHA2_384:
         CopyMemory(@D[0], @Dig384[0], SizeOf(TSHA384Digest));
-      stSHA512:
+      stSHA2_512:
         CopyMemory(@D[0], @Dig512[0], SizeOf(TSHA512Digest));
     end;
   end;
@@ -1379,7 +1379,7 @@ function SHA224File(const FileName: string; CallBack: TSHACalcProgressFunc):
 var
   Dig: TSHAGeneralDigest;
 begin
-  Dig := InternalSHAFile(FileName, stSHA224, CallBack);
+  Dig := InternalSHAFile(FileName, stSHA2_224, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
 end;
 
@@ -1389,7 +1389,7 @@ function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc):
 var
   Dig: TSHAGeneralDigest;
 begin
-  Dig := InternalSHAFile(FileName, stSHA256, CallBack);
+  Dig := InternalSHAFile(FileName, stSHA2_256, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
 end;
 
@@ -1399,7 +1399,7 @@ function SHA384File(const FileName: string; CallBack: TSHACalcProgressFunc):
 var
   Dig: TSHAGeneralDigest;
 begin
-  Dig := InternalSHAFile(FileName, stSHA384, CallBack);
+  Dig := InternalSHAFile(FileName, stSHA2_384, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA384Digest));
 end;
 
@@ -1409,7 +1409,7 @@ function SHA512File(const FileName: string; CallBack: TSHACalcProgressFunc):
 var
   Dig: TSHAGeneralDigest;
 begin
-  Dig := InternalSHAFile(FileName, stSHA512, CallBack);
+  Dig := InternalSHAFile(FileName, stSHA2_512, CallBack);
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA512Digest));
 end;
 
@@ -1562,15 +1562,15 @@ var
   I: Integer;
   Sum: TSHA224Digest;
 begin
-  if KeyLength > HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE then
+  if KeyLength > HMAC_SHA2_224_256_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA224Buffer(Key, KeyLength);
-    KeyLength := HMAC_SHA_224_OUTPUT_LENGTH_BYTE;
+    KeyLength := HMAC_SHA2_224_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE, $36);
-  FillChar(Context.Opad, HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_SHA2_224_256_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA2_224_256_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1579,7 +1579,7 @@ begin
   end;
 
   SHA224Init(Context);
-  SHA224Update(Context, @(Context.Ipad[0]), HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE);
+  SHA224Update(Context, @(Context.Ipad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA224HmacUpdate(var Context: TSHA224Context; Input: PAnsiChar; Length:
@@ -1593,10 +1593,10 @@ var
   Len: Integer;
   TmpBuf: TSHA224Digest;
 begin
-  Len := HMAC_SHA_224_OUTPUT_LENGTH_BYTE;
+  Len := HMAC_SHA2_224_OUTPUT_LENGTH_BYTE;
   SHA224Final(Context, TmpBuf);
   SHA224Init(Context);
-  SHA224Update(Context, @(Context.Opad[0]), HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE);
+  SHA224Update(Context, @(Context.Opad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
   SHA224Update(Context, @(TmpBuf[0]), Len);
   SHA224Final(Context, Output);
 end;
@@ -1606,15 +1606,15 @@ var
   I: Integer;
   Sum: TSHA256Digest;
 begin
-  if KeyLength > HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE then
+  if KeyLength > HMAC_SHA2_224_256_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA256Buffer(Key, KeyLength);
-    KeyLength := HMAC_SHA_256_OUTPUT_LENGTH_BYTE;
+    KeyLength := HMAC_SHA2_256_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE, $36);
-  FillChar(Context.Opad, HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_SHA2_224_256_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA2_224_256_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1623,7 +1623,7 @@ begin
   end;
 
   SHA256Init(Context);
-  SHA256Update(Context, @(Context.Ipad[0]), HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE);
+  SHA256Update(Context, @(Context.Ipad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA256HmacUpdate(var Context: TSHA256Context; Input: PAnsiChar; Length:
@@ -1637,10 +1637,10 @@ var
   Len: Integer;
   TmpBuf: TSHA256Digest;
 begin
-  Len := HMAC_SHA_256_OUTPUT_LENGTH_BYTE;
+  Len := HMAC_SHA2_256_OUTPUT_LENGTH_BYTE;
   SHA256Final(Context, TmpBuf);
   SHA256Init(Context);
-  SHA256Update(Context, @(Context.Opad[0]), HMAC_SHA_1_224_256_BLOCK_SIZE_BYTE);
+  SHA256Update(Context, @(Context.Opad[0]), HMAC_SHA2_224_256_BLOCK_SIZE_BYTE);
   SHA256Update(Context, @(TmpBuf[0]), Len);
   SHA256Final(Context, Output);
 end;
@@ -1670,15 +1670,15 @@ var
   I: Integer;
   Sum: TSHA384Digest;
 begin
-  if KeyLength > HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE then
+  if KeyLength > HMAC_SHA2_384_512_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA384Buffer(Key, KeyLength);
-    KeyLength := HMAC_SHA_384_OUTPUT_LENGTH_BYTE;
+    KeyLength := HMAC_SHA2_384_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $36);
-  FillChar(Context.Opad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_SHA2_384_512_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA2_384_512_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1687,7 +1687,7 @@ begin
   end;
 
   SHA384Init(Context);
-  SHA384Update(Context, @(Context.Ipad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
+  SHA384Update(Context, @(Context.Ipad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA384HmacUpdate(var Context: TSHA384Context; Input: PAnsiChar; Length:
@@ -1701,10 +1701,10 @@ var
   Len: Integer;
   TmpBuf: TSHA384Digest;
 begin
-  Len := HMAC_SHA_384_OUTPUT_LENGTH_BYTE;
+  Len := HMAC_SHA2_384_OUTPUT_LENGTH_BYTE;
   SHA384Final(Context, TmpBuf);
   SHA384Init(Context);
-  SHA384Update(Context, @(Context.Opad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
+  SHA384Update(Context, @(Context.Opad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
   SHA384Update(Context, @(TmpBuf[0]), Len);
   SHA384Final(Context, Output);
 end;
@@ -1724,15 +1724,15 @@ var
   I: Integer;
   Sum: TSHA512Digest;
 begin
-  if KeyLength > HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE then
+  if KeyLength > HMAC_SHA2_384_512_BLOCK_SIZE_BYTE then
   begin
     Sum := SHA512Buffer(Key, KeyLength);
-    KeyLength := HMAC_SHA_512_OUTPUT_LENGTH_BYTE;
+    KeyLength := HMAC_SHA2_512_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
 
-  FillChar(Context.Ipad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $36);
-  FillChar(Context.Opad, HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_SHA2_384_512_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA2_384_512_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
@@ -1741,7 +1741,7 @@ begin
   end;
 
   SHA512Init(Context);
-  SHA512Update(Context, @(Context.Ipad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
+  SHA512Update(Context, @(Context.Ipad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
 end;
 
 procedure SHA512HmacUpdate(var Context: TSHA512Context; Input: PAnsiChar; Length:
@@ -1755,10 +1755,10 @@ var
   Len: Integer;
   TmpBuf: TSHA512Digest;
 begin
-  Len := HMAC_SHA_512_OUTPUT_LENGTH_BYTE;
+  Len := HMAC_SHA2_512_OUTPUT_LENGTH_BYTE;
   SHA512Final(Context, TmpBuf);
   SHA512Init(Context);
-  SHA512Update(Context, @(Context.Opad[0]), HMAC_SHA_1_384_512_BLOCK_SIZE_BYTE);
+  SHA512Update(Context, @(Context.Opad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
   SHA512Update(Context, @(TmpBuf[0]), Len);
   SHA512Final(Context, Output);
 end;
