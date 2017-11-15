@@ -678,7 +678,7 @@ begin
   begin
     S := SHA384Print(SHA384File(OpenDialog1.FileName));
     Insert(#13#10, S, 49);
-    lblSHA512Result.Caption := S;
+    lblSHA384Result.Caption := S;
   end;
 end;
 
@@ -968,17 +968,23 @@ end;
 
 procedure TFormCrypt.btnFileSHA3_256Click(Sender: TObject);
 begin
-  //
+  if OpenDialog1.Execute then
+    pnlSha3_256.Caption := SHA3_256Print(SHA3_256File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSHA3_224Click(Sender: TObject);
 begin
-  //
+{$IFDEF UNICODE}
+  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224StringA(AnsiString(edtSha3_224.Text)));
+{$ELSE}
+  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224String(edtSha3_224.Text));
+{$ENDIF}
 end;
 
 procedure TFormCrypt.btnSHA3_224FileClick(Sender: TObject);
 begin
-  //
+  if OpenDialog1.Execute then
+    pnlSha3_224.Caption := SHA3_224Print(SHA3_224File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSHA3_224HmacClick(Sender: TObject);
@@ -1001,13 +1007,28 @@ begin
 end;
 
 procedure TFormCrypt.btnSHA3_384Click(Sender: TObject);
+var
+  S: string;
 begin
-  //
+{$IFDEF UNICODE}
+  S := SHA3_384Print(SHA3_384StringA(AnsiString(edtSha3_384.Text)));
+{$ELSE}
+  S := SHA3_384Print(SHA3_384String(edtSha3_384.Text));
+{$ENDIF}
+  Insert(#13#10, S, 49);
+  lblSHA3_384Result.Caption := S;
 end;
 
 procedure TFormCrypt.btnSHA3_384FileClick(Sender: TObject);
+var
+  S: string;
 begin
-  //
+  if OpenDialog1.Execute then
+  begin
+    S := SHA3_384Print(SHA3_384File(OpenDialog1.FileName));
+    Insert(#13#10, S, 49);
+    lblSHA_384Result.Caption := S;
+  end;
 end;
 
 procedure TFormCrypt.btnSHA3_384HmacClick(Sender: TObject);
@@ -1016,13 +1037,28 @@ begin
 end;
 
 procedure TFormCrypt.btnSHA3_512Click(Sender: TObject);
+var
+  S: string;
 begin
-  //
+{$IFDEF UNICODE}
+  S := SHA3_512Print(SHA3_512StringA(AnsiString(edtSha3_512.Text)));
+{$ELSE}
+  S := SHA3_512Print(SHA3_512String(edtSha3_512.Text));
+{$ENDIF}
+  Insert(#13#10, S, 65);
+  lblSHA3_512Result.Caption := S;
 end;
 
 procedure TFormCrypt.btnSHA3_512FileClick(Sender: TObject);
+var
+  S: string;
 begin
-  //
+  if OpenDialog1.Execute then
+  begin
+    S := SHA3_512Print(SHA3_512File(OpenDialog1.FileName));
+    Insert(#13#10, S, 65);
+    lblSHA3_512Result.Caption := S;
+  end;
 end;
 
 procedure TFormCrypt.btnSHA3_512HmacClick(Sender: TObject);

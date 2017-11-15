@@ -381,7 +381,7 @@ const
   HMAC_SHA2_512_OUTPUT_LENGTH_BYTE = 64;
 
 type
-  TSHAType = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512);
+  TSHA2Type = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512);
 
 {$IFDEF SUPPORT_UINT64}
   TUInt64 = UInt64;
@@ -1062,7 +1062,7 @@ begin
 end;
 
 function InternalSHAStream(Stream: TStream; const BufSize: Cardinal; var D:
-  TSHAGeneralDigest; SHAType: TShaType; CallBack: TSHACalcProgressFunc = nil): Boolean;
+  TSHAGeneralDigest; SHA2Type: TSHA2Type; CallBack: TSHACalcProgressFunc = nil): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
@@ -1083,7 +1083,7 @@ var
 
   procedure _SHAInit;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         SHA224Init(Context224);
       stSHA2_256:
@@ -1097,7 +1097,7 @@ var
 
   procedure _SHAUpdate;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         SHA224Update(Context224, Buf, ReadBytes);
       stSHA2_256:
@@ -1111,7 +1111,7 @@ var
 
   procedure _SHAFinal;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         SHA224Final(Context224, Dig224);
       stSHA2_256:
@@ -1125,7 +1125,7 @@ var
 
   procedure _CopyResult;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
       stSHA2_256:
@@ -1243,7 +1243,7 @@ begin
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
 end;
 
-function InternalSHAFile(const FileName: string; SHAType: TSHAType;
+function InternalSHAFile(const FileName: string; SHA2Type: TSHA2Type;
   CallBack: TSHACalcProgressFunc): TSHAGeneralDigest;
 var
   Context224: TSHA224Context;
@@ -1263,7 +1263,7 @@ var
 
   procedure _SHAInit;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         SHA224Init(Context224);
       stSHA2_256:
@@ -1277,7 +1277,7 @@ var
 
   procedure _SHAUpdate;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         SHA224Update(Context224, ViewPointer, GetFileSize(FileHandle, nil));
       stSHA2_256:
@@ -1291,7 +1291,7 @@ var
 
   procedure _SHAFinal;
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         SHA224Final(Context224, Dig224);
       stSHA2_256:
@@ -1305,7 +1305,7 @@ var
 
   procedure _CopyResult(var D: TSHAGeneralDigest);
   begin
-    case SHAType of
+    case SHA2Type of
       stSHA2_224:
         CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
       stSHA2_256:
@@ -1324,7 +1324,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalSHAStream(Stream, 4096 * 1024, Result, SHAType, CallBack);
+      InternalSHAStream(Stream, 4096 * 1024, Result, SHA2Type, CallBack);
     finally
       Stream.Free;
     end;

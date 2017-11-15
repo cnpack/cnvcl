@@ -65,6 +65,10 @@ type
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
 
+  TSHA3CalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
+    Boolean) of object;
+  {* 进度回调事件类型声明}
+
 function SHA3_224Buffer(const Buffer; Count: LongWord): TSHA3_224Digest;
 {* 对数据块进行SHA3_224转换
  |<PRE>
@@ -169,8 +173,69 @@ function SHA3_512StringW(const Str: WideString): TSHA3_512Digest;
  Str: WideString       - 要计算的字符串
 |</PRE>}
 
+function SHA3_224File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
+  nil): TSHA3_224Digest;
+{* 对指定文件数据进行SHA3_256转换
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
 
+function SHA3_224Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_224Digest;
+{* 对指定流数据进行SHA3_224转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
 
+function SHA3_256File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
+  nil): TSHA3_256Digest;
+{* 对指定文件数据进行SHA3_256转换
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA3_256Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_256Digest;
+{* 对指定流数据进行SHA3_256转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA3_384File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
+  nil): TSHA3_384Digest;
+{* 对指定文件数据进行SHA3_384转换
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA3_384Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_384Digest;
+{* 对指定流数据进行SHA3_384转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA3_512File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
+  nil): TSHA3_512Digest;
+{* 对指定文件数据进行SHA3_512转换
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHA3_512Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_512Digest;
+{* 对指定流数据进行SHA3_512转换
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
 
 function SHA3_224Print(const Digest: TSHA3_224Digest): string;
 {* 以十六进制格式输出SHA3_224计算值
@@ -213,6 +278,9 @@ type
 {$ENDIF}
 
 const
+  MAX_FILE_SIZE = 512 * 1024 * 1024;
+  // If file size <= this size (bytes), using Mapping, else stream
+
   SHA3_ROUNDS = 24;
   SHA3_STATE_LEN = 25;
 
@@ -591,6 +659,226 @@ begin
   SHA3UpdateW(Context, PWideChar(Str), Length(Str));
   SHA3Final(Context, Res);
   CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+end;
+
+function InternalSHA3Stream(Stream: TStream; const BufSize: Cardinal; var D:
+  TSHA3GeneralDigest; SHA3Type: TSHA3Type; CallBack: TSHA3CalcProgressFunc = nil): Boolean;
+var
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+  CancelCalc: Boolean;
+  Context: TSHA3Context;
+begin
+  Result := False;
+  Size := Stream.Size;
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+  if Size = 0 then
+    Exit;
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
+
+  CancelCalc := False;
+  SHA3Init(Context, SHA3Type);
+
+  GetMem(Buf, BufLen);
+  try
+    Stream.Seek(0, soFromBeginning);
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        SHA3Update(Context, Buf, ReadBytes);
+
+        if Assigned(CallBack) then
+        begin
+          CallBack(Size, TotalBytes, CancelCalc);
+          if CancelCalc then
+            Exit;
+        end;
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    SHA3Final(Context, D);
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
+end;
+
+// 对指定流进行SHA3_224计算
+function SHA3_224Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_224Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_224, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_224Digest));
+end;
+
+// 对指定流进行SHA3_256计算
+function SHA3_256Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_256Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_256, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_256Digest));
+end;
+
+// 对指定流进行SHA3_384计算
+function SHA3_384Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_384Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_384, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_384Digest));
+end;
+
+// 对指定流进行SHA3_512计算
+function SHA3_512Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
+  TSHA3_512Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_512, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_512Digest));
+end;
+
+function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+var
+  H: THandle;
+  Info: BY_HANDLE_FILE_INFORMATION;
+  Rec: Int64Rec;
+begin
+  Result := False;
+  IsEmpty := False;
+  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
+    OPEN_EXISTING, 0, 0);
+  if H = INVALID_HANDLE_VALUE then
+    Exit;
+  try
+    if not GetFileInformationByHandle(H, Info) then
+      Exit;
+  finally
+    CloseHandle(H);
+  end;
+  Rec.Lo := Info.nFileSizeLow;
+  Rec.Hi := Info.nFileSizeHigh;
+  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+end;
+
+function InternalSHA3File(const FileName: string; SHA3Type: TSHA3Type;
+  CallBack: TSHA3CalcProgressFunc): TSHA3GeneralDigest;
+var
+  Context: TSHA3Context;
+  FileHandle: THandle;
+  MapHandle: THandle;
+  ViewPointer: Pointer;
+  Stream: TStream;
+  FileIsZeroSize: Boolean;
+begin
+  FileIsZeroSize := False;
+  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  begin
+    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    try
+      InternalSHA3Stream(Stream, 4096 * 1024, Result, SHA3Type, CallBack);
+    finally
+      Stream.Free;
+    end;
+  end
+  else
+  begin
+    SHA3Init(Context, SHA3Type);
+    FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
+      FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
+      FILE_FLAG_SEQUENTIAL_SCAN, 0);
+    if FileHandle <> INVALID_HANDLE_VALUE then
+    begin
+      try
+        MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
+        if MapHandle <> 0 then
+        begin
+          try
+            ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
+            if ViewPointer <> nil then
+            begin
+              try
+                SHA3Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
+              finally
+                UnmapViewOfFile(ViewPointer);
+              end;
+            end
+            else
+            begin
+              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
+            end;
+          finally
+            CloseHandle(MapHandle);
+          end;
+        end
+        else
+        begin
+          if not FileIsZeroSize then
+            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
+        end;
+      finally
+        CloseHandle(FileHandle);
+      end;
+    end;
+    SHA3Final(Context, Result);
+  end;
+end;
+
+// 对指定文件数据进行SHA3_224转换
+function SHA3_224File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
+  TSHA3_224Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  Dig := InternalSHA3File(FileName, stSHA3_224, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_224Digest));
+end;
+
+// 对指定文件数据进行SHA3_256转换
+function SHA3_256File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
+  TSHA3_256Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  Dig := InternalSHA3File(FileName, stSHA3_256, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_256Digest));
+end;
+
+// 对指定文件数据进行SHA3_384转换
+function SHA3_384File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
+  TSHA3_384Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  Dig := InternalSHA3File(FileName, stSHA3_384, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_384Digest));
+end;
+
+// 对指定文件数据进行SHA3_512转换
+function SHA3_512File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
+  TSHA3_512Digest;
+var
+  Dig: TSHA3GeneralDigest;
+begin
+  Dig := InternalSHA3File(FileName, stSHA3_512, CallBack);
+  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_512Digest));
 end;
 
 const
