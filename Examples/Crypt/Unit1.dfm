@@ -1203,9 +1203,9 @@ object FormCrypt: TFormCrypt
           Text = 'HmacKey'
         end
         object btnSHA3_224Hmac: TButton
-          Left = 320
+          Left = 304
           Top = 80
-          Width = 75
+          Width = 91
           Height = 25
           Caption = 'SHA3_224 Hmac'
           TabOrder = 5
@@ -1282,9 +1282,9 @@ object FormCrypt: TFormCrypt
           Text = 'HmacKey'
         end
         object btnSHA3_256Hmac: TButton
-          Left = 320
+          Left = 304
           Top = 80
-          Width = 75
+          Width = 91
           Height = 25
           Caption = 'SHA3_256 Hmac'
           TabOrder = 5
@@ -1362,9 +1362,9 @@ object FormCrypt: TFormCrypt
           Text = 'HmacKey'
         end
         object btnSHA3_384Hmac: TButton
-          Left = 320
+          Left = 304
           Top = 80
-          Width = 75
+          Width = 91
           Height = 25
           Caption = 'SHA3_384 Hmac'
           TabOrder = 4
@@ -1442,9 +1442,9 @@ object FormCrypt: TFormCrypt
           Text = 'HmacKey'
         end
         object btnSHA3_512Hmac: TButton
-          Left = 320
+          Left = 304
           Top = 80
-          Width = 75
+          Width = 91
           Height = 25
           Caption = 'SHA3_512 Hmac'
           TabOrder = 4

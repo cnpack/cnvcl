@@ -988,8 +988,14 @@ begin
 end;
 
 procedure TFormCrypt.btnSHA3_224HmacClick(Sender: TObject);
+var
+  Output: TSHA3_224Digest;
+  S, Key: AnsiString;
 begin
-  //
+  Key := AnsiString(edtSHA3_224HmacKey.Text);
+  S := AnsiString(edtSHA3_224.Text);
+  SHA3_224Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlSHA3_224.Caption := SHA3_224Print(Output);
 end;
 
 procedure TFormCrypt.btnSHA3_256Click(Sender: TObject);
@@ -1002,8 +1008,14 @@ begin
 end;
 
 procedure TFormCrypt.btnSHA3_256HmacClick(Sender: TObject);
+var
+  Output: TSHA3_256Digest;
+  S, Key: AnsiString;
 begin
-  //
+  Key := AnsiString(edtSHA3_256HmacKey.Text);
+  S := AnsiString(edtSHA3_256.Text);
+  SHA3_256Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlSHA3_256.Caption := SHA3_256Print(Output);
 end;
 
 procedure TFormCrypt.btnSHA3_384Click(Sender: TObject);
@@ -1027,13 +1039,21 @@ begin
   begin
     S := SHA3_384Print(SHA3_384File(OpenDialog1.FileName));
     Insert(#13#10, S, 49);
-    lblSHA_384Result.Caption := S;
+    lblSHA3_384Result.Caption := S;
   end;
 end;
 
 procedure TFormCrypt.btnSHA3_384HmacClick(Sender: TObject);
+var
+  Output: TSHA3_384Digest;
+  S, Key: AnsiString;
 begin
-  //
+  Key := AnsiString(edtSHA3_384HmacKey.Text);
+  S := AnsiString(edtSHA3_384.Text);
+  SHA3_384Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  S := SHA3_384Print(Output);
+  Insert(#13#10, S, 49);
+  lblSHA3_384Result.Caption := S;
 end;
 
 procedure TFormCrypt.btnSHA3_512Click(Sender: TObject);
@@ -1062,8 +1082,16 @@ begin
 end;
 
 procedure TFormCrypt.btnSHA3_512HmacClick(Sender: TObject);
+var
+  Output: TSHA3_512Digest;
+  S, Key: AnsiString;
 begin
-  //
+  Key := AnsiString(edtSHA3_512HmacKey.Text);
+  S := AnsiString(edtSHA3_512.Text);
+  SHA3_512Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  S := SHA3_512Print(Output);
+  Insert(#13#10, S, 65);
+  lblSHA3_512Result.Caption := S;
 end;
 
 end.

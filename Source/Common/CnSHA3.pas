@@ -61,8 +61,8 @@ type
     Round: DWORD;
     BlockLen: DWORD;
     Block: array[0..255] of Byte;
-    Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
-    Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
+    Ipad: array[0..143] of Byte;      {!< HMAC: inner padding        }
+    Opad: array[0..143] of Byte;      {!< HMAC: outer padding        }
   end;
 
   TSHA3CalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
@@ -261,9 +261,75 @@ function SHA3_512Print(const Digest: TSHA3_512Digest): string;
    Digest: TSHA3_512Digest  - 指定的SHA3_512计算值
  |</PRE>}
 
+function SHA3_224Match(const D1, D2: TSHA3_224Digest): Boolean;
+{* 比较两个SHA3_224计算值是否相等
+ |<PRE>
+   D1: TSHA3_224Digest   - 需要比较的SHA3_224计算值
+   D2: TSHA3_224Digest   - 需要比较的SHA3_224计算值
+ |</PRE>}
+
+function SHA3_256Match(const D1, D2: TSHA3_256Digest): Boolean;
+{* 比较两个SHA3_256计算值是否相等
+ |<PRE>
+   D1: TSHA3_256Digest   - 需要比较的SHA3_256计算值
+   D2: TSHA3_256Digest   - 需要比较的SHA3_256计算值
+ |</PRE>}
+
+function SHA3_384Match(const D1, D2: TSHA3_384Digest): Boolean;
+{* 比较两个SHA3_384计算值是否相等
+ |<PRE>
+   D1: TSHA3_384Digest   - 需要比较的SHA3_384计算值
+   D2: TSHA3_384Digest   - 需要比较的SHA3_384计算值
+ |</PRE>}
+
+function SHA3_512Match(const D1, D2: TSHA3_512Digest): Boolean;
+{* 比较两个SHA3_512计算值是否相等
+ |<PRE>
+   D1: TSHA3_512Digest   - 需要比较的SHA3_512计算值
+   D2: TSHA3_512Digest   - 需要比较的SHA3_512计算值
+ |</PRE>}
+
+function SHA3_224DigestToStr(aDig: TSHA3_224Digest): string;
+{* SHA3_224计算值转 string
+ |<PRE>
+   aDig: TSHA3_224Digest   - 需要转换的SHA3_224计算值
+ |</PRE>}
+
+function SHA3_256DigestToStr(aDig: TSHA3_256Digest): string;
+{* SHA3_256计算值转 string
+ |<PRE>
+   aDig: TSHA3_256Digest   - 需要转换的SHA3_256计算值
+ |</PRE>}
+
+function SHA3_384DigestToStr(aDig: TSHA3_384Digest): string;
+{* SHA3_384计算值转 string
+ |<PRE>
+   aDig: TSHA3_384Digest   - 需要转换的SHA3_384计算值
+ |</PRE>}
+
+function SHA3_512DigestToStr(aDig: TSHA3_512Digest): string;
+{* SHA3_512计算值转 string
+ |<PRE>
+   aDig: TSHA3_512Digest   - 需要转换的SHA3_512计算值
+ |</PRE>}
+
 //procedure SHA3Init(var Context: TSHA3Context; SHA3Type: TSHA3Type);
 //procedure SHA3Update(var Context: TSHA3Context; Buffer: PAnsiChar; Len: Cardinal);
 //procedure SHA3Final(var Context: TSHA3Context; var Digest: TSHA3GeneralDigest);
+
+procedure SHA3_224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_224Digest);
+
+procedure SHA3_256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_256Digest);
+
+procedure SHA3_384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_384Digest);
+
+procedure SHA3_512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_512Digest);
+
+{* Hash-based Message Authentication Code (based on SHA3 224/256/384/512) }
 
 implementation
 
@@ -294,8 +360,10 @@ const
   SHA3_384_BLOCK_SIZE_BYTE = 104;
   SHA3_512_BLOCK_SIZE_BYTE = 72;
 
-  HMAC_SHA3_224_256_BLOCK_SIZE_BYTE = 64;
-  HMAC_SHA3_384_512_BLOCK_SIZE_BYTE = 128;
+  HMAC_SHA3_224_BLOCK_SIZE_BYTE = SHA3_224_BLOCK_SIZE_BYTE;
+  HMAC_SHA3_256_BLOCK_SIZE_BYTE = SHA3_256_BLOCK_SIZE_BYTE;
+  HMAC_SHA3_384_BLOCK_SIZE_BYTE = SHA3_384_BLOCK_SIZE_BYTE;
+  HMAC_SHA3_512_BLOCK_SIZE_BYTE = SHA3_512_BLOCK_SIZE_BYTE;
 
   HMAC_SHA3_224_OUTPUT_LENGTH_BYTE = SHA3_224_OUTPUT_LENGTH_BYTE;
   HMAC_SHA3_256_OUTPUT_LENGTH_BYTE = SHA3_256_OUTPUT_LENGTH_BYTE;
@@ -390,8 +458,11 @@ end;
 
 procedure SHA3Init(var Context: TSHA3Context; SHA3Type: TSHA3Type);
 begin
-  FillChar(Context, SizeOf(TSHA3Context), 0);
+  FillChar(Context.State, SizeOf(Context.State), 0);
+  FillChar(Context.Block, SizeOf(Context.Block), 0);
+  Context.Index := 0;
   Context.Round := SHA3_ROUNDS;
+
   case SHA3Type of
   stSHA3_224:
     begin
@@ -927,6 +998,326 @@ begin
   for I := 0 to SHA3_512_OUTPUT_LENGTH_BYTE - 1 do
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
       and $0F] + Digits[Digest[I] and $0F]);
+end;
+
+// 比较两个SHA3_224计算值是否相等
+function SHA3_224Match(const D1, D2: TSHA3_224Digest): Boolean;
+var
+  I: Byte;
+begin
+  I := 0;
+  Result := True;
+  while Result and (I < 28) do
+  begin
+    Result := D1[I] = D2[I];
+    Inc(I);
+  end;
+end;
+
+// 比较两个SHA3_256计算值是否相等
+function SHA3_256Match(const D1, D2: TSHA3_256Digest): Boolean;
+var
+  I: Byte;
+begin
+  I := 0;
+  Result := True;
+  while Result and (I < 32) do
+  begin
+    Result := D1[I] = D2[I];
+    Inc(I);
+  end;
+end;
+
+// 比较两个SHA3_384计算值是否相等
+function SHA3_384Match(const D1, D2: TSHA3_384Digest): Boolean;
+var
+  I: Byte;
+begin
+  I := 0;
+  Result := True;
+  while Result and (I < 48) do
+  begin
+    Result := D1[I] = D2[I];
+    Inc(I);
+  end;
+end;
+
+// 比较两个SHA3_512计算值是否相等
+function SHA3_512Match(const D1, D2: TSHA3_512Digest): Boolean;
+var
+  I: Byte;
+begin
+  I := 0;
+  Result := True;
+  while Result and (I < 64) do
+  begin
+    Result := D1[I] = D2[I];
+    Inc(I);
+  end;
+end;
+
+// SHA3_224计算值转 string
+function SHA3_224DigestToStr(aDig: TSHA3_224Digest): string;
+var
+  I: Integer;
+begin
+  SetLength(Result, 28);
+  for I := 1 to 28 do
+    Result[I] := Chr(aDig[I - 1]);
+end;
+
+// SHA3_256计算值转 string
+function SHA3_256DigestToStr(aDig: TSHA3_256Digest): string;
+var
+  I: Integer;
+begin
+  SetLength(Result, 32);
+  for I := 1 to 32 do
+    Result[I] := Chr(aDig[I - 1]);
+end;
+
+// SHA3_384计算值转 string
+function SHA3_384DigestToStr(aDig: TSHA3_384Digest): string;
+var
+  I: Integer;
+begin
+  SetLength(Result, 48);
+  for I := 1 to 48 do
+    Result[I] := Chr(aDig[I - 1]);
+end;
+
+// SHA3_512计算值转 string
+function SHA3_512DigestToStr(aDig: TSHA3_512Digest): string;
+var
+  I: Integer;
+begin
+  SetLength(Result, 64);
+  for I := 1 to 64 do
+    Result[I] := Chr(aDig[I - 1]);
+end;
+
+procedure SHA3_224HmacInit(var Context: TSHA3Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TSHA3_224Digest;
+begin
+  if KeyLength > HMAC_SHA3_224_BLOCK_SIZE_BYTE then
+  begin
+    Sum := SHA3_224Buffer(Key, KeyLength);
+    KeyLength := HMAC_SHA3_224_OUTPUT_LENGTH_BYTE;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Context.Ipad, HMAC_SHA3_224_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA3_224_BLOCK_SIZE_BYTE, $5C);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
+  end;
+
+  SHA3Init(Context, stSHA3_224);
+  SHA3Update(Context, @(Context.Ipad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
+end;
+
+procedure SHA3_256HmacInit(var Context: TSHA3Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TSHA3_256Digest;
+begin
+  if KeyLength > HMAC_SHA3_256_BLOCK_SIZE_BYTE then
+  begin
+    Sum := SHA3_256Buffer(Key, KeyLength);
+    KeyLength := HMAC_SHA3_256_OUTPUT_LENGTH_BYTE;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Context.Ipad, HMAC_SHA3_256_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA3_256_BLOCK_SIZE_BYTE, $5C);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
+  end;
+
+  SHA3Init(Context, stSHA3_256);
+  SHA3Update(Context, @(Context.Ipad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
+end;
+
+procedure SHA3_384HmacInit(var Context: TSHA3Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TSHA3_384Digest;
+begin
+  if KeyLength > HMAC_SHA3_384_BLOCK_SIZE_BYTE then
+  begin
+    Sum := SHA3_384Buffer(Key, KeyLength);
+    KeyLength := HMAC_SHA3_384_OUTPUT_LENGTH_BYTE;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Context.Ipad, HMAC_SHA3_384_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA3_384_BLOCK_SIZE_BYTE, $5C);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
+  end;
+
+  SHA3Init(Context, stSHA3_384);
+  SHA3Update(Context, @(Context.Ipad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
+end;
+
+procedure SHA3_512HmacInit(var Context: TSHA3Context; Key: PAnsiChar; KeyLength: Integer);
+var
+  I: Integer;
+  Sum: TSHA3_512Digest;
+begin
+  if KeyLength > HMAC_SHA3_512_BLOCK_SIZE_BYTE then
+  begin
+    Sum := SHA3_512Buffer(Key, KeyLength);
+    KeyLength := HMAC_SHA3_512_OUTPUT_LENGTH_BYTE;
+    Key := @(Sum[0]);
+  end;
+
+  FillChar(Context.Ipad, HMAC_SHA3_512_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA3_512_BLOCK_SIZE_BYTE, $5C);
+
+  for I := 0 to KeyLength - 1 do
+  begin
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
+  end;
+
+  SHA3Init(Context, stSHA3_512);
+  SHA3Update(Context, @(Context.Ipad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
+end;
+
+procedure SHA3_224HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
+  LongWord);
+begin
+  SHA3Update(Context, Input, Length);
+end;
+
+procedure SHA3_256HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
+  LongWord);
+begin
+  SHA3Update(Context, Input, Length);
+end;
+
+procedure SHA3_384HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
+  LongWord);
+begin
+  SHA3Update(Context, Input, Length);
+end;
+
+procedure SHA3_512HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
+  LongWord);
+begin
+  SHA3Update(Context, Input, Length);
+end;
+
+procedure SHA3_224HmacFinal(var Context: TSHA3Context; var Output: TSHA3GeneralDigest);
+var
+  Len: Integer;
+  TmpBuf: TSHA3GeneralDigest;
+begin
+  Len := HMAC_SHA3_224_OUTPUT_LENGTH_BYTE;
+  SHA3Final(Context, TmpBuf);
+  SHA3Init(Context, stSHA3_224);
+  SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_224_BLOCK_SIZE_BYTE);
+  SHA3Update(Context, @(TmpBuf[0]), Len);
+  SHA3Final(Context, Output);
+end;
+
+procedure SHA3_256HmacFinal(var Context: TSHA3Context; var Output: TSHA3GeneralDigest);
+var
+  Len: Integer;
+  TmpBuf: TSHA3GeneralDigest;
+begin
+  Len := HMAC_SHA3_256_OUTPUT_LENGTH_BYTE;
+  SHA3Final(Context, TmpBuf);
+  SHA3Init(Context, stSHA3_256);
+  SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_256_BLOCK_SIZE_BYTE);
+  SHA3Update(Context, @(TmpBuf[0]), Len);
+  SHA3Final(Context, Output);
+end;
+
+procedure SHA3_384HmacFinal(var Context: TSHA3Context; var Output: TSHA3GeneralDigest);
+var
+  Len: Integer;
+  TmpBuf: TSHA3GeneralDigest;
+begin
+  Len := HMAC_SHA3_384_OUTPUT_LENGTH_BYTE;
+  SHA3Final(Context, TmpBuf);
+  SHA3Init(Context, stSHA3_384);
+  SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_384_BLOCK_SIZE_BYTE);
+  SHA3Update(Context, @(TmpBuf[0]), Len);
+  SHA3Final(Context, Output);
+end;
+
+procedure SHA3_512HmacFinal(var Context: TSHA3Context; var Output: TSHA3GeneralDigest);
+var
+  Len: Integer;
+  TmpBuf: TSHA3GeneralDigest;
+begin
+  Len := HMAC_SHA3_512_OUTPUT_LENGTH_BYTE;
+  SHA3Final(Context, TmpBuf);
+  SHA3Init(Context, stSHA3_512);
+  SHA3Update(Context, @(Context.Opad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
+  SHA3Update(Context, @(TmpBuf[0]), Len);
+  SHA3Final(Context, Output);
+end;
+
+procedure SHA3_224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_224Digest);
+var
+  Context: TSHA3Context;
+  Dig: TSHA3GeneralDigest;
+begin
+  SHA3_224HmacInit(Context, Key, KeyLength);
+  SHA3_224HmacUpdate(Context, Input, Length);
+  SHA3_224HmacFinal(Context, Dig);
+  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+end;
+
+procedure SHA3_256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_256Digest);
+var
+  Context: TSHA3Context;
+  Dig: TSHA3GeneralDigest;
+begin
+  SHA3_256HmacInit(Context, Key, KeyLength);
+  SHA3_256HmacUpdate(Context, Input, Length);
+  SHA3_256HmacFinal(Context, Dig);
+  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+end;
+
+procedure SHA3_384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_384Digest);
+var
+  Context: TSHA3Context;
+  Dig: TSHA3GeneralDigest;
+begin
+  SHA3_384HmacInit(Context, Key, KeyLength);
+  SHA3_384HmacUpdate(Context, Input, Length);
+  SHA3_384HmacFinal(Context, Dig);
+  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+end;
+
+procedure SHA3_512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+  Length: LongWord; var Output: TSHA3_512Digest);
+var
+  Context: TSHA3Context;
+  Dig: TSHA3GeneralDigest;
+begin
+  SHA3_512HmacInit(Context, Key, KeyLength);
+  SHA3_512HmacUpdate(Context, Input, Length);
+  SHA3_512HmacFinal(Context, Dig);
+  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
 end;
 
 end.
