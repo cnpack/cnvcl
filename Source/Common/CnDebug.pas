@@ -655,6 +655,7 @@ type
 
 var
   FCnDebugger: TCnDebugger = nil;
+  FCnDebuggerCriticalSection: TRTLCriticalSection;
   FStartCriticalSection: TRTLCriticalSection; // 用于多线程内控制启动 CnDebugViewer
 
   FFixedCalling: Cardinal = 0;
@@ -1019,7 +1020,15 @@ function CnDebugger: TCnDebugger;
 begin
 {$IFNDEF NDEBUG}
   if FCnDebugger = nil then
-    FCnDebugger := TCnDebugger.Create;
+  begin
+    EnterCriticalSection(FCnDebuggerCriticalSection);
+    try
+      if FCnDebugger = nil then
+        FCnDebugger := TCnDebugger.Create;
+    finally
+      LeaveCriticalSection(FCnDebuggerCriticalSection);
+    end;
+  end;
   Result := FCnDebugger;
 {$ELSE}
   Result := nil;
@@ -3639,6 +3648,7 @@ end;
 initialization
 {$IFNDEF NDEBUG}
   InitializeCriticalSection(FStartCriticalSection);
+  InitializeCriticalSection(FCnDebuggerCriticalSection);
   FCnDebugger := TCnDebugger.Create;
   FixCallingCPUPeriod;
   {$IFDEF USE_JCL}
@@ -3652,6 +3662,7 @@ initialization
 {$ENDIF}
 
 finalization
+  DeleteCriticalSection(FCnDebuggerCriticalSection);
   DeleteCriticalSection(FStartCriticalSection);
 {$IFDEF USE_JCL}
   DeleteCriticalSection(FCSExcept);
