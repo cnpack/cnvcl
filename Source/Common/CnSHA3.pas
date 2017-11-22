@@ -498,6 +498,7 @@ begin
     else
       R := Context.BlockLen - Idx;
 
+    FillChar(Context.Block, SizeOf(Context.Block), 0);
     CopyMemory(@(Context.Block[Idx]), Buffer, R);
     if (Idx + R) < Context.BlockLen then
     begin
