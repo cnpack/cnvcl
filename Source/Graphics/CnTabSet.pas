@@ -130,7 +130,7 @@ begin
     Exit;
 
   P := ScreenToClient(Mouse.CursorPos);
-  Index := ItemAtPos(P);
+  Index := ItemAtPos(P) + FirstIndex;
 
   if Index >= 0 then
   begin
@@ -138,7 +138,10 @@ begin
     DoCloseTab(Index, CanClose);
     
     if CanClose then
+    begin
       Tabs.Delete(Index);
+      MakeTabVisible;
+    end;
   end;
 end;
 
