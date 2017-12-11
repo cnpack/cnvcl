@@ -14,6 +14,7 @@ type
     FTabSet: TCnTabSet;
     procedure OnCloseTab(Sender: TObject; Index: Integer;
       var CanClose: Boolean);
+    procedure OnTabHint(Sender: TObject; Index: Integer; var HintStr: string);
   public
     { Public declarations }
   end;
@@ -34,9 +35,12 @@ begin
   FTabSet.Left := 40;
   FTabSet.Top := 40;
   FTabSet.Width := 400;
+  FTabSet.ShowHint := True;
 
   FTabSet.DblClickClose := True;
   FTabSet.OnCloseTab := OnCloseTab;
+  FTabSet.ShowTabHint := True;
+  FTabSet.OnTabHint := OnTabHint;
 
   for I := 0 to 10 do
     FTabSet.Tabs.Add('Tab ' + IntToStr(I));
@@ -51,6 +55,12 @@ procedure TFormTabSet.OnCloseTab(Sender: TObject; Index: Integer;
   var CanClose: Boolean);
 begin
   ShowMessage('To Close Tab, Index: ' + IntToStr(Index));
+end;
+
+procedure TFormTabSet.OnTabHint(Sender: TObject; Index: Integer;
+  var HintStr: string);
+begin
+  HintStr := 'Hint String for Tab ' + IntToStr(Index);
 end;
 
 end.

@@ -29,7 +29,9 @@ unit CnTabSet;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2016.05.23
+* 修改记录：2017.12.11
+*             加入针对 Tab 的 Hint，但不会在不同 Tab 间自动切换
+*           2016.05.23
 *             加入 Tab 不可见时滚动到第一项的方法
 *           2007.03.06
 *             创建单元
@@ -41,19 +43,25 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Messages, Classes, Controls, Graphics, Tabs;
+  SysUtils, Windows, Messages, Classes, Controls, Graphics, Forms, Tabs;
 
 type
   TCnTabSetCloseEvent = procedure(Sender: TObject; Index: Integer;
     var CanClose: Boolean) of object;
 
+  TCnTabSetTabHintEvent = procedure(Sender: TObject; Index: Integer;
+    var HintStr: string) of object;
+
   TCnTabSet = class(TTabSet)
   private
     FDblClickClose: Boolean;
     FOnCloseTab: TCnTabSetCloseEvent;
+    FShowTabHint: Boolean;
+    FOnTabHint: TCnTabSetTabHintEvent;
     function CalcVisibleTabs(Start, Stop: Integer; Canvas: TCanvas;
       First: Integer): Integer;
     procedure WMLButtonDblClk(var Message: TWMLButtonDblClk); message WM_LBUTTONDBLCLK;
+    procedure CMHintShow(var Message: TMessage); message CM_HINTSHOW;
   protected
     procedure DoCloseTab(Index: Integer; var CanClose: Boolean); virtual;
   public
@@ -64,6 +72,10 @@ type
     {* 是否双击时自动关闭当前页面}
     property OnCloseTab: TCnTabSetCloseEvent read FOnCloseTab write FOnCloseTab;
     {* 双击时自动关闭页面前触发的事件}
+    property ShowTabHint: Boolean read FShowTabHint write FShowTabHint;
+    {* 是否针对 Tab 显示 Hint}
+    property OnTabHint: TCnTabSetTabHintEvent read FOnTabHint write FOnTabHint;
+    {* Tab 要显示 Hint 时触发的事件}
     property OnDblClick;
     {* 双击时触发事件}
   end;
@@ -98,6 +110,28 @@ begin
       end;
     end;
   Result := Index - First;
+end;
+
+procedure TCnTabSet.CMHintShow(var Message: TMessage);
+var
+  P: TPoint;
+  Index: Integer;
+  S: string;
+begin
+  Message.Result := 1;
+  P := ScreenToClient(Mouse.CursorPos);
+  Index := ItemAtPos(P) + FirstIndex;
+
+  if (Index >= 0) and Assigned(FOnTabHint) then
+  begin
+    S := Hint;
+    FOnTabHint(Self, Index, S);
+    if S <> '' then
+    begin
+      TCMHintShow(Message).HintInfo^.HintStr := S;
+      Message.Result := 0;
+    end;
+  end;
 end;
 
 procedure TCnTabSet.DoCloseTab(Index: Integer; var CanClose: Boolean);
