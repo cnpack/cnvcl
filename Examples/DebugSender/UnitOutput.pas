@@ -104,6 +104,8 @@ type
     btnEvaluateBmp: TButton;
     btnSet: TButton;
     btnSize: TButton;
+    btnAnsiCharSet: TButton;
+    btnWideCharSet: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -144,6 +146,8 @@ type
     procedure btnEvaluateBmpClick(Sender: TObject);
     procedure btnSetClick(Sender: TObject);
     procedure btnSizeClick(Sender: TObject);
+    procedure btnAnsiCharSetClick(Sender: TObject);
+    procedure btnWideCharSetClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -544,6 +548,34 @@ begin
     CnDebugger.TraceSize(Size)
   else
     CnDebugger.LogSize(Size);
+end;
+
+procedure TFormSend.btnAnsiCharSetClick(Sender: TObject);
+var
+  CS: TAnsiCharSet;
+begin
+  CS := ['A'..'Z'];
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceAnsiCharSet(CS)
+  else
+    CnDebugger.LogAnsiCharSet(CS);
+end;
+
+procedure TFormSend.btnWideCharSetClick(Sender: TObject);
+{$IFDEF UNICODE}
+var
+  CS: TWideCharSet;
+{$ENDIF}
+begin
+{$IFDEF UNICODE}
+  CS := ['³Ô','·¹'];
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceWideCharSet(CS)
+  else
+    CnDebugger.LogWideCharSet(CS);
+{$ELSE}
+  ShowMessage('Unicode Currently NOT Supported.');
+{$ENDIF}
 end;
 
 end.

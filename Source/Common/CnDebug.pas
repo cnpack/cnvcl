@@ -206,6 +206,11 @@ type
 
   // ===================== 以上结构定义需要和 Viewer 共享 ======================
 
+  TAnsiCharSet = set of AnsiChar; // 32 字节大小
+{$IFDEF UNICODE}
+  TWideCharSet = set of WideChar; // D2009 以上的 set 支持 WideChar 但实际上是裁剪到 AnsiChar，大小仍然是 32
+{$ENDIF}
+
   TCnTimeDesc = packed record
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar;
     PassCount: Integer;
@@ -359,6 +364,11 @@ type
     procedure LogWideChar(Value: WideChar; const AMsg: string = '');
     procedure LogSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
       const AMsg: string = '');
+    procedure LogCharSet(const ASet: TSysCharSet; const AMsg: string = '');
+    procedure LogAnsiCharSet(const ASet: TAnsiCharSet; const AMsg: string = '');
+{$IFDEF UNICODE}
+    procedure LogWideCharSet(const ASet: TWideCharSet; const AMsg: string = '');
+{$ENDIF}
     procedure LogDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure LogPointer(Value: Pointer; const AMsg: string = '');
@@ -424,6 +434,11 @@ type
     procedure TraceWideChar(Value: WideChar; const AMsg: string = '');
     procedure TraceSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
       const AMsg: string = '');
+    procedure TraceCharSet(const ASet: TSysCharSet; const AMsg: string = '');
+    procedure TraceAnsiCharSet(const ASet: TAnsiCharSet; const AMsg: string = '');
+{$IFDEF UNICODE}
+    procedure TraceWideCharSet(const ASet: TWideCharSet; const AMsg: string = '');
+{$ENDIF}
     procedure TraceDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
     procedure TracePointer(Value: Pointer; const AMsg: string = '');
@@ -735,6 +750,35 @@ begin
         Result := Result + IntToStr(I)
       else
         Result := Result + GetEnumName(TypInfo, I);
+    end;
+  end;
+  Result := '[' + Result + ']';
+end;
+
+function GetAnsiCharSetStr(AnsiCharSetAddr: Pointer; SizeInByte: Integer): string;
+var
+  I, ByteOffset, BitOffset: Integer;
+  EleByte, ByteMask: Byte;
+begin
+  Result := '';
+  if SizeInByte <> SizeOf(TAnsiCharSet) then
+  begin
+    Result := '<Error Set>';
+    Exit;
+  end;
+
+  for I := 0 to SizeInByte * 8 - 1 do
+  begin
+    ByteOffset := I div 8;
+    BitOffset := I mod 8;
+    ByteMask := 1 shl BitOffset;
+
+    EleByte := PByte(Integer(AnsiCharSetAddr) + ByteOffset)^;
+    if (EleByte and ByteMask) <> 0 then
+    begin
+      if Result <> '' then
+        Result := Result + ',';
+      Result := Result + '''' + Chr(I) + '''';
     end;
   end;
   Result := '[' + Result + ']';
@@ -3255,6 +3299,89 @@ begin
   TracePointer(Addr, AMsg);
 {$ENDIF}
 end;
+
+procedure TCnDebugger.LogAnsiCharSet(const ASet: TAnsiCharSet;
+  const AMsg: string);
+var
+  SetVal: TAnsiCharSet;
+begin
+{$IFDEF DEBUG}
+  SetVal := ASet;
+  if AMsg = '' then
+    LogMsg(GetAnsiCharSetStr(@SetVal, SizeOf(SetVal)))
+  else
+    LogFmt('%s %s', [AMsg, GetAnsiCharSetStr(@SetVal, SizeOf(SetVal))]);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogCharSet(const ASet: TSysCharSet; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  {$IFDEF UNICODE}
+  LogWideCharSet(ASet, AMsg);
+  {$ELSE}
+  LogAnsiCharSet(ASet, AMsg);
+  {$ENDIF}
+{$ENDIF}
+end;
+
+{$IFDEF UNICODE}
+
+procedure TCnDebugger.LogWideCharSet(const ASet: TWideCharSet;
+  const AMsg: string);
+var
+  SetVal: TWideCharSet;
+begin
+{$IFDEF DEBUG}
+  SetVal := ASet;
+  // WideCharSet 被剪裁成 AnsiChar
+  if AMsg = '' then
+    LogMsg(GetAnsiCharSetStr(@SetVal, SizeOf(SetVal)))
+  else
+    LogFmt('%s %s', [AMsg, GetAnsiCharSetStr(@SetVal, SizeOf(SetVal))]);
+{$ENDIF}
+end;
+
+{$ENDIF}
+
+procedure TCnDebugger.TraceAnsiCharSet(const ASet: TAnsiCharSet;
+  const AMsg: string);
+var
+  SetVal: TAnsiCharSet;
+begin
+  SetVal := ASet;
+  if AMsg = '' then
+    TraceMsg(GetAnsiCharSetStr(@SetVal, SizeOf(SetVal)))
+  else
+    TraceFmt('%s %s', [AMsg, GetAnsiCharSetStr(@SetVal, SizeOf(SetVal))]);
+end;
+
+procedure TCnDebugger.TraceCharSet(const ASet: TSysCharSet;
+  const AMsg: string);
+begin
+{$IFDEF UNICODE}
+  TraceWideCharSet(ASet, AMsg);
+{$ELSE}
+  TraceAnsiCharSet(ASet, AMsg);
+{$ENDIF}
+end;
+
+{$IFDEF UNICODE}
+
+procedure TCnDebugger.TraceWideCharSet(const ASet: TWideCharSet;
+  const AMsg: string);
+var
+  SetVal: TWideCharSet;
+begin
+  SetVal := ASet;
+  // WideCharSet 被剪裁成 AnsiChar
+  if AMsg = '' then
+    LogMsg(GetAnsiCharSetStr(@SetVal, SizeOf(SetVal)))
+  else
+    LogFmt('%s %s', [AMsg, GetAnsiCharSetStr(@SetVal, SizeOf(SetVal))]);
+end;
+
+{$ENDIF}
 
 { TCnDebugChannel }
 
