@@ -206,9 +206,9 @@ type
 
   // ===================== 以上结构定义需要和 Viewer 共享 ======================
 
-  TAnsiCharSet = set of AnsiChar; // 32 字节大小
+  TCnAnsiCharSet = set of AnsiChar; // 32 字节大小
 {$IFDEF UNICODE}
-  TWideCharSet = set of WideChar; // D2009 以上的 set 支持 WideChar 但实际上是裁剪到 AnsiChar，大小仍然是 32
+  TCnWideCharSet = set of WideChar; // D2009 以上的 set 支持 WideChar 但实际上是裁剪到 AnsiChar，大小仍然是 32
 {$ENDIF}
 
   TCnTimeDesc = packed record
@@ -365,9 +365,9 @@ type
     procedure LogSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
       const AMsg: string = '');
     procedure LogCharSet(const ASet: TSysCharSet; const AMsg: string = '');
-    procedure LogAnsiCharSet(const ASet: TAnsiCharSet; const AMsg: string = '');
+    procedure LogAnsiCharSet(const ASet: TCnAnsiCharSet; const AMsg: string = '');
 {$IFDEF UNICODE}
-    procedure LogWideCharSet(const ASet: TWideCharSet; const AMsg: string = '');
+    procedure LogWideCharSet(const ASet: TCnWideCharSet; const AMsg: string = '');
 {$ENDIF}
     procedure LogDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
@@ -435,9 +435,9 @@ type
     procedure TraceSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
       const AMsg: string = '');
     procedure TraceCharSet(const ASet: TSysCharSet; const AMsg: string = '');
-    procedure TraceAnsiCharSet(const ASet: TAnsiCharSet; const AMsg: string = '');
+    procedure TraceAnsiCharSet(const ASet: TCnAnsiCharSet; const AMsg: string = '');
 {$IFDEF UNICODE}
-    procedure TraceWideCharSet(const ASet: TWideCharSet; const AMsg: string = '');
+    procedure TraceWideCharSet(const ASet: TCnWideCharSet; const AMsg: string = '');
 {$ENDIF}
     procedure TraceDateTime(Value: TDateTime; const AMsg: string = '' );
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
@@ -761,7 +761,7 @@ var
   EleByte, ByteMask: Byte;
 begin
   Result := '';
-  if SizeInByte <> SizeOf(TAnsiCharSet) then
+  if SizeInByte <> SizeOf(TCnAnsiCharSet) then
   begin
     Result := '<Error Set>';
     Exit;
@@ -3300,10 +3300,10 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.LogAnsiCharSet(const ASet: TAnsiCharSet;
+procedure TCnDebugger.LogAnsiCharSet(const ASet: TCnAnsiCharSet;
   const AMsg: string);
 var
-  SetVal: TAnsiCharSet;
+  SetVal: TCnAnsiCharSet;
 begin
 {$IFDEF DEBUG}
   SetVal := ASet;
@@ -3327,10 +3327,10 @@ end;
 
 {$IFDEF UNICODE}
 
-procedure TCnDebugger.LogWideCharSet(const ASet: TWideCharSet;
+procedure TCnDebugger.LogWideCharSet(const ASet: TCnWideCharSet;
   const AMsg: string);
 var
-  SetVal: TWideCharSet;
+  SetVal: TCnWideCharSet;
 begin
 {$IFDEF DEBUG}
   SetVal := ASet;
@@ -3344,10 +3344,10 @@ end;
 
 {$ENDIF}
 
-procedure TCnDebugger.TraceAnsiCharSet(const ASet: TAnsiCharSet;
+procedure TCnDebugger.TraceAnsiCharSet(const ASet: TCnAnsiCharSet;
   const AMsg: string);
 var
-  SetVal: TAnsiCharSet;
+  SetVal: TCnAnsiCharSet;
 begin
   SetVal := ASet;
   if AMsg = '' then
@@ -3368,10 +3368,10 @@ end;
 
 {$IFDEF UNICODE}
 
-procedure TCnDebugger.TraceWideCharSet(const ASet: TWideCharSet;
+procedure TCnDebugger.TraceWideCharSet(const ASet: TCnWideCharSet;
   const AMsg: string);
 var
-  SetVal: TWideCharSet;
+  SetVal: TCnWideCharSet;
 begin
   SetVal := ASet;
   // WideCharSet 被剪裁成 AnsiChar

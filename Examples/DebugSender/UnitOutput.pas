@@ -552,7 +552,7 @@ end;
 
 procedure TFormSend.btnAnsiCharSetClick(Sender: TObject);
 var
-  CS: TAnsiCharSet;
+  CS: TCnAnsiCharSet;
 begin
   CS := ['A'..'Z'];
   if rgMethod.ItemIndex = 1 then
@@ -564,7 +564,7 @@ end;
 procedure TFormSend.btnWideCharSetClick(Sender: TObject);
 {$IFDEF UNICODE}
 var
-  CS: TWideCharSet;
+  CS: TCnWideCharSet;
 {$ENDIF}
 begin
 {$IFDEF UNICODE}
