@@ -394,6 +394,7 @@ type
     procedure LogCurrentStack(const AMsg: string = '');
     procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
     procedure LogClass(const AClass: TClass; const AMsg: string = '');
+    procedure LogClassByName(const AClassName: string; const AMsg: string = '');
     procedure LogInterface(const AIntf: IUnknown; const AMsg: string = '');
     procedure LogStackFromAddress(Addr: Pointer; const AMsg: string = '');
     // Log 系列输出函数 == End ==
@@ -463,6 +464,7 @@ type
     procedure TraceCurrentStack(const AMsg: string = '');
     procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
     procedure TraceClass(const AClass: TClass; const AMsg: string = '');
+    procedure TraceClassByName(const AClassName: string; const AMsg: string = '');
     procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
     procedure TraceStackFromAddress(Addr: Pointer; const AMsg: string = '');
     // Trace 系列输出函数 == End ==
@@ -3111,6 +3113,21 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogClassByName(const AClassName: string; const AMsg: string);
+{$IFDEF DEBUG}
+var
+  AClass: TPersistentClass;
+{$ENDIF}
+begin
+{$IFDEF DEBUG}
+  AClass := GetClass(AClassName);
+  if AClass <> nil then
+    LogClass(AClass, AMsg)
+  else
+    LogMsgError('No Persistent Class Found for ' + AClassName);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogInterface(const AIntf: IUnknown; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -3129,6 +3146,17 @@ begin
   else
     TraceFmt(SCnClassFmt, [AMsg, AClass.ClassName, AClass.InstanceSize,
       #13#10, FormatClassString(AClass)]);
+end;
+
+procedure TCnDebugger.TraceClassByName(const AClassName: string; const AMsg: string);
+var
+  AClass: TPersistentClass;
+begin
+  AClass := GetClass(AClassName);
+  if AClass <> nil then
+    TraceClass(AClass, AMsg)
+  else
+    TraceMsgError('No Persistent Class Found for ' + AClassName);
 end;
 
 procedure TCnDebugger.TraceInterface(const AIntf: IUnknown; const AMsg: string);
