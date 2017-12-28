@@ -522,6 +522,7 @@ begin
         Result := Result + GetEnumName(TypInfo, I);
     end;
   end;
+  Result := '[' + Result + ']';
 end;
 
 function IndexOfContentTypeStr(const AStr: string): TCnPropContentType;
@@ -778,7 +779,11 @@ begin
     tkEnumeration:
       S := GetEnumProp(Instance, PropInfo);
     tkSet:
-      S := GetSetProp(Instance, PropInfo);
+      begin
+        S := GetSetProp(Instance, PropInfo);
+        if S = '' then
+          S := '[]';
+      end;
     tkFloat:
       S := FloatToStr(GetFloatProp(Instance, PropInfo));
     tkMethod:
@@ -1395,8 +1400,8 @@ begin
         begin
           if RttiProperty.PropertyType.TypeKind in tkProperties then
           begin
-            // 是 Properties，要判断是否重复
-            if not AlreadyHasProperty(RttiProperty.Name) then
+            // 是 Properties，在非刷新时要判断是否重复
+            if not AlreadyHasProperty(RttiProperty.Name) or IsRefresh then
             begin
               if not IsRefresh then
               begin
@@ -1442,8 +1447,8 @@ begin
           end
           else if RttiProperty.PropertyType.TypeKind = tkMethod then
           begin
-            // 是 Event，要判断是否重复
-            if not AlreadyHasEvent(RttiProperty.Name) then
+            // 是 Event，在非刷新时要判断是否重复
+            if not AlreadyHasEvent(RttiProperty.Name) or IsRefresh then
             begin
               if not IsRefresh then
               begin
@@ -1507,7 +1512,7 @@ begin
     // 额外添加显示不在 published 域的一些已知的公用属性
     if FObjectInstance is TComponent then
     begin
-      if not AlreadyHasProperty('Owner') then
+      if not AlreadyHasProperty('Owner') or IsRefresh then
       begin
         // 添加 Component 的 Owner
         if not IsRefresh then
@@ -1534,7 +1539,7 @@ begin
           Properties.Add(AProp);
       end;
 
-      if not AlreadyHasProperty('ComponentIndex') then
+      if not AlreadyHasProperty('ComponentIndex') or IsRefresh then
       begin
         // 添加 Component 的 ComponentIndex
         if not IsRefresh then
@@ -1552,7 +1557,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ComponentState') then
+      if not AlreadyHasProperty('ComponentState') or IsRefresh then
       begin
         // 添加 Component 的 ComponentState
         if not IsRefresh then
@@ -1574,7 +1579,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ComponentStyle') then
+      if not AlreadyHasProperty('ComponentStyle') or IsRefresh then
       begin
         // 添加 Component 的 ComponentStyle
         if not IsRefresh then
@@ -1599,7 +1604,7 @@ begin
 
     if FObjectInstance is TControl then
     begin
-      if not AlreadyHasProperty('Parent') then
+      if not AlreadyHasProperty('Parent') or IsRefresh then
       begin
         // 添加 Control 的 Parent
         if not IsRefresh then
@@ -1617,7 +1622,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ControlState') then
+      if not AlreadyHasProperty('ControlState') or IsRefresh then
       begin
         // 添加 Control 的 ControlState
         if not IsRefresh then
@@ -1639,7 +1644,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ControlStyle') then
+      if not AlreadyHasProperty('ControlStyle') or IsRefresh then
       begin
         // 添加 Control 的 ControlStyle
         if not IsRefresh then
