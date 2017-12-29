@@ -479,6 +479,7 @@ type
     procedure EvaluateObject(AObject: TObject; SyncMode: Boolean = False); overload;
     procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
     procedure EvaluateControlUnderPos(const ScreenPos: TPoint);
+    procedure EvaluateInterfaceInstance(const AIntf: IUnknown; SyncMode: Boolean = False);
 
     // ¸¨Öú¹ý³Ì
     function ObjectFromInterface(const AIntf: IUnknown): TObject;
@@ -659,7 +660,6 @@ type
 {$ENDIF}
 
 {$IFNDEF SUPPORT_INTERFACE_AS_OBJECT}
-type
   PPointer = ^Pointer;
   TObjectFromInterfaceStub = packed record
     Stub: Cardinal;
@@ -3410,6 +3410,16 @@ begin
 end;
 
 {$ENDIF}
+
+procedure TCnDebugger.EvaluateInterfaceInstance(const AIntf: IUnknown;
+  SyncMode: Boolean);
+var
+  Obj: TObject;
+begin
+  Obj := ObjectFromInterface(AIntf);
+  if Obj <> nil then
+    EvaluateObject(Obj, SyncMode);
+end;
 
 { TCnDebugChannel }
 

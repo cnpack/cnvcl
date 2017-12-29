@@ -67,11 +67,13 @@ type
     FObjValue: TObject;
     FObjClassName: string;
     FIsNewRTTI: Boolean;
+    FIntfValue: IUnknown;
   public
     property Changed: Boolean read FChanged write FChanged;
     property DisplayValue: string read FDisplayValue write FDisplayValue;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property ObjValue: TObject read FObjValue write FObjValue;
+    property IntfValue: IUnknown read FIntfValue write FIntfValue;
     property ObjStr: string read FObjStr write FObjStr;
     property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
@@ -79,7 +81,7 @@ type
   TCnPropertyObject = class(TCnDisplayObject)
   {* 描述一属性 }
   private
-    FIsObject: Boolean;
+    FIsObjOrIntf: Boolean;
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
@@ -90,7 +92,7 @@ type
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
-    property IsObject: Boolean read FIsObject write FIsObject;
+    property IsObjOrIntf: Boolean read FIsObjOrIntf write FIsObjOrIntf;
     property PropValue: Variant read FPropValue write FPropValue;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
@@ -360,6 +362,7 @@ type
     FInspector: TCnObjectInspector;
     FInspectParam: Pointer;
     FCurrObj: TObject;
+    FCurrIntf: IUnknown;
     FParentSheetForm: TCnPropSheetForm;
     FHierarchys: TStrings;
     FGraphicObject: TObject;
@@ -476,6 +479,17 @@ type
     csActionClient, csMenuEvents, csNeedsBorderPaint, csParentBackground,
     csPannable, csAlignWithMargins, csGestures, csPaintBlackOpaqueOnGlass,
     csOverrideStylePaint);
+
+{$IFNDEF SUPPORT_INTERFACE_AS_OBJECT}
+  PPointer = ^Pointer;
+  TObjectFromInterfaceStub = packed record
+    Stub: Cardinal;
+    case Integer of
+      0: (ShortJmp: ShortInt);
+      1: (LongJmp:  LongInt)
+  end;
+  PObjectFromInterfaceStub = ^TObjectFromInterfaceStub;
+{$ENDIF}
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
@@ -1336,17 +1350,23 @@ begin
 
         AProp.PropName := PropInfoName(PropInfo);
         AProp.PropType := PropInfo^.PropType^^.Kind;
-        AProp.IsObject := AProp.PropType = tkClass;
+        AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
         // 有写入权限，并且指定类型，才可修改，否则界面上没法整
         AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
           in CnCanModifyPropTypes);
 
         AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
-        if AProp.IsObject then
-          AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
-        else
-          AProp.ObjValue := nil;
+
+        AProp.ObjValue := nil;
+        AProp.IntfValue := nil;
+        if AProp.IsObjOrIntf then
+        begin
+          if AProp.PropType = tkClass then
+            AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
+          else
+            AProp.IntfValue := IUnknown(GetOrdProp(FObjectInstance, PropInfo));
+        end;
 
         S := GetPropValueStr(FObjectInstance, PropInfo);
         if S <> AProp.DisplayValue then
@@ -1413,7 +1433,7 @@ begin
 
               AProp.PropName := RttiProperty.Name;
               AProp.PropType := RttiProperty.PropertyType.TypeKind;
-              AProp.IsObject := AProp.PropType = tkClass;
+              AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
               // 有写入权限，并且指定类型，才可修改，否则界面上没法整
               AProp.CanModify := (RttiProperty.IsWritable) and (RttiProperty.PropertyType.TypeKind
@@ -1425,10 +1445,14 @@ begin
                 // Getting Some Property causes Exception. Catch it.
                 AProp.PropRttiValue := nil;
               end;
-              if AProp.IsObject and RttiProperty.GetValue(FObjectInstance).IsObject then
+
+              AProp.ObjValue := nil;
+              AProp.IntfValue := nil;
+              if AProp.IsObjOrIntf and RttiProperty.GetValue(FObjectInstance).IsObject then
                 AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
-              else
-                AProp.ObjValue := nil;
+              else if AProp.IsObjOrIntf and (RttiProperty.GetValue(FObjectInstance).TypeInfo <> nil) and
+                (RttiProperty.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+                AProp.IntfValue := RttiProperty.GetValue(FObjectInstance).AsInterface;
 
               S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
               if S <> AProp.DisplayValue then
@@ -1522,7 +1546,7 @@ begin
 
         AProp.PropName := 'Owner';
         AProp.PropType := tkClass;
-        AProp.IsObject := True;
+        AProp.IsObjOrIntf := True;
         AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
         AProp.ObjValue := (FObjectInstance as TComponent).Owner;
 
@@ -1549,7 +1573,7 @@ begin
 
         AProp.PropName := 'ComponentIndex';
         AProp.PropType := tkInteger;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
         AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
         AProp.ObjValue := nil;
 
@@ -1567,7 +1591,7 @@ begin
 
         AProp.PropName := 'ComponentState';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TComponent).ComponentState, IntSet,
@@ -1589,7 +1613,7 @@ begin
 
         AProp.PropName := 'ComponentStyle';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
@@ -1614,7 +1638,7 @@ begin
 
         AProp.PropName := 'Parent';
         AProp.PropType := tkClass;
-        AProp.IsObject := True;
+        AProp.IsObjOrIntf := True;
         AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
         AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
@@ -1632,7 +1656,7 @@ begin
 
         AProp.PropName := 'ControlState';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TControl).ControlState, IntSet,
@@ -1654,7 +1678,7 @@ begin
 
         AProp.PropName := 'ControlStyle';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TControl).ControlStyle, IntSet,
@@ -2247,9 +2271,38 @@ begin
 end;
 
 procedure TCnPropSheetForm.btnInspectClick(Sender: TObject);
+var
+  Obj: TObject;
+
+  // 移植自 A.Bouchez 的实现
+  function ObjectFromInterface(const AIntf: IUnknown): TObject;
+  begin
+    Result := nil;
+    if AIntf = nil then
+      Exit;
+
+  {$IFDEF SUPPORT_INTERFACE_AS_OBJECT}
+    Result := AIntf as TObject;
+  {$ELSE}
+    with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do
+    case Stub of
+      $04244483: Result := Pointer(Integer(AIntf) + ShortJmp);
+      $04244481: Result := Pointer(Integer(AIntf) + LongJmp);
+      else       Result := nil;
+    end;
+  {$ENDIF}
+  end;
+
 begin
   if FCurrObj <> nil then
+  begin
     EvaluatePointer(FCurrObj, FInspectParam, nil, False, Self);
+  end
+  else if FCurrIntf <> nil then
+  begin
+    Obj := ObjectFromInterface(FCurrIntf);
+    EvaluatePointer(Obj, FInspectParam, nil, False, Self);
+  end;
 end;
 
 procedure TCnPropSheetForm.lvPropCustomDrawItem(Sender: TCustomListView;
@@ -2278,11 +2331,13 @@ begin
 
     if ALv.Focused then
     begin
-      if (Item <> nil) and (Item.Data <> nil) and (ALv.Selected = Item)
-        and (TCnDisplayObject(Item.Data).ObjValue <> nil) then
+      if (Item <> nil) and (Item.Data <> nil) and (ALv.Selected = Item) and
+        ((TCnDisplayObject(Item.Data).ObjValue <> nil) or
+        (TCnDisplayObject(Item.Data).IntfValue <> nil)) then
       begin
         ARect := Item.DisplayRect(drSelectBounds);
         FCurrObj := TCnDisplayObject(Item.Data).ObjValue;
+        FCurrIntf := TCnDisplayObject(Item.Data).IntfValue;
 
         if ARect.Top >= FListViewHeaderHeight then
         begin
