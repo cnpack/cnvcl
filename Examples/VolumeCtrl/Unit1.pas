@@ -147,7 +147,7 @@ begin
               '程序说明: 使用TCnVolumeCtrl控件的示例' + #13#10 + #13#10 +
               '下载网站: http://CnPack.org' + #13#10 +
               '技术支持: master@CnPack.org' + #13#10 + #13#10 +
-              '(C)Copyright 2001-2017 CnPack 开发组';
+              '(C)Copyright 2001-2018 CnPack 开发组';
   ShowMessage(strAbout);
 end;
 
