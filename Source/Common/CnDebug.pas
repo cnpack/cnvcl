@@ -143,7 +143,8 @@ type
   // 输出的信息类型
   TCnMsgType = (cmtInformation, cmtWarning, cmtError, cmtSeparator, cmtEnterProc,
     cmtLeaveProc, cmtTimeMarkStart, cmtTimeMarkStop, cmtMemoryDump, cmtException,
-    cmtObject, cmtComponent, cmtCustom, cmtSystem);
+    cmtObject, cmtComponent, cmtCustom, cmtSystem, cmtUDPMsg, cmtWatch,
+    cmtClearWatch);
   TCnMsgTypes = set of TCnMsgType;
 
   // 时间戳格式类型
@@ -468,6 +469,11 @@ type
     procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
     procedure TraceStackFromAddress(Addr: Pointer; const AMsg: string = '');
     // Trace 系列输出函数 == End ==
+
+    // 监视变量函数
+    procedure WatchMsg(const AVarName: string; const AValue: string);
+    procedure WatchFmt(const AVarName: string; const AFormat: string; Args: array of const);
+    procedure WatchClear(const AVarName: string);
 
     // 异常过滤函数
     procedure AddFilterExceptClass(E: ExceptClass); overload;
@@ -1211,7 +1217,6 @@ begin
   FIndentList.Free;
   inherited;
 end;
-
 
 function TCnDebugger.FormatMsg(const AFormat: string;
   Args: array of const): string;
@@ -3419,6 +3424,22 @@ begin
   Obj := ObjectFromInterface(AIntf);
   if Obj <> nil then
     EvaluateObject(Obj, SyncMode);
+end;
+
+procedure TCnDebugger.WatchClear(const AVarName: string);
+begin
+  TraceFull(AVarName + '|', CurrentTag, CurrentLevel, cmtClearWatch);
+end;
+
+procedure TCnDebugger.WatchFmt(const AVarName, AFormat: string;
+  Args: array of const);
+begin
+  TraceFull(AVarName + '|' + FormatMsg(AFormat, Args), CurrentTag, CurrentLevel, cmtWatch);
+end;
+
+procedure TCnDebugger.WatchMsg(const AVarName, AValue: string);
+begin
+  TraceFull(AVarName + '|' + AValue, CurrentTag, CurrentLevel, cmtWatch);
 end;
 
 { TCnDebugChannel }
