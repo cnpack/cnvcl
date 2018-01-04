@@ -347,6 +347,7 @@ begin
     FThread.Terminate;
     FThread.WaitFor;
     FThread := nil;
+    CnDebugger.WatchClear('Count');
     btnThread.Caption := '线程内发送';
   end;  
 end;

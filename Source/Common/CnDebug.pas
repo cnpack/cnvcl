@@ -3428,18 +3428,21 @@ end;
 
 procedure TCnDebugger.WatchClear(const AVarName: string);
 begin
-  TraceFull(AVarName + '|', CurrentTag, CurrentLevel, cmtClearWatch);
+  if AVarName <> '' then
+    TraceFull(AVarName, CurrentTag, CurrentLevel, cmtClearWatch);
 end;
 
 procedure TCnDebugger.WatchFmt(const AVarName, AFormat: string;
   Args: array of const);
 begin
-  TraceFull(AVarName + '|' + FormatMsg(AFormat, Args), CurrentTag, CurrentLevel, cmtWatch);
+  if AVarName <> '' then
+    TraceFull(AVarName + '|' + FormatMsg(AFormat, Args), CurrentTag, CurrentLevel, cmtWatch);
 end;
 
 procedure TCnDebugger.WatchMsg(const AVarName, AValue: string);
 begin
-  TraceFull(AVarName + '|' + AValue, CurrentTag, CurrentLevel, cmtWatch);
+  if AVarName <> '' then
+    TraceFull(AVarName + '|' + AValue, CurrentTag, CurrentLevel, cmtWatch);
 end;
 
 { TCnDebugChannel }
