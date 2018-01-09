@@ -661,6 +661,17 @@ object FormSend: TFormSend
     TabOrder = 50
     OnClick = btnWideCharSetClick
   end
+  object btnWatchClear: TButton
+    Left = 8
+    Top = 360
+    Width = 97
+    Height = 21
+    Caption = 'Çå¿ÕWatch'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 51
+    OnClick = btnWatchClearClick
+  end
   object dlgColor: TColorDialog
     Ctl3D = True
     Left = 256

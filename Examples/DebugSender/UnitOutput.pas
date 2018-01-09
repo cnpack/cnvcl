@@ -106,6 +106,7 @@ type
     btnSize: TButton;
     btnAnsiCharSet: TButton;
     btnWideCharSet: TButton;
+    btnWatchClear: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -148,6 +149,7 @@ type
     procedure btnSizeClick(Sender: TObject);
     procedure btnAnsiCharSetClick(Sender: TObject);
     procedure btnWideCharSetClick(Sender: TObject);
+    procedure btnWatchClearClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -577,6 +579,11 @@ begin
 {$ELSE}
   ShowMessage('Unicode Currently NOT Supported.');
 {$ENDIF}
+end;
+
+procedure TFormSend.btnWatchClearClick(Sender: TObject);
+begin
+  CnDebugger.WatchClear('Count');
 end;
 
 end.
