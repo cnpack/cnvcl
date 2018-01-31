@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2017.04.12
+* 修改记录：2018.01.31
+*               增加记录 Windows 消息的功能
+*           2017.04.12
 *               默认改为 LOCAL_SESSION，需要更新 CnDebugViewer 至 1.6
 *           2016.07.29
 *               修正 CPU 周期计时时超界的问题，需要同步更新 CnDebugViewer 至 1.5
@@ -112,7 +114,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Windows, TypInfo, Controls, Graphics, Registry
+  SysUtils, Classes, Windows, TypInfo, Controls, Graphics, Registry, Messages
   {$IFDEF USE_JCL}
   ,JclDebug, JclHookExcept
   {$ENDIF USE_JCL}
@@ -270,6 +272,7 @@ type
     function GetDiscardedMessageCount: Integer;
 
     function VirtualKeyToString(AKey: Word): string;
+    function WindowMessageToStr(AMessage: Cardinal): string;
     procedure SetDumpFileName(const Value: string);
     procedure SetDumpToFile(const Value: Boolean);
     function GetAutoStart: Boolean;
@@ -386,6 +389,8 @@ type
     procedure LogMemDump(AMem: Pointer; Size: Integer);
     procedure LogVirtualKey(AKey: Word);
     procedure LogVirtualKeyWithTag(AKey: Word; const ATag: string);
+    procedure LogWindowMessage(AMessage: Cardinal);
+    procedure LogWindowMessageWithTag(AMessage: Cardinal; const ATag: string);
     procedure LogObject(AObject: TObject);
     procedure LogObjectWithTag(AObject: TObject; const ATag: string);
     procedure LogCollection(ACollection: TCollection);
@@ -456,6 +461,8 @@ type
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
     procedure TraceVirtualKey(AKey: Word);
     procedure TraceVirtualKeyWithTag(AKey: Word; const ATag: string);
+    procedure TraceWindowMessage(AMessage: Cardinal);
+    procedure TraceWindowMessageWithTag(AMessage: Cardinal; const ATag: string);
     procedure TraceObject(AObject: TObject);
     procedure TraceObjectWithTag(AObject: TObject; const ATag: string);
     procedure TraceCollection(ACollection: TCollection);
@@ -1814,6 +1821,20 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogWindowMessage(AMessage: Cardinal);
+begin
+{$IFDEF DEBUG}
+  LogWindowMessageWithTag(AMessage, CurrentTag);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogWindowMessageWithTag(AMessage: Cardinal; const ATag: string);
+begin
+{$IFDEF DEBUG}
+  LogMsgWithTag(WindowMessageToStr(AMessage), ATag);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogMsg(const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -2449,6 +2470,16 @@ begin
   TraceFmtWithTag(SCnVirtualKeyFmt, [AKey, AKey, VirtualKeyToString(AKey)], ATag);
 end;
 
+procedure TCnDebugger.TraceWindowMessage(AMessage: Cardinal);
+begin
+  TraceWindowMessageWithTag(AMessage, CurrentTag);
+end;
+
+procedure TCnDebugger.TraceWindowMessageWithTag(AMessage: Cardinal; const ATag: string);
+begin
+  TraceMsgWithTag(WindowMessageToStr(AMessage), ATag);
+end;
+
 procedure TCnDebugger.TraceMsg(const AMsg: string);
 begin
   TraceFull(AMsg, CurrentTag, CurrentLevel, CurrentMsgType);
@@ -2880,6 +2911,319 @@ begin
   else
     Result := 'VK_UNKNOWN';
   end;
+end;
+
+function TCnDebugger.WindowMessageToStr(AMessage: Cardinal): string;
+begin
+  case AMessage of  // Windows Messages
+    WM_NULL                 : Result := Format('WM_NULL: %d/$%x', [AMessage, AMessage]);
+    WM_CREATE               : Result := Format('WM_CREATE: %d/$%x', [AMessage, AMessage]);
+    WM_DESTROY              : Result := Format('WM_DESTROY: %d/$%x', [AMessage, AMessage]);
+    WM_MOVE                 : Result := Format('WM_MOVE: %d/$%x', [AMessage, AMessage]);
+    WM_SIZE                 : Result := Format('WM_SIZE: %d/$%x', [AMessage, AMessage]);
+    WM_ACTIVATE             : Result := Format('WM_ACTIVATE: %d/$%x', [AMessage, AMessage]);
+    WM_SETFOCUS             : Result := Format('WM_SETFOCUS: %d/$%x', [AMessage, AMessage]);
+    WM_KILLFOCUS            : Result := Format('WM_KILLFOCUS: %d/$%x', [AMessage, AMessage]);
+    WM_ENABLE               : Result := Format('WM_ENABLE: %d/$%x', [AMessage, AMessage]);
+    WM_SETREDRAW            : Result := Format('WM_SETREDRAW: %d/$%x', [AMessage, AMessage]);
+    WM_SETTEXT              : Result := Format('WM_SETTEXT: %d/$%x', [AMessage, AMessage]);
+    WM_GETTEXT              : Result := Format('WM_GETTEXT: %d/$%x', [AMessage, AMessage]);
+    WM_GETTEXTLENGTH        : Result := Format('WM_GETTEXTLENGTH: %d/$%x', [AMessage, AMessage]);
+    WM_PAINT                : Result := Format('WM_PAINT: %d/$%x', [AMessage, AMessage]);
+    WM_CLOSE                : Result := Format('WM_CLOSE: %d/$%x', [AMessage, AMessage]);
+    WM_QUERYENDSESSION      : Result := Format('WM_QUERYENDSESSION: %d/$%x', [AMessage, AMessage]);
+    WM_QUIT                 : Result := Format('WM_QUIT: %d/$%x', [AMessage, AMessage]);
+    WM_QUERYOPEN            : Result := Format('WM_QUERYOPEN: %d/$%x', [AMessage, AMessage]);
+    WM_ERASEBKGND           : Result := Format('WM_ERASEBKGND: %d/$%x', [AMessage, AMessage]);
+    WM_SYSCOLORCHANGE       : Result := Format('WM_SYSCOLORCHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_ENDSESSION           : Result := Format('WM_ENDSESSION: %d/$%x', [AMessage, AMessage]);
+    WM_SYSTEMERROR          : Result := Format('WM_SYSTEMERROR: %d/$%x', [AMessage, AMessage]);
+    WM_SHOWWINDOW           : Result := Format('WM_SHOWWINDOW: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLOR             : Result := Format('WM_CTLCOLOR: %d/$%x', [AMessage, AMessage]);
+    WM_WININICHANGE         : Result := Format('WM_WININICHANGE/WM_SETTINGCHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_DEVMODECHANGE        : Result := Format('WM_DEVMODECHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_ACTIVATEAPP          : Result := Format('WM_ACTIVATEAPP: %d/$%x', [AMessage, AMessage]);
+    WM_FONTCHANGE           : Result := Format('WM_FONTCHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_TIMECHANGE           : Result := Format('WM_TIMECHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_CANCELMODE           : Result := Format('WM_CANCELMODE: %d/$%x', [AMessage, AMessage]);
+    WM_SETCURSOR            : Result := Format('WM_SETCURSOR: %d/$%x', [AMessage, AMessage]);
+    WM_MOUSEACTIVATE        : Result := Format('WM_MOUSEACTIVATE: %d/$%x', [AMessage, AMessage]);
+    WM_CHILDACTIVATE        : Result := Format('WM_CHILDACTIVATE: %d/$%x', [AMessage, AMessage]);
+    WM_QUEUESYNC            : Result := Format('WM_QUEUESYNC: %d/$%x', [AMessage, AMessage]);
+    WM_GETMINMAXINFO        : Result := Format('WM_GETMINMAXINFO: %d/$%x', [AMessage, AMessage]);
+    WM_PAINTICON            : Result := Format('WM_PAINTICON: %d/$%x', [AMessage, AMessage]);
+    WM_ICONERASEBKGND       : Result := Format('WM_ICONERASEBKGND: %d/$%x', [AMessage, AMessage]);
+    WM_NEXTDLGCTL           : Result := Format('WM_NEXTDLGCTL: %d/$%x', [AMessage, AMessage]);
+    WM_SPOOLERSTATUS        : Result := Format('WM_SPOOLERSTATUS: %d/$%x', [AMessage, AMessage]);
+    WM_DRAWITEM             : Result := Format('WM_DRAWITEM: %d/$%x', [AMessage, AMessage]);
+    WM_MEASUREITEM          : Result := Format('WM_MEASUREITEM: %d/$%x', [AMessage, AMessage]);
+    WM_DELETEITEM           : Result := Format('WM_DELETEITEM: %d/$%x', [AMessage, AMessage]);
+    WM_VKEYTOITEM           : Result := Format('WM_VKEYTOITEM: %d/$%x', [AMessage, AMessage]);
+    WM_CHARTOITEM           : Result := Format('WM_CHARTOITEM: %d/$%x', [AMessage, AMessage]);
+    WM_SETFONT              : Result := Format('WM_SETFONT: %d/$%x', [AMessage, AMessage]);
+    WM_GETFONT              : Result := Format('WM_GETFONT: %d/$%x', [AMessage, AMessage]);
+    WM_SETHOTKEY            : Result := Format('WM_SETHOTKEY: %d/$%x', [AMessage, AMessage]);
+    WM_GETHOTKEY            : Result := Format('WM_GETHOTKEY: %d/$%x', [AMessage, AMessage]);
+    WM_QUERYDRAGICON        : Result := Format('WM_QUERYDRAGICON: %d/$%x', [AMessage, AMessage]);
+    WM_COMPAREITEM          : Result := Format('WM_COMPAREITEM: %d/$%x', [AMessage, AMessage]);
+    WM_GETOBJECT            : Result := Format('WM_GETOBJECT: %d/$%x', [AMessage, AMessage]);
+    WM_COMPACTING           : Result := Format('WM_COMPACTING: %d/$%x', [AMessage, AMessage]);
+    WM_COMMNOTIFY           : Result := Format('WM_COMMNOTIFY: %d/$%x', [AMessage, AMessage]);
+    WM_WINDOWPOSCHANGING    : Result := Format('WM_WINDOWPOSCHANGING: %d/$%x', [AMessage, AMessage]);
+    WM_WINDOWPOSCHANGED     : Result := Format('WM_WINDOWPOSCHANGED: %d/$%x', [AMessage, AMessage]);
+    WM_POWER                : Result := Format('WM_POWER: %d/$%x', [AMessage, AMessage]);
+    WM_COPYDATA             : Result := Format('WM_COPYDATA: %d/$%x', [AMessage, AMessage]);
+    WM_CANCELJOURNAL        : Result := Format('WM_CANCELJOURNAL: %d/$%x', [AMessage, AMessage]);
+    WM_NOTIFY               : Result := Format('WM_NOTIFY: %d/$%x', [AMessage, AMessage]);
+    WM_INPUTLANGCHANGEREQUEST: Result := Format('WM_INPUTLANGCHANGEREQUEST: %d/$%x', [AMessage, AMessage]);
+    WM_INPUTLANGCHANGE      : Result := Format('WM_INPUTLANGCHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_TCARD                : Result := Format('WM_TCARD: %d/$%x', [AMessage, AMessage]);
+    WM_HELP                 : Result := Format('WM_HELP: %d/$%x', [AMessage, AMessage]);
+    WM_USERCHANGED          : Result := Format('WM_USERCHANGED: %d/$%x', [AMessage, AMessage]);
+    WM_NOTIFYFORMAT         : Result := Format('WM_NOTIFYFORMAT: %d/$%x', [AMessage, AMessage]);
+    WM_CONTEXTMENU          : Result := Format('WM_CONTEXTMENU: %d/$%x', [AMessage, AMessage]);
+    WM_STYLECHANGING        : Result := Format('WM_STYLECHANGING: %d/$%x', [AMessage, AMessage]);
+    WM_STYLECHANGED         : Result := Format('WM_STYLECHANGED: %d/$%x', [AMessage, AMessage]);
+    WM_DISPLAYCHANGE        : Result := Format('WM_DISPLAYCHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_GETICON              : Result := Format('WM_GETICON: %d/$%x', [AMessage, AMessage]);
+    WM_SETICON              : Result := Format('WM_SETICON: %d/$%x', [AMessage, AMessage]);
+    WM_NCCREATE             : Result := Format('WM_NCCREATE: %d/$%x', [AMessage, AMessage]);
+    WM_NCDESTROY            : Result := Format('WM_NCDESTROY: %d/$%x', [AMessage, AMessage]);
+    WM_NCCALCSIZE           : Result := Format('WM_NCCALCSIZE: %d/$%x', [AMessage, AMessage]);
+    WM_NCHITTEST            : Result := Format('WM_NCHITTEST: %d/$%x', [AMessage, AMessage]);
+    WM_NCPAINT              : Result := Format('WM_NCPAINT: %d/$%x', [AMessage, AMessage]);
+    WM_NCACTIVATE           : Result := Format('WM_NCACTIVATE: %d/$%x', [AMessage, AMessage]);
+    WM_GETDLGCODE           : Result := Format('WM_GETDLGCODE: %d/$%x', [AMessage, AMessage]);
+    WM_NCMOUSEMOVE          : Result := Format('WM_NCMOUSEMOVE: %d/$%x', [AMessage, AMessage]);
+    WM_NCLBUTTONDOWN        : Result := Format('WM_NCLBUTTONDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_NCLBUTTONUP          : Result := Format('WM_NCLBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_NCLBUTTONDBLCLK      : Result := Format('WM_NCLBUTTONDBLCLK: %d/$%x', [AMessage, AMessage]);
+    WM_NCRBUTTONDOWN        : Result := Format('WM_NCRBUTTONDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_NCRBUTTONUP          : Result := Format('WM_NCRBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_NCRBUTTONDBLCLK      : Result := Format('WM_NCRBUTTONDBLCLK: %d/$%x', [AMessage, AMessage]);
+    WM_NCMBUTTONDOWN        : Result := Format('WM_NCMBUTTONDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_NCMBUTTONUP          : Result := Format('WM_NCMBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_NCMBUTTONDBLCLK      : Result := Format('WM_NCMBUTTONDBLCLK: %d/$%x', [AMessage, AMessage]);
+    WM_KEYDOWN              : Result := Format('WM_KEYDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_KEYUP                : Result := Format('WM_KEYUP: %d/$%x', [AMessage, AMessage]);
+    WM_CHAR                 : Result := Format('WM_CHAR: %d/$%x', [AMessage, AMessage]);
+    WM_DEADCHAR             : Result := Format('WM_DEADCHAR: %d/$%x', [AMessage, AMessage]);
+    WM_SYSKEYDOWN           : Result := Format('WM_SYSKEYDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_SYSKEYUP             : Result := Format('WM_SYSKEYUP: %d/$%x', [AMessage, AMessage]);
+    WM_SYSCHAR              : Result := Format('WM_SYSCHAR: %d/$%x', [AMessage, AMessage]);
+    WM_SYSDEADCHAR          : Result := Format('WM_SYSDEADCHAR: %d/$%x', [AMessage, AMessage]);
+    WM_KEYLAST              : Result := Format('WM_KEYLAST: %d/$%x', [AMessage, AMessage]);
+    WM_INITDIALOG           : Result := Format('WM_INITDIALOG: %d/$%x', [AMessage, AMessage]);
+    WM_COMMAND              : Result := Format('WM_COMMAND: %d/$%x', [AMessage, AMessage]);
+    WM_SYSCOMMAND           : Result := Format('WM_SYSCOMMAND: %d/$%x', [AMessage, AMessage]);
+    WM_TIMER                : Result := Format('WM_TIMER: %d/$%x', [AMessage, AMessage]);
+    WM_HSCROLL              : Result := Format('WM_HSCROLL: %d/$%x', [AMessage, AMessage]);
+    WM_VSCROLL              : Result := Format('WM_VSCROLL: %d/$%x', [AMessage, AMessage]);
+    WM_INITMENU             : Result := Format('WM_INITMENU: %d/$%x', [AMessage, AMessage]);
+    WM_INITMENUPOPUP        : Result := Format('WM_INITMENUPOPUP: %d/$%x', [AMessage, AMessage]);
+    WM_MENUSELECT           : Result := Format('WM_MENUSELECT: %d/$%x', [AMessage, AMessage]);
+    WM_MENUCHAR             : Result := Format('WM_MENUCHAR: %d/$%x', [AMessage, AMessage]);
+    WM_ENTERIDLE            : Result := Format('WM_ENTERIDLE: %d/$%x', [AMessage, AMessage]);
+    WM_MENURBUTTONUP        : Result := Format('WM_MENURBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_MENUDRAG             : Result := Format('WM_MENUDRAG: %d/$%x', [AMessage, AMessage]);
+    WM_MENUGETOBJECT        : Result := Format('WM_MENUGETOBJECT: %d/$%x', [AMessage, AMessage]);
+    WM_UNINITMENUPOPUP      : Result := Format('WM_UNINITMENUPOPUP: %d/$%x', [AMessage, AMessage]);
+    WM_MENUCOMMAND          : Result := Format('WM_MENUCOMMAND: %d/$%x', [AMessage, AMessage]);
+    WM_CHANGEUISTATE        : Result := Format('WM_CHANGEUISTATE: %d/$%x', [AMessage, AMessage]);
+    WM_UPDATEUISTATE        : Result := Format('WM_UPDATEUISTATE: %d/$%x', [AMessage, AMessage]);
+    WM_QUERYUISTATE         : Result := Format('WM_QUERYUISTATE: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLORMSGBOX       : Result := Format('WM_CTLCOLORMSGBOX: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLOREDIT         : Result := Format('WM_CTLCOLOREDIT: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLORLISTBOX      : Result := Format('WM_CTLCOLORLISTBOX: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLORBTN          : Result := Format('WM_CTLCOLORBTN: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLORDLG          : Result := Format('WM_CTLCOLORDLG: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLORSCROLLBAR    : Result := Format('WM_CTLCOLORSCROLLBAR: %d/$%x', [AMessage, AMessage]);
+    WM_CTLCOLORSTATIC       : Result := Format('WM_CTLCOLORSTATIC: %d/$%x', [AMessage, AMessage]);
+    WM_MOUSEMOVE            : Result := Format('WM_MOUSEMOVE: %d/$%x', [AMessage, AMessage]);
+    WM_LBUTTONDOWN          : Result := Format('WM_LBUTTONDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_LBUTTONUP            : Result := Format('WM_LBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_LBUTTONDBLCLK        : Result := Format('WM_LBUTTONDBLCLK: %d/$%x', [AMessage, AMessage]);
+    WM_RBUTTONDOWN          : Result := Format('WM_RBUTTONDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_RBUTTONUP            : Result := Format('WM_RBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_RBUTTONDBLCLK        : Result := Format('WM_RBUTTONDBLCLK: %d/$%x', [AMessage, AMessage]);
+    WM_MBUTTONDOWN          : Result := Format('WM_MBUTTONDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_MBUTTONUP            : Result := Format('WM_MBUTTONUP: %d/$%x', [AMessage, AMessage]);
+    WM_MBUTTONDBLCLK        : Result := Format('WM_MBUTTONDBLCLK: %d/$%x', [AMessage, AMessage]);
+    WM_MOUSEWHEEL           : Result := Format('WM_MOUSEWHEEL: %d/$%x', [AMessage, AMessage]);
+    WM_PARENTNOTIFY         : Result := Format('WM_PARENTNOTIFY: %d/$%x', [AMessage, AMessage]);
+    WM_ENTERMENULOOP        : Result := Format('WM_ENTERMENULOOP: %d/$%x', [AMessage, AMessage]);
+    WM_EXITMENULOOP         : Result := Format('WM_EXITMENULOOP: %d/$%x', [AMessage, AMessage]);
+    WM_NEXTMENU             : Result := Format('WM_NEXTMENU: %d/$%x', [AMessage, AMessage]);
+    WM_SIZING               : Result := Format('WM_SIZING: %d/$%x', [AMessage, AMessage]);
+    WM_CAPTURECHANGED       : Result := Format('WM_CAPTURECHANGED: %d/$%x', [AMessage, AMessage]);
+    WM_MOVING               : Result := Format('WM_MOVING: %d/$%x', [AMessage, AMessage]);
+    WM_POWERBROADCAST       : Result := Format('WM_POWERBROADCAST: %d/$%x', [AMessage, AMessage]);
+    WM_DEVICECHANGE         : Result := Format('WM_DEVICECHANGE: %d/$%x', [AMessage, AMessage]);
+    WM_IME_STARTCOMPOSITION : Result := Format('WM_IME_STARTCOMPOSITION: %d/$%x', [AMessage, AMessage]);
+    WM_IME_ENDCOMPOSITION   : Result := Format('WM_IME_ENDCOMPOSITION: %d/$%x', [AMessage, AMessage]);
+    WM_IME_COMPOSITION      : Result := Format('WM_IME_COMPOSITION: %d/$%x', [AMessage, AMessage]);
+    WM_IME_SETCONTEXT       : Result := Format('WM_IME_SETCONTEXT: %d/$%x', [AMessage, AMessage]);
+    WM_IME_NOTIFY           : Result := Format('WM_IME_NOTIFY: %d/$%x', [AMessage, AMessage]);
+    WM_IME_CONTROL          : Result := Format('WM_IME_CONTROL: %d/$%x', [AMessage, AMessage]);
+    WM_IME_COMPOSITIONFULL  : Result := Format('WM_IME_COMPOSITIONFULL: %d/$%x', [AMessage, AMessage]);
+    WM_IME_SELECT           : Result := Format('WM_IME_SELECT: %d/$%x', [AMessage, AMessage]);
+    WM_IME_CHAR             : Result := Format('WM_IME_CHAR: %d/$%x', [AMessage, AMessage]);
+    WM_IME_REQUEST          : Result := Format('WM_IME_REQUEST: %d/$%x', [AMessage, AMessage]);
+    WM_IME_KEYDOWN          : Result := Format('WM_IME_KEYDOWN: %d/$%x', [AMessage, AMessage]);
+    WM_IME_KEYUP            : Result := Format('WM_IME_KEYUP: %d/$%x', [AMessage, AMessage]);
+    WM_MDICREATE            : Result := Format('WM_MDICREATE: %d/$%x', [AMessage, AMessage]);
+    WM_MDIDESTROY           : Result := Format('WM_MDIDESTROY: %d/$%x', [AMessage, AMessage]);
+    WM_MDIACTIVATE          : Result := Format('WM_MDIACTIVATE: %d/$%x', [AMessage, AMessage]);
+    WM_MDIRESTORE           : Result := Format('WM_MDIRESTORE: %d/$%x', [AMessage, AMessage]);
+    WM_MDINEXT              : Result := Format('WM_MDINEXT: %d/$%x', [AMessage, AMessage]);
+    WM_MDIMAXIMIZE          : Result := Format('WM_MDIMAXIMIZE: %d/$%x', [AMessage, AMessage]);
+    WM_MDITILE              : Result := Format('WM_MDITILE: %d/$%x', [AMessage, AMessage]);
+    WM_MDICASCADE           : Result := Format('WM_MDICASCADE: %d/$%x', [AMessage, AMessage]);
+    WM_MDIICONARRANGE       : Result := Format('WM_MDIICONARRANGE: %d/$%x', [AMessage, AMessage]);
+    WM_MDIGETACTIVE         : Result := Format('WM_MDIGETACTIVE: %d/$%x', [AMessage, AMessage]);
+    WM_MDISETMENU           : Result := Format('WM_MDISETMENU: %d/$%x', [AMessage, AMessage]);
+    WM_ENTERSIZEMOVE        : Result := Format('WM_ENTERSIZEMOVE: %d/$%x', [AMessage, AMessage]);
+    WM_EXITSIZEMOVE         : Result := Format('WM_EXITSIZEMOVE: %d/$%x', [AMessage, AMessage]);
+    WM_DROPFILES            : Result := Format('WM_DROPFILES: %d/$%x', [AMessage, AMessage]);
+    WM_MDIREFRESHMENU       : Result := Format('WM_MDIREFRESHMENU: %d/$%x', [AMessage, AMessage]);
+    WM_MOUSEHOVER           : Result := Format('WM_MOUSEHOVER: %d/$%x', [AMessage, AMessage]);
+    WM_MOUSELEAVE           : Result := Format('WM_MOUSELEAVE: %d/$%x', [AMessage, AMessage]);
+    WM_CUT                  : Result := Format('WM_CUT: %d/$%x', [AMessage, AMessage]);
+    WM_COPY                 : Result := Format('WM_COPY: %d/$%x', [AMessage, AMessage]);
+    WM_PASTE                : Result := Format('WM_PASTE: %d/$%x', [AMessage, AMessage]);
+    WM_CLEAR                : Result := Format('WM_CLEAR: %d/$%x', [AMessage, AMessage]);
+    WM_UNDO                 : Result := Format('WM_UNDO: %d/$%x', [AMessage, AMessage]);
+    WM_RENDERFORMAT         : Result := Format('WM_RENDERFORMAT: %d/$%x', [AMessage, AMessage]);
+    WM_RENDERALLFORMATS     : Result := Format('WM_RENDERALLFORMATS: %d/$%x', [AMessage, AMessage]);
+    WM_DESTROYCLIPBOARD     : Result := Format('WM_DESTROYCLIPBOARD: %d/$%x', [AMessage, AMessage]);
+    WM_DRAWCLIPBOARD        : Result := Format('WM_DRAWCLIPBOARD: %d/$%x', [AMessage, AMessage]);
+    WM_PAINTCLIPBOARD       : Result := Format('WM_PAINTCLIPBOARD: %d/$%x', [AMessage, AMessage]);
+    WM_VSCROLLCLIPBOARD     : Result := Format('WM_VSCROLLCLIPBOARD: %d/$%x', [AMessage, AMessage]);
+    WM_SIZECLIPBOARD        : Result := Format('WM_SIZECLIPBOARD: %d/$%x', [AMessage, AMessage]);
+    WM_ASKCBFORMATNAME      : Result := Format('WM_ASKCBFORMATNAME: %d/$%x', [AMessage, AMessage]);
+    WM_CHANGECBCHAIN        : Result := Format('WM_CHANGECBCHAIN: %d/$%x', [AMessage, AMessage]);
+    WM_HSCROLLCLIPBOARD     : Result := Format('WM_HSCROLLCLIPBOARD: %d/$%x', [AMessage, AMessage]);
+    WM_QUERYNEWPALETTE      : Result := Format('WM_QUERYNEWPALETTE: %d/$%x', [AMessage, AMessage]);
+    WM_PALETTEISCHANGING    : Result := Format('WM_PALETTEISCHANGING: %d/$%x', [AMessage, AMessage]);
+    WM_PALETTECHANGED       : Result := Format('WM_PALETTECHANGED: %d/$%x', [AMessage, AMessage]);
+    WM_HOTKEY               : Result := Format('WM_HOTKEY: %d/$%x', [AMessage, AMessage]);
+    WM_PRINT                : Result := Format('WM_PRINT: %d/$%x', [AMessage, AMessage]);
+    WM_PRINTCLIENT          : Result := Format('WM_PRINTCLIENT: %d/$%x', [AMessage, AMessage]);
+    WM_HANDHELDFIRST        : Result := Format('WM_HANDHELDFIRST: %d/$%x', [AMessage, AMessage]);
+    WM_HANDHELDLAST         : Result := Format('WM_HANDHELDLAST: %d/$%x', [AMessage, AMessage]);
+    WM_PENWINFIRST          : Result := Format('WM_PENWINFIRST: %d/$%x', [AMessage, AMessage]);
+    WM_PENWINLAST           : Result := Format('WM_PENWINLAST: %d/$%x', [AMessage, AMessage]);
+    WM_COALESCE_FIRST       : Result := Format('WM_COALESCE_FIRST: %d/$%x', [AMessage, AMessage]);
+    WM_COALESCE_LAST        : Result := Format('WM_COALESCE_LAST: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_INITIATE         : Result := Format('WM_DDE_INITIATE: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_TERMINATE        : Result := Format('WM_DDE_TERMINATE: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_ADVISE           : Result := Format('WM_DDE_ADVISE: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_UNADVISE         : Result := Format('WM_DDE_UNADVISE: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_ACK              : Result := Format('WM_DDE_ACK: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_DATA             : Result := Format('WM_DDE_DATA: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_REQUEST          : Result := Format('WM_DDE_REQUEST: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_POKE             : Result := Format('WM_DDE_POKE: %d/$%x', [AMessage, AMessage]);
+    WM_DDE_EXECUTE          : Result := Format('WM_DDE_EXECUTE: %d/$%x', [AMessage, AMessage]);
+    WM_APP                  : Result := Format('WM_APP: %d/$%x', [AMessage, AMessage]);
+    WM_USER                 : Result := Format('WM_USER: %d/$%x', [AMessage, AMessage]);
+    // VCL Control Messages
+    // CM_BASE                 : Result := Format('CM_BASE: %d/$%x', [AMessage, AMessage]);
+    CM_ACTIVATE             : Result := Format('CM_ACTIVATE: %d/$%x', [AMessage, AMessage]);
+    CM_DEACTIVATE           : Result := Format('CM_DEACTIVATE: %d/$%x', [AMessage, AMessage]);
+    CM_GOTFOCUS             : Result := Format('CM_GOTFOCUS: %d/$%x', [AMessage, AMessage]);
+    CM_LOSTFOCUS            : Result := Format('CM_LOSTFOCUS: %d/$%x', [AMessage, AMessage]);
+    CM_CANCELMODE           : Result := Format('CM_CANCELMODE: %d/$%x', [AMessage, AMessage]);
+    CM_DIALOGKEY            : Result := Format('CM_DIALOGKEY: %d/$%x', [AMessage, AMessage]);
+    CM_DIALOGCHAR           : Result := Format('CM_DIALOGCHAR: %d/$%x', [AMessage, AMessage]);
+    CM_FOCUSCHANGED         : Result := Format('CM_FOCUSCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_PARENTFONTCHANGED    : Result := Format('CM_PARENTFONTCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_PARENTCOLORCHANGED   : Result := Format('CM_PARENTCOLORCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_HITTEST              : Result := Format('CM_HITTEST: %d/$%x', [AMessage, AMessage]);
+    CM_VISIBLECHANGED       : Result := Format('CM_VISIBLECHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_ENABLEDCHANGED       : Result := Format('CM_ENABLEDCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_COLORCHANGED         : Result := Format('CM_COLORCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_FONTCHANGED          : Result := Format('CM_FONTCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_CURSORCHANGED        : Result := Format('CM_CURSORCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_CTL3DCHANGED         : Result := Format('CM_CTL3DCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_PARENTCTL3DCHANGED   : Result := Format('CM_PARENTCTL3DCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_TEXTCHANGED          : Result := Format('CM_TEXTCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_MOUSEENTER           : Result := Format('CM_MOUSEENTER: %d/$%x', [AMessage, AMessage]);
+    CM_MOUSELEAVE           : Result := Format('CM_MOUSELEAVE: %d/$%x', [AMessage, AMessage]);
+    CM_MENUCHANGED          : Result := Format('CM_MENUCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_APPKEYDOWN           : Result := Format('CM_APPKEYDOWN: %d/$%x', [AMessage, AMessage]);
+    CM_APPSYSCOMMAND        : Result := Format('CM_APPSYSCOMMAND: %d/$%x', [AMessage, AMessage]);
+    CM_BUTTONPRESSED        : Result := Format('CM_BUTTONPRESSED: %d/$%x', [AMessage, AMessage]);
+    CM_SHOWINGCHANGED       : Result := Format('CM_SHOWINGCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_ENTER                : Result := Format('CM_ENTER: %d/$%x', [AMessage, AMessage]);
+    CM_EXIT                 : Result := Format('CM_EXIT: %d/$%x', [AMessage, AMessage]);
+    CM_DESIGNHITTEST        : Result := Format('CM_DESIGNHITTEST: %d/$%x', [AMessage, AMessage]);
+    CM_ICONCHANGED          : Result := Format('CM_ICONCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_WANTSPECIALKEY       : Result := Format('CM_WANTSPECIALKEY: %d/$%x', [AMessage, AMessage]);
+    CM_INVOKEHELP           : Result := Format('CM_INVOKEHELP: %d/$%x', [AMessage, AMessage]);
+    CM_WINDOWHOOK           : Result := Format('CM_WINDOWHOOK: %d/$%x', [AMessage, AMessage]);
+    CM_RELEASE              : Result := Format('CM_RELEASE: %d/$%x', [AMessage, AMessage]);
+    CM_SHOWHINTCHANGED      : Result := Format('CM_SHOWHINTCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_PARENTSHOWHINTCHANGED: Result := Format('CM_PARENTSHOWHINTCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_SYSCOLORCHANGE       : Result := Format('CM_SYSCOLORCHANGE: %d/$%x', [AMessage, AMessage]);
+    CM_WININICHANGE         : Result := Format('CM_WININICHANGE: %d/$%x', [AMessage, AMessage]);
+    CM_FONTCHANGE           : Result := Format('CM_FONTCHANGE: %d/$%x', [AMessage, AMessage]);
+    CM_TIMECHANGE           : Result := Format('CM_TIMECHANGE: %d/$%x', [AMessage, AMessage]);
+    CM_TABSTOPCHANGED       : Result := Format('CM_TABSTOPCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_UIACTIVATE           : Result := Format('CM_UIACTIVATE: %d/$%x', [AMessage, AMessage]);
+    CM_UIDEACTIVATE         : Result := Format('CM_UIDEACTIVATE: %d/$%x', [AMessage, AMessage]);
+    CM_DOCWINDOWACTIVATE    : Result := Format('CM_DOCWINDOWACTIVATE: %d/$%x', [AMessage, AMessage]);
+    CM_CONTROLLISTCHANGE    : Result := Format('CM_CONTROLLISTCHANGE: %d/$%x', [AMessage, AMessage]);
+    CM_GETDATALINK          : Result := Format('CM_GETDATALINK: %d/$%x', [AMessage, AMessage]);
+    CM_CHILDKEY             : Result := Format('CM_CHILDKEY: %d/$%x', [AMessage, AMessage]);
+    CM_DRAG                 : Result := Format('CM_DRAG: %d/$%x', [AMessage, AMessage]);
+    CM_HINTSHOW             : Result := Format('CM_HINTSHOW: %d/$%x', [AMessage, AMessage]);
+    CM_DIALOGHANDLE         : Result := Format('CM_DIALOGHANDLE: %d/$%x', [AMessage, AMessage]);
+    CM_ISTOOLCONTROL        : Result := Format('CM_ISTOOLCONTROL: %d/$%x', [AMessage, AMessage]);
+    CM_RECREATEWND          : Result := Format('CM_RECREATEWND: %d/$%x', [AMessage, AMessage]);
+    CM_INVALIDATE           : Result := Format('CM_INVALIDATE: %d/$%x', [AMessage, AMessage]);
+    CM_SYSFONTCHANGED       : Result := Format('CM_SYSFONTCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_CONTROLCHANGE        : Result := Format('CM_CONTROLCHANGE: %d/$%x', [AMessage, AMessage]);
+    CM_CHANGED              : Result := Format('CM_CHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_DOCKCLIENT           : Result := Format('CM_DOCKCLIENT: %d/$%x', [AMessage, AMessage]);
+    CM_UNDOCKCLIENT         : Result := Format('CM_UNDOCKCLIENT: %d/$%x', [AMessage, AMessage]);
+    CM_FLOAT                : Result := Format('CM_FLOAT: %d/$%x', [AMessage, AMessage]);
+    CM_BORDERCHANGED        : Result := Format('CM_BORDERCHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_BIDIMODECHANGED      : Result := Format('CM_BIDIMODECHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_PARENTBIDIMODECHANGED: Result := Format('CM_PARENTBIDIMODECHANGED: %d/$%x', [AMessage, AMessage]);
+    CM_ALLCHILDRENFLIPPED   : Result := Format('CM_ALLCHILDRENFLIPPED: %d/$%x', [AMessage, AMessage]);
+    CM_ACTIONUPDATE         : Result := Format('CM_ACTIONUPDATE: %d/$%x', [AMessage, AMessage]);
+    CM_ACTIONEXECUTE        : Result := Format('CM_ACTIONEXECUTE: %d/$%x', [AMessage, AMessage]);
+    CM_HINTSHOWPAUSE        : Result := Format('CM_HINTSHOWPAUSE: %d/$%x', [AMessage, AMessage]);
+    CM_DOCKNOTIFICATION     : Result := Format('CM_DOCKNOTIFICATION: %d/$%x', [AMessage, AMessage]);
+    CM_MOUSEWHEEL           : Result := Format('CM_MOUSEWHEEL: %d/$%x', [AMessage, AMessage]);
+    // VCL Control Notifications
+    CN_BASE                 : Result := Format('CN_BASE: %d/$%x', [AMessage, AMessage]);
+    CN_CHARTOITEM           : Result := Format('CN_CHARTOITEM: %d/$%x', [AMessage, AMessage]);
+    CN_COMMAND              : Result := Format('CN_COMMAND: %d/$%x', [AMessage, AMessage]);
+    CN_COMPAREITEM          : Result := Format('CN_COMPAREITEM: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLORBTN          : Result := Format('CN_CTLCOLORBTN: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLORDLG          : Result := Format('CN_CTLCOLORDLG: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLOREDIT         : Result := Format('CN_CTLCOLOREDIT: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLORLISTBOX      : Result := Format('CN_CTLCOLORLISTBOX: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLORMSGBOX       : Result := Format('CN_CTLCOLORMSGBOX: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLORSCROLLBAR    : Result := Format('CN_CTLCOLORSCROLLBAR: %d/$%x', [AMessage, AMessage]);
+    CN_CTLCOLORSTATIC       : Result := Format('CN_CTLCOLORSTATIC: %d/$%x', [AMessage, AMessage]);
+    CN_DELETEITEM           : Result := Format('CN_DELETEITEM: %d/$%x', [AMessage, AMessage]);
+    CN_DRAWITEM             : Result := Format('CN_DRAWITEM: %d/$%x', [AMessage, AMessage]);
+    CN_HSCROLL              : Result := Format('CN_HSCROLL: %d/$%x', [AMessage, AMessage]);
+    CN_MEASUREITEM          : Result := Format('CN_MEASUREITEM: %d/$%x', [AMessage, AMessage]);
+    CN_PARENTNOTIFY         : Result := Format('CN_PARENTNOTIFY: %d/$%x', [AMessage, AMessage]);
+    CN_VKEYTOITEM           : Result := Format('CN_VKEYTOITEM: %d/$%x', [AMessage, AMessage]);
+    CN_VSCROLL              : Result := Format('CN_VSCROLL: %d/$%x', [AMessage, AMessage]);
+    CN_KEYDOWN              : Result := Format('CN_KEYDOWN: %d/$%x', [AMessage, AMessage]);
+    CN_KEYUP                : Result := Format('CN_KEYUP: %d/$%x', [AMessage, AMessage]);
+    CN_CHAR                 : Result := Format('CN_CHAR: %d/$%x', [AMessage, AMessage]);
+    CN_SYSKEYDOWN           : Result := Format('CN_SYSKEYDOWN: %d/$%x', [AMessage, AMessage]);
+    CN_SYSCHAR              : Result := Format('CN_SYSCHAR: %d/$%x', [AMessage, AMessage]);
+    CN_NOTIFY               : Result := Format('CN_NOTIFY: %d/$%x', [AMessage, AMessage]);
+  else
+    Result := Format('Unknown Window Message: %d/$%x', [AMessage, AMessage]);
+  end
 end;
 
 procedure TCnDebugger.SetDumpFileName(const Value: string);

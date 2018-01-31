@@ -42,6 +42,14 @@ uses
   ImgList, Menus;
 
 type
+  ITest = interface
+    procedure Test(A: Integer);
+  end;
+
+  TTest = class(TInterfacedObject, ITest)
+    procedure Test(A: Integer);
+  end;
+
   TFormSend = class(TForm)
     Button1: TButton;
     cbbLevel: TComboBox;
@@ -154,6 +162,8 @@ type
     { Private declarations }
     FTimeStamp: Boolean;
     FThread: TSendThread;
+    FOldWndProc: TWndMethod;
+    procedure NewWindowProc(var AMsg: TMessage);
   public
     { Public declarations }
   end;
@@ -215,6 +225,9 @@ begin
   cbbType.ItemIndex := 0;
   CnDebugger.UseAppend := True;
   Icon := Application.Icon;
+
+  FOldWndProc := WindowProc;
+  WindowProc := NewWindowProc;
 end;
 
 procedure TFormSend.btnEnterClick(Sender: TObject);
@@ -481,11 +494,16 @@ begin
 end;
 
 procedure TFormSend.btnInterfaceClick(Sender: TObject);
+var
+//  P: Pointer;
+  IT: ITest;
 begin
+  IT := TTest.Create;
   if rgMethod.ItemIndex = 1 then
-    CnDebugger.TraceInterface(TInterfacedObject.Create)
+    CnDebugger.TraceInterface(IT)
   else
-    CnDebugger.LogInterface(TInterfacedObject.Create);
+    CnDebugger.LogInterface(IT);
+//  P := @IT.Test;  // Syntax Error
 end;
 
 procedure TFormSend.btnAddrClick(Sender: TObject);
@@ -584,6 +602,19 @@ end;
 procedure TFormSend.btnWatchClearClick(Sender: TObject);
 begin
   CnDebugger.WatchClear('Count');
+end;
+
+{ TTest }
+
+procedure TTest.Test(A: Integer);
+begin
+
+end;
+
+procedure TFormSend.NewWindowProc(var AMsg: TMessage);
+begin
+  CnDebugger.LogWindowMessage(AMsg.Msg);
+  FOldWndProc(AMsg);
 end;
 
 end.
