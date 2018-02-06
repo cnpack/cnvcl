@@ -69,11 +69,6 @@ interface
 
 {$I CnPack.inc}
 
-{$IFDEF COMPILER12}
-// RAD Studio 2009 下 CreateParams 中可能导致死循环
-{$DEFINE CREATE_PARAMS_BUG}
-{$ENDIF}
-
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, Math, Menus, PsAPI, Registry, ComObj, 
