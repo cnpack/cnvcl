@@ -1000,6 +1000,9 @@ function SoundCardExist: Boolean;
 function FindFormByClass(AClass: TClass): TForm;
 {* 根据指定类名查找窗体}
 
+function ModalFormExists: Boolean;
+{* 当前是否有模态窗口存在}
+
 function InheritsFromClassName(ASrc: TClass; const AClass: string): Boolean; overload;
 {* 判断 ASrc 是否派生自类名为 AClass 的类 }
 
@@ -3908,19 +3911,36 @@ begin
   FindClose(Sr);
 end;
 
+// 根据指定类名查找窗体
 function FindFormByClass(AClass: TClass): TForm;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := nil;
-  for i := 0 to Screen.FormCount - 1 do
+  for I := 0 to Screen.FormCount - 1 do
   begin
-    if Screen.Forms[i] is AClass then
+    if Screen.Forms[I] is AClass then
     begin
-      Result := Screen.Forms[i];
+      Result := Screen.Forms[I];
       Exit;
     end;
   end;
+end;
+
+// 当前是否有模态窗口存在
+function ModalFormExists: Boolean;
+var
+  I: Integer;
+begin
+  for I := 0 to Screen.CustomFormCount - 1 do
+  begin
+    if fsModal in Screen.CustomForms[I].FormState then
+    begin
+      Result := True;
+      Exit;
+    end
+  end;
+  Result := False;
 end;
 
 var
