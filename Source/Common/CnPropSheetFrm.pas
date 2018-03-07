@@ -2219,6 +2219,7 @@ var
 begin
   // ¸ù¾Ý FHierarchys »æÖÆ Hierarchy Í¼
   FHierPanels.Clear;
+  FHierLines.Clear;
   for I := 0 to FHierarchys.Count - 1 do
   begin
     APanel := TPanel.Create(nil);
