@@ -1946,6 +1946,10 @@ begin
   Inc(CnFormTop, 20);
   if CnFormLeft >= Screen.Width - Self.Width - 30 then CnFormLeft := 50;
   if CnFormTop >= Screen.Height - Self.Height - 30 then CnFormTop := 50;
+
+{$IFDEF COMPILER7_UP}
+  pnlHierarchy.ParentBackground := False;
+{$ENDIF}
 end;
 
 procedure TCnPropSheetForm.InspectObject(Data: Pointer);
@@ -2232,6 +2236,9 @@ begin
     APanel.BevelInner := bvRaised;
     APanel.Parent := pnlHierarchy;
     APanel.Color := clBtnFace;
+{$IFDEF COMPILER7_UP}
+    APanel.ParentBackground := False;
+{$ENDIF}
     FHierPanels.Add(APanel);
 
     ABevel := TBevel.Create(nil);
