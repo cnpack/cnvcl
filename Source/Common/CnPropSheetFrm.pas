@@ -1448,11 +1448,15 @@ begin
 
               AProp.ObjValue := nil;
               AProp.IntfValue := nil;
-              if AProp.IsObjOrIntf and RttiProperty.GetValue(FObjectInstance).IsObject then
-                AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
-              else if AProp.IsObjOrIntf and (RttiProperty.GetValue(FObjectInstance).TypeInfo <> nil) and
-                (RttiProperty.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
-                AProp.IntfValue := RttiProperty.GetValue(FObjectInstance).AsInterface;
+              try
+                if AProp.IsObjOrIntf and RttiProperty.GetValue(FObjectInstance).IsObject then
+                  AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
+                else if AProp.IsObjOrIntf and (RttiProperty.GetValue(FObjectInstance).TypeInfo <> nil) and
+                  (RttiProperty.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+                  AProp.IntfValue := RttiProperty.GetValue(FObjectInstance).AsInterface;
+              except
+                // Getting Some Property causes Exception. Catch it.;
+              end;
 
               S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
               if S <> AProp.DisplayValue then
