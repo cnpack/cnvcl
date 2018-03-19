@@ -2476,13 +2476,13 @@ begin
   begin
     APanel := TPanel(FHierPanels.Items[I]);
     APanel.Left := PanelMargin;
-    APanel.Width := Width - PanelMargin * 2;
+    APanel.Width := pnlHierarchy.ClientWidth - PanelMargin * 2;
     APanel.Top := PanelMargin + I * PanelStep;
     APanel.Height := PanelStep - PanelMargin;
     APanel.Color := clBtnFace;
 
     ABevel := TBevel(FHierLines.Items[I]);
-    ABevel.Left := pnlHierarchy.Width div 2;
+    ABevel.Left := pnlHierarchy.ClientWidth div 2;
     ABevel.Top := APanel.Top + APanel.Height;
     ABevel.Height := PanelMargin;
     ABevel.Visible := I <> FHierLines.Count - 1;
