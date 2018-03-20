@@ -2190,17 +2190,17 @@ var
   FixWidth: Integer;
 begin
   if Parent <> nil then
-    FixWidth := 20
+    FixWidth := 16
   else
-    FixWidth := 28;
+    FixWidth := 24;
 
-  lvProp.Columns[1].Width := Self.Width - lvProp.Columns[0].Width - FixWidth;
-  lvEvent.Columns[1].Width := Self.Width - lvEvent.Columns[0].Width - FixWidth;
-  lvMethods.Columns[1].Width := Self.Width - lvMethods.Columns[0].Width - FixWidth;
-  lvCollectionItem.Columns[1].Width := Self.Width - lvCollectionItem.Columns[0].Width - FixWidth;
-  lvMenuItem.Columns[1].Width := Self.Width - lvMenuItem.Columns[0].Width - FixWidth;
-  lvComp.Columns[1].Width := Self.Width - lvComp.Columns[0].Width - FixWidth;
-  lvControl.Columns[1].Width := Self.Width - lvControl.Columns[0].Width - FixWidth;
+  lvProp.Columns[1].Width := Self.ClientWidth - lvProp.Columns[0].Width - FixWidth;
+  lvEvent.Columns[1].Width := Self.ClientWidth - lvEvent.Columns[0].Width - FixWidth;
+  lvMethods.Columns[1].Width := Self.ClientWidth - lvMethods.Columns[0].Width - FixWidth;
+  lvCollectionItem.Columns[1].Width := Self.ClientWidth - lvCollectionItem.Columns[0].Width - FixWidth;
+  lvMenuItem.Columns[1].Width := Self.ClientWidth - lvMenuItem.Columns[0].Width - FixWidth;
+  lvComp.Columns[1].Width := Self.ClientWidth - lvComp.Columns[0].Width - FixWidth;
+  lvControl.Columns[1].Width := Self.ClientWidth - lvControl.Columns[0].Width - FixWidth;
   UpdatePanelPositions;
 end;
 
