@@ -2558,12 +2558,14 @@ function WinExecute(const FileName: string; Visibility: Integer = SW_NORMAL): Bo
 var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
+  CmdLines: array[0..512] of Char;
 begin
   FillChar(StartupInfo, SizeOf(StartupInfo), #0);
   StartupInfo.cb := SizeOf(StartupInfo);
   StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
   StartupInfo.wShowWindow := Visibility;
-  Result := CreateProcess(nil, PChar(FileName), nil, nil, False,
+  StrPLCopy(@CmdLines[0], FileName, SizeOf(CmdLines) - 1);
+  Result := CreateProcess(nil, PChar(@CmdLines[0]), nil, nil, False,
     CREATE_NEW_CONSOLE or NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo,
     ProcessInfo);
 end;
@@ -2578,7 +2580,7 @@ var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
 begin
-  StrPCopy(zAppName, FileName);
+  StrPLCopy(zAppName, FileName, SizeOf(zAppName) - 1);
   GetDir(0, WorkDir);
   StrPCopy(zCurDir, WorkDir);
   FillChar(StartupInfo, SizeOf(StartupInfo), #0);
@@ -2627,6 +2629,7 @@ var
   InStream: THandleStream;
   strTemp: string;
   PDir: PChar;
+  CmdLines: array[0..512] of Char;
 
   procedure ReadLinesFromPipe(IsEnd: Boolean);
   var
@@ -2685,8 +2688,10 @@ begin
         PDir := PChar(Dir)
       else
         PDir := nil;
+
+      StrPLCopy(@CmdLines[0], CmdLine, SizeOf(CmdLines) - 1);
       Win32Check(CreateProcess(nil, //lpApplicationName: PChar
-        PChar(CmdLine), //lpCommandLine: PChar
+        PChar(@CmdLines[0]), //lpCommandLine: PChar
         nil, //lpProcessAttributes: PSecurityAttributes
         nil, //lpThreadAttributes: PSecurityAttributes
         True, //bInheritHandles: BOOL
