@@ -158,7 +158,7 @@ procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 {* 通过 DrawText 来画缩略路径}
 
 procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
-  X, Y: Integer; HighlightColor: TColor);
+  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList = nil);
 {* 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示}
 
 function SameCharCounts(s1, s2: string): Integer;
@@ -2073,34 +2073,73 @@ end;
 
 // 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示
 procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
-  X, Y: Integer; HighlightColor: TColor);
+  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList);
 var
-  MatchIdx: Integer;
-  HdrStr, AMatchStr, TailStr: string;
+  MatchIdx, I, W, L: Integer;
+  HdrStr, AMatchStr, TailStr, PaintStr: string;
   OldColor: TColor;
+  ASize: TSize;
+  C: Char;
 begin
-  if MatchStr = '' then
-    MatchIdx := 0
-  else
-    MatchIdx := Pos(UpperCase(Trim(MatchStr)), UpperCase(Text));
-
-  if MatchIdx > 0 then
+  if (MatchedIndexes = nil) or (MatchedIndexes.Count = 0) then
   begin
-    HdrStr := Copy(Text, 1, MatchIdx - 1);
-    AMatchStr := Copy(Text, MatchIdx, Length(Trim(MatchStr)));
-    TailStr := Copy(Text, MatchIdx + Length(Trim(MatchStr)), MaxInt);
+    if MatchStr = '' then
+      MatchIdx := 0
+    else
+      MatchIdx := Pos(UpperCase(Trim(MatchStr)), UpperCase(Text));
 
-    Canvas.TextOut(X, Y, HdrStr);
-    Inc(X, Canvas.TextWidth(HdrStr));
-    OldColor := Canvas.Font.Color;
-    Canvas.Font.Color := HighlightColor;
-    Canvas.TextOut(X, Y, AMatchStr);
-    Canvas.Font.Color := OldColor;
-    Inc(X, Canvas.TextWidth(AMatchStr));
-    Canvas.TextOut(X, Y, TailStr);
+    if MatchIdx > 0 then
+    begin
+      HdrStr := Copy(Text, 1, MatchIdx - 1);
+      AMatchStr := Copy(Text, MatchIdx, Length(Trim(MatchStr)));
+      TailStr := Copy(Text, MatchIdx + Length(Trim(MatchStr)), MaxInt);
+
+      Canvas.TextOut(X, Y, HdrStr);
+      Inc(X, Canvas.TextWidth(HdrStr));
+      OldColor := Canvas.Font.Color;
+      Canvas.Font.Color := HighlightColor;
+      Canvas.TextOut(X, Y, AMatchStr);
+      Canvas.Font.Color := OldColor;
+      Inc(X, Canvas.TextWidth(AMatchStr));
+      Canvas.TextOut(X, Y, TailStr);
+    end
+    else
+      Canvas.TextOut(X, Y, Text);
   end
   else
+  begin
     Canvas.TextOut(X, Y, Text);
+    SetLength(PaintStr, Length(Text));
+    StrCopy(PChar(PaintStr), PChar(Text));
+    OldColor := Canvas.Font.Color;
+    Canvas.Font.Color := HighlightColor;
+
+    for I := MatchedIndexes.Count - 1 downto 0 do
+    begin
+      L := Integer(MatchedIndexes[I]);
+      if (L <= 0) or (L > Length(PaintStr)) then
+        Continue;
+
+      if L < Length(PaintStr) then
+        PaintStr[L + 1] := #0;
+      C := PaintStr[L];
+      PaintStr[L] := #0;
+
+      ASize.cx := 0;
+      ASize.cy := 0;
+      if L = 1 then
+        W := 0
+      else
+      begin
+        Windows.GetTextExtentPoint32(Canvas.Handle, PChar(@(PaintStr[1])), L - 1, ASize);
+        W := ASize.cx; // 计算需绘制字符前的宽度
+      end;
+      PaintStr[L] := C;
+      Windows.TextOut(Canvas.Handle, X + W, Y, PChar(@(PaintStr[L])), 1);
+    end;
+    SetLength(PaintStr, 0);
+    Canvas.Font.Color := OldColor;
+  end;
 end;
 
 // 打开文件框
