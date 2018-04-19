@@ -157,6 +157,10 @@ function FormatPath(const APath: string; Width: Integer): string;
 procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 {* 通过 DrawText 来画缩略路径}
 
+procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
+  X, Y: Integer; HighlightColor: TColor);
+{* 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示}
+
 function SameCharCounts(s1, s2: string): Integer;
 {* 两个字符串的前面的相同字符数}
 function CharCounts(Str: PChar; Chr: Char): Integer;
@@ -2065,6 +2069,38 @@ end;
 procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 begin
   DrawText(Hdc, PChar(Str), Length(Str), Rect, DT_PATH_ELLIPSIS);
+end;
+
+// 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示
+procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
+  X, Y: Integer; HighlightColor: TColor);
+var
+  MatchIdx: Integer;
+  HdrStr, AMatchStr, TailStr: string;
+  OldColor: TColor;
+begin
+  if MatchStr = '' then
+    MatchIdx := 0
+  else
+    MatchIdx := Pos(UpperCase(Trim(MatchStr)), UpperCase(Text));
+
+  if MatchIdx > 0 then
+  begin
+    HdrStr := Copy(Text, 1, MatchIdx - 1);
+    AMatchStr := Copy(Text, MatchIdx, Length(Trim(MatchStr)));
+    TailStr := Copy(Text, MatchIdx + Length(Trim(MatchStr)), MaxInt);
+
+    Canvas.TextOut(X, Y, HdrStr);
+    Inc(X, Canvas.TextWidth(HdrStr));
+    OldColor := Canvas.Font.Color;
+    Canvas.Font.Color := HighlightColor;
+    Canvas.TextOut(X, Y, AMatchStr);
+    Canvas.Font.Color := OldColor;
+    Inc(X, Canvas.TextWidth(AMatchStr));
+    Canvas.TextOut(X, Y, TailStr);
+  end
+  else
+    Canvas.TextOut(X, Y, Text);
 end;
 
 // 打开文件框
