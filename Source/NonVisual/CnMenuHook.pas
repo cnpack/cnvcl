@@ -83,6 +83,7 @@ type
     function GetHint: string; virtual; abstract;
     function GetStatus : TCnMenuItemStatus; virtual; abstract;
     function GetAction: TCustomAction; virtual; abstract;
+    function GetImageIndex: Integer; virtual; abstract;
 
     procedure MenuItemCreated(MenuItem: TMenuItem); virtual; abstract;
     {* 当用户菜单项被创建后调用该方法}
@@ -106,6 +107,8 @@ type
     {* 菜单项的状态}
     property Action: TCustomAction read GetAction;
     {* 菜单项对应的 Action}
+    property ImageIndex: Integer read GetImageIndex;
+    {* 菜单项对应的 ImageIndex}
   end;
 
 //==============================================================================
@@ -124,6 +127,7 @@ type
     FCaption: string;
     FHint: string;
     FAction: TCustomAction;
+    FImageIndex: Integer;
     FStatus: TCnMenuItemStatus;
     FOnClick: TNotifyEvent;
     FOnCreated: TMenuItemCreatedEvent;
@@ -135,11 +139,12 @@ type
     function GetHint: string; override;
     function GetStatus: TCnMenuItemStatus; override;
     function GetAction: TCustomAction; override;
+    function GetImageIndex: Integer; override;
     procedure MenuItemCreated(MenuItem: TMenuItem); override;
   public
     constructor Create(const AName, ACaption: string; AOnClick: TNotifyEvent;
       AInsertPos: TCnMenuItemInsertPos; const ARelItemName: string = '';
-      const AHint: string = ''; AAction: TCustomAction = nil);
+      const AHint: string = ''; AAction: TCustomAction = nil; ImgIndex: Integer = -1);
     destructor Destroy; override;
     procedure Execute(Sender: TObject); override;
 
@@ -147,6 +152,8 @@ type
     {* 设置菜单标题}
     procedure SetHint(const Value: string);
     {* 设置菜单提示信息}
+    procedure SetImageIndex(Value: Integer);
+    {* 设置菜单项的 ImageIndex}
 
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
     {* 菜单点击事件}
@@ -253,7 +260,7 @@ const
 
 constructor TCnMenuItemDef.Create(const AName, ACaption: string;
   AOnClick: TNotifyEvent; AInsertPos: TCnMenuItemInsertPos; const ARelItemName,
-  AHint: string; AAction: TCustomAction);
+  AHint: string; AAction: TCustomAction; ImgIndex: Integer);
 begin
   inherited Create;
   FActive := True;
@@ -265,6 +272,7 @@ begin
   FRelItemName := ARelItemName;
   FHint := AHint;
   FAction := AAction;
+  FImageIndex := ImgIndex;
   FOnCreated := nil;
 end;
 
@@ -329,6 +337,16 @@ procedure TCnMenuItemDef.MenuItemCreated(MenuItem: TMenuItem);
 begin
   if Assigned(FOnCreated) then
     FOnCreated(Self, MenuItem);
+end;
+
+function TCnMenuItemDef.GetImageIndex: Integer;
+begin
+  Result := FImageIndex;
+end;
+
+procedure TCnMenuItemDef.SetImageIndex(Value: Integer);
+begin
+  FImageIndex := Value;
 end;
 
 //==============================================================================
@@ -450,6 +468,7 @@ begin
     MenuItem.Enabled := msEnabled in Item.Status;
     MenuItem.Visible := msVisible in Item.Status;
     MenuItem.Checked := msChecked in Item.Status;
+    MenuItem.ImageIndex := Item.ImageIndex;
     MenuItem.OnClick := Item.Execute;
     MenuItem.Action := Item.Action;
     
