@@ -70,8 +70,6 @@ interface
 
 {$I CnPack.inc}
 
-{$UNDEF DEBUG}
-
 uses
   SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
   Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
@@ -342,9 +340,9 @@ procedure TranslateReggedStrings;
 implementation
 
 uses
-{$IFDEF DEBUG}
+{$IFDEF DEBUG_MULTILANG}
   CnDebug,
-{$ENDIF DEBUG}
+{$ENDIF}
   CnLangConsts;
 
 type
@@ -864,9 +862,9 @@ var
   T: TComponent;
   IsInList, IsApplication: Boolean;
 begin
-{$IFDEF DEBUG}
+{$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
-{$ENDIF DEBUG}
+{$ENDIF}
   IsApplication := AComponent is TApplication;
   if AComponent <> nil then
   begin
@@ -900,9 +898,9 @@ begin
       end;
     end;
   end;
-{$IFDEF DEBUG}
+{$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogLeave('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
-{$ENDIF DEBUG}
+{$ENDIF}
 end;
 
 procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm);
@@ -915,9 +913,9 @@ begin
       begin
         if FontInited then
         begin
-        {$IFDEF DEBUG}
+        {$IFDEF DEBUG_MULTILANG}
           CnDebugger.LogMsg('LangManager: FontInited. ');
-        {$ENDIF DEBUG}
+        {$ENDIF}
           if CurrentLanguageIndex <> -1 then
           begin
             AForm.Font.Name := DefaultFont.Name;
@@ -938,9 +936,9 @@ procedure TCnCustomLangManager.TranslateObject(AObject: TObject;
 var
   AList: TList;
 begin
-{$IFDEF DEBUG}
+{$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('TranslateObject: ' + BaseName + ' ' + AObject.ClassName);
-{$ENDIF DEBUG}
+{$ENDIF}
   AList := TList.Create;
   AList.Add(AObject); // 必须加入自身来防止被子属性引用而重复翻译
   try
@@ -949,9 +947,9 @@ begin
   finally
     AList.Free;
   end;
-{$IFDEF DEBUG}
+{$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogLeave('TranslateObject: ' + BaseName + ' ' + AObject.ClassName);
-{$ENDIF DEBUG}
+{$ENDIF}
 end;
 
 procedure TCnCustomLangManager.TranslateRecurObject(AObject: TObject;
@@ -966,7 +964,7 @@ var
   AListItem: TListItem;
   ATreeNode: TTreeNode;
   IsForm, IsInList: Boolean;
-  NeedIgnoreAction: Boolean;
+  NeedCheckIgnoreAction: Boolean;
   ActionCaption, ActionHint: WideString;
   Info: PPropInfo;
 begin
@@ -1124,7 +1122,7 @@ begin
       Exit; // TChartSeriesList 会在此处出错，不得不抓住屏蔽
     end;
 
-    NeedIgnoreAction := False;
+    NeedCheckIgnoreAction := False;
     if FIgnoreAction then
     begin
       // 查找是否有 Action 属性，看是否 nil
@@ -1137,8 +1135,8 @@ begin
           ActionObj := GetObjectProp(AObject, APropName);
           if (ActionObj <> nil) and (ActionObj is TCustomAction)then
           begin
-            // 有 Action 属性不为 nil 的，需要忽略 Caption 和 Hint
-            NeedIgnoreAction := True;
+            // 有 Action 属性不为 nil 的，需要记录对应 Aciton 的 Caption 和 Hint 供比对
+            NeedCheckIgnoreAction := True;
             ActionCaption := (ActionObj as TCustomAction).Caption;
             ActionHint := (ActionObj as TCustomAction).Hint;
             Break;
@@ -1163,13 +1161,17 @@ begin
       if (APropType in [tkString, tkLString, tkWString //, tkWChar
         {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}]) then
       begin
-        if NeedIgnoreAction then
+        if NeedCheckIgnoreAction then
         begin
           APropValue := VartoStr(GetPropValue(AObject, APropName));
-          if (APropName = 'Caption') and (ActionCaption = APropValue) then
-            Continue
-          else if (APropName = 'Hint') and (ActionHint = APropValue) then
+          if ((APropName = 'Caption') and (ActionCaption = APropValue)) or
+            ((APropName = 'Hint') and (ActionHint = APropValue)) then
+          begin
+{$IFDEF DEBUG_MULTILANG}
+            CnDebugger.LogFmt('Ignore Property %s because has Action Value %s', [APropName, APropValue]);
+{$ENDIF}
             Continue;
+          end;
         end;
 
         Info := GetPropInfo(AObject, APropName);
@@ -1191,6 +1193,11 @@ begin
           AStr := BaseName + DefDelimeter + AStr;
 
         TransStr := TranslateString(AStr);
+
+{$IFDEF DEBUG_MULTILANG}
+        CnDebugger.LogFmt('Get Translation Value: %s=%s', [AStr, TransStr]);
+{$ENDIF}
+
         if TransStr <> '' then
           SetPropValue(AObject, APropName, TransStr);
       end
