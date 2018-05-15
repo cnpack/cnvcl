@@ -115,6 +115,7 @@ type
     btnAnsiCharSet: TButton;
     btnWideCharSet: TButton;
     btnWatchClear: TButton;
+    btnEvaluateScreen: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -158,6 +159,7 @@ type
     procedure btnAnsiCharSetClick(Sender: TObject);
     procedure btnWideCharSetClick(Sender: TObject);
     procedure btnWatchClearClick(Sender: TObject);
+    procedure btnEvaluateScreenClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -534,6 +536,11 @@ end;
 procedure TFormSend.btnEvaluateMenuClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(pm1);
+end;
+
+procedure TFormSend.btnEvaluateScreenClick(Sender: TObject);
+begin
+  CnDebugger.EvaluateObject(Screen);
 end;
 
 procedure TFormSend.btnEvaluateBmpClick(Sender: TObject);

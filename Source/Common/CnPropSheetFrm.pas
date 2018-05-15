@@ -1298,32 +1298,38 @@ var
   end;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
-  function CalcIndexedPropertyNameString(Indexed: TRttiIndexedProperty): string;
+  procedure CalcIndexedProperty(Indexed: TRttiIndexedProperty;
+    IndexedProp: TCnPropertyObject);
   var
     M: TRttiMethod;
     P: TArray<TRttiParameter>;
     I: Integer;
   begin
-    Result := Indexed.Name + '[';
+    IndexedProp.PropName := Indexed.Name + '[';
     M := Indexed.ReadMethod;
     if M <> nil then
     begin
       P := M.GetParameters;
+      IndexedProp.IndexParamCount := Length(P);
       for I := 0 to Length(P) - 2 do
-        Result := Result + P[I].ToString + ', ';
-      Result := Result + P[Length(P) - 1].ToString;
+        IndexedProp.PropName := IndexedProp.PropName + P[I].ToString + ', ';
+      IndexedProp.PropName := IndexedProp.PropName + P[Length(P) - 1].ToString;
     end
     else
     begin
       M := Indexed.WriteMethod;
       if M = nil then
-        Exit(Result + ']');
+      begin
+        IndexedProp.PropName := IndexedProp.PropName + ']';
+        Exit;
+      end;
       P := M.GetParameters;
+      IndexedProp.IndexParamCount := Length(P) - 1;
       for I := 0 to Length(P) - 3 do
-        Result := Result + P[I].ToString + ', ';
-      Result := Result + P[Length(P) - 2].ToString;
+        IndexedProp.PropName := IndexedProp.PropName + P[I].ToString + ', ';
+      IndexedProp.PropName := IndexedProp.PropName + P[Length(P) - 2].ToString;
     end;
-    Result := Result + ']';
+    IndexedProp.PropName := IndexedProp.PropName + ']';
   end;
 {$ENDIF}
 begin
@@ -1552,7 +1558,7 @@ begin
             else
               AProp := IndexOfProperty(Properties, RttiIndexedProperty.Name);
 
-            AProp.PropName := CalcIndexedPropertyNameString(RttiIndexedProperty);
+            CalcIndexedProperty(RttiIndexedProperty, AProp);
             AProp.PropType := RttiIndexedProperty.PropertyType.TypeKind;
             AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 

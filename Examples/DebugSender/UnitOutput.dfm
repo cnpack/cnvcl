@@ -672,6 +672,17 @@ object FormSend: TFormSend
     TabOrder = 51
     OnClick = btnWatchClearClick
   end
+  object btnEvaluateScreen: TButton
+    Left = 120
+    Top = 359
+    Width = 97
+    Height = 21
+    Caption = '¿´Screen'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 52
+    OnClick = btnEvaluateScreenClick
+  end
   object dlgColor: TColorDialog
     Ctl3D = True
     Left = 256
