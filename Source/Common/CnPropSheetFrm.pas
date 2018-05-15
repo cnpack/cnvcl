@@ -87,6 +87,7 @@ type
     FPropValue: Variant;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     FPropRttiValue: TValue;
+    FIndexParamCount: Integer;
 {$ENDIF}
     FCanModify: Boolean;
   public
@@ -96,6 +97,9 @@ type
     property PropValue: Variant read FPropValue write FPropValue;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
+
+    // Indexed Property Support
+    property IndexParamCount: Integer read FIndexParamCount write FIndexParamCount;
 {$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
   end;
@@ -1232,6 +1236,7 @@ var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   RttiProperty: TRttiProperty;
+  RttiIndexedProperty: TRttiIndexedProperty;
   RttiMethod: TRttiMethod;
   AMethod: TCnMethodObject;
 
@@ -1292,6 +1297,35 @@ var
     end;
   end;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  function CalcIndexedPropertyNameString(Indexed: TRttiIndexedProperty): string;
+  var
+    M: TRttiMethod;
+    P: TArray<TRttiParameter>;
+    I: Integer;
+  begin
+    Result := Indexed.Name + '[';
+    M := Indexed.ReadMethod;
+    if M <> nil then
+    begin
+      P := M.GetParameters;
+      for I := 0 to Length(P) - 2 do
+        Result := Result + P[I].ToString + ', ';
+      Result := Result + P[Length(P) - 1].ToString;
+    end
+    else
+    begin
+      M := Indexed.WriteMethod;
+      if M = nil then
+        Exit(Result + ']');
+      P := M.GetParameters;
+      for I := 0 to Length(P) - 3 do
+        Result := Result + P[I].ToString + ', ';
+      Result := Result + P[Length(P) - 2].ToString;
+    end;
+    Result := Result + ']';
+  end;
+{$ENDIF}
 begin
   if ObjectInstance <> nil then
   begin
@@ -1502,6 +1536,32 @@ begin
 
               Include(FContentTypes, pctEvents);
             end;
+          end;
+        end;
+
+        // RTTIIndexedProperties
+        for RttiIndexedProperty in RttiType.GetIndexedProperties do
+        begin
+          if not AlreadyHasProperty(RttiIndexedProperty.Name) or IsRefresh then
+          begin
+            if not IsRefresh then
+            begin
+              AProp := TCnPropertyObject.Create;
+              AProp.IsNewRTTI := True;
+            end
+            else
+              AProp := IndexOfProperty(Properties, RttiIndexedProperty.Name);
+
+            AProp.PropName := CalcIndexedPropertyNameString(RttiIndexedProperty);
+            AProp.PropType := RttiIndexedProperty.PropertyType.TypeKind;
+            AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
+
+            AProp.DisplayValue := '<Indexed Property>';
+            AProp.Changed := False;
+            if not IsRefresh then
+              Properties.Add(AProp);
+
+            Include(FContentTypes, pctProps);
           end;
         end;
 
