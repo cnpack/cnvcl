@@ -2464,6 +2464,16 @@ begin
 
   HeadNum := SameCharCounts(AnsiUpperCase(_CnExtractFilePath(ATo)),
     AnsiUpperCase(_CnExtractFilePath(AFrom)));
+
+  // HeadNum 表示俩目录名前面相同的部分，注意可能最后相同的部分是前缀相同的不同目录名，
+  // 因此，如果末尾都不是\，则需要往回找到都是 \ 的位置
+  while HeadNum > 0 do
+  begin
+    if (ATo[HeadNum] = '\') and (AFrom[HeadNum] = '\') then
+      Break;
+    Dec(HeadNum);
+  end;
+
   if HeadNum > 0 then
   begin
     ATo := StringReplace(Copy(ATo, HeadNum + 1, MaxInt), '\', PathStr, [rfReplaceAll]);
