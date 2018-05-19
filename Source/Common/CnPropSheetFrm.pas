@@ -87,7 +87,9 @@ type
     FPropValue: Variant;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     FPropRttiValue: TValue;
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
     FIndexParamCount: Integer;
+  {$ENDIF}
 {$ENDIF}
     FCanModify: Boolean;
   public
@@ -98,8 +100,10 @@ type
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
 
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
     // Indexed Property Support
     property IndexParamCount: Integer read FIndexParamCount write FIndexParamCount;
+  {$ENDIF}
 {$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
   end;
@@ -1236,7 +1240,9 @@ var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   RttiProperty: TRttiProperty;
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
   RttiIndexedProperty: TRttiIndexedProperty;
+{$ENDIF}
   RttiMethod: TRttiMethod;
   AMethod: TCnMethodObject;
 
@@ -1298,6 +1304,7 @@ var
   end;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
   procedure CalcIndexedProperty(Indexed: TRttiIndexedProperty;
     IndexedProp: TCnPropertyObject);
   var
@@ -1331,6 +1338,7 @@ var
     end;
     IndexedProp.PropName := IndexedProp.PropName + ']';
   end;
+{$ENDIF}
 {$ENDIF}
 begin
   if ObjectInstance <> nil then
@@ -1545,6 +1553,7 @@ begin
           end;
         end;
 
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
         // RTTIIndexedProperties
         for RttiIndexedProperty in RttiType.GetIndexedProperties do
         begin
@@ -1570,6 +1579,7 @@ begin
             Include(FContentTypes, pctProps);
           end;
         end;
+{$ENDIF}
 
         for RttiMethod in RttiType.GetMethods do
         begin
