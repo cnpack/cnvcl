@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2017.04.05 V1.1
+* 修改记录：2018.05.22 V1.2
+*               将公私钥组合成对象以方便使用
+*           2017.04.05 V1.1
 *               实现大数的 RSA 密钥生成与加解密
 *           2017.04.03 V1.0
 *               创建单元，Int64 范围内的 RSA 从 CnPrimeNumber 中独立出来
@@ -41,6 +43,37 @@ interface
 
 uses
   SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber;
+
+type
+  TCnRSAPrivateKey = class
+  private
+    FPrimeKey1: TCnBigNumber;
+    FPrimeKey2: TCnBigNumber;
+    FPrivKeyProduct: TCnBigNumber;
+    FPrivKeyExponent: TCnBigNumber;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+
+    property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
+    property PrimeKey2: TCnBigNumber read FPrimeKey2 write FPrimeKey2;
+    property PrivKeyProduct: TCnBigNumber read FPrivKeyProduct write FPrivKeyProduct;
+    property PrivKeyExponent: TCnBigNumber read FPrivKeyExponent write FPrivKeyProduct;
+  end;
+
+  TCnRSAPublicKey = class
+  private
+    FPubKeyProduct: TCnBigNumber;
+    FPubKeyExponent: TCnBigNumber;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+
+    property PubKeyProduct: TCnBigNumber read FPubKeyProduct write FPubKeyProduct;
+    property PubKeyExponent: TCnBigNumber read FPubKeyExponent write FPubKeyExponent;
+  end;
 
 // Int64 范围内的 RSA 加解密实现
 
@@ -62,19 +95,41 @@ function CnInt64RSADecrypt(Res: Int64; PubKeyProduct: Int64;
 
 // 大数范围内的 RSA 加解密实现
 
-function CnRSAGenerateKeys(Bits: Integer; PrimeKey1, PrimeKey2,
-  PrivKeyProduct, PrivKeyExponent, PubKeyProduct, PubKeyExponent: TCnBigNumber): Boolean;
+function CnRSAGenerateKeys(Bits: Integer; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey): Boolean;
 {* 生成 RSA 算法所需的公私钥，Bits 是素数范围，其余参数均为生成}
 
-function CnRSAEncrypt(Data: TCnBigNumber; PrivKeyProduct: TCnBigNumber;
-  PrivKeyExponent: TCnBigNumber; Res: TCnBigNumber): Boolean;
+//procedure CnRSALoadKeysFromPem(const PemFileName: string;
+//  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
+//{* 从 PEM 格式文件中加载公私钥数据，如公钥参数为空则只载入私钥数据}
+//
+//procedure CnRSASaveKeysToPem(const PemFileName: string;
+//  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
+//{* 将公私钥写入 PEM 格式文件中}
+//
+//procedure CnRSALoadPublicKeyFromPem(const PemFileName: string;
+//  PublicKey: TCnRSAPublicKey);
+//{* 从 PEM 格式文件中加载公钥数据}
+//
+//procedure CnRSASavePublicKeyToPem(const PemFileName: string;
+//  PublicKey: TCnRSAPublicKey);
+//{* 将公钥写入 PEM 格式文件中}
+
+function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
+  Res: TCnBigNumber): Boolean;
 {* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
 
-function CnRSADecrypt(Res: TCnBigNumber; PubKeyProduct: TCnBigNumber;
-  PubKeyExponent: TCnBigNumber; Data: TCnBigNumber): Boolean;
+function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
+  Data: TCnBigNumber): Boolean;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
 implementation
+
+const
+  PEM_PRIVATE_HEAD = '-----BEGIN RSA PRIVATE KEY-----';
+  PEM_PRIVATE_TAIL = '-----END RSA PRIVATE KEY-----';
+  PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
+  PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function Int64RSACrypt(Data: Int64; Product: Int64; Exponent: Int64;
@@ -151,8 +206,8 @@ begin
   Result := Int64RSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
 end;
 
-function CnRSAGenerateKeys(Bits: Integer; PrimeKey1, PrimeKey2,
-  PrivKeyProduct, PrivKeyExponent, PubKeyProduct, PubKeyExponent: TCnBigNumber): Boolean;
+function CnRSAGenerateKeys(Bits: Integer; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey): Boolean;
 var
   N: Integer;
   P, Y, R, S1, S2, One: TCnBigNumber;
@@ -161,29 +216,25 @@ begin
   if Bits <= 16 then
     Exit;
 
-  PrimeKey1.Clear;
-  PrimeKey2.Clear;
-  PrivKeyProduct.Clear;
-  PrivKeyExponent.Clear;
-  PubKeyProduct.Clear;
-  PubKeyExponent.Clear;
+  PrivateKey.Clear;
+  PublicKey.Clear;
 
-  if not BigNumberGeneratePrime(PrimeKey1, Bits div 8) then
+  if not BigNumberGeneratePrime(PrivateKey.PrimeKey1, Bits div 8) then
     Exit;
 
   N := Trunc(Random * 1000);
   Sleep(N);
 
-  if not BigNumberGeneratePrime(PrimeKey2, Bits div 8) then
+  if not BigNumberGeneratePrime(PrivateKey.PrimeKey2, Bits div 8) then
     Exit;
 
-  if not BigNumberMul(PrivKeyProduct, PrimeKey1, PrimeKey2) then
+  if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
     Exit;
 
-  if not BigNumberMul(PubKeyProduct, PrimeKey1, PrimeKey2) then
+  if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
     Exit;
 
-  PubKeyExponent.SetDec('65537');
+  PublicKey.PubKeyExponent.SetDec('65537');
 
   R := nil;
   Y := nil;
@@ -201,15 +252,15 @@ begin
     One := TCnBigNumber.Create;
 
     BigNumberSetOne(One);
-    BigNumberSub(S1, PrimeKey1, One);
-    BigNumberSub(S2, PrimeKey2, One);
+    BigNumberSub(S1, PrivateKey.PrimeKey1, One);
+    BigNumberSub(S2, PrivateKey.PrimeKey2, One);
     BigNumberMul(P, S1, S2);
 
-    BigNumberExtendedEuclideanGcd(PubKeyExponent, P, PrivKeyExponent, Y, R);
+    BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, P, PrivateKey.PrivKeyExponent, Y, R);
 
     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p
-    if BigNumberIsNegative(PrivKeyExponent) then
-       BigNumberAdd(PrivKeyExponent, PrivKeyExponent, P);
+    if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
+       BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, P);
   finally
     One.Free;
     S2.Free;
@@ -222,6 +273,34 @@ begin
   Result := True;
 end;
 
+// 从 PEM 格式文件中加载私钥数据
+procedure CnRSALoadPrivateKeysFromPem(const PemFileName: string; PrimeKey1, PrimeKey2,
+  PrivKeyProduct, PrivKeyExponent: TCnBigNumber);
+begin
+
+end;
+
+// 将私钥写入 PEM 格式文件中
+procedure CnRSASavePrivateKeysToPem(const PemFileName: string; PrimeKey1, PrimeKey2,
+  PrivKeyProduct, PrivKeyExponent: TCnBigNumber);
+begin
+
+end;
+
+// 从 PEM 格式文件中加载公钥数据
+procedure CnRSALoadPublicKeysFromPem(const PemFileName: string;
+  PubKeyProduct, PubKeyExponent: TCnBigNumber);
+begin
+
+end;
+
+// 将公钥写入 PEM 格式文件中
+procedure CnRSASavePublicKeysToPem(const PemFileName: string;
+  PubKeyProduct, PubKeyExponent: TCnBigNumber);
+begin
+
+end;
+
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function RSACrypt(Data: TCnBigNumber; Product: TCnBigNumber; Exponent: TCnBigNumber;
   out Res: TCnBigNumber): Boolean;
@@ -230,17 +309,65 @@ begin
 end;
 
 // 利用上面生成的私钥对数据进行加密，返回加密是否成功
-function CnRSAEncrypt(Data: TCnBigNumber; PrivKeyProduct: TCnBigNumber;
-  PrivKeyExponent: TCnBigNumber; Res: TCnBigNumber): Boolean;
+function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
+  Res: TCnBigNumber): Boolean;
 begin
-  Result := RSACrypt(Data, PrivKeyProduct, PrivKeyExponent, Res);
+  Result := RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res);
 end;
 
 // 利用上面生成的公钥对数据进行解密，返回解密是否成功
-function CnRSADecrypt(Res: TCnBigNumber; PubKeyProduct: TCnBigNumber;
-  PubKeyExponent: TCnBigNumber; Data: TCnBigNumber): Boolean;
+function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
+  Data: TCnBigNumber): Boolean;
 begin
-  Result := RSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
+  Result := RSACrypt(Res, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Data);
+end;
+
+{ TCnRSAPrivateKey }
+
+procedure TCnRSAPrivateKey.Clear;
+begin
+  FPrimeKey1.Clear;
+  FPrimeKey2.Clear;
+  FPrivKeyProduct.Clear;
+  FPrivKeyExponent.Clear;
+end;
+
+constructor TCnRSAPrivateKey.Create;
+begin
+  FPrimeKey1 := TCnBigNumber.Create;
+  FPrimeKey2 := TCnBigNumber.Create;
+  FPrivKeyProduct := TCnBigNumber.Create;
+  FPrivKeyExponent := TCnBigNumber.Create;
+end;
+
+destructor TCnRSAPrivateKey.Destroy;
+begin
+  FPrimeKey1.Free;
+  FPrimeKey2.Free;
+  FPrivKeyProduct.Free;
+  FPrivKeyExponent.Free;
+  inherited;
+end;
+
+{ TCnRSAPublicKey }
+
+procedure TCnRSAPublicKey.Clear;
+begin
+  FPubKeyProduct.Clear;
+  FPubKeyExponent.Clear;
+end;
+
+constructor TCnRSAPublicKey.Create;
+begin
+  FPubKeyProduct := TCnBigNumber.Create;
+  FPubKeyExponent := TCnBigNumber.Create;
+end;
+
+destructor TCnRSAPublicKey.Destroy;
+begin
+  FPubKeyExponent.Free;
+  FPubKeyProduct.Free;
+  inherited;
 end;
 
 end.

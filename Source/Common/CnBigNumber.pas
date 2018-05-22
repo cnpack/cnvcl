@@ -350,8 +350,8 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功}
 
-function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 {* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功}
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
@@ -368,11 +368,11 @@ function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
    Remain 始终大于零，返回求余计算是否成功}
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  var Exponent: TCnBigNumber): Boolean;
+  Exponent: TCnBigNumber): Boolean;
 {* 求大数 Num 的 Exponent  次方，返回乘方计算是否成功，极其耗时}
 
-function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
@@ -2765,8 +2765,8 @@ begin
   end;
 end;
 
-function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 var
   Top, AL, BL: Integer;
   RR: TCnBigNumber;
@@ -3057,7 +3057,7 @@ begin
 end;
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  var Exponent: TCnBigNumber): Boolean;
+  Exponent: TCnBigNumber): Boolean;
 var
   I, Bits: Integer;
   V, RR: TCnBigNumber;
@@ -3188,8 +3188,8 @@ begin
   Result := A;
 end;
 
-function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 var
   T, A, B: TCnBigNumber;
 begin

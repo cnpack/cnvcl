@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnBigNumber;
+  StdCtrls, ComCtrls, CnBigNumber, CnRSA;
 
 type
   TFormRSA = class(TForm)
@@ -87,8 +87,8 @@ type
     procedure btnBNRSADeClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
-    FBNPrime1, FBNPrime2: TCnBigNumber;
-    FBNPrivKeyProduct, FBNPrivKeyExponent, FBNPubKeyProduct, FBNPubKeyExponent: TCnBigNumber;
+    FPrivateKey: TCnRSAPrivateKey;
+    FPublicKey: TCnRSAPublicKey;
   public
     { Public declarations }
   end;
@@ -97,9 +97,6 @@ var
   FormRSA: TFormRSA;
 
 implementation
-
-uses
-  CnRSA;
 
 {$R *.DFM}
 
@@ -150,35 +147,26 @@ begin
   pgc1.ActivePageIndex := 0;
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
 
-  FBNPrivKeyProduct := TCnBigNumber.Create;
-  FBNPrivKeyExponent := TCnBigNumber.Create;
-  FBNPubKeyProduct := TCnBigNumber.Create;
-  FBNPubKeyExponent := TCnBigNumber.Create;
-  FBNPrime1 := TCnBigNumber.Create;
-  FBNPrime2 := TCnBigNumber.Create;
+  FPrivateKey := TCnRSAPrivateKey.Create;
+  FPublicKey := TCnRSAPublicKey.Create;
 end;
 
 procedure TFormRSA.FormDestroy(Sender: TObject);
 begin
-  FBNPrivKeyProduct.Free;
-  FBNPrivKeyExponent.Free;
-  FBNPubKeyProduct.Free;
-  FBNPubKeyExponent.Free;
-  FBNPrime1.Free;
-  FBNPrime2.Free;
+  FPublicKey.Free;
+  FPrivateKey.Free;
 end;
 
 procedure TFormRSA.btnBNGenClick(Sender: TObject);
 begin
-  if CnRSAGenerateKeys(StrToIntDef(cbbBits.Text, 256), FBNPrime1, FBNPrime2,
-    FBNPrivKeyProduct, FBNPrivKeyExponent, FBNPubKeyProduct, FBNPubKeyExponent) then
+  if CnRSAGenerateKeys(StrToIntDef(cbbBits.Text, 256), FPrivateKey, FPublicKey) then
   begin
-    edtBNPrime1.Text := FBNPrime1.ToDec;
-    edtBNPrime2.Text := FBNPrime2.ToDec;
-    mmoBNPrivProduct.Text := FBNPrivKeyProduct.ToDec;
-    edtBNPrivExp.Text := FBNPrivKeyExponent.ToDec;
-    mmoBNPubProduct.Text := FBNPubKeyProduct.ToDec;
-    edtBNPubExp.Text := FBNPubKeyExponent.ToDec;
+    edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
+    edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;
+    mmoBNPrivProduct.Text := FPrivateKey.PrivKeyProduct.ToDec;
+    edtBNPrivExp.Text := FPrivateKey.PrivKeyExponent.ToDec;
+    mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
+    edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
   end;
 end;
 
@@ -245,7 +233,7 @@ var
   Data, Res: TCnBigNumber;
 begin
   Data := TCnBigNumber.FromDec(edtBNData.Text);
-  if BigNumberCompare(Data, FBNPrivKeyProduct) >= 0 then
+  if BigNumberCompare(Data, FPrivateKey.PrivKeyProduct) >= 0 then
   begin
     ShowMessage('Data Greater than Private Keys (Product *). Can NOT Encrypt.');
     BigNumberFree(Data);
@@ -253,7 +241,7 @@ begin
   end;
 
   Res := BigNumberNew;
-  if CnRSAEncrypt(Data, FBNPrivKeyProduct, FBNPrivKeyExponent, Res) then
+  if CnRSAEncrypt(Data, FPrivateKey, Res) then
     edtBNRes.Text := Res.ToDec;
 
   BigNumberFree(Res);
@@ -267,7 +255,7 @@ begin
   Data := BigNumberNew;
   Res := TCnBigNumber.FromDec(edtBNRes.Text);
 
-  if CnRSADecrypt(Res, FBNPubKeyProduct, FBNPubKeyExponent, Data) then
+  if CnRSADecrypt(Res, FPublicKey, Data) then
     edtBNDataBack.Text := Data.ToDec;
 
   BigNumberFree(Res);

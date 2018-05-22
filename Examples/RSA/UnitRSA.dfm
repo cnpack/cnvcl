@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 513
-    ActivePage = tsEuclid
+    ActivePage = tsRSA
     TabOrder = 0
     object tsInt64RSA: TTabSheet
       Caption = 'Int64 RSA'
