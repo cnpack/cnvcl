@@ -940,45 +940,37 @@ end;
 // 对String类型数据进行SHA224转换
 function SHA224String(const Str: string): TSHA224Digest;
 var
-  Context: TSHA224Context;
+  AStr: AnsiString;
 begin
-  SHA224Init(Context);
-  SHA224Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA224Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := SHA224StringA(AStr);
 end;
 
 // 对String类型数据进行SHA256转换
 function SHA256String(const Str: string): TSHA256Digest;
 var
-  Context: TSHA256Context;
+  AStr: AnsiString;
 begin
-  SHA256Init(Context);
-  SHA256Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA256Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := SHA256StringA(AStr);
 end;
 
 // 对String类型数据进行SHA384转换
 function SHA384String(const Str: string): TSHA384Digest;
 var
-  Context: TSHA384Context;
+  AStr: AnsiString;
 begin
-  SHA384Init(Context);
-  SHA384Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA384Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := SHA384StringA(AStr);
 end;
 
 // 对String类型数据进行SHA512转换
 function SHA512String(const Str: string): TSHA512Digest;
 var
-  Context: TSHA512Context;
+  AStr: AnsiString;
 begin
-  SHA512Init(Context);
-  SHA512Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA512Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := SHA512StringA(AStr);
 end;
 
 // 对AnsiString类型数据进行SHA224转换

@@ -366,11 +366,10 @@ end;
 // 对String类型数据进行SHA1转换
 function SHA1String(const Str: string): TSHA1Digest;
 var
-  Context: TSHA1Context;
+  AStr: AnsiString;
 begin
-  SHA1Init(Context);
-  SHA1Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
-  SHA1Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := SHA1StringA(AStr);
 end;
 
 // 对AnsiString类型数据进行SHA1转换
