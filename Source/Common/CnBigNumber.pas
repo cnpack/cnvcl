@@ -1235,7 +1235,7 @@ end;
 
 // 计算两个 32 位数（分别用高低 16 位表示）的 64 位积 HL * BHBL，
 // 传入的 LHBLBL 皆为 16 位，结果的高低位分别放 H 和 L，溢出不管
-procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD);
+procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   M, ML, LT, HT: DWORD;
 begin
@@ -1298,7 +1298,7 @@ begin
 end;
 
 // 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C
-procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD);
+procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   L, H: DWORD;
 begin
@@ -3452,10 +3452,17 @@ begin
   if not BigNumberRandBytes(Num, BytesCount) then
     Exit;
 
+  if not Num.IsOdd then
+    Num.AddWord(1);
+
   while not BigNumberIsProbablyPrime(Num, TestCount) do
   begin
+    // Num.AddWord(2);
     if not BigNumberRandBytes(Num, BytesCount) then
       Exit;
+
+    if not Num.IsOdd then
+      Num.AddWord(1);
   end;
   Result := True;
 end;
