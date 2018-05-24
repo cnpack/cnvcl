@@ -170,7 +170,7 @@ end;
 procedure TCnBerParser.ParseArea(Parent: TCnLeaf; AData: PByteArray;
   ADataLen: Cardinal; AStartOffset: Cardinal);
 var
-  Run: Cardinal;
+  Run, Start: Cardinal;
   Tag, DataLen, DataOffset, LenLen, Delta: Integer;
   B: Byte;
   IsStruct: Boolean;
@@ -184,6 +184,8 @@ begin
 
     if B = $FF then
       Exit;
+
+    Start := Run;
 
     // 处理 Tag 类型
     IsStruct := (B and CN_BER_TAG_STRUCT_MASK) <> 0;
@@ -222,7 +224,7 @@ begin
       else // if LenLen > SizeOf(Word) then
         raise Exception.Create('Length Too Long: ' + IntToStr(LenLen));
 
-      DataOffset := AStartOffset + Run + Cardinal(LenLen) + 1;
+      DataOffset := AStartOffset + Run + Cardinal(LenLen);
       Inc(Delta, LenLen);
       Inc(Run, LenLen);   // Run 指向数据
     end;
@@ -232,15 +234,15 @@ begin
       Parent := FBerTree.Root;
 
     ALeaf := FBerTree.AddChild(Parent) as TCnBerNode;
-    ALeaf.BerOffset := AStartOffset;
+    ALeaf.BerOffset := AStartOffset + Start;
     ALeaf.BerLength := DataLen + Delta;
     ALeaf.BerTag := Tag;
     ALeaf.BerDataLength := DataLen;
     ALeaf.BerDataOffset := DataOffset;
 
 {$IFDEF DEBUG}
-    ALeaf.Text := Format('Offset %d. Tag %d. DataLength %d', [ALeaf.BerOffset,
-      ALeaf.BerTag, ALeaf.BerDataLength]);
+    ALeaf.Text := Format('Offset %d. Length %d. Tag %d. DataLength %d', [ALeaf.BerOffset,
+      ALeaf.BerLength, ALeaf.BerTag, ALeaf.BerDataLength]);
 {$ENDIF}
 
     if IsStruct then

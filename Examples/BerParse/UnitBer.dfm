@@ -11,12 +11,13 @@ object FormParseBer: TFormParseBer
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object mmoResult: TMemo
     Left = 8
     Top = 64
-    Width = 337
+    Width = 321
     Height = 313
     ReadOnly = True
     TabOrder = 0
@@ -31,9 +32,9 @@ object FormParseBer: TFormParseBer
     OnClick = btnParseClick
   end
   object tv1: TTreeView
-    Left = 360
+    Left = 336
     Top = 64
-    Width = 265
+    Width = 289
     Height = 313
     Indent = 19
     TabOrder = 2

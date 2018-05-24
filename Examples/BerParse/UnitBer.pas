@@ -113,6 +113,9 @@ var
 begin
   Parser := TCnBerParser.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
   Parser.DumpToTreeView(tv1);
+  mmoResult.Clear;
+  mmoResult.Lines.Add('TotalCount: ' + IntToStr(Parser.TotalCount));
+  
   Parser.Free;
 end;
 
