@@ -88,112 +88,112 @@ type
   {* 进度回调事件类型声明}
 
 function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
-{* 对数据块进行SHA224转换
+{* 对数据块进行 SHA224 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
-{* 对数据块进行SHA256转换
+{* 对数据块进行 SHA256 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA384Buffer(const Buffer; Count: LongWord): TSHA384Digest;
-{* 对数据块进行SHA384转换
+{* 对数据块进行 SHA384 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA512Buffer(const Buffer; Count: LongWord): TSHA512Digest;
-{* 对数据块进行SHA512转换
+{* 对数据块进行 SHA512 计算
  |<PRE>
   const Buffer     - 要计算的数据块
   Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA224String(const Str: string): TSHA224Digest;
-{* 对String类型数据进行SHA224转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA224 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA256String(const Str: string): TSHA256Digest;
-{* 对String类型数据进行SHA256转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA256 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA384String(const Str: string): TSHA384Digest;
-{* 对String类型数据进行SHA384转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA384 计算，注意 D2009或以上版本的string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA512String(const Str: string): TSHA512Digest;
-{* 对String类型数据进行SHA512转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA512 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA224StringA(const Str: AnsiString): TSHA224Digest;
-{* 对AnsiString类型数据进行SHA224转换
+{* 对 AnsiString 类型数据进行 SHA224 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA224StringW(const Str: WideString): TSHA224Digest;
-{* 对 WideString类型数据进行SHA224转换
+{* 对 WideString 类型数据进行 SHA224 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA256StringA(const Str: AnsiString): TSHA256Digest;
-{* 对AnsiString类型数据进行SHA256转换
+{* 对 AnsiString 类型数据进行 SHA256 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA256StringW(const Str: WideString): TSHA256Digest;
-{* 对 WideString类型数据进行SHA256转换
+{* 对 WideString 类型数据进行 SHA256 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA384StringA(const Str: AnsiString): TSHA384Digest;
-{* 对AnsiString类型数据进行SHA384转换
+{* 对 AnsiString 类型数据进行 SHA384 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA384StringW(const Str: WideString): TSHA384Digest;
-{* 对 WideString类型数据进行SHA384转换
+{* 对 WideString 类型数据进行 SHA384 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA512StringA(const Str: AnsiString): TSHA512Digest;
-{* 对AnsiString类型数据进行SHA512转换
+{* 对 AnsiString 类型数据进行 SHA512 计算
 |<PRE>
  Str: AnsiString       - 要计算的字符串
 |</PRE>}
 
 function SHA512StringW(const Str: WideString): TSHA512Digest;
-{* 对 WideString类型数据进行SHA512转换
+{* 对 WideString 类型数据进行 SHA512 计算，计算前会调用 WideCharToMultyByte 进行转换
 |<PRE>
  Str: WideString       - 要计算的字符串
 |</PRE>}
 
 function SHA224File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA224Digest;
-{* 对指定文件数据进行SHA256转换
+{* 对指定文件内容进行 SHA256 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -201,7 +201,7 @@ function SHA224File(const FileName: string; CallBack: TSHACalcProgressFunc =
 
 function SHA224Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA224Digest;
-{* 对指定流数据进行SHA224转换
+{* 对指定流数据进行 SHA224 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -209,7 +209,7 @@ function SHA224Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 
 function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA256Digest;
-{* 对指定文件数据进行SHA256转换
+{* 对指定文件内容进行 SHA256 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -217,7 +217,7 @@ function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc =
 
 function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA256Digest;
-{* 对指定流数据进行SHA256转换
+{* 对指定流数据进行 SHA256 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -225,7 +225,7 @@ function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 
 function SHA384File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA384Digest;
-{* 对指定文件数据进行SHA384转换
+{* 对指定文件内容进行 SHA384 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -233,7 +233,7 @@ function SHA384File(const FileName: string; CallBack: TSHACalcProgressFunc =
 
 function SHA384Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA384Digest;
-{* 对指定流数据进行SHA384转换
+{* 对指定流数据进行 SHA384 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -241,7 +241,7 @@ function SHA384Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
 
 function SHA512File(const FileName: string; CallBack: TSHACalcProgressFunc =
   nil): TSHA512Digest;
-{* 对指定文件数据进行SHA512转换
+{* 对指定文件内容进行 SHA512 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -249,7 +249,7 @@ function SHA512File(const FileName: string; CallBack: TSHACalcProgressFunc =
 
 function SHA512Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA512Digest;
-{* 对指定流数据进行SHA512转换
+{* 对指定流数据进行 SHA512 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
@@ -280,79 +280,79 @@ procedure SHA512Update(var Context: TSHA512Context; Buffer: PAnsiChar; Len: Card
 procedure SHA512Final(var Context: TSHA512Context; var Digest: TSHA512Digest);
 
 function SHA224Print(const Digest: TSHA224Digest): string;
-{* 以十六进制格式输出SHA224计算值
+{* 以十六进制格式输出 SHA224 计算值
  |<PRE>
-   Digest: TSHA224Digest  - 指定的SHA224计算值
+   Digest: TSHA224Digest  - 指定的 SHA224 计算值
  |</PRE>}
 
 function SHA256Print(const Digest: TSHA256Digest): string;
-{* 以十六进制格式输出SHA256计算值
+{* 以十六进制格式输出 SHA256 计算值
  |<PRE>
-   Digest: TSHA256Digest  - 指定的SHA256计算值
+   Digest: TSHA256Digest  - 指定的 SHA256 计算值
  |</PRE>}
 
 function SHA384Print(const Digest: TSHA384Digest): string;
-{* 以十六进制格式输出SHA384计算值
+{* 以十六进制格式输出 SHA384 计算值
  |<PRE>
-   Digest: TSHA384Digest  - 指定的SHA384计算值
+   Digest: TSHA384Digest  - 指定的 SHA384 计算值
  |</PRE>}
 
 function SHA512Print(const Digest: TSHA512Digest): string;
-{* 以十六进制格式输出SHA512计算值
+{* 以十六进制格式输出 SHA512 计算值
  |<PRE>
-   Digest: TSHA512Digest  - 指定的SHA512计算值
+   Digest: TSHA512Digest  - 指定的 SHA512 计算值
  |</PRE>}
 
 function SHA224Match(const D1, D2: TSHA224Digest): Boolean;
-{* 比较两个SHA224计算值是否相等
+{* 比较两个 SHA224 计算值是否相等
  |<PRE>
-   D1: TSHA224Digest   - 需要比较的SHA224计算值
-   D2: TSHA224Digest   - 需要比较的SHA224计算值
+   D1: TSHA224Digest   - 需要比较的 SHA224 计算值
+   D2: TSHA224Digest   - 需要比较的 SHA224 计算值
  |</PRE>}
 
 function SHA256Match(const D1, D2: TSHA256Digest): Boolean;
-{* 比较两个SHA256计算值是否相等
+{* 比较两个 SHA256 计算值是否相等
  |<PRE>
-   D1: TSHA256Digest   - 需要比较的SHA256计算值
-   D2: TSHA256Digest   - 需要比较的SHA256计算值
+   D1: TSHA256Digest   - 需要比较的 SHA256 计算值
+   D2: TSHA256Digest   - 需要比较的 SHA256 计算值
  |</PRE>}
 
 function SHA384Match(const D1, D2: TSHA384Digest): Boolean;
-{* 比较两个SHA384计算值是否相等
+{* 比较两个 SHA384 计算值是否相等
  |<PRE>
-   D1: TSHA384Digest   - 需要比较的SHA384计算值
-   D2: TSHA384Digest   - 需要比较的SHA384计算值
+   D1: TSHA384Digest   - 需要比较的 SHA384 计算值
+   D2: TSHA384Digest   - 需要比较的 SHA384 计算值
  |</PRE>}
 
 function SHA512Match(const D1, D2: TSHA512Digest): Boolean;
-{* 比较两个SHA512计算值是否相等
+{* 比较两个 SHA512 计算值是否相等
  |<PRE>
-   D1: TSHA512Digest   - 需要比较的SHA512计算值
-   D2: TSHA512Digest   - 需要比较的SHA512计算值
+   D1: TSHA512Digest   - 需要比较的 SHA512 计算值
+   D2: TSHA512Digest   - 需要比较的 SHA512 计算值
  |</PRE>}
 
 function SHA224DigestToStr(aDig: TSHA224Digest): string;
-{* SHA224计算值转 string
+{* SHA224 计算值转 string
  |<PRE>
-   aDig: TSHA224Digest   - 需要转换的SHA224计算值
+   aDig: TSHA224Digest   - 需要转换的 SHA224 计算值
  |</PRE>}
 
 function SHA256DigestToStr(aDig: TSHA256Digest): string;
-{* SHA256计算值转 string
+{* SHA256 计算值转 string
  |<PRE>
-   aDig: TSHA256Digest   - 需要转换的SHA256计算值
+   aDig: TSHA256Digest   - 需要转换的 SHA256 计算值
  |</PRE>}
 
 function SHA384DigestToStr(aDig: TSHA384Digest): string;
-{* SHA384计算值转 string
+{* SHA384 计算值转 string
  |<PRE>
-   aDig: TSHA384Digest   - 需要转换的SHA384计算值
+   aDig: TSHA384Digest   - 需要转换的 SHA384 计算值
  |</PRE>}
 
 function SHA512DigestToStr(aDig: TSHA512Digest): string;
-{* SHA512计算值转 string
+{* SHA512 计算值转 string
  |<PRE>
-   aDig: TSHA512Digest   - 需要转换的SHA512计算值
+   aDig: TSHA512Digest   - 需要转换的 SHA512 计算值
  |</PRE>}
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -897,7 +897,7 @@ begin
   end;
 end;
 
-// 对数据块进行SHA224转换
+// 对数据块进行SHA224计算
 function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
 var
   Context: TSHA224Context;
@@ -907,7 +907,7 @@ begin
   SHA224Final(Context, Result);
 end;
 
-// 对数据块进行SHA256转换
+// 对数据块进行 SHA256 计算
 function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
 var
   Context: TSHA256Context;
@@ -917,7 +917,7 @@ begin
   SHA256Final(Context, Result);
 end;
 
-// 对数据块进行SHA384转换
+// 对数据块进行 SHA384 计算
 function SHA384Buffer(const Buffer; Count: LongWord): TSHA384Digest;
 var
   Context: TSHA384Context;
@@ -927,7 +927,7 @@ begin
   SHA384Final(Context, Result);
 end;
 
-// 对数据块进行SHA512转换
+// 对数据块进行 SHA512 计算
 function SHA512Buffer(const Buffer; Count: LongWord): TSHA512Digest;
 var
   Context: TSHA512Context;
@@ -937,7 +937,7 @@ begin
   SHA512Final(Context, Result);
 end;
 
-// 对String类型数据进行SHA224转换
+// 对 String 类型数据进行 SHA224 计算
 function SHA224String(const Str: string): TSHA224Digest;
 var
   AStr: AnsiString;
@@ -946,7 +946,7 @@ begin
   Result := SHA224StringA(AStr);
 end;
 
-// 对String类型数据进行SHA256转换
+// 对 String 类型数据进行 SHA256 计算
 function SHA256String(const Str: string): TSHA256Digest;
 var
   AStr: AnsiString;
@@ -955,7 +955,7 @@ begin
   Result := SHA256StringA(AStr);
 end;
 
-// 对String类型数据进行SHA384转换
+// 对 String 类型数据进行 SHA384 计算
 function SHA384String(const Str: string): TSHA384Digest;
 var
   AStr: AnsiString;
@@ -964,7 +964,7 @@ begin
   Result := SHA384StringA(AStr);
 end;
 
-// 对String类型数据进行SHA512转换
+// 对 String 类型数据进行 SHA512 计算
 function SHA512String(const Str: string): TSHA512Digest;
 var
   AStr: AnsiString;
@@ -973,7 +973,7 @@ begin
   Result := SHA512StringA(AStr);
 end;
 
-// 对AnsiString类型数据进行SHA224转换
+// 对 AnsiString 类型数据进行 SHA224 计算
 function SHA224StringA(const Str: AnsiString): TSHA224Digest;
 var
   Context: TSHA224Context;
@@ -983,7 +983,7 @@ begin
   SHA224Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA224转换
+// 对 WideString 类型数据进行 SHA224 计算
 function SHA224StringW(const Str: WideString): TSHA224Digest;
 var
   Context: TSHA224Context;
@@ -993,7 +993,7 @@ begin
   SHA224Final(Context, Result);
 end;
 
-// 对AnsiString类型数据进行SHA256转换
+// 对 AnsiString 类型数据进行 SHA256 计算
 function SHA256StringA(const Str: AnsiString): TSHA256Digest;
 var
   Context: TSHA256Context;
@@ -1003,7 +1003,7 @@ begin
   SHA256Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA256转换
+// 对 WideString 类型数据进行 SHA256 计算
 function SHA256StringW(const Str: WideString): TSHA256Digest;
 var
   Context: TSHA256Context;
@@ -1013,7 +1013,7 @@ begin
   SHA256Final(Context, Result);
 end;
 
-// 对AnsiString类型数据进行SHA384转换
+// 对 AnsiString 类型数据进行 SHA384 计算
 function SHA384StringA(const Str: AnsiString): TSHA384Digest;
 var
   Context: TSHA384Context;
@@ -1023,7 +1023,7 @@ begin
   SHA384Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA384转换
+// 对 WideString 类型数据进行 SHA384 计算
 function SHA384StringW(const Str: WideString): TSHA384Digest;
 var
   Context: TSHA384Context;
@@ -1033,7 +1033,7 @@ begin
   SHA384Final(Context, Result);
 end;
 
-// 对AnsiString类型数据进行SHA512转换
+// 对 AnsiString 类型数据进行 SHA512 计算
 function SHA512StringA(const Str: AnsiString): TSHA512Digest;
 var
   Context: TSHA512Context;
@@ -1043,7 +1043,7 @@ begin
   SHA512Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA512转换
+// 对 WideString 类型数据进行 SHA512 计算
 function SHA512StringW(const Str: WideString): TSHA512Digest;
 var
   Context: TSHA512Context;
@@ -1171,7 +1171,7 @@ begin
   end;
 end;
 
-// 对指定流进行SHA224计算
+// 对指定流进行 SHA224 计算
 function SHA224Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA224Digest;
 var
@@ -1181,7 +1181,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
 end;
 
-// 对指定流进行SHA256计算
+// 对指定流进行 SHA256 计算
 function SHA256Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA256Digest;
 var
@@ -1191,7 +1191,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
 end;
 
-// 对指定流进行SHA384计算
+// 对指定流进行 SHA384 计算
 function SHA384Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA384Digest;
 var
@@ -1201,7 +1201,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA384Digest));
 end;
 
-// 对指定流进行SHA512计算
+// 对指定流进行 SHA512 计算
 function SHA512Stream(Stream: TStream; CallBack: TSHACalcProgressFunc = nil):
   TSHA512Digest;
 var
@@ -1365,7 +1365,7 @@ begin
   end;
 end;
 
-// 对指定文件数据进行SHA224转换
+// 对指定文件数据进行 SHA224 计算
 function SHA224File(const FileName: string; CallBack: TSHACalcProgressFunc):
   TSHA224Digest;
 var
@@ -1375,7 +1375,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
 end;
 
-// 对指定文件数据进行SHA256转换
+// 对指定文件数据进行 SHA256 计算
 function SHA256File(const FileName: string; CallBack: TSHACalcProgressFunc):
   TSHA256Digest;
 var
@@ -1385,7 +1385,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
 end;
 
-// 对指定文件数据进行SHA384转换
+// 对指定文件数据进行 SHA384 计算
 function SHA384File(const FileName: string; CallBack: TSHACalcProgressFunc):
   TSHA384Digest;
 var
@@ -1395,7 +1395,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA384Digest));
 end;
 
-// 对指定文件数据进行SHA512转换
+// 对指定文件数据进行 SHA512 计算
 function SHA512File(const FileName: string; CallBack: TSHACalcProgressFunc):
   TSHA512Digest;
 var
@@ -1409,7 +1409,7 @@ const
   Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 
-// 以十六进制格式输出SHA224计算值
+// 以十六进制格式输出 SHA224 计算值
 function SHA224Print(const Digest: TSHA224Digest): string;
 var
   I: Byte;
@@ -1420,7 +1420,7 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 以十六进制格式输出SHA256计算值
+// 以十六进制格式输出 SHA256 计算值
 function SHA256Print(const Digest: TSHA256Digest): string;
 var
   I: Byte;
@@ -1431,7 +1431,7 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 以十六进制格式输出SHA384计算值
+// 以十六进制格式输出 SHA384 计算值
 function SHA384Print(const Digest: TSHA384Digest): string;
 var
   I: Byte;
@@ -1442,7 +1442,7 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 以十六进制格式输出SHA512计算值
+// 以十六进制格式输出 SHA512 计算值
 function SHA512Print(const Digest: TSHA512Digest): string;
 var
   I: Byte;
@@ -1453,10 +1453,10 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 比较两个SHA224计算值是否相等
+// 比较两个 SHA224 计算值是否相等
 function SHA224Match(const D1, D2: TSHA224Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1467,10 +1467,10 @@ begin
   end;
 end;
 
-// 比较两个SHA256计算值是否相等
+// 比较两个 SHA256 计算值是否相等
 function SHA256Match(const D1, D2: TSHA256Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1481,10 +1481,10 @@ begin
   end;
 end;
 
-// 比较两个SHA384计算值是否相等
+// 比较两个 SHA384 计算值是否相等
 function SHA384Match(const D1, D2: TSHA384Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1495,10 +1495,10 @@ begin
   end;
 end;
 
-// 比较两个SHA512计算值是否相等
+// 比较两个 SHA512 计算值是否相等
 function SHA512Match(const D1, D2: TSHA512Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1509,7 +1509,7 @@ begin
   end;
 end;
 
-// SHA224计算值转 string
+// SHA224 计算值转 string
 function SHA224DigestToStr(aDig: TSHA224Digest): string;
 var
   I: Integer;
@@ -1519,7 +1519,7 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-// SHA256计算值转 string
+// SHA256 计算值转 string
 function SHA256DigestToStr(aDig: TSHA256Digest): string;
 var
   I: Integer;
@@ -1529,7 +1529,7 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-// SHA384计算值转 string
+// SHA384 计算值转 string
 function SHA384DigestToStr(aDig: TSHA384Digest): string;
 var
   I: Integer;
@@ -1539,7 +1539,7 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-// SHA512计算值转 string
+// SHA512 计算值转 string
 function SHA512DigestToStr(aDig: TSHA512Digest): string;
 var
   I: Integer;

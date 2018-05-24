@@ -24,7 +24,7 @@ unit CnSHA3;
 * 软件名称：开发包基础库
 * 单元名称：SHA3(SHA3-224/256/384/512)算法单元
 * 单元作者：刘啸（Liu Xiao）
-* 备    注：D567下可以用有符号 Int64 代替无符号 UInt64 来计算 SHA512/384，原因是
+* 备    注：D567下可以用有符号 Int64 代替无符号 UInt64 来计算 SHA3_512/384，原因是
 *           基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
 *           同的是比较，而本单元中没有类似的比较。
 * 开发平台：PWinXP + Delphi 5.0
@@ -70,112 +70,112 @@ type
   {* 进度回调事件类型声明}
 
 function SHA3_224Buffer(const Buffer; Count: LongWord): TSHA3_224Digest;
-{* 对数据块进行SHA3_224转换
+{* 对数据块进行 SHA3_224 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_256Buffer(const Buffer; Count: LongWord): TSHA3_256Digest;
-{* 对数据块进行SHA3_256转换
+{* 对数据块进行 SHA3_256 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_384Buffer(const Buffer; Count: LongWord): TSHA3_384Digest;
-{* 对数据块进行SHA3_384转换
+{* 对数据块进行 SHA3_384 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_512Buffer(const Buffer; Count: LongWord): TSHA3_512Digest;
-{* 对数据块进行SHA3_512转换
+{* 对数据块进行 SHA3_512 计算
  |<PRE>
   const Buffer     - 要计算的数据块
   Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_224String(const Str: string): TSHA3_224Digest;
-{* 对String类型数据进行SHA3_224转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA3_224 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA3_256String(const Str: string): TSHA3_256Digest;
-{* 对String类型数据进行SHA3_256转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA3_256 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA3_384String(const Str: string): TSHA3_384Digest;
-{* 对String类型数据进行SHA3_384转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA3_384 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA3_512String(const Str: string): TSHA3_512Digest;
-{* 对String类型数据进行SHA3_512转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA3_512 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA3_224StringA(const Str: AnsiString): TSHA3_224Digest;
-{* 对AnsiString类型数据进行SHA3_224转换
+{* 对 AnsiString 类型数据进行 SHA3_224 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA3_224StringW(const Str: WideString): TSHA3_224Digest;
-{* 对 WideString类型数据进行SHA3_224转换
+{* 对 WideString 类型数据进行 SHA3_224 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA3_256StringA(const Str: AnsiString): TSHA3_256Digest;
-{* 对AnsiString类型数据进行SHA3_256转换
+{* 对 AnsiString 类型数据进行 SHA3_256 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA3_256StringW(const Str: WideString): TSHA3_256Digest;
-{* 对 WideString类型数据进行SHA3_256转换
+{* 对 WideString类型数据进行 SHA3_256 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA3_384StringA(const Str: AnsiString): TSHA3_384Digest;
-{* 对AnsiString类型数据进行SHA3_384转换
+{* 对 AnsiString 类型数据进行 SHA3_384 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA3_384StringW(const Str: WideString): TSHA3_384Digest;
-{* 对 WideString类型数据进行SHA3_384转换
+{* 对 WideString 类型数据进行 SHA3_384 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
 function SHA3_512StringA(const Str: AnsiString): TSHA3_512Digest;
-{* 对AnsiString类型数据进行SHA3_512转换
+{* 对 AnsiString 类型数据进行 SHA3_512 计算
 |<PRE>
  Str: AnsiString       - 要计算的字符串
 |</PRE>}
 
 function SHA3_512StringW(const Str: WideString): TSHA3_512Digest;
-{* 对 WideString类型数据进行SHA512转换
+{* 对 WideString 类型数据进行 SHA512 计算，计算前会调用 WideCharToMultyByte 进行转换
 |<PRE>
  Str: WideString       - 要计算的字符串
 |</PRE>}
 
 function SHA3_224File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
   nil): TSHA3_224Digest;
-{* 对指定文件数据进行SHA3_256转换
+{* 对指定文件内容进行 SHA3_256 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -183,7 +183,7 @@ function SHA3_224File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
 
 function SHA3_224Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_224Digest;
-{* 对指定流数据进行SHA3_224转换
+{* 对指定流数据进行 SHA3_224 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -191,7 +191,7 @@ function SHA3_224Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
 
 function SHA3_256File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
   nil): TSHA3_256Digest;
-{* 对指定文件数据进行SHA3_256转换
+{* 对指定文件内容进行 SHA3_256 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -199,7 +199,7 @@ function SHA3_256File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
 
 function SHA3_256Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_256Digest;
-{* 对指定流数据进行SHA3_256转换
+{* 对指定流数据进行 SHA3_256 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -207,7 +207,7 @@ function SHA3_256Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
 
 function SHA3_384File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
   nil): TSHA3_384Digest;
-{* 对指定文件数据进行SHA3_384转换
+{* 对指定文件内容进行 SHA3_384 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -215,7 +215,7 @@ function SHA3_384File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
 
 function SHA3_384Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_384Digest;
-{* 对指定流数据进行SHA3_384转换
+{* 对指定流数据进行 SHA3_384 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -223,7 +223,7 @@ function SHA3_384Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
 
 function SHA3_512File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
   nil): TSHA3_512Digest;
-{* 对指定文件数据进行SHA3_512转换
+{* 对指定文件内容进行 SHA3_512 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
@@ -231,86 +231,86 @@ function SHA3_512File(const FileName: string; CallBack: TSHA3CalcProgressFunc =
 
 function SHA3_512Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_512Digest;
-{* 对指定流数据进行SHA3_512转换
+{* 对指定流数据进行 SHA3_512 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
 function SHA3_224Print(const Digest: TSHA3_224Digest): string;
-{* 以十六进制格式输出SHA3_224计算值
+{* 以十六进制格式输出 SHA3_224 计算值
  |<PRE>
-   Digest: TSHA3_224Digest  - 指定的SHA3_224计算值
+   Digest: TSHA3_224Digest  - 指定的 SHA3_224 计算值
  |</PRE>}
 
 function SHA3_256Print(const Digest: TSHA3_256Digest): string;
-{* 以十六进制格式输出SHA3_256计算值
+{* 以十六进制格式输出 SHA3_256 计算值
  |<PRE>
-   Digest: TSHA3_256Digest  - 指定的SHA3_256计算值
+   Digest: TSHA3_256Digest  - 指定的 SHA3_256 计算值
  |</PRE>}
 
 function SHA3_384Print(const Digest: TSHA3_384Digest): string;
-{* 以十六进制格式输出SHA3_384计算值
+{* 以十六进制格式输出 SHA3_384 计算值
  |<PRE>
-   Digest: TSHA3_384Digest  - 指定的SHA3_384计算值
+   Digest: TSHA3_384Digest  - 指定的 SHA3_384 计算值
  |</PRE>}
 
 function SHA3_512Print(const Digest: TSHA3_512Digest): string;
-{* 以十六进制格式输出SHA3_512计算值
+{* 以十六进制格式输出 SHA3_512 计算值
  |<PRE>
-   Digest: TSHA3_512Digest  - 指定的SHA3_512计算值
+   Digest: TSHA3_512Digest  - 指定的 SHA3_512 计算值
  |</PRE>}
 
 function SHA3_224Match(const D1, D2: TSHA3_224Digest): Boolean;
-{* 比较两个SHA3_224计算值是否相等
+{* 比较两个 SHA3_224 计算值是否相等
  |<PRE>
-   D1: TSHA3_224Digest   - 需要比较的SHA3_224计算值
-   D2: TSHA3_224Digest   - 需要比较的SHA3_224计算值
+   D1: TSHA3_224Digest   - 需要比较的 SHA3_224 计算值
+   D2: TSHA3_224Digest   - 需要比较的 SHA3_224 计算值
  |</PRE>}
 
 function SHA3_256Match(const D1, D2: TSHA3_256Digest): Boolean;
-{* 比较两个SHA3_256计算值是否相等
+{* 比较两个 SHA3_256 计算值是否相等
  |<PRE>
-   D1: TSHA3_256Digest   - 需要比较的SHA3_256计算值
-   D2: TSHA3_256Digest   - 需要比较的SHA3_256计算值
+   D1: TSHA3_256Digest   - 需要比较的 SHA3_256 计算值
+   D2: TSHA3_256Digest   - 需要比较的 SHA3_256 计算值
  |</PRE>}
 
 function SHA3_384Match(const D1, D2: TSHA3_384Digest): Boolean;
-{* 比较两个SHA3_384计算值是否相等
+{* 比较两个 SHA3_384 计算值是否相等
  |<PRE>
-   D1: TSHA3_384Digest   - 需要比较的SHA3_384计算值
-   D2: TSHA3_384Digest   - 需要比较的SHA3_384计算值
+   D1: TSHA3_384Digest   - 需要比较的 SHA3_384 计算值
+   D2: TSHA3_384Digest   - 需要比较的 SHA3_384 计算值
  |</PRE>}
 
 function SHA3_512Match(const D1, D2: TSHA3_512Digest): Boolean;
-{* 比较两个SHA3_512计算值是否相等
+{* 比较两个 SHA3_512 计算值是否相等
  |<PRE>
-   D1: TSHA3_512Digest   - 需要比较的SHA3_512计算值
-   D2: TSHA3_512Digest   - 需要比较的SHA3_512计算值
+   D1: TSHA3_512Digest   - 需要比较的 SHA3_512 计算值
+   D2: TSHA3_512Digest   - 需要比较的 SHA3_512 计算值
  |</PRE>}
 
 function SHA3_224DigestToStr(aDig: TSHA3_224Digest): string;
-{* SHA3_224计算值转 string
+{* SHA3_224 计算值转 string
  |<PRE>
-   aDig: TSHA3_224Digest   - 需要转换的SHA3_224计算值
+   aDig: TSHA3_224Digest   - 需要转换的 SHA3_224 计算值
  |</PRE>}
 
 function SHA3_256DigestToStr(aDig: TSHA3_256Digest): string;
-{* SHA3_256计算值转 string
+{* SHA3_256 计算值转 string
  |<PRE>
-   aDig: TSHA3_256Digest   - 需要转换的SHA3_256计算值
+   aDig: TSHA3_256Digest   - 需要转换的 SHA3_256 计算值
  |</PRE>}
 
 function SHA3_384DigestToStr(aDig: TSHA3_384Digest): string;
-{* SHA3_384计算值转 string
+{* SHA3_384 计算值转 string
  |<PRE>
-   aDig: TSHA3_384Digest   - 需要转换的SHA3_384计算值
+   aDig: TSHA3_384Digest   - 需要转换的 SHA3_384 计算值
  |</PRE>}
 
 function SHA3_512DigestToStr(aDig: TSHA3_512Digest): string;
-{* SHA3_512计算值转 string
+{* SHA3_512 计算值转 string
  |<PRE>
-   aDig: TSHA3_512Digest   - 需要转换的SHA3_512计算值
+   aDig: TSHA3_512Digest   - 需要转换的 SHA3_512 计算值
  |</PRE>}
 
 //procedure SHA3Init(var Context: TSHA3Context; SHA3Type: TSHA3Type);
@@ -537,7 +537,7 @@ begin
   CopyMemory(@Digest[0], @(Context.State[0]), Context.DigestLen);
 end;
 
-// 对数据块进行SHA3_224转换
+// 对数据块进行 SHA3_224 计算
 function SHA3_224Buffer(const Buffer; Count: LongWord): TSHA3_224Digest;
 var
   Context: TSHA3Context;
@@ -549,7 +549,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对数据块进行SHA3_256转换
+// 对数据块进行 SHA3_256 计算
 function SHA3_256Buffer(const Buffer; Count: LongWord): TSHA3_256Digest;
 var
   Context: TSHA3Context;
@@ -561,7 +561,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对数据块进行SHA3_384转换
+// 对数据块进行 SHA3_384 计算
 function SHA3_384Buffer(const Buffer; Count: LongWord): TSHA3_384Digest;
 var
   Context: TSHA3Context;
@@ -573,7 +573,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对数据块进行SHA3_512转换
+// 对数据块进行 SHA3_512 计算
 function SHA3_512Buffer(const Buffer; Count: LongWord): TSHA3_512Digest;
 var
   Context: TSHA3Context;
@@ -585,59 +585,43 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对String类型数据进行SHA3_224转换
+// 对 String 类型数据进行 SHA3_224 计算
 function SHA3_224String(const Str: string): TSHA3_224Digest;
 var
-  Context: TSHA3Context;
-  Res: TSHA3GeneralDigest;
+  AStr: AnsiString;
 begin
-  SHA3Init(Context, stSHA3_224);
-  SHA3Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+  AStr := AnsiString(Str);
+  Result := SHA3_224StringA(AStr);
 end;
 
-// 对String类型数据进行SHA3_256转换
+// 对 String 类型数据进行 SHA3_256 计算
 function SHA3_256String(const Str: string): TSHA3_256Digest;
 var
-  Context: TSHA3Context;
-  Res: TSHA3GeneralDigest;
+  AStr: AnsiString;
 begin
-  SHA3Init(Context, stSHA3_256);
-  SHA3Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+  AStr := AnsiString(Str);
+  Result := SHA3_256StringA(AStr);
 end;
 
-// 对String类型数据进行SHA3_384转换
+// 对 String 类型数据进行 SHA3_384 计算
 function SHA3_384String(const Str: string): TSHA3_384Digest;
 var
-  Context: TSHA3Context;
-  Res: TSHA3GeneralDigest;
+  AStr: AnsiString;
 begin
-  SHA3Init(Context, stSHA3_384);
-  SHA3Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+  AStr := AnsiString(Str);
+  Result := SHA3_384StringA(AStr);
 end;
 
-// 对String类型数据进行SHA3_512转换
+// 对 String 类型数据进行 SHA3_512 计算
 function SHA3_512String(const Str: string): TSHA3_512Digest;
 var
-  Context: TSHA3Context;
-  Res: TSHA3GeneralDigest;
+  AStr: AnsiString;
 begin
-  SHA3Init(Context, stSHA3_512);
-  SHA3Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)),
-    Length(Str) * SizeOf(Char));
-  SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+  AStr := AnsiString(Str);
+  Result := SHA3_512StringA(AStr);
 end;
 
-// 对AnsiString类型数据进行SHA224转换
+// 对 AnsiString 类型数据进行SHA224 计算
 function SHA3_224StringA(const Str: AnsiString): TSHA3_224Digest;
 var
   Context: TSHA3Context;
@@ -649,7 +633,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对WideString类型数据进行SHA3_224转换
+// 对 WideString 类型数据进行 SHA3_224 计算
 function SHA3_224StringW(const Str: WideString): TSHA3_224Digest;
 var
   Context: TSHA3Context;
@@ -661,7 +645,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对AnsiString类型数据进行SHA3_256转换
+// 对 AnsiString 类型数据进行 SHA3_256 计算
 function SHA3_256StringA(const Str: AnsiString): TSHA3_256Digest;
 var
   Context: TSHA3Context;
@@ -673,7 +657,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对WideString类型数据进行SHA3_256转换
+// 对 WideString 类型数据进行 SHA3_256 计算
 function SHA3_256StringW(const Str: WideString): TSHA3_256Digest;
 var
   Context: TSHA3Context;
@@ -685,7 +669,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对AnsiString类型数据进行SHA3_384转换
+// 对 AnsiString 类型数据进行 SHA3_384 计算
 function SHA3_384StringA(const Str: AnsiString): TSHA3_384Digest;
 var
   Context: TSHA3Context;
@@ -697,7 +681,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对WideString类型数据进行SHA3_384转换
+// 对 WideString 类型数据进行 SHA3_384 计算
 function SHA3_384StringW(const Str: WideString): TSHA3_384Digest;
 var
   Context: TSHA3Context;
@@ -709,7 +693,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对AnsiString类型数据进行SHA3_512转换
+// 对 AnsiString 类型数据进行 SHA3_512 计算
 function SHA3_512StringA(const Str: AnsiString): TSHA3_512Digest;
 var
   Context: TSHA3Context;
@@ -721,7 +705,7 @@ begin
   CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
-// 对WideString类型数据进行SHA3_512转换
+// 对 WideString 类型数据进行 SHA3_512 计算
 function SHA3_512StringW(const Str: WideString): TSHA3_512Digest;
 var
   Context: TSHA3Context;
@@ -785,7 +769,7 @@ begin
   end;
 end;
 
-// 对指定流进行SHA3_224计算
+// 对指定流进行 SHA3_224 计算
 function SHA3_224Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_224Digest;
 var
@@ -795,7 +779,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_224Digest));
 end;
 
-// 对指定流进行SHA3_256计算
+// 对指定流进行 SHA3_256 计算
 function SHA3_256Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_256Digest;
 var
@@ -805,7 +789,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_256Digest));
 end;
 
-// 对指定流进行SHA3_384计算
+// 对指定流进行 SHA3_384 计算
 function SHA3_384Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_384Digest;
 var
@@ -815,7 +799,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_384Digest));
 end;
 
-// 对指定流进行SHA3_512计算
+// 对指定流进行 SHA3_512 计算
 function SHA3_512Stream(Stream: TStream; CallBack: TSHA3CalcProgressFunc = nil):
   TSHA3_512Digest;
 var
@@ -913,7 +897,7 @@ begin
   end;
 end;
 
-// 对指定文件数据进行SHA3_224转换
+// 对指定文件内容进行 SHA3_224 计算
 function SHA3_224File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
   TSHA3_224Digest;
 var
@@ -923,7 +907,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_224Digest));
 end;
 
-// 对指定文件数据进行SHA3_256转换
+// 对指定文件内容进行 SHA3_256 计算
 function SHA3_256File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
   TSHA3_256Digest;
 var
@@ -933,7 +917,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_256Digest));
 end;
 
-// 对指定文件数据进行SHA3_384转换
+// 对指定文件内容进行 SHA3_384 计算
 function SHA3_384File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
   TSHA3_384Digest;
 var
@@ -943,7 +927,7 @@ begin
   CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_384Digest));
 end;
 
-// 对指定文件数据进行SHA3_512转换
+// 对指定文件内容进行 SHA3_512 计算
 function SHA3_512File(const FileName: string; CallBack: TSHA3CalcProgressFunc):
   TSHA3_512Digest;
 var
@@ -957,7 +941,7 @@ const
   Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 
-// 以十六进制格式输出SHA3_224计算值
+// 以十六进制格式输出 SHA3_224 计算值
 function SHA3_224Print(const Digest: TSHA3_224Digest): string;
 var
   I: Byte;
@@ -968,7 +952,7 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 以十六进制格式输出SHA3_256计算值
+// 以十六进制格式输出 SHA3_256 计算值
 function SHA3_256Print(const Digest: TSHA3_256Digest): string;
 var
   I: Byte;
@@ -979,7 +963,7 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 以十六进制格式输出SHA3_384计算值
+// 以十六进制格式输出 SHA3_384 计算值
 function SHA3_384Print(const Digest: TSHA3_384Digest): string;
 var
   I: Byte;
@@ -990,7 +974,7 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 以十六进制格式输出SHA3_512计算值
+// 以十六进制格式输出 SHA3_512 计算值
 function SHA3_512Print(const Digest: TSHA3_512Digest): string;
 var
   I: Byte;
@@ -1001,10 +985,10 @@ begin
       and $0F] + Digits[Digest[I] and $0F]);
 end;
 
-// 比较两个SHA3_224计算值是否相等
+// 比较两个 SHA3_224 计算值是否相等
 function SHA3_224Match(const D1, D2: TSHA3_224Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1015,10 +999,10 @@ begin
   end;
 end;
 
-// 比较两个SHA3_256计算值是否相等
+// 比较两个 SHA3_256 计算值是否相等
 function SHA3_256Match(const D1, D2: TSHA3_256Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1029,10 +1013,10 @@ begin
   end;
 end;
 
-// 比较两个SHA3_384计算值是否相等
+// 比较两个 SHA3_384 计算值是否相等
 function SHA3_384Match(const D1, D2: TSHA3_384Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1043,10 +1027,10 @@ begin
   end;
 end;
 
-// 比较两个SHA3_512计算值是否相等
+// 比较两个 SHA3_512 计算值是否相等
 function SHA3_512Match(const D1, D2: TSHA3_512Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
   Result := True;
@@ -1057,7 +1041,7 @@ begin
   end;
 end;
 
-// SHA3_224计算值转 string
+// SHA3_224 计算值转 string
 function SHA3_224DigestToStr(aDig: TSHA3_224Digest): string;
 var
   I: Integer;
@@ -1067,7 +1051,7 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-// SHA3_256计算值转 string
+// SHA3_256 计算值转 string
 function SHA3_256DigestToStr(aDig: TSHA3_256Digest): string;
 var
   I: Integer;
@@ -1077,7 +1061,7 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-// SHA3_384计算值转 string
+// SHA3_384 计算值转 string
 function SHA3_384DigestToStr(aDig: TSHA3_384Digest): string;
 var
   I: Integer;
@@ -1087,7 +1071,7 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-// SHA3_512计算值转 string
+// SHA3_512 计算值转 string
 function SHA3_512DigestToStr(aDig: TSHA3_512Digest): string;
 var
   I: Integer;
