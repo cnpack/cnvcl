@@ -2081,6 +2081,7 @@ var
   ASize: TSize;
   C: Char;
 begin
+  Canvas.Brush.Style := bsClear;
   if (MatchedIndexes = nil) or (MatchedIndexes.Count = 0) then
   begin
     if MatchStr = '' then
