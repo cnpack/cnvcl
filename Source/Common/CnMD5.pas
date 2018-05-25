@@ -125,6 +125,12 @@ function MD5StringW(const Str: WideString): TMD5Digest;
    Str: WideString       - 要计算的宽字符串
  |</PRE>}
 
+function MD5UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TMD5Digest;
+{* 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function MD5File(const FileName: string;
   CallBack: TMD5CalcProgressFunc = nil): TMD5Digest;
 {* 对指定文件内容进行 MD5 计算
@@ -557,6 +563,16 @@ var
 begin
   MD5Init(Context);
   MD5UpdateW(Context, PWideChar(Str), Length(Str));
+  MD5Final(Context, Result);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
+function MD5UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TMD5Digest;
+var
+  Context: TMD5Context;
+begin
+  MD5Init(Context);
+  MD5Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   MD5Final(Context, Result);
 end;
 

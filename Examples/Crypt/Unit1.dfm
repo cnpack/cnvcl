@@ -189,6 +189,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnClick = btnMD5HmacClick
         end
+        object btnUMd5: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 MD5'
+          TabOrder = 6
+          OnClick = btnUMd5Click
+        end
       end
     end
     object tsBase64: TTabSheet
@@ -500,6 +509,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnClick = btnSHA1HmacClick
         end
+        object btnUSHA1: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA1'
+          TabOrder = 6
+          OnClick = btnUSHA1Click
+        end
       end
     end
     object tsSM3: TTabSheet
@@ -579,6 +597,15 @@ object FormCrypt: TFormCrypt
           Caption = 'SM3 Hmac'
           TabOrder = 4
           OnClick = btnSM3HmacClick
+        end
+        object btnUSM3: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SM3'
+          TabOrder = 5
+          OnClick = btnUSM3Click
         end
       end
     end
@@ -893,6 +920,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnClick = btnSHA224HmacClick
         end
+        object btnUSHA224: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA224'
+          TabOrder = 6
+          OnClick = btnUSHA224Click
+        end
       end
     end
     object tsSHA256: TTabSheet
@@ -971,6 +1007,15 @@ object FormCrypt: TFormCrypt
           Caption = 'SHA256 Hmac'
           TabOrder = 5
           OnClick = btnSHA256HmacClick
+        end
+        object btnUSHA256: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA256'
+          TabOrder = 6
+          OnClick = btnUSHA256Click
         end
       end
     end
@@ -1052,6 +1097,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 4
           OnClick = btnSHA384HmacClick
         end
+        object btnUSHA384: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA384'
+          TabOrder = 5
+          OnClick = btnUSHA384Click
+        end
       end
     end
     object tsSHA512: TTabSheet
@@ -1132,6 +1186,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 4
           OnClick = btnSHA512HmacClick
         end
+        object btnUSHA512: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA512'
+          TabOrder = 5
+          OnClick = btnUSHA512Click
+        end
       end
     end
     object tsSHA3_224: TTabSheet
@@ -1211,6 +1274,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnClick = btnSHA3_224HmacClick
         end
+        object btnUSHA3_224: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA3_224'
+          TabOrder = 6
+          OnClick = btnUSHA3_224Click
+        end
       end
     end
     object tsSHA3_256: TTabSheet
@@ -1289,6 +1361,15 @@ object FormCrypt: TFormCrypt
           Caption = 'SHA3_256 Hmac'
           TabOrder = 5
           OnClick = btnSHA3_256HmacClick
+        end
+        object btnUSHA3_256: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA3_256'
+          TabOrder = 6
+          OnClick = btnUSHA3_256Click
         end
       end
     end
@@ -1370,6 +1451,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 4
           OnClick = btnSHA3_384HmacClick
         end
+        object btnUSHA3_384: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA3_384'
+          TabOrder = 5
+          OnClick = btnUSHA3_384Click
+        end
       end
     end
     object tsSHA3_512: TTabSheet
@@ -1449,6 +1539,15 @@ object FormCrypt: TFormCrypt
           Caption = 'SHA3_512 Hmac'
           TabOrder = 4
           OnClick = btnSHA3_512HmacClick
+        end
+        object btnUSHA3_512: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHA3_512'
+          TabOrder = 5
+          OnClick = btnUSHA3_512Click
         end
       end
     end

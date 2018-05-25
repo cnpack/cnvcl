@@ -101,6 +101,12 @@ function SM3StringW(const Str: WideString): TSM3Digest;
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
+function SM3UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSM3Digest;
+{* 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function SM3File(const FileName: string;
   CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
 {* 对指定文件内容进行 SM3 计算
@@ -488,6 +494,16 @@ var
 begin
   SM3Start(Context);
   SM3UpdateW(Context, PWideChar(Str), Length(Str));
+  SM3Finish(Context, Result);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
+function SM3UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSM3Digest;
+var
+  Context: TSM3Context;
+begin
+  SM3Start(Context);
+  SM3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SM3Finish(Context, Result);
 end;
 

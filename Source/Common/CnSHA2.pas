@@ -143,6 +143,30 @@ function SHA512String(const Str: string): TSHA512Digest;
    Str: string       - 要计算的字符串
  |</PRE>}
 
+function SHA224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA224Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA256Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA384Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA512Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function SHA224StringA(const Str: AnsiString): TSHA224Digest;
 {* 对 AnsiString 类型数据进行 SHA224 计算
  |<PRE>
@@ -972,6 +996,48 @@ begin
   AStr := AnsiString(Str);
   Result := SHA512StringA(AStr);
 end;
+
+// 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
+function SHA224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA224Digest;
+var
+  Context: TSHA224Context;
+begin
+  SHA224Init(Context);
+  SHA224Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA224Final(Context, Result);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
+function SHA256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA256Digest;
+var
+  Context: TSHA256Context;
+begin
+  SHA256Init(Context);
+  SHA256Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA256Final(Context, Result);
+end;  
+
+// 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
+function SHA384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA384Digest;
+var
+  Context: TSHA384Context;
+begin
+  SHA384Init(Context);
+  SHA384Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA384Final(Context, Result);
+end;  
+
+// 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
+function SHA512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA512Digest;
+var
+  Context: TSHA512Context;
+begin
+  SHA512Init(Context);
+  SHA512Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA512Final(Context, Result);
+end;
+
+
 
 // 对 AnsiString 类型数据进行 SHA224 计算
 function SHA224StringA(const Str: AnsiString): TSHA224Digest;

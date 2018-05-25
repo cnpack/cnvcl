@@ -125,6 +125,30 @@ function SHA3_512String(const Str: string): TSHA3_512Digest;
    Str: string       - 要计算的字符串
  |</PRE>}
 
+function SHA3_224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_224Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA3_256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_256Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_256 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA3_384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_384Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_384 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA3_512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_512Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function SHA3_224StringA(const Str: AnsiString): TSHA3_224Digest;
 {* 对 AnsiString 类型数据进行 SHA3_224 计算
  |<PRE>
@@ -619,6 +643,54 @@ var
 begin
   AStr := AnsiString(Str);
   Result := SHA3_512StringA(AStr);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
+function SHA3_224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_224Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_224);
+  SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA3Final(Context, Res);
+  CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHA3_256 计算，不进行转换
+function SHA3_256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_256Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_256);
+  SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA3Final(Context, Res);
+  CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHA3_384 计算，不进行转换
+function SHA3_384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_384Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_384);
+  SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA3Final(Context, Res);
+  CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
+function SHA3_512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA3_512Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_512);
+  SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHA3Final(Context, Res);
+  CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 AnsiString 类型数据进行SHA224 计算

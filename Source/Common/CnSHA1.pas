@@ -90,6 +90,12 @@ function SHA1StringW(const Str: WideString): TSHA1Digest;
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
+function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA1Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function SHA1File(const FileName: string;
   CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
 {* 对指定文件内容进行 SHA1 计算
@@ -389,6 +395,15 @@ var
 begin
   SHA1Init(Context);
   SHA1UpdateW(Context, PWideChar(Str), Length(Str));
+  SHA1Final(Context, Result);
+end;
+
+function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA1Digest;
+var
+  Context: TSHA1Context;
+begin
+  SHA1Init(Context);
+  SHA1Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA1Final(Context, Result);
 end;
 
