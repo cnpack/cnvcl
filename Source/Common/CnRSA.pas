@@ -28,7 +28,11 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.05.22 V1.2
+* 修改记录：2018.05.26 V1.3
+*               能够从 Openssl 生成的公私钥 PEM 格式文件中读入公私钥，如
+*               openssl genrsa -out private.pem 2048
+*               openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+*           2018.05.22 V1.2
 *               将公私钥组合成对象以方便使用
 *           2017.04.05 V1.1
 *               实现大数的 RSA 密钥生成与加解密
@@ -42,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber;
+  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerParser;
 
 type
   TCnRSAPrivateKey = class
@@ -57,8 +61,11 @@ type
     procedure Clear;
 
     property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
+    {* 大素数 1}
     property PrimeKey2: TCnBigNumber read FPrimeKey2 write FPrimeKey2;
+    {* 大素数 2}
     property PrivKeyProduct: TCnBigNumber read FPrivKeyProduct write FPrivKeyProduct;
+    {* 俩素数乘积，也叫 Modulus}
     property PrivKeyExponent: TCnBigNumber read FPrivKeyExponent write FPrivKeyProduct;
   end;
 
@@ -72,6 +79,7 @@ type
     procedure Clear;
 
     property PubKeyProduct: TCnBigNumber read FPubKeyProduct write FPubKeyProduct;
+    {* 俩素数乘积，也叫 Modulus}
     property PubKeyExponent: TCnBigNumber read FPubKeyExponent write FPubKeyExponent;
   end;
 
@@ -99,21 +107,21 @@ function CnRSAGenerateKeys(Bits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey): Boolean;
 {* 生成 RSA 算法所需的公私钥，Bits 是素数范围，其余参数均为生成}
 
-//procedure CnRSALoadKeysFromPem(const PemFileName: string;
-//  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
-//{* 从 PEM 格式文件中加载公私钥数据，如公钥参数为空则只载入私钥数据}
-//
-//procedure CnRSASaveKeysToPem(const PemFileName: string;
-//  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
-//{* 将公私钥写入 PEM 格式文件中}
-//
-//procedure CnRSALoadPublicKeyFromPem(const PemFileName: string;
-//  PublicKey: TCnRSAPublicKey);
-//{* 从 PEM 格式文件中加载公钥数据}
-//
-//procedure CnRSASavePublicKeyToPem(const PemFileName: string;
-//  PublicKey: TCnRSAPublicKey);
-//{* 将公钥写入 PEM 格式文件中}
+function CnRSALoadKeysFromPem(const PemFileName: string;
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
+{* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
+
+procedure CnRSASaveKeysToPem(const PemFileName: string;
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
+{* 将公私钥写入 PEM 格式文件中}
+
+function CnRSALoadPublicKeyFromPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey): Boolean;
+{* 从 PEM 格式文件中加载公钥数据，返回是否成功}
+
+procedure CnRSASavePublicKeyToPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey);
+{* 将公钥写入 PEM 格式文件中}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean;
@@ -273,30 +281,188 @@ begin
   Result := True;
 end;
 
-// 从 PEM 格式文件中加载私钥数据
-procedure CnRSALoadPrivateKeysFromPem(const PemFileName: string; PrimeKey1, PrimeKey2,
-  PrivKeyProduct, PrivKeyExponent: TCnBigNumber);
+function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
+  MemoryStream: TMemoryStream): Boolean;
+var
+  I: Integer;
+  S: string;
+  Sl: TStringList;
 begin
+  Result := False;
 
+  if (ExpectHead <> '') and (ExpectTail <> '') then
+  begin
+    Sl := TStringList.Create;
+    try
+      Sl.LoadFromFile(FileName);
+      if Sl.Count > 2 then
+      begin
+        if Trim(Sl[0]) <> ExpectHead then
+          Exit;
+
+        if Trim(Sl[Sl.Count - 1]) = '' then
+          Sl.Delete(Sl.Count - 1);
+
+        if Trim(Sl[Sl.Count - 1]) <> ExpectTail then
+          Exit;
+
+        Sl.Delete(Sl.Count - 1);
+        Sl.Delete(0);
+        S := '';
+        for I := 0 to Sl.Count - 1 do
+          S := S + Sl[I];
+
+        // To De Base64 S
+        MemoryStream.Clear;
+        Result := (BASE64_OK = Base64Decode(S, MemoryStream));
+      end;
+    finally
+      Sl.Free;
+    end;
+  end
+  else
+  begin
+    MemoryStream.LoadFromFile(FileName);
+    Result := True;
+  end;
 end;
 
-// 将私钥写入 PEM 格式文件中
-procedure CnRSASavePrivateKeysToPem(const PemFileName: string; PrimeKey1, PrimeKey2,
-  PrivKeyProduct, PrivKeyExponent: TCnBigNumber);
+// 从 PEM 格式文件中加载公私钥数据
+(*
+  RSAPrivateKey ::= SEQUENCE {                        0
+    version Version,                                  1
+    modulus INTEGER, – n                             2 公私钥
+    publicExponent INTEGER, – e                      3 公钥
+    privateExponent INTEGER, – d                     4 私钥
+    prime1 INTEGER, – p                              5 私钥
+    prime2 INTEGER, – q                              6 私钥
+    exponent1 INTEGER, – d mod (p-1)                 7
+    exponent2 INTEGER, – d mod (q-1)                 8
+    coefficient INTEGER, – (inverse of q) mod p      9
+    otherPrimeInfos OtherPrimeInfos OPTIONAL          10
+  }
+*)
+function CnRSALoadKeysFromPem(const PemFileName: string;
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
+var
+  MemStream: TMemoryStream;
+  Ber: TCnBerParser;
+  Node: TCnBerNode;
+  Buf: Pointer;
+
+  procedure PutIndexedBigIntegerToBigInt(Idx: Integer; BigNumber: TCnBigNumber);
+  begin
+    Node := Ber.Items[Idx];
+    ReallocMem(Buf, Node.BerDataLength);
+    Node.CopyDataTo(Buf);
+    BigNumber.SetBinary(Buf, Node.BerDataLength);
+  end;
+
+begin
+  Result := False;
+  MemStream := nil;
+  Ber := nil;
+
+  try
+    MemStream := TMemoryStream.Create;
+    if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, MemStream) then
+    begin
+      Ber := TCnBerParser.Create(PByte(MemStream.Memory), MemStream.Size);
+      if Ber.TotalCount >= 8 then
+      begin
+        Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
+        if Node.AsByte = 0 then // 只支持版本 0
+        begin
+          Buf := nil;
+          // 2 和 3 整成公钥
+          if PublicKey <> nil then
+          begin
+            PutIndexedBigIntegerToBigInt(2, PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigInt(3, PublicKey.PubKeyExponent);
+          end;
+
+          // 2 4 5 6 整成私钥
+          if PrivateKey <> nil then
+          begin
+            PutIndexedBigIntegerToBigInt(2, PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigInt(4, PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigInt(5, PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigInt(6, PrivateKey.PrimeKey2);
+          end;
+
+          ReallocMem(Buf, 0);
+          Result := True;
+        end;
+      end;
+    end;
+  finally
+    MemStream.Free;
+    Ber.Free;
+  end;
+end;
+
+// 将公私钥写入 PEM 格式文件中
+procedure CnRSASaveKeysToPem(const PemFileName: string;
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
 begin
 
 end;
 
 // 从 PEM 格式文件中加载公钥数据
-procedure CnRSALoadPublicKeysFromPem(const PemFileName: string;
-  PubKeyProduct, PubKeyExponent: TCnBigNumber);
-begin
+// 注意 PublicKey 的 PEM 在标准 ASN.1 上做了一层封装，
+// 把 Modulus 与 Exponent 封在了 BitString 中，需要解析出来
+(*
 
+*)
+function CnRSALoadPublicKeyFromPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey): Boolean;
+var
+  Mem: TMemoryStream;
+  Ber: TCnBerParser;
+  Node: TCnBerNode;
+  Buf: Pointer;
+  
+  procedure PutIndexedBigIntegerToBigInt(Idx: Integer; BigNumber: TCnBigNumber);
+  begin
+    Node := Ber.Items[Idx];
+    ReallocMem(Buf, Node.BerDataLength);
+    Node.CopyDataTo(Buf);
+    BigNumber.SetBinary(Buf, Node.BerDataLength);
+  end;
+
+begin
+  Result := False;
+  Mem := nil;
+  Ber := nil;
+
+  try
+    Mem := TMemoryStream.Create;
+    if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem) then
+    begin
+      Ber := TCnBerParser.Create(PByte(Mem.Memory), Mem.Size, True);
+      if Ber.TotalCount >= 7 then
+      begin
+        Buf := nil;
+        // 2 和 3 整成公钥
+        if PublicKey <> nil then
+        begin
+          PutIndexedBigIntegerToBigInt(6, PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(7, PublicKey.PubKeyExponent);
+        end;
+
+        ReallocMem(Buf, 0);
+        Result := True;
+      end;
+    end;
+  finally
+    Mem.Free;
+    Ber.Free;
+  end;
 end;
 
 // 将公钥写入 PEM 格式文件中
-procedure CnRSASavePublicKeysToPem(const PemFileName: string;
-  PubKeyProduct, PubKeyExponent: TCnBigNumber);
+procedure CnRSASavePublicKeyToPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey);
 begin
 
 end;

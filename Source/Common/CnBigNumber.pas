@@ -163,6 +163,8 @@ type
     function ToBinary(const Buf: PAnsiChar): Integer;
     {* 将大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
        返回 Buf 写入的长度}
+    function SetBinary(Buf: PAnsiChar; Len: Integer): Boolean;
+    {* 根据一个二进制块给自身赋值}
 
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象}
@@ -274,8 +276,12 @@ function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 {* 将一个二进制块转换成大数对象，其结果不用时必须用 BigNumberFree 释放}
 
+function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
+  const Res: TCnBigNumber): Boolean;
+{* 将一个二进制块赋值给指定大数对象}
+
 function BigNumberToString(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成字符串 }
+{* 将一个大数对象转成字符串}
 
 function BigNumberToHex(const Num: TCnBigNumber): string;
 {* 将一个大数对象转成十六进制字符串}
@@ -781,31 +787,43 @@ begin
 end;
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
+begin
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  if not BigNumberSetBinary(Buf, Len, Result) then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+  end;
+end;
+
+function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
+  const Res: TCnBigNumber): Boolean;
 var
   I, M, N, L: DWORD;
 begin
-  Result := BigNumberNew;
-
+  Result := False;
   L := 0;
   N := Len;
   if N = 0 then
   begin
-    Result.Top := 0;
+    Res.Top := 0;
     Exit;
   end;
 
   I := ((N - 1) div BN_BYTES) + 1;
   M := (N - 1) mod BN_BYTES;
 
-  if BigNumberWordExpand(Result, I) = nil then
+  if BigNumberWordExpand(Res, I) = nil then
   begin
-    BigNumberFree(Result);
-    Result := nil;
+    BigNumberFree(Res);
     Exit;
   end;
 
-  Result.Top := I;
-  Result.Neg := 0;
+  Res.Top := I;
+  Res.Neg := 0;
   while N > 0 do
   begin
     L := (L shl 8) or Ord(Buf^);
@@ -814,7 +832,7 @@ begin
     if M = 0 then
     begin
       Dec(I);
-      PDWordArray(Result.D)^[I] := L;
+      PDWordArray(Res.D)^[I] := L;
       L := 0;
       M := BN_BYTES - 1;
     end
@@ -823,6 +841,7 @@ begin
 
     Dec(N);
   end;
+  Result := True;
 end;
 
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
@@ -3734,6 +3753,11 @@ end;
 function TCnBigNumber.SetDec(const Buf: AnsiString): Boolean;
 begin
   Result := BigNumberSetDec(Buf, Self);
+end;
+
+function TCnBigNumber.SetBinary(Buf: PAnsiChar; Len: Integer): Boolean;
+begin
+  Result := BigNumberSetBinary(Buf, Len, Self);
 end;
 
 function TCnBigNumber.SetHex(const Buf: AnsiString): Boolean;

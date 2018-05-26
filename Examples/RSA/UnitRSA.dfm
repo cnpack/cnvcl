@@ -282,7 +282,7 @@ object FormRSA: TFormRSA
         object btnBNGen: TButton
           Left = 128
           Top = 280
-          Width = 281
+          Width = 121
           Height = 25
           Caption = 'Generate RSA Keys'
           TabOrder = 6
@@ -299,7 +299,7 @@ object FormRSA: TFormRSA
         object edtBNPubExp: TEdit
           Left = 128
           Top = 244
-          Width = 633
+          Width = 569
           Height = 21
           ReadOnly = True
           TabOrder = 5
@@ -315,7 +315,7 @@ object FormRSA: TFormRSA
         object mmoBNPubProduct: TMemo
           Left = 128
           Top = 184
-          Width = 633
+          Width = 569
           Height = 45
           ScrollBars = ssVertical
           TabOrder = 4
@@ -336,6 +336,52 @@ object FormRSA: TFormRSA
             '256'
             '128'
             '64')
+        end
+        object btnBNLoadKeys: TButton
+          Left = 264
+          Top = 280
+          Width = 75
+          Height = 25
+          Hint = 'Load Private and Public Keys from PEM File'
+          Caption = 'Load PEM'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 8
+          OnClick = btnBNLoadKeysClick
+        end
+        object btnBNSaveKeys: TButton
+          Left = 344
+          Top = 280
+          Width = 75
+          Height = 25
+          Hint = 'Save Private and Public Keys to PEM File'
+          Caption = 'Save PEM'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 9
+        end
+        object btnBNLoadPub: TButton
+          Left = 704
+          Top = 184
+          Width = 57
+          Height = 25
+          Hint = 'Load Public Keys from Public PEM File'
+          Caption = 'Load PEM'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 10
+          OnClick = btnBNLoadPubClick
+        end
+        object btnSavePub: TButton
+          Left = 704
+          Top = 240
+          Width = 57
+          Height = 25
+          Hint = 'Save Public Keys to Public PEM File'
+          Caption = 'Save PEM'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 11
         end
       end
       object grpBNCrypt: TGroupBox
@@ -532,5 +578,13 @@ object FormRSA: TFormRSA
         end
       end
     end
+  end
+  object dlgOpenPEM: TOpenDialog
+    Left = 516
+    Top = 328
+  end
+  object dlgSavePEM: TSaveDialog
+    Left = 556
+    Top = 328
   end
 end

@@ -75,6 +75,12 @@ type
     lblX0: TLabel;
     edtXP: TEdit;
     lblXP: TLabel;
+    btnBNLoadKeys: TButton;
+    btnBNSaveKeys: TButton;
+    btnBNLoadPub: TButton;
+    btnSavePub: TButton;
+    dlgOpenPEM: TOpenDialog;
+    dlgSavePEM: TSaveDialog;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -85,6 +91,8 @@ type
     procedure btnBNGcdClick(Sender: TObject);
     procedure btnBNRSAEnClick(Sender: TObject);
     procedure btnBNRSADeClick(Sender: TObject);
+    procedure btnBNLoadPubClick(Sender: TObject);
+    procedure btnBNLoadKeysClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
     FPrivateKey: TCnRSAPrivateKey;
@@ -252,6 +260,9 @@ procedure TFormRSA.btnBNRSADeClick(Sender: TObject);
 var
   Data, Res: TCnBigNumber;
 begin
+  if Trim(edtBNRes.Text) = '' then
+    Exit;
+
   Data := BigNumberNew;
   Res := TCnBigNumber.FromDec(edtBNRes.Text);
 
@@ -260,6 +271,34 @@ begin
 
   BigNumberFree(Res);
   BigNumberFree(Data);
+end;
+
+procedure TFormRSA.btnBNLoadPubClick(Sender: TObject);
+begin
+  if dlgOpenPEM.Execute then
+  begin
+    if CnRSALoadPublicKeyFromPem(dlgOpenPEM.FileName, FPublicKey) then
+    begin
+      mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
+      edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+    end;
+  end;
+end;
+
+procedure TFormRSA.btnBNLoadKeysClick(Sender: TObject);
+begin
+  if dlgOpenPEM.Execute then
+  begin
+    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey) then
+    begin
+      edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
+      edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;
+      mmoBNPrivProduct.Text := FPrivateKey.PrivKeyProduct.ToDec;
+      edtBNPrivExp.Text := FPrivateKey.PrivKeyExponent.ToDec;
+      mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
+      edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+    end;
+  end;
 end;
 
 end.
