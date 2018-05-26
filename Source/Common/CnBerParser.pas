@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnTree {$IFDEF DEBUG}, ComCtrls {$ENDIF};
+  SysUtils, Classes, Windows, TypInfo, CnTree {$IFDEF DEBUG}, ComCtrls {$ENDIF};
 
 const
   CN_BER_TAG_TYPE_MASK                      = $C0;
@@ -79,9 +79,21 @@ const
   CN_BER_TAG_BMPSTRING                      = $1E;
 
 type
+  TCnBerTag = (cbtReserved_0, cbtBoolean, cbtInteger, cbtBit_String,
+    cbtOctet_String, cbtNull, cbtObject_Identifier, cbtObject_Descripion,
+    cbtExternal, cbtReal, cbtEnumerated, cbtEmbedded_Pdv, cbtUft8String,
+    cbtRelative_Oid, cbtReserved_0E, cbtReserved_0F, cbtSequence, cbtSet,
+    cbtNumericString, cbtPrintableString, cbtTeletexString, cbtVideotexString,
+    cbtIa5String, cbtUtcTime, cbtGeneralizedTime, cbtGraphicString,
+    cbtVisibleString, cbtGeneralString, cbtUniversalString, cbtCharacter_String,
+    cbtBmpstring);
+
+  TCnBerTags = set of TCnBerTag;
+
   TCnBerNode = class(TCnLeaf)
   {* 描述一解析出来的 ASN.1 节点}
   private
+    FOriginData: PByte;
     FBerLength: Integer;
     FBerOffset: Integer;
     FBerTag: Integer;
@@ -89,7 +101,20 @@ type
     FBerDataOffset: Integer;
     function GetItems(Index: Integer): TCnBerNode;
     procedure SetItems(Index: Integer; const Value: TCnBerNode);
+
+    function InternalAsInt(ByteSize: Integer): Integer;
   public
+    procedure CopyDataTo(DestBuf: Pointer);
+    {* 将数据复制至缓冲区，缓冲区尺寸至少需要 BerDataLength 大}
+
+    function AsShortInt: ShortInt;
+    function AsByte: Byte;
+    function AsSmallInt: SmallInt;
+    function AsWord: Word;
+    function AsInteger: Integer;
+    function AsCardinal: Cardinal;
+    function AsInt64: Int64;
+
     property Items[Index: Integer]: TCnBerNode read GetItems write SetItems;
 
     property BerOffset: Integer read FBerOffset write FBerOffset;
@@ -110,6 +135,10 @@ type
     FBerTree: TCnTree;
     FData: PByte;
     FDataLen: Cardinal;
+{$IFDEF DEBUG}
+    function GetOnSaveNode: TCnTreeNodeEvent;
+    procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
+{$ENDIF}
     function GetTotalCount: Integer;
     function GetItems(Index: Integer): TCnBerNode;
     procedure ParseArea(Parent: TCnLeaf; AData: PByteArray;
@@ -122,6 +151,7 @@ type
     destructor Destroy; override;
 {$IFDEF DEBUG}
     procedure DumpToTreeView(ATreeView: TTreeView);
+    property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
 {$ENDIF}
     property TotalCount: Integer read GetTotalCount;
     {* 解析出来的 ASN.1 节点总数}
@@ -130,6 +160,37 @@ type
   end;
 
 implementation
+
+function GetTagName(Tag: Integer): string;
+begin
+  Result := 'Invalid';
+  if Tag in [Ord(Low(TCnBerTag))..Ord(High(TCnBerTag))] then
+  begin
+    Result := GetEnumName(TypeInfo(TCnBerTag), Tag);
+    if (Length(Result) > 3) and (Copy(Result, 1, 3) = 'cbt') then
+      Delete(Result, 1, 3);
+  end;
+end;
+
+function SwapLongWord(Value: LongWord): LongWord;
+begin
+  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function SwapInt64(Value: Int64): Int64;
+var
+  Lo, Hi: LongWord;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := SwapLongWord(Lo);
+  Hi := SwapLongWord(Hi);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := Int64(Rec);
+end;
 
 { TCnBerParser }
 
@@ -155,12 +216,24 @@ begin
   FBerTree.SaveToTreeView(ATreeView);
 end;
 
+function TCnBerParser.GetOnSaveNode: TCnTreeNodeEvent;
+begin
+  Result := FBerTree.OnSaveANode;
+end;
+
+procedure TCnBerParser.SetOnSaveNode(const Value: TCnTreeNodeEvent);
+begin
+  FBerTree.OnSaveANode := Value;
+end;
+
 {$ENDIF}
 
 function TCnBerParser.GetItems(Index: Integer): TCnBerNode;
 begin
   Result := TCnBerNode(FBerTree.Items[Index + 1]);
 end;
+
+
 
 function TCnBerParser.GetTotalCount: Integer;
 begin
@@ -234,6 +307,8 @@ begin
       Parent := FBerTree.Root;
 
     ALeaf := FBerTree.AddChild(Parent) as TCnBerNode;
+    ALeaf.FOriginData := FData;
+
     ALeaf.BerOffset := AStartOffset + Start;
     ALeaf.BerLength := DataLen + Delta;
     ALeaf.BerTag := Tag;
@@ -241,8 +316,8 @@ begin
     ALeaf.BerDataOffset := DataOffset;
 
 {$IFDEF DEBUG}
-    ALeaf.Text := Format('Offset %d. Length %d. Tag %d. DataLength %d', [ALeaf.BerOffset,
-      ALeaf.BerLength, ALeaf.BerTag, ALeaf.BerDataLength]);
+    ALeaf.Text := Format('Offset %d. Len %d. Tag %d (%s). DataLen %d', [ALeaf.BerOffset,
+      ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
 {$ENDIF}
 
     if IsStruct then
@@ -262,6 +337,74 @@ begin
 end;
 
 { TCnBerNode }
+
+function TCnBerNode.InternalAsInt(ByteSize: Integer): Integer;
+var
+  IntValue: Integer;
+begin
+  if FBerTag <> CN_BER_TAG_INTEGER then
+    raise Exception.Create('Ber Tag Type Mismatch for ByteSize: ' + IntToStr(ByteSize));
+
+  if not (ByteSize in [SizeOf(Byte)..SizeOf(Integer)]) then
+    raise Exception.Create('Invalid ByteSize: ' + IntToStr(ByteSize));
+
+  if FBerDataLength > ByteSize then
+    raise Exception.CreateFmt('Data Length %d Overflow for Required %d.',
+      [FBerDataLength, ByteSize]);
+
+  CopyDataTo(@IntValue);
+  IntValue := SwapLongWord(IntValue);
+  Result := IntValue;
+end;
+
+function TCnBerNode.AsInt64: Int64;
+begin
+  if FBerTag <> CN_BER_TAG_INTEGER then
+    raise Exception.Create('Ber Tag Type Mismatch for Int64: ' + IntToStr(FBerTag));
+
+  if FBerDataLength > SizeOf(Int64) then
+    raise Exception.CreateFmt('Data Length %d Overflow for Required %d.',
+      [FBerDataLength, SizeOf(Int64)]);
+
+  CopyDataTo(@Result);
+  Result := SwapInt64(Result);
+end;
+
+function TCnBerNode.AsByte: Byte;
+begin
+  Result := Byte(InternalAsInt(SizeOf(Byte)));
+end;
+
+function TCnBerNode.AsCardinal: Cardinal;
+begin
+  Result := Cardinal(InternalAsInt(SizeOf(Cardinal)));
+end;
+
+function TCnBerNode.AsInteger: Integer;
+begin
+  Result := Integer(InternalAsInt(SizeOf(Integer)));
+end;
+
+function TCnBerNode.AsShortInt: ShortInt;
+begin
+  Result := ShortInt(InternalAsInt(SizeOf(ShortInt)));
+end;
+
+function TCnBerNode.AsSmallInt: SmallInt;
+begin
+  Result := SmallInt(InternalAsInt(SizeOf(SmallInt)));
+end;
+
+function TCnBerNode.AsWord: Word;
+begin
+  Result := Word(InternalAsInt(SizeOf(Word)));
+end;
+
+procedure TCnBerNode.CopyDataTo(DestBuf: Pointer);
+begin
+  if (FOriginData <> nil) and (FBerDataLength > 0) then
+    CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerDataOffset), FBerDataLength);
+end;
 
 function TCnBerNode.GetItems(Index: Integer): TCnBerNode;
 begin

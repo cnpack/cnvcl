@@ -4,16 +4,26 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls;
+  StdCtrls, ComCtrls, CnTree;
 
 type
   TFormParseBer = class(TForm)
     mmoResult: TMemo;
     btnParse: TButton;
     tv1: TTreeView;
+    lblBin: TLabel;
+    edtFile: TEdit;
+    btnBrowse: TButton;
+    dlgOpen: TOpenDialog;
     procedure btnParseClick(Sender: TObject);
+    procedure btnBrowseClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure tv1DblClick(Sender: TObject);
   private
-    { Private declarations }
+    FHints: TStrings;
+    procedure SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
+      var Valid: Boolean);
   public
     { Public declarations }
   end;
@@ -110,13 +120,205 @@ const
 procedure TFormParseBer.btnParseClick(Sender: TObject);
 var
   Parser: TCnBerParser;
+  Mem: TMemoryStream;
 begin
-  Parser := TCnBerParser.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
-  Parser.DumpToTreeView(tv1);
-  mmoResult.Clear;
-  mmoResult.Lines.Add('TotalCount: ' + IntToStr(Parser.TotalCount));
+  Parser := nil;
+  Mem := nil;
+
+  try
+    if not FileExists(edtFile.Text) then
+    begin
+      Parser := TCnBerParser.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
+    end
+    else
+    begin
+      Mem := TMemoryStream.Create;
+      Mem.LoadFromFile(edtFile.Text);
+      Parser := TCnBerParser.Create(Mem.Memory, Mem.Size);
+    end;
+
+    Parser.OnSaveNode := SaveNode;
+    FHints.Clear;
+    Parser.DumpToTreeView(tv1);
+    if tv1.Items.Count > 0 then
+      tv1.Items[0].Expand(True);
+
+    mmoResult.Clear;
+    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Parser.TotalCount));
+  finally
+    Parser.Free;
+    Mem.Free;
+  end;
+end;
+
+procedure TFormParseBer.btnBrowseClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtFile.Text := dlgOpen.FileName;
+end;
+
+function HexDumpMemory(AMem: Pointer; Size: Integer): string;
+var
+  I, J, DestP, PrevLineStart, Remain: Integer;
+  AChar: Char;
+
+  function HexValueHigh(AChar: Char): Char;
+  var
+    AByte: Byte;
+  begin
+    AByte := Ord(AChar) shr 4;
+    if AByte in [0..9] then
+      Inc(AByte, Ord('0'))
+    else
+      Inc(AByte, Ord('A') - 10);
+    Result := Chr(AByte);
+  end;
   
-  Parser.Free;
+  function HexValueLow(AChar: Char): Char;
+  var
+    AByte: Byte;
+  begin
+    AByte := Ord(AChar) and $F;
+    if AByte in [0..9] then
+      Inc(AByte, Ord('0'))
+    else
+      Inc(AByte, Ord('A') - 10);
+    Result := Chr(AByte);
+  end;
+
+begin
+  if (Size <= 0) or (AMem = nil) then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  SetLength(Result, ((Size div 16) + 1 ) * ( 3 * 16 + 2 + 16 + 2 ));
+  FillChar(Result[1], Length(Result), 0);
+
+  DestP := 0; PrevLineStart := 0;
+  for I := 0 to Size - 1 do
+  begin
+    AChar := (PChar(Integer(AMem) + I))^;
+    Inc(DestP);
+    Result[DestP] := HexValueHigh(AChar);
+    Inc(DestP);
+    Result[DestP] := HexValueLow(AChar);
+    if I < Size then
+    begin
+      Inc(DestP);
+      if (I > 0) and ((I + 1) mod 16 = 0) then
+      begin
+        // DONE: 加缩略字符再加回车
+        Result[DestP] := ' '; // 加空格分隔
+        Inc(DestP);
+        Result[DestP] := ';'; // 加分号分隔
+        Inc(DestP);
+        Result[DestP] := ' '; // 加空格分隔
+        Inc(DestP);
+
+        for J := PrevLineStart to I do
+        begin
+          AChar := (PChar(Integer(AMem) + J))^;
+          if AChar in [#32..#127] then
+            Result[DestP] := AChar
+          else
+            Result[DestP] := '.'; // 不可显示字符
+          Inc(DestP);
+        end;
+        PrevLineStart := I + 1;
+
+        Result[DestP] := #$D;
+        Inc(DestP);
+        Result[DestP] := #$A; // 加回车分隔
+      end
+      else
+      begin
+        Result[DestP] := ' '; // 加空格分隔
+      end;
+    end;
+  end;
+
+  Remain := Size mod 16;
+  if Remain > 0 then
+  begin
+    // DONE: 处理末行未完的情形
+    Remain := 16 - Remain; // 补充空格以对齐
+
+    for I := 1 to Remain do
+    begin
+      Result[DestP] := ' '; // 加空格分隔
+      Inc(DestP);
+      Result[DestP] := ' '; // 加高位空格充当十六进制低位
+      Inc(DestP);
+      Result[DestP] := ' '; // 加低位空格充当十六进制低位
+      Inc(DestP);
+    end;
+
+    Result[DestP] := ' '; // 加空格分隔
+    Inc(DestP);
+    Result[DestP] := ';'; // 加分号分隔
+    Inc(DestP);
+    Result[DestP] := ' '; // 加空格分隔
+    Inc(DestP);
+
+    for J := PrevLineStart to Size - 1 do
+    begin
+      AChar := (PChar(Integer(AMem) + J))^;
+      if AChar in [#32..#127] then
+        Result[DestP] := AChar
+      else
+        Result[DestP] := '.'; // 不可显示字符
+      Inc(DestP);
+    end;
+  end;
+end;
+
+procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
+  var Valid: Boolean);
+var
+  Mem: Pointer;
+  BerNode: TCnBerNode;
+begin
+  if not (ALeaf is TCnBerNode) then
+    Exit;
+
+  BerNode := ALeaf as TCnBerNode;
+  ATreeNode.Text := BerNode.Text;
+
+  if BerNode.BerDataLength > 65536 then
+  begin
+    FHints.Add('Data Too Long');
+    ATreeNode.Data := Pointer(FHints.Count - 1);
+    Exit;
+  end
+  else
+  begin
+    Mem := GetMemory(BerNode.BerDataLength);
+    if Mem <> nil then
+    begin
+      BerNode.CopyDataTo(Mem);
+      FHints.Add(HexDumpMemory(Mem, BerNode.BerDataLength));
+      ATreeNode.Data := Pointer(FHints.Count - 1);
+      FreeMemory(Mem);
+    end;
+  end;
+end;
+
+procedure TFormParseBer.FormCreate(Sender: TObject);
+begin
+  FHints := TStringList.Create;
+end;
+
+procedure TFormParseBer.FormDestroy(Sender: TObject);
+begin
+  FHints.Free;
+end;
+
+procedure TFormParseBer.tv1DblClick(Sender: TObject);
+begin
+  if tv1.Selected <> nil then
+    ShowMessage(FHints[Integer(tv1.Selected.Data)]);
 end;
 
 end.
