@@ -134,7 +134,7 @@ begin
     begin
       Mem := TMemoryStream.Create;
       Mem.LoadFromFile(edtFile.Text);
-      Parser := TCnBerParser.Create(Mem.Memory, Mem.Size);
+      Parser := TCnBerParser.Create(Mem.Memory, Mem.Size, True);
     end;
 
     Parser.OnSaveNode := SaveNode;

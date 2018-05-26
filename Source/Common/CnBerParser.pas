@@ -135,6 +135,7 @@ type
     FBerTree: TCnTree;
     FData: PByte;
     FDataLen: Cardinal;
+    FParseBitString: Boolean;
 {$IFDEF DEBUG}
     function GetOnSaveNode: TCnTreeNodeEvent;
     procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
@@ -147,16 +148,18 @@ type
   protected
     procedure ParseToTree;
   public
-    constructor Create(Data: PByte; DataLen: Cardinal);
+    constructor Create(Data: PByte; DataLen: Cardinal; AParseBitString: Boolean = False);
     destructor Destroy; override;
 {$IFDEF DEBUG}
     procedure DumpToTreeView(ATreeView: TTreeView);
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
 {$ENDIF}
+    property ParseBitString: Boolean read FParseBitString;
+    {* 是否将 BitString 类型也当作复合类型来解析，PublicKey 的 Pem 文件中常见}
     property TotalCount: Integer read GetTotalCount;
     {* 解析出来的 ASN.1 节点总数}
     property Items[Index: Integer]: TCnBerNode read GetItems;
-    {* 顺序访问所有解析出来的 ASN.1 节点，下标从 0 开始}
+    {* 顺序访问所有解析出来的 ASN.1 节点，下标从 0 开始，不包括 Tree 自身的 Root}
   end;
 
 implementation
@@ -194,10 +197,12 @@ end;
 
 { TCnBerParser }
 
-constructor TCnBerParser.Create(Data: PByte; DataLen: Cardinal);
+constructor TCnBerParser.Create(Data: PByte; DataLen: Cardinal;
+  AParseBitString: Boolean);
 begin
   FData := Data;
   FDataLen := DataLen;
+  FParseBitString := AParseBitString;
   FBerTree := TCnTree.Create(TCnBerNode);
 
   ParseToTree;
@@ -302,7 +307,7 @@ begin
       Inc(Run, LenLen);   // Run 指向数据
     end;
 
-    // Tag, Len, DataOffset 都齐全了，Delta 是数据起始区与整个节点起始区的偏移
+    // Tag, Len, DataOffset 都齐全了，Delta 是数据起始区与当前节点起始区的偏移
     if Parent = nil then
       Parent := FBerTree.Root;
 
@@ -320,11 +325,19 @@ begin
       ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
 {$ENDIF}
 
-    if IsStruct then
+    if IsStruct or (FParseBitString and (ALeaf.BerTag = CN_BER_TAG_BIT_STRING)) then
     begin
       // 说明 BerDataOffset 到 BerDataLength 内有子节点
-      ParseArea(ALeaf, PByteArray(Integer(AData) + Delta),
-        ALeaf.BerDataLength, ALeaf.BerDataOffset);
+
+      if (ALeaf.BerTag = CN_BER_TAG_BIT_STRING) and (AData[Run] = 0) then
+      begin
+        // BIT_STRING 数据区可能有个前导 00
+        ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run + 1),
+          ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
+      end
+      else
+        ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run),
+          ALeaf.BerDataLength, ALeaf.BerDataOffset);
     end;
 
     Inc(Run, DataLen);
@@ -352,6 +365,7 @@ begin
     raise Exception.CreateFmt('Data Length %d Overflow for Required %d.',
       [FBerDataLength, ByteSize]);
 
+  IntValue := 0;
   CopyDataTo(@IntValue);
   IntValue := SwapLongWord(IntValue);
   Result := IntValue;
@@ -366,6 +380,7 @@ begin
     raise Exception.CreateFmt('Data Length %d Overflow for Required %d.',
       [FBerDataLength, SizeOf(Int64)]);
 
+  Result := 0;
   CopyDataTo(@Result);
   Result := SwapInt64(Result);
 end;
