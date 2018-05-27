@@ -394,8 +394,8 @@ function CnRSALoadKeysFromPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
 var
   MemStream: TMemoryStream;
-  Ber: TCnBerParser;
-  Node: TCnBerNode;
+  Ber: TCnBerReader;
+  Node: TCnBerReadNode;
   Buf: Pointer;
 
   procedure PutIndexedBigIntegerToBigInt(Idx: Integer; BigNumber: TCnBigNumber);
@@ -416,7 +416,7 @@ begin
     if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL, MemStream) then
     begin
       // 读 PKCS#1 的 PEM 公私钥格式
-      Ber := TCnBerParser.Create(PByte(MemStream.Memory), MemStream.Size);
+      Ber := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
       if Ber.TotalCount >= 8 then
       begin
         Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -447,7 +447,7 @@ begin
     else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, MemStream) then
     begin
       // 读 PKCS#8 的 PEM 公私钥格式
-      Ber := TCnBerParser.Create(PByte(MemStream.Memory), MemStream.Size, True);
+      Ber := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
       if Ber.TotalCount >= 12 then
       begin
         Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -522,8 +522,8 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean;
 var
   Mem: TMemoryStream;
-  Ber: TCnBerParser;
-  Node: TCnBerNode;
+  Ber: TCnBerReader;
+  Node: TCnBerReadNode;
   Buf: Pointer;
   
   procedure PutIndexedBigIntegerToBigInt(Idx: Integer; BigNumber: TCnBigNumber);
@@ -544,7 +544,7 @@ begin
     if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem) then
     begin
       // 读 PKCS#8 格式的公钥
-      Ber := TCnBerParser.Create(PByte(Mem.Memory), Mem.Size, True);
+      Ber := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
       if Ber.TotalCount >= 7 then
       begin
         Buf := nil;
@@ -562,7 +562,7 @@ begin
     else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL, Mem) then
     begin
       // 读 PKCS#1 格式的公钥
-      Ber := TCnBerParser.Create(PByte(Mem.Memory), Mem.Size);
+      Ber := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
       if Ber.TotalCount >= 3 then
       begin
         Buf := nil;

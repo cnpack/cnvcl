@@ -1,9 +1,9 @@
 object FormParseBer: TFormParseBer
-  Left = 294
-  Top = 161
-  Width = 645
-  Height = 413
-  Caption = 'BER Format Parser'
+  Left = 116
+  Top = 153
+  Width = 652
+  Height = 463
+  Caption = 'BER Format Reader & Writer'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -65,8 +65,21 @@ object FormParseBer: TFormParseBer
     TabOrder = 4
     OnClick = btnBrowseClick
   end
+  object btnWrite: TButton
+    Left = 264
+    Top = 392
+    Width = 75
+    Height = 25
+    Caption = 'Write'
+    TabOrder = 5
+    OnClick = btnWriteClick
+  end
   object dlgOpen: TOpenDialog
     Left = 336
     Top = 16
+  end
+  object dlgSave: TSaveDialog
+    Left = 360
+    Top = 392
   end
 end

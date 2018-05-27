@@ -19,13 +19,16 @@ type
     edtFile: TEdit;
     btnBrowse: TButton;
     dlgOpen: TOpenDialog;
+    btnWrite: TButton;
+    dlgSave: TSaveDialog;
     procedure btnParseClick(Sender: TObject);
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure tv1DblClick(Sender: TObject);
+    procedure btnWriteClick(Sender: TObject);
   private
-    FHints: TStrings;
+    FReadHints: TStrings;
     procedure SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
       var Valid: Boolean);
   public
@@ -121,36 +124,57 @@ const
     $19, $E6, $5F, $18, $4E, $D0, $ED, $58
   );
 
+  PUBLIC_KEY_MODULUS: array[0..256] of Byte = (
+    $00, $B5, $77, $CA, $CA, $2F, $CE, $03, $BD, $E6, $3F, $58, $E3, $2E, $1E, $01,
+    $4E, $31, $64, $4C, $96, $74, $34, $09, $02, $8E, $F1, $39, $42, $C4, $D3, $C6,
+    $13, $B0, $51, $F5, $C0, $1E, $2A, $5B, $73, $65, $F5, $B6, $A8, $6B, $C9, $BF,
+    $2A, $FE, $77, $25, $88, $AC, $2B, $6F, $01, $73, $F1, $EC, $A4, $59, $32, $77,
+    $53, $67, $1C, $FD, $92, $1F, $60, $7B, $C6, $8D, $BD, $1B, $96, $BC, $FC, $91,
+    $E6, $6C, $2A, $B0, $0B, $00, $8F, $31, $B4, $71, $FB, $C2, $DA, $02, $4B, $4D,
+    $61, $CC, $4E, $CB, $4A, $5D, $94, $02, $BD, $1D, $4E, $50, $26, $60, $32, $19,
+    $78, $33, $BD, $E9, $7A, $10, $5F, $F9, $9A, $8E, $F6, $14, $A9, $82, $38, $56,
+    $0B, $7F, $A1, $CC, $81, $79, $D2, $BB, $47, $85, $8A, $69, $4C, $8F, $06, $41,
+    $DF, $4B, $13, $D0, $7A, $70, $84, $ED, $3A, $86, $5D, $EF, $A1, $02, $30, $4A,
+    $41, $70, $8D, $65, $16, $60, $55, $8C, $8F, $0B, $D6, $2B, $04, $71, $C9, $BD,
+    $43, $A7, $C2, $FB, $86, $0F, $8D, $DC, $9F, $33, $9B, $3C, $73, $33, $60, $2D,
+    $59, $22, $2E, $89, $12, $FC, $9C, $5F, $3E, $C2, $03, $48, $E4, $07, $57, $9F,
+    $61, $01, $4C, $00, $AC, $53, $65, $3A, $24, $4C, $2D, $37, $9C, $DA, $B1, $4D,
+    $92, $97, $EE, $C7, $85, $F8, $65, $17, $09, $19, $BB, $16, $B1, $DC, $FE, $51,
+    $5B, $90, $E1, $5A, $06, $28, $48, $D6, $1B, $69, $7A, $36, $A7, $AF, $2C, $30,
+    $D7);
+
+  PUBLIC_KEY_EXPONENT: array[0..2] of Byte = ($01, $00, $01);
+
 procedure TFormParseBer.btnParseClick(Sender: TObject);
 var
-  Parser: TCnBerParser;
+  Reader: TCnBerReader;
   Mem: TMemoryStream;
 begin
-  Parser := nil;
+  Reader := nil;
   Mem := nil;
 
   try
     if not FileExists(edtFile.Text) then
     begin
-      Parser := TCnBerParser.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
+      Reader := TCnBerReader.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
     end
     else
     begin
       Mem := TMemoryStream.Create;
       Mem.LoadFromFile(edtFile.Text);
-      Parser := TCnBerParser.Create(Mem.Memory, Mem.Size, True);
+      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, True);
     end;
 
-    Parser.OnSaveNode := SaveNode;
-    FHints.Clear;
-    Parser.DumpToTreeView(tv1);
+    Reader.OnSaveNode := SaveNode;
+    FReadHints.Clear;
+    Reader.DumpToTreeView(tv1);
     if tv1.Items.Count > 0 then
       tv1.Items[0].Expand(True);
 
     mmoResult.Clear;
-    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Parser.TotalCount));
+    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Reader.TotalCount));
   finally
-    Parser.Free;
+    Reader.Free;
     Mem.Free;
   end;
 end;
@@ -282,18 +306,18 @@ procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
   var Valid: Boolean);
 var
   Mem: Pointer;
-  BerNode: TCnBerNode;
+  BerNode: TCnBerReadNode;
 begin
-  if not (ALeaf is TCnBerNode) then
+  if not (ALeaf is TCnBerReadNode) then
     Exit;
 
-  BerNode := ALeaf as TCnBerNode;
+  BerNode := ALeaf as TCnBerReadNode;
   ATreeNode.Text := BerNode.Text;
 
   if BerNode.BerDataLength > 65536 then
   begin
-    FHints.Add('Data Too Long');
-    ATreeNode.Data := Pointer(FHints.Count - 1);
+    FReadHints.Add('Data Too Long');
+    ATreeNode.Data := Pointer(FReadHints.Count - 1);
     Exit;
   end
   else
@@ -302,8 +326,8 @@ begin
     if Mem <> nil then
     begin
       BerNode.CopyDataTo(Mem);
-      FHints.Add(HexDumpMemory(Mem, BerNode.BerDataLength));
-      ATreeNode.Data := Pointer(FHints.Count - 1);
+      FReadHints.Add(HexDumpMemory(Mem, BerNode.BerDataLength));
+      ATreeNode.Data := Pointer(FReadHints.Count - 1);
       FreeMemory(Mem);
     end;
   end;
@@ -311,18 +335,39 @@ end;
 
 procedure TFormParseBer.FormCreate(Sender: TObject);
 begin
-  FHints := TStringList.Create;
+  FReadHints := TStringList.Create;
 end;
 
 procedure TFormParseBer.FormDestroy(Sender: TObject);
 begin
-  FHints.Free;
+  FReadHints.Free;
 end;
 
 procedure TFormParseBer.tv1DblClick(Sender: TObject);
 begin
   if tv1.Selected <> nil then
-    ShowMessage(FHints[Integer(tv1.Selected.Data)]);
+    ShowMessage(FReadHints[Integer(tv1.Selected.Data)]);
+end;
+
+procedure TFormParseBer.btnWriteClick(Sender: TObject);
+var
+  Writer: TCnBerWriter;
+  Node: TCnBerWriteNode;
+begin
+  Writer := TCnBerWriter.Create;
+  try
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @PUBLIC_KEY_MODULUS[0],
+      SizeOf(PUBLIC_KEY_MODULUS), Node);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @PUBLIC_KEY_EXPONENT[0],
+      SizeOf(PUBLIC_KEY_EXPONENT), Node);
+
+    if dlgSave.Execute then
+      Writer.SaveToFile(dlgSave.FileName);
+  finally
+    Writer.Free;
+  end;
+
 end;
 
 end.
