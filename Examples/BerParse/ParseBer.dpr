@@ -3,7 +3,7 @@ program ParseBer;
 uses
   Forms,
   UnitBer in 'UnitBer.pas' {FormParseBer},
-  CnBerParser in '..\..\Source\Common\CnBerParser.pas';
+  CnBerUtils in '..\..\Source\Common\CnBerUtils.pas';
 
 {$R *.RES}
 

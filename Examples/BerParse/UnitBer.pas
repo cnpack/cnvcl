@@ -41,7 +41,7 @@ var
 implementation
 
 uses
-  CnBerParser;
+  CnBerUtils;
 
 {$R *.DFM}
 

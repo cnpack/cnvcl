@@ -52,7 +52,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerParser;
+  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils;
 
 type
   TCnRSAPrivateKey = class
