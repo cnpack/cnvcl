@@ -6,6 +6,10 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnTree;
 
+{
+  测试的 bin 文件用 openssl 生成的 rsa key 经 base64 解码而来
+  openssl base64 -d -in private_pkcs8.pem -out private_pkcs8.bin
+}
 type
   TFormParseBer = class(TForm)
     mmoResult: TMemo;

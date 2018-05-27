@@ -135,7 +135,7 @@ type
     FBerTree: TCnTree;
     FData: PByte;
     FDataLen: Cardinal;
-    FParseBitString: Boolean;
+    FParseInnerString: Boolean;
 {$IFDEF DEBUG}
     function GetOnSaveNode: TCnTreeNodeEvent;
     procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
@@ -148,14 +148,14 @@ type
   protected
     procedure ParseToTree;
   public
-    constructor Create(Data: PByte; DataLen: Cardinal; AParseBitString: Boolean = False);
+    constructor Create(Data: PByte; DataLen: Cardinal; AParseInnerString: Boolean = False);
     destructor Destroy; override;
 {$IFDEF DEBUG}
     procedure DumpToTreeView(ATreeView: TTreeView);
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
 {$ENDIF}
-    property ParseBitString: Boolean read FParseBitString;
-    {* 是否将 BitString 类型也当作复合类型来解析，PublicKey 的 Pem 文件中常见}
+    property ParseInnerString: Boolean read FParseInnerString;
+    {* 是否将 BitString/OctetString 类型也当作复合类型来解析，PKCS#8 的 Pem 文件中常见}
     property TotalCount: Integer read GetTotalCount;
     {* 解析出来的 ASN.1 节点总数}
     property Items[Index: Integer]: TCnBerNode read GetItems;
@@ -198,11 +198,11 @@ end;
 { TCnBerParser }
 
 constructor TCnBerParser.Create(Data: PByte; DataLen: Cardinal;
-  AParseBitString: Boolean);
+  AParseInnerString: Boolean);
 begin
   FData := Data;
   FDataLen := DataLen;
-  FParseBitString := AParseBitString;
+  FParseInnerString := AParseInnerString;
   FBerTree := TCnTree.Create(TCnBerNode);
 
   ParseToTree;
@@ -237,8 +237,6 @@ function TCnBerParser.GetItems(Index: Integer): TCnBerNode;
 begin
   Result := TCnBerNode(FBerTree.Items[Index + 1]);
 end;
-
-
 
 function TCnBerParser.GetTotalCount: Integer;
 begin
@@ -325,7 +323,8 @@ begin
       ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
 {$ENDIF}
 
-    if IsStruct or (FParseBitString and (ALeaf.BerTag = CN_BER_TAG_BIT_STRING)) then
+    if IsStruct or (FParseInnerString and (ALeaf.BerTag in [CN_BER_TAG_BIT_STRING,
+      CN_BER_TAG_OCTET_STRING])) then
     begin
       // 说明 BerDataOffset 到 BerDataLength 内有子节点
 
