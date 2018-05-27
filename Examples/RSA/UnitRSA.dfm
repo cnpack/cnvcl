@@ -342,7 +342,7 @@ object FormRSA: TFormRSA
           Top = 280
           Width = 75
           Height = 25
-          Hint = 'Load Private and Public Keys from PEM File'
+          Hint = 'Load Private and Public Keys from PKCS#1 or PKCS#8 PEM File'
           Caption = 'Load PEM'
           ParentShowHint = False
           ShowHint = True
@@ -365,7 +365,7 @@ object FormRSA: TFormRSA
           Top = 184
           Width = 57
           Height = 25
-          Hint = 'Load Public Keys from Public PEM File'
+          Hint = 'Load Public Keys from  PKCS#1 or PKCS#8 Public PEM File'
           Caption = 'Load PEM'
           ParentShowHint = False
           ShowHint = True

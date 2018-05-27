@@ -28,10 +28,14 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.05.26 V1.3
-*               能够从 Openssl 生成的公私钥 PEM 格式文件中读入公私钥，如
+* 修改记录：2018.05.27 V1.3
+*               能够从 Openssl 生成的未加密的公私钥 PEM 格式文件中读入公私钥，如
 *               openssl genrsa -out private.pem 2048
+*                  // PKCS#1 格式的公私钥
+*               openssl pkcs8 -topk8 -inform PEM -in private.pem -outform PEM -nocrypt -out private_pkcs8.pem
+*                  // PKCS#8 格式的公私钥
 *               openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+*                  // PKCS#8 格式的公钥
 *           2018.05.22 V1.2
 *               将公私钥组合成对象以方便使用
 *           2017.04.05 V1.1
@@ -61,12 +65,13 @@ type
     procedure Clear;
 
     property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
-    {* 大素数 1}
+    {* 大素数 1，p}
     property PrimeKey2: TCnBigNumber read FPrimeKey2 write FPrimeKey2;
-    {* 大素数 2}
+    {* 大素数 2，q}
     property PrivKeyProduct: TCnBigNumber read FPrivKeyProduct write FPrivKeyProduct;
-    {* 俩素数乘积，也叫 Modulus}
+    {* 俩素数乘积 n，也叫 Modulus}
     property PrivKeyExponent: TCnBigNumber read FPrivKeyExponent write FPrivKeyProduct;
+    {* 私钥指数 d}
   end;
 
   TCnRSAPublicKey = class
@@ -79,8 +84,9 @@ type
     procedure Clear;
 
     property PubKeyProduct: TCnBigNumber read FPubKeyProduct write FPubKeyProduct;
-    {* 俩素数乘积，也叫 Modulus}
+    {* 俩素数乘积 n，也叫 Modulus}
     property PubKeyExponent: TCnBigNumber read FPubKeyExponent write FPubKeyExponent;
+    {* 公钥指数 e，65537}
   end;
 
 // Int64 范围内的 RSA 加解密实现
@@ -134,9 +140,18 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 implementation
 
 const
-  PEM_PRIVATE_HEAD = '-----BEGIN RSA PRIVATE KEY-----';
-  PEM_PRIVATE_TAIL = '-----END RSA PRIVATE KEY-----';
-  PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
+  // PKCS#1
+  PEM_RSA_PRIVATE_HEAD = '-----BEGIN RSA PRIVATE KEY-----';  // 已解析
+  PEM_RSA_PRIVATE_TAIL = '-----END RSA PRIVATE KEY-----';
+
+  PEM_RSA_PUBLIC_HEAD = '-----BEGIN RSA PUBLIC KEY-----';    // 已解析
+  PEM_RSA_PUBLIC_TAIL = '-----END RSA PUBLIC KEY-----';
+
+  // PKCS#8
+  PEM_PRIVATE_HEAD = '-----BEGIN PRIVATE KEY-----';          // 已解析
+  PEM_PRIVATE_TAIL = '-----END PRIVATE KEY-----';
+
+  PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';            // 已解析
   PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
@@ -322,13 +337,14 @@ begin
   end
   else
   begin
-    MemoryStream.LoadFromFile(FileName);
-    Result := True;
+//    MemoryStream.LoadFromFile(FileName);
+//    Result := True;
   end;
 end;
 
 // 从 PEM 格式文件中加载公私钥数据
 (*
+PKCS#1:
   RSAPrivateKey ::= SEQUENCE {                        0
     version Version,                                  1
     modulus INTEGER, – n                             2 公私钥
@@ -341,6 +357,36 @@ end;
     coefficient INTEGER, – (inverse of q) mod p      9
     otherPrimeInfos OtherPrimeInfos OPTIONAL          10
   }
+
+PKCS#8:
+  PrivateKeyInfo ::= SEQUENCE {
+    version         Version,
+    algorithm       AlgorithmIdentifier,
+    PrivateKey      OCTET STRING
+  }
+
+  AlgorithmIdentifier ::= SEQUENCE {
+    algorithm       OBJECT IDENTIFIER,
+    parameters      ANY DEFINED BY algorithm OPTIONAL
+  }
+  PrivateKey 是上面 PKCS#1 的 RSAPrivateKey 结构
+  也即：
+  SEQUENCE(3 elem)
+    INTEGER0
+    SEQUENCE(2 elem)
+      OBJECT IDENTIFIER 1.2.840.113549.1.1.1 rsaEncryption(PKCS #1)
+      NULL
+    OCTET STRING(1 elem)
+      SEQUENCE(9 elem)
+        INTEGER0
+        INTEGER(1024 bit)                             8 公私钥 Modulus
+        INTEGER                                       9 公钥   e
+        INTEGER(1021 bit)                             10 私钥  d
+        INTEGER(512 bit)                              11 私钥  p
+        INTEGER(512 bit)                              12 私钥  q
+        INTEGER(510 bit) 
+        INTEGER(510 bit)
+        INTEGER(511 bit)
 *)
 function CnRSALoadKeysFromPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
@@ -365,8 +411,9 @@ begin
 
   try
     MemStream := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, MemStream) then
+    if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL, MemStream) then
     begin
+      // 读 PKCS#1 的 PEM 公私钥格式
       Ber := TCnBerParser.Create(PByte(MemStream.Memory), MemStream.Size);
       if Ber.TotalCount >= 8 then
       begin
@@ -394,6 +441,37 @@ begin
           Result := True;
         end;
       end;
+    end
+    else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, MemStream) then
+    begin
+      // 读 PKCS#8 的 PEM 公私钥格式
+      Ber := TCnBerParser.Create(PByte(MemStream.Memory), MemStream.Size, True);
+      if Ber.TotalCount >= 12 then
+      begin
+        Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
+        if Node.AsByte = 0 then // 只支持版本 0
+        begin
+          Buf := nil;
+          // 8 和 9 整成公钥
+          if PublicKey <> nil then
+          begin
+            PutIndexedBigIntegerToBigInt(8, PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigInt(9, PublicKey.PubKeyExponent);
+          end;
+      
+          // 8 10 11 12 整成私钥
+          if PrivateKey <> nil then
+          begin
+            PutIndexedBigIntegerToBigInt(8, PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigInt(10, PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigInt(11, PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigInt(12, PrivateKey.PrimeKey2);
+          end;
+      
+          ReallocMem(Buf, 0);
+          Result := True;
+        end;
+      end;
     end;
   finally
     MemStream.Free;
@@ -409,10 +487,34 @@ begin
 end;
 
 // 从 PEM 格式文件中加载公钥数据
-// 注意 PublicKey 的 PEM 在标准 ASN.1 上做了一层封装，
-// 把 Modulus 与 Exponent 封在了 BitString 中，需要解析出来
+// 注意 PKCS#8 的 PublicKey 的 PEM 在标准 ASN.1 上做了一层封装，
+// 把 Modulus 与 Exponent 封在了 BitString 中，需要 Paser 解析出来
 (*
+PKCS#1:
+  RSAPublicKey ::= SEQUENCE {
+      modulus           INTEGER,  -- n
+      publicExponent    INTEGER   -- e
+  }
 
+PKCS#8:
+  PublicKeyInfo ::= SEQUENCE {
+    algorithm       AlgorithmIdentifier,
+    PublicKey       BIT STRING
+  }
+
+  AlgorithmIdentifier ::= SEQUENCE {
+    algorithm       OBJECT IDENTIFIER,
+    parameters      ANY DEFINED BY algorithm OPTIONAL
+  }
+  也即：
+  SEQUENCE(2 elem)
+    SEQUENCE(2 elem)
+      OBJECT IDENTIFIER1.2.840.113549.1.1.1rsaEncryption(PKCS #1)
+      NULL
+    BIT STRING(1 elem)
+      SEQUENCE(2 elem)
+        INTEGER     - Modulus
+        INTEGER     - Exponent
 *)
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean;
@@ -439,17 +541,36 @@ begin
     Mem := TMemoryStream.Create;
     if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem) then
     begin
+      // 读 PKCS#8 格式的公钥
       Ber := TCnBerParser.Create(PByte(Mem.Memory), Mem.Size, True);
       if Ber.TotalCount >= 7 then
       begin
         Buf := nil;
-        // 2 和 3 整成公钥
+        // 6 和 7 整成公钥
         if PublicKey <> nil then
         begin
           PutIndexedBigIntegerToBigInt(6, PublicKey.PubKeyProduct);
           PutIndexedBigIntegerToBigInt(7, PublicKey.PubKeyExponent);
         end;
 
+        ReallocMem(Buf, 0);
+        Result := True;
+      end;
+    end
+    else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL, Mem) then
+    begin
+      // 读 PKCS#1 格式的公钥
+      Ber := TCnBerParser.Create(PByte(Mem.Memory), Mem.Size);
+      if Ber.TotalCount >= 3 then
+      begin
+        Buf := nil;
+        // 1 和 2 整成公钥
+        if PublicKey <> nil then
+        begin
+          PutIndexedBigIntegerToBigInt(1, PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(2, PublicKey.PubKeyExponent);
+        end;
+      
         ReallocMem(Buf, 0);
         Result := True;
       end;
