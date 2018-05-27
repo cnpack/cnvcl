@@ -29,12 +29,14 @@ unit CnRSA;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2018.05.27 V1.3
-*               能够从 Openssl 生成的未加密的公私钥 PEM 格式文件中读入公私钥，如
-*               openssl genrsa -out private.pem 2048
+*               能够从 Openssl 1.0.2 生成的未加密的公私钥 PEM 格式文件中读入公私钥，如
+*               openssl genrsa -out private_pkcs1.pem 2048
 *                  // PKCS#1 格式的公私钥
-*               openssl pkcs8 -topk8 -inform PEM -in private.pem -outform PEM -nocrypt -out private_pkcs8.pem
+*               openssl pkcs8 -topk8 -inform PEM -in private_pkcs1.pem -outform PEM -nocrypt -out private_pkcs8.pem
 *                  // PKCS#8 格式的公私钥
-*               openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+*               openssl rsa -in private_pkcs1.pem -outform PEM -RSAPublicKey_out -out public_pkcs1.pem
+*                  // PKCS#1 格式的公钥
+*               openssl rsa -in private_pkcs1.pem -outform PEM -pubout -out public_pkcs8.pem
 *                  // PKCS#8 格式的公钥
 *           2018.05.22 V1.2
 *               将公私钥组合成对象以方便使用
