@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
   Left = 180
-  Top = 45
+  Top = 46
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 542
@@ -127,7 +127,7 @@ object FormRSA: TFormRSA
           Left = 128
           Top = 192
           Width = 281
-          Height = 25
+          Height = 21
           Caption = 'Generate RSA Keys'
           TabOrder = 6
           OnClick = btnGenerateRSAClick
@@ -188,7 +188,7 @@ object FormRSA: TFormRSA
           Left = 664
           Top = 34
           Width = 89
-          Height = 25
+          Height = 21
           Caption = 'RSA Encrypt'
           TabOrder = 1
           OnClick = btnRSAEnClick
@@ -197,7 +197,7 @@ object FormRSA: TFormRSA
           Left = 664
           Top = 66
           Width = 89
-          Height = 25
+          Height = 21
           Caption = 'RSA Decrypt'
           TabOrder = 3
           OnClick = btnRSADeClick
@@ -257,11 +257,25 @@ object FormRSA: TFormRSA
           Caption = 'Public Exponent (e):'
         end
         object lblBits: TLabel
-          Left = 576
-          Top = 288
+          Left = 264
+          Top = 284
           Width = 20
           Height = 13
           Caption = 'Bits:'
+        end
+        object lblSaveFormat: TLabel
+          Left = 600
+          Top = 284
+          Width = 63
+          Height = 13
+          Caption = 'Save Format:'
+        end
+        object Bevel1: TBevel
+          Left = 416
+          Top = 280
+          Width = 9
+          Height = 25
+          Shape = bsLeftLine
         end
         object edtBNPrime1: TEdit
           Left = 128
@@ -283,7 +297,7 @@ object FormRSA: TFormRSA
           Left = 128
           Top = 280
           Width = 121
-          Height = 25
+          Height = 21
           Caption = 'Generate RSA Keys'
           TabOrder = 6
           OnClick = btnBNGenClick
@@ -321,9 +335,9 @@ object FormRSA: TFormRSA
           TabOrder = 4
         end
         object cbbBits: TComboBox
-          Left = 616
-          Top = 284
-          Width = 145
+          Left = 296
+          Top = 280
+          Width = 105
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
@@ -338,10 +352,10 @@ object FormRSA: TFormRSA
             '64')
         end
         object btnBNLoadKeys: TButton
-          Left = 264
+          Left = 432
           Top = 280
           Width = 75
-          Height = 25
+          Height = 21
           Hint = 'Load Private and Public Keys from PKCS#1 or PKCS#8 PEM File'
           Caption = 'Load PEM'
           ParentShowHint = False
@@ -350,10 +364,10 @@ object FormRSA: TFormRSA
           OnClick = btnBNLoadKeysClick
         end
         object btnBNSaveKeys: TButton
-          Left = 344
+          Left = 512
           Top = 280
           Width = 75
-          Height = 25
+          Height = 21
           Hint = 'Save Private and Public Keys to PEM File'
           Caption = 'Save PEM'
           ParentShowHint = False
@@ -364,7 +378,7 @@ object FormRSA: TFormRSA
           Left = 704
           Top = 184
           Width = 57
-          Height = 25
+          Height = 21
           Hint = 'Load Public Keys from  PKCS#1 or PKCS#8 Public PEM File'
           Caption = 'Load PEM'
           ParentShowHint = False
@@ -374,14 +388,27 @@ object FormRSA: TFormRSA
         end
         object btnSavePub: TButton
           Left = 704
-          Top = 240
+          Top = 244
           Width = 57
-          Height = 25
+          Height = 21
           Hint = 'Save Public Keys to Public PEM File'
           Caption = 'Save PEM'
           ParentShowHint = False
           ShowHint = True
           TabOrder = 11
+          OnClick = btnSavePubClick
+        end
+        object cbbSaveFormat: TComboBox
+          Left = 672
+          Top = 280
+          Width = 89
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 12
+          Items.Strings = (
+            'PKCS#1'
+            'PKCS#8')
         end
       end
       object grpBNCrypt: TGroupBox
@@ -439,7 +466,7 @@ object FormRSA: TFormRSA
           Left = 664
           Top = 34
           Width = 89
-          Height = 25
+          Height = 21
           Caption = 'RSA Encrypt'
           TabOrder = 1
           OnClick = btnBNRSAEnClick
@@ -448,7 +475,7 @@ object FormRSA: TFormRSA
           Left = 664
           Top = 66
           Width = 89
-          Height = 25
+          Height = 21
           Caption = 'RSA Decrypt'
           TabOrder = 3
           OnClick = btnBNRSADeClick
@@ -553,7 +580,7 @@ object FormRSA: TFormRSA
           Left = 56
           Top = 88
           Width = 193
-          Height = 25
+          Height = 21
           Caption = 'Int64 Extended Euclidean Gcd'
           Enabled = False
           TabOrder = 2
@@ -563,7 +590,7 @@ object FormRSA: TFormRSA
           Left = 320
           Top = 88
           Width = 193
-          Height = 25
+          Height = 21
           Caption = 'BigNumber Extended Euclidean Gcd'
           TabOrder = 3
           OnClick = btnBNGcdClick
@@ -580,11 +607,11 @@ object FormRSA: TFormRSA
     end
   end
   object dlgOpenPEM: TOpenDialog
-    Left = 516
-    Top = 328
+    Left = 580
+    Top = 248
   end
   object dlgSavePEM: TSaveDialog
-    Left = 556
-    Top = 328
+    Left = 612
+    Top = 248
   end
 end

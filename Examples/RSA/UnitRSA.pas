@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnBigNumber, CnRSA;
+  StdCtrls, ComCtrls, CnBigNumber, CnRSA, ExtCtrls;
 
 type
   TFormRSA = class(TForm)
@@ -81,6 +81,9 @@ type
     btnSavePub: TButton;
     dlgOpenPEM: TOpenDialog;
     dlgSavePEM: TSaveDialog;
+    lblSaveFormat: TLabel;
+    cbbSaveFormat: TComboBox;
+    Bevel1: TBevel;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -93,6 +96,7 @@ type
     procedure btnBNRSADeClick(Sender: TObject);
     procedure btnBNLoadPubClick(Sender: TObject);
     procedure btnBNLoadKeysClick(Sender: TObject);
+    procedure btnSavePubClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
     FPrivateKey: TCnRSAPrivateKey;
@@ -154,6 +158,7 @@ begin
   Application.Title := Caption;
   pgc1.ActivePageIndex := 0;
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
+  cbbSaveFormat.ItemIndex := 0;
 
   FPrivateKey := TCnRSAPrivateKey.Create;
   FPublicKey := TCnRSAPublicKey.Create;
@@ -299,6 +304,12 @@ begin
       edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
     end;
   end;
+end;
+
+procedure TFormRSA.btnSavePubClick(Sender: TObject);
+begin
+  if dlgSavePEM.Execute then
+    CnRSASavePublicKeyToPem(dlgSavePEM.FileName, FPublicKey, TCnRSAKeyType(cbbSaveFormat.ItemIndex));
 end;
 
 end.

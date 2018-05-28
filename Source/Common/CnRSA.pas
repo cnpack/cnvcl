@@ -55,6 +55,8 @@ uses
   SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils;
 
 type
+  TCnRSAKeyType = (cktPKCS1, cktPKCS8);
+
   TCnRSAPrivateKey = class
   private
     FPrimeKey1: TCnBigNumber;
@@ -120,7 +122,7 @@ function CnRSALoadKeysFromPem(const PemFileName: string;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
 
 procedure CnRSASaveKeysToPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1);
 {* 将公私钥写入 PEM 格式文件中}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
@@ -128,7 +130,7 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
 procedure CnRSASavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey);
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8);
 {* 将公钥写入 PEM 格式文件中}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
@@ -481,13 +483,6 @@ begin
   end;
 end;
 
-// 将公私钥写入 PEM 格式文件中
-procedure CnRSASaveKeysToPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey);
-begin
-
-end;
-
 // 从 PEM 格式文件中加载公钥数据
 // 注意 PKCS#8 的 PublicKey 的 PEM 在标准 ASN.1 上做了一层封装，
 // 把 Modulus 与 Exponent 封在了 BitString 中，需要 Paser 解析出来
@@ -583,11 +578,102 @@ begin
   end;
 end;
 
-// 将公钥写入 PEM 格式文件中
-procedure CnRSASavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey);
+procedure SplitStringToList(const S: string; List: TStrings);
+const
+  LINE_WIDTH = 64;
+var
+  C, R: string;
+begin
+  if List = nil then
+    Exit;
+
+  List.Clear;
+  if S <> '' then
+  begin
+    R := S;
+    while R <> '' do
+    begin
+      C := Copy(R, 1, LINE_WIDTH);
+      Delete(R, 1, LINE_WIDTH);
+      List.Add(C);
+    end;
+  end;
+end;
+
+// 将公私钥写入 PEM 格式文件中
+procedure CnRSASaveKeysToPem(const PemFileName: string;
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType);
 begin
 
+end;
+
+// 将公钥写入 PEM 格式文件中
+procedure CnRSASavePublicKeyToPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType);
+var
+  Node: TCnBerWriteNode;
+  Writer: TCnBerWriter;
+  Mem: TMemoryStream;
+  List: TStrings;
+  S: string;
+  Product, Exponent: Pointer;
+begin
+  if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
+    (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
+    Exit;
+
+  Product := GetMemory(PublicKey.PubKeyProduct.GetBytesCount);
+  PublicKey.PubKeyProduct.ToBinary(PAnsiChar(Product));
+  Exponent := GetMemory(PublicKey.PubKeyExponent.GetBytesCount);
+  PublicKey.PubKeyExponent.ToBinary(PAnsiChar(Exponent));
+
+  Mem := nil;
+  List := nil;
+  Writer := nil;
+  try
+    Writer := TCnBerWriter.Create;
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    if KeyType = cktPKCS1 then
+    begin
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Product,
+        PublicKey.PubKeyProduct.GetBytesCount, Node);
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Exponent,
+        PublicKey.PubKeyExponent.GetBytesCount, Node);
+    end
+    else if KeyType = cktPKCS8 then
+    begin
+      // TODO: 拼 PKCS8 格式的内容
+    end;
+
+    // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
+    Mem := TMemoryStream.Create;
+    Writer.SaveToStream(Mem);
+    Mem.Position := 0;
+
+    if Base64_OK = Base64Encode(Mem, S) then
+    begin
+      List := TStringList.Create;
+      SplitStringToList(S, List);
+      if KeyType = cktPKCS1 then
+      begin
+        List.Insert(0, PEM_RSA_PUBLIC_HEAD);
+        List.Add(PEM_RSA_PUBLIC_TAIL);
+      end
+      else if KeyType = cktPKCS8 then
+      begin
+        List.Insert(0, PEM_PUBLIC_HEAD);
+        List.Add(PEM_PUBLIC_TAIL);
+      end;
+      List.SaveToFile(PemFileName);
+    end;
+  finally
+    FreeMemory(Product);
+    FreeMemory(Exponent);
+
+    Mem.Free;
+    List.Free;
+    Writer.Free;
+  end;
 end;
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
