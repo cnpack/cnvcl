@@ -578,6 +578,14 @@ begin
   end;
 end;
 
+// 如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
+function CalcIntegerTLV(BigNumber: TCnBigNumber): Cardinal;
+begin
+  Result := BigNumber.GetBytesCount;
+  if BigNumber.IsBitSet((Result * 8) - 1) then
+    Inc(Result);
+end;
+
 procedure SplitStringToList(const S: string; List: TStrings);
 const
   LINE_WIDTH = 64;
@@ -617,15 +625,24 @@ var
   List: TStrings;
   S: string;
   Product, Exponent: Pointer;
+  PCount, ECount, Diff: Integer;
 begin
   if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
     (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
     Exit;
 
-  Product := GetMemory(PublicKey.PubKeyProduct.GetBytesCount);
-  PublicKey.PubKeyProduct.ToBinary(PAnsiChar(Product));
-  Exponent := GetMemory(PublicKey.PubKeyExponent.GetBytesCount);
-  PublicKey.PubKeyExponent.ToBinary(PAnsiChar(Exponent));
+  // Integer 编码需要处理最高位
+  PCount := CalcIntegerTLV(PublicKey.PubKeyProduct);
+  Product := GetMemory(PCount);
+  Diff := PCount - PublicKey.PubKeyProduct.GetBytesCount;
+  ZeroMemory(Product, Diff);
+  PublicKey.PubKeyProduct.ToBinary(PAnsiChar(Integer(Product) + Diff));
+
+  ECount := CalcIntegerTLV(PublicKey.PubKeyExponent);
+  Exponent := GetMemory(ECount);
+  Diff := ECount - PublicKey.PubKeyExponent.GetBytesCount;
+  ZeroMemory(Exponent, Diff);
+  PublicKey.PubKeyExponent.ToBinary(PAnsiChar(Integer(Exponent) + Diff));
 
   Mem := nil;
   List := nil;
@@ -635,10 +652,8 @@ begin
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     if KeyType = cktPKCS1 then
     begin
-      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Product,
-        PublicKey.PubKeyProduct.GetBytesCount, Node);
-      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Exponent,
-        PublicKey.PubKeyExponent.GetBytesCount, Node);
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Product, PCount, Node);
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Exponent, ECount, Node);
     end
     else if KeyType = cktPKCS8 then
     begin

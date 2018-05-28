@@ -149,13 +149,13 @@ type
     {* 返回大数是否负值 }
 
     function ClearBit(N: Integer): Boolean;
-    {* 给大数的第 N 个 Bit 置 0，返回成功与否 }
+    {* 给大数的第 N 个 Bit 置 0，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1 }
 
     function SetBit(N: Integer): Boolean;
-    {* 给大数的第 N 个 Bit 置 1，返回成功与否 }
+    {* 给大数的第 N 个 Bit 置 1，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1 }
 
     function IsBitSet(N: Integer): Boolean;
-    {* 返回大数的第 N 个 Bit 是否为 1 }
+    {* 返回大数的第 N 个 Bit 是否为 1。N 从最低位 0 到最高位 GetBitsCount - 1 }
 
     function WordExpand(Words: Integer): TCnBigNumber;
     {* 将大数扩展成支持 Words 个 DWORD，成功返回扩展的大数对象本身 Self，失败返回 nil}
@@ -271,35 +271,35 @@ function BigNumberWordExpand(const Num: TCnBigNumber; Words: Integer): TCnBigNum
 
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-   返回 Buf 写入的长度}
+   返回 Buf 写入的长度，注意不处理正负号}
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
-{* 将一个二进制块转换成大数对象，其结果不用时必须用 BigNumberFree 释放}
+{* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
-{* 将一个二进制块赋值给指定大数对象}
+{* 将一个二进制块赋值给指定大数对象，注意不处理正负号}
 
 function BigNumberToString(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成字符串}
+{* 将一个大数对象转成字符串，负以 - 表示}
 
 function BigNumberToHex(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成十六进制字符串}
+{* 将一个大数对象转成十六进制字符串，负以 - 表示}
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十六进制字符串赋值给指定大数对象}
+{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示}
 
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
-{* 将一串十六进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
+{* 将一串十六进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
-{* 将一个大数对象转成十进制字符串}
+{* 将一个大数对象转成十进制字符串，负以 - 表示}
 
 function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十进制字符串赋值给指定大数对象}
+{* 将一串十进制字符串赋值给指定大数对象，负以 - 表示}
 
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
-{* 将一串十进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
+{* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1 }
