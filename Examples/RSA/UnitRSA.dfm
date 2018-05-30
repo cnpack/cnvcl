@@ -373,6 +373,7 @@ object FormRSA: TFormRSA
           ParentShowHint = False
           ShowHint = True
           TabOrder = 9
+          OnClick = btnBNSaveKeysClick
         end
         object btnBNLoadPub: TButton
           Left = 704

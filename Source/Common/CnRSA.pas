@@ -121,9 +121,9 @@ function CnRSALoadKeysFromPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
 
-procedure CnRSASaveKeysToPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1);
-{* 将公私钥写入 PEM 格式文件中}
+function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1): Boolean;
+{* 将公私钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean;
@@ -618,17 +618,73 @@ begin
 end;
 
 // 将公私钥写入 PEM 格式文件中
-procedure CnRSASaveKeysToPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType);
+function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType): Boolean;
+var
+  Root, Node: TCnBerWriteNode;
+  Writer: TCnBerWriter;
+  Mem: TMemoryStream;
+  List: TStrings;
+  S: string;
 begin
+  Result := False;
+  if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
+    (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
+    Exit;
 
+  if (PrivateKey = nil) or (PrivateKey.PrivKeyProduct.GetBytesCount <= 0) or
+    (PrivateKey.PrivKeyExponent.GetBytesCount <= 0) then
+    Exit;
+
+  Mem := nil;
+  List := nil;
+  Writer := nil;
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    if KeyType = cktPKCS1 then
+    begin
+      // TODO: 拼 PKCS1 格式的内容
+    end
+    else if KeyType = cktPKCS8 then
+    begin
+      // TODO: 拼 PKCS8 格式的内容
+    end;
+
+    // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
+    Mem := TMemoryStream.Create;
+    Writer.SaveToStream(Mem);
+    Mem.Position := 0;
+
+    if Base64_OK = Base64Encode(Mem, S) then
+    begin
+      List := TStringList.Create;
+      SplitStringToList(S, List);
+      if KeyType = cktPKCS1 then
+      begin
+        List.Insert(0, PEM_RSA_PRIVATE_HEAD);
+        List.Add(PEM_RSA_PRIVATE_TAIL);
+      end
+      else if KeyType = cktPKCS8 then
+      begin
+        List.Insert(0, PEM_PRIVATE_HEAD);
+        List.Add(PEM_PRIVATE_TAIL);
+      end;
+      List.SaveToFile(PemFileName);
+      Result := True;
+    end;
+  finally
+    Mem.Free;
+    List.Free;
+    Writer.Free;
+  end;
 end;
 
 // 将公钥写入 PEM 格式文件中
 function CnRSASavePublicKeyToPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType): Boolean;
 var
-  Node, Node1: TCnBerWriteNode;
+  Root, Node: TCnBerWriteNode;
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
   List: TStrings;
@@ -644,27 +700,27 @@ begin
   Writer := nil;
   try
     Writer := TCnBerWriter.Create;
-    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     if KeyType = cktPKCS1 then
     begin
       // 拼 PKCS1 格式的内容，比较简单
-      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node);
-      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Root);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Root);
     end
     else if KeyType = cktPKCS8 then
     begin
       // 拼 PKCS8 格式的内容
-      Node1 := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
       // 给 Node1 加 ObjectIdentifier 与 Null
       Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
-        SizeOf(OID_RSAENCRYPTION_PKCS1), Node1);
-      Writer.AddNullNode(Node1);
+        SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
+      Writer.AddNullNode(Node);
 
-      Node1 := Writer.AddContainerNode(CN_BER_TAG_BIT_STRING, Node);
-      Node1 := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node1);
-      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node1);
-      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node1);
+      Node := Writer.AddContainerNode(CN_BER_TAG_BIT_STRING, Root);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
     end;
 
     // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件

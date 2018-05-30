@@ -97,6 +97,7 @@ type
     procedure btnBNLoadPubClick(Sender: TObject);
     procedure btnBNLoadKeysClick(Sender: TObject);
     procedure btnSavePubClick(Sender: TObject);
+    procedure btnBNSaveKeysClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
     FPrivateKey: TCnRSAPrivateKey;
@@ -310,8 +311,19 @@ procedure TFormRSA.btnSavePubClick(Sender: TObject);
 begin
   if dlgSavePEM.Execute then
   begin
-    CnRSASavePublicKeyToPem(dlgSavePEM.FileName, FPublicKey, TCnRSAKeyType(cbbSaveFormat.ItemIndex));
-    ShowMessage('Saved to ' + dlgSavePEM.FileName);
+    if CnRSASavePublicKeyToPem(dlgSavePEM.FileName, FPublicKey,
+      TCnRSAKeyType(cbbSaveFormat.ItemIndex)) then
+      ShowMessage('Saved to ' + dlgSavePEM.FileName);
+  end;
+end;
+
+procedure TFormRSA.btnBNSaveKeysClick(Sender: TObject);
+begin
+  if dlgSavePEM.Execute then
+  begin
+    if CnRSASaveKeysToPem(dlgSavePEM.FileName, FPrivateKey, FPublicKey,
+      TCnRSAKeyType(cbbSaveFormat.ItemIndex)) then
+      ShowMessage('Saved to ' + dlgSavePEM.FileName);
   end;
 end;
 
