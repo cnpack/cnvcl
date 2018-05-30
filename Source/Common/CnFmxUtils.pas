@@ -64,6 +64,8 @@ function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
 
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
 
+function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
+
 function CnFmxGetControlRect(AControl: TComponent): TRect;
 
 procedure CnFmxSetControlRect(AControl: TComponent; ARect: TRect);
@@ -179,6 +181,11 @@ end;
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
 begin
   Result := AObject.InheritsFrom(FMX.Forms.TCommonCustomForm);
+end;
+
+function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
+begin
+  Result := AObject.InheritsFrom(FMX.Forms.TFrame);
 end;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
