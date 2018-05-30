@@ -2077,11 +2077,16 @@ procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
 var
   MatchIdx, I, W, L: Integer;
   HdrStr, AMatchStr, TailStr, PaintStr: string;
-  OldColor: TColor;
+  OldColor, OldBrushColor: TColor;
+  OldStyle: TBrushStyle;
   ASize: TSize;
   C: Char;
 begin
+  OldStyle := Canvas.Brush.Style;
+  OldBrushColor := Canvas.Brush.Color;
   Canvas.Brush.Style := bsClear;
+
+  // 所有文字均采用 bsClear 模式绘制
   if (MatchedIndexes = nil) or (MatchedIndexes.Count = 0) then
   begin
     if MatchStr = '' then
@@ -2106,6 +2111,8 @@ begin
     end
     else
       Canvas.TextOut(X, Y, Text);
+
+    Canvas.Brush.Style := OldStyle;
   end
   else
   begin
@@ -2141,6 +2148,8 @@ begin
     SetLength(PaintStr, 0);
     Canvas.Font.Color := OldColor;
   end;
+  Canvas.Brush.Style := OldStyle;
+  Canvas.Brush.Color := OldBrushColor;
 end;
 
 // 打开文件框
