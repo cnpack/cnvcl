@@ -309,7 +309,10 @@ end;
 procedure TFormRSA.btnSavePubClick(Sender: TObject);
 begin
   if dlgSavePEM.Execute then
+  begin
     CnRSASavePublicKeyToPem(dlgSavePEM.FileName, FPublicKey, TCnRSAKeyType(cbbSaveFormat.ItemIndex));
+    ShowMessage('Saved to ' + dlgSavePEM.FileName);
+  end;
 end;
 
 end.

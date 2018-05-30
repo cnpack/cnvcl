@@ -153,10 +153,12 @@ type
   public
     constructor Create(Data: PByte; DataLen: Cardinal; AParseInnerString: Boolean = False);
     destructor Destroy; override;
+
 {$IFDEF DEBUG}
     procedure DumpToTreeView(ATreeView: TTreeView);
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
 {$ENDIF}
+
     property ParseInnerString: Boolean read FParseInnerString;
     {* 是否将 BitString/OctetString 类型也当作复合类型来解析，PKCS#8 的 Pem 文件中常见}
     property TotalCount: Integer read GetTotalCount;
@@ -211,7 +213,10 @@ type
   private
     FBerTree: TCnTree;
     function GetTotalSize: Integer;
-
+{$IFDEF DEBUG}
+    function GetOnSaveNode: TCnTreeNodeEvent;
+    procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
+{$ENDIF}
   public
     constructor Create;
     destructor Destroy; override;
@@ -220,6 +225,13 @@ type
     procedure SaveToFile(const FileName: string);
     procedure SaveToStream(Stream: TStream);
 
+{$IFDEF DEBUG}
+    procedure DumpToTreeView(ATreeView: TTreeView);
+    property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
+{$ENDIF}
+
+    function AddNullNode(Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
+    {* 添加一个 Null 节点}
     function AddBasicNode(ATag: Integer; AData: PByte; DataLen: Integer;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
     {* 添加一个基本类型的节点，内容从 AData 复制长度为 DataLen 的而来}
@@ -526,6 +538,16 @@ begin
   Result.IsContainer := True;
 end;
 
+function TCnBerWriter.AddNullNode(Parent: TCnBerWriteNode): TCnBerWriteNode;
+begin
+  if Parent = nil then
+    Parent := FBerTree.Root as TCnBerWriteNode;
+
+  Result := FBerTree.AddChild(Parent) as TCnBerWriteNode;
+  Result.IsContainer := False;
+  Result.FillBasicNode(CN_BER_TAG_NULL, nil, 0); // TODO: Null 的数据
+end;
+
 constructor TCnBerWriter.Create;
 begin
   inherited;
@@ -537,6 +559,25 @@ begin
   FBerTree.Free;
   inherited;
 end;
+
+{$IFDEF DEBUG}
+
+procedure TCnBerWriter.DumpToTreeView(ATreeView: TTreeView);
+begin
+  FBerTree.SaveToTreeView(ATreeView);
+end;
+
+function TCnBerWriter.GetOnSaveNode: TCnTreeNodeEvent;
+begin
+  Result := FBerTree.OnSaveANode;
+end;
+
+procedure TCnBerWriter.SetOnSaveNode(const Value: TCnTreeNodeEvent);
+begin
+  FBerTree.OnSaveANode := Value;
+end;
+
+{$ENDIF}
 
 function TCnBerWriter.GetTotalSize: Integer;
 var
@@ -590,12 +631,15 @@ var
   D: Cardinal;
 begin
   FHeadLen := 0;
-  if FIsContainer then
-    FHead[0] := ATag or CN_BER_TAG_STRUCT_MASK // 有子节点，高位置 1
+  if FIsContainer and (FBerTag in [CN_BER_TAG_SEQUENCE, CN_BER_TAG_SET]) then
+    FHead[0] := ATag or CN_BER_TAG_STRUCT_MASK // 有子节点且是指定类型，高位置 1
   else
     FHead[0] := ATag;
 
   Inc(FHeadLen);
+  if FBerTag = CN_BER_TAG_BIT_STRING then // BitString 塞进去要加个头字节
+    Inc(ADataLen);
+
   if ADataLen <= 127 then // 单字节长度
   begin
     FHead[1] := ADataLen;
@@ -662,6 +706,7 @@ end;
 
 function TCnBerWriteNode.SaveToStream(Stream: TStream): Integer;
 var
+  B: Byte;
   I: Integer;
   LeafLen: Cardinal;
   AMem: TMemoryStream;
@@ -678,7 +723,14 @@ begin
       FillHeadCalcLen(FBerTag, LeafLen);
       // 把 Tag、LeafLen 以及 AMem 的数据组合后写入
 
-      Result := Result + Stream.Write(FHead[0], FHeadLen);
+      Result := Result + Stream.Write(FHead[0], FHeadLen); // 写头与长度
+      if FBerTag = CN_BER_TAG_BIT_STRING then              // BitString 留一个 bit 数，暂时作为全 0 处理
+      begin
+        B := 0;
+        Result := Result + Stream.Write(B, 1);
+      end;
+
+      // 写具体内容
       Result := Result + Stream.Write(AMem.Memory^, AMem.Size);
     finally
       AMem.Free;
@@ -714,6 +766,10 @@ begin
 
     FillHeadCalcLen(FBerTag, LeafLen);
     Result := FHeadLen + LeafLen;
+
+    // BitString 需要一个前导字节表示补足的 bit
+    if FBerTag = CN_BER_TAG_BIT_STRING then
+      Inc(Result);
   end
   else
   begin
@@ -734,7 +790,8 @@ begin
 
   FMem.Clear;
   FMem.Write(FHead[0], FHeadLen);
-  FMem.Write(Data^, DataLen);
+  if DataLen > 0 then
+    FMem.Write(Data^, DataLen);
 end;
 
 end.

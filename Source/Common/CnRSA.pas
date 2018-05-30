@@ -129,9 +129,9 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
-procedure CnRSASavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8);
-{* 将公钥写入 PEM 格式文件中}
+function CnRSASavePublicKeyToPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8): BOolean;
+{* 将公钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean;
@@ -157,6 +157,12 @@ const
 
   PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';            // 已解析
   PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
+
+  // OID 预先写死，不动态计算编码了
+  OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
+    $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
+  );  // $2A = 40 * 1 + 2
+
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function Int64RSACrypt(Data: Int64; Product: Int64; Exponent: Int64;
@@ -338,12 +344,20 @@ begin
     finally
       Sl.Free;
     end;
-  end
-  else
-  begin
-//    MemoryStream.LoadFromFile(FileName);
-//    Result := True;
   end;
+end;
+
+procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
+var
+  P: Pointer;
+begin
+  if (Node = nil) or (Node.BerDataLength <= 0) then
+    Exit;
+
+  P := GetMemory(Node.BerDataLength);
+  Node.CopyDataTo(P);
+  BigNumber.SetBinary(P, Node.BerDataLength);
+  FreeMemory(P);
 end;
 
 // 从 PEM 格式文件中加载公私钥数据
@@ -398,16 +412,6 @@ var
   MemStream: TMemoryStream;
   Ber: TCnBerReader;
   Node: TCnBerReadNode;
-  Buf: Pointer;
-
-  procedure PutIndexedBigIntegerToBigInt(Idx: Integer; BigNumber: TCnBigNumber);
-  begin
-    Node := Ber.Items[Idx];
-    ReallocMem(Buf, Node.BerDataLength);
-    Node.CopyDataTo(Buf);
-    BigNumber.SetBinary(Buf, Node.BerDataLength);
-  end;
-
 begin
   Result := False;
   MemStream := nil;
@@ -424,24 +428,22 @@ begin
         Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
         if Node.AsByte = 0 then // 只支持版本 0
         begin
-          Buf := nil;
           // 2 和 3 整成公钥
           if PublicKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(2, PublicKey.PubKeyProduct);
-            PutIndexedBigIntegerToBigInt(3, PublicKey.PubKeyExponent);
+            PutIndexedBigIntegerToBigInt(Ber.Items[2], PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigInt(Ber.Items[3], PublicKey.PubKeyExponent);
           end;
 
           // 2 4 5 6 整成私钥
           if PrivateKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(2, PrivateKey.PrivKeyProduct);
-            PutIndexedBigIntegerToBigInt(4, PrivateKey.PrivKeyExponent);
-            PutIndexedBigIntegerToBigInt(5, PrivateKey.PrimeKey1);
-            PutIndexedBigIntegerToBigInt(6, PrivateKey.PrimeKey2);
+            PutIndexedBigIntegerToBigInt(Ber.Items[2], PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigInt(Ber.Items[4], PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigInt(Ber.Items[5], PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigInt(Ber.Items[6], PrivateKey.PrimeKey2);
           end;
 
-          ReallocMem(Buf, 0);
           Result := True;
         end;
       end;
@@ -455,24 +457,22 @@ begin
         Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
         if Node.AsByte = 0 then // 只支持版本 0
         begin
-          Buf := nil;
           // 8 和 9 整成公钥
           if PublicKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(8, PublicKey.PubKeyProduct);
-            PutIndexedBigIntegerToBigInt(9, PublicKey.PubKeyExponent);
+            PutIndexedBigIntegerToBigInt(Ber.Items[8], PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigInt(Ber.Items[9], PublicKey.PubKeyExponent);
           end;
       
           // 8 10 11 12 整成私钥
           if PrivateKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(8, PrivateKey.PrivKeyProduct);
-            PutIndexedBigIntegerToBigInt(10, PrivateKey.PrivKeyExponent);
-            PutIndexedBigIntegerToBigInt(11, PrivateKey.PrimeKey1);
-            PutIndexedBigIntegerToBigInt(12, PrivateKey.PrimeKey2);
+            PutIndexedBigIntegerToBigInt(Ber.Items[8], PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigInt(Ber.Items[10], PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigInt(Ber.Items[11], PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigInt(Ber.Items[12], PrivateKey.PrimeKey2);
           end;
       
-          ReallocMem(Buf, 0);
           Result := True;
         end;
       end;
@@ -506,7 +506,7 @@ PKCS#8:
   也即：
   SEQUENCE(2 elem)
     SEQUENCE(2 elem)
-      OBJECT IDENTIFIER1.2.840.113549.1.1.1rsaEncryption(PKCS #1)
+      OBJECT IDENTIFIER 1.2.840.113549.1.1.1 rsaEncryption(PKCS #1)
       NULL
     BIT STRING(1 elem)
       SEQUENCE(2 elem)
@@ -518,17 +518,6 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
 var
   Mem: TMemoryStream;
   Ber: TCnBerReader;
-  Node: TCnBerReadNode;
-  Buf: Pointer;
-  
-  procedure PutIndexedBigIntegerToBigInt(Idx: Integer; BigNumber: TCnBigNumber);
-  begin
-    Node := Ber.Items[Idx];
-    ReallocMem(Buf, Node.BerDataLength);
-    Node.CopyDataTo(Buf);
-    BigNumber.SetBinary(Buf, Node.BerDataLength);
-  end;
-
 begin
   Result := False;
   Mem := nil;
@@ -542,15 +531,13 @@ begin
       Ber := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
       if Ber.TotalCount >= 7 then
       begin
-        Buf := nil;
         // 6 和 7 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(6, PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(7, PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigInt(Ber.Items[6], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(Ber.Items[7], PublicKey.PubKeyExponent);
         end;
 
-        ReallocMem(Buf, 0);
         Result := True;
       end;
     end
@@ -560,15 +547,13 @@ begin
       Ber := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
       if Ber.TotalCount >= 3 then
       begin
-        Buf := nil;
         // 1 和 2 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(1, PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(2, PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigInt(Ber.Items[1], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(Ber.Items[2], PublicKey.PubKeyExponent);
         end;
       
-        ReallocMem(Buf, 0);
         Result := True;
       end;
     end;
@@ -608,6 +593,30 @@ begin
   end;
 end;
 
+function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
+var
+  P: Pointer;
+  C, D: Integer;
+begin
+  Result := nil;
+  if (Writer = nil) or (Num = nil) then
+    Exit;
+
+  // Integer 编码需要处理最高位
+  C := CalcIntegerTLV(Num);
+  if C <= 0 then
+    Exit;
+
+  P := GetMemory(C);
+  D := C - Num.GetBytesCount;
+  ZeroMemory(P, D);
+  Num.ToBinary(PAnsiChar(Integer(P) + D));
+
+  Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
+  FreeMemory(P);
+end;
+
 // 将公私钥写入 PEM 格式文件中
 procedure CnRSASaveKeysToPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType);
@@ -616,33 +625,19 @@ begin
 end;
 
 // 将公钥写入 PEM 格式文件中
-procedure CnRSASavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType);
+function CnRSASavePublicKeyToPem(const PemFileName: string;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType): Boolean;
 var
-  Node: TCnBerWriteNode;
+  Node, Node1: TCnBerWriteNode;
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
   List: TStrings;
   S: string;
-  Product, Exponent: Pointer;
-  PCount, ECount, Diff: Integer;
 begin
+  Result := False;
   if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
     (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
     Exit;
-
-  // Integer 编码需要处理最高位
-  PCount := CalcIntegerTLV(PublicKey.PubKeyProduct);
-  Product := GetMemory(PCount);
-  Diff := PCount - PublicKey.PubKeyProduct.GetBytesCount;
-  ZeroMemory(Product, Diff);
-  PublicKey.PubKeyProduct.ToBinary(PAnsiChar(Integer(Product) + Diff));
-
-  ECount := CalcIntegerTLV(PublicKey.PubKeyExponent);
-  Exponent := GetMemory(ECount);
-  Diff := ECount - PublicKey.PubKeyExponent.GetBytesCount;
-  ZeroMemory(Exponent, Diff);
-  PublicKey.PubKeyExponent.ToBinary(PAnsiChar(Integer(Exponent) + Diff));
 
   Mem := nil;
   List := nil;
@@ -652,12 +647,24 @@ begin
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     if KeyType = cktPKCS1 then
     begin
-      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Product, PCount, Node);
-      Writer.AddBasicNode(CN_BER_TAG_INTEGER, Exponent, ECount, Node);
+      // 拼 PKCS1 格式的内容，比较简单
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
     end
     else if KeyType = cktPKCS8 then
     begin
-      // TODO: 拼 PKCS8 格式的内容
+      // 拼 PKCS8 格式的内容
+      Node1 := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+
+      // 给 Node1 加 ObjectIdentifier 与 Null
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
+        SizeOf(OID_RSAENCRYPTION_PKCS1), Node1);
+      Writer.AddNullNode(Node1);
+
+      Node1 := Writer.AddContainerNode(CN_BER_TAG_BIT_STRING, Node);
+      Node1 := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node1);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node1);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node1);
     end;
 
     // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
@@ -680,11 +687,9 @@ begin
         List.Add(PEM_PUBLIC_TAIL);
       end;
       List.SaveToFile(PemFileName);
+      Result := True;
     end;
   finally
-    FreeMemory(Product);
-    FreeMemory(Exponent);
-
     Mem.Free;
     List.Free;
     Writer.Free;
