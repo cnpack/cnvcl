@@ -722,6 +722,8 @@ begin
 
       Node := Writer.AddContainerNode(CN_BER_TAG_OCTET_STRING, Root);
       Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Node);
       AddBigNumberToWriter(Writer, PrivateKey.PrivKeyProduct, Node);
       AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
       AddBigNumberToWriter(Writer, PrivateKey.PrivKeyExponent, Node);
