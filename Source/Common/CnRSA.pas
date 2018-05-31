@@ -95,7 +95,7 @@ type
 
 // Int64 范围内的 RSA 加解密实现
 
-// function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
@@ -207,7 +207,7 @@ begin
   Sleep(N);
 
   PrimeKey2 := CnGenerateInt32Prime;
-  if PrimeKey2 < PrimeKey1 then  // 一般使 p > q
+  if PrimeKey2 > PrimeKey1 then  // 一般使 p > q
   begin
     N := PrimeKey1;
     PrimeKey1 := PrimeKey2;
@@ -686,7 +686,7 @@ begin
     BigNumberMod(R2, PrivateKey.PrivKeyExponent, N2); // R2 = d mod (q - 1)
 
     // Co = (q 针对 n 的模反元素) mod p
-    BigNumberExtendedEuclideanGcd(PrivateKey.PrimeKey2, PrivateKey.PrivKeyProduct,
+    BigNumberExtendedEuclideanGcd(PrivateKey.PrimeKey2, PrivateKey.PrimeKey1,
       X, Y, Rem);
     if BigNumberIsNegative(X) then
       BigNumberAdd(X, X, PrivateKey.PrivKeyExponent); // 求得模反元素 X。FIXME: 但 X 有问题

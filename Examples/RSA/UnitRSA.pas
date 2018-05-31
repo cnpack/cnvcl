@@ -84,6 +84,8 @@ type
     lblSaveFormat: TLabel;
     cbbSaveFormat: TComboBox;
     Bevel1: TBevel;
+    btnSendR: TButton;
+    btnBNSendR: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -98,12 +100,16 @@ type
     procedure btnBNLoadKeysClick(Sender: TObject);
     procedure btnSavePubClick(Sender: TObject);
     procedure btnBNSaveKeysClick(Sender: TObject);
+    procedure btnSendRClick(Sender: TObject);
+    procedure btnBNSendRClick(Sender: TObject);
   private
-    FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent: Int64;
+    FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: Int64;
+    FBNR: TCnBigNumber;
     FPrivateKey: TCnRSAPrivateKey;
     FPublicKey: TCnRSAPublicKey;
+    procedure CalcR;
   public
-    { Public declarations }
+
   end;
 
 var
@@ -126,6 +132,8 @@ begin
     edtPrivExp.Text := Format('%d', [FPrivKeyExponent]);
     edtPubProduct.Text := Format('%d', [FPubKeyProduct]);
     edtPubExp.Text := IntToStr(FPubKeyExponent);
+
+    FR := Int64(Prime1 - 1 ) * Int64(Prime2 - 1); 
   end;
 end;
 
@@ -163,10 +171,12 @@ begin
 
   FPrivateKey := TCnRSAPrivateKey.Create;
   FPublicKey := TCnRSAPublicKey.Create;
+  FBNR := TCnBigNumber.Create;
 end;
 
 procedure TFormRSA.FormDestroy(Sender: TObject);
 begin
+  FBNR.Free;
   FPublicKey.Free;
   FPrivateKey.Free;
 end;
@@ -185,27 +195,27 @@ begin
 end;
 
 procedure TFormRSA.btnInt64EucClick(Sender: TObject);
-//var
-//  A, B, X, Y: Int64;
+var
+  A, B, X, Y: Int64;
 begin
-//  A := StrToInt64(edtA.Text);
-//  B := StrToInt64(edtB.Text);
-//  X := 0;
-//  Y := 0;
-//  Int64ExtendedEuclideanGcd(A, B, X, Y);
-//  edtX.Text := IntToStr(X);
-//  edtY.Text := IntToStr(Y);
-//
-//  if X < 0 then
-//  begin
-//    lblX0.Caption := 'X < 0. Add B to X.';
-//    edtXP.Text := IntToStr(X + B);
-//  end
-//  else
-//  begin
-//    lblX0.Caption := 'X > 0. OK.';
-//    edtXP.Text := IntToStr(X);
-//  end;
+  A := StrToInt64(edtA.Text);
+  B := StrToInt64(edtB.Text);
+  X := 0;
+  Y := 0;
+  Int64ExtendedEuclideanGcd(A, B, X, Y);
+  edtX.Text := IntToStr(X);
+  edtY.Text := IntToStr(Y);
+
+  if X < 0 then
+  begin
+    lblX0.Caption := 'X < 0. Add B to X.';
+    edtXP.Text := IntToStr(X + B);
+  end
+  else
+  begin
+    lblX0.Caption := 'X > 0. OK.';
+    edtXP.Text := IntToStr(X);
+  end;
 end;
 
 procedure TFormRSA.btnBNGcdClick(Sender: TObject);
@@ -325,6 +335,39 @@ begin
       TCnRSAKeyType(cbbSaveFormat.ItemIndex)) then
       ShowMessage('Saved to ' + dlgSavePEM.FileName);
   end;
+end;
+
+procedure TFormRSA.btnSendRClick(Sender: TObject);
+begin
+  edtB.Text := IntToStr(FR);
+  pgc1.ActivePageIndex := 2;
+  edtB.SetFocus;
+end;
+
+procedure TFormRSA.btnBNSendRClick(Sender: TObject);
+begin
+  CalcR;
+  edtB.Text := FBNR.ToDec;
+  pgc1.ActivePageIndex := 2;
+  edtB.SetFocus;
+end;
+
+procedure TFormRSA.CalcR;
+var
+  P1, P2, One: TCnBigNumber;
+begin
+  P1 := TCnBigNumber.Create;
+  P2 := TCnBigNumber.Create;
+  One := TCnBigNumber.Create;
+  One.SetOne;
+
+  BigNumberSub(P1, FPrivateKey.PrimeKey1, One);
+  BigNumberSub(P2, FPrivateKey.PrimeKey2, One);
+  BigNumberMul(FBNR, P1, P2);
+
+  One.Free;
+  P2.Free;
+  P1.Free;
 end;
 
 end.

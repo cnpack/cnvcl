@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 180
-  Top = 46
+  Left = 191
+  Top = 140
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 542
@@ -131,6 +131,15 @@ object FormRSA: TFormRSA
           Caption = 'Generate RSA Keys'
           TabOrder = 6
           OnClick = btnGenerateRSAClick
+        end
+        object btnSendR: TButton
+          Left = 584
+          Top = 192
+          Width = 177
+          Height = 21
+          Caption = 'Send (p-1)*(q-1) to Euclidean B'
+          TabOrder = 7
+          OnClick = btnSendRClick
         end
       end
       object grpCrypt: TGroupBox
@@ -280,7 +289,7 @@ object FormRSA: TFormRSA
         object edtBNPrime1: TEdit
           Left = 128
           Top = 20
-          Width = 633
+          Width = 561
           Height = 21
           ReadOnly = True
           TabOrder = 0
@@ -288,7 +297,7 @@ object FormRSA: TFormRSA
         object edtBNPrime2: TEdit
           Left = 128
           Top = 52
-          Width = 633
+          Width = 561
           Height = 21
           ReadOnly = True
           TabOrder = 1
@@ -410,6 +419,15 @@ object FormRSA: TFormRSA
           Items.Strings = (
             'PKCS#1'
             'PKCS#8')
+        end
+        object btnBNSendR: TButton
+          Left = 696
+          Top = 20
+          Width = 65
+          Height = 53
+          Caption = '(p-1)*(q-1)'
+          TabOrder = 13
+          OnClick = btnBNSendRClick
         end
       end
       object grpBNCrypt: TGroupBox
@@ -583,7 +601,6 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 21
           Caption = 'Int64 Extended Euclidean Gcd'
-          Enabled = False
           TabOrder = 2
           OnClick = btnInt64EucClick
         end
@@ -608,11 +625,11 @@ object FormRSA: TFormRSA
     end
   end
   object dlgOpenPEM: TOpenDialog
-    Left = 580
-    Top = 248
+    Left = 492
+    Top = 240
   end
   object dlgSavePEM: TSaveDialog
-    Left = 612
-    Top = 248
+    Left = 532
+    Top = 240
   end
 end
