@@ -36,16 +36,16 @@ object FormRSA: TFormRSA
         object lblPrime1: TLabel
           Left = 16
           Top = 24
-          Width = 35
+          Width = 50
           Height = 13
-          Caption = 'Prime1:'
+          Caption = 'Prime1 (p):'
         end
         object lblPrime2: TLabel
           Left = 424
           Top = 24
-          Width = 35
+          Width = 50
           Height = 13
-          Caption = 'Prime2:'
+          Caption = 'Prime2 (q):'
         end
         object lblPrivProduct: TLabel
           Left = 16
@@ -217,16 +217,16 @@ object FormRSA: TFormRSA
         object lblBNP1: TLabel
           Left = 16
           Top = 24
-          Width = 35
+          Width = 50
           Height = 13
-          Caption = 'Prime1:'
+          Caption = 'Prime1 (p):'
         end
         object lblBNP2: TLabel
           Left = 16
           Top = 56
-          Width = 35
+          Width = 50
           Height = 13
-          Caption = 'Prime2:'
+          Caption = 'Prime2 (q):'
         end
         object lblBNPrivProduct: TLabel
           Left = 16

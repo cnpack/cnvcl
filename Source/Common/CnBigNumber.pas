@@ -81,6 +81,8 @@ type
 {$IFDEF DEBUG}
     FIsFromPool: Boolean;
 {$ENDIF}
+    function GetDecString: string;
+    function GetHexString: string;
   public
     D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
     Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
@@ -190,6 +192,8 @@ type
     class function FromDec(const Buf: AnsiString): TCnBigNumber;
     {* 根据一串十进制字符串产生个新的大数对象}
 
+    property DecString: string read GetDecString;
+    property HexString: string read GetHexString;
   end;
   PCnBigNumber = ^TCnBigNumber;
 
@@ -408,7 +412,9 @@ function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
 
 procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
   Y: TCnBigNumber; Res: TCnBigNumber);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+   A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
+   X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素}
 
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
@@ -3813,6 +3819,17 @@ end;
 function TCnBigNumber.WordExpand(Words: Integer): TCnBigNumber;
 begin
   Result := BigNumberWordExpand(Self, Words);
+end;
+
+
+function TCnBigNumber.GetDecString: string;
+begin
+  Result := ToDec;
+end;
+
+function TCnBigNumber.GetHexString: string;
+begin
+  Result := ToHex;
 end;
 
 procedure FreeBigNumberPool;

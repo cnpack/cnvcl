@@ -207,6 +207,13 @@ begin
   Sleep(N);
 
   PrimeKey2 := CnGenerateInt32Prime;
+  if PrimeKey2 < PrimeKey1 then  // 一般使 p > q
+  begin
+    N := PrimeKey1;
+    PrimeKey1 := PrimeKey2;
+    PrimeKey2 := N;
+  end;
+
   PrivKeyProduct := Int64(PrimeKey1) * Int64(PrimeKey2);
   PubKeyProduct := Int64(PrimeKey2) * Int64(PrimeKey1);   // 积在公私钥中是相同的
   PubKeyExponent := 65537;                                // 固定
@@ -243,7 +250,7 @@ function CnRSAGenerateKeys(Bits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey): Boolean;
 var
   N: Integer;
-  P, Y, R, S1, S2, One: TCnBigNumber;
+  R, Y, Rem, S1, S2, One: TCnBigNumber;
 begin
   Result := False;
   if Bits <= 16 then
@@ -261,6 +268,10 @@ begin
   if not BigNumberGeneratePrime(PrivateKey.PrimeKey2, Bits div 8) then
     Exit;
 
+  // 一般要求 Prime1 > Prime2 以便计算 CRT 等参数
+  if BigNumberCompare(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) < 0 then
+    BigNumberSwap(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
+
   if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
     Exit;
 
@@ -269,17 +280,17 @@ begin
 
   PublicKey.PubKeyExponent.SetDec('65537');
 
-  R := nil;
+  Rem := nil;
   Y := nil;
-  P := nil;
+  R := nil;
   S1 := nil;
   S2 := nil;
   One := nil;
 
   try
-    R := TCnBigNumber.Create;
+    Rem := TCnBigNumber.Create;
     Y := TCnBigNumber.Create;
-    P := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
     S1 := TCnBigNumber.Create;
     S2 := TCnBigNumber.Create;
     One := TCnBigNumber.Create;
@@ -287,20 +298,21 @@ begin
     BigNumberSetOne(One);
     BigNumberSub(S1, PrivateKey.PrimeKey1, One);
     BigNumberSub(S2, PrivateKey.PrimeKey2, One);
-    BigNumberMul(P, S1, S2);
+    BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
 
-    BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, P, PrivateKey.PrivKeyExponent, Y, R);
+    // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
+    BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, R, PrivateKey.PrivKeyExponent, Y, Rem);
 
-    // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p
+    // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上积二 R
     if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
-       BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, P);
+       BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
   finally
     One.Free;
     S2.Free;
     S1.Free;
-    P.Free;
-    Y.Free;
     R.Free;
+    Y.Free;
+    Rem.Free;
   end;
 
   Result := True;
@@ -364,16 +376,19 @@ end;
 (*
 PKCS#1:
   RSAPrivateKey ::= SEQUENCE {                        0
-    version Version,                                  1
+    version Version,                                  1 0
     modulus INTEGER, – n                             2 公私钥
     publicExponent INTEGER, – e                      3 公钥
     privateExponent INTEGER, – d                     4 私钥
     prime1 INTEGER, – p                              5 私钥
     prime2 INTEGER, – q                              6 私钥
-    exponent1 INTEGER, – d mod (p-1)                 7
-    exponent2 INTEGER, – d mod (q-1)                 8
-    coefficient INTEGER, – (inverse of q) mod p      9
+    exponent1 INTEGER, – d mod (p-1)                 7 CRT 系数 1
+    exponent2 INTEGER, – d mod (q-1)                 8 CRT 系数 2
+    coefficient INTEGER, – (inverse of q) mod p      9 CRT 系数 3：q 针对 n 的模反系数 mod p
     otherPrimeInfos OtherPrimeInfos OPTIONAL          10
+
+    q 针对 n 的模反系数 x，是指满足 (q * x) mod n = 1 的正值 x，
+    可以用扩展欧几里得辗转相除法直接求解，CRT 系数 3 即 x mod p 的值
   }
 
 PKCS#8:
@@ -389,22 +404,22 @@ PKCS#8:
   }
   PrivateKey 是上面 PKCS#1 的 RSAPrivateKey 结构
   也即：
-  SEQUENCE(3 elem)
-    INTEGER0
-    SEQUENCE(2 elem)
+  SEQUENCE (3 elem)
+    INTEGER 0
+    SEQUENCE (2 elem)
       OBJECT IDENTIFIER 1.2.840.113549.1.1.1 rsaEncryption(PKCS #1)
       NULL
-    OCTET STRING(1 elem)
-      SEQUENCE(9 elem)
-        INTEGER0
-        INTEGER(1024 bit)                             8 公私钥 Modulus
+    OCTET STRING (1 elem)
+      SEQUENCE (9 elem)
+        INTEGER 0
+        INTEGER                                       8 公私钥 Modulus
         INTEGER                                       9 公钥   e
-        INTEGER(1021 bit)                             10 私钥  d
-        INTEGER(512 bit)                              11 私钥  p
-        INTEGER(512 bit)                              12 私钥  q
-        INTEGER(510 bit) 
-        INTEGER(510 bit)
-        INTEGER(511 bit)
+        INTEGER                                       10 私钥  d
+        INTEGER                                       11 私钥  p
+        INTEGER                                       12 私钥  q
+        INTEGER
+        INTEGER
+        INTEGER
 *)
 function CnRSALoadKeysFromPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
@@ -504,12 +519,12 @@ PKCS#8:
     parameters      ANY DEFINED BY algorithm OPTIONAL
   }
   也即：
-  SEQUENCE(2 elem)
-    SEQUENCE(2 elem)
+  SEQUENCE (2 elem)
+    SEQUENCE (2 elem)
       OBJECT IDENTIFIER 1.2.840.113549.1.1.1 rsaEncryption(PKCS #1)
       NULL
-    BIT STRING(1 elem)
-      SEQUENCE(2 elem)
+    BIT STRING (1 elem)
+      SEQUENCE (2 elem)
         INTEGER     - Modulus
         INTEGER     - Exponent
 *)
@@ -625,7 +640,9 @@ var
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
   List: TStrings;
+  N1, N2, T, R1, R2, Co, X, Y, Rem : TCnBigNumber;
   S: string;
+  B: Byte;
 begin
   Result := False;
   if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
@@ -639,16 +656,80 @@ begin
   Mem := nil;
   List := nil;
   Writer := nil;
+  T := nil;
+  R1 := nil;
+  R2 := nil;
+  N1 := nil;
+  N2 := nil;
+  X := nil;
+  Y := nil;
+  Rem := nil;
+  Co := nil;
+
   try
+    T := BigNumberNew;
+    R1 := BigNumberNew;
+    R2 := BigNumberNew;
+    N1 := BigNumberNew;
+    N2 := BigNumberNew;
+    X := BigNumberNew;
+    Y := BigNumberNew;
+    Rem := BigNumberNew;
+    Co := BigNumberNew;
+    if not T.SetOne then
+      Exit;
+
+    BigNumberSub(N1, PrivateKey.PrimeKey1, T);
+    BigNumberMod(R1, PrivateKey.PrivKeyExponent, N1); // R1 = d mod (p - 1)
+
+    BigNumberSub(N2, PrivateKey.PrimeKey2, T);
+    BigNumberMod(R2, PrivateKey.PrivKeyExponent, N2); // R2 = d mod (q - 1)
+
+    // Co = (q 针对 n 的模反元素) mod p
+    BigNumberExtendedEuclideanGcd(PrivateKey.PrimeKey2, PrivateKey.PrivKeyProduct,
+      X, Y, Rem);
+    if BigNumberIsNegative(X) then
+      BigNumberAdd(X, X, PrivateKey.PrivKeyExponent); // 求得模反元素 X。FIXME: 但 X 有问题
+
+    BigNumberMod(Co, X, PrivateKey.PrimeKey1);        // 求得 CRT 系数3
+
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    B := 0;
     if KeyType = cktPKCS1 then
     begin
-      // TODO: 拼 PKCS1 格式的内容
+      // 拼 PKCS1 格式的内容
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root);
+      AddBigNumberToWriter(Writer, PrivateKey.PrivKeyProduct, Root);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Root);
+      AddBigNumberToWriter(Writer, PrivateKey.PrivKeyExponent, Root);
+      AddBigNumberToWriter(Writer, PrivateKey.PrimeKey1, Root);
+      AddBigNumberToWriter(Writer, PrivateKey.PrimeKey2, Root);
+      AddBigNumberToWriter(Writer, R1, Root);
+      AddBigNumberToWriter(Writer, R2, Root);
+      AddBigNumberToWriter(Writer, Co, Root);
     end
     else if KeyType = cktPKCS8 then
     begin
-      // TODO: 拼 PKCS8 格式的内容
+      // 拼 PKCS8 格式的内容
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+      // 给 Node1 加 ObjectIdentifier 与 Null
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
+        SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
+      Writer.AddNullNode(Node);
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_OCTET_STRING, Root);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+      AddBigNumberToWriter(Writer, PrivateKey.PrivKeyProduct, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
+      AddBigNumberToWriter(Writer, PrivateKey.PrivKeyExponent, Node);
+      AddBigNumberToWriter(Writer, PrivateKey.PrimeKey1, Node);
+      AddBigNumberToWriter(Writer, PrivateKey.PrimeKey2, Node);
+      AddBigNumberToWriter(Writer, R1, Node);
+      AddBigNumberToWriter(Writer, R2, Node);
+      AddBigNumberToWriter(Writer, Co, Node);
     end;
 
     // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
@@ -674,6 +755,16 @@ begin
       Result := True;
     end;
   finally
+    BigNumberFree(T);
+    BigNumberFree(R1);
+    BigNumberFree(R2);
+    BigNumberFree(N1);
+    BigNumberFree(N2);
+    BigNumberFree(X);
+    BigNumberFree(Y);
+    BigNumberFree(Rem);
+    BigNumberFree(Co);
+
     Mem.Free;
     List.Free;
     Writer.Free;
@@ -712,7 +803,7 @@ begin
       // 拼 PKCS8 格式的内容
       Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
-      // 给 Node1 加 ObjectIdentifier 与 Null
+      // 给 Node 加 ObjectIdentifier 与 Null
       Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
         SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
       Writer.AddNullNode(Node);
