@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 513
-    ActivePage = tsEuclid
+    ActivePage = tsInt64RSA
     TabOrder = 0
     object tsInt64RSA: TTabSheet
       Caption = 'Int64 RSA'
@@ -75,53 +75,78 @@ object FormRSA: TFormRSA
           Height = 13
           Caption = 'Public Exponent (e):'
         end
+        object lblInt64MBits: TLabel
+          Left = 16
+          Top = 196
+          Width = 29
+          Height = 13
+          Caption = 'n Bits:'
+        end
         object edtPrime1: TEdit
           Left = 128
           Top = 20
           Width = 273
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 0
+          OnChange = edtBNChange
         end
         object edtPrime2: TEdit
           Left = 480
           Top = 20
           Width = 281
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 1
+          OnChange = edtBNChange
         end
         object edtPrivProduct: TEdit
           Left = 128
           Top = 52
           Width = 633
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 2
+          OnChange = edtBNChange
         end
         object edtPrivExp: TEdit
           Left = 128
           Top = 84
           Width = 633
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 3
+          OnChange = edtBNChange
         end
         object edtPubProduct: TEdit
           Left = 128
           Top = 124
           Width = 633
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 4
+          OnChange = edtBNChange
         end
         object edtPubExp: TEdit
           Left = 128
           Top = 156
           Width = 633
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 5
+          OnChange = edtBNChange
         end
         object btnGenerateRSA: TButton
           Left = 128
@@ -265,50 +290,77 @@ object FormRSA: TFormRSA
           Height = 13
           Caption = 'Public Exponent (e):'
         end
-        object lblBits: TLabel
-          Left = 264
+        object lblPBits: TLabel
+          Left = 384
           Top = 284
-          Width = 20
+          Width = 49
           Height = 13
-          Caption = 'Bits:'
+          Caption = 'Prime Bits:'
         end
         object lblSaveFormat: TLabel
-          Left = 600
+          Left = 656
           Top = 284
-          Width = 63
+          Width = 35
           Height = 13
-          Caption = 'Save Format:'
+          Caption = 'Format:'
         end
         object Bevel1: TBevel
-          Left = 416
+          Left = 504
           Top = 280
           Width = 9
           Height = 25
           Shape = bsLeftLine
+        end
+        object lblModulusBits: TLabel
+          Left = 16
+          Top = 116
+          Width = 29
+          Height = 13
+          Caption = 'n Bits:'
+        end
+        object bvl1: TBevel
+          Left = 264
+          Top = 280
+          Width = 9
+          Height = 25
+          Shape = bsLeftLine
+        end
+        object lblMBits: TLabel
+          Left = 128
+          Top = 284
+          Width = 63
+          Height = 13
+          Caption = 'Modulus Bits:'
         end
         object edtBNPrime1: TEdit
           Left = 128
           Top = 20
           Width = 561
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
+          ShowHint = True
           TabOrder = 0
+          OnChange = edtBNChange
         end
         object edtBNPrime2: TEdit
           Left = 128
           Top = 52
           Width = 561
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
-          TabOrder = 1
+          ShowHint = True
+          TabOrder = 3
+          OnChange = edtBNChange
         end
         object btnBNGen: TButton
-          Left = 128
+          Left = 272
           Top = 280
-          Width = 121
+          Width = 105
           Height = 21
           Caption = 'Generate RSA Keys'
-          TabOrder = 6
+          TabOrder = 12
           OnClick = btnBNGenClick
         end
         object edtBNPrivExp: TEdit
@@ -316,41 +368,53 @@ object FormRSA: TFormRSA
           Top = 148
           Width = 633
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
-          TabOrder = 3
+          ShowHint = True
+          TabOrder = 5
+          OnChange = edtBNChange
         end
         object edtBNPubExp: TEdit
           Left = 128
           Top = 244
           Width = 569
           Height = 21
+          ParentShowHint = False
           ReadOnly = True
-          TabOrder = 5
+          ShowHint = True
+          TabOrder = 8
+          OnChange = edtBNChange
         end
         object mmoBNPrivProduct: TMemo
           Left = 128
           Top = 88
           Width = 633
           Height = 45
+          ParentShowHint = False
           ScrollBars = ssVertical
-          TabOrder = 2
+          ShowHint = True
+          TabOrder = 4
+          OnChange = mmoBNChange
         end
         object mmoBNPubProduct: TMemo
           Left = 128
           Top = 184
           Width = 569
           Height = 45
+          ParentShowHint = False
           ScrollBars = ssVertical
-          TabOrder = 4
+          ShowHint = True
+          TabOrder = 6
+          OnChange = mmoBNChange
         end
         object cbbBits: TComboBox
-          Left = 296
+          Left = 440
           Top = 280
-          Width = 105
+          Width = 57
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 7
+          TabOrder = 13
           Items.Strings = (
             '4096'
             '2048'
@@ -361,27 +425,27 @@ object FormRSA: TFormRSA
             '64')
         end
         object btnBNLoadKeys: TButton
-          Left = 432
+          Left = 512
           Top = 280
-          Width = 75
+          Width = 67
           Height = 21
           Hint = 'Load Private and Public Keys from PKCS#1 or PKCS#8 PEM File'
           Caption = 'Load PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 8
+          TabOrder = 14
           OnClick = btnBNLoadKeysClick
         end
         object btnBNSaveKeys: TButton
-          Left = 512
+          Left = 584
           Top = 280
-          Width = 75
+          Width = 67
           Height = 21
           Hint = 'Save Private and Public Keys to PEM File'
           Caption = 'Save PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 9
+          TabOrder = 15
           OnClick = btnBNSaveKeysClick
         end
         object btnBNLoadPub: TButton
@@ -393,7 +457,7 @@ object FormRSA: TFormRSA
           Caption = 'Load PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 10
+          TabOrder = 7
           OnClick = btnBNLoadPubClick
         end
         object btnSavePub: TButton
@@ -405,17 +469,17 @@ object FormRSA: TFormRSA
           Caption = 'Save PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 11
+          TabOrder = 9
           OnClick = btnSavePubClick
         end
         object cbbSaveFormat: TComboBox
-          Left = 672
+          Left = 696
           Top = 280
-          Width = 89
+          Width = 65
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 12
+          TabOrder = 16
           Items.Strings = (
             'PKCS#1'
             'PKCS#8')
@@ -426,7 +490,7 @@ object FormRSA: TFormRSA
           Width = 65
           Height = 21
           Caption = '(p-1)*(q-1)'
-          TabOrder = 13
+          TabOrder = 1
           OnClick = btnBNSendRClick
         end
         object btnPQ: TButton
@@ -435,8 +499,33 @@ object FormRSA: TFormRSA
           Width = 65
           Height = 21
           Caption = 'Send p, q'
-          TabOrder = 14
+          TabOrder = 2
           OnClick = btnPQClick
+        end
+        object cbbMBits: TComboBox
+          Left = 200
+          Top = 280
+          Width = 57
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 11
+          Items.Strings = (
+            '4096'
+            '2048'
+            '1024'
+            '512'
+            '256'
+            '128')
+        end
+        object btnGenByM: TButton
+          Left = 16
+          Top = 280
+          Width = 105
+          Height = 21
+          Caption = 'Generate RSA Keys'
+          TabOrder = 10
+          OnClick = btnGenByMClick
         end
       end
       object grpBNCrypt: TGroupBox

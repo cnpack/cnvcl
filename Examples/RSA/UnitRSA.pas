@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA;
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl;
 
 type
   TFormRSA = class(TForm)
@@ -48,7 +48,6 @@ type
     edtBNPubExp: TEdit;
     mmoBNPrivProduct: TMemo;
     mmoBNPubProduct: TMemo;
-    lblBits: TLabel;
     cbbBits: TComboBox;
     grpBNCrypt: TGroupBox;
     lblBNInteger: TLabel;
@@ -106,6 +105,12 @@ type
     lblPY: TLabel;
     edtPY: TEdit;
     btnPQ: TButton;
+    lblModulusBits: TLabel;
+    bvl1: TBevel;
+    lblMBits: TLabel;
+    cbbMBits: TComboBox;
+    btnGenByM: TButton;
+    lblInt64MBits: TLabel;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -124,12 +129,18 @@ type
     procedure btnBNSendRClick(Sender: TObject);
     procedure btnMInt64MIClick(Sender: TObject);
     procedure btnPQClick(Sender: TObject);
+    procedure btnGenByMClick(Sender: TObject);
+    procedure edtBNChange(Sender: TObject);
+    procedure mmoBNChange(Sender: TObject);
   private
-    FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: Int64;
+    FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
     FPrivateKey: TCnRSAPrivateKey;
     FPublicKey: TCnRSAPublicKey;
     procedure CalcR;
+    function CalcBitLength(const DecStr: string): Integer;
+    function CalcLengthHint(Edit: TEdit): string; overload;
+    function CalcLengthHint(Memo: TMemo): string; overload;
   public
 
   end;
@@ -143,45 +154,58 @@ implementation
 
 procedure TFormRSA.btnGenerateRSAClick(Sender: TObject);
 var
-  Prime1, Prime2: Integer;
+  Prime1, Prime2: Cardinal;
+
+  function GetInt64BitCount(A: TUInt64): Integer;
+  var
+    I: Integer;
+  begin
+    I := 0;
+    while (A shr I) <> 0 do
+      Inc(I);
+
+    Result := I;
+  end;
+
 begin
   if CnInt64RSAGenerateKeys(Prime1, Prime2, FPrivKeyProduct, FPrivKeyExponent,
     FPubKeyProduct, FPubKeyExponent) then
   begin
     edtPrime1.Text := IntToStr(Prime1);
     edtPrime2.Text := IntToStr(Prime2);
-    edtPrivProduct.Text := Format('%d', [FPrivKeyProduct]);
-    edtPrivExp.Text := Format('%d', [FPrivKeyExponent]);
-    edtPubProduct.Text := Format('%d', [FPubKeyProduct]);
+    edtPrivProduct.Text := Format('%u', [FPrivKeyProduct]);
+    edtPrivExp.Text := Format('%u', [FPrivKeyExponent]);
+    edtPubProduct.Text := Format('%u', [FPubKeyProduct]);
     edtPubExp.Text := IntToStr(FPubKeyExponent);
 
-    FR := Int64(Prime1 - 1 ) * Int64(Prime2 - 1); 
+    FR := TUInt64(Prime1 - 1 ) * TUInt64(Prime2 - 1);
+    lblInt64MBits.Caption := 'n Bits: ' + IntToStr(GetInt64BitCount(FPrivKeyProduct));
   end;
 end;
 
 
 procedure TFormRSA.btnRSAEnClick(Sender: TObject);
 var
-  Res, Data: Int64;
+  Res, Data: TUInt64;
 begin
-  Data := StrToInt64(edtData.Text);
-  if Data >= FPrivKeyProduct then
+  Data := StrToUInt64(edtData.Text);
+  if UInt64Compare(Data, FPrivKeyProduct) >= 0 then
   begin
     ShowMessage('Data Greater than Private Keys (Product *). Can NOT Encrypt.');
     Exit;
   end;
 
   if CnInt64RSAEncrypt(Data, FPrivKeyProduct, FPrivKeyExponent, Res) then
-    edtRes.Text := Format('%d', [Res]);
+    edtRes.Text := Format('%u', [Res]);
 end;
 
 procedure TFormRSA.btnRSADeClick(Sender: TObject);
 var
-  Res, Data: Int64;
+  Res, Data: TUInt64;
 begin
-  Res := StrToInt64(edtRes.Text);
+  Res := StrToUInt64(edtRes.Text);
   if CnInt64RSADecrypt(Res, FPubKeyProduct, FPubKeyExponent, Data) then
-    edtDataBack.Text := Format('%d', [Data]);
+    edtDataBack.Text := Format('%u', [Data]);
 end;
 
 procedure TFormRSA.FormCreate(Sender: TObject);
@@ -189,6 +213,7 @@ begin
   Application.Title := Caption;
   pgc1.ActivePageIndex := 0;
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
+  cbbMBits.ItemIndex := 2;
   cbbSaveFormat.ItemIndex := 0;
 
   FPrivateKey := TCnRSAPrivateKey.Create;
@@ -213,12 +238,13 @@ begin
     edtBNPrivExp.Text := FPrivateKey.PrivKeyExponent.ToDec;
     mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
     edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+    lblModulusBits.Caption := 'n Bits: ' + IntToStr(FPublicKey.BitsCount);
   end;
 end;
 
 procedure TFormRSA.btnInt64EucClick(Sender: TObject);
 var
-  A, B, X, Y: Int64;
+  A, B, X, Y: TUInt64;
 begin
   A := StrToInt64(edtA.Text);
   B := StrToInt64(edtB.Text);
@@ -321,6 +347,7 @@ begin
     begin
       mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
       edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+      lblModulusBits.Caption := 'n Bits: ' + IntToStr(FPublicKey.BitsCount);
     end;
   end;
 end;
@@ -339,6 +366,7 @@ begin
       edtBNPrivExp.Text := FPrivateKey.PrivKeyExponent.ToDec;
       mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
       edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+      lblModulusBits.Caption := 'n Bits: ' + IntToStr(FPublicKey.BitsCount);
 
       X := BigNumberNew;
       Y := BigNumberNew;
@@ -408,7 +436,7 @@ end;
 
 procedure TFormRSA.btnMInt64MIClick(Sender: TObject);
 var
-  A, B, X, Y: Int64;
+  A, B, X, Y: TUInt64;
 begin
   A := StrToInt64(edtMA.Text);
   B := StrToInt64(edtMB.Text);
@@ -436,6 +464,57 @@ begin
   edtA.Text := FPrivateKey.PrimeKey2.ToDec;
   edtB.Text := FPrivateKey.PrimeKey1.ToDec;
   pgc1.ActivePageIndex := 2;
+end;
+
+procedure TFormRSA.btnGenByMClick(Sender: TObject);
+begin
+  if CnRSAGenerateKeys(StrToIntDef(cbbMBits.Text, 1024), FPrivateKey, FPublicKey) then
+  begin
+    edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
+    edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;
+    mmoBNPrivProduct.Text := FPrivateKey.PrivKeyProduct.ToDec;
+    edtBNPrivExp.Text := FPrivateKey.PrivKeyExponent.ToDec;
+    mmoBNPubProduct.Text := FPublicKey.PubKeyProduct.ToDec;
+    edtBNPubExp.Text := FPublicKey.PubKeyExponent.ToDec;
+    lblModulusBits.Caption := 'n Bits: ' + IntToStr(FPublicKey.BitsCount);
+  end;
+end;
+
+function TFormRSA.CalcLengthHint(Edit: TEdit): string;
+begin
+  if Edit.Text = '' then
+    Result := '<No Digit>'
+  else
+    Result := 'Decimal Length: ' + IntToStr(Length(Edit.Text)) + ', Bit Length: '
+      + IntToStr(CalcBitLength(Edit.Text));
+end;
+
+procedure TFormRSA.edtBNChange(Sender: TObject);
+begin
+  (Sender as TEdit).Hint := CalcLengthHint(Sender as TEdit);
+end;
+
+function TFormRSA.CalcLengthHint(Memo: TMemo): string;
+begin
+  if Memo.Lines.Text = '' then
+    Result := '<No Digit>'
+  else
+    Result := 'Decimal Length: ' + IntToStr(Length(Memo.Lines.Text))
+      + ', Bit Length: ' + IntToStr(CalcBitLength(Memo.Lines.Text));
+end;
+
+procedure TFormRSA.mmoBNChange(Sender: TObject);
+begin
+  (Sender as TMemo).Hint := CalcLengthHint(Sender as TMemo);
+end;
+
+function TFormRSA.CalcBitLength(const DecStr: string): Integer;
+var
+  N: TCnBigNumber;
+begin
+  N := TCnBigNumber.FromDec(DecStr);
+  Result := N.GetBitsCount;
+  N.Free;
 end;
 
 end.

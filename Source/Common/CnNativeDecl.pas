@@ -52,7 +52,8 @@ uses
   Classes, Windows, SysUtils, SysConst;
 
 const
-  MAX_TUINT64 = $FFFFFFFFFFFFFFFF;
+  MAX_TUINT64                   = $FFFFFFFFFFFFFFFF;
+  MAX_SIGNED_INT64_IN_TUINT64   = $7FFFFFFFFFFFFFFF;
 
 type
 {$IFDEF SUPPORT_32_AND_64}

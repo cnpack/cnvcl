@@ -134,7 +134,7 @@ object FormPrime: TFormPrime
         TabOrder = 5
       end
       object btnGen64: TButton
-        Left = 320
+        Left = 336
         Top = 24
         Width = 145
         Height = 25

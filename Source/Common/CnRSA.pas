@@ -68,6 +68,7 @@ type
     FPrimeKey2: TCnBigNumber;
     FPrivKeyProduct: TCnBigNumber;
     FPrivKeyExponent: TCnBigNumber;
+    function GetBitsCount: Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -81,12 +82,15 @@ type
     {* 俩素数乘积 n，也叫 Modulus}
     property PrivKeyExponent: TCnBigNumber read FPrivKeyExponent write FPrivKeyProduct;
     {* 私钥指数 d}
+    property BitsCount: Integer read GetBitsCount;
+    {* 密钥的位数，也即素数乘积的有效位数}
   end;
 
   TCnRSAPublicKey = class
   private
     FPubKeyProduct: TCnBigNumber;
     FPubKeyExponent: TCnBigNumber;
+    function GetBitsCount: Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -96,6 +100,8 @@ type
     {* 俩素数乘积 n，也叫 Modulus}
     property PubKeyExponent: TCnBigNumber read FPubKeyExponent write FPubKeyExponent;
     {* 公钥指数 e，65537}
+    property BitsCount: Integer read GetBitsCount;
+    {* 密钥的位数，也即素数乘积的有效位数}
   end;
 
 // UInt64 范围内的 RSA 加解密实现
@@ -218,7 +224,18 @@ begin
   end;
 end;
 
-// 生成 RSA 算法所需的公私钥，素数均不大于 Integer，Keys 均不大于 Int64
+function GetInt64BitCount(A: TUInt64): Integer;
+var
+  I: Integer;
+begin
+  I := 0;
+  while (A shr I) <> 0 do
+    Inc(I);
+
+  Result := I;
+end;
+
+// 生成 RSA 算法所需的公私钥，素数均不大于 Cardinal，Keys 均不大于 TUInt64
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
   out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
@@ -906,6 +923,11 @@ begin
   inherited;
 end;
 
+function TCnRSAPrivateKey.GetBitsCount: Integer;
+begin
+  Result := FPrivKeyProduct.GetBitsCount;
+end;
+
 { TCnRSAPublicKey }
 
 procedure TCnRSAPublicKey.Clear;
@@ -925,6 +947,11 @@ begin
   FPubKeyExponent.Free;
   FPubKeyProduct.Free;
   inherited;
+end;
+
+function TCnRSAPublicKey.GetBitsCount: Integer;
+begin
+  Result := FPubKeyProduct.GetBitsCount;
 end;
 
 end.

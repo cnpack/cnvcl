@@ -644,7 +644,7 @@ function CnUInt32IsPrime(N: Cardinal): Boolean;
 {* 快速判断一 32 位无符号整数是否是素数}
 
 function CnInt64IsPrime(N: TUInt64): Boolean;
-{* 概率性判断一 64 位有符号整数是否是素数}
+{* 概率性判断一 64 位无符号整数是否是素数}
 
 function MultipleMod(A, B, C: TUInt64): TUInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
@@ -812,13 +812,14 @@ end;
 function CnInt64IsPrime(N: TUInt64): Boolean;
 var
   I: Integer;
-  T, X, A: TUInt64;
+  R: Real;
+  T, X, A, RA: TUInt64;
 begin
   Result := False;
-  if N < 1 then
+  if UInt64Compare(N, 1) < 0 then
     Exit;
 
-  if N <= High(Cardinal) then
+  if UInt64Compare(N, High(Cardinal)) <= 0 then
   begin
     Result := CnUInt32IsPrime(Cardinal(N));
     Exit;
@@ -843,7 +844,18 @@ begin
   for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
   begin
     Randomize;
-    A := Trunc(Random * (N - 1)) + 1;
+    R := Random;
+
+    // A := Trunc(Random * (N - 1)) + 1; 但 N - 1作为 Int64 可能小于 0，要拆分
+    if UInt64Compare(N - 1, MAX_SIGNED_INT64_IN_TUINT64) <= 0 then // if N - 1 > 0 ?
+      A := Trunc(Random * (N - 1)) + 1
+    else
+    begin
+      // Int64(N - 1) < 0，拆成 MAX_SIGNED_INT64_IN_TUINT64 以及 N - MAX_SIGNED_INT64_IN_TUINT64 - 1
+      RA := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64);
+      RA := RA + Trunc(R * (N - MAX_SIGNED_INT64_IN_TUINT64 - 1));
+      A := RA + 1; // 大于 Int64 上限 Trunc 会出浮点错，改成分别 Trunc 后相加
+    end;
     if FermatCheckComposite(A, N, X, T) then
       Exit;
   end;
@@ -856,14 +868,14 @@ begin
   Randomize;
   Result := Trunc(Random * High(Cardinal) - 1) + 1;
   if HighBitSet then
-    Result := Result or $10000000;
+    Result := Result or $80000000;
 
   while not CnUInt32IsPrime(Result) do
   begin
     Randomize;
     Result := Trunc(Random * High(Cardinal) - 1) + 1;
     if HighBitSet then
-      Result := Result or $10000000;
+      Result := Result or $80000000;
   end;
 end;
 
@@ -871,15 +883,18 @@ end;
 function CnGenerateInt64Prime(HighBitSet: Boolean): TUInt64;
 begin
   Randomize;
-  Result := Trunc(Random * High(TUInt64) - 1) + 1;
+  Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
+  Result := Result * 2 + 1;
+  // Result := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64 + R * MAX_SIGNED_INT64_IN_TUINT64 - 1) + 1;
   if HighBitSet then
-    Result := Result or $1000000000000000;
+    Result := Result or $8000000000000000;
   while not CnInt64IsPrime(Result) do
   begin
     Randomize;
-    Result := Trunc(Random * High(TUInt64) - 1) + 1;
+    Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
+    Result := Result * 2 + 1;
     if HighBitSet then
-      Result := Result or $1000000000000000;
+      Result := Result or $8000000000000000;
   end;
 end;
 
