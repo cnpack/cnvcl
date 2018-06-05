@@ -98,7 +98,7 @@ type
     {* 公钥指数 e，65537}
   end;
 
-// Int64 范围内的 RSA 加解密实现
+// UInt64 范围内的 RSA 加解密实现
 
 function Int64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
@@ -111,7 +111,7 @@ procedure Int64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
   out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
-{* 生成 RSA 算法所需的公私钥，素数均不大于 Integer，Keys 均不大于 Int64}
+{* 生成 RSA 算法所需的公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64}
 
 function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
   PrivKeyExponent: TUInt64; out Res: TUInt64): Boolean;
