@@ -98,6 +98,8 @@ function UInt64ToStr(N: TUInt64): string;
 
 function StrToUInt64(const S: string): TUInt64;
 
+function UInt64Compare(A, B: TUInt64): Integer;
+
 implementation
 
 {
@@ -140,6 +142,40 @@ end;
 function StrToUInt64(const S: string): TUInt64;
 begin
   // Not Implemented
+end;
+
+function UInt64Compare(A, B: TUInt64): Integer;
+{$IFNDEF SUPPORT_UINT64}
+var
+  HiA, HiB, LoA, LoB: DWORD;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_UINT64}
+  if A > B then
+    Result := 1
+  else if A < B then
+    Result := -1
+  else
+    Result := 0;
+{$ELSE}
+  HiA := (A and $FFFFFFFF00000000) shr 32;
+  HiB := (B and $FFFFFFFF00000000) shr 32;
+  if HiA > HiB then
+    Result := 1
+  else if HiA < HiB then
+    Result := -1
+  else
+  begin
+    LoA := DWORD(A and $00000000FFFFFFFF);
+    LoB := DWORD(B and $00000000FFFFFFFF);
+    if LoA > LoB then
+      Result := 1
+    else if LoA < LoB then
+      Result := -1
+    else
+      Result := 0;
+  end;
+{$ENDIF}
 end;
 
 end.

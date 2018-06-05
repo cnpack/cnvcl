@@ -18,6 +18,13 @@ object FormNative: TFormNative
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
+  object bvl1: TBevel
+    Left = 208
+    Top = 8
+    Width = 17
+    Height = 41
+    Shape = bsLeftLine
+  end
   object btnUInt64Div: TButton
     Left = 16
     Top = 16
@@ -28,7 +35,7 @@ object FormNative: TFormNative
     OnClick = btnUInt64DivClick
   end
   object btnUInt64Mod: TButton
-    Left = 520
+    Left = 112
     Top = 16
     Width = 75
     Height = 25

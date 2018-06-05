@@ -49,7 +49,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows;
+  SysUtils, Classes, Windows, CnNativeDecl;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -641,20 +641,20 @@ const
 function CnUInt32IsPrime(N: Cardinal): Boolean;
 {* 快速判断一 32 位无符号整数是否是素数}
 
-function CnInt64IsPrime(N: Int64): Boolean;
+function CnInt64IsPrime(N: TUInt64): Boolean;
 {* 概率性判断一 64 位有符号整数是否是素数}
 
-function MultipleMod(A, B, C: Int64): Int64;
+function MultipleMod(A, B, C: TUInt64): TUInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
-function MontgomeryPowerMod(A, B, C: Int64): Int64;
+function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function CnGenerateInt32Prime: Integer;
-{* 生成一个随机的 32 位素数}
+function CnGenerateInt32Prime(HighBitSet: Boolean = False): Cardinal;
+{* 生成一个随机的 32 位素数，HighBitSet 指明最高位是否必须为 1}
 
-function CnGenerateInt64Prime: Int64;
-{* 生成一个随机的 64 位素数}
+function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
+{* 生成一个随机的 64 位素数，HighBitSet 指明最高位是否必须为 1}
 
 {$IFDEF WIN64}
 
@@ -726,36 +726,55 @@ begin
 end;
 
 // 快速计算 (A * B) mod C，不能直接算，容易溢出
-function MultipleMod(A, B, C: Int64): Int64;
+function MultipleMod(A, B, C: TUInt64): TUInt64;
 begin
   Result := 0;
 
+{$IFDEF SUPPORT_UINT64}
   A := A mod C;
   B := B mod C;
+{$ELSE}
+  A := UInt64Mod(A, C);
+  B := UInt64Mod(B, C);
+{$ENDIF}
 
-  while B > 0 do
+  while B <> 0 do
   begin
     if B and 1 <> 0 then
     begin
       Result := Result + A;
+{$IFDEF SUPPORT_UINT64}
       Result := Result mod C;
+{$ELSE}
+      Result := UInt64Mod(Result, C);
+{$ENDIF}
     end;
 
     A := A shl 1;
-    if A >= C then
+    if UInt64Compare(A, C) >= 0 then
+    begin
+{$IFDEF SUPPORT_UINT64}
       A := A mod C;
+{$ELSE}
+      A := UInt64Mod(A, C);
+{$ENDIF}
+    end;
 
     B := B shr 1;
   end;
 end;
 
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
-function MontgomeryPowerMod(A, B, C: Int64): Int64;
+function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 var
-  T: Int64;
+  T: TUInt64;
 begin
   T := 1;
+{$IFDEF SUPPORT_UINT64}
   A := A mod C;
+{$ELSE}
+  A := UInt64Mod(A, C);
+{$ENDIF}
 
   while B <> 1 do
   begin
@@ -767,10 +786,10 @@ begin
   Result := MultipleMod(A, T, C);
 end;
 
-function FermatCheckComposite(A, B, C, T: Int64): Boolean;
+function FermatCheckComposite(A, B, C, T: TUInt64): Boolean;
 var
   I: Integer;
-  R, L: Int64;
+  R, L: TUInt64;
 begin
   R := MontgomeryPowerMod(A, C, B);
   L := R;
@@ -788,10 +807,10 @@ begin
   Result := R <> 1;
 end;
 
-function CnInt64IsPrime(N: Int64): Boolean;
+function CnInt64IsPrime(N: TUInt64): Boolean;
 var
   I: Integer;
-  T, X, A: Int64;
+  T, X, A: TUInt64;
 begin
   Result := False;
   if N < 1 then
@@ -830,26 +849,35 @@ begin
 end;
 
 // 生成一个随机的 32 位素数
-function CnGenerateInt32Prime: Integer;
+function CnGenerateInt32Prime(HighBitSet: Boolean): Cardinal;
 begin
   Randomize;
-  Result := Trunc(Random * High(Integer) - 1) + 1;
+  Result := Trunc(Random * High(Cardinal) - 1) + 1;
+  if HighBitSet then
+    Result := Result or $10000000;
+
   while not CnUInt32IsPrime(Result) do
   begin
     Randomize;
-    Result := Trunc(Random * High(Integer) - 1) + 1;
+    Result := Trunc(Random * High(Cardinal) - 1) + 1;
+    if HighBitSet then
+      Result := Result or $10000000;
   end;
 end;
 
 // 生成一个随机的 64 位素数
-function CnGenerateInt64Prime: Int64;
+function CnGenerateInt64Prime(HighBitSet: Boolean): TUInt64;
 begin
   Randomize;
-  Result := Trunc(Random * High(Int64) - 1) + 1;
+  Result := Trunc(Random * High(TUInt64) - 1) + 1;
+  if HighBitSet then
+    Result := Result or $1000000000000000;
   while not CnInt64IsPrime(Result) do
   begin
     Randomize;
-    Result := Trunc(Random * High(Int64) - 1) + 1;
+    Result := Trunc(Random * High(TUInt64) - 1) + 1;
+    if HighBitSet then
+      Result := Result or $1000000000000000;
   end;
 end;
 

@@ -6,13 +6,14 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnNativeDecl;
+  StdCtrls, CnNativeDecl, ExtCtrls;
 
 type
   TFormNative = class(TForm)
     btnUInt64Div: TButton;
     btnUInt64Mod: TButton;
     mmoRes: TMemo;
+    bvl1: TBevel;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
