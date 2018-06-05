@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.02 V1.4
+* 修改记录：2018.06.05 V1.4
+*               将 Int64 支持扩展至 UInt64
+*           2018.06.02 V1.4
 *               能够将公私钥保存成兼容 Openssl 的未加密的公私钥 PEM 格式文件
 *           2018.05.27 V1.3
 *               能够从 Openssl 1.0.2 生成的未加密的公私钥 PEM 格式文件中读入公私钥，如
@@ -54,7 +56,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils;
+  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils,
+  CnNativeDecl;
 
 type
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
@@ -97,25 +100,25 @@ type
 
 // Int64 范围内的 RSA 加解密实现
 
-function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+function Int64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
    如果得出 X 小于 0，可加上 B}
 
-procedure Int64ExtendedEuclideanGcd2(A, B: Int64; out X: Int64; out Y: Int64);
+procedure Int64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
    如果得出 X 小于 0，可加上 B}
 
-function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
-  out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
-  out PubKeyProduct: Int64; out PubKeyExponent: Int64): Boolean;
+function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
+  out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
+  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
 {* 生成 RSA 算法所需的公私钥，素数均不大于 Integer，Keys 均不大于 Int64}
 
-function CnInt64RSAEncrypt(Data: Int64; PrivKeyProduct: Int64;
-  PrivKeyExponent: Int64; out Res: Int64): Boolean;
+function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
+  PrivKeyExponent: TUInt64; out Res: TUInt64): Boolean;
 {* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
 
-function CnInt64RSADecrypt(Res: Int64; PubKeyProduct: Int64;
-  PubKeyExponent: Int64; out Data: Int64): Boolean;
+function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
+  PubKeyExponent: TUInt64; out Data: TUInt64): Boolean;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
 // 大数范围内的 RSA 加解密实现
@@ -172,17 +175,17 @@ const
 
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
-function Int64RSACrypt(Data: Int64; Product: Int64; Exponent: Int64;
-  out Res: Int64): Boolean;
+function Int64RSACrypt(Data: TUInt64; Product: TUInt64; Exponent: TUInt64;
+  out Res: TUInt64): Boolean;
 begin
   Res := MontgomeryPowerMod(Data, Exponent, Product);
   Result := True;
 end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
-function Int64ExtendedEuclideanGcd(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+function Int64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
 var
-  R, T: Int64;
+  R, T: TUInt64;
 begin
   if B = 0 then
   begin
@@ -201,7 +204,7 @@ begin
 end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
-procedure Int64ExtendedEuclideanGcd2(A, B: Int64; out X: Int64; out Y: Int64);
+procedure Int64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
 begin
   if B = 0 then
   begin
@@ -216,19 +219,19 @@ begin
 end;
 
 // 生成 RSA 算法所需的公私钥，素数均不大于 Integer，Keys 均不大于 Int64
-function CnInt64RSAGenerateKeys(out PrimeKey1: Integer; out PrimeKey2: Integer;
-  out PrivKeyProduct: Int64; out PrivKeyExponent: Int64;
-  out PubKeyProduct: Int64; out PubKeyExponent: Int64): Boolean;
+function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
+  out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
+  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
 var
   N: Integer;
-  Product, Y: Int64;
+  Product, Y: TUInt64;
 begin
-  PrimeKey1 := CnGenerateInt32Prime;
+  PrimeKey1 := CnGenerateInt32Prime(True);
 
   N := Trunc(Random * 1000);
   Sleep(N);
 
-  PrimeKey2 := CnGenerateInt32Prime;
+  PrimeKey2 := CnGenerateInt32Prime(True);
   if PrimeKey2 > PrimeKey1 then  // 一般使 p > q
   begin
     N := PrimeKey1;
@@ -236,11 +239,11 @@ begin
     PrimeKey2 := N;
   end;
 
-  PrivKeyProduct := Int64(PrimeKey1) * Int64(PrimeKey2);
-  PubKeyProduct := Int64(PrimeKey2) * Int64(PrimeKey1);   // 积在公私钥中是相同的
+  PrivKeyProduct := TUInt64(PrimeKey1) * TUInt64(PrimeKey2);
+  PubKeyProduct := TUInt64(PrimeKey2) * TUInt64(PrimeKey1);   // 积在公私钥中是相同的
   PubKeyExponent := 65537;                                // 固定
 
-  Product := Int64(PrimeKey1 - 1) * Int64(PrimeKey2 - 1);
+  Product := TUInt64(PrimeKey1 - 1) * TUInt64(PrimeKey2 - 1);
 
   //                      e                d                p
   // 用辗转相除法求 PubKeyExponent * PrivKeyExponent mod Product = 1 中的 PrivKeyExponent
@@ -255,15 +258,15 @@ begin
 end;
 
 // 利用上面生成的私钥对数据进行加密，返回加密是否成功
-function CnInt64RSAEncrypt(Data: Int64; PrivKeyProduct: Int64;
-  PrivKeyExponent: Int64; out Res: Int64): Boolean;
+function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
+  PrivKeyExponent: TUInt64; out Res: TUInt64): Boolean;
 begin
   Result := Int64RSACrypt(Data, PrivKeyProduct, PrivKeyExponent, Res);
 end;
 
 // 利用上面生成的公钥对数据进行解密，返回解密是否成功
-function CnInt64RSADecrypt(Res: Int64; PubKeyProduct: Int64;
-  PubKeyExponent: Int64; out Data: Int64): Boolean;
+function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
+  PubKeyExponent: TUInt64; out Data: TUInt64): Boolean;
 begin
   Result := Int64RSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
 end;
