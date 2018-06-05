@@ -57,4 +57,13 @@ object FormNative: TFormNative
     ParentFont = False
     TabOrder = 2
   end
+  object btnStrUInt64: TButton
+    Left = 232
+    Top = 16
+    Width = 75
+    Height = 25
+    Caption = 'StrToUInt64'
+    TabOrder = 3
+    OnClick = btnStrUInt64Click
+  end
 end

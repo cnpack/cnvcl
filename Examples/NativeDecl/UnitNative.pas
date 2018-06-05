@@ -14,9 +14,11 @@ type
     btnUInt64Mod: TButton;
     mmoRes: TMemo;
     bvl1: TBevel;
+    btnStrUInt64: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
+    procedure btnStrUInt64Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -112,6 +114,18 @@ begin
   mmoRes.Lines.Add(UInt64ToStr(A7) + ' mod ' + UInt64ToStr(B7) + ' = ' + UInt64ToStr(A7 mod B7));
   mmoRes.Lines.Add(UInt64ToStr(A8) + ' mod ' + UInt64ToStr(B8) + ' = ' + UInt64ToStr(A8 mod B8));
 {$ENDIF}
+end;
+
+procedure TFormNative.btnStrUInt64Click(Sender: TObject);
+var
+  A: TUInt64;
+  S: string;
+begin
+  S := '10977225559701242671';
+  A := StrToUInt64(S);
+  mmoRes.Lines.Clear;
+  mmoRes.Lines.Add(S + ' Converted to TUInt64.');
+  mmoRes.Lines.Add(UInt64ToStr(A));
 end;
 
 end.

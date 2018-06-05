@@ -49,7 +49,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils;
+  Classes, Windows, SysUtils, SysConst;
+
+const
+  MAX_TUINT64 = $FFFFFFFFFFFFFFFF;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
@@ -134,14 +137,103 @@ asm
         CALL    System.@_lludiv;
 end;
 
+function _ValUInt64(const S: string; var Code: Integer): TUInt64;
+const
+  FirstIndex = 1;
+var
+  I: Integer;
+  Dig: Integer;
+  Sign: Boolean;
+  Empty: Boolean;
+begin
+  I := FirstIndex;
+  Dig := 0;
+  Result := 0;
+
+  if S = '' then
+  begin
+    Code := 1;
+    Exit;
+  end;
+  while S[I] = Char(' ') do
+    Inc(I);
+  Sign := False;
+  if S[I] =  Char('-') then
+  begin
+    Sign := True;
+    Inc(I);
+  end
+  else if S[I] =  Char('+') then
+    Inc(I);
+  Empty := True;
+
+  if (S[I] =  Char('$')) or (UpCase(S[I]) =  Char('X'))
+    or ((S[I] =  Char('0')) and (I < Length(S)) and (UpCase(S[I+1]) =  Char('X'))) then
+  begin
+    if S[I] =  Char('0') then
+      Inc(I);
+    Inc(I);
+    while True do
+    begin
+      case   Char(S[I]) of
+       Char('0').. Char('9'): Dig := Ord(S[I]) -  Ord('0');
+       Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
+       Char('a').. Char('f'): Dig := Ord(S[I]) - (Ord('a') - 10);
+      else
+        Break;
+      end;
+      if Result > (MAX_TUINT64 shr 4) then
+        Break;
+      if Sign and (Dig <> 0) then
+        Break;
+      Result := Result shl 4 + Dig;
+      Inc(I);
+      Empty := False;
+    end;
+  end
+  else
+  begin
+    while True do
+    begin
+      case Char(S[I]) of
+        Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
+      else
+        Break;
+      end;
+
+      if Result > UInt64Div(MAX_TUINT64, 10) then
+        Break;
+      if Sign and (Dig <> 0) then
+        Break;
+      Result := Result * 10 + Dig;
+      Inc(I);
+      Empty := False;
+    end;
+  end;
+
+  if (S[I] <> Char(#0)) or Empty then
+    Code := I + 1 - FirstIndex
+  else
+    Code := 0;
+end;
+
 function UInt64ToStr(N: TUInt64): string;
 begin
   Result := Format('%u', [N]);
 end;
 
 function StrToUInt64(const S: string): TUInt64;
+{$IFNDEF SUPPORT_UINT64}
+var
+  E: Integer;
+{$ENDIF}
 begin
-  // Not Implemented
+{$IFDEF SUPPORT_UINT64}
+  Result := SysUtils.StrToUInt64(S);
+{$ELSE}
+  Result := _ValUInt64(S,  E);
+  if E <> 0 then raise EConvertError.CreateResFmt(@SInvalidInteger, [S]);
+{$ENDIF}
 end;
 
 function UInt64Compare(A, B: TUInt64): Integer;
