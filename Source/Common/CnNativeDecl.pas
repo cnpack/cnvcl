@@ -51,10 +51,6 @@ interface
 uses
   Classes, Windows, SysUtils, SysConst;
 
-const
-  MAX_TUINT64                   = $FFFFFFFFFFFFFFFF;
-  MAX_SIGNED_INT64_IN_TUINT64   = $7FFFFFFFFFFFFFFF;
-
 type
 {$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
@@ -88,6 +84,10 @@ type
 {$ELSE}
   TUInt64          = Int64;
 {$ENDIF}
+
+const
+  MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
+  MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
 
 {*
   对于 D567 等不支持 UInt64 的编译器，虽然可以用 Int64 代替 UInt64 进行加减、存储
@@ -224,13 +224,13 @@ begin
 end;
 
 function StrToUInt64(const S: string): TUInt64;
-{$IFNDEF SUPPORT_UINT64}
+{$IFNDEF DELPHIXE6_UP}
 var
   E: Integer;
 {$ENDIF}
 begin
-{$IFDEF SUPPORT_UINT64}
-  Result := SysUtils.StrToUInt64(S);
+{$IFDEF DELPHIXE6_UP}
+  Result := SysUtils.StrToUInt64(S);  // StrToUInt64 only exists under XE6 or above
 {$ELSE}
   Result := _ValUInt64(S,  E);
   if E <> 0 then raise EConvertError.CreateResFmt(@SInvalidInteger, [S]);
