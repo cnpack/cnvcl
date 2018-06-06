@@ -201,10 +201,10 @@ begin
   end
   else
   begin
-    R := Int64ExtendedEuclideanGcd(B, A mod B, X, Y);
+    R := Int64ExtendedEuclideanGcd(B, UInt64Mod(A, B), X, Y);
     T := X;
     X := Y;
-    Y := T - (A div B) * Y;
+    Y := T - UInt64Div(A, B) * Y;
     Result := R;
   end;
 end;
@@ -219,8 +219,8 @@ begin
   end
   else
   begin
-    Int64ExtendedEuclideanGcd2(B, A mod B, Y, X);
-    Y := Y - X * (A div B);
+    Int64ExtendedEuclideanGcd2(B, UInt64Mod(A, B), Y, X);
+    Y := Y - X * UInt64Div(A, B);
   end;
 end;
 
@@ -240,7 +240,7 @@ function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
   out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
 var
-  N: Integer;
+  N: Cardinal;
   Product, Y: TUInt64;
 begin
   PrimeKey1 := CnGenerateInt32Prime(True);
@@ -257,18 +257,18 @@ begin
   end;
 
   PrivKeyProduct := TUInt64(PrimeKey1) * TUInt64(PrimeKey2);
-  PubKeyProduct := TUInt64(PrimeKey2) * TUInt64(PrimeKey1);   // 积在公私钥中是相同的
-  PubKeyExponent := 65537;                                // 固定
+  PubKeyProduct := TUInt64(PrimeKey2) * TUInt64(PrimeKey1);   // 积 n 在公私钥中是相同的
+  PubKeyExponent := 65537;                                    // 固定
 
   Product := TUInt64(PrimeKey1 - 1) * TUInt64(PrimeKey2 - 1);
 
-  //                      e                d                p
+  //                      e                d             (p-1)(q-1)
   // 用辗转相除法求 PubKeyExponent * PrivKeyExponent mod Product = 1 中的 PrivKeyExponent
-  // 也就是解方程 e * d + p * y = 1，其中 e、p 已知，求 d 与 y。
+  // r = (p-1)(q-1) 也就是解方程 e * d + r * y = 1，其中 e、r 已知，求 d 与 y。
   Int64ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
   while PrivKeyExponent < 0 do
   begin
-     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 p，加到大于零为止
+     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 r，加到大于零为止
      PrivKeyExponent := PrivKeyExponent + Product;
   end;
   Result := True;
