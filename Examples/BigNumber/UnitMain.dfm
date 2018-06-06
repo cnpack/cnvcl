@@ -1,6 +1,6 @@
 object FormBigNumber: TFormBigNumber
-  Left = 127
-  Top = 6
+  Left = 180
+  Top = 4
   Width = 920
   Height = 654
   Caption = 'Big Number Test'
@@ -329,7 +329,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnGcdClick
   end
   object btnGenWord: TButton
-    Left = 72
+    Left = 104
     Top = 230
     Width = 75
     Height = 21
@@ -338,7 +338,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnGenWordClick
   end
   object edtWord: TEdit
-    Left = 152
+    Left = 184
     Top = 230
     Width = 121
     Height = 21
@@ -346,7 +346,7 @@ object FormBigNumber: TFormBigNumber
     Text = '0'
   end
   object btnWordAdd: TButton
-    Left = 280
+    Left = 312
     Top = 230
     Width = 75
     Height = 21
@@ -355,7 +355,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnWordAddClick
   end
   object btnSubWord: TButton
-    Left = 360
+    Left = 392
     Top = 230
     Width = 75
     Height = 21
@@ -364,7 +364,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnSubWordClick
   end
   object btnMulWord: TButton
-    Left = 440
+    Left = 472
     Top = 230
     Width = 75
     Height = 21
@@ -373,7 +373,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnMulWordClick
   end
   object btnDivWord: TButton
-    Left = 520
+    Left = 552
     Top = 230
     Width = 75
     Height = 21
@@ -382,7 +382,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnDivWordClick
   end
   object btnModWord: TButton
-    Left = 600
+    Left = 632
     Top = 230
     Width = 75
     Height = 21
@@ -391,7 +391,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnModWordClick
   end
   object btnVerifyDiv: TButton
-    Left = 680
+    Left = 712
     Top = 230
     Width = 97
     Height = 21
@@ -418,7 +418,7 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnPowerModClick
   end
   object btnIsPrime: TButton
-    Left = 784
+    Left = 816
     Top = 230
     Width = 73
     Height = 21
@@ -452,5 +452,23 @@ object FormBigNumber: TFormBigNumber
     Caption = 'Range'
     TabOrder = 5
     OnClick = btnRandRangeClick
+  end
+  object btnEnterNum1: TButton
+    Left = 232
+    Top = 12
+    Width = 97
+    Height = 21
+    Caption = 'Enter Num1'
+    TabOrder = 42
+    OnClick = btnEnterNum1Click
+  end
+  object btnEnterNum2: TButton
+    Left = 16
+    Top = 230
+    Width = 81
+    Height = 21
+    Caption = 'Enter Num2 '
+    TabOrder = 43
+    OnClick = btnEnterNum2Click
   end
 end

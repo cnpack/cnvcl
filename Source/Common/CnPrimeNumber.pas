@@ -658,16 +658,20 @@ function CnGenerateInt32Prime(HighBitSet: Boolean = False): Cardinal;
 function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
 {* 生成一个随机的 64 位素数，HighBitSet 指明最高位是否必须为 1}
 
+{$IFDEF SUPPORT_UINT64}
+
+function MultipleMod64(A, B, C: UInt64): UInt64;
+{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
+
+function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
+{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
+
+{$ENDIF}
+
 {$IFDEF WIN64}
 
 function CnUInt64IsPrime(N: NativeUInt): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
-
-function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
-{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
-
-function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
-{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
 function CnGenerateUInt64Prime: NativeUInt;
 {* 生成一个随机的 64 位无符号素数}
@@ -898,10 +902,10 @@ begin
   end;
 end;
 
-{$IFDEF WIN64}
+{$IFDEF SUPPORT_UINT64}
 
 // 快速计算 (A * B ) mod C，不能直接算，容易溢出
-function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
+function MultipleMod64(A, B, C: UInt64): UInt64;
 begin
   Result := 0;
 
@@ -925,7 +929,7 @@ begin
 end;
 
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
-function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
+function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 var
   T: NativeUInt;
 begin
@@ -941,6 +945,10 @@ begin
   end;
   Result := MultipleMod64(A, T, C);
 end;
+
+{$ENDIF}
+
+{$IFDEF WIN64}
 
 function FermatCheckComposite64(A, B, C, T: NativeUInt): Boolean;
 var

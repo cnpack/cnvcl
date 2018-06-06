@@ -1,6 +1,6 @@
 object FormPrime: TFormPrime
-  Left = 210
-  Top = 99
+  Left = 237
+  Top = 121
   BorderStyle = bsDialog
   Caption = 'Prime Number Test'
   ClientHeight = 464
@@ -20,7 +20,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsGenPrime
+    ActivePage = tsMontgomery
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
@@ -141,6 +141,73 @@ object FormPrime: TFormPrime
         Caption = 'Generate a Int64 Prime'
         TabOrder = 6
         OnClick = btnGen64Click
+      end
+    end
+    object tsMontgomery: TTabSheet
+      Caption = 'Montgomery Power Mod'
+      ImageIndex = 2
+      object lbl1: TLabel
+        Left = 208
+        Top = 24
+        Width = 6
+        Height = 13
+        Caption = '^'
+      end
+      object lblMonMod: TLabel
+        Left = 416
+        Top = 28
+        Width = 20
+        Height = 13
+        Caption = 'mod'
+      end
+      object edtMonA: TEdit
+        Left = 24
+        Top = 24
+        Width = 177
+        Height = 21
+        TabOrder = 0
+        Text = '12345678987654321'
+      end
+      object edtMonB: TEdit
+        Left = 224
+        Top = 24
+        Width = 185
+        Height = 21
+        TabOrder = 1
+        Text = '1457455126472076857'
+      end
+      object edtMonC: TEdit
+        Left = 448
+        Top = 24
+        Width = 185
+        Height = 21
+        TabOrder = 2
+        Text = '10323148517833894957'
+      end
+      object btnMon: TButton
+        Left = 24
+        Top = 64
+        Width = 81
+        Height = 21
+        Caption = 'Power Mod'
+        TabOrder = 3
+        OnClick = btnMonClick
+      end
+      object edtMonRes: TEdit
+        Left = 128
+        Top = 64
+        Width = 401
+        Height = 21
+        TabOrder = 4
+      end
+      object btnMonPowerMod64: TButton
+        Left = 552
+        Top = 64
+        Width = 83
+        Height = 21
+        Caption = 'Power Mod U64'
+        TabOrder = 5
+        OnClick = btnMonPowerMod64Click
       end
     end
   end
