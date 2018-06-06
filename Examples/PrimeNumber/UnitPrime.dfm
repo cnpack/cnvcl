@@ -160,6 +160,30 @@ object FormPrime: TFormPrime
         Height = 13
         Caption = 'mod'
       end
+      object btn2: TSpeedButton
+        Left = 168
+        Top = 48
+        Width = 23
+        Height = 22
+        Caption = 'J'
+        Flat = True
+        Font.Charset = SYMBOL_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -16
+        Font.Name = 'Wingdings 3'
+        Font.Style = []
+        ParentFont = False
+        OnClick = btn2Click
+      end
+      object btn65537: TSpeedButton
+        Left = 224
+        Top = 48
+        Width = 63
+        Height = 22
+        Caption = '65537'
+        Flat = True
+        OnClick = btn65537Click
+      end
       object edtMonA: TEdit
         Left = 24
         Top = 24
@@ -174,7 +198,7 @@ object FormPrime: TFormPrime
         Width = 185
         Height = 21
         TabOrder = 1
-        Text = '1457455126472076857'
+        Text = '6405181853089073441'
       end
       object edtMonC: TEdit
         Left = 448
@@ -182,11 +206,11 @@ object FormPrime: TFormPrime
         Width = 185
         Height = 21
         TabOrder = 2
-        Text = '10323148517833894957'
+        Text = '9676503616299152957'
       end
       object btnMon: TButton
         Left = 24
-        Top = 64
+        Top = 72
         Width = 81
         Height = 21
         Caption = 'Power Mod'
@@ -195,14 +219,14 @@ object FormPrime: TFormPrime
       end
       object edtMonRes: TEdit
         Left = 128
-        Top = 64
+        Top = 72
         Width = 401
         Height = 21
         TabOrder = 4
       end
       object btnMonPowerMod64: TButton
         Left = 552
-        Top = 64
+        Top = 72
         Width = 83
         Height = 21
         Caption = 'Power Mod U64'
