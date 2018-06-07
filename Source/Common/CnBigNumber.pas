@@ -2488,7 +2488,7 @@ end;
 
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 var
-  I, N, R: Integer;
+  I, N, R, Len: Integer;
   BnData, LP: PDWORD;
   T: TCnBigNumber;
   P: PAnsiChar;
@@ -2564,6 +2564,10 @@ begin
     if T <> nil then
       BigNumberFree(T);
   end;
+
+  Len := StrLen(PAnsiChar(Result));
+  if Len > 0 then
+    SetLength(Result, Len); // 去除尾部多余的 #0
 end;
 
 function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
