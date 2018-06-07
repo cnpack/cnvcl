@@ -363,6 +363,9 @@ type
     procedure LogFloat(Value: Extended; const AMsg: string = '');
     procedure LogInteger(Value: Integer; const AMsg: string = '');
     procedure LogInt64(Value: Int64; const AMsg: string = '');
+{$IFDEF SUPPORT_UINT64}
+    procedure LogUInt64(Value: UInt64; const AMsg: string = '');
+{$ENDIF}
     procedure LogChar(Value: Char; const AMsg: string = '');
     procedure LogAnsiChar(Value: AnsiChar; const AMsg: string = '');
     procedure LogWideChar(Value: WideChar; const AMsg: string = '');
@@ -436,6 +439,9 @@ type
     procedure TraceFloat(Value: Extended; const AMsg: string = '');
     procedure TraceInteger(Value: Integer; const AMsg: string = '');
     procedure TraceInt64(Value: Int64; const AMsg: string = '');
+{$IFDEF SUPPORT_UINT64}
+    procedure TraceUInt64(Value: UInt64; const AMsg: string = '');
+{$ENDIF}
     procedure TraceChar(Value: Char; const AMsg: string = '');
     procedure TraceAnsiChar(Value: AnsiChar; const AMsg: string = '');
     procedure TraceWideChar(Value: WideChar; const AMsg: string = '');
@@ -624,6 +630,7 @@ const
   SCnColor = 'Color: ';
   SCnInteger = 'Integer: ';
   SCnInt64 = 'Int64: ';
+  SCnUInt64 = 'UInt64: ';
 {$IFDEF UNICODE}
   SCnCharFmt = 'Char: ''%s''(%d/$%4.4x)';
 {$ELSE}
@@ -1689,7 +1696,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.LogInt64(Value: Int64; const AMsg: string = '');
+procedure TCnDebugger.LogInt64(Value: Int64; const AMsg: string);
 begin
 {$IFDEF DEBUG}
   if AMsg = '' then
@@ -1698,6 +1705,20 @@ begin
     LogFmt('%s %d', [AMsg, Value]);
 {$ENDIF}
 end;
+
+{$IFDEF SUPPORT_UINT64}
+
+procedure TCnDebugger.LogUInt64(Value: UInt64; const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFmt('%s%u', [SCnUInt64, Value])
+  else
+    LogFmt('%s %u', [AMsg, Value]);
+{$ENDIF}
+end;
+
+{$ENDIF}
 
 procedure TCnDebugger.LogChar(Value: Char; const AMsg: string);
 begin
@@ -2357,14 +2378,26 @@ begin
     TraceFmt('%s %d', [AMsg, Value]);
 end;
 
-procedure TCnDebugger.TraceInt64(Value: Int64;
-  const AMsg: string);
+procedure TCnDebugger.TraceInt64(Value: Int64; const AMsg: string);
 begin
   if AMsg = '' then
     TraceMsg(SCnInt64 + IntToStr(Value))
   else
     TraceFmt('%s %d', [AMsg, Value]);
 end;
+
+{$IFDEF SUPPORT_UINT64}
+
+procedure TCnDebugger.TraceUInt64(Value: UInt64; const AMsg: string);
+begin
+  if AMsg = '' then
+    LogFmt('%s%u', [SCnUInt64, Value])
+  else
+    LogFmt('%s %u', [AMsg, Value]);
+end;
+
+{$ENDIF}
+
 
 procedure TCnDebugger.TraceChar(Value: Char; const AMsg: string);
 begin
