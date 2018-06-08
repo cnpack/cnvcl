@@ -116,8 +116,9 @@ procedure Int64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
-  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
-{* 生成 RSA 算法所需的公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64}
+  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64; HighBitSet: Boolean = True): Boolean;
+{* 生成 RSA 算法所需的公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64
+   HighBitSet 为 True 时要求素数最高位为 1，且乘积是 64 Bit}
 
 function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
   PrivKeyExponent: TUInt64; out Res: TUInt64): Boolean;
@@ -238,17 +239,28 @@ end;
 // 生成 RSA 算法所需的公私钥，素数均不大于 Cardinal，Keys 均不大于 TUInt64
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
-  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64): Boolean;
+  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64; HighBitSet: Boolean): Boolean;
 var
   N: Cardinal;
+  Succ: Boolean;
   Product, Y: TUInt64;
 begin
-  PrimeKey1 := CnGenerateInt32Prime(True);
+  repeat
+    PrimeKey1 := CnGenerateInt32Prime(HighBitSet);
 
-  N := Trunc(Random * 1000);
-  Sleep(N);
+    N := Trunc(Random * 1000);
+    Sleep(N);
 
-  PrimeKey2 := CnGenerateInt32Prime(True);
+    PrimeKey2 := CnGenerateInt32Prime(HighBitSet);
+    if HighBitSet then
+    begin
+      Product := TUInt64(PrimeKey1) * TUInt64(PrimeKey2);
+      Succ := GetInt64BitCount(Product) = 64;
+    end
+    else
+      Succ := True;
+  until Succ;
+
   if PrimeKey2 > PrimeKey1 then  // 一般使 p > q
   begin
     N := PrimeKey1;

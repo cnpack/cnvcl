@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 115
-  Top = 97
+  Left = 150
+  Top = 101
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 542
@@ -166,6 +166,14 @@ object FormRSA: TFormRSA
           TabOrder = 7
           OnClick = btnSendRClick
         end
+        object chkN64: TCheckBox
+          Left = 432
+          Top = 192
+          Width = 97
+          Height = 17
+          Caption = '* 64 Bits'
+          TabOrder = 8
+        end
       end
       object grpCrypt: TGroupBox
         Left = 16
@@ -198,7 +206,7 @@ object FormRSA: TFormRSA
         object edtData: TEdit
           Left = 64
           Top = 20
-          Width = 577
+          Width = 529
           Height = 21
           TabOrder = 0
           Text = '12345678987654321'
@@ -206,20 +214,20 @@ object FormRSA: TFormRSA
         object edtRes: TEdit
           Left = 64
           Top = 52
-          Width = 577
+          Width = 529
           Height = 21
           TabOrder = 2
         end
         object edtDataBack: TEdit
           Left = 64
           Top = 84
-          Width = 577
+          Width = 529
           Height = 21
           ReadOnly = True
           TabOrder = 4
         end
         object btnRSAEn: TButton
-          Left = 664
+          Left = 616
           Top = 34
           Width = 89
           Height = 21
@@ -228,13 +236,22 @@ object FormRSA: TFormRSA
           OnClick = btnRSAEnClick
         end
         object btnRSADe: TButton
-          Left = 664
+          Left = 616
           Top = 66
           Width = 89
           Height = 21
           Caption = 'RSA Decrypt'
           TabOrder = 3
           OnClick = btnRSADeClick
+        end
+        object chkPureUInt64: TCheckBox
+          Left = 712
+          Top = 48
+          Width = 57
+          Height = 17
+          Caption = 'UInt64'
+          Enabled = False
+          TabOrder = 5
         end
       end
     end
@@ -876,11 +893,11 @@ object FormRSA: TFormRSA
     end
   end
   object dlgOpenPEM: TOpenDialog
-    Left = 492
+    Left = 556
     Top = 240
   end
   object dlgSavePEM: TSaveDialog
-    Left = 532
+    Left = 588
     Top = 240
   end
 end

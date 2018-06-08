@@ -111,6 +111,8 @@ type
     cbbMBits: TComboBox;
     btnGenByM: TButton;
     lblInt64MBits: TLabel;
+    chkPureUInt64: TCheckBox;
+    chkN64: TCheckBox;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -169,7 +171,7 @@ var
 
 begin
   if CnInt64RSAGenerateKeys(Prime1, Prime2, FPrivKeyProduct, FPrivKeyExponent,
-    FPubKeyProduct, FPubKeyExponent) then
+    FPubKeyProduct, FPubKeyExponent, chkN64.Checked) then
   begin
     edtPrime1.Text := IntToStr(Prime1);
     edtPrime2.Text := IntToStr(Prime2);
@@ -219,6 +221,10 @@ begin
   FPrivateKey := TCnRSAPrivateKey.Create;
   FPublicKey := TCnRSAPublicKey.Create;
   FBNR := TCnBigNumber.Create;
+
+{$IFDEF SUPPORT_UINT64}
+  chkPureUInt64.Enabled := True;
+{$ENDIF}
 end;
 
 procedure TFormRSA.FormDestroy(Sender: TObject);
