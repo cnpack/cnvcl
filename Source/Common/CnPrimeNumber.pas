@@ -34,7 +34,7 @@ unit CnPrimeNumber;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2018.06.05 V1.4
-*               将 Int64 支持扩展至 UInt64
+*               将 Int64 支持扩展至 UInt64 并扩展 AddMod、MultipleMode 等方法
 *           2017.04.03 V1.3
 *               将针对 Int64 的 RSA 基础加解密实现独立成 CnRSA 单元
 *           2017.02.16 V1.2
@@ -646,6 +646,9 @@ function CnUInt32IsPrime(N: Cardinal): Boolean;
 function CnInt64IsPrime(N: TUInt64): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
 
+function AddMod(A, B, C: TUInt64): TUInt64;
+{* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
+
 function MultipleMod(A, B, C: TUInt64): TUInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
@@ -659,6 +662,9 @@ function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
 {* 生成一个随机的 64 位素数，HighBitSet 指明最高位是否必须为 1}
 
 {$IFDEF SUPPORT_UINT64}
+
+function AddMod64(A, B, C: UInt64): UInt64;
+{* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
 
 function MultipleMod64(A, B, C: UInt64): UInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
@@ -731,6 +737,22 @@ begin
   end;
 end;
 
+// 想办法计算 (A + B) mod C，不能直接算，容易溢出
+function AddMod(A, B, C: TUInt64): TUInt64;
+begin
+  if UInt64Compare(A, MAX_TUINT64 - B) > 0 then
+  begin
+    // 有溢出，另外想办法，溢出点为 2^64，设为 K，也就是 MAX_TUINT64（简称 M) + 1
+    // 再设 A + B = S，那么直接相加取模的结果其实是 (S - K) % C，而我们要求 S % C
+    // S % C = ((S - K) % C + K % C) % C = ((S - K) % C + M % C + 1) % C
+    Result := UInt64Mod(UInt64Mod(A + B, C) + UInt64Mod(MAX_TUINT64, C) + 1, C);
+  end
+  else
+  begin
+    Result := UInt64Mod(A + B, C); // 无溢出，直接加后取模
+  end;
+end;
+
 // 快速计算 (A * B) mod C，不能直接算，容易溢出
 function MultipleMod(A, B, C: TUInt64): TUInt64;
 begin
@@ -748,22 +770,27 @@ begin
   begin
     if B and 1 <> 0 then
     begin
-      Result := Result + A;
-{$IFDEF SUPPORT_UINT64}
-      Result := Result mod C;
-{$ELSE}
-      Result := UInt64Mod(Result, C);
-{$ENDIF}
+      Result := AddMod(Result, A, C);
     end;
 
-    A := A shl 1;
-    if UInt64Compare(A, C) >= 0 then
+    if A and $8000000000000000 <> 0 then
     begin
+      // 最高位是 1，左移后必然溢出，且乘 2 后必然大于 C，所以 A 不乘 2，
+      // 而是求 (A + A) mod C
+      A := AddMod(A, A, C);
+    end
+    else
+    begin
+      // 放心左移
+      A := A shl 1;
+      if UInt64Compare(A, C) >= 0 then
+      begin
 {$IFDEF SUPPORT_UINT64}
-      A := A mod C;
+        A := A mod C;
 {$ELSE}
-      A := UInt64Mod(A, C);
+        A := UInt64Mod(A, C);
 {$ENDIF}
+      end;
     end;
 
     B := B shr 1;
@@ -904,6 +931,22 @@ end;
 
 {$IFDEF SUPPORT_UINT64}
 
+// 想办法计算 (A + B) mod C，不能直接算，容易溢出
+function AddMod64(A, B, C: UInt64): UInt64;
+begin
+  if A > MAX_TUINT64 - B then
+  begin
+    // 有溢出，另外想办法，溢出点为 2^64，设为 K，也就是 MAX_TUINT64（简称 M) + 1
+    // 再设 A + B = S，那么直接相加取模的结果其实是 (S - K) % C，而我们要求 S % C
+    // S % C = ((S - K) % C + K % C) % C = ((S - K) % C + M % C + 1) % C
+    Result := ((A + B) mod C + MAX_TUINT64 mod C + 1) mod C;
+  end
+  else
+  begin
+    Result := (A + B) mod C; // 无溢出，直接加后取模
+  end;
+end;
+
 // 快速计算 (A * B ) mod C，不能直接算，容易溢出
 function MultipleMod64(A, B, C: UInt64): UInt64;
 begin
@@ -915,14 +958,21 @@ begin
   while B > 0 do
   begin
     if B and 1 <> 0 then
-    begin
-      Result := Result + A;
-      Result := Result mod C;
-    end;
+      Result := AddMod64(Result, A, C);
 
-    A := A shl 1;
-    if A >= C then
-      A := A mod C;
+    if A and $8000000000000000 <> 0 then
+    begin
+      // 最高位是 1，左移后必然溢出，且乘 2 后必然大于 C，所以 A 不乘 2，
+      // 而是求 (A + A) mod C
+      A := AddMod64(A, A, C);
+    end
+    else
+    begin
+      // 放心左移
+      A := A shl 1;
+      if A >= C then
+        A := A mod C;
+    end;
 
     B := B shr 1;
   end;
@@ -940,6 +990,7 @@ begin
   begin
     if (B and 1) <> 0 then
       T := MultipleMod64(A, T, C);
+
     A := MultipleMod64(A, A, C);
     B := B shr 1;
   end;
