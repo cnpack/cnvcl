@@ -1,9 +1,9 @@
 object FormTest: TFormTest
-  Left = 291
-  Top = 241
+  Left = 268
+  Top = 147
   BorderStyle = bsDialog
   Caption = 'Test for Interfaces'
-  ClientHeight = 345
+  ClientHeight = 458
   ClientWidth = 466
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,13 +14,14 @@ object FormTest: TFormTest
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
     Left = 24
     Top = 24
     Width = 417
-    Height = 297
+    Height = 409
     Lines.Strings = (
       '测试对一未知接口的动态判断与覆盖。'
       ''
@@ -55,7 +56,18 @@ object FormTest: TFormTest
       
         'IOriginalInterface 的 GUID，获得其实现并强制转换成 IOverrideProv' +
         'ider 以成功调'
-      '用。完全不用到 IOriginalInterface 的声明。')
+      '用。完全不用到 IOriginalInterface 的声明。'
+      ''
+      
+        '如果  IOriginalInterface 需要用到新的接口如 AddNotifier 时需要 I' +
+        'OriginalNotifier，'
+      
+        '则 IOriginalNotifier同样需要一个仿写的接口 IOverrideNotifier，然' +
+        '后仿写的 '
+      
+        'IOverrideProvider 里的 AddNotifier 方法就改用 IOverrideNotifier' +
+        '，貌似也能达到要'
+      '求')
     TabOrder = 0
   end
 end
