@@ -8,6 +8,7 @@ uses
 
 type
   IOverrideNotifier = interface
+    ['{859E1D0F-C652-4B8E-BBFE-FB95C62044F9}']
   // Same with IOriginalNotifier
     procedure OnNotify(Sender: TObject);
   end;
@@ -48,6 +49,9 @@ const
   GUID_ORIG_PROVIDER = '{EE690722-0845-4251-A48B-151526EDD74D}';
   GUID_ORIG_NOTIFIER = '{4E3A8311-1D36-4C92-8A05-D388642B0038}';
 
+resourcestring
+  SMemoryWriteError = 'Error Writing Interface Table Memory (%s).';
+
 procedure TFormTest.FormCreate(Sender: TObject);
 var
   Guid: TGUID;
@@ -79,5 +83,44 @@ procedure TFormTest.FormDestroy(Sender: TObject);
 begin
   FNotifier := nil;
 end;
+
+function ChangeIntfGUID(AClass: TClass; const OldGUID, NewGUID: TGUID): Boolean;
+var
+  I: Integer;
+  IntfTable: PInterfaceTable;
+  IntfEntry: PInterfaceEntry;
+  OldProtection, DummyProtection: DWORD;
+begin
+  Result := False;
+  IntfTable := AClass.GetInterfaceTable;
+  if IntfTable <> nil then
+  begin
+    for I := 0 to IntfTable.EntryCount-1 do
+    begin
+      IntfEntry := @IntfTable.Entries[I];
+      if CompareMem(@IntfEntry^.IID, @OldGUID, SizeOf(TGUID)) then
+      begin
+        if not VirtualProtect(@IntfEntry^.IID, SizeOf(TGUID), PAGE_EXECUTE_READWRITE, @OldProtection) then
+          raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+
+        try
+          IntfEntry^.IID := NewGUID;
+        finally
+          if not VirtualProtect(@IntfEntry^.IID, SizeOf(TGUID), OldProtection, @DummyProtection) then
+            raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+        end;
+
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+initialization
+  ChangeIntfGUID(TOverrideNotifier, IOverrideNotifier, StringToGUID(GUID_ORIG_NOTIFIER));
+
+finalization
+
 
 end.

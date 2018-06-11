@@ -97,7 +97,7 @@ function GetInterfaceMethodAddress(const AIntf: IUnknown;
 implementation
 
 resourcestring
-  SMemoryWriteError = 'Error writing method memory (%s).';
+  SMemoryWriteError = 'Error Writing Method Memory (%s).';
 
 const
   csJmpCode = $E9;              // 相对跳转指令机器码

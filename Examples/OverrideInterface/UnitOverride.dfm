@@ -62,12 +62,23 @@ object FormTest: TFormTest
         '如果  IOriginalInterface 需要用到新的接口如 AddNotifier 时需要 I' +
         'OriginalNotifier，'
       
-        '则 IOriginalNotifier同样需要一个仿写的接口 IOverrideNotifier，然' +
-        '后仿写的 '
+        '则 IOriginalNotifier 同样需要一个仿写的接口 IOverrideNotifier，' +
+        '然后仿写的 '
       
         'IOverrideProvider 里的 AddNotifier 方法就改用 IOverrideNotifier' +
         '，貌似也能达到要'
-      '求')
+      '求。'
+      ''
+      
+        '但如果 IOriginalInterface 实现的代码里如果做了接口类型检测，则会' +
+        '发觉我们传'
+      
+        '入的接口类型不是 IOriginalNotifier，而是 IOverrideNotifier，从而' +
+        '出错。这种情况'
+      
+        '下我们需要对实现 IOverrideNotifier 的类做一个手脚，将其内部 GUID' +
+        ' 替换为 '
+      'IOriginalNotifier 的 GUID。')
     TabOrder = 0
   end
 end

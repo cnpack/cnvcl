@@ -40,7 +40,7 @@ procedure TOriginalProvider.TestMethod(Data: Cardinal);
 begin
   ShowMessage('Test Method in Original Provider: ' + IntToStr(Data));
   if FNotifier <> nil then
-    FNotifier.OnNotify(Self);
+    (FNotifier as IOriginalNotifier).OnNotify(Self); // 设置了类型检查，如果外部传入的不是 IOriginalNotifier，就会出错
 end;
 
 function GetProvider: IUnknown;
