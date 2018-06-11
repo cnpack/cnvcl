@@ -236,7 +236,7 @@ end;
 
 procedure TFormRSA.btnBNGenClick(Sender: TObject);
 begin
-  if CnRSAGenerateKeys(StrToIntDef(cbbBits.Text, 256), FPrivateKey, FPublicKey) then
+  if CnRSAGenerateKeysByPrimeBits(StrToIntDef(cbbBits.Text, 256), FPrivateKey, FPublicKey) then
   begin
     edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
     edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;

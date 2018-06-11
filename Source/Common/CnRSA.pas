@@ -130,9 +130,15 @@ function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
 
 // 大数范围内的 RSA 加解密实现
 
-function CnRSAGenerateKeys(Bits: Integer; PrivateKey: TCnRSAPrivateKey;
+function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey): Boolean;
-{* 生成 RSA 算法所需的公私钥，Bits 是素数范围，其余参数均为生成}
+{* 生成 RSA 算法所需的公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
+   PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围}
+
+function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey): Boolean;
+{* 生成 RSA 算法所需的公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
+   ModulusBits 取值为 512/1024/2048等}
 
 function CnRSALoadKeysFromPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
@@ -300,75 +306,186 @@ begin
   Result := Int64RSACrypt(Res, PubKeyProduct, PubKeyExponent, Data);
 end;
 
-function CnRSAGenerateKeys(Bits: Integer; PrivateKey: TCnRSAPrivateKey;
+function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey): Boolean;
 var
   N: Integer;
+  Suc: Boolean;
   R, Y, Rem, S1, S2, One: TCnBigNumber;
 begin
   Result := False;
-  if Bits <= 16 then
+  if PrimeBits <= 16 then
     Exit;
 
   PrivateKey.Clear;
   PublicKey.Clear;
 
-  if not BigNumberGeneratePrime(PrivateKey.PrimeKey1, Bits div 8) then
-    Exit;
+  Suc := False;
+  while not Suc do
+  begin
+    if not BigNumberGeneratePrime(PrivateKey.PrimeKey1, PrimeBits div 8) then
+      Exit;
 
-  N := Trunc(Random * 1000);
-  Sleep(N);
+    N := Trunc(Random * 1000);
+    Sleep(N);
 
-  if not BigNumberGeneratePrime(PrivateKey.PrimeKey2, Bits div 8) then
-    Exit;
+    if not BigNumberGeneratePrime(PrivateKey.PrimeKey2, PrimeBits div 8) then
+      Exit;
 
-  // 一般要求 Prime1 > Prime2 以便计算 CRT 等参数
-  if BigNumberCompare(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) < 0 then
-    BigNumberSwap(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
+    // TODO: p 和 q 的差不能过小，不满足时得 Continue
 
-  if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
-    Exit;
+    // 一般要求 Prime1 > Prime2 以便计算 CRT 等参数
+    if BigNumberCompare(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) < 0 then
+      BigNumberSwap(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
 
-  if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
-    Exit;
+    if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+      Exit;
 
-  PublicKey.PubKeyExponent.SetDec('65537');
+    // p、q 的积是否满足 Bit 数，不满足时得 Continue
+    if PrivateKey.PrivKeyProduct.GetBitsCount <> PrimeBits * 2 then
+      Continue;
 
-  Rem := nil;
-  Y := nil;
-  R := nil;
-  S1 := nil;
-  S2 := nil;
-  One := nil;
+    // TODO: pq 的积的 NAF 系数是否满足条件，不满足时得 Continue
 
-  try
-    Rem := TCnBigNumber.Create;
-    Y := TCnBigNumber.Create;
-    R := TCnBigNumber.Create;
-    S1 := TCnBigNumber.Create;
-    S2 := TCnBigNumber.Create;
-    One := TCnBigNumber.Create;
+    if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+      Exit;
 
-    BigNumberSetOne(One);
-    BigNumberSub(S1, PrivateKey.PrimeKey1, One);
-    BigNumberSub(S2, PrivateKey.PrimeKey2, One);
-    BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
+    PublicKey.PubKeyExponent.SetDec('65537');
 
-    // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
-    BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, R, PrivateKey.PrivKeyExponent, Y);
+    Rem := nil;
+    Y := nil;
+    R := nil;
+    S1 := nil;
+    S2 := nil;
+    One := nil;
 
-    // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上积二 R
-    if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
-       BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
-  finally
-    One.Free;
-    S2.Free;
-    S1.Free;
-    R.Free;
-    Y.Free;
-    Rem.Free;
+    try
+      Rem := TCnBigNumber.Create;
+      Y := TCnBigNumber.Create;
+      R := TCnBigNumber.Create;
+      S1 := TCnBigNumber.Create;
+      S2 := TCnBigNumber.Create;
+      One := TCnBigNumber.Create;
+
+      BigNumberSetOne(One);
+      BigNumberSub(S1, PrivateKey.PrimeKey1, One);
+      BigNumberSub(S2, PrivateKey.PrimeKey2, One);
+      BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
+
+      // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
+      BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, R, PrivateKey.PrivKeyExponent, Y);
+
+      // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上积二 R
+      if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
+         BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
+
+      // TODO: d 不能太小，不满足时得 Continue
+    finally
+      One.Free;
+      S2.Free;
+      S1.Free;
+      R.Free;
+      Y.Free;
+      Rem.Free;
+    end;
+
+    Suc := True;
   end;
+  Result := True;
+end;
 
+function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey): Boolean;
+var
+  N, PB1, PB2, MinDB, MinW: Integer;
+  Suc: Boolean;
+  R, Y, Rem, S1, S2, One: TCnBigNumber;
+begin
+  Result := False;
+  if ModulusBits < 128 then
+    Exit;
+
+  PrivateKey.Clear;
+  PublicKey.Clear;
+  Suc := False;
+
+  PB1 := (ModulusBits + 1) div 2;
+  PB2 := ModulusBits - PB1;
+  MinDB := ModulusBits div 2 - 100;
+  if MinDB < ModulusBits div 3 then
+    MinDB := ModulusBits div 3;
+  MinW := ModulusBits shr 2;
+
+  while not Suc do
+  begin
+    if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey1, PB1) then
+      Exit;
+
+    N := Trunc(Random * 1000);
+    Sleep(N);
+
+    if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey2, PB2) then
+      Exit;
+
+    // TODO: p 和 q 的差不能过小，不满足时得 Continue
+
+    // 一般要求 Prime1 > Prime2 以便计算 CRT 等参数
+    if BigNumberCompare(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) < 0 then
+      BigNumberSwap(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
+
+    if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+      Exit;
+
+    // p、q 的积是否满足 Bit 数，不满足时得 Continue
+    if PrivateKey.PrivKeyProduct.GetBitsCount <> ModulusBits then
+      Continue;
+
+    // TODO: pq 的积的 NAF 系数是否满足条件，不满足时得 Continue
+
+    if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+      Exit;
+
+    PublicKey.PubKeyExponent.SetDec('65537');
+
+    Rem := nil;
+    Y := nil;
+    R := nil;
+    S1 := nil;
+    S2 := nil;
+    One := nil;
+
+    try
+      Rem := TCnBigNumber.Create;
+      Y := TCnBigNumber.Create;
+      R := TCnBigNumber.Create;
+      S1 := TCnBigNumber.Create;
+      S2 := TCnBigNumber.Create;
+      One := TCnBigNumber.Create;
+
+      BigNumberSetOne(One);
+      BigNumberSub(S1, PrivateKey.PrimeKey1, One);
+      BigNumberSub(S2, PrivateKey.PrimeKey2, One);
+      BigNumberMul(R, S1, S2);     // 计算积二，R = (p - 1) * (q - 1)
+
+      // 求 e 也就是 PubKeyExponent（65537）针对积二 R 的模反元素 d 也就是 PrivKeyExponent
+      BigNumberExtendedEuclideanGcd(PublicKey.PubKeyExponent, R, PrivateKey.PrivKeyExponent, Y);
+
+      // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上积二 R
+      if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
+         BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
+
+      // TODO: d 不能太小，不满足时得 Continue
+    finally
+      One.Free;
+      S2.Free;
+      S1.Free;
+      R.Free;
+      Y.Free;
+      Rem.Free;
+    end;
+
+    Suc := True;
+  end;
   Result := True;
 end;
 

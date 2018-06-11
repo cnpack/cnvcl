@@ -324,7 +324,10 @@ procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 交换两个大数对象的内容}
 
 function BigNumberRandBytes(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
-{* 产生固定字节长度的随机大数 }
+{* 产生固定字节长度的随机大数}
+
+function BigNumberRandBits(const Num: TCnBigNumber; BitsCount: Integer): Boolean;
+{* 产生固定位长度的随机大数}
 
 function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
 {* 产生 [0, Range) 之间的随机大数}
@@ -399,7 +402,11 @@ function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = 
 
 function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个指定位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+{* 生成一个指定字节位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+
+function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+{* 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 32 位有符号整型范围内的数}
@@ -1124,6 +1131,34 @@ begin
   end;
 end;
 
+// 产生固定位长度的随机大数
+function BigNumberRandBits(const Num: TCnBigNumber; BitsCount: Integer): Boolean;
+var
+  C, I: Integer;
+begin
+  Result := False;
+  if BitsCount < 0 then
+    Exit;
+  if BitsCount = 0 then
+  begin
+    Result := BigNumberSetZero(Num);
+    Exit;
+  end;
+
+  // 要产生 N bits 的随机大数，字节计算也就是 (N + 7) div 8 bytes
+  C := (BitsCount + 7) div 8;
+  if not BigNumberRandBytes(Num, C) then
+    Exit;
+
+  // 但头上可能有多余的，再把 C * 8 - 1 到 N 之间的位清零，只留 0 到 N - 1 位
+  if BitsCount <= C * 8 - 1 then
+    for I := C * 8 - 1 downto BitsCount do
+      if not BigNumberClearBit(Num, I) then
+        Exit;
+
+  Result := True;
+end;
+
 function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
 var
   N, C, I: Integer;
@@ -1137,8 +1172,8 @@ begin
     BigNumberSetZero(Num)
   else
   begin
-    // 要产生 N + 1 bits 的随机大数，字节计算也就是 ((N + 1) div 8 + 1 bytes
-    C := ((N + 1) div 8) + 1;
+    // 要产生 N bits 的随机大数，字节计算也就是 (N + 7) div 8 bytes
+    C := (N + 7) div 8;
     if not BigNumberRandBytes(Num, C) then
       Exit;
 
@@ -3505,6 +3540,34 @@ begin
 
     if not Num.IsOdd then
       Num.AddWord(1);
+  end;
+  Result := True;
+end;
+
+// 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+begin
+  Result := False;
+  if not BigNumberRandBits(Num, BitsCount) then
+    Exit;
+
+  if not BigNumberSetBit(Num, BitsCount - 1) then
+    Exit;
+
+  if not Num.IsOdd then
+    Num.AddWord(1);
+
+  while not BigNumberIsProbablyPrime(Num, TestCount) do
+  begin
+    Num.AddWord(2);
+//    if not BigNumberRandBits(Num, BitsCount) then
+//      Exit;
+//    if not BigNumberSetBit(Num, BitsCount - 1) then
+//      Exit;
+//
+//    if not Num.IsOdd then
+//      Num.AddWord(1);
   end;
   Result := True;
 end;
