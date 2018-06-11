@@ -185,7 +185,11 @@ end;
 
 function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
 begin
+{$IFDEF SUPPORT_FMX_FRAME}
   Result := AObject.InheritsFrom(FMX.Forms.TFrame);
+{$ELSE}
+  Result := False;
+{$ENDIF}
 end;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
