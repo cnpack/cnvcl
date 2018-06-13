@@ -1193,6 +1193,7 @@ begin
   end;
 end;
 
+// 将一片内存区域按指定的 Padding 方式填充后进行 RSA 加解密计算
 function RSAPaddingCrypt(PaddingType, BlockSize: Integer; PlainData: Pointer;
   DataLen: Integer; OutBuf: Pointer; Exponent, Product: TCnBigNumber): Boolean;
 var
@@ -1234,18 +1235,6 @@ function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
 begin
   Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.BitsCount div 8,
     PlainData, DataLen, OutBuf, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
-end;
-
-function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
-begin
-
-end;
-
-function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
-begin
-
 end;
 
 function CnRSAEncryptFile(const InFileName, OutFileName: string;
@@ -1300,16 +1289,165 @@ begin
   end;
 end;
 
+function PKCS1RemovePadding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer): Boolean;
+var
+  P: PAnsiChar;
+  I, Start: Integer;
+begin
+  Result := False;
+  OutLen := 0;
+
+  P := PAnsiChar(InData);
+  if P[0] <> #0 then // 首字符 #0
+    Exit;
+
+  Start := 0;
+  case Ord(P[1]) of
+    CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
+      begin
+        // 从 P[2] 开始寻找非 00 便是
+        I := 2;
+        while I < InDataLen do
+        begin
+          if P[I] <> #0 then
+          begin
+            Start := I;
+            Break;
+          end;
+          Inc(I);
+        end;
+      end;
+    CN_PKCS1_BLOCK_TYPE_PRIVATE_FF,
+    CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
+      begin
+        // 从 P[2] 开始寻找到第一个 00 后的便是
+        I := 2;
+        while I < InDataLen do
+        begin
+          if P[I] = #0 then
+          begin
+            Start := I;
+            Break;
+          end;
+          Inc(I);
+        end;
+
+        if Start <> 0 then
+          Inc(Start);
+      end;
+  end;
+
+  if Start > 0 then
+  begin
+    CopyMemory(@P[Start], OutBuf, InDataLen - Start);
+    OutLen := InDataLen - Start;
+    Result := True;
+  end;
+end;
+
+// 将一片内存区域进行 RSA 加解密计算后按其展现的 Padding 方式解出原始数据
+function RSADecryptPadding(BlockSize: Integer; EnData: Pointer; DataLen: Integer;
+  OutBuf: Pointer; out OutLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
+var
+  Stream: TMemoryStream;
+  Res, Data: TCnBigNumber;
+  ResBuf: array of Byte;
+begin
+  Result := False;
+  Res := nil;
+  Data := nil;
+  Stream := nil;
+  try
+    Res := TCnBigNumber.Create;
+    Data := TCnBigNumber.FromBinary(PAnsiChar(EnData), DataLen);
+    if not RSACrypt(Data, Product, Exponent, Res) then
+      Exit;
+
+    SetLength(ResBuf, Res.GetBytesCount);
+    Res.ToBinary(PAnsiChar(@ResBuf[0]));
+
+    Result := PKCS1RemovePadding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen);
+  finally
+    Stream.Free;
+    Res.Free;
+  end;
+end;
+
+function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
+begin
+  Result := RSADecryptPadding(PublicKey.GetBitsCount div 8, EnData, DataLen,
+    OutBuf, OutLen, PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
+end;
+
+function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
+begin
+  Result := RSADecryptPadding(PrivateKey.GetBitsCount div 8, EnData, DataLen,
+    OutBuf, OutLen, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
+end;
+
 function CnRSADecryptFile(const InFileName, OutFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean;
+var
+  Stream: TMemoryStream;
+  Res: array of Byte;
+  OutLen: Integer;
 begin
+  Result := False;
+  Stream := nil;
+  try
+    SetLength(Res, PublicKey.BitsCount div 8);
 
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(InFileName);
+
+    if Stream.Size <> PublicKey.GetBitsCount div 8 then
+      Exit;
+
+    if not CnRSADecryptData(Stream.Memory, Stream.Size, @Res[0], OutLen, PublicKey) then
+      Exit;
+
+    Stream.Clear;
+    Stream.Write(Res[0], OutLen);
+    Stream.SaveToFile(OutFileName);
+    Result := True;
+  finally
+    Stream.Free;
+    SetLength(Res, 0);
+  end;
 end;
 
 function CnRSADecryptFile(const InFileName, OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+var
+  Stream: TMemoryStream;
+  Res: array of Byte;
+  OutLen: Integer;
 begin
+  Result := False;
+  Stream := nil;
+  try
+    SetLength(Res, PrivateKey.BitsCount div 8);
 
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(InFileName);
+
+    if Stream.Size <> PrivateKey.GetBitsCount div 8 then
+      Exit;
+
+    if not CnRSADecryptData(Stream.Memory, Stream.Size, @Res[0], OutLen, PrivateKey) then
+      Exit;
+
+    Stream.Clear;
+    Stream.Write(Res[0], OutLen);
+    Stream.SaveToFile(OutFileName);
+    Result := True;
+  finally
+    Stream.Free;
+    SetLength(Res, 0);
+  end;
 end;
 
 end.
