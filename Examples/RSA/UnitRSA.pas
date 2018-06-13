@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl;
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, ImgList;
 
 type
   TFormRSA = class(TForm)
@@ -49,15 +49,6 @@ type
     mmoBNPrivProduct: TMemo;
     mmoBNPubProduct: TMemo;
     cbbBits: TComboBox;
-    grpBNCrypt: TGroupBox;
-    lblBNInteger: TLabel;
-    lblBNResult: TLabel;
-    lblBNDecrypt: TLabel;
-    edtBNData: TEdit;
-    edtBNRes: TEdit;
-    edtBNDataBack: TEdit;
-    btnBNRSAEn: TButton;
-    btnBNRSADe: TButton;
     tsEuclid: TTabSheet;
     grpEuclidean: TGroupBox;
     lblEqual: TLabel;
@@ -113,6 +104,30 @@ type
     lblInt64MBits: TLabel;
     chkPureUInt64: TCheckBox;
     chkN64: TCheckBox;
+    pgc2: TPageControl;
+    tsData: TTabSheet;
+    tsFile: TTabSheet;
+    ilCrypt: TImageList;
+    btnBNRSAEn: TButton;
+    edtBNData: TEdit;
+    edtBNRes: TEdit;
+    edtBNDataBack: TEdit;
+    btnBNRSADe: TButton;
+    lblBNResult: TLabel;
+    lblBNInteger: TLabel;
+    lblBNDecrypt: TLabel;
+    edtFile1: TEdit;
+    lblFile1: TLabel;
+    lblFile2: TLabel;
+    edtFile2: TEdit;
+    btnBrowse1: TButton;
+    btnBrowse2: TButton;
+    btnPrivCrypt: TButton;
+    btnPubCrypt: TButton;
+    btnDePrivate: TButton;
+    btnDePub: TButton;
+    dlgOpenFile: TOpenDialog;
+    dlgSaveFile: TSaveDialog;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -134,6 +149,12 @@ type
     procedure btnGenByMClick(Sender: TObject);
     procedure edtBNChange(Sender: TObject);
     procedure mmoBNChange(Sender: TObject);
+    procedure btnBrowse1Click(Sender: TObject);
+    procedure btnBrowse2Click(Sender: TObject);
+    procedure btnPrivCryptClick(Sender: TObject);
+    procedure btnPubCryptClick(Sender: TObject);
+    procedure btnDePrivateClick(Sender: TObject);
+    procedure btnDePubClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -521,6 +542,54 @@ begin
   N := TCnBigNumber.FromDec(DecStr);
   Result := N.GetBitsCount;
   N.Free;
+end;
+
+procedure TFormRSA.btnBrowse1Click(Sender: TObject);
+begin
+  if dlgOpenFile.Execute then
+    edtFile1.Text := dlgOpenFile.FileName;  
+end;
+
+procedure TFormRSA.btnBrowse2Click(Sender: TObject);
+begin
+  if dlgOpenFile.Execute then
+    edtFile2.Text := dlgOpenFile.FileName;
+end;
+
+procedure TFormRSA.btnPrivCryptClick(Sender: TObject);
+begin
+  if dlgSaveFile.Execute then
+  begin
+    if CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPrivateKey) then
+      ShowMessage('RSA Private Key Encrypt File Success.');
+  end;
+end;
+
+procedure TFormRSA.btnPubCryptClick(Sender: TObject);
+begin
+  if dlgSaveFile.Execute then
+  begin
+    if CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey) then
+      ShowMessage('RSA Public Key Encrypt File Success.');
+  end;
+end;
+
+procedure TFormRSA.btnDePrivateClick(Sender: TObject);
+begin
+  if dlgSaveFile.Execute then
+  begin
+    if CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey) then
+      ShowMessage('RSA Private Key Decrypt File Success.');
+  end;
+end;
+
+procedure TFormRSA.btnDePubClick(Sender: TObject);
+begin
+  if dlgSaveFile.Execute then
+  begin
+    if CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPublicKey) then
+      ShowMessage('RSA Public Key Decrypt File Success.');
+  end;
 end;
 
 end.
