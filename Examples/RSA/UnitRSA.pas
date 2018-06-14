@@ -129,6 +129,18 @@ type
     btnDePub: TBitBtn;
     dlgOpenFile: TOpenDialog;
     dlgSaveFile: TSaveDialog;
+    tsSign: TTabSheet;
+    lblSignFile: TLabel;
+    edtSignFile: TEdit;
+    btnSignBrowse: TButton;
+    btnSignPrivate: TButton;
+    lblSignature: TLabel;
+    edtSigFile: TEdit;
+    btnSignatureBrowse: TButton;
+    btnPrivVerify: TButton;
+    btnPubVerify: TButton;
+    lblSigMethod: TLabel;
+    cbbSig: TComboBox;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -156,6 +168,11 @@ type
     procedure btnPubCryptClick(Sender: TObject);
     procedure btnDePrivateClick(Sender: TObject);
     procedure btnDePubClick(Sender: TObject);
+    procedure btnSignBrowseClick(Sender: TObject);
+    procedure btnSignatureBrowseClick(Sender: TObject);
+    procedure btnSignPrivateClick(Sender: TObject);
+    procedure btnPrivVerifyClick(Sender: TObject);
+    procedure btnPubVerifyClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -239,6 +256,7 @@ begin
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
   cbbMBits.ItemIndex := 2;
   cbbSaveFormat.ItemIndex := 0;
+  cbbSig.ItemIndex := 0;
 
   FPrivateKey := TCnRSAPrivateKey.Create;
   FPublicKey := TCnRSAPublicKey.Create;
@@ -599,6 +617,49 @@ begin
     if CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPublicKey) then
       ShowMessage('RSA Public Key Decrypt File Success.');
   end;
+end;
+
+procedure TFormRSA.btnSignBrowseClick(Sender: TObject);
+begin
+  if dlgOpenFile.Execute then
+    edtSignFile.Text := dlgOpenFile.FileName;
+end;
+
+procedure TFormRSA.btnSignatureBrowseClick(Sender: TObject);
+begin
+  if dlgOpenFile.Execute then
+    edtSigFile.Text := dlgOpenFile.FileName;
+end;
+
+procedure TFormRSA.btnSignPrivateClick(Sender: TObject);
+begin
+  if dlgSaveFile.Execute then
+  begin
+    if CnRSASignFile(edtSignFile.Text, dlgSaveFile.FileName, FPrivateKey,
+      TCnRSASignDigestType(cbbSig.ItemIndex)) then
+    begin
+      ShowMessage('RSA Private Key Sign File Success.');
+      edtSigFile.Text := dlgSaveFile.FileName;
+    end;
+  end;
+end;
+
+procedure TFormRSA.btnPrivVerifyClick(Sender: TObject);
+begin
+  if CnRSAVerifyFile(edtSignFile.Text, edtSigFile.Text, FPrivateKey,
+    TCnRSASignDigestType(cbbSig.ItemIndex)) then
+    ShowMessage('RSA Private Key Verify Success.')
+  else
+    ShowMessage('RSA Private Key Verify Fail.');
+end;
+
+procedure TFormRSA.btnPubVerifyClick(Sender: TObject);
+begin
+  if CnRSAVerifyFile(edtSignFile.Text, edtSigFile.Text, FPublicKey,
+    TCnRSASignDigestType(cbbSig.ItemIndex)) then
+    ShowMessage('RSA Public Key Verify Success.')
+  else
+    ShowMessage('RSA Public Key Verify Fail.');
 end;
 
 end.
