@@ -57,23 +57,23 @@ uses
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
-{* 对字符串进行BASE64编码，如编码成功返回Base64_OK
+{* 对字符串进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
-  InputData:AnsiString        - 要编码的数据
+  InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString  - 编码后的数据
 |</PRE>}
 function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
-{* 对数据进行BASE64编码，如编码成功返回Base64_OK
+{* 对数据进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
-  InputData:AnsiString        - 要编码的数据
+  InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString  - 编码后的数据
 |</PRE>}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean = True): Byte; overload;
 function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean = True): Byte; overload;
-{* 对数据进行BASE64解码，如解码成功返回Base64_OK
+{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
 |<PRE>
-  InputData:AnsiString        - 要解码的数据
+  InputData: AnsiString        - 要解码的数据
   var OutputData: AnsiString  - 解码后的数据
   FixZero: Boolean            - 是否移去尾部的 #0
 |</PRE>}

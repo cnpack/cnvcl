@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 473
     Height = 385
-    ActivePage = tsSHA3_512
+    ActivePage = tsBase64
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -249,7 +249,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 1
           OnClick = Button1Click
         end
-        object edt3: TEdit
+        object edtBase64Result: TEdit
           Left = 72
           Top = 140
           Width = 169
@@ -265,12 +265,21 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = Button2Click
         end
-        object edt4: TEdit
+        object edtBase64Decode: TEdit
           Left = 72
           Top = 244
           Width = 169
           Height = 21
           TabOrder = 4
+        end
+        object btnBase64File: TButton
+          Left = 288
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'File Base64'
+          TabOrder = 5
+          OnClick = btnBase64FileClick
         end
       end
     end
