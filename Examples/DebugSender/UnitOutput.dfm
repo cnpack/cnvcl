@@ -1,10 +1,10 @@
 object FormSend: TFormSend
-  Left = 393
-  Top = 172
+  Left = 344
+  Top = 130
   BorderStyle = bsDialog
   Caption = 'Send Debug'
-  ClientHeight = 380
-  ClientWidth = 469
+  ClientHeight = 404
+  ClientWidth = 472
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
   Font.Color = clWindowText
@@ -338,8 +338,8 @@ object FormSend: TFormSend
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 361
-    Width = 469
+    Top = 385
+    Width = 472
     Height = 19
     Panels = <
       item
@@ -638,6 +638,50 @@ object FormSend: TFormSend
     ShowHint = True
     TabOrder = 48
     OnClick = btnSizeClick
+  end
+  object btnAnsiCharSet: TButton
+    Left = 248
+    Top = 358
+    Width = 97
+    Height = 21
+    Caption = '发Ansi字符集'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 49
+    OnClick = btnAnsiCharSetClick
+  end
+  object btnWideCharSet: TButton
+    Left = 360
+    Top = 358
+    Width = 97
+    Height = 21
+    Caption = '发Wide字符集'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 50
+    OnClick = btnWideCharSetClick
+  end
+  object btnWatchClear: TButton
+    Left = 8
+    Top = 360
+    Width = 97
+    Height = 21
+    Caption = '清空Watch'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 51
+    OnClick = btnWatchClearClick
+  end
+  object btnEvaluateScreen: TButton
+    Left = 120
+    Top = 359
+    Width = 97
+    Height = 21
+    Caption = '看Screen'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 52
+    OnClick = btnEvaluateScreenClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True

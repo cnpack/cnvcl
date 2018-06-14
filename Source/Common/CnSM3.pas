@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -22,7 +22,7 @@ unit CnSM3;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：国产散列算法SM3单元
+* 单元名称：国产散列算法 SM3 实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档《SM3 Cryptographic Hash Algorith》
 *           http://www.oscca.gov.cn/UpFile/20101222141857786.pdf
@@ -83,8 +83,8 @@ procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 {* Hash-based Message Authentication Code (based on SM3) }
 
 function SM3String(const Str: string): TSM3Digest;
-{* 对 String 类型数据进行 SM3 计算，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SM3 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
@@ -101,9 +101,15 @@ function SM3StringW(const Str: WideString): TSM3Digest;
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
+function SM3UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSM3Digest;
+{* 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function SM3File(const FileName: string;
   CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
-{* 对指定文件数据进行 SM3 计算
+{* 对指定文件内容进行 SM3 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSM3PgressFunc - 进度回调函数，默认为空
@@ -113,6 +119,13 @@ function SM3Print(const Digest: TSM3Digest): string;
 {* 以十六进制格式输出 SM3 计算值
  |<PRE>
    Digest: TSM3Digest  - 指定的 SM3 计算值
+ |</PRE>}
+
+function SM3Match(const D1, D2: TSM3Digest): Boolean;
+{* 比较两个 SM3 计算值是否相等
+ |<PRE>
+   D1: TSM3Digest   - 需要比较的 SM3 计算值
+   D2: TSM3Digest   - 需要比较的 SM3 计算值
  |</PRE>}
  
 implementation
@@ -484,6 +497,16 @@ begin
   SM3Finish(Context, Result);
 end;
 
+// 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
+function SM3UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSM3Digest;
+var
+  Context: TSM3Context;
+begin
+  SM3Start(Context);
+  SM3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SM3Finish(Context, Result);
+end;
+
 function InternalSM3Stream(Stream: TStream; const BufSize: Cardinal; var D:
   TSM3Digest; CallBack: TSM3CalcProgressFunc = nil): Boolean;
 var
@@ -628,6 +651,19 @@ begin
   for I := 0 to 31 do
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4) and $0f] +
               Digits[Digest[I] and $0F]);
+end;
+
+function SM3Match(const D1, D2: TSM3Digest): Boolean;
+var
+  I: Integer;
+begin
+  I := 0;
+  Result := True;
+  while Result and (I < 32) do
+  begin
+    Result := D1[I] = D2[I];
+    Inc(I);
+  end;
 end;
 
 end.

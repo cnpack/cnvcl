@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -67,11 +67,13 @@ type
     FObjValue: TObject;
     FObjClassName: string;
     FIsNewRTTI: Boolean;
+    FIntfValue: IUnknown;
   public
     property Changed: Boolean read FChanged write FChanged;
     property DisplayValue: string read FDisplayValue write FDisplayValue;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property ObjValue: TObject read FObjValue write FObjValue;
+    property IntfValue: IUnknown read FIntfValue write FIntfValue;
     property ObjStr: string read FObjStr write FObjStr;
     property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
@@ -79,21 +81,29 @@ type
   TCnPropertyObject = class(TCnDisplayObject)
   {* 描述一属性 }
   private
-    FIsObject: Boolean;
+    FIsObjOrIntf: Boolean;
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     FPropRttiValue: TValue;
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+    FIndexParamCount: Integer;
+  {$ENDIF}
 {$ENDIF}
     FCanModify: Boolean;
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
-    property IsObject: Boolean read FIsObject write FIsObject;
+    property IsObjOrIntf: Boolean read FIsObjOrIntf write FIsObjOrIntf;
     property PropValue: Variant read FPropValue write FPropValue;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
+
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+    // Indexed Property Support
+    property IndexParamCount: Integer read FIndexParamCount write FIndexParamCount;
+  {$ENDIF}
 {$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
   end;
@@ -360,6 +370,7 @@ type
     FInspector: TCnObjectInspector;
     FInspectParam: Pointer;
     FCurrObj: TObject;
+    FCurrIntf: IUnknown;
     FParentSheetForm: TCnPropSheetForm;
     FHierarchys: TStrings;
     FGraphicObject: TObject;
@@ -477,6 +488,17 @@ type
     csPannable, csAlignWithMargins, csGestures, csPaintBlackOpaqueOnGlass,
     csOverrideStylePaint);
 
+{$IFNDEF SUPPORT_INTERFACE_AS_OBJECT}
+  PPointer = ^Pointer;
+  TObjectFromInterfaceStub = packed record
+    Stub: Cardinal;
+    case Integer of
+      0: (ShortJmp: ShortInt);
+      1: (LongJmp:  LongInt)
+  end;
+  PObjectFromInterfaceStub = ^TObjectFromInterfaceStub;
+{$ENDIF}
+
 const
   SCnPropContentType: array[TCnPropContentType] of string =
     ('Properties', 'Events', 'Methods', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
@@ -522,6 +544,7 @@ begin
         Result := Result + GetEnumName(TypInfo, I);
     end;
   end;
+  Result := '[' + Result + ']';
 end;
 
 function IndexOfContentTypeStr(const AStr: string): TCnPropContentType;
@@ -778,7 +801,11 @@ begin
     tkEnumeration:
       S := GetEnumProp(Instance, PropInfo);
     tkSet:
-      S := GetSetProp(Instance, PropInfo);
+      begin
+        S := GetSetProp(Instance, PropInfo);
+        if S = '' then
+          S := '[]';
+      end;
     tkFloat:
       S := FloatToStr(GetFloatProp(Instance, PropInfo));
     tkMethod:
@@ -1213,6 +1240,9 @@ var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   RttiProperty: TRttiProperty;
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+  RttiIndexedProperty: TRttiIndexedProperty;
+{$ENDIF}
   RttiMethod: TRttiMethod;
   AMethod: TCnMethodObject;
 
@@ -1273,6 +1303,43 @@ var
     end;
   end;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+  procedure CalcIndexedProperty(Indexed: TRttiIndexedProperty;
+    IndexedProp: TCnPropertyObject);
+  var
+    M: TRttiMethod;
+    P: TArray<TRttiParameter>;
+    I: Integer;
+  begin
+    IndexedProp.PropName := Indexed.Name + '[';
+    M := Indexed.ReadMethod;
+    if M <> nil then
+    begin
+      P := M.GetParameters;
+      IndexedProp.IndexParamCount := Length(P);
+      for I := 0 to Length(P) - 2 do
+        IndexedProp.PropName := IndexedProp.PropName + P[I].ToString + ', ';
+      IndexedProp.PropName := IndexedProp.PropName + P[Length(P) - 1].ToString;
+    end
+    else
+    begin
+      M := Indexed.WriteMethod;
+      if M = nil then
+      begin
+        IndexedProp.PropName := IndexedProp.PropName + ']';
+        Exit;
+      end;
+      P := M.GetParameters;
+      IndexedProp.IndexParamCount := Length(P) - 1;
+      for I := 0 to Length(P) - 3 do
+        IndexedProp.PropName := IndexedProp.PropName + P[I].ToString + ', ';
+      IndexedProp.PropName := IndexedProp.PropName + P[Length(P) - 2].ToString;
+    end;
+    IndexedProp.PropName := IndexedProp.PropName + ']';
+  end;
+{$ENDIF}
+{$ENDIF}
 begin
   if ObjectInstance <> nil then
   begin
@@ -1331,17 +1398,23 @@ begin
 
         AProp.PropName := PropInfoName(PropInfo);
         AProp.PropType := PropInfo^.PropType^^.Kind;
-        AProp.IsObject := AProp.PropType = tkClass;
+        AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
         // 有写入权限，并且指定类型，才可修改，否则界面上没法整
         AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
           in CnCanModifyPropTypes);
 
         AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
-        if AProp.IsObject then
-          AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
-        else
-          AProp.ObjValue := nil;
+
+        AProp.ObjValue := nil;
+        AProp.IntfValue := nil;
+        if AProp.IsObjOrIntf then
+        begin
+          if AProp.PropType = tkClass then
+            AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
+          else
+            AProp.IntfValue := IUnknown(GetOrdProp(FObjectInstance, PropInfo));
+        end;
 
         S := GetPropValueStr(FObjectInstance, PropInfo);
         if S <> AProp.DisplayValue then
@@ -1395,8 +1468,8 @@ begin
         begin
           if RttiProperty.PropertyType.TypeKind in tkProperties then
           begin
-            // 是 Properties，要判断是否重复
-            if not AlreadyHasProperty(RttiProperty.Name) then
+            // 是 Properties，在非刷新时要判断是否重复
+            if not AlreadyHasProperty(RttiProperty.Name) or IsRefresh then
             begin
               if not IsRefresh then
               begin
@@ -1408,7 +1481,7 @@ begin
 
               AProp.PropName := RttiProperty.Name;
               AProp.PropType := RttiProperty.PropertyType.TypeKind;
-              AProp.IsObject := AProp.PropType = tkClass;
+              AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
               // 有写入权限，并且指定类型，才可修改，否则界面上没法整
               AProp.CanModify := (RttiProperty.IsWritable) and (RttiProperty.PropertyType.TypeKind
@@ -1420,10 +1493,18 @@ begin
                 // Getting Some Property causes Exception. Catch it.
                 AProp.PropRttiValue := nil;
               end;
-              if AProp.IsObject and RttiProperty.GetValue(FObjectInstance).IsObject then
-                AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
-              else
-                AProp.ObjValue := nil;
+
+              AProp.ObjValue := nil;
+              AProp.IntfValue := nil;
+              try
+                if AProp.IsObjOrIntf and RttiProperty.GetValue(FObjectInstance).IsObject then
+                  AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
+                else if AProp.IsObjOrIntf and (RttiProperty.GetValue(FObjectInstance).TypeInfo <> nil) and
+                  (RttiProperty.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+                  AProp.IntfValue := RttiProperty.GetValue(FObjectInstance).AsInterface;
+              except
+                // Getting Some Property causes Exception. Catch it.;
+              end;
 
               S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
               if S <> AProp.DisplayValue then
@@ -1442,8 +1523,8 @@ begin
           end
           else if RttiProperty.PropertyType.TypeKind = tkMethod then
           begin
-            // 是 Event，要判断是否重复
-            if not AlreadyHasEvent(RttiProperty.Name) then
+            // 是 Event，在非刷新时要判断是否重复
+            if not AlreadyHasEvent(RttiProperty.Name) or IsRefresh then
             begin
               if not IsRefresh then
               begin
@@ -1471,6 +1552,34 @@ begin
             end;
           end;
         end;
+
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+        // RTTIIndexedProperties
+        for RttiIndexedProperty in RttiType.GetIndexedProperties do
+        begin
+          if not AlreadyHasProperty(RttiIndexedProperty.Name) or IsRefresh then
+          begin
+            if not IsRefresh then
+            begin
+              AProp := TCnPropertyObject.Create;
+              AProp.IsNewRTTI := True;
+            end
+            else
+              AProp := IndexOfProperty(Properties, RttiIndexedProperty.Name);
+
+            CalcIndexedProperty(RttiIndexedProperty, AProp);
+            AProp.PropType := RttiIndexedProperty.PropertyType.TypeKind;
+            AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
+
+            AProp.DisplayValue := '<Indexed Property>';
+            AProp.Changed := False;
+            if not IsRefresh then
+              Properties.Add(AProp);
+
+            Include(FContentTypes, pctProps);
+          end;
+        end;
+{$ENDIF}
 
         for RttiMethod in RttiType.GetMethods do
         begin
@@ -1507,7 +1616,7 @@ begin
     // 额外添加显示不在 published 域的一些已知的公用属性
     if FObjectInstance is TComponent then
     begin
-      if not AlreadyHasProperty('Owner') then
+      if not AlreadyHasProperty('Owner') or IsRefresh then
       begin
         // 添加 Component 的 Owner
         if not IsRefresh then
@@ -1517,7 +1626,7 @@ begin
 
         AProp.PropName := 'Owner';
         AProp.PropType := tkClass;
-        AProp.IsObject := True;
+        AProp.IsObjOrIntf := True;
         AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
         AProp.ObjValue := (FObjectInstance as TComponent).Owner;
 
@@ -1534,7 +1643,7 @@ begin
           Properties.Add(AProp);
       end;
 
-      if not AlreadyHasProperty('ComponentIndex') then
+      if not AlreadyHasProperty('ComponentIndex') or IsRefresh then
       begin
         // 添加 Component 的 ComponentIndex
         if not IsRefresh then
@@ -1544,7 +1653,7 @@ begin
 
         AProp.PropName := 'ComponentIndex';
         AProp.PropType := tkInteger;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
         AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
         AProp.ObjValue := nil;
 
@@ -1552,7 +1661,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ComponentState') then
+      if not AlreadyHasProperty('ComponentState') or IsRefresh then
       begin
         // 添加 Component 的 ComponentState
         if not IsRefresh then
@@ -1562,7 +1671,7 @@ begin
 
         AProp.PropName := 'ComponentState';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TComponent).ComponentState, IntSet,
@@ -1574,7 +1683,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ComponentStyle') then
+      if not AlreadyHasProperty('ComponentStyle') or IsRefresh then
       begin
         // 添加 Component 的 ComponentStyle
         if not IsRefresh then
@@ -1584,7 +1693,7 @@ begin
 
         AProp.PropName := 'ComponentStyle';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TComponent).ComponentStyle, IntSet,
@@ -1599,7 +1708,7 @@ begin
 
     if FObjectInstance is TControl then
     begin
-      if not AlreadyHasProperty('Parent') then
+      if not AlreadyHasProperty('Parent') or IsRefresh then
       begin
         // 添加 Control 的 Parent
         if not IsRefresh then
@@ -1609,7 +1718,7 @@ begin
 
         AProp.PropName := 'Parent';
         AProp.PropType := tkClass;
-        AProp.IsObject := True;
+        AProp.IsObjOrIntf := True;
         AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
         AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
@@ -1617,7 +1726,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ControlState') then
+      if not AlreadyHasProperty('ControlState') or IsRefresh then
       begin
         // 添加 Control 的 ControlState
         if not IsRefresh then
@@ -1627,7 +1736,7 @@ begin
 
         AProp.PropName := 'ControlState';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TControl).ControlState, IntSet,
@@ -1639,7 +1748,7 @@ begin
         AddNewProp(S, AProp);
       end;
 
-      if not AlreadyHasProperty('ControlStyle') then
+      if not AlreadyHasProperty('ControlStyle') or IsRefresh then
       begin
         // 添加 Control 的 ControlStyle
         if not IsRefresh then
@@ -1649,7 +1758,7 @@ begin
 
         AProp.PropName := 'ControlStyle';
         AProp.PropType := tkSet;
-        AProp.IsObject := False;
+        AProp.IsObjOrIntf := False;
 
         IntSet := 0;
         Move((FObjectInstance as TControl).ControlStyle, IntSet,
@@ -1913,6 +2022,10 @@ begin
   Inc(CnFormTop, 20);
   if CnFormLeft >= Screen.Width - Self.Width - 30 then CnFormLeft := 50;
   if CnFormTop >= Screen.Height - Self.Height - 30 then CnFormTop := 50;
+
+{$IFDEF COMPILER7_UP}
+  pnlHierarchy.ParentBackground := False;
+{$ENDIF}
 end;
 
 procedure TCnPropSheetForm.InspectObject(Data: Pointer);
@@ -2153,17 +2266,17 @@ var
   FixWidth: Integer;
 begin
   if Parent <> nil then
-    FixWidth := 20
+    FixWidth := 16
   else
-    FixWidth := 28;
+    FixWidth := 24;
 
-  lvProp.Columns[1].Width := Self.Width - lvProp.Columns[0].Width - FixWidth;
-  lvEvent.Columns[1].Width := Self.Width - lvEvent.Columns[0].Width - FixWidth;
-  lvMethods.Columns[1].Width := Self.Width - lvMethods.Columns[0].Width - FixWidth;
-  lvCollectionItem.Columns[1].Width := Self.Width - lvCollectionItem.Columns[0].Width - FixWidth;
-  lvMenuItem.Columns[1].Width := Self.Width - lvMenuItem.Columns[0].Width - FixWidth;
-  lvComp.Columns[1].Width := Self.Width - lvComp.Columns[0].Width - FixWidth;
-  lvControl.Columns[1].Width := Self.Width - lvControl.Columns[0].Width - FixWidth;
+  lvProp.Columns[1].Width := Self.ClientWidth - lvProp.Columns[0].Width - FixWidth;
+  lvEvent.Columns[1].Width := Self.ClientWidth - lvEvent.Columns[0].Width - FixWidth;
+  lvMethods.Columns[1].Width := Self.ClientWidth - lvMethods.Columns[0].Width - FixWidth;
+  lvCollectionItem.Columns[1].Width := Self.ClientWidth - lvCollectionItem.Columns[0].Width - FixWidth;
+  lvMenuItem.Columns[1].Width := Self.ClientWidth - lvMenuItem.Columns[0].Width - FixWidth;
+  lvComp.Columns[1].Width := Self.ClientWidth - lvComp.Columns[0].Width - FixWidth;
+  lvControl.Columns[1].Width := Self.ClientWidth - lvControl.Columns[0].Width - FixWidth;
   UpdatePanelPositions;
 end;
 
@@ -2190,6 +2303,7 @@ var
 begin
   // 根据 FHierarchys 绘制 Hierarchy 图
   FHierPanels.Clear;
+  FHierLines.Clear;
   for I := 0 to FHierarchys.Count - 1 do
   begin
     APanel := TPanel.Create(nil);
@@ -2198,6 +2312,9 @@ begin
     APanel.BevelInner := bvRaised;
     APanel.Parent := pnlHierarchy;
     APanel.Color := clBtnFace;
+{$IFDEF COMPILER7_UP}
+    APanel.ParentBackground := False;
+{$ENDIF}
     FHierPanels.Add(APanel);
 
     ABevel := TBevel.Create(nil);
@@ -2242,9 +2359,38 @@ begin
 end;
 
 procedure TCnPropSheetForm.btnInspectClick(Sender: TObject);
+var
+  Obj: TObject;
+
+  // 移植自 A.Bouchez 的实现
+  function ObjectFromInterface(const AIntf: IUnknown): TObject;
+  begin
+    Result := nil;
+    if AIntf = nil then
+      Exit;
+
+  {$IFDEF SUPPORT_INTERFACE_AS_OBJECT}
+    Result := AIntf as TObject;
+  {$ELSE}
+    with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do
+    case Stub of
+      $04244483: Result := Pointer(Integer(AIntf) + ShortJmp);
+      $04244481: Result := Pointer(Integer(AIntf) + LongJmp);
+      else       Result := nil;
+    end;
+  {$ENDIF}
+  end;
+
 begin
   if FCurrObj <> nil then
+  begin
     EvaluatePointer(FCurrObj, FInspectParam, nil, False, Self);
+  end
+  else if FCurrIntf <> nil then
+  begin
+    Obj := ObjectFromInterface(FCurrIntf);
+    EvaluatePointer(Obj, FInspectParam, nil, False, Self);
+  end;
 end;
 
 procedure TCnPropSheetForm.lvPropCustomDrawItem(Sender: TCustomListView;
@@ -2273,11 +2419,13 @@ begin
 
     if ALv.Focused then
     begin
-      if (Item <> nil) and (Item.Data <> nil) and (ALv.Selected = Item)
-        and (TCnDisplayObject(Item.Data).ObjValue <> nil) then
+      if (Item <> nil) and (Item.Data <> nil) and (ALv.Selected = Item) and
+        ((TCnDisplayObject(Item.Data).ObjValue <> nil) or
+        (TCnDisplayObject(Item.Data).IntfValue <> nil)) then
       begin
         ARect := Item.DisplayRect(drSelectBounds);
         FCurrObj := TCnDisplayObject(Item.Data).ObjValue;
+        FCurrIntf := TCnDisplayObject(Item.Data).IntfValue;
 
         if ARect.Top >= FListViewHeaderHeight then
         begin
@@ -2411,13 +2559,13 @@ begin
   begin
     APanel := TPanel(FHierPanels.Items[I]);
     APanel.Left := PanelMargin;
-    APanel.Width := Width - PanelMargin * 2;
+    APanel.Width := pnlHierarchy.ClientWidth - PanelMargin * 2;
     APanel.Top := PanelMargin + I * PanelStep;
     APanel.Height := PanelStep - PanelMargin;
     APanel.Color := clBtnFace;
 
     ABevel := TBevel(FHierLines.Items[I]);
-    ABevel.Left := pnlHierarchy.Width div 2;
+    ABevel.Left := pnlHierarchy.ClientWidth div 2;
     ABevel.Top := APanel.Top + APanel.Height;
     ABevel.Height := PanelMargin;
     ABevel.Visible := I <> FHierLines.Count - 1;

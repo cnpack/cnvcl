@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 124
   Width = 439
   Height = 418
-  Caption = 'Form1'
+  Caption = 'UDP Demo'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

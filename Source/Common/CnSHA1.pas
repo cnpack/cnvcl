@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -22,7 +22,7 @@ unit CnSHA1;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：SHA1算法单元
+* 单元名称：SHA1 算法实现单元
 * 单元作者：刘啸（Liu Xiao）
 * 备    注：
 * 开发平台：PWin2000Pro + Delphi 5.0
@@ -65,34 +65,40 @@ type
   {* 进度回调事件类型声明}
 
 function SHA1Buffer(const Buffer; Count: LongWord): TSHA1Digest;
-{* 对数据块进行SHA1转换
+{* 对数据块进行 SHA1 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA1String(const Str: string): TSHA1Digest;
-{* 对String类型数据进行SHA1转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 SHA1 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function SHA1StringA(const Str: AnsiString): TSHA1Digest;
-{* 对AnsiString类型数据进行SHA1转换
+{* 对 AnsiString 类型数据进行 SHA1 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function SHA1StringW(const Str: WideString): TSHA1Digest;
-{* 对 WideString类型数据进行SHA1转换
+{* 对 WideString 类型数据进行 SHA1 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
+function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA1Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
 function SHA1File(const FileName: string;
   CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
-{* 对指定文件数据进行SHA1转换
+{* 对指定文件内容进行 SHA1 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TSHA1CalcProgressFunc - 进度回调函数，默认为空
@@ -100,7 +106,7 @@ function SHA1File(const FileName: string;
 
 function SHA1Stream(Stream: TStream;
   CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
-{* 对指定流数据进行SHA1转换
+{* 对指定流数据进行 SHA1 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHA1CalcProgressFunc - 进度回调函数，默认为空
@@ -113,22 +119,22 @@ procedure SHA1Update(var Context: TSHA1Context; Buffer: Pointer; Len: Integer);
 procedure SHA1Final(var Context: TSHA1Context; var Digest: TSHA1Digest);
 
 function SHA1Print(const Digest: TSHA1Digest): string;
-{* 以十六进制格式输出SHA1计算值
+{* 以十六进制格式输出 SHA1 计算值
  |<PRE>
-   Digest: TSHA1Digest  - 指定的SHA1计算值
+   Digest: TSHA1Digest  - 指定的 SHA1 计算值
  |</PRE>}
 
 function SHA1Match(const D1, D2: TSHA1Digest): Boolean;
-{* 比较两个SHA1计算值是否相等
+{* 比较两个 SHA1 计算值是否相等
  |<PRE>
-   D1: TSHA1Digest   - 需要比较的SHA1计算值
-   D2: TSHA1Digest   - 需要比较的SHA1计算值
+   D1: TSHA1Digest   - 需要比较的 SHA1 计算值
+   D2: TSHA1Digest   - 需要比较的 SHA1 计算值
  |</PRE>}
 
 function SHA1DigestToStr(aDig: TSHA1Digest): string;
-{* SHA1计算值转 string
+{* SHA1 计算值转 string
  |<PRE>
-   aDig: TSHA1Digest   - 需要转换的SHA1计算值
+   aDig: TSHA1Digest   - 需要转换的 SHA1 计算值
  |</PRE>}
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -181,10 +187,10 @@ end;
 
 procedure XorBlock(I1, I2, O1: PByteArray; Len: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to Len - 1 do
-    O1[i] := I1[i] xor I2[i];
+  for I := 0 to Len - 1 do
+    O1[I] := I1[I] xor I2[I];
 end;
 
 procedure IncBlock(P: PByteArray; Len: Integer);
@@ -353,7 +359,7 @@ begin
   Move(Context.Hash, Digest, Sizeof(Digest));
 end;
 
-// 对数据块进行SHA1转换
+// 对数据块进行 SHA1 计算
 function SHA1Buffer(const Buffer; Count: Longword): TSHA1Digest;
 var
   Context: TSHA1Context;
@@ -363,17 +369,16 @@ begin
   SHA1Final(Context, Result);
 end;
 
-// 对String类型数据进行SHA1转换
+// 对 String 类型数据进行 SHA1 计算
 function SHA1String(const Str: string): TSHA1Digest;
 var
-  Context: TSHA1Context;
+  AStr: AnsiString;
 begin
-  SHA1Init(Context);
-  SHA1Update(Context, PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(Str)), Length(Str) * SizeOf(Char));
-  SHA1Final(Context, Result);
+  AStr := AnsiString(Str);
+  Result := SHA1StringA(AStr);
 end;
 
-// 对AnsiString类型数据进行SHA1转换
+// 对 AnsiString 类型数据进行 SHA1 计算
 function SHA1StringA(const Str: AnsiString): TSHA1Digest;
 var
   Context: TSHA1Context;
@@ -383,13 +388,22 @@ begin
   SHA1Final(Context, Result);
 end;
 
-// 对WideString类型数据进行SHA1转换
+// 对 WideString 类型数据进行 SHA1 计算
 function SHA1StringW(const Str: WideString): TSHA1Digest;
 var
   Context: TSHA1Context;
 begin
   SHA1Init(Context);
   SHA1UpdateW(Context, PWideChar(Str), Length(Str));
+  SHA1Final(Context, Result);
+end;
+
+function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA1Digest;
+var
+  Context: TSHA1Context;
+begin
+  SHA1Init(Context);
+  SHA1Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA1Final(Context, Result);
 end;
 
@@ -439,14 +453,14 @@ begin
   end;
 end;
 
-// 对指定流进行SHA1计算
+// 对指定流进行 SHA1 计算
 function SHA1Stream(Stream: TStream;
   CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
 begin
   InternalSHA1Stream(Stream, 4096 * 1024, Result, CallBack);
 end;
 
-// 对指定文件数据进行SHA1转换
+// 对指定文件数据进行 SHA1 计算
 function SHA1File(const FileName: string;
   CallBack: TSHA1CalcProgressFunc): TSHA1Digest;
 var
@@ -533,7 +547,7 @@ begin
   end;
 end;
 
-// 以十六进制格式输出SHA1计算值
+// 以十六进制格式输出 SHA1 计算值
 function SHA1Print(const Digest: TSHA1Digest): string;
 var
   I: Byte;
@@ -547,13 +561,13 @@ begin
       Digits[Digest[I] and $0f]);
 end;
 
-// 比较两个SHA1计算值是否相等
+// 比较两个 SHA1 计算值是否相等
 function SHA1Match(const D1, D2: TSHA1Digest): Boolean;
 var
-  I: Byte;
+  I: Integer;
 begin
   I := 0;
-  Result := TRUE;
+  Result := True;
   while Result and (I < 20) do
   begin
     Result := D1[I] = D2[I];
@@ -561,7 +575,7 @@ begin
   end;
 end;
 
-// SHA1计算值转 string
+// SHA1 计算值转 string
 function SHA1DigestToStr(aDig: TSHA1Digest): string;
 var
   I: Integer;

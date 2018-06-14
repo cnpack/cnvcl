@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -320,6 +320,50 @@ const
   CN_NTP_MODE_BROADCAST                     = 5;   // 广播
   CN_NTP_MODE_CONTROL_MSG                   = 6;   // NTP 控制消息
 
+  {* NTP 包中的时间戳的秒的小数部分与微秒的换算比例值}
+  CN_NTP_MICRO_SEC_FRACTION                 = 4294.967296;
+
+  {* Socks 代理协议的握手包中的版本字段的定义}
+  CN_SOCKS_VERSION_V4                       = 4;
+  CN_SOCKS_VERSION_V5                       = 5;
+
+  {* Socks 代理协议的握手包中的方法字段的定义}
+  CN_SOCKS_METHOD_NO_AUTH_REQUIRED          = $00; // 不需身份验证
+  CN_SOCKS_METHOD_GSSAPI                    = $01; // GSSAPI 验证
+  CN_SOCKS_METHOD_USERNAME_PASSWORD         = $02; // 用户名密码验证
+  CN_SOCKS_METHOD_IANA_ASSIGNED_BEGIN       = $03; // IANA 分配开始
+  CN_SOCKS_METHOD_IANA_ASSIGNED_END         = $7F; // IANA 分配结束
+  CN_SOCKS_METHOD_RESERVED_PRIVATE_BEGIN    = $80; // 私有保留开始
+  CN_SOCKS_METHOD_RESERVED_PRIVATE_END      = $FE; // 私有保留结束
+  CN_SOCKS_METHOD_NO_ACCEPTABLE_METHODS     = $FF; // 无可用验证方法
+
+  {* Socks 代理协议请求包中的命令字段的定义}
+  CN_SOCKS_CMD_CONNECT                      = $01;
+  CN_SOCKS_CMD_BIND                         = $02;
+  CN_SOCKS_CMD_UDP                          = $03;
+
+  {* Socks 代理协议请求包中的地址类型字段的定义}
+  CN_SOCKS_ADDRESS_TYPE_IPV4                = $01;
+  CN_SOCKS_ADDRESS_TYPE_DOMAINNAME          = $03;
+  CN_SOCKS_ADDRESS_TYPE_IPV6                = $04;
+
+  {* Socks 代理协议的握手包中用户名密码验证中版本字段的定义}
+  CN_SOCKS_USERNAME_PASSWORD_VER            = $01;
+
+  {* Socks 代理协议的握手包中用户名密码验证中结果字段的定义}
+  CN_SOCKS_USERNAME_PASSWORD_STATUS_SUCCESS = $00; // 身份验证成功
+
+  {* Socks 代理协议的应答包中的响应字段的定义}
+  CN_SOCKS_REPLY_SUCCESS                    = $00; // 成功
+  CN_SOCKS_REPLY_GENERAL_FAILURE            = $01; // 服务器错误
+  CN_SOCKS_REPLY_NOT_ALLOWED                = $02; // 规则不允许
+  CN_SOCKS_REPLY_NETWORK_UNREACHABLE        = $03; // 网络不可达
+  CN_SOCKS_REPLY_HOST_UNREACHABLE           = $04; // 主机不可达
+  CN_SOCKS_REPLY_CONNECTION_REFUSED         = $05; // 连接被拒绝
+  CN_SOCKS_REPLY_TTL_EXPIRED                = $06; // TTL 过期
+  CN_SOCKS_REPLY_COMMAND_NOT_SUPPORTED      = $07; // 命令不支持
+  CN_SOCKS_REPLY_ADDRESS_TYPE_NOT_SUPPORTED = $08; // 地址类型不支持
+
 type
 
 {*
@@ -473,19 +517,19 @@ type
   |                          Reference ID                         |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                     Reference Timestamp (64)                  +
+  +        Reference Timestamp (64: 32 Sec, 32 Fraction)          +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                      Origin Timestamp (64)                    +
+  +         Origin Timestamp (64: 32 Sec, 32 Fraction)            +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                      Receive Timestamp (64)                   +
+  +        Receive Timestamp (64: 32 Sec, 32 Fraction)            +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
-  +                      Transmit Timestamp (64)                  +
+  +        Transmit Timestamp (64: 32 Sec, 32 Fraction)           +
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |                                                               |
@@ -506,6 +550,10 @@ type
   |                          Digest (128)                         |
   |                                                               |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+  客户端接收答复时的时间戳 T4 无需存入此包中
+  时间戳为 64 位，前 32 位是 1900 年 1 月 1 日后的秒数，
+  后 32 位是小于秒的内容，值为微秒数的 （2^32/10^6）也就是 4294.967296 倍
 }
 
   TCnNTPPacket = packed record
@@ -517,12 +565,152 @@ type
     RootDispersion:        LongWord;
     ReferenceID:           LongWord;
     ReferenceTimestamp:    Int64;
-    OriginateTimestamp:    Int64;
-    ReceiveTimestamp:      Int64;
-    TransmitTimestamp:     Int64;
+    OriginateTimestamp:    Int64;        // 客户端发送请求时的时间戳 T1
+    ReceiveTimestamp:      Int64;        // 服务器接收到请求的时间戳 T2
+    TransmitTimestamp:     Int64;        // 服务器发送答复时的时间戳 T3
   end;
 
   PCnNTPPacket = ^TCnNTPPacket;
+
+{*
+  Socks 代理协议客户端发起连接握手包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version   |    Method     |    Methods    ...              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksNegotiationRequest = packed record
+    Version:               Byte;
+    Method:                Byte;
+    Methods:               array[1..255] of Byte;
+  end;
+
+  PCnSocksNegotiationRequest = ^TCnSocksNegotiationRequest;
+
+{*
+  Socks 代理协议服务端握手回应包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1           
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    |    Method     |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksNegotiationResponse = packed record
+    Version:               Byte;
+    Method:                Byte;
+  end;
+
+  PCnSocksNegotiationResponse = ^TCnSocksNegotiationResponse;
+
+{*
+  Socks 代理协议客户端用户名密码验证请求包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    | UsernameLen   |    Username  1..255           |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | PasswordLen   |  Password 1..255                              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksUsernamePasswordSubNegotiationRequest = packed record
+    Version:               Byte;
+    UsernameLen:           Byte;
+    Username:              array[0..255] of AnsiChar; // 255 是最大长度，并非真实长度
+    PasswordLen:           Byte;
+    Password:              array[1..255] of AnsiChar; // 255 是最大长度，并非真实长度
+  end;
+
+  PCnSocksUsernamePasswordSubNegotiationRequest = ^TCnSocksUsernamePasswordSubNegotiationRequest;
+
+{*
+  Socks 代理协议客户端用户名密码验证回应包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1           
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    |    Status     |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksUsernamePasswordSubNegotiationResponse = packed record
+    Version:               Byte;
+    Status:                Byte;
+  end;
+
+  PCnSocksUsernamePasswordSubNegotiationResponse = ^TCnSocksUsernamePasswordSubNegotiationResponse;
+
+{*
+  Socks 代理协议客户端请求包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    |    Command    |   Reserved    |  Adress Type  |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Destination Address        |        Destination Port       |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksAddress = packed record
+    case Integer of
+      0: (IpV4Address:     Cardinal);
+      1: (DomainNameLen:   Byte;
+         DomainName:       array[0..255] of AnsiChar);
+      2: (IpV6Address:     array[0..15] of AnsiChar);
+  end;
+
+  TCnSocksRequest = packed record
+    Version:               Byte;
+    Command:               Byte;
+    Reserved:              Byte;
+    AddressType:           Byte;
+    DestionationAddress:   TCnSocksAddress;
+    DestionationPort:      array[0..1] of AnsiChar;   // 上述字段可变长，本字段位置不固定
+  end;
+
+  PCnSocksRequest = ^TCnSocksRequest;
+
+{*
+  Socks 代理协议服务端应答包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    |     Reply     |   Reserved    |  Adress Type  |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |         Bind Address          |            Bind Port          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnSocksResponse = packed record
+    Version:               Byte;
+    Reply:                 Byte;
+    Reserved:              Byte;
+    AddressType:           Byte;
+    BindAddress:           TCnSocksAddress;
+    BindPort:              array[0..1] of AnsiChar;   // 上一字段可变长，本字段位置不固定
+  end;
+
+  PCnSocksResponse = ^TCnSocksResponse;
 
 // ======================== IP 包头系列函数 ====================================
 
@@ -660,9 +848,29 @@ function CnGetNTPVersionNumber(const NTPPacket: PCnNTPPacket): Integer;
 function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
 {* 获得 NTP 包内的模式}
 
+procedure CnSetNTPLeapIndicator(const NTPPacket: PCnNTPPacket; LeapIndicator: Integer);
+{* 设置 NTP 包内的闰秒标识，使用 CN_NTP_LEAP_INDICATOR_* 系列常数 }
+
+procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: Integer);
+{* 设置 NTP 包内的版本号，使用 CN_NTP_VERSION_* 系列常数}
+
+procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
+{* 设置 NTP 包内的模式，使用 CN_NTP_MODE_* 系列常数}
+
+function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
+{* 将 NTP 包中的时间戳值转换成日期时间}
+
+function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
+{* 将日期时间转换成 NTP 包中的时间戳值}
+
 implementation
 
 function NetworkToHostWord(Value: Word): Word;
+begin
+  Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+end;
+
+function HostToNetworkWord(Value: Word): Word;
 begin
   Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
@@ -671,6 +879,40 @@ function NetworkToHostLongWord(Value: LongWord): LongWord;
 begin
   Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
     or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function HostToNetworkLongWord(Value: LongWord): LongWord;
+begin
+  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function NetworkToHostInt64(Value: Int64): Int64;
+var
+  Lo, Hi: LongWord;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := NetworkToHostLongWord(Lo);
+  Hi := NetworkToHostLongWord(Hi);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := Int64(Rec);
+end;
+
+function HostToNetworkInt64(Value: Int64): Int64;
+var
+  Lo, Hi: LongWord;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := NetworkToHostLongWord(Lo);
+  Hi := NetworkToHostLongWord(Hi);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := Int64(Rec);
 end;
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -881,6 +1123,50 @@ end;
 function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
 begin
   Result := NTPPacket^.LIVNMode and $07;
+end;
+
+procedure CnSetNTPLeapIndicator(const NTPPacket: PCnNTPPacket; LeapIndicator: Integer);
+begin
+  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or ((LeapIndicator and $03) shl 6);
+end;
+
+procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: Integer);
+begin
+  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or ((VersionNumber and $07) shl 3);
+end;
+
+procedure CnSetNTPMode(const NTPPacket: PCnNTPPacket; NTPMode: Integer);
+begin
+  NTPPacket^.LIVNMode := NTPPacket^.LIVNMode or (NTPMode and $07);
+end;
+
+function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
+var
+  Sec, Frac: DWORD;
+begin
+  Stamp := NetworkToHostInt64(Stamp);
+  Sec := Int64Rec(Stamp).Hi;
+  Frac := Int64Rec(Stamp).Lo;
+
+  // Sec 的秒数从 1900年1月1日0点开始，但 TDateTime 的日数从1899年12月30日0点开始，差两天
+  Result := 2 + (Sec div 86400) + (Sec mod 86400) / 86400.00 +
+    Frac / (CN_NTP_MICRO_SEC_FRACTION * 1000 * 1000 * 86400.00);
+end;
+
+function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
+var
+  H, M, S, Ms: Word;
+  Sec, Frac: DWORD;
+begin
+  // Sec 的秒数从 1900年1月1日0点开始，但 TDateTime 的日数从1899年12月30日0点开始，差两天
+  ADateTime := ADateTime - 2;
+  DecodeTime(ADateTime, H, M, S, Ms);
+  Sec := Trunc(ADateTime) * 86400 + H * 3600 + M * 60 + S;
+  Frac := Trunc(Ms * 1000 * CN_NTP_MICRO_SEC_FRACTION);
+
+  Int64Rec(Result).Lo := Frac;
+  Int64Rec(Result).Hi := Sec;
+  Result := HostToNetworkInt64(Result); // 互相转换
 end;
 
 end.

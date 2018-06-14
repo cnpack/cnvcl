@@ -56,6 +56,8 @@ type
     btnGenPrime: TButton;
     btnJudgeInt: TButton;
     btnRandRange: TButton;
+    btnEnterNum1: TButton;
+    btnEnterNum2: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -93,6 +95,8 @@ type
     procedure btnGenPrimeClick(Sender: TObject);
     procedure btnJudgeIntClick(Sender: TObject);
     procedure btnRandRangeClick(Sender: TObject);
+    procedure btnEnterNum1Click(Sender: TObject);
+    procedure btnEnterNum2Click(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -577,6 +581,32 @@ begin
     ShowNumbers;
     CheckNumber(Num1);
     CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+  end;
+end;
+
+procedure TFormBigNumber.btnEnterNum1Click(Sender: TObject);
+var
+  S: string;
+begin
+  if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+  begin
+    Num1.SetDec(S);
+    ShowNumbers;
+    CheckNumber(Num1);
+    CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+  end;
+end;
+
+procedure TFormBigNumber.btnEnterNum2Click(Sender: TObject);
+var
+  S: string;
+begin
+  if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+  begin
+    Num2.SetDec(S);
+    ShowNumbers;
+    CheckNumber(Num2);
+    CheckStringAndNumber(mmoNum2.Lines.Text, Num2);
   end;
 end;
 

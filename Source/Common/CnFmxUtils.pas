@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -63,6 +63,8 @@ function CnFmxIsInheritedFromControl(AObject: TObject): Boolean;
 function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
 
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
+
+function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
 
@@ -179,6 +181,15 @@ end;
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
 begin
   Result := AObject.InheritsFrom(FMX.Forms.TCommonCustomForm);
+end;
+
+function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
+begin
+{$IFDEF SUPPORT_FMX_FRAME}
+  Result := AObject.InheritsFrom(FMX.Forms.TFrame);
+{$ELSE}
+  Result := False;
+{$ENDIF}
 end;
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;

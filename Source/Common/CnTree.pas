@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -76,7 +76,6 @@ type
     FParent: TCnLeaf;
     FText: string;
     FTree: TCnTree;
-    procedure SetItems(Index: Integer; const Value: TCnLeaf);
     function GetTree: TCnTree;
     function GetAllNonNilCount: Integer;
     function GetSubTreeHeight: Integer; virtual;
@@ -87,6 +86,7 @@ type
     function GetHasChildren: Boolean;
     function GetIndex: Integer;
     function GetItems(Index: Integer): TCnLeaf;
+    procedure SetItems(Index: Integer; const Value: TCnLeaf);
     function GetLevel: Integer;
       
     procedure DoDepthFirstTravel;
@@ -430,10 +430,11 @@ type
     FCharacter: Char;
     function GetCharacter: Char;
     procedure SetCharacter(const Value: Char);
-    function GetItems(Index: Integer): TCnTrieLeaf;
-    procedure SetItems(Index: Integer; const Value: TCnTrieLeaf);
     function GetTree: TCnTrieTree;
   protected
+    function GetItems(Index: Integer): TCnTrieLeaf;
+    procedure SetItems(Index: Integer; const Value: TCnTrieLeaf);
+
     function DoInsertChar(P: PChar): TCnTrieLeaf;
     function DoSearchChar(P: PChar): TCnTrieLeaf;
   public

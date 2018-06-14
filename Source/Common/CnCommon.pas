@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -68,11 +68,6 @@ unit CnCommon;
 interface
 
 {$I CnPack.inc}
-
-{$IFDEF COMPILER12}
-// RAD Studio 2009 下 CreateParams 中可能导致死循环
-{$DEFINE CREATE_PARAMS_BUG}
-{$ENDIF}
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -161,6 +156,10 @@ function FormatPath(const APath: string; Width: Integer): string;
 
 procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 {* 通过 DrawText 来画缩略路径}
+
+procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
+  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList = nil);
+{* 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示}
 
 function SameCharCounts(s1, s2: string): Integer;
 {* 两个字符串的前面的相同字符数}
@@ -1004,6 +1003,9 @@ function SoundCardExist: Boolean;
 
 function FindFormByClass(AClass: TClass): TForm;
 {* 根据指定类名查找窗体}
+
+function ModalFormExists: Boolean;
+{* 当前是否有模态窗口存在}
 
 function InheritsFromClassName(ASrc: TClass; const AClass: string): Boolean; overload;
 {* 判断 ASrc 是否派生自类名为 AClass 的类 }
@@ -2069,6 +2071,87 @@ begin
   DrawText(Hdc, PChar(Str), Length(Str), Rect, DT_PATH_ELLIPSIS);
 end;
 
+// 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示
+procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
+  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList);
+var
+  MatchIdx, I, W, L: Integer;
+  HdrStr, AMatchStr, TailStr, PaintStr: string;
+  OldColor, OldBrushColor: TColor;
+  OldStyle: TBrushStyle;
+  ASize: TSize;
+  C: Char;
+begin
+  OldStyle := Canvas.Brush.Style;
+  OldBrushColor := Canvas.Brush.Color;
+  Canvas.Brush.Style := bsClear;
+
+  // 所有文字均采用 bsClear 模式绘制
+  if (MatchedIndexes = nil) or (MatchedIndexes.Count = 0) then
+  begin
+    if MatchStr = '' then
+      MatchIdx := 0
+    else
+      MatchIdx := Pos(UpperCase(Trim(MatchStr)), UpperCase(Text));
+
+    if MatchIdx > 0 then
+    begin
+      HdrStr := Copy(Text, 1, MatchIdx - 1);
+      AMatchStr := Copy(Text, MatchIdx, Length(Trim(MatchStr)));
+      TailStr := Copy(Text, MatchIdx + Length(Trim(MatchStr)), MaxInt);
+
+      Canvas.TextOut(X, Y, HdrStr);
+      Inc(X, Canvas.TextWidth(HdrStr));
+      OldColor := Canvas.Font.Color;
+      Canvas.Font.Color := HighlightColor;
+      Canvas.TextOut(X, Y, AMatchStr);
+      Canvas.Font.Color := OldColor;
+      Inc(X, Canvas.TextWidth(AMatchStr));
+      Canvas.TextOut(X, Y, TailStr);
+    end
+    else
+      Canvas.TextOut(X, Y, Text);
+
+    Canvas.Brush.Style := OldStyle;
+  end
+  else
+  begin
+    Canvas.TextOut(X, Y, Text);
+    SetLength(PaintStr, Length(Text));
+    StrCopy(PChar(PaintStr), PChar(Text));
+    OldColor := Canvas.Font.Color;
+    Canvas.Font.Color := HighlightColor;
+
+    for I := MatchedIndexes.Count - 1 downto 0 do
+    begin
+      L := Integer(MatchedIndexes[I]);
+      if (L <= 0) or (L > Length(PaintStr)) then
+        Continue;
+
+      if L < Length(PaintStr) then
+        PaintStr[L + 1] := #0;
+      C := PaintStr[L];
+      PaintStr[L] := #0;
+
+      ASize.cx := 0;
+      ASize.cy := 0;
+      if L = 1 then
+        W := 0
+      else
+      begin
+        Windows.GetTextExtentPoint32(Canvas.Handle, PChar(@(PaintStr[1])), L - 1, ASize);
+        W := ASize.cx; // 计算需绘制字符前的宽度
+      end;
+      PaintStr[L] := C;
+      Windows.TextOut(Canvas.Handle, X + W, Y, PChar(@(PaintStr[L])), 1);
+    end;
+    SetLength(PaintStr, 0);
+    Canvas.Font.Color := OldColor;
+  end;
+  Canvas.Brush.Style := OldStyle;
+  Canvas.Brush.Color := OldBrushColor;
+end;
+
 // 打开文件框
 function OpenDialog(var FileName: string; const Title: string; const Filter: string;
   const Ext: string): Boolean;
@@ -2391,6 +2474,16 @@ begin
 
   HeadNum := SameCharCounts(AnsiUpperCase(_CnExtractFilePath(ATo)),
     AnsiUpperCase(_CnExtractFilePath(AFrom)));
+
+  // HeadNum 表示俩目录名前面相同的部分，注意可能最后相同的部分是前缀相同的不同目录名，
+  // 因此，如果末尾都不是\，则需要往回找到都是 \ 的位置
+  while HeadNum > 0 do
+  begin
+    if (ATo[HeadNum] = '\') and (AFrom[HeadNum] = '\') then
+      Break;
+    Dec(HeadNum);
+  end;
+
   if HeadNum > 0 then
   begin
     ATo := StringReplace(Copy(ATo, HeadNum + 1, MaxInt), '\', PathStr, [rfReplaceAll]);
@@ -2560,12 +2653,14 @@ function WinExecute(const FileName: string; Visibility: Integer = SW_NORMAL): Bo
 var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
+  CmdLines: array[0..512] of Char;
 begin
   FillChar(StartupInfo, SizeOf(StartupInfo), #0);
   StartupInfo.cb := SizeOf(StartupInfo);
   StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
   StartupInfo.wShowWindow := Visibility;
-  Result := CreateProcess(nil, PChar(FileName), nil, nil, False,
+  StrPLCopy(@CmdLines[0], FileName, SizeOf(CmdLines) - 1);
+  Result := CreateProcess(nil, PChar(@CmdLines[0]), nil, nil, False,
     CREATE_NEW_CONSOLE or NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo,
     ProcessInfo);
 end;
@@ -2580,7 +2675,7 @@ var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
 begin
-  StrPCopy(zAppName, FileName);
+  StrPLCopy(zAppName, FileName, SizeOf(zAppName) - 1);
   GetDir(0, WorkDir);
   StrPCopy(zCurDir, WorkDir);
   FillChar(StartupInfo, SizeOf(StartupInfo), #0);
@@ -2629,6 +2724,7 @@ var
   InStream: THandleStream;
   strTemp: string;
   PDir: PChar;
+  CmdLines: array[0..512] of Char;
 
   procedure ReadLinesFromPipe(IsEnd: Boolean);
   var
@@ -2687,8 +2783,10 @@ begin
         PDir := PChar(Dir)
       else
         PDir := nil;
+
+      StrPLCopy(@CmdLines[0], CmdLine, SizeOf(CmdLines) - 1);
       Win32Check(CreateProcess(nil, //lpApplicationName: PChar
-        PChar(CmdLine), //lpCommandLine: PChar
+        PChar(@CmdLines[0]), //lpCommandLine: PChar
         nil, //lpProcessAttributes: PSecurityAttributes
         nil, //lpThreadAttributes: PSecurityAttributes
         True, //bInheritHandles: BOOL
@@ -3913,19 +4011,36 @@ begin
   FindClose(Sr);
 end;
 
+// 根据指定类名查找窗体
 function FindFormByClass(AClass: TClass): TForm;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := nil;
-  for i := 0 to Screen.FormCount - 1 do
+  for I := 0 to Screen.FormCount - 1 do
   begin
-    if Screen.Forms[i] is AClass then
+    if Screen.Forms[I] is AClass then
     begin
-      Result := Screen.Forms[i];
+      Result := Screen.Forms[I];
       Exit;
     end;
   end;
+end;
+
+// 当前是否有模态窗口存在
+function ModalFormExists: Boolean;
+var
+  I: Integer;
+begin
+  for I := 0 to Screen.CustomFormCount - 1 do
+  begin
+    if fsModal in Screen.CustomForms[I].FormState then
+    begin
+      Result := True;
+      Exit;
+    end
+  end;
+  Result := False;
 end;
 
 var

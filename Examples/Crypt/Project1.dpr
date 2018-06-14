@@ -12,7 +12,8 @@ uses
   CnSM4 in '..\..\Source\Common\CnSM4.pas',
   CnAES in '..\..\Source\Common\CnAES.pas',
   CnSHA2 in '..\..\Source\Common\CnSHA2.pas',
-  CnZUC in '..\..\Source\Common\CnZUC.pas';
+  CnZUC in '..\..\Source\Common\CnZUC.pas',
+  CnSHA3 in '..\..\Source\Common\CnSHA3.pas';
 
 {$R *.RES}
 

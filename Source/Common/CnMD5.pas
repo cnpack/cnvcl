@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -49,7 +49,7 @@ unit CnMD5;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：MD5算法单元
+* 单元名称：MD5 算法单元
 * 单元作者：何清（QSoft） hq.com@263.net; http://qsoft.51.net
 * 备    注：
 * 开发平台：PWin2000Pro + Delphi 5.0
@@ -96,38 +96,44 @@ type
   {* 进度回调事件类型声明}
     
 //----------------------------------------------------------------
-// 用户API函数定义
+// 用户 API 函数定义
 //----------------------------------------------------------------
 
 function MD5Buffer(const Buffer; Count: LongWord): TMD5Digest;
-{* 对数据块进行MD5转换
+{* 对数据块进行 MD5 计算
  |<PRE>
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function MD5String(const Str: string): TMD5Digest;
-{* 对String类型数据进行MD5转换，注意D2009或以上版本的string为UnicodeString，
-   因此对同一个字符串的计算结果，和D2007或以下版本的会不同，使用时请注意
+{* 对 String 类型数据进行 MD5 计算。注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
 function MD5StringA(const Str: AnsiString): TMD5Digest;
-{* 对AnsiString类型数据进行MD5转换
+{* 对 AnsiString 类型数据进行 MD5 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
 function MD5StringW(const Str: WideString): TMD5Digest;
-{* 对 WideString类型数据进行MD5转换
+{* 对 WideString 类型数据进行 MD5 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
-   Str: WideString       - 要计算的字符串
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function MD5UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TMD5Digest;
+{* 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
  |</PRE>}
 
 function MD5File(const FileName: string;
   CallBack: TMD5CalcProgressFunc = nil): TMD5Digest;
-{* 对指定文件数据进行MD5转换
+{* 对指定文件内容进行 MD5 计算
  |<PRE>
    FileName: string  - 要计算的文件名
    CallBack: TMD5CalcProgressFunc - 进度回调函数，默认为空
@@ -135,29 +141,29 @@ function MD5File(const FileName: string;
 
 function MD5Stream(Stream: TStream;
   CallBack: TMD5CalcProgressFunc = nil): TMD5Digest;
-{* 对指定流数据进行MD5转换
+{* 对指定流数据进行 MD5 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TMD5CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
 function MD5Print(const Digest: TMD5Digest): string;
-{* 以十六进制格式输出MD5计算值
+{* 以十六进制格式输出 MD5 计算值
  |<PRE>
-   Digest: TMD5Digest  - 指定的MD5计算值
+   Digest: TMD5Digest  - 指定的 MD5 计算值
  |</PRE>}
 
 function MD5Match(const D1, D2: TMD5Digest): Boolean;
 {* 比较两个MD5计算值是否相等
  |<PRE>
-   D1: TMD5Digest   - 需要比较的MD5计算值
-   D2: TMD5Digest   - 需要比较的MD5计算值
+   D1: TMD5Digest   - 需要比较的 MD5 计算值
+   D2: TMD5Digest   - 需要比较的 MD5 计算值
  |</PRE>}
 
 function MD5DigestToStr(aDig: TMD5Digest): string;
-{* MD5计算值转 string
+{* MD5 计算值转 string
  |<PRE>
-   aDig: TMD5Digest   - 需要转换的MD5计算值
+   aDig: TMD5Digest   - 需要转换的 MD5 计算值
  |</PRE>}
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -518,10 +524,10 @@ begin
 end;
 
 //----------------------------------------------------------------
-// 用户API函数实现
+// 用户 API 函数实现
 //----------------------------------------------------------------
 
-// 对数据块进行MD5转换
+// 对数据块进行 MD5 计算
 function MD5Buffer(const Buffer; Count: Longword): TMD5Digest;
 var
   Context: TMD5Context;
@@ -531,7 +537,7 @@ begin
   MD5Final(Context, Result);
 end;
 
-// 对String类型数据进行MD5转换
+// 对 String 类型数据进行 MD5 计算
 function MD5String(const Str: string): TMD5Digest;
 var
   AStr: AnsiString;
@@ -540,7 +546,7 @@ begin
   Result := MD5StringA(AStr);
 end;
 
-// 对AnsiString类型数据进行MD5转换
+// 对 AnsiString 类型数据进行 MD5 计算
 function MD5StringA(const Str: AnsiString): TMD5Digest;
 var
   Context: TMD5Context;
@@ -550,7 +556,7 @@ begin
   MD5Final(Context, Result);
 end;
 
-// 对WideString类型数据进行MD5转换
+// 对 WideString 类型数据进行 MD5 计算
 function MD5StringW(const Str: WideString): TMD5Digest;
 var
   Context: TMD5Context;
@@ -560,7 +566,17 @@ begin
   MD5Final(Context, Result);
 end;
 
-// 对指定文件数据进行MD5转换
+// 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
+function MD5UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TMD5Digest;
+var
+  Context: TMD5Context;
+begin
+  MD5Init(Context);
+  MD5Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  MD5Final(Context, Result);
+end;
+
+// 对指定文件内容进行 MD5 计算
 function MD5File(const FileName: string;
   CallBack: TMD5CalcProgressFunc): TMD5Digest;
 var
@@ -647,14 +663,14 @@ begin
   end;
 end;
 
-// 对指定流进行MD5计算
+// 对指定流进行 MD5 计算
 function MD5Stream(Stream: TStream;
   CallBack: TMD5CalcProgressFunc = nil): TMD5Digest;
 begin
   InternalMD5Stream(Stream, 4096 * 1024, Result, CallBack);
 end;
 
-// 以十六进制格式输出MD5计算值
+// 以十六进制格式输出 MD5 计算值
 function MD5Print(const Digest: TMD5Digest): string;
 var
   I: byte;
@@ -668,13 +684,13 @@ begin
               Digits[Digest[I] and $0f]);
 end;
 
-// 比较两个MD5计算值是否相等
+// 比较两个 MD5 计算值是否相等
 function MD5Match(const D1, D2: TMD5Digest): Boolean;
 var
-  I: byte;
+  I: Integer;
 begin
   I := 0;
-  Result := TRUE;
+  Result := True;
   while Result and (I < 16) do
   begin
     Result := D1[I] = D2[I];
@@ -682,7 +698,7 @@ begin
   end;
 end;
 
-// MD5计算值转 string
+// MD5 计算值转 string
 function MD5DigestToStr(aDig: TMD5Digest): string;
 var
   I: Integer;

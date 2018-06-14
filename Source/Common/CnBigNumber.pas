@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -81,6 +81,9 @@ type
 {$IFDEF DEBUG}
     FIsFromPool: Boolean;
 {$ENDIF}
+    function GetDecString: string;
+    function GetHexString: string;
+    function GetDebugDump: string;
   public
     D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
     Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
@@ -149,13 +152,13 @@ type
     {* 返回大数是否负值 }
 
     function ClearBit(N: Integer): Boolean;
-    {* 给大数的第 N 个 Bit 置 0，返回成功与否 }
+    {* 给大数的第 N 个 Bit 置 0，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1 }
 
     function SetBit(N: Integer): Boolean;
-    {* 给大数的第 N 个 Bit 置 1，返回成功与否 }
+    {* 给大数的第 N 个 Bit 置 1，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1 }
 
     function IsBitSet(N: Integer): Boolean;
-    {* 返回大数的第 N 个 Bit 是否为 1 }
+    {* 返回大数的第 N 个 Bit 是否为 1。N 从最低位 0 到最高位 GetBitsCount - 1 }
 
     function WordExpand(Words: Integer): TCnBigNumber;
     {* 将大数扩展成支持 Words 个 DWORD，成功返回扩展的大数对象本身 Self，失败返回 nil}
@@ -163,6 +166,8 @@ type
     function ToBinary(const Buf: PAnsiChar): Integer;
     {* 将大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
        返回 Buf 写入的长度}
+    function SetBinary(Buf: PAnsiChar; Len: Integer): Boolean;
+    {* 根据一个二进制块给自身赋值}
 
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象}
@@ -188,6 +193,10 @@ type
     class function FromDec(const Buf: AnsiString): TCnBigNumber;
     {* 根据一串十进制字符串产生个新的大数对象}
 
+    property DecString: string read GetDecString;
+    property HexString: string read GetHexString;
+
+    property DebugDump: string read GetDebugDump;
   end;
   PCnBigNumber = ^TCnBigNumber;
 
@@ -269,31 +278,35 @@ function BigNumberWordExpand(const Num: TCnBigNumber; Words: Integer): TCnBigNum
 
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-   返回 Buf 写入的长度}
+   返回 Buf 写入的长度，注意不处理正负号}
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
-{* 将一个二进制块转换成大数对象，其结果不用时必须用 BigNumberFree 释放}
+{* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
+
+function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
+  const Res: TCnBigNumber): Boolean;
+{* 将一个二进制块赋值给指定大数对象，注意不处理正负号}
 
 function BigNumberToString(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成字符串 }
+{* 将一个大数对象转成字符串，负以 - 表示}
 
 function BigNumberToHex(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成十六进制字符串}
+{* 将一个大数对象转成十六进制字符串，负以 - 表示}
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十六进制字符串赋值给指定大数对象}
+{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示}
 
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
-{* 将一串十六进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
+{* 将一串十六进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
-{* 将一个大数对象转成十进制字符串}
+{* 将一个大数对象转成十进制字符串，负以 - 表示}
 
 function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十进制字符串赋值给指定大数对象}
+{* 将一串十进制字符串赋值给指定大数对象，负以 - 表示}
 
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
-{* 将一串十进制字符串转换为大数对象，其结果不用时必须用 BigNumberFree 释放}
+{* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1 }
@@ -311,7 +324,10 @@ procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 交换两个大数对象的内容}
 
 function BigNumberRandBytes(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
-{* 产生固定字节长度的随机大数 }
+{* 产生固定字节长度的随机大数}
+
+function BigNumberRandBits(const Num: TCnBigNumber; BitsCount: Integer): Boolean;
+{* 产生固定位长度的随机大数}
 
 function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
 {* 产生 [0, Range) 之间的随机大数}
@@ -350,8 +366,8 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功}
 
-function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 {* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功}
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
@@ -368,11 +384,11 @@ function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
    Remain 始终大于零，返回求余计算是否成功}
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  var Exponent: TCnBigNumber): Boolean;
+  Exponent: TCnBigNumber): Boolean;
 {* 求大数 Num 的 Exponent  次方，返回乘方计算是否成功，极其耗时}
 
-function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
@@ -386,7 +402,11 @@ function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = 
 
 function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个指定位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+{* 生成一个指定字节位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+
+function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+{* 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 32 位有符号整型范围内的数}
@@ -401,8 +421,19 @@ function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 64 位无符号整型范围内的数}
 
 procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
-  Y: TCnBigNumber; Res: TCnBigNumber);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解}
+  Y: TCnBigNumber);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+   A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B}
+
+procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
+  Y: TCnBigNumber);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+   A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
+   X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
+   （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
+
+function BigNumberDebugDump(const Num: TCnBigNumber): string;
+{* 打印大数内部信息}
 
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
@@ -781,31 +812,43 @@ begin
 end;
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
+begin
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  if not BigNumberSetBinary(Buf, Len, Result) then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+  end;
+end;
+
+function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
+  const Res: TCnBigNumber): Boolean;
 var
   I, M, N, L: DWORD;
 begin
-  Result := BigNumberNew;
-
+  Result := False;
   L := 0;
   N := Len;
   if N = 0 then
   begin
-    Result.Top := 0;
+    Res.Top := 0;
     Exit;
   end;
 
   I := ((N - 1) div BN_BYTES) + 1;
   M := (N - 1) mod BN_BYTES;
 
-  if BigNumberWordExpand(Result, I) = nil then
+  if BigNumberWordExpand(Res, I) = nil then
   begin
-    BigNumberFree(Result);
-    Result := nil;
+    BigNumberFree(Res);
     Exit;
   end;
 
-  Result.Top := I;
-  Result.Neg := 0;
+  Res.Top := I;
+  Res.Neg := 0;
   while N > 0 do
   begin
     L := (L shl 8) or Ord(Buf^);
@@ -814,7 +857,7 @@ begin
     if M = 0 then
     begin
       Dec(I);
-      PDWordArray(Result.D)^[I] := L;
+      PDWordArray(Res.D)^[I] := L;
       L := 0;
       M := BN_BYTES - 1;
     end
@@ -823,6 +866,8 @@ begin
 
     Dec(N);
   end;
+  BigNumberCorrectTop(Res);
+  Result := True;
 end;
 
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
@@ -1086,6 +1131,34 @@ begin
   end;
 end;
 
+// 产生固定位长度的随机大数
+function BigNumberRandBits(const Num: TCnBigNumber; BitsCount: Integer): Boolean;
+var
+  C, I: Integer;
+begin
+  Result := False;
+  if BitsCount < 0 then
+    Exit;
+  if BitsCount = 0 then
+  begin
+    Result := BigNumberSetZero(Num);
+    Exit;
+  end;
+
+  // 要产生 N bits 的随机大数，字节计算也就是 (N + 7) div 8 bytes
+  C := (BitsCount + 7) div 8;
+  if not BigNumberRandBytes(Num, C) then
+    Exit;
+
+  // 但头上可能有多余的，再把 C * 8 - 1 到 N 之间的位清零，只留 0 到 N - 1 位
+  if BitsCount <= C * 8 - 1 then
+    for I := C * 8 - 1 downto BitsCount do
+      if not BigNumberClearBit(Num, I) then
+        Exit;
+
+  Result := True;
+end;
+
 function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
 var
   N, C, I: Integer;
@@ -1099,8 +1172,8 @@ begin
     BigNumberSetZero(Num)
   else
   begin
-    // 要产生 N + 1 bits 的随机大数，字节计算也就是 ((N + 1) div 8 + 1 bytes
-    C := ((N + 1) div 8) + 1;
+    // 要产生 N bits 的随机大数，字节计算也就是 (N + 7) div 8 bytes
+    C := (N + 7) div 8;
     if not BigNumberRandBytes(Num, C) then
       Exit;
 
@@ -1235,7 +1308,7 @@ end;
 
 // 计算两个 32 位数（分别用高低 16 位表示）的 64 位积 HL * BHBL，
 // 传入的 LHBLBL 皆为 16 位，结果的高低位分别放 H 和 L，溢出不管
-procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD);
+procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   M, ML, LT, HT: DWORD;
 begin
@@ -1298,7 +1371,7 @@ begin
 end;
 
 // 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C
-procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD);
+procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   L, H: DWORD;
 begin
@@ -2450,7 +2523,7 @@ end;
 
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 var
-  I, N, R: Integer;
+  I, N, R, Len: Integer;
   BnData, LP: PDWORD;
   T: TCnBigNumber;
   P: PAnsiChar;
@@ -2526,6 +2599,10 @@ begin
     if T <> nil then
       BigNumberFree(T);
   end;
+
+  Len := StrLen(PAnsiChar(Result));
+  if Len > 0 then
+    SetLength(Result, Len); // 去除尾部多余的 #0
 end;
 
 function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
@@ -2765,8 +2842,8 @@ begin
   end;
 end;
 
-function BigNumberMul(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 var
   Top, AL, BL: Integer;
   RR: TCnBigNumber;
@@ -3057,7 +3134,7 @@ begin
 end;
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  var Exponent: TCnBigNumber): Boolean;
+  Exponent: TCnBigNumber): Boolean;
 var
   I, Bits: Integer;
   V, RR: TCnBigNumber;
@@ -3188,8 +3265,8 @@ begin
   Result := A;
 end;
 
-function BigNumberGcd(const Res: TCnBigNumber; var Num1: TCnBigNumber;
-  var Num2: TCnBigNumber): Boolean;
+function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
 var
   T, A, B: TCnBigNumber;
 begin
@@ -3452,10 +3529,45 @@ begin
   if not BigNumberRandBytes(Num, BytesCount) then
     Exit;
 
+  if not Num.IsOdd then
+    Num.AddWord(1);
+
   while not BigNumberIsProbablyPrime(Num, TestCount) do
   begin
+    // Num.AddWord(2);
     if not BigNumberRandBytes(Num, BytesCount) then
       Exit;
+
+    if not Num.IsOdd then
+      Num.AddWord(1);
+  end;
+  Result := True;
+end;
+
+// 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+begin
+  Result := False;
+  if not BigNumberRandBits(Num, BitsCount) then
+    Exit;
+
+  if not BigNumberSetBit(Num, BitsCount - 1) then
+    Exit;
+
+  if not Num.IsOdd then
+    Num.AddWord(1);
+
+  while not BigNumberIsProbablyPrime(Num, TestCount) do
+  begin
+    Num.AddWord(2);
+//    if not BigNumberRandBits(Num, BitsCount) then
+//      Exit;
+//    if not BigNumberSetBit(Num, BitsCount - 1) then
+//      Exit;
+//
+//    if not Num.IsOdd then
+//      Num.AddWord(1);
   end;
   Result := True;
 end;
@@ -3542,31 +3654,28 @@ end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
 procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
-  Y: TCnBigNumber; Res: TCnBigNumber);
+  Y: TCnBigNumber);
 var
-  R, T, P, M: TCnBigNumber;
+  T, P, M: TCnBigNumber;
 begin
   if BigNumberIsZero(B) then
   begin
     BigNumberSetOne(X);
     BigNumberSetZero(Y);
-    BigNumberCopy(Res, A);
   end
   else
   begin
-    R := nil;
     T := nil;
     P := nil;
     M := nil;
 
     try
-      R := ObtainBigNumberFromPool;
       T := ObtainBigNumberFromPool;
       P := ObtainBigNumberFromPool;
       M := ObtainBigNumberFromPool;
       BigNumberMod(P, A, B);
 
-      BigNumberExtendedEuclideanGcd(B, P, X, Y, R);
+      BigNumberExtendedEuclideanGcd(B, P, X, Y);
       BigNumberCopy(T, X);
       BigNumberCopy(X, Y);
 
@@ -3580,14 +3689,74 @@ begin
       BigNumberDiv(P, M, A, B);
       BigNumberMul(P, P, Y);
       BigNumberSub(Y, T, P);
-      BigNumberCopy(Res, R);
     finally
       RecycleBigNumberToPool(M);
       RecycleBigNumberToPool(P);
       RecycleBigNumberToPool(T);
-      RecycleBigNumberToPool(R);
     end;
   end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
+  Y: TCnBigNumber);
+var
+  T, P, M: TCnBigNumber;
+begin
+  if BigNumberIsZero(B) then
+  begin
+    BigNumberSetOne(X);
+    BigNumberSetZero(Y);
+  end
+  else
+  begin
+    T := nil;
+    P := nil;
+    M := nil;
+
+    try
+      T := ObtainBigNumberFromPool;
+      P := ObtainBigNumberFromPool;
+      M := ObtainBigNumberFromPool;
+      BigNumberMod(P, A, B);
+
+      BigNumberExtendedEuclideanGcd2(B, P, Y, X);
+
+      // 须 CorrectTop 否则 Top 值会太大，原因不详
+      BigNumberCorrectTop(X);
+      BigNumberCorrectTop(Y);
+
+      // Y := Y - (A div B) * X;
+      BigNumberDiv(P, M, A, B);
+      BigNumberMul(P, P, X);
+      BigNumberSub(Y, Y, P);
+    finally
+      RecycleBigNumberToPool(M);
+      RecycleBigNumberToPool(P);
+      RecycleBigNumberToPool(T);
+    end;
+  end;
+end;
+
+// 打印大数内部信息
+function BigNumberDebugDump(const Num: TCnBigNumber): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  if Num = nil then
+    Exit;
+
+//    D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
+//    Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
+//    DMax: Integer;      // D 数组的存储上限
+//    Neg: Integer;       // 1 为负，0 为正
+//    Flags: Integer;
+
+  Result := Format('Flag %d. Neg %d. DMax %d. Top %d.', [Num.Flags, Num.Neg, Num.DMax, Num.Top]);
+  if (Num.D <> nil) and (Num.Top > 0) then
+    for I := 0 to Num.Top do
+      Result := Result + Format(' $%8.8x', [PDWordArray(Num.D)^[I]]);
 end;
 
 { TCnBigNumber }
@@ -3729,6 +3898,11 @@ begin
   Result := BigNumberSetDec(Buf, Self);
 end;
 
+function TCnBigNumber.SetBinary(Buf: PAnsiChar; Len: Integer): Boolean;
+begin
+  Result := BigNumberSetBinary(Buf, Len, Self);
+end;
+
 function TCnBigNumber.SetHex(const Buf: AnsiString): Boolean;
 begin
   Result := BigNumberSetHex(Buf, Self);
@@ -3782,6 +3956,22 @@ end;
 function TCnBigNumber.WordExpand(Words: Integer): TCnBigNumber;
 begin
   Result := BigNumberWordExpand(Self, Words);
+end;
+
+
+function TCnBigNumber.GetDecString: string;
+begin
+  Result := ToDec;
+end;
+
+function TCnBigNumber.GetHexString: string;
+begin
+  Result := ToHex;
+end;
+
+function TCnBigNumber.GetDebugDump: string;
+begin
+  Result := BigNumberDebugDump(Self);
 end;
 
 procedure FreeBigNumberPool;

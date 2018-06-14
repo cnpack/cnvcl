@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -33,7 +33,9 @@ unit CnPrimeNumber;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2017.04.03 V1.3
+* 修改记录：2018.06.05 V1.4
+*               将 Int64 支持扩展至 UInt64 并扩展 AddMod、MultipleMode 等方法
+*           2017.04.03 V1.3
 *               将针对 Int64 的 RSA 基础加解密实现独立成 CnRSA 单元
 *           2017.02.16 V1.2
 *               加入针对 Int64 的 RSA 基础加解密实现
@@ -49,7 +51,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows;
+  SysUtils, Classes, Windows, CnNativeDecl;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -641,31 +643,41 @@ const
 function CnUInt32IsPrime(N: Cardinal): Boolean;
 {* 快速判断一 32 位无符号整数是否是素数}
 
-function CnInt64IsPrime(N: Int64): Boolean;
-{* 概率性判断一 64 位有符号整数是否是素数}
+function CnInt64IsPrime(N: TUInt64): Boolean;
+{* 概率性判断一 64 位无符号整数是否是素数}
 
-function MultipleMod(A, B, C: Int64): Int64;
+function AddMod(A, B, C: TUInt64): TUInt64;
+{* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
+
+function MultipleMod(A, B, C: TUInt64): TUInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
-function MontgomeryPowerMod(A, B, C: Int64): Int64;
+function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function CnGenerateInt32Prime: Integer;
-{* 生成一个随机的 32 位素数}
+function CnGenerateInt32Prime(HighBitSet: Boolean = False): Cardinal;
+{* 生成一个随机的 32 位素数，HighBitSet 指明最高位是否必须为 1}
 
-function CnGenerateInt64Prime: Int64;
-{* 生成一个随机的 64 位素数}
+function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
+{* 生成一个随机的 64 位素数，HighBitSet 指明最高位是否必须为 1}
+
+{$IFDEF SUPPORT_UINT64}
+
+function AddMod64(A, B, C: UInt64): UInt64;
+{* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
+
+function MultipleMod64(A, B, C: UInt64): UInt64;
+{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
+
+function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
+{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
+
+{$ENDIF}
 
 {$IFDEF WIN64}
 
 function CnUInt64IsPrime(N: NativeUInt): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
-
-function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
-{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
-
-function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
-{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
 function CnGenerateUInt64Prime: NativeUInt;
 {* 生成一个随机的 64 位无符号素数}
@@ -725,37 +737,77 @@ begin
   end;
 end;
 
+// 想办法计算 (A + B) mod C，不能直接算，容易溢出
+function AddMod(A, B, C: TUInt64): TUInt64;
+begin
+  if UInt64Compare(A, MAX_TUINT64 - B) > 0 then
+  begin
+    // 有溢出，另外想办法，溢出点为 2^64，设为 K，也就是 MAX_TUINT64（简称 M) + 1
+    // 再设 A + B = S，那么直接相加取模的结果其实是 (S - K) % C，而我们要求 S % C
+    // S % C = ((S - K) % C + K % C) % C = ((S - K) % C + M % C + 1) % C
+    Result := UInt64Mod(UInt64Mod(A + B, C) + UInt64Mod(MAX_TUINT64, C) + 1, C);
+  end
+  else
+  begin
+    Result := UInt64Mod(A + B, C); // 无溢出，直接加后取模
+  end;
+end;
+
 // 快速计算 (A * B) mod C，不能直接算，容易溢出
-function MultipleMod(A, B, C: Int64): Int64;
+function MultipleMod(A, B, C: TUInt64): TUInt64;
 begin
   Result := 0;
 
+{$IFDEF SUPPORT_UINT64}
   A := A mod C;
   B := B mod C;
+{$ELSE}
+  A := UInt64Mod(A, C);
+  B := UInt64Mod(B, C);
+{$ENDIF}
 
-  while B > 0 do
+  while B <> 0 do
   begin
     if B and 1 <> 0 then
     begin
-      Result := Result + A;
-      Result := Result mod C;
+      Result := AddMod(Result, A, C);
     end;
 
-    A := A shl 1;
-    if A >= C then
-      A := A mod C;
+    if A and $8000000000000000 <> 0 then
+    begin
+      // 最高位是 1，左移后必然溢出，且乘 2 后必然大于 C，所以 A 不乘 2，
+      // 而是求 (A + A) mod C
+      A := AddMod(A, A, C);
+    end
+    else
+    begin
+      // 放心左移
+      A := A shl 1;
+      if UInt64Compare(A, C) >= 0 then
+      begin
+{$IFDEF SUPPORT_UINT64}
+        A := A mod C;
+{$ELSE}
+        A := UInt64Mod(A, C);
+{$ENDIF}
+      end;
+    end;
 
     B := B shr 1;
   end;
 end;
 
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
-function MontgomeryPowerMod(A, B, C: Int64): Int64;
+function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 var
-  T: Int64;
+  T: TUInt64;
 begin
   T := 1;
+{$IFDEF SUPPORT_UINT64}
   A := A mod C;
+{$ELSE}
+  A := UInt64Mod(A, C);
+{$ENDIF}
 
   while B <> 1 do
   begin
@@ -767,10 +819,10 @@ begin
   Result := MultipleMod(A, T, C);
 end;
 
-function FermatCheckComposite(A, B, C, T: Int64): Boolean;
+function FermatCheckComposite(A, B, C, T: TUInt64): Boolean;
 var
   I: Integer;
-  R, L: Int64;
+  R, L: TUInt64;
 begin
   R := MontgomeryPowerMod(A, C, B);
   L := R;
@@ -788,16 +840,17 @@ begin
   Result := R <> 1;
 end;
 
-function CnInt64IsPrime(N: Int64): Boolean;
+function CnInt64IsPrime(N: TUInt64): Boolean;
 var
   I: Integer;
-  T, X, A: Int64;
+  R: Real;
+  T, X, A, RA: TUInt64;
 begin
   Result := False;
-  if N < 1 then
+  if UInt64Compare(N, 1) < 0 then
     Exit;
 
-  if N <= High(Cardinal) then
+  if UInt64Compare(N, High(Cardinal)) <= 0 then
   begin
     Result := CnUInt32IsPrime(Cardinal(N));
     Exit;
@@ -822,7 +875,18 @@ begin
   for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
   begin
     Randomize;
-    A := Trunc(Random * (N - 1)) + 1;
+    R := Random;
+
+    // A := Trunc(Random * (N - 1)) + 1; 但 N - 1作为 Int64 可能小于 0，要拆分
+    if UInt64Compare(N - 1, MAX_SIGNED_INT64_IN_TUINT64) <= 0 then // if N - 1 > 0 ?
+      A := Trunc(Random * (N - 1)) + 1
+    else
+    begin
+      // Int64(N - 1) < 0，拆成 MAX_SIGNED_INT64_IN_TUINT64 以及 N - MAX_SIGNED_INT64_IN_TUINT64 - 1
+      RA := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64);
+      RA := RA + Trunc(R * (N - MAX_SIGNED_INT64_IN_TUINT64 - 1));
+      A := RA + 1; // 大于 Int64 上限 Trunc 会出浮点错，改成分别 Trunc 后相加
+    end;
     if FermatCheckComposite(A, N, X, T) then
       Exit;
   end;
@@ -830,33 +894,61 @@ begin
 end;
 
 // 生成一个随机的 32 位素数
-function CnGenerateInt32Prime: Integer;
+function CnGenerateInt32Prime(HighBitSet: Boolean): Cardinal;
 begin
   Randomize;
-  Result := Trunc(Random * High(Integer) - 1) + 1;
+  Result := Trunc(Random * High(Cardinal) - 1) + 1;
+  if HighBitSet then
+    Result := Result or $80000000;
+
   while not CnUInt32IsPrime(Result) do
   begin
     Randomize;
-    Result := Trunc(Random * High(Integer) - 1) + 1;
+    Result := Trunc(Random * High(Cardinal) - 1) + 1;
+    if HighBitSet then
+      Result := Result or $80000000;
   end;
 end;
 
 // 生成一个随机的 64 位素数
-function CnGenerateInt64Prime: Int64;
+function CnGenerateInt64Prime(HighBitSet: Boolean): TUInt64;
 begin
   Randomize;
-  Result := Trunc(Random * High(Int64) - 1) + 1;
+  Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
+  Result := Result * 2 + 1;
+  // Result := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64 + R * MAX_SIGNED_INT64_IN_TUINT64 - 1) + 1;
+  if HighBitSet then
+    Result := Result or $8000000000000000;
   while not CnInt64IsPrime(Result) do
   begin
     Randomize;
-    Result := Trunc(Random * High(Int64) - 1) + 1;
+    Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
+    Result := Result * 2 + 1;
+    if HighBitSet then
+      Result := Result or $8000000000000000;
   end;
 end;
 
-{$IFDEF WIN64}
+{$IFDEF SUPPORT_UINT64}
+
+// 想办法计算 (A + B) mod C，不能直接算，容易溢出
+function AddMod64(A, B, C: UInt64): UInt64;
+begin
+  if A > MAX_TUINT64 - B then
+  begin
+    // 有溢出，另外想办法，溢出点为 2^64，设为 K，也就是 MAX_TUINT64（简称 M) + 1
+    // 再设 A + B = S，那么直接相加取模的结果其实是 (S - K) % C，而我们要求 S % C
+    // S % C = ((S - K) % C + K % C) % C = ((S - K) % C + M % C + 1) % C
+    Result := ((A + B) mod C + MAX_TUINT64 mod C + 1) mod C;
+  end
+  else
+  begin
+    Result := (A + B) mod C; // 无溢出，直接加后取模
+  end;
+end;
 
 // 快速计算 (A * B ) mod C，不能直接算，容易溢出
-function MultipleMod64(A, B, C: NativeUInt): NativeUInt;
+function MultipleMod64(A, B, C: UInt64): UInt64;
 begin
   Result := 0;
 
@@ -866,21 +958,28 @@ begin
   while B > 0 do
   begin
     if B and 1 <> 0 then
-    begin
-      Result := Result + A;
-      Result := Result mod C;
-    end;
+      Result := AddMod64(Result, A, C);
 
-    A := A shl 1;
-    if A >= C then
-      A := A mod C;
+    if A and $8000000000000000 <> 0 then
+    begin
+      // 最高位是 1，左移后必然溢出，且乘 2 后必然大于 C，所以 A 不乘 2，
+      // 而是求 (A + A) mod C
+      A := AddMod64(A, A, C);
+    end
+    else
+    begin
+      // 放心左移
+      A := A shl 1;
+      if A >= C then
+        A := A mod C;
+    end;
 
     B := B shr 1;
   end;
 end;
 
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
-function MontgomeryPowerMod64(A, B, C: NativeUInt): NativeUInt;
+function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 var
   T: NativeUInt;
 begin
@@ -891,11 +990,16 @@ begin
   begin
     if (B and 1) <> 0 then
       T := MultipleMod64(A, T, C);
+
     A := MultipleMod64(A, A, C);
     B := B shr 1;
   end;
   Result := MultipleMod64(A, T, C);
 end;
+
+{$ENDIF}
+
+{$IFDEF WIN64}
 
 function FermatCheckComposite64(A, B, C, T: NativeUInt): Boolean;
 var

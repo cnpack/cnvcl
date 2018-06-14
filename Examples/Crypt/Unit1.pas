@@ -125,6 +125,34 @@ type
     edtSHA384: TEdit;
     btnSHA384: TButton;
     btnSHA384File: TButton;
+    tsSHA3_224: TTabSheet;
+    grpSHA3_224: TGroupBox;
+    lblSHA3_224: TLabel;
+    edtSHA3_224: TEdit;
+    btnSHA3_224: TButton;
+    pnlSHA3_224: TPanel;
+    btnSHA3_224File: TButton;
+    tsSHA3_256: TTabSheet;
+    grpSHA3_256: TGroupBox;
+    lblSHA3_256: TLabel;
+    edtSHA3_256: TEdit;
+    btnSHA3_256: TButton;
+    pnlSHA3_256: TPanel;
+    btnFileSHA3_256: TButton;
+    tsSHA3_384: TTabSheet;
+    grpSHA3_384: TGroupBox;
+    lblSHA3_384: TLabel;
+    lblSHA3_384Result: TLabel;
+    edtSHA3_384: TEdit;
+    btnSHA3_384: TButton;
+    btnSHA3_384File: TButton;
+    tsSHA3_512: TTabSheet;
+    grpSHA3_512: TGroupBox;
+    lblSHA3_512: TLabel;
+    edtSHA3_512: TEdit;
+    btnSHA3_512: TButton;
+    btnSHA3_512File: TButton;
+    lblSHA3_512Result: TLabel;
     tsZUC: TTabSheet;
     grpZuc: TGroupBox;
     lblZuc1: TLabel;
@@ -147,6 +175,18 @@ type
     lblSHA512HmacKey: TLabel;
     edtSHA512HmacKey: TEdit;
     btnSHA512Hmac: TButton;
+    lblSHA3_224HmacKey: TLabel;
+    edtSHA3_224HmacKey: TEdit;
+    btnSHA3_224Hmac: TButton;
+    lblSHA3_256HmacKey: TLabel;
+    edtSHA3_256HmacKey: TEdit;
+    btnSHA3_256Hmac: TButton;
+    lblSHA3_384HmacKey: TLabel;
+    edtSHA3_384HmacKey: TEdit;
+    btnSHA3_384Hmac: TButton;
+    lblSHA3_512HmacKey: TLabel;
+    edtSHA3_512HmacKey: TEdit;
+    btnSHA3_512Hmac: TButton;
     edtSHA1HMacKey: TEdit;
     btnSHA1Hmac: TButton;
     lblSHA1HmacKey: TLabel;
@@ -156,6 +196,23 @@ type
     lblSM3HmacKey: TLabel;
     edtSM3HMacKey: TEdit;
     btnSM3Hmac: TButton;
+    lblCRC32HmacKey: TLabel;
+    edtCRC32HmacKey: TEdit;
+    btnCRC32Hmac: TButton;
+    btnCRC64Hmac: TButton;
+    edtCRC64HmacKey: TEdit;
+    lblCRC64HmacKey: TLabel;
+    btnUMd5: TButton;
+    btnUSHA1: TButton;
+    btnUSM3: TButton;
+    btnUSHA224: TButton;
+    btnUSHA256: TButton;
+    btnUSHA384: TButton;
+    btnUSHA512: TButton;
+    btnUSHA3_224: TButton;
+    btnUSHA3_256: TButton;
+    btnUSHA3_384: TButton;
+    btnUSHA3_512: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -198,6 +255,31 @@ type
     procedure btnSHA1HmacClick(Sender: TObject);
     procedure btnMD5HmacClick(Sender: TObject);
     procedure btnSM3HmacClick(Sender: TObject);
+    procedure btnCRC32HmacClick(Sender: TObject);
+    procedure btnCRC64HmacClick(Sender: TObject);
+    procedure btnSHA3_256Click(Sender: TObject);
+    procedure btnFileSHA3_256Click(Sender: TObject);
+    procedure btnSHA3_224Click(Sender: TObject);
+    procedure btnSHA3_224FileClick(Sender: TObject);
+    procedure btnSHA3_512Click(Sender: TObject);
+    procedure btnSHA3_512FileClick(Sender: TObject);
+    procedure btnSHA3_384Click(Sender: TObject);
+    procedure btnSHA3_384FileClick(Sender: TObject);
+    procedure btnSHA3_256HmacClick(Sender: TObject);
+    procedure btnSHA3_224HmacClick(Sender: TObject);
+    procedure btnSHA3_384HmacClick(Sender: TObject);
+    procedure btnSHA3_512HmacClick(Sender: TObject);
+    procedure btnUMd5Click(Sender: TObject);
+    procedure btnUSHA1Click(Sender: TObject);
+    procedure btnUSM3Click(Sender: TObject);
+    procedure btnUSHA224Click(Sender: TObject);
+    procedure btnUSHA256Click(Sender: TObject);
+    procedure btnUSHA384Click(Sender: TObject);
+    procedure btnUSHA512Click(Sender: TObject);
+    procedure btnUSHA3_224Click(Sender: TObject);
+    procedure btnUSHA3_256Click(Sender: TObject);
+    procedure btnUSHA3_384Click(Sender: TObject);
+    procedure btnUSHA3_512Click(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -212,14 +294,15 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC;
+  CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
+  CnSHA3;
 
 {$R *.DFM}
 
 procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
-  pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtFrom.Text));
+  pnlMd5.Caption := MD5Print(MD5StringA(AnsiString(edtMD5.Text)));
 {$ELSE}
   pnlMd5.Caption := MD5Print(MD5String(edtMD5.Text));
 {$ENDIF}
@@ -322,8 +405,7 @@ var
   S: string;
 begin
 {$IFDEF UNICODE}
-  S := SM3Print(SM3(PAnsiChar(AnsiString(edtSm3.Text)),
-    Length(AnsiString(edtSm3.Text))));
+  S := SM3Print(SM3StringA(AnsiString(edtSm3.Text)));
 {$ELSE}
   S := SM3Print(SM3String(edtSm3.Text));
 {$ENDIF}
@@ -617,7 +699,7 @@ begin
   begin
     S := SHA384Print(SHA384File(OpenDialog1.FileName));
     Insert(#13#10, S, 49);
-    lblSHA512Result.Caption := S;
+    lblSHA384Result.Caption := S;
   end;
 end;
 
@@ -881,6 +963,231 @@ begin
   S := AnsiString(edtSM3.Text);
   SM3Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
   lblSm3Result.Caption := SM3Print(Output);
+end;
+
+procedure TFormCrypt.btnCRC32HmacClick(Sender: TObject);
+var
+  Output: DWORD;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtCRC32HmacKey.Text);
+  S := AnsiString(edtCRC32.Text);
+  Output := CRC32Hmac(@Key[1], Length(Key), @S[1], Length(S));
+  pnlCRC32.Caption := IntToHex(Output, 2);
+end;
+
+procedure TFormCrypt.btnCRC64HmacClick(Sender: TObject);
+var
+  Output: Int64;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtCRC64HmacKey.Text);
+  S := AnsiString(edtCRC64.Text);
+  Output := CRC64Hmac(@Key[1], Length(Key), @S[1], Length(S));
+  pnlCRC64.Caption := IntToHex(Output, 2);
+end;
+
+procedure TFormCrypt.btnFileSHA3_256Click(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlSha3_256.Caption := SHA3_256Print(SHA3_256File(OpenDialog1.FileName));
+end;
+
+procedure TFormCrypt.btnSHA3_224Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224StringA(AnsiString(edtSha3_224.Text)));
+{$ELSE}
+  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224String(edtSha3_224.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnSHA3_224FileClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlSha3_224.Caption := SHA3_224Print(SHA3_224File(OpenDialog1.FileName));
+end;
+
+procedure TFormCrypt.btnSHA3_224HmacClick(Sender: TObject);
+var
+  Output: TSHA3_224Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtSHA3_224HmacKey.Text);
+  S := AnsiString(edtSHA3_224.Text);
+  SHA3_224Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlSHA3_224.Caption := SHA3_224Print(Output);
+end;
+
+procedure TFormCrypt.btnSHA3_256Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256StringA(AnsiString(edtSha3_256.Text)));
+{$ELSE}
+  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256String(edtSha3_256.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnSHA3_256HmacClick(Sender: TObject);
+var
+  Output: TSHA3_256Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtSHA3_256HmacKey.Text);
+  S := AnsiString(edtSHA3_256.Text);
+  SHA3_256Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlSHA3_256.Caption := SHA3_256Print(Output);
+end;
+
+procedure TFormCrypt.btnSHA3_384Click(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  S := SHA3_384Print(SHA3_384StringA(AnsiString(edtSha3_384.Text)));
+{$ELSE}
+  S := SHA3_384Print(SHA3_384String(edtSha3_384.Text));
+{$ENDIF}
+  Insert(#13#10, S, 49);
+  lblSHA3_384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnSHA3_384FileClick(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := SHA3_384Print(SHA3_384File(OpenDialog1.FileName));
+    Insert(#13#10, S, 49);
+    lblSHA3_384Result.Caption := S;
+  end;
+end;
+
+procedure TFormCrypt.btnSHA3_384HmacClick(Sender: TObject);
+var
+  Output: TSHA3_384Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtSHA3_384HmacKey.Text);
+  S := AnsiString(edtSHA3_384.Text);
+  SHA3_384Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  S := SHA3_384Print(Output);
+  Insert(#13#10, S, 49);
+  lblSHA3_384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnSHA3_512Click(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  S := SHA3_512Print(SHA3_512StringA(AnsiString(edtSha3_512.Text)));
+{$ELSE}
+  S := SHA3_512Print(SHA3_512String(edtSha3_512.Text));
+{$ENDIF}
+  Insert(#13#10, S, 65);
+  lblSHA3_512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnSHA3_512FileClick(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := SHA3_512Print(SHA3_512File(OpenDialog1.FileName));
+    Insert(#13#10, S, 65);
+    lblSHA3_512Result.Caption := S;
+  end;
+end;
+
+procedure TFormCrypt.btnSHA3_512HmacClick(Sender: TObject);
+var
+  Output: TSHA3_512Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtSHA3_512HmacKey.Text);
+  S := AnsiString(edtSHA3_512.Text);
+  SHA3_512Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  S := SHA3_512Print(Output);
+  Insert(#13#10, S, 65);
+  lblSHA3_512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUMd5Click(Sender: TObject);
+begin
+  pnlMd5.Caption := MD5Print(MD5UnicodeString(edtMD5.Text));
+end;
+
+procedure TFormCrypt.btnUSHA1Click(Sender: TObject);
+begin
+  pnlSha1.Caption := SHA1Print(SHA1UnicodeString(edtSha1.Text));
+end;
+
+procedure TFormCrypt.btnUSM3Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := SM3Print(SM3UnicodeString(edtSm3.Text));
+  Insert(#13#10, S, 33);
+  lblSm3Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUSHA224Click(Sender: TObject);
+begin
+  pnlSha224.Caption := SHA224Print(SHA224UnicodeString(edtSha224.Text));
+end;
+
+procedure TFormCrypt.btnUSHA256Click(Sender: TObject);
+begin
+  pnlSha256.Caption := SHA256Print(SHA256UnicodeString(edtSha256.Text));
+end;
+
+procedure TFormCrypt.btnUSHA384Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := SHA384Print(SHA384UnicodeString(edtSha384.Text));
+  Insert(#13#10, S, 49);
+  lblSHA384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUSHA512Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := SHA512Print(SHA512UnicodeString(edtSha512.Text));
+  Insert(#13#10, S, 65);
+  lblSHA512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUSHA3_224Click(Sender: TObject);
+begin
+  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224UnicodeString(edtSha3_224.Text));
+end;
+
+procedure TFormCrypt.btnUSHA3_256Click(Sender: TObject);
+begin
+  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256UnicodeString(edtSha3_256.Text));
+end;
+
+procedure TFormCrypt.btnUSHA3_384Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := SHA3_384Print(SHA3_384UnicodeString(edtSha3_384.Text));
+  Insert(#13#10, S, 49);
+  lblSHA3_384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUSHA3_512Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := SHA3_512Print(SHA3_512UnicodeString(edtSha3_512.Text));
+  Insert(#13#10, S, 65);
+  lblSHA3_512Result.Caption := S;
 end;
 
 end.

@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -42,6 +42,14 @@ uses
   ImgList, Menus;
 
 type
+  ITest = interface
+    procedure Test(A: Integer);
+  end;
+
+  TTest = class(TInterfacedObject, ITest)
+    procedure Test(A: Integer);
+  end;
+
   TFormSend = class(TForm)
     Button1: TButton;
     cbbLevel: TComboBox;
@@ -104,6 +112,10 @@ type
     btnEvaluateBmp: TButton;
     btnSet: TButton;
     btnSize: TButton;
+    btnAnsiCharSet: TButton;
+    btnWideCharSet: TButton;
+    btnWatchClear: TButton;
+    btnEvaluateScreen: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -144,10 +156,16 @@ type
     procedure btnEvaluateBmpClick(Sender: TObject);
     procedure btnSetClick(Sender: TObject);
     procedure btnSizeClick(Sender: TObject);
+    procedure btnAnsiCharSetClick(Sender: TObject);
+    procedure btnWideCharSetClick(Sender: TObject);
+    procedure btnWatchClearClick(Sender: TObject);
+    procedure btnEvaluateScreenClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
     FThread: TSendThread;
+    FOldWndProc: TWndMethod;
+    procedure NewWindowProc(var AMsg: TMessage);
   public
     { Public declarations }
   end;
@@ -209,6 +227,9 @@ begin
   cbbType.ItemIndex := 0;
   CnDebugger.UseAppend := True;
   Icon := Application.Icon;
+
+  FOldWndProc := WindowProc;
+  WindowProc := NewWindowProc;
 end;
 
 procedure TFormSend.btnEnterClick(Sender: TObject);
@@ -343,6 +364,7 @@ begin
     FThread.Terminate;
     FThread.WaitFor;
     FThread := nil;
+    CnDebugger.WatchClear('Count');
     btnThread.Caption := '线程内发送';
   end;  
 end;
@@ -474,11 +496,16 @@ begin
 end;
 
 procedure TFormSend.btnInterfaceClick(Sender: TObject);
+var
+//  P: Pointer;
+  IT: ITest;
 begin
+  IT := TTest.Create;
   if rgMethod.ItemIndex = 1 then
-    CnDebugger.TraceInterface(TInterfacedObject.Create)
+    CnDebugger.TraceInterface(IT)
   else
-    CnDebugger.LogInterface(TInterfacedObject.Create);
+    CnDebugger.LogInterface(IT);
+//  P := @IT.Test;  // Syntax Error
 end;
 
 procedure TFormSend.btnAddrClick(Sender: TObject);
@@ -509,6 +536,11 @@ end;
 procedure TFormSend.btnEvaluateMenuClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(pm1);
+end;
+
+procedure TFormSend.btnEvaluateScreenClick(Sender: TObject);
+begin
+  CnDebugger.EvaluateObject(Screen);
 end;
 
 procedure TFormSend.btnEvaluateBmpClick(Sender: TObject);
@@ -544,6 +576,52 @@ begin
     CnDebugger.TraceSize(Size)
   else
     CnDebugger.LogSize(Size);
+end;
+
+procedure TFormSend.btnAnsiCharSetClick(Sender: TObject);
+var
+  CS: TCnAnsiCharSet;
+begin
+  CS := ['A'..'Z'];
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceAnsiCharSet(CS)
+  else
+    CnDebugger.LogAnsiCharSet(CS);
+end;
+
+procedure TFormSend.btnWideCharSetClick(Sender: TObject);
+{$IFDEF UNICODE}
+var
+  CS: TCnWideCharSet;
+{$ENDIF}
+begin
+{$IFDEF UNICODE}
+  CS := ['吃','饭'];
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceWideCharSet(CS)
+  else
+    CnDebugger.LogWideCharSet(CS);
+{$ELSE}
+  ShowMessage('Unicode Currently NOT Supported.');
+{$ENDIF}
+end;
+
+procedure TFormSend.btnWatchClearClick(Sender: TObject);
+begin
+  CnDebugger.WatchClear('Count');
+end;
+
+{ TTest }
+
+procedure TTest.Test(A: Integer);
+begin
+
+end;
+
+procedure TFormSend.NewWindowProc(var AMsg: TMessage);
+begin
+  CnDebugger.LogWindowMessage(AMsg.Msg);
+  FOldWndProc(AMsg);
 end;
 
 end.

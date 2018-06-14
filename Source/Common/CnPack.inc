@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2017 CnPack 开发组                       }
+{                   (C)Copyright 2001-2018 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -2482,7 +2482,7 @@
   {$DEFINE SUPPORT_INLINE}
   {$DEFINE SUPPORT_UINT64}
   {$DEFINE IDE_WIDECONTROL}
-  {$DEFINE IDE_EDITOR_SUPPORT_FOLDING} // 2005 以上的编辑器支持区域折叠
+  {$DEFINE IDE_EDITOR_SUPPORT_FOLDING}  // 2005 以上的编辑器支持区域折叠
   {$DEFINE OTA_NEW_BREAKPOINT_NOBUG}    // 2005 以上的 NewBreakpoint 才能工作
   {$DEFINE IDE_ACTION_UPDATE_DELAY}     // IDE's Action Menu Update will Delay in 2005 or Up.
   {$DEFINE SUPPORT_WIDECHAR_IDENTIFIER}
@@ -2493,8 +2493,19 @@
   {$ENDIF}
 {$ENDIF}
 
+{$IFDEF DELPHI102_TOKYO_UP}
+  {$DEFINE IDE_SUPPORT_THEMING}         // Tokyo 10.2.2 或以上支持 IDE 主题切换
+{$ENDIF}
+
+{$IFDEF DELPHIXE4_UP}
+  {$IFNDEF DISABLE_FMX}
+    {$DEFINE SUPPORT_FMX_FRAME}         // XE4 FMX Supports FMX Frame
+  {$ENDIF}
+{$ENDIF}
+
 {$IFDEF DELPHIXE2_UP}
   {$DEFINE SUPPORT_UNITNAME_DOT}
+  {$DEFINE SUPPORT_ENHANCED_INDEXEDPROPERTY}   // XE2 New RTTI Supports IndexedProperty
 {$ENDIF}
 
 {$IFDEF DELPHIXE_UP}
@@ -2515,7 +2526,7 @@
 
 {$IFDEF BDS2010_UP}
   {$DEFINE SUPPORT_INTERFACE_AS_OBJECT}
-  {$DEFINE SUPPORT_ENHANCED_RTTI}         // New enhanced RTTI.
+  {$DEFINE SUPPORT_ENHANCED_RTTI}          // New enhanced RTTI.
   {$DEFINE IDE_HAS_NEW_COMPONENT_PALETTE}  // IDE has a new style Component Palette.
 {$ENDIF}
 
@@ -2536,11 +2547,22 @@
   // Set an Option Value to DPK Project Options maybe cause DPK Source Corrupt.
 {$ENDIF}
 
+{$IFDEF COMPILER12}
+  // RAD Studio 2009 下 CreateParams 中可能导致死循环
+  {$DEFINE CREATE_PARAMS_BUG}
+{$ENDIF}
+
 {$IFDEF BDS2007_UP}
   {$DEFINE IDE_CONF_MANAGER}
 {$ENDIF}
 
+{$IFDEF BDS2007}
+  // RAD Studio 2007 下开启 AutoComplete 会导致输入中文后退格乱码
+  {$DEFINE COMBOBOX_CHS_BUG}
+{$ENDIF}
+
 {$IFDEF BDS2006_UP}
+  {$DEFINE TCONTROL_HAS_EXPLICIT_BOUNDS} // 2006 and above TControl has Explicit Bounds
   {$DEFINE IDE_HAS_GUIDE_LINE}    // 2006 and above has Designer Guide Line
   {$DEFINE IDE_SYNC_EDIT_BLOCK}   // 2006 and above Editor Supports Sync Block Edit
   {$DEFINE OTA_CODE_TEMPLATE_API} // 2006 and above Provides CodeTemplateAPI.
