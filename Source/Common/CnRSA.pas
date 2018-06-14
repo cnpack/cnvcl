@@ -28,7 +28,15 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.05 V1.4
+* 修改记录：2018.06.14 V1.5
+*               支持文件加解密，类似于 Openssl 中的用法，如：
+*               openssl rsautl -encrypt -in hello -inkey rsa_pub.pem -pubin -out hello.en.pub.openssl
+*               openssl rsautl -encrypt -in hello -inkey rsa.pem -out hello.en.pub.openssl
+*               用公钥加密，等同于方法：CnRSAEncryptFile 并传入 PublicKey
+*               openssl rsautl -decrypt -in hello.en.pub.openssl -inkey rsa.pem -out hello.de.priv.openssl
+*               用私钥解密，等同于方法：CnRSADecryptFile 并传入 PrivateKey
+*               注意 Openssl 提倡公钥加密私钥解密，但我们也实现了私钥加密公钥解密
+*           2018.06.05 V1.4
 *               将 Int64 支持扩展至 UInt64
 *           2018.06.02 V1.4
 *               能够将公私钥保存成兼容 Openssl 的未加密的公私钥 PEM 格式文件
@@ -175,16 +183,16 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Data: TCnBigNumber): Boolean;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
-// RSA 数据加解密实现
+// RSA 数据与文件加解密实现
 
 function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对数据块进行加密，使用 PKCS1 填充，结果放 OutBuf 中，
+{* 用公钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
 function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对数据块进行加密，使用 PKCS1 填充，结果放 OutBuf 中，
+{* 用私钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
 function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
@@ -194,24 +202,24 @@ function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
 
 function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回数据长度
+{* 用私钥对数据块进行解密，并解开其 PKCS1 填充，结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
 function CnRSAEncryptFile(const InFileName, OutFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对文件进行加密，使用 PKCS1 填充，结果存输出文件中}
+{* 用公钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中}
 
 function CnRSAEncryptFile(const InFileName, OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对文件进行加密，使用 PKCS1 填充，结果存输出文件中}
+{* 用私钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中}
 
 function CnRSADecryptFile(const InFileName, OutFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对文件进行解密，解除 PKCS1 填充，结果存输出文件中}
+{* 用公钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中}
 
 function CnRSADecryptFile(const InFileName, OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对文件进行解密，解除 PKCS1 填充，结果存输出文件中}
+{* 用私钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中}
 
 implementation
 
@@ -1162,8 +1170,6 @@ begin
         B := 0;
         for I := 1 to F do
           outStream.Write(B, 1);
-        outStream.Write(B, 1);
-        Result := True;
       end;
     CN_PKCS1_BLOCK_TYPE_PRIVATE_FF:
       begin
@@ -1171,9 +1177,6 @@ begin
         B := $FF;
         for I := 1 to F do
           outStream.Write(B, 1);
-        B := 0;
-        outStream.Write(B, 1);
-        Result := True;
       end;
     CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
       begin
@@ -1186,11 +1189,15 @@ begin
             Inc(B);
           outStream.Write(B, 1);
         end;
-        B := 0;
-        outStream.Write(B, 1);
-        Result := True;
       end;
+  else
+    Exit;
   end;
+
+  B := 0;
+  outStream.Write(B, 1);
+  outStream.Write(Data^, DataLen);
+  Result := True;
 end;
 
 // 将一片内存区域按指定的 Padding 方式填充后进行 RSA 加解密计算
@@ -1293,44 +1300,48 @@ function PKCS1RemovePadding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer
   out OutLen: Integer): Boolean;
 var
   P: PAnsiChar;
-  I, Start: Integer;
+  I, J, Start: Integer;
 begin
   Result := False;
   OutLen := 0;
+  I := 0;
 
   P := PAnsiChar(InData);
-  if P[0] <> #0 then // 首字符 #0
+  while P[I] = #0 do // 首字符不一定是 #0，可能已经被去掉了
+    Inc(I);
+
+  if I >= InDataLen then
     Exit;
 
   Start := 0;
-  case Ord(P[1]) of
+  case Ord(P[I]) of
     CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
       begin
-        // 从 P[2] 开始寻找非 00 便是
-        I := 2;
-        while I < InDataLen do
+        // 从 P[I + 1] 开始寻找非 00 便是
+        J := I + 1;
+        while J < InDataLen do
         begin
-          if P[I] <> #0 then
+          if P[J] <> #0 then
           begin
-            Start := I;
+            Start := J;
             Break;
           end;
-          Inc(I);
+          Inc(J);
         end;
       end;
     CN_PKCS1_BLOCK_TYPE_PRIVATE_FF,
     CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
       begin
-        // 从 P[2] 开始寻找到第一个 00 后的便是
-        I := 2;
-        while I < InDataLen do
+        // 从 P[I + 1] 开始寻找到第一个 00 后的便是
+        J := I + 1;
+        while J < InDataLen do
         begin
-          if P[I] = #0 then
+          if P[J] = #0 then
           begin
-            Start := I;
+            Start := J;
             Break;
           end;
-          Inc(I);
+          Inc(J);
         end;
 
         if Start <> 0 then
@@ -1340,7 +1351,7 @@ begin
 
   if Start > 0 then
   begin
-    CopyMemory(@P[Start], OutBuf, InDataLen - Start);
+    CopyMemory(OutBuf, @P[Start], InDataLen - Start);
     OutLen := InDataLen - Start;
     Result := True;
   end;
@@ -1371,6 +1382,7 @@ begin
   finally
     Stream.Free;
     Res.Free;
+    Data.Free;
   end;
 end;
 

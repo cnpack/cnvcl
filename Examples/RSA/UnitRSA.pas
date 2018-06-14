@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, ImgList;
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, ImgList,
+  Buttons;
 
 type
   TFormRSA = class(TForm)
@@ -122,10 +123,10 @@ type
     edtFile2: TEdit;
     btnBrowse1: TButton;
     btnBrowse2: TButton;
-    btnPrivCrypt: TButton;
+    btnPrivCrypt: TBitBtn;
     btnPubCrypt: TButton;
     btnDePrivate: TButton;
-    btnDePub: TButton;
+    btnDePub: TBitBtn;
     dlgOpenFile: TOpenDialog;
     dlgSaveFile: TSaveDialog;
     procedure btnGenerateRSAClick(Sender: TObject);
@@ -561,7 +562,11 @@ begin
   if dlgSaveFile.Execute then
   begin
     if CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPrivateKey) then
+    begin
       ShowMessage('RSA Private Key Encrypt File Success.');
+      if Trim(edtFile2.Text) = '' then
+        edtFile2.Text := dlgSaveFile.FileName;
+    end;
   end;
 end;
 
@@ -570,7 +575,11 @@ begin
   if dlgSaveFile.Execute then
   begin
     if CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey) then
+    begin
       ShowMessage('RSA Public Key Encrypt File Success.');
+      if Trim(edtFile2.Text) = '' then
+        edtFile2.Text := dlgSaveFile.FileName;
+    end;
   end;
 end;
 

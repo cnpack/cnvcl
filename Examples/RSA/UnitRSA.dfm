@@ -668,12 +668,18 @@ object FormRSA: TFormRSA
             TabOrder = 3
             OnClick = btnBrowse2Click
           end
-          object btnPrivCrypt: TButton
+          object btnPrivCrypt: TBitBtn
             Left = 88
             Top = 36
             Width = 137
             Height = 21
             Caption = 'Crypt Using Private Key'
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clGray
+            Font.Height = -11
+            Font.Name = 'MS Sans Serif'
+            Font.Style = []
+            ParentFont = False
             TabOrder = 4
             OnClick = btnPrivCryptClick
           end
@@ -695,12 +701,18 @@ object FormRSA: TFormRSA
             TabOrder = 6
             OnClick = btnDePrivateClick
           end
-          object btnDePub: TButton
+          object btnDePub: TBitBtn
             Left = 248
             Top = 94
             Width = 137
             Height = 21
             Caption = 'Decrypt Using Public Key'
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clGray
+            Font.Height = -11
+            Font.Name = 'MS Sans Serif'
+            Font.Style = []
+            ParentFont = False
             TabOrder = 7
             OnClick = btnDePubClick
           end
@@ -995,7 +1007,7 @@ object FormRSA: TFormRSA
     Left = 228
     Top = 152
     Bitmap = {
-      494C010102000500040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010102000500040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1263,7 +1275,8 @@ object FormRSA: TFormRSA
       002DC00100000000002DC001000000000021C00100000000FFFFC00100000000
       0021C00100000000002DC00100000000002DC001000000000021C00100000000
       FFFFC001000000000021C00100000000002DC00100000000002DC00300000000
-      0021C00700000000FFFFC00F00000000}
+      0021C00700000000FFFFC00F0000000000000000000000000000000000000000
+      000000000000}
   end
   object dlgOpenFile: TOpenDialog
     Left = 632
