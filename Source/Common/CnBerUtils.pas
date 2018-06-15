@@ -105,6 +105,7 @@ type
     procedure SetItems(Index: Integer; const Value: TCnBerReadNode);
 
     function InternalAsInt(ByteSize: Integer): Integer;
+    function GetBerDataAddress: Pointer;
   public
     procedure CopyDataTo(DestBuf: Pointer);
     {* 将数据复制至缓冲区，缓冲区尺寸至少需要 BerDataLength 大}
@@ -130,6 +131,8 @@ type
     {* 节点数据长度}
     property BerDataOffset: Integer read FBerDataOffset write FBerDataOffset;
     {* 该节点对应的数据内容在整体中的偏移}
+    property BerDataAddress: Pointer read GetBerDataAddress;
+    {* 该节点对应的数据的起始地址，等于 FOriginData + FBerDataOffset}
   end;
 
   TCnBerReader = class
@@ -512,6 +515,14 @@ end;
 procedure TCnBerReadNode.SetItems(Index: Integer; const Value: TCnBerReadNode);
 begin
   inherited SetItems(Index, Value);
+end;
+
+function TCnBerReadNode.GetBerDataAddress: Pointer;
+begin
+  if FOriginData = nil then
+    Result := nil
+  else
+    Result := Pointer(Integer(FOriginData) + FBerDataOffset);
 end;
 
 { TCnBerWriter }
