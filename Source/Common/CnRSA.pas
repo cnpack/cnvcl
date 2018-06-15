@@ -28,13 +28,25 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.14 V1.5
+* 修改记录：2018.06.15 V1.5
+*               支持文件签名与验证，类似于 Openssl 中的用法，有原始签名与散列签名两类：
+*               openssl rsautl -sign -in hello -inkey rsa.pem -out hello.default.sign.openssl
+*               // 私钥原始签名，直接把文件内容补齐后用私钥加密并存储，等同于加密，对应 CnRSASignFile 指定 sdtNone
+*               openssl dgst -md5 -sign rsa.pem -out hello.md5.sign.openssl hello
+*               openssl dgst -sha1 -sign rsa.pem -out hello.sha1.sign.openssl hello
+*               openssl dgst -sha256 -sign rsa.pem -out hello.sha256.sign.openssl hello
+*               // 私钥散列签名，可指定散列算法，默认 md5。对应 CnRSASignFile 并指定散列算法。
+*               // 原始文件散列值经过 BER 编码再 PKCS1 补齐后私钥加密并存储成签名文件
+*               openssl dgst -verify rsa_pub.pem -signature hello.sign.openssl hello
+*               // 公钥散列验证原始文件与签名文件，散列算法类型在签名文件中。
+*               // 对应 CnRSAVerify，公钥解开签名文件后去除 PKCS1 对齐再解开 BER 编码并比对散列值
+*           2018.06.14 V1.5
 *               支持文件加解密，类似于 Openssl 中的用法，如：
 *               openssl rsautl -encrypt -in hello -inkey rsa_pub.pem -pubin -out hello.en.pub.openssl
 *               openssl rsautl -encrypt -in hello -inkey rsa.pem -out hello.en.pub.openssl
-*               用公钥加密，等同于方法：CnRSAEncryptFile 并传入 PublicKey
+*               // 用公钥加密，等同于方法 CnRSAEncryptFile 并传入 PublicKey
 *               openssl rsautl -decrypt -in hello.en.pub.openssl -inkey rsa.pem -out hello.de.priv.openssl
-*               用私钥解密，等同于方法：CnRSADecryptFile 并传入 PrivateKey
+*               // 用私钥解密，等同于方法 CnRSADecryptFile 并传入 PrivateKey
 *               注意 Openssl 提倡公钥加密私钥解密，但我们也实现了私钥加密公钥解密
 *           2018.06.05 V1.4
 *               将 Int64 支持扩展至 UInt64
@@ -65,7 +77,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils,
-  CnNativeDecl;
+  CnNativeDecl, CnMD5, CnSHA1, CnSHA2, cndebug;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
@@ -76,6 +88,9 @@ const
   CN_RSA_PKCS1_PADDING_SIZE            = 11;
 
 type
+  TCnRSASignDigestType = (sdtNone, sdtMD5, sdtSHA1, sdtSHA256);
+  {* RSA 签名所支持的数字摘要算法，可无摘要}
+
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
   {* RSA 密钥文件格式}
 
@@ -221,6 +236,21 @@ function CnRSADecryptFile(const InFileName, OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中}
 
+// RSA 文件签名与验证实现
+
+function CnRSASignFile(const InFileName, OutSignFileName: string;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+{* 用私钥签名指定文件。
+   未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
+   当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到散列值，
+   原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+
+function CnRSAVerifyFile(const InFileName, InSignFileName: string;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean; overload;
+{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
+   并比对两个二进制散列值是否相同，返回验证是否通过}
+
 implementation
 
 const
@@ -238,10 +268,22 @@ const
   PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';            // 已解析
   PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
 
-  // OID 预先写死，不动态计算编码了
+  // 以下 OID 都预先写死，不动态计算编码了
   OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
   );  // $2A = 40 * 1 + 2
+
+  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
+    $2A, $86, $48, $86, $F7, $0D, $02, $05
+  );
+
+  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
+    $2B, $0E, $03, $02, $1A
+  );
+
+  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
+    $60, $86, $48, $01, $65, $03, $04, $02, $01
+  );
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function Int64RSACrypt(Data: TUInt64; Product: TUInt64; Exponent: TUInt64;
@@ -1062,7 +1104,7 @@ end;
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function RSACrypt(Data: TCnBigNumber; Product: TCnBigNumber; Exponent: TCnBigNumber;
-  out Res: TCnBigNumber): Boolean;
+  Res: TCnBigNumber): Boolean;
 begin
   Result := BigNumberMontgomeryPowerMod(Res, Data, Exponent, Product);
 end;
@@ -1459,6 +1501,242 @@ begin
   finally
     Stream.Free;
     SetLength(Res, 0);
+  end;
+end;
+
+// RSA 文件签名与验证实现
+
+// 根据指定数字摘要算法计算其二进制散列值并写入 Stream
+function CalcDigestFile(const FileName: string; SignType: TCnRSASignDigestType;
+  outStream: TStream): Boolean;
+var
+  Md5: TMD5Digest;
+  Sha1: TSHA1Digest;
+  Sha256: TSHA256Digest;
+begin
+  Result := False;
+  case SignType of
+    sdtMD5:
+      begin
+        Md5 := MD5File(FileName);
+        outStream.Write(Md5, SizeOf(TMD5Digest));
+        Result := True;
+      end;
+    sdtSHA1:
+      begin
+        Sha1 := SHA1File(FileName);
+        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        Result := True;
+      end;
+    sdtSHA256:
+      begin
+        Sha256 := SHA256File(FileName);
+        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        Result := True;
+      end;
+  end;
+end;
+
+{
+  通过数字摘要算法算出二进制摘要后，还要进行 BER 编码再 PKCS1 Padding
+  BER 编码的格式如下：
+  DigestInfo ::= SEQUENCE )
+    digestAlgorithm DigestAlgorithmIdentifier,
+    digest Digest )
+
+  DigestAlgorithmIdentifier ::= AlgorithmIdentifier
+  Digest ::= OCTET STRING
+
+  也就是：
+  SEQUENCE
+    SEQUENCE
+      OBJECT IDENTIFIER
+      NULL
+    OCTET STRING
+}
+function CnRSASignFile(const InFileName, OutSignFileName: string;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType): Boolean;
+var
+  Stream, BerStream, EnStream: TMemoryStream;
+  Data, Res: TCnBigNumber;
+  ResBuf: array of Byte;
+  Writer: TCnBerWriter;
+  Root, Node: TCnBerWriteNode;
+
+  function WriterAddOIDNode(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
+    AParent: TCnBerWriteNode): TCnBerWriteNode;
+  begin
+    Result := nil;
+    case ASignType of
+      sdtMD5:
+        Result := Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_MD5[0],
+          SizeOf(OID_SIGN_MD5), AParent);
+      sdtSHA1:
+        Result := Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
+          SizeOf(OID_SIGN_SHA1), AParent);
+      sdtSHA256:
+        Result := Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
+          SizeOf(OID_SIGN_SHA256), AParent);
+    end;
+  end;
+
+begin
+  Result := False;
+  Stream := nil;
+  EnStream := nil;
+  BerStream := nil;
+  Writer := nil;
+  Data := nil;
+  Res := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    EnStream := TMemoryStream.Create;
+
+    if SignType = sdtNone then
+    begin
+      // 无数字摘要，直接整内容对齐
+      Stream.LoadFromFile(InFileName);
+      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        Stream.Memory, Stream.Size, EnStream) then
+        Exit;
+    end
+    else // 有数字摘要
+    begin
+      if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+        Exit;
+
+      BerStream := TMemoryStream.Create;
+      Writer := TCnBerWriter.Create;
+
+      // 然后按格式进行 BER 编码
+      Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+      WriterAddOIDNode(Writer, SignType, Node);
+      Writer.AddNullNode(Node);
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Stream.Memory, Stream.Size, Root);
+      Writer.SaveToStream(BerStream);
+
+      // 再把 BER 编码后的内容 PKCS1 填充对齐
+      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        BerStream.Memory, BerStream.Size, EnStream) then
+        Exit;
+    end;
+
+    // 私钥加密运算
+    Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
+    Res := TCnBigNumber.Create;
+
+    if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
+    begin
+      SetLength(ResBuf, Res.GetBytesCount);
+      Res.ToBinary(@ResBuf[0]);
+
+      // 保存用私钥加密后的内容至文件
+      Stream.Clear;
+      Stream.Write(ResBuf[0], Res.GetBytesCount);
+      Stream.SaveToFile(OutSignFileName);
+      Result := True;
+    end;
+  finally
+    Stream.Free;
+    EnStream.Free;
+    BerStream.Free;
+    Data.Free;
+    Res.Free;
+    Writer.Free;
+    SetLength(ResBuf, 0);
+  end;
+end;
+
+function CnRSAVerifyFile(const InFileName, InSignFileName: string;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType): Boolean;
+var
+  Stream, Sign: TMemoryStream;
+  Data, Res: TCnBigNumber;
+  ResBuf, BerBuf: array of Byte;
+  BerLen: Integer;
+  Reader: TCnBerReader;
+  Node: TCnBerReadNode;
+
+  function CalcBerSignType(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
+  begin
+    Result := sdtNone;
+    if (OidLen = SizeOf(OID_SIGN_MD5)) and CompareMem(OID, @OID_SIGN_MD5[0], OidLen) then
+      Result := sdtMD5
+    else if (OidLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidLen) then
+      Result := sdtSHA1
+    else if (OidLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidLen) then
+      Result := sdtSHA256;
+  end;
+
+begin
+  Result := False;
+  Stream := nil;
+  Reader := nil;
+  Sign := nil;
+  Data := nil;
+  Res := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Sign := TMemoryStream.Create;
+
+    // 不管怎样签名文件先公钥解密
+    Sign.LoadFromFile(InSignFileName);
+    Data := TCnBigNumber.FromBinary(PAnsiChar(Sign.Memory), Sign.Size);
+    Res := TCnBigNumber.Create;
+
+    if RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res) then
+    begin
+      SetLength(ResBuf, Res.GetBytesCount);
+      Res.ToBinary(@ResBuf[0]);
+
+      if SignType = sdtNone then
+      begin
+        Stream.LoadFromFile(InFileName); // 无摘要时，直接比对解密内容与原始文件
+        Result := Stream.Size = Res.GetBytesCount;
+        if Result then
+          Result := CompareMem(Stream.Memory, @ResBuf[0], Stream.Size);
+      end
+      else
+      begin
+        // 从 Res 中解出 PKCS1 对齐的内容
+        SetLength(BerBuf, Length(ResBuf));
+        if not PKCS1RemovePadding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+          Exit;
+
+        if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
+          Exit;
+
+        // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
+        Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
+        if Reader.TotalCount < 5 then
+          Exit;
+
+        Node := Reader.Items[2];
+        SignType := CalcBerSignType(Node.BerDataAddress, Node.BerDataLength);
+        if SignType = sdtNone then
+          Exit;
+
+        if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+          Exit;
+
+        // 与 Ber 解出的散列值比较
+        Node := Reader.Items[4];
+        Result := Stream.Size = Node.BerDataLength;
+        if Result then
+          Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
+      end;
+    end;
+  finally
+    Stream.Free;
+    Reader.Free;
+    Sign.Free;
+    Data.Free;
+    Res.Free;
+    SetLength(ResBuf, 0);
+    SetLength(BerBuf, 0);
   end;
 end;
 

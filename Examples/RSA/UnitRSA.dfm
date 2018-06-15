@@ -746,7 +746,7 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 480
+            Left = 472
             Top = 42
             Width = 94
             Height = 13
@@ -795,16 +795,17 @@ object FormRSA: TFormRSA
             OnClick = btnSignatureBrowseClick
           end
           object btnPrivVerify: TButton
-            Left = 88
+            Left = 256
             Top = 104
             Width = 137
             Height = 21
             Caption = 'Verify Using Private Key'
+            Enabled = False
             TabOrder = 5
             OnClick = btnPrivVerifyClick
           end
           object btnPubVerify: TButton
-            Left = 248
+            Left = 88
             Top = 104
             Width = 137
             Height = 21
@@ -813,16 +814,18 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 584
+            Left = 576
             Top = 40
-            Width = 57
+            Width = 65
             Height = 21
             Style = csDropDownList
             ItemHeight = 13
             TabOrder = 7
             Items.Strings = (
+              '<None>'
               'MD5'
-              'SHA1')
+              'SHA1'
+              'SHA256')
           end
         end
       end
@@ -1115,7 +1118,7 @@ object FormRSA: TFormRSA
     Left = 228
     Top = 152
     Bitmap = {
-      494C010103000500040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010103000500040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1383,7 +1386,8 @@ object FormRSA: TFormRSA
       002DC001000F0000002DC001000F00000021C001000F0000FFFFC001000F0000
       0021C001000F0000002DC001000C0000002DC001000000000021C00100000000
       FFFFC001000000000021C001F0000000002DC001F8000000002DC003FC030000
-      0021C007FFFF0000FFFFC00FFFFF0000}
+      0021C007FFFF0000FFFFC00FFFFF000000000000000000000000000000000000
+      000000000000}
   end
   object dlgOpenFile: TOpenDialog
     Left = 632

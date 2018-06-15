@@ -646,11 +646,11 @@ end;
 
 procedure TFormRSA.btnPrivVerifyClick(Sender: TObject);
 begin
-  if CnRSAVerifyFile(edtSignFile.Text, edtSigFile.Text, FPrivateKey,
-    TCnRSASignDigestType(cbbSig.ItemIndex)) then
-    ShowMessage('RSA Private Key Verify Success.')
-  else
-    ShowMessage('RSA Private Key Verify Fail.');
+//  if CnRSAVerifyFile(edtSignFile.Text, edtSigFile.Text, FPrivateKey,
+//    TCnRSASignDigestType(cbbSig.ItemIndex)) then
+//    ShowMessage('RSA Private Key Verify Success.')
+//  else
+//    ShowMessage('RSA Private Key Verify Fail.');
 end;
 
 procedure TFormRSA.btnPubVerifyClick(Sender: TObject);
