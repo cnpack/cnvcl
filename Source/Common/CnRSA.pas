@@ -77,7 +77,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils,
-  CnNativeDecl, CnMD5, CnSHA1, CnSHA2, cndebug;
+  CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
@@ -87,6 +87,23 @@ const
 
   CN_RSA_PKCS1_PADDING_SIZE            = 11;
 
+  // 以下 OID 都预先写死，不动态计算编码了
+  OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
+    $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
+  );  // $2A = 40 * 1 + 2
+
+  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
+    $2A, $86, $48, $86, $F7, $0D, $02, $05
+  );
+
+  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
+    $2B, $0E, $03, $02, $1A
+  );
+
+  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
+    $60, $86, $48, $01, $65, $03, $04, $02, $01
+  );
+
 type
   TCnRSASignDigestType = (sdtNone, sdtMD5, sdtSHA1, sdtSHA256);
   {* RSA 签名所支持的数字摘要算法，可无摘要}
@@ -94,7 +111,7 @@ type
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
   {* RSA 密钥文件格式}
 
-  TCnRSAPrivateKey = class(TObject)
+  TCnRSAPrivateKey = class(TPersistent)
   {* RSA 私钥}
   private
     FPrimeKey1: TCnBigNumber;
@@ -105,6 +122,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+
     procedure Clear;
 
     property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
@@ -119,7 +138,7 @@ type
     {* 密钥的位数，也即素数乘积的有效位数}
   end;
 
-  TCnRSAPublicKey = class(TObject)
+  TCnRSAPublicKey = class(TPersistent)
   {* RSA 公钥}
   private
     FPubKeyProduct: TCnBigNumber;
@@ -128,6 +147,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+
     procedure Clear;
 
     property PubKeyProduct: TCnBigNumber read FPubKeyProduct write FPubKeyProduct;
@@ -251,39 +272,31 @@ function CnRSAVerifyFile(const InFileName, InSignFileName: string;
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
    并比对两个二进制散列值是否相同，返回验证是否通过}
 
+// 其他辅助函数
+
+function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
+  MemoryStream: TMemoryStream): Boolean;
+{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
+
+function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
+{* 从 BER 解析出的 OID 获取其对应的散列摘要类型}
+
 implementation
 
 const
   // PKCS#1
-  PEM_RSA_PRIVATE_HEAD = '-----BEGIN RSA PRIVATE KEY-----';  // 已解析
+  PEM_RSA_PRIVATE_HEAD = '-----BEGIN RSA PRIVATE KEY-----';
   PEM_RSA_PRIVATE_TAIL = '-----END RSA PRIVATE KEY-----';
 
-  PEM_RSA_PUBLIC_HEAD = '-----BEGIN RSA PUBLIC KEY-----';    // 已解析
+  PEM_RSA_PUBLIC_HEAD = '-----BEGIN RSA PUBLIC KEY-----';
   PEM_RSA_PUBLIC_TAIL = '-----END RSA PUBLIC KEY-----';
 
   // PKCS#8
-  PEM_PRIVATE_HEAD = '-----BEGIN PRIVATE KEY-----';          // 已解析
+  PEM_PRIVATE_HEAD = '-----BEGIN PRIVATE KEY-----';
   PEM_PRIVATE_TAIL = '-----END PRIVATE KEY-----';
 
-  PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';            // 已解析
+  PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
   PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
-
-  // 以下 OID 都预先写死，不动态计算编码了
-  OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
-    $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
-  );  // $2A = 40 * 1 + 2
-
-  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
-    $2A, $86, $48, $86, $F7, $0D, $02, $05
-  );
-
-  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
-    $2B, $0E, $03, $02, $1A
-  );
-
-  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
-    $60, $86, $48, $01, $65, $03, $04, $02, $01
-  );
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function Int64RSACrypt(Data: TUInt64; Product: TUInt64; Exponent: TUInt64;
@@ -694,38 +707,38 @@ function CnRSALoadKeysFromPem(const PemFileName: string;
   PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
 var
   MemStream: TMemoryStream;
-  Ber: TCnBerReader;
+  Reader: TCnBerReader;
   Node: TCnBerReadNode;
 begin
   Result := False;
   MemStream := nil;
-  Ber := nil;
+  Reader := nil;
 
   try
     MemStream := TMemoryStream.Create;
     if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL, MemStream) then
     begin
       // 读 PKCS#1 的 PEM 公私钥格式
-      Ber := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-      if Ber.TotalCount >= 8 then
+      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
+      if Reader.TotalCount >= 8 then
       begin
-        Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
+        Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
         if Node.AsByte = 0 then // 只支持版本 0
         begin
           // 2 和 3 整成公钥
           if PublicKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(Ber.Items[2], PublicKey.PubKeyProduct);
-            PutIndexedBigIntegerToBigInt(Ber.Items[3], PublicKey.PubKeyExponent);
+            PutIndexedBigIntegerToBigInt(Reader.Items[2], PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigInt(Reader.Items[3], PublicKey.PubKeyExponent);
           end;
 
           // 2 4 5 6 整成私钥
           if PrivateKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(Ber.Items[2], PrivateKey.PrivKeyProduct);
-            PutIndexedBigIntegerToBigInt(Ber.Items[4], PrivateKey.PrivKeyExponent);
-            PutIndexedBigIntegerToBigInt(Ber.Items[5], PrivateKey.PrimeKey1);
-            PutIndexedBigIntegerToBigInt(Ber.Items[6], PrivateKey.PrimeKey2);
+            PutIndexedBigIntegerToBigInt(Reader.Items[2], PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigInt(Reader.Items[4], PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigInt(Reader.Items[5], PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigInt(Reader.Items[6], PrivateKey.PrimeKey2);
           end;
 
           Result := True;
@@ -735,26 +748,26 @@ begin
     else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, MemStream) then
     begin
       // 读 PKCS#8 的 PEM 公私钥格式
-      Ber := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-      if Ber.TotalCount >= 12 then
+      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+      if Reader.TotalCount >= 12 then
       begin
-        Node := Ber.Items[1]; // 0 是整个 Sequence，1 是 Version
+        Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
         if Node.AsByte = 0 then // 只支持版本 0
         begin
           // 8 和 9 整成公钥
           if PublicKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(Ber.Items[8], PublicKey.PubKeyProduct);
-            PutIndexedBigIntegerToBigInt(Ber.Items[9], PublicKey.PubKeyExponent);
+            PutIndexedBigIntegerToBigInt(Reader.Items[8], PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigInt(Reader.Items[9], PublicKey.PubKeyExponent);
           end;
       
           // 8 10 11 12 整成私钥
           if PrivateKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(Ber.Items[8], PrivateKey.PrivKeyProduct);
-            PutIndexedBigIntegerToBigInt(Ber.Items[10], PrivateKey.PrivKeyExponent);
-            PutIndexedBigIntegerToBigInt(Ber.Items[11], PrivateKey.PrimeKey1);
-            PutIndexedBigIntegerToBigInt(Ber.Items[12], PrivateKey.PrimeKey2);
+            PutIndexedBigIntegerToBigInt(Reader.Items[8], PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigInt(Reader.Items[10], PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigInt(Reader.Items[11], PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigInt(Reader.Items[12], PrivateKey.PrimeKey2);
           end;
       
           Result := True;
@@ -763,7 +776,7 @@ begin
     end;
   finally
     MemStream.Free;
-    Ber.Free;
+    Reader.Free;
   end;
 end;
 
@@ -801,25 +814,25 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean;
 var
   Mem: TMemoryStream;
-  Ber: TCnBerReader;
+  Reader: TCnBerReader;
 begin
   Result := False;
   Mem := nil;
-  Ber := nil;
+  Reader := nil;
 
   try
     Mem := TMemoryStream.Create;
     if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem) then
     begin
       // 读 PKCS#8 格式的公钥
-      Ber := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
-      if Ber.TotalCount >= 7 then
+      Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
+      if Reader.TotalCount >= 7 then
       begin
         // 6 和 7 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(Ber.Items[6], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(Ber.Items[7], PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigInt(Reader.Items[6], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(Reader.Items[7], PublicKey.PubKeyExponent);
         end;
 
         Result := True;
@@ -828,14 +841,14 @@ begin
     else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL, Mem) then
     begin
       // 读 PKCS#1 格式的公钥
-      Ber := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
-      if Ber.TotalCount >= 3 then
+      Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
+      if Reader.TotalCount >= 3 then
       begin
         // 1 和 2 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(Ber.Items[1], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(Ber.Items[2], PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigInt(Reader.Items[1], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(Reader.Items[2], PublicKey.PubKeyExponent);
         end;
       
         Result := True;
@@ -843,7 +856,7 @@ begin
     end;
   finally
     Mem.Free;
-    Ber.Free;
+    Reader.Free;
   end;
 end;
 
@@ -1125,6 +1138,19 @@ end;
 
 { TCnRSAPrivateKey }
 
+procedure TCnRSAPrivateKey.Assign(Source: TPersistent);
+begin
+  if Source is TCnRSAPrivateKey then
+  begin
+    BigNumberCopy(FPrimeKey1, (Source as TCnRSAPrivateKey).PrimeKey1);
+    BigNumberCopy(FPrimeKey2, (Source as TCnRSAPrivateKey).PrimeKey2);
+    BigNumberCopy(FPrivKeyProduct, (Source as TCnRSAPrivateKey).PrivKeyProduct);
+    BigNumberCopy(FPrivKeyExponent, (Source as TCnRSAPrivateKey).PrivKeyExponent);
+  end
+  else
+    inherited;
+end;
+
 procedure TCnRSAPrivateKey.Clear;
 begin
   FPrimeKey1.Clear;
@@ -1156,6 +1182,17 @@ begin
 end;
 
 { TCnRSAPublicKey }
+
+procedure TCnRSAPublicKey.Assign(Source: TPersistent);
+begin
+  if Source is TCnRSAPublicKey then
+  begin
+    BigNumberCopy(FPubKeyProduct, (Source as TCnRSAPublicKey).PubKeyProduct);
+    BigNumberCopy(FPubKeyExponent, (Source as TCnRSAPublicKey).PubKeyExponent);
+  end
+  else
+    inherited;
+end;
 
 procedure TCnRSAPublicKey.Clear;
 begin
@@ -1658,18 +1695,6 @@ var
   BerLen: Integer;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
-
-  function CalcBerSignType(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
-  begin
-    Result := sdtNone;
-    if (OidLen = SizeOf(OID_SIGN_MD5)) and CompareMem(OID, @OID_SIGN_MD5[0], OidLen) then
-      Result := sdtMD5
-    else if (OidLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidLen) then
-      Result := sdtSHA1
-    else if (OidLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidLen) then
-      Result := sdtSHA256;
-  end;
-
 begin
   Result := False;
   Stream := nil;
@@ -1715,7 +1740,7 @@ begin
           Exit;
 
         Node := Reader.Items[2];
-        SignType := CalcBerSignType(Node.BerDataAddress, Node.BerDataLength);
+        SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = sdtNone then
           Exit;
 
@@ -1738,6 +1763,17 @@ begin
     SetLength(ResBuf, 0);
     SetLength(BerBuf, 0);
   end;
+end;
+
+function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
+begin
+  Result := sdtNone;
+  if (OidLen = SizeOf(OID_SIGN_MD5)) and CompareMem(OID, @OID_SIGN_MD5[0], OidLen) then
+    Result := sdtMD5
+  else if (OidLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidLen) then
+    Result := sdtSHA1
+  else if (OidLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidLen) then
+    Result := sdtSHA256;
 end;
 
 end.
