@@ -1,6 +1,6 @@
 object FormCA: TFormCA
-  Left = 354
-  Top = 110
+  Left = 8
+  Top = 114
   Width = 705
   Height = 503
   Caption = 'Certificate Authority'
@@ -108,6 +108,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Browse Key File'
           TabOrder = 1
+          OnClick = btnBrowseKeyClick
         end
         object edtContryName: TEdit
           Left = 88
@@ -212,17 +213,18 @@ object FormCA: TFormCA
         object edtCSR: TEdit
           Left = 88
           Top = 20
-          Width = 457
+          Width = 353
           Height = 21
           TabOrder = 0
         end
         object btnBrowseCSR: TButton
-          Left = 552
+          Left = 448
           Top = 20
           Width = 91
           Height = 21
           Caption = 'Browse CSR File'
           TabOrder = 1
+          OnClick = btnBrowseCSRClick
         end
         object mmoCSRParse: TMemo
           Left = 16
@@ -230,6 +232,15 @@ object FormCA: TFormCA
           Width = 625
           Height = 137
           TabOrder = 2
+        end
+        object btnParseCSR: TButton
+          Left = 552
+          Top = 20
+          Width = 91
+          Height = 21
+          Caption = 'Parse CSR File'
+          TabOrder = 3
+          OnClick = btnParseCSRClick
         end
       end
     end

@@ -252,6 +252,10 @@ type
     property TotalSize: Integer read GetTotalSize;
   end;
 
+function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
+  OIDSize: Integer): Boolean;
+{* 比较一个 Node 中的数据是否等于一个指定的 OID}
+
 implementation
 
 function GetTagName(Tag: Integer): string;
@@ -288,6 +292,23 @@ begin
   Rec.Lo := Hi;
   Rec.Hi := Lo;
   Result := Int64(Rec);
+end;
+
+function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
+  OIDSize: Integer): Boolean;
+var
+  P: Pointer;
+begin
+  Result := False;
+  if (Node <> nil) then
+  begin
+    P := Node.BerDataAddress;
+    if (P <> nil) and (OIDAddr <> nil) and (OIDSize > 0) then
+    begin
+      if OIDSize = Node.BerDataLength then
+        Result := CompareMem(OIDAddr, P, OIDSize);
+    end;
+  end;
 end;
 
 { TCnBerReader }
@@ -452,12 +473,12 @@ function TCnBerReadNode.AsPrintableString: string;
 var
   P: Pointer;
 begin
-  if FBerTag <> CN_BER_TAG_PRINTABLESTRING then
+  if not FBerTag in [CN_BER_TAG_PRINTABLESTRING, CN_BER_TAG_IA5STRING] then
     raise Exception.Create('Ber Tag Type Mismatch for PrintableString: ' + IntToStr(FBerTag));
 
   Result := '';
   P := GetBerDataAddress;
-  if (P = nil) and (BerDataLength > 0) then
+  if (P <> nil) and (BerDataLength > 0) then
   begin
     SetLength(Result, BerDataLength);
     CopyMemory(@Result[1], P, BerDataLength);

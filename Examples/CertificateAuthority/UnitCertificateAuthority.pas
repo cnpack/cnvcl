@@ -56,7 +56,11 @@ type
     edtRootCRT: TEdit;
     btnRootCRTBrowse: TButton;
     btnSelfSign: TButton;
+    btnParseCSR: TButton;
     procedure FormCreate(Sender: TObject);
+    procedure btnBrowseCSRClick(Sender: TObject);
+    procedure btnBrowseKeyClick(Sender: TObject);
+    procedure btnParseCSRClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -73,6 +77,33 @@ implementation
 procedure TFormCA.FormCreate(Sender: TObject);
 begin
   cbbHash.ItemIndex := 0;
+end;
+
+procedure TFormCA.btnBrowseCSRClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtCSR.Text := dlgOpen.FileName;
+end;
+
+procedure TFormCA.btnBrowseKeyClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtRSAKey.Text := dlgOpen.FileName;
+end;
+
+procedure TFormCA.btnParseCSRClick(Sender: TObject);
+var
+  CSR: TCnRSACertificateRequest;
+begin
+  CSR := TCnRSACertificateRequest.Create;
+  if CnCALoadCertificateSignRequestFromFile(edtCSR.Text, CSR) then
+  begin
+    mmoCSRParse.Clear;
+    mmoCSRParse.Lines.Add(CSR.ToString);
+  end
+  else
+    ShowMessage('Parse CSR Failed.');
+  CSR.Free;
 end;
 
 end.
