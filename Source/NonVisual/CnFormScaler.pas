@@ -162,6 +162,11 @@ type
 
 implementation
 
+{$IFDEF DEBUG}
+uses
+  CnDebug;
+{$ENDIF}
+
 { TCnFormScaler }
 
 class function TCnFormScaler.ScreenWorkRect: TRect;
@@ -287,8 +292,8 @@ end;
 constructor TCnFormScaler.Create(AOwner: TComponent);
 begin
   //Must on TForm. TFrame not support yet.
-{$IFDEF DEBUGMSG}
-  OutputDebugString('Create');
+{$IFDEF DEBUG}
+  CnDebugger.LogMsg('TCnFormScaler Create');
 {$ENDIF}
   if not (AOwner is TForm) then
     raise Exception.Create('Owner must inherited from TForm.');
@@ -322,8 +327,8 @@ end;
 procedure TCnFormScaler.Loaded;
 begin
   //Inplace OnCreate
-{$IFDEF DEBUGMSG}
-  OutputDebugString('Loaded');
+{$IFDEF DEBUG}
+  CnDebugger.LogMsg('TCnFormScaler Loaded');
 {$ENDIF}
   inherited Loaded;
   if csDesigning in ComponentState then
@@ -349,8 +354,8 @@ var
   WorkRect: TRect;
 begin
   //Change size
-{$IFDEF DEBUGMSG}
-  OutputDebugString('DoEffects');
+{$IFDEF DEBUG}
+  CnDebugger.LogMsg('TCnFormScaler DoEffects');
 {$ENDIF}
   if (csDesigning in ComponentState) or
     (not FActive) or
@@ -361,8 +366,8 @@ begin
   with FForm do
   try
     DisableAlign;
-{$IFDEF DEBUGMSG}
-    OutputDebugString('DisableAlign');
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler DisableAlign');
 {$ENDIF}
     if AutoScroll and
       (FDesignClientHeight <> 0) and
@@ -462,8 +467,8 @@ begin
   finally
     UpdateAnchorRules(FForm);
     EnableAlign;
-{$IFDEF DEBUGMSG}
-    OutputDebugString('EnableAlign');
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler EnableAlign');
 {$ENDIF}
     FScaled := True;
   end; //end try and with
@@ -473,11 +478,11 @@ procedure TCnFormScaler.SetActive(const Value: boolean);
 begin
   //when stored property Active is False, maybe cannot make it.
   FActive := Value;
-{$IFDEF DEBUGMSG}
+{$IFDEF DEBUG}
   if Value then
-    OutputDebugString('SetActive: True')
+    CnDebugger.LogMsg('TCnFormScaler SetActive: True')
   else
-    OutputDebugString('SetActive: False');
+    CnDebugger.LogMsg('TCnFormScaler SetActive: False');
 {$ENDIF}
   if (csLoading in ComponentState) then
     Exit;
@@ -488,8 +493,8 @@ procedure TCnFormScaler.SetDesignPPI(const Value: Integer);
 begin
   if csLoading in ComponentState then
   begin
-{$IFDEF DEBUGMSG}
-    OutputDebugString(PChar('SetDesignPPI' + IntToStr(Value)));
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler SetDesignPPI ' + IntToStr(Value));
 {$ENDIF}
     FDesignPPI := Value;
   end;
@@ -499,8 +504,8 @@ procedure TCnFormScaler.SetDesignClientHeight(const Value: Integer);
 begin
   if csLoading in ComponentState then
   begin
-{$IFDEF DEBUGMSG}
-    OutputDebugString(PChar('SetDesignClientHeight' + IntToStr(Value)));
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler SetDesignClientHeight ' + IntToStr(Value));
 {$ENDIF}
     FDesignClientHeight := Value;
   end;
@@ -510,8 +515,8 @@ procedure TCnFormScaler.SetDesignClientWidth(const Value: Integer);
 begin
   if csLoading in ComponentState then
   begin
-{$IFDEF DEBUGMSG}
-    OutputDebugString(PChar('SetDesignClientWidth' + IntToStr(Value)));
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler SetDesignClientWidth ' + IntToStr(Value));
 {$ENDIF}
     FDesignClientWidth := Value;
   end;
@@ -521,8 +526,8 @@ procedure TCnFormScaler.SetDesignHeight(const Value: Integer);
 begin
   if csLoading in ComponentState then
   begin
-{$IFDEF DEBUGMSG}
-    OutputDebugString(PChar('SetDesignHeight' + IntToStr(Value)));
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler SetDesignHeight ' + IntToStr(Value));
 {$ENDIF}
     FDesignHeight := Value;
   end;
@@ -532,8 +537,8 @@ procedure TCnFormScaler.SetDesignWidth(const Value: Integer);
 begin
   if csLoading in ComponentState then
   begin
-{$IFDEF DEBUGMSG}
-    OutputDebugString(PChar('SetDesignWidth' + IntToStr(Value)));
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler SetDesignWidth ' + IntToStr(Value));
 {$ENDIF}
     FDesignWidth := Value;
   end;
@@ -657,8 +662,8 @@ procedure TCnFormScaler.SetTextHeight(const Value: Integer);
 begin
   if csLoading in ComponentState then
   begin
-{$IFDEF DEBUGMSG}
-    OutputDebugString(PChar('SetTextHeight' + IntToStr(Value)));
+{$IFDEF DEBUG}
+    CnDebugger.LogMsg('TCnFormScaler SetTextHeight ' + IntToStr(Value)));
 {$ENDIF}
     FTextHeight := Value;
   end;
@@ -684,6 +689,7 @@ end;
 
 type
   THackControl = class(TControl);
+
 procedure TCnFormScaler.ScaleDynamicControls;
 var
   i: Integer;

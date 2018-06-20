@@ -720,6 +720,7 @@ begin
     begin
       // 读 PKCS#1 的 PEM 公私钥格式
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
+      Reader.ParseToTree;
       if Reader.TotalCount >= 8 then
       begin
         Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -749,6 +750,7 @@ begin
     begin
       // 读 PKCS#8 的 PEM 公私钥格式
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+      Reader.ParseToTree;
       if Reader.TotalCount >= 12 then
       begin
         Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
@@ -826,6 +828,7 @@ begin
     begin
       // 读 PKCS#8 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
+      Reader.ParseToTree;
       if Reader.TotalCount >= 7 then
       begin
         // 6 和 7 整成公钥
@@ -842,6 +845,7 @@ begin
     begin
       // 读 PKCS#1 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
+      Reader.ParseToTree;
       if Reader.TotalCount >= 3 then
       begin
         // 1 和 2 整成公钥
@@ -1736,6 +1740,7 @@ begin
 
         // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
         Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
+        Reader.ParseToTree;
         if Reader.TotalCount < 5 then
           Exit;
 

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnTree;
+  StdCtrls, ComCtrls, CnTree, CnBase64;
 
 {
   测试的 bin 文件用 openssl 生成的 rsa key 经 base64 解码而来
@@ -21,12 +21,17 @@ type
     dlgOpen: TOpenDialog;
     btnWrite: TButton;
     dlgSave: TSaveDialog;
+    btnDeBase64Parse: TButton;
+    chkParseInner: TCheckBox;
     procedure btnParseClick(Sender: TObject);
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure tv1DblClick(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
+    procedure btnDeBase64ParseClick(Sender: TObject);
+    procedure tv1Collapsing(Sender: TObject; Node: TTreeNode;
+      var AllowCollapse: Boolean);
   private
     FReadHints: TStrings;
     procedure SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
@@ -368,6 +373,81 @@ begin
     Writer.Free;
   end;
 
+end;
+
+function LoadPemFileAndBase64Decode(const FileName: string;
+  MemoryStream: TMemoryStream): Boolean;
+var
+  I: Integer;
+  S: string;
+  Sl: TStringList;
+begin
+  Result := False;
+
+  Sl := TStringList.Create;
+  try
+    Sl.LoadFromFile(FileName);
+    if Sl.Count > 2 then
+    begin
+      if Trim(Sl[Sl.Count - 1]) = '' then
+        Sl.Delete(Sl.Count - 1);
+
+      Sl.Delete(Sl.Count - 1);
+      Sl.Delete(0);
+      S := '';
+      for I := 0 to Sl.Count - 1 do
+        S := S + Sl[I];
+
+      // To De Base64 S
+      MemoryStream.Clear;
+      Result := (BASE64_OK = Base64Decode(S, MemoryStream));
+    end;
+  finally
+    Sl.Free;
+  end;
+end;
+
+procedure TFormParseBer.btnDeBase64ParseClick(Sender: TObject);
+var
+  Reader: TCnBerReader;
+  Mem: TMemoryStream;
+begin
+  Reader := nil;
+  Mem := nil;
+
+  try
+    if not FileExists(edtFile.Text) then
+      Exit;
+
+    Mem := TMemoryStream.Create;
+    if not LoadPemFileAndBase64Decode(edtFile.Text, Mem) then
+      Exit;
+    // Mem.SaveToFile('C:\CnPack\git\cnvcl\Examples\Test.bin');
+    try
+      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, chkParseInner.Checked);
+      Reader.ParseToTree;
+    except
+      Application.HandleException(Reader);
+    end;
+
+    Reader.OnSaveNode := SaveNode;
+    FReadHints.Clear;
+    Reader.DumpToTreeView(tv1);
+    if tv1.Items.Count > 0 then
+      tv1.Items[0].Expand(True);
+
+    mmoResult.Clear;
+    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Reader.TotalCount));
+  finally
+    Reader.Free;
+    Mem.Free;
+  end;
+end;
+
+procedure TFormParseBer.tv1Collapsing(Sender: TObject; Node: TTreeNode;
+  var AllowCollapse: Boolean);
+begin
+  AllowCollapse := False;
 end;
 
 end.

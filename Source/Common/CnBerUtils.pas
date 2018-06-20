@@ -135,7 +135,7 @@ type
     {* 该节点对应的数据的起始地址，等于 FOriginData + FBerDataOffset}
   end;
 
-  TCnBerReader = class
+  TCnBerReader = class(TObject)
   {* 读取并解析 BER 编码数据块的解析器类}
   private
     FBerTree: TCnTree;
@@ -152,10 +152,13 @@ type
       ADataLen: Cardinal; AStartOffset: Cardinal);
     {* 解析一段数据，该数据里的所有 ASN.1 节点均序次挂在 Parent 节点下}
   protected
-    procedure ParseToTree;
+
   public
     constructor Create(Data: PByte; DataLen: Cardinal; AParseInnerString: Boolean = False);
     destructor Destroy; override;
+
+    procedure ParseToTree;
+    {* 创建后需要调用此方法实施解析}
 
 {$IFDEF DEBUG}
     procedure DumpToTreeView(ATreeView: TTreeView);
@@ -211,7 +214,7 @@ type
     {* 节点类型，也就是 Tag}
   end;
 
-  TCnBerWriter = class
+  TCnBerWriter = class(TObject)
   {* 写 BER 编码的数据的工具类}
   private
     FBerTree: TCnTree;
@@ -282,7 +285,7 @@ begin
   Result := Int64(Rec);
 end;
 
-{ TCnBerParser }
+{ TCnBerReader }
 
 constructor TCnBerReader.Create(Data: PByte; DataLen: Cardinal;
   AParseInnerString: Boolean);
@@ -291,14 +294,12 @@ begin
   FDataLen := DataLen;
   FParseInnerString := AParseInnerString;
   FBerTree := TCnTree.Create(TCnBerReadNode);
-
-  ParseToTree;
 end;
 
 destructor TCnBerReader.Destroy;
 begin
+  FBerTree.Free;
   inherited;
-
 end;
 
 {$IFDEF DEBUG}
@@ -356,7 +357,8 @@ begin
 
     Inc(Run);
     if Run >= ADataLen then
-      raise Exception.Create('Data Corruption when Processing Tag.');
+      raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d), %d > %d.',
+        [AStartOffset, Run, ADataLen]);
 
     // Run 指向长度，处理长度
     Delta := 1;  // 1 表示 Tag 所占字节
@@ -378,14 +380,15 @@ begin
 
       // AData[Run] 到 AData[Run + LenLen - 1] 是长度
       if Run + Cardinal(LenLen) - 1 >= ADataLen then
-        raise Exception.Create('Data Corruption when Processing Tag.');
+        raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d) at %d Got Len %d.',
+          [AStartOffset, Run, LenLen]);
 
       if LenLen = SizeOf(Byte) then
         DataLen := AData[Run]
       else if LenLen = SizeOf(Word) then
         DataLen := (Cardinal(AData[Run]) shl 8) or Cardinal(AData[Run + 1])
       else // if LenLen > SizeOf(Word) then
-        raise Exception.Create('Length Too Long: ' + IntToStr(LenLen));
+        raise Exception.CreateFmt('Length Too Long (Base %d) %d.', [AStartOffset, LenLen]);
 
       DataOffset := AStartOffset + Run + Cardinal(LenLen);
       Inc(Delta, LenLen);
