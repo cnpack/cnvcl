@@ -421,17 +421,20 @@ begin
     if IsStruct or (FParseInnerString and (ALeaf.BerTag in [CN_BER_TAG_BIT_STRING,
       CN_BER_TAG_OCTET_STRING])) then
     begin
-      // 说明 BerDataOffset 到 BerDataLength 内有子节点
-
-      if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then
-      begin
-        // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里跳过
-        ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run + 1),
-          ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
-      end
-      else
-        ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run),
-          ALeaf.BerDataLength, ALeaf.BerDataOffset);
+      // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
+      try
+        if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then
+        begin
+          // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里跳过
+          ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run + 1),
+            ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
+        end
+        else
+          ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run),
+            ALeaf.BerDataLength, ALeaf.BerDataOffset);
+      except
+        ; // 如果内嵌解析失败，不终止，当做普通节点
+      end;
     end;
 
     Inc(Run, DataLen);
