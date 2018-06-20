@@ -118,6 +118,11 @@ type
     function AsCardinal: Cardinal;
     function AsInt64: Int64;
 
+    function AsPrintableString: string;
+
+    function GetNextSibling: TCnBerReadNode;
+    function GetPrevSibling: TCnBerReadNode;
+
     property Items[Index: Integer]: TCnBerReadNode read GetItems write SetItems;
 
     property BerOffset: Integer read FBerOffset write FBerOffset;
@@ -438,7 +443,23 @@ begin
   ParseArea(FBerTree.Root, PByteArray(FData), FDataLen, 0);
 end;
 
-{ TCnBerNode }
+{ TCnBerReadNode }
+
+function TCnBerReadNode.AsPrintableString: string;
+var
+  P: Pointer;
+begin
+  if FBerTag <> CN_BER_TAG_PRINTABLESTRING then
+    raise Exception.Create('Ber Tag Type Mismatch for PrintableString: ' + IntToStr(FBerTag));
+
+  Result := '';
+  P := GetBerDataAddress;
+  if (P = nil) and (BerDataLength > 0) then
+  begin
+    SetLength(Result, BerDataLength);
+    CopyMemory(@Result[1], P, BerDataLength);
+  end;
+end;
 
 function TCnBerReadNode.InternalAsInt(ByteSize: Integer): Integer;
 var
@@ -526,6 +547,16 @@ begin
     Result := nil
   else
     Result := Pointer(Integer(FOriginData) + FBerDataOffset);
+end;
+
+function TCnBerReadNode.GetNextSibling: TCnBerReadNode;
+begin
+  Result := TCnBerReadNode(inherited GetNextSibling);
+end;
+
+function TCnBerReadNode.GetPrevSibling: TCnBerReadNode;
+begin
+  Result := TCnBerReadNode(inherited GetPrevSibling);
 end;
 
 { TCnBerWriter }
