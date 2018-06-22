@@ -44,6 +44,8 @@ uses
 
 const
   CN_BER_TAG_TYPE_MASK                      = $C0;
+  // 最高两位：00 为 Universal，01 为 Application，10 为 Context-Specific，11 为 Private
+
   CN_BER_TAG_STRUCT_MASK                    = $20;
   CN_BER_TAG_VALUE_MASK                     = $1F;
   CN_BER_LENLEN_MASK                        = $80;
@@ -248,7 +250,10 @@ type
     {* 添加一个基本类型的节点，内容从 AData 复制长度为 DataLen 的而来}
     function AddContainerNode(ATag: Integer; Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
     {* 添加一个容器类型的节点，此节点可以作为上面 BasicNode 的 Parent}
-
+    function AddRawNode(RawTag: Integer; RawLV: PByte; LVLen: Integer;
+      Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
+    {* 添加一个原始节点，此节点的 Tag 值直接由 RawTag 指定，
+       后面的长度内容等不计算了，直接由 RawLV 与 LVLen 的区域指定}
     property TotalSize: Integer read GetTotalSize;
   end;
 
@@ -688,6 +693,23 @@ var
 begin
   for I := 0 to FBerTree.Root.Count - 1 do
     TCnBerWriteNode(FBerTree.Root).Items[I].SaveToStream(Stream);
+end;
+
+function TCnBerWriter.AddRawNode(RawTag: Integer; RawLV: PByte;
+  LVLen: Integer; Parent: TCnBerWriteNode): TCnBerWriteNode;
+var
+  B: Byte;
+begin
+  if Parent = nil then
+    Parent := FBerTree.Root as TCnBerWriteNode;
+
+  Result := FBerTree.AddChild(Parent) as TCnBerWriteNode;
+  Result.BerTag := RawTag;
+
+  B := RawTag;
+  Result.FMem.Write(B, 1);
+  if (RawLV <> nil) and (LVLen > 0) then
+    Result.FMem.Write(RawLV^, LVLen);
 end;
 
 { TCnBerWriteNode }

@@ -422,13 +422,9 @@ begin
     Mem := TMemoryStream.Create;
     if not LoadPemFileAndBase64Decode(edtFile.Text, Mem) then
       Exit;
-    // Mem.SaveToFile('C:\CnPack\git\cnvcl\Examples\Test.bin');
-    try
-      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, chkParseInner.Checked);
-      Reader.ParseToTree;
-    except
-      Application.HandleException(Reader);
-    end;
+
+    Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, chkParseInner.Checked);
+    Reader.ParseToTree;
 
     Reader.OnSaveNode := SaveNode;
     FReadHints.Clear;

@@ -1,8 +1,8 @@
 object FormParseBer: TFormParseBer
-  Left = 2
-  Top = 1
-  Width = 638
-  Height = 450
+  Left = 201
+  Top = 95
+  Width = 832
+  Height = 486
   Caption = 'BER Format Reader & Writer'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -27,13 +27,13 @@ object FormParseBer: TFormParseBer
     Left = 8
     Top = 56
     Width = 337
-    Height = 315
+    Height = 351
     Anchors = [akLeft, akTop, akBottom]
     ReadOnly = True
     TabOrder = 0
   end
   object btnParse: TButton
-    Left = 513
+    Left = 723
     Top = 20
     Width = 83
     Height = 21
@@ -45,8 +45,8 @@ object FormParseBer: TFormParseBer
   object tv1: TTreeView
     Left = 352
     Top = 56
-    Width = 242
-    Height = 315
+    Width = 452
+    Height = 351
     Anchors = [akLeft, akTop, akRight, akBottom]
     AutoExpand = True
     Indent = 19
@@ -80,7 +80,7 @@ object FormParseBer: TFormParseBer
     OnClick = btnWriteClick
   end
   object btnDeBase64Parse: TButton
-    Left = 409
+    Left = 619
     Top = 20
     Width = 91
     Height = 21
@@ -95,6 +95,8 @@ object FormParseBer: TFormParseBer
     Width = 113
     Height = 17
     Caption = 'Parse Inner String'
+    Checked = True
+    State = cbChecked
     TabOrder = 7
   end
   object dlgOpen: TOpenDialog
