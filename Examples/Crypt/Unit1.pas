@@ -34,7 +34,7 @@ type
     Button1: TButton;
     edtBase64Result: TEdit;
     lbl3: TLabel;
-    Button2: TButton;
+    btnBase64Decode: TButton;
     edtBase64Decode: TEdit;
     lbl4: TLabel;
     tsCRC32: TTabSheet;
@@ -214,11 +214,13 @@ type
     btnUSHA3_384: TButton;
     btnUSHA3_512: TButton;
     btnBase64File: TButton;
+    btnDeBase64File: TButton;
+    dlgSave: TSaveDialog;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    procedure btnBase64DecodeClick(Sender: TObject);
     procedure btnCRC32Click(Sender: TObject);
     procedure btnMd5FileClick(Sender: TObject);
     procedure btnFileCRC32Click(Sender: TObject);
@@ -282,6 +284,7 @@ type
     procedure btnUSHA3_384Click(Sender: TObject);
     procedure btnUSHA3_512Click(Sender: TObject);
     procedure btnBase64FileClick(Sender: TObject);
+    procedure btnDeBase64FileClick(Sender: TObject);
   private
     { Private declarations }
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -328,7 +331,7 @@ begin
   edtBase64Result.Text := S;
 end;
 
-procedure TFormCrypt.Button2Click(Sender: TObject);
+procedure TFormCrypt.btnBase64DecodeClick(Sender: TObject);
 var
   S: AnsiString;
 begin
@@ -1203,6 +1206,18 @@ begin
     if Base64Encode(M, S) = Base64_OK then
       edtBase64Result.Text := S;
     M.Free;
+  end;
+end;
+
+procedure TFormCrypt.btnDeBase64FileClick(Sender: TObject);
+var
+  Stream: TMemoryStream;
+begin
+  if dlgSave.Execute then
+  begin
+    Stream := TMemoryStream.Create;
+    Base64Decode(edtBase64Result.Text, Stream, False);
+    Stream.SaveToFile(dlgSave.FileName);
   end;
 end;
 
