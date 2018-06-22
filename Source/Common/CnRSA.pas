@@ -278,8 +278,16 @@ function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
 
+function SaveMemoryToPemFile(const FileName, Head, Tail: string;
+  MemoryStream: TMemoryStream): Boolean;
+{* 将 Stream 的内容进行 Base64 编码后分行并补上文件头尾再写入文件}
+
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
 {* 从 BER 解析出的 OID 获取其对应的散列摘要类型}
+
+function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
+{* 将一个大数的内容写入一个 Ber 整型格式的节点}
 
 implementation
 
@@ -600,6 +608,28 @@ begin
   Result := True;
 end;
 
+procedure SplitStringToList(const S: string; List: TStrings);
+const
+  LINE_WIDTH = 64;
+var
+  C, R: string;
+begin
+  if List = nil then
+    Exit;
+
+  List.Clear;
+  if S <> '' then
+  begin
+    R := S;
+    while R <> '' do
+    begin
+      C := Copy(R, 1, LINE_WIDTH);
+      Delete(R, 1, LINE_WIDTH);
+      List.Add(C);
+    end;
+  end;
+end;
+
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream): Boolean;
 var
@@ -637,6 +667,34 @@ begin
       end;
     finally
       Sl.Free;
+    end;
+  end;
+end;
+
+function SaveMemoryToPemFile(const FileName, Head, Tail: string;
+  MemoryStream: TMemoryStream): Boolean;
+var
+  S: string;
+  List: TStringList;
+begin
+  Result := False;
+  if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
+  begin
+    MemoryStream.Position := 0;
+    if Base64_OK = Base64Encode(MemoryStream, S) then
+    begin
+      List := TStringList.Create;
+      try
+        SplitStringToList(S, List);
+
+        List.Insert(0, Head);
+        List.Add(Tail);
+
+        List.SaveToFile(FileName);
+        Result := True;
+      finally
+        List.Free;
+      end;
     end;
   end;
 end;
@@ -872,28 +930,6 @@ begin
     Inc(Result);
 end;
 
-procedure SplitStringToList(const S: string; List: TStrings);
-const
-  LINE_WIDTH = 64;
-var
-  C, R: string;
-begin
-  if List = nil then
-    Exit;
-
-  List.Clear;
-  if S <> '' then
-  begin
-    R := S;
-    while R <> '' do
-    begin
-      C := Copy(R, 1, LINE_WIDTH);
-      Delete(R, 1, LINE_WIDTH);
-      List.Add(C);
-    end;
-  end;
-end;
-
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
   Parent: TCnBerWriteNode): TCnBerWriteNode;
 var
@@ -925,9 +961,7 @@ var
   Root, Node: TCnBerWriteNode;
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
-  List: TStrings;
   N, T, R1, R2, X, Y : TCnBigNumber;
-  S: string;
   B: Byte;
 begin
   Result := False;
@@ -940,7 +974,6 @@ begin
     Exit;
 
   Mem := nil;
-  List := nil;
   Writer := nil;
   T := nil;
   R1 := nil;
@@ -1014,25 +1047,13 @@ begin
     // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
     Mem := TMemoryStream.Create;
     Writer.SaveToStream(Mem);
-    Mem.Position := 0;
 
-    if Base64_OK = Base64Encode(Mem, S) then
-    begin
-      List := TStringList.Create;
-      SplitStringToList(S, List);
-      if KeyType = cktPKCS1 then
-      begin
-        List.Insert(0, PEM_RSA_PRIVATE_HEAD);
-        List.Add(PEM_RSA_PRIVATE_TAIL);
-      end
-      else if KeyType = cktPKCS8 then
-      begin
-        List.Insert(0, PEM_PRIVATE_HEAD);
-        List.Add(PEM_PRIVATE_TAIL);
-      end;
-      List.SaveToFile(PemFileName);
-      Result := True;
-    end;
+    if KeyType = cktPKCS1 then
+      Result := SaveMemoryToPemFile(PemFileName, PEM_RSA_PRIVATE_HEAD,
+        PEM_RSA_PRIVATE_TAIL, Mem)
+    else if KeyType = cktPKCS8 then
+      Result := SaveMemoryToPemFile(PemFileName, PEM_PRIVATE_HEAD,
+        PEM_PRIVATE_TAIL, Mem);
   finally
     BigNumberFree(T);
     BigNumberFree(R1);
@@ -1042,7 +1063,6 @@ begin
     BigNumberFree(Y);
 
     Mem.Free;
-    List.Free;
     Writer.Free;
   end;
 end;
@@ -1054,8 +1074,6 @@ var
   Root, Node: TCnBerWriteNode;
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
-  List: TStrings;
-  S: string;
 begin
   Result := False;
   if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
@@ -1063,7 +1081,6 @@ begin
     Exit;
 
   Mem := nil;
-  List := nil;
   Writer := nil;
   try
     Writer := TCnBerWriter.Create;
@@ -1093,28 +1110,15 @@ begin
     // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
     Mem := TMemoryStream.Create;
     Writer.SaveToStream(Mem);
-    Mem.Position := 0;
 
-    if Base64_OK = Base64Encode(Mem, S) then
-    begin
-      List := TStringList.Create;
-      SplitStringToList(S, List);
-      if KeyType = cktPKCS1 then
-      begin
-        List.Insert(0, PEM_RSA_PUBLIC_HEAD);
-        List.Add(PEM_RSA_PUBLIC_TAIL);
-      end
-      else if KeyType = cktPKCS8 then
-      begin
-        List.Insert(0, PEM_PUBLIC_HEAD);
-        List.Add(PEM_PUBLIC_TAIL);
-      end;
-      List.SaveToFile(PemFileName);
-      Result := True;
-    end;
+    if KeyType = cktPKCS1 then
+      Result := SaveMemoryToPemFile(PemFileName, PEM_RSA_PUBLIC_HEAD,
+        PEM_RSA_PUBLIC_TAIL, Mem)
+    else if KeyType = cktPKCS8 then
+      Result := SaveMemoryToPemFile(PemFileName, PEM_PUBLIC_HEAD,
+        PEM_PUBLIC_TAIL, Mem);
   finally
     Mem.Free;
-    List.Free;
     Writer.Free;
   end;
 end;
