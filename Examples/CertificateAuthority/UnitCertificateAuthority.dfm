@@ -1,5 +1,5 @@
 object FormCA: TFormCA
-  Left = 8
+  Left = 151
   Top = 114
   Width = 705
   Height = 503
@@ -13,6 +13,7 @@ object FormCA: TFormCA
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object pgc1: TPageControl
@@ -186,6 +187,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Generate Certificate Sign Request'
           TabOrder = 10
+          OnClick = btnGenerateCSRClick
         end
         object btnSelfSign: TButton
           Left = 528
@@ -372,7 +374,7 @@ object FormCA: TFormCA
     Left = 532
     Top = 56
   end
-  object dlgSaveCSR: TSaveDialog
+  object dlgSave: TSaveDialog
     Left = 412
     Top = 152
   end

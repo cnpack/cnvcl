@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, StdCtrls, CnCertificateAuthority;
+  ComCtrls, StdCtrls, CnRSA, CnCertificateAuthority;
 
 type
   TFormCA = class(TForm)
@@ -32,7 +32,7 @@ type
     cbbHash: TComboBox;
     btnGenerateCSR: TButton;
     dlgOpen: TOpenDialog;
-    dlgSaveCSR: TSaveDialog;
+    dlgSave: TSaveDialog;
     grpParse: TGroupBox;
     lblCSR: TLabel;
     edtCSR: TEdit;
@@ -61,8 +61,11 @@ type
     procedure btnBrowseCSRClick(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
     procedure btnParseCSRClick(Sender: TObject);
+    procedure btnGenerateCSRClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
-    { Private declarations }
+    FCPriv: TCnRSAPrivateKey;
+    FCPub: TCnRSAPublicKey;
   public
     { Public declarations }
   end;
@@ -74,9 +77,28 @@ implementation
 
 {$R *.DFM}
 
+function PrintHex(const Buf: Pointer; Len: Integer): string;
+var
+  I: Integer;
+  P: PByteArray;
+const
+  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+begin
+  Result := '';
+  P := PByteArray(Buf);
+  for I := 0 to Len - 1 do
+  begin
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P[I] shr 4) and $0F] +
+              Digits[P[I] and $0F]);
+  end;
+end;
+
 procedure TFormCA.FormCreate(Sender: TObject);
 begin
-  cbbHash.ItemIndex := 0;
+  cbbHash.ItemIndex := 1;
+  FCPriv := TCnRSAPrivateKey.Create;
+  FCPub := TCnRSAPublicKey.Create;
 end;
 
 procedure TFormCA.btnBrowseCSRClick(Sender: TObject);
@@ -94,16 +116,54 @@ end;
 procedure TFormCA.btnParseCSRClick(Sender: TObject);
 var
   CSR: TCnRSACertificateRequest;
+  OutBuf: array of Byte;
+  OutLen: Integer;
 begin
   CSR := TCnRSACertificateRequest.Create;
   if CnCALoadCertificateSignRequestFromFile(edtCSR.Text, CSR) then
   begin
     mmoCSRParse.Clear;
     mmoCSRParse.Lines.Add(CSR.ToString);
+
+    if (CSR.SignValue <> nil) and (CSR.SignLength > 0) and (CSR.PublicKey.BitsCount > 128) then
+    begin
+      SetLength(OutBuf, CSR.PublicKey.BitsCount div 8);
+      if CnRSADecryptRawData(CSR.SignValue, CSR.SignLength, @OutBuf[0], OutLen, CSR.PublicKey) then
+      begin
+        mmoCSRParse.Lines.Add('');
+        mmoCSRParse.Lines.Add('--------');
+        mmoCSRParse.Lines.Add('Digest after RSA Decryption:');
+        mmoCSRParse.Lines.Add(PrintHex(@OutBuf[0], OutLen));
+      end;
+    end;
   end
   else
     ShowMessage('Parse CSR Failed.');
   CSR.Free;
+end;
+
+procedure TFormCA.btnGenerateCSRClick(Sender: TObject);
+begin
+  if FileExists(edtRSAKey.Text) and CnRSALoadKeysFromPem(edtRSAKey.Text, FCPriv, FCPub) then
+  begin
+    if dlgSave.Execute then
+    begin
+      if CnCANewCertificateSignRequest(FCPriv, FCPub, dlgSave.FileName, edtContryName.Text,
+        edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
+        edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, TCnCASignType(cbbHash.ItemIndex)) then
+        ShowMessage('Generate CSR File Success.')
+      else
+        ShowMessage('Generate CSR File Fail.');
+    end;
+  end
+  else
+    ShowMessage('Invalid RSA Keys');
+end;
+
+procedure TFormCA.FormDestroy(Sender: TObject);
+begin
+  FCPub.Free;
+  FCPriv.Free;
 end;
 
 end.

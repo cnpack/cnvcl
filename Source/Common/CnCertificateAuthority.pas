@@ -24,7 +24,7 @@ unit CnCertificateAuthority;
 * 软件名称：开发包基础库
 * 单元名称：CA 证书认证单元
 * 单元作者：刘啸
-* 备    注：
+* 备    注：生成客户端 CSR 文件做证书签名请求，
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -38,9 +38,12 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnRSA, CnBerUtils;
+  SysUtils, Classes, Windows, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
 
 type
+  TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA);
+  {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA}
+
   TCnCertificateInfo = class(TPersistent)
   {* 描述证书中包含的普通字段信息，也叫 DN}
   private
@@ -76,9 +79,12 @@ type
   private
     FCertificateInfo: TCnCertificateInfo;
     FPublicKey: TCnRSAPublicKey;
-    FSignDigestType: TCnRSASignDigestType;
+    FCASignType: TCnCASignType;
     FSignValue: Pointer;
     FSignLength: Integer;
+    FDigestLength: Integer;
+    FDigestValue: Pointer;
+    FDigestType: TCnRSASignDigestType;
     procedure SetCertificateInfo(const Value: TCnCertificateInfo);
     procedure SetPublicKey(const Value: TCnRSAPublicKey); // 签名 Length 为 Key 的 Bit 数如 2048 Bit。
   public
@@ -91,23 +97,39 @@ type
     {* 证书 DN 信息}
     property PublicKey: TCnRSAPublicKey read FPublicKey write SetPublicKey;
     {* 客户端公钥}
-    property SignDigestType: TCnRSASignDigestType read FSignDigestType write FSignDigestType;
-    {* 客户端签名的散列算法}
+    property CASignType: TCnCASignType read FCASignType write FCASignType;
+    {* 客户端使用的散列与签名算法}
     property SignValue: Pointer read FSignValue write FSignValue;
     {* 散列后签名的结果}
     property SignLength: Integer read FSignLength write FSignLength;
     {* 散列后签名的结果长度}
+    property DigestType: TCnRSASignDigestType read FDigestType write FDigestType;
+    {* 客户端散列使用的散列算法，应与 CASignType 意义相等}
+    property DigestValue: Pointer read FDigestValue write FDigestValue;
+    {* 散列值}
+    property DigestLength: Integer read FDigestLength write FDigestLength;
+    {* 散列值的长度}
   end;
 
 function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCSRFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
-  EmailAddress: string; SignType: TCnRSASignDigestType = sdtSHA1): Boolean;
+  EmailAddress: string; CASignType: TCnCASignType = ctSha1RSA): Boolean;
+{* 根据公私钥与一些 DN 信息以及指定散列算法生成 CSR 格式的证书请求文件}
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 {* 解析 PEM 格式的 CSR 文件并将内容放入 TCnRSACertificateRequest 对象中}
+
+// 其他辅助函数
+
+function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType: TCnCASignType;
+  AParent: TCnBerWriteNode): TCnBerWriteNode;
+{* 将一个散列算法的 OID 写入一个 Ber 节点}
+
+function GetCASignNameFromSignType(Sign: TCnCASignType): string;
+{* 从证书的签名散列算法枚举值获取其名称}
 
 implementation
 
@@ -149,13 +171,182 @@ begin
   end;
 end;
 
+function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType: TCnCASignType;
+  AParent: TCnBerWriteNode): TCnBerWriteNode;
+begin
+  Result := nil;
+  case CASignType of
+    ctSha1RSA:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA1_RSAENCRYPTION[0],
+        SizeOf(OID_SHA1_RSAENCRYPTION), AParent);
+    // TODO: 其它算法类型支持
+  end;
+end;
+
+// 根据指定数字摘要算法计算数据的二进制散列值并写入 Stream
+function CalcDigestData(const Buffer; Count: Integer; CASignType: TCnCASignType;
+  outStream: TStream): Boolean;
+var
+  Md5: TMD5Digest;
+  Sha1: TSHA1Digest;
+  Sha256: TSHA256Digest;
+begin
+  Result := False;
+  case CASignType of
+    ctMd5RSA:
+      begin
+        Md5 := MD5Buffer(Buffer, Count);
+        outStream.Write(Md5, SizeOf(TMD5Digest));
+        Result := True;
+      end;
+    ctSha1RSA:
+      begin
+        Sha1 := SHA1Buffer(Buffer, Count);
+        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        Result := True;
+      end;
+    ctSha256RSA:
+      begin
+        Sha256 := SHA256Buffer(Buffer, Count);
+        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        Result := True;
+      end;
+  end;
+end;
+
+function GetRSASignTypeFromCASignType(CASignType: TCnCASignType): TCnRSASignDigestType;
+begin
+  Result := sdtSHA1;
+  case CASignType of
+    ctMd5RSA:
+      Result := sdtMD5;
+    ctSha1RSA:
+      Result := sdtSHA1;
+    ctSha256RSA:
+      Result := sdtSHA256;
+  end;
+end;
+
 function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCSRFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
-  EmailAddress: string; SignType: TCnRSASignDigestType): Boolean;
+  EmailAddress: string; CASignType: TCnCASignType): Boolean;
+var
+  B: Byte;
+  OutLen: Integer;
+  OutBuf: array of Byte;
+  Writer, HashWriter: TCnBerWriter;
+  Stream, DigestStream, ValueStream: TMemoryStream;
+  Root, DNRoot, InfoRoot, PubNode, HashNode, Node, HashRoot: TCnBerWriteNode;
+
+  procedure WriteDNNameToNode(AWriter: TCnBerWriter; DNOID: Pointer; DNOIDLen: Integer;
+    const DN: string; SuperParent: TCnBerWriteNode; ATag: Integer = CN_BER_TAG_PRINTABLESTRING);
+  var
+    ANode: TCnBerWriteNode;
+    AnsiDN: AnsiString;
+  begin
+    // Superparent 是 DNRoot，下面是 Set，再 Sequence，Sequence 里加 OID 与 PrintableString
+    ANode := AWriter.AddContainerNode(CN_BER_TAG_SET, SuperParent);
+    ANode := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, ANode);
+    AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, PByte(DNOID), DNOIDLen, ANode);
+    AnsiDN := AnsiString(DN);
+    AWriter.AddBasicNode(ATag, @AnsiDN[1], Length(AnsiDN), ANode);
+  end;
+
 begin
   Result := False;
+
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutCSRFile = '') then
+    Exit;
+
+  if (Length(CountryName) <> 2) or (StateOrProvinceName = '') or (LocalityName = '')
+    or (OrganizationName = '') or (OrganizationalUnitName = '') or (CommonName = '')
+    or (EmailAddress = '') then
+    Exit;
+
+  B := 0;
+  Writer := nil;
+  HashWriter := nil;
+  Stream := nil;
+  DigestStream := nil;
+  ValueStream := nil;
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    InfoRoot := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    // 给 Info 写一排直属子节点
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, InfoRoot);          // 版本
+    DNRoot := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, InfoRoot);  // DN
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, InfoRoot); // 公钥
+    Writer.AddRawNode($A0, @B, 1, InfoRoot);                           // 结束符
+
+    // 写 DN 节点的内容
+    WriteDNNameToNode(Writer, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName, DNRoot);
+    WriteDNNameToNode(Writer, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName, DNRoot);
+    WriteDNNameToNode(Writer, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName, DNRoot);
+    WriteDNNameToNode(Writer, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName, DNRoot);
+    WriteDNNameToNode(Writer, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName, DNRoot);
+    WriteDNNameToNode(Writer, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName, DNRoot);
+    WriteDNNameToNode(Writer, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, DNRoot, CN_BER_TAG_IA5STRING);
+
+    // 写公钥节点的内容
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, PubNode);
+    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
+      SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
+    Writer.AddNullNode(Node);
+    Node := Writer.AddContainerNode(CN_BER_TAG_BIT_STRING, PubNode);
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+    AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node);
+    AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
+
+    // 拿出 InfoRoot 的数据
+    ValueStream := TMemoryStream.Create;
+    InfoRoot.SaveValueToStream(ValueStream);
+
+    // 计算其 Hash
+    DigestStream := TMemoryStream.Create;
+    CalcDigestData(ValueStream.Memory, ValueStream.Size, CASignType, DigestStream);
+
+    // 将 Hash 及其签名算法拼成 BER 编码
+    HashWriter := TCnBerWriter.Create;
+    HashRoot := HashWriter.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    Node := HashWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, HashRoot);
+    AddDigestTypeOIDNodeToWriter(HashWriter, GetRSASignTypeFromCASignType(CASignType), Node);
+    HashWriter.AddNullNode(Node);
+    HashWriter.AddBasicNode(CN_BER_TAG_OCTET_STRING, DigestStream, HashRoot);
+
+    // 复用此 Stream，保存生成的 BER 格式内容
+    DigestStream.Clear;
+    HashWriter.SaveToStream(DigestStream);
+
+    // RSA 私钥加密此 BER 块得到签名值
+    SetLength(OutBuf, PrivateKey.BitsCount div 8);
+    if not CnRSAEncryptRawData(DigestStream.Memory, DigestStream.Size,
+      @OutBuf[0], OutLen, PrivateKey) then
+      Exit;
+
+    // 增加 Hash 算法说明
+    HashNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, HashNode);
+    Writer.AddNullNode(HashNode);
+
+    // 写入最终签名值
+    Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, @OutBuf[0], OutLen, Root);
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCSRFile, PEM_CERTIFICATE_REQUEST_HEAD,
+      PEM_CERTIFICATE_REQUEST_TAIL, Stream);
+  finally
+    Writer.Free;
+    HashWriter.Free;
+    Stream.Free;
+    ValueStream.Free;
+    DigestStream.Free;
+    SetLength(OutBuf, 0);
+  end;
 end;
 
 {
@@ -205,7 +396,7 @@ end;
     SEQUENCE
       OBJECT IDENTIFIER 1.2.840.113549.1.1.5sha1WithRSAEncryption(PKCS #1)
       NULL
-    BIT STRING  Digest值
+    BIT STRING  Digest 值经过 RSA 加密后的结果
 }
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
@@ -216,6 +407,8 @@ var
   Reader: TCnBerReader;
   MemStream: TMemoryStream;
   DNRoot, PubNode, HashNode, SignNode, Node, StrNode: TCnBerReadNode;
+  OutBuf: array of Byte;
+  OutLen: Integer;
 begin
   Result := False;
   if FileExists(FileName) then
@@ -308,7 +501,7 @@ begin
         begin
           if CompareObjectIdentifier(HashNode.Items[0], @OID_SHA1_RSAENCRYPTION[0],
             SizeOf(OID_SHA1_RSAENCRYPTION)) then
-            CertificateRequest.SignDigestType := sdtSHA1;
+            CertificateRequest.CASignType := ctSha1RSA;
           // TODO: 支持更多算法
         end;
 
@@ -319,11 +512,38 @@ begin
         P := Pointer(Integer(SignNode.BerDataAddress) + 1);
         CopyMemory(CertificateRequest.SignValue, P, CertificateRequest.SignLength);
 
+        // 解开 RSA 签名的内容得到 DER 编码的 Hash 值与算法
+        SetLength(OutBuf, CertificateRequest.PublicKey.BitsCount div 8);
+        if CnRSADecryptRawData(CertificateRequest.SignValue, CertificateRequest.SignLength,
+          @OutBuf[0], OutLen, CertificateRequest.PublicKey) then
+        begin
+          FreeAndNil(Reader);
+          Reader := TCnBerReader.Create(@OutBuf[0], OutLen);
+          Reader.ParseToTree;
+
+          if Reader.TotalCount < 5 then
+            Exit;
+          
+          Node := Reader.Items[2];
+          CertificateRequest.DigestType := GetDigestSignTypeFromBerOID(Node.BerDataAddress,
+            Node.BerDataLength);
+          if CertificateRequest.DigestType = sdtNone then
+            Exit;
+
+          // 获取 Ber 解出的散列值
+          Node := Reader.Items[4];
+          FreeMemory(CertificateRequest.DigestValue);
+          CertificateRequest.DigestLength := Node.BerDataLength;
+          CertificateRequest.DigestValue := GetMemory(CertificateRequest.DigestLength);
+          CopyMemory(CertificateRequest.DigestValue, Node.BerDataAddress,
+            CertificateRequest.DigestLength);
+        end;
         Result := True;
       end;
     finally
       Reader.Free;
       MemStream.Free;
+      SetLength(OutBuf, 0);
     end;
   end;
 end;
@@ -371,6 +591,7 @@ begin
   FCertificateInfo.Free;
   FPublicKey.Free;
   FreeMemory(FSignValue);
+  FreeMemory(FDigestValue);
   inherited;
 end;
 
@@ -391,7 +612,20 @@ begin
   Result := FCertificateInfo.ToString;
   Result := Result + SCRLF + 'Public Key Modulus: ' + FPublicKey.PubKeyProduct.ToDec;
   Result := Result + SCRLF + 'Public Key Exponent: ' + FPublicKey.PubKeyExponent.ToDec;
+  Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
   Result := Result + SCRLF + 'Signature: ' + PrintHex(FSignValue, FSignLength);
+  Result := Result + SCRLF + 'Signature Hash: ' + GetDigestNameFromSignDigestType(FDigestType);
+  Result := Result + SCRLF + 'Digest: ' + PrintHex(FDigestValue, FDigestLength);
 end;
 
+function GetCASignNameFromSignType(Sign: TCnCASignType): string;
+begin
+  case Sign of
+    ctMd5RSA: Result := 'MD5 RSA';
+    ctSha1RSA: Result := 'SHA1 RSA';
+    ctSha256RSA: Result := 'SHA256 RSA';
+  else
+    Result := '<Unknown>';
+  end;
+end;
 end.
