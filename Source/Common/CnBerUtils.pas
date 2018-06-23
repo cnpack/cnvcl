@@ -202,8 +202,13 @@ type
 
     function SaveToStream(Stream: TStream): Integer;
     {* 如果是基本类型就将自己写入流并返回写入长度，
-      如果是容器则挨个让子节点写出来，然后加自己头来拼成流并拼各子节点的返回长度。
-      返回值为本节点包括子节点的所有内容长度}
+       如果是容器则挨个让子节点写出来，然后加自己头来拼成流并拼各子节点的返回长度。
+       返回值为本节点包括子节点的所有内容长度}
+
+    function SaveValueToStream(Stream: TStream): Integer;
+    {* 如果是基本类型就将自己除了 Tag 与长度之外后面的数据内容写入流并返回写入长度。
+       如果是容器则挨个让子节点写出来后返回。
+       返回值为子节点所有内容长度但不包括自己的 Tag 与长度}
 
     function GetNodeLength: Integer;
     {* 如果是基本类型就返回自身长度，如果是容器则自己头加各子节点长度}
@@ -829,7 +834,6 @@ begin
   end
   else
   begin
-    FMem.Position := 0;
     Result := Stream.Write(FMem.Memory^, FMem.Size);
   end;
 end;
@@ -883,6 +887,39 @@ begin
   FMem.Write(FHead[0], FHeadLen);
   if DataLen > 0 then
     FMem.Write(Data^, DataLen);
+end;
+
+function TCnBerWriteNode.SaveValueToStream(Stream: TStream): Integer;
+var
+  B: Byte;
+  I: Integer;
+  AMem: TMemoryStream;
+begin
+  Result := 0;
+  if FIsContainer then
+  begin
+    AMem := TMemoryStream.Create;
+    try
+      for I := 0 to Count - 1 do
+        Items[I].SaveToStream(AMem);
+
+      if FBerTag = CN_BER_TAG_BIT_STRING then // BitString 留一个 bit 数，暂时作为全 0 处理
+      begin
+        B := 0;
+        Result := Result + Stream.Write(B, 1);
+      end;
+
+      // 写具体内容
+      Result := Result + Stream.Write(AMem.Memory^, AMem.Size);
+    finally
+      AMem.Free;
+    end;
+  end
+  else
+  begin
+    if (FHeadLen > 0) and (FMem.Size > FHeadLen) then
+      Result := Stream.Write(Pointer(Integer(FMem.Memory) + FHeadLen)^, FMem.Size - FHeadLen);
+  end;
 end;
 
 end.
