@@ -303,7 +303,7 @@ begin
 
     // 拿出 InfoRoot 的数据
     ValueStream := TMemoryStream.Create;
-    InfoRoot.SaveValueToStream(ValueStream);
+    InfoRoot.SaveToStream(ValueStream);
 
     // 计算其 Hash
     DigestStream := TMemoryStream.Create;
@@ -321,10 +321,11 @@ begin
     DigestStream.Clear;
     HashWriter.SaveToStream(DigestStream);
 
-    // RSA 私钥加密此 BER 块得到签名值
+    // RSA 私钥加密此 BER 块得到签名值，加密前需要 PKCS1 补齐
     SetLength(OutBuf, PrivateKey.BitsCount div 8);
-    if not CnRSAEncryptRawData(DigestStream.Memory, DigestStream.Size,
-      @OutBuf[0], OutLen, PrivateKey) then
+    OutLen := PrivateKey.BitsCount div 8;
+    if not CnRSAEncryptData(DigestStream.Memory, DigestStream.Size,
+      @OutBuf[0], PrivateKey) then
       Exit;
 
     // 增加 Hash 算法说明
@@ -512,9 +513,9 @@ begin
         P := Pointer(Integer(SignNode.BerDataAddress) + 1);
         CopyMemory(CertificateRequest.SignValue, P, CertificateRequest.SignLength);
 
-        // 解开 RSA 签名的内容得到 DER 编码的 Hash 值与算法
+        // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的 Hash 值与算法
         SetLength(OutBuf, CertificateRequest.PublicKey.BitsCount div 8);
-        if CnRSADecryptRawData(CertificateRequest.SignValue, CertificateRequest.SignLength,
+        if CnRSADecryptData(CertificateRequest.SignValue, CertificateRequest.SignLength,
           @OutBuf[0], OutLen, CertificateRequest.PublicKey) then
         begin
           FreeAndNil(Reader);
