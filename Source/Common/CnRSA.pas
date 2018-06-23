@@ -221,6 +221,26 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 
 // RSA 数据与文件加解密实现
 
+function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用公钥对数据块进行加密，无填充，结果放 OutBuf 中，
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+
+function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+{* 用私钥对数据块进行加密，无填充，结果放 OutBuf 中，
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+
+function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用公钥对数据块进行无填充解密，结果放 OutBuf 中，并返回数据长度
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+
+function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+{* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回数据长度
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+
 function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
@@ -296,6 +316,10 @@ function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignD
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
   Parent: TCnBerWriteNode): TCnBerWriteNode;
 {* 将一个大数的内容写入一个 Ber 整型格式的节点}
+
+function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
+  AParent: TCnBerWriteNode): TCnBerWriteNode;
+{* 将一个散列算法的 OID 写入一个 Ber 节点}
 
 function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
 {* 从签名散列算法枚举值获取其名称}
@@ -1239,6 +1263,54 @@ end;
 
 { RSA 加密解密运算}
 
+function RSACryptRawData(Data: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
+var
+  D, R: TCnBigNumber;
+begin
+  Result := False;
+  if (Data <> nil) and (DataLen > 0) then
+  begin
+    R := TCnBigNumber.Create;
+    D := TCnBigNumber.FromBinary(PAnsiChar(Data), DataLen);
+
+    if RSACrypt(D, Product, Exponent, R) then
+    begin
+      R.ToBinary(OutBuf);
+      OutLen := R.GetBytesCount;
+      Result := True;
+    end;
+  end;
+end;
+
+function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
+begin
+  Result := RSACryptRawData(PlainData, DataLen, OutBuf, OutLen,
+    PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
+end;
+
+function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
+begin
+  Result := RSACryptRawData(PlainData, DataLen, OutBuf, OutLen,
+    PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
+end;
+
+function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
+begin
+  Result := RSACryptRawData(EnData, DataLen, OutBuf, OutLen,
+    PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
+end;
+
+function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
+begin
+  Result := RSACryptRawData(EnData, DataLen, OutBuf, OutLen,
+    PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
+end;
+
 // 将数据块补上填充内容写入 Stream 中，返回成功与否。
 // PaddingType 取 0、1、2，BlockLen 字节数如 128 等
 // EB = 00 || BT || PS || 00 || D
@@ -1624,7 +1696,7 @@ begin
   end;
 end;
 
-function WriterAddOIDNode(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
+function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
 begin
   Result := nil;
@@ -1698,7 +1770,7 @@ begin
       // 然后按格式进行 BER 编码
       Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
       Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-      WriterAddOIDNode(Writer, SignType, Node);
+      AddDigestTypeOIDNodeToWriter(Writer, SignType, Node);
       Writer.AddNullNode(Node);
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Stream.Memory, Stream.Size, Root);
       Writer.SaveToStream(BerStream);
@@ -1851,7 +1923,7 @@ begin
       // 然后按格式进行 BER 编码
       Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
       Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-      WriterAddOIDNode(Writer, SignType, Node);
+      AddDigestTypeOIDNodeToWriter(Writer, SignType, Node);
       Writer.AddNullNode(Node);
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Stream.Memory, Stream.Size, Root);
       Writer.SaveToStream(BerStream);
