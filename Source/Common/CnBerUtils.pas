@@ -111,6 +111,10 @@ type
   public
     procedure CopyDataTo(DestBuf: Pointer);
     {* 将数据复制至缓冲区，缓冲区尺寸至少需要 BerDataLength 大}
+    procedure CopyHeadTo(DestBuf: Pointer);
+    {* 将节点头部也就是 TL 内容复制至缓冲区，缓冲区尺寸至少需要 BerLength - BerDataLength 大}
+    procedure CopyTLVTo(DestBuf: Pointer);
+    {* 将节点全部内容复制至缓冲区，，缓冲区尺寸至少需要 BerLength 大}
 
     function AsShortInt: ShortInt;
     function AsByte: Byte;
@@ -214,7 +218,8 @@ type
     {* 如果是基本类型就返回自身长度，如果是容器则自己头加各子节点长度}
 
     procedure FillBasicNode(ATag: Integer; Data: PByte; DataLen: Integer);
-    {* 外界创建此基本节点后用此方法填充基本数据，Container 节点不用}
+    {* 外界创建此基本节点后用此方法填充基本数据，Container 节点不用，
+       注意原始 BitString 不支持头字节，暂不需要自己填充}
 
     property Items[Index: Integer]: TCnBerWriteNode read GetItems write SetItems;
 
@@ -251,8 +256,11 @@ type
     function AddNullNode(Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
     {* 添加一个 Null 节点}
     function AddBasicNode(ATag: Integer; AData: PByte; DataLen: Integer;
-      Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
+      Parent: TCnBerWriteNode = nil): TCnBerWriteNode; overload;
     {* 添加一个基本类型的节点，内容从 AData 复制长度为 DataLen 的而来}
+    function AddBasicNode(ATag: Integer; AStream: TStream;
+      Parent: TCnBerWriteNode = nil): TCnBerWriteNode; overload;
+    {* 添加一个基本类型的节点，内容从指定流复制而来}
     function AddContainerNode(ATag: Integer; Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
     {* 添加一个容器类型的节点，此节点可以作为上面 BasicNode 的 Parent}
     function AddRawNode(RawTag: Integer; RawLV: PByte; LVLen: Integer;
@@ -593,6 +601,18 @@ begin
   Result := TCnBerReadNode(inherited GetPrevSibling);
 end;
 
+procedure TCnBerReadNode.CopyHeadTo(DestBuf: Pointer);
+begin
+  if FOriginData <> nil then
+    CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerOffset), FBerLength - FBerDataLength);
+end;
+
+procedure TCnBerReadNode.CopyTLVTo(DestBuf: Pointer);
+begin
+  if (FOriginData <> nil) and (FBerLength > 0) then
+    CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerOffset), FBerLength);
+end;
+
 { TCnBerWriter }
 
 function TCnBerWriter.AddBasicNode(ATag: Integer; AData: PByte;
@@ -715,6 +735,20 @@ begin
   Result.FMem.Write(B, 1);
   if (RawLV <> nil) and (LVLen > 0) then
     Result.FMem.Write(RawLV^, LVLen);
+end;
+
+function TCnBerWriter.AddBasicNode(ATag: Integer; AStream: TStream;
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
+var
+  Mem: TMemoryStream;
+begin
+  Mem := TMemoryStream.Create;
+  try
+    Mem.LoadFromStream(AStream);
+    Result := AddBasicNode(ATag, Mem.Memory, Mem.Size, Parent);
+  finally
+    Mem.Free;
+  end;
 end;
 
 { TCnBerWriteNode }
@@ -874,6 +908,8 @@ end;
 
 procedure TCnBerWriteNode.FillBasicNode(ATag: Integer; Data: PByte;
   DataLen: Integer);
+var
+  B: Byte;
 begin
   FBerTag := ATag;
   if FIsContainer then
@@ -886,7 +922,15 @@ begin
   FMem.Clear;
   FMem.Write(FHead[0], FHeadLen);
   if DataLen > 0 then
+  begin
+    // 纯 BitString 需要补一个前导字节，头长度已经在 FillHeadCalcLen 内补上了
+    if ATag = CN_BER_TAG_BIT_STRING then
+    begin
+      B := 0;
+      FMem.Write(B, 1);
+    end;
     FMem.Write(Data^, DataLen);
+  end;
 end;
 
 function TCnBerWriteNode.SaveValueToStream(Stream: TStream): Integer;

@@ -305,12 +305,13 @@ begin
       Inc(DestP);
     end;
   end;
+  Result := Trim(Result);
 end;
 
 procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
   var Valid: Boolean);
 var
-  Mem: Pointer;
+  Head, Mem: Pointer;
   BerNode: TCnBerReadNode;
 begin
   if not (ALeaf is TCnBerReadNode) then
@@ -328,12 +329,16 @@ begin
   else
   begin
     Mem := GetMemory(BerNode.BerDataLength);
-    if Mem <> nil then
+    Head := GetMemory(BerNode.BerLength - BerNode.BerDataLength);
+    if (Mem <> nil) and (Head <> nil) then
     begin
       BerNode.CopyDataTo(Mem);
-      FReadHints.Add(HexDumpMemory(Mem, BerNode.BerDataLength));
+      BerNode.CopyHeadTo(Head);
+      FReadHints.Add(HexDumpMemory(Head, BerNode.BerLength - BerNode.BerDataLength)
+        + #13#10#13#10 + HexDumpMemory(Mem, BerNode.BerDataLength));
       ATreeNode.Data := Pointer(FReadHints.Count - 1);
       FreeMemory(Mem);
+      FreeMemory(Head);
     end;
   end;
 end;
