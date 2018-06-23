@@ -267,10 +267,18 @@ function CnRSASignFile(const InFileName, OutSignFileName: string;
    原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
 function CnRSAVerifyFile(const InFileName, InSignFileName: string;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean; overload;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
    并比对两个二进制散列值是否相同，返回验证是否通过}
+
+function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+{* 用私钥签名指定内存流}
+
+function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+{* 用公钥与签名值验证指定内存流}
 
 // 其他辅助函数
 
@@ -288,6 +296,9 @@ function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignD
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
   Parent: TCnBerWriteNode): TCnBerWriteNode;
 {* 将一个大数的内容写入一个 Ber 整型格式的节点}
+
+function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
+{* 从签名散列算法枚举值获取其名称}
 
 implementation
 
@@ -1551,7 +1562,38 @@ end;
 
 // RSA 文件签名与验证实现
 
-// 根据指定数字摘要算法计算其二进制散列值并写入 Stream
+// 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream
+function CalcDigestStream(InStream: TStream; SignType: TCnRSASignDigestType;
+  outStream: TStream): Boolean;
+var
+  Md5: TMD5Digest;
+  Sha1: TSHA1Digest;
+  Sha256: TSHA256Digest;
+begin
+  Result := False;
+  case SignType of
+    sdtMD5:
+      begin
+        Md5 := MD5Stream(InStream);
+        outStream.Write(Md5, SizeOf(TMD5Digest));
+        Result := True;
+      end;
+    sdtSHA1:
+      begin
+        Sha1 := SHA1Stream(InStream);
+        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        Result := True;
+      end;
+    sdtSHA256:
+      begin
+        Sha256 := SHA256Stream(InStream);
+        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        Result := True;
+      end;
+  end;
+end;
+
+// 根据指定数字摘要算法计算文件的二进制散列值并写入 Stream
 function CalcDigestFile(const FileName: string; SignType: TCnRSASignDigestType;
   outStream: TStream): Boolean;
 var
@@ -1582,6 +1624,23 @@ begin
   end;
 end;
 
+function WriterAddOIDNode(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
+  AParent: TCnBerWriteNode): TCnBerWriteNode;
+begin
+  Result := nil;
+  case ASignType of
+    sdtMD5:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_MD5[0],
+        SizeOf(OID_SIGN_MD5), AParent);
+    sdtSHA1:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
+        SizeOf(OID_SIGN_SHA1), AParent);
+    sdtSHA256:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
+        SizeOf(OID_SIGN_SHA256), AParent);
+  end;
+end;
+
 {
   通过数字摘要算法算出二进制摘要后，还要进行 BER 编码再 PKCS1 Padding
   BER 编码的格式如下：
@@ -1599,6 +1658,159 @@ end;
       NULL
     OCTET STRING
 }
+
+function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+var
+  Stream, BerStream, EnStream: TMemoryStream;
+  Data, Res: TCnBigNumber;
+  ResBuf: array of Byte;
+  Writer: TCnBerWriter;
+  Root, Node: TCnBerWriteNode;
+begin
+  Result := False;
+  Stream := nil;
+  EnStream := nil;
+  BerStream := nil;
+  Writer := nil;
+  Data := nil;
+  Res := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    EnStream := TMemoryStream.Create;
+
+    if SignType = sdtNone then
+    begin
+      // 无数字摘要，直接整内容对齐
+      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        InStream.Memory, InStream.Size, EnStream) then
+        Exit;
+    end
+    else // 有数字摘要
+    begin
+      if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+        Exit;
+
+      BerStream := TMemoryStream.Create;
+      Writer := TCnBerWriter.Create;
+
+      // 然后按格式进行 BER 编码
+      Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+      WriterAddOIDNode(Writer, SignType, Node);
+      Writer.AddNullNode(Node);
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Stream.Memory, Stream.Size, Root);
+      Writer.SaveToStream(BerStream);
+
+      // 再把 BER 编码后的内容 PKCS1 填充对齐
+      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        BerStream.Memory, BerStream.Size, EnStream) then
+        Exit;
+    end;
+
+    // 私钥加密运算
+    Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
+    Res := TCnBigNumber.Create;
+
+    if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
+    begin
+      SetLength(ResBuf, Res.GetBytesCount);
+      Res.ToBinary(@ResBuf[0]);
+
+      // 保存用私钥加密后的内容至文件
+      Stream.Clear;
+      Stream.Write(ResBuf[0], Res.GetBytesCount);
+      Stream.SaveToStream(OutSignStream);
+      Result := True;
+    end;
+  finally
+    Stream.Free;
+    EnStream.Free;
+    BerStream.Free;
+    Data.Free;
+    Res.Free;
+    Writer.Free;
+    SetLength(ResBuf, 0);
+  end;
+end;
+
+function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+var
+  Stream: TMemoryStream;
+  Data, Res: TCnBigNumber;
+  ResBuf, BerBuf: array of Byte;
+  BerLen: Integer;
+  Reader: TCnBerReader;
+  Node: TCnBerReadNode;
+begin
+  Result := False;
+  Stream := nil;
+  Reader := nil;
+  Data := nil;
+  Res := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+
+    // 不管怎样签名内容先公钥解密
+    Data := TCnBigNumber.FromBinary(PAnsiChar(InSignStream.Memory), InSignStream.Size);
+    Res := TCnBigNumber.Create;
+
+    if RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res) then
+    begin
+      SetLength(ResBuf, Res.GetBytesCount);
+      Res.ToBinary(@ResBuf[0]);
+
+      if SignType = sdtNone then
+      begin
+        // 无摘要时，直接比对解密内容与原始文件
+        Result := InStream.Size = Res.GetBytesCount;
+        if Result then
+          Result := CompareMem(InStream.Memory, @ResBuf[0], InStream.Size);
+      end
+      else
+      begin
+        // 从 Res 中解出 PKCS1 对齐的内容
+        SetLength(BerBuf, Length(ResBuf));
+        if not PKCS1RemovePadding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+          Exit;
+
+        if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
+          Exit;
+
+        // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
+        Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
+        Reader.ParseToTree;
+        if Reader.TotalCount < 5 then
+          Exit;
+
+        Node := Reader.Items[2];
+        SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
+        if SignType = sdtNone then
+          Exit;
+
+        if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+          Exit;
+
+        // 与 Ber 解出的散列值比较
+        Node := Reader.Items[4];
+        Result := Stream.Size = Node.BerDataLength;
+        if Result then
+          Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
+      end;
+    end;
+  finally
+    Stream.Free;
+    Reader.Free;
+    Data.Free;
+    Res.Free;
+    SetLength(ResBuf, 0);
+    SetLength(BerBuf, 0);
+  end;
+end;
+
 function CnRSASignFile(const InFileName, OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType): Boolean;
 var
@@ -1607,24 +1819,6 @@ var
   ResBuf: array of Byte;
   Writer: TCnBerWriter;
   Root, Node: TCnBerWriteNode;
-
-  function WriterAddOIDNode(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
-    AParent: TCnBerWriteNode): TCnBerWriteNode;
-  begin
-    Result := nil;
-    case ASignType of
-      sdtMD5:
-        Result := Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_MD5[0],
-          SizeOf(OID_SIGN_MD5), AParent);
-      sdtSHA1:
-        Result := Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
-          SizeOf(OID_SIGN_SHA1), AParent);
-      sdtSHA256:
-        Result := Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
-          SizeOf(OID_SIGN_SHA256), AParent);
-    end;
-  end;
-
 begin
   Result := False;
   Stream := nil;
@@ -1783,6 +1977,18 @@ begin
     Result := sdtSHA1
   else if (OidLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidLen) then
     Result := sdtSHA256;
+end;
+
+function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
+begin
+  case Digest of
+    sdtNone: Result := '<None>';
+    sdtMD5: Result := 'MD5';
+    sdtSHA1: Result := 'SHA1';
+    sdtSHA256: Result := 'SHA256' ;
+  else
+    Result := '<Unknown>';
+  end;
 end;
 
 end.
