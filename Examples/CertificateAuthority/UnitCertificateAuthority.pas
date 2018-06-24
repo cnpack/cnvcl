@@ -48,10 +48,10 @@ type
     btnSignKeyBrowse: TButton;
     btnSign: TButton;
     grpParseCER: TGroupBox;
-    lblCER: TLabel;
-    edtCER: TEdit;
-    btnBrowseCER: TButton;
-    mmoCER: TMemo;
+    lblCRT: TLabel;
+    edtCRT: TEdit;
+    btnBrowseCRT: TButton;
+    mmoCRT: TMemo;
     lblRootCrt: TLabel;
     edtRootCRT: TEdit;
     btnRootCRTBrowse: TButton;

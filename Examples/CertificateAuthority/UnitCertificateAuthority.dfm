@@ -21,7 +21,7 @@ object FormCA: TFormCA
     Top = 8
     Width = 681
     Height = 457
-    ActivePage = tsRequest
+    ActivePage = tsSign
     TabOrder = 0
     object tsRequest: TTabSheet
       Caption = 'Certificate Sign Request'
@@ -336,31 +336,31 @@ object FormCA: TFormCA
         Top = 168
         Width = 657
         Height = 249
-        Caption = 'Parse CER File'
+        Caption = 'Parse CRT File'
         TabOrder = 1
-        object lblCER: TLabel
+        object lblCRT: TLabel
           Left = 16
           Top = 24
           Width = 44
           Height = 13
-          Caption = 'CER File:'
+          Caption = 'CRT File:'
         end
-        object edtCER: TEdit
+        object edtCRT: TEdit
           Left = 88
           Top = 20
           Width = 457
           Height = 21
           TabOrder = 0
         end
-        object btnBrowseCER: TButton
+        object btnBrowseCRT: TButton
           Left = 552
           Top = 20
           Width = 91
           Height = 21
-          Caption = 'Browse CER File'
+          Caption = 'Browse CRT File'
           TabOrder = 1
         end
-        object mmoCER: TMemo
+        object mmoCRT: TMemo
           Left = 16
           Top = 56
           Width = 625

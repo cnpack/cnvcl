@@ -168,6 +168,7 @@ begin
       Mem := TMemoryStream.Create;
       Mem.LoadFromFile(edtFile.Text);
       Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, True);
+      Reader.ParseToTree;
     end;
 
     Reader.OnSaveNode := SaveNode;
@@ -313,6 +314,7 @@ procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
 var
   Head, Mem: Pointer;
   BerNode: TCnBerReadNode;
+  S: string;
 begin
   if not (ALeaf is TCnBerReadNode) then
     Exit;
@@ -334,8 +336,15 @@ begin
     begin
       BerNode.CopyDataTo(Mem);
       BerNode.CopyHeadTo(Head);
-      FReadHints.Add(HexDumpMemory(Head, BerNode.BerLength - BerNode.BerDataLength)
-        + #13#10#13#10 + HexDumpMemory(Mem, BerNode.BerDataLength));
+      S := HexDumpMemory(Head, BerNode.BerLength - BerNode.BerDataLength)
+        + #13#10#13#10 + HexDumpMemory(Mem, BerNode.BerDataLength);
+
+      if BerNode.IsDateTime then
+        S := DateTimeToStr(BerNode.AsDateTime)
+      else if BerNode.IsString then
+        S := S + #13#10#13#10 + BerNode.AsString;
+
+      FReadHints.Add(S);
       ATreeNode.Data := Pointer(FReadHints.Count - 1);
       FreeMemory(Mem);
       FreeMemory(Head);

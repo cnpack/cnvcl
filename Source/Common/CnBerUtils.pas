@@ -70,7 +70,7 @@ const
   CN_BER_TAG_SET                            = $11;
   CN_BER_TAG_NUMERICSTRING                  = $12;
   CN_BER_TAG_PRINTABLESTRING                = $13;
-  CN_BER_TAG_TELETEXSTRING                  = $14;
+  CN_BER_TAG_TELETEXSTRING                  = $14;  // T61String
   CN_BER_TAG_VIDEOTEXSTRING                 = $15;
   CN_BER_TAG_IA5STRING                      = $16;
   CN_BER_TAG_UTCTIME                        = $17;
@@ -83,6 +83,9 @@ const
   CN_BER_TAG_BMPSTRING                      = $1E;
 
 type
+  TCnBerTagRange = CN_BER_TAG_BOOLEAN..CN_BER_TAG_BMPSTRING;
+  TCnBerTagSet = set of TCnBerTagRange;
+
   TCnBerTag = (cbtReserved_0, cbtBoolean, cbtInteger, cbtBit_String,
     cbtOctet_String, cbtNull, cbtObject_Identifier, cbtObject_Descripion,
     cbtExternal, cbtReal, cbtEnumerated, cbtEmbedded_Pdv, cbtUft8String,
@@ -106,7 +109,8 @@ type
     function GetItems(Index: Integer): TCnBerReadNode;
     procedure SetItems(Index: Integer; const Value: TCnBerReadNode);
 
-    function InternalAsInt(ByteSize: Integer): Integer;
+    function InternalAsInteger(ByteSize: Integer): Integer;
+    function InternalAsString(TagSet: TCnBerTagSet): string;
     function GetBerDataAddress: Pointer;
   public
     procedure CopyDataTo(DestBuf: Pointer);
@@ -123,8 +127,22 @@ type
     function AsInteger: Integer;
     function AsCardinal: Cardinal;
     function AsInt64: Int64;
+    {* 按尺寸返回整型值}
 
+    function AsString: string;
+    {* 返回字符串，可能是以下几种类型}
     function AsPrintableString: string;
+    {* 返回可打印字符串}
+    function AsIA5String: string;
+    {* 返回纯 ASCII 码的字符串}
+
+    function AsDateTime: TDateTime;
+    {* 返回 UTCTime 或 GeneralizedTime}
+
+    function IsNull: Boolean;
+    function IsString: Boolean;
+    function IsInteger: Boolean;
+    function IsDateTime: Boolean;
 
     function GetNextSibling: TCnBerReadNode;
     function GetPrevSibling: TCnBerReadNode;
@@ -275,6 +293,12 @@ function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
 {* 比较一个 Node 中的数据是否等于一个指定的 OID}
 
 implementation
+
+const
+  CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_NUMERICSTRING, CN_BER_TAG_PRINTABLESTRING,
+    CN_BER_TAG_IA5STRING, CN_BER_TAG_TELETEXSTRING];
+
+  CN_TAG_SET_TIME: TCnBerTagSet = [CN_BER_TAG_UTCTIME, CN_BER_TAG_GENERALIZEDTIME];
 
 function GetTagName(Tag: Integer): string;
 begin
@@ -488,22 +512,11 @@ end;
 { TCnBerReadNode }
 
 function TCnBerReadNode.AsPrintableString: string;
-var
-  P: Pointer;
 begin
-  if not FBerTag in [CN_BER_TAG_PRINTABLESTRING, CN_BER_TAG_IA5STRING] then
-    raise Exception.Create('Ber Tag Type Mismatch for PrintableString: ' + IntToStr(FBerTag));
-
-  Result := '';
-  P := GetBerDataAddress;
-  if (P <> nil) and (BerDataLength > 0) then
-  begin
-    SetLength(Result, BerDataLength);
-    CopyMemory(@Result[1], P, BerDataLength);
-  end;
+  Result := InternalAsString([CN_BER_TAG_PRINTABLESTRING]);
 end;
 
-function TCnBerReadNode.InternalAsInt(ByteSize: Integer): Integer;
+function TCnBerReadNode.InternalAsInteger(ByteSize: Integer): Integer;
 var
   IntValue: Integer;
 begin
@@ -539,32 +552,32 @@ end;
 
 function TCnBerReadNode.AsByte: Byte;
 begin
-  Result := Byte(InternalAsInt(SizeOf(Byte)));
+  Result := Byte(InternalAsInteger(SizeOf(Byte)));
 end;
 
 function TCnBerReadNode.AsCardinal: Cardinal;
 begin
-  Result := Cardinal(InternalAsInt(SizeOf(Cardinal)));
+  Result := Cardinal(InternalAsInteger(SizeOf(Cardinal)));
 end;
 
 function TCnBerReadNode.AsInteger: Integer;
 begin
-  Result := Integer(InternalAsInt(SizeOf(Integer)));
+  Result := Integer(InternalAsInteger(SizeOf(Integer)));
 end;
 
 function TCnBerReadNode.AsShortInt: ShortInt;
 begin
-  Result := ShortInt(InternalAsInt(SizeOf(ShortInt)));
+  Result := ShortInt(InternalAsInteger(SizeOf(ShortInt)));
 end;
 
 function TCnBerReadNode.AsSmallInt: SmallInt;
 begin
-  Result := SmallInt(InternalAsInt(SizeOf(SmallInt)));
+  Result := SmallInt(InternalAsInteger(SizeOf(SmallInt)));
 end;
 
 function TCnBerReadNode.AsWord: Word;
 begin
-  Result := Word(InternalAsInt(SizeOf(Word)));
+  Result := Word(InternalAsInteger(SizeOf(Word)));
 end;
 
 procedure TCnBerReadNode.CopyDataTo(DestBuf: Pointer);
@@ -611,6 +624,67 @@ procedure TCnBerReadNode.CopyTLVTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerLength > 0) then
     CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerOffset), FBerLength);
+end;
+
+function TCnBerReadNode.AsIA5String: string;
+begin
+  Result := InternalAsString([CN_BER_TAG_IA5STRING]);
+end;
+
+function TCnBerReadNode.AsString: string;
+begin
+  Result := InternalAsString(CN_TAG_SET_STRING + CN_TAG_SET_TIME);
+end;
+
+function TCnBerReadNode.AsDateTime: TDateTime;
+var
+  S: string;
+begin
+  S := InternalAsString(CN_TAG_SET_TIME);
+  // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
+
+  try
+    Result := StrToDateTime(S);
+  except
+    ; // TODO: 也可能是 Integer 的 Binary Time 格式，
+      // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
+  end;
+end;
+
+function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): string;
+var
+  P: Pointer;
+begin
+  if not FBerTag in TagSet then
+    raise Exception.Create('Ber Tag Type Mismatch for String: ' + IntToStr(FBerTag));
+
+  Result := '';
+  P := GetBerDataAddress;
+  if (P <> nil) and (BerDataLength > 0) then
+  begin
+    SetLength(Result, BerDataLength);
+    CopyMemory(@Result[1], P, BerDataLength);
+  end;
+end;
+
+function TCnBerReadNode.IsNull: Boolean;
+begin
+  Result := FBerTag = CN_BER_TAG_NULL;
+end;
+
+function TCnBerReadNode.IsDateTime: Boolean;
+begin
+  Result := FBerTag in CN_TAG_SET_TIME;
+end;
+
+function TCnBerReadNode.IsString: Boolean;
+begin
+  Result := FBerTag in (CN_TAG_SET_STRING + CN_TAG_SET_TIME);
+end;
+
+function TCnBerReadNode.IsInteger: Boolean;
+begin
+  Result := FBerTag = CN_BER_TAG_INTEGER;
 end;
 
 { TCnBerWriter }
