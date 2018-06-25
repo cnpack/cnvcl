@@ -129,15 +129,15 @@ type
     { Public declarations }
     class function ScreenWorkRect: TRect;
     class function CaptionHeight(const bSmall: Boolean = False): Integer;
-    class function NoClientHeight(f: TForm): Integer;
-    class function BorderWidth(f: TForm): Integer;
-    class procedure UpdateAnchorRules(f: TForm);
+    class function NoClientHeight(F: TForm): Integer;
+    class function BorderWidth(F: TForm): Integer;
+    class procedure UpdateAnchorRules(F: TForm);
 
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     function GetDesignTextHeight(frm: TForm): Integer;
-    function MultiPPI(const i: Integer; f: TForm): Integer;
+    function MultiPPI(const i: Integer; F: TForm): Integer;
 
     procedure DoEffects;
     procedure ScaleDynamicControls;
@@ -205,33 +205,34 @@ begin
 end;
 *)
 
-class function TCnFormScaler.NoClientHeight(f: TForm): Integer;
+class function TCnFormScaler.NoClientHeight(F: TForm): Integer;
 begin
-  if Assigned(f) then
-    Result := (f.Height - f.ClientHeight)
+  if Assigned(F) then
+    Result := (F.Height - F.ClientHeight)
   else
     Result := CaptionHeight;
 end;
 
-class function TCnFormScaler.BorderWidth(f: TForm): Integer;
+class function TCnFormScaler.BorderWidth(F: TForm): Integer;
 begin
-  if Assigned(f) then
-    Result := (f.Width - f.ClientWidth) div 2
+  if Assigned(F) then
+    Result := (F.Width - F.ClientWidth) div 2
   else
     Result := GetSystemMetrics(SM_CXFRAME);
 end;
 
-class procedure TCnFormScaler.UpdateAnchorRules(f: TForm);
-  procedure DoWithControl(c: TControl);
+class procedure TCnFormScaler.UpdateAnchorRules(F: TForm);
+
+  procedure DoWithControl(C: TControl);
   var
     OldAnchors: TAnchors;
-    i: Integer;
+    I: Integer;
   begin
-    with c do
+    with C do
     begin
-      for i := 0 to c.ComponentCount - 1 do
-        if c.Components[i] is TControl then
-          DoWithControl(TControl(c.Components[i]));
+      for I := 0 to C.ComponentCount - 1 do
+        if C.Components[I] is TControl then
+          DoWithControl(TControl(C.Components[I]));
       //c.SetBounds(c.Left,c.Top,c.Width,c.Height);
       OldAnchors := Anchors;
       Anchors := [];
@@ -240,43 +241,43 @@ class procedure TCnFormScaler.UpdateAnchorRules(f: TForm);
     end;
   end;
 var
-  i: Integer;
+  I: Integer;
   //OldAnchors: TAnchors;
 begin
   //Update all FAnchorRules
-  if Assigned(f) then
+  if Assigned(F) then
   begin
-    for i := 0 to f.ControlCount - 1 do
-      DoWithControl(f.Controls[i]);
+    for I := 0 to F.ControlCount - 1 do
+      DoWithControl(F.Controls[I]);
 
     { //应该无需对窗体本身进行处理
-    OldAnchors := f.Anchors;
-    f.Anchors := [];
-    f.Anchors := [akLeft, akTop, akRight, akBottom];
-    f.Anchors := OldAnchors;
+    OldAnchors := F.Anchors;
+    F.Anchors := [];
+    F.Anchors := [akLeft, akTop, akRight, akBottom];
+    F.Anchors := OldAnchors;
     }
   end;
 end;
 
-function TCnFormScaler.GetDesignTextHeight(frm: TForm): Integer;
+function TCnFormScaler.GetDesignTextHeight(Frm: TForm): Integer;
 var
   NewTH: Integer;
 begin
   //Get Design-time TextHeight
-  if not Assigned(frm) then
-    frm := FForm;
-  NewTH := frm.Canvas.TextHeight('0');
-  Result := MulDiv(NewTH, FDesignPPI, frm.PixelsPerInch);
+  if not Assigned(Frm) then
+    Frm := FForm;
+  NewTH := Frm.Canvas.TextHeight('0');
+  Result := MulDiv(NewTH, FDesignPPI, Frm.PixelsPerInch);
 end;
 
-function TCnFormScaler.MultiPPI(const i: Integer; f: TForm): Integer;
+function TCnFormScaler.MultiPPI(const I: Integer; F: TForm): Integer;
 begin
   //Calc New Size
-  if not Assigned(f) then
-    f := FForm;
+  if not Assigned(F) then
+    F := FForm;
 
   //GetDesignTextHeight本身就是计算出来的结果,所以这么计算不因字体原因而影响
-  Result := MulDiv(i, f.Canvas.TextHeight('0'), GetDesignTextHeight(f));
+  Result := MulDiv(I, F.Canvas.TextHeight('0'), GetDesignTextHeight(F));
   { //分类处理虽然计算的快些，但是可能会不够精确
   if f = Owner then
     //使用TextHeight不能正确处理字体变化过的情形
@@ -663,7 +664,7 @@ begin
   if csLoading in ComponentState then
   begin
 {$IFDEF DEBUG}
-    CnDebugger.LogMsg('TCnFormScaler SetTextHeight ' + IntToStr(Value)));
+    CnDebugger.LogMsg('TCnFormScaler SetTextHeight ' + IntToStr(Value));
 {$ENDIF}
     FTextHeight := Value;
   end;
