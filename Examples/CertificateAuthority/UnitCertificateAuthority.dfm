@@ -21,7 +21,7 @@ object FormCA: TFormCA
     Top = 8
     Width = 681
     Height = 457
-    ActivePage = tsSign
+    ActivePage = tsRequest
     TabOrder = 0
     object tsRequest: TTabSheet
       Caption = 'Certificate Sign Request'
@@ -348,17 +348,18 @@ object FormCA: TFormCA
         object edtCRT: TEdit
           Left = 88
           Top = 20
-          Width = 457
+          Width = 361
           Height = 21
           TabOrder = 0
         end
         object btnBrowseCRT: TButton
-          Left = 552
+          Left = 456
           Top = 20
           Width = 91
           Height = 21
           Caption = 'Browse CRT File'
           TabOrder = 1
+          OnClick = btnBrowseCRTClick
         end
         object mmoCRT: TMemo
           Left = 16
@@ -366,6 +367,15 @@ object FormCA: TFormCA
           Width = 625
           Height = 177
           TabOrder = 2
+        end
+        object btnParseCRT: TButton
+          Left = 552
+          Top = 20
+          Width = 91
+          Height = 21
+          Caption = 'Parse CRT File'
+          TabOrder = 3
+          OnClick = btnParseCRTClick
         end
       end
     end

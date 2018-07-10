@@ -24,7 +24,13 @@ unit CnCertificateAuthority;
 * 软件名称：开发包基础库
 * 单元名称：CA 证书认证单元
 * 单元作者：刘啸
-* 备    注：生成客户端 CSR 文件做证书签名请求，
+* 备    注：生成客户端 CSR 文件做证书签名请求，类似于命令：
+*               openssl req -new -key clientkey.pem -out client.csr -config /c/Program\ Files/Git/ssl/openssl.cnf
+*               其中 clientkey.pem 是预先生成的 RSA 私钥
+*           一次性生成自签名的 crt 证书：
+*               openssl req -new -x509 -keyout ca.key -out ca.crt -config /c/Program\ Files/Git/ssl/openssl.cnf
+*           或利用现有 Key 对此 Key 生成的 CSR 请求文件进行自签名：
+*               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsign.crt
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -44,8 +50,8 @@ type
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA);
   {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA}
 
-  TCnCertificateInfo = class(TPersistent)
-  {* 描述证书中包含的普通字段信息，也叫 DN}
+  TCnCertificateBaseInfo = class(TPersistent)
+  {* 描述证书中包含的普通字段信息}
   private
     FCountryName: string;
     FOrganizationName: string;
@@ -74,10 +80,15 @@ type
     {* 电子邮件地址}
   end;
 
+  // 以下是证书请求的声明
+
+  TCnCertificateRequestInfo = class(TCnCertificateBaseInfo);
+  {* 证书请求中包含的基本信息}
+
   TCnRSACertificateRequest = class(TObject)
   {* 描述证书请求中的信息，包括普通字段、公钥、摘要类型与签名等}
   private
-    FCertificateInfo: TCnCertificateInfo;
+    FCertificateRequestInfo: TCnCertificateRequestInfo;
     FPublicKey: TCnRSAPublicKey;
     FCASignType: TCnCASignType;
     FSignValue: Pointer;
@@ -85,7 +96,7 @@ type
     FDigestLength: Integer;
     FDigestValue: Pointer;
     FDigestType: TCnRSASignDigestType;
-    procedure SetCertificateInfo(const Value: TCnCertificateInfo);
+    procedure SetCertificateRequestInfo(const Value: TCnCertificateRequestInfo);
     procedure SetPublicKey(const Value: TCnRSAPublicKey); // 签名 Length 为 Key 的 Bit 数如 2048 Bit。
   public
     constructor Create;
@@ -93,7 +104,8 @@ type
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
-    property CertificateInfo: TCnCertificateInfo read FCertificateInfo write SetCertificateInfo;
+    property CertificateRequestInfo: TCnCertificateRequestInfo
+      read FCertificateRequestInfo write SetCertificateRequestInfo;
     {* 证书 DN 信息}
     property PublicKey: TCnRSAPublicKey read FPublicKey write SetPublicKey;
     {* 客户端公钥}
@@ -106,7 +118,110 @@ type
     property DigestType: TCnRSASignDigestType read FDigestType write FDigestType;
     {* 客户端散列使用的散列算法，应与 CASignType 意义相等}
     property DigestValue: Pointer read FDigestValue write FDigestValue;
-    {* 散列值}
+    {* 散列值，中间结果，不直接存储于 CSR 文件中}
+    property DigestLength: Integer read FDigestLength write FDigestLength;
+    {* 散列值的长度}
+  end;
+
+  // 以上是证书请求的声明，以下是证书认证的声明
+
+  TCnCertificateSubjectInfo = class(TCnCertificateBaseInfo);
+  {* 证书请求中包含的被签发者的基本信息}
+
+  TCnCertificateIssuerInfo = class(TCnCertificateBaseInfo);
+  {* 证书请求中包含的签发者的基本信息}
+
+  TCnUTCTime = class(TObject)
+  {* 证书中代表过期时间的解析类}
+  private
+    FUTCTimeString: string;
+    FDateTime: TDateTime;
+    procedure SetDateTime(const Value: TDateTime);
+    procedure SetUTCTimeString(const Value: string);
+  public
+    property DateTime: TDateTime read FDateTime write SetDateTime;
+    property UTCTimeString: string read FUTCTimeString write SetUTCTimeString;
+  end;
+
+{
+  TBSCertificate  ::=  SEQUENCE
+    version         [0]  EXPLICIT Version DEFAULT v1,
+    serialNumber         CertificateSerialNumber,
+    signature            AlgorithmIdentifier,
+    issuer               Name,
+    validity             Validity,
+    subject              Name,
+    subjectPublicKeyInfo SubjectPublicKeyInfo,
+    issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
+                         -- If present, version MUST be v2 or v3
+    subjectUniqueID [2]  IMPLICIT UniqueIdentifier OPTIONAL,
+                         -- If present, version MUST be v2 or v3
+    extensions      [3]  EXPLICIT Extensions OPTIONAL
+                         -- If present, version MUST be v3
+}
+
+  TCnRSABasicCertificate = class(TObject)
+  {* 证书中的基本信息域}
+  private
+    FIssuer: TCnCertificateIssuerInfo;
+    FSerialNumber: string;
+    FNotAfter: TCnUTCTime;
+    FNotBefore: TCnUTCTime;
+    FVersion: Integer;
+    FSubject: TCnCertificateSubjectInfo;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property Version: Integer read FVersion write FVersion;
+    {* 版本号，值 0、1、2 表示版本号为 v1、v2、v3，默认 v1 时可省略
+      有 extensions 时必须是 v3，无 extensions 但有 UniqueIdentifier 时 v2
+      建议生成版本 v3 的}
+    property SerialNumber: string read FSerialNumber write FSerialNumber;
+    {* 序列号，本来应该是整型，但当作字符串处理}
+    property Subject: TCnCertificateSubjectInfo read FSubject write FSubject;
+    {* 被签发者的基本信息}
+    property Issuer: TCnCertificateIssuerInfo read FIssuer write FIssuer;
+    {* 签发者的基本信息}
+    property NotBefore: TCnUTCTime read FNotBefore;
+    {* 有效期起始}
+    property NotAfter: TCnUTCTime read FNotAfter;
+    {* 有效期结束}
+  end;
+
+{
+  Certificate  ::=  SEQUENCE
+    tbsCertificate       TBSCertificate,
+    signatureAlgorithm   AlgorithmIdentifier,
+    signatureValue       BIT STRING
+}
+
+  TCnRSACertificate = class(TObject)
+  {* 描述一完整的证书}
+  private
+    FDigestLength: Integer;
+    FSignLength: Integer;
+    FDigestValue: Pointer;
+    FSignValue: Pointer;
+    FCASignType: TCnCASignType;
+    FDigestType: TCnRSASignDigestType;
+    FBasicCertificate: TCnRSABasicCertificate;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property BasicCertificate: TCnRSABasicCertificate read FBasicCertificate;
+    {* 证书基本信息类}
+    property CASignType: TCnCASignType read FCASignType write FCASignType;
+    {* 客户端使用的散列与签名算法}
+    property SignValue: Pointer read FSignValue write FSignValue;
+    {* 散列后签名的结果}
+    property SignLength: Integer read FSignLength write FSignLength;
+    {* 散列后签名的结果长度}
+    property DigestType: TCnRSASignDigestType read FDigestType write FDigestType;
+    {* 客户端散列使用的散列算法，应与 CASignType 意义相等}
+    property DigestValue: Pointer read FDigestValue write FDigestValue;
+    {* 散列值，中间结果，不直接存储于 CSR 文件中}
     property DigestLength: Integer read FDigestLength write FDigestLength;
     {* 散列值的长度}
   end;
@@ -121,6 +236,10 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 {* 解析 PEM 格式的 CSR 文件并将内容放入 TCnRSACertificateRequest 对象中}
+
+function CnCALoadCertificateFromFile(const FileName: string;
+  Certificate: TCnRSACertificate): Boolean;
+{* 解析 PEM 格式的 CRT 证书文件并将内容放入 TCnRSACertificate 中}
 
 // 其他辅助函数
 
@@ -137,6 +256,8 @@ const
   // PKCS#10
   PEM_CERTIFICATE_REQUEST_HEAD = '-----BEGIN CERTIFICATE REQUEST-----';
   PEM_CERTIFICATE_REQUEST_TAIL = '-----END CERTIFICATE REQUEST-----';
+  PEM_CERTIFICATE_HEAD = '-----BEGIN CERTIFICATE-----';
+  PEM_CERTIFICATE_TAIL = '-----END CERTIFICATE-----';
 
   OID_DN_COUNTRYNAME            : array[0..2] of Byte = ($55, $04, $06); // 2.5.4.6
   OID_DN_STATEORPROVINCENAME    : array[0..2] of Byte = ($55, $04, $08); // 2.5.4.8
@@ -463,19 +584,19 @@ begin
               if Node.BerTag = CN_BER_TAG_OBJECT_IDENTIFIER then
               begin
                 if CompareObjectIdentifier(Node, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME)) then
-                  CertificateRequest.CertificateInfo.CountryName := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.CountryName := StrNode.AsPrintableString
                 else if CompareObjectIdentifier(Node, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME)) then
-                  CertificateRequest.CertificateInfo.StateOrProvinceName := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.StateOrProvinceName := StrNode.AsPrintableString
                 else if CompareObjectIdentifier(Node, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME)) then
-                  CertificateRequest.CertificateInfo.LocalityName := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.LocalityName := StrNode.AsPrintableString
                 else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME)) then
-                  CertificateRequest.CertificateInfo.OrganizationName := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.OrganizationName := StrNode.AsPrintableString
                 else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME)) then
-                  CertificateRequest.CertificateInfo.OrganizationalUnitName := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.OrganizationalUnitName := StrNode.AsPrintableString
                 else if CompareObjectIdentifier(Node, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME)) then
-                  CertificateRequest.CertificateInfo.CommonName := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.CommonName := StrNode.AsPrintableString
                 else if CompareObjectIdentifier(Node, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS)) then
-                  CertificateRequest.CertificateInfo.EmailAddress := StrNode.AsPrintableString
+                  CertificateRequest.CertificateRequestInfo.EmailAddress := StrNode.AsPrintableString
               end;
             end;
           end;
@@ -549,25 +670,25 @@ begin
   end;
 end;
 
-{ TCnCertificateInfo }
+{ TCnCertificateBasicInfo }
 
-procedure TCnCertificateInfo.Assign(Source: TPersistent);
+procedure TCnCertificateBaseInfo.Assign(Source: TPersistent);
 begin
-  if Source is TCnCertificateInfo then
+  if Source is TCnCertificateBaseInfo then
   begin
-    FCountryName := (Source as TCnCertificateInfo).CountryName;
-    FOrganizationName := (Source as TCnCertificateInfo).OrganizationName;
-    FEmailAddress := (Source as TCnCertificateInfo).EmailAddress;
-    FLocalityName := (Source as TCnCertificateInfo).LocalityName;
-    FCommonName := (Source as TCnCertificateInfo).CommonName;
-    FOrganizationalUnitName := (Source as TCnCertificateInfo).OrganizationalUnitName;
-    FStateOrProvinceName := (Source as TCnCertificateInfo).StateOrProvinceName;
+    FCountryName := (Source as TCnCertificateBaseInfo).CountryName;
+    FOrganizationName := (Source as TCnCertificateBaseInfo).OrganizationName;
+    FEmailAddress := (Source as TCnCertificateBaseInfo).EmailAddress;
+    FLocalityName := (Source as TCnCertificateBaseInfo).LocalityName;
+    FCommonName := (Source as TCnCertificateBaseInfo).CommonName;
+    FOrganizationalUnitName := (Source as TCnCertificateBaseInfo).OrganizationalUnitName;
+    FStateOrProvinceName := (Source as TCnCertificateBaseInfo).StateOrProvinceName;
   end
   else
     inherited;
 end;
 
-function TCnCertificateInfo.ToString: string;
+function TCnCertificateBaseInfo.ToString: string;
 begin
   Result := 'CountryName: ' + FCountryName + SCRLF;
   Result := Result + 'StateOrProvinceName: ' + FStateOrProvinceName + SCRLF;
@@ -583,23 +704,23 @@ end;
 constructor TCnRSACertificateRequest.Create;
 begin
   inherited;
-  FCertificateInfo := TCnCertificateInfo.Create;
+  FCertificateRequestInfo := TCnCertificateRequestInfo.Create;
   FPublicKey := TCnRSAPublicKey.Create;
 end;
 
 destructor TCnRSACertificateRequest.Destroy;
 begin
-  FCertificateInfo.Free;
+  FCertificateRequestInfo.Free;
   FPublicKey.Free;
   FreeMemory(FSignValue);
   FreeMemory(FDigestValue);
   inherited;
 end;
 
-procedure TCnRSACertificateRequest.SetCertificateInfo(
-  const Value: TCnCertificateInfo);
+procedure TCnRSACertificateRequest.SetCertificateRequestInfo(
+  const Value: TCnCertificateRequestInfo);
 begin
-  FCertificateInfo.Assign(Value);
+  FCertificateRequestInfo.Assign(Value);
 end;
 
 procedure TCnRSACertificateRequest.SetPublicKey(
@@ -610,7 +731,7 @@ end;
 
 function TCnRSACertificateRequest.ToString: string;
 begin
-  Result := FCertificateInfo.ToString;
+  Result := FCertificateRequestInfo.ToString;
   Result := Result + SCRLF + 'Public Key Modulus: ' + FPublicKey.PubKeyProduct.ToDec;
   Result := Result + SCRLF + 'Public Key Exponent: ' + FPublicKey.PubKeyExponent.ToDec;
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
@@ -629,4 +750,149 @@ begin
     Result := '<Unknown>';
   end;
 end;
+
+{ TCnUTCTime }
+
+procedure TCnUTCTime.SetDateTime(const Value: TDateTime);
+var
+  Year, Month, Day, Hour, Minute, Sec, MSec: Word;
+begin
+  FDateTime := Value;
+  
+  // 将时间日期转换成字符串并给 FUTCTimeString，使用 YYMMDDhhmm[ss]Z 的格式
+  DecodeDate(FDateTime, Year, Month, Day);
+  DecodeTime(FDateTime, Hour, Minute, Sec, MSec);
+
+  Year := Year mod 100; // 只取后两位
+  FUTCTimeString := Format('%2d%2d%2d%2d%2d', [Year, Month, Day, Hour, Minute]);
+  if Sec <> 0 then
+    FUTCTimeString := FUTCTimeString + Format('%2d', [Sec]);
+  FUTCTimeString := FUTCTimeString + 'Z';
+end;
+
+procedure TCnUTCTime.SetUTCTimeString(const Value: string);
+var
+  Year, Month, Day, Hour, Minute, Sec, DeltaHour, DeltaMin: Word;
+  Idx: Integer;
+  Plus: Boolean;
+  DeltaTime: TDateTime;
+begin
+  FUTCTimeString := Value;
+  //  解析 String 到时间并给 FDateTime，格式是 YYMMDDhhmm[ss]Z 或 YYMMDDhhmm[ss](+|-)hhmm
+  if Length(FUTCTimeString) > 10 then // 至少得有 11 个
+  begin
+    Idx := 1;
+    Year := StrToInt(Copy(FUTCTimeString, Idx, 2)) + 2000;  // 1
+    Inc(Idx, 2);
+    Month := StrToInt(Copy(FUTCTimeString, Idx, 2));        // 3
+    Inc(Idx, 2);
+    Day := StrToInt(Copy(FUTCTimeString, Idx, 2));          // 5
+    Inc(Idx, 2);
+    Hour := StrToInt(Copy(FUTCTimeString, Idx, 2));         // 7
+    Inc(Idx, 2);
+    Minute := StrToInt(Copy(FUTCTimeString, Idx, 2));       // 9
+    Inc(Idx, 2);
+
+    Sec := 0;
+    if FUTCTimeString[Idx] in ['0'..'9'] then   // 有 ss    // 11
+    begin
+      Sec := StrToInt(Copy(FUTCTimeString, Idx, 2));
+      Inc(Idx, 2);
+    end;
+
+    if Idx <= Length(FUTCTimeString) then
+    begin
+      // 此时 Idx 直接（或越过可能的 ss）指向 Z 或 +-
+      if FUTCTimeString[Idx] in ['+', '-'] then
+      begin
+        Plus := FUTCTimeString[Idx] = '+';
+        Inc(Idx);
+        DeltaHour := 0;
+        DeltaMin := 0;
+        if Idx <= Length(FUTCTimeString) then
+        begin
+          DeltaHour := StrToInt(Copy(FUTCTimeString, Idx, 2));
+          Inc(Idx, 2);
+          if Idx <= Length(FUTCTimeString) then
+            DeltaMin := StrToInt(Copy(FUTCTimeString, Idx, 2));
+        end;
+
+        FDateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Sec, 0);
+        DeltaTime := EncodeTime(DeltaHour, DeltaMin, 0, 0);
+
+        if Plus then
+          FDateTime := FDateTime + DeltaTime
+        else
+          FDateTime := FDateTime - DeltaTime;
+      end
+      else if FUTCTimeString[Idx] = 'Z' then
+        FDateTime := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Sec, 0);
+    end;
+  end;
+end;
+
+{ TCnRSACertificate }
+
+function CnCALoadCertificateFromFile(const FileName: string;
+  Certificate: TCnRSACertificate): Boolean;
+var
+  Stream: TMemoryStream;
+  Reader: TCnBerReader;
+begin
+  Result := False;
+  if not FileExists(FileName) then
+    Exit;
+
+  Stream := nil;
+  Reader := nil;
+  try
+    Stream := TMemoryStream.Create;
+    if not LoadPemFileToMemory(FileName, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Stream) then
+      Exit;
+
+    Reader := TCnBerReader.Create(PByte(Stream.Memory), Stream.Size, True);
+    Reader.ParseToTree;
+
+//    if Reader.TotalCount > 40 then
+//    begin
+//      Certificate.BasicCertificate.NotBefore.UTCTimeString := Reader.Items[37].AsString;
+//    end;
+  finally
+    Stream.Free;
+    Reader.Free;
+  end;
+end;
+
+{ TCnRSACertificate }
+
+constructor TCnRSACertificate.Create;
+begin
+  FBasicCertificate := TCnRSABasicCertificate.Create;
+end;
+
+destructor TCnRSACertificate.Destroy;
+begin
+  FBasicCertificate.Free;
+  inherited;
+end;
+
+{ TCnRSABasicCertificate }
+
+constructor TCnRSABasicCertificate.Create;
+begin
+  FNotBefore := TCnUTCTime.Create;
+  FNotAfter := TCnUTCTime.Create;
+  FIssuer := TCnCertificateIssuerInfo.Create;
+  FSubject := TCnCertificateSubjectInfo.Create;
+end;
+
+destructor TCnRSABasicCertificate.Destroy;
+begin
+  FIssuer.Free;
+  FSubject.Free;
+  FNotBefore.Free;
+  FNotAfter.Free;
+  inherited;
+end;
+
 end.

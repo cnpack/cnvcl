@@ -57,12 +57,15 @@ type
     btnRootCRTBrowse: TButton;
     btnSelfSign: TButton;
     btnParseCSR: TButton;
+    btnParseCRT: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnBrowseCSRClick(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
     procedure btnParseCSRClick(Sender: TObject);
     procedure btnGenerateCSRClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btnBrowseCRTClick(Sender: TObject);
+    procedure btnParseCRTClick(Sender: TObject);
   private
     FCPriv: TCnRSAPrivateKey;
     FCPub: TCnRSAPublicKey;
@@ -164,6 +167,22 @@ procedure TFormCA.FormDestroy(Sender: TObject);
 begin
   FCPub.Free;
   FCPriv.Free;
+end;
+
+procedure TFormCA.btnBrowseCRTClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtCRT.Text := dlgOpen.FileName;
+end;
+
+procedure TFormCA.btnParseCRTClick(Sender: TObject);
+var
+  CRT: TCnRSACertificate;
+begin
+  CRT := TCnRSACertificate.Create;
+  if not CnCALoadCertificateFromFile(edtCRT.Text, CRT) then
+    ShowMessage('Parse CRT File Failed.');
+  CRT.Free;
 end;
 
 end.
