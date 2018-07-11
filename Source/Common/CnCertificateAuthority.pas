@@ -44,7 +44,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
+  SysUtils, Classes, Windows, Contnrs, Consts,
+  CnBigNumber, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
 
 type
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA);
@@ -125,11 +126,56 @@ type
 
   // 以上是证书请求的声明，以下是证书认证的声明
 
-  TCnCertificateSubjectInfo = class(TCnCertificateBaseInfo);
-  {* 证书请求中包含的被签发者的基本信息}
+{
+   Name ::= CHOICE
+     rdnSequence  RDNSequence
 
-  TCnCertificateIssuerInfo = class(TCnCertificateBaseInfo);
-  {* 证书请求中包含的签发者的基本信息}
+   RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
+
+   RelativeDistinguishedName ::=
+     SET SIZE (1..MAX) OF AttributeTypeAndValue
+
+   AttributeTypeAndValue ::= SEQUENCE
+     type     AttributeType,
+     value    AttributeValue
+
+   AttributeType ::= OBJECT IDENTIFIER
+
+   AttributeValue ::= ANY -- DEFINED BY AttributeType
+
+   DirectoryString ::= CHOICE
+         teletexString           TeletexString (SIZE (1..MAX)),
+         printableString         PrintableString (SIZE (1..MAX)),
+         universalString         UniversalString (SIZE (1..MAX)),
+         utf8String              UTF8String (SIZE (1..MAX)),
+         bmpString               BMPString (SIZE (1..MAX))
+}
+
+  TCnCertificateNameInfo = class(TCnCertificateBaseInfo)
+  {* 用于 Subject 与 Issuer 的基本信息描述类}
+  private
+    FSurName: string;
+    FTitle: string;
+    FGivenName: string;
+    FInitials: string;
+    FSerialNumber: string;
+    FPseudonym: string;
+    FGenerationQualifier: string;
+  public
+    property SerialNumber: string read FSerialNumber write FSerialNumber;
+    property Title: string read FTitle write FTitle;
+    property SurName: string read FSurName write FSurName;
+    property GivenName: string read FGivenName write FGivenName;
+    property Initials: string read FInitials write FInitials;
+    property Pseudonym: string read FPseudonym write FPseudonym;
+    property GenerationQualifier: string read FGenerationQualifier write FGenerationQualifier;
+  end;
+
+  TCnCertificateSubjectInfo = class(TCnCertificateNameInfo);
+  {* 证书请求中包含的被签发者的基本信息，也即上面的 Name}
+
+  TCnCertificateIssuerInfo = class(TCnCertificateNameInfo);
+  {* 证书请求中包含的签发者的基本信息，也即上面的 Name}
 
   TCnUTCTime = class(TObject)
   {* 证书中代表过期时间的解析类}
@@ -141,6 +187,38 @@ type
   public
     property DateTime: TDateTime read FDateTime write SetDateTime;
     property UTCTimeString: string read FUTCTimeString write SetUTCTimeString;
+  end;
+
+{
+   Extension  ::=  SEQUENCE
+        extnID      OBJECT IDENTIFIER,
+        critical    BOOLEAN DEFAULT FALSE,
+        extnValue   OCTET STRING
+                    -- contains the DER encoding of an ASN.1 value
+                    -- corresponding to the extension type identified
+                    -- by extnID
+}
+
+  TCnCertificateExtension = class(TObject)
+  {* 描述证书中的一个扩展项}
+  private
+    FCritical: Boolean;
+    FExtnValueLength: Integer;
+    FExtnIDLength: Integer;
+    FExtnValue: Pointer;
+    FExtnID: Pointer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property ExtnID: Pointer read FExtnID write FExtnID;
+    property ExtnIDLength: Integer read FExtnIDLength write FExtnIDLength;
+    {* 持有的 Object Identifier 及其长度}
+    property Critical: Boolean read FCritical write FCritical;
+    {* 是否关键扩展属性}
+    property ExtnValue: Pointer read FExtnValue write FExtnValue;
+    property ExtnValueLength: Integer read FExtnValueLength write FExtnValueLength;
+    {* 持有的扩展值内容及其长度}
   end;
 
 {
@@ -163,15 +241,22 @@ type
   TCnRSABasicCertificate = class(TObject)
   {* 证书中的基本信息域}
   private
-    FIssuer: TCnCertificateIssuerInfo;
     FSerialNumber: string;
     FNotAfter: TCnUTCTime;
     FNotBefore: TCnUTCTime;
     FVersion: Integer;
     FSubject: TCnCertificateSubjectInfo;
+    FSubjectUniqueID: string;
+    FIssuer: TCnCertificateIssuerInfo;
+    FIssuerUniqueID: string;
+    FExtensions: TObjectList;
+    function GetExtensions(Index: Integer): TCnCertificateExtension;
+    function GetExtensionCount: Integer;
   public
     constructor Create;
     destructor Destroy; override;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property Version: Integer read FVersion write FVersion;
     {* 版本号，值 0、1、2 表示版本号为 v1、v2、v3，默认 v1 时可省略
@@ -181,12 +266,21 @@ type
     {* 序列号，本来应该是整型，但当作字符串处理}
     property Subject: TCnCertificateSubjectInfo read FSubject write FSubject;
     {* 被签发者的基本信息}
+    property SubjectUniqueID: string read FSubjectUniqueID write FSubjectUniqueID;
+    {* v2 时被签发者的唯一 ID}
     property Issuer: TCnCertificateIssuerInfo read FIssuer write FIssuer;
     {* 签发者的基本信息}
+    property IssuerUniqueID: string read FIssuerUniqueID write FIssuerUniqueID;
+    {* v2 时签发者的唯一 ID}
     property NotBefore: TCnUTCTime read FNotBefore;
     {* 有效期起始}
     property NotAfter: TCnUTCTime read FNotAfter;
     {* 有效期结束}
+
+    property ExtensionCount: Integer read GetExtensionCount;
+    {* v3 时的扩展信息项数}
+    property Extensions[Index: Integer]: TCnCertificateExtension read GetExtensions;
+    {* v3 时的扩展信息列表}
   end;
 
 {
@@ -209,6 +303,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property BasicCertificate: TCnRSABasicCertificate read FBasicCertificate;
     {* 证书基本信息类}
@@ -838,6 +934,9 @@ function CnCALoadCertificateFromFile(const FileName: string;
 var
   Stream: TMemoryStream;
   Reader: TCnBerReader;
+  SerialNum: TCnBigNumber;
+  Root, Node: TCnBerReadNode;
+  BSCNode, SignAlgNode, SignValueNode: TCnBerReadNode;
 begin
   Result := False;
   if not FileExists(FileName) then
@@ -853,10 +952,29 @@ begin
     Reader := TCnBerReader.Create(PByte(Stream.Memory), Stream.Size, True);
     Reader.ParseToTree;
 
-//    if Reader.TotalCount > 40 then
-//    begin
-//      Certificate.BasicCertificate.NotBefore.UTCTimeString := Reader.Items[37].AsString;
-//    end;
+    Root := Reader.Items[0];
+    if Root.Count <> 3 then
+      Exit;
+
+    // 得到仨主要根节点
+    BSCNode := Root.Items[0];
+    SignAlgNode := Root.Items[1];
+    SignValueNode := Root.Items[2];
+
+    // BSC 内容
+    if BSCNode.Count < 7 then
+      Exit;
+
+    SerialNum := TCnBigNumber.Create;
+    try
+      BSCNode.Items[1].AsBigNumber(SerialNum);
+      Certificate.BasicCertificate.SerialNumber := SerialNum.ToDec;
+    finally
+      FreeAndNil(SerialNum);
+    end;
+
+
+
   finally
     Stream.Free;
     Reader.Free;
@@ -876,6 +994,11 @@ begin
   inherited;
 end;
 
+function TCnRSACertificate.ToString: string;
+begin
+
+end;
+
 { TCnRSABasicCertificate }
 
 constructor TCnRSABasicCertificate.Create;
@@ -884,14 +1007,48 @@ begin
   FNotAfter := TCnUTCTime.Create;
   FIssuer := TCnCertificateIssuerInfo.Create;
   FSubject := TCnCertificateSubjectInfo.Create;
+  FExtensions := TObjectList.Create(True);
 end;
 
 destructor TCnRSABasicCertificate.Destroy;
 begin
+  FExtensions.Free;
   FIssuer.Free;
   FSubject.Free;
   FNotBefore.Free;
   FNotAfter.Free;
+  inherited;
+end;
+
+function TCnRSABasicCertificate.GetExtensionCount: Integer;
+begin
+  Result := FExtensions.Count;
+end;
+
+function TCnRSABasicCertificate.GetExtensions(Index: Integer): TCnCertificateExtension;
+begin
+  if (Index >= 0) and (Index < FExtensions.Count) then
+    Result := TCnCertificateExtension(FExtensions[Index])
+  else
+    raise EListError.CreateFmt(SListIndexError, [index]);
+end;
+
+function TCnRSABasicCertificate.ToString: string;
+begin
+
+end;
+
+{ TCnCertificateExtension }
+
+constructor TCnCertificateExtension.Create;
+begin
+
+end;
+
+destructor TCnCertificateExtension.Destroy;
+begin
+  FreeMemory(FExtnID);
+  FreeMemory(FExtnValue);
   inherited;
 end;
 

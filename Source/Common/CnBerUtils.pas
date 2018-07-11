@@ -40,7 +40,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, TypInfo, CnTree {$IFDEF DEBUG}, ComCtrls {$ENDIF};
+  SysUtils, Classes, Windows, TypInfo, CnBigNumber, CnTree
+  {$IFDEF DEBUG}, ComCtrls {$ENDIF};
 
 const
   CN_BER_TAG_TYPE_MASK                      = $C0;
@@ -127,7 +128,8 @@ type
     function AsInteger: Integer;
     function AsCardinal: Cardinal;
     function AsInt64: Int64;
-    {* 按尺寸返回整型值}
+    procedure AsBigNumber(OutNum: TCnBigNumber);
+    {* 按尺寸返回整型值或大数}
 
     function AsString: string;
     {* 返回字符串，可能是以下几种类型}
@@ -646,8 +648,9 @@ begin
   try
     Result := StrToDateTime(S);
   except
-    ; // TODO: 也可能是 Integer 的 Binary Time 格式，
-      // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
+    // TODO: 也可能是 Integer 的 Binary Time 格式，
+    // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
+    Result := 0.0;
   end;
 end;
 
@@ -685,6 +688,14 @@ end;
 function TCnBerReadNode.IsInteger: Boolean;
 begin
   Result := FBerTag = CN_BER_TAG_INTEGER;
+end;
+
+procedure TCnBerReadNode.AsBigNumber(OutNum: TCnBigNumber);
+begin
+  if FBerTag <> CN_BER_TAG_INTEGER then
+    raise Exception.Create('Ber Tag Type Mismatch for BigNumber.');
+
+  OutNum.SetBinary(GetBerDataAddress, FBerDataLength);
 end;
 
 { TCnBerWriter }
