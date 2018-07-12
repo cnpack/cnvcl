@@ -250,6 +250,8 @@ type
     FIssuer: TCnCertificateIssuerInfo;
     FIssuerUniqueID: string;
     FExtensions: TObjectList;
+    FSubjectPublicKey: TCnRSAPublicKey;
+    FCASignType: TCnCASignType;
     function GetExtensions(Index: Integer): TCnCertificateExtension;
     function GetExtensionCount: Integer;
   public
@@ -264,8 +266,12 @@ type
       建议生成版本 v3 的}
     property SerialNumber: string read FSerialNumber write FSerialNumber;
     {* 序列号，本来应该是整型，但当作字符串处理}
+    property CASignType: TCnCASignType read FCASignType write FCASignType;
+    {* 客户端使用的散列与签名算法，应该与证书外层的保持一直}
     property Subject: TCnCertificateSubjectInfo read FSubject write FSubject;
     {* 被签发者的基本信息}
+    property SubjectPublicKey: TCnRSAPublicKey read FSubjectPublicKey write FSubjectPublicKey;
+    {* 被签发者的公钥}
     property SubjectUniqueID: string read FSubjectUniqueID write FSubjectUniqueID;
     {* v2 时被签发者的唯一 ID}
     property Issuer: TCnCertificateIssuerInfo read FIssuer write FIssuer;
@@ -291,7 +297,7 @@ type
 }
 
   TCnRSACertificate = class(TObject)
-  {* 描述一完整的证书}
+  {* 描述一完整的证书，注意其中并无签发者的公钥，公钥只有被签发者的}
   private
     FDigestLength: Integer;
     FSignLength: Integer;
@@ -368,8 +374,26 @@ const
   OID_SHA1_RSAENCRYPTION        : array[0..8] of Byte = (
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $05
   ); // 1.2.840.113549.1.1.5
+  OID_SHA256_RSAENCRYPTION        : array[0..8] of Byte = (
+    $2A, $86, $48, $86, $F7, $0D, $01, $01, $0B
+  ); // 1.2.840.113549.1.1.11
 
   SCRLF = #13#10;
+
+  // 用于交换字符串数据的常量
+  SDN_COUNTRYNAME                = 'CountryName';
+  SDN_STATEORPROVINCENAME        = 'StateOrProvinceName';
+  SDN_LOCALITYNAME               = 'LocalityName';
+  SDN_ORGANIZATIONNAME           = 'OrganizationName';
+  SDN_ORGANIZATIONALUNITNAME     = 'OrganizationalUnitName';
+  SDN_COMMONNAME                 = 'CommonName';
+  SDN_EMAILADDRESS               = 'EmailAddress';
+
+var
+  DummyPointer: Pointer;
+  DummyInteger: Integer;
+  DummyCASignType: TCnCASignType;
+  DummyDigestType: TCnRSASignDigestType;
 
 function PrintHex(const Buf: Pointer; Len: Integer): string;
 var
@@ -396,6 +420,9 @@ begin
     ctSha1RSA:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA1_RSAENCRYPTION[0],
         SizeOf(OID_SHA1_RSAENCRYPTION), AParent);
+    ctSha256RSA:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA256_RSAENCRYPTION[0],
+        SizeOf(OID_SHA256_RSAENCRYPTION), AParent);
     // TODO: 其它算法类型支持
   end;
 end;
@@ -567,6 +594,131 @@ begin
   end;
 end;
 
+procedure ExtractDNValuesToList(DNRoot: TCnBerReadNode; List: TStringList);
+var
+  I: Integer;
+  Node, StrNode: TCnBerReadNode;
+begin
+  if (DNRoot = nil) or (List = nil) then
+    Exit;
+
+  List.Clear;
+
+  // 循环解析 DN 们
+  for I := 0 to DNRoot.Count - 1 do
+  begin
+    Node := DNRoot.Items[I]; // Set
+    if (Node.BerTag = CN_BER_TAG_SET) and (Node.Count = 1) then
+    begin
+      Node := Node.Items[0]; // Sequence
+      if (Node.BerTag = CN_BER_TAG_SEQUENCE) and (Node.Count = 2) then
+      begin
+        StrNode := Node.Items[1];
+        Node := Node.Items[0];
+        if Node.BerTag = CN_BER_TAG_OBJECT_IDENTIFIER then
+        begin
+          if CompareObjectIdentifier(Node, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME)) then
+            List.Values[SDN_COUNTRYNAME] := StrNode.AsPrintableString
+          else if CompareObjectIdentifier(Node, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME)) then
+            List.Values[SDN_STATEORPROVINCENAME] := StrNode.AsPrintableString
+          else if CompareObjectIdentifier(Node, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME)) then
+            List.Values[SDN_LOCALITYNAME] := StrNode.AsPrintableString
+          else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME)) then
+            List.Values[SDN_ORGANIZATIONNAME] := StrNode.AsPrintableString
+          else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME)) then
+            List.Values[SDN_ORGANIZATIONALUNITNAME] := StrNode.AsPrintableString
+          else if CompareObjectIdentifier(Node, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME)) then
+            List.Values[SDN_COMMONNAME] := StrNode.AsPrintableString
+          else if CompareObjectIdentifier(Node, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS)) then
+            List.Values[SDN_EMAILADDRESS] := StrNode.AsPrintableString
+        end;
+      end;
+    end;
+  end;
+end;
+
+function ExtractCASignType(ObjectIdentifierNode: TCnBerReadNode): TCnCASignType;
+begin
+  Result := ctSha256RSA; // Default
+  if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA1_RSAENCRYPTION[0],
+    SizeOf(OID_SHA1_RSAENCRYPTION)) then
+    Result := ctSha1RSA
+  else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA256_RSAENCRYPTION[0],
+    SizeOf(OID_SHA256_RSAENCRYPTION)) then
+    Result := ctSha256RSA;
+end;
+
+// 用已知公钥从类似于以下结构中拿出签名值解密并去除 PKCS1 对齐拿到摘要值
+// 如果无公钥，则只取签名值，不解开
+{
+  SEQUENCE
+    OBJECT IDENTIFIER 1.2.840.113549.1.1.5sha1WithRSAEncryption(PKCS #1)
+    NULL
+  BIT STRING
+}
+function ExtractSignaturesByPublicKey(PublicKey: TCnRSAPublicKey;
+  HashNode, SignNode: TCnBerReadNode; out CASignType: TCnCASignType;
+  out DigestType: TCnRSASignDigestType; out SignValue, DigestValue: Pointer;
+  out SignLength, DigestLength: Integer): Boolean;
+var
+  P: Pointer;
+  Reader: TCnBerReader;
+  Node: TCnBerReadNode;
+  OutBuf: array of Byte;
+  OutLen: Integer;
+begin
+  Result := False;
+
+  // 找到签名算法
+  if HashNode.Count = 2 then
+    CASignType := ExtractCASignType(HashNode.Items[0]);
+
+  // 复制签名内容，跳过 BIT String 的前导对齐 0
+  FreeMemory(SignValue);
+  SignLength := SignNode.BerDataLength - 1;
+  SignValue := GetMemory(SignLength);
+  P := Pointer(Integer(SignNode.BerDataAddress) + 1);
+  CopyMemory(SignValue, P, SignLength);
+
+  // 无公钥时不解密，只把
+  if PublicKey = nil then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的 Hash 值与算法
+  SetLength(OutBuf, PublicKey.BitsCount div 8);
+  try
+    if CnRSADecryptData(SignValue, SignLength, @OutBuf[0], OutLen, PublicKey) then
+    begin
+      FreeAndNil(Reader);
+      Reader := TCnBerReader.Create(@OutBuf[0], OutLen);
+      Reader.ParseToTree;
+
+      if Reader.TotalCount < 5 then
+        Exit;
+
+      Node := Reader.Items[2];
+      DigestType := GetDigestSignTypeFromBerOID(Node.BerDataAddress,
+        Node.BerDataLength);
+      if DigestType = sdtNone then
+        Exit;
+
+      // 获取 Ber 解出的散列值
+      Node := Reader.Items[4];
+      FreeMemory(DigestValue);
+      DigestLength := Node.BerDataLength;
+      DigestValue := GetMemory(DigestLength);
+      CopyMemory(DigestValue, Node.BerDataAddress, DigestLength);
+
+      Result := True;
+    end;
+  finally
+    SetLength(OutBuf, 0);
+  end;
+end;
+
 {
   CSR 文件的大体格式如下：
 
@@ -619,14 +771,11 @@ end;
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 var
-  I: Integer;
-  P: Pointer;
   IsRSA, HasPub: Boolean;
   Reader: TCnBerReader;
   MemStream: TMemoryStream;
-  DNRoot, PubNode, HashNode, SignNode, Node, StrNode: TCnBerReadNode;
-  OutBuf: array of Byte;
-  OutLen: Integer;
+  DNRoot, PubNode, HashNode, SignNode: TCnBerReadNode;
+  List: TStringList;
 begin
   Result := False;
   if FileExists(FileName) then
@@ -666,36 +815,19 @@ begin
         if not IsRSA then // 算法不是 RSA
           Exit;
 
-        // 循环解析 DN 们
-        for I := 0 to DNRoot.Count - 1 do
-        begin
-          Node := DNRoot.Items[I]; // Set
-          if (Node.BerTag = CN_BER_TAG_SET) and (Node.Count = 1) then
-          begin
-            Node := Node.Items[0]; // Sequence
-            if (Node.BerTag = CN_BER_TAG_SEQUENCE) and (Node.Count = 2) then
-            begin
-              StrNode := Node.Items[1];
-              Node := Node.Items[0];
-              if Node.BerTag = CN_BER_TAG_OBJECT_IDENTIFIER then
-              begin
-                if CompareObjectIdentifier(Node, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME)) then
-                  CertificateRequest.CertificateRequestInfo.CountryName := StrNode.AsPrintableString
-                else if CompareObjectIdentifier(Node, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME)) then
-                  CertificateRequest.CertificateRequestInfo.StateOrProvinceName := StrNode.AsPrintableString
-                else if CompareObjectIdentifier(Node, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME)) then
-                  CertificateRequest.CertificateRequestInfo.LocalityName := StrNode.AsPrintableString
-                else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME)) then
-                  CertificateRequest.CertificateRequestInfo.OrganizationName := StrNode.AsPrintableString
-                else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME)) then
-                  CertificateRequest.CertificateRequestInfo.OrganizationalUnitName := StrNode.AsPrintableString
-                else if CompareObjectIdentifier(Node, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME)) then
-                  CertificateRequest.CertificateRequestInfo.CommonName := StrNode.AsPrintableString
-                else if CompareObjectIdentifier(Node, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS)) then
-                  CertificateRequest.CertificateRequestInfo.EmailAddress := StrNode.AsPrintableString
-              end;
-            end;
-          end;
+        List := TStringList.Create;
+        try
+          ExtractDNValuesToList(DNRoot, List);
+
+          CertificateRequest.CertificateRequestInfo.CountryName := List.Values[SDN_COUNTRYNAME];
+          CertificateRequest.CertificateRequestInfo.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
+          CertificateRequest.CertificateRequestInfo.LocalityName := List.Values[SDN_LOCALITYNAME];
+          CertificateRequest.CertificateRequestInfo.OrganizationName := List.Values[SDN_ORGANIZATIONNAME];
+          CertificateRequest.CertificateRequestInfo.OrganizationalUnitName := List.Values[SDN_ORGANIZATIONALUNITNAME];
+          CertificateRequest.CertificateRequestInfo.CommonName := List.Values[SDN_COMMONNAME];
+          CertificateRequest.CertificateRequestInfo.EmailAddress := List.Values[SDN_EMAILADDRESS];
+        finally
+          List.Free;
         end;
 
         // 解开公钥
@@ -714,54 +846,14 @@ begin
         if not HasPub then
           Exit;
 
-        // 找到签名算法
-        if HashNode.Count = 2 then
-        begin
-          if CompareObjectIdentifier(HashNode.Items[0], @OID_SHA1_RSAENCRYPTION[0],
-            SizeOf(OID_SHA1_RSAENCRYPTION)) then
-            CertificateRequest.CASignType := ctSha1RSA;
-          // TODO: 支持更多算法
-        end;
-
-        // 复制签名内容，跳过 BIT String 的前导对齐 0
-        FreeMemory(CertificateRequest.SignValue);
-        CertificateRequest.SignLength := SignNode.BerDataLength - 1;
-        CertificateRequest.SignValue := GetMemory(CertificateRequest.SignLength);
-        P := Pointer(Integer(SignNode.BerDataAddress) + 1);
-        CopyMemory(CertificateRequest.SignValue, P, CertificateRequest.SignLength);
-
-        // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的 Hash 值与算法
-        SetLength(OutBuf, CertificateRequest.PublicKey.BitsCount div 8);
-        if CnRSADecryptData(CertificateRequest.SignValue, CertificateRequest.SignLength,
-          @OutBuf[0], OutLen, CertificateRequest.PublicKey) then
-        begin
-          FreeAndNil(Reader);
-          Reader := TCnBerReader.Create(@OutBuf[0], OutLen);
-          Reader.ParseToTree;
-
-          if Reader.TotalCount < 5 then
-            Exit;
-          
-          Node := Reader.Items[2];
-          CertificateRequest.DigestType := GetDigestSignTypeFromBerOID(Node.BerDataAddress,
-            Node.BerDataLength);
-          if CertificateRequest.DigestType = sdtNone then
-            Exit;
-
-          // 获取 Ber 解出的散列值
-          Node := Reader.Items[4];
-          FreeMemory(CertificateRequest.DigestValue);
-          CertificateRequest.DigestLength := Node.BerDataLength;
-          CertificateRequest.DigestValue := GetMemory(CertificateRequest.DigestLength);
-          CopyMemory(CertificateRequest.DigestValue, Node.BerDataAddress,
-            CertificateRequest.DigestLength);
-        end;
-        Result := True;
+        Result := ExtractSignaturesByPublicKey(CertificateRequest.PublicKey,
+          HashNode, SignNode, CertificateRequest.FCASignType, CertificateRequest.FDigestType,
+          CertificateRequest.FSignValue, CertificateRequest.FDigestValue,
+          CertificateRequest.FSignLength, CertificateRequest.FDigestLength);
       end;
     finally
       Reader.Free;
       MemStream.Free;
-      SetLength(OutBuf, 0);
     end;
   end;
 end;
@@ -935,7 +1027,7 @@ var
   Stream: TMemoryStream;
   Reader: TCnBerReader;
   SerialNum: TCnBigNumber;
-  Root, Node: TCnBerReadNode;
+  Root, Node, VerNode, SerialNode: TCnBerReadNode;
   BSCNode, SignAlgNode, SignValueNode: TCnBerReadNode;
 begin
   Result := False;
@@ -965,16 +1057,39 @@ begin
     if BSCNode.Count < 7 then
       Exit;
 
+    // 判断 Version，可能没有
+    Certificate.BasicCertificate.Version := 0;
+    if (BSCNode.Items[0].BerTag = 0) and (BSCNode.Items[0].Count = 1) then
+    begin
+      SerialNode := BSCNode.Items[1];
+
+      // A0 字节开头的一个节点，包含了一个 Integer 节点，不是标准包含下属的节点
+      VerNode := BSCNode.Items[0].Items[0];
+      Certificate.BasicCertificate.Version := VerNode.AsByte;
+    end
+    else
+      SerialNode := BSCNode.Items[0];
+
+    // 序列号
     SerialNum := TCnBigNumber.Create;
     try
-      BSCNode.Items[1].AsBigNumber(SerialNum);
+      SerialNode.AsBigNumber(SerialNum);
       Certificate.BasicCertificate.SerialNumber := SerialNum.ToDec;
     finally
       FreeAndNil(SerialNum);
     end;
 
+    // 基本信息中的签名算法字段
+    Node := SerialNode.GetNextSibling;
+    if (Node <> nil) and (Node.Count = 2) then
+      Certificate.BasicCertificate.CASignType := ExtractCASignType(Node.Items[0]);
 
+    // TODO: 解析众多其它字段
 
+    // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正散列值
+    Result := ExtractSignaturesByPublicKey(nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
+      DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
+      DummyInteger);
   finally
     Stream.Free;
     Reader.Free;
@@ -996,7 +1111,9 @@ end;
 
 function TCnRSACertificate.ToString: string;
 begin
-
+  Result := FBasicCertificate.ToString + SCRLF;
+  Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
+  Result := Result + SCRLF + 'Signature: ' + PrintHex(FSignValue, FSignLength);
 end;
 
 { TCnRSABasicCertificate }
@@ -1007,6 +1124,7 @@ begin
   FNotAfter := TCnUTCTime.Create;
   FIssuer := TCnCertificateIssuerInfo.Create;
   FSubject := TCnCertificateSubjectInfo.Create;
+  FSubjectPublicKey := TCnRSAPublicKey.Create;
   FExtensions := TObjectList.Create(True);
 end;
 
@@ -1014,6 +1132,7 @@ destructor TCnRSABasicCertificate.Destroy;
 begin
   FExtensions.Free;
   FIssuer.Free;
+  FSubjectPublicKey.Free;
   FSubject.Free;
   FNotBefore.Free;
   FNotAfter.Free;
@@ -1035,7 +1154,16 @@ end;
 
 function TCnRSABasicCertificate.ToString: string;
 begin
-
+  Result := 'Version: ' + IntToStr(FVersion) + SCRLF;
+  Result := Result + 'SerialNumber: ' + FSerialNumber + SCRLF;
+  Result := Result + 'Issuer: ' + SCRLF;
+  Result := Result + FIssuer.ToString + SCRLF;
+  Result := Result + 'IssuerUniqueID: ' + FIssuerUniqueID + SCRLF;
+  Result := Result + 'Subject: ' + SCRLF;
+  Result := Result + FSubject.ToString + SCRLF;
+  Result := Result + 'SubjectUniqueID: ' + FSubjectUniqueID + SCRLF;
+  Result := Result + 'Subject Public Key Modulus: ' + SubjectPublicKey.PubKeyProduct.ToDec + SCRLF;
+  Result := Result + 'Subject Public Key Exponent: ' + SubjectPublicKey.PubKeyExponent.ToDec + SCRLF;
 end;
 
 { TCnCertificateExtension }

@@ -1,6 +1,6 @@
 object FormCA: TFormCA
-  Left = 151
-  Top = 114
+  Left = 218
+  Top = 85
   Width = 705
   Height = 503
   Caption = 'Certificate Authority'

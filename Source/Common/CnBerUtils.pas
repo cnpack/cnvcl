@@ -190,6 +190,8 @@ type
 
     procedure ParseToTree;
     {* 创建后需要调用此方法实施解析}
+    procedure ManualParseNodeData(RootNode: TCnBerReadNode);
+    {* 某些节点的 Tag 并非 SEQUENCE/SET 等但内容却有子内容，需要外部手工调用此方法来实施二次解析}
 
 {$IFDEF DEBUG}
     procedure DumpToTreeView(ATreeView: TTreeView);
@@ -511,6 +513,11 @@ begin
   ParseArea(FBerTree.Root, PByteArray(FData), FDataLen, 0);
 end;
 
+procedure TCnBerReader.ManualParseNodeData(RootNode: TCnBerReadNode);
+begin
+  ParseArea(RootNode, PByteArray(RootNode.BerDataAddress), RootNode.BerDataLength, RootNode.BerDataOffset);
+end;
+
 { TCnBerReadNode }
 
 function TCnBerReadNode.AsPrintableString: string;
@@ -525,7 +532,7 @@ begin
   if FBerTag <> CN_BER_TAG_INTEGER then
     raise Exception.Create('Ber Tag Type Mismatch for ByteSize: ' + IntToStr(ByteSize));
 
-  if not (ByteSize in [SizeOf(Byte)..SizeOf(Integer)]) then
+  if not (ByteSize in [SizeOf(Byte)..SizeOf(DWORD)]) then
     raise Exception.Create('Invalid ByteSize: ' + IntToStr(ByteSize));
 
   if FBerDataLength > ByteSize then
@@ -534,7 +541,12 @@ begin
 
   IntValue := 0;
   CopyDataTo(@IntValue);
-  IntValue := SwapLongWord(IntValue);
+
+  // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
+  if ByteSize = SizeOf(Word) then
+    IntValue := Integer(SwapWord(Word(IntValue)))
+  else if ByteSize = SizeOf(DWORD) then
+    IntValue := SwapLongWord(IntValue);
   Result := IntValue;
 end;
 

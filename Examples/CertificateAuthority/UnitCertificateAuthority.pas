@@ -182,6 +182,8 @@ begin
   CRT := TCnRSACertificate.Create;
   if not CnCALoadCertificateFromFile(edtCRT.Text, CRT) then
     ShowMessage('Parse CRT File Failed.');
+  mmoCRT.Clear;
+  mmoCRT.Lines.Add(CRT.ToString);
   CRT.Free;
 end;
 
