@@ -392,7 +392,7 @@ const
 var
   DummyPointer: Pointer;
   DummyInteger: Integer;
-  DummyCASignType: TCnCASignType;
+//  DummyCASignType: TCnCASignType;
   DummyDigestType: TCnRSASignDigestType;
 
 function PrintHex(const Buf: Pointer; Len: Integer): string;
@@ -401,7 +401,7 @@ var
   P: PByteArray;
 const
   Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+                                      '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 begin
   Result := '';
   P := PByteArray(Buf);
@@ -648,6 +648,27 @@ begin
     Result := ctSha256RSA;
 end;
 
+// 从以下结构中解出公钥
+{
+BIT STRING -- PubNode
+  SEQUENCE
+    INTEGER
+    INTEGER 65537
+}
+function ExtractPublicKey(PubNode: TCnBerReadNode; PublicKey: TCnRSAPublicKey): Boolean;
+begin
+  Result := False;
+  if (PubNode.Count = 1) and (PubNode.Items[0].Count = 2) then
+  begin
+    PubNode := PubNode.Items[0]; // Sequence
+    PublicKey.PubKeyProduct.SetBinary(PAnsiChar(
+      PubNode.Items[0].BerDataAddress), PubNode.Items[0].BerDataLength);
+    PublicKey.PubKeyExponent.SetBinary(PAnsiChar(
+      PubNode.Items[1].BerDataAddress), PubNode.Items[1].BerDataLength);
+    Result := True;
+  end;
+end;
+
 // 用已知公钥从类似于以下结构中拿出签名值解密并去除 PKCS1 对齐拿到摘要值
 // 如果无公钥，则只取签名值，不解开
 {
@@ -771,7 +792,7 @@ end;
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 var
-  IsRSA, HasPub: Boolean;
+  IsRSA: Boolean;
   Reader: TCnBerReader;
   MemStream: TMemoryStream;
   DNRoot, PubNode, HashNode, SignNode: TCnBerReadNode;
@@ -831,19 +852,8 @@ begin
         end;
 
         // 解开公钥
-        HasPub := False;
         PubNode := PubNode.Items[1]; // BitString
-        if (PubNode.Count = 1) and (PubNode.Items[0].Count = 2) then
-        begin
-          PubNode := PubNode.Items[0]; // Sequence
-          CertificateRequest.PublicKey.PubKeyProduct.SetBinary(PAnsiChar(
-            PubNode.Items[0].BerDataAddress), PubNode.Items[0].BerDataLength);
-          CertificateRequest.PublicKey.PubKeyExponent.SetBinary(PAnsiChar(
-            PubNode.Items[1].BerDataAddress), PubNode.Items[1].BerDataLength);
-          HasPub := True;
-        end;
-
-        if not HasPub then
+        if not ExtractPublicKey(PubNode, CertificateRequest.PublicKey) then
           Exit;
 
         Result := ExtractSignaturesByPublicKey(CertificateRequest.PublicKey,
@@ -878,13 +888,13 @@ end;
 
 function TCnCertificateBaseInfo.ToString: string;
 begin
-  Result := 'CountryName: ' + FCountryName + SCRLF;
-  Result := Result + 'StateOrProvinceName: ' + FStateOrProvinceName + SCRLF;
-  Result := Result + 'LocalityName: ' + FLocalityName + SCRLF;
-  Result := Result + 'OrganizationName: ' + FOrganizationName + SCRLF;
-  Result := Result + 'OrganizationalUnitName: ' + FOrganizationalUnitName + SCRLF;
-  Result := Result + 'CommonName: ' + FCommonName + SCRLF;
-  Result := Result + 'EmailAddress: ' + FEmailAddress + SCRLF;
+  Result := 'CountryName: ' + FCountryName;
+  Result := Result + SCRLF + 'StateOrProvinceName: ' + FStateOrProvinceName;
+  Result := Result + SCRLF + 'LocalityName: ' + FLocalityName;
+  Result := Result + SCRLF + 'OrganizationName: ' + FOrganizationName;
+  Result := Result + SCRLF + 'OrganizationalUnitName: ' + FOrganizationalUnitName;
+  Result := Result + SCRLF + 'CommonName: ' + FCommonName;
+  Result := Result + SCRLF + 'EmailAddress: ' + FEmailAddress;
 end;
 
 { TCnRSACertificateRequest }
@@ -1029,6 +1039,8 @@ var
   SerialNum: TCnBigNumber;
   Root, Node, VerNode, SerialNode: TCnBerReadNode;
   BSCNode, SignAlgNode, SignValueNode: TCnBerReadNode;
+  List: TStringList;
+  IsRSA: Boolean;
 begin
   Result := False;
   if not FileExists(FileName) then
@@ -1084,7 +1096,52 @@ begin
     if (Node <> nil) and (Node.Count = 2) then
       Certificate.BasicCertificate.CASignType := ExtractCASignType(Node.Items[0]);
 
-    // TODO: 解析众多其它字段
+    // 解析众多其它字段
+    List := TStringList.Create;
+    try
+      Node := Node.GetNextSibling; // 签名算法节点后的同级节点是 Issuer
+      ExtractDNValuesToList(Node, List);
+      Certificate.BasicCertificate.Issuer.CountryName := List.Values[SDN_COUNTRYNAME];
+      Certificate.BasicCertificate.Issuer.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
+      Certificate.BasicCertificate.Issuer.LocalityName := List.Values[SDN_LOCALITYNAME];
+      Certificate.BasicCertificate.Issuer.OrganizationName := List.Values[SDN_ORGANIZATIONNAME];
+      Certificate.BasicCertificate.Issuer.OrganizationalUnitName := List.Values[SDN_ORGANIZATIONALUNITNAME];
+      Certificate.BasicCertificate.Issuer.CommonName := List.Values[SDN_COMMONNAME];
+      Certificate.BasicCertificate.Issuer.EmailAddress := List.Values[SDN_EMAILADDRESS];
+
+      Node := Node.GetNextSibling; // Issuer 节点后的同级节点是俩 UTC Time
+      if Node.Count = 2 then
+      begin
+        Certificate.BasicCertificate.NotBefore.UTCTimeString := Node.Items[0].AsPrintableString;
+        Certificate.BasicCertificate.NotAfter.UTCTimeString := Node.Items[1].AsPrintableString;
+      end;
+
+      Node := Node.GetNextSibling; // UTC Time 节点后的同级节点是 Subject
+      ExtractDNValuesToList(Node, List);
+      Certificate.BasicCertificate.Subject.CountryName := List.Values[SDN_COUNTRYNAME];
+      Certificate.BasicCertificate.Subject.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
+      Certificate.BasicCertificate.Subject.LocalityName := List.Values[SDN_LOCALITYNAME];
+      Certificate.BasicCertificate.Subject.OrganizationName := List.Values[SDN_ORGANIZATIONNAME];
+      Certificate.BasicCertificate.Subject.OrganizationalUnitName := List.Values[SDN_ORGANIZATIONALUNITNAME];
+      Certificate.BasicCertificate.Subject.CommonName := List.Values[SDN_COMMONNAME];
+      Certificate.BasicCertificate.Subject.EmailAddress := List.Values[SDN_EMAILADDRESS];
+    finally
+      List.Free;
+    end;
+
+    Node := Node.GetNextSibling; // Subject 节点后的同级节点是公钥
+    IsRSA := False;
+    if (Node.Count = 2) and (Node.Items[0].Count = 2) then
+      IsRSA := CompareObjectIdentifier(Node.Items[0].Items[0],
+        @OID_RSAENCRYPTION_PKCS1[0], SizeOf(OID_RSAENCRYPTION_PKCS1));
+
+    if not IsRSA then // 算法不是 RSA
+      Exit;
+
+    // 解开公钥
+    Node := Node.Items[1]; // 指向 BitString
+    if not ExtractPublicKey(Node, Certificate.BasicCertificate.SubjectPublicKey) then
+      Exit;
 
     // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正散列值
     Result := ExtractSignaturesByPublicKey(nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
@@ -1111,7 +1168,7 @@ end;
 
 function TCnRSACertificate.ToString: string;
 begin
-  Result := FBasicCertificate.ToString + SCRLF;
+  Result := FBasicCertificate.ToString;
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
   Result := Result + SCRLF + 'Signature: ' + PrintHex(FSignValue, FSignLength);
 end;
@@ -1154,16 +1211,17 @@ end;
 
 function TCnRSABasicCertificate.ToString: string;
 begin
-  Result := 'Version: ' + IntToStr(FVersion) + SCRLF;
-  Result := Result + 'SerialNumber: ' + FSerialNumber + SCRLF;
-  Result := Result + 'Issuer: ' + SCRLF;
-  Result := Result + FIssuer.ToString + SCRLF;
-  Result := Result + 'IssuerUniqueID: ' + FIssuerUniqueID + SCRLF;
-  Result := Result + 'Subject: ' + SCRLF;
-  Result := Result + FSubject.ToString + SCRLF;
-  Result := Result + 'SubjectUniqueID: ' + FSubjectUniqueID + SCRLF;
-  Result := Result + 'Subject Public Key Modulus: ' + SubjectPublicKey.PubKeyProduct.ToDec + SCRLF;
-  Result := Result + 'Subject Public Key Exponent: ' + SubjectPublicKey.PubKeyExponent.ToDec + SCRLF;
+  Result := 'Version: ' + IntToStr(FVersion);
+  Result := Result + SCRLF + 'SerialNumber: ' + FSerialNumber;
+  Result := Result + SCRLF + 'Issuer: ';
+  Result := Result + SCRLF + FIssuer.ToString;
+  Result := Result + SCRLF + 'IssuerUniqueID: ' + FIssuerUniqueID;
+  Result := Result + SCRLF + 'Validity From: ' + DateTimeToStr(FNotBefore.DateTime) + ' To: ' + DateTimeToStr(FNotAfter.DateTime);
+  Result := Result + SCRLF + 'Subject: ';
+  Result := Result + SCRLF + FSubject.ToString;
+  Result := Result + SCRLF + 'SubjectUniqueID: ' + FSubjectUniqueID;
+  Result := Result + SCRLF + 'Subject Public Key Modulus: ' + SubjectPublicKey.PubKeyProduct.ToDec;
+  Result := Result + SCRLF + 'Subject Public Key Exponent: ' + SubjectPublicKey.PubKeyExponent.ToDec;
 end;
 
 { TCnCertificateExtension }
