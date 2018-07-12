@@ -435,7 +435,7 @@ begin
   end;
 end;
 
-// 根据指定数字摘要算法计算数据的二进制散列值并写入 Stream
+// 根据指定数字摘要算法计算数据的二进制散列值并写入 Stream，Buffer 是指针
 function CalcDigestData(const Buffer; Count: Integer; CASignType: TCnCASignType;
   outStream: TStream): Boolean;
 var

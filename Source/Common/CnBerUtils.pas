@@ -155,7 +155,7 @@ type
     property BerOffset: Integer read FBerOffset write FBerOffset;
     {* 该节点对应的 ASN.1 内容编码在整体中的偏移}
     property BerAddress: Pointer read GetBerAddress;
-    {* 整个节点的内容起始地址，也就是 FOriginData}
+    {* 整个节点的内容起始地址，也就是 FOriginData + FBerOffset}
     property BerLength: Integer read FBerLength write FBerLength;
     {* 整个节点的内容长度}
 
@@ -712,7 +712,10 @@ end;
 
 function TCnBerReadNode.GetBerAddress: Pointer;
 begin
-  Result := Pointer(FOriginData);
+  if FOriginData = nil then
+    Result := nil
+  else
+    Result := Pointer(Integer(FOriginData) + FBerOffset);
 end;
 
 { TCnBerWriter }
