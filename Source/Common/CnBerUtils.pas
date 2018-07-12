@@ -113,6 +113,7 @@ type
     function InternalAsInteger(ByteSize: Integer): Integer;
     function InternalAsString(TagSet: TCnBerTagSet): string;
     function GetBerDataAddress: Pointer;
+    function GetBerAddress: Pointer;
   public
     procedure CopyDataTo(DestBuf: Pointer);
     {* 将数据复制至缓冲区，缓冲区尺寸至少需要 BerDataLength 大}
@@ -153,6 +154,8 @@ type
 
     property BerOffset: Integer read FBerOffset write FBerOffset;
     {* 该节点对应的 ASN.1 内容编码在整体中的偏移}
+    property BerAddress: Pointer read GetBerAddress;
+    {* 整个节点的内容起始地址，也就是 FOriginData}
     property BerLength: Integer read FBerLength write FBerLength;
     {* 整个节点的内容长度}
 
@@ -164,6 +167,7 @@ type
     {* 该节点对应的数据内容在整体中的偏移}
     property BerDataAddress: Pointer read GetBerDataAddress;
     {* 该节点对应的数据的起始地址，等于 FOriginData + FBerDataOffset}
+
   end;
 
   TCnBerReader = class(TObject)
@@ -657,13 +661,9 @@ begin
   S := InternalAsString(CN_TAG_SET_TIME);
   // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
 
-  try
-    Result := StrToDateTime(S);
-  except
-    // TODO: 也可能是 Integer 的 Binary Time 格式，
-    // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
-    Result := 0.0;
-  end;
+  Result := StrToDateTime(S);
+  // TODO: 也可能是 Integer 的 Binary Time 格式，
+  // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
 end;
 
 function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): string;
@@ -708,6 +708,11 @@ begin
     raise Exception.Create('Ber Tag Type Mismatch for BigNumber.');
 
   OutNum.SetBinary(GetBerDataAddress, FBerDataLength);
+end;
+
+function TCnBerReadNode.GetBerAddress: Pointer;
+begin
+  Result := Pointer(FOriginData);
 end;
 
 { TCnBerWriter }

@@ -47,6 +47,11 @@ uses
   SysUtils, Classes, Windows, Contnrs, Consts,
   CnBigNumber, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
 
+const
+  CN_CRT_BASIC_VERSION_1      = 0;
+  CN_CRT_BASIC_VERSION_2      = 1;
+  CN_CRT_BASIC_VERSION_3      = 2;
+
 type
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA);
   {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA}
@@ -338,6 +343,9 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 {* 解析 PEM 格式的 CSR 文件并将内容放入 TCnRSACertificateRequest 对象中}
+
+function CnCAVerifyCertificateSignRequest(const FileName: string): Boolean;
+{* 验证一 CSR 文件的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnRSACertificate): Boolean;
@@ -710,10 +718,11 @@ begin
 
   // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的 Hash 值与算法
   SetLength(OutBuf, PublicKey.BitsCount div 8);
+  Reader := nil;
+
   try
     if CnRSADecryptData(SignValue, SignLength, @OutBuf[0], OutLen, PublicKey) then
     begin
-      FreeAndNil(Reader);
       Reader := TCnBerReader.Create(@OutBuf[0], OutLen);
       Reader.ParseToTree;
 
@@ -737,6 +746,7 @@ begin
     end;
   finally
     SetLength(OutBuf, 0);
+    Reader.Free;
   end;
 end;
 
@@ -865,6 +875,53 @@ begin
       Reader.Free;
       MemStream.Free;
     end;
+  end;
+end;
+
+function CnCAVerifyCertificateSignRequest(const FileName: string): Boolean;
+var
+  CSR: TCnRSACertificateRequest;
+  Reader: TCnBerReader;
+  MemStream, DigestStream: TMemoryStream;
+  InfoRoot: TCnBerReadNode;
+  P: Pointer;
+begin
+  Result := False;
+  CSR := nil;
+  Reader := nil;
+  MemStream := nil;
+  DigestStream := nil;
+
+  try
+    CSR := TCnRSACertificateRequest.Create;
+    if not CnCALoadCertificateSignRequestFromFile(FileName, CSR) then
+      Exit;
+
+    MemStream := TMemoryStream.Create;
+    if not LoadPemFileToMemory(FileName, PEM_CERTIFICATE_REQUEST_HEAD,
+      PEM_CERTIFICATE_REQUEST_TAIL, MemStream) then
+      Exit;
+
+    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount > 2 then
+    begin
+      InfoRoot := Reader.Items[1];
+
+      // 计算其 Hash
+      DigestStream := TMemoryStream.Create;
+      P := InfoRoot.BerAddress;
+      CalcDigestData(P, InfoRoot.BerLength, CSR.CASignType, DigestStream);
+
+      if DigestStream.Size = CSR.DigestLength then
+        Result := CompareMem(DigestStream.Memory, CSR.DigestValue, DigestStream.Size);
+    end;
+  finally
+    CSR.Free;
+    Reader.Free;
+    MemStream.Free;
+    DigestStream.Free;
   end;
 end;
 
@@ -1066,11 +1123,11 @@ begin
     SignValueNode := Root.Items[2];
 
     // BSC 内容
-    if BSCNode.Count < 7 then
+    if BSCNode.Count < 6 then
       Exit;
 
     // 判断 Version，可能没有
-    Certificate.BasicCertificate.Version := 0;
+    Certificate.BasicCertificate.Version := CN_CRT_BASIC_VERSION_1;
     if (BSCNode.Items[0].BerTag = 0) and (BSCNode.Items[0].Count = 1) then
     begin
       SerialNode := BSCNode.Items[1];

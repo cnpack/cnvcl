@@ -215,16 +215,16 @@ object FormCA: TFormCA
         object edtCSR: TEdit
           Left = 88
           Top = 20
-          Width = 353
+          Width = 313
           Height = 21
           TabOrder = 0
         end
         object btnBrowseCSR: TButton
-          Left = 448
+          Left = 408
           Top = 20
-          Width = 91
+          Width = 73
           Height = 21
-          Caption = 'Browse CSR File'
+          Caption = 'Browse CSR'
           TabOrder = 1
           OnClick = btnBrowseCSRClick
         end
@@ -236,13 +236,22 @@ object FormCA: TFormCA
           TabOrder = 2
         end
         object btnParseCSR: TButton
-          Left = 552
+          Left = 488
           Top = 20
-          Width = 91
+          Width = 73
           Height = 21
-          Caption = 'Parse CSR File'
+          Caption = 'Parse CSR'
           TabOrder = 3
           OnClick = btnParseCSRClick
+        end
+        object btnVerifyCSR: TButton
+          Left = 568
+          Top = 20
+          Width = 73
+          Height = 21
+          Caption = 'Verify CSR'
+          TabOrder = 4
+          OnClick = btnVerifyCSRClick
         end
       end
     end

@@ -58,6 +58,7 @@ type
     btnSelfSign: TButton;
     btnParseCSR: TButton;
     btnParseCRT: TButton;
+    btnVerifyCSR: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnBrowseCSRClick(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
@@ -66,6 +67,7 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure btnBrowseCRTClick(Sender: TObject);
     procedure btnParseCRTClick(Sender: TObject);
+    procedure btnVerifyCSRClick(Sender: TObject);
   private
     FCPriv: TCnRSAPrivateKey;
     FCPub: TCnRSAPublicKey;
@@ -181,10 +183,21 @@ var
 begin
   CRT := TCnRSACertificate.Create;
   if not CnCALoadCertificateFromFile(edtCRT.Text, CRT) then
-    ShowMessage('Parse CRT File Failed.');
-  mmoCRT.Clear;
-  mmoCRT.Lines.Add(CRT.ToString);
+    ShowMessage('Parse CRT File Failed.')
+  else
+  begin
+    mmoCRT.Clear;
+    mmoCRT.Lines.Add(CRT.ToString);
+  end;
   CRT.Free;
+end;
+
+procedure TFormCA.btnVerifyCSRClick(Sender: TObject);
+begin
+  if CnCAVerifyCertificateSignRequest(edtCSR.Text) then
+    ShowMessage('CSR Verify OK.')
+  else
+    ShowMessage('CSR Verify Fail.');
 end;
 
 end.
