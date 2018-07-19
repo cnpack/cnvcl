@@ -306,6 +306,10 @@ function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
 
+function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
+  MemoryStream: TMemoryStream): Boolean;
+{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
+
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   MemoryStream: TMemoryStream): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后分行并补上文件头尾再写入文件}
@@ -665,7 +669,7 @@ begin
   end;
 end;
 
-function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
+function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream): Boolean;
 var
   I: Integer;
@@ -674,11 +678,11 @@ var
 begin
   Result := False;
 
-  if (ExpectHead <> '') and (ExpectTail <> '') then
+  if (Stream <> nil) and (Stream.Size > 0) and (ExpectHead <> '') and (ExpectTail <> '') then
   begin
     Sl := TStringList.Create;
     try
-      Sl.LoadFromFile(FileName);
+      Sl.LoadFromStream(Stream);
       if Sl.Count > 2 then
       begin
         if Trim(Sl[0]) <> ExpectHead then
@@ -703,6 +707,19 @@ begin
     finally
       Sl.Free;
     end;
+  end;
+end;
+
+function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
+  MemoryStream: TMemoryStream): Boolean;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := LoadPemStreamToMemory(Stream, ExpectHead, ExpectTail, MemoryStream);
+  finally
+    Stream.Free;
   end;
 end;
 
