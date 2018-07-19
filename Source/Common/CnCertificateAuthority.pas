@@ -44,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, Consts,
+  SysUtils, Classes, Windows, Consts,
   CnBigNumber, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
 
 const
@@ -204,26 +204,70 @@ type
                     -- by extnID
 }
 
-  TCnCertificateExtension = class(TObject)
-  {* 描述证书中的一个扩展项}
+  TCnCerKeyUsage = (kuDigitalSignature, kuContentCommitment, kuKeyEncipherment,
+    kuDataEncipherment, kuKeyAgreement, kuKeyCertSign, kuCRLSign, kuEncipherOnly,
+    kuDecipherOnly);
+  TCnCerKeyUsages = set of TCnCerKeyUsage;
+
+{
+  标准扩展包括以下内容：
+  // Authority Key Identifier       签发者密钥标识符 array of Byte
+  // Subject Key Identifier         被签发者公钥标记 array of Byte
+  // Key Usage                      密钥用法集合 TCnCerKeyUsages
+  // Certificate Policies
+  // Policy Mappings
+  // Subject Alternative Name       被签发者的替代名称，字符串列表
+  // Issuer Alternative Name        签发者的替代名称，字符串列表
+  // Subject Directory Attributes
+  // Basic Constraints              基本限制
+  // Name Constraints
+  // Policy Constraints
+  // Extended Key Usage             增强型密钥用法集合
+  // CRL Distribution Points        CRL 发布 URL，字符串列表
+  // Inhibit anyPolicy
+  // Freshest CRL (a.k.a. Delta CRL Distribution Point)
+}
+  TCnCertificateStandardExtensions = class(TObject)
+  {* 证书标准扩展内容}
   private
-    FCritical: Boolean;
-    FExtnValueLength: Integer;
-    FExtnIDLength: Integer;
-    FExtnValue: Pointer;
-    FExtnID: Pointer;
+    FKeyUsage: TCnCerKeyUsages;
+    FSubjectAltName: TStrings;
+    FIssuerAltName: TStrings;
+    FAuthorityKeyIdentifier: AnsiString;
+    FSubjectKeyIdentifier: AnsiString;
+    FCRLDistributionPoints: TStrings;
   public
     constructor Create;
     destructor Destroy; override;
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
-    property ExtnID: Pointer read FExtnID write FExtnID;
-    property ExtnIDLength: Integer read FExtnIDLength write FExtnIDLength;
-    {* 持有的 Object Identifier 及其长度}
-    property Critical: Boolean read FCritical write FCritical;
-    {* 是否关键扩展属性}
-    property ExtnValue: Pointer read FExtnValue write FExtnValue;
-    property ExtnValueLength: Integer read FExtnValueLength write FExtnValueLength;
-    {* 持有的扩展值内容及其长度}
+    property KeyUsage: TCnCerKeyUsages read FKeyUsage;
+    property SubjectAltName: TStrings read FSubjectAltName;
+    property IssuerAltName: TStrings read FIssuerAltName;
+    property CRLDistributionPoints: TStrings read FCRLDistributionPoints;
+    property AuthorityKeyIdentifier: AnsiString read FAuthorityKeyIdentifier;
+    property SubjectKeyIdentifier: AnsiString read FSubjectKeyIdentifier;
+  end;
+
+{
+  私有互联网扩展包括以下内容：
+  // Authority Information Access   签发者的信息，包括 ocsp 与 caIssuers 俩 URL
+  // Subject Information Access     没啥东西
+}
+
+  TCnCertificatePrivateInternetExtensions = class(TObject)
+  private
+    FAuthorityInformationAccessCaIssuers: string;
+    FAuthorityInformationAccessOcsp: string;
+  public
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
+    property AuthorityInformationAccessOcsp: string read FAuthorityInformationAccessOcsp
+      write FAuthorityInformationAccessOcsp;
+    {* 上级签发证书 Ocsp 的 URL}
+    property AuthorityInformationAccessCaIssuers: string read FAuthorityInformationAccessCaIssuers
+      write FAuthorityInformationAccessCaIssuers;
+    {* 上级签发机构证书访问 URL}
   end;
 
 {
@@ -254,11 +298,10 @@ type
     FSubjectUniqueID: string;
     FIssuer: TCnCertificateIssuerInfo;
     FIssuerUniqueID: string;
-    FExtensions: TObjectList;
     FSubjectPublicKey: TCnRSAPublicKey;
     FCASignType: TCnCASignType;
-    function GetExtensions(Index: Integer): TCnCertificateExtension;
-    function GetExtensionCount: Integer;
+    FPrivateInternetExtension: TCnCertificatePrivateInternetExtensions;
+    FStandardExtension: TCnCertificateStandardExtensions;
   public
     constructor Create;
     destructor Destroy; override;
@@ -288,10 +331,10 @@ type
     property NotAfter: TCnUTCTime read FNotAfter;
     {* 有效期结束}
 
-    property ExtensionCount: Integer read GetExtensionCount;
-    {* v3 时的扩展信息项数}
-    property Extensions[Index: Integer]: TCnCertificateExtension read GetExtensions;
-    {* v3 时的扩展信息列表}
+    property StandardExtension: TCnCertificateStandardExtensions read FStandardExtension;
+    {* 标准扩展对象集合}
+    property PrivateInternetExtension: TCnCertificatePrivateInternetExtensions read FPrivateInternetExtension;
+    {* 私有互联网扩展对象集合}
   end;
 
 {
@@ -1239,31 +1282,20 @@ begin
   FIssuer := TCnCertificateIssuerInfo.Create;
   FSubject := TCnCertificateSubjectInfo.Create;
   FSubjectPublicKey := TCnRSAPublicKey.Create;
-  FExtensions := TObjectList.Create(True);
+  FStandardExtension := TCnCertificateStandardExtensions.Create;
+  FPrivateInternetExtension := TCnCertificatePrivateInternetExtensions.Create;
 end;
 
 destructor TCnRSABasicCertificate.Destroy;
 begin
-  FExtensions.Free;
+  FPrivateInternetExtension.Free;
+  FStandardExtension.Free;
   FIssuer.Free;
   FSubjectPublicKey.Free;
   FSubject.Free;
   FNotBefore.Free;
   FNotAfter.Free;
   inherited;
-end;
-
-function TCnRSABasicCertificate.GetExtensionCount: Integer;
-begin
-  Result := FExtensions.Count;
-end;
-
-function TCnRSABasicCertificate.GetExtensions(Index: Integer): TCnCertificateExtension;
-begin
-  if (Index >= 0) and (Index < FExtensions.Count) then
-    Result := TCnCertificateExtension(FExtensions[Index])
-  else
-    raise EListError.CreateFmt(SListIndexError, [index]);
 end;
 
 function TCnRSABasicCertificate.ToString: string;
@@ -1281,18 +1313,35 @@ begin
   Result := Result + SCRLF + 'Subject Public Key Exponent: ' + SubjectPublicKey.PubKeyExponent.ToDec;
 end;
 
-{ TCnCertificateExtension }
+{ TCnCertificatePrivateInternetExtensions }
 
-constructor TCnCertificateExtension.Create;
+function TCnCertificatePrivateInternetExtensions.ToString: string;
 begin
-
+  Result := 'AuthorityInformationAccess Ocsp: ' + FAuthorityInformationAccessOcsp;
+  Result := Result + SCRLF + 'AuthorityInformationAccess CaIssusers: ' + FAuthorityInformationAccessCaIssuers;
 end;
 
-destructor TCnCertificateExtension.Destroy;
+{ TCnCertificateStandardExtensions }
+
+constructor TCnCertificateStandardExtensions.Create;
 begin
-  FreeMemory(FExtnID);
-  FreeMemory(FExtnValue);
   inherited;
+  FSubjectAltName := TStringList.Create;
+  FIssuerAltName := TStringList.Create;
+  FCRLDistributionPoints := TStringList.Create;
+end;
+
+destructor TCnCertificateStandardExtensions.Destroy;
+begin
+  FCRLDistributionPoints.Free;
+  FIssuerAltName.Free;
+  FSubjectAltName.Free;
+  inherited;
+end;
+
+function TCnCertificateStandardExtensions.ToString: string;
+begin
+
 end;
 
 end.
