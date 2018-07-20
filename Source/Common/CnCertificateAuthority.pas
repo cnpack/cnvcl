@@ -209,6 +209,10 @@ type
     kuDecipherOnly);
   TCnCerKeyUsages = set of TCnCerKeyUsage;
 
+  TCnExtendedKeyUsage = (ekuServerAuth, ekuClientAuth, ekuCodeSigning, ekuEmailProtection,
+    ekuTimeStamping, ekuOCSPSigning);
+  TCnExtendedKeyUsages = set of TCnExtendedKeyUsage;
+
 {
   标准扩展包括以下内容：
   // Authority Key Identifier       签发者密钥标识符 array of Byte
@@ -219,7 +223,7 @@ type
   // Subject Alternative Name       被签发者的替代名称，字符串列表
   // Issuer Alternative Name        签发者的替代名称，字符串列表
   // Subject Directory Attributes
-  // Basic Constraints              基本限制
+  // Basic Constraints              基本限制：是否 CA 以及嵌套层数
   // Name Constraints
   // Policy Constraints
   // Extended Key Usage             增强型密钥用法集合
@@ -236,12 +240,18 @@ type
     FAuthorityKeyIdentifier: AnsiString;
     FSubjectKeyIdentifier: AnsiString;
     FCRLDistributionPoints: TStrings;
+    FExtendedKeyUsage: TCnExtendedKeyUsages;
+    FBasicConstraintsCA: Boolean;
+    FBasicConstraintsPathLen: Integer;
   public
     constructor Create;
     destructor Destroy; override;
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property KeyUsage: TCnCerKeyUsages read FKeyUsage;
+    property ExtendedKeyUsage: TCnExtendedKeyUsages read FExtendedKeyUsage;
+    property BasicConstraintsCA: Boolean read FBasicConstraintsCA write FBasicConstraintsCA;
+    property BasicConstraintsPathLen: Integer read FBasicConstraintsPathLen write FBasicConstraintsPathLen;
     property SubjectAltName: TStrings read FSubjectAltName;
     property IssuerAltName: TStrings read FIssuerAltName;
     property CRLDistributionPoints: TStrings read FCRLDistributionPoints;
@@ -455,7 +465,13 @@ const
                                       '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 begin
   Result := '';
+  if Len <= 0 then
+    Exit;
+
   P := PByteArray(Buf);
+  if P = nil then
+    Exit;
+
   for I := 0 to Len - 1 do
   begin
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P[I] shr 4) and $0F] +
@@ -1139,6 +1155,7 @@ var
   SerialNum: TCnBigNumber;
   Root, Node, VerNode, SerialNode: TCnBerReadNode;
   BSCNode, SignAlgNode, SignValueNode: TCnBerReadNode;
+  StandardNode, InternetNode: TCnBerReadNode;
   List: TStringList;
   IsRSA: Boolean;
 begin
@@ -1247,6 +1264,9 @@ begin
     Result := ExtractSignaturesByPublicKey(nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
       DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
       DummyInteger);
+
+    // 解开标准扩展与私有互联网扩展节点
+
   finally
     Stream.Free;
     Reader.Free;
@@ -1311,6 +1331,8 @@ begin
   Result := Result + SCRLF + 'SubjectUniqueID: ' + FSubjectUniqueID;
   Result := Result + SCRLF + 'Subject Public Key Modulus: ' + SubjectPublicKey.PubKeyProduct.ToDec;
   Result := Result + SCRLF + 'Subject Public Key Exponent: ' + SubjectPublicKey.PubKeyExponent.ToDec;
+  Result := Result + SCRLF + FStandardExtension.ToString;
+  Result := Result + SCRLF + FPrivateInternetExtension.ToString;
 end;
 
 { TCnCertificatePrivateInternetExtensions }
@@ -1340,8 +1362,22 @@ begin
 end;
 
 function TCnCertificateStandardExtensions.ToString: string;
+var
+  SetVal: Integer;
 begin
-
+  SetVal := 0;
+  Move(FKeyUsage, SetVal, SizeOf(FKeyUsage));
+  Result := 'Standard Extension Key Usage: ' + IntToHex(SetVal, 2);
+  SetVal := 0;
+  Move(FExtendedKeyUsage, SetVal, SizeOf(FExtendedKeyUsage));
+  Result := Result + SCRLF + 'Extended Key Usage: ' + IntToHex(SetVal, 2);
+  Result := Result + SCRLF + 'Basic Constraints is CA: ' + InttoStr(Integer(FBasicConstraintsCA));
+  Result := Result + SCRLF + 'Basic Constraints Path Len: ' + InttoStr(FBasicConstraintsPathLen);
+  Result := Result + SCRLF + 'Authority Key Identifier: ' + PrintHex(Pointer(FAuthorityKeyIdentifier), Length(FAuthorityKeyIdentifier));
+  Result := Result + SCRLF + 'Subject Key Identifier: ' + PrintHex(Pointer(FSubjectKeyIdentifier), Length(FSubjectKeyIdentifier));
+  Result := Result + SCRLF + 'Subject Alternative Names: ' + SCRLF + FSubjectAltName.Text;
+  Result := Result + SCRLF + 'Issuer Alternative Names: '+ SCRLF + FIssuerAltName.Text;
+  Result := Result + SCRLF + 'CRL Distribution Points: '+ SCRLF + FCRLDistributionPoints.Text;
 end;
 
 end.
