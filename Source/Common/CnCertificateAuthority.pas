@@ -397,12 +397,23 @@ function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 {* 解析 PEM 格式的 CSR 文件并将内容放入 TCnRSACertificateRequest 对象中}
 
-function CnCAVerifyCertificateSignRequest(const FileName: string): Boolean;
+function CnCALoadCertificateSignRequestFromStream(Stream: TStream;
+  CertificateRequest: TCnRSACertificateRequest): Boolean;
+{* 解析 PEM 格式的 CSR 文件并将内容放入 TCnRSACertificateRequest 对象中}
+
+function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
 {* 验证一 CSR 文件的内容是否合乎签名}
+
+function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
+{* 验证一 CSR 流的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnRSACertificate): Boolean;
 {* 解析 PEM 格式的 CRT 证书文件并将内容放入 TCnRSACertificate 中}
+
+function CnCALoadCertificateFromStream(Stream: TStream;
+  Certificate: TCnRSACertificate): Boolean;
+{* 解析 PEM 格式的 CRT 证书流并将内容放入 TCnRSACertificate 中}
 
 // 其他辅助函数
 
@@ -988,6 +999,20 @@ begin
   Result := True;
 end;
 
+
+function CnCALoadCertificateSignRequestFromFile(const FileName: string;
+  CertificateRequest: TCnRSACertificateRequest): Boolean;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCALoadCertificateSignRequestFromStream(Stream, CertificateRequest);
+  finally
+    Stream.Free;
+  end;
+end;
+
 {
   CSR 文件的大体格式如下：
 
@@ -1037,7 +1062,7 @@ end;
       NULL
     BIT STRING  Digest 值经过 RSA 加密后的结果
 }
-function CnCALoadCertificateSignRequestFromFile(const FileName: string;
+function CnCALoadCertificateSignRequestFromStream(Stream: TStream;
   CertificateRequest: TCnRSACertificateRequest): Boolean;
 var
   IsRSA: Boolean;
@@ -1047,76 +1072,86 @@ var
   List: TStringList;
 begin
   Result := False;
-  if FileExists(FileName) then
-  begin
-    Reader := nil;
-    MemStream := nil;
-    try
-      MemStream := TMemoryStream.Create;
-      if not LoadPemFileToMemory(FileName, PEM_CERTIFICATE_REQUEST_HEAD,
-        PEM_CERTIFICATE_REQUEST_TAIL, MemStream) then
+
+  Reader := nil;
+  MemStream := nil;
+  try
+    MemStream := TMemoryStream.Create;
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_REQUEST_HEAD,
+      PEM_CERTIFICATE_REQUEST_TAIL, MemStream) then
+      Exit;
+
+    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+    Reader.ParseToTree;
+    if (Reader.TotalCount >= 42) and (Reader.Items[2].BerTag = CN_BER_TAG_INTEGER)
+      and (Reader.Items[2].AsInteger = 0) then // 就是有这么多项，版本号必须为 0
+    begin
+      DNRoot := Reader.Items[3];
+      PubNode := DNRoot.GetNextSibling;
+      if PubNode = nil then
         Exit;
 
-      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-      Reader.ParseToTree;
-      if (Reader.TotalCount >= 42) and (Reader.Items[2].BerTag = CN_BER_TAG_INTEGER)
-        and (Reader.Items[2].AsInteger = 0) then // 就是有这么多项，版本号必须为 0
-      begin
-        DNRoot := Reader.Items[3];
-        PubNode := DNRoot.GetNextSibling;
-        if PubNode = nil then
-          Exit;
+      HashNode := Reader.Items[1].GetNextSibling;
+      if (HashNode = nil) or (HashNode.Count <> 2) then
+        Exit;
 
-        HashNode := Reader.Items[1].GetNextSibling;
-        if (HashNode = nil) or (HashNode.Count <> 2) then
-          Exit;
+      SignNode := HashNode.GetNextSibling;
+      if (SignNode = nil) or (SignNode.BerTag <> CN_BER_TAG_BIT_STRING)
+        or (SignNode.BerDataLength <= 2) then
+        Exit;
 
-        SignNode := HashNode.GetNextSibling;
-        if (SignNode = nil) or (SignNode.BerTag <> CN_BER_TAG_BIT_STRING)
-          or (SignNode.BerDataLength <= 2) then
-          Exit;
+      IsRSA := False;
+      if (PubNode.Count = 2) and (PubNode.Items[0].Count = 2) then
+        IsRSA := CompareObjectIdentifier(PubNode.Items[0].Items[0],
+          @OID_RSAENCRYPTION_PKCS1[0], SizeOf(OID_RSAENCRYPTION_PKCS1));
 
-        IsRSA := False;
-        if (PubNode.Count = 2) and (PubNode.Items[0].Count = 2) then
-          IsRSA := CompareObjectIdentifier(PubNode.Items[0].Items[0],
-            @OID_RSAENCRYPTION_PKCS1[0], SizeOf(OID_RSAENCRYPTION_PKCS1));
+      if not IsRSA then // 算法不是 RSA
+        Exit;
 
-        if not IsRSA then // 算法不是 RSA
-          Exit;
+      List := TStringList.Create;
+      try
+        ExtractDNValuesToList(DNRoot, List);
 
-        List := TStringList.Create;
-        try
-          ExtractDNValuesToList(DNRoot, List);
-
-          CertificateRequest.CertificateRequestInfo.CountryName := List.Values[SDN_COUNTRYNAME];
-          CertificateRequest.CertificateRequestInfo.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
-          CertificateRequest.CertificateRequestInfo.LocalityName := List.Values[SDN_LOCALITYNAME];
-          CertificateRequest.CertificateRequestInfo.OrganizationName := List.Values[SDN_ORGANIZATIONNAME];
-          CertificateRequest.CertificateRequestInfo.OrganizationalUnitName := List.Values[SDN_ORGANIZATIONALUNITNAME];
-          CertificateRequest.CertificateRequestInfo.CommonName := List.Values[SDN_COMMONNAME];
-          CertificateRequest.CertificateRequestInfo.EmailAddress := List.Values[SDN_EMAILADDRESS];
-        finally
-          List.Free;
-        end;
-
-        // 解开公钥
-        PubNode := PubNode.Items[1]; // BitString
-        if not ExtractPublicKey(PubNode, CertificateRequest.PublicKey) then
-          Exit;
-
-        Result := ExtractSignaturesByPublicKey(CertificateRequest.PublicKey,
-          HashNode, SignNode, CertificateRequest.FCASignType, CertificateRequest.FDigestType,
-          CertificateRequest.FSignValue, CertificateRequest.FDigestValue,
-          CertificateRequest.FSignLength, CertificateRequest.FDigestLength);
+        CertificateRequest.CertificateRequestInfo.CountryName := List.Values[SDN_COUNTRYNAME];
+        CertificateRequest.CertificateRequestInfo.StateOrProvinceName := List.Values[SDN_STATEORPROVINCENAME];
+        CertificateRequest.CertificateRequestInfo.LocalityName := List.Values[SDN_LOCALITYNAME];
+        CertificateRequest.CertificateRequestInfo.OrganizationName := List.Values[SDN_ORGANIZATIONNAME];
+        CertificateRequest.CertificateRequestInfo.OrganizationalUnitName := List.Values[SDN_ORGANIZATIONALUNITNAME];
+        CertificateRequest.CertificateRequestInfo.CommonName := List.Values[SDN_COMMONNAME];
+        CertificateRequest.CertificateRequestInfo.EmailAddress := List.Values[SDN_EMAILADDRESS];
+      finally
+        List.Free;
       end;
-    finally
-      Reader.Free;
-      MemStream.Free;
+
+      // 解开公钥
+      PubNode := PubNode.Items[1]; // BitString
+      if not ExtractPublicKey(PubNode, CertificateRequest.PublicKey) then
+        Exit;
+
+      Result := ExtractSignaturesByPublicKey(CertificateRequest.PublicKey,
+        HashNode, SignNode, CertificateRequest.FCASignType, CertificateRequest.FDigestType,
+        CertificateRequest.FSignValue, CertificateRequest.FDigestValue,
+        CertificateRequest.FSignLength, CertificateRequest.FDigestLength);
     end;
+  finally
+    Reader.Free;
+    MemStream.Free;
   end;
 end;
 
-function CnCAVerifyCertificateSignRequest(const FileName: string): Boolean;
+function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifyCertificateSignRequestStream(Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
 var
   CSR: TCnRSACertificateRequest;
   Reader: TCnBerReader;
@@ -1132,11 +1167,12 @@ begin
 
   try
     CSR := TCnRSACertificateRequest.Create;
-    if not CnCALoadCertificateSignRequestFromFile(FileName, CSR) then
+    if not CnCALoadCertificateSignRequestFromStream(Stream, CSR) then
       Exit;
 
     MemStream := TMemoryStream.Create;
-    if not LoadPemFileToMemory(FileName, PEM_CERTIFICATE_REQUEST_HEAD,
+    Stream.Position := 0;
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_REQUEST_HEAD,
       PEM_CERTIFICATE_REQUEST_TAIL, MemStream) then
       Exit;
 
@@ -1329,7 +1365,20 @@ end;
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnRSACertificate): Boolean;
 var
-  Stream: TMemoryStream;
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCALoadCertificateFromStream(Stream, Certificate);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCALoadCertificateFromStream(Stream: TStream;
+  Certificate: TCnRSACertificate): Boolean;
+var
+  Mem: TMemoryStream;
   Reader: TCnBerReader;
   SerialNum: TCnBigNumber;
   Root, Node, VerNode, SerialNode: TCnBerReadNode;
@@ -1338,17 +1387,15 @@ var
   IsRSA: Boolean;
 begin
   Result := False;
-  if not FileExists(FileName) then
-    Exit;
 
-  Stream := nil;
+  Mem := nil;
   Reader := nil;
   try
-    Stream := TMemoryStream.Create;
-    if not LoadPemFileToMemory(FileName, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Stream) then
+    Mem := TMemoryStream.Create;
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Mem) then
       Exit;
 
-    Reader := TCnBerReader.Create(PByte(Stream.Memory), Stream.Size, True);
+    Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
     Reader.ParseToTree;
 
     Root := Reader.Items[0];
@@ -1456,7 +1503,7 @@ begin
        Certificate.BasicCertificate.PrivateInternetExtension);
     end;
   finally
-    Stream.Free;
+    Mem.Free;
     Reader.Free;
   end;
 end;

@@ -194,7 +194,7 @@ end;
 
 procedure TFormCA.btnVerifyCSRClick(Sender: TObject);
 begin
-  if CnCAVerifyCertificateSignRequest(edtCSR.Text) then
+  if CnCAVerifyCertificateSignRequestFile(edtCSR.Text) then
     ShowMessage('CSR Verify OK.')
   else
     ShowMessage('CSR Verify Fail.');
