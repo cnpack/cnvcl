@@ -122,6 +122,7 @@ type
     procedure CopyTLVTo(DestBuf: Pointer);
     {* 将节点全部内容复制至缓冲区，，缓冲区尺寸至少需要 BerLength 大}
 
+    function AsBoolean: Boolean;
     function AsShortInt: ShortInt;
     function AsByte: Byte;
     function AsSmallInt: SmallInt;
@@ -150,7 +151,7 @@ type
     function GetNextSibling: TCnBerReadNode;
     function GetPrevSibling: TCnBerReadNode;
 
-    property Items[Index: Integer]: TCnBerReadNode read GetItems write SetItems;
+    property Items[Index: Integer]: TCnBerReadNode read GetItems write SetItems; default;
 
     property BerOffset: Integer read FBerOffset write FBerOffset;
     {* 该节点对应的 ASN.1 内容编码在整体中的偏移}
@@ -519,6 +520,7 @@ end;
 
 procedure TCnBerReader.ManualParseNodeData(RootNode: TCnBerReadNode);
 begin
+  RootNode.Clear;
   ParseArea(RootNode, PByteArray(RootNode.BerDataAddress), RootNode.BerDataLength, RootNode.BerDataOffset);
 end;
 
@@ -716,6 +718,17 @@ begin
     Result := nil
   else
     Result := Pointer(Integer(FOriginData) + FBerOffset);
+end;
+
+function TCnBerReadNode.AsBoolean: Boolean;
+var
+  B: Byte;
+begin
+  if (FBerTag <> CN_BER_TAG_BOOLEAN) and (FBerDataLength <> 1) then
+    raise Exception.Create('Ber Tag Type Mismatch for Boolean: ' + IntToStr(FBerTag));
+
+  CopyDataTo(@B);
+  Result := B <> 0;
 end;
 
 { TCnBerWriter }

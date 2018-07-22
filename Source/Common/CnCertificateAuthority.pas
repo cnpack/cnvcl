@@ -248,15 +248,15 @@ type
     destructor Destroy; override;
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
-    property KeyUsage: TCnCerKeyUsages read FKeyUsage;
-    property ExtendedKeyUsage: TCnExtendedKeyUsages read FExtendedKeyUsage;
+    property KeyUsage: TCnCerKeyUsages read FKeyUsage write FKeyUsage;
+    property ExtendedKeyUsage: TCnExtendedKeyUsages read FExtendedKeyUsage write FExtendedKeyUsage;
     property BasicConstraintsCA: Boolean read FBasicConstraintsCA write FBasicConstraintsCA;
     property BasicConstraintsPathLen: Integer read FBasicConstraintsPathLen write FBasicConstraintsPathLen;
     property SubjectAltName: TStrings read FSubjectAltName;
     property IssuerAltName: TStrings read FIssuerAltName;
     property CRLDistributionPoints: TStrings read FCRLDistributionPoints;
-    property AuthorityKeyIdentifier: AnsiString read FAuthorityKeyIdentifier;
-    property SubjectKeyIdentifier: AnsiString read FSubjectKeyIdentifier;
+    property AuthorityKeyIdentifier: AnsiString read FAuthorityKeyIdentifier write FAuthorityKeyIdentifier;
+    property SubjectKeyIdentifier: AnsiString read FSubjectKeyIdentifier write FSubjectKeyIdentifier;
   end;
 
 {
@@ -422,17 +422,65 @@ const
   PEM_CERTIFICATE_HEAD = '-----BEGIN CERTIFICATE-----';
   PEM_CERTIFICATE_TAIL = '-----END CERTIFICATE-----';
 
-  OID_DN_COUNTRYNAME            : array[0..2] of Byte = ($55, $04, $06); // 2.5.4.6
-  OID_DN_STATEORPROVINCENAME    : array[0..2] of Byte = ($55, $04, $08); // 2.5.4.8
-  OID_DN_LOCALITYNAME           : array[0..2] of Byte = ($55, $04, $07); // 2.5.4.7
-  OID_DN_ORGANIZATIONNAME       : array[0..2] of Byte = ($55, $04, $0A); // 2.5.4.10
-  OID_DN_ORGANIZATIONALUNITNAME : array[0..2] of Byte = ($55, $04, $0B); // 2.5.4.11
-  OID_DN_COMMONNAME             : array[0..2] of Byte = ($55, $04, $03); // 2.5.4.3
-  OID_DN_EMAILADDRESS           : array[0..8] of Byte = (
+  OID_DN_COUNTRYNAME             : array[0..2] of Byte = ($55, $04, $06); // 2.5.4.6
+  OID_DN_STATEORPROVINCENAME     : array[0..2] of Byte = ($55, $04, $08); // 2.5.4.8
+  OID_DN_LOCALITYNAME            : array[0..2] of Byte = ($55, $04, $07); // 2.5.4.7
+  OID_DN_ORGANIZATIONNAME        : array[0..2] of Byte = ($55, $04, $0A); // 2.5.4.10
+  OID_DN_ORGANIZATIONALUNITNAME  : array[0..2] of Byte = ($55, $04, $0B); // 2.5.4.11
+  OID_DN_COMMONNAME              : array[0..2] of Byte = ($55, $04, $03); // 2.5.4.3
+  OID_DN_EMAILADDRESS            : array[0..8] of Byte = (
     $2A, $86, $48, $86, $F7, $0D, $01, $09, $01
   ); // 1.2.840.113549.1.9.1
 
-  OID_SHA1_RSAENCRYPTION        : array[0..8] of Byte = (
+  // 扩展字段们的 OID
+  OID_EXT_SUBJECTKEYIDENTIFIER   : array[0..2] of Byte = ($55, $1D, $0E); // 2.5.29.14
+  OID_EXT_KEYUSAGE               : array[0..2] of Byte = ($55, $1D, $0F); // 2.5.29.15
+  OID_EXT_SUBJECTALTNAME         : array[0..2] of Byte = ($55, $1D, $11); // 2.5.29.17
+  OID_EXT_ISSUERTALTNAME         : array[0..2] of Byte = ($55, $1D, $12); // 2.5.29.18
+  OID_EXT_BASICCONSTRAINTS       : array[0..2] of Byte = ($55, $1D, $13); // 2.5.29.19
+  OID_EXT_CRLDISTRIBUTIONPOINTS  : array[0..2] of Byte = ($55, $1D, $1F); // 2.5.29.31
+  OID_EXT_CERTIFICATEPOLICIES    : array[0..2] of Byte = ($55, $1D, $20); // 2.5.29.32
+  OID_EXT_AUTHORITYKEYIDENTIFIER : array[0..2] of Byte = ($55, $1D, $23); // 2.5.29.35
+  OID_EXT_EXTKEYUSAGE            : array[0..2] of Byte = ($55, $1D, $25); // 2.5.29.37
+  OID_EXT_AUTHORITYINFOACCESS    : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $01, $01
+  ); // 1.3.6.1.5.5.7.1.1
+  OID_EXT_AUTHORITYINFOACCESS_OCSP         : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $30, $01
+  ); // 1.3.6.1.5.5.7.48.1
+  OID_EXT_AUTHORITYINFOACCESS_CAISSUERS    : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $30, $02
+  ); // 1.3.6.1.5.5.7.48.2
+
+  // authorityInfoAccess Subs
+  OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP  : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $30, $01
+  ); // 1.3.6.1.5.5.7.48.1
+  OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS  : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $30, $02
+  ); // 1.3.6.1.5.5.7.48.2
+
+  // Extended Key Usages
+  OID_EXT_EXT_KEYUSAGE_SERVERAUTH  : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $03, $01
+  ); // 1.3.6.1.5.5.7.3.1
+  OID_EXT_EXT_KEYUSAGE_CLIENTAUTH  : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $03, $02
+  ); // 1.3.6.1.5.5.7.3.2
+  OID_EXT_EXT_KEYUSAGE_CODESIGNING : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $03, $03
+  ); // 1.3.6.1.5.5.7.3.3
+  OID_EXT_EXT_KEYUSAGE_EMAILPROTECTION : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $03, $04
+  ); // 1.3.6.1.5.5.7.3.4
+  OID_EXT_EXT_KEYUSAGE_TIMESTAMPING : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $03, $08
+  ); // 1.3.6.1.5.5.7.3.8
+  OID_EXT_EXT_KEYUSAGE_OCSPSIGNING  : array[0..7] of Byte = (
+    $2B, $06, $01, $05, $05, $07, $03, $09
+  ); // 1.3.6.1.5.5.7.3.9
+
+  OID_SHA1_RSAENCRYPTION          : array[0..8] of Byte = (
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $05
   ); // 1.2.840.113549.1.1.5
   OID_SHA256_RSAENCRYPTION        : array[0..8] of Byte = (
@@ -809,6 +857,137 @@ begin
   end;
 end;
 
+function ExtractExtensions(Root: TCnBerReadNode; StandardExt: TCnCertificateStandardExtensions;
+  PrivateInternetExt: TCnCertificatePrivateInternetExtensions): Boolean;
+var
+  I, J: Integer;
+  ExtNode, OidNode, ValueNode: TCnBerReadNode;
+  Buf: array of Byte;
+  KU: TCnCerKeyUsages;
+begin
+  Result := False;
+  if (Root = nil) or (Root.Count < 1) then
+    Exit;
+
+  for I := 0 to Root.Count - 1 do
+  begin
+    ExtNode := Root.Items[I];
+    if ExtNode.Count > 0 then
+    begin
+      OidNode := ExtNode.Items[0];
+      ValueNode := nil;
+      if ExtNode.Count > 1 then
+      begin
+        if (ExtNode.Items[1].BerTag = CN_BER_TAG_BOOLEAN) and (ExtNode.Count > 2) then
+          ValueNode := ExtNode.Items[2] // Critical，暂不解析
+        else
+          ValueNode := ExtNode.Items[1];
+      end;
+
+      if ValueNode = nil then
+        Continue;
+      if (ValueNode.BerTag <> CN_BER_TAG_OCTET_STRING) or (ValueNode.Count <> 1) then
+        Continue;
+
+      ValueNode := ValueNode.Items[0]; // 指向 OctetString 的子节点，Value 所在
+      if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTKEYIDENTIFIER, SizeOf(OID_EXT_SUBJECTKEYIDENTIFIER)) then
+      begin
+        StandardExt.SubjectKeyIdentifier := ValueNode.AsString;
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_KEYUSAGE, SizeOf(OID_EXT_KEYUSAGE)) then
+      begin
+        if ValueNode.BerTag = CN_BER_TAG_BIT_STRING then
+        begin
+          SetLength(Buf, ValueNode.BerDataLength);
+          if Length(Buf) >= 2 then
+          begin
+            ValueNode.CopyDataTo(@Buf[0]);
+            // Buf[1] 要 shr Buf[0] 位
+            Buf[1] := Buf[1] shr Buf[0];
+            Move(Buf[0], KU, 1);
+            StandardExt.KeyUsage := KU;
+          end;
+        end;
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTALTNAME, SizeOf(OID_EXT_SUBJECTALTNAME)) then
+      begin
+        StandardExt.SubjectAltName.Clear;
+        for J := 0 to ValueNode.Count - 1 do
+          StandardExt.SubjectAltName.Add(ValueNode[J].AsString);
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_ISSUERTALTNAME, SizeOf(OID_EXT_ISSUERTALTNAME)) then
+      begin
+        StandardExt.IssuerAltName.Clear;
+        for J := 0 to ValueNode.Count - 1 do
+          StandardExt.IssuerAltName.Add(ValueNode[J].AsString);
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_BASICCONSTRAINTS, SizeOf(OID_EXT_BASICCONSTRAINTS)) then
+      begin
+        for J := 0 to ValueNode.Count - 1 do
+        begin
+          if ValueNode[J].BerTag = CN_BER_TAG_BOOLEAN then
+            StandardExt.BasicConstraintsCA := ValueNode[J].AsBoolean
+          else if ValueNode[J].BerTag = CN_BER_TAG_INTEGER then
+            StandardExt.BasicConstraintsPathLen := ValueNode[J].AsInteger;
+        end;
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_CRLDISTRIBUTIONPOINTS, SizeOf(OID_EXT_CRLDISTRIBUTIONPOINTS)) then
+      begin
+        StandardExt.CRLDistributionPoints.Clear;
+        for J := 0 to ValueNode.Count - 1 do
+        begin
+          if ValueNode[J].Count = 1 then
+            if ValueNode[J][0].Count = 1 then
+              if ValueNode[J][0][0].Count = 1 then
+                StandardExt.CRLDistributionPoints.Add(ValueNode[J][0][0][0].AsString);
+        end;
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_CERTIFICATEPOLICIES, SizeOf(OID_EXT_CERTIFICATEPOLICIES)) then
+      begin
+        // TODO: 解析复杂的 CERTIFICATEPOLICIES
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_AUTHORITYKEYIDENTIFIER, SizeOf(OID_EXT_AUTHORITYKEYIDENTIFIER)) then
+      begin
+        StandardExt.AuthorityKeyIdentifier := ValueNode.AsString;
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_EXTKEYUSAGE, SizeOf(OID_EXT_EXTKEYUSAGE)) then
+      begin
+        StandardExt.ExtendedKeyUsage := [];
+        for J := 0 to ValueNode.Count - 1 do
+        begin
+          if CompareObjectIdentifier(ValueNode[J], @OID_EXT_EXT_KEYUSAGE_SERVERAUTH[0], SizeOf(OID_EXT_EXT_KEYUSAGE_SERVERAUTH)) then
+            StandardExt.ExtendedKeyUsage := StandardExt.ExtendedKeyUsage + [ekuServerAuth]
+          else if CompareObjectIdentifier(ValueNode[J], @OID_EXT_EXT_KEYUSAGE_CLIENTAUTH[0], SizeOf(OID_EXT_EXT_KEYUSAGE_CLIENTAUTH)) then
+            StandardExt.ExtendedKeyUsage := StandardExt.ExtendedKeyUsage + [ekuClientAuth]
+          else if CompareObjectIdentifier(ValueNode[J], @OID_EXT_EXT_KEYUSAGE_CODESIGNING[0], SizeOf(OID_EXT_EXT_KEYUSAGE_CODESIGNING)) then
+            StandardExt.ExtendedKeyUsage := StandardExt.ExtendedKeyUsage + [ekuCodeSigning]
+          else if CompareObjectIdentifier(ValueNode[J], @OID_EXT_EXT_KEYUSAGE_EMAILPROTECTION[0], SizeOf(OID_EXT_EXT_KEYUSAGE_EMAILPROTECTION)) then
+            StandardExt.ExtendedKeyUsage := StandardExt.ExtendedKeyUsage + [ekuEmailProtection]
+          else if CompareObjectIdentifier(ValueNode[J], @OID_EXT_EXT_KEYUSAGE_TIMESTAMPING[0], SizeOf(OID_EXT_EXT_KEYUSAGE_TIMESTAMPING)) then
+            StandardExt.ExtendedKeyUsage := StandardExt.ExtendedKeyUsage + [ekuTimeStamping]
+          else if CompareObjectIdentifier(ValueNode[J], @OID_EXT_EXT_KEYUSAGE_OCSPSIGNING[0], SizeOf(OID_EXT_EXT_KEYUSAGE_OCSPSIGNING)) then
+            StandardExt.ExtendedKeyUsage := StandardExt.ExtendedKeyUsage + [ekuOCSPSigning];
+        end;
+      end
+      else if CompareObjectIdentifier(OidNode, @OID_EXT_AUTHORITYINFOACCESS, SizeOf(OID_EXT_AUTHORITYINFOACCESS)) then
+      begin
+        for J := 0 to ValueNode.Count - 1 do
+        begin
+          if ValueNode[J].Count = 2 then
+          begin
+            if CompareObjectIdentifier(ValueNode[J].Items[0], @OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP[0], SizeOf(OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP)) then
+              PrivateInternetExt.AuthorityInformationAccessOcsp := ValueNode[J].Items[1].AsString
+            else if CompareObjectIdentifier(ValueNode[J].Items[0], @OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS[0], SizeOf(OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS)) then
+              PrivateInternetExt.AuthorityInformationAccessCaIssuers := ValueNode[J].Items[1].AsString
+          end;
+        end;
+      end;
+    end;
+  end;
+  SetLength(Buf, 0);
+  Result := True;
+end;
+
 {
   CSR 文件的大体格式如下：
 
@@ -1155,7 +1334,6 @@ var
   SerialNum: TCnBigNumber;
   Root, Node, VerNode, SerialNode: TCnBerReadNode;
   BSCNode, SignAlgNode, SignValueNode: TCnBerReadNode;
-  StandardNode, InternetNode: TCnBerReadNode;
   List: TStringList;
   IsRSA: Boolean;
 begin
@@ -1266,7 +1444,17 @@ begin
       DummyInteger);
 
     // 解开标准扩展与私有互联网扩展节点
+    if Result then
+    begin
+      Node := (Node.Parent as TCnBerReadNode).GetNextSibling;
+      if (Node <> nil) then  // BITString 又无需跳过了
+        Reader.ManualParseNodeData(Node);
+      if Node.Count = 1 then
+        Node := Node.Items[0];
 
+      Result := ExtractExtensions(Node, Certificate.BasicCertificate.StandardExtension,
+       Certificate.BasicCertificate.PrivateInternetExtension);
+    end;
   finally
     Stream.Free;
     Reader.Free;
