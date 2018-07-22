@@ -364,11 +364,15 @@ type
     FCASignType: TCnCASignType;
     FDigestType: TCnRSASignDigestType;
     FBasicCertificate: TCnRSABasicCertificate;
+    function GetIsSelfSign: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
+    property IsSelfSign: Boolean read GetIsSelfSign;
+    {* 是否自签名证书，使用签发者与被签发者信息是否相同来判断}
 
     property BasicCertificate: TCnRSABasicCertificate read FBasicCertificate;
     {* 证书基本信息类}
@@ -381,7 +385,7 @@ type
     property DigestType: TCnRSASignDigestType read FDigestType write FDigestType;
     {* 客户端散列使用的散列算法，应与 CASignType 意义相等}
     property DigestValue: Pointer read FDigestValue write FDigestValue;
-    {* 散列值，中间结果，不直接存储于 CSR 文件中}
+    {* 散列值，中间结果，不直接存储于 CRT 文件中}
     property DigestLength: Integer read FDigestLength write FDigestLength;
     {* 散列值的长度}
   end;
@@ -414,6 +418,12 @@ function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
 
 function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
 {* 验证一 CSR 流的内容是否合乎签名}
+
+function CnCAVerifySelfSignCertificateFile(const FileName: string): Boolean;
+{* 验证一自签名的 CRT 文件的内容是否合乎签名}
+
+function CnCAVerifySelfSignCertificateStream(Stream: TStream): Boolean;
+{* 验证一自签名的 CRT 流的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnRSACertificate): Boolean;
@@ -807,7 +817,7 @@ begin
           else if CompareObjectIdentifier(Node, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME)) then
             List.Values[SDN_COMMONNAME] := StrNode.AsPrintableString
           else if CompareObjectIdentifier(Node, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS)) then
-            List.Values[SDN_EMAILADDRESS] := StrNode.AsPrintableString
+            List.Values[SDN_EMAILADDRESS] := StrNode.AsString  // Email is not PrintableString
         end;
       end;
     end;
@@ -1250,6 +1260,69 @@ begin
   end;
 end;
 
+function CnCAVerifySelfSignCertificateFile(const FileName: string): Boolean;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifySelfSignCertificateStream(Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCAVerifySelfSignCertificateStream(Stream: TStream): Boolean;
+var
+  CRT: TCnRSACertificate;
+  Reader: TCnBerReader;
+  MemStream, DigestStream: TMemoryStream;
+  InfoRoot: TCnBerReadNode;
+  P: Pointer;
+begin
+  Result := False;
+  CRT := nil;
+  Reader := nil;
+  MemStream := nil;
+  DigestStream := nil;
+
+  try
+    CRT := TCnRSACertificate.Create;
+    if not CnCALoadCertificateFromStream(Stream, CRT) then
+      Exit;
+
+    if not CRT.IsSelfSign then
+      raise Exception.Create('NOT Self-Sign. Can NOT Verify.');
+
+    MemStream := TMemoryStream.Create;
+    Stream.Position := 0;
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, MemStream) then
+      Exit;
+
+    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount > 2 then
+    begin
+      InfoRoot := Reader.Items[1];
+
+      // 计算其 Hash
+      DigestStream := TMemoryStream.Create;
+      P := InfoRoot.BerAddress;
+      CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, DigestStream);
+
+      if DigestStream.Size = CRT.DigestLength then
+        Result := CompareMem(DigestStream.Memory, CRT.DigestValue, DigestStream.Size);
+    end;
+  finally
+    CRT.Free;
+    Reader.Free;
+    MemStream.Free;
+    DigestStream.Free;
+  end;
+end;
+
 { TCnCertificateBasicInfo }
 
 procedure TCnCertificateBaseInfo.Assign(Source: TPersistent);
@@ -1346,7 +1419,7 @@ begin
   Year := Year mod 100; // 只取后两位
   FUTCTimeString := Format('%2.2d%2.2d%2.2d%2.2d%2.2d', [Year, Month, Day, Hour, Minute]);
   if Sec <> 0 then
-    FUTCTimeString := FUTCTimeString + Format('%02d', [Sec]);
+    FUTCTimeString := FUTCTimeString + Format('%2.2d', [Sec]);
   FUTCTimeString := FUTCTimeString + 'Z';
 end;
 
@@ -1505,8 +1578,8 @@ begin
       Node := Node.GetNextSibling; // Issuer 节点后的同级节点是俩 UTC Time
       if Node.Count = 2 then
       begin
-        Certificate.BasicCertificate.NotBefore.UTCTimeString := Node.Items[0].AsPrintableString;
-        Certificate.BasicCertificate.NotAfter.UTCTimeString := Node.Items[1].AsPrintableString;
+        Certificate.BasicCertificate.NotBefore.UTCTimeString := Node.Items[0].AsString;
+        Certificate.BasicCertificate.NotAfter.UTCTimeString := Node.Items[1].AsString;
       end;
 
       Node := Node.GetNextSibling; // UTC Time 节点后的同级节点是 Subject
@@ -1536,10 +1609,17 @@ begin
     if not ExtractPublicKey(Node, Certificate.BasicCertificate.SubjectPublicKey) then
       Exit;
 
-    // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正散列值
-    Result := ExtractSignaturesByPublicKey(nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
-      DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
-      DummyInteger);
+    // 自签名证书可以解开散列值
+    if Certificate.IsSelfSign then
+      Result := ExtractSignaturesByPublicKey(Certificate.BasicCertificate.SubjectPublicKey,
+        SignAlgNode, SignValueNode, Certificate.FCASignType, Certificate.FDigestType,
+        Certificate.FSignValue, Certificate.FDigestValue, Certificate.FSignLength,
+        Certificate.FDigestLength)
+    else
+      // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正散列值
+      Result := ExtractSignaturesByPublicKey(nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
+        DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
+        DummyInteger);
 
     // 解开标准扩展与私有互联网扩展节点
     if Result then
@@ -1574,11 +1654,27 @@ begin
   inherited;
 end;
 
+function TCnRSACertificate.GetIsSelfSign: Boolean;
+begin
+  Result := (FBasicCertificate.Subject.CountryName = FBasicCertificate.Issuer.CountryName)
+    and (FBasicCertificate.Subject.OrganizationName = FBasicCertificate.Issuer.OrganizationName)
+    and (FBasicCertificate.Subject.CommonName = FBasicCertificate.Issuer.CommonName);
+end;
+
 function TCnRSACertificate.ToString: string;
 begin
-  Result := FBasicCertificate.ToString;
+  if IsSelfSign then
+    Result := 'Self-Signature ';
+  Result := Result + FBasicCertificate.ToString;
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
   Result := Result + SCRLF + 'Signature: ' + PrintHex(FSignValue, FSignLength);
+  if FDigestValue <> nil then
+  begin
+    Result := Result + SCRLF + 'Hash: ' + GetDigestNameFromSignDigestType(FDigestType);
+    Result := Result + SCRLF + 'Digest: ' + PrintHex(FDigestValue, FDigestLength);
+  end
+  else
+    Result := Result + SCRLF + '<No Digest>';
 end;
 
 { TCnRSABasicCertificate }
@@ -1675,12 +1771,12 @@ end;
       PrintableString
 }
 function AddDNOidValueToWriter(AWriter: TCnBerWriter; DNRoot: TCnBerWriteNode;
-  AOID: PByte; AOIDLen: Integer; const DN: string): TCnBerWriteNode;
+  AOID: PByte; AOIDLen: Integer; const DN: string; BerTag: Integer = CN_BER_TAG_PRINTABLESTRING): TCnBerWriteNode;
 begin
   Result := AWriter.AddContainerNode(CN_BER_TAG_SET, DNRoot);
   Result := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Result);
   AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, AOID, AOIDLen, Result);
-  AWriter.AddAnsiStringNode(CN_BER_TAG_PRINTABLESTRING, DN, Result);
+  AWriter.AddAnsiStringNode(BerTag, DN, Result);
 end;
 
 function CnCANewSelfSignCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
@@ -1737,7 +1833,7 @@ begin
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
 
     // 写有效时间
     UTCTime := TCnUTCTime.Create;

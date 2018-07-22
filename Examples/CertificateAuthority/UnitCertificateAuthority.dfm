@@ -203,7 +203,7 @@ object FormCA: TFormCA
         Left = 8
         Top = 200
         Width = 657
-        Height = 209
+        Height = 217
         Caption = 'Parse CSR File'
         TabOrder = 1
         object lblCSR: TLabel
@@ -233,7 +233,7 @@ object FormCA: TFormCA
           Left = 16
           Top = 56
           Width = 625
-          Height = 137
+          Height = 145
           TabOrder = 2
         end
         object btnParseCSR: TButton
@@ -358,16 +358,16 @@ object FormCA: TFormCA
         object edtCRT: TEdit
           Left = 88
           Top = 20
-          Width = 361
+          Width = 313
           Height = 21
           TabOrder = 0
         end
         object btnBrowseCRT: TButton
-          Left = 456
+          Left = 408
           Top = 20
-          Width = 91
+          Width = 73
           Height = 21
-          Caption = 'Browse CRT File'
+          Caption = 'Browse CRT'
           TabOrder = 1
           OnClick = btnBrowseCRTClick
         end
@@ -379,13 +379,22 @@ object FormCA: TFormCA
           TabOrder = 2
         end
         object btnParseCRT: TButton
-          Left = 552
+          Left = 488
           Top = 20
-          Width = 91
+          Width = 73
           Height = 21
-          Caption = 'Parse CRT File'
+          Caption = 'Parse CRT'
           TabOrder = 3
           OnClick = btnParseCRTClick
+        end
+        object btnVerifyCRT: TButton
+          Left = 568
+          Top = 20
+          Width = 73
+          Height = 21
+          Caption = 'Verify CRT'
+          TabOrder = 4
+          OnClick = btnVerifyCRTClick
         end
       end
     end

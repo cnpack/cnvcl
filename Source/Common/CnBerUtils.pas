@@ -675,7 +675,7 @@ function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): AnsiString;
 var
   P: Pointer;
 begin
-  if not FBerTag in TagSet then
+  if not (FBerTag in TagSet) then
     raise Exception.Create('Ber Tag Type Mismatch for String: ' + IntToStr(FBerTag));
 
   Result := '';

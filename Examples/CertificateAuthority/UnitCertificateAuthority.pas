@@ -59,6 +59,7 @@ type
     btnParseCSR: TButton;
     btnParseCRT: TButton;
     btnVerifyCSR: TButton;
+    btnVerifyCRT: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnBrowseCSRClick(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
@@ -69,6 +70,7 @@ type
     procedure btnParseCRTClick(Sender: TObject);
     procedure btnVerifyCSRClick(Sender: TObject);
     procedure btnSelfSignClick(Sender: TObject);
+    procedure btnVerifyCRTClick(Sender: TObject);
   private
     FCPriv: TCnRSAPrivateKey;
     FCPub: TCnRSAPublicKey;
@@ -216,6 +218,14 @@ begin
         ShowMessage('Self Sign CRT File Fail.');
     end;
   end;
+end;
+
+procedure TFormCA.btnVerifyCRTClick(Sender: TObject);
+begin
+  if CnCAVerifySelfSignCertificateFile(edtCRT.Text) then
+    ShowMessage('Self-Sign CRT Verify OK.')
+  else
+    ShowMessage('Self-Sign CRT Verify Fail.');
 end;
 
 end.
