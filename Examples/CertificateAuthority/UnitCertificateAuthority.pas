@@ -68,6 +68,7 @@ type
     procedure btnBrowseCRTClick(Sender: TObject);
     procedure btnParseCRTClick(Sender: TObject);
     procedure btnVerifyCSRClick(Sender: TObject);
+    procedure btnSelfSignClick(Sender: TObject);
   private
     FCPriv: TCnRSAPrivateKey;
     FCPub: TCnRSAPublicKey;
@@ -198,6 +199,23 @@ begin
     ShowMessage('CSR Verify OK.')
   else
     ShowMessage('CSR Verify Fail.');
+end;
+
+procedure TFormCA.btnSelfSignClick(Sender: TObject);
+begin
+  if FileExists(edtRSAKey.Text) and CnRSALoadKeysFromPem(edtRSAKey.Text, FCPriv, FCPub) then
+  begin
+    if dlgSave.Execute then
+    begin
+      if CnCANewSelfSignCertificate(FCPriv, FCPub, dlgSave.FileName, edtContryName.Text,
+        edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
+        edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
+        Now, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
+        ShowMessage('Self Sign CRT File OK.')
+      else
+        ShowMessage('Self Sign CRT File Fail.');
+    end;
+  end;
 end;
 
 end.

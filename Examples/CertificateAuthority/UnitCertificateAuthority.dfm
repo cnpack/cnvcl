@@ -196,6 +196,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Self Sign'
           TabOrder = 11
+          OnClick = btnSelfSignClick
         end
       end
       object grpParse: TGroupBox

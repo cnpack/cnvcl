@@ -111,7 +111,7 @@ type
     procedure SetItems(Index: Integer; const Value: TCnBerReadNode);
 
     function InternalAsInteger(ByteSize: Integer): Integer;
-    function InternalAsString(TagSet: TCnBerTagSet): string;
+    function InternalAsString(TagSet: TCnBerTagSet): AnsiString;
     function GetBerDataAddress: Pointer;
     function GetBerAddress: Pointer;
   public
@@ -288,6 +288,9 @@ type
     function AddBasicNode(ATag: Integer; AStream: TStream;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode; overload;
     {* 添加一个基本类型的节点，内容从指定流复制而来}
+    function AddAnsiStringNode(ATag: Integer; const AStr: AnsiString;
+      Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
+    {* 添加一个字符串型的 Node，内容从指定 AnsiString 复制而来}
     function AddContainerNode(ATag: Integer; Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
     {* 添加一个容器类型的节点，此节点可以作为上面 BasicNode 的 Parent}
     function AddRawNode(RawTag: Integer; RawLV: PByte; LVLen: Integer;
@@ -668,7 +671,7 @@ begin
   // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
 end;
 
-function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): string;
+function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): AnsiString;
 var
   P: Pointer;
 begin
@@ -867,6 +870,17 @@ begin
   finally
     Mem.Free;
   end;
+end;
+
+function TCnBerWriter.AddAnsiStringNode(ATag: Integer;
+  const AStr: AnsiString; Parent: TCnBerWriteNode): TCnBerWriteNode;
+begin
+  if Parent = nil then
+    Parent := FBerTree.Root as TCnBerWriteNode;
+  
+  Result := FBerTree.AddChild(Parent) as TCnBerWriteNode;
+  Result.FIsContainer := False;
+  Result.FillBasicNode(ATag, PByte(AStr), Length(AStr));
 end;
 
 { TCnBerWriteNode }
