@@ -71,9 +71,15 @@ type
     procedure btnVerifyCSRClick(Sender: TObject);
     procedure btnSelfSignClick(Sender: TObject);
     procedure btnVerifyCRTClick(Sender: TObject);
+    procedure btnSignClick(Sender: TObject);
+    procedure btnSignCSRBrowseClick(Sender: TObject);
+    procedure btnSignKeyBrowseClick(Sender: TObject);
+    procedure btnRootCRTBrowseClick(Sender: TObject);
   private
     FCPriv: TCnRSAPrivateKey;
     FCPub: TCnRSAPublicKey;
+    FSPriv: TCnRSAPrivateKey;
+    FSPub: TCnRSAPublicKey;
   public
     { Public declarations }
   end;
@@ -107,6 +113,8 @@ begin
   cbbHash.ItemIndex := 1;
   FCPriv := TCnRSAPrivateKey.Create;
   FCPub := TCnRSAPublicKey.Create;
+  FSPriv := TCnRSAPrivateKey.Create;
+  FSPub := TCnRSAPublicKey.Create;
 end;
 
 procedure TFormCA.btnBrowseCSRClick(Sender: TObject);
@@ -170,6 +178,8 @@ end;
 
 procedure TFormCA.FormDestroy(Sender: TObject);
 begin
+  FSPub.Free;
+  FSPriv.Free;
   FCPub.Free;
   FCPriv.Free;
 end;
@@ -209,23 +219,59 @@ begin
   begin
     if dlgSave.Execute then
     begin
-      if CnCANewSelfSignCertificate(FCPriv, FCPub, dlgSave.FileName, edtContryName.Text,
+      if CnCANewSelfSignedCertificate(FCPriv, FCPub, dlgSave.FileName, edtContryName.Text,
         edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
         edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
-        Now, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
-        ShowMessage('Self Sign CRT File OK.')
+        Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
+        ShowMessage('Self-Signed CRT File OK.')
       else
-        ShowMessage('Self Sign CRT File Fail.');
+        ShowMessage('Self-Signed CRT File Fail.');
     end;
   end;
 end;
 
 procedure TFormCA.btnVerifyCRTClick(Sender: TObject);
 begin
-  if CnCAVerifySelfSignCertificateFile(edtCRT.Text) then
-    ShowMessage('Self-Sign CRT Verify OK.')
+  if CnCAVerifySelfSignedCertificateFile(edtCRT.Text) then
+    ShowMessage('Self-Signed CRT Verify OK.')
   else
-    ShowMessage('Self-Sign CRT Verify Fail.');
+    ShowMessage('Self-Signed CRT Verify Fail.');
+end;
+
+procedure TFormCA.btnSignClick(Sender: TObject);
+begin
+  if FileExists(edtSignCSR.Text) and FileExists(edtRootCRT.Text) and FileExists(edtSignKey.Text) then
+  begin
+    if CnRSALoadKeysFromPem(edtSignKey.Text, FSPriv, FSPub) then
+    begin
+      if dlgSave.Execute then
+      begin
+        if CnCASignCertificate(FSPriv, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+          '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
+          ShowMessage('Sign CRT File OK.')
+        else
+          ShowMessage('Sign CRT File Fail.');
+      end;
+    end;
+  end;
+end;
+
+procedure TFormCA.btnSignCSRBrowseClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtSignCSR.Text := dlgOpen.FileName;
+end;
+
+procedure TFormCA.btnSignKeyBrowseClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtSignKey.Text := dlgOpen.FileName;
+end;
+
+procedure TFormCA.btnRootCRTBrowseClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtRootCRT.Text := dlgOpen.FileName;
 end;
 
 end.

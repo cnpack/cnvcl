@@ -21,7 +21,7 @@ object FormCA: TFormCA
     Top = 8
     Width = 681
     Height = 457
-    ActivePage = tsRequest
+    ActivePage = tsSign
     TabOrder = 0
     object tsRequest: TTabSheet
       Caption = 'Certificate Sign Request'
@@ -301,6 +301,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Browse CSR File'
           TabOrder = 1
+          OnClick = btnSignCSRBrowseClick
         end
         object edtSignKey: TEdit
           Left = 88
@@ -316,6 +317,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Browse Key File'
           TabOrder = 3
+          OnClick = btnSignKeyBrowseClick
         end
         object btnSign: TButton
           Left = 16
@@ -324,6 +326,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Sign CSR File to CRT File '
           TabOrder = 4
+          OnClick = btnSignClick
         end
         object edtRootCRT: TEdit
           Left = 88
@@ -339,6 +342,7 @@ object FormCA: TFormCA
           Height = 21
           Caption = 'Browse CRT File'
           TabOrder = 6
+          OnClick = btnRootCRTBrowseClick
         end
       end
       object grpParseCER: TGroupBox
