@@ -30,11 +30,13 @@ unit CnCertificateAuthority;
 *           一次性生成自签名的 crt 证书：
 *               openssl req -new -x509 -keyout ca.key -out ca.crt -config /c/Program\ Files/Git/ssl/openssl.cnf
 *           或利用现有 Key 对此 Key 生成的 CSR 请求文件进行自签名：
-*               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsign.crt
+*               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsigned.crt
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.15 V1.0
+* 修改记录：2018.07.22 V1.1
+*               初步完成签发证书的功能
+*           2018.06.15 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -364,14 +366,14 @@ type
     FCASignType: TCnCASignType;
     FDigestType: TCnRSASignDigestType;
     FBasicCertificate: TCnRSABasicCertificate;
-    function GetIsSelfSign: Boolean;
+    function GetIsSelfSigned: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
-    property IsSelfSign: Boolean read GetIsSelfSign;
+    property IsSelfSigned: Boolean read GetIsSelfSigned;
     {* 是否自签名证书，使用签发者与被签发者信息是否相同来判断}
 
     property BasicCertificate: TCnRSABasicCertificate read FBasicCertificate;
@@ -397,7 +399,7 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   EmailAddress: string; CASignType: TCnCASignType = ctSha1RSA): Boolean;
 {* 根据公私钥与一些 DN 信息以及指定散列算法生成 CSR 格式的证书请求文件}
 
-function CnCANewSelfSignCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
+function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
@@ -419,10 +421,10 @@ function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
 function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
 {* 验证一 CSR 流的内容是否合乎签名}
 
-function CnCAVerifySelfSignCertificateFile(const FileName: string): Boolean;
+function CnCAVerifySelfSignedCertificateFile(const FileName: string): Boolean;
 {* 验证一自签名的 CRT 文件的内容是否合乎签名}
 
-function CnCAVerifySelfSignCertificateStream(Stream: TStream): Boolean;
+function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
 {* 验证一自签名的 CRT 流的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
@@ -432,6 +434,11 @@ function CnCALoadCertificateFromFile(const FileName: string;
 function CnCALoadCertificateFromStream(Stream: TStream;
   Certificate: TCnRSACertificate): Boolean;
 {* 解析 PEM 格式的 CRT 证书流并将内容放入 TCnRSACertificate 中}
+
+function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
+  const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
+  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean;
+{* 用 CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式}
 
 // 其他辅助函数
 
@@ -1260,19 +1267,19 @@ begin
   end;
 end;
 
-function CnCAVerifySelfSignCertificateFile(const FileName: string): Boolean;
+function CnCAVerifySelfSignedCertificateFile(const FileName: string): Boolean;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifySelfSignCertificateStream(Stream);
+    Result := CnCAVerifySelfSignedCertificateStream(Stream);
   finally
     Stream.Free;
   end;
 end;
 
-function CnCAVerifySelfSignCertificateStream(Stream: TStream): Boolean;
+function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
 var
   CRT: TCnRSACertificate;
   Reader: TCnBerReader;
@@ -1291,7 +1298,7 @@ begin
     if not CnCALoadCertificateFromStream(Stream, CRT) then
       Exit;
 
-    if not CRT.IsSelfSign then
+    if not CRT.IsSelfSigned then
       raise Exception.Create('NOT Self-Sign. Can NOT Verify.');
 
     MemStream := TMemoryStream.Create;
@@ -1610,7 +1617,7 @@ begin
       Exit;
 
     // 自签名证书可以解开散列值
-    if Certificate.IsSelfSign then
+    if Certificate.IsSelfSigned then
       Result := ExtractSignaturesByPublicKey(Certificate.BasicCertificate.SubjectPublicKey,
         SignAlgNode, SignValueNode, Certificate.FCASignType, Certificate.FDigestType,
         Certificate.FSignValue, Certificate.FDigestValue, Certificate.FSignLength,
@@ -1654,7 +1661,7 @@ begin
   inherited;
 end;
 
-function TCnRSACertificate.GetIsSelfSign: Boolean;
+function TCnRSACertificate.GetIsSelfSigned: Boolean;
 begin
   Result := (FBasicCertificate.Subject.CountryName = FBasicCertificate.Issuer.CountryName)
     and (FBasicCertificate.Subject.OrganizationName = FBasicCertificate.Issuer.OrganizationName)
@@ -1663,7 +1670,7 @@ end;
 
 function TCnRSACertificate.ToString: string;
 begin
-  if IsSelfSign then
+  if IsSelfSigned then
     Result := 'Self-Signature ';
   Result := Result + FBasicCertificate.ToString;
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
@@ -1779,7 +1786,7 @@ begin
   AWriter.AddAnsiStringNode(BerTag, DN, Result);
 end;
 
-function CnCANewSelfSignCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
+function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
@@ -1791,18 +1798,17 @@ var
   ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
   SerialNum: TCnBigNumber;
   UTCTime: TCnUTCTime;
-  Stream, DigestStream: TMemoryStream;
+  Stream: TMemoryStream;
   Buf: array of Byte;
 begin
   Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+
   Writer := nil;
   SerialNum := nil;
   UTCTime := nil;
   Stream := nil;
-  DigestStream := nil;
-
-  if NotAfter <= NotBefore then
-    Exit;
 
   try
     Writer := TCnBerWriter.Create;
@@ -1849,7 +1855,7 @@ begin
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
-    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
 
     // 写公钥节点内容
     WritePublicKeyToNode(Writer, PubNode, PublicKey);
@@ -1868,9 +1874,127 @@ begin
   finally
     Writer.Free;
     Stream.Free;
-    DigestStream.Free;
     SerialNum.Free;
     UTCTime.Free;
+  end;
+end;
+
+function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
+  const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
+  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Stream: TMemoryStream;
+  Buf: array of Byte;
+  CSR: TCnRSACertificateRequest;
+  CRT: TCnRSACertificate;
+begin
+  Result := False;
+  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  CSR := nil;
+  CRT := nil;
+  Writer := nil;
+  SerialNum := nil;
+  UTCTime := nil;
+  Stream := nil;
+
+  try
+    CSR := TCnRSACertificateRequest.Create;
+    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
+      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+      Exit;
+
+    CRT := TCnRSACertificate.Create;
+    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+      Exit;
+
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    // 版本忽略，写序列号
+    SerialNum := TCnBigNumber.Create;
+    SerialNum.SetDec(IntSerialNum);
+    SetLength(Buf, SerialNum.GetBytesCount);
+    SerialNum.ToBinary(@Buf[0]);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+
+    // 写算法
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
+    Writer.AddNullNode(Node);
+
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+
+    // 写被签发者
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CSR.CertificateRequestInfo.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CSR.CertificateRequestInfo.LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CSR.CertificateRequestInfo.OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CSR.CertificateRequestInfo.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CSR.CertificateRequestInfo.CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CSR.CertificateRequestInfo.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    // 写有效时间
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+
+    // 写签发者
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    // 写公钥节点内容
+    WritePublicKeyToNode(Writer, PubNode, CRT.BasicCertificate.SubjectPublicKey);
+
+    // 计算并写签名值
+    if not GenerateSignatureNode(Writer, Root, BasicNode, PrivateKey, CASignType) then
+      Exit;
+
+    // 保存
+    FreeAndNil(Stream);
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, Stream);
+    Result := True;
+  finally
+    Writer.Free;
+    Stream.Free;
+    SerialNum.Free;
+    UTCTime.Free;
+    CSR.Free;
+    CRT.Free;
   end;
 end;
 
