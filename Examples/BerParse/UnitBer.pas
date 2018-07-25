@@ -191,12 +191,12 @@ begin
     edtFile.Text := dlgOpen.FileName;
 end;
 
-function HexDumpMemory(AMem: Pointer; Size: Integer): string;
+function HexDumpMemory(AMem: Pointer; Size: Integer): AnsiString;
 var
   I, J, DestP, PrevLineStart, Remain: Integer;
-  AChar: Char;
+  AChar: AnsiChar;
 
-  function HexValueHigh(AChar: Char): Char;
+  function HexValueHigh(AChar: AnsiChar): AnsiChar;
   var
     AByte: Byte;
   begin
@@ -205,10 +205,10 @@ var
       Inc(AByte, Ord('0'))
     else
       Inc(AByte, Ord('A') - 10);
-    Result := Chr(AByte);
+    Result := AnsiChar(Chr(AByte));
   end;
-  
-  function HexValueLow(AChar: Char): Char;
+
+  function HexValueLow(AChar: AnsiChar): AnsiChar;
   var
     AByte: Byte;
   begin
@@ -217,7 +217,7 @@ var
       Inc(AByte, Ord('0'))
     else
       Inc(AByte, Ord('A') - 10);
-    Result := Chr(AByte);
+    Result := AnsiChar(Chr(AByte));
   end;
 
 begin
@@ -233,7 +233,7 @@ begin
   DestP := 0; PrevLineStart := 0;
   for I := 0 to Size - 1 do
   begin
-    AChar := (PChar(Integer(AMem) + I))^;
+    AChar := (PAnsiChar(Integer(AMem) + I))^;
     Inc(DestP);
     Result[DestP] := HexValueHigh(AChar);
     Inc(DestP);
@@ -253,7 +253,7 @@ begin
 
         for J := PrevLineStart to I do
         begin
-          AChar := (PChar(Integer(AMem) + J))^;
+          AChar := (PAnsiChar(Integer(AMem) + J))^;
           if AChar in [#32..#127] then
             Result[DestP] := AChar
           else
@@ -298,7 +298,7 @@ begin
 
     for J := PrevLineStart to Size - 1 do
     begin
-      AChar := (PChar(Integer(AMem) + J))^;
+      AChar := (PAnsiChar(Integer(AMem) + J))^;
       if AChar in [#32..#127] then
         Result[DestP] := AChar
       else
@@ -340,7 +340,13 @@ begin
         + #13#10#13#10 + HexDumpMemory(Mem, BerNode.BerDataLength);
 
       if BerNode.IsDateTime then
-        S := DateTimeToStr(BerNode.AsDateTime)
+      begin
+        try
+          S := DateTimeToStr(BerNode.AsDateTime)
+        except
+          S := BerNode.AsString;
+        end;
+      end
       else if BerNode.IsString then
         S := S + #13#10#13#10 + BerNode.AsString;
 
