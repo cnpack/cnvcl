@@ -971,7 +971,7 @@ begin
       ValueNode := ValueNode.Items[0]; // 指向 OctetString 的子节点，Value 所在
       if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTKEYIDENTIFIER, SizeOf(OID_EXT_SUBJECTKEYIDENTIFIER)) then
       begin
-        StandardExt.SubjectKeyIdentifier := ValueNode.AsString;
+        StandardExt.SubjectKeyIdentifier := ValueNode.AsRawString;
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_KEYUSAGE, SizeOf(OID_EXT_KEYUSAGE)) then
       begin
