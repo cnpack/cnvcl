@@ -133,8 +133,10 @@ type
     procedure AsBigNumber(OutNum: TCnBigNumber);
     {* 按尺寸返回整型值或大数}
 
+    function AsRawString: string;
+    {* 直接返回字符串，不限制类型}
     function AsString: string;
-    {* 返回字符串，可能是以下几种类型}
+    {* 返回字符串，限制为几种字符串类型}
     function AsPrintableString: string;
     {* 返回可打印字符串}
     function AsIA5String: string;
@@ -307,8 +309,8 @@ function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
 implementation
 
 const
-  CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_NUMERICSTRING, CN_BER_TAG_PRINTABLESTRING,
-    CN_BER_TAG_IA5STRING, CN_BER_TAG_TELETEXSTRING];
+  CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_UFT8STRING, CN_BER_TAG_NUMERICSTRING,
+    CN_BER_TAG_PRINTABLESTRING, CN_BER_TAG_IA5STRING, CN_BER_TAG_TELETEXSTRING];
 
   CN_TAG_SET_TIME: TCnBerTagSet = [CN_BER_TAG_UTCTIME, CN_BER_TAG_GENERALIZEDTIME];
 
@@ -675,7 +677,7 @@ function TCnBerReadNode.InternalAsString(TagSet: TCnBerTagSet): AnsiString;
 var
   P: Pointer;
 begin
-  if not (FBerTag in TagSet) then
+  if (TagSet <> []) and not (FBerTag in TagSet) then
     raise Exception.Create('Ber Tag Type Mismatch for String: ' + IntToStr(FBerTag));
 
   Result := '';
@@ -732,6 +734,11 @@ begin
 
   CopyDataTo(@B);
   Result := B <> 0;
+end;
+
+function TCnBerReadNode.AsRawString: string;
+begin
+  Result := InternalAsString([]);
 end;
 
 { TCnBerWriter }

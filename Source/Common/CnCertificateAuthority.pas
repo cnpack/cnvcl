@@ -812,17 +812,17 @@ begin
         if Node.BerTag = CN_BER_TAG_OBJECT_IDENTIFIER then
         begin
           if CompareObjectIdentifier(Node, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME)) then
-            List.Values[SDN_COUNTRYNAME] := StrNode.AsPrintableString
+            List.Values[SDN_COUNTRYNAME] := StrNode.AsString
           else if CompareObjectIdentifier(Node, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME)) then
-            List.Values[SDN_STATEORPROVINCENAME] := StrNode.AsPrintableString
+            List.Values[SDN_STATEORPROVINCENAME] := StrNode.AsString
           else if CompareObjectIdentifier(Node, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME)) then
-            List.Values[SDN_LOCALITYNAME] := StrNode.AsPrintableString
+            List.Values[SDN_LOCALITYNAME] := StrNode.AsString
           else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME)) then
-            List.Values[SDN_ORGANIZATIONNAME] := StrNode.AsPrintableString
+            List.Values[SDN_ORGANIZATIONNAME] := StrNode.AsString
           else if CompareObjectIdentifier(Node, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME)) then
-            List.Values[SDN_ORGANIZATIONALUNITNAME] := StrNode.AsPrintableString
+            List.Values[SDN_ORGANIZATIONALUNITNAME] := StrNode.AsString
           else if CompareObjectIdentifier(Node, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME)) then
-            List.Values[SDN_COMMONNAME] := StrNode.AsPrintableString
+            List.Values[SDN_COMMONNAME] := StrNode.AsString
           else if CompareObjectIdentifier(Node, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS)) then
             List.Values[SDN_EMAILADDRESS] := StrNode.AsString  // Email is not PrintableString
         end;
@@ -992,13 +992,13 @@ begin
       begin
         StandardExt.SubjectAltName.Clear;
         for J := 0 to ValueNode.Count - 1 do
-          StandardExt.SubjectAltName.Add(ValueNode[J].AsString);
+          StandardExt.SubjectAltName.Add(ValueNode[J].AsRawString);
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_ISSUERTALTNAME, SizeOf(OID_EXT_ISSUERTALTNAME)) then
       begin
         StandardExt.IssuerAltName.Clear;
         for J := 0 to ValueNode.Count - 1 do
-          StandardExt.IssuerAltName.Add(ValueNode[J].AsString);
+          StandardExt.IssuerAltName.Add(ValueNode[J].AsRawString);
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_BASICCONSTRAINTS, SizeOf(OID_EXT_BASICCONSTRAINTS)) then
       begin
@@ -1018,7 +1018,7 @@ begin
           if ValueNode[J].Count = 1 then
             if ValueNode[J][0].Count = 1 then
               if ValueNode[J][0][0].Count = 1 then
-                StandardExt.CRLDistributionPoints.Add(ValueNode[J][0][0][0].AsString);
+                StandardExt.CRLDistributionPoints.Add(ValueNode[J][0][0][0].AsRawString);
         end;
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_CERTIFICATEPOLICIES, SizeOf(OID_EXT_CERTIFICATEPOLICIES)) then
@@ -1027,7 +1027,8 @@ begin
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_AUTHORITYKEYIDENTIFIER, SizeOf(OID_EXT_AUTHORITYKEYIDENTIFIER)) then
       begin
-        StandardExt.AuthorityKeyIdentifier := ValueNode.AsString;
+        if ValueNode.Count = 1 then
+          StandardExt.AuthorityKeyIdentifier := ValueNode[0].AsRawString;
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_EXTKEYUSAGE, SizeOf(OID_EXT_EXTKEYUSAGE)) then
       begin
@@ -1055,9 +1056,9 @@ begin
           if ValueNode[J].Count = 2 then
           begin
             if CompareObjectIdentifier(ValueNode[J].Items[0], @OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP[0], SizeOf(OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP)) then
-              PrivateInternetExt.AuthorityInformationAccessOcsp := ValueNode[J].Items[1].AsString
+              PrivateInternetExt.AuthorityInformationAccessOcsp := ValueNode[J].Items[1].AsRawString
             else if CompareObjectIdentifier(ValueNode[J].Items[0], @OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS[0], SizeOf(OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS)) then
-              PrivateInternetExt.AuthorityInformationAccessCaIssuers := ValueNode[J].Items[1].AsString
+              PrivateInternetExt.AuthorityInformationAccessCaIssuers := ValueNode[J].Items[1].AsRawString
           end;
         end;
       end;
