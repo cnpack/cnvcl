@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ADODB, DB, Grids, DBGrids, DBClient, Provider,
-  CnCommon, CnADOUpdateSQL, DBTables;
+  CnCommon, CnADOUpdateSQL, DBTables, CnClasses;
 
 type
   TForm1 = class(TForm)
@@ -44,6 +44,13 @@ implementation
 procedure TForm1.btn1Click(Sender: TObject);
 begin
   cds1.ApplyUpdates(-1);
+end;
+
+procedure TForm1.DataSetProvider1BeforeUpdateRecord(Sender: TObject;
+  SourceDS: TDataSet; DeltaDS: TClientDataSet; UpdateKind: TUpdateKind;
+  var Applied: Boolean);
+begin
+// Nothing
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);

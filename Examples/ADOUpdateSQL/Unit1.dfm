@@ -113,8 +113,15 @@ object Form1: TForm1
   object con1: TADOConnection
     Connected = True
     ConnectionString = 
-      'Provider=Microsoft.Jet.OLEDB.4.0;Data Source=CnADOUpdateSQL.mdb;' +
-      'Persist Security Info=False'
+      'Provider=Microsoft.Jet.OLEDB.4.0;User ID=Admin;Data Source=CnADO' +
+      'UpdateSQL.mdb;Mode=Share Deny None;Extended Properties="";Jet OL' +
+      'EDB:System database="";Jet OLEDB:Registry Path="";Jet OLEDB:Data' +
+      'base Password="";Jet OLEDB:Engine Type=5;Jet OLEDB:Database Lock' +
+      'ing Mode=1;Jet OLEDB:Global Partial Bulk Ops=2;Jet OLEDB:Global ' +
+      'Bulk Transactions=1;Jet OLEDB:New Database Password="";Jet OLEDB' +
+      ':Create System Database=False;Jet OLEDB:Encrypt Database=False;J' +
+      'et OLEDB:Don'#39't Copy Locale on Compact=False;Jet OLEDB:Compact Wi' +
+      'thout Replica Repair=False;Jet OLEDB:SFP=False'
     LoginPrompt = False
     Mode = cmShareDenyNone
     Provider = 'Microsoft.Jet.OLEDB.4.0'
