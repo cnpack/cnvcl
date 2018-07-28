@@ -8,7 +8,7 @@ uses
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
+  //Application.MainFormOnTaskbar := True;
   Application.CreateForm(TCnMultiLangMergeFrm, CnMultiLangMergeFrm);
   Application.Run;
 end.
