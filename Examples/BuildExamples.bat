@@ -14,6 +14,7 @@ CD %%D
 SET DIRNAME=%%D
 FOR %%F IN (.\*.dpr) DO (
 SET DPR=%%F
+IF "!DPR:~-3!" == "dpr" (
 ECHO Building !DPR! with !DPR:~0,-3!cfg in !DIRNAME!
 IF "!DIRNAME:~-3!" == "_D7" (
 %DCC7_32% "%%F"
@@ -21,6 +22,7 @@ IF !ERRORLEVEL! NEQ 0 GOTO END
 ) ELSE (
 %DCC32% "%%F"
 IF !ERRORLEVEL! NEQ 0 GOTO END
+)
 )
 )
 CD ..
