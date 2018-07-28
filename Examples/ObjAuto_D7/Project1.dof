@@ -43,8 +43,8 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Common
-Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;VCLIB50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50
+SearchPath=
+Packages=
 Conditionals=
 DebugSourceDirs=
 UsePackages=0
@@ -53,7 +53,7 @@ RunParams=
 HostApplication=
 [Language]
 ActiveLang=
-ProjectLang=$00000409
+ProjectLang=
 RootDir=
 [Version Info]
 IncludeVerInfo=0
@@ -67,8 +67,8 @@ PreRelease=0
 Special=0
 Private=0
 DLL=0
-Locale=1033
-CodePage=1252
+Locale=2052
+CodePage=936
 [Version Info Keys]
 CompanyName=
 FileDescription=

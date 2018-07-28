@@ -25,6 +25,7 @@ IF !ERRORLEVEL! NEQ 0 GOTO END
 )
 CD ..
 )
+ECHO Build Examples Complete.
 :END
 CD %ROOTDIR%
 PAUSE
