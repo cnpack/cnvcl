@@ -1,6 +1,6 @@
 object FormSend: TFormSend
-  Left = 344
-  Top = 130
+  Left = 321
+  Top = 200
   BorderStyle = bsDialog
   Caption = 'Send Debug'
   ClientHeight = 404
@@ -416,7 +416,7 @@ object FormSend: TFormSend
     Left = 8
     Top = 236
     Width = 209
-    Height = 91
+    Height = 61
     Caption = '看这按钮自己'
     TabOrder = 37
     OnClick = btnEvalClick
@@ -641,7 +641,7 @@ object FormSend: TFormSend
   end
   object btnAnsiCharSet: TButton
     Left = 248
-    Top = 358
+    Top = 359
     Width = 97
     Height = 21
     Caption = '发Ansi字符集'
@@ -652,7 +652,7 @@ object FormSend: TFormSend
   end
   object btnWideCharSet: TButton
     Left = 360
-    Top = 358
+    Top = 359
     Width = 97
     Height = 21
     Caption = '发Wide字符集'
@@ -663,7 +663,7 @@ object FormSend: TFormSend
   end
   object btnWatchClear: TButton
     Left = 8
-    Top = 360
+    Top = 359
     Width = 97
     Height = 21
     Caption = '清空Watch'
@@ -682,6 +682,28 @@ object FormSend: TFormSend
     ShowHint = True
     TabOrder = 52
     OnClick = btnEvaluateScreenClick
+  end
+  object btnFindComponent: TButton
+    Left = 8
+    Top = 306
+    Width = 97
+    Height = 21
+    Caption = '遍历组件'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 53
+    OnClick = btnFindComponentClick
+  end
+  object btnFindControl: TButton
+    Left = 120
+    Top = 306
+    Width = 97
+    Height = 21
+    Caption = '遍历控件'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 54
+    OnClick = btnFindControlClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True
