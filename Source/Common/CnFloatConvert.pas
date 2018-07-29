@@ -68,7 +68,7 @@ uses
   SysUtils;
 
 { FloatDecimalToBinExtended, FloatDecimalToOctExtended，FloatDecimalToHexExtended
-  均调用了FloatDecimalToBinaryExtended过程，FloatDecimalToBinaryExtended不公开。}
+  均调用了 FloatDecimalToBinaryExtended 过程，FloatDecimalToBinaryExtended 不公开。}
 
 function FloatDecimalToBinExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString; // Convert to binary
