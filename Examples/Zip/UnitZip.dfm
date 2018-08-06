@@ -118,6 +118,16 @@ object FormZip: TFormZip
         TabOrder = 4
         OnClick = btnZipDirClick
       end
+      object chkRemovePath: TCheckBox
+        Left = 336
+        Top = 24
+        Width = 97
+        Height = 17
+        Caption = 'Remove Path'
+        Checked = True
+        State = cbChecked
+        TabOrder = 5
+      end
     end
   end
   object dlgOpen: TOpenDialog

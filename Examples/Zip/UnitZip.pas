@@ -25,6 +25,7 @@ type
     dlgSave: TSaveDialog;
     dlgOpenFile: TOpenDialog;
     btnZipDir: TButton;
+    chkRemovePath: TCheckBox;
     procedure btnBrowseClick(Sender: TObject);
     procedure btnReadClick(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
@@ -96,6 +97,7 @@ begin
   if dlgSave.Execute then
   begin
     FWriter := TCnZipWriter.Create;
+    FWriter.RemovePath := chkRemovePath.Checked;
     FWriter.CreateZipFile(dlgSave.FileName);
     FWriter.Comment := 'This is a Comment.';
     mmoFiles.Clear;

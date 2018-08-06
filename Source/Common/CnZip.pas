@@ -29,7 +29,9 @@ unit CnZip;
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2018.08.05 V1.0
+* 修改记录：2018.08.07 V1.0
+*                使用 ZLib 实现加压解压但用 Zip 解压时仍有问题
+*           2018.08.05 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCommon, CnCRC32;
+  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCommon, CnCRC32, ZLib;
 
 const
   SIGNATURE_ZIPENDOFHEADER: LongWord = $06054B50;
@@ -206,9 +208,9 @@ type
     procedure CreateZipFile(const ZipFileName: string);
     {* 创建一个空白的 Zip 文件}
     procedure AddFile(const FileName: string; const ArchiveFileName: string = '';
-      Compression: TCnZipCompressionMethod = zcStored);
+      Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定内容}
-    procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcStored);
+    procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定目录下的所有文件}
     procedure Save;
     {* 将压缩内容保存至 Zip 文件}
@@ -225,7 +227,7 @@ function CnZipFileIsValid(const FileName: string): Boolean;
 {* 判断 Zip 文件是否合法}
 
 function CnZipDirectory(const DirName: string; const FileName: string;
-  Compression: TCnZipCompressionMethod = zcStored): Boolean;
+  Compression: TCnZipCompressionMethod = zcDeflate): Boolean;
 {* 将指定目录压缩为一个 Zip 文件}
 
 function CnZipExtractTo(const FileName: string; const DirName: string): Boolean;
@@ -363,7 +365,7 @@ begin
 end;
 
 function CnZipDirectory(const DirName: string; const FileName: string;
-  Compression: TCnZipCompressionMethod = zcStored): Boolean;
+  Compression: TCnZipCompressionMethod): Boolean;
 var
   Zip: TCnZipWriter;
 begin
@@ -782,7 +784,9 @@ class function TCnZipDefaultCompressionHandler.CreateCompressionStream(
 begin
   Result := nil;
   if AMethod = zcStored then
-    Result := TCnStoredStream.Create(InStream);
+    Result := TCnStoredStream.Create(InStream)
+  else if AMethod = zcDeflate then
+    Result := TCompressionStream.Create(clDefault, InStream);
 end;
 
 class function TCnZipDefaultCompressionHandler.CreateDecompressionStream(
@@ -790,7 +794,9 @@ class function TCnZipDefaultCompressionHandler.CreateDecompressionStream(
 begin
   Result := nil;
   if AMethod = zcStored then
-    Result := TCnStoredStream.Create(InStream);
+    Result := TCnStoredStream.Create(InStream)
+  else if AMethod = zcDeflate then
+    Result := TDecompressionStream.Create(InStream);
 end;
 
 { TCnStoredStream }
