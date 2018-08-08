@@ -158,7 +158,7 @@ type
     property FileName[Index: Integer]: string read GetFileName;
     {* 该 Zip 文件包含的文件名}
     property FileInfo[Index: Integer]: PCnZipHeader read GetFileInfo;
-    {* 该 Zip 文件包含的文件信息}
+    {* 该 Zip 文件包含的文件信息，从中央目录读出的}
     property FileComment[Index: Integer]: string read GetFileComment write SetFileComment;
     {* 该 Zip 文件包含的文件注释}
     property Comment: string read GetComment write SetComment;
@@ -677,39 +677,39 @@ begin
 
     New(Header);
     try
-      VerifyRead(FInStream, Header.MadeByVersion,      Sizeof(Word));
-      VerifyRead(FInStream, Header.RequiredVersion,    Sizeof(Word));
-      VerifyRead(FInStream, Header.Flag,               Sizeof(Word));
-      VerifyRead(FInStream, Header.CompressionMethod,  Sizeof(Word));
-      VerifyRead(FInStream, Header.ModifiedDateTime,   Sizeof(LongWord));
-      VerifyRead(FInStream, Header.CRC32,              Sizeof(LongWord));
-      VerifyRead(FInStream, Header.CompressedSize,     Sizeof(LongWord));
-      VerifyRead(FInStream, Header.UncompressedSize,   Sizeof(LongWord));
-      VerifyRead(FInStream, Header.FileNameLength,     Sizeof(Word));
-      VerifyRead(FInStream, Header.ExtraFieldLength,   Sizeof(Word));
-      VerifyRead(FInStream, Header.FileCommentLength,  Sizeof(Word));
-      VerifyRead(FInStream, Header.DiskNumberStart,    Sizeof(Word));
-      VerifyRead(FInStream, Header.InternalAttributes, Sizeof(Word));
-      VerifyRead(FInStream, Header.ExternalAttributes, Sizeof(LongWord));
-      VerifyRead(FInStream, Header.LocalHeaderOffset,  Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.MadeByVersion,      Sizeof(Word));
+      VerifyRead(FInStream, Header^.RequiredVersion,    Sizeof(Word));
+      VerifyRead(FInStream, Header^.Flag,               Sizeof(Word));
+      VerifyRead(FInStream, Header^.CompressionMethod,  Sizeof(Word));
+      VerifyRead(FInStream, Header^.ModifiedDateTime,   Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.CRC32,              Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.CompressedSize,     Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.UncompressedSize,   Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.FileNameLength,     Sizeof(Word));
+      VerifyRead(FInStream, Header^.ExtraFieldLength,   Sizeof(Word));
+      VerifyRead(FInStream, Header^.FileCommentLength,  Sizeof(Word));
+      VerifyRead(FInStream, Header^.DiskNumberStart,    Sizeof(Word));
+      VerifyRead(FInStream, Header^.InternalAttributes, Sizeof(Word));
+      VerifyRead(FInStream, Header^.ExternalAttributes, Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.LocalHeaderOffset,  Sizeof(LongWord));
 
-      if Header.FileNameLength > 0 then
+      if Header^.FileNameLength > 0 then
       begin
-        SetLength(Header.FileName, Header.FileNameLength);
-        VerifyRead(FInStream, Header.FileName[1], Header.FileNameLength);
+        SetLength(Header^.FileName, Header^.FileNameLength);
+        VerifyRead(FInStream, Header^.FileName[1], Header^.FileNameLength);
       end;
-      if Header.ExtraFieldLength > 0 then
+      if Header^.ExtraFieldLength > 0 then
       begin
-        SetLength(Header.ExtraField, Header.ExtraFieldLength);
-        VerifyRead(FInStream, Header.ExtraField[1], Header.ExtraFieldLength);
+        SetLength(Header^.ExtraField, Header^.ExtraFieldLength);
+        VerifyRead(FInStream, Header^.ExtraField[1], Header^.ExtraFieldLength);
       end;
-      if Header.FileCommentLength > 0 then
+      if Header^.FileCommentLength > 0 then
       begin
-        SetLength(Header.FileComment, Header.FileCommentLength);
-        VerifyRead(FInStream, Header.FileComment[1], Header.FileCommentLength);
+        SetLength(Header^.FileComment, Header^.FileCommentLength);
+        VerifyRead(FInStream, Header^.FileComment[1], Header^.FileCommentLength);
       end;
 
-      if (Header.Flag and (1 shl 11)) = 0 then
+      if (Header^.Flag and (1 shl 11)) = 0 then
         FUtf8 := False;
     except
       Dispose(Header);

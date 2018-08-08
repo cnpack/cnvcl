@@ -56,6 +56,7 @@ procedure TFormZip.btnReadClick(Sender: TObject);
 var
   ZR: TCnZipReader;
   I: Integer;
+  Header: PCnZipHeader;
 begin
   mmoZip.Clear;
   if CnZipFileIsValid(edtZip.Text) then
@@ -64,7 +65,10 @@ begin
     ZR := TCnZipReader.Create;
     ZR.OpenZipFile(edtZip.Text);
     for I := 0 to ZR.FileCount - 1 do
-      mmoZip.Lines.Add(ZR.FileName[I]);
+    begin
+      Header := ZR.FileInfo[I];
+      mmoZip.Lines.Add(ZR.FileName[I] + Format(' CRC32 in Central Directory: %8.8x' ,[Header^.CRC32]));
+    end;
 
     mmoZip.Lines.Add('');
     mmoZip.Lines.Add(ZR.Comment);
