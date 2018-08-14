@@ -32,9 +32,9 @@ unit CnCommon;
 * 修改记录：2012.01.19 by LiuXiao
 *               增加一个移植自外国牛人的快速开根号倒数的函数
 *           2011.11.02 by LiuXiao
-*               增加来自于ccrun的把程序钉到Win7任务栏的函数
+*               增加来自于 ccrun 的把程序钉到 Win7 任务栏的函数
 *           2011.10.03 by LiuXiao
-*               增加一部分封装对Control操作的函数过程以对付 FMX 框架
+*               增加一部分封装对 Control 操作的函数过程以对付 FMX 框架
 *           2007.01.31 by LiuXiao
 *               增加获取一对象所有属性列表的函数
 *           2006.11.29 by shenloqi
@@ -43,15 +43,15 @@ unit CnCommon;
 *               增加了SameCharCounts，CharCounts ，RelativePath函数，重写了
 *               GetRelativePath函数
 *           2005.07.08 by shenloqi
-*               修改了GetRelativePath函数，修改了FileMatchesExts函数，增加了
+*               修改了 GetRelativePath 函数，修改了 FileMatchesExts 函数，增加了
 *             一系列通配符支持的函数：FileNameMatch，MatchExt，MatchFileName，
 *             FileExtsToStrings，FileMasksToStrings，FileMatchesMasks
 *           2005.05.03 by hubdog
-*               增加ExploreFile函数
+*               增加 ExploreFile 函数
 *           2004.09.18 by Shenloqi
-*               为Delphi5增加了BoolToStr函数
+*               为Delphi5增加了 BoolToStr 函数
 *           2004.05.21 by Icebird
-*               修改了函数GetLine, IsInt, IsFloat, CnDateToStr, MyDateToStr
+*               修改了函数 GetLine, IsInt, IsFloat, CnDateToStr, MyDateToStr
 *           2003.10.29 by Shenloqi
 *               新增四个函数CheckWinXP,DllGetVersion,GetSelText,UnQuotedStr
 *           2002.08.12 V1.1
@@ -179,7 +179,7 @@ function PathRelativePathTo(pszPath: PChar; pszFrom: PChar; dwAttrFrom: DWORD;
   pszTo: PChar; dwAttrTo: DWORD): BOOL; stdcall;
 
 function RelativePath(const AFrom, ATo: string; FromIsDir, ToIsDir: Boolean): string;
-{* 使用Windows API取两个目录的相对路径}
+{* 使用 Windows API 取两个目录的相对路径}
 {$ENDIF}
 
 function LinkPath(const Head, Tail: string): string;
@@ -206,13 +206,16 @@ function WinExecAndWait32(const FileName: string; Visibility: Integer = SW_NORMA
 
 function WinExecWithPipe(const CmdLine, Dir: string; slOutput: TStrings;
   var dwExitCode: Cardinal): Boolean; overload;
+{* 用管道方式在 Dir 目录执行 CmdLine，Output 返回输出信息，较为实时，无需等待执行完毕
+  便可在 slOutput 中陆续返回值，dwExitCode 返回退出码。如果成功返回 True }
+
 function WinExecWithPipe(const CmdLine, Dir: string; var Output: string;
   var dwExitCode: Cardinal): Boolean; overload;
-{* 用管道方式在 Dir 目录执行 CmdLine，Output 返回输出信息，
+{* 用管道方式在 Dir 目录执行 CmdLine，Output 返回输出信息，等待执行完毕后再返回结果值
    dwExitCode 返回退出码。如果成功返回 True }
 
 function CreateGuidString: string;
-{* 创建GUID字符串}
+{* 创建 GUID 字符串}
 
 function AppPath: string;
 {* 应用程序路径}
@@ -221,10 +224,10 @@ function ModulePath: string;
 {* 当前执行模块所在的路径 }
 
 function GetProgramFilesDir: string;
-{* 取Program Files目录}
+{* 取 Program Files 目录}
 
 function GetWindowsDir: string;
-{* 取Windows目录}
+{* 取 Windows 目录}
 
 function GetWindowsTempPath: string;
 {* 取临时文件路径}
@@ -254,10 +257,10 @@ function GetSpecialFolderLocation(const Folder: Integer): string;
 {* 取得系统特殊文件夹位置，Folder 使用在 ShlObj 中定义的标识，如 CSIDL_DESKTOP }
 
 function AddDirSuffix(const Dir: string): string;
-{* 目录尾加'\'修正}
+{* 目录尾加 '\' 修正}
 
 function MakePath(const Dir: string): string;
-{* 目录尾加'\'修正}
+{* 目录尾加 '\' 修正}
 
 function MakeDir(const Path: string): string;
 {* 路径尾去掉 '\'}
@@ -269,7 +272,7 @@ function GetWinPath(const Path: string): string;
 {* 路径中的 '/' 转成 '\'}
 
 function FileNameMatch(Pattern, FileName: PAnsiChar): Integer;
-{* 文件名是否与通配符匹配，返回值为0表示匹配，其他为不匹配}
+{* 文件名是否与通配符匹配，返回值为 0 表示匹配，其他为不匹配}
 
 function MatchExt(const S, Ext: string): Boolean;
 {* 文件名是否与扩展名通配符匹配}
@@ -282,7 +285,7 @@ procedure FileExtsToStrings(const FileExts: string; ExtList: TStrings; CaseSensi
 
 function FileMatchesExts(const FileName, FileExts: string; CaseSensitive: Boolean = False): Boolean; overload;
 function FileMatchesExts(const FileName: string; ExtList: TStrings): Boolean; overload;
-{* 文件名是否匹配扩展名通配符。FileExts是如'.pas;.dfm;.inc'这样的字符串}
+{* 文件名是否匹配扩展名通配符。FileExts 是如 '.pas;.dfm;.inc' 这样的字符串}
 
 procedure FileMasksToStrings(const FileMasks: string; MaskList: TStrings; CaseSensitive: Boolean);
 {* 转换文件通配符字符串为通配符列表}
@@ -335,7 +338,7 @@ function LocalDateTimeToDateTime(DateTime: TDateTime): TDateTime;
 {* 本地时间转 UTC 时间}
 
 procedure PinAppToWin7Taskbar(const Path, App: string);
-{* 把程序钉到Windows7任务栏，参数为程序路径与文件名}
+{* 把程序钉到 Windows 7 任务栏，参数为程序路径与文件名}
 
 {$IFDEF COMPILER5}
 type
@@ -360,7 +363,7 @@ function CompareTextPos(const ASubText, AText1, AText2: string): TValueRelations
 
 function StringReplaceNonAnsi(const S, OldPattern, NewPattern: string;
   Flags: TReplaceFlags): string;
-{* 非Ansi方式的字符串替换}
+{* 非 Ansi 方式的字符串替换}
 
 function Deltree(const Dir: string; DelRoot: Boolean = True;
   DelEmptyDirOnly: Boolean = False): Boolean;

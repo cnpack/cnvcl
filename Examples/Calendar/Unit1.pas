@@ -150,7 +150,7 @@ begin
   begin
     GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1);
     GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2);
-    mmoResult.Lines.Add(Format('%s：%2d月-%2d日:%2d时:%2d分    %s：%2d月-%2d日:%2d时:%2d分',
+    mmoResult.Lines.Add(Format('%s：%2d月%2d日:%2d时:%2d分    %s：%2d月%2d日:%2d时:%2d分',
       [GetJieQiFromNumber((I * 2 + 22) mod 24), M1, D1, H1, mi1,
        GetJieQiFromNumber((I * 2 + 23) mod 24), M2, D2, H2, mi2]));
   end;

@@ -2506,6 +2506,7 @@
 {$IFDEF DELPHIXE2_UP}
   {$DEFINE SUPPORT_UNITNAME_DOT}
   {$DEFINE SUPPORT_ENHANCED_INDEXEDPROPERTY}   // XE2 New RTTI Supports IndexedProperty
+  {$DEFINE SUPPORT_ZLIB_WINDOWBITS}            // XE2 ZLib Supports WindowBits
 {$ENDIF}
 
 {$IFDEF DELPHIXE_UP}
@@ -2562,6 +2563,7 @@
 {$ENDIF}
 
 {$IFDEF BDS2006_UP}
+  {$DEFINE TCONTROL_HAS_MARGINS}         // 2006 and above TControl has Margins
   {$DEFINE TCONTROL_HAS_EXPLICIT_BOUNDS} // 2006 and above TControl has Explicit Bounds
   {$DEFINE IDE_HAS_GUIDE_LINE}    // 2006 and above has Designer Guide Line
   {$DEFINE IDE_SYNC_EDIT_BLOCK}   // 2006 and above Editor Supports Sync Block Edit

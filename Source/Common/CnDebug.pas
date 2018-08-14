@@ -30,7 +30,9 @@ unit CnDebug;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2018.01.31
+* 修改记录：2018.07.29
+*               增加遍历全局组件与控件的功能
+*           2018.01.31
 *               增加记录 Windows 消息的功能
 *           2017.04.12
 *               默认改为 LOCAL_SESSION，需要更新 CnDebugViewer 至 1.6
@@ -114,7 +116,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Windows, TypInfo, Controls, Graphics, Registry, Messages
+  SysUtils, Classes, Windows, TypInfo, Controls, Graphics, Registry, Messages, Forms
   {$IFDEF USE_JCL}
   ,JclDebug, JclHookExcept
   {$ENDIF USE_JCL}
@@ -209,6 +211,14 @@ type
 
   // ===================== 以上结构定义需要和 Viewer 共享 ======================
 
+  TCnFindComponentEvent = procedure(Sender: TObject; AComponent: TComponent;
+    var Cancel: Boolean) of object;
+  {* 寻找 Component 时的回调}
+
+  TCnFindControlEvent = procedure(Sender: TObject; AControl: TControl;
+    var Cancel: Boolean) of object;
+  {* 寻找 Control 时的回调}
+
   TCnAnsiCharSet = set of AnsiChar; // 32 字节大小
 {$IFDEF UNICODE}
   TCnWideCharSet = set of WideChar; // D2009 以上的 set 支持 WideChar 但实际上是裁剪到 AnsiChar，大小仍然是 32
@@ -260,6 +270,11 @@ type
     FDumpFile: TFileStream;
     FUseAppend: Boolean;
     FAfterFirstWrite: Boolean;
+    FFindAbort: Boolean;
+    FComponentFindList: TList;
+    FControlFindList: TList;
+    FOnFindComponent: TCnFindComponentEvent;
+    FOnFindControl: TCnFindControlEvent;
     procedure CreateChannel;
 
     function GetActive: Boolean;
@@ -285,6 +300,9 @@ type
     procedure SetUseAppend(const Value: Boolean);
     function GetMessageCount: Integer;
     function GetPostedMessageCount: Integer;
+
+    procedure InternalFindComponent(AComponent: TComponent);
+    procedure InternalFindControl(AControl: TControl);
   protected
     function CheckEnabled: Boolean;
     {* 检测当前输出功能是否使能 }
@@ -503,6 +521,11 @@ type
     // 辅助过程
     function ObjectFromInterface(const AIntf: IUnknown): TObject;
 
+    procedure FindComponent;
+    {* 全局范围内发起 Component 遍历，每个组件触发 OnFindComponent 事件，用于查找}
+    procedure FindControl;
+    {* 全局范围内发起 Control 遍历，每个组件触发 OnFindComponent 事件，用于查找}
+
     // 其他属性
     property Channel: TCnDebugChannel read GetChannel;
     property Filter: TCnDebugFilter read GetFilter;
@@ -528,6 +551,11 @@ type
     {* 实际输出成功的拆包后的消息数。}
     property DiscardedMessageCount: Integer read GetDiscardedMessageCount;
     {* 未输出的拆包消息数。}
+
+    property OnFindComponent: TCnFindComponentEvent read FOnFindComponent write FOnFindComponent;
+    {* 全局遍历 Component 时的回调}
+    property OnFindControl: TCnFindControlEvent read FOnFindControl write FOnFindControl;
+    {* 全局遍历 Control 时的回调}
   end;
 
   TCnDebugChannel = class(TObject)
@@ -3820,6 +3848,85 @@ procedure TCnDebugger.WatchMsg(const AVarName, AValue: string);
 begin
   if AVarName <> '' then
     TraceFull(AVarName + '|' + AValue, CurrentTag, CurrentLevel, cmtWatch);
+end;
+
+procedure TCnDebugger.FindComponent;
+var
+  I: Integer;
+begin
+  if FComponentFindList = nil then
+    FComponentFindList := TList.Create
+  else
+    FComponentFindList.Clear;
+
+  FFindAbort := False;
+  InternalFindComponent(Application);
+  if FFindAbort then
+    Exit;
+
+  for I := 0 to Screen.CustomFormCount - 1 do
+  begin
+    InternalFindComponent(Screen.CustomForms[I]);
+    if FFindAbort then
+      Exit;
+  end;
+end;
+
+procedure TCnDebugger.FindControl;
+var
+  I: Integer;
+begin
+  if FControlFindList = nil then
+    FControlFindList := TList.Create
+  else
+    FControlFindList.Clear;
+
+  FFindAbort := False;
+  for I := 0 to Screen.CustomFormCount - 1 do
+  begin
+    InternalFindControl(Screen.CustomForms[I]);
+    if FFindAbort then
+      Exit;
+  end;
+end;
+
+procedure TCnDebugger.InternalFindComponent(AComponent: TComponent);
+var
+  I: Integer;
+begin
+  if FComponentFindList.IndexOf(AComponent) >= 0 then
+    Exit;
+
+  FComponentFindList.Add(AComponent);
+  if Assigned(FOnFindComponent) then
+  begin
+    FOnFindComponent(Self, AComponent, FFindAbort);
+    if FFindAbort then
+      Exit;
+  end;
+
+  for I := 0 to AComponent.ComponentCount - 1 do
+    InternalFindComponent(AComponent.Components[I]);
+end;
+
+procedure TCnDebugger.InternalFindControl(AControl: TControl);
+var
+  I: Integer;
+begin
+  if FControlFindList.IndexOf(AControl) >= 0 then
+    Exit;
+
+  FControlFindList.Add(AControl);
+  if Assigned(FOnFindControl) then
+  begin
+    FOnFindControl(Self, AControl, FFindAbort);
+    if FFindAbort then
+      Exit;
+  end;
+
+  if AControl is TWinControl then
+    for I := 0 to TWinControl(AControl).ControlCount - 1 do
+      InternalFindControl(TWinControl(AControl).Controls[I]);
 end;
 
 { TCnDebugChannel }

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnTree;
+  StdCtrls, ComCtrls, CnTree, CnBase64;
 
 {
   测试的 bin 文件用 openssl 生成的 rsa key 经 base64 解码而来
@@ -21,12 +21,17 @@ type
     dlgOpen: TOpenDialog;
     btnWrite: TButton;
     dlgSave: TSaveDialog;
+    btnDeBase64Parse: TButton;
+    chkParseInner: TCheckBox;
     procedure btnParseClick(Sender: TObject);
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure tv1DblClick(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
+    procedure btnDeBase64ParseClick(Sender: TObject);
+    procedure tv1Collapsing(Sender: TObject; Node: TTreeNode;
+      var AllowCollapse: Boolean);
   private
     FReadHints: TStrings;
     procedure SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
@@ -163,6 +168,7 @@ begin
       Mem := TMemoryStream.Create;
       Mem.LoadFromFile(edtFile.Text);
       Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, True);
+      Reader.ParseToTree;
     end;
 
     Reader.OnSaveNode := SaveNode;
@@ -185,12 +191,12 @@ begin
     edtFile.Text := dlgOpen.FileName;
 end;
 
-function HexDumpMemory(AMem: Pointer; Size: Integer): string;
+function HexDumpMemory(AMem: Pointer; Size: Integer): AnsiString;
 var
   I, J, DestP, PrevLineStart, Remain: Integer;
-  AChar: Char;
+  AChar: AnsiChar;
 
-  function HexValueHigh(AChar: Char): Char;
+  function HexValueHigh(AChar: AnsiChar): AnsiChar;
   var
     AByte: Byte;
   begin
@@ -199,10 +205,10 @@ var
       Inc(AByte, Ord('0'))
     else
       Inc(AByte, Ord('A') - 10);
-    Result := Chr(AByte);
+    Result := AnsiChar(Chr(AByte));
   end;
-  
-  function HexValueLow(AChar: Char): Char;
+
+  function HexValueLow(AChar: AnsiChar): AnsiChar;
   var
     AByte: Byte;
   begin
@@ -211,7 +217,7 @@ var
       Inc(AByte, Ord('0'))
     else
       Inc(AByte, Ord('A') - 10);
-    Result := Chr(AByte);
+    Result := AnsiChar(Chr(AByte));
   end;
 
 begin
@@ -227,7 +233,7 @@ begin
   DestP := 0; PrevLineStart := 0;
   for I := 0 to Size - 1 do
   begin
-    AChar := (PChar(Integer(AMem) + I))^;
+    AChar := (PAnsiChar(Integer(AMem) + I))^;
     Inc(DestP);
     Result[DestP] := HexValueHigh(AChar);
     Inc(DestP);
@@ -247,7 +253,7 @@ begin
 
         for J := PrevLineStart to I do
         begin
-          AChar := (PChar(Integer(AMem) + J))^;
+          AChar := (PAnsiChar(Integer(AMem) + J))^;
           if AChar in [#32..#127] then
             Result[DestP] := AChar
           else
@@ -292,7 +298,7 @@ begin
 
     for J := PrevLineStart to Size - 1 do
     begin
-      AChar := (PChar(Integer(AMem) + J))^;
+      AChar := (PAnsiChar(Integer(AMem) + J))^;
       if AChar in [#32..#127] then
         Result[DestP] := AChar
       else
@@ -300,13 +306,15 @@ begin
       Inc(DestP);
     end;
   end;
+  Result := Trim(Result);
 end;
 
 procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
   var Valid: Boolean);
 var
-  Mem: Pointer;
+  Head, Mem: Pointer;
   BerNode: TCnBerReadNode;
+  S: string;
 begin
   if not (ALeaf is TCnBerReadNode) then
     Exit;
@@ -323,12 +331,29 @@ begin
   else
   begin
     Mem := GetMemory(BerNode.BerDataLength);
-    if Mem <> nil then
+    Head := GetMemory(BerNode.BerLength - BerNode.BerDataLength);
+    if (Mem <> nil) and (Head <> nil) then
     begin
       BerNode.CopyDataTo(Mem);
-      FReadHints.Add(HexDumpMemory(Mem, BerNode.BerDataLength));
+      BerNode.CopyHeadTo(Head);
+      S := HexDumpMemory(Head, BerNode.BerLength - BerNode.BerDataLength)
+        + #13#10#13#10 + HexDumpMemory(Mem, BerNode.BerDataLength);
+
+      if BerNode.IsDateTime then
+      begin
+        try
+          S := DateTimeToStr(BerNode.AsDateTime)
+        except
+          S := BerNode.AsString;
+        end;
+      end
+      else if BerNode.IsString then
+        S := S + #13#10#13#10 + BerNode.AsString;
+
+      FReadHints.Add(S);
       ATreeNode.Data := Pointer(FReadHints.Count - 1);
       FreeMemory(Mem);
+      FreeMemory(Head);
     end;
   end;
 end;
@@ -368,6 +393,77 @@ begin
     Writer.Free;
   end;
 
+end;
+
+function LoadPemFileAndBase64Decode(const FileName: string;
+  MemoryStream: TMemoryStream): Boolean;
+var
+  I: Integer;
+  S: string;
+  Sl: TStringList;
+begin
+  Result := False;
+
+  Sl := TStringList.Create;
+  try
+    Sl.LoadFromFile(FileName);
+    if Sl.Count > 2 then
+    begin
+      if Trim(Sl[Sl.Count - 1]) = '' then
+        Sl.Delete(Sl.Count - 1);
+
+      Sl.Delete(Sl.Count - 1);
+      Sl.Delete(0);
+      S := '';
+      for I := 0 to Sl.Count - 1 do
+        S := S + Sl[I];
+
+      // To De Base64 S
+      MemoryStream.Clear;
+      Result := (BASE64_OK = Base64Decode(S, MemoryStream, False));
+    end;
+  finally
+    Sl.Free;
+  end;
+end;
+
+procedure TFormParseBer.btnDeBase64ParseClick(Sender: TObject);
+var
+  Reader: TCnBerReader;
+  Mem: TMemoryStream;
+begin
+  Reader := nil;
+  Mem := nil;
+
+  try
+    if not FileExists(edtFile.Text) then
+      Exit;
+
+    Mem := TMemoryStream.Create;
+    if not LoadPemFileAndBase64Decode(edtFile.Text, Mem) then
+      Exit;
+
+    Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, chkParseInner.Checked);
+    Reader.ParseToTree;
+
+    Reader.OnSaveNode := SaveNode;
+    FReadHints.Clear;
+    Reader.DumpToTreeView(tv1);
+    if tv1.Items.Count > 0 then
+      tv1.Items[0].Expand(True);
+
+    mmoResult.Clear;
+    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Reader.TotalCount));
+  finally
+    Reader.Free;
+    Mem.Free;
+  end;
+end;
+
+procedure TFormParseBer.tv1Collapsing(Sender: TObject; Node: TTreeNode;
+  var AllowCollapse: Boolean);
+begin
+  AllowCollapse := False;
 end;
 
 end.

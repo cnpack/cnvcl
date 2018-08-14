@@ -14,9 +14,6 @@ object CnMultiLangMergeFrm: TCnMultiLangMergeFrm
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  DesignSize = (
-    583
-    486)
   PixelsPerInch = 96
   TextHeight = 13
   object lbl1: TLabel
@@ -57,7 +54,6 @@ object CnMultiLangMergeFrm: TCnMultiLangMergeFrm
     Caption = 
       'Note: Please use Delphi 2009 or Later to Compile this Program fo' +
       'r Unicode Support.'
-    ExplicitTop = 411
   end
   object mmo1: TMemo
     Left = 8
@@ -78,7 +74,6 @@ object CnMultiLangMergeFrm: TCnMultiLangMergeFrm
     ScrollBars = ssBoth
     TabOrder = 1
     WordWrap = False
-    ExplicitLeft = 299
   end
   object mmo3: TMemo
     Left = 8
@@ -89,8 +84,6 @@ object CnMultiLangMergeFrm: TCnMultiLangMergeFrm
     ScrollBars = ssBoth
     TabOrder = 2
     WordWrap = False
-    ExplicitTop = 224
-    ExplicitWidth = 561
   end
   object btnMerge: TButton
     Left = 418
@@ -101,8 +94,6 @@ object CnMultiLangMergeFrm: TCnMultiLangMergeFrm
     Caption = 'Merge'
     TabOrder = 3
     OnClick = btnMergeClick
-    ExplicitLeft = 420
-    ExplicitTop = 407
   end
   object btnCopy: TButton
     Left = 499
@@ -113,7 +104,5 @@ object CnMultiLangMergeFrm: TCnMultiLangMergeFrm
     Caption = 'Copy'
     TabOrder = 4
     OnClick = btnCopyClick
-    ExplicitLeft = 501
-    ExplicitTop = 407
   end
 end

@@ -22,9 +22,9 @@ object Form1: TForm1
     OnPaint = pb1Paint
   end
   object sb1: TScrollBar
-    Left = 16
+    Left = 17
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -33,9 +33,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb2: TScrollBar
-    Left = 48
+    Left = 49
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -44,9 +44,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb3: TScrollBar
-    Left = 80
+    Left = 81
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -55,9 +55,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb4: TScrollBar
-    Left = 112
+    Left = 113
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -66,9 +66,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb5: TScrollBar
-    Left = 144
+    Left = 145
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -77,9 +77,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb6: TScrollBar
-    Left = 176
+    Left = 177
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -88,9 +88,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb7: TScrollBar
-    Left = 208
+    Left = 209
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -99,9 +99,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb8: TScrollBar
-    Left = 240
+    Left = 241
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -110,9 +110,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb9: TScrollBar
-    Left = 272
+    Left = 273
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -121,9 +121,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb10: TScrollBar
-    Left = 304
+    Left = 305
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -132,9 +132,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb11: TScrollBar
-    Left = 336
+    Left = 337
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -143,9 +143,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb12: TScrollBar
-    Left = 368
+    Left = 369
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -154,9 +154,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb13: TScrollBar
-    Left = 400
+    Left = 401
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -165,9 +165,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb14: TScrollBar
-    Left = 432
+    Left = 433
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -176,9 +176,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb15: TScrollBar
-    Left = 464
+    Left = 465
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0
@@ -187,9 +187,9 @@ object Form1: TForm1
     OnChange = sb1Change
   end
   object sb16: TScrollBar
-    Left = 496
+    Left = 497
     Top = 24
-    Width = 17
+    Width = 16
     Height = 121
     Kind = sbVertical
     PageSize = 0

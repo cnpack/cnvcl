@@ -323,6 +323,53 @@ const
   {* NTP 包中的时间戳的秒的小数部分与微秒的换算比例值}
   CN_NTP_MICRO_SEC_FRACTION                 = 4294.967296;
 
+  {* DNS 包头中的 QR 字段值}
+  CN_DNS_HEADER_TYPE_QUERY                  = 0;   // 请求
+  CN_DNS_HEADER_TYPE_RESPONSE               = 1;   // 应答
+
+  {* DNS 包头中的 OpCode 字段值}
+  CN_DNS_HEADER_OPCODE_STANDARD_QUERY       = 0;   // 标准查询
+  CN_DNS_HEADER_OPCODE_INVERSE_QUERY        = 1;   // 反向查询
+  CN_DNS_HEADER_OPCODE_SERVER_STATUS        = 2;   // 服务器状态查询
+
+  {* DNS 包头中的 ResponseCode 字段值}
+  CN_DNS_HEADER_RCODE_NOERROR               = 0;   // 无错误
+  CN_DNS_HEADER_RCODE_FORMAT_ERROR          = 1;   // 报文格式错误
+  CN_DNS_HEADER_RCODE_SERVER_FAILURE        = 2;   // 服务器失败
+  CN_DNS_HEADER_RCODE_NAME_ERROR            = 3;   // 名字错误
+  CN_DNS_HEADER_RCODE_NOT_IMPLEMENTED       = 4;   // 没有实现
+  CN_DNS_HEADER_RCODE_REFUSED               = 5;   // 拒绝
+
+  {* DNS 包中的 TYPE 字段值，包括 QUESTION 区的 QTYPE 字段值}
+  CN_DNS_TYPE_A                             = 1;   // a host address
+  CN_DNS_TYPE_NS                            = 2;   // an authoritative name server
+  CN_DNS_TYPE_MD                            = 3;   // a mail destination (Obsolete - use MX)
+  CN_DNS_TYPE_MF                            = 4;   // a mail forwarder (Obsolete - use MX)
+  CN_DNS_TYPE_CNAME                         = 5;   // the canonical name for an alias
+  CN_DNS_TYPE_SOA                           = 6;   // marks the start of a zone of authority
+  CN_DNS_TYPE_MB                            = 7;   // a mailbox domain name (EXPERIMENTAL)
+  CN_DNS_TYPE_MG                            = 8;   // a mail group member (EXPERIMENTAL)
+  CN_DNS_TYPE_MR                            = 9;   // a mail rename domain name (EXPERIMENTAL)
+  CN_DNS_TYPE_NULL                          = 10;  // a null RR (EXPERIMENTAL)
+  CN_DNS_TYPE_WKS                           = 11;  // a well known service description
+  CN_DNS_TYPE_PTR                           = 12;  // a domain name pointer
+  CN_DNS_TYPE_HINFO                         = 13;  // host information
+  CN_DNS_TYPE_MINFO                         = 14;  // mailbox or mail list information
+  CN_DNS_TYPE_MX                            = 15;  // mail exchange
+  CN_DNS_TYPE_TXT                           = 16;  // text strings
+
+  CN_DNS_QTYPE_AXFR                         = 252; // A request for a transfer of an entire zone
+  CN_DNS_QTYPE_MAILB                        = 253; // A request for mailbox-related records (MB, MG or MR)
+  CN_DNS_QTYPE_MAILA                        = 254; // A request for mail agent RRs (Obsolete - see MX)
+  CN_DNS_QTYPE_ALL                          = 255; // A request for all records
+
+  {* DNS 包中的 CLASS 字段值，包括 QCLASS 字段值}
+  CN_DNS_CLASS_IN                           = 1;   // the Internet
+  CN_DNS_CLASS_CS                           = 2;   // the CSNET class (Obsolete)
+  CN_DNS_CLASS_CH                           = 3;   // the CHAOS class
+  CN_DNS_CLASS_HS                           = 4;   // Hesiod [Dyer 87]
+  CN_DNS_QCLASS_ANY                         = 255; // any class
+
   {* Socks 代理协议的握手包中的版本字段的定义}
   CN_SOCKS_VERSION_V4                       = 4;
   CN_SOCKS_VERSION_V5                       = 5;
@@ -571,6 +618,40 @@ type
   end;
 
   PCnNTPPacket = ^TCnNTPPacket;
+
+{*
+  DNS 包头格式示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+    0                             1
+    0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+    7  6  5  4  3  2  1  0  7  6  5  4  3  2  1  0
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                      ID                       |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                    QDCOUNT                    |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                    ANCOUNT                    |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                    NSCOUNT                    |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                    ARCOUNT                    |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+}
+
+  TCnDNSHeader = packed record
+    Id:                    Word;     // 请求时客户端设置的 16 位标识符，服务器给出应答的时候会带相同的标识字段
+    QrOpcodeAATCRD:        Byte;     // 请求应答、查询种类、授权应答、截断、期望递归、
+    RAZRCode:              Byte;     // 支持递归、保留、应答码
+    QDCount:               Word;     // 报文请求段中的问题记录数
+    ANCount:               Word;     // 报文回答段中的问题记录数
+    NSCount:               Word;     // 报文授权段中的问题记录数
+    ARCount:               Word;     // 报文附加段中的问题记录数
+  end;
+
+  PCnDNSHeader = ^TCnDNSHeader;
 
 {*
   Socks 代理协议客户端发起连接握手包示意图，字节内左边是高位，右边是低位。
@@ -862,6 +943,29 @@ function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
 
 function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
 {* 将日期时间转换成 NTP 包中的时间戳值}
+
+// ========================== DNS 包系列函数 ===================================
+
+function CnGetDNSHeaderQR(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的 QR 标识，查询或响应，返回 CN_DNS_HEADER_TYPE_*}
+
+function CnGetDNSHeaderOpCode(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的 OpCode 查询种类，返回 CN_DNS_HEADER_OPCODE_*}
+
+function CnGetDNSHeaderAA(const DNSHeader: PCnDNSHeader): Boolean;
+{* 获得 DNS 包头内的授权应答位是否置位，返回 True 或 False}
+
+function CnGetDNSHeaderTC(const DNSHeader: PCnDNSHeader): Boolean;
+{* 获得 DNS 包头内的截断位是否置位，返回 True 或 False}
+
+function CnGetDNSHeaderRD(const DNSHeader: PCnDNSHeader): Boolean;
+{* 获得 DNS 包头内的期望递归位是否置位，返回 True 或 False}
+
+function CnGetDNSHeaderRA(const DNSHeader: PCnDNSHeader): Boolean;
+{* 获得 DNS 包头内的支持递归位是否置位，返回 True 或 False}
+
+function CnGetDNSHeaderRCode(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的应答码，返回 CN_DNS_HEADER_RCODE_*}
 
 implementation
 
@@ -1167,6 +1271,41 @@ begin
   Int64Rec(Result).Lo := Frac;
   Int64Rec(Result).Hi := Sec;
   Result := HostToNetworkInt64(Result); // 互相转换
+end;
+
+function CnGetDNSHeaderQR(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := (DNSHeader^.QrOpcodeAATCRD and $80) shr 7;
+end;
+
+function CnGetDNSHeaderOpCode(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := (DNSHeader^.QrOpcodeAATCRD and $78) shr 3;
+end;
+
+function CnGetDNSHeaderAA(const DNSHeader: PCnDNSHeader): Boolean;
+begin
+  Result := (DNSHeader^.QrOpcodeAATCRD and $04) <> 0;
+end;
+
+function CnGetDNSHeaderTC(const DNSHeader: PCnDNSHeader): Boolean;
+begin
+  Result := (DNSHeader^.QrOpcodeAATCRD and $02) <> 0;
+end;
+
+function CnGetDNSHeaderRD(const DNSHeader: PCnDNSHeader): Boolean;
+begin
+  Result := (DNSHeader^.QrOpcodeAATCRD and $01) <> 0;
+end;
+
+function CnGetDNSHeaderRA(const DNSHeader: PCnDNSHeader): Boolean;
+begin
+  Result := (DNSHeader^.RAZRCode and $80) <> 0;
+end;
+
+function CnGetDNSHeaderRCode(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := DNSHeader^.RAZRCode and $0F;
 end;
 
 end.

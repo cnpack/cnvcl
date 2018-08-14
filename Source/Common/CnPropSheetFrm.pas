@@ -457,6 +457,7 @@ type
     TypeName: ShortString;
   end;
 
+  TConrolAccess = class(TControl);
   TGraphicConrolAccess = class(TGraphicControl);
 
   TCnByteSet = set of 0..SizeOf(Byte) * 8 - 1;
@@ -1723,6 +1724,24 @@ begin
         AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
         S := GetObjValueStr(AProp.ObjValue);
+        AddNewProp(S, AProp);
+      end;
+
+      if not AlreadyHasProperty('Text') or IsRefresh then
+      begin
+        // Ìí¼Ó Control µÄ Text
+        if not IsRefresh then
+          AProp := TCnPropertyObject.Create
+        else
+          AProp := IndexOfProperty(Properties, 'Text');
+
+        AProp.PropName := 'Text';
+        AProp.PropType := tkString;
+        AProp.IsObjOrIntf := False;
+        AProp.PropValue := TConrolAccess(FObjectInstance).Text;
+        AProp.ObjValue := nil;
+
+        S := TConrolAccess(FObjectInstance).Text;
         AddNewProp(S, AProp);
       end;
 

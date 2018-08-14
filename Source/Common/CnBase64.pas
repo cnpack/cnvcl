@@ -39,7 +39,9 @@ unit CnBase64;
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2016.05.03 V1.2
+* 修改记录：2018.06.22 V1.3
+*               修正解出的原始内容可能包含多余 #0 或原始尾部 #0 被错误移除的问题
+*           2016.05.03 V1.2
 *               修正字符串中包含#0时可能会被截断的问题
 *           2006.10.25 V1.1
 *               增加 wr960204 的优化版本
@@ -57,25 +59,25 @@ uses
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
-{* 对字符串进行BASE64编码，如编码成功返回Base64_OK
+{* 对字符串进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
-  InputData:AnsiString        - 要编码的数据
-  var OutputData: AnsiString  - 编码后的数据
+  InputData: AnsiString        - 要编码的数据
+  var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
-{* 对数据进行BASE64编码，如编码成功返回Base64_OK
+{* 对数据进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
-  InputData:AnsiString        - 要编码的数据
-  var OutputData: AnsiString  - 编码后的数据
+  InputData: AnsiString        - 要编码的数据
+  var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean = True): Byte; overload;
 function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean = True): Byte; overload;
-{* 对数据进行BASE64解码，如解码成功返回Base64_OK
+{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
 |<PRE>
-  InputData:AnsiString        - 要解码的数据
-  var OutputData: AnsiString  - 解码后的数据
-  FixZero: Boolean            - 是否移去尾部的 #0
+  InputData: AnsiString        - 要解码的数据
+  var OutputData: AnsiString   - 解码后的数据
+  FixZero: Boolean             - 是否移去尾部的 #0
 |</PRE>}
 
 // 原始移植的版本，比较慢
@@ -146,8 +148,8 @@ var
 
   function ValueToCharacter(Value: Byte; var Character: AnsiChar): Boolean;
   //******************************************************************
-  // 将一个在0..Base64TableLength-1区间内的值，转换为与Base64编码相对应
-  // 的字符来表示，如果转换成功则返回True
+  // 将一个在 0..Base64TableLength - 1 区间内的值，转换为与 Base64 编
+  // 码相对应的字符来表示，如果转换成功则返回 True
   //******************************************************************
   begin
     Result := True;
@@ -191,8 +193,8 @@ begin
     end;
 
     InputLength := InputLength-1;
-    c:=(PrevB and $03) shl 4 + (CurrentB shr 4);  //取出XX后4位并将其左移4位与XX右移4位合并成六位
-    if not ValueToCharacter(c,s) then             //检测取得的字符是否在Base64Table内
+    c:=(PrevB and $03) shl 4 + (CurrentB shr 4);  //取出 XX 后 4 位并将其左移4位与 XX 右移 4 位合并成六位
+    if not ValueToCharacter(c,s) then             //检测取得的字符是否在 Base64Table 内
     begin
       Result := BASE64_ERROR;
       Exit;
@@ -213,8 +215,8 @@ begin
         Inc(i);
       end;
       InputLength := InputLength - 1;
-      c := (PrevB and $0F) shl 2 + (CurrentB shr 6);//取出XX后4位并将其左移2位与XX右移6位合并成六位
-      if not ValueToCharacter(c, s) then           //检测取得的字符是否在Base64Table内
+      c := (PrevB and $0F) shl 2 + (CurrentB shr 6); //取出 XX 后 4 位并将其左移 2 位与 XX 右移 6 位合并成六位
+      if not ValueToCharacter(c, s) then             //检测取得的字符是否在 Base64Table 内
       begin
         Result := BASE64_ERROR;
         Exit;
@@ -227,8 +229,8 @@ begin
       s := pad
     else
     begin
-      c := (CurrentB and $3F);                      //取出XX后6位
-      if not ValueToCharacter(c, s) then           //检测取得的字符是否在Base64Table内
+      c := (CurrentB and $3F);                      //取出 XX 后6位
+      if not ValueToCharacter(c, s) then            //检测取得的字符是否在 Base64Table 内
       begin
         Result := BASE64_ERROR;
         Exit;
@@ -252,8 +254,8 @@ var
 
   function CharacterToValue(Character: AnsiChar; var Value: Byte): Boolean;
   //******************************************************************
-  // 转换字符为一在0..Base64TableLength-1区间中的值，如果转换成功则返
-  // 回True(即字符在Base64Table中)
+  // 转换字符为一在 0..Base64TableLength - 1 区间中的值，如果转换成功
+  // 则返回 True (即字符在 Base64Table 中)
   //******************************************************************
   begin
     Result := True;
@@ -266,7 +268,7 @@ var
 
   function FilterLine(const InputData: AnsiString): AnsiString;
   //******************************************************************
-  // 过滤所有不在Base64Table中的字符，返回值为过滤后的字符
+  // 过滤所有不在 Base64Table 中的字符，返回值为过滤后的字符
   //******************************************************************
   var
     f: Byte;
@@ -470,7 +472,7 @@ function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; F
 var
   SrcLen, DstLen, Times, i: Integer;
   x1, x2, x3, x4, xt: Byte;
-  C: Integer;
+  C, ToDec: Integer;
   Data: AnsiString;
 
   function FilterLine(const Source: AnsiString): AnsiString;
@@ -509,6 +511,17 @@ begin
 
   SrcLen := Length(Data);
   DstLen := SrcLen * 3 div 4;
+  ToDec := 0;
+
+  // 尾部有一个等号意味着原始数据补了个 #0，两个等号意味着补了两个 #0，需要去掉也就是缩短长度
+  // 注意这不等同于原始数据的尾部是 #0 的情况，后者无须去掉
+  if Data[SrcLen] = '=' then
+  begin
+    Inc(ToDec);
+    if (SrcLen > 1) and (Data[SrcLen - 1] = '=') then
+      Inc(ToDec);
+  end;
+
   SetLength(OutputData, DstLen);  //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
   Times := SrcLen div 4;
   C := 1;
@@ -539,7 +552,15 @@ begin
     Inc(C);
   end;
 
-  // 删除尾部的 #0
+  // 根据补的等号数目决定是否删除尾部 #0
+  while (ToDec > 0) and (OutputData[DstLen] = #0) do
+  begin
+    Dec(ToDec);
+    Dec(DstLen);
+  end;
+  SetLength(OutputData, DstLen);
+
+  // 再根据外部要求删除尾部的 #0，其实无太大的实质性作用
   if FixZero then
   begin
     while (DstLen > 0) and (OutputData[DstLen] = #0) do
@@ -547,7 +568,6 @@ begin
     SetLength(OutputData, DstLen);
   end;
 
-  // OutputData := {$IFDEF UNICODE}AnsiString{$ENDIF}({$IFDEF UNICODE}String{$ENDIF}(OutputData));
   Result := BASE64_OK;
 end;
 

@@ -116,6 +116,8 @@ type
     btnWideCharSet: TButton;
     btnWatchClear: TButton;
     btnEvaluateScreen: TButton;
+    btnFindComponent: TButton;
+    btnFindControl: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -160,12 +162,18 @@ type
     procedure btnWideCharSetClick(Sender: TObject);
     procedure btnWatchClearClick(Sender: TObject);
     procedure btnEvaluateScreenClick(Sender: TObject);
+    procedure btnFindComponentClick(Sender: TObject);
+    procedure btnFindControlClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
     FThread: TSendThread;
     FOldWndProc: TWndMethod;
     procedure NewWindowProc(var AMsg: TMessage);
+    procedure DebuggerFindComponent(Sender: TObject; AComponent: TComponent;
+      var Cancel: Boolean);
+    procedure DebuggerFindControl(Sender: TObject; AControl: TControl;
+      var Cancel: Boolean);
   public
     { Public declarations }
   end;
@@ -622,6 +630,30 @@ procedure TFormSend.NewWindowProc(var AMsg: TMessage);
 begin
   CnDebugger.LogWindowMessage(AMsg.Msg);
   FOldWndProc(AMsg);
+end;
+
+procedure TFormSend.btnFindComponentClick(Sender: TObject);
+begin
+  CnDebugger.OnFindComponent := DebuggerFindComponent;
+  CnDebugger.FindComponent;
+end;
+
+procedure TFormSend.btnFindControlClick(Sender: TObject);
+begin
+  CnDebugger.OnFindControl := DebuggerFindControl;
+  CnDebugger.FindControl;
+end;
+
+procedure TFormSend.DebuggerFindComponent(Sender: TObject;
+  AComponent: TComponent; var Cancel: Boolean);
+begin
+  (Sender as TCnDebugger).LogMsg('On Find Component: ' + AComponent.Name);
+end;
+
+procedure TFormSend.DebuggerFindControl(Sender: TObject;
+  AControl: TControl; var Cancel: Boolean);
+begin
+  (Sender as TCnDebugger).LogMsg('On Find Control: ' + AControl.Name);
 end;
 
 end.

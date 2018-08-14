@@ -47,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows, Contnrs;
+  Classes, SysUtils, Windows, Contnrs {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -2581,14 +2581,22 @@ begin
       LP := PDWORD(Integer(LP) - SizeOf(DWORD));
 
       R := BufRemain(N, P, @(Result[1]));
+{$IFDEF UNICODE}
+      AnsiStrings.AnsiFormatBuf(P^, R, AnsiString(BN_DEC_FMT), Length(BN_DEC_FMT), [LP^]);
+{$ELSE}
       FormatBuf(P^, R, BN_DEC_FMT, Length(BN_DEC_FMT), [LP^]);
+{$ENDIF}
       while P^ <> #0 do
         Inc(P);
       while LP <> BnData do
       begin
         LP := PDWORD(Integer(LP) - SizeOf(DWORD));
         R := BufRemain(N, P, @(Result[1]));
+{$IFDEF UNICODE}
+        AnsiStrings.AnsiFormatBuf(P^, R, AnsiString(BN_DEC_FMT2), Length(BN_DEC_FMT2), [LP^]);
+{$ELSE}
         FormatBuf(P^, R, BN_DEC_FMT2, Length(BN_DEC_FMT2), [LP^]);
+{$ENDIF}
         while P^ <> #0 do
           Inc(P);
       end;
@@ -2600,8 +2608,8 @@ begin
       BigNumberFree(T);
   end;
 
-  Len := StrLen(PAnsiChar(Result));
-  if Len > 0 then
+  Len := SysUtils.StrLen(PAnsiChar(Result));
+  if Len >= 0 then
     SetLength(Result, Len); // 去除尾部多余的 #0
 end;
 
