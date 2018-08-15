@@ -59,6 +59,12 @@ object FormZip: TFormZip
         Top = 64
         Width = 633
         Height = 369
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'Courier New'
+        Font.Style = []
+        ParentFont = False
         ReadOnly = True
         TabOrder = 3
       end

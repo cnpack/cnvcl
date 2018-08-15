@@ -67,7 +67,23 @@ begin
     for I := 0 to ZR.FileCount - 1 do
     begin
       Header := ZR.FileInfo[I];
-      mmoZip.Lines.Add(ZR.FileName[I] + Format(' CRC32 in Central Directory: %8.8x' ,[Header^.CRC32]));
+      mmoZip.Lines.Add(ZR.FileName[I] + ' in Central Directory.');
+
+      mmoZip.Lines.Add(Format('  RequiredVersion: %4.4d', [Header^.RequiredVersion]));
+      mmoZip.Lines.Add(Format('  Flag: $%4.4x', [Header^.Flag]));
+      mmoZip.Lines.Add(Format('  CompressionMethod: %4.4d', [Header^.CompressionMethod]));
+      mmoZip.Lines.Add(Format('  ModifiedDateTime: $%8.8x', [Header^.ModifiedDateTime]));
+      mmoZip.Lines.Add(Format('  CRC32: $%8.8x', [Header^.CRC32]));
+      mmoZip.Lines.Add(Format('  CompressedSize: %d', [Header^.CompressedSize]));
+      mmoZip.Lines.Add(Format('  UncompressedSize: %d', [Header^.UncompressedSize]));
+      mmoZip.Lines.Add(Format('  FileNameLength: %d', [Header^.FileNameLength]));
+      mmoZip.Lines.Add(Format('  ExtraFieldLength: %d', [Header^.ExtraFieldLength]));
+      mmoZip.Lines.Add(Format('  FileCommentLength: %d', [Header^.FileCommentLength]));
+      mmoZip.Lines.Add(Format('  DiskNumberStart: %d', [Header^.DiskNumberStart]));
+      mmoZip.Lines.Add(Format('  InternalAttributes: %d', [Header^.InternalAttributes]));
+      mmoZip.Lines.Add(Format('  ExternalAttributes: %d', [Header^.ExternalAttributes]));
+      mmoZip.Lines.Add(Format('  LocalHeaderOffset:  %8.8x', [Header^.LocalHeaderOffset]));
+
     end;
 
     mmoZip.Lines.Add('');

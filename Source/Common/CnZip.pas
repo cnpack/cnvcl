@@ -786,7 +786,13 @@ begin
   if AMethod = zcStored then
     Result := TCnStoredStream.Create(InStream)
   else if AMethod = zcDeflate then
+  begin
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+    Result := TCompressionStream.Create(InStream, zcDefault, -15);
+{$ELSE}
     Result := TCompressionStream.Create(clDefault, InStream);
+{$ENDIF}
+  end;
 end;
 
 class function TCnZipDefaultCompressionHandler.CreateDecompressionStream(
@@ -796,7 +802,13 @@ begin
   if AMethod = zcStored then
     Result := TCnStoredStream.Create(InStream)
   else if AMethod = zcDeflate then
+  begin
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+    Result := TDecompressionStream.Create(InStream, -15);
+{$ELSE}
     Result := TDecompressionStream.Create(InStream);
+{$ENDIF}
+  end;
 end;
 
 { TCnStoredStream }
@@ -931,9 +943,9 @@ begin
   VerifyWrite(FOutStream, LocalHeader^.FileNameLength,     Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.ExtraFieldLength,   Sizeof(Word));
 
-  VerifyWrite(FOutStream, LocalHeader^.FileName, LocalHeader^.FileNameLength);
+  VerifyWrite(FOutStream, LocalHeader^.FileName[1], LocalHeader^.FileNameLength);
   if LocalHeader^.ExtraFieldLength > 0 then
-    VerifyWrite(FOutStream, LocalHeader^.ExtraField, LocalHeader^.ExtraFieldLength);
+    VerifyWrite(FOutStream, LocalHeader^.ExtraField[1], LocalHeader^.ExtraFieldLength);
 
   LStartPos := FOutStream.Position;
   DataStart := Data.Position;
