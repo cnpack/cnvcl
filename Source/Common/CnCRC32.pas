@@ -32,9 +32,9 @@ unit CnCRC32;
 * 修改记录：2015.06.12 V1.4
 *               把汇编改写为 Pascal 以适应 64 位编译器
 *           2009.08.21 V1.3
-*               增加CRC64的支持
+*               增加 CRC64 的支持
 *           2009.07.31 V1.2
-*               修正计算大文件CRC32不正确的问题，增加对大于4G文件的支持
+*               修正计算大文件 CRC32 不正确的问题，增加对大于 4G 文件的支持
 *           2009.04.16 V1.1
 *               修正一处计算有误的问题
 *           2002.08.11 V1.0
@@ -48,6 +48,9 @@ interface
 
 uses
   Windows, SysUtils;
+
+function CalcCRC32Byte(OrgCRC32: DWORD; B: Byte): DWORD;
+{* CRC32 计算单个字节，供特殊需求使用}
 
 function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
 {* 计算 CRC32 值
@@ -81,7 +84,7 @@ function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
    OrgCRC64: Int64  - 起始 CRC64 值，默认可传 0
    const Data       - 要计算的数据块
    Len: DWORD       - 数据块长度
-   Result: Int64    - 返回CRC64计算结果
+   Result: Int64    - 返回 CRC64 计算结果
  |</PRE>}
 
 function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
@@ -234,6 +237,11 @@ var
 //        RET
 //end;
 
+function CalcCRC32Byte(OrgCRC32: DWORD; B: Byte): DWORD;
+begin
+  Result := ((OrgCRC32 shr 8) and $FFFFFF) xor CRC32Table[(OrgCRC32 and $FF) xor B];
+end;
+
 // 计算 CRC32 值
 function DoCRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
 var
@@ -246,7 +254,7 @@ begin
   P := PByte(@Data);
   while Len > 0 do
   begin
-    Result := ((Result shr 8) and $FFFFFF) xor CRC32Table[(Result and $FF) xor P^];
+    Result := ((Result shr 8) and $FFFFFF) xor CRC32Table[(Result and $FF) xor P^]; // CalcCRC32Byte(Result, P^);
 
     Inc(P);
     Dec(Len);
