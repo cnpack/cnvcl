@@ -29,15 +29,22 @@ object FormZip: TFormZip
         Height = 13
         Caption = 'Zip File:'
       end
+      object lblPassword: TLabel
+        Left = 432
+        Top = 28
+        Width = 49
+        Height = 13
+        Caption = 'Password:'
+      end
       object edtZip: TEdit
-        Left = 72
+        Left = 64
         Top = 24
-        Width = 361
+        Width = 209
         Height = 21
         TabOrder = 0
       end
       object btnBrowse: TButton
-        Left = 440
+        Left = 280
         Top = 24
         Width = 65
         Height = 21
@@ -46,7 +53,7 @@ object FormZip: TFormZip
         OnClick = btnBrowseClick
       end
       object btnRead: TButton
-        Left = 512
+        Left = 360
         Top = 24
         Width = 65
         Height = 21
@@ -77,10 +84,25 @@ object FormZip: TFormZip
         TabOrder = 4
         OnClick = btnExtractClick
       end
+      object edtPassword: TEdit
+        Left = 488
+        Top = 24
+        Width = 89
+        Height = 21
+        TabOrder = 5
+        Text = '123'
+      end
     end
     object tsWriter: TTabSheet
       Caption = 'Create a New Zip'
       ImageIndex = 1
+      object lblPass: TLabel
+        Left = 400
+        Top = 24
+        Width = 49
+        Height = 13
+        Caption = 'Password:'
+      end
       object mmoFiles: TMemo
         Left = 16
         Top = 64
@@ -98,7 +120,7 @@ object FormZip: TFormZip
         OnClick = btnCreateClick
       end
       object btnAdd: TButton
-        Left = 120
+        Left = 104
         Top = 22
         Width = 75
         Height = 21
@@ -107,7 +129,7 @@ object FormZip: TFormZip
         OnClick = btnAddClick
       end
       object btnSave: TButton
-        Left = 224
+        Left = 192
         Top = 22
         Width = 75
         Height = 21
@@ -117,7 +139,7 @@ object FormZip: TFormZip
       end
       object btnZipDir: TButton
         Left = 576
-        Top = 24
+        Top = 20
         Width = 75
         Height = 21
         Caption = 'Zip Directory'
@@ -125,7 +147,7 @@ object FormZip: TFormZip
         OnClick = btnZipDirClick
       end
       object chkRemovePath: TCheckBox
-        Left = 336
+        Left = 280
         Top = 24
         Width = 97
         Height = 17
@@ -133,6 +155,14 @@ object FormZip: TFormZip
         Checked = True
         State = cbChecked
         TabOrder = 5
+      end
+      object edtPass: TEdit
+        Left = 464
+        Top = 20
+        Width = 105
+        Height = 21
+        TabOrder = 6
+        Text = '123'
       end
     end
   end

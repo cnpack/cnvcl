@@ -26,6 +26,10 @@ type
     dlgOpenFile: TOpenDialog;
     btnZipDir: TButton;
     chkRemovePath: TCheckBox;
+    edtPassword: TEdit;
+    lblPassword: TLabel;
+    lblPass: TLabel;
+    edtPass: TEdit;
     procedure btnBrowseClick(Sender: TObject);
     procedure btnReadClick(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
@@ -105,6 +109,7 @@ begin
     mmoZip.Clear;
     ZR := TCnZipReader.Create;
     ZR.OpenZipFile(edtZip.Text);
+    ZR.Password := edtPassword.Text;
     ZR.ExtractAllTo(Dir);
     ZR.Free;
     ShowMessage('Extract OK.');
@@ -118,6 +123,7 @@ begin
   begin
     FWriter := TCnZipWriter.Create;
     FWriter.RemovePath := chkRemovePath.Checked;
+    FWriter.Password := edtPass.Text;
     FWriter.CreateZipFile(dlgSave.FileName);
     FWriter.Comment := 'This is a Comment.';
     mmoFiles.Clear;
@@ -154,7 +160,7 @@ begin
   Dir := 'C:\';
   if SelectDirectory(Dir, [sdAllowCreate, sdPerformCreate, sdPrompt], 1000) then
     if dlgSave.Execute then
-      if CnZipDirectory(Dir, dlgSave.FileName) then
+      if CnZipDirectory(Dir, dlgSave.FileName, zcStored, edtPass.Text) then
         ShowMessage('Zip Directory OK.');
 end;
 
