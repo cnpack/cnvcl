@@ -48,8 +48,8 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2018.08.20 V2.1
-*               罗建仁补充 2100 年到 2800 年的农历数据
+* 修改记录：2018.08.22 V2.1
+*               罗建仁补充 2100 年到 2800 年的农历数据并协助修正三伏日计算的偏差
 *           2018.07.18 V2.0
 *               根据通书算法更新九星的计算，增加节气至后甲子间的重排
 *           2016.10.25 V1.9
@@ -513,10 +513,10 @@ function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer; out AHour: Integer; o
 {* 获得公历年月日是本年的什么节气以及交节时刻，0-23，对应立春到大寒，无则返回 -1}
 
 function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDay: Integer): Boolean;
-{* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9对应一九到九九，False 为不在数九日内}
+{* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9 对应一九到九九，False 为不在数九日内}
 
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
-{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或20）对应初伏到末伏的伏日，False 为不在伏日内}
+{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或 20）对应初伏到末伏的伏日，False 为不在伏日内}
 
 function GetRuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
 {* 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日}
@@ -2798,7 +2798,7 @@ begin
   end;
 end;
 
-// 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或20）对应初伏到末伏的伏日，False 为不在伏日内
+// 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或 20）对应初伏到末伏的伏日，False 为不在伏日内
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
 var
   Days, XiaZhi, LiQiu: Integer;
@@ -2826,7 +2826,7 @@ begin
         F1 := I + 20; // 初伏日，第三个庚日
         F2 := I + 30; // 中伏日，第四个庚日
 
-        if (Days >= F1) and (Days < F1 + 9) then
+        if (Days >= F1) and (Days < F1 + 10) then
         begin
           Result := True;
           FuSeq := 0;
@@ -2865,8 +2865,11 @@ begin
           Result := True;
           FuSeq := 2;
           FuDay := Days - F3 + 1;
-          Exit;
-        end;
+        end
+        else
+          Result := False;
+
+        Exit; // 不能再循环了，否则会出现把第二个庚日又误当末伏开始的错误
       end;
     end;
   end;
