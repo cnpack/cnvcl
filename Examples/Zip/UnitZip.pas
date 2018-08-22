@@ -30,6 +30,7 @@ type
     lblPassword: TLabel;
     lblPass: TLabel;
     edtPass: TEdit;
+    cbbMode: TComboBox;
     procedure btnBrowseClick(Sender: TObject);
     procedure btnReadClick(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
@@ -37,6 +38,7 @@ type
     procedure btnAddClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnZipDirClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     FWriter: TCnZipWriter;
   public
@@ -136,7 +138,10 @@ begin
   begin
     if dlgOpenFile.Execute then
     begin
-      FWriter.AddFile(dlgOpenFile.FileName);
+      if cbbMode.ItemIndex = 0 then
+        FWriter.AddFile(dlgOpenFile.FileName, '', zcStored)
+      else
+        FWriter.AddFile(dlgOpenFile.FileName);
       mmoFiles.Lines.Add(dlgOpenFile.FileName);
     end;
   end;
@@ -162,6 +167,11 @@ begin
     if dlgSave.Execute then
       if CnZipDirectory(Dir, dlgSave.FileName, zcStored, edtPass.Text) then
         ShowMessage('Zip Directory OK.');
+end;
+
+procedure TFormZip.FormCreate(Sender: TObject);
+begin
+  cbbMode.ItemIndex := 0;
 end;
 
 end.

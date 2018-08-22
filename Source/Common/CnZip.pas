@@ -29,8 +29,10 @@ unit CnZip;
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2018.08.07 V1.0
-*                使用 ZLib 实现加压解压但用 Zip 解压时仍有问题
+* 修改记录：2018.08.22 V1.2
+*                存储模式下支持 Zip 传统的密码压缩解压缩算法，但 Deflate 模式仍不支持密码
+*           2018.08.07 V1.1
+*                使用 ZLib 实现加压解压但 XE2 以下用 Zip 解压时仍有问题，XE2 或以上可兼容 Zip
 *           2018.08.05 V1.0
 *                创建单元
 ================================================================================
@@ -44,7 +46,7 @@ interface
 //  {$MESSAGE WARN 'NOT Compatable with WinZip/WinRAR etc.'}
 {$ENDIF}
 
-{$DEFINE DEBUGZIP}
+// {$DEFINE DEBUGZIP}
 
 uses
   SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCommon, CnCRC32, ZLib;
@@ -274,6 +276,7 @@ const
 
   CN_LOCAL_HEADERSIZE = 26;
   CN_CENTRAL_HEADERSIZE = 42;
+  CN_UTF8_MASK = $0800;  // 1 shl 11
 
 resourcestring
   SZipErrorRead = 'Error Reading Zip File';
@@ -294,13 +297,19 @@ type
 
   public
     class function CanHandleCompressionMethod(AMethod: TCnZipCompressionMethod): Boolean; override;
+    {* 是否支持特定的压缩方法}
     class function CreateCompressionStream(AMethod: TCnZipCompressionMethod;
       InStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream; override;
+    {* 创建针对特定输入流的压缩流。压缩流的概念是，压缩流有个输出流，当朝压缩流写入数据时，
+      将自动把压缩后的数据写入输出流。所以压缩流要实现 Write 方法}
     class function CreateDecompressionStream(AMethod: TCnZipCompressionMethod;
       InStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream; override;
+    {* 创建针对特定输入流的解压缩流。解压缩流的概念是，解压缩流有个输入流，当从解压缩流读数据时，
+      将自动把解压缩后的数据提供出来到 Buffer。所以解压缩流要实现 Read 方法}
   end;
 
   TCnStoredStream = class(TStream)
+  {* 存储方式的压缩流与解压缩流}
   private
     FStream: TStream;
   protected
@@ -444,7 +453,7 @@ begin
     Z := nil;
     try
       Z := TCnZipReader.Create;
-      Stream := TFileStream.Create(FileName, fmOpenRead);
+      Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
       Result := Z.SearchEndOfCentralHeader(Stream, @Header);
     finally
       Stream.Free;
@@ -522,7 +531,7 @@ constructor TCnZipBase.Create;
 begin
   inherited;
   FFileList := TList.Create;
-  FUtf8 := True;
+  FUtf8 := False;
 end;
 
 destructor TCnZipBase.Destroy;
@@ -757,7 +766,7 @@ procedure TCnZipReader.OpenZipFile(const ZipFileName: string);
 begin
   Close;
 
-  FInStream := TFileStream.Create(ZipFileName, fmOpenRead);
+  FInStream := TFileStream.Create(ZipFileName, fmOpenRead or fmShareDenyWrite);
   try
     OpenZipStream;
   except
@@ -829,7 +838,7 @@ begin
         VerifyRead(FInStream, Header^.FileComment[1], Header^.FileCommentLength);
       end;
 
-      if (Header^.Flag and (1 shl 11)) = 0 then
+      if (Header^.Flag and CN_UTF8_MASK) = 0 then
         FUtf8 := False;
     except
       Dispose(Header);
@@ -1048,8 +1057,8 @@ begin
 
   New(LocalHeader);
   FillChar(LocalHeader^, SizeOf(LocalHeader^), 0);
-  LocalHeader^.Flag := 0;
-  InStream := TFileStream.Create(FileName, fmOpenRead);
+
+  InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     LocalHeader^.Flag := 0;
     LocalHeader^.CompressionMethod := Word(Compression);
@@ -1065,7 +1074,7 @@ begin
       Archive := FileName;
 
     if FUtf8 then
-      LocalHeader^.Flag := LocalHeader^.Flag or (1 shl 11);
+      LocalHeader^.Flag := LocalHeader^.Flag or CN_UTF8_MASK;
     if HasPassword then
       LocalHeader^.Flag := LocalHeader^.Flag or 1;
 
@@ -1120,6 +1129,16 @@ begin
   DataStart := Data.Position;
   LocalHeader^.UncompressedSize := Data.Size - DataStart;
 
+  // 计算原始的 CRC32 值
+  SetLength(Buffer, $4000);
+  while Data.Position < Longint(LocalHeader^.UncompressedSize) do
+  begin
+    C := Data.Read(Buffer[0], Length(Buffer));
+    LocalHeader^.CRC32 := CRC32Calc(LocalHeader^.CRC32, Buffer[0], C);
+  end;
+
+  // 重新回到原位，压缩
+  Data.Position := DataStart;
   CompressStream := CreateCompressStreamFromHandler(TCnZipCompressionMethod(LocalHeader^.CompressionMethod),
     FOutStream, LocalHeader, Self);
   try
@@ -1127,16 +1146,7 @@ begin
   finally
     CompressStream.Free;
   end;
-
   LocalHeader^.CompressedSize := FOutStream.Position - LStartPos;
-  Data.Position := DataStart;
-  SetLength(Buffer, $4000);
-
-  while Data.Position < Longint(LocalHeader^.UncompressedSize) do
-  begin
-    C := Data.Read(Buffer[0], Length(Buffer));
-    LocalHeader^.CRC32 := CRC32Calc(LocalHeader^.CRC32, Buffer[0], C);
-  end;
 
   FEndFileData := FOutStream.Position;
   FOutStream.Position := LocalHeader^.LocalHeaderOffset + SizeOf(LongWord);
@@ -1247,7 +1257,7 @@ end;
 
 function TCnZipCryptKeys.CalcDecryptByte: Byte;
 var
-  T: LongWord;
+  T: Word;
 begin
   T := FKey2 or 2;
   Result := Word(T * (T xor 1)) shr 8;
@@ -1417,7 +1427,7 @@ begin
     for I := 0 to C - 1 do
       FKeys.EncryptByte(B[I]);
 
-    Result := Result + FStream.Write(B, C);
+    Result := Result + FStream.Write(B[0], C);
     Count := Count - C;
   end;
 end;

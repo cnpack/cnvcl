@@ -1,7 +1,7 @@
 object FormZip: TFormZip
-  Left = 192
-  Top = 107
-  Width = 701
+  Left = 120
+  Top = 111
+  Width = 828
   Height = 521
   Caption = 'Test Zip'
   Color = clBtnFace
@@ -11,12 +11,13 @@ object FormZip: TFormZip
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object PageControl1: TPageControl
     Left = 8
     Top = 8
-    Width = 673
+    Width = 801
     Height = 473
     ActivePage = tsReader
     TabOrder = 0
@@ -30,7 +31,7 @@ object FormZip: TFormZip
         Caption = 'Zip File:'
       end
       object lblPassword: TLabel
-        Left = 432
+        Left = 560
         Top = 28
         Width = 49
         Height = 13
@@ -64,7 +65,7 @@ object FormZip: TFormZip
       object mmoZip: TMemo
         Left = 16
         Top = 64
-        Width = 633
+        Width = 761
         Height = 369
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -76,7 +77,7 @@ object FormZip: TFormZip
         TabOrder = 3
       end
       object btnExtract: TButton
-        Left = 584
+        Left = 712
         Top = 24
         Width = 65
         Height = 21
@@ -85,7 +86,7 @@ object FormZip: TFormZip
         OnClick = btnExtractClick
       end
       object edtPassword: TEdit
-        Left = 488
+        Left = 616
         Top = 24
         Width = 89
         Height = 21
@@ -97,8 +98,8 @@ object FormZip: TFormZip
       Caption = 'Create a New Zip'
       ImageIndex = 1
       object lblPass: TLabel
-        Left = 400
-        Top = 24
+        Left = 528
+        Top = 26
         Width = 49
         Height = 13
         Caption = 'Password:'
@@ -106,7 +107,7 @@ object FormZip: TFormZip
       object mmoFiles: TMemo
         Left = 16
         Top = 64
-        Width = 633
+        Width = 761
         Height = 369
         TabOrder = 0
       end
@@ -138,8 +139,8 @@ object FormZip: TFormZip
         OnClick = btnSaveClick
       end
       object btnZipDir: TButton
-        Left = 576
-        Top = 20
+        Left = 704
+        Top = 22
         Width = 75
         Height = 21
         Caption = 'Zip Directory'
@@ -157,12 +158,24 @@ object FormZip: TFormZip
         TabOrder = 5
       end
       object edtPass: TEdit
-        Left = 464
-        Top = 20
+        Left = 592
+        Top = 22
         Width = 105
         Height = 21
         TabOrder = 6
         Text = '123'
+      end
+      object cbbMode: TComboBox
+        Left = 392
+        Top = 22
+        Width = 105
+        Height = 21
+        Style = csDropDownList
+        ItemHeight = 13
+        TabOrder = 7
+        Items.Strings = (
+          'Stored'
+          'Deflate')
       end
     end
   end
