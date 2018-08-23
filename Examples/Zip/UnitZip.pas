@@ -171,7 +171,7 @@ end;
 
 procedure TFormZip.FormCreate(Sender: TObject);
 begin
-  cbbMode.ItemIndex := 0;
+  cbbMode.ItemIndex := 1;
 end;
 
 end.
