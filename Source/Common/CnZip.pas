@@ -29,7 +29,9 @@ unit CnZip;
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2018.08.22 V1.2
+* 修改记录：2018.08.24 V1.2
+*                存储/Deflate 模式下支持 Zip 传统的密码压缩解压缩算法
+*           2018.08.22 V1.2
 *                存储模式下支持 Zip 传统的密码压缩解压缩算法，但 Deflate 模式仍不支持密码
 *           2018.08.07 V1.1
 *                使用 ZLib 实现加压解压但 XE2 以下用 Zip 解压时仍有问题，XE2 或以上可兼容 Zip
@@ -277,6 +279,7 @@ const
   CN_LOCAL_HEADERSIZE = 26;
   CN_CENTRAL_HEADERSIZE = 42;
   CN_UTF8_MASK = $0800;  // 1 shl 11
+  CN_ZIP_CRYPT_HEAD_SIZE = 12;
 
 resourcestring
   SZipErrorRead = 'Error Reading Zip File';
@@ -293,6 +296,7 @@ var
 
 type
   TCnZipDefaultCompressionHandler = class(TCnZipAbstractCompressionHandler)
+  {* 默认实现了 Stored 与 Deflate 模式并支持传统加解密的处理类}
   private
 
   public
@@ -337,7 +341,7 @@ type
   end;
 
   TCnEncryptStoredStream = class(TStream)
-  {* 存储也就是非压缩的加密流的实现}
+  {* 存储也就是非压缩的加密流的实现，Write 时加密}
   private
     FKeys: TCnZipCryptKeys;
     FPassword: AnsiString;
@@ -355,7 +359,7 @@ type
   end;
 
   TCnDecryptStoredStream = class(TStream)
-  {* 存储也就是非压缩的解密流的实现}
+  {* 存储也就是非压缩的解密流的实现，Read 时解密}
   private
     FZip: TStream;
     FKeys: TCnZipCryptKeys;
@@ -365,7 +369,8 @@ type
   protected
 
   public
-    constructor Create(AStream: TStream; const APassword: AnsiString; const AZipHeader: PCnZipHeader);
+    constructor Create(AStream: TStream; const APassword: AnsiString;
+      const AZipHeader: PCnZipHeader);
     destructor Destroy; override;
 
     function Read(var Buffer; Count: Integer): Integer; override;
@@ -374,10 +379,11 @@ type
   end;
 
   TCnEncryptZipCompressStream = class(TStream)
-  {* Deflate 压缩并且标准 Zip 加密的压缩流实现，使用内存流压缩，超大文件可能会 OOM}
+  {* Deflate 压缩并且标准 Zip 加密的压缩流实现，使用内存流压缩，超大文件可能会 OOM
+    实现顺序：在外界写入时先压缩至 FZipped，析构时再将 FZipped 逐字节加密写出}
   private
     FZip: TStream;
-    FZipped: TMemoryStream;
+    FZipped: TMemoryStream; // 存储压缩后但未加密的临时内容
     FKeys: TCnZipCryptKeys;
     FPassword: AnsiString;
     FOutStream: TStream;
@@ -393,10 +399,11 @@ type
   end;
 
   TCnDecryptZipCompressStream = class(TStream)
-  {* Deflate 压缩并且标准 Zip 加密的解压缩流实现，使用内存流解压缩，超大文件可能会 OOM}
+  {* Deflate 压缩并且标准 Zip 加密的解压缩流实现，使用内存流解压缩，超大文件可能会 OOM
+    实现顺序：在创建时先解密内容至 FDecrypted，外界读取时再将 FDecrypted 解压缩供读出}
   private
     FUnzip: TStream;
-    FUnzipped: TMemoryStream;
+    FDecrypted: TMemoryStream; // 存储预先逐字节解密出来的压缩内容
     FKeys: TCnZipCryptKeys;
     FPassword: AnsiString;
     FInStream: TStream;
@@ -1358,7 +1365,7 @@ constructor TCnDecryptStoredStream.Create(AStream: TStream;
 var
   I: Integer;
   C: Byte;
-  H: array [0..11] of Byte;
+  H: array [0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
 begin
   inherited Create;
   FStream := AStream;
@@ -1370,14 +1377,14 @@ begin
   // 读 12 字节头并解出来比对 CRC 以判断密码是否正确，注意有些 zip 文件不比对 CRC
   FStream.Read(H, Sizeof(H));
 
-  for I := 0 to 11 do
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
   begin
     C := H[I] xor FKeys.CalcDecryptByte;
     FKeys.UpdateKeys(C);
     H[I] := C;
   end;
 
-  if H[11] <> (FZipHeader^.CRC32 shr 24) then
+  if H[CN_ZIP_CRYPT_HEAD_SIZE - 1] <> (FZipHeader^.CRC32 shr 24) then
     raise ECnZipException.CreateRes(@SZipInvalidPassword);
 end;
 
@@ -1417,7 +1424,7 @@ end;
 constructor TCnEncryptStoredStream.Create(OutStream: TStream;
   const APassword: AnsiString; const AZipHeader: PCnZipHeader);
 var
-  H: array[0..11] of Byte;
+  H: array[0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
   I: Integer;
 begin
   inherited Create;
@@ -1428,12 +1435,12 @@ begin
   FKeys.InitKeys(FPassword);
 
   // 随机凑 12 个字节的头
-  for I := 0 to 10 do
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 2 do
     H[I] := Random(256);
-  H[11] := (FZipHeader^.CRC32 shr 24);
+  H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
 
   // 加密并写入
-  for I := 0 to 11 do
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
     FKeys.EncryptByte(H[I]);
   FOutStream.Write(H, Sizeof(H));
 end;
@@ -1491,7 +1498,7 @@ end;
 constructor TCnEncryptZipCompressStream.Create(OutStream: TStream;
   const APassword: AnsiString; const AZipHeader: PCnZipHeader);
 var
-  H: array[0..11] of Byte;
+  H: array[0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
   I: Integer;
 begin
   inherited Create;
@@ -1509,12 +1516,12 @@ begin
 {$ENDIF}
 
   // 随机凑 12 个字节的头
-  for I := 0 to 10 do
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 2 do
     H[I] := Random(256);
-  H[11] := (FZipHeader^.CRC32 shr 24);
+  H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
 
   // 加密并写入
-  for I := 0 to 11 do
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
     FKeys.EncryptByte(H[I]);
   FOutStream.Write(H, Sizeof(H));
 end;
@@ -1534,6 +1541,7 @@ begin
     begin
       FKeys.EncryptByte(P^);
       FOutStream.Write(P^, 1);
+      Inc(P);
     end;
   end;
 
@@ -1567,8 +1575,9 @@ constructor TCnDecryptZipCompressStream.Create(InStream: TStream;
   const APassword: AnsiString; const AZipHeader: PCnZipHeader);
 var
   I: Integer;
+  P: PByte;
   C: Byte;
-  H: array [0..11] of Byte;
+  H: array [0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
 begin
   inherited Create;
   FInStream := InStream;
@@ -1580,51 +1589,47 @@ begin
   // 读 12 字节头并解出来比对 CRC 以判断密码是否正确，注意有些 zip 文件不比对 CRC
   FInStream.Read(H, Sizeof(H));
 
-  for I := 0 to 11 do
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
   begin
     C := H[I] xor FKeys.CalcDecryptByte;
     FKeys.UpdateKeys(C);
     H[I] := C;
   end;
 
-  if H[11] <> (FZipHeader^.CRC32 shr 24) then
+  if H[CN_ZIP_CRYPT_HEAD_SIZE - 1] <> (FZipHeader^.CRC32 shr 24) then
     raise ECnZipException.CreateRes(@SZipInvalidPassword);
 
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
-  FUnzip := TDecompressionStream.Create(FInStream, -15);
-{$ELSE}
-  FUnzip := TDecompressionStream.Create(FInStream);
-{$ENDIF}
+  // 先从 FInStream 密文流中读出内容到 FDecrypted 并解密得到压缩后内容
+  FDecrypted := TMemoryStream.Create;
+  FDecrypted.CopyFrom(FInStream, FZipHeader^.CompressedSize - CN_ZIP_CRYPT_HEAD_SIZE);
+  P := FDecrypted.Memory;
+  for I := 1 to FDecrypted.Size do
+  begin
+    FKeys.DecryptByte(P^);
+    Inc(P);
+  end;
 
-  // 先从 Zip 解压缩流中读出解压缩后的内容到 FUnzipped 流
-  FUnzipped := TMemoryStream.Create;
-  FUnzipped.Size := FZipHeader^.UncompressedSize;
-  FUnzip.Read(FUnzipped.Memory^, FZipHeader^.UncompressedSize);
-  // FUnzipped.CopyFrom(FUnzip, FZipHeader^.UncompressedSize);
+  FDecrypted.Position := 0;
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+  FUnzip := TDecompressionStream.Create(FDecrypted, -15);
+{$ELSE}
+  FUnzip := TDecompressionStream.Create(FDecrypted);
+{$ENDIF}
 end;
 
 destructor TCnDecryptZipCompressStream.Destroy;
 begin
-  FUnzipped.Free;
-  FUnzip.Free;
+  FUnzip.Free;      // FUnzip 流释放时内部要访问其引用的 FDecrypted 因此必须先释放 FUnzip
+  FDecrypted.Free;
   FKeys.Free;
   inherited;
 end;
 
 function TCnDecryptZipCompressStream.Read(var Buffer;
   Count: Integer): Integer;
-var
-  P: PByte;
-  I: Integer;
 begin
-  // 外界 Read 时从 FUnzipped 读出解压缩后的内容并解密
-  Result := FUnzipped.Read(Buffer, Count);
-  P := @Buffer;
-  for I := 1 to Result do
-  begin
-    FKeys.DecryptByte(P^);
-    Inc(P);
-  end;
+  // 外界 Read 时从 FDecrypted 读出解压缩后的内容并解密
+  Result := FUnzip.Read(Buffer, Count);
 end;
 
 function TCnDecryptZipCompressStream.Seek(Offset: Integer;
