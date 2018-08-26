@@ -24,12 +24,13 @@ unit CnZip;
 * 软件名称：CnPack 组件包
 * 单元名称：CnPack 组件包 Zip 实现单元
 * 单元作者：CnPack开发组 Liu Xiao
-* 备    注：只实现存储方式，未实现压缩
+* 备    注：使用 Delphi 自带的 Zlib 实现压缩解压与传统密码支持。
+*           但 XE2 以上的 Zlib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
-* 修改记录：2018.08.24 V1.2
+* 修改记录：2018.08.26 V1.3
 *                存储/Deflate 模式下支持 Zip 传统的密码压缩解压缩算法
 *           2018.08.22 V1.2
 *                存储模式下支持 Zip 传统的密码压缩解压缩算法，但 Deflate 模式仍不支持密码
@@ -51,31 +52,18 @@ interface
 // {$DEFINE DEBUGZIP}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCommon, CnCRC32, ZLib;
+  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCRC32, ZLib
+  {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnCommon {$ELSE}
+  {$IFNDEF COMPILER6_UP} , CnCommon {$ENDIF} {$ENDIF};
+  // D5 下需要用到 CnCommon 单元做 UTF8 支持
 
 type
   ECnZipException = class(Exception);
 
   TCnZipCompressionMethod = (
-    zcStored,
-    zcShrunk,
-    zcReduce1,
-    zcReduce2,
-    zcReduce3,
-    zcReduce4,
-    zcImplode,
-    zcTokenize,
-    zcDeflate,
-    zcDeflate64,
-    zcPKImplode,
-    zcReserved11,
-    zcBZIP2,
-    zcReserved13,
-    zcLZMA,
-    zcReserved15,
-    zcReserved16,
-    zcReserved17,
-    zcTERSE,
+    zcStored, zcShrunk, zcReduce1, zcReduce2, zcReduce3, zcReduce4, zcImplode,
+    zcTokenize, zcDeflate, zcDeflate64, zcPKImplode, zcReserved11, zcBZIP2,
+    zcReserved13, zcLZMA, zcReserved15, zcReserved16, zcReserved17, zcTERSE,
     zcLZ77
 //    zcWavePack = 97,
 //    zcPPMdI1
@@ -216,9 +204,11 @@ type
   private
     FOutStream: TStream;
     FRemovePath: Boolean;
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     FDirFiles: TStrings;
     procedure FindFileCallback(const FileName: string; const Info: TSearchRec;
       var Abort: Boolean);
+{$ENDIF}
   protected
     procedure AddStream(Data: TStream; LocalHeader: PCnZipHeader);
   public
@@ -229,8 +219,10 @@ type
     procedure AddFile(const FileName: string; const ArchiveFileName: string = '';
       Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定内容}
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定目录下的所有文件}
+{$ENDIF}    
     procedure Save;
     {* 将压缩内容保存至 Zip 文件}
     procedure Close;
@@ -251,9 +243,13 @@ procedure RegisterCompressionHandlerClass(AClass: TCnZipCompressionHandlerClass)
 function CnZipFileIsValid(const FileName: string): Boolean;
 {* 判断 Zip 文件是否合法}
 
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
+
 function CnZipDirectory(const DirName: string; const FileName: string;
   Compression: TCnZipCompressionMethod = zcDeflate; const Password: string = ''): Boolean;
 {* 将指定目录压缩为一个 Zip 文件}
+
+{$ENDIF}
 
 function CnZipExtractTo(const FileName: string; const DirName: string;
   const Password: string = ''): Boolean;
@@ -290,6 +286,7 @@ resourcestring
   SZipNotSupport = 'Zip Compression Method NOT Support';
   SZipInvalidPassword = 'Invalid Password';
   SZipNotImplemented = 'Feature NOT Implemented';
+  SZipUtf8NotSupport = 'UTF8 NOT Support';
 
 var
   FZipCompressionHandlers: TClassList = nil;
@@ -487,6 +484,34 @@ begin
   end;
 end;
 
+function ZipUtf8ToString(const Text: AnsiString): string;
+begin
+{$IFDEF UNICODE}
+  Result := UTF8ToUnicodeString(PAnsiChar(Text));
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := Utf8ToAnsi(Text);
+  {$ELSE}
+  // raise ECnZipException.CreateRes(@SZipUtf8NotSupport);
+  Result := AnsiString(CnUtf8DecodeToWideString(Text));
+  {$ENDIF}
+{$ENDIF}
+end;
+
+function ZipStringToUtf8(const Text: string): AnsiString;
+begin
+{$IFDEF UNICODE}
+  Result := Utf8Encode(Text);
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := AnsiToUtf8(Text);
+  {$ELSE}
+  // raise ECnZipException.CreateRes(@SZipUtf8NotSupport);
+  Result := CnUtf8EncodeWideString(WideString(Text));
+  {$ENDIF}
+{$ENDIF}
+end;
+
 function CnZipFileIsValid(const FileName: string): Boolean;
 var
   Z: TCnZipReader;
@@ -510,6 +535,8 @@ begin
   end;
 end;
 
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
+
 function CnZipDirectory(const DirName: string; const FileName: string;
   Compression: TCnZipCompressionMethod; const Password: string): Boolean;
 var
@@ -530,6 +557,8 @@ begin
     Zip.Free;
   end;
 end;
+
+{$ENDIF}
 
 function CnZipExtractTo(const FileName: string; const DirName: string;
   const Password: string): Boolean;
@@ -635,7 +664,7 @@ end;
 function TCnZipBase.RawToString(Raw: AnsiString): string;
 begin
   if FUtf8 then
-    Result := CnUtf8ToAnsi2(string(Raw))
+    Result := ZipUtf8ToString(Raw)
   else
     Result := string(Raw);
 end;
@@ -663,7 +692,7 @@ end;
 function TCnZipBase.StringToRaw(Str: string): AnsiString;
 begin
   if FUtf8 then
-    Result := CnAnsiToUtf82(Str)
+    Result := ZipStringToUtf8(Str)
   else
     Result := AnsiString(Str);
 end;
@@ -778,9 +807,9 @@ begin
 {$ENDIF}
 
     if CreateSubdirs then
-      AFileName := MakePath(Path) + AFileName
+      AFileName := IncludeTrailingBackslash(Path) + AFileName
     else
-      AFileName := MakePath(Path) + ExtractFileName(AFileName);
+      AFileName := IncludeTrailingBackslash(Path) + ExtractFileName(AFileName);
 
     Dir := ExtractFileDir(AFileName);
     if CreateSubdirs and (Dir <> '') then
@@ -1077,6 +1106,8 @@ end;
 
 { TCnZipWriter }
 
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
+
 procedure TCnZipWriter.AddDirectory(const DirName: string;
   Compression: TCnZipCompressionMethod);
 var
@@ -1092,7 +1123,7 @@ begin
 
   for I := 0 to FDirFiles.Count - 1 do
   begin
-    Path := MakePath(DirName);
+    Path := IncludeTrailingBackslash(DirName);
 {$IFDEF MSWINDOWS}
     AFile := StringReplace(Copy(FDirFiles[I], Length(Path) + 1, Length(FDirFiles[I])), '\', '/', [rfReplaceAll]);
 {$ELSE}
@@ -1102,12 +1133,37 @@ begin
   end;
 end;
 
+{$ENDIF}
+
 procedure TCnZipWriter.AddFile(const FileName, ArchiveFileName: string;
   Compression: TCnZipCompressionMethod);
 var
   InStream: TStream;
   LocalHeader: PCnZipHeader;
   Archive: string;
+
+  function GetFileDateTime(const FileName: string): TDateTime;
+  var
+    Handle: THandle;
+    FindData: TWin32FindData;
+    SystemTime: TSystemTime;
+  begin
+    Result := 0.0;
+    Handle := FindFirstFile(PChar(FileName), FindData);
+    if Handle <> INVALID_HANDLE_VALUE then
+    begin
+      Windows.FindClose(Handle);
+      if (FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) = 0 then
+      begin
+        FileTimeToLocalFileTime(FindData.ftLastWriteTime, FindData.ftLastWriteTime);
+        FileTimeToSystemTime(FindData.ftLastWriteTime, SystemTime);
+        with SystemTime do
+          Result := EncodeDate(wYear, wMonth, wDay) + EncodeTime(wHour, wMinute,
+            wSecond, wMilliseconds);
+      end;
+    end;
+  end;
+
 begin
   if Trim(FileName) = '' then
     Exit;
@@ -1240,9 +1296,13 @@ end;
 destructor TCnZipWriter.Destroy;
 begin
   FreeAndNil(FOutStream);
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
   FDirFiles.Free;
+{$ENDIF}
   inherited;
 end;
+
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
 
 procedure TCnZipWriter.FindFileCallback(const FileName: string;
   const Info: TSearchRec; var Abort: Boolean);
@@ -1250,6 +1310,8 @@ begin
   if (FileName <> '.') and (FileName <> '..') then
     FDirFiles.Add(FileName);
 end;
+
+{$ENDIF}
 
 procedure TCnZipWriter.Save;
 var
