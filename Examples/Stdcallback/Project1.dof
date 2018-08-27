@@ -83,7 +83,7 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=1
-Item0=$(DELPHI)\Source\Toolsapi;..\..\cnpack\Source\Common;..\..\cnpack\Source\NonVisual;..\..\cnpack\Source\MultiLang;..\..\cnpack\Source\Graphics;..\..\cnpack\Source\NetComm;ThirdParty;ThirdParty\TPAbbrevia;ThirdParty\JCL;ThirdParty\DCU32;ThirdParty\PascalScript;Utils
+Item0=$(DELPHI)\Source\Toolsapi;..\..\cnpack\Source\Common;..\..\cnpack\Source\NonVisual;..\..\cnpack\Source\MultiLang;..\..\cnpack\Source\Graphics;..\..\cnpack\Source\NetComm;ThirdParty;ThirdParty\JCL;ThirdParty\DCU32;ThirdParty\PascalScript;Utils
 [HistoryLists\hlUnitOutputDirectory]
 Count=1
 Item0=..\Dcu
