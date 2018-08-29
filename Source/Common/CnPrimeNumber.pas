@@ -33,7 +33,10 @@ unit CnPrimeNumber;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.05 V1.4
+* 修改记录：2018.08.30 V1.5
+*               修正 Random 精度不够导致 Int64 生成素数末尾可能连续出现 $FF 的问题
+*               增加 UInt32/64 生成 Diffie-Hellman 密钥交换算法的素数与原根的函数
+*           2018.06.05 V1.4
 *               将 Int64 支持扩展至 UInt64 并扩展 AddMod、MultipleMode 等方法
 *           2017.04.03 V1.3
 *               将针对 Int64 的 RSA 基础加解密实现独立成 CnRSA 单元
@@ -655,11 +658,11 @@ function MultipleMod(A, B, C: TUInt64): TUInt64;
 function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function CnGenerateInt32Prime(HighBitSet: Boolean = False): Cardinal;
-{* 生成一个随机的 32 位素数，HighBitSet 指明最高位是否必须为 1}
+function CnGenerateUInt32Prime(HighBitSet: Boolean = False): Cardinal;
+{* 生成一个随机的 32 位无符号素数，HighBitSet 指明最高位是否必须为 1}
 
 function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
-{* 生成一个随机的 64 位素数，HighBitSet 指明最高位是否必须为 1}
+{* 生成一个随机的 64 位无符号素数但允许用有符号的 Int64 表示，HighBitSet 指明最高位是否必须为 1}
 
 {$IFDEF SUPPORT_UINT64}
 
@@ -684,7 +687,30 @@ function CnGenerateUInt64Prime: NativeUInt;
 
 {$ENDIF}
 
+procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out Root: Cardinal);
+{* 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt32}
+
+procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out Root: TUInt64);
+{* 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt64}
+
 implementation
+
+// 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
+function RandomUInt64: TUInt64;
+var
+  Hi, Lo: Cardinal;
+begin
+  Randomize;
+  Hi := Trunc(Random * High(Cardinal) - 1) + 1;
+  Randomize;
+  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+  Result := (TUInt64(Hi) shl 32) + Lo;
+end;
+
+function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
+begin
+  Result := UInt64Mod(RandomUInt64, HighValue);
+end;
 
 function CnUInt32IsPrime(N: Cardinal): Boolean;
 var
@@ -893,8 +919,8 @@ begin
   Result := True;
 end;
 
-// 生成一个随机的 32 位素数
-function CnGenerateInt32Prime(HighBitSet: Boolean): Cardinal;
+// 生成一个随机的 32 位无符号素数
+function CnGenerateUInt32Prime(HighBitSet: Boolean): Cardinal;
 begin
   Randomize;
   Result := Trunc(Random * High(Cardinal) - 1) + 1;
@@ -910,20 +936,15 @@ begin
   end;
 end;
 
-// 生成一个随机的 64 位素数
+// 生成一个随机的 64 位无符号素数
 function CnGenerateInt64Prime(HighBitSet: Boolean): TUInt64;
 begin
-  Randomize;
-  Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
-  Result := Result * 2 + 1;
-  // Result := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64 + R * MAX_SIGNED_INT64_IN_TUINT64 - 1) + 1;
+  Result := RandomUInt64;
   if HighBitSet then
     Result := Result or $8000000000000000;
   while not CnInt64IsPrime(Result) do
   begin
-    Randomize;
-    Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
-    Result := Result * 2 + 1;
+    Result := RandomUInt64;
     if HighBitSet then
       Result := Result or $8000000000000000;
   end;
@@ -1076,6 +1097,48 @@ begin
 end;
 
 {$ENDIF}
+
+// 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt64
+procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out Root: TUInt64);
+var
+  Q, M1, M2: TUInt64;
+begin
+  Q := 2;
+  repeat
+    Prime := CnGenerateInt64Prime(False);
+    if UInt64Compare(Prime, MAX_SIGNED_INT64_IN_TUINT64) > 0 then
+      Continue;
+    Q := Prime + Prime + 1;
+  until CnInt64IsPrime(Q);
+
+  repeat
+    Randomize;
+    Root := Trunc(Random * (Q - 1) - 2) + 2;
+    M1 := MontgomeryPowerMod(Root, 2, Q);
+    M2 := MontgomeryPowerMod(Root, Prime, Q);
+  until (M1 <> 1) and (M2 <> 1);
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt32
+procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out Root: Cardinal);
+var
+  Q, M1, M2: Cardinal;
+begin
+  Q := 0;
+  repeat
+    Prime := CnGenerateUInt32Prime(False);
+    if Prime > Cardinal(High(Integer)) then
+      Continue;
+    Q := Prime + Prime + 1;
+  until CnUInt32IsPrime(Q);
+
+  repeat
+    Randomize;
+    Root := Trunc(Random * (Q - 1) - 2) + 2;
+    M1 := MontgomeryPowerMod(Root, 2, Q);
+    M2 := MontgomeryPowerMod(Root, Prime, Q);
+  until (M1 <> 1) and (M2 <> 1);
+end;
 
 end.
 
