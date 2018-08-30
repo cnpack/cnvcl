@@ -30,12 +30,17 @@ unit CnPrimeNumber;
 *           后来采用基于费马小定理以及二次探测的 Miller Rabin 素数判定概率算法，
 *           无需排除部分已知的 Carmichael 数（Carmichael 数严格符合费马小定理，
 *           但加入二次探测后就被筛了，和其他素数保持同等概率）。
+*           另外本单元中的 Int64 系列均是 32 位编译器下靠 Int64 封装支持 UInt64，
+*           为的是照顾不支持 UInt64 的编译器。
+*           真正的 UInt64 系列函数均是 WIN64 位下实现。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2018.08.30 V1.5
 *               修正 Random 精度不够导致 Int64 生成素数末尾可能连续出现 $FF 的问题
-*               增加 UInt32/64 生成 Diffie-Hellman 密钥交换算法的素数与原根的函数
+*               增加 UInt32/64 生成 Diffie-Hellman 密钥交换算法的素数与原根的函数，
+*               增加辗转相除法求最大公约数以及 PollardRho 算法分解质因数以及求欧拉
+*               函数的方法。
 *           2018.06.05 V1.4
 *               将 Int64 支持扩展至 UInt64 并扩展 AddMod、MultipleMode 等方法
 *           2017.04.03 V1.3
@@ -687,10 +692,10 @@ function CnGenerateUInt64Prime: NativeUInt;
 
 {$ENDIF}
 
-function CnGreatestCommonDivisor32(A, B: Cardinal): Cardinal;
+function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
 {* 求两个 32 位无符号数的最大公约数}
 
-function CnGreatestCommonDivisor64(A, B: TUInt64): TUInt64;
+function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
 {* 求两个 64 位无符号数的最大公约数}
 
 procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out Root: Cardinal);
@@ -704,6 +709,12 @@ procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 {* 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
+
+function CnEulerUInt32(Num: Cardinal): Cardinal;
+{* 求不大于一 32 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
+
+function CnEulerInt64(Num: TUInt64): TUInt64;
+{* 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
 
 implementation
 
@@ -1153,21 +1164,21 @@ begin
 end;
 
 // 求两个 32 位无符号数的最大公约数
-function CnGreatestCommonDivisor32(A, B: Cardinal): Cardinal;
+function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
 begin
   if B = 0 then
     Result := A
   else
-    Result := CnGreatestCommonDivisor32(B, A mod B);
+    Result := CnUInt32GreatestCommonDivisor(B, A mod B);
 end;
 
 // 求两个 64 位无符号数的最大公约数
-function CnGreatestCommonDivisor64(A, B: TUInt64): TUInt64;
+function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
 begin
   if B = 0 then
     Result := A
   else
-    Result := CnGreatestCommonDivisor64(B, UInt64Mod(A, B));
+    Result := CnInt64GreatestCommonDivisor(B, UInt64Mod(A, B));
 end;
 
 function PollardRho32(X: Cardinal; C: Cardinal): Cardinal;
@@ -1183,7 +1194,7 @@ begin
   begin
     Inc(I);
     X0 := (MultipleMod(X0, X0, X) + C) mod X;
-    D := CnGreatestCommonDivisor32(Y - X0, X);
+    D := CnUInt32GreatestCommonDivisor(Y - X0, X);
 
     if (D <> 1) and (D <> X) then
     begin
@@ -1218,7 +1229,7 @@ begin
   begin
     Inc(I);
     X0 := (MultipleMod(X0, X0, X) + C) mod X;
-    D := CnGreatestCommonDivisor64(Y - X0, X);
+    D := CnInt64GreatestCommonDivisor(Y - X0, X);
 
     if (D <> 1) and (D <> X) then
     begin
@@ -1276,6 +1287,48 @@ begin
 
   CnInt64FindFactors(P, Factors);
   CnInt64FindFactors(UInt64Div(Num, P), Factors);
+end;
+
+// 求不大于一 32 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数
+function CnEulerUInt32(Num: Cardinal): Cardinal;
+var
+  F: TCnUInt32List;
+  I: Integer;
+begin
+  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  F := TCnUInt32List.Create;
+  F.IgnoreDuplicated := True;
+  try
+    CnUInt32FindFactors(Num, F);
+    Result := Num;
+    for I := 0 to F.Count - 1 do
+      Result := Result div F[I];
+    for I := 0 to F.Count - 1 do
+      Result := Result * (F[I] - 1);
+  finally
+    F.Free;
+  end;
+end;
+
+// 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数
+function CnEulerInt64(Num: TUInt64): TUInt64;
+var
+  F: TCnUInt64List;
+  I: Integer;
+begin
+  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  F := TCnUInt64List.Create;
+  F.IgnoreDuplicated := True;
+  try
+    CnInt64FindFactors(Num, F);
+    Result := Num;
+    for I := 0 to F.Count - 1 do
+      Result := UInt64Div(Result, F[I]);
+    for I := 0 to F.Count - 1 do
+      Result := Result * (F[I] - 1);
+  finally
+    F.Free;
+  end;
 end;
 
 end.

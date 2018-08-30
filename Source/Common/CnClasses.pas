@@ -297,6 +297,7 @@ type
     FList: PCnUInt32Array;
     FCount: Integer;
     FCapacity: Integer;
+    FIgnoreDuplicated: Boolean;
   protected
     function Get(Index: Integer): Cardinal;
     procedure Grow; virtual;
@@ -324,6 +325,7 @@ type
     property Count: Integer read FCount write SetCount;
     property Items[Index: Integer]: Cardinal read Get write Put; default;
     property List: PCnUInt32Array read FList;
+    property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
   end;
 
 //==============================================================================
@@ -343,6 +345,7 @@ type
     FList: PCnUInt64Array;
     FCount: Integer;
     FCapacity: Integer;
+    FIgnoreDuplicated: Boolean;
   protected
     function Get(Index: Integer): TUInt64;
     procedure Grow; virtual;
@@ -370,6 +373,7 @@ type
     property Count: Integer read FCount write SetCount;
     property Items[Index: Integer]: TUInt64 read Get write Put; default;
     property List: PCnUInt64Array read FList;
+    property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
   end;
 
 procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties:
@@ -813,6 +817,12 @@ end;
 
 function TCnUInt32List.Add(Item: Cardinal): Integer;
 begin
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
   Result := FCount;
   if Result = FCapacity then
     Grow;
@@ -973,6 +983,9 @@ var
 begin
   if (Index < 0) or (Index >= FCount) then
     Error(@SListIndexError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+    Exit;
+
   Temp := FList^[Index];
   FList^[Index] := Item;
 
@@ -1018,6 +1031,12 @@ end;
 
 function TCnUInt64List.Add(Item: TUInt64): Integer;
 begin
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
   Result := FCount;
   if Result = FCapacity then
     Grow;
@@ -1178,6 +1197,9 @@ var
 begin
   if (Index < 0) or (Index >= FCount) then
     Error(@SListIndexError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+    Exit;
+
   Temp := FList^[Index];
   FList^[Index] := Item;
 
