@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnNativeDecl;
+  SysUtils, Classes, Windows, CnClasses, CnNativeDecl;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -687,11 +687,23 @@ function CnGenerateUInt64Prime: NativeUInt;
 
 {$ENDIF}
 
+function CnGreatestCommonDivisor32(A, B: Cardinal): Cardinal;
+{* 求两个 32 位无符号数的最大公约数}
+
+function CnGreatestCommonDivisor64(A, B: TUInt64): TUInt64;
+{* 求两个 64 位无符号数的最大公约数}
+
 procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out Root: Cardinal);
 {* 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt32}
 
 procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out Root: TUInt64);
 {* 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt64}
+
+procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
+{* 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
+
+procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
+{* 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
 
 implementation
 
@@ -1138,6 +1150,132 @@ begin
     M1 := MontgomeryPowerMod(Root, 2, Q);
     M2 := MontgomeryPowerMod(Root, Prime, Q);
   until (M1 <> 1) and (M2 <> 1);
+end;
+
+// 求两个 32 位无符号数的最大公约数
+function CnGreatestCommonDivisor32(A, B: Cardinal): Cardinal;
+begin
+  if B = 0 then
+    Result := A
+  else
+    Result := CnGreatestCommonDivisor32(B, A mod B);
+end;
+
+// 求两个 64 位无符号数的最大公约数
+function CnGreatestCommonDivisor64(A, B: TUInt64): TUInt64;
+begin
+  if B = 0 then
+    Result := A
+  else
+    Result := CnGreatestCommonDivisor64(B, UInt64Mod(A, B));
+end;
+
+function PollardRho32(X: Cardinal; C: Cardinal): Cardinal;
+var
+  I, K, X0, Y, D: Cardinal;
+begin
+  I := 1;
+  K := 2;
+  X0 := Trunc(Random * (X - 1)) + 1;
+  Y := X0;
+
+  while True do
+  begin
+    Inc(I);
+    X0 := (MultipleMod(X0, X0, X) + C) mod X;
+    D := CnGreatestCommonDivisor32(Y - X0, X);
+
+    if (D <> 1) and (D <> X) then
+    begin
+      Result := D;
+      Exit;
+    end;
+
+    if Y = X0 then
+    begin
+      Result := X;
+      Exit;
+    end;
+
+    if I = K then
+    begin
+      Y := X0;
+      K := K + K;
+    end;
+  end;
+end;
+
+function PollardRho64(X: TUInt64; C: TUInt64): TUInt64;
+var
+  I, K, X0, Y, D: TUInt64;
+begin
+  I := 1;
+  K := 2;
+  X0 := RandomUInt64LessThan(X);
+  Y := X0;
+
+  while True do
+  begin
+    Inc(I);
+    X0 := (MultipleMod(X0, X0, X) + C) mod X;
+    D := CnGreatestCommonDivisor64(Y - X0, X);
+
+    if (D <> 1) and (D <> X) then
+    begin
+      Result := D;
+      Exit;
+    end;
+
+    if Y = X0 then
+    begin
+      Result := X;
+      Exit;
+    end;
+
+    if I = K then
+    begin
+      Y := X0;
+      K := K + K;
+    end;
+  end;
+end;
+
+// 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
+procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
+var
+  P: Cardinal;
+begin
+  if CnUInt32IsPrime(Num) then
+  begin
+    Factors.Add(Num);
+    Exit;
+  end;
+
+  P := Num;
+  while P >= Num do
+    P := PollardRho32(P, Trunc(Random * (Num - 1)) + 1);  // rand()%(n-1)+1
+
+  CnUInt32FindFactors(P, Factors);
+  CnUInt32FindFactors(Num div P, Factors);
+end;
+
+// 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
+procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
+var
+  P: TUInt64;
+begin
+  if CnInt64IsPrime(Num) then
+  begin
+    Factors.Add(Num);
+    Exit;
+  end;
+
+  P := Num;
+  while UInt64Compare(P, Num) >= 0 do
+    P := PollardRho64(P, RandomUInt64LessThan(Num - 1) + 1);  // rand()%(n-1)+1
+
+  CnInt64FindFactors(P, Factors);
+  CnInt64FindFactors(UInt64Div(Num, P), Factors);
 end;
 
 end.
