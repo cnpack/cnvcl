@@ -698,11 +698,23 @@ function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
 function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
 {* 求两个 64 位无符号数的最大公约数}
 
-procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out Root: Cardinal);
-{* 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt32}
+procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt32}
 
-procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out Root: TUInt64);
-{* 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt64}
+procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out MaxRoot: TUInt64);
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt64}
+
+procedure CnGenerateUInt32DiffieHellmanPrimeRoots(out Prime: Cardinal; OutRoots: TCnUInt32List);
+{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，范围为 UInt32，耗时极长}
+
+procedure CnGenerateInt64DiffieHellmanPrimeRoots(out Prime: TUInt64; OutRoots: TCnUInt64List);
+{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，范围为 UInt64，耗时极长}
+
+function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
+{* 检验 Root 是否为 Num 的原根，范围为 UInt32}
+
+function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
+{* 检验 Root 是否为 Num 的原根，范围为 UInt64}
 
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 {* 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
@@ -1121,46 +1133,197 @@ end;
 
 {$ENDIF}
 
-// 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt64
-procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out Root: TUInt64);
+// 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+function CheckPrimitiveRoot32(R, Prime: Cardinal; Factors: TCnUInt32List): Boolean;
 var
-  Q, M1, M2: TUInt64;
+  I: Integer;
 begin
-  Q := 2;
-  repeat
-    Prime := CnGenerateInt64Prime(False);
-    if UInt64Compare(Prime, MAX_SIGNED_INT64_IN_TUINT64) > 0 then
-      Continue;
-    Q := Prime + Prime + 1;
-  until CnInt64IsPrime(Q);
-
-  repeat
-    Randomize;
-    Root := Trunc(Random * (Q - 1) - 2) + 2;
-    M1 := MontgomeryPowerMod(Root, 2, Q);
-    M2 := MontgomeryPowerMod(Root, Prime, Q);
-  until (M1 <> 1) and (M2 <> 1);
+  Result := False;
+  for I := 0 to Factors.Count - 1 do
+  begin
+    if MontgomeryPowerMod(R, (Prime - 1) div Factors[I], Prime) = 1 then
+      Exit;
+  end;
+  Result := True;
 end;
 
-// 生成 Diffie-Hellman 算法所需的素数与原根，范围为 UInt32
-procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out Root: Cardinal);
+// 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+function CheckPrimitiveRoot64(R, Prime: TUInt64; Factors: TCnUInt64List): Boolean;
 var
-  Q, M1, M2: Cardinal;
+  I: Integer;
 begin
-  Q := 0;
-  repeat
-    Prime := CnGenerateUInt32Prime(False);
-    if Prime > Cardinal(High(Integer)) then
-      Continue;
-    Q := Prime + Prime + 1;
-  until CnUInt32IsPrime(Q);
+  Result := False;
+  for I := 0 to Factors.Count - 1 do
+  begin
+    if MontgomeryPowerMod(R, UInt64Div((Prime - 1), Factors[I]), Prime) = 1 then
+      Exit;
+  end;
+  Result := True;
+end;
 
-  repeat
-    Randomize;
-    Root := Trunc(Random * (Q - 1) - 2) + 2;
-    M1 := MontgomeryPowerMod(Root, 2, Q);
-    M2 := MontgomeryPowerMod(Root, Prime, Q);
-  until (M1 <> 1) and (M2 <> 1);
+// 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt32
+procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
+var
+  I: Cardinal;
+  Factors: TCnUInt32List;
+begin
+  Prime := CnGenerateUInt32Prime(True);
+  Factors := TCnUInt32List.Create;
+  Factors.IgnoreDuplicated := True;
+  MaxRoot := 0;
+
+  try
+    CnUInt32FindFactors(Prime - 1, Factors);
+    for I := Prime - 1 downto 2 do
+    begin
+      if CheckPrimitiveRoot32(I, Prime, Factors) then
+      begin
+        MaxRoot := I;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt64
+procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out MaxRoot: TUInt64);
+var
+  I: TUInt64;
+  Factors: TCnUInt64List;
+begin
+  Prime := CnGenerateInt64Prime(True);
+  Factors := TCnUInt64List.Create;
+  Factors.IgnoreDuplicated := True;
+  MaxRoot := 0;
+
+  try
+    CnInt64FindFactors(Prime - 1, Factors);
+    I := Prime - 1;
+    while UInt64Compare(I, 2) >= 0 do
+    begin
+      if CheckPrimitiveRoot64(I, Prime, Factors) then
+      begin
+        MaxRoot := I;
+        Exit;
+      end;
+      Dec(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与最小原根，范围为 UInt32，耗时极长
+procedure CnGenerateUInt32DiffieHellmanPrimeRoots(out Prime: Cardinal;
+  OutRoots: TCnUInt32List);
+var
+  I: Cardinal;
+  Factors: TCnUInt32List;
+begin
+  if OutRoots = nil then
+    Exit;
+
+  Prime := CnGenerateUInt32Prime(True);
+  Factors := TCnUInt32List.Create;
+  Factors.IgnoreDuplicated := True;
+
+  try
+    CnUInt32FindFactors(Prime - 1, Factors);
+    OutRoots.Clear;
+    for I := 2 to Prime - 1 do
+    begin
+      if CheckPrimitiveRoot32(I, Prime, Factors) then
+        OutRoots.Add(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与最小原根，范围为 UInt64，耗时极长
+procedure CnGenerateInt64DiffieHellmanPrimeRoots(out Prime: TUInt64;
+  OutRoots: TCnUInt64List);
+var
+  I: TUInt64;
+  Factors: TCnUInt64List;
+begin
+  if OutRoots = nil then
+    Exit;
+
+  Prime := CnGenerateInt64Prime(True);
+  Factors := TCnUInt64List.Create;
+  Factors.IgnoreDuplicated := True;
+
+  try
+    CnInt64FindFactors(Prime - 1, Factors);
+    OutRoots.Clear;
+
+    I := 2;
+    while UInt64Compare(I, Prime) < 0 do
+    begin
+      if CheckPrimitiveRoot64(I, Prime, Factors) then
+        OutRoots.Add(I);
+      Inc(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 检验 Root 是否为 Num 的原根，范围为 UInt32
+function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
+var
+  I: Cardinal;
+  Factors: TCnUInt32List;
+begin
+  Result := True;
+
+  Factors := TCnUInt32List.Create;
+  Factors.IgnoreDuplicated := True;
+  try
+    CnUInt32FindFactors(Num - 1, Factors);
+
+    for I := 0 to Factors.Count - 1 do
+    begin
+      if MontgomeryPowerMod(Root, (Num - 1) div Factors[I], Num) = 1 then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 检验 Root 是否为 Num 的原根，范围为 UInt64
+function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
+var
+  I: TUInt64;
+  Factors: TCnUInt64List;
+begin
+  Result := True;
+
+  Factors := TCnUInt64List.Create;
+  Factors.IgnoreDuplicated := True;
+  try
+    CnInt64FindFactors(Num - 1, Factors);
+
+    I := 0;
+    while UInt64Compare(I, Factors.Count) < 0 do
+    begin
+      if MontgomeryPowerMod(Root, UInt64Div((Num - 1), Factors[I]), Num) = 1 then
+      begin
+        Result := False;
+        Exit;
+      end;
+      Inc(I);
+    end;
+  finally
+    Factors.Free;
+  end;
 end;
 
 // 求两个 32 位无符号数的最大公约数

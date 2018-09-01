@@ -1,6 +1,6 @@
 object FormPrime: TFormPrime
   Left = 237
-  Top = 121
+  Top = 137
   BorderStyle = bsDialog
   Caption = 'Prime Number Test'
   ClientHeight = 464
@@ -540,6 +540,33 @@ object FormPrime: TFormPrime
         Width = 137
         Height = 21
         TabOrder = 13
+      end
+      object btnDHIsRoot32: TButton
+        Left = 56
+        Top = 48
+        Width = 137
+        Height = 21
+        Caption = 'Is Primitive Root  32'
+        TabOrder = 14
+        OnClick = btnDHIsRoot32Click
+      end
+      object btnDHIsPrimitiveRoot64: TButton
+        Left = 216
+        Top = 48
+        Width = 137
+        Height = 21
+        Caption = 'Is Primitive Root  64'
+        TabOrder = 15
+        OnClick = btnDHIsPrimitiveRoot64Click
+      end
+      object btnDHRand: TButton
+        Left = 24
+        Top = 104
+        Width = 41
+        Height = 21
+        Caption = 'Rand'
+        TabOrder = 16
+        OnClick = btnDHRandClick
       end
     end
   end
