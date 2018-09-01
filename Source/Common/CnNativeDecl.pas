@@ -104,6 +104,12 @@ function StrToUInt64(const S: string): TUInt64;
 
 function UInt64Compare(A, B: TUInt64): Integer;
 
+function UInt32IsNegative(N: Cardinal): Boolean;
+{* 该 Cardinal 被当成 Integer 时是否小于 0}
+
+function UInt64IsNegative(N: TUInt64): Boolean;
+{* 该 UInt64 被当成 Int64 时是否小于 0}
+
 implementation
 
 {
@@ -268,6 +274,20 @@ begin
     else
       Result := 0;
   end;
+{$ENDIF}
+end;
+
+function UInt32IsNegative(N: Cardinal): Boolean;
+begin
+  Result := (N and (1 shl 31)) <> 0;
+end;
+
+function UInt64IsNegative(N: TUInt64): Boolean;
+begin
+{$IFDEF SUPPORT_UINT64}
+  Result := (N and (1 shl 63)) <> 0;
+{$ELSE}
+  Result := N < 0;
 {$ENDIF}
 end;
 

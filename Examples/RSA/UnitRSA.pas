@@ -4,8 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, ImgList,
-  Buttons;
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber,
+  ImgList, Buttons;
 
 type
   TFormRSA = class(TForm)
@@ -141,6 +141,9 @@ type
     btnPubVerify: TButton;
     lblSigMethod: TLabel;
     cbbSig: TComboBox;
+    btnMInt32MI: TButton;
+    btnUInt32MI: TButton;
+    btnInt64MI: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -173,6 +176,9 @@ type
     procedure btnSignPrivateClick(Sender: TObject);
     procedure btnPrivVerifyClick(Sender: TObject);
     procedure btnPubVerifyClick(Sender: TObject);
+    procedure btnMInt32MIClick(Sender: TObject);
+    procedure btnUInt32MIClick(Sender: TObject);
+    procedure btnInt64MIClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -296,7 +302,7 @@ begin
   B := StrToInt64(edtB.Text);
   X := 0;
   Y := 0;
-  Int64ExtendedEuclideanGcd(A, B, X, Y);
+  CnInt64ExtendedEuclideanGcd(A, B, X, Y);
   edtX.Text := IntToStr(X);
   edtY.Text := IntToStr(Y);
 
@@ -488,7 +494,7 @@ begin
   B := StrToInt64(edtMB.Text);
   X := 0;
   Y := 0;
-  Int64ExtendedEuclideanGcd2(A, B, X, Y);
+  CnInt64ExtendedEuclideanGcd2(A, B, X, Y);
   if X < 0 then
   begin
     lblMX0.Caption := 'X < 0. Add B to X.';
@@ -660,6 +666,51 @@ begin
     ShowMessage('RSA Public Key Verify Success.')
   else
     ShowMessage('RSA Public Key Verify Fail.');
+end;
+
+procedure TFormRSA.btnMInt32MIClick(Sender: TObject);
+var
+  A, B, X, Y: Cardinal;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := 0;
+  Y := 0;
+  CnUInt32ExtendedEuclideanGcd2(A, B, X, Y);
+  if UInt32IsNegative(X) then
+  begin
+    lblMX0.Caption := 'X < 0. Add B to X.';
+    edtMXP.Text := IntToStr(X + B);
+  end
+  else
+  begin
+    lblMX0.Caption := 'X > 0. OK.';
+    edtMXP.Text := IntToStr(X);
+  end;
+  edtPY.Text := IntToStr(-Y);
+
+  edtMX.Text := IntToStr(X);
+  edtMY.Text := IntToStr(Y);
+end;
+
+procedure TFormRSA.btnUInt32MIClick(Sender: TObject);
+var
+  A, B, X: Cardinal;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := CnUInt32ModularInverse(A, B);
+  ShowMessage(IntToStr(X));
+end;
+
+procedure TFormRSA.btnInt64MIClick(Sender: TObject);
+var
+  A, B, X: TUInt64;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := CnInt64ModularInverse(A, B);
+  ShowMessage(UInt64ToStr(X));
 end;
 
 end.

@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 193
-  Top = 9
+  Left = 90
+  Top = 88
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 572
@@ -1063,9 +1063,9 @@ object FormRSA: TFormRSA
           Text = '26'
         end
         object btnMInt64MI: TButton
-          Left = 56
+          Left = 304
           Top = 112
-          Width = 449
+          Width = 209
           Height = 21
           Caption = 'Int64 Extended Euclidean Gcd to Calc  X'
           TabOrder = 2
@@ -1102,6 +1102,33 @@ object FormRSA: TFormRSA
           Height = 21
           ReadOnly = True
           TabOrder = 6
+        end
+        object btnMInt32MI: TButton
+          Left = 56
+          Top = 112
+          Width = 209
+          Height = 21
+          Caption = 'UInt32 Extended Euclidean Gcd to Calc  X'
+          TabOrder = 7
+          OnClick = btnMInt32MIClick
+        end
+        object btnUInt32MI: TButton
+          Left = 536
+          Top = 68
+          Width = 75
+          Height = 21
+          Caption = 'UInt32 MI'
+          TabOrder = 8
+          OnClick = btnUInt32MIClick
+        end
+        object btnInt64MI: TButton
+          Left = 632
+          Top = 68
+          Width = 75
+          Height = 21
+          Caption = 'Int64 MI'
+          TabOrder = 9
+          OnClick = btnInt64MIClick
         end
       end
     end

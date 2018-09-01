@@ -728,6 +728,28 @@ function CnEulerUInt32(Num: Cardinal): Cardinal;
 function CnEulerInt64(Num: TUInt64): TUInt64;
 {* 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
 
+function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32，X、M 必须互质}
+
+function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、M 必须互质}
+
+function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: Cardinal);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
 implementation
 
 // 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
@@ -1491,6 +1513,108 @@ begin
       Result := Result * (F[I] - 1);
   finally
     F.Free;
+  end;
+end;
+
+// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32
+function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
+var
+  N: Cardinal;
+begin
+  Result := 0;
+  if CnUInt32GreatestCommonDivisor(X, Modulus) <> 1 then
+    Exit;
+
+  // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
+  CnUInt32ExtendedEuclideanGcd(X, Modulus, Result, N);
+  if UInt32IsNegative(Result) then
+    Result := Result + Modulus;
+end;
+
+// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64
+function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+var
+  N: TUInt64;
+begin
+  Result := 0;
+  if CnInt64GreatestCommonDivisor(X, Modulus) <> 1 then
+    Exit;
+
+  // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
+  CnInt64ExtendedEuclideanGcd(X, Modulus, Result, N);
+  if UInt64IsNegative(Result) then
+    Result := Result + Modulus;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
+var
+  R, T: Cardinal;
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+    Result := A;
+  end
+  else
+  begin
+    R := CnUInt32ExtendedEuclideanGcd(B, A mod B, X, Y);
+    T := X;
+    X := Y;
+    Y := T - (A div B) * Y;
+    Result := R;
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: Cardinal);
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+  end
+  else
+  begin
+    CnUInt32ExtendedEuclideanGcd2(B, A mod B, Y, X);
+    Y := Y - X * (A div B);
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
+var
+  R, T: TUInt64;
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+    Result := A;
+  end
+  else
+  begin
+    R := CnInt64ExtendedEuclideanGcd(B, UInt64Mod(A, B), X, Y);
+    T := X;
+    X := Y;
+    Y := T - UInt64Div(A, B) * Y;
+    Result := R;
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+  end
+  else
+  begin
+    CnInt64ExtendedEuclideanGcd2(B, UInt64Mod(A, B), Y, X);
+    Y := Y - X * UInt64Div(A, B);
   end;
 end;
 
