@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 90
-  Top = 88
+  Left = 88
+  Top = 113
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 572
@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 817
     Height = 534
-    ActivePage = tsInt64RSA
+    ActivePage = tsDiffieHellman
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsInt64RSA: TTabSheet
@@ -1129,6 +1129,42 @@ object FormRSA: TFormRSA
           Caption = 'Int64 MI'
           TabOrder = 9
           OnClick = btnInt64MIClick
+        end
+      end
+    end
+    object tsDiffieHellman: TTabSheet
+      Caption = 'Diffie Hellman'
+      ImageIndex = 4
+      object grpFactors: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 761
+        Height = 209
+        Caption = 'Find Factors'
+        TabOrder = 0
+        object lblFactorNumber: TLabel
+          Left = 16
+          Top = 24
+          Width = 40
+          Height = 13
+          Caption = 'Number:'
+        end
+        object edtDHNumber: TEdit
+          Left = 72
+          Top = 20
+          Width = 545
+          Height = 21
+          TabOrder = 0
+          Text = '291851311113628095805283489717894794296'
+        end
+        object btnFindFactors: TButton
+          Left = 632
+          Top = 20
+          Width = 113
+          Height = 21
+          Caption = 'Find Factors'
+          TabOrder = 1
+          OnClick = btnFindFactorsClick
         end
       end
     end

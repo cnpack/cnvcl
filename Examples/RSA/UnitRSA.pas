@@ -144,6 +144,11 @@ type
     btnMInt32MI: TButton;
     btnUInt32MI: TButton;
     btnInt64MI: TButton;
+    tsDiffieHellman: TTabSheet;
+    grpFactors: TGroupBox;
+    lblFactorNumber: TLabel;
+    edtDHNumber: TEdit;
+    btnFindFactors: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -179,6 +184,7 @@ type
     procedure btnMInt32MIClick(Sender: TObject);
     procedure btnUInt32MIClick(Sender: TObject);
     procedure btnInt64MIClick(Sender: TObject);
+    procedure btnFindFactorsClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -711,6 +717,19 @@ begin
   B := StrToInt64(edtMB.Text);
   X := CnInt64ModularInverse(A, B);
   ShowMessage(UInt64ToStr(X));
+end;
+
+procedure TFormRSA.btnFindFactorsClick(Sender: TObject);
+var
+  Num: TCnBigNumber;
+  List: TCnBigNumberList;
+begin
+  Num := TCnBigNumber.FromDec(edtDHNumber.Text);
+  List := TCnBigNumberList.Create;
+  BigNumberFindFactors(Num, List);
+  ShowMessage(IntToStr(List.Count));
+  List.Free;
+  Num.Free;
 end;
 
 end.
