@@ -315,6 +315,8 @@ type
     procedure btnXTeaEncClick(Sender: TObject);
     procedure btnTeaDecClick(Sender: TObject);
     procedure btnXTeaDecClick(Sender: TObject);
+    procedure btnXXTeaEncClick(Sender: TObject);
+    procedure btnXXTeaDecClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -1301,6 +1303,24 @@ begin
   CnXTeaDecrypt(TeaKey, TeaEnc);
   edtXTeaEnc1.Text := IntToHex(TeaEnc[0], 2);
   edtXTeaEnc2.Text := IntToHex(TeaEnc[1], 2);
+end;
+
+procedure TFormCrypt.btnXXTeaEncClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  CnXXTeaEncrypt(TeaKey, @TeaData[0], 2);
+  edtXXTeaEnc1.Text := IntToHex(TeaData[0], 2);
+  edtXXTeaEnc2.Text := IntToHex(TeaData[1], 2);
+end;
+
+procedure TFormCrypt.btnXXTeaDecClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  TeaEnc[0] := HexToInt(edtXXTeaEnc1.Text);
+  TeaEnc[1] := HexToInt(edtXXTeaEnc2.Text);
+  CnXXTeaDecrypt(TeaKey, @TeaEnc[0], 2);
+  edtXXTeaEnc1.Text := IntToHex(TeaEnc[0], 2);
+  edtXXTeaEnc2.Text := IntToHex(TeaEnc[1], 2);
 end;
 
 end.

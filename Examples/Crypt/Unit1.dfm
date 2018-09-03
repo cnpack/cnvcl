@@ -1,9 +1,9 @@
 object FormCrypt: TFormCrypt
-  Left = 220
-  Top = 116
+  Left = 198
+  Top = 0
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
-  ClientHeight = 433
+  ClientHeight = 416
   ClientWidth = 539
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -1826,6 +1826,7 @@ object FormCrypt: TFormCrypt
           Height = 25
           Caption = 'XXTea Encrypt'
           TabOrder = 14
+          OnClick = btnXXTeaEncClick
         end
         object edtXXTeaEnc1: TEdit
           Left = 122
@@ -1848,6 +1849,7 @@ object FormCrypt: TFormCrypt
           Height = 25
           Caption = 'XXTea Decrypt'
           TabOrder = 17
+          OnClick = btnXXTeaDecClick
         end
       end
     end

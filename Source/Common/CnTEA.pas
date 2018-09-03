@@ -30,7 +30,7 @@ unit CnTEA;
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 单元标识：$Id$
 * 修改记录：2018.09.03 V1.0
-*               创建单元，实现 TEA/XTEA，但未实现 XXTEA
+*               创建单元
 ================================================================================
 |</PRE>}
 
@@ -51,24 +51,30 @@ type
 
   TCnTeaData = array[0..1] of LongWord; // TEA 算法的数据格式，二个 32Bit 数
 
-  TLongWordArray = array[0..16383] of LongWord;
-  PLongWordArray = ^TLongWordArray;
+  TCnXXTeaData = array[0..16383] of LongWord;
+  PCnXXTeaData = ^TCnXXTeaData;
 
 procedure CnTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* TEA 加密，128 Bits 数据加密 64 Bits 明文为密文}
+{* TEA 加密，128 Bits 密钥加密 64 Bits 明文为密文}
 
 procedure CnTeaDecrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* TEA 解密，128 Bits 数据解密 64 Bits 密文为明文}
+{* TEA 解密，128 Bits 密钥解密 64 Bits 密文为明文}
 
 procedure CnXTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* XTEA 加密，128 Bits 数据加密 64 Bits 明文为密文}
+{* XTEA 加密，128 Bits 密钥加密 64 Bits 明文为密文}
 
 procedure CnXTeaDecrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* XTEA 解密，128 Bits 数据解密 64 Bits 密文为明文}
+{* XTEA 解密，128 Bits 密钥解密 64 Bits 密文为明文}
+
+procedure CnXXTeaEncrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
+{* XXTEA 加密，128 Bits 密钥加密 4 字节整数倍长度的明文内容为密文}
+
+procedure CnXXTeaDecrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
+{* XXTEA 解密，128 Bits 密钥解密 4 字节整数倍长度的密文内容为明文}
 
 implementation
 
@@ -159,33 +165,100 @@ begin
   end;
 end;
 
-function MX(Sum, Y, Z, P, E: LongWord; const K: PLongWordArray): LongWord;
+function MX(Z, Y, S, P, E: LongWord; var Key: TCnTeaKey): LongWord;
 begin
-  Result := (((Z shr 5) xor (Y shl 2)) + ((Y shr 3) xor (Z shl 4))) xor ((Sum xor Y) + (K^[P and 3 xor E] xor Z));
+  Result := (((Z shr 5) xor (Y shl 2)) + ((Y shr 3) xor (Z shl 4))) xor
+    ((S xor Y) + (Key[(P and 3) xor E] xor Z) );
 end;
 
-// TEA 加密，128 Bits 数据加密 64 Bits 明文为密文
+// TEA 加密，128 Bits 密钥加密 64 Bits 明文为密文
 procedure CnTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData; RoundCount: Integer = CN_TEA_ROUND_COUNT);
 begin
   TeaEncrypt(Key, Data[0], Data[1], RoundCount);
 end;
 
-// TEA 解密，128 Bits 数据解密 64 Bits 密文为明文
+// TEA 解密，128 Bits 密钥解密 64 Bits 密文为明文
 procedure CnTeaDecrypt(Key: TCnTeaKey; var Data: TCnTeaData; RoundCount: Integer = CN_TEA_ROUND_COUNT);
 begin
   TeaDecrypt(Key, Data[0], Data[1], RoundCount);
 end;
 
-// XTEA 加密，128 Bits 数据加密 64 Bits 明文为密文
+// XTEA 加密，128 Bits 密钥加密 64 Bits 明文为密文
 procedure CnXTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData; RoundCount: Integer = CN_TEA_ROUND_COUNT);
 begin
   XTeaEncrypt(Key, Data[0], Data[1], RoundCount);
 end;
 
-// XTEA 解密，128 Bits 数据解密 64 Bits 密文为明文
+// XTEA 解密，128 Bits 密钥解密 64 Bits 密文为明文
 procedure CnXTeaDecrypt(Key: TCnTeaKey; var Data: TCnTeaData; RoundCount: Integer = CN_TEA_ROUND_COUNT);
 begin
   XTeaDecrypt(Key, Data[0], Data[1], RoundCount);
+end;
+
+// XXTEA 加密，128 Bits 密钥加密 4 字节整数倍长度的明文内容为密文
+procedure CnXXTeaEncrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
+var
+  Z, Y, X, Sum, E, P: LongWord;
+  Q: Integer;
+begin
+  if DataLongWordLength <= 0 then
+    raise ECnTeaException.Create('Error Tea Data.');
+
+  Q := 6 + 52 div DataLongWordLength;
+  Z := Data^[DataLongWordLength - 1];
+  Sum := 0;
+
+  repeat
+    Sum := Sum + CN_TEA_DELTA;
+    E := (Sum shr 2) and 3;
+    for P := 0 to DataLongWordLength - 2 do
+    begin
+      Y := Data^[P + 1];
+      X := Data^[P];
+      X := X + MX(Z, Y, Sum, P, E, Key);
+      Data^[P] := X;
+      Z := X;
+    end;
+    Y := Data^[0];
+    X := Data^[DataLongWordLength - 1];
+    X := X + MX(Z, Y, Sum, DataLongWordLength - 1, E, Key);
+    Data^[DataLongWordLength - 1] := X;
+    Z := X;
+    Dec(Q);
+  until Q = 0;
+end;
+
+// XXTEA 解密，128 Bits 密钥解密 4 字节整数倍长度的密文内容为明文
+procedure CnXXTeaDecrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
+var
+  Z, Y, X, Sum, E, P: LongWord;
+  Q: Integer;
+begin
+  if DataLongWordLength <= 0 then
+    raise ECnTeaException.Create('Error Tea Data.');
+
+  Q := 6 + 52 div DataLongWordLength;
+  Y := Data^[0];
+
+  Sum := LongWord(Q) * CN_TEA_DELTA;
+  repeat
+    E := (Sum shr 2) and 3;
+    for P := DataLongWordLength - 1 downto 1 do
+    begin
+      Z := Data^[P - 1];
+      X := Data^[P];
+      X := X - MX(Z, Y, Sum, P, E, Key);
+      Data^[P] := X;
+      Y := X;
+    end;
+    Z := Data^[DataLongWordLength - 1];
+    X := Data^[0];
+    X := X - MX(Z, Y, Sum, 0, E, Key);
+    Data^[0] := X;
+    Y := X;
+    Sum := Sum - CN_TEA_DELTA;
+    Dec(Q);
+  until Q = 0;
 end;
 
 end.
