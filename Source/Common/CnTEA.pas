@@ -52,7 +52,8 @@ type
   TCnTeaData = array[0..1] of LongWord; // TEA 算法的数据格式，二个 32Bit 数
 
   TCnXXTeaData = array[0..16383] of LongWord;
-  PCnXXTeaData = ^TCnXXTeaData;
+
+  PCnXXTeaData = ^TCnXXTeaData;         // XXTEA 算法支持更长的 LongWord 数组
 
 procedure CnTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
@@ -89,7 +90,7 @@ var
   I: Integer;
 begin
   if RoundCount <= 0 then
-    raise ECnTeaException.Create('Error RountCount.');
+    raise ECnTeaException.Create('Error RoundCount.');
 
   D := CN_TEA_DELTA;
   S := 0;
