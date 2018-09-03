@@ -1439,7 +1439,7 @@ end;
 // 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 var
-  P: Cardinal;
+  P, C: Cardinal;
 begin
   if CnUInt32IsPrime(Num) then
   begin
@@ -1449,7 +1449,10 @@ begin
 
   P := Num;
   while P >= Num do
-    P := PollardRho32(P, Trunc(Random * (Num - 1)) + 1);  // rand()%(n-1)+1
+  begin
+    C := Trunc(Random * (Num - 1)) + 1; // rand()%(n-1)+1
+    P := PollardRho32(P, C);
+  end;
 
   CnUInt32FindFactors(P, Factors);
   CnUInt32FindFactors(Num div P, Factors);
@@ -1458,7 +1461,7 @@ end;
 // 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 var
-  P: TUInt64;
+  P, C: TUInt64;
 begin
   if CnInt64IsPrime(Num) then
   begin
@@ -1468,7 +1471,10 @@ begin
 
   P := Num;
   while UInt64Compare(P, Num) >= 0 do
-    P := PollardRho64(P, RandomUInt64LessThan(Num - 1) + 1);  // rand()%(n-1)+1
+  begin
+    C := RandomUInt64LessThan(Num - 1) + 1;
+    P := PollardRho64(P, C);  // rand()%(n-1)+1
+  end;
 
   CnInt64FindFactors(P, Factors);
   CnInt64FindFactors(UInt64Div(Num, P), Factors);

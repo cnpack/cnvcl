@@ -200,6 +200,24 @@ type
   end;
   PCnBigNumber = ^TCnBigNumber;
 
+  TCnBigNumberList = class(TObjectList)
+  {* 容纳大数的对象列表，同时拥有大数对象们}
+  private
+
+  protected
+    function GetItem(Index: Integer): TCnBigNumber;
+    procedure SetItem(Index: Integer; ABigNumber: TCnBigNumber);
+  public
+    constructor Create(AOwnsObjects: Boolean); overload;
+
+    function Add(ABigNumber: TCnBigNumber): Integer;
+    {* 添加大数对象，注意添加后无需手动释放}
+    function Remove(ABigNumber: TCnBigNumber): Integer;
+    function IndexOfValue(ABigNumber: TCnBigNumber): Integer;
+    procedure Insert(Index: Integer; ABigNumber: TCnBigNumber);
+    property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
+  end;
+
 function BigNumberNew: TCnBigNumber;
 {* 创建一个动态分配的大数对象，等同于 TCnBigNumber.Create }
 
@@ -431,6 +449,9 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
    A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
    X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
    （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
+
+procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
+{* 找出大数的质因数列表}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -3746,6 +3767,109 @@ begin
   end;
 end;
 
+procedure BigNumberPollardRho(X: TCnBigNumber; C: TCnBigNumber; Res: TCnBigNumber);
+var
+  I, K, X0, Y0, Y, D, X1, R: TCnBigNumber;
+begin
+  I := ObtainBigNumberFromPool;
+  K := ObtainBigNumberFromPool;
+  X0 := ObtainBigNumberFromPool;
+  X1 := ObtainBigNumberFromPool;
+  Y0 := ObtainBigNumberFromPool;
+  Y := ObtainBigNumberFromPool;
+  D := ObtainBigNumberFromPool;
+  R := ObtainBigNumberFromPool;
+
+  try
+    I.SetOne;
+    K.SetZero;
+    BigNumberAddWord(K, 2);
+    BigNumberCopy(X1, X);
+    BigNumberSubWord(X1, 1);
+    BigNumberRandRange(X0, X1);
+    BigNumberAddWord(X1, 1);
+    BigNumberCopy(Y, X0);
+
+    while True do
+    begin
+      BigNumberAddWord(I, 1);
+
+      BigNumberMulMod(R, X0, X0, X);
+      BigNumberAdd(R, R, C);
+      BigNumberMod(X0, R, X);
+
+      BigNumberSub(Y0, Y, X0);
+      BigNumberGcd(D, Y0, X);
+
+      if not D.IsOne and (BigNumberCompare(D, X) <> 0) then
+      begin
+        BigNumberCopy(Res, D);
+        Exit;
+      end;
+
+      if BigNumberCompare(Y, X0) = 0 then
+      begin
+        BigNumberCopy(Res, X);
+        Exit;
+      end;
+
+      if BigNumberCompare(I, K) = 0 then
+      begin
+        BigNumberCopy(Y, X0);
+        BigNumberMulWord(K, 2);
+      end;
+    end;
+  finally
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(I);
+    RecycleBigNumberToPool(K);
+    RecycleBigNumberToPool(X0);
+    RecycleBigNumberToPool(X1);
+    RecycleBigNumberToPool(Y0);
+    RecycleBigNumberToPool(Y);
+    RecycleBigNumberToPool(D);
+  end;
+end;
+
+// 找出大数的质因数列表
+procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
+var
+  P, R, S, D: TCnBigNumber;
+begin
+  if BigNumberIsProbablyPrime(Num) then
+  begin
+    Factors.Add(BigNumberDuplicate(Num));
+    Exit;
+  end;
+
+  P := ObtainBigNumberFromPool;
+  R := ObtainBigNumberFromPool;
+  S := ObtainBigNumberFromPool;
+  D := ObtainBigNumberFromPool;
+  try
+    P := BigNumberCopy(P, Num);
+
+    while BigNumberCompare(P, Num) >= 0 do
+    begin
+      BigNumberCopy(S, Num);
+      BigNumberSubWord(S, 1);
+      BigNumberRandRange(R, S);
+      BigNumberAddWord(R, 1);
+      BigNumberPollardRho(P, R, P);
+    end;
+
+    BigNumberFindFactors(P, Factors);
+    D := ObtainBigNumberFromPool;
+    BigNumberDiv(D, R, Num, P);
+    BigNumberFindFactors(D, Factors);
+  finally
+    RecycleBigNumberToPool(D);
+    RecycleBigNumberToPool(S);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(P);
+  end;
+end;
+
 // 打印大数内部信息
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 var
@@ -3994,6 +4118,51 @@ begin
     TObject(FLocalBigNumberPool[I]).Free;
   end;
   FreeAndNil(FLocalBigNumberPool);
+end;
+
+{ TCnBigNumberList }
+
+function TCnBigNumberList.Add(ABigNumber: TCnBigNumber): Integer;
+begin
+  Result := inherited Add(ABigNumber);
+end;
+
+constructor TCnBigNumberList.Create(AOwnsObjects: Boolean);
+begin
+  if not AOwnsObjects then
+    raise Exception.Create('MUST Owns Objects.');
+  inherited Create(True);
+end;
+
+function TCnBigNumberList.GetItem(Index: Integer): TCnBigNumber;
+begin
+  Result := TCnBigNumber(inherited GetItem(Index));
+end;
+
+function TCnBigNumberList.IndexOfValue(ABigNumber: TCnBigNumber): Integer;
+begin
+  Result := 0;
+  while (Result < Count) and (BigNumberCompare(Items[Result], ABigNumber) = 0) do
+    Inc(Result);
+  if Result = Count then
+    Result := -1;
+end;
+
+procedure TCnBigNumberList.Insert(Index: Integer;
+  ABigNumber: TCnBigNumber);
+begin
+  inherited Insert(Index, ABigNumber);
+end;
+
+function TCnBigNumberList.Remove(ABigNumber: TCnBigNumber): Integer;
+begin
+  Result := inherited Remove(ABigNumber);
+end;
+
+procedure TCnBigNumberList.SetItem(Index: Integer;
+  ABigNumber: TCnBigNumber);
+begin
+  inherited SetItem(Index, ABigNumber);
 end;
 
 initialization
