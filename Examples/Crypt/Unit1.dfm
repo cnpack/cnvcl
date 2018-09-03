@@ -1,10 +1,10 @@
 object FormCrypt: TFormCrypt
   Left = 220
-  Top = 115
+  Top = 116
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO'
   ClientHeight = 433
-  ClientWidth = 521
+  ClientWidth = 539
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -19,9 +19,9 @@ object FormCrypt: TFormCrypt
   object PageControl1: TPageControl
     Left = 24
     Top = 24
-    Width = 473
+    Width = 489
     Height = 385
-    ActivePage = tsBase64
+    ActivePage = tsTEA
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -206,7 +206,7 @@ object FormCrypt: TFormCrypt
       object GroupBox1: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Base64'
@@ -456,7 +456,7 @@ object FormCrypt: TFormCrypt
       object grpSha1: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA1'
@@ -544,7 +544,7 @@ object FormCrypt: TFormCrypt
       object grpSM3: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM3'
@@ -633,7 +633,7 @@ object FormCrypt: TFormCrypt
       object grpSM4: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM3'
@@ -740,7 +740,7 @@ object FormCrypt: TFormCrypt
       object grpAes: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'AES'
@@ -1132,7 +1132,7 @@ object FormCrypt: TFormCrypt
       object grpSHA512: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA512'
@@ -1221,7 +1221,7 @@ object FormCrypt: TFormCrypt
       object grpSHA3_224: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA3_224'
@@ -1486,7 +1486,7 @@ object FormCrypt: TFormCrypt
       object grpSHA3_512: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA3_512'
@@ -1575,7 +1575,7 @@ object FormCrypt: TFormCrypt
       object grpZuc: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 433
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'ZUC'
@@ -1652,6 +1652,202 @@ object FormCrypt: TFormCrypt
           Caption = 'ZUC EEA3 1'
           TabOrder = 1
           OnClick = btnZUCEEA31Click
+        end
+      end
+    end
+    object tsTEA: TTabSheet
+      Caption = 'TEA'
+      ImageIndex = 18
+      object grpTea: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 433
+        Height = 289
+        Caption = 'TEA'
+        TabOrder = 0
+        object lblTeaKey1: TLabel
+          Left = 24
+          Top = 24
+          Width = 28
+          Height = 13
+          Caption = 'Key1:'
+        end
+        object lblTeaKey2: TLabel
+          Left = 122
+          Top = 24
+          Width = 28
+          Height = 13
+          Caption = 'Key2:'
+        end
+        object lblTeaKey3: TLabel
+          Left = 220
+          Top = 24
+          Width = 28
+          Height = 13
+          Caption = 'Key3:'
+        end
+        object lblTeaKey4: TLabel
+          Left = 320
+          Top = 24
+          Width = 28
+          Height = 13
+          Caption = 'Key4:'
+        end
+        object lblTeaData: TLabel
+          Left = 24
+          Top = 92
+          Width = 86
+          Height = 13
+          Caption = 'Data (2 DWORD):'
+        end
+        object bvl1: TBevel
+          Left = 24
+          Top = 128
+          Width = 377
+          Height = 25
+          Shape = bsTopLine
+        end
+        object edtTeaKey1: TEdit
+          Left = 24
+          Top = 48
+          Width = 82
+          Height = 21
+          TabOrder = 0
+          Text = 'A0B1C2D3'
+        end
+        object edtTeaKey2: TEdit
+          Left = 122
+          Top = 48
+          Width = 82
+          Height = 21
+          TabOrder = 1
+          Text = 'E4F5A6B7'
+        end
+        object edtTeaKey3: TEdit
+          Left = 220
+          Top = 48
+          Width = 82
+          Height = 21
+          TabOrder = 2
+          Text = 'C8D9EAFB'
+        end
+        object edtTeaKey4: TEdit
+          Left = 320
+          Top = 48
+          Width = 82
+          Height = 21
+          TabOrder = 3
+          Text = 'ACBDCEDF'
+        end
+        object edtTeaData1: TEdit
+          Left = 122
+          Top = 88
+          Width = 82
+          Height = 21
+          TabOrder = 4
+          Text = '12345678'
+        end
+        object edtTeaData2: TEdit
+          Left = 220
+          Top = 88
+          Width = 82
+          Height = 21
+          TabOrder = 5
+          Text = '9ABCDEF0'
+        end
+        object btnTeaEnc: TButton
+          Left = 24
+          Top = 150
+          Width = 79
+          Height = 25
+          Caption = 'Tea Encrypt'
+          TabOrder = 6
+          OnClick = btnTeaEncClick
+        end
+        object edtTeaEnc1: TEdit
+          Left = 122
+          Top = 152
+          Width = 82
+          Height = 21
+          TabOrder = 7
+        end
+        object edtTeaEnc2: TEdit
+          Left = 220
+          Top = 152
+          Width = 82
+          Height = 21
+          TabOrder = 8
+        end
+        object btnTeaDec: TButton
+          Left = 320
+          Top = 150
+          Width = 79
+          Height = 25
+          Caption = 'Tea Decrypt'
+          TabOrder = 9
+          OnClick = btnTeaDecClick
+        end
+        object btnXTeaEnc: TButton
+          Left = 24
+          Top = 190
+          Width = 79
+          Height = 25
+          Caption = 'XTea Encrypt'
+          TabOrder = 10
+          OnClick = btnXTeaEncClick
+        end
+        object edtXTeaEnc1: TEdit
+          Left = 122
+          Top = 192
+          Width = 82
+          Height = 21
+          TabOrder = 11
+        end
+        object edtXTeaEnc2: TEdit
+          Left = 220
+          Top = 192
+          Width = 82
+          Height = 21
+          TabOrder = 12
+        end
+        object btnXTeaDec: TButton
+          Left = 320
+          Top = 190
+          Width = 79
+          Height = 25
+          Caption = 'XTea Decrypt'
+          TabOrder = 13
+          OnClick = btnXTeaDecClick
+        end
+        object btnXXTeaEnc: TButton
+          Left = 24
+          Top = 230
+          Width = 79
+          Height = 25
+          Caption = 'XXTea Encrypt'
+          TabOrder = 14
+        end
+        object edtXXTeaEnc1: TEdit
+          Left = 122
+          Top = 232
+          Width = 82
+          Height = 21
+          TabOrder = 15
+        end
+        object edtXXTeaEnc2: TEdit
+          Left = 220
+          Top = 232
+          Width = 82
+          Height = 21
+          TabOrder = 16
+        end
+        object btnXXTeaDec: TButton
+          Left = 320
+          Top = 230
+          Width = 79
+          Height = 25
+          Caption = 'XXTea Decrypt'
+          TabOrder = 17
         end
       end
     end

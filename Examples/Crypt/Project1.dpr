@@ -13,7 +13,8 @@ uses
   CnAES in '..\..\Source\Common\CnAES.pas',
   CnSHA2 in '..\..\Source\Common\CnSHA2.pas',
   CnZUC in '..\..\Source\Common\CnZUC.pas',
-  CnSHA3 in '..\..\Source\Common\CnSHA3.pas';
+  CnSHA3 in '..\..\Source\Common\CnSHA3.pas',
+  CnTEA in '..\..\Source\Common\CnTEA.pas';
 
 {$R *.RES}
 
