@@ -3494,17 +3494,28 @@ begin
   if TestCount <= 1 then
     Exit;
 
-  if Num.IsZero or Num.IsNegative or Num.IsOne or not Num.IsOdd then
+  // 排除了 负数、0、1 以及 2 之外的偶数，
+  if Num.IsZero or Num.IsNegative or Num.IsOne or (not Num.IsOdd and not BigNumberAbsIsWord(Num, 2))then
     Exit;
 
-  // Using Stored Prime Number to div them First.
+  // 小额素数先对比判断，包括 2
+  for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
+  begin
+    if BigNumberAbsIsWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // 再用小额素数整除，不用 2 了，因为 2 之外的偶数已经被排除了
   for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1 to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
   begin
     if BigNumberModWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) = 0 then
       Exit;
   end;
 
-  // Miller-Rabin Test
+  // 都漏网了，再做 Miller-Rabin Test
   X := nil;
   R := nil;
   W := nil;
