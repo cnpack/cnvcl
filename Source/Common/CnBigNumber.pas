@@ -1201,8 +1201,11 @@ begin
     // 但头上可能有多余的，再把 C * 8 - 1 到 N + 1 之间的位清零
     if N + 1 <= C * 8 - 1 then
       for I := C * 8 - 1 downto N + 1 do
-        if not BigNumberClearBit(Num, I) then
-          Exit;
+        if BigNumberIsBitSet(Num, I) then
+          if not BigNumberClearBit(Num, I) then
+            Exit;
+    // 加个 IsBitSet 的判断，因为 ClearBit 会判断待 Clear 的位是否超出 Top，
+    // 如果生成的位本来就是 0并且已经被 CorrectTop了，那么 ClearBit 会出错。
 
     while BigNumberCompare(Num, Range) >= 0 do
     begin
