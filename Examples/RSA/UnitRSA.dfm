@@ -1163,6 +1163,41 @@ object FormRSA: TFormRSA
           Height = 13
           Caption = 'Min Root:'
         end
+        object lblDHA: TLabel
+          Left = 16
+          Top = 96
+          Width = 10
+          Height = 13
+          Caption = 'A:'
+        end
+        object lblXA: TLabel
+          Left = 48
+          Top = 96
+          Width = 13
+          Height = 13
+          Caption = 'Xa'
+        end
+        object lblDHB: TLabel
+          Left = 16
+          Top = 136
+          Width = 10
+          Height = 13
+          Caption = 'B:'
+        end
+        object lblXb: TLabel
+          Left = 48
+          Top = 136
+          Width = 13
+          Height = 13
+          Caption = 'Xb'
+        end
+        object lblDHBits: TLabel
+          Left = 16
+          Top = 176
+          Width = 20
+          Height = 13
+          Caption = 'Bits:'
+        end
         object edtDHNumber: TEdit
           Left = 72
           Top = 20
@@ -1202,6 +1237,100 @@ object FormRSA: TFormRSA
           Caption = 'Generate DH'
           TabOrder = 4
           OnClick = btnGenInt64DHClick
+        end
+        object edtDHXa: TEdit
+          Left = 72
+          Top = 92
+          Width = 163
+          Height = 21
+          TabOrder = 5
+          Text = '123456'
+        end
+        object edtDHXb: TEdit
+          Left = 72
+          Top = 132
+          Width = 163
+          Height = 21
+          TabOrder = 6
+          Text = '654321'
+        end
+        object btnCalcYb: TButton
+          Left = 250
+          Top = 132
+          Width = 49
+          Height = 21
+          Caption = 'Calc Yb'
+          TabOrder = 7
+          OnClick = btnCalcYbClick
+        end
+        object btnCalcXA: TButton
+          Left = 250
+          Top = 92
+          Width = 49
+          Height = 21
+          Caption = 'Calc Ya'
+          TabOrder = 8
+          OnClick = btnCalcXAClick
+        end
+        object edtDHYa: TEdit
+          Left = 314
+          Top = 92
+          Width = 175
+          Height = 21
+          TabOrder = 9
+        end
+        object edtDHYb: TEdit
+          Left = 314
+          Top = 132
+          Width = 175
+          Height = 21
+          TabOrder = 10
+        end
+        object btnDHBCK: TButton
+          Left = 502
+          Top = 132
+          Width = 65
+          Height = 21
+          Caption = 'B Calc Key'
+          TabOrder = 11
+          OnClick = btnDHBCKClick
+        end
+        object btnDHACKey: TButton
+          Left = 502
+          Top = 92
+          Width = 65
+          Height = 21
+          Caption = 'A Calc Key'
+          TabOrder = 12
+          OnClick = btnDHACKeyClick
+        end
+        object edtAKey: TEdit
+          Left = 581
+          Top = 92
+          Width = 163
+          Height = 21
+          TabOrder = 13
+        end
+        object edtBKey: TEdit
+          Left = 581
+          Top = 132
+          Width = 163
+          Height = 21
+          TabOrder = 14
+        end
+        object cbbDHBits: TComboBox
+          Left = 72
+          Top = 172
+          Width = 145
+          Height = 21
+          ItemHeight = 13
+          TabOrder = 15
+          Text = '64'
+          Items.Strings = (
+            '32'
+            '64'
+            '128'
+            '256')
         end
       end
     end

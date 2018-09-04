@@ -154,6 +154,22 @@ type
     edtDHRoot: TEdit;
     btnGenInt64DH: TButton;
     lblDHRoot: TLabel;
+    edtDHXa: TEdit;
+    lblDHA: TLabel;
+    lblXA: TLabel;
+    lblDHB: TLabel;
+    lblXb: TLabel;
+    edtDHXb: TEdit;
+    btnCalcYb: TButton;
+    btnCalcXA: TButton;
+    edtDHYa: TEdit;
+    edtDHYb: TEdit;
+    btnDHBCK: TButton;
+    btnDHACKey: TButton;
+    edtAKey: TEdit;
+    edtBKey: TEdit;
+    lblDHBits: TLabel;
+    cbbDHBits: TComboBox;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -191,6 +207,10 @@ type
     procedure btnInt64MIClick(Sender: TObject);
     procedure btnFindFactorsClick(Sender: TObject);
     procedure btnGenInt64DHClick(Sender: TObject);
+    procedure btnCalcXAClick(Sender: TObject);
+    procedure btnCalcYbClick(Sender: TObject);
+    procedure btnDHACKeyClick(Sender: TObject);
+    procedure btnDHBCKClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -755,7 +775,7 @@ begin
   Prime := TCnBigNumber.Create;
   Root := TCnBigNumber.Create;
 
-  if BigNumberGenerateDiffieHellmanPrimeRootByBitsCount(64, Prime, Root) then
+  if CnDiffieHellmanGeneratePrimeRootByBitsCount(StrToIntDef(cbbDHBits.Text, 64), Prime, Root) then
   begin
     edtDHPrime.Text := Prime.ToDec;
     edtDHRoot.Text := Root.ToDec;
@@ -765,6 +785,78 @@ begin
 
   Prime.Free;
   Root.Free;
+end;
+
+procedure TFormRSA.btnCalcXAClick(Sender: TObject);
+var
+  Prime, Root, SelfPrivateKey, OutPublicKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  Root := BigNumberFromDec(edtDHRoot.Text);
+  SelfPrivateKey := BigNumberFromDec(edtDHXa.Text);
+  OutPublicKey := BigNumberNew;
+
+  if CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey, OutPublicKey) then
+    edtDHYa.Text := OutPublicKey.ToDec;
+
+  Prime.Free;
+  Root.Free;
+  SelfPrivateKey.Free;
+  OutPublicKey.Free;
+end;
+
+procedure TFormRSA.btnCalcYbClick(Sender: TObject);
+var
+  Prime, Root, SelfPrivateKey, OutPublicKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  Root := BigNumberFromDec(edtDHRoot.Text);
+  SelfPrivateKey := BigNumberFromDec(edtDHXb.Text);
+  OutPublicKey := BigNumberNew;
+
+  if CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey, OutPublicKey) then
+    edtDHYb.Text := OutPublicKey.ToDec;
+
+  Prime.Free;
+  Root.Free;
+  SelfPrivateKey.Free;
+  OutPublicKey.Free;
+end;
+
+procedure TFormRSA.btnDHACKeyClick(Sender: TObject);
+var
+  Prime, Root, OtherPublicKey, SecretKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  Root := BigNumberFromDec(edtDHRoot.Text);
+  OtherPublicKey := BigNumberFromDec(edtDHYb.Text);
+  SecretKey := BigNumberNew;
+
+  if CnDiffieHellmanCalucateKey(Prime, Root, OtherPublicKey, SecretKey) then
+    edtAKey.Text := SecretKey.ToDec;
+
+  Prime.Free;
+  Root.Free;
+  OtherPublicKey.Free;
+  SecretKey.Free;
+end;
+
+procedure TFormRSA.btnDHBCKClick(Sender: TObject);
+var
+  Prime, Root, OtherPublicKey, SecretKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  Root := BigNumberFromDec(edtDHRoot.Text);
+  OtherPublicKey := BigNumberFromDec(edtDHYa.Text);
+  SecretKey := BigNumberNew;
+
+  if CnDiffieHellmanCalucateKey(Prime, Root, OtherPublicKey, SecretKey) then
+    edtBKey.Text := SecretKey.ToDec;
+
+  Prime.Free;
+  Root.Free;
+  OtherPublicKey.Free;
+  SecretKey.Free;
 end;
 
 end.
