@@ -149,6 +149,11 @@ type
     lblFactorNumber: TLabel;
     edtDHNumber: TEdit;
     btnFindFactors: TButton;
+    lblInt64DHP: TLabel;
+    edtDHPrime: TEdit;
+    edtDHRoot: TEdit;
+    btnGenInt64DH: TButton;
+    lblDHRoot: TLabel;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -185,6 +190,7 @@ type
     procedure btnUInt32MIClick(Sender: TObject);
     procedure btnInt64MIClick(Sender: TObject);
     procedure btnFindFactorsClick(Sender: TObject);
+    procedure btnGenInt64DHClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -723,13 +729,42 @@ procedure TFormRSA.btnFindFactorsClick(Sender: TObject);
 var
   Num: TCnBigNumber;
   List: TCnBigNumberList;
+
+  function BigNumberListToString: string;
+  var
+    I: Integer;
+  begin
+    Result := '';
+    for I := 0 to List.Count - 1 do
+      Result := Result + ' ' + List[I].ToDec;
+  end;
+
 begin
   Num := TCnBigNumber.FromDec(edtDHNumber.Text);
   List := TCnBigNumberList.Create;
   BigNumberFindFactors(Num, List);
-  ShowMessage(IntToStr(List.Count));
+  ShowMessage(IntToStr(List.Count) + ' Factors:' + #13#10 + BigNumberListToString);
   List.Free;
   Num.Free;
+end;
+
+procedure TFormRSA.btnGenInt64DHClick(Sender: TObject);
+var
+  Prime, Root: TCnBigNumber;
+begin
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+
+  if BigNumberGenerateDiffieHellmanPrimeRootByBitsCount(64, Prime, Root) then
+  begin
+    edtDHPrime.Text := Prime.ToDec;
+    edtDHRoot.Text := Root.ToDec;
+  end
+  else
+    ShowMessage('DH Generation Error.');
+
+  Prime.Free;
+  Root.Free;
 end;
 
 end.

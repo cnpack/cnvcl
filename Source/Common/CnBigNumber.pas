@@ -426,6 +426,10 @@ function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: I
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
+function BigNumberGenerateDiffieHellmanPrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢}
+
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 32 位有符号整型范围内的数}
 
@@ -3615,6 +3619,88 @@ begin
   Result := True;
 end;
 
+// 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+function BigNumberCheckPrimitiveRoot(R, Prime: TCnBigNumber; Factors: TCnBigNumberList): Boolean;
+var
+  I: Integer;
+  Res, SubOne, T, Remain: TCnBigNumber;
+begin
+  Result := False;
+  Res := ObtainBigNumberFromPool;
+  T := ObtainBigNumberFromPool;
+  Remain := ObtainBigNumberFromPool;
+  SubOne := ObtainBigNumberFromPool;
+
+  BigNumberCopy(SubOne, Prime);
+  BigNumberSubWord(Prime, 1);
+
+  try
+    for I := 0 to Factors.Count - 1 do
+    begin
+      BigNumberDiv(T, Remain, SubOne, Factors[I]);
+      BigNumberMontgomeryPowerMod(Res, R, T, Prime);
+      if Res.IsOne then
+        Exit;
+    end;
+    Result := True;
+  finally
+    RecycleBigNumberToPool(Res);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(Remain);
+    RecycleBigNumberToPool(SubOne);
+  end;
+end;
+
+// 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
+function BigNumberGenerateDiffieHellmanPrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+var
+  I, Idx: Integer;
+  Num, PrimeSubOne: TCnBigNumber;
+  Factors: TCnBigNumberList;
+begin
+  Result := False;
+  if BitsCount <= 16 then
+    Exit;
+
+  if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
+    Exit;
+
+  Factors := TCnBigNumberList.Create;
+  PrimeSubOne := ObtainBigNumberFromPool;
+  Num := ObtainBigNumberFromPool;
+
+  try
+    BigNumberCopy(PrimeSubOne, Prime);
+    BigNumberSubWord(PrimeSubOne, 1);
+    BigNumberFindFactors(PrimeSubOne, Factors);
+    MinRoot.SetZero;
+
+    for I := Factors.Count - 1 downto 0 do
+    begin
+      // 去除重复的质因数
+      Idx := Factors.IndexOfValue(Factors[I]);
+      if (Idx >= 0) and (Idx <> I) then
+        Factors.Delete(I);
+    end;
+
+    for I := 2 to MaxInt do // 不查太大的大数
+    begin
+      Num.SetWord(I);
+      if BigNumberCheckPrimitiveRoot(Num, Prime, Factors) then
+      begin
+        MinRoot.SetWord(I);
+        Result := True;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+    RecycleBigNumberToPool(PrimeSubOne);
+    RecycleBigNumberToPool(Num);
+  end;
+end;
+
 // 大数是否是一个 32 位有符号整型范围内的数
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 var
@@ -4156,7 +4242,7 @@ end;
 function TCnBigNumberList.IndexOfValue(ABigNumber: TCnBigNumber): Integer;
 begin
   Result := 0;
-  while (Result < Count) and (BigNumberCompare(Items[Result], ABigNumber) = 0) do
+  while (Result < Count) and (BigNumberCompare(Items[Result], ABigNumber) <> 0) do
     Inc(Result);
   if Result = Count then
     Result := -1;

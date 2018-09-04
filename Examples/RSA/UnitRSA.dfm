@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 88
-  Top = 113
+  Left = 104
+  Top = 108
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 572
@@ -1149,6 +1149,20 @@ object FormRSA: TFormRSA
           Height = 13
           Caption = 'Number:'
         end
+        object lblInt64DHP: TLabel
+          Left = 16
+          Top = 60
+          Width = 29
+          Height = 13
+          Caption = 'Prime:'
+        end
+        object lblDHRoot: TLabel
+          Left = 440
+          Top = 60
+          Width = 46
+          Height = 13
+          Caption = 'Min Root:'
+        end
         object edtDHNumber: TEdit
           Left = 72
           Top = 20
@@ -1165,6 +1179,29 @@ object FormRSA: TFormRSA
           Caption = 'Find Factors'
           TabOrder = 1
           OnClick = btnFindFactorsClick
+        end
+        object edtDHPrime: TEdit
+          Left = 72
+          Top = 56
+          Width = 353
+          Height = 21
+          TabOrder = 2
+        end
+        object edtDHRoot: TEdit
+          Left = 496
+          Top = 56
+          Width = 121
+          Height = 21
+          TabOrder = 3
+        end
+        object btnGenInt64DH: TButton
+          Left = 632
+          Top = 56
+          Width = 113
+          Height = 21
+          Caption = 'Generate DH'
+          TabOrder = 4
+          OnClick = btnGenInt64DHClick
         end
       end
     end
