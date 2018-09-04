@@ -292,6 +292,22 @@ function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
 {* 用公钥与签名值验证指定内存流}
 
+// Diffie-Hellman 离散对数密钥交换算法
+
+function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢}
+
+function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
+  const OutPublicKey: TCnBigNumber): Boolean;
+{* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
+   其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime}
+
+function CnDiffieHellmanCalucateKey(Prime, Root, OtherPublicKey: TCnBigNumber;
+  const SecretKey: TCnBigNumber): Boolean;
+{* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
+   其中 SecretKey = (Root ^ OtherPublicKey) mod Prime}
+
 // 其他辅助函数
 
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
@@ -2011,6 +2027,65 @@ begin
     SetLength(ResBuf, 0);
     SetLength(BerBuf, 0);
   end;
+end;
+
+// 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
+function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  Num, PrimeSubOne: TCnBigNumber;
+  Factors: TCnBigNumberList;
+begin
+  Result := False;
+  if BitsCount <= 16 then
+    Exit;
+
+  if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
+    Exit;
+
+  Factors := TCnBigNumberList.Create;
+  PrimeSubOne := BigNumberNew;
+  Num := BigNumberNew;
+
+  try
+    BigNumberCopy(PrimeSubOne, Prime);
+    BigNumberSubWord(PrimeSubOne, 1);
+    BigNumberFindFactors(PrimeSubOne, Factors);
+    Factors.RemoveDuplicated;
+
+    MinRoot.SetZero;
+    for I := 2 to MaxInt do // 不查太大的大数
+    begin
+      Num.SetWord(I);
+      if BigNumberCheckPrimitiveRoot(Num, Prime, Factors) then
+      begin
+        MinRoot.SetWord(I);
+        Result := True;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+    BigNumberFree(PrimeSubOne);
+    BigNumberFree(Num);
+  end;
+end;
+
+// 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
+function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
+  const OutPublicKey: TCnBigNumber): Boolean;
+begin
+  // OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
+  Result := BigNumberMontgomeryPowerMod(OutPublicKey, Root, SelfPrivateKey, Prime);
+end;
+
+// 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
+function CnDiffieHellmanCalucateKey(Prime, Root, OtherPublicKey: TCnBigNumber;
+  const SecretKey: TCnBigNumber): Boolean;
+begin
+  // SecretKey = (Root ^ OtherPublicKey) mod Prime
+  Result := BigNumberMontgomeryPowerMod(SecretKey, Root, OtherPublicKey, Prime);
 end;
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
