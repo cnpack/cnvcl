@@ -71,7 +71,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Math, Menus, PsAPI, Registry, ComObj, 
+  ComCtrls, Math, Menus, PsAPI, Registry, ComObj, CnNativeDecl,
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
@@ -602,6 +602,12 @@ function EvalSimpleExpression(const Value: string): Double;
 
 function FastInverseSqrt(X: Single): Single;
 {* 快速计算开根号的倒数}
+
+function FastSqrt(N: LongWord): LongWord;
+{* 逐位确定法快速计算整数的平方根的整数部分}
+
+function FastSqrt64(N: Int64): Int64;
+{* 逐位确定法快速计算整数的平方根的整数部分}
 
 function StrToRegRoot(const s: string): HKEY;
 {* 字符串转注册表根键，支持 'HKEY_CURRENT_USER' 'HKCR' 长短两种格式}
@@ -5122,6 +5128,48 @@ begin
   X := X *(1.5 - xHalf * X * X);
   X := X *(1.5 - xHalf * X * X);
   Result := X;
+end;
+
+// 逐位确定法快速计算整数的平方根的整数部分
+function FastSqrt(N: LongWord): LongWord;
+var
+  T, B: LongWord;
+  Sft: LongWord;
+begin
+  Result := 0;
+  B := $8000;
+  Sft := 15;
+  repeat
+    T := ((Result shl 1)+ B) shl Sft;
+    Dec(Sft);
+    if N >= T then
+    begin
+      Result := Result + B;
+      N := N - T;
+    end;
+    B := B shr 1;
+  until B = 0;
+end;
+
+// 逐位确定法快速计算整数的平方根的整数部分
+function FastSqrt64(N: Int64): Int64;
+var
+  T, B: Int64;
+  Sft: Int64;
+begin
+  Result := 0;
+  B := $80000000;
+  Sft := 31;
+  repeat
+    T := ((Result shl 1)+ B) shl Sft;
+    Dec(Sft);
+    if N >= T then
+    begin
+      Result := Result + B;
+      N := N - T;
+    end;
+    B := B shr 1;
+  until B = 0;
 end;
 
 // 字符串转注册表根键，支持 'HKEY_CURRENT_USER' 'HKCR' 长短两种格式

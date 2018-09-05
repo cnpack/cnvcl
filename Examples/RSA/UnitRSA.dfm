@@ -1135,6 +1135,13 @@ object FormRSA: TFormRSA
     object tsDiffieHellman: TTabSheet
       Caption = 'Diffie Hellman'
       ImageIndex = 4
+      object lblSqrt: TLabel
+        Left = 16
+        Top = 248
+        Width = 45
+        Height = 13
+        Caption = 'Fast Sqrt:'
+      end
       object grpFactors: TGroupBox
         Left = 16
         Top = 16
@@ -1341,6 +1348,23 @@ object FormRSA: TFormRSA
           TabOrder = 16
           OnClick = btnDHRandClick
         end
+      end
+      object edtFastSqrt: TEdit
+        Left = 80
+        Top = 244
+        Width = 145
+        Height = 21
+        TabOrder = 1
+        Text = '10000'
+      end
+      object btnFastSqrt: TButton
+        Left = 256
+        Top = 244
+        Width = 75
+        Height = 21
+        Caption = 'Fast Sqrt'
+        TabOrder = 2
+        OnClick = btnFastSqrtClick
       end
     end
   end

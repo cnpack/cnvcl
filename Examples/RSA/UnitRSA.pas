@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber,
-  ImgList, Buttons;
+  ImgList, Buttons, CnCommon;
 
 type
   TFormRSA = class(TForm)
@@ -171,6 +171,9 @@ type
     lblDHBits: TLabel;
     cbbDHBits: TComboBox;
     btnDHRand: TButton;
+    lblSqrt: TLabel;
+    edtFastSqrt: TEdit;
+    btnFastSqrt: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -213,6 +216,7 @@ type
     procedure btnDHACKeyClick(Sender: TObject);
     procedure btnDHBCKClick(Sender: TObject);
     procedure btnDHRandClick(Sender: TObject);
+    procedure btnFastSqrtClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -871,6 +875,21 @@ begin
   BigNumberRandBits(R, StrToIntDef(cbbDHBits.Text, 64));
   edtDHXb.Text := R.ToDec;
   R.Free;
+end;
+
+procedure TFormRSA.btnFastSqrtClick(Sender: TObject);
+var
+  N: LongWord;
+  T: Int64;
+begin
+  N := StrToUInt64(edtFastSqrt.Text);
+  if IntToStr(N) = edtFastSqrt.Text then
+    ShowMessage('Integer Sqrt of ' + UInt64ToStr(N) + ' is ' + UInt64ToStr(FastSqrt(N)))
+  else
+  begin
+    T := StrToInt64(edtFastSqrt.Text);
+    ShowMessage('Integer Sqrt of Int64 ' + UInt64ToStr(T) + ' is ' + UInt64ToStr(FastSqrt64(T)))
+  end;
 end;
 
 end.
