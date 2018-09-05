@@ -303,7 +303,7 @@ function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber
 {* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
    其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime}
 
-function CnDiffieHellmanCalucateKey(Prime, Root, OtherPublicKey: TCnBigNumber;
+function CnDiffieHellmanCalucateKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   const SecretKey: TCnBigNumber): Boolean;
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
    其中 SecretKey = (Root ^ OtherPublicKey) mod Prime}
@@ -2081,11 +2081,11 @@ begin
 end;
 
 // 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
-function CnDiffieHellmanCalucateKey(Prime, Root, OtherPublicKey: TCnBigNumber;
+function CnDiffieHellmanCalucateKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   const SecretKey: TCnBigNumber): Boolean;
 begin
   // SecretKey = (Root ^ OtherPublicKey) mod Prime
-  Result := BigNumberMontgomeryPowerMod(SecretKey, Root, OtherPublicKey, Prime);
+  Result := BigNumberMontgomeryPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
 end;
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;

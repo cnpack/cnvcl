@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 104
-  Top = 108
+  Left = 230
+  Top = 101
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 572
@@ -1331,6 +1331,15 @@ object FormRSA: TFormRSA
             '64'
             '128'
             '256')
+        end
+        object btnDHRand: TButton
+          Left = 40
+          Top = 112
+          Width = 25
+          Height = 21
+          Caption = 'R'
+          TabOrder = 16
+          OnClick = btnDHRandClick
         end
       end
     end
