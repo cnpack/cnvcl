@@ -388,6 +388,15 @@ object FormEcc: TFormEcc
         Height = 21
         TabOrder = 9
       end
+      object btnBatchVerify: TButton
+        Left = 560
+        Top = 272
+        Width = 75
+        Height = 21
+        Caption = 'Batch Verify'
+        TabOrder = 10
+        OnClick = btnBatchVerifyClick
+      end
     end
   end
 end

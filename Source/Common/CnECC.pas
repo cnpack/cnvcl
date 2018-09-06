@@ -86,8 +86,9 @@ type
     procedure GenerateKeys(out PrivateKey: TCnInt64PrivateKey; out PublicKey: TCnInt64PublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
     procedure Encrypt(var PlainPoint: TCnInt64EccPoint; PublicKey: TCnInt64PublicKey;
-      var OutDataPoint1, OutDataPoint2: TCnInt64EccPoint);
-    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G}
+      var OutDataPoint1, OutDataPoint2: TCnInt64EccPoint; RandomKey: Int64 = 0);
+    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G
+      如果传入的 RandomKey 是 0，则内部随机生成}
     procedure Decrypt(var DataPoint1, DataPoint2: TCnInt64EccPoint;
       PrivateKey: TCnInt64PrivateKey; var OutPlainPoint: TCnInt64EccPoint);
     {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M}
@@ -136,7 +137,7 @@ begin
   until B = 0;
 end;
 
-// 支持 A、B 为负数的乘方取模，但 C 仍要求正数否则结果不靠谱
+// 支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
 function Int64MultipleMod(A, B, C: Int64): Int64;
 begin
   if (A > 0) and (B > 0) then
@@ -204,20 +205,22 @@ end;
 
 procedure TCnInt64Ecc.Encrypt(var PlainPoint: TCnInt64EccPoint;
   PublicKey: TCnInt64PublicKey; var OutDataPoint1,
-  OutDataPoint2: TCnInt64EccPoint);
-var
-  R: TCnInt64PrivateKey;
+  OutDataPoint2: TCnInt64EccPoint; RandomKey: Int64);
 begin
-  Randomize;
-  R := Trunc(Random * (FOrder - 1)) + 1; // 比 0 大但比基点阶小的随机数
+  if RandomKey = 0 then
+  begin
+    Randomize;
+    RandomKey := Trunc(Random * (FOrder - 1)) + 1; // 比 0 大但比基点阶小的随机数
+  end;
 
   // M + rK;
   OutDataPoint1 := PublicKey;
-  MultiplePoint(R, OutDataPoint1);
+  MultiplePoint(RandomKey, OutDataPoint1);
   PointAddPoint(PlainPoint, OutDataPoint1, OutDataPoint1);
+
   // r * G
   OutDataPoint2 := FGenerator;
-  MultiplePoint(R, OutDataPoint2);
+  MultiplePoint(RandomKey, OutDataPoint2);
 end;
 
 procedure TCnInt64Ecc.GenerateKeys(out PrivateKey: TCnInt64PrivateKey;
@@ -253,7 +256,7 @@ begin
     PointInverse(Point);
   end;
 
-  if (K = 0) {or ((K mod FFiniteFieldSize) = 0)} then
+  if K = 0 then
   begin
     Point.X := 0;
     Point.Y := 0;
@@ -330,9 +333,15 @@ begin
   end
   else if (P.X = Q.X) and (P.Y = Q.Y) then
   begin
-    // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y)
+    // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
     X := 3 * P.X * P.X + CoefficientA;
     Y := 2 * P.Y;
+
+    if Y = 0 then
+    begin
+      Sum.X := 0;
+      Sum.Y := 0;
+    end;
 
     Y := Int64ModularInverse(Y, FFiniteFieldSize);
     K := Int64MultipleMod(X, Y, FFiniteFieldSize); // 得到斜率
@@ -356,7 +365,7 @@ begin
   else if P.Y <> Q.Y then
   begin
     // P、Q 两点 X 相同，Y 不同但又不是逆元，该如何相加？理论上不会出现
-    raise ECnEccException.Create('Can NOT Calucate Addtion.');
+    raise ECnEccException.CreateFmt('Can NOT Calucate %d,%d + %d,%d', [P.X, P.Y, Q.X, Q.Y]);
   end;
 
   // Xsum = (K^2 - X1 - X2) mod p

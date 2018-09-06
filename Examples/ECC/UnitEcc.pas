@@ -53,6 +53,7 @@ type
     edtEncrypted: TEdit;
     btnDecrypt: TButton;
     edtDecrypted: TEdit;
+    btnBatchVerify: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -69,6 +70,7 @@ type
     procedure btnNewKeyClick(Sender: TObject);
     procedure btnEncryptClick(Sender: TObject);
     procedure btnDecryptClick(Sender: TObject);
+    procedure btnBatchVerifyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -176,7 +178,8 @@ end;
 
 procedure TFormEcc.FormCreate(Sender: TObject);
 begin
-  FEcc64E2311 := TCnInt64Ecc.Create(1, 1, 23, 9, 7, 28);   // 9,7 为基点，28 是基点的阶
+  FEcc64E2311 := TCnInt64Ecc.Create(1, 1, 23, 9, 7, 28);
+  // 9,7 为基点，28 是该曲线的阶，但不一定是该基点的阶，先用着
   CalcE2311Points;
   UpdateE2311Chart;
 end;
@@ -299,6 +302,21 @@ begin
   FEcc64E2311.Decrypt(FEcc64Enc1, FEcc64Enc2, FEcc64PrivateKey, P);
   ShowMessage('Decrypt to ' + CnInt64EccPointToString(P));
   edtDecrypted.Text := IntToStr(P.X);
+end;
+
+procedure TFormEcc.btnBatchVerifyClick(Sender: TObject);
+var
+  I: Integer;
+  P, Q: TCnInt64EccPoint;
+begin
+  for I := 1 to 27 do
+  begin
+    FEcc64E2311.PlainToPoint(StrToInt(edtData.Text), P);
+    FEcc64E2311.Encrypt(P, FEcc64PublicKey, FEcc64Enc1, FEcc64Enc2, I);
+    FEcc64E2311.Decrypt(FEcc64Enc1, FEcc64Enc2, FEcc64PrivateKey, Q);
+    if (P.X <> Q.X) or (P.Y <> Q.Y) then
+      ShowMessage('Error: ' + IntToStr(I) + ' ' + CnInt64EccPointToString(Q));
+  end;
 end;
 
 end.
