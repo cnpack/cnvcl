@@ -54,6 +54,23 @@ type
     btnDecrypt: TButton;
     edtDecrypted: TEdit;
     btnBatchVerify: TButton;
+    tsInt64ECC: TTabSheet;
+    Bevel2: TBevel;
+    lblECDH: TLabel;
+    lblDHA: TLabel;
+    lblDHB: TLabel;
+    lblXb: TLabel;
+    lblXA: TLabel;
+    edtDHXa: TEdit;
+    edtDHXb: TEdit;
+    btnCalcYb: TButton;
+    btnCalcXA: TButton;
+    edtDHYa: TEdit;
+    edtDHYb: TEdit;
+    btnDHBCK: TButton;
+    btnDHACKey: TButton;
+    edtAKey: TEdit;
+    edtBKey: TEdit;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -71,6 +88,10 @@ type
     procedure btnEncryptClick(Sender: TObject);
     procedure btnDecryptClick(Sender: TObject);
     procedure btnBatchVerifyClick(Sender: TObject);
+    procedure btnCalcXAClick(Sender: TObject);
+    procedure btnCalcYbClick(Sender: TObject);
+    procedure btnDHACKeyClick(Sender: TObject);
+    procedure btnDHBCKClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -90,9 +111,6 @@ implementation
 
 {$R *.DFM}
 
-type
-  TCnInt64EccHack = class(TCnInt64Ecc);
-
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
   P, Q: TCnInt64EccPoint;
@@ -100,7 +118,7 @@ begin
   P.X := 3; P.Y := 10;
   Q.X := 9; Q.Y := 7;
 
-  TCnInt64EccHack(FEcc64E2311).PointAddPoint(P, Q, P);
+  FEcc64E2311.PointAddPoint(P, Q, P);
   ShowMessage(Format('3,10 + 9,7 = %d,%d',[P.X, P.Y]));
 end;
 
@@ -112,7 +130,7 @@ begin
   Q.X := StrToInt(edtPX.Text);
   Q.Y := StrToInt(edtPY.Text);
 
-  TCnInt64EccHack(FEcc64E2311).PointAddPoint(P, Q, P);
+  FEcc64E2311.PointAddPoint(P, Q, P);
   ShowMessage(Format('0,0 + P = %d,%d',[P.X, P.Y]));
 end;
 
@@ -123,7 +141,7 @@ begin
   P.X := StrToInt(edtPX.Text);
   P.Y := StrToInt(edtPY.Text);
 
-  if TCnInt64EccHack(FEcc64E2311).IsPointOnCurve(P) then
+  if FEcc64E2311.IsPointOnCurve(P) then
     ShowMessage('P is On Curve')
   else
     ShowMessage('P is NOT On Curve');
@@ -136,7 +154,7 @@ begin
   P.X := StrToInt(edtPX.Text);
   P.Y := StrToInt(edtPY.Text);
 
-  TCnInt64EccHack(FEcc64E2311).PointInverse(P);
+  FEcc64E2311.PointInverse(P);
   ShowMessage('P Inverse to ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
 end;
 
@@ -147,7 +165,7 @@ begin
   P.X := StrToInt(edtPX.Text);
   P.Y := StrToInt(edtPY.Text);
 
-  TCnInt64EccHack(FEcc64E2311).MultiplePoint(2, P);
+  FEcc64E2311.MultiplePoint(2, P);
   ShowMessage('P Multiple 2 is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
 end;
 
@@ -163,10 +181,10 @@ begin
   begin
     P.X := StrToInt(edtPX.Text);
     P.Y := StrToInt(edtPY.Text);
-    TCnInt64EccHack(FEcc64E2311).MultiplePoint(I, P);
+    FEcc64E2311.MultiplePoint(I, P);
 
     List.Add(IntToStr(I) + '*: ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
-    if TCnInt64EccHack(FEcc64E2311).IsPointOnCurve(P) then
+    if FEcc64E2311.IsPointOnCurve(P) then
       List[List.Count - 1] := List[List.Count - 1] + ' On Curve.'
     else
       List[List.Count - 1] := List[List.Count - 1] + ' NOT On Curve.'
@@ -178,8 +196,10 @@ end;
 
 procedure TFormEcc.FormCreate(Sender: TObject);
 begin
-  FEcc64E2311 := TCnInt64Ecc.Create(1, 1, 23, 9, 7, 28);
-  // 9,7 为基点，28 是该曲线的阶，但不一定是该基点的阶，先用着
+  pgc1.ActivePageIndex := 0;
+
+  FEcc64E2311 := TCnInt64Ecc.Create(1, 1, 23, 5, 4, 7);
+  // 9,7 为基点，28 是该曲线的阶，选其素因数 7 作为基点的阶，基点为 5,4
   CalcE2311Points;
   UpdateE2311Chart;
 end;
@@ -197,7 +217,7 @@ begin
   P.Y := StrToInt(edtPY.Text);
   Q.X := StrToInt(edtQX.Text);
   Q.Y := StrToInt(edtQY.Text);
-  TCnInt64EccHack(FEcc64E2311).PointAddPoint(P, Q, P);
+  FEcc64E2311.PointAddPoint(P, Q, P);
   lblAddResult.Caption := IntToStr(P.X) + ',' + IntToStr(P.Y);
 end;
 
@@ -209,7 +229,7 @@ begin
   P.X := StrToInt(edtMPX.Text);
   P.Y := StrToInt(edtMPY.Text);
   K := StrToInt(edtMK.Text);
-  TCnInt64EccHack(FEcc64E2311).MultiplePoint(K, P);
+  FEcc64E2311.MultiplePoint(K, P);
   lblMResult.Caption := IntToStr(P.X) + ',' + IntToStr(P.Y);
 end;
 
@@ -219,7 +239,7 @@ var
 begin
   P.X := StrToInt(edtPX.Text);
   P.Y := StrToInt(edtPY.Text);
-  if TCnInt64EccHack(FEcc64E2311).IsPointOnCurve(P) then
+  if FEcc64E2311.IsPointOnCurve(P) then
     ShowMessage(Format('%d,%d is On Curve.', [P.X, P.Y]));
 end;
 
@@ -229,7 +249,7 @@ var
 begin
   P.X := StrToInt(edtQX.Text);
   P.Y := StrToInt(edtQY.Text);
-  if TCnInt64EccHack(FEcc64E2311).IsPointOnCurve(P) then
+  if FEcc64E2311.IsPointOnCurve(P) then
     ShowMessage(Format('%d,%d is On Curve.', [P.X, P.Y]));
 end;
 
@@ -239,7 +259,7 @@ var
 begin
   P.X := StrToInt(edtMPX.Text);
   P.Y := StrToInt(edtMPY.Text);
-  if TCnInt64EccHack(FEcc64E2311).IsPointOnCurve(P) then
+  if FEcc64E2311.IsPointOnCurve(P) then
     ShowMessage(Format('%d,%d is On Curve.', [P.X, P.Y]));
 end;
 
@@ -254,7 +274,7 @@ begin
     begin
       P.X := I;
       P.Y := J;
-      FEcc64E2311Points[I][J] := TCnInt64EccHack(FEcc64E2311).IsPointOnCurve(P);
+      FEcc64E2311Points[I][J] := FEcc64E2311.IsPointOnCurve(P);
     end;
   end;
 end;
@@ -317,6 +337,48 @@ begin
     if (P.X <> Q.X) or (P.Y <> Q.Y) then
       ShowMessage('Error: ' + IntToStr(I) + ' ' + CnInt64EccPointToString(Q));
   end;
+end;
+
+var
+  FAOutPub: TCnInt64PublicKey;
+  FBOutPub: TCnInt64PublicKey;
+
+procedure TFormEcc.btnCalcXAClick(Sender: TObject);
+var
+  InPriv: TCnInt64PrivateKey;
+begin
+  InPriv := StrToInt(edtDHXa.Text);
+  CnInt64EccDiffieHellmanGenerateOutKey(FEcc64E2311, InPriv, FAOutPub);
+  edtDHYa.Text := CnInt64EccPointToString(FAOutPub);
+end;
+
+procedure TFormEcc.btnCalcYbClick(Sender: TObject);
+var
+  InPriv: TCnInt64PrivateKey;
+begin
+  InPriv := StrToInt(edtDHXb.Text);
+  CnInt64EccDiffieHellmanGenerateOutKey(FEcc64E2311, InPriv, FBOutPub);
+  edtDHYb.Text := CnInt64EccPointToString(FBOutPub);
+end;
+
+procedure TFormEcc.btnDHACKeyClick(Sender: TObject);
+var
+  InPriv: TCnInt64PrivateKey;
+  Sec: TCnInt64PublicKey;
+begin
+  InPriv := StrToInt(edtDHXa.Text);
+  CnInt64EccDiffieHellmanCalucateKey(FEcc64E2311, InPriv, FBOutPub, Sec);
+  edtAKey.Text := CnInt64EccPointToString(Sec);
+end;
+
+procedure TFormEcc.btnDHBCKClick(Sender: TObject);
+var
+  InPriv: TCnInt64PrivateKey;
+  Sec: TCnInt64PublicKey;
+begin
+  InPriv := StrToInt(edtDHXb.Text);
+  CnInt64EccDiffieHellmanCalucateKey(FEcc64E2311, InPriv, FAOutPub, Sec);
+  edtBKey.Text := CnInt64EccPointToString(Sec);
 end;
 
 end.

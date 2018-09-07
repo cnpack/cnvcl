@@ -306,7 +306,7 @@ function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber
 function CnDiffieHellmanCalucateKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   const SecretKey: TCnBigNumber): Boolean;
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
-   其中 SecretKey = (Root ^ OtherPublicKey) mod Prime}
+   其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime}
 
 // 其他辅助函数
 
@@ -2084,7 +2084,7 @@ end;
 function CnDiffieHellmanCalucateKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   const SecretKey: TCnBigNumber): Boolean;
 begin
-  // SecretKey = (Root ^ OtherPublicKey) mod Prime
+  // SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
   Result := BigNumberMontgomeryPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
 end;
 

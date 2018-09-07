@@ -64,6 +64,13 @@ type
     FFiniteFieldSize: Int64;
     FOrder: Int64;
   protected
+
+  public
+    constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
+    destructor Destroy; override;
+    {* 析构函数}
+
     procedure MultiplePoint(K: Int64; var Point: TCnInt64EccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure PointAddPoint(var P, Q, Sum: TCnInt64EccPoint);
@@ -74,11 +81,6 @@ type
     {* 计算 P 点的逆元 -P，值重新放入 P}
     function IsPointOnCurve(var P: TCnInt64EccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
-  public
-    constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
-    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
-    destructor Destroy; override;
-    {* 析构函数}
 
     function PlainToPoint(Plain: Int64; var OutPoint: TCnInt64EccPoint): Boolean;
     {* 将要加密的明文数值包装成一个待加密的点}
@@ -107,11 +109,35 @@ type
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 
+function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
+  GX, GY, Order: Int64): Boolean;
+{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现}
+
+function CnInt64EccDiffieHellmanGenerateOutKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
+  out PublicKey: TCnInt64PublicKey): Boolean;
+{* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
+   其中 OutPublicKey = SelfPrivateKey * G}
+
+function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
+  var OtherPublicKey: TCnInt64PublicKey; var SecretKey: TCnInt64PublicKey): Boolean;
+{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
+   其中 SecretKey = SelfPrivateKey * OtherPublicKey}
+
 implementation
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 begin
   Result := Format('%d,%d', [P.X, P.Y]);
+end;
+
+// 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现
+function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
+  GX, GY, Order: Int64): Boolean;
+begin
+  // 步骤：随机选有限域素数 p，与随机的 a、b，用 SEA 算法计算该曲线的阶 N
+  // 判断 N 是大素数或其一半或三分之一是大素数，然后这个大素数作为循环子群的阶 n
+  // 再根据 n 寻找基点 G 的坐标。如果 n 就等于 N 这个大素数，则 G 随便选都行。
+  raise ECnEccException.Create('NOT Implemented.');
 end;
 
 // 逐位确定法快速计算整数的平方根的整数部分，如果是负数则先取正
@@ -179,6 +205,13 @@ end;
 constructor TCnInt64Ecc.Create(A, B, FieldPrime, GX, GY, Order: Int64);
 begin
   inherited Create;
+  if not CnInt64IsPrime(FieldPrime) or not CnInt64IsPrime(Order) then
+    raise ECnEccException.Create('Infinite Field and Order must be a Prime Number.');
+
+  if not (GX >= 0) and (GX < FieldPrime) or
+    not (GY >= 0) and (GY < FieldPrime) then
+    raise ECnEccException.Create('Generator Point must be in Infinite Field.');
+
   FCoefficientA := A;
   FCoefficientB := B;
   FFiniteFieldSize := FieldPrime;
@@ -212,6 +245,9 @@ begin
     Randomize;
     RandomKey := Trunc(Random * (FOrder - 1)) + 1; // 比 0 大但比基点阶小的随机数
   end;
+
+  if RandomKey mod FOrder = 0 then
+    raise ECnEccException.CreateFmt('Error RandomKey %d for Order.', [RandomKey]);
 
   // M + rK;
   OutDataPoint1 := PublicKey;
@@ -398,6 +434,34 @@ begin
   Inv.Y := Q.Y;
   PointInverse(Inv);
   PointAddPoint(P, Inv, Diff);
+end;
+
+// 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
+function CnInt64EccDiffieHellmanGenerateOutKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
+  out PublicKey: TCnInt64PublicKey): Boolean;
+begin
+  // OutPublicKey = SelfPrivateKey * G
+  Result := False;
+  if (Ecc <> nil) and (SelfPrivateKey > 0) then
+  begin
+    PublicKey := Ecc.Generator;
+    Ecc.MultiplePoint(SelfPrivateKey, PublicKey);
+    Result := True;
+  end;
+end;
+
+// 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
+function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
+  var OtherPublicKey: TCnInt64PublicKey; var SecretKey: TCnInt64PublicKey): Boolean;
+begin
+  // SecretKey = SelfPrivateKey * OtherPublicKey
+  Result := False;
+  if (Ecc <> nil) and (SelfPrivateKey > 0) then
+  begin
+    SecretKey := OtherPublicKey;
+    Ecc.MultiplePoint(SelfPrivateKey, OtherPublicKey);
+    Result := True;
+  end;
 end;
 
 end.

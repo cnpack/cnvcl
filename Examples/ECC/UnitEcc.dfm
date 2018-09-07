@@ -1,7 +1,7 @@
 object FormEcc: TFormEcc
-  Left = 216
-  Top = 122
-  Width = 703
+  Left = 146
+  Top = 41
+  Width = 777
   Height = 528
   Caption = 'ECC Test'
   Color = clBtnFace
@@ -18,21 +18,21 @@ object FormEcc: TFormEcc
   object pgc1: TPageControl
     Left = 16
     Top = 16
-    Width = 657
+    Width = 737
     Height = 465
     ActivePage = tsSimpleECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
       object lblPrivateKey: TLabel
-        Left = 448
+        Left = 456
         Top = 196
         Width = 36
         Height = 13
         Caption = 'Private:'
       end
       object lblPublicKey: TLabel
-        Left = 528
+        Left = 584
         Top = 196
         Width = 32
         Height = 13
@@ -45,17 +45,59 @@ object FormEcc: TFormEcc
         Height = 13
         Caption = 'Data:'
       end
+      object Bevel2: TBevel
+        Left = 400
+        Top = 320
+        Width = 313
+        Height = 17
+        Shape = bsTopLine
+      end
+      object lblECDH: TLabel
+        Left = 360
+        Top = 312
+        Width = 33
+        Height = 13
+        Caption = 'ECDH:'
+      end
+      object lblDHA: TLabel
+        Left = 360
+        Top = 352
+        Width = 10
+        Height = 13
+        Caption = 'A:'
+      end
+      object lblDHB: TLabel
+        Left = 360
+        Top = 392
+        Width = 10
+        Height = 13
+        Caption = 'B:'
+      end
+      object lblXb: TLabel
+        Left = 376
+        Top = 392
+        Width = 13
+        Height = 13
+        Caption = 'Xb'
+      end
+      object lblXA: TLabel
+        Left = 376
+        Top = 352
+        Width = 13
+        Height = 13
+        Caption = 'Xa'
+      end
       object grpSimpleECC: TGroupBox
         Left = 16
         Top = 16
-        Width = 617
+        Width = 697
         Height = 161
-        Caption = 'Simple E23(1,1)'
+        Caption = 'Simple E23(1,1) Ò²¾ÍÊÇ Y^2 = X^3 + X + 1 mod 23'
         TabOrder = 0
         object Bevel1: TBevel
           Left = 20
           Top = 64
-          Width = 553
+          Width = 653
           Height = 17
           Shape = bsTopLine
         end
@@ -157,7 +199,7 @@ object FormEcc: TFormEcc
           OnClick = btnTest1Click
         end
         object btnTest0: TButton
-          Left = 116
+          Left = 135
           Top = 28
           Width = 75
           Height = 21
@@ -166,7 +208,7 @@ object FormEcc: TFormEcc
           OnClick = btnTest0Click
         end
         object btnTestOn: TButton
-          Left = 212
+          Left = 250
           Top = 28
           Width = 75
           Height = 21
@@ -175,7 +217,7 @@ object FormEcc: TFormEcc
           OnClick = btnTestOnClick
         end
         object btnTestInverse: TButton
-          Left = 308
+          Left = 366
           Top = 28
           Width = 75
           Height = 21
@@ -184,7 +226,7 @@ object FormEcc: TFormEcc
           OnClick = btnTestInverseClick
         end
         object btnTest2P: TButton
-          Left = 402
+          Left = 481
           Top = 28
           Width = 75
           Height = 21
@@ -193,7 +235,7 @@ object FormEcc: TFormEcc
           OnClick = btnTest2PClick
         end
         object btnTestMul: TButton
-          Left = 500
+          Left = 596
           Top = 28
           Width = 75
           Height = 21
@@ -335,29 +377,29 @@ object FormEcc: TFormEcc
         OnClick = btnNewKeyClick
       end
       object edtPrivateKey: TEdit
-        Left = 488
+        Left = 504
         Top = 192
-        Width = 33
+        Width = 65
         Height = 21
         TabOrder = 3
       end
       object edtPublicKey: TEdit
-        Left = 568
+        Left = 624
         Top = 192
-        Width = 65
+        Width = 89
         Height = 21
         TabOrder = 4
       end
       object edtData: TEdit
         Left = 400
         Top = 232
-        Width = 33
+        Width = 73
         Height = 21
         TabOrder = 5
         Text = '7'
       end
       object btnEncrypt: TButton
-        Left = 448
+        Left = 504
         Top = 232
         Width = 75
         Height = 21
@@ -366,9 +408,9 @@ object FormEcc: TFormEcc
         OnClick = btnEncryptClick
       end
       object edtEncrypted: TEdit
-        Left = 536
+        Left = 600
         Top = 232
-        Width = 97
+        Width = 113
         Height = 21
         TabOrder = 7
       end
@@ -384,12 +426,12 @@ object FormEcc: TFormEcc
       object edtDecrypted: TEdit
         Left = 448
         Top = 272
-        Width = 97
+        Width = 177
         Height = 21
         TabOrder = 9
       end
       object btnBatchVerify: TButton
-        Left = 560
+        Left = 640
         Top = 272
         Width = 75
         Height = 21
@@ -397,6 +439,90 @@ object FormEcc: TFormEcc
         TabOrder = 10
         OnClick = btnBatchVerifyClick
       end
+      object edtDHXa: TEdit
+        Left = 400
+        Top = 348
+        Width = 41
+        Height = 21
+        TabOrder = 11
+        Text = '3'
+      end
+      object edtDHXb: TEdit
+        Left = 400
+        Top = 388
+        Width = 41
+        Height = 21
+        TabOrder = 12
+        Text = '5'
+      end
+      object btnCalcYb: TButton
+        Left = 450
+        Top = 388
+        Width = 49
+        Height = 21
+        Caption = 'Calc Yb'
+        TabOrder = 13
+        OnClick = btnCalcYbClick
+      end
+      object btnCalcXA: TButton
+        Left = 450
+        Top = 348
+        Width = 49
+        Height = 21
+        Caption = 'Calc Ya'
+        TabOrder = 14
+        OnClick = btnCalcXAClick
+      end
+      object edtDHYa: TEdit
+        Left = 506
+        Top = 348
+        Width = 63
+        Height = 21
+        TabOrder = 15
+      end
+      object edtDHYb: TEdit
+        Left = 506
+        Top = 388
+        Width = 63
+        Height = 21
+        TabOrder = 16
+      end
+      object btnDHBCK: TButton
+        Left = 582
+        Top = 388
+        Width = 65
+        Height = 21
+        Caption = 'B Calc Key'
+        TabOrder = 17
+        OnClick = btnDHBCKClick
+      end
+      object btnDHACKey: TButton
+        Left = 582
+        Top = 348
+        Width = 65
+        Height = 21
+        Caption = 'A Calc Key'
+        TabOrder = 18
+        OnClick = btnDHACKeyClick
+      end
+      object edtAKey: TEdit
+        Left = 654
+        Top = 348
+        Width = 59
+        Height = 21
+        TabOrder = 19
+      end
+      object edtBKey: TEdit
+        Left = 654
+        Top = 388
+        Width = 59
+        Height = 21
+        TabOrder = 20
+      end
+    end
+    object tsInt64ECC: TTabSheet
+      Caption = 'Intt64 ECC'
+      ImageIndex = 1
     end
   end
 end
