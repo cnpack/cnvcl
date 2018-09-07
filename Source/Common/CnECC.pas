@@ -459,7 +459,7 @@ begin
   if (Ecc <> nil) and (SelfPrivateKey > 0) then
   begin
     SecretKey := OtherPublicKey;
-    Ecc.MultiplePoint(SelfPrivateKey, OtherPublicKey);
+    Ecc.MultiplePoint(SelfPrivateKey, SecretKey);
     Result := True;
   end;
 end;
