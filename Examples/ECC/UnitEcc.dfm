@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 146
-  Top = 41
+  Left = 134
+  Top = 131
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -523,6 +523,164 @@ object FormEcc: TFormEcc
     object tsInt64ECC: TTabSheet
       Caption = 'Intt64 ECC'
       ImageIndex = 1
+      object grpGenEcc: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 697
+        Height = 401
+        Caption = 'Generated Ecc'
+        TabOrder = 0
+        object lblEccY2: TLabel
+          Left = 16
+          Top = 28
+          Width = 221
+          Height = 13
+          Caption = 'Y ^ 2 = X ^ 3    +                X +                 mod  '
+        end
+        object lblEccG: TLabel
+          Left = 312
+          Top = 28
+          Width = 11
+          Height = 13
+          Caption = 'G:'
+        end
+        object lblEccOrder: TLabel
+          Left = 416
+          Top = 28
+          Width = 51
+          Height = 13
+          Caption = 'with Order:'
+        end
+        object Bevel3: TBevel
+          Left = 16
+          Top = 64
+          Width = 537
+          Height = 17
+          Shape = bsTopLine
+        end
+        object btnGenEcc: TButton
+          Left = 568
+          Top = 24
+          Width = 107
+          Height = 21
+          Caption = 'Generate Small Ecc'
+          TabOrder = 0
+          OnClick = btnGenEccClick
+        end
+        object edtEccA: TEdit
+          Left = 104
+          Top = 24
+          Width = 33
+          Height = 21
+          TabOrder = 1
+          Text = '4'
+        end
+        object edtEccB: TEdit
+          Left = 168
+          Top = 24
+          Width = 33
+          Height = 21
+          TabOrder = 2
+          Text = '182'
+        end
+        object edtEccP: TEdit
+          Left = 240
+          Top = 24
+          Width = 41
+          Height = 21
+          TabOrder = 3
+          Text = '661'
+        end
+        object edtEccGX: TEdit
+          Left = 328
+          Top = 24
+          Width = 33
+          Height = 21
+          TabOrder = 4
+          Text = '1'
+        end
+        object edtEccGY: TEdit
+          Left = 368
+          Top = 24
+          Width = 33
+          Height = 21
+          TabOrder = 5
+          Text = '214'
+        end
+        object edtEccOrder: TEdit
+          Left = 480
+          Top = 24
+          Width = 73
+          Height = 21
+          TabOrder = 6
+          Text = '673'
+        end
+        object btnCalcNG: TButton
+          Left = 568
+          Top = 56
+          Width = 105
+          Height = 21
+          Caption = 'Calculate N*G'
+          TabOrder = 7
+          OnClick = btnCalcNGClick
+        end
+        object mmoGenECCPoints: TMemo
+          Left = 568
+          Top = 96
+          Width = 105
+          Height = 289
+          ScrollBars = ssVertical
+          TabOrder = 8
+        end
+        object chtEccInt64: TChart
+          Left = 8
+          Top = 72
+          Width = 393
+          Height = 321
+          BackWall.Brush.Color = clWhite
+          BackWall.Brush.Style = bsClear
+          MarginBottom = 0
+          MarginLeft = 0
+          MarginRight = 2
+          Title.AdjustFrame = False
+          Title.Text.Strings = (
+            'TChart')
+          Title.Visible = False
+          BottomAxis.Automatic = False
+          BottomAxis.AutomaticMaximum = False
+          BottomAxis.AutomaticMinimum = False
+          BottomAxis.Maximum = 1000
+          LeftAxis.Automatic = False
+          LeftAxis.AutomaticMaximum = False
+          LeftAxis.AutomaticMinimum = False
+          LeftAxis.Maximum = 1000
+          Legend.Visible = False
+          View3D = False
+          View3DWalls = False
+          BevelOuter = bvNone
+          TabOrder = 9
+          object pntsrsSeries2: TPointSeries
+            Marks.ArrowLength = 0
+            Marks.Visible = False
+            SeriesColor = clRed
+            Pointer.Brush.Color = clRed
+            Pointer.HorizSize = 2
+            Pointer.InflateMargins = False
+            Pointer.Pen.Visible = False
+            Pointer.Style = psCircle
+            Pointer.VertSize = 2
+            Pointer.Visible = True
+            XValues.DateTime = False
+            XValues.Name = 'X'
+            XValues.Multiplier = 1
+            XValues.Order = loAscending
+            YValues.DateTime = False
+            YValues.Name = 'Y'
+            YValues.Multiplier = 1
+            YValues.Order = loNone
+          end
+        end
+      end
     end
   end
 end

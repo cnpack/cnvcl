@@ -24,11 +24,13 @@ unit CnECC;
 * 软件名称：开发包基础库
 * 单元名称：椭圆曲线算法单元
 * 单元作者：刘啸
-* 备    注：目前只实现 Int64 范围内的某类椭圆曲线的计算。
+* 备    注：目前只实现 Int64 范围内形如 y^2 = x^3 + Ax + B mod p 这类椭圆曲线的计算。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.09.05 V1.0
+* 修改记录：2018.09.08 V1.1
+*               能够生成系数很小的椭圆曲线参数
+*           2018.09.05 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -108,10 +110,11 @@ type
   end;
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
+{* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
-{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现}
+{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以完整实现，只能先生成系数很小的}
 
 function CnInt64EccDiffieHellmanGenerateOutKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
   out PublicKey: TCnInt64PublicKey): Boolean;
@@ -125,6 +128,7 @@ function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TC
 
 implementation
 
+// 将一个 TCnInt64EccPoint 点坐标转换为字符串
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 begin
   Result := Format('%d,%d', [P.X, P.Y]);
@@ -133,11 +137,58 @@ end;
 // 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
+var
+  I, J: Integer;
+  N: Int64;
+  P: TCnInt64EccPoint;
+  Ecc64: TCnInt64Ecc;
 begin
   // 步骤：随机选有限域素数 p，与随机的 a、b，用 SEA 算法计算该曲线的阶 N
   // 判断 N 是大素数或其一半或三分之一是大素数，然后这个大素数作为循环子群的阶 n
   // 再根据 n 寻找基点 G 的坐标。如果 n 就等于 N 这个大素数，则 G 随便选都行。
-  raise ECnEccException.Create('NOT Implemented.');
+  // raise ECnEccException.Create('NOT Implemented.');
+
+  repeat
+    // FiniteFieldSize := CnGenerateUInt32Prime;
+    Randomize;
+    I := Trunc(Random * ((High(CN_PRIME_NUMBERS_SQRT_UINT32) div 32) - 100)) + 100;
+    FiniteFieldSize := CN_PRIME_NUMBERS_SQRT_UINT32[I];
+    CoefficientA := Trunc(Random * 16);
+    CoefficientB := Trunc(Random * 256);
+    N := 1; // 0,0 天然就算
+
+    if (4 * CoefficientA * CoefficientA * CoefficientA - 27 * CoefficientB * CoefficientB)
+      mod FiniteFieldSize = 0 then
+      Continue;
+
+    GX := 0;
+    GY := 0;
+
+    // 以下求该椭圆曲线的阶，不懂 SEA，只能用特慢的穷举法
+    Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
+    for I := 0 to FiniteFieldSize - 1 do
+    begin
+      for J := 0 to FiniteFieldSize - 1 do
+      begin
+        P.X := I;
+        P.Y := J;
+        if Ecc64.IsPointOnCurve(P) then
+        begin
+          Inc(N);
+          if (GX = 0) or (GY = 0) then // 第一个满足的就当作基点
+          begin
+            GX := P.X;
+            GY := P.Y;
+          end;
+        end;
+      end;
+    end;
+
+    // N 为这条椭圆曲线的阶
+  until CnInt64IsPrime(N);
+
+  Order := N;
+  Result := True;
 end;
 
 // 逐位确定法快速计算整数的平方根的整数部分，如果是负数则先取正

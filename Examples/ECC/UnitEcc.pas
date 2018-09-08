@@ -71,6 +71,22 @@ type
     btnDHACKey: TButton;
     edtAKey: TEdit;
     edtBKey: TEdit;
+    grpGenEcc: TGroupBox;
+    btnGenEcc: TButton;
+    lblEccY2: TLabel;
+    edtEccA: TEdit;
+    edtEccB: TEdit;
+    edtEccP: TEdit;
+    lblEccG: TLabel;
+    edtEccGX: TEdit;
+    edtEccGY: TEdit;
+    lblEccOrder: TLabel;
+    edtEccOrder: TEdit;
+    btnCalcNG: TButton;
+    Bevel3: TBevel;
+    mmoGenECCPoints: TMemo;
+    chtEccInt64: TChart;
+    pntsrsSeries2: TPointSeries;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -92,6 +108,8 @@ type
     procedure btnCalcYbClick(Sender: TObject);
     procedure btnDHACKeyClick(Sender: TObject);
     procedure btnDHBCKClick(Sender: TObject);
+    procedure btnGenEccClick(Sender: TObject);
+    procedure btnCalcNGClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -379,6 +397,55 @@ begin
   InPriv := StrToInt(edtDHXb.Text);
   CnInt64EccDiffieHellmanCalucateKey(FEcc64E2311, InPriv, FAOutPub, Sec);
   edtBKey.Text := CnInt64EccPointToString(Sec);
+end;
+
+procedure TFormEcc.btnGenEccClick(Sender: TObject);
+var
+  P, A, B, X, Y, N: Int64;
+begin
+  if CnInt64EccGenerateParams(P, A, B, X, Y, N) then
+  begin
+    edtEccA.Text := IntToStr(A);
+    edtEccB.Text := IntToStr(B);
+    edtEccGX.Text := IntToStr(X);
+    edtEccGY.Text := IntToStr(Y);
+    edtEccP.Text := IntToStr(P);
+    edtEccOrder.Text := IntToStr(N);
+  end;
+end;
+
+procedure TFormEcc.btnCalcNGClick(Sender: TObject);
+var
+  P, A, B, X, Y, N: Int64;
+  Ecc: TCnInt64Ecc;
+  I: Integer;
+  Q: TCnInt64EccPoint;
+begin
+  A := StrToInt(edtEccA.Text);
+  B := StrToInt(edtEccB.Text);
+  X := StrToInt(edtEccGX.Text);
+  Y := StrToInt(edtEccGY.Text);
+  P := StrToInt(edtEccP.Text);
+  N := StrToInt(edtEccOrder.Text);
+
+  Ecc := TCnInt64Ecc.Create(A, B, P, X, Y, N);
+  mmoGenECCPoints.Lines.Clear;
+  chtEccInt64.SeriesList[0].Clear;
+  chtEccInt64.BottomAxis.Maximum := P - 1;
+  chtEccInt64.LeftAxis.Maximum := P - 1;
+
+  for I := 0 to N do
+  begin
+    Q.X := X;
+    Q.Y := Y;
+    Ecc.MultiplePoint(I, Q);
+    if (Q.X = 0) and (Q.Y = 0) then
+      mmoGenECCPoints.Lines.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
+    else
+      mmoGenECCPoints.Lines.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
+    chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
+  end;
+  Ecc.Free;
 end;
 
 end.
