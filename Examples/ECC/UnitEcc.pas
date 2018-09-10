@@ -420,6 +420,7 @@ var
   Ecc: TCnInt64Ecc;
   I: Integer;
   Q: TCnInt64EccPoint;
+  List: TStrings;
 begin
   A := StrToInt(edtEccA.Text);
   B := StrToInt(edtEccB.Text);
@@ -434,17 +435,20 @@ begin
   chtEccInt64.BottomAxis.Maximum := P - 1;
   chtEccInt64.LeftAxis.Maximum := P - 1;
 
-  for I := 0 to N do
+  List := TStringList.Create;
+  for I := 0 to N + 1 do
   begin
     Q.X := X;
     Q.Y := Y;
     Ecc.MultiplePoint(I, Q);
     if (Q.X = 0) and (Q.Y = 0) then
-      mmoGenECCPoints.Lines.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
+      List.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
     else
-      mmoGenECCPoints.Lines.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
+      List.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
     chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
   end;
+  mmoGenECCPoints.Lines.Assign(List);
+  List.Free;
   Ecc.Free;
 end;
 

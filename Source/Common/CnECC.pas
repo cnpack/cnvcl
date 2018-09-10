@@ -28,8 +28,8 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.09.08 V1.1
-*               能够生成系数很小的椭圆曲线参数
+* 修改记录：2018.09.10 V1.1
+*               能够生成系数很小的椭圆曲线参数，稍大一点基点的阶就不对
 *           2018.09.05 V1.0
 *               创建单元
 ================================================================================
@@ -40,13 +40,13 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl, CnPrimeNumber;
+  SysUtils, Classes, CnNativeDecl, CnPrimeNumber, CnBigNumber;
 
 type
   ECnEccException = class(Exception);
 
   TCnInt64EccPoint = packed record
-  {* Int64 范围内的椭圆曲线的基点描述结构}
+  {* Int64 范围内的椭圆曲线上的点描述结构}
     X: Int64;
     Y: Int64;
   end;
@@ -109,6 +109,81 @@ type
     {* 基点的阶数}
   end;
 
+  TCnEccPoint = class
+  {* 椭圆曲线上的点描述类}
+  private
+    FY: TCnBigNumber;
+    FX: TCnBigNumber;
+    procedure SetX(const Value: TCnBigNumber);
+    procedure SetY(const Value: TCnBigNumber);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property X: TCnBigNumber read FX write SetX;
+    property Y: TCnBigNumber read FY write SetY;
+  end;
+
+  TCnEccPublicKey = TCnEccPoint;
+  {* 椭圆曲线的公钥，G 点计算 k 次后的点坐标}
+
+  TCnEccPrivateKey = TCnBigNumber;
+  {* 椭圆曲线的私钥，计算次数 k 次}
+
+  TCnEccPredefinedCurveType = (ctCustomized, ctSecp256k1);
+  {* 支持的椭圆曲线类型}
+
+  TCnEcc = class
+  {* 描述一有限域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
+  private
+    FCoefficientB: TCnBigNumber;
+    FCoefficientA: TCnBigNumber;
+    FOrder: TCnBigNumber;
+    FFiniteFieldSize: TCnBigNumber;
+    FGenerator: TCnEccPoint;
+  public
+    constructor Create; overload;
+    constructor Create(Predefined: TCnEccPredefinedCurveType); overload;
+    constructor Create(const A, B, FieldPrime, GX, GY, Order: AnsiString); overload;
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    procedure PointInverse(P: TCnEccPoint);
+    {* 计算 P 点的逆元 -P，值重新放入 P}
+    function IsPointOnCurve(P: TCnEccPoint): Boolean;
+    {* 判断 P 点是否在本曲线上}
+
+    function PlainToPoint(Plain: TCnBigNumber; OutPoint: TCnEccPoint): Boolean;
+    {* 将要加密的明文数值包装成一个待加密的点}
+
+    procedure GenerateKeys(out PrivateKey: TCnEccPrivateKey; out PublicKey: TCnEccPublicKey);
+    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
+    procedure Encrypt(PlainPoint: TCnEccPoint; PublicKey: TCnEccPublicKey;
+      OutDataPoint1, OutDataPoint2: TCnEccPoint);
+    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G}
+    procedure Decrypt(DataPoint1, DataPoint2: TCnEccPoint;
+      PrivateKey: TCnEccPrivateKey; OutPlainPoint: TCnEccPoint);
+    {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M}
+
+    property Generator: TCnEccPoint read FGenerator;
+    {* 基点坐标 G}
+    property CoefficientA: TCnBigNumber read FCoefficientA;
+    {* 方程系数 A}
+    property CoefficientB: TCnBigNumber read FCoefficientB;
+    {* 方程系数 B}
+    property FiniteFieldSize: TCnBigNumber read FFiniteFieldSize;
+    {* 有限域的上界，素数 p}
+    property Order: TCnBigNumber read FOrder;
+    {* 基点的阶数}
+  end;
+
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
@@ -128,17 +203,54 @@ function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TC
 
 implementation
 
+type
+  TCnEccPredefinedHexParams = packed record
+    P: AnsiString;
+    A: AnsiString;
+    B: AnsiString;
+    GX: AnsiString;
+    GY: AnsiString;
+    N: AnsiString;
+    H: AnsiString;
+  end;
+
+const
+  ECC_PRE_DEFINED_PARAMS: array[TCnEccPredefinedCurveType] of TCnEccPredefinedHexParams = (
+    (P: ''; A: ''; B: ''; GX: ''; GY: ''; N: ''; H: ''),
+    ( // secp256k1
+      P: 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F';
+      A: '00';
+      B: '07';
+      GX: '79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798';
+      GY: '483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8';
+      N: 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141';
+      H: '01'
+    )
+  );
+
 // 将一个 TCnInt64EccPoint 点坐标转换为字符串
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 begin
   Result := Format('%d,%d', [P.X, P.Y]);
 end;
 
+// 计算勒让德符号 ( A / P) 的值
+function CalcLegendre(A, P: Int64): Integer;
+begin
+  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+  if A mod P = 0 then
+    Result := 0
+  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+    Result := 1
+  else
+    Result := -1;
+end;
+
 // 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
 var
-  I, J: Integer;
+  I: Integer;
   N: Int64;
   P: TCnInt64EccPoint;
   Ecc64: TCnInt64Ecc;
@@ -149,14 +261,15 @@ begin
   // raise ECnEccException.Create('NOT Implemented.');
 
   repeat
-    // FiniteFieldSize := CnGenerateUInt32Prime;
+    // FiniteFieldSize := CnGenerateUInt32Prime; // 先用小点儿的素数
     Randomize;
-    I := Trunc(Random * ((High(CN_PRIME_NUMBERS_SQRT_UINT32) div 32) - 100)) + 100;
+    I := Trunc(Random * (High(CN_PRIME_NUMBERS_SQRT_UINT32) - 100)) + 100;
     FiniteFieldSize := CN_PRIME_NUMBERS_SQRT_UINT32[I];
     CoefficientA := Trunc(Random * 16);
     CoefficientB := Trunc(Random * 256);
     N := 1; // 0,0 天然就算
 
+    // A、B 都比较小，这里不用担心溢出
     if (4 * CoefficientA * CoefficientA * CoefficientA - 27 * CoefficientB * CoefficientB)
       mod FiniteFieldSize = 0 then
       Continue;
@@ -164,25 +277,60 @@ begin
     GX := 0;
     GY := 0;
 
-    // 以下求该椭圆曲线的阶，不懂 SEA，只能用特慢的穷举法
-    Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
+    // 以下求该椭圆曲线的阶，不懂 SEA，原先只能用特慢的穷举法，后改用勒让德公式
+    // N := 1 + P + 所有的勒让德((x^3+ax+b)/p)之和，其中 X 从 0 到 P - 1
+    Inc(N, FiniteFieldSize);
     for I := 0 to FiniteFieldSize - 1 do
-    begin
-      for J := 0 to FiniteFieldSize - 1 do
+      N := N + CalcLegendre(I * I * I + CoefficientA * I + CoefficientB, FiniteFieldSize);
+
+    // 然后随机找一个 X 求 Y
+    Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
+    repeat
+      P.X := Trunc(Random * (FiniteFieldSize - 1)) + 1;
+      for I := 0 to FiniteFieldSize - 1 do
       begin
-        P.X := I;
-        P.Y := J;
+        P.Y := I;
         if Ecc64.IsPointOnCurve(P) then
         begin
-          Inc(N);
-          if (GX = 0) or (GY = 0) then // 第一个满足的就当作基点
-          begin
-            GX := P.X;
-            GY := P.Y;
-          end;
+          GX := P.X;
+          GY := P.Y;
+          Break;
         end;
       end;
-    end;
+    until (GX > 0) and (GY > 0);
+    Ecc64.Free;
+
+//    以下代码用穷举法来验证 N 是否正确，目前小范围看起来基本上没错
+//    N := 1;
+//    Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
+//    for I := 0 to FiniteFieldSize - 1 do
+//    begin
+//      for J := 0 to FiniteFieldSize - 1 do
+//      begin
+//        P.X := I;
+//        P.Y := J;
+//        if Ecc64.IsPointOnCurve(P) then
+//        begin
+//          Inc(N);
+//          if (GX = 0) or (GY = 0) then // 第一个满足的就当作基点
+//          begin
+//            GX := P.X;
+//            GY := P.Y;
+//          end;
+//
+//          if P.Y > 0 then
+//          begin
+//            P.Y := FiniteFieldSize - P.Y;
+//            if Ecc64.IsPointOnCurve(P) then
+//              Inc(N);
+//          end;
+//
+//          // 这个 X 已经查完了，每个 X 不会有多于两个 Y。
+//          Break;
+//        end;
+//      end;
+//      // Break 到此，进行下一个 X 的循环
+//    end;
 
     // N 为这条椭圆曲线的阶
   until CnInt64IsPrime(N);
@@ -513,6 +661,121 @@ begin
     Ecc.MultiplePoint(SelfPrivateKey, SecretKey);
     Result := True;
   end;
+end;
+
+{ TCnEccPoint }
+
+constructor TCnEccPoint.Create;
+begin
+  inherited;
+  FX := TCnBigNumber.Create;
+  FY := TCnBigNumber.Create;
+end;
+
+destructor TCnEccPoint.Destroy;
+begin
+  FY.Free;
+  FX.Free;
+  inherited;
+end;
+
+procedure TCnEccPoint.SetX(const Value: TCnBigNumber);
+begin
+  BigNumberCopy(FX, Value);
+end;
+
+procedure TCnEccPoint.SetY(const Value: TCnBigNumber);
+begin
+  BigNumberCopy(FY, Value);
+end;
+
+{ TCnEcc }
+
+constructor TCnEcc.Create(const A, B, FieldPrime, GX, GY, Order: AnsiString);
+begin
+  Create;
+  FGenerator.X.SetHex(GX);
+  FGenerator.Y.SetHex(GY);
+  FCoefficientA.SetHex(A);
+  FCoefficientB.SetHex(B);
+  FFiniteFieldSize.SetHex(FieldPrime);
+  FOrder.SetHex(Order);
+end;
+
+constructor TCnEcc.Create;
+begin
+  inherited;
+  FGenerator := TCnEccPoint.Create;
+  FCoefficientB := TCnBigNumber.Create;
+  FCoefficientA := TCnBigNumber.Create;
+  FOrder := TCnBigNumber.Create;
+  FFiniteFieldSize := TCnBigNumber.Create;
+end;
+
+constructor TCnEcc.Create(Predefined: TCnEccPredefinedCurveType);
+begin
+  Create(ECC_PRE_DEFINED_PARAMS[Predefined].A, ECC_PRE_DEFINED_PARAMS[Predefined].B,
+    ECC_PRE_DEFINED_PARAMS[Predefined].P, ECC_PRE_DEFINED_PARAMS[Predefined].GX,
+    ECC_PRE_DEFINED_PARAMS[Predefined].GY, ECC_PRE_DEFINED_PARAMS[Predefined].N);
+end;
+
+procedure TCnEcc.Decrypt(DataPoint1, DataPoint2: TCnEccPoint;
+  PrivateKey: TCnEccPrivateKey; OutPlainPoint: TCnEccPoint);
+begin
+
+end;
+
+destructor TCnEcc.Destroy;
+begin
+  FGenerator.Free;
+  FCoefficientB.Free;
+  FCoefficientA.Free;
+  FOrder.Free;
+  FFiniteFieldSize.Free;
+  inherited;
+end;
+
+procedure TCnEcc.Encrypt(PlainPoint: TCnEccPoint;
+  PublicKey: TCnEccPublicKey; OutDataPoint1, OutDataPoint2: TCnEccPoint);
+begin
+
+end;
+
+procedure TCnEcc.GenerateKeys(out PrivateKey: TCnEccPrivateKey;
+  out PublicKey: TCnEccPublicKey);
+begin
+
+end;
+
+function TCnEcc.IsPointOnCurve(P: TCnEccPoint): Boolean;
+begin
+
+end;
+
+procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+begin
+
+end;
+
+function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
+  OutPoint: TCnEccPoint): Boolean;
+begin
+
+end;
+
+procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
+begin
+
+end;
+
+procedure TCnEcc.PointInverse(P: TCnEccPoint);
+begin
+
+end;
+
+procedure TCnEcc.PointSubPoint(P, Q, Diff: TCnEccPoint);
+begin
+
 end;
 
 end.

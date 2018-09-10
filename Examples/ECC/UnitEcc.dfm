@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsSimpleECC
+    ActivePage = tsInt64ECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -631,6 +631,8 @@ object FormEcc: TFormEcc
           Height = 289
           ScrollBars = ssVertical
           TabOrder = 8
+          WantReturns = False
+          WordWrap = False
         end
         object chtEccInt64: TChart
           Left = 8
@@ -664,11 +666,11 @@ object FormEcc: TFormEcc
             Marks.Visible = False
             SeriesColor = clRed
             Pointer.Brush.Color = clRed
-            Pointer.HorizSize = 2
+            Pointer.HorizSize = 1
             Pointer.InflateMargins = False
             Pointer.Pen.Visible = False
             Pointer.Style = psCircle
-            Pointer.VertSize = 2
+            Pointer.VertSize = 1
             Pointer.Visible = True
             XValues.DateTime = False
             XValues.Name = 'X'
