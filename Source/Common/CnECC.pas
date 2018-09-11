@@ -29,7 +29,7 @@ unit CnECC;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2018.09.10 V1.1
-*               能够生成系数很小的椭圆曲线参数，稍大一点基点的阶就不对
+*               能够生成系数很小的椭圆曲线参数
 *           2018.09.05 V1.0
 *               创建单元
 ================================================================================
@@ -258,10 +258,9 @@ begin
   // 步骤：随机选有限域素数 p，与随机的 a、b，用 SEA 算法计算该曲线的阶 N
   // 判断 N 是大素数或其一半或三分之一是大素数，然后这个大素数作为循环子群的阶 n
   // 再根据 n 寻找基点 G 的坐标。如果 n 就等于 N 这个大素数，则 G 随便选都行。
-  // raise ECnEccException.Create('NOT Implemented.');
 
   repeat
-    // FiniteFieldSize := CnGenerateUInt32Prime; // 先用小点儿的素数
+    // FiniteFieldSize := CnGenerateUInt32Prime; // 先用小点儿的素数，但也不能太小
     Randomize;
     I := Trunc(Random * (High(CN_PRIME_NUMBERS_SQRT_UINT32) - 100)) + 100;
     FiniteFieldSize := CN_PRIME_NUMBERS_SQRT_UINT32[I];
@@ -281,7 +280,10 @@ begin
     // N := 1 + P + 所有的勒让德((x^3+ax+b)/p)之和，其中 X 从 0 到 P - 1
     Inc(N, FiniteFieldSize);
     for I := 0 to FiniteFieldSize - 1 do
-      N := N + CalcLegendre(I * I * I + CoefficientA * I + CoefficientB, FiniteFieldSize);
+    begin
+      // 这里得用 Int64 先转换一下，否则 I 的三次方超过 Integer 溢出了
+      N := N + CalcLegendre(Int64(I) * Int64(I) * Int64(I) + CoefficientA * I + CoefficientB, FiniteFieldSize);
+    end;
 
     // 然后随机找一个 X 求 Y
     Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
