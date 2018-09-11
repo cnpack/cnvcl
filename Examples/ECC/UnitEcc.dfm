@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 134
-  Top = 131
+  Left = 237
+  Top = 37
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsInt64ECC
+    ActivePage = tsECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -681,6 +681,99 @@ object FormEcc: TFormEcc
             YValues.Multiplier = 1
             YValues.Order = loNone
           end
+        end
+        object btnLeRanDe: TButton
+          Left = 480
+          Top = 88
+          Width = 75
+          Height = 25
+          Caption = 'Legendre'
+          TabOrder = 10
+          OnClick = btnLeRanDeClick
+        end
+      end
+    end
+    object tsECC: TTabSheet
+      Caption = 'BigNumber ECC'
+      ImageIndex = 2
+      object grpBNEcc: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 697
+        Height = 409
+        Caption = 'BigNumber Ecc'
+        TabOrder = 0
+        object lblBNEqu: TLabel
+          Left = 16
+          Top = 28
+          Width = 221
+          Height = 13
+          Caption = 'Y ^ 2 = X ^ 3    +                X +                 mod  '
+        end
+        object lblBNGX: TLabel
+          Left = 16
+          Top = 60
+          Width = 18
+          Height = 13
+          Caption = 'GX:'
+        end
+        object lblBNGY: TLabel
+          Left = 360
+          Top = 60
+          Width = 18
+          Height = 13
+          Caption = 'GY:'
+        end
+        object lblBNEccOrder: TLabel
+          Left = 16
+          Top = 92
+          Width = 29
+          Height = 13
+          Caption = 'Order:'
+        end
+        object edtBNEccA: TEdit
+          Left = 104
+          Top = 24
+          Width = 33
+          Height = 21
+          TabOrder = 0
+          Text = '0'
+        end
+        object edtBNEccB: TEdit
+          Left = 168
+          Top = 24
+          Width = 33
+          Height = 21
+          TabOrder = 1
+          Text = '7'
+        end
+        object edtBNEccP: TEdit
+          Left = 240
+          Top = 24
+          Width = 441
+          Height = 21
+          TabOrder = 2
+        end
+        object edtBNEccGX: TEdit
+          Left = 48
+          Top = 56
+          Width = 289
+          Height = 21
+          TabOrder = 3
+        end
+        object edtBNEccGY: TEdit
+          Left = 392
+          Top = 56
+          Width = 289
+          Height = 21
+          TabOrder = 4
+        end
+        object edtBNEccOrder: TEdit
+          Left = 56
+          Top = 88
+          Width = 625
+          Height = 21
+          TabOrder = 5
         end
       end
     end

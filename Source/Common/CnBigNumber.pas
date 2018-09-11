@@ -464,6 +464,10 @@ function BigNumberDebugDump(const Num: TCnBigNumber): string;
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
 
+var
+  CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的常量
+  CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的常量
+
 implementation
 
 uses
@@ -4231,8 +4235,14 @@ end;
 
 initialization
   FLocalBigNumberPool := TObjectList.Create(False);
+  CnBigNumberOne := TCnBigNumber.Create;
+  CnBigNumberOne.SetOne;
+  CnBigNumberZero := TCnBigNumber.Create;
+  CnBigNumberZero.SetZero;
 
 finalization
+  CnBigNumberOne.Free;
+  CnBigNumberZero.Free;
   FreeBigNumberPool;
 
 end.

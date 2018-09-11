@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart;
+  Chart, CnPrimeNumber;
 
 type
   TFormEcc = class(TForm)
@@ -87,6 +87,19 @@ type
     mmoGenECCPoints: TMemo;
     chtEccInt64: TChart;
     pntsrsSeries2: TPointSeries;
+    btnLeRanDe: TButton;
+    tsECC: TTabSheet;
+    grpBNEcc: TGroupBox;
+    lblBNEqu: TLabel;
+    edtBNEccA: TEdit;
+    edtBNEccB: TEdit;
+    edtBNEccP: TEdit;
+    lblBNGX: TLabel;
+    edtBNEccGX: TEdit;
+    edtBNEccGY: TEdit;
+    lblBNGY: TLabel;
+    lblBNEccOrder: TLabel;
+    edtBNEccOrder: TEdit;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -110,14 +123,18 @@ type
     procedure btnDHBCKClick(Sender: TObject);
     procedure btnGenEccClick(Sender: TObject);
     procedure btnCalcNGClick(Sender: TObject);
+    procedure btnLeRanDeClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
     FEcc64PrivateKey: TCnInt64PrivateKey;
     FEcc64PublicKey: TCnInt64PublicKey;
     FEcc64Enc1, FEcc64Enc2: TCnInt64EccPoint;
+
+    FBNEcc: TCnEcc;
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
+    procedure ShowBnEcc;
   public
     { Public declarations }
   end;
@@ -220,10 +237,14 @@ begin
   // 9,7 为基点，28 是该曲线的阶，选其素因数 7 作为基点的阶，基点为 5,4
   CalcE2311Points;
   UpdateE2311Chart;
+
+  FBNEcc := TCnEcc.Create(ctSecp256k1);
+  ShowBnEcc;
 end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
 begin
+  FBNEcc.Free;
   FEcc64E2311.Free;
 end;
 
@@ -450,6 +471,37 @@ begin
   mmoGenECCPoints.Lines.Assign(List);
   List.Free;
   Ecc.Free;
+end;
+
+// 计算勒让德符号 ( A / P) 的值
+function CalcLegendre(A, P: Int64): Integer;
+begin
+  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+  if A mod P = 0 then
+    Result := 0
+  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+    Result := 1
+  else
+    Result := -1;
+end;
+
+procedure TFormEcc.btnLeRanDeClick(Sender: TObject);
+var
+  I: Integer;
+begin
+  I := 1297;
+  CalcLegendre(I * I * I + 225, 21893);
+  CalcLegendre(Int64(I) * Int64(I) * Int64(I) + 225, 21893);
+end;
+
+procedure TFormEcc.ShowBnEcc;
+begin
+  edtBNEccA.Text := FBNEcc.CoefficientA.ToDec;
+  edtBNEccB.Text := FBNEcc.CoefficientB.ToDec;
+  edtBNEccP.Text := FBNEcc.FiniteFieldSize.ToDec;
+  edtBNEccGX.Text := FBNEcc.Generator.X.ToDec;
+  edtBNEccGY.Text := FBNEcc.Generator.Y.ToDec;
+  edtBNEccOrder.Text := FBNEcc.Order.ToDec;
 end;
 
 end.

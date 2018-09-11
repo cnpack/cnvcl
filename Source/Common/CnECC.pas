@@ -149,6 +149,10 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    procedure Load(Predefined: TCnEccPredefinedCurveType); overload;
+    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString); overload;
+    {* 加载曲线参数}
+
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
@@ -186,6 +190,9 @@ type
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
+
+function CnEccPointToString(const P: TCnEccPoint): string;
+{* 将一个 TCnEccPoint 点坐标转换为字符串}
 
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
@@ -234,8 +241,14 @@ begin
   Result := Format('%d,%d', [P.X, P.Y]);
 end;
 
+// 将一个 TCnEccPoint 点坐标转换为字符串
+function CnEccPointToString(const P: TCnEccPoint): string;
+begin
+  Result := Format('%s,%s', [P.X.ToDec, P.Y.ToDec]);
+end;
+
 // 计算勒让德符号 ( A / P) 的值
-function CalcLegendre(A, P: Int64): Integer;
+function CalcInt64Legendre(A, P: Int64): Integer;
 begin
   // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
   if A mod P = 0 then
@@ -282,7 +295,7 @@ begin
     for I := 0 to FiniteFieldSize - 1 do
     begin
       // 这里得用 Int64 先转换一下，否则 I 的三次方超过 Integer 溢出了
-      N := N + CalcLegendre(Int64(I) * Int64(I) * Int64(I) + CoefficientA * I + CoefficientB, FiniteFieldSize);
+      N := N + CalcInt64Legendre(Int64(I) * Int64(I) * Int64(I) + CoefficientA * I + CoefficientB, FiniteFieldSize);
     end;
 
     // 然后随机找一个 X 求 Y
@@ -672,6 +685,8 @@ begin
   inherited;
   FX := TCnBigNumber.Create;
   FY := TCnBigNumber.Create;
+  FX.SetZero;
+  FY.SetZero;
 end;
 
 destructor TCnEccPoint.Destroy;
@@ -696,12 +711,7 @@ end;
 constructor TCnEcc.Create(const A, B, FieldPrime, GX, GY, Order: AnsiString);
 begin
   Create;
-  FGenerator.X.SetHex(GX);
-  FGenerator.Y.SetHex(GY);
-  FCoefficientA.SetHex(A);
-  FCoefficientB.SetHex(B);
-  FFiniteFieldSize.SetHex(FieldPrime);
-  FOrder.SetHex(Order);
+  Load(A, B, FIeldPrime, GX, GY, Order);
 end;
 
 constructor TCnEcc.Create;
@@ -716,9 +726,8 @@ end;
 
 constructor TCnEcc.Create(Predefined: TCnEccPredefinedCurveType);
 begin
-  Create(ECC_PRE_DEFINED_PARAMS[Predefined].A, ECC_PRE_DEFINED_PARAMS[Predefined].B,
-    ECC_PRE_DEFINED_PARAMS[Predefined].P, ECC_PRE_DEFINED_PARAMS[Predefined].GX,
-    ECC_PRE_DEFINED_PARAMS[Predefined].GY, ECC_PRE_DEFINED_PARAMS[Predefined].N);
+  Create;
+  Load(Predefined);
 end;
 
 procedure TCnEcc.Decrypt(DataPoint1, DataPoint2: TCnEccPoint;
@@ -754,9 +763,63 @@ begin
 
 end;
 
-procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+procedure TCnEcc.Load(Predefined: TCnEccPredefinedCurveType);
 begin
+  Load(ECC_PRE_DEFINED_PARAMS[Predefined].A, ECC_PRE_DEFINED_PARAMS[Predefined].B,
+    ECC_PRE_DEFINED_PARAMS[Predefined].P, ECC_PRE_DEFINED_PARAMS[Predefined].GX,
+    ECC_PRE_DEFINED_PARAMS[Predefined].GY, ECC_PRE_DEFINED_PARAMS[Predefined].N);
+end;
 
+procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString);
+begin
+  FGenerator.X.SetHex(GX);
+  FGenerator.Y.SetHex(GY);
+  FCoefficientA.SetHex(A);
+  FCoefficientB.SetHex(B);
+  FFiniteFieldSize.SetHex(FieldPrime);
+  FOrder.SetHex(Order);
+end;
+
+procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+var
+  I: Integer;
+  E, R: TCnEccPoint;
+begin
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    PointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then
+  begin
+    Point.X.SetZero;
+    Point.Y.SetZero;
+    Exit;
+  end;
+
+  R := nil;
+  E := nil;
+
+  try
+    R := TCnEccPoint.Create;
+    E := TCnEccPoint.Create;
+    E.X := Point.X;
+    E.Y := Point.Y;
+
+    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    begin
+      if BigNumberIsBitSet(K, I) then
+        PointAddPoint(R, E, R);
+      PointAddPoint(E, E, E);
+    end;
+
+    Point.X := R.X;
+    Point.Y := R.Y;
+  finally
+    R.Free;
+    E.Free;
+  end;
 end;
 
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
@@ -772,12 +835,22 @@ end;
 
 procedure TCnEcc.PointInverse(P: TCnEccPoint);
 begin
+  if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
+    raise ECnEccException.Create('Inverse Error');
 
+  BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
 
 procedure TCnEcc.PointSubPoint(P, Q, Diff: TCnEccPoint);
+var
+  Inv: TCnEccPoint;
 begin
-
+  Inv := TCnEccPoint.Create;
+  Inv.X := Q.X;
+  Inv.Y := Q.Y;
+  PointInverse(Inv);
+  PointAddPoint(P, Inv, Diff);
+  Inv.Free;
 end;
 
 end.
