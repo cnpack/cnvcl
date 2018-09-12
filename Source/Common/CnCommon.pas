@@ -5672,7 +5672,7 @@ begin
           Left := Prompt.Left;
           Top := MulDiv(19, DialogUnits.Y, 8);
           Width := MulDiv(164, DialogUnits.X, 4);
-          MaxLength := 1024;
+          // MaxLength := 1024;
           ReadStringsFromIni(Ini, Section, ComboBox.Items);
           if (Value = '') and (ComboBox.Items.Count > 0) then
             Text := ComboBox.Items[0]
@@ -5690,7 +5690,7 @@ begin
           Left := Prompt.Left;
           Top := MulDiv(19, DialogUnits.Y, 8);
           Width := MulDiv(164, DialogUnits.X, 4);
-          MaxLength := 1024;
+          // MaxLength := 1024;
           if APassword then
             PasswordChar := '*';
           Text := Value;
