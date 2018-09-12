@@ -58,6 +58,7 @@ type
     btnRandRange: TButton;
     btnEnterNum1: TButton;
     btnEnterNum2: TButton;
+    btnMInverse: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -97,6 +98,7 @@ type
     procedure btnRandRangeClick(Sender: TObject);
     procedure btnEnterNum1Click(Sender: TObject);
     procedure btnEnterNum2Click(Sender: TObject);
+    procedure btnMInverseClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -634,6 +636,26 @@ begin
       CheckStringAndNumber(mmoNum2.Lines.Text, Num2);
     end;
   end;
+end;
+
+procedure TFormBigNumber.btnMInverseClick(Sender: TObject);
+var
+  Res, R: TCnBigNumber;
+begin
+  Res := BigNumberNew;
+  // 如何保证这俩互质？
+  BigNumberModularInverse(Res, Num1, Num2);
+  ShowResult(Res);
+
+  // 验证 Res * Num1 mod Num2 = 1
+  R := BigNumberNew;
+  BigNumberMulMod(R, Res, Num1, Num2);
+  if R.IsOne then
+    ShowMessage('Modular Inverse Check OK')
+  else
+    ShowMessage('Modular Inverse Check Error: ' + R.ToDec);
+  BigNumberFree(R);
+  BigNumberFree(Res);
 end;
 
 end.

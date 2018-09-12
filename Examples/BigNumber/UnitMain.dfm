@@ -50,7 +50,7 @@ object FormBigNumber: TFormBigNumber
     Height = 153
     ReadOnly = True
     ScrollBars = ssVertical
-    TabOrder = 7
+    TabOrder = 8
   end
   object mmoNum2: TMemo
     Left = 16
@@ -59,7 +59,7 @@ object FormBigNumber: TFormBigNumber
     Height = 161
     ReadOnly = True
     ScrollBars = ssVertical
-    TabOrder = 27
+    TabOrder = 29
   end
   object btnGen1: TButton
     Left = 816
@@ -67,7 +67,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Generate'
-    TabOrder = 6
+    TabOrder = 7
     OnClick = btnGen1Click
   end
   object btnGen2: TButton
@@ -76,7 +76,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Generate'
-    TabOrder = 17
+    TabOrder = 18
     OnClick = btnGen2Click
   end
   object mmoResult: TMemo
@@ -86,7 +86,7 @@ object FormBigNumber: TFormBigNumber
     Height = 161
     ReadOnly = True
     ScrollBars = ssVertical
-    TabOrder = 41
+    TabOrder = 44
   end
   object btnDup: TButton
     Left = 72
@@ -94,7 +94,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Copy'
-    TabOrder = 8
+    TabOrder = 9
     OnClick = btnDupClick
   end
   object btnSwap: TButton
@@ -103,7 +103,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Swap'
-    TabOrder = 9
+    TabOrder = 10
     OnClick = btnSwapClick
   end
   object btnCompare: TButton
@@ -112,7 +112,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Compare'
-    TabOrder = 10
+    TabOrder = 11
     OnClick = btnCompareClick
   end
   object btnInverseNeg1: TButton
@@ -121,7 +121,7 @@ object FormBigNumber: TFormBigNumber
     Width = 81
     Height = 21
     Caption = 'Inverse Neg'
-    TabOrder = 4
+    TabOrder = 5
     OnClick = btnInverseNeg1Click
   end
   object btnInverseNeg2: TButton
@@ -130,7 +130,7 @@ object FormBigNumber: TFormBigNumber
     Width = 99
     Height = 21
     Caption = 'Inverse Negative'
-    TabOrder = 16
+    TabOrder = 17
     OnClick = btnInverseNeg2Click
   end
   object cbbDigits: TComboBox
@@ -139,7 +139,7 @@ object FormBigNumber: TFormBigNumber
     Width = 93
     Height = 21
     ItemHeight = 13
-    TabOrder = 3
+    TabOrder = 4
     Text = '4096'
     Items.Strings = (
       '4096'
@@ -160,7 +160,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Unsigned Add'
-    TabOrder = 28
+    TabOrder = 30
     OnClick = btnUAddClick
   end
   object btnUsub: TButton
@@ -169,7 +169,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Unsigned Sub'
-    TabOrder = 29
+    TabOrder = 31
     OnClick = btnUsubClick
   end
   object btnSignedAdd: TButton
@@ -178,7 +178,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Signed Add'
-    TabOrder = 30
+    TabOrder = 32
     OnClick = btnSignedAddClick
   end
   object btnSignedSub: TButton
@@ -187,7 +187,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Signed Sub'
-    TabOrder = 31
+    TabOrder = 33
     OnClick = btnSignedSubClick
   end
   object btnShiftRightOne: TButton
@@ -196,7 +196,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Shift Right 1'
-    TabOrder = 12
+    TabOrder = 13
     OnClick = btnShiftRightOneClick
   end
   object btnShiftleftOne: TButton
@@ -205,7 +205,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Shift Left 1'
-    TabOrder = 11
+    TabOrder = 12
     OnClick = btnShiftleftOneClick
   end
   object seShift: TSpinEdit
@@ -215,7 +215,7 @@ object FormBigNumber: TFormBigNumber
     Height = 22
     MaxValue = 0
     MinValue = 0
-    TabOrder = 13
+    TabOrder = 14
     Value = 2
   end
   object btnShiftRight: TButton
@@ -224,7 +224,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Shift Right'
-    TabOrder = 15
+    TabOrder = 16
     OnClick = btnShiftRightClick
   end
   object btnShiftLeft: TButton
@@ -233,7 +233,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Shift Left'
-    TabOrder = 14
+    TabOrder = 15
     OnClick = btnShiftLeftClick
   end
   object btnSqr: TButton
@@ -242,7 +242,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Sqr'
-    TabOrder = 32
+    TabOrder = 34
     OnClick = btnSqrClick
   end
   object btnMul: TButton
@@ -251,7 +251,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Mul'
-    TabOrder = 33
+    TabOrder = 35
     OnClick = btnMulClick
   end
   object btnDiv: TButton
@@ -260,7 +260,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Div'
-    TabOrder = 34
+    TabOrder = 36
     OnClick = btnDivClick
   end
   object btnMod: TButton
@@ -269,7 +269,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Mod'
-    TabOrder = 35
+    TabOrder = 37
     OnClick = btnModClick
   end
   object btnExp: TButton
@@ -278,7 +278,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Exp'
-    TabOrder = 36
+    TabOrder = 38
     OnClick = btnExpClick
   end
   object seExponent: TSpinEdit
@@ -288,7 +288,7 @@ object FormBigNumber: TFormBigNumber
     Height = 22
     MaxValue = 0
     MinValue = 0
-    TabOrder = 37
+    TabOrder = 39
     Value = 2
   end
   object pnlDisplay: TPanel
@@ -325,7 +325,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Gcd'
-    TabOrder = 38
+    TabOrder = 40
     OnClick = btnGcdClick
   end
   object btnGenWord: TButton
@@ -334,7 +334,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Geneate Word'
-    TabOrder = 18
+    TabOrder = 20
     OnClick = btnGenWordClick
   end
   object edtWord: TEdit
@@ -342,7 +342,7 @@ object FormBigNumber: TFormBigNumber
     Top = 230
     Width = 121
     Height = 21
-    TabOrder = 19
+    TabOrder = 21
     Text = '0'
   end
   object btnWordAdd: TButton
@@ -351,7 +351,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Add Word'
-    TabOrder = 20
+    TabOrder = 22
     OnClick = btnWordAddClick
   end
   object btnSubWord: TButton
@@ -360,7 +360,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Sub Word'
-    TabOrder = 21
+    TabOrder = 23
     OnClick = btnSubWordClick
   end
   object btnMulWord: TButton
@@ -369,7 +369,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Mul Word'
-    TabOrder = 22
+    TabOrder = 24
     OnClick = btnMulWordClick
   end
   object btnDivWord: TButton
@@ -378,7 +378,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Div Word'
-    TabOrder = 23
+    TabOrder = 25
     OnClick = btnDivWordClick
   end
   object btnModWord: TButton
@@ -387,7 +387,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Mod Word'
-    TabOrder = 24
+    TabOrder = 26
     OnClick = btnModWordClick
   end
   object btnVerifyDiv: TButton
@@ -396,7 +396,7 @@ object FormBigNumber: TFormBigNumber
     Width = 97
     Height = 21
     Caption = 'Verify Div Word'
-    TabOrder = 25
+    TabOrder = 27
     OnClick = btnVerifyDivClick
   end
   object btnMultipleMod: TButton
@@ -405,7 +405,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Multiple Mod'
-    TabOrder = 39
+    TabOrder = 41
     OnClick = btnMultipleModClick
   end
   object btnPowerMod: TButton
@@ -414,7 +414,7 @@ object FormBigNumber: TFormBigNumber
     Width = 75
     Height = 21
     Caption = 'Power Mod'
-    TabOrder = 40
+    TabOrder = 42
     OnClick = btnPowerModClick
   end
   object btnIsPrime: TButton
@@ -423,7 +423,7 @@ object FormBigNumber: TFormBigNumber
     Width = 73
     Height = 21
     Caption = 'Is Prime?'
-    TabOrder = 26
+    TabOrder = 28
     OnClick = btnIsPrimeClick
   end
   object btnGenPrime: TButton
@@ -432,7 +432,7 @@ object FormBigNumber: TFormBigNumber
     Width = 89
     Height = 21
     Caption = 'Generate Prime'
-    TabOrder = 2
+    TabOrder = 3
     OnClick = btnGenPrimeClick
   end
   object btnJudgeInt: TButton
@@ -441,7 +441,7 @@ object FormBigNumber: TFormBigNumber
     Width = 73
     Height = 21
     Caption = 'U/Int 32/64?'
-    TabOrder = 1
+    TabOrder = 2
     OnClick = btnJudgeIntClick
   end
   object btnRandRange: TButton
@@ -450,7 +450,7 @@ object FormBigNumber: TFormBigNumber
     Width = 41
     Height = 21
     Caption = 'Range'
-    TabOrder = 5
+    TabOrder = 6
     OnClick = btnRandRangeClick
   end
   object btnEnterNum1: TButton
@@ -459,7 +459,7 @@ object FormBigNumber: TFormBigNumber
     Width = 97
     Height = 21
     Caption = 'Enter Num1'
-    TabOrder = 42
+    TabOrder = 1
     OnClick = btnEnterNum1Click
   end
   object btnEnterNum2: TButton
@@ -468,7 +468,16 @@ object FormBigNumber: TFormBigNumber
     Width = 81
     Height = 21
     Caption = 'Enter Num2 '
-    TabOrder = 43
+    TabOrder = 19
     OnClick = btnEnterNum2Click
+  end
+  object btnMInverse: TButton
+    Left = 832
+    Top = 422
+    Width = 57
+    Height = 21
+    Caption = 'Mod Inv'
+    TabOrder = 43
+    OnClick = btnMInverseClick
   end
 end

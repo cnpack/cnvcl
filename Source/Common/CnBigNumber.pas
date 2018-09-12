@@ -411,7 +411,8 @@ function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
-{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
+  注意: 该实现会忽略 B 的符号，也就是说返回的实际上是 (A * |B|) mod C}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
@@ -3852,7 +3853,7 @@ begin
     // 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
 
     if Neg then
-      BigNumberSetNegative(Res, True);
+      BigNumberSetNegative(Res, not BigNumberIsNegative(Res));
 
     if BigNumberIsNegative(Res) then
       BigNumberAdd(Res, Res, Modulus);
