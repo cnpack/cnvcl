@@ -412,7 +412,7 @@ function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
 
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
-  注意: 该实现会忽略 B 的符号，也就是说返回的实际上是 (A * |B|) mod C}
+  注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
@@ -3358,6 +3358,7 @@ end;
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 var
   AA, BB: TCnBigNumber;
+  Neg: Boolean;
 begin
   Result := False;
   AA := nil;
@@ -3367,6 +3368,15 @@ begin
     // 使用临时变量，保证 A、B 自身的值不发生变化
     AA := ObtainBigNumberFromPool;
     BB := ObtainBigNumberFromPool;
+
+    BigNumberCopy(AA, A);
+    BigNumberCopy(BB, B);
+    Neg := BigNumberIsNegative(AA) <> BigNumberIsNegative(BB);
+    if Neg then
+    begin
+      BigNumberSetNegative(BB, False);
+      BigNumberSetNegative(AA, False);
+    end;
 
     if not BigNumberMod(AA, A, C) then
       Exit;
@@ -3397,6 +3407,9 @@ begin
       if not BigNumberShiftRightOne(BB, BB) then
         Exit;
     end;
+
+    if Neg then
+      BigNumberSub(Res, C, Res);
   finally
     RecycleBigNumberToPool(AA);
     RecycleBigNumberToPool(BB);
