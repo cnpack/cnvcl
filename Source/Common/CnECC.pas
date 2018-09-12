@@ -121,6 +121,8 @@ type
     destructor Destroy; override;
 
     procedure Assign(Source: TPersistent); override;
+    function IsZero: Boolean;
+    procedure SetZero;
 
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
@@ -132,7 +134,7 @@ type
   TCnEccPrivateKey = TCnBigNumber;
   {* 椭圆曲线的私钥，计算次数 k 次}
 
-  TCnEccPredefinedCurveType = (ctCustomized, ctSecp256k1);
+  TCnEccPredefinedCurveType = (ctCustomized, ctSM2, ctSecp256k1);
   {* 支持的椭圆曲线类型}
 
   TCnEcc = class
@@ -229,6 +231,15 @@ type
 const
   ECC_PRE_DEFINED_PARAMS: array[TCnEccPredefinedCurveType] of TCnEccPredefinedHexParams = (
     (P: ''; A: ''; B: ''; GX: ''; GY: ''; N: ''; H: ''),
+    ( // SM2
+      P: 'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF';
+      A: 'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC';
+      B: '28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93';
+      GX: '32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7';
+      GY: 'BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0';
+      N: '=FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123';
+      H: '01'
+    ),
     ( // secp256k1
       P: 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F';
       A: '00';
@@ -412,11 +423,10 @@ begin
   // 负数的模逆元，等于正数的模逆元的负值，负值还可以再加 Modulus
   Result := CnInt64ModularInverse(X, Modulus);
   if Neg and (Result > 0) then
-  begin
     Result := -Result;
-    if Result < 0 then
-      Result := Result + Modulus;
-  end;
+
+  if Result < 0 then
+    Result := Result + Modulus;
 end;
 
 { TCnInt64Ecc }
@@ -495,8 +505,8 @@ begin
   // 也就是计算(Y^2 mod p - X^3 mod p - A*X mod p - B mod p) mod p
   Y2 := MontgomeryPowerMod(P.Y, 2, FFiniteFieldSize);
   X3 := MontgomeryPowerMod(P.X, 3, FFiniteFieldSize);
-  AX := Int64MultipleMod(CoefficientA, P.X, FFiniteFieldSize);
-  B := CoefficientB mod FFiniteFieldSize;
+  AX := Int64MultipleMod(FCoefficientA, P.X, FFiniteFieldSize);
+  B := FCoefficientB mod FFiniteFieldSize;
 
   Result := ((Y2 - X3 - AX - B) mod FFiniteFieldSize) = 0;
 end;
@@ -543,8 +553,8 @@ begin
   // 注意 Plain 如果太大，计算过程中会溢出，不好处理，只能用分配律。
   // (Y^2 mod p - Plain ^ 3 mod p - A * Plain mod p - B mod p) mod p = 0;
   X3 := MontgomeryPowerMod(Plain, 3, FFiniteFieldSize);
-  AX := Int64MultipleMod(CoefficientA, Plain, FFiniteFieldSize);
-  B := CoefficientB mod FFiniteFieldSize;
+  AX := Int64MultipleMod(FCoefficientA, Plain, FFiniteFieldSize);
+  B := FCoefficientB mod FFiniteFieldSize;
 
   B := X3 + Ax + B; // 如果不溢出的话
 
@@ -589,7 +599,7 @@ begin
   else if (P.X = Q.X) and (P.Y = Q.Y) then
   begin
     // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
-    X := 3 * P.X * P.X + CoefficientA;
+    X := 3 * P.X * P.X + FCoefficientA;
     Y := 2 * P.Y;
 
     if Y = 0 then
@@ -628,15 +638,27 @@ begin
   while X < 0 do
     X := X + FFiniteFieldSize;
   PX := P.X; // 如果 Sum 和 P 是同一个，要避免 P.X 被冲掉，因而得先存着 P.X
-  Sum.X := X mod FFiniteFieldSize;
+  if X < 0 then
+  begin
+    X := -X;
+    Sum.X := X mod FFiniteFieldSize;
+    Sum.X := FFiniteFieldSize - Sum.X;
+  end
+  else
+    Sum.X := X mod FFiniteFieldSize;
 
   // Ysum = (K * (X1 - Xsum) - Y1) mod p  注意要取负
   //   也 = (K * (X2 - Xsum) - Y2) mod p  注意要取负
   X := PX - Sum.X;
   Y := K * X - P.Y;
-  while Y < 0 do
-    Y := Y + FFiniteFieldSize;
-  Sum.Y := Y mod FFiniteFieldSize;
+  if Y < 0 then
+  begin
+    Y := -Y;
+    Sum.Y := Y mod FFiniteFieldSize;
+    Sum.Y := FFiniteFieldSize - Sum.Y;
+  end
+  else
+    Sum.Y := Y mod FFiniteFieldSize;
 end;
 
 procedure TCnInt64Ecc.PointInverse(var P: TCnInt64EccPoint);
@@ -712,6 +734,11 @@ begin
   inherited;
 end;
 
+function TCnEccPoint.IsZero: Boolean;
+begin
+  Result := FX.IsZero and FY.IsZero;
+end;
+
 procedure TCnEccPoint.SetX(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FX, Value);
@@ -720,6 +747,12 @@ end;
 procedure TCnEccPoint.SetY(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FY, Value);
+end;
+
+procedure TCnEccPoint.SetZero;
+begin
+  FX.SetZero;
+  FY.SetZero;
 end;
 
 { TCnEcc }
@@ -797,21 +830,22 @@ begin
     BigNumberCopy(X2, P.X);
     BigNumberCopy(Y, P.Y);
 
-    BigNumberMul(Y, Y, Y); // Y: Y^2
+    BigNumberMul(Y, Y, Y);                // Y: Y^2
     BigNumberMod(Y, Y, FFiniteFieldSize); // Y^2 mod P
 
-    BigNumberMul(A, X, CoefficientA); // A: A*X
+    BigNumberMul(A, X, FCoefficientA);     // A: A*X
 
     BigNumberMul(X, X, X);
-    BigNumberMul(X, X, X2); // X: X^3
+    BigNumberMul(X, X, X2);               // X: X^3
 
-    BigNumberAdd(X, X, A); // X: X^3 + A*X
-    BigNumberAdd(X, X, CoefficientB); // X: X^3 + A*X + B
+    BigNumberAdd(X, X, A);                // X: X^3 + A*X
+    BigNumberAdd(X, X, FCoefficientB);     // X: X^3 + A*X + B
 
     BigNumberMod(X, X, FFiniteFieldSize); // X: (X^3 + A*X + B) mod P
     Result := BigNumberCompare(X, Y) = 0;
   finally
     RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(X2);
     RecycleBigNumberToPool(Y);
     RecycleBigNumberToPool(A);
   end;
@@ -897,8 +931,127 @@ begin
 end;
 
 procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
+var
+  K, X, Y, A, SX, SY: TCnBigNumber;
 begin
+  K := nil;
+  X := nil;
+  Y := nil;
+  A := nil;
+  SX := nil;
+  SY := nil;
 
+  try
+    if P.IsZero then
+    begin
+      Sum.Assign(Q);
+      Exit;
+    end
+    else if Q.IsZero then
+    begin
+      Sum.Assign(P);
+      Exit;
+    end
+    else if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) then
+    begin
+      // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
+      if P.Y.IsZero then
+      begin
+        Sum.SetZero;
+        Exit;
+      end;
+
+      X := ObtainBigNumberFromPool;
+      Y := ObtainBigNumberFromPool;
+      K := ObtainBigNumberFromPool;
+
+      // X := 3 * P.X * P.X + CoefficientA;
+      BigNumberMul(X, P.X, P.X);             // X: P.X^2
+      BigNumberMulWord(X, 3);                // X: 3 * P.X^2
+      BigNumberAdd(X, X, FCoefficientA);     // X: 3 * P.X^2 + A
+
+      // Y := 2 * P.Y;
+      BigNumberCopy(Y, P.Y);
+      BigNumberMulWord(Y, 2);                // Y: 2 * P.Y
+
+      A := ObtainBigNumberFromPool;
+      BigNumberCopy(A, Y);
+      BigNumberModularInverse(Y, A, FFiniteFieldSize);
+
+      // K := X * Y mod FFiniteFieldSize;
+      BigNumberMulMod(K, X, Y, FFiniteFieldSize);      // 得到斜率
+    end
+    else
+    begin
+      if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
+      begin
+        A := ObtainBigNumberFromPool;
+        BigNumberAdd(A, P.Y, Q.Y);
+        if BigNumberCompare(A, FFiniteFieldSize) = 0 then  // 互反，和为 0
+          Sum.SetZero
+        else                                               // 不互反，挂了
+          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s', [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
+
+        Exit;
+      end;
+
+      // 到这里，X 确定不同，斜率 K := ((Q.Y - P.Y) / (Q.X - P.X)) mod p
+      X := ObtainBigNumberFromPool;
+      Y := ObtainBigNumberFromPool;
+      K := ObtainBigNumberFromPool;
+
+      // Y := Q.Y - P.Y;
+      // X := Q.X - P.X;
+      BigNumberSub(Y, Q.Y, P.Y);
+      BigNumberSub(X, Q.X, P.X);
+
+      A := ObtainBigNumberFromPool;
+      BigNumberCopy(A, Y);
+      BigNumberModularInverse(Y, A, FFiniteFieldSize);
+      BigNumberMulMod(K, X, Y, FFiniteFieldSize);      // 得到斜率
+    end;
+
+    BigNumberCopy(X, K);
+    BigNumberMul(X, X, K);
+    BigNumberSub(X, X, P.X);
+    BigNumberSub(X, X, Q.X);    //  X := K * K - P.X - Q.X;
+
+    SX := ObtainBigNumberFromPool;
+    if BigNumberIsNegative(X) then // 负值的模等于正值的模被模数减
+    begin
+      BigNumberSetNegative(X, False);
+      BigNumberMod(SX, X, FFiniteFieldSize);
+      BigNumberSub(SX, FFiniteFieldSize, SX);
+    end
+    else
+      BigNumberMod(SX, X, FFiniteFieldSize);
+
+    // Ysum = (K * (X1 - Xsum) - Y1) mod p  注意要取负
+    //   也 = (K * (X2 - Xsum) - Y2) mod p  注意要取负
+    BigNumberSub(X, P.X, SX);
+    BigNumberMul(Y, K, X);
+    BigNumberSub(Y, Y, P.Y);
+
+    SY := ObtainBigNumberFromPool;
+    if BigNumberIsNegative(Y) then
+    begin
+      BigNumberSetNegative(Y, False);
+      BigNumberMod(SY, Y, FFiniteFieldSize);
+      BigNumberSub(SY, FFiniteFieldSize, SY);
+    end
+    else
+      BigNumberMod(SY, Y, FFiniteFieldSize);
+
+    BigNumberCopy(Sum.X, SX);
+    BigNumberCopy(Sum.Y, SY);
+  finally
+    RecycleBigNumberToPool(K);
+    RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(Y);
+    RecycleBigNumberToPool(A);
+    RecycleBigNumberToPool(SX);
+    RecycleBigNumberToPool(SY);
+  end;
 end;
 
 procedure TCnEcc.PointInverse(P: TCnEccPoint);

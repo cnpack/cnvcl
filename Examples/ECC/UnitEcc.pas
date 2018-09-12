@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, CnPrimeNumber;
+  Chart, CnPrimeNumber, CnBigNumber;
 
 type
   TFormEcc = class(TForm)
@@ -103,6 +103,13 @@ type
     Bevel4: TBevel;
     btnBNEccInverseG: TButton;
     edtBNEccInverseG: TEdit;
+    btnBNEccInverseAdd: TButton;
+    btnBNEccGx2: TButton;
+    btnBNEccG2SubG: TButton;
+    btnBNEccGAddG: TButton;
+    btnBNEccGSubG: TButton;
+    lblBNEccB: TLabel;
+    lblBNEccMod: TLabel;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -128,6 +135,11 @@ type
     procedure btnCalcNGClick(Sender: TObject);
     procedure btnLeRanDeClick(Sender: TObject);
     procedure btnBNEccInverseGClick(Sender: TObject);
+    procedure btnBNEccInverseAddClick(Sender: TObject);
+    procedure btnBNEccGx2Click(Sender: TObject);
+    procedure btnBNEccG2SubGClick(Sender: TObject);
+    procedure btnBNEccGAddGClick(Sender: TObject);
+    procedure btnBNEccGSubGClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -529,6 +541,68 @@ begin
   P.Assign(FBNEcc.Generator);
   FBNEcc.PointInverse(P);
   edtBNEccInverseG.Text := CnEccPointToString(P);
+  P.Free;
+end;
+
+procedure TFormEcc.btnBNEccInverseAddClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  FBNEcc.PointInverse(P);
+  FBNEcc.PointAddPoint(FBNEcc.Generator, P, P);
+  edtBNEccInverseG.Text := CnEccPointToString(P);
+  P.Free;
+end;
+
+procedure TFormEcc.btnBNEccGx2Click(Sender: TObject);
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  FBNEcc.PointAddPoint(FBNEcc.Generator, P, P);
+  edtBNEccInverseG.Text := CnEccPointToString(P);
+  P.Free;
+end;
+
+procedure TFormEcc.btnBNEccG2SubGClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  FBNEcc.PointAddPoint(FBNEcc.Generator, P, P);
+  FBNEcc.PointSubPoint(P, FBNEcc.Generator, P);
+  edtBNEccInverseG.Text := CnEccPointToString(P);
+  P.Free;
+end;
+
+procedure TFormEcc.btnBNEccGAddGClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+  K: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  K := TCnBigNumber.Create;
+  K.SetDec('2');
+  FBNEcc.MultiplePoint(K, P);
+  edtBNEccInverseG.Text := CnEccPointToString(P);
+  P.Free;
+  K.Free;
+end;
+
+procedure TFormEcc.btnBNEccGSubGClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  FBNEcc.PointSubPoint(P, FBNEcc.Generator, P);
+  edtBNEccInverseG.Text := CnEccPointToString(P);
+  P.Free;
 end;
 
 end.

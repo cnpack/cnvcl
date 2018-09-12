@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 193
-  Top = 98
+  Left = 194
+  Top = 99
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -708,85 +708,99 @@ object FormEcc: TFormEcc
         object lblBNEqu: TLabel
           Left = 16
           Top = 28
-          Width = 221
+          Width = 92
           Height = 13
-          Caption = 'Y ^ 2 = X ^ 3    +                X +                 mod  '
+          Caption = 'Y ^ 2 = X ^ 3    +    '
         end
         object lblBNGX: TLabel
           Left = 16
-          Top = 60
+          Top = 124
           Width = 18
           Height = 13
           Caption = 'GX:'
         end
         object lblBNGY: TLabel
-          Left = 360
-          Top = 60
+          Left = 16
+          Top = 156
           Width = 18
           Height = 13
           Caption = 'GY:'
         end
         object lblBNEccOrder: TLabel
           Left = 16
-          Top = 92
+          Top = 188
           Width = 29
           Height = 13
           Caption = 'Order:'
         end
         object Bevel4: TBevel
           Left = 16
-          Top = 120
+          Top = 216
           Width = 665
           Height = 17
           Shape = bsTopLine
         end
+        object lblBNEccB: TLabel
+          Left = 16
+          Top = 60
+          Width = 19
+          Height = 13
+          Caption = 'X + '
+        end
+        object lblBNEccMod: TLabel
+          Left = 16
+          Top = 92
+          Width = 20
+          Height = 13
+          Caption = 'mod'
+        end
         object edtBNEccA: TEdit
           Left = 104
           Top = 24
-          Width = 33
+          Width = 577
           Height = 21
           TabOrder = 0
           Text = '0'
         end
         object edtBNEccB: TEdit
-          Left = 168
-          Top = 24
-          Width = 33
+          Left = 56
+          Top = 56
+          Width = 625
           Height = 21
           TabOrder = 1
           Text = '7'
         end
         object edtBNEccP: TEdit
-          Left = 240
-          Top = 24
-          Width = 441
+          Left = 56
+          Top = 88
+          Width = 625
           Height = 21
           TabOrder = 2
         end
         object edtBNEccGX: TEdit
-          Left = 48
-          Top = 56
-          Width = 289
+          Left = 56
+          Top = 120
+          Width = 625
           Height = 21
           TabOrder = 3
         end
         object edtBNEccGY: TEdit
-          Left = 392
-          Top = 56
-          Width = 289
+          Left = 56
+          Top = 152
+          Width = 625
           Height = 21
           TabOrder = 4
         end
         object edtBNEccOrder: TEdit
           Left = 56
-          Top = 88
+          Top = 184
           Width = 625
           Height = 21
           TabOrder = 5
         end
         object btnBNEccInverseG: TButton
           Left = 16
-          Top = 136
+          Top = 264
           Width = 75
           Height = 21
           Caption = 'Inverse G'
@@ -794,11 +808,56 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccInverseGClick
         end
         object edtBNEccInverseG: TEdit
-          Left = 104
-          Top = 136
-          Width = 577
+          Left = 16
+          Top = 232
+          Width = 665
           Height = 21
           TabOrder = 7
+        end
+        object btnBNEccInverseAdd: TButton
+          Left = 104
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = 'Inverse G + G'
+          TabOrder = 8
+          OnClick = btnBNEccInverseAddClick
+        end
+        object btnBNEccGx2: TButton
+          Left = 192
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = 'G + G'
+          TabOrder = 9
+          OnClick = btnBNEccGx2Click
+        end
+        object btnBNEccG2SubG: TButton
+          Left = 368
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = 'G * 2 - G'
+          TabOrder = 10
+          OnClick = btnBNEccG2SubGClick
+        end
+        object btnBNEccGAddG: TButton
+          Left = 280
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = 'G * 2'
+          TabOrder = 11
+          OnClick = btnBNEccGAddGClick
+        end
+        object btnBNEccGSubG: TButton
+          Left = 456
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = 'G - G'
+          TabOrder = 12
+          OnClick = btnBNEccGSubGClick
         end
       end
     end

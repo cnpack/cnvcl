@@ -455,6 +455,9 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
    X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
    （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
 
+procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
+{* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，调用者须自行保证 X、Modulus 互质}
+
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
 
@@ -3819,6 +3822,43 @@ begin
       RecycleBigNumberToPool(P);
       RecycleBigNumberToPool(T);
     end;
+  end;
+end;
+
+// 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，调用者须自行保证 X、Modulus 互质
+procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
+var
+  Neg: Boolean;
+  X1, Y: TCnBigNumber;
+begin
+  Neg := False;
+
+  X1 := nil;
+  Y := nil;
+
+  try
+    X1 := ObtainBigNumberFromPool;
+    Y := ObtainBigNumberFromPool;
+
+    BigNumberCopy(X1, X);
+    if BigNumberIsNegative(X1) then
+    begin
+      BigNumberSetNegative(X1, False);
+      Neg := True;
+    end;
+
+    // 求正数的模逆元。负数的模逆元等于正数的模逆元的负值，解出来的负值还可以再加 Modulus
+    BigNumberExtendedEuclideanGcd2(X1, Modulus, Res, Y);
+    // 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+
+    if Neg then
+      BigNumberSetNegative(Res, True);
+
+    if BigNumberIsNegative(Res) then
+      BigNumberAdd(Res, Res, Modulus);
+  finally
+    RecycleBigNumberToPool(X1);
+    RecycleBigNumberToPool(Y);
   end;
 end;
 
