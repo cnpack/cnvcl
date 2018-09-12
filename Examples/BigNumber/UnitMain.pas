@@ -588,12 +588,25 @@ procedure TFormBigNumber.btnEnterNum1Click(Sender: TObject);
 var
   S: string;
 begin
-  if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+  if rbHex.Checked then
   begin
-    Num1.SetDec(S);
-    ShowNumbers;
-    CheckNumber(Num1);
-    CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+    if CnInputQuery('Hint', 'Enter a Hex Number.', S) then
+    begin
+      Num1.SetHex(S);
+      ShowNumbers;
+      CheckNumber(Num1);
+      CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+    end;
+  end
+  else
+  begin
+    if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+    begin
+      Num1.SetDec(S);
+      ShowNumbers;
+      CheckNumber(Num1);
+      CheckStringAndNumber(mmoNum1.Lines.Text, Num1);
+    end;
   end;
 end;
 
@@ -601,12 +614,25 @@ procedure TFormBigNumber.btnEnterNum2Click(Sender: TObject);
 var
   S: string;
 begin
-  if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+  if rbHex.Checked then
   begin
-    Num2.SetDec(S);
-    ShowNumbers;
-    CheckNumber(Num2);
-    CheckStringAndNumber(mmoNum2.Lines.Text, Num2);
+    if CnInputQuery('Hint', 'Enter a Hex Number.', S) then
+    begin
+      Num2.SetHex(S);
+      ShowNumbers;
+      CheckNumber(Num2);
+      CheckStringAndNumber(mmoNum2.Lines.Text, Num2);
+    end;
+  end
+  else
+  begin
+    if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+    begin
+      Num2.SetDec(S);
+      ShowNumbers;
+      CheckNumber(Num2);
+      CheckStringAndNumber(mmoNum2.Lines.Text, Num2);
+    end;
   end;
 end;
 
