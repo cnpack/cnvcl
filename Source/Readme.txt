@@ -11,6 +11,9 @@ cnpack\Source 目录内容说明：
   CnBase64.pas
     Base64 编码解码算法单元
 
+  CnBerUtils.pas
+    BER/DER 编码格式解析单元
+
   CnBigNumber.pas
     大数计算单元
 
@@ -25,6 +28,9 @@ cnpack\Source 目录内容说明：
 
   CnCallBack.pas
     回调函数转换库
+
+  CnCertificateAuthority.pas
+    证书签名验证的实现单元
 
   CnClasses.pas
     基础类定义单元
@@ -119,6 +125,9 @@ cnpack\Source 目录内容说明：
   CnSHA2.pas
     SHA2 算法单元
 
+  CnSHA3.pas
+    SHA3 算法单元
+
   CnShellUtils.pas
     Shell 工具单元
 
@@ -149,6 +158,9 @@ cnpack\Source 目录内容说明：
   CnStrings.pas
     Ansi 版 StringList 实现单元
 
+  CnTEA.pas
+    TEA/XTEA/XXTEA 算法实现单元
+
   CnTree.pas
     单根无序树、二叉树、字典搜索树等的类实现单元
 
@@ -166,6 +178,9 @@ cnpack\Source 目录内容说明：
 
   CnXMLPersistent.pas
     XML 流化类的工具类单元
+
+  CnZip.pas
+    Zip 压缩文件实现单元
 
   CnZUC.pas
     祖冲之算法实现单元
