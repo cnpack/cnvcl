@@ -410,6 +410,10 @@ function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
+function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
+  注意: 三个参数均会忽略负值，也就是均用正值参与计算}
+
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
   注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余}
@@ -457,7 +461,8 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
    （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
 
 procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
-{* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，调用者须自行保证 X、Modulus 互质}
+{* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   调用者须自行保证 X、Modulus 互质}
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
@@ -3357,8 +3362,57 @@ end;
 // 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 var
+  T, P: TCnBigNumber;
+begin
+  if not BigNumberIsNegative(A) and not BigNumberIsNegative(B) then
+    Result := BigNumberUnsignedMulMod(Res, A, B, C)
+  else if BigNumberIsNegative(A) and BigNumberIsNegative(B) then
+  begin
+    T := ObtainBigNumberFromPool;
+    P := ObtainBigNumberFromPool;
+    try
+      BigNumberCopy(T, A);
+      BigNumberCopy(P, B);
+      BigNumberSetNegative(T, False);
+      BigNumberSetNegative(P, False);
+      Result := BigNumberUnsignedMulMod(Res, T, P, C);
+    finally
+      RecycleBigNumberToPool(T);
+      RecycleBigNumberToPool(P);
+    end;
+  end
+  else if BigNumberIsNegative(A) and not BigNumberIsNegative(B) then // A 负
+  begin
+    T := ObtainBigNumberFromPool;
+    try
+      BigNumberCopy(T, A);
+      BigNumberSetNegative(T, False);
+      Result := BigNumberUnsignedMulMod(Res, T, B, C);
+      BigNumberSub(Res, C, Res);
+    finally
+      RecycleBigNumberToPool(T);
+    end;
+  end
+  else if not BigNumberIsNegative(A) and BigNumberIsNegative(B) then // B 负
+  begin
+    T := ObtainBigNumberFromPool;
+    try
+      BigNumberCopy(T, B);
+      BigNumberSetNegative(T, False);
+      Result := BigNumberUnsignedMulMod(Res, A, T, C);
+      BigNumberSub(Res, C, Res);
+    finally
+      RecycleBigNumberToPool(T);
+    end;
+  end
+  else
+    Result := False;
+end;
+
+// 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
+function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+var
   AA, BB: TCnBigNumber;
-  Neg: Boolean;
 begin
   Result := False;
   AA := nil;
@@ -3371,17 +3425,13 @@ begin
 
     BigNumberCopy(AA, A);
     BigNumberCopy(BB, B);
-    Neg := BigNumberIsNegative(AA) <> BigNumberIsNegative(BB);
-    if Neg then
-    begin
-      BigNumberSetNegative(BB, False);
-      BigNumberSetNegative(AA, False);
-    end;
+    BigNumberSetNegative(AA, False); // 全正处理
+    BigNumberSetNegative(BB, False);
 
-    if not BigNumberMod(AA, A, C) then
+    if not BigNumberMod(AA, AA, C) then
       Exit;
 
-    if not BigNumberMod(BB, B, C) then
+    if not BigNumberMod(BB, BB, C) then
       Exit;
 
     Res.SetZero; // 如果 Res 是 A 或 B，后面参与运算的是 AA 或 BB，改变 A 或 B不影响
@@ -3407,9 +3457,6 @@ begin
       if not BigNumberShiftRightOne(BB, BB) then
         Exit;
     end;
-
-    if Neg then
-      BigNumberSub(Res, C, Res);
   finally
     RecycleBigNumberToPool(AA);
     RecycleBigNumberToPool(BB);
@@ -3839,7 +3886,7 @@ begin
   end;
 end;
 
-// 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，调用者须自行保证 X、Modulus 互质
+// 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。调用者须自行保证 X、Modulus 互质
 procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
 var
   Neg: Boolean;
