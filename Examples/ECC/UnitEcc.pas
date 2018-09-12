@@ -100,6 +100,9 @@ type
     lblBNGY: TLabel;
     lblBNEccOrder: TLabel;
     edtBNEccOrder: TEdit;
+    Bevel4: TBevel;
+    btnBNEccInverseG: TButton;
+    edtBNEccInverseG: TEdit;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -124,6 +127,7 @@ type
     procedure btnGenEccClick(Sender: TObject);
     procedure btnCalcNGClick(Sender: TObject);
     procedure btnLeRanDeClick(Sender: TObject);
+    procedure btnBNEccInverseGClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -502,6 +506,29 @@ begin
   edtBNEccGX.Text := FBNEcc.Generator.X.ToDec;
   edtBNEccGY.Text := FBNEcc.Generator.Y.ToDec;
   edtBNEccOrder.Text := FBNEcc.Order.ToDec;
+
+  edtBNEccA.Hint := FBNEcc.CoefficientA.ToHex;
+  edtBNEccB.Hint := FBNEcc.CoefficientB.ToHex;
+  edtBNEccP.Hint := FBNEcc.FiniteFieldSize.ToHex;
+  edtBNEccGX.Hint := FBNEcc.Generator.X.ToHex;
+  edtBNEccGY.Hint := FBNEcc.Generator.Y.ToHex;
+  edtBNEccOrder.Hint := FBNEcc.Order.ToHex;
+
+  if FBNEcc.IsPointOnCurve(FBNEcc.Generator) then
+  begin
+    lblBNGX.Hint := 'G is on Curve.';
+    lblBNGY.Hint := 'G is on Curve.';
+  end;
+end;
+
+procedure TFormEcc.btnBNEccInverseGClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  FBNEcc.PointInverse(P);
+  edtBNEccInverseG.Text := CnEccPointToString(P);
 end;
 
 end.

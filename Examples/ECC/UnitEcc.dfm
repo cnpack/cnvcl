@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 237
-  Top = 37
+  Left = 193
+  Top = 98
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -702,6 +702,8 @@ object FormEcc: TFormEcc
         Width = 697
         Height = 409
         Caption = 'BigNumber Ecc'
+        ParentShowHint = False
+        ShowHint = True
         TabOrder = 0
         object lblBNEqu: TLabel
           Left = 16
@@ -730,6 +732,13 @@ object FormEcc: TFormEcc
           Width = 29
           Height = 13
           Caption = 'Order:'
+        end
+        object Bevel4: TBevel
+          Left = 16
+          Top = 120
+          Width = 665
+          Height = 17
+          Shape = bsTopLine
         end
         object edtBNEccA: TEdit
           Left = 104
@@ -774,6 +783,22 @@ object FormEcc: TFormEcc
           Width = 625
           Height = 21
           TabOrder = 5
+        end
+        object btnBNEccInverseG: TButton
+          Left = 16
+          Top = 136
+          Width = 75
+          Height = 21
+          Caption = 'Inverse G'
+          TabOrder = 6
+          OnClick = btnBNEccInverseGClick
+        end
+        object edtBNEccInverseG: TEdit
+          Left = 104
+          Top = 136
+          Width = 577
+          Height = 21
+          TabOrder = 7
         end
       end
     end

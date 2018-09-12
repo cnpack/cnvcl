@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl, CnPrimeNumber, CnBigNumber;
+  SysUtils, Classes, Contnrs, CnNativeDecl, CnPrimeNumber, CnBigNumber;
 
 type
   ECnEccException = class(Exception);
@@ -109,7 +109,7 @@ type
     {* 基点的阶数}
   end;
 
-  TCnEccPoint = class
+  TCnEccPoint = class(TPersistent)
   {* 椭圆曲线上的点描述类}
   private
     FY: TCnBigNumber;
@@ -119,6 +119,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
@@ -141,6 +143,9 @@ type
     FOrder: TCnBigNumber;
     FFiniteFieldSize: TCnBigNumber;
     FGenerator: TCnEccPoint;
+    FBigNumberPool: TObjectList;
+    function ObtainBigNumberFromPool: TCnBigNumber;
+    procedure RecycleBigNumberToPool(Num: TCnBigNumber);
   public
     constructor Create; overload;
     constructor Create(Predefined: TCnEccPredefinedCurveType); overload;
@@ -680,6 +685,17 @@ end;
 
 { TCnEccPoint }
 
+procedure TCnEccPoint.Assign(Source: TPersistent);
+begin
+  if Source is TCnEccPoint then
+  begin
+    BigNumberCopy(FX, (Source as TCnEccPoint).X);
+    BigNumberCopy(FY, (Source as TCnEccPoint).Y);
+  end
+  else
+    inherited;
+end;
+
 constructor TCnEccPoint.Create;
 begin
   inherited;
@@ -737,7 +753,16 @@ begin
 end;
 
 destructor TCnEcc.Destroy;
+var
+  I: Integer;
 begin
+  if FBigNumberPool <> nil then
+  begin
+    for I := 0 to FBigNumberPool.Count - 1 do
+      FBigNumberPool[I].Free;
+    FBigNumberPool.Free;
+  end;
+
   FGenerator.Free;
   FCoefficientB.Free;
   FCoefficientA.Free;
@@ -759,8 +784,37 @@ begin
 end;
 
 function TCnEcc.IsPointOnCurve(P: TCnEccPoint): Boolean;
+var
+  X, X2, Y, A: TCnBigNumber;
 begin
+  X := ObtainBigNumberFromPool;
+  X2 := ObtainBigNumberFromPool;
+  Y := ObtainBigNumberFromPool;
+  A := ObtainBigNumberFromPool;
 
+  try
+    BigNumberCopy(X, P.X);
+    BigNumberCopy(X2, P.X);
+    BigNumberCopy(Y, P.Y);
+
+    BigNumberMul(Y, Y, Y); // Y: Y^2
+    BigNumberMod(Y, Y, FFiniteFieldSize); // Y^2 mod P
+
+    BigNumberMul(A, X, CoefficientA); // A: A*X
+
+    BigNumberMul(X, X, X);
+    BigNumberMul(X, X, X2); // X: X^3
+
+    BigNumberAdd(X, X, A); // X: X^3 + A*X
+    BigNumberAdd(X, X, CoefficientB); // X: X^3 + A*X + B
+
+    BigNumberMod(X, X, FFiniteFieldSize); // X: (X^3 + A*X + B) mod P
+    Result := BigNumberCompare(X, Y) = 0;
+  finally
+    RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(Y);
+    RecycleBigNumberToPool(A);
+  end;
 end;
 
 procedure TCnEcc.Load(Predefined: TCnEccPredefinedCurveType);
@@ -822,6 +876,20 @@ begin
   end;
 end;
 
+function TCnEcc.ObtainBigNumberFromPool: TCnBigNumber;
+begin
+  if FBigNumberPool = nil then
+    Result := TCnBigNumber.Create
+  else if FBigNumberPool.Count = 0 then
+    Result := TCnBigNumber.Create
+  else
+  begin
+    Result := TCnBigNumber(FBigNumberPool.Last);
+    Result.Clear;
+    FBigNumberPool.Delete(FBigNumberPool.Count - 1);
+  end;
+end;
+
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 begin
@@ -851,6 +919,16 @@ begin
   PointInverse(Inv);
   PointAddPoint(P, Inv, Diff);
   Inv.Free;
+end;
+
+procedure TCnEcc.RecycleBigNumberToPool(Num: TCnBigNumber);
+begin
+  if Num = nil then
+    Exit;
+
+  if FBigNumberPool = nil then
+    FBigNumberPool := TObjectList.Create(False);
+  FBigNumberPool.Add(Num);
 end;
 
 end.
