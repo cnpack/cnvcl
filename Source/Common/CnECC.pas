@@ -215,6 +215,9 @@ function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TC
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
+function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
+{* 判断两个点是否相等}
+
 implementation
 
 type
@@ -237,7 +240,7 @@ const
       B: '28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93';
       GX: '32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7';
       GY: 'BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0';
-      N: '=FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123';
+      N: 'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123';
       H: '01'
     ),
     ( // secp256k1
@@ -261,6 +264,17 @@ end;
 function CnEccPointToString(const P: TCnEccPoint): string;
 begin
   Result := Format('%s,%s', [P.X.ToDec, P.Y.ToDec]);
+end;
+
+// 判断两个点是否相等
+function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
+begin
+  if P1 = P2 then
+  begin
+    Result := True;
+    Exit;
+  end;
+  Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0);
 end;
 
 // 计算勒让德符号 ( A / P) 的值
@@ -981,7 +995,7 @@ begin
       // K := X * Y mod FFiniteFieldSize;
       BigNumberMulMod(K, X, Y, FFiniteFieldSize);      // 得到斜率
     end
-    else
+    else // 是不同点
     begin
       if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
       begin
@@ -1006,9 +1020,9 @@ begin
       BigNumberSub(X, Q.X, P.X);
 
       A := ObtainBigNumberFromPool;
-      BigNumberCopy(A, Y);
-      BigNumberModularInverse(Y, A, FFiniteFieldSize);
-      BigNumberMulMod(K, X, Y, FFiniteFieldSize);      // 得到斜率
+      BigNumberCopy(A, X);
+      BigNumberModularInverse(X, A, FFiniteFieldSize);
+      BigNumberMulMod(K, Y, X, FFiniteFieldSize);      // 得到斜率
     end;
 
     BigNumberCopy(X, K);

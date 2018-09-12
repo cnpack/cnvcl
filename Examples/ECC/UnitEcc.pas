@@ -102,7 +102,7 @@ type
     edtBNEccOrder: TEdit;
     Bevel4: TBevel;
     btnBNEccInverseG: TButton;
-    edtBNEccInverseG: TEdit;
+    edtBNEccResult: TEdit;
     btnBNEccInverseAdd: TButton;
     btnBNEccGx2: TButton;
     btnBNEccG2SubG: TButton;
@@ -110,6 +110,8 @@ type
     btnBNEccGSubG: TButton;
     lblBNEccB: TLabel;
     lblBNEccMod: TLabel;
+    btnBNEccNG: TButton;
+    btnBNEcc4G: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -140,6 +142,8 @@ type
     procedure btnBNEccG2SubGClick(Sender: TObject);
     procedure btnBNEccGAddGClick(Sender: TObject);
     procedure btnBNEccGSubGClick(Sender: TObject);
+    procedure btnBNEccNGClick(Sender: TObject);
+    procedure btnBNEcc4GClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -254,7 +258,7 @@ begin
   CalcE2311Points;
   UpdateE2311Chart;
 
-  FBNEcc := TCnEcc.Create(ctSecp256k1);
+  FBNEcc := TCnEcc.Create(ctSm2);
   ShowBnEcc;
 end;
 
@@ -540,7 +544,9 @@ begin
   P := TCnEccPoint.Create;
   P.Assign(FBNEcc.Generator);
   FBNEcc.PointInverse(P);
-  edtBNEccInverseG.Text := CnEccPointToString(P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error');
   P.Free;
 end;
 
@@ -552,7 +558,9 @@ begin
   P.Assign(FBNEcc.Generator);
   FBNEcc.PointInverse(P);
   FBNEcc.PointAddPoint(FBNEcc.Generator, P, P);
-  edtBNEccInverseG.Text := CnEccPointToString(P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error');
   P.Free;
 end;
 
@@ -563,7 +571,9 @@ begin
   P := TCnEccPoint.Create;
   P.Assign(FBNEcc.Generator);
   FBNEcc.PointAddPoint(FBNEcc.Generator, P, P);
-  edtBNEccInverseG.Text := CnEccPointToString(P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error');
   P.Free;
 end;
 
@@ -575,7 +585,9 @@ begin
   P.Assign(FBNEcc.Generator);
   FBNEcc.PointAddPoint(FBNEcc.Generator, P, P);
   FBNEcc.PointSubPoint(P, FBNEcc.Generator, P);
-  edtBNEccInverseG.Text := CnEccPointToString(P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error');
   P.Free;
 end;
 
@@ -589,7 +601,9 @@ begin
   K := TCnBigNumber.Create;
   K.SetDec('2');
   FBNEcc.MultiplePoint(K, P);
-  edtBNEccInverseG.Text := CnEccPointToString(P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error');
   P.Free;
   K.Free;
 end;
@@ -601,8 +615,59 @@ begin
   P := TCnEccPoint.Create;
   P.Assign(FBNEcc.Generator);
   FBNEcc.PointSubPoint(P, FBNEcc.Generator, P);
-  edtBNEccInverseG.Text := CnEccPointToString(P);
+  edtBNEccResult.Text := CnEccPointToString(P);
   P.Free;
+end;
+
+procedure TFormEcc.btnBNEccNGClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+  K: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  K := TCnBigNumber.Create;
+  K.SetDec(edtBNEccOrder.Text);
+  FBNEcc.MultiplePoint(K, P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  P.Free;
+  K.Free;
+end;
+
+procedure TFormEcc.btnBNEcc4GClick(Sender: TObject);
+var
+  P, Q: TCnEccPoint;
+  K: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  Q.Assign(FBNEcc.Generator);
+
+  K := TCnBigNumber.Create;
+  K.SetDec('2');
+  FBNEcc.MultiplePoint(K, P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error * 2');
+  FBNEcc.MultiplePoint(K, P);
+  if not FBNEcc.IsPointOnCurve(P) then
+    ShowMessage('Error * 4');
+  edtBNEccResult.Text := CnEccPointToString(P);
+
+  FBNEcc.PointAddPoint(Q, FBNEcc.Generator, Q);
+  if not FBNEcc.IsPointOnCurve(Q) then
+    ShowMessage('Error G + G');
+  FBNEcc.PointAddPoint(Q, FBNEcc.Generator, Q); // 前两个换位置就会出错？
+  if not FBNEcc.IsPointOnCurve(Q) then
+    ShowMessage('Error G + G + G');
+  FBNEcc.PointAddPoint(Q, FBNEcc.Generator, Q);
+  if not FBNEcc.IsPointOnCurve(Q) then
+    ShowMessage('Error G + G + G + G');
+
+  if CnEccPointsEqual(P, Q) then
+    ShowMessage('Equal');
+  P.Free;
+  K.Free;
 end;
 
 end.

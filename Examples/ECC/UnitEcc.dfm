@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 194
-  Top = 99
+  Left = 140
+  Top = 97
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -807,7 +807,7 @@ object FormEcc: TFormEcc
           TabOrder = 6
           OnClick = btnBNEccInverseGClick
         end
-        object edtBNEccInverseG: TEdit
+        object edtBNEccResult: TEdit
           Left = 16
           Top = 232
           Width = 665
@@ -815,7 +815,7 @@ object FormEcc: TFormEcc
           TabOrder = 7
         end
         object btnBNEccInverseAdd: TButton
-          Left = 104
+          Left = 96
           Top = 264
           Width = 75
           Height = 21
@@ -824,7 +824,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccInverseAddClick
         end
         object btnBNEccGx2: TButton
-          Left = 192
+          Left = 176
           Top = 264
           Width = 75
           Height = 21
@@ -833,7 +833,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccGx2Click
         end
         object btnBNEccG2SubG: TButton
-          Left = 368
+          Left = 336
           Top = 264
           Width = 75
           Height = 21
@@ -842,7 +842,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccG2SubGClick
         end
         object btnBNEccGAddG: TButton
-          Left = 280
+          Left = 256
           Top = 264
           Width = 75
           Height = 21
@@ -851,13 +851,31 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccGAddGClick
         end
         object btnBNEccGSubG: TButton
-          Left = 456
+          Left = 416
           Top = 264
           Width = 75
           Height = 21
           Caption = 'G - G'
           TabOrder = 12
           OnClick = btnBNEccGSubGClick
+        end
+        object btnBNEccNG: TButton
+          Left = 496
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = 'n * G'
+          TabOrder = 13
+          OnClick = btnBNEccNGClick
+        end
+        object btnBNEcc4G: TButton
+          Left = 576
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = '4 * G vs G++++'
+          TabOrder = 14
+          OnClick = btnBNEcc4GClick
         end
       end
     end
