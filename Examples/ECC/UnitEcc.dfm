@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsECC
+    ActivePage = tsWrapData
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -306,7 +306,7 @@ object FormEcc: TFormEcc
           Width = 65
           Height = 21
           Caption = '='
-          TabOrder = 13
+          TabOrder = 14
           OnClick = btnMEqualClick
         end
         object edtMK: TEdit
@@ -314,7 +314,7 @@ object FormEcc: TFormEcc
           Top = 124
           Width = 49
           Height = 21
-          TabOrder = 14
+          TabOrder = 13
           Text = '3'
         end
       end
@@ -452,7 +452,7 @@ object FormEcc: TFormEcc
         Top = 388
         Width = 41
         Height = 21
-        TabOrder = 12
+        TabOrder = 16
         Text = '5'
       end
       object btnCalcYb: TButton
@@ -461,7 +461,7 @@ object FormEcc: TFormEcc
         Width = 49
         Height = 21
         Caption = 'Calc Yb'
-        TabOrder = 13
+        TabOrder = 17
         OnClick = btnCalcYbClick
       end
       object btnCalcXA: TButton
@@ -470,7 +470,7 @@ object FormEcc: TFormEcc
         Width = 49
         Height = 21
         Caption = 'Calc Ya'
-        TabOrder = 14
+        TabOrder = 12
         OnClick = btnCalcXAClick
       end
       object edtDHYa: TEdit
@@ -478,14 +478,14 @@ object FormEcc: TFormEcc
         Top = 348
         Width = 63
         Height = 21
-        TabOrder = 15
+        TabOrder = 13
       end
       object edtDHYb: TEdit
         Left = 506
         Top = 388
         Width = 63
         Height = 21
-        TabOrder = 16
+        TabOrder = 18
       end
       object btnDHBCK: TButton
         Left = 582
@@ -493,7 +493,7 @@ object FormEcc: TFormEcc
         Width = 65
         Height = 21
         Caption = 'B Calc Key'
-        TabOrder = 17
+        TabOrder = 19
         OnClick = btnDHBCKClick
       end
       object btnDHACKey: TButton
@@ -502,7 +502,7 @@ object FormEcc: TFormEcc
         Width = 65
         Height = 21
         Caption = 'A Calc Key'
-        TabOrder = 18
+        TabOrder = 14
         OnClick = btnDHACKeyClick
       end
       object edtAKey: TEdit
@@ -510,7 +510,7 @@ object FormEcc: TFormEcc
         Top = 348
         Width = 59
         Height = 21
-        TabOrder = 19
+        TabOrder = 15
       end
       object edtBKey: TEdit
         Left = 654
@@ -564,7 +564,7 @@ object FormEcc: TFormEcc
           Width = 107
           Height = 21
           Caption = 'Generate Small Ecc'
-          TabOrder = 0
+          TabOrder = 6
           OnClick = btnGenEccClick
         end
         object edtEccA: TEdit
@@ -572,7 +572,7 @@ object FormEcc: TFormEcc
           Top = 24
           Width = 33
           Height = 21
-          TabOrder = 1
+          TabOrder = 0
           Text = '4'
         end
         object edtEccB: TEdit
@@ -580,7 +580,7 @@ object FormEcc: TFormEcc
           Top = 24
           Width = 33
           Height = 21
-          TabOrder = 2
+          TabOrder = 1
           Text = '182'
         end
         object edtEccP: TEdit
@@ -588,7 +588,7 @@ object FormEcc: TFormEcc
           Top = 24
           Width = 41
           Height = 21
-          TabOrder = 3
+          TabOrder = 2
           Text = '661'
         end
         object edtEccGX: TEdit
@@ -596,7 +596,7 @@ object FormEcc: TFormEcc
           Top = 24
           Width = 33
           Height = 21
-          TabOrder = 4
+          TabOrder = 3
           Text = '1'
         end
         object edtEccGY: TEdit
@@ -604,7 +604,7 @@ object FormEcc: TFormEcc
           Top = 24
           Width = 33
           Height = 21
-          TabOrder = 5
+          TabOrder = 4
           Text = '214'
         end
         object edtEccOrder: TEdit
@@ -612,7 +612,7 @@ object FormEcc: TFormEcc
           Top = 24
           Width = 73
           Height = 21
-          TabOrder = 6
+          TabOrder = 5
           Text = '673'
         end
         object btnCalcNG: TButton
@@ -630,7 +630,7 @@ object FormEcc: TFormEcc
           Width = 105
           Height = 289
           ScrollBars = ssVertical
-          TabOrder = 8
+          TabOrder = 10
           WantReturns = False
           WordWrap = False
         end
@@ -660,7 +660,7 @@ object FormEcc: TFormEcc
           View3D = False
           View3DWalls = False
           BevelOuter = bvNone
-          TabOrder = 9
+          TabOrder = 8
           object pntsrsSeries2: TPointSeries
             Marks.ArrowLength = 0
             Marks.Visible = False
@@ -688,7 +688,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Legendre'
-          TabOrder = 10
+          TabOrder = 9
           OnClick = btnLeRanDeClick
         end
       end
@@ -826,7 +826,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Inverse G'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnBNEccInverseGClick
         end
         object edtBNEccResult: TEdit
@@ -834,7 +834,7 @@ object FormEcc: TFormEcc
           Top = 232
           Width = 665
           Height = 21
-          TabOrder = 7
+          TabOrder = 6
         end
         object btnBNEccInverseAdd: TButton
           Left = 98
@@ -860,7 +860,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G * 2 - G'
-          TabOrder = 10
+          TabOrder = 11
           OnClick = btnBNEccG2SubGClick
         end
         object btnBNEccGAddG: TButton
@@ -869,7 +869,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G * 2'
-          TabOrder = 11
+          TabOrder = 10
           OnClick = btnBNEccGAddGClick
         end
         object btnBNEccGSubG: TButton
@@ -913,14 +913,14 @@ object FormEcc: TFormEcc
           Top = 336
           Width = 665
           Height = 21
-          TabOrder = 16
+          TabOrder = 17
         end
         object edtBNEccPrivateKey: TEdit
           Left = 232
           Top = 300
           Width = 449
           Height = 21
-          TabOrder = 17
+          TabOrder = 16
         end
         object edtBNEccDataPoint: TEdit
           Left = 80
@@ -937,6 +937,171 @@ object FormEcc: TFormEcc
           Caption = 'Encrypt/Decrypt'
           TabOrder = 19
           OnClick = btnBNEccCryptClick
+        end
+      end
+    end
+    object tsWrapData: TTabSheet
+      Caption = 'BigNumber ECC'
+      ImageIndex = 3
+      object grpWrap: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 697
+        Height = 321
+        Caption = 'BigNumber Ecc'
+        TabOrder = 0
+        object lblWrapData: TLabel
+          Left = 16
+          Top = 28
+          Width = 26
+          Height = 13
+          Caption = 'Data:'
+        end
+        object bvl1: TBevel
+          Left = 64
+          Top = 96
+          Width = 617
+          Height = 17
+          Shape = bsTopLine
+        end
+        object lblBNECDH: TLabel
+          Left = 16
+          Top = 88
+          Width = 33
+          Height = 13
+          Caption = 'ECDH:'
+        end
+        object lblBNECDHA: TLabel
+          Left = 16
+          Top = 120
+          Width = 10
+          Height = 13
+          Caption = 'A:'
+        end
+        object lblBNECDHB: TLabel
+          Left = 16
+          Top = 216
+          Width = 10
+          Height = 13
+          Caption = 'B:'
+        end
+        object lblBNECDHXb: TLabel
+          Left = 40
+          Top = 216
+          Width = 13
+          Height = 13
+          Caption = 'Xb'
+        end
+        object lblBNECDHXa: TLabel
+          Left = 40
+          Top = 120
+          Width = 13
+          Height = 13
+          Caption = 'Xa'
+        end
+        object edtWrapData: TEdit
+          Left = 56
+          Top = 24
+          Width = 529
+          Height = 21
+          TabOrder = 0
+          Text = '1233211234567'
+        end
+        object btnWrapData: TButton
+          Left = 600
+          Top = 24
+          Width = 75
+          Height = 21
+          Caption = 'Wrap to Point'
+          TabOrder = 1
+          OnClick = btnWrapDataClick
+        end
+        object edtWrapPoint: TEdit
+          Left = 16
+          Top = 56
+          Width = 657
+          Height = 21
+          TabOrder = 2
+        end
+        object edtBNECDHXa: TEdit
+          Left = 70
+          Top = 116
+          Width = 515
+          Height = 21
+          TabOrder = 3
+          Text = '30954823978126165439807650540507823796164384908578170843'
+        end
+        object edtBNECDHXb: TEdit
+          Left = 70
+          Top = 212
+          Width = 515
+          Height = 21
+          TabOrder = 8
+          Text = '554978037890271980743250435089743764116321467834980754709'
+        end
+        object btnBNECDHYb: TButton
+          Left = 602
+          Top = 212
+          Width = 71
+          Height = 21
+          Caption = 'Calc Yb'
+          TabOrder = 9
+          OnClick = btnBNECDHYbClick
+        end
+        object btnBNECDHYa: TButton
+          Left = 600
+          Top = 116
+          Width = 75
+          Height = 21
+          Caption = 'Calc Ya'
+          TabOrder = 4
+          OnClick = btnBNECDHYaClick
+        end
+        object edtBNECDHA: TEdit
+          Left = 70
+          Top = 148
+          Width = 515
+          Height = 21
+          TabOrder = 5
+        end
+        object edtBNECDHB: TEdit
+          Left = 70
+          Top = 244
+          Width = 515
+          Height = 21
+          TabOrder = 10
+        end
+        object btnBNECDHBkey: TButton
+          Left = 600
+          Top = 244
+          Width = 75
+          Height = 21
+          Caption = 'B Calc Key'
+          TabOrder = 11
+          OnClick = btnBNECDHBkeyClick
+        end
+        object btnBNECDHAKey: TButton
+          Left = 602
+          Top = 148
+          Width = 71
+          Height = 21
+          Caption = 'A Calc Key'
+          TabOrder = 6
+          OnClick = btnBNECDHAKeyClick
+        end
+        object edtBNECDHResA: TEdit
+          Left = 70
+          Top = 180
+          Width = 515
+          Height = 21
+          TabOrder = 7
+        end
+        object edtBNECDHResB: TEdit
+          Left = 70
+          Top = 276
+          Width = 515
+          Height = 21
+          TabOrder = 12
         end
       end
     end

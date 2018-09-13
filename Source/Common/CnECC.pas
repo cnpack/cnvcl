@@ -150,6 +150,7 @@ type
     FBigNumberPool: TObjectList;
     function ObtainBigNumberFromPool: TCnBigNumber;
     procedure RecycleBigNumberToPool(Num: TCnBigNumber);
+    function GetBitsCount: Integer;
   public
     constructor Create; overload;
     constructor Create(Predefined: TCnEccPredefinedCurveType); overload;
@@ -174,7 +175,9 @@ type
     {* 判断 P 点是否在本曲线上}
 
     function PlainToPoint(Plain: TCnBigNumber; OutPoint: TCnEccPoint): Boolean;
-    {* 将要加密的明文数值包装成一个待加密的点}
+    {* 将要加密的明文数值包装成一个待加密的点，特慢，不推荐}
+    function PointToPlain(Point: TCnEccPoint; OutPlain: TCnBigNumber): Boolean;
+    {* 将解密出的明文点解开成一个明文数值}
 
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
@@ -195,6 +198,8 @@ type
     {* 有限域的上界，素数 p}
     property Order: TCnBigNumber read FOrder;
     {* 基点的阶数}
+    property BitsCount: Integer read GetBitsCount;
+    {* 该椭圆曲线的素数域位数}
   end;
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
@@ -220,7 +225,20 @@ function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TC
 function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
 {* 判断两个点是否相等}
 
+function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean;
+{* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
+   其中 PublicKey = SelfPrivateKey * G}
+
+function CnEccDiffieHellmanCalucateKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
+  OtherPublicKey: TCnEccPublicKey; SecretKey: TCnEccPublicKey): Boolean;
+{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
+   其中 SecretKey = SelfPrivateKey * OtherPublicKey}
+
 implementation
+
+const
+  CN_ECC_PLAIN_DATA_BITS_GAP = 16;
 
 type
   TCnEccPredefinedHexParams = packed record
@@ -443,6 +461,34 @@ begin
 
   if Result < 0 then
     Result := Result + Modulus;
+end;
+
+function CalcBigNumberLegendre(A, P: TCnBigNumber): Integer;
+var
+  R, Res: TCnBigNumber;
+begin
+  R := TCnBigNumber.Create;
+  Res := TCnBigNumber.Create;
+  try
+    // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+    BigNumberMod(R, A, P);
+    if R.IsZero then
+      Result := 0
+    else
+    begin
+      BigNumberCopy(R, P);
+      BigNumberSubWord(R, 1);
+      BigNumberMontgomeryPowerMod(Res, A, R, P);
+
+      if Res.IsOne then // 欧拉判别法
+        Result := 1
+      else
+        Result := -1;
+    end;
+  finally
+    R.Free;
+    Res.Free;
+  end;
 end;
 
 { TCnInt64Ecc }
@@ -802,7 +848,7 @@ var
 begin
   if (BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0) or
     not IsPointOnCurve(DataPoint1) or not IsPointOnCurve(DataPoint2) then
-    raise ECnEccException.Create('Invalid Private Key or Data');
+    raise ECnEccException.Create('Invalid Private Key or Data.');
 
   P := TCnEccPoint.Create;
   try
@@ -839,7 +885,7 @@ var
   RandomKey: TCnBigNumber;
 begin
   if not IsPointOnCurve(PublicKey) or not IsPointOnCurve(PlainPoint) then
-    raise ECnEccException.Create('Invalid Public Key or Data');
+    raise ECnEccException.Create('Invalid Public Key or Data.');
 
   RandomKey := ObtainBigNumberFromPool;
   try
@@ -869,6 +915,11 @@ begin
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
+end;
+
+function TCnEcc.GetBitsCount: Integer;
+begin
+  Result := FFiniteFieldSize.GetBitsCount;
 end;
 
 function TCnEcc.IsPointOnCurve(P: TCnEccPoint): Boolean;
@@ -981,8 +1032,57 @@ end;
 
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
+var
+  P, Q: TCnBigNumber;
+  Pt: TCnEccPoint;
 begin
+  Result := False;
 
+  // 将 Plain 左移 16 位腾出 2^16 个空间来搜索有无解
+  if Plain.GetBitsCount - CN_ECC_PLAIN_DATA_BITS_GAP - 1 > FFiniteFieldSize.GetBitsCount then
+    raise ECnEccException.Create('Data Too Large.');
+
+  P := nil;
+  Q := nil;
+  Pt := nil;
+
+  try
+    Pt := TCnEccPoint.Create;
+    P := ObtainBigNumberFromPool;
+    Q := ObtainBigNumberFromPool;
+
+    BigNumberCopy(Pt.X, Plain);
+    BigNumbercopy(Q, Plain);
+    BigNumberAddWord(Q, 1);
+
+    BigNumberShiftLeft(Pt.X, Pt.X, CN_ECC_PLAIN_DATA_BITS_GAP);
+    BigNumberShiftLeft(Q, Q, CN_ECC_PLAIN_DATA_BITS_GAP);
+
+    repeat
+      // 对于 Pt.X 所属范围内的每一个 X，Pt.Y 遍历 0 到 FFiniteFieldSize - 1 看有无满足曲线点
+
+      // 通过勒让德符号判断 X 是否有解，有才在该 X 上搜寻
+      if CalcBigNumberLegendre(Pt.X, FFiniteFieldSize) = 1 then
+      begin
+        Pt.Y.SetZero;
+        repeat
+          if IsPointOnCurve(Pt) then
+          begin
+            OutPoint.Assign(Pt);
+            Result := True;
+            Exit;
+          end;
+          BigNumberAddWord(Pt.Y, 1);
+        until BigNumberCompare(Pt.Y, FFiniteFieldSize) >= 0;
+      end;
+
+      BigNumberAddWord(Pt.X, 1);
+    until BigNumberCompare(Pt.X, Q) >= 0;
+  finally
+    Pt.Free;
+    RecycleBigNumberToPool(P);
+    RecycleBigNumberToPool(Q);
+  end;
 end;
 
 procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
@@ -1112,7 +1212,7 @@ end;
 procedure TCnEcc.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create('Inverse Error');
+    raise ECnEccException.Create('Inverse Error.');
 
   BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
@@ -1129,6 +1229,18 @@ begin
   Inv.Free;
 end;
 
+function TCnEcc.PointToPlain(Point: TCnEccPoint;
+  OutPlain: TCnBigNumber): Boolean;
+begin
+  Result := False;
+  if (Point <> nil) and (OutPlain <> nil) then
+  begin
+    BigNumberCopy(OutPlain, Point.X);
+    BigNumberShiftRight(OutPlain, OutPlain, CN_ECC_PLAIN_DATA_BITS_GAP);
+    Result := True;
+  end;
+end;
+
 procedure TCnEcc.RecycleBigNumberToPool(Num: TCnBigNumber);
 begin
   if Num = nil then
@@ -1137,6 +1249,32 @@ begin
   if FBigNumberPool = nil then
     FBigNumberPool := TObjectList.Create(False);
   FBigNumberPool.Add(Num);
+end;
+
+function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean;
+begin
+  // PublicKey = SelfPrivateKey * G
+  Result := False;
+  if (Ecc <> nil) and (SelfPrivateKey <> nil) and not BigNumberIsNegative(SelfPrivateKey) then
+  begin
+    PublicKey.Assign(Ecc.Generator);
+    Ecc.MultiplePoint(SelfPrivateKey, PublicKey);
+    Result := True;
+  end;
+end;
+
+function CnEccDiffieHellmanCalucateKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
+  OtherPublicKey: TCnEccPublicKey; SecretKey: TCnEccPublicKey): Boolean;
+begin
+  // SecretKey = SelfPrivateKey * OtherPublicKey
+  Result := False;
+  if (Ecc <> nil) and (SelfPrivateKey <> nil) and not BigNumberIsNegative(SelfPrivateKey) then
+  begin
+    SecretKey.Assign(OtherPublicKey);
+    Ecc.MultiplePoint(SelfPrivateKey, SecretKey);
+    Result := True;
+  end;
 end;
 
 end.

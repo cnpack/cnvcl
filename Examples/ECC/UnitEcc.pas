@@ -120,6 +120,28 @@ type
     lblBNEccDataPoint: TLabel;
     edtBNEccDataPoint: TEdit;
     btnBNEccCrypt: TButton;
+    tsWrapData: TTabSheet;
+    grpWrap: TGroupBox;
+    lblWrapData: TLabel;
+    edtWrapData: TEdit;
+    btnWrapData: TButton;
+    edtWrapPoint: TEdit;
+    bvl1: TBevel;
+    lblBNECDH: TLabel;
+    lblBNECDHA: TLabel;
+    lblBNECDHB: TLabel;
+    lblBNECDHXb: TLabel;
+    lblBNECDHXa: TLabel;
+    edtBNECDHXa: TEdit;
+    edtBNECDHXb: TEdit;
+    btnBNECDHYb: TButton;
+    btnBNECDHYa: TButton;
+    edtBNECDHA: TEdit;
+    edtBNECDHB: TEdit;
+    btnBNECDHBkey: TButton;
+    btnBNECDHAKey: TButton;
+    edtBNECDHResA: TEdit;
+    edtBNECDHResB: TEdit;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -155,6 +177,11 @@ type
     procedure btnBNEccNewKeyClick(Sender: TObject);
     procedure lblBNEccDataPointClick(Sender: TObject);
     procedure btnBNEccCryptClick(Sender: TObject);
+    procedure btnWrapDataClick(Sender: TObject);
+    procedure btnBNECDHYaClick(Sender: TObject);
+    procedure btnBNECDHYbClick(Sender: TObject);
+    procedure btnBNECDHAKeyClick(Sender: TObject);
+    procedure btnBNECDHBkeyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -166,6 +193,8 @@ type
     FBNEccPrivateKey: TCnEccPrivateKey;
     FBNEccPublicKey: TCnEccPublicKey;
     FBNEccDataPoint: TCnEccPoint;
+    FBNECDHPrivKey1, FBNECDHPrivKey2: TCnEccPrivateKey;
+    FBNECDHPubKey1, FBNECDHPubKey2: TCnEccPublicKey;
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
@@ -276,6 +305,11 @@ begin
   FBNEccPrivateKey := TCnEccPrivateKey.Create;
   FBNEccPublicKey := TCnEccPublicKey.Create;
   FBNEccDataPoint := TCnEccPoint.Create;
+
+  FBNECDHPrivKey1 := TCnEccPrivateKey.Create;
+  FBNECDHPrivKey2 := TCnEccPrivateKey.Create;
+  FBNECDHPubKey1 := TCnEccPublicKey.Create;
+  FBNECDHPubKey2 := TCnEccPublicKey.Create;
   ShowBnEcc;
 
   lblBNEccDataPoint.OnClick(lblBNEccDataPoint);
@@ -283,6 +317,10 @@ end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
 begin
+  FBNECDHPrivKey1.Free;
+  FBNECDHPrivKey2.Free;
+  FBNECDHPubKey1.Free;
+  FBNECDHPubKey2.Free;
   FBNEccDataPoint.Free;
   FBNEccPrivateKey.Free;
   FBNEccPublicKey.Free;
@@ -730,6 +768,63 @@ begin
   Plain.Free;
   Data1.Free;
   Data2.Free;
+end;
+
+procedure TFormEcc.btnWrapDataClick(Sender: TObject);
+var
+  P: TCnBigNumber;
+  Pt: TCnEccPoint;
+begin
+  P := TCnBigNumber.Create;
+  Pt := TCnEccPoint.Create;
+  P.SetDec(edtWrapData.Text);
+
+  if FBNEcc.PlainToPoint(P, Pt) then
+  begin
+    edtWrapPoint.Text := CnEccPointToString(Pt);
+    P.SetZero;
+    FBNEcc.PointToPlain(Pt, P);
+    edtWrapData.Text := P.ToDec;
+  end
+  else
+    ShowMessage('Can NOT Convert Data to Point');
+
+  P.Free;
+  Pt.Free;
+end;
+
+procedure TFormEcc.btnBNECDHYaClick(Sender: TObject);
+begin
+  FBNECDHPrivKey1.SetDec(edtBNECDHXa.Text);
+  CnEccDiffieHellmanGenerateOutKey(FBNEcc, FBNECDHPrivKey1, FBNECDHPubKey1);
+  edtBNECDHA.Text := CnEccPointToString(FBNECDHPubKey1);
+end;
+
+procedure TFormEcc.btnBNECDHYbClick(Sender: TObject);
+begin
+  FBNECDHPrivKey2.SetDec(edtBNECDHXb.Text);
+  CnEccDiffieHellmanGenerateOutKey(FBNEcc, FBNECDHPrivKey2, FBNECDHPubKey2);
+  edtBNECDHB.Text := CnEccPointToString(FBNECDHPubKey2);
+end;
+
+procedure TFormEcc.btnBNECDHAKeyClick(Sender: TObject);
+var
+  Sec: TCnEccPublicKey;
+begin
+  Sec := TCnEccPublicKey.Create;
+  CnEccDiffieHellmanCalucateKey(FBNEcc, FBNECDHPrivKey1, FBNECDHPubKey2, Sec);
+  edtBNECDHResA.Text := CnEccPointToString(Sec);
+  Sec.Free;
+end;
+
+procedure TFormEcc.btnBNECDHBkeyClick(Sender: TObject);
+var
+  Sec: TCnEccPublicKey;
+begin
+  Sec := TCnEccPublicKey.Create;
+  CnEccDiffieHellmanCalucateKey(FBNEcc, FBNECDHPrivKey2, FBNECDHPubKey1, Sec);
+  edtBNECDHResB.Text := CnEccPointToString(Sec);
+  Sec.Free;
 end;
 
 end.
