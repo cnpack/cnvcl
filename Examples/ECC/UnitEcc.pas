@@ -486,7 +486,7 @@ var
   Sec: TCnInt64PublicKey;
 begin
   InPriv := StrToInt(edtDHXa.Text);
-  CnInt64EccDiffieHellmanCalucateKey(FEcc64E2311, InPriv, FBOutPub, Sec);
+  CnInt64EccDiffieHellmanComputeKey(FEcc64E2311, InPriv, FBOutPub, Sec);
   edtAKey.Text := CnInt64EccPointToString(Sec);
 end;
 
@@ -496,7 +496,7 @@ var
   Sec: TCnInt64PublicKey;
 begin
   InPriv := StrToInt(edtDHXb.Text);
-  CnInt64EccDiffieHellmanCalucateKey(FEcc64E2311, InPriv, FAOutPub, Sec);
+  CnInt64EccDiffieHellmanComputeKey(FEcc64E2311, InPriv, FAOutPub, Sec);
   edtBKey.Text := CnInt64EccPointToString(Sec);
 end;
 
@@ -812,7 +812,7 @@ var
   Sec: TCnEccPublicKey;
 begin
   Sec := TCnEccPublicKey.Create;
-  CnEccDiffieHellmanCalucateKey(FBNEcc, FBNECDHPrivKey1, FBNECDHPubKey2, Sec);
+  CnEccDiffieHellmanComputeKey(FBNEcc, FBNECDHPrivKey1, FBNECDHPubKey2, Sec);
   edtBNECDHResA.Text := CnEccPointToString(Sec);
   Sec.Free;
 end;
@@ -822,7 +822,7 @@ var
   Sec: TCnEccPublicKey;
 begin
   Sec := TCnEccPublicKey.Create;
-  CnEccDiffieHellmanCalucateKey(FBNEcc, FBNECDHPrivKey2, FBNECDHPubKey1, Sec);
+  CnEccDiffieHellmanComputeKey(FBNEcc, FBNECDHPrivKey2, FBNECDHPubKey1, Sec);
   edtBNECDHResB.Text := CnEccPointToString(Sec);
   Sec.Free;
 end;

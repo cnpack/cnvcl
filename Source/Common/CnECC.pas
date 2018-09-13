@@ -217,8 +217,8 @@ function CnInt64EccDiffieHellmanGenerateOutKey(Ecc: TCnInt64Ecc; SelfPrivateKey:
 {* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
    其中 OutPublicKey = SelfPrivateKey * G}
 
-function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
-  var OtherPublicKey: TCnInt64PublicKey; var SecretKey: TCnInt64PublicKey): Boolean;
+function CnInt64EccDiffieHellmanComputeKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
+  var OtherPublicKey: TCnInt64PublicKey; var SharedSecretKey: TCnInt64PublicKey): Boolean;
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
@@ -230,8 +230,8 @@ function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPri
 {* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
    其中 PublicKey = SelfPrivateKey * G}
 
-function CnEccDiffieHellmanCalucateKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
-  OtherPublicKey: TCnEccPublicKey; SecretKey: TCnEccPublicKey): Boolean;
+function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
+  OtherPublicKey: TCnEccPublicKey; SharedSecretKey: TCnEccPublicKey): Boolean;
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
@@ -754,15 +754,15 @@ begin
 end;
 
 // 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
-function CnInt64EccDiffieHellmanCalucateKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
-  var OtherPublicKey: TCnInt64PublicKey; var SecretKey: TCnInt64PublicKey): Boolean;
+function CnInt64EccDiffieHellmanComputeKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
+  var OtherPublicKey: TCnInt64PublicKey; var SharedSecretKey: TCnInt64PublicKey): Boolean;
 begin
   // SecretKey = SelfPrivateKey * OtherPublicKey
   Result := False;
   if (Ecc <> nil) and (SelfPrivateKey > 0) then
   begin
-    SecretKey := OtherPublicKey;
-    Ecc.MultiplePoint(SelfPrivateKey, SecretKey);
+    SharedSecretKey := OtherPublicKey;
+    Ecc.MultiplePoint(SelfPrivateKey, SharedSecretKey);
     Result := True;
   end;
 end;
@@ -1264,15 +1264,15 @@ begin
   end;
 end;
 
-function CnEccDiffieHellmanCalucateKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
-  OtherPublicKey: TCnEccPublicKey; SecretKey: TCnEccPublicKey): Boolean;
+function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
+  OtherPublicKey: TCnEccPublicKey; SharedSecretKey: TCnEccPublicKey): Boolean;
 begin
   // SecretKey = SelfPrivateKey * OtherPublicKey
   Result := False;
   if (Ecc <> nil) and (SelfPrivateKey <> nil) and not BigNumberIsNegative(SelfPrivateKey) then
   begin
-    SecretKey.Assign(OtherPublicKey);
-    Ecc.MultiplePoint(SelfPrivateKey, SecretKey);
+    SharedSecretKey.Assign(OtherPublicKey);
+    Ecc.MultiplePoint(SelfPrivateKey, SharedSecretKey);
     Result := True;
   end;
 end;

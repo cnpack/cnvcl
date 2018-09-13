@@ -838,7 +838,7 @@ begin
   OtherPublicKey := BigNumberFromDec(edtDHYb.Text);
   SecretKey := BigNumberNew;
 
-  if CnDiffieHellmanCalucateKey(Prime, SelfPrivateKey, OtherPublicKey, SecretKey) then
+  if CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey, SecretKey) then
     edtAKey.Text := SecretKey.ToDec;
 
   Prime.Free;
@@ -856,7 +856,7 @@ begin
   OtherPublicKey := BigNumberFromDec(edtDHYa.Text);
   SecretKey := BigNumberNew;
 
-  if CnDiffieHellmanCalucateKey(Prime, SelfPrivateKey, OtherPublicKey, SecretKey) then
+  if CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey, SecretKey) then
     edtBKey.Text := SecretKey.ToDec;
 
   Prime.Free;
