@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 140
-  Top = 97
+  Left = 246
+  Top = 76
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -754,6 +754,28 @@ object FormEcc: TFormEcc
           Height = 13
           Caption = 'mod'
         end
+        object lblBNEccPrivateKey: TLabel
+          Left = 176
+          Top = 304
+          Width = 42
+          Height = 13
+          Caption = 'Private: -'
+        end
+        object lblBNEccPublicKey: TLabel
+          Left = 112
+          Top = 304
+          Width = 40
+          Height = 13
+          Caption = 'Public:  |'
+        end
+        object lblBNEccDataPoint: TLabel
+          Left = 16
+          Top = 376
+          Width = 53
+          Height = 13
+          Caption = 'Data Point:'
+          OnClick = lblBNEccDataPointClick
+        end
         object edtBNEccA: TEdit
           Left = 104
           Top = 24
@@ -815,7 +837,7 @@ object FormEcc: TFormEcc
           TabOrder = 7
         end
         object btnBNEccInverseAdd: TButton
-          Left = 96
+          Left = 98
           Top = 264
           Width = 75
           Height = 21
@@ -824,7 +846,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccInverseAddClick
         end
         object btnBNEccGx2: TButton
-          Left = 176
+          Left = 180
           Top = 264
           Width = 75
           Height = 21
@@ -833,7 +855,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccGx2Click
         end
         object btnBNEccG2SubG: TButton
-          Left = 336
+          Left = 344
           Top = 264
           Width = 75
           Height = 21
@@ -842,7 +864,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccG2SubGClick
         end
         object btnBNEccGAddG: TButton
-          Left = 256
+          Left = 262
           Top = 264
           Width = 75
           Height = 21
@@ -851,7 +873,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccGAddGClick
         end
         object btnBNEccGSubG: TButton
-          Left = 416
+          Left = 426
           Top = 264
           Width = 75
           Height = 21
@@ -860,7 +882,7 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccGSubGClick
         end
         object btnBNEccNG: TButton
-          Left = 496
+          Left = 508
           Top = 264
           Width = 75
           Height = 21
@@ -869,13 +891,52 @@ object FormEcc: TFormEcc
           OnClick = btnBNEccNGClick
         end
         object btnBNEcc4G: TButton
-          Left = 576
+          Left = 590
           Top = 264
           Width = 75
           Height = 21
           Caption = '4 * G vs G++++'
           TabOrder = 14
           OnClick = btnBNEcc4GClick
+        end
+        object btnBNEccNewKey: TButton
+          Left = 16
+          Top = 300
+          Width = 75
+          Height = 21
+          Caption = 'New Key'
+          TabOrder = 15
+          OnClick = btnBNEccNewKeyClick
+        end
+        object edtBNEccPublicKey: TEdit
+          Left = 16
+          Top = 336
+          Width = 665
+          Height = 21
+          TabOrder = 16
+        end
+        object edtBNEccPrivateKey: TEdit
+          Left = 232
+          Top = 300
+          Width = 449
+          Height = 21
+          TabOrder = 17
+        end
+        object edtBNEccDataPoint: TEdit
+          Left = 80
+          Top = 372
+          Width = 505
+          Height = 21
+          TabOrder = 18
+        end
+        object btnBNEccCrypt: TButton
+          Left = 592
+          Top = 372
+          Width = 91
+          Height = 21
+          Caption = 'Encrypt/Decrypt'
+          TabOrder = 19
+          OnClick = btnBNEccCryptClick
         end
       end
     end

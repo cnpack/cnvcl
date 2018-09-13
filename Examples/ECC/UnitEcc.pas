@@ -112,6 +112,14 @@ type
     lblBNEccMod: TLabel;
     btnBNEccNG: TButton;
     btnBNEcc4G: TButton;
+    btnBNEccNewKey: TButton;
+    lblBNEccPrivateKey: TLabel;
+    edtBNEccPublicKey: TEdit;
+    edtBNEccPrivateKey: TEdit;
+    lblBNEccPublicKey: TLabel;
+    lblBNEccDataPoint: TLabel;
+    edtBNEccDataPoint: TEdit;
+    btnBNEccCrypt: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -144,6 +152,9 @@ type
     procedure btnBNEccGSubGClick(Sender: TObject);
     procedure btnBNEccNGClick(Sender: TObject);
     procedure btnBNEcc4GClick(Sender: TObject);
+    procedure btnBNEccNewKeyClick(Sender: TObject);
+    procedure lblBNEccDataPointClick(Sender: TObject);
+    procedure btnBNEccCryptClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -152,6 +163,9 @@ type
     FEcc64Enc1, FEcc64Enc2: TCnInt64EccPoint;
 
     FBNEcc: TCnEcc;
+    FBNEccPrivateKey: TCnEccPrivateKey;
+    FBNEccPublicKey: TCnEccPublicKey;
+    FBNEccDataPoint: TCnEccPoint;
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
@@ -259,11 +273,19 @@ begin
   UpdateE2311Chart;
 
   FBNEcc := TCnEcc.Create(ctSm2);
+  FBNEccPrivateKey := TCnEccPrivateKey.Create;
+  FBNEccPublicKey := TCnEccPublicKey.Create;
+  FBNEccDataPoint := TCnEccPoint.Create;
   ShowBnEcc;
+
+  lblBNEccDataPoint.OnClick(lblBNEccDataPoint);
 end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
 begin
+  FBNEccDataPoint.Free;
+  FBNEccPrivateKey.Free;
+  FBNEccPublicKey.Free;
   FBNEcc.Free;
   FEcc64E2311.Free;
 end;
@@ -668,6 +690,46 @@ begin
     ShowMessage('Equal');
   P.Free;
   K.Free;
+end;
+
+procedure TFormEcc.btnBNEccNewKeyClick(Sender: TObject);
+begin
+  FBNEcc.GenerateKeys(FBNEccPrivateKey, FBNEccPublicKey);
+  edtBNEccPrivateKey.Text := FBNEccPrivateKey.ToDec;
+  edtBNEccPublicKey.Text := CnEccPointToString(FBNEccPublicKey);
+end;
+
+procedure TFormEcc.lblBNEccDataPointClick(Sender: TObject);
+var
+  I: Integer;
+  K: TCnBigNumber;
+begin
+  Randomize;
+  I := Trunc(Random * 65537) + 1;
+  K := TCnBigNumber.Create;
+  K.SetWord(I);
+  FBNEccDataPoint.Assign(FBNEcc.Generator);
+  FBNEcc.MultiplePoint(K, FBNEccDataPoint);
+  K.Free;
+  edtBNEccDataPoint.Text := CnEccPointToString(FBNEccDataPoint);
+end;
+
+procedure TFormEcc.btnBNEccCryptClick(Sender: TObject);
+var
+  Data1, Data2, Plain: TCnEccPoint;
+begin
+  Data1 := TCnEccPoint.Create;
+  Data2 := TCnEccPoint.Create;
+  Plain := TCnEccPoint.Create;
+  FBNEcc.Encrypt(FBNEccDataPoint, FBNEccPublicKey, Data1, Data2);
+  ShowMessage('Encrypted to' + #13#10 + CnEccPointToString(Data1) + #13#10 + CnEccPointToString(Data2));
+
+  FBNEcc.Decrypt(Data1, Data2, FBNEccPrivateKey, Plain);
+  ShowMessage('Decrypted back to' + #13#10 + CnEccPointToString(Plain));
+
+  Plain.Free;
+  Data1.Free;
+  Data2.Free;
 end;
 
 end.

@@ -28,7 +28,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.09.10 V1.1
+* 修改记录：2018.09.13 V1.2
+*               初步实现大数椭圆曲线的加解密功能，支持 SM2 以及 Secp256k1 曲线
+*           2018.09.10 V1.1
 *               能够生成系数很小的椭圆曲线参数
 *           2018.09.05 V1.0
 *               创建单元
@@ -174,7 +176,7 @@ type
     function PlainToPoint(Plain: TCnBigNumber; OutPoint: TCnEccPoint): Boolean;
     {* 将要加密的明文数值包装成一个待加密的点}
 
-    procedure GenerateKeys(out PrivateKey: TCnEccPrivateKey; out PublicKey: TCnEccPublicKey);
+    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
     procedure Encrypt(PlainPoint: TCnEccPoint; PublicKey: TCnEccPublicKey;
       OutDataPoint1, OutDataPoint2: TCnEccPoint);
@@ -795,8 +797,21 @@ end;
 
 procedure TCnEcc.Decrypt(DataPoint1, DataPoint2: TCnEccPoint;
   PrivateKey: TCnEccPrivateKey; OutPlainPoint: TCnEccPoint);
+var
+  P: TCnEccPoint;
 begin
+  if (BigNumberCompare(PrivateKey, CnBigNumberZero) <= 0) or
+    not IsPointOnCurve(DataPoint1) or not IsPointOnCurve(DataPoint2) then
+    raise ECnEccException.Create('Invalid Private Key or Data');
 
+  P := TCnEccPoint.Create;
+  try
+    P.Assign(DataPoint2);
+    MultiplePoint(PrivateKey, P);
+    PointSubPoint(DataPoint1, P, OutPlainPoint);
+  finally
+    P.Free;
+  end;
 end;
 
 destructor TCnEcc.Destroy;
@@ -820,14 +835,40 @@ end;
 
 procedure TCnEcc.Encrypt(PlainPoint: TCnEccPoint;
   PublicKey: TCnEccPublicKey; OutDataPoint1, OutDataPoint2: TCnEccPoint);
+var
+  RandomKey: TCnBigNumber;
 begin
+  if not IsPointOnCurve(PublicKey) or not IsPointOnCurve(PlainPoint) then
+    raise ECnEccException.Create('Invalid Public Key or Data');
 
+  RandomKey := ObtainBigNumberFromPool;
+  try
+    BigNumberRandRange(RandomKey, FOrder);    // 比 0 大但比基点阶小的随机数
+    if BigNumberIsZero(RandomKey) then
+      BigNumberSetOne(RandomKey);
+
+    // M + rK;
+    OutDataPoint1.Assign(PublicKey);
+    MultiplePoint(RandomKey, OutDataPoint1);
+    PointAddPoint(PlainPoint, OutDataPoint1, OutDataPoint1);
+
+    // r * G
+    OutDataPoint2.Assign(FGenerator);
+    MultiplePoint(RandomKey, OutDataPoint2);
+  finally
+    RecycleBigNumberToPool(RandomKey);
+  end;
 end;
 
-procedure TCnEcc.GenerateKeys(out PrivateKey: TCnEccPrivateKey;
-  out PublicKey: TCnEccPublicKey);
+procedure TCnEcc.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey);
 begin
+  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
+    PrivateKey.SetOne;
 
+  PublicKey.Assign(FGenerator);
+  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
 end;
 
 function TCnEcc.IsPointOnCurve(P: TCnEccPoint): Boolean;
