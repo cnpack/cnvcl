@@ -232,7 +232,7 @@ function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPri
 
 function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
   OtherPublicKey: TCnEccPublicKey; SharedSecretKey: TCnEccPublicKey): Boolean;
-{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
+{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点，一般拿点的 X 坐标来做密钥
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
 implementation

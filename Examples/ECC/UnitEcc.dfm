@@ -1040,9 +1040,9 @@ object FormEcc: TFormEcc
           Text = '554978037890271980743250435089743764116321467834980754709'
         end
         object btnBNECDHYb: TButton
-          Left = 602
+          Left = 600
           Top = 212
-          Width = 71
+          Width = 75
           Height = 21
           Caption = 'Calc Yb'
           TabOrder = 9
@@ -1081,9 +1081,9 @@ object FormEcc: TFormEcc
           OnClick = btnBNECDHBkeyClick
         end
         object btnBNECDHAKey: TButton
-          Left = 602
+          Left = 600
           Top = 148
-          Width = 71
+          Width = 75
           Height = 21
           Caption = 'A Calc Key'
           TabOrder = 6
@@ -1102,6 +1102,15 @@ object FormEcc: TFormEcc
           Width = 515
           Height = 21
           TabOrder = 12
+        end
+        object btnTestECDH: TButton
+          Left = 600
+          Top = 276
+          Width = 75
+          Height = 21
+          Caption = 'ECDH Sample'
+          TabOrder = 13
+          OnClick = btnTestECDHClick
         end
       end
     end

@@ -142,6 +142,7 @@ type
     btnBNECDHAKey: TButton;
     edtBNECDHResA: TEdit;
     edtBNECDHResB: TEdit;
+    btnTestECDH: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -182,6 +183,7 @@ type
     procedure btnBNECDHYbClick(Sender: TObject);
     procedure btnBNECDHAKeyClick(Sender: TObject);
     procedure btnBNECDHBkeyClick(Sender: TObject);
+    procedure btnTestECDHClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -301,7 +303,7 @@ begin
   CalcE2311Points;
   UpdateE2311Chart;
 
-  FBNEcc := TCnEcc.Create(ctSm2);
+  FBNEcc := TCnEcc.Create(ctSecp256k1);
   FBNEccPrivateKey := TCnEccPrivateKey.Create;
   FBNEccPublicKey := TCnEccPublicKey.Create;
   FBNEccDataPoint := TCnEccPoint.Create;
@@ -825,6 +827,41 @@ begin
   CnEccDiffieHellmanComputeKey(FBNEcc, FBNECDHPrivKey2, FBNECDHPubKey1, Sec);
   edtBNECDHResB.Text := CnEccPointToString(Sec);
   Sec.Free;
+end;
+
+procedure TFormEcc.btnTestECDHClick(Sender: TObject);
+var
+  Priv1, Priv2: TCnEccPrivateKey;
+  Pub1, Pub2: TCnEccPublicKey;
+  Sec: TCnEccPoint;
+begin
+  Priv1 := TCnEccPrivateKey.FromHex('E32868331FA8EF0138DE0DE85478346AEC5E3912B6029AE71691C384237A3EEB');
+  Priv2 := TCnEccPrivateKey.FromHex('CEF147652AA90162E1FFF9CF07F2605EA05529CA215A04350A98ECC24AA34342');
+
+  Pub1 := TCnEccPublicKey.Create;
+  Pub2 := TCnEccPublicKey.Create;
+
+  CnEccDiffieHellmanGenerateOutKey(FBNEcc, Priv1, Pub1);
+  CnEccDiffieHellmanGenerateOutKey(FBNEcc, Priv2, Pub2);
+
+  ShowMessage('Pub1 is:' + #13#10 + Pub1.X.ToHex + #13#10 + Pub1.Y.ToHex);
+  // 86B1AA5120F079594348C67647679E7AC4C365B2C01330DB782B0BA611C1D677, 5F4376A23EED633657A90F385BA21068ED7E29859A7FAB09E953CC5B3E89BEBA
+
+  ShowMessage('Pub2 is:' + #13#10 + Pub2.X.ToHex + #13#10 + Pub2.Y.ToHex);
+  // 4034127647BB7FDAB7F1526C7D10BE8B28174E2BBA35B06FFD8A26FC2C20134A, 9E773199EDC1EA792B150270EA3317689286C9FE239DD5B9C5CFD9E81B4B632
+
+  Sec := TCnEccPoint.Create;
+  CnEccDiffieHellmanComputeKey(FBNEcc, Priv1, Pub2, Sec);
+  ShowMessage('A Compute Key is:' + #13#10 + Sec.X.ToHex + #13#10 + Sec.Y.ToHex);
+  CnEccDiffieHellmanComputeKey(FBNEcc, Priv2, Pub1, Sec);
+  ShowMessage('B Compute Key is:' + #13#10 + Sec.X.ToHex + #13#10 + Sec.Y.ToHex);
+  // 3E2FFBC3AA8A2836C1689E55CD169BA638B58A3A18803FCF7DE153525B28C3CD, 43CA148C92AF58EBDB525542488A4FE6397809200FE8C61B41A105449507083
+
+  Sec.Free;
+  Pub1.Free;
+  Pub2.Free;
+  Priv1.Free;
+  Priv2.Free;
 end;
 
 end.
