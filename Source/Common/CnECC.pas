@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, CnNativeDecl, CnPrimeNumber, CnBigNumber;
+  SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber;
 
 type
   ECnEccException = class(Exception);
@@ -119,7 +119,9 @@ type
     procedure SetX(const Value: TCnBigNumber);
     procedure SetY(const Value: TCnBigNumber);
   public
-    constructor Create;
+    constructor Create; overload;
+    constructor Create(const XDec, YDec: AnsiString); overload;
+
     destructor Destroy; override;
 
     procedure Assign(Source: TPersistent); override;
@@ -139,6 +141,9 @@ type
   TCnEccPredefinedCurveType = (ctCustomized, ctSM2, ctSecp256k1);
   {* 支持的椭圆曲线类型}
 
+  TCnEccPrimeType = (pt4U3, pt8U5, pt8U1);
+  {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于椭圆曲线方程中快速求 Y}
+
   TCnEcc = class
   {* 描述一有限域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
   private
@@ -148,9 +153,13 @@ type
     FFiniteFieldSize: TCnBigNumber;
     FGenerator: TCnEccPoint;
     FBigNumberPool: TObjectList;
+    FSizeUFactor: TCnBigNumber;
+    FSizePrimeType: TCnEccPrimeType;
     function ObtainBigNumberFromPool: TCnBigNumber;
     procedure RecycleBigNumberToPool(Num: TCnBigNumber);
     function GetBitsCount: Integer;
+  protected
+    procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
   public
     constructor Create; overload;
     constructor Create(Predefined: TCnEccPredefinedCurveType); overload;
@@ -236,9 +245,6 @@ function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivate
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
 implementation
-
-const
-  CN_ECC_PLAIN_DATA_BITS_GAP = 16;
 
 type
   TCnEccPredefinedHexParams = packed record
@@ -489,6 +495,12 @@ begin
     R.Free;
     Res.Free;
   end;
+end;
+
+// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
+procedure CalcLucasSequence(X, Y: TCnBigNumber; U, V, K, P: TCnBigNumber);
+begin
+
 end;
 
 { TCnInt64Ecc }
@@ -789,6 +801,13 @@ begin
   FY.SetZero;
 end;
 
+constructor TCnEccPoint.Create(const XDec, YDec: AnsiString);
+begin
+  Create;
+  FX.SetDec(XDec);
+  FY.SetDec(YDec);
+end;
+
 destructor TCnEccPoint.Destroy;
 begin
   FY.Free;
@@ -819,6 +838,24 @@ end;
 
 { TCnEcc }
 
+procedure TCnEcc.CalcX3AddAXAddB(X: TCnBigNumber);
+var
+  M: TCnBigNumber;
+begin
+  M := ObtainBigNumberFromPool;
+  try
+    BigNumberCopy(M, X);
+    BigNumberMul(X, X, X);
+    BigNumberMul(X, X, M); // X: X^3
+
+    BigNumberMul(M, M, FCoefficientA); // M: A*X
+    BigNumberAdd(X, X, M);             // X: X^3 + A*X
+    BigNumberAdd(X, X, FCoefficientB); // X: X^3 + A*X + B
+  finally
+    RecycleBigNumberToPool(M);
+  end;
+end;
+
 constructor TCnEcc.Create(const A, B, FieldPrime, GX, GY, Order: AnsiString);
 begin
   Create;
@@ -833,6 +870,7 @@ begin
   FCoefficientA := TCnBigNumber.Create;
   FOrder := TCnBigNumber.Create;
   FFiniteFieldSize := TCnBigNumber.Create;
+  FSizeUFactor := TCnBigNumber.Create;
 end;
 
 constructor TCnEcc.Create(Predefined: TCnEccPredefinedCurveType);
@@ -871,6 +909,7 @@ begin
     FBigNumberPool.Free;
   end;
 
+  FSizeUFactor.Free;
   FGenerator.Free;
   FCoefficientB.Free;
   FCoefficientA.Free;
@@ -924,34 +963,24 @@ end;
 
 function TCnEcc.IsPointOnCurve(P: TCnEccPoint): Boolean;
 var
-  X, X2, Y, A: TCnBigNumber;
+  X, Y, A: TCnBigNumber;
 begin
   X := ObtainBigNumberFromPool;
-  X2 := ObtainBigNumberFromPool;
   Y := ObtainBigNumberFromPool;
   A := ObtainBigNumberFromPool;
 
   try
     BigNumberCopy(X, P.X);
-    BigNumberCopy(X2, P.X);
     BigNumberCopy(Y, P.Y);
 
     BigNumberMul(Y, Y, Y);                // Y: Y^2
     BigNumberMod(Y, Y, FFiniteFieldSize); // Y^2 mod P
 
-    BigNumberMul(A, X, FCoefficientA);     // A: A*X
-
-    BigNumberMul(X, X, X);
-    BigNumberMul(X, X, X2);               // X: X^3
-
-    BigNumberAdd(X, X, A);                // X: X^3 + A*X
-    BigNumberAdd(X, X, FCoefficientB);     // X: X^3 + A*X + B
-
+    CalcX3AddAXAddB(X);                   // X: X^3 + A*X + B
     BigNumberMod(X, X, FFiniteFieldSize); // X: (X^3 + A*X + B) mod P
     Result := BigNumberCompare(X, Y) = 0;
   finally
     RecycleBigNumberToPool(X);
-    RecycleBigNumberToPool(X2);
     RecycleBigNumberToPool(Y);
     RecycleBigNumberToPool(A);
   end;
@@ -965,6 +994,8 @@ begin
 end;
 
 procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString);
+var
+  R: DWORD;
 begin
   FGenerator.X.SetHex(GX);
   FGenerator.Y.SetHex(GY);
@@ -972,6 +1003,34 @@ begin
   FCoefficientB.SetHex(B);
   FFiniteFieldSize.SetHex(FieldPrime);
   FOrder.SetHex(Order);
+
+//  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
+//    raise ECnEccException.Create('Error: Finite Field Size must be Prime.');
+
+  // 确定 PrimeType
+  R := BigNumberModWord(FFiniteFieldSize, 4);
+  BigNumberCopy(FSizeUFactor, FFiniteFieldSize);
+  if R = 3 then
+  begin
+    FSizePrimeType := pt4U3;
+    BigNumberDivWord(FSizeUFactor, 4);
+  end
+  else
+  begin
+    R := BigNumberModWord(FFiniteFieldSize, 8);
+    if R = 1 then
+    begin
+      FSizePrimeType := pt8U1;
+      BigNumberDivWord(FSizeUFactor, 8);
+    end
+    else if R = 5 then
+    begin
+      FSizePrimeType := pt8U5;
+      BigNumberDivWord(FSizeUFactor, 8);
+    end
+    else
+      raise ECnEccException.Create('Invalid Finite Field Size.');
+  end;
 end;
 
 procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
@@ -1033,55 +1092,149 @@ end;
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 var
-  P, Q: TCnBigNumber;
-  Pt: TCnEccPoint;
+  X, Y, Z, U, R, T, LU, LV, X3: TCnBigNumber;
 begin
   Result := False;
+  if Plain.IsNegative then
+    Exit;
 
-  // 将 Plain 左移 16 位腾出 2^16 个空间来搜索有无解
-  if Plain.GetBitsCount - CN_ECC_PLAIN_DATA_BITS_GAP - 1 > FFiniteFieldSize.GetBitsCount then
-    raise ECnEccException.Create('Data Too Large.');
+  if BigNumberCompare(Plain, FFiniteFieldSize) >= 0 then
+    Exit;
 
-  P := nil;
-  Q := nil;
-  Pt := nil;
+  X := nil;
+  U := nil;
+  Y := nil;
+  Z := nil;
+  R := nil;
+  T := nil;
+  LU := nil;
+  LV := nil;
+  X3 := nil;
 
   try
-    Pt := TCnEccPoint.Create;
-    P := ObtainBigNumberFromPool;
-    Q := ObtainBigNumberFromPool;
+    X := ObtainBigNumberFromPool;
+    Y := ObtainBigNumberFromPool;
+    Z := ObtainBigNumberFromPool;
+    U := ObtainBigNumberFromPool;
 
-    BigNumberCopy(Pt.X, Plain);
-    BigNumbercopy(Q, Plain);
-    BigNumberAddWord(Q, 1);
+    BigNumberCopy(X, Plain);
+    BigNumberCopy(U, FSizeUFactor);
 
-    BigNumberShiftLeft(Pt.X, Pt.X, CN_ECC_PLAIN_DATA_BITS_GAP);
-    BigNumberShiftLeft(Q, Q, CN_ECC_PLAIN_DATA_BITS_GAP);
-
-    repeat
-      // 对于 Pt.X 所属范围内的每一个 X，Pt.Y 遍历 0 到 FFiniteFieldSize - 1 看有无满足曲线点
-
-      // 通过勒让德符号判断 X 是否有解，有才在该 X 上搜寻
-      if CalcBigNumberLegendre(Pt.X, FFiniteFieldSize) = 1 then
-      begin
-        Pt.Y.SetZero;
-        repeat
-          if IsPointOnCurve(Pt) then
+    CalcX3AddAXAddB(X);
+    BigNumberMod(X, X, FFiniteFieldSize);
+    // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节，这里 g 是 X
+    case FSizePrimeType of
+      pt4U3:
+        begin
+          // 结果是 g^(u+1) mod p
+          BigNumberAddWord(U, 1);
+          BigNumberMontgomeryPowerMod(Y, X, U, FFiniteFieldSize);
+          BigNumberMulMod(Z, Y, Y, FFiniteFieldSize);
+          if BigNumberCompare(Z, X) = 0 then
           begin
-            OutPoint.Assign(Pt);
+            BigNumberCopy(OutPoint.X, Plain);
+            BigNumberCopy(OutPoint.Y, Y);
             Result := True;
             Exit;
           end;
-          BigNumberAddWord(Pt.Y, 1);
-        until BigNumberCompare(Pt.Y, FFiniteFieldSize) >= 0;
-      end;
+        end;
+      pt8U5:
+        begin
+          BigNumberMulWord(U, 2);
+          BigNumberAddWord(U, 1);
+          BigNumberMontgomeryPowerMod(Z, Y, U, FFiniteFieldSize);
+          R := ObtainBigNumberFromPool;
+          BigNumberMod(R, Z, FFiniteFieldSize);
 
-      BigNumberAddWord(Pt.X, 1);
-    until BigNumberCompare(Pt.X, Q) >= 0;
+          if R.IsOne then
+          begin
+            // 结果是 g^(u+1) mod p
+            BigNumberCopy(U, FSizeUFactor);
+            BigNumberAddWord(U, 1);
+            BigNumberMontgomeryPowerMod(Y, X, U, FFiniteFieldSize);
+
+            BigNumberCopy(OutPoint.X, Plain);
+            BigNumberCopy(OutPoint.Y, Y);
+            Result := True;
+          end
+          else
+          begin
+            if R.IsNegative then
+              BigNumberAdd(R, R, FFiniteFieldSize);
+            BigNumberSub(R, FFiniteFieldSize, R);
+            if R.IsOne then
+            begin
+              // 结果是(2g ·(4g)^u) mod p = (2g mod p * (4g)^u mod p) mod p
+              BigNumberCopy(X, Plain);
+              BigNumberMulWord(X, 2);
+              BigNumberMod(R, X, FFiniteFieldSize);  // R: 2g mod p
+
+              BigNumberCopy(X, Plain);
+              BigNumberMulWord(X, 4);
+              T := ObtainBigNumberFromPool;
+              BigNumberMontgomeryPowerMod(T, X, U, FFiniteFieldSize); // T: (4g)^u mod p
+              BigNumberMulMod(Y, R, T, FFiniteFieldSize);
+
+              BigNumberCopy(OutPoint.X, Plain);
+              BigNumberCopy(OutPoint.Y, Y);
+              Result := True;
+            end;
+          end;
+        end;
+      pt8U1:
+        begin
+          LU := ObtainBigNumberFromPool;
+          LV := ObtainBigNumberFromPool;
+          T := ObtainBigNumberFromPool;
+          X3 := ObtainBigNumberFromPool;
+
+          BigNumberCopy(X3, X);    // 保存原始 g
+          BigNumberMulWord(U, 4);
+          BigNumberAddWord(U, 1);
+
+          while True do
+          begin
+            BigNumberCopy(Y, X3);
+            BigNumberRandRange(X, FFiniteFieldSize);
+            CalcLucasSequence(X, Y, LU, LV, U, FFiniteFieldSize);
+
+            // V^2 mod p = 4Y mod p?
+            BigNumberCopy(T, LV);
+            BigNumberMul(T, T, T);
+            BigNumberMod(T, T, FFiniteFieldSize); // T: V^2 mod p
+
+            BigNumberMulWord(Y, 4);
+            BigNumberMod(Y, Y, FFiniteFieldSize); // Y: 4Y mod p
+            if BigNumberCompare(Y, T) = 0 then
+            begin
+              BigNumberShiftRight(Y, Y, 1);       // Y: Y/2
+              BigNumberMod(OutPoint.Y, Y, FFiniteFieldSize);
+              BigNumberCopy(OutPoint.X, Plain);
+              Result := True;
+              Exit;
+            end;
+
+            BigNumberMod(T, LU, FFiniteFieldSize);
+            // U modp <> 1 且 U mod p <> p-1 则无解
+            if not T.IsOne then
+            begin
+              BigNumberAddWord(T, 1);
+              if not BigNumberCompare(T, FFiniteFieldSize) = 0 then
+                Exit;
+            end;
+          end;
+        end;
+    end;
   finally
-    Pt.Free;
-    RecycleBigNumberToPool(P);
-    RecycleBigNumberToPool(Q);
+    RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(Y);
+    RecycleBigNumberToPool(Z);
+    RecycleBigNumberToPool(U);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(LU);
+    RecycleBigNumberToPool(LV);
+    RecycleBigNumberToPool(X3);
   end;
 end;
 
@@ -1233,10 +1386,9 @@ function TCnEcc.PointToPlain(Point: TCnEccPoint;
   OutPlain: TCnBigNumber): Boolean;
 begin
   Result := False;
-  if (Point <> nil) and (OutPlain <> nil) then
+  if (Point <> nil) and (OutPlain <> nil) and IsPointOnCurve(Point) then
   begin
     BigNumberCopy(OutPlain, Point.X);
-    BigNumberShiftRight(OutPlain, OutPlain, CN_ECC_PLAIN_DATA_BITS_GAP);
     Result := True;
   end;
 end;

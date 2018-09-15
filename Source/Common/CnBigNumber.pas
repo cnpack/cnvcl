@@ -3575,13 +3575,22 @@ begin
     Exit;
 
   // 小额素数先对比判断，包括 2
-  for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
-  begin
-    if BigNumberAbsIsWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) then
+  X := ObtainBigNumberFromPool;
+  try
+    X.SetWord(CN_PRIME_NUMBERS_SQRT_UINT32[High(CN_PRIME_NUMBERS_SQRT_UINT32)]);
+    if BigNumberCompare(Num, X) <= 0 then
     begin
-      Result := True;
-      Exit;
+      for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
+      begin
+        if BigNumberAbsIsWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
     end;
+  finally
+    RecycleBigNumberToPool(X);
   end;
 
   // 再用小额素数整除，不用 2 了，因为 2 之外的偶数已经被排除了

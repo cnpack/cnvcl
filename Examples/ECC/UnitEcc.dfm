@@ -1002,17 +1002,17 @@ object FormEcc: TFormEcc
         object edtWrapData: TEdit
           Left = 56
           Top = 24
-          Width = 529
+          Width = 449
           Height = 21
           TabOrder = 0
-          Text = '1233211234567'
+          Text = '123321123456734234'
         end
         object btnWrapData: TButton
-          Left = 600
+          Left = 512
           Top = 24
           Width = 75
           Height = 21
-          Caption = 'Wrap to Point'
+          Caption = 'X to Point'
           TabOrder = 1
           OnClick = btnWrapDataClick
         end
@@ -1111,6 +1111,15 @@ object FormEcc: TFormEcc
           Caption = 'ECDH Sample'
           TabOrder = 13
           OnClick = btnTestECDHClick
+        end
+        object btnBNEccWrapRange: TButton
+          Left = 600
+          Top = 24
+          Width = 75
+          Height = 21
+          Caption = 'Range to Point'
+          TabOrder = 14
+          OnClick = btnBNEccWrapRangeClick
         end
       end
     end

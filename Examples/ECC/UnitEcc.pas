@@ -143,6 +143,7 @@ type
     edtBNECDHResA: TEdit;
     edtBNECDHResB: TEdit;
     btnTestECDH: TButton;
+    btnBNEccWrapRange: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -184,6 +185,7 @@ type
     procedure btnBNECDHAKeyClick(Sender: TObject);
     procedure btnBNECDHBkeyClick(Sender: TObject);
     procedure btnTestECDHClick(Sender: TObject);
+    procedure btnBNEccWrapRangeClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -210,6 +212,9 @@ var
 implementation
 
 {$R *.DFM}
+
+const
+  CN_ECC_PLAIN_DATA_BITS_GAP = 24;
 
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
@@ -313,6 +318,7 @@ begin
   FBNECDHPubKey1 := TCnEccPublicKey.Create;
   FBNECDHPubKey2 := TCnEccPublicKey.Create;
   ShowBnEcc;
+  edtWrapData.Text := edtBNEccGX.Text;
 
   lblBNEccDataPoint.OnClick(lblBNEccDataPoint);
 end;
@@ -783,7 +789,7 @@ begin
 
   if FBNEcc.PlainToPoint(P, Pt) then
   begin
-    edtWrapPoint.Text := CnEccPointToString(Pt);
+    edtWrapPoint.Text := Pt.Y.ToDec;
     P.SetZero;
     FBNEcc.PointToPlain(Pt, P);
     edtWrapData.Text := P.ToDec;
@@ -862,6 +868,42 @@ begin
   Pub2.Free;
   Priv1.Free;
   Priv2.Free;
+end;
+
+procedure TFormEcc.btnBNEccWrapRangeClick(Sender: TObject);
+var
+  P, Q: TCnBigNumber;
+  Pt: TCnEccPoint;
+begin
+  P := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  Pt := TCnEccPoint.Create;
+  P.SetDec(edtWrapData.Text);
+  BigNumberCopy(Q, P);
+
+  // 将 P 左移 24 位腾出 2^24 个空间来搜索有无解
+  if P.GetBitsCount + CN_ECC_PLAIN_DATA_BITS_GAP - 1 > FBNEcc.FiniteFieldSize.GetBitsCount then
+    raise ECnEccException.Create('Data Too Large.');
+
+  BigNumberShiftLeft(P, P, CN_ECC_PLAIN_DATA_BITS_GAP);
+  BigNumberAddWord(Q, 1);
+  BigNumberShiftLeft(Q, Q, CN_ECC_PLAIN_DATA_BITS_GAP);
+
+  repeat
+    // 对于 Pt.X 所属范围内的每一个 X，求 Pt.Y
+    if FBNEcc.PlainToPoint(P, Pt) then
+    begin
+      edtWrapData.Text := Pt.X.ToDec;
+      edtWrapPoint.Text := Pt.Y.ToDec;
+      Exit;
+    end;
+    BigNumberAddWord(P, 1);
+  until BigNumberCompare(P, Q) >= 0;
+
+  ShowMessage('Can NOT Convert Range to Point.');
+  Pt.Free;
+  P.Free;
+  Q.Free;
 end;
 
 end.
