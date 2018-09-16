@@ -138,7 +138,7 @@ type
   TCnEccPrivateKey = TCnBigNumber;
   {* 椭圆曲线的私钥，计算次数 k 次}
 
-  TCnEccPredefinedCurveType = (ctCustomized, ctSM2, ctSecp256k1);
+  TCnEccPredefinedCurveType = (ctCustomized, ctSM2, ctSecp224r1, ctSecp224k1, ctSecp256k1);
   {* 支持的椭圆曲线类型}
 
   TCnEccPrimeType = (pt4U3, pt8U5, pt8U1);
@@ -267,6 +267,24 @@ const
       GX: '32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7';
       GY: 'BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0';
       N: 'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123';
+      H: '01'
+    ),
+    ( // ctSecp224r1
+      P: '00ffffffffffffffffffffffffffffffff000000000000000000000001';
+      A: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE';
+      B: '00B4050A850C04B3ABF54132565044B0B7D7BFD8BA270B39432355FFB4';
+      GX: 'B70E0CBD6BB4BF7F321390B94A03C1D356C21122343280D6115C1D21';
+      GY: 'BD376388B5F723FB4C22DFE6CD4375A05A07476444D5819985007E34';
+      N: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFF16A2E0B8F03E13DD29455C5C2A3D';
+      H: '01'
+    ),
+    ( // ctSecp224k1
+      P: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFE56D';
+      A: '00';
+      B: '05';
+      GX: 'A1455B334DF099DF30FC28A169A467E9E47075A90F7E650EB6B7A45C';
+      GY: '7E089FED7FBA344282CAFBD6F7E319F7C0B0BD59E2CA4BDB556D61A5';
+      N: '010000000000000000000000000001DCE8D2EC6184CAF0A971769FB1F7';
       H: '01'
     ),
     ( // secp256k1
@@ -1004,13 +1022,14 @@ begin
   FFiniteFieldSize.SetHex(FieldPrime);
   FOrder.SetHex(Order);
 
+  // TODO: 要确保 4*a^3+27*b^2 <> 0
 //  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
 //    raise ECnEccException.Create('Error: Finite Field Size must be Prime.');
 
   // 确定 PrimeType
   R := BigNumberModWord(FFiniteFieldSize, 4);
   BigNumberCopy(FSizeUFactor, FFiniteFieldSize);
-  if R = 3 then
+  if R = 3 then  // RFC 5639 要求 p 满足 4u + 3 的形式以便方便地计算 Y，但其他曲线未必
   begin
     FSizePrimeType := pt4U3;
     BigNumberDivWord(FSizeUFactor, 4);
