@@ -487,34 +487,6 @@ begin
     Result := Result + Modulus;
 end;
 
-function CalcBigNumberLegendre(A, P: TCnBigNumber): Integer;
-var
-  R, Res: TCnBigNumber;
-begin
-  R := TCnBigNumber.Create;
-  Res := TCnBigNumber.Create;
-  try
-    // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
-    BigNumberMod(R, A, P);
-    if R.IsZero then
-      Result := 0
-    else
-    begin
-      BigNumberCopy(R, P);
-      BigNumberSubWord(R, 1);
-      BigNumberMontgomeryPowerMod(Res, A, R, P);
-
-      if Res.IsOne then // 欧拉判别法
-        Result := 1
-      else
-        Result := -1;
-    end;
-  finally
-    R.Free;
-    Res.Free;
-  end;
-end;
-
 // 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
 procedure CalcLucasSequence(X, Y: TCnBigNumber; U, V, K, P: TCnBigNumber);
 begin
@@ -1144,7 +1116,7 @@ begin
     BigNumberMod(X, X, FFiniteFieldSize);
     BigNumberCopy(X3, X);    // 保存原始 g
 
-    // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节，这里 g 是 X
+    // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节，这里 g 是 X 经过运算后的方程右半部分值
     case FSizePrimeType of
       pt4U3:
         begin

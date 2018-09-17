@@ -464,6 +464,9 @@ procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNum
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互质}
 
+function BigNumberLegendre(A, P: TCnBigNumber): Integer;
+{* 计算勒让德符号 ( A / P) 的值}
+
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
 
@@ -3931,6 +3934,36 @@ begin
   finally
     RecycleBigNumberToPool(X1);
     RecycleBigNumberToPool(Y);
+  end;
+end;
+
+// 计算勒让德符号 ( A / P) 的值
+function BigNumberLegendre(A, P: TCnBigNumber): Integer;
+var
+  R, Res: TCnBigNumber;
+begin
+  R := ObtainBigNumberFromPool;
+  Res := ObtainBigNumberFromPool;
+
+  try
+    // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+    BigNumberMod(R, A, P);
+    if R.IsZero then
+      Result := 0
+    else
+    begin
+      BigNumberCopy(R, P);
+      BigNumberSubWord(R, 1);
+      BigNumberMontgomeryPowerMod(Res, A, R, P);
+
+      if Res.IsOne then // 欧拉判别法
+        Result := 1
+      else
+        Result := -1;
+    end;
+  finally
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(Res);
   end;
 end;
 
