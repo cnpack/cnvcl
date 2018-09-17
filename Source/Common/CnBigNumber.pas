@@ -395,7 +395,7 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
-{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功}
+{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功，Remain 可以是 Num}
 
 function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;

@@ -157,6 +157,8 @@ type
     FSizePrimeType: TCnEccPrimeType;
     function ObtainBigNumberFromPool: TCnBigNumber;
     procedure RecycleBigNumberToPool(Num: TCnBigNumber);
+    // 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
+    procedure CalcLucasSequence(X, Y: TCnBigNumber; U, V, K, P: TCnBigNumber);
     function GetBitsCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
@@ -485,12 +487,6 @@ begin
 
   if Result < 0 then
     Result := Result + Modulus;
-end;
-
-// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
-procedure CalcLucasSequence(X, Y: TCnBigNumber; U, V, K, P: TCnBigNumber);
-begin
-
 end;
 
 { TCnInt64Ecc }
@@ -827,6 +823,77 @@ begin
 end;
 
 { TCnEcc }
+
+// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
+procedure TCnEcc.CalcLucasSequence(X, Y, U, V, K, P: TCnBigNumber);
+var
+  I: Integer;
+  D, T, U1, V1: TCnBigNumber;
+begin
+  D := nil;
+  T := nil;
+  U1 := nil;
+  V1 := nil;
+
+  if K.IsNegative or K.IsZero or P.IsNegative or P.IsZero then
+    raise ECnEccException.Create('Invalid K or P for Lucas Sequance');
+
+  try
+    D := ObtainBigNumberFromPool;
+    T := ObtainBigNumberFromPool;
+    U1 := ObtainBigNumberFromPool;
+    V1 := ObtainBigNumberFromPool;
+
+    BigNumberMul(D, X, X);   // D: X^2
+    BigNumberCopy(T, Y);
+    BigNumberMulWord(T, 4);  // T: 4 * Y
+    BigNumberSub(D, D, T);   // D = X^2 - 4 * Y
+
+    U1.SetOne;
+    BigNumberCopy(V1, X);
+
+    if not BigNumberIsBitSet(K, K.GetBitsCount - 1) then
+      raise ECnEccException.Create('Invalid K Bits for Lucas Sequance');
+
+    for I := K.GetBitsCount - 2 downto 0 do
+    begin
+      // 用本轮的初始值 U1、V1 计算下一轮的 U、V，并赋值回 U1、V1
+      BigNumberMulMod(U, U1, V1, P);   // U = (U*V) mod p 计算 U 时不能改变 U1 因为 计算 V 时还要用到
+
+      BigNumberMul(V1, V1, V1);        // V = ((V^2 +D*U^2)/2) mod p  // 计算 V 时随便改变 U1、V1
+      BigNumberMul(U1, U1, U1);
+      BigNumberMul(U1, U1, D);
+      BigNumberAdd(V1, U1, V1);
+      BigNumberShiftRight(V1, V1, 1);
+      BigNumberMod(V, V1, P);
+
+      BigNumberCopy(U1, U);
+      BigNumberCopy(V1, V);
+      if BigNumberIsBitSet(K, I) then
+      begin
+        // 用 U1、V1 算 U、V，并赋值回 U1、V1
+        BigNumberMul(U, U1, X);   // U = ((X * U +V)/2) mod p
+        BigNumberAdd(U, U, V1);
+        BigNumberShiftRight(U, U, 1);
+        BigNumberMod(U, U, P);    // 计算 U 时不能改变 U1 因为 计算 V 时还要用到
+
+        BigNumberMul(V1, V1, X);        // V = ((X*V + D*U)/2) mod p
+        BigNumberMul(U1, U1, D);
+        BigNumberAdd(V1, U1, V1);
+        BigNumberShiftRight(V1, V1, 1); // 计算 V 时随便改变 U1、V1
+        BigNumberMod(V, V1, P);
+
+        BigNumberCopy(U1, U);
+        BigNumberCopy(V1, V);
+      end;
+    end;
+  finally
+    RecycleBigNumberToPool(D);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(U1);
+    RecycleBigNumberToPool(V1);
+  end;
+end;
 
 procedure TCnEcc.CalcX3AddAXAddB(X: TCnBigNumber);
 var
@@ -1175,7 +1242,7 @@ begin
             end;
           end;
         end;
-      pt8U1:
+      pt8U1: // Lucas 序列计算法
         begin
           LU := ObtainBigNumberFromPool;
           LV := ObtainBigNumberFromPool;
