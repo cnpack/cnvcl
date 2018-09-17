@@ -2937,6 +2937,8 @@ begin
 
     if RR <> Res then
       BigNumberCopy(Res, RR);
+
+    BigNumberCorrectTop(Res);
     Result := True;
   finally
     if IsFromPool then

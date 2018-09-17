@@ -144,6 +144,7 @@ type
     edtBNECDHResB: TEdit;
     btnTestECDH: TButton;
     btnBNEccWrapRange: TButton;
+    btnInt64GXtoPoint: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -186,6 +187,7 @@ type
     procedure btnBNECDHBkeyClick(Sender: TObject);
     procedure btnTestECDHClick(Sender: TObject);
     procedure btnBNEccWrapRangeClick(Sender: TObject);
+    procedure btnInt64GXtoPointClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -904,6 +906,32 @@ begin
   Pt.Free;
   P.Free;
   Q.Free;
+end;
+
+procedure TFormEcc.btnInt64GXtoPointClick(Sender: TObject);
+var
+  P: TCnBigNumber;
+  Pt: TCnEccPoint;
+  BnEcc: TCnEcc;
+begin
+  P := TCnBigNumber.Create;
+  Pt := TCnEccPoint.Create;
+  P.SetDec(edtEccGX.Text);
+  BnEcc := TCnEcc.Create('4', 'B6', '295', '1', 'D6', '2A1');
+
+  if BnEcc.PlainToPoint(P, Pt) then
+  begin
+    ShowMessage('Convert to ' + CnEccPointToString(Pt));
+    P.SetZero;
+    BnEcc.PointToPlain(Pt, P);
+    ShowMessage('Convert back ' + P.ToDec);
+  end
+  else
+    ShowMessage('Can NOT Convert Data to Point');
+
+  BnEcc.Free;
+  P.Free;
+  Pt.Free;
 end;
 
 end.

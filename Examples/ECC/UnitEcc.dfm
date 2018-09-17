@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsWrapData
+    ActivePage = tsInt64ECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -690,6 +690,15 @@ object FormEcc: TFormEcc
           Caption = 'Legendre'
           TabOrder = 9
           OnClick = btnLeRanDeClick
+        end
+        object btnInt64GXtoPoint: TButton
+          Left = 480
+          Top = 128
+          Width = 75
+          Height = 21
+          Caption = 'G.X to Point'
+          TabOrder = 11
+          OnClick = btnInt64GXtoPointClick
         end
       end
     end

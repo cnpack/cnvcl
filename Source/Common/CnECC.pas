@@ -1135,12 +1135,15 @@ begin
     Y := ObtainBigNumberFromPool;
     Z := ObtainBigNumberFromPool;
     U := ObtainBigNumberFromPool;
+    X3 := ObtainBigNumberFromPool;
 
     BigNumberCopy(X, Plain);
     BigNumberCopy(U, FSizeUFactor);
 
     CalcX3AddAXAddB(X);
     BigNumberMod(X, X, FFiniteFieldSize);
+    BigNumberCopy(X3, X);    // 保存原始 g
+
     // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节，这里 g 是 X
     case FSizePrimeType of
       pt4U3:
@@ -1161,7 +1164,7 @@ begin
         begin
           BigNumberMulWord(U, 2);
           BigNumberAddWord(U, 1);
-          BigNumberMontgomeryPowerMod(Z, Y, U, FFiniteFieldSize);
+          BigNumberMontgomeryPowerMod(Z, X, U, FFiniteFieldSize);
           R := ObtainBigNumberFromPool;
           BigNumberMod(R, Z, FFiniteFieldSize);
 
@@ -1184,14 +1187,14 @@ begin
             if R.IsOne then
             begin
               // 结果是(2g ·(4g)^u) mod p = (2g mod p * (4g)^u mod p) mod p
-              BigNumberCopy(X, Plain);
+              BigNumberCopy(X, X3);
               BigNumberMulWord(X, 2);
               BigNumberMod(R, X, FFiniteFieldSize);  // R: 2g mod p
 
-              BigNumberCopy(X, Plain);
+              BigNumberCopy(X, X3);
               BigNumberMulWord(X, 4);
               T := ObtainBigNumberFromPool;
-              BigNumberMontgomeryPowerMod(T, X, U, FFiniteFieldSize); // T: (4g)^u mod p
+              BigNumberMontgomeryPowerMod(T, X, FSizeUFactor, FFiniteFieldSize); // T: (4g)^u mod p
               BigNumberMulMod(Y, R, T, FFiniteFieldSize);
 
               BigNumberCopy(OutPoint.X, Plain);
@@ -1205,9 +1208,7 @@ begin
           LU := ObtainBigNumberFromPool;
           LV := ObtainBigNumberFromPool;
           T := ObtainBigNumberFromPool;
-          X3 := ObtainBigNumberFromPool;
 
-          BigNumberCopy(X3, X);    // 保存原始 g
           BigNumberMulWord(U, 4);
           BigNumberAddWord(U, 1);
 
