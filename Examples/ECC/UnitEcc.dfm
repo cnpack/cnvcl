@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 246
-  Top = 76
+  Left = 122
+  Top = 106
   Width = 777
   Height = 528
   Caption = 'ECC Test'
@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsInt64ECC
+    ActivePage = tsLucas
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -538,7 +538,7 @@ object FormEcc: TFormEcc
           Caption = 'Y ^ 2 = X ^ 3    +                X +                 mod  '
         end
         object lblEccG: TLabel
-          Left = 312
+          Left = 300
           Top = 28
           Width = 11
           Height = 13
@@ -573,7 +573,7 @@ object FormEcc: TFormEcc
           Width = 33
           Height = 21
           TabOrder = 0
-          Text = '4'
+          Text = '12'
         end
         object edtEccB: TEdit
           Left = 168
@@ -581,7 +581,7 @@ object FormEcc: TFormEcc
           Width = 33
           Height = 21
           TabOrder = 1
-          Text = '182'
+          Text = '199'
         end
         object edtEccP: TEdit
           Left = 240
@@ -589,23 +589,23 @@ object FormEcc: TFormEcc
           Width = 41
           Height = 21
           TabOrder = 2
-          Text = '661'
+          Text = '73'
         end
         object edtEccGX: TEdit
-          Left = 328
+          Left = 316
           Top = 24
-          Width = 33
+          Width = 41
           Height = 21
           TabOrder = 3
-          Text = '1'
+          Text = '21'
         end
         object edtEccGY: TEdit
-          Left = 368
+          Left = 364
           Top = 24
-          Width = 33
+          Width = 41
           Height = 21
           TabOrder = 4
-          Text = '214'
+          Text = '21'
         end
         object edtEccOrder: TEdit
           Left = 480
@@ -613,7 +613,7 @@ object FormEcc: TFormEcc
           Width = 73
           Height = 21
           TabOrder = 5
-          Text = '673'
+          Text = '61'
         end
         object btnCalcNG: TButton
           Left = 568
@@ -691,14 +691,23 @@ object FormEcc: TFormEcc
           TabOrder = 9
           OnClick = btnLeRanDeClick
         end
-        object btnInt64GXtoPoint: TButton
-          Left = 480
-          Top = 128
+        object btnBNGXtoPoint: TButton
+          Left = 472
+          Top = 360
           Width = 75
           Height = 21
-          Caption = 'G.X to Point'
+          Caption = 'BN G.X to Pt'
+          TabOrder = 12
+          OnClick = btnBNGXtoPointClick
+        end
+        object btnInt64GXtoPt: TButton
+          Left = 480
+          Top = 120
+          Width = 75
+          Height = 21
+          Caption = 'G.X to Pt'
           TabOrder = 11
-          OnClick = btnInt64GXtoPointClick
+          OnClick = btnInt64GXtoPtClick
         end
       end
     end
@@ -1030,14 +1039,14 @@ object FormEcc: TFormEcc
           Top = 56
           Width = 657
           Height = 21
-          TabOrder = 2
+          TabOrder = 3
         end
         object edtBNECDHXa: TEdit
           Left = 70
           Top = 116
           Width = 515
           Height = 21
-          TabOrder = 3
+          TabOrder = 4
           Text = '30954823978126165439807650540507823796164384908578170843'
         end
         object edtBNECDHXb: TEdit
@@ -1045,7 +1054,7 @@ object FormEcc: TFormEcc
           Top = 212
           Width = 515
           Height = 21
-          TabOrder = 8
+          TabOrder = 9
           Text = '554978037890271980743250435089743764116321467834980754709'
         end
         object btnBNECDHYb: TButton
@@ -1054,7 +1063,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Calc Yb'
-          TabOrder = 9
+          TabOrder = 10
           OnClick = btnBNECDHYbClick
         end
         object btnBNECDHYa: TButton
@@ -1063,7 +1072,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Calc Ya'
-          TabOrder = 4
+          TabOrder = 5
           OnClick = btnBNECDHYaClick
         end
         object edtBNECDHA: TEdit
@@ -1071,14 +1080,14 @@ object FormEcc: TFormEcc
           Top = 148
           Width = 515
           Height = 21
-          TabOrder = 5
+          TabOrder = 6
         end
         object edtBNECDHB: TEdit
           Left = 70
           Top = 244
           Width = 515
           Height = 21
-          TabOrder = 10
+          TabOrder = 11
         end
         object btnBNECDHBkey: TButton
           Left = 600
@@ -1086,7 +1095,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'B Calc Key'
-          TabOrder = 11
+          TabOrder = 12
           OnClick = btnBNECDHBkeyClick
         end
         object btnBNECDHAKey: TButton
@@ -1095,7 +1104,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'A Calc Key'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnBNECDHAKeyClick
         end
         object edtBNECDHResA: TEdit
@@ -1103,14 +1112,14 @@ object FormEcc: TFormEcc
           Top = 180
           Width = 515
           Height = 21
-          TabOrder = 7
+          TabOrder = 8
         end
         object edtBNECDHResB: TEdit
           Left = 70
           Top = 276
           Width = 515
           Height = 21
-          TabOrder = 12
+          TabOrder = 13
         end
         object btnTestECDH: TButton
           Left = 600
@@ -1118,7 +1127,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'ECDH Sample'
-          TabOrder = 13
+          TabOrder = 14
           OnClick = btnTestECDHClick
         end
         object btnBNEccWrapRange: TButton
@@ -1127,8 +1136,101 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Range to Point'
-          TabOrder = 14
+          TabOrder = 2
           OnClick = btnBNEccWrapRangeClick
+        end
+      end
+    end
+    object tsLucas: TTabSheet
+      Caption = 'Lucas Sequence'
+      ImageIndex = 4
+      object grpLucas: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 697
+        Height = 409
+        Caption = 'Lucas Sequence'
+        TabOrder = 0
+        object lblLucasX: TLabel
+          Left = 16
+          Top = 28
+          Width = 10
+          Height = 13
+          Caption = 'X:'
+        end
+        object lblLucasY: TLabel
+          Left = 112
+          Top = 28
+          Width = 10
+          Height = 13
+          Caption = 'Y:'
+        end
+        object lblLucasP: TLabel
+          Left = 208
+          Top = 28
+          Width = 10
+          Height = 13
+          Caption = 'P:'
+        end
+        object edtLucasX: TEdit
+          Left = 32
+          Top = 24
+          Width = 65
+          Height = 21
+          TabOrder = 0
+          Text = '2'
+        end
+        object edtLucasY: TEdit
+          Left = 128
+          Top = 24
+          Width = 57
+          Height = 21
+          TabOrder = 1
+          Text = '3'
+        end
+        object edtLucasP: TEdit
+          Left = 224
+          Top = 24
+          Width = 49
+          Height = 21
+          TabOrder = 2
+          Text = '73'
+        end
+        object btnLucasRecur: TButton
+          Left = 32
+          Top = 56
+          Width = 153
+          Height = 21
+          Caption = 'Lucas Recur'
+          TabOrder = 3
+          OnClick = btnLucasRecurClick
+        end
+        object mmoLucasRes: TMemo
+          Left = 32
+          Top = 88
+          Width = 153
+          Height = 305
+          ScrollBars = ssVertical
+          TabOrder = 4
+          WordWrap = False
+        end
+        object mmoLucasMod: TMemo
+          Left = 192
+          Top = 88
+          Width = 153
+          Height = 305
+          ScrollBars = ssVertical
+          TabOrder = 5
+          WordWrap = False
+        end
+        object btnLucasMod: TButton
+          Left = 192
+          Top = 56
+          Width = 153
+          Height = 21
+          Caption = 'Lucas Mod'
+          TabOrder = 6
+          OnClick = btnLucasModClick
         end
       end
     end

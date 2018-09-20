@@ -144,7 +144,20 @@ type
     edtBNECDHResB: TEdit;
     btnTestECDH: TButton;
     btnBNEccWrapRange: TButton;
-    btnInt64GXtoPoint: TButton;
+    btnBNGXtoPoint: TButton;
+    btnInt64GXtoPt: TButton;
+    tsLucas: TTabSheet;
+    grpLucas: TGroupBox;
+    lblLucasX: TLabel;
+    edtLucasX: TEdit;
+    lblLucasY: TLabel;
+    edtLucasY: TEdit;
+    edtLucasP: TEdit;
+    lblLucasP: TLabel;
+    btnLucasRecur: TButton;
+    mmoLucasRes: TMemo;
+    mmoLucasMod: TMemo;
+    btnLucasMod: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -187,7 +200,10 @@ type
     procedure btnBNECDHBkeyClick(Sender: TObject);
     procedure btnTestECDHClick(Sender: TObject);
     procedure btnBNEccWrapRangeClick(Sender: TObject);
-    procedure btnInt64GXtoPointClick(Sender: TObject);
+    procedure btnBNGXtoPointClick(Sender: TObject);
+    procedure btnInt64GXtoPtClick(Sender: TObject);
+    procedure btnLucasRecurClick(Sender: TObject);
+    procedure btnLucasModClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -204,6 +220,7 @@ type
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
+    procedure CalcLucas(X, Y, U_2, V_2, U_1, V_1: Int64; var U, V: Int64);
   public
     { Public declarations }
   end;
@@ -310,7 +327,7 @@ begin
   CalcE2311Points;
   UpdateE2311Chart;
 
-  FBNEcc := TCnEcc.Create(ctSecp256k1);
+  FBNEcc := TCnEcc.Create(ctSecp224r1);
   FBNEccPrivateKey := TCnEccPrivateKey.Create;
   FBNEccPublicKey := TCnEccPublicKey.Create;
   FBNEccDataPoint := TCnEccPoint.Create;
@@ -908,7 +925,7 @@ begin
   Q.Free;
 end;
 
-procedure TFormEcc.btnInt64GXtoPointClick(Sender: TObject);
+procedure TFormEcc.btnBNGXtoPointClick(Sender: TObject);
 var
   P: TCnBigNumber;
   Pt: TCnEccPoint;
@@ -932,6 +949,214 @@ begin
   BnEcc.Free;
   P.Free;
   Pt.Free;
+end;
+
+procedure TFormEcc.btnInt64GXtoPtClick(Sender: TObject);
+var
+  P, A, B, X, Y, N: Int64;
+  Ecc: TCnInt64Ecc;
+  Pt: TCnInt64EccPoint;
+begin
+  A := StrToInt(edtEccA.Text);
+  B := StrToInt(edtEccB.Text);
+  X := StrToInt(edtEccGX.Text);
+  Y := StrToInt(edtEccGY.Text);
+  P := StrToInt(edtEccP.Text);
+  N := StrToInt(edtEccOrder.Text);
+
+  Ecc := TCnInt64Ecc.Create(A, B, P, X, Y, N);
+  // 4/182/661/1/214/673  是 8u5 型的测试通过
+  // 15/194/64403/41589/5579 是 4u3 型的测试通过
+  // 12/199/73/21/21/61 是 8u1 型的也基本测试通过
+
+  if Ecc.PlainToPoint(X, Pt) then
+  begin
+    ShowMessage('Convert to ' + CnInt64EccPointToString(Pt));
+    if Ecc.IsPointOnCurve(Pt) then
+      ShowMessage('Convert on Curve.');
+  end
+  else
+    ShowMessage('Can NOT Convert Data to Point');
+
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnLucasRecurClick(Sender: TObject);
+var
+  X, Y, U, V, U_2, V_2, U_1, V_1: Int64;
+  I: Integer;
+begin
+  X := StrToInt(edtLucasX.Text);
+  Y := StrToInt(edtLucasY.Text);
+
+  mmoLucasRes.Lines.Clear;
+  mmoLucasRes.Lines.Add(Format('%d: %d, %d', [0, 0, 2]));
+  mmoLucasRes.Lines.Add(Format('%d: %d, %d', [1, 1, X]));
+  U_2 := 0;
+  V_2 := 2;
+  U_1 := 1;
+  V_1 := X;
+
+  for I := 2 to 100 do
+  begin
+    CalcLucas(X, Y, U_2, V_2, U_1, V_1, U, V);
+    U_2 := U_1;
+    V_2 := V_1;
+
+    U_1 := U;
+    V_1 := V;
+    mmoLucasRes.Lines.Add(Format('%d: %d, %d', [I, U, V]));
+  end;
+end;
+
+procedure TFormEcc.CalcLucas(X, Y, U_2, V_2, U_1, V_1: Int64; var U, V: Int64);
+begin
+  U := X * U_1 - Y * U_2;
+  V := X * V_1 - Y * V_2;
+end;
+
+// 支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
+function Int64MultipleMod(A, B, C: Int64): Int64;
+begin
+  if (A > 0) and (B > 0) then
+    Result := MultipleMod(A, B, C)
+  else if (A < 0) and (B < 0) then
+    Result := MultipleMod(-A, -B, C)
+  else if (A > 0) and (B < 0) then
+    Result := C - MultipleMod(A, -B, C)
+  else if (A < 0) and (B > 0) then
+    Result := C - MultipleMod(-A, B, C)
+  else
+    Result := 0;
+end;
+
+// 计算 Lucas 序列以及模的两种不同实现函数，但结果对不上，弃用。
+procedure CalcLucasSequence(X, Y, K, P: Int64; out U, V: Int64);
+var
+  I: Integer;
+  U_2, V_2, U_1, V_1: Int64;
+begin
+  if K < 0 then
+    raise ECnEccException.Create('Invalid K for Lucas Sequence');
+
+  if K = 0 then
+  begin
+    U := 0;
+    V := 2;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    U := 1;
+    V := X;
+    Exit;
+  end;
+
+  U_2 := 0;
+  V_2 := 2;
+  U_1 := 1;
+  V_1 := X;
+
+  for I := 2 to K do
+  begin
+    U := X * U_1 - Y * U_2;
+    V := X * V_1 - Y * V_2;
+
+    U_2 := U_1;
+    V_2 := V_1;
+
+    U_1 := U;
+    V_1 := V;
+  end;
+end;
+
+procedure CalcLucasSequenceMod(X, Y, K, P: Int64; out U, V: Int64);
+var
+  C, I: Integer;
+  D, UT, VT: Int64;
+
+  function GetInt64BitSet(B: Int64; Index: Integer): Boolean; // 返回 Int64 的第几位是否是 1，0 开始
+  begin
+    B := B and (Int64(1) shl Index);
+    Result := B <> 0;
+  end;
+
+  // 返回 Int64 的最高二进制位是第几位，0 开始
+  function GetInt64HighBits(B: Int64): Integer;
+  var
+    J: Integer;
+  begin
+    for J := 63 downto 0 do
+    begin
+      if GetInt64BitSet(B, J) then
+      begin
+        Result := J;
+        Exit;
+      end;
+    end;
+    Result := 0;
+  end;
+
+begin
+  if K < 0 then
+    raise ECnEccException.Create('Invalid K for Lucas Sequence');
+
+  if K = 0 then
+  begin
+    U := 0 mod P;
+    V := 2 mod P;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    U := 1 mod P;
+    V := X mod P;
+    Exit;
+  end;
+
+  D := X * X - 4 * Y;
+
+  U := 1;
+  V := X;
+
+  C := GetInt64HighBits(K);
+  for I := C - 1 downto 0 do
+  begin
+    UT := Int64MultipleMod(U, V, P);
+    VT := ((V * V + D * U * U) div 2) mod P;
+
+    U := UT;
+    V := VT;
+    if GetInt64BitSet(K, I) then
+    begin
+      UT := ((X * U + V) div 2) mod P;
+      VT := ((X * V + D * U) div 2) mod P;
+      U := UT;
+      V := VT;
+    end;
+  end;
+
+  if U < 0 then
+    U := U + P;
+  if V < 0 then
+    V := V + P;
+end;
+
+procedure TFormEcc.btnLucasModClick(Sender: TObject);
+var
+  I: Integer;
+  X, Y, U, V, P: Int64;
+begin
+  mmoLucasMod.Lines.Clear;
+  X := StrToInt(edtLucasX.Text);
+  Y := StrToInt(edtLucasY.Text);
+  P := StrToInt(edtLucasP.Text);
+
+  for I := 0 to 100 do
+  begin
+    CalcLucasSequence(X, Y, I, P, U, V);
+    mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
+  end;
 end;
 
 end.
