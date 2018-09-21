@@ -158,6 +158,11 @@ type
     mmoLucasRes: TMemo;
     mmoLucasMod: TMemo;
     btnLucasMod: TButton;
+    grpLegendre: TGroupBox;
+    btnCalcLegendre: TButton;
+    mmoLegendre: TMemo;
+    mmoLegendreRes1: TMemo;
+    mmoLegendreRes2: TMemo;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -204,6 +209,7 @@ type
     procedure btnInt64GXtoPtClick(Sender: TObject);
     procedure btnLucasRecurClick(Sender: TObject);
     procedure btnLucasModClick(Sender: TObject);
+    procedure btnCalcLegendreClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -1157,6 +1163,115 @@ begin
     CalcLucasSequence(X, Y, I, P, U, V);
     mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
   end;
+end;
+
+// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
+procedure BigNumberCalcLucasSequenceMod(X, Y, U, V, K, P: TCnBigNumber);
+var
+  I: Integer;
+  D, T, U1, V1: TCnBigNumber;
+begin
+  D := nil;
+  T := nil;
+  U1 := nil;
+  V1 := nil;
+
+  if K.IsNegative or K.IsZero or P.IsNegative or P.IsZero then
+    raise ECnEccException.Create('Invalid K or P for Lucas Sequance');
+
+  try
+    D := TCnBigNumber.Create;
+    T := TCnBigNumber.Create;
+    U1 := TCnBigNumber.Create;
+    V1 := TCnBigNumber.Create;
+
+    BigNumberMul(D, X, X);   // D: X^2
+    BigNumberCopy(T, Y);
+    BigNumberMulWord(T, 4);  // T: 4 * Y
+    BigNumberSub(D, D, T);   // D = X^2 - 4 * Y
+
+    U1.SetOne;
+    BigNumberCopy(V1, X);
+
+    if not BigNumberIsBitSet(K, K.GetBitsCount - 1) then
+      raise ECnEccException.Create('Invalid K Bits for Lucas Sequance');
+
+    for I := K.GetBitsCount - 2 downto 0 do
+    begin
+      // 用本轮的初始值 U1、V1 计算下一轮的 U、V，并赋值回 U1、V1
+      BigNumberMulMod(U, U1, V1, P);   // U = (U*V) mod p 计算 U 时不能改变 U1 因为 计算 V 时还要用到
+
+      BigNumberMul(V1, V1, V1);        // V = ((V^2 +D*U^2)/2) mod p  // 计算 V 时随便改变 U1、V1
+      BigNumberMul(U1, U1, U1);
+      BigNumberMul(U1, U1, D);
+      BigNumberAdd(V1, U1, V1);
+      BigNumberShiftRight(V1, V1, 1);
+      BigNumberMod(V, V1, P);
+
+      BigNumberCopy(U1, U);
+      BigNumberCopy(V1, V);
+      if BigNumberIsBitSet(K, I) then
+      begin
+        // 用 U1、V1 算 U、V，并赋值回 U1、V1
+        BigNumberMul(U, U1, X);   // U = ((X * U +V)/2) mod p
+        BigNumberAdd(U, U, V1);
+        BigNumberShiftRight(U, U, 1);
+        BigNumberMod(U, U, P);    // 计算 U 时不能改变 U1 因为 计算 V 时还要用到
+
+        BigNumberMul(V1, V1, X);        // V = ((X*V + D*U)/2) mod p
+        BigNumberMul(U1, U1, D);
+        BigNumberAdd(V1, U1, V1);
+        BigNumberShiftRight(V1, V1, 1); // 计算 V 时随便改变 U1、V1
+        BigNumberMod(V, V1, P);
+
+        BigNumberCopy(U1, U);
+        BigNumberCopy(V1, V);
+      end;
+    end;
+  finally
+    D.Free;
+    T.Free;
+    U1.Free;
+    V1.Free;
+  end;
+end;
+
+procedure TFormEcc.btnCalcLegendreClick(Sender: TObject);
+var
+  List: TCnBigNumberList;
+  P, T: TCnBigNumber;
+  I, R: Integer;
+begin
+  P := TCnBigNumber.FromDec(edtBNEccP.Text);
+  // P.SetDec('23');
+  List := TCnBigNumberList.Create;
+
+  mmoLegendre.Lines.Clear;
+  for I := 0 to 20 do
+  begin
+    T := TCnBigNumber.Create;
+    BigNumberRandRange(T, P);
+    // T.SetWord(I + 1);
+    List.Add(T);
+    mmoLegendre.Lines.Add(T.ToDec);
+  end;
+
+  mmoLegendreRes1.Lines.Clear;
+  for I := 0 to List.Count - 1 do
+  begin
+    R := BigNumberLegendre(List[I], P);
+    mmoLegendreRes1.Lines.Add(IntToStr(R));
+  end;
+
+  mmoLegendreRes2.Lines.Clear;
+  for I := 0 to List.Count - 1 do
+  begin
+    R := BigNumberLegendre2(List[I], P);
+    mmoLegendreRes2.Lines.Add(IntToStr(R));
+  end;
+
+  P.Free;
+  List.Free;
 end;
 
 end.

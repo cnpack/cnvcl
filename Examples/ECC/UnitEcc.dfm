@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsLucas
+    ActivePage = tsECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1142,12 +1142,12 @@ object FormEcc: TFormEcc
       end
     end
     object tsLucas: TTabSheet
-      Caption = 'Lucas Sequence'
+      Caption = 'Lucas Sequence & Legendre'
       ImageIndex = 4
       object grpLucas: TGroupBox
         Left = 16
         Top = 16
-        Width = 697
+        Width = 361
         Height = 409
         Caption = 'Lucas Sequence'
         TabOrder = 0
@@ -1231,6 +1231,50 @@ object FormEcc: TFormEcc
           Caption = 'Lucas Mod'
           TabOrder = 6
           OnClick = btnLucasModClick
+        end
+      end
+      object grpLegendre: TGroupBox
+        Left = 392
+        Top = 16
+        Width = 321
+        Height = 409
+        Caption = 'Legendre Symbol'
+        TabOrder = 1
+        object btnCalcLegendre: TButton
+          Left = 16
+          Top = 24
+          Width = 289
+          Height = 21
+          Caption = 'Calc Legendre'
+          TabOrder = 0
+          OnClick = btnCalcLegendreClick
+        end
+        object mmoLegendre: TMemo
+          Left = 16
+          Top = 56
+          Width = 193
+          Height = 337
+          ScrollBars = ssVertical
+          TabOrder = 1
+          WordWrap = False
+        end
+        object mmoLegendreRes1: TMemo
+          Left = 216
+          Top = 56
+          Width = 41
+          Height = 337
+          ScrollBars = ssVertical
+          TabOrder = 2
+          WordWrap = False
+        end
+        object mmoLegendreRes2: TMemo
+          Left = 264
+          Top = 56
+          Width = 41
+          Height = 337
+          ScrollBars = ssVertical
+          TabOrder = 3
+          WordWrap = False
         end
       end
     end

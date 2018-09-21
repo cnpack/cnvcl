@@ -47,6 +47,9 @@ uses
 type
   ECnEccException = class(Exception);
 
+  TCnEccPrimeType = (pt4U3, pt8U5, pt8U1);
+  {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于椭圆曲线方程中快速求 Y}
+
   TCnInt64EccPoint = packed record
   {* Int64 范围内的椭圆曲线上的点描述结构}
     X: Int64;
@@ -67,6 +70,9 @@ type
     FCoefficientB: Int64;
     FFiniteFieldSize: Int64;
     FOrder: Int64;
+    FSizeUFactor: Int64;
+    FSizePrimeType: TCnEccPrimeType;
+    FSizeQ, FSizeS: Int64; // Tonelli Shanks 模素数二次剩余求解的参数
   protected
 
   public
@@ -141,9 +147,6 @@ type
   TCnEccPredefinedCurveType = (ctCustomized, ctSM2, ctSecp224r1, ctSecp224k1, ctSecp256k1);
   {* 支持的椭圆曲线类型}
 
-  TCnEccPrimeType = (pt4U3, pt8U5, pt8U1);
-  {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于椭圆曲线方程中快速求 Y}
-
   TCnEcc = class
   {* 描述一有限域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
   private
@@ -155,10 +158,10 @@ type
     FBigNumberPool: TObjectList;
     FSizeUFactor: TCnBigNumber;
     FSizePrimeType: TCnEccPrimeType;
+    FSizeQ: TCnBigNumber;
+    FSizeS: Integer; // Tonelli Shanks 模素数二次剩余求解的参数
     function ObtainBigNumberFromPool: TCnBigNumber;
     procedure RecycleBigNumberToPool(Num: TCnBigNumber);
-    // 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
-    procedure CalcLucasSequence(X, Y: TCnBigNumber; U, V, K, P: TCnBigNumber);
     function GetBitsCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
@@ -373,23 +376,24 @@ begin
       // 这里得用 Int64 先转换一下，否则 I 的三次方超过 Integer 溢出了
       N := N + CalcInt64Legendre(Int64(I) * Int64(I) * Int64(I) + CoefficientA * I + CoefficientB, FiniteFieldSize);
     end;
+  until CnInt64IsPrime(N);
 
-    // 然后随机找一个 X 求 Y
-    Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
-    repeat
-      P.X := Trunc(Random * (FiniteFieldSize - 1)) + 1;
-      for I := 0 to FiniteFieldSize - 1 do
+  // 然后随机找一个 X 求 Y
+  Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
+  repeat
+    P.X := Trunc(Random * (FiniteFieldSize - 1)) + 1;
+    for I := 0 to FiniteFieldSize - 1 do
+    begin
+      P.Y := I;
+      if Ecc64.IsPointOnCurve(P) then
       begin
-        P.Y := I;
-        if Ecc64.IsPointOnCurve(P) then
-        begin
-          GX := P.X;
-          GY := P.Y;
-          Break;
-        end;
+        GX := P.X;
+        GY := P.Y;
+        Break;
       end;
-    until (GX > 0) and (GY > 0);
-    Ecc64.Free;
+    end;
+  until (GX > 0) and (GY > 0);
+  Ecc64.Free;
 
 //    以下代码用穷举法来验证 N 是否正确，目前小范围看起来基本上没错
 //    N := 1;
@@ -424,33 +428,9 @@ begin
 //    end;
 
     // N 为这条椭圆曲线的阶
-  until CnInt64IsPrime(N);
 
   Order := N;
   Result := True;
-end;
-
-// 逐位确定法快速计算整数的平方根的整数部分，如果是负数则先取正
-function FastSqrt64(N: Int64): Int64;
-var
-  T, B: Int64;
-  Sft: Int64;
-begin
-  Result := 0;
-  if N < 0 then N := -N;
-
-  B := $80000000;
-  Sft := 31;
-  repeat
-    T := ((Result shl 1)+ B) shl Sft;
-    Dec(Sft);
-    if N >= T then
-    begin
-      Result := Result + B;
-      N := N - T;
-    end;
-    B := B shr 1;
-  until B = 0;
 end;
 
 // 支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
@@ -492,6 +472,8 @@ end;
 { TCnInt64Ecc }
 
 constructor TCnInt64Ecc.Create(A, B, FieldPrime, GX, GY, Order: Int64);
+var
+  R: Int64;
 begin
   inherited Create;
   if not CnInt64IsPrime(FieldPrime) or not CnInt64IsPrime(Order) then
@@ -501,12 +483,47 @@ begin
     not (GY >= 0) and (GY < FieldPrime) then
     raise ECnEccException.Create('Generator Point must be in Infinite Field.');
 
+  // 要确保 4*a^3+27*b^2 <> 0
+  if 4 * A * A * A + 27 * B * B = 0 then
+    raise ECnEccException.Create('Error: 4 * A^3 + 27 * B^2 = 0');
+
   FCoefficientA := A;
   FCoefficientB := B;
   FFiniteFieldSize := FieldPrime;
   FGenerator.X := GX;
   FGenerator.Y := GY;
   FOrder := Order;
+
+  R := FFiniteFieldSize mod 4;
+  if R = 3 then  // RFC 5639 要求 p 满足 4u + 3 的形式以便方便地计算 Y，但其他曲线未必
+  begin
+    FSizePrimeType := pt4U3;
+    FSizeUFactor := FFiniteFieldSize div 4;
+  end
+  else
+  begin
+    R := FFiniteFieldSize mod 8;
+    if R = 1 then
+    begin
+      FSizePrimeType := pt8U1;
+      FSizeUFactor := FFiniteFieldSize div 8;
+
+      FSizeS := 0;
+      FSizeQ := FFiniteFieldSize - 1;
+      while (FSizeQ mod 2) = 0 do
+      begin
+        FSizeQ := FSizeQ shr 1;
+        Inc(FSizeS);
+      end;
+    end
+    else if R = 5 then
+    begin
+      FSizePrimeType := pt8U5;
+      FSizeUFactor := FFiniteFieldSize div 8;
+    end
+    else
+      raise ECnEccException.Create('Invalid Finite Field Size.');
+  end;
 end;
 
 procedure TCnInt64Ecc.Decrypt(var DataPoint1, DataPoint2: TCnInt64EccPoint;
@@ -607,8 +624,24 @@ end;
 function TCnInt64Ecc.PlainToPoint(Plain: Int64;
   var OutPoint: TCnInt64EccPoint): Boolean;
 var
-  Y2, X3, AX, B, Y: Int64;
+  X3, AX, B, G, Y, Z, C, R, T, M: Int64;
+  I: Integer;
+
+  function RandomInt64LessThan(HighValue: Int64): Int64;
+  var
+    Hi, Lo: Cardinal;
+  begin
+    Randomize;
+    Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
+    Randomize;
+    Lo := Trunc(Random * High(Cardinal) - 1) + 1;  
+    Result := (Int64(Hi) shl 32) + Lo;
+    Result := Result mod HighValue;
+  end;
+
 begin
+  Result := False;
+
   // 解方程求 Y： (y^2 - (Plain^3 + A * Plain + B)) mod p = 0
   // 注意 Plain 如果太大，计算过程中会溢出，不好处理，只能用分配律。
   // (Y^2 mod p - Plain ^ 3 mod p - A * Plain mod p - B mod p) mod p = 0;
@@ -616,29 +649,89 @@ begin
   AX := Int64MultipleMod(FCoefficientA, Plain, FFiniteFieldSize);
   B := FCoefficientB mod FFiniteFieldSize;
 
-  B := X3 + Ax + B; // 如果不溢出的话
+  G := (X3 + AX + B) mod FFiniteFieldSize; // 如果不溢出的话
 
   // 化为 Y^2 = N * p + B 要求找出 N 让右边为完全平方数，再求 Y 的正值
-  // 只能 N 从 0 开始加 1 遍历并开方计算是否完全平方数
+  // 要是硬算 N 从 0 开始加 1 遍历并开方计算是否完全平方数会特慢，不能这么整
+  // 改用二次剩余素数模的快速求法，根据素数 P 的特性分三种：
 
-  Y2 := B;
-  while True do
-  begin
-    if Y2 > 0 then
+  case FSizePrimeType of
+  pt4U3:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
     begin
-      Y := FastSqrt64(Y2);
-      if Y * Y = Y2 then
+      Y := MontgomeryPowerMod(G, FSizeUFactor + 1, FFiniteFieldSize);
+      Z := Int64MultipleMod(Y, Y, FFiniteFieldSize);
+      if Z = G then
       begin
-        // Y2 是完全平方数
         OutPoint.X := Plain;
         OutPoint.Y := Y;
         Result := True;
-        Exit;
       end;
     end;
-    Inc(Y2, FFiniteFieldSize);
+  pt8U5:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+    begin
+      Z := MontgomeryPowerMod(G, 2 * FSizeUFactor + 1, FFiniteFieldSize);
+      if Z = 1 then
+      begin
+        Y := MontgomeryPowerMod(G, FSizeUFactor + 1, FFiniteFieldSize);
+        OutPoint.X := Plain;
+        OutPoint.Y := Y;
+        Result := True;
+      end
+      else
+      begin
+        Z := FFiniteFieldSize - Z;
+        if Z = 1 then
+        begin
+          // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
+          Y := (Int64MultipleMod(G, 2, FFiniteFieldSize) *
+            MontgomeryPowerMod(4, FSizeUFactor, FFiniteFieldSize) *
+            MontgomeryPowerMod(G, FSizeUFactor, FFiniteFieldSize)) mod FFiniteFieldSize;
+          OutPoint.X := Plain;
+          OutPoint.Y := Y;
+          Result := True;
+        end;
+      end;
+    end;
+  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
+    begin
+      // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
+      //  改用 Tonelli Shanks 算法进行模素数二次剩余求解
+      Z := 2;
+      while Z < FFiniteFieldSize do
+      begin
+        if CalcInt64Legendre(Z, FFiniteFieldSize) = -1 then
+          Break;
+        Inc(Z);
+      end;
+
+      // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
+      C := MontgomeryPowerMod(Z, FSizeQ, FFiniteFieldSize);
+      R := MontgomeryPowerMod(G, (FSizeQ + 1) div 2, FFiniteFieldSize);
+      T := MontgomeryPowerMod(G, FSizeQ, FFiniteFieldSize);
+      M := FSizeS;
+
+      while True do
+      begin
+        if T mod FFiniteFieldSize = 1 then
+          Break;
+
+        for I := 1 to M - 1 do
+        begin
+          if MontgomeryPowerMod(T, 1 shl I, FFiniteFieldSize) = 1 then
+            Break;
+        end;
+
+        B := MontgomeryPowerMod(C, 1 shl (M - I - 1), FFiniteFieldSize);
+        R := Int64MultipleMod(R, B, FFiniteFieldSize);
+        T := Int64MultipleMod(Int64MultipleMod(T, B, FFiniteFieldSize),
+          B mod FFiniteFieldSize, FFiniteFieldSize); // T*B*B mod P = (T*B mod P) * (B mod P) mod P
+        C := Int64MultipleMod(B, B, FFiniteFieldSize);
+      end;
+      OutPoint.X := Plain;
+      OutPoint.Y := (R mod FFiniteFieldSize + FFiniteFieldSize) mod FFiniteFieldSize;
+      Result := True;
+    end;
   end;
-  Result := False;
 end;
 
 procedure TCnInt64Ecc.PointAddPoint(var P, Q, Sum: TCnInt64EccPoint);
@@ -824,77 +917,6 @@ end;
 
 { TCnEcc }
 
-// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
-procedure TCnEcc.CalcLucasSequence(X, Y, U, V, K, P: TCnBigNumber);
-var
-  I: Integer;
-  D, T, U1, V1: TCnBigNumber;
-begin
-  D := nil;
-  T := nil;
-  U1 := nil;
-  V1 := nil;
-
-  if K.IsNegative or K.IsZero or P.IsNegative or P.IsZero then
-    raise ECnEccException.Create('Invalid K or P for Lucas Sequance');
-
-  try
-    D := ObtainBigNumberFromPool;
-    T := ObtainBigNumberFromPool;
-    U1 := ObtainBigNumberFromPool;
-    V1 := ObtainBigNumberFromPool;
-
-    BigNumberMul(D, X, X);   // D: X^2
-    BigNumberCopy(T, Y);
-    BigNumberMulWord(T, 4);  // T: 4 * Y
-    BigNumberSub(D, D, T);   // D = X^2 - 4 * Y
-
-    U1.SetOne;
-    BigNumberCopy(V1, X);
-
-    if not BigNumberIsBitSet(K, K.GetBitsCount - 1) then
-      raise ECnEccException.Create('Invalid K Bits for Lucas Sequance');
-
-    for I := K.GetBitsCount - 2 downto 0 do
-    begin
-      // 用本轮的初始值 U1、V1 计算下一轮的 U、V，并赋值回 U1、V1
-      BigNumberMulMod(U, U1, V1, P);   // U = (U*V) mod p 计算 U 时不能改变 U1 因为 计算 V 时还要用到
-
-      BigNumberMul(V1, V1, V1);        // V = ((V^2 +D*U^2)/2) mod p  // 计算 V 时随便改变 U1、V1
-      BigNumberMul(U1, U1, U1);
-      BigNumberMul(U1, U1, D);
-      BigNumberAdd(V1, U1, V1);
-      BigNumberShiftRight(V1, V1, 1);
-      BigNumberMod(V, V1, P);
-
-      BigNumberCopy(U1, U);
-      BigNumberCopy(V1, V);
-      if BigNumberIsBitSet(K, I) then
-      begin
-        // 用 U1、V1 算 U、V，并赋值回 U1、V1
-        BigNumberMul(U, U1, X);   // U = ((X * U +V)/2) mod p
-        BigNumberAdd(U, U, V1);
-        BigNumberShiftRight(U, U, 1);
-        BigNumberMod(U, U, P);    // 计算 U 时不能改变 U1 因为 计算 V 时还要用到
-
-        BigNumberMul(V1, V1, X);        // V = ((X*V + D*U)/2) mod p
-        BigNumberMul(U1, U1, D);
-        BigNumberAdd(V1, U1, V1);
-        BigNumberShiftRight(V1, V1, 1); // 计算 V 时随便改变 U1、V1
-        BigNumberMod(V, V1, P);
-
-        BigNumberCopy(U1, U);
-        BigNumberCopy(V1, V);
-      end;
-    end;
-  finally
-    RecycleBigNumberToPool(D);
-    RecycleBigNumberToPool(T);
-    RecycleBigNumberToPool(U1);
-    RecycleBigNumberToPool(V1);
-  end;
-end;
-
 procedure TCnEcc.CalcX3AddAXAddB(X: TCnBigNumber);
 var
   M: TCnBigNumber;
@@ -927,7 +949,9 @@ begin
   FCoefficientA := TCnBigNumber.Create;
   FOrder := TCnBigNumber.Create;
   FFiniteFieldSize := TCnBigNumber.Create;
+
   FSizeUFactor := TCnBigNumber.Create;
+  FSizeQ := TCnBigNumber.Create;
 end;
 
 constructor TCnEcc.Create(Predefined: TCnEccPredefinedCurveType);
@@ -966,7 +990,9 @@ begin
     FBigNumberPool.Free;
   end;
 
+  FSizeQ.Free;
   FSizeUFactor.Free;
+
   FGenerator.Free;
   FCoefficientB.Free;
   FCoefficientA.Free;
@@ -1080,6 +1106,14 @@ begin
     begin
       FSizePrimeType := pt8U1;
       BigNumberDivWord(FSizeUFactor, 8);
+
+      FSizeS := 0;
+      BigNumberSub(FSizeQ, FFiniteFieldSize, CnBigNumberOne);
+      while not FSizeQ.IsOdd do
+      begin
+        BigNumberShiftRightOne(FSizeQ, FSizeQ);
+        Inc(FSizeS);
+      end;
     end
     else if R = 5 then
     begin
@@ -1150,7 +1184,8 @@ end;
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 var
-  X, Y, Z, U, R, T, LU, LV, X3: TCnBigNumber;
+  X, Y, Z, U, R, T, L, X3, C, M: TCnBigNumber;
+  N, I: Integer;
 begin
   Result := False;
   if Plain.IsNegative then
@@ -1165,9 +1200,10 @@ begin
   Z := nil;
   R := nil;
   T := nil;
-  LU := nil;
-  LV := nil;
+  L := nil;
   X3 := nil;
+  C := nil;
+  M := nil;
 
   try
     X := ObtainBigNumberFromPool;
@@ -1242,46 +1278,63 @@ begin
             end;
           end;
         end;
-      pt8U1: // Lucas 序列计算法
+      pt8U1: // Lucas 序列计算法实在搞不定，改用 Tonelli Shanks 算法进行模素数二次剩余求解
         begin
-          LU := ObtainBigNumberFromPool;
-          LV := ObtainBigNumberFromPool;
-          T := ObtainBigNumberFromPool;
+          BigNumberRandRange(Z, FFiniteFieldSize);
+          while True do
+          begin
+            if BigNumberLegendre(Z, FFiniteFieldSize) = -1 then
+              Break;
+            BigNumberRandRange(Z, FFiniteFieldSize);
+          end;
+          // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
 
-          BigNumberMulWord(U, 4);
-          BigNumberAddWord(U, 1);
+          C := ObtainBigNumberFromPool;
+          R := ObtainBigNumberFromPool;
+          T := ObtainBigNumberFromPool;
+          M := ObtainBigNumberFromPool;  // 较临时的 M、U、L
+          L := ObtainBigNumberFromPool;
+
+          BigNumberAdd(M, FSizeQ, CnBigNumberOne);
+          BigNumberShiftRight(M, M, 1);
+          BigNumberMontgomeryPowerMod(C, Z, FSizeQ, FFiniteFieldSize);
+          BigNumberMontgomeryPowerMod(R, X3, M, FFiniteFieldSize);
+          BigNumberMontgomeryPowerMod(T, X3, FSizeQ, FFiniteFieldSize);
+          N := FSizeS;
 
           while True do
           begin
-            BigNumberCopy(Y, X3);
-            BigNumberRandRange(X, FFiniteFieldSize);
-            CalcLucasSequence(X, Y, LU, LV, U, FFiniteFieldSize);
+            BigNumberMod(U, T, FFiniteFieldSize);
+            if U.IsOne then
+              Break;
 
-            // V^2 mod p = 4Y mod p?
-            BigNumberCopy(T, LV);
-            BigNumberMul(T, T, T);
-            BigNumberMod(T, T, FFiniteFieldSize); // T: V^2 mod p
-
-            BigNumberMulWord(Y, 4);
-            BigNumberMod(Y, Y, FFiniteFieldSize); // Y: 4Y mod p
-            if BigNumberCompare(Y, T) = 0 then
+            for I := 1 to N - 1 do
             begin
-              BigNumberShiftRight(Y, Y, 1);       // Y: Y/2
-              BigNumberMod(OutPoint.Y, Y, FFiniteFieldSize);
-              BigNumberCopy(OutPoint.X, Plain);
-              Result := True;
-              Exit;
+              U.SetOne;
+              BigNumberShiftLeft(U, U, I);
+              BigNumberMontgomeryPowerMod(M, T, U, FFiniteFieldSize);
+              if M.IsOne then
+                Break;
             end;
 
-            BigNumberMod(T, LU, FFiniteFieldSize);
-            // U modp <> 1 且 U mod p <> p-1 则无解
-            if not T.IsOne then
-            begin
-              BigNumberAddWord(T, 1);
-              if not BigNumberCompare(T, FFiniteFieldSize) = 0 then
-                Exit;
-            end;
+            U.SetOne;
+            BigNumberShiftLeft(U, U, N - I - 1);
+            BigNumberMontgomeryPowerMod(M, C, U, FFiniteFieldSize);
+            BigNumberMulMod(R, R, M, FFiniteFieldSize);
+
+            // T := T*M*M mod P = (T*M mod P) * (M mod P) mod P
+            BigNumberMulMod(U, T, M, FFiniteFieldSize); // U := T*M mod P
+            BigNumberMod(L, M, FFiniteFieldSize);       // L := M mod P
+            BigNumberMulMod(T, U, L, FFiniteFieldSize);
+
+            BigNumberMulMod(C, M, M, FFiniteFieldSize);
           end;
+
+          BigNumberCopy(OutPoint.X, Plain);
+          BigNumberMod(L, R, FFiniteFieldSize);
+          BigNumberAdd(L, L, FFiniteFieldSize);
+          BigNumberMod(OutPoint.Y, L, FFiniteFieldSize);
+          Result := True;
         end;
     end;
   finally
@@ -1291,9 +1344,10 @@ begin
     RecycleBigNumberToPool(U);
     RecycleBigNumberToPool(R);
     RecycleBigNumberToPool(T);
-    RecycleBigNumberToPool(LU);
-    RecycleBigNumberToPool(LV);
+    RecycleBigNumberToPool(L);
     RecycleBigNumberToPool(X3);
+    RecycleBigNumberToPool(C);
+    RecycleBigNumberToPool(M);
   end;
 end;
 
