@@ -465,7 +465,10 @@ procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNum
    调用者须自行保证 X、Modulus 互质}
 
 function BigNumberLegendre(A, P: TCnBigNumber): Integer;
-{* 计算勒让德符号 ( A / P) 的值}
+{* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快}
+
+function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
+{* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢}
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
@@ -3937,11 +3940,67 @@ begin
   end;
 end;
 
-// 计算勒让德符号 ( A / P) 的值
+// 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快
 function BigNumberLegendre(A, P: TCnBigNumber): Integer;
+var
+  AA, Q: TCnBigNumber;
+begin
+  if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
+    raise Exception.Create('A, P Must > 0');
+
+  if A.IsOne then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  AA := ObtainBigNumberFromPool;
+  Q := ObtainBigNumberFromPool;
+
+  try
+    if A.IsOdd then
+    begin
+      // 奇数
+      BigNumberMod(AA, P, A);
+      Result := BigNumberLegendre2(AA, A);
+
+      // 计算 (A-1)*(P-1)/4 个 -1 相乘
+      BigNumberSub(AA, A, CnBigNumberOne);
+      BigNumberSub(Q, P, CnBigNumberOne);
+      BigNumberMul(Q, AA, Q);
+      BigNumberShiftRight(Q, Q, 2);
+
+      if Q.IsOdd then // 奇数个 -1 乘还是得 -1
+        Result := -Result;
+    end
+    else
+    begin
+      // 偶数
+      BigNumberShiftRight(AA, A, 1);
+      Result := BigNumberLegendre2(AA, P);
+
+      // 计算 (P^2 - 1)/8 个 -1 相乘
+      BigNumberMul(Q, P, P);
+      BigNumberSubWord(Q, 1);
+      BigNumberShiftRight(Q, Q, 3);
+
+      if Q.IsOdd then // 奇数个 -1 乘还是得 -1
+        Result := -Result;
+    end;
+  finally
+    RecycleBigNumberToPool(Q);
+    RecycleBigNumberToPool(AA);
+  end;
+end;
+
+// 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢
+function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
 var
   R, Res: TCnBigNumber;
 begin
+  if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
+    raise Exception.Create('A, P Must > 0');
+
   R := ObtainBigNumberFromPool;
   Res := ObtainBigNumberFromPool;
 
@@ -3954,6 +4013,7 @@ begin
     begin
       BigNumberCopy(R, P);
       BigNumberSubWord(R, 1);
+      BigNumberShiftRightOne(R, R);
       BigNumberMontgomeryPowerMod(Res, A, R, P);
 
       if Res.IsOne then // 欧拉判别法
