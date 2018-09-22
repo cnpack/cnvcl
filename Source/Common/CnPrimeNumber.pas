@@ -885,6 +885,12 @@ function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 var
   T: TUInt64;
 begin
+  if B = 0 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
   T := 1;
 {$IFDEF SUPPORT_UINT64}
   A := A mod C;
