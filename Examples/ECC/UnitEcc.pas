@@ -163,6 +163,14 @@ type
     mmoLegendre: TMemo;
     mmoLegendreRes1: TMemo;
     mmoLegendreRes2: TMemo;
+    tsTonelliShanks: TTabSheet;
+    grpTonelliShanks: TGroupBox;
+    lblTSX: TLabel;
+    edtTSX: TEdit;
+    lblTSP: TLabel;
+    edtTSP: TEdit;
+    btnTSInt64: TButton;
+    btnBNTS: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -210,6 +218,8 @@ type
     procedure btnLucasRecurClick(Sender: TObject);
     procedure btnLucasModClick(Sender: TObject);
     procedure btnCalcLegendreClick(Sender: TObject);
+    procedure btnTSInt64Click(Sender: TObject);
+    procedure btnBNTSClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -811,6 +821,8 @@ begin
   P := TCnBigNumber.Create;
   Pt := TCnEccPoint.Create;
   P.SetDec(edtWrapData.Text);
+//  P.SetDec('21');
+//  Ecc := TCnEcc.Create('0C', 'C7', '49', '15', '15', '3D');
 
   if FBNEcc.PlainToPoint(P, Pt) then
   begin
@@ -1272,6 +1284,37 @@ begin
 
   P.Free;
   List.Free;
+end;
+
+type
+  TCnInt64EccHack = class(TCnInt64Ecc);
+
+procedure TFormEcc.btnTSInt64Click(Sender: TObject);
+var
+  X, P, R: Int64;
+begin
+  X := StrToInt64(edtTSX.Text);
+  P := StrToInt64(edtTSP.Text);
+  R := TCnInt64EccHack.TonelliShanks(X, P);
+  ShowMessage(IntToStr(R));
+end;
+
+procedure TFormEcc.btnBNTSClick(Sender: TObject);
+var
+  R, X, P: TCnBigNumber;
+begin
+  R := TCnBigNumber.Create;
+  X := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+
+  X.SetDec(edtTSX.Text);
+  P.SetDec(edtTSP.Text);
+  if BigNumberTonelliShanks(R, X, P) then
+    ShowMessage(R.ToDec);
+
+  R.Free;
+  X.Free;
+  P.Free;
 end;
 
 end.

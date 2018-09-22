@@ -470,6 +470,9 @@ function BigNumberLegendre(A, P: TCnBigNumber): Integer;
 function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
 {* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢}
 
+function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+{* 使用 Tonelli Shanks 算法进行模素数二次剩余求解，调用者需自行保证 P 为奇素数}
+
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
 
@@ -3962,7 +3965,7 @@ begin
     begin
       // 奇数
       BigNumberMod(AA, P, A);
-      Result := BigNumberLegendre2(AA, A);
+      Result := BigNumberLegendre(AA, A);
 
       // 计算 (A-1)*(P-1)/4 个 -1 相乘
       BigNumberSub(AA, A, CnBigNumberOne);
@@ -3977,7 +3980,7 @@ begin
     begin
       // 偶数
       BigNumberShiftRight(AA, A, 1);
-      Result := BigNumberLegendre2(AA, P);
+      Result := BigNumberLegendre(AA, P);
 
       // 计算 (P^2 - 1)/8 个 -1 相乘
       BigNumberMul(Q, P, P);
@@ -4024,6 +4027,98 @@ begin
   finally
     RecycleBigNumberToPool(R);
     RecycleBigNumberToPool(Res);
+  end;
+end;
+
+// 使用 Tonelli Shanks 算法进行模素数二次剩余求解，调用者需自行保证 P 为奇素数
+function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+var
+  Q, Z, C, R, T, N, L, U, B: TCnBigNumber;
+  S, I, M: Integer;
+begin
+  Result := False;
+  if (Res = nil) or A.IsZero or A.IsNegative or P.IsZero or P.IsNegative
+    or (BigNumberCompare(A, P) >= 0) then
+    Exit;
+
+  Q := ObtainBigNumberFromPool;
+  Z := ObtainBigNumberFromPool;
+  C := ObtainBigNumberFromPool;
+  R := ObtainBigNumberFromPool;
+  T := ObtainBigNumberFromPool;
+  L := ObtainBigNumberFromPool;
+  U := ObtainBigNumberFromPool;
+  B := ObtainBigNumberFromPool;
+  N := ObtainBigNumberFromPool;
+
+  try
+    S := 0;
+    BigNumberSub(Q, P, CnBigNumberOne);
+    while not Q.IsOdd do
+    begin
+      BigNumberShiftRightOne(Q, Q);
+      Inc(S);
+    end;
+
+    // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
+    Z.SetWord(2);
+    while BigNumberCompare(Z, P) < 0 do
+    begin
+      if BigNumberLegendre(Z, P) = -1 then
+        Break;
+      BigNumberAddWord(Z, 1);
+    end;
+
+    BigNumberAdd(N, Q, CnBigNumberOne);
+    BigNumberShiftRight(N, N, 1);
+    BigNumberMontgomeryPowerMod(C, Z, Q, P);
+    BigNumberMontgomeryPowerMod(R, A, N, P);
+    BigNumberMontgomeryPowerMod(T, A, Q, P);
+    M := S;
+
+    while True do
+    begin
+      BigNumberMod(U, T, P);
+      if U.IsOne then
+        Break;
+
+      for I := 1 to M - 1 do
+      begin
+        U.SetOne;
+        BigNumberShiftLeft(U, U, I);
+        BigNumberMontgomeryPowerMod(N, T, U, P);
+        if N.IsOne then
+          Break;
+      end;
+
+      U.SetOne;
+      BigNumberShiftLeft(U, U, M - I - 1);
+      BigNumberMontgomeryPowerMod(B, C, U, P);
+      M := I;
+      BigNumberMulMod(R, R, B, P);
+
+      // T := T*B*B mod P = (T*B mod P) * (B mod P) mod P
+      BigNumberMulMod(U, T, B, P); // U := T*B mod P
+      BigNumberMod(L, B, P);       // L := B mod P
+      BigNumberMulMod(T, U, L, P);
+
+      BigNumberMulMod(C, B, B, P);
+    end;
+
+    BigNumberMod(L, R, P);
+    BigNumberAdd(L, L, P);
+    BigNumberMod(Res, L, P);
+    Result := True;
+  finally
+    RecycleBigNumberToPool(Q);
+    RecycleBigNumberToPool(Z);
+    RecycleBigNumberToPool(C);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(L);
+    RecycleBigNumberToPool(U);
+    RecycleBigNumberToPool(B);
+    RecycleBigNumberToPool(N);
   end;
 end;
 

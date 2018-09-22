@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsECC
+    ActivePage = tsLucas
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1142,7 +1142,7 @@ object FormEcc: TFormEcc
       end
     end
     object tsLucas: TTabSheet
-      Caption = 'Lucas Sequence & Legendre'
+      Caption = 'Lucas Sequence && Legendre'
       ImageIndex = 4
       object grpLucas: TGroupBox
         Left = 16
@@ -1275,6 +1275,66 @@ object FormEcc: TFormEcc
           ScrollBars = ssVertical
           TabOrder = 3
           WordWrap = False
+        end
+      end
+    end
+    object tsTonelliShanks: TTabSheet
+      Caption = 'Tonelli Shanks'
+      ImageIndex = 5
+      object grpTonelliShanks: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 697
+        Height = 385
+        Caption = 'Tonelli Shanks'
+        TabOrder = 0
+        object lblTSX: TLabel
+          Left = 16
+          Top = 28
+          Width = 10
+          Height = 13
+          Caption = 'X:'
+        end
+        object lblTSP: TLabel
+          Left = 16
+          Top = 60
+          Width = 10
+          Height = 13
+          Caption = 'P:'
+        end
+        object edtTSX: TEdit
+          Left = 40
+          Top = 24
+          Width = 505
+          Height = 21
+          TabOrder = 0
+          Text = '5'
+        end
+        object edtTSP: TEdit
+          Left = 40
+          Top = 56
+          Width = 505
+          Height = 21
+          TabOrder = 1
+          Text = '41'
+        end
+        object btnTSInt64: TButton
+          Left = 552
+          Top = 24
+          Width = 131
+          Height = 21
+          Caption = 'Tonelli Shanks Int64'
+          TabOrder = 2
+          OnClick = btnTSInt64Click
+        end
+        object btnBNTS: TButton
+          Left = 552
+          Top = 56
+          Width = 131
+          Height = 21
+          Caption = 'Tonelli Shanks BigNumber'
+          TabOrder = 3
+          OnClick = btnBNTSClick
         end
       end
     end

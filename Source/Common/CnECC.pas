@@ -72,9 +72,9 @@ type
     FOrder: Int64;
     FSizeUFactor: Int64;
     FSizePrimeType: TCnEccPrimeType;
-    FSizeQ, FSizeS: Int64; // Tonelli Shanks 模素数二次剩余求解的参数
   protected
-
+    // Tonelli Shanks 模素数二次剩余求解，调用者需自行保证 P 为素数
+    class function TonelliShanks(X, P: Int64): Int64;
   public
     constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
@@ -158,8 +158,6 @@ type
     FBigNumberPool: TObjectList;
     FSizeUFactor: TCnBigNumber;
     FSizePrimeType: TCnEccPrimeType;
-    FSizeQ: TCnBigNumber;
-    FSizeS: Integer; // Tonelli Shanks 模素数二次剩余求解的参数
     function ObtainBigNumberFromPool: TCnBigNumber;
     procedure RecycleBigNumberToPool(Num: TCnBigNumber);
     function GetBitsCount: Integer;
@@ -507,14 +505,6 @@ begin
     begin
       FSizePrimeType := pt8U1;
       FSizeUFactor := FFiniteFieldSize div 8;
-
-      FSizeS := 0;
-      FSizeQ := FFiniteFieldSize - 1;
-      while (FSizeQ mod 2) = 0 do
-      begin
-        FSizeQ := FSizeQ shr 1;
-        Inc(FSizeS);
-      end;
     end
     else if R = 5 then
     begin
@@ -624,8 +614,7 @@ end;
 function TCnInt64Ecc.PlainToPoint(Plain: Int64;
   var OutPoint: TCnInt64EccPoint): Boolean;
 var
-  X3, AX, B, G, Y, Z, C, R, T, M: Int64;
-  I: Integer;
+  X3, AX, B, G, Y, Z: Int64;
 
   function RandomInt64LessThan(HighValue: Int64): Int64;
   var
@@ -696,39 +685,9 @@ begin
     begin
       // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
       //  改用 Tonelli Shanks 算法进行模素数二次剩余求解
-      Z := 2;
-      while Z < FFiniteFieldSize do
-      begin
-        if CalcInt64Legendre(Z, FFiniteFieldSize) = -1 then
-          Break;
-        Inc(Z);
-      end;
 
-      // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
-      C := MontgomeryPowerMod(Z, FSizeQ, FFiniteFieldSize);
-      R := MontgomeryPowerMod(G, (FSizeQ + 1) div 2, FFiniteFieldSize);
-      T := MontgomeryPowerMod(G, FSizeQ, FFiniteFieldSize);
-      M := FSizeS;
-
-      while True do
-      begin
-        if T mod FFiniteFieldSize = 1 then
-          Break;
-
-        for I := 1 to M - 1 do
-        begin
-          if MontgomeryPowerMod(T, 1 shl I, FFiniteFieldSize) = 1 then
-            Break;
-        end;
-
-        B := MontgomeryPowerMod(C, 1 shl (M - I - 1), FFiniteFieldSize);
-        R := Int64MultipleMod(R, B, FFiniteFieldSize);
-        T := Int64MultipleMod(Int64MultipleMod(T, B, FFiniteFieldSize),
-          B mod FFiniteFieldSize, FFiniteFieldSize); // T*B*B mod P = (T*B mod P) * (B mod P) mod P
-        C := Int64MultipleMod(B, B, FFiniteFieldSize);
-      end;
       OutPoint.X := Plain;
-      OutPoint.Y := (R mod FFiniteFieldSize + FFiniteFieldSize) mod FFiniteFieldSize;
+      OutPoint.Y := TonelliShanks(G, FFiniteFieldSize);
       Result := True;
     end;
   end;
@@ -858,6 +817,54 @@ begin
   end;
 end;
 
+class function TCnInt64Ecc.TonelliShanks(X, P: Int64): Int64;
+var
+  I: Integer;
+  Q, S, Z, C, R, T, M, B: Int64;
+begin
+  S := 0;
+  Q := P - 1;
+  while (Q mod 2) = 0 do
+  begin
+    Q := Q shr 1;
+    Inc(S);
+  end;
+
+  Z := 2;
+  while Z < P do
+  begin
+    if CalcInt64Legendre(Z, P) = -1 then
+      Break;
+    Inc(Z);
+  end;
+
+  // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
+  C := MontgomeryPowerMod(Z, Q, P);
+  R := MontgomeryPowerMod(X, (Q + 1) div 2, P);
+  T := MontgomeryPowerMod(X, Q, P);
+  M := S;
+
+  while True do
+  begin
+    if T mod P = 1 then
+      Break;
+
+    for I := 1 to M - 1 do
+    begin
+      if MontgomeryPowerMod(T, 1 shl I, P) = 1 then
+        Break;
+    end;
+
+    B := MontgomeryPowerMod(C, 1 shl (M - I - 1), P);
+    M := I;
+    R := Int64MultipleMod(R, B, P);
+    T := Int64MultipleMod(Int64MultipleMod(T, B, P),
+      B mod P, P); // T*B*B mod P = (T*B mod P) * (B mod P) mod P
+    C := Int64MultipleMod(B, B, P);
+  end;
+  Result := (R mod P + P) mod P;
+end;
+
 { TCnEccPoint }
 
 procedure TCnEccPoint.Assign(Source: TPersistent);
@@ -951,7 +958,6 @@ begin
   FFiniteFieldSize := TCnBigNumber.Create;
 
   FSizeUFactor := TCnBigNumber.Create;
-  FSizeQ := TCnBigNumber.Create;
 end;
 
 constructor TCnEcc.Create(Predefined: TCnEccPredefinedCurveType);
@@ -990,7 +996,6 @@ begin
     FBigNumberPool.Free;
   end;
 
-  FSizeQ.Free;
   FSizeUFactor.Free;
 
   FGenerator.Free;
@@ -1106,14 +1111,6 @@ begin
     begin
       FSizePrimeType := pt8U1;
       BigNumberDivWord(FSizeUFactor, 8);
-
-      FSizeS := 0;
-      BigNumberSub(FSizeQ, FFiniteFieldSize, CnBigNumberOne);
-      while not FSizeQ.IsOdd do
-      begin
-        BigNumberShiftRightOne(FSizeQ, FSizeQ);
-        Inc(FSizeS);
-      end;
     end
     else if R = 5 then
     begin
@@ -1185,7 +1182,6 @@ function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 var
   X, Y, Z, U, R, T, L, X3, C, M: TCnBigNumber;
-  N, I: Integer;
 begin
   Result := False;
   if Plain.IsNegative then
@@ -1278,63 +1274,13 @@ begin
             end;
           end;
         end;
-      pt8U1: // Lucas 序列计算法实在搞不定，改用 Tonelli Shanks 算法进行模素数二次剩余求解
+      pt8U1: // Lucas 序列计算法实在跑不对，改用 Tonelli Shanks 算法进行模素数二次剩余求解
         begin
-          BigNumberRandRange(Z, FFiniteFieldSize);
-          while True do
+          if BigNumberTonelliShanks(OutPoint.Y, X3, FFiniteFieldSize) then
           begin
-            if BigNumberLegendre(Z, FFiniteFieldSize) = -1 then
-              Break;
-            BigNumberRandRange(Z, FFiniteFieldSize);
+            BigNumberCopy(OutPoint.X, Plain);
+            Result := True;
           end;
-          // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
-
-          C := ObtainBigNumberFromPool;
-          R := ObtainBigNumberFromPool;
-          T := ObtainBigNumberFromPool;
-          M := ObtainBigNumberFromPool;  // 较临时的 M、U、L
-          L := ObtainBigNumberFromPool;
-
-          BigNumberAdd(M, FSizeQ, CnBigNumberOne);
-          BigNumberShiftRight(M, M, 1);
-          BigNumberMontgomeryPowerMod(C, Z, FSizeQ, FFiniteFieldSize);
-          BigNumberMontgomeryPowerMod(R, X3, M, FFiniteFieldSize);
-          BigNumberMontgomeryPowerMod(T, X3, FSizeQ, FFiniteFieldSize);
-          N := FSizeS;
-
-          while True do
-          begin
-            BigNumberMod(U, T, FFiniteFieldSize);
-            if U.IsOne then
-              Break;
-
-            for I := 1 to N - 1 do
-            begin
-              U.SetOne;
-              BigNumberShiftLeft(U, U, I);
-              BigNumberMontgomeryPowerMod(M, T, U, FFiniteFieldSize);
-              if M.IsOne then
-                Break;
-            end;
-
-            U.SetOne;
-            BigNumberShiftLeft(U, U, N - I - 1);
-            BigNumberMontgomeryPowerMod(M, C, U, FFiniteFieldSize);
-            BigNumberMulMod(R, R, M, FFiniteFieldSize);
-
-            // T := T*M*M mod P = (T*M mod P) * (M mod P) mod P
-            BigNumberMulMod(U, T, M, FFiniteFieldSize); // U := T*M mod P
-            BigNumberMod(L, M, FFiniteFieldSize);       // L := M mod P
-            BigNumberMulMod(T, U, L, FFiniteFieldSize);
-
-            BigNumberMulMod(C, M, M, FFiniteFieldSize);
-          end;
-
-          BigNumberCopy(OutPoint.X, Plain);
-          BigNumberMod(L, R, FFiniteFieldSize);
-          BigNumberAdd(L, L, FFiniteFieldSize);
-          BigNumberMod(OutPoint.Y, L, FFiniteFieldSize);
-          Result := True;
         end;
     end;
   finally
