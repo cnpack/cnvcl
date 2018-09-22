@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsLucas
+    ActivePage = tsSimpleECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1316,7 +1316,7 @@ object FormEcc: TFormEcc
           Width = 505
           Height = 21
           TabOrder = 1
-          Text = '41'
+          Text = '538879667'
         end
         object btnTSInt64: TButton
           Left = 552
@@ -1335,6 +1335,23 @@ object FormEcc: TFormEcc
           Caption = 'Tonelli Shanks BigNumber'
           TabOrder = 3
           OnClick = btnBNTSClick
+        end
+        object mmoTSData: TMemo
+          Left = 40
+          Top = 120
+          Width = 185
+          Height = 241
+          ScrollBars = ssVertical
+          TabOrder = 4
+          WordWrap = False
+        end
+        object btnRandomTS: TButton
+          Left = 40
+          Top = 88
+          Width = 369
+          Height = 21
+          Caption = 'Random Tonelli Shanks using Int64 and BigNumber to 538879667'
+          TabOrder = 5
         end
       end
     end

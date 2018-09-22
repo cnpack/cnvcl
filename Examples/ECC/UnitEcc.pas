@@ -171,6 +171,8 @@ type
     edtTSP: TEdit;
     btnTSInt64: TButton;
     btnBNTS: TButton;
+    mmoTSData: TMemo;
+    btnRandomTS: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -1289,12 +1291,35 @@ end;
 type
   TCnInt64EccHack = class(TCnInt64Ecc);
 
+// 计算勒让德符号 ( A / P) 的值
+function CalcInt64Legendre(A, P: Int64): Integer;
+begin
+  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+  if A mod P = 0 then
+    Result := 0
+  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+    Result := 1
+  else
+    Result := -1;
+end;
+
 procedure TFormEcc.btnTSInt64Click(Sender: TObject);
 var
   X, P, R: Int64;
 begin
   X := StrToInt64(edtTSX.Text);
   P := StrToInt64(edtTSP.Text);
+  if not CnInt64IsPrime(P) then
+  begin
+    ShowMessage('NOT Prime');
+    Exit;
+  end;
+  if CalcInt64Legendre(X, P) <> 1 then
+  begin
+    ShowMessage('Legendre NOT 1, No Result');
+    Exit;
+  end;
+
   R := TCnInt64EccHack.TonelliShanks(X, P);
   ShowMessage(IntToStr(R));
 end;
@@ -1307,14 +1332,27 @@ begin
   X := TCnBigNumber.Create;
   P := TCnBigNumber.Create;
 
-  X.SetDec(edtTSX.Text);
-  P.SetDec(edtTSP.Text);
-  if BigNumberTonelliShanks(R, X, P) then
-    ShowMessage(R.ToDec);
+  try
+    X.SetDec(edtTSX.Text);
+    P.SetDec(edtTSP.Text);
+    if not BigNumberIsProbablyPrime(P) then
+    begin
+      ShowMessage('NOT Prime');
+      Exit;
+    end;
+    if BigNumberLegendre(X, P) <> 1 then
+    begin
+      ShowMessage('Legendre NOT 1, No Result');
+      Exit;
+    end;
 
-  R.Free;
-  X.Free;
-  P.Free;
+    if BigNumberTonelliShanks(R, X, P) then
+      ShowMessage(R.ToDec);
+  finally
+    R.Free;
+    X.Free;
+    P.Free;
+  end
 end;
 
 end.
