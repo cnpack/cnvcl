@@ -1320,7 +1320,7 @@ begin
     Exit;
   end;
 
-  R := TCnInt64EccHack.TonelliShanks(X, P);
+  R := TCnInt64EccHack(FEcc64E2311).TonelliShanks(X, P);
   ShowMessage(IntToStr(R));
 end;
 

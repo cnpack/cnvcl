@@ -73,8 +73,9 @@ type
     FSizeUFactor: Int64;
     FSizePrimeType: TCnEccPrimeType;
   protected
-    // Tonelli Shanks 模素数二次剩余求解，调用者需自行保证 P 为素数
-    class function TonelliShanks(X, P: Int64): Int64;
+    // Tonelli Shanks 模素数二次剩余求解，返回 -1 表示失败
+    // 调用者需自行保证 P 为素数
+    function TonelliShanks(X, P: Int64): Int64;
   public
     constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
@@ -187,9 +188,9 @@ type
     {* 判断 P 点是否在本曲线上}
 
     function PlainToPoint(Plain: TCnBigNumber; OutPoint: TCnEccPoint): Boolean;
-    {* 将要加密的明文数值包装成一个待加密的点，特慢，不推荐}
+    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y}
     function PointToPlain(Point: TCnEccPoint; OutPlain: TCnBigNumber): Boolean;
-    {* 将解密出的明文点解开成一个明文数值}
+    {* 将解密出的明文点解开成一个明文数值，也就是将点的 X 值取出}
 
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
@@ -684,8 +685,7 @@ begin
   pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
     begin
       // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
-      //  改用 Tonelli Shanks 算法进行模素数二次剩余求解
-
+      //  改用 Tonelli Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
       OutPoint.X := Plain;
       OutPoint.Y := TonelliShanks(G, FFiniteFieldSize);
       Result := True;
@@ -817,11 +817,19 @@ begin
   end;
 end;
 
-class function TCnInt64Ecc.TonelliShanks(X, P: Int64): Int64;
+function TCnInt64Ecc.TonelliShanks(X, P: Int64): Int64;
 var
   I: Integer;
   Q, S, Z, C, R, T, M, B: Int64;
 begin
+  Result := -1;
+  if (X <= 0) or (P <= 0) or (X >= P) then
+    Exit;
+
+  // 先要通过勒让德符号判断其根是否存在，否则下面会陷入死循环
+  if CalcInt64Legendre(X, P) <> 1 then
+    Exit;
+
   S := 0;
   Q := P - 1;
   while (Q mod 2) = 0 do
@@ -1277,9 +1285,6 @@ begin
         end;
       pt8U1: // Lucas 序列计算法实在跑不对，改用 Tonelli Shanks 算法进行模素数二次剩余求解
         begin
-          if BigNumberLegendre(X3, FFiniteFieldSize) <> 1 then
-            Exit;
-
           if BigNumberTonelliShanks(OutPoint.Y, X3, FFiniteFieldSize) then
           begin
             BigNumberCopy(OutPoint.X, Plain);

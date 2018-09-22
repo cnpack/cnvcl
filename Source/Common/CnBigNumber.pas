@@ -4048,6 +4048,10 @@ begin
     or (BigNumberCompare(A, P) >= 0) then
     Exit;
 
+  // 如果勒让德符号不为 1，说明无解，下面就不用跑了
+  if BigNumberLegendre(A, P) <> 1 then
+    Exit;
+
   Q := ObtainBigNumberFromPool;
   Z := ObtainBigNumberFromPool;
   C := ObtainBigNumberFromPool;
