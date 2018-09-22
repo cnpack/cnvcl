@@ -856,7 +856,8 @@ begin
     end;
 
     B := MontgomeryPowerMod(C, 1 shl (M - I - 1), P);
-    M := I;
+    M := I; // M 每回都会减小，算法收敛
+
     R := Int64MultipleMod(R, B, P);
     T := Int64MultipleMod(Int64MultipleMod(T, B, P),
       B mod P, P); // T*B*B mod P = (T*B mod P) * (B mod P) mod P
@@ -1276,6 +1277,9 @@ begin
         end;
       pt8U1: // Lucas 序列计算法实在跑不对，改用 Tonelli Shanks 算法进行模素数二次剩余求解
         begin
+          if BigNumberLegendre(X3, FFiniteFieldSize) <> 1 then
+            Exit;
+
           if BigNumberTonelliShanks(OutPoint.Y, X3, FFiniteFieldSize) then
           begin
             BigNumberCopy(OutPoint.X, Plain);
