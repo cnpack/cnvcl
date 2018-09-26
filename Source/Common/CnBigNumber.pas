@@ -2994,6 +2994,8 @@ begin
   SDiv := nil;
   BackupTop := 0;
   BackupDMax := 0;
+  BackupNeg := 0;
+  BackupD := nil;
 
   try
     Tmp := ObtainBigNumberFromPool;

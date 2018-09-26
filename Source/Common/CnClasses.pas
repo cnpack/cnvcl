@@ -49,7 +49,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, TypInfo, Consts, CnNativeDecl;
+  Windows, SysUtils, Classes, TypInfo,
+  {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} CnNativeDecl;
 
 type
 

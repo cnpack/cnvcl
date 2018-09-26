@@ -1057,9 +1057,7 @@ var
 begin
   Assert(NewSize > 0);
   if NewSize = FBucketCount then
-  begin
     Exit;
-  end;
 
   TmpBucketSize := FBucketCount;
   TmpBuckets := Copy(FBuckets, 0, TmpBucketSize);
