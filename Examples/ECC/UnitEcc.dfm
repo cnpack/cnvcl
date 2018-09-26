@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsWrapData
+    ActivePage = tsLucas
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1228,9 +1228,17 @@ object FormEcc: TFormEcc
           Top = 56
           Width = 153
           Height = 21
-          Caption = 'Lucas Mod'
+          Caption = 'Lucas 2'
           TabOrder = 6
           OnClick = btnLucasModClick
+        end
+        object chkLucasMod: TCheckBox
+          Left = 296
+          Top = 28
+          Width = 49
+          Height = 17
+          Caption = 'Mod'
+          TabOrder = 7
         end
       end
       object grpLegendre: TGroupBox

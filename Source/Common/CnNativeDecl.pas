@@ -110,6 +110,12 @@ function UInt32IsNegative(N: Cardinal): Boolean;
 function UInt64IsNegative(N: TUInt64): Boolean;
 {* 该 UInt64 被当成 Int64 时是否小于 0}
 
+function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
+{* 返回 Int64 的某一位是否是 1，位 Index 从 0 开始}
+
+function GetUInt64HighBits(B: TUInt64): Integer;
+{* 返回 Int64 的最高二进制位是第几位，最低位是 0}
+
 implementation
 
 {
@@ -289,6 +295,29 @@ begin
 {$ELSE}
   Result := N < 0;
 {$ENDIF}
+end;
+
+// 返回 UInt64 的第几位是否是 1，0 开始
+function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
+begin
+  B := B and (TUInt64(1) shl Index);
+  Result := B <> 0;
+end;
+
+// 返回 UInt64 的最高二进制位是第几位，0 开始
+function GetUInt64HighBits(B: TUInt64): Integer;
+var
+  J: Integer;
+begin
+  for J := 63 downto 0 do
+  begin
+    if GetUInt64BitSet(B, J) then
+    begin
+      Result := J;
+      Exit;
+    end;
+  end;
+  Result := 0;
 end;
 
 end.

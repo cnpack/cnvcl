@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, CnPrimeNumber, CnBigNumber;
+  Chart, CnPrimeNumber, CnBigNumber, CnNativeDecl;
 
 type
   TFormEcc = class(TForm)
@@ -173,6 +173,7 @@ type
     btnBNTS: TButton;
     mmoTSData: TMemo;
     btnRandomTS: TButton;
+    chkLucasMod: TCheckBox;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -973,6 +974,7 @@ end;
 
 procedure TFormEcc.btnInt64GXtoPtClick(Sender: TObject);
 var
+//  I: Integer;
   P, A, B, X, Y, N: Int64;
   Ecc: TCnInt64Ecc;
   Pt: TCnInt64EccPoint;
@@ -989,6 +991,11 @@ begin
   // 15/194/64403/41589/5579 是 4u3 型的测试通过
   // 12/199/73/21/21/61 是 8u1 型的也基本测试通过
 
+//P := GetTickCount;
+//for I := 0 to 100000 do     // 一万次要 453/469 毫秒，十万次要 4484 毫秒
+//  Ecc.PlainToPoint(X, Pt);
+//ShowMessage(IntToStr(GetTickCount - P));
+
   if Ecc.PlainToPoint(X, Pt) then
   begin
     ShowMessage('Convert to ' + CnInt64EccPointToString(Pt));
@@ -1003,11 +1010,12 @@ end;
 
 procedure TFormEcc.btnLucasRecurClick(Sender: TObject);
 var
-  X, Y, U, V, U_2, V_2, U_1, V_1: Int64;
+  X, Y, P, U, V, U_2, V_2, U_1, V_1: Int64;
   I: Integer;
 begin
   X := StrToInt(edtLucasX.Text);
   Y := StrToInt(edtLucasY.Text);
+  P := StrToInt(edtLucasP.Text);
 
   mmoLucasRes.Lines.Clear;
   mmoLucasRes.Lines.Add(Format('%d: %d, %d', [0, 0, 2]));
@@ -1025,10 +1033,14 @@ begin
 
     U_1 := U;
     V_1 := V;
-    mmoLucasRes.Lines.Add(Format('%d: %d, %d', [I, U, V]));
+    if chkLucasMod.Checked then
+      mmoLucasRes.Lines.Add(Format('%d: %d, %d', [I, U mod P, V mod P]))
+    else
+      mmoLucasRes.Lines.Add(Format('%d: %d, %d', [I, U, V]));
   end;
 end;
 
+// 按定义递归计算 Lucas 序列，照理慢但准确
 procedure TFormEcc.CalcLucas(X, Y, U_2, V_2, U_1, V_1: Int64; var U, V: Int64);
 begin
   U := X * U_1 - Y * U_2;
@@ -1051,7 +1063,7 @@ begin
 end;
 
 // 计算 Lucas 序列以及模的两种不同实现函数，但结果对不上，弃用。
-procedure CalcLucasSequence(X, Y, K, P: Int64; out U, V: Int64);
+procedure CalcLucasSequenceBad(X, Y, K, P: Int64; out U, V: Int64);
 var
   I: Integer;
   U_2, V_2, U_1, V_1: Int64;
@@ -1090,33 +1102,58 @@ begin
   end;
 end;
 
+// 另一种 Lucas 计算，V 对得上号但 U 不靠谱
+procedure CalcLucasSequence2(X, Y, K, P: Int64; out U, V: Int64);
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1: Int64;
+begin
+  if K < 0 then
+    raise ECnEccException.Create('Invalid K for Lucas Sequence');
+
+  if K = 0 then
+  begin
+    U := 0;
+    V := 2;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    U := 1;
+    V := X;
+    Exit;
+  end;
+
+  V0 := 2;
+  V1 := X;
+  Q0 := 1;
+  Q1 := 1;
+
+  C := GetUInt64HighBits(K);
+  for I := C downto 0 do
+  begin
+    Q0 := Q0 * Q1;
+    if GetUInt64BitSet(K, I) then
+    begin
+      Q1 := Q0 * Y;
+      V0 := V0 * V1 - X * Q0;
+      V1 := V1 * V1 - 2 * Q1;
+    end
+    else
+    begin
+      Q1 := Q0;
+      V1 := V0 * V1 - X * Q0;
+      V0 := V0 * V0 - 2 * Q0;
+    end;
+  end;
+  U := Q0;
+  V := V0;
+end;
+
 procedure CalcLucasSequenceMod(X, Y, K, P: Int64; out U, V: Int64);
 var
   C, I: Integer;
   D, UT, VT: Int64;
-
-  function GetInt64BitSet(B: Int64; Index: Integer): Boolean; // 返回 Int64 的第几位是否是 1，0 开始
-  begin
-    B := B and (Int64(1) shl Index);
-    Result := B <> 0;
-  end;
-
-  // 返回 Int64 的最高二进制位是第几位，0 开始
-  function GetInt64HighBits(B: Int64): Integer;
-  var
-    J: Integer;
-  begin
-    for J := 63 downto 0 do
-    begin
-      if GetInt64BitSet(B, J) then
-      begin
-        Result := J;
-        Exit;
-      end;
-    end;
-    Result := 0;
-  end;
-
 begin
   if K < 0 then
     raise ECnEccException.Create('Invalid K for Lucas Sequence');
@@ -1139,7 +1176,7 @@ begin
   U := 1;
   V := X;
 
-  C := GetInt64HighBits(K);
+  C := GetUInt64HighBits(K);
   for I := C - 1 downto 0 do
   begin
     UT := Int64MultipleMod(U, V, P);
@@ -1147,7 +1184,7 @@ begin
 
     U := UT;
     V := VT;
-    if GetInt64BitSet(K, I) then
+    if GetUInt64BitSet(K, I) then
     begin
       UT := ((X * U + V) div 2) mod P;
       VT := ((X * V + D * U) div 2) mod P;
@@ -1174,8 +1211,11 @@ begin
 
   for I := 0 to 100 do
   begin
-    CalcLucasSequence(X, Y, I, P, U, V);
-    mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
+    CalcLucasSequence2(X, Y, I, P, U, V);
+    if chkLucasMod.Checked then
+      mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U mod P, V mod P]))
+    else
+      mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
   end;
 end;
 

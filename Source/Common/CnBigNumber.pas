@@ -471,8 +471,8 @@ function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
 {* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢}
 
 function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
-{* 使用 Tonelli Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A
-   调用者需自行保证 P 为奇素数或奇素数的整数次方，并且保证 A/P 的勒让德符号为 1 也就是有解}
+{* 使用 Tonelli Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
+   调用者需自行保证 P 为奇素数或奇素数的整数次方}
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
