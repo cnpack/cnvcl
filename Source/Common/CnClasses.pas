@@ -334,7 +334,7 @@ type
 
 const
   CN_MAX_UINT64_SIZE = MaxInt div 16;
-  CN_NOT_FOUND_INDEX = TUInt64(-1);
+  CN_NOT_FOUND_INDEX: TUInt64 = TUInt64(-1);
 
 type
   PCnUInt64Array = ^TCnUInt64Array;
@@ -1019,7 +1019,7 @@ function TCnUInt64List.Add(Item: TUInt64): TUInt64;
 begin
   if FIgnoreDuplicated and (IndexOf(Item) <> CN_NOT_FOUND_INDEX) then
   begin
-    Result := -1;
+    Result := CN_NOT_FOUND_INDEX;
     Exit;
   end;
 
