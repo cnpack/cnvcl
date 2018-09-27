@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsLucas
+    ActivePage = tsSquareRoot
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1360,6 +1360,71 @@ object FormEcc: TFormEcc
           Height = 21
           Caption = 'Random Tonelli Shanks using Int64 and BigNumber to 538879667'
           TabOrder = 5
+        end
+      end
+    end
+    object tsSquareRoot: TTabSheet
+      Caption = 'Square Root'
+      ImageIndex = 6
+      object grpSquareRoot: TGroupBox
+        Left = 8
+        Top = 16
+        Width = 705
+        Height = 409
+        Caption = 'Square Root'
+        TabOrder = 0
+        object lblSRY: TLabel
+          Left = 16
+          Top = 28
+          Width = 19
+          Height = 13
+          Caption = 'Y^2'
+        end
+        object lblSREqual: TLabel
+          Left = 184
+          Top = 28
+          Width = 6
+          Height = 13
+          Caption = '='
+        end
+        object lblSRMod: TLabel
+          Left = 336
+          Top = 28
+          Width = 30
+          Height = 13
+          Caption = 'mod P'
+        end
+        object edtSRY: TEdit
+          Left = 48
+          Top = 24
+          Width = 121
+          Height = 21
+          TabOrder = 0
+        end
+        object edtSRX: TEdit
+          Left = 200
+          Top = 24
+          Width = 121
+          Height = 21
+          TabOrder = 1
+          Text = '55'
+        end
+        object edtSRP: TEdit
+          Left = 376
+          Top = 24
+          Width = 121
+          Height = 21
+          TabOrder = 2
+          Text = '103'
+        end
+        object btnSRLucas: TButton
+          Left = 520
+          Top = 24
+          Width = 75
+          Height = 21
+          Caption = 'Calc Y'
+          TabOrder = 3
+          OnClick = btnSRLucasClick
         end
       end
     end

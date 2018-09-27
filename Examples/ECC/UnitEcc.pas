@@ -174,6 +174,15 @@ type
     mmoTSData: TMemo;
     btnRandomTS: TButton;
     chkLucasMod: TCheckBox;
+    tsSquareRoot: TTabSheet;
+    grpSquareRoot: TGroupBox;
+    lblSRY: TLabel;
+    edtSRY: TEdit;
+    lblSREqual: TLabel;
+    edtSRX: TEdit;
+    lblSRMod: TLabel;
+    edtSRP: TEdit;
+    btnSRLucas: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -223,6 +232,7 @@ type
     procedure btnCalcLegendreClick(Sender: TObject);
     procedure btnTSInt64Click(Sender: TObject);
     procedure btnBNTSClick(Sender: TObject);
+    procedure btnSRLucasClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -1102,6 +1112,63 @@ begin
   end;
 end;
 
+// P1363 上的 Lucas 计算，全都对不上号，结果偶尔靠谱
+procedure CalcLucasSequenceMod2(X, Y, K, P: Int64; out U, V: Int64);
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1: Int64;
+
+  function Int64Mod(M: Int64): Int64;
+  begin
+    if M > 0 then
+      Result := M mod P
+    else
+      Result := P - ((-M) mod P);
+  end;
+
+begin
+  if K < 0 then
+    raise ECnEccException.Create('Invalid K for Lucas Sequence');
+
+  if K = 0 then
+  begin
+    U := 1;
+    V := 1;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    U := 1;
+    V := X;
+    Exit;
+  end;
+
+  V0 := 2;
+  V1 := X;
+  Q0 := 1;
+  Q1 := 1;
+
+  C := GetUInt64HighBits(K);
+  for I := C downto 0 do
+  begin
+    Q0 := Int64MultipleMod(Q0, Q1, P);
+    if GetUInt64BitSet(K, I) then
+    begin
+      Q1 := Int64MultipleMod(Q0, Y, P);
+      V0 := Int64Mod(Int64MultipleMod(V0, V1, P) - Int64MultipleMod(X, Q0, P));
+      V1 := Int64Mod(Int64MultipleMod(V1, V1, P) - Int64MultipleMod(2, Q1, P));
+    end
+    else
+    begin
+      Q1 := Q0;
+      V1 := Int64Mod(Int64MultipleMod(V0, V1, P) - Int64MultipleMod(X, Q0, P));
+      V0 := Int64Mod(Int64MultipleMod(V0, V0, P) - Int64MultipleMod(2, Q0, P));
+    end;
+  end;
+  U := Q0;
+  V := V0;
+end;
+
 // 另一种 Lucas 计算，V 对得上号但 U 不靠谱
 procedure CalcLucasSequence2(X, Y, K, P: Int64; out U, V: Int64);
 var
@@ -1211,11 +1278,17 @@ begin
 
   for I := 0 to 100 do
   begin
-    CalcLucasSequence2(X, Y, I, P, U, V);
+    
     if chkLucasMod.Checked then
-      mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U mod P, V mod P]))
-    else
+    begin
+      CalcLucasSequenceMod2(X, Y, I, P, U, V);
       mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
+    end
+    else
+    begin
+      CalcLucasSequence2(X, Y, I, P, U, V);
+      mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
+    end;
   end;
 end;
 
@@ -1393,6 +1466,117 @@ begin
     X.Free;
     P.Free;
   end
+end;
+
+procedure TFormEcc.btnSRLucasClick(Sender: TObject);
+var
+  R, P, U, X, Y, Z, V: Int64;
+  PrimeType: TCnEccPrimeType;
+
+  function RandomInt64LessThan(HighValue: Int64): Int64;
+  var
+    Hi, Lo: Cardinal;
+  begin
+    Randomize;
+    Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
+    Randomize;
+    Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+    Result := (Int64(Hi) shl 32) + Lo;
+    Result := Result mod HighValue;
+  end;
+
+begin
+  P := StrToInt64(edtSRP.Text);
+  X := StrToInt64(edtSRX.Text);
+  edtSRY.Text := '';
+
+  if CalcInt64Legendre(X, P) <> 1 then
+  begin
+    ShowMessage('NO Answer');
+    Exit;
+  end;
+
+  R := P mod 4;
+  if R = 3 then
+  begin
+    PrimeType := pt4U3;
+    U := P div 4;
+  end
+  else
+  begin
+    R := P mod 8;
+    if R = 1 then
+    begin
+      PrimeType := pt8U1;
+      U := P div 8;
+    end
+    else if R = 5 then
+    begin
+      PrimeType := pt8U5;
+      U := P div 8;
+    end
+    else
+      raise ECnEccException.Create('Invalid Finite Field Size.');
+  end;
+
+  case PrimeType of
+  pt4U3:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+    begin
+      Y := MontgomeryPowerMod(X, U + 1, P);   // 55, 103 得 63
+      Z := Int64MultipleMod(Y, Y, P);
+      if Z = X then
+      begin
+        edtSRY.Text := IntToStr(Y);
+      end;
+    end;
+  pt8U5:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+    begin
+      Z := MontgomeryPowerMod(X, 2 * U + 1, P);
+      if Z = 1 then
+      begin
+        Y := MontgomeryPowerMod(X, U + 1, P);
+        edtSRY.Text := IntToStr(Y);
+      end
+      else
+      begin
+        Z := P - Z;
+        if Z = 1 then
+        begin
+          // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
+          Y := (Int64MultipleMod(X, 2, P) *
+            MontgomeryPowerMod(4, U, P) *
+            MontgomeryPowerMod(X, U, P)) mod P;
+          edtSRY.Text := IntToStr(Y);
+        end;
+      end;
+    end;
+  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
+    begin
+      // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
+
+      while True do
+      begin
+        // 随机取 X
+        X := RandomInt64LessThan(P);
+
+        // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
+        CalcLucasSequenceMod2(X, X, (P + 1) div 2, P, U, V);
+        Z := (V div 2) mod P;
+        if Int64MultipleMod(Z, Z, P) = X then
+        begin
+          edtSRY.Text := IntToStr(Z);
+          Exit;
+        end
+        else if (U > 1) and (U < P - 1) then
+          Break;
+      end;
+
+      //  改用 Tonelli Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
+      //OutPoint.X := Plain;
+      //OutPoint.Y := TonelliShanks(G, FFiniteFieldSize);
+      //Result := True;
+    end;
+  end;
 end;
 
 end.
