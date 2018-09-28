@@ -183,6 +183,7 @@ type
     lblSRMod: TLabel;
     edtSRP: TEdit;
     btnSRLucas: TButton;
+    btnSRCompare: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -233,6 +234,7 @@ type
     procedure btnTSInt64Click(Sender: TObject);
     procedure btnBNTSClick(Sender: TObject);
     procedure btnSRLucasClick(Sender: TObject);
+    procedure btnSRCompareClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -573,7 +575,7 @@ end;
 
 procedure TFormEcc.btnCalcNGClick(Sender: TObject);
 var
-  P, A, B, X, Y, N: Int64;
+  P, A, B, X, Y, N, X1, Y1: Int64;
   Ecc: TCnInt64Ecc;
   I: Integer;
   Q: TCnInt64EccPoint;
@@ -598,11 +600,26 @@ begin
     Q.X := X;
     Q.Y := Y;
     Ecc.MultiplePoint(I, Q);
+
     if (Q.X = 0) and (Q.Y = 0) then
       List.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
     else
       List.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
     chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
+
+    X1 := Q.X;
+    Y1 := Q.Y;
+    // 顺便解 Q 点上的 X Y 方程验证
+    if not Ecc.PlainToPoint(X1, Q) then
+    begin
+      ShowMessage(Format('Error %d: X: %d', [I, X1]));
+      Exit;
+    end
+    else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
+    begin
+      ShowMessage(Format('Error %d: X: %d. Y %d <> %d', [I, X1, Y1, Q.Y]));
+      Exit;
+    end;
   end;
   mmoGenECCPoints.Lines.Assign(List);
   List.Free;
@@ -1112,33 +1129,28 @@ begin
   end;
 end;
 
-// P1363 上的 Lucas 计算，全都对不上号，结果偶尔靠谱
-procedure CalcLucasSequenceMod2(X, Y, K, P: Int64; out U, V: Int64);
+// P1363 上的 Lucas 计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
+// V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+// V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
+procedure CalcLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
 var
   C, I: Integer;
   V0, V1, Q0, Q1: Int64;
-
-  function Int64Mod(M: Int64): Int64;
-  begin
-    if M > 0 then
-      Result := M mod P
-    else
-      Result := P - ((-M) mod P);
-  end;
-
 begin
   if K < 0 then
     raise ECnEccException.Create('Invalid K for Lucas Sequence');
 
+  // V0 = 2, V1 = P, and Vk = P * Vk-1 - Q * Vk-2   for k >= 2
+
   if K = 0 then
   begin
-    U := 1;
-    V := 1;
+    Q := 1;
+    V := 2;
     Exit;
   end
   else if K = 1 then
   begin
-    U := 1;
+    Q := 1;
     V := X;
     Exit;
   end;
@@ -1151,21 +1163,21 @@ begin
   C := GetUInt64HighBits(K);
   for I := C downto 0 do
   begin
-    Q0 := Int64MultipleMod(Q0, Q1, P);
+    Q0 := Int64MultipleMod(Q0, Q1, N);
     if GetUInt64BitSet(K, I) then
     begin
-      Q1 := Int64MultipleMod(Q0, Y, P);
-      V0 := Int64Mod(Int64MultipleMod(V0, V1, P) - Int64MultipleMod(X, Q0, P));
-      V1 := Int64Mod(Int64MultipleMod(V1, V1, P) - Int64MultipleMod(2, Q1, P));
+      Q1 := Int64MultipleMod(Q0, Y, N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);
     end
     else
     begin
       Q1 := Q0;
-      V1 := Int64Mod(Int64MultipleMod(V0, V1, P) - Int64MultipleMod(X, Q0, P));
-      V0 := Int64Mod(Int64MultipleMod(V0, V0, P) - Int64MultipleMod(2, Q0, P));
+      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);
     end;
   end;
-  U := Q0;
+  Q := Q0;
   V := V0;
 end;
 
@@ -1217,7 +1229,7 @@ begin
   V := V0;
 end;
 
-procedure CalcLucasSequenceMod(X, Y, K, P: Int64; out U, V: Int64);
+procedure CalcLucasSequenceMod_SM2(X, Y, K, P: Int64; out U, V: Int64);
 var
   C, I: Integer;
   D, UT, VT: Int64;
@@ -1281,7 +1293,7 @@ begin
     
     if chkLucasMod.Checked then
     begin
-      CalcLucasSequenceMod2(X, Y, I, P, U, V);
+      CalcLucasSequenceMod(X, Y, I, P, U, V);
       mmoLucasMod.Lines.Add(Format('%d: %d, %d', [I, U, V]));
     end
     else
@@ -1433,8 +1445,8 @@ begin
     Exit;
   end;
 
-  R := TCnInt64EccHack(FEcc64E2311).TonelliShanks(X, P);
-  ShowMessage(IntToStr(R));
+  if TCnInt64EccHack(FEcc64E2311).TonelliShanks(X, P, R) then
+    ShowMessage(IntToStr(R));
 end;
 
 procedure TFormEcc.btnBNTSClick(Sender: TObject);
@@ -1468,10 +1480,10 @@ begin
   end
 end;
 
-procedure TFormEcc.btnSRLucasClick(Sender: TObject);
+// 封装的对于 P 为 8*u+1 的奇素数，用 Lucas 方法求其模平方根
+function SquareRootModPrimeLucas(X, P: Int64; out Y: Int64): Boolean;
 var
-  R, P, U, X, Y, Z, V: Int64;
-  PrimeType: TCnEccPrimeType;
+  G, Z, U, V: Int64;
 
   function RandomInt64LessThan(HighValue: Int64): Int64;
   var
@@ -1485,6 +1497,39 @@ var
     Result := Result mod HighValue;
   end;
 
+begin
+  Result := False;
+  G := X;
+  while True do
+  begin
+    // 随机取 X
+    X := RandomInt64LessThan(P);
+
+    // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
+    CalcLucasSequenceMod(X, G, (P + 1) shr 1, P, U, V);
+
+    // V 偶则直接右移 1 再 mod P，V 奇则加 P 再右移 1
+    if (V and 1) = 0 then
+      Z := (V shr 1) mod P
+    else
+      Z := (V + P) shr 1;
+    // Z := (V div 2) mod P;
+
+    if Int64MultipleMod(Z, Z, P) = G then
+    begin
+      Y := Z;
+      Result := True;
+      Exit;
+    end
+    else if (U > 1) and (U < P - 1) then
+      Break;
+  end;
+end;
+
+procedure TFormEcc.btnSRLucasClick(Sender: TObject);
+var
+  R, P, U, X, Y, Z: Int64;
+  PrimeType: TCnEccPrimeType;
 begin
   P := StrToInt64(edtSRP.Text);
   X := StrToInt64(edtSRX.Text);
@@ -1553,30 +1598,53 @@ begin
   pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
     begin
       // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
-
-      while True do
+      // 换成 IEEE P1363 中说的 Lucas 序列
+      if SquareRootModPrimeLucas(X, P, Y) then
       begin
-        // 随机取 X
-        X := RandomInt64LessThan(P);
-
-        // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
-        CalcLucasSequenceMod2(X, X, (P + 1) div 2, P, U, V);
-        Z := (V div 2) mod P;
-        if Int64MultipleMod(Z, Z, P) = X then
-        begin
-          edtSRY.Text := IntToStr(Z);
-          Exit;
-        end
-        else if (U > 1) and (U < P - 1) then
-          Break;
+        edtSRY.Text := IntToStr(Y);
+        Exit;
       end;
-
-      //  改用 Tonelli Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
-      //OutPoint.X := Plain;
-      //OutPoint.Y := TonelliShanks(G, FFiniteFieldSize);
-      //Result := True;
     end;
   end;
+
+  if edtSRY.Text = '' then
+    ShowMessage('NO Result')
+  else
+  begin
+    Y := StrToInt64(edtSRY.Text);
+    P := StrToInt64(edtSRP.Text);
+    X := StrToInt64(edtSRX.Text);
+    if Int64MultipleMod(Y, Y, P) = X then
+      ShowMessage('Check OK');
+  end;
+end;
+
+procedure TFormEcc.btnSRCompareClick(Sender: TObject);
+const
+  COUNT = 100000;
+var
+  T1, T2: DWORD;
+  I: Integer;
+  X, P, Y: Int64;
+begin
+  X := 55;
+  P := 73;    // 必须是 8u+1 型
+
+  T1 := GetTickCount;
+  for I := 0 to COUNT - 1 do
+  begin
+    SquareRootModPrimeLucas(X, P, Y);                    // 1.2 秒
+  end;
+  T1 := GetTickCount - T1;
+
+  T2 := GetTickCount;
+  for I := 0 to COUNT - 1 do
+  begin
+    TCnInt64EccHack(nil).TonelliShanks(X, P, Y);         // 0.7 秒
+  end;
+  T2 := GetTickCount - T2;
+
+  ShowMessage(IntToStr(T1) + ' ' + IntToStr(T2));
 end;
 
 end.

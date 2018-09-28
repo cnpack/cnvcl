@@ -75,7 +75,7 @@ type
   protected
     // Tonelli Shanks 模素数二次剩余求解，返回 -1 表示失败
     // 调用者需自行保证 P 为素数
-    function TonelliShanks(X, P: Int64): Int64;
+    function TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
   public
     constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
@@ -325,18 +325,6 @@ begin
   Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0);
 end;
 
-// 计算勒让德符号 ( A / P) 的值
-function CalcInt64Legendre(A, P: Int64): Integer;
-begin
-  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
-  if A mod P = 0 then
-    Result := 0
-  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
-    Result := 1
-  else
-    Result := -1;
-end;
-
 // 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
@@ -373,7 +361,7 @@ begin
     for I := 0 to FiniteFieldSize - 1 do
     begin
       // 这里得用 Int64 先转换一下，否则 I 的三次方超过 Integer 溢出了
-      N := N + CalcInt64Legendre(Int64(I) * Int64(I) * Int64(I) + CoefficientA * I + CoefficientB, FiniteFieldSize);
+      N := N + CnInt64Legendre(Int64(I) * Int64(I) * Int64(I) + CoefficientA * I + CoefficientB, FiniteFieldSize);
     end;
   until CnInt64IsPrime(N);
 
@@ -430,21 +418,6 @@ begin
 
   Order := N;
   Result := True;
-end;
-
-// 支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
-function Int64MultipleMod(A, B, C: Int64): Int64;
-begin
-  if (A > 0) and (B > 0) then
-    Result := MultipleMod(A, B, C)
-  else if (A < 0) and (B < 0) then
-    Result := MultipleMod(-A, -B, C)
-  else if (A > 0) and (B < 0) then
-    Result := C - MultipleMod(A, -B, C)
-  else if (A < 0) and (B > 0) then
-    Result := C - MultipleMod(-A, B, C)
-  else
-    Result := 0;
 end;
 
 // 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是说支持 X 为负值
@@ -624,13 +597,20 @@ var
     Randomize;
     Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
     Randomize;
-    Lo := Trunc(Random * High(Cardinal) - 1) + 1;  
+    Lo := Trunc(Random * High(Cardinal) - 1) + 1;
     Result := (Int64(Hi) shl 32) + Lo;
     Result := Result mod HighValue;
   end;
 
 begin
   Result := False;
+  if Plain = 0 then
+  begin
+    OutPoint.X := 0;
+    OutPoint.Y := 0;
+    Result := True;
+    Exit;
+  end;
 
   // 解方程求 Y： (y^2 - (Plain^3 + A * Plain + B)) mod p = 0
   // 注意 Plain 如果太大，计算过程中会溢出，不好处理，只能用分配律。
@@ -686,9 +666,12 @@ begin
     begin
       // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
       //  改用 Tonelli Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
-      OutPoint.X := Plain;
-      OutPoint.Y := TonelliShanks(G, FFiniteFieldSize);
-      Result := True;
+      if TonelliShanks(G, FFiniteFieldSize, Y) then
+      begin
+        OutPoint.X := Plain;
+        OutPoint.Y := Y;
+        Result := True;
+      end;
     end;
   end;
 end;
@@ -817,17 +800,17 @@ begin
   end;
 end;
 
-function TCnInt64Ecc.TonelliShanks(X, P: Int64): Int64;
+function TCnInt64Ecc.TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
 var
   I: Integer;
   Q, S, Z, C, R, T, M, B: Int64;
 begin
-  Result := -1;
+  Result := False;
   if (X <= 0) or (P <= 0) or (X >= P) then
     Exit;
 
   // 先要通过勒让德符号判断其根是否存在，否则下面会陷入死循环
-  if CalcInt64Legendre(X, P) <> 1 then
+  if CnInt64Legendre(X, P) <> 1 then
     Exit;
 
   S := 0;
@@ -841,7 +824,7 @@ begin
   Z := 2;
   while Z < P do
   begin
-    if CalcInt64Legendre(Z, P) = -1 then
+    if CnInt64Legendre(Z, P) = -1 then
       Break;
     Inc(Z);
   end;
@@ -871,7 +854,7 @@ begin
       B mod P, P); // T*B*B mod P = (T*B mod P) * (B mod P) mod P
     C := Int64MultipleMod(B, B, P);
   end;
-  Result := (R mod P + P) mod P;
+  Y := (R mod P + P) mod P;
 end;
 
 { TCnEccPoint }

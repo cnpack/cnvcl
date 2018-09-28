@@ -116,6 +116,9 @@ function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
 function GetUInt64HighBits(B: TUInt64): Integer;
 {* 返回 Int64 的最高二进制位是第几位，最低位是 0}
 
+function Int64Mod(M, N: Int64): Int64;
+{* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 C 仍要求正数否则结果不靠谱}
+
 implementation
 
 {
@@ -318,6 +321,15 @@ begin
     end;
   end;
   Result := 0;
+end;
+
+// 封装的 Int64 Mod，碰到负值时取反求模再模减
+function Int64Mod(M, N: Int64): Int64;
+begin
+  if M > 0 then
+    Result := M mod N
+  else
+    Result := N - ((-M) mod N);
 end;
 
 end.

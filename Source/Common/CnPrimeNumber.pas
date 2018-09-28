@@ -660,6 +660,9 @@ function AddMod(A, B, C: TUInt64): TUInt64;
 function MultipleMod(A, B, C: TUInt64): TUInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
+function Int64MultipleMod(A, B, C: Int64): Int64;
+{* 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱}
+
 function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
@@ -749,6 +752,14 @@ function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt
 procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
    如果得出 X 小于 0，可加上 B}
+
+function CnInt64Legendre(A, P: Int64): Integer;
+{* 计算勒让德符号 ( A / P) 的值}
+
+procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+{* 计算 Lucas 序列，参考 IEEE P1363 的规范
+   递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
 implementation
 
@@ -878,6 +889,21 @@ begin
 
     B := B shr 1;
   end;
+end;
+
+// 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
+function Int64MultipleMod(A, B, C: Int64): Int64;
+begin
+  if (A > 0) and (B > 0) then
+    Result := MultipleMod(A, B, C)
+  else if (A < 0) and (B < 0) then
+    Result := MultipleMod(-A, -B, C)
+  else if (A > 0) and (B < 0) then
+    Result := C - MultipleMod(A, -B, C)
+  else if (A < 0) and (B > 0) then
+    Result := C - MultipleMod(-A, B, C)
+  else
+    Result := 0;
 end;
 
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
@@ -1628,6 +1654,68 @@ begin
     CnInt64ExtendedEuclideanGcd2(B, UInt64Mod(A, B), Y, X);
     Y := Y - X * UInt64Div(A, B);
   end;
+end;
+
+// 计算勒让德符号 ( A / P) 的值
+function CnInt64Legendre(A, P: Int64): Integer;
+begin
+  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+  if A mod P = 0 then
+    Result := 0
+  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+    Result := 1
+  else
+    Result := -1;
+end;
+
+// P1363 上的 Lucas 序列计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
+// V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+// V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
+procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1: Int64;
+begin
+  if K < 0 then
+    raise Exception.Create('Invalid K for Lucas Sequence');
+
+  if K = 0 then
+  begin
+    Q := 1;
+    V := 2;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    Q := 1;
+    V := X;
+    Exit;
+  end;
+
+  V0 := 2;
+  V1 := X;
+  Q0 := 1;
+  Q1 := 1;
+
+  C := GetUInt64HighBits(K);
+  for I := C downto 0 do
+  begin
+    Q0 := Int64MultipleMod(Q0, Q1, N);
+    if GetUInt64BitSet(K, I) then
+    begin
+      Q1 := Int64MultipleMod(Q0, Y, N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);
+    end
+    else
+    begin
+      Q1 := Q0;
+      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);
+    end;
+  end;
+  Q := Q0;
+  V := V0;
 end;
 
 end.

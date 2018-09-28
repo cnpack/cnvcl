@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsSquareRoot
+    ActivePage = tsInt64ECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1420,11 +1420,22 @@ object FormEcc: TFormEcc
         object btnSRLucas: TButton
           Left = 520
           Top = 24
-          Width = 75
+          Width = 121
           Height = 21
-          Caption = 'Calc Y'
+          Caption = 'Calc Y and Check'
           TabOrder = 3
           OnClick = btnSRLucasClick
+        end
+        object btnSRCompare: TButton
+          Left = 48
+          Top = 64
+          Width = 449
+          Height = 25
+          Caption = 
+            'Compare Lucas Sequence and Toneli-Shanks for Int64 when P = 8*u ' +
+            '+ 1'
+          TabOrder = 4
+          OnClick = btnSRCompareClick
         end
       end
     end
