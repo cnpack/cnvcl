@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsLucas
+    ActivePage = tsInt64ECC
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'

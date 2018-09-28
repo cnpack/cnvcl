@@ -73,9 +73,10 @@ type
     FSizeUFactor: Int64;
     FSizePrimeType: TCnEccPrimeType;
   protected
-    // Tonelli Shanks 模素数二次剩余求解，返回 -1 表示失败
-    // 调用者需自行保证 P 为素数
+    // Tonelli Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
     function TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
+    // Lucas 序列模素数二次剩余求解，返回 False 表示失败，只针对 P 为 8*u + 1 的形式
+    function Lucas(X, P: Int64; out Y: Int64): Boolean;
   public
     constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
@@ -441,6 +442,18 @@ begin
     Result := Result + Modulus;
 end;
 
+function RandomInt64LessThan(HighValue: Int64): Int64;
+var
+  Hi, Lo: Cardinal;
+begin
+  Randomize;
+  Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
+  Randomize;
+  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+  Result := (Int64(Hi) shl 32) + Lo;
+  Result := Result mod HighValue;
+end;
+
 { TCnInt64Ecc }
 
 constructor TCnInt64Ecc.Create(A, B, FieldPrime, GX, GY, Order: Int64);
@@ -552,6 +565,39 @@ begin
   Result := ((Y2 - X3 - AX - B) mod FFiniteFieldSize) = 0;
 end;
 
+function TCnInt64Ecc.Lucas(X, P: Int64; out Y: Int64): Boolean;
+var
+  G, U, V, Z: Int64;
+begin
+  Result := False;
+  G := X;
+
+  while True do
+  begin
+    // 随机取 X
+    X := RandomInt64LessThan(P);
+
+    // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
+    CnLucasSequenceMod(X, G, (P + 1) shr 1, P, U, V);
+
+    // V 偶则直接右移 1 再 mod P，V 奇则加 P 再右移 1
+    if (V and 1) = 0 then
+      Z := (V shr 1) mod P
+    else
+      Z := (V + P) shr 1;
+    // Z := (V div 2) mod P;
+
+    if Int64MultipleMod(Z, Z, P) = G then
+    begin
+      Y := Z;
+      Result := True;
+      Exit;
+    end
+    else if (U > 1) and (U < P - 1) then
+      Break;
+  end;
+end;
+
 procedure TCnInt64Ecc.MultiplePoint(K: Int64; var Point: TCnInt64EccPoint);
 var
   E, R: TCnInt64EccPoint;
@@ -589,19 +635,6 @@ function TCnInt64Ecc.PlainToPoint(Plain: Int64;
   var OutPoint: TCnInt64EccPoint): Boolean;
 var
   X3, AX, B, G, Y, Z: Int64;
-
-  function RandomInt64LessThan(HighValue: Int64): Int64;
-  var
-    Hi, Lo: Cardinal;
-  begin
-    Randomize;
-    Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
-    Randomize;
-    Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-    Result := (Int64(Hi) shl 32) + Lo;
-    Result := Result mod HighValue;
-  end;
-
 begin
   Result := False;
   if Plain = 0 then
@@ -662,9 +695,17 @@ begin
         end;
       end;
     end;
-  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
+  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法以及 IEEE P1363 里的 Lucas 序列算法
     begin
+{$IFDEF USE_LUCAS}
       // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
+      if Lucas(G, FFiniteFieldSize, Y) then
+      begin
+        OutPoint.X := Plain;
+        OutPoint.Y := Y;
+        Result := True;
+      end;
+{$ELSE}
       //  改用 Tonelli Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
       if TonelliShanks(G, FFiniteFieldSize, Y) then
       begin
@@ -672,6 +713,7 @@ begin
         OutPoint.Y := Y;
         Result := True;
       end;
+{$ENDIF}
     end;
   end;
 end;
@@ -855,6 +897,7 @@ begin
     C := Int64MultipleMod(B, B, P);
   end;
   Y := (R mod P + P) mod P;
+  Result := True;
 end;
 
 { TCnEccPoint }
@@ -1266,13 +1309,21 @@ begin
             end;
           end;
         end;
-      pt8U1: // Lucas 序列计算法实在跑不对，改用 Tonelli Shanks 算法进行模素数二次剩余求解
+      pt8U1: // Lucas 序列计算法与 Tonelli Shanks 算法均能进行模素数二次剩余求解
         begin
+{$IFDEF USE_LUCAS}
+          if BigNumberLucas(OutPoint.Y, X3, FFiniteFieldSize) then
+          begin
+            BigNumberCopy(OutPoint.X, Plain);
+            Result := True;
+          end;
+{$ELSE}
           if BigNumberTonelliShanks(OutPoint.Y, X3, FFiniteFieldSize) then
           begin
             BigNumberCopy(OutPoint.X, Plain);
             Result := True;
           end;
+{$ENDIF}
         end;
     end;
   finally

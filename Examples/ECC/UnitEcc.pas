@@ -1417,18 +1417,6 @@ end;
 type
   TCnInt64EccHack = class(TCnInt64Ecc);
 
-// 计算勒让德符号 ( A / P) 的值
-function CalcInt64Legendre(A, P: Int64): Integer;
-begin
-  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
-  if A mod P = 0 then
-    Result := 0
-  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
-    Result := 1
-  else
-    Result := -1;
-end;
-
 procedure TFormEcc.btnTSInt64Click(Sender: TObject);
 var
   X, P, R: Int64;
@@ -1440,7 +1428,7 @@ begin
     ShowMessage('NOT Prime');
     Exit;
   end;
-  if CalcInt64Legendre(X, P) <> 1 then
+  if CnInt64Legendre(X, P) <> 1 then
   begin
     ShowMessage('Legendre NOT 1, No Result');
     Exit;
@@ -1536,7 +1524,7 @@ begin
   X := StrToInt64(edtSRX.Text);
   edtSRY.Text := '';
 
-  if CalcInt64Legendre(X, P) <> 1 then
+  if CnInt64Legendre(X, P) <> 1 then
   begin
     ShowMessage('NO Answer');
     Exit;

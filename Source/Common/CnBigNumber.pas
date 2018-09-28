@@ -471,8 +471,11 @@ function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
 {* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢}
 
 function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
-{* 使用 Tonelli Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
+{* 使用 Tonelli-Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
    调用者需自行保证 P 为奇素数或奇素数的整数次方}
+
+function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+{* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解}
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
@@ -4137,6 +4140,79 @@ begin
     RecycleBigNumberToPool(U);
     RecycleBigNumberToPool(B);
     RecycleBigNumberToPool(N);
+  end;
+end;
+
+// 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解
+function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+var
+  G, X, Z, U, V, T: TCnBigNumber;
+begin
+  Result := False;
+
+  G := nil;
+  X := nil;
+  Z := nil;
+  U := nil;
+  V := nil;
+  T := nil;
+
+  try
+    G := ObtainBigNumberFromPool;
+    X := ObtainBigNumberFromPool;
+    Z := ObtainBigNumberFromPool;
+    U := ObtainBigNumberFromPool;
+    V := ObtainBigNumberFromPool;
+    T := ObtainBigNumberFromPool;
+
+    while True do
+    begin
+      if not BigNumberRandRange(X, P) then
+        Exit;
+
+      BigNumberCopy(T, P);
+      BigNumberAddWord(T, 1);
+      BigNumberShiftRight(T, T, 1);
+      if not BigNumberLucasSequenceMod(X, A, T, P, U, V) then
+        Exit;
+
+      BigNumberCopy(Z, V);
+      if not V.IsOdd then
+      begin
+        BigNumberShiftRight(Z, Z, 1);
+        BigNumberMod(Z, Z, P);
+      end
+      else
+      begin
+        BigNumberAdd(Z, Z, P);
+        BigNumberShiftRight(Z, Z, 1);
+      end;
+
+      if not BigNumberUnsignedMulMod(T, Z, Z, P) then
+        Exit;
+
+      if BigNumberCompare(T, A) = 0 then
+      begin
+        BigNumberCopy(Res, Z);
+        Result := True;
+        Exit;
+      end
+      else if BigNumberCompare(U, CnBigNumberOne) > 0 then
+      begin
+        BigNumberCopy(T, P);
+        BigNumberSubWord(T, 1);
+
+        if BigNumberCompare(U, T) < 0 then
+          Break;
+      end;
+    end;
+  finally
+    RecycleBigNumberToPool(G);
+    RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(Z);
+    RecycleBigNumberToPool(U);
+    RecycleBigNumberToPool(V);
+    RecycleBigNumberToPool(T);
   end;
 end;
 
