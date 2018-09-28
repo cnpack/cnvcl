@@ -4287,7 +4287,7 @@ begin
 
     C2.SetWord(2);
     V0.SetWord(2);
-    BigNumberCopy(V0, X);
+    BigNumberCopy(V1, X);
     Q0.SetOne;
     Q1.SetOne;
 

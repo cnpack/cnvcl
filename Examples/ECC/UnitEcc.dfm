@@ -1238,6 +1238,8 @@ object FormEcc: TFormEcc
           Width = 49
           Height = 17
           Caption = 'Mod'
+          Checked = True
+          State = cbChecked
           TabOrder = 7
         end
         object btnBNLucasMod: TButton
