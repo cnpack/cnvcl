@@ -477,6 +477,11 @@ function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Bo
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
 
+function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数
+   Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
+
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
 
@@ -4235,6 +4240,120 @@ begin
     RecycleBigNumberToPool(S);
     RecycleBigNumberToPool(R);
     RecycleBigNumberToPool(P);
+  end;
+end;
+
+// 计算 IEEE P1363 的规范中说明的 Lucas 序列
+function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1, T0, T1, C2: TCnBigNumber;
+begin
+  Result := False;
+  if K.IsNegative then
+    Exit;
+
+  if K.IsZero then
+  begin
+    Q.SetOne;
+    V.SetWord(2);
+    Result := True;
+    Exit;
+  end
+  else if K.IsOne then
+  begin
+    Q.SetOne;
+    BigNumberCopy(V, X);
+    Result := True;
+    Exit;
+  end;
+
+  V0 := nil;
+  V1 := nil;
+  Q0 := nil;
+  Q1 := nil;
+  T0 := nil;
+  T1 := nil;
+  C2 := nil;
+
+  try
+    V0 := ObtainBigNumberFromPool;
+    V1 := ObtainBigNumberFromPool;
+    Q0 := ObtainBigNumberFromPool;
+    Q1 := ObtainBigNumberFromPool;
+    T0 := ObtainBigNumberFromPool;
+    T1 := ObtainBigNumberFromPool;
+    C2 := ObtainBigNumberFromPool;
+
+    C2.SetWord(2);
+    V0.SetWord(2);
+    BigNumberCopy(V0, X);
+    Q0.SetOne;
+    Q1.SetOne;
+
+    C := BigNumberGetBitsCount(K);
+    for I := C downto 0 do
+    begin
+      if not BigNumberMulMod(Q0, Q0, Q1, N) then
+        Exit;
+
+      if BigNumberIsBitSet(K, I) then
+      begin
+        if not BigNumberMulMod(Q1, Q0, Y, N) then
+          Exit;
+
+        if not BigNumberMulMod(T0, V0, V1, N) then
+          Exit;
+        if not BigNumberMulMod(T1, X, Q0, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V0, T0, N) then
+          Exit;
+
+        if not BigNumberMulMod(T0, V1, V1, N) then
+          Exit;
+        if not BigNumberMulMod(T1, C2, Q1, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V1, T0, N) then
+          Exit;
+      end
+      else
+      begin
+        BigNumberCopy(Q1, Q0);
+
+        if not BigNumberMulMod(T0, V0, V1, N) then
+          Exit;
+        if not BigNumberMulMod(T1, X, Q0, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V1, T0, N) then
+          Exit;
+
+        if not BigNumberMulMod(T0, V0, V0, N) then
+          Exit;
+        if not BigNumberMulMod(T1, C2, Q0, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V0, T0, N) then
+          Exit;
+      end;
+    end;
+
+    BigNumberCopy(Q, Q0);
+    BigNumberCopy(V, V0);
+    Result := True;
+  finally
+    RecycleBigNumberToPool(V0);
+    RecycleBigNumberToPool(V1);
+    RecycleBigNumberToPool(Q0);
+    RecycleBigNumberToPool(Q1);
+    RecycleBigNumberToPool(T0);
+    RecycleBigNumberToPool(T1);
   end;
 end;
 

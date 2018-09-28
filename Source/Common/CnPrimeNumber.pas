@@ -757,7 +757,7 @@ function CnInt64Legendre(A, P: Int64): Integer;
 {* 计算勒让德符号 ( A / P) 的值}
 
 procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
-{* 计算 Lucas 序列，参考 IEEE P1363 的规范
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，
    递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
