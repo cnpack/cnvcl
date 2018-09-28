@@ -184,6 +184,7 @@ type
     edtSRP: TEdit;
     btnSRLucas: TButton;
     btnSRCompare: TButton;
+    btnBNLucasMod: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -235,6 +236,7 @@ type
     procedure btnBNTSClick(Sender: TObject);
     procedure btnSRLucasClick(Sender: TObject);
     procedure btnSRCompareClick(Sender: TObject);
+    procedure btnBNLucasModClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -1290,7 +1292,6 @@ begin
 
   for I := 0 to 100 do
   begin
-    
     if chkLucasMod.Checked then
     begin
       CalcLucasSequenceMod(X, Y, I, P, U, V);
@@ -1304,7 +1305,7 @@ begin
   end;
 end;
 
-// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值
+// 计算 X, Y 的第 K 的 Lucas 序列 mod p 的值，不太对劲
 procedure BigNumberCalcLucasSequenceMod(X, Y, U, V, K, P: TCnBigNumber);
 var
   I: Integer;
@@ -1645,6 +1646,40 @@ begin
   T2 := GetTickCount - T2;
 
   ShowMessage(IntToStr(T1) + ' ' + IntToStr(T2));
+end;
+
+procedure TFormEcc.btnBNLucasModClick(Sender: TObject);
+var
+  X, Y, K, N, Q, V: TCnBigNumber;
+  I: Integer;
+begin
+  X := TCnBigNumber.Create;
+  Y := TCnBigNumber.Create;
+  K := TCnBigNumber.Create;
+  N := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  V := TCnBigNumber.Create;
+
+  X.SetDec(edtLucasX.Text);
+  Y.SetDec(edtLucasY.Text);
+  N.SetDec(edtLucasP.Text);
+
+  mmoLucasRes.Lines.Clear;
+  for I := 0 to 100 do
+  begin
+    K.SetWord(I);
+    if not BigNumberLucasSequenceMod(X, Y, K, N, Q, V) then
+      Exit;
+
+    mmoLucasRes.Lines.Add(Format('%d: %s, %s', [I, Q.ToDec, V.ToDec]));
+  end;
+
+  X.Free;
+  Y.Free;
+  K.Free;
+  N.Free;
+  Q.Free;
+  V.Free;
 end;
 
 end.

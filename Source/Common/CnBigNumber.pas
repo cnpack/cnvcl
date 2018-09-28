@@ -4292,7 +4292,10 @@ begin
     Q1.SetOne;
 
     C := BigNumberGetBitsCount(K);
-    for I := C downto 0 do
+    if C < 1 then
+      Exit;
+
+    for I := C - 1 downto 0 do
     begin
       if not BigNumberMulMod(Q0, Q0, Q1, N) then
         Exit;
@@ -4354,6 +4357,7 @@ begin
     RecycleBigNumberToPool(Q1);
     RecycleBigNumberToPool(T0);
     RecycleBigNumberToPool(T1);
+    RecycleBigNumberToPool(C2);
   end;
 end;
 

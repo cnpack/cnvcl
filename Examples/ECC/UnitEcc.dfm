@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 737
     Height = 465
-    ActivePage = tsInt64ECC
+    ActivePage = tsLucas
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -1226,7 +1226,7 @@ object FormEcc: TFormEcc
         object btnLucasMod: TButton
           Left = 192
           Top = 56
-          Width = 153
+          Width = 65
           Height = 21
           Caption = 'Lucas 2'
           TabOrder = 6
@@ -1239,6 +1239,15 @@ object FormEcc: TFormEcc
           Height = 17
           Caption = 'Mod'
           TabOrder = 7
+        end
+        object btnBNLucasMod: TButton
+          Left = 264
+          Top = 56
+          Width = 81
+          Height = 21
+          Caption = 'BN Lucas Mod'
+          TabOrder = 8
+          OnClick = btnBNLucasModClick
         end
       end
       object grpLegendre: TGroupBox
