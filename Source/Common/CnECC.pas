@@ -28,7 +28,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.09.13 V1.2
+* 修改记录：2018.09.29 V1.3
+*               实现大数椭圆曲线根据 X 求 Y 的两种算法，并默认用速度更快的 Lucas
+*           2018.09.13 V1.2
 *               初步实现大数椭圆曲线的加解密功能，支持 SM2 以及 Secp256k1 曲线
 *           2018.09.10 V1.1
 *               能够生成系数很小的椭圆曲线参数
@@ -40,6 +42,11 @@ unit CnECC;
 interface
 
 {$I CnPack.inc}
+
+{$DEFINE USE_LUCAS}
+// 定义此条件，求点也就是根据 X 计算椭圆曲线方程的 Y 值时使用 Lucas 序列算法来计算
+// 如不定义，则使用 Tonelli-Shanks 算法计算。Tonelli-Shanks 速度较慢，大数范围内
+// 比起 Lucas 序列慢 10 倍以上。
 
 uses
   SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber;
@@ -73,7 +80,7 @@ type
     FSizeUFactor: Int64;
     FSizePrimeType: TCnEccPrimeType;
   protected
-    // Tonelli Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
+    // Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
     function TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
     // Lucas 序列模素数二次剩余求解，返回 False 表示失败，只针对 P 为 8*u + 1 的形式
     function Lucas(X, P: Int64; out Y: Int64): Boolean;
@@ -695,7 +702,7 @@ begin
         end;
       end;
     end;
-  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法以及 IEEE P1363 里的 Lucas 序列算法
+  pt8U1: // 参考自 wikipedia 上的 Tonelli-Shanks 二次剩余求解算法以及 IEEE P1363 里的 Lucas 序列算法
     begin
 {$IFDEF USE_LUCAS}
       // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
@@ -706,7 +713,7 @@ begin
         Result := True;
       end;
 {$ELSE}
-      //  改用 Tonelli Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
+      //  改用 Tonelli-Shanks 算法进行模素数二次剩余求解，但内部先要通过勒让德符号判断其根是否存在，否则会陷入死循环
       if TonelliShanks(G, FFiniteFieldSize, Y) then
       begin
         OutPoint.X := Plain;
@@ -1309,7 +1316,7 @@ begin
             end;
           end;
         end;
-      pt8U1: // Lucas 序列计算法与 Tonelli Shanks 算法均能进行模素数二次剩余求解
+      pt8U1: // Lucas 序列计算法与 Tonelli-Shanks 算法均能进行模素数二次剩余求解
         begin
 {$IFDEF USE_LUCAS}
           if BigNumberLucas(OutPoint.Y, X3, FFiniteFieldSize) then
