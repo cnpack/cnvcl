@@ -17,6 +17,9 @@ cnpack\Source 目录内容说明：
   CnBigNumber.pas
     大数计算单元
 
+  CnBinaryDiffPatch.pas
+    二进制差分与合并算法实现单元
+
   CnBloomFilter.pas
     散花过滤实现单元，用多散列函数配合 bit 位记录字符串
 
@@ -47,6 +50,9 @@ cnpack\Source 目录内容说明：
   CnConsts.pas
     公共资源字符串定义
 
+  CnContainers.pas
+    自定义容器实现单元
+
   CnCRC32.pas
     CRC32循环冗余校验单元
 
@@ -58,6 +64,21 @@ cnpack\Source 目录内容说明：
 
   CnDES.pas
     DES 加密解密算法实现单元
+
+  CnDynObjBuilder.pas
+    根据字符串动态创建对象
+
+  CnECC.pas
+    椭圆曲线加密算法实现单元
+
+  CnEventBus.pas
+    模拟 EventBus 实现的事件通知单元
+
+  CnEventHook.pas
+    事件挂接的实现单元
+
+  CnFitCurve.pas
+    曲线拟合实现单元
 
   CnFloatConvert.pas
     浮点数转换为二、八、十六进制的实现单元
@@ -80,8 +101,14 @@ cnpack\Source 目录内容说明：
   CnIni.pas
     扩展的 INI 访问单元
 
+  CnIniCfg.pas
+    利用 RTTI 在 INI 中保存配置参数的基类
+
   CnIniStrUtils.pas
     扩展的 INI 访问的字符串处理
+
+  CnLinkedList.pas
+    双向链表实现单元
 
   CnMD5.pas
     MD5 算法单元
@@ -110,23 +137,29 @@ cnpack\Source 目录内容说明：
   CnPackRegister.pas
     组件包注册单元
 
+  CnPrimeNumber.pas
+    素数运算单元
+
   CnPropEditors.pas
     开发包属性组件编辑器
 
-  CnContainers.pas
-    包括简单的链表队列类、堆栈、循环队列等的实现单元
+  CnPropSheetFrm.pas
+    CnDebug用于显示对象属性的窗体单元
+
+  CnRopes.pas
+    Ropes 数据结构实现单元
 
   CnRSA.pas
-    模拟的 RSA 算法实现单元
+    RSA 算法实现单元
 
   CnSHA1.pas
-    SHA1 算法单元
+    SHA1 算法实现单元
 
   CnSHA2.pas
-    SHA2 算法单元
+    SHA2 算法实现单元
 
   CnSHA3.pas
-    SHA3 算法单元
+    SHA3 算法实现单元
 
   CnShellUtils.pas
     Shell 工具单元
@@ -161,6 +194,9 @@ cnpack\Source 目录内容说明：
   CnTEA.pas
     TEA/XTEA/XXTEA 算法实现单元
 
+  CnThreadTaskMgr.pas
+    多线程任务管理单元
+
   CnTree.pas
     单根无序树、二叉树、字典搜索树等的类实现单元
 
@@ -185,7 +221,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-              62 文件
+              73 文件
 
 \DbReport －数据库组件与报表库目录
 
@@ -543,7 +579,4 @@ cnpack\Source 目录内容说明：
   CnProgressFrm.pas
     通用进度条窗体单元
 
-  CnPropSheetFrm.pas 
-    CnDebug用于显示对象属性的窗体单元
-
-                3 文件
+                2 文件
