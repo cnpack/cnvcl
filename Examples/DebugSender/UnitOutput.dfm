@@ -14,6 +14,7 @@ object FormSend: TFormSend
   KeyPreview = True
   OldCreateOrder = False
   Position = poScreenCenter
+  OnClick = FormClick
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
   PixelsPerInch = 96
