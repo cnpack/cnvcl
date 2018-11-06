@@ -79,8 +79,6 @@ type
      Some method just abstract.'}
   TCnBaseHashMap = class(TPersistent)
   private
-    FList: array of TCnHashMapRec;
-            //store the map
     FIncr: Integer;
             //how much space should be alloc when full
     FSize: Integer;
@@ -109,7 +107,8 @@ type
     procedure SetUseCustomHash(const Value: Boolean);
     procedure SetOnCustomHashCode(const Value: TCnCustomHashCodeMethod);
   protected
-
+    FList: array of TCnHashMapRec;
+            //store the map
     procedure ReSizeList(NewLength: Integer);
             //use to change the internal list's size
 
