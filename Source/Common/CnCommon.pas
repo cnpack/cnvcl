@@ -158,7 +158,8 @@ procedure DrawCompactPath(Hdc: HDC; Rect: TRect; const Str: string);
 {* 通过 DrawText 来画缩略路径}
 
 procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
-  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList = nil);
+  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList = nil;
+  StartOffset: Integer = 1);
 {* 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示}
 
 function SameCharCounts(s1, s2: string): Integer;
@@ -2082,7 +2083,7 @@ end;
 
 // 在指定 Canvas 上绘制匹配的字符串，匹配部分高亮显示
 procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
-  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList);
+  X, Y: Integer; HighlightColor: TColor; MatchedIndexes: TList; StartOffset: Integer);
 var
   MatchIdx, I, W, L: Integer;
   HdrStr, AMatchStr, TailStr, PaintStr: string;
@@ -2100,6 +2101,12 @@ begin
   begin
     if MatchStr = '' then
       MatchIdx := 0
+    else if StartOffset > 1 then
+    begin
+      TailStr := Copy(Text, StartOffset, MaxInt);
+      MatchIdx := Pos(UpperCase(Trim(MatchStr)), UpperCase(TailStr));
+      Inc(MatchIdx, StartOffset - 1);
+    end
     else
       MatchIdx := Pos(UpperCase(Trim(MatchStr)), UpperCase(Text));
 
