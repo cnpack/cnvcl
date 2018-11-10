@@ -121,6 +121,19 @@ function Int64Mod(M, N: Int64): Int64;
 
 implementation
 
+{$IFDEF WIN64}
+
+function UInt64Mod(A, B: TUInt64): TUInt64;
+begin
+  Result := A mod B;
+end;
+
+function UInt64Div(A, B: TUInt64): TUInt64;
+begin
+  Result := A div B;
+end;
+
+{$ELSE}
 {
   UInt64 Çó A mod B
 
@@ -152,6 +165,8 @@ asm
         PUSH    DWORD PTR[EBP + $8]           // B Lo
         CALL    System.@_lludiv;
 end;
+
+{$ENDIF}
 
 function _ValUInt64(const S: string; var Code: Integer): TUInt64;
 const

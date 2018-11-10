@@ -1648,6 +1648,8 @@ begin
   end;
 end;
 
+{$IFNDEF WIN64}
+
 // Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
 // 来自 Delphi 的 Unsigned Int64 Div 汇编实现
 procedure _LLUDiv;
@@ -1707,6 +1709,8 @@ asm
         JMP     @__LLUDIV@FINISH
 end;
 
+{$ENDIF}
+
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D
 function BigNumberDivWords(H: DWORD; L: DWORD; D: DWORD): DWORD;
 begin
@@ -1716,6 +1720,9 @@ begin
     Exit;
   end;
 
+{$IFDEF WIN64}
+  Result := DWORD(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
+{$ELSE}
   Result := 0;
   asm
     PUSH 0
@@ -1725,6 +1732,7 @@ begin
     CALL _LLUDiv            // 使用汇编实现的 64 位无符号除法函数
     MOV Result, EAX
   end;
+{$ENDIF}
 end;
 
 {*  Words 系列内部计算函数结束 }
