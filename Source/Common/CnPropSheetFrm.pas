@@ -365,6 +365,8 @@ type
     procedure imgGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure btnTreeClick(Sender: TObject);
+    procedure tsTreeChange(Sender: TObject; NewTab: Integer;
+      var AllowChange: Boolean);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -405,6 +407,7 @@ type
 
     // 根据 FObjectPointer 查其组件树与控件树
     procedure SearchTrees;
+    procedure UpdateToTree(IsControl: Boolean);
 
     procedure MsgInspectObject(var Msg: TMessage); message CN_INSPECTOBJECT;
     procedure DoEvaluateBegin; virtual;
@@ -2852,7 +2855,10 @@ procedure TCnPropSheetForm.btnTreeClick(Sender: TObject);
 begin
   ShowTree := not ShowTree;
   if ShowTree then
+  begin
     SearchTrees;
+    UpdateToTree(tsTree.TabIndex > 0);
+  end;
 end;
 
 procedure TCnPropSheetForm.SearchTrees;
@@ -2871,7 +2877,7 @@ var
       ParentLeaf := FComponentTree.Root;
 
     Leaf := FComponentTree.AddChild(ParentLeaf);
-    Leaf.Text := AComp.Name;
+    Leaf.Text := Format('%s: %s: $%8.8x', [AComp.Name, AComp.ClassName, Integer(AComp)]);
     Leaf.Obj := AComp;
 
     for I := 0 to AComp.ComponentCount - 1 do
@@ -2887,7 +2893,7 @@ var
       ParentLeaf := FControlTree.Root;
 
     Leaf := FControlTree.AddChild(ParentLeaf);
-    Leaf.Text := ACtrl.Name;
+    Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
     Leaf.Obj := ACtrl;
 
     if ACtrl is TWinControl then
@@ -2930,6 +2936,20 @@ begin
   except
     ; // 如果不是 TObject，屏蔽异常
   end;
+end;
+
+procedure TCnPropSheetForm.UpdateToTree(IsControl: Boolean);
+begin
+  if not IsControl then
+    FComponentTree.SaveToTreeView(TreeView)
+  else
+    FControlTree.SaveToTreeView(TreeView);
+end;
+
+procedure TCnPropSheetForm.tsTreeChange(Sender: TObject; NewTab: Integer;
+  var AllowChange: Boolean);
+begin
+  UpdateToTree(NewTab > 0);
 end;
 
 initialization

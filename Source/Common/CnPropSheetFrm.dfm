@@ -53,6 +53,7 @@ object CnPropSheetForm: TCnPropSheetForm
         'Components'
         'Controls')
       TabIndex = 0
+      OnChange = tsTreeChange
     end
   end
   object pnlRight: TPanel
