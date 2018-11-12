@@ -47,7 +47,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
-  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
+  Clipbrd, CnTree {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF};
 
 const
@@ -308,6 +308,9 @@ type
 
   TCnPropSheetForm = class(TForm)
     pnlTop: TPanel;
+    pnlTree: TPanel;
+    tsTree: TTabSet;
+    TreeView: TTreeView;
     tsSwitch: TTabSet;
     pnlMain: TPanel;
     lvProp: TListView;
@@ -334,6 +337,7 @@ type
     imgGraphic: TImage;
     lblGraphicInfo: TLabel;
     lblPixel: TLabel;
+    btnTree: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -360,6 +364,7 @@ type
     procedure btnLocateClick(Sender: TObject);
     procedure imgGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
+    procedure btnTreeClick(Sender: TObject);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -376,6 +381,10 @@ type
     FGraphicObject: TObject;
     FHierPanels: TComponentList;
     FHierLines: TComponentList;
+
+    FComponentTree: TCnTree;
+    FControlTree: TCnTree;
+
     FOnEvaluateBegin: TNotifyEvent;
     FOnEvaluateEnd: TNotifyEvent;
     FOnAfterEvaluateHierarchy: TNotifyEvent;
@@ -383,14 +392,19 @@ type
     FOnAfterEvaluateControls: TNotifyEvent;
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
+    FShowTree: Boolean;
 
     procedure SetContentTypes(const Value: TCnPropContentTypes);
     procedure SetParentSheetForm(const Value: TCnPropSheetForm);
+    procedure SetShowTree(const Value: Boolean);
 
     procedure UpdateContentTypes;
     procedure UpdateUIStrings;
     procedure UpdateHierarchys;
     procedure UpdatePanelPositions;
+
+    // 根据 FObjectPointer 查其组件树与控件树
+    procedure SearchTrees;
 
     procedure MsgInspectObject(var Msg: TMessage); message CN_INSPECTOBJECT;
     procedure DoEvaluateBegin; virtual;
@@ -411,6 +425,7 @@ type
     property ObjectPointer: Pointer read FObjectPointer write FObjectPointer;
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
     property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write SetParentSheetForm;
+    property ShowTree: Boolean read FShowTree write SetShowTree;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -519,6 +534,7 @@ var
   CnFormLeft: Integer = 50;
   CnFormTop: Integer = 50;
   Closing: Boolean = False;
+  CnPnlTreeWidth: Integer = 250;
 
 // 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
 // 而不能是 set of 后的类型，如无 TypInfo，则返回数值
@@ -2304,6 +2320,8 @@ begin
   FHierarchys.Free;
   FHierLines.Free;
   FHierPanels.Free;
+  FComponentTree.Free;
+  FControlTree.Free;
   if FInspector <> nil then
     FreeAndNil(FInspector);
 end;
@@ -2802,6 +2820,116 @@ begin
     end;
   end;
   lblPixel.Caption := S;
+end;
+
+procedure TCnPropSheetForm.SetShowTree(const Value: Boolean);
+begin
+  if FShowTree <> Value then
+  begin
+    FShowTree := Value;
+    pnlTree.Visible := Value;
+
+    if Value then // 显示树形区域
+    begin
+      if pnlTree.Width < CnPnlTreeWidth then
+        pnlTree.Width := CnPnlTreeWidth;
+      Width := Width + CnPnlTreeWidth;
+      Left := Left - CnPnlTreeWidth;
+      if Left < 10 then
+        Left := 10;
+      btnTree.Caption := '>';
+    end
+    else // 隐藏树型区域
+    begin
+      Width := Width - CnPnlTreeWidth;
+      Left := Left + CnPnlTreeWidth;
+      btnTree.Caption := '<';
+    end;
+  end;
+end;
+
+procedure TCnPropSheetForm.btnTreeClick(Sender: TObject);
+begin
+  ShowTree := not ShowTree;
+  if ShowTree then
+    SearchTrees;
+end;
+
+procedure TCnPropSheetForm.SearchTrees;
+var
+  Comp: TComponent;
+  Ctrl: TControl;
+  RootComponent: TComponent;
+  RootControl: TControl;
+
+  procedure AddComponentToTree(AComp: TComponent; ParentLeaf: TCnLeaf = nil);
+  var
+    I: Integer;
+    Leaf: TCnLeaf;
+  begin
+    if ParentLeaf = nil then
+      ParentLeaf := FComponentTree.Root;
+
+    Leaf := FComponentTree.AddChild(ParentLeaf);
+    Leaf.Text := AComp.Name;
+    Leaf.Obj := AComp;
+
+    for I := 0 to AComp.ComponentCount - 1 do
+      AddComponentToTree(AComp.Components[I], Leaf);
+  end;
+
+  procedure AddControltoTree(ACtrl: TControl; ParentLeaf: TCnLeaf = nil);
+  var
+    I: Integer;
+    Leaf: TCnLeaf;
+  begin
+    if ParentLeaf = nil then
+      ParentLeaf := FControlTree.Root;
+
+    Leaf := FControlTree.AddChild(ParentLeaf);
+    Leaf.Text := ACtrl.Name;
+    Leaf.Obj := ACtrl;
+
+    if ACtrl is TWinControl then
+    for I := 0 to (ACtrl as TWinControl).ControlCount - 1 do
+      AddControltoTree((ACtrl as TWinControl).Controls[I], Leaf);
+  end;
+
+begin
+  if FObjectPointer = nil then
+    Exit;
+
+  if FComponentTree = nil then
+    FComponentTree := TCnTree.Create
+  else
+    FComponentTree.Clear;
+
+  if FControlTree = nil then
+    FControlTree := TCnTree.Create
+  else
+    FControlTree.Clear;
+
+  try
+    if TObject(FObjectPointer) is TComponent then
+    begin
+      Comp := TObject(FObjectPointer) as TComponent;
+      RootComponent := Comp;
+      while RootComponent.Owner <> nil do
+        RootComponent := RootComponent.Owner;
+      AddComponentToTree(RootComponent);
+    end;
+
+    if TObject(FObjectPointer) is TControl then
+    begin
+      Ctrl := TObject(FObjectPointer) as TControl;
+      RootControl := Ctrl;
+      while RootControl.Parent <> nil do
+        RootControl := RootControl.Parent;
+      AddControlToTree(RootControl);
+    end;
+  except
+    ; // 如果不是 TObject，屏蔽异常
+  end;
 end;
 
 initialization

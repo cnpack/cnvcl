@@ -76,6 +76,7 @@ type
     FParent: TCnLeaf;
     FText: string;
     FTree: TCnTree;
+    FObj: TObject;
     function GetTree: TCnTree;
     function GetAllNonNilCount: Integer;
     function GetSubTreeHeight: Integer; virtual;
@@ -163,6 +164,8 @@ type
     property Tree: TCnTree read GetTree;
     {* 所属树，一个叶必须属于一棵树 }
   published
+    property Obj: TObject read FObj write FObj;
+    {* 用以保存一对象引用}
     property Data: Integer read FData write FData;
     {* 用以保存一整数的属性，类似于 Tag }
     property Text: string read FText write FText;
