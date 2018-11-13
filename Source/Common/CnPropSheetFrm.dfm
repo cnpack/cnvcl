@@ -1,6 +1,6 @@
 object CnPropSheetForm: TCnPropSheetForm
-  Left = 187
-  Top = 105
+  Left = 432
+  Top = 96
   Width = 399
   Height = 524
   BorderStyle = bsSizeToolWin
@@ -36,7 +36,9 @@ object CnPropSheetForm: TCnPropSheetForm
       Height = 476
       Align = alClient
       Indent = 19
+      ReadOnly = True
       TabOrder = 0
+      OnDblClick = TreeViewDblClick
     end
     object tsTree: TTabSet
       Left = 0

@@ -367,6 +367,7 @@ type
     procedure btnTreeClick(Sender: TObject);
     procedure tsTreeChange(Sender: TObject; NewTab: Integer;
       var AllowChange: Boolean);
+    procedure TreeViewDblClick(Sender: TObject);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -408,6 +409,7 @@ type
     // 根据 FObjectPointer 查其组件树与控件树
     procedure SearchTrees;
     procedure UpdateToTree(IsControl: Boolean);
+    procedure SaveATreeNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode; var Valid: Boolean);
 
     procedure MsgInspectObject(var Msg: TMessage); message CN_INSPECTOBJECT;
     procedure DoEvaluateBegin; virtual;
@@ -2577,7 +2579,10 @@ var
 begin
   P := StrToIntDef('$' + edtObj.Text, 0);
   if P <> 0 then
+  begin
     EvaluatePointer(Pointer(P), FInspectParam, Self);
+    ShowTree := False;
+  end;
 end;
 
 procedure TCnPropSheetForm.edtObjKeyPress(Sender: TObject; var Key: Char);
@@ -2906,12 +2911,18 @@ begin
     Exit;
 
   if FComponentTree = nil then
-    FComponentTree := TCnTree.Create
+  begin
+    FComponentTree := TCnTree.Create;
+    FComponentTree.OnSaveANode := SaveATreeNode;
+  end
   else
     FComponentTree.Clear;
 
   if FControlTree = nil then
-    FControlTree := TCnTree.Create
+  begin
+    FControlTree := TCnTree.Create;
+    FControlTree.OnSaveANode := SaveATreeNode;
+  end
   else
     FControlTree.Clear;
 
@@ -2939,17 +2950,53 @@ begin
 end;
 
 procedure TCnPropSheetForm.UpdateToTree(IsControl: Boolean);
+var
+  I: Integer;
+  Ptr: Pointer;
 begin
   if not IsControl then
     FComponentTree.SaveToTreeView(TreeView)
   else
     FControlTree.SaveToTreeView(TreeView);
+
+  // 展开
+  if TreeView.Items.Count > 0 then
+    TreeView.Items[0].Expand(True);
+
+  // 定位
+  for I := 0 to TreeView.Items.Count - 1 do
+  begin
+    Ptr := TreeView.Items[I].Data;
+    if Ptr = FObjectPointer then
+    begin
+      TreeView.Items[I].Selected := True;
+      TreeView.Items[I].MakeVisible;
+      TreeView.SetFocus;
+      Exit;
+    end;
+  end;
 end;
 
 procedure TCnPropSheetForm.tsTreeChange(Sender: TObject; NewTab: Integer;
   var AllowChange: Boolean);
 begin
   UpdateToTree(NewTab > 0);
+end;
+
+procedure TCnPropSheetForm.SaveATreeNode(ALeaf: TCnLeaf;
+  ATreeNode: TTreeNode; var Valid: Boolean);
+begin
+  ATreeNode.Text := ALeaf.Text;
+  ATreeNode.Data := Pointer(ALeaf.Obj);
+end;
+
+procedure TCnPropSheetForm.TreeViewDblClick(Sender: TObject);
+var
+  Node: TTreeNode;
+begin
+  Node := TreeView.Selected;
+  if Node.Data <> nil then
+    EvaluatePointer(Node.Data, FInspectParam, Self);
 end;
 
 initialization
