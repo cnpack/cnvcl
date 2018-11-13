@@ -8,6 +8,7 @@ uses
   Forms,
   UnitOutput in 'UnitOutput.pas' {FormSend},
   CnDebug in '..\..\Source\Common\CnDebug.pas',
+{$IFDEF USE_JCL}
   Jcl8087 in '..\..\..\cnwizards\Source\ThirdParty\JCL\Jcl8087.pas',
   JclAnsiStrings in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclAnsiStrings.pas',
   JclBase in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclBase.pas',
@@ -34,6 +35,7 @@ uses
   JclWideStrings in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclWideStrings.pas',
   JclWin32 in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclWin32.pas',
   Snmp in '..\..\..\cnwizards\Source\ThirdParty\JCL\Snmp.pas',
+{$ENDIF}
   UnitThread in 'UnitThread.pas';
 
 {$R *.res}

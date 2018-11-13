@@ -629,7 +629,11 @@ begin
    except
      S := 'Unknown Object';
    end;
-   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)])
+{$IFDEF WIN64}
+   Result := Format('(%s.$%16.16x)', [S, NativeInt(AClass)]);
+{$ELSE}
+   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)]);
+{$ENDIF}
  end
  else
    Result := 'nil';
@@ -646,7 +650,12 @@ begin
     except
       S := 'Unknown Object';
     end;
-    Result := Format('(%s.$%8.8x)', [S, Integer(AObj)])
+
+{$IFDEF WIN64}
+    Result := Format('(%s.$%16.16x)', [S, NativeInt(AObj)]);
+{$ELSE}
+    Result := Format('(%s.$%8.8x)', [S, Integer(AObj)]);
+{$ENDIF}
   end
   else
     Result := 'nil';
@@ -834,10 +843,19 @@ begin
       begin
         iTmp := GetOrdProp(Instance, PropInfo);
         if iTmp <> 0 then
+        begin
+{$IFDEF WIN64}
+          S := Format('%s: ($%16.16x, $%16.816x): %s', [PropInfo^.PropType^^.Name,
+            NativeInt(GetMethodProp(Instance, PropInfo).Code),
+            NativeInt(GetMethodProp(Instance, PropInfo).Data),
+            GetMethodDeclare(Instance, PropInfo)]);
+{$ELSE}
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
             Integer(GetMethodProp(Instance, PropInfo).Code),
             Integer(GetMethodProp(Instance, PropInfo).Data),
-            GetMethodDeclare(Instance, PropInfo)])
+            GetMethodDeclare(Instance, PropInfo)]);
+{$ENDIF}
+        end
         else
           S := 'nil';
       end;
@@ -851,7 +869,11 @@ begin
       begin
 {$IFDEF COMPILER6_UP}
         Intf := GetInterfaceProp(Instance, PropInfo);
+        {$IFDEF WIN64}
+        S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
+        {$ELSE}
         S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+        {$ENDIF}
 {$ELSE}
         S := '(Interface:<...>)';
 {$ENDIF}
@@ -967,9 +989,15 @@ begin
             S := 'nil'
           else
           begin
+{$IFDEF WIN64}
+            S := Format('%s: ($%16.16x, $%16.16x: %s)', [RttiProperty.PropertyType.Name,
+              NativeInt(AMethod.Code), NativeInt(AMethod.Data),
+              GetRttiMethodDeclare(Instance, RttiProperty)]);
+{$ELSE}
             S := Format('%s: ($%8.8x, $%8.8x: %s)', [RttiProperty.PropertyType.Name,
               Integer(AMethod.Code), Integer(AMethod.Data),
               GetRttiMethodDeclare(Instance, RttiProperty)]);
+{$ENDIF}
           end;
         end;
       end;
@@ -983,7 +1011,11 @@ begin
       begin
         try
           Intf := RttiProperty.GetValue(Instance).AsInterface;
+          {$IFDEF WIN64}
+          S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
+          {$ELSE}
           S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+          {$ENDIF}
         except
           on E: Exception do
             S := Format('(Interface:<Exception: %s>)', [E.Message]);
@@ -995,7 +1027,11 @@ begin
         if DataSize = SizeOf(Pointer) then
         begin
           RttiProperty.GetValue(Instance).ExtractRawData(@APtr);
+{$IFDEF WIN64}
+          S := Format('(Pointer:$%16.16x)', [NativeInt(APtr)]);
+{$ELSE}
           S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
+{$ENDIF}
         end;
       end;
   end;
@@ -1270,8 +1306,13 @@ var
 
   function GetMethodFullName(ARttiMethod: TRttiMethod): string;
   begin
+  {$IFDEF WIN64}
+    Result := Format('$%16.16x: %s;', [NativeInt(ARttiMethod.CodeAddress),
+      ARttiMethod.ToString]);
+  {$ELSE}
     Result := Format('$%8.8x: %s;', [Integer(ARttiMethod.CodeAddress),
       ARttiMethod.ToString]);
+  {$ENDIF}
   end;
 {$ENDIF}
 
@@ -1839,7 +1880,11 @@ begin
         S := ACollection.GetNamePath;
         if S = '' then S := '*';
         AItemObj.ItemName := Format('%s.Item[%d]', [S, I]);
+{$IFDEF WIN64}
+        AItemObj.DisplayValue := Format('%s: $%16.16x', [AItemObj.ObjClassName, NativeInt(AItemObj.ObjValue)]);
+{$ELSE}
         AItemObj.DisplayValue := Format('%s: $%8.8x', [AItemObj.ObjClassName, Integer(AItemObj.ObjValue)]);
+{$ENDIF}
 
         if not IsExisting then
           CollectionItems.Add(AItemObj);
@@ -1874,7 +1919,12 @@ begin
         S := AMenuItem.GetNamePath;
         if S = '' then S := '(noname)';
         AMenuObj.ItemName := Format('%s.Item[%d]', [S, I]);
+
+{$IFDEF WIN64}
+        AMenuObj.DisplayValue := Format('%s: $%16.16x', [AMenuObj.ObjClassName, NativeInt(AMenuObj.ObjValue)]);
+{$ELSE}
         AMenuObj.DisplayValue := Format('%s: $%8.8x', [AMenuObj.ObjClassName, Integer(AMenuObj.ObjValue)]);
+{$ENDIF}
 
         if not IsExisting then
           FMenuItems.Add(AMenuObj);
@@ -1908,8 +1958,13 @@ begin
           ACompObj.Changed := False;
 
         ACompObj.DisplayName := Format('%s.Components[%d]', [AComp.Name, I]);
+{$IFDEF WIN64}
+        ACompObj.DisplayValue := Format('%s: %s: $%16.16x', [ACompObj.CompName,
+          ACompObj.ObjClassName, NativeInt(ACompObj.ObjValue)]);
+{$ELSE}
         ACompObj.DisplayValue := Format('%s: %s: $%8.8x', [ACompObj.CompName,
           ACompObj.ObjClassName, Integer(ACompObj.ObjValue)]);
+{$ENDIF}
 
         if not IsExisting then
           Components.Add(ACompObj);
@@ -1943,8 +1998,13 @@ begin
             AControlObj.Changed := False;
 
           AControlObj.DisplayName := Format('%s.Controls[%d]', [AControl.Name, I]);
+{$IFDEF WIN64}
+          AControlObj.DisplayValue := Format('%s: %s: $%16.16x', [AControlObj.CtrlName,
+            AControlObj.ObjClassName, NativeInt(AControlObj.ObjValue)]);
+{$ELSE}
           AControlObj.DisplayValue := Format('%s: %s: $%8.8x', [AControlObj.CtrlName,
             AControlObj.ObjClassName, Integer(AControlObj.ObjValue)]);
+{$ENDIF}
 
           if not IsExisting then
             Controls.Add(AControlObj);
@@ -2140,8 +2200,13 @@ begin
   else
     edtClassName.Text := 'Unknown Object';
 
+{$IFDEF WIN64}
+  edtObj.Text := Format('%16.16x', [NativeInt(FInspector.ObjectAddr)]);
+  edtClassName.Text := Format('%s: $%16.16x', [edtClassName.Text, NativeInt(FInspector.ObjectAddr)]);
+{$ELSE}
   edtObj.Text := Format('%8.8x', [Integer(FInspector.ObjectAddr)]);
   edtClassName.Text := Format('%s: $%8.8x', [edtClassName.Text, Integer(FInspector.ObjectAddr)]);
+{$ENDIF}
 
   for I := 0 to FInspector.PropCount - 1 do
   begin
@@ -2882,8 +2947,13 @@ var
       ParentLeaf := FComponentTree.Root;
 
     Leaf := FComponentTree.AddChild(ParentLeaf);
-    Leaf.Text := Format('%s: %s: $%8.8x', [AComp.Name, AComp.ClassName, Integer(AComp)]);
     Leaf.Obj := AComp;
+
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [AComp.Name, AComp.ClassName, NativeInt(AComp)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [AComp.Name, AComp.ClassName, Integer(AComp)]);
+{$ENDIF}
 
     for I := 0 to AComp.ComponentCount - 1 do
       AddComponentToTree(AComp.Components[I], Leaf);
@@ -2898,8 +2968,13 @@ var
       ParentLeaf := FControlTree.Root;
 
     Leaf := FControlTree.AddChild(ParentLeaf);
-    Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
     Leaf.Obj := ACtrl;
+
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
+{$ENDIF}
 
     if ACtrl is TWinControl then
     for I := 0 to (ACtrl as TWinControl).ControlCount - 1 do
