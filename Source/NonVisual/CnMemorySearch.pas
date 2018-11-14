@@ -129,9 +129,6 @@ type
 
 implementation
 
-uses
-  CnDebug;
-
 { TCnMemorySearchThread }
 
 procedure TCnMemorySearchThread.Execute;
@@ -207,7 +204,6 @@ begin
     begin
       LowModuleName := LowerCase(LowModuleName);
       repeat
-        CnDebugger.TraceMsg(_Me32.szModule);
         if LowerCase(_Me32.szModule) = LowModuleName then
         begin
           _Handle := OpenProcess(PROCESS_VM_READ, True, GetCurrentProcessID);
