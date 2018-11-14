@@ -753,7 +753,6 @@ end;
 
 procedure TCnOpenGLPaintBox.CreateBufferBMP;
 var
-  ReInitOpenGL: Boolean;
   bmi: BITMAPINFO;
   pbits: ^DWORD;
 begin

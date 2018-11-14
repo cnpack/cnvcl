@@ -540,7 +540,9 @@ begin
       ReleaseMutex(_Handle);
       CloseHandle(_Handle);
     end;
-  end;
+  end
+  else
+    Result := 0;
 end;
 
 end.
