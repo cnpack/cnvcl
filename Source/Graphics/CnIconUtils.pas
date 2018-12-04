@@ -140,7 +140,12 @@ begin
     Bmp.Assign(Graphic);
     Bmp.PixelFormat := pf32bit;
     AlphaBmp.PixelFormat := pf32bit;
+{$IFDEF DELPHI2007_UP}
     AlphaBmp.SetSize(Width, Height);
+{$ELSE}
+    AlphaBmp.Width := Width;
+    AlphaBmp.Height := Height;
+{$ENDIF}
     FastSmoothDrawBitmap32(Bmp, AlphaBmp);
     IconInfo.hbmColor := AlphaBmp.Handle;
     IconInfo.hbmMask := CreateBitmap(Width, Height, 1, 1, nil);
