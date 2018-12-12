@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Tlhelp32, Windows;
+  Classes, SysUtils, Tlhelp32, Windows, CnNativeDecl;
 
 type
   TSearchMethodList = (smlSearchMemory, smlSearchFile); //ËÑË÷·½·¨
@@ -185,8 +185,8 @@ var
   _ModuleSnap: Cardinal;
   _PId: DWORD;
   _Me32: MODULEENTRY32;
-  _Handle: thandle;
-  _lpr: cardinal;
+  _Handle: THandle;
+  _lpr: TCnNativeUInt;
   _DosHead: IMAGE_DOS_HEADER;
   _NtHead: IMAGE_NT_HEADERS;
   LowModuleName: string;
