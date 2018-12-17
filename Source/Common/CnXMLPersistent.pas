@@ -748,7 +748,7 @@ var
   str: TStringStream;
   MemStream: TMemoryStream;
 begin
-  str := TStringStream.Create(Node.NodeValue);
+  str := TStringStream.Create(VarToStr(Node.NodeValue));
   MemStream := TMemoryStream.Create;
   try
     str.Position := 0;
@@ -765,7 +765,7 @@ procedure TMyCustomReader.ReadStream(Stream: TStream; Node: IXMLNode);
 var
   str: TStringStream;
 begin
-  str := TStringStream.Create(Node.NodeValue);
+  str := TStringStream.Create(VarToStr(Node.NodeValue));
   try
     str.Position := 0;
     Stream.Position := 0;
