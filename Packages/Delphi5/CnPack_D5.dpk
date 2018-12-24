@@ -95,6 +95,7 @@ contains
   CnTree in '..\..\Source\Common\CnTree.pas',
   CnVarList in '..\..\Source\Common\CnVarList.pas',
   CnVCLBase in '..\..\Source\Common\CnVCLBase.pas',
+  CnVclFmxMixed in '..\..\Source\Common\CnVclFmxMixed.pas',
   CnWideStrings in '..\..\Source\Common\CnWideStrings.pas',
   CnWinSvc in '..\..\Source\Common\CnWinSvc.pas',
   CnZip in '..\..\Source\Common\CnZip.pas',

@@ -148,6 +148,7 @@
         <DCCReference Include="..\..\Source\Common\CnTree.pas"/>
         <DCCReference Include="..\..\Source\Common\CnVarList.pas"/>
         <DCCReference Include="..\..\Source\Common\CnVCLBase.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnVclFmxMixed.pas"/>
         <DCCReference Include="..\..\Source\Common\CnWideStrings.pas"/>
         <DCCReference Include="..\..\Source\Common\CnWinSvc.pas"/>
         <DCCReference Include="..\..\Source\Common\CnXMLPersistent.pas"/>
