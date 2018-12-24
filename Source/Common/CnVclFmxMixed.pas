@@ -40,9 +40,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Controls, Windows,
+  SysUtils, Classes, Controls, Windows
 {$IFDEF SUPPORT_FMX}
-  CnFmxUtils
+  , CnFmxUtils
 {$ENDIF};
 
 function GetControlScreenRect(AControl: TComponent): TRect;
