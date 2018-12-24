@@ -68,7 +68,6 @@ USEUNIT("..\..\Source\Common\CnVCLBase.pas");
 USEUNIT("..\..\Source\Common\CnVclFmxMixed.pas");
 USEUNIT("..\..\Source\Common\CnWideStrings.pas");
 USEUNIT("..\..\Source\Common\CnWinSvc.pas");
-USEUNIT("..\..\Source\Common\CnZip.pas");
 USEUNIT("..\..\Source\Common\CnZUC.pas");
 USEUNIT("..\..\Source\DbReport\CnADOBinding.pas");
 USEUNIT("..\..\Source\DbReport\CnADOUpdateSQL.pas");

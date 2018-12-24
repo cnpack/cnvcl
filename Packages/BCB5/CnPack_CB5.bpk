@@ -63,7 +63,6 @@
       ..\..\Source\Common\CnVclFmxMixed.obj 
       ..\..\Source\Common\CnWideStrings.obj 
       ..\..\Source\Common\CnWinSvc.obj 
-      ..\..\Source\Common\CnZip.obj 
       ..\..\Source\Common\CnZUC.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj 
