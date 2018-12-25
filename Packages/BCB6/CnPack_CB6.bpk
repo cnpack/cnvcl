@@ -68,8 +68,6 @@
       ..\..\Source\Common\CnVclFmxMixed.obj 
       ..\..\Source\Common\CnWideStrings.obj 
       ..\..\Source\Common\CnWinSvc.obj 
-      ..\..\Source\Common\CnXMLPersistent.obj 
-      ..\..\Source\Common\CnZip.obj 
       ..\..\Source\Common\CnZUC.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj 
@@ -328,8 +326,6 @@
       <FILE FILENAME="..\..\Source\Common\CnVclFmxMixed.pas" FORMNAME="" UNITNAME="CnVclFmxMixed" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWideStrings.pas" FORMNAME="" UNITNAME="CnWideStrings" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWinSvc.pas" FORMNAME="" UNITNAME="CnWinSvc" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnXMLPersistent.pas" FORMNAME="" UNITNAME="CnXMLPersistent" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnZip.pas" FORMNAME="" UNITNAME="CnZip" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnZUC.pas" FORMNAME="" UNITNAME="CnZUC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnADOBinding.pas" FORMNAME="" UNITNAME="CnADOBinding" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnADOUpdateSQL.pas" FORMNAME="" UNITNAME="CnADOUpdateSQL" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
