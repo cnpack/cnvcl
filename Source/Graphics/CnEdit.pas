@@ -43,7 +43,6 @@ unit CnEdit;
 * 开发平台：PWinXP + Delphi 6.0
 * 兼容测试：PWin9X/2000/XP + Delphi 6.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2009.07.04 V1.3
 *               修正tArightJustify时绘制不正确的问题，感谢jAmEs_
 *           2008.06.05 V1.2

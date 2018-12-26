@@ -30,7 +30,6 @@ unit CnWinampCtrl;
 * 开发平台：PWin2000 + Delphi 6.0 Update Pack 2
 * 兼容测试：PWin2000 + Delphi 6.0 Update Pack 2
 * 本 地 化：该单元中没有字符串资源
-* 单元标识：$Id$
 * 修改记录：
 *           2005.03.08 v1.0
 *               创建单元

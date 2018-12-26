@@ -27,7 +27,6 @@ unit CnSystemDebugControl;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：参考了网上于旸的 SystemDebugControl 分析文章以及其它网络资源
-* 单元标识：$Id$
 * 修改记录：2008.09.18 V1.0
 *               LiuXiao 实现单元
 ================================================================================

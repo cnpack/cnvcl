@@ -30,7 +30,6 @@ unit CnHexEditor;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2012.09.26 V1.2
 *               增加一DataChange方法供修改MemoryStream后更新界面用，感谢veket
 *           2012.03.03 V1.1

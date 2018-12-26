@@ -35,7 +35,6 @@ unit CnAACtrls;
 *           平滑滚动文本控件 TCnAAScrollText
 *           平滑字幕文本控件 TCnAAMarqueeText
 *           平滑特效渐隐文本控件 TCnAAFadeText
-* 单元标识：$Id$
 * 最后更新：2015.06.15
 *               修改输出名以躲过 BCB Unicode 下命名混淆的问题
 *           2007.12.29
