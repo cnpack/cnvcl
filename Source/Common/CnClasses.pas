@@ -28,15 +28,16 @@ unit CnClasses;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
-* 修改记录：2003.03.02 V1.3
+* 修改记录：2018.08.30 V1.4
+*               新增 TCnUInt32List/TCnUInt64List 类
+*           2003.03.02 V1.3
 *               新增 TCnLockObject 类
 *           2002.09.10 V1.2
-*               修改TCnComponent部分方法
+*               修改 TCnComponent 部分方法
 *           2002.07.09 V1.1
 *               新增少量属性
 *           2002.04.08 V1.0
-*               新增TCnComponent组件基类
+*               新增 TCnComponent 组件基类
 *           2002.01.11 V0.01Demo
 *               创建单元
 ================================================================================
@@ -47,7 +48,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, TypInfo;
+  Windows, SysUtils, Classes, TypInfo,
+  {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} CnNativeDecl;
 
 type
 
@@ -276,6 +278,104 @@ type
   protected
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
+  end;
+
+//==============================================================================
+// UInt32 列表类
+//==============================================================================
+
+const
+  CN_MAX_UINT32_SIZE = MaxInt div 16;
+
+type
+  PCnUInt32Array = ^TCnUInt32Array;
+  TCnUInt32Array = array[0..CN_MAX_UINT32_SIZE - 1] of Cardinal;
+
+  TCnUInt32List = class(TObject)
+  {* 容纳 UInt32 的 List}
+  private
+    FList: PCnUInt32Array;
+    FCount: Integer;
+    FCapacity: Integer;
+    FIgnoreDuplicated: Boolean;
+  protected
+    function Get(Index: Integer): Cardinal;
+    procedure Grow; virtual;
+    procedure Put(Index: Integer; Item: Cardinal);
+    procedure SetCapacity(NewCapacity: Integer);
+    procedure SetCount(NewCount: Integer);
+  public
+    destructor Destroy; override;
+    function Add(Item: Cardinal): Integer;
+    procedure Clear; virtual;
+    procedure Delete(Index: Integer);
+    class procedure Error(const Msg: string; Data: Integer); overload; virtual;
+    class procedure Error(Msg: PResStringRec; Data: Integer); overload;
+    procedure Exchange(Index1, Index2: Integer);
+    function Expand: TCnUInt32List;
+    function Extract(Item: Cardinal): Cardinal;
+    function First: Cardinal;
+    function IndexOf(Item: Cardinal): Integer;
+    procedure Insert(Index: Integer; Item: Cardinal);
+    function Last: Cardinal;
+    procedure Move(CurIndex, NewIndex: Integer);
+    function Remove(Item: Cardinal): Integer;
+    property Capacity: Integer read FCapacity write SetCapacity;
+    property Count: Integer read FCount write SetCount;
+    property Items[Index: Integer]: Cardinal read Get write Put; default;
+    property List: PCnUInt32Array read FList;
+    property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
+  end;
+
+//==============================================================================
+// UInt64 列表类
+//==============================================================================
+
+const
+  CN_MAX_UINT64_SIZE = MaxInt div 16;
+  CN_NOT_FOUND_INDEX: TUInt64 = TUInt64(-1);
+
+type
+  PCnUInt64Array = ^TCnUInt64Array;
+  TCnUInt64Array = array[0..CN_MAX_UINT64_SIZE - 1] of TUInt64;
+
+  TCnUInt64List = class(TObject)
+  {* 容纳 UInt64 的 List，不支持 UInt64 的平台下用 Int64 代替}
+  private
+    FList: PCnUInt64Array;
+    FCount: TUInt64;
+    FCapacity: TUInt64;
+    FIgnoreDuplicated: Boolean;
+  protected
+    function Get(Index: TUInt64): TUInt64;
+    procedure Grow; virtual;
+    procedure Put(Index: TUInt64; Item: TUInt64);
+    procedure SetCapacity(NewCapacity: TUInt64);
+    procedure SetCount(NewCount: TUInt64);
+  public
+    destructor Destroy; override;
+    function Add(Item: TUInt64): TUInt64;
+    procedure Clear; virtual;
+    procedure Delete(Index: TUInt64);
+    class procedure Error(const Msg: string; Data: Integer); overload; virtual;
+    class procedure Error(Msg: PResStringRec; Data: Integer); overload;
+    procedure Exchange(Index1, Index2: TUInt64);
+    function Expand: TCnUInt64List;
+    function Extract(Item: TUInt64): TUInt64;
+    function First: TUInt64;
+    function IndexOf(Item: TUInt64): TUInt64;
+    // 由于下标用 TUInt64，之前返回 -1 在 UInt64 场合下不能用大于 0 来处理，
+    // 得判断是否等于 CN_NOT_FOUND_INDEX
+    procedure Insert(Index: TUInt64; Item: TUInt64);
+    function Last: TUInt64;
+    procedure Move(CurIndex, NewIndex: TUInt64);
+    function Remove(Item: TUInt64): TUInt64;
+    property Capacity: TUInt64 read FCapacity write SetCapacity;
+    property Count: TUInt64 read FCount write SetCount;
+    property Items[Index: TUInt64]: TUInt64 read Get write Put; default;
+    // 内部下标、尺寸均由 TUInt64 表示，不过由于编译器限制实际上达不到 TUInt64
+    property List: PCnUInt64Array read FList;
+    property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
   end;
 
 procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties:
@@ -713,6 +813,401 @@ end;
 function TSingletonInterfacedObject._Release: Integer;
 begin
   Result := 1;
+end;
+
+{ TCnUInt32List }
+
+function TCnUInt32List.Add(Item: Cardinal): Integer;
+begin
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
+  Result := FCount;
+  if Result = FCapacity then
+    Grow;
+  FList^[Result] := Item;
+  Inc(FCount);
+end;
+
+procedure TCnUInt32List.Clear;
+begin
+  SetCount(0);
+  SetCapacity(0);
+end;
+
+procedure TCnUInt32List.Delete(Index: Integer);
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(@SListIndexError, Index);
+
+  Dec(FCount);
+  if Index < FCount then
+    System.Move(FList^[Index + 1], FList^[Index],
+      (FCount - Index) * SizeOf(Cardinal));
+end;
+
+destructor TCnUInt32List.Destroy;
+begin
+  Clear;
+  inherited;
+end;
+
+class procedure TCnUInt32List.Error(Msg: PResStringRec; Data: Integer);
+begin
+  TCnUInt32List.Error(LoadResString(Msg), Data);
+end;
+
+class procedure TCnUInt32List.Error(const Msg: string; Data: Integer);
+begin
+  raise EListError.CreateFmt(Msg, [Data])
+end;
+
+procedure TCnUInt32List.Exchange(Index1, Index2: Integer);
+var
+  Item: Cardinal;
+begin
+  if (Index1 < 0) or (Index1 >= FCount) then
+    Error(@SListIndexError, Index1);
+  if (Index2 < 0) or (Index2 >= FCount) then
+    Error(@SListIndexError, Index2);
+  Item := FList^[Index1];
+  FList^[Index1] := FList^[Index2];
+  FList^[Index2] := Item;
+end;
+
+function TCnUInt32List.Expand: TCnUInt32List;
+begin
+  if FCount = FCapacity then
+    Grow;
+  Result := Self;
+end;
+
+function TCnUInt32List.Extract(Item: Cardinal): Cardinal;
+var
+  I: Integer;
+begin
+  Result := 0;
+  I := IndexOf(Item);
+  if I >= 0 then
+  begin
+    Result := Item;
+    FList^[I] := 0;
+    Delete(I);
+  end;
+end;
+
+function TCnUInt32List.First: Cardinal;
+begin
+  Result := Get(0);
+end;
+
+function TCnUInt32List.Get(Index: Integer): Cardinal;
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(@SListIndexError, Index);
+  Result := FList^[Index];
+end;
+
+procedure TCnUInt32List.Grow;
+var
+  Delta: Integer;
+begin
+  if FCapacity > 64 then
+    Delta := FCapacity div 4
+  else
+    if FCapacity > 8 then
+      Delta := 16
+    else
+      Delta := 4;
+  SetCapacity(FCapacity + Delta);
+end;
+
+function TCnUInt32List.IndexOf(Item: Cardinal): Integer;
+begin
+  Result := 0;
+  while (Result < FCount) and (FList^[Result] <> Item) do
+    Inc(Result);
+  if Result = FCount then
+    Result := -1;
+end;
+
+procedure TCnUInt32List.Insert(Index: Integer; Item: Cardinal);
+begin
+  if (Index < 0) or (Index > FCount) then
+    Error(@SListIndexError, Index);
+  if FCount = FCapacity then
+    Grow;
+  if Index < FCount then
+    System.Move(FList^[Index], FList^[Index + 1],
+      (FCount - Index) * SizeOf(Cardinal));
+  FList^[Index] := Item;
+  Inc(FCount);
+end;
+
+function TCnUInt32List.Last: Cardinal;
+begin
+  Result := Get(FCount - 1);
+end;
+
+procedure TCnUInt32List.Move(CurIndex, NewIndex: Integer);
+var
+  Item: Cardinal;
+begin
+  if CurIndex <> NewIndex then
+  begin
+    if (NewIndex < 0) or (NewIndex >= FCount) then
+      Error(@SListIndexError, NewIndex);
+    Item := Get(CurIndex);
+    FList^[CurIndex] := 0;
+    Delete(CurIndex);
+    Insert(NewIndex, 0);
+    FList^[NewIndex] := Item;
+  end;
+end;
+
+procedure TCnUInt32List.Put(Index: Integer; Item: Cardinal);
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(@SListIndexError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) >= 0) then
+    Exit;
+
+  FList^[Index] := Item;
+end;
+
+function TCnUInt32List.Remove(Item: Cardinal): Integer;
+begin
+  Result := IndexOf(Item);
+  if Result >= 0 then
+    Delete(Result);
+end;
+
+procedure TCnUInt32List.SetCapacity(NewCapacity: Integer);
+begin
+  if (NewCapacity < FCount) or (NewCapacity > MaxListSize) then
+    Error(@SListCapacityError, NewCapacity);
+  if NewCapacity <> FCapacity then
+  begin
+    ReallocMem(FList, NewCapacity * SizeOf(Cardinal));
+    FCapacity := NewCapacity;
+  end;
+end;
+
+procedure TCnUInt32List.SetCount(NewCount: Integer);
+var
+  I: Integer;
+begin
+  if (NewCount < 0) or (NewCount > MaxListSize) then
+    Error(@SListCountError, NewCount);
+  if NewCount > FCapacity then
+    SetCapacity(NewCount);
+  if NewCount > FCount then
+    FillChar(FList^[FCount], (NewCount - FCount) * SizeOf(Cardinal), 0)
+  else
+    for I := FCount - 1 downto NewCount do
+      Delete(I);
+  FCount := NewCount;
+end;
+
+{ TCnUInt64List }
+
+function TCnUInt64List.Add(Item: TUInt64): TUInt64;
+begin
+  if FIgnoreDuplicated and (IndexOf(Item) <> CN_NOT_FOUND_INDEX) then
+  begin
+    Result := CN_NOT_FOUND_INDEX;
+    Exit;
+  end;
+
+  Result := FCount;
+  if Result = FCapacity then
+    Grow;
+  FList^[Result] := Item;
+  Inc(FCount);
+end;
+
+procedure TCnUInt64List.Clear;
+begin
+  SetCount(0);
+  SetCapacity(0);
+end;
+
+procedure TCnUInt64List.Delete(Index: TUInt64);
+begin
+  if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) >= 0) then
+    Error(@SListIndexError, Index);
+
+  Dec(FCount);
+  if UInt64Compare(Index, FCount) < 0 then
+    System.Move(FList^[Index + 1], FList^[Index],
+      (FCount - Index) * SizeOf(TUInt64));
+end;
+
+destructor TCnUInt64List.Destroy;
+begin
+  Clear;
+  inherited;
+end;
+
+class procedure TCnUInt64List.Error(Msg: PResStringRec; Data: Integer);
+begin
+  TCnUInt64List.Error(LoadResString(Msg), Data);
+end;
+
+class procedure TCnUInt64List.Error(const Msg: string; Data: Integer);
+begin
+  raise EListError.CreateFmt(Msg, [Data])
+end;
+
+procedure TCnUInt64List.Exchange(Index1, Index2: TUInt64);
+var
+  Item: TUInt64;
+begin
+
+  if (Index1 < 0) or (Index1 >= FCount) then
+    Error(@SListIndexError, Index1);
+  if (Index2 < 0) or (Index2 >= FCount) then
+    Error(@SListIndexError, Index2);
+  Item := FList^[Index1];
+  FList^[Index1] := FList^[Index2];
+  FList^[Index2] := Item;
+end;
+
+function TCnUInt64List.Expand: TCnUInt64List;
+begin
+  if FCount = FCapacity then
+    Grow;
+  Result := Self;
+end;
+
+function TCnUInt64List.Extract(Item: TUInt64): TUInt64;
+var
+  I: Integer;
+begin
+  Result := 0;
+  I := IndexOf(Item);
+  if I <> CN_NOT_FOUND_INDEX then
+  begin
+    Result := Item;
+    FList^[I] := 0;
+    Delete(I);
+  end;
+end;
+
+function TCnUInt64List.First: TUInt64;
+begin
+  Result := Get(0);
+end;
+
+function TCnUInt64List.Get(Index: TUInt64): TUInt64;
+begin
+  if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) >= 0) then
+    Error(@SListIndexError, Index);
+  Result := FList^[Index];
+end;
+
+procedure TCnUInt64List.Grow;
+var
+  Delta: Integer;
+begin
+  if FCapacity > 64 then
+    Delta := FCapacity div 4
+  else
+    if FCapacity > 8 then
+      Delta := 16
+    else
+      Delta := 4;
+  SetCapacity(FCapacity + Delta);
+end;
+
+function TCnUInt64List.IndexOf(Item: TUInt64): TUInt64;
+begin
+  Result := 0;
+  while (Result < FCount) and (FList^[Result] <> Item) do
+    Inc(Result);
+  if Result = FCount then
+    Result := CN_NOT_FOUND_INDEX;
+end;
+
+procedure TCnUInt64List.Insert(Index: TUInt64; Item: TUInt64);
+begin
+  if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) >= 0) then
+    Error(@SListIndexError, Index);
+  if FCount = FCapacity then
+    Grow;
+  if Index < FCount then
+    System.Move(FList^[Index], FList^[Index + 1],
+      (FCount - Index) * SizeOf(TUInt64));
+  FList^[Index] := Item;
+  Inc(FCount);
+end;
+
+function TCnUInt64List.Last: TUInt64;
+begin
+  Result := Get(FCount - 1);
+end;
+
+procedure TCnUInt64List.Move(CurIndex, NewIndex: TUInt64);
+var
+  Item: TUInt64;
+begin
+  if CurIndex <> NewIndex then
+  begin
+    if (UInt64Compare(NewIndex, 0) < 0) or (UInt64Compare(NewIndex, FCount) >= 0) then
+      Error(@SListIndexError, NewIndex);
+    Item := Get(CurIndex);
+    FList^[CurIndex] := 0;
+    Delete(CurIndex);
+    Insert(NewIndex, 0);
+    FList^[NewIndex] := Item;
+  end;
+end;
+
+procedure TCnUInt64List.Put(Index: TUInt64; Item: TUInt64);
+begin
+  if (UInt64Compare(Index, 0) < 0) or (UInt64Compare(Index, FCount) >= 0) then
+    Error(@SListIndexError, Index);
+  if FIgnoreDuplicated and (IndexOf(Item) <> CN_NOT_FOUND_INDEX) then
+    Exit;
+
+  FList^[Index] := Item;
+end;
+
+function TCnUInt64List.Remove(Item: TUInt64): TUInt64;
+begin
+  Result := IndexOf(Item);
+  if Result <> CN_NOT_FOUND_INDEX then
+    Delete(Result);
+end;
+
+procedure TCnUInt64List.SetCapacity(NewCapacity: TUInt64);
+begin
+  if (NewCapacity < FCount) or (NewCapacity > MaxListSize) then
+    Error(@SListCapacityError, NewCapacity);
+  if NewCapacity <> FCapacity then
+  begin
+    ReallocMem(FList, NewCapacity * SizeOf(TUInt64));
+    FCapacity := NewCapacity;
+  end;
+end;
+
+procedure TCnUInt64List.SetCount(NewCount: TUInt64);
+var
+  I: Integer;
+begin
+  if (NewCount < 0) or (NewCount > MaxListSize) then
+    Error(@SListCountError, NewCount);
+  if NewCount > FCapacity then
+    SetCapacity(NewCount);
+  if NewCount > FCount then
+    FillChar(FList^[FCount], (NewCount - FCount) * SizeOf(TUInt64), 0)
+  else
+    for I := FCount - 1 downto NewCount do
+      Delete(I);
+  FCount := NewCount;
 end;
 
 initialization

@@ -36,6 +36,8 @@ unit UnitOutput;
 
 interface
 
+{$I CnPack.inc}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, UnitThread, Buttons,
@@ -164,6 +166,7 @@ type
     procedure btnEvaluateScreenClick(Sender: TObject);
     procedure btnFindComponentClick(Sender: TObject);
     procedure btnFindControlClick(Sender: TObject);
+    procedure FormClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -654,6 +657,16 @@ procedure TFormSend.DebuggerFindControl(Sender: TObject;
   AControl: TControl; var Cancel: Boolean);
 begin
   (Sender as TCnDebugger).LogMsg('On Find Control: ' + AControl.Name);
+end;
+
+procedure TFormSend.FormClick(Sender: TObject);
+begin
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  if rgMethod.ItemIndex = 1 then
+    CnDebugger.TraceEnumType<TAnchorKind>
+  else
+    CnDebugger.LogEnumType<TAnchorKind>;
+{$ENDIF}
 end;
 
 end.

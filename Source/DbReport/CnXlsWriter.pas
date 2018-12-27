@@ -30,7 +30,6 @@ unit CnXlsWriter;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2010.06.16 V1.1
 *               修正对Int64和Extended类型处理不恰当的问题。
 *           2008.04.30 V1.0

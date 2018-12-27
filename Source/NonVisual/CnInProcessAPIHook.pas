@@ -368,10 +368,10 @@ end;
 procedure TCnHookAddress.InitHook;
 type
   PStr = ^Str;
-  Str = array[0..3] of Char;
+  Str = array[0..3] of AnsiChar;
 var
   FDynamicCode: PDynamicCode;
-  Mark: string;
+  Mark: AnsiString;
   Value1, Value2: DWORD;
 begin
   //制定类型
@@ -398,7 +398,7 @@ begin
   //制作 Mark
   Value1 := GetCurrentProcess;
   Value2 := DWORD(Self.InstructionAddr);
-  Mark := PStr(@Value1)^ + pstr(@Value2)^;
+  Mark := PStr(@Value1)^ + PStr(@Value2)^;
   CopyMemory(@FHookMark[0], @Mark[1], 8);
 end;
 
@@ -540,7 +540,9 @@ begin
       ReleaseMutex(_Handle);
       CloseHandle(_Handle);
     end;
-  end;
+  end
+  else
+    Result := 0;
 end;
 
 end.

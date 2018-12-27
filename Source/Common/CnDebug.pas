@@ -29,7 +29,6 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2018.07.29
 *               增加遍历全局组件与控件的功能
 *           2018.01.31
@@ -117,10 +116,8 @@ interface
 
 uses
   SysUtils, Classes, Windows, TypInfo, Controls, Graphics, Registry, Messages, Forms
-  {$IFDEF USE_JCL}
-  ,JclDebug, JclHookExcept
-  {$ENDIF USE_JCL}
-  ;
+  {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
+  {$IFDEF USE_JCL},JclDebug, JclHookExcept {$ENDIF USE_JCL};
 
 const
   CnMaxTagLength = 8; // 不可改变
@@ -300,7 +297,9 @@ type
     procedure SetUseAppend(const Value: Boolean);
     function GetMessageCount: Integer;
     function GetPostedMessageCount: Integer;
-
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    function GetEnumTypeStr<T>: string;
+{$ENDIF}
     procedure InternalFindComponent(AComponent: TComponent);
     procedure InternalFindControl(AControl: TControl);
   protected
@@ -404,8 +403,10 @@ type
     procedure LogRawString(const Value: string);
     procedure LogRawAnsiString(const Value: AnsiString);
     procedure LogRawWideString(const Value: WideString);
-
     procedure LogStrings(Strings: TStrings; const AMsg: string = '');
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    procedure LogEnumType<T>(const AMsg: string = '');
+{$ENDIF}
     procedure LogException(E: Exception; const AMsg: string = '');
     procedure LogMemDump(AMem: Pointer; Size: Integer);
     procedure LogVirtualKey(AKey: Word);
@@ -481,6 +482,9 @@ type
     procedure TraceRawAnsiString(const Value: AnsiString);
     procedure TraceRawWideString(const Value: WideString);
     procedure TraceStrings(Strings: TStrings; const AMsg: string = '');
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    procedure TraceEnumType<T>(const AMsg: string = '');
+{$ENDIF}
     procedure TraceException(E: Exception; const AMsg: string = '');
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
     procedure TraceVirtualKey(AKey: Word);
@@ -1619,6 +1623,20 @@ begin
 {$ENDIF}
 end;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+procedure TCnDebugger.LogEnumType<T>(const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogMsg('EnumType: ' + GetEnumTypeStr<T>)
+  else
+    LogFmt('%s %s', [AMsg, GetEnumTypeStr<T>]);
+{$ENDIF}
+end;
+
+{$ENDIF}
+
 procedure TCnDebugger.LogException(E: Exception; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -2338,6 +2356,20 @@ begin
   IncIndent(GetCurrentThreadId);
 {$ENDIF}
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+procedure TCnDebugger.TraceEnumType<T>(const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    TraceMsg('EnumType: ' + GetEnumTypeStr<T>)
+  else
+    TraceFmt('%s %s', [AMsg, GetEnumTypeStr<T>]);
+{$ENDIF}
+end;
+
+{$ENDIF}
 
 procedure TCnDebugger.TraceException(E: Exception; const AMsg: string);
 begin
@@ -3510,6 +3542,33 @@ begin
     end;
   end;
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function TCnDebugger.GetEnumTypeStr<T>: string;
+var
+  Rtx: TRttiContext;
+  Rt: TRttiType;
+  Rot: TRttiOrdinalType;
+  I: Integer;
+begin
+  Result := '';
+  Rt := Rtx.GetType(TypeInfo(T));
+  if Rt.IsOrdinal then
+  begin
+    Rot := Rt.AsOrdinal;
+    for I := Rot.MinValue to Rot.MaxValue do
+    begin
+      if Result = '' then
+        Result := GetEnumName(TypeInfo(T), I)
+      else
+        Result := Result + ', ' + GetEnumName(TypeInfo(T), I);
+    end;
+    Result := '(' + Result + ')';
+  end;
+end;
+
+{$ENDIF}
 
 procedure TCnDebugger.LogClass(const AClass: TClass; const AMsg: string);
 begin

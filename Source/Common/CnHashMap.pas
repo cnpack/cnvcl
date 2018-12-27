@@ -28,7 +28,6 @@ unit CnHashMap;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：v0.96   2004/2/7  by beta
 *               Add new class TCnStrToPtrHashMap
 *           v0.95   2002/8/3  by Pan Ying
@@ -79,8 +78,6 @@ type
      Some method just abstract.'}
   TCnBaseHashMap = class(TPersistent)
   private
-    FList: array of TCnHashMapRec;
-            //store the map
     FIncr: Integer;
             //how much space should be alloc when full
     FSize: Integer;
@@ -109,7 +106,8 @@ type
     procedure SetUseCustomHash(const Value: Boolean);
     procedure SetOnCustomHashCode(const Value: TCnCustomHashCodeMethod);
   protected
-
+    FList: array of TCnHashMapRec;
+            //store the map
     procedure ReSizeList(NewLength: Integer);
             //use to change the internal list's size
 

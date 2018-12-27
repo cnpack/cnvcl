@@ -24,13 +24,17 @@ unit CnZip;
 * 软件名称：CnPack 组件包
 * 单元名称：CnPack 组件包 Zip 实现单元
 * 单元作者：CnPack开发组 Liu Xiao
-* 备    注：只实现存储方式，未实现压缩
+* 备    注：使用 Delphi 自带的 Zlib 实现压缩解压与传统密码支持。
+*           但 XE2 以上的 Zlib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
-* 修改记录：2018.08.07 V1.0
-*                使用 ZLib 实现加压解压但用 Zip 解压时仍有问题
+* 修改记录：2018.08.26 V1.3
+*                存储/Deflate 模式下支持 Zip 传统的密码压缩解压缩算法
+*           2018.08.22 V1.2
+*                存储模式下支持 Zip 传统的密码压缩解压缩算法，但 Deflate 模式仍不支持密码
+*           2018.08.07 V1.1
+*                使用 ZLib 实现加压解压但 XE2 以下用 Zip 解压时仍有问题，XE2 或以上可兼容 Zip
 *           2018.08.05 V1.0
 *                创建单元
 ================================================================================
@@ -40,40 +44,25 @@ interface
 
 {$I CnPack.inc}
 
+{$IFNDEF SUPPORT_ZLIB_WINDOWBITS}
+//  {$MESSAGE WARN 'NOT Compatable with WinZip/WinRAR etc.'}
+{$ENDIF}
+
+// {$DEFINE DEBUGZIP}
+
 uses
-  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCommon, CnCRC32, ZLib;
-
-const
-  SIGNATURE_ZIPENDOFHEADER: LongWord = $06054B50;
-  SIGNATURE_CENTRALHEADER:  LongWord = $02014B50;
-  SIGNATURE_LOCALHEADER:    LongWord = $04034B50;
-
-  LOCALHEADERSIZE = 26;
-  CENTRALHEADERSIZE = 42;
+  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCRC32, ZLib
+  {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnCommon {$ELSE}
+  {$IFNDEF COMPILER6_UP} , CnCommon {$ENDIF} {$ENDIF};
+  // D5 下需要用到 CnCommon 单元做 UTF8 支持
 
 type
   ECnZipException = class(Exception);
 
   TCnZipCompressionMethod = (
-    zcStored,
-    zcShrunk,
-    zcReduce1,
-    zcReduce2,
-    zcReduce3,
-    zcReduce4,
-    zcImplode,
-    zcTokenize,
-    zcDeflate,
-    zcDeflate64,
-    zcPKImplode,
-    zcReserved11,
-    zcBZIP2,
-    zcReserved13,
-    zcLZMA,
-    zcReserved15,
-    zcReserved16,
-    zcReserved17,
-    zcTERSE,
+    zcStored, zcShrunk, zcReduce1, zcReduce2, zcReduce3, zcReduce4, zcImplode,
+    zcTokenize, zcDeflate, zcDeflate64, zcPKImplode, zcReserved11, zcBZIP2,
+    zcReserved13, zcLZMA, zcReserved15, zcReserved16, zcReserved17, zcTERSE,
     zcLZ77
 //    zcWavePack = 97,
 //    zcPPMdI1
@@ -113,26 +102,13 @@ type
   end;
   PCnZipEndOfCentralHeader = ^TCnZipEndOfCentralHeader;
 
-  TCnZipAbstractCompressionHandler = class(TObject)
-  {* 压缩类型的实现基类}
-  private
-
-  public
-    class function CanHandleCompressionMethod(AMethod: TCnZipCompressionMethod): Boolean; virtual; abstract;
-    class function CreateCompressionStream(AMethod: TCnZipCompressionMethod;
-      InStream: TStream; const Item: PCnZipHeader): TStream; virtual; abstract;
-    class function CreateDecompressionStream(AMethod: TCnZipCompressionMethod;
-      InStream: TStream; const Item: PCnZipHeader): TStream; virtual; abstract;
-  end;
-
-  TCnZipCompressionHandlerClass = class of TCnZipAbstractCompressionHandler;
-
   TCnZipBase = class(TObject)
   {* Zip 工具类基类}
   private
     FUtf8: Boolean;
     FFileList: TList;
     FComment: AnsiString;
+    FPassword: AnsiString;
     procedure SetUtf8(const Value: Boolean);
     function GetComment: string;
     function GetFileComment(Index: Integer): string;
@@ -147,8 +123,15 @@ type
     procedure ClearFiles;
     function RawToString(Raw: AnsiString): string;
     function StringToRaw(Str: string): AnsiString;
+    function GetHasPassword: Boolean; virtual;
+    procedure SetPassword(const Value: AnsiString); virtual;
+
+    property Password: AnsiString read FPassword write SetPassword;
+    {* 该 Zip 文件的密码}
+    property HasPassword: Boolean read GetHasPassword;
+    {* 该 Zip 文件是否有密码}
   public
-    constructor Create;
+    constructor Create; virtual;
     destructor Destroy; override;
 
     function IndexOf(const FileName: string): Integer;
@@ -167,6 +150,20 @@ type
     {* 该 Zip 文件是否支持 Utf8}
   end;
 
+  TCnZipAbstractCompressionHandler = class(TObject)
+  {* 压缩类型的实现基类}
+  private
+
+  public
+    class function CanHandleCompressionMethod(AMethod: TCnZipCompressionMethod): Boolean; virtual; abstract;
+    class function CreateCompressionStream(AMethod: TCnZipCompressionMethod;
+      OutStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream; virtual; abstract;
+    class function CreateDecompressionStream(AMethod: TCnZipCompressionMethod;
+      InStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream; virtual; abstract;
+  end;
+
+  TCnZipCompressionHandlerClass = class of TCnZipAbstractCompressionHandler;
+
   TCnZipReader = class(TCnZipBase)
   {* 用来打开 Zip 文件可解压的工具类}
   private
@@ -175,9 +172,13 @@ type
     procedure ReadCentralHeader;
     function PrepareStream(Index: Integer; LocalHeader: PCnZipHeader): TStream;
   protected
+    function GetHasPassword: Boolean; override;
     function SearchEndOfCentralHeader(Stream: TStream;
       Header: PCnZipEndOfCentralHeader): Boolean;
+
+    procedure SetPassword(const Value: AnsiString); override;
   public
+    constructor Create; override;
     destructor Destroy; override;
 
     procedure OpenZipFile(const ZipFileName: string);
@@ -190,6 +191,11 @@ type
     {* 解压指定文件至指定目录}
     procedure Close;
     {* 关闭该 Zip 文件}
+
+    property Password;
+    {* 解压该 Zip 文件所需的密码}
+    property HasPassword;
+    {* 该 Zip 文件头里的标志是否需要密码才能解压}
   end;
 
   TCnZipWriter = class(TCnZipBase)
@@ -197,9 +203,11 @@ type
   private
     FOutStream: TStream;
     FRemovePath: Boolean;
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     FDirFiles: TStrings;
     procedure FindFileCallback(const FileName: string; const Info: TSearchRec;
       var Abort: Boolean);
+{$ENDIF}
   protected
     procedure AddStream(Data: TStream; LocalHeader: PCnZipHeader);
   public
@@ -210,14 +218,22 @@ type
     procedure AddFile(const FileName: string; const ArchiveFileName: string = '';
       Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定内容}
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定目录下的所有文件}
+{$ENDIF}    
     procedure Save;
     {* 将压缩内容保存至 Zip 文件}
     procedure Close;
+    {* 关闭压缩文件}
 
     property RemovePath: Boolean read FRemovePath write FRemovePath;
     {* 是否去除每个文件的路径信息只留文件名信息}
+
+    property Password;
+    {* 设置该 Zip 文件的压缩密码，保存后才生效}
+    property HasPassword;
+    {* 是否设置了密码，等于判断 Password 属性是否不为空}
   end;
 
 procedure RegisterCompressionHandlerClass(AClass: TCnZipCompressionHandlerClass);
@@ -226,14 +242,39 @@ procedure RegisterCompressionHandlerClass(AClass: TCnZipCompressionHandlerClass)
 function CnZipFileIsValid(const FileName: string): Boolean;
 {* 判断 Zip 文件是否合法}
 
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
+
 function CnZipDirectory(const DirName: string; const FileName: string;
-  Compression: TCnZipCompressionMethod = zcDeflate): Boolean;
+  Compression: TCnZipCompressionMethod = zcDeflate; const Password: string = ''): Boolean;
 {* 将指定目录压缩为一个 Zip 文件}
 
-function CnZipExtractTo(const FileName: string; const DirName: string): Boolean;
+{$ENDIF}
+
+function CnZipExtractTo(const FileName: string; const DirName: string;
+  const Password: string = ''): Boolean;
 {* 将指定 Zip 文件解压缩到指定目录}
 
 implementation
+
+{$IFDEF DEBUGZIP}
+uses
+  CnDebug;
+{$ENDIF}
+
+const
+  CN_SIGNATURE_ZIPENDOFHEADER: LongWord = $06054B50;
+  CN_SIGNATURE_CENTRALHEADER:  LongWord = $02014B50;
+  CN_SIGNATURE_LOCALHEADER:    LongWord = $04034B50;
+
+  CN_KEY0_INIT: LongWord = 305419896;
+  CN_KEY1_INIT: LongWord = 591751049;
+  CN_KEY2_INIT: LongWord = 878082192;
+  CN_KEY_UPDATE: LongWord = 134775813;
+
+  CN_LOCAL_HEADERSIZE = 26;
+  CN_CENTRAL_HEADERSIZE = 42;
+  CN_UTF8_MASK = $0800;  // 1 shl 11
+  CN_ZIP_CRYPT_HEAD_SIZE = 12;
 
 resourcestring
   SZipErrorRead = 'Error Reading Zip File';
@@ -242,26 +283,35 @@ resourcestring
   SZipInvalidCentralHeader = 'Invalid Zip Central Header';
   SFileNotFound = 'Error Finding File';
   SZipNotSupport = 'Zip Compression Method NOT Support';
+  SZipInvalidPassword = 'Invalid Password';
+  SZipNotImplemented = 'Feature NOT Implemented';
+  SZipUtf8NotSupport = 'UTF8 NOT Support';
 
 var
   FZipCompressionHandlers: TClassList = nil;
 
 type
   TCnZipDefaultCompressionHandler = class(TCnZipAbstractCompressionHandler)
+  {* 默认实现了 Stored 与 Deflate 模式并支持传统加解密的处理类}
   private
 
   public
     class function CanHandleCompressionMethod(AMethod: TCnZipCompressionMethod): Boolean; override;
+    {* 是否支持特定的压缩方法}
     class function CreateCompressionStream(AMethod: TCnZipCompressionMethod;
-      InStream: TStream; const Item: PCnZipHeader): TStream; override;
+      OutStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream; override;
+    {* 创建针对特定输入流的压缩流。压缩流的概念是，压缩流有个输出流，当朝压缩流写入数据时，
+      将自动把压缩后的数据写入输出流。所以压缩流要实现 Write 方法写明文，内部压缩加密后写输出流}
     class function CreateDecompressionStream(AMethod: TCnZipCompressionMethod;
-      InStream: TStream; const Item: PCnZipHeader): TStream; override;
+      InStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream; override;
+    {* 创建针对特定输入流的解压缩流。解压缩流的概念是，解压缩流有个输入流，当从解压缩流读数据时，
+      将自动把解压缩后的数据提供出来到 Buffer。所以解压缩流要实现 Read 方法返回明文，内部从输入流读并解压缩解密之类的}
   end;
 
   TCnStoredStream = class(TStream)
+  {* 存储方式的压缩流与解压缩流}
   private
     FStream: TStream;
-    FPos: Int64;
   protected
     function GetSize: Int64; // override;
   public
@@ -270,6 +320,98 @@ type
     function Read(var Buffer; Count: Longint): Longint; override;
     function Write(const Buffer; Count: Longint): Longint; override;
     function Seek(Offset: Longint; Origin: Word): Longint; override;
+  end;
+
+  TCnZipCryptKeys = class(TObject)
+  {* 用来给 Zip 内容流加密解密的工具类}
+  private
+    FKey0, FKey1, FKey2: LongWord;
+  protected
+    function CalcDecryptByte: Byte;
+  public
+    procedure InitKeys(const Password: AnsiString);
+    procedure UpdateKeys(C: Byte);
+
+    procedure DecryptByte(var Value: Byte);
+    procedure EncryptByte(var Value: Byte);
+  end;
+
+  TCnEncryptStoredStream = class(TStream)
+  {* 存储也就是非压缩的加密流的实现，Write 时加密}
+  private
+    FKeys: TCnZipCryptKeys;
+    FPassword: AnsiString;
+    FOutStream: TStream;
+    FZipHeader: PCnZipHeader;
+  protected
+
+  public
+    constructor Create(OutStream: TStream; const APassword: AnsiString; const AZipHeader: PCnZipHeader);
+    destructor Destroy; override;
+
+    function Read(var Buffer; Count: Integer): Integer; override;    // 可无需实现
+    function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
+    function Write(const Buffer; Count: Integer): Integer; override;
+  end;
+
+  TCnDecryptStoredStream = class(TStream)
+  {* 存储也就是非压缩的解密流的实现，Read 时解密}
+  private
+    FZip: TStream;
+    FKeys: TCnZipCryptKeys;
+    FPassword: AnsiString;
+    FStream: TStream;
+    FZipHeader: PCnZipHeader;
+  protected
+
+  public
+    constructor Create(AStream: TStream; const APassword: AnsiString;
+      const AZipHeader: PCnZipHeader);
+    destructor Destroy; override;
+
+    function Read(var Buffer; Count: Integer): Integer; override;
+    function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
+    function Write(const Buffer; Count: Integer): Integer; override; // 可无需实现
+  end;
+
+  TCnEncryptZipCompressStream = class(TStream)
+  {* Deflate 压缩并且标准 Zip 加密的压缩流实现，使用内存流压缩，超大文件可能会 OOM
+    实现顺序：在外界写入时先压缩至 FZipped，析构时再将 FZipped 逐字节加密写出}
+  private
+    FZip: TStream;
+    FZipped: TMemoryStream; // 存储压缩后但未加密的临时内容
+    FKeys: TCnZipCryptKeys;
+    FPassword: AnsiString;
+    FOutStream: TStream;
+    FZipHeader: PCnZipHeader;
+  public
+    constructor Create(OutStream: TStream; const APassword: AnsiString;
+      const AZipHeader: PCnZipHeader);
+    destructor Destroy; override;
+
+    function Read(var Buffer; Count: Integer): Integer; override;    // 可无需实现
+    function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
+    function Write(const Buffer; Count: Integer): Integer; override;
+  end;
+
+  TCnDecryptZipCompressStream = class(TStream)
+  {* Deflate 压缩并且标准 Zip 加密的解压缩流实现，使用内存流解压缩，超大文件可能会 OOM
+    实现顺序：在创建时先解密内容至 FDecrypted，外界读取时再将 FDecrypted 解压缩供读出}
+  private
+    FUnzip: TStream;
+    FDecrypted: TMemoryStream; // 存储预先逐字节解密出来的压缩内容
+    FKeys: TCnZipCryptKeys;
+    FPassword: AnsiString;
+    FInStream: TStream;
+    FZipHeader: PCnZipHeader;
+  public
+    constructor Create(InStream: TStream; const APassword: AnsiString;
+      const AZipHeader: PCnZipHeader);
+    destructor Destroy; override;
+
+    function Read(var Buffer; Count: Integer): Integer; override;
+    function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
+    function Write(const Buffer; Count: Integer): Integer; override; // 可无需实现
   end;
 
 procedure RegisterCompressionHandlerClass(AClass: TCnZipCompressionHandlerClass);
@@ -300,7 +442,7 @@ begin
 end;
 
 function CreateCompressStreamFromHandler(AMethod: TCnZipCompressionMethod;
-  InStream: TStream; const Item: PCnZipHeader): TStream;
+  OutStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream;
 var
   I: Integer;
   AComp: TCnZipCompressionHandlerClass;
@@ -313,7 +455,7 @@ begin
     begin
       if AComp.CanHandleCompressionMethod(AMethod) then
       begin
-        Result := AComp.CreateCompressionStream(AMethod, InStream, Item);
+        Result := AComp.CreateCompressionStream(AMethod, OutStream, Item, Zip);
         Exit;
       end;
     end;
@@ -321,7 +463,7 @@ begin
 end;
 
 function CreateDecompressStreamFromHandler(AMethod: TCnZipCompressionMethod;
-  InStream: TStream; const Item: PCnZipHeader): TStream;
+  InStream: TStream; const Item: PCnZipHeader; Zip: TCnZipBase): TStream;
 var
   I: Integer;
   AComp: TCnZipCompressionHandlerClass;
@@ -334,11 +476,39 @@ begin
     begin
       if AComp.CanHandleCompressionMethod(AMethod) then
       begin
-        Result := AComp.CreateDecompressionStream(AMethod, InStream, Item);
+        Result := AComp.CreateDecompressionStream(AMethod, InStream, Item, Zip);
         Exit;
       end;
     end;
   end;
+end;
+
+function ZipUtf8ToString(const Text: AnsiString): string;
+begin
+{$IFDEF UNICODE}
+  Result := UTF8ToUnicodeString(PAnsiChar(Text));
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := Utf8ToAnsi(Text);
+  {$ELSE}
+  // raise ECnZipException.CreateRes(@SZipUtf8NotSupport);
+  Result := AnsiString(CnUtf8DecodeToWideString(Text));
+  {$ENDIF}
+{$ENDIF}
+end;
+
+function ZipStringToUtf8(const Text: string): AnsiString;
+begin
+{$IFDEF UNICODE}
+  Result := Utf8Encode(Text);
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := AnsiToUtf8(Text);
+  {$ELSE}
+  // raise ECnZipException.CreateRes(@SZipUtf8NotSupport);
+  Result := CnUtf8EncodeWideString(WideString(Text));
+  {$ENDIF}
+{$ENDIF}
 end;
 
 function CnZipFileIsValid(const FileName: string): Boolean;
@@ -353,7 +523,7 @@ begin
     Z := nil;
     try
       Z := TCnZipReader.Create;
-      Stream := TFileStream.Create(FileName, fmOpenRead);
+      Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
       Result := Z.SearchEndOfCentralHeader(Stream, @Header);
     finally
       Stream.Free;
@@ -364,8 +534,10 @@ begin
   end;
 end;
 
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
+
 function CnZipDirectory(const DirName: string; const FileName: string;
-  Compression: TCnZipCompressionMethod): Boolean;
+  Compression: TCnZipCompressionMethod; const Password: string): Boolean;
 var
   Zip: TCnZipWriter;
 begin
@@ -385,7 +557,10 @@ begin
   end;
 end;
 
-function CnZipExtractTo(const FileName: string; const DirName: string): Boolean;
+{$ENDIF}
+
+function CnZipExtractTo(const FileName: string; const DirName: string;
+  const Password: string): Boolean;
 var
   Zip: TCnZipReader;
 begin
@@ -430,7 +605,7 @@ constructor TCnZipBase.Create;
 begin
   inherited;
   FFileList := TList.Create;
-  FUtf8 := True;
+  FUtf8 := False;
 end;
 
 destructor TCnZipBase.Destroy;
@@ -465,6 +640,11 @@ begin
   Result := RawToString(FileInfo[Index]^.FileName);
 end;
 
+function TCnZipBase.GetHasPassword: Boolean;
+begin
+  Result := FPassword <> '';
+end;
+
 function TCnZipBase.IndexOf(const FileName: string): Integer;
 var
   I: Integer;
@@ -483,7 +663,7 @@ end;
 function TCnZipBase.RawToString(Raw: AnsiString): string;
 begin
   if FUtf8 then
-    Result := CnUtf8ToAnsi2(string(Raw))
+    Result := ZipUtf8ToString(Raw)
   else
     Result := string(Raw);
 end;
@@ -498,6 +678,11 @@ begin
   FileInfo[Index]^.FileComment := StringToRaw(Value);
 end;
 
+procedure TCnZipBase.SetPassword(const Value: AnsiString);
+begin
+  FPassword := Value;
+end;
+
 procedure TCnZipBase.SetUtf8(const Value: Boolean);
 begin
   FUtf8 := Value;
@@ -506,7 +691,7 @@ end;
 function TCnZipBase.StringToRaw(Str: string): AnsiString;
 begin
   if FUtf8 then
-    Result := CnAnsiToUtf82(Str)
+    Result := ZipStringToUtf8(Str)
   else
     Result := AnsiString(Str);
 end;
@@ -537,7 +722,7 @@ begin
 
   FInStream.Position := FileInfo[Index].LocalHeaderOffset + FStartFileData;
   FInStream.Read(Sig, Sizeof(Sig));
-  if Sig <> SIGNATURE_LOCALHEADER then
+  if Sig <> CN_SIGNATURE_LOCALHEADER then
     raise ECnZipException.CreateRes(@SZipInvalidLocalHeader);
 
   FInStream.Read(LocalHeader^.RequiredVersion,    Sizeof(Word));
@@ -558,8 +743,26 @@ begin
     FInStream.Read(LocalHeader^.ExtraField[1], LocalHeader^.ExtraFieldLength);
   end;
 
+{$IFDEF DEBUGZIP}
+  CnDebugger.LogMsg('Reader: Dump a Local Header for FileName: ' + LocalHeader^.FileName);
+  CnDebugger.LogFmt('  RequiredVersion: %4.4d', [LocalHeader^.RequiredVersion]);
+  CnDebugger.LogFmt('  Flag: $%4.4x', [LocalHeader^.Flag]);
+  CnDebugger.LogFmt('  CompressionMethod: %4.4d', [LocalHeader^.CompressionMethod]);
+  CnDebugger.LogFmt('  ModifiedDateTime: $%8.8x', [LocalHeader^.ModifiedDateTime]);
+  CnDebugger.LogFmt('  CRC32: $%8.8x', [LocalHeader^.CRC32]);
+  CnDebugger.LogFmt('  CompressedSize: %d', [LocalHeader^.CompressedSize]);
+  CnDebugger.LogFmt('  UncompressedSize: %d', [LocalHeader^.UncompressedSize]);
+  CnDebugger.LogFmt('  FileNameLength: %d', [LocalHeader^.FileNameLength]);
+  CnDebugger.LogFmt('  ExtraFieldLength: %d', [LocalHeader^.ExtraFieldLength]);
+  CnDebugger.LogFmt('  FileCommentLength: %d', [LocalHeader^.FileCommentLength]);
+  CnDebugger.LogFmt('  DiskNumberStart: %d', [LocalHeader^.DiskNumberStart]);
+  CnDebugger.LogFmt('  InternalAttributes: %d', [LocalHeader^.InternalAttributes]);
+  CnDebugger.LogFmt('  ExternalAttributes: %d', [LocalHeader^.ExternalAttributes]);
+  CnDebugger.LogFmt('  LocalHeaderOffset:  %8.8x', [LocalHeader^.LocalHeaderOffset]);
+{$ENDIF}
+
   Result := CreateDecompressStreamFromHandler(TCnZipCompressionMethod(LocalHeader^.CompressionMethod),
-    FInStream, LocalHeader);
+    FInStream, LocalHeader, Self);
 end;
 
 destructor TCnZipReader.Destroy;
@@ -603,9 +806,9 @@ begin
 {$ENDIF}
 
     if CreateSubdirs then
-      AFileName := MakePath(Path) + AFileName
+      AFileName := IncludeTrailingBackslash(Path) + AFileName
     else
-      AFileName := MakePath(Path) + ExtractFileName(AFileName);
+      AFileName := IncludeTrailingBackslash(Path) + ExtractFileName(AFileName);
 
     Dir := ExtractFileDir(AFileName);
     if CreateSubdirs and (Dir <> '') then
@@ -637,7 +840,7 @@ procedure TCnZipReader.OpenZipFile(const ZipFileName: string);
 begin
   Close;
 
-  FInStream := TFileStream.Create(ZipFileName, fmOpenRead);
+  FInStream := TFileStream.Create(ZipFileName, fmOpenRead or fmShareDenyWrite);
   try
     OpenZipStream;
   except
@@ -672,7 +875,7 @@ begin
   for I := 0 to EndHeader.CentralDirEntries - 1 do
   begin
     FInStream.Read(Signature, Sizeof(Signature));
-    if Signature <> SIGNATURE_CENTRALHEADER then
+    if Signature <> CN_SIGNATURE_CENTRALHEADER then
       raise ECnZipException.CreateRes(@SZipInvalidCentralHeader);
 
     New(Header);
@@ -709,7 +912,7 @@ begin
         VerifyRead(FInStream, Header^.FileComment[1], Header^.FileCommentLength);
       end;
 
-      if (Header^.Flag and (1 shl 11)) = 0 then
+      if (Header^.Flag and CN_UTF8_MASK) = 0 then
         FUtf8 := False;
     except
       Dispose(Header);
@@ -748,10 +951,10 @@ begin
     VerifyRead(Stream, BackBuf[0], ReadSize);
     for I := ReadSize - 4 downto 0 do
     begin
-      if (BackBuf[I]     = ((SIGNATURE_ZIPENDOFHEADER       ) and $FF)) and
-         (BackBuf[I + 1] = ((SIGNATURE_ZIPENDOFHEADER shr  8) and $FF)) and
-         (BackBuf[I + 2] = ((SIGNATURE_ZIPENDOFHEADER shr 16) and $FF)) and
-         (BackBuf[I + 3] = ((SIGNATURE_ZIPENDOFHEADER shr 24) and $FF)) then
+      if (BackBuf[I]     = ((CN_SIGNATURE_ZIPENDOFHEADER       ) and $FF)) and
+         (BackBuf[I + 1] = ((CN_SIGNATURE_ZIPENDOFHEADER shr  8) and $FF)) and
+         (BackBuf[I + 2] = ((CN_SIGNATURE_ZIPENDOFHEADER shr 16) and $FF)) and
+         (BackBuf[I + 3] = ((CN_SIGNATURE_ZIPENDOFHEADER shr 24) and $FF)) then
       begin
         Move(BackBuf[I + 4], Header^, SizeOf(Header^));
         if Header^.CommentLength > 0 then
@@ -771,6 +974,33 @@ begin
   Result := False;
 end;
 
+function TCnZipReader.GetHasPassword: Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to GetFileCount - 1 do
+  begin
+    if GetFileInfo(I)^.Flag and 1 = 1 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+procedure TCnZipReader.SetPassword(const Value: AnsiString);
+begin
+  inherited;
+
+end;
+
+constructor TCnZipReader.Create;
+begin
+  inherited;
+
+end;
+
 { TCnZipDefaultCompressionHandler }
 
 class function TCnZipDefaultCompressionHandler.CanHandleCompressionMethod(
@@ -780,23 +1010,69 @@ begin
 end;
 
 class function TCnZipDefaultCompressionHandler.CreateCompressionStream(
-  AMethod: TCnZipCompressionMethod; InStream: TStream; const Item: PCnZipHeader): TStream;
+  AMethod: TCnZipCompressionMethod; OutStream: TStream; const Item: PCnZipHeader;
+  Zip: TCnZipBase): TStream;
+var
+  HasPas: Boolean;
 begin
   Result := nil;
+  HasPas := (Item^.Flag and 1) = 1;
+
   if AMethod = zcStored then
-    Result := TCnStoredStream.Create(InStream)
+  begin
+    if HasPas then
+      Result := TCnEncryptStoredStream.Create(OutStream, Zip.Password, Item)
+    else
+      Result := TCnStoredStream.Create(OutStream)
+  end
   else if AMethod = zcDeflate then
-    Result := TCompressionStream.Create(clDefault, InStream);
+  begin
+    if HasPas then
+    begin
+      Result := TCnEncryptZipCompressStream.Create(OutStream, Zip.Password, Item);
+    end
+    else
+    begin
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+      Result := TCompressionStream.Create(OutStream, zcDefault, -15);
+{$ELSE}
+      Result := TCompressionStream.Create(clDefault, OutStream);
+{$ENDIF}
+    end;
+  end;
 end;
 
 class function TCnZipDefaultCompressionHandler.CreateDecompressionStream(
-  AMethod: TCnZipCompressionMethod; InStream: TStream; const Item: PCnZipHeader): TStream;
+  AMethod: TCnZipCompressionMethod; InStream: TStream; const Item: PCnZipHeader;
+  Zip: TCnZipBase): TStream;
+var
+  HasPas: Boolean;
 begin
   Result := nil;
+  HasPas := (Item^.Flag and 1) = 1;
+
   if AMethod = zcStored then
-    Result := TCnStoredStream.Create(InStream)
+  begin
+    if HasPas then
+      Result := TCnDecryptStoredStream.Create(InStream, Zip.Password, Item)
+    else
+      Result := TCnStoredStream.Create(InStream);
+  end
   else if AMethod = zcDeflate then
-    Result := TDecompressionStream.Create(InStream);
+  begin
+    if HasPas then
+    begin
+      Result := TCnDecryptZipCompressStream.Create(InStream, Zip.Password, Item);
+    end
+    else
+    begin
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+      Result := TDecompressionStream.Create(InStream, -15);
+{$ELSE}
+      Result := TDecompressionStream.Create(InStream);
+{$ENDIF}
+    end;
+  end;
 end;
 
 { TCnStoredStream }
@@ -805,7 +1081,6 @@ constructor TCnStoredStream.Create(Stream: TStream);
 begin
   inherited Create;
   FStream := Stream;
-  FPos := FStream.Position;
 end;
 
 function TCnStoredStream.GetSize: Int64;
@@ -830,6 +1105,8 @@ end;
 
 { TCnZipWriter }
 
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
+
 procedure TCnZipWriter.AddDirectory(const DirName: string;
   Compression: TCnZipCompressionMethod);
 var
@@ -845,7 +1122,7 @@ begin
 
   for I := 0 to FDirFiles.Count - 1 do
   begin
-    Path := MakePath(DirName);
+    Path := IncludeTrailingBackslash(DirName);
 {$IFDEF MSWINDOWS}
     AFile := StringReplace(Copy(FDirFiles[I], Length(Path) + 1, Length(FDirFiles[I])), '\', '/', [rfReplaceAll]);
 {$ELSE}
@@ -855,12 +1132,37 @@ begin
   end;
 end;
 
+{$ENDIF}
+
 procedure TCnZipWriter.AddFile(const FileName, ArchiveFileName: string;
   Compression: TCnZipCompressionMethod);
 var
   InStream: TStream;
   LocalHeader: PCnZipHeader;
   Archive: string;
+
+  function GetFileDateTime(const FileName: string): TDateTime;
+  var
+    Handle: THandle;
+    FindData: TWin32FindData;
+    SystemTime: TSystemTime;
+  begin
+    Result := 0.0;
+    Handle := FindFirstFile(PChar(FileName), FindData);
+    if Handle <> INVALID_HANDLE_VALUE then
+    begin
+      Windows.FindClose(Handle);
+      if (FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) = 0 then
+      begin
+        FileTimeToLocalFileTime(FindData.ftLastWriteTime, FindData.ftLastWriteTime);
+        FileTimeToSystemTime(FindData.ftLastWriteTime, SystemTime);
+        with SystemTime do
+          Result := EncodeDate(wYear, wMonth, wDay) + EncodeTime(wHour, wMinute,
+            wSecond, wMilliseconds);
+      end;
+    end;
+  end;
+
 begin
   if Trim(FileName) = '' then
     Exit;
@@ -870,8 +1172,8 @@ begin
 
   New(LocalHeader);
   FillChar(LocalHeader^, SizeOf(LocalHeader^), 0);
-  LocalHeader^.Flag := 0;
-  InStream := TFileStream.Create(FileName, fmOpenRead);
+
+  InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     LocalHeader^.Flag := 0;
     LocalHeader^.CompressionMethod := Word(Compression);
@@ -887,7 +1189,10 @@ begin
       Archive := FileName;
 
     if FUtf8 then
-      LocalHeader^.Flag := LocalHeader^.Flag or (1 shl 11);
+      LocalHeader^.Flag := LocalHeader^.Flag or CN_UTF8_MASK;
+    if HasPassword then
+      LocalHeader^.Flag := LocalHeader^.Flag or 1;
+
     LocalHeader^.FileName := StringToRaw(Archive);
     LocalHeader^.FileNameLength := Length(LocalHeader^.FileName);
 
@@ -918,7 +1223,7 @@ begin
   LocalHeader^.FileNameLength   := Length(LocalHeader^.FileName);
   LocalHeader^.ExtraFieldLength := Length(LocalHeader^.ExtraField);
 
-  Signature := SIGNATURE_LOCALHEADER;
+  Signature := CN_SIGNATURE_LOCALHEADER;
   VerifyWrite(FOutStream, Signature, SizeOf(Signature));
 
   VerifyWrite(FOutStream, LocalHeader^.RequiredVersion,    Sizeof(Word));
@@ -931,30 +1236,32 @@ begin
   VerifyWrite(FOutStream, LocalHeader^.FileNameLength,     Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.ExtraFieldLength,   Sizeof(Word));
 
-  VerifyWrite(FOutStream, LocalHeader^.FileName, LocalHeader^.FileNameLength);
+  VerifyWrite(FOutStream, LocalHeader^.FileName[1], LocalHeader^.FileNameLength);
   if LocalHeader^.ExtraFieldLength > 0 then
-    VerifyWrite(FOutStream, LocalHeader^.ExtraField, LocalHeader^.ExtraFieldLength);
+    VerifyWrite(FOutStream, LocalHeader^.ExtraField[1], LocalHeader^.ExtraFieldLength);
 
   LStartPos := FOutStream.Position;
   DataStart := Data.Position;
   LocalHeader^.UncompressedSize := Data.Size - DataStart;
 
-  CompressStream := CreateCompressStreamFromHandler(TCnZipCompressionMethod(LocalHeader^.CompressionMethod), FOutStream, LocalHeader);
-  try
-    CompressStream.CopyFrom(Data, LocalHeader^.UncompressedSize);
-  finally
-    CompressStream.Free;
-  end;
-
-  LocalHeader^.CompressedSize := FOutStream.Position - LStartPos;
-  Data.Position := DataStart;
+  // 计算原始的 CRC32 值
   SetLength(Buffer, $4000);
-
   while Data.Position < Longint(LocalHeader^.UncompressedSize) do
   begin
     C := Data.Read(Buffer[0], Length(Buffer));
     LocalHeader^.CRC32 := CRC32Calc(LocalHeader^.CRC32, Buffer[0], C);
   end;
+
+  // 重新回到原位，压缩
+  Data.Position := DataStart;
+  CompressStream := CreateCompressStreamFromHandler(TCnZipCompressionMethod(LocalHeader^.CompressionMethod),
+    FOutStream, LocalHeader, Self);
+  try
+    CompressStream.CopyFrom(Data, LocalHeader^.UncompressedSize);
+  finally
+    CompressStream.Free;
+  end;
+  LocalHeader^.CompressedSize := FOutStream.Position - LStartPos;
 
   FEndFileData := FOutStream.Position;
   FOutStream.Position := LocalHeader^.LocalHeaderOffset + SizeOf(LongWord);
@@ -988,9 +1295,13 @@ end;
 destructor TCnZipWriter.Destroy;
 begin
   FreeAndNil(FOutStream);
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
   FDirFiles.Free;
+{$ENDIF}
   inherited;
 end;
+
+{$IFNDEF DISABLE_DIRECTORY_SUPPORT}
 
 procedure TCnZipWriter.FindFileCallback(const FileName: string;
   const Info: TSearchRec; var Abort: Boolean);
@@ -998,6 +1309,8 @@ begin
   if (FileName <> '.') and (FileName <> '..') then
     FDirFiles.Add(FileName);
 end;
+
+{$ENDIF}
 
 procedure TCnZipWriter.Save;
 var
@@ -1007,7 +1320,7 @@ var
   Sig: LongWord;
 begin
   FOutStream.Position := FEndFileData;
-  Sig := SIGNATURE_CENTRALHEADER;
+  Sig := CN_SIGNATURE_CENTRALHEADER;
 
   for I := 0 to FileCount - 1 do
   begin
@@ -1047,7 +1360,7 @@ begin
     SetLength(FComment, $FFFF);
   EndOfHeader.CommentLength := Length(FComment);
 
-  Sig := SIGNATURE_ZIPENDOFHEADER;
+  Sig := CN_SIGNATURE_ZIPENDOFHEADER;
   VerifyWrite(FOutStream, Sig, SizeOf(Sig));
   VerifyWrite(FOutStream, EndOfHeader.DiskNumber,          SizeOf(Word));
   VerifyWrite(FOutStream, EndOfHeader.CentralDirStartDisk, SizeOf(Word));
@@ -1059,6 +1372,337 @@ begin
 
   if EndOfHeader.CommentLength > 0 then
     VerifyWrite(FOutStream, FComment[1], EndOfHeader.CommentLength);
+end;
+
+{ TCnZipCryptKeys }
+
+function TCnZipCryptKeys.CalcDecryptByte: Byte;
+var
+  T: Word;
+begin
+  T := FKey2 or 2;
+  Result := Word(T * (T xor 1)) shr 8;
+end;
+
+procedure TCnZipCryptKeys.DecryptByte(var Value: Byte);
+begin
+  Value := Value xor CalcDecryptByte;
+  UpdateKeys(Value);
+end;
+
+procedure TCnZipCryptKeys.EncryptByte(var Value: Byte);
+var
+  T: Byte;
+begin
+  T := CalcDecryptByte;
+  UpdateKeys(Value);
+  Value := Value xor T;
+end;
+
+procedure TCnZipCryptKeys.InitKeys(const Password: AnsiString);
+var
+  I: Integer;
+begin
+  FKey0 := CN_KEY0_INIT;
+  FKey1 := CN_KEY1_INIT;
+  FKey2 := CN_KEY2_INIT;
+
+  for I := 1 to Length(Password) do
+    UpdateKeys(Ord(Password[I]));
+end;
+
+procedure TCnZipCryptKeys.UpdateKeys(C: Byte);
+begin
+  FKey0 := CalcCRC32Byte(FKey0, C);
+  FKey1 := FKey1 + (FKey0 and $FF);
+  FKey1 := FKey1 * CN_KEY_UPDATE + 1;
+  FKey2 := CalcCRC32Byte(FKey2, FKey1 shr 24);
+end;
+
+{ TCnDecryptStoredStream }
+
+constructor TCnDecryptStoredStream.Create(AStream: TStream;
+  const APassword: AnsiString; const AZipHeader: PCnZipHeader);
+var
+  I: Integer;
+  C: Byte;
+  H: array [0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
+begin
+  inherited Create;
+  FStream := AStream;
+  FPassword := APassword;
+  FZipHeader := AZipHeader;
+  FKeys := TCnZipCryptKeys.Create;
+  FKeys.InitKeys(FPassword);
+
+  // 读 12 字节头并解出来比对 CRC 以判断密码是否正确，注意有些 zip 文件不比对 CRC
+  FStream.Read(H, Sizeof(H));
+
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
+  begin
+    C := H[I] xor FKeys.CalcDecryptByte;
+    FKeys.UpdateKeys(C);
+    H[I] := C;
+  end;
+
+  if H[CN_ZIP_CRYPT_HEAD_SIZE - 1] <> (FZipHeader^.CRC32 shr 24) then
+    raise ECnZipException.CreateRes(@SZipInvalidPassword);
+end;
+
+destructor TCnDecryptStoredStream.Destroy;
+begin
+  FZip.Free;
+  FKeys.Free;
+  inherited;
+end;
+
+function TCnDecryptStoredStream.Read(var Buffer; Count: Integer): Integer;
+var
+  P: PByte;
+  I: Integer;
+begin
+  Result := FStream.Read(Buffer, Count);
+  P := @Buffer;
+  for I := 1 to Result do
+  begin
+    FKeys.DecryptByte(P^);
+    Inc(P);
+  end;
+end;
+
+function TCnDecryptStoredStream.Seek(Offset: Longint; Origin: Word): Longint;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+function TCnDecryptStoredStream.Write(const Buffer; Count: Integer): Integer;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+{ TCnEnryptStoredStream }
+
+constructor TCnEncryptStoredStream.Create(OutStream: TStream;
+  const APassword: AnsiString; const AZipHeader: PCnZipHeader);
+var
+  H: array[0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
+  I: Integer;
+begin
+  inherited Create;
+  FOutStream := OutStream;
+  FPassword := APassword;
+  FZipHeader := AZipHeader;
+  FKeys := TCnZipCryptKeys.Create;
+  FKeys.InitKeys(FPassword);
+
+  // 随机凑 12 个字节的头
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 2 do
+    H[I] := Random(256);
+  H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
+
+  // 加密并写入
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
+    FKeys.EncryptByte(H[I]);
+  FOutStream.Write(H, Sizeof(H));
+end;
+
+destructor TCnEncryptStoredStream.Destroy;
+begin
+  FKeys.Free;
+  inherited;
+end;
+
+function TCnEncryptStoredStream.Read(var Buffer; Count: Integer): Integer;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+function TCnEncryptStoredStream.Seek(Offset: Integer;
+  Origin: Word): Longint;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+function TCnEncryptStoredStream.Write(const Buffer; Count: Integer): Integer;
+const
+  MaxBufSize = $F000;
+var
+  B: array of Byte;
+  C, I: Integer;
+  P: PByte;
+begin
+  Result := 0;
+  if Count < MaxBufSize then
+    SetLength(B, Count)
+  else
+    SetLength(B, MaxBufSize);
+
+  P := @Buffer;
+  while Count > 0 do
+  begin
+    C := Length(B);
+    if Count < C then
+      C := Count;
+
+    Move(P^, B[0], C);
+    Inc(P, C);
+    for I := 0 to C - 1 do
+      FKeys.EncryptByte(B[I]);
+
+    Result := Result + FOutStream.Write(B[0], C);
+    Count := Count - C;
+  end;
+end;
+
+{ TCnEncryptZipCompressStream }
+
+constructor TCnEncryptZipCompressStream.Create(OutStream: TStream;
+  const APassword: AnsiString; const AZipHeader: PCnZipHeader);
+var
+  H: array[0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
+  I: Integer;
+begin
+  inherited Create;
+  FOutStream := OutStream;
+  FPassword := APassword;
+  FZipHeader := AZipHeader;
+  FKeys := TCnZipCryptKeys.Create;
+  FKeys.InitKeys(FPassword);
+
+  FZipped := TMemoryStream.Create;
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+  FZip := TCompressionStream.Create(FZipped, zcDefault, -15);
+{$ELSE}
+  FZip := TCompressionStream.Create(clDefault, FZipped);
+{$ENDIF}
+
+  // 随机凑 12 个字节的头
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 2 do
+    H[I] := Random(256);
+  H[CN_ZIP_CRYPT_HEAD_SIZE - 1] := (FZipHeader^.CRC32 shr 24);
+
+  // 加密并写入
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
+    FKeys.EncryptByte(H[I]);
+  FOutStream.Write(H, Sizeof(H));
+end;
+
+destructor TCnEncryptZipCompressStream.Destroy;
+var
+  I: Integer;
+  P: PByte;
+begin
+  FZip.Free;
+
+  // FZipped 现在是压缩内容，需要加密并写出至 FOutStream
+  P := FZipped.Memory;
+  if (P <> nil) and (FZipped.Size > 0) then
+  begin
+    for I := 0 to FZipped.Size - 1 do
+    begin
+      FKeys.EncryptByte(P^);
+      FOutStream.Write(P^, 1);
+      Inc(P);
+    end;
+  end;
+
+  FZipped.Free;
+  FKeys.Free;
+  inherited;
+end;
+
+function TCnEncryptZipCompressStream.Read(var Buffer;
+  Count: Integer): Integer;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+function TCnEncryptZipCompressStream.Seek(Offset: Integer;
+  Origin: Word): Longint;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+function TCnEncryptZipCompressStream.Write(const Buffer;
+  Count: Integer): Integer;
+begin
+  // 外界写入的原始内容在这里要转写进 FZip 压缩流，压缩后内容则被 FZip 写进 FZipped
+  Result := FZip.Write(Buffer, Count);
+end;
+
+{ TCnDecryptZipCompressStream }
+
+constructor TCnDecryptZipCompressStream.Create(InStream: TStream;
+  const APassword: AnsiString; const AZipHeader: PCnZipHeader);
+var
+  I: Integer;
+  P: PByte;
+  C: Byte;
+  H: array [0..CN_ZIP_CRYPT_HEAD_SIZE - 1] of Byte;
+begin
+  inherited Create;
+  FInStream := InStream;
+  FPassword := APassword;
+  FZipHeader := AZipHeader;
+  FKeys := TCnZipCryptKeys.Create;
+  FKeys.InitKeys(FPassword);
+
+  // 读 12 字节头并解出来比对 CRC 以判断密码是否正确，注意有些 zip 文件不比对 CRC
+  FInStream.Read(H, Sizeof(H));
+
+  for I := 0 to CN_ZIP_CRYPT_HEAD_SIZE - 1 do
+  begin
+    C := H[I] xor FKeys.CalcDecryptByte;
+    FKeys.UpdateKeys(C);
+    H[I] := C;
+  end;
+
+  if H[CN_ZIP_CRYPT_HEAD_SIZE - 1] <> (FZipHeader^.CRC32 shr 24) then
+    raise ECnZipException.CreateRes(@SZipInvalidPassword);
+
+  // 先从 FInStream 密文流中读出内容到 FDecrypted 并解密得到压缩后内容
+  FDecrypted := TMemoryStream.Create;
+  FDecrypted.CopyFrom(FInStream, FZipHeader^.CompressedSize - CN_ZIP_CRYPT_HEAD_SIZE);
+  P := FDecrypted.Memory;
+  for I := 1 to FDecrypted.Size do
+  begin
+    FKeys.DecryptByte(P^);
+    Inc(P);
+  end;
+
+  FDecrypted.Position := 0;
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+  FUnzip := TDecompressionStream.Create(FDecrypted, -15);
+{$ELSE}
+  FUnzip := TDecompressionStream.Create(FDecrypted);
+{$ENDIF}
+end;
+
+destructor TCnDecryptZipCompressStream.Destroy;
+begin
+  FUnzip.Free;      // FUnzip 流释放时内部要访问其引用的 FDecrypted 因此必须先释放 FUnzip
+  FDecrypted.Free;
+  FKeys.Free;
+  inherited;
+end;
+
+function TCnDecryptZipCompressStream.Read(var Buffer;
+  Count: Integer): Integer;
+begin
+  // 外界 Read 时从 FDecrypted 读出解压缩后的内容并解密
+  Result := FUnzip.Read(Buffer, Count);
+end;
+
+function TCnDecryptZipCompressStream.Seek(Offset: Integer;
+  Origin: Word): Longint;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
+end;
+
+function TCnDecryptZipCompressStream.Write(const Buffer;
+  Count: Integer): Integer;
+begin
+  raise ECnZipException.CreateRes(@SZipNotImplemented);
 end;
 
 initialization

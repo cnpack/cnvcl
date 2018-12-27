@@ -28,7 +28,6 @@ unit CnLangCollection;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2003.12.13 V1.1
 *               将 DefaultFont 的属性来源移动到 LanguageItem 中，
 *               每种语言可设置一单独的 DefaultFont，可流化到 Storage 中

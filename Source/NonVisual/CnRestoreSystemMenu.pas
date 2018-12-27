@@ -28,7 +28,6 @@ unit CnRestoreSystemMenu;
 * 开发平台：PWin2000Pro + Delphi 7.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元和窗体中的字符串已经本地化处理方式
-* 单元标识：$Id$
 * 修改记录：
 *           2005.08.05 by shenloqi
 *               修正对于TCombobox处理的遗漏

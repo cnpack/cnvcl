@@ -4,39 +4,105 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="CnPack_CB5.bpl"/>
-    <OBJFILES value="..\..\Source\Common\CnBase64.obj 
+    <OBJFILES value="..\..\Source\Common\CnAES.obj 
+      ..\..\Source\Common\CnAntiCheater.obj 
+      ..\..\Source\Common\CnBase64.obj 
+      ..\..\Source\Common\CnBerUtils.obj 
+      ..\..\Source\Common\CnBigNumber.obj 
       ..\..\Source\Common\CnBinaryDiffPatch.obj 
-      ..\..\Source\Common\CnCalendar.obj ..\..\Source\Common\CnClasses.obj 
-      ..\..\Source\Common\CnCommon.obj ..\..\Source\Common\CnConsts.obj 
-      ..\..\Source\Common\CnCRC32.obj ..\..\Source\Common\CnGraphUtils.obj 
-      ..\..\Source\Common\CnHashMap.obj ..\..\Source\Common\CnIni.obj 
-      ..\..\Source\Common\CnIniStrUtils.obj ..\..\Source\Common\CnPrimeNumber.obj 
-      ..\..\Source\Common\CnMD5.obj ..\..\Source\Common\CnDES.obj 
-      ..\..\Source\Common\CnRSA.obj ..\..\Source\Common\CnSHA1.obj 
-      ..\..\Source\Common\CnSHA2.obj ..\..\Source\Common\CnSM3.obj 
-      ..\..\Source\Common\CnSM4.obj ..\..\Source\Common\CnZUC.obj 
-      ..\..\Source\Common\CnSingleton.obj ..\..\Source\Common\CnSingletonComp.obj 
-      ..\..\Source\Common\CnPack.obj ..\..\Source\Common\CnSQLite.obj 
-      ..\..\Source\Common\CnStrDiff.obj ..\..\Source\Common\CnStream.obj 
-      ..\..\Source\Common\CnTree.obj ..\..\Source\Common\CnLinkedList.obj 
-      ..\..\Source\Common\CnBigNumber.obj ..\..\Source\Common\CnBloomFilter.obj 
-      ..\..\Source\Common\CnSkipList.obj ..\..\Source\Common\CnVCLBase.obj 
-      ..\..\Source\Common\CnWinSvc.obj ..\..\Source\DbReport\CnDBConsts.obj 
-      ..\..\Source\Common\CnNativeDecl.obj ..\..\Source\Common\CnRopes.obj 
-      ..\..\Source\DbReport\CnADOUpdateSQL.obj ..\..\Source\DbReport\CnPagedGrid.obj 
-      ..\..\Source\Graphics\CnAOTreeView.obj ..\..\Source\Graphics\CnAutoOption.obj 
-      ..\..\Source\Graphics\CnCheckTreeView.obj ..\..\Source\Graphics\CnEdit.obj 
-      ..\..\Source\Graphics\CnListBox.obj ..\..\Source\Graphics\CnGraphConsts.obj 
-      ..\..\Source\Graphics\CnGraphics.obj ..\..\Source\Graphics\CnImage.obj 
-      ..\..\Source\Graphics\CnShellCtrls.obj ..\..\Source\Graphics\CnSpin.obj 
-      ..\..\Source\Graphics\CnWizardImage.obj 
+      ..\..\Source\Common\CnBloomFilter.obj 
+      ..\..\Source\Common\CnCalClass.obj 
+      ..\..\Source\Common\CnCalendar.obj 
+      ..\..\Source\Common\CnCallBack.obj 
+      ..\..\Source\Common\CnCertificateAuthority.obj 
+      ..\..\Source\Common\CnClasses.obj 
+      ..\..\Source\Common\CnCommon.obj 
+      ..\..\Source\Common\CnCompUtils.obj 
+      ..\..\Source\Common\CnConsts.obj 
+      ..\..\Source\Common\CnContainers.obj 
+      ..\..\Source\Common\CnCRC32.obj 
+      ..\..\Source\Common\CnDancingLinks.obj 
+      ..\..\Source\Common\CnDES.obj 
+      ..\..\Source\Common\CnDynObjBuilder.obj 
+      ..\..\Source\Common\CnECC.obj 
+      ..\..\Source\Common\CnEventBus.obj 
+      ..\..\Source\Common\CnEventHook.obj 
+      ..\..\Source\Common\CnFitCurve.obj 
+      ..\..\Source\Common\CnGraphUtils.obj 
+      ..\..\Source\Common\CnHardWareInfo.obj 
+      ..\..\Source\Common\CnHashMap.obj 
+      ..\..\Source\Common\CnIni.obj 
+      ..\..\Source\Common\CnIniCfg.obj 
+      ..\..\Source\Common\CnIniStrUtils.obj 
+      ..\..\Source\Common\CnLinkedList.obj 
+      ..\..\Source\Common\CnMD5.obj 
+      ..\..\Source\Common\CnMemProf.obj 
+      ..\..\Source\Common\CnMethodHook.obj 
+      ..\..\Source\Common\CnNativeDecl.obj 
+      ..\..\Source\Common\CnPrimeNumber.obj 
+      ..\..\Source\Common\CnRopes.obj 
+      ..\..\Source\Common\CnRSA.obj 
+      ..\..\Source\Common\CnSHA1.obj 
+      ..\..\Source\Common\CnSHA2.obj 
+      ..\..\Source\Common\CnSHA3.obj 
+      ..\..\Source\Common\CnShellUtils.obj 
+      ..\..\Source\Common\CnSingleton.obj 
+      ..\..\Source\Common\CnSingletonComp.obj 
+      ..\..\Source\Common\CnSkipList.obj 
+      ..\..\Source\Common\CnSM3.obj 
+      ..\..\Source\Common\CnSM4.obj 
+      ..\..\Source\Common\CnSQLite.obj 
+      ..\..\Source\Common\CnStrDiff.obj 
+      ..\..\Source\Common\CnStream.obj 
+      ..\..\Source\Common\CnStrings.obj 
+      ..\..\Source\Common\CnTEA.obj 
+      ..\..\Source\Common\CnThreadTaskMgr.obj 
+      ..\..\Source\Common\CnTree.obj 
+      ..\..\Source\Common\CnVarList.obj 
+      ..\..\Source\Common\CnVCLBase.obj 
+      ..\..\Source\Common\CnVclFmxMixed.obj 
+      ..\..\Source\Common\CnWideStrings.obj 
+      ..\..\Source\Common\CnWinSvc.obj 
+      ..\..\Source\Common\CnZUC.obj 
+      ..\..\Source\DbReport\CnADOBinding.obj 
+      ..\..\Source\DbReport\CnADOUpdateSQL.obj 
+      ..\..\Source\DbReport\CnDataGrid.obj 
+      ..\..\Source\DbReport\CnDBConsts.obj 
+      ..\..\Source\DbReport\CnPagedGrid.obj 
+      ..\..\Source\DbReport\CnXlsWriter.obj 
+      ..\..\Source\Graphics\CnAACtrls.obj 
+      ..\..\Source\Graphics\CnAAFont.obj 
+      ..\..\Source\Graphics\CnAAFontDialog.obj 
+      ..\..\Source\Graphics\CnAOTreeView.obj 
+      ..\..\Source\Graphics\CnAutoOption.obj 
+      ..\..\Source\Graphics\CnButtonEdit.obj 
       ..\..\Source\Graphics\CnButtons.obj 
-      ..\..\Source\Graphics\CnHexEditor.obj 
-      ..\..\Source\Graphics\CnGauge.obj 
-      ..\..\Source\Graphics\CnMonthCalendar.obj 
+      ..\..\Source\Graphics\CnCheckTreeView.obj 
       ..\..\Source\Graphics\CnColorGrid.obj 
+      ..\..\Source\Graphics\CnEdit.obj 
       ..\..\Source\Graphics\CnErrorProvider.obj 
+      ..\..\Source\Graphics\CnGauge.obj 
+      ..\..\Source\Graphics\CnGraphConsts.obj 
+      ..\..\Source\Graphics\CnGraphics.obj 
+      ..\..\Source\Graphics\CnHexEditor.obj 
+      ..\..\Source\Graphics\CnHint.obj 
+      ..\..\Source\Graphics\CnIconUtils.obj 
+      ..\..\Source\Graphics\CnImage.obj 
       ..\..\Source\Graphics\CnLED.obj 
+      ..\..\Source\Graphics\CnListBox.obj 
+      ..\..\Source\Graphics\CnMemo.obj 
+      ..\..\Source\Graphics\CnMonthCalendar.obj 
+      ..\..\Source\Graphics\CnOpenGLPaintBox.obj 
+      ..\..\Source\Graphics\CnPanel.obj 
+      ..\..\Source\Graphics\CnShellCtrls.obj 
+      ..\..\Source\Graphics\CnSkinMagic.obj 
+      ..\..\Source\Graphics\CnSpin.obj 
+      ..\..\Source\Graphics\CnSplitter.obj 
+      ..\..\Source\Graphics\CnTabSet.obj 
+      ..\..\Source\Graphics\CnValidateImage.obj 
+      ..\..\Source\Graphics\CnWaterEffect.obj 
+      ..\..\Source\Graphics\CnWaterImage.obj 
+      ..\..\Source\Graphics\CnWizardImage.obj 
       ..\..\Source\MultiLang\CnHashIniFile.obj 
       ..\..\Source\MultiLang\CnHashLangStorage.obj 
       ..\..\Source\MultiLang\CnIniLangFileStorage.obj 
@@ -45,23 +111,50 @@
       ..\..\Source\MultiLang\CnLangMgr.obj 
       ..\..\Source\MultiLang\CnLangStorage.obj 
       ..\..\Source\MultiLang\CnLangTranslator.obj 
-      ..\..\Source\NetComm\CnModem.obj ..\..\Source\NetComm\CnNetConsts.obj 
-      ..\..\Source\NetComm\CnRS232.obj ..\..\Source\NetComm\CnRS232Dialog.obj 
-      ..\..\Source\NetComm\CnIP.obj ..\..\Source\NetComm\CnPing.obj 
-      ..\..\Source\NetComm\CnDialUp.obj ..\..\Source\NetComm\CnCameraEye.obj 
-      ..\..\Source\NetComm\CnIISCtrl.obj ..\..\Source\NetComm\CnTwain.obj 
-      ..\..\Source\NetComm\CnIocpSimpleMemPool.obj ..\..\Source\NetComm\CnIocpSocketAdapter.obj 
+      ..\..\Source\MultiLang\CnLangUtils.obj 
+      ..\..\Source\NetComm\CnCameraEye.obj 
+      ..\..\Source\NetComm\CnDialUp.obj 
+      ..\..\Source\NetComm\CnIISCtrl.obj 
+      ..\..\Source\NetComm\CnInetUtils.obj 
+      ..\..\Source\NetComm\CnIocpSimpleMemPool.obj 
+      ..\..\Source\NetComm\CnIocpSocketAdapter.obj 
+      ..\..\Source\NetComm\CnIP.obj 
+      ..\..\Source\NetComm\CnModem.obj 
+      ..\..\Source\NetComm\CnNetConsts.obj 
+      ..\..\Source\NetComm\CnNetDecls.obj 
+      ..\..\Source\NetComm\CnPing.obj 
+      ..\..\Source\NetComm\CnRS232.obj 
+      ..\..\Source\NetComm\CnRS232Dialog.obj 
+      ..\..\Source\NetComm\CnTwain.obj 
+      ..\..\Source\NetComm\CnUDP.obj 
       ..\..\Source\NonVisual\CnActionListHook.obj 
       ..\..\Source\NonVisual\CnActiveScript.obj 
       ..\..\Source\NonVisual\CnADOConPool.obj 
       ..\..\Source\NonVisual\CnCompConsts.obj 
+      ..\..\Source\NonVisual\CnConsole.obj 
       ..\..\Source\NonVisual\CnControlHook.obj 
+      ..\..\Source\NonVisual\CnDelphiDockStyle.obj 
+      ..\..\Source\NonVisual\CnDockFormControl.obj 
+      ..\..\Source\NonVisual\CnDockGlobal.obj 
+      ..\..\Source\NonVisual\CnDockHashTable.obj 
+      ..\..\Source\NonVisual\CnDockInfo.obj 
+      ..\..\Source\NonVisual\CnDockSupportClass.obj 
+      ..\..\Source\NonVisual\CnDockSupportControl.obj 
+      ..\..\Source\NonVisual\CnDockSupportProc.obj 
+      ..\..\Source\NonVisual\CnDockTree.obj 
       ..\..\Source\NonVisual\CnDragResizer.obj 
+      ..\..\Source\NonVisual\CnFilePacker.obj 
+      ..\..\Source\NonVisual\CnFileSystemWatcher.obj 
       ..\..\Source\NonVisual\CnFormScaler.obj 
+      ..\..\Source\NonVisual\CnGlobalKeyHook.obj 
+      ..\..\Source\NonVisual\CnHardwareBreakpoint.obj 
+      ..\..\Source\NonVisual\CnInProcessAPIHook.obj 
       ..\..\Source\NonVisual\CnKeyBlocker.obj 
       ..\..\Source\NonVisual\CnMDIBackGround.obj 
+      ..\..\Source\NonVisual\CnMemorySearch.obj 
       ..\..\Source\NonVisual\CnMenuHook.obj 
       ..\..\Source\NonVisual\CnObjectPool.obj 
+      ..\..\Source\NonVisual\CnOuterControls.obj 
       ..\..\Source\NonVisual\CnRawInput.obj 
       ..\..\Source\NonVisual\CnRestoreSystemMenu.obj 
       ..\..\Source\NonVisual\CnSystemDebugControl.obj 
@@ -69,32 +162,21 @@
       ..\..\Source\NonVisual\CnThreadPool.obj 
       ..\..\Source\NonVisual\CnTimer.obj 
       ..\..\Source\NonVisual\CnTrayIcon.obj 
-      ..\..\Source\NonVisual\CnVolumeCtrl.obj 
-      ..\..\Source\NonVisual\CnWinampCtrl.obj 
-      ..\..\Source\NonVisual\CnOuterControls.obj 
-      ..\..\Source\NonVisual\CnGlobalKeyHook.obj 
-      ..\..\Source\Graphics\CnWaterEffect.obj ..\..\Source\Graphics\CnValidateImage.obj 
-      ..\..\Source\Graphics\CnWaterImage.obj ..\..\Source\Graphics\CnAACtrls.obj 
-      ..\..\Source\Graphics\CnAAFont.obj ..\..\Source\Graphics\CnTabSet.obj 
-      ..\..\Source\Graphics\CnButtonEdit.obj ..\..\Source\Graphics\CnPanel.obj 
-      ..\..\Source\Graphics\CnAAFontDialog.obj 
-      ..\..\Source\Graphics\CnSkinMagic.obj 
-      ..\..\Source\Graphics\CnHint.obj 
-      ..\..\Source\NonVisual\CnConsole.obj 
-      ..\..\Source\NonVisual\CnFileSystemWatcher.obj 
-      ..\..\Source\NonVisual\CnFilePacker.obj 
-      ..\..\Source\NonVisual\CnDockInfo.obj 
-      ..\..\Source\NonVisual\CnDockSupportProc.obj 
-      ..\..\Source\NonVisual\CnDockFormControl.obj 
-      ..\..\Source\NonVisual\CnDockSupportControl.obj 
-      ..\..\Source\NonVisual\CnDockSupportClass.obj 
-      ..\..\Source\NonVisual\CnDockGlobal.obj 
-      ..\..\Source\NonVisual\CnVSNETDockStyle.obj 
-      ..\..\Source\NonVisual\CnVIDDockStyle.obj 
       ..\..\Source\NonVisual\CnVCDockStyle.obj 
-      ..\..\Source\NonVisual\CnDelphiDockStyle.obj 
-      ..\..\Source\NonVisual\CnDockTree.obj 
-      ..\..\Source\NonVisual\CnDockHashTable.obj CnPack_CB5.obj"/>
+      ..\..\Source\NonVisual\CnVIDDockStyle.obj 
+      ..\..\Source\NonVisual\CnVolumeCtrl.obj 
+      ..\..\Source\NonVisual\CnVSNETDockStyle.obj 
+      ..\..\Source\NonVisual\CnWinampCtrl.obj 
+      ..\..\Source\ObjRep\CnFoxmailMsgFrm.obj 
+      ..\..\Source\ObjRep\CnProgressFrm.obj 
+      ..\..\Source\Skin\CnSkinForm.obj 
+      ..\..\Source\Skin\CnSkinMenu.obj 
+      ..\..\Source\Skin\CnSkinStdCtrls.obj 
+      ..\..\Source\Skin\CnSkinStyle.obj 
+      ..\..\Source\Skin\CnSkinTheme.obj 
+      ..\..\Source\Skin\CnSkinXPBlueStyle.obj 
+      ..\..\Source\Skin\CnSkinXPGreenStyle.obj 
+      ..\..\Source\Skin\CnSkinXPSilverStyle.obj CnPack_CB5.obj"/>
     <RESFILES value="CnPack_CB5.res ..\..\Source\Common\CnPack.dcr"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>

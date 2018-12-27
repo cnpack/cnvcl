@@ -30,10 +30,18 @@ unit CnPrimeNumber;
 *           后来采用基于费马小定理以及二次探测的 Miller Rabin 素数判定概率算法，
 *           无需排除部分已知的 Carmichael 数（Carmichael 数严格符合费马小定理，
 *           但加入二次探测后就被筛了，和其他素数保持同等概率）。
+*           另外本单元中的 Int64 系列均是 32 位编译器下靠 Int64 封装支持 UInt64，
+*           为的是照顾不支持 UInt64 的编译器。
+*           真正的 UInt64 系列函数均是 WIN64 位下实现。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.05 V1.4
+* 修改记录：2018.08.30 V1.5
+*               修正 Random 精度不够导致 Int64 生成素数末尾可能连续出现 $FF 的问题
+*               增加 UInt32/64 生成 Diffie-Hellman 密钥交换算法的素数与原根的函数，
+*               增加辗转相除法求最大公约数以及 PollardRho 算法分解质因数以及求欧拉
+*               函数的方法。
+*           2018.06.05 V1.4
 *               将 Int64 支持扩展至 UInt64 并扩展 AddMod、MultipleMode 等方法
 *           2017.04.03 V1.3
 *               将针对 Int64 的 RSA 基础加解密实现独立成 CnRSA 单元
@@ -51,7 +59,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnNativeDecl;
+  SysUtils, Classes, Windows, CnClasses, CnNativeDecl;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -652,14 +660,17 @@ function AddMod(A, B, C: TUInt64): TUInt64;
 function MultipleMod(A, B, C: TUInt64): TUInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
+function Int64MultipleMod(A, B, C: Int64): Int64;
+{* 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱}
+
 function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function CnGenerateInt32Prime(HighBitSet: Boolean = False): Cardinal;
-{* 生成一个随机的 32 位素数，HighBitSet 指明最高位是否必须为 1}
+function CnGenerateUInt32Prime(HighBitSet: Boolean = False): Cardinal;
+{* 生成一个随机的 32 位无符号素数，HighBitSet 指明最高位是否必须为 1}
 
 function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
-{* 生成一个随机的 64 位素数，HighBitSet 指明最高位是否必须为 1}
+{* 生成一个随机的 64 位无符号素数但允许用有符号的 Int64 表示，HighBitSet 指明最高位是否必须为 1}
 
 {$IFDEF SUPPORT_UINT64}
 
@@ -684,7 +695,90 @@ function CnGenerateUInt64Prime: NativeUInt;
 
 {$ENDIF}
 
+function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
+{* 求两个 32 位无符号数的最大公约数}
+
+function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
+{* 求两个 64 位无符号数的最大公约数}
+
+procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt32}
+
+procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out MaxRoot: TUInt64);
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt64}
+
+procedure CnGenerateUInt32DiffieHellmanPrimeRoots(out Prime: Cardinal; OutRoots: TCnUInt32List);
+{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，范围为 UInt32，耗时极长}
+
+procedure CnGenerateInt64DiffieHellmanPrimeRoots(out Prime: TUInt64; OutRoots: TCnUInt64List);
+{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，范围为 UInt64，耗时极长}
+
+function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
+{* 检验 Root 是否为 Num 的原根，范围为 UInt32}
+
+function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
+{* 检验 Root 是否为 Num 的原根，范围为 UInt64}
+
+procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
+{* 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
+
+procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
+{* 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
+
+function CnEulerUInt32(Num: Cardinal): Cardinal;
+{* 求不大于一 32 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
+
+function CnEulerInt64(Num: TUInt64): TUInt64;
+{* 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
+
+function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32，X、M 必须互质}
+
+function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、M 必须互质}
+
+function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: Cardinal);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
+   如果得出 X 小于 0，可加上 B}
+
+function CnInt64Legendre(A, P: Int64): Integer;
+{* 计算勒让德符号 ( A / P) 的值}
+
+procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，
+   递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
+
 implementation
+
+// 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
+function RandomUInt64: TUInt64;
+var
+  Hi, Lo: Cardinal;
+begin
+  Randomize;
+  Hi := Trunc(Random * High(Cardinal) - 1) + 1;
+  Randomize;
+  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+  Result := (TUInt64(Hi) shl 32) + Lo;
+end;
+
+function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
+begin
+  Result := UInt64Mod(RandomUInt64, HighValue);
+end;
 
 function CnUInt32IsPrime(N: Cardinal): Boolean;
 var
@@ -797,11 +891,32 @@ begin
   end;
 end;
 
+// 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
+function Int64MultipleMod(A, B, C: Int64): Int64;
+begin
+  if (A > 0) and (B > 0) then
+    Result := MultipleMod(A, B, C)
+  else if (A < 0) and (B < 0) then
+    Result := MultipleMod(-A, -B, C)
+  else if (A > 0) and (B < 0) then
+    Result := C - MultipleMod(A, -B, C)
+  else if (A < 0) and (B > 0) then
+    Result := C - MultipleMod(-A, B, C)
+  else
+    Result := 0;
+end;
+
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
 function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 var
   T: TUInt64;
 begin
+  if B = 0 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
   T := 1;
 {$IFDEF SUPPORT_UINT64}
   A := A mod C;
@@ -893,8 +1008,8 @@ begin
   Result := True;
 end;
 
-// 生成一个随机的 32 位素数
-function CnGenerateInt32Prime(HighBitSet: Boolean): Cardinal;
+// 生成一个随机的 32 位无符号素数
+function CnGenerateUInt32Prime(HighBitSet: Boolean): Cardinal;
 begin
   Randomize;
   Result := Trunc(Random * High(Cardinal) - 1) + 1;
@@ -910,20 +1025,15 @@ begin
   end;
 end;
 
-// 生成一个随机的 64 位素数
+// 生成一个随机的 64 位无符号素数
 function CnGenerateInt64Prime(HighBitSet: Boolean): TUInt64;
 begin
-  Randomize;
-  Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
-  Result := Result * 2 + 1;
-  // Result := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64 + R * MAX_SIGNED_INT64_IN_TUINT64 - 1) + 1;
+  Result := RandomUInt64;
   if HighBitSet then
     Result := Result or $8000000000000000;
   while not CnInt64IsPrime(Result) do
   begin
-    Randomize;
-    Result := Trunc(Random * MAX_SIGNED_INT64_IN_TUINT64);
-    Result := Result * 2 + 1;
+    Result := RandomUInt64;
     if HighBitSet then
       Result := Result or $8000000000000000;
   end;
@@ -1076,6 +1186,537 @@ begin
 end;
 
 {$ENDIF}
+
+// 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+function CheckPrimitiveRoot32(R, Prime: Cardinal; Factors: TCnUInt32List): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to Factors.Count - 1 do
+  begin
+    if MontgomeryPowerMod(R, (Prime - 1) div Factors[I], Prime) = 1 then
+      Exit;
+  end;
+  Result := True;
+end;
+
+// 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+function CheckPrimitiveRoot64(R, Prime: TUInt64; Factors: TCnUInt64List): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to Factors.Count - 1 do
+  begin
+    if MontgomeryPowerMod(R, UInt64Div((Prime - 1), Factors[I]), Prime) = 1 then
+      Exit;
+  end;
+  Result := True;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt32
+procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
+var
+  I: Cardinal;
+  Factors: TCnUInt32List;
+begin
+  Prime := CnGenerateUInt32Prime(True);
+  Factors := TCnUInt32List.Create;
+  Factors.IgnoreDuplicated := True;
+  MaxRoot := 0;
+
+  try
+    CnUInt32FindFactors(Prime - 1, Factors);
+    for I := Prime - 1 downto 2 do
+    begin
+      if CheckPrimitiveRoot32(I, Prime, Factors) then
+      begin
+        MaxRoot := I;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt64
+procedure CnGenerateInt64DiffieHellmanPrimeRoot(out Prime: TUInt64; out MaxRoot: TUInt64);
+var
+  I: TUInt64;
+  Factors: TCnUInt64List;
+begin
+  Prime := CnGenerateInt64Prime(True);
+  Factors := TCnUInt64List.Create;
+  Factors.IgnoreDuplicated := True;
+  MaxRoot := 0;
+
+  try
+    CnInt64FindFactors(Prime - 1, Factors);
+    I := Prime - 1;
+    while UInt64Compare(I, 2) >= 0 do
+    begin
+      if CheckPrimitiveRoot64(I, Prime, Factors) then
+      begin
+        MaxRoot := I;
+        Exit;
+      end;
+      Dec(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与最小原根，范围为 UInt32，耗时极长
+procedure CnGenerateUInt32DiffieHellmanPrimeRoots(out Prime: Cardinal;
+  OutRoots: TCnUInt32List);
+var
+  I: Cardinal;
+  Factors: TCnUInt32List;
+begin
+  if OutRoots = nil then
+    Exit;
+
+  Prime := CnGenerateUInt32Prime(True);
+  Factors := TCnUInt32List.Create;
+  Factors.IgnoreDuplicated := True;
+
+  try
+    CnUInt32FindFactors(Prime - 1, Factors);
+    OutRoots.Clear;
+    for I := 2 to Prime - 1 do
+    begin
+      if CheckPrimitiveRoot32(I, Prime, Factors) then
+        OutRoots.Add(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数与最小原根，范围为 UInt64，耗时极长
+procedure CnGenerateInt64DiffieHellmanPrimeRoots(out Prime: TUInt64;
+  OutRoots: TCnUInt64List);
+var
+  I: TUInt64;
+  Factors: TCnUInt64List;
+begin
+  if OutRoots = nil then
+    Exit;
+
+  Prime := CnGenerateInt64Prime(True);
+  Factors := TCnUInt64List.Create;
+  Factors.IgnoreDuplicated := True;
+
+  try
+    CnInt64FindFactors(Prime - 1, Factors);
+    OutRoots.Clear;
+
+    I := 2;
+    while UInt64Compare(I, Prime) < 0 do
+    begin
+      if CheckPrimitiveRoot64(I, Prime, Factors) then
+        OutRoots.Add(I);
+      Inc(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 检验 Root 是否为 Num 的原根，范围为 UInt32
+function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
+var
+  I: Cardinal;
+  Factors: TCnUInt32List;
+begin
+  Result := True;
+
+  Factors := TCnUInt32List.Create;
+  Factors.IgnoreDuplicated := True;
+  try
+    CnUInt32FindFactors(Num - 1, Factors);
+
+    for I := 0 to Factors.Count - 1 do
+    begin
+      if MontgomeryPowerMod(Root, (Num - 1) div Factors[I], Num) = 1 then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 检验 Root 是否为 Num 的原根，范围为 UInt64
+function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
+var
+  I: TUInt64;
+  Factors: TCnUInt64List;
+begin
+  Result := True;
+
+  Factors := TCnUInt64List.Create;
+  Factors.IgnoreDuplicated := True;
+  try
+    CnInt64FindFactors(Num - 1, Factors);
+
+    I := 0;
+    while UInt64Compare(I, Factors.Count) < 0 do
+    begin
+      if MontgomeryPowerMod(Root, UInt64Div((Num - 1), Factors[I]), Num) = 1 then
+      begin
+        Result := False;
+        Exit;
+      end;
+      Inc(I);
+    end;
+  finally
+    Factors.Free;
+  end;
+end;
+
+// 求两个 32 位无符号数的最大公约数
+function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
+begin
+  if B = 0 then
+    Result := A
+  else
+    Result := CnUInt32GreatestCommonDivisor(B, A mod B);
+end;
+
+// 求两个 64 位无符号数的最大公约数
+function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
+begin
+  if B = 0 then
+    Result := A
+  else
+    Result := CnInt64GreatestCommonDivisor(B, UInt64Mod(A, B));
+end;
+
+function PollardRho32(X: Cardinal; C: Cardinal): Cardinal;
+var
+  I, K, X0, Y, D: Cardinal;
+begin
+  I := 1;
+  K := 2;
+  X0 := Trunc(Random * (X - 1)) + 1;
+  Y := X0;
+
+  while True do
+  begin
+    Inc(I);
+    X0 := (MultipleMod(X0, X0, X) + C) mod X;
+    D := CnUInt32GreatestCommonDivisor(Y - X0, X);
+
+    if (D <> 1) and (D <> X) then
+    begin
+      Result := D;
+      Exit;
+    end;
+
+    if Y = X0 then
+    begin
+      Result := X;
+      Exit;
+    end;
+
+    if I = K then
+    begin
+      Y := X0;
+      K := K + K;
+    end;
+  end;
+end;
+
+function PollardRho64(X: TUInt64; C: TUInt64): TUInt64;
+var
+  I, K, X0, Y, D: TUInt64;
+begin
+  I := 1;
+  K := 2;
+  X0 := RandomUInt64LessThan(X);
+  Y := X0;
+
+  while True do
+  begin
+    Inc(I);
+    X0 := (MultipleMod(X0, X0, X) + C) mod X;
+    D := CnInt64GreatestCommonDivisor(Y - X0, X);
+
+    if (D <> 1) and (D <> X) then
+    begin
+      Result := D;
+      Exit;
+    end;
+
+    if Y = X0 then
+    begin
+      Result := X;
+      Exit;
+    end;
+
+    if I = K then
+    begin
+      Y := X0;
+      K := K + K;
+    end;
+  end;
+end;
+
+// 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
+procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
+var
+  P, C: Cardinal;
+begin
+  if CnUInt32IsPrime(Num) then
+  begin
+    Factors.Add(Num);
+    Exit;
+  end;
+
+  P := Num;
+  while P >= Num do
+  begin
+    C := Trunc(Random * (Num - 1)) + 1; // rand()%(n-1)+1
+    P := PollardRho32(P, C);
+  end;
+
+  CnUInt32FindFactors(P, Factors);
+  CnUInt32FindFactors(Num div P, Factors);
+end;
+
+// 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
+procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
+var
+  P, C: TUInt64;
+begin
+  if CnInt64IsPrime(Num) then
+  begin
+    Factors.Add(Num);
+    Exit;
+  end;
+
+  P := Num;
+  while UInt64Compare(P, Num) >= 0 do
+  begin
+    C := RandomUInt64LessThan(Num - 1) + 1;
+    P := PollardRho64(P, C);  // rand()%(n-1)+1
+  end;
+
+  CnInt64FindFactors(P, Factors);
+  CnInt64FindFactors(UInt64Div(Num, P), Factors);
+end;
+
+// 求不大于一 32 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数
+function CnEulerUInt32(Num: Cardinal): Cardinal;
+var
+  F: TCnUInt32List;
+  I: Integer;
+begin
+  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  F := TCnUInt32List.Create;
+  F.IgnoreDuplicated := True;
+  try
+    CnUInt32FindFactors(Num, F);
+    Result := Num;
+    for I := 0 to F.Count - 1 do
+      Result := Result div F[I];
+    for I := 0 to F.Count - 1 do
+      Result := Result * (F[I] - 1);
+  finally
+    F.Free;
+  end;
+end;
+
+// 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数
+function CnEulerInt64(Num: TUInt64): TUInt64;
+var
+  F: TCnUInt64List;
+  I: Integer;
+begin
+  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  F := TCnUInt64List.Create;
+  F.IgnoreDuplicated := True;
+  try
+    CnInt64FindFactors(Num, F);
+    Result := Num;
+    for I := 0 to F.Count - 1 do
+      Result := UInt64Div(Result, F[I]);
+    for I := 0 to F.Count - 1 do
+      Result := Result * (F[I] - 1);
+  finally
+    F.Free;
+  end;
+end;
+
+// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32
+function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
+var
+  N: Cardinal;
+begin
+  Result := 0;
+  if CnUInt32GreatestCommonDivisor(X, Modulus) <> 1 then
+    Exit;
+
+  // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
+  CnUInt32ExtendedEuclideanGcd(X, Modulus, Result, N);
+  if UInt32IsNegative(Result) then
+    Result := Result + Modulus;
+end;
+
+// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64
+function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+var
+  N: TUInt64;
+begin
+  Result := 0;
+  if CnInt64GreatestCommonDivisor(X, Modulus) <> 1 then
+    Exit;
+
+  // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
+  CnInt64ExtendedEuclideanGcd(X, Modulus, Result, N);
+  if UInt64IsNegative(Result) then
+    Result := Result + Modulus;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
+var
+  R, T: Cardinal;
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+    Result := A;
+  end
+  else
+  begin
+    R := CnUInt32ExtendedEuclideanGcd(B, A mod B, X, Y);
+    T := X;
+    X := Y;
+    Y := T - (A div B) * Y;
+    Result := R;
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: Cardinal);
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+  end
+  else
+  begin
+    CnUInt32ExtendedEuclideanGcd2(B, A mod B, Y, X);
+    Y := Y - X * (A div B);
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
+var
+  R, T: TUInt64;
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+    Result := A;
+  end
+  else
+  begin
+    R := CnInt64ExtendedEuclideanGcd(B, UInt64Mod(A, B), X, Y);
+    T := X;
+    X := Y;
+    Y := T - UInt64Div(A, B) * Y;
+    Result := R;
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
+begin
+  if B = 0 then
+  begin
+    X := 1;
+    Y := 0;
+  end
+  else
+  begin
+    CnInt64ExtendedEuclideanGcd2(B, UInt64Mod(A, B), Y, X);
+    Y := Y - X * UInt64Div(A, B);
+  end;
+end;
+
+// 计算勒让德符号 ( A / P) 的值
+function CnInt64Legendre(A, P: Int64): Integer;
+begin
+  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+  if A mod P = 0 then
+    Result := 0
+  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+    Result := 1
+  else
+    Result := -1;
+end;
+
+// P1363 上的 Lucas 序列计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
+// V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+// V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
+procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1: Int64;
+begin
+  if K < 0 then
+    raise Exception.Create('Invalid K for Lucas Sequence');
+
+  if K = 0 then
+  begin
+    Q := 1;
+    V := 2;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    Q := 1;
+    V := X;
+    Exit;
+  end;
+
+  V0 := 2;
+  V1 := X;
+  Q0 := 1;
+  Q1 := 1;
+
+  C := GetUInt64HighBits(K);
+  for I := C downto 0 do
+  begin
+    Q0 := Int64MultipleMod(Q0, Q1, N);
+    if GetUInt64BitSet(K, I) then
+    begin
+      Q1 := Int64MultipleMod(Q0, Y, N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);
+    end
+    else
+    begin
+      Q1 := Q0;
+      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);
+    end;
+  end;
+  Q := Q0;
+  V := V0;
+end;
 
 end.
 

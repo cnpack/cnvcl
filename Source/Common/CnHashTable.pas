@@ -28,7 +28,6 @@ unit CnHashTable;
 * 开发平台：PWin2K SP3 + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 6/7 C++Builder 6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2006.08.23
 *                创建单元
 ================================================================================
@@ -1057,9 +1056,7 @@ var
 begin
   Assert(NewSize > 0);
   if NewSize = FBucketCount then
-  begin
     Exit;
-  end;
 
   TmpBucketSize := FBucketCount;
   TmpBuckets := Copy(FBuckets, 0, TmpBucketSize);

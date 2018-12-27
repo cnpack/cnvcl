@@ -216,6 +216,32 @@ type
     btnBase64File: TButton;
     btnDeBase64File: TButton;
     dlgSave: TSaveDialog;
+    tsTEA: TTabSheet;
+    grpTea: TGroupBox;
+    edtTeaKey1: TEdit;
+    edtTeaKey2: TEdit;
+    edtTeaKey3: TEdit;
+    edtTeaKey4: TEdit;
+    lblTeaKey1: TLabel;
+    lblTeaKey2: TLabel;
+    lblTeaKey3: TLabel;
+    lblTeaKey4: TLabel;
+    edtTeaData1: TEdit;
+    edtTeaData2: TEdit;
+    lblTeaData: TLabel;
+    btnTeaEnc: TButton;
+    edtTeaEnc1: TEdit;
+    edtTeaEnc2: TEdit;
+    btnTeaDec: TButton;
+    btnXTeaEnc: TButton;
+    edtXTeaEnc1: TEdit;
+    edtXTeaEnc2: TEdit;
+    btnXTeaDec: TButton;
+    btnXXTeaEnc: TButton;
+    edtXXTeaEnc1: TEdit;
+    edtXXTeaEnc2: TEdit;
+    btnXXTeaDec: TButton;
+    bvl1: TBevel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -285,8 +311,15 @@ type
     procedure btnUSHA3_512Click(Sender: TObject);
     procedure btnBase64FileClick(Sender: TObject);
     procedure btnDeBase64FileClick(Sender: TObject);
+    procedure btnTeaEncClick(Sender: TObject);
+    procedure btnXTeaEncClick(Sender: TObject);
+    procedure btnTeaDecClick(Sender: TObject);
+    procedure btnXTeaDecClick(Sender: TObject);
+    procedure btnXXTeaEncClick(Sender: TObject);
+    procedure btnXXTeaDecClick(Sender: TObject);
   private
     { Private declarations }
+    procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
     function HexToStr(Hex: string): AnsiString;
   public
@@ -300,9 +333,14 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3;
+  CnSHA3, CnTEA;
 
 {$R *.DFM}
+
+var
+  TeaKey: TCnTeaKey;
+  TeaData: TCnTeaData;
+  TeaEnc: TCnTeaData;
 
 procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
@@ -1219,6 +1257,70 @@ begin
     Base64Decode(edtBase64Result.Text, Stream, False);
     Stream.SaveToFile(dlgSave.FileName);
   end;
+end;
+
+procedure TFormCrypt.InitTeaKeyData;
+begin
+  TeaKey[0] := HexToInt(edtTeaKey1.Text);
+  TeaKey[1] := HexToInt(edtTeaKey2.Text);
+  TeaKey[2] := HexToInt(edtTeaKey3.Text);
+  TeaKey[3] := HexToInt(edtTeaKey4.Text);
+  TeaData[0] := HexToInt(edtTeaData1.Text);
+  TeaData[1] := HexToInt(edtTeaData2.Text);
+end;
+
+procedure TFormCrypt.btnTeaEncClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  CnTeaEncrypt(TeaKey, TeaData);
+  edtTeaEnc1.Text := IntToHex(TeaData[0], 2);
+  edtTeaEnc2.Text := IntToHex(TeaData[1], 2);
+end;
+
+procedure TFormCrypt.btnXTeaEncClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  CnXTeaEncrypt(TeaKey, TeaData);
+  edtXTeaEnc1.Text := IntToHex(TeaData[0], 2);
+  edtXTeaEnc2.Text := IntToHex(TeaData[1], 2);
+end;
+
+procedure TFormCrypt.btnTeaDecClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  TeaEnc[0] := HexToInt(edtTeaEnc1.Text);
+  TeaEnc[1] := HexToInt(edtTeaEnc2.Text);
+  CnTeaDecrypt(TeaKey, TeaEnc);
+  edtTeaEnc1.Text := IntToHex(TeaEnc[0], 2);
+  edtTeaEnc2.Text := IntToHex(TeaEnc[1], 2);
+end;
+
+procedure TFormCrypt.btnXTeaDecClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  TeaEnc[0] := HexToInt(edtXTeaEnc1.Text);
+  TeaEnc[1] := HexToInt(edtXTeaEnc2.Text);
+  CnXTeaDecrypt(TeaKey, TeaEnc);
+  edtXTeaEnc1.Text := IntToHex(TeaEnc[0], 2);
+  edtXTeaEnc2.Text := IntToHex(TeaEnc[1], 2);
+end;
+
+procedure TFormCrypt.btnXXTeaEncClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  CnXXTeaEncrypt(TeaKey, @TeaData[0], 2);
+  edtXXTeaEnc1.Text := IntToHex(TeaData[0], 2);
+  edtXXTeaEnc2.Text := IntToHex(TeaData[1], 2);
+end;
+
+procedure TFormCrypt.btnXXTeaDecClick(Sender: TObject);
+begin
+  InitTeaKeyData;
+  TeaEnc[0] := HexToInt(edtXXTeaEnc1.Text);
+  TeaEnc[1] := HexToInt(edtXXTeaEnc2.Text);
+  CnXXTeaDecrypt(TeaKey, @TeaEnc[0], 2);
+  edtXXTeaEnc1.Text := IntToHex(TeaEnc[0], 2);
+  edtXXTeaEnc2.Text := IntToHex(TeaEnc[1], 2);
 end;
 
 end.

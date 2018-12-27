@@ -200,6 +200,25 @@ type
   end;
   PCnBigNumber = ^TCnBigNumber;
 
+  TCnBigNumberList = class(TObjectList)
+  {* 容纳大数的对象列表，同时拥有大数对象们}
+  private
+
+  protected
+    function GetItem(Index: Integer): TCnBigNumber;
+    procedure SetItem(Index: Integer; ABigNumber: TCnBigNumber);
+  public
+    constructor Create(AOwnsObjects: Boolean); overload;
+
+    function Add(ABigNumber: TCnBigNumber): Integer;
+    {* 添加大数对象，注意添加后无需手动释放}
+    function Remove(ABigNumber: TCnBigNumber): Integer;
+    function IndexOfValue(ABigNumber: TCnBigNumber): Integer;
+    procedure Insert(Index: Integer; ABigNumber: TCnBigNumber);
+    procedure RemoveDuplicated;
+    property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
+  end;
+
 function BigNumberNew: TCnBigNumber;
 {* 创建一个动态分配的大数对象，等同于 TCnBigNumber.Create }
 
@@ -376,7 +395,7 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
-{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功}
+{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功，Remain 可以是 Num}
 
 function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -391,8 +410,13 @@ function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
 
+function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
+  注意: 三个参数均会忽略负值，也就是均用正值参与计算}
+
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
-{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
+  注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
@@ -407,6 +431,10 @@ function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
 function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+
+function BigNumberCheckPrimitiveRoot(R, Prime: TCnBigNumber; Factors: TCnBigNumberList): Boolean;
+{* 原根判断辅助函数。判断 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+   Factors 必须是 Prime - 1 的不重复的质因数列表，可从 BigNumberFindFactors 获取并去重而来}
 
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 32 位有符号整型范围内的数}
@@ -432,11 +460,40 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
    X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
    （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
 
+procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
+{* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   调用者须自行保证 X、Modulus 互质}
+
+function BigNumberLegendre(A, P: TCnBigNumber): Integer;
+{* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快}
+
+function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
+{* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢}
+
+function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+{* 使用 Tonelli-Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
+   调用者需自行保证 P 为奇素数或奇素数的整数次方}
+
+function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+{* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解}
+
+procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
+{* 找出大数的质因数列表}
+
+function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数
+   Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
+
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
 
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 实现区块随机填充}
+
+var
+  CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的常量
+  CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的常量
 
 implementation
 
@@ -1180,8 +1237,11 @@ begin
     // 但头上可能有多余的，再把 C * 8 - 1 到 N + 1 之间的位清零
     if N + 1 <= C * 8 - 1 then
       for I := C * 8 - 1 downto N + 1 do
-        if not BigNumberClearBit(Num, I) then
-          Exit;
+        if BigNumberIsBitSet(Num, I) then
+          if not BigNumberClearBit(Num, I) then
+            Exit;
+    // 加个 IsBitSet 的判断，因为 ClearBit 会判断待 Clear 的位是否超出 Top，
+    // 如果生成的位本来就是 0并且已经被 CorrectTop了，那么 ClearBit 会出错。
 
     while BigNumberCompare(Num, Range) >= 0 do
     begin
@@ -1588,6 +1648,8 @@ begin
   end;
 end;
 
+{$IFNDEF WIN64}
+
 // Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
 // 来自 Delphi 的 Unsigned Int64 Div 汇编实现
 procedure _LLUDiv;
@@ -1647,6 +1709,8 @@ asm
         JMP     @__LLUDIV@FINISH
 end;
 
+{$ENDIF}
+
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D
 function BigNumberDivWords(H: DWORD; L: DWORD; D: DWORD): DWORD;
 begin
@@ -1656,6 +1720,9 @@ begin
     Exit;
   end;
 
+{$IFDEF WIN64}
+  Result := DWORD(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
+{$ELSE}
   Result := 0;
   asm
     PUSH 0
@@ -1665,6 +1732,7 @@ begin
     CALL _LLUDiv            // 使用汇编实现的 64 位无符号除法函数
     MOV Result, EAX
   end;
+{$ENDIF}
 end;
 
 {*  Words 系列内部计算函数结束 }
@@ -2895,6 +2963,8 @@ begin
 
     if RR <> Res then
       BigNumberCopy(Res, RR);
+
+    BigNumberCorrectTop(Res);
     Result := True;
   finally
     if IsFromPool then
@@ -2940,6 +3010,8 @@ begin
   SDiv := nil;
   BackupTop := 0;
   BackupDMax := 0;
+  BackupNeg := 0;
+  BackupD := nil;
 
   try
     Tmp := ObtainBigNumberFromPool;
@@ -3320,6 +3392,56 @@ end;
 // 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 var
+  T, P: TCnBigNumber;
+begin
+  if not BigNumberIsNegative(A) and not BigNumberIsNegative(B) then
+    Result := BigNumberUnsignedMulMod(Res, A, B, C)
+  else if BigNumberIsNegative(A) and BigNumberIsNegative(B) then
+  begin
+    T := ObtainBigNumberFromPool;
+    P := ObtainBigNumberFromPool;
+    try
+      BigNumberCopy(T, A);
+      BigNumberCopy(P, B);
+      BigNumberSetNegative(T, False);
+      BigNumberSetNegative(P, False);
+      Result := BigNumberUnsignedMulMod(Res, T, P, C);
+    finally
+      RecycleBigNumberToPool(T);
+      RecycleBigNumberToPool(P);
+    end;
+  end
+  else if BigNumberIsNegative(A) and not BigNumberIsNegative(B) then // A 负
+  begin
+    T := ObtainBigNumberFromPool;
+    try
+      BigNumberCopy(T, A);
+      BigNumberSetNegative(T, False);
+      Result := BigNumberUnsignedMulMod(Res, T, B, C);
+      BigNumberSub(Res, C, Res);
+    finally
+      RecycleBigNumberToPool(T);
+    end;
+  end
+  else if not BigNumberIsNegative(A) and BigNumberIsNegative(B) then // B 负
+  begin
+    T := ObtainBigNumberFromPool;
+    try
+      BigNumberCopy(T, B);
+      BigNumberSetNegative(T, False);
+      Result := BigNumberUnsignedMulMod(Res, A, T, C);
+      BigNumberSub(Res, C, Res);
+    finally
+      RecycleBigNumberToPool(T);
+    end;
+  end
+  else
+    Result := False;
+end;
+
+// 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
+function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+var
   AA, BB: TCnBigNumber;
 begin
   Result := False;
@@ -3331,10 +3453,15 @@ begin
     AA := ObtainBigNumberFromPool;
     BB := ObtainBigNumberFromPool;
 
-    if not BigNumberMod(AA, A, C) then
+    BigNumberCopy(AA, A);
+    BigNumberCopy(BB, B);
+    BigNumberSetNegative(AA, False); // 全正处理
+    BigNumberSetNegative(BB, False);
+
+    if not BigNumberMod(AA, AA, C) then
       Exit;
 
-    if not BigNumberMod(BB, B, C) then
+    if not BigNumberMod(BB, BB, C) then
       Exit;
 
     Res.SetZero; // 如果 Res 是 A 或 B，后面参与运算的是 AA 或 BB，改变 A 或 B不影响
@@ -3373,6 +3500,12 @@ var
   T, AA, BB: TCnBigNumber;
 begin
   Result := False;
+  if B.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end;
 
   AA := nil;
   BB := nil;
@@ -3473,17 +3606,37 @@ begin
   if TestCount <= 1 then
     Exit;
 
-  if Num.IsZero or Num.IsNegative or Num.IsOne or not Num.IsOdd then
+  // 排除了 负数、0、1 以及 2 之外的偶数，
+  if Num.IsZero or Num.IsNegative or Num.IsOne or (not Num.IsOdd and not BigNumberAbsIsWord(Num, 2))then
     Exit;
 
-  // Using Stored Prime Number to div them First.
+  // 小额素数先对比判断，包括 2
+  X := ObtainBigNumberFromPool;
+  try
+    X.SetWord(CN_PRIME_NUMBERS_SQRT_UINT32[High(CN_PRIME_NUMBERS_SQRT_UINT32)]);
+    if BigNumberCompare(Num, X) <= 0 then
+    begin
+      for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
+      begin
+        if BigNumberAbsIsWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    end;
+  finally
+    RecycleBigNumberToPool(X);
+  end;
+
+  // 再用小额素数整除，不用 2 了，因为 2 之外的偶数已经被排除了
   for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1 to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
   begin
     if BigNumberModWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) = 0 then
       Exit;
   end;
 
-  // Miller-Rabin Test
+  // 都漏网了，再做 Miller-Rabin Test
   X := nil;
   R := nil;
   W := nil;
@@ -3578,6 +3731,38 @@ begin
 //      Num.AddWord(1);
   end;
   Result := True;
+end;
+
+// 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
+function BigNumberCheckPrimitiveRoot(R, Prime: TCnBigNumber; Factors: TCnBigNumberList): Boolean;
+var
+  I: Integer;
+  Res, SubOne, T, Remain: TCnBigNumber;
+begin
+  Result := False;
+  Res := ObtainBigNumberFromPool;
+  T := ObtainBigNumberFromPool;
+  Remain := ObtainBigNumberFromPool;
+  SubOne := ObtainBigNumberFromPool;
+
+  BigNumberCopy(SubOne, Prime);
+  BigNumberSubWord(SubOne, 1);
+
+  try
+    for I := 0 to Factors.Count - 1 do
+    begin
+      BigNumberDiv(T, Remain, SubOne, Factors[I]);
+      BigNumberMontgomeryPowerMod(Res, R, T, Prime);
+      if Res.IsOne then
+        Exit;
+    end;
+    Result := True;
+  finally
+    RecycleBigNumberToPool(Res);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(Remain);
+    RecycleBigNumberToPool(SubOne);
+  end;
 end;
 
 // 大数是否是一个 32 位有符号整型范围内的数
@@ -3743,6 +3928,520 @@ begin
       RecycleBigNumberToPool(P);
       RecycleBigNumberToPool(T);
     end;
+  end;
+end;
+
+// 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。调用者须自行保证 X、Modulus 互质
+procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
+var
+  Neg: Boolean;
+  X1, Y: TCnBigNumber;
+begin
+  Neg := False;
+
+  X1 := nil;
+  Y := nil;
+
+  try
+    X1 := ObtainBigNumberFromPool;
+    Y := ObtainBigNumberFromPool;
+
+    BigNumberCopy(X1, X);
+    if BigNumberIsNegative(X1) then
+    begin
+      BigNumberSetNegative(X1, False);
+      Neg := True;
+    end;
+
+    // 求正数的模逆元。负数的模逆元等于正数的模逆元的负值，解出来的负值还可以再加 Modulus
+    BigNumberExtendedEuclideanGcd2(X1, Modulus, Res, Y);
+    // 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+
+    if Neg then
+      BigNumberSetNegative(Res, not BigNumberIsNegative(Res));
+
+    if BigNumberIsNegative(Res) then
+      BigNumberAdd(Res, Res, Modulus);
+  finally
+    RecycleBigNumberToPool(X1);
+    RecycleBigNumberToPool(Y);
+  end;
+end;
+
+// 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快
+function BigNumberLegendre(A, P: TCnBigNumber): Integer;
+var
+  AA, Q: TCnBigNumber;
+begin
+  if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
+    raise Exception.Create('A, P Must > 0');
+
+  if A.IsOne then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  AA := ObtainBigNumberFromPool;
+  Q := ObtainBigNumberFromPool;
+
+  try
+    if A.IsOdd then
+    begin
+      // 奇数
+      BigNumberMod(AA, P, A);
+      Result := BigNumberLegendre(AA, A);
+
+      // 计算 (A-1)*(P-1)/4 个 -1 相乘
+      BigNumberSub(AA, A, CnBigNumberOne);
+      BigNumberSub(Q, P, CnBigNumberOne);
+      BigNumberMul(Q, AA, Q);
+      BigNumberShiftRight(Q, Q, 2);
+
+      if Q.IsOdd then // 奇数个 -1 乘还是得 -1
+        Result := -Result;
+    end
+    else
+    begin
+      // 偶数
+      BigNumberShiftRight(AA, A, 1);
+      Result := BigNumberLegendre(AA, P);
+
+      // 计算 (P^2 - 1)/8 个 -1 相乘
+      BigNumberMul(Q, P, P);
+      BigNumberSubWord(Q, 1);
+      BigNumberShiftRight(Q, Q, 3);
+
+      if Q.IsOdd then // 奇数个 -1 乘还是得 -1
+        Result := -Result;
+    end;
+  finally
+    RecycleBigNumberToPool(Q);
+    RecycleBigNumberToPool(AA);
+  end;
+end;
+
+// 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢
+function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
+var
+  R, Res: TCnBigNumber;
+begin
+  if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
+    raise Exception.Create('A, P Must > 0');
+
+  R := ObtainBigNumberFromPool;
+  Res := ObtainBigNumberFromPool;
+
+  try
+    // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+    BigNumberMod(R, A, P);
+    if R.IsZero then
+      Result := 0
+    else
+    begin
+      BigNumberCopy(R, P);
+      BigNumberSubWord(R, 1);
+      BigNumberShiftRightOne(R, R);
+      BigNumberMontgomeryPowerMod(Res, A, R, P);
+
+      if Res.IsOne then // 欧拉判别法
+        Result := 1
+      else
+        Result := -1;
+    end;
+  finally
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(Res);
+  end;
+end;
+
+// 使用 Tonelli Shanks 算法进行模素数二次剩余求解，调用者需自行保证 P 为奇素数或奇素数的整数次方
+function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+var
+  Q, Z, C, R, T, N, L, U, B: TCnBigNumber;
+  S, I, M: Integer;
+begin
+  Result := False;
+  if (Res = nil) or A.IsZero or A.IsNegative or P.IsZero or P.IsNegative
+    or (BigNumberCompare(A, P) >= 0) then
+    Exit;
+
+  // 如果勒让德符号不为 1，说明无解，下面就不用跑了
+  if BigNumberLegendre(A, P) <> 1 then
+    Exit;
+
+  Q := ObtainBigNumberFromPool;
+  Z := ObtainBigNumberFromPool;
+  C := ObtainBigNumberFromPool;
+  R := ObtainBigNumberFromPool;
+  T := ObtainBigNumberFromPool;
+  L := ObtainBigNumberFromPool;
+  U := ObtainBigNumberFromPool;
+  B := ObtainBigNumberFromPool;
+  N := ObtainBigNumberFromPool;
+
+  try
+    S := 0;
+    BigNumberSub(Q, P, CnBigNumberOne);
+    while not Q.IsOdd do
+    begin
+      BigNumberShiftRightOne(Q, Q);
+      Inc(S);
+    end;
+
+    // 先找一个 Z 满足 针对 P 的勒让德符号为 -1
+    Z.SetWord(2);
+    while BigNumberCompare(Z, P) < 0 do
+    begin
+      if BigNumberLegendre(Z, P) = -1 then
+        Break;
+      BigNumberAddWord(Z, 1);
+    end;
+
+    BigNumberAdd(N, Q, CnBigNumberOne);
+    BigNumberShiftRight(N, N, 1);
+    BigNumberMontgomeryPowerMod(C, Z, Q, P);
+    BigNumberMontgomeryPowerMod(R, A, N, P);
+    BigNumberMontgomeryPowerMod(T, A, Q, P);
+    M := S;
+
+    while True do
+    begin
+      BigNumberMod(U, T, P);
+      if U.IsOne then
+        Break;
+
+      for I := 1 to M - 1 do
+      begin
+        U.SetOne;
+        BigNumberShiftLeft(U, U, I);
+        BigNumberMontgomeryPowerMod(N, T, U, P);
+        if N.IsOne then
+          Break;
+      end;
+
+      U.SetOne;
+      BigNumberShiftLeft(U, U, M - I - 1);
+      BigNumberMontgomeryPowerMod(B, C, U, P);
+      M := I;
+      BigNumberMulMod(R, R, B, P);
+
+      // T := T*B*B mod P = (T*B mod P) * (B mod P) mod P
+      BigNumberMulMod(U, T, B, P); // U := T*B mod P
+      BigNumberMod(L, B, P);       // L := B mod P
+      BigNumberMulMod(T, U, L, P);
+
+      BigNumberMulMod(C, B, B, P);
+    end;
+
+    BigNumberMod(L, R, P);
+    BigNumberAdd(L, L, P);
+    BigNumberMod(Res, L, P);
+    Result := True;
+  finally
+    RecycleBigNumberToPool(Q);
+    RecycleBigNumberToPool(Z);
+    RecycleBigNumberToPool(C);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(T);
+    RecycleBigNumberToPool(L);
+    RecycleBigNumberToPool(U);
+    RecycleBigNumberToPool(B);
+    RecycleBigNumberToPool(N);
+  end;
+end;
+
+// 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解
+function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
+var
+  G, X, Z, U, V, T: TCnBigNumber;
+begin
+  Result := False;
+
+  G := nil;
+  X := nil;
+  Z := nil;
+  U := nil;
+  V := nil;
+  T := nil;
+
+  try
+    G := ObtainBigNumberFromPool;
+    X := ObtainBigNumberFromPool;
+    Z := ObtainBigNumberFromPool;
+    U := ObtainBigNumberFromPool;
+    V := ObtainBigNumberFromPool;
+    T := ObtainBigNumberFromPool;
+
+    while True do
+    begin
+      if not BigNumberRandRange(X, P) then
+        Exit;
+
+      BigNumberCopy(T, P);
+      BigNumberAddWord(T, 1);
+      BigNumberShiftRight(T, T, 1);
+      if not BigNumberLucasSequenceMod(X, A, T, P, U, V) then
+        Exit;
+
+      BigNumberCopy(Z, V);
+      if not V.IsOdd then
+      begin
+        BigNumberShiftRight(Z, Z, 1);
+        BigNumberMod(Z, Z, P);
+      end
+      else
+      begin
+        BigNumberAdd(Z, Z, P);
+        BigNumberShiftRight(Z, Z, 1);
+      end;
+
+      if not BigNumberUnsignedMulMod(T, Z, Z, P) then
+        Exit;
+
+      if BigNumberCompare(T, A) = 0 then
+      begin
+        BigNumberCopy(Res, Z);
+        Result := True;
+        Exit;
+      end
+      else if BigNumberCompare(U, CnBigNumberOne) > 0 then
+      begin
+        BigNumberCopy(T, P);
+        BigNumberSubWord(T, 1);
+
+        if BigNumberCompare(U, T) < 0 then
+          Break;
+      end;
+    end;
+  finally
+    RecycleBigNumberToPool(G);
+    RecycleBigNumberToPool(X);
+    RecycleBigNumberToPool(Z);
+    RecycleBigNumberToPool(U);
+    RecycleBigNumberToPool(V);
+    RecycleBigNumberToPool(T);
+  end;
+end;
+
+procedure BigNumberPollardRho(X: TCnBigNumber; C: TCnBigNumber; Res: TCnBigNumber);
+var
+  I, K, X0, Y0, Y, D, X1, R: TCnBigNumber;
+begin
+  I := ObtainBigNumberFromPool;
+  K := ObtainBigNumberFromPool;
+  X0 := ObtainBigNumberFromPool;
+  X1 := ObtainBigNumberFromPool;
+  Y0 := ObtainBigNumberFromPool;
+  Y := ObtainBigNumberFromPool;
+  D := ObtainBigNumberFromPool;
+  R := ObtainBigNumberFromPool;
+
+  try
+    I.SetOne;
+    K.SetZero;
+    BigNumberAddWord(K, 2);
+    BigNumberCopy(X1, X);
+    BigNumberSubWord(X1, 1);
+    BigNumberRandRange(X0, X1);
+    BigNumberAddWord(X1, 1);
+    BigNumberCopy(Y, X0);
+
+    while True do
+    begin
+      BigNumberAddWord(I, 1);
+
+      BigNumberMulMod(R, X0, X0, X);
+      BigNumberAdd(R, R, C);
+      BigNumberMod(X0, R, X);
+
+      BigNumberSub(Y0, Y, X0);
+      BigNumberGcd(D, Y0, X);
+
+      if not D.IsOne and (BigNumberCompare(D, X) <> 0) then
+      begin
+        BigNumberCopy(Res, D);
+        Exit;
+      end;
+
+      if BigNumberCompare(Y, X0) = 0 then
+      begin
+        BigNumberCopy(Res, X);
+        Exit;
+      end;
+
+      if BigNumberCompare(I, K) = 0 then
+      begin
+        BigNumberCopy(Y, X0);
+        BigNumberMulWord(K, 2);
+      end;
+    end;
+  finally
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(I);
+    RecycleBigNumberToPool(K);
+    RecycleBigNumberToPool(X0);
+    RecycleBigNumberToPool(X1);
+    RecycleBigNumberToPool(Y0);
+    RecycleBigNumberToPool(Y);
+    RecycleBigNumberToPool(D);
+  end;
+end;
+
+// 找出大数的质因数列表
+procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
+var
+  P, R, S, D: TCnBigNumber;
+begin
+  if BigNumberIsProbablyPrime(Num) then
+  begin
+    Factors.Add(BigNumberDuplicate(Num));
+    Exit;
+  end;
+
+  P := ObtainBigNumberFromPool;
+  R := ObtainBigNumberFromPool;
+  S := ObtainBigNumberFromPool;
+  D := ObtainBigNumberFromPool;
+  try
+    P := BigNumberCopy(P, Num);
+
+    while BigNumberCompare(P, Num) >= 0 do
+    begin
+      BigNumberCopy(S, Num);
+      BigNumberSubWord(S, 1);
+      BigNumberRandRange(R, S);
+      BigNumberAddWord(R, 1);
+      BigNumberPollardRho(P, R, P);
+    end;
+
+    BigNumberFindFactors(P, Factors);
+    D := ObtainBigNumberFromPool;
+    BigNumberDiv(D, R, Num, P);
+    BigNumberFindFactors(D, Factors);
+  finally
+    RecycleBigNumberToPool(D);
+    RecycleBigNumberToPool(S);
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(P);
+  end;
+end;
+
+// 计算 IEEE P1363 的规范中说明的 Lucas 序列
+function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1, T0, T1, C2: TCnBigNumber;
+begin
+  Result := False;
+  if K.IsNegative then
+    Exit;
+
+  if K.IsZero then
+  begin
+    Q.SetOne;
+    V.SetWord(2);
+    Result := True;
+    Exit;
+  end
+  else if K.IsOne then
+  begin
+    Q.SetOne;
+    BigNumberCopy(V, X);
+    Result := True;
+    Exit;
+  end;
+
+  V0 := nil;
+  V1 := nil;
+  Q0 := nil;
+  Q1 := nil;
+  T0 := nil;
+  T1 := nil;
+  C2 := nil;
+
+  try
+    V0 := ObtainBigNumberFromPool;
+    V1 := ObtainBigNumberFromPool;
+    Q0 := ObtainBigNumberFromPool;
+    Q1 := ObtainBigNumberFromPool;
+    T0 := ObtainBigNumberFromPool;
+    T1 := ObtainBigNumberFromPool;
+    C2 := ObtainBigNumberFromPool;
+
+    C2.SetWord(2);
+    V0.SetWord(2);
+    BigNumberCopy(V1, X);
+    Q0.SetOne;
+    Q1.SetOne;
+
+    C := BigNumberGetBitsCount(K);
+    if C < 1 then
+      Exit;
+
+    for I := C - 1 downto 0 do
+    begin
+      if not BigNumberMulMod(Q0, Q0, Q1, N) then
+        Exit;
+
+      if BigNumberIsBitSet(K, I) then
+      begin
+        if not BigNumberMulMod(Q1, Q0, Y, N) then
+          Exit;
+
+        if not BigNumberMulMod(T0, V0, V1, N) then
+          Exit;
+        if not BigNumberMulMod(T1, X, Q0, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V0, T0, N) then
+          Exit;
+
+        if not BigNumberMulMod(T0, V1, V1, N) then
+          Exit;
+        if not BigNumberMulMod(T1, C2, Q1, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V1, T0, N) then
+          Exit;
+      end
+      else
+      begin
+        BigNumberCopy(Q1, Q0);
+
+        if not BigNumberMulMod(T0, V0, V1, N) then
+          Exit;
+        if not BigNumberMulMod(T1, X, Q0, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V1, T0, N) then
+          Exit;
+
+        if not BigNumberMulMod(T0, V0, V0, N) then
+          Exit;
+        if not BigNumberMulMod(T1, C2, Q0, N) then
+          Exit;
+        if not BigNumberSub(T0, T0, T1) then
+          Exit;
+        if not BigNumberNonNegativeMod(V0, T0, N) then
+          Exit;
+      end;
+    end;
+
+    BigNumberCopy(Q, Q0);
+    BigNumberCopy(V, V0);
+    Result := True;
+  finally
+    RecycleBigNumberToPool(V0);
+    RecycleBigNumberToPool(V1);
+    RecycleBigNumberToPool(Q0);
+    RecycleBigNumberToPool(Q1);
+    RecycleBigNumberToPool(T0);
+    RecycleBigNumberToPool(T1);
+    RecycleBigNumberToPool(C2);
   end;
 end;
 
@@ -3996,10 +4695,74 @@ begin
   FreeAndNil(FLocalBigNumberPool);
 end;
 
+{ TCnBigNumberList }
+
+function TCnBigNumberList.Add(ABigNumber: TCnBigNumber): Integer;
+begin
+  Result := inherited Add(ABigNumber);
+end;
+
+constructor TCnBigNumberList.Create(AOwnsObjects: Boolean);
+begin
+  if not AOwnsObjects then
+    raise Exception.Create('MUST Owns Objects.');
+  inherited Create(True);
+end;
+
+function TCnBigNumberList.GetItem(Index: Integer): TCnBigNumber;
+begin
+  Result := TCnBigNumber(inherited GetItem(Index));
+end;
+
+function TCnBigNumberList.IndexOfValue(ABigNumber: TCnBigNumber): Integer;
+begin
+  Result := 0;
+  while (Result < Count) and (BigNumberCompare(Items[Result], ABigNumber) <> 0) do
+    Inc(Result);
+  if Result = Count then
+    Result := -1;
+end;
+
+procedure TCnBigNumberList.Insert(Index: Integer;
+  ABigNumber: TCnBigNumber);
+begin
+  inherited Insert(Index, ABigNumber);
+end;
+
+function TCnBigNumberList.Remove(ABigNumber: TCnBigNumber): Integer;
+begin
+  Result := inherited Remove(ABigNumber);
+end;
+
+procedure TCnBigNumberList.RemoveDuplicated;
+var
+  I, Idx: Integer;
+begin
+  for I := Count - 1 downto 0 do
+  begin
+    // 去除重复的项
+    Idx := IndexOfValue(Items[I]);
+    if (Idx >= 0) and (Idx <> I) then
+      Delete(I);
+  end;
+end;
+
+procedure TCnBigNumberList.SetItem(Index: Integer;
+  ABigNumber: TCnBigNumber);
+begin
+  inherited SetItem(Index, ABigNumber);
+end;
+
 initialization
   FLocalBigNumberPool := TObjectList.Create(False);
+  CnBigNumberOne := TCnBigNumber.Create;
+  CnBigNumberOne.SetOne;
+  CnBigNumberZero := TCnBigNumber.Create;
+  CnBigNumberZero.SetZero;
 
 finalization
+  CnBigNumberOne.Free;
+  CnBigNumberZero.Free;
   FreeBigNumberPool;
 
 end.

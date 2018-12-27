@@ -28,7 +28,6 @@ unit CnHashIniFile;
 * 开发平台：EWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：v1.0   2004/1/19 by Circus Monkey
 *              本控件 TCnHashIniFile 是基于哈希表工作的。它和 CnHashLangStorage
 *              很相似。但是它支持多个 Sections。可以比较好的兼容 INIFile。根据

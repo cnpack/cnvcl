@@ -4,8 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, ImgList,
-  Buttons;
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber,
+  ImgList, Buttons, CnCommon;
 
 type
   TFormRSA = class(TForm)
@@ -141,6 +141,39 @@ type
     btnPubVerify: TButton;
     lblSigMethod: TLabel;
     cbbSig: TComboBox;
+    btnMInt32MI: TButton;
+    btnUInt32MI: TButton;
+    btnInt64MI: TButton;
+    tsDiffieHellman: TTabSheet;
+    grpFactors: TGroupBox;
+    lblFactorNumber: TLabel;
+    edtDHNumber: TEdit;
+    btnFindFactors: TButton;
+    lblInt64DHP: TLabel;
+    edtDHPrime: TEdit;
+    edtDHRoot: TEdit;
+    btnGenInt64DH: TButton;
+    lblDHRoot: TLabel;
+    edtDHXa: TEdit;
+    lblDHA: TLabel;
+    lblXA: TLabel;
+    lblDHB: TLabel;
+    lblXb: TLabel;
+    edtDHXb: TEdit;
+    btnCalcYb: TButton;
+    btnCalcXA: TButton;
+    edtDHYa: TEdit;
+    edtDHYb: TEdit;
+    btnDHBCK: TButton;
+    btnDHACKey: TButton;
+    edtAKey: TEdit;
+    edtBKey: TEdit;
+    lblDHBits: TLabel;
+    cbbDHBits: TComboBox;
+    btnDHRand: TButton;
+    lblSqrt: TLabel;
+    edtFastSqrt: TEdit;
+    btnFastSqrt: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -173,6 +206,17 @@ type
     procedure btnSignPrivateClick(Sender: TObject);
     procedure btnPrivVerifyClick(Sender: TObject);
     procedure btnPubVerifyClick(Sender: TObject);
+    procedure btnMInt32MIClick(Sender: TObject);
+    procedure btnUInt32MIClick(Sender: TObject);
+    procedure btnInt64MIClick(Sender: TObject);
+    procedure btnFindFactorsClick(Sender: TObject);
+    procedure btnGenInt64DHClick(Sender: TObject);
+    procedure btnCalcXAClick(Sender: TObject);
+    procedure btnCalcYbClick(Sender: TObject);
+    procedure btnDHACKeyClick(Sender: TObject);
+    procedure btnDHBCKClick(Sender: TObject);
+    procedure btnDHRandClick(Sender: TObject);
+    procedure btnFastSqrtClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -296,7 +340,7 @@ begin
   B := StrToInt64(edtB.Text);
   X := 0;
   Y := 0;
-  Int64ExtendedEuclideanGcd(A, B, X, Y);
+  CnInt64ExtendedEuclideanGcd(A, B, X, Y);
   edtX.Text := IntToStr(X);
   edtY.Text := IntToStr(Y);
 
@@ -488,7 +532,7 @@ begin
   B := StrToInt64(edtMB.Text);
   X := 0;
   Y := 0;
-  Int64ExtendedEuclideanGcd2(A, B, X, Y);
+  CnInt64ExtendedEuclideanGcd2(A, B, X, Y);
   if X < 0 then
   begin
     lblMX0.Caption := 'X < 0. Add B to X.';
@@ -660,6 +704,192 @@ begin
     ShowMessage('RSA Public Key Verify Success.')
   else
     ShowMessage('RSA Public Key Verify Fail.');
+end;
+
+procedure TFormRSA.btnMInt32MIClick(Sender: TObject);
+var
+  A, B, X, Y: Cardinal;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := 0;
+  Y := 0;
+  CnUInt32ExtendedEuclideanGcd2(A, B, X, Y);
+  if UInt32IsNegative(X) then
+  begin
+    lblMX0.Caption := 'X < 0. Add B to X.';
+    edtMXP.Text := IntToStr(X + B);
+  end
+  else
+  begin
+    lblMX0.Caption := 'X > 0. OK.';
+    edtMXP.Text := IntToStr(X);
+  end;
+  edtPY.Text := IntToStr(-Y);
+
+  edtMX.Text := IntToStr(X);
+  edtMY.Text := IntToStr(Y);
+end;
+
+procedure TFormRSA.btnUInt32MIClick(Sender: TObject);
+var
+  A, B, X: Cardinal;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := CnUInt32ModularInverse(A, B);
+  ShowMessage(IntToStr(X));
+end;
+
+procedure TFormRSA.btnInt64MIClick(Sender: TObject);
+var
+  A, B, X: TUInt64;
+begin
+  A := StrToInt64(edtMA.Text);
+  B := StrToInt64(edtMB.Text);
+  X := CnInt64ModularInverse(A, B);
+  ShowMessage(UInt64ToStr(X));
+end;
+
+procedure TFormRSA.btnFindFactorsClick(Sender: TObject);
+var
+  Num: TCnBigNumber;
+  List: TCnBigNumberList;
+
+  function BigNumberListToString: string;
+  var
+    I: Integer;
+  begin
+    Result := '';
+    for I := 0 to List.Count - 1 do
+      Result := Result + ' ' + List[I].ToDec;
+  end;
+
+begin
+  Num := TCnBigNumber.FromDec(edtDHNumber.Text);
+  List := TCnBigNumberList.Create;
+  BigNumberFindFactors(Num, List);
+  ShowMessage(IntToStr(List.Count) + ' Factors:' + #13#10 + BigNumberListToString);
+  List.Free;
+  Num.Free;
+end;
+
+procedure TFormRSA.btnGenInt64DHClick(Sender: TObject);
+var
+  Prime, Root: TCnBigNumber;
+begin
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+
+  if CnDiffieHellmanGeneratePrimeRootByBitsCount(StrToIntDef(cbbDHBits.Text, 64), Prime, Root) then
+  begin
+    edtDHPrime.Text := Prime.ToDec;
+    edtDHRoot.Text := Root.ToDec;
+  end
+  else
+    ShowMessage('DH Generation Error.');
+
+  Prime.Free;
+  Root.Free;
+end;
+
+procedure TFormRSA.btnCalcXAClick(Sender: TObject);
+var
+  Prime, Root, SelfPrivateKey, OutPublicKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  Root := BigNumberFromDec(edtDHRoot.Text);
+  SelfPrivateKey := BigNumberFromDec(edtDHXa.Text);
+  OutPublicKey := BigNumberNew;
+
+  if CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey, OutPublicKey) then
+    edtDHYa.Text := OutPublicKey.ToDec;
+
+  Prime.Free;
+  Root.Free;
+  SelfPrivateKey.Free;
+  OutPublicKey.Free;
+end;
+
+procedure TFormRSA.btnCalcYbClick(Sender: TObject);
+var
+  Prime, Root, SelfPrivateKey, OutPublicKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  Root := BigNumberFromDec(edtDHRoot.Text);
+  SelfPrivateKey := BigNumberFromDec(edtDHXb.Text);
+  OutPublicKey := BigNumberNew;
+
+  if CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey, OutPublicKey) then
+    edtDHYb.Text := OutPublicKey.ToDec;
+
+  Prime.Free;
+  Root.Free;
+  SelfPrivateKey.Free;
+  OutPublicKey.Free;
+end;
+
+procedure TFormRSA.btnDHACKeyClick(Sender: TObject);
+var
+  Prime, SelfPrivateKey, OtherPublicKey, SecretKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  SelfPrivateKey := BigNumberFromDec(edtDHXa.Text);
+  OtherPublicKey := BigNumberFromDec(edtDHYb.Text);
+  SecretKey := BigNumberNew;
+
+  if CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey, SecretKey) then
+    edtAKey.Text := SecretKey.ToDec;
+
+  Prime.Free;
+  SelfPrivateKey.Free;
+  OtherPublicKey.Free;
+  SecretKey.Free;
+end;
+
+procedure TFormRSA.btnDHBCKClick(Sender: TObject);
+var
+  Prime, SelfPrivateKey, OtherPublicKey, SecretKey: TCnBigNumber;
+begin
+  Prime := BigNumberFromDec(edtDHPrime.Text);
+  SelfPrivateKey := BigNumberFromDec(edtDHXb.Text);
+  OtherPublicKey := BigNumberFromDec(edtDHYa.Text);
+  SecretKey := BigNumberNew;
+
+  if CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey, SecretKey) then
+    edtBKey.Text := SecretKey.ToDec;
+
+  Prime.Free;
+  SelfPrivateKey.Free;
+  OtherPublicKey.Free;
+  SecretKey.Free;
+end;
+
+procedure TFormRSA.btnDHRandClick(Sender: TObject);
+var
+  R: TCnBigNumber;
+begin
+  R := TCnBigNumber.Create;
+  BigNumberRandBits(R, StrToIntDef(cbbDHBits.Text, 64));
+  edtDHXa.Text := R.ToDec;
+  BigNumberRandBits(R, StrToIntDef(cbbDHBits.Text, 64));
+  edtDHXb.Text := R.ToDec;
+  R.Free;
+end;
+
+procedure TFormRSA.btnFastSqrtClick(Sender: TObject);
+var
+  N: LongWord;
+  T: Int64;
+begin
+  N := StrToUInt64(edtFastSqrt.Text);
+  if IntToStr(N) = edtFastSqrt.Text then
+    ShowMessage('Integer Sqrt of ' + UInt64ToStr(N) + ' is ' + UInt64ToStr(FastSqrt(N)))
+  else
+  begin
+    T := StrToInt64(edtFastSqrt.Text);
+    ShowMessage('Integer Sqrt of Int64 ' + UInt64ToStr(T) + ' is ' + UInt64ToStr(FastSqrt64(T)))
+  end;
 end;
 
 end.

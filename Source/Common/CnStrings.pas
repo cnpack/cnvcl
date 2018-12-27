@@ -27,7 +27,6 @@ unit CnStrings;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：AnsiStringList 移植自 Delphi 7 的 StringList
-* 单元标识：$Id$
 * 最后更新：2017.01.09
 *               增加移植自 Forrest Smith 的字符串模糊匹配算法，
 *               并修正了最后一个匹配字符过于靠后的问题。

@@ -54,7 +54,6 @@ unit CnContainers;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2017.01.17 V1.2
 *               加入 TCnObjectRingBuffer 循环缓冲区实现
 *           2016.12.02 V1.1

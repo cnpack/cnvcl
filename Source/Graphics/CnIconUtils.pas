@@ -28,7 +28,6 @@ unit CnIconUtils;
 * 开发平台：Win7 + Delphi 2007
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2014.07.02
 *               创建单元
 ================================================================================
@@ -140,7 +139,12 @@ begin
     Bmp.Assign(Graphic);
     Bmp.PixelFormat := pf32bit;
     AlphaBmp.PixelFormat := pf32bit;
+{$IFDEF DELPHI2007_UP}
     AlphaBmp.SetSize(Width, Height);
+{$ELSE}
+    AlphaBmp.Width := Width;
+    AlphaBmp.Height := Height;
+{$ENDIF}
     FastSmoothDrawBitmap32(Bmp, AlphaBmp);
     IconInfo.hbmColor := AlphaBmp.Handle;
     IconInfo.hbmMask := CreateBitmap(Width, Height, 1, 1, nil);

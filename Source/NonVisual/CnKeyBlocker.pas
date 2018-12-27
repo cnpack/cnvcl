@@ -30,7 +30,6 @@ unit CnKeyBlocker;
 * 开发平台：PWinXP + Delphi 7.0 (Build 8.1)
 * 兼容测试：PWin2003 + Delphi 7.0 (Build 8.1)
 * 本 地 化：该单元中无字符串资源
-* 单元标识：$Id$
 * 修改记录：2008.10.24 v1.1
 *               加入一简陋事件
 *           2008.05.29 v1.0

@@ -28,7 +28,6 @@ unit CnPropSheetFrm;
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：未测试
 * 本 地 化：该窗体中的字符串暂不符合本地化处理方式
-* 单元标识：$Id$
 * 修改记录：2016.04.10
 *               加入修改属性的功能
 *           2012.03.10
@@ -47,7 +46,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
-  Clipbrd {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
+  Clipbrd, CnTree {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF};
 
 const
@@ -308,6 +307,9 @@ type
 
   TCnPropSheetForm = class(TForm)
     pnlTop: TPanel;
+    pnlTree: TPanel;
+    tsTree: TTabSet;
+    TreeView: TTreeView;
     tsSwitch: TTabSet;
     pnlMain: TPanel;
     lvProp: TListView;
@@ -334,6 +336,7 @@ type
     imgGraphic: TImage;
     lblGraphicInfo: TLabel;
     lblPixel: TLabel;
+    btnTree: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -360,6 +363,10 @@ type
     procedure btnLocateClick(Sender: TObject);
     procedure imgGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
+    procedure btnTreeClick(Sender: TObject);
+    procedure tsTreeChange(Sender: TObject; NewTab: Integer;
+      var AllowChange: Boolean);
+    procedure TreeViewDblClick(Sender: TObject);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -376,6 +383,10 @@ type
     FGraphicObject: TObject;
     FHierPanels: TComponentList;
     FHierLines: TComponentList;
+
+    FComponentTree: TCnTree;
+    FControlTree: TCnTree;
+
     FOnEvaluateBegin: TNotifyEvent;
     FOnEvaluateEnd: TNotifyEvent;
     FOnAfterEvaluateHierarchy: TNotifyEvent;
@@ -383,14 +394,21 @@ type
     FOnAfterEvaluateControls: TNotifyEvent;
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
+    FShowTree: Boolean;
 
     procedure SetContentTypes(const Value: TCnPropContentTypes);
     procedure SetParentSheetForm(const Value: TCnPropSheetForm);
+    procedure SetShowTree(const Value: Boolean);
 
     procedure UpdateContentTypes;
     procedure UpdateUIStrings;
     procedure UpdateHierarchys;
     procedure UpdatePanelPositions;
+
+    // 根据 FObjectPointer 查其组件树与控件树
+    procedure SearchTrees;
+    procedure UpdateToTree(IsControl: Boolean);
+    procedure SaveATreeNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode; var Valid: Boolean);
 
     procedure MsgInspectObject(var Msg: TMessage); message CN_INSPECTOBJECT;
     procedure DoEvaluateBegin; virtual;
@@ -411,6 +429,7 @@ type
     property ObjectPointer: Pointer read FObjectPointer write FObjectPointer;
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
     property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write SetParentSheetForm;
+    property ShowTree: Boolean read FShowTree write SetShowTree;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -519,6 +538,7 @@ var
   CnFormLeft: Integer = 50;
   CnFormTop: Integer = 50;
   Closing: Boolean = False;
+  CnPnlTreeWidth: Integer = 250;
 
 // 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
 // 而不能是 set of 后的类型，如无 TypInfo，则返回数值
@@ -608,7 +628,11 @@ begin
    except
      S := 'Unknown Object';
    end;
-   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)])
+{$IFDEF WIN64}
+   Result := Format('(%s.$%16.16x)', [S, NativeInt(AClass)]);
+{$ELSE}
+   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)]);
+{$ENDIF}
  end
  else
    Result := 'nil';
@@ -625,7 +649,12 @@ begin
     except
       S := 'Unknown Object';
     end;
-    Result := Format('(%s.$%8.8x)', [S, Integer(AObj)])
+
+{$IFDEF WIN64}
+    Result := Format('(%s.$%16.16x)', [S, NativeInt(AObj)]);
+{$ELSE}
+    Result := Format('(%s.$%8.8x)', [S, Integer(AObj)]);
+{$ENDIF}
   end
   else
     Result := 'nil';
@@ -813,10 +842,19 @@ begin
       begin
         iTmp := GetOrdProp(Instance, PropInfo);
         if iTmp <> 0 then
+        begin
+{$IFDEF WIN64}
+          S := Format('%s: ($%16.16x, $%16.816x): %s', [PropInfo^.PropType^^.Name,
+            NativeInt(GetMethodProp(Instance, PropInfo).Code),
+            NativeInt(GetMethodProp(Instance, PropInfo).Data),
+            GetMethodDeclare(Instance, PropInfo)]);
+{$ELSE}
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
             Integer(GetMethodProp(Instance, PropInfo).Code),
             Integer(GetMethodProp(Instance, PropInfo).Data),
-            GetMethodDeclare(Instance, PropInfo)])
+            GetMethodDeclare(Instance, PropInfo)]);
+{$ENDIF}
+        end
         else
           S := 'nil';
       end;
@@ -830,7 +868,11 @@ begin
       begin
 {$IFDEF COMPILER6_UP}
         Intf := GetInterfaceProp(Instance, PropInfo);
+        {$IFDEF WIN64}
+        S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
+        {$ELSE}
         S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+        {$ENDIF}
 {$ELSE}
         S := '(Interface:<...>)';
 {$ENDIF}
@@ -946,9 +988,15 @@ begin
             S := 'nil'
           else
           begin
+{$IFDEF WIN64}
+            S := Format('%s: ($%16.16x, $%16.16x: %s)', [RttiProperty.PropertyType.Name,
+              NativeInt(AMethod.Code), NativeInt(AMethod.Data),
+              GetRttiMethodDeclare(Instance, RttiProperty)]);
+{$ELSE}
             S := Format('%s: ($%8.8x, $%8.8x: %s)', [RttiProperty.PropertyType.Name,
               Integer(AMethod.Code), Integer(AMethod.Data),
               GetRttiMethodDeclare(Instance, RttiProperty)]);
+{$ENDIF}
           end;
         end;
       end;
@@ -962,7 +1010,11 @@ begin
       begin
         try
           Intf := RttiProperty.GetValue(Instance).AsInterface;
+          {$IFDEF WIN64}
+          S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
+          {$ELSE}
           S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+          {$ENDIF}
         except
           on E: Exception do
             S := Format('(Interface:<Exception: %s>)', [E.Message]);
@@ -974,7 +1026,11 @@ begin
         if DataSize = SizeOf(Pointer) then
         begin
           RttiProperty.GetValue(Instance).ExtractRawData(@APtr);
+{$IFDEF WIN64}
+          S := Format('(Pointer:$%16.16x)', [NativeInt(APtr)]);
+{$ELSE}
           S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
+{$ENDIF}
         end;
       end;
   end;
@@ -1249,8 +1305,13 @@ var
 
   function GetMethodFullName(ARttiMethod: TRttiMethod): string;
   begin
+  {$IFDEF WIN64}
+    Result := Format('$%16.16x: %s;', [NativeInt(ARttiMethod.CodeAddress),
+      ARttiMethod.ToString]);
+  {$ELSE}
     Result := Format('$%8.8x: %s;', [Integer(ARttiMethod.CodeAddress),
       ARttiMethod.ToString]);
+  {$ENDIF}
   end;
 {$ENDIF}
 
@@ -1818,7 +1879,11 @@ begin
         S := ACollection.GetNamePath;
         if S = '' then S := '*';
         AItemObj.ItemName := Format('%s.Item[%d]', [S, I]);
+{$IFDEF WIN64}
+        AItemObj.DisplayValue := Format('%s: $%16.16x', [AItemObj.ObjClassName, NativeInt(AItemObj.ObjValue)]);
+{$ELSE}
         AItemObj.DisplayValue := Format('%s: $%8.8x', [AItemObj.ObjClassName, Integer(AItemObj.ObjValue)]);
+{$ENDIF}
 
         if not IsExisting then
           CollectionItems.Add(AItemObj);
@@ -1853,7 +1918,12 @@ begin
         S := AMenuItem.GetNamePath;
         if S = '' then S := '(noname)';
         AMenuObj.ItemName := Format('%s.Item[%d]', [S, I]);
+
+{$IFDEF WIN64}
+        AMenuObj.DisplayValue := Format('%s: $%16.16x', [AMenuObj.ObjClassName, NativeInt(AMenuObj.ObjValue)]);
+{$ELSE}
         AMenuObj.DisplayValue := Format('%s: $%8.8x', [AMenuObj.ObjClassName, Integer(AMenuObj.ObjValue)]);
+{$ENDIF}
 
         if not IsExisting then
           FMenuItems.Add(AMenuObj);
@@ -1887,8 +1957,13 @@ begin
           ACompObj.Changed := False;
 
         ACompObj.DisplayName := Format('%s.Components[%d]', [AComp.Name, I]);
+{$IFDEF WIN64}
+        ACompObj.DisplayValue := Format('%s: %s: $%16.16x', [ACompObj.CompName,
+          ACompObj.ObjClassName, NativeInt(ACompObj.ObjValue)]);
+{$ELSE}
         ACompObj.DisplayValue := Format('%s: %s: $%8.8x', [ACompObj.CompName,
           ACompObj.ObjClassName, Integer(ACompObj.ObjValue)]);
+{$ENDIF}
 
         if not IsExisting then
           Components.Add(ACompObj);
@@ -1922,8 +1997,13 @@ begin
             AControlObj.Changed := False;
 
           AControlObj.DisplayName := Format('%s.Controls[%d]', [AControl.Name, I]);
+{$IFDEF WIN64}
+          AControlObj.DisplayValue := Format('%s: %s: $%16.16x', [AControlObj.CtrlName,
+            AControlObj.ObjClassName, NativeInt(AControlObj.ObjValue)]);
+{$ELSE}
           AControlObj.DisplayValue := Format('%s: %s: $%8.8x', [AControlObj.CtrlName,
             AControlObj.ObjClassName, Integer(AControlObj.ObjValue)]);
+{$ENDIF}
 
           if not IsExisting then
             Controls.Add(AControlObj);
@@ -2119,8 +2199,13 @@ begin
   else
     edtClassName.Text := 'Unknown Object';
 
+{$IFDEF WIN64}
+  edtObj.Text := Format('%16.16x', [NativeInt(FInspector.ObjectAddr)]);
+  edtClassName.Text := Format('%s: $%16.16x', [edtClassName.Text, NativeInt(FInspector.ObjectAddr)]);
+{$ELSE}
   edtObj.Text := Format('%8.8x', [Integer(FInspector.ObjectAddr)]);
   edtClassName.Text := Format('%s: $%8.8x', [edtClassName.Text, Integer(FInspector.ObjectAddr)]);
+{$ENDIF}
 
   for I := 0 to FInspector.PropCount - 1 do
   begin
@@ -2304,6 +2389,8 @@ begin
   FHierarchys.Free;
   FHierLines.Free;
   FHierPanels.Free;
+  FComponentTree.Free;
+  FControlTree.Free;
   if FInspector <> nil then
     FreeAndNil(FInspector);
 end;
@@ -2556,7 +2643,10 @@ var
 begin
   P := StrToIntDef('$' + edtObj.Text, 0);
   if P <> 0 then
+  begin
     EvaluatePointer(Pointer(P), FInspectParam, Self);
+    ShowTree := False;
+  end;
 end;
 
 procedure TCnPropSheetForm.edtObjKeyPress(Sender: TObject; var Key: Char);
@@ -2802,6 +2892,185 @@ begin
     end;
   end;
   lblPixel.Caption := S;
+end;
+
+procedure TCnPropSheetForm.SetShowTree(const Value: Boolean);
+begin
+  if FShowTree <> Value then
+  begin
+    FShowTree := Value;
+    pnlTree.Visible := Value;
+
+    if Value then // 显示树形区域
+    begin
+      if pnlTree.Width < CnPnlTreeWidth then
+        pnlTree.Width := CnPnlTreeWidth;
+      Width := Width + CnPnlTreeWidth;
+      Left := Left - CnPnlTreeWidth;
+      if Left < 10 then
+        Left := 10;
+      btnTree.Caption := '>';
+    end
+    else // 隐藏树型区域
+    begin
+      Width := Width - CnPnlTreeWidth;
+      Left := Left + CnPnlTreeWidth;
+      btnTree.Caption := '<';
+    end;
+  end;
+end;
+
+procedure TCnPropSheetForm.btnTreeClick(Sender: TObject);
+begin
+  ShowTree := not ShowTree;
+  if ShowTree then
+  begin
+    SearchTrees;
+    UpdateToTree(tsTree.TabIndex > 0);
+  end;
+end;
+
+procedure TCnPropSheetForm.SearchTrees;
+var
+  Comp: TComponent;
+  Ctrl: TControl;
+  RootComponent: TComponent;
+  RootControl: TControl;
+
+  procedure AddComponentToTree(AComp: TComponent; ParentLeaf: TCnLeaf = nil);
+  var
+    I: Integer;
+    Leaf: TCnLeaf;
+  begin
+    if ParentLeaf = nil then
+      ParentLeaf := FComponentTree.Root;
+
+    Leaf := FComponentTree.AddChild(ParentLeaf);
+    Leaf.Obj := AComp;
+
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [AComp.Name, AComp.ClassName, NativeInt(AComp)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [AComp.Name, AComp.ClassName, Integer(AComp)]);
+{$ENDIF}
+
+    for I := 0 to AComp.ComponentCount - 1 do
+      AddComponentToTree(AComp.Components[I], Leaf);
+  end;
+
+  procedure AddControltoTree(ACtrl: TControl; ParentLeaf: TCnLeaf = nil);
+  var
+    I: Integer;
+    Leaf: TCnLeaf;
+  begin
+    if ParentLeaf = nil then
+      ParentLeaf := FControlTree.Root;
+
+    Leaf := FControlTree.AddChild(ParentLeaf);
+    Leaf.Obj := ACtrl;
+
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
+{$ENDIF}
+
+    if ACtrl is TWinControl then
+    for I := 0 to (ACtrl as TWinControl).ControlCount - 1 do
+      AddControltoTree((ACtrl as TWinControl).Controls[I], Leaf);
+  end;
+
+begin
+  if FObjectPointer = nil then
+    Exit;
+
+  if FComponentTree = nil then
+  begin
+    FComponentTree := TCnTree.Create;
+    FComponentTree.OnSaveANode := SaveATreeNode;
+  end
+  else
+    FComponentTree.Clear;
+
+  if FControlTree = nil then
+  begin
+    FControlTree := TCnTree.Create;
+    FControlTree.OnSaveANode := SaveATreeNode;
+  end
+  else
+    FControlTree.Clear;
+
+  try
+    if TObject(FObjectPointer) is TComponent then
+    begin
+      Comp := TObject(FObjectPointer) as TComponent;
+      RootComponent := Comp;
+      while RootComponent.Owner <> nil do
+        RootComponent := RootComponent.Owner;
+      AddComponentToTree(RootComponent);
+    end;
+
+    if TObject(FObjectPointer) is TControl then
+    begin
+      Ctrl := TObject(FObjectPointer) as TControl;
+      RootControl := Ctrl;
+      while RootControl.Parent <> nil do
+        RootControl := RootControl.Parent;
+      AddControlToTree(RootControl);
+    end;
+  except
+    ; // 如果不是 TObject，屏蔽异常
+  end;
+end;
+
+procedure TCnPropSheetForm.UpdateToTree(IsControl: Boolean);
+var
+  I: Integer;
+  Ptr: Pointer;
+begin
+  if not IsControl then
+    FComponentTree.SaveToTreeView(TreeView)
+  else
+    FControlTree.SaveToTreeView(TreeView);
+
+  // 展开
+  if TreeView.Items.Count > 0 then
+    TreeView.Items[0].Expand(True);
+
+  // 定位
+  for I := 0 to TreeView.Items.Count - 1 do
+  begin
+    Ptr := TreeView.Items[I].Data;
+    if Ptr = FObjectPointer then
+    begin
+      TreeView.Items[I].Selected := True;
+      TreeView.Items[I].MakeVisible;
+      TreeView.SetFocus;
+      Exit;
+    end;
+  end;
+end;
+
+procedure TCnPropSheetForm.tsTreeChange(Sender: TObject; NewTab: Integer;
+  var AllowChange: Boolean);
+begin
+  UpdateToTree(NewTab > 0);
+end;
+
+procedure TCnPropSheetForm.SaveATreeNode(ALeaf: TCnLeaf;
+  ATreeNode: TTreeNode; var Valid: Boolean);
+begin
+  ATreeNode.Text := ALeaf.Text;
+  ATreeNode.Data := Pointer(ALeaf.Obj);
+end;
+
+procedure TCnPropSheetForm.TreeViewDblClick(Sender: TObject);
+var
+  Node: TTreeNode;
+begin
+  Node := TreeView.Selected;
+  if Node.Data <> nil then
+    EvaluatePointer(Node.Data, FInspectParam, Self);
 end;
 
 initialization

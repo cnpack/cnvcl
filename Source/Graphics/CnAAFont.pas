@@ -29,7 +29,6 @@ unit CnAAFont;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：平滑字体算法由李文松朋友提供的AAFont修改而来
-* 单元标识：$Id$
 * 最后更新：2015.06.15
 *               修改输出名以躲过 BCB Unicode 下命名混淆的问题
 *           2004.11.29

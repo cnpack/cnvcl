@@ -104,8 +104,36 @@ function StrToUInt64(const S: string): TUInt64;
 
 function UInt64Compare(A, B: TUInt64): Integer;
 
+function UInt32IsNegative(N: Cardinal): Boolean;
+{* 该 Cardinal 被当成 Integer 时是否小于 0}
+
+function UInt64IsNegative(N: TUInt64): Boolean;
+{* 该 UInt64 被当成 Int64 时是否小于 0}
+
+function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
+{* 返回 Int64 的某一位是否是 1，位 Index 从 0 开始}
+
+function GetUInt64HighBits(B: TUInt64): Integer;
+{* 返回 Int64 的最高二进制位是第几位，最低位是 0}
+
+function Int64Mod(M, N: Int64): Int64;
+{* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 C 仍要求正数否则结果不靠谱}
+
 implementation
 
+{$IFDEF WIN64}
+
+function UInt64Mod(A, B: TUInt64): TUInt64;
+begin
+  Result := A mod B;
+end;
+
+function UInt64Div(A, B: TUInt64): TUInt64;
+begin
+  Result := A div B;
+end;
+
+{$ELSE}
 {
   UInt64 求 A mod B
 
@@ -137,6 +165,8 @@ asm
         PUSH    DWORD PTR[EBP + $8]           // B Lo
         CALL    System.@_lludiv;
 end;
+
+{$ENDIF}
 
 function _ValUInt64(const S: string; var Code: Integer): TUInt64;
 const
@@ -269,6 +299,52 @@ begin
       Result := 0;
   end;
 {$ENDIF}
+end;
+
+function UInt32IsNegative(N: Cardinal): Boolean;
+begin
+  Result := (N and (1 shl 31)) <> 0;
+end;
+
+function UInt64IsNegative(N: TUInt64): Boolean;
+begin
+{$IFDEF SUPPORT_UINT64}
+  Result := (N and (1 shl 63)) <> 0;
+{$ELSE}
+  Result := N < 0;
+{$ENDIF}
+end;
+
+// 返回 UInt64 的第几位是否是 1，0 开始
+function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
+begin
+  B := B and (TUInt64(1) shl Index);
+  Result := B <> 0;
+end;
+
+// 返回 UInt64 的最高二进制位是第几位，0 开始
+function GetUInt64HighBits(B: TUInt64): Integer;
+var
+  J: Integer;
+begin
+  for J := 63 downto 0 do
+  begin
+    if GetUInt64BitSet(B, J) then
+    begin
+      Result := J;
+      Exit;
+    end;
+  end;
+  Result := 0;
+end;
+
+// 封装的 Int64 Mod，碰到负值时取反求模再模减
+function Int64Mod(M, N: Int64): Int64;
+begin
+  if M > 0 then
+    Result := M mod N
+  else
+    Result := N - ((-M) mod N);
 end;
 
 end.

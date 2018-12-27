@@ -161,14 +161,6 @@ type
 
 // UInt64 范围内的 RSA 加解密实现
 
-function Int64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
-   如果得出 X 小于 0，可加上 B}
-
-procedure Int64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
-   如果得出 X 小于 0，可加上 B}
-
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
   out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64; HighBitSet: Boolean = True): Boolean;
@@ -300,6 +292,22 @@ function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
 {* 用公钥与签名值验证指定内存流}
 
+// Diffie-Hellman 离散对数密钥交换算法
+
+function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢}
+
+function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
+  const OutPublicKey: TCnBigNumber): Boolean;
+{* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
+   其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime}
+
+function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
+  const SecretKey: TCnBigNumber): Boolean;
+{* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
+   其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime}
+
 // 其他辅助函数
 
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
@@ -353,42 +361,6 @@ begin
   Result := True;
 end;
 
-// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
-function Int64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
-var
-  R, T: TUInt64;
-begin
-  if B = 0 then
-  begin
-    X := 1;
-    Y := 0;
-    Result := A;
-  end
-  else
-  begin
-    R := Int64ExtendedEuclideanGcd(B, UInt64Mod(A, B), X, Y);
-    T := X;
-    X := Y;
-    Y := T - UInt64Div(A, B) * Y;
-    Result := R;
-  end;
-end;
-
-// 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
-procedure Int64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
-begin
-  if B = 0 then
-  begin
-    X := 1;
-    Y := 0;
-  end
-  else
-  begin
-    Int64ExtendedEuclideanGcd2(B, UInt64Mod(A, B), Y, X);
-    Y := Y - X * UInt64Div(A, B);
-  end;
-end;
-
 function GetInt64BitCount(A: TUInt64): Integer;
 var
   I: Integer;
@@ -410,12 +382,12 @@ var
   Product, Y: TUInt64;
 begin
   repeat
-    PrimeKey1 := CnGenerateInt32Prime(HighBitSet);
+    PrimeKey1 := CnGenerateUInt32Prime(HighBitSet);
 
     N := Trunc(Random * 1000);
     Sleep(N);
 
-    PrimeKey2 := CnGenerateInt32Prime(HighBitSet);
+    PrimeKey2 := CnGenerateUInt32Prime(HighBitSet);
     if HighBitSet then
     begin
       Product := TUInt64(PrimeKey1) * TUInt64(PrimeKey2);
@@ -441,8 +413,8 @@ begin
   //                      e                d             (p-1)(q-1)
   // 用辗转相除法求 PubKeyExponent * PrivKeyExponent mod Product = 1 中的 PrivKeyExponent
   // r = (p-1)(q-1) 也就是解方程 e * d + r * y = 1，其中 e、r 已知，求 d 与 y。
-  Int64ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
-  while PrivKeyExponent < 0 do
+  CnInt64ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
+  while UInt64IsNegative(PrivKeyExponent) do
   begin
      // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 r，加到大于零为止
      PrivKeyExponent := PrivKeyExponent + Product;
@@ -2055,6 +2027,65 @@ begin
     SetLength(ResBuf, 0);
     SetLength(BerBuf, 0);
   end;
+end;
+
+// 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
+function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  Num, PrimeSubOne: TCnBigNumber;
+  Factors: TCnBigNumberList;
+begin
+  Result := False;
+  if BitsCount <= 16 then
+    Exit;
+
+  if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
+    Exit;
+
+  Factors := TCnBigNumberList.Create;
+  PrimeSubOne := BigNumberNew;
+  Num := BigNumberNew;
+
+  try
+    BigNumberCopy(PrimeSubOne, Prime);
+    BigNumberSubWord(PrimeSubOne, 1);
+    BigNumberFindFactors(PrimeSubOne, Factors);
+    Factors.RemoveDuplicated;
+
+    MinRoot.SetZero;
+    for I := 2 to MaxInt do // 不查太大的大数
+    begin
+      Num.SetWord(I);
+      if BigNumberCheckPrimitiveRoot(Num, Prime, Factors) then
+      begin
+        MinRoot.SetWord(I);
+        Result := True;
+        Exit;
+      end;
+    end;
+  finally
+    Factors.Free;
+    BigNumberFree(PrimeSubOne);
+    BigNumberFree(Num);
+  end;
+end;
+
+// 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
+function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
+  const OutPublicKey: TCnBigNumber): Boolean;
+begin
+  // OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
+  Result := BigNumberMontgomeryPowerMod(OutPublicKey, Root, SelfPrivateKey, Prime);
+end;
+
+// 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
+function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
+  const SecretKey: TCnBigNumber): Boolean;
+begin
+  // SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
+  Result := BigNumberMontgomeryPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
 end;
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
