@@ -206,6 +206,9 @@ cnpack\Source 目录内容说明：
   CnVCLBase.pas
     基本类定义单元
 
+  CnVclFmxMixed.pas
+    VCL与FMX相关的分离单元，避免引用过多导致体积过大的问题
+
   CnWideStrings.pas
     Wide 版 StringList 实现单元
 
@@ -221,7 +224,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-              73 文件
+              74 文件
 
 \DbReport －数据库组件与报表库目录
 

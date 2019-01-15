@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2018 CnPack 开发组                       }
+{                   (C)Copyright 2001-2019 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -952,6 +952,11 @@ procedure ShowLastError;
 
 function GetHzPy(const AHzStr: AnsiString): AnsiString;
 {* 取汉字的拼音}
+
+{$IFDEF UNICODE}
+function GetHzPyW(const AHzStr: string): string;
+{* 取汉字的拼音，参数为 Utf16}
+{$ENDIF}
 
 function TextFullWidthToHalfWidth(const Text: string): string;
 {* 全角字符转换为半角字符。其中句号"。"转为"."，顿号"、"转为","}
@@ -6693,6 +6698,15 @@ begin
   MessageBox(Application.Handle, PChar(GetLastErrorMsg),
     PChar(SCnInformation), MB_OK + MB_ICONINFORMATION);
 end;
+
+
+{$IFDEF UNICODE}
+// 取汉字的拼音，参数为 Utf16
+function GetHzPyW(const AHzStr: string): string;
+begin
+  Result := string(GetHzPy(AnsiString(AHzStr)));
+end;
+{$ENDIF}
 
 // 取汉字的拼音
 function GetHzPy(const AHzStr: AnsiString): AnsiString;

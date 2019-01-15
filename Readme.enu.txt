@@ -1,13 +1,13 @@
 ﻿**********************************************************************
                      CnPack For Delphi/C++Builder
                 A Free, Open Source Project from China
-                 (C)Copyright 2001-2018 CnPack Team
+                 (C)Copyright 2001-2019 CnPack Team
 **********************************************************************
 
                     CnPack Component Package (Alpha)
-                           Version 2018.11.01
+                           Version 2019.01.14
                         =======================
-                          CnPack Team 2018.11
+                          CnPack Team 2019.01
 
 
 =====================================================
