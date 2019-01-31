@@ -291,6 +291,36 @@ object CnPropSheetForm: TCnPropSheetForm
         OnKeyDown = ListViewKeyDown
         OnSelectItem = lvPropSelectItem
       end
+      object lvFields: TListView
+        Left = 8
+        Top = 0
+        Width = 321
+        Height = 57
+        Columns = <
+          item
+            Caption = 'Field Name'
+            Width = 130
+          end
+          item
+            Caption = 'Field Value'
+            Width = 180
+          end>
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ReadOnly = True
+        RowSelect = True
+        ParentFont = False
+        TabOrder = 9
+        ViewStyle = vsReport
+        OnCustomDrawItem = lvPropCustomDrawItem
+        OnCustomDrawSubItem = lvPropCustomDrawSubItem
+        OnDblClick = lvPropDblClick
+        OnKeyDown = ListViewKeyDown
+        OnSelectItem = lvPropSelectItem
+      end
       object mmoText: TMemo
         Left = 96
         Top = 352
