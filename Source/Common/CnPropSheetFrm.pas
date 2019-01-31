@@ -267,8 +267,10 @@ type
       const AEventName: string): TCnEventObject;
     function IndexOfMethod(AMethods: TObjectList;
       const AMethodName: string): TCnMethodObject;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
     function IndexOfField(AFields: TObjectList;
       const AFieldName: string): TCnFieldObject;
+{$ENDIF}
   public
     constructor Create(Data: Pointer); virtual;
     destructor Destroy; override;
@@ -1365,6 +1367,8 @@ begin
   end;
 end;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
 function TCnObjectInspector.IndexOfField(AFields: TObjectList;
   const AFieldName: string): TCnFieldObject;
 var
@@ -1385,6 +1389,8 @@ begin
     end;
   end;
 end;
+
+{$ENDIF}
 
 function TCnObjectInspector.IndexOfProperty(AProperties: TObjectList;
   const APropName: string): TCnPropertyObject;
@@ -2477,6 +2483,7 @@ begin
     end;
   end;
 
+{$IFDEF SUPPORT_ENHANCED_RTTI}
   for I := 0 to FInspector.FieldCount - 1 do
   begin
     with lvFields.Items.Add do
@@ -2486,6 +2493,7 @@ begin
       SubItems.Add(TCnFieldObject(FInspector.Fields.Items[I]).DisplayValue);
     end;
   end;
+{$ENDIF}
 
   for I := 0 to FInspector.EventCount - 1 do
   begin
