@@ -67,12 +67,14 @@ type
     FObjClassName: string;
     FIsNewRTTI: Boolean;
     FIntfValue: IUnknown;
+    FIsObjOrIntf: Boolean;
   public
     property Changed: Boolean read FChanged write FChanged;
     property DisplayValue: string read FDisplayValue write FDisplayValue;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property ObjValue: TObject read FObjValue write FObjValue;
     property IntfValue: IUnknown read FIntfValue write FIntfValue;
+    property IsObjOrIntf: Boolean read FIsObjOrIntf write FIsObjOrIntf;
     property ObjStr: string read FObjStr write FObjStr;
     property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
@@ -80,7 +82,6 @@ type
   TCnPropertyObject = class(TCnDisplayObject)
   {* 描述一属性 }
   private
-    FIsObjOrIntf: Boolean;
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
@@ -94,7 +95,6 @@ type
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
-    property IsObjOrIntf: Boolean read FIsObjOrIntf write FIsObjOrIntf;
     property PropValue: Variant read FPropValue write FPropValue;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
@@ -143,7 +143,7 @@ type
     constructor Create;
     {* 构造函数}
     property FieldName: string read FFieldName write FFieldName;
-    {* Field 纯名字}
+    {* Field 的名字}
     property FieldType: TRttiType read FFieldType write FFieldType;
     {* Field 的类型}
     property FieldValue: TValue read FFieldValue write FFieldValue;
@@ -1901,6 +1901,7 @@ begin
           Include(FContentTypes, pctMethods);
         end;
 
+        // 获取 Fields
         for RttiField in RttiType.GetFields do
         begin
           if not IsRefresh then
@@ -1911,12 +1912,25 @@ begin
           AField.FieldName := RttiField.ToString; // RttiField.Name;
           AField.Offset := RttiField.Offset;
           AField.FieldType := RttiField.FieldType;
+          AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface];
 
           try
             AField.FieldValue := RttiField.GetValue(FObjectInstance);
           except
             // Getting Some Property causes Exception. Catch it.
             AField.FieldValue := nil;
+          end;
+
+          AField.ObjValue := nil;
+          AField.IntfValue := nil;
+          try
+            if AField.IsObjOrIntf and RttiField.GetValue(FObjectInstance).IsObject then
+              AField.ObjValue := RttiField.GetValue(FObjectInstance).AsObject
+            else if AField.IsObjOrIntf and (RttiField.GetValue(FObjectInstance).TypeInfo <> nil) and
+              (RttiField.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+              AField.IntfValue := RttiField.GetValue(FObjectInstance).AsInterface;
+          except
+            // Getting Some Property causes Exception. Catch it.;
           end;
 
           S := GetRttiFieldValueStr(FObjectInstance, RttiField);

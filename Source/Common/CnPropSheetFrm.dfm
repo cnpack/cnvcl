@@ -24,7 +24,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Left = 0
     Top = 0
     Width = 1
-    Height = 497
+    Height = 486
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
@@ -33,7 +33,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Left = 0
       Top = 0
       Width = 1
-      Height = 476
+      Height = 465
       Align = alClient
       Indent = 19
       ReadOnly = True
@@ -42,7 +42,7 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsTree: TTabSet
       Left = 0
-      Top = 476
+      Top = 465
       Width = 1
       Height = 21
       Align = alBottom
@@ -61,15 +61,15 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlRight: TPanel
     Left = 1
     Top = 0
-    Width = 390
-    Height = 497
+    Width = 382
+    Height = 486
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 390
+      Width = 382
       Height = 30
       Align = alTop
       BevelOuter = bvNone
@@ -179,13 +179,12 @@ object CnPropSheetForm: TCnPropSheetForm
         OnClick = btnEvaluateClick
       end
       object btnLocate: TSpeedButton
-        Left = 527
+        Left = 357
         Top = 5
         Width = 20
         Height = 21
         Hint = 'Locate Control'
         AllowAllUp = True
-        Anchors = [akTop, akRight]
         Caption = '*'
         Flat = True
         Font.Charset = DEFAULT_CHARSET
@@ -220,9 +219,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object edtClassName: TEdit
         Left = 176
         Top = 8
-        Width = 325
+        Width = 177
         Height = 18
-        Anchors = [akLeft, akTop, akRight]
         BorderStyle = bsNone
         ParentColor = True
         ReadOnly = True
@@ -232,8 +230,8 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsSwitch: TTabSet
       Left = 0
-      Top = 476
-      Width = 390
+      Top = 465
+      Width = 382
       Height = 21
       Align = alBottom
       Font.Charset = ANSI_CHARSET
@@ -256,8 +254,8 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlMain: TPanel
       Left = 0
       Top = 30
-      Width = 390
-      Height = 446
+      Width = 382
+      Height = 435
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 2
@@ -283,7 +281,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
-        TabOrder = 9
+        TabOrder = 11
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
         OnCustomDrawSubItem = lvPropCustomDrawSubItem
@@ -534,8 +532,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlHierarchy: TPanel
         Left = 0
         Top = 0
-        Width = 390
-        Height = 446
+        Width = 382
+        Height = 435
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -545,8 +543,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlGraphic: TPanel
         Left = 0
         Top = 0
-        Width = 390
-        Height = 446
+        Width = 382
+        Height = 435
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -555,8 +553,8 @@ object CnPropSheetForm: TCnPropSheetForm
         Visible = False
         object pnlGraphicInfo: TPanel
           Left = 1
-          Top = 404
-          Width = 388
+          Top = 393
+          Width = 380
           Height = 41
           Align = alBottom
           BevelOuter = bvNone
@@ -577,8 +575,8 @@ object CnPropSheetForm: TCnPropSheetForm
         object bxGraphic: TScrollBox
           Left = 1
           Top = 1
-          Width = 388
-          Height = 403
+          Width = 380
+          Height = 392
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 1
