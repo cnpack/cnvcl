@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Graphics, Math;
+  Windows, Graphics, Math, Controls;
 
 
 //==============================================================================
@@ -144,6 +144,9 @@ procedure DeRGB(Color: TColor; var r, g, b: Byte);
 
 function CreateEmptyBmp24(Width, Height: Integer; Color: TColor): TBitmap;
 {* 创建一个以 Color 为背景色，指定大小的 24位位图 }
+
+function DrawBmpToIcon(Bmp: TBitmap; Icon: TIcon): Boolean;
+{* 将 Bitmap 的内容放到 Icon 里}
 
 implementation
 
@@ -447,6 +450,25 @@ begin
         rgbtRed := r;
       end;
     end;
+  end;
+end;
+
+// 将 Bitmap 的内容放到 Icon 里
+function DrawBmpToIcon(Bmp: TBitmap; Icon: TIcon): Boolean;
+var
+  ImageList: TImageList;
+begin
+  Result := False;
+  if (Bmp = nil) or (Icon = nil) or Bmp.Empty then
+    Exit;
+
+  ImageList := TImageList.CreateSize(Bmp.Width, Bmp.Height);
+  try
+    ImageList.AddMasked(Bmp, Bmp.TransparentColor);
+    ImageList.GetIcon(0, Icon);
+    Result := True;
+  finally
+    ImageList.Free;
   end;
 end;
 
