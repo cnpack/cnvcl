@@ -942,7 +942,12 @@ begin
       S := FloatToStr(GetFloatProp(Instance, PropInfo));
     tkMethod:
       begin
-        iTmp := GetOrdProp(Instance, PropInfo);
+        try
+          // TStatusBar 的 OnDrawPanel 事件获取会出错，屏蔽
+          iTmp := GetOrdProp(Instance, PropInfo);
+        except
+          iTmp := 0;
+        end;
         if iTmp <> 0 then
         begin
 {$IFDEF WIN64}
