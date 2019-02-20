@@ -2721,6 +2721,9 @@
   {$DEFINE IDE_MAINFORM_EAT_MOUSEWHEEL}
   // MainForm of 2009 or Above will eat Message in MouseWheelHandler
 
+  {$DEFINE EDITVIEW_CONVERTPOS_BUG}
+  // 2009 or Above IEditView.ConvertPos Incorrect when Meeting Unicode Chars.
+
   {$IFNDEF DELPHIXE2_UP}  // 2009/2010/XE has a Project Version Number Bug.
     {$DEFINE PROJECT_VERSION_NUMBER_BUG}
   {$ENDIF}
