@@ -904,6 +904,7 @@ var
   iTmp: Integer;
   S: string;
   IntToId: TIntToIdent;
+  AMethod: TMethod;
 {$IFDEF COMPILER6_UP}
   Intf: IInterface;
 {$ENDIF}
@@ -942,23 +943,16 @@ begin
       S := FloatToStr(GetFloatProp(Instance, PropInfo));
     tkMethod:
       begin
-        try
-          // TStatusBar 的 OnDrawPanel 事件获取会出错，屏蔽
-          iTmp := GetOrdProp(Instance, PropInfo);
-        except
-          iTmp := 0;
-        end;
-        if iTmp <> 0 then
+        AMethod := GetMethodProp(Instance, PropInfo);
+        if (AMethod.Code <> nil) and (AMethod.Data <> nil) then
         begin
 {$IFDEF WIN64}
           S := Format('%s: ($%16.16x, $%16.816x): %s', [PropInfo^.PropType^^.Name,
-            NativeInt(GetMethodProp(Instance, PropInfo).Code),
-            NativeInt(GetMethodProp(Instance, PropInfo).Data),
+            NativeInt(AMethod.Code), NativeInt(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
 {$ELSE}
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
-            Integer(GetMethodProp(Instance, PropInfo).Code),
-            Integer(GetMethodProp(Instance, PropInfo).Data),
+            Integer(AMethod.Code), Integer(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
 {$ENDIF}
         end
