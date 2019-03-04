@@ -12,6 +12,7 @@ object FormDNS: TFormDNS
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object lblNameServer: TLabel
@@ -47,9 +48,9 @@ object FormDNS: TFormDNS
   object btnQuery: TButton
     Left = 248
     Top = 72
-    Width = 75
+    Width = 113
     Height = 25
-    Caption = 'Query'
+    Caption = 'Query using CnUDP'
     TabOrder = 2
     OnClick = btnQueryClick
   end
@@ -70,11 +71,20 @@ object FormDNS: TFormDNS
     TabOrder = 4
     OnClick = btnTestParseStringClick
   end
+  object btnDNS: TButton
+    Left = 248
+    Top = 32
+    Width = 113
+    Height = 25
+    Caption = 'Query Using CnDNS'
+    TabOrder = 5
+    OnClick = btnDNSClick
+  end
   object udpDNS: TCnUDP
     RemotePort = 0
     LocalPort = 0
     OnDataReceived = udpDNSDataReceived
-    Left = 272
+    Left = 392
     Top = 32
   end
 end

@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, CnIP, CnNetDecls;
+  SysUtils, Classes, Windows, Contnrs, CnIP, CnUDP, CnNetDecls;
 
 type
 {$IFNDEF TBYTES_DEFINED}
@@ -48,6 +48,7 @@ type
   ECnDNSException = class(Exception);
 
   TCnDNSQuestion = class
+  {* 代表一个 DNS 包中的 Question 类型的记录}
   private
     FQName: string;
     FQClass: Word;
@@ -60,6 +61,7 @@ type
   end;
 
   TCnDNSResourceRecord = class
+  {* 代表一个 DNS 包中的 Resource Record 类型的记录}
   private
     FRDLength: Word;
     FTTL: LongWord;
@@ -82,6 +84,7 @@ type
   end;
 
   TCnDNSPacketObject = class
+  {* 表示一个 DNS 包的内容，可以持有多个 TCnDNSQuestion 与 TCnDNSResourceRecord 实例}
   private
     FQDCount: Integer;
     FANCount: Integer;
@@ -138,26 +141,198 @@ type
     property ARCount: Integer read FARCount write FARCount;
   end;
 
-function ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar; MaxLen: Integer = 0): Integer;
-{* 解析通过索引或字符串长度串联起来的数据，表示从 StrData 开始扫描，最大不超过 StrData + MaxLen
-  Base 为本 DNS 数据包起始地址。如果 MaxLen 为 0，则表示以 #0 结尾。
-  返回值为本次前进的长度；本次解析结果拼在 StrResult 后面}
+  TCnDNSResponseEvent = procedure(Sender: TObject; Response: TCnDNSPacketObject) of object;
 
-function BuildNameBuffer(const Name: string; Buf: PAnsiChar): PAnsiChar;
-{* 将域名构造成分点号并加上长度字节的格式，Buf 所指的缓冲区应该至少有 Length(Name) + 2 的字节长度，
-  返回 Buf 放满 Name 内容与 #0 结束符之后的地址，供调用者放其他参数}
+  TCnDNS = class(TComponent)
+  {* DNS 收发包组件}
+  private
+    FUDP: TCnUDP;
+    FNameServerPort: Integer;
+    FNameServerIP: string;
+    FOnResponse: TCnDNSResponseEvent;
+    procedure SetNameServerIP(const Value: string);
+    procedure SetNameServerPort(const Value: Integer);
+  protected
+    procedure Loaded; override;
+    procedure UDPDataReceived(Sender: TComponent; Buffer: Pointer;
+      Len: Integer; FromIP: string; Port: Integer);
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
 
-function BuildDNSQueryPacket(const Name: string; RandId: Word;
-  QueryType: Word = CN_DNS_TYPE_A; QueryClass: Word = CN_DNS_CLASS_IN): TBytes;
-{* 构造一简单的单一域名查询报文}
+    class function BuildDNSQueryPacket(const Name: string; RandId: Word;
+      QueryType: Word = CN_DNS_TYPE_A; QueryClass: Word = CN_DNS_CLASS_IN): TBytes;
+    {* 构造一简单的单一域名查询报文}
 
-function ParseDNSResponsePacket(const Response: PAnsiChar; ResponseByteLen: Integer;
-  Packet: TCnDNSPacketObject): Boolean;
-{* 解析回应包，将内容放入 Packet 对象}
+    class function ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar;
+      MaxLen: Integer = 0): Integer;
+    {* 解析通过索引或字符串长度串联起来的数据，表示从 StrData 开始扫描，最大不超过 StrData + MaxLen
+      Base 为本 DNS 数据包起始地址。如果 MaxLen 为 0，则表示以 #0 结尾。
+      返回值为本次前进的长度；本次解析结果拼在 StrResult 后面}
+
+    class function BuildNameBuffer(const Name: string; Buf: PAnsiChar): PAnsiChar;
+    {* 将域名构造成分点号并加上长度字节的格式，Buf 所指的缓冲区应该至少有 Length(Name) + 2 的字节长度，
+      返回 Buf 放满 Name 内容与 #0 结束符之后的地址，供调用者放其他参数}
+
+    class function ParseDNSResponsePacket(const Response: PAnsiChar; ResponseByteLen: Integer;
+      Packet: TCnDNSPacketObject): Boolean;
+    {* 解析回应包，将内容放入 Packet 对象}
+
+    procedure SendHostQuery(const Name: string; QueryType: Word = CN_DNS_TYPE_A;
+      QueryClass: Word = CN_DNS_CLASS_IN; ID: Word = 0);
+    {* 发送一简单的主机查询请求，ID 如果为 0 则内部生成}
+
+  published
+    property NameServerIP: string read FNameServerIP write SetNameServerIP;
+    {* DNS 服务器 IP}
+    property NameServerPort: Integer read FNameServerPort write SetNameServerPort;
+    {* DNS 服务器端口，默认 53}
+    property OnResponse: TCnDNSResponseEvent read FOnResponse write FOnResponse;
+    {* 收到 DNS 回应包时触发的事件}
+  end;
 
 implementation
 
-function BuildNameBuffer(const Name: string; Buf: PAnsiChar): PAnsiChar;
+type
+  TCnUDPHack = class(TCnUDP);
+
+{ TCnDNSPacket }
+
+function TCnDNSPacketObject.AddAdditionalRecord: TCnDNSResourceRecord;
+begin
+  Result := TCnDNSResourceRecord.Create;
+  FARList.Add(Result);
+end;
+
+function TCnDNSPacketObject.AddAnswer: TCnDNSResourceRecord;
+begin
+  Result := TCnDNSResourceRecord.Create;
+  FANList.Add(Result);
+end;
+
+function TCnDNSPacketObject.AddNameServer: TCnDNSResourceRecord;
+begin
+  Result := TCnDNSResourceRecord.Create;
+  FNSList.Add(Result);
+end;
+
+function TCnDNSPacketObject.AddQuestion: TCnDNSQuestion;
+begin
+  Result := TCnDNSQuestion.Create;
+  FQDList.Add(Result);
+end;
+
+constructor TCnDNSPacketObject.Create;
+begin
+  inherited;
+  FQDList := TObjectList.Create;
+  FANList := TObjectList.Create;
+  FNSList := TObjectList.Create;
+  FARList := TObjectList.Create;
+end;
+
+destructor TCnDNSPacketObject.Destroy;
+begin
+  FARList.Free;
+  FNSList.Free;
+  FANList.Free;
+  FQDList.FRee;
+  inherited;
+end;
+
+procedure TCnDNSPacketObject.DumpToStrings(List: TStrings);
+var
+  Q: string;
+  I: Integer;
+begin
+  if IsQuery then
+    Q := 'Query'
+  else if IsResponse then
+    Q := 'Response'
+  else
+    Q := '';
+
+  List.Add(Format('DNS Packet %s. Id %d, OpCode %d, RCode %d.', [Q, FId, FOpCode, FRCode]));
+  List.Add(Format('AA %d, TC %d, RD %d, RA %d, QNCount %d, ANCount %d, NSCount %d, ARCount %d.',
+    [Integer(FAA), Integer(FTC), Integer(FRD), Integer(FRA),
+    FQDCount, FANCount, FNSCount, FARCount]));
+
+  for I := 0 to FQDCount - 1 do
+  begin
+    List.Add(Format('Query #%d:', [I + 1]));
+    QD[I].DumpToStrings(List);
+  end;
+
+  for I := 0 to FANCount - 1 do
+  begin
+    List.Add(Format('Answer #%d:', [I + 1]));
+    AN[I].DumpToStrings(List);
+  end;
+
+  for I := 0 to FNSCount - 1 do
+  begin
+    List.Add(Format('Nameserver #%d:', [I + 1]));
+    NS[I].DumpToStrings(List);
+  end;
+
+  for I := 0 to FARCount - 1 do
+  begin
+    List.Add(Format('Additional Resource #%d:', [I + 1]));
+    AR[I].DumpToStrings(List);
+  end;
+end;
+
+function TCnDNSPacketObject.GetAN(Index: Integer): TCnDNSResourceRecord;
+begin
+  Result := TCnDNSResourceRecord(FANList[Index]);
+end;
+
+function TCnDNSPacketObject.GetAR(Index: Integer): TCnDNSResourceRecord;
+begin
+  Result := TCnDNSResourceRecord(FARList[Index]);
+end;
+
+function TCnDNSPacketObject.GetNS(Index: Integer): TCnDNSResourceRecord;
+begin
+  Result := TCnDNSResourceRecord(FNSList[Index]);
+end;
+
+function TCnDNSPacketObject.GetQD(Index: Integer): TCnDNSQuestion;
+begin
+  Result := TCnDNSQuestion(FQDList[Index]);
+end;
+
+{ TCnDNS }
+
+constructor TCnDNS.Create(AOwner: TComponent);
+begin
+  inherited;
+  FNameServerPort := 53;
+  FUDP := TCnUDP.Create(Self);
+  FUDP.RemoteHost := '8.8.8.8';
+  FUDP.RemotePort := FNameServerPort;
+  FUDP.OnDataReceived := UDPDataReceived;
+end;
+
+destructor TCnDNS.Destroy;
+begin
+  FUDP.Free;
+  inherited;
+end;
+
+procedure TCnDNS.SetNameServerIP(const Value: string);
+begin
+  FNameServerIP := Value;
+  FUDP.RemoteHost := Value;
+end;
+
+procedure TCnDNS.SetNameServerPort(const Value: Integer);
+begin
+  FNameServerPort := Value;
+  FUDP.RemotePort := Value;
+end;
+
+class function TCnDNS.BuildNameBuffer(const Name: string; Buf: PAnsiChar): PAnsiChar;
 var
   P: PChar;
   Q: PAnsiChar;
@@ -199,7 +374,7 @@ begin
   end;
 end;
 
-function BuildDNSQueryPacket(const Name: string; RandId: Word; QueryType: Word;
+class function TCnDNS.BuildDNSQueryPacket(const Name: string; RandId: Word; QueryType: Word;
   QueryClass: Word): TBytes;
 var
   Head: PCnDNSHeader;
@@ -230,7 +405,7 @@ begin
   PW^ := CnHostToNetworkWord(QueryClass);
 end;
 
-function ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar; MaxLen: Integer): Integer;
+class function TCnDNS.ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar; MaxLen: Integer): Integer;
 var
   PB: PByte;
   B: Byte;
@@ -341,8 +516,8 @@ begin
   end;
 end;
 
-function ParseDNSResponsePacket(const Response: PAnsiChar; ResponseByteLen: Integer;
-  Packet: TCnDNSPacketObject): Boolean;
+class function TCnDNS.ParseDNSResponsePacket(const Response: PAnsiChar;
+  ResponseByteLen: Integer; Packet: TCnDNSPacketObject): Boolean;
 var
   I: Integer;
   Head: PCnDNSHeader;
@@ -469,110 +644,43 @@ begin
   end;
 end;
 
-{ TCnDNSPacket }
-
-function TCnDNSPacketObject.AddAdditionalRecord: TCnDNSResourceRecord;
-begin
-  Result := TCnDNSResourceRecord.Create;
-  FARList.Add(Result);
-end;
-
-function TCnDNSPacketObject.AddAnswer: TCnDNSResourceRecord;
-begin
-  Result := TCnDNSResourceRecord.Create;
-  FANList.Add(Result);
-end;
-
-function TCnDNSPacketObject.AddNameServer: TCnDNSResourceRecord;
-begin
-  Result := TCnDNSResourceRecord.Create;
-  FNSList.Add(Result);
-end;
-
-function TCnDNSPacketObject.AddQuestion: TCnDNSQuestion;
-begin
-  Result := TCnDNSQuestion.Create;
-  FQDList.Add(Result);
-end;
-
-constructor TCnDNSPacketObject.Create;
+procedure TCnDNS.Loaded;
 begin
   inherited;
-  FQDList := TObjectList.Create;
-  FANList := TObjectList.Create;
-  FNSList := TObjectList.Create;
-  FARList := TObjectList.Create;
+  TCnUDPHack(FUDP).UpdateBinding;
 end;
 
-destructor TCnDNSPacketObject.Destroy;
-begin
-  FARList.Free;
-  FNSList.Free;
-  FANList.Free;
-  FQDList.FRee;
-  inherited;
-end;
-
-procedure TCnDNSPacketObject.DumpToStrings(List: TStrings);
+procedure TCnDNS.SendHostQuery(const Name: string; QueryType, QueryClass,
+  ID: Word);
 var
-  Q: string;
-  I: Integer;
+  Buf: TBytes;
 begin
-  if IsQuery then
-    Q := 'Query'
-  else if IsResponse then
-    Q := 'Response'
-  else
-    Q := '';
-
-  List.Add(Format('DNS Packet %s. Id %d, OpCode %d, RCode %d.', [Q, FId, FOpCode, FRCode]));
-  List.Add(Format('AA %d, TC %d, RD %d, RA %d, QNCount %d, ANCount %d, NSCount %d, ARCount %d.',
-    [Integer(FAA), Integer(FTC), Integer(FRD), Integer(FRA),
-    FQDCount, FANCount, FNSCount, FARCount]));
-
-  for I := 0 to FQDCount - 1 do
+  if ID = 0 then
   begin
-    List.Add(Format('Query #%d:', [I + 1]));
-    QD[I].DumpToStrings(List);
+    Randomize;
+    ID := Trunc(Random * 65535);
   end;
 
-  for I := 0 to FANCount - 1 do
+  Buf := TCnDNS.BuildDNSQueryPacket(Name, ID, QueryType, QueryClass);
+  FUDP.SendBuffer(@Buf[0], Length(Buf));
+  SetLength(Buf, 0);
+end;
+
+procedure TCnDNS.UDPDataReceived(Sender: TComponent; Buffer: Pointer;
+  Len: Integer; FromIP: string; Port: Integer);
+var
+  Packet: TCnDNSPacketObject;
+begin
+  if Assigned(FOnResponse) then
   begin
-    List.Add(Format('Answer #%d:', [I + 1]));
-    AN[I].DumpToStrings(List);
+    Packet := TCnDNSPacketObject.Create;
+    try
+      ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
+      FOnResponse(Self, Packet);
+    finally
+      Packet.Free;
+    end;
   end;
-
-  for I := 0 to FNSCount - 1 do
-  begin
-    List.Add(Format('Nameserver #%d:', [I + 1]));
-    NS[I].DumpToStrings(List);
-  end;
-
-  for I := 0 to FARCount - 1 do
-  begin
-    List.Add(Format('Additional Resource #%d:', [I + 1]));
-    AR[I].DumpToStrings(List);
-  end;
-end;
-
-function TCnDNSPacketObject.GetAN(Index: Integer): TCnDNSResourceRecord;
-begin
-  Result := TCnDNSResourceRecord(FANList[Index]);
-end;
-
-function TCnDNSPacketObject.GetAR(Index: Integer): TCnDNSResourceRecord;
-begin
-  Result := TCnDNSResourceRecord(FARList[Index]);
-end;
-
-function TCnDNSPacketObject.GetNS(Index: Integer): TCnDNSResourceRecord;
-begin
-  Result := TCnDNSResourceRecord(FNSList[Index]);
-end;
-
-function TCnDNSPacketObject.GetQD(Index: Integer): TCnDNSQuestion;
-begin
-  Result := TCnDNSQuestion(FQDList[Index]);
 end;
 
 { TCnDNSResourceRecord }

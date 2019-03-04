@@ -16,12 +16,16 @@ type
     udpDNS: TCnUDP;
     mmoResponse: TMemo;
     btnTestParseString: TButton;
+    btnDNS: TButton;
     procedure btnQueryClick(Sender: TObject);
     procedure udpDNSDataReceived(Sender: TComponent; Buffer: Pointer;
       Len: Integer; FromIP: String; Port: Integer);
     procedure btnTestParseStringClick(Sender: TObject);
+    procedure btnDNSClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
-    { Private declarations }
+    FDNS: TCnDNS;
+    procedure DNSResponse(Sender: TObject; Response: TCnDNSPacketObject);
   public
     { Public declarations }
   end;
@@ -68,7 +72,7 @@ begin
   mmoResponse.Lines.Clear;
   udpDNS.RemoteHost := edtDNSServer.Text;
   udpDNS.RemotePort := 53;
-  Buf := BuildDNSQueryPacket(edtHostName.Text, 9527);
+  Buf := TCnDNS.BuildDNSQueryPacket(edtHostName.Text, 9527);
   udpDNS.SendBuffer(@Buf[0], Length(Buf));
 end;
 
@@ -82,7 +86,7 @@ begin
   P := PCnDNSHeader(Buffer);
   mmoResponse.Lines.Add(Format('DNS Packet Id %d.', [P^.Id]));
   Packet := TCnDNSPacketObject.Create;
-  ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
+  TCnDNS.ParseDNSResponsePacket(PAnsiChar(Buffer), Len, Packet);
   Packet.DumpToStrings(mmoResponse.Lines);
   Packet.Free;
 end;
@@ -93,11 +97,29 @@ var
   R: Integer;
 begin
   S := '';
-  R := ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$4A]); // , SizeOf(SAMPLE_RESPONSE));
+  R := TCnDNS.ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$4A]); // , SizeOf(SAMPLE_RESPONSE));
   ShowMessage(S + '    Step: ' + IntToStr(R));
   S := '';
-  R := ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$6A], 10); // , SizeOf(SAMPLE_RESPONSE));
+  R := TCnDNS.ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$6A], 10); // , SizeOf(SAMPLE_RESPONSE));
   ShowMessage(S + '    Step: ' + IntToStr(R));
+end;
+
+procedure TFormDNS.btnDNSClick(Sender: TObject);
+begin
+  FDNS.NameServerIP := edtDNSServer.Text;
+  FDNS.SendHostQuery(edtHostName.Text);
+end;
+
+procedure TFormDNS.DNSResponse(Sender: TObject;
+  Response: TCnDNSPacketObject);
+begin
+  Response.DumpToStrings(mmoResponse.Lines);
+end;
+
+procedure TFormDNS.FormCreate(Sender: TObject);
+begin
+  FDNS := TCnDNS.Create(Self);
+  FDNS.OnResponse := DNSResponse;
 end;
 
 end.
