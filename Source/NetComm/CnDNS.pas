@@ -38,7 +38,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, CnIP, CnUDP, CnNetDecls;
+  SysUtils, Classes, Windows, Contnrs,
+  CnClasses, CnConsts, CnNetConsts, CnIP, CnUDP, CnNetDecls;
 
 type
 {$IFNDEF TBYTES_DEFINED}
@@ -143,7 +144,7 @@ type
 
   TCnDNSResponseEvent = procedure(Sender: TObject; Response: TCnDNSPacketObject) of object;
 
-  TCnDNS = class(TComponent)
+  TCnDNS = class(TCnComponent)
   {* DNS 收发包组件}
   private
     FUDP: TCnUDP;
@@ -153,6 +154,7 @@ type
     procedure SetNameServerIP(const Value: string);
     procedure SetNameServerPort(const Value: Integer);
   protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure Loaded; override;
     procedure UDPDataReceived(Sender: TComponent; Buffer: Pointer;
       Len: Integer; FromIP: string; Port: Integer);
@@ -309,9 +311,11 @@ begin
   inherited;
   FNameServerPort := 53;
   FUDP := TCnUDP.Create(Self);
-  FUDP.RemoteHost := '8.8.8.8';
   FUDP.RemotePort := FNameServerPort;
   FUDP.OnDataReceived := UDPDataReceived;
+
+  if not (csDesigning in ComponentState) then
+    TCnUDPHack(FUDP).UpdateBinding;
 end;
 
 destructor TCnDNS.Destroy;
@@ -448,7 +452,7 @@ begin
         Inc(PB);                 // PB 指向本轮字符串，Len 为长度
         Inc(Result);
         if Result >= MaxLen then
-          raise ECnDNSException.Create('Too Long String Length Byte while Out of Bound.');
+          raise ECnDNSException.Create(SCnDNSTooLong);
 
         CopyMemory(@Str[2], PB, Len); // Str 内容塞为 .xxxxx 这种
 
@@ -462,7 +466,7 @@ begin
           Exit;
       end
       else
-        raise ECnDNSException.CreateFmt('Invalid String Head Byte %d at %d.', [PB^, PB - Base]);
+        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - Base]);
     end;
   end
   else // 无长度限制，可能就一个索引（无结束符），或字符串开头，可能有索引，碰到 #0 结束
@@ -511,7 +515,7 @@ begin
         SetLength(Str, 0);
       end
       else
-        raise ECnDNSException.CreateFmt('Invalid String Head Byte %d at %d.', [PB^, PB - Base]);
+        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - Base]);
     end;
   end;
 end;
@@ -681,6 +685,15 @@ begin
       Packet.Free;
     end;
   end;
+end;
+
+procedure TCnDNS.GetComponentInfo(var AName, Author, Email,
+  Comment: string);
+begin
+  AName := SCnDNSName;
+  Author := SCnPack_LiuXiao;
+  Email := SCnPack_LiuXiaoEmail;
+  Comment := SCnDNSComment;
 end;
 
 { TCnDNSResourceRecord }

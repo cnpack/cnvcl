@@ -80,6 +80,12 @@ resourcestring
   SCnErrorAddress = 'Error IP Address';  
   SCnErrorAddrRang = 'IP Address Range Error';
 
+  // CnDNS
+  SCnDNSName = 'CnDNS Component';
+  SCnDNSComment = 'CnDNS Component';
+  SCnDNSTooLong = 'Too Long String Length Byte and Out of Bound.';
+  SCnDNSInvalidHeadByteFmt = 'Invalid String Head Byte %d at %d.';
+
 implementation
 
 end.
