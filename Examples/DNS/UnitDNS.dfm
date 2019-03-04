@@ -80,11 +80,26 @@ object FormDNS: TFormDNS
     TabOrder = 5
     OnClick = btnDNSClick
   end
+  object btnDNSDesign: TButton
+    Left = 440
+    Top = 32
+    Width = 89
+    Height = 25
+    Caption = 'Query Design'
+    TabOrder = 6
+    OnClick = btnDNSDesignClick
+  end
   object udpDNS: TCnUDP
     RemotePort = 0
     LocalPort = 0
     OnDataReceived = udpDNSDataReceived
     Left = 392
     Top = 32
+  end
+  object CnDNS1: TCnDNS
+    NameServerPort = 53
+    OnResponse = CnDNS1Response
+    Left = 392
+    Top = 72
   end
 end

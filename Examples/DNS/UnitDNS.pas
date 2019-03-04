@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnUDP, CnNetDecls, CnDNS;
+  StdCtrls, CnUDP, CnNetDecls, CnDNS, CnClasses;
 
 type
   TFormDNS = class(TForm)
@@ -17,12 +17,17 @@ type
     mmoResponse: TMemo;
     btnTestParseString: TButton;
     btnDNS: TButton;
+    CnDNS1: TCnDNS;
+    btnDNSDesign: TButton;
     procedure btnQueryClick(Sender: TObject);
     procedure udpDNSDataReceived(Sender: TComponent; Buffer: Pointer;
       Len: Integer; FromIP: String; Port: Integer);
     procedure btnTestParseStringClick(Sender: TObject);
     procedure btnDNSClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure CnDNS1Response(Sender: TObject;
+      Response: TCnDNSPacketObject);
+    procedure btnDNSDesignClick(Sender: TObject);
   private
     FDNS: TCnDNS;
     procedure DNSResponse(Sender: TObject; Response: TCnDNSPacketObject);
@@ -120,6 +125,18 @@ procedure TFormDNS.FormCreate(Sender: TObject);
 begin
   FDNS := TCnDNS.Create(Self);
   FDNS.OnResponse := DNSResponse;
+end;
+
+procedure TFormDNS.CnDNS1Response(Sender: TObject;
+  Response: TCnDNSPacketObject);
+begin
+  Response.DumpToStrings(mmoResponse.Lines);
+end;
+
+procedure TFormDNS.btnDNSDesignClick(Sender: TObject);
+begin
+  CnDNS1.NameServerIP := edtDNSServer.Text;
+  CnDNS1.SendHostQuery(edtHostName.Text);
 end;
 
 end.
