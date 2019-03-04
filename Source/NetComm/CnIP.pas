@@ -29,7 +29,9 @@ unit CnIP;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2011.05.15 V1.2
+* 修改记录：2019.03.03 V1.3
+*                将部分函数改为 class 以外部也可调用
+*           2011.05.15 V1.2
 *                修正将127.0.0.1作为默认地址的问题
 *           2009.08.14 V1.1
 *                增加对 D2009 的支持
@@ -112,7 +114,7 @@ type
     function GetSubnetMask: string;
     procedure SetSubnetMask(const Value: string);
     function GetHosts: Cardinal;
-    function GetIPNotes(const aIP: string; var aResult: TIPNotes): Boolean;
+    class function GetIPNotes(const aIP: string; var aResult: TIPNotes): Boolean;
     {* 分解IP地址各结点,IP错误时将抛出错误信息}
     function GetLocalIPCount: Integer;
     function GetComputerName: string;
@@ -129,11 +131,11 @@ type
     {* 本机IP地址相关信息, 包含本机实际IP及127.0.0.1}
     property LocalIPCount: Integer read GetLocalIPCount;
     {* 本机IP地址数,已经排除127.0.0.1}
-    function IPTypeCheck(const aIP: string): TIP_NetType;
+    class function IPTypeCheck(const aIP: string): TIP_NetType;
     {* 检查IP地址类型以及是否合法}
-    function IPToInt(const aIP: string): Cardinal;
+    class function IPToInt(const aIP: string): Cardinal;
     {* 转换IP地址为整数}
-    function IntToIP(const aIP: Cardinal): string;
+    class function IntToIP(const aIP: Cardinal): string;
     {* 转换整数为IP地址}
     function NextIP(const aIP: string): string;
     {* 取下一个IP地址}
@@ -255,7 +257,7 @@ begin
   Result := IPToInt(aEndIP) - IPToInt(aStartIP);
 end;
 
-function TCnIp.GetIPNotes(const aIP: string; var aResult: TIPNotes): Boolean;
+class function TCnIp.GetIPNotes(const aIP: string; var aResult: TIPNotes): Boolean;
 var
   iPos, iNote: Integer;
   sIP: string;
@@ -280,16 +282,20 @@ begin
   Result := aResult[1] > 0;
 end;
 
-function TCnIp.IntToIP(const aIP: Cardinal): string;
+class function TCnIp.IntToIP(const aIP: Cardinal): string;
+var
+  Notes: TIPNotes;
 begin
-  FNotes[1] := aIP and IPNOTE1 shr 24;
-  FNotes[2] := aIP and IPNOTE2 shr 16;
-  FNotes[3] := aIP and IPNOTE3 shr 8;
-  FNotes[4] := aIP and IPNOTE4;
-  Result := Format(IPADDRFORMAT, [FNotes[1], FNotes[2], FNotes[3], FNotes[4]]);
+  Notes[1] := aIP and IPNOTE1 shr 24;
+  Notes[2] := aIP and IPNOTE2 shr 16;
+  Notes[3] := aIP and IPNOTE3 shr 8;
+  Notes[4] := aIP and IPNOTE4;
+  Result := Format(IPADDRFORMAT, [Notes[1], Notes[2], Notes[3], Notes[4]]);
 end;
 
-function TCnIp.IPToInt(const aIP: string): Cardinal;
+class function TCnIp.IPToInt(const aIP: string): Cardinal;
+var
+  Notes: TIPNotes;
 begin
   Result := 0;
   if IPTypeCheck(aIP) = iptNone then
@@ -297,19 +303,21 @@ begin
     //raise Exception.Create(SCnErrorAddress);
     Exit;
   end;
-  if GetIPNotes(aIP, FNotes) then
+  if GetIPNotes(aIP, Notes) then
   begin
-    Result := Result or FNotes[1] shl 24 or FNotes[2] shl 16 or FNotes[3] shl 8
-      or FNotes[4];
+    Result := Result or Notes[1] shl 24 or Notes[2] shl 16 or Notes[3] shl 8
+      or Notes[4];
   end;
 end;
 
-function TCnIp.IPTypeCheck(const aIP: string): TIP_NetType;
+class function TCnIp.IPTypeCheck(const aIP: string): TIP_NetType;
+var
+  Notes: TIPNotes;
 begin
   Result := iptNone;
-  if GetIPNotes(aIP, FNotes) then
+  if GetIPNotes(aIP, Notes) then
   begin
-    case FNotes[1] of
+    case Notes[1] of
       1..126: Result := iptANet;
       127: Result := iptKeepAddr;
       128..191: Result := iptBNet;
