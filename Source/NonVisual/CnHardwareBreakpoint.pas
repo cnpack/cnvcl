@@ -27,7 +27,6 @@ unit CnHardwareBreakpoint;
 * 备    注：提供类表：TCGL_VectoredException, TCGL_HardwareBreakpoints
 * 开发平台：PWinXP + Delphi 2007
 * 兼容测试：暂无
-* 单元标识：$Id: CnHardwareBreakpoint.pas 1146 2012-10-24 06:25:41Z liuxiaoshanzhashu@gmail.com $
 * 修改记录：2013.08.08 v1.0
 *               移植单元
 ================================================================================
