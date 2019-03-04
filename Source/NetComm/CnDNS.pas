@@ -184,14 +184,14 @@ begin
     if P^ = #0 then
     begin
       Q^ := #0;
-      Buf^ := Chr(Len);
+      Buf^ := AnsiChar(Chr(Len));
       Inc(Buf, Len + 2); // Buf 指向 #0 的后一个位置
       Result := Buf;
       Exit;
     end
     else // 碰到点了
     begin
-      Buf^ := Chr(Len);  // 写前面的长度
+      Buf^ := AnsiChar(Chr(Len));  // 写前面的长度
       Inc(Buf, Len + 1); // Buf 指向下个空
     end;
     Inc(P);
