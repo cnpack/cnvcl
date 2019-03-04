@@ -648,9 +648,66 @@ type
     ANCount:               Word;     // 报文回答段中的问题记录数
     NSCount:               Word;     // 报文授权段中的问题记录数
     ARCount:               Word;     // 报文附加段中的问题记录数
+    SectionData:           array[0..0] of Byte;  // 报文附加段数据起始点
   end;
 
   PCnDNSHeader = ^TCnDNSHeader;
+
+{*
+  DNS 包头之后的 Question Section 格式，也就是 QD 所指示的格式
+    0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                                               |
+  /                     QNAME                     /
+  |                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                     QTYPE                     |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                     QCLASS                    |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+  Name 是可变长度内容，因而本结构只表示其后部分
+}
+
+  TCnDNSQuestionSectionAfterName = packed record
+    QType:                 Word;     // 查询类型
+    QClass:                Word;     // 查询类
+  end;
+
+  PCnDNSQuestionSectionAfterName = ^TCnDNSQuestionSectionAfterName;
+
+{*
+  DNS 包头之后的 Resource record 格式，也就是 AN/NS/AR 所指示的格式
+    0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                                               |
+  /                     NAME                      /
+  |                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                     TYPE                      |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                    CLASS                      |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                     TTL                       |
+  |                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                   RDLENGTH                    |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+  /                    RDATA                      /
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+  Name 是可变长度内容，因而本结构只表示其后部分
+}
+
+  TCnDNSResourceRecordAfterName = packed record
+    RType:                 Word;     // 资源类型
+    RClass:                Word;     // 资源类
+    TTL:                   LongWord; // 存活时间
+    RDLength:              Word;     // 资源数据长度
+    RData:                 array[0..0] of Byte;  // 资源数据，如 IP 等
+  end;
+
+  PCnDNSResourceRecordAfterName = ^TCnDNSResourceRecordAfterName;
 
 {*
   Socks 代理协议客户端发起连接握手包示意图，字节内左边是高位，右边是低位。
@@ -945,6 +1002,9 @@ function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
 
 // ========================== DNS 包系列函数 ===================================
 
+function CnGetDNSHeaderId(const DNSHeader: PCnDNSHeader): Word;
+{* 获得 DNS 包头内的 Id}
+
 function CnGetDNSHeaderQR(const DNSHeader: PCnDNSHeader): Integer;
 {* 获得 DNS 包头内的 QR 标识，查询或响应，返回 CN_DNS_HEADER_TYPE_*}
 
@@ -966,53 +1026,115 @@ function CnGetDNSHeaderRA(const DNSHeader: PCnDNSHeader): Boolean;
 function CnGetDNSHeaderRCode(const DNSHeader: PCnDNSHeader): Integer;
 {* 获得 DNS 包头内的应答码，返回 CN_DNS_HEADER_RCODE_*}
 
+function CnGetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的请求记录数量}
+
+function CnGetDNSHeaderANCount(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的回答记录数量}
+
+function CnGetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的授权记录数量}
+
+function CnGetDNSHeaderARCount(const DNSHeader: PCnDNSHeader): Integer;
+{* 获得 DNS 包头内的附加记录数量}
+
+procedure CnSetDNSHeaderId(const DNSHeader: PCnDNSHeader; Id: Word);
+{* 设置 DNS 包头内的 Id}
+
+procedure CnSetDNSHeaderQR(const DNSHeader: PCnDNSHeader; IsQuery: Boolean);
+{* 设置 DNS 包头内的 QR 标识，是查询还是响应}
+
+procedure CnSetDNSHeaderOpCode(const DNSHeader: PCnDNSHeader; QueryType: Byte);
+{* 设置 DNS 包头内的 OpCode 查询种类，使用 CN_DNS_HEADER_OPCODE_*}
+
+procedure CnSetDNSHeaderAA(const DNSHeader: PCnDNSHeader; AuthoritativeAnswer: Boolean);
+{* 设置 DNS 包头内的授权应答位是否置位}
+
+procedure CnSetDNSHeaderTC(const DNSHeader: PCnDNSHeader; TrunCation: Boolean);
+{* 设置 DNS 包头内的截断位是否置位}
+
+procedure CnSetDNSHeaderRD(const DNSHeader: PCnDNSHeader; RecursionDesired: Boolean);
+{* 设置 DNS 包头内的期望递归位是否置位}
+
+procedure CnSetDNSHeaderRA(const DNSHeader: PCnDNSHeader; RecursionAvailable: Boolean);
+{* 设置 DNS 包头内的支持递归位是否置位}
+
+procedure CnSetDNSHeaderRCode(const DNSHeader: PCnDNSHeader; RCode: Byte);
+{* 设置 DNS 包头内的应答码，使用 CN_DNS_HEADER_RCODE_*}
+
+procedure CnSetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader; Count: Word);
+{* 设置 DNS 包头内的请求记录数量}
+
+procedure CnSetDNSHeaderANCount(const DNSHeader: PCnDNSHeader; Count: Word);
+{* 设置 DNS 包头内的回答记录数量}
+
+procedure CnSetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader; Count: Word);
+{* 设置 DNS 包头内的授权记录数量}
+
+procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
+{* 设置 DNS 包头内的附加记录数量}
+
+// ========================= 字节顺序调换函数 ==================================
+
+function CnNetworkToHostWord(Value: Word): Word;
+
+function CnHostToNetworkWord(Value: Word): Word;
+
+function CnNetworkToHostLongWord(Value: LongWord): LongWord;
+
+function CnHostToNetworkLongWord(Value: LongWord): LongWord;
+
+function CnNetworkToHostInt64(Value: Int64): Int64;
+
+function CnHostToNetworkInt64(Value: Int64): Int64;
+
 implementation
 
-function NetworkToHostWord(Value: Word): Word;
+function CnNetworkToHostWord(Value: Word): Word;
 begin
   Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
-function HostToNetworkWord(Value: Word): Word;
+function CnHostToNetworkWord(Value: Word): Word;
 begin
   Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
-function NetworkToHostLongWord(Value: LongWord): LongWord;
+function CnNetworkToHostLongWord(Value: LongWord): LongWord;
 begin
   Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
     or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
 end;
 
-function HostToNetworkLongWord(Value: LongWord): LongWord;
+function CnHostToNetworkLongWord(Value: LongWord): LongWord;
 begin
   Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
     or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
 end;
 
-function NetworkToHostInt64(Value: Int64): Int64;
+function CnNetworkToHostInt64(Value: Int64): Int64;
 var
   Lo, Hi: LongWord;
   Rec: Int64Rec;
 begin
   Lo := Int64Rec(Value).Lo;
   Hi := Int64Rec(Value).Hi;
-  Lo := NetworkToHostLongWord(Lo);
-  Hi := NetworkToHostLongWord(Hi);
+  Lo := CnNetworkToHostLongWord(Lo);
+  Hi := CnNetworkToHostLongWord(Hi);
   Rec.Lo := Hi;
   Rec.Hi := Lo;
   Result := Int64(Rec);
 end;
 
-function HostToNetworkInt64(Value: Int64): Int64;
+function CnHostToNetworkInt64(Value: Int64): Int64;
 var
   Lo, Hi: LongWord;
   Rec: Int64Rec;
 begin
   Lo := Int64Rec(Value).Lo;
   Hi := Int64Rec(Value).Hi;
-  Lo := NetworkToHostLongWord(Lo);
-  Hi := NetworkToHostLongWord(Hi);
+  Lo := CnNetworkToHostLongWord(Lo);
+  Hi := CnNetworkToHostLongWord(Hi);
   Rec.Lo := Hi;
   Rec.Hi := Lo;
   Result := Int64(Rec);
@@ -1050,62 +1172,62 @@ end;
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := NetworkToHostWord(IPHeader^.TotalLength);
+  Result := CnNetworkToHostWord(IPHeader^.TotalLength);
 end;
 
 function CnGetIPIdentification(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := NetworkToHostWord(IPHeader^.Identification);
+  Result := CnNetworkToHostWord(IPHeader^.Identification);
 end;
 
 function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
+  Result := (CnNetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
+  Result := (CnNetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := NetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
+  Result := CnNetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
 end;
 
 function CnGetIPChecksum(const IPHeader: PCnIPHeader): Word;
 begin
-  Result := NetworkToHostWord(IPHeader^.Checksum);
+  Result := CnNetworkToHostWord(IPHeader^.Checksum);
 end;
 
 function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
 begin
-  Result := NetworkToHostLongWord(IPHeader^.SourceIp);
+  Result := CnNetworkToHostLongWord(IPHeader^.SourceIp);
 end;
 
 function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
 begin
-  Result := NetworkToHostLongWord(IPHeader^.DestIp);
+  Result := CnNetworkToHostLongWord(IPHeader^.DestIp);
 end;
 
 function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
 begin
-  Result := NetworkToHostWord(TCPHeader^.SourcePort);
+  Result := CnNetworkToHostWord(TCPHeader^.SourcePort);
 end;
 
 function CnGetTCPDestPort(const TCPHeader: PCnTCPHeader): Integer;
 begin
-  Result := NetworkToHostWord(TCPHeader^.DestPort);
+  Result := CnNetworkToHostWord(TCPHeader^.DestPort);
 end;
 
 function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): LongWord;
 begin
-  Result := NetworkToHostLongWord(TCPHeader^.SequenceNumber);
+  Result := CnNetworkToHostLongWord(TCPHeader^.SequenceNumber);
 end;
 
 function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): LongWord;
 begin
-  Result := NetworkToHostLongWord(TCPHeader^.AcknowledgementNumber);
+  Result := CnNetworkToHostLongWord(TCPHeader^.AcknowledgementNumber);
 end;
 
 function CnGetTCPOffset(const TCPHeader: PCnTCPHeader): Integer;
@@ -1145,37 +1267,37 @@ end;
 
 function CnGetTCPWindow(const TCPHeader: PCnTCPHeader): Integer;
 begin
-  Result := NetworkToHostWord(TCPHeader^.Window);
+  Result := CnNetworkToHostWord(TCPHeader^.Window);
 end;
 
 function CnGetTCPChecksum(const TCPHeader: PCnTCPHeader): Word;
 begin
-  Result := NetworkToHostWord(TCPHeader^.Checksum);
+  Result := CnNetworkToHostWord(TCPHeader^.Checksum);
 end;
 
 function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
 begin
-  Result := NetworkToHostWord(TCPHeader^.UrgentPointer);
+  Result := CnNetworkToHostWord(TCPHeader^.UrgentPointer);
 end;
 
 function CnGetUDPSourcePort(const UDPHeader: PCnUDPHeader): Integer;
 begin
-  Result := NetworkToHostWord(UDPHeader^.SourcePort);
+  Result := CnNetworkToHostWord(UDPHeader^.SourcePort);
 end;
 
 function CnGetUDPDestPort(const UDPHeader: PCnUDPHeader): Integer;
 begin
-  Result := NetworkToHostWord(UDPHeader^.DestPort);
+  Result := CnNetworkToHostWord(UDPHeader^.DestPort);
 end;
 
 function CnGetUDPLength(const UDPHeader: PCnUDPHeader): Integer;
 begin
-  Result := NetworkToHostWord(UDPHeader^.Length);
+  Result := CnNetworkToHostWord(UDPHeader^.Length);
 end;
 
 function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
 begin
-  Result := NetworkToHostWord(UDPHeader^.Checksum);
+  Result := CnNetworkToHostWord(UDPHeader^.Checksum);
 end;
 
 function CnGetICMPType(const ICMPHeader: PCnICMPHeader): Integer;
@@ -1190,7 +1312,7 @@ end;
 
 function CnGetICMPChecksum(const ICMPHeader: PCnICMPHeader): Word;
 begin
-  Result := NetworkToHostWord(ICMPHeader^.Checksum);
+  Result := CnNetworkToHostWord(ICMPHeader^.Checksum);
 end;
 
 function CnGetICMPPointer(const ICMPHeader: PCnICMPHeader): Integer;
@@ -1200,17 +1322,17 @@ end;
 
 function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): LongWord;
 begin
-  Result := NetworkToHostLongWord(ICMPHeader^.GatewayAddress);
+  Result := CnNetworkToHostLongWord(ICMPHeader^.GatewayAddress);
 end;
 
 function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
 begin
-  Result := NetworkToHostWord(ICMPHeader^.Identifier);
+  Result := CnNetworkToHostWord(ICMPHeader^.Identifier);
 end;
 
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 begin
-  Result := NetworkToHostWord(ICMPHeader^.SequenceNumber);
+  Result := CnNetworkToHostWord(ICMPHeader^.SequenceNumber);
 end;
 
 function CnGetNTPLeapIndicator(const NTPPacket: PCnNTPPacket): Integer;
@@ -1247,7 +1369,7 @@ function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
 var
   Sec, Frac: DWORD;
 begin
-  Stamp := NetworkToHostInt64(Stamp);
+  Stamp := CnNetworkToHostInt64(Stamp);
   Sec := Int64Rec(Stamp).Hi;
   Frac := Int64Rec(Stamp).Lo;
 
@@ -1269,7 +1391,12 @@ begin
 
   Int64Rec(Result).Lo := Frac;
   Int64Rec(Result).Hi := Sec;
-  Result := HostToNetworkInt64(Result); // 互相转换
+  Result := CnHostToNetworkInt64(Result); // 互相转换
+end;
+
+function CnGetDNSHeaderId(const DNSHeader: PCnDNSHeader): Word;
+begin
+  Result := CnNetworkToHostWord(DNSHeader^.Id);
 end;
 
 function CnGetDNSHeaderQR(const DNSHeader: PCnDNSHeader): Integer;
@@ -1305,6 +1432,101 @@ end;
 function CnGetDNSHeaderRCode(const DNSHeader: PCnDNSHeader): Integer;
 begin
   Result := DNSHeader^.RAZRCode and $0F;
+end;
+
+function CnGetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := CnNetworkToHostWord(DNSHeader^.QDCount);
+end;
+
+function CnGetDNSHeaderANCount(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := CnNetworkToHostWord(DNSHeader^.ANCount);
+end;
+
+function CnGetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := CnNetworkToHostWord(DNSHeader^.NSCount);
+end;
+
+function CnGetDNSHeaderARCount(const DNSHeader: PCnDNSHeader): Integer;
+begin
+  Result := CnNetworkToHostWord(DNSHeader^.ARCount);
+end;
+
+procedure CnSetDNSHeaderId(const DNSHeader: PCnDNSHeader; Id: Word);
+begin
+  DNSHeader^.Id := CnHostToNetworkWord(Id);
+end;
+
+procedure CnSetDNSHeaderQR(const DNSHeader: PCnDNSHeader; IsQuery: Boolean);
+begin
+  if IsQuery then
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD and $7F
+  else
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD or $80;
+end;
+
+procedure CnSetDNSHeaderOpCode(const DNSHeader: PCnDNSHeader; QueryType: Byte);
+begin
+  DNSHeader^.QrOpcodeAATCRD := (DNSHeader^.QrOpcodeAATCRD and $87) or Byte(QueryType shl 3);
+end;
+
+procedure CnSetDNSHeaderAA(const DNSHeader: PCnDNSHeader; AuthoritativeAnswer: Boolean);
+begin
+  if AuthoritativeAnswer then
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD or $04
+  else
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD and $FB;
+end;
+
+procedure CnSetDNSHeaderTC(const DNSHeader: PCnDNSHeader; TrunCation: Boolean);
+begin
+  if TrunCation then
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD or $02
+  else
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD and $FD;
+end;
+
+procedure CnSetDNSHeaderRD(const DNSHeader: PCnDNSHeader; RecursionDesired: Boolean);
+begin
+  if RecursionDesired then
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD or $01
+  else
+    DNSHeader^.QrOpcodeAATCRD := DNSHeader^.QrOpcodeAATCRD and $FE;
+end;
+
+procedure CnSetDNSHeaderRA(const DNSHeader: PCnDNSHeader; RecursionAvailable: Boolean);
+begin
+  if RecursionAvailable then
+    DNSHeader^.RAZRCode := DNSHeader^.RAZRCode or $80
+  else
+    DNSHeader^.RAZRCode := DNSHeader^.RAZRCode and $7F;
+end;
+
+procedure CnSetDNSHeaderRCode(const DNSHeader: PCnDNSHeader; RCode: Byte);
+begin
+  DNSHeader^.RAZRCode := (DNSHeader^.RAZRCode and $F0) or (RCode and $0F);
+end;
+
+procedure CnSetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader; Count: Word);
+begin
+  DNSHeader^.QDCount := CnHostToNetworkWord(Count);
+end;
+
+procedure CnSetDNSHeaderANCount(const DNSHeader: PCnDNSHeader; Count: Word);
+begin
+  DNSHeader^.ANCount := CnHostToNetworkWord(Count);
+end;
+
+procedure CnSetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader; Count: Word);
+begin
+  DNSHeader^.NSCount := CnHostToNetworkWord(Count);
+end;
+
+procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
+begin
+  DNSHeader^.ARCount := CnHostToNetworkWord(Count);
 end;
 
 end.
