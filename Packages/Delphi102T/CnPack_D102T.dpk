@@ -188,6 +188,7 @@ contains
   CnLangUtils in '..\..\Source\MultiLang\CnLangUtils.pas',
   CnCameraEye in '..\..\Source\NetComm\CnCameraEye.pas',
   CnDialUp in '..\..\Source\NetComm\CnDialUp.pas',
+  CnDNS in '..\..\Source\NetComm\CnDNS.pas',
   CnIISCtrl in '..\..\Source\NetComm\CnIISCtrl.pas',
   CnInetUtils in '..\..\Source\NetComm\CnInetUtils.pas',
   CnIocpSimpleMemPool in '..\..\Source\NetComm\CnIocpSimpleMemPool.pas',
