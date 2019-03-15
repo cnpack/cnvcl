@@ -28,7 +28,9 @@ unit CnCommon;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2012.01.19 by LiuXiao
+* 修改记录：2019.02.25 by LiuXiao
+*               增加检查中国大陆 18 位身份证号是否正确的函数
+*           2012.01.19 by LiuXiao
 *               增加一个移植自外国牛人的快速开根号倒数的函数
 *           2011.11.02 by LiuXiao
 *               增加来自于 ccrun 的把程序钉到 Win7 任务栏的函数
@@ -899,6 +901,9 @@ function SameMethod(Method1, Method2: TMethod): Boolean;
 
 function HalfFind(List: TList; P: Pointer; SCompare: TListSortCompare): Integer;
 {* 二分法在排序列表中查找}
+
+function CheckChineseIDCardNumber(const IDNumber: string): Boolean;
+{* 检查中国大陆的 18 位身份证是否合法}
 
 type
   TFindRange = record
@@ -6572,6 +6577,31 @@ begin
       Result.tgLast := i
     else
       Break;
+end;
+
+// 检查中国大陆的 18 位身份证是否合法
+function CheckChineseIDCardNumber(const IDNumber: string): Boolean;
+const
+  IDFactors: array[1..17] of Integer = (7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2);
+  Remains: array[0..10] of Char = ('1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2');
+var
+  I, Sum: Integer;
+begin
+  Result := False;
+  if Length(IDNumber) <> 18 then
+    Exit;
+
+  Sum := 0;
+  for I := 1 to 17 do
+  begin
+    if not (IDNumber[I] in ['0'..'9']) then
+      Exit;
+
+    Sum := Sum + (Ord(IDNumber[I]) - 48) * IDFactors[I];
+  end;
+  Sum := Sum mod 11;
+  if Remains[Sum] = UpperCase(IDNumber[18]) then
+    Result := True;
 end;
 
 // 交换两个数

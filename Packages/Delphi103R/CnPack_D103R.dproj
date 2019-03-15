@@ -235,6 +235,7 @@
         <DCCReference Include="..\..\Source\MultiLang\CnLangUtils.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnCameraEye.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnDialUp.pas"/>
+        <DCCReference Include="..\..\Source\NetComm\CnDNS.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnIISCtrl.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnInetUtils.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnIocpSimpleMemPool.pas"/>

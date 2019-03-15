@@ -433,6 +433,9 @@ cnpack\Source 目录内容说明：
   CnDialUp.pas
     拨号连接组件实现单元
 
+  CnDNS.pas
+    利用 UDP 实现 DNS 发送与解析的组件实现单元
+
   CnIISCtrl.pas
     IIS 控制组件实现单元
 

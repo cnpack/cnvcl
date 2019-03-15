@@ -44,7 +44,7 @@ uses
 {$IFDEF COMPILER6_UP}
   Variants,
 {$ENDIF}
- CnDBConsts;
+  CnDBConsts;
 
 const
   CN_MSG_EXECUTING = WM_USER + 100;
@@ -87,7 +87,7 @@ type
     property MsgList: TList read FMsgList;
   end;
 
-procedure  GetSqlStrings(List: TList; SqlText: string);
+procedure GetSqlStrings(List: TList; SqlText: string);
 
 {$ENDIF SUPPORT_ADO}
 
@@ -95,7 +95,7 @@ implementation
 
 {$IFDEF SUPPORT_ADO}
 
-procedure  GetSqlStrings(List: TList; SqlText: string);
+procedure GetSqlStrings(List: TList; SqlText: string);
 var
   Strings: TStringList;
   i: Integer;
@@ -110,9 +110,9 @@ begin
       tempstr := tempstr + strings[i]+#13#10
     else
     begin
-       sqlRec := StrNew(PChar(tempstr));
-       tempstr := '';
-       List.Add(SqlRec);
+      sqlRec := StrNew(PChar(tempstr));
+      tempstr := '';
+      List.Add(SqlRec);
     end;
   end;
   sqlRec := StrNew(PChar(tempstr));
@@ -124,11 +124,11 @@ end;
 
 constructor TRunThread.Create(CreateSuspended: Boolean;MsgHandle: THandle);
 begin
-   Inherited Create(CreateSuspended);
-   FMsgHandle := MsgHandle;
-   FSQlList := TList.Create;
-   FMsgList := TList.Create;
-   FRecordList := TList.Create;
+  inherited Create(CreateSuspended);
+  FMsgHandle := MsgHandle;
+  FSQlList := TList.Create;
+  FMsgList := TList.Create;
+  FRecordList := TList.Create;
 end;
 
 destructor TRunThread.Destroy;
@@ -166,43 +166,44 @@ begin
   FOld := GetTickCount;
   if FSqlList.Count > 0 then
   begin
-     ExeFlag := true;
-     SendMessage(FMsgHandle,CN_MSG_EXECUTING,0,0);//执行开始
-     CoInitialize(Nil);
-     Try
-       FConnection.Open;
-     except
-       On E: Exception do
-       begin
-         if not FIsStop then
-         begin
-         //MessageBox(FMsgHandle,PChar(E.Message),ErrMsg,16);
-           msg := E.Message;
-           FMsgList.Add(strNew(PChar(msg)));
-           ExeFlag := false;
-         end;
-       end;
-     end;
-     CoUninitialize;
-     FNew := GetTickCount;
-     FUseTime := FNew - FOld;
-     if ExeFlag then
-       for i := 0 to FSqlList.Count - 1 do
-       begin
-         CurrSql := FSqlList.Items[i];
-         if not ExecuteSql(CurrSql) then
-         begin
-           ExeFlag := false;
-           Break;
-         end;
-       end;
+    ExeFlag := True;
+    SendMessage(FMsgHandle, CN_MSG_EXECUTING, 0, 0);//执行开始
+    CoInitialize(Nil);
+    try
+      FConnection.Open;
+    except
+      on E: Exception do
+      begin
+        if not FIsStop then
+        begin
+        //MessageBox(FMsgHandle,PChar(E.Message),ErrMsg,16);
+          msg := E.Message;
+          FMsgList.Add(strNew(PChar(msg)));
+          ExeFlag := false;
+        end;
+      end;
+    end;
 
-     msg := SCnUsedTime + #13#10#13#10 + inttostr(FUseTime);
-     FMsgList.Add(strNew(PChar(msg)));
-     if not ExeFlag then
-       SendMessage(FMsgHandle,CN_MSG_EXEFAIL,Integer(self),0)
-     else
-       FRunSucced := true;
+    CoUninitialize;
+    FNew := GetTickCount;
+    FUseTime := FNew - FOld;
+    if ExeFlag then
+      for i := 0 to FSqlList.Count - 1 do
+      begin
+        CurrSql := FSqlList.Items[i];
+        if not ExecuteSql(CurrSql) then
+        begin
+          ExeFlag := false;
+          Break;
+        end;
+      end;
+
+    msg := SCnUsedTime + #13#10#13#10 + inttostr(FUseTime);
+    FMsgList.Add(strNew(PChar(msg)));
+    if not ExeFlag then
+      SendMessage(FMsgHandle,CN_MSG_EXEFAIL,Integer(self),0)
+    else
+      FRunSucced := true;
   end;
 end;
 
@@ -235,99 +236,99 @@ begin
   FCommand := nil;
   ExeRecord := nil;
   try
-      if FIsParse then
-         FConnection.Execute('SET PARSEONLY ON')
-      else
-         FConnection.Execute('SET PARSEONLY OFF');
-      FCommand := TADOCommand.Create(nil);
-      FCommand.Connection := FConnection;
-      FCommand.ParamCheck := false;
-      FCommand.CommandText := sql;
-      FConnection.BeginTrans;//开始事务
-      try
-        FOldTime := GetTickCount;
-        ExeRecord := FCommand.Execute(RecordAffected,EmptyParam);
-        FConnection.CommitTrans;//提交事务
-        if FIsStop then
+    if FIsParse then
+      FConnection.Execute('SET PARSEONLY ON')
+    else
+      FConnection.Execute('SET PARSEONLY OFF');
+    FCommand := TADOCommand.Create(nil);
+    FCommand.Connection := FConnection;
+    FCommand.ParamCheck := false;
+    FCommand.CommandText := sql;
+    FConnection.BeginTrans;//开始事务
+    try
+      FOldTime := GetTickCount;
+      ExeRecord := FCommand.Execute(RecordAffected,EmptyParam);
+      FConnection.CommitTrans;//提交事务
+      if FIsStop then
+      begin
+        Result := false;
+        FConnection.RollbackTrans;
+        exit;
+      end;
+      FNewTime := GetTickCount;
+      FUseTime := FUseTime + (FNewTime - FOldTime);
+      Affected := RecordAffected;
+      if not FIsParse then
+      begin
+        if Affected <> -1 then
         begin
-          Result := false;
-          FConnection.RollbackTrans;
-          exit;
-        end;
-        FNewTime := GetTickCount;
-        FUseTime := FUseTime + (FNewTime - FOldTime);
-        Affected := RecordAffected;
-        if not FIsParse then
-        begin
-          if Affected <> -1 then
-          begin
-             msg := Format(SCnAffectMsg, [Integer(Affected)])+ #13#10#13#10;
-             FMsgList.Add(strNew(PChar(msg)));
-          end
-          else
-          begin
-            try
-              TempCount := ExeRecord.RecordCount;
-            except
-              tempcount := -1;
-            end;
-            if TempCount = -1 then
-            begin
-              msg := SCnExeSucced+#13#10#13#10;
-              FMsgList.Add(strNew(PChar(msg)));
-            end;
-          end;
-          Flag := True;
-
-          while (ExeRecord <> nil) do
-          begin
-            if Affected = -1 then
-            begin
-              if tempCount <> -1 then
-              begin
-                msg := Format(SCnAffectMsg,[ExeRecord.RecordCount])+ #13#10#13#10;
-                FMsgList.Add(strNew(PChar(msg)));
-                Query := TADOquery.Create(nil);
-                Query.Connection := FConnection;
-                Query.Recordset := ExeRecord;
-                Ds := TDataSource.Create(nil);
-                Ds.DataSet := Query;
-                FRecordList.Add(Ds);
-              end
-              else if not Flag then
-              begin
-                msg := SCnExeSucced + #13#10#13#10;
-                FMsgList.Add(strNew(PChar(msg)));
-              end;
-            end;
-            ExeRecord := ExeRecord.NextRecordset(Affected);
-            Flag := False;
-            if ExeRecord <> nil then
-            try
-              TempCount := ExeRecord.RecordCount;
-            except
-              Tempcount := -1;
-            end;
-          end;
+          msg := Format(SCnAffectMsg, [Integer(Affected)])+ #13#10#13#10;
+          FMsgList.Add(strNew(PChar(msg)));
         end
         else
         begin
-          msg := SCnExeSucced + #13#10#13#10;
-          FMsgList.Add(StrNew(PChar(msg)));
+          try
+            TempCount := ExeRecord.RecordCount;
+          except
+            tempcount := -1;
+          end;
+          if TempCount = -1 then
+          begin
+            msg := SCnExeSucced+#13#10#13#10;
+            FMsgList.Add(strNew(PChar(msg)));
+          end;
         end;
-      except
-        on E: Exception do
+        Flag := True;
+
+        while (ExeRecord <> nil) do
         begin
-          FNewTime := GetTickCount;
-          FUseTime := FUseTime + (FNewTime - FOldTime);
-          msg := E.Message + #13#10#13#10;
-          FMsgList.Add(strNew(PChar(msg)));
-          FConnection.RollbackTrans;
-          Result := False;
+          if Affected = -1 then
+          begin
+            if tempCount <> -1 then
+            begin
+              msg := Format(SCnAffectMsg,[ExeRecord.RecordCount])+ #13#10#13#10;
+              FMsgList.Add(strNew(PChar(msg)));
+              Query := TADOquery.Create(nil);
+              Query.Connection := FConnection;
+              Query.Recordset := ExeRecord;
+              Ds := TDataSource.Create(nil);
+              Ds.DataSet := Query;
+              FRecordList.Add(Ds);
+            end
+            else if not Flag then
+            begin
+              msg := SCnExeSucced + #13#10#13#10;
+              FMsgList.Add(strNew(PChar(msg)));
+            end;
+          end;
+          ExeRecord := ExeRecord.NextRecordset(Affected);
+          Flag := False;
+          if ExeRecord <> nil then
+          try
+            TempCount := ExeRecord.RecordCount;
+          except
+            Tempcount := -1;
+          end;
         end;
+      end
+      else
+      begin
+        msg := SCnExeSucced + #13#10#13#10;
+        FMsgList.Add(StrNew(PChar(msg)));
       end;
-      FreeAndNil(Fcommand);
-      ExeRecord := nil;
+    except
+      on E: Exception do
+      begin
+        FNewTime := GetTickCount;
+        FUseTime := FUseTime + (FNewTime - FOldTime);
+        msg := E.Message + #13#10#13#10;
+        FMsgList.Add(strNew(PChar(msg)));
+        FConnection.RollbackTrans;
+        Result := False;
+      end;
+    end;
+    FreeAndNil(Fcommand);
+    ExeRecord := nil;
   finally
     CoUninitialize;
   end;

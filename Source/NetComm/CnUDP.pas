@@ -99,7 +99,6 @@ type
     function GetQueueCount: Integer;
     procedure SetupLastError;
     function GetLocalHost: string;
-    procedure UpdateBinding;
     procedure SetRecvBufSize(const Value: Cardinal);
     procedure SetBindAddr(const Value: string);
     function SockStartup: Boolean;
@@ -108,6 +107,7 @@ type
     procedure SetUDPSendBufSize(const Value: Cardinal);
   protected
     procedure Wait;
+    procedure UpdateBinding;
     procedure Loaded; override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -159,7 +159,7 @@ type
 // 取广播地址
 procedure GetBroadCastAddress(sInt: TStrings);
 
-// 取本机IP地址
+// 取本机 IP 地址
 procedure GetLocalIPAddress(sInt: TStrings);
 
 implementation
@@ -255,7 +255,7 @@ begin
   WSACleanUp;
 end;
 
-// 取本机IP地址
+// 取本机 IP 地址
 procedure GetLocalIPAddress(sInt: TStrings);
 begin
   DoGetIPAddress(sInt, False);

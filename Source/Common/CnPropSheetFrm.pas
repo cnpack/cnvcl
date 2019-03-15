@@ -53,7 +53,7 @@ const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
 
 type
-  TCnPropContentType = (pctProps, pctEvents, pctMethods, pctCollectionItems, pctMenuItems,
+  TCnPropContentType = (pctProps, pctFields, pctEvents, pctMethods, pctCollectionItems, pctMenuItems,
     pctStrings, pctGraphics, pctComponents, pctControls, pctHierarchy);
   TCnPropContentTypes = set of TCnPropContentType;
 
@@ -67,12 +67,14 @@ type
     FObjClassName: string;
     FIsNewRTTI: Boolean;
     FIntfValue: IUnknown;
+    FIsObjOrIntf: Boolean;
   public
     property Changed: Boolean read FChanged write FChanged;
     property DisplayValue: string read FDisplayValue write FDisplayValue;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property ObjValue: TObject read FObjValue write FObjValue;
     property IntfValue: IUnknown read FIntfValue write FIntfValue;
+    property IsObjOrIntf: Boolean read FIsObjOrIntf write FIsObjOrIntf;
     property ObjStr: string read FObjStr write FObjStr;
     property IsNewRTTI: Boolean read FIsNewRTTI write FIsNewRTTI;
   end;
@@ -80,7 +82,6 @@ type
   TCnPropertyObject = class(TCnDisplayObject)
   {* 描述一属性 }
   private
-    FIsObjOrIntf: Boolean;
     FPropName: string;
     FPropType: TTypeKind;
     FPropValue: Variant;
@@ -94,7 +95,6 @@ type
   public
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
-    property IsObjOrIntf: Boolean read FIsObjOrIntf write FIsObjOrIntf;
     property PropValue: Variant read FPropValue write FPropValue;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
@@ -128,6 +128,33 @@ type
     property MethodSimpleName: string read FMethodSimpleName write FMethodSimpleName;
     property FullName: string read FFullName write FFullName;
   end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+  TCnFieldObject = class(TCnDisplayObject)
+  {* 描述一 Field，只在增强 RTTI 中有用}
+  private
+    FOffset: Integer;
+    FFieldName: string;
+    FFieldType: TRttiType;
+    FCanModify: Boolean;
+    FFieldValue: TValue;
+  public
+    constructor Create;
+    {* 构造函数}
+    property FieldName: string read FFieldName write FFieldName;
+    {* Field 的名字}
+    property FieldType: TRttiType read FFieldType write FFieldType;
+    {* Field 的类型}
+    property FieldValue: TValue read FFieldValue write FFieldValue;
+    {* Field 的值}
+    property Offset: Integer read FOffset write FOffset;
+    {* Field 的偏移量}
+    property CanModify: Boolean read FCanModify write FCanModify;
+    {* 该 Field 能否修改，一般都为 True}
+  end;
+
+{$ENDIF}
 
   TCnStringsObject = class(TCnDisplayObject)
   {* 描述一 TStrings}
@@ -194,6 +221,7 @@ type
   private
     FObjectAddr: Pointer;
     FProperties: TObjectList;
+    FFields: TObjectList;
     FEvents: TObjectList;
     FMethods: TObjectList;
     FInspectComplete: Boolean;
@@ -222,6 +250,7 @@ type
     procedure SetInspectComplete(const Value: Boolean);
     function GetMenuItemCount: Integer;
     function GetMethodCount: Integer;
+    function GetFieldCount: Integer;
   protected
     procedure SetObjectAddr(const Value: Pointer); virtual;
     procedure DoEvaluate; virtual; abstract;
@@ -238,6 +267,10 @@ type
       const AEventName: string): TCnEventObject;
     function IndexOfMethod(AMethods: TObjectList;
       const AMethodName: string): TCnMethodObject;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    function IndexOfField(AFields: TObjectList;
+      const AFieldName: string): TCnFieldObject;
+{$ENDIF}
   public
     constructor Create(Data: Pointer); virtual;
     destructor Destroy; override;
@@ -250,6 +283,7 @@ type
     {* 主要供外部写，写入 Object，或 String }
 
     property Properties: TObjectList read FProperties;
+    property Fields: TObjectList read FFields;
     property Events: TObjectList read FEvents;
     property Methods: TObjectList read FMethods;
     property Strings: TCnStringsObject read FStrings;
@@ -260,6 +294,7 @@ type
     property MenuItems: TObjectList read FMenuItems;
 
     property PropCount: Integer read GetPropCount;
+    property FieldCount: Integer read GetFieldCount;
     property EventCount: Integer read GetEventCount;
     property MethodCount: Integer read GetMethodCount;
     property CompCount: Integer read GetCompCount;
@@ -331,6 +366,7 @@ type
     edtClassName: TEdit;
     btnLocate: TSpeedButton;
     lvMethods: TListView;
+    lvFields: TListView;
     pnlGraphicInfo: TPanel;
     bxGraphic: TScrollBox;
     imgGraphic: TImage;
@@ -521,8 +557,8 @@ type
 
 const
   SCnPropContentType: array[TCnPropContentType] of string =
-    ('Properties', 'Events', 'Methods', 'CollectionItems', 'MenuItems', 'Strings', 'Graphics',
-     'Components', 'Controls', 'Hierarchy');
+    ('Properties', 'Fields', 'Events', 'Methods', 'CollectionItems', 'MenuItems',
+     'Strings', 'Graphics', 'Components', 'Controls', 'Hierarchy');
 
   SCnInputNewValueCaption = 'Modify Value';
   SCnInputNewValuePrompt = 'Enter a New Value for %s:';
@@ -547,10 +583,13 @@ var
   I: Integer;
   S: TIntegerSet;
 begin
-  Result := '';
   if Value = 0 then
+  begin
+    Result := '[]';
     Exit;
+  end;
 
+  Result := '';
   Integer(S) := Value;
   for I := 0 to SizeOf(Integer) * 8 - 1 do
   begin
@@ -795,6 +834,69 @@ begin
   Result := Result + ';';
 end;
 
+// 根据 Field 函数类型信息获得其声明，2010以上版本使用
+function GetRttiFieldMethodDeclare(Instance: TObject; RttiField: TRttiField): string;
+var
+  CompName, MthName, S: string;
+  TypeStr: PShortString;
+  T: PTypeData;
+  P: PParamData;
+  I, DataSize: Integer;
+  AMethod: TMethod;
+begin
+  Result := '';
+  DataSize := RttiField.GetValue(Instance).DataSize;
+  if DataSize <> SizeOf(TMethod) then
+    Exit;
+
+  RttiField.GetValue(Instance).ExtractRawData(@AMethod);
+
+  CompName := '*';
+  if Instance is TComponent then
+    CompName := (Instance as TComponent).Name;
+  MthName := RttiField.Name;
+
+  if AMethod.Data <> nil then
+  begin
+    try
+      S := TObject(AMethod.Data).MethodName(AMethod.Code);
+      if S <> '' then
+        MthName := S;
+      if TObject(AMethod.Data) is TComponent then
+        CompName := (TObject(AMethod.Data) as TComponent).Name;
+    except
+      ;
+    end;
+  end;
+
+  T := GetTypeData(RttiField.FieldType.Handle);
+
+  if T^.MethodKind = mkFunction then
+    Result := Result + 'function ' + CompName + '.' + MthName + '('
+  else
+    Result := Result + 'procedure ' + CompName + '.' + MthName + '(';
+
+  P := PParamData(@T^.ParamList);
+  for I := 1 to T^.ParamCount do
+  begin
+    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
+      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+    else
+      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^]));
+    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+      Length(P^.ParamName) + Length(TypeStr^) + 2);
+  end;
+
+  Delete(Result, Length(Result), 1);
+  Result := Result + ')';
+  if T^.MethodKind = mkFunction then
+    Result := Result + ': ' + string(PShortString(P)^);
+  Result := Result + ';';
+end;
+
 {$ENDIF}
 
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
@@ -802,6 +904,7 @@ var
   iTmp: Integer;
   S: string;
   IntToId: TIntToIdent;
+  AMethod: TMethod;
 {$IFDEF COMPILER6_UP}
   Intf: IInterface;
 {$ENDIF}
@@ -840,18 +943,16 @@ begin
       S := FloatToStr(GetFloatProp(Instance, PropInfo));
     tkMethod:
       begin
-        iTmp := GetOrdProp(Instance, PropInfo);
-        if iTmp <> 0 then
+        AMethod := GetMethodProp(Instance, PropInfo);
+        if (AMethod.Code <> nil) and (AMethod.Data <> nil) then
         begin
 {$IFDEF WIN64}
           S := Format('%s: ($%16.16x, $%16.816x): %s', [PropInfo^.PropType^^.Name,
-            NativeInt(GetMethodProp(Instance, PropInfo).Code),
-            NativeInt(GetMethodProp(Instance, PropInfo).Data),
+            NativeInt(AMethod.Code), NativeInt(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
 {$ELSE}
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
-            Integer(GetMethodProp(Instance, PropInfo).Code),
-            Integer(GetMethodProp(Instance, PropInfo).Data),
+            Integer(AMethod.Code), Integer(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
 {$ENDIF}
         end
@@ -894,36 +995,6 @@ var
   Intf: IInterface;
   AMethod: TMethod;
   AClass: TClass;
-
-  function GetSetStr(TypInfo: PTypeInfo; Value: Integer): string;
-  var
-    I: Integer;
-    S: TIntegerSet;
-  begin
-    if Value = 0 then
-    begin
-      Result := '[]';
-      Exit;
-    end;
-
-    Result := '';
-    Integer(S) := Value;
-    for I := 0 to SizeOf(Integer) * 8 - 1 do
-    begin
-      if I in S then
-      begin
-        if Result <> '' then
-          Result := Result + ',';
-
-        if TypInfo = nil then
-          Result := Result + IntToStr(I)
-        else
-          Result := Result + GetEnumName(TypInfo, I);
-      end;
-    end;
-    Result := '[' + Result + ']';
-  end;
-
 begin
   Result := '';
   case RttiProperty.PropertyType.TypeKind of
@@ -1037,6 +1108,130 @@ begin
   Result := S;
 end;
 
+function GetRttiFieldValueStr(Instance: TObject; RttiField: TRttiField): string;
+var
+  S: string;
+  IntToId: TIntToIdent;
+  PropTypeInfo, SetElementTypeInfo: PTypeInfo;
+  DataSize: Integer;
+  Buf: array[0..1] of Integer; // for x64?
+  APtr: Pointer;
+  Intf: IInterface;
+  AMethod: TMethod;
+  AClass: TClass;
+begin
+  Result := '';
+  case RttiField.FieldType.TypeKind of
+    tkInteger:
+      begin
+        S := IntToStr(RttiField.GetValue(Instance).AsInteger);
+        PropTypeInfo := RttiField.FieldType.Handle;
+        IntToId := FindIntToIdent(PropTypeInfo);
+        if Assigned(IntToId) and IntToId(RttiField.GetValue(Instance).AsInteger, S) then
+        else
+        begin
+          if RttiField.FieldType.Name = 'TColor' then
+            S := Format('$%8.8x', [RttiField.GetValue(Instance).AsInteger])
+          else
+            S := IntToStr(RttiField.GetValue(Instance).AsInteger);
+        end;
+      end;
+    tkChar, tkWChar:
+      S := RttiField.GetValue(Instance).AsString;
+    tkClass:
+      begin
+        // 一类属性是 Class，可能根据类名获取运行期实例？published 里头适用？
+        // 一类属性是 Object，public 里头适用？
+        if RttiField.GetValue(Instance).IsClass then
+        begin
+          AClass := RttiField.GetValue(Instance).AsClass;
+          S := GetClassValueStr(AClass);
+        end
+        else if RttiField.GetValue(Instance).IsObject then
+        begin
+          S := GetObjValueStr(RttiField.GetValue(Instance).AsObject);
+        end;
+      end;
+    tkEnumeration:
+      begin
+        PropTypeInfo := RttiField.FieldType.Handle;
+        S := GetEnumName(PropTypeInfo, RttiField.GetValue(Instance).AsOrdinal);
+      end;
+    tkSet:
+      begin
+        SetElementTypeInfo := nil;
+        if RttiField.FieldType.IsSet then
+          SetElementTypeInfo := RttiField.FieldType.AsSet.ElementType.Handle;
+
+        DataSize := RttiField.GetValue(Instance).DataSize;
+        if (DataSize <= SizeOf(Integer)) and (SetElementTypeInfo <> nil) then
+        begin
+          FillChar(Buf[0], SizeOf(Buf), 0);
+          RttiField.GetValue(Instance).ExtractRawData((@Buf[0]));
+          S := GetSetStr(SetElementTypeInfo, Buf[0]);
+        end;
+      end;
+    tkFloat:
+      S := FloatToStr(RttiField.GetValue(Instance).AsExtended);
+    tkMethod:
+      begin
+        DataSize := RttiField.GetValue(Instance).DataSize;
+        if DataSize = SizeOf(TMethod) then
+        begin
+          RttiField.GetValue(Instance).ExtractRawData(@AMethod);
+          if AMethod.Code = nil then
+            S := 'nil'
+          else
+          begin
+{$IFDEF WIN64}
+            S := Format('%s: ($%16.16x, $%16.16x: %s)', [RttiField.FieldType.Name,
+              NativeInt(AMethod.Code), NativeInt(AMethod.Data),
+              GetRttiFieldMethodDeclare(Instance, RttiField)]);
+{$ELSE}
+            S := Format('%s: ($%8.8x, $%8.8x: %s)', [RttiField.FieldType.Name,
+              Integer(AMethod.Code), Integer(AMethod.Data),
+              GetRttiFieldMethodDeclare(Instance, RttiField)]);
+{$ENDIF}
+          end;
+        end;
+      end;
+    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      S := RttiField.GetValue(Instance).AsString;
+    tkVariant:
+      S := VarToStr(RttiField.GetValue(Instance).AsVariant);
+    tkInt64:
+      S := FloatToStr(RttiField.GetValue(Instance).AsInt64 + 0.0);
+    tkInterface:
+      begin
+        try
+          Intf := RttiField.GetValue(Instance).AsInterface;
+          {$IFDEF WIN64}
+          S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
+          {$ELSE}
+          S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
+          {$ENDIF}
+        except
+          on E: Exception do
+            S := Format('(Interface:<Exception: %s>)', [E.Message]);
+        end;
+      end;
+    tkPointer:
+      begin
+        DataSize := RttiField.GetValue(Instance).DataSize;
+        if DataSize = SizeOf(Pointer) then
+        begin
+          RttiField.GetValue(Instance).ExtractRawData(@APtr);
+{$IFDEF WIN64}
+          S := Format('(Pointer:$%16.16x)', [NativeInt(APtr)]);
+{$ELSE}
+          S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
+{$ENDIF}
+        end;
+      end;
+  end;
+  Result := S;
+end;
+
 {$ENDIF}
 
 { TCnStringsObject }
@@ -1061,6 +1256,7 @@ constructor TCnObjectInspector.Create(Data: Pointer);
 begin
   inherited Create;
   FProperties := TObjectList.Create(True);
+  FFields := TObjectList.Create(True);
   FEvents := TObjectList.Create(True);
   FMethods := TObjectList.Create(True);
   FStrings := TCnStringsObject.Create;
@@ -1081,6 +1277,7 @@ begin
   FStrings.Free;
   FMethods.Free;
   FEvents.Free;
+  FFields.Free;
   FProperties.Free;
   inherited;
 end;
@@ -1098,6 +1295,11 @@ end;
 function TCnObjectInspector.GetEventCount: Integer;
 begin
   Result := FEvents.Count;
+end;
+
+function TCnObjectInspector.GetFieldCount: Integer;
+begin
+  Result := FFields.Count;
 end;
 
 function TCnObjectInspector.GetPropCount: Integer;
@@ -1163,6 +1365,31 @@ begin
     end;
   end;
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function TCnObjectInspector.IndexOfField(AFields: TObjectList;
+  const AFieldName: string): TCnFieldObject;
+var
+  I: Integer;
+  AField: TCnFieldObject;
+begin
+  Result := nil;
+  if AFields <> nil then
+  begin
+    for I := 0 to AFields.Count - 1 do
+    begin
+      AField := TCnFieldObject(AFields.Items[I]);
+      if AField.FieldName = AFieldName then
+      begin
+        Result := AField;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 function TCnObjectInspector.IndexOfProperty(AProperties: TObjectList;
   const APropName: string): TCnPropertyObject;
@@ -1297,6 +1524,8 @@ var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   RttiProperty: TRttiProperty;
+  RttiField: TRttiField;
+  AField: TCnFieldObject;
 {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
   RttiIndexedProperty: TRttiIndexedProperty;
 {$ENDIF}
@@ -1408,6 +1637,7 @@ begin
     if not IsRefresh then
     begin
       Properties.Clear;
+      Fields.Clear;
       Events.Clear;
       Components.Clear;
       Controls.Clear;
@@ -1669,10 +1899,58 @@ begin
 
           Include(FContentTypes, pctMethods);
         end;
+
+        // 获取 Fields
+        for RttiField in RttiType.GetFields do
+        begin
+          if not IsRefresh then
+            AField := TCnFieldObject.Create
+          else
+            AField := IndexOfField(FFields, RttiField.Name);
+
+          AField.FieldName := RttiField.ToString; // RttiField.Name;
+          AField.Offset := RttiField.Offset;
+          AField.FieldType := RttiField.FieldType;
+          AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface];
+
+          try
+            AField.FieldValue := RttiField.GetValue(FObjectInstance);
+          except
+            // Getting Some Property causes Exception. Catch it.
+            AField.FieldValue := nil;
+          end;
+
+          AField.ObjValue := nil;
+          AField.IntfValue := nil;
+          try
+            if AField.IsObjOrIntf and RttiField.GetValue(FObjectInstance).IsObject then
+              AField.ObjValue := RttiField.GetValue(FObjectInstance).AsObject
+            else if AField.IsObjOrIntf and (RttiField.GetValue(FObjectInstance).TypeInfo <> nil) and
+              (RttiField.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+              AField.IntfValue := RttiField.GetValue(FObjectInstance).AsInterface;
+          except
+            // Getting Some Property causes Exception. Catch it.;
+          end;
+
+          S := GetRttiFieldValueStr(FObjectInstance, RttiField);
+          if S <> AField.DisplayValue then
+          begin
+            AField.DisplayValue := S;
+            AField.Changed := True;
+          end
+          else
+            AField.Changed := False;
+
+          if not IsRefresh then
+            FFields.Add(AField);
+
+          Include(FContentTypes, pctFields);
+        end;
       end;
     finally
       RttiContext.Free;
     end;
+
 {$ENDIF}
 
     // 额外添加显示不在 published 域的一些已知的公用属性
@@ -2188,6 +2466,7 @@ begin
 
   lvProp.Items.Clear;
   lvEvent.Items.Clear;
+  lvFields.Items.Clear;
   lvMethods.Items.Clear;
   lvCollectionItem.Items.Clear;
   lvMenuItem.Items.Clear;
@@ -2216,6 +2495,18 @@ begin
       SubItems.Add(TCnPropertyObject(FInspector.Properties.Items[I]).DisplayValue);
     end;
   end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  for I := 0 to FInspector.FieldCount - 1 do
+  begin
+    with lvFields.Items.Add do
+    begin
+      Data := FInspector.Fields.Items[I];
+      Caption := TCnFieldObject(FInspector.Fields.Items[I]).FieldName;
+      SubItems.Add(TCnFieldObject(FInspector.Fields.Items[I]).DisplayValue);
+    end;
+  end;
+{$ENDIF}
 
   for I := 0 to FInspector.EventCount - 1 do
   begin
@@ -2376,6 +2667,7 @@ begin
 
   lvProp.Columns[1].Width := Self.ClientWidth - lvProp.Columns[0].Width - FixWidth;
   lvEvent.Columns[1].Width := Self.ClientWidth - lvEvent.Columns[0].Width - FixWidth;
+  lvFields.Columns[1].Width := Self.ClientWidth - lvFields.Columns[0].Width - FixWidth;
   lvMethods.Columns[1].Width := Self.ClientWidth - lvMethods.Columns[0].Width - FixWidth;
   lvCollectionItem.Columns[1].Width := Self.ClientWidth - lvCollectionItem.Columns[0].Width - FixWidth;
   lvMenuItem.Columns[1].Width := Self.ClientWidth - lvMenuItem.Columns[0].Width - FixWidth;
@@ -2440,6 +2732,7 @@ begin
   AControl := nil; NeedChangePanel := False;
   case IndexOfContentTypeStr(tsSwitch.Tabs.Strings[NewTab]) of
     pctProps:             AControl := lvProp;
+    pctFields:            AControl := lvFields;
     pctEvents:            AControl := lvEvent;
     pctMethods:           AControl := lvMethods;
     pctCollectionItems:   AControl := lvCollectionItem;
@@ -3072,6 +3365,18 @@ begin
   if Node.Data <> nil then
     EvaluatePointer(Node.Data, FInspectParam, Self);
 end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+{ TCnFieldObject }
+
+constructor TCnFieldObject.Create;
+begin
+  FIsNewRTTI := True;
+  FCanModify := True;
+end;
+
+{$ENDIF}
 
 initialization
   FSheetList := TComponentList.Create(True);

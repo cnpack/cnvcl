@@ -47,7 +47,7 @@ uses
   DsgnIntf,
   {$ENDIF}
   {$IFNDEF BCB5} {$IFNDEF BCB6} CnUDP, {$ENDIF} {$ENDIF}
-  CnConsts, CnRS232, CnModem, CnRS232Dialog, CnIP, CnPing, CnDialUp,
+  CnConsts, CnRS232, CnModem, CnRS232Dialog, CnIP, CnPing, CnDNS, CnDialUp,
   CnCameraEye, CnIISCtrl, CnTwain, CnIocpSimpleMemPool, CnIocpSocketAdapter,
   CnNetPropEditor;
 
@@ -62,7 +62,7 @@ begin
   RegisterComponents(SCnNetPalette, [TCnModem]);
   RegisterComponents(SCnNetPalette, [TCnRS232Dialog]);
   RegisterComponents(SCnNetPalette, [TCnDialUp]);
-  RegisterComponents(SCnNetPalette, [TCnIP, TCnPing]);
+  RegisterComponents(SCnNetPalette, [TCnIP, TCnPing, TCnDNS]);
   RegisterComponents(SCnNetPalette, [TCnCameraEye, TCnIISCtrl, TCnTwain]);
   RegisterComponents(SCnNetPalette, [TCnIocpSimpleMemPool, TCnIocpSocketAdapter]);
 {$IFNDEF BCB5} {$IFNDEF BCB6}

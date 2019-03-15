@@ -80,6 +80,12 @@ resourcestring
   SCnErrorAddress = '錯誤的IP地址';
   SCnErrorAddrRang = '超出IP地址範圍';
 
+  // CnDNS
+  SCnDNSName = 'DNS組件';
+  SCnDNSComment = 'DNS組件';
+  SCnDNSTooLong = '字符串長度超界';
+  SCnDNSInvalidHeadByteFmt = '字符串長度 %d 位於 %d 處非法';
+
 implementation
 
 end.
