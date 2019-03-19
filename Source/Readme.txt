@@ -86,6 +86,9 @@ cnpack\Source 目录内容说明：
   CnFmxUtils.pas
     FMX 辅助库单元
 
+  CnGraph.pas
+    有向图与无向图实现单元
+
   CnGraphUtils.pas
     公共图像函数库
 
@@ -224,7 +227,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-              74 文件
+              75 文件
 
 \DbReport －数据库组件与报表库目录
 
