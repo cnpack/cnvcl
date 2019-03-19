@@ -1,6 +1,6 @@
 object FormGraph: TFormGraph
-  Left = 192
-  Top = 130
+  Left = 113
+  Top = 125
   Width = 928
   Height = 571
   Caption = 'Graph'
@@ -29,6 +29,49 @@ object FormGraph: TFormGraph
         Top = 16
         Width = 225
         Height = 457
+        Lines.Strings = (
+          '基础模块_吃饭'
+          ' 业务模块_恋爱'
+          ' 业务模块_上班'
+          ' 业务模块_下班'
+          ' 基础模块_编程'
+          '基础模块_睡觉'
+          ' 基础模块_休息'
+          ' 业务模块_下班'
+          '基础模块_喝水'
+          ' 业务模块_恋爱'
+          ' 业务模块_上班'
+          ' 业务模块_下班'
+          ' 基础模块_编程'
+          '基础模块_休息'
+          ' 业务模块_疯狂购物'
+          ' 业务模块_下班'
+          ' 业务模块_打豆豆'
+          '基础模块_编程'
+          ' 业务模块_上班'
+          ' 业务模块_下班'
+          ' 业务模块_炒股炒成股东'
+          '业务模块_恋爱'
+          ' 业务模块_上班'
+          ' 业务模块_下班'
+          ' 业务模块_疯狂购物'
+          '业务模块_上班'
+          ' 业务模块_疯狂购物'
+          '业务模块_下班'
+          ' 业务模块_疯狂购物'
+          '业务模块_打豆豆'
+          ' 业务模块_买不起房'
+          ' 业务模块_炒股炒成股东'
+          '业务模块_疯狂购物'
+          ' 业务模块_买不起房'
+          ' 业务模块_炒股炒成股东'
+          ' 业务模块_上班'
+          '业务模块_炒股炒成股东'
+          ' 业务模块_下班'
+          ' 业务模块_炒股炒成股东'
+          '业务模块_买不起房'
+          ' 业务模块_下班'
+          ' 业务模块_炒股炒成股东')
         TabOrder = 0
       end
       object btnLoad: TButton
@@ -42,7 +85,7 @@ object FormGraph: TFormGraph
       end
       object btnDumpVertex: TButton
         Left = 248
-        Top = 72
+        Top = 64
         Width = 75
         Height = 25
         Caption = 'Dump Vertex'
@@ -51,7 +94,7 @@ object FormGraph: TFormGraph
       end
       object btnBiCheck: TButton
         Left = 248
-        Top = 120
+        Top = 112
         Width = 75
         Height = 25
         Caption = 'BiCheck'
@@ -81,6 +124,15 @@ object FormGraph: TFormGraph
         Width = 169
         Height = 457
         TabOrder = 6
+      end
+      object btnAdjMatrix: TButton
+        Left = 248
+        Top = 160
+        Width = 75
+        Height = 25
+        Caption = 'Adjacency'
+        TabOrder = 7
+        OnClick = btnAdjMatrixClick
       end
     end
   end

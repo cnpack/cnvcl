@@ -17,6 +17,7 @@ type
     lstVertex: TListBox;
     mmoTravel: TMemo;
     mmoEdge: TMemo;
+    btnAdjMatrix: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadClick(Sender: TObject);
@@ -24,10 +25,11 @@ type
     procedure btnBiCheckClick(Sender: TObject);
     procedure lstVertexDblClick(Sender: TObject);
     procedure lstVertexClick(Sender: TObject);
+    procedure btnAdjMatrixClick(Sender: TObject);
   private
     FDirectedGraph: TCnGraph;
     FTravelResults: TStringList;
-    procedure OnTravel(Sender: TObject);
+    procedure OnTravel(Vertex: TCnVertex);
   public
     { Public declarations }
   end;
@@ -115,10 +117,10 @@ begin
   end;
 end;
 
-procedure TFormGraph.OnTravel(Sender: TObject);
+procedure TFormGraph.OnTravel(Vertex: TCnVertex);
 begin
-  if Sender <> nil then
-    FTravelResults.Add(TCnVertex(Sender).Text);
+  if Vertex <> nil then
+    FTravelResults.Add(Vertex.Text);
 end;
 
 procedure TFormGraph.lstVertexDblClick(Sender: TObject);
@@ -146,6 +148,19 @@ begin
     for I := 0 to V.OutNeighbourCount - 1 do
       mmoEdge.Lines.Add(V.OutNeighbour[I].Text);
   end;
+end;
+
+procedure TFormGraph.btnAdjMatrixClick(Sender: TObject);
+var
+  M: TCnAdjacencyMatrix;
+  List: TStrings;
+begin
+  M := FDirectedGraph.DumpToAdjacencyMatrix;
+  List := TStringList.Create;
+  CnMatrixToStrings(M, List);
+  ShowMessage(List.Text);
+  List.Free;
+  SetLength(M, 0);
 end;
 
 end.

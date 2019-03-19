@@ -25,7 +25,7 @@ unit CnGraph;
 * 单元名称：实现图的单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：
-* 开发平台：PWin2000Pro + Delphi 5.01
+* 开发平台：Win 7 + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2019.03.19 V1.0
@@ -45,10 +45,12 @@ type
 
   ECnGraphException = class(Exception);
 
-  TCnAdjacencyMatrix = array of array of Integer;
+  TCnMatrix = array of array of Integer;
+
+  TCnAdjacencyMatrix = TCnMatrix;
   {* 邻接矩阵，顶点与顶点}
 
-  TCnIncidenceMatrix = array of array of Integer;
+  TCnIncidenceMatrix = TCnMatrix;
   {* 关联矩阵，顶点与边}
 
   TCnVertex = class(TObject)
@@ -68,7 +70,8 @@ type
     function GetWeight(Index: Integer): Integer;
   protected
     procedure AddInNeighbour(PrevRef: TCnVertex);
-    
+    procedure RemoveInNeighbour(PrevRef: TCnVertex);
+
     property Visited: Boolean read FVisited write FVisited;
     {* 是否被访问过的标记，用于图的遍历}
   public
@@ -76,7 +79,9 @@ type
     destructor Destroy; override;
 
     procedure AddOutNeighbour(NextRef: TCnVertex; Weight: Integer = 1);
-
+    {* 添加出的相邻点与权重}
+    procedure RemoveOutNeighbour(NextRef: TCnVertex);
+    {* 删除出的相邻点}
     procedure ClearNeighbours;
     {* 清除所有出入相邻的顶点}
 
@@ -84,7 +89,9 @@ type
     {* 所属的图}
 
     property Text: string read FText write FText;
+    {* 存储文本属性}
     property Data: TObject read FData write FData;
+    {* 存储数据对象属性}
 
     property Weight[Index: Integer]: Integer read GetWeight;
     {* 以此顶点为起点的边的权重}
@@ -99,14 +106,17 @@ type
     {* 以此顶点为终点的边的数量，也即入度}
   end;
 
+  TCnGraphTravelEvent = procedure(Vertex: TCnVertex) of object;
+  {* 遍历图时触发访问某顶点的事件，Vertex 是顶点}
+
   TCnGraph = class(TObject)
   {* 图实现类}
   private
     FVertexes: TObjectList;
     FDirected: Boolean;
     FEdgeCount: Integer;
-    FOnDepthFirstTravelVertex: TNotifyEvent;
-    FOnWidthFirstTravelVertex: TNotifyEvent;
+    FOnDepthFirstTravelVertex: TCnGraphTravelEvent;
+    FOnWidthFirstTravelVertex: TCnGraphTravelEvent;
     function GetVertexCount: Integer;
     function GetVertex(Index: Integer): TCnVertex;
   protected
@@ -129,9 +139,13 @@ type
     function AddEdge(Vertex1, Vertex2: TCnVertex; Weight: Integer = 1): Boolean;
     {* 添加一条边。如果是有向图，则添加 Vertex1 指向 Vertex2 的边，
       无向图添加 Vertex1 指向 Vertex2 边与 Vertex2 指向 Vertex1 边 }
-
     function AddVertexesEdge(const Text1, Text2: string; Weight: Integer = 1): Boolean;
     {* 按 Text 添加一条边。如果已存在 Text 相同的顶点则以顶点为准，否则先添加顶点再添加边}
+    function RemoveEdge(Vertex1, Vertex2: TCnVertex): Boolean;
+    {* 删除一条边。如果是有向图，则删除 Vertex1 指向 Vertex2 的边，
+      无向图删除 Vertex1 指向 Vertex2 边与 Vertex2 指向 Vertex1 边}
+    function RemoveVertex(Vertex: TCnVertex): Boolean;
+    {* 删除一个顶点以及以它关联的所有边并 Free 这个顶点}
 
     function GetVertexOutDegree(Vertex: TCnVertex): Integer;
     {* 有向图情况下得到某顶点的出度}
@@ -165,15 +179,36 @@ type
     property VertexCount: Integer read GetVertexCount;
     {* 顶点数量}
 
-    property OnDepthFirstTravelVertex: TNotifyEvent
+    property OnDepthFirstTravelVertex: TCnGraphTravelEvent
       read FOnDepthFirstTravelVertex write FOnDepthFirstTravelVertex;
     {* 深度优先遍历时遍历到一个顶点时的触发事件，Sender 是此顶点 }
-    property OnWidthFirstTravelVertex: TNotifyEvent
+    property OnWidthFirstTravelVertex: TCnGraphTravelEvent
       read FOnWidthFirstTravelVertex write FOnWidthFirstTravelVertex;
     {* 广度优先遍历时遍历到一个顶点时的触发事件，Sender 是此顶点 }
   end;
 
+procedure CnMatrixToStrings(Matrix: TCnMatrix; List: TStrings);
+{* 将矩阵转换为字符串列表用来显示}
+
 implementation
+
+procedure CnMatrixToStrings(Matrix: TCnMatrix; List: TStrings);
+var
+  I, J: Integer;
+  S: string;
+begin
+  if (Matrix <> nil) and (List <> nil) then
+  begin
+    List.Clear;
+    for I := Low(Matrix) to High(Matrix) do
+    begin
+      S := '';
+      for J := Low(Matrix[I]) to High(Matrix[I]) do
+        S := S + ' ' + IntToStr(Matrix[I, J]);
+      List.Add(S);
+    end;
+  end;
+end;
 
 { TCnVertex }
 
@@ -240,6 +275,28 @@ end;
 function TCnVertex.GetWeight(Index: Integer): Integer;
 begin
   Result := Integer(FWeights[Index]);
+end;
+
+procedure TCnVertex.RemoveInNeighbour(PrevRef: TCnVertex);
+begin
+  if PrevRef <> nil then
+    FInNeighbours.Remove(PrevRef);
+end;
+
+procedure TCnVertex.RemoveOutNeighbour(NextRef: TCnVertex);
+var
+  WeightIndex: Integer;
+begin
+  if NextRef <> nil then
+  begin
+    WeightIndex := FOutNeighbours.IndexOf(NextRef);
+    if WeightIndex >= 0 then
+    begin
+      FOutNeighbours.Delete(WeightIndex);
+      FWeights.Delete(WeightIndex);
+      NextRef.RemoveInNeighbour(Self);
+    end;
+  end;
 end;
 
 { TCnGraph }
@@ -352,6 +409,7 @@ begin
     Vertex.Visited := True;
     Queue.Push(Vertex);
 
+    V := nil;
     while Queue.Count > 0 do
     begin
       V := TCnVertex(Queue.Pop);
@@ -390,7 +448,7 @@ begin
       VC := VR.OutNeighbour[Col];
       Idx := FVertexes.IndexOf(VC);
       if Idx >= 0 then
-        Result[Row, Idx] := VC.Weight[Col];
+        Result[Row, Idx] := VR.Weight[Col];
     end;
   end;
 end;
@@ -469,6 +527,44 @@ end;
 function TCnGraph.HasVertex(Vertex: TCnVertex): Boolean;
 begin
   Result := (Vertex <> nil) and (Vertex.Owner = Self) and (FVertexes.IndexOf(Vertex) >= 0);
+end;
+
+function TCnGraph.RemoveEdge(Vertex1, Vertex2: TCnVertex): Boolean;
+begin
+  Result := False;
+  if Vertex1 = Vertex2 then
+    Exit;
+  if not HasVertex(Vertex1) or not HasVertex(Vertex2) then
+    Exit;
+
+  Vertex1.RemoveOutNeighbour(Vertex2);
+  if not FDirected then
+    Vertex2.RemoveOutNeighbour(Vertex1);
+
+  Dec(FEdgeCount);
+  Result := True;
+end;
+
+function TCnGraph.RemoveVertex(Vertex: TCnVertex): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if not HasVertex(Vertex) then
+    Exit;
+
+  // 删 OutNeighbours 里每一个里的 InNeighbours 里的自己
+  for I := 0 to Vertex.OutNeighbourCount - 1 do
+    Vertex.OutNeighbour[I].RemoveInNeighbour(Vertex);
+
+  // 删 InNeighbours 里每一个里的 OutNeighbours 里的自己
+  for I := 0 to Vertex.InNeighbourCount - 1 do
+    Vertex.InNeighbour[I].RemoveOutNeighbour(Vertex);
+
+  Vertex.ClearNeighbours;
+  FVertexes.Remove(Vertex);
+  Vertex.Free;
+  Result := True;
 end;
 
 procedure TCnGraph.WidthFirstTravel(Vertex: TCnVertex);
