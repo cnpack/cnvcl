@@ -205,7 +205,7 @@ begin
     begin
       S := '';
       for J := Low(Matrix[I]) to High(Matrix[I]) do
-        S := S + ' ' + IntToStr(Matrix[I, J]);
+        S := S + ' ' + Format('%2d', [Matrix[I, J]]);
       List.Add(S);
     end;
   end;
@@ -475,7 +475,10 @@ begin
       begin
         Result[Row, Col] := 1;  // 边起点
         if FDirected then
-          Result[Idx, Col] := -1; // 边终点
+        begin
+          if Result[Idx, Col] = 0 then // 不是自指边
+            Result[Idx, Col] := -1     // 边终点
+        end
         else
           Result[Idx, Col] := 1;  // 无向图都用 1
       end;
