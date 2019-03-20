@@ -70,8 +70,9 @@ type
     function GetWeight(Index: Integer): Integer;
   protected
     procedure AddInNeighbour(PrevRef: TCnVertex);
+    {* 单纯添加一个顶点到 InNeighbour}
     procedure RemoveInNeighbour(PrevRef: TCnVertex);
-
+    {* 单纯从 InNeighbour 中删除一个顶点}
     property Visited: Boolean read FVisited write FVisited;
     {* 是否被访问过的标记，用于图的遍历}
   public
@@ -79,7 +80,7 @@ type
     destructor Destroy; override;
 
     procedure AddOutNeighbour(NextRef: TCnVertex; Weight: Integer = 1);
-    {* 添加出的相邻点与权重}
+    {* 添加出的相邻点与权重，内部会把 Self 添加到 NextRef 的 InNeighbour 中}
     procedure RemoveOutNeighbour(NextRef: TCnVertex);
     {* 删除出的相邻点}
     procedure ClearNeighbours;
@@ -304,13 +305,12 @@ end;
 function TCnGraph.AddEdge(Vertex1, Vertex2: TCnVertex; Weight: Integer): Boolean;
 begin
   Result := False;
-  if Vertex1 = Vertex2 then
-    Exit;
+
   if not HasVertex(Vertex1) or not HasVertex(Vertex2) then
     Exit;
 
   Vertex1.AddOutNeighbour(Vertex2, Weight);
-  if not FDirected then
+  if not FDirected and (Vertex1 <> Vertex2) then
     Vertex2.AddOutNeighbour(Vertex1, Weight);
 
   Inc(FEdgeCount);
@@ -409,7 +409,6 @@ begin
     Vertex.Visited := True;
     Queue.Push(Vertex);
 
-    V := nil;
     while Queue.Count > 0 do
     begin
       V := TCnVertex(Queue.Pop);
@@ -454,6 +453,8 @@ begin
 end;
 
 function TCnGraph.DumpToIncidenceMatrix: TCnIncidenceMatrix;
+var
+  Row, Col, I, Idx: Integer;
 begin
   if VertexCount = 0 then
     raise ECnGraphException.Create('NO Vertexes.');
@@ -461,7 +462,26 @@ begin
     raise ECnGraphException.Create('NO Edges.');
 
   SetLength(Result, VertexCount, EdgeCount);
-  // TODO: 导出至关联矩阵
+
+  // 导出至关联矩阵，无权重，无法处理有向图中的顶点自环
+  Col := 0;
+  for Row := 0 to FVertexes.Count - 1 do
+  begin
+    for I := 0 to Vertex[Row].OutNeighbourCount - 1 do
+    begin
+      // 找到一条边，起始点是 Vertex[Row] 以及 Vertex[Row].OutNeighbour[I]
+      Idx := FVertexes.IndexOf(Vertex[Row].OutNeighbour[I]);
+      if Idx > 0 then
+      begin
+        Result[Row, Col] := 1;  // 边起点
+        if FDirected then
+          Result[Idx, Col] := -1; // 边终点
+        else
+          Result[Idx, Col] := 1;  // 无向图都用 1
+      end;
+      Inc(Col);
+    end;
+  end;
 end;
 
 function TCnGraph.FindVertex(const Text: string): TCnVertex;
@@ -532,13 +552,11 @@ end;
 function TCnGraph.RemoveEdge(Vertex1, Vertex2: TCnVertex): Boolean;
 begin
   Result := False;
-  if Vertex1 = Vertex2 then
-    Exit;
   if not HasVertex(Vertex1) or not HasVertex(Vertex2) then
     Exit;
 
   Vertex1.RemoveOutNeighbour(Vertex2);
-  if not FDirected then
+  if not FDirected and (Vertex1 <> Vertex2) then
     Vertex2.RemoveOutNeighbour(Vertex1);
 
   Dec(FEdgeCount);

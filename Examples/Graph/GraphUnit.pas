@@ -18,6 +18,7 @@ type
     mmoTravel: TMemo;
     mmoEdge: TMemo;
     btnAdjMatrix: TButton;
+    btnIncidenceMatrix: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadClick(Sender: TObject);
@@ -26,6 +27,7 @@ type
     procedure lstVertexDblClick(Sender: TObject);
     procedure lstVertexClick(Sender: TObject);
     procedure btnAdjMatrixClick(Sender: TObject);
+    procedure btnIncidenceMatrixClick(Sender: TObject);
   private
     FDirectedGraph: TCnGraph;
     FTravelResults: TStringList;
@@ -156,6 +158,19 @@ var
   List: TStrings;
 begin
   M := FDirectedGraph.DumpToAdjacencyMatrix;
+  List := TStringList.Create;
+  CnMatrixToStrings(M, List);
+  ShowMessage(List.Text);
+  List.Free;
+  SetLength(M, 0);
+end;
+
+procedure TFormGraph.btnIncidenceMatrixClick(Sender: TObject);
+var
+  M: TCnIncidenceMatrix;
+  List: TStrings;
+begin
+  M := FDirectedGraph.DumpToIncidenceMatrix;
   List := TStringList.Create;
   CnMatrixToStrings(M, List);
   ShowMessage(List.Text);

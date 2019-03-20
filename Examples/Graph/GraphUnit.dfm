@@ -36,6 +36,7 @@ object FormGraph: TFormGraph
           ' 业务模块_下班'
           ' 基础模块_编程'
           '基础模块_睡觉'
+          ' 基础模块_睡觉'
           ' 基础模块_休息'
           ' 业务模块_下班'
           '基础模块_喝水'
@@ -133,6 +134,15 @@ object FormGraph: TFormGraph
         Caption = 'Adjacency'
         TabOrder = 7
         OnClick = btnAdjMatrixClick
+      end
+      object btnIncidenceMatrix: TButton
+        Left = 248
+        Top = 208
+        Width = 75
+        Height = 25
+        Caption = 'Incidence'
+        TabOrder = 8
+        OnClick = btnIncidenceMatrixClick
       end
     end
   end
