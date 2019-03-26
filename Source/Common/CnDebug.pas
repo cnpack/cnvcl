@@ -50,11 +50,11 @@ unit CnDebug;
 *           2014.10.03
 *               增加两个记录 Exception 的方法
 *           2012.10.15
-*               修正tkUString对D2009版本以上的支持
+*               修正 tkUString 对 D2009 版本以上的支持
 *           2012.05.10
 *               超长信息将拆分发送而不是截断
 *           2009.12.31
-*               不输出至CnDebugViewer时也可输出至文件
+*               不输出至 CnDebugViewer 时也可输出至文件
 *           2008.07.16
 *               增加部分声明以区分对宽字符的支持。
 *           2008.05.01
@@ -284,7 +284,9 @@ type
     FAfterFirstWrite: Boolean;
     FFindAbort: Boolean;
     FComponentFindList: TList;
+{$IFDEF MSWINDOWS}
     FControlFindList: TList;
+{$ENDIF}
     FOnFindComponent: TCnFindComponentEvent;
     FOnFindControl: TCnFindControlEvent;
     procedure CreateChannel;
@@ -799,7 +801,9 @@ var
   I: Integer;
   TestDesc: PCnTimeDesc;
 begin
-  CnDebugger.Channel.Active := False;
+  if CnDebugger.Channel <> nil then
+    CnDebugger.Channel.Active := False;
+
   CnDebugger.FIgnoreViewer := True;
   for I := 1 to 1000 do
   begin
@@ -810,7 +814,9 @@ begin
 
   CnDebugger.FMessageCount := 0;
   CnDebugger.FPostedMessageCount := 0;
-  CnDebugger.Channel.Active := True;
+
+  if CnDebugger.Channel <> nil then
+    CnDebugger.Channel.Active := True;
   TestDesc := CnDebugger.IndexOfTime('');
   if TestDesc <> nil then
     FFixedCalling := TestDesc^.AccuTime div 1000;
@@ -1511,12 +1517,16 @@ begin
   TInterlocked.Increment(FMessageCount);
 {$ENDIF}
 
-  if not CheckEnabled then
+  if not CheckEnabled and not FDumpToFile then
   begin
     Sleep(0);
     Exit;
   end;
-  ChkReady := FChannel.CheckReady;
+
+  if FChannel <> nil then
+    ChkReady := FChannel.CheckReady
+  else
+    ChkReady := False;
 
   if not ChkReady and not FDumpToFile then
   begin
@@ -4273,7 +4283,7 @@ end;
 procedure TCnMapFileChannel.RefreshFilter(Filter: TCnDebugFilter);
 var
   Header: PCnMapHeader;
-  TagArray: array[0..CnMaxTagLength] of Char;
+  TagArray: array[0..CnMaxTagLength] of AnsiChar;
 begin
   if (Filter <> nil) and (FMap <> 0) and (FMapHeader <> nil) then
   begin
