@@ -284,11 +284,11 @@ type
     FAfterFirstWrite: Boolean;
     FFindAbort: Boolean;
     FComponentFindList: TList;
+    FOnFindComponent: TCnFindComponentEvent;
 {$IFDEF MSWINDOWS}
     FControlFindList: TList;
-{$ENDIF}
-    FOnFindComponent: TCnFindComponentEvent;
     FOnFindControl: TCnFindControlEvent;
+{$ENDIF}
     procedure CreateChannel;
 
     function GetActive: Boolean;
@@ -586,8 +586,10 @@ type
 
     property OnFindComponent: TCnFindComponentEvent read FOnFindComponent write FOnFindComponent;
     {* 全局遍历 Component 时的回调}
+{$IFDEF MSWINDOWS}
     property OnFindControl: TCnFindControlEvent read FOnFindControl write FOnFindControl;
     {* 全局遍历 Control 时的回调}
+{$ENDIF}
   end;
 
   TCnDebugChannel = class(TObject)
