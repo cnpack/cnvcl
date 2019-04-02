@@ -88,7 +88,8 @@ type
     function GetItems(Index: Integer): TCnLeaf;
     procedure SetItems(Index: Integer; const Value: TCnLeaf);
     function GetLevel: Integer;
-      
+
+    procedure AssignTo(Dest: TPersistent); override;
     procedure DoDepthFirstTravel;
     procedure DoWidthFirstTravel;
     function SetChild(ALeaf: TCnLeaf; Index: Integer): TCnLeaf;
@@ -180,7 +181,7 @@ type
 
   TCnLeafClass = class of TCnLeaf;
 
-  TCnTreeNodeEvent = procedure(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
+  TCnTreeNodeEvent = procedure (ALeaf: TCnLeaf; ATreeNode: TTreeNode;
     var Valid: Boolean) of object;
 
   TCnTree = class(TPersistent)
@@ -196,6 +197,7 @@ type
     FOnLoadANode: TCnTreeNodeEvent;
     function GetMaxLevel: Integer;
     function GetHeight: Integer; virtual;
+    procedure AssignLeafAndChildren(Source, DestLeaf: TCnLeaf; DestTree: TCnTree);
   protected
     function DefaultLeafClass: TCnLeafClass; virtual;
 
@@ -203,6 +205,8 @@ type
     function GetItems(AbsoluteIndex: Integer): TCnLeaf;
     function GetCount: Integer;
     function GetRegisteredCount: Integer;
+
+    procedure AssignTo(Dest: TPersistent); override;
 
     function CreateLeaf(ATree: TCnTree): TCnLeaf; virtual;
     procedure DoDepthFirstTravelLeaf(ALeaf: TCnLeaf); virtual;
@@ -868,6 +872,18 @@ begin
   end;
 end;
 
+procedure TCnLeaf.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TCnLeaf then
+  begin
+    TCnLeaf(Dest).Data := FData;
+    TCnLeaf(Dest).Text := FText;
+    TCnLeaf(Dest).Obj := FObj;
+  end
+  else
+    inherited;
+end;
+
 //==============================================================================
 // TCnTree
 //==============================================================================
@@ -1305,6 +1321,36 @@ end;
 procedure TCnTree.ValidateComingLeaf(AParent, AChild: TCnLeaf);
 begin
 
+end;
+
+procedure TCnTree.AssignLeafAndChildren(Source, DestLeaf: TCnLeaf; DestTree: TCnTree);
+var
+  I: Integer;
+  Leaf: TCnLeaf;
+begin
+  if (Source <> nil) and (DestLeaf <> nil) and (DestTree <> nil) then
+  begin
+    DestLeaf.Assign(Source);
+    DestLeaf.Clear;
+    for I := 0 to Source.Count - 1 do
+    begin
+      Leaf := DestTree.CreateLeaf(DestTree);
+      DestLeaf.AddChild(Leaf);
+      AssignLeafAndChildren(Source.Items[I], Leaf, DestTree);
+    end;
+  end;
+end;
+
+procedure TCnTree.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TCnTree then
+  begin
+    TCnTree(Dest).Clear;
+    // 完全克隆树节点的结构
+    AssignLeafAndChildren(FRoot, TCnTree(Dest).Root, TCnTree(Dest));
+  end
+  else
+    inherited;
 end;
 
 //==============================================================================

@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, SysConst;
+  Classes, SysUtils, SysConst;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
@@ -269,7 +269,7 @@ end;
 function UInt64Compare(A, B: TUInt64): Integer;
 {$IFNDEF SUPPORT_UINT64}
 var
-  HiA, HiB, LoA, LoB: DWORD;
+  HiA, HiB, LoA, LoB: LongWord;
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_UINT64}
@@ -288,8 +288,8 @@ begin
     Result := -1
   else
   begin
-    LoA := DWORD(A and $00000000FFFFFFFF);
-    LoB := DWORD(B and $00000000FFFFFFFF);
+    LoA := LongWord(A and $00000000FFFFFFFF);
+    LoB := LongWord(B and $00000000FFFFFFFF);
     if LoA > LoB then
       Result := 1
     else if LoA < LoB then
