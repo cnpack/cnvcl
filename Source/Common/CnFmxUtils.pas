@@ -59,7 +59,11 @@ function CnFmxIsInheritedFromClassByName(AObject: TObject; AClassName: string): 
 
 function CnFmxIsInheritedFromControl(AObject: TObject): Boolean;
 
+function CnFmxClassIsInheritedFromControl(AClass: TClass): Boolean;
+
 function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
+
+function CnFmxClassIsInheritedFromForm(AClass: TClass): Boolean;
 
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
 
@@ -172,9 +176,19 @@ begin
   Result := AObject.InheritsFrom(TControl);
 end;
 
+function CnFmxClassIsInheritedFromControl(AClass: TClass): Boolean;
+begin
+  Result := AClass.InheritsFrom(TControl);
+end;
+
 function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
 begin
   Result := AObject.InheritsFrom(FMX.Forms.TForm);
+end;
+
+function CnFmxClassIsInheritedFromForm(AClass: TClass): Boolean;
+begin
+  Result := AClass.InheritsFrom(FMX.Forms.TForm);
 end;
 
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
