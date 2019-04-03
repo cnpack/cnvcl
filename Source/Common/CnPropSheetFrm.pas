@@ -757,15 +757,16 @@ begin
     TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+        (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
-      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-        (P^.ParamName), TypeStr^]));
+      Result := Result + Trim(Format('%s %s: %s; ', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^])) + ' ';
     P := PParamData(Integer(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
-  Delete(Result, Length(Result), 1);
+  if T^.ParamCount > 0 then
+    Delete(Result, Length(Result) - 1, 2);
   Result := Result + ')';
   if T^.MethodKind = mkFunction then
     Result := Result + ': ' + string(PShortString(P)^);
@@ -821,16 +822,17 @@ begin
   begin
     TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
-      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+      Result := Result + Trim(Format('%s: %s %s; ', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
-      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-        (P^.ParamName), TypeStr^]));
+      Result := Result + Trim(Format('%s %s: %s; ', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^])) + ' ';
     P := PParamData(Integer(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
-  Delete(Result, Length(Result), 1);
+  if T^.ParamCount > 0 then
+    Delete(Result, Length(Result) - 1, 2);
   Result := Result + ')';
   if T^.MethodKind = mkFunction then
     Result := Result + ': ' + string(PShortString(P)^);
@@ -885,15 +887,16 @@ begin
     TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+        (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
-      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-        (P^.ParamName), TypeStr^]));
+      Result := Result + Trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^])) + ' ';
     P := PParamData(Integer(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
-  Delete(Result, Length(Result), 1);
+  if T^.ParamCount > 0 then
+    Delete(Result, Length(Result) - 1 , 2);
   Result := Result + ')';
   if T^.MethodKind = mkFunction then
     Result := Result + ': ' + string(PShortString(P)^);
