@@ -22,7 +22,7 @@ unit CnCRC32;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：CRC32循环冗余校验单元
+* 单元名称：CRC32/CRC64 循环冗余校验单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：
 * 开发平台：PWin2000Pro + Delphi 5.0
@@ -457,7 +457,7 @@ var
 begin
   if KeyLength > HMAC_CRC32_BLOCK_SIZE_BYTE then
   begin
-    Sum := CRC32Calc(0, Key, KeyLength);
+    Sum := CRC32Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC32_OUTPUT_LENGTH_BYTE;
     Key := @Sum;
   end;
@@ -473,7 +473,7 @@ begin
 
   Res := $FFFFFFFF;
   Res := DoCRC32Calc(Res, Ipad[0], HMAC_CRC32_BLOCK_SIZE_BYTE);
-  Res := DoCRC32Calc(Res, Input, Length);
+  Res := DoCRC32Calc(Res, Input^, Length);
   Res := not Res;
 
   Result := $FFFFFFFF;
@@ -491,14 +491,14 @@ var
 begin
   if KeyLength > HMAC_CRC64_BLOCK_SIZE_BYTE then
   begin
-    Sum := CRC64Calc(0, Key, KeyLength);
+    Sum := CRC64Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC64_OUTPUT_LENGTH_BYTE;
     Key := @Sum;
   end;
 
   FillChar(Ipad, HMAC_CRC64_BLOCK_SIZE_BYTE, $36);
   FillChar(Opad, HMAC_CRC64_BLOCK_SIZE_BYTE, $5C);
-  
+
   for I := 0 to KeyLength - 1 do
   begin
     Ipad[I] := Byte(Ipad[I] xor Byte(Key[I]));
@@ -507,7 +507,7 @@ begin
 
   Res := $FFFFFFFF;
   Res := DoCRC64Calc(Res, Ipad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
-  Res := DoCRC64Calc(Res, Input, Length);
+  Res := DoCRC64Calc(Res, Input^, Length);
   Res := not Res;
 
   Result := $FFFFFFFF;

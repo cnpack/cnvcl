@@ -2,7 +2,7 @@ object FormCrypt: TFormCrypt
   Left = 198
   Top = 0
   BorderStyle = bsDialog
-  Caption = 'Crypt/Decrypt DEMO'
+  Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 416
   ClientWidth = 539
   Color = clBtnFace
