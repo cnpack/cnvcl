@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 procedure ZUCGenerateKeyStream(KeyStream: PLongWord; KeyStreamLen: LongWord);
 

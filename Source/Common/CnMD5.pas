@@ -430,7 +430,6 @@ begin
   PartLen := 64 - Index;
   if Length >= PartLen then
   begin
-    // CopyMemory(@Context.Buffer[Index], Input, PartLen);
     Move(Input^, Context.Buffer[Index], PartLen);
     Transform(@Context.Buffer, Context.State);
     I := PartLen;
@@ -443,7 +442,7 @@ begin
   end
   else
     I := 0;
-  // CopyMemory(@Context.Buffer[Index], @Input[I], Length - I);
+
   Move(Input[I], Context.Buffer[Index], Length - I);
 end;
 

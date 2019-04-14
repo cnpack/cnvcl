@@ -40,12 +40,12 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Classes, SysUtils;
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   TSM3Context = packed record
-    Total: array[0..1] of DWORD;     {!< number of bytes processed  }
-    State: array[0..8] of DWORD;     {!< intermediate digest state  }
+    Total: array[0..1] of LongWord;     {!< number of bytes processed  }
+    State: array[0..8] of LongWord;     {!< intermediate digest state  }
     Buffer: array[0..63] of Byte;    {!< data block being processed }
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
@@ -59,7 +59,7 @@ type
 
 procedure SM3Start(var Ctx: TSM3Context);
 
-procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
+procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: LongWord);
 
 procedure SM3Finish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
@@ -95,7 +95,7 @@ function SM3StringA(const Str: AnsiString): TSM3Digest;
  |</PRE>}
 
 function SM3StringW(const Str: WideString): TSM3Digest;
-{* 对 WideString 类型数据进行 SM3 计算
+{* 对 WideString 类型数据进行 SM3 计算，内部转换为 AnsiString
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
@@ -126,7 +126,7 @@ function SM3Match(const D1, D2: TSM3Digest): Boolean;
    D1: TSM3Digest   - 需要比较的 SM3 计算值
    D2: TSM3Digest   - 需要比较的 SM3 计算值
  |</PRE>}
- 
+
 implementation
 
 const
@@ -147,16 +147,16 @@ const
 type
   TSM3ProcessData = array[0..63] of Byte;
 
-procedure GetULongBe(var N: DWORD; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: LongWord; B: PAnsiChar; I: Integer);
 var
-  D: DWORD;
+  D: LongWord;
 begin
-  D := (DWORD(B[I]) shl 24) or (DWORD(B[I + 1]) shl 16) or
-    (DWORD(B[I + 2]) shl 8) or (DWORD(B[I + 3]));
+  D := (LongWord(B[I]) shl 24) or (LongWord(B[I + 1]) shl 16) or
+    (LongWord(B[I + 2]) shl 8) or (LongWord(B[I + 3]));
   N := D;
 end;
 
-procedure PutULongBe(N: DWORD; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: LongWord; B: PAnsiChar; I: Integer);
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);
@@ -164,42 +164,42 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function FF0(X, Y, Z: DWORD): DWORD;
+function FF0(X, Y, Z: LongWord): LongWord;
 begin
   Result := X xor Y xor Z;
 end;
 
-function FF1(X, Y, Z: DWORD): DWORD;
+function FF1(X, Y, Z: LongWord): LongWord;
 begin
   Result := (X and Y) or (Y and Z) or (X and Z);
 end;
 
-function GG0(X, Y, Z: DWORD): DWORD;
+function GG0(X, Y, Z: LongWord): LongWord;
 begin
   Result := X xor Y xor Z;
 end;
 
-function GG1(X, Y, Z: DWORD): DWORD;
+function GG1(X, Y, Z: LongWord): LongWord;
 begin
   Result := (X and Y) or ((not X) and Z);
 end;
 
-function SM3Shl(X: DWORD; N: Integer): DWORD;
+function SM3Shl(X: LongWord; N: Integer): LongWord;
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
-function ROTL(X: DWORD; N: Integer): DWORD;
+function ROTL(X: LongWord; N: Integer): LongWord;
 begin
   Result := SM3Shl(X, N) or (X shr (32 - N));
 end;
 
-function P0(X: DWORD): DWORD;
+function P0(X: LongWord): LongWord;
 begin
   Result := X xor ROTL(X, 9) xor ROTL(X, 17);
 end;
 
-function P1(X: DWORD): DWORD;
+function P1(X: LongWord): LongWord;
 begin
   Result := X xor ROTL(X, 15) xor ROTL(X, 23);
 end;
@@ -218,18 +218,18 @@ begin
   Ctx.State[6] := $E38DEE4D;
   Ctx.State[7] := $B0FB0E4E;
 
-  ZeroMemory(@Ctx.Buffer, SizeOf(Ctx.Buffer));
+  FillChar(Ctx.Buffer, SizeOf(Ctx.Buffer), 0);
 end;
 
 // 一次处理 64byte 也就是512bit 数据块
 procedure SM3Process(var Ctx: TSM3Context; Data: PAnsiChar);
 var
-  SS1, SS2, TT1, TT2: DWORD;
-  W: array[0..67] of DWORD;
-  W1: array[0..63] of DWORD;
-  T: array[0..63] of DWORD;
-  A, B, C, D, E, F, G, H: DWORD;
-  Temp1, Temp2, Temp3, Temp4, Temp5: DWORD;
+  SS1, SS2, TT1, TT2: LongWord;
+  W: array[0..67] of LongWord;
+  W1: array[0..63] of LongWord;
+  T: array[0..63] of LongWord;
+  A, B, C, D, E, F, G, H: LongWord;
+  Temp1, Temp2, Temp3, Temp4, Temp5: LongWord;
   J: Integer;
 begin
   for J := 0 to 15 do
@@ -268,7 +268,7 @@ begin
     W1[J] := W[J] xor W[J + 4];
 
   // 已经处理好俩数组W/W1的值。
-  
+
   A := Ctx.State[0];
   B := Ctx.State[1];
   C := Ctx.State[2];
@@ -322,62 +322,72 @@ begin
   // 本轮无误
 end;
 
-procedure SM3UpdateW(var Context: TSM3Context; Input: PWideChar; Length: LongWord);
+procedure SM3UpdateW(var Context: TSM3Context; Input: PWideChar; CharLength: LongWord);
 var
+{$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
   iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
 begin
-  GetMem(pContent, Length * SizeOf(WideChar));
+{$IFDEF MSWINDOWS}
+  GetMem(pContent, CharLength * SizeOf(WideChar));
   try
-    iLen := WideCharToMultiByte(0, 0, Input, Length, // 代码页默认用 0
-      PAnsiChar(pContent), Length * SizeOf(WideChar), nil, nil);
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(pContent), CharLength * SizeOf(WideChar), nil, nil);
     SM3Update(Context, pContent, iLen);
   finally
     FreeMem(pContent);
   end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Input);
+  A := AnsiString(S);
+  SM3Update(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
-
-procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
+procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: LongWord);
 var
-  Fill, Left: DWORD;
+  Fill, Left: LongWord;
 begin
-  if Length <= 0 then
+  if (Input = nil) or (CharLength <= 0) then
     Exit;
 
   Left := Ctx.Total[0] and $3F;
   Fill := 64 - Left;
 
-  Ctx.Total[0] := Ctx.Total[0] + Length;
+  Ctx.Total[0] := Ctx.Total[0] + CharLength;
   Ctx.Total[0] := Ctx.Total[0] and $FFFFFFFF;
 
-  if Ctx.Total[0] < DWORD(Length) then
+  if Ctx.Total[0] < LongWord(CharLength) then
     Ctx.Total[1] := Ctx.Total[1] + 1;
 
-  if (Left <> 0) and (Length >= Fill) then
+  if (Left <> 0) and (CharLength >= Fill) then
   begin
-    CopyMemory(@(Ctx.Buffer[Left]), Input, Fill);
+    Move(Input^, Ctx.Buffer[Left], Fill);
     SM3Process(Ctx, @(Ctx.Buffer[0]));
     Input := Input + Fill;
-    Length := Length - Fill;
+    CharLength := CharLength - Fill;
     Left := 0;
   end;
 
-  while Length >= 64 do
+  while CharLength >= 64 do
   begin
     SM3Process(Ctx, Input);
     Input := Input + 64;
-    Length := Length - 64;
+    CharLength := CharLength - 64;
   end;
 
-  if Length > 0 then
-    CopyMemory(@(Ctx.Buffer[Left]), Input, Length);
+  if CharLength > 0 then
+    Move(Input^, Ctx.Buffer[Left], CharLength);
 end;
 
 procedure SM3Finish(var Ctx: TSM3Context; var Output: TSM3Digest);
 var
-  Last, Padn: DWORD;
-  High, Low: DWORD;
+  Last, Padn: LongWord;
+  High, Low: LongWord;
   MsgLen: array[0..7] of Byte;
 begin
   High := (Ctx.Total[0] shr 29) or (Ctx.Total[1] shl 3);
@@ -467,7 +477,7 @@ begin
   SM3HmacFinish(Ctx, Output);
 end;
 
-// 对String类型数据进行SM3转换
+// 对 String 类型数据进行 SM3 转换
 function SM3String(const Str: string): TSM3Digest;
 var
   AStr: AnsiString;
@@ -476,7 +486,7 @@ begin
   Result := SM3StringA(AStr);
 end;
 
-// 对AnsiString类型数据进行SM3转换
+// 对 AnsiString 类型数据进行 SM3 转换
 function SM3StringA(const Str: AnsiString): TSM3Digest;
 var
   Context: TSM3Context;
@@ -486,7 +496,7 @@ begin
   SM3Finish(Context, Result);
 end;
 
-// 对WideString类型数据进行SM3转换
+// 对 WideString 类型数据进行 SM3 转换
 function SM3StringW(const Str: WideString): TSM3Digest;
 var
   Context: TSM3Context;
@@ -563,12 +573,15 @@ var
   Stream: TStream;
   FileIsZeroSize: Boolean;
 
-  function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+  function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
   var
     H: THandle;
     Info: BY_HANDLE_FILE_INFORMATION;
     Rec : Int64Rec;
+{$ENDIF}
   begin
+{$IFDEF MSWINDOWS}
     Result := False;
     IsEmpty := False;
     H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
@@ -582,13 +595,16 @@ var
     Rec.Hi := Info.nFileSizeHigh;
     Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
     IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+    Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+{$ENDIF}
   end;
 
 begin
   FileIsZeroSize := False;
-  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
-    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
       InternalSM3Stream(Stream, 4096 * 1024, Result, CallBack);
@@ -598,6 +614,7 @@ begin
   end
   else
   begin
+{$IFDEF MSWINDOWS}
     SM3Start(Context);
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
                   FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
@@ -636,6 +653,7 @@ begin
       end;
     end;
     SM3Finish(Context, Result);
+{$ENDIF}
   end;
 end;
 
