@@ -72,12 +72,12 @@ interface
 {$RANGECHECKS OFF}
 
 uses
-  Classes, SysUtils, Windows;
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
-  TMD5Count = array[0..1] of DWORD;
-  TMD5State = array[0..3] of DWORD;
-  TMD5Block = array[0..15] of DWORD;
+  TMD5Count = array[0..1] of LongWord;
+  TMD5State = array[0..3] of LongWord;
+  TMD5Block = array[0..15] of LongWord;
   TMD5CBits = array[0..7] of byte;
   TMD5Digest = array[0..15] of byte;
   TMD5Buffer = array[0..63] of byte;
@@ -89,11 +89,11 @@ type
     Ipad    : array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad    : array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
- 
+
   TMD5CalcProgressFunc = procedure (ATotal, AProgress: Int64;
     var Cancel: Boolean) of object;
   {* 进度回调事件类型声明}
-    
+
 //----------------------------------------------------------------
 // 用户 API 函数定义
 //----------------------------------------------------------------
@@ -191,7 +191,7 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-function F(x, y, z: DWORD): DWORD;
+function F(x, y, z: LongWord): LongWord;
 begin
   Result := (x and y) or ((not x) and z);
 //  AND EDX, EAX
@@ -200,7 +200,7 @@ begin
 //  OR EAX, EDX
 end;
 
-function G(x, y, z: DWORD): DWORD;
+function G(x, y, z: LongWord): LongWord;
 begin
   Result := (x and z) or (y and (not z));
 //  AND EAX, ECX
@@ -209,14 +209,14 @@ begin
 //  OR EAX, EDX
 end;
 
-function H(x, y, z: DWORD): DWORD;
+function H(x, y, z: LongWord): LongWord;
 begin
   Result := x xor y xor z;
 //  XOR EAX, EDX
 //  XOR EAX, ECX
 end;
 
-function I(x, y, z: DWORD): DWORD;
+function I(x, y, z: LongWord): LongWord;
 begin
   Result := y xor (x or (not z));
 //  NOT ECX
@@ -225,7 +225,7 @@ begin
 end;
 
 
-procedure ROT(var x: DWORD; n: BYTE);
+procedure ROT(var x: LongWord; n: BYTE);
 begin
   x := (x shl n) or (x shr (32 - n));
 //  PUSH EBX
@@ -241,28 +241,28 @@ begin
 //  POP EBX
 end;
 
-procedure FF(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
+procedure FF(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
 begin
   Inc(a, F(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure GG(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
+procedure GG(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
 begin
   Inc(a, G(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure HH(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
+procedure HH(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
 begin
   Inc(a, H(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure II(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);
+procedure II(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
 begin
   Inc(a, I(b, c, d) + x + ac);
   ROT(a, s);
@@ -273,7 +273,7 @@ end;
 procedure Encode(Source, Target: pointer; Count: LongWord);
 var
   S: PByte;
-  T: PDWORD;
+  T: PLongWord;
   I: LongWord;
 begin
   S := Source;
@@ -295,7 +295,7 @@ end;
 // Decode Count DWORDs at Source into (Count * 4) Bytes at Target
 procedure Decode(Source, Target: pointer; Count: LongWord);
 var
-  S: PDWORD;
+  S: PLongWord;
   T: PByte;
   I: LongWord;
 begin
@@ -318,7 +318,7 @@ end;
 // Transform State according to first 64 bytes at Buffer
 procedure Transform(Buffer: pointer; var State: TMD5State);
 var
-  a, b, c, d: DWORD;
+  a, b, c, d: LongWord;
   Block: TMD5Block;
 begin
   Encode(Buffer, @Block, 64);
@@ -407,7 +407,8 @@ begin
     State[3] := $10325476;
     Count[0] := 0;
     Count[1] := 0;
-    ZeroMemory(@Buffer, SizeOf(TMD5Buffer));
+    // ZeroMemory(@Buffer, SizeOf(TMD5Buffer));
+    FillChar(Buffer, SizeOf(TMD5Buffer), 0);
   end;
 end;
 
@@ -429,7 +430,8 @@ begin
   PartLen := 64 - Index;
   if Length >= PartLen then
   begin
-    CopyMemory(@Context.Buffer[Index], Input, PartLen);
+    // CopyMemory(@Context.Buffer[Index], Input, PartLen);
+    Move(Input^, Context.Buffer[Index], PartLen);
     Transform(@Context.Buffer, Context.State);
     I := PartLen;
     while I + 63 < Length do
@@ -439,23 +441,36 @@ begin
     end;
     Index := 0;
   end
-  else I := 0;
-  CopyMemory(@Context.Buffer[Index], @Input[I], Length - I);
+  else
+    I := 0;
+  // CopyMemory(@Context.Buffer[Index], @Input[I], Length - I);
+  Move(Input[I], Context.Buffer[Index], Length - I);
 end;
 
-procedure MD5UpdateW(var Context: TMD5Context; Input: PWideChar; Length: LongWord);
+procedure MD5UpdateW(var Context: TMD5Context; Input: PWideChar; CharLength: LongWord);
 var
+{$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
   iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
 begin
-  GetMem(pContent, Length * SizeOf(WideChar));
+{$IFDEF MSWINDOWS}
+  GetMem(pContent, CharLength * SizeOf(WideChar));
   try
-    iLen := WideCharToMultiByte(0, 0, Input, Length, // 代码页默认用 0
-      PAnsiChar(pContent), Length * SizeOf(WideChar), nil, nil);
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(pContent), CharLength * SizeOf(WideChar), nil, nil);
     MD5Update(Context, pContent, iLen);
   finally
     FreeMem(pContent);
   end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Input);
+  A := AnsiString(S);
+  MD5Update(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 // Finalize given Context, create Digest
@@ -490,11 +505,16 @@ var
 begin
   Result := False;
   Size := Stream.Size;
+  if Size = 0 then
+    Exit;
+
   SavePos := Stream.Position;
   TotalBytes := 0;
-  if Size = 0 then Exit;
-  if Size < BufSize then BufLen := Size
-  else BufLen := BufSize;
+
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
 
   CancelCalc := False;
   MD5Init(Context);
@@ -579,19 +599,24 @@ end;
 function MD5File(const FileName: string;
   CallBack: TMD5CalcProgressFunc): TMD5Digest;
 var
+{$IFDEF MSWINDOWS}
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
   Context: TMD5Context;
+{$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
 
-  function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+  function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
   var
     H: THandle;
     Info: BY_HANDLE_FILE_INFORMATION;
     Rec : Int64Rec;
+{$ENDIF}
   begin
+{$IFDEF MSWINDOWS}
     Result := False;
     IsEmpty := False;
     H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
@@ -605,13 +630,16 @@ var
     Rec.Hi := Info.nFileSizeHigh;
     Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
     IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+    Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+{$ENDIF}
   end;
 
 begin
   FileIsZeroSize := False;
-  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
-    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
       InternalMD5Stream(Stream, 4096 * 1024, Result, CallBack);
@@ -621,6 +649,7 @@ begin
   end
   else
   begin
+{$IFDEF MSWINDOWS}
     MD5Init(Context);
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
                   FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
@@ -659,6 +688,7 @@ begin
       end;
     end;
     MD5Final(Context, Result);
+{$ENDIF}
   end;
 end;
 

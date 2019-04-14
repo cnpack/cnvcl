@@ -40,14 +40,14 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Classes, SysUtils;
+  Classes, SysUtils;
 
-procedure ZUCGenerateKeyStream(KeyStream: PDWORD; KeyStreamLen: DWORD);
+procedure ZUCGenerateKeyStream(KeyStream: PLongWord; KeyStreamLen: LongWord);
 
 procedure ZUCInitialization(Key: PByte; IV: PByte);
 
 // ZUC 算法
-procedure ZUC(Key: PByte; IV: PByte; KeyStream: PDWORD; KeyStreamLen: DWORD);
+procedure ZUC(Key: PByte; IV: PByte; KeyStream: PLongWord; KeyStreamLen: LongWord);
 {*
   Key 和 IV 为输入的 16 字节数据。
   KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(DWORD)
@@ -55,8 +55,8 @@ procedure ZUC(Key: PByte; IV: PByte; KeyStream: PDWORD; KeyStreamLen: DWORD);
 }
 
 // EEA3 机密性保护算法，一个流加密系统，使用机密性密钥 CK 来加解密数据块
-procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: DWORD;
-  M: PByte; BitLen: DWORD; C: PByte);
+procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: LongWord;
+  M: PByte; BitLen: LongWord; C: PByte);
 {*
   输入：
   参数         规模（比特数）    说明
@@ -73,8 +73,8 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: DWORD;
 }
 
 // EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
-procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: DWORD;
-  M: PByte; BitLen: DWORD; Mac: PDWORD);
+procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: LongWord;
+  M: PByte; BitLen: LongWord; Mac: PLongWord);
 {*
   输入：
   参数         规模（比特数）    说明
@@ -131,36 +131,36 @@ const
     $64, $BE, $85, $9B, $2F, $59, $8A, $D7, $B0, $25, $AC, $AF, $12, $03, $E2, $F2
   );
 
-  EK_D: array[0..15] of DWORD = (
+  EK_D: array[0..15] of LongWord = (
     $44D7,  $26BC,  $626B,  $135E,  $5789,  $35E2,  $7135,  $09AF,
     $4D78,  $2F13,  $6BC4,  $1AF1,  $5E26,  $3C4D,  $789A,  $47AC
   );
 
 var
-  LFSR_S: array[0..15] of DWORD = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-  F_R1: DWORD = 0;
-  F_R2: DWORD = 0;
-  BRC_X: array[0..3] of DWORD = (0, 0, 0, 0);
+  LFSR_S: array[0..15] of LongWord = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  F_R1: LongWord = 0;
+  F_R2: LongWord = 0;
+  BRC_X: array[0..3] of LongWord = (0, 0, 0, 0);
   // 以上四个变量均在 ZUCInitialization 中被初始化
 
 // 32 位处理平台上，两个 31 比特字 a 和 b 模 2^31-1 加法运算 c =a + b mod(2^31-1)
 // 可以通过下面的两步计算实现：
-function AddM(A, B: DWORD): DWORD;
+function AddM(A, B: LongWord): LongWord;
 var
-  C: DWORD;
+  C: LongWord;
 begin
   C := A + B;
   Result := (C and $7FFFFFFF) + (C shr 31);
 end;
 
-function MulByPow2(X, K: DWORD): DWORD;
+function MulByPow2(X, K: LongWord): LongWord;
 begin
   Result :=  ((X shl K) or (X shr (31 - K))) and $7FFFFFFF;
 end;
 
-procedure ZUCLFSRWithInitializationMode(U: DWORD);
+procedure ZUCLFSRWithInitializationMode(U: LongWord);
 var
-  F, V, I: DWORD;
+  F, V, I: LongWord;
 begin
   F := LFSR_S[0];
   V := MulByPow2(LFSR_S[0], 8);
@@ -188,7 +188,7 @@ end;
 
 procedure ZUCLFSRWithWorkMode;
 var
-  F, V, I: DWORD;
+  F, V, I: LongWord;
 begin
   F := LFSR_S[0];
   V := MulByPow2(LFSR_S[0], 8);
@@ -220,30 +220,30 @@ begin
   BRC_X[3] := ((LFSR_S[2] and $FFFF) shl 16) or (LFSR_S[0] shr 15);
 end;
 
-function ROT(A: DWORD; K: DWORD): DWORD;
+function ROT(A: LongWord; K: LongWord): LongWord;
 begin
-  Result := (A shl K) or (A shr (32 - k)); 
-end;  
+  Result := (A shl K) or (A shr (32 - k));
+end;
 
-function L1(X: DWORD): DWORD;
+function L1(X: LongWord): LongWord;
 begin
   Result := (X xor ROT(X, 2) xor ROT(X, 10) xor ROT(X, 18) xor ROT(X, 24));
 end;
 
-function L2(X: DWORD): DWORD;
+function L2(X: LongWord): LongWord;
 begin
   Result := (X xor ROT(X, 8) xor ROT(X, 14) xor ROT(X, 22) xor ROT(X, 30));;
 end;
 
-function MakeDWord(A, B, C, D: DWORD): DWORD;
+function MakeDWord(A, B, C, D: LongWord): LongWord;
 begin
   Result := (A shl 24) or (B shl 16) or (C shl 8) or D;
 end;
 
 // 非线性函数
-function F: DWORD;
+function F: LongWord;
 var
-  W, W1, W2, U, V: DWORD;
+  W, W1, W2, U, V: LongWord;
 begin
   W := (BRC_X[0] xor F_R1) + F_R2;
   W1 := F_R1 + BRC_X[1];
@@ -255,14 +255,14 @@ begin
   Result := W;
 end;
 
-function MakeUInt31(A, B, C: DWORD): DWORD;
+function MakeUInt31(A, B, C: LongWord): LongWord;
 begin
   Result := (A shl 23) or (B shl 8) or C;
 end;
 
 procedure ZUCInitialization(Key: PByte; IV: PByte);
 var
-  W, NC: DWORD;
+  W, NC: LongWord;
   I: Integer;
 begin
   for I := 0 to 16 do
@@ -280,13 +280,13 @@ begin
   end;
 end;
 
-procedure ZUCGenerateKeyStream(KeyStream: PDWORD; KeyStreamLen: DWORD);
+procedure ZUCGenerateKeyStream(KeyStream: PLongWord; KeyStreamLen: LongWord);
 var
   I: Integer;
 begin
   if (KeyStream = nil) or (KeyStreamLen = 0) then
     Exit;
-  
+
   ZUCBitReorganization();
   F();
   ZUCLFSRWithWorkMode();
@@ -294,31 +294,31 @@ begin
   for I := 0 to KeyStreamLen - 1 do
   begin
     ZUCBitReorganization();
-    (PDWORD(Integer(KeyStream) + SizeOf(DWORD) * I))^ := F() xor BRC_X[3];
+    (PLongWord(Integer(KeyStream) + SizeOf(LongWord) * I))^ := F() xor BRC_X[3];
     ZUCLFSRWithWorkMode();
   end;
 end;
 
-procedure ZUC(Key: PByte; IV: PByte; KeyStream: PDWORD; KeyStreamLen: DWORD);
+procedure ZUC(Key: PByte; IV: PByte; KeyStream: PLongWord; KeyStreamLen: LongWord);
 begin
   ZUCInitialization(Key, IV);
   ZUCGenerateKeyStream(KeyStream, KeyStreamLen);
 end;
 
-procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: DWORD;
-  M: PByte; BitLen: DWORD; C: PByte);
+procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: LongWord;
+  M: PByte; BitLen: LongWord; C: PByte);
 var
   IV: array[0..15] of Byte;
-  LastBits: DWORD;
+  LastBits: LongWord;
   I, L: Integer;
-  Z: PDWORD;
+  Z: PLongWord;
 begin
   for I := 0 to 15 do
     IV[I] := 0;
 
   L := (BitLen + 31) div 32;                   // 四字节为单位的长度
   LastBits := (32 - (BitLen mod 32)) mod 32;   // 四字节为单位后剩下的 Bits 数
-  Z := PDWORD(GetMemory(L * SizeOf(DWORD)));
+  Z := PLongWord(GetMemory(L * SizeOf(LongWord)));
 
   IV[0] := (Count shr 24) and $FF;
   IV[1] := (Count shr 16) and $FF;
@@ -342,45 +342,45 @@ begin
   ZUC(CK, PByte(@IV[0]), Z, L);
 
   for I := 0 to L - 1 do
-    (PDWORD(Integer(C) + I * SizeOf(DWORD)))^ := (PDWORD(Integer(M) + I * SizeOf(DWORD)))^
-      xor (PDWORD(Integer(Z) + I * SizeOf(DWORD)))^;
+    (PLongWord(Integer(C) + I * SizeOf(LongWord)))^ := (PLongWord(Integer(M) + I * SizeOf(LongWord)))^
+      xor (PLongWord(Integer(Z) + I * SizeOf(LongWord)))^;
 
   if LastBits <> 0 then
-    (PDWORD(Integer(C) + L * SizeOf(DWORD)))^ := (PDWORD(Integer(C) + L * SizeOf(DWORD)))^
+    (PLongWord(Integer(C) + L * SizeOf(LongWord)))^ := (PLongWord(Integer(C) + L * SizeOf(LongWord)))^
       and ($100000000 - (1 shl LastBits));
 
   FreeMemory(Z);
 end;
 
 // 取内存块第 I 个 Bit 起的一个 DWORD，I 从 0 开始
-function GetDWord(Data: PDWORD; I: Integer): DWORD;
+function GetDWord(Data: PLongWord; I: Integer): LongWord;
 var
   T: Integer;
 begin
   T := I mod 32;
   if T = 0 then
-    Result := (PDWORD(Integer(Data) + SizeOf(DWORD) * I div 32))^
+    Result := (PLongWord(Integer(Data) + SizeOf(LongWord) * I div 32))^
   else
-    Result := ((PDWORD(Integer(Data) + SizeOf(DWORD) * I div 32))^ shl T) or
-      ((PDWORD(Integer(Data) + SizeOf(DWORD) * ((I div 32) + 1)))^ shr (32 - T));
+    Result := ((PLongWord(Integer(Data) + SizeOf(LongWord) * I div 32))^ shl T) or
+      ((PLongWord(Integer(Data) + SizeOf(LongWord) * ((I div 32) + 1)))^ shr (32 - T));
 end;
 
 // 取内存块第 I 个 Bit 起的一个 Bit，I 从 0 开始，返回 0 或 1
-function GetBit(Data: PDWORD; I: Integer): Byte;
+function GetBit(Data: PLongWord; I: Integer): Byte;
 begin
-  if (PDWORD(Integer(Data) + SizeOf(DWORD) * I div 32))^ and (1 shl (31 - (I mod 32))) <> 0 then
+  if (PLongWord(Integer(Data) + SizeOf(LongWord) * I div 32))^ and (1 shl (31 - (I mod 32))) <> 0 then
     Result := 1
   else
     Result := 0;
 end;
 
-procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: DWORD;
-  M: PByte; BitLen: DWORD; Mac: PDWORD);
+procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: LongWord;
+  M: PByte; BitLen: LongWord; Mac: PLongWord);
 var
   IV: array[0..15] of Byte;
-  T: DWORD;
+  T: LongWord;
   I, N, L: Integer;
-  Z: PDWORD;
+  Z: PLongWord;
 begin
   IV[0] := (Count shr 24) and $FF;
   IV[1] := (Count shr 16) and $FF;
@@ -404,18 +404,18 @@ begin
 
   N := BitLen + 64;
   L := (N + 31) div 32;
-  Z := PDWORD(GetMemory(L * SizeOf(DWORD)));
+  Z := PLongWord(GetMemory(L * SizeOf(LongWord)));
 
   ZUC(IK, PByte(@IV[0]), Z, L);
   T := 0;
   for I := 0 to BitLen - 1 do
   begin
-    if GetBit(PDWORD(M), I) <> 0 then
+    if GetBit(PLongWord(M), I) <> 0 then
       T := T xor GetDWord(Z, I);
   end;
   T := T xor GetDWord(Z, BitLen);
 
-  Mac^ := T xor (PDWORD(Integer(Z) + SizeOf(DWORD) * (L - 1)))^;
+  Mac^ := T xor (PLongWord(Integer(Z) + SizeOf(LongWord) * (L - 1)))^;
   FreeMemory(Z);
 end;
 
