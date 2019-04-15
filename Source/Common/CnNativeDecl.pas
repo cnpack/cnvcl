@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst;
+  Classes, SysUtils, SysConst {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
 
 type
 {$IFDEF SUPPORT_32_AND_64}
@@ -82,6 +82,11 @@ type
   TUInt64          = UInt64;
 {$ELSE}
   TUInt64          = Int64;
+{$ENDIF}
+
+{$IFDEF MACOS}
+  TCnUInt32List = TList<LongWord>;
+  TCnUInt64List = TList<UInt64>;
 {$ENDIF}
 
 const
