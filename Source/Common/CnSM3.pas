@@ -566,10 +566,12 @@ end;
 function SM3File(const FileName: string;
   CallBack: TSM3CalcProgressFunc): TSM3Digest;
 var
+{$IFDEF MSWINDOWS}
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
   Context: TSM3Context;
+{$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
 

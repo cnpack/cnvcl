@@ -47,7 +47,7 @@ interface
 {$RANGECHECKS OFF}
 
 uses
-  SysUtils, Windows, Classes;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   TSHAGeneralDigest = array[0..63] of Byte;
@@ -61,10 +61,10 @@ type
   TSHA512Digest = array[0..63] of Byte;
 
   TSHA256Context = packed record
-    DataLen: DWORD;
+    DataLen: LongWord;
     Data: array[0..63] of Byte;
     BitLen: Int64;
-    State: array[0..7] of DWORD;
+    State: array[0..7] of LongWord;
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
@@ -72,7 +72,7 @@ type
   TSHA224Context = TSHA256Context;
 
   TSHA512Context = packed record
-    DataLen: DWORD;
+    DataLen: LongWord;
     Data: array[0..127] of Byte;
     TotalLen: Int64;
     State: array[0..7] of Int64;
@@ -417,7 +417,7 @@ const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
 
-  KEYS256: array[0..63] of DWORD = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
+  KEYS256: array[0..63] of LongWord = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
     $3956C25B, $59F111F1, $923F82A4, $AB1C5ED5, $D807AA98, $12835B01, $243185BE,
     $550C7DC3, $72BE5D74, $80DEB1FE, $9BDC06A7, $C19BF174, $E49B69C1, $EFBE4786,
     $0FC19DC6, $240CA1CC, $2DE92C6F, $4A7484AA, $5CB0A9DC, $76F988DA, $983E5152,
@@ -451,12 +451,12 @@ const
     $5FCB6FAB3AD6FAEC, $6C44198C4A475817);
 {$R-}
 
-function ROTLeft256(A, B: DWORD): DWORD;
+function ROTLeft256(A, B: LongWord): LongWord;
 begin
   Result := (A shl B) or (A shr (32 - B));
 end;
 
-function ROTRight256(A, B: DWORD): DWORD;
+function ROTRight256(A, B: LongWord): LongWord;
 begin
   Result := (A shr B) or (A shl (32 - B));
 end;
@@ -471,7 +471,7 @@ begin
   Result := (X and $FFFFFFFFFFFFFFFF) shr Y;
 end;
 
-function CH256(X, Y, Z: DWORD): DWORD;
+function CH256(X, Y, Z: LongWord): LongWord;
 begin
   Result := (X and Y) xor ((not X) and Z);
 end;
@@ -481,7 +481,7 @@ begin
   Result := (((Y xor Z) and X) xor Z);
 end;
 
-function MAJ256(X, Y, Z: DWORD): DWORD;
+function MAJ256(X, Y, Z: LongWord): LongWord;
 begin
   Result := (X and Y) xor (X and Z) xor (Y and Z);
 end;
@@ -491,22 +491,22 @@ begin
   Result := ((X or Y) and Z) or (X and Y);
 end;
 
-function EP0256(X: DWORD): DWORD;
+function EP0256(X: LongWord): LongWord;
 begin
   Result := ROTRight256(X, 2) xor ROTRight256(X, 13) xor ROTRight256(X, 22);
 end;
 
-function EP1256(X: DWORD): DWORD;
+function EP1256(X: LongWord): LongWord;
 begin
   Result := ROTRight256(X, 6) xor ROTRight256(X, 11) xor ROTRight256(X, 25);
 end;
 
-function SIG0256(X: DWORD): DWORD;
+function SIG0256(X: LongWord): LongWord;
 begin
   Result := ROTRight256(X, 7) xor ROTRight256(X, 18) xor (X shr 3);
 end;
 
-function SIG1256(X: DWORD): DWORD;
+function SIG1256(X: LongWord): LongWord;
 begin
   Result := ROTRight256(X, 17) xor ROTRight256(X, 19) xor (X shr 10);
 end;
@@ -533,16 +533,16 @@ end;
 
 procedure SHA256Transform(var Context: TSHA256Context; Data: PAnsiChar);
 var
-  A, B, C, D, E, F, G, H, T1, T2: DWORD;
-  M: array[0..63] of DWORD;
+  A, B, C, D, E, F, G, H, T1, T2: LongWord;
+  M: array[0..63] of LongWord;
   I, J: Integer;
 begin
   I := 0;
   J := 0;
   while I < 16 do
   begin
-    M[I] := (DWORD(Data[J]) shl 24) or (DWORD(Data[J + 1]) shl 16) or (DWORD(Data
-      [J + 2]) shl 8) or DWORD(Data[J + 3]);
+    M[I] := (LongWord(Data[J]) shl 24) or (LongWord(Data[J + 1]) shl 16) or (LongWord(Data
+      [J + 2]) shl 8) or LongWord(Data[J + 3]);
     Inc(I);
     Inc(J, 4);
   end;
@@ -686,7 +686,7 @@ var
   Dig: TSHA256Digest;
 begin
   SHA256Final(Context, Dig);
-  CopyMemory(@Digest[0], @Dig[0], SizeOf(TSHA224Digest));
+  Move(Dig[0], Digest[0], SizeOf(TSHA224Digest));
 end;
 
 procedure SHA256Init(var Context: TSHA256Context);
@@ -723,9 +723,15 @@ end;
 
 procedure SHA256UpdateW(var Context: TSHA256Context; Buffer: PWideChar; Len: LongWord);
 var
+{$IFDEF MSWINDOWS}
   Content: PAnsiChar;
   iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   GetMem(Content, Len * SizeOf(WideChar));
   try
     iLen := WideCharToMultiByte(0, 0, Buffer, Len, // 代码页默认用 0
@@ -734,6 +740,11 @@ begin
   finally
     FreeMem(Content);
   end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Buffer);
+  A := AnsiString(S);
+  SHA256Update(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 procedure SHA256Final(var Context: TSHA256Context; var Digest: TSHA256Digest);
@@ -820,7 +831,7 @@ var
   Dig: TSHA512Digest;
 begin
   SHA512Final(Context, Dig);
-  CopyMemory(@Digest[0], @Dig[0], SizeOf(TSHA384Digest));
+  Move(Dig[0], Digest[0], SizeOf(TSHA384Digest));
 end;
 
 procedure SHA512Init(var Context: TSHA512Context);
@@ -848,7 +859,7 @@ begin
   else
     RemainLength := TempLength;
 
-  CopyMemory(@(Context.Data[Context.DataLen]), Buffer, RemainLength);
+  Move(Buffer^, Context.Data[Context.DataLen], RemainLength);
   if Context.DataLen + Len < 128 then
   begin
     Inc(Context.DataLen, Len);
@@ -864,7 +875,7 @@ begin
 
   RemainLength := NewLength mod 128;
   Buffer := PAnsiChar(Cardinal(Buffer) + (BlockCount shl 7));
-  CopyMemory(@(Context.Data[Context.DataLen]), Buffer, RemainLength);
+  Move(Buffer^, Context.Data[Context.DataLen], RemainLength);
 
   Context.DataLen := RemainLength;
   Inc(Context.TotalLen, (BlockCount + 1) shl 7);
@@ -872,9 +883,15 @@ end;
 
 procedure SHA512UpdateW(var Context: TSHA512Context; Buffer: PWideChar; Len: LongWord);
 var
+{$IFDEF MSWINDOWS}
   Content: PAnsiChar;
   iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   GetMem(Content, Len * SizeOf(WideChar));
   try
     iLen := WideCharToMultiByte(0, 0, Buffer, Len, // 代码页默认用 0
@@ -883,6 +900,11 @@ begin
   finally
     FreeMem(Content);
   end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Buffer);
+  A := AnsiString(S);
+  SHA512Update(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 procedure SHA512Final(var Context: TSHA512Context; var Digest: TSHA512Digest);
@@ -897,7 +919,7 @@ begin
 
   BitLength := (Context.TotalLen + Context.DataLen) shl 3;
   PmLength := BlockCount shl 7;
-  ZeroMemory(@(Context.Data[Context.DataLen]), PmLength - Context.DataLen);
+  FillChar(Context.Data[Context.DataLen], PmLength - Context.DataLen, 0);
   Context.Data[Context.DataLen] := $80;
 
   Context.Data[PmLength - 1] := Byte(BitLength);
@@ -1184,13 +1206,13 @@ var
   begin
     case SHA2Type of
       stSHA2_224:
-        CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
+        Move(Dig224[0], D[0], SizeOf(TSHA224Digest));
       stSHA2_256:
-        CopyMemory(@D[0], @Dig256[0], SizeOf(TSHA256Digest));
+        Move(Dig256[0], D[0], SizeOf(TSHA256Digest));
       stSHA2_384:
-        CopyMemory(@D[0], @Dig384[0], SizeOf(TSHA384Digest));
+        Move(Dig384[0], D[0], SizeOf(TSHA384Digest));
       stSHA2_512:
-        CopyMemory(@D[0], @Dig512[0], SizeOf(TSHA512Digest));
+        Move(Dig512[0], D[0], SizeOf(TSHA512Digest));
     end;
   end;
 
@@ -1243,7 +1265,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_224, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA224Digest));
 end;
 
 // 对指定流进行 SHA256 计算
@@ -1253,7 +1275,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_256, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA256Digest));
 end;
 
 // 对指定流进行 SHA384 计算
@@ -1263,7 +1285,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_384, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA384Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA384Digest));
 end;
 
 // 对指定流进行 SHA512 计算
@@ -1273,15 +1295,18 @@ var
   Dig: TSHAGeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_512, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA512Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA512Digest));
 end;
 
-function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
 var
   H: THandle;
   Info: BY_HANDLE_FILE_INFORMATION;
   Rec: Int64Rec;
-begin
+{$ENDIF}
+  begin
+{$IFDEF MSWINDOWS}
   Result := False;
   IsEmpty := False;
   H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
@@ -1298,6 +1323,9 @@ begin
   Rec.Hi := Info.nFileSizeHigh;
   Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+{$ENDIF}
 end;
 
 function InternalSHAFile(const FileName: string; SHA2Type: TSHA2Type;
@@ -1312,9 +1340,11 @@ var
   Dig384: TSHA384Digest;
   Dig512: TSHA512Digest;
 
+{$IFDEF MSWINDOWS}
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
+{$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
 
@@ -1332,6 +1362,7 @@ var
     end;
   end;
 
+{$IFDEF MSWINDOWS}
   procedure _SHAUpdate;
   begin
     case SHA2Type of
@@ -1345,6 +1376,7 @@ var
         SHA512Update(Context512, ViewPointer, GetFileSize(FileHandle, nil));
     end;
   end;
+{$ENDIF}
 
   procedure _SHAFinal;
   begin
@@ -1364,21 +1396,21 @@ var
   begin
     case SHA2Type of
       stSHA2_224:
-        CopyMemory(@D[0], @Dig224[0], SizeOf(TSHA224Digest));
+        Move(Dig224[0], D[0], SizeOf(TSHA224Digest));
       stSHA2_256:
-        CopyMemory(@D[0], @Dig256[0], SizeOf(TSHA256Digest));
+        Move(Dig256[0], D[0], SizeOf(TSHA256Digest));
       stSHA2_384:
-        CopyMemory(@D[0], @Dig384[0], SizeOf(TSHA384Digest));
+        Move(Dig384[0], D[0], SizeOf(TSHA384Digest));
       stSHA2_512:
-        CopyMemory(@D[0], @Dig512[0], SizeOf(TSHA512Digest));
+        Move(Dig512[0], D[0], SizeOf(TSHA512Digest));
     end;
   end;
 
 begin
   FileIsZeroSize := False;
-  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
-    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
       InternalSHAStream(Stream, 4096 * 1024, Result, SHA2Type, CallBack);
@@ -1388,6 +1420,7 @@ begin
   end
   else
   begin
+{$IFDEF MSWINDOWS}
     _SHAInit;
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
       FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
@@ -1427,6 +1460,7 @@ begin
     end;
     _SHAFinal;
     _CopyResult(Result);
+{$ENDIF}
   end;
 end;
 
@@ -1437,7 +1471,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_224, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA224Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA224Digest));
 end;
 
 // 对指定文件数据进行 SHA256 计算
@@ -1447,7 +1481,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_256, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA256Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA256Digest));
 end;
 
 // 对指定文件数据进行 SHA384 计算
@@ -1457,7 +1491,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_384, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA384Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA384Digest));
 end;
 
 // 对指定文件数据进行 SHA512 计算
@@ -1467,7 +1501,7 @@ var
   Dig: TSHAGeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_512, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA512Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA512Digest));
 end;
 
 const

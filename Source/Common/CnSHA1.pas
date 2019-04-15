@@ -45,14 +45,14 @@ interface
 {$RANGECHECKS OFF}
 
 uses
-  SysUtils, Windows, Classes;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   TSHA1Digest = array[0..19] of Byte;
 
   TSHA1Context = record
-    Hash: array[0..4] of DWORD;
-    Hi, Lo: DWORD;
+    Hash: array[0..4] of LongWord;
+    Hi, Lo: LongWord;
     Buffer: array[0..63] of Byte;
     Index: Integer;
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
@@ -170,14 +170,14 @@ begin
 //        mov     &Result, ax
 end;
 
-function LRot32(X: DWORD; c: Integer): DWORD; register; assembler;
+function LRot32(X: LongWord; c: Integer): LongWord; register; assembler;
 begin
   Result := X shl (c and 31) + X shr (32 - c and 31);
 //        mov     ecx, edx
 //        rol     eax, cl
 end;
 
-function RRot32(X: DWORD; c: Integer): DWORD; register; assembler;
+function RRot32(X: LongWord; c: Integer): LongWord; register; assembler;
 begin
   Result := X shr (c and 31) + X shl (32 - c and 31);
 //        mov     ecx, edx
@@ -199,30 +199,30 @@ begin
     IncBlock(P, Len - 1);
 end;
 
-function F1(x, y, z: DWORD): DWORD;
+function F1(x, y, z: LongWord): LongWord;
 begin
   Result := z xor (x and (y xor z));
 end;
 
-function F2(x, y, z: DWORD): DWORD;
+function F2(x, y, z: LongWord): LongWord;
 begin
   Result := x xor y xor z;
 end;
 
-function F3(x, y, z: DWORD): DWORD;
+function F3(x, y, z: LongWord): LongWord;
 begin
   Result := (x and y) or (z and (x or y));
-end;   
-   
-function RB(A: DWORD): DWORD;
+end;
+
+function RB(A: LongWord): LongWord;
 begin
   Result := (A shr 24) or ((A shr 8) and $FF00) or ((A shl 8) and $FF0000) or (A shl 24);
 end;
 
 procedure SHA1Compress(var Data: TSHA1Context);
 var
-  A, B, C, D, E, T: DWORD;
-  W: array[0..79] of DWORD;
+  A, B, C, D, E, T: LongWord;
+  W: array[0..79] of LongWord;
   i: Integer;
 begin
   Move(Data.Buffer, W, Sizeof(Data.Buffer));
@@ -278,8 +278,8 @@ begin
   Data.Hash[4] := Data.Hash[4] + E;
   FillChar(W, Sizeof(W), 0);
   FillChar(Data.Buffer, Sizeof(Data.Buffer), 0);
-end;   
-   
+end;
+
 procedure SHA1Init(var Context: TSHA1Context);
 begin
   Context.Hi := 0;
@@ -291,11 +291,11 @@ begin
   Context.Hash[2] := $98BADCFE;
   Context.Hash[3] := $10325476;
   Context.Hash[4] := $C3D2E1F0;
-end;   
-   
+end;
+
 procedure SHA1UpdateLen(var Context: TSHA1Context; Len: Integer);
 var
-  i, k: DWORD;
+  i, k: LongWord;
 begin
   for k := 0 to 7 do
   begin
@@ -325,24 +325,35 @@ begin
   end;
 end;
 
-procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; Length: LongWord);
+procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; CharLength: LongWord);
 var
+{$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
   iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
 begin
-  GetMem(pContent, Length * SizeOf(WideChar));
+{$IFDEF MSWINDOWS}
+  GetMem(pContent, CharLength * SizeOf(WideChar));
   try
-    iLen := WideCharToMultiByte(0, 0, Input, Length, // 代码页默认用 0
-      PAnsiChar(pContent), Length * SizeOf(WideChar), nil, nil);
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(pContent), CharLength * SizeOf(WideChar), nil, nil);
     SHA1Update(Context, pContent, iLen);
   finally
     FreeMem(pContent);
   end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Input);
+  A := AnsiString(S);
+  SHA1Update(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 procedure SHA1Final(var Context: TSHA1Context; var Digest: TSHA1Digest);
 type
-  PDWord = ^DWORD;
+  PDWord = ^LongWord;
 begin
   Context.Buffer[Context.Index] := $80;
   if Context.Index >= 56 then
@@ -463,19 +474,24 @@ end;
 function SHA1File(const FileName: string;
   CallBack: TSHA1CalcProgressFunc): TSHA1Digest;
 var
+{$IFDEF MSWINDOWS}
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
   Context: TSHA1Context;
+{$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
 
-  function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+  function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
   var
     H: THandle;
     Info: BY_HANDLE_FILE_INFORMATION;
     Rec : Int64Rec;
+{$ENDIF}
   begin
+{$IFDEF MSWINDOWS}
     Result := False;
     IsEmpty := False;
     H := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, 0, 0);
@@ -489,13 +505,16 @@ var
     Rec.Hi := Info.nFileSizeHigh;
     Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
     IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+    Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+{$ENDIF}
   end;
 
 begin
   FileIsZeroSize := False;
-  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
-    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
       InternalSHA1Stream(Stream, 4096 * 1024, Result, CallBack);
@@ -505,6 +524,7 @@ begin
   end
   else
   begin
+{$IFDEF MSWINDOWS}
     SHA1Init(Context);
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
                   FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
@@ -543,6 +563,7 @@ begin
       end;
     end;
     SHA1Final(Context, Result);
+{$ENDIF}
   end;
 end;
 
