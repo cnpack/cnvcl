@@ -31,7 +31,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2017.04.04 V1.3
+* 修改记录：2019.04.16 V1.4
+*               支持 Win32/Win64/MacOS
+*           2017.04.04 V1.3
 *               修正几处大数池相关的 Bug，但扩展欧几里得求解法还有问题
 *           2016.09.26 V1.2
 *               加入素数计算；大数池改成全局方式以提高效率
@@ -47,7 +49,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows, Contnrs {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, Contnrs {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -72,8 +74,8 @@ const
 type
   ERandomAPIError = class(Exception);
 
-  TDWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of DWORD;
-  PDWordArray = ^TDWordArray;
+  TLongWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of LongWord;
+  PLongWordArray = ^TLongWordArray;
 
   {* 用来代表一个大数的对象 }
   TCnBigNumber = class(TObject)
@@ -85,7 +87,7 @@ type
     function GetHexString: string;
     function GetDebugDump: string;
   public
-    D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
+    D: PLongWord;       // 一个 array[0..Top-1] of LongWord 数组，越往后越代表高位
     Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
     DMax: Integer;      // D 数组的存储上限
     Neg: Integer;       // 1 为负，0 为正
@@ -121,28 +123,28 @@ type
     function GetBytesCount: Integer;
     {* 返回大数有多少个有效 bytes }
 
-    function GetWord: DWORD;
+    function GetWord: LongWord;
     {* 取首值 }
 
-    function SetWord(W: DWORD): Boolean;
+    function SetWord(W: LongWord): Boolean;
     {* 给大数赋首值 }
 
-    function IsWord(W: DWORD): Boolean;
+    function IsWord(W: LongWord): Boolean;
     {* 大数是否等于指定 DWORD}
 
-    function AddWord(W: DWORD): Boolean;
+    function AddWord(W: LongWord): Boolean;
     {* 大数加上一个 DWORD，结果仍放自身中，返回相加是否成功}
 
-    function SubWord(W: DWORD): Boolean;
+    function SubWord(W: LongWord): Boolean;
     {* 大数减去一个 DWORD，结果仍放自身中，返回相减是否成功}
 
-    function MulWord(W: DWORD): Boolean;
+    function MulWord(W: LongWord): Boolean;
     {* 大数乘以一个 DWORD，结果仍放自身中，返回相乘是否成功}
 
-    function ModWord(W: DWORD): DWORD;
+    function ModWord(W: LongWord): LongWord;
     {* 大数对一个 DWORD 求余，返回余数}
 
-    function DivWord(W: DWORD): DWORD;
+    function DivWord(W: LongWord): LongWord;
     {* 大数除以一个 DWORD，商重新放在自身中，返回余数}
 
     procedure SetNegative(Negative: Boolean);
@@ -253,28 +255,28 @@ function BigNumberGetBitsCount(const Num: TCnBigNumber): Integer;
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效 bytes }
 
-function BigNumberGetWord(const Num: TCnBigNumber): DWORD;
+function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
 {* 取一个大数对象的首值 }
 
-function BigNumberSetWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 给一个大数对象赋首值 }
 
-function BigNumberIsWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 某大数是否等于指定 DWORD}
 
-function BigNumberAddWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberAddWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功}
 
-function BigNumberSubWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberSubWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 大数减去一个 DWORD，结果仍放 Num 中，返回相减是否成功}
 
-function BigNumberMulWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberMulWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 大数乘以一个 DWORD，结果仍放 Num 中，返回相乘是否成功}
 
-function BigNumberModWord(const Num: TCnBigNumber; W: DWORD): DWORD;
+function BigNumberModWord(const Num: TCnBigNumber; W: LongWord): LongWord;
 {* 大数对一个 DWORD 求余，返回余数}
 
-function BigNumberDivWord(const Num: TCnBigNumber; W: DWORD): DWORD;
+function BigNumberDivWord(const Num: TCnBigNumber; W: LongWord): LongWord;
 {* 大数除以一个 DWORD，商重新放在 Num 中，返回余数}
 
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
@@ -503,6 +505,22 @@ uses
 const
   Hex: string = '0123456789ABCDEF';
 
+  BN_CTX_POOL_SIZE = 16;
+  BN_CTX_START_FRAMES = 32;
+  BN_DEC_CONV = 1000000000;
+  BN_DEC_FMT = '%u';
+  BN_DEC_FMT2 = '%.9u';
+
+{$IFNDEF MSWINDOWS}
+  MAXDWORD = LongWord($FFFFFFFF);
+{$ENDIF}
+
+var
+  FLocalBigNumberPool: TObjectList = nil;
+
+{$IFDEF MSWINDOWS}
+
+const
   ADVAPI32 = 'advapi32.dll';
 
   CRYPT_VERIFYCONTEXT = $F0000000;
@@ -512,24 +530,17 @@ const
   PROV_RSA_FULL = 1;
   NTE_BAD_KEYSET = $80090016;
 
-  BN_CTX_POOL_SIZE = 16;
-  BN_CTX_START_FRAMES = 32;
-  BN_DEC_CONV = 1000000000;
-  BN_DEC_FMT = '%u';
-  BN_DEC_FMT2 = '%.9u';
-
-var
-  FLocalBigNumberPool: TObjectList = nil;
-
 function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
-  pszProvider: PAnsiChar; dwProvType: DWORD; dwFlags: DWORD): BOOL;
+  pszProvider: PAnsiChar; dwProvType: LongWord; dwFlags: LongWord): BOOL;
   stdcall; external ADVAPI32 name 'CryptAcquireContextA';
 
-function CryptReleaseContext(hProv: ULONG; dwFlags: DWORD): BOOL;
+function CryptReleaseContext(hProv: ULONG; dwFlags: LongWord): BOOL;
   stdcall; external ADVAPI32 name 'CryptReleaseContext';
 
-function CryptGenRandom(hProv: ULONG; dwLen: DWORD; pbBuffer: PAnsiChar): BOOL;
+function CryptGenRandom(hProv: ULONG; dwLen: LongWord; pbBuffer: PAnsiChar): BOOL;
   stdcall; external ADVAPI32 name 'CryptGenRandom';
+
+{$ENDIF}
 
 {* 大数池操作方法开始}
 
@@ -601,12 +612,12 @@ begin
 end;
 
 // 返回一个大数结构里的大数的绝对值是否为指定的 DWORD 值
-function BigNumberAbsIsWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberAbsIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 begin
   Result := True;
   if (W = 0) and (Num.Top = 0) then
     Exit;
-  if (Num.Top = 1) and (PDWordArray(Num.D)^[0] = W) then
+  if (Num.Top = 1) and (PLongWordArray(Num.D)^[0] = W) then
     Exit;
   Result := False;
 end;
@@ -623,13 +634,13 @@ end;
 
 function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  if (Num.Top > 0) and ((PDWordArray(Num.D)^[0] and 1) <> 0) then
+  if (Num.Top > 0) and ((PLongWordArray(Num.D)^[0] and 1) <> 0) then
     Result := True
   else
     Result := False;
 end;
 
-function BigNumberGetWordBitsCount(L: DWORD): Integer;
+function BigNumberGetWordBitsCount(L: LongWord): Integer;
 const
   Bits: array[0..255] of Byte = (
     0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -675,7 +686,7 @@ begin
     Exit;
 
   I := Num.Top - 1;
-  Result := ((I * BN_BITS2) + BigNumberGetWordBitsCount(PDWordArray(Num.D)^[I]));
+  Result := ((I * BN_BITS2) + BigNumberGetWordBitsCount(PLongWordArray(Num.D)^[I]));
 end;
 
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
@@ -683,11 +694,11 @@ begin
   Result := (BigNumberGetBitsCount(Num) + 7) div 8;
 end;
 
-function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PDWORD;
+function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PLongWord;
 var
-  A, B, TmpA: PDWORD;
+  A, B, TmpA: PLongWord;
   I: Integer;
-  A0, A1, A2, A3: DWORD;
+  A0, A1, A2, A3: LongWord;
 begin
   Result := nil;
   if Words > (MaxInt div (4 * BN_BITS2)) then
@@ -696,11 +707,11 @@ begin
   if BigNumberGetFlag(Num, BN_FLG_STATIC_DATA) <> 0 then
     Exit;
 
-  A := PDWORD(GetMemory(SizeOf(MAXDWORD) * Words));
+  A := PLongWord(GetMemory(SizeOf(MAXDWORD) * Words));
   if A = nil then
     Exit;
 
-  ZeroMemory(A, SizeOf(MAXDWORD) * Words);
+  FillChar(A^, SizeOf(MAXDWORD) * Words, 0);
 
   // 查查是否要复制之前的值
   B := Num.D;
@@ -710,36 +721,36 @@ begin
     I :=  Num.Top shr 2;
     while I > 0 do
     begin
-      A0 := PDWordArray(B)^[0];
-      A1 := PDWordArray(B)^[1];
-      A2 := PDWordArray(B)^[2];
-      A3 := PDWordArray(B)^[3];
+      A0 := PLongWordArray(B)^[0];
+      A1 := PLongWordArray(B)^[1];
+      A2 := PLongWordArray(B)^[2];
+      A3 := PLongWordArray(B)^[3];
 
-      PDWordArray(TmpA)^[0] := A0;
-      PDWordArray(TmpA)^[1] := A1;
-      PDWordArray(TmpA)^[2] := A2;
-      PDWordArray(TmpA)^[3] := A3;
+      PLongWordArray(TmpA)^[0] := A0;
+      PLongWordArray(TmpA)^[1] := A1;
+      PLongWordArray(TmpA)^[2] := A2;
+      PLongWordArray(TmpA)^[3] := A3;
 
       Dec(I);
-      TmpA := PDWORD(Integer(TmpA) + 4 * SizeOf(DWORD));
-      B := PDWORD(Integer(B) + 4 * SizeOf(DWORD));
+      TmpA := PLongWord(Integer(TmpA) + 4 * SizeOf(LongWord));
+      B := PLongWord(Integer(B) + 4 * SizeOf(LongWord));
     end;
 
     case Num.Top and 3 of
       3:
         begin
-          PDWordArray(TmpA)^[2] := PDWordArray(B)^[2];
-          PDWordArray(TmpA)^[1] := PDWordArray(B)^[1];
-          PDWordArray(TmpA)^[0] := PDWordArray(B)^[0];
+          PLongWordArray(TmpA)^[2] := PLongWordArray(B)^[2];
+          PLongWordArray(TmpA)^[1] := PLongWordArray(B)^[1];
+          PLongWordArray(TmpA)^[0] := PLongWordArray(B)^[0];
         end;
       2:
         begin
-          PDWordArray(TmpA)^[1] := PDWordArray(B)^[1];
-          PDWordArray(TmpA)^[0] := PDWordArray(B)^[0];
+          PLongWordArray(TmpA)^[1] := PLongWordArray(B)^[1];
+          PLongWordArray(TmpA)^[0] := PLongWordArray(B)^[0];
         end;
       1:
         begin
-          PDWordArray(TmpA)^[0] := PDWordArray(B)^[0];
+          PLongWordArray(TmpA)^[0] := PLongWordArray(B)^[0];
         end;
       0:
         begin
@@ -753,7 +764,7 @@ end;
 
 function BigNumberExpand2(const Num: TCnBigNumber; Words: Integer): TCnBigNumber;
 var
-  P: PDWORD;
+  P: PLongWord;
 begin
   Result := nil;
   if Words > Num.DMax then
@@ -793,18 +804,18 @@ begin
     Exit;
 
   if Num.D <> nil then
-    ZeroMemory(Num.D, Num.DMax * SizeOf(DWORD));
+    FillChar(Num.D^, Num.DMax * SizeOf(LongWord), 0);
   Num.Top := 0;
   Num.Neg := 0;
 end;
 
-function BigNumberSetWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 begin
   Result := False;
-  if BigNumberExpandBits(Num, SizeOf(DWORD) * 8) = nil then
+  if BigNumberExpandBits(Num, SizeOf(LongWord) * 8) = nil then
     Exit;
   Num.Neg := 0;
-  PDWordArray(Num.D)^[0] := W;
+  PLongWordArray(Num.D)^[0] := W;
   if W <> 0 then
     Num.Top := 1
   else
@@ -812,18 +823,18 @@ begin
   Result := True;
 end;
 
-function BigNumberGetWord(const Num: TCnBigNumber): DWORD;
+function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
 begin
   if Num.Top > 1 then
     Result := BN_MASK2
   else if Num.Top = 1 then
-    Result := PDWordArray(Num.D)^[0]
+    Result := PLongWordArray(Num.D)^[0]
   else
     Result := 0;
 end;
 
 // 某大数是否等于指定 DWORD
-function BigNumberIsWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 begin
   Result := False;
   if (W = 0) or (Num.Neg = 0) then
@@ -834,17 +845,17 @@ end;
 // 调整 Top 保证 D[Top - 1] 指向最高位非 0 处
 procedure BigNumberCorrectTop(const Num: TCnBigNumber);
 var
-  Ftl: PDWORD;
+  Ftl: PLongWord;
   Top: Integer;
 begin
   Top := Num.Top;
-  Ftl := @(PDWordArray(Num.D)^[Top - 1]);
+  Ftl := @(PLongWordArray(Num.D)^[Top - 1]);
   while Top > 0 do
   begin
     if Ftl^ <> 0 then
       Break;
 
-    Ftl := PDWORD(Integer(Ftl) - SizeOf(DWORD));
+    Ftl := PLongWord(Integer(Ftl) - SizeOf(LongWord));
     Dec(Top);
   end;
   Num.Top := Top;
@@ -853,14 +864,14 @@ end;
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 var
   I, N: Integer;
-  L: DWORD;
+  L: LongWord;
 begin
   N := BigNumberGetBytesCount(Num);
   I := N;
   while I > 0 do
   begin
     Dec(I);
-    L := PDWordArray(Num.D)^[I div BN_BYTES];
+    L := PLongWordArray(Num.D)^[I div BN_BYTES];
     Buf^ := AnsiChar(Chr(L shr (8 * (I mod BN_BYTES)) and $FF));
 
     Buf := PAnsiChar(Integer(Buf) + 1);
@@ -884,7 +895,7 @@ end;
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
 var
-  I, M, N, L: DWORD;
+  I, M, N, L: LongWord;
 begin
   Result := False;
   L := 0;
@@ -914,7 +925,7 @@ begin
     if M = 0 then
     begin
       Dec(I);
-      PDWordArray(Res.D)^[I] := L;
+      PLongWordArray(Res.D)^[I] := L;
       L := 0;
       M := BN_BYTES - 1;
     end
@@ -956,7 +967,7 @@ begin
   if Num.Top <= I then
     Exit;
 
-  PDWordArray(Num.D)^[I] := PDWordArray(Num.D)^[I] and DWORD(not (1 shl J));
+  PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] and LongWord(not (1 shl J));
   BigNumberCorrectTop(Num);
   Result := True;
 end;
@@ -978,12 +989,12 @@ begin
       Exit;
 
     for K := Num.Top to I do
-      PDWordArray(Num.D)^[K] := 0;
+      PLongWordArray(Num.D)^[K] := 0;
 
     Num.Top := I + 1;
   end;
 
-  PDWordArray(Num.D)^[I] := PDWordArray(Num.D)^[I] or DWORD(1 shl J);
+  PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] or LongWord(1 shl J);
   Result := True;
 end;
 
@@ -1001,7 +1012,7 @@ begin
   if Num.Top <= I then
     Exit;
 
-  if (DWORD(PDWordArray(Num.D)^[I] shr J) and DWORD(1)) <> 0 then
+  if (LongWord(PLongWordArray(Num.D)^[I] shr J) and LongWord(1)) <> 0 then
     Result := True;
 end;
 
@@ -1009,10 +1020,10 @@ function BigNumberCompareWords(var Num1: TCnBigNumber; var Num2: TCnBigNumber;
   N: Integer): Integer;
 var
   I: Integer;
-  A, B: DWORD;
+  A, B: LongWord;
 begin
-  A := PDWordArray(Num1.D)^[N - 1];
-  B := PDWordArray(Num2.D)^[N - 1];
+  A := PLongWordArray(Num1.D)^[N - 1];
+  B := PLongWordArray(Num2.D)^[N - 1];
 
   if A <> B then
   begin
@@ -1025,8 +1036,8 @@ begin
 
   for I := N - 2 downto 0 do
   begin
-    A := PDWordArray(Num1.D)^[I];
-    B := PDWordArray(Num2.D)^[I];
+    A := PLongWordArray(Num1.D)^[I];
+    B := PLongWordArray(Num2.D)^[I];
 
     if A <> B then
     begin
@@ -1043,7 +1054,7 @@ end;
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 var
   I, Gt, Lt: Integer;
-  T1, T2: DWORD;
+  T1, T2: LongWord;
 begin
   if (Num1 = nil) or (Num2 = nil) then
   begin
@@ -1090,8 +1101,8 @@ begin
 
   for I := Num1.Top - 1 downto 0 do
   begin
-    T1 := PDWordArray(Num1.D)^[I];
-    T2 := PDWordArray(Num2.D)^[I];
+    T1 := PLongWordArray(Num1.D)^[I];
+    T2 := PLongWordArray(Num2.D)^[I];
     if T1 > T2 then
     begin
       Result := Gt;
@@ -1109,7 +1120,7 @@ end;
 function BigNumberUnsignedCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 var
   I: Integer;
-  T1, T2: DWORD;
+  T1, T2: LongWord;
 begin
   Result := Num1.Top - Num2.Top;
   if Result <> 0 then
@@ -1117,8 +1128,8 @@ begin
 
   for I := Num1.Top - 1 downto 0 do
   begin
-    T1 := PDWordArray(Num1.D)^[I];
-    T2 := PDWordArray(Num2.D)^[I];
+    T1 := PLongWordArray(Num1.D)^[I];
+    T2 := PLongWordArray(Num2.D)^[I];
     if T1 > T2 then
     begin
       Result := 1;
@@ -1136,11 +1147,16 @@ end;
 // 使用 Windows API 实现区块随机填充
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 var
+{$IFDEF MSWINDOWS}
   HProv: Cardinal;
-  Res: DWORD;
+  Res: LongWord;
+{$ELSE}
+  F: TFileStream;
+{$ENDIF}
 begin
-  HProv := 0;
   Result := False;
+{$IFDEF MSWINDOWS}
+  HProv := 0;
   if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0) then
   begin
     Res := GetLastError;
@@ -1163,6 +1179,16 @@ begin
       CryptReleaseContext(HProv, 0);
     end;
   end;
+{$ELSE}
+  // MacOS 下的随机填充实现，采用读取 /dev/random 内容的方式
+  F := nil;
+  try
+    F := TFileStream.Create('/dev/random', fmOpenRead);
+    Result := F.Read(Buf^, Len) = Len;
+  finally
+    F.Free;
+  end;
+{$ENDIF}
 end;
 
 // 产生固定字节长度的随机大数
@@ -1268,8 +1294,8 @@ end;
 function BigNumberCopy(const Dst: TCnBigNumber; const Src: TCnBigNumber): TCnBigNumber;
 var
   I: Integer;
-  A, B: PDWordArray;
-  A0, A1, A2, A3: DWORD;
+  A, B: PLongWordArray;
+  A0, A1, A2, A3: LongWord;
 begin
   if Dst = Src then
   begin
@@ -1283,16 +1309,16 @@ begin
     Exit;
   end;
 
-  A := PDWordArray(Dst.D);
-  B := PDWordArray(Src.D);
+  A := PLongWordArray(Dst.D);
+  B := PLongWordArray(Src.D);
 
   for I := (Src.Top shr 2) downto 1 do
   begin
     A0 := B[0]; A1 := B[1]; A2 := B[2]; A3 := B[3];
     A[0] := A0; A[1] := A1; A[2] := A2; A[3] := A3;
 
-    A := PDWordArray(Integer(A) + 4 * SizeOf(DWORD));
-    B := PDWordArray(Integer(B) + 4 * SizeOf(DWORD));
+    A := PLongWordArray(Integer(A) + 4 * SizeOf(LongWord));
+    B := PLongWordArray(Integer(B) + 4 * SizeOf(LongWord));
   end;
 
   case Src.Top and 3 of
@@ -1324,8 +1350,8 @@ end;
 
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 var
-  OldFlag1, OldFlag2: DWORD;
-  TmpD: PDWORD;
+  OldFlag1, OldFlag2: LongWord;
+  TmpD: PLongWord;
   TmpTop, TmpDMax, TmpNeg: Integer;
 begin
   OldFlag1 := Num1.Flags;
@@ -1351,26 +1377,26 @@ begin
   Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
 end;
 
-function LBITS(Num: DWORD): DWORD; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function LBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := Num and BN_MASK2l;
 end;
 
-function HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function HBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Num shr BN_BITS4) and BN_MASK2l;
 end;
 
-function L2HBITS(Num: DWORD): DWORD; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function L2HBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Num shl BN_BITS4) and BN_MASK2;
 end;
 
 // 计算两个 32 位数（分别用高低 16 位表示）的 64 位积 HL * BHBL，
 // 传入的 LHBLBL 皆为 16 位，结果的高低位分别放 H 和 L，溢出不管
-procedure Mul64(var L: DWORD; var H: DWORD; var BL: DWORD; var BH: DWORD); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure Mul64(var L: LongWord; var H: LongWord; var BL: LongWord; var BH: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
-  M, ML, LT, HT: DWORD;
+  M, ML, LT, HT: LongWord;
 begin
   LT := L;
   HT := H;
@@ -1380,7 +1406,7 @@ begin
   HT := BH * HT;
   M := (M + ML) and BN_MASK2;
   if M < ML then
-    HT := HT + L2HBITS(DWORD(1));
+    HT := HT + L2HBITS(LongWord(1));
   HT := HT + HBITS(M);
   ML := L2HBITS(M);
   LT := (LT + ML) and BN_MASK2;
@@ -1391,9 +1417,9 @@ begin
 end;
 
 // 计算 InNum 的平方，结果的高低位分别放 Ho 和 Lo
-procedure Sqr64(var Lo: DWORD; var Ho: DWORD; var InNum: DWORD);
+procedure Sqr64(var Lo: LongWord; var Ho: LongWord; var InNum: LongWord);
 var
-  L, H, M: DWORD;
+  L, H, M: LongWord;
 begin
   H := InNum;
   L := LBITS(H);
@@ -1410,9 +1436,9 @@ begin
   Ho := H;
 end;
 
-procedure MulAdd(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD);
+procedure MulAdd(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord; var C: LongWord);
 var
-  L, H: DWORD;
+  L, H: LongWord;
 begin
   H := A;
   L := LBITS(H);
@@ -1431,9 +1457,9 @@ begin
 end;
 
 // 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C
-procedure Mul(var R: DWORD; var A: DWORD; var BL: DWORD; var BH: DWORD; var C: DWORD); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure Mul(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord; var C: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
-  L, H: DWORD;
+  L, H: LongWord;
 begin
   H := A;
   L := LBITS(H);
@@ -1449,9 +1475,9 @@ end;
 
 {* Words 系列内部计算函数开始 }
 
-function BigNumberAddWords(RP: PDWordArray; AP: PDWordArray; BP: PDWordArray; N: Integer): DWORD;
+function BigNumberAddWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer): LongWord;
 var
-  LL: LONGLONG;
+  LL: Int64;
 begin
   Result := 0;
   if N <= 0 then
@@ -1460,46 +1486,46 @@ begin
   LL := 0;
   while (N and (not 3)) <> 0 do
   begin
-    LL := LL + LONGLONG(AP[0]) + LONGLONG(BP[0]);
-    RP[0] := DWORD(LL) and BN_MASK2;
+    LL := LL + Int64(AP[0]) + Int64(BP[0]);
+    RP[0] := LongWord(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    LL := LL + LONGLONG(AP[1]) + LONGLONG(BP[1]);
-    RP[1] := DWORD(LL) and BN_MASK2;
+    LL := LL + Int64(AP[1]) + Int64(BP[1]);
+    RP[1] := LongWord(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    LL := LL + LONGLONG(AP[2]) + LONGLONG(BP[2]);
-    RP[2] := DWORD(LL) and BN_MASK2;
+    LL := LL + Int64(AP[2]) + Int64(BP[2]);
+    RP[2] := LongWord(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    LL := LL + LONGLONG(AP[3]) + LONGLONG(BP[3]);
-    RP[3] := DWORD(LL) and BN_MASK2;
+    LL := LL + Int64(AP[3]) + Int64(BP[3]);
+    RP[3] := LongWord(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
-    BP := PDWordArray(Integer(BP) + 4 * SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
+    BP := PLongWordArray(Integer(BP) + 4 * SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + 4 * SizeOf(LongWord));
 
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
-    LL := LL + LONGLONG(AP[0]) + LONGLONG(BP[0]);
-    RP[0] := DWORD(LL) and BN_MASK2;
+    LL := LL + Int64(AP[0]) + Int64(BP[0]);
+    RP[0] := LongWord(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    BP := PDWordArray(Integer(BP) + SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    BP := PLongWordArray(Integer(BP) + SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
     Dec(N);
   end;
-  Result := DWORD(LL);
+  Result := LongWord(LL);
 end;
 
-function BigNumberSubWords(RP: PDWordArray; AP: PDWordArray; BP: PDWordArray; N: Integer): DWORD;
+function BigNumberSubWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer): LongWord;
 var
-  T1, T2, C: DWORD;
+  T1, T2, C: LongWord;
 begin
   Result := 0;
   if N <= 0 then
@@ -1532,9 +1558,9 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
-    BP := PDWordArray(Integer(BP) + 4 * SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
+    BP := PLongWordArray(Integer(BP) + 4 * SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + 4 * SizeOf(LongWord));
 
     Dec(N, 4);
   end;
@@ -1547,17 +1573,17 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    BP := PDWordArray(Integer(BP) + SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    BP := PLongWordArray(Integer(BP) + SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
     Dec(N);
   end;
   Result := C;
 end;
 
-function BigNumberMulAddWords(RP: PDWordArray; AP: PDWordArray; N: Integer; W: DWORD): DWORD;
+function BigNumberMulAddWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer; W: LongWord): LongWord;
 var
-  BL, BH: DWORD;
+  BL, BH: LongWord;
 begin
   Result := 0;
   if N <= 0 then
@@ -1573,24 +1599,24 @@ begin
     MulAdd(RP^[2], AP^[2], BL, BH, Result);
     MulAdd(RP^[3], AP^[3], BL, BH, Result);
 
-    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + 4 * SizeOf(LongWord));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     MulAdd(RP^[0], AP^[0], BL, BH, Result);
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
     Dec(N);
   end;
 end;
 
 // AP 指向的 N 个数字都乘以 W，结果的低 N 位放 RP 中，高位放返回值
-function BigNumberMulWords(RP: PDWordArray; AP: PDWordArray; N: Integer; W: DWORD): DWORD;
+function BigNumberMulWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer; W: LongWord): LongWord;
 var
-  BL, BH: DWORD;
+  BL, BH: LongWord;
 begin
   Result := 0;
   if N <= 0 then
@@ -1606,8 +1632,8 @@ begin
     Mul(RP^[2], AP^[2], BL, BH, Result);
     Mul(RP^[3], AP^[3], BL, BH, Result);
 
-    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + 4 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + 4 * SizeOf(LongWord));
 
     Dec(N, 4);
   end;
@@ -1615,14 +1641,14 @@ begin
   while N <> 0 do
   begin
     Mul(RP^[0], AP^[0], BL, BH, Result);
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
 
     Dec(N);
   end;
 end;
 
-procedure BigNumberSqrWords(RP: PDWordArray; AP: PDWordArray; N: Integer);
+procedure BigNumberSqrWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer);
 begin
   if N = 0 then
     Exit;
@@ -1634,16 +1660,16 @@ begin
     Sqr64(RP^[4], RP^[5], AP^[2]);
     Sqr64(RP^[6], RP^[7], AP^[3]);
 
-    AP := PDWordArray(Integer(AP) + 4 * SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + 8 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + 8 * SizeOf(LongWord));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     Sqr64(RP^[0], RP^[1], AP^[0]);
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    RP := PDWordArray(Integer(RP) + 2 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    RP := PLongWordArray(Integer(RP) + 2 * SizeOf(LongWord));
     Dec(N);
   end;
 end;
@@ -1712,7 +1738,7 @@ end;
 {$ENDIF}
 
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D
-function BigNumberDivWords(H: DWORD; L: DWORD; D: DWORD): DWORD;
+function BigNumberDivWords(H: LongWord; L: LongWord; D: LongWord): LongWord;
 begin
   if D = 0 then
   begin
@@ -1721,7 +1747,7 @@ begin
   end;
 
 {$IFDEF WIN64}
-  Result := DWORD(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
+  Result := LongWord(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
 {$ELSE}
   Result := 0;
   asm
@@ -1741,8 +1767,8 @@ function BigNumberUnsignedAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif: Integer;
-  AP, BP, RP: PDWORD;
-  Carry, T1, T2: DWORD;
+  AP, BP, RP: PLongWord;
+  Carry, T1, T2: LongWord;
   A, B, Tmp: TCnBigNumber;
 begin
   Result := False;
@@ -1764,15 +1790,15 @@ begin
     Exit;
 
   Res.Top := Max;
-  AP := PDWORD(A.D);
-  BP := PDWORD(B.D);
-  RP := PDWORD(Res.D);
+  AP := PLongWord(A.D);
+  BP := PLongWord(B.D);
+  RP := PLongWord(Res.D);
 
-  Carry := BigNumberAddWords(PDWordArray(RP), PDWordArray(AP), PDWordArray(BP), Min);
+  Carry := BigNumberAddWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
 
-  AP := PDWORD(Integer(AP) + Min * SizeOf(DWORD));
+  AP := PLongWord(Integer(AP) + Min * SizeOf(LongWord));
 //  BP := PDWORD(Integer(BP) + Min * SizeOf(DWORD));
-  RP := PDWORD(Integer(RP) + Min * SizeOf(DWORD));
+  RP := PLongWord(Integer(RP) + Min * SizeOf(LongWord));
 
   if Carry <> 0 then
   begin
@@ -1780,11 +1806,11 @@ begin
     begin
       Dec(Dif);
       T1 := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
       T2 := (T1 + 1) and BN_MASK2;
 
       RP^ := T2;
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
 
       if T2 <> 0 then
       begin
@@ -1806,8 +1832,8 @@ begin
     begin
       Dec(Dif);
       RP^ := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
     end;
   end;
 
@@ -1819,8 +1845,8 @@ function BigNumberUnsignedSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif, I: Integer;
-  AP, BP, RP: PDWORD;
-  Carry, T1, T2: DWORD;
+  AP, BP, RP: PLongWord;
+  Carry, T1, T2: LongWord;
 begin
   Result := False;
 
@@ -1834,17 +1860,17 @@ begin
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
 
-  AP := PDWORD(Num1.D);
-  BP := PDWORD(Num2.D);
-  RP := PDWORD(Res.D);
+  AP := PLongWord(Num1.D);
+  BP := PLongWord(Num2.D);
+  RP := PLongWord(Res.D);
 
   Carry := 0;
   for I := Min downto 1 do
   begin
     T1 := AP^;
     T2 := BP^;
-    AP := PDWORD(Integer(AP) + SizeOf(DWORD));
-    BP := PDWORD(Integer(BP) + SizeOf(DWORD));
+    AP := PLongWord(Integer(AP) + SizeOf(LongWord));
+    BP := PLongWord(Integer(BP) + SizeOf(LongWord));
     if Carry <> 0 then
     begin
       if T1 <= T2 then
@@ -1862,7 +1888,7 @@ begin
       T1 := (T1 - T2) and BN_MASK2;
     end;
     RP^ := T1 and BN_MASK2;
-    RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+    RP := PLongWord(Integer(RP) + SizeOf(LongWord));
   end;
 
   if Carry <> 0 then
@@ -1874,11 +1900,11 @@ begin
     begin
       Dec(Dif);
       T1 := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
       T2 := (T1 - 1) and BN_MASK2;
 
       RP^ := T2;
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
       if T1 <> 0 then
         Break;
     end;
@@ -1891,26 +1917,26 @@ begin
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PDWORD(Integer(AP) + SizeOf(DWORD));
-      RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+      AP := PLongWord(Integer(AP) + SizeOf(LongWord));
+      RP := PLongWord(Integer(RP) + SizeOf(LongWord));
     end;
   end;
 
@@ -2032,9 +2058,9 @@ end;
 
 function BigNumberShiftLeftOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
-  RP, AP: PDWORD;
+  RP, AP: PLongWord;
   I: Integer;
-  T, C: DWORD;
+  T, C: LongWord;
 begin
   Result := False;
 
@@ -2058,9 +2084,9 @@ begin
   for I := 0 to Num.Top - 1 do
   begin
     T := AP^;
-    AP := PDWORD(Integer(AP) + SizeOf(DWORD));
+    AP := PLongWord(Integer(AP) + SizeOf(LongWord));
     RP^ := ((T shl 1) or C) and BN_MASK2;
-    RP := PDWORD(Integer(RP) + SizeOf(DWORD));
+    RP := PLongWord(Integer(RP) + SizeOf(LongWord));
 
     if (T and BN_TBIT) <> 0 then
       C := 1
@@ -2078,9 +2104,9 @@ end;
 
 function BigNumberShiftRightOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
-  RP, AP: PDWORD;
+  RP, AP: PLongWord;
   I, J: Integer;
-  T, C: DWORD;
+  T, C: LongWord;
 begin
   Result := False;
   if BigNumberIsZero(Num) then
@@ -2093,7 +2119,7 @@ begin
   I := Num.Top;
   AP := Num.D;
 
-  if PDWordArray(AP)^[I - 1] = 1 then
+  if PLongWordArray(AP)^[I - 1] = 1 then
     J := I - 1
   else
     J := I;
@@ -2107,7 +2133,7 @@ begin
 
   RP := Res.D;
   Dec(I);
-  T := PDWordArray(AP)^[I];
+  T := PLongWordArray(AP)^[I];
 
   if (T and 1) <> 0 then
     C := BN_TBIT
@@ -2116,13 +2142,13 @@ begin
 
   T := T shr 1;
   if T <> 0 then
-    PDWordArray(RP)^[I] := T;
+    PLongWordArray(RP)^[I] := T;
 
   while I > 0 do
   begin
     Dec(I);
-    T := PDWordArray(AP)^[I];
-    PDWordArray(RP)^[I] := ((T shr 1) and BN_MASK2) or C;
+    T := PLongWordArray(AP)^[I];
+    PLongWordArray(RP)^[I] := ((T shr 1) and BN_MASK2) or C;
 
     if (T and 1) <> 0 then
       C := BN_TBIT
@@ -2138,8 +2164,8 @@ function BigNumberShiftLeft(const Res: TCnBigNumber; const Num: TCnBigNumber;
   N: Integer): Boolean;
 var
   I, NW, LB, RB: Integer;
-  L: DWORD;
-  T, F: PDWordArray;
+  L: LongWord;
+  T, F: PLongWordArray;
 begin
   Result := False;
   Res.Neg := Num.Neg;
@@ -2151,8 +2177,8 @@ begin
   LB := N mod BN_BITS2;
   RB := BN_BITS2 - LB;
 
-  F := PDWordArray(Num.D);
-  T := PDWordArray(Res.D);
+  F := PLongWordArray(Num.D);
+  T := PLongWordArray(Res.D);
 
   T^[Num.Top + NW] := 0;
   if LB = 0 then
@@ -2170,7 +2196,7 @@ begin
     end;
   end;
 
-  ZeroMemory(Pointer(T), NW * SizeOf(DWORD));
+  FillChar(Pointer(T)^, NW * SizeOf(LongWord), 0);
   Res.Top := Num.Top + NW + 1;
   BigNumberCorrectTop(Res);
   Result := True;
@@ -2180,8 +2206,8 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
   N: Integer): Boolean;
 var
   I, J, NW, LB, RB: Integer;
-  L, Tmp: DWORD;
-  T, F: PDWordArray;
+  L, Tmp: LongWord;
+  T, F: PLongWordArray;
 begin
   Result := False;
 
@@ -2212,8 +2238,8 @@ begin
     end;
   end;
 
-  F := PDWordArray(Integer(Num.D) + NW * SizeOf(DWORD));
-  T := PDWordArray(Res.D);
+  F := PLongWordArray(Integer(Num.D) + NW * SizeOf(LongWord));
+  T := PLongWordArray(Res.D);
   J := Num.Top - NW;
   Res.Top := I;
 
@@ -2222,22 +2248,22 @@ begin
     for I := J downto 1 do
     begin
       T^[0] := F^[0];
-      F := PDWordArray(Integer(F) + SizeOf(DWORD));
-      T := PDWordArray(Integer(T) + SizeOf(DWORD));
+      F := PLongWordArray(Integer(F) + SizeOf(LongWord));
+      T := PLongWordArray(Integer(T) + SizeOf(LongWord));
     end;
   end
   else
   begin
     L := F^[0];
-    F := PDWordArray(Integer(F) + SizeOf(DWORD));
+    F := PLongWordArray(Integer(F) + SizeOf(LongWord));
     for I := J - 1 downto 1 do
     begin
       Tmp := (L shr RB) and BN_MASK2;
       L := F^[0];
       T^[0] := (Tmp or (L shl LB)) and BN_MASK2;
 
-      F := PDWordArray(Integer(F) + SizeOf(DWORD));
-      T := PDWordArray(Integer(T) + SizeOf(DWORD));
+      F := PLongWordArray(Integer(F) + SizeOf(LongWord));
+      T := PLongWordArray(Integer(T) + SizeOf(LongWord));
     end;
 
     L := (L shr RB) and BN_MASK2;
@@ -2249,10 +2275,10 @@ end;
 
 {* 大数与 Word 运算系列函数开始}
 
-function BigNumberAddWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberAddWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 var
   I: Integer;
-  L: DWORD;
+  L: LongWord;
 begin
   Result := False;
   W := W and BN_MASK2;
@@ -2281,8 +2307,8 @@ begin
   I := 0;
   while (W <> 0) and (I < Num.Top) do
   begin
-    L := (PDWordArray(Num.D)^[I] + W) and BN_MASK2;
-    PDWordArray(Num.D)^[I] := L;
+    L := (PLongWordArray(Num.D)^[I] + W) and BN_MASK2;
+    PLongWordArray(Num.D)^[I] := L;
     if W > L then // 结果比加数小，说明溢出或者进位了，把进位置给 W，继续加
       W := 1
     else
@@ -2295,12 +2321,12 @@ begin
     if BigNumberWordExpand(Num, Num.Top + 1) = nil then
       Exit;
     Inc(Num.Top);
-    PDWordArray(Num.D)^[I] := W;
+    PLongWordArray(Num.D)^[I] := W;
   end;
   Result := True;
 end;
 
-function BigNumberSubWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberSubWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 var
   I: Integer;
 begin
@@ -2328,9 +2354,9 @@ begin
     Exit;
   end;
 
-  if (Num.Top = 1) and (PDWordArray(Num.D)^[0] < W) then // 不够减
+  if (Num.Top = 1) and (PLongWordArray(Num.D)^[0] < W) then // 不够减
   begin
-    PDWordArray(Num.D)^[0] := W - PDWordArray(Num.D)^[0];
+    PLongWordArray(Num.D)^[0] := W - PLongWordArray(Num.D)^[0];
     Num.Neg := 1;
     Result := True;
     Exit;
@@ -2339,27 +2365,27 @@ begin
   I := 0;
   while True do
   begin
-    if PDWordArray(Num.D)^[I] >= W then // 够减直接减
+    if PLongWordArray(Num.D)^[I] >= W then // 够减直接减
     begin
-      PDWordArray(Num.D)^[I] := PDWordArray(Num.D)^[I] - W;
+      PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] - W;
       Break;
     end
     else
     begin
-      PDWordArray(Num.D)^[I] := (PDWordArray(Num.D)^[I] - W) and BN_MASK2;
+      PLongWordArray(Num.D)^[I] := (PLongWordArray(Num.D)^[I] - W) and BN_MASK2;
       Inc(I);
       W := 1;  // 不够减有借位
     end;
   end;
 
-  if (PDWordArray(Num.D)^[I] = 0) and (I = Num.Top - 1) then
+  if (PLongWordArray(Num.D)^[I] = 0) and (I = Num.Top - 1) then
     Dec(Num.Top);
   Result := True;
 end;
 
-function BigNumberMulWord(const Num: TCnBigNumber; W: DWORD): Boolean;
+function BigNumberMulWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 var
-  L: DWORD;
+  L: LongWord;
 begin
   Result := False;
   W := W and BN_MASK2;
@@ -2369,12 +2395,12 @@ begin
       BigNumberSetZero(Num)
     else
     begin
-      L := BigNumberMulWords(PDWordArray(Num.D), PDWordArray(Num.D), Num.Top, W);
+      L := BigNumberMulWords(PLongWordArray(Num.D), PLongWordArray(Num.D), Num.Top, W);
       if L <> 0 then
       begin
         if BigNumberWordExpand(Num, Num.Top + 1) = nil then
           Exit;
-        PDWordArray(Num.D)^[Num.Top] := L;
+        PLongWordArray(Num.D)^[Num.Top] := L;
         Inc(Num.Top);
       end;
     end;
@@ -2382,13 +2408,13 @@ begin
   Result := True;
 end;
 
-function BigNumberModWord(const Num: TCnBigNumber; W: DWORD): DWORD;
+function BigNumberModWord(const Num: TCnBigNumber; W: LongWord): LongWord;
 var
   I: Integer;
 begin
   if W = 0 then
   begin
-    Result := DWORD(-1);
+    Result := LongWord(-1);
     Exit;
   end;
 
@@ -2396,20 +2422,20 @@ begin
   W := W and BN_MASK2;
   for I := Num.Top - 1 downto 0 do
   begin
-    Result := ((Result shl BN_BITS4) or ((PDWordArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
-    Result := ((Result shl BN_BITS4) or (PDWordArray(Num.D)^[I] and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or ((PLongWordArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or (PLongWordArray(Num.D)^[I] and BN_MASK2l)) mod W;
   end;
 end;
 
-function BigNumberDivWord(const Num: TCnBigNumber; W: DWORD): DWORD;
+function BigNumberDivWord(const Num: TCnBigNumber; W: LongWord): LongWord;
 var
   I, J: Integer;
-  L, D: DWORD;
+  L, D: LongWord;
 begin
   W := W and BN_MASK2;
   if W = 0 then
   begin
-    Result := DWORD(-1);
+    Result := LongWord(-1);
     Exit;
   end;
 
@@ -2422,20 +2448,20 @@ begin
   W := W shl J;
   if not BigNumberShiftLeft(Num, Num, J) then
   begin
-    Result := DWORD(-1);
+    Result := LongWord(-1);
     Exit;
   end;
 
   for I := Num.Top - 1 downto 0 do
   begin
-    L := PDWordArray(Num.D)^[I];
+    L := PLongWordArray(Num.D)^[I];
     D := BigNumberDivWords(Result, L, W);
     Result := (L - ((D * W) and BN_MASK2)) and BN_MASK2;
 
-    PDWordArray(Num.D)^[I] := D;
+    PLongWordArray(Num.D)^[I] := D;
   end;
 
-  if (Num.Top > 0) and (PDWordArray(Num.D)^[Num.Top - 1] = 0) then
+  if (Num.Top > 0) and (PLongWordArray(Num.D)^[Num.Top - 1] = 0) then
     Dec(Num.Top);
   Result := Result shr J;
 end;
@@ -2461,7 +2487,7 @@ begin
     J := BN_BITS2 - 4;
     while J >= 0 do
     begin
-      V := ((PDWordArray(Num.D)^[I]) shr DWORD(J)) and $0F;
+      V := ((PLongWordArray(Num.D)^[I]) shr LongWord(J)) and $0F;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[V + 1];
@@ -2491,7 +2517,7 @@ begin
     J := BN_BITS2 - 8;
     while J >= 0 do
     begin
-      V := ((PDWordArray(Num.D)^[I]) shr DWORD(J)) and $FF;
+      V := ((PLongWordArray(Num.D)^[I]) shr LongWord(J)) and $FF;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[(V shr 4) + 1];
@@ -2507,7 +2533,7 @@ function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolea
 var
   P: PAnsiChar;
   Neg, H, M, J, I, K, C: Integer;
-  L: DWORD;
+  L: LongWord;
 begin
   Result := False;
   if (Buf = '') or (Res = nil) then
@@ -2557,12 +2583,12 @@ begin
       else
         K := 0;
 
-      L := (L shl 4) or DWORD(K);
+      L := (L shl 4) or LongWord(K);
 
       Dec(M);
       if M <= 0 then
       begin
-        PDWordArray(Res.D)^[H] := L;
+        PLongWordArray(Res.D)^[H] := L;
         Inc(H);
         Break;
       end;
@@ -2592,7 +2618,7 @@ end;
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 var
   I, N, R, Len: Integer;
-  BnData, LP: PDWORD;
+  BnData, LP: PLongWord;
   T: TCnBigNumber;
   P: PAnsiChar;
 
@@ -2610,7 +2636,7 @@ begin
   BnData := nil;
   T := nil;
   try
-    BnData := PDWORD(GetMemory(((N div 9) + 1) * SizeOf(DWORD)));
+    BnData := PLongWord(GetMemory(((N div 9) + 1) * SizeOf(LongWord)));
     if BnData = nil then
       Exit;
 
@@ -2644,9 +2670,9 @@ begin
       while not BigNumberIsZero(T) do
       begin
         LP^ := BigNumberDivWord(T, BN_DEC_CONV);
-        LP := PDWORD(Integer(LP) + SizeOf(DWORD));
+        LP := PLongWord(Integer(LP) + SizeOf(LongWord));
       end;
-      LP := PDWORD(Integer(LP) - SizeOf(DWORD));
+      LP := PLongWord(Integer(LP) - SizeOf(LongWord));
 
       R := BufRemain(N, P, @(Result[1]));
 {$IFDEF UNICODE}
@@ -2658,7 +2684,7 @@ begin
         Inc(P);
       while LP <> BnData do
       begin
-        LP := PDWORD(Integer(LP) - SizeOf(DWORD));
+        LP := PLongWord(Integer(LP) - SizeOf(LongWord));
         R := BufRemain(N, P, @(Result[1]));
 {$IFDEF UNICODE}
         AnsiStrings.AnsiFormatBuf(P^, R, AnsiString(BN_DEC_FMT2), Length(BN_DEC_FMT2), [LP^]);
@@ -2685,7 +2711,7 @@ function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolea
 var
   P: PAnsiChar;
   Neg, J, I: Integer;
-  L: DWORD;
+  L: LongWord;
 begin
   Result := False;
   if (Buf = '') or (Res = nil) then
@@ -2752,45 +2778,45 @@ begin
 end;
 
 // Tmp should have 2 * N DWORDs
-procedure BigNumberSqrNormal(R: PDWORD; A: PDWORD; N: Integer; Tmp: PDWORD);
+procedure BigNumberSqrNormal(R: PLongWord; A: PLongWord; N: Integer; Tmp: PLongWord);
 var
   I, J, Max: Integer;
-  AP, RP: PDWordArray;
+  AP, RP: PLongWordArray;
 begin
   Max := N * 2;
-  AP := PDWordArray(A);
-  RP := PDWordArray(R);
+  AP := PLongWordArray(A);
+  RP := PLongWordArray(R);
   RP[0] := 0;
   RP[Max - 1] := 0;
 
-  RP := PDWordArray(Integer(RP) + SizeOf(DWORD));
+  RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
   J := N - 1;
 
   if J > 0 then
   begin
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    RP[J] := BigNumberMulWords(RP, AP, J, PDWordArray(Integer(AP) - SizeOf(DWORD))^[0]);
-    RP := PDWordArray(Integer(RP) + 2 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    RP[J] := BigNumberMulWords(RP, AP, J, PLongWordArray(Integer(AP) - SizeOf(LongWord))^[0]);
+    RP := PLongWordArray(Integer(RP) + 2 * SizeOf(LongWord));
   end;
 
   for I := N - 2 downto 1 do
   begin
     Dec(J);
-    AP := PDWordArray(Integer(AP) + SizeOf(DWORD));
-    RP[J] := BigNumberMulAddWords(RP, AP, J, PDWordArray(Integer(AP) - SizeOf(DWORD))^[0]);
-    RP := PDWordArray(Integer(RP) + 2 * SizeOf(DWORD));
+    AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
+    RP[J] := BigNumberMulAddWords(RP, AP, J, PLongWordArray(Integer(AP) - SizeOf(LongWord))^[0]);
+    RP := PLongWordArray(Integer(RP) + 2 * SizeOf(LongWord));
   end;
 
-  BigNumberAddWords(PDWordArray(R), PDWordArray(R), PDWordArray(R), Max);
-  BigNumberSqrWords(PDWordArray(Tmp), PDWordArray(A), N);
-  BigNumberAddWords(PDWordArray(R), PDWordArray(R), PDWordArray(Tmp), Max);
+  BigNumberAddWords(PLongWordArray(R), PLongWordArray(R), PLongWordArray(R), Max);
+  BigNumberSqrWords(PLongWordArray(Tmp), PLongWordArray(A), N);
+  BigNumberAddWords(PLongWordArray(R), PLongWordArray(R), PLongWordArray(Tmp), Max);
 end;
 
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
   Max, AL: Integer;
   Tmp, RR: TCnBigNumber;
-  T: array[0..15] of DWORD;
+  T: array[0..15] of LongWord;
   IsFromPool: Boolean;
 begin
   Result := False;
@@ -2840,7 +2866,7 @@ begin
     end;
 
     RR.Neg := 0;
-    if PDWordArray(Num.D)^[AL - 1] = (PDWordArray(Num.D)^[AL - 1] and BN_MASK2l) then
+    if PLongWordArray(Num.D)^[AL - 1] = (PLongWordArray(Num.D)^[AL - 1] and BN_MASK2l) then
       RR.Top := Max - 1
     else
       RR.Top := Max;
@@ -2855,10 +2881,10 @@ begin
   end;
 end;
 
-procedure BigNumberMulNormal(R: PDWORD; A: PDWORD; NA: Integer; B: PDWORD;
+procedure BigNumberMulNormal(R: PLongWord; A: PLongWord; NA: Integer; B: PLongWord;
   NB: Integer);
 var
-  RR: PDWORD;
+  RR: PLongWord;
   Tmp: Integer;
 begin
   if NA < NB then
@@ -2872,49 +2898,49 @@ begin
     A := RR;
   end;
 
-  RR := PDWORD(Integer(R) + NA * SizeOf(DWORD));
+  RR := PLongWord(Integer(R) + NA * SizeOf(LongWord));
   if NB <= 0 then
   begin
-    BigNumberMulWords(PDWordArray(R), PDWordArray(A), NA, 0);
+    BigNumberMulWords(PLongWordArray(R), PLongWordArray(A), NA, 0);
     Exit;
   end
   else
-    RR^ := BigNumberMulWords(PDWordArray(R), PDWordArray(A), NA, B^);
+    RR^ := BigNumberMulWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
 
   while True do
   begin
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
-    R := PDWORD(Integer(R) + SizeOf(DWORD));
-    B := PDWORD(Integer(B) + SizeOf(DWORD));
+    RR := PLongWord(Integer(RR) + SizeOf(LongWord));
+    R := PLongWord(Integer(R) + SizeOf(LongWord));
+    B := PLongWord(Integer(B) + SizeOf(LongWord));
 
-    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
-
-    Dec(NB);
-    if NB <=0 then
-      Exit;
-    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
-    R := PDWORD(Integer(R) + SizeOf(DWORD));
-    B := PDWORD(Integer(B) + SizeOf(DWORD));
-    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
-    R := PDWORD(Integer(R) + SizeOf(DWORD));
-    B := PDWORD(Integer(B) + SizeOf(DWORD));
-    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+    RR := PLongWord(Integer(RR) + SizeOf(LongWord));
+    R := PLongWord(Integer(R) + SizeOf(LongWord));
+    B := PLongWord(Integer(B) + SizeOf(LongWord));
+    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PDWORD(Integer(RR) + SizeOf(DWORD));
-    R := PDWORD(Integer(R) + SizeOf(DWORD));
-    B := PDWORD(Integer(B) + SizeOf(DWORD));
-    RR^ := BigNumberMulAddWords(PDWordArray(R), PDWordArray(A), NA, B^);
+    RR := PLongWord(Integer(RR) + SizeOf(LongWord));
+    R := PLongWord(Integer(R) + SizeOf(LongWord));
+    B := PLongWord(Integer(B) + SizeOf(LongWord));
+    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
+
+    Dec(NB);
+    if NB <=0 then
+      Exit;
+    RR := PLongWord(Integer(RR) + SizeOf(LongWord));
+    R := PLongWord(Integer(R) + SizeOf(LongWord));
+    B := PLongWord(Integer(B) + SizeOf(LongWord));
+    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
   end;
 end;
 
@@ -2978,12 +3004,12 @@ var
   NoBranch: Integer;
   Tmp, SNum, SDiv, SRes: TCnBigNumber;
   I, NormShift, Loop, NumN, DivN, Neg, BackupTop, BackupDMax, BackupFlag, BackupNeg: Integer;
-  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: DWORD;
-  Resp, WNump, BackupD: PDWORD;
+  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: LongWord;
+  Resp, WNump, BackupD: PLongWord;
   WNum: TCnBigNumber;
 begin
   Result := False;
-  if (Num.Top > 0) and (PDWordArray(Num.D)^[Num.Top - 1] = 0) then
+  if (Num.Top > 0) and (PLongWordArray(Num.D)^[Num.Top - 1] = 0) then
     Exit;
 
   if BigNumberIsZero(Divisor) then
@@ -3041,14 +3067,14 @@ begin
         if BigNumberWordExpand(SNum, SDiv.Top + 2) = nil then
           Exit;
         for I := SNum.Top to SDiv.Top + 1 do
-          PDWordArray(SNum.D)^[I] := 0;
+          PLongWordArray(SNum.D)^[I] := 0;
         SNum.Top := SDiv.Top + 2;
       end
       else
       begin
         if BigNumberWordExpand(SNum, SDiv.Top + 1) = nil then
           Exit;
-        PDWordArray(SNum.D)^[SNum.Top] := 0;
+        PLongWordArray(SNum.D)^[SNum.Top] := 0;
         Inc(SNum.Top);
       end;
     end;
@@ -3065,18 +3091,18 @@ begin
 
     // 注意 WNum 需要使用外部的 D，把池子里拿出来的东西先备份
     WNum.Neg := 0;
-    WNum.D := PDWORD(Integer(SNum.D) + Loop * SizeOf(DWORD));
+    WNum.D := PLongWord(Integer(SNum.D) + Loop * SizeOf(LongWord));
     WNum.Top := DivN;
     WNum.DMax := SNum.DMax - Loop;
 
-    D0 := PDWordArray(SDiv.D)^[DivN - 1];
+    D0 := PLongWordArray(SDiv.D)^[DivN - 1];
     if DivN = 1 then
       D1 := 0
     else
-      D1 := PDWordArray(SDiv.D)^[DivN - 2];
+      D1 := PLongWordArray(SDiv.D)^[DivN - 2];
     // D0 D1 是 SDiv 的最高俩 DWORD
 
-    WNump := PDWORD(Integer(SNum.D) + (NumN - 1) * SizeOf(DWORD));
+    WNump := PLongWord(Integer(SNum.D) + (NumN - 1) * SizeOf(LongWord));
 
     if Num.Neg <> Divisor.Neg then
       SRes.Neg := 1
@@ -3087,7 +3113,7 @@ begin
       Exit;
 
     SRes.Top := Loop - NoBranch;
-    Resp := PDWORD(Integer(SRes.D) + (Loop - 1) * SizeOf(DWORD));
+    Resp := PLongWord(Integer(SRes.D) + (Loop - 1) * SizeOf(LongWord));
 
     if BigNumberWordExpand(Tmp, DivN + 1) = nil then
       Exit;
@@ -3096,8 +3122,8 @@ begin
     begin
       if BigNumberUnsignedCompare(WNum, SDiv) >= 0 then
       begin
-        BigNumberSubWords(PDWordArray(WNum.D), PDWordArray(WNum.D),
-          PDWordArray(SDiv.D), DivN);
+        BigNumberSubWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
+          PLongWordArray(SDiv.D), DivN);
         Resp^ := 1;
       end
       else
@@ -3107,14 +3133,14 @@ begin
     if SRes.Top = 0 then
       SRes.Neg := 0
     else
-      Resp := PDWORD(Integer(Resp) - SizeOf(DWORD));
+      Resp := PLongWord(Integer(Resp) - SizeOf(LongWord));
 
     for I := 0 to Loop - 2 do
     begin
 //    Rem := 0;
       // 用 N0/N1/D0/D1 计算出一个 Q 使 | WNum - SDiv * Q | < SDiv
       N0 := WNump^;
-      N1 := (PDWORD(Integer(WNump) - SizeOf(DWORD)))^;
+      N1 := (PLongWord(Integer(WNump) - SizeOf(LongWord)))^;
 
       if N0 = D0 then
         Q := BN_MASK2
@@ -3132,7 +3158,7 @@ begin
         while True do
         begin
           if (T2H < Rem) or ((T2H = Rem) and
-             (T2L <= (PDWORD(Integer(WNump) - 2 * SizeOf(DWORD)))^)) then
+             (T2L <= (PLongWord(Integer(WNump) - 2 * SizeOf(LongWord)))^)) then
              Break;
           Dec(Q);
           Inc(Rem, D0);
@@ -3144,22 +3170,22 @@ begin
         end;
       end;
 
-      L0 := BigNumberMulWords(PDWordArray(Tmp.D), PDWordArray(SDiv.D), DivN, Q);
-      PDWordArray(Tmp.D)^[DivN] := L0;
-      WNum.D := PDWORD(Integer(WNum.D) - SizeOf(DWORD));
+      L0 := BigNumberMulWords(PLongWordArray(Tmp.D), PLongWordArray(SDiv.D), DivN, Q);
+      PLongWordArray(Tmp.D)^[DivN] := L0;
+      WNum.D := PLongWord(Integer(WNum.D) - SizeOf(LongWord));
 
-      if BigNumberSubWords(PDWordArray(WNum.D), PDWordArray(WNum.D),
-        PDWordArray(Tmp.D), DivN + 1) <> 0 then
+      if BigNumberSubWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
+        PLongWordArray(Tmp.D), DivN + 1) <> 0 then
       begin
         Dec(Q);
-        if BigNumberAddWords(PDWordArray(WNum.D), PDWordArray(WNum.D),
-          PDWordArray(SDiv.D), DivN) <> 0 then
+        if BigNumberAddWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
+          PLongWordArray(SDiv.D), DivN) <> 0 then
           WNump^ := WNump^ + 1;
       end;
 
       Resp^ := Q;
-      WNump := PDWORD(Integer(WNump) - SizeOf(DWORD));
-      Resp := PDWORD(Integer(Resp) - SizeOf(DWORD));
+      WNump := PLongWord(Integer(WNump) - SizeOf(LongWord));
+      Resp := PLongWord(Integer(Resp) - SizeOf(LongWord));
     end;
 
     BigNumberCorrectTop(SNum);
@@ -4463,12 +4489,12 @@ begin
   Result := Format('Flag %d. Neg %d. DMax %d. Top %d.', [Num.Flags, Num.Neg, Num.DMax, Num.Top]);
   if (Num.D <> nil) and (Num.Top > 0) then
     for I := 0 to Num.Top do
-      Result := Result + Format(' $%8.8x', [PDWordArray(Num.D)^[I]]);
+      Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
 end;
 
 { TCnBigNumber }
 
-function TCnBigNumber.AddWord(W: DWORD): Boolean;
+function TCnBigNumber.AddWord(W: LongWord): Boolean;
 begin
   Result := BigNumberAddWord(Self, W);
 end;
@@ -4514,7 +4540,7 @@ begin
   inherited;
 end;
 
-function TCnBigNumber.DivWord(W: DWORD): DWORD;
+function TCnBigNumber.DivWord(W: LongWord): LongWord;
 begin
   Result := BigNumberDivWord(Self, W);
 end;
@@ -4545,7 +4571,7 @@ begin
   Result := BigNumberGetBytesCount(Self);
 end;
 
-function TCnBigNumber.GetWord: DWORD;
+function TCnBigNumber.GetWord: LongWord;
 begin
   Result := BigNumberGetWord(Self);
 end;
@@ -4575,7 +4601,7 @@ begin
   Result := BigNumberIsOne(Self);
 end;
 
-function TCnBigNumber.IsWord(W: DWORD): Boolean;
+function TCnBigNumber.IsWord(W: LongWord): Boolean;
 begin
   Result := BigNumberIsWord(Self, W);
 end;
@@ -4585,12 +4611,12 @@ begin
   Result := BigNumberIsZero(Self);
 end;
 
-function TCnBigNumber.ModWord(W: DWORD): DWORD;
+function TCnBigNumber.ModWord(W: LongWord): LongWord;
 begin
   Result := BigNumberModWord(Self, W);
 end;
 
-function TCnBigNumber.MulWord(W: DWORD): Boolean;
+function TCnBigNumber.MulWord(W: LongWord): Boolean;
 begin
   Result := BigNumberMulWord(Self, W);
 end;
@@ -4625,7 +4651,7 @@ begin
   Result := BigNumberSetOne(Self);
 end;
 
-function TCnBigNumber.SetWord(W: DWORD): Boolean;
+function TCnBigNumber.SetWord(W: LongWord): Boolean;
 begin
   Result := BigNumberSetWord(Self, W);
 end;
@@ -4635,7 +4661,7 @@ begin
   BigNumberSetZero(Self);
 end;
 
-function TCnBigNumber.SubWord(W: DWORD): Boolean;
+function TCnBigNumber.SubWord(W: LongWord): Boolean;
 begin
   Result := BigNumberSubWord(Self, W);
 end;

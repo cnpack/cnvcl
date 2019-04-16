@@ -28,7 +28,9 @@ unit CnCRC32;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2015.06.12 V1.4
+* 修改记录：2019.04.15 V1.5
+*               支持 Win32/Win64/MacOS
+*           2015.06.12 V1.4
 *               把汇编改写为 Pascal 以适应 64 位编译器
 *           2009.08.21 V1.3
 *               增加 CRC64 的支持
@@ -46,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS} ,Windows {$ENDIF};
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 function CalcCRC32Byte(OrgCRC32: LongWord; B: Byte): LongWord;
 {* CRC32 计算单个字节，供特殊需求使用}
