@@ -1131,7 +1131,7 @@ end;
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
 function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 var
-  T: NativeUInt;
+  T: UInt64;
 begin
   T := 1;
   A := A mod C;
