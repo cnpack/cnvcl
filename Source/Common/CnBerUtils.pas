@@ -28,7 +28,9 @@ unit CnBerUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.05.27 V1.1
+* 修改记录：2019.04.19 V1.2
+*               支持 Win32/Win64/MacOS，支持 VCL 与 FMX 下的 TreeView 交互。
+*           2018.05.27 V1.1
 *               将 Parser 改为 Reader 并实现 Writer
 *           2018.05.24 V1.0
 *               创建单元
@@ -40,8 +42,11 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, TypInfo, CnBigNumber, CnTree
-  {$IFDEF DEBUG}, ComCtrls {$ENDIF};
+  SysUtils, Classes, TypInfo, CnBigNumber, CnTree
+  {$IFDEF DEBUG}
+    {$IFDEF MSWINDOWS}, ComCtrls  {$ENDIF}
+    {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}
+  {$ENDIF};
 
 const
   CN_BER_TAG_TYPE_MASK                      = $C0;
@@ -181,8 +186,14 @@ type
     FDataLen: Cardinal;
     FParseInnerString: Boolean;
 {$IFDEF DEBUG}
+  {$IFDEF MSWINDOWS}
     function GetOnSaveNode: TCnTreeNodeEvent;
     procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
+  {$ENDIF}
+  {$IFDEF SUPPORT_FMX}
+    function GetOnSaveItem: TCnTreeViewItemEvent;
+    procedure SetOnSaveItem(const Value: TCnTreeViewItemEvent);
+  {$ENDIF}
 {$ENDIF}
     function GetTotalCount: Integer;
     function GetItems(Index: Integer): TCnBerReadNode;
@@ -201,8 +212,14 @@ type
     {* 某些节点的 Tag 并非 SEQUENCE/SET 等但内容却有子内容，需要外部手工调用此方法来实施二次解析}
 
 {$IFDEF DEBUG}
-    procedure DumpToTreeView(ATreeView: TTreeView);
+  {$IFDEF MSWINDOWS}
+    procedure DumpToTreeView(ATreeView: ComCtrls.TTreeView); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
+  {$ENDIF}
+  {$IFDEF SUPPORT_FMX}
+    procedure DumpToTreeView(ATreeView: FMX.TreeView.TTreeView); {$IFDEF MSWINDOWS} overload; {$ENDIF}
+    property OnSaveItem: TCnTreeViewItemEvent read GetOnSaveItem write SetOnSaveItem;
+  {$ENDIF}
 {$ENDIF}
 
     property ParseInnerString: Boolean read FParseInnerString;
@@ -266,8 +283,14 @@ type
     FBerTree: TCnTree;
     function GetTotalSize: Integer;
 {$IFDEF DEBUG}
+  {$IFDEF MSWINDOWS}
     function GetOnSaveNode: TCnTreeNodeEvent;
     procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
+  {$ENDIF}
+  {$IFDEF SUPPORT_FMX}
+    function GetOnSaveItem: TCnTreeViewItemEvent;
+    procedure SetOnSaveItem(const Value: TCnTreeViewItemEvent);
+  {$ENDIF}
 {$ENDIF}
   public
     constructor Create;
@@ -278,8 +301,14 @@ type
     procedure SaveToStream(Stream: TStream);
 
 {$IFDEF DEBUG}
-    procedure DumpToTreeView(ATreeView: TTreeView);
+  {$IFDEF MSWINDOWS}
+    procedure DumpToTreeView(ATreeView: ComCtrls.TTreeView); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
+  {$ENDIF}
+  {$IFDEF SUPPORT_FMX}
+    procedure DumpToTreeView(ATreeView: FMX.TreeView.TTreeView); {$IFDEF MSWINDOWS} overload; {$ENDIF}
+    property OnSaveItem: TCnTreeViewItemEvent read GetOnSaveItem write SetOnSaveItem;
+  {$ENDIF}
 {$ENDIF}
 
     function AddNullNode(Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
@@ -386,7 +415,9 @@ end;
 
 {$IFDEF DEBUG}
 
-procedure TCnBerReader.DumpToTreeView;
+{$IFDEF MSWINDOWS}
+
+procedure TCnBerReader.DumpToTreeView(ATreeView: ComCtrls.TTreeView);
 begin
   FBerTree.SaveToTreeView(ATreeView);
 end;
@@ -400,6 +431,26 @@ procedure TCnBerReader.SetOnSaveNode(const Value: TCnTreeNodeEvent);
 begin
   FBerTree.OnSaveANode := Value;
 end;
+
+{$ENDIF}
+
+{$IFDEF SUPPORT_FMX}
+
+procedure TCnBerReader.DumpToTreeView(ATreeView: FMX.TreeView.TTreeView);
+begin
+  FBerTree.SaveToTreeView(ATreeView);
+end;
+
+function TCnBerReader.GetOnSaveItem: TCnTreeViewItemEvent;
+begin
+  Result := FBerTree.OnSaveAItem;
+end;
+
+procedure TCnBerReader.SetOnSaveItem(const Value: TCnTreeViewItemEvent);
+begin
+  FBerTree.OnSaveAItem := Value;
+end;
+{$ENDIF}
 
 {$ENDIF}
 
@@ -543,7 +594,7 @@ begin
   if FBerTag <> CN_BER_TAG_INTEGER then
     raise Exception.Create('Ber Tag Type Mismatch for ByteSize: ' + IntToStr(ByteSize));
 
-  if not (ByteSize in [SizeOf(Byte)..SizeOf(DWORD)]) then
+  if not (ByteSize in [SizeOf(Byte)..SizeOf(LongWord)]) then
     raise Exception.Create('Invalid ByteSize: ' + IntToStr(ByteSize));
 
   if FBerDataLength > ByteSize then
@@ -556,7 +607,7 @@ begin
   // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
   if ByteSize = SizeOf(Word) then
     IntValue := Integer(SwapWord(Word(IntValue)))
-  else if ByteSize = SizeOf(DWORD) then
+  else if ByteSize = SizeOf(LongWord) then
     IntValue := SwapLongWord(IntValue);
   Result := IntValue;
 end;
@@ -608,7 +659,7 @@ end;
 procedure TCnBerReadNode.CopyDataTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerDataLength > 0) then
-    CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerDataOffset), FBerDataLength);
+    Move(Pointer(Integer(FOriginData) + FBerDataOffset)^, DestBuf^, FBerDataLength);
 end;
 
 function TCnBerReadNode.GetItems(Index: Integer): TCnBerReadNode;
@@ -642,13 +693,13 @@ end;
 procedure TCnBerReadNode.CopyHeadTo(DestBuf: Pointer);
 begin
   if FOriginData <> nil then
-    CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerOffset), FBerLength - FBerDataLength);
+    Move(Pointer(Integer(FOriginData) + FBerOffset)^, DestBuf^, FBerLength - FBerDataLength);
 end;
 
 procedure TCnBerReadNode.CopyTLVTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerLength > 0) then
-    CopyMemory(DestBuf, Pointer(Integer(FOriginData) + FBerOffset), FBerLength);
+    Move(Pointer(Integer(FOriginData) + FBerOffset)^, DestBuf^, FBerLength);
 end;
 
 function TCnBerReadNode.AsIA5String: string;
@@ -685,7 +736,7 @@ begin
   if (P <> nil) and (BerDataLength > 0) then
   begin
     SetLength(Result, BerDataLength);
-    CopyMemory(@Result[1], P, BerDataLength);
+    Move(P^, Result[1], BerDataLength);
   end;
 end;
 
@@ -789,7 +840,9 @@ end;
 
 {$IFDEF DEBUG}
 
-procedure TCnBerWriter.DumpToTreeView(ATreeView: TTreeView);
+{$IFDEF MSWINDOWS}
+
+procedure TCnBerWriter.DumpToTreeView(ATreeView: ComCtrls.TTreeView);
 begin
   FBerTree.SaveToTreeView(ATreeView);
 end;
@@ -803,6 +856,27 @@ procedure TCnBerWriter.SetOnSaveNode(const Value: TCnTreeNodeEvent);
 begin
   FBerTree.OnSaveANode := Value;
 end;
+
+{$ENDIF}
+
+{$IFDEF SUPPORT_FMX}
+
+procedure TCnBerWriter.DumpToTreeView(ATreeView: FMX.TreeView.TTreeView);
+begin
+  FBerTree.SaveToTreeView(ATreeView);
+end;
+
+function TCnBerWriter.GetOnSaveItem: TCnTreeViewItemEvent;
+begin
+  Result := FBerTree.OnSaveAItem;
+end;
+
+procedure TCnBerWriter.SetOnSaveItem(const Value: TCnTreeViewItemEvent);
+begin
+  FBerTree.OnSaveAItem := Value;
+end;
+
+{$ENDIF}
 
 {$ENDIF}
 
@@ -921,14 +995,14 @@ begin
     begin
       LenLen := 1;
       B := ADataLen;
-      CopyMemory(@FHead[2], @B, LenLen);
+      Move(B, FHead[2], LenLen);
     end
     else if ADataLen < $10000 then
     begin
       LenLen := 2;
       W := ADataLen;
       W := SwapWord(W);
-      CopyMemory(@FHead[2], @W, LenLen);
+      Move(W, FHead[2], LenLen);
     end
     else if ADataLen < $1000000 then
     begin
@@ -936,14 +1010,14 @@ begin
       D := ADataLen;
       D := SwapLongWord(D);
       D := D shr 8;
-      CopyMemory(@FHead[2], @D, LenLen);
+      Move(D, FHead[2], LenLen);
     end
     else
     begin
       LenLen := 4;
       D := ADataLen;
       D := SwapLongWord(D);
-      CopyMemory(@FHead[2], @D, LenLen);
+      Move(D, FHead[2], LenLen);
     end;
 
     FHead[1] := CN_BER_LENLEN_MASK or LenLen;
