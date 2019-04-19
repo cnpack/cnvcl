@@ -580,6 +580,7 @@ implementation
 function GetNextSiblingItem(Item: TTreeViewItem): TTreeViewItem;
 var
   P: TTreeViewItem;
+  T: TCustomTreeView;
 begin
   Result := nil;
   P := Item.ParentItem;
@@ -587,6 +588,14 @@ begin
   begin
     if (Item.Index >= 0) and (Item.Index < P.Count - 1) then
       Result := P.ItemByIndex(Item.Index + 1);
+    Exit;
+  end;
+
+  T := Item.TreeView;
+  if T <> nil then
+  begin
+    if (Item.Index >= 0) and (Item.Index < T.Count - 1) then
+      Result := T.Items[Item.Index + 1];
   end;
 end;
 
@@ -1423,7 +1432,6 @@ begin
         RootLeaf := FRoot;
       if RootLeaf.Count > 0 then
       begin
-        AItem := RootItem;
         for I := 0 to RootLeaf.Count - 1 do
         begin
           ALeaf := RootLeaf.Items[I]; // RootLeaf 的子节点，RootLeaf 不参与交互
@@ -1431,8 +1439,11 @@ begin
             Continue;
 
           AItem := TTreeViewItem.Create(ATreeView);
-          AItem.Parent := RootItem;
-          // AItem := ATreeView.Items.Add(AItem, '');
+          if RootItem = nil then
+            AItem.Parent := ATreeView
+          else
+            AItem.Parent := RootItem;
+
           SaveToATreeViewItem(ALeaf, AItem);
         end;
       end;
@@ -1591,7 +1602,11 @@ begin
   else
   begin
     ALeaf.Text := AItem.Text;
-    ALeaf.Data := AItem.Data.AsInteger;
+    try
+      ALeaf.Data := AItem.Data.AsInteger;
+    except
+      ALeaf.Data := 0;
+    end;
   end;
 end;
 
@@ -1605,7 +1620,7 @@ begin
   else
   begin
     AItem.Text := ALeaf.Text;
-    AItem.Data := Pointer(ALeaf.Data);
+    AItem.Data := ALeaf.Data;
   end;
 end;
 
