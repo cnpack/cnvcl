@@ -999,7 +999,7 @@ begin
   else if HasAsParent(IndirectParentLeaf) then
   begin
     Result := FParent.GetAbsoluteIndexFromParent(IndirectParentLeaf)
-      + GetAbsoluteIndexFromParent(FParent);
+      + GetAbsoluteIndexFromParent(FParent) + 1;
   end;
 end;
 
