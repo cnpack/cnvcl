@@ -1620,7 +1620,7 @@ begin
   else
   begin
     AItem.Text := ALeaf.Text;
-    AItem.Data := ALeaf.Data;
+    AItem.Tag := ALeaf.Data; // Data 会影响 Text，改用 Tag
   end;
 end;
 
