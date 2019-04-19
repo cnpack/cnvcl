@@ -140,7 +140,9 @@ type
     {* 获得同级的前一子节点，无则返回 nil }
     function GetAbsoluteItems(AAbsoluteIndex: Integer): TCnLeaf;
     {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制 }
-
+    function GetAbsoluteIndexFromParent(IndirectParentLeaf: TCnLeaf): Integer;
+    {* 获得 Leaf 在 IndirectParentLeaf 下深度优先的遍历顺序的索引，0 开始，
+      如果 IndirectParentLeaf 不是间接或直接 Parent 则返回 -1}
     function HasAsParent(Value: TCnLeaf): Boolean;
     {* 指定的节点是否是本节点的上级或更上级 }
     function IndexOf(ALeaf: TCnLeaf): Integer;
@@ -980,6 +982,25 @@ begin
   end
   else
     inherited;
+end;
+
+function TCnLeaf.GetAbsoluteIndexFromParent(IndirectParentLeaf: TCnLeaf): Integer;
+var
+  I, Idx: Integer;
+begin
+  Result := -1;
+  if FParent = IndirectParentLeaf then
+  begin
+    Idx := Index;
+    Result := 0;
+    for I := 0 to Idx - 1 do
+      Result := Result + IndirectParentLeaf.Items[I].AllCount + 1;
+  end
+  else if HasAsParent(IndirectParentLeaf) then
+  begin
+    Result := FParent.GetAbsoluteIndexFromParent(IndirectParentLeaf)
+      + GetAbsoluteIndexFromParent(FParent);
+  end;
 end;
 
 //==============================================================================
