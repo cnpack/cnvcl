@@ -78,8 +78,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils,
-  CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnPrimeNumber, CnBigNumber,
+  CnBase64, CnBerUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
