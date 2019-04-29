@@ -169,6 +169,9 @@ function GetRelativePath(ATo, AFrom: string;
   const CurrentStr: string = '.'; const UseCurrentDir: Boolean = False): string;
 {* 取两个目录的相对路径}
 
+function CombineCommonPath(InFiles, OutFiles: TStrings): Boolean;
+{* 寻找一批文件的共同根路径，并将去除共同根路径的文件名放至 OutFiles 中，返回是否去除成功}
+
 {$IFNDEF BCB}
 function PathRelativePathToA(pszPath: PAnsiChar; pszFrom: PAnsiChar; dwAttrFrom: DWORD;
   pszTo: PAnsiChar; dwAttrTo: DWORD): BOOL; stdcall;
@@ -2481,6 +2484,49 @@ begin
     Result := ATo;
 end;
 
+// 寻找一批文件的共同根路径，并将去除共同根路径的文件名放至 OutFiles 中，返回是否去除成功
+function CombineCommonPath(InFiles, OutFiles: TStrings): Boolean;
+var
+  I, SC: Integer;
+  Root, S: string;
+begin
+  Result := False;
+  if (InFiles <> nil) and (OutFiles <> nil) and (InFiles.Count > 1) then
+  begin
+    Root := InFiles[0];
+    for I := 1 to InFiles.Count - 1 do
+    begin
+      SC := SameCharCounts(Root, InFiles[I]);
+      if SC <= 0 then
+        Exit;
+
+      if SC < Length(Root) then
+      begin
+        Root := Copy(Root, 1, SC);
+        SC := LastDelimiter('\', Root);
+        if SC > 0 then
+          Root := Copy(Root, 1, SC);  // Root 是公共路径
+      end;
+
+      if Root = '' then
+        Break;
+    end;
+
+    SC := Length(Root);
+    Result := SC > 0;
+    if Result then
+    begin
+      OutFiles.Clear;
+      for I := 0 to InFiles.Count - 1 do
+      begin
+        S := InFiles[I];
+        Delete(S, 1, SC);
+        OutFiles.Add(S);
+      end;
+    end;
+  end;
+end;
+
 {$IFNDEF BCB}
 const
   shlwapi32 = 'shlwapi.dll';
@@ -2489,7 +2535,7 @@ function PathRelativePathToA; external shlwapi32 name 'PathRelativePathToA';
 function PathRelativePathToW; external shlwapi32 name 'PathRelativePathToW';
 function PathRelativePathTo; external shlwapi32 name 'PathRelativePathToA';
 
-// 使用Windows API取两个目录的相对路径
+// 使用 Windows API 取两个目录的相对路径
 function RelativePath(const AFrom, ATo: string; FromIsDir, ToIsDir: Boolean): string;
   function GetAttr(IsDir: Boolean): DWORD;
   begin
