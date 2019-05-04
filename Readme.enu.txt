@@ -7,7 +7,7 @@
                     CnPack Component Package (Alpha)
                            Version 2019.05.04
                         =======================
-                          CnPack Team 2019.01
+                          CnPack Team 2019.05
 
 
 =====================================================
