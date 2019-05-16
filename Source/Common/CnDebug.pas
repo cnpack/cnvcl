@@ -296,6 +296,7 @@ type
     function SizeToString(ASize: TSize): string;
     function PointToString(APoint: TPoint): string;
     function RectToString(ARect: TRect): string;
+    function BitsToString(ABits: TBits): string;
     function GetExceptTracking: Boolean;
     procedure SetExceptTracking(const Value: Boolean);
     function GetDiscardedMessageCount: Integer;
@@ -420,6 +421,7 @@ type
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
     procedure LogSize(Size: TSize; const AMsg: string = '');
     procedure LogRect(Rect: TRect; const AMsg: string = '');
+    procedure LogBits(Bits: TBits; const AMsg: string = '');
     procedure LogGUID(const GUID: TGUID; const AMsg: string = '');
     procedure LogRawString(const Value: string);
     procedure LogRawAnsiString(const Value: AnsiString);
@@ -501,6 +503,7 @@ type
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
     procedure TraceSize(Size: TSize; const AMsg: string = '');
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
+    procedure TraceBits(Bits: TBits; const AMsg: string = '');
     procedure TraceGUID(const GUID: TGUID; const AMsg: string = '');
     procedure TraceRawString(const Value: string);
     procedure TraceRawAnsiString(const Value: AnsiString);
@@ -2130,6 +2133,16 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogBits(Bits: TBits; const AMsg: string = '');
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogMsg(BitsToString(Bits))
+  else
+    LogFmt('%s %s', [AMsg, BitsToString(Bits)]);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogGUID(const GUID: TGUID; const AMsg: string);
 begin
 {$IFDEF DEBUG}
@@ -2236,6 +2249,26 @@ function TCnDebugger.RectToString(ARect: TRect): string;
 begin
   Result := '(Left/Top: ' + PointToString(ARect.TopLeft) + ', Right/Bottom: ' +
     PointToString(ARect.BottomRight) + ')';
+end;
+
+function TCnDebugger.BitsToString(ABits: TBits): string;
+var
+  I: Integer;
+begin
+  if (ABits = nil) or (ABits.Size = 0) then
+    Result := 'No Bits.'
+  else
+  begin
+    SetLength(Result, ABits.Size);
+    for I := 0 to ABits.Size - 1 do
+    begin
+      if ABits.Bits[I] then
+        Result[I + 1] := '1'
+      else
+        Result[I + 1] := '0';
+    end;
+    Result := 'Size: ' + IntToStr(ABits.Size) + '. Bits: ' + Result;
+  end;
 end;
 
 procedure TCnDebugger.RemoveFilterExceptClass(E: ExceptClass);
@@ -2775,6 +2808,14 @@ begin
     TraceMsg(SCnRect + RectToString(Rect))
   else
     TraceFmt('%s %s', [AMsg, RectToString(Rect)]);
+end;
+
+procedure TCnDebugger.TraceBits(Bits: TBits; const AMsg: string = '');
+begin
+  if AMsg = '' then
+    TraceMsg(BitsToString(Bits))
+  else
+    TraceFmt('%s %s', [AMsg, BitsToString(Bits)]);
 end;
 
 procedure TCnDebugger.TraceGUID(const GUID: TGUID; const AMsg: string);
