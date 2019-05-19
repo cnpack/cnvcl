@@ -996,6 +996,9 @@ function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 function PEBIsDebugged: Boolean;
 {* 查找 PEB 结构内容以判定本进程是否被调试中}
 
+function NtIsDeugged: Boolean;
+{* 使用 NtQueryInformationProcess 以判定本进程是否被调试中}
+
 procedure KillProcessByFileName(const FileName: String);
 {* 根据文件名结束进程，不区分路径}
 
@@ -1159,6 +1162,13 @@ const
   MINOR_EXTENDED = 1E-10;
   MINOR_SINGLE = 1E-6;
   // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
+
+type
+  TNtQueryInformationProcess = function(ProcessHandle: THANDLE; ProcessInformationClass: DWORD;
+    ProcessInformation: Pointer; ProcessInformationLength: ULONG; ReturnLength: PULONG): LongInt; stdcall;
+var
+  NtQueryInformationProcess: TNtQueryInformationProcess = nil;
+  NtDllHandle: THandle = 0;
 
 function DoubleEqual(const D1, D2: Double): Boolean;
 begin
@@ -6968,6 +6978,39 @@ asm
         MOV     AL, BYTE PTR DS:[EAX + 02];
 end;
 
+// 使用 NtQueryInformationProcess 以判定本进程是否被调试中
+function NtIsDeugged: Boolean;
+var
+  DebugPort: DWORD;
+begin
+  Result := False;
+  if not Assigned(NtQueryInformationProcess) then
+  begin
+    if (Win32Platform = VER_PLATFORM_WIN32_NT)
+      and (Win32MajorVersion >= 5) and (Win32MinorVersion >= 1) then
+    begin
+      if NtDllHandle = 0 then
+      begin
+        NtDllHandle := LoadLibrary('NTDLL.DLL');
+        if NtDllHandle = 0 then
+          raise Exception.Create('Can NOT Load NTDLL.');
+      end;
+
+      NtQueryInformationProcess := GetProcAddress(NtDllHandle, 'NtQueryInformationProcess');
+    end
+    else
+      raise Exception.Create('Current Windows NOT Support.');
+
+    if not Assigned(NtQueryInformationProcess) then
+      raise Exception.Create('NtQueryInformationProcess NOT Found in NTDLL.');
+
+    if 0 <> NtQueryInformationProcess(GetCurrentProcess, 7, @DebugPort, SizeOf(DebugPort), nil) then
+      raise Exception.Create('Call NtQueryInformationProcess Failed.');
+
+    Result := DebugPort <> 0;
+  end;
+end;
+
 // 根据文件名结束进程，不区分路径
 procedure KillProcessByFileName(const FileName: String);
 var
@@ -7375,6 +7418,10 @@ end;
 initialization
   WndLong := GetWindowLong(Application.Handle, GWL_EXSTYLE);
   InitSetLayeredWindowAttributesFunc;
+
+finalization
+  if NtDllHandle <> 0 then
+    FreeLibrary(NtDllHandle);
 
 end.
 
