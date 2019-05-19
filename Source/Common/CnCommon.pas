@@ -991,7 +991,10 @@ function InheritsFromClassName(AObject: TObject; const AClass: string): Boolean;
 {* 判断 AObject 是否派生自类名为 AClass 的类 }
 
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
-{* 提升自身权限到SeDebug或取消此权限}
+{* 提升自身权限到 SeDebug 或取消此权限}
+
+function PEBIsDebugged: Boolean;
+{* 查找 PEB 结构内容以判定本进程是否被调试中}
 
 procedure KillProcessByFileName(const FileName: String);
 {* 根据文件名结束进程，不区分路径}
@@ -6956,6 +6959,13 @@ begin
   OpenProcessToken(GetCurrentProcess, TOKEN_ADJUST_PRIVILEGES, Token);
   Result := InternalEnablePrivilege(Token, 'SeDebugPrivilege', Enable);
   CloseHandle(Token);
+end;
+
+// 查找 PEB 结构内容以判定本进程是否被调试中
+function PEBIsDebugged: Boolean;
+asm
+        MOV     EAX, FS:[$30];
+        MOV     AL, BYTE PTR DS:[EAX + 02];
 end;
 
 // 根据文件名结束进程，不区分路径
