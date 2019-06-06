@@ -23,6 +23,7 @@ type
     btnSetZero: TButton;
     btnDeteminant: TButton;
     btnDump: TButton;
+    btnMinor: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
@@ -37,6 +38,7 @@ type
     procedure btnSetZeroClick(Sender: TObject);
     procedure btnDeteminantClick(Sender: TObject);
     procedure btnDumpClick(Sender: TObject);
+    procedure btnMinorClick(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
   public
@@ -191,6 +193,16 @@ begin
   FM1.DumpToStrings(List);
   ShowMessage(List.Text);
   List.Free;
+end;
+
+procedure TFormMatrix.btnMinorClick(Sender: TObject);
+var
+  M: TCnIntMatrix;
+begin
+  M := TCnIntMatrix.Create(1, 1);
+  CnMatrixMinor(FM1, StringGrid1.Row, StringGrid1.Col, M);
+  MatrixToStringGrid(M, StringGridR);
+  M.Free;
 end;
 
 end.

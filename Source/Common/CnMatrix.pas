@@ -24,7 +24,7 @@ unit CnMatrix;
 * 软件名称：开发包基础库
 * 单元名称：整数矩阵运算实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org）
-* 备    注：还缺矩阵求逆算法
+* 备    注：高阶行列式的代数余子式计算方法未验证，缺矩阵求逆算法
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -114,7 +114,16 @@ procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnIntMatrix; ProductResult:
 procedure CnMatrixTranspose(Matrix1, Matrix2: TCnIntMatrix);
 {* 转置矩阵，将第一个矩阵转置至第二个}
 
+procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TCnIntMatrix);
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
+
 implementation
+
+// 计算 -1 的 N 次方，供求代数余子式用
+function NegativeOnePower(N: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := (N and 1) * (-2) + 1;
+end;
 
 procedure CnMatrixMul(Matrix1, Matrix2: TCnIntMatrix; MulResult: TCnIntMatrix);
 var
@@ -168,11 +177,15 @@ begin
   end;
 
   T := TCnIntMatrix.Create(Matrix.RowCount, Matrix.ColCount);
-  T.Assign(Matrix);
-  for I := 0 to K - 2 do
-  begin
-    CnMatrixMul(Matrix, T, PowerResult);
-    T.Assign(PowerResult);
+  try
+    T.Assign(Matrix);
+    for I := 0 to K - 2 do
+    begin
+      CnMatrixMul(Matrix, T, PowerResult);
+      T.Assign(PowerResult);
+    end;
+  finally
+    T.Free;
   end;
 end;
 
@@ -217,6 +230,50 @@ begin
   for I := 0 to Matrix1.RowCount - 1 do
     for J := 0 to Matrix1.ColCount - 1 do
       Matrix2.Value[J, I] := Matrix1.Value[I, J];
+end;
+
+procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TCnIntMatrix);
+var
+  SR, SC, DR, DC: Integer;
+begin
+  if ((Row < 0) or (Row >= Matrix.RowCount)) or
+    ((Col < 0) or (Col >= Matrix.ColCount)) then
+    raise ECnMatrixException.Create('Invalid Minor Row or Col.');
+
+  MinorResult.ColCount := Matrix.ColCount - 1;
+  MinorResult.RowCount := Matrix.RowCount - 1;
+
+  SR := 0;
+  DR := 0;
+
+  while SR < Matrix.RowCount do
+  begin
+    if SR = Row then
+    begin
+      Inc(SR);
+      if SR = Matrix.RowCount then
+        Break;
+    end;
+
+    SC := 0;
+    DC := 0;
+    while SC < Matrix.ColCount do
+    begin
+      if SC = Col then
+      begin
+        Inc(SC);
+        if SC = Matrix.ColCount then
+          Break;
+      end;
+
+      MinorResult.Value[DR, DC] := Matrix.Value[SR, SC];
+      Inc(SC);
+      Inc(DC);
+    end;
+
+    Inc(SR);
+    Inc(DR);
+  end;
 end;
 
 { TCnIntMatrix }
@@ -271,6 +328,9 @@ begin
 end;
 
 function TCnIntMatrix.Determinant: Integer;
+var
+  I: Integer;
+  Minor: TCnIntMatrix;
 begin
   if not IsSquare then
     raise ECnMatrixException.Create('Only Square can Determinant.');
@@ -289,9 +349,20 @@ begin
       - FMatrix[0, 2] * FMatrix[1, 1] * FMatrix[2, 0];
   end
   else
-    raise ECnMatrixException.Create('Deteminant of 4 or above not Implemented.');
-
-  // TODO: 计算高阶行列式
+  begin
+    // 利用代数余子式 Minor/Cofactor 计算高阶行列式
+    Result := 0;
+    Minor := TCnIntMatrix.Create(FRowCount - 1, FColCount - 1);
+    try
+      for I := 0 to FColCount - 1 do
+      begin
+        CnMatrixMinor(Self, 0, I, Minor);
+        Result := Result + FMatrix[0, I] * NegativeOnePower(I) * Minor.Determinant;
+      end;
+    finally
+      Minor.Free;
+    end;
+  end;
 end;
 
 procedure TCnIntMatrix.DumpToStrings(List: TStrings);

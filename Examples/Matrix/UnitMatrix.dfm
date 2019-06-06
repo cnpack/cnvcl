@@ -176,4 +176,13 @@ object FormMatrix: TFormMatrix
     TabOrder = 13
     OnClick = btnDumpClick
   end
+  object btnMinor: TButton
+    Left = 88
+    Top = 400
+    Width = 75
+    Height = 25
+    Caption = 'Minor'
+    TabOrder = 14
+    OnClick = btnMinorClick
+  end
 end
