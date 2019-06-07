@@ -21,7 +21,7 @@ var
 implementation
 
 uses
-  CnHamming;
+  CnFEC;
 
 {$R *.DFM}
 

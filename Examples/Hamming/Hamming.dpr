@@ -3,7 +3,7 @@ program Hamming;
 uses
   Forms,
   UnitHamming in 'UnitHamming.pas' {FormHamming},
-  CnHamming in '..\..\Source\Common\CnHamming.pas';
+  CnFEC in '..\..\Source\Common\CnFEC.pas';
 
 {$R *.RES}
 
