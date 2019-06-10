@@ -182,6 +182,7 @@ end;
 
 procedure TFormMatrix.btnDeteminantClick(Sender: TObject);
 begin
+  StringGridToMatrix(StringGrid1, FM1);
   ShowMessage(IntToStr(FM1.Determinant));
 end;
 

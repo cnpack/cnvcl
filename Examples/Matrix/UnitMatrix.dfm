@@ -38,6 +38,7 @@ object FormMatrix: TFormMatrix
     FixedCols = 0
     RowCount = 6
     FixedRows = 0
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing]
     TabOrder = 0
   end
   object StaticText1: TStaticText

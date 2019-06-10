@@ -24,7 +24,7 @@ unit CnMatrix;
 * 软件名称：开发包基础库
 * 单元名称：整数矩阵运算实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org）
-* 备    注：高阶行列式的代数余子式计算方法未验证，缺矩阵求逆算法
+* 备    注：高阶行列式的代数余子式计算方法初步验证通过，缺矩阵求逆算法
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -44,36 +44,36 @@ type
   ECnMatrixException = class(Exception);
 
   TCnIntMatrix = class(TPersistent)
-  {* 整数矩阵的实现类}
+  {* Int64 范围内的整数矩阵的实现类}
   private
-    FMatrix: array of array of Integer;
+    FMatrix: array of array of Int64;
     FColCount: Integer;
     FRowCount: Integer;
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
-    procedure CheckCount(Value: Integer);
-    procedure SetValue(Row, Col: Integer; const Value: Integer);
-    function GetValue(Row, Col: Integer): Integer;
+    procedure CheckCount(Value: Int64);
+    procedure SetValue(Row, Col: Integer; const Value: Int64);
+    function GetValue(Row, Col: Integer): Int64;
   protected
-    function OperationAdd(X, Y: Integer): Integer; virtual;
-    function OperationMul(X, Y: Integer): Integer; virtual;
+    function OperationAdd(X, Y: Int64): Int64; virtual;
+    function OperationMul(X, Y: Int64): Int64; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ARowCount, AColCount: Integer); virtual;
     destructor Destroy; override;
 
-    procedure Mul(Factor: Integer);
+    procedure Mul(Factor: Int64);
     {* 矩阵各元素乘以一个常数}
-    procedure Add(Factor: Integer);
+    procedure Add(Factor: Int64);
     {* 矩阵各元素加上一个常数}
     procedure SetE(Size: Integer);
     {* 设置为 Size 阶单位矩阵}
     procedure SetZero;
     {* 设置为全 0 矩阵}
 
-    function Determinant: Integer;
+    function Determinant: Int64;
     {* 求方阵行列式值}
-    function Trace: Integer;
+    function Trace: Int64;
     {* 求方阵的迹，也就是对角线元素的和}
     function IsSquare: Boolean;
     {* 是否方阵}
@@ -83,11 +83,13 @@ type
     {* 是否单位方阵}
     function IsSymmetrical: Boolean;
     {* 是否对称方阵}
+    function IsSingular: Boolean;
+    {* 是否奇异方阵，也就是行列式是否等于 0}
 
-    procedure DumpToStrings(List: TStrings);
+    procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
     {* 输出到字符串}
 
-    property Value[Row, Col: Integer]: Integer read GetValue write SetValue;
+    property Value[Row, Col: Integer]: Int64 read GetValue write SetValue;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
   published
     property ColCount: Integer read FColCount write SetColCount;
@@ -278,7 +280,7 @@ end;
 
 { TCnIntMatrix }
 
-procedure TCnIntMatrix.Add(Factor: Integer);
+procedure TCnIntMatrix.Add(Factor: Int64);
 var
   I, J: Integer;
 begin
@@ -304,7 +306,7 @@ begin
     inherited;
 end;
 
-procedure TCnIntMatrix.CheckCount(Value: Integer);
+procedure TCnIntMatrix.CheckCount(Value: Int64);
 begin
   if Value <= 0 then
     raise ECnMatrixException.Create('Error Row or Col Count: ' + IntToStr(Value));
@@ -327,7 +329,7 @@ begin
   inherited;
 end;
 
-function TCnIntMatrix.Determinant: Integer;
+function TCnIntMatrix.Determinant: Int64;
 var
   I: Integer;
   Minor: TCnIntMatrix;
@@ -365,7 +367,7 @@ begin
   end;
 end;
 
-procedure TCnIntMatrix.DumpToStrings(List: TStrings);
+procedure TCnIntMatrix.DumpToStrings(List: TStrings; Sep: Char = ' ');
 var
   I, J: Integer;
   S: string;
@@ -378,13 +380,13 @@ begin
       if J = 0 then
         S := IntToStr(FMatrix[I, J])
       else
-        S := S + ', ' + IntToStr(FMatrix[I, J]);
+        S := S + Sep + IntToStr(FMatrix[I, J]);
     end;
     List.Add(S);
   end;
 end;
 
-function TCnIntMatrix.GetValue(Row, Col: Integer): Integer;
+function TCnIntMatrix.GetValue(Row, Col: Integer): Int64;
 begin
   Result := FMatrix[Row, Col];
 end;
@@ -416,6 +418,14 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function TCnIntMatrix.IsSingular: Boolean;
+begin
+  if not IsSquare then
+    Result := False
+  else
+    Result := Determinant = 0;
 end;
 
 function TCnIntMatrix.IsSquare: Boolean;
@@ -465,7 +475,7 @@ begin
   Result := True;
 end;
 
-procedure TCnIntMatrix.Mul(Factor: Integer);
+procedure TCnIntMatrix.Mul(Factor: Int64);
 var
   I, J: Integer;
 begin
@@ -474,12 +484,12 @@ begin
       FMatrix[I, J] := OperationMul(FMatrix[I, J], Factor);
 end;
 
-function TCnIntMatrix.OperationAdd(X, Y: Integer): Integer;
+function TCnIntMatrix.OperationAdd(X, Y: Int64): Int64;
 begin
   Result := X + Y;
 end;
 
-function TCnIntMatrix.OperationMul(X, Y: Integer): Integer;
+function TCnIntMatrix.OperationMul(X, Y: Int64): Int64;
 begin
   Result := X * Y;
 end;
@@ -520,7 +530,7 @@ begin
   end;
 end;
 
-procedure TCnIntMatrix.SetValue(Row, Col: Integer; const Value: Integer);
+procedure TCnIntMatrix.SetValue(Row, Col: Integer; const Value: Int64);
 begin
   FMatrix[Row, Col] := Value;
 end;
@@ -534,7 +544,7 @@ begin
       FMatrix[I, J] := 0;
 end;
 
-function TCnIntMatrix.Trace: Integer;
+function TCnIntMatrix.Trace: Int64;
 var
   I: Integer;
 begin
