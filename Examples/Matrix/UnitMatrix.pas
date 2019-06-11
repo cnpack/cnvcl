@@ -24,6 +24,8 @@ type
     btnDeteminant: TButton;
     btnDump: TButton;
     btnMinor: TButton;
+    btnAdjoint: TButton;
+    btnInverse: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
@@ -39,6 +41,8 @@ type
     procedure btnDeteminantClick(Sender: TObject);
     procedure btnDumpClick(Sender: TObject);
     procedure btnMinorClick(Sender: TObject);
+    procedure btnAdjointClick(Sender: TObject);
+    procedure btnInverseClick(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
   public
@@ -204,6 +208,20 @@ begin
   CnMatrixMinor(FM1, StringGrid1.Row, StringGrid1.Col, M);
   MatrixToStringGrid(M, StringGridR);
   M.Free;
+end;
+
+procedure TFormMatrix.btnAdjointClick(Sender: TObject);
+begin
+  StringGridToMatrix(StringGrid1, FM1);
+  CnMatrixAdjoint(FM1, FM2);
+  MatrixToStringGrid(FM2, StringGrid2);
+end;
+
+procedure TFormMatrix.btnInverseClick(Sender: TObject);
+begin
+  StringGridToMatrix(StringGrid1, FM1);
+  CnMatrixInverse(FM1, FM2);
+  MatrixToStringGrid(FM2, StringGrid2);
 end;
 
 end.

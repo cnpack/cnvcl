@@ -24,7 +24,7 @@ unit CnMatrix;
 * 软件名称：开发包基础库
 * 单元名称：整数矩阵运算实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org）
-* 备    注：高阶行列式的代数余子式计算方法初步验证通过，缺矩阵求逆算法
+* 备    注：高阶行列式的代数余子式计算方法初步验证通过，矩阵求逆结果可能不是整数
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -64,6 +64,8 @@ type
 
     procedure Mul(Factor: Int64);
     {* 矩阵各元素乘以一个常数}
+    procedure Divide(Factor: Int64);
+    {* 矩阵各元素除以一个常数}
     procedure Add(Factor: Int64);
     {* 矩阵各元素加上一个常数}
     procedure SetE(Size: Integer);
@@ -114,10 +116,16 @@ procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnIntMatrix; ProductResult:
   ProductResult 可以是 Matrix1 或 Matrix2 或其他}
 
 procedure CnMatrixTranspose(Matrix1, Matrix2: TCnIntMatrix);
-{* 转置矩阵，将第一个矩阵转置至第二个}
+{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
 
 procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TCnIntMatrix);
 {* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
+
+procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnIntMatrix);
+{* 求方阵的伴随阵}
+
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix);
+{* 求方阵的逆矩阵，但对于 TCnIntMatrix 来讲，逆矩阵是伴随阵除以行列式，结果不一定是整数，表达可能出错}
 
 implementation
 
@@ -222,16 +230,32 @@ end;
 procedure CnMatrixTranspose(Matrix1, Matrix2: TCnIntMatrix);
 var
   I, J: Integer;
+  Tmp: TCnIntMatrix;
 begin
   if Matrix1 = Matrix2 then
-    raise ECnMatrixException.Create('Matrix can not Be the Same.');
+  begin
+    Tmp := TCnIntMatrix.Create(1, 1);
+    try
+      Tmp.Assign(Matrix1);
+      Matrix2.ColCount := Tmp.RowCount;
+      Matrix2.RowCount := Tmp.ColCount;
 
-  Matrix2.ColCount := Matrix1.RowCount;
-  Matrix2.RowCount := Matrix1.ColCount;
+      for I := 0 to Tmp.RowCount - 1 do
+        for J := 0 to Tmp.ColCount - 1 do
+          Matrix2.Value[J, I] := Tmp.Value[I, J];
+    finally
+      Tmp.Free;
+    end;
+  end
+  else
+  begin
+    Matrix2.ColCount := Matrix1.RowCount;
+    Matrix2.RowCount := Matrix1.ColCount;
 
-  for I := 0 to Matrix1.RowCount - 1 do
-    for J := 0 to Matrix1.ColCount - 1 do
-      Matrix2.Value[J, I] := Matrix1.Value[I, J];
+    for I := 0 to Matrix1.RowCount - 1 do
+      for J := 0 to Matrix1.ColCount - 1 do
+        Matrix2.Value[J, I] := Matrix1.Value[I, J];
+  end;
 end;
 
 procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TCnIntMatrix);
@@ -276,6 +300,45 @@ begin
     Inc(SR);
     Inc(DR);
   end;
+end;
+
+procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnIntMatrix);
+var
+  I, J: Integer;
+  Minor: TCnIntMatrix;
+begin
+  if not Matrix1.IsSquare then
+    raise ECnMatrixException.Create('Only Square can Adjoint.');
+
+  Matrix2.RowCount := Matrix1.RowCount;
+  Matrix2.ColCount := Matrix1.ColCount;
+
+  Minor := TCnIntMatrix.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1);
+  try
+    for I := 0 to Matrix1.RowCount - 1 do
+    begin
+      for J := 0 to Matrix2.ColCount - 1 do
+      begin
+        CnMatrixMinor(Matrix1, I, J, Minor);
+        Matrix2.Value[I, J] := NegativeOnePower(I + J) * Minor.Determinant;
+      end;
+    end;
+    CnMatrixTranspose(Matrix2, Matrix2);
+  finally
+    Minor.Free;
+  end;
+end;
+
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix);
+var
+  D: Int64;
+begin
+  D := Matrix1.Determinant;
+  if D = 0 then
+    raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
+
+  CnMatrixAdjoint(Matrix1, Matrix2);
+  Matrix2.Divide(D); // 注意不一定是整数了，不推荐直接用逆矩阵
 end;
 
 { TCnIntMatrix }
@@ -365,6 +428,15 @@ begin
       Minor.Free;
     end;
   end;
+end;
+
+procedure TCnIntMatrix.Divide(Factor: Int64);
+var
+  I, J: Integer;
+begin
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to FColCount - 1 do
+      FMatrix[I, J] := FMatrix[I, J] div Factor;
 end;
 
 procedure TCnIntMatrix.DumpToStrings(List: TStrings; Sep: Char = ' ');

@@ -186,4 +186,22 @@ object FormMatrix: TFormMatrix
     TabOrder = 14
     OnClick = btnMinorClick
   end
+  object btnAdjoint: TButton
+    Left = 208
+    Top = 400
+    Width = 75
+    Height = 25
+    Caption = 'Adjoint'
+    TabOrder = 15
+    OnClick = btnAdjointClick
+  end
+  object btnInverse: TButton
+    Left = 88
+    Top = 456
+    Width = 75
+    Height = 25
+    Caption = 'Inverse'
+    TabOrder = 16
+    OnClick = btnInverseClick
+  end
 end
