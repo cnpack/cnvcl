@@ -45,10 +45,13 @@ type
     procedure btnInverseClick(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
+    FR1, FR2, FRR: TCnRationalMatrix;
   public
     procedure RandMatrix(Matrix: TCnIntMatrix);
-    procedure StringGridToMatrix(Grid: TStringGrid; Matrix: TCnIntMatrix);
-    procedure MatrixToStringGrid(Matrix: TCnIntMatrix; Grid: TStringGrid);
+    procedure StringGridToMatrix(Grid: TStringGrid; Matrix: TCnIntMatrix); overload;
+    procedure StringGridToMatrix(Grid: TStringGrid; Matrix: TCnRationalMatrix); overload;
+    procedure MatrixToStringGrid(Matrix: TCnIntMatrix; Grid: TStringGrid); overload;
+    procedure MatrixToStringGrid(Matrix: TCnRationalMatrix; Grid: TStringGrid); overload;
   end;
 
 var
@@ -64,11 +67,18 @@ begin
   FM2 := TCnIntMatrix.Create(StringGrid2.RowCount, StringGrid2.ColCount);
   FMR := TCnIntMatrix.Create(1, 1);
 
+  FR1 := TCnRationalMatrix.Create(StringGrid1.RowCount, StringGrid1.ColCount);
+  FR2 := TCnRationalMatrix.Create(StringGrid1.RowCount, StringGrid1.ColCount);
+  FRR := TCnRationalMatrix.Create(1, 1);
+
+
   Randomize;
   RandMatrix(FM1);
   RandMatrix(FM2);
   MatrixToStringGrid(FM1, StringGrid1);
   MatrixToStringGrid(FM2, StringGrid2);
+  MatrixToStringGrid(FR1, StringGrid1);
+  MatrixToStringGrid(FR2, StringGrid2);
 
   udRow1.Position := StringGrid1.RowCount;
   udRow2.Position := StringGrid2.RowCount;
@@ -78,6 +88,9 @@ end;
 
 procedure TFormMatrix.FormDestroy(Sender: TObject);
 begin
+  FRR.Free;
+  FR1.Free;
+  FR2.Free;
   FM1.Free;
   FM2.Free;
   FMR.Free;
@@ -133,6 +146,8 @@ procedure TFormMatrix.StaticText1Click(Sender: TObject);
 begin
   RandMatrix(FM1);
   RandMatrix(FM2);
+  CnIntToRationalMatrix(FM1, FR1);
+  CnIntToRationalMatrix(FM2, FR2);
   MatrixToStringGrid(FM1, StringGrid1);
   MatrixToStringGrid(FM2, StringGrid2);
 end;
@@ -140,24 +155,28 @@ end;
 procedure TFormMatrix.udRow1Click(Sender: TObject; Button: TUDBtnType);
 begin
   FM1.RowCount := udRow1.Position;
+  FR1.RowCount := udRow1.Position;
   StaticText1Click(StaticText1);
 end;
 
 procedure TFormMatrix.udRow2Click(Sender: TObject; Button: TUDBtnType);
 begin
   FM2.RowCount := udRow2.Position;
+  FR2.RowCount := udRow1.Position;
   StaticText1Click(StaticText1);
 end;
 
 procedure TFormMatrix.udCol1Click(Sender: TObject; Button: TUDBtnType);
 begin
   FM1.ColCount := udCol1.Position;
+  FR1.ColCount := udCol1.Position;
   StaticText1Click(StaticText1);
 end;
 
 procedure TFormMatrix.udCol2Click(Sender: TObject; Button: TUDBtnType);
 begin
   FM2.ColCount := udCol2.Position;
+  FR2.ColCount := udCol2.Position;
   StaticText1Click(StaticText1);
 end;
 
@@ -197,6 +216,9 @@ begin
   List := TStringList.Create;
   FM1.DumpToStrings(List);
   ShowMessage(List.Text);
+  List.Clear;
+  FR1.DumpToStrings(List);
+  ShowMessage(List.Text);
   List.Free;
 end;
 
@@ -219,9 +241,39 @@ end;
 
 procedure TFormMatrix.btnInverseClick(Sender: TObject);
 begin
-  StringGridToMatrix(StringGrid1, FM1);
-  CnMatrixInverse(FM1, FM2);
-  MatrixToStringGrid(FM2, StringGrid2);
+  StringGridToMatrix(StringGrid1, FR1);
+  CnMatrixInverse(FR1, FR2);
+  MatrixToStringGrid(FR2, StringGrid2);
+end;
+
+procedure TFormMatrix.MatrixToStringGrid(Matrix: TCnRationalMatrix;
+  Grid: TStringGrid);
+var
+  I, J: Integer;
+begin
+  if (Matrix <> nil) and (Grid <> nil) then
+  begin
+    Grid.RowCount := Matrix.RowCount;
+    Grid.ColCount := Matrix.ColCount;
+    for I := 0 to Matrix.RowCount - 1 do
+      for J := 0 to Matrix.ColCount - 1 do
+        Grid.Cells[J, I] := Matrix.Value[I, J].ToString;
+  end;
+end;
+
+procedure TFormMatrix.StringGridToMatrix(Grid: TStringGrid;
+  Matrix: TCnRationalMatrix);
+var
+  I, J: Integer;
+begin
+  if (Matrix <> nil) and (Grid <> nil) then
+  begin
+    Matrix.RowCount := Grid.RowCount;
+    Matrix.ColCount := Grid.ColCount;
+    for I := 0 to Grid.RowCount - 1 do
+      for J := 0 to Grid.ColCount - 1 do
+        Matrix.Value[I, J].SetString(Grid.Cells[J, I]);
+  end;
 end;
 
 end.
