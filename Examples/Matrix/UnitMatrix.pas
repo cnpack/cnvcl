@@ -17,6 +17,7 @@ type
     udRow2: TUpDown;
     udCol1: TUpDown;
     udCol2: TUpDown;
+    grpInt: TGroupBox;
     btnTranspose: TButton;
     btnTrace: TButton;
     btnSetE: TButton;
@@ -25,6 +26,16 @@ type
     btnDump: TButton;
     btnMinor: TButton;
     btnAdjoint: TButton;
+    grpRational: TGroupBox;
+    btnRTranspose: TButton;
+    btnRTrace: TButton;
+    btnRSetE: TButton;
+    btnRSetZero: TButton;
+    btnRDump: TButton;
+    btnRDeter: TButton;
+    btnRMinor: TButton;
+    btnRAdj: TButton;
+    btnREqu: TSpeedButton;
     btnInverse: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -43,6 +54,15 @@ type
     procedure btnMinorClick(Sender: TObject);
     procedure btnAdjointClick(Sender: TObject);
     procedure btnInverseClick(Sender: TObject);
+    procedure btnRTransposeClick(Sender: TObject);
+    procedure btnRTraceClick(Sender: TObject);
+    procedure btnRSetEClick(Sender: TObject);
+    procedure btnRSetZeroClick(Sender: TObject);
+    procedure btnRDumpClick(Sender: TObject);
+    procedure btnRDeterClick(Sender: TObject);
+    procedure btnRMinorClick(Sender: TObject);
+    procedure btnRAdjClick(Sender: TObject);
+    procedure btnREquClick(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
     FR1, FR2, FRR: TCnRationalMatrix;
@@ -71,10 +91,12 @@ begin
   FR2 := TCnRationalMatrix.Create(StringGrid1.RowCount, StringGrid1.ColCount);
   FRR := TCnRationalMatrix.Create(1, 1);
 
-
   Randomize;
   RandMatrix(FM1);
   RandMatrix(FM2);
+  CnIntToRationalMatrix(FM1, FR1);
+  CnIntToRationalMatrix(FM2, FR2);
+
   MatrixToStringGrid(FM1, StringGrid1);
   MatrixToStringGrid(FM2, StringGrid2);
   MatrixToStringGrid(FR1, StringGrid1);
@@ -216,9 +238,6 @@ begin
   List := TStringList.Create;
   FM1.DumpToStrings(List);
   ShowMessage(List.Text);
-  List.Clear;
-  FR1.DumpToStrings(List);
-  ShowMessage(List.Text);
   List.Free;
 end;
 
@@ -274,6 +293,78 @@ begin
       for J := 0 to Grid.ColCount - 1 do
         Matrix.Value[I, J].SetString(Grid.Cells[J, I]);
   end;
+end;
+
+procedure TFormMatrix.btnRTransposeClick(Sender: TObject);
+begin
+  CnMatrixTranspose(FR1, FRR);
+  MatrixToStringGrid(FRR, StringGridR);
+end;
+
+procedure TFormMatrix.btnRTraceClick(Sender: TObject);
+var
+  T: TCnRationalNumber;
+begin
+  T := TCnRationalNumber.Create;
+  FR1.Trace(T);
+  ShowMessage(T.ToString);
+  T.Free;
+end;
+
+procedure TFormMatrix.btnRSetEClick(Sender: TObject);
+begin
+  FR1.SetE(FR1.RowCount);
+  MatrixToStringGrid(FR1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnRSetZeroClick(Sender: TObject);
+begin
+  FR1.SetZero;
+  MatrixToStringGrid(FR1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnRDumpClick(Sender: TObject);
+var
+  List: TStrings;
+begin
+  List := TStringList.Create;
+  FR1.DumpToStrings(List);
+  ShowMessage(List.Text);
+  List.Free;
+end;
+
+procedure TFormMatrix.btnRDeterClick(Sender: TObject);
+var
+  D: TCnRationalNumber;
+begin
+  StringGridToMatrix(StringGrid1, FR1);
+  D := TCnRationalNumber.Create;
+  FR1.Determinant(D);
+  ShowMessage(D.ToString);
+  D.Free;
+end;
+
+procedure TFormMatrix.btnRMinorClick(Sender: TObject);
+var
+  M: TCnRationalMatrix;
+begin
+  M := TCnRationalMatrix.Create(1, 1);
+  CnMatrixMinor(FR1, StringGrid1.Row, StringGrid1.Col, M);
+  MatrixToStringGrid(M, StringGridR);
+  M.Free;
+end;
+
+procedure TFormMatrix.btnRAdjClick(Sender: TObject);
+begin
+  StringGridToMatrix(StringGrid1, FR1);
+  CnMatrixAdjoint(FR1, FR2);
+  MatrixToStringGrid(FR2, StringGrid2);
+end;
+
+procedure TFormMatrix.btnREquClick(Sender: TObject);
+begin
+  CnMatrixMul(FR1, FR2, FRR);
+  MatrixToStringGrid(FRR, StringGridR);
 end;
 
 end.

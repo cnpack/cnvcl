@@ -356,7 +356,7 @@ begin
   if (Int <> nil) and (Rational <> nil) then
   begin
     Rational.ColCount := Int.ColCount;
-    Rational.RowCount := Rational.RowCount;
+    Rational.RowCount := Int.RowCount;
 
     for I := 0 to Rational.RowCount - 1 do
       for J := 0 to Rational.ColCount - 1 do
@@ -1168,6 +1168,12 @@ begin
     FNominator := -FNominator;
   end;
 
+  if FNominator = 0 then
+  begin
+    FDenominator := 1;
+    Exit;
+  end;
+
   if not IsInt then
     CnReduceInt64(FNominator, FDenominator);
 end;
@@ -1236,7 +1242,7 @@ end;
 
 function TCnRationalNumber.ToString: string;
 begin
-  if IsInt then
+  if IsInt or (FNominator = 0) then
     Result := IntToStr(FNominator)
   else
     Result := IntToStr(FNominator) + '/' + IntToStr(FDenominator) ;
@@ -1279,7 +1285,7 @@ begin
     F2 := M div Number2.Denominator;
 
     RationalResult.Denominator := M;
-    RationalResult.Nominator := Number1.Nominator * F1 + Number2.Nominator * F2;
+    RationalResult.Nominator := Number1.Nominator * F1 + Number2.Nominator * F2; // 可能溢出，暂无办法
     RationalResult.Reduce;
   end;
 end;
@@ -1306,16 +1312,42 @@ begin
     F2 := M div Number2.Denominator;
 
     RationalResult.Denominator := M;
-    RationalResult.Nominator := Number1.Nominator * F1 - Number2.Nominator * F2;
+    RationalResult.Nominator := Number1.Nominator * F1 - Number2.Nominator * F2; // 可能溢出，暂无办法
     RationalResult.Reduce;
   end;
 end;
 
 procedure CnRationalNumberMul(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+var
+  X, Y: Int64;
 begin
-  // 先不考虑溢出的情况
-  RationalResult.Nominator := Number1.Nominator * Number2.Nominator;
-  RationalResult.Denominator := Number1.Denominator * Number2.Denominator;
+  // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约
+  X := Number1.Nominator;
+  Y := Number2.Denominator;
+  CnReduceInt64(X, Y);
+  if X < Number1.Nominator then
+  begin
+    // 有约的了
+    RationalResult.Nominator := X * Number2.Nominator;
+    RationalResult.Denominator := Number1.Denominator * Y;
+  end
+  else
+  begin
+    X := Number1.Denominator;
+    Y := Number2.Nominator;
+    CnReduceInt64(X, Y);
+    if X < Number1.Denominator then
+    begin
+      // 有的约了
+      RationalResult.Nominator := Number1.Nominator * Y;
+      RationalResult.Denominator := X * Number2.Denominator;
+    end
+    else
+    begin
+      RationalResult.Nominator := Number1.Nominator * Number2.Nominator;
+      RationalResult.Denominator := Number1.Denominator * Number2.Denominator;
+    end;
+  end;
   RationalResult.Reduce;
 end;
 
@@ -1326,10 +1358,34 @@ begin
 end;
 
 procedure CnRationalNumberDiv(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+var
+  X, Y: Int64;
 begin
-  // 先不考虑溢出的情况
-  RationalResult.Nominator := Number1.Nominator * Number2.Denominator;
-  RationalResult.Denominator := Number1.Denominator * Number2.Nominator;
+  // 假设 Number1、Number2 自身已经约分了，直接乘容易溢出，先互相约
+  X := Number1.Nominator;
+  Y := Number2.Nominator;
+  CnReduceInt64(X, Y);
+  if X < Number1.Nominator then
+  begin
+    RationalResult.Nominator := X * Number2.Denominator;
+    RationalResult.Denominator := Number1.Denominator * Y;
+  end
+  else
+  begin
+    X := Number1.Denominator;
+    Y := Number2.Denominator;
+    CnReduceInt64(X, Y);
+    if X < Number1.Denominator then
+    begin
+      RationalResult.Nominator := Number1.Nominator * Y;
+      RationalResult.Denominator := X * Number2.Nominator;
+    end
+    else
+    begin
+      RationalResult.Nominator := Number1.Nominator * Number2.Denominator;
+      RationalResult.Denominator := Number1.Denominator * Number2.Nominator;
+    end;
+  end;
   RationalResult.Reduce;
 end;
 
