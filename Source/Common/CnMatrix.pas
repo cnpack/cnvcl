@@ -1221,7 +1221,7 @@ end;
 procedure TCnRationalNumber.SetValue(ANominator, ADenominator: Int64);
 begin
   Denominator := ADenominator;
-  Nominator := Nominator;
+  Nominator := ANominator;
 end;
 
 procedure TCnRationalNumber.SetZero;
@@ -1245,10 +1245,10 @@ begin
   if IsInt or (FNominator = 0) then
     Result := IntToStr(FNominator)
   else
-    Result := IntToStr(FNominator) + '/' + IntToStr(FDenominator) ;
+    Result := IntToStr(FNominator) + '/' + IntToStr(FDenominator);
 end;
 
-// 求两个 Int64 的最大公约数
+// 求两个 Int64 的最大公约数，要求都大于 0
 function Int64Gcd(A, B: Int64): Int64;
 begin
   if B = 0 then
@@ -1257,21 +1257,36 @@ begin
     Result := Int64Gcd(B, A mod B);
 end;
 
-// 求两个 Int64 的最小公倍数，暂不考虑可能溢出的情况
+// 求两个 Int64 的最小公倍数，要求都大于 0，暂不考虑可能溢出的情况
 function Int64Lcm(A, B: Int64): Int64;
 var
   D: Int64;
 begin
+  if A = B then
+  begin
+    Result := A;
+    Exit;
+  end;
+  
   D := Int64Gcd(A, B);
   if D = 1 then
     Result := A * B
   else
-    Result := A * B div D;
+  begin
+    // 大数先除，避免溢出
+    if A > B then
+      Result := A div D * B
+    else
+      Result := B div D * A;
+  end;
 end;
 
 procedure CnRationalNumberAdd(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+const
+  SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
-  M, F1, F2: Int64;
+  M, F1, F2, D1, D2: Int64;
+  B1, B2: Boolean;
 begin
   if Number1.IsInt and Number2.IsInt then
   begin
@@ -1280,12 +1295,24 @@ begin
   else
   begin
     // 求分母的最小公倍数
-    M := Int64Lcm(Number1.Denominator, Number2.Denominator);
-    F1 := M div Number1.Denominator;
-    F2 := M div Number2.Denominator;
+    D1 := Number1.Denominator;
+    D2 := Number2.Denominator;
+
+    B1 := D1 < 0;
+    B2 := D2 < 0;
+    if B1 then
+      D1 := -D1;
+
+    if B2 then
+      D2 := -D2;
+
+    M := Int64Lcm(D1, D2);
+    F1 := M div D1;
+    F2 := M div D2;
 
     RationalResult.Denominator := M;
-    RationalResult.Nominator := Number1.Nominator * F1 + Number2.Nominator * F2; // 可能溢出，暂无办法
+    RationalResult.Nominator := Number1.Nominator * F1 * SIGN_ARRAY[B1]
+      + Number2.Nominator * F2 * SIGN_ARRAY[B2]; // 可能溢出，暂无办法
     RationalResult.Reduce;
   end;
 end;
@@ -1297,8 +1324,11 @@ begin
 end;
 
 procedure CnRationalNumberSub(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+const
+  SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
-  M, F1, F2: Int64;
+  M, F1, F2, D1, D2: Int64;
+  B1, B2: Boolean;
 begin
   if Number1.IsInt and Number2.IsInt then
   begin
@@ -1307,12 +1337,24 @@ begin
   else
   begin
     // 求分母的最小公倍数
-    M := Int64Lcm(Number1.Denominator, Number2.Denominator);
-    F1 := M div Number1.Denominator;
-    F2 := M div Number2.Denominator;
+    D1 := Number1.Denominator;
+    D2 := Number2.Denominator;
+
+    B1 := D1 < 0;
+    B2 := D2 < 0;
+    if B1 then
+      D1 := -D1;
+
+    if B2 then
+      D2 := -D2;
+
+    M := Int64Lcm(D1, D2);
+    F1 := M div D1;
+    F2 := M div D2;
 
     RationalResult.Denominator := M;
-    RationalResult.Nominator := Number1.Nominator * F1 - Number2.Nominator * F2; // 可能溢出，暂无办法
+    RationalResult.Nominator := Number1.Nominator * F1 * SIGN_ARRAY[B1]
+      - Number2.Nominator * F2 * SIGN_ARRAY[B2]; // 可能溢出，暂无办法
     RationalResult.Reduce;
   end;
 end;

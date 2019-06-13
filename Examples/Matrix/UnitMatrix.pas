@@ -37,6 +37,8 @@ type
     btnRAdj: TButton;
     btnREqu: TSpeedButton;
     btnInverse: TButton;
+    btnRational: TButton;
+    btnRCalc2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
@@ -63,6 +65,8 @@ type
     procedure btnRMinorClick(Sender: TObject);
     procedure btnRAdjClick(Sender: TObject);
     procedure btnREquClick(Sender: TObject);
+    procedure btnRationalClick(Sender: TObject);
+    procedure btnRCalc2Click(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
     FR1, FR2, FRR: TCnRationalMatrix;
@@ -365,6 +369,86 @@ procedure TFormMatrix.btnREquClick(Sender: TObject);
 begin
   CnMatrixMul(FR1, FR2, FRR);
   MatrixToStringGrid(FRR, StringGridR);
+end;
+
+procedure TFormMatrix.btnRationalClick(Sender: TObject);
+var
+  X, Y, S: TCnRationalNumber;
+begin
+  X := TCnRationalNumber.Create;
+  Y := TCnRationalNumber.Create;
+  S := TCnRationalNumber.Create;
+
+  S.SetZero;
+  X.SetIntValue(92);
+  Y.SetIntValue(2931698);
+  X.Mul(Y);                   // X = 269716216
+  S.Add(X);
+
+  X.SetIntValue(251);
+  Y.SetIntValue(-655370309);
+  X.Mul(Y);                   // X = -164497947559
+  S.Add(X);
+
+  X.SetIntValue(16);
+  Y.SetIntValue(83764351);
+  X.Mul(Y);                   // X = 1340229616
+  S.Add(X);
+
+  X.SetIntValue(118);
+  Y.SetIntValue(239587282);
+  X.Mul(Y);                   // X = 28271299276
+  S.Add(X);
+
+  X.SetIntValue(82);
+  Y.SetIntValue(125825447);
+  X.Mul(Y);                   // X = 10317686654
+  S.Add(X);
+
+  ShowMessage(S.ToString); // Should be -124299015797
+  X.Free;
+  Y.Free;
+  S.Free;
+end;
+
+procedure TFormMatrix.btnRCalc2Click(Sender: TObject);
+var
+  X, Y, S: TCnRationalNumber;
+begin
+  X := TCnRationalNumber.Create;
+  Y := TCnRationalNumber.Create;
+  S := TCnRationalNumber.Create;
+
+  S.SetZero;
+  X.SetIntValue(92);
+  Y.SetValue(2931698, -124299015797);
+  X.Mul(Y);                   // X = 269716216/-124299015797
+  S.Add(X);
+
+  X.SetIntValue(251);
+  Y.SetValue(-655370309, -124299015797);
+  X.Mul(Y);                   // X = -164497947559/-124299015797
+  S.Add(X);
+
+  X.SetIntValue(16);
+  Y.SetValue(83764351, -124299015797);
+  X.Mul(Y);                   // X = 1340229616/-124299015797
+  S.Add(X);
+
+  X.SetIntValue(118);
+  Y.SetValue(239587282, -124299015797);
+  X.Mul(Y);                   // X = 28271299276/-124299015797
+  S.Add(X);
+
+  X.SetIntValue(82);
+  Y.SetValue(125825447, -124299015797);
+  X.Mul(Y);                   // X = 10317686654/-124299015797
+  S.Add(X);
+
+  ShowMessage(S.ToString); // Should be 1
+  X.Free;
+  Y.Free;
+  S.Free;
 end;
 
 end.

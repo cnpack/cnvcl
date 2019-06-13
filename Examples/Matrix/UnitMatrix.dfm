@@ -94,6 +94,7 @@ object FormMatrix: TFormMatrix
     FixedCols = 0
     RowCount = 1
     FixedRows = 0
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing]
     TabOrder = 3
   end
   object udRow1: TUpDown
@@ -310,5 +311,23 @@ object FormMatrix: TFormMatrix
       TabOrder = 8
       OnClick = btnInverseClick
     end
+  end
+  object btnRational: TButton
+    Left = 832
+    Top = 240
+    Width = 75
+    Height = 25
+    Caption = 'Rational Calc1'
+    TabOrder = 10
+    OnClick = btnRationalClick
+  end
+  object btnRCalc2: TButton
+    Left = 928
+    Top = 240
+    Width = 75
+    Height = 25
+    Caption = 'Rational Calc2'
+    TabOrder = 11
+    OnClick = btnRCalc2Click
   end
 end
