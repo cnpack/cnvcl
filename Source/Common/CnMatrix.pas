@@ -63,7 +63,7 @@ type
     function OperationMul(X, Y: Int64): Int64; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create(ARowCount, AColCount: Integer); virtual;
+    constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     destructor Destroy; override;
 
     procedure Mul(Factor: Int64);
@@ -184,6 +184,11 @@ type
     constructor Create(ARow, ACol: Integer);
     destructor Destroy; override;
 
+    procedure DeleteRow(Row: Integer);
+    {* 删除一行}
+    procedure DeleteCol(Col: Integer);
+    {* 删除一列}
+
     property ValueObject[Row, Col: Integer]: TObject read GetValueObject write SetValueObject; default;
     {* 二维数组值}
     property RowCount: Integer read GetRowCount write SetRowCount;
@@ -205,7 +210,7 @@ type
   protected
     procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create(ARowCount, AColCount: Integer); virtual;
+    constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     destructor Destroy; override;
 
     procedure Mul(Factor: Int64); overload;
@@ -225,6 +230,10 @@ type
     {* 设置为 Size 阶单位矩阵}
     procedure SetZero;
     {* 设置为全 0 矩阵}
+    procedure DeleteRow(Row: Integer);
+    {* 删除其中一行}
+    procedure DeleteCol(Col: Integer);
+    {* 删除其中一列}
 
     procedure Determinant(D: TCnRationalNumber);
     {* 求方阵行列式值}
@@ -876,6 +885,10 @@ var
   I, J: Integer;
   S: string;
 begin
+  if List = nil then
+    Exit;
+
+  List.Clear;
   for I := 0 to FRowCount - 1 do
   begin
     S := '';
@@ -1456,6 +1469,21 @@ begin
   ColCount := ACol;
 end;
 
+procedure TCn2DObjectList.DeleteCol(Col: Integer);
+var
+  I: Integer;
+begin
+  for I := 0 to FRowCount - 1 do
+    TObjectList(FRows[I]).Delete(Col);
+  Dec(FColCount);
+end;
+
+procedure TCn2DObjectList.DeleteRow(Row: Integer);
+begin
+  FRows.Delete(Row);
+  Dec(FRowCount);
+end;
+
 destructor TCn2DObjectList.Destroy;
 begin
   FRows.Free;
@@ -1568,6 +1596,16 @@ begin
   FMatrix := TCn2DObjectList.Create(ARowCount, AColCount);
 end;
 
+procedure TCnRationalMatrix.DeleteCol(Col: Integer);
+begin
+  FMatrix.DeleteCol(Col);
+end;
+
+procedure TCnRationalMatrix.DeleteRow(Row: Integer);
+begin
+  FMatrix.DeleteRow(Row);
+end;
+
 destructor TCnRationalMatrix.Destroy;
 begin
   FMatrix.Free;
@@ -1671,6 +1709,10 @@ var
   I, J: Integer;
   S: string;
 begin
+  if List = nil then
+    Exit;
+
+  List.Clear;
   for I := 0 to RowCount - 1 do
   begin
     S := '';
