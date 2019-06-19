@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes, CnMatrix;
 
 type
   ECnHammingException = class(Exception);
@@ -70,6 +70,17 @@ type
     function Subtract(X, Y: Int64): Int64; override;
     function Multiply(X, Y: Int64): Int64; override;
     function Divide(X, Y: Int64): Int64; override;
+  end;
+
+  TCnGalois2Power8Matrix = class(TCnIntMatrix)
+  {* 伽罗华域 GP(2^8) 里的多项式矩阵}
+  protected
+    procedure SetValue(Row, Col: Integer; const Value: Int64); override;
+  public
+    function OperationAdd(X, Y: Int64): Int64; override;
+    function OperationSub(X, Y: Int64): Int64; override;
+    function OperationMul(X, Y: Int64): Int64; override;
+    function OperationDiv(X, Y: Int64): Int64; virtual;
   end;
 
 procedure CnCalcHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8);
@@ -299,7 +310,13 @@ end;
 
 { TCnGalois2Power8Rule }
 
-procedure CheckGalois2Power8Value(X, Y: Int64); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure CheckGalois2Power8Value(X: Int64); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  if (X < 0) or (X > GALOIS2POWER8_LIMIT) then
+    raise ECnCalculationRuleException.CreateFmt('Out of Range for Galois 2^8: %d', [X]);
+end;
+
+procedure CheckGalois2Power8Values(X, Y: Int64); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if (X < 0) or (X > GALOIS2POWER8_LIMIT) or
     (Y < 0) or (Y > GALOIS2POWER8_LIMIT) then
@@ -308,13 +325,13 @@ end;
 
 function TCnGalois2Power8Rule.Add(X, Y: Int64): Int64;
 begin
-  CheckGalois2Power8Value(X, Y);
+  CheckGalois2Power8Values(X, Y);
   Result := X xor Y;
 end;
 
 function TCnGalois2Power8Rule.Subtract(X, Y: Int64): Int64;
 begin
-  CheckGalois2Power8Value(X, Y);
+  CheckGalois2Power8Values(X, Y);
   Result := X xor Y;
 end;
 
@@ -322,7 +339,7 @@ function TCnGalois2Power8Rule.Multiply(X, Y: Int64): Int64;
 var
   A, B: Integer;
 begin
-  CheckGalois2Power8Value(X, Y);
+  CheckGalois2Power8Values(X, Y);
   // 查到对数结果，加，还原
   A := FValueToExp[X];
   B := FValueToExp[Y];
@@ -335,7 +352,7 @@ function TCnGalois2Power8Rule.Divide(X, Y: Int64): Int64;
 var
   A, B: Integer;
 begin
-  CheckGalois2Power8Value(X, Y);
+  CheckGalois2Power8Values(X, Y);
   // 查到对数结果，减，还原
 
   A := FValueToExp[X];
@@ -374,6 +391,35 @@ end;
 destructor TCnGalois2Power8Rule.Destroy;
 begin
 
+  inherited;
+end;
+
+{ TCnGalois2Power8Matrix }
+
+function TCnGalois2Power8Matrix.OperationAdd(X, Y: Int64): Int64;
+begin
+  Result := CnGalois2Power8Rule.Add(X, Y);
+end;
+
+function TCnGalois2Power8Matrix.OperationDiv(X, Y: Int64): Int64;
+begin
+  Result := CnGalois2Power8Rule.Divide(X, Y);
+end;
+
+function TCnGalois2Power8Matrix.OperationMul(X, Y: Int64): Int64;
+begin
+  Result := CnGalois2Power8Rule.Multiply(X, Y);
+end;
+
+function TCnGalois2Power8Matrix.OperationSub(X, Y: Int64): Int64;
+begin
+  Result := CnGalois2Power8Rule.Subtract(X, Y);
+end;
+
+procedure TCnGalois2Power8Matrix.SetValue(Row, Col: Integer;
+  const Value: Int64);
+begin
+  CheckGalois2Power8Value(Value);
   inherited;
 end;
 

@@ -59,13 +59,14 @@ type
 
     function Add3(X, Y, Z: Int64): Int64; virtual;
     function Mul3(X, Y, Z: Int64): Int64; virtual;
-
-    function OperationAdd(X, Y: Int64): Int64; virtual;
-    function OperationMul(X, Y: Int64): Int64; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     destructor Destroy; override;
+
+    function OperationAdd(X, Y: Int64): Int64; virtual;
+    function OperationSub(X, Y: Int64): Int64; virtual;
+    function OperationMul(X, Y: Int64): Int64; virtual;
 
     procedure Mul(Factor: Int64);
     {* 矩阵各元素乘以一个常数}
@@ -857,12 +858,12 @@ begin
     Result := FMatrix[0, 0] * FMatrix[1, 1] - FMatrix[0, 1] * FMatrix[1, 0]
   else if RowCount = 3 then
   begin
-    Result := Mul3(FMatrix[0, 0], FMatrix[1, 1], FMatrix[2, 2])
-      + Mul3(FMatrix[0, 1], FMatrix[1, 2], FMatrix[2, 0])
-      + Mul3(FMatrix[0, 2], FMatrix[1, 0], FMatrix[2, 1])
-      - Mul3(FMatrix[0, 0], FMatrix[1, 2], FMatrix[2, 1])
-      - Mul3(FMatrix[0, 1], FMatrix[1, 0], FMatrix[2, 2])
-      - Mul3(FMatrix[0, 2], FMatrix[1, 1], FMatrix[2, 0]);
+    Result := OperationSub(Add3(Mul3(FMatrix[0, 0], FMatrix[1, 1], FMatrix[2, 2]),
+      Mul3(FMatrix[0, 1], FMatrix[1, 2], FMatrix[2, 0]),
+      Mul3(FMatrix[0, 2], FMatrix[1, 0], FMatrix[2, 1])),
+      Add3(Mul3(FMatrix[0, 0], FMatrix[1, 2], FMatrix[2, 1]),
+        Mul3(FMatrix[0, 1], FMatrix[1, 0], FMatrix[2, 2]),
+        Mul3(FMatrix[0, 2], FMatrix[1, 1], FMatrix[2, 0])));
   end
   else
   begin
@@ -1015,6 +1016,11 @@ end;
 function TCnIntMatrix.OperationMul(X, Y: Int64): Int64;
 begin
   Result := X * Y;
+end;
+
+function TCnIntMatrix.OperationSub(X, Y: Int64): Int64;
+begin
+  Result := X - Y;
 end;
 
 procedure TCnIntMatrix.SetColCount(const Value: Integer);
