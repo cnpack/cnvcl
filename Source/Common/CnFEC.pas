@@ -43,6 +43,35 @@ uses
 type
   ECnHammingException = class(Exception);
 
+  ECnCalculationRuleException = class(Exception);
+
+  TCnCalculationRule = class
+  {* 四则运算规则，子类可重载实现有限域运算规则}
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    function Add(X, Y: Int64): Int64; virtual;
+    function Subtract(X, Y: Int64): Int64; virtual;
+    function Multiply(X, Y: Int64): Int64; virtual;
+    function Divide(X, Y: Int64): Int64; virtual;
+  end;
+
+  TCnGalois2Power8Rule = class(TCnCalculationRule)
+  {* 伽罗华域 GP(2^8) 里的多项式四则运算规则}
+  private
+    FExpToValue: array[0..255] of Integer;
+    FValueToExp: array[0..255] of Integer;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+
+    function Add(X, Y: Int64): Int64; override;
+    function Subtract(X, Y: Int64): Int64; override;
+    function Multiply(X, Y: Int64): Int64; override;
+    function Divide(X, Y: Int64): Int64; override;
+  end;
+
 procedure CnCalcHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8);
 {* 根据一批 Bits 计算其 Hamming 码，默认分组 8 bit 也就是 1 字节}
 
@@ -52,7 +81,24 @@ procedure CnVerifyHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8
 function CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount: Integer): Integer;
 {* 根据 Hamming 分组的 bit 长度计算校验 bit 的长度}
 
+function CnGalois2Power8Rule: TCnCalculationRule;
+{* 返回全局的 GP(2^8) 的运算规则}
+
 implementation
+
+const
+  GALOIS2POWER8_LIMIT = 255;  // 伽罗华域 2^8 的最大范围
+  GALOIS2POWER8_PRIMITIVE_POLYNOMIAL1 = $12D; // 伽罗华域 2^8 使用的本原多项式之一
+
+var
+  FGalois2Power8Rule: TCnCalculationRule = nil;
+
+function CnGalois2Power8Rule: TCnCalculationRule;
+begin
+  if FGalois2Power8Rule = nil then
+    FGalois2Power8Rule := TCnGalois2Power8Rule.Create;
+  Result := FGalois2Power8Rule;
+end;
 
 // BlockBitCount (n), VerificationBitCount (k) 满足 2^k - 1 >= n + k
 function CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount: Integer): Integer;
@@ -216,6 +262,119 @@ begin
     Inc(OffsetIn, BlockBitCount + VerificationBitCount);
     Inc(OffsetOut, BlockBitCount);
   end;
+end;
+
+{ TCnCalculationRule }
+
+function TCnCalculationRule.Add(X, Y: Int64): Int64;
+begin
+  Result := X + Y;
+end;
+
+function TCnCalculationRule.Subtract(X, Y: Int64): Int64;
+begin
+  Result := X - Y;
+end;
+
+function TCnCalculationRule.Multiply(X, Y: Int64): Int64;
+begin
+  Result := X * Y;
+end;
+
+function TCnCalculationRule.Divide(X, Y: Int64): Int64;
+begin
+  Result := X div Y;
+end;
+
+constructor TCnCalculationRule.Create;
+begin
+
+end;
+
+destructor TCnCalculationRule.Destroy;
+begin
+  inherited;
+
+end;
+
+{ TCnGalois2Power8Rule }
+
+procedure CheckGalois2Power8Value(X, Y: Int64); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  if (X < 0) or (X > GALOIS2POWER8_LIMIT) or
+    (Y < 0) or (Y > GALOIS2POWER8_LIMIT) then
+    raise ECnCalculationRuleException.CreateFmt('Out of Range for Galois 2^8: %d, %d', [X, Y]);
+end;
+
+function TCnGalois2Power8Rule.Add(X, Y: Int64): Int64;
+begin
+  CheckGalois2Power8Value(X, Y);
+  Result := X xor Y;
+end;
+
+function TCnGalois2Power8Rule.Subtract(X, Y: Int64): Int64;
+begin
+  CheckGalois2Power8Value(X, Y);
+  Result := X xor Y;
+end;
+
+function TCnGalois2Power8Rule.Multiply(X, Y: Int64): Int64;
+var
+  A, B: Integer;
+begin
+  CheckGalois2Power8Value(X, Y);
+  // 查到对数结果，加，还原
+  A := FValueToExp[X];
+  B := FValueToExp[Y];
+
+  A := (A + B) mod GALOIS2POWER8_LIMIT;
+  Result := FExpToValue[A];
+end;
+
+function TCnGalois2Power8Rule.Divide(X, Y: Int64): Int64;
+var
+  A, B: Integer;
+begin
+  CheckGalois2Power8Value(X, Y);
+  // 查到对数结果，减，还原
+
+  A := FValueToExp[X];
+  B := FValueToExp[Y];
+  if A < B then
+    A := A + GALOIS2POWER8_LIMIT;
+
+  A := (A - B) mod GALOIS2POWER8_LIMIT;
+  Result := FExpToValue[A];
+end;
+
+constructor TCnGalois2Power8Rule.Create;
+var
+  I, J: Integer;
+begin
+  inherited;
+  // 用生成元 x 的幂来遍历并生成所有元素的正反映射表，
+  // 对应本原多项式是 x8+x5+x3+x2+1，也就是1 0010 1101
+
+  FExpToValue[0] := 1;
+  for I := 1 to 254 do
+  begin
+    J := FExpToValue[I - 1] shl 1;
+    if (J and $100) <> 0 then
+      J := J xor GALOIS2POWER8_PRIMITIVE_POLYNOMIAL1;
+    FExpToValue[I] := J;
+  end;
+  FExpToValue[255] := 0;
+
+  FValueToExp[0] := 255;
+  FValueToExp[1] := 0;
+  for I := 1 to 254 do
+    FValueToExp[FExpToValue[I]] := I;
+end;
+
+destructor TCnGalois2Power8Rule.Destroy;
+begin
+
+  inherited;
 end;
 
 end.

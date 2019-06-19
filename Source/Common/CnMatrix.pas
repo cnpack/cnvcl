@@ -53,9 +53,10 @@ type
     FRowCount: Integer;
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
-    procedure SetValue(Row, Col: Integer; const Value: Int64);
     function GetValue(Row, Col: Integer): Int64;
   protected
+    procedure SetValue(Row, Col: Integer; const Value: Int64); virtual;
+
     function Add3(X, Y, Z: Int64): Int64; virtual;
     function Mul3(X, Y, Z: Int64): Int64; virtual;
 

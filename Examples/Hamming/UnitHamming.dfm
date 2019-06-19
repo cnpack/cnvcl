@@ -31,4 +31,31 @@ object FormHamming: TFormHamming
     TabOrder = 1
     OnClick = btnRSTestClick
   end
+  object btnFiniteField2N: TButton
+    Left = 408
+    Top = 48
+    Width = 153
+    Height = 25
+    Caption = 'Tes Finite Field 2^N'
+    TabOrder = 2
+    OnClick = btnFiniteField2NClick
+  end
+  object btnGenerate2Power8UsingX: TButton
+    Left = 616
+    Top = 48
+    Width = 153
+    Height = 25
+    Caption = 'Generate 2^8 Using X'
+    TabOrder = 3
+    OnClick = btnGenerate2Power8UsingXClick
+  end
+  object btnCalc2Power8: TButton
+    Left = 48
+    Top = 112
+    Width = 75
+    Height = 25
+    Caption = 'Calc in 2^8'
+    TabOrder = 4
+    OnClick = btnCalc2Power8Click
+  end
 end
