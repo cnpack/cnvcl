@@ -237,6 +237,24 @@ object FormMatrix: TFormMatrix
       TabOrder = 7
       OnClick = btnAdjointClick
     end
+    object btnDeleteRow: TButton
+      Left = 32
+      Top = 224
+      Width = 75
+      Height = 25
+      Caption = 'Delete Row'
+      TabOrder = 8
+      OnClick = btnDeleteRowClick
+    end
+    object btnDeleteCol: TButton
+      Left = 152
+      Top = 224
+      Width = 75
+      Height = 25
+      Caption = 'Delete Col'
+      TabOrder = 9
+      OnClick = btnDeleteColClick
+    end
   end
   object grpRational: TGroupBox
     Left = 376

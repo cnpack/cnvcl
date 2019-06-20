@@ -99,11 +99,14 @@ procedure CnVerifyHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8
 function CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount: Integer): Integer;
 {* 根据 Hamming 分组的 bit 长度计算校验 bit 的长度}
 
+function CnGalois2Power8Rule: TCnCalculationRule;
+{* 返回全局的 GP(2^8) 的运算规则供外界调用}
+
 implementation
 
 const
   GALOIS2POWER8_LIMIT = 255;  // 伽罗华域 2^8 的最大范围
-  GALOIS2POWER8_PRIMITIVE_POLYNOMIAL1 = $12D; // 伽罗华域 2^8 使用的本原多项式之一
+  GALOIS2POWER8_IRREDUCIBLE_POLYNOMIAL = $12D; // 伽罗华域 2^8 使用的不可约多项式之一，供取模用
 
 var
   FGalois2Power8Rule: TCnCalculationRule = nil;
@@ -345,6 +348,11 @@ var
   A, B: Integer;
 begin
   CheckGalois2Power8Values(X, Y);
+  if (X = 0) or (Y = 0) then
+  begin
+    Result := 0;
+    Exit;
+  end;
   // 查到对数结果，加，还原
   A := FValueToExp[X];
   B := FValueToExp[Y];
@@ -359,6 +367,11 @@ var
 begin
   CheckGalois2Power8Values(X, Y);
   // 查到对数结果，减，还原
+  if X = 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
 
   A := FValueToExp[X];
   B := FValueToExp[Y];
@@ -375,14 +388,14 @@ var
 begin
   inherited;
   // 用生成元 x 的幂来遍历并生成所有元素的正反映射表，
-  // 对应本原多项式是 x8+x5+x3+x2+1，也就是1 0010 1101
+  // 对应不可约多项式是 x8+x5+x3+x2+1，也就是1 0010 1101
 
   FExpToValue[0] := 1;
   for I := 1 to 254 do
   begin
     J := FExpToValue[I - 1] shl 1;
     if (J and $100) <> 0 then
-      J := J xor GALOIS2POWER8_PRIMITIVE_POLYNOMIAL1;
+      J := J xor GALOIS2POWER8_IRREDUCIBLE_POLYNOMIAL;
     FExpToValue[I] := J;
   end;
   FExpToValue[255] := 0;

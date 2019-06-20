@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnDebug, StdCtrls, CnMatrix;
+  CnDebug, StdCtrls, CnMatrix, CnFEC;
 
 type
   TFormHamming = class(TForm)
@@ -13,13 +13,16 @@ type
     btnFiniteField2N: TButton;
     btnGenerate2Power8UsingX: TButton;
     btnCalc2Power8: TButton;
+    btnGRSTest: TButton;
     procedure btnHammingClick(Sender: TObject);
     procedure btnRSTestClick(Sender: TObject);
     procedure btnFiniteField2NClick(Sender: TObject);
     procedure btnGenerate2Power8UsingXClick(Sender: TObject);
     procedure btnCalc2Power8Click(Sender: TObject);
+    procedure btnGRSTestClick(Sender: TObject);
   private
-    procedure Vandermonde(V: TCnRationalMatrix; M, N: Integer);
+    procedure VandermondeRational(V: TCnRationalMatrix; M, N: Integer);
+    procedure VandermondeGalois(V: TCnGalois2Power8Matrix; M, N: Integer);
   public
     { Public declarations }
   end;
@@ -28,9 +31,6 @@ var
   FormHamming: TFormHamming;
 
 implementation
-
-uses
-  CnFEC;
 
 {$R *.DFM}
 
@@ -67,7 +67,7 @@ var
   I: Integer;
 begin
   V := TCnRationalMatrix.Create(1, 1);
-  Vandermonde(V, M, N);
+  VandermondeRational(V, M, N);
   L := TStringList.Create;
   V.DumpToStrings(L);
   ShowMessage(L.Text);
@@ -111,7 +111,7 @@ begin
   V.Free;
 end;
 
-procedure TFormHamming.Vandermonde(V: TCnRationalMatrix; M, N: Integer);
+procedure TFormHamming.VandermondeRational(V: TCnRationalMatrix; M, N: Integer);
 var
   I, J: Integer;
   Arr: array of Int64;
@@ -162,7 +162,7 @@ begin
   begin
     J := (XN[I - 1] shl 1) xor XN[I - 1];  // 用生成元 x + 1 的幂来遍历并生成所有元素，要配合下面的本原多项式使用
     if (J and $100) <> 0 then
-      J := J xor $11B;                     // 其对应本原多项式是 x8+x4+x3+x+1，也就是 1 0001 1011
+      J := J xor $11B;                     // 其对应不可约多项式是 x8+x4+x3+x+1，也就是 1 0001 1011
     XN[I] := J;
   end;
 
@@ -184,7 +184,7 @@ begin
   begin
     J := XN[I - 1] shl 1;  // 用生成元 x 的幂来遍历并生成所有元素，要配合下面的本原多项式使用
     if (J and $100) <> 0 then
-      J := J xor $12D;     // 其对应本原多项式是 x8+x5+x3+x2+1，也就是1 0010 1101
+      J := J xor $12D;     // 其对应不可约多项式是 x8+x5+x3+x2+1，也就是1 0010 1101
     XN[I] := J;
   end;
   XN[255] := 0;
@@ -235,6 +235,104 @@ begin
   ShowMessage(IntToStr(CnGalois2Power8Rule.Subtract(66, 67)));
   ShowMessage(IntToStr(CnGalois2Power8Rule.Multiply(66, 67)));
   ShowMessage(IntToStr(CnGalois2Power8Rule.Divide(66, 67)));
+end;
+
+procedure TFormHamming.btnGRSTestClick(Sender: TObject);
+const
+  M = 8;  // 总数据
+  N = 5;  // 原始数据
+  ARR: array[0..N - 1] of Integer = (5, 6, 10, 34, 9);
+var
+  V, D, R, DI: TCnGalois2Power8Matrix;
+  L: TStringList;
+  I: Integer;
+begin
+  V := TCnGalois2Power8Matrix.Create(1, 1);
+  VandermondeGalois(V, M, N);
+  L := TStringList.Create;
+  V.DumpToStrings(L);
+  ShowMessage(L.Text);
+
+  D := TCnGalois2Power8Matrix.Create(N, 1);
+  R := TCnGalois2Power8Matrix.Create(1, 1);
+  for I := 0 to N - 1 do
+    D.Value[I, 0] := (ARR[I]);
+
+  CnMatrixMul(V, D, R);
+  R.DumpToStrings(L);
+  ShowMessage(L.Text);
+
+  // R 是原始数据加校验数据，删去 3 个
+  V.DeleteRow(5);
+  V.DeleteRow(3);
+  V.DeleteRow(1);
+  V.DumpToStrings(L);
+  ShowMessage(L.Text);
+
+  R.DeleteRow(5);
+  R.DeleteRow(3);
+  R.DeleteRow(1);
+  R.DumpToStrings(L);
+  ShowMessage(L.Text);
+
+  // 求逆矩阵并乘以结果
+  DI := TCnGalois2Power8Matrix.Create(1, 1);
+  CnMatrixInverse(V, DI);
+  DI.DumpToStrings(L);
+  ShowMessage(L.Text);
+
+  CnMatrixMul(DI, R, V);
+  V.DumpToStrings(L);
+  ShowMessage(L.Text);  // 还原回 ARR 中的五个值
+
+  DI.Free;
+  D.Free;
+  R.Free;
+  L.Free;
+  V.Free;
+
+end;
+
+procedure TFormHamming.VandermondeGalois(V: TCnGalois2Power8Matrix; M,
+  N: Integer);
+var
+  I, J: Integer;
+  Arr: array of Int64;
+begin
+  if (M < 0) or (N < 0) then
+    Exit;
+
+  if M < N then
+    Exit;
+
+  if V = nil then
+    Exit;
+
+  V.RowCount := M;
+  V.ColCount := N;
+
+  for I := 0 to N - 1 do
+    for J := 0 to N - 1 do
+      if I = J then
+        V.Value[I, J] := 1
+      else
+        V.Value[I, J] := 0;
+
+  for J := 0 to N - 1 do
+    V.Value[N, J] := 1;
+
+  SetLength(Arr, N);
+  for I := 0 to N - 1 do
+    Arr[I] := I + 1;
+
+  for I := N + 1 to M - 1 do
+  begin
+    for J := 0 to N - 1 do
+    begin
+      V.Value[I, J] := Arr[J];
+      Arr[J] := CnGalois2Power8Rule.Multiply(Arr[J], Arr[J]);
+    end;
+  end;
 end;
 
 end.

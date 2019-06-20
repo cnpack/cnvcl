@@ -58,4 +58,13 @@ object FormHamming: TFormHamming
     TabOrder = 4
     OnClick = btnCalc2Power8Click
   end
+  object btnGRSTest: TButton
+    Left = 192
+    Top = 112
+    Width = 145
+    Height = 25
+    Caption = 'Galios 2^8 RS Test'
+    TabOrder = 5
+    OnClick = btnGRSTestClick
+  end
 end

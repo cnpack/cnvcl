@@ -50,6 +50,8 @@ type
     btnGMinor: TButton;
     btnGAdj: TButton;
     btnGInverse: TButton;
+    btnDeleteRow: TButton;
+    btnDeleteCol: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
@@ -88,6 +90,8 @@ type
     procedure btnGMinorClick(Sender: TObject);
     procedure btnGAdjClick(Sender: TObject);
     procedure btnGInverseClick(Sender: TObject);
+    procedure btnDeleteRowClick(Sender: TObject);
+    procedure btnDeleteColClick(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
     FR1, FR2, FRR: TCnRationalMatrix;
@@ -552,6 +556,18 @@ begin
   StringGridToMatrix(StringGrid1, FG1);
   CnMatrixInverse(FG1, FG2);
   MatrixToStringGrid(FG2, StringGrid2);
+end;
+
+procedure TFormMatrix.btnDeleteRowClick(Sender: TObject);
+begin
+  FM1.DeleteRow(StringGrid1.Row);
+  MatrixToStringGrid(FM1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnDeleteColClick(Sender: TObject);
+begin
+  FM1.DeleteCol(StringGrid1.Col);
+  MatrixToStringGrid(FM1, StringGrid1);
 end;
 
 end.

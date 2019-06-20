@@ -98,6 +98,11 @@ type
     function IsSingular: Boolean;
     {* 是否奇异方阵，也就是行列式是否等于 0}
 
+    procedure DeleteRow(Row: Integer);
+    {* 删除其中一行}
+    procedure DeleteCol(Col: Integer);
+    {* 删除其中一列}
+
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
     {* 输出到字符串}
 
@@ -859,6 +864,65 @@ begin
   FRowCount := ARowCount;
   FColCount := AColCount;
   SetLength(FMatrix, FRowCount, FColCount);
+end;
+
+procedure TCnIntMatrix.DeleteCol(Col: Integer);
+var
+  T: array of array of Int64;
+  I, J, SJ, DJ: Integer;
+begin
+  if (Col >= 0) or (Col < FColCount) then
+  begin
+    // 把每 Row 的元素取出来放到临时 T 里，剔除第 Col 个
+    SetLength(T, FRowCount, FColCount - 1);
+
+    for I := 0 to FRowCount - 1 do
+    begin
+      SJ := 0;
+      DJ := 0;
+      while SJ < FColCount do
+      begin
+        if SJ = Col then
+        begin
+          Inc(SJ);
+          Continue;
+        end;
+        T[I, DJ] := FMatrix[I, SJ];
+        Inc(SJ);
+        Inc(DJ);
+      end;
+    end;
+
+    Dec(FColCount);
+    SetLength(FMatrix, FRowCount, FColCount);
+    for I := 0 to FRowCount - 1 do
+      for J := 0 to FColCount - 1 do
+        FMatrix[I, J] := T[I, J];
+
+    SetLength(T, 0);
+  end;
+end;
+
+procedure TCnIntMatrix.DeleteRow(Row: Integer);
+var
+  I, J: Integer;
+begin
+  if (Row >= 0) or (Row < FRowCount) then
+  begin
+    // 把第 Row + 1 行到 FRowCount - 1 行的一维数组朝前移动一格，末行时无需移
+    if Row < FRowCount - 1 then
+    begin
+      for I := Row + 1 to FRowCount - 1 do
+      begin
+        for J := 0 to FColCount - 1 do
+        begin
+          FMatrix[I - 1, J] := FMatrix[I, J];
+        end;
+      end;
+    end;
+    Dec(FRowCount);
+    SetLength(FMatrix, FRowCount, FColCount);
+  end;
 end;
 
 destructor TCnIntMatrix.Destroy;
