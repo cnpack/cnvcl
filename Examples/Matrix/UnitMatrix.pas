@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Grids, CnMatrix, Buttons, ComCtrls;
+  StdCtrls, Grids, CnMatrix, CnFEC, Buttons, ComCtrls;
 
 type
   TFormMatrix = class(TForm)
@@ -39,6 +39,17 @@ type
     btnInverse: TButton;
     btnRational: TButton;
     btnRCalc2: TButton;
+    btnEqualG: TSpeedButton;
+    grpGalios: TGroupBox;
+    btnGTranspose: TButton;
+    btnGTrace: TButton;
+    btnGSetE: TButton;
+    btnGSetZero: TButton;
+    btnGDeterminant: TButton;
+    btnGDump: TButton;
+    btnGMinor: TButton;
+    btnGAdj: TButton;
+    btnGInverse: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
@@ -67,9 +78,20 @@ type
     procedure btnREquClick(Sender: TObject);
     procedure btnRationalClick(Sender: TObject);
     procedure btnRCalc2Click(Sender: TObject);
+    procedure btnEqualGClick(Sender: TObject);
+    procedure btnGTransposeClick(Sender: TObject);
+    procedure btnGTraceClick(Sender: TObject);
+    procedure btnGSetEClick(Sender: TObject);
+    procedure btnGSetZeroClick(Sender: TObject);
+    procedure btnGDeterminantClick(Sender: TObject);
+    procedure btnGDumpClick(Sender: TObject);
+    procedure btnGMinorClick(Sender: TObject);
+    procedure btnGAdjClick(Sender: TObject);
+    procedure btnGInverseClick(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
     FR1, FR2, FRR: TCnRationalMatrix;
+    FG1, FG2, FGR: TCnGalois2Power8Matrix;
   public
     procedure RandMatrix(Matrix: TCnIntMatrix);
     procedure StringGridToMatrix(Grid: TStringGrid; Matrix: TCnIntMatrix); overload;
@@ -95,11 +117,18 @@ begin
   FR2 := TCnRationalMatrix.Create(StringGrid1.RowCount, StringGrid1.ColCount);
   FRR := TCnRationalMatrix.Create(1, 1);
 
+  FG1 := TCnGalois2Power8Matrix.Create(StringGrid1.RowCount, StringGrid1.ColCount);
+  FG2 := TCnGalois2Power8Matrix.Create(StringGrid1.RowCount, StringGrid1.ColCount);
+  FGR := TCnGalois2Power8Matrix.Create(1, 1);
+
   Randomize;
   RandMatrix(FM1);
   RandMatrix(FM2);
   CnIntToRationalMatrix(FM1, FR1);
   CnIntToRationalMatrix(FM2, FR2);
+
+  FG1.Assign(FM1);
+  FG2.Assign(FM2);
 
   MatrixToStringGrid(FM1, StringGrid1);
   MatrixToStringGrid(FM2, StringGrid2);
@@ -120,6 +149,9 @@ begin
   FM1.Free;
   FM2.Free;
   FMR.Free;
+  FG1.Free;
+  FG2.Free;
+  FGR.Free;
 end;
 
 procedure TFormMatrix.MatrixToStringGrid(Matrix: TCnIntMatrix;
@@ -174,6 +206,8 @@ begin
   RandMatrix(FM2);
   CnIntToRationalMatrix(FM1, FR1);
   CnIntToRationalMatrix(FM2, FR2);
+  FG1.Assign(FM1);
+  FG2.Assign(FM2);
   MatrixToStringGrid(FM1, StringGrid1);
   MatrixToStringGrid(FM2, StringGrid2);
 end;
@@ -449,6 +483,75 @@ begin
   X.Free;
   Y.Free;
   S.Free;
+end;
+
+procedure TFormMatrix.btnEqualGClick(Sender: TObject);
+begin
+  CnMatrixMul(FG1, FG2, FGR);
+  MatrixToStringGrid(FGR, StringGridR);
+end;
+
+procedure TFormMatrix.btnGTransposeClick(Sender: TObject);
+begin
+  CnMatrixTranspose(FG1, FGR);
+  MatrixToStringGrid(FGR, StringGridR);
+end;
+
+procedure TFormMatrix.btnGTraceClick(Sender: TObject);
+begin
+  ShowMessage(IntToStr(FG1.Trace));
+end;
+
+procedure TFormMatrix.btnGSetEClick(Sender: TObject);
+begin
+  FG1.SetE(FG1.RowCount);
+  MatrixToStringGrid(FG1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnGSetZeroClick(Sender: TObject);
+begin
+  FG1.SetZero;
+  MatrixToStringGrid(FG1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnGDeterminantClick(Sender: TObject);
+begin
+  StringGridToMatrix(StringGrid1, FG1);
+  ShowMessage(IntToStr(FG1.Determinant));
+end;
+
+procedure TFormMatrix.btnGDumpClick(Sender: TObject);
+var
+  List: TStrings;
+begin
+  List := TStringList.Create;
+  FM1.DumpToStrings(List);
+  ShowMessage(List.Text);
+  List.Free;
+end;
+
+procedure TFormMatrix.btnGMinorClick(Sender: TObject);
+var
+  M: TCnGalois2Power8Matrix;
+begin
+  M := TCnGalois2Power8Matrix.Create(1, 1);
+  CnMatrixMinor(FG1, StringGrid1.Row, StringGrid1.Col, M);
+  MatrixToStringGrid(M, StringGridR);
+  M.Free;
+end;
+
+procedure TFormMatrix.btnGAdjClick(Sender: TObject);
+begin
+  StringGridToMatrix(StringGrid1, FG1);
+  CnMatrixAdjoint(FG1, FG2);
+  MatrixToStringGrid(FG2, StringGrid2);
+end;
+
+procedure TFormMatrix.btnGInverseClick(Sender: TObject);
+begin
+  StringGridToMatrix(StringGrid1, FG1);
+  CnMatrixInverse(FG1, FG2);
+  MatrixToStringGrid(FG2, StringGrid2);
 end;
 
 end.

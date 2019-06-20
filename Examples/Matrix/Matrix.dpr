@@ -3,7 +3,8 @@ program Matrix;
 uses
   Forms,
   UnitMatrix in 'UnitMatrix.pas' {FormMatrix},
-  CnMatrix in '..\..\Source\Common\CnMatrix.pas';
+  CnMatrix in '..\..\Source\Common\CnMatrix.pas',
+  CnFEC in '..\..\Source\Common\CnFEC.pas';
 
 {$R *.RES}
 

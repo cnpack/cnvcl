@@ -45,6 +45,21 @@ object FormMatrix: TFormMatrix
     ParentFont = False
     OnClick = btnREquClick
   end
+  object btnEqualG: TSpeedButton
+    Left = 720
+    Top = 176
+    Width = 23
+    Height = 22
+    Caption = '='
+    Flat = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -24
+    Font.Name = 'MS Sans Serif'
+    Font.Style = []
+    ParentFont = False
+    OnClick = btnEqualGClick
+  end
   object StringGrid1: TStringGrid
     Left = 24
     Top = 32
@@ -144,7 +159,7 @@ object FormMatrix: TFormMatrix
     OnClick = udCol2Click
   end
   object grpInt: TGroupBox
-    Left = 80
+    Left = 56
     Top = 232
     Width = 273
     Height = 281
@@ -224,7 +239,7 @@ object FormMatrix: TFormMatrix
     end
   end
   object grpRational: TGroupBox
-    Left = 496
+    Left = 376
     Top = 232
     Width = 305
     Height = 281
@@ -313,7 +328,7 @@ object FormMatrix: TFormMatrix
     end
   end
   object btnRational: TButton
-    Left = 832
+    Left = 696
     Top = 240
     Width = 75
     Height = 25
@@ -322,12 +337,101 @@ object FormMatrix: TFormMatrix
     OnClick = btnRationalClick
   end
   object btnRCalc2: TButton
-    Left = 928
-    Top = 240
+    Left = 696
+    Top = 280
     Width = 75
     Height = 25
     Caption = 'Rational Calc2'
     TabOrder = 11
     OnClick = btnRCalc2Click
+  end
+  object grpGalios: TGroupBox
+    Left = 784
+    Top = 232
+    Width = 289
+    Height = 281
+    Caption = 'Galios 2^8 Matrix'
+    TabOrder = 12
+    object btnGTranspose: TButton
+      Left = 32
+      Top = 32
+      Width = 75
+      Height = 25
+      Caption = 'Transpose'
+      TabOrder = 0
+      OnClick = btnGTransposeClick
+    end
+    object btnGTrace: TButton
+      Left = 152
+      Top = 32
+      Width = 75
+      Height = 25
+      Caption = 'Trace'
+      TabOrder = 1
+      OnClick = btnGTraceClick
+    end
+    object btnGSetE: TButton
+      Left = 32
+      Top = 80
+      Width = 75
+      Height = 25
+      Caption = 'Set to E'
+      TabOrder = 2
+      OnClick = btnGSetEClick
+    end
+    object btnGSetZero: TButton
+      Left = 152
+      Top = 80
+      Width = 75
+      Height = 25
+      Caption = 'Set to Zero'
+      TabOrder = 3
+      OnClick = btnGSetZeroClick
+    end
+    object btnGDeterminant: TButton
+      Left = 32
+      Top = 128
+      Width = 75
+      Height = 25
+      Caption = 'Deteminant'
+      TabOrder = 4
+      OnClick = btnGDeterminantClick
+    end
+    object btnGDump: TButton
+      Left = 152
+      Top = 128
+      Width = 75
+      Height = 25
+      Caption = 'Dump'
+      TabOrder = 5
+      OnClick = btnGDumpClick
+    end
+    object btnGMinor: TButton
+      Left = 32
+      Top = 176
+      Width = 75
+      Height = 25
+      Caption = 'Minor'
+      TabOrder = 6
+      OnClick = btnGMinorClick
+    end
+    object btnGAdj: TButton
+      Left = 152
+      Top = 176
+      Width = 75
+      Height = 25
+      Caption = 'Adjoint'
+      TabOrder = 7
+      OnClick = btnGAdjClick
+    end
+    object btnGInverse: TButton
+      Left = 32
+      Top = 224
+      Width = 75
+      Height = 25
+      Caption = 'Inverse'
+      TabOrder = 8
+      OnClick = btnGInverseClick
+    end
   end
 end

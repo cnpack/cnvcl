@@ -28,7 +28,9 @@ unit CnFEC;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.05.28 V1.0
+* 修改记录：2019.06.20 V1.1
+*               实现伽罗华 2^8 矩阵的运算
+*           2019.05.28 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -76,11 +78,16 @@ type
   {* 伽罗华域 GP(2^8) 里的多项式矩阵}
   protected
     procedure SetValue(Row, Col: Integer; const Value: Int64); override;
+    function NegativeOnePower(N: Integer): Integer; override;
+    // 行列式计算中的加减替换动作因为加减均为异或，因此恒定返回 1
   public
     function OperationAdd(X, Y: Int64): Int64; override;
     function OperationSub(X, Y: Int64): Int64; override;
     function OperationMul(X, Y: Int64): Int64; override;
-    function OperationDiv(X, Y: Int64): Int64; virtual;
+    function OperationDiv(X, Y: Int64): Int64; override;
+
+    function Determinant: Int64; override;
+    procedure Divide(Factor: Int64); override;
   end;
 
 procedure CnCalcHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8);
@@ -92,9 +99,6 @@ procedure CnVerifyHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8
 function CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount: Integer): Integer;
 {* 根据 Hamming 分组的 bit 长度计算校验 bit 的长度}
 
-function CnGalois2Power8Rule: TCnCalculationRule;
-{* 返回全局的 GP(2^8) 的运算规则}
-
 implementation
 
 const
@@ -104,6 +108,7 @@ const
 var
   FGalois2Power8Rule: TCnCalculationRule = nil;
 
+{* 返回全局的 GP(2^8) 的运算规则}
 function CnGalois2Power8Rule: TCnCalculationRule;
 begin
   if FGalois2Power8Rule = nil then
@@ -395,6 +400,29 @@ begin
 end;
 
 { TCnGalois2Power8Matrix }
+
+function TCnGalois2Power8Matrix.Determinant: Int64;
+begin
+  Result := inherited Determinant;
+  if Result < 0 then
+    Inc(Result, GALOIS2POWER8_LIMIT)
+  else
+    Result := Result mod GALOIS2POWER8_LIMIT;
+end;
+
+procedure TCnGalois2Power8Matrix.Divide(Factor: Int64);
+var
+  I, J: Integer;
+begin
+  for I := 0 to RowCount - 1 do
+    for J := 0 to ColCount - 1 do
+      Value[I, J] := OperationDiv(Value[I, J], Factor);
+end;
+
+function TCnGalois2Power8Matrix.NegativeOnePower(N: Integer): Integer;
+begin
+  Result := 1;
+end;
 
 function TCnGalois2Power8Matrix.OperationAdd(X, Y: Int64): Int64;
 begin

@@ -59,26 +59,31 @@ type
 
     function Add3(X, Y, Z: Int64): Int64; virtual;
     function Mul3(X, Y, Z: Int64): Int64; virtual;
+    function NegativeOnePower(N: Integer): Integer; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     destructor Destroy; override;
 
+    // 供子类重载实现自定义的加减乘除操作，基类因为是整数，没有除操作
     function OperationAdd(X, Y: Int64): Int64; virtual;
     function OperationSub(X, Y: Int64): Int64; virtual;
     function OperationMul(X, Y: Int64): Int64; virtual;
+    function OperationDiv(X, Y: Int64): Int64; virtual;
 
     procedure Mul(Factor: Int64);
     {* 矩阵各元素乘以一个常数}
     procedure Add(Factor: Int64);
     {* 矩阵各元素加上一个常数}
+    procedure Divide(Factor: Int64); virtual;
+    {* 矩阵各元素除以一个常数，基类因为是整数，未实现除法}
 
     procedure SetE(Size: Integer);
     {* 设置为 Size 阶单位矩阵}
     procedure SetZero;
     {* 设置为全 0 矩阵}
 
-    function Determinant: Int64;
+    function Determinant: Int64; virtual;
     {* 求方阵行列式值}
     function Trace: Int64;
     {* 求方阵的迹，也就是对角线元素的和}
@@ -291,6 +296,10 @@ procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TC
 procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnIntMatrix); overload;
 {* 求方阵的伴随阵}
 
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix); overload;
+{* 求方阵的逆矩阵，也就是伴随阵除以行列式，注意 TCnIntMatrix 不直接支持逆矩阵，
+  因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵}
+
 // =========================== 有理数矩阵运算方法 ==============================
 
 procedure CnIntToRationalMatrix(Int: TCnIntMatrix; Rational: TCnRationalMatrix);
@@ -320,7 +329,7 @@ procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row, Col: Integer; MinorResul
 procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnRationalMatrix); overload;
 {* 求方阵的伴随阵}
 
-procedure CnMatrixInverse(Matrix1, Matrix2: TCnRationalMatrix);
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnRationalMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式，需要有理数矩阵来表示}
 
 // ============================== 有理数运算方法 ===============================
@@ -355,7 +364,7 @@ begin
 end;
 
 // 计算 -1 的 N 次方，供求代数余子式用
-function NegativeOnePower(N: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function InternalNegativeOnePower(N: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (N and 1) * (-2) + 1;
 end;
@@ -729,14 +738,16 @@ begin
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
 
-  Minor := TCnIntMatrix.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1);
+  Minor := TCnIntMatrix(Matrix1.ClassType.NewInstance);
+  Minor.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1); // 用子类实现
+
   try
     for I := 0 to Matrix1.RowCount - 1 do
     begin
       for J := 0 to Matrix2.ColCount - 1 do
       begin
         CnMatrixMinor(Matrix1, I, J, Minor);
-        Matrix2.Value[I, J] := NegativeOnePower(I + J) * Minor.Determinant;
+        Matrix2.Value[I, J] := Matrix1.NegativeOnePower(I + J) * Minor.Determinant;
       end;
     end;
     CnMatrixTranspose(Matrix2, Matrix2);
@@ -766,7 +777,7 @@ begin
       begin
         CnMatrixMinor(Matrix1, I, J, Minor);
         Minor.Determinant(T);
-        T.Mul(NegativeOnePower(I + J));
+        T.Mul(InternalNegativeOnePower(I + J));
         Matrix2.Value[I, J] := T;
       end;
     end;
@@ -775,6 +786,18 @@ begin
     T.Free;
     Minor.Free;
   end;
+end;
+
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix);
+var
+  D: Int64;
+begin
+  D := Matrix1.Determinant;
+  if D = 0 then
+    raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
+
+  CnMatrixAdjoint(Matrix1, Matrix2);
+  Matrix2.Divide(D);
 end;
 
 procedure CnMatrixInverse(Matrix1, Matrix2: TCnRationalMatrix);
@@ -869,7 +892,10 @@ begin
   begin
     // 利用代数余子式 Minor/Cofactor 计算高阶行列式
     Result := 0;
-    Minor := TCnIntMatrix.Create(FRowCount - 1, FColCount - 1);
+    Minor := TCnIntMatrix(ClassType.NewInstance); // 需要用子类进行统一的运算
+    Minor.Create(FRowCount - 1, FColCount - 1);
+
+    // Minor := Self.clas TCnIntMatrix.Create(FRowCount - 1, FColCount - 1);
     try
       for I := 0 to FColCount - 1 do
       begin
@@ -880,6 +906,11 @@ begin
       Minor.Free;
     end;
   end;
+end;
+
+procedure TCnIntMatrix.Divide(Factor: Int64);
+begin
+  raise ECnMatrixException.Create('Divide NOT Implemented in Int Matrix.');
 end;
 
 procedure TCnIntMatrix.DumpToStrings(List: TStrings; Sep: Char = ' ');
@@ -1008,9 +1039,19 @@ begin
   Result := OperationMul(OperationMul(X, Y), Z);
 end;
 
+function TCnIntMatrix.NegativeOnePower(N: Integer): Integer;
+begin
+  Result := InternalNegativeOnePower(N);
+end;
+
 function TCnIntMatrix.OperationAdd(X, Y: Int64): Int64;
 begin
   Result := X + Y;
+end;
+
+function TCnIntMatrix.OperationDiv(X, Y: Int64): Int64;
+begin
+  raise ECnMatrixException.Create('Operation Div NOT Implemented in Int Matrix.');
 end;
 
 function TCnIntMatrix.OperationMul(X, Y: Int64): Int64;
@@ -1681,7 +1722,7 @@ begin
         CnMatrixMinor(Self, 0, I, Minor);
 
         Minor.Determinant(T);
-        T.Mul(NegativeOnePower(I));
+        T.Mul(InternalNegativeOnePower(I));
         T.Mul(Value[0, I]);
         D.Add(T);
         // Result := Result + (FMatrix[0, I] * NegativeOnePower(I)* Minor.Determinant));
