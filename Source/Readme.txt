@@ -77,6 +77,9 @@ cnpack\Source 目录内容说明：
   CnEventHook.pas
     事件挂接的实现单元
 
+  CnFEC.pas
+    前向纠错编码解码单元的部分实现
+
   CnFitCurve.pas
     曲线拟合实现单元
 
@@ -112,6 +115,9 @@ cnpack\Source 目录内容说明：
 
   CnLinkedList.pas
     双向链表实现单元
+
+  CnMatrix.pas
+    整数以及有理数矩阵运算的实现单元
 
   CnMD5.pas
     MD5 算法单元
