@@ -2,7 +2,7 @@ object CnTreeTestForm: TCnTreeTestForm
   Left = 27
   Top = 129
   Width = 928
-  Height = 500
+  Height = 563
   Caption = 'CnTree Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object CnTreeTestForm: TCnTreeTestForm
     Left = 16
     Top = 24
     Width = 273
-    Height = 433
+    Height = 497
     Indent = 19
     TabOrder = 0
     Items.Data = {
@@ -245,6 +245,68 @@ object CnTreeTestForm: TCnTreeTestForm
       Height = 17
       Caption = 'Case Sensitive'
       TabOrder = 6
+    end
+  end
+  object grpBSort: TGroupBox
+    Left = 680
+    Top = 288
+    Width = 185
+    Height = 233
+    Caption = 'Binary Sort Tree'
+    TabOrder = 4
+    object btnInit: TButton
+      Left = 16
+      Top = 24
+      Width = 145
+      Height = 25
+      Caption = 'Init Binary Sort Tree'
+      TabOrder = 0
+      OnClick = btnInitClick
+    end
+    object btnBSSearchSelected: TButton
+      Left = 16
+      Top = 64
+      Width = 145
+      Height = 25
+      Caption = 'Search Selected'
+      TabOrder = 1
+      OnClick = btnBSSearchSelectedClick
+    end
+    object btnBSDelete: TButton
+      Left = 16
+      Top = 104
+      Width = 145
+      Height = 25
+      Caption = 'Delete Selected'
+      TabOrder = 2
+      OnClick = btnBSDeleteClick
+    end
+    object btnBSInOrderTravel: TButton
+      Left = 16
+      Top = 144
+      Width = 145
+      Height = 25
+      Caption = 'InOrder Travel'
+      TabOrder = 3
+      OnClick = btnBSInOrderTravelClick
+    end
+    object btnBSPrev: TButton
+      Left = 16
+      Top = 184
+      Width = 73
+      Height = 25
+      Caption = 'Prev Select'
+      TabOrder = 4
+      OnClick = btnBSPrevClick
+    end
+    object btnBSNext: TButton
+      Left = 96
+      Top = 184
+      Width = 67
+      Height = 25
+      Caption = 'Next Select'
+      TabOrder = 5
+      OnClick = btnBSNextClick
     end
   end
 end
