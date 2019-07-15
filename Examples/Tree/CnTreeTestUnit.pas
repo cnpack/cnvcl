@@ -40,6 +40,8 @@ type
     btnBSInOrderTravel: TButton;
     btnBSPrev: TButton;
     btnBSNext: TButton;
+    btnShowTreeGraph: TButton;
+    btnShowBTree: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -66,6 +68,8 @@ type
     procedure btnBSInOrderTravelClick(Sender: TObject);
     procedure btnBSPrevClick(Sender: TObject);
     procedure btnBSNextClick(Sender: TObject);
+    procedure btnShowTreeGraphClick(Sender: TObject);
+    procedure btnShowBTreeClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
@@ -78,6 +82,8 @@ type
     procedure TreePreOrderTrav(Sender: TObject);
     procedure TreeInOrderTrav(Sender: TObject);
     procedure TreePostOrderTrav(Sender: TObject);
+
+    procedure DrawLeaf(Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer; Leaf: TCnBinaryLeaf);
   public
     { Public declarations }
   end;
@@ -86,6 +92,9 @@ var
   CnTreeTestForm: TCnTreeTestForm;
 
 implementation
+
+uses
+  UnitBinaryTree;
 
 {$R *.DFM}
 
@@ -747,6 +756,37 @@ begin
       ShowMessage('Next is ' + IntToStr(Leaf.Data));
     end;
   end
+end;
+
+procedure TCnTreeTestForm.btnShowTreeGraphClick(Sender: TObject);
+begin
+  if FormBinaryTree = nil then
+  begin
+    FormBinaryTree := TFormBinaryTree.Create(Application);
+    FormBinaryTree.OnDrawLeaf := DrawLeaf;
+  end;
+  FormBinaryTree.TreeRef := FBSTree;
+  FormBinaryTree.Show;
+end;
+
+procedure TCnTreeTestForm.btnShowBTreeClick(Sender: TObject);
+begin
+  if FormBinaryTree = nil then
+  begin
+    FormBinaryTree := TFormBinaryTree.Create(Application);
+    FormBinaryTree.OnDrawLeaf := DrawLeaf;
+  end;
+  FormBinaryTree.TreeRef := FBinaryTree;
+  FormBinaryTree.Show;
+end;
+
+procedure TCnTreeTestForm.DrawLeaf(Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer;
+  Leaf: TCnBinaryLeaf);
+begin
+  if Tree = FBSTree then
+    ACanvas.TextOut(X - 5, Y - 5, IntToStr(Leaf.Data))
+  else
+    ACanvas.TextOut(X - 5, Y - 5, Leaf.Text);
 end;
 
 end.
