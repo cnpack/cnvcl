@@ -1897,7 +1897,7 @@ const
 begin
   if Length(S) < Length(UTF8_BOM) then
     Result := S
-  else if Pos(UTF8_BOM, S) = 1 then
+  else if StrLComp(PAnsiChar(UTF8_BOM), PAnsiChar(S), Length(UTF8_BOM)) = 0 then
     Result := Copy(S, Length(UTF8_BOM) + 1, MaxInt)
   else
     Result := S;
