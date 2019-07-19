@@ -488,10 +488,10 @@ begin
       if FindFirst(ASearchPath, faDirectory, Sr) = 0 then
       begin
         repeat
-          if (Sr.Name = '.') or (Sr.Name = '..') or not DirectoryExists(ActualPath + Sr.Name) then
+          if (Sr.Name = '.') or (Sr.Name = '..') or (Sr.Attr and faDirectory = 0) then
             Continue;
 
-          AFileName := ActualPath + Sr.Name + '\' + _CnChangeFileExt(FFileName, GetLanguageFileExt);;
+          AFileName := ActualPath + Sr.Name + '\' + _CnChangeFileExt(FFileName, GetLanguageFileExt);
 
           if FileExists(AFileName) and IsLanguageFile(AFileName) then
             InitFromAFile(AFileName);
