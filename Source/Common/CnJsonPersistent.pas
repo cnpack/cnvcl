@@ -305,7 +305,10 @@ var
   Obj: TObject;
   FieldName: string;
   NewClassName: string;
+  S: string;
   WS: WideString;
+  AC: AnsiChar;
+  WC: WideChar;
   Attr: TCustomAttribute;
   Ps: Boolean;
   i: Integer;
@@ -364,6 +367,28 @@ begin
                 Log(Format('SetFloatValue: %f', [AJson.F[FieldName]]));
                 Field.SetValue(Self, AJson.F[FieldName]);
               end;
+            tkChar, tkWChar:
+              begin
+                S := AJson.S[FieldName];
+                Log(Format('SetCharValue: %s', [S]));
+                if Field.FieldType.TypeKind = tkChar then
+                begin
+                  if S <> '' then
+                    AC := AnsiChar(S[1])
+                  else
+                    AC := #0;
+                  TValue.Make(@AC, TypeInfo(AnsiChar), V);
+                end
+                else
+                begin
+                  if S <> '' then
+                    WC := WideChar(S[1])
+                  else
+                    WC := #0;
+                  TValue.Make(@WC, TypeInfo(WideChar), V);
+                end;
+                Field.SetValue(Self, V);
+              end;
             tkString, tkLString, tkUString:
               begin
                 Log(Format('SetStringValue: %s', [AJson.S[FieldName]]));
@@ -381,7 +406,7 @@ begin
               begin
                 if SameText(Field.FieldType.Name, 'Boolean') then
                 begin
-                  Field.SetValue(Self, Field.GetValue(Self));
+                  Field.SetValue(Self, AJson.B[FieldName]);
                 end
                 else if SameText(Field.FieldType.Name, 'ByteBool') or
                   SameText(Field.FieldType.Name, 'WordBool') or
@@ -624,6 +649,10 @@ begin
           tkFloat:
             begin
               AJson.F[FieldName] := Field.GetValue(Self).AsExtended;
+            end;
+          tkChar, tkWChar:
+            begin
+              AJson.S[FieldName] := Field.GetValue(Self).AsString;
             end;
           tkString, tkLString, tkWString, tkUString:
             begin
