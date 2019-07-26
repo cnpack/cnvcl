@@ -22,13 +22,15 @@ unit CnCRC32;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：CRC32循环冗余校验单元
+* 单元名称：CRC32/CRC64 循环冗余校验单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2015.06.12 V1.4
+* 修改记录：2019.04.15 V1.5
+*               支持 Win32/Win64/MacOS
+*           2015.06.12 V1.4
 *               把汇编改写为 Pascal 以适应 64 位编译器
 *           2009.08.21 V1.3
 *               增加 CRC64 的支持
@@ -46,12 +48,12 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
-function CalcCRC32Byte(OrgCRC32: DWORD; B: Byte): DWORD;
+function CalcCRC32Byte(OrgCRC32: LongWord; B: Byte): LongWord;
 {* CRC32 计算单个字节，供特殊需求使用}
 
-function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
+function CRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWord;
 {* 计算 CRC32 值
  |<PRE>
    OrgCRC32: DWORD  - 起始 CRC32 值，默认可传 0
@@ -60,13 +62,13 @@ function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
    Result: DWORD    - 返回 CRC32 计算结果
  |</PRE>}
 
-function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
+function StrCRC32(const OrgCRC32: LongWord; const Text: string): LongWord;
 {* 计算字符串的 CRC32 值 }
 
-function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
+function StrCRC32A(const OrgCRC32: LongWord; const Text: AnsiString): LongWord;
 {* 计算 AnsiString 字符串的 CRC32 值 }
 
-function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
+function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 {* 计算文件 CRC32 值，支持超过 4G 的大文件
  |<PRE>
@@ -77,7 +79,7 @@ function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
    Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
  |</PRE>}
 
-function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
+function CRC64Calc(const OrgCRC64: Int64; const Data; Len: LongWord): Int64;
 {* 计算 CRC64 值
  |<PRE>
    OrgCRC64: Int64  - 起始 CRC64 值，默认可传 0
@@ -104,7 +106,7 @@ function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
  |</PRE>}
 
 function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord): DWORD;
+  Length: LongWord): LongWord;
 
 function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   Length: LongWord): Int64;
@@ -129,7 +131,7 @@ type
   TBuff = array[0..csBuff_Size - 1] of Byte;
 
   // CRC32 表
-  TCRC32Table = array[0..255] of DWORD;
+  TCRC32Table = array[0..255] of LongWord;
 
   // CRC64 表
   TCRC64Table = array[0..255] of Int64;
@@ -201,7 +203,7 @@ var
     $B3667A2E, $C4614AB8, $5D681B02, $2A6F2B94,
     $B40BBE37, $C30C8EA1, $5A05DF1B, $2D02EF8D
   );
-  
+
   CRC64Table: TCRC64Table;
 
 // 生成 CRC32 表，现用常量直接代替
@@ -236,13 +238,13 @@ var
 //        RET
 //end;
 
-function CalcCRC32Byte(OrgCRC32: DWORD; B: Byte): DWORD;
+function CalcCRC32Byte(OrgCRC32: LongWord; B: Byte): LongWord;
 begin
   Result := ((OrgCRC32 shr 8) and $FFFFFF) xor CRC32Table[(OrgCRC32 and $FF) xor B];
 end;
 
 // 计算 CRC32 值
-function DoCRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
+function DoCRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWord;
 var
   P: PByte;
 begin
@@ -281,7 +283,7 @@ end;
 //end;
 
 // 计算 CRC32 值
-function CRC32Calc(const OrgCRC32: DWORD; const Data; Len: DWORD): DWORD;
+function CRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWord;
 begin
   Result := not OrgCRC32;
   Result := DoCRC32Calc(Result, Data, Len);
@@ -289,27 +291,73 @@ begin
 end;
 
 // 计算字符串的 CRC32 值
-function StrCRC32(const OrgCRC32: DWORD; const Text: string): DWORD;
+function StrCRC32(const OrgCRC32: LongWord; const Text: string): LongWord;
 begin
   Result := CRC32Calc(OrgCRC32, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的 CRC32 值
-function StrCRC32A(const OrgCRC32: DWORD; const Text: AnsiString): DWORD;
+function StrCRC32A(const OrgCRC32: LongWord; const Text: AnsiString): LongWord;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
 
+function InternalCRC32Stream(Stream: TStream; const BufSize: Cardinal;
+  var CRC: LongWord): Boolean;
+var
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+begin
+  Result := False;
+  Size := Stream.Size;
+  if Size = 0 then
+    Exit;
+
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
+
+  GetMem(Buf, BufLen);
+  try
+    Stream.Seek(0, soFromBeginning);
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        CRC := DoCrc32Calc(CRC, Buf^, ReadBytes);
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
+end;
+
 // 计算文件 CRC 值，参数分别为：文件名、CRC 值、起始地址、计算长度
-function FileCRC32(const FileName: string; var CRC: DWORD; StartPos: Int64 = 0;
+function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 var
+{$IFDEF MSWINDOWS}
   Handle: THandle;
   ReadCount: Integer;
   Size: Int64;
   Count: Int64;
   Buff: TBuff;
+{$ELSE}
+  Stream: TStream;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   // 以共享读方式打开文件
   Handle := CreateFile(PChar(FileName), GENERIC_READ,
     FILE_SHARE_READ, nil, OPEN_EXISTING,
@@ -344,6 +392,14 @@ begin
   finally
     CloseHandle(Handle);
   end;
+{$ELSE} // 非 Windows 平台直接用文件流
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := InternalCRC32Stream(Stream, 4096 * 1024, CRC);
+  finally
+    Stream.Free;
+  end;
+{$ENDIF}
 end;
 
 procedure Make_CRC64Table;
@@ -360,30 +416,32 @@ begin
         Data := Data shr 1 xor csCRC64
       else
         Data := Data shr 1;
-      
-      CRC64Table[I] := Data;   
+
+      CRC64Table[I] := Data;
     end;
   end;
 end;
 
-function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
+function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: LongWord): Int64;
 var
   I: Integer;
-  DataAddr: PByte;
+  P: PByte;
 begin
-  DataAddr := @Data;
   Result := OrgCRC64;
-  
+  if (@Data = nil) or (Len = 0) then
+    Exit;
+
+  P := @Data;
   for I := 0 to Len - 1 do
   begin
-    Result := Result shr 8 xor 
-      CRC64Table[Cardinal(Result) and $FF xor DataAddr^]; 
-    Inc(DataAddr);   
+    Result := Result shr 8 xor
+      CRC64Table[Cardinal(Result) and $FF xor P^];
+    Inc(P);
   end;
 end;
 
 // 计算 CRC64 值
-function CRC64Calc(const OrgCRC64: Int64; const Data; Len: DWORD): Int64;
+function CRC64Calc(const OrgCRC64: Int64; const Data; Len: LongWord): Int64;
 begin
   Result := not OrgCRC64;
   Result := DoCRC64Calc(Result, Data, Len);
@@ -402,16 +460,62 @@ begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Text)^, Length(Text));
 end;
 
+function InternalCRC64Stream(Stream: TStream; const BufSize: Cardinal;
+  var CRC: Int64): Boolean;
+var
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+begin
+  Result := False;
+  Size := Stream.Size;
+  if Size = 0 then
+    Exit;
+
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
+
+  GetMem(Buf, BufLen);
+  try
+    Stream.Seek(0, soFromBeginning);
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        CRC := DoCrc64Calc(CRC, Buf^, ReadBytes);
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
+end;
+
 // 计算文件 CRC64 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 var
+{$IFDEF MSWINDOWS}
   Handle: THandle;
   ReadCount: Integer;
   Size: Int64;
   Count: Int64;
   Buff: TBuff;
+{$ELSE}
+  Stream: TStream;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   // 以共享读方式打开文件
   Handle := CreateFile(PChar(FileName), GENERIC_READ,
     FILE_SHARE_READ, nil, OPEN_EXISTING,
@@ -446,18 +550,27 @@ begin
   finally
     CloseHandle(Handle);
   end;
+{$ELSE}
+  // 非 Windows 平台直接用文件流
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := InternalCRC64Stream(Stream, 4096 * 1024, CRC);
+  finally
+    Stream.Free;
+  end;
+{$ENDIF}
 end;
 
 function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord): DWORD;
+  Length: LongWord): LongWord;
 var
   I: Integer;
   Ipad, Opad: array[0..3] of Byte;
-  Sum, Res: DWORD;
+  Sum, Res: LongWord;
 begin
   if KeyLength > HMAC_CRC32_BLOCK_SIZE_BYTE then
   begin
-    Sum := CRC32Calc(0, Key, KeyLength);
+    Sum := CRC32Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC32_OUTPUT_LENGTH_BYTE;
     Key := @Sum;
   end;
@@ -473,7 +586,7 @@ begin
 
   Res := $FFFFFFFF;
   Res := DoCRC32Calc(Res, Ipad[0], HMAC_CRC32_BLOCK_SIZE_BYTE);
-  Res := DoCRC32Calc(Res, Input, Length);
+  Res := DoCRC32Calc(Res, Input^, Length);
   Res := not Res;
 
   Result := $FFFFFFFF;
@@ -491,14 +604,14 @@ var
 begin
   if KeyLength > HMAC_CRC64_BLOCK_SIZE_BYTE then
   begin
-    Sum := CRC64Calc(0, Key, KeyLength);
+    Sum := CRC64Calc(0, Key^, KeyLength);
     KeyLength := HMAC_CRC64_OUTPUT_LENGTH_BYTE;
     Key := @Sum;
   end;
 
   FillChar(Ipad, HMAC_CRC64_BLOCK_SIZE_BYTE, $36);
   FillChar(Opad, HMAC_CRC64_BLOCK_SIZE_BYTE, $5C);
-  
+
   for I := 0 to KeyLength - 1 do
   begin
     Ipad[I] := Byte(Ipad[I] xor Byte(Key[I]));
@@ -507,7 +620,7 @@ begin
 
   Res := $FFFFFFFF;
   Res := DoCRC64Calc(Res, Ipad[0], HMAC_CRC64_BLOCK_SIZE_BYTE);
-  Res := DoCRC64Calc(Res, Input, Length);
+  Res := DoCRC64Calc(Res, Input^, Length);
   Res := not Res;
 
   Result := $FFFFFFFF;

@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.06.15 V1.5
+* 修改记录：2019.04.19 V1.6
+*               支持 Win32/Win64/MacOS
+*           2018.06.15 V1.5
 *               支持文件签名与验证，类似于 Openssl 中的用法，有原始签名与散列签名两类：
 *               openssl rsautl -sign -in hello -inkey rsa.pem -out hello.default.sign.openssl
 *               // 私钥原始签名，直接把文件内容补齐后用私钥加密并存储，等同于加密，对应 CnRSASignFile 指定 sdtNone
@@ -76,8 +78,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnPrimeNumber, CnBigNumber, CnBase64, CnBerUtils,
-  CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnPrimeNumber, CnBigNumber,
+  CnBase64, CnBerUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
@@ -971,7 +973,8 @@ begin
 
   P := GetMemory(C);
   D := C - Num.GetBytesCount;
-  ZeroMemory(P, D);
+
+  FillChar(P^, D, 0);
   Num.ToBinary(PAnsiChar(Integer(P) + D));
 
   Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
@@ -1510,7 +1513,7 @@ begin
 
   if Start > 0 then
   begin
-    CopyMemory(OutBuf, @P[Start], InDataLen - Start);
+    Move(P[Start], OutBuf^, InDataLen - Start);
     OutLen := InDataLen - Start;
     Result := True;
   end;

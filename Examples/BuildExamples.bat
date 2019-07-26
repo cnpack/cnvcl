@@ -4,6 +4,7 @@ SET ROOTDIR=%~dp0
 ECHO ROOTDIR=!ROOTDIR!
 SET DCC32="C:\Program Files\Borland\Delphi5\Bin\dcc32.exe"
 SET DCC7_32="C:\Program Files\Borland\Delphi7\Bin\dcc32.exe"
+SET DCCR_32="C:\Program Files\Embarcadero\Studio\20.0\bin\dcc32.exe"
 
 CD %ROOTDIR%
 SET DPR="NOVALUE"
@@ -20,8 +21,13 @@ IF "!DIRNAME:~-3!" == "_D7" (
 %DCC7_32% "%%F"
 IF !ERRORLEVEL! NEQ 0 GOTO END
 ) ELSE (
+IF "!DIRNAME:~-4!" == "_FMX" (
+%DCCR_32% "%%F"
+IF !ERRORLEVEL! NEQ 0 GOTO END
+) ELSE (
 %DCC32% "%%F"
 IF !ERRORLEVEL! NEQ 0 GOTO END
+)
 )
 )
 )

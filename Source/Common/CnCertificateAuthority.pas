@@ -34,7 +34,9 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.07.22 V1.1
+* 修改记录：2019.05.06 V1.2
+*               支持 Win32/Win64/MacOS
+*           2018.07.22 V1.1
 *               初步完成签发证书的功能
 *           2018.06.15 V1.0
 *               创建单元
@@ -46,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Consts,
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
   CnBigNumber, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
 
 const
@@ -893,7 +895,7 @@ begin
   SignLength := SignNode.BerDataLength - 1;
   SignValue := GetMemory(SignLength);
   P := Pointer(Integer(SignNode.BerDataAddress) + 1);
-  CopyMemory(SignValue, P, SignLength);
+  Move(P^, SignValue^, SignLength);
 
   // 无公钥时不解密，只把
   if PublicKey = nil then
@@ -926,7 +928,7 @@ begin
       FreeMemory(DigestValue);
       DigestLength := Node.BerDataLength;
       DigestValue := GetMemory(DigestLength);
-      CopyMemory(DigestValue, Node.BerDataAddress, DigestLength);
+      Move(Node.BerDataAddress^, DigestValue^, DigestLength);
 
       Result := True;
     end;

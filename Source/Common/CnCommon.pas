@@ -169,6 +169,9 @@ function GetRelativePath(ATo, AFrom: string;
   const CurrentStr: string = '.'; const UseCurrentDir: Boolean = False): string;
 {* 取两个目录的相对路径}
 
+function CombineCommonPath(InFiles, OutFiles: TStrings): Boolean;
+{* 寻找一批文件的共同根路径，并将去除共同根路径的文件名放至 OutFiles 中，返回是否去除成功}
+
 {$IFNDEF BCB}
 function PathRelativePathToA(pszPath: PAnsiChar; pszFrom: PAnsiChar; dwAttrFrom: DWORD;
   pszTo: PAnsiChar; dwAttrTo: DWORD): BOOL; stdcall;
@@ -988,7 +991,13 @@ function InheritsFromClassName(AObject: TObject; const AClass: string): Boolean;
 {* 判断 AObject 是否派生自类名为 AClass 的类 }
 
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
-{* 提升自身权限到SeDebug或取消此权限}
+{* 提升自身权限到 SeDebug 或取消此权限}
+
+function PEBIsDebugged: Boolean;
+{* 查找 PEB 结构内容以判定本进程是否被调试中}
+
+function NtIsDeugged: Boolean;
+{* 使用 NtQueryInformationProcess 以判定本进程是否被调试中}
 
 procedure KillProcessByFileName(const FileName: String);
 {* 根据文件名结束进程，不区分路径}
@@ -1153,6 +1162,13 @@ const
   MINOR_EXTENDED = 1E-10;
   MINOR_SINGLE = 1E-6;
   // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
+
+type
+  TNtQueryInformationProcess = function(ProcessHandle: THANDLE; ProcessInformationClass: DWORD;
+    ProcessInformation: Pointer; ProcessInformationLength: ULONG; ReturnLength: PULONG): LongInt; stdcall;
+var
+  NtQueryInformationProcess: TNtQueryInformationProcess = nil;
+  NtDllHandle: THandle = 0;
 
 function DoubleEqual(const D1, D2: Double): Boolean;
 begin
@@ -1881,7 +1897,7 @@ const
 begin
   if Length(S) < Length(UTF8_BOM) then
     Result := S
-  else if Pos(UTF8_BOM, S) = 1 then
+  else if StrLComp(PAnsiChar(UTF8_BOM), PAnsiChar(S), Length(UTF8_BOM)) = 0 then
     Result := Copy(S, Length(UTF8_BOM) + 1, MaxInt)
   else
     Result := S;
@@ -2481,6 +2497,49 @@ begin
     Result := ATo;
 end;
 
+// 寻找一批文件的共同根路径，并将去除共同根路径的文件名放至 OutFiles 中，返回是否去除成功
+function CombineCommonPath(InFiles, OutFiles: TStrings): Boolean;
+var
+  I, SC: Integer;
+  Root, S: string;
+begin
+  Result := False;
+  if (InFiles <> nil) and (OutFiles <> nil) and (InFiles.Count > 1) then
+  begin
+    Root := InFiles[0];
+    for I := 1 to InFiles.Count - 1 do
+    begin
+      SC := SameCharCounts(Root, InFiles[I]);
+      if SC <= 0 then
+        Exit;
+
+      if SC < Length(Root) then
+      begin
+        Root := Copy(Root, 1, SC);
+        SC := LastDelimiter('\', Root);
+        if SC > 0 then
+          Root := Copy(Root, 1, SC);  // Root 是公共路径
+      end;
+
+      if Root = '' then
+        Break;
+    end;
+
+    SC := Length(Root);
+    Result := SC > 0;
+    if Result then
+    begin
+      OutFiles.Clear;
+      for I := 0 to InFiles.Count - 1 do
+      begin
+        S := InFiles[I];
+        Delete(S, 1, SC);
+        OutFiles.Add(S);
+      end;
+    end;
+  end;
+end;
+
 {$IFNDEF BCB}
 const
   shlwapi32 = 'shlwapi.dll';
@@ -2489,7 +2548,7 @@ function PathRelativePathToA; external shlwapi32 name 'PathRelativePathToA';
 function PathRelativePathToW; external shlwapi32 name 'PathRelativePathToW';
 function PathRelativePathTo; external shlwapi32 name 'PathRelativePathToA';
 
-// 使用Windows API取两个目录的相对路径
+// 使用 Windows API 取两个目录的相对路径
 function RelativePath(const AFrom, ATo: string; FromIsDir, ToIsDir: Boolean): string;
   function GetAttr(IsDir: Boolean): DWORD;
   begin
@@ -6912,6 +6971,46 @@ begin
   CloseHandle(Token);
 end;
 
+// 查找 PEB 结构内容以判定本进程是否被调试中
+function PEBIsDebugged: Boolean;
+asm
+        MOV     EAX, FS:[$30];
+        MOV     AL, BYTE PTR DS:[EAX + 02];
+end;
+
+// 使用 NtQueryInformationProcess 以判定本进程是否被调试中
+function NtIsDeugged: Boolean;
+var
+  DebugPort: DWORD;
+begin
+  Result := False;
+  if not Assigned(NtQueryInformationProcess) then
+  begin
+    if (Win32Platform = VER_PLATFORM_WIN32_NT)
+      and (Win32MajorVersion >= 5) and (Win32MinorVersion >= 1) then
+    begin
+      if NtDllHandle = 0 then
+      begin
+        NtDllHandle := LoadLibrary('NTDLL.DLL');
+        if NtDllHandle = 0 then
+          raise Exception.Create('Can NOT Load NTDLL.');
+      end;
+
+      NtQueryInformationProcess := GetProcAddress(NtDllHandle, 'NtQueryInformationProcess');
+    end
+    else
+      raise Exception.Create('Current Windows NOT Support.');
+
+    if not Assigned(NtQueryInformationProcess) then
+      raise Exception.Create('NtQueryInformationProcess NOT Found in NTDLL.');
+
+    if 0 <> NtQueryInformationProcess(GetCurrentProcess, 7, @DebugPort, SizeOf(DebugPort), nil) then
+      raise Exception.Create('Call NtQueryInformationProcess Failed.');
+
+    Result := DebugPort <> 0;
+  end;
+end;
+
 // 根据文件名结束进程，不区分路径
 procedure KillProcessByFileName(const FileName: String);
 var
@@ -7319,6 +7418,10 @@ end;
 initialization
   WndLong := GetWindowLong(Application.Handle, GWL_EXSTYLE);
   InitSetLayeredWindowAttributesFunc;
+
+finalization
+  if NtDllHandle <> 0 then
+    FreeLibrary(NtDllHandle);
 
 end.
 

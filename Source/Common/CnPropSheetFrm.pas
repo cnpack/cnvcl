@@ -431,6 +431,7 @@ type
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
     FShowTree: Boolean;
+    FSyncMode: Boolean;
 
     procedure SetContentTypes(const Value: TCnPropContentTypes);
     procedure SetParentSheetForm(const Value: TCnPropSheetForm);
@@ -466,6 +467,7 @@ type
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
     property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write SetParentSheetForm;
     property ShowTree: Boolean read FShowTree write SetShowTree;
+    property SyncMode: Boolean read FSyncMode write FSyncMode;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -633,6 +635,7 @@ begin
   AForm.ObjectPointer := Address;
   AForm.Clear;
   AForm.ParentSheetForm := AParentSheet;
+  AForm.SyncMode := SyncMode;
 
   if SyncMode then
   begin
@@ -754,15 +757,16 @@ begin
     TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+        (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
-      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-        (P^.ParamName), TypeStr^]));
+      Result := Result + Trim(Format('%s %s: %s; ', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^])) + ' ';
     P := PParamData(Integer(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
-  Delete(Result, Length(Result), 1);
+  if T^.ParamCount > 0 then
+    Delete(Result, Length(Result) - 1, 2);
   Result := Result + ')';
   if T^.MethodKind = mkFunction then
     Result := Result + ': ' + string(PShortString(P)^);
@@ -818,16 +822,17 @@ begin
   begin
     TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
-      Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+      Result := Result + Trim(Format('%s: %s %s; ', [(P^.ParamName),
+        (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
-      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-        (P^.ParamName), TypeStr^]));
+      Result := Result + Trim(Format('%s %s: %s; ', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^])) + ' ';
     P := PParamData(Integer(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
-  Delete(Result, Length(Result), 1);
+  if T^.ParamCount > 0 then
+    Delete(Result, Length(Result) - 1, 2);
   Result := Result + ')';
   if T^.MethodKind = mkFunction then
     Result := Result + ': ' + string(PShortString(P)^);
@@ -882,15 +887,16 @@ begin
     TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
-        (GetParamFlagsName(P^.Flags)), TypeStr^]))
+        (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
-      Result := Result + trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
-        (P^.ParamName), TypeStr^]));
+      Result := Result + Trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
+        (P^.ParamName), TypeStr^])) + ' ';
     P := PParamData(Integer(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
-  Delete(Result, Length(Result), 1);
+  if T^.ParamCount > 0 then
+    Delete(Result, Length(Result) - 1 , 2);
   Result := Result + ')';
   if T^.MethodKind = mkFunction then
     Result := Result + ': ' + string(PShortString(P)^);
@@ -935,7 +941,7 @@ begin
       S := GetEnumProp(Instance, PropInfo);
     tkSet:
       begin
-        S := GetSetProp(Instance, PropInfo);
+        S := GetSetProp(Instance, PropInfo, True);
         if S = '' then
           S := '[]';
       end;
@@ -947,7 +953,7 @@ begin
         if (AMethod.Code <> nil) and (AMethod.Data <> nil) then
         begin
 {$IFDEF WIN64}
-          S := Format('%s: ($%16.16x, $%16.816x): %s', [PropInfo^.PropType^^.Name,
+          S := Format('%s: ($%16.16x, $%16.16x): %s', [PropInfo^.PropType^^.Name,
             NativeInt(AMethod.Code), NativeInt(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
 {$ELSE}
@@ -1060,11 +1066,11 @@ begin
           else
           begin
 {$IFDEF WIN64}
-            S := Format('%s: ($%16.16x, $%16.16x: %s)', [RttiProperty.PropertyType.Name,
+            S := Format('%s: ($%16.16x, $%16.16x): %s', [RttiProperty.PropertyType.Name,
               NativeInt(AMethod.Code), NativeInt(AMethod.Data),
               GetRttiMethodDeclare(Instance, RttiProperty)]);
 {$ELSE}
-            S := Format('%s: ($%8.8x, $%8.8x: %s)', [RttiProperty.PropertyType.Name,
+            S := Format('%s: ($%8.8x, $%8.8x): %s', [RttiProperty.PropertyType.Name,
               Integer(AMethod.Code), Integer(AMethod.Data),
               GetRttiMethodDeclare(Instance, RttiProperty)]);
 {$ENDIF}
@@ -1394,8 +1400,9 @@ end;
 function TCnObjectInspector.IndexOfProperty(AProperties: TObjectList;
   const APropName: string): TCnPropertyObject;
 var
-  I: Integer;
+  I, P: Integer;
   AProp: TCnPropertyObject;
+  TmpPropName: string;
 begin
   Result := nil;
   if AProperties <> nil then
@@ -1407,6 +1414,19 @@ begin
       begin
         Result := AProp;
         Exit;
+      end
+      else
+      begin
+        P := Pos('[', AProp.PropName);
+        if P > 0 then
+        begin
+          TmpPropName := Copy(AProp.PropName, 1, P - 1);
+          if TmpPropName = APropName then
+          begin
+            Result := AProp;
+            Exit;
+          end;
+        end;
       end;
     end;
   end;
@@ -1560,19 +1580,35 @@ var
 
   function AlreadyHasProperty(const APropName: string): Boolean;
   var
-    I: Integer;
+    I, P: Integer;
     PropObj: TCnPropertyObject;
+    TmpPropName: string;
   begin
     Result := False;
     for I := 0 to Properties.Count - 1 do
     begin
       PropObj := TCnPropertyObject(Properties[I]);
       if PropObj <> nil then
+      begin
         if PropObj.PropName = APropName then
         begin
           Result := True;
           Exit;
+        end
+        else // 部分存储的属性名是 Items[I: Integer] 的形式
+        begin
+          P := Pos('[', PropObj.PropName);
+          if P > 0 then
+          begin
+            TmpPropName := Copy(PropObj.PropName, 1, P - 1);
+            if TmpPropName = APropName then
+            begin
+              Result := True;
+              Exit;
+            end;
+          end;
         end;
+      end;
     end;
   end;
 
@@ -1908,7 +1944,7 @@ begin
           else
             AField := IndexOfField(FFields, RttiField.Name);
 
-          AField.FieldName := RttiField.ToString; // RttiField.Name;
+          AField.FieldName := RttiField.Name; // 不能用 RttiField.ToString，否则 IndexOfFields 找不到
           AField.Offset := RttiField.Offset;
           AField.FieldType := RttiField.FieldType;
           AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface];
@@ -2919,7 +2955,7 @@ end;
 
 procedure TCnPropSheetForm.btnRefreshClick(Sender: TObject);
 begin
-  EvaluatePointer(FObjectPointer, FInspectParam, Self);
+  EvaluatePointer(FObjectPointer, FInspectParam, Self, FSyncMode);
 end;
 
 procedure TCnPropSheetForm.btnTopClick(Sender: TObject);

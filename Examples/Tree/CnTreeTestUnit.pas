@@ -33,6 +33,15 @@ type
     edtSearch: TEdit;
     chkAnsi: TCheckBox;
     chkCase: TCheckBox;
+    grpBSort: TGroupBox;
+    btnInit: TButton;
+    btnBSSearchSelected: TButton;
+    btnBSDelete: TButton;
+    btnBSInOrderTravel: TButton;
+    btnBSPrev: TButton;
+    btnBSNext: TButton;
+    btnShowTreeGraph: TButton;
+    btnShowBTree: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -53,17 +62,28 @@ type
     procedure btnSaveTrieClick(Sender: TObject);
     procedure btnShowTrieHeightClick(Sender: TObject);
     procedure btnSearchClick(Sender: TObject);
+    procedure btnInitClick(Sender: TObject);
+    procedure btnBSSearchSelectedClick(Sender: TObject);
+    procedure btnBSDeleteClick(Sender: TObject);
+    procedure btnBSInOrderTravelClick(Sender: TObject);
+    procedure btnBSPrevClick(Sender: TObject);
+    procedure btnBSNextClick(Sender: TObject);
+    procedure btnShowTreeGraphClick(Sender: TObject);
+    procedure btnShowBTreeClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
     FBinaryTree: TCnBinaryTree;
     FTrieTree: TCnTrieTree;
+    FBSTree: TCnBinarySortTree;
     FTravalResult: string;
     procedure TreeWidthFirstTrav(Sender: TObject);
     procedure TreeDepthFirstTrav(Sender: TObject);
     procedure TreePreOrderTrav(Sender: TObject);
     procedure TreeInOrderTrav(Sender: TObject);
     procedure TreePostOrderTrav(Sender: TObject);
+
+    procedure DrawLeaf(Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer; Leaf: TCnBinaryLeaf);
   public
     { Public declarations }
   end;
@@ -72,6 +92,9 @@ var
   CnTreeTestForm: TCnTreeTestForm;
 
 implementation
+
+uses
+  UnitBinaryTree;
 
 {$R *.DFM}
 
@@ -433,12 +456,18 @@ begin
   FBinaryTree.OnInOrderTravelLeaf := TreeInOrderTrav;
   FBinaryTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
 
+  FBSTree := TCnBinarySortTree.Create;
+  FBSTree.OnPreOrderTravelLeaf := TreePreOrderTrav;
+  FBSTree.OnInOrderTravelLeaf := TreeInOrderTrav;
+  FBSTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
+
   // FTrieTree := TCnTrieTree.Create(False);
 end;
 
 procedure TCnTreeTestForm.FormDestroy(Sender: TObject);
 begin
   FTrieTree.Free;
+  FBSTree.Free;
   FBinaryTree.Free;
   FTree.Free;
 end;
@@ -637,6 +666,127 @@ begin
     ShowMessage('Found: ' + Leaf.Text)
   else
     ShowMessage('NOT Found.');
+end;
+
+procedure TCnTreeTestForm.btnInitClick(Sender: TObject);
+var
+  I: Integer;
+begin
+  FBSTree.Clear;
+  for I := 0 to 4 do
+    FBSTree.Insert(2 * I);
+  for I := 4 downto 0 do
+    FBSTree.Insert(2 * I + 1);
+
+  tvData.Items.Clear;
+  tvData.Items.AddChild(nil, '');
+  FBSTree.SaveToTreeView(tvData, tvData.Items[0]);
+  tvData.Items[0].Expand(True);
+end;
+
+procedure TCnTreeTestForm.btnBSSearchSelectedClick(Sender: TObject);
+var
+  Item: TTreeNode;
+  Leaf: TCnBinaryLeaf;
+begin
+  Item := tvData.Selected;
+  Leaf := nil;
+  if Item <> nil then
+    Leaf := FBSTree.Search(Integer(Item.Data));
+
+  if Leaf <> nil then
+    ShowMessage('Found ' + IntToStr(Leaf.Data));
+end;
+
+procedure TCnTreeTestForm.btnBSDeleteClick(Sender: TObject);
+var
+  Item: TTreeNode;
+begin
+  Item := tvData.Selected;
+  if Item <> nil then
+  begin
+    if FBSTree.Delete(Integer(Item.Data)) then
+    begin
+      tvData.Items.Clear;
+      tvData.Items.AddChild(nil, '');
+      FBSTree.SaveToTreeView(tvData, tvData.Items[0]);
+      tvData.Items[0].Expand(True);
+    end
+    else
+      ShowMessage('Not Found');
+  end;
+end;
+
+procedure TCnTreeTestForm.btnBSInOrderTravelClick(Sender: TObject);
+begin
+  FTravalResult := '';
+  FBSTree.InOrderTravel;
+  ShowMessage(FTravalResult);
+end;
+
+procedure TCnTreeTestForm.btnBSPrevClick(Sender: TObject);
+var
+  Leaf: TCnBinaryLeaf;
+  Item: TTreeNode;
+begin
+  Item := tvData.Selected;
+  if Item <> nil then
+  begin
+    Leaf := FBSTree.Search(Integer(Item.Data));
+    if Leaf <> nil then
+    begin
+      Leaf := Leaf.GetMostRightLeafFromLeft;
+      ShowMessage('Prev is ' + IntToStr(Leaf.Data));
+    end;
+  end;
+end;
+
+procedure TCnTreeTestForm.btnBSNextClick(Sender: TObject);
+var
+  Leaf: TCnBinaryLeaf;
+  Item: TTreeNode;
+begin
+  Item := tvData.Selected;
+  if Item <> nil then
+  begin
+    Leaf := FBSTree.Search(Integer(Item.Data));
+    if Leaf <> nil then
+    begin
+      Leaf := Leaf.GetMostLeftLeafFromRight;
+      ShowMessage('Next is ' + IntToStr(Leaf.Data));
+    end;
+  end
+end;
+
+procedure TCnTreeTestForm.btnShowTreeGraphClick(Sender: TObject);
+begin
+  if FormBinaryTree = nil then
+  begin
+    FormBinaryTree := TFormBinaryTree.Create(Application);
+    FormBinaryTree.OnDrawLeaf := DrawLeaf;
+  end;
+  FormBinaryTree.TreeRef := FBSTree;
+  FormBinaryTree.Show;
+end;
+
+procedure TCnTreeTestForm.btnShowBTreeClick(Sender: TObject);
+begin
+  if FormBinaryTree = nil then
+  begin
+    FormBinaryTree := TFormBinaryTree.Create(Application);
+    FormBinaryTree.OnDrawLeaf := DrawLeaf;
+  end;
+  FormBinaryTree.TreeRef := FBinaryTree;
+  FormBinaryTree.Show;
+end;
+
+procedure TCnTreeTestForm.DrawLeaf(Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer;
+  Leaf: TCnBinaryLeaf);
+begin
+  if Tree = FBSTree then
+    ACanvas.TextOut(X - 5, Y - 5, IntToStr(Leaf.Data))
+  else
+    ACanvas.TextOut(X - 5, Y - 5, Leaf.Text);
 end;
 
 end.

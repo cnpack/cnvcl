@@ -1,0 +1,120 @@
+object FormParseBer: TFormParseBer
+  Left = 201
+  Top = 95
+  Caption = 'BER Format Reader & Writer'
+  ClientHeight = 486
+  ClientWidth = 832
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 201
+  Top = 95
+  DesignerMasterStyle = 0
+  object lblBin: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 45.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'PEM File:'
+  end
+  object mmoResult: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    ReadOnly = True
+    TextSettings.WordWrap = True
+    Anchors = [akLeft, akTop, akBottom]
+    Position.X = 8.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 337.000000000000000000
+    Size.Height = 351.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Viewport.Width = 333.000000000000000000
+    Viewport.Height = 347.000000000000000000
+  end
+  object btnParse: TButton
+    Anchors = [akTop, akRight]
+    Position.X = 723.000000000000000000
+    Position.Y = 20.000000000000000000
+    Size.Width = 83.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Binary Parse'
+    OnClick = btnParseClick
+  end
+  object tv1: TTreeView
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 352.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 452.000000000000000000
+    Size.Height = 351.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    OnDblClick = tv1DblClick
+    Viewport.Width = 448.000000000000000000
+    Viewport.Height = 347.000000000000000000
+  end
+  object edtFile: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 3
+    Position.X = 64.000000000000000000
+    Position.Y = 20.000000000000000000
+    Size.Width = 305.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnBrowse: TButton
+    Position.X = 376.000000000000000000
+    Position.Y = 20.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Browse'
+    OnClick = btnBrowseClick
+  end
+  object btnWrite: TButton
+    Position.X = 264.000000000000000000
+    Position.Y = 424.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Write'
+    OnClick = btnWriteClick
+  end
+  object btnDeBase64Parse: TButton
+    Anchors = [akTop, akRight]
+    Position.X = 619.000000000000000000
+    Position.Y = 20.000000000000000000
+    Size.Width = 91.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'Base64 Parse'
+    OnClick = btnDeBase64ParseClick
+  end
+  object chkParseInner: TCheckBox
+    IsChecked = True
+    Position.X = 496.000000000000000000
+    Position.Y = 22.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'Parse Inner String'
+  end
+  object dlgOpen: TOpenDialog
+    Left = 336
+    Top = 16
+  end
+  object dlgSave: TSaveDialog
+    Left = 360
+    Top = 392
+  end
+end

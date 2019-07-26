@@ -173,7 +173,6 @@ begin
   ShowNumbers
 end;
 
-
 procedure TFormBigNumber.btnCompareClick(Sender: TObject);
 var
   Res: Integer;

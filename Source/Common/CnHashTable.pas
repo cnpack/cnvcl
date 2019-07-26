@@ -37,10 +37,6 @@ interface
 
 {$I CnPack.inc}
 
-{$IFDEF VER180}
-  {$DEFINE SUPPORTINLINE}
-{$ENDIF}
-
 {$IFDEF COMPILER5}
   'Error: Delphi 5/C++Builder 5 NOT support!';
 {$ENDIF}
@@ -65,7 +61,7 @@ type
     function AddObject(const S: string; AObject: TObject): Integer; override;
     function EnsureAddObject(const S: string; AObject: TObject): Integer;
   end;
-  
+
   TCnBucketDynArray = array of TCnBucket;
 
   TCnHashTable = class
@@ -78,19 +74,19 @@ type
     FAutoRehashPoint: Integer;
     FSortedList: TCnBucket;
 
-    procedure DoRehash(const iCount: Integer); {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
+    procedure DoRehash(const iCount: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     procedure Rehash;
-    procedure NeedRebuildBucketCounts; {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
+    procedure NeedRebuildBucketCounts; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   protected
     FRehashCount: Integer;
 
     function GetCount: Integer; virtual;
     function GetKeys(const Index: Integer): string; virtual;
     function GetNewBucketCount(OldSize: Integer): Integer; virtual;
-    function Find(const s: string): TCnBucket; {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
-    function HashOf(const s: string): Cardinal; virtual;
-    function LimitBucketCount(i: Integer): Integer; virtual;
-    procedure BuildBucketCounts; {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
+    function Find(const S: string): TCnBucket; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+    function HashOf(const S: string): Cardinal; virtual;
+    function LimitBucketCount(I: Integer): Integer; virtual;
+    procedure BuildBucketCounts; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     procedure RehashTo(NewSize: Integer; const InitCapacity: Integer = 0); virtual;
     procedure SetUpdateState(Updating: Boolean); virtual;
 
@@ -99,19 +95,19 @@ type
     constructor Create(const BucketSize: Integer = $100; const InitCapacity: Integer = 0);
     destructor Destroy; override;
 
-    function Exists(const s: string): Boolean; virtual;
-    function ExistsPos(const s: string): Integer; virtual;
-    function GetValues(const s: string): TObject; virtual;
-    procedure SetValues(const s: string; Value: TObject); virtual;
+    function Exists(const S: string): Boolean; virtual;
+    function ExistsPos(const S: string): Integer; virtual;
+    function GetValues(const S: string): TObject; virtual;
+    procedure SetValues(const S: string; Value: TObject); virtual;
     function Info: string; virtual;
 
     procedure BeginUpdate;
     procedure EndUpdate;
 
-    procedure Add(const s: string; obj: TObject); virtual;
+    procedure Add(const S: string; obj: TObject); virtual;
     procedure Clear; virtual;
-    procedure Delete(const s: string); virtual;
-    procedure Put(const s: string; obj: TObject); virtual;
+    procedure Delete(const S: string); virtual;
+    procedure Put(const S: string; obj: TObject); virtual;
 
     procedure BuildSortedList;
 
@@ -128,7 +124,7 @@ type
   // 1,000,000 records 5,000,000 Query/s
   TCnHashTableSmall = class(TCnHashTable)
   protected
-    function HashOf(const s: string): Cardinal; override;
+    function HashOf(const S: string): Cardinal; override;
     procedure RehashTo(NewSize: Integer; const InitCapacity: Integer = 0); override;
   public
     constructor Create(const InitCapacity: Integer = 0); reintroduce;
@@ -139,7 +135,7 @@ type
   // 8,000,000 records 5,000,000 Query/s
   TCnHashTableMedium = class(TCnHashTable)
   protected
-    function HashOf(const s: string): Cardinal; override;
+    function HashOf(const S: string): Cardinal; override;
     procedure RehashTo(NewSize: Integer; const InitCapacity: Integer = 0); override;
   public
     constructor Create(const InitCapacity: Integer = 0); reintroduce;
@@ -150,7 +146,7 @@ type
   // 30,000,000 records 8,000,000 Query/s
   TCnHashTableBig = class(TCnHashTable)
   protected
-    function HashOf(const s: string): Cardinal; override;
+    function HashOf(const S: string): Cardinal; override;
     procedure RehashTo(NewSize: Integer; const InitCapacity: Integer = 0); override;
   public
     constructor Create(const InitCapacity: Integer = 16); reintroduce;
@@ -366,32 +362,32 @@ const
     ($D5DD39AB, $6C6ED05C), ($AC8205D1, $281A651A), ($657DE587, $520F9BA8),
     ($CBD92E4D, $D98E1F86));
 
-function CRC8(const s: string): Byte; {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
+function CRC8(const S: string): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
-  i, iLen, iStep: Integer;
+  I, iLen, iStep: Integer;
 begin
   Result := 0;
-  iLen := Length(s);
+  iLen := Length(S);
   if iLen < 32 then
   begin
-    for i := 1 to iLen do
+    for I := 1 to iLen do
     begin
-      Result := CRC8Table[Result xor Byte(s[i])];
+      Result := CRC8Table[Result xor Byte(S[I])];
     end;
   end
   else
   begin
     iStep := iLen div 32 + 1;
-    i := 1;
-    while i < iLen do
+    I := 1;
+    while I < iLen do
     begin
-      Result := CRC8Table[Result xor Byte(s[i])];
-      Inc(i, iStep);
+      Result := CRC8Table[Result xor Byte(S[I])];
+      Inc(I, iStep);
     end;
   end;
 end;
 
-function CRC16(s: PByteArray; iCount: Integer; OldCRC: Word = 0): Word; {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
+function CRC16(S: PByteArray; iCount: Integer; OldCRC: Word = 0): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   I, Step, DecCount: Integer;
 begin
@@ -400,7 +396,7 @@ begin
   begin
     for I := 0 to iCount - 1 do
     begin
-      Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor s[I];
+      Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor S[I];
     end;
   end
   else
@@ -410,18 +406,18 @@ begin
     DecCount := iCount - 1;
     while I < DecCount do
     begin
-      Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor s[I];
+      Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor S[I];
       Inc(I, Step);
     end;
   end;
-  for i := 0 to Crc16Bytes - 1 do
+  for I := 0 to Crc16Bytes - 1 do
   begin
     Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor (OldCRC shr (CRC16Bits-8));
     OldCRC := Word(OldCRC shl 8);
   end;
 end;
 
-function CRC32(s: PByteArray; iCount: Integer; OldCRC: Cardinal = 0): Cardinal; {$IFDEF SUPPORTINLINE}inline;{$ENDIF}
+function CRC32(S: PByteArray; iCount: Integer; OldCRC: Cardinal = 0): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   I, Step, DecCount: Integer;
 begin
@@ -430,7 +426,7 @@ begin
   begin
     for I := 0 to iCount - 1 do
     begin
-      Result := Crc32Table[Result shr (CRC32Bits-8)] xor (Result shl 8) xor s[I];
+      Result := Crc32Table[Result shr (CRC32Bits-8)] xor (Result shl 8) xor S[I];
     end;
   end
   else
@@ -440,7 +436,7 @@ begin
     DecCount := iCount - 1;
     while I < DecCount do
     begin
-      Result := Crc32Table[Result shr (CRC32Bits-8)] xor (Result shl 8) xor s[I];
+      Result := Crc32Table[Result shr (CRC32Bits-8)] xor (Result shl 8) xor S[I];
       Inc(I, Step);
     end;
   end;
@@ -516,7 +512,7 @@ begin
       begin
         LStr1Char1 := PByte(LStr1)^;
         LStr2Char1 := PByte(LStr2)^;
-        if LStr1Char1 <> LStr2Char1 then
+        if LStr1Char1 <> LStr2Char1 then  // 比较首字节，可能要改成 Unicode 下比较首字符？
         begin
           Result := LStr1Char1 - LStr2Char1;
         end
@@ -526,9 +522,10 @@ begin
           LLength2 := PInteger(LStr2 - SizeOf(Integer))^;
           LLengthDif := LLength1 - LLength2;
           if LLengthDif >= 0 then
-            LCompInd := - LLength2
+            LCompInd := - LLength2 * SizeOf(Char)
           else
-            LCompInd := - LLength1;
+            LCompInd := - LLength1 * SizeOf(Char); // 往前找，根据各自的字符长度比较
+
           if LCompInd < 0 then
           begin
             Dec(LStr1, LCompInd);
@@ -542,15 +539,15 @@ begin
                 begin
                   Result := (Byte(LChars1) shl 8) + Byte(LChars1 shr 8)
                     - (Byte(LChars2) shl 8) - Byte(LChars2 shr 8);
-                  exit;
+                  Exit;
                 end
                 else
                 begin
                   if LCompInd > -3 then
-                    break;
+                    Break;
                   Result := (LChars1 shr 24) + ((LChars1 shr 8) and $ff00)
                     - (LChars2 shr 24) - ((LChars2 shr 8) and $ff00);
-                  exit;
+                  Exit;
                 end;
               end;
               Inc(LCompInd, SizeOf(Integer));
@@ -687,9 +684,8 @@ constructor TCnBucket.Create(const InitCapacity: Integer);
 begin
   inherited Create;
   if InitCapacity > 0 then
-  begin
     Capacity := InitCapacity;
-  end;
+
   Sorted := True;
   CaseSensitive := True;
 end;
@@ -710,11 +706,11 @@ end;
 
 { TCnHashTableBase }
 
-procedure TCnHashTable.Add(const s: string; obj: TObject);
+procedure TCnHashTable.Add(const S: string; obj: TObject);
 begin
-  with Find(s) do
+  with Find(S) do
   begin
-    EnsureAddObject(s, obj);
+    EnsureAddObject(S, obj);
     NeedRebuildBucketCounts;
     DoRehash(Count);
   end;
@@ -723,41 +719,40 @@ end;
 procedure TCnHashTable.BeginUpdate;
 begin
   if FUpdateCount = 0 then
-  begin
     SetUpdateState(True);
-  end;
+
   Inc(FUpdateCount);
 end;
 
 procedure TCnHashTable.BuildBucketCounts;
 var
-  i: Integer;
+  I: Integer;
 begin
   if FCount < 0 then
   begin
     FCount := 0;
     SetLength(FBucketCounts, FBucketCount);
-    for i := 0 to FBucketCount - 1 do
+    for I := 0 to FBucketCount - 1 do
     begin
-      Inc(FCount, FBuckets[i].Count);
-      FBucketCounts[i] := FCount;
+      Inc(FCount, FBuckets[I].Count);
+      FBucketCounts[I] := FCount;
     end;
   end;
 end;
 
 procedure TCnHashTable.BuildSortedList;
 var
-  i, j: Integer;
+  I, j: Integer;
 begin
   with FSortedList do
   begin
     Clear;
     Capacity := Self.Count;
-    for i := 0 to FBucketCount - 1 do
+    for I := 0 to FBucketCount - 1 do
     begin
-      for j := 0 to FBuckets[i].Count - 1 do
+      for j := 0 to FBuckets[I].Count - 1 do
       begin
-        AddObject(FBuckets[i].Strings[j], FBuckets[i].Objects[j]);
+        AddObject(FBuckets[I].Strings[j], FBuckets[I].Objects[j]);
       end;
     end;
     Sort;
@@ -766,24 +761,23 @@ end;
 
 procedure TCnHashTable.Clear;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FBucketCount - 1 do
-  begin
-    FBuckets[i].Clear;
-  end;
+  for I := 0 to FBucketCount - 1 do
+    FBuckets[I].Clear;
+
   NeedRebuildBucketCounts;
 end;
 
 constructor TCnHashTable.Create(const BucketSize, InitCapacity: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
   FBucketCount := LimitBucketCount(BucketSize);
   SetLength(FBuckets, FBucketCount);
-  for i := 0 to FBucketCount - 1 do
+  for I := 0 to FBucketCount - 1 do
   begin
-    FBuckets[i] := TCnBucket.Create(InitCapacity);
+    FBuckets[I] := TCnBucket.Create(InitCapacity);
   end;
   FAutoRehashPoint := DefaultAutoRehashPoint;
   FSortedList := TCnBucket.Create(0);
@@ -791,16 +785,16 @@ begin
   NeedRebuildBucketCounts;
 end;
 
-procedure TCnHashTable.Delete(const s: string);
+procedure TCnHashTable.Delete(const S: string);
 var
-  i: Integer;
+  I: Integer;
 begin
-  with Find(s) do
+  with Find(S) do
   begin
-    i := IndexOf(s);
-    if i >= 0 then
+    I := IndexOf(S);
+    if I >= 0 then
     begin
-      Delete(i);
+      Delete(I);
       NeedRebuildBucketCounts;
     end;
   end;
@@ -808,12 +802,11 @@ end;
 
 destructor TCnHashTable.Destroy;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FBucketCount - 1 do
-  begin
-    FBuckets[i].Free;
-  end;
+  for I := 0 to FBucketCount - 1 do
+    FBuckets[I].Free;
+
   FSortedList.Free;
   inherited;
 end;
@@ -821,9 +814,7 @@ end;
 procedure TCnHashTable.DoRehash(const iCount: Integer);
 begin
   if (FRehashCount >= 0) and (iCount > FAutoRehashPoint) then
-  begin
     Rehash;
-  end;
 end;
 
 procedure TCnHashTable.EndUpdate;
@@ -835,17 +826,17 @@ begin
   end;
 end;
 
-function TCnHashTable.Exists(const s: string): Boolean;
+function TCnHashTable.Exists(const S: string): Boolean;
 begin
-  Result := Find(s).IndexOf(s) >= 0;
+  Result := Find(S).IndexOf(S) >= 0;
 end;
 
-function TCnHashTable.ExistsPos(const s: string): Integer;
+function TCnHashTable.ExistsPos(const S: string): Integer;
 var
   iHash: Integer;
 begin
-  iHash := HashOf(s);
-  Result := FBuckets[iHash].IndexOf(s);
+  iHash := HashOf(S);
+  Result := FBuckets[iHash].IndexOf(S);
   if (Result >= 0) and (iHash > 0) then
   begin
     BuildBucketCounts;
@@ -853,37 +844,33 @@ begin
   end;
 end;
 
-function TCnHashTable.Find(const s: string): TCnBucket;
+function TCnHashTable.Find(const S: string): TCnBucket;
 begin
-  Result := FBuckets[HashOf(s)];
+  Result := FBuckets[HashOf(S)];
 end;
 
-function TCnHashTable.GetValues(const s: string): TObject;
+function TCnHashTable.GetValues(const S: string): TObject;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := nil;
-  with Find(s) do
+  with Find(S) do
   begin
-    i := IndexOf(s);
-    if i >= 0 then
-    begin
-      Result := Objects[i];
-    end;
+    I := IndexOf(S);
+    if I >= 0 then
+      Result := Objects[I];
   end;
 end;
 
-procedure TCnHashTable.SetValues(const s: string; Value: TObject);
+procedure TCnHashTable.SetValues(const S: string; Value: TObject);
 var
-  i: Integer;
+  I: Integer;
 begin
-  with Find(s) do
+  with Find(S) do
   begin
-    i := IndexOf(s);
-    if i >= 0 then
-    begin
-      Objects[i] := Value;
-    end;
+    I := IndexOf(S);
+    if I >= 0 then
+      Objects[I] := Value;
   end;
 end;
 
@@ -897,21 +884,21 @@ function TCnHashTable.GetKeys(const Index: Integer): string;
 
   procedure FindInSection(const iStart, iEnd: Integer);
   var
-    i, iPrior: Integer;
+    I, iPrior: Integer;
   begin
-    for i := iStart to iEnd do
+    for I := iStart to iEnd do
     begin
-      if Index < FBucketCounts[i] then
+      if Index < FBucketCounts[I] then
       begin
-        if i = 0 then
+        if I = 0 then
         begin
           iPrior := 0;
         end
         else
         begin
-          iPrior := FBucketCounts[i - 1];
+          iPrior := FBucketCounts[I - 1];
         end;
-        Result := FBuckets[i].Strings[Index - iPrior];
+        Result := FBuckets[I].Strings[Index - iPrior];
         Break;
       end;
     end;
@@ -919,7 +906,7 @@ function TCnHashTable.GetKeys(const Index: Integer): string;
 
   procedure DoFind(const iStart, iEnd: Integer);
   var
-    l, h, i: Integer;
+    l, h, I: Integer;
   begin
     if iEnd - iStart < 4 then
     begin
@@ -929,14 +916,14 @@ function TCnHashTable.GetKeys(const Index: Integer): string;
     begin
       l := iStart;
       h := iEnd;
-      i := (l + h) shr 1;
-      if FBucketCounts[i] < Index + 1 then
+      I := (l + h) shr 1;
+      if FBucketCounts[I] < Index + 1 then
       begin
-        l := i;
+        l := I;
       end
       else
       begin
-        h := i;
+        h := I;
       end;
       DoFind(l, h);
     end;
@@ -946,9 +933,7 @@ begin
   BuildBucketCounts;
   Result := '';
   if (Index >= FCount) or (Index < 0) then
-  begin
     Exit;
-  end;
 
   DoFind(0, FBucketCount - 1);
 end;
@@ -958,9 +943,9 @@ begin
   Result := OldSize shl 8;
 end;
 
-function TCnHashTable.HashOf(const s: string): Cardinal;
+function TCnHashTable.HashOf(const S: string): Cardinal;
 begin
-  Result := CRC32(Pointer(s), Length(s) * SizeOf(Char), 0) and (FBucketCount - 1);
+  Result := CRC32(Pointer(S), Length(S) * SizeOf(Char), 0) and (FBucketCount - 1);
 end;
 
 resourcestring
@@ -968,15 +953,15 @@ resourcestring
 
 function TCnHashTable.Info: string;
 var
-  i, iMaxElement, iMinElement, iSpareElement, iCount: Integer;
+  I, iMaxElement, iMinElement, iSpareElement, iCount: Integer;
 begin
   iMaxElement := 0;
   iMinElement := MaxInt;
   iSpareElement := 0;
   iCount := 0;
-  for i := 0 to FBucketCount - 1 do
+  for I := 0 to FBucketCount - 1 do
   begin
-    with FBuckets[i] do
+    with FBuckets[I] do
     begin
       if Count = 0 then
       begin
@@ -996,9 +981,9 @@ begin
   Result := Format(StrHashTableInfo, [iCount, FBucketCount, iMaxElement, iMinElement, iSpareElement, FRehashCount]);
 end;
 
-function TCnHashTable.LimitBucketCount(i: Integer): Integer;
+function TCnHashTable.LimitBucketCount(I: Integer): Integer;
 begin
-  Result := i;
+  Result := I;
   if Result < MinBucketsCount then
   begin
     Result := MinBucketsCount;
@@ -1015,18 +1000,18 @@ begin
     FCount := -1;
 end;
 
-procedure TCnHashTable.Put(const s: string; obj: TObject);
+procedure TCnHashTable.Put(const S: string; obj: TObject);
 var
-  i: Integer;
+  I: Integer;
 begin
-  with Find(s) do
+  with Find(S) do
   begin
-    i := Count;
-    AddObject(s, obj);
-    if i <> Count then
+    I := Count;
+    AddObject(S, obj);
+    if I <> Count then
     begin
       NeedRebuildBucketCounts;
-      DoRehash(i);
+      DoRehash(I);
     end;
   end;
 end;
@@ -1052,7 +1037,7 @@ procedure TCnHashTable.RehashTo(NewSize: Integer; const InitCapacity: Integer);
 var
   TmpBuckets: TCnBucketDynArray;
   TmpBucketSize: Integer;
-  i, j: Integer;
+  I, j: Integer;
 begin
   Assert(NewSize > 0);
   if NewSize = FBucketCount then
@@ -1063,19 +1048,19 @@ begin
 
   FBucketCount := NewSize;
   SetLength(FBuckets, FBucketCount);
-  for i := 0 to FBucketCount - 1 do
+  for I := 0 to FBucketCount - 1 do
   begin
-    FBuckets[i] := TCnBucket.Create(InitCapacity);
+    FBuckets[I] := TCnBucket.Create(InitCapacity);
   end;
-  
+
   if FUpdateCount > 0 then
   begin
     SetUpdateState(True);
   end;
 
-  for i := 0 to TmpBucketSize - 1 do
+  for I := 0 to TmpBucketSize - 1 do
   begin
-    with TmpBuckets[i] do
+    with TmpBuckets[I] do
     begin
       for j := 0 to Count - 1 do
       begin
@@ -1091,10 +1076,10 @@ end;
 
 procedure TCnHashTable.SetUpdateState(Updating: Boolean);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FBucketCount - 1 do
-    FBuckets[i].Sorted := not Updating;
+  for I := 0 to FBucketCount - 1 do
+    FBuckets[I].Sorted := not Updating;
 end;
 
 { TCnHashTableSmall }
@@ -1104,9 +1089,9 @@ begin
   inherited Create(High(Byte) + 1, InitCapacity);
 end;
 
-function TCnHashTableSmall.HashOf(const s: string): Cardinal;
+function TCnHashTableSmall.HashOf(const S: string): Cardinal;
 begin
-  Result := CRC8(s);
+  Result := CRC8(S);
 end;
 
 procedure TCnHashTableSmall.RehashTo(NewSize: Integer;
@@ -1122,9 +1107,9 @@ begin
   inherited Create(High(Word) + 1, InitCapacity);
 end;
 
-function TCnHashTableMedium.HashOf(const s: string): Cardinal;
+function TCnHashTableMedium.HashOf(const S: string): Cardinal;
 begin
-  Result := CRC16(Pointer(s), Length(s) * SizeOf(Char), 0);
+  Result := CRC16(Pointer(S), Length(S) * SizeOf(Char), 0);
 end;
 
 procedure TCnHashTableMedium.RehashTo(NewSize: Integer;
@@ -1140,25 +1125,25 @@ begin
   inherited Create($100000, InitCapacity);
 end;
 
-function TCnHashTableBig.HashOf(const s: string): Cardinal;
+function TCnHashTableBig.HashOf(const S: string): Cardinal;
 var
-  Hash, i, iLen, iStep: Cardinal;
+  Hash, I, iLen, iStep: Cardinal;
 begin
   Hash := 0;
-  iLen := Length(s);
+  iLen := Length(S);
   if iLen < 32 then
   begin
-    for i := 1 to iLen do
-      Hash := Hash * 15 + Byte(s[i]);
+    for I := 1 to iLen do
+      Hash := Hash * 15 + Byte(S[I]);
   end
   else
   begin
     iStep := iLen div 32 + 1;
-    i := 1;
-    while i < iLen do
+    I := 1;
+    while I < iLen do
     begin
-      Hash := Hash * 15 + Byte(s[i]);
-      Inc(i, iStep);
+      Hash := Hash * 15 + Byte(S[I]);
+      Inc(I, iStep);
     end;
   end;
   Result := Hash and $FFFFF;

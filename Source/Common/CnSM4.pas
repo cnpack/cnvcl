@@ -22,14 +22,16 @@ unit CnSM4;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：国产分组密码算法SM4单元
+* 单元名称：国产分组密码算法 SM4 单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档 SM4 Encryption alogrithm
 *           并参考移植goldboar的C代码
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2014.09.25 V1.0
+* 修改记录：2019.04.15 V1.1
+*               支持 Win32/Win64/MacOS
+*           2014.09.25 V1.0
 *               移植并创建单元
 ================================================================================
 |</PRE>}
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Classes, SysUtils;
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 const
   SM4_ENCRYPT = 1;
@@ -51,7 +53,7 @@ const
 type
   TSM4Context = packed record
     Mode: Integer;              {!<  encrypt/decrypt   }
-    Sk: array[0..SM4_KEYSIZE * 2 - 1] of DWORD;  {!<  SM4 subkeys       }
+    Sk: array[0..SM4_KEYSIZE * 2 - 1] of LongWord;  {!<  SM4 subkeys       }
   end;
 
 procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
@@ -134,9 +136,9 @@ const
     ($18, $F0, $7D, $EC, $3A, $DC, $4D, $20, $79, $EE, $5F, $3E, $D7, $CB, $39, $48)
   );
 
-  FK: array[0..3] of DWORD = ($3B1BAC6, $56AA3350, $677D9197, $B27022DC);
+  FK: array[0..3] of LongWord = ($3B1BAC6, $56AA3350, $677D9197, $B27022DC);
 
-  CK: array[0..SM4_KEYSIZE * 2 - 1] of DWORD = (
+  CK: array[0..SM4_KEYSIZE * 2 - 1] of LongWord = (
     $00070E15, $1C232A31, $383F464D, $545B6269,
     $70777E85, $8C939AA1, $A8AFB6BD, $C4CBD2D9,
     $E0E7EEF5, $FC030A11, $181F262D, $343B4249,
@@ -146,16 +148,16 @@ const
     $A0A7AEB5, $BCC3CAD1, $D8DFE6ED, $F4FB0209,
     $10171E25, $2C333A41, $484F565D, $646B7279 );
 
-procedure GetULongBe(var N: DWORD; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: LongWord; B: PAnsiChar; I: Integer);
 var
-  D: DWORD;
+  D: LongWord;
 begin
-  D := (DWORD(B[I]) shl 24) or (DWORD(B[I + 1]) shl 16) or
-    (DWORD(B[I + 2]) shl 8) or (DWORD(B[I + 3]));
+  D := (LongWord(B[I]) shl 24) or (LongWord(B[I + 1]) shl 16) or
+    (LongWord(B[I + 2]) shl 8) or (LongWord(B[I + 3]));
   N := D;
 end;
 
-procedure PutULongBe(N: DWORD; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: LongWord; B: PAnsiChar; I: Integer);
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);
@@ -163,19 +165,19 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function SM4Shl(X: DWORD; N: Integer): DWORD;
+function SM4Shl(X: LongWord; N: Integer): LongWord;
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
-function ROTL(X: DWORD; N: Integer): DWORD;
+function ROTL(X: LongWord; N: Integer): LongWord;
 begin
   Result := SM4Shl(X, N) or (X shr (32 - N));
 end;
 
-procedure Swap(var A: DWORD; var B: DWORD);
+procedure Swap(var A: LongWord; var B: LongWord);
 var
-  T: DWORD;
+  T: LongWord;
 begin
   T := A;
   A := B;
@@ -190,9 +192,9 @@ begin
   Result := PByte(Integer(PTable) + Inch)^;
 end;
 
-function SM4Lt(Ka: DWORD): DWORD;
+function SM4Lt(Ka: LongWord): LongWord;
 var
-  BB: DWORD;
+  BB: LongWord;
   A: array[0..3] of Byte;
   B: array[0..3] of Byte;
 begin
@@ -208,14 +210,14 @@ begin
     xor (ROTL(BB, 24));
 end;
 
-function SM4F(X0: DWORD; X1: DWORD; X2: DWORD; X3: DWORD; RK: DWORD): DWORD;
+function SM4F(X0: LongWord; X1: LongWord; X2: LongWord; X3: LongWord; RK: LongWord): LongWord;
 begin
   Result := X0 xor SM4Lt(X1 xor X2 xor X3 xor RK);
 end;
 
-function SM4CalciRK(Ka: DWORD): DWORD;
+function SM4CalciRK(Ka: LongWord): LongWord;
 var
-  BB: DWORD;
+  BB: LongWord;
   A: array[0..3] of Byte;
   B: array[0..3] of Byte;
 begin
@@ -229,10 +231,10 @@ begin
 end;
 
 // SK Points to 32 DWord Array; Key Points to 16 Byte Array
-procedure SM4SetKey(SK: PDWORD; Key: PAnsiChar);
+procedure SM4SetKey(SK: PLongWord; Key: PAnsiChar);
 var
-  MK: array[0..3] of DWORD;
-  K: array[0..35] of DWORD;
+  MK: array[0..3] of LongWord;
+  K: array[0..35] of LongWord;
   I: Integer;
 begin
   GetULongBe(MK[0], Key, 0);
@@ -248,17 +250,17 @@ begin
   for I := 0 to 31 do
   begin
     K[I + 4] := K[I] xor SM4CalciRK(K[I + 1] xor K[I+2] xor K[I + 3] xor CK[I]);
-    (PDWORD(Integer(SK) + I * SizeOf(DWORD)))^ := K[I + 4];
+    (PLongWord(Integer(SK) + I * SizeOf(LongWord)))^ := K[I + 4];
   end;
 end;
 
 // SK Points to 32 DWord Array; Input/Output Points to 16 Byte Array
-procedure SM4OneRound(SK: PDWORD; Input: PAnsiChar; Output: PAnsiChar);
+procedure SM4OneRound(SK: PLongWord; Input: PAnsiChar; Output: PAnsiChar);
 var
   I: Integer;
-  UlBuf: array[0..35] of DWORD;
+  UlBuf: array[0..35] of LongWord;
 begin
-  ZeroMemory(@(UlBuf[0]), SizeOf(UlBuf));
+  FillChar(UlBuf[0], SizeOf(UlBuf), 0);
 
   GetULongBe(UlBuf[0], Input, 0);
   GetULongBe(UlBuf[1], Input, 4);
@@ -268,7 +270,7 @@ begin
   for I := 0 to 31 do
   begin
     UlBuf[I + 4] := SM4F(UlBuf[I], UlBuf[I + 1], UlBuf[I + 2], UlBuf[I + 3],
-      (PDWORD(Integer(SK) + I * SizeOf(DWORD)))^);
+      (PLongWord(Integer(SK) + I * SizeOf(LongWord)))^);
   end;
 
   PutULongBe(UlBuf[35], Output, 0);
@@ -330,8 +332,8 @@ begin
     else
     begin
       // 尾部不足 16，补 0
-      ZeroMemory(@(EndBuf[0]), SM4_BLOCKSIZE);
-      CopyMemory(@(EndBuf[0]), Input, Length);
+      FillChar(EndBuf[0], SM4_BLOCKSIZE, 0);
+      Move(Input^, EndBuf[0], Length);
       SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
     end;
     Inc(Input, SM4_BLOCKSIZE);
@@ -379,20 +381,20 @@ begin
             xor (PByte(Integer(Iv) + I))^;
 
         SM4OneRound(@(Ctx.Sk[0]), Output, Output);
-        CopyMemory(@(Iv[0]), @(Output[0]), 16);
+        Move(Output[0], Iv[0], 16);
       end
       else
       begin
         // 尾部不足 16，补 0
-        ZeroMemory(@(EndBuf[0]), SizeOf(EndBuf));
-        CopyMemory(@(EndBuf[0]), Input, Length);
+        FillChar(EndBuf[0], SizeOf(EndBuf), 0);
+        Move(Input^, EndBuf[0], Length);
 
         for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := EndBuf[I]
             xor (PByte(Integer(Iv) + I))^;
 
         SM4OneRound(@(Ctx.Sk[0]), Output, Output);
-        CopyMemory(@(Iv[0]), @(Output[0]), 16);
+        Move(Output[0], Iv[0], 16);
       end;
 
       Inc(Input, SM4_BLOCKSIZE);
@@ -413,21 +415,20 @@ begin
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
             xor (PByte(Integer(Iv) + I))^;
 
-        CopyMemory(@(Iv[0]), Input, SM4_BLOCKSIZE);
+        Move(Input^, Iv[0], SM4_BLOCKSIZE);
       end
       else
       begin
         // 尾部不足 16，补 0
-        ZeroMemory(@(EndBuf[0]), SizeOf(EndBuf));
-        CopyMemory(@(EndBuf[0]), Input, Length);
-
+        FillChar(EndBuf[0], SizeOf(EndBuf), 0);
+        Move(Input^, EndBuf[0], Length);
         SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
 
         for I := 0 to 15 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
             xor (PByte(Integer(Iv) + I))^;
 
-        CopyMemory(@(Iv[0]), @(EndBuf[0]), SM4_BLOCKSIZE);
+        Move(EndBuf[0], Iv[0], SM4_BLOCKSIZE);
       end;
 
       Inc(Input, SM4_BLOCKSIZE);

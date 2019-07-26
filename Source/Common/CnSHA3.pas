@@ -30,7 +30,9 @@ unit CnSHA3;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2017.11.10 V1.0
+* 修改记录：2019.04.15 V1.1
+*               支持 Win32/Win64/MacOS
+*           2017.11.10 V1.0
 *               创建单元。从网上佚名 Keccak C 代码与 Pascal 代码混合移植而来
 ================================================================================
 |</PRE>}
@@ -40,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Classes;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   TSHA3GeneralDigest = array[0..63] of Byte;
@@ -55,10 +57,10 @@ type
 
   TSHA3Context = packed record
     State: array[0..24] of Int64;
-    Index: DWORD;
-    DigestLen: DWORD;
-    Round: DWORD;
-    BlockLen: DWORD;
+    Index: LongWord;
+    DigestLen: LongWord;
+    Round: LongWord;
+    BlockLen: LongWord;
     Block: array[0..255] of Byte;
     Ipad: array[0..143] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..143] of Byte;      {!< HMAC: outer padding        }
@@ -522,7 +524,8 @@ begin
       R := Context.BlockLen - Idx;
 
     FillChar(Context.Block, SizeOf(Context.Block), 0);
-    CopyMemory(@(Context.Block[Idx]), Buffer, R);
+    Move(Buffer^, Context.Block[Idx], R);
+
     if (Idx + R) < Context.BlockLen then
     begin
       Idx := Idx + R;
@@ -539,9 +542,15 @@ end;
 
 procedure SHA3UpdateW(var Context: TSHA3Context; Buffer: PWideChar; Len: LongWord);
 var
+{$IFDEF MSWINDOWS}
   Content: PAnsiChar;
   iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   GetMem(Content, Len * SizeOf(WideChar));
   try
     iLen := WideCharToMultiByte(0, 0, Buffer, Len, // 代码页默认用 0
@@ -550,6 +559,11 @@ begin
   finally
     FreeMem(Content);
   end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Buffer);
+  A := AnsiString(S);
+  SHA3Update(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 procedure SHA3Final(var Context: TSHA3Context; var Digest: TSHA3GeneralDigest);
@@ -557,7 +571,7 @@ begin
   Context.Block[Context.Index] := 6;
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
-  CopyMemory(@Digest[0], @(Context.State[0]), Context.DigestLen);
+  Move(Context.State[0], Digest[0], Context.DigestLen);
 end;
 
 // 对数据块进行 SHA3_224 计算
@@ -569,7 +583,7 @@ begin
   SHA3Init(Context, stSHA3_224);
   SHA3Update(Context, PAnsiChar(Buffer), Count);
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对数据块进行 SHA3_256 计算
@@ -581,7 +595,7 @@ begin
   SHA3Init(Context, stSHA3_256);
   SHA3Update(Context, PAnsiChar(Buffer), Count);
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对数据块进行 SHA3_384 计算
@@ -593,7 +607,7 @@ begin
   SHA3Init(Context, stSHA3_384);
   SHA3Update(Context, PAnsiChar(Buffer), Count);
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对数据块进行 SHA3_512 计算
@@ -605,7 +619,7 @@ begin
   SHA3Init(Context, stSHA3_512);
   SHA3Update(Context, PAnsiChar(Buffer), Count);
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 String 类型数据进行 SHA3_224 计算
@@ -653,7 +667,7 @@ begin
   SHA3Init(Context, stSHA3_224);
   SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_256 计算，不进行转换
@@ -665,7 +679,7 @@ begin
   SHA3Init(Context, stSHA3_256);
   SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_384 计算，不进行转换
@@ -677,7 +691,7 @@ begin
   SHA3Init(Context, stSHA3_384);
   SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
@@ -689,7 +703,7 @@ begin
   SHA3Init(Context, stSHA3_512);
   SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 AnsiString 类型数据进行SHA224 计算
@@ -701,7 +715,7 @@ begin
   SHA3Init(Context, stSHA3_224);
   SHA3Update(Context, PAnsiChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 WideString 类型数据进行 SHA3_224 计算
@@ -713,7 +727,7 @@ begin
   SHA3Init(Context, stSHA3_224);
   SHA3UpdateW(Context, PWideChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 AnsiString 类型数据进行 SHA3_256 计算
@@ -725,7 +739,7 @@ begin
   SHA3Init(Context, stSHA3_256);
   SHA3Update(Context, PAnsiChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 WideString 类型数据进行 SHA3_256 计算
@@ -737,7 +751,7 @@ begin
   SHA3Init(Context, stSHA3_256);
   SHA3UpdateW(Context, PWideChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 AnsiString 类型数据进行 SHA3_384 计算
@@ -749,7 +763,7 @@ begin
   SHA3Init(Context, stSHA3_384);
   SHA3Update(Context, PAnsiChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 WideString 类型数据进行 SHA3_384 计算
@@ -761,7 +775,7 @@ begin
   SHA3Init(Context, stSHA3_384);
   SHA3UpdateW(Context, PWideChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 AnsiString 类型数据进行 SHA3_512 计算
@@ -773,7 +787,7 @@ begin
   SHA3Init(Context, stSHA3_512);
   SHA3Update(Context, PAnsiChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对 WideString 类型数据进行 SHA3_512 计算
@@ -785,7 +799,7 @@ begin
   SHA3Init(Context, stSHA3_512);
   SHA3UpdateW(Context, PWideChar(Str), Length(Str));
   SHA3Final(Context, Res);
-  CopyMemory(@Result[0], @Res[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+  Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
 function InternalSHA3Stream(Stream: TStream; const BufSize: Cardinal; var D:
@@ -847,7 +861,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_224, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_224Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_224Digest));
 end;
 
 // 对指定流进行 SHA3_256 计算
@@ -857,7 +871,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_256, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_256Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_256Digest));
 end;
 
 // 对指定流进行 SHA3_384 计算
@@ -867,7 +881,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_384, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_384Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_384Digest));
 end;
 
 // 对指定流进行 SHA3_512 计算
@@ -877,15 +891,18 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_512, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_512Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_512Digest));
 end;
 
-function FileSizeIsLargeThanMax(const AFileName: string; out IsEmpty: Boolean): Boolean;
+function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
 var
   H: THandle;
   Info: BY_HANDLE_FILE_INFORMATION;
   Rec: Int64Rec;
-begin
+{$ENDIF}
+  begin
+{$IFDEF MSWINDOWS}
   Result := False;
   IsEmpty := False;
   H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
@@ -902,20 +919,25 @@ begin
   Rec.Hi := Info.nFileSizeHigh;
   Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
   IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+{$ENDIF}
 end;
 
 function InternalSHA3File(const FileName: string; SHA3Type: TSHA3Type;
   CallBack: TSHA3CalcProgressFunc): TSHA3GeneralDigest;
 var
+{$IFDEF MSWINDOWS}
   Context: TSHA3Context;
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
+{$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
 begin
   FileIsZeroSize := False;
-  if FileSizeIsLargeThanMax(FileName, FileIsZeroSize) then
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
   begin
     // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
@@ -927,6 +949,7 @@ begin
   end
   else
   begin
+{$IFDEF MSWINDOWS}
     SHA3Init(Context, SHA3Type);
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
       FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
@@ -965,6 +988,7 @@ begin
       end;
     end;
     SHA3Final(Context, Result);
+{$ENDIF}
   end;
 end;
 
@@ -975,7 +999,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   Dig := InternalSHA3File(FileName, stSHA3_224, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_224Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_224Digest));
 end;
 
 // 对指定文件内容进行 SHA3_256 计算
@@ -985,7 +1009,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   Dig := InternalSHA3File(FileName, stSHA3_256, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_256Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_256Digest));
 end;
 
 // 对指定文件内容进行 SHA3_384 计算
@@ -995,7 +1019,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   Dig := InternalSHA3File(FileName, stSHA3_384, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_384Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_384Digest));
 end;
 
 // 对指定文件内容进行 SHA3_512 计算
@@ -1005,7 +1029,7 @@ var
   Dig: TSHA3GeneralDigest;
 begin
   Dig := InternalSHA3File(FileName, stSHA3_512, CallBack);
-  CopyMemory(@Result[0], @Dig[0], SizeOf(TSHA3_512Digest));
+  Move(Dig[0], Result[0], SizeOf(TSHA3_512Digest));
 end;
 
 const
@@ -1337,7 +1361,7 @@ begin
   SHA3_224HmacInit(Context, Key, KeyLength);
   SHA3_224HmacUpdate(Context, Input, Length);
   SHA3_224HmacFinal(Context, Dig);
-  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+  Move(Dig[0], Output[0], Context.DigestLen);
 end;
 
 procedure SHA3_256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -1349,7 +1373,7 @@ begin
   SHA3_256HmacInit(Context, Key, KeyLength);
   SHA3_256HmacUpdate(Context, Input, Length);
   SHA3_256HmacFinal(Context, Dig);
-  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+  Move(Dig[0], Output[0], Context.DigestLen);
 end;
 
 procedure SHA3_384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -1361,7 +1385,7 @@ begin
   SHA3_384HmacInit(Context, Key, KeyLength);
   SHA3_384HmacUpdate(Context, Input, Length);
   SHA3_384HmacFinal(Context, Dig);
-  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+  Move(Dig[0], Output[0], Context.DigestLen);
 end;
 
 procedure SHA3_512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -1373,7 +1397,7 @@ begin
   SHA3_512HmacInit(Context, Key, KeyLength);
   SHA3_512HmacUpdate(Context, Input, Length);
   SHA3_512HmacFinal(Context, Dig);
-  CopyMemory(@Output[0], @(Dig[0]), Context.DigestLen);
+  Move(Dig[0], Output[0], Context.DigestLen);
 end;
 
 end.

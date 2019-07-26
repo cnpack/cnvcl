@@ -59,7 +59,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnClasses, CnNativeDecl;
+  SysUtils, Classes, CnNativeDecl
+  {$IFDEF MSWINDOWS}, CnClasses {$ENDIF}
+  {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -763,6 +765,44 @@ procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
 
 implementation
 
+{$IFDEF MACOS}
+
+// MACOS 下的 TCnUInt32/64List 没有 IgnoreDuplicated 功能，需要手工去重
+
+type
+  TCnInternalList<T> = class(TList<T>)
+  public
+    procedure RemoveDuplictedElements;
+  end;
+
+{ TCnInternalList<T> }
+
+procedure TCnInternalList<T>.RemoveDuplictedElements;
+var
+  I, J: Integer;
+  V: NativeInt;
+  Dup: Boolean;
+begin
+  for I := Count - 1 downto 0 do
+  begin
+    V := ItemValue(Items[I]);
+    Dup := False;
+    for J := 0 to I - 1 do
+    begin
+      if V = ItemValue(Items[J]) then
+      begin
+        Dup := True;
+        Break;
+      end;
+    end;
+
+    if Dup then
+      Delete(I);
+  end;
+end;
+
+{$ENDIF}
+
 // 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
 function RandomUInt64: TUInt64;
 var
@@ -1091,7 +1131,7 @@ end;
 // 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
 function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 var
-  T: NativeUInt;
+  T: UInt64;
 begin
   T := 1;
   A := A mod C;
@@ -1223,11 +1263,17 @@ var
 begin
   Prime := CnGenerateUInt32Prime(True);
   Factors := TCnUInt32List.Create;
+{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
+{$ENDIF}
   MaxRoot := 0;
 
   try
     CnUInt32FindFactors(Prime - 1, Factors);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<LongWord>(Factors).RemoveDuplictedElements;
+{$ENDIF}
     for I := Prime - 1 downto 2 do
     begin
       if CheckPrimitiveRoot32(I, Prime, Factors) then
@@ -1249,11 +1295,17 @@ var
 begin
   Prime := CnGenerateInt64Prime(True);
   Factors := TCnUInt64List.Create;
+{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
+{$ENDIF}
   MaxRoot := 0;
 
   try
     CnInt64FindFactors(Prime - 1, Factors);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<UInt64>(Factors).RemoveDuplictedElements;
+{$ENDIF}
     I := Prime - 1;
     while UInt64Compare(I, 2) >= 0 do
     begin
@@ -1281,10 +1333,16 @@ begin
 
   Prime := CnGenerateUInt32Prime(True);
   Factors := TCnUInt32List.Create;
+{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
+{$ENDIF}
 
   try
     CnUInt32FindFactors(Prime - 1, Factors);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<LongWord>(Factors).RemoveDuplictedElements;
+{$ENDIF}
     OutRoots.Clear;
     for I := 2 to Prime - 1 do
     begin
@@ -1308,10 +1366,16 @@ begin
 
   Prime := CnGenerateInt64Prime(True);
   Factors := TCnUInt64List.Create;
+{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
+{$ENDIF}
 
   try
     CnInt64FindFactors(Prime - 1, Factors);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<UInt64>(Factors).RemoveDuplictedElements;
+{$ENDIF}
     OutRoots.Clear;
 
     I := 2;
@@ -1335,9 +1399,16 @@ begin
   Result := True;
 
   Factors := TCnUInt32List.Create;
+{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
+{$ENDIF}
+
   try
     CnUInt32FindFactors(Num - 1, Factors);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<LongWord>(Factors).RemoveDuplictedElements;
+{$ENDIF}
 
     for I := 0 to Factors.Count - 1 do
     begin
@@ -1361,9 +1432,16 @@ begin
   Result := True;
 
   Factors := TCnUInt64List.Create;
+{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
+{$ENDIF}
+
   try
     CnInt64FindFactors(Num - 1, Factors);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<UInt64>(Factors).RemoveDuplictedElements;
+{$ENDIF}
 
     I := 0;
     while UInt64Compare(I, Factors.Count) < 0 do
@@ -1520,9 +1598,17 @@ var
 begin
   // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt32List.Create;
+{$IFDEF MSWINDOWS}
   F.IgnoreDuplicated := True;
+{$ENDIF}
+
   try
     CnUInt32FindFactors(Num, F);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<LongWord>(F).RemoveDuplictedElements;
+{$ENDIF}
+
     Result := Num;
     for I := 0 to F.Count - 1 do
       Result := Result div F[I];
@@ -1541,9 +1627,17 @@ var
 begin
   // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt64List.Create;
+{$IFDEF MSWINDOWS}
   F.IgnoreDuplicated := True;
+{$ENDIF}
+
   try
     CnInt64FindFactors(Num, F);
+{$IFNDEF MSWINDOWS}
+    // 手工去重
+    TCnInternalList<UInt64>(F).RemoveDuplictedElements;
+{$ENDIF}
+
     Result := Num;
     for I := 0 to F.Count - 1 do
       Result := UInt64Div(Result, F[I]);

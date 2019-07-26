@@ -27,7 +27,9 @@ unit CnSystemDebugControl;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：参考了网上于旸的 SystemDebugControl 分析文章以及其它网络资源
-* 修改记录：2008.09.18 V1.0
+* 修改记录：2019.05.19 V1.1
+*               修正误用 GetModuleHandle 导致可能释放出错的问题
+*           2008.09.18 V1.0
 *               LiuXiao 实现单元
 ================================================================================
 |</PRE>}
@@ -330,10 +332,10 @@ var
   ScanCode: Cardinal;
 begin
   ScanCode := MapVirtualKey(VKey, 0);
-  KBCWait4IBE;                               //发送数据前应该先等待键盘缓冲区为空
-  OutPortB(KBC_KEY_CMD, $D2);                //发送键盘写入命令, 0xD2:写键盘缓冲区,0xD3:写鼠标缓冲区,
+  KBCWait4IBE;                               // 发送数据前应该先等待键盘缓冲区为空
+  OutPortB(KBC_KEY_CMD, $D2);                // 发送键盘写入命令, 0xD2:写键盘缓冲区,0xD3:写鼠标缓冲区,
   KBCWait4IBE;
-  OutPortB(KBC_KEY_DATA, ScanCode);          //写入按键信息,按下键
+  OutPortB(KBC_KEY_DATA, ScanCode);          // 写入按键信息,按下键
 end;
 
 procedure TCnSystemDebugControl.SimuKeyUp(VKey: Cardinal);
@@ -341,10 +343,10 @@ var
   ScanCode: Cardinal;
 begin
   ScanCode := MapVirtualKey(VKey, 0);
-  KBCWait4IBE;                               //等待键盘缓冲区为空
-  OutPortB(KBC_KEY_CMD, $D2);                //发送键盘写入命令
+  KBCWait4IBE;                               // 等待键盘缓冲区为空
+  OutPortB(KBC_KEY_CMD, $D2);                // 发送键盘写入命令
   KBCWait4IBE;
-  OutPortB(KBC_KEY_DATA, (ScanCode or $80)); //写入按键信息，释放键
+  OutPortB(KBC_KEY_DATA, (ScanCode or $80)); // 写入按键信息，释放键
 end;
 
 function GetNtNativeAPIs: Boolean;
@@ -352,7 +354,7 @@ begin
   if (Win32Platform = VER_PLATFORM_WIN32_NT)
     and (Win32MajorVersion >= 5) and (Win32MinorVersion >= 1) then
   begin
-    NtDllHandle := GetModuleHandle('NTDLL.DLL');
+    // 不能用 GetModuleHandle，因为下文无法判定这个 Handle 咋来的，可能导致错误的 FreeLibrary
     if NtDllHandle = 0 then
       NtDllHandle := LoadLibrary('NTDLL.DLL');
 

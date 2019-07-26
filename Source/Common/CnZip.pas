@@ -217,7 +217,8 @@ type
     {* 创建一个空白的 Zip 文件}
     procedure AddFile(const FileName: string; const ArchiveFileName: string = '';
       Compression: TCnZipCompressionMethod = zcDeflate);
-    {* 向 Zip 文件中添加指定内容}
+    {* 向 Zip 文件中添加指定内容，FileName 为具体文件，ArchiveFileName 为要写入
+      Zip 内部的文件名}
 {$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定目录下的所有文件}
@@ -228,7 +229,8 @@ type
     {* 关闭压缩文件}
 
     property RemovePath: Boolean read FRemovePath write FRemovePath;
-    {* 是否去除每个文件的路径信息只留文件名信息}
+    {* 是否去除每个文件的路径信息只留文件名信息，只在 AddFile 中 ArchiveFileName
+      为空的情况下有效}
 
     property Password;
     {* 设置该 Zip 文件的压缩密码，保存后才生效}

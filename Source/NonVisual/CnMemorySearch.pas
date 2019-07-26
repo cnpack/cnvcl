@@ -194,14 +194,14 @@ begin
   Result.CodeStartAddr := 0;
   Result.CodeSize := 0;
   _PId := 0;
-  _ModuleSnap := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, _PId);
+  _ModuleSnap := CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, _PId);
   if (_ModuleSnap <> INVALID_HANDLE_VALUE) then
   begin
     ZeroMemory(@_Me32, sizeof(MODULEENTRY32));
     _Me32.dwSize := sizeof(MODULEENTRY32);
     if (Module32First(_ModuleSnap, _Me32)) then
     begin
-      LowModuleName := LowerCase(LowModuleName);
+      LowModuleName := LowerCase(aModuleName);
       repeat
         if LowerCase(_Me32.szModule) = LowModuleName then
         begin
