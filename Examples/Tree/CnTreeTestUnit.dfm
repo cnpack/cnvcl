@@ -311,20 +311,29 @@ object CnTreeTestForm: TCnTreeTestForm
   end
   object btnShowTreeGraph: TButton
     Left = 536
-    Top = 448
+    Top = 424
     Width = 123
     Height = 25
-    Caption = 'Show Tree Graph'
+    Caption = 'Show BS Tree Graph'
     TabOrder = 5
     OnClick = btnShowTreeGraphClick
   end
   object btnShowBTree: TButton
     Left = 328
-    Top = 448
+    Top = 424
     Width = 123
     Height = 25
-    Caption = 'Show Tree Graph'
+    Caption = 'Show 1 Tree Graph'
     TabOrder = 6
     OnClick = btnShowBTreeClick
+  end
+  object btnShowRBTree: TButton
+    Left = 328
+    Top = 472
+    Width = 123
+    Height = 25
+    Caption = 'Show RB Tree Graph'
+    TabOrder = 7
+    OnClick = btnShowRBTreeClick
   end
 end

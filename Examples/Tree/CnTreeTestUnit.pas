@@ -42,6 +42,7 @@ type
     btnBSNext: TButton;
     btnShowTreeGraph: TButton;
     btnShowBTree: TButton;
+    btnShowRBTree: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -70,13 +71,16 @@ type
     procedure btnBSNextClick(Sender: TObject);
     procedure btnShowTreeGraphClick(Sender: TObject);
     procedure btnShowBTreeClick(Sender: TObject);
+    procedure btnShowRBTreeClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
     FBinaryTree: TCnBinaryTree;
     FTrieTree: TCnTrieTree;
     FBSTree: TCnBinarySortTree;
+    FRedBlackTree: TCnRedBlackTree;
     FTravalResult: string;
+    procedure ShowTree(ATree: TCnBinaryTree);
     procedure TreeWidthFirstTrav(Sender: TObject);
     procedure TreeDepthFirstTrav(Sender: TObject);
     procedure TreePreOrderTrav(Sender: TObject);
@@ -461,12 +465,18 @@ begin
   FBSTree.OnInOrderTravelLeaf := TreeInOrderTrav;
   FBSTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
 
+  FRedBlackTree := TCnRedBlackTree.Create;
+  FRedBlackTree.OnPreOrderTravelLeaf := TreePreOrderTrav;
+  FRedBlackTree.OnInOrderTravelLeaf := TreeInOrderTrav;
+  FRedBlackTree.OnPostOrderTravelLeaf := TreePostOrderTrav;
+
   // FTrieTree := TCnTrieTree.Create(False);
 end;
 
 procedure TCnTreeTestForm.FormDestroy(Sender: TObject);
 begin
   FTrieTree.Free;
+  FRedBlackTree.Free;
   FBSTree.Free;
   FBinaryTree.Free;
   FTree.Free;
@@ -760,33 +770,47 @@ end;
 
 procedure TCnTreeTestForm.btnShowTreeGraphClick(Sender: TObject);
 begin
-  if FormBinaryTree = nil then
-  begin
-    FormBinaryTree := TFormBinaryTree.Create(Application);
-    FormBinaryTree.OnDrawLeaf := DrawLeaf;
-  end;
-  FormBinaryTree.TreeRef := FBSTree;
-  FormBinaryTree.Show;
+  ShowTree(FBSTree);
 end;
 
 procedure TCnTreeTestForm.btnShowBTreeClick(Sender: TObject);
 begin
+  ShowTree(FBinaryTree);
+end;
+
+procedure TCnTreeTestForm.DrawLeaf(Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer;
+  Leaf: TCnBinaryLeaf);
+var
+  Old: TColor;
+begin
+  if Tree = FBSTree then
+    ACanvas.TextOut(X - 5, Y - 5, IntToStr(Leaf.Data))
+  else if Tree = FRedBlackTree then
+  begin
+    Old := ACanvas.Brush.Color;
+    if (Leaf as TCnRedBlackLeaf).IsRed then
+      ACanvas.Brush.Color := clRed;
+    ACanvas.TextOut(X - 5, Y - 5, IntToStr(Leaf.Data));
+    ACanvas.Brush.Color := Old;
+  end
+  else
+    ACanvas.TextOut(X - 5, Y - 5, Leaf.Text);
+end;
+
+procedure TCnTreeTestForm.ShowTree(ATree: TCnBinaryTree);
+begin
   if FormBinaryTree = nil then
   begin
     FormBinaryTree := TFormBinaryTree.Create(Application);
     FormBinaryTree.OnDrawLeaf := DrawLeaf;
   end;
-  FormBinaryTree.TreeRef := FBinaryTree;
+  FormBinaryTree.TreeRef := ATree;
   FormBinaryTree.Show;
 end;
 
-procedure TCnTreeTestForm.DrawLeaf(Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer;
-  Leaf: TCnBinaryLeaf);
+procedure TCnTreeTestForm.btnShowRBTreeClick(Sender: TObject);
 begin
-  if Tree = FBSTree then
-    ACanvas.TextOut(X - 5, Y - 5, IntToStr(Leaf.Data))
-  else
-    ACanvas.TextOut(X - 5, Y - 5, Leaf.Text);
+  ShowTree(FRedBlackTree);
 end;
 
 end.

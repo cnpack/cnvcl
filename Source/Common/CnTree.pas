@@ -22,7 +22,7 @@ unit CnTree;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack 公共单元
-* 单元名称：实现单根无序树、二叉树、字典搜索树的类单元
+* 单元名称：实现单根无序树、二叉树、二叉排序树、红黑树、字典搜索树的类单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：该单元为 TCnTree 和 TCnLeaf 的单根无序树的实现单元，以及其子类
 *           二叉树 TCnBinaryTree/Leaf、字典搜索树 TCnTrieTree/Leaf。
@@ -394,7 +394,7 @@ type
     function GetMostLeftLeaf: TCnBinaryLeaf;
     {* 递归获取左子树的最左深度子节点}
     function GetMostRightLeaf: TCnBinaryLeaf;
-    {* 递归获取右子树的最右深度子节点}    
+    {* 递归获取右子树的最右深度子节点}
   public
     constructor Create(ATree: TCnTree); override;
     function IsBalance: Boolean;
@@ -413,6 +413,10 @@ type
     {* 获取左子树中最靠右的节点，也即中序遍历的前驱节点}
     function GetMostLeftLeafFromRight: TCnBinaryLeaf;
     {* 获取右子树中最靠左的节点，也即中序遍历的后驱节点}
+    function GetBrotherLeaf: TCnBinaryLeaf;
+    {* 获取兄弟节点，也就是父节点的另一子节点}
+    function GetUncleLeaf: TCnBinaryLeaf;
+    {* 获取叔伯节点，也就是父节点的父节点的另一子节点}
 
     property Parent: TCnBinaryLeaf read GetParent write SetParent;
     {* 父节点}
@@ -422,7 +426,7 @@ type
     {* 右子节点，使用第 1 个子节点，无则返回 nil，设置时注意原有节点不会释放，需要自行处理}
 
     property Tree: TCnBinaryTree read GetTree;
-    {* 所属树，一个叶必须属于一棵树 }
+    {* 所属树，一个叶必须属于一棵树}
   end;
 
   TCnBinaryLeafClass = class of TCnBinaryLeaf;
@@ -535,6 +539,10 @@ type
     {* 后根次序遍历时触发的事件}
   end;
 
+//==============================================================================
+// 排序二叉树的实现
+//==============================================================================
+
   TCnBinarySortCompareEvent = function (Value: Integer; Leaf: TCnBinaryLeaf): Integer of object;
   {* 排序二叉树的比较事件}
   TCnBinarySortSetLeafEvent = procedure (Leaf: TCnBinaryLeaf; Value: Integer) of object;
@@ -547,13 +555,13 @@ type
     FOnCompare: TCnBinarySortCompareEvent;
     FOnSetLeaf: TCnBinarySortSetLeafEvent;
     procedure CheckCompareSetLeaf;
-    function InternalInsert(Leaf: TCnBinaryLeaf; Value: Integer): TCnBinaryLeaf;
     function InternalSearch(Leaf: TCnBinaryLeaf; Value: Integer): TCnBinaryLeaf;
-    function InternalDelete(Leaf: TCnBinaryLeaf; Value: Integer): Boolean;
     function DefaultOnCompare(Value: Integer; Leaf: TCnBinaryLeaf): Integer;
     procedure DefaultOnSetLeaf(Leaf: TCnBinaryLeaf; Value: Integer);
   protected
     function IsEmpty: Boolean;
+    function InternalInsert(Leaf: TCnBinaryLeaf; Value: Integer): TCnBinaryLeaf; virtual;
+    function InternalDelete(Leaf: TCnBinaryLeaf; Value: Integer): Boolean; virtual;
   public
     constructor Create; overload;
     {* 构造方法 }
@@ -563,16 +571,96 @@ type
     procedure Clear; override;
     {* 清除所有子节点包括 Root}
 
-    function Insert(Value: Integer): TCnBinaryLeaf;
-    {* 插入指定值的节点，Value 会放到 Leaf 的 Data 属性中，返回该节点}
+    function Insert(Value: Integer): TCnBinaryLeaf; virtual;
+    {* 插入指定值的节点，插入时默认 Value 会放到 Leaf 的 Data 属性中，返回该节点}
     function Search(Value: Integer): TCnBinaryLeaf;
     {* 查找指定值的节点，未找到则返回 nil}
-    function Delete(Value: Integer): Boolean;
+    function Delete(Value: Integer): Boolean; virtual;
     {* 删除指定值，返回删除成功与否}
     property OnSetLeaf: TCnBinarySortSetLeafEvent read FOnSetLeaf write FOnSetLeaf;
     {* 插入节点时将值赋值给节点时触发，默认为设置 Text 与 Data}
     property OnCompare: TCnBinarySortCompareEvent read FOnCompare write FOnCompare;
     {* 查找时比较触发，默认为 Value 与 Data 比较大小}
+  end;
+
+//==============================================================================
+// 红黑树的实现
+//==============================================================================
+
+  TCnRedBlackTree = class;
+
+  TCnRedBlackLeaf = class(TCnBinaryLeaf)
+  {* 红黑树节点子类，继承于普通二叉树节点}
+  private
+    FIsRed: Boolean;
+    function GetLeftLeaf: TCnRedBlackLeaf;
+    function GetRightLeaf: TCnRedBlackLeaf;
+    procedure SetLeftLeaf(const Value: TCnRedBlackLeaf);
+    procedure SetRightLeaf(const Value: TCnRedBlackLeaf);
+    function GetTree: TCnRedBlackTree;
+    function GetParent: TCnRedBlackLeaf;
+    procedure SetParent(const Value: TCnRedBlackLeaf);
+  protected
+    function GetMostLeftLeaf: TCnRedBlackLeaf;
+    {* 递归获取左子树的最左深度子节点}
+    function GetMostRightLeaf: TCnRedBlackLeaf;
+    {* 递归获取右子树的最右深度子节点}
+  public
+    constructor Create(ATree: TCnTree); override;
+
+    function AddLeftChild: TCnRedBlackLeaf;
+    {* 增加左子节点，如已存在则返回 nil}
+    function AddRightChild: TCnRedBlackLeaf;
+    {* 增加右子节点，如已存在则返回 nil}
+
+    function GetMostRightLeafFromLeft: TCnRedBlackLeaf;
+    {* 获取左子树中最靠右的节点，也即中序遍历的前驱节点}
+    function GetMostLeftLeafFromRight: TCnRedBlackLeaf;
+    {* 获取右子树中最靠左的节点，也即中序遍历的后驱节点}
+    function GetBrotherLeaf: TCnRedBlackLeaf;
+    {* 获取兄弟节点，也就是父节点的另一子节点}
+    function GetUncleLeaf: TCnRedBlackLeaf;
+    {* 获取叔伯节点，也就是父节点的父节点的另一子节点}
+
+    property Parent: TCnRedBlackLeaf read GetParent write SetParent;
+    {* 父节点}
+    property LeftLeaf: TCnRedBlackLeaf read GetLeftLeaf write SetLeftLeaf;
+    {* 左子节点，使用第 0 个子节点，无则返回 nil，设置时注意原有节点不会释放，需要自行处理}
+    property RightLeaf: TCnRedBlackLeaf read GetRightLeaf write SetRightLeaf;
+    {* 右子节点，使用第 1 个子节点，无则返回 nil，设置时注意原有节点不会释放，需要自行处理}
+
+    property IsRed: Boolean read FIsRed write FIsRed;
+    {* 子节点颜色是红还是黑}
+    property Tree: TCnRedBlackTree read GetTree;
+    {* 所属树，一个叶必须属于一棵树}
+  end;
+
+  TCnRedBlackLeafClass = class of TCnRedBlackLeaf;
+
+  TCnRedBlackTree = class(TCnBinarySortTree)
+  {* 红黑树的实现类}
+  private
+    procedure SetRoot(const Value: TCnRedBlackLeaf);
+  protected
+    function DefaultLeafClass: TCnLeafClass; override;
+    function GetRoot: TCnRedBlackLeaf;
+    procedure RotateLeft(ALeaf: TCnRedBlackLeaf);
+    {* 对一个节点及其右子节点实施左旋}
+    procedure RotateRight(ALeaf: TCnRedBlackLeaf);
+    {* 对一个节点及其左子节点实施左旋}
+  public
+    constructor Create; overload;
+    {* 构造方法 }
+    constructor Create(LeafClass: TCnRedBlackLeafClass); overload;
+    {* 另一构造方法}
+
+    function Insert(Value: Integer): TCnRedBlackLeaf; reintroduce;
+    {* 插入一个节点，返回插入的节点，内部自动做好着色与旋转等操作}
+    function Delete(Value: Integer): Boolean; reintroduce;
+    {* 删除指定值，返回删除成功与否，内部自动做好着色与旋转等操作}
+
+    property Root: TCnRedBlackLeaf read GetRoot write SetRoot;
+    {* 根节点，总是存在}
   end;
 
 //==============================================================================
@@ -642,7 +730,6 @@ type
   end;
 
 implementation
-
 
 {$IFDEF SUPPORT_FMX}
 
@@ -2114,6 +2201,9 @@ end;
 
 constructor TCnBinaryLeaf.Create(ATree: TCnTree);
 begin
+  if not (ATree is TCnBinaryTree) then
+    raise ECnTreeException.Create('Must be Binary Tree.');
+
   inherited;
   FList.Add(nil);  // 左子节点
   FList.Add(nil);  // 右子节点
@@ -2154,6 +2244,18 @@ begin
     LeftLeaf.DoPreOrderTravel;
   if RightLeaf <> nil then
     RightLeaf.DoPreOrderTravel;
+end;
+
+function TCnBinaryLeaf.GetBrotherLeaf: TCnBinaryLeaf;
+begin
+  Result := nil;
+  if Parent <> nil then
+  begin
+    if Parent.LeftLeaf = Self then
+      Result := Parent.RightLeaf
+    else if Parent.RightLeaf = Self then
+      Result := Parent.LeftLeaf;
+  end;
 end;
 
 function TCnBinaryLeaf.GetLeftLeaf: TCnBinaryLeaf;
@@ -2247,6 +2349,14 @@ end;
 function TCnBinaryLeaf.GetTree: TCnBinaryTree;
 begin
   Result := TCnBinaryTree(inherited GetTree);
+end;
+
+function TCnBinaryLeaf.GetUncleLeaf: TCnBinaryLeaf;
+begin
+  if Parent <> nil then
+    Result := Parent.GetBrotherLeaf
+  else
+    Result := nil;
 end;
 
 function TCnBinaryLeaf.IsBalance: Boolean;
@@ -2887,6 +2997,190 @@ begin
     FRoot := Value;
     Root.Parent := nil;
   end;
+end;
+
+{ TCnRedBlackLeaf }
+
+function TCnRedBlackLeaf.AddLeftChild: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited AddLeftChild);
+end;
+
+function TCnRedBlackLeaf.AddRightChild: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited AddRightChild);
+end;
+
+constructor TCnRedBlackLeaf.Create(ATree: TCnTree);
+begin
+  if not (ATree is TCnRedBlackTree) then
+    raise ECnTreeException.Create('Must be RedBlack Tree.');
+
+  inherited;
+end;
+
+function TCnRedBlackLeaf.GetBrotherLeaf: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetBrotherLeaf);
+end;
+
+function TCnRedBlackLeaf.GetLeftLeaf: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetLeftLeaf);
+end;
+
+function TCnRedBlackLeaf.GetMostLeftLeaf: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetMostLeftLeaf);
+end;
+
+function TCnRedBlackLeaf.GetMostLeftLeafFromRight: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetMostLeftLeafFromRight);
+end;
+
+function TCnRedBlackLeaf.GetMostRightLeaf: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetMostRightLeaf);
+end;
+
+function TCnRedBlackLeaf.GetMostRightLeafFromLeft: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetMostRightLeafFromLeft);
+end;
+
+function TCnRedBlackLeaf.GetParent: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetParent);
+end;
+
+function TCnRedBlackLeaf.GetRightLeaf: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetRightLeaf);
+end;
+
+function TCnRedBlackLeaf.GetTree: TCnRedBlackTree;
+begin
+  Result := TCnRedBlackTree(inherited GetTree);
+end;
+
+function TCnRedBlackLeaf.GetUncleLeaf: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetUncleLeaf);
+end;
+
+procedure TCnRedBlackLeaf.SetLeftLeaf(const Value: TCnRedBlackLeaf);
+begin
+  inherited SetLeftLeaf(Value);
+end;
+
+procedure TCnRedBlackLeaf.SetParent(const Value: TCnRedBlackLeaf);
+begin
+  inherited SetParent(Value);
+end;
+
+procedure TCnRedBlackLeaf.SetRightLeaf(const Value: TCnRedBlackLeaf);
+begin
+  inherited SetRightLeaf(Value);
+end;
+
+{ TCnRedBlackTree }
+
+constructor TCnRedBlackTree.Create;
+begin
+  inherited;
+
+end;
+
+constructor TCnRedBlackTree.Create(LeafClass: TCnRedBlackLeafClass);
+begin
+  inherited Create(LeafClass);
+end;
+
+function TCnRedBlackTree.DefaultLeafClass: TCnLeafClass;
+begin
+  Result := TCnRedBlackLeaf;
+end;
+
+function TCnRedBlackTree.Delete(Value: Integer): Boolean;
+begin
+  Result := False;
+end;
+
+function TCnRedBlackTree.GetRoot: TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited GetRoot);
+end;
+
+function TCnRedBlackTree.Insert(Value: Integer): TCnRedBlackLeaf;
+begin
+  Result := TCnRedBlackLeaf(inherited Insert(Value));
+  if Result <> nil then
+  begin
+    if Result = Root then  // 根节点直接染黑
+      Result.IsRed := False
+    else
+    begin
+      Result.IsRed := True; // 插入后先染红，再调整
+      // TODO: 咋复杂地调整嗫？
+      
+    end;
+  end;
+end;
+
+procedure TCnRedBlackTree.RotateLeft(ALeaf: TCnRedBlackLeaf);
+var
+  Right: TCnRedBlackLeaf;
+begin
+  // ALeaf 的右子节点取代自己，ALeaf 变成左子节点，原右子节点的左子节点变成 ALeaf 的右子节点
+  if ALeaf = nil then
+    Exit;
+  if ALeaf.RightLeaf = nil then
+    Exit;
+
+  Right := ALeaf.RightLeaf;
+  ALeaf.RightLeaf := Right.LeftLeaf;
+  if ALeaf.Parent <> nil then
+  begin
+    if ALeaf.Parent.LeftLeaf <> ALeaf then
+      raise ECnTreeException.Create('Rotate Left Failed');
+
+    ALeaf.Parent.LeftLeaf := Right;
+  end
+  else if Root = ALeaf then // 如果 ALeaf 是根节点，要重设根节点
+    Root := Right;
+  Right.LeftLeaf := ALeaf;
+end;
+
+procedure TCnRedBlackTree.RotateRight(ALeaf: TCnRedBlackLeaf);
+var
+  Left: TCnRedBlackLeaf;
+begin
+  // ALeaf 的左子节点取代自己，ALeaf 变成右子节点，原左子节点的右子节点变成 ALeaf 的左子节点
+  if ALeaf = nil then
+    Exit;
+  if ALeaf.LeftLeaf = nil then
+    Exit;
+
+  Left := ALeaf.LeftLeaf;
+  ALeaf.LeftLeaf := Left.RightLeaf;
+  if ALeaf.Parent <> nil then
+  begin
+    if ALeaf.Parent.RightLeaf <> ALeaf then
+      raise ECnTreeException.Create('Rotate Right Failed');
+
+    ALeaf.Parent.RightLeaf := Left;
+  end
+  else if Root = ALeaf then // 如果 ALeaf 是根节点，要重设根节点
+    Root := Left;
+  Left.RightLeaf := ALeaf;
+end;
+
+procedure TCnRedBlackTree.SetRoot(const Value: TCnRedBlackLeaf);
+begin
+  inherited SetRoot(Value);
+  if Value <> nil then
+    Value.IsRed := False; // 根节点黑色
 end;
 
 end.
