@@ -207,7 +207,10 @@ cnpack\Source 目录内容说明：
     多线程任务管理单元
 
   CnTree.pas
-    单根无序树、二叉树、字典搜索树等的类实现单元
+    单根无序树的类实现单元
+
+  CnTreeClasses.pas
+    二叉树、字典搜索树等的类实现单元
 
   CnVarList.pas
     变体列表实现单元

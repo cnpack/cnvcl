@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, CnTree;
+  ExtCtrls, CnTree, CnTreeClasses;
 
 type
   TDrawLeafEvent = procedure (Tree: TCnTree; ACanvas: TCanvas; X, Y: Integer;

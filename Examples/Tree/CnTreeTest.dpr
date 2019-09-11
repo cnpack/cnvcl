@@ -4,7 +4,8 @@ uses
   Forms,
   CnTreeTestUnit in 'CnTreeTestUnit.pas' {CnTreeTestForm},
   UnitBinaryTree in 'UnitBinaryTree.pas' {FormBinaryTree},
-  CnTree in '..\..\Source\Common\CnTree.pas';
+  CnTree in '..\..\Source\Common\CnTree.pas',
+  CnTreeClasses in '..\..\Source\Common\CnTreeClasses.pas';
 
 {$R *.RES}
 
