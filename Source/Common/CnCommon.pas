@@ -505,6 +505,12 @@ function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 function ByteToBin(Value: Byte): string;
 {* 字节转二进制串}
 
+function WordToBin(Value: Word): string;
+{* 双字节转二进制串}
+
+function DWordToBin(Value: DWORD): string;
+{* 四字节转二进制串}
+
 function StrRight(const Str: string; Len: Integer): string;
 {* 返回字符串右边的字符}
 
@@ -4602,6 +4608,36 @@ var
 begin
   Result := '';
   for I := 7 downto 0 do
+    if (V shl I) and Value <> 0 then
+      Result := Result + '1'
+    else
+      Result := Result + '0';
+end;
+
+// 双字节转二进制串
+function WordToBin(Value: Word): string;
+const
+  V: Word = 1;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 15 downto 0 do
+    if (V shl I) and Value <> 0 then
+      Result := Result + '1'
+    else
+      Result := Result + '0';
+end;
+
+// 四字节转二进制串
+function DWordToBin(Value: DWORD): string;
+const
+  V: DWORD = 1;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 31 downto 0 do
     if (V shl I) and Value <> 0 then
       Result := Result + '1'
     else
