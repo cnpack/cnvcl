@@ -26,11 +26,13 @@ unit CnSM3;
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档《SM3 Cryptographic Hash Algorith》
 *           http://www.oscca.gov.cn/UpFile/20101222141857786.pdf
-*           并参考移植goldboar的C代码
+*           并参考移植 goldboar 的 C 代码
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.1
+* 修改记录：2019.12.12 V1.2
+*               支持 TBytes
+*           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
 *           2014.09.23 V1.0
 *               移植并创建单元
@@ -83,6 +85,23 @@ procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 
 {* Hash-based Message Authentication Code (based on SM3) }
 
+function SM3Buffer(const Buffer; Count: LongWord): TSM3Digest;
+{* 对数据块进行 SM3 计算
+ |<PRE>
+   const Buffer     - 要计算的数据块
+   Count: LongWord  - 数据块长度
+ |</PRE>}
+
+{$IFDEF TBYTES_DEFINED}
+
+function SM3Bytes(Data: TBytes): TSM3Digest;
+{* 对 TBytes 进行 MD5 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+{$ENDIF}
+
 function SM3String(const Str: string): TSM3Digest;
 {* 对 String 类型数据进行 SM3 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
    代码中会将其转换成 AnsiString 进行计算
@@ -108,8 +127,7 @@ function SM3UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString 
    Str: UnicodeString/WideString       - 要计算的宽字符串
  |</PRE>}
 
-function SM3File(const FileName: string;
-  CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
+function SM3File(const FileName: string; CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
 {* 对指定文件内容进行 SM3 计算
  |<PRE>
    FileName: string  - 要计算的文件名
@@ -478,6 +496,28 @@ begin
   SM3HmacUpdate(Ctx, Input, Length);
   SM3HmacFinish(Ctx, Output);
 end;
+
+function SM3Buffer(const Buffer; Count: LongWord): TSM3Digest;
+var
+  Context: TSM3Context;
+begin
+  SM3Start(Context);
+  SM3Update(Context, PAnsiChar(Buffer), Count);
+  SM3Finish(Context, Result);
+end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function SM3Bytes(Data: TBytes): TSM3Digest;
+var
+  Context: TSM3Context;
+begin
+  SM3Start(Context);
+  SM3Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SM3Finish(Context, Result);
+end;
+
+{$ENDIF}
 
 // 对 String 类型数据进行 SM3 转换
 function SM3String(const Str: string): TSM3Digest;

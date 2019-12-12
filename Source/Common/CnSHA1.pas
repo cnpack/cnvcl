@@ -28,7 +28,9 @@ unit CnSHA1;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.3
+* 修改记录：2019.12.12 V1.4
+*               支持 TBytes
+*           2019.04.15 V1.3
 *               支持 Win32/Win64/MacOS
 *           2015.08.14 V1.2
 *               汇编切换至 Pascal 以支持跨平台
@@ -71,6 +73,16 @@ function SHA1Buffer(const Buffer; Count: LongWord): TSHA1Digest;
    const Buffer     - 要计算的数据块
    Count: LongWord  - 数据块长度
  |</PRE>}
+
+{$IFDEF TBYTES_DEFINED}
+
+function SHA1Bytes(Data: TBytes): TSHA1Digest;
+{* 对 TBytes 进行 SHA1 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+{$ENDIF}
 
 function SHA1String(const Str: string): TSHA1Digest;
 {* 对 String 类型数据进行 SHA1 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -380,6 +392,19 @@ begin
   SHA1Update(Context, PAnsiChar(Buffer), Count);
   SHA1Final(Context, Result);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function SHA1Bytes(Data: TBytes): TSHA1Digest;
+var
+  Context: TSHA1Context;
+begin
+  SHA1Init(Context);
+  SHA1Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA1Final(Context, Result);
+end;
+
+{$ENDIF}
 
 // 对 String 类型数据进行 SHA1 计算
 function SHA1String(const Str: string): TSHA1Digest;

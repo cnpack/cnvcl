@@ -28,7 +28,9 @@ unit CnCRC32;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.5
+* 修改记录：2019.12.12 V1.6
+*               支持 TBytes
+*           2019.04.15 V1.5
 *               支持 Win32/Win64/MacOS
 *           2015.06.12 V1.4
 *               把汇编改写为 Pascal 以适应 64 位编译器
@@ -68,6 +70,13 @@ function StrCRC32(const OrgCRC32: LongWord; const Text: string): LongWord;
 function StrCRC32A(const OrgCRC32: LongWord; const Text: AnsiString): LongWord;
 {* 计算 AnsiString 字符串的 CRC32 值 }
 
+{$IFDEF TBYTES_DEFINED}
+
+function BytesCRC32(const OrgCRC32: LongWord; Data: TBytes): LongWord;
+{* 计算 TBytes 的 CRC32 值}
+
+{$ENDIF}
+
 function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 {* 计算文件 CRC32 值，支持超过 4G 的大文件
@@ -93,6 +102,13 @@ function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
 
 function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
 {* 计算 AnsiString 字符串的 CRC64 值 }
+
+{$IFDEF TBYTES_DEFINED}
+
+function BytesCRC64(const OrgCRC64: LongWord; Data: TBytes): LongWord;
+{* 计算 TBytes 的 CRC64 值}
+
+{$ENDIF}
 
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
@@ -302,6 +318,16 @@ begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
 
+{$IFDEF TBYTES_DEFINED}
+
+// 计算 TBytes 的 CRC32 值
+function BytesCRC32(const OrgCRC32: LongWord; Data: TBytes): LongWord;
+begin
+  Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
+end;
+
+{$ENDIF}
+
 function InternalCRC32Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: LongWord): Boolean;
 var
@@ -459,6 +485,16 @@ function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Text)^, Length(Text));
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+// 计算 TBytes 的 CRC64 值
+function BytesCRC64(const OrgCRC64: LongWord; Data: TBytes): LongWord;
+begin
+  Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
+end;
+
+{$ENDIF}
 
 function InternalCRC64Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Int64): Boolean;

@@ -30,7 +30,9 @@ unit CnSHA3;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.1
+* 修改记录：2019.12.12 V1.2
+*               支持 TBytes
+*           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
 *           2017.11.10 V1.0
 *               创建单元。从网上佚名 Keccak C 代码与 Pascal 代码混合移植而来
@@ -97,6 +99,34 @@ function SHA3_512Buffer(const Buffer; Count: LongWord): TSHA3_512Digest;
   const Buffer     - 要计算的数据块
   Count: LongWord  - 数据块长度
  |</PRE>}
+
+{$IFDEF TBYTES_DEFINED}
+
+function SHA3_224Bytes(Data: TBytes): TSHA3_224Digest;
+{* 对字节数组进行 SHA3_224 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+function SHA3_256Bytes(Data: TBytes): TSHA3_256Digest;
+{* 对字节数组进行 SHA3_256 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+function SHA3_384Bytes(Data: TBytes): TSHA3_384Digest;
+{* 对字节数组进行 SHA3_384 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+function SHA3_512Bytes(Data: TBytes): TSHA3_512Digest;
+{* 对字节数组进行 SHA3_512 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+{$ENDIF}
 
 function SHA3_224String(const Str: string): TSHA3_224Digest;
 {* 对 String 类型数据进行 SHA3_224 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -621,6 +651,58 @@ begin
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+// 对字节数组进行 SHA3_224 计算
+function SHA3_224Bytes(Data: TBytes): TSHA3_224Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_224);
+  SHA3Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对字节数组进行 SHA3_256 计算
+function SHA3_256Bytes(Data: TBytes): TSHA3_256Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_256);
+  SHA3Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对字节数组进行 SHA3_384 计算
+function SHA3_384Bytes(Data: TBytes): TSHA3_384Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_384);
+  SHA3Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对字节数组进行 SHA3_512 计算
+function SHA3_512Bytes(Data: TBytes): TSHA3_512Digest;
+var
+  Context: TSHA3Context;
+  Res: TSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_512);
+  SHA3Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+end;
+
+{$ENDIF}
 
 // 对 String 类型数据进行 SHA3_224 计算
 function SHA3_224String(const Str: string): TSHA3_224Digest;

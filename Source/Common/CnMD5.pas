@@ -55,7 +55,9 @@ unit CnMD5;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.3
+* 修改记录：2019.12.12 V1.4
+*               支持 TBytes
+*           2019.04.15 V1.3
 *               支持 Win32/Win64/MacOS
 *           2014.11.14 V1.2
 *               汇编切换至 Pascal 以支持跨平台
@@ -107,6 +109,16 @@ function MD5Buffer(const Buffer; Count: LongWord): TMD5Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
+{$IFDEF TBYTES_DEFINED}
+
+function MD5Bytes(Data: TBytes): TMD5Digest;
+{* 对 TBytes 进行 MD5 计算
+ |<PRE>
+   Data     - 要计算的字节数组
+ |</PRE>}
+
+{$ENDIF}
+
 function MD5String(const Str: string): TMD5Digest;
 {* 对 String 类型数据进行 MD5 计算。注意 D2009 或以上版本的 string 为 UnicodeString，
    代码中会将其转换成 AnsiString 进行计算
@@ -155,7 +167,7 @@ function MD5Print(const Digest: TMD5Digest): string;
  |</PRE>}
 
 function MD5Match(const D1, D2: TMD5Digest): Boolean;
-{* 比较两个MD5计算值是否相等
+{* 比较两个 MD5 计算值是否相等
  |<PRE>
    D1: TMD5Digest   - 需要比较的 MD5 计算值
    D2: TMD5Digest   - 需要比较的 MD5 计算值
@@ -556,6 +568,19 @@ begin
   MD5Update(Context, PAnsiChar(Buffer), Count);
   MD5Final(Context, Result);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function MD5Bytes(Data: TBytes): TMD5Digest;
+var
+  Context: TMD5Context;
+begin
+  MD5Init(Context);
+  MD5Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  MD5Final(Context, Result);
+end;
+
+{$ENDIF}
 
 // 对 String 类型数据进行 MD5 计算
 function MD5String(const Str: string): TMD5Digest;

@@ -331,7 +331,7 @@ var
 implementation
 
 uses
-  CnMD5, CnDES, CnAES, CnCRC32, CnBase64, CnTEA, CnSM3, CnSM4;
+  CnMD5, CnDES, CnAES, CnCRC32, CnBase64, CnTEA, CnSM3, CnSM4, CnSHA1;
 
 {$R *.fmx}
 
@@ -410,7 +410,12 @@ end;
 
 procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
-  // To Implement.
+{$IFDEF UNICODE}
+  // ShowMessage(MD5Print(MD5StringA(AnsiString(edtMD5.Text))));
+  ShowMessage(MD5Print(MD5Bytes(BytesOf(edtMD5.Text))));
+{$ELSE}
+  ShowMessage(MD5Print(MD5String(edtMD5.Text)));
+{$ENDIF}
 end;
 
 procedure TFormCrypt.ResultDblClick(Sender: TObject);
@@ -447,7 +452,6 @@ end;
 
 procedure TFormCrypt.btnUMd5Click(Sender: TObject);
 begin
-  // To Implement.
   ShowMessage(MD5Print(MD5StringW(edtMD5.Text)));
 end;
 
@@ -547,7 +551,12 @@ end;
 
 procedure TFormCrypt.btnSha1Click(Sender: TObject);
 begin
-  // To Implement.
+{$IFDEF UNICODE}
+  // ShowMessage(SHA1Print(SHA1StringA(AnsiString(edtSHA1.Text))));
+  ShowMessage(SHA1Print(SHA1Bytes(BytesOf(edtSHA1.Text))));
+{$ELSE}
+  ShowMessage(SHA1Print(SHA1String(edtSHA1.Text)));
+{$ENDIF}
 end;
 
 procedure TFormCrypt.btnFileSha1Click(Sender: TObject);

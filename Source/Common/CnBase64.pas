@@ -39,7 +39,9 @@ unit CnBase64;
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.04.15 V1.4
+* 修改记录：2019.12.12 V1.5
+*               支持 TBytes
+*           2019.04.15 V1.4
 *               支持 Win32/Win64/MacOS
 *           2018.06.22 V1.3
 *               修正解出的原始内容可能包含多余 #0 或原始尾部 #0 被错误移除的问题
@@ -60,6 +62,11 @@ uses
   SysUtils, Classes;
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
+{* 对流进行 Base64 编码，如编码成功返回 BASE64_OK
+|<PRE>
+  InputData: TStream           - 要编码的数据流
+  var OutputData: AnsiString   - 编码后的数据
+|</PRE>}
 function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
 {* 对字符串进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
@@ -72,6 +79,14 @@ function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: stri
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
+{$IFDEF TBYTES_DEFINED}
+function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
+{* 对 TBytes 进行 Base64 编码，如编码成功返回 BASE64_OK
+|<PRE>
+  InputData: TBytes           - 要编码的数据流
+  var OutputData: AnsiString   - 编码后的数据
+|</PRE>}
+{$ENDIF}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean = True): Byte; overload;
 function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean = True): Byte; overload;
@@ -458,6 +473,18 @@ begin
   else
     Result := BASE64_LENGTH;
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
+begin
+  if Length(InputData) > 0 then
+    Result := Base64Encode(@InputData[0], Length(InputData), OutputData)
+  else
+    Result := BASE64_LENGTH;
+end;
+
+{$ENDIF}
 
 function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte; overload;
 var
