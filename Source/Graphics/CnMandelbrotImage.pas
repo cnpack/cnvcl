@@ -44,32 +44,32 @@ const
   CN_MANDELBROT_MAX_COUNT = 100;
 
 type
-  TMandelbrotColorEvent = function (Sender: TObject; X, Y: Double;
-    XZ, YZ: Double; Count: Integer): TColor of object;
+  TMandelbrotColorEvent = function (Sender: TObject; X, Y: Extended;
+    XZ, YZ: Extended; Count: Integer): TColor of object;
   {* 迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
 
   TCnMandelbrotImage = class(TGraphicControl)
   {* 曼德布罗集图实现控件}
   private
     FMaps: array of array of TColor;
-    FXValues: array of Double;
-    FYValues: array of Double;
-    FMaxY: Double;
-    FMinX: Double;
-    FMinY: Double;
-    FMaxX: Double;
+    FXValues: array of Extended;
+    FYValues: array of Extended;
+    FMaxY: Extended;
+    FMinX: Extended;
+    FMinY: Extended;
+    FMaxX: Extended;
     FOnColor: TMandelbrotColorEvent;
     FShowAxis: Boolean;
-    procedure SetMaxX(const Value: Double);
-    procedure SetMaxY(const Value: Double);
-    procedure SetMinX(const Value: Double);
-    procedure SetMinY(const Value: Double);
+    procedure SetMaxX(const Value: Extended);
+    procedure SetMaxY(const Value: Extended);
+    procedure SetMinX(const Value: Extended);
+    procedure SetMinY(const Value: Extended);
 
     procedure UpdatePointsValues(AWidth, AHeight: Integer);
     procedure UpdateMatrixes(AWidth, AHeight: Integer);
     procedure SetShowAxis(const Value: Boolean);
   protected
-    function CalcColor(X, Y: Double): TColor;
+    function CalcColor(X, Y: Extended): TColor;
     procedure ReCalcColors;
     procedure Paint; override;
   public
@@ -79,15 +79,15 @@ type
     procedure Loaded; override;
     
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
-    procedure GetComplexValues(X, Y: Integer; out R, I: Double);
+    procedure GetComplexValues(X, Y: Integer; out R, I: Extended);
   published
-    property MinX: Double read FMinX write SetMinX;
+    property MinX: Extended read FMinX write SetMinX;
     {* X 轴左侧值}
-    property MinY: Double read FMinY write SetMinY;
+    property MinY: Extended read FMinY write SetMinY;
     {* Y 轴下缘值}
-    property MaxX: Double read FMaxX write SetMaxX;
+    property MaxX: Extended read FMaxX write SetMaxX;
     {* X 轴左侧值}
-    property MaxY: Double read FMaxY write SetMaxY;
+    property MaxY: Extended read FMaxY write SetMaxY;
     {* Y 轴上缘值}
 
     property OnColor: TMandelbrotColorEvent read FOnColor write FOnColor;
@@ -102,9 +102,9 @@ implementation
 
 { TCnMandelbrotImage }
 
-procedure CalcMandelbortSetPoint(X, Y: Double; out XZ, YZ: Double; out Count: Integer);
+procedure CalcMandelbortSetPoint(X, Y: Extended; out XZ, YZ: Extended; out Count: Integer);
 var
-  XZ2, YZ2: Double;
+  XZ2, YZ2: Extended;
 begin
   XZ := 0.0;
   YZ := 0.0;
@@ -125,9 +125,9 @@ begin
   until (XZ * XZ + YZ * YZ > 4.0) or (Count > CN_MANDELBROT_MAX_COUNT);
 end;
 
-function TCnMandelbrotImage.CalcColor(X, Y: Double): TColor;
+function TCnMandelbrotImage.CalcColor(X, Y: Extended): TColor;
 var
-  XZ, YZ: Double;
+  XZ, YZ: Extended;
   C: Integer;
 begin
   XZ := 0.0;
@@ -170,7 +170,7 @@ begin
 end;
 
 procedure TCnMandelbrotImage.GetComplexValues(X, Y: Integer; out R,
-  I: Double);
+  I: Extended);
 begin
   if (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
   begin
@@ -232,7 +232,7 @@ begin
   end;
 end;
 
-procedure TCnMandelbrotImage.SetMaxX(const Value: Double);
+procedure TCnMandelbrotImage.SetMaxX(const Value: Extended);
 begin
   if Value <> FMaxX then
   begin
@@ -245,7 +245,7 @@ begin
   end;
 end;
 
-procedure TCnMandelbrotImage.SetMaxY(const Value: Double);
+procedure TCnMandelbrotImage.SetMaxY(const Value: Extended);
 begin
   if Value <> FMaxY then
   begin
@@ -258,7 +258,7 @@ begin
   end;
 end;
 
-procedure TCnMandelbrotImage.SetMinX(const Value: Double);
+procedure TCnMandelbrotImage.SetMinX(const Value: Extended);
 begin
   if Value <> FMinX then
   begin
@@ -271,7 +271,7 @@ begin
   end;
 end;
 
-procedure TCnMandelbrotImage.SetMinY(const Value: Double);
+procedure TCnMandelbrotImage.SetMinY(const Value: Extended);
 begin
   if Value <> FMinY then
   begin
@@ -305,7 +305,7 @@ end;
 procedure TCnMandelbrotImage.UpdatePointsValues(AWidth, AHeight: Integer);
 var
   X, Y, W, H: Integer;
-  WX, HY: Double;
+  WX, HY: Extended;
 begin
   W := Width - 1;
   H := Height - 1;
