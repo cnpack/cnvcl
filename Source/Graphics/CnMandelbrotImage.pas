@@ -24,12 +24,12 @@ unit CnMandelbrotImage;
 * 软件名称：界面控件包
 * 单元名称：曼德布罗集图实现单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
-* 备    注：
+* 备    注：精度受 Double 类型影响不能无限制放大
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.12.17 V1.0
-*               LiuXiao 移植单元
+* 修改记录：2019.12.18 V1.0
+*               创建单元，实现功能，用 ScanLine 加速绘制
 ================================================================================
 |</PRE>}
 
@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Graphics, Controls, ExtCtrls;
+  SysUtils, Classes, Windows, Graphics, Controls, ExtCtrls;
 
 const
   CN_MANDELBROT_MAX_COUNT = 100;
@@ -51,7 +51,8 @@ type
   TCnMandelbrotImage = class(TGraphicControl)
   {* 曼德布罗集图实现控件}
   private
-    FMaps: array of array of TColor;
+    // FMaps: array of array of TColor;
+    FBitmap: TBitmap;
     FXValues: array of Extended;
     FYValues: array of Extended;
     FMaxY: Extended;
@@ -60,6 +61,7 @@ type
     FMaxX: Extended;
     FOnColor: TMandelbrotColorEvent;
     FShowAxis: Boolean;
+    FAxisColor: TColor;
     procedure SetMaxX(const Value: Extended);
     procedure SetMaxY(const Value: Extended);
     procedure SetMinX(const Value: Extended);
@@ -68,6 +70,7 @@ type
     procedure UpdatePointsValues(AWidth, AHeight: Integer);
     procedure UpdateMatrixes(AWidth, AHeight: Integer);
     procedure SetShowAxis(const Value: Boolean);
+    procedure SetAxisColor(const Value: TColor);
   protected
     function CalcColor(X, Y: Extended): TColor;
     procedure ReCalcColors;
@@ -94,6 +97,8 @@ type
     {* 自定义曼德布罗集像素点的颜色事，如无，则内部使用黑白色}
     property ShowAxis: Boolean read FShowAxis write SetShowAxis;
     {* 是否绘制坐标轴}
+    property AxisColor: TColor read FAxisColor write SetAxisColor;
+    {* 坐标轴颜色}
     property OnClick;
     {* 点击事件输出}
   end;
@@ -101,6 +106,10 @@ type
 implementation
 
 { TCnMandelbrotImage }
+
+type
+  PRGBTripleArray = ^TRGBTripleArray;
+  TRGBTripleArray = array [Byte] of TRGBTriple;
 
 procedure CalcMandelbortSetPoint(X, Y: Extended; out XZ, YZ: Extended; out Count: Integer);
 var
@@ -159,11 +168,14 @@ begin
   FMaxX := 1.0;
   FMinY := -1.5;
   FMaxY := 1.5;
+
+  FAxisColor := clTeal;
 end;
 
 destructor TCnMandelbrotImage.Destroy;
 begin
-  SetLength(FMaps, 0);
+  // SetLength(FMaps, 0);
+  FBitmap.Free;
   SetLength(FXValues, 0);
   SetLength(FYValues, 0);
   inherited;
@@ -186,23 +198,25 @@ begin
   inherited;
   UpdateMatrixes(Width, Height);
   ReCalcColors;
-  ReCalcColors;
 end;
 
 procedure TCnMandelbrotImage.Paint;
 var
   X, Y: Integer;
 begin
-  for X := 0 to Width - 1 do
-    for Y := 0 to Height - 1 do
-      Canvas.Pixels[X, Y] := FMaps[X, Y];
+//  for X := 0 to Width - 1 do
+//    for Y := 0 to Height - 1 do
+//      Canvas.Pixels[X, Y] := FMaps[X, Y];
+
+  Canvas.Draw(0, 0, FBitmap);
 
   if ShowAxis then
   begin
     // 算出 X Y 轴的位置，画线
     X := Trunc(Width * (-FMinX) / (FMaxX - FMinX));
     Y := Trunc(Height * (FMaxY) / (FMaxY - FMinY));
-    Canvas.Pen.Color := clRed;
+
+    Canvas.Pen.Color := FAxisColor;
     Canvas.Pen.Style := psSolid;
     Canvas.MoveTo(X, 0);
     Canvas.LineTo(X, Height);
@@ -213,12 +227,38 @@ end;
 
 procedure TCnMandelbrotImage.ReCalcColors;
 var
-  X, Y: Integer;
-begin
-  for X := 0 to Width - 1 do
-    for Y := 0 to Height - 1 do
-      FMaps[X, Y] := CalcColor(FXValues[X], FYValues[Y]);
+  X, Y, C: Integer;
+  AColor: TColor;
+  R, G, B: Byte;
+  Arr: PRGBTripleArray;
+begin         
+  for Y := 0 to Height - 1 do
+  begin
+    Arr := PRGBTripleArray(FBitmap.ScanLine[Y]);
+    for X := 0 to Width - 1 do
+    begin
+      // FMaps[X, Y] := CalcColor(FXValues[X], FYValues[Y]);
+      AColor := CalcColor(FXValues[X], FYValues[Y]);
+      C := ColorToRGB(AColor);
+      B := C and $FF0000 shr 16;
+      G := C and $00FF00 shr 8;
+      R := C and $0000FF;
+
+      Arr^[X].rgbtRed := R;
+      Arr^[X].rgbtGreen := G;
+      Arr^[X].rgbtBlue := B;
+    end;
+  end;
   Invalidate;
+end;
+
+procedure TCnMandelbrotImage.SetAxisColor(const Value: TColor);
+begin
+  if Value <> FAxisColor then
+  begin
+    FAxisColor := Value;
+    Invalidate;
+  end;
 end;
 
 procedure TCnMandelbrotImage.SetBounds(ALeft, ATop, AWidth,
@@ -297,7 +337,13 @@ procedure TCnMandelbrotImage.UpdateMatrixes(AWidth, AHeight: Integer);
 begin
   SetLength(FXValues, AWidth);
   SetLength(FYValues, AHeight);
-  SetLength(FMaps, AWidth, AHeight);
+  // SetLength(FMaps, AWidth, AHeight);
+
+  FreeAndNil(FBitmap);
+  FBitmap := TBitmap.Create;
+  FBitmap.PixelFormat := pf24bit;
+  FBitmap.Width := AWidth;
+  FBitmap.Height := AHeight;
 
   UpdatePointsValues(AWidth, AHeight);
 end;
@@ -318,9 +364,12 @@ begin
   for Y := 0 to H do
     FYValues[Y] := FMinY + (H - Y) * HY;
 
-  for X := 0 to W do
-    for Y := 0 to H do
-      FMaps[X, Y] := clWhite;
+//  for X := 0 to W do
+//    for Y := 0 to H do
+//      FMaps[X, Y] := clWhite;
+  FBitmap.Canvas.Brush.Color := clWhite;
+  FBitmap.Canvas.Brush.Style := bsSolid;
+  FBitmap.Canvas.FillRect(Rect(0, 0, AHeight, AWidth));
 end;
 
 end.
