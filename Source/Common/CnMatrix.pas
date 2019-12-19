@@ -128,11 +128,13 @@ type
     destructor Destroy; override;
 
     function IsInt: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否整数，也就是判断分母是否是 1}
+    {* 是否整数，也就是判断分母是否是正负 1}
     function IsZero: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     {* 是否为 0}
     function IsOne: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     {* 是否为 1}
+    function IsNegative: Boolean;
+    {* 是否为负值}
     procedure Neg;
     {* 变成相反数}
     procedure Reciprocal;
@@ -356,6 +358,9 @@ procedure CnRationalNumberMul3(Number1, Number2, Number3: TCnRationalNumber; Rat
 
 procedure CnRationalNumberDiv(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
 {* 有理数除法，三数可以相等}
+
+function CnRationalNumberCompare(Number1, Number2: TCnRationalNumber): Integer;
+{* 比较两个有理数，> = < 分别返回1 0 -1}
 
 procedure CnReduceInt64(var X, Y: Int64);
 {* 尽量比例缩小，也就是约分}
@@ -1250,6 +1255,12 @@ begin
   Result := (FDenominator = 1) or (FDenominator = -1);
 end;
 
+function TCnRationalNumber.IsNegative: Boolean;
+begin
+  Result := ((FNominator < 0) and (FDenominator > 0))
+    or ((FNominator > 0) and (FDenominator < 0))
+end;
+
 function TCnRationalNumber.IsOne: Boolean;
 begin
   Result := FNominator = FDenominator;
@@ -1565,6 +1576,26 @@ begin
   begin
     X := X div D;
     Y := Y div D;
+  end;
+end;
+
+function CnRationalNumberCompare(Number1, Number2: TCnRationalNumber): Integer;
+var
+  R: Int64;
+begin
+  if not Number1.IsNegative and Number2.IsNegative then
+    Result := 1
+  else if Number1.IsNegative and not Number2.IsNegative then
+    Result := -1
+  else  // 同符号才需要计算
+  begin
+    R := Number1.Nominator * Number2.Denominator - Number2.Nominator * Number1.Denominator;
+    if R > 0 then
+      Result := 1
+    else if R < 0 then
+      Result := -1
+    else
+      Result := 0;
   end;
 end;
 

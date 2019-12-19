@@ -117,6 +117,9 @@ type
     function IsOne: Boolean;
     {* 返回大数是否为 1 }
 
+    function IsNegOne: Boolean;
+    {* 返回大数是否为 -1 }
+
     function SetOne: Boolean;
     {* 将大数设置为 1 }
 
@@ -259,6 +262,9 @@ function BigNumberSetZero(const Num: TCnBigNumber): Boolean;
 function BigNumberIsOne(const Num: TCnBigNumber): Boolean;
 {* 返回一个大数对象里的大数是否为 1 }
 
+function BigNumberIsNegOne(const Num: TCnBigNumber): Boolean;
+{* 返回一个大数对象里的大数是否为 -1 }
+
 function BigNumberSetOne(const Num: TCnBigNumber): Boolean;
 {* 将一个大数对象里的大数设置为 1 }
 
@@ -289,6 +295,9 @@ function BigNumberSetUInt64(const Num: TCnBigNumber; W: UInt64): Boolean;
 
 function BigNumberIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 某大数是否等于指定 DWORD}
+
+function BigNumberAbsIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
+{* 某大数绝对值是否等于指定 DWORD}
 
 function BigNumberAddWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功}
@@ -419,7 +428,8 @@ function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
-{* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功}
+{* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功，
+   Res 可以是 Num}
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -437,6 +447,10 @@ function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
 function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 求俩大数 Num1 与 Num2 的最大公约数}
+
+function BigNumberLcm(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
+{* 求俩大数 Num1 与 Num2 的最小公倍数}
 
 function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
@@ -651,6 +665,11 @@ end;
 function BigNumberIsOne(const Num: TCnBigNumber): Boolean;
 begin
   Result := (Num.Neg = 0) and BigNumberAbsIsWord(Num, 1);
+end;
+
+function BigNumberIsNegOne(const Num: TCnBigNumber): Boolean;
+begin
+  Result := (Num.Neg = 1) and BigNumberAbsIsWord(Num, 1);
 end;
 
 function BigNumberSetOne(const Num: TCnBigNumber): Boolean;
@@ -3472,6 +3491,45 @@ begin
   end;
 end;
 
+function BigNumberLcm(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
+var
+  G, M, R: TCnBigNumber;
+begin
+  Result := False;
+  if BigNumberCompare(Num1, Num2) = 0 then
+  begin
+    BigNumberCopy(Res, Num1);
+    Result := True;
+    Exit;
+  end;
+
+  G := nil;
+  M := nil;
+  R := nil;
+
+  try
+    G := ObtainBigNumberFromPool;
+    M := ObtainBigNumberFromPool;
+    R := ObtainBigNumberFromPool;
+
+    if not BigNumberGcd(G, Num1, Num2) then
+      Exit;
+
+    if not BigNumberMul(M, Num1, Num2) then
+      Exit;
+
+    if not BigNumberDiv(Res, R, M, G) then
+      Exit;
+
+    Result := True;
+  finally
+    RecycleBigNumberToPool(R);
+    RecycleBigNumberToPool(M);
+    RecycleBigNumberToPool(G);
+  end;
+end;
+
 // 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话}
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 var
@@ -4665,6 +4723,11 @@ end;
 function TCnBigNumber.IsOne: Boolean;
 begin
   Result := BigNumberIsOne(Self);
+end;
+
+function TCnBigNumber.IsNegOne: Boolean;
+begin
+  Result := BigNumberIsNegOne(Self);
 end;
 
 function TCnBigNumber.IsWord(W: LongWord): Boolean;
