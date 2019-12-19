@@ -2,6 +2,8 @@ unit UnitMain;
 
 interface
 
+{$I CnPack.inc}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon;
@@ -59,6 +61,7 @@ type
     btnEnterNum1: TButton;
     btnEnterNum2: TButton;
     btnMInverse: TButton;
+    btnSetUInt64: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -99,6 +102,7 @@ type
     procedure btnEnterNum1Click(Sender: TObject);
     procedure btnEnterNum2Click(Sender: TObject);
     procedure btnMInverseClick(Sender: TObject);
+    procedure btnSetUInt64Click(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -655,6 +659,22 @@ begin
     ShowMessage('Modular Inverse Check Error: ' + R.ToDec);
   BigNumberFree(R);
   BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnSetUInt64Click(Sender: TObject);
+{$IFDEF SUPPORT_UINT64}
+var
+  U: UInt64;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_UINT64}
+  U := 12345678900987654321;
+  Num1.SetUInt64(U);
+  ShowMessage(Num1.ToDec);
+  ShowMessage(Num1.GetUInt64.ToString);
+{$ELSE}
+  ShowMessage('UInt64 NOT Support.');
+{$ENDIF}
 end;
 
 end.

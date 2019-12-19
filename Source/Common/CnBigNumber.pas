@@ -68,6 +68,7 @@ const
   BN_MASK2l             = $FFFF;
   BN_MASK2h             = $FFFF0000;
   BN_MASK2h1            = $FFFF8000;
+  BN_MASK3              = $FFFFFFFFFFFFFFFF;
 
   BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
@@ -76,6 +77,11 @@ type
 
   TLongWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of LongWord;
   PLongWordArray = ^TLongWordArray;
+
+{$IFDEF SUPPORT_UINT64}
+  TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
+  PUInt64Array = ^TUInt64Array;
+{$ENDIF}
 
   {* 用来代表一个大数的对象 }
   TCnBigNumber = class(TObject)
@@ -124,10 +130,20 @@ type
     {* 返回大数有多少个有效 bytes }
 
     function GetWord: LongWord;
-    {* 取首值 }
+    {* 取 DWORD 型首值 }
 
     function SetWord(W: LongWord): Boolean;
-    {* 给大数赋首值 }
+    {* 给大数赋 DWORD 型首值 }
+
+{$IFDEF SUPPORT_UINT64}
+
+    function GetUInt64: UInt64;
+    {* 取 UInt64 型首值 }
+
+    function SetUInt64(W: UInt64): Boolean;
+    {* 给大数赋 UInt64 型首值 }
+
+{$ENDIF}
 
     function IsWord(W: LongWord): Boolean;
     {* 大数是否等于指定 DWORD}
@@ -260,6 +276,16 @@ function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
 
 function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 给一个大数对象赋首值 }
+
+{$IFDEF SUPPORT_UINT64}
+
+function BigNumberGetUInt64(const Num: TCnBigNumber): UInt64;
+{* 取一个大数对象的首值 UInt64 }
+
+function BigNumberSetUInt64(const Num: TCnBigNumber; W: UInt64): Boolean;
+{* 给一个大数对象赋首值 UInt64 }
+
+{$ENDIF}
 
 function BigNumberIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 某大数是否等于指定 DWORD}
@@ -832,6 +858,37 @@ begin
   else
     Result := 0;
 end;
+
+{$IFDEF SUPPORT_UINT64}
+
+function BigNumberGetUInt64(const Num: TCnBigNumber): UInt64;
+begin
+  if Num.Top > 2 then
+    Result := BN_MASK3
+  else if Num.Top = 2 then
+    Result := PUInt64Array(Num.D)^[0]
+  else if Num.Top = 1 then
+    Result := UInt64(PLongWordArray(Num.D)^[0])
+  else
+    Result := 0;
+end;
+
+function BigNumberSetUInt64(const Num: TCnBigNumber; W: UInt64): Boolean;
+begin
+  Result := False;
+  if BigNumberExpandBits(Num, SizeOf(UInt64) * 8) = nil then
+    Exit;
+
+  Num.Neg := 0;
+  PUInt64Array(Num.D)^[0] := W;
+  if W <> 0 then
+    Num.Top := 2
+  else
+    Num.Top := 0;
+  Result := True;
+end;
+
+{$ENDIF}
 
 // 某大数是否等于指定 DWORD
 function BigNumberIsWord(const Num: TCnBigNumber; W: LongWord): Boolean;
@@ -4576,6 +4633,15 @@ begin
   Result := BigNumberGetWord(Self);
 end;
 
+{$IFDEF SUPPORT_UINT64}
+
+function TCnBigNumber.GetUInt64: UInt64;
+begin
+  Result := BigNumberGetUInt64(Self);
+end;
+
+{$ENDIF}
+
 procedure TCnBigNumber.Init;
 begin
   BigNumberInit(Self);
@@ -4655,6 +4721,15 @@ function TCnBigNumber.SetWord(W: LongWord): Boolean;
 begin
   Result := BigNumberSetWord(Self, W);
 end;
+
+{$IFDEF SUPPORT_UINT64}
+
+function TCnBigNumber.SetUInt64(W: UInt64): Boolean;
+begin
+  Result := BigNumberSetUInt64(Self, W);
+end;
+
+{$ENDIF}
 
 procedure TCnBigNumber.SetZero;
 begin
