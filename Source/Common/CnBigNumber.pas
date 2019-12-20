@@ -142,6 +142,12 @@ type
     function SetWord(W: LongWord): Boolean;
     {* 给大数赋 DWORD 型首值 }
 
+    function GetInt64: Int64;
+    {* 取 Int64 型首值 }
+
+    function SetInt64(W: Int64): Boolean;
+    {* 给大数赋 Int64 型首值 }
+
 {$IFDEF SUPPORT_UINT64}
 
     function GetUInt64: UInt64;
@@ -4909,6 +4915,16 @@ begin
     TObject(FLocalBigNumberPool[I]).Free;
   end;
   FreeAndNil(FLocalBigNumberPool);
+end;
+
+function TCnBigNumber.GetInt64: Int64;
+begin
+  Result := BigNumberGetInt64(Self);
+end;
+
+function TCnBigNumber.SetInt64(W: Int64): Boolean;
+begin
+  Result := BigNumberSetInt64(Self, W);
 end;
 
 { TCnBigNumberList }

@@ -481,11 +481,11 @@ object FormBigNumber: TFormBigNumber
     OnClick = btnMInverseClick
   end
   object btnSetUInt64: TButton
-    Left = 312
+    Left = 308
     Top = 12
-    Width = 57
+    Width = 65
     Height = 21
-    Caption = 'Set UInt64'
+    Caption = 'Set (U)Int64'
     TabOrder = 2
     OnClick = btnSetUInt64Click
   end

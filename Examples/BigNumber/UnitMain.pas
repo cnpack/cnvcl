@@ -662,8 +662,9 @@ begin
 end;
 
 procedure TFormBigNumber.btnSetUInt64Click(Sender: TObject);
-{$IFDEF SUPPORT_UINT64}
 var
+  I: Int64;
+{$IFDEF SUPPORT_UINT64}
   U: UInt64;
 {$ENDIF}
 begin
@@ -672,9 +673,11 @@ begin
   Num1.SetUInt64(U);
   ShowMessage(Num1.ToDec);
   ShowMessage(Num1.GetUInt64.ToString);
-{$ELSE}
-  ShowMessage('UInt64 NOT Support.');
 {$ENDIF}
+  I := -1234567890987654321;
+  Num1.SetInt64(I);
+  ShowMessage(Num1.ToDec);
+  ShowMessage(IntToStr(Num1.GetInt64));
 end;
 
 end.
