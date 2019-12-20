@@ -25,6 +25,10 @@ type
     btnMul: TButton;
     btnDiv: TButton;
     btnRN2SetValue: TButton;
+    lblFloat: TLabel;
+    edtExtended: TEdit;
+    btnSetExtended: TButton;
+    btnSetString: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnSet1Click(Sender: TObject);
@@ -36,6 +40,8 @@ type
     procedure btnSubClick(Sender: TObject);
     procedure btnMulClick(Sender: TObject);
     procedure btnDivClick(Sender: TObject);
+    procedure btnSetExtendedClick(Sender: TObject);
+    procedure btnSetStringClick(Sender: TObject);
   private
     FR1, FR2, FR: TCnBigRationalNumber;
   public
@@ -116,6 +122,21 @@ procedure TFormRational.btnDivClick(Sender: TObject);
 begin
   CnBigRationalNumberDiv(FR1, FR2, FR);
   ShowMessage(FR.ToString);
+end;
+
+procedure TFormRational.btnSetExtendedClick(Sender: TObject);
+var
+  F: Extended;
+begin
+  F := StrToFloat(edtExtended.Text);
+  FR1.SetFloat(F);
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnSetStringClick(Sender: TObject);
+begin
+  FR1.SetString(edtExtended.Text);
+  ShowMessage(FR1.ToString);
 end;
 
 end.

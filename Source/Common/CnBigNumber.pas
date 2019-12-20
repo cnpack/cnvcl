@@ -68,7 +68,8 @@ const
   BN_MASK2l             = $FFFF;
   BN_MASK2h             = $FFFF0000;
   BN_MASK2h1            = $FFFF8000;
-  BN_MASK3              = $FFFFFFFFFFFFFFFF;
+  BN_MASK3S             = $7FFFFFFFFFFFFFFF;
+  BN_MASK3U             = $FFFFFFFFFFFFFFFF;
 
   BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
@@ -77,6 +78,9 @@ type
 
   TLongWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of LongWord;
   PLongWordArray = ^TLongWordArray;
+
+  TInt64Array = array [0..MaxInt div SizeOf(Int64) - 1] of Int64;
+  PInt64Array = ^TInt64Array;
 
 {$IFDEF SUPPORT_UINT64}
   TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
@@ -282,6 +286,12 @@ function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
 
 function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 {* 给一个大数对象赋首值 }
+
+function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
+{* 取一个大数对象的首值 Int64 }
+
+function BigNumberSetInt64(const Num: TCnBigNumber; W: Int64): Boolean;
+{* 给一个大数对象赋首值 Int64 }
 
 {$IFDEF SUPPORT_UINT64}
 
@@ -878,12 +888,54 @@ begin
     Result := 0;
 end;
 
+function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
+begin
+  if Num.Top > 2 then
+    Result := BN_MASK3S
+  else if Num.Top = 2 then
+  begin
+    Result := PInt64Array(Num.D)^[0];
+    if Result < 0 then      // Int64 high bit set
+      Result := BN_MASK3S
+    else if Num.Neg <> 0 then // 负则求反加一
+      Result := (not Result) + 1;
+  end
+  else if Num.Top = 1 then
+    Result := Int64(PLongWordArray(Num.D)^[0])
+  else
+    Result := 0;
+end;
+
+function BigNumberSetInt64(const Num: TCnBigNumber; W: Int64): Boolean;
+begin
+  Result := False;
+  if BigNumberExpandBits(Num, SizeOf(Int64) * 8) = nil then
+    Exit;
+
+  if W >= 0 then
+  begin
+    Num.Neg := 0;
+    PInt64Array(Num.D)^[0] := W;
+    if W = 0 then
+      Num.Top := 0
+    else
+      Num.Top := 2;
+  end                 
+  else // W < 0
+  begin
+    Num.Neg := 1;
+    PInt64Array(Num.D)^[0] := (not W) + 1;
+    Num.Top := 2;
+  end;
+  Result := True;
+end;
+
 {$IFDEF SUPPORT_UINT64}
 
 function BigNumberGetUInt64(const Num: TCnBigNumber): UInt64;
 begin
   if Num.Top > 2 then
-    Result := BN_MASK3
+    Result := BN_MASK3U
   else if Num.Top = 2 then
     Result := PUInt64Array(Num.D)^[0]
   else if Num.Top = 1 then
@@ -4930,3 +4982,4 @@ finalization
   FreeBigNumberPool;
 
 end.
+

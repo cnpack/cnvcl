@@ -15,6 +15,13 @@ object FormRational: TFormRational
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
+  object lblFloat: TLabel
+    Left = 16
+    Top = 184
+    Width = 48
+    Height = 13
+    Caption = 'Extended:'
+  end
   object grpBR1: TGroupBox
     Left = 16
     Top = 16
@@ -157,5 +164,31 @@ object FormRational: TFormRational
     Caption = '/'
     TabOrder = 5
     OnClick = btnDivClick
+  end
+  object edtExtended: TEdit
+    Left = 80
+    Top = 184
+    Width = 233
+    Height = 21
+    TabOrder = 6
+    Text = '-123321.847820398924'
+  end
+  object btnSetExtended: TButton
+    Left = 336
+    Top = 184
+    Width = 75
+    Height = 21
+    Caption = 'Set Extended'
+    TabOrder = 7
+    OnClick = btnSetExtendedClick
+  end
+  object btnSetString: TButton
+    Left = 424
+    Top = 184
+    Width = 75
+    Height = 21
+    Caption = 'Set String'
+    TabOrder = 8
+    OnClick = btnSetStringClick
   end
 end

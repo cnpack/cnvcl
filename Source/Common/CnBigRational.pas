@@ -101,7 +101,6 @@ type
     procedure Divide(Value: TCnBigRationalNumber); overload;
     {* 除以一个有理数}
 
-
     procedure SetIntValue(Value: LongWord); overload;
     {* 值设为一个整数}
     procedure SetIntValue(Value: TCnBigNumber); overload;
@@ -111,7 +110,9 @@ type
     procedure SetValue(const ANominator, ADenominator: string); overload;
     {* 值设为一个分数，数字用字符串的方式输入}
     procedure SetString(const Value: string);
-    {* 值设为一个字符串，可以是纯数字，或带 / 的分数}
+    {* 值设为一个字符串，可以是纯数字，或带 / 的分数，或小数}
+    procedure SetFloat(AFloat: Extended);
+    {* 值设为一个浮点数，把浮点数的有效数字和指数拆开处理}
     procedure Reduce;
     {* 尽量约分}
 
@@ -145,6 +146,10 @@ function CnBigRationalNumberCompare(Number1, Number2: TCnBigRationalNumber): Int
 
 procedure CnReduceBigNumber(X, Y: TCnBigNumber);
 {* 尽量比例缩小，也就是约分}
+
+var
+  CnBigRationalNumberOne: TCnBigRationalNumber = nil;
+  CnBigRationalNumberZero: TCnBigRationalNumber = nil;
 
 implementation
 
@@ -338,7 +343,7 @@ end;
 
 procedure TCnBigRationalNumber.Divide(Value: TCnBigRationalNumber);
 begin
-
+  CnBigRationalNumberDiv(Self, Value, Self);
 end;
 
 function TCnBigRationalNumber.Equal(Value: TCnBigRationalNumber): Boolean;
@@ -441,6 +446,25 @@ begin
   FDenominator.SetOne;
 end;
 
+procedure TCnBigRationalNumber.SetFloat(AFloat: Extended);
+var
+  F: TFloatRec;
+  I, L: Integer;
+begin
+  // 分离出符号位、有效数字与指数
+  FloatToDecimal(F, AFloat, fvExtended, 18, 9999);
+
+  L := StrLen(F.Digits);
+  // 分母是 10 的 L - F.Exponent 次方，分子是纯的 Digits
+  FDenominator.SetOne;
+  for I := 1 to L - F.Exponent do
+    FDenominator.MulWord(10);
+
+  FNominator.SetDec(F.Digits);
+  FNominator.SetNegative(F.Negative);
+  Reduce;
+end;
+
 procedure TCnBigRationalNumber.SetIntValue(Value: TCnBigNumber);
 begin
   BigNumberCopy(FNominator, Value);
@@ -465,11 +489,27 @@ begin
     D := Copy(Value, P + 1, MaxInt);
     FNominator.SetDec(N);
     FDenominator.SetDec(D);
+    Reduce;
   end
   else
   begin
-    FNominator.SetDec(Value);
-    FDenominator.SetOne;
+    P := Pos('.', Value);
+    if P > 1 then
+    begin
+      // 处理小数点
+      N := Copy(Value, 1, P - 1);
+      D := Copy(Value, P + 1, MaxInt);
+      FNominator.SetDec(N + D);
+      FDenominator.SetOne;
+      for P := 1 to Length(D) do
+        FDenominator.MulWord(10);
+      Reduce;
+    end
+    else
+    begin
+      FNominator.SetDec(Value);
+      FDenominator.SetOne;
+    end;
   end;
 end;
 
@@ -500,7 +540,7 @@ end;
 
 procedure TCnBigRationalNumber.Sub(Value: TCnBigRationalNumber);
 begin
-
+  CnBigRationalNumberSub(Self, Value, Self);
 end;
 
 procedure TCnBigRationalNumber.Sub(Value: TCnBigNumber);
@@ -520,5 +560,15 @@ begin
   else
     Result := FNominator.ToDec + ' / ' + FDenominator.ToDec;
 end;
+
+initialization
+  CnBigRationalNumberOne := TCnBigRationalNumber.Create;
+  CnBigRationalNumberZero := TCnBigRationalNumber.Create;
+  CnBigRationalNumberOne.SetOne;
+  CnBigRationalNumberZero.SetZero;
+
+finalization
+  CnBigRationalNumberOne.Free;
+  CnBigRationalNumberZero.Free;
 
 end.
