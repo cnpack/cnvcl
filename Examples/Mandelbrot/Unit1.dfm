@@ -15,8 +15,8 @@ object FormMandelbrot: TFormMandelbrot
   PixelsPerInch = 120
   TextHeight = 16
   object lblMark: TLabel
-    Left = 946
-    Top = 38
+    Left = 1068
+    Top = 48
     Width = 3
     Height = 16
   end

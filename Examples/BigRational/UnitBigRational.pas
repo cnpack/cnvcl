@@ -169,7 +169,7 @@ end;
 
 procedure TFormRational.btnToDecClick(Sender: TObject);
 begin
-  ShowMessage(FR2.ToDecimal(100));
+  ShowMessage(FR2.ToDec(100));
 end;
 
 procedure TFormRational.btnAddIntClick(Sender: TObject);

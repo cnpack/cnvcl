@@ -118,8 +118,8 @@ type
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 输出成字符串}
-    function ToDecimal(Digits: Integer = 20): string;
-    {* 输出成小数，默认最多留 20 位精度}
+    function ToDec(Digits: Integer = 20): string;
+    {* 输出成小数，默认留小数点后 20 位精度}
 
     property Nominator: TCnBigNumber read FNominator;
     {* 分子}
@@ -685,7 +685,7 @@ begin
   end;
 end;
 
-function TCnBigRationalNumber.ToDecimal(Digits: Integer): string;
+function TCnBigRationalNumber.ToDec(Digits: Integer): string;
 var
   Remain, Res: TCnBigNumber;
   I: Integer;
