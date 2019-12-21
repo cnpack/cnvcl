@@ -17,14 +17,14 @@ object FormRational: TFormRational
   TextHeight = 13
   object lblFloat: TLabel
     Left = 16
-    Top = 184
+    Top = 16
     Width = 48
     Height = 13
     Caption = 'Extended:'
   end
   object grpBR1: TGroupBox
     Left = 16
-    Top = 16
+    Top = 48
     Width = 465
     Height = 145
     Caption = 'Big Rational Number 1:'
@@ -91,8 +91,8 @@ object FormRational: TFormRational
   end
   object grpRN2: TGroupBox
     Left = 624
-    Top = 16
-    Width = 433
+    Top = 48
+    Width = 481
     Height = 145
     Caption = 'Big Rational Number 2:'
     TabOrder = 1
@@ -128,10 +128,19 @@ object FormRational: TFormRational
       TabOrder = 2
       OnClick = btnRN2SetValueClick
     end
+    object btnToDec: TButton
+      Left = 312
+      Top = 88
+      Width = 75
+      Height = 21
+      Caption = 'ToDec'
+      TabOrder = 3
+      OnClick = btnToDecClick
+    end
   end
   object btnAdd: TButton
     Left = 536
-    Top = 24
+    Top = 56
     Width = 25
     Height = 25
     Caption = '+'
@@ -140,7 +149,7 @@ object FormRational: TFormRational
   end
   object btnSub: TButton
     Left = 536
-    Top = 61
+    Top = 93
     Width = 25
     Height = 25
     Caption = '-'
@@ -149,7 +158,7 @@ object FormRational: TFormRational
   end
   object btnMul: TButton
     Left = 536
-    Top = 99
+    Top = 131
     Width = 25
     Height = 25
     Caption = '*'
@@ -158,7 +167,7 @@ object FormRational: TFormRational
   end
   object btnDiv: TButton
     Left = 536
-    Top = 136
+    Top = 168
     Width = 25
     Height = 25
     Caption = '/'
@@ -167,15 +176,15 @@ object FormRational: TFormRational
   end
   object edtExtended: TEdit
     Left = 80
-    Top = 184
+    Top = 16
     Width = 233
     Height = 21
     TabOrder = 6
     Text = '-123321.847820398924'
   end
   object btnSetExtended: TButton
-    Left = 336
-    Top = 184
+    Left = 328
+    Top = 16
     Width = 75
     Height = 21
     Caption = 'Set Extended'
@@ -183,12 +192,119 @@ object FormRational: TFormRational
     OnClick = btnSetExtendedClick
   end
   object btnSetString: TButton
-    Left = 424
-    Top = 184
+    Left = 408
+    Top = 16
     Width = 75
     Height = 21
     Caption = 'Set String'
     TabOrder = 8
     OnClick = btnSetStringClick
+  end
+  object btnAddInt: TButton
+    Left = 40
+    Top = 208
+    Width = 25
+    Height = 25
+    Caption = '+'
+    TabOrder = 9
+    OnClick = btnAddIntClick
+  end
+  object btnSubInt: TButton
+    Left = 40
+    Top = 245
+    Width = 25
+    Height = 25
+    Caption = '-'
+    TabOrder = 10
+    OnClick = btnSubIntClick
+  end
+  object btnMulInt: TButton
+    Left = 40
+    Top = 283
+    Width = 25
+    Height = 25
+    Caption = '*'
+    TabOrder = 11
+    OnClick = btnMulIntClick
+  end
+  object btnDivInt: TButton
+    Left = 40
+    Top = 320
+    Width = 25
+    Height = 25
+    Caption = '/'
+    TabOrder = 12
+    OnClick = btnDivIntClick
+  end
+  object edtInt: TEdit
+    Left = 104
+    Top = 264
+    Width = 177
+    Height = 21
+    TabOrder = 13
+    Text = '-3893472'
+  end
+  object btnBNAdd: TButton
+    Left = 312
+    Top = 208
+    Width = 25
+    Height = 25
+    Caption = '+'
+    TabOrder = 14
+    OnClick = btnBNAddClick
+  end
+  object btnBNSub: TButton
+    Left = 312
+    Top = 245
+    Width = 25
+    Height = 25
+    Caption = '-'
+    TabOrder = 15
+    OnClick = btnBNSubClick
+  end
+  object btnBNMul: TButton
+    Left = 312
+    Top = 283
+    Width = 25
+    Height = 25
+    Caption = '*'
+    TabOrder = 16
+    OnClick = btnBNMulClick
+  end
+  object btnBNDiv: TButton
+    Left = 312
+    Top = 320
+    Width = 25
+    Height = 25
+    Caption = '/'
+    TabOrder = 17
+    OnClick = btnBNDivClick
+  end
+  object btnCompare: TButton
+    Left = 480
+    Top = 208
+    Width = 145
+    Height = 25
+    Caption = 'Compare Rational Number'
+    TabOrder = 18
+    OnClick = btnCompareClick
+  end
+  object btnCompareInt: TButton
+    Left = 480
+    Top = 248
+    Width = 145
+    Height = 25
+    Caption = 'Compare Rational Number'
+    TabOrder = 19
+    OnClick = btnCompareIntClick
+  end
+  object btnCompareBN: TButton
+    Left = 480
+    Top = 288
+    Width = 145
+    Height = 25
+    Caption = 'Compare BigNumber'
+    TabOrder = 20
+    OnClick = btnCompareBNClick
   end
 end

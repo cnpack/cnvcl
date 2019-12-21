@@ -141,8 +141,11 @@ procedure CnBigRationalNumberMul(Number1, Number2: TCnBigRationalNumber; Rationa
 procedure CnBigRationalNumberDiv(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
 {* 大有理数除法，三数可以相等}
 
-function CnBigRationalNumberCompare(Number1, Number2: TCnBigRationalNumber): Integer;
+function CnBigRationalNumberCompare(Number1, Number2: TCnBigRationalNumber): Integer; overload;
 {* 大有理数比较，> = < 分别返回 1 0 -1}
+
+function CnBigRationalNumberCompare(Number1: TCnBigRationalNumber; Number2: Int64): Integer; overload;
+{^ 大有理数与整数比较，> = < 分别返回 1 0 -1}
 
 procedure CnReduceBigNumber(X, Y: TCnBigNumber);
 {* 尽量比例缩小，也就是约分}
@@ -254,6 +257,9 @@ procedure CnBigRationalNumberDiv(Number1, Number2: TCnBigRationalNumber; Rationa
 var
   N: TCnBigNumber;
 begin
+  if Number2.IsZero then
+    raise EDivByZero.Create('Divide by Zero.');
+
   N := TCnBigNumber.Create;
   try
     BigNumberMul(N, Number1.Nominator, Number2.Denominator);
@@ -266,8 +272,57 @@ begin
 end;
 
 function CnBigRationalNumberCompare(Number1, Number2: TCnBigRationalNumber): Integer;
+var
+  Res: TCnBigRationalNumber;
 begin
+  if not Number1.IsNegative and Number2.IsNegative then
+    Result := 1
+  else if Number1.IsNegative and not Number2.IsNegative then
+    Result := -1
+  else if Number1.IsZero and Number2.IsZero then
+    Result := 0
+  else if Number1.IsInt and Number2.IsInt then
+    Result := BigNumberCompare(Number1.Nominator, Number2.Nominator)
+  else
+  begin
+    //  同号，非整，比较
+    Res := TCnBigRationalNumber.Create;
+    try
+      CnBigRationalNumberSub(Number1, Number2, Res);
+      if Res.IsZero then
+        Result := 0
+      else if Res.IsNegative then
+        Result := -1
+      else
+        Result := 1;
+    finally
+      Res.Free;
+    end;
+  end;
+end;
 
+function CnBigRationalNumberCompare(Number1: TCnBigRationalNumber; Number2: Int64): Integer;
+var
+  Res: TCnBigNumber;
+begin
+  if not Number1.IsNegative and (Number2 < 0) then
+    Result := 1
+  else if Number1.IsNegative and (Number2 > 0) then
+    Result := -1
+  else if Number1.IsZero and (Number2 = 0) then
+    Result := 0
+  else
+  begin
+    Res := TCnBigNumber.Create;
+    try
+      Res.SetInt64(Number2);
+      if not Number1.IsInt then
+        BigNumberMul(Res, Number1.Denominator, Res);
+      Result := BigNumberCompare(Number1.Nominator, Res);
+    finally
+      Res.Free;
+    end;
+  end;
 end;
 
 procedure CnReduceBigNumber(X, Y: TCnBigNumber);
@@ -291,18 +346,36 @@ end;
 { TCnBigRationalNumber }
 
 procedure TCnBigRationalNumber.Add(Value: TCnBigNumber);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    BigNumberCopy(N.Nominator, Value);
+    CnBigRationalNumberAdd(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Add(Value: Int64);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    N.Nominator.SetInt64(Value);
+    CnBigRationalNumberAdd(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Add(Value: TCnBigRationalNumber);
 begin
-
+  CnBigRationalNumberAdd(Self, Value, Self);
 end;
 
 procedure TCnBigRationalNumber.AssignTo(Dest: TPersistent);
@@ -332,13 +405,31 @@ begin
 end;
 
 procedure TCnBigRationalNumber.Divide(Value: Int64);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    N.Nominator.SetInt64(Value);
+    CnBigRationalNumberDiv(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Divide(Value: TCnBigNumber);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    BigNumberCopy(N.Nominator, Value);
+    CnBigRationalNumberDiv(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Divide(Value: TCnBigRationalNumber);
@@ -398,18 +489,41 @@ begin
 end;
 
 procedure TCnBigRationalNumber.Mul(Value: TCnBigNumber);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    BigNumberCopy(N.Nominator, Value);
+    CnBigRationalNumberMul(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Mul(Value: Int64);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    N.Nominator.SetInt64(Value);
+    CnBigRationalNumberMul(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Neg;
 begin
   FNominator.SetNegative(not FNominator.IsNegative);
+  if FNominator.IsNegative and FDenominator.IsNegative then
+  begin
+    FNominator.SetNegative(False);
+    FDenominator.SetNegative(False);
+  end;
 end;
 
 procedure TCnBigRationalNumber.Reciprocal;
@@ -428,6 +542,11 @@ begin
   begin
     FDenominator.SetNegative(False);
     FNominator.SetNegative(False);
+  end
+  else if FDenominator.IsNegative and not FNominator.IsNegative then  // 分母的负号移到分子
+  begin
+    FDenominator.SetNegative(False);
+    FNominator.SetNegative(True);
   end;
 
   if FNominator.IsZero then
@@ -534,8 +653,17 @@ begin
 end;
 
 procedure TCnBigRationalNumber.Sub(Value: Int64);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    N.Nominator.SetInt64(Value);
+    CnBigRationalNumberSub(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 procedure TCnBigRationalNumber.Sub(Value: TCnBigRationalNumber);
@@ -544,8 +672,17 @@ begin
 end;
 
 procedure TCnBigRationalNumber.Sub(Value: TCnBigNumber);
+var
+  N: TCnBigRationalNumber;
 begin
-
+  N := TCnBigRationalNumber.Create;
+  try
+    N.Denominator.SetOne;
+    BigNumberCopy(N.Nominator, Value);
+    CnBigRationalNumberSub(Self, N, Self);
+  finally
+    N.Free;
+  end;
 end;
 
 function TCnBigRationalNumber.ToDecimal(Digits: Integer): string;

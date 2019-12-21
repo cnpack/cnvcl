@@ -29,6 +29,19 @@ type
     edtExtended: TEdit;
     btnSetExtended: TButton;
     btnSetString: TButton;
+    btnToDec: TButton;
+    btnAddInt: TButton;
+    btnSubInt: TButton;
+    btnMulInt: TButton;
+    btnDivInt: TButton;
+    edtInt: TEdit;
+    btnBNAdd: TButton;
+    btnBNSub: TButton;
+    btnBNMul: TButton;
+    btnBNDiv: TButton;
+    btnCompare: TButton;
+    btnCompareInt: TButton;
+    btnCompareBN: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnSet1Click(Sender: TObject);
@@ -42,6 +55,18 @@ type
     procedure btnDivClick(Sender: TObject);
     procedure btnSetExtendedClick(Sender: TObject);
     procedure btnSetStringClick(Sender: TObject);
+    procedure btnToDecClick(Sender: TObject);
+    procedure btnAddIntClick(Sender: TObject);
+    procedure btnSubIntClick(Sender: TObject);
+    procedure btnMulIntClick(Sender: TObject);
+    procedure btnDivIntClick(Sender: TObject);
+    procedure btnBNAddClick(Sender: TObject);
+    procedure btnBNSubClick(Sender: TObject);
+    procedure btnBNMulClick(Sender: TObject);
+    procedure btnBNDivClick(Sender: TObject);
+    procedure btnCompareClick(Sender: TObject);
+    procedure btnCompareIntClick(Sender: TObject);
+    procedure btnCompareBNClick(Sender: TObject);
   private
     FR1, FR2, FR: TCnBigRationalNumber;
   public
@@ -52,6 +77,9 @@ var
   FormRational: TFormRational;
 
 implementation
+
+uses
+  CnBigNumber;
 
 {$R *.DFM}
 
@@ -137,6 +165,95 @@ procedure TFormRational.btnSetStringClick(Sender: TObject);
 begin
   FR1.SetString(edtExtended.Text);
   ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnToDecClick(Sender: TObject);
+begin
+  ShowMessage(FR2.ToDecimal(100));
+end;
+
+procedure TFormRational.btnAddIntClick(Sender: TObject);
+begin
+  FR1.Add(StrToInt(edtInt.Text));
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnSubIntClick(Sender: TObject);
+begin
+  FR1.Sub(StrToInt(edtInt.Text));
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnMulIntClick(Sender: TObject);
+begin
+  FR1.Mul(StrToInt(edtInt.Text));
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnDivIntClick(Sender: TObject);
+begin
+  FR1.Divide(StrToInt(edtInt.Text));
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnBNAddClick(Sender: TObject);
+var
+  B: TCnBigNumber;
+begin
+  B := TCnBigNumber.FromDec(edtInt.Text);
+  FR1.Add(B);
+  B.Free;
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnBNSubClick(Sender: TObject);
+var
+  B: TCnBigNumber;
+begin
+  B := TCnBigNumber.FromDec(edtInt.Text);
+  FR1.Sub(B);
+  B.Free;
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnBNMulClick(Sender: TObject);
+var
+  B: TCnBigNumber;
+begin
+  B := TCnBigNumber.FromDec(edtInt.Text);
+  FR1.Mul(B);
+  B.Free;
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnBNDivClick(Sender: TObject);
+var
+  B: TCnBigNumber;
+begin
+  B := TCnBigNumber.FromDec(edtInt.Text);
+  FR1.Divide(B);
+  B.Free;
+  ShowMessage(FR1.ToString);
+end;
+
+procedure TFormRational.btnCompareClick(Sender: TObject);
+begin
+  ShowMessage(IntToStr(CnBigRationalNumberCompare(FR1, FR2)));
+end;
+
+procedure TFormRational.btnCompareIntClick(Sender: TObject);
+begin
+  ShowMessage(IntToStr(CnBigRationalNumberCompare(FR1, StrToInt(edtInt.Text))));
+end;
+
+procedure TFormRational.btnCompareBNClick(Sender: TObject);
+//var
+//  B: TCnBigNumber;
+begin
+//  B := TCnBigNumber.FromDec(edtInt.Text);
+//  ShowMessage(IntToStr(CnBigRationalNumberCompare(FR1, B)));
+//  B.Free;
+  ShowMessage('NOT Implemented.');
 end;
 
 end.
