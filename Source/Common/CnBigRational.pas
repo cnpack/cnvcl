@@ -686,8 +686,60 @@ begin
 end;
 
 function TCnBigRationalNumber.ToDecimal(Digits: Integer): string;
+var
+  Remain, Res: TCnBigNumber;
+  I: Integer;
+  R: string;
+  IsNeg: Boolean;
 begin
+  Remain := TCnBigNumber.Create;
+  Res := TCnBigNumber.Create;
 
+  // 基本思想是先除，得到整数部分，如果有余数，就计数加0求余
+  try
+    if IsInt then
+    begin
+      Result := FNominator.ToDec;
+      Exit;
+    end;
+    IsNeg := IsNegative;
+    if IsNeg then
+      Neg;
+
+    BigNumberDiv(Res, Remain, FNominator, FDenominator);
+    Result := Res.ToDec;
+    if Remain.IsZero or (Digits <= 0) then
+    begin
+      if IsNeg then
+        Neg;
+      Exit;
+    end;
+
+    R := '.';
+    for I := 1 to Digits do
+    begin
+      // Remain * 10，如果够除就商，不够就加 0，下一轮继续乘 10
+      Remain.MulWord(10);
+      if BigNumberCompare(Remain, FDenominator) > 0 then
+      begin
+        BigNumberDiv(Res, Remain, Remain, FDenominator);
+        R := R + Res.ToDec;
+        if Remain.IsZero then
+          Break;
+      end
+      else
+      begin
+        R := R + '0';
+      end;
+    end;
+
+    if IsNeg then
+      Neg;
+    Result := Result + R;
+  finally
+    Res.Free;
+    Remain.Free;
+  end;
 end;
 
 function TCnBigRationalNumber.ToString: string;
