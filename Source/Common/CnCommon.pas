@@ -1008,8 +1008,12 @@ function InheritsFromClassName(AObject: TObject; const AClass: string): Boolean;
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 {* 提升自身权限到 SeDebug 或取消此权限}
 
+{$IFNDEF WIN64}
+
 function PEBIsDebugged: Boolean;
 {* 查找 PEB 结构内容以判定本进程是否被调试中}
+
+{$ENDIF}
 
 function NtIsDeugged: Boolean;
 {* 使用 NtQueryInformationProcess 以判定本进程是否被调试中}
@@ -7054,12 +7058,16 @@ begin
   CloseHandle(Token);
 end;
 
+{$IFNDEF WIN64}
+
 // 查找 PEB 结构内容以判定本进程是否被调试中
 function PEBIsDebugged: Boolean;
 asm
         MOV     EAX, FS:[$30];
         MOV     AL, BYTE PTR DS:[EAX + 02];
 end;
+
+{$ENDIF}
 
 // 使用 NtQueryInformationProcess 以判定本进程是否被调试中
 function NtIsDeugged: Boolean;
