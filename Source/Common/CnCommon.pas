@@ -483,7 +483,7 @@ function CharInSet(C: Char; CharSet: TAnsiCharSet): Boolean;
 {* 判断字符是否在集合内}
 
 function InStr(const sShort: string; const sLong: string): Boolean;
-{* 判断s1是否包含在s2中}
+{* 判断 sShort 是否包含在 sLong 中，不区分大小写}
 
 function IntToStrEx(Value: Integer; Len: Integer; FillChar: Char = '0'): string;
 {* 扩展整数转字符串函数}
@@ -503,6 +503,9 @@ function IsDateTime(const s: string): Boolean;
 
 function IsValidEmail(const s: string): Boolean;
 {* 判断是否有效的邮件地址 }
+
+function AverageNoOverflow(A, B: Integer): Integer;
+{* 以不溢出的方式计算两个整型的算术平均数}
 
 function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 {* 去掉字符串中的分隔符－字符转换}
@@ -4570,6 +4573,12 @@ begin
       Exit;
   end;
   Result := AtCount = 1;
+end;
+
+// 以不溢出的方式计算两个整型的算术平均数
+function AverageNoOverflow(A, B: Integer): Integer;
+begin
+  Result := (A and B) + ((A xor B) shr 1);
 end;
 
 // 判断字符是否在集合内
