@@ -476,8 +476,11 @@ function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): 
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
   注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余}
 
+function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+{* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
+
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
-{* 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一}
+{* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一}
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
@@ -566,6 +569,7 @@ const
   BN_DEC_CONV = 1000000000;
   BN_DEC_FMT = '%u';
   BN_DEC_FMT2 = '%.9u';
+  BN_PRIME_NUMBERS = 2048;
 
 {$IFNDEF MSWINDOWS}
   MAXDWORD = LongWord($FFFFFFFF);
@@ -3693,6 +3697,134 @@ begin
   Result := True;
 end;
 
+// 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一
+function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+var
+  I, J, Bits, WStart, WEnd, Window, WValue, Start: Integer;
+  D: TCnBigNumber;
+  Val: array[0..31] of TCnBigNumber;
+
+  function WindowBit(B: Integer): Integer;
+  begin
+    if B > 671 then
+      Result := 6
+    else if B > 239 then
+      Result := 5
+    else if B > 79 then
+      Result := 4
+    else if B > 23 then
+      Result := 3
+    else
+      Result := 1;
+  end;
+
+begin
+  Result := False;
+  Bits := BigNumberGetBitsCount(B);
+
+  if Bits = 0 then
+  begin
+    if BigNumberAbsIsWord(C, 1) then
+      BigNumberSetZero(Res)
+    else
+      BigNumberSetOne(Res);
+    Result := True;
+    Exit;
+  end;
+
+  D := nil;
+  for I := Low(Val) to High(Val) do
+    Val[I] := nil;
+
+  try
+    Val[0] := ObtainBigNumberFromPool;
+    if not BigNumberNonNegativeMod(Val[0], A, C) then
+      Exit;
+
+    if BigNumberIsZero(Val[0]) then
+    begin
+      if not BigNumberSetZero(Res) then
+        Exit;
+      Result := True;
+      Exit;
+    end;
+
+    Window := WindowBit(Bits);
+    D := ObtainBigNumberFromPool;
+    if Window > 1 then
+    begin
+      if not BigNumberMulMod(D, Val[0], Val[0], C) then
+        Exit;
+
+      J := 1 shl (Window - 1);
+      for I := 1 to J - 1 do
+      begin
+        Val[I] := ObtainBigNumberFromPool;
+        if not BigNumberMulMod(Val[I], Val[I - 1], D, C) then
+          Exit;
+      end;
+    end;
+
+    Start := 1;
+    WStart := Bits - 1;
+
+    if not BigNumberSetOne(Res) then
+      Exit;
+
+    while True do
+    begin
+      if not BigNumberIsBitSet(B, WStart) then
+      begin
+        if Start = 0 then
+          if not BigNumberMulMod(Res, Res, Res, C) then
+            Exit;
+
+        if WStart = 0 then
+          Break;
+
+        Dec(WStart);
+        Continue;
+      end;
+
+      WValue := 1;
+      WEnd := 0;
+      for I := 1 to Window - 1 do
+      begin
+        if WStart - I < 0 then
+          Break;
+
+        if BigNumberIsBitSet(B, WStart - I) then
+        begin
+          WValue := WValue shl (I - WEnd);
+          WValue := WValue or 1;
+          WEnd := I;
+        end;
+      end;
+
+      J := WEnd + 1;
+      if Start = 0 then
+      begin
+        for I := 0 to J - 1 do
+          if not BigNumberMulMod(Res, Res, Res, C) then
+            Exit;
+      end;
+
+      if not BigNumberMulMod(Res, Res, Val[WValue shr 1], C) then
+        Exit;
+
+      WStart := WStart - WEnd - 1;
+      Start := 0;
+      if WStart < 0 then
+        Break;
+    end;
+    Result := True;
+  finally
+    RecycleBigNumberToPool(D);
+    for I := Low(Val) to High(Val) do
+      RecycleBigNumberToPool(Val[I]);
+  end;
+end;
+
 // 蒙哥马利法快速计算 (A ^ B) mod C，，返回计算是否成功，Res 不能是 A、B、C 之一
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 var
@@ -3727,9 +3859,10 @@ begin
     while not BB.IsOne do
     begin
       if BigNumberIsBitSet(BB, 0) then
+      begin
         if not BigNumberMulMod(T, AA, T, C) then
           Exit;
-
+      end;
       if not BigNumberMulMod(AA, AA, AA, C) then
         Exit;
 
@@ -3760,7 +3893,7 @@ begin
 
   try
     R := ObtainBigNumberFromPool;
-    if not BigNumberMontgomeryPowerMod(R, A, C, B) then
+    if not BigNumberPowerMod(R, A, C, B) then
       Exit;
 
     L := ObtainBigNumberFromPool;
@@ -3881,25 +4014,54 @@ begin
   Result := True;
 end;
 
+function InternalGenerateProbablePrime(const Num: TCnBigNumber; BitsCount: Integer): Boolean;
+var
+  Mods: array[0..BN_PRIME_NUMBERS - 1] of Cardinal;
+  Delta, MaxDelta: Cardinal;
+  I: Integer;
+label
+  AGAIN;
+begin
+  Result := False;
+
+AGAIN:
+  if not BigNumberRandBits(Num, BitsCount) then
+    Exit;
+
+  for I := 1 to BN_PRIME_NUMBERS - 1 do
+    Mods[I] := BigNumberModWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I + 1]);
+
+  MaxDelta := BN_MASK2 - CN_PRIME_NUMBERS_SQRT_UINT32[BN_PRIME_NUMBERS];
+  Delta := 0;
+
+  for I := 1 to BN_PRIME_NUMBERS - 1 do
+  begin
+    if ((Mods[I] + Delta) mod CN_PRIME_NUMBERS_SQRT_UINT32[I + 1]) <= 1 then
+    begin
+      Inc(Delta, 2);
+      if Delta > MaxDelta then
+        goto AGAIN;
+      Continue;
+    end;
+  end;
+
+  if not BigNumberAddWord(Num, Delta) then
+    Exit;
+  Result := True;
+end;
+
 // 生成一个指定位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
 function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer): Boolean;
 begin
   Result := False;
-  if not BigNumberRandBytes(Num, BytesCount) then
+  if not InternalGenerateProbablePrime(Num, BytesCount * 8) then
     Exit;
-
-  if not Num.IsOdd then
-    Num.AddWord(1);
 
   while not BigNumberIsProbablyPrime(Num, TestCount) do
   begin
-    // Num.AddWord(2);
-    if not BigNumberRandBytes(Num, BytesCount) then
+    if not InternalGenerateProbablePrime(Num, BytesCount * 8) then
       Exit;
-
-    if not Num.IsOdd then
-      Num.AddWord(1);
   end;
   Result := True;
 end;
