@@ -66,4 +66,13 @@ object FormNative: TFormNative
     TabOrder = 3
     OnClick = btnStrUInt64Click
   end
+  object btnMul32: TButton
+    Left = 328
+    Top = 16
+    Width = 89
+    Height = 25
+    Caption = 'Mul U32 to Int64'
+    TabOrder = 4
+    OnClick = btnMul32Click
+  end
 end

@@ -15,10 +15,12 @@ type
     mmoRes: TMemo;
     bvl1: TBevel;
     btnStrUInt64: TButton;
+    btnMul32: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
     procedure btnStrUInt64Click(Sender: TObject);
+    procedure btnMul32Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -126,6 +128,26 @@ begin
   mmoRes.Lines.Clear;
   mmoRes.Lines.Add(S + ' Converted to TUInt64.');
   mmoRes.Lines.Add(UInt64ToStr(A));
+end;
+
+procedure TFormNative.btnMul32Click(Sender: TObject);
+var
+  A, B: Cardinal;
+  C: Int64;
+{$IFDEF SUPPORT_UINT64}
+  D: UInt64;
+{$ENDIF}
+begin
+  A := $FFFFFFFF;
+  B := $FFFFFFFE;
+  C := UInt64Mul(A, B);
+  mmoRes.Clear;
+  mmoRes.Lines.Add(UInt64ToStr(C));
+{$IFDEF SUPPORT_UINT64}
+  D := UInt64(A) * B;
+  mmoRes.Lines.Add(UInt64ToStr(D));
+{$ENDIF}
+
 end;
 
 end.

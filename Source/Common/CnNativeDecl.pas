@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2018.06.05 V1.2
+* 修改记录：2020.01.01 V1.3
+*               加入 32 位无符号整型的 mul 运算，在不支持 UInt64 的系统上以 Int64 代替以避免溢出
+*           2018.06.05 V1.2
 *               加入 64 位整型的 div/mod 运算，在不支持 UInt64 的系统上以 Int64 代替 
 *           2016.09.27 V1.1
 *               加入 64 位整型的一些定义
@@ -102,6 +104,10 @@ function UInt64Mod(A, B: TUInt64): TUInt64;
 
 function UInt64Div(A, B: TUInt64): TUInt64;
 
+function UInt64Mul(A, B: Cardinal): TUInt64;
+{* 无符号 32 位整数不溢出的相乘，在不支持 UInt64 的平台上，结果以 UInt64 的形式放在 Int64 里，
+  如果结果直接使用 Int64 计算则有可能溢出}
+
 function UInt64ToStr(N: TUInt64): string;
 
 function StrToUInt64(const S: string): TUInt64;
@@ -148,7 +154,7 @@ end;
   而 System.@_llumod 要求在刚进入时，EAX <- A 的低位，EDX <- A 的高位，（System 源码注释中 EAX/EDX 写反了）
   [ESP + 8]（也就是 EBP + C）<- B 的高位，[ESP + 4] （也就是 EBP + 8）<- B 的低位
 
-  所以 CALL 前加了四句搬移代码
+  所以 CALL 前加了四句搬移代码。UInt64 Div 的也类似
 }
 function UInt64Mod(A, B: TUInt64): TUInt64;
 asm
@@ -171,6 +177,34 @@ asm
 end;
 
 {$ENDIF}
+
+{$IFDEF SUPPORT_UINT64}
+
+function UInt64Mul(A, B: Cardinal): TUInt64;
+begin
+  Result := TUInt64(A) * B;
+end;
+
+{$ELSE}
+
+{
+  无符号 32 位整数相乘，如果结果直接使用 Int64 会溢出，模拟 64 位无符号运算
+
+  调用寄存器约定是 A -> EAX，B -> EDX，不使用堆栈
+  而 System.@_llmul 要求在刚进入时，EAX <- A 的低位，EDX <- A 的高位 0，
+  [ESP + 8]（也就是 EBP + C）<- B 的高位 0，[ESP + 4] （也就是 EBP + 8）<- B 的低位
+}
+function UInt64Mul(A, B: Cardinal): TUInt64;
+asm
+        PUSH    0               // PUSH B 高位 0
+        PUSH    EDX             // PUSH B 低位
+                                // EAX A 低位，已经是了
+        XOR     EDX, EDX        // EDX A 高位 0
+        CALL    System.@_llmul; // 返回 EAX 低 32 位、EDX 高 32 位
+end;
+
+{$ENDIF}
+
 
 function _ValUInt64(const S: string; var Code: Integer): TUInt64;
 const
