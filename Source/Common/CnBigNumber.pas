@@ -49,7 +49,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, Contnrs {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
+  Classes, SysUtils, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
+  Contnrs {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -476,11 +477,15 @@ function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): 
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
   注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余}
 
+function BigNumberDirectMulMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+{* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
+  注意：位数较少时，该方法比上面的 BigNumberMulMod 方法要快不少，其余同上}
+
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
-{* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一}
+{* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用}
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
@@ -1515,6 +1520,8 @@ begin
   Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
 end;
 
+// ============================ 低阶运算定义开始 ===============================
+
 function LBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := Num and BN_MASK2l;
@@ -1595,7 +1602,8 @@ begin
 end;
 
 // 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C
-procedure Mul(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord; var C: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure Mul(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord;
+  var C: LongWord); overload; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   L, H: LongWord;
 begin
@@ -1610,6 +1618,21 @@ begin
   C := H and BN_MASK2;
   R := L and BN_MASK2;
 end;
+
+// UInt64 方式的计算
+
+procedure Mul(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord);
+  overload; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+var
+  T: TUInt64;
+begin
+  T := UInt64Mul(B, A) + C;
+  // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
+  R := LongWord(T) and BN_MASK2;
+  C := LongWord(T shr BN_BITS2) and BN_MASK2;
+end;
+
+// ============================ 低阶运算定义结束 ===============================
 
 {* Words 系列内部计算函数开始 }
 
@@ -1753,22 +1776,17 @@ end;
 
 // AP 指向的 N 个数字都乘以 W，结果的低 N 位放 RP 中，高位放返回值
 function BigNumberMulWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer; W: LongWord): LongWord;
-var
-  BL, BH: LongWord;
 begin
   Result := 0;
   if N <= 0 then
     Exit;
 
-  BL := LBITS(W);
-  BH := HBITS(W);
-
   while (N and (not 3)) <> 0 do
   begin
-    Mul(RP^[0], AP^[0], BL, BH, Result);
-    Mul(RP^[1], AP^[1], BL, BH, Result);
-    Mul(RP^[2], AP^[2], BL, BH, Result);
-    Mul(RP^[3], AP^[3], BL, BH, Result);
+    Mul(RP^[0], AP^[0], W, Result);
+    Mul(RP^[1], AP^[1], W, Result);
+    Mul(RP^[2], AP^[2], W, Result);
+    Mul(RP^[3], AP^[3], W, Result);
 
     AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
     RP := PLongWordArray(Integer(RP) + 4 * SizeOf(LongWord));
@@ -1778,7 +1796,8 @@ begin
 
   while N <> 0 do
   begin
-    Mul(RP^[0], AP^[0], BL, BH, Result);
+    Mul(RP^[0], AP^[0], W, Result);
+
     AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
     RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
 
@@ -3697,6 +3716,26 @@ begin
   Result := True;
 end;
 
+{* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）}
+function BigNumberDirectMulMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+begin
+  Result := False;
+  if A = B then
+  begin
+    if not BigNumberSqr(Res, A) then
+      Exit;
+  end
+  else
+  begin
+    if not BigNumberMul(Res, A, B) then
+      Exit;
+  end;
+
+  if not BigNumberNonNegativeMod(Res, Res, C) then
+    Exit;
+  Result := True;
+end;
+
 // 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 var
@@ -3753,14 +3792,14 @@ begin
     D := ObtainBigNumberFromPool;
     if Window > 1 then
     begin
-      if not BigNumberMulMod(D, Val[0], Val[0], C) then
+      if not BigNumberDirectMulMod(D, Val[0], Val[0], C) then
         Exit;
 
       J := 1 shl (Window - 1);
       for I := 1 to J - 1 do
       begin
         Val[I] := ObtainBigNumberFromPool;
-        if not BigNumberMulMod(Val[I], Val[I - 1], D, C) then
+        if not BigNumberDirectMulMod(Val[I], Val[I - 1], D, C) then
           Exit;
       end;
     end;
@@ -3776,7 +3815,7 @@ begin
       if not BigNumberIsBitSet(B, WStart) then
       begin
         if Start = 0 then
-          if not BigNumberMulMod(Res, Res, Res, C) then
+          if not BigNumberDirectMulMod(Res, Res, Res, C) then
             Exit;
 
         if WStart = 0 then
@@ -3805,11 +3844,11 @@ begin
       if Start = 0 then
       begin
         for I := 0 to J - 1 do
-          if not BigNumberMulMod(Res, Res, Res, C) then
+          if not BigNumberDirectMulMod(Res, Res, Res, C) then
             Exit;
       end;
 
-      if not BigNumberMulMod(Res, Res, Val[WValue shr 1], C) then
+      if not BigNumberDirectMulMod(Res, Res, Val[WValue shr 1], C) then
         Exit;
 
       WStart := WStart - WEnd - 1;
