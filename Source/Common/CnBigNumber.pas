@@ -55,7 +55,7 @@ uses
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
   BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是指向外部的静态数据
-  BN_FLG_CONSTTIME      = $4;
+  // BN_FLG_CONSTTIME      = $4;
 
   BN_FLG_FREE           = $8000;
 
@@ -3110,7 +3110,6 @@ end;
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 var
-  NoBranch: Integer;
   Tmp, SNum, SDiv, SRes: TCnBigNumber;
   I, NormShift, Loop, NumN, DivN, Neg, BackupTop, BackupDMax, BackupFlag, BackupNeg: Integer;
   D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: LongWord;
@@ -3125,13 +3124,7 @@ begin
   if BigNumberIsZero(Divisor) then
     Exit;
 
-  if (BigNumberGetFlag(Num, BN_FLG_CONSTTIME) <> 0) or
-    (BigNumberGetFlag(Divisor, BN_FLG_CONSTTIME) <> 0) then
-    NoBranch := 1
-  else
-    NoBranch := 0;
-
-  if (NoBranch = 0) and (BigNumberUnsignedCompare(Num, Divisor) < 0) then
+  if BigNumberUnsignedCompare(Num, Divisor) < 0 then
   begin
     if BigNumberCopy(Remain, Num) = nil then
       Exit;
@@ -3168,27 +3161,8 @@ begin
     NormShift := NormShift + BN_BITS2;
     if not BigNumberShiftLeft(SNum, Num, NormShift) then
       Exit;
+
     SNum.Neg := 0;
-
-    if NoBranch <> 0 then
-    begin
-      if SNum.Top <= SDiv.Top + 1 then
-      begin
-        if BigNumberWordExpand(SNum, SDiv.Top + 2) = nil then
-          Exit;
-        for I := SNum.Top to SDiv.Top + 1 do
-          PLongWordArray(SNum.D)^[I] := 0;
-        SNum.Top := SDiv.Top + 2;
-      end
-      else
-      begin
-        if BigNumberWordExpand(SNum, SDiv.Top + 1) = nil then
-          Exit;
-        PLongWordArray(SNum.D)^[SNum.Top] := 0;
-        Inc(SNum.Top);
-      end;
-    end;
-
     DivN := SDiv.Top;
     NumN := SNum.Top;
     Loop := NumN - DivN;
@@ -3222,23 +3196,20 @@ begin
     if BigNumberWordExpand(SRes, Loop + 1) = nil then
       Exit;
 
-    SRes.Top := Loop - NoBranch;
+    SRes.Top := Loop;
     Resp := PLongWord(Integer(SRes.D) + (Loop - 1) * SizeOf(LongWord));
 
     if BigNumberWordExpand(Tmp, DivN + 1) = nil then
       Exit;
 
-    if NoBranch = 0 then
+    if BigNumberUnsignedCompare(WNum, SDiv) >= 0 then
     begin
-      if BigNumberUnsignedCompare(WNum, SDiv) >= 0 then
-      begin
-        BigNumberSubWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
-          PLongWordArray(SDiv.D), DivN);
-        Resp^ := 1;
-      end
-      else
-        Dec(SRes.Top);
-    end;
+      BigNumberSubWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
+        PLongWordArray(SDiv.D), DivN);
+      Resp^ := 1;
+    end
+    else
+      Dec(SRes.Top);
 
     if SRes.Top = 0 then
       SRes.Neg := 0
@@ -3301,8 +3272,7 @@ begin
     BigNumberShiftRight(Remain, SNum, NormShift);
     if not BigNumberIsZero(Remain) then
       Remain.Neg := Neg;
-    if NoBranch <> 0 then
-      BigNumberCorrectTop(SRes);
+
     Result := True;
   finally
     RecycleBigNumberToPool(Tmp);
@@ -3355,9 +3325,6 @@ var
   IsFromPool: Boolean;
 begin
   Result := False;
-  if BigNumberGetFlag(Exponent, BN_FLG_CONSTTIME) <> 0 then
-    Exit;
-
   RR := nil;
   V := nil;
   IsFromPool := False;
