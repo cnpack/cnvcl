@@ -1537,31 +1537,6 @@ begin
   Result := (Num shl BN_BITS4) and BN_MASK2;
 end;
 
-// 计算两个 32 位数（分别用高低 16 位表示）的 64 位积 HL * BHBL，
-// 传入的 LHBLBL 皆为 16 位，结果的高低位分别放 H 和 L，溢出不管
-procedure Mul64(var L: LongWord; var H: LongWord; var BL: LongWord; var BH: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-var
-  M, ML, LT, HT: LongWord;
-begin
-  LT := L;
-  HT := H;
-  M := BH * LT;
-  LT := BL * LT;
-  ML := BL * HT;
-  HT := BH * HT;
-  M := (M + ML) and BN_MASK2;
-  if M < ML then
-    HT := HT + L2HBITS(LongWord(1));
-  HT := HT + HBITS(M);
-  ML := L2HBITS(M);
-  LT := (LT + ML) and BN_MASK2;
-  if LT < ML then
-    Inc(HT);
-  L := LT;
-  H := HT;
-end;
-
-// 计算 InNum 的平方，结果的高低位分别放 Ho 和 Lo
 procedure Sqr64(var Lo: LongWord; var Ho: LongWord; var InNum: LongWord);
 var
   L, H, M: LongWord;
@@ -1581,64 +1556,34 @@ begin
   Ho := H;
 end;
 
-// 计算 A * B + C
-procedure MulAdd(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord; var C: LongWord); overload;
-var
-  L, H: LongWord;
-begin
-  H := A;
-  L := LBITS(H);
-  H := HBITS(H);
-  Mul64(L, H, BL, BH);
-
-  L := (L + C) and BN_MASK2;
-  if L < C then
-    Inc(H);
-  C := R;
-  L := (L + C) and BN_MASK2;
-  if L < C then
-    Inc(H);
-  C := H and BN_MASK2;
-  R := L;
-end;
-
-// UInt64 的方式计算 A * B + C + R
-procedure MulAdd(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord); overload;
+// UInt64 的方式计算 N 平方
+procedure Sqr(var L: LongWord; var H: LongWord; N: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   T: TUInt64;
 begin
-  T := UInt64Mul(B, A) + R + C;
+  T := UInt64Mul(N, N);
+  // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
+  L := LongWord(T) and BN_MASK2;
+  H := LongWord(T shr BN_BITS2) and BN_MASK2;
+end;
+
+// UInt64 的方式计算 A * B + R + C
+procedure MulAdd(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+var
+  T: TUInt64;
+begin
+  T := UInt64Mul(A, B) + R + C;
   // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
   R := LongWord(T) and BN_MASK2;
   C := LongWord(T shr BN_BITS2) and BN_MASK2;
 end;
 
-// 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C，速度较慢废弃
-procedure Mul(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord;
-  var C: LongWord); overload; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-var
-  L, H: LongWord;
-begin
-  H := A;
-  L := LBITS(H);
-  H := HBITS(H);
-  Mul64(L, H, BL ,BH);
-
-  L := L + C;
-  if (L and BN_MASK2) < C then
-    Inc(H);
-  C := H and BN_MASK2;
-  R := L and BN_MASK2;
-end;
-
-// UInt64 方式的计算，尽量用这几个
-
-procedure Mul(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord);
-  overload; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+// UInt64 的方式计算 A * B + C
+procedure Mul(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   T: TUInt64;
 begin
-  T := UInt64Mul(B, A) + C;
+  T := UInt64Mul(A, B) + C;
   // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
   R := LongWord(T) and BN_MASK2;
   C := LongWord(T shr BN_BITS2) and BN_MASK2;
@@ -3171,6 +3116,7 @@ var
   D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: LongWord;
   Resp, WNump, BackupD: PLongWord;
   WNum: TCnBigNumber;
+  T2: TUInt64;
 begin
   Result := False;
   if (Num.Top > 0) and (PLongWordArray(Num.D)^[Num.Top - 1] = 0) then
@@ -3313,11 +3259,9 @@ begin
         Q := BigNumberDivWords(N0, N1, D0);
         Rem := (N1 - Q * D0) and BN_MASK2;
 
-        T2L := LBITS(D1);
-        T2H := HBITS(D1);
-        QL := LBITS(Q);
-        QH := HBITS(Q);
-        Mul64(T2L, T2H, QL, QH);
+        T2 := UInt64Mul(D1, Q);
+        T2H := (T2 shr 32) and BN_MASK2;
+        T2L := T2 and BN_MASK2;
 
         while True do
         begin
