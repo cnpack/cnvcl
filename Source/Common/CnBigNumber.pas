@@ -1581,7 +1581,8 @@ begin
   Ho := H;
 end;
 
-procedure MulAdd(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord; var C: LongWord);
+// 计算 A * B + C
+procedure MulAdd(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord; var C: LongWord); overload;
 var
   L, H: LongWord;
 begin
@@ -1601,7 +1602,18 @@ begin
   R := L;
 end;
 
-// 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C
+// UInt64 的方式计算 A * B + C + R
+procedure MulAdd(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord); overload;
+var
+  T: TUInt64;
+begin
+  T := UInt64Mul(B, A) + R + C;
+  // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
+  R := LongWord(T) and BN_MASK2;
+  C := LongWord(T shr BN_BITS2) and BN_MASK2;
+end;
+
+// 计算 32 位的 A 和 64 位 BHBL 的积再加 C，结果低位放 L，高位放 C，速度较慢废弃
 procedure Mul(var R: LongWord; var A: LongWord; var BL: LongWord; var BH: LongWord;
   var C: LongWord); overload; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
@@ -1619,7 +1631,7 @@ begin
   R := L and BN_MASK2;
 end;
 
-// UInt64 方式的计算
+// UInt64 方式的计算，尽量用这几个
 
 procedure Mul(var R: LongWord; A: LongWord; B: LongWord; var C: LongWord);
   overload; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
@@ -1743,22 +1755,17 @@ begin
 end;
 
 function BigNumberMulAddWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer; W: LongWord): LongWord;
-var
-  BL, BH: LongWord;
 begin
   Result := 0;
   if N <= 0 then
     Exit;
 
-  BL := LBITS(W);
-  BH := HBITS(W);
-
   while (N and (not 3)) <> 0 do
   begin
-    MulAdd(RP^[0], AP^[0], BL, BH, Result);
-    MulAdd(RP^[1], AP^[1], BL, BH, Result);
-    MulAdd(RP^[2], AP^[2], BL, BH, Result);
-    MulAdd(RP^[3], AP^[3], BL, BH, Result);
+    MulAdd(RP^[0], AP^[0], W, Result);
+    MulAdd(RP^[1], AP^[1], W, Result);
+    MulAdd(RP^[2], AP^[2], W, Result);
+    MulAdd(RP^[3], AP^[3], W, Result);
 
     AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
     RP := PLongWordArray(Integer(RP) + 4 * SizeOf(LongWord));
@@ -1767,7 +1774,7 @@ begin
 
   while N <> 0 do
   begin
-    MulAdd(RP^[0], AP^[0], BL, BH, Result);
+    MulAdd(RP^[0], AP^[0], W, Result);
     AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
     RP := PLongWordArray(Integer(RP) + SizeOf(LongWord));
     Dec(N);
