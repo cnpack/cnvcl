@@ -367,7 +367,7 @@ function BigNumberToHex(const Num: TCnBigNumber): string;
 {* 将一个大数对象转成十六进制字符串，负以 - 表示}
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示}
+{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行}
 
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十六进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
@@ -376,7 +376,7 @@ function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 {* 将一个大数对象转成十进制字符串，负以 - 表示}
 
 function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十进制字符串赋值给指定大数对象，负以 - 表示}
+{* 将一串十进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行}
 
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
@@ -1522,40 +1522,6 @@ end;
 
 // ============================ 低阶运算定义开始 ===============================
 
-function LBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-begin
-  Result := Num and BN_MASK2l;
-end;
-
-function HBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-begin
-  Result := (Num shr BN_BITS4) and BN_MASK2l;
-end;
-
-function L2HBITS(Num: LongWord): LongWord; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-begin
-  Result := (Num shl BN_BITS4) and BN_MASK2;
-end;
-
-procedure Sqr64(var Lo: LongWord; var Ho: LongWord; var InNum: LongWord);
-var
-  L, H, M: LongWord;
-begin
-  H := InNum;
-  L := LBITS(H);
-  H := HBITS(H);
-  M := L * H;
-  L := L * L;
-  H := H * H;
-  H := H + ((M and BN_MASK2h1) shr (BN_BITS4 - 1));
-  M := (M and BN_MASK2l) shl (BN_BITS4 + 1);
-  L := (L + M) and BN_MASK2;
-  if L < M then
-    Inc(H);
-  Lo := L;
-  Ho := H;
-end;
-
 // UInt64 的方式计算 N 平方
 procedure Sqr(var L: LongWord; var H: LongWord; N: LongWord); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
@@ -1764,10 +1730,10 @@ begin
 
   while (N and (not 3)) <> 0 do
   begin
-    Sqr64(RP^[0], RP^[1], AP^[0]);
-    Sqr64(RP^[2], RP^[3], AP^[1]);
-    Sqr64(RP^[4], RP^[5], AP^[2]);
-    Sqr64(RP^[6], RP^[7], AP^[3]);
+    Sqr(RP^[0], RP^[1], AP^[0]);
+    Sqr(RP^[2], RP^[3], AP^[1]);
+    Sqr(RP^[4], RP^[5], AP^[2]);
+    Sqr(RP^[6], RP^[7], AP^[3]);
 
     AP := PLongWordArray(Integer(AP) + 4 * SizeOf(LongWord));
     RP := PLongWordArray(Integer(RP) + 8 * SizeOf(LongWord));
@@ -1776,7 +1742,7 @@ begin
 
   while N <> 0 do
   begin
-    Sqr64(RP^[0], RP^[1], AP^[0]);
+    Sqr(RP^[0], RP^[1], AP^[0]);
     AP := PLongWordArray(Integer(AP) + SizeOf(LongWord));
     RP := PLongWordArray(Integer(RP) + 2 * SizeOf(LongWord));
     Dec(N);
