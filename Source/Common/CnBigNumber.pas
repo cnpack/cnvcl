@@ -1751,7 +1751,9 @@ begin
   end;
 end;
 
-// 64 位被除数整除 32 位除数，返回商，Result := H L div D
+// 64 位被除数整除 32 位除数，返回商，Result := H L div D，不管商的高 32 位
+// 因此要保证 D 的最高位为 1，商的高 32 位才会为 0，此函数调用才不会出错
+// TODO: 所以 32 位下才可以用 DIVL 指令优化
 function BigNumberDivWords(H: LongWord; L: LongWord; D: LongWord): LongWord;
 begin
   if D = 0 then
@@ -1764,6 +1766,12 @@ begin
   Result := LongWord(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
 {$ELSE}
   Result := 0;
+//  asm
+//    MOV EAX, L
+//    MOV EDX, H
+//    DIVL ECX       // 这句 Delphi 的汇编器不认，得 DB 的方式处理
+//    MOV Result, EAX
+//  end;
   asm
     PUSH 0
     PUSH D
@@ -2461,7 +2469,7 @@ begin
 
   J := BN_BITS2 - BigNumberGetWordBitsCount(W);
 
-  W := W shl J;
+  W := W shl J; // 保证 W 最高位为 1
   if not BigNumberShiftLeft(Num, Num, J) then
   begin
     Result := LongWord(-1);
@@ -2471,7 +2479,7 @@ begin
   for I := Num.Top - 1 downto 0 do
   begin
     L := PLongWordArray(Num.D)^[I];
-    D := BigNumberDivWords(Result, L, W);
+    D := BigNumberDivWords(Result, L, W); // W 保证了最高位为 1，结果才是 32 位
     Result := (L - ((D * W) and BN_MASK2)) and BN_MASK2;
 
     PLongWordArray(Num.D)^[I] := D;
@@ -3058,7 +3066,7 @@ begin
     if (Tmp = nil) or (SNum = nil) or (SDiv = nil) or (SRes = nil) then
       Exit;
 
-    // 把除数左移到最高位是 1，放入SDiv
+    // 把除数左移到最高位是 1，放入 SDiv，以 确保下面的 D0 最高位是 1
     NormShift := BN_BITS2 - (BigNumberGetBitsCount(Divisor) mod BN_BITS2);
     if not BigNumberShiftLeft(SDiv, Divisor, NormShift) then
       Exit;
@@ -3134,7 +3142,7 @@ begin
         Q := BN_MASK2
       else
       begin
-        Q := BigNumberDivWords(N0, N1, D0);
+        Q := BigNumberDivWords(N0, N1, D0); // D0 已由上文保证最高位是 1
         Rem := (N1 - Q * D0) and BN_MASK2;
 
         T2 := UInt64Mul(D1, Q);
