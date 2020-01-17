@@ -31,7 +31,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.04.16 V1.4
+* 修改记录：2020.01.16 V1.5
+*               优化乘法与 MulMod 的速度，去除汇编代码
+*           2019.04.16 V1.4
 *               支持 Win32/Win64/MacOS
 *           2017.04.04 V1.3
 *               修正几处大数池相关的 Bug，但扩展欧几里得求解法还有问题
@@ -1749,69 +1751,6 @@ begin
   end;
 end;
 
-{$IFNDEF WIN64}
-
-// Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
-// 来自 Delphi 的 Unsigned Int64 Div 汇编实现
-procedure _LLUDiv;
-asm
-        PUSH    EBP
-        PUSH    EBX
-        PUSH    ESI
-        PUSH    EDI
-
-        MOV     EBX,20[ESP]             // GET THE FIRST LOW WORD
-        MOV     ECX,24[ESP]             // GET THE FIRST HIGH WORD
-
-        OR      ECX,ECX
-        JNZ     @__LLUDIV@SLOW_LDIV     // BOTH HIGH WORDS ARE ZERO
-
-        OR      EDX,EDX
-        JZ      @__LLUDIV@QUICK_LDIV
-
-        OR      EBX,EBX
-        JZ      @__LLUDIV@QUICK_LDIV    // IF ECX:EBX == 0 FORCE A ZERO DIVIDE
-
-@__LLUDIV@SLOW_LDIV:
-        MOV     EBP,ECX
-        MOV     ECX,64                  // SHIFT COUNTER
-        XOR     EDI,EDI                 // FAKE A 64 BIT DIVIDEND
-        XOR     ESI,ESI
-
-@__LLUDIV@XLOOP:
-        SHL     EAX,1                   // SHIFT DIVIDEND LEFT ONE BIT
-        RCL     EDX,1
-        RCL     ESI,1
-        RCL     EDI,1
-        CMP     EDI,EBP                 // DIVIDEND LARGER?
-        JB      @__LLUDIV@NOSUB
-        JA      @__LLUDIV@SUBTRACT
-        CMP     ESI,EBX                 // MAYBE
-        JB      @__LLUDIV@NOSUB
-
-@__LLUDIV@SUBTRACT:
-        SUB     ESI,EBX
-        SBB     EDI,EBP                 // SUBTRACT THE DIVISOR
-        INC     EAX                     // BUILD QUOTIENT
-
-@__LLUDIV@NOSUB:
-        LOOP    @__LLUDIV@XLOOP
-
-@__LLUDIV@FINISH:
-        POP     EDI
-        POP     ESI
-        POP     EBX
-        POP     EBP
-        RET     8
-
-@__LLUDIV@QUICK_LDIV:
-        DIV     EBX                     // UNSIGNED DIVIDE
-        XOR     EDX,EDX
-        JMP     @__LLUDIV@FINISH
-end;
-
-{$ENDIF}
-
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D
 function BigNumberDivWords(H: LongWord; L: LongWord; D: LongWord): LongWord;
 begin
@@ -1830,7 +1769,9 @@ begin
     PUSH D
     MOV EAX, L
     MOV EDX, H
-    CALL _LLUDiv            // 使用汇编实现的 64 位无符号除法函数
+    CALL System.@_lludiv;
+    // Delphi 自身汇编实现的 64 位无符号除法函数，入参要求
+    // Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
     MOV Result, EAX
   end;
 {$ENDIF}
