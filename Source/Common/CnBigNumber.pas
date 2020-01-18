@@ -1752,8 +1752,7 @@ begin
 end;
 
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D，不管商的高 32 位
-// 因此要保证 D 的最高位为 1，商的高 32 位才会为 0，此函数调用才不会出错
-// TODO: 所以 32 位下才可以用 DIVL 指令优化
+// 因此要保证 D 的最高位为 1，商的高 32 位才会为 0，此函数调用才不会出错，所以 32 位下才可以用 DIV 指令优化
 function BigNumberDivWords(H: LongWord; L: LongWord; D: LongWord): LongWord;
 begin
   if D = 0 then
@@ -1766,22 +1765,22 @@ begin
   Result := LongWord(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
 {$ELSE}
   Result := 0;
-//  asm
-//    MOV EAX, L
-//    MOV EDX, H
-//    DIVL ECX       // 这句 Delphi 的汇编器不认，得 DB 的方式处理
-//    MOV Result, EAX
-//  end;
   asm
-    PUSH 0
-    PUSH D
     MOV EAX, L
     MOV EDX, H
-    CALL System.@_lludiv;
-    // Delphi 自身汇编实现的 64 位无符号除法函数，入参要求
-    // Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
+    DIV ECX       // DIV 貌似等于 DIVL，这段优化比下面调 _lludiv 的耗时少了 20%
     MOV Result, EAX
   end;
+//  asm
+//    PUSH 0
+//    PUSH D
+//    MOV EAX, L
+//    MOV EDX, H
+//    CALL System.@_lludiv;
+//    // Delphi 自身汇编实现的 64 位无符号除法函数，入参要求
+//    // Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
+//    MOV Result, EAX
+//  end;
 {$ENDIF}
 end;
 
