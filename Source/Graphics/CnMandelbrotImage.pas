@@ -152,9 +152,10 @@ procedure CalcMandelbortSetInfinitePoint(X, Y: TCnBigRationalNumber; XZ, YZ: TCn
     TmpXZ.Mul(TmpXZ);
     TmpYZ.Mul(TmpYZ);
     TmpXZ.Add(TmpYZ);
-  if CnBigRationalNumberCompare(TmpXZ, 4) > 0 then
-    Result := True;
+    if CnBigRationalNumberCompare(TmpXZ, 4) > 0 then
+      Result := True;
   end;
+
 begin
   // 以有理数的方式迭代计算
   if TmpXZ = nil then
@@ -162,6 +163,7 @@ begin
   if TmpYZ = nil then
     TmpYZ := TCnBigRationalNumber.Create;
 
+  Count := 0;
   if R2SqrSumGT4(X, Y) then
     Exit;
 
