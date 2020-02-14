@@ -1,0 +1,93 @@
+CnPack 开发组 2019 年工作总结
+
+    CnPack 在 2019 年取得的主要成绩如下：
+
+一、CnPack IDE 专家包连续发布 1.1.6、1.1.7、1.1.8 版本，增加对 RAD Studio 10.3 Rio 的支持，支持至 10.3.3。
+
+    每日构建版下载地址：
+    http://www.cnpack.org/downbuilds.php
+
+二、CnPack 源码继续于 GitHub 上维护。地址：http://github.com/cnpack
+
+三、CnVcl 新增部分单元，包括 CnJsonPersistent、海明码、大有理数、有理数矩阵单元等，并优化大整数运算速度。部分单元增加对 FMX 的支持。
+
+四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝扫码与微信扫码两种主要捐助方式。
+
+    链接：
+    http://www.cnpack.org/foundation.php
+    公开帐目：
+    http://www.cnpack.org/showdetail.php?id=529
+
+    2020 年 CnPack 开发组的计划如下：
+
+一、CnWizards 继续增强功能、修复 Bug，增加对未来可能的新版本 RAD Studio 10.4 的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。希望能继续进一步扩大用户群。
+
+三、继续扩充及移植 CnPack 组件包，补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    CnPack 开发组网站：http://www.cnpack.org
+    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+
+    CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
+                             CnPack III: 32712412（满），CnPack IV: 130970（满），
+                             CnPack V: 16067960（满），CnPack VI: 45094292（满），
+                             CnPack VII 超级群：47744868
+
+    CnPack 开发组内部微信群：有兴趣的朋友请联系管理员加入。
+
+    （注：邮件列表与 QQ/微信群原则上只供开发组成员与用户加入；不建议同一用户重复加入多个 QQ 群）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2020-02-14
+
+
+========================================================================
+
+CnPack Working Report in 2019
+
+    Below are the achievements of CnPack in 2019:
+
+1. CnPack IDE Wizards 1.1.6/1.1.7/1.1.8 published. Support RAD Studio 10.3.3 Rio.
+
+   Our nightly build version:
+   http://www.cnpack.org/downbuilds.php
+
+2. CnPack Source Stays at GitHub. https://github.com/cnpack
+
+3. CnVcl Add JsonPersistent, Hamming, Big Rational Number, Matrix etc. Optimize Speed for Big Number. Some Units Support FMX.
+
+4. CnPack Foundation accepts Donation using alipay and wechat QR code in our help files, and paypal: donation@cnpack.org
+
+    Below is the plan of CnPack for 2020:
+
+1. Continue to fix the bugs and do the function improvements for CnWizards. We hope users number can increase considerably in the next year.
+
+2. Continue documentation.
+
+3. Continue to build the CnPack Team.
+
+    CnPack Website: http://www.cnpack.org
+    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125
+                         CnPack III: 32712412; CnPack IV: 130970
+                         CnPack V: 16067960; CnPack VI: 45094292
+                         CnPack VII: 47744868
+
+    CnPack WeChat Group: Please contact Administrator to join.
+
+    (Note: Mailing list and QQ/WeChat group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2020-02-14
