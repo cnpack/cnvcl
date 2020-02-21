@@ -67,10 +67,16 @@ begin
   Log('Connected: ' + ClientSocket.RemoteIP + ':' + IntToStr(ClientSocket.RemotePort));
   // 演示服务端收、发
   C := ClientSocket.Recv(RecvBuf, SizeOf(RecvBuf) - 1);
+  if C = SOCKET_ERROR then
+    Exit;
+
   Log('Get ' + IntToStr(C) + ' Bytes.');
   SendBuf[0] := Ord('A');
   SendBuf[1] := Ord('B');
   C := ClientSocket.Send(SendBuf, 2);
+  if C = SOCKET_ERROR then
+    Exit;
+
   Log('Send ' + IntToStr(C) + ' Bytes.');
 
   //退出事件处理函数则断开了

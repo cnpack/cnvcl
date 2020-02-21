@@ -166,7 +166,7 @@ begin
   if FActive then
   begin
     Addr.sin_family := AF_INET;
-    Addr.sin_addr.s_addr := inet_addr(PChar(FLocalIP));
+    Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)));
     Addr.sin_port := ntohs(FLocalPort);
     Result := CheckSocketError(WinSock.bind(FSocket, Addr, sizeof(Addr))) = 0;
   end;
@@ -205,8 +205,11 @@ begin
     KickAll;
 
     CheckSocketError(closesocket(FSocket)); // intterupt accept call
-
-    FAcceptThread.WaitFor;
+    try
+      FAcceptThread.WaitFor;
+    except
+      ;  // WaitFor 时可能已经 Terminated，导致出句柄无效的错
+    end;
     FAcceptThread := nil;
 
     FSocket := INVALID_SOCKET;
@@ -262,13 +265,19 @@ begin
   Result := 0;
 
   // 关闭所有客户端连接
-  for I := 0 to FClientThreads.Count - 1 do
+  for I := FClientThreads.Count - 1 downto 0 do
   begin
-    TCnTCPClientThread(FClientThreads[I]).Terminate;
     CheckSocketError(closesocket((TCnTCPClientThread(FClientThreads[I]).ClientSocket.Socket)));
+    TCnTCPClientThread(FClientThreads[I]).ClientSocket.Socket := INVALID_SOCKET;
+    TCnTCPClientThread(FClientThreads[I]).Terminate;
 
-    TCnTCPClientThread(FClientThreads[I]).WaitFor;
-    FClientThreads[I] := nil;
+    try
+      TCnTCPClientThread(FClientThreads[I]).WaitFor;
+    except
+      ; // WaitFor 时可能句柄无效
+    end;
+
+    // 线程结束时线程实例已经从 FClientThreads 中剔除了
     Inc(Result);
   end;
   FClientThreads.Clear;
