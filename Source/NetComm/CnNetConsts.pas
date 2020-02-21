@@ -86,6 +86,10 @@ resourcestring
   SCnDNSTooLong = 'Too Long String Length Byte and Out of Bound.';
   SCnDNSInvalidHeadByteFmt = 'Invalid String Head Byte %d at %d.';
 
+  // CnThreadingTCPServer
+  SCnThreadingTCPServerName = 'CnThreadingTCPServer Component';
+  SCnThreadingTCPServerComment = 'A Blocking Multi-Threading TCPServer Component';
+
 implementation
 
 end.
