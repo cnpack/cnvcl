@@ -25,7 +25,8 @@ unit CnThreadingTCPServer;
 * 单元名称：网络通讯组件包多线程阻塞 TCP Server 实现单元
 * 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：一个简易的多线程阻塞式 TCP Server，新客户端连接时起新线程，调用者
-*           在 OnAccept 事件中循环 recv/send 即可，无线程池机制
+*           在 OnAccept 事件中循环 Recv/Send 缓冲区即可，退出事件则断开连接，
+*           无线程池机制
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -42,7 +43,7 @@ uses
   Windows, SysUtils, Classes, Contnrs, WinSock, CnConsts, CnNetConsts, CnClasses;
 
 type
-  ECnSocketError = class(Exception);
+  ECnServerSocketError = class(Exception);
 
   TCnThreadingTCPServer = class;
 
@@ -59,11 +60,16 @@ type
     // send/recv 收发数据封装
     function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer;
     function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer;
-    
+    // 注意 Recv 返回 0 时说明当前网络已断开，调用者需要根据返回值做断开处理
+
     property Server: TCnThreadingTCPServer read FServer write FServer;
+    {* 所属的 TCnThreadingTCPServer 实例引用}
     property Socket: TSocket read FSocket write FSocket;
+    {* 和客户端通讯的实际 Socket}
     property RemoteIP: string read FRemoteIP write FRemoteIP;
+    {* 远程客户端的 IP}
     property RemotePort: Word read FRemotePort write FRemotePort;
+    {* 远程客户端的端口}
 
     property BytesSent: Cardinal read FBytesSent;
     {* 本客户端的发送字节数，用 Send 才会被统计}
@@ -71,7 +77,7 @@ type
     {* 本客户端的收取字节数，用 Recv 才会被统计}
   end;
 
-  TCnSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
+  TCnServerSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
 
   TCnSocketAcceptEvent = procedure (Sender: TObject; ClientSocket: TCnClientSocket) of object;
 
@@ -100,12 +106,13 @@ type
     destructor Destroy; override;
 
     property ClientSocket: TCnClientSocket read FClientSocket;
+    {* 封装的供处理客户端使用的网络对象}
   end;
 
   TCnThreadingTCPServer = class(TCnComponent)
   {* 简单的多线程 TCP Server}
   private
-    FSocket: TSocket;       // 监听的 Socket
+    FSocket: TSocket;            // 监听的 Socket
     FAcceptThread: TCnTCPAcceptThread;
     FListLock: TRTLCriticalSection;
     FClientThreads: TObjectList; // 存储 Accept 出的每个和 Client 通讯的线程
@@ -113,7 +120,7 @@ type
     FListening: Boolean;
     FLocalPort: Word;
     FLocalIP: string;
-    FOnError: TCnSocketErrorEvent;
+    FOnError: TCnServerSocketErrorEvent;
     FOnAccept: TCnSocketAcceptEvent;
     FCountLock: TRTLCriticalSection;
     FBytesReceived: Cardinal;
@@ -136,19 +143,28 @@ type
     destructor Destroy; override;
 
     procedure Open;
+    {* 开始监听，等同于 Active := True}
     procedure Close;
-
+    {* 关闭所有客户端连接并停止监听，等同于 Active := False}
     function KickAll: Integer;
+    {* 关闭所有客户端连接}
 
     property BytesSent: Cardinal read FBytesSent;
+    {* 发送给各客户端的总字节数}
     property BytesReceived: Cardinal read FBytesReceived;
+    {* 从各客户端收取的总字节数}
   published
     property Active: Boolean read FActive write SetActive;
+    {* 是否开始监听}
     property LocalIP: string read FLocalIP write SetLocalIP;
+    {* 监听的本地 IP}
     property LocalPort: Word read FLocalPort write SetLocalPort;
+    {* 监听的本地端口}
 
-    property OnError: TCnSocketErrorEvent read FOnError write FOnError;
+    property OnError: TCnServerSocketErrorEvent read FOnError write FOnError;
+    {* 出错事件}
     property OnAccept: TCnSocketAcceptEvent read FOnAccept write FOnAccept;
+    {* 新客户端连接上时触发的事件，处理函数可循环接收、输出，退出事件则断开连接}
   end;
 
 implementation
@@ -416,7 +432,6 @@ begin
   FClientSocket.Socket := INVALID_SOCKET;
 end;
 
-
 { TCnClientSocket }
 
 function TCnClientSocket.Recv(var Buf; Len: Integer; Flags: Integer): Integer;
@@ -445,7 +460,7 @@ var
 begin
   ErrorCode := WSAStartup($0101, WSAData);
   if ErrorCode <> 0 then
-    raise ECnSocketError.Create('WSAStartup');
+    raise ECnServerSocketError.Create('WSAStartup');
 end;
 
 procedure Cleanup;
@@ -454,7 +469,7 @@ var
 begin
   ErrorCode := WSACleanup;
   if ErrorCode <> 0 then
-    raise ECnSocketError.Create('WSACleanup');
+    raise ECnServerSocketError.Create('WSACleanup');
 end;
 
 initialization

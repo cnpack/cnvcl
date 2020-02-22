@@ -90,6 +90,10 @@ resourcestring
   SCnThreadingTCPServerName = 'CnThreadingTCPServer Component';
   SCnThreadingTCPServerComment = 'A Blocking Multi-Threading TCPServer Component';
 
+  // CnTCPClient
+  SCnTCPClientName = 'CnTCPClient Component';
+  SCnTCPClientComment = 'A Simple Blocking TCPClient Component';
+
 implementation
 
 end.
