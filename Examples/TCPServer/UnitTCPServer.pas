@@ -21,6 +21,7 @@ type
     procedure Log(const Msg: string);
   public
     procedure TCPAccept(Sender: TObject; ClientSocket: TCnClientSocket);
+    procedure TCPError(Sender: TObject; SocketError: Integer);
   end;
 
 var
@@ -51,6 +52,7 @@ procedure TFormTCPServer.FormCreate(Sender: TObject);
 begin
   FTCP := TCnThreadingTCPServer.Create(Self);
   FTCP.OnAccept := TCPAccept;
+  FTCP.OnError := TCPError;
 end;
 
 procedure TFormTCPServer.Log(const Msg: string);
@@ -80,6 +82,11 @@ begin
   Log('Send ' + IntToStr(C) + ' Bytes.');
 
   //退出事件处理函数则断开了
+end;
+
+procedure TFormTCPServer.TCPError(Sender: TObject; SocketError: Integer);
+begin
+  Log('*** Socket Error: ' + IntToStr(SocketError));
 end;
 
 end.

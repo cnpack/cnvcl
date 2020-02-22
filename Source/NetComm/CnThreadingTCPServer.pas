@@ -129,6 +129,8 @@ type
     procedure SetLocalIP(const Value: string);
     procedure SetLocalPort(const Value: Word);
     function CheckSocketError(ResultCode: Integer): Integer;
+    function GetClientCount: Integer;
+    function GetClient(Index: Integer): TCnClientSocket;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
 
@@ -148,6 +150,11 @@ type
     {* 关闭所有客户端连接并停止监听，等同于 Active := False}
     function KickAll: Integer;
     {* 关闭所有客户端连接}
+
+    property ClientCount: Integer read GetClientCount;
+    {* 活动的客户端数量}
+    property Clients[Index: Integer]: TCnClientSocket read GetClient;
+    {* 活动的客户端封装对象}
 
     property BytesSent: Cardinal read FBytesSent;
     {* 发送给各客户端的总字节数}
@@ -249,6 +256,19 @@ begin
   DeleteCriticalSection(FCountLock);
   DeleteCriticalSection(FListLock);
   inherited;
+end;
+
+function TCnThreadingTCPServer.GetClient(Index: Integer): TCnClientSocket;
+begin
+  if (Index >= 0) and (Index < FClientThreads.Count) then
+    Result := TCnTCPClientThread(FClientThreads[Index]).ClientSocket
+  else
+    Result := nil;
+end;
+
+function TCnThreadingTCPServer.GetClientCount: Integer;
+begin
+  Result := FClientThreads.Count;
 end;
 
 procedure TCnThreadingTCPServer.GetComponentInfo(var AName, Author, Email,
