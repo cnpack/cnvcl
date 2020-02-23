@@ -1074,6 +1074,14 @@ procedure CnSetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader; Count: Word);
 procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
 {* 设置 DNS 包头内的附加记录数量}
 
+// ======================== Socks 代理包系列函数 ===============================
+
+function CnGetSocksRequestAddress(const SocksReq: PCnSocksRequest): string;
+{* 返回 Socks 请求中的目的地址，考虑 IPv4/v6 与域名的情形}
+
+function CnGetSocksRequestPort(const SocksReq: PCnSocksRequest): Word;
+{* 返回 Socks 请求中的目的地址端口}
+
 // ========================= 字节顺序调换函数 ==================================
 
 function CnNetworkToHostWord(Value: Word): Word;
@@ -1087,6 +1095,14 @@ function CnHostToNetworkLongWord(Value: LongWord): LongWord;
 function CnNetworkToHostInt64(Value: Int64): Int64;
 
 function CnHostToNetworkInt64(Value: Int64): Int64;
+
+// =========================== IP 地址转换函数 =================================
+
+function CardinalToIPString(const IP: Cardinal): string;
+{* IPv4 整型转换为字符串}
+
+function IPStringToCardinal(const IP: string): Cardinal;
+{* IPv4 字符串转换为整型}
 
 implementation
 
@@ -1138,6 +1154,58 @@ begin
   Rec.Lo := Hi;
   Rec.Hi := Lo;
   Result := Int64(Rec);
+end;
+
+function CardinalToIPString(const IP: Cardinal): string;
+var
+  A, B, C, D: Byte;
+begin
+  A := IP and $FF000000 shr 24;
+  B := IP and $00FF0000 shr 16;
+  C := IP and $0000FF00 shr 8;
+  D := IP and $000000FF;
+  Result := Format('%d.%d.%d.%d', [A, B, C, D]);
+end;
+
+function IPStringToCardinal(const IP: string): Cardinal;
+var
+  MyIP: string;
+  P: Integer;
+  A, B, C, D: string;
+  AA, BB, CC, DD: Byte;
+begin
+  Result := 0;
+  MyIP := IP;
+
+  P := Pos('.', MyIP);
+  if P = 0 then
+    Exit;
+
+  A := Copy(MyIP, 1, P - 1);
+  Delete(MyIP, 1, P - 1);
+
+  P := Pos('.', MyIP);
+  if P = 0 then
+    Exit;
+
+  B := Copy(MyIP, 1, P - 1);
+  Delete(MyIP, 1, P - 1);
+
+  P := Pos('.', MyIP);
+  if P = 0 then
+    Exit;
+
+  C := Copy(MyIP, 1, P - 1);
+  Delete(MyIP, 1, P - 1);
+
+  D := Copy(MyIP, 1, MaxInt);
+
+  AA := StrToInt(A);
+  BB := StrToInt(B);
+  CC := StrToInt(C);
+  DD := StrToInt(D);
+
+  Result := (AA shl 24) or (BB shl 16) or (CC shl 8) or DD;
 end;
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -1527,6 +1595,57 @@ end;
 procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
 begin
   DNSHeader^.ARCount := CnHostToNetworkWord(Count);
+end;
+
+function CnGetSocksRequestAddress(const SocksReq: PCnSocksRequest): string;
+var
+  Len: Integer;
+  Res: AnsiString;
+begin
+  Result := '';
+  case SocksReq^.AddressType of
+    CN_SOCKS_ADDRESS_TYPE_IPV4:
+      begin
+        Result := CardinalToIPString(SocksReq^.DestionationAddress.IpV4Address);
+      end;
+    CN_SOCKS_ADDRESS_TYPE_IPV6:
+      begin
+
+      end;
+    CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
+      begin
+        Len := SocksReq^.DestionationAddress.DomainNameLen;
+        SetLength(Res, Len);
+        Move(SocksReq^.DestionationAddress.DomainName, Res[1], Len);
+        Result := string(Res);
+      end;
+  end;
+end;
+
+function CnGetSocksRequestPort(const SocksReq: PCnSocksRequest): Word;
+var
+  Len: Integer;
+  Port: PWORD;
+begin
+  Result := 0;
+  Len := 0;
+
+  case SocksReq^.AddressType of
+    CN_SOCKS_ADDRESS_TYPE_IPV4:
+      Len := 4;
+    CN_SOCKS_ADDRESS_TYPE_IPV6:
+      Len := 6;
+    CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
+      begin
+        Len := SocksReq^.DestionationAddress.DomainNameLen + 1;
+      end;
+  end;
+
+  if Len > 0 then
+  begin
+    Port := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
+    Result := CnNetworkToHostWord(Port^);
+  end;
 end;
 
 end.
