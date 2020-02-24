@@ -134,6 +134,9 @@ type
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
 
+    function DoGetClientThread: TCnTCPClientThread; virtual;
+    {* 子类可重载使用其他行为的 ClientThread}
+
     procedure ClientThreadTerminate(Sender: TObject);
     procedure IncRecv(C: Integer);
     procedure IncSent(C: Integer);
@@ -256,6 +259,11 @@ begin
   DeleteCriticalSection(FCountLock);
   DeleteCriticalSection(FListLock);
   inherited;
+end;
+
+function TCnThreadingTCPServer.DoGetClientThread: TCnTCPClientThread;
+begin
+  Result := TCnTCPClientThread.Create(True);
 end;
 
 function TCnThreadingTCPServer.GetClient(Index: Integer): TCnClientSocket;
@@ -407,7 +415,7 @@ begin
     if Sock <> INVALID_SOCKET then
     begin
       // 起新的客户线程（或者整一个客户线程池，存不活动的线程）
-      ClientThread := TCnTCPClientThread.Create(True);
+      ClientThread := FServer.DoGetClientThread;
       ClientThread.FreeOnTerminate := True;
       ClientThread.OnTerminate := FServer.ClientThreadTerminate;
 
