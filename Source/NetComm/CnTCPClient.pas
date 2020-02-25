@@ -87,6 +87,8 @@ type
     {* 发送给各客户端的总字节数}
     property BytesReceived: Cardinal read FBytesReceived;
     {* 从各客户端收取的总字节数}
+    property Connected: Boolean read FConnected;
+    {* 是否已连接}
   published
     property Active: Boolean read FActive write SetActive;
     {* 是否开始监听}

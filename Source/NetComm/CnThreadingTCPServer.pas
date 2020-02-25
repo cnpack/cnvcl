@@ -101,6 +101,10 @@ type
     FClientSocket: TCnClientSocket;
   protected
     procedure Execute; override;
+    procedure DoAccept; virtual;
+
+    function DoGetClientSocket: TCnClientSocket; virtual;
+    {* 子类可重载使用扩展内容的 ClientSocket}
   public
     constructor Create(CreateSuspended: Boolean);
     destructor Destroy; override;
@@ -128,12 +132,12 @@ type
     procedure SetActive(const Value: Boolean);
     procedure SetLocalIP(const Value: string);
     procedure SetLocalPort(const Value: Word);
-    function CheckSocketError(ResultCode: Integer): Integer;
     function GetClientCount: Integer;
     function GetClient(Index: Integer): TCnClientSocket;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
 
+    function CheckSocketError(ResultCode: Integer): Integer;
     function DoGetClientThread: TCnTCPClientThread; virtual;
     {* 子类可重载使用其他行为的 ClientThread}
 
@@ -440,7 +444,7 @@ end;
 constructor TCnTCPClientThread.Create(CreateSuspended: Boolean);
 begin
   inherited;
-  FClientSocket := TCnClientSocket.Create;
+  FClientSocket := DoGetClientSocket;
 end;
 
 destructor TCnTCPClientThread.Destroy;
@@ -449,11 +453,21 @@ begin
   inherited;
 end;
 
+procedure TCnTCPClientThread.DoAccept;
+begin
+  if Assigned(FClientSocket.Server.OnAccept) then
+    FClientSocket.Server.OnAccept(FClientSocket.Server, FClientSocket);
+end;
+
+function TCnTCPClientThread.DoGetClientSocket: TCnClientSocket;
+begin
+  Result := TCnClientSocket.Create;
+end;
+
 procedure TCnTCPClientThread.Execute;
 begin
   // 客户端已连接上，事件里有参数可被用
-  if Assigned(FClientSocket.Server.OnAccept) then
-    FClientSocket.Server.OnAccept(FClientSocket.Server, FClientSocket);
+  DoAccept;
 
   // 客户处理完毕了，可以断开连接了
   FClientSocket.Server.CheckSocketError(closesocket(FClientSocket.Socket));
