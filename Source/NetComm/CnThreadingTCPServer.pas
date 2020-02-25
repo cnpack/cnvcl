@@ -167,9 +167,11 @@ type
     {* 发送给各客户端的总字节数}
     property BytesReceived: Cardinal read FBytesReceived;
     {* 从各客户端收取的总字节数}
+    property Listening: Boolean read FListening;
+    {* 是否正在监听}
   published
     property Active: Boolean read FActive write SetActive;
-    {* 是否开始监听}
+    {* 是否开始运行}
     property LocalIP: string read FLocalIP write SetLocalIP;
     {* 监听的本地 IP}
     property LocalPort: Word read FLocalPort write SetLocalPort;

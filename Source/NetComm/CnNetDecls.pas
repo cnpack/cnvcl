@@ -1610,7 +1610,7 @@ begin
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
-
+        // TODO: IPv6
       end;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
