@@ -128,6 +128,7 @@ type
     FClientThreads: TObjectList; // 存储 Accept 出的每个和 Client 通讯的线程
     FActive: Boolean;
     FListening: Boolean;
+    FActualLocalPort: Word;
     FLocalPort: Word;
     FLocalIP: string;
     FOnError: TCnServerSocketErrorEvent;
@@ -140,6 +141,7 @@ type
     procedure SetLocalPort(const Value: Word);
     function GetClientCount: Integer;
     function GetClient(Index: Integer): TCnClientSocket;
+    function GetActualLocalPort: Word;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
 
@@ -175,6 +177,8 @@ type
     {* 从各客户端收取的总字节数}
     property Listening: Boolean read FListening;
     {* 是否正在监听}
+    property ActualLocalPort: Word read GetActualLocalPort;
+    {* LocalPort 为 0 时随机选择一个端口监听，返回该端口值}
   published
     property Active: Boolean read FActive write SetActive;
     {* 是否开始运行}
@@ -198,15 +202,29 @@ var
 
 function TCnThreadingTCPServer.Bind: Boolean;
 var
-  Addr: TSockAddr;
+  Addr, ConnAddr: TSockAddr;
+  Len, Ret: Integer;
 begin
   Result := False;
   if FActive then
   begin
     Addr.sin_family := AF_INET;
-    Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)));
+    if FLocalIP <> '' then
+      Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)))
+    else
+      Addr.sin_addr.S_addr := INADDR_ANY;
+
     Addr.sin_port := ntohs(FLocalPort);
-    Result := CheckSocketError(WinSock.bind(FSocket, Addr, sizeof(Addr))) = 0;
+    Result := CheckSocketError(WinSock.bind(FSocket, Addr, SizeOf(Addr))) = 0;
+
+    FActualLocalPort := FLocalPort;
+    if FActualLocalPort = 0 then
+    begin
+      Len := SizeOf(ConnAddr);
+      Ret := CheckSocketError(WinSock.getsockname(FSocket, ConnAddr, Len));
+      if Ret = 0 then
+        FActualLocalPort := ntohs(ConnAddr.sin_port);
+    end;
   end;
 end;
 
@@ -242,7 +260,7 @@ begin
     FAcceptThread.Terminate;
     KickAll;
 
-    CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
+    WinSock.shutdown(FSocket, 2); // SD_BOTH，忽略未连接时的出错
     CheckSocketError(WinSock.closesocket(FSocket)); // intterupt accept call
     try
       FAcceptThread.WaitFor;
@@ -252,6 +270,7 @@ begin
     FAcceptThread := nil;
 
     FSocket := INVALID_SOCKET;
+    FActualLocalPort := 0;
     FListening := False;
     FActive := False;
   end;
@@ -277,6 +296,11 @@ end;
 function TCnThreadingTCPServer.DoGetClientThread: TCnTCPClientThread;
 begin
   Result := TCnTCPClientThread.Create(True);
+end;
+
+function TCnThreadingTCPServer.GetActualLocalPort: Word;
+begin
+  Result := FActualLocalPort;
 end;
 
 function TCnThreadingTCPServer.GetClient(Index: Integer): TCnClientSocket;

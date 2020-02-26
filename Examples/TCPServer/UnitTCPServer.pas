@@ -44,7 +44,11 @@ begin
     FTCP.LocalPort := StrToInt(edtPort.Text);
 
     FTCP.Active := True;
-    btnOpen.Caption := 'Close';
+    if FTCP.Listening then
+    begin
+      btnOpen.Caption := 'Close';
+      Log('Listening at Port: ' + IntToStr(FTCP.ActualLocalPort));
+    end;
   end;
 end;
 
