@@ -94,6 +94,10 @@ resourcestring
   SCnTCPClientName = 'CnTCPClient Component';
   SCnTCPClientComment = 'A Simple Blocking TCPClient Component';
 
+  // CnTCPForwarder
+  SCnTCPForwarderName = 'CnTCPForwarder Component';
+  SCnTCPForwarderComment = 'A Simple TCP Port Mapping Component';
+
 implementation
 
 end.
