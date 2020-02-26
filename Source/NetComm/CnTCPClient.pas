@@ -128,11 +128,12 @@ begin
   begin
     if FConnected then
     begin
-      CheckSocketError(shutdown(FSocket, 2)); // SD_BOTH
+      CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
       FConnected := False;
       DoDisconnect;
     end;
 
+    CheckSocketError(WinSock.closesocket(FSocket));
     FSocket := INVALID_SOCKET;
     FActive := False;
   end;

@@ -57,6 +57,12 @@ type
     FBytesReceived: Cardinal;
     FBytesSent: Cardinal;
   public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Shutdown; virtual;
+    {* 封装的关闭 Socket 的操作}
+
     // send/recv 收发数据封装
     function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer;
     function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer;
@@ -153,9 +159,9 @@ type
 
     procedure Open;
     {* 开始监听，等同于 Active := True}
-    procedure Close;
+    procedure Close; virtual;
     {* 关闭所有客户端连接并停止监听，等同于 Active := False}
-    function KickAll: Integer;
+    function KickAll: Integer; virtual;
     {* 关闭所有客户端连接}
 
     property ClientCount: Integer read GetClientCount;
@@ -236,7 +242,8 @@ begin
     FAcceptThread.Terminate;
     KickAll;
 
-    CheckSocketError(closesocket(FSocket)); // intterupt accept call
+    CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
+    CheckSocketError(WinSock.closesocket(FSocket)); // intterupt accept call
     try
       FAcceptThread.WaitFor;
     except
@@ -317,8 +324,7 @@ begin
   // 关闭所有客户端连接
   for I := FClientThreads.Count - 1 downto 0 do
   begin
-    CheckSocketError(closesocket((TCnTCPClientThread(FClientThreads[I]).ClientSocket.Socket)));
-    TCnTCPClientThread(FClientThreads[I]).ClientSocket.Socket := INVALID_SOCKET;
+    TCnTCPClientThread(FClientThreads[I]).ClientSocket.ShutDown;
     TCnTCPClientThread(FClientThreads[I]).Terminate;
 
     try
@@ -471,12 +477,26 @@ begin
   // 客户端已连接上，事件里有参数可被用
   DoAccept;
 
-  // 客户处理完毕了，可以断开连接了
-  FClientSocket.Server.CheckSocketError(closesocket(FClientSocket.Socket));
-  FClientSocket.Socket := INVALID_SOCKET;
+  // 客户处理完毕了，可以断开连接了，如果事件里头没主动断开的话
+  if FClientSocket.Socket <> INVALID_SOCKET then
+  begin
+    FClientSocket.Server.CheckSocketError(closesocket(FClientSocket.Socket));
+    FClientSocket.Socket := INVALID_SOCKET;
+  end;
 end;
 
 { TCnClientSocket }
+
+constructor TCnClientSocket.Create;
+begin
+
+end;
+
+destructor TCnClientSocket.Destroy;
+begin
+  inherited;
+
+end;
 
 function TCnClientSocket.Recv(var Buf; Len: Integer; Flags: Integer): Integer;
 begin
@@ -514,6 +534,16 @@ begin
   ErrorCode := WSACleanup;
   if ErrorCode <> 0 then
     raise ECnServerSocketError.Create('WSACleanup');
+end;
+
+procedure TCnClientSocket.Shutdown;
+begin
+  if FSocket <> INVALID_SOCKET then
+  begin
+    FServer.CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
+    FServer.CheckSocketError(closesocket(FSocket));
+    FSocket := INVALID_SOCKET;
+  end;
 end;
 
 initialization
