@@ -74,13 +74,9 @@ const
 
 type
   TCnForwarderClientSocket = class(TCnClientSocket)
-  {* 封装的代表一客户端连接转发的对象，包括前向后向两个线程实例与通讯的 Socket}
+  {* 封装的代表一客户端连接转发的对象，包括双端通讯的另一个 Socket}
   private
-    FLock: TRTLCriticalSection;
-    FTCPClient: TCnTCPClient;
-    FBackwardThread: TThread;
-    FForwardThread: TThread;
-    procedure BackwardThreadTerminate(Sender: TObject);
+    FRemoteSocket: TSocket;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -88,30 +84,19 @@ type
     procedure Shutdown; override;
     {* 关闭前向后向两个 Socket}
 
-    property TCPClient: TCnTCPClient read FTCPClient write FTCPClient;
-    {* 与服务端通讯的 Socket 封装（与客户端通讯的 Socket 封装在父类中）}
+    // send/recv 收发数据封装
+    function RemoteSend(var Buf; Len: Integer; Flags: Integer = 0): Integer;
+    function RemoteRecv(var Buf; Len: Integer; Flags: Integer = 0): Integer;
 
-    property ForwardThread: TThread read FForwardThread write FForwardThread;
-    {* 从客户端读，写到服务端的线程}
-    property BackwardThread: TThread read FBackwardThread write FBackwardThread;
-    {* 从服务端读，写到客户端的线程}
+    property RemoteSocket: TSocket read FRemoteSocket write FRemoteSocket;
+    {* 连接远程服务器的 Socket}
   end;
 
   TCnTCPForwardThread = class(TCnTCPClientThread)
-  {* 有客户端连接上时的处理线程，从客户端读，写到服务端}
+  {* 有客户端连接上时的处理线程，从客户端服务端双向读写}
   protected
     function DoGetClientSocket: TCnClientSocket; override;
     procedure Execute; override;
-  end;
-
-  TCnTCPBackwardThread = class(TThread)
-  {* 从服务端读，写到客户端的线程，被作为 Accept 后的新线程使用}
-  private
-    FClientSocket: TCnForwarderClientSocket;
-  protected
-    procedure Execute; override;
-  public
-    property ClientSocket: TCnForwarderClientSocket read FClientSocket write FClientSocket;
   end;
 
 { TCnTCPForwarder }
@@ -159,139 +144,116 @@ var
   Forwarder: TCnTCPForwarder;
   Buf: array[0..FORWARDER_BUF_SIZE - 1] of Byte;
   Ret: Integer;
+  Addr: TSockAddr;
+  ReadFds: TFDSet;
 begin
   // 客户端已连接上，事件里有参数可被用
   DoAccept;
   Forwarder := TCnTCPForwarder(ClientSocket.Server);
 
   Client := TCnForwarderClientSocket(ClientSocket);
-  Client.TCPClient := TCnTCPClient.Create(nil);
-  Client.TCPClient.RemoteHost := Forwarder.RemoteHost;
-  Client.TCPClient.RemotePort := Forwarder.RemotePort;
-  Client.ForwardThread := Self;
-
-  // 连接远程主机
-  Client.TCPClient.Active := True;
-  if not Client.TCPClient.Connected then
-  begin
-    Client.Shutdown;
+  Client.RemoteSocket := Forwarder.CheckSocketError(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+  if Client.RemoteSocket = INVALID_SOCKET then
     Exit;
-  end
-  else
-    Forwarder.DoRemoteConnected;
 
-  // 连接成功后，本线程从客户端 ClientSocket 读，写到服务端 OutClient
-  // 另起一个线程从服务端读，写到客户端（因为没有规定必须是客户端先发起请求）
+  Addr.sin_family := AF_INET;
+  Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost))));
+  Addr.sin_port := ntohs(Forwarder.RemotePort);
 
-  Client.BackwardThread := TCnTCPBackwardThread.Create(True);
-  (Client.BackwardThread as TCnTCPBackwardThread).ClientSocket := Client;
-  Client.BackwardThread.FreeOnTerminate := True;
-  Client.BackwardThread.OnTerminate := Client.BackwardThreadTerminate;
-  Client.BackwardThread.Resume;
-
-  try
-    while not Terminated do
-    begin
-      Ret := ClientSocket.Recv(Buf, SizeOf(Buf));
-      if Ret <= 0 then
-      begin
-        // Recv 出错说明客户端已断开，自行断开远程连接，通知另一线程停止，退出
-        Client.Shutdown;
-        if Client.BackwardThread <> nil then
-          Client.BackwardThread.Terminate;
-
-        Break;
-      end;
-
-      Ret := Forwarder.CheckSocketError(Client.TCPClient.Send(Buf, Ret));
-      if Ret <= 0 then
-      begin
-        // Send 出错说明服务端已断开，也自行断开远程连接，通知另一线程停止，退出（会断开客户端连接）
-        Client.Shutdown;
-        if Client.BackwardThread <> nil then
-          Client.BackwardThread.Terminate;
-
-        Break;
-      end;
-    end;
-  finally
-    Client.ForwardThread := nil; // 自己准备退出，把 ForwardThread 塞为 nil
+  if Forwarder.CheckSocketError(WinSock.connect(Client.RemoteSocket, Addr, SizeOf(Addr))) <> 0 then
+  begin
+    // 连接远程服务器失败，出错退出
+    Forwarder.CheckSocketError(closesocket(Client.RemoteSocket));
+    Client.RemoteSocket := INVALID_SOCKET;
+    Exit;
   end;
-end;
 
-{ TCnTCPBackwardThread }
+  Forwarder.DoRemoteConnected;
 
-procedure TCnTCPBackwardThread.Execute;
-var
-  FForwarder: TCnTCPForwarder;
-  Buf: array[0..FORWARDER_BUF_SIZE - 1] of Byte;
-  Ret: Integer;
-begin
-  FForwarder := TCnTCPForwarder(ClientSocket.Server);
+  // 连接成功后，本线程开始循环转发，出错则退出
+  while not Terminated do
+  begin
+    // SELECT 等俩 Socket 上的消息，准备读来写去
+    FD_ZERO(ReadFds);
+    FD_SET(Client.Socket, ReadFds);
+    FD_SET(Client.RemoteSocket, ReadFds);
 
-  // 从服务端读，写进客户端
-  try
-    while not Terminated do
+    Ret := Forwarder.CheckSocketError(WinSock.select(0, @ReadFds, nil, nil, nil));
+    if Ret > 0 then
     begin
-      Ret := FForwarder.CheckSocketError(ClientSocket.TCPClient.Recv(Buf, SizeOf(Buf)));
-      if Ret <= 0 then
+      if FD_ISSET(Client.Socket, ReadFds) then // 客户端有数据来
       begin
-        // Recv 出错说明服务端已断开，自行断开远程连接，通知另一线程停止，退出
-        ClientSocket.Shutdown;
-        if ClientSocket.ForwardThread <> nil then
-          ClientSocket.ForwardThread.Terminate;
-
-        Break;
+        Ret := Client.Recv(Buf, SizeOf(Buf));
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
+        Ret := Client.RemoteSend(Buf, Ret); // 发到服务端
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
       end;
 
-      Ret := ClientSocket.Send(Buf, Ret);
-      if Ret <= 0 then
+      if FD_ISSET(Client.RemoteSocket, ReadFds) then // 服务端有数据来
       begin
-        // Send 出错说明服务端已断开，也自行断开远程连接，通知另一线程停止，退出
-        ClientSocket.Shutdown;
-        if ClientSocket.ForwardThread <> nil then
-          ClientSocket.ForwardThread.Terminate;
-
-        Break;
+        Ret := Client.RemoteRecv(Buf, SizeOf(Buf));
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
+        Ret := Client.Send(Buf, Ret); // 发到客户端
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
       end;
     end;
-  finally
-    ClientSocket.BackwardThread := nil;
+    Sleep(0);
   end;
 end;
 
 { TCnForwarderClientSocket }
 
-procedure TCnForwarderClientSocket.BackwardThreadTerminate(
-  Sender: TObject);
-begin
-  FBackwardThread := nil;
-end;
-
 procedure TCnForwarderClientSocket.Shutdown;
 begin
-  // 由于可能被前向后向俩线程交叉调用，因此需要加锁
-  EnterCriticalSection(FLock);
-  try
-    inherited;
-
-    if FTCPClient <> nil then
-      FreeAndNil(FTCPClient);
-  finally
-    LeaveCriticalSection(FLock);
+  inherited;
+  if FRemoteSocket <> INVALID_SOCKET then
+  begin
+    (Server as TCnTCPForwarder).CheckSocketError(WinSock.shutdown(FRemoteSocket, 2)); // SD_BOTH
+    (Server as TCnTCPForwarder).CheckSocketError(closesocket(FRemoteSocket));
+    FRemoteSocket := INVALID_SOCKET;
   end;
 end;
 
 constructor TCnForwarderClientSocket.Create;
 begin
   inherited;
-  InitializeCriticalSection(FLock);
+
 end;
 
 destructor TCnForwarderClientSocket.Destroy;
 begin
-  DeleteCriticalSection(FLock);
+
   inherited;
+end;
+
+function TCnForwarderClientSocket.RemoteRecv(var Buf; Len,
+  Flags: Integer): Integer;
+begin
+  Result := (Server as TCnTCPForwarder).CheckSocketError(
+    WinSock.recv(FRemoteSocket, Buf, Len, Flags));
+end;
+
+function TCnForwarderClientSocket.RemoteSend(var Buf; Len,
+  Flags: Integer): Integer;
+begin
+  Result := (Server as TCnTCPForwarder).CheckSocketError(
+    WinSock.send(FRemoteSocket, Buf, Len, Flags));
 end;
 
 end.
