@@ -144,7 +144,7 @@ var
   Forwarder: TCnTCPForwarder;
   Buf: array[0..FORWARDER_BUF_SIZE - 1] of Byte;
   Ret: Integer;
-  Addr: TSockAddr;
+  SockAddr: TSockAddr;
   ReadFds: TFDSet;
 begin
   // 客户端已连接上，事件里有参数可被用
@@ -156,11 +156,11 @@ begin
   if Client.RemoteSocket = INVALID_SOCKET then
     Exit;
 
-  Addr.sin_family := AF_INET;
-  Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost))));
-  Addr.sin_port := ntohs(Forwarder.RemotePort);
+  SockAddr.sin_family := AF_INET;
+  SockAddr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost))));
+  SockAddr.sin_port := ntohs(Forwarder.RemotePort);
 
-  if Forwarder.CheckSocketError(WinSock.connect(Client.RemoteSocket, Addr, SizeOf(Addr))) <> 0 then
+  if Forwarder.CheckSocketError(WinSock.connect(Client.RemoteSocket, SockAddr, SizeOf(SockAddr))) <> 0 then
   begin
     // 连接远程服务器失败，出错退出
     Forwarder.CheckSocketError(closesocket(Client.RemoteSocket));
@@ -179,38 +179,41 @@ begin
     FD_SET(Client.RemoteSocket, ReadFds);
 
     Ret := Forwarder.CheckSocketError(WinSock.select(0, @ReadFds, nil, nil, nil));
-    if Ret > 0 then
+    if Ret <= 0 then
     begin
-      if FD_ISSET(Client.Socket, ReadFds) then // 客户端有数据来
-      begin
-        Ret := Client.Recv(Buf, SizeOf(Buf));
-        if Ret <= 0 then
-        begin
-          Client.Shutdown;
-          Exit;
-        end;
-        Ret := Client.RemoteSend(Buf, Ret); // 发到服务端
-        if Ret <= 0 then
-        begin
-          Client.Shutdown;
-          Exit;
-        end;
-      end;
+      Client.Shutdown;
+      Exit;
+    end;
 
-      if FD_ISSET(Client.RemoteSocket, ReadFds) then // 服务端有数据来
+    if FD_ISSET(Client.Socket, ReadFds) then // 客户端有数据来
+    begin
+      Ret := Client.Recv(Buf, SizeOf(Buf));
+      if Ret <= 0 then
       begin
-        Ret := Client.RemoteRecv(Buf, SizeOf(Buf));
-        if Ret <= 0 then
-        begin
-          Client.Shutdown;
-          Exit;
-        end;
-        Ret := Client.Send(Buf, Ret); // 发到客户端
-        if Ret <= 0 then
-        begin
-          Client.Shutdown;
-          Exit;
-        end;
+        Client.Shutdown;
+        Exit;
+      end;
+      Ret := Client.RemoteSend(Buf, Ret); // 发到服务端
+      if Ret <= 0 then
+      begin
+        Client.Shutdown;
+        Exit;
+      end;
+    end;
+
+    if FD_ISSET(Client.RemoteSocket, ReadFds) then // 服务端有数据来
+    begin
+      Ret := Client.RemoteRecv(Buf, SizeOf(Buf));
+      if Ret <= 0 then
+      begin
+        Client.Shutdown;
+        Exit;
+      end;
+      Ret := Client.Send(Buf, Ret); // 发到客户端
+      if Ret <= 0 then
+      begin
+        Client.Shutdown;
+        Exit;
       end;
     end;
     Sleep(0);

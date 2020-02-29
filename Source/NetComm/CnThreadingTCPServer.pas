@@ -142,6 +142,7 @@ type
     FCountLock: TRTLCriticalSection;
     FBytesReceived: Cardinal;
     FBytesSent: Cardinal;
+    FKicking: Boolean;
     procedure SetActive(const Value: Boolean);
     procedure SetLocalIP(const Value: string);
     procedure SetLocalPort(const Value: Word);
@@ -208,20 +209,20 @@ var
 
 function TCnThreadingTCPServer.Bind: Boolean;
 var
-  Addr, ConnAddr: TSockAddr;
+  SockAddr, ConnAddr: TSockAddr;
   Len, Ret: Integer;
 begin
   Result := False;
   if FActive then
   begin
-    Addr.sin_family := AF_INET;
+    SockAddr.sin_family := AF_INET;
     if FLocalIP <> '' then
-      Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)))
+      SockAddr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)))
     else
-      Addr.sin_addr.S_addr := INADDR_ANY;
+      SockAddr.sin_addr.S_addr := INADDR_ANY;
 
-    Addr.sin_port := ntohs(FLocalPort);
-    Result := CheckSocketError(WinSock.bind(FSocket, Addr, SizeOf(Addr))) = 0;
+    SockAddr.sin_port := ntohs(FLocalPort);
+    Result := CheckSocketError(WinSock.bind(FSocket, SockAddr, SizeOf(SockAddr))) = 0;
 
     FActualLocalPort := FLocalPort;
     if FActualLocalPort = 0 then
@@ -247,6 +248,9 @@ end;
 procedure TCnThreadingTCPServer.ClientThreadTerminate(Sender: TObject);
 begin
   // 客户端线程结束，在主线程中删除无效的 Socket 与线程引用。Sender 是 Thread 实例
+  if FKicking then
+    Exit;
+
   EnterCriticalSection(FListLock);
   try
     FClientThreads.Remove(Sender);
@@ -262,12 +266,11 @@ begin
 
   if FActive then
   begin
-    // 通知停止 Accept 线程
-    FAcceptThread.Terminate;
-    KickAll;
-
+    // 通知停止 Accept 线程，防止还有新 Client 进来
     WinSock.shutdown(FSocket, 2); // SD_BOTH，忽略未连接时的出错
     CheckSocketError(WinSock.closesocket(FSocket)); // intterupt accept call
+    FSocket := INVALID_SOCKET;
+    FAcceptThread.Terminate;
     try
       FAcceptThread.WaitFor;
     except
@@ -275,7 +278,9 @@ begin
     end;
     FAcceptThread := nil;
 
-    FSocket := INVALID_SOCKET;
+    // 踢掉所有客户端
+    KickAll;
+
     FActualLocalPort := 0;
     FListening := False;
     FActive := False;
@@ -350,23 +355,28 @@ var
   I: Integer;
 begin
   Result := 0;
+  FKicking := True;
 
-  // 关闭所有客户端连接
-  for I := FClientThreads.Count - 1 downto 0 do
-  begin
-    TCnTCPClientThread(FClientThreads[I]).ClientSocket.ShutDown;
-    TCnTCPClientThread(FClientThreads[I]).Terminate;
+  try
+    // 关闭所有客户端连接
+    for I := FClientThreads.Count - 1 downto 0 do
+    begin
+      TCnTCPClientThread(FClientThreads[I]).ClientSocket.ShutDown;
+      TCnTCPClientThread(FClientThreads[I]).Terminate;
 
-    try
-      TCnTCPClientThread(FClientThreads[I]).WaitFor;
-    except
-      ; // WaitFor 时可能句柄无效
+      try
+        TCnTCPClientThread(FClientThreads[I]).WaitFor;
+      except
+        ; // WaitFor 时可能句柄无效
+      end;
+
+      // 线程结束时线程实例已经从 FClientThreads 中剔除了
+      Inc(Result);
     end;
-
-    // 线程结束时线程实例已经从 FClientThreads 中剔除了
-    Inc(Result);
+    FClientThreads.Clear;
+  finally
+    FKicking := False;
   end;
-  FClientThreads.Clear;
 end;
 
 function TCnThreadingTCPServer.Listen: Boolean;
@@ -436,7 +446,7 @@ end;
 procedure TCnTCPAcceptThread.Execute;
 var
   Sock: TSocket;
-  Addr, ConnAddr: TSockAddr;
+  SockAddr, ConnAddr: TSockAddr;
   Len, Ret: Integer;
   ClientThread: TCnTCPClientThread;
 begin
@@ -445,10 +455,10 @@ begin
 
   while not Terminated do
   begin
-    Len := SizeOf(Addr);
-    FillChar(Addr, SizeOf(Addr), 0);
+    Len := SizeOf(SockAddr);
+    FillChar(SockAddr, SizeOf(SockAddr), 0);
     try
-      Sock := WinSock.accept(FServerSocket, @Addr, @Len);
+      Sock := WinSock.accept(FServerSocket, @SockAddr, @Len);
     except
       Sock := INVALID_SOCKET;
     end;
@@ -479,8 +489,8 @@ begin
       end;
 
       // 拿该 Socket 的对端客户端信息
-      ClientThread.ClientSocket.RemoteIP := inet_ntoa(Addr.sin_addr);
-      ClientThread.ClientSocket.RemotePort := ntohs(Addr.sin_port);
+      ClientThread.ClientSocket.RemoteIP := inet_ntoa(SockAddr.sin_addr);
+      ClientThread.ClientSocket.RemotePort := ntohs(SockAddr.sin_port);
 
       EnterCriticalSection(FServer.FListLock);
       try
@@ -524,11 +534,7 @@ begin
   DoAccept;
 
   // 客户处理完毕了，可以断开连接了，如果事件里头没主动断开的话
-  if FClientSocket.Socket <> INVALID_SOCKET then
-  begin
-    FClientSocket.Server.CheckSocketError(closesocket(FClientSocket.Socket));
-    FClientSocket.Socket := INVALID_SOCKET;
-  end;
+  FClientSocket.Shutdown;
 end;
 
 { TCnClientSocket }
@@ -587,7 +593,7 @@ begin
   if FSocket <> INVALID_SOCKET then
   begin
     FServer.CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
-    FServer.CheckSocketError(closesocket(FSocket));
+    FServer.CheckSocketError(WinSock.closesocket(FSocket));
     FSocket := INVALID_SOCKET;
   end;
 end;

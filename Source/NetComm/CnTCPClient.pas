@@ -199,11 +199,11 @@ end;
 
 procedure TCnTCPClient.Open;
 var
-  Addr: TSockAddr;
+  SockAddr: TSockAddr;
 begin
   if not FActive then
   begin
-    FSocket := CheckSocketError(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+    FSocket := CheckSocketError(WinSock.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
     FActive := FSocket <> INVALID_SOCKET;
 
     if FActive and not FConnected then
@@ -211,10 +211,10 @@ begin
       FBytesReceived := 0;
       FBytesSent := 0;
 
-      Addr.sin_family := AF_INET;
-      Addr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
-      Addr.sin_port := ntohs(FRemotePort);
-      FConnected := CheckSocketError(WinSock.connect(FSocket, Addr, SizeOf(Addr))) = 0;
+      SockAddr.sin_family := AF_INET;
+      SockAddr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
+      SockAddr.sin_port := ntohs(FRemotePort);
+      FConnected := CheckSocketError(WinSock.connect(FSocket, SockAddr, SizeOf(SockAddr))) = 0;
 
       if FConnected then
         DoConnect;
