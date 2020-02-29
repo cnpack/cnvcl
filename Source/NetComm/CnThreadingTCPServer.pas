@@ -56,6 +56,8 @@ type
     FServer: TCnThreadingTCPServer;
     FBytesReceived: Cardinal;
     FBytesSent: Cardinal;
+    FLocalIP: string;
+    FLocalPort: Word;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -72,6 +74,10 @@ type
     {* 所属的 TCnThreadingTCPServer 实例引用}
     property Socket: TSocket read FSocket write FSocket;
     {* 和客户端通讯的实际 Socket}
+    property LocalIP: string read FLocalIP write FLocalIP;
+    {* 客户端连接上时的本地 IP}
+    property LocalPort: Word read FLocalPort write FLocalPort;
+    {* 客户端连接上时的本地端口}
     property RemoteIP: string read FRemoteIP write FRemoteIP;
     {* 远程客户端的 IP}
     property RemotePort: Word read FRemotePort write FRemotePort;
@@ -430,8 +436,8 @@ end;
 procedure TCnTCPAcceptThread.Execute;
 var
   Sock: TSocket;
-  Addr: TSockAddr;
-  Len: Integer;
+  Addr, ConnAddr: TSockAddr;
+  Len, Ret: Integer;
   ClientThread: TCnTCPClientThread;
 begin
   FServer.FBytesReceived := 0;
@@ -457,6 +463,22 @@ begin
 
       ClientThread.ClientSocket.Socket := Sock;
       ClientThread.ClientSocket.Server := FServer;
+
+      Len := SizeOf(ConnAddr);
+      Ret := FServer.CheckSocketError(WinSock.getsockname(Sock, ConnAddr, Len));
+      if Ret = 0 then
+      begin
+        // 拿该 Socket 的本地信息
+        ClientThread.ClientSocket.LocalIP := inet_ntoa(ConnAddr.sin_addr);
+        ClientThread.ClientSocket.LocalPort := ntohs(ConnAddr.sin_port);
+      end
+      else // 如果没拿到，姑且拿监听的 Socket 的本地信息，注意 IP 可能是空
+      begin
+        ClientThread.ClientSocket.LocalIP := FServer.LocalIP;
+        ClientThread.ClientSocket.LocalPort := FServer.ActualLocalPort;
+      end;
+
+      // 拿该 Socket 的对端客户端信息
       ClientThread.ClientSocket.RemoteIP := inet_ntoa(Addr.sin_addr);
       ClientThread.ClientSocket.RemotePort := ntohs(Addr.sin_port);
 
