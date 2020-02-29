@@ -1076,11 +1076,29 @@ procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
 
 // ======================== Socks 代理包系列函数 ===============================
 
-function CnGetSocksRequestAddress(const SocksReq: PCnSocksRequest): string;
-{* 返回 Socks 请求中的目的地址，考虑 IPv4/v6 与域名的情形}
+function CnGetSocksRequestDestinationAddress(const SocksReq: PCnSocksRequest): string;
+{* 返回 Socks 请求中的目的地址，支持 IPv4/v6 与域名的情形}
 
-function CnGetSocksRequestPort(const SocksReq: PCnSocksRequest): Word;
+function CnGetSocksRequestDestinationPort(const SocksReq: PCnSocksRequest): Word;
 {* 返回 Socks 请求中的目的地址端口}
+
+procedure CnSetSocksRequestDestinationAddress(const SocksReq: PCnSocksRequest; Address: string);
+{* 设置 Socks 请求中的目的地址，支持 IPv4 或域名的情形}
+
+function CnSetSocksRequestDestinationPort(const SocksReq: PCnSocksRequest; Port: Word): Integer;
+{* 设置 Socks 请求中的目的端口号，返回 SocksReq 结构总长度}
+
+function CnGetSocksResponseBindAddress(const SocksResp: PCnSocksResponse): string;
+{* 返回 Socks 应答中的绑定地址，支持 IPv4/v6 与域名的情形}
+
+function CnGetSocksResponseBindPort(const SocksResp: PCnSocksResponse): Word;
+{* 返回 Socks 应答中的绑定端口号}
+
+procedure CnSetSocksResponseBindAddress(const SocksResp: PCnSocksResponse; Address: string);
+{* 设置 Socks 应答中的绑定地址，支持 IPv4/v6 与域名的情形}
+
+function CnSetSocksResponseBindPort(const SocksResp: PCnSocksResponse; Port: Word): Integer;
+{* 设置 Socks 应答中的绑定端口号，返回 SocksResp 结构总长度}
 
 // ========================= 字节顺序调换函数 ==================================
 
@@ -1182,29 +1200,32 @@ begin
     Exit;
 
   A := Copy(MyIP, 1, P - 1);
-  Delete(MyIP, 1, P - 1);
+  Delete(MyIP, 1, P);
 
   P := Pos('.', MyIP);
   if P = 0 then
     Exit;
 
   B := Copy(MyIP, 1, P - 1);
-  Delete(MyIP, 1, P - 1);
+  Delete(MyIP, 1, P);
 
   P := Pos('.', MyIP);
   if P = 0 then
     Exit;
 
   C := Copy(MyIP, 1, P - 1);
-  Delete(MyIP, 1, P - 1);
+  Delete(MyIP, 1, P);
 
   D := Copy(MyIP, 1, MaxInt);
 
-  AA := StrToInt(A);
-  BB := StrToInt(B);
-  CC := StrToInt(C);
-  DD := StrToInt(D);
-
+  try
+    AA := StrToInt(A);
+    BB := StrToInt(B);
+    CC := StrToInt(C);
+    DD := StrToInt(D);
+  except
+    Exit;
+  end;
   Result := (AA shl 24) or (BB shl 16) or (CC shl 8) or DD;
 end;
 
@@ -1597,7 +1618,7 @@ begin
   DNSHeader^.ARCount := CnHostToNetworkWord(Count);
 end;
 
-function CnGetSocksRequestAddress(const SocksReq: PCnSocksRequest): string;
+function CnGetSocksRequestDestinationAddress(const SocksReq: PCnSocksRequest): string;
 var
   Len: Integer;
   Res: AnsiString;
@@ -1611,6 +1632,7 @@ begin
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
         // TODO: IPv6
+        raise Exception.Create('NOT Implemented.');
       end;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
@@ -1622,10 +1644,10 @@ begin
   end;
 end;
 
-function CnGetSocksRequestPort(const SocksReq: PCnSocksRequest): Word;
+function CnGetSocksRequestDestinationPort(const SocksReq: PCnSocksRequest): Word;
 var
   Len: Integer;
-  Port: PWORD;
+  PortAddr: PWORD;
 begin
   Result := 0;
   Len := 0;
@@ -1643,9 +1665,158 @@ begin
 
   if Len > 0 then
   begin
-    Port := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
-    Result := CnNetworkToHostWord(Port^);
+    PortAddr := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
+    Result := CnNetworkToHostWord(PortAddr^);
   end;
+end;
+
+function CnGetSocksResponseBindAddress(const SocksResp: PCnSocksResponse): string;
+var
+  Len: Integer;
+  Res: AnsiString;
+begin
+  Result := '';
+  case SocksResp^.AddressType of
+    CN_SOCKS_ADDRESS_TYPE_IPV4:
+      begin
+        Result := CardinalToIPString(SocksResp^.BindAddress.IpV4Address);
+      end;
+    CN_SOCKS_ADDRESS_TYPE_IPV6:
+      begin
+        // TODO: IPv6
+        raise Exception.Create('NOT Implemented.');
+      end;
+    CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
+      begin
+        Len := SocksResp^.BindAddress.DomainNameLen;
+        SetLength(Res, Len);
+        Move(SocksResp^.BindAddress.DomainName, Res[1], Len);
+        Result := string(Res);
+      end;
+  end;
+end;
+
+function CnGetSocksResponseBindPort(const SocksResp: PCnSocksResponse): Word;
+var
+  Len: Integer;
+  PortAddr: PWORD;
+begin
+  Result := 0;
+  Len := 0;
+
+  case SocksResp^.AddressType of
+    CN_SOCKS_ADDRESS_TYPE_IPV4:
+      Len := 4;
+    CN_SOCKS_ADDRESS_TYPE_IPV6:
+      Len := 6;
+    CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
+      begin
+        Len := SocksResp^.BindAddress.DomainNameLen + 1;
+      end;
+  end;
+
+  if Len > 0 then
+  begin
+    PortAddr := PWORD(Integer(@(SocksResp^.BindAddress)) + Len);
+    Result := CnNetworkToHostWord(PortAddr^);
+  end;
+end;
+
+procedure CnSetSocksRequestDestinationAddress(const SocksReq: PCnSocksRequest; Address: string);
+var
+  IP: Cardinal;
+  AnsiAddress: AnsiString;
+begin
+  IP := IPStringToCardinal(Address);
+  if IP = 0 then // 非法 IP，表示是域名
+  begin
+    SocksReq^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
+    AnsiAddress := AnsiString(Address);
+    SocksReq^.DestionationAddress.DomainNameLen := Length(AnsiAddress);
+    if AnsiAddress <> '' then
+      Move(AnsiAddress[1], SocksReq^.DestionationAddress.DomainName[0],
+        SocksReq^.DestionationAddress.DomainNameLen);
+  end
+  else
+  begin
+    SocksReq^.AddressType := CN_SOCKS_ADDRESS_TYPE_IPV4;
+    SocksReq^.DestionationAddress.IpV4Address := IP;
+  end;
+end;
+
+function CnSetSocksRequestDestinationPort(const SocksReq: PCnSocksRequest;
+  Port: Word): Integer;
+var
+  Len: Integer;
+  PortAddr: PWORD;
+begin
+  Len := 0;
+
+  case SocksReq^.AddressType of
+    CN_SOCKS_ADDRESS_TYPE_IPV4:
+      Len := 4;
+    CN_SOCKS_ADDRESS_TYPE_IPV6:
+      Len := 6;
+    CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
+      begin
+        Len := SocksReq^.DestionationAddress.DomainNameLen + 1;
+      end;
+  end;
+
+  if Len > 0 then
+  begin
+    PortAddr := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
+    PortAddr^ := CnHostToNetworkWord(Port);
+  end;
+  Result := Len + 4 + SizeOf(Word);
+end;
+
+procedure CnSetSocksResponseBindAddress(const SocksResp: PCnSocksResponse; Address: string);
+var
+  IP: Cardinal;
+  AnsiAddress: AnsiString;
+begin
+  IP := IPStringToCardinal(Address);
+  if IP = 0 then // 非法 IP，表示是域名
+  begin
+    SocksResp^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
+    AnsiAddress := AnsiString(Address);
+    SocksResp^.BindAddress.DomainNameLen := Length(AnsiAddress);
+    if AnsiAddress <> '' then
+      Move(AnsiAddress[1], SocksResp^.BindAddress.DomainName[0],
+        SocksResp^.BindAddress.DomainNameLen);
+  end
+  else
+  begin
+    SocksResp^.AddressType := CN_SOCKS_ADDRESS_TYPE_IPV4;
+    SocksResp^.BindAddress.IpV4Address := IP;
+  end;
+end;
+
+function CnSetSocksResponseBindPort(const SocksResp: PCnSocksResponse; Port: Word): Integer;
+var
+  Len: Integer;
+  PortAddr: PWORD;
+begin
+  Len := 0;
+
+  case SocksResp^.AddressType of
+    CN_SOCKS_ADDRESS_TYPE_IPV4:
+      Len := 4;
+    CN_SOCKS_ADDRESS_TYPE_IPV6:
+      Len := 6;
+    CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
+      begin
+        Len := SocksResp^.BindAddress.DomainNameLen + 1;
+      end;
+  end;
+
+  if Len > 0 then
+  begin
+    PortAddr := PWORD(Integer(@(SocksResp^.BindAddress)) + Len);
+    PortAddr^ := CnHostToNetworkWord(Port);
+  end;
+  Result := Len + 4 + SizeOf(Word);
 end;
 
 end.

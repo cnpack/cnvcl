@@ -75,7 +75,7 @@ type
     procedure Close;
     {* 关闭连接，等同于 Active := False}
 
-    function LookupHostAddr(const HostName: string): string;
+    class function LookupHostAddr(const HostName: string): string;
 
     // send/recv 收发数据封装
     function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer;
@@ -172,7 +172,7 @@ begin
   Comment := SCnTCPClientComment;
 end;
 
-function TCnTCPClient.LookupHostAddr(const HostName: string): string;
+class function TCnTCPClient.LookupHostAddr(const HostName: string): string;
 var
   H: PHostEnt;
 begin
