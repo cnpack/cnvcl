@@ -1117,10 +1117,10 @@ function CnHostToNetworkInt64(Value: Int64): Int64;
 // =========================== IP 地址转换函数 =================================
 
 function CardinalToIPString(const IP: Cardinal): string;
-{* IPv4 整型转换为字符串}
+{* IPv4 整型转换为字符串，IP 要求为 Host 字节顺序，从网络上取来时需要转换}
 
 function IPStringToCardinal(const IP: string): Cardinal;
-{* IPv4 字符串转换为整型}
+{* IPv4 字符串转换为整型，结果为 Host 字节顺序，网络传输时需要再转换}
 
 implementation
 
@@ -1627,7 +1627,7 @@ begin
   case SocksReq^.AddressType of
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       begin
-        Result := CardinalToIPString(SocksReq^.DestionationAddress.IpV4Address);
+        Result := CardinalToIPString(CnNetworkToHostLongWord(SocksReq^.DestionationAddress.IpV4Address));
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
@@ -1679,7 +1679,7 @@ begin
   case SocksResp^.AddressType of
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       begin
-        Result := CardinalToIPString(SocksResp^.BindAddress.IpV4Address);
+        Result := CardinalToIPString(CnNetworkToHostLongWord(SocksResp^.BindAddress.IpV4Address));
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
@@ -1727,7 +1727,7 @@ var
   IP: Cardinal;
   AnsiAddress: AnsiString;
 begin
-  IP := IPStringToCardinal(Address);
+  IP := CnHostToNetworkLongWord(IPStringToCardinal(Address));
   if IP = 0 then // 非法 IP，表示是域名
   begin
     SocksReq^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
@@ -1776,7 +1776,7 @@ var
   IP: Cardinal;
   AnsiAddress: AnsiString;
 begin
-  IP := IPStringToCardinal(Address);
+  IP := CnHostToNetworkLongWord(IPStringToCardinal(Address));
   if IP = 0 then // 非法 IP，表示是域名
   begin
     SocksResp^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
