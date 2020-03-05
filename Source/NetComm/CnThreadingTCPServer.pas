@@ -347,6 +347,8 @@ begin
 end;
 
 function TCnThreadingTCPServer.KickAll: Integer;
+var
+  CT: TCnTCPClientThread;
 begin
   Result := 0;
 
@@ -358,11 +360,12 @@ begin
       if FClientThreads.Count = 0 then
         Exit;
 
-      TCnTCPClientThread(FClientThreads[0]).ClientSocket.ShutDown;
-      TCnTCPClientThread(FClientThreads[0]).Terminate;
+      CT := TCnTCPClientThread(FClientThreads[0]);
+      CT.ClientSocket.ShutDown;
+      CT.Terminate;
 
       try
-        TCnTCPClientThread(FClientThreads[0]).WaitFor;
+        CT.WaitFor;
         // 等待线程结束，注意并不等待跑在主线程里的 OnTerminate 结束
       except
         ; // WaitFor 时可能句柄无效，因为已经结束了
