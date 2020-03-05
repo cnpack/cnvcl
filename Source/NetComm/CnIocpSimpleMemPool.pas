@@ -22,29 +22,29 @@ unit CnIocpSimpleMemPool;
 {* |<PRE>
 ================================================================================
 * 软件名称：网络通讯组件包
-* 单元名称：Windows完成端口(IOCP)组件使用的简单内存池实现单元
+* 单元名称：Windows 完成端口（IOCP）组件使用的简单内存池实现单元
 * 单元作者：cnwinds
 *           菩提(cxmld@126.com) 移植修改
 * 备    注：
-*   1.TCnMemPoolMgr类是内存池管理的实现。
-*     CnMemPoolMgr是TCnMemPoolMgr类的全局对象，可以通过该对象使用内存池。
-*     他将大小(MemorySize)相同的内存块(TCnMemoryBlockItem)放在一个(TCnMemoryTypeItem)中进行管理。
-*     TCnMemPoolMgr类中管理多个内存类型块(TCnMemoryTypeItem)。
-*     一个内存类型块(TCnMemoryTypeItem)中包含了多个内存块(TCnMemoryBlockItem)。
-*     阈值(Threshold)控制在一个TMemoryTypeItem中内存块的个数。
+*   1.TCnMemPoolMgr 类是不同尺寸的内存池管理的实现。
+*     CnMemPoolMgr 是 TCnMemPoolMgr 类的全局对象，其他组件均通过该对象使用内存池。
+*     它将大小（MemorySize）相同的内存块（TCnMemoryBlockItem）放在一个（TCnMemoryTypeItem）中进行管理。
+*     TCnMemPoolMgr 类中管理多个不同尺寸的内存类型块（TCnMemoryTypeItem）。
+*     一个内存类型块（TCnMemoryTypeItem）中包含了多个内存块（TCnMemoryBlockItem）。
+*     阈值（Threshold）控制在一个 TMemoryTypeItem 中内存块的个数。
 *       在系统频繁申请内存块的时候，总个数会大于阈值。
 *       当系统对内存块的并发使用数低于阈值的时候释放内存块，让总个数等于阈值。
 *       这个策略可以避免繁忙的时候频繁申请、释放内存，或者空闲的时候浪费内存。
-*   2.TCnMemoryPool是一个控件。为了能可视化开发而产生的类。
-*     可能出现多个控件的内存块大小相同，这样将对应到同一个内存类型块(TCnMemoryTypeItem)
-*     出现这种情况多个控件将共用内存类型块(TCnMemoryTypeItem)中的内存块。阈值将取他们设置的最大值。
-*
+*   2.TCnMemoryPool 是一个控件。为了能可视化开发而产生的类。
+*     可能出现多个控件的内存块大小相同，这样将对应到同一个内存类型块（TCnMemoryTypeItem）
+*     出现这种情况多个控件将共用内存类型块（TCnMemoryTypeItem）中的内存块。阈值将取他们设置的最大值。
+*   已知问题：返还时需要遍历，效率较低
 TODO >>>
-*   1.TCnIocpMemPool类增加了一个方法:GetFreeMemoryType, 获取一个空闲的内存类型
-*   2.TCnIocpMemPool分配的内存大小是固定,最大值由每一次分配决定
+*   1.TCnIocpMemPool 类增加了一个方法：GetFreeMemoryType，获取一个空闲的内存类型
+*   2.TCnIocpMemPool 分配的内存大小是固定,最大值由每一次分配决定
 *   3.增加 TCnIocpSimpleMemPool来包装 TCnIocpMemPool的功能, 即租用内存和归还内存
 *   4.使用"租用"和"归还"是为了区别正常的"分配内存"和"释放内存"
-*   5.TCnIocpSimpleMemPool对应一个内存类型, 每个内存类型的类型值,自动获取
+*   5.TCnIocpSimpleMemPool对应一个内存类型, 每个内存类型的类型值，自动获取
 *   6.二个自定义名词(可能名字起得不够好):"内存块"和"内存类型块"
 *     每个 TCnIocpSimpleMemPool 对应一个内存类型块, 它由多个"内存块"组成.每次用户
 *     租用就是得到一个整的"内存块", 大小由第一次租用时确定.
@@ -73,29 +73,30 @@ const
 
 type
   TCreateMemoryEvent = procedure(Sender: TObject; var MemoryPtr: Pointer) of object;
+
   TFreeMemoryEvent = procedure(Sender: TObject; MemoryPtr: Pointer) of object;
 
   TCnMemoryBlockItem = record
   {* 内存块头}
-    MemoryBlockPtr: Pointer;              //内存指针
-    RentTime: Cardinal;                   //租用时间
-    IsRent: Boolean;                      //是否租用
-    RentCount: Cardinal;                  //租用次数
-    Size: Cardinal;
+    MemoryBlockPtr: Pointer;              // 返回给用户的内存块指针
+    RentTime: Cardinal;                   // 租用的时刻 TickCount
+    IsRent: Boolean;                      // 是否已被租出去
+    RentCount: Cardinal;                  // 该块租用的总次数
+    Size: Cardinal;                       // 内存块大小，对应 TypeItem 中的块大小
   end;
   PCnMemoryBlockItem = ^TCnMemoryBlockItem;
 
   TCnMemoryTypeItem = record
   {* 内存类型块头}
-    RefCount: Cardinal;                   //该类型块的引用次数
-    MemorySize: Cardinal;                 //内存块的大小
-    CreateMemoryProc: TCreateMemoryEvent; //创建内存方法指针
-    FreeMemoryProc: TFreeMemoryEvent;     //释放内存方法指针
-    Threshold: Cardinal;                  //内存块个数的阈值
-                                          //如果缓存的块数多于该值则要启动清理程序。
-    IdelCount: Cardinal;                  //空闲内存块的个数
-    Lock: TCriticalSection;               //互锁相关
-    MemoryBlockList: TList;               //内存块列表
+    RefCount: Cardinal;                   // 该类型块的引用次数或者说注册次数
+    MemorySize: Cardinal;                 // 该类型内存块的大小
+    CreateMemoryProc: TCreateMemoryEvent; // 创建内存的方法指针
+    FreeMemoryProc: TFreeMemoryEvent;     // 释放内存的方法指针  -- 大小、创建方法、释放方法组成唯一辨识组合
+    Threshold: Cardinal;                  // 内存块个数的阈值
+                                          // 如果缓存的块数多于该值则要启动清理
+    IdelCount: Cardinal;                  // 本类型块拥有的空闲内存块的个数
+    Lock: TCriticalSection;               // 互斥锁
+    MemoryBlockList: TList;               // 内存块列表，内容是 PCnMemoryBlockItem
   end;
   PCnMemoryTypeItem = ^TCnMemoryTypeItem;
 
@@ -103,25 +104,22 @@ type
   private
     FLock: TCriticalSection;
     FMemoryTypeList: TList;
-
-    function RegisterMemoryTypeItem(MemorySize: Cardinal;
-                                    CreateMemoryProc: TCreateMemoryEvent;
-                                    FreeMemoryProc: TFreeMemoryEvent): PCnMemoryTypeItem;
-    {* 注册内存类型块(带线程锁)}
+    function RegisterMemoryTypeItem(MemorySize: Cardinal; CreateMemoryProc:
+      TCreateMemoryEvent; FreeMemoryProc: TFreeMemoryEvent): PCnMemoryTypeItem;
+    {* 注册内存类型块（内部带线程锁）}
 
     procedure UnregisterMemoryTypeItem(MemoryTypeItem: PCnMemoryTypeItem);
     {* 注销内存类型块}
 
     function CreateMemoryBlockItem(MemoryTypeItem: PCnMemoryTypeItem): PCnMemoryBlockItem;
+    {* 传}
     procedure FreeMemoryBlockItem(MemoryTypeItem: PCnMemoryTypeItem;
       MemoryBlockItem: PCnMemoryBlockItem);
 
-    function FindMemoryTypeItem(MemorySize: Cardinal;
-                                CreateMemoryProc: TCreateMemoryEvent;
-                                FreeMemoryProc: TFreeMemoryEvent): PCnMemoryTypeItem;
+    function FindMemoryTypeItem(MemorySize: Cardinal; CreateMemoryProc: TCreateMemoryEvent;
+      FreeMemoryProc: TFreeMemoryEvent): PCnMemoryTypeItem;
 
     procedure Clear;
-
   public
     constructor Create;
     destructor Destroy; override;
@@ -134,7 +132,7 @@ type
 
     procedure UnregisterMemoryType(MemoryTypeItem: PCnMemoryTypeItem);
     {* 注销内存类型块}
-    
+
     procedure SetThreshold(MemoryTypeItem: PCnMemoryTypeItem; Threshold: Cardinal);
     {* 设置租用内存块的阈值。
       阈值和上限的区别：
@@ -153,8 +151,8 @@ type
     FThreshold : Cardinal;
     FOnCreateMemory : TCreateMemoryEvent;
     FOnFreeMemory   : TFreeMemoryEvent;
-    FMemTypeItem : PCnMemoryTypeItem;
-    FIsReg: Boolean;    //是否已经注册到内存池管理器了
+    FMemTypeItem : PCnMemoryTypeItem;  // 注册返回的内存类型块指针
+    FRegistered: Boolean;              // 是否已经注册到内存池管理器了
 
     procedure EnsureRegister;
     procedure DoRegister;
@@ -176,11 +174,11 @@ type
     property MemorySize: Cardinal read FMemorySize write SetMemorySize;
     {* 内存块的大小} 
     property Threshold : Cardinal read FThreshold write SetThreshold;
-    {* 内存块的数量阈值(不是最大值,即可分配更多的内存块)}
+    {* 内存块的数量阈值（不是最大值，即可分配更多的内存块）}
     property OnCreateMemory : TCreateMemoryEvent read FOnCreateMemory write SetOnCreateMemory;
-    {* 自定义在系统中分配内存的方法,默认实现采用 GetMemory}
+    {* 自定义在系统中分配内存的方法，默认实现采用 GetMemory}
     property OnFreeMemory: TFreeMemoryEvent read FOnFreeMemory write SetOnFreeMemory;
-    {* 自定义在系统中释放内存的方法,默认实现采用 FreeMemory}
+    {* 自定义在系统中释放内存的方法，默认实现采用 FreeMemory}
   end;
 
   TCnIocpSimpleMemPool = class(TCnCustomSimpleMemPool)
@@ -188,17 +186,17 @@ type
     property MemorySize;
     {* 内存块的大小}
     property Threshold;
-    {* 内存块的数量阈值(不是最大值,即可分配更多的内存块)}
+    {* 内存块的数量阈值（不是最大值,即可分配更多的内存块）}
     property OnCreateMemory;
-    {* 自定义在系统中分配内存的方法,默认实现采用 GetMemory}
+    {* 自定义在系统中分配内存的方法，默认实现采用 GetMemory}
     property OnFreeMemory;
-    {* 自定义在系统中释放内存的方法,默认实现采用 FreeMemory}
+    {* 自定义在系统中释放内存的方法，默认实现采用 FreeMemory}
   end;
+
+implementation
 
 var
   CnSimpleMemPoolMgr: TCnSimpleMemPoolMgr;
-
-implementation
 
 { TCnSimpleMemPoolMgr }
 
@@ -265,9 +263,9 @@ var
   Size: Integer;
 begin
   Size := MemoryTypeItem^.MemorySize;
-  //创建内存块
+  // 创建内存块
   Result := New(PCnMemoryBlockItem);
-  //申请内存。如果没有设置回调函数则使用GetMemory申请内存。
+  // 申请内存。如果没有设置回调函数则使用 GetMemory 申请内存。
   if (Assigned(MemoryTypeItem.CreateMemoryProc)) then
     MemoryTypeItem^.CreateMemoryProc(Self, Result^.MemoryBlockPtr)
   else
@@ -281,12 +279,12 @@ end;
 procedure TCnSimpleMemPoolMgr.FreeMemoryBlockItem(MemoryTypeItem: PCnMemoryTypeItem;
   MemoryBlockItem: PCnMemoryBlockItem);
 begin
-  //释放内存
+  // 释放内存
   if (Assigned(MemoryTypeItem.FreeMemoryProc)) then
     MemoryTypeItem.FreeMemoryProc(Self, MemoryBlockItem^.MemoryBlockPtr)
   else
     FreeMemory(MemoryBlockItem^.MemoryBlockPtr);
-  //释放内存块
+  // 释放内存块
   Dispose(MemoryBlockItem);
 end;
 
@@ -331,10 +329,12 @@ end;
 
 procedure TCnSimpleMemPoolMgr.UnregisterMemoryType(MemoryTypeItem: PCnMemoryTypeItem);
 begin
-  //减少引用计数
+  // 减少引用计数
   Dec(MemoryTypeItem^.RefCount);
-  if MemoryTypeItem^.RefCount <> 0 then Exit;
+  if MemoryTypeItem^.RefCount > 0 then
+    Exit;
 
+  // 如果无人引用了
   FLock.Enter;
   try
     FMemoryTypeList.Remove(MemoryTypeItem);
@@ -344,9 +344,10 @@ begin
   UnregisterMemoryTypeItem(MemoryTypeItem);
 end;
 
-procedure TCnSimpleMemPoolMgr.SetThreshold(MemoryTypeItem: PCnMemoryTypeItem; Threshold: Cardinal);
+procedure TCnSimpleMemPoolMgr.SetThreshold(MemoryTypeItem: PCnMemoryTypeItem;
+  Threshold: Cardinal);
 begin
-  //如果一个MemoryTypeItem有多个引用，则使用最大的阈值
+  // 如果一个 MemoryTypeItem 有多个 Pool 组件引用它，则使用最大的阈值
   if MemoryTypeItem <> nil then
   begin
     if MemoryTypeItem^.RefCount = 1 then
@@ -361,13 +362,13 @@ procedure TCnSimpleMemPoolMgr.RentMemory(MemoryTypeItem: PCnMemoryTypeItem; var 
 var
   BlockItem: PCnMemoryBlockItem;
 begin
-  //不需要循环查找，只要找到第一个内存块，如果被租用则表示所有内存块都已经被租用了。
+  // 不需要循环查找，只要找到第一个内存块，如果被租用则表示所有内存块都已经被租用了。
   MemoryTypeItem^.Lock.Enter;
   try
     if MemoryTypeItem^.MemoryBlockList.Count > 0 then
     begin
       BlockItem := PCnMemoryBlockItem(MemoryTypeItem^.MemoryBlockList[0]);
-      if not BlockItem^.IsRent then      //第0个内存块是否已租用
+      if not BlockItem^.IsRent then      // 第 0 个内存块是否已租用
       begin
         MemoryTypeItem^.MemoryBlockList.Remove(BlockItem);
         MemoryTypeItem^.MemoryBlockList.Add(BlockItem);  //将内存块重新放入到LIST的最后
@@ -383,7 +384,7 @@ begin
       end;
     end;
 
-    // 新创建一个内存块
+    // 新创建一个内存块，挂到队尾
     BlockItem := CreateMemoryBlockItem(MemoryTypeItem);
     MemoryPtr := BlockItem^.MemoryBlockPtr;
     Inc(BlockItem^.RentCount);
@@ -461,9 +462,9 @@ begin
   inherited;
   FThreshold := 20;
   FMemorySize := 1024;
-  FIsReg := False;
-  //使用延迟注册方式，避免初始化参数造成反复注册
-  //DoRegister;
+  FRegistered := False;
+  // 使用延迟注册方式，避免初始化参数造成反复注册
+  // DoRegister;
 end;
 
 destructor TCnCustomSimpleMemPool.Destroy;
@@ -474,41 +475,40 @@ end;
 
 procedure TCnCustomSimpleMemPool.EnsureRegister;
 begin
-  if not FIsReg then
+  if not FRegistered then
     DoRegister;
 end;
 
 procedure TCnCustomSimpleMemPool.DoRegister;
 begin
-  if (not (csDesigning in ComponentState)) and (not FIsReg) then
+  if (not (csDesigning in ComponentState)) and (not FRegistered) then
   begin
     FMemTypeItem := CnSimpleMemPoolMgr.RegisterMemoryType(
       FMemorySize, FOnCreateMemory, FOnFreeMemory);
     CnSimpleMemPoolMgr.SetThreshold(FMemTypeItem, Threshold);
-    FIsReg := True;
+    FRegistered := True;
   end;
 end;
 
 procedure TCnCustomSimpleMemPool.DoUnregister;
 begin
-  if FIsReg then
+  if FRegistered then
   begin
     CnSimpleMemPoolMgr.UnregisterMemoryType(FMemTypeItem);
-    FIsReg := False;
+    FMemTypeItem := nil;
+    FRegistered := False;
   end;
 end;
 
 procedure TCnCustomSimpleMemPool.RentMemory(var MemoryPtr: Pointer);
 begin
   EnsureRegister;
-  
   CnSimpleMemPoolMgr.RentMemory(FMemTypeItem, MemoryPtr);
 end;
 
 procedure TCnCustomSimpleMemPool.ReturnMemory(MemoryPtr: Pointer);
 begin
   EnsureRegister;
-  
   CnSimpleMemPoolMgr.ReturnMemory(FMemTypeItem, MemoryPtr);
 end;
 
@@ -516,8 +516,7 @@ procedure TCnCustomSimpleMemPool.SetMemorySize(const Value: Cardinal);
 begin
   if FMemorySize <> Value then
   begin
-    if FIsReg then DoUnregister;
-
+    DoUnregister;
     FMemorySize := Value;
   end;
 end;
@@ -527,7 +526,7 @@ begin
   if FThreshold <> Value then
   begin
     FThreshold := Value;
-    if FIsReg then
+    if FRegistered then
       CnSimpleMemPoolMgr.SetThreshold(FMemTypeItem, FThreshold);
   end;
 end;
@@ -536,8 +535,7 @@ procedure TCnCustomSimpleMemPool.SetOnCreateMemory(const Value: TCreateMemoryEve
 begin
   if @FOnCreateMemory <> @Value then
   begin
-    if FIsReg then DoUnregister;
-
+    DoUnregister;
     FOnCreateMemory := Value;
   end;
 end;
@@ -546,8 +544,7 @@ procedure TCnCustomSimpleMemPool.SetOnFreeMemory(const Value: TFreeMemoryEvent);
 begin
   if @FOnFreeMemory <> @Value then
   begin
-    if FIsReg then DoUnregister;
-
+    DoUnregister;
     FOnFreeMemory := Value;
   end;
 end;
