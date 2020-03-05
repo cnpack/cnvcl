@@ -142,7 +142,6 @@ type
     FCountLock: TRTLCriticalSection;
     FBytesReceived: Cardinal;
     FBytesSent: Cardinal;
-    FKicking: Boolean;
     procedure SetActive(const Value: Boolean);
     procedure SetLocalIP(const Value: string);
     procedure SetLocalPort(const Value: Word);
@@ -248,9 +247,6 @@ end;
 procedure TCnThreadingTCPServer.ClientThreadTerminate(Sender: TObject);
 begin
   // 客户端线程结束，在主线程中删除无效的 Socket 与线程引用。Sender 是 Thread 实例
-  if FKicking then
-    Exit;
-
   EnterCriticalSection(FListLock);
   try
     FClientThreads.Remove(Sender);
@@ -351,32 +347,34 @@ begin
 end;
 
 function TCnThreadingTCPServer.KickAll: Integer;
-var
-  I: Integer;
 begin
   Result := 0;
-  FKicking := True;
 
-  try
-    // 关闭所有客户端连接
-    for I := FClientThreads.Count - 1 downto 0 do
-    begin
-      TCnTCPClientThread(FClientThreads[I]).ClientSocket.ShutDown;
-      TCnTCPClientThread(FClientThreads[I]).Terminate;
+  // 关闭所有客户端连接
+  while FClientThreads.Count > 0 do
+  begin
+    EnterCriticalSection(FListLock);
+    try
+      if FClientThreads.Count = 0 then
+        Exit;
+
+      TCnTCPClientThread(FClientThreads[0]).ClientSocket.ShutDown;
+      TCnTCPClientThread(FClientThreads[0]).Terminate;
 
       try
-        TCnTCPClientThread(FClientThreads[I]).WaitFor;
+        TCnTCPClientThread(FClientThreads[0]).WaitFor;
+        // 等待线程结束，注意并不等待跑在主线程里的 OnTerminate 结束
       except
-        ; // WaitFor 时可能句柄无效
+        ; // WaitFor 时可能句柄无效，因为已经结束了
       end;
-
-      // 线程结束时线程实例已经从 FClientThreads 中剔除了
-      Inc(Result);
+    finally
+      LeaveCriticalSection(FListLock);
     end;
-    FClientThreads.Clear;
-  finally
-    FKicking := False;
+
+    // 线程结束时线程实例已经从 FClientThreads 中剔除了
+    Inc(Result);
   end;
+  FClientThreads.Clear;
 end;
 
 function TCnThreadingTCPServer.Listen: Boolean;
