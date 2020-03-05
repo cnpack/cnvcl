@@ -58,6 +58,9 @@ type
     FBytesSent: Cardinal;
     FLocalIP: string;
     FLocalPort: Word;
+    FTag: TObject;
+  protected
+    procedure DoShutdown; virtual;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -82,6 +85,8 @@ type
     {* 远程客户端的 IP}
     property RemotePort: Word read FRemotePort write FRemotePort;
     {* 远程客户端的端口}
+    property Tag: TObject read FTag write FTag;
+    {* Tag 用来存点儿别的东西}
 
     property BytesSent: Cardinal read FBytesSent;
     {* 本客户端的发送字节数，用 Send 才会被统计}
@@ -142,6 +147,7 @@ type
     FCountLock: TRTLCriticalSection;
     FBytesReceived: Cardinal;
     FBytesSent: Cardinal;
+    FOnShutdownClient: TNotifyEvent;
     procedure SetActive(const Value: Boolean);
     procedure SetLocalIP(const Value: string);
     procedure SetLocalPort(const Value: Word);
@@ -154,6 +160,8 @@ type
     function CheckSocketError(ResultCode: Integer): Integer;
     function DoGetClientThread: TCnTCPClientThread; virtual;
     {* 子类可重载使用其他行为的 ClientThread}
+
+    procedure DoShutdownClient(Client: TCnClientSocket); virtual;
 
     procedure ClientThreadTerminate(Sender: TObject);
     procedure IncRecv(C: Integer);
@@ -197,6 +205,8 @@ type
     {* 出错事件}
     property OnAccept: TCnSocketAcceptEvent read FOnAccept write FOnAccept;
     {* 新客户端连接上时触发的事件，处理函数可循环接收、输出，退出事件则断开连接}
+    property OnShutdownClient: TNotifyEvent read FOnShutdownClient write FOnShutdownClient;
+    {* 调用 ClientSocket.Shutdown 关闭某客户端时触发，供使用者额外关闭客户端连接相关的另外资源}
   end;
 
 implementation
@@ -303,6 +313,12 @@ end;
 function TCnThreadingTCPServer.DoGetClientThread: TCnTCPClientThread;
 begin
   Result := TCnTCPClientThread.Create(True);
+end;
+
+procedure TCnThreadingTCPServer.DoShutdownClient(Client: TCnClientSocket);
+begin
+  if Assigned(FOnShutdownClient) then
+    FOnShutdownClient(Client);
 end;
 
 function TCnThreadingTCPServer.GetActualLocalPort: Word;
@@ -551,6 +567,11 @@ begin
 
 end;
 
+procedure TCnClientSocket.DoShutdown;
+begin
+  FServer.DoShutdownClient(Self);
+end;
+
 function TCnClientSocket.Recv(var Buf; Len: Integer; Flags: Integer): Integer;
 begin
   Result := FServer.CheckSocketError(WinSock.recv(FSocket, Buf, Len, Flags));
@@ -596,6 +617,8 @@ begin
     FServer.CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
     FServer.CheckSocketError(WinSock.closesocket(FSocket));
     FSocket := INVALID_SOCKET;
+
+    DoShutdown;
   end;
 end;
 
