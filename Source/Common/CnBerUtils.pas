@@ -41,6 +41,11 @@ interface
 
 {$I CnPack.inc}
 
+// 用 ENABLE_FMX 来控制 FMX 环境下是否支持 FMX，默认不支持，以避免编译出来的东西体积太大
+{$IFNDEF ENABLE_FMX}
+  {$UNDEF SUPPORT_FMX}
+{$ENDIF}
+
 uses
   SysUtils, Classes, TypInfo, CnBigNumber, CnTree
   {$IFDEF DEBUG}
