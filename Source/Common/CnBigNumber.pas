@@ -1293,7 +1293,7 @@ end;
 function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 var
 {$IFDEF MSWINDOWS}
-  HProv: Cardinal;
+  HProv: THandle;
   Res: LongWord;
 {$ELSE}
   F: TFileStream;
