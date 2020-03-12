@@ -315,7 +315,6 @@ object CnPropSheetForm: TCnPropSheetForm
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
         OnCustomDrawSubItem = lvPropCustomDrawSubItem
-        OnDblClick = lvPropDblClick
         OnKeyDown = ListViewKeyDown
         OnSelectItem = lvPropSelectItem
       end
