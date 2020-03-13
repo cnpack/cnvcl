@@ -478,13 +478,22 @@ cnpack\Source 目录内容说明：
   CnRS232Dialog.pas
     CnRS232Dialog 串口设置对话框组件及窗体单元
 
+  CnTCPClient.pas
+    TCP 客户端控件实现单元
+
+  CnTCPForwarder.pas
+    TCP 端口转发控件实现单元
+
+  CnThreadingTCPServer.pas
+    多线程 TCP Server 控件实现单元
+
   CnTwain.pas
     扫描仪控制组件实现单元，仅支持部分类型的扫描仪
 
   CnUDP.pas
     UDP 通讯组件单元
 
-                14 文件
+                17 文件
 
 \NonVisual －不可视组件
 
