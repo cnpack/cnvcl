@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.04.19 V1.6
+* 修改记录：2020.03.13 V1.7
+*               加入详细的错误码。调用返回 False 时可通过 GetLastCnRSAError 获取 ECN_RSA_* 形式的错误码
+*           2019.04.19 V1.6
 *               支持 Win32/Win64/MacOS
 *           2018.06.15 V1.5
 *               支持文件签名与验证，类似于 Openssl 中的用法，有原始签名与散列签名两类：
@@ -105,6 +107,15 @@ const
   OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
     $60, $86, $48, $01, $65, $03, $04, $02, $01
   );
+
+  // 错误码
+  ECN_RSA_OK                           = 0; // 没错
+  ECN_RSA_INVALID_INPUT                = 1; // 输入为空或长度不对
+  ECN_RSA_INVALID_BITS                 = 2; // 密钥位数不对
+  ECN_RSA_BIGNUMBER_ERROR              = 3; // 大数运算错误
+  ECN_RSA_BER_ERROR                    = 4; // BER 格式编码错误
+  ECN_RSA_PADDING_ERROR                = 5; // PADDING 对齐错误
+  ECN_RSA_DIGEST_ERROR                 = 6; // 数字摘要错误
 
 type
   TCnRSASignDigestType = (sdtNone, sdtMD5, sdtSHA1, sdtSHA256);
@@ -338,6 +349,9 @@ function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASi
 function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
 {* 从签名散列算法枚举值获取其名称}
 
+function GetLastCnRSAError: Integer;
+{* 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
+
 implementation
 
 const
@@ -354,6 +368,15 @@ const
 
   PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
   PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
+
+threadvar
+  RSAErrorCode: Integer;
+
+// 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
+function GetLastCnRSAError: Integer;
+begin
+  Result := RSAErrorCode;
+end;
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
 function Int64RSACrypt(Data: TUInt64; Product: TUInt64; Exponent: TUInt64;
@@ -447,7 +470,10 @@ var
 begin
   Result := False;
   if PrimeBits <= 16 then
+  begin
+    RSAErrorCode := ECN_RSA_INVALID_BITS;
     Exit;
+  end;
 
   PrivateKey.Clear;
   PublicKey.Clear;
@@ -535,7 +561,10 @@ var
 begin
   Result := False;
   if ModulusBits < 128 then
+  begin
+    RSAErrorCode := ECN_RSA_INVALID_BITS;
     Exit;
+  end;
 
   PrivateKey.Clear;
   PublicKey.Clear;
@@ -1150,11 +1179,13 @@ begin
   end;
 end;
 
-// 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
+// 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分。内部会设置错误码
 function RSACrypt(Data: TCnBigNumber; Product: TCnBigNumber; Exponent: TCnBigNumber;
   Res: TCnBigNumber): Boolean;
 begin
   Result := BigNumberMontgomeryPowerMod(Res, Data, Exponent, Product);
+  if not Result then
+    RSAErrorCode := ECN_RSA_BIGNUMBER_ERROR;
 end;
 
 // 利用上面生成的私钥对数据进行加密，返回加密是否成功
@@ -1272,7 +1303,9 @@ begin
       OutLen := R.GetBytesCount;
       Result := True;
     end;
-  end;
+  end
+  else
+    RSAErrorCode := ECN_RSA_INVALID_INPUT;
 end;
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
@@ -1303,7 +1336,7 @@ begin
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
-// 将数据块补上填充内容写入 Stream 中，返回成功与否。
+// 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
 // PaddingType 取 0、1、2，BlockLen 字节数如 128 等
 // EB = 00 || BT || PS || 00 || D
 function PKCS1AddPadding(PaddingType, BlockSize: Integer; Data: Pointer; DataLen: Integer;
@@ -1318,7 +1351,10 @@ begin
 
   // 不足以填充
   if DataLen > BlockSize - CN_RSA_PKCS1_PADDING_SIZE then
+  begin
+    RSAErrorCode := ECN_RSA_PADDING_ERROR;
     Exit;
+  end;
 
   B := 0;
   outStream.Write(B, 1);       // 写前导字节 00
@@ -1376,7 +1412,7 @@ begin
   try
     Stream := TMemoryStream.Create;
     if not PKCS1AddPadding(PaddingType, BlockSize, PlainData, DataLen, Stream) then
-      Exit;
+      Exit; // 内部会设置错误码
 
     Res := TCnBigNumber.Create;
     Data := TCnBigNumber.FromBinary(PAnsiChar(Stream.Memory), Stream.Size);
@@ -1458,6 +1494,7 @@ begin
   end;
 end;
 
+// 去掉 Padding，返回成功与否，内部设置错误码
 function PKCS1RemovePadding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
   out OutLen: Integer): Boolean;
 var
@@ -1516,7 +1553,9 @@ begin
     Move(P[Start], OutBuf^, InDataLen - Start);
     OutLen := InDataLen - Start;
     Result := True;
-  end;
+  end
+  else
+    RSAErrorCode := ECN_RSA_PADDING_ERROR;
 end;
 
 // 将一片内存区域进行 RSA 加解密计算后按其展现的 Padding 方式解出原始数据
@@ -1609,7 +1648,10 @@ begin
     Stream.LoadFromFile(InFileName);
 
     if Stream.Size <> PrivateKey.GetBitsCount div 8 then
+    begin
+      RSAErrorCode := ECN_RSA_INVALID_INPUT;
       Exit;
+    end;
 
     if not CnRSADecryptData(Stream.Memory, Stream.Size, @Res[0], OutLen, PrivateKey) then
       Exit;
@@ -1655,6 +1697,9 @@ begin
         Result := True;
       end;
   end;
+
+  if not Result then
+    RSAErrorCode := ECN_RSA_DIGEST_ERROR;
 end;
 
 // 根据指定数字摘要算法计算文件的二进制散列值并写入 Stream
@@ -1686,6 +1731,9 @@ begin
         Result := True;
       end;
   end;
+
+  if not Result then
+    RSAErrorCode := ECN_RSA_DIGEST_ERROR;
 end;
 
 function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
@@ -1748,7 +1796,7 @@ begin
     begin
       // 无数字摘要，直接整内容对齐
       if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        InStream.Memory, InStream.Size, EnStream) then
+        InStream.Memory, InStream.Size, EnStream) then // 内部会设置错误码
         Exit;
     end
     else // 有数字摘要
@@ -1769,7 +1817,7 @@ begin
 
       // 再把 BER 编码后的内容 PKCS1 填充对齐
       if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        BerStream.Memory, BerStream.Size, EnStream) then
+        BerStream.Memory, BerStream.Size, EnStream) then // 内部会设置错误码
         Exit;
     end;
 
@@ -1833,6 +1881,8 @@ begin
         Result := InStream.Size = Res.GetBytesCount;
         if Result then
           Result := CompareMem(InStream.Memory, @ResBuf[0], InStream.Size);
+
+        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
       end
       else
       begin
@@ -1842,18 +1892,27 @@ begin
           Exit;
 
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
+        begin
+          RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
+        end;
 
         // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
         Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
         Reader.ParseToTree;
         if Reader.TotalCount < 5 then
+        begin
+          RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
+        end;
 
         Node := Reader.Items[2];
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = sdtNone then
+        begin
+          RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
+        end;
 
         if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
           Exit;
@@ -1863,6 +1922,8 @@ begin
         Result := Stream.Size = Node.BerDataLength;
         if Result then
           Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
+
+        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
       end;
     end;
   finally
@@ -1901,7 +1962,7 @@ begin
       // 无数字摘要，直接整内容对齐
       Stream.LoadFromFile(InFileName);
       if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        Stream.Memory, Stream.Size, EnStream) then
+        Stream.Memory, Stream.Size, EnStream) then // 内部会设置错误码
         Exit;
     end
     else // 有数字摘要
@@ -1922,7 +1983,7 @@ begin
 
       // 再把 BER 编码后的内容 PKCS1 填充对齐
       if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        BerStream.Memory, BerStream.Size, EnStream) then
+        BerStream.Memory, BerStream.Size, EnStream) then  // 内部会设置错误码
         Exit;
     end;
 
@@ -1989,6 +2050,8 @@ begin
         Result := Stream.Size = Res.GetBytesCount;
         if Result then
           Result := CompareMem(Stream.Memory, @ResBuf[0], Stream.Size);
+
+        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
       end
       else
       begin
@@ -1998,18 +2061,27 @@ begin
           Exit;
 
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
+        begin
+          RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
+        end;
 
         // 解开 Ber 内容里的编码与加密算法，不使用 SignType 原始值
         Reader := TCnBerReader.Create(@BerBuf[0], BerLen);
         Reader.ParseToTree;
         if Reader.TotalCount < 5 then
+        begin
+          RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
+        end;
 
         Node := Reader.Items[2];
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = sdtNone then
+        begin
+          RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
+        end;
 
         if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
           Exit;
@@ -2019,6 +2091,8 @@ begin
         Result := Stream.Size = Node.BerDataLength;
         if Result then
           Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
+
+        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
       end;
     end;
   finally
@@ -2042,10 +2116,16 @@ var
 begin
   Result := False;
   if BitsCount <= 16 then
+  begin
+    RSAErrorCode := ECN_RSA_INVALID_BITS;
     Exit;
+  end;
 
   if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
+  begin
+    RSAErrorCode := ECN_RSA_BIGNUMBER_ERROR;
     Exit;
+  end;
 
   Factors := TCnBigNumberList.Create;
   PrimeSubOne := BigNumberNew;
