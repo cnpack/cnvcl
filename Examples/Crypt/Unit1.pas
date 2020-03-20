@@ -242,6 +242,10 @@ type
     edtXXTeaEnc2: TEdit;
     btnXXTeaDec: TButton;
     bvl1: TBevel;
+    lblAesIv: TLabel;
+    edtAesIv: TEdit;
+    lblSM4Iv: TLabel;
+    edtSM4Iv: TEdit;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -494,18 +498,8 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..15] of Byte;
-//  Ctx: TSM4Context;
+  IvStr: string;
 begin
-//  SM4SetKeyEnc(Ctx, @(Sm4Key[0]));
-//  SM4CryptEcb(Ctx, SM4_ENCRYPT, 16, @(Sm4Input[0]), @(Output[0]));
-//
-//  lblSm4Text.Caption := ToHex(@(Output[0]), SizeOf(Output));
-//
-//  SM4SetKeyDec(Ctx, @(Sm4Key[0]));
-//  SM4CryptEcb(Ctx, SM4_DECRYPT, 16, @(Output[0]), @(Output[0]));
-//
-//  lblSm4Text.Caption := ToHex(@(Output[0]), SizeOf(Output));
-
   Len := Length(edtSm4.Text);
   if Len < 16 then
     Len := 16
@@ -518,7 +512,14 @@ begin
     SM4CryptEcbStr(SM4_ENCRYPT, edtSm4Key.Text, edtSm4.Text, @(Output[1]))
   else
   begin
-    CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+    IvStr := HexToStr(edtSM4Iv.Text);
+    if Length(IvStr) <> SizeOf(TmpSm4Iv) then
+    begin
+      ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
+      CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+    end
+    else
+      CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
     SM4CryptCbcStr(SM4_ENCRYPT, edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
   end;
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
@@ -603,6 +604,7 @@ end;
 procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
+  IvStr: string;
 begin
   if rbAesecb.Checked then
   begin
@@ -617,7 +619,15 @@ begin
   end
   else
   begin
-    CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+    IvStr := HexToStr(edtAesIv.Text);
+    if Length(IvStr) <> SizeOf(TAESBuffer) then
+    begin
+      ShowMessage('Invalid AES Iv, Use Our Default Iv.');
+      CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+    end
+    else
+      CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
+
     case cbbAesKeyBitType.ItemIndex of
       0:
         edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);

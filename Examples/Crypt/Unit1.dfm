@@ -1,10 +1,10 @@
 object FormCrypt: TFormCrypt
-  Left = 198
-  Top = 0
+  Left = 318
+  Top = 216
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
-  ClientHeight = 416
-  ClientWidth = 539
+  ClientHeight = 437
+  ClientWidth = 624
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -19,9 +19,9 @@ object FormCrypt: TFormCrypt
   object PageControl1: TPageControl
     Left = 24
     Top = 24
-    Width = 489
+    Width = 569
     Height = 385
-    ActivePage = tsTEA
+    ActivePage = tsSM4
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -544,7 +544,7 @@ object FormCrypt: TFormCrypt
       object grpSM3: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM3'
@@ -633,7 +633,7 @@ object FormCrypt: TFormCrypt
       object grpSM4: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM3'
@@ -665,6 +665,13 @@ object FormCrypt: TFormCrypt
           Width = 29
           Height = 13
           Caption = 'Code:'
+        end
+        object lblSM4Iv: TLabel
+          Left = 264
+          Top = 40
+          Width = 148
+          Height = 13
+          Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
         end
         object edtSm4: TEdit
           Left = 72
@@ -732,6 +739,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 4
           TabStop = True
         end
+        object edtSM4Iv: TEdit
+          Left = 264
+          Top = 72
+          Width = 225
+          Height = 21
+          TabOrder = 8
+          Text = '0123456789ABCDEFFEDCBA9876543210'
+        end
       end
     end
     object tsAES: TTabSheet
@@ -740,7 +755,7 @@ object FormCrypt: TFormCrypt
       object grpAes: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'AES'
@@ -779,6 +794,13 @@ object FormCrypt: TFormCrypt
           Width = 34
           Height = 13
           Caption = 'KeyBit:'
+        end
+        object lblAesIv: TLabel
+          Left = 264
+          Top = 40
+          Width = 148
+          Height = 13
+          Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
         end
         object edtAes: TEdit
           Left = 72
@@ -859,6 +881,14 @@ object FormCrypt: TFormCrypt
             '192 Bit'
             '256 Bit')
         end
+        object edtAesIv: TEdit
+          Left = 264
+          Top = 64
+          Width = 225
+          Height = 21
+          TabOrder = 9
+          Text = '0123456789ABCDEFFEDCBA9876543210'
+        end
       end
     end
     object tsSHA224: TTabSheet
@@ -867,7 +897,7 @@ object FormCrypt: TFormCrypt
       object grpSHA224: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 497
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA224'

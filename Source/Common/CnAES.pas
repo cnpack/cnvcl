@@ -33,6 +33,7 @@ unit CnAES;
 * 单元名称：AES 实现单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：从 EldoS, Alexander Ionov 的单元移植而来，保留原有版权信息
+*           对齐方式均在末尾补 0，暂不支持 PKCS 之类的
 * 开发平台：Win 7
 * 修改记录：2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
@@ -171,19 +172,19 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey128;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey192;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey256;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
 // AES ECB 模式加密字符串并将其转换成十六进制
@@ -2736,19 +2737,19 @@ begin
     case KeyBit of
     kbt128:
       begin
-        FillChar(AESKey128, SizeOf(AESKey128), 0 );
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
         DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey128, Iv, DS);
       end;
     kbt192:
       begin
-        FillChar(AESKey192, SizeOf(AESKey192), 0 );
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
         DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey192, Iv, DS);
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey256, Iv, DS);
       end;
