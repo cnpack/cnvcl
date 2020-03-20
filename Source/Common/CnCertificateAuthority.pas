@@ -22,7 +22,7 @@ unit CnCertificateAuthority;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：CA 证书认证单元
+* 单元名称：基于 RSA 的 CA 证书认证单元
 * 单元作者：刘啸
 * 备    注：生成客户端 CSR 文件做证书签名请求，类似于命令：
 *               openssl req -new -key clientkey.pem -out client.csr -config /c/Program\ Files/Git/ssl/openssl.cnf
@@ -1069,7 +1069,6 @@ begin
   SetLength(Buf, 0);
   Result := True;
 end;
-
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnRSACertificateRequest): Boolean;

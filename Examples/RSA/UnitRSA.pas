@@ -445,10 +445,12 @@ end;
 procedure TFormRSA.btnBNLoadKeysClick(Sender: TObject);
 var
   X, Y: TCnBigNumber;
+  Password: string;
 begin
   if dlgOpenPEM.Execute then
   begin
-    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey) then
+    Password := CnInputBox('Password', 'Enter Password here if the PEM has Password', '');
+    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey, Password) then
     begin
       edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
       edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;

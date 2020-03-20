@@ -81,7 +81,7 @@ interface
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnPrimeNumber, CnBigNumber,
-  CnBase64, CnBerUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
+  CnBase64, CnBerUtils, CnPemUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
@@ -116,6 +116,7 @@ const
   ECN_RSA_BER_ERROR                    = 4; // BER 格式编码错误
   ECN_RSA_PADDING_ERROR                = 5; // PADDING 对齐错误
   ECN_RSA_DIGEST_ERROR                 = 6; // 数字摘要错误
+  ECN_RSA_PEM_CRYPT_ERROR              = 7; // PEM 加解密错误
 
 type
   TCnRSASignDigestType = (sdtNone, sdtMD5, sdtSHA1, sdtSHA256);
@@ -201,7 +202,7 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
    ModulusBits 取值为 512/1024/2048等}
 
 function CnRSALoadKeysFromPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
+  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; const Password: string = ''): Boolean;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
@@ -209,7 +210,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
 {* 将公私钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey): Boolean;
+  PublicKey: TCnRSAPublicKey; const Password: string = ''): Boolean;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
 function CnRSASavePublicKeyToPem(const PemFileName: string;
@@ -322,18 +323,6 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
    其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime}
 
 // 其他辅助函数
-
-function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
-
-function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
-
-function SaveMemoryToPemFile(const FileName, Head, Tail: string;
-  MemoryStream: TMemoryStream): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后分行并补上文件头尾再写入文件}
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
 {* 从 BER 解析出的 OID 获取其对应的散列摘要类型}
@@ -650,110 +639,6 @@ begin
   Result := True;
 end;
 
-procedure SplitStringToList(const S: string; List: TStrings);
-const
-  LINE_WIDTH = 64;
-var
-  C, R: string;
-begin
-  if List = nil then
-    Exit;
-
-  List.Clear;
-  if S <> '' then
-  begin
-    R := S;
-    while R <> '' do
-    begin
-      C := Copy(R, 1, LINE_WIDTH);
-      Delete(R, 1, LINE_WIDTH);
-      List.Add(C);
-    end;
-  end;
-end;
-
-function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream): Boolean;
-var
-  I: Integer;
-  S: string;
-  Sl: TStringList;
-begin
-  Result := False;
-
-  if (Stream <> nil) and (Stream.Size > 0) and (ExpectHead <> '') and (ExpectTail <> '') then
-  begin
-    Sl := TStringList.Create;
-    try
-      Sl.LoadFromStream(Stream);
-      if Sl.Count > 2 then
-      begin
-        if Trim(Sl[0]) <> ExpectHead then
-          Exit;
-
-        if Trim(Sl[Sl.Count - 1]) = '' then
-          Sl.Delete(Sl.Count - 1);
-
-        if Trim(Sl[Sl.Count - 1]) <> ExpectTail then
-          Exit;
-
-        Sl.Delete(Sl.Count - 1);
-        Sl.Delete(0);
-        S := '';
-        for I := 0 to Sl.Count - 1 do
-          S := S + Sl[I];
-
-        // To De Base64 S
-        MemoryStream.Clear;
-        Result := (BASE64_OK = Base64Decode(S, MemoryStream, False));
-      end;
-    finally
-      Sl.Free;
-    end;
-  end;
-end;
-
-function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream): Boolean;
-var
-  Stream: TStream;
-begin
-  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-  try
-    Result := LoadPemStreamToMemory(Stream, ExpectHead, ExpectTail, MemoryStream);
-  finally
-    Stream.Free;
-  end;
-end;
-
-function SaveMemoryToPemFile(const FileName, Head, Tail: string;
-  MemoryStream: TMemoryStream): Boolean;
-var
-  S: string;
-  List: TStringList;
-begin
-  Result := False;
-  if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
-  begin
-    MemoryStream.Position := 0;
-    if Base64_OK = Base64Encode(MemoryStream, S) then
-    begin
-      List := TStringList.Create;
-      try
-        SplitStringToList(S, List);
-
-        List.Insert(0, Head);
-        List.Add(Tail);
-
-        List.SaveToFile(FileName);
-        Result := True;
-      finally
-        List.Free;
-      end;
-    end;
-  end;
-end;
-
 procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
 var
   P: Pointer;
@@ -816,8 +701,8 @@ PKCS#8:
         INTEGER
         INTEGER
 *)
-function CnRSALoadKeysFromPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
+function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; const Password: string): Boolean;
 var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
@@ -829,7 +714,8 @@ begin
 
   try
     MemStream := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL, MemStream) then
+    if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL,
+      MemStream, Password) then
     begin
       // 读 PKCS#1 的 PEM 公私钥格式
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
@@ -859,7 +745,8 @@ begin
         end;
       end;
     end
-    else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, MemStream) then
+    else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
+      MemStream, Password) then
     begin
       // 读 PKCS#8 的 PEM 公私钥格式
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
@@ -926,7 +813,7 @@ PKCS#8:
         INTEGER     - Exponent
 *)
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey): Boolean;
+  PublicKey: TCnRSAPublicKey; const Password: string): Boolean;
 var
   Mem: TMemoryStream;
   Reader: TCnBerReader;
@@ -937,7 +824,7 @@ begin
 
   try
     Mem := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem) then
+    if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem, Password) then
     begin
       // 读 PKCS#8 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
@@ -954,7 +841,8 @@ begin
         Result := True;
       end;
     end
-    else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL, Mem) then
+    else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL,
+      Mem, Password) then
     begin
       // 读 PKCS#1 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
