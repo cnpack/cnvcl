@@ -112,19 +112,19 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey128;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey192;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey256;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
 // Key transformation routines for decryption
@@ -2243,7 +2243,7 @@ begin
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey128;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 var
   TempIn, TempOut, Vector: TAESBuffer;
@@ -2357,7 +2357,7 @@ begin
 end;
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey256;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 var
   TempIn, TempOut, Vector: TAESBuffer;
@@ -2416,7 +2416,7 @@ begin
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey128;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 var
   TempIn, TempOut: TAESBuffer;
@@ -2462,7 +2462,7 @@ begin
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey192;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 var
   TempIn, TempOut: TAESBuffer;
@@ -2508,7 +2508,7 @@ begin
 end;
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
-  const ExpandedKey: TAESExpandedKey256;  const InitVector: TAESBuffer;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 var
   TempIn, TempOut: TAESBuffer;

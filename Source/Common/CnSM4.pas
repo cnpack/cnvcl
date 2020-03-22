@@ -25,11 +25,13 @@ unit CnSM4;
 * 单元名称：国产分组密码算法 SM4 单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档 SM4 Encryption alogrithm
-*           并参考移植goldboar的C代码
+*           并参考移植 goldboar 的 C 代码
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.1
+* 修改记录：2020.03.21 V1.2
+*               增加部分封装函数
+*           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
 *           2014.09.25 V1.0
 *               移植并创建单元
@@ -44,9 +46,6 @@ uses
   Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 const
-  SM4_ENCRYPT = 1;
-  SM4_DECRYPT = 0;
-
   SM4_KEYSIZE = 16;
   SM4_BLOCKSIZE = 16;
 
@@ -56,67 +55,49 @@ type
     Sk: array[0..SM4_KEYSIZE * 2 - 1] of LongWord;  {!<  SM4 subkeys       }
   end;
 
-procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
-  const Input: AnsiString; Output: PAnsiChar);
+procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* SM4-ECB 封装好的针对 AnsiString 的加解密方法
  |<PRE>
-  Mode     SM4_ENCRYPT 或 SM4_DECRYPT
-  Key      16 字节密码，太长则截断，不足则补#0
+  Key      16 字节密码，太长则截断，不足则补 #0
   Input    input 字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
-procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString;
-  Iv: PAnsiChar; const Input: AnsiString; Output: PAnsiChar);
+procedure SM4DecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+{* SM4-ECB 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      16 字节密码，太长则截断，不足则补 #0
+  Input    input 字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
+ |</PRE>}
+
+procedure SM4EncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
 {* SM4-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
-  Mode     SM4_ENCRYPT 或 SM4_DECRYPT
-  Key      16 字节密码，太长则截断，不足则补#0
+  Key      16 字节密码，太长则截断，不足则补 #0
   Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
-procedure SM4SetKeyEnc(var Ctx: TSM4Context; Key: PAnsiChar);
-{* 使用密钥 Key 进行 SM4 加密初始化
+procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+{* SM4-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
-  Ctx      SM4 context to be initialized
-  Key      16-byte secret key
+  Key      16 字节密码，太长则截断，不足则补 #0
+  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input string
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
-procedure SM4SetKeyDec(var Ctx: TSM4Context; Key: PAnsiChar);
-{* 使用密钥 Key 进行 SM4 解密初始化
- |<PRE>
-  Ctx      SM4 context to be initialized
-  Key      16-byte secret key
- |</PRE>}
-
-procedure SM4CryptEcb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
-  Input: PAnsiChar; Output: PAnsiChar);
-{* SM4-ECB block encryption/decryption
- |<PRE>
-  Ctx      SM4 context
-  Mode     SM4_ENCRYPT or SM4_DECRYPT
-  Length   length of the input data，必须 16 的整数倍
-  Input    input block
-  Output   output block，其容量必须长于或等于 Length
- |</PRE>}
-
-procedure SM4CryptCbc(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
-  Iv: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar);
-{* SM4-CBC buffer encryption/decryption
- |<PRE>
-  Ctx      SM4 context
-  Mode     SM4_ENCRYPT or SM4_DECRYPT
-  Length   length of the input data，必须 16 的整数倍
-  Iv       16-byte initialization vector (updated after use)
-  Input    input block
-  Output   output block，其容量必须长于或等于 Length
- |</PRE>}
 
 implementation
 
 const
+  SM4_ENCRYPT = 1;
+  SM4_DECRYPT = 0;
+
   SBoxTable: array[0..SM4_KEYSIZE - 1] of array[0..SM4_KEYSIZE - 1] of Byte = (
     ($D6, $90, $E9, $FE, $CC, $E1, $3D, $B7, $16, $B6, $14, $C2, $28, $FB, $2C, $05),
     ($2B, $67, $9A, $76, $2A, $BE, $04, $C3, $AA, $44, $13, $26, $49, $86, $06, $99),
@@ -296,28 +277,6 @@ begin
     Swap(Ctx.Sk[I], Ctx.Sk[31 - I]);
 end;
 
-procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
-  const Input: AnsiString; Output: PAnsiChar);
-var
-  Ctx: TSM4Context;
-begin
-  if Length(Key) < SM4_KEYSIZE then
-    while Length(Key) < SM4_KEYSIZE do Key := Key + Chr(0) // 16 bytes at least padding 0.
-  else if Length(Key) > SM4_KEYSIZE then
-    Key := Copy(Key, 1, SM4_KEYSIZE);  // Only keep 16
-
-  if Mode = SM4_ENCRYPT then
-  begin
-    SM4SetKeyEnc(Ctx, @(Key[1]));
-    SM4CryptEcb(Ctx, SM4_ENCRYPT, Length(Input), @(Input[1]), @(Output[0]));
-  end
-  else if Mode = SM4_DECRYPT then
-  begin
-    SM4SetKeyDec(Ctx, @(Key[1]));
-    SM4CryptEcb(Ctx, SM4_DECRYPT, Length(Input), @(Input[1]), @(Output[0]));
-  end;
-end;
-
 procedure SM4CryptEcb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Input: PAnsiChar; Output: PAnsiChar);
 var
@@ -342,7 +301,7 @@ begin
   end;
 end;
 
-procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString; Iv: PAnsiChar;
+procedure SM4CryptEcbStr(Mode: Integer; Key: AnsiString;
   const Input: AnsiString; Output: PAnsiChar);
 var
   Ctx: TSM4Context;
@@ -355,12 +314,12 @@ begin
   if Mode = SM4_ENCRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[1]));
-    SM4CryptCbc(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[1]), @(Output[0]));
+    SM4CryptEcb(Ctx, SM4_ENCRYPT, Length(Input), @(Input[1]), @(Output[0]));
   end
   else if Mode = SM4_DECRYPT then
   begin
     SM4SetKeyDec(Ctx, @(Key[1]));
-    SM4CryptCbc(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[1]), @(Output[0]));
+    SM4CryptEcb(Ctx, SM4_DECRYPT, Length(Input), @(Input[1]), @(Output[0]));
   end;
 end;
 
@@ -436,6 +395,50 @@ begin
       Dec(Length, SM4_BLOCKSIZE);
     end;
   end;
+end;
+
+procedure SM4CryptCbcStr(Mode: Integer; Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+var
+  Ctx: TSM4Context;
+begin
+  if Length(Key) < SM4_KEYSIZE then
+    while Length(Key) < SM4_KEYSIZE do Key := Key + Chr(0) // 16 bytes at least padding 0.
+  else if Length(Key) > SM4_KEYSIZE then
+    Key := Copy(Key, 1, SM4_KEYSIZE);  // Only keep 16
+
+  if Mode = SM4_ENCRYPT then
+  begin
+    SM4SetKeyEnc(Ctx, @(Key[1]));
+    SM4CryptCbc(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[1]), @(Output[0]));
+  end
+  else if Mode = SM4_DECRYPT then
+  begin
+    SM4SetKeyDec(Ctx, @(Key[1]));
+    SM4CryptCbc(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[1]), @(Output[0]));
+  end;
+end;
+
+procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+begin
+  SM4CryptEcbStr(SM4_ENCRYPT, Key, Input, Output);
+end;
+
+procedure SM4DecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+begin
+  SM4CryptEcbStr(SM4_DECRYPT, Key, Input, Output);
+end;
+
+procedure SM4EncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+begin
+  SM4CryptCbcStr(SM4_ENCRYPT, Key, Iv, Input, Output);
+end;
+
+procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+begin
+  SM4CryptCbcStr(SM4_DECRYPT, Key, Iv, Input, Output);
 end;
 
 end.

@@ -43,15 +43,51 @@ uses
   SysUtils;
 
 function DESEncryptStr(Str, Key: AnsiString): AnsiString;
-{* 传入明文与加密 Key，DES 加密返回密文，
+{* 传入明文与加密 Key，DES 加密返回密文，ECB 模式，明文末尾可能补 0
    注：由于密文可能含有扩展 ASCII 字符，因此在 DELPHI 2009 或以上版本中，请用
    AnsiString 类型的变量接收返回值，以避免出现多余的 Unicode 转换而导致解密出错}
 
 function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
 {* 传入密文与加密 Key，DES 解密返回明文}
 
+procedure DESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+{* DES-ECB 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+procedure DESDecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+{* DES-ECB 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+procedure DESEncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+{* DES-CBC 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input string
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+procedure DESDecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+{* DES-CBC 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input string
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
 function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
-{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文}
+{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES 解密返回明文}
@@ -155,109 +191,94 @@ type
   TSubKey = array[0..15] of TKeyByte;
 
 threadvar
-  subKey: TSubKey;
+  SubKey: TSubKey;
 
-  {
-procedure InitPermutation(var inData: array of Byte);
-procedure ConversePermutation(var inData: array of Byte);
-procedure Expand(inData: array of Byte; var outData: array of Byte);
-procedure Permutation(var inData: array of Byte);
-function Si(s, inByte: Byte): Byte;
-procedure PermutationChoose1(inData: array of Byte; var outData: array of Byte);
-procedure PermutationChoose2(inData: array of Byte; var outData: array of Byte);
-procedure CycleMove(var inData: array of Byte; bitMove: Byte);
-procedure MakeKey(inKey: array of Byte; var outKey: array of TKeyByte);
-procedure Encry(inData, subKey: array of Byte; var outData: array of Byte);
-procedure DesData(desMode: TDesMode; inData: array of Byte; var outData: array
-    of Byte);
-function HexToInt(Hex: string): Integer; }
-
-procedure InitPermutation(var inData: array of Byte);
+procedure InitPermutation(var InData: array of Byte);
 var
-  newData: array[0..7] of Byte;
+  NewData: array[0..7] of Byte;
   I: Integer;
 begin
-  FillChar(newData, 8, 0);
+  FillChar(NewData, 8, 0);
   for I := 0 to 63 do
-    if (inData[BitIP[I] shr 3] and (1 shl (7 - (BitIP[I] and $07)))) <> 0 then
-      newData[I shr 3] := newData[I shr 3] or (1 shl (7 - (I and $07)));
-  for I := 0 to 7 do inData[I] := newData[I];
+    if (InData[BitIP[I] shr 3] and (1 shl (7 - (BitIP[I] and $07)))) <> 0 then
+      NewData[I shr 3] := NewData[I shr 3] or (1 shl (7 - (I and $07)));
+  for I := 0 to 7 do InData[I] := NewData[I];
 end;
 
-procedure ConversePermutation(var inData: array of Byte);
+procedure ConversePermutation(var InData: array of Byte);
 var
-  newData: array[0..7] of Byte;
+  NewData: array[0..7] of Byte;
   I: Integer;
 begin
-  FillChar(newData, 8, 0);
+  FillChar(NewData, 8, 0);
   for I := 0 to 63 do
-    if (inData[BitCP[I] shr 3] and (1 shl (7 - (BitCP[I] and $07)))) <> 0 then
-      newData[I shr 3] := newData[I shr 3] or (1 shl (7 - (I and $07)));
-  for I := 0 to 7 do inData[I] := newData[I];
+    if (InData[BitCP[I] shr 3] and (1 shl (7 - (BitCP[I] and $07)))) <> 0 then
+      NewData[I shr 3] := NewData[I shr 3] or (1 shl (7 - (I and $07)));
+  for I := 0 to 7 do InData[I] := NewData[I];
 end;
 
-procedure Expand(inData: array of Byte; var outData: array of Byte);
+procedure Expand(InData: array of Byte; var OutData: array of Byte);
 var
   I: Integer;
 begin
-  FillChar(outData, 6, 0);
+  FillChar(OutData, 6, 0);
   for I := 0 to 47 do
-    if (inData[BitExp[I] shr 3] and (1 shl (7 - (BitExp[I] and $07)))) <> 0 then
-      outData[I shr 3] := outData[I shr 3] or (1 shl (7 - (I and $07)));
+    if (InData[BitExp[I] shr 3] and (1 shl (7 - (BitExp[I] and $07)))) <> 0 then
+      OutData[I shr 3] := OutData[I shr 3] or (1 shl (7 - (I and $07)));
 end;
 
-procedure Permutation(var inData: array of Byte);
+procedure Permutation(var InData: array of Byte);
 var
-  newData: array[0..3] of Byte;
+  NewData: array[0..3] of Byte;
   I: Integer;
 begin
-  FillChar(newData, 4, 0);
+  FillChar(NewData, 4, 0);
   for I := 0 to 31 do
-    if (inData[BitPM[I] shr 3] and (1 shl (7 - (BitPM[I] and $07)))) <> 0 then
-      newData[I shr 3] := newData[I shr 3] or (1 shl (7 - (I and $07)));
-  for I := 0 to 3 do inData[I] := newData[I];
+    if (InData[BitPM[I] shr 3] and (1 shl (7 - (BitPM[I] and $07)))) <> 0 then
+      NewData[I shr 3] := NewData[I shr 3] or (1 shl (7 - (I and $07)));
+  for I := 0 to 3 do InData[I] := NewData[I];
 end;
 
-function Si(s, inByte: Byte): Byte;
+function Si(S, InByte: Byte): Byte;
 var
   c: Byte;
 begin
-  c := (inByte and $20) or ((inByte and $1E) shr 1) or
-    ((inByte and $01) shl 4);
-  Result := (sBox[s][c] and $0F);
+  c := (InByte and $20) or ((InByte and $1E) shr 1) or
+    ((InByte and $01) shl 4);
+  Result := (sBox[S][c] and $0F);
 end;
 
-procedure PermutationChoose1(inData: array of Byte; var outData: array of Byte);
+procedure PermutationChoose1(InData: array of Byte; var OutData: array of Byte);
 var
   I: Integer;
 begin
-  FillChar(outData, 7, 0);
+  FillChar(OutData, 7, 0);
   for I := 0 to 55 do
-    if (inData[BitPMC1[I] shr 3] and (1 shl (7 - (BitPMC1[I] and $07)))) <> 0 then
-      outData[I shr 3] := outData[I shr 3] or (1 shl (7 - (I and $07)));
+    if (InData[BitPMC1[I] shr 3] and (1 shl (7 - (BitPMC1[I] and $07)))) <> 0 then
+      OutData[I shr 3] := OutData[I shr 3] or (1 shl (7 - (I and $07)));
 end;
 
-procedure PermutationChoose2(inData: array of Byte; var outData: array of Byte);
+procedure PermutationChoose2(InData: array of Byte; var OutData: array of Byte);
 var
   I: Integer;
 begin
-  FillChar(outData, 6, 0);
+  FillChar(OutData, 6, 0);
   for I := 0 to 47 do
-    if (inData[BitPMC2[I] shr 3] and (1 shl (7 - (BitPMC2[I] and $07)))) <> 0 then
-      outData[I shr 3] := outData[I shr 3] or (1 shl (7 - (I and $07)));
+    if (InData[BitPMC2[I] shr 3] and (1 shl (7 - (BitPMC2[I] and $07)))) <> 0 then
+      OutData[I shr 3] := OutData[I shr 3] or (1 shl (7 - (I and $07)));
 end;
 
-procedure cycleMove(var inData: array of Byte; bitMove: Byte);
+procedure CycleMove(var InData: array of Byte; bitMove: Byte);
 var
   I: Integer;
 begin
   for I := 0 to bitMove - 1 do
   begin
-    inData[0] := (inData[0] shl 1) or (inData[1] shr 7);
-    inData[1] := (inData[1] shl 1) or (inData[2] shr 7);
-    inData[2] := (inData[2] shl 1) or (inData[3] shr 7);
-    inData[3] := (inData[3] shl 1) or ((inData[0] and $10) shr 4);
-    inData[0] := (inData[0] and $0F);
+    InData[0] := (InData[0] shl 1) or (InData[1] shr 7);
+    InData[1] := (InData[1] shl 1) or (InData[2] shr 7);
+    InData[2] := (InData[2] shl 1) or (InData[3] shr 7);
+    InData[3] := (InData[3] shl 1) or ((InData[0] and $10) shr 4);
+    InData[0] := (InData[0] and $0F);
   end;
 end;
 
@@ -283,8 +304,8 @@ begin
   key28r[3] := outData56[6];
   for I := 0 to 15 do
   begin
-    cycleMove(key28l, bitDisplace[I]);
-    cycleMove(key28r, bitDisplace[I]);
+    CycleMove(key28l, bitDisplace[I]);
+    CycleMove(key28r, bitDisplace[I]);
     key56o[0] := (key28l[0] shl 4) or (key28l[1] shr 4);
     key56o[1] := (key28l[1] shl 4) or (key28l[2] shr 4);
     key56o[2] := (key28l[2] shl 4) or (key28l[3] shr 4);
@@ -296,86 +317,86 @@ begin
   end;
 end;
 
-procedure Encry(inData, aSubKey: array of Byte; var outData: array of Byte);
+procedure Encry(InData, ASubKey: array of Byte; var OutData: array of Byte);
 var
-  outBuf: array[0..5] of Byte;
-  buf: array[0..7] of Byte;
+  OutBuf: array[0..5] of Byte;
+  Buf: array[0..7] of Byte;
   I: Integer;
 begin
-  expand(inData, outBuf);
-  for I := 0 to 5 do outBuf[I] := outBuf[I] xor aSubKey[I];
-  buf[0] := outBuf[0] shr 2;
-  buf[1] := ((outBuf[0] and $03) shl 4) or (outBuf[1] shr 4);
-  buf[2] := ((outBuf[1] and $0F) shl 2) or (outBuf[2] shr 6);
-  buf[3] := outBuf[2] and $3F;
-  buf[4] := outBuf[3] shr 2;
-  buf[5] := ((outBuf[3] and $03) shl 4) or (outBuf[4] shr 4);
-  buf[6] := ((outBuf[4] and $0F) shl 2) or (outBuf[5] shr 6);
-  buf[7] := outBuf[5] and $3F;
-  for I := 0 to 7 do buf[I] := si(I, buf[I]);
-  for I := 0 to 3 do outBuf[I] := (buf[I * 2] shl 4) or buf[I * 2 + 1];
-  permutation(outBuf);
-  for I := 0 to 3 do outData[I] := outBuf[I];
+  expand(InData, OutBuf);
+  for I := 0 to 5 do OutBuf[I] := OutBuf[I] xor ASubKey[I];
+  Buf[0] := OutBuf[0] shr 2;
+  Buf[1] := ((OutBuf[0] and $03) shl 4) or (OutBuf[1] shr 4);
+  Buf[2] := ((OutBuf[1] and $0F) shl 2) or (OutBuf[2] shr 6);
+  Buf[3] := OutBuf[2] and $3F;
+  Buf[4] := OutBuf[3] shr 2;
+  Buf[5] := ((OutBuf[3] and $03) shl 4) or (OutBuf[4] shr 4);
+  Buf[6] := ((OutBuf[4] and $0F) shl 2) or (OutBuf[5] shr 6);
+  Buf[7] := OutBuf[5] and $3F;
+  for I := 0 to 7 do Buf[I] := si(I, Buf[I]);
+  for I := 0 to 3 do OutBuf[I] := (Buf[I * 2] shl 4) or Buf[I * 2 + 1];
+  permutation(OutBuf);
+  for I := 0 to 3 do OutData[I] := OutBuf[I];
 end;
 
-procedure DesData(desMode: TDesMode; inData: array of Byte; var outData: array
-    of Byte);
+procedure DesData(desMode: TDesMode; InData: array of Byte;
+  var OutData: array of Byte);
 var
-  I, j: Integer;
-  temp, buf: array[0..3] of Byte;
+  I, J: Integer;
+  Temp, Buf: array[0..3] of Byte;
 begin
-  for I := 0 to 7 do outData[I] := inData[I];
-  initPermutation(outData);
+  for I := 0 to 7 do OutData[I] := InData[I];
+  initPermutation(OutData);
   if desMode = dmEncry then
   begin
     for I := 0 to 15 do
     begin
-      for j := 0 to 3 do temp[j] := outData[j];
-      for j := 0 to 3 do outData[j] := outData[j + 4];
-      encry(outData, subKey[I], buf);
-      for j := 0 to 3 do outData[j + 4] := temp[j] xor buf[j];
+      for J := 0 to 3 do Temp[J] := OutData[J];
+      for J := 0 to 3 do OutData[J] := OutData[J + 4];
+      encry(OutData, SubKey[I], Buf);
+      for J := 0 to 3 do OutData[J + 4] := Temp[J] xor Buf[J];
     end;
-    for j := 0 to 3 do temp[j] := outData[j + 4];
-    for j := 0 to 3 do outData[j + 4] := outData[j];
-    for j := 0 to 3 do outData[j] := temp[j];
+    for J := 0 to 3 do Temp[J] := OutData[J + 4];
+    for J := 0 to 3 do OutData[J + 4] := OutData[J];
+    for J := 0 to 3 do OutData[J] := Temp[J];
   end
   else if desMode = dmDecry then
   begin
     for I := 15 downto 0 do
     begin
-      for j := 0 to 3 do temp[j] := outData[j];
-      for j := 0 to 3 do outData[j] := outData[j + 4];
-      encry(outData, subKey[I], buf);
-      for j := 0 to 3 do outData[j + 4] := temp[j] xor buf[j];
+      for J := 0 to 3 do Temp[J] := OutData[J];
+      for J := 0 to 3 do OutData[J] := OutData[J + 4];
+      encry(OutData, SubKey[I], Buf);
+      for J := 0 to 3 do OutData[J + 4] := Temp[J] xor Buf[J];
     end;
-    for j := 0 to 3 do temp[j] := outData[j + 4];
-    for j := 0 to 3 do outData[j + 4] := outData[j];
-    for j := 0 to 3 do outData[j] := temp[j];
+    for J := 0 to 3 do Temp[J] := OutData[J + 4];
+    for J := 0 to 3 do OutData[J + 4] := OutData[J];
+    for J := 0 to 3 do OutData[J] := Temp[J];
   end;
-  conversePermutation(outData);
+  conversePermutation(OutData);
 end;
 
 function DESEncryptStr(Str, Key: AnsiString): AnsiString;
 var
   StrByte, OutByte, KeyByte: array[0..7] of Byte;
   StrResult: AnsiString;
-  I, j: Integer;
+  I, J: Integer;
 begin
   if (Length(Str) > 0) and (Ord(Str[Length(Str)]) = 0) then
     raise Exception.Create('Error: the last char is NULL char.');
   if Length(Key) < 8 then
     while Length(Key) < 8 do Key := Key + Chr(0);
   while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);
-  for j := 0 to 7 do KeyByte[j] := Ord(Key[j + 1]);
-  makeKey(KeyByte, subKey);
+  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
+  makeKey(KeyByte, SubKey);
   StrResult := '';
   for I := 0 to Length(Str) div 8 - 1 do
   begin
-    for j := 0 to 7 do
-      StrByte[j] := Ord(Str[I * 8 + j + 1]);
-    desData(dmEncry, StrByte, OutByte);
-    for j := 0 to 7 do
-      StrResult := StrResult + AnsiChar(OutByte[j]);
+    for J := 0 to 7 do
+      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+    DesData(dmEncry, StrByte, OutByte);
+    for J := 0 to 7 do
+      StrResult := StrResult + AnsiChar(OutByte[J]);
   end;
   Result := StrResult;
 end;
@@ -384,19 +405,19 @@ function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
 var
   StrByte, OutByte, KeyByte: array[0..7] of Byte;
   StrResult: AnsiString;
-  I, j: Integer;
+  I, J: Integer;
 begin
   if Length(Key) < 8 then
     while Length(Key) < 8 do Key := Key + Chr(0);
-  for j := 0 to 7 do KeyByte[j] := Ord(Key[j + 1]);
-  makeKey(KeyByte, subKey);
+  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
+  makeKey(KeyByte, SubKey);
   StrResult := '';
   for I := 0 to Length(Str) div 8 - 1 do
   begin
-    for j := 0 to 7 do StrByte[j] := Ord(Str[I * 8 + j + 1]);
-    desData(dmDecry, StrByte, OutByte);
-    for j := 0 to 7 do
-      StrResult := StrResult + AnsiChar(OutByte[j]);
+    for J := 0 to 7 do StrByte[J] := Ord(Str[I * 8 + J + 1]);
+    DesData(dmDecry, StrByte, OutByte);
+    for J := 0 to 7 do
+      StrResult := StrResult + AnsiChar(OutByte[J]);
   end;
   while (Length(StrResult) > 0) and
     (Ord(StrResult[Length(StrResult)]) = 0) do
@@ -404,18 +425,40 @@ begin
   Result := StrResult;
 end;
 
+procedure DESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+begin
+
+end;
+
+procedure DESDecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+begin
+
+end;
+
+procedure DESEncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+begin
+
+end;
+
+procedure DESDecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+begin
+
+end;
+
 function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 var
-  StrResult, TempResult, temp: AnsiString;
+  StrResult, TempResult, Temp: AnsiString;
   I: Integer;
 begin
   TempResult := DESEncryptStr(Str, Key);
   StrResult := '';
   for I := 0 to Length(TempResult) - 1 do
   begin
-    temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
-    if Length(temp) = 1 then temp := '0' + temp;
-    StrResult := StrResult + temp;
+    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
+    if Length(Temp) = 1 then Temp := '0' + Temp;
+    StrResult := StrResult + Temp;
   end;
   Result := StrResult;
 end;
@@ -423,33 +466,34 @@ end;
 function HexToInt(const Hex: AnsiString): Integer;
 var
   I, Res: Integer;
-  ch: AnsiChar;
+  C: AnsiChar;
 begin
   Res := 0;
   for I := 0 to Length(Hex) - 1 do
   begin
-    ch := Hex[I + 1];
-    if (ch >= '0') and (ch <= '9') then
-      Res := Res * 16 + Ord(ch) - Ord('0')
-    else if (ch >= 'A') and (ch <= 'F') then
-      Res := Res * 16 + Ord(ch) - Ord('A') + 10
-    else if (ch >= 'a') and (ch <= 'f') then
-      Res := Res * 16 + Ord(ch) - Ord('a') + 10
-    else raise Exception.Create('Error: not a Hex String');
+    C := Hex[I + 1];
+    if (C >= '0') and (C <= '9') then
+      Res := Res * 16 + Ord(C) - Ord('0')
+    else if (C >= 'A') and (C <= 'F') then
+      Res := Res * 16 + Ord(C) - Ord('A') + 10
+    else if (C >= 'a') and (C <= 'f') then
+      Res := Res * 16 + Ord(C) - Ord('a') + 10
+    else
+      raise Exception.Create('Error: not a Hex String');
   end;
   Result := Res;
 end;
 
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
-  Str, temp: AnsiString;
+  Str, Temp: AnsiString;
   I: Integer;
 begin
   Str := '';
   for I := 0 to Length(StrHex) div 2 - 1 do
   begin
-    temp := Copy(StrHex, I * 2 + 1, 2);
-    Str := Str + AnsiChar(HexToInt(temp));
+    Temp := Copy(StrHex, I * 2 + 1, 2);
+    Str := Str + AnsiChar(HexToInt(Temp));
   end;
   Result := DESDecryptStr(Str, Key);
 end;
