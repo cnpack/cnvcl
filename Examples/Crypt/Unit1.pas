@@ -509,7 +509,7 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rbSm4Ecb.Checked then
-    SM4CryptEcbStr(SM4_ENCRYPT, edtSm4Key.Text, edtSm4.Text, @(Output[1]))
+    SM4EncryptEcbStr(edtSm4Key.Text, edtSm4.Text, @(Output[1]))
   else
   begin
     IvStr := HexToStr(edtSM4Iv.Text);
@@ -520,7 +520,7 @@ begin
     end
     else
       CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
-    SM4CryptCbcStr(SM4_ENCRYPT, edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
+    SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
   end;
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
@@ -559,11 +559,11 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rbSm4Ecb.Checked then
-    SM4CryptEcbStr(SM4_DECRYPT, edtSm4Key.Text, S, @(Output[1]))
+    SM4DecryptEcbStr(edtSm4Key.Text, S, @(Output[1]))
   else
   begin
     CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
-    SM4CryptCbcStr(SM4_DECRYPT, edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
+    SM4DecryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
   end;
   edtSm4Dec.Text := Output;
 end;
