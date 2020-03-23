@@ -246,6 +246,10 @@ type
     edtAesIv: TEdit;
     lblSM4Iv: TLabel;
     edtSM4Iv: TEdit;
+    lblDESIv: TLabel;
+    edtDESIv: TEdit;
+    rbDESCbc: TRadioButton;
+    rbDESEcb: TRadioButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);

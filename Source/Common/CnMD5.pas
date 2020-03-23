@@ -82,9 +82,9 @@ type
   TMD5Count = array[0..1] of LongWord;
   TMD5State = array[0..3] of LongWord;
   TMD5Block = array[0..15] of LongWord;
-  TMD5CBits = array[0..7] of byte;
-  TMD5Digest = array[0..15] of byte;
-  TMD5Buffer = array[0..63] of byte;
+  TMD5CBits = array[0..7] of Byte;
+  TMD5Digest = array[0..15] of Byte;
+  TMD5Buffer = array[0..63] of Byte;
 
   TMD5Context = record
     State   : TMD5State;

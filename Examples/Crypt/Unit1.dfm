@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 569
     Height = 385
-    ActivePage = tsSM4
+    ActivePage = tsDES
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -29,7 +29,7 @@ object FormCrypt: TFormCrypt
       object grpdES: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'DES'
@@ -61,6 +61,13 @@ object FormCrypt: TFormCrypt
           Width = 32
           Height = 13
           Caption = 'Origin:'
+        end
+        object lblDESIv: TLabel
+          Left = 264
+          Top = 40
+          Width = 148
+          Height = 13
+          Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
         end
         object edtDesFrom: TEdit
           Left = 72
@@ -109,6 +116,32 @@ object FormCrypt: TFormCrypt
           Width = 169
           Height = 21
           TabOrder = 5
+        end
+        object edtDESIv: TEdit
+          Left = 264
+          Top = 72
+          Width = 225
+          Height = 21
+          TabOrder = 6
+          Text = '0123456789ABCDEFFEDCBA9876543210'
+        end
+        object rbDESCbc: TRadioButton
+          Left = 232
+          Top = 116
+          Width = 57
+          Height = 17
+          Caption = 'CBC'
+          Checked = True
+          TabOrder = 7
+          TabStop = True
+        end
+        object rbDESEcb: TRadioButton
+          Left = 168
+          Top = 116
+          Width = 57
+          Height = 17
+          Caption = 'ECB'
+          TabOrder = 8
         end
       end
     end

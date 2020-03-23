@@ -28,7 +28,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.18 V1.0
+* 修改记录：2020.03.23 V1.1
+*               模拟 OPENSSL 实现 PEM 的加密读取，只支持部分加密算法与机制
+*           2020.03.18 V1.0
 *               创建单元，从 CnRSA 中独立出来
 ================================================================================
 |</PRE>}
@@ -38,14 +40,19 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnBase64, CnAES;
+  SysUtils, Classes, CnBase64, CnAES, CnMD5, CnSHA2;
+
+type
+  TCnKeyHashMethod = (ckmMd5, ckmSha256);
 
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream; const Password: string = ''): Boolean;
+  MemoryStream: TMemoryStream; const Password: string = '';
+  KeyHashMethod: TCnKeyHashMethod = ckmMd5): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
 
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream; const Password: string = ''): Boolean;
+  MemoryStream: TMemoryStream; const Password: string = '';
+  KeyHashMethod: TCnKeyHashMethod = ckmMd5): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
@@ -116,20 +123,22 @@ begin
 end;
 
 // 拿加密算法、块运算、初始化向量，密码来解开 Base64 编码的 S，再写入 Stream 内
-function DecryptPemString(const S, M1, M2, M3, Password: string; Stream: TMemoryStream): Boolean;
+function DecryptPemString(const S, M1, M2, HexIv, Password: string; Stream: TMemoryStream;
+  KeyHashMethod: TCnKeyHashMethod): Boolean;
 var
-  DS, ES: TMemoryStream;
+  DS: TMemoryStream;
   AESKey128: TAESKey128;
   AESKey192: TAESKey192;
   AESKey256: TAESKey256;
-  Key, IvStr: AnsiString;
-  Iv: TAESBuffer;
+  IvStr: AnsiString;
+  AesIv: TAESBuffer;
+  Md5Dig: TMD5Digest;
+  Sha256Dig: TSHA256Digest;
 begin
   Result := False;
   DS := nil;
-  ES := nil;
 
-  if (M1 = '') or (M2 = '') or (M3 = '') or (Password = '') then
+  if (M1 = '') or (M2 = '') or (HexIv = '') or (Password = '') then
     Exit;
 
   try
@@ -137,31 +146,42 @@ begin
     if BASE64_OK <> Base64Decode(S, DS, False) then
       Exit;
 
-    ES := TMemoryStream.Create;
     DS.Position := 0;
-    Key := AnsiString(Password);
-
-    IvStr := HexToStr(M3);
-    Move(IvStr[1], Iv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+    IvStr := HexToStr(HexIv);
 
     // DS 中是密文，要解到 Stream 中
-    if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
+    if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) and (KeyHashMethod = ckmMd5) then
     begin
-      // 解开 AES-256-CBC 加密的密文
+      // 解开 AES-256-CBC 加密的密文，此处测试未通过
       FillChar(AESKey256, SizeOf(AESKey256), 0);
-      Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+      Md5Dig := MD5String(Password + Copy(IvStr, 1, 8));
+      Move(Md5Dig, AESKey256, Min(SizeOf(AESKey256), SizeOf(TMD5Digest)));
+      // Move(Md5Dig[0], Key[1], SizeOf(Md5Dig));
+      // Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
 
-      DecryptAESStreamCBC(DS, DS.Size, AESKey256, Iv, Stream);
+      Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+      DecryptAESStreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
       Result := True;
-    end;
+    end
+    else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) and (KeyHashMethod = ckmMd5) then
+    begin
+      // 解开 AES-128-CBC 加密的密文，此处测试通过。
+      // 密码与 Iv 的前八字节拼起来的 MD5 作为 Key
+      FillChar(AESKey128, SizeOf(AESKey128), 0);
+      Md5Dig := MD5String(Password + Copy(IvStr, 1, 8));
+      Move(Md5Dig, AESKey128, Min(SizeOf(AESKey128), SizeOf(TMD5Digest)));
+
+      Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+      DecryptAESStreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
+      Result := True;
+    end
   finally
     DS.Free;
-    ES.Free;
   end;
 end;
 
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream; const Password: string): Boolean;
+  MemoryStream: TMemoryStream; const Password: string; KeyHashMethod: TCnKeyHashMethod): Boolean;
 var
   I, J: Integer;
   S, L1, L2, M1, M2, M3: string;
@@ -235,7 +255,7 @@ begin
 
           S := Trim(S);
 
-          Result := DecryptPemString(S, M1, M2, M3, Password, MemoryStream);
+          Result := DecryptPemString(S, M1, M2, M3, Password, MemoryStream, KeyHashMethod);
         end
         else // 未加密的，拼凑成 Base64 后解密
         begin
@@ -259,13 +279,13 @@ begin
 end;
 
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream; const Password: string): Boolean;
+  MemoryStream: TMemoryStream; const Password: string; KeyHashMethod: TCnKeyHashMethod): Boolean;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := LoadPemStreamToMemory(Stream, ExpectHead, ExpectTail, MemoryStream, Password);
+    Result := LoadPemStreamToMemory(Stream, ExpectHead, ExpectTail, MemoryStream, Password, KeyHashMethod);
   finally
     Stream.Free;
   end;
