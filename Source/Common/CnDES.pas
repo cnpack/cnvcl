@@ -42,15 +42,15 @@ interface
 uses
   SysUtils;
 
-function DESEncryptStr(Str, Key: AnsiString): AnsiString;
-{* 传入明文与加密 Key，DES 加密返回密文，ECB 模式，明文末尾可能补 0
-   注：由于密文可能含有扩展 ASCII 字符，因此在 DELPHI 2009 或以上版本中，请用
-   AnsiString 类型的变量接收返回值，以避免出现多余的 Unicode 转换而导致解密出错}
+//function DESEncryptStr(Str, Key: AnsiString): AnsiString;
+//{* 传入明文与加密 Key，DES 加密返回密文，ECB 模式，明文末尾可能补 0
+//   注：由于密文可能含有扩展 ASCII 字符，因此在 DELPHI 2009 或以上版本中，请用
+//   AnsiString 类型的变量接收返回值，以避免出现多余的 Unicode 转换而导致解密出错}
+//
+//function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
+//{* 传入密文与加密 Key，DES 解密返回明文}
 
-function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
-{* 传入密文与加密 Key，DES 解密返回明文}
-
-procedure DESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* DES-ECB 封装好的针对 AnsiString 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
@@ -58,7 +58,7 @@ procedure DESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAn
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-procedure DESDecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+procedure DESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* DES-ECB 封装好的针对 AnsiString 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
@@ -66,7 +66,7 @@ procedure DESDecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAn
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-procedure DESEncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+procedure DESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
 {* DES-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
@@ -76,7 +76,7 @@ procedure DESEncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-procedure DESDecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
 {* DES-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
@@ -90,9 +90,12 @@ function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
-{* 传入十六进制的密文与加密 Key，DES 解密返回明文}
+{* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
 
 implementation
+
+type
+  PLongWord = ^LongWord;
 
 const
   BitIP: array[0..63] of Byte =
@@ -293,7 +296,7 @@ var
   key56o: array[0..6] of Byte;
   I: Integer;
 begin
-  permutationChoose1(inKey, outData56);
+  PermutationChoose1(inKey, outData56);
   key28l[0] := outData56[0] shr 4;
   key28l[1] := (outData56[0] shl 4) or (outData56[1] shr 4);
   key28l[2] := (outData56[1] shl 4) or (outData56[2] shr 4);
@@ -313,7 +316,7 @@ begin
     key56o[4] := key28r[1];
     key56o[5] := key28r[2];
     key56o[6] := key28r[3];
-    permutationChoose2(key56o, outKey[I]);
+    PermutationChoose2(key56o, outKey[I]);
   end;
 end;
 
@@ -323,7 +326,7 @@ var
   Buf: array[0..7] of Byte;
   I: Integer;
 begin
-  expand(InData, OutBuf);
+  Expand(InData, OutBuf);
   for I := 0 to 5 do OutBuf[I] := OutBuf[I] xor ASubKey[I];
   Buf[0] := OutBuf[0] shr 2;
   Buf[1] := ((OutBuf[0] and $03) shl 4) or (OutBuf[1] shr 4);
@@ -346,14 +349,14 @@ var
   Temp, Buf: array[0..3] of Byte;
 begin
   for I := 0 to 7 do OutData[I] := InData[I];
-  initPermutation(OutData);
+  InitPermutation(OutData);
   if desMode = dmEncry then
   begin
     for I := 0 to 15 do
     begin
       for J := 0 to 3 do Temp[J] := OutData[J];
       for J := 0 to 3 do OutData[J] := OutData[J + 4];
-      encry(OutData, SubKey[I], Buf);
+      Encry(OutData, SubKey[I], Buf);
       for J := 0 to 3 do OutData[J + 4] := Temp[J] xor Buf[J];
     end;
     for J := 0 to 3 do Temp[J] := OutData[J + 4];
@@ -366,93 +369,217 @@ begin
     begin
       for J := 0 to 3 do Temp[J] := OutData[J];
       for J := 0 to 3 do OutData[J] := OutData[J + 4];
-      encry(OutData, SubKey[I], Buf);
+      Encry(OutData, SubKey[I], Buf);
       for J := 0 to 3 do OutData[J + 4] := Temp[J] xor Buf[J];
     end;
     for J := 0 to 3 do Temp[J] := OutData[J + 4];
     for J := 0 to 3 do OutData[J + 4] := OutData[J];
     for J := 0 to 3 do OutData[J] := Temp[J];
   end;
-  conversePermutation(OutData);
+  ConversePermutation(OutData);
 end;
 
-function DESEncryptStr(Str, Key: AnsiString): AnsiString;
+//function DESEncryptStr(Str, Key: AnsiString): AnsiString;
+//var
+//  StrByte, OutByte, KeyByte: array[0..7] of Byte;
+//  StrResult: AnsiString;
+//  I, J: Integer;
+//begin
+//  if (Length(Str) > 0) and (Ord(Str[Length(Str)]) = 0) then
+//    raise Exception.Create('Error: the last char is NULL char.');
+//  if Length(Key) < 8 then
+//    while Length(Key) < 8 do Key := Key + Chr(0);
+//  while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);
+//  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
+//  MakeKey(KeyByte, SubKey);
+//  StrResult := '';
+//  for I := 0 to Length(Str) div 8 - 1 do
+//  begin
+//    for J := 0 to 7 do
+//      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+//    DesData(dmEncry, StrByte, OutByte);
+//    for J := 0 to 7 do
+//      StrResult := StrResult + AnsiChar(OutByte[J]);
+//  end;
+//  Result := StrResult;
+//end;
+//
+//function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
+//var
+//  StrByte, OutByte, KeyByte: array[0..7] of Byte;
+//  StrResult: AnsiString;
+//  I, J: Integer;
+//begin
+//  if Length(Key) < 8 then
+//    while Length(Key) < 8 do Key := Key + Chr(0);
+//  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
+//  MakeKey(KeyByte, SubKey);
+//  StrResult := '';
+//  for I := 0 to Length(Str) div 8 - 1 do
+//  begin
+//    for J := 0 to 7 do StrByte[J] := Ord(Str[I * 8 + J + 1]);
+//    DesData(dmDecry, StrByte, OutByte);
+//    for J := 0 to 7 do
+//      StrResult := StrResult + AnsiChar(OutByte[J]);
+//  end;
+//  while (Length(StrResult) > 0) and
+//    (Ord(StrResult[Length(StrResult)]) = 0) do
+//    Delete(StrResult, Length(StrResult), 1);
+//  Result := StrResult;
+//end;
+
+procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
   StrByte, OutByte, KeyByte: array[0..7] of Byte;
-  StrResult: AnsiString;
+  Str: AnsiString;
   I, J: Integer;
 begin
-  if (Length(Str) > 0) and (Ord(Str[Length(Str)]) = 0) then
-    raise Exception.Create('Error: the last char is NULL char.');
   if Length(Key) < 8 then
-    while Length(Key) < 8 do Key := Key + Chr(0);
-  while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);
-  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
-  makeKey(KeyByte, SubKey);
-  StrResult := '';
+    while Length(Key) < 8 do
+      Key := Key + Chr(0);
+
+  Str := Input;
+  while Length(Str) mod 8 <> 0 do
+    Str := Str + Chr(0);
+
+  for J := 0 to 7 do
+    KeyByte[J] := Ord(Key[J + 1]);
+
+  MakeKey(KeyByte, SubKey);
+
   for I := 0 to Length(Str) div 8 - 1 do
   begin
     for J := 0 to 7 do
       StrByte[J] := Ord(Str[I * 8 + J + 1]);
+
     DesData(dmEncry, StrByte, OutByte);
+
     for J := 0 to 7 do
-      StrResult := StrResult + AnsiChar(OutByte[J]);
+      Output[I * 8 + J] := AnsiChar(OutByte[J]);
   end;
-  Result := StrResult;
 end;
 
-function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
+procedure DESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
   StrByte, OutByte, KeyByte: array[0..7] of Byte;
-  StrResult: AnsiString;
   I, J: Integer;
 begin
   if Length(Key) < 8 then
-    while Length(Key) < 8 do Key := Key + Chr(0);
-  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
-  makeKey(KeyByte, SubKey);
-  StrResult := '';
+    while Length(Key) < 8 do
+      Key := Key + Chr(0);
+
+  for J := 0 to 7 do
+    KeyByte[J] := Ord(Key[J + 1]);
+
+  MakeKey(KeyByte, SubKey);
+
+  for I := 0 to Length(Input) div 8 - 1 do
+  begin
+    for J := 0 to 7 do
+      StrByte[J] := Ord(Input[I * 8 + J + 1]);
+
+    DesData(dmDecry, StrByte, OutByte);
+
+    for J := 0 to 7 do
+      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+  end;
+
+  // 末尾补的 0 由外部判断删除
+end;
+
+procedure DESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+var
+  StrByte, OutByte, KeyByte, Vector: array[0..7] of Byte;
+  Str: AnsiString;
+  I, J: Integer;
+begin
+  if Length(Key) < 8 then
+    while Length(Key) < 8 do
+      Key := Key + Chr(0);
+
+  Str := Input;
+  while Length(Str) mod 8 <> 0 do
+    Str := Str + Chr(0);
+
+  for J := 0 to 7 do
+    KeyByte[J] := Ord(Key[J + 1]);
+
+  MakeKey(KeyByte, SubKey);
+  Move(Iv^, Vector[0], 8);
+
   for I := 0 to Length(Str) div 8 - 1 do
   begin
-    for J := 0 to 7 do StrByte[J] := Ord(Str[I * 8 + J + 1]);
-    DesData(dmDecry, StrByte, OutByte);
     for J := 0 to 7 do
-      StrResult := StrResult + AnsiChar(OutByte[J]);
+      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+
+    // CBC 数据块的值先跟 Iv 异或
+    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+
+    // 再加密
+    DesData(dmEncry, StrByte, OutByte);
+
+    for J := 0 to 7 do
+      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+
+    // 加密结果更新到 Iv
+    Move(OutByte[0], Vector[0], 8);
   end;
-  while (Length(StrResult) > 0) and
-    (Ord(StrResult[Length(StrResult)]) = 0) do
-    Delete(StrResult, Length(StrResult), 1);
-  Result := StrResult;
 end;
 
-procedure DESEncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-begin
-
-end;
-
-procedure DESDecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-begin
-
-end;
-
-procedure DESEncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
+procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
+var
+  StrByte, OutByte, KeyByte, Vector, TV: array[0..7] of Byte;
+  I, J: Integer;
 begin
+  if Length(Key) < 8 then
+    while Length(Key) < 8 do
+      Key := Key + Chr(0);
 
-end;
+  for J := 0 to 7 do
+    KeyByte[J] := Ord(Key[J + 1]);
 
-procedure DESDecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
-  const Input: AnsiString; Output: PAnsiChar);
-begin
+  MakeKey(KeyByte, SubKey);
+  Move(Iv^, Vector[0], 8);
 
+  for I := 0 to Length(Input) div 8 - 1 do
+  begin
+    for J := 0 to 7 do
+      StrByte[J] := Ord(Input[I * 8 + J + 1]);
+    Move(StrByte[0], TV[0], 8); // 密文先存一下
+
+    // 先解密
+    DesData(dmDecry, StrByte, OutByte);
+
+    // CBC 数据块解密后的值再跟 Iv 异或
+    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+
+    for J := 0 to 7 do
+      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+
+    // 密文更新到 Iv
+    Move(TV[0], Vector[0], 8);
+  end;
+
+  // 末尾补的 0 由外部判断删除
 end;
 
 function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 var
   StrResult, TempResult, Temp: AnsiString;
-  I: Integer;
+  I, Len: Integer;
 begin
-  TempResult := DESEncryptStr(Str, Key);
+  Len := Length(Str);
+  if Len < 8 then
+    Len := 8
+  else
+    Len := (((Len - 1) div 8) + 1) * 8;
+  SetLength(TempResult, Len);
+
+  DESEncryptECBStr(Key, Str, @TempResult[1]);
   StrResult := '';
   for I := 0 to Length(TempResult) - 1 do
   begin
@@ -487,7 +614,7 @@ end;
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
   Str, Temp: AnsiString;
-  I: Integer;
+  I, Len: Integer;
 begin
   Str := '';
   for I := 0 to Length(StrHex) div 2 - 1 do
@@ -495,7 +622,14 @@ begin
     Temp := Copy(StrHex, I * 2 + 1, 2);
     Str := Str + AnsiChar(HexToInt(Temp));
   end;
-  Result := DESDecryptStr(Str, Key);
+
+  Len := Length(Str);
+  if Len < 8 then
+    Len := 8
+  else
+    Len := (((Len - 1) div 8) + 1) * 8;
+  SetLength(Result, Len);
+  DESDecryptECBStr(Key, Str, @(Result[1]));
 end;
 
 end.

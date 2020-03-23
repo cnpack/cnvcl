@@ -17,11 +17,11 @@ type
     lblCode: TLabel;
     lblOrigin: TLabel;
     edtDesFrom: TEdit;
-    edtKey: TEdit;
+    edtDESKey: TEdit;
     btnDesCrypt: TButton;
-    edtCode: TEdit;
+    edtDESCode: TEdit;
     btnDesDecrypt: TButton;
-    edtOrigin: TEdit;
+    edtDesOrigin: TEdit;
     grpMd5: TGroupBox;
     lblfROM: TLabel;
     edtMD5: TEdit;
@@ -350,6 +350,20 @@ var
   TeaData: TCnTeaData;
   TeaEnc: TCnTeaData;
 
+  DesIv: array[0..7] of Byte = (
+    $01, $23, $45, $67, $89, $AB, $CD, $EF
+  );
+
+  Sm4Iv: array[0..15] of Byte = (
+    $01, $23, $45, $67, $89, $AB, $CD, $EF,
+    $FE, $DC, $BA, $98, $76, $54, $32, $10
+  );
+
+  AesIv: TAESBuffer = (
+    $01, $23, $45, $67, $89, $AB, $CD, $EF,
+    $FE, $DC, $BA, $98, $76, $54, $32, $10
+  );
+
 procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
@@ -360,13 +374,73 @@ begin
 end;
 
 procedure TFormCrypt.btnDesCryptClick(Sender: TObject);
+var
+  Output: AnsiString;
+  Len: Integer;
+  TmpDesIv: array[0..7] of Byte;
+  IvStr: string;
 begin
-  edtCode.Text := DESEncryptStrToHex(edtDesFrom.Text, edtKey.Text);
+  Len := Length(edtDesFrom.Text);
+  if Len < 8 then
+    Len := 8
+  else
+    Len := (((Len - 1) div 8) + 1) * 8;
+  SetLength(Output, Len);
+  ZeroMemory(@(Output[1]), Len);
+
+  if rbDESEcb.Checked then
+    DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]))
+  else
+  begin
+    IvStr := HexToStr(edtDESIv.Text);
+    if Length(IvStr) <> SizeOf(TmpDesIv) then
+    begin
+      ShowMessage('Invalid DES Iv, Use Our Default Iv.');
+      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+    end
+    else
+      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+    DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
+  end;
+  edtDESCode.Text := ToHex(@(Output[1]), Length(Output));
+
+  // edtDESCode.Text := DESEncryptStrToHex(edtDesFrom.Text, edtDESKey.Text);
 end;
 
 procedure TFormCrypt.btnDesDecryptClick(Sender: TObject);
+var
+  S, IvStr: AnsiString;
+  Output: AnsiString;
+  Len: Integer;
+  TmpDesIv: array[0..7] of Byte;
 begin
-  edtOrigin.Text := DESDecryptStrFromHex(edtCode.Text, edtKey.Text);
+  S := AnsiString(HexToStr(edtDESCode.Text));
+  Len := Length(S);
+  if Len < 8 then
+    Len := 8
+  else
+    Len := (((Len - 1) div 8) + 1) * 8;
+  SetLength(Output, Len);
+  ZeroMemory(@(Output[1]), Len);
+
+  if rbDESEcb.Checked then
+    DESDecryptEcbStr(edtDESKey.Text, S, @(Output[1]))
+  else
+  begin
+    IvStr := HexToStr(edtDESIv.Text);
+    if Length(IvStr) <> SizeOf(TmpDesIv) then
+    begin
+      ShowMessage('Invalid DES Iv, Use Our Default Iv.');
+      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+    end
+    else
+      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+
+    DESDecryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
+  end;
+  edtDesOrigin.Text := Output;
+
+  // edtDesOrigin.Text := DESDecryptStrFromHex(edtDESCode.Text, edtDESKey.Text);
 end;
 
 procedure TFormCrypt.Button1Click(Sender: TObject);
@@ -476,27 +550,6 @@ begin
   end;
 end;
 
-//var
-//  Sm4Input: array[0..15] of Byte = (
-//    $01, $23, $45, $67, $89, $AB, $CD, $EF,
-//    $FE, $DC, $BA, $98, $76, $54, $32, $10
-//  );
-//  Sm4Key: array[0..15] of Byte = (
-//    $01, $23, $45, $67, $89, $AB, $CD, $EF,
-//    $FE, $DC, $BA, $98, $76, $54, $32, $10
-//  );
-
-var
-  Sm4Iv: array[0..15] of Byte = (
-    $01, $23, $45, $67, $89, $AB, $CD, $EF,
-    $FE, $DC, $BA, $98, $76, $54, $32, $10
-  );
-
-  AesIv: TAESBuffer = (
-    $01, $23, $45, $67, $89, $AB, $CD, $EF,
-    $FE, $DC, $BA, $98, $76, $54, $32, $10
-  );
-
 procedure TFormCrypt.btnSm4Click(Sender: TObject);
 var
   Output: AnsiString;
@@ -548,7 +601,7 @@ end;
 
 procedure TFormCrypt.btnSm4DecClick(Sender: TObject);
 var
-  S: AnsiString;
+  S, IvStr: AnsiString;
   Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..15] of Byte;
@@ -566,7 +619,15 @@ begin
     SM4DecryptEcbStr(edtSm4Key.Text, S, @(Output[1]))
   else
   begin
-    CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+    IvStr := HexToStr(edtSM4Iv.Text);
+    if Length(IvStr) <> SizeOf(TmpSm4Iv) then
+    begin
+      ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
+      CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+    end
+    else
+      CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
+
     SM4DecryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
   end;
   edtSm4Dec.Text := Output;
@@ -608,7 +669,7 @@ end;
 procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
-  IvStr: string;
+  IvStr: AnsiString;
 begin
   if rbAesecb.Checked then
   begin
@@ -646,6 +707,7 @@ end;
 procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
+  IvStr: AnsiString;
 begin
   if rbAesecb.Checked then
   begin
@@ -660,7 +722,15 @@ begin
   end
   else
   begin
-    CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+    IvStr := HexToStr(edtAesIv.Text);
+    if Length(IvStr) <> SizeOf(TAESBuffer) then
+    begin
+      ShowMessage('Invalid AES Iv, Use Our Default Iv.');
+      CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+    end
+    else
+      CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
+
     case cbbAesKeyBitType.ItemIndex of
       0:
         edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt128);

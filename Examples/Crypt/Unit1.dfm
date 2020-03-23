@@ -65,9 +65,9 @@ object FormCrypt: TFormCrypt
         object lblDESIv: TLabel
           Left = 264
           Top = 40
-          Width = 148
+          Width = 142
           Height = 13
-          Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
+          Caption = 'Iv for CBC: 16 Hex (8 Bytes):'
         end
         object edtDesFrom: TEdit
           Left = 72
@@ -77,7 +77,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 0
           Text = 'Sample Text'
         end
-        object edtKey: TEdit
+        object edtDESKey: TEdit
           Left = 72
           Top = 72
           Width = 169
@@ -94,7 +94,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 2
           OnClick = btnDesCryptClick
         end
-        object edtCode: TEdit
+        object edtDESCode: TEdit
           Left = 72
           Top = 160
           Width = 169
@@ -110,7 +110,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 4
           OnClick = btnDesDecryptClick
         end
-        object edtOrigin: TEdit
+        object edtDesOrigin: TEdit
           Left = 72
           Top = 244
           Width = 169
@@ -123,7 +123,7 @@ object FormCrypt: TFormCrypt
           Width = 225
           Height = 21
           TabOrder = 6
-          Text = '0123456789ABCDEFFEDCBA9876543210'
+          Text = '0123456789ABCDEF'
         end
         object rbDESCbc: TRadioButton
           Left = 232
