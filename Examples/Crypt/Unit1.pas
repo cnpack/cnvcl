@@ -250,6 +250,22 @@ type
     edtDESIv: TEdit;
     rbDESCbc: TRadioButton;
     rbDESEcb: TRadioButton;
+    ts3DES: TTabSheet;
+    grp3Des: TGroupBox;
+    lbl3DesFrom: TLabel;
+    lbl3DesKey: TLabel;
+    lbl3DesCode: TLabel;
+    lbl3DesOrigin: TLabel;
+    lbl3DesIv: TLabel;
+    edt3DesFrom: TEdit;
+    edt3DesKey: TEdit;
+    btn3DesCrypt: TButton;
+    edt3DesCode: TEdit;
+    btn3DesDecrypt: TButton;
+    edt3DesOrigin: TEdit;
+    edt3DesIv: TEdit;
+    rb3DesECB: TRadioButton;
+    rb3DesCBC: TRadioButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -325,6 +341,8 @@ type
     procedure btnXTeaDecClick(Sender: TObject);
     procedure btnXXTeaEncClick(Sender: TObject);
     procedure btnXXTeaDecClick(Sender: TObject);
+    procedure btn3DesCryptClick(Sender: TObject);
+    procedure btn3DesDecryptClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -1405,6 +1423,16 @@ begin
   CnXXTeaDecrypt(TeaKey, @TeaEnc[0], 2);
   edtXXTeaEnc1.Text := IntToHex(TeaEnc[0], 2);
   edtXXTeaEnc2.Text := IntToHex(TeaEnc[1], 2);
+end;
+
+procedure TFormCrypt.btn3DesCryptClick(Sender: TObject);
+begin
+  edt3DESCode.Text := TripleDESEncryptStrToHex(edt3DesFrom.Text, edt3DESKey.Text);
+end;
+
+procedure TFormCrypt.btn3DesDecryptClick(Sender: TObject);
+begin
+  edt3DesOrigin.Text := TripleDESDecryptStrFromHex(edt3DESCode.Text, edt3DESKey.Text);
 end;
 
 end.

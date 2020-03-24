@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 569
     Height = 385
-    ActivePage = tsDES
+    ActivePage = ts3DES
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -136,6 +136,128 @@ object FormCrypt: TFormCrypt
           TabStop = True
         end
         object rbDESEcb: TRadioButton
+          Left = 168
+          Top = 116
+          Width = 57
+          Height = 17
+          Caption = 'ECB'
+          TabOrder = 8
+        end
+      end
+    end
+    object ts3DES: TTabSheet
+      Caption = '3DES'
+      ImageIndex = 19
+      object grp3Des: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 513
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'DES'
+        TabOrder = 0
+        object lbl3DesFrom: TLabel
+          Left = 24
+          Top = 36
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lbl3DesKey: TLabel
+          Left = 24
+          Top = 72
+          Width = 22
+          Height = 13
+          Caption = 'Key:'
+        end
+        object lbl3DesCode: TLabel
+          Left = 24
+          Top = 164
+          Width = 29
+          Height = 13
+          Caption = 'Code:'
+        end
+        object lbl3DesOrigin: TLabel
+          Left = 24
+          Top = 248
+          Width = 32
+          Height = 13
+          Caption = 'Origin:'
+        end
+        object lbl3DesIv: TLabel
+          Left = 264
+          Top = 40
+          Width = 142
+          Height = 13
+          Caption = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object edt3DesFrom: TEdit
+          Left = 72
+          Top = 32
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object edt3DesKey: TEdit
+          Left = 72
+          Top = 72
+          Width = 169
+          Height = 21
+          TabOrder = 1
+          Text = '123456'
+        end
+        object btn3DesCrypt: TButton
+          Left = 72
+          Top = 112
+          Width = 75
+          Height = 25
+          Caption = '3DES Crypt'
+          TabOrder = 2
+          OnClick = btn3DesCryptClick
+        end
+        object edt3DesCode: TEdit
+          Left = 72
+          Top = 160
+          Width = 169
+          Height = 21
+          TabOrder = 3
+        end
+        object btn3DesDecrypt: TButton
+          Left = 72
+          Top = 200
+          Width = 75
+          Height = 25
+          Caption = '3DES Decrypt'
+          TabOrder = 4
+          OnClick = btn3DesDecryptClick
+        end
+        object edt3DesOrigin: TEdit
+          Left = 72
+          Top = 244
+          Width = 169
+          Height = 21
+          TabOrder = 5
+        end
+        object edt3DesIv: TEdit
+          Left = 264
+          Top = 72
+          Width = 225
+          Height = 21
+          TabOrder = 6
+          Text = '0123456789ABCDEF'
+        end
+        object rb3DesECB: TRadioButton
+          Left = 232
+          Top = 116
+          Width = 57
+          Height = 17
+          Caption = 'CBC'
+          Checked = True
+          TabOrder = 7
+          TabStop = True
+        end
+        object rb3DesCBC: TRadioButton
           Left = 168
           Top = 116
           Width = 57

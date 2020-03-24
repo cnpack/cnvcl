@@ -54,6 +54,17 @@ type
   TDESIv  = array[0..7] of Byte;
   {* DES 的 CBC 的初始化向量}
 
+  T3DESKey = array[0..23] of Byte;
+  {* 3DES 的密码}
+
+  T3DESBuffer = TDESBuffer;
+  {* 3DES 的加密块，等于 DES 的加密块}
+
+  T3DESIv = TDESIv;
+  {* 3DES 的 CBC 的初始化向量，等于 DES 的 CBC 的初始化向量}
+
+// ================================= DES =======================================
+
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* DES-ECB 封装好的针对 AnsiString 的加解密方法
  |<PRE>
@@ -111,6 +122,12 @@ procedure DESEncryptStreamCBC(Source: TStream; Count: Cardinal;
 procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TDESKey; const InitVector: TDESIv; Dest: TStream); overload;
 {* DES-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+
+// =========================== 3-DES (Triple DES) ==============================
+
+function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+
+function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 
 implementation
 
@@ -215,9 +232,6 @@ const
     29, 39, 50, 44, 32, 47,
     43, 48, 38, 55, 33, 52,
     45, 41, 49, 35, 28, 31);
-
-threadvar
-  SubKey: TSubKey;
 
 function Min(A, B: Integer): Integer;
 begin
@@ -369,11 +383,11 @@ begin
   Buf[7] := OutBuf[5] and $3F;
   for I := 0 to 7 do Buf[I] := si(I, Buf[I]);
   for I := 0 to 3 do OutBuf[I] := (Buf[I * 2] shl 4) or Buf[I * 2 + 1];
-  permutation(OutBuf);
+  Permutation(OutBuf);
   for I := 0 to 3 do OutData[I] := OutBuf[I];
 end;
 
-procedure DesData(desMode: TDesMode; InData: array of Byte;
+procedure DesData(DesMode: TDesMode; SubKey: TSubKey; InData: array of Byte;
   var OutData: array of Byte);
 var
   I, J: Integer;
@@ -381,7 +395,7 @@ var
 begin
   for I := 0 to 7 do OutData[I] := InData[I];
   InitPermutation(OutData);
-  if desMode = dmEncry then
+  if DesMode = dmEncry then
   begin
     for I := 0 to 15 do
     begin
@@ -394,7 +408,7 @@ begin
     for J := 0 to 3 do OutData[J + 4] := OutData[J];
     for J := 0 to 3 do OutData[J] := Temp[J];
   end
-  else if desMode = dmDecry then
+  else if DesMode = dmDecry then
   begin
     for I := 15 downto 0 do
     begin
@@ -410,20 +424,31 @@ begin
   ConversePermutation(OutData);
 end;
 
+procedure MakeKeyAlign(var Key: AnsiString);
+begin
+  if Length(Key) < 8 then
+    while Length(Key) < 8 do
+      Key := Key + Chr(0);
+end;
+
+procedure MakeInputAlign(var Str: AnsiString);
+begin
+  while Length(Str) mod 8 <> 0 do
+    Str := Str + Chr(0);
+end;
+
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
   StrByte, OutByte: TDESBuffer;
   KeyByte: TDESKey;
   Str: AnsiString;
   I, J: Integer;
+  SubKey: TSubKey;
 begin
-  if Length(Key) < 8 then
-    while Length(Key) < 8 do
-      Key := Key + Chr(0);
+  MakeKeyAlign(Key);
 
   Str := Input;
-  while Length(Str) mod 8 <> 0 do
-    Str := Str + Chr(0);
+  MakeInputAlign(Str);
 
   for J := 0 to 7 do
     KeyByte[J] := Ord(Key[J + 1]);
@@ -435,7 +460,7 @@ begin
     for J := 0 to 7 do
       StrByte[J] := Ord(Str[I * 8 + J + 1]);
 
-    DesData(dmEncry, StrByte, OutByte);
+    DesData(dmEncry, SubKey, StrByte, OutByte);
 
     for J := 0 to 7 do
       Output[I * 8 + J] := AnsiChar(OutByte[J]);
@@ -447,10 +472,9 @@ var
   StrByte, OutByte: TDESBuffer;
   KeyByte: TDESKey;
   I, J: Integer;
+  SubKey: TSubKey;
 begin
-  if Length(Key) < 8 then
-    while Length(Key) < 8 do
-      Key := Key + Chr(0);
+  MakeKeyAlign(Key);
 
   for J := 0 to 7 do
     KeyByte[J] := Ord(Key[J + 1]);
@@ -462,7 +486,7 @@ begin
     for J := 0 to 7 do
       StrByte[J] := Ord(Input[I * 8 + J + 1]);
 
-    DesData(dmDecry, StrByte, OutByte);
+    DesData(dmDecry, SubKey, StrByte, OutByte);
 
     for J := 0 to 7 do
       Output[I * 8 + J] := AnsiChar(OutByte[J]);
@@ -479,14 +503,12 @@ var
   Vector: TDESIv;
   Str: AnsiString;
   I, J: Integer;
+  SubKey: TSubKey;
 begin
-  if Length(Key) < 8 then
-    while Length(Key) < 8 do
-      Key := Key + Chr(0);
+  MakeKeyAlign(Key);
 
   Str := Input;
-  while Length(Str) mod 8 <> 0 do
-    Str := Str + Chr(0);
+  MakeInputAlign(Str);
 
   for J := 0 to 7 do
     KeyByte[J] := Ord(Key[J + 1]);
@@ -504,7 +526,7 @@ begin
     PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
 
     // 再加密
-    DesData(dmEncry, StrByte, OutByte);
+    DesData(dmEncry, SubKey, StrByte, OutByte);
 
     for J := 0 to 7 do
       Output[I * 8 + J] := AnsiChar(OutByte[J]);
@@ -521,10 +543,9 @@ var
   KeyByte: TDESKey;
   Vector, TV: TDESIv;
   I, J: Integer;
+  SubKey: TSubKey;
 begin
-  if Length(Key) < 8 then
-    while Length(Key) < 8 do
-      Key := Key + Chr(0);
+  MakeKeyAlign(Key);
 
   for J := 0 to 7 do
     KeyByte[J] := Ord(Key[J + 1]);
@@ -539,7 +560,7 @@ begin
     Move(StrByte[0], TV[0], 8); // 密文先存一下
 
     // 先解密
-    DesData(dmDecry, StrByte, OutByte);
+    DesData(dmDecry, SubKey, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
     PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
@@ -555,27 +576,34 @@ begin
   // 末尾补的 0 由外部判断删除
 end;
 
-function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+procedure SetResultLengthUsingInput(const Str: AnsiString; var Res: AnsiString);
 var
-  StrResult, TempResult, Temp: AnsiString;
-  I, Len: Integer;
+  Len: Integer;
 begin
   Len := Length(Str);
   if Len < 8 then
     Len := 8
   else
     Len := (((Len - 1) div 8) + 1) * 8;
-  SetLength(TempResult, Len);
+  SetLength(Res, Len);
+end;
 
+function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+var
+  TempResult, Temp: AnsiString;
+  I: Integer;
+begin
+  SetResultLengthUsingInput(Str, TempResult);
   DESEncryptECBStr(Key, Str, @TempResult[1]);
-  StrResult := '';
+
+  Result := '';
   for I := 0 to Length(TempResult) - 1 do
   begin
     Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
-    if Length(Temp) = 1 then Temp := '0' + Temp;
-    StrResult := StrResult + Temp;
+    if Length(Temp) = 1 then
+      Temp := '0' + Temp;
+    Result := Result + Temp;
   end;
-  Result := StrResult;
 end;
 
 function HexToInt(const Hex: AnsiString): Integer;
@@ -602,7 +630,7 @@ end;
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
   Str, Temp: AnsiString;
-  I, Len: Integer;
+  I: Integer;
 begin
   Str := '';
   for I := 0 to Length(StrHex) div 2 - 1 do
@@ -611,12 +639,7 @@ begin
     Str := Str + AnsiChar(HexToInt(Temp));
   end;
 
-  Len := Length(Str);
-  if Len < 8 then
-    Len := 8
-  else
-    Len := (((Len - 1) div 8) + 1) * 8;
-  SetLength(Result, Len);
+  SetResultLengthUsingInput(Str, Result);
   DESDecryptECBStr(Key, Str, @(Result[1]));
 end;
 
@@ -625,6 +648,7 @@ procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
 var
   TempIn, TempOut: TDESBuffer;
   Done: Cardinal;
+  SubKey: TSubKey;
 begin
   if Count = 0 then
   begin
@@ -644,7 +668,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    DesData(dmEncry, TempIn, TempOut);
+    DesData(dmEncry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -660,7 +684,7 @@ begin
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
-    DesData(dmEncry, TempIn, TempOut);
+    DesData(dmEncry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -673,6 +697,7 @@ procedure DESDecryptStreamECB(Source: TStream; Count: Cardinal;
 var
   TempIn, TempOut: TDESBuffer;
   Done: Cardinal;
+  SubKey: TSubKey;
 begin
   if Count = 0 then
   begin
@@ -694,7 +719,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    DesData(dmDecry, TempIn, TempOut);
+    DesData(dmDecry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -710,6 +735,7 @@ var
   TempIn, TempOut: TDESBuffer;
   Vector: TDESIv;
   Done: Cardinal;
+  SubKey: TSubKey;
 begin
   if Count = 0 then
   begin
@@ -734,7 +760,7 @@ begin
     PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
 
-    DesData(dmEncry, TempIn, TempOut);
+    DesData(dmEncry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -754,7 +780,7 @@ begin
     PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
 
-    DesData(dmEncry, TempIn, TempOut);
+    DesData(dmEncry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -769,6 +795,7 @@ var
   TempIn, TempOut: TDESBuffer;
   Vector1, Vector2: TDESIv;
   Done: Cardinal;
+  SubKey: TSubKey;
 begin
   if Count = 0 then
   begin
@@ -793,7 +820,7 @@ begin
       raise EStreamError(SReadError);
 
     Vector2 := TDESIv(TempIn);
-    DesData(dmDecry, TempIn, TempOut);
+    DesData(dmDecry, SubKey, TempIn, TempOut);
 
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
@@ -805,6 +832,114 @@ begin
     Vector1 := Vector2;
     Dec(Count, SizeOf(TDESBuffer));
   end;
+end;
+
+procedure Make3DESKeys(Keys: AnsiString; var K1, K2, K3: TDESKey);
+var
+  I: Integer;
+begin
+  if Length(Keys) < 24 then
+    while Length(Keys) < 24 do
+      Keys := Keys + Chr(0);
+
+  for I := 0 to 7 do
+  begin
+    K1[I] := Ord(Keys[I + 1]);
+    K2[I] := Ord(Keys[I + 9]);
+    K3[I] := Ord(Keys[I + 17]);
+  end;
+end;
+
+procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  Str: AnsiString;
+  I, J: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  Str := Input;
+  MakeInputAlign(Str);
+
+  for I := 0 to Length(Str) div 8 - 1 do
+  begin
+    for J := 0 to 7 do
+      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+
+    DesData(dmEncry, SubKey1, StrByte, OutByte);
+    DesData(dmDecry, SubKey2, OutByte, StrByte);
+    DesData(dmEncry, SubKey3, StrByte, OutByte);
+
+    for J := 0 to 7 do
+      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+  end;
+end;
+
+procedure TripleDESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  I, J: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  for I := 0 to Length(Input) div 8 - 1 do
+  begin
+    for J := 0 to 7 do
+      StrByte[J] := Ord(Input[I * 8 + J + 1]);
+
+    DesData(dmDecry, SubKey3, StrByte, OutByte);
+    DesData(dmEncry, SubKey2, OutByte, StrByte);
+    DesData(dmDecry, SubKey1, StrByte, OutByte);
+
+    for J := 0 to 7 do
+      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+  end;
+
+  // 末尾补的 0 由外部判断删除
+end;
+
+function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+var
+  TempResult, Temp: AnsiString;
+  I: Integer;
+begin
+  SetResultLengthUsingInput(Str, TempResult);
+  TripleDESEncryptECBStr(Key, Str, @TempResult[1]);
+
+  Result := '';
+  for I := 0 to Length(TempResult) - 1 do
+  begin
+    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
+    if Length(Temp) = 1 then
+      Temp := '0' + Temp;
+    Result := Result + Temp;
+  end;
+end;
+
+function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+var
+  Str, Temp: AnsiString;
+  I: Integer;
+begin
+  Str := '';
+  for I := 0 to Length(StrHex) div 2 - 1 do
+  begin
+    Temp := Copy(StrHex, I * 2 + 1, 2);
+    Str := Str + AnsiChar(HexToInt(Temp));
+  end;
+
+  SetResultLengthUsingInput(Str, Result);
+  TripleDESDecryptECBStr(Key, Str, @(Result[1]));
 end;
 
 end.
