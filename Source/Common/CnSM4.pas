@@ -29,8 +29,8 @@ unit CnSM4;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.03.21 V1.2
-*               增加部分封装函数
+* 修改记录：2020.03.24 V1.2
+*               增加部分封装函数包括流函数
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
 *           2014.09.25 V1.0
@@ -50,13 +50,17 @@ const
   SM4_BLOCKSIZE = 16;
 
 type
-  TSM4Context = packed record
-    Mode: Integer;              {!<  encrypt/decrypt   }
-    Sk: array[0..SM4_KEYSIZE * 2 - 1] of LongWord;  {!<  SM4 subkeys       }
-  end;
+  TSM4Key    = array[0..SM4_KEYSIZE - 1] of Byte;
+  {* SM4 的加密 Key}
+
+  TSM4Buffer = array[0..SM4_BLOCKSIZE - 1] of Byte;
+  {* SM4 的加密块}
+
+  TSM4Iv     = array[0..SM4_BLOCKSIZE - 1] of Byte;
+  {* SM4 的 CBC 的初始化向量}
 
 procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* SM4-ECB 封装好的针对 AnsiString 的加解密方法
+{* SM4-ECB 封装好的针对 AnsiString 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
   Input    input 字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
@@ -64,7 +68,7 @@ procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAn
  |</PRE>}
 
 procedure SM4DecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* SM4-ECB 封装好的针对 AnsiString 的加解密方法
+{* SM4-ECB 封装好的针对 AnsiString 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
   Input    input 字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
@@ -73,7 +77,7 @@ procedure SM4DecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAn
 
 procedure SM4EncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CBC 封装好的针对 AnsiString 的加解密方法
+{* SM4-CBC 封装好的针对 AnsiString 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
   Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
@@ -83,7 +87,7 @@ procedure SM4EncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
 
 procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CBC 封装好的针对 AnsiString 的加解密方法
+{* SM4-CBC 封装好的针对 AnsiString 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
   Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
@@ -91,8 +95,28 @@ procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
+procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; Dest: TStream); overload;
+{* SM4-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+
+procedure SM4DecryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; Dest: TStream); overload;
+{* SM4-ECB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+
+procedure SM4EncryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; const InitVector: TSM4Iv; Dest: TStream); overload;
+{* SM4-CBC 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+
+procedure SM4DecryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; const InitVector: TSM4Iv; Dest: TStream); overload;
+{* SM4-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
 
 implementation
+
+resourcestring
+  SInvalidInBufSize = 'Invalid Buffer Size for Decryption';
+  SReadError = 'Stream Read Error';
+  SWriteError = 'Stream Write Error';
 
 const
   SM4_ENCRYPT = 1;
@@ -128,6 +152,20 @@ const
     $30373E45, $4C535A61, $686F767D, $848B9299,
     $A0A7AEB5, $BCC3CAD1, $D8DFE6ED, $F4FB0209,
     $10171E25, $2C333A41, $484F565D, $646B7279 );
+
+type
+  TSM4Context = packed record
+    Mode: Integer;              {!<  encrypt/decrypt   }
+    Sk: array[0..SM4_KEYSIZE * 2 - 1] of LongWord;  {!<  SM4 subkeys       }
+  end;
+
+function Min(A, B: Integer): Integer;
+begin
+  if A < B then
+    Result := A
+  else
+    Result := B;
+end;
 
 procedure GetULongBe(var N: LongWord; B: PAnsiChar; I: Integer);
 var
@@ -280,7 +318,7 @@ end;
 procedure SM4CryptEcb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Input: PAnsiChar; Output: PAnsiChar);
 var
-  EndBuf: array[0..SM4_BLOCKSIZE - 1] of Byte;
+  EndBuf: TSM4Buffer;
 begin
   while Length > 0 do
   begin
@@ -439,6 +477,202 @@ procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
 begin
   SM4CryptCbcStr(SM4_DECRYPT, Key, Iv, Input, Output);
+end;
+
+procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; Dest: TStream); overload;
+var
+  TempIn, TempOut: TSM4Buffer;
+  Done: Cardinal;
+  Ctx: TSM4Context;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+
+  SM4SetKeyEnc(Ctx, @(Key[0]));
+  while Count >= SizeOf(TSM4Buffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Dec(Count, SizeOf(TSM4Buffer));
+  end;
+
+  if Count > 0 then // 尾部补 0
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
+
+    SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure SM4DecryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; Dest: TStream); overload;
+var
+  TempIn, TempOut: TSM4Buffer;
+  Done: Cardinal;
+  Ctx: TSM4Context;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+  if (Count mod SizeOf(TSM4Buffer)) > 0 then
+    raise Exception.Create(SInvalidInBufSize);
+
+  SM4SetKeyDec(Ctx, @(Key[0]));
+  while Count >= SizeOf(TSM4Buffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Dec(Count, SizeOf(TSM4Buffer));
+  end;
+end;
+
+procedure SM4EncryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; const InitVector: TSM4Iv; Dest: TStream); overload;
+var
+  TempIn, TempOut: TSM4Buffer;
+  Vector: TSM4Iv;
+  Done: Cardinal;
+  Ctx: TSM4Context;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+
+  Vector := InitVector;
+  SM4SetKeyEnc(Ctx, @(Key[0]));
+
+  while Count >= SizeOf(TSM4Buffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+
+    SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Vector := TSM4Iv(TempOut);
+    Dec(Count, SizeOf(TSM4Buffer));
+  end;
+
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
+
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+
+    SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure SM4DecryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TSM4Key; const InitVector: TSM4Iv; Dest: TStream); overload;
+var
+  TempIn, TempOut: TSM4Buffer;
+  Vector1, Vector2: TSM4Iv;
+  Done: Cardinal;
+  Ctx: TSM4Context;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+  if (Count mod SizeOf(TSM4Buffer)) > 0 then
+    raise Exception.Create(SInvalidInBufSize);
+
+  Vector1 := InitVector;
+  SM4SetKeyDec(Ctx, @(Key[0]));
+
+  while Count >= SizeOf(TSM4Buffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+
+    Vector2 := TSM4Iv(TempIn);
+    SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
+
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@Vector1[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@Vector1[12])^;
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError(SWriteError);
+
+    Vector1 := Vector2;
+    Dec(Count, SizeOf(TSM4Buffer));
+  end;
 end;
 
 end.

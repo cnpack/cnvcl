@@ -28,7 +28,9 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.1
+* 修改记录：2020.03.24 V1.2
+*               增加 ECB/CBC 字符串与流加解密函数，删除原有的字符串加密函数
+*           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
 *           2008.05.30 V1.0
 *               创建单元
@@ -40,15 +42,17 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils;
+  SysUtils, Classes;
 
-//function DESEncryptStr(Str, Key: AnsiString): AnsiString;
-//{* 传入明文与加密 Key，DES 加密返回密文，ECB 模式，明文末尾可能补 0
-//   注：由于密文可能含有扩展 ASCII 字符，因此在 DELPHI 2009 或以上版本中，请用
-//   AnsiString 类型的变量接收返回值，以避免出现多余的 Unicode 转换而导致解密出错}
-//
-//function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
-//{* 传入密文与加密 Key，DES 解密返回明文}
+type
+  TDESKey = array[0..7] of Byte;
+  {* DES 的加密 Key}
+
+  TDESBuffer = array[0..7] of Byte;
+  {* DES 的加密块}
+
+  TDESIv  = array[0..7] of Byte;
+  {* DES 的 CBC 的初始化向量}
 
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* DES-ECB 封装好的针对 AnsiString 的加解密方法
@@ -92,10 +96,34 @@ function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
 
+procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; Dest: TStream); overload;
+{* DES-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+
+procedure DESDecryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; Dest: TStream); overload;
+{* DES-ECB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+
+procedure DESEncryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; const InitVector: TDESIv; Dest: TStream); overload;
+{* DES-CBC 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+
+procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; const InitVector: TDESIv; Dest: TStream); overload;
+{* DES-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+
 implementation
+
+resourcestring
+  SInvalidInBufSize = 'Invalid Buffer Size for Decryption';
+  SReadError = 'Stream Read Error';
+  SWriteError = 'Stream Write Error';
 
 type
   PLongWord = ^LongWord;
+  TKeyByte = array[0..5] of Byte;
+  TDesMode = (dmEncry, dmDecry);
+  TSubKey = array[0..15] of TKeyByte;
 
 const
   BitIP: array[0..63] of Byte =
@@ -188,13 +216,16 @@ const
     43, 48, 38, 55, 33, 52,
     45, 41, 49, 35, 28, 31);
 
-type
-  TKeyByte = array[0..5] of Byte;
-  TDesMode = (dmEncry, dmDecry);
-  TSubKey = array[0..15] of TKeyByte;
-
 threadvar
   SubKey: TSubKey;
+
+function Min(A, B: Integer): Integer;
+begin
+  if A < B then
+    Result := A
+  else
+    Result := B;
+end;
 
 procedure InitPermutation(var InData: array of Byte);
 var
@@ -285,38 +316,38 @@ begin
   end;
 end;
 
-procedure MakeKey(inKey: array of Byte; var outKey: array of TKeyByte);
+procedure MakeKey(InKey: array of Byte; var OutKey: array of TKeyByte);
 const
   bitDisplace: array[0..15] of Byte =
-  (1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1);
+    (1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1);
 var
-  outData56: array[0..6] of Byte;
-  key28l: array[0..3] of Byte;
-  key28r: array[0..3] of Byte;
-  key56o: array[0..6] of Byte;
+  OutData56: array[0..6] of Byte;
+  Key28l: array[0..3] of Byte;
+  Key28r: array[0..3] of Byte;
+  Key56o: array[0..6] of Byte;
   I: Integer;
 begin
-  PermutationChoose1(inKey, outData56);
-  key28l[0] := outData56[0] shr 4;
-  key28l[1] := (outData56[0] shl 4) or (outData56[1] shr 4);
-  key28l[2] := (outData56[1] shl 4) or (outData56[2] shr 4);
-  key28l[3] := (outData56[2] shl 4) or (outData56[3] shr 4);
-  key28r[0] := outData56[3] and $0F;
-  key28r[1] := outData56[4];
-  key28r[2] := outData56[5];
-  key28r[3] := outData56[6];
+  PermutationChoose1(InKey, OutData56);
+  Key28l[0] := OutData56[0] shr 4;
+  Key28l[1] := (OutData56[0] shl 4) or (OutData56[1] shr 4);
+  Key28l[2] := (OutData56[1] shl 4) or (OutData56[2] shr 4);
+  Key28l[3] := (OutData56[2] shl 4) or (OutData56[3] shr 4);
+  Key28r[0] := OutData56[3] and $0F;
+  Key28r[1] := OutData56[4];
+  Key28r[2] := OutData56[5];
+  Key28r[3] := OutData56[6];
   for I := 0 to 15 do
   begin
-    CycleMove(key28l, bitDisplace[I]);
-    CycleMove(key28r, bitDisplace[I]);
-    key56o[0] := (key28l[0] shl 4) or (key28l[1] shr 4);
-    key56o[1] := (key28l[1] shl 4) or (key28l[2] shr 4);
-    key56o[2] := (key28l[2] shl 4) or (key28l[3] shr 4);
-    key56o[3] := (key28l[3] shl 4) or (key28r[0]);
-    key56o[4] := key28r[1];
-    key56o[5] := key28r[2];
-    key56o[6] := key28r[3];
-    PermutationChoose2(key56o, outKey[I]);
+    CycleMove(Key28l, bitDisplace[I]);
+    CycleMove(Key28r, bitDisplace[I]);
+    Key56o[0] := (Key28l[0] shl 4) or (Key28l[1] shr 4);
+    Key56o[1] := (Key28l[1] shl 4) or (Key28l[2] shr 4);
+    Key56o[2] := (Key28l[2] shl 4) or (Key28l[3] shr 4);
+    Key56o[3] := (Key28l[3] shl 4) or (Key28r[0]);
+    Key56o[4] := Key28r[1];
+    Key56o[5] := Key28r[2];
+    Key56o[6] := Key28r[3];
+    PermutationChoose2(Key56o, OutKey[I]);
   end;
 end;
 
@@ -379,58 +410,10 @@ begin
   ConversePermutation(OutData);
 end;
 
-//function DESEncryptStr(Str, Key: AnsiString): AnsiString;
-//var
-//  StrByte, OutByte, KeyByte: array[0..7] of Byte;
-//  StrResult: AnsiString;
-//  I, J: Integer;
-//begin
-//  if (Length(Str) > 0) and (Ord(Str[Length(Str)]) = 0) then
-//    raise Exception.Create('Error: the last char is NULL char.');
-//  if Length(Key) < 8 then
-//    while Length(Key) < 8 do Key := Key + Chr(0);
-//  while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);
-//  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
-//  MakeKey(KeyByte, SubKey);
-//  StrResult := '';
-//  for I := 0 to Length(Str) div 8 - 1 do
-//  begin
-//    for J := 0 to 7 do
-//      StrByte[J] := Ord(Str[I * 8 + J + 1]);
-//    DesData(dmEncry, StrByte, OutByte);
-//    for J := 0 to 7 do
-//      StrResult := StrResult + AnsiChar(OutByte[J]);
-//  end;
-//  Result := StrResult;
-//end;
-//
-//function DESDecryptStr(const Str: AnsiString; Key: AnsiString): AnsiString;
-//var
-//  StrByte, OutByte, KeyByte: array[0..7] of Byte;
-//  StrResult: AnsiString;
-//  I, J: Integer;
-//begin
-//  if Length(Key) < 8 then
-//    while Length(Key) < 8 do Key := Key + Chr(0);
-//  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
-//  MakeKey(KeyByte, SubKey);
-//  StrResult := '';
-//  for I := 0 to Length(Str) div 8 - 1 do
-//  begin
-//    for J := 0 to 7 do StrByte[J] := Ord(Str[I * 8 + J + 1]);
-//    DesData(dmDecry, StrByte, OutByte);
-//    for J := 0 to 7 do
-//      StrResult := StrResult + AnsiChar(OutByte[J]);
-//  end;
-//  while (Length(StrResult) > 0) and
-//    (Ord(StrResult[Length(StrResult)]) = 0) do
-//    Delete(StrResult, Length(StrResult), 1);
-//  Result := StrResult;
-//end;
-
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
-  StrByte, OutByte, KeyByte: array[0..7] of Byte;
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
   Str: AnsiString;
   I, J: Integer;
 begin
@@ -461,7 +444,8 @@ end;
 
 procedure DESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
-  StrByte, OutByte, KeyByte: array[0..7] of Byte;
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
   I, J: Integer;
 begin
   if Length(Key) < 8 then
@@ -490,7 +474,9 @@ end;
 procedure DESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
 var
-  StrByte, OutByte, KeyByte, Vector: array[0..7] of Byte;
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
+  Vector: TDESIv;
   Str: AnsiString;
   I, J: Integer;
 begin
@@ -531,7 +517,9 @@ end;
 procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
 var
-  StrByte, OutByte, KeyByte, Vector, TV: array[0..7] of Byte;
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
+  Vector, TV: TDESIv;
   I, J: Integer;
 begin
   if Length(Key) < 8 then
@@ -630,6 +618,193 @@ begin
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Result, Len);
   DESDecryptECBStr(Key, Str, @(Result[1]));
+end;
+
+procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; Dest: TStream); overload;
+var
+  TempIn, TempOut: TDESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+
+  MakeKey(Key, SubKey);
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    DesData(dmEncry, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
+
+  if Count > 0 then // 尾部补 0
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
+
+    DesData(dmEncry, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure DESDecryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; Dest: TStream); overload;
+var
+  TempIn, TempOut: TDESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+  if (Count mod SizeOf(TDESBuffer)) > 0 then
+    raise Exception.Create(SInvalidInBufSize);
+
+  MakeKey(Key, SubKey);
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    DesData(dmDecry, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
+end;
+
+procedure DESEncryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; const InitVector: TDESIv; Dest: TStream); overload;
+var
+  TempIn, TempOut: TDESBuffer;
+  Vector: TDESIv;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+
+  Vector := InitVector;
+  MakeKey(Key, SubKey);
+
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+
+    DesData(dmEncry, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Vector := TDESIv(TempOut);
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
+
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
+
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+
+    DesData(dmEncry, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+  end;
+
+end;
+
+procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: TDESKey; const InitVector: TDESIv; Dest: TStream); overload;
+var
+  TempIn, TempOut: TDESBuffer;
+  Vector1, Vector2: TDESIv;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+  if (Count mod SizeOf(TDESBuffer)) > 0 then
+    raise Exception.Create(SInvalidInBufSize);
+
+  Vector1 := InitVector;
+  MakeKey(Key, SubKey);
+
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+
+    Vector2 := TDESIv(TempIn);
+    DesData(dmDecry, TempIn, TempOut);
+
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError(SWriteError);
+
+    Vector1 := Vector2;
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
 end;
 
 end.

@@ -203,12 +203,12 @@ function AESEncryptCbcStrToHex(Value: AnsiString; Key: AnsiString;
 function AESDecryptCbcStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
 
-resourcestring
-  SInvalidInBufSize = 'Invalid buffer size for decryption';
-  SReadError = 'Stream read error';
-  SWriteError = 'Stream write error';
-
 implementation
+
+resourcestring
+  SInvalidInBufSize = 'Invalid Buffer Size for Decryption';
+  SReadError = 'Stream Read Error';
+  SWriteError = 'Stream Write Error';
 
 type
   PLongWord = ^LongWord;
