@@ -28,7 +28,9 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.03.24 V1.2
+* 修改记录：2020.03.25 V1.3
+*               增加 3DES 的支持
+*           2020.03.24 V1.2
 *               增加 ECB/CBC 字符串与流加解密函数，删除原有的字符串加密函数
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
@@ -125,9 +127,63 @@ procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
 
 // =========================== 3-DES (Triple DES) ==============================
 
+procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+{* 3DES-ECB 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+procedure TripleDESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
+{* 3DES-ECB 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+procedure TripleDESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+{* 3DES-CBC 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input string
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+procedure TripleDESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+{* 3DES-CBC 封装好的针对 AnsiString 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input string
+  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
 function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+{* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
 function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+{* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
+
+procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; Dest: TStream); overload;
+{* 3DES-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+
+procedure TripleDESDecryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; Dest: TStream); overload;
+{* 3DES-ECB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+
+procedure TripleDESEncryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; const InitVector: TDESIv; Dest: TStream); overload;
+{* 3DES-CBC 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+
+procedure TripleDESDecryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; const InitVector: TDESIv; Dest: TStream); overload;
+{* 3DES-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
 
 implementation
 
@@ -442,7 +498,7 @@ var
   StrByte, OutByte: TDESBuffer;
   KeyByte: TDESKey;
   Str: AnsiString;
-  I, J: Integer;
+  I: Integer;
   SubKey: TSubKey;
 begin
   MakeKeyAlign(Key);
@@ -450,20 +506,16 @@ begin
   Str := Input;
   MakeInputAlign(Str);
 
-  for J := 0 to 7 do
-    KeyByte[J] := Ord(Key[J + 1]);
-
+  Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
 
   for I := 0 to Length(Str) div 8 - 1 do
   begin
-    for J := 0 to 7 do
-      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
 
     DesData(dmEncry, SubKey, StrByte, OutByte);
 
-    for J := 0 to 7 do
-      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
   end;
 end;
 
@@ -471,25 +523,20 @@ procedure DESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAn
 var
   StrByte, OutByte: TDESBuffer;
   KeyByte: TDESKey;
-  I, J: Integer;
+  I: Integer;
   SubKey: TSubKey;
 begin
   MakeKeyAlign(Key);
-
-  for J := 0 to 7 do
-    KeyByte[J] := Ord(Key[J + 1]);
-
+  Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
 
   for I := 0 to Length(Input) div 8 - 1 do
   begin
-    for J := 0 to 7 do
-      StrByte[J] := Ord(Input[I * 8 + J + 1]);
+    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
 
     DesData(dmDecry, SubKey, StrByte, OutByte);
 
-    for J := 0 to 7 do
-      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
   end;
 
   // 末尾补的 0 由外部判断删除
@@ -502,7 +549,7 @@ var
   KeyByte: TDESKey;
   Vector: TDESIv;
   Str: AnsiString;
-  I, J: Integer;
+  I: Integer;
   SubKey: TSubKey;
 begin
   MakeKeyAlign(Key);
@@ -510,16 +557,13 @@ begin
   Str := Input;
   MakeInputAlign(Str);
 
-  for J := 0 to 7 do
-    KeyByte[J] := Ord(Key[J + 1]);
-
+  Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
-  Move(Iv^, Vector[0], 8);
+  Move(Iv^, Vector[0], SizeOf(TDESIv));
 
   for I := 0 to Length(Str) div 8 - 1 do
   begin
-    for J := 0 to 7 do
-      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
     PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
@@ -528,11 +572,10 @@ begin
     // 再加密
     DesData(dmEncry, SubKey, StrByte, OutByte);
 
-    for J := 0 to 7 do
-      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
 
     // 加密结果更新到 Iv
-    Move(OutByte[0], Vector[0], 8);
+    Move(OutByte[0], Vector[0], SizeOf(TDESIv));
   end;
 end;
 
@@ -542,22 +585,19 @@ var
   StrByte, OutByte: TDESBuffer;
   KeyByte: TDESKey;
   Vector, TV: TDESIv;
-  I, J: Integer;
+  I: Integer;
   SubKey: TSubKey;
 begin
   MakeKeyAlign(Key);
-
-  for J := 0 to 7 do
-    KeyByte[J] := Ord(Key[J + 1]);
+  Move(Key[1], KeyByte[0], SizeOf(TDESKey));
 
   MakeKey(KeyByte, SubKey);
-  Move(Iv^, Vector[0], 8);
+  Move(Iv^, Vector[0], SizeOf(TDESIv));
 
   for I := 0 to Length(Input) div 8 - 1 do
   begin
-    for J := 0 to 7 do
-      StrByte[J] := Ord(Input[I * 8 + J + 1]);
-    Move(StrByte[0], TV[0], 8); // 密文先存一下
+    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(StrByte[0], TV[0], SizeOf(TDESIv)); // 密文先存一下
 
     // 先解密
     DesData(dmDecry, SubKey, StrByte, OutByte);
@@ -566,11 +606,10 @@ begin
     PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
     PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
 
-    for J := 0 to 7 do
-      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
 
     // 密文更新到 Iv
-    Move(TV[0], Vector[0], 8);
+    Move(TV[0], Vector[0], SizeOf(TDESIv));
   end;
 
   // 末尾补的 0 由外部判断删除
@@ -766,7 +805,7 @@ begin
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
 
-    Vector := TDESIv(TempOut);
+    Move(TempOut[0], Vector[0], SizeOf(TDESIv));
     Dec(Count, SizeOf(TDESBuffer));
   end;
 
@@ -786,7 +825,6 @@ begin
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
   end;
-
 end;
 
 procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
@@ -819,7 +857,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
 
-    Vector2 := TDESIv(TempIn);
+    Move(TempIn[0], Vector2[0], SizeOf(TDESIv));
     DesData(dmDecry, SubKey, TempIn, TempOut);
 
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
@@ -834,7 +872,7 @@ begin
   end;
 end;
 
-procedure Make3DESKeys(Keys: AnsiString; var K1, K2, K3: TDESKey);
+procedure Make3DESKeys(Keys: AnsiString; var K1, K2, K3: TDESKey); overload;
 var
   I: Integer;
 begin
@@ -850,12 +888,24 @@ begin
   end;
 end;
 
+procedure Make3DESKeys(Keys: T3DESKey; var K1, K2, K3: TDESKey); overload;
+var
+  I: Integer;
+begin
+  for I := 0 to 7 do
+  begin
+    K1[I] := Keys[I];
+    K2[I] := Keys[I + 8];
+    K3[I] := Keys[I + 16];
+  end;
+end;
+
 procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
   StrByte, OutByte: TDESBuffer;
   K1, K2, K3: TDESKey;
   Str: AnsiString;
-  I, J: Integer;
+  I: Integer;
   SubKey1, SubKey2, SubKey3: TSubKey;
 begin
   Make3DESKeys(Key, K1, K2, K3);
@@ -868,15 +918,13 @@ begin
 
   for I := 0 to Length(Str) div 8 - 1 do
   begin
-    for J := 0 to 7 do
-      StrByte[J] := Ord(Str[I * 8 + J + 1]);
+    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
 
     DesData(dmEncry, SubKey1, StrByte, OutByte);
     DesData(dmDecry, SubKey2, OutByte, StrByte);
     DesData(dmEncry, SubKey3, StrByte, OutByte);
 
-    for J := 0 to 7 do
-      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
   end;
 end;
 
@@ -884,7 +932,7 @@ procedure TripleDESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Outpu
 var
   StrByte, OutByte: TDESBuffer;
   K1, K2, K3: TDESKey;
-  I, J: Integer;
+  I: Integer;
   SubKey1, SubKey2, SubKey3: TSubKey;
 begin
   Make3DESKeys(Key, K1, K2, K3);
@@ -894,15 +942,91 @@ begin
 
   for I := 0 to Length(Input) div 8 - 1 do
   begin
-    for J := 0 to 7 do
-      StrByte[J] := Ord(Input[I * 8 + J + 1]);
+    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
 
     DesData(dmDecry, SubKey3, StrByte, OutByte);
     DesData(dmEncry, SubKey2, OutByte, StrByte);
     DesData(dmDecry, SubKey1, StrByte, OutByte);
 
-    for J := 0 to 7 do
-      Output[I * 8 + J] := AnsiChar(OutByte[J]);
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+  end;
+
+  // 末尾补的 0 由外部判断删除
+end;
+
+procedure TripleDESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  Vector: TDESIv;
+  Str: AnsiString;
+  I: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  Str := Input;
+  MakeInputAlign(Str);
+  Move(Iv^, Vector[0], SizeOf(TDESIv));
+
+  for I := 0 to Length(Str) div 8 - 1 do
+  begin
+    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+
+    // CBC 数据块的值先跟 Iv 异或
+    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+
+    // 再加密
+    DesData(dmEncry, SubKey1, StrByte, OutByte);
+    DesData(dmDecry, SubKey2, OutByte, StrByte);
+    DesData(dmEncry, SubKey3, StrByte, OutByte);
+
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+
+    // 加密结果更新到 Iv
+    Move(OutByte[0], Vector[0], SizeOf(TDESIv));
+  end;
+end;
+
+procedure TripleDESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
+  const Input: AnsiString; Output: PAnsiChar);
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  Vector, TV: TDESIv;
+  I: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  Move(Iv^, Vector[0], SizeOf(TDESIv));
+
+  for I := 0 to Length(Input) div 8 - 1 do
+  begin
+    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(StrByte[0], TV[0], SizeOf(TDESIv)); // 密文先存一下
+
+    // 先解密
+    DesData(dmDecry, SubKey3, StrByte, OutByte);
+    DesData(dmEncry, SubKey2, OutByte, StrByte);
+    DesData(dmDecry, SubKey1, StrByte, OutByte);
+
+    // CBC 数据块解密后的值再跟 Iv 异或
+    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+
+    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+
+    // 密文更新到 Iv
+    Move(TV[0], Vector[0], SizeOf(TDESIv));
   end;
 
   // 末尾补的 0 由外部判断删除
@@ -940,6 +1064,227 @@ begin
 
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptECBStr(Key, Str, @(Result[1]));
+end;
+
+procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; Dest: TStream); overload;
+var
+  K1, K2, K3: TDESKey;
+  TempIn, TempOut: TDESBuffer;
+  Done: Cardinal;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    DesData(dmEncry, SubKey1, TempIn, TempOut);
+    DesData(dmDecry, SubKey2, TempOut, TempIn);
+    DesData(dmEncry, SubKey3, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
+
+  if Count > 0 then // 尾部补 0
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
+
+    DesData(dmEncry, SubKey1, TempIn, TempOut);
+    DesData(dmDecry, SubKey2, TempOut, TempIn);
+    DesData(dmEncry, SubKey3, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure TripleDESDecryptStreamECB(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; Dest: TStream); overload;
+var
+  K1, K2, K3: TDESKey;
+  TempIn, TempOut: TDESBuffer;
+  Done: Cardinal;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+  if (Count mod SizeOf(TDESBuffer)) > 0 then
+    raise Exception.Create(SInvalidInBufSize);
+
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    DesData(dmDecry, SubKey1, TempIn, TempOut);
+    DesData(dmEncry, SubKey2, TempOut, TempIn);
+    DesData(dmDecry, SubKey3, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
+end;
+
+procedure TripleDESEncryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; const InitVector: TDESIv; Dest: TStream); overload;
+var
+  K1, K2, K3: TDESKey;
+  TempIn, TempOut: TDESBuffer;
+  Vector: TDESIv;
+  Done: Cardinal;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+
+  Vector := InitVector;
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+
+    DesData(dmEncry, SubKey1, TempIn, TempOut);
+    DesData(dmDecry, SubKey2, TempOut, TempIn);
+    DesData(dmEncry, SubKey3, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+
+    Move(TempOut[0], Vector[0], SizeOf(TDESIv));
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
+
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
+
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+
+    DesData(dmEncry, SubKey1, TempIn, TempOut);
+    DesData(dmDecry, SubKey2, TempOut, TempIn);
+    DesData(dmEncry, SubKey3, TempIn, TempOut);
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure TripleDESDecryptStreamCBC(Source: TStream; Count: Cardinal;
+  const Key: T3DESKey; const InitVector: TDESIv; Dest: TStream); overload;
+var
+  K1, K2, K3: TDESKey;
+  TempIn, TempOut: TDESBuffer;
+  Vector1, Vector2: TDESIv;
+  Done: Cardinal;
+  SubKey1, SubKey2, SubKey3: TSubKey;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
+  if (Count mod SizeOf(TDESBuffer)) > 0 then
+    raise Exception.Create(SInvalidInBufSize);
+
+  Vector1 := InitVector;
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  while Count >= SizeOf(TDESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+
+    Move(TempIn[0], Vector2[0], SizeOf(TDESIv));
+
+    DesData(dmDecry, SubKey1, TempIn, TempOut);
+    DesData(dmEncry, SubKey2, TempOut, TempIn);
+    DesData(dmDecry, SubKey3, TempIn, TempOut);
+
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
+
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError(SWriteError);
+
+    Vector1 := Vector2;
+    Dec(Count, SizeOf(TDESBuffer));
+  end;
 end;
 
 end.

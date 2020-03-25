@@ -264,8 +264,8 @@ type
     btn3DesDecrypt: TButton;
     edt3DesOrigin: TEdit;
     edt3DesIv: TEdit;
-    rb3DesECB: TRadioButton;
     rb3DesCBC: TRadioButton;
+    rb3DesECB: TRadioButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -1426,13 +1426,73 @@ begin
 end;
 
 procedure TFormCrypt.btn3DesCryptClick(Sender: TObject);
+var
+  Output: AnsiString;
+  Len: Integer;
+  TmpDesIv: array[0..7] of Byte;
+  IvStr: string;
 begin
-  edt3DESCode.Text := TripleDESEncryptStrToHex(edt3DesFrom.Text, edt3DESKey.Text);
+  Len := Length(edt3DesFrom.Text);
+  if Len < 8 then
+    Len := 8
+  else
+    Len := (((Len - 1) div 8) + 1) * 8;
+  SetLength(Output, Len);
+  ZeroMemory(@(Output[1]), Len);
+
+  if rb3DESEcb.Checked then
+    TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]))
+  else
+  begin
+    IvStr := HexToStr(edt3DESIv.Text);
+    if Length(IvStr) <> SizeOf(TmpDesIv) then
+    begin
+      ShowMessage('Invalid 3DES Iv, Use Our Default Iv.');
+      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+    end
+    else
+      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+    TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
+  end;
+  edt3DESCode.Text := ToHex(@(Output[1]), Length(Output));
+
+  // edt3DESCode.Text := TripleDESEncryptStrToHex(edt3DesFrom.Text, edt3DESKey.Text);
 end;
 
 procedure TFormCrypt.btn3DesDecryptClick(Sender: TObject);
+var
+  S, IvStr: AnsiString;
+  Output: AnsiString;
+  Len: Integer;
+  TmpDesIv: array[0..7] of Byte;
 begin
-  edt3DesOrigin.Text := TripleDESDecryptStrFromHex(edt3DESCode.Text, edt3DESKey.Text);
+  S := AnsiString(HexToStr(edt3DESCode.Text));
+  Len := Length(S);
+  if Len < 8 then
+    Len := 8
+  else
+    Len := (((Len - 1) div 8) + 1) * 8;
+  SetLength(Output, Len);
+  ZeroMemory(@(Output[1]), Len);
+
+  if rb3DESEcb.Checked then
+    TripleDESDecryptEcbStr(edt3DESKey.Text, S, @(Output[1]))
+  else
+  begin
+    IvStr := HexToStr(edt3DESIv.Text);
+    if Length(IvStr) <> SizeOf(TmpDesIv) then
+    begin
+      ShowMessage('Invalid 3DES Iv, Use Our Default Iv.');
+      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+    end
+    else
+      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+
+    TripleDESDecryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
+  end;
+  edt3DesOrigin.Text := Output;
+
+  // edt3DesOrigin.Text := TripleDESDecryptStrFromHex(edt3DESCode.Text, edt3DESKey.Text);
 end;
 
 end.

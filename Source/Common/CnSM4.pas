@@ -604,7 +604,7 @@ begin
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
 
-    Vector := TSM4Iv(TempOut);
+    Move(TempOut[0], Vector[0], SizeOf(TSM4Iv));
     Dec(Count, SizeOf(TSM4Buffer));
   end;
 
@@ -658,7 +658,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
 
-    Vector2 := TSM4Iv(TempIn);
+    Move(TempIn[0], Vector2[0], SizeOf(TSM4Iv));
     SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
 
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;

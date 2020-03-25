@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 569
     Height = 385
-    ActivePage = ts3DES
+    ActivePage = tsDES
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -247,7 +247,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 6
           Text = '0123456789ABCDEF'
         end
-        object rb3DesECB: TRadioButton
+        object rb3DesCBC: TRadioButton
           Left = 232
           Top = 116
           Width = 57
@@ -257,7 +257,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 7
           TabStop = True
         end
-        object rb3DesCBC: TRadioButton
+        object rb3DesECB: TRadioButton
           Left = 168
           Top = 116
           Width = 57
