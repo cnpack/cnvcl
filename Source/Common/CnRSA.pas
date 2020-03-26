@@ -206,7 +206,10 @@ function CnRSALoadKeysFromPem(const PemFileName: string;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
+  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean;
 {* 将公私钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
@@ -901,7 +904,8 @@ end;
 
 // 将公私钥写入 PEM 格式文件中
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType; KeyEncryptMethod: TCnKeyEncryptMethod;
+  KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
   Root, Node: TCnBerWriteNode;
   Writer: TCnBerWriter;
@@ -995,10 +999,10 @@ begin
 
     if KeyType = cktPKCS1 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_RSA_PRIVATE_HEAD,
-        PEM_RSA_PRIVATE_TAIL, Mem)
+        PEM_RSA_PRIVATE_TAIL, Mem, KeyEncryptMethod, KeyHashMethod, Password)
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_PRIVATE_HEAD,
-        PEM_PRIVATE_TAIL, Mem);
+        PEM_PRIVATE_TAIL, Mem, KeyEncryptMethod, KeyHashMethod, Password);
   finally
     BigNumberFree(T);
     BigNumberFree(R1);
@@ -1059,10 +1063,10 @@ begin
 
     if KeyType = cktPKCS1 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_RSA_PUBLIC_HEAD,
-        PEM_RSA_PUBLIC_TAIL, Mem, Password, KeyEncryptMethod)
+        PEM_RSA_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password)
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_PUBLIC_HEAD,
-        PEM_PUBLIC_TAIL, Mem, Password, KeyEncryptMethod);
+        PEM_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password);
   finally
     Mem.Free;
     Writer.Free;

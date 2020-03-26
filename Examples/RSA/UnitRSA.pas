@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber,
-  ImgList, Buttons, CnCommon;
+  ImgList, Buttons, CnCommon, CnPemUtils;
 
 type
   TFormRSA = class(TForm)
@@ -174,6 +174,8 @@ type
     lblSqrt: TLabel;
     edtFastSqrt: TEdit;
     btnFastSqrt: TButton;
+    lblSaveCrypt: TLabel;
+    cbbSaveCrypt: TComboBox;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -300,6 +302,7 @@ begin
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
   cbbMBits.ItemIndex := 2;
   cbbSaveFormat.ItemIndex := 0;
+  cbbSaveCrypt.ItemIndex := 0;
   cbbSig.ItemIndex := 0;
 
   FPrivateKey := TCnRSAPrivateKey.Create;
@@ -484,11 +487,17 @@ begin
 end;
 
 procedure TFormRSA.btnBNSaveKeysClick(Sender: TObject);
+var
+  Password: string;
 begin
   if dlgSavePEM.Execute then
   begin
+    if cbbSaveCrypt.ItemIndex > 0 then
+      Password := CnInputBox('Password', 'Enter Password here for Encryption', '');
+
     if CnRSASaveKeysToPem(dlgSavePEM.FileName, FPrivateKey, FPublicKey,
-      TCnRSAKeyType(cbbSaveFormat.ItemIndex)) then
+      TCnRSAKeyType(cbbSaveFormat.ItemIndex), TCnKeyEncryptMethod(cbbSaveCrypt.ItemIndex),
+      ckhMd5, Password) then
       ShowMessage('Saved to ' + dlgSavePEM.FileName);
   end;
 end;

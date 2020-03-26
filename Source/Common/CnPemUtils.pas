@@ -29,7 +29,8 @@ unit CnPemUtils;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2020.03.23 V1.1
-*               模拟 OPENSSL 实现 PEM 的加密读取，只支持部分加密算法与机制
+*               模拟 Openssl 实现 PEM 的加密读取，只支持部分加密算法与机制
+*               目前读取兼容 des aes128/192/256 PKCS7 对齐，基于 Openssl 1.0.2g
 *           2020.03.18 V1.0
 *               创建单元，从 CnRSA 中独立出来
 ================================================================================
@@ -50,17 +51,17 @@ type
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
+{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码}
 
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
+{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码}
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
-  MemoryStream: TMemoryStream; const Password: string = '';
-  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后分行并补上文件头尾再写入文件}
+  MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
+{* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件}
 
 implementation
 
@@ -80,6 +81,9 @@ const
 
   ENC_TYPE_STRS: array[TCnKeyEncryptMethod] of string =
     ('', ENC_TYPE_DES, ENC_TYPE_3DES, ENC_TYPE_AES128, ENC_TYPE_AES192, ENC_TYPE_AES256);
+
+  ENC_TYPE_BLOCK_SIZE: array[TCnKeyEncryptMethod] of Byte =
+    (0, 8, 8, 16, 16, 16);
 
 function Min(A, B: Integer): Integer;
 begin
@@ -130,6 +134,20 @@ begin
   end;
 end;
 
+procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Byte);
+var
+  R: Byte;
+  Buf: array[0..255] of Byte;
+begin
+  R := Stream.Size mod BlockSize;
+  if R = 0 then
+    R := R + BlockSize;
+
+  FillChar(Buf[0], R, R);
+  Stream.Position := Stream.Size;
+  Stream.Write(Buf[0], R);
+end;
+
 // 去除 PKCS7 规定的末尾填充“几个几”的填充数据
 procedure RemovePKCS7Padding(Stream: TMemoryStream);
 var
@@ -153,6 +171,12 @@ begin
       FreeMemory(Mem);
     end;
   end;
+end;
+
+function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
+  Stream: TMemoryStream; const Password: string): Boolean;
+begin
+  // TODO: 流加密
 end;
 
 // 拿加密算法、块运算、初始化向量，密码来解开 Base64 编码的 S，再写入 Stream 内
@@ -465,8 +489,8 @@ begin
 end;
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
-  MemoryStream: TMemoryStream; const Password: string;
-  KeyEncryptMethod: TCnKeyEncryptMethod): Boolean;
+  MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod;
+  KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
   S: string;
   List: TStringList;
@@ -475,6 +499,17 @@ begin
   if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
   begin
     MemoryStream.Position := 0;
+
+    if (KeyEncryptMethod <> ckeNone) and (Password <> '') then
+    begin
+      // 给 MemoryStream 对齐
+      AddPKCS7Padding(MemoryStream, ENC_TYPE_BLOCK_SIZE[KeyEncryptMethod]);
+
+      // 再加密
+      if not EncryptPemStream(KeyHashMethod, KeyEncryptMethod, MemoryStream, Password) then
+        Exit;
+    end;
+
     if Base64_OK = Base64Encode(MemoryStream, S) then
     begin
       List := TStringList.Create;
@@ -490,6 +525,7 @@ begin
         List.Free;
       end;
     end;
+
   end;
 end;
 
