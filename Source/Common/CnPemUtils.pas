@@ -43,20 +43,23 @@ uses
   SysUtils, Classes, CnBase64, CnAES, CnDES, CnMD5, CnSHA2;
 
 type
-  TCnKeyHashMethod = (ckmMd5, ckmSha256);
+  TCnKeyHashMethod = (ckhMd5, ckhSha256);
+
+  TCnKeyEncryptMethod = (ckeNone, ckeDES, cke3DES, ckeAES128, ckeAES192, ckeAES256);
 
 function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream; const Password: string = '';
-  KeyHashMethod: TCnKeyHashMethod = ckmMd5): Boolean;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
 
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream; const Password: string = '';
-  KeyHashMethod: TCnKeyHashMethod = ckmMd5): Boolean;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并进行 Base64 解码}
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
-  MemoryStream: TMemoryStream): Boolean;
+  MemoryStream: TMemoryStream; const Password: string = '';
+  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后分行并补上文件头尾再写入文件}
 
 implementation
@@ -74,6 +77,9 @@ const
   ENC_TYPE_3DES   = 'DES-EDE3';
 
   ENC_BLOCK_CBC   = 'CBC';
+
+  ENC_TYPE_STRS: array[TCnKeyEncryptMethod] of string =
+    ('', ENC_TYPE_DES, ENC_TYPE_3DES, ENC_TYPE_AES128, ENC_TYPE_AES192, ENC_TYPE_AES256);
 
 function Min(A, B: Integer): Integer;
 begin
@@ -179,17 +185,17 @@ begin
 
     DS.Position := 0;
     IvStr := HexToStr(HexIv);
-    PS := Password + Copy(IvStr, 1, 8); // 规定 IvStr 前 8 位作为 Salt
+    PS := AnsiString(Password) + Copy(IvStr, 1, 8); // 规定 IvStr 前 8 位作为 Salt
 
-    if KeyHashMethod = ckmMd5 then
+    if KeyHashMethod = ckhMd5 then
     begin
       SetLength(PSMD5, 16 + Length(PS));
       Move(PS[1], PSMD5[17], Length(PS));
-      Md5Dig := MD5String(PS);
+      Md5Dig := MD5StringA(PS);
       // 密码与 Salt（Iv 的前八字节）拼起来的 MD5 结果（16 Byte）作为第一部分
 
       Move(Md5Dig[0], PSMD5[1], SizeOf(TMD5Digest));
-      Md5Dig2 := MD5String(PSMD5);
+      Md5Dig2 := MD5StringA(PSMD5);
       // 第一部分加密码加 Salt（Iv 的前八字节）拼起来再做一次 MD5 的 16 字节作为第二部分
 
       // DS 中是密文，要解到 Stream 中
@@ -254,15 +260,15 @@ begin
         Result := True;
       end;
     end
-    else if KeyHashMethod = ckmSha256 then
+    else if KeyHashMethod = ckhSha256 then
     begin
       SetLength(PSSHA256, 32 + Length(PS));
       Move(PS[1], PSSHA256[33], Length(PS));
-      Sha256Dig := SHA256String(PS);
+      Sha256Dig := SHA256StringA(PS);
       // 密码与 Salt（Iv 的前八字节）拼起来的 SHA256 结果（32 Byte）作为第一部分
 
       Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
-      Sha256Dig2 := SHA256String(PSSHA256);
+      Sha256Dig2 := SHA256StringA(PSSHA256);
       // 第一部分加密码加 Salt（Iv 的前八字节）拼起来再做一次 SHA256 的 32 字节作为第二部分
 
       // DS 中是密文，要解到 Stream 中
@@ -459,7 +465,8 @@ begin
 end;
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
-  MemoryStream: TMemoryStream): Boolean;
+  MemoryStream: TMemoryStream; const Password: string;
+  KeyEncryptMethod: TCnKeyEncryptMethod): Boolean;
 var
   S: string;
   List: TStringList;

@@ -214,7 +214,8 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
 function CnRSASavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8): BOolean;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
+  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone; const Password: string = ''): BOolean;
 {* 将公钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
@@ -1013,7 +1014,8 @@ end;
 
 // 将公钥写入 PEM 格式文件中
 function CnRSASavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType;
+  KeyEncryptMethod: TCnKeyEncryptMethod; const Password: string): Boolean;
 var
   Root, Node: TCnBerWriteNode;
   Writer: TCnBerWriter;
@@ -1057,10 +1059,10 @@ begin
 
     if KeyType = cktPKCS1 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_RSA_PUBLIC_HEAD,
-        PEM_RSA_PUBLIC_TAIL, Mem)
+        PEM_RSA_PUBLIC_TAIL, Mem, Password, KeyEncryptMethod)
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_PUBLIC_HEAD,
-        PEM_PUBLIC_TAIL, Mem);
+        PEM_PUBLIC_TAIL, Mem, Password, KeyEncryptMethod);
   finally
     Mem.Free;
     Writer.Free;
