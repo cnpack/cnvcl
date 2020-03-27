@@ -27,7 +27,6 @@ unit CnBigNumber;
 * 备    注：大部分从 Openssl 的 C 代码移植而来
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
-*           Div 使用汇编通了，但 Mod Word 似乎还有问题。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -52,7 +51,7 @@ interface
 
 uses
   Classes, SysUtils, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
-  Contnrs {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
+  Contnrs, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -77,8 +76,6 @@ const
   BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
 type
-  ERandomAPIError = class(Exception);
-
   TLongWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of LongWord;
   PLongWordArray = ^TLongWordArray;
 
@@ -556,9 +553,6 @@ function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber)
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
 
-function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
-{* 使用 Windows API 实现区块随机填充}
-
 var
   CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的常量
   CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的常量
@@ -584,30 +578,6 @@ const
 
 var
   FLocalBigNumberPool: TObjectList = nil;
-
-{$IFDEF MSWINDOWS}
-
-const
-  ADVAPI32 = 'advapi32.dll';
-
-  CRYPT_VERIFYCONTEXT = $F0000000;
-  CRYPT_NEWKEYSET = $8;
-  CRYPT_DELETEKEYSET = $10;
-
-  PROV_RSA_FULL = 1;
-  NTE_BAD_KEYSET = $80090016;
-
-function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
-  pszProvider: PAnsiChar; dwProvType: LongWord; dwFlags: LongWord): BOOL;
-  stdcall; external ADVAPI32 name 'CryptAcquireContextA';
-
-function CryptReleaseContext(hProv: ULONG; dwFlags: LongWord): BOOL;
-  stdcall; external ADVAPI32 name 'CryptReleaseContext';
-
-function CryptGenRandom(hProv: ULONG; dwLen: LongWord; pbBuffer: PAnsiChar): BOOL;
-  stdcall; external ADVAPI32 name 'CryptGenRandom';
-
-{$ENDIF}
 
 {* 大数池操作方法开始}
 
@@ -1289,53 +1259,6 @@ begin
   Result := 0;
 end;
 
-// 使用 Windows API 实现区块随机填充
-function RandBytes(Buf: PAnsiChar; Len: Integer): Boolean;
-var
-{$IFDEF MSWINDOWS}
-  HProv: THandle;
-  Res: LongWord;
-{$ELSE}
-  F: TFileStream;
-{$ENDIF}
-begin
-  Result := False;
-{$IFDEF MSWINDOWS}
-  HProv := 0;
-  if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0) then
-  begin
-    Res := GetLastError;
-    if Res = NTE_BAD_KEYSET then // KeyContainer 不存在，用新建的方式
-    begin
-      if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, CRYPT_NEWKEYSET) then
-        raise ERandomAPIError.CreateFmt('Error CryptAcquireContext NewKeySet $%8.8x', [GetLastError]);
-    end
-    else
-        raise ERandomAPIError.CreateFmt('Error CryptAcquireContext $%8.8x', [Res]);
-  end;
-
-  if HProv <> 0 then
-  begin
-    try
-      Result := CryptGenRandom(HProv, Len, Buf);
-      if not Result then
-        raise ERandomAPIError.CreateFmt('Error CryptGenRandom $%8.8x', [GetLastError]);
-    finally
-      CryptReleaseContext(HProv, 0);
-    end;
-  end;
-{$ELSE}
-  // MacOS 下的随机填充实现，采用读取 /dev/random 内容的方式
-  F := nil;
-  try
-    F := TFileStream.Create('/dev/random', fmOpenRead);
-    Result := F.Read(Buf^, Len) = Len;
-  finally
-    F.Free;
-  end;
-{$ENDIF}
-end;
-
 // 产生固定字节长度的随机大数
 function BigNumberRandBytes(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
 begin
@@ -1350,7 +1273,7 @@ begin
 
   if BigNumberWordExpand(Num, (BytesCount + 3) div 4) <> nil then
   begin
-    Result := RandBytes(PAnsiChar(Num.D), BytesCount);
+    Result := CnRandomFillBytes(PAnsiChar(Num.D), BytesCount);
     if Result then
     begin
       Num.Top := (BytesCount + 3) div 4;
