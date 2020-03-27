@@ -176,6 +176,9 @@ type
     btnFastSqrt: TButton;
     lblSaveCrypt: TLabel;
     cbbSaveCrypt: TComboBox;
+    bvlLoadPEM: TBevel;
+    lblKeyHash: TLabel;
+    cbbLoadKeyHash: TComboBox;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -301,6 +304,7 @@ begin
   pgc1.ActivePageIndex := 0;
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
   cbbMBits.ItemIndex := 2;
+  cbbLoadKeyHash.ItemIndex := 0;
   cbbSaveFormat.ItemIndex := 0;
   cbbSaveCrypt.ItemIndex := 0;
   cbbSig.ItemIndex := 0;
@@ -453,7 +457,8 @@ begin
   if dlgOpenPEM.Execute then
   begin
     Password := CnInputBox('Password', 'Enter Password here if the PEM has Password', '');
-    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey, Password) then
+    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey,
+      TCnKeyHashMethod(cbbLoadKeyHash.ItemIndex), Password) then
     begin
       edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
       edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;

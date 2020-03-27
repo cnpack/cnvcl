@@ -201,8 +201,9 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
 {* 生成 RSA 算法所需的公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
    ModulusBits 取值为 512/1024/2048等}
 
-function CnRSALoadKeysFromPem(const PemFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey; const Password: string = ''): Boolean;
+function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
@@ -706,7 +707,7 @@ PKCS#8:
         INTEGER
 *)
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; const Password: string): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
@@ -719,7 +720,7 @@ begin
   try
     MemStream := TMemoryStream.Create;
     if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL,
-      MemStream, Password) then
+      MemStream, Password, KeyHashMethod) then
     begin
       // 读 PKCS#1 的 PEM 公私钥格式
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
@@ -750,7 +751,7 @@ begin
       end;
     end
     else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
-      MemStream, Password) then
+      MemStream, Password, KeyHashMethod) then
     begin
       // 读 PKCS#8 的 PEM 公私钥格式
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);

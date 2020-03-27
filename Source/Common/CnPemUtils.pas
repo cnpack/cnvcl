@@ -225,7 +225,7 @@ begin
       // DS 中是密文，要解到 Stream 中
       if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 AES-256-CBC 加密的密文，此处未测试
+        // 解开 AES-256-CBC 加密的密文
         FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(Md5Dig, AESKey256, SizeOf(TMD5Digest));
         Move(Md5Dig2, AESKey256[16], SizeOf(TAESKey256) - SizeOf(TMD5Digest));
@@ -237,7 +237,7 @@ begin
       end
       else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 AES-192-CBC 加密的密文，此处未测试
+        // 解开 AES-192-CBC 加密的密文
         FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(Md5Dig, AESKey192, SizeOf(TMD5Digest));
         Move(Md5Dig2, AESKey192[16], SizeOf(TAESKey192) - SizeOf(TMD5Digest));
@@ -249,8 +249,7 @@ begin
       end
       else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 AES-128-CBC 加密的密文，此处测试通过，但 D5 下貌似碰到了编译器的 Bug 导致出 AV。
-        // 密码与 Salt（Iv 的前八字节）拼起来的 MD5 结果（16 Byte）作为 Key（正好需要 16 Byte）
+        // 解开 AES-128-CBC 加密的密文，但 D5 下貌似可能碰到编译器的 Bug 导致出 AV。
         FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(Md5Dig, AESKey128, Min(SizeOf(AESKey128), SizeOf(TMD5Digest)));
 
@@ -261,8 +260,7 @@ begin
       end
       else if (M1 = ENC_TYPE_DES) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 DES-CBC 加密的密文，此处测试通过。
-        // 密码与 Salt（Iv 的前八字节）拼起来的 MD5 结果（16 Byte）的前 8 Byte 作为 Key
+        // 解开 DES-CBC 加密的密文
         Move(Md5Dig, DesKey[0], SizeOf(TDESKey));
         Move(IvStr[1], DesIv[0], 8);
 
@@ -272,7 +270,7 @@ begin
       end
       else if (M1 = ENC_TYPE_3DES) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 3DES-CBC 加密的密文，此处测试通过。
+        // 解开 3DES-CBC 加密的密文
         // 密码与 Salt（Iv 的前八字节）拼起来的 MD5 结果（16 Byte）作为 Key 的前 16 字节
         // 再加第二部分的前八位作为整个 Key（24 字节）
         Move(Md5Dig, Des3Key[0], SizeOf(TMD5Digest));
@@ -284,7 +282,7 @@ begin
         Result := True;
       end;
     end
-    else if KeyHashMethod = ckhSha256 then
+    else if KeyHashMethod = ckhSha256 then // 均未测试
     begin
       SetLength(PSSHA256, 32 + Length(PS));
       Move(PS[1], PSSHA256[33], Length(PS));
@@ -298,7 +296,7 @@ begin
       // DS 中是密文，要解到 Stream 中
       if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 AES-256-CBC 加密的密文，此处未测试
+        // 解开 AES-256-CBC 加密的密文
         FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(Sha256Dig, AESKey256, SizeOf(TAESKey256));
 
@@ -309,7 +307,7 @@ begin
       end
       else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 AES-192-CBC 加密的密文，此处未测试
+        // 解开 AES-192-CBC 加密的密文
         FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(Sha256Dig, AESKey192, SizeOf(TAESKey192));
 
@@ -320,7 +318,7 @@ begin
       end
       else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 AES-128-CBC 加密的密文，，此处未测试
+        // 解开 AES-128-CBC 加密的密文
         FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(Sha256Dig, AESKey128, SizeOf(TAESKey128));
 
@@ -331,7 +329,7 @@ begin
       end
       else if (M1 = ENC_TYPE_DES) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 DES-CBC 加密的密文，此处未测试
+        // 解开 DES-CBC 加密的密文
         Move(Sha256Dig, DesKey[0], SizeOf(TDESKey));
         Move(IvStr[1], DesIv[0], 8);
 
@@ -341,7 +339,7 @@ begin
       end
       else if (M1 = ENC_TYPE_3DES) and (M2 = ENC_BLOCK_CBC) then
       begin
-        // 解开 3DES-CBC 加密的密文，此处未测试
+        // 解开 3DES-CBC 加密的密文
         Move(Sha256Dig, Des3Key[0], SizeOf(T3DESKey));
         Move(IvStr[1], DesIv[0], 8);
 

@@ -4,7 +4,7 @@ object FormRSA: TFormRSA
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 627
-  ClientWidth = 935
+  ClientWidth = 1041
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,7 +20,7 @@ object FormRSA: TFormRSA
   object pgc1: TPageControl
     Left = 16
     Top = 16
-    Width = 901
+    Width = 1007
     Height = 589
     ActivePage = tsRSA
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -184,7 +184,7 @@ object FormRSA: TFormRSA
       object grpCrypt: TGroupBox
         Left = 16
         Top = 420
-        Width = 861
+        Width = 967
         Height = 121
         Anchors = [akLeft, akRight, akBottom]
         Caption = 'Crypt'
@@ -268,7 +268,7 @@ object FormRSA: TFormRSA
       object grpBNKeys: TGroupBox
         Left = 16
         Top = 16
-        Width = 857
+        Width = 969
         Height = 321
         Caption = 'Big Number Keys'
         TabOrder = 0
@@ -322,7 +322,7 @@ object FormRSA: TFormRSA
           Caption = 'Prime Bits:'
         end
         object lblSaveFormat: TLabel
-          Left = 656
+          Left = 768
           Top = 284
           Width = 35
           Height = 13
@@ -357,16 +357,30 @@ object FormRSA: TFormRSA
           Caption = 'Modulus Bits:'
         end
         object lblSaveCrypt: TLabel
-          Left = 766
+          Left = 878
           Top = 284
           Width = 4
           Height = 13
           Caption = '*'
         end
+        object bvlLoadPEM: TBevel
+          Left = 688
+          Top = 280
+          Width = 9
+          Height = 25
+          Shape = bsLeftLine
+        end
+        object lblKeyHash: TLabel
+          Left = 584
+          Top = 284
+          Width = 46
+          Height = 13
+          Caption = 'KeyHash:'
+        end
         object edtBNPrime1: TEdit
           Left = 128
           Top = 20
-          Width = 633
+          Width = 745
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
@@ -378,7 +392,7 @@ object FormRSA: TFormRSA
         object edtBNPrime2: TEdit
           Left = 128
           Top = 52
-          Width = 633
+          Width = 745
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
@@ -399,7 +413,7 @@ object FormRSA: TFormRSA
         object edtBNPrivExp: TEdit
           Left = 128
           Top = 148
-          Width = 713
+          Width = 825
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
@@ -411,7 +425,7 @@ object FormRSA: TFormRSA
         object edtBNPubExp: TEdit
           Left = 128
           Top = 244
-          Width = 649
+          Width = 761
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
@@ -423,7 +437,7 @@ object FormRSA: TFormRSA
         object mmoBNPrivProduct: TMemo
           Left = 128
           Top = 88
-          Width = 713
+          Width = 825
           Height = 45
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
@@ -435,7 +449,7 @@ object FormRSA: TFormRSA
         object mmoBNPubProduct: TMemo
           Left = 128
           Top = 184
-          Width = 649
+          Width = 761
           Height = 45
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
@@ -474,7 +488,7 @@ object FormRSA: TFormRSA
           OnClick = btnBNLoadKeysClick
         end
         object btnBNSaveKeys: TButton
-          Left = 584
+          Left = 696
           Top = 280
           Width = 67
           Height = 21
@@ -486,7 +500,7 @@ object FormRSA: TFormRSA
           OnClick = btnBNSaveKeysClick
         end
         object btnBNLoadPub: TButton
-          Left = 784
+          Left = 896
           Top = 184
           Width = 57
           Height = 21
@@ -499,7 +513,7 @@ object FormRSA: TFormRSA
           OnClick = btnBNLoadPubClick
         end
         object btnSavePub: TButton
-          Left = 784
+          Left = 896
           Top = 244
           Width = 57
           Height = 21
@@ -512,7 +526,7 @@ object FormRSA: TFormRSA
           OnClick = btnSavePubClick
         end
         object cbbSaveFormat: TComboBox
-          Left = 696
+          Left = 808
           Top = 280
           Width = 65
           Height = 21
@@ -524,7 +538,7 @@ object FormRSA: TFormRSA
             'PKCS#8')
         end
         object btnBNSendR: TButton
-          Left = 776
+          Left = 888
           Top = 20
           Width = 65
           Height = 21
@@ -534,7 +548,7 @@ object FormRSA: TFormRSA
           OnClick = btnBNSendRClick
         end
         object btnPQ: TButton
-          Left = 776
+          Left = 888
           Top = 50
           Width = 65
           Height = 21
@@ -569,7 +583,7 @@ object FormRSA: TFormRSA
           OnClick = btnGenByMClick
         end
         object cbbSaveCrypt: TComboBox
-          Left = 776
+          Left = 888
           Top = 280
           Width = 65
           Height = 21
@@ -584,11 +598,23 @@ object FormRSA: TFormRSA
             'AES192'
             'AES256')
         end
+        object cbbLoadKeyHash: TComboBox
+          Left = 632
+          Top = 280
+          Width = 49
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 18
+          Items.Strings = (
+            'MD5'
+            'SHA256')
+        end
       end
       object pgc2: TPageControl
         Left = 16
         Top = 344
-        Width = 861
+        Width = 967
         Height = 205
         ActivePage = tsSign
         Anchors = [akLeft, akTop, akRight, akBottom]
