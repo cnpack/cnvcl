@@ -28,7 +28,10 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.23 V1.1
+* 修改记录：2020.03.27 V1.2
+*               模拟 Openssl 实现 PEM 的加密写入，只支持部分加密算法与机制
+*               目前写入兼容 des/3des/aes128/192/256 PKCS7 对齐，基于 Openssl 1.0.2g
+*           2020.03.23 V1.1
 *               模拟 Openssl 实现 PEM 的加密读取，只支持部分加密算法与机制
 *               目前读取兼容 des/3des/aes128/192/256 PKCS7 对齐，基于 Openssl 1.0.2g
 *           2020.03.18 V1.0
@@ -41,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnBase64, CnAES, CnDES, CnMD5, CnSHA2;
+  SysUtils, Classes, CnRandom, CnBase64, CnAES, CnDES, CnMD5, CnSHA2;
 
 type
   TCnKeyHashMethod = (ckhMd5, ckhSha256);
@@ -140,6 +143,7 @@ var
   Buf: array[0..255] of Byte;
 begin
   R := Stream.Size mod BlockSize;
+  R := BlockSize - R;
   if R = 0 then
     R := R + BlockSize;
 
@@ -174,9 +178,168 @@ begin
 end;
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
-  Stream: TMemoryStream; const Password: string): Boolean;
+  Stream: TMemoryStream; const Password: string; out EncryptedHead: string): Boolean;
+const
+  CRLF = #13#10;
+var
+  ES: TMemoryStream;
+  IvStr: AnsiString;
+  HexIv: string;
+  Md5Dig, Md5Dig2: TMD5Digest;
+  Sha256Dig: TSHA256Digest;
+  PS, PSMD5: AnsiString;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AesIv: TAESBuffer;
+  DesKey: TDESKey;
+  Des3Key: T3DESKey;
+  DesIv: TDESIv;
 begin
-  // TODO: 流加密
+  Result := False;
+
+  // 流加密
+  if (KeyEncrypt = ckeNone) or (Password = '') then
+    Exit;
+
+  // 生成随机 Iv
+  SetLength(IvStr, ENC_TYPE_BLOCK_SIZE[KeyEncrypt]);
+  CnRandomFillBytes(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt]);
+  HexIv := UpperCase(StrToHex(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt]));
+  PS := AnsiString(Password) + Copy(IvStr, 1, 8); // 规定 Iv 前 8 位作为 Salt
+
+  EncryptedHead := ENC_HEAD_PROCTYPE + ' ' +  ENC_HEAD_PROCTYPE_NUM + ',' + ENC_HEAD_ENCRYPTED + CRLF;
+  EncryptedHead := EncryptedHead + ENC_HEAD_DEK + ' ' + ENC_TYPE_STRS[KeyEncrypt]
+    + '-' + ENC_BLOCK_CBC + ',' + HexIv + CRLF;
+
+  ES := TMemoryStream.Create;
+  Stream.Position := 0;
+
+  try
+    if KeyHash = ckhMd5 then
+    begin
+      // 提前计算 Key
+      SetLength(PSMD5, SizeOf(TMD5Digest) + Length(PS));
+      Move(PS[1], PSMD5[SizeOf(TMD5Digest) + 1], Length(PS));
+      Md5Dig := MD5StringA(PS);
+      // 密码与 Salt（Iv 的前八字节）拼起来的 MD5 结果（16 Byte）作为第一部分
+
+      Move(Md5Dig[0], PSMD5[1], SizeOf(TMD5Digest));
+      Md5Dig2 := MD5StringA(PSMD5);
+      // 第一部分加密码加 Salt（Iv 的前八字节）拼起来再做一次 MD5 的 16 字节作为第二部分
+
+      case KeyEncrypt of
+        ckeDES:
+          begin
+            Move(Md5Dig[0], DesKey[0], SizeOf(TDESKey));
+            Move(IvStr[1], DesIv[0], SizeOf(TDESIv));
+
+            DESEncryptStreamCBC(Stream, Stream.Size, DesKey, DesIv, ES);
+            Result := True;
+          end;
+        cke3DES:
+          begin
+            Move(Md5Dig[0], Des3Key[0], SizeOf(TMD5Digest));
+            Move(Md5Dig2[0], Des3Key[SizeOf(TMD5Digest)], SizeOf(T3DESKey) - SizeOf(TMD5Digest));
+            Move(IvStr[1], DesIv[0], SizeOf(T3DESIv));
+
+            TripleDESEncryptStreamCBC(Stream, Stream.Size, Des3Key, DesIv, ES);
+            Result := True;
+          end;
+        ckeAES128:
+          begin
+            Move(Md5Dig[0], AESKey128[0], Min(SizeOf(AESKey128), SizeOf(TMD5Digest)));
+            Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+
+            EncryptAESStreamCBC(Stream, Stream.Size, AESKey128, AesIv, ES);
+            Result := True;
+          end;
+        ckeAES192:
+          begin
+            Move(Md5Dig[0], AESKey192[0], SizeOf(TMD5Digest));
+            Move(Md5Dig2[0], AESKey192[SizeOf(TMD5Digest)], SizeOf(TAESKey192) - SizeOf(TMD5Digest));
+            Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+
+            EncryptAESStreamCBC(Stream, Stream.Size, AESKey192, AesIv, ES);
+            Result := True;
+          end;
+        ckeAES256:
+          begin
+            Move(Md5Dig[0], AESKey256[0], SizeOf(TMD5Digest));
+            Move(Md5Dig2[0], AESKey256[SizeOf(TMD5Digest)], SizeOf(TAESKey256) - SizeOf(TMD5Digest));
+            Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+
+            EncryptAESStreamCBC(Stream, Stream.Size, AESKey256, AesIv, ES);
+            Result := True;
+          end;
+      end;
+    end
+    else if KeyHash = ckhSha256 then // 未测试
+    begin
+      // 提前计算 Key
+      // SetLength(PSSHA256, SizeOf(TSHA256Digest) + Length(PS));
+      // Move(PS[1], PSSHA256[SizeOf(TSHA256Digest) + 1], Length(PS));
+
+      Sha256Dig := SHA256StringA(PS);
+      // 密码与 Salt（Iv 的前八字节）拼起来的 SHA256 结果（32 Byte）作为第一部分
+
+      // Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
+      // Sha256Dig := SHA256StringA(PSSHA256);
+      // 第一部分加密码加 Salt（Iv 的前八字节）拼起来再做一次 MD5 的 32 字节作为第二部分
+
+      case KeyEncrypt of
+        ckeDES:
+          begin
+            Move(Sha256Dig[0], DesKey[0], SizeOf(TDESKey));
+            Move(IvStr[1], DesIv[0], SizeOf(TDESIv));
+
+            DESEncryptStreamCBC(Stream, Stream.Size, DesKey, DesIv, ES);
+            Result := True;
+          end;
+        cke3DES:
+          begin
+            Move(Sha256Dig[0], Des3Key[0], SizeOf(T3DESKey));
+            Move(IvStr[1], DesIv[0], SizeOf(T3DESIv));
+
+            TripleDESEncryptStreamCBC(Stream, Stream.Size, Des3Key, DesIv, ES);
+            Result := True;
+          end;
+        ckeAES128:
+          begin
+            Move(Sha256Dig[0], AESKey128[0], SizeOf(AESKey128));
+            Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+
+            EncryptAESStreamCBC(Stream, Stream.Size, AESKey128, AesIv, ES);
+            Result := True;
+          end;
+        ckeAES192:
+          begin
+            Move(Sha256Dig[0], AESKey192[0], SizeOf(TAESKey192));
+            Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+
+            EncryptAESStreamCBC(Stream, Stream.Size, AESKey192, AesIv, ES);
+            Result := True;
+          end;
+        ckeAES256:
+          begin
+            Move(Sha256Dig[0], AESKey256[0], SizeOf(TAESKey256));
+            Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+
+            EncryptAESStreamCBC(Stream, Stream.Size, AESKey256, AesIv, ES);
+            Result := True;
+          end;
+      end;
+    end;
+  finally
+    if ES.Size > 0 then
+    begin
+      // ES 写回 Stream
+      Stream.Clear;
+      ES.SaveToStream(Stream);
+      Stream.Position := 0;
+    end;
+    ES.Free;
+  end;
 end;
 
 // 拿加密算法、块运算、初始化向量，密码来解开 Base64 编码的 S，再写入 Stream 内
@@ -184,7 +347,7 @@ function DecryptPemString(const S, M1, M2, HexIv, Password: string; Stream: TMem
   KeyHashMethod: TCnKeyHashMethod): Boolean;
 var
   DS: TMemoryStream;
-  PS, PSMD5, PSSHA256: AnsiString;
+  PS, PSMD5: AnsiString;
   AESKey128: TAESKey128;
   AESKey192: TAESKey192;
   AESKey256: TAESKey256;
@@ -194,7 +357,7 @@ var
   Des3Key: T3DESKey;
   DesIv: TDESIv;
   Md5Dig, Md5Dig2: TMD5Digest;
-  Sha256Dig, Sha256Dig2: TSHA256Digest;
+  Sha256Dig: TSHA256Digest;
 begin
   Result := False;
   DS := nil;
@@ -213,8 +376,8 @@ begin
 
     if KeyHashMethod = ckhMd5 then
     begin
-      SetLength(PSMD5, 16 + Length(PS));
-      Move(PS[1], PSMD5[17], Length(PS));
+      SetLength(PSMD5, SizeOf(TMD5Digest) + Length(PS));
+      Move(PS[1], PSMD5[SizeOf(TMD5Digest) + 1], Length(PS));
       Md5Dig := MD5StringA(PS);
       // 密码与 Salt（Iv 的前八字节）拼起来的 MD5 结果（16 Byte）作为第一部分
 
@@ -226,11 +389,10 @@ begin
       if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
       begin
         // 解开 AES-256-CBC 加密的密文
-        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(Md5Dig, AESKey256, SizeOf(TMD5Digest));
-        Move(Md5Dig2, AESKey256[16], SizeOf(TAESKey256) - SizeOf(TMD5Digest));
-
+        Move(Md5Dig2, AESKey256[SizeOf(TMD5Digest)], SizeOf(TAESKey256) - SizeOf(TMD5Digest));
         Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+
         DecryptAESStreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
         RemovePKCS7Padding(Stream);
         Result := True;
@@ -238,11 +400,10 @@ begin
       else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
       begin
         // 解开 AES-192-CBC 加密的密文
-        FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(Md5Dig, AESKey192, SizeOf(TMD5Digest));
-        Move(Md5Dig2, AESKey192[16], SizeOf(TAESKey192) - SizeOf(TMD5Digest));
-
+        Move(Md5Dig2, AESKey192[SizeOf(TMD5Digest)], SizeOf(TAESKey192) - SizeOf(TMD5Digest));
         Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+
         DecryptAESStreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
         RemovePKCS7Padding(Stream);
         Result := True;
@@ -250,10 +411,9 @@ begin
       else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
       begin
         // 解开 AES-128-CBC 加密的密文，但 D5 下貌似可能碰到编译器的 Bug 导致出 AV。
-        FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(Md5Dig, AESKey128, Min(SizeOf(AESKey128), SizeOf(TMD5Digest)));
-
         Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+
         DecryptAESStreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
         RemovePKCS7Padding(Stream);
         Result := True;
@@ -284,23 +444,23 @@ begin
     end
     else if KeyHashMethod = ckhSha256 then // 均未测试
     begin
-      SetLength(PSSHA256, 32 + Length(PS));
-      Move(PS[1], PSSHA256[33], Length(PS));
+      // SetLength(PSSHA256, SizeOf(TSHA256Digest) + Length(PS));
+      // Move(PS[1], PSSHA256[SizeOf(TSHA256Digest) + 1], Length(PS));
+
       Sha256Dig := SHA256StringA(PS);
       // 密码与 Salt（Iv 的前八字节）拼起来的 SHA256 结果（32 Byte）作为第一部分
 
-      Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
-      Sha256Dig2 := SHA256StringA(PSSHA256);
+      // Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
+      // Sha256Dig2 := SHA256StringA(PSSHA256);
       // 第一部分加密码加 Salt（Iv 的前八字节）拼起来再做一次 SHA256 的 32 字节作为第二部分
 
       // DS 中是密文，要解到 Stream 中
       if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
       begin
         // 解开 AES-256-CBC 加密的密文
-        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(Sha256Dig, AESKey256, SizeOf(TAESKey256));
-
         Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+
         DecryptAESStreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
         RemovePKCS7Padding(Stream);
         Result := True;
@@ -308,10 +468,9 @@ begin
       else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
       begin
         // 解开 AES-192-CBC 加密的密文
-        FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(Sha256Dig, AESKey192, SizeOf(TAESKey192));
-
         Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+
         DecryptAESStreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
         RemovePKCS7Padding(Stream);
         Result := True;
@@ -319,10 +478,9 @@ begin
       else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
       begin
         // 解开 AES-128-CBC 加密的密文
-        FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(Sha256Dig, AESKey128, SizeOf(TAESKey128));
-
         Move(IvStr[1], AesIv, Min(SizeOf(TAESBuffer), Length(IvStr)));
+
         DecryptAESStreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
         RemovePKCS7Padding(Stream);
         Result := True;
@@ -490,7 +648,7 @@ function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod;
   KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
-  S: string;
+  S, EH: string;
   List: TStringList;
 begin
   Result := False;
@@ -504,7 +662,7 @@ begin
       AddPKCS7Padding(MemoryStream, ENC_TYPE_BLOCK_SIZE[KeyEncryptMethod]);
 
       // 再加密
-      if not EncryptPemStream(KeyHashMethod, KeyEncryptMethod, MemoryStream, Password) then
+      if not EncryptPemStream(KeyHashMethod, KeyEncryptMethod, MemoryStream, Password, EH) then
         Exit;
     end;
 
@@ -514,8 +672,10 @@ begin
       try
         SplitStringToList(S, List);
 
-        List.Insert(0, Head);
-        List.Add(Tail);
+        List.Insert(0, Head);  // 普通头
+        if EH <> '' then       // 加密头
+          List.Insert(1, EH);
+        List.Add(Tail);        // 普通尾
 
         List.SaveToFile(FileName);
         Result := True;

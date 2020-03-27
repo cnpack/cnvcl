@@ -22,7 +22,7 @@ object FormRSA: TFormRSA
     Top = 16
     Width = 1007
     Height = 589
-    ActivePage = tsRSA
+    ActivePage = tsInt64RSA
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsInt64RSA: TTabSheet

@@ -502,7 +502,7 @@ begin
 
     if CnRSASaveKeysToPem(dlgSavePEM.FileName, FPrivateKey, FPublicKey,
       TCnRSAKeyType(cbbSaveFormat.ItemIndex), TCnKeyEncryptMethod(cbbSaveCrypt.ItemIndex),
-      ckhMd5, Password) then
+      TCnKeyHashMethod(cbbLoadKeyHash.ItemIndex), Password) then
       ShowMessage('Saved to ' + dlgSavePEM.FileName);
   end;
 end;
