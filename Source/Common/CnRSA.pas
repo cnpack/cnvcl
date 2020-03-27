@@ -24,11 +24,13 @@ unit CnRSA;
 * 软件名称：开发包基础库
 * 单元名称：RSA 算法单元
 * 单元作者：刘啸
-* 备    注：包括 Int64 范围内的 RSA 算法以及大数算法，公钥 Exponent 固定使用 65537。
+* 备    注：包括 Int64 范围内的 RSA 算法以及大数算法，公钥 Exponent 默认固定使用 65537。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.13 V1.7
+* 修改记录：2020.03.27 V1.8
+*               公钥允许用 3。实现了加密的 PEM 文件的读写，不过只支持 des/3des/aes
+*           2020.03.13 V1.7
 *               加入详细的错误码。调用返回 False 时可通过 GetLastCnRSAError 获取 ECN_RSA_* 形式的错误码
 *           2019.04.19 V1.6
 *               支持 Win32/Win64/MacOS
@@ -192,26 +194,33 @@ function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
 // 大数范围内的 RSA 加解密实现
 
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey): Boolean;
+  PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
 {* 生成 RSA 算法所需的公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
-   PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围}
+   PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
 
 function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey): Boolean;
+  PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
 {* 生成 RSA 算法所需的公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
-   ModulusBits 取值为 512/1024/2048等}
+   ModulusBits 取值为 512/1024/2048等。PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
 
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean;
-{* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
+{* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入
+  KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
+  Password: PEM 文件如加密，此处应传对应密码
+}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean;
-{* 将公私钥写入 PEM 格式文件中，返回是否成功}
+{* 将公私钥写入 PEM 格式文件中，返回是否成功
+  KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
+  KeyHashMethod: 生成 Key 的 Hash 算法，默认 MD5
+  Password: PEM 文件的加密密码
+}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; const Password: string = ''): Boolean;
@@ -331,10 +340,6 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
 {* 从 BER 解析出的 OID 获取其对应的散列摘要类型}
-
-function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode): TCnBerWriteNode;
-{* 将一个大数的内容写入一个 Ber 整型格式的节点}
 
 function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
@@ -456,7 +461,7 @@ begin
 end;
 
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey): Boolean;
+  PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean): Boolean;
 var
   N: Integer;
   Suc: Boolean;
@@ -502,7 +507,10 @@ begin
     if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
       Exit;
 
-    PublicKey.PubKeyExponent.SetDec('65537');
+    if PublicKeyUse3 then
+      PublicKey.PubKeyExponent.SetDec('3')
+    else
+      PublicKey.PubKeyExponent.SetDec('65537');
 
     Rem := nil;
     Y := nil;
@@ -547,7 +555,7 @@ begin
 end;
 
 function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey): Boolean;
+  PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean): Boolean;
 var
   N, PB1, PB2, MinDB, MinW: Integer;
   Suc: Boolean;
@@ -600,7 +608,10 @@ begin
     if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
       Exit;
 
-    PublicKey.PubKeyExponent.SetDec('65537');
+    if PublicKeyUse3 then
+      PublicKey.PubKeyExponent.SetDec('3')
+    else
+      PublicKey.PubKeyExponent.SetDec('65537');
 
     Rem := nil;
     Y := nil;
@@ -642,19 +653,6 @@ begin
     Suc := True;
   end;
   Result := True;
-end;
-
-procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
-var
-  P: Pointer;
-begin
-  if (Node = nil) or (Node.BerDataLength <= 0) then
-    Exit;
-
-  P := GetMemory(Node.BerDataLength);
-  Node.CopyDataTo(P);
-  BigNumber.SetBinary(P, Node.BerDataLength);
-  FreeMemory(P);
 end;
 
 // 从 PEM 格式文件中加载公私钥数据
@@ -868,39 +866,6 @@ begin
     Mem.Free;
     Reader.Free;
   end;
-end;
-
-// 如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
-function CalcIntegerTLV(BigNumber: TCnBigNumber): Cardinal;
-begin
-  Result := BigNumber.GetBytesCount;
-  if BigNumber.IsBitSet((Result * 8) - 1) then
-    Inc(Result);
-end;
-
-function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode): TCnBerWriteNode;
-var
-  P: Pointer;
-  C, D: Integer;
-begin
-  Result := nil;
-  if (Writer = nil) or (Num = nil) then
-    Exit;
-
-  // Integer 编码需要处理最高位
-  C := CalcIntegerTLV(Num);
-  if C <= 0 then
-    Exit;
-
-  P := GetMemory(C);
-  D := C - Num.GetBytesCount;
-
-  FillChar(P^, D, 0);
-  Num.ToBinary(PAnsiChar(Integer(P) + D));
-
-  Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
-  FreeMemory(P);
 end;
 
 // 将公私钥写入 PEM 格式文件中

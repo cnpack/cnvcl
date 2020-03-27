@@ -344,6 +344,13 @@ function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
   OIDSize: Integer): Boolean;
 {* 比较一个 Node 中的数据是否等于一个指定的 OID}
 
+function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
+{* 将一个大数的内容写入一个新增的 Ber 整型格式的节点}
+
+procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
+{* 将一个 Ber 整型格式的节点写入一个大数的内容}
+
 implementation
 
 const
@@ -403,6 +410,52 @@ begin
         Result := CompareMem(OIDAddr, P, OIDSize);
     end;
   end;
+end;
+
+// 如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
+function CalcIntegerTLV(BigNumber: TCnBigNumber): Cardinal;
+begin
+  Result := BigNumber.GetBytesCount;
+  if BigNumber.IsBitSet((Result * 8) - 1) then
+    Inc(Result);
+end;
+
+function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
+var
+  P: Pointer;
+  C, D: Integer;
+begin
+  Result := nil;
+  if (Writer = nil) or (Num = nil) then
+    Exit;
+
+  // Integer 编码需要处理最高位
+  C := CalcIntegerTLV(Num);
+  if C <= 0 then
+    Exit;
+
+  P := GetMemory(C);
+  D := C - Num.GetBytesCount;
+
+  FillChar(P^, D, 0);
+  Num.ToBinary(PAnsiChar(Integer(P) + D));
+
+  Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
+  FreeMemory(P);
+end;
+
+procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
+var
+  P: Pointer;
+begin
+  if (Node = nil) or (Node.BerDataLength <= 0) then
+    Exit;
+
+  P := GetMemory(Node.BerDataLength);
+  Node.CopyDataTo(P);
+  BigNumber.SetBinary(P, Node.BerDataLength);
+  FreeMemory(P);
 end;
 
 { TCnBerReader }
