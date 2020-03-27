@@ -514,7 +514,7 @@ end;
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
   MemoryStream: TMemoryStream; const Password: string; KeyHashMethod: TCnKeyHashMethod): Boolean;
 var
-  I, J: Integer;
+  I, J, HeadIndex, TailIndex: Integer;
   S, L1, L2, M1, M2, M3: string;
   Sl: TStringList;
 begin
@@ -527,13 +527,45 @@ begin
       Sl.LoadFromStream(Stream);
       if Sl.Count > 2 then
       begin
-        if Trim(Sl[0]) <> ExpectHead then
+        HeadIndex := -1;
+        for I := 0 to Sl.Count - 1 do
+        begin
+          if Trim(Sl[I]) = ExpectHead then
+          begin
+            HeadIndex := I;
+            Break;
+          end;
+        end;
+
+        if HeadIndex < 0 then
           Exit;
 
-        if Trim(Sl[Sl.Count - 1]) = '' then // 去掉末尾可能的空行
-          Sl.Delete(Sl.Count - 1);
+        if HeadIndex > 0 then
+          for I := 0 to HeadIndex - 1 do
+            Sl.Delete(0);
 
-        if Trim(Sl[Sl.Count - 1]) <> ExpectTail then
+        // 找到头了，现在找尾巴
+
+        TailIndex := -1;
+        for I := 0 to Sl.Count - 1 do
+        begin
+          if Trim(Sl[I]) = ExpectTail then
+          begin
+            TailIndex := I;
+            Break;
+          end;
+        end;
+
+        if TailIndex > 0 then // 找到了尾巴，删掉尾巴后面的东西
+        begin
+          if TailIndex < Sl.Count - 1 then
+            for I := Sl.Count - 1 downto TailIndex + 1 do
+              Sl.Delete(Sl.Count - 1);
+        end
+        else
+          Exit;
+
+        if Sl.Count < 2 then  // 没内容，退出
           Exit;
 
         // 头尾验证通过，读前两行判断是否加密
