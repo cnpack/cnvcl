@@ -1156,9 +1156,9 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    DesData(dmDecry, SubKey1, TempIn, TempOut);
-    DesData(dmEncry, SubKey2, TempOut, TempIn);
     DesData(dmDecry, SubKey3, TempIn, TempOut);
+    DesData(dmEncry, SubKey2, TempOut, TempIn);
+    DesData(dmDecry, SubKey1, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -1271,9 +1271,9 @@ begin
 
     Move(TempIn[0], Vector2[0], SizeOf(TDESIv));
 
-    DesData(dmDecry, SubKey1, TempIn, TempOut);
-    DesData(dmEncry, SubKey2, TempOut, TempIn);
     DesData(dmDecry, SubKey3, TempIn, TempOut);
+    DesData(dmEncry, SubKey2, TempOut, TempIn);
+    DesData(dmDecry, SubKey1, TempIn, TempOut);
 
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
