@@ -50,7 +50,8 @@ interface
 // 比起 Lucas 序列慢 10 倍以上。
 
 uses
-  SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber;
+  SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber,
+  CnPemUtils, CnBerUtils;
 
 type
   ECnEccException = class(Exception);
@@ -224,6 +225,9 @@ type
     {* 该椭圆曲线的素数域位数}
   end;
 
+  TCnEccKeyType = (cktPKCS1, cktPKCS8);
+  {* ECC 密钥文件格式}
+
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
@@ -256,6 +260,24 @@ function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivate
   OtherPublicKey: TCnEccPublicKey; SharedSecretKey: TCnEccPublicKey): Boolean;
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点，一般拿点的 X 坐标来做密钥
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
+
+// 椭圆曲线密钥 PEM 读写实现
+
+function CnEccLoadKeysFromPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
+{* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
+
+function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccPredefinedCurveType;
+  KeyType: TCnEccKeyType = cktPKCS1; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
+{* 将公私钥写入 PEM 格式文件中，返回是否成功}
+
+function CnEccLoadPublicKeyFromPem(const PemFileName: string;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
+{* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
 implementation
 
@@ -310,6 +332,31 @@ const
       H: '01'
     )
   );
+
+  PEM_EC_PARAM_HEAD = '-----BEGIN EC PARAMETERS-----';
+  PEM_EC_PARAM_TAIL = '-----END EC PARAMETERS-----';
+
+  PEM_EC_PRIVATE_HEAD = '-----BEGIN EC PRIVATE KEY-----';
+  PEM_EC_PRIVATE_TAIL = '-----END EC PRIVATE KEY-----';
+
+  PEM_EC_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
+  PEM_EC_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
+
+  // 预定义的椭圆曲线类型的 OID
+  OID_ECPARAM_CURVE_TYPE_SECP256K1: array[0..6] of Byte = ( // 1.3.132.0.10
+    $06, $05, $2B, $81, $04, $00, $0A
+  );
+
+  // ecPublicKey 的 OID                                     // 1.2.840.10045.2.1
+  OID_EC_PUBLIC_KEY: array [0..8] of Byte = (
+    $06, $07, $2A, $86, $48, $CE, $3D, $02, $01
+  );
+
+  // 公钥的存储形式
+  EC_PUBLICKEY_COMPRESSED1  = 02;
+  EC_PUBLICKEY_COMPRESSED2  = 03;
+  EC_PUBLICKEY_UNCOMPRESSED = 04;
+
 
 // 将一个 TCnInt64EccPoint 点坐标转换为字符串
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
@@ -1537,6 +1584,199 @@ begin
     Ecc.MultiplePoint(SelfPrivateKey, SharedSecretKey);
     Result := True;
   end;
+end;
+
+function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccPredefinedCurveType;
+begin
+  Result := ctCustomized;
+  if (Data = nil) or (DataLen <> 7) then
+    Exit;
+
+  if CompareMem(Data, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0], DataLen) then
+    Result := ctSecp256k1
+  // else if
+end;
+
+(*
+
+  SEQUENCE (2 elem)
+    SEQUENCE (2 elem)
+      OBJECT IDENTIFIER 1.2.840.10045.2.1 ecPublicKey (ANSI X9.62 public key type)
+      OBJECT IDENTIFIER 1.3.132.0.10 secp256k1 (SECG (Certicom) named elliptic curve)
+    BIT STRING
+*)
+function CnEccLoadPublicKeyFromPem(const PemFileName: string;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
+var
+  MemStream: TMemoryStream;
+  Reader: TCnBerReader;
+  Node: TCnBerReadNode;
+  CurveType2: TCnEccPredefinedCurveType;
+  B: PByte;
+  Len: Integer;
+begin
+  Result := False;
+  MemStream := nil;
+  Reader := nil;
+
+  if PublicKey = nil then
+    Exit;
+
+  try
+    MemStream := TMemoryStream.Create;
+    if LoadPemFileToMemory(PemFileName, PEM_EC_PUBLIC_HEAD, PEM_EC_PUBLIC_TAIL,
+      MemStream, Password, KeyHashMethod) then
+    begin
+      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
+      Reader.ParseToTree;
+      if Reader.TotalCount >= 5 then
+      begin
+        // 2 要判断是否公钥
+        Node := Reader.Items[2];
+        if (Node.BerLength <> SizeOf(OID_EC_PUBLIC_KEY)) or not CompareMem(@OID_EC_PUBLIC_KEY[0],
+          Node.BerAddress, Node.BerLength) then
+          Exit;
+
+        // 3 是曲线类型
+        Node := Reader.Items[3];
+        CurveType := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
+
+        // 读 4 里的公钥
+        Node := Reader.Items[4];
+        if PublicKey <> nil then
+        begin
+          // Node 的 Data 是 BITSTRING，00 04 开头
+          // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，这里是 0，跳过
+          B := Node.BerDataAddress;
+          Inc(B); // 跳过 00，指向压缩模式字节
+
+          if B^ = EC_PUBLICKEY_UNCOMPRESSED then
+          begin
+            // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
+            Len := (Node.BerDataLength - 2) div 2;
+            PublicKey.X.SetBinary(PAnsiChar(B), Len);
+            Inc(B, Len div 2);
+            PublicKey.Y.SetBinary(PAnsiChar(B), Len);
+          end
+          else if (B^ = EC_PUBLICKEY_COMPRESSED1) or (B^ = EC_PUBLICKEY_COMPRESSED2) then
+          begin
+            // 压缩格式，全是公钥 X
+            PublicKey.X.SetBinary(PAnsiChar(B), Node.BerDataLength - 2);
+            PublicKey.Y.SetZero; // Y 先 0，外部再去求解
+          end;
+        end;
+
+        Result := True;
+      end;
+    end;
+  finally
+    MemStream.Free;
+    Reader.Free;
+  end;
+end;
+
+(*
+   ECPrivateKey ::= SEQUENCE {
+     version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+     privateKey     OCTET STRING,
+     parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+     publicKey  [1] BIT STRING OPTIONAL
+   }
+
+  SEQUENCE (4 elem)
+    INTEGER 1
+    OCTET STRING (32 byte) 10C8813CC012D659A282B261E86D0440848DB246A077C427203F92FD90B3CD77
+    [0] (1 elem)
+      OBJECT IDENTIFIER 1.3.132.0.10 secp256k1 (SECG (Certicom) named elliptic curve)
+    [1] (1 elem)
+      BIT STRING
+*)
+function CnEccLoadKeysFromPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
+var
+  MemStream: TMemoryStream;
+  Reader: TCnBerReader;
+  Node: TCnBerReadNode;
+  CurveType2: TCnEccPredefinedCurveType;
+  B: PByte;
+  Len: Integer;
+begin
+  Result := False;
+  MemStream := nil;
+  Reader := nil;
+
+  try
+    MemStream := TMemoryStream.Create;
+    if LoadPemFileToMemory(PemFileName, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL,
+      MemStream, Password, KeyHashMethod) then
+      // 读 ECPARAM 也即椭圆曲线类型
+      CurveType := GetCurveTypeFromOID(PAnsiChar(MemStream.Memory), MemStream.Size);
+
+    if LoadPemFileToMemory(PemFileName, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL,
+      MemStream, Password, KeyHashMethod) then
+    begin
+      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
+      Reader.ParseToTree;
+      if Reader.TotalCount >= 7 then
+      begin
+        Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
+        if Node.AsByte = 1 then  // 只支持版本 1
+        begin
+          // 2 是私钥
+          if PrivateKey <> nil then
+            PutIndexedBigIntegerToBigInt(Reader.Items[2], PrivateKey);
+
+          // 4 又是曲线类型
+          Node := Reader.Items[4];
+          CurveType2 := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
+          if (CurveType <> ctCustomized) and (CurveType2 <> CurveType) then
+            Exit;
+
+          CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
+
+          // 读公钥
+          Node := Reader.Items[6];
+          if PublicKey <> nil then
+          begin
+            // Node 的 Data 是 BITSTRING，00 04 开头
+            // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，这里是 0，跳过
+            B := Node.BerDataAddress;
+            Inc(B); // 跳过 00，指向压缩模式字节
+
+            if B^ = EC_PUBLICKEY_UNCOMPRESSED then
+            begin
+              // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
+              Len := (Node.BerDataLength - 2) div 2;
+              PublicKey.X.SetBinary(PAnsiChar(B), Len);
+              Inc(B, Len div 2);
+              PublicKey.Y.SetBinary(PAnsiChar(B), Len);
+            end
+            else if (B ^ = EC_PUBLICKEY_COMPRESSED1) or (B ^ = EC_PUBLICKEY_COMPRESSED2) then
+            begin
+              // 压缩格式，全是公钥 X
+              PublicKey.X.SetBinary(PAnsiChar(B), Node.BerDataLength - 2);
+              PublicKey.Y.SetZero; // Y 先 0，外部再去求解
+            end;
+          end;
+
+          Result := True;
+        end;
+      end;
+    end;
+  finally
+    MemStream.Free;
+    Reader.Free;
+  end;
+end;
+
+function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccPredefinedCurveType;
+  KeyType: TCnEccKeyType = cktPKCS1; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
+begin
+
 end;
 
 end.

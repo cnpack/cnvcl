@@ -223,7 +223,8 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
 }
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; const Password: string = ''): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
 function CnRSASavePublicKeyToPem(const PemFileName: string;
@@ -816,7 +817,7 @@ PKCS#8:
         INTEGER     - Exponent
 *)
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; const Password: string): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
   Mem: TMemoryStream;
   Reader: TCnBerReader;
@@ -827,7 +828,8 @@ begin
 
   try
     Mem := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem, Password) then
+    if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem,
+      Password, KeyHashMethod) then
     begin
       // 读 PKCS#8 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
@@ -845,7 +847,7 @@ begin
       end;
     end
     else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL,
-      Mem, Password) then
+      Mem, Password, KeyHashMethod) then
     begin
       // 读 PKCS#1 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
