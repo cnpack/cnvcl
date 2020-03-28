@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, CnPrimeNumber, CnBigNumber, CnNativeDecl;
+  Chart, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils;
 
 type
   TFormEcc = class(TForm)
@@ -185,6 +185,11 @@ type
     btnSRLucas: TButton;
     btnSRCompare: TButton;
     btnBNLucasMod: TButton;
+    dlgOpen1: TOpenDialog;
+    tsPem: TTabSheet;
+    grpEccKeys: TGroupBox;
+    btnLoad: TButton;
+    dlgSave1: TSaveDialog;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -237,6 +242,7 @@ type
     procedure btnSRLucasClick(Sender: TObject);
     procedure btnSRCompareClick(Sender: TObject);
     procedure btnBNLucasModClick(Sender: TObject);
+    procedure btnLoadClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -1668,6 +1674,29 @@ begin
   N.Free;
   Q.Free;
   V.Free;
+end;
+
+procedure TFormEcc.btnLoadClick(Sender: TObject);
+var
+  PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+  CurveType: TCnEccPredefinedCurveType;
+  Password: string;
+begin
+  if dlgOpen1.Execute then
+  begin
+    Password := CnInputBox('Password', 'Enter Password if the PEM is Encrypted.', '');
+    PrivateKey := TCnEccPrivateKey.Create;
+    PublicKey := TCnEccPublicKey.Create;
+
+    CnEccLoadKeysFromPem(dlgOpen1.FileName, PrivateKey, PublicKey, CurveType, ckhMd5, Password);
+    // CnEccLoadPublicKeyFromPem(dlgOpen1.FileName, PublicKey, CurveType, ckhMd5, Password);
+    if dlgSave1.Execute then
+      CnEccSaveKeysToPem(dlgSave1.FileName, PrivateKey, PublicKey, CurveType);
+      // CnEccSavePublicKeyToPem(dlgSave1.FileName, PublicKey, CurveType);
+    PrivateKey.Free;
+    PublicKey.Free;
+  end;
 end;
 
 end.

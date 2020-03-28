@@ -1,8 +1,8 @@
 object FormEcc: TFormEcc
-  Left = 122
-  Top = 106
-  Width = 777
-  Height = 528
+  Left = 270
+  Top = 137
+  Width = 860
+  Height = 598
   Caption = 'ECC Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,9 +18,10 @@ object FormEcc: TFormEcc
   object pgc1: TPageControl
     Left = 16
     Top = 16
-    Width = 737
-    Height = 465
-    ActivePage = tsInt64ECC
+    Width = 820
+    Height = 535
+    ActivePage = tsSimpleECC
+    Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
       Caption = 'Simple ECC'
@@ -90,8 +91,9 @@ object FormEcc: TFormEcc
       object grpSimpleECC: TGroupBox
         Left = 16
         Top = 16
-        Width = 697
+        Width = 780
         Height = 161
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'Simple E23(1,1) Ò²¾ÍÊÇ Y^2 = X^3 + X + 1 mod 23'
         TabOrder = 0
         object Bevel1: TBevel
@@ -526,8 +528,9 @@ object FormEcc: TFormEcc
       object grpGenEcc: TGroupBox
         Left = 16
         Top = 16
-        Width = 697
-        Height = 401
+        Width = 780
+        Height = 471
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Generated Ecc'
         TabOrder = 0
         object lblEccY2: TLabel
@@ -559,10 +562,11 @@ object FormEcc: TFormEcc
           Shape = bsTopLine
         end
         object btnGenEcc: TButton
-          Left = 568
+          Left = 651
           Top = 24
           Width = 107
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Generate Small Ecc'
           TabOrder = 6
           OnClick = btnGenEccClick
@@ -616,10 +620,11 @@ object FormEcc: TFormEcc
           Text = '61'
         end
         object btnCalcNG: TButton
-          Left = 568
+          Left = 651
           Top = 56
           Width = 105
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Calculate N*G'
           TabOrder = 7
           OnClick = btnCalcNGClick
@@ -627,8 +632,9 @@ object FormEcc: TFormEcc
         object mmoGenECCPoints: TMemo
           Left = 568
           Top = 96
-          Width = 105
-          Height = 289
+          Width = 188
+          Height = 359
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
           TabOrder = 10
           WantReturns = False
@@ -683,28 +689,31 @@ object FormEcc: TFormEcc
           end
         end
         object btnLeRanDe: TButton
-          Left = 480
+          Left = 563
           Top = 88
           Width = 75
           Height = 25
+          Anchors = [akTop, akRight]
           Caption = 'Legendre'
           TabOrder = 9
           OnClick = btnLeRanDeClick
         end
         object btnBNGXtoPoint: TButton
-          Left = 472
-          Top = 360
+          Left = 555
+          Top = 430
           Width = 75
           Height = 21
+          Anchors = [akRight, akBottom]
           Caption = 'BN G.X to Pt'
           TabOrder = 12
           OnClick = btnBNGXtoPointClick
         end
         object btnInt64GXtoPt: TButton
-          Left = 480
+          Left = 563
           Top = 120
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'G.X to Pt'
           TabOrder = 11
           OnClick = btnInt64GXtoPtClick
@@ -717,8 +726,9 @@ object FormEcc: TFormEcc
       object grpBNEcc: TGroupBox
         Left = 16
         Top = 16
-        Width = 697
-        Height = 409
+        Width = 780
+        Height = 479
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'BigNumber Ecc'
         ParentShowHint = False
         ShowHint = True
@@ -797,45 +807,51 @@ object FormEcc: TFormEcc
         object edtBNEccA: TEdit
           Left = 104
           Top = 24
-          Width = 577
+          Width = 660
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Text = '0'
         end
         object edtBNEccB: TEdit
           Left = 56
           Top = 56
-          Width = 625
+          Width = 708
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 1
           Text = '7'
         end
         object edtBNEccP: TEdit
           Left = 56
           Top = 88
-          Width = 625
+          Width = 708
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
         end
         object edtBNEccGX: TEdit
           Left = 56
           Top = 120
-          Width = 625
+          Width = 708
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 3
         end
         object edtBNEccGY: TEdit
           Left = 56
           Top = 152
-          Width = 625
+          Width = 708
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 4
         end
         object edtBNEccOrder: TEdit
           Left = 56
           Top = 184
-          Width = 625
+          Width = 708
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
         end
         object btnBNEccInverseG: TButton
@@ -850,8 +866,9 @@ object FormEcc: TFormEcc
         object edtBNEccResult: TEdit
           Left = 16
           Top = 232
-          Width = 665
+          Width = 748
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 6
         end
         object btnBNEccInverseAdd: TButton
@@ -929,29 +946,33 @@ object FormEcc: TFormEcc
         object edtBNEccPublicKey: TEdit
           Left = 16
           Top = 336
-          Width = 665
+          Width = 748
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 17
         end
         object edtBNEccPrivateKey: TEdit
           Left = 232
           Top = 300
-          Width = 449
+          Width = 532
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 16
         end
         object edtBNEccDataPoint: TEdit
           Left = 80
           Top = 372
-          Width = 505
+          Width = 588
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 18
         end
         object btnBNEccCrypt: TButton
-          Left = 592
-          Top = 372
+          Left = 675
+          Top = 370
           Width = 91
           Height = 21
+          Anchors = [akRight]
           Caption = 'Encrypt/Decrypt'
           TabOrder = 19
           OnClick = btnBNEccCryptClick
@@ -964,8 +985,9 @@ object FormEcc: TFormEcc
       object grpWrap: TGroupBox
         Left = 16
         Top = 16
-        Width = 697
-        Height = 321
+        Width = 780
+        Height = 391
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'BigNumber Ecc'
         TabOrder = 0
         object lblWrapData: TLabel
@@ -1020,16 +1042,18 @@ object FormEcc: TFormEcc
         object edtWrapData: TEdit
           Left = 56
           Top = 24
-          Width = 449
+          Width = 532
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Text = '123321123456734234'
         end
         object btnWrapData: TButton
-          Left = 512
+          Left = 595
           Top = 24
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'X to Point'
           TabOrder = 1
           OnClick = btnWrapDataClick
@@ -1037,40 +1061,45 @@ object FormEcc: TFormEcc
         object edtWrapPoint: TEdit
           Left = 16
           Top = 56
-          Width = 657
+          Width = 740
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 3
         end
         object edtBNECDHXa: TEdit
           Left = 70
           Top = 116
-          Width = 515
+          Width = 598
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 4
           Text = '30954823978126165439807650540507823796164384908578170843'
         end
         object edtBNECDHXb: TEdit
           Left = 70
           Top = 212
-          Width = 515
+          Width = 598
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 9
           Text = '554978037890271980743250435089743764116321467834980754709'
         end
         object btnBNECDHYb: TButton
-          Left = 600
+          Left = 683
           Top = 212
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Calc Yb'
           TabOrder = 10
           OnClick = btnBNECDHYbClick
         end
         object btnBNECDHYa: TButton
-          Left = 600
+          Left = 683
           Top = 116
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Calc Ya'
           TabOrder = 5
           OnClick = btnBNECDHYaClick
@@ -1078,31 +1107,35 @@ object FormEcc: TFormEcc
         object edtBNECDHA: TEdit
           Left = 70
           Top = 148
-          Width = 515
+          Width = 598
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 6
         end
         object edtBNECDHB: TEdit
           Left = 70
           Top = 244
-          Width = 515
+          Width = 598
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 11
         end
         object btnBNECDHBkey: TButton
-          Left = 600
+          Left = 683
           Top = 244
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'B Calc Key'
           TabOrder = 12
           OnClick = btnBNECDHBkeyClick
         end
         object btnBNECDHAKey: TButton
-          Left = 600
+          Left = 683
           Top = 148
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'A Calc Key'
           TabOrder = 7
           OnClick = btnBNECDHAKeyClick
@@ -1110,31 +1143,35 @@ object FormEcc: TFormEcc
         object edtBNECDHResA: TEdit
           Left = 70
           Top = 180
-          Width = 515
+          Width = 598
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 8
         end
         object edtBNECDHResB: TEdit
           Left = 70
           Top = 276
-          Width = 515
+          Width = 598
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 13
         end
         object btnTestECDH: TButton
-          Left = 600
+          Left = 683
           Top = 276
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'ECDH Sample'
           TabOrder = 14
           OnClick = btnTestECDHClick
         end
         object btnBNEccWrapRange: TButton
-          Left = 600
+          Left = 683
           Top = 24
           Width = 75
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Range to Point'
           TabOrder = 2
           OnClick = btnBNEccWrapRangeClick
@@ -1210,6 +1247,7 @@ object FormEcc: TFormEcc
           Top = 88
           Width = 153
           Height = 305
+          Anchors = [akLeft, akTop, akBottom]
           ScrollBars = ssVertical
           TabOrder = 4
           WordWrap = False
@@ -1219,6 +1257,7 @@ object FormEcc: TFormEcc
           Top = 88
           Width = 153
           Height = 305
+          Anchors = [akLeft, akTop, akBottom]
           ScrollBars = ssVertical
           TabOrder = 5
           WordWrap = False
@@ -1255,15 +1294,17 @@ object FormEcc: TFormEcc
       object grpLegendre: TGroupBox
         Left = 392
         Top = 16
-        Width = 321
-        Height = 409
+        Width = 404
+        Height = 479
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Legendre Symbol'
         TabOrder = 1
         object btnCalcLegendre: TButton
           Left = 16
           Top = 24
-          Width = 289
+          Width = 372
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           Caption = 'Calc Legendre'
           TabOrder = 0
           OnClick = btnCalcLegendreClick
@@ -1272,25 +1313,27 @@ object FormEcc: TFormEcc
           Left = 16
           Top = 56
           Width = 193
-          Height = 337
+          Height = 407
+          Anchors = [akLeft, akTop, akBottom]
           ScrollBars = ssVertical
           TabOrder = 1
           WordWrap = False
         end
         object mmoLegendreRes1: TMemo
-          Left = 216
+          Left = 221
           Top = 56
-          Width = 41
-          Height = 337
+          Width = 52
+          Height = 407
+          Anchors = [akLeft, akTop, akBottom]
           ScrollBars = ssVertical
           TabOrder = 2
           WordWrap = False
         end
         object mmoLegendreRes2: TMemo
-          Left = 264
+          Left = 280
           Top = 56
-          Width = 41
-          Height = 337
+          Width = 57
+          Height = 407
           ScrollBars = ssVertical
           TabOrder = 3
           WordWrap = False
@@ -1303,8 +1346,9 @@ object FormEcc: TFormEcc
       object grpTonelliShanks: TGroupBox
         Left = 16
         Top = 16
-        Width = 697
-        Height = 385
+        Width = 780
+        Height = 455
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Tonelli Shanks'
         TabOrder = 0
         object lblTSX: TLabel
@@ -1324,33 +1368,37 @@ object FormEcc: TFormEcc
         object edtTSX: TEdit
           Left = 40
           Top = 24
-          Width = 505
+          Width = 588
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Text = '5'
         end
         object edtTSP: TEdit
           Left = 40
           Top = 56
-          Width = 505
+          Width = 588
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 1
           Text = '538879667'
         end
         object btnTSInt64: TButton
-          Left = 552
+          Left = 635
           Top = 24
           Width = 131
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Tonelli Shanks Int64'
           TabOrder = 2
           OnClick = btnTSInt64Click
         end
         object btnBNTS: TButton
-          Left = 552
+          Left = 635
           Top = 56
           Width = 131
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Tonelli Shanks BigNumber'
           TabOrder = 3
           OnClick = btnBNTSClick
@@ -1380,8 +1428,9 @@ object FormEcc: TFormEcc
       object grpSquareRoot: TGroupBox
         Left = 8
         Top = 16
-        Width = 705
-        Height = 409
+        Width = 788
+        Height = 479
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Square Root'
         TabOrder = 0
         object lblSRY: TLabel
@@ -1450,5 +1499,34 @@ object FormEcc: TFormEcc
         end
       end
     end
+    object tsPem: TTabSheet
+      Caption = 'Keys Load/Save'
+      ImageIndex = 7
+      object grpEccKeys: TGroupBox
+        Left = 16
+        Top = 16
+        Width = 777
+        Height = 473
+        Caption = 'Ecc Keys'
+        TabOrder = 0
+        object btnLoad: TButton
+          Left = 24
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'Load   Save'
+          TabOrder = 0
+          OnClick = btnLoadClick
+        end
+      end
+    end
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 364
+    Top = 248
+  end
+  object dlgSave1: TSaveDialog
+    Left = 468
+    Top = 152
   end
 end
