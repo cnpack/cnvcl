@@ -28,7 +28,9 @@ unit CnBerUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.04.19 V1.2
+* 修改记录：2020.03.28 V1.3
+*               允许外部给节点设置 TypeMask 以应对 ECC 的私钥父节点的情况。
+*           2019.04.19 V1.2
 *               支持 Win32/Win64/MacOS，支持 VCL 与 FMX 下的 TreeView 交互。
 *           2018.05.27 V1.1
 *               将 Parser 改为 Reader 并实现 Writer
@@ -249,6 +251,7 @@ type
     FDataLength: Integer;
     FData: Pointer;
     FBerTag: Integer;
+    FBerTypeMask: Byte;
     function GetIsContainer: Boolean;
     procedure SetIsContainer(const Value: Boolean);
     function GetItems(Index: Integer): TCnBerWriteNode;
@@ -284,6 +287,8 @@ type
 
     property BerTag: Integer read FBerTag write FBerTag;
     {* 节点类型，也就是 Tag}
+    property BerTypeMask: Byte read FBerTypeMask write FBerTypeMask;
+    {* 节点 Mask，只有最高两位有效，写入 BerTag 时会与此值或}
   end;
 
   TCnBerWriter = class(TObject)
@@ -1038,6 +1043,8 @@ begin
   FHeadLen := 0;
   if FIsContainer and (FBerTag in [CN_BER_TAG_SEQUENCE, CN_BER_TAG_SET]) then
     FHead[0] := ATag or CN_BER_TAG_STRUCT_MASK // 有子节点且是指定类型，高位置 1
+  else if FIsContainer and ((FBerTypeMask and CN_BER_TAG_TYPE_MASK) <> 0) then // 有特殊 Mask 时允许其他类型的 Tag 做 Container
+    FHead[0] := ATag or CN_BER_TAG_STRUCT_MASK or (FBerTypeMask and CN_BER_TAG_TYPE_MASK)
   else
     FHead[0] := ATag;
 
