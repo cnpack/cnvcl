@@ -63,8 +63,8 @@ function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: st
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件}
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
+{* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加}
 
 implementation
 
@@ -678,10 +678,10 @@ end;
 
 function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod;
-  KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
+  KeyHashMethod: TCnKeyHashMethod; const Password: string; Append: Boolean): Boolean;
 var
   S, EH: string;
-  List: TStringList;
+  List, Sl: TStringList;
 begin
   Result := False;
   if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
@@ -709,7 +709,20 @@ begin
           List.Insert(1, EH);
         List.Add(Tail);        // 普通尾
 
-        List.SaveToFile(FileName);
+        if Append and FileExists(FileName) then
+        begin
+          Sl := TStringList.Create;
+          try
+            Sl.LoadFromFile(FileName);
+            Sl.AddStrings(List);
+            Sl.SaveToFile(FileName);
+          finally
+            Sl.Free;
+          end;
+        end
+        else
+          List.SaveToFile(FileName);
+
         Result := True;
       finally
         List.Free;
