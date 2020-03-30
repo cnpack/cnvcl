@@ -79,7 +79,7 @@ begin
   SetLength(SaltBuf, 8);
   FillChar(SaltBuf[1], Length(SaltBuf), 0);
   if Salt <> '' then
-  Move(Salt[1], SaltBuf[1], Min(Length(Salt), 8));
+    Move(Salt[1], SaltBuf[1], Min(Length(Salt), 8));
 
   PS := AnsiString(Password) + SaltBuf; // 规定前 8 个字节作为 Salt
   if KeyHash = ckdMd5 then
@@ -114,9 +114,6 @@ begin
     Sha256Dig := SHA256StringA(PS);
     // 密码与 Salt 拼起来的 SHA256 结果（32 Byte）作为第一部分
 
-    Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
-    Sha256Dig2 := SHA256StringA(PSSHA256);
-
     Move(Sha256Dig[0], OutKey^, Min(KeyLength, SizeOf(TSHA256Digest)));
     if KeyLength <= SizeOf(TSHA256Digest) then
     begin
@@ -127,9 +124,9 @@ begin
     KeyLength := KeyLength - SizeOf(TSHA256Digest);
     OutKey := PAnsiChar(Integer(OutKey) + SizeOf(TSHA256Digest));
 
-    Move(Sha256Dig[0], PSMD5[1], SizeOf(TSHA256Digest));
-    Md5Dig2 := MD5StringA(PSMD5);
-    Move(Md5Dig2[0], OutKey^, Min(KeyLength, SizeOf(TSHA256Digest)));
+    Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
+    Sha256Dig2 := SHA256StringA(PSSHA256);
+    Move(Sha256Dig2[0], OutKey^, Min(KeyLength, SizeOf(TSHA256Digest)));
     if KeyLength <= SizeOf(TSHA256Digest) then
       Result := True;
 
