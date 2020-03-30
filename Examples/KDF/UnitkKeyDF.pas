@@ -20,6 +20,12 @@ type
     lblBytes: TLabel;
     btnGetKeyToHex: TButton;
     edtGetKeyToHex: TEdit;
+    btnPBKDF1: TButton;
+    btnPBKDF2: TButton;
+    lblCount: TLabel;
+    edtCount: TEdit;
+    edtPBKDF1: TEdit;
+    edtPBKDF2: TEdit;
     procedure btnGetKeyToHexClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private

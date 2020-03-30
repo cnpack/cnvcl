@@ -2,13 +2,13 @@ program KDFTest;
 
 uses
   Forms,
-  UnitkKeyDF in 'UnitkKeyDF.pas' {Form1},
+  UnitkKeyDF in 'UnitkKeyDF.pas' {FormKDF},
   CnKeyDerivation in '..\..\Source\Common\CnKeyDerivation.pas';
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormKDF, FormKDF);
   Application.Run;
 end.
