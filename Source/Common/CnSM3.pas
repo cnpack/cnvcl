@@ -88,7 +88,7 @@ procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 function SM3Buffer(const Buffer; Count: LongWord): TSM3Digest;
 {* 对数据块进行 SM3 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 

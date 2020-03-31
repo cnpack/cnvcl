@@ -1,8 +1,8 @@
 object FormKDF: TFormKDF
-  Left = 594
-  Top = 190
-  Width = 958
-  Height = 675
+  Left = 434
+  Top = 226
+  Width = 780
+  Height = 478
   Caption = 'Key Derivation Function'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object FormKDF: TFormKDF
   object grpKeyDerivation: TGroupBox
     Left = 24
     Top = 24
-    Width = 817
+    Width = 713
     Height = 393
     Caption = 'Key Derivation'
     TabOrder = 0
@@ -63,6 +63,13 @@ object FormKDF: TFormKDF
       Width = 31
       Height = 13
       Caption = 'Count:'
+    end
+    object lblPBKDF1Hash: TLabel
+      Left = 192
+      Top = 116
+      Width = 46
+      Height = 13
+      Caption = 'KeyHash:'
     end
     object edtPass: TEdit
       Left = 48
@@ -121,15 +128,16 @@ object FormKDF: TFormKDF
       Top = 144
       Width = 97
       Height = 25
-      Caption = 'btnPBKDF1'
+      Caption = 'PBKDF1'
       TabOrder = 6
+      OnClick = btnPBKDF1Click
     end
     object btnPBKDF2: TButton
       Left = 16
       Top = 176
       Width = 97
       Height = 25
-      Caption = 'btnPBKDF2'
+      Caption = 'PBKDF2'
       TabOrder = 7
     end
     object edtCount: TEdit
@@ -153,6 +161,18 @@ object FormKDF: TFormKDF
       Width = 545
       Height = 21
       TabOrder = 10
+    end
+    object cbbPBKDF1Hash: TComboBox
+      Left = 248
+      Top = 112
+      Width = 49
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      TabOrder = 11
+      Items.Strings = (
+        'MD5'
+        'SHA1')
     end
   end
 end

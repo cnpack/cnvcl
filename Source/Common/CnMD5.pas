@@ -105,7 +105,7 @@ type
 function MD5Buffer(const Buffer; Count: LongWord): TMD5Digest;
 {* 对数据块进行 MD5 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 

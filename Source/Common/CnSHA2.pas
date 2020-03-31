@@ -91,29 +91,29 @@ type
 function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
 {* 对数据块进行 SHA224 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
 {* 对数据块进行 SHA256 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA384Buffer(const Buffer; Count: LongWord): TSHA384Digest;
 {* 对数据块进行 SHA384 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA512Buffer(const Buffer; Count: LongWord): TSHA512Digest;
 {* 对数据块进行 SHA512 计算
  |<PRE>
-  const Buffer     - 要计算的数据块
-  Count: LongWord  - 数据块长度
+   const Buffer     - 要计算的数据块，一般传个地址
+   Count: LongWord  - 数据块长度
  |</PRE>}
 
 {$IFDEF TBYTES_DEFINED}

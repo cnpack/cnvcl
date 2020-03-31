@@ -24,7 +24,7 @@ unit CnKDF;
 * 软件名称：开发包基础库
 * 单元名称：密码生成算法（KDF）单元
 * 单元作者：刘啸
-* 备    注：
+* 备    注：基于 RFC2898 的 PBKDF1 与 PBKDF2 实现，但 PBKDF1 不支持 MD2
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -38,23 +38,30 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnMD5, CnSHA2;
+  SysUtils, Classes, CnMD5, CnSHA1, CnSHA2;
 
 type
-  TCnKeyDeriveHash = (ckdMd5, ckdSha256);
+  TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
 
   ECnKeyDerivation = class(Exception);
 
 function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; KeyLength: Cardinal;
   KeyHash: TCnKeyDeriveHash = ckdMd5): Boolean;
 {* 类似于 Openssl 中的 BytesToKey，用密码和盐与指定的 Hash 算法生成加密 Key，
-  KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节}
+  目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节}
 
-function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer): AnsiString;
+function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+  KeyHash: TCnKeyDeriveHash = ckdMd5): AnsiString;
+{* Password Based KDF 1 实现，简单的固定 Hash 迭代，不支持 MD2}
 
 function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer): AnsiString;
 
 implementation
+
+resourcestring
+  SCnKDFErrorTooLong = 'Derived Key Too Long.';
+  SCnKDFErrorParam = 'Invalid Parameters.';
+  SCnKDFHashNOTSupport = 'Hash Method NOT Support.';
 
 function Min(A, B: Integer): Integer;
 begin
@@ -80,6 +87,9 @@ begin
   FillChar(SaltBuf[1], Length(SaltBuf), 0);
   if Salt <> '' then
     Move(Salt[1], SaltBuf[1], Min(Length(Salt), 8));
+
+  if not (KeyHash in [ckdMd5, ckdSha256]) then
+    raise ECnKeyDerivation.Create(SCnKDFHashNOTSupport);
 
   PS := AnsiString(Password) + SaltBuf; // 规定前 8 个字节作为 Salt
   if KeyHash = ckdMd5 then
@@ -134,9 +144,66 @@ begin
   end;
 end;
 
-function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer): AnsiString;
+(*
+  T_1 = Hash (P || S) ,
+  T_2 = Hash (T_1) ,
+  ...
+  T_c = Hash (T_{c-1}) ,
+  DK = Tc<0..dkLen-1>
+*)
+function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+  KeyHash: TCnKeyDeriveHash): AnsiString;
+var
+  I: Integer;
+  Md5Dig, TM: TMD5Digest;
+  Sha1Dig, TS: TSHA1Digest;
+  Ptr: PAnsiChar;
 begin
+  if (Password = '') or (Count <= 0) or (DerivedKeyLength <= 0) then
+    raise ECnKeyDerivation.Create(SCnKDFErrorParam);
 
+  case KeyHash of
+    ckdMd5:
+      begin
+        if DerivedKeyLength > SizeOf(TMD5Digest) then
+          raise ECnKeyDerivation.Create(SCnKDFErrorTooLong);
+
+        SetLength(Result, DerivedKeyLength);
+        Md5Dig := MD5StringA(Password + Salt);  // Got T1
+        if Count > 1 then
+        begin
+          Ptr := PAnsiChar(@TM[0]);
+          for I := 2 to Count do
+          begin
+            TM := Md5Dig;
+            Md5Dig := MD5Buffer(Ptr, SizeOf(TMD5Digest)); // Got T_c
+          end;
+        end;
+
+        Move(Md5Dig[0], Result[1], DerivedKeyLength);
+      end;
+    ckdSha1:
+      begin
+        if DerivedKeyLength > SizeOf(TSHA1Digest) then
+          raise ECnKeyDerivation.Create(SCnKDFErrorTooLong);
+
+        SetLength(Result, DerivedKeyLength);
+        Sha1Dig := SHA1StringA(Password + Salt);  // Got T1
+        if Count > 1 then
+        begin
+          Ptr := PAnsiChar(@TS[0]);
+          for I := 2 to Count do
+          begin
+            TS := Sha1Dig;
+            Sha1Dig := SHA1Buffer(Ptr, SizeOf(TSHA1Digest)); // Got T_c
+          end;
+        end;
+
+        Move(Sha1Dig[0], Result[1], DerivedKeyLength);
+      end;
+    else
+      raise ECnKeyDerivation.Create(SCnKDFHashNOTSupport);
+  end;
 end;
 
 function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer): AnsiString;

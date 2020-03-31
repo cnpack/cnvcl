@@ -59,7 +59,7 @@ function CRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWor
 {* 计算 CRC32 值
  |<PRE>
    OrgCRC32: DWORD  - 起始 CRC32 值，默认可传 0
-   const Data       - 要计算的数据块
+   const Data       - 要计算的数据块，一般不传地址
    Len: DWORD       - 数据块长度
    Result: DWORD    - 返回 CRC32 计算结果
  |</PRE>}

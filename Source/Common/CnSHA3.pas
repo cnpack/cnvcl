@@ -75,28 +75,28 @@ type
 function SHA3_224Buffer(const Buffer; Count: LongWord): TSHA3_224Digest;
 {* 对数据块进行 SHA3_224 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_256Buffer(const Buffer; Count: LongWord): TSHA3_256Digest;
 {* 对数据块进行 SHA3_256 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_384Buffer(const Buffer; Count: LongWord): TSHA3_384Digest;
 {* 对数据块进行 SHA3_384 计算
  |<PRE>
-   const Buffer     - 要计算的数据块
+   const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
 function SHA3_512Buffer(const Buffer; Count: LongWord): TSHA3_512Digest;
 {* 对数据块进行 SHA3_512 计算
  |<PRE>
-  const Buffer     - 要计算的数据块
+  const Buffer     - 要计算的数据块，一般传个地址
   Count: LongWord  - 数据块长度
  |</PRE>}
 
