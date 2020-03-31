@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnKeyDerivation;
+  StdCtrls, CnKDF;
 
 type
   TFormKDF = class(TForm)

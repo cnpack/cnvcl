@@ -44,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnRandom, CnKeyDerivation, CnBase64, CnAES, CnDES, CnMD5, CnSHA2;
+  SysUtils, Classes, CnRandom, CnKDF, CnBase64, CnAES, CnDES, CnMD5, CnSHA2;
 
 type
   TCnKeyHashMethod = (ckhMd5, ckhSha256);
