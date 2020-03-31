@@ -43,7 +43,11 @@ uses
 type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
 
-  ECnKeyDerivation = class(Exception);
+  TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1);
+
+  TCnPBKDF2KeyHash = (cpdfSha1Hmac, cpdfSha256Hmac);
+
+  ECnKDFException = class(Exception);
 
 function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; KeyLength: Cardinal;
   KeyHash: TCnKeyDeriveHash = ckdMd5): Boolean;
@@ -51,10 +55,12 @@ function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; Key
   目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节}
 
 function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
-  KeyHash: TCnKeyDeriveHash = ckdMd5): AnsiString;
-{* Password Based KDF 1 实现，简单的固定 Hash 迭代，不支持 MD2}
+  KeyHash: TCnPBKDF1KeyHash = cpdfMd5): AnsiString;
+{* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1}
 
-function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer): AnsiString;
+function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+  KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): AnsiString;
+{* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256}
 
 implementation
 
@@ -89,7 +95,7 @@ begin
     Move(Salt[1], SaltBuf[1], Min(Length(Salt), 8));
 
   if not (KeyHash in [ckdMd5, ckdSha256]) then
-    raise ECnKeyDerivation.Create(SCnKDFHashNOTSupport);
+    raise ECnKDFException.Create(SCnKDFHashNOTSupport);
 
   PS := AnsiString(Password) + SaltBuf; // 规定前 8 个字节作为 Salt
   if KeyHash = ckdMd5 then
@@ -152,7 +158,7 @@ end;
   DK = Tc<0..dkLen-1>
 *)
 function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
-  KeyHash: TCnKeyDeriveHash): AnsiString;
+  KeyHash: TCnPBKDF1KeyHash): AnsiString;
 var
   I: Integer;
   Md5Dig, TM: TMD5Digest;
@@ -160,13 +166,13 @@ var
   Ptr: PAnsiChar;
 begin
   if (Password = '') or (Count <= 0) or (DerivedKeyLength <= 0) then
-    raise ECnKeyDerivation.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnKDFErrorParam);
 
   case KeyHash of
-    ckdMd5:
+    cpdfMd5:
       begin
         if DerivedKeyLength > SizeOf(TMD5Digest) then
-          raise ECnKeyDerivation.Create(SCnKDFErrorTooLong);
+          raise ECnKDFException.Create(SCnKDFErrorTooLong);
 
         SetLength(Result, DerivedKeyLength);
         Md5Dig := MD5StringA(Password + Salt);  // Got T1
@@ -182,10 +188,10 @@ begin
 
         Move(Md5Dig[0], Result[1], DerivedKeyLength);
       end;
-    ckdSha1:
+    cpdfSha1:
       begin
         if DerivedKeyLength > SizeOf(TSHA1Digest) then
-          raise ECnKeyDerivation.Create(SCnKDFErrorTooLong);
+          raise ECnKDFException.Create(SCnKDFErrorTooLong);
 
         SetLength(Result, DerivedKeyLength);
         Sha1Dig := SHA1StringA(Password + Salt);  // Got T1
@@ -202,13 +208,77 @@ begin
         Move(Sha1Dig[0], Result[1], DerivedKeyLength);
       end;
     else
-      raise ECnKeyDerivation.Create(SCnKDFHashNOTSupport);
+      raise ECnKDFException.Create(SCnKDFHashNOTSupport);
   end;
 end;
 
-function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer): AnsiString;
+function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+  KeyHash: TCnPBKDF2KeyHash): AnsiString;
+var
+  HLen, D, I, J, K: Integer;
+  Sha1Dig1, Sha1Dig, T1: TSHA1Digest;
+  Sha256Dig1, Sha256Dig, T256: TSHA256Digest;
+  S, S1, S256: AnsiString;
 begin
+  Result := '';
+  if (Password = '') or (Salt = '') or (Count <= 0) or (DerivedKeyLength <=0) then
+    raise ECnKDFException.Create(SCnKDFErrorParam);
 
+  case KeyHash of
+    cpdfSha1Hmac:
+      HLen := 20;
+    cpdfSha256Hmac:
+      HLen := 32;
+  else
+    raise ECnKDFException.Create(SCnKDFErrorParam);
+  end;
+
+  D := (DerivedKeyLength div HLen) + 1;
+  SetLength(S1, SizeOf(TSHA1Digest));
+  SetLength(S256, SizeOf(TSHA256Digest));
+
+  if KeyHash = cpdfSha1Hmac then
+  begin
+    for I := 1 to D do
+    begin
+      S := Salt + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
+      SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(S), Length(S), Sha1Dig1);
+      T1 := Sha1Dig1;
+
+      for J := 2 to Count do
+      begin
+        SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T1[0]), SizeOf(TSHA1Digest), Sha1Dig);
+        T1 := Sha1Dig;
+        for K := Low(TSHA1Digest) to High(TSHA1Digest) do
+          Sha1Dig1[K] := Sha1Dig1[K] xor T1[K];
+      end;
+
+      Move(Sha1Dig1[0], S1[1], SizeOf(TSHA1Digest));
+      Result := Result + S1;
+    end;
+    Result := Copy(Result, 1, DerivedKeyLength);
+  end
+  else if KeyHash = cpdfSha256Hmac then
+  begin
+    for I := 1 to D do
+    begin
+      S := Salt + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
+      SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(S), Length(S), Sha256Dig1);
+      T256 := Sha256Dig1;
+
+      for J := 2 to Count do
+      begin
+        SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T256[0]), SizeOf(TSHA256Digest), Sha256Dig);
+        T256 := Sha256Dig;
+        for K := Low(TSHA256Digest) to High(TSHA256Digest) do
+          Sha256Dig1[K] := Sha256Dig1[K] xor T1[K];
+      end;
+
+      Move(Sha256Dig1[0], S256[1], SizeOf(TSHA256Digest));
+      Result := Result + S256;
+    end;
+    Result := Copy(Result, 1, DerivedKeyLength);
+  end;
 end;
 
 end.

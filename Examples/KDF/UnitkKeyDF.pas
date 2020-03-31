@@ -28,9 +28,14 @@ type
     edtPBKDF2: TEdit;
     lblPBKDF1Hash: TLabel;
     cbbPBKDF1Hash: TComboBox;
+    lblPBKDF2Hash: TLabel;
+    cbbPBKDF2Hash: TComboBox;
+    lblPBKDF2KeyLen: TLabel;
+    edtPBKDF2KeyLength: TEdit;
     procedure btnGetKeyToHexClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnPBKDF1Click(Sender: TObject);
+    procedure btnPBKDF2Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -109,6 +114,7 @@ procedure TFormKDF.FormCreate(Sender: TObject);
 begin
   cbbLoadKeyHash.ItemIndex := 0;
   cbbPBKDF1Hash.ItemIndex := 0;
+  cbbPBKDF2Hash.ItemIndex := 0;
 end;
 
 procedure TFormKDF.btnPBKDF1Click(Sender: TObject);
@@ -117,15 +123,33 @@ var
   C: Integer;
 begin
   Pass := edtPass.Text;
-  Salt := edtSalt.Text;
+  Salt := HexToStr(edtSalt.Text);
   C := StrToInt(edtCount.Text);
 
   if cbbPBKDF1Hash.ItemIndex = 0 then
-    S := CnPBKDF1(Pass, Salt, C, 16, ckdMd5)
+    S := CnPBKDF1(Pass, Salt, C, 16, cpdfMd5)
   else if cbbPBKDF1Hash.ItemIndex = 1 then
-    S := CnPBKDF1(Pass, Salt, C, 20, ckdSha1);
+    S := CnPBKDF1(Pass, Salt, C, 20, cpdfSha1);
 
   edtPBKDF1.Text := StrToHex(PAnsiChar(S), Length(S));
+end;
+
+procedure TFormKDF.btnPBKDF2Click(Sender: TObject);
+var
+  Pass, Salt, S: AnsiString;
+  C, K: Integer;
+begin
+  Pass := edtPass.Text;
+  Salt := HexToStr(edtSalt.Text);
+  C := StrToInt(edtCount.Text);
+  K := StrToInt(edtPBKDF2KeyLength.Text);
+
+  if cbbPBKDF2Hash.ItemIndex = 0 then
+    S := CnPBKDF2(Pass, Salt, C, K, cpdfSha1Hmac)
+  else if cbbPBKDF2Hash.ItemIndex = 1 then
+    S := CnPBKDF2(Pass, Salt, C, K, cpdfSha256Hmac);
+
+  edtPBKDF2.Text := StrToHex(PAnsiChar(S), Length(S));
 end;
 
 end.

@@ -65,11 +65,25 @@ object FormKDF: TFormKDF
       Caption = 'Count:'
     end
     object lblPBKDF1Hash: TLabel
-      Left = 192
+      Left = 240
       Top = 116
-      Width = 46
+      Width = 93
       Height = 13
-      Caption = 'KeyHash:'
+      Caption = 'PBKDF 1 KeyHash:'
+    end
+    object lblPBKDF2Hash: TLabel
+      Left = 136
+      Top = 188
+      Width = 90
+      Height = 13
+      Caption = 'PBKDF2 KeyHash:'
+    end
+    object lblPBKDF2KeyLen: TLabel
+      Left = 384
+      Top = 188
+      Width = 101
+      Height = 13
+      Caption = 'PBKDF2 Key Length:'
     end
     object edtPass: TEdit
       Left = 48
@@ -134,11 +148,12 @@ object FormKDF: TFormKDF
     end
     object btnPBKDF2: TButton
       Left = 16
-      Top = 176
+      Top = 216
       Width = 97
       Height = 25
       Caption = 'PBKDF2'
       TabOrder = 7
+      OnClick = btnPBKDF2Click
     end
     object edtCount: TEdit
       Left = 64
@@ -157,13 +172,13 @@ object FormKDF: TFormKDF
     end
     object edtPBKDF2: TEdit
       Left = 136
-      Top = 176
+      Top = 216
       Width = 545
       Height = 21
       TabOrder = 10
     end
     object cbbPBKDF1Hash: TComboBox
-      Left = 248
+      Left = 336
       Top = 112
       Width = 49
       Height = 21
@@ -173,6 +188,26 @@ object FormKDF: TFormKDF
       Items.Strings = (
         'MD5'
         'SHA1')
+    end
+    object cbbPBKDF2Hash: TComboBox
+      Left = 240
+      Top = 184
+      Width = 97
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      TabOrder = 12
+      Items.Strings = (
+        'SHA1_HMAC'
+        'SHA256_HMAC')
+    end
+    object edtPBKDF2KeyLength: TEdit
+      Left = 504
+      Top = 184
+      Width = 121
+      Height = 21
+      TabOrder = 13
+      Text = '24'
     end
   end
 end
