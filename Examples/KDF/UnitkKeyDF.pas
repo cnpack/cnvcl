@@ -32,10 +32,15 @@ type
     cbbPBKDF2Hash: TComboBox;
     lblPBKDF2KeyLen: TLabel;
     edtPBKDF2KeyLength: TEdit;
+    btnSM2KDF: TButton;
+    edtSM2KDF: TEdit;
+    lblSM2KeyLength: TLabel;
+    edtSM2KeyLength: TEdit;
     procedure btnGetKeyToHexClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnPBKDF1Click(Sender: TObject);
     procedure btnPBKDF2Click(Sender: TObject);
+    procedure btnSM2KDFClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -150,6 +155,23 @@ begin
     S := CnPBKDF2(Pass, Salt, C, K, cpdfSha256Hmac);
 
   edtPBKDF2.Text := StrToHex(PAnsiChar(S), Length(S));
+end;
+
+procedure TFormKDF.btnSM2KDFClick(Sender: TObject);
+var
+  Pass, S: AnsiString;
+  K: Integer;
+begin
+  // Pass := HexToStr('57E7B63623FAE5F08CDA468E872A20AFA03DED41BF1403770E040DC83AF31A67991F2B01EBF9EFD8881F0A0493000603');
+  // K := 19;
+
+  Pass := edtPass.Text;
+  K := StrToInt(edtPBKDF2KeyLength.Text);
+
+  S := CnSM2KDF(Pass, K);
+
+  edtSM2KDF.Text := StrToHex(PAnsiChar(S), Length(S));
+  // 046B04A9ADF53B389B9E2AAFB47D90F4D08978
 end;
 
 end.

@@ -85,6 +85,13 @@ object FormKDF: TFormKDF
       Height = 13
       Caption = 'PBKDF2 Key Length:'
     end
+    object lblSM2KeyLength: TLabel
+      Left = 136
+      Top = 252
+      Width = 106
+      Height = 13
+      Caption = 'SM2 KDF Key Length:'
+    end
     object edtPass: TEdit
       Left = 48
       Top = 28
@@ -208,6 +215,30 @@ object FormKDF: TFormKDF
       Height = 21
       TabOrder = 13
       Text = '24'
+    end
+    object btnSM2KDF: TButton
+      Left = 16
+      Top = 280
+      Width = 97
+      Height = 25
+      Caption = 'SM2KDF'
+      TabOrder = 14
+      OnClick = btnSM2KDFClick
+    end
+    object edtSM2KDF: TEdit
+      Left = 136
+      Top = 280
+      Width = 545
+      Height = 21
+      TabOrder = 15
+    end
+    object edtSM2KeyLength: TEdit
+      Left = 256
+      Top = 248
+      Width = 121
+      Height = 21
+      TabOrder = 16
+      Text = '32'
     end
   end
 end

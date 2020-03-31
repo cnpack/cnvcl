@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnMD5, CnSHA1, CnSHA2;
+  SysUtils, Classes, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
@@ -61,6 +61,9 @@ function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Int
 function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
   KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): AnsiString;
 {* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256}
+
+function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
+{* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数}
 
 implementation
 
@@ -212,6 +215,17 @@ begin
   end;
 end;
 
+{
+  DK = T1 + T2 + ... + Tdklen/hlen
+  Ti = F(Password, Salt, c, i)
+
+  F(Password, Salt, c, i) = U1 ^ U2 ^ ... ^ Uc
+
+  U1 = PRF(Password, Salt + INT_32_BE(i))
+  U2 = PRF(Password, U1)
+  ...
+  Uc = PRF(Password, Uc-1)
+}
 function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
   KeyHash: TCnPBKDF2KeyHash): AnsiString;
 var
@@ -279,6 +293,28 @@ begin
     end;
     Result := Copy(Result, 1, DerivedKeyLength);
   end;
+end;
+
+function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
+var
+  S, SDig: AnsiString;
+  I, D: Integer;
+  Dig: TSM3Digest;
+begin
+  Result := '';
+  if (Data = '') or (DerivedKeyLength <= 0) then
+    raise ECnKDFException.Create(SCnKDFErrorParam);
+
+  SetLength(SDig, SizeOf(TSM3Digest));
+  D := DerivedKeyLength div SizeOf(TSM3Digest) + 1;
+  for I := 1 to D do
+  begin
+    S := Data + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
+    Dig := SM3StringA(S);
+    Move(Dig[0], SDig[1], SizeOf(TSM3Digest));
+    Result := Result + SDig;
+  end;
+  Result := Copy(Result, 1, DerivedKeyLength);
 end;
 
 end.
