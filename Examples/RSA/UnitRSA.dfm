@@ -810,24 +810,27 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 472
+            Left = 680
             Top = 42
             Width = 94
             Height = 13
+            Anchors = [akTop, akRight]
             Caption = 'Signature Algorithm:'
           end
           object edtSignFile: TEdit
             Left = 88
             Top = 8
-            Width = 553
+            Width = 753
             Height = 21
+            Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object btnSignBrowse: TButton
-            Left = 656
+            Left = 848
             Top = 8
             Width = 75
             Height = 21
+            Anchors = [akTop, akRight]
             Caption = 'Browse'
             TabOrder = 1
             OnClick = btnSignBrowseClick
@@ -844,16 +847,18 @@ object FormRSA: TFormRSA
           object edtSigFile: TEdit
             Left = 88
             Top = 72
-            Width = 553
+            Width = 753
             Height = 21
+            Anchors = [akLeft, akTop, akRight]
             ReadOnly = True
             TabOrder = 3
           end
           object btnSignatureBrowse: TButton
-            Left = 656
+            Left = 848
             Top = 72
             Width = 75
             Height = 21
+            Anchors = [akTop, akRight]
             Caption = 'Browse'
             TabOrder = 4
             OnClick = btnSignatureBrowseClick
@@ -878,11 +883,12 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 576
+            Left = 784
             Top = 40
             Width = 65
             Height = 21
             Style = csDropDownList
+            Anchors = [akTop, akRight]
             ItemHeight = 13
             TabOrder = 7
             Items.Strings = (

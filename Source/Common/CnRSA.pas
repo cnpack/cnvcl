@@ -121,7 +121,7 @@ const
   ECN_RSA_PEM_CRYPT_ERROR              = 7; // PEM 加解密错误
 
 type
-  TCnRSASignDigestType = (sdtNone, sdtMD5, sdtSHA1, sdtSHA256);
+  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256);
   {* RSA 签名所支持的数字摘要算法，可无摘要}
 
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
@@ -298,27 +298,27 @@ function CnRSADecryptFile(const InFileName, OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中}
 
-// RSA 文件签名与验证实现
+// RSA 文件签名与验证实现，流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
 
 function CnRSASignFile(const InFileName, OutSignFileName: string;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用私钥签名指定文件。
    未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
    当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到散列值，
    原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
 function CnRSAVerifyFile(const InFileName, InSignFileName: string;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
    并比对两个二进制散列值是否相同，返回验证是否通过}
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用私钥签名指定内存流}
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用公钥与签名值验证指定内存流}
 
 // Diffie-Hellman 离散对数密钥交换算法
@@ -1540,19 +1540,19 @@ var
 begin
   Result := False;
   case SignType of
-    sdtMD5:
+    rsdtMD5:
       begin
         Md5 := MD5Stream(InStream);
         outStream.Write(Md5, SizeOf(TMD5Digest));
         Result := True;
       end;
-    sdtSHA1:
+    rsdtSHA1:
       begin
         Sha1 := SHA1Stream(InStream);
         outStream.Write(Sha1, SizeOf(TSHA1Digest));
         Result := True;
       end;
-    sdtSHA256:
+    rsdtSHA256:
       begin
         Sha256 := SHA256Stream(InStream);
         outStream.Write(Sha256, SizeOf(TSHA256Digest));
@@ -1574,19 +1574,19 @@ var
 begin
   Result := False;
   case SignType of
-    sdtMD5:
+    rsdtMD5:
       begin
         Md5 := MD5File(FileName);
         outStream.Write(Md5, SizeOf(TMD5Digest));
         Result := True;
       end;
-    sdtSHA1:
+    rsdtSHA1:
       begin
         Sha1 := SHA1File(FileName);
         outStream.Write(Sha1, SizeOf(TSHA1Digest));
         Result := True;
       end;
-    sdtSHA256:
+    rsdtSHA256:
       begin
         Sha256 := SHA256File(FileName);
         outStream.Write(Sha256, SizeOf(TSHA256Digest));
@@ -1603,13 +1603,13 @@ function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASi
 begin
   Result := nil;
   case ASignType of
-    sdtMD5:
+    rsdtMD5:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_MD5[0],
         SizeOf(OID_SIGN_MD5), AParent);
-    sdtSHA1:
+    rsdtSHA1:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
         SizeOf(OID_SIGN_SHA1), AParent);
-    sdtSHA256:
+    rsdtSHA256:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
         SizeOf(OID_SIGN_SHA256), AParent);
   end;
@@ -1634,7 +1634,7 @@ end;
 }
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 var
   Stream, BerStream, EnStream: TMemoryStream;
   Data, Res: TCnBigNumber;
@@ -1654,7 +1654,7 @@ begin
     Stream := TMemoryStream.Create;
     EnStream := TMemoryStream.Create;
 
-    if SignType = sdtNone then
+    if SignType = rsdtNone then
     begin
       // 无数字摘要，直接整内容对齐
       if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
@@ -1710,7 +1710,7 @@ begin
 end;
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = sdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 var
   Stream: TMemoryStream;
   Data, Res: TCnBigNumber;
@@ -1737,7 +1737,7 @@ begin
       SetLength(ResBuf, Res.GetBytesCount);
       Res.ToBinary(@ResBuf[0]);
 
-      if SignType = sdtNone then
+      if SignType = rsdtNone then
       begin
         // 无摘要时，直接比对解密内容与原始文件
         Result := InStream.Size = Res.GetBytesCount;
@@ -1770,7 +1770,7 @@ begin
 
         Node := Reader.Items[2];
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
-        if SignType = sdtNone then
+        if SignType = rsdtNone then
         begin
           RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
@@ -1819,7 +1819,7 @@ begin
     Stream := TMemoryStream.Create;
     EnStream := TMemoryStream.Create;
 
-    if SignType = sdtNone then
+    if SignType = rsdtNone then
     begin
       // 无数字摘要，直接整内容对齐
       Stream.LoadFromFile(InFileName);
@@ -1906,7 +1906,7 @@ begin
       SetLength(ResBuf, Res.GetBytesCount);
       Res.ToBinary(@ResBuf[0]);
 
-      if SignType = sdtNone then
+      if SignType = rsdtNone then
       begin
         Stream.LoadFromFile(InFileName); // 无摘要时，直接比对解密内容与原始文件
         Result := Stream.Size = Res.GetBytesCount;
@@ -1939,7 +1939,7 @@ begin
 
         Node := Reader.Items[2];
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
-        if SignType = sdtNone then
+        if SignType = rsdtNone then
         begin
           RSAErrorCode := ECN_RSA_BER_ERROR;
           Exit;
@@ -2035,22 +2035,22 @@ end;
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
 begin
-  Result := sdtNone;
+  Result := rsdtNone;
   if (OidLen = SizeOf(OID_SIGN_MD5)) and CompareMem(OID, @OID_SIGN_MD5[0], OidLen) then
-    Result := sdtMD5
+    Result := rsdtMD5
   else if (OidLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidLen) then
-    Result := sdtSHA1
+    Result := rsdtSHA1
   else if (OidLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidLen) then
-    Result := sdtSHA256;
+    Result := rsdtSHA256;
 end;
 
 function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
 begin
   case Digest of
-    sdtNone: Result := '<None>';
-    sdtMD5: Result := 'MD5';
-    sdtSHA1: Result := 'SHA1';
-    sdtSHA256: Result := 'SHA256' ;
+    rsdtNone: Result := '<None>';
+    rsdtMD5: Result := 'MD5';
+    rsdtSHA1: Result := 'SHA1';
+    rsdtSHA256: Result := 'SHA256' ;
   else
     Result := '<Unknown>';
   end;
