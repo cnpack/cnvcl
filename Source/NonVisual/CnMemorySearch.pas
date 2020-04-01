@@ -37,6 +37,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 uses
   Classes, SysUtils, Tlhelp32, Windows, CnNativeDecl;
 
@@ -126,7 +128,11 @@ type
     destructor Destroy; override;
   end;
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 { TCnMemorySearchThread }
 
@@ -429,5 +435,6 @@ begin
   FStartSearch := Val;
 end;
 
+{$ENDIF}
 end.
 

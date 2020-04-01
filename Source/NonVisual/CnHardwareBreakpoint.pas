@@ -36,6 +36,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 uses
   Windows, SysUtils, Classes;
 
@@ -117,7 +119,11 @@ type
 
   end;
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 { TCnVectoredException }
 
@@ -310,4 +316,5 @@ begin
   SetThreadContext(GetCurrentThread, _Regs);
 end;
 
+{$ENDIF}
 end.

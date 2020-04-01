@@ -36,6 +36,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 uses
   Windows, SysUtils, Classes;
 
@@ -162,7 +164,11 @@ type
     property OnAPIHookProc: TOnAPIHookProc read FOnAPIHookProc write FOnAPIHookProc;
   end;
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 const
 {$IFDEF UNICODE}
@@ -545,5 +551,6 @@ begin
     Result := 0;
 end;
 
+{$ENDIF}
 end.
 

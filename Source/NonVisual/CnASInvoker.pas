@@ -39,6 +39,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 {$IFNDEF COMPILER6_UP}
   'Error: This unit can used only for Delphi / C++Builder 6 or up.'
 {$ENDIF COMPILER6_UP}
@@ -186,7 +188,11 @@ function SameTypeInfo(const RegInfo: PTypeInfo; const OtherInfo: PTypeInfo):
 function InterfaceInvoker: TInterfaceInvoker;
 function TypeTranslator: TTypeTranslator;
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 const
   KindNameArray: array[tkUnknown..tkDynArray] of string =
@@ -1446,5 +1452,6 @@ finalization
   if Assigned(FTypeTranslator) then
     FreeAndNil(FTypeTranslator);
 
+{$ENDIF}
 end.
 

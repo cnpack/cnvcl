@@ -37,6 +37,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 {$IFNDEF COMPILER6_UP}
   'Error: This unit can used only for Delphi / C++Builder 6 or up.'
 {$ENDIF COMPILER6_UP}
@@ -114,7 +116,11 @@ procedure RegisterCnASService(const ServiceName: string;
 {* 注册一个 TCnASService 服务类引用，每个服务类实现应在该单元的 initialization
    节调用该过程注册相关服务类 }
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 //==============================================================================
 // Host 服务类列表相关过程
@@ -255,4 +261,5 @@ finalization
   FreeAndNil(CnASServiceClassList);
   FreeAndNil(CnASServiceIntfTypeInfoList);
 
+{$ENDIF}
 end.

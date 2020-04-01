@@ -67,6 +67,8 @@ interface
  if self is activated. }
 {$DEFINE MultiCanvases}
 
+{$IFDEF WIN32}
+
 uses
   Windows, Classes, Controls, Graphics, OpenGL, Math, Messages;
 
@@ -458,7 +460,11 @@ function IsZero(const A: Single; Epsilon: Single = 0): Boolean;
 function SameValue(const A, B: Single; Epsilon: Single = 0): Boolean;
 {$ENDIF}
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 var
   GLOBAL_ANTIALIASING_STATE: Boolean;
@@ -2697,4 +2703,5 @@ initialization
    SetLength(MediumRadiusCosArray, 12);
    PrepareSinCosCache(MediumRadiusSinArray, MediumRadiusCosArray, 0, 90);
 
+{$ENDIF}
 end.

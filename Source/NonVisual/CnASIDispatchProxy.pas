@@ -37,6 +37,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 {$IFNDEF COMPILER6_UP}
   'Error: This unit can used only for Delphi / C++Builder 6 or up.'
 {$ENDIF COMPILER6_UP}
@@ -53,7 +55,11 @@ type
 
 function GetIDispatchProxy(AItemObject: TObject; IntfTypeInfo: PTypeInfo): IDispatch;
 
+{$ENDIF}
+
 implementation
+
+{$IFDEF WIN32}
 
 uses
   Sysutils, ActiveX, Variants, CnASInvoker;
@@ -259,5 +265,6 @@ begin
     Result := DISP_E_MEMBERNOTFOUND;
 end;
 
+{$ENDIF}
 end.
 

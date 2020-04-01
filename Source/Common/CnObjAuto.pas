@@ -37,6 +37,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 uses
   TypInfo, CnNativeDecl;
 
@@ -123,9 +125,14 @@ function GetInvokeInstance(MethodPointer: TMethod): TObject;
 function GetParams(aObj: TObject; aMethodName: string): TParamInfoArray;
 function GetReturnInfo(aObj: TObject; aMethodName: string): PReturnInfo;
 
+{$ENDIF}
+
 implementation
 
-uses SysUtils, Variants, VarUtils, RTLConsts;
+{$IFDEF WIN32}
+
+uses
+  SysUtils, Variants, VarUtils, RTLConsts;
 
 function GetTypeSize(TypeInfo: PTypeInfo): Integer;
 var
@@ -985,4 +992,5 @@ begin
     FDynamicInvokeEvent(Params, StackSize);
 end;
 
+{$ENDIF}
 end.

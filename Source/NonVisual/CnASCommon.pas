@@ -37,6 +37,8 @@ interface
 
 {$I CnPack.inc}
 
+{$IFDEF WIN32}
+
 uses
   Windows, SysUtils, Classes, Registry, IniFiles, CnASIDispatchProxy, CnCommon;
 
@@ -97,6 +99,8 @@ type
     property LazyWrite: Boolean read GetLazyWrite write SetLazyWrite;
     property RootKey: HKEY read GetRootKey write SetRootKey;
   end;
+
+{$ENDIF}
 
 implementation
 
