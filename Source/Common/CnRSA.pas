@@ -86,13 +86,6 @@ uses
   CnBase64, CnBerUtils, CnPemUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
 
 const
-  CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
-  CN_PKCS1_BLOCK_TYPE_PRIVATE_FF       = 01;
-  CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM    = 02;
-  {* RSA 加解密时的三类块类型字段}
-
-  CN_RSA_PKCS1_PADDING_SIZE            = 11;
-
   // 以下 OID 都预先写死，不动态计算编码了
   OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
@@ -1198,68 +1191,6 @@ begin
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
-// 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
-// PaddingType 取 0、1、2，BlockLen 字节数如 128 等
-// EB = 00 || BT || PS || 00 || D
-function PKCS1AddPadding(PaddingType, BlockSize: Integer; Data: Pointer; DataLen: Integer;
-  outStream: TStream): Boolean;
-var
-  I: Integer;
-  B, F: Byte;
-begin
-  Result := False;
-  if (Data = nil) or (DataLen <= 0) then
-    Exit;
-
-  // 不足以填充
-  if DataLen > BlockSize - CN_RSA_PKCS1_PADDING_SIZE then
-  begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
-    Exit;
-  end;
-
-  B := 0;
-  outStream.Write(B, 1);       // 写前导字节 00
-  B := PaddingType;
-  F := BlockSize - DataLen - 3; // 3 表示一个前导 00、一个类型字节、一个填充后的 00 结尾
-
-  case PaddingType of
-    CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
-      begin
-        outStream.Write(B, 1);
-        B := 0;
-        for I := 1 to F do
-          outStream.Write(B, 1);
-      end;
-    CN_PKCS1_BLOCK_TYPE_PRIVATE_FF:
-      begin
-        outStream.Write(B, 1);
-        B := $FF;
-        for I := 1 to F do
-          outStream.Write(B, 1);
-      end;
-    CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
-      begin
-        outStream.Write(B, 1);
-        Randomize;
-        for I := 1 to F do
-        begin
-          B := Trunc(Random(255));
-          if B = 0 then
-            Inc(B);
-          outStream.Write(B, 1);
-        end;
-      end;
-  else
-    Exit;
-  end;
-
-  B := 0;
-  outStream.Write(B, 1);
-  outStream.Write(Data^, DataLen);
-  Result := True;
-end;
-
 // 将一片内存区域按指定的 Padding 方式填充后进行 RSA 加解密计算
 function RSAPaddingCrypt(PaddingType, BlockSize: Integer; PlainData: Pointer;
   DataLen: Integer; OutBuf: Pointer; Exponent, Product: TCnBigNumber): Boolean;
@@ -1273,8 +1204,11 @@ begin
   Stream := nil;
   try
     Stream := TMemoryStream.Create;
-    if not PKCS1AddPadding(PaddingType, BlockSize, PlainData, DataLen, Stream) then
-      Exit; // 内部会设置错误码
+    if not AddPKCS1Padding(PaddingType, BlockSize, PlainData, DataLen, Stream) then
+    begin
+      RSAErrorCode := ECN_RSA_PADDING_ERROR;
+      Exit;
+    end;
 
     Res := TCnBigNumber.Create;
     Data := TCnBigNumber.FromBinary(PAnsiChar(Stream.Memory), Stream.Size);
@@ -1356,70 +1290,6 @@ begin
   end;
 end;
 
-// 去掉 Padding，返回成功与否，内部设置错误码
-function PKCS1RemovePadding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer): Boolean;
-var
-  P: PAnsiChar;
-  I, J, Start: Integer;
-begin
-  Result := False;
-  OutLen := 0;
-  I := 0;
-
-  P := PAnsiChar(InData);
-  while P[I] = #0 do // 首字符不一定是 #0，可能已经被去掉了
-    Inc(I);
-
-  if I >= InDataLen then
-    Exit;
-
-  Start := 0;
-  case Ord(P[I]) of
-    CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
-      begin
-        // 从 P[I + 1] 开始寻找非 00 便是
-        J := I + 1;
-        while J < InDataLen do
-        begin
-          if P[J] <> #0 then
-          begin
-            Start := J;
-            Break;
-          end;
-          Inc(J);
-        end;
-      end;
-    CN_PKCS1_BLOCK_TYPE_PRIVATE_FF,
-    CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
-      begin
-        // 从 P[I + 1] 开始寻找到第一个 00 后的便是
-        J := I + 1;
-        while J < InDataLen do
-        begin
-          if P[J] = #0 then
-          begin
-            Start := J;
-            Break;
-          end;
-          Inc(J);
-        end;
-
-        if Start <> 0 then
-          Inc(Start);
-      end;
-  end;
-
-  if Start > 0 then
-  begin
-    Move(P[Start], OutBuf^, InDataLen - Start);
-    OutLen := InDataLen - Start;
-    Result := True;
-  end
-  else
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
-end;
-
 // 将一片内存区域进行 RSA 加解密计算后按其展现的 Padding 方式解出原始数据
 function RSADecryptPadding(BlockSize: Integer; EnData: Pointer; DataLen: Integer;
   OutBuf: Pointer; out OutLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
@@ -1441,7 +1311,9 @@ begin
     SetLength(ResBuf, Res.GetBytesCount);
     Res.ToBinary(PAnsiChar(@ResBuf[0]));
 
-    Result := PKCS1RemovePadding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen);
+    Result := RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen);
+    if not Result then
+      RSAErrorCode := ECN_RSA_PADDING_ERROR;
   finally
     Stream.Free;
     Res.Free;
@@ -1657,9 +1529,12 @@ begin
     if SignType = rsdtNone then
     begin
       // 无数字摘要，直接整内容对齐
-      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        InStream.Memory, InStream.Size, EnStream) then // 内部会设置错误码
+      if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        InStream.Memory, InStream.Size, EnStream) then
+      begin
+        RSAErrorCode := ECN_RSA_PADDING_ERROR;
         Exit;
+      end;
     end
     else // 有数字摘要
     begin
@@ -1678,9 +1553,12 @@ begin
       Writer.SaveToStream(BerStream);
 
       // 再把 BER 编码后的内容 PKCS1 填充对齐
-      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        BerStream.Memory, BerStream.Size, EnStream) then // 内部会设置错误码
+      if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        BerStream.Memory, BerStream.Size, EnStream) then
+      begin
+        RSAErrorCode := ECN_RSA_PADDING_ERROR;
         Exit;
+      end;
     end;
 
     // 私钥加密运算
@@ -1750,8 +1628,11 @@ begin
       begin
         // 从 Res 中解出 PKCS1 对齐的内容
         SetLength(BerBuf, Length(ResBuf));
-        if not PKCS1RemovePadding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+        if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+        begin
+          RSAErrorCode := ECN_RSA_PADDING_ERROR;
           Exit;
+        end;
 
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
@@ -1823,9 +1704,12 @@ begin
     begin
       // 无数字摘要，直接整内容对齐
       Stream.LoadFromFile(InFileName);
-      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        Stream.Memory, Stream.Size, EnStream) then // 内部会设置错误码
+      if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        Stream.Memory, Stream.Size, EnStream) then
+      begin
+        RSAErrorCode := ECN_RSA_PADDING_ERROR;
         Exit;
+      end;
     end
     else // 有数字摘要
     begin
@@ -1844,9 +1728,12 @@ begin
       Writer.SaveToStream(BerStream);
 
       // 再把 BER 编码后的内容 PKCS1 填充对齐
-      if not PKCS1AddPadding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
-        BerStream.Memory, BerStream.Size, EnStream) then  // 内部会设置错误码
+      if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+        BerStream.Memory, BerStream.Size, EnStream) then
+      begin
+        RSAErrorCode := ECN_RSA_PADDING_ERROR;
         Exit;
+      end;
     end;
 
     // 私钥加密运算
@@ -1919,8 +1806,11 @@ begin
       begin
         // 从 Res 中解出 PKCS1 对齐的内容
         SetLength(BerBuf, Length(ResBuf));
-        if not PKCS1RemovePadding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+        if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+        begin
+          RSAErrorCode := ECN_RSA_PADDING_ERROR;
           Exit;
+        end;
 
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
