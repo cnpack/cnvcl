@@ -2948,8 +2948,8 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 var
   Tmp, SNum, SDiv, SRes: TCnBigNumber;
-  I, NormShift, Loop, NumN, DivN, Neg, BackupTop, BackupDMax, BackupFlag, BackupNeg: Integer;
-  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H, QL, QH: LongWord;
+  I, NormShift, Loop, NumN, DivN, Neg, BackupTop, BackupDMax, BackupNeg: Integer;
+  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H: LongWord;
   Resp, WNump, BackupD: PLongWord;
   WNum: TCnBigNumber;
   T2: TUInt64;
