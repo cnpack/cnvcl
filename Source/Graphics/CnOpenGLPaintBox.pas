@@ -24,8 +24,8 @@ unit CnOpenGLPaintBox;
 * 软件名称：界面控件包
 * 单元名称：CnOpenGLPaintBox控件单元
 * 单元作者：王乾元  wqyfavor@163.com  QQ:466798985
-* 备   注：这是可以利用OpenGL硬件加速的画布控件，使用最基础的OpenGL支持（Delphi
-*        自带的单元）。有如下特性：
+* 备   注：这是可以利用 OpenGL 硬件加速的画布控件，使用最基础的 OpenGL 支持
+         （Delphi 自带的单元），不支持 Win64。有如下特性：
           1. 硬件加速，绘图速度远远胜过GDI与GDIP。
           2. 支持抗锯齿，输出图像质量较高。
           3. 支持类似GDIP的坐标变换，可以完成较复杂的绘图操作。
@@ -61,10 +61,6 @@ unit CnOpenGLPaintBox;
 interface
 
 {$I CnPack.inc}
-
-{$IFDEF DELPHI9_UP}
-  {$DEFINE INLINE_AVAIL}
-{$ENDIF}
 
 {If in your application there are more than one GLCanvas, define this.
  If MultiCanvases is defined, before every process GLCanvas will check
@@ -203,7 +199,7 @@ type
     procedure ActivateSelf;
     procedure CreateBufferBMP;
     procedure FreeBufferBMP;
-    procedure PresentBufferBMP(DC: HDC); {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+    procedure PresentBufferBMP(DC: HDC); {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
 
     procedure ApplyTransformation;
     procedure DefaultFontNotify;
@@ -438,24 +434,24 @@ const
   GreenShift = 8;
   BlueShift = 0;
 
-function MakeColor(r, g, b: Byte): ARGB; overload; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function MakeColor(a, r, g, b: Byte): ARGB; overload; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function GetAlpha(color: ARGB): BYTE; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function GetRed(color: ARGB): BYTE; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function GetGreen(color: ARGB): BYTE; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function GetBlue(color: ARGB): BYTE; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+function MakeColor(r, g, b: Byte): ARGB; overload; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function MakeColor(a, r, g, b: Byte): ARGB; overload; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function GetAlpha(color: ARGB): BYTE; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function GetRed(color: ARGB): BYTE; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function GetGreen(color: ARGB): BYTE; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function GetBlue(color: ARGB): BYTE; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
 
 // TColor = COLORREF
-function TColorToARGB(rgb: TColor; alpha: Byte = 255): ARGB; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function ARGBToTColor(Color: ARGB): TColor; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+function TColorToARGB(rgb: TColor; alpha: Byte = 255): ARGB; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function ARGBToTColor(Color: ARGB): TColor; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
 
-function GLColorToARGB(const glcolor: TColorVector): ARGB;  {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function ARGBToGLColor(color: ARGB): TColorVector; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+function GLColorToARGB(const glcolor: TColorVector): ARGB;  {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function ARGBToGLColor(color: ARGB): TColorVector; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
 
-function GLColorToTColor(const glcolor: TColorVector): TColor; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
-function TColorToGLColor(color: TColor; alpha: Byte = 255): TColorVector; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+function GLColorToTColor(const glcolor: TColorVector): TColor; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
+function TColorToGLColor(color: TColor; alpha: Byte = 255): TColorVector; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
 
-function ModifyAlphaValue(col: ARGB; alpha: Byte): ARGB; {$IFDEF INLINE_AVAIL}inline;{$ENDIF}
+function ModifyAlphaValue(col: ARGB; alpha: Byte): ARGB; {$IFDEF SUPPORT_INLINE}inline;{$ENDIF}
 
 {$IFNDEF COMPILER7_UP}
 function IsZero(const A: Single; Epsilon: Single = 0): Boolean;

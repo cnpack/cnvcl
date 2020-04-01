@@ -47,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, ActiveX, ComObj, ShellApi, ShlObj, CnCommon;
+  Windows, Messages, SysUtils, ActiveX, ComObj, ShellApi, ShlObj, CnCommon, CnNativeDecl;
 
 type
   TUnicodePath = array[0..MAX_PATH-1] of WideChar;
@@ -162,7 +162,7 @@ begin
     WM_CREATE:
       begin
         ContextMenu2 := IContextMenu2(PCreateStruct(lParam).lpCreateParams);
-        SetWindowLong(Wnd, GWL_USERDATA, Longint(ContextMenu2));
+        SetWindowLong(Wnd, GWL_USERDATA, TCnNativeInt(ContextMenu2));
         Result := DefWindowProc(Wnd, Msg, wParam, lParam);
       end;
     WM_INITMENUPOPUP:

@@ -22,7 +22,7 @@ unit CnHardwareBreakpoint;
 {* |<PRE>
 ================================================================================
 * 软件名称：不可视工具组件包
-* 单元名称：硬件断点类，代码硬件HOOK单元
+* 单元名称：硬件断点类，代码硬件 HOOK 单元，不支持 Win64
 * 单元作者：CodeGame
 * 备    注：提供类表：TCGL_VectoredException, TCGL_HardwareBreakpoints
 * 开发平台：PWinXP + Delphi 2007

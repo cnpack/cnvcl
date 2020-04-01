@@ -22,7 +22,7 @@ unit CnObjAuto;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack 基础库
-* 单元名称：增强的 ObjAuto 单元，能在D6至D2009下使用
+* 单元名称：增强的 ObjAuto 单元，能在 D6 至 D2009 下使用，不支持 Win64
 * 单元作者：Rarnu (rarnu@cnpack.org)
 * 备    注：由 D2009 的 ObjAuto 单元补全而来
 * 开发平台：PWinXP SP2 + Delphi 2009
@@ -37,7 +37,8 @@ interface
 
 {$I CnPack.inc}
 
-uses TypInfo;
+uses
+  TypInfo, CnNativeDecl;
 
 {$IFDEF VER130}
   Not Support Delphi 5
@@ -353,7 +354,7 @@ begin
   Count := 0;
   VMT   := ClassType;
   repeat
-    MethodInfo := PPointer(Integer(VMT) + vmtMethodTable)^;
+    MethodInfo := PPointer(TCnNativeInt(VMT) + vmtMethodTable)^;
     if MethodInfo <> nil then
       Inc(Count, PWord(MethodInfo)^);
     // Find the parent VMT
@@ -370,17 +371,17 @@ begin
     if MethodInfo <> nil then
     begin
       Count := PWord(MethodInfo)^;
-      Inc(Integer(MethodInfo), SizeOf(Word));
+      Inc(TCnNativeInt(MethodInfo), SizeOf(Word));
       while Count > 0 do
       begin
         Result[I] := MethodInfo;
         Inc(I);
-        Inc(Integer(MethodInfo), PMethodInfoHeader(MethodInfo)^.Len);
+        Inc(TCnNativeInt(MethodInfo), PMethodInfoHeader(MethodInfo)^.Len);
         Dec(Count);
       end;
     end;
     // Find the parent VMT
-    VMT := PPointer(Integer(VMT) + vmtParent)^;
+    VMT := PPointer(TCnNativeInt(VMT) + vmtParent)^;
     if VMT = nil then
       Exit;
     VMT := PPointer(VMT)^;
@@ -396,23 +397,23 @@ begin
   // Find the method
   VMT := PPointer(Instance)^;
   repeat
-    MethodInfo := PPointer(Integer(VMT) + vmtMethodTable)^;
+    MethodInfo := PPointer(TCnNativeInt(VMT) + vmtMethodTable)^;
     if MethodInfo <> nil then
     begin
       // Scan method table for the method
       Count := PWord(MethodInfo)^;
-      Inc(Integer(MethodInfo), 2);
+      Inc(TCnNativeInt(MethodInfo), 2);
       while Count > 0 do
       begin
         Result := MethodInfo;
         if {$IFDEF UNICODE}SamePropTypeName{$ELSE}SameText{$ENDIF}(Result^.Name, MethodName) then
           Exit;
-        Inc(Integer(MethodInfo), PMethodInfoHeader(MethodInfo)^.Len);
+        Inc(TCnNativeInt(MethodInfo), PMethodInfoHeader(MethodInfo)^.Len);
         Dec(Count);
       end;
     end;
     // Find the parent VMT
-    VMT := PPointer(Integer(VMT) + vmtParent)^;
+    VMT := PPointer(TCnNativeInt(VMT) + vmtParent)^;
     if VMT = nil then
     begin
       Result := nil;
@@ -497,20 +498,20 @@ begin
   MethodInfo := MethodHeader;
   MethodAddr := MethodHeader^.Addr;
   MethodName := {$IFDEF UNICODE}UTF8ToString({$ENDIF} PMethodInfoHeader(MethodInfo)^.Name{$IFDEF UNICODE}){$ENDIF};
-  Inc(Integer(MethodInfo), SizeOf(TMethodInfoHeader) - SizeOf(ShortString) + 1 +
+  Inc(TCnNativeInt(MethodInfo), SizeOf(TMethodInfoHeader) - SizeOf(ShortString) + 1 +
     Length(MethodName));
   ReturnInfo := MethodInfo;
-  Inc(Integer(MethodInfo), SizeOf(TReturnInfo));
+  Inc(TCnNativeInt(MethodInfo), SizeOf(TReturnInfo));
 
-  InfoEnd := Pointer(Integer(MethodHeader) + MethodHeader^.Len);
+  InfoEnd := Pointer(TCnNativeInt(MethodHeader) + MethodHeader^.Len);
   Count   := 0;
-  while Integer(MethodInfo) < Integer(InfoEnd) do
+  while TCnNativeInt(MethodInfo) < TCnNativeInt(InfoEnd) do
   begin
     if Count >= MaxParams then
       raise Exception.CreateFmt(sMethodOver, [MethodName, MaxParams]);
     ParamInfos[Count] := MethodInfo;
     Inc(Count);
-    Inc(Integer(MethodInfo), SizeOf(TParamInfo) - SizeOf(ShortString) + 1 +
+    Inc(TCnNativeInt(MethodInfo), SizeOf(TParamInfo) - SizeOf(ShortString) + 1 +
       Length(PParamInfo(MethodInfo)^.Name));
   end;
 

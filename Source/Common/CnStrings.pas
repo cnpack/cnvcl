@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows;
+  Classes, SysUtils, Windows, CnNativeDecl;
 
 type
   TCnAnsiStrings = class;
@@ -148,7 +148,7 @@ type
   end;
 
   PCnAnsiStringItemList = ^TCnAnsiStringItemList;
-  TCnAnsiStringItemList = array[0..MaxListSize] of TCnAnsiStringItem;
+  TCnAnsiStringItemList = array[0..MaxListSize div 2] of TCnAnsiStringItem;
   TCnAnsiStringListSortCompare = function(List: TCnAnsiStringList; Index1, Index2: Integer): Integer;
 
   TCnAnsiStringList = class(TCnAnsiStrings)
@@ -1169,17 +1169,17 @@ end;
 
 procedure TCnAnsiStringList.ExchangeItems(Index1, Index2: Integer);
 var
-  Temp: Integer;
+  Temp: TCnNativeInt;
   Item1, Item2: PStringItem;
 begin
   Item1 := @FList^[Index1];
   Item2 := @FList^[Index2];
-  Temp := Integer(Item1^.FString);
-  Integer(Item1^.FString) := Integer(Item2^.FString);
-  Integer(Item2^.FString) := Temp;
-  Temp := Integer(Item1^.FObject);
-  Integer(Item1^.FObject) := Integer(Item2^.FObject);
-  Integer(Item2^.FObject) := Temp;
+  Temp := TCnNativeInt(Item1^.FString);
+  TCnNativeInt(Item1^.FString) := TCnNativeInt(Item2^.FString);
+  TCnNativeInt(Item2^.FString) := Temp;
+  Temp := TCnNativeInt(Item1^.FObject);
+  TCnNativeInt(Item1^.FObject) := TCnNativeInt(Item2^.FObject);
+  TCnNativeInt(Item2^.FObject) := Temp;
 end;
 
 function TCnAnsiStringList.Find(const S: AnsiString; var Index: Integer): Boolean;

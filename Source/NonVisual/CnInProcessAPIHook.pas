@@ -22,9 +22,9 @@ unit CnInProcessAPIHook;
 {* |<PRE>
 ================================================================================
 * 软件名称：不可视工具组件包
-* 单元名称：进程内实现APIHook的单元
+* 单元名称：进程内实现单个 API Hook 的单元
 * 单元作者：CodeGame
-* 备    注：
+* 备    注：D2009 或以上不支持，Win64 不支持。
 * 开发平台：PWinXP + Delphi 2007
 * 兼容测试：暂无
 * 修改记录：2013.08.08 v1.0
@@ -40,21 +40,19 @@ uses
   Windows, SysUtils, Classes;
 
 type
-  THookType = (HT_None, HT_LONG_JMP, HT_LONG_CALL, HT_SHORT_JMP, HT_SHORT_CALL);
+  TCnHookType = (HT_None, HT_LONG_JMP, HT_LONG_CALL, HT_SHORT_JMP, HT_SHORT_CALL);
 
-  PHT_LONG = ^HT_LONG;
-
-  HT_LONG = packed record
+  TCnHookTableLong = packed record
     Long: Word;
     LongAddr: Cardinal;
   end;
+  PCnHookTableLong = ^TCnHookTableLong;
 
-  PHT_SHORT = ^HT_SHORT;
-
-  HT_SHORT = packed record
+  TCnHookTableShort = packed record
     Short: Byte;
     ShortAddr: Cardinal;
   end;
+  PCnHookTableShort = ^TCnHookTableShort;
 
   TOnAPIHookProc = function(const Params: array of Pointer): DWORD of object;
 
@@ -64,10 +62,10 @@ type
   private
     FAddr: Pointer;
     FEvent: Pointer;
-    FStyle: THookType;
+    FStyle: TCnHookType;
     FAddrSize: Byte;
     FHooked: Boolean;
-    procedure SetStyle(const Value: THookType);
+    procedure SetStyle(const Value: TCnHookType);
   protected
     FDWSize: Cardinal;
     FCode: Word;
@@ -80,7 +78,7 @@ type
     property Addr: Pointer read FAddr write FAddr;
     property AddrSize: Byte read FAddrSize write FAddrSize;
     property Event: Pointer read FEvent write FEvent;
-    property Style: THookType read FStyle write SetStyle;
+    property Style: TCnHookType read FStyle write SetStyle;
     property Hooked: Boolean read FHooked;
   end;
 
@@ -166,15 +164,22 @@ type
 
 implementation
 
+const
+{$IFDEF UNICODE}
+  PARAM_OFFSET = $54;  // 暂不支持
+{$ELSE}
+  PARAM_OFFSET = $50;  // D5 到 D2007 是这个偏移
+{$ENDIF}
+
 { TCnHookCore }
 
 constructor TCnHookCore.Create;
 begin
   SetStyle(HT_LONG_JMP);
-  FAddrSize := SizeOf(HT_LONG);
+  FAddrSize := SizeOf(TCnHookTableLong);
 end;
 
-procedure TCnHookCore.SetStyle(const Value: THookType);
+procedure TCnHookCore.SetStyle(const Value: TCnHookType);
 begin
   if Value <> FStyle then
   begin
@@ -183,22 +188,22 @@ begin
       HT_LONG_JMP:
         begin
           FCode := $25FF;
-          FDWSize := SizeOf(HT_LONG);
+          FDWSize := SizeOf(TCnHookTableLong);
         end;
       HT_LONG_CALL:
         begin
           FCode := $15FF;
-          FDWSize := SizeOf(HT_LONG);
+          FDWSize := SizeOf(TCnHookTableLong);
         end;
       HT_SHORT_JMP:
         begin
           FCode := $E9;
-          FDWSize := SizeOf(HT_SHORT);
+          FDWSize := SizeOf(TCnHookTableShort);
         end;
       HT_SHORT_CALL:
         begin
           FCode := $E8;
-          FDWSize := SizeOf(HT_SHORT);
+          FDWSize := SizeOf(TCnHookTableShort);
         end;
     end;
     if FAddrSize < FDWSize then
@@ -208,8 +213,8 @@ end;
 
 procedure TCnHookCore.Hook;
 var
-  Code1: PHT_LONG;
-  Code2: PHT_SHORT;
+  Code1: PCnHookTableLong;
+  Code2: PCnHookTableShort;
   Addr: Cardinal;
 begin
   if not FHooked then
@@ -255,27 +260,27 @@ end;
 
 function DoOnHookProc(Self: TCnHookAddress): DWORD; stdcall;
 var
-  hh: THandle;
+  H: THandle;
 begin
   Result := 0;
   if Assigned(Self.OnHookProc) then
   begin
     if Self.FMutex then
     begin
-      hh := OpenMutex(MUTEX_ALL_ACCESS, True, Self.FHookMark);
+      H := OpenMutex(MUTEX_ALL_ACCESS, True, Self.FHookMark);
 
         //如果已经有就等待
-      if hh <> 0 then
-        WaitForSingleObject(hh, INFINITE)
+      if H <> 0 then
+        WaitForSingleObject(H, INFINITE)
       else
-        hh := CreateMutex(nil, True, Self.FHookMark);  //否则创建一个
+        H := CreateMutex(nil, True, Self.FHookMark);  //否则创建一个
 
         //执行事件
       Result := Self.OnHookProc(Self.FHooker.Event);
 
         //销毁事件
-      ReleaseMutex(hh);
-      CloseHandle(hh);
+      ReleaseMutex(H);
+      CloseHandle(H);
     end
     else
       //执行事件
@@ -320,23 +325,22 @@ procedure TCnHookAddress.SetInit(const Value: Boolean);
 begin
   if FInit = Value then
     Exit;  //跟上次一样则什么都不做
-  case Value of
-    True:  //初始化
-      begin
-        if FInit = False then
-        begin
-          InitHook;
-          FInit := True;
-        end;
-      end;
-    False:  //反初始化
-      begin
-        if FInit then
-        begin
-          UnInitHook;
-          FInit := False;
-        end;
-      end;
+
+  if Value then
+  begin  //初始化
+    if FInit = False then
+    begin
+      InitHook;
+      FInit := True;
+    end;
+  end
+  else  //反初始化
+  begin
+    if FInit then
+    begin
+      UnInitHook;
+      FInit := False;
+    end;
   end;
 end;
 
@@ -344,23 +348,22 @@ procedure TCnHookAddress.SetHook(const Value: Boolean);
 begin
   if FHook = Value then
     Exit;  //跟上次一样则什么都不做
-  case Value of
-    True:  //初始化
-      begin
-        if FHook = False then
-        begin
-          FHooker.Hook;
-          FHook := True;
-        end;
-      end;
-    False:  //反初始化
-      begin
-        if FHook then
-        begin
-          FHooker.UnHook;
-          FHook := False;
-        end;
-      end;
+
+  if Value then
+  begin
+    if not FHook then
+    begin
+      FHooker.Hook;
+      FHook := True;
+    end;
+  end
+  else
+  begin
+    if FHook then
+    begin
+      FHooker.UnHook;
+      FHook := False;
+    end;
   end;
 end;
 
@@ -452,7 +455,6 @@ end;
 procedure TCnInProcessAPIHook.SetActive(const Value: Boolean);
 type
   PStr = ^Str;
-
   Str = array[0..3] of Char;
 var
   Lib, Values: DWORD;
@@ -460,39 +462,38 @@ var
 begin
   if Value = FActive then
     Exit;
+
   FActive := Value;
   if not (csDesigning in ComponentState) then
   begin
-    case Value of
-      True:
-        begin
-          //取得地址
-          Lib := LoadLibrary(PChar(FDllName));
-          FHooker.InstructionAddr := GetProcAddress(Lib, PChar(FDllFunction));
-          FreeLibrary(Lib);
+    if Value then
+    begin
+      //取得地址
+      Lib := LoadLibrary(PChar(FDllName));
+      FHooker.InstructionAddr := GetProcAddress(Lib, PChar(FDllFunction));
+      FreeLibrary(Lib);
 
-          //固定长度
-          FHooker.InstructionSize := 5;
-          //事件
-          FHooker.OnHookProc := OnHookProc;
-          //Self
-          FHooker.ExtraData := Self;
+      //固定长度
+      FHooker.InstructionSize := 5;
+      //事件
+      FHooker.OnHookProc := OnHookProc;
+      //Self
+      FHooker.ExtraData := Self;
 
-          //设置标记
-          Values := GetCurrentProcess;
-          tmp := PStr(@Values)^;
-          FHookMark := CharUpper(PChar(FDllName + FDllFunction + tmp));
+      //设置标记
+      Values := GetCurrentProcess;
+      tmp := PStr(@Values)^;
+      FHookMark := CharUpper(PChar(FDllName + FDllFunction + tmp));
 
-          //打开 Hook
-          FHooker.Init := True;
-          FHooker.Hook := True;
-        end;
-      False:
-        begin
-          //关闭 Hook
-          FHooker.Hook := False;
-          FHooker.Init := False;
-        end;
+      //打开 Hook
+      FHooker.Init := True;
+      FHooker.Hook := True;
+    end
+    else
+    begin
+      //关闭 Hook
+      FHooker.Hook := False;
+      FHooker.Init := False;
     end;
   end;
 end;
@@ -513,8 +514,8 @@ begin
     asm
         mov     AESP, ESP
     end;
-    Param := Pointer(DWORD(AESP) + $54);  //参数开始，此处随编译器变动而变
-    SetLength(Params, OBJ.ParamCount);  //设置参数个数
+    Param := Pointer(DWORD(AESP) + PARAM_OFFSET);  // 参数开始，此处随编译器变动而变
+    SetLength(Params, OBJ.ParamCount);  // 设置参数个数
     CopyMemory(@Params[0], Param, Obj.ParamCount * 4);
     if OBJ.Mutex then
     begin
