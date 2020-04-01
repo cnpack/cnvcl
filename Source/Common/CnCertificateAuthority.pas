@@ -49,7 +49,7 @@ interface
 
 uses
   SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
-  CnBigNumber, CnRSA, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
+  CnBigNumber, CnRSA, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2;
 
 const
   CN_CRT_BASIC_VERSION_1      = 0;
@@ -613,14 +613,14 @@ end;
 
 function GetRSASignTypeFromCASignType(CASignType: TCnCASignType): TCnRSASignDigestType;
 begin
-  Result := sdtSHA1;
+  Result := rsdtSHA1;
   case CASignType of
     ctMd5RSA:
-      Result := sdtMD5;
+      Result := rsdtMD5;
     ctSha1RSA:
-      Result := sdtSHA1;
+      Result := rsdtSHA1;
     ctSha256RSA:
-      Result := sdtSHA256;
+      Result := rsdtSHA256;
   end;
 end;
 
@@ -920,7 +920,7 @@ begin
       Node := Reader.Items[2];
       DigestType := GetDigestSignTypeFromBerOID(Node.BerDataAddress,
         Node.BerDataLength);
-      if DigestType = sdtNone then
+      if DigestType = rsdtNone then
         Exit;
 
       // 获取 Ber 解出的散列值
