@@ -91,18 +91,6 @@ const
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
   );  // $2A = 40 * 1 + 2
 
-  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
-    $2A, $86, $48, $86, $F7, $0D, $02, $05
-  );
-
-  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
-    $2B, $0E, $03, $02, $1A
-  );
-
-  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
-    $60, $86, $48, $01, $65, $03, $04, $02, $01
-  );
-
   // 错误码
   ECN_RSA_OK                           = 0; // 没错
   ECN_RSA_INVALID_INPUT                = 1; // 输入为空或长度不对
@@ -361,6 +349,18 @@ const
 
   PEM_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
   PEM_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
+
+  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
+    $2A, $86, $48, $86, $F7, $0D, $02, $05
+  );
+
+  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
+    $2B, $0E, $03, $02, $1A
+  );
+
+  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
+    $60, $86, $48, $01, $65, $03, $04, $02, $01
+  );
 
 threadvar
   RSAErrorCode: Integer;
