@@ -1,9 +1,10 @@
 object FormTCPClient: TFormTCPClient
   Left = 277
   Top = 183
-  Width = 751
-  Height = 675
+  BorderStyle = bsDialog
   Caption = 'TCP Client'
+  ClientHeight = 630
+  ClientWidth = 726
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,6 +12,7 @@ object FormTCPClient: TFormTCPClient
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
