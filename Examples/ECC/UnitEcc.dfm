@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsSimpleECC
+    ActivePage = tsPem
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
@@ -764,8 +764,9 @@ object FormEcc: TFormEcc
         object Bevel4: TBevel
           Left = 16
           Top = 216
-          Width = 665
+          Width = 745
           Height = 17
+          Anchors = [akLeft, akTop, akRight]
           Shape = bsTopLine
         end
         object lblBNEccB: TLabel
@@ -1508,15 +1509,176 @@ object FormEcc: TFormEcc
         Width = 777
         Height = 473
         Caption = 'Ecc Keys'
+        ParentShowHint = False
+        ShowHint = True
         TabOrder = 0
-        object btnLoad: TButton
-          Left = 24
+        object lblCurveType: TLabel
+          Left = 112
           Top = 32
+          Width = 58
+          Height = 13
+          Caption = 'Curve Type:'
+        end
+        object lblCurveTypeText: TLabel
+          Left = 184
+          Top = 32
+          Width = 46
+          Height = 13
+          Caption = 'Unknown'
+        end
+        object Label1: TLabel
+          Left = 16
+          Top = 228
+          Width = 29
+          Height = 13
+          Caption = 'Order:'
+        end
+        object Label2: TLabel
+          Left = 16
+          Top = 196
+          Width = 18
+          Height = 13
+          Caption = 'GY:'
+        end
+        object Label3: TLabel
+          Left = 16
+          Top = 164
+          Width = 18
+          Height = 13
+          Caption = 'GX:'
+        end
+        object Label4: TLabel
+          Left = 16
+          Top = 132
+          Width = 20
+          Height = 13
+          Caption = 'mod'
+        end
+        object Label5: TLabel
+          Left = 16
+          Top = 100
+          Width = 19
+          Height = 13
+          Caption = 'X + '
+        end
+        object Label6: TLabel
+          Left = 16
+          Top = 68
+          Width = 92
+          Height = 13
+          Caption = 'Y ^ 2 = X ^ 3    +    '
+        end
+        object bvlKey: TBevel
+          Left = 16
+          Top = 256
+          Width = 745
+          Height = 17
+          Shape = bsTopLine
+        end
+        object lblKeyPrivate: TLabel
+          Left = 16
+          Top = 276
+          Width = 73
+          Height = 13
+          Caption = 'Private (Count):'
+        end
+        object lblKeyPublic: TLabel
+          Left = 16
+          Top = 308
+          Width = 65
+          Height = 13
+          Caption = 'Public (Point):'
+        end
+        object btnLoad: TButton
+          Left = 16
+          Top = 24
           Width = 75
           Height = 25
-          Caption = 'Load   Save'
+          Caption = 'Load Key'
           TabOrder = 0
           OnClick = btnLoadClick
+        end
+        object edtKeyEccA: TEdit
+          Left = 104
+          Top = 64
+          Width = 660
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 1
+        end
+        object edtKeyEccB: TEdit
+          Left = 56
+          Top = 96
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 2
+        end
+        object edtKeyEccP: TEdit
+          Left = 56
+          Top = 128
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 3
+        end
+        object edtKeyEccGX: TEdit
+          Left = 56
+          Top = 160
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 4
+        end
+        object edtKeyEccGY: TEdit
+          Left = 56
+          Top = 192
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 5
+        end
+        object edtKeyEccOrder: TEdit
+          Left = 56
+          Top = 224
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 6
+        end
+        object edtKeyPrivate: TEdit
+          Left = 104
+          Top = 272
+          Width = 660
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 7
+        end
+        object edtKeyPublic: TEdit
+          Left = 104
+          Top = 304
+          Width = 660
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 8
+        end
+        object btnKeyCheckPublic: TButton
+          Left = 352
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Check Public'
+          TabOrder = 9
+          OnClick = btnKeyCheckPublicClick
+        end
+        object btnSaveKey: TButton
+          Left = 688
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Save Key'
+          TabOrder = 10
+          OnClick = btnSaveKeyClick
         end
       end
     end

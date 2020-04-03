@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils;
+  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils;
 
 type
   TFormEcc = class(TForm)
@@ -190,6 +190,27 @@ type
     grpEccKeys: TGroupBox;
     btnLoad: TButton;
     dlgSave1: TSaveDialog;
+    lblCurveType: TLabel;
+    lblCurveTypeText: TLabel;
+    edtKeyEccA: TEdit;
+    edtKeyEccB: TEdit;
+    edtKeyEccP: TEdit;
+    edtKeyEccGX: TEdit;
+    edtKeyEccGY: TEdit;
+    edtKeyEccOrder: TEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    bvlKey: TBevel;
+    lblKeyPrivate: TLabel;
+    lblKeyPublic: TLabel;
+    edtKeyPrivate: TEdit;
+    edtKeyPublic: TEdit;
+    btnKeyCheckPublic: TButton;
+    btnSaveKey: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -243,6 +264,8 @@ type
     procedure btnSRCompareClick(Sender: TObject);
     procedure btnBNLucasModClick(Sender: TObject);
     procedure btnLoadClick(Sender: TObject);
+    procedure btnKeyCheckPublicClick(Sender: TObject);
+    procedure btnSaveKeyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -273,6 +296,12 @@ implementation
 
 const
   CN_ECC_PLAIN_DATA_BITS_GAP = 24;
+
+var
+  FPrivateKey: TCnEccPrivateKey;
+  FPublicKey: TCnEccPublicKey;
+  FCurveType: TCnEccCurveType;
+  FKeyEcc: TCnEcc;
 
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
@@ -379,10 +408,18 @@ begin
   edtWrapData.Text := edtBNEccGX.Text;
 
   lblBNEccDataPoint.OnClick(lblBNEccDataPoint);
+
+  FPrivateKey := TCnEccPrivateKey.Create;
+  FPublicKey := TCnEccPublicKey.Create;
+  FKeyEcc := TCnEcc.Create;
 end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
 begin
+  FKeyEcc.Free;
+  FPrivateKey.Free;
+  FPublicKey.Free;
+
   FBNECDHPrivKey1.Free;
   FBNECDHPrivKey2.Free;
   FBNECDHPubKey1.Free;
@@ -1678,25 +1715,66 @@ end;
 
 procedure TFormEcc.btnLoadClick(Sender: TObject);
 var
-  PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey;
-  CurveType: TCnEccPredefinedCurveType;
-  Password: string;
+  S: string;
 begin
   if dlgOpen1.Execute then
   begin
-    Password := CnInputBox('Password', 'Enter Password if the PEM is Encrypted.', '');
-    PrivateKey := TCnEccPrivateKey.Create;
-    PublicKey := TCnEccPublicKey.Create;
+    S := CnInputBox('Password', 'Enter Password if the PEM is Encrypted.', '');
 
-    CnEccLoadKeysFromPem(dlgOpen1.FileName, PrivateKey, PublicKey, CurveType, ckhMd5, Password);
-    // CnEccLoadPublicKeyFromPem(dlgOpen1.FileName, PublicKey, CurveType, ckhMd5, Password);
-    if dlgSave1.Execute then
-      CnEccSaveKeysToPem(dlgSave1.FileName, PrivateKey, PublicKey, CurveType);
-      // CnEccSavePublicKeyToPem(dlgSave1.FileName, PublicKey, CurveType);
-    PrivateKey.Free;
-    PublicKey.Free;
+    if CnEccLoadKeysFromPem(dlgOpen1.FileName, FPrivateKey, FPublicKey, FCurveType, ckhMd5, S) then
+    begin
+      lblCurveTypeText.Caption := GetEnumName(TypeInfo(TCnEccCurveType), Ord(FCurveType));
+      FKeyEcc.Load(FCurveType);
+
+      edtKeyEccA.Text := FKeyEcc.CoefficientA.ToDec;
+      edtKeyEccB.Text := FKeyEcc.CoefficientB.ToDec;
+      edtKeyEccP.Text := FKeyEcc.FiniteFieldSize.ToDec;
+      edtKeyEccGX.Text := FKeyEcc.Generator.X.ToDec;
+      edtKeyEccGY.Text := FKeyEcc.Generator.Y.ToDec;
+      edtKeyEccOrder.Text := FKeyEcc.Order.ToDec;
+
+      edtKeyEccA.Hint := FKeyEcc.CoefficientA.ToHex;
+      edtKeyEccB.Hint := FKeyEcc.CoefficientB.ToHex;
+      edtKeyEccP.Hint := FKeyEcc.FiniteFieldSize.ToHex;
+      edtKeyEccGX.Hint := FKeyEcc.Generator.X.ToHex;
+      edtKeyEccGY.Hint := FKeyEcc.Generator.Y.ToHex;
+      edtKeyEccOrder.Hint := FKeyEcc.Order.ToHex;
+
+      edtKeyPrivate.Text := FPrivateKey.ToDec;
+      edtKeyPublic.Text := CnEccPointToString(FPublicKey);
+    end;
+//     CnEccLoadPublicKeyFromPem(dlgOpen1.FileName, PublicKey, CurveType, ckhMd5, Password);
+//    if dlgSave1.Execute then
+//      CnEccSaveKeysToPem(dlgSave1.FileName, FPrivateKey, FPublicKey, CurveType);
+//       CnEccSavePublicKeyToPem(dlgSave1.FileName, PublicKey, CurveType);
   end;
+end;
+
+procedure TFormEcc.btnKeyCheckPublicClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+begin
+  // 根据 X 求 Y 并验证
+  P := TCnEccPoint.Create;
+  if FKeyEcc.PlainToPoint(FPublicKey.X, P) then
+  begin
+    if FPublicKey.Y.IsZero then
+      BigNumberCopy(FPublicKey.Y, P.Y)
+    else if BigNumberCompare(FPublicKey.Y, P.Y) = 0 then
+      ShowMessage('Public Key Verify OK.');
+  end;
+  P.Free;
+
+  if FKeyEcc.IsPointOnCurve(FPublicKey) then
+    ShowMessage('PublicKey is On Curve.');
+end;
+
+procedure TFormEcc.btnSaveKeyClick(Sender: TObject);
+begin
+  if dlgSave1.Execute then
+    if CnEccSaveKeysToPem(dlgSave1.FileName, FPrivateKey, FPublicKey, FCurveType) then
+      ShowMessage('Private Key Save OK.');
+// CnEccSavePublicKeyToPem(dlgSave1.FileName, PublicKey, CurveType);
 end;
 
 end.

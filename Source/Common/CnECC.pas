@@ -53,9 +53,12 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber,
-  CnPemUtils, CnBerUtils;
+  CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2;
 
 type
+  TCnEccSignDigestType = (esdtMD5, esdtSHA1, esdtSHA256);
+  {* ECC 签名所支持的数字摘要算法，不支持无摘要的方式}
+
   ECnEccException = class(Exception);
 
   TCnEccPrimeType = (pt4U3, pt8U5, pt8U1);
@@ -157,7 +160,7 @@ type
   TCnEccPrivateKey = TCnBigNumber;
   {* 椭圆曲线的私钥，计算次数 k 次}
 
-  TCnEccPredefinedCurveType = (ctCustomized, ctSM2, ctSecp224r1, ctSecp224k1, ctSecp256k1);
+  TCnEccCurveType = (ctCustomized, ctSM2, ctSecp224r1, ctSecp224k1, ctSecp256k1);
   {* 支持的椭圆曲线类型}
 
   TCnEcc = class
@@ -171,21 +174,22 @@ type
     FBigNumberPool: TObjectList;
     FSizeUFactor: TCnBigNumber;
     FSizePrimeType: TCnEccPrimeType;
+    FCoFactor: Integer;
     function ObtainBigNumberFromPool: TCnBigNumber;
     procedure RecycleBigNumberToPool(Num: TCnBigNumber);
     function GetBitsCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
   public
-    constructor Create; overload;
-    constructor Create(Predefined: TCnEccPredefinedCurveType); overload;
-    constructor Create(const A, B, FieldPrime, GX, GY, Order: AnsiString); overload;
+    constructor Create; overload; virtual;
+    constructor Create(Predefined: TCnEccCurveType); overload;
+    constructor Create(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure Load(Predefined: TCnEccPredefinedCurveType); overload;
-    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString); overload;
+    procedure Load(Predefined: TCnEccCurveType); overload; virtual;
+    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1);overload; virtual;
     {* 加载曲线参数}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
@@ -222,7 +226,9 @@ type
     property FiniteFieldSize: TCnBigNumber read FFiniteFieldSize;
     {* 有限域的上界，素数 p}
     property Order: TCnBigNumber read FOrder;
-    {* 基点的阶数}
+    {* 基点的阶数 N}
+    property CoFactor: Integer read FCoFactor;
+    {* 辅助因子 H，也就是总点数 mod N，先用 Integer 表示}
     property BitsCount: Integer read GetBitsCount;
     {* 该椭圆曲线的素数域位数}
   end;
@@ -266,28 +272,92 @@ function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivate
 // 椭圆曲线密钥 PEM 读写实现
 
 function CnEccLoadKeysFromPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
 
 function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 {* 将公私钥写入 PEM 格式文件中，返回是否成功}
 
 function CnEccLoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
 
 function CnEccSavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
   KeyType: TCnEccKeyType = cktPKCS1; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 {* 将公钥写入 PEM 格式文件中，返回是否成功}
 
+// ECC 文件签名与验证实现，流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
+
+function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用私钥签名指定文件，Ecc 中需要预先指定曲线。
+   使用指定数字摘要算法对文件进行计算得到散列值，
+   原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+
+function CnEccSignFile(const InFileName, OutSignFileName: string; CurveType: TCnEccCurveType;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用私钥签名指定文件，使用预定义曲线。
+   使用指定数字摘要算法对文件进行计算得到散列值，
+   原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+
+function CnEccVerifyFile(const InFileName, InSignFileName: string; Ecc: TCnEcc;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
+   并比对两个二进制散列值是否相同，返回验证是否通过。
+   Ecc 中需要预先指定曲线。}
+
+function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TCnEccCurveType;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用预定义曲线与公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
+   并比对两个二进制散列值是否相同，返回验证是否通过}
+
+function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用私钥签名指定内存流，Ecc 中需要预先指定曲线}
+
+function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用预定义曲线与私钥签名指定内存流}
+
+function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用公钥与签名值验证指定内存流，Ecc 中需要预先指定曲线}
+
+function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  CurveType: TCnEccCurveType; PublicKey: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* 用预定义曲线与公钥与签名值验证指定内存流}
+
 implementation
+
+resourcestring
+  SCnEccErrorCurveType = 'Invalid Curve Type.';
+  SCnEccErrorKeyData = 'Invalid Key or Data.';
+
+const
+  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
+    $2A, $86, $48, $86, $F7, $0D, $02, $05
+  );
+
+  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
+    $2B, $0E, $03, $02, $1A
+  );
+
+  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
+    $60, $86, $48, $01, $65, $03, $04, $02, $01
+  );
 
 type
   TCnEccPredefinedHexParams = packed record
@@ -301,7 +371,7 @@ type
   end;
 
 const
-  ECC_PRE_DEFINED_PARAMS: array[TCnEccPredefinedCurveType] of TCnEccPredefinedHexParams = (
+  ECC_PRE_DEFINED_PARAMS: array[TCnEccCurveType] of TCnEccPredefinedHexParams = (
     (P: ''; A: ''; B: ''; GX: ''; GY: ''; N: ''; H: ''),
     ( // SM2
       P: 'FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF';
@@ -313,7 +383,7 @@ const
       H: '01'
     ),
     ( // ctSecp224r1
-      P: '00ffffffffffffffffffffffffffffffff000000000000000000000001';
+      P: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001';
       A: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE';
       B: '00B4050A850C04B3ABF54132565044B0B7D7BFD8BA270B39432355FFB4';
       GX: 'B70E0CBD6BB4BF7F321390B94A03C1D356C21122343280D6115C1D21';
@@ -1052,10 +1122,10 @@ begin
   end;
 end;
 
-constructor TCnEcc.Create(const A, B, FieldPrime, GX, GY, Order: AnsiString);
+constructor TCnEcc.Create(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer);
 begin
   Create;
-  Load(A, B, FIeldPrime, GX, GY, Order);
+  Load(A, B, FIeldPrime, GX, GY, Order, H);
 end;
 
 constructor TCnEcc.Create;
@@ -1070,7 +1140,7 @@ begin
   FSizeUFactor := TCnBigNumber.Create;
 end;
 
-constructor TCnEcc.Create(Predefined: TCnEccPredefinedCurveType);
+constructor TCnEcc.Create(Predefined: TCnEccCurveType);
 begin
   Create;
   Load(Predefined);
@@ -1122,7 +1192,7 @@ var
   RandomKey: TCnBigNumber;
 begin
   if not IsPointOnCurve(PublicKey) or not IsPointOnCurve(PlainPoint) then
-    raise ECnEccException.Create('Invalid Public Key or Data.');
+    raise ECnEccException.Create(SCnEccErrorKeyData);
 
   RandomKey := ObtainBigNumberFromPool;
   try
@@ -1184,14 +1254,15 @@ begin
   end;
 end;
 
-procedure TCnEcc.Load(Predefined: TCnEccPredefinedCurveType);
+procedure TCnEcc.Load(Predefined: TCnEccCurveType);
 begin
   Load(ECC_PRE_DEFINED_PARAMS[Predefined].A, ECC_PRE_DEFINED_PARAMS[Predefined].B,
     ECC_PRE_DEFINED_PARAMS[Predefined].P, ECC_PRE_DEFINED_PARAMS[Predefined].GX,
-    ECC_PRE_DEFINED_PARAMS[Predefined].GY, ECC_PRE_DEFINED_PARAMS[Predefined].N);
+    ECC_PRE_DEFINED_PARAMS[Predefined].GY, ECC_PRE_DEFINED_PARAMS[Predefined].N,
+    StrToIntDef(ECC_PRE_DEFINED_PARAMS[Predefined].H, 1));
 end;
 
-procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString);
+procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer);
 var
   R: DWORD;
 begin
@@ -1201,6 +1272,7 @@ begin
   FCoefficientB.SetHex(B);
   FFiniteFieldSize.SetHex(FieldPrime);
   FOrder.SetHex(Order);
+  FCoFactor := H;
 
   // TODO: 要确保 4*a^3+27*b^2 <> 0
 //  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
@@ -1606,7 +1678,7 @@ begin
   end;
 end;
 
-function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccPredefinedCurveType;
+function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
 var
   P: PByte;
   L: Byte;
@@ -1632,7 +1704,7 @@ begin
 end;
 
 // 根据曲线类型返回其 OID 地址与长度，外界使用后无需释放
-function GetOIDFromCurveType(Curve: TCnEccPredefinedCurveType; out OIDAddr: Pointer): Integer;
+function GetOIDFromCurveType(Curve: TCnEccCurveType; out OIDAddr: Pointer): Integer;
 begin
   Result := 0;
   OIDAddr := nil;
@@ -1654,7 +1726,7 @@ end;
     BIT STRING
 *)
 function CnEccLoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
   MemStream: TMemoryStream;
@@ -1740,13 +1812,13 @@ end;
       BIT STRING
 *)
 function CnEccLoadKeysFromPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; out CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
-  CurveType2: TCnEccPredefinedCurveType;
+  CurveType2: TCnEccCurveType;
   B: PByte;
   Len: Integer;
 begin
@@ -1820,7 +1892,7 @@ begin
 end;
 
 function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 var
@@ -1903,7 +1975,7 @@ begin
 end;
 
 function CnEccSavePublicKeyToPem(const PemFileName: string;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccPredefinedCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
   KeyType: TCnEccKeyType = cktPKCS1; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean;
 var
@@ -1963,6 +2035,242 @@ begin
   finally
     Mem.Free;
     Writer.Free;
+  end;
+end;
+
+// ECC 签名与验证
+
+// 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream
+function CalcDigestStream(InStream: TStream; SignType: TCnEccSignDigestType;
+  outStream: TStream): Boolean;
+var
+  Md5: TMD5Digest;
+  Sha1: TSHA1Digest;
+  Sha256: TSHA256Digest;
+begin
+  Result := False;
+  case SignType of
+    esdtMD5:
+      begin
+        Md5 := MD5Stream(InStream);
+        outStream.Write(Md5, SizeOf(TMD5Digest));
+        Result := True;
+      end;
+    esdtSHA1:
+      begin
+        Sha1 := SHA1Stream(InStream);
+        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        Result := True;
+      end;
+    esdtSHA256:
+      begin
+        Sha256 := SHA256Stream(InStream);
+        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        Result := True;
+      end;
+  end;
+end;
+
+// 根据指定数字摘要算法计算文件的二进制散列值并写入 Stream
+function CalcDigestFile(const FileName: string; SignType: TCnEccSignDigestType;
+  outStream: TStream): Boolean;
+var
+  Md5: TMD5Digest;
+  Sha1: TSHA1Digest;
+  Sha256: TSHA256Digest;
+begin
+  Result := False;
+  case SignType of
+    esdtMD5:
+      begin
+        Md5 := MD5File(FileName);
+        outStream.Write(Md5, SizeOf(TMD5Digest));
+        Result := True;
+      end;
+    esdtSHA1:
+      begin
+        Sha1 := SHA1File(FileName);
+        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        Result := True;
+      end;
+    esdtSHA256:
+      begin
+        Sha256 := SHA256File(FileName);
+        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        Result := True;
+      end;
+  end;
+end;
+
+function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnEccSignDigestType;
+  AParent: TCnBerWriteNode): TCnBerWriteNode;
+begin
+  Result := nil;
+  case ASignType of
+    esdtMD5:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_MD5[0],
+        SizeOf(OID_SIGN_MD5), AParent);
+    esdtSHA1:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
+        SizeOf(OID_SIGN_SHA1), AParent);
+    esdtSHA256:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
+        SizeOf(OID_SIGN_SHA256), AParent);
+  end;
+end;
+
+function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+var
+  Stream, BerStream, EnStream: TMemoryStream;
+  Data, Res: TCnBigNumber;
+  ResBuf: array of Byte;
+  Writer: TCnBerWriter;
+  Root, Node: TCnBerWriteNode;
+begin
+  Result := False;
+  Stream := nil;
+  EnStream := nil;
+  BerStream := nil;
+  Writer := nil;
+  Data := nil;
+  Res := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    EnStream := TMemoryStream.Create;
+
+    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+      Exit;
+
+    BerStream := TMemoryStream.Create;
+    Writer := TCnBerWriter.Create;
+
+    // 然后按格式进行 BER 编码
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+    AddDigestTypeOIDNodeToWriter(Writer, SignType, Node);
+    Writer.AddNullNode(Node);
+    Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, Stream.Memory, Stream.Size, Root);
+    Writer.SaveToStream(BerStream);
+
+    // 再把 BER 编码后的内容 PKCS1 填充对齐
+    if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBitsCount div 8,
+      BerStream.Memory, BerStream.Size, EnStream) then
+      Exit;
+
+    // 私钥加密运算
+    Data := TCnBigNumber.FromBinary(PAnsiChar(EnStream.Memory), EnStream.Size);
+    Res := TCnBigNumber.Create;
+
+    // TODO: NOT Implemented!
+    raise ECnEccException.Create('NOT Implemented!');
+
+    // if EccCrypt(Data, PrivateKey, Res) then
+    begin
+      SetLength(ResBuf, Res.GetBytesCount);
+      Res.ToBinary(@ResBuf[0]);
+
+      // 保存用私钥加密后的内容至文件
+      Stream.Clear;
+      Stream.Write(ResBuf[0], Res.GetBytesCount);
+      Stream.SaveToFile(OutSignFileName);
+      Result := True;
+    end;
+  finally
+    Stream.Free;
+    EnStream.Free;
+    BerStream.Free;
+    Data.Free;
+    Res.Free;
+    Writer.Free;
+    SetLength(ResBuf, 0);
+  end;
+end;
+
+function CnEccSignFile(const InFileName, OutSignFileName: string; CurveType: TCnEccCurveType;
+  PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccSignFile(InFileName, OutSignFileName, Ecc, PrivateKey, SignType);
+  finally
+    Ecc.Free;
+  end;
+end;
+
+function CnEccVerifyFile(const InFileName, InSignFileName: string; Ecc: TCnEcc;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+begin
+
+end;
+
+function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TCnEccCurveType;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccVerifyFile(InFileName, InSignFileName, Ecc, PublicKey, SignType);
+  finally
+    Ecc.Free;
+  end;
+end;
+
+function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+begin
+
+end;
+
+function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccSignStream(InStream, OutSignStream, Ecc, PrivateKey, SignType);
+  finally
+    Ecc.Free;
+  end;
+end;
+
+function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+begin
+
+end;
+
+function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  CurveType: TCnEccCurveType; PublicKey: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccVerifyStream(InStream, InSignStream, Ecc, PublicKey, SignType);
+  finally
+    Ecc.Free;
   end;
 end;
 
