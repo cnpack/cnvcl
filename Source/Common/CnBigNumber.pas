@@ -352,6 +352,9 @@ function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
    返回 Buf 写入的长度，注意不处理正负号}
 
+function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream): Integer;
+{* 将一个大数的二进制部分写入流，返回写入的长度}
+
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 {* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
@@ -440,7 +443,7 @@ function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean
 
 function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
-{* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功}
+{* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2}
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -992,6 +995,22 @@ begin
     Buf := PAnsiChar(Integer(Buf) + 1);
   end;
   Result := N;
+end;
+
+function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream): Integer;
+var
+  Buf: array of Byte;
+  Len: Integer;
+begin
+  Result := 0;
+  Len := BigNumberGetBytesCount(Num);
+  if (Stream <> nil) and (Len > 0) then
+  begin
+    SetLength(Buf, Len);
+    BigNumberToBinary(Num, @Buf[0]);
+    Stream.Write(Buf[0], Len);
+    SetLength(Buf, 0);
+  end;
 end;
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;

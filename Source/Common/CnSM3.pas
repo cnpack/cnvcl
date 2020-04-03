@@ -425,14 +425,14 @@ begin
   SM3Update(Ctx, @(SM3Padding[0]), Padn);
   SM3Update(Ctx, @(MsgLen[0]), 8);
 
-  PutULongBe( Ctx.State[0], @Output,  0 );
-  PutULongBe( Ctx.State[1], @Output,  4 );
-  PutULongBe( Ctx.State[2], @Output,  8 );
-  PutULongBe( Ctx.State[3], @Output, 12 );
-  PutULongBe( Ctx.State[4], @Output, 16 );
-  PutULongBe( Ctx.State[5], @Output, 20 );
-  PutULongBe( Ctx.State[6], @Output, 24 );
-  PutULongBe( Ctx.State[7], @Output, 28 );
+  PutULongBe(Ctx.State[0], @Output,  0);
+  PutULongBe(Ctx.State[1], @Output,  4);
+  PutULongBe(Ctx.State[2], @Output,  8);
+  PutULongBe(Ctx.State[3], @Output, 12);
+  PutULongBe(Ctx.State[4], @Output, 16);
+  PutULongBe(Ctx.State[5], @Output, 20);
+  PutULongBe(Ctx.State[6], @Output, 24);
+  PutULongBe(Ctx.State[7], @Output, 28);
 end;
 
 function SM3(Input: PAnsiChar; Length: LongWord): TSM3Digest;

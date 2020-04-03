@@ -56,6 +56,12 @@ function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
 {* 用公钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则}
 
+function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  OutSignature: TCnEccPoint; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
+  Sm2: TCnSM2 = nil): Boolean;
+{* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
+   第2部分:数字签名算法》中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要}
+
 implementation
 
 { TCnSM2 }
@@ -69,13 +75,13 @@ end;
 {
   传入明文 M，长 MLen 字节，随机生成 k，计算
 
-  Cl = k * G = (xl, yl)         // 非压缩存储，长度为两个数字位长加 1
+  Cl = k * G => (xl, yl)         // 非压缩存储，长度为两个数字位长加 1
 
-  k * PublicKey = (x2, y2)
-  t = KDF(x2‖y2, Mlen)
-  C2 = M xor t                  // 长度 MLen
+  k * PublicKey => (x2, y2)
+  t <= KDF(x2‖y2, Mlen)
+  C2 <= M xor t                  // 长度 MLen
 
-  C3 = SM3(x2‖M‖y2)           // 长度 32 字节
+  C3 <= SM3(x2‖M‖y2)           // 长度 32 字节
 
   密文为：C1‖C3‖C2
 }
@@ -170,13 +176,13 @@ begin
 end;
 
 {
-  MLen = DataLen - SM3DigLength - 2 * Sm2 Byte Length - 1，劈开拿到 C1 C2 C3
+  MLen <= DataLen - SM3DigLength - 2 * Sm2 Byte Length - 1，劈开拿到 C1 C2 C3
 
-  PrivateKey * C1 = (x2, y2)
+  PrivateKey * C1 => (x2, y2)
 
-  t = KDF(x2‖y2, Mlen)
+  t <= KDF(x2‖y2, Mlen)
 
-  M' = C2 xor t
+  M' <= C2 xor t
 
   还可对比 SM3(x2‖M‖y2) Hash 是否与 C3 相等
 }
@@ -241,6 +247,127 @@ begin
     end;
   finally
     P2.Free;
+    if Sm2IsNil then
+      Sm2.Free;
+  end;
+end;
+
+{
+  ZA = Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
+  e = Hash(ZA‖M)
+
+  k * G => (x1, y1)
+
+  r <= (e + x1) mod n
+
+  s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
+}
+function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  OutSignature: TCnEccPoint; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
+  Sm2: TCnSM2): Boolean;
+var
+  Stream: TMemoryStream;
+  Len: Integer;
+  K, R, E: TCnBigNumber;
+  P: TCnEccPoint;
+  ULen: Word;
+  Sm2IsNil: Boolean;
+  Sm3Dig: TSM3Digest;
+begin
+  Result := False;
+  if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or (PrivateKey = nil) then
+    Exit;
+
+  K := nil;
+  P := nil;
+  E := nil;
+  R := nil;
+  Stream := nil;
+  Sm2IsNil := Sm2 = nil;
+
+  try
+    if Sm2IsNil then
+      Sm2 := TCnSM2.Create;
+
+    Len := Length(UserID) * 8;
+    ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
+
+    Stream := TMemoryStream.Create;
+    Stream.Write(ULen, SizeOf(ULen));
+    if ULen > 0 then
+      Stream.Write(UserID[1], Length(UserID));
+
+    BigNumberWriteBinaryToStream(Sm2.CoefficientA, Stream);
+    BigNumberWriteBinaryToStream(Sm2.CoefficientB, Stream);
+    BigNumberWriteBinaryToStream(Sm2.Generator.X, Stream);
+    BigNumberWriteBinaryToStream(Sm2.Generator.Y, Stream);
+    BigNumberWriteBinaryToStream(PublicKey.X, Stream);
+    BigNumberWriteBinaryToStream(PublicKey.Y, Stream);
+
+    Sm3Dig := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 算出 ZA
+    Stream.Clear;
+    Stream.Write(Sm3Dig[0], SizeOf(TSM3Digest));
+    Stream.Write(PlainData^, DataLen);
+
+    Sm3Dig := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 再次算出杂凑值 e
+
+    P := TCnEccPoint.Create;
+    E := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
+    K := TCnBigNumber.Create;
+
+    while True do
+    begin
+      // 生成一个随机 K
+      if not BigNumberRandRange(K, Sm2.Order) then
+        Exit;
+      // K.SetHex('6CB28D99385C175C94F94E934817663FC176D925DD72B727260DBAAE1FB2F96F');
+
+      P.Assign(Sm2.Generator);
+      Sm2.MultiplePoint(K, P);
+
+      // 计算 R = (e + x) mod N
+      E.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
+      if not BigNumberAdd(E, E, P.X) then
+        Exit;
+      if not BigNumberMod(R, E, Sm2.Order) then // 算出 R 后 E 不用了
+        Exit;
+
+      if R.IsZero then  // R 不能为 0
+        Continue;
+
+      if not BigNumberAdd(E, R, K) then
+        Exit;
+      if BigNumberCompare(E, Sm2.Order) = 0 then // R + K = N 也不行
+        Continue;
+
+      BigNumberCopy(OutSignature.X, R);  // 得到一个签名值 R
+
+      BigNumberCopy(E, PrivateKey);
+      BigNumberAddWord(E, 1);
+      BigNumberModularInverse(R, E, Sm2.Order);      // 求逆元得到 (1 + PrivateKey)^-1，放在 R 里
+
+      // 求 K - R * PrivateKey，又用起 E 来
+      if not BigNumberMul(E, OutSignature.X, PrivateKey) then
+        Exit;
+      if not BigNumberSub(E, K, E) then
+        Exit;
+
+      if not BigNumberMul(R, E, R) then // (1 + PrivateKey)^-1 * (K - R * PrivateKey) 放在 R 里
+        Exit;
+
+      if not BigNumberNonNegativeMod(OutSignature.Y, R, Sm2.Order) then // 注意余数不能为负
+        Exit;
+
+      Result := True;
+      Break;
+    end;
+  finally
+    Stream.Free;
+    K.Free;
+    P.Free;
+    R.Free;
+    E.Free;
     if Sm2IsNil then
       Sm2.Free;
   end;
