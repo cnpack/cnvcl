@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3;
+  ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3, CnBigNumber;
 
 type
   TFormSM2 = class(TForm)
@@ -40,6 +40,23 @@ const
 
   USER_A: AnsiString = 'ALICE123@YAHOO.COM';
   USER_B: AnsiString = 'BILL456@YAHOO.COM';
+
+function MyStrToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
+const
+  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+var
+  I: Integer;
+  B: Byte;
+begin
+  Result := '';
+  for I := 0 to Length - 1 do
+  begin
+    B := PByte(Integer(Buffer) + I)^;
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
+      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+end;
 
 procedure TestFp192CryptExample;
 var
@@ -117,15 +134,18 @@ var
   Sm2: TCnSM2;
   APrivateKey, BPrivateKey: TCnEccPrivateKey;
   APublicKey, BPublicKey: TCnEccPublicKey;
+  RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB: TSM3Digest;
+  OpSA, OpSB, OpS2: TSM3Digest;
 begin
   Sm2 := TCnSM2.Create(ctSM2Example256);
   APrivateKey := TCnEccPrivateKey.Create;
   APublicKey := TCnEccPublicKey.Create;
   BPrivateKey := TCnEccPrivateKey.Create;
   BPublicKey := TCnEccPublicKey.Create;
+  RandA := TCnBigNumber.Create;
+  RandB := TCnBigNumber.Create;
 
   APrivateKey.SetHex('6FCBA2EF9AE0AB902BC3BDE3FF915D44BA4CC78F88E2F8E7F8996D3B8CCEEDEE');
   APublicKey.X.SetHex('3099093BF3C137D8FCBBCDF4A2AE50F3B0F216C3122D79425FE03A45DBFE1655');
@@ -139,23 +159,26 @@ begin
   OutRB := TCnEccPoint.Create;
 
   if not CnSM2KeyExchangeAStep1(USER_A, USER_B, KEY_LENGTH, APrivateKey, APublicKey,
-    BPublicKey, OutRA, Sm2) then
+    BPublicKey, RandA, OutRA, Sm2) then
     Exit;
 
   if not CnSM2KeyExchangeBStep1(USER_A, USER_B, KEY_LENGTH, BPrivateKey,
-    APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, Sm2) then
+    APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, Sm2) then
     Exit;
 
   if not CnSM2KeyExchangeAStep2(USER_A, USER_B, KEY_LENGTH, APrivateKey, APublicKey,
-    BPublicKey, OutRB, KB, OpSA, Sm2) then
+    BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, Sm2) then
     Exit;
 
   if CnSM2KeyExchangeBStep2(USER_A, USER_B, KEY_LENGTH, BPrivateKey, APublicKey,
-    BPublicKey, OpSA, Sm2) then
-    ShowMessage('Key Exchange OK: ' + KA + ' ' + KB);
+    BPublicKey, OpSA, OpS2, Sm2) then
+    ShowMessage('Key Exchange OK: ' + MyStrToHex(PAnsiChar(KA), Length(KA)) + ' : '
+      + MyStrToHex(PAnsiChar(KB), Length(KB)));
 
   OutRA.Free;
   OutRB.Free;
+  RandA.Free;
+  RandB.Free;
 
   APublicKey.Free;
   APrivateKey.Free;

@@ -1,9 +1,10 @@
 object FormSM2: TFormSM2
   Left = 354
   Top = 220
-  Width = 967
-  Height = 588
+  BorderStyle = bsDialog
   Caption = 'SM2 Test'
+  ClientHeight = 561
+  ClientWidth = 959
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

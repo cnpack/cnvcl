@@ -24,12 +24,13 @@ unit CnSM2;
 * 软件名称：开发包基础库
 * 单元名称：SM2 椭圆曲线算法单元
 * 单元作者：刘啸
-* 备    注：要实现基于 SM2 的数据加解密、签名验签、密钥交换
+* 备    注：实现了 GM/T0003.x-2012《SM2椭圆曲线公钥密码算法》
+*           规范中的基于 SM2 的数据加解密、签名验签、密钥交换
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.04.02 V1.0
-*               创建单元
+* 修改记录：2020.04.04 V1.0
+*               创建单元，实现功能
 ================================================================================
 |</PRE>}
 
@@ -82,23 +83,32 @@ function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: 
 }
 function CnSM2KeyExchangeAStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
-  OutRA: TCnEccPoint; Sm2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第一步 A 用户生成随机密钥 RA，供发给 B}
+  OutARand: TCnBigNumber; OutRA: TCnEccPoint; Sm2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 的密钥交换协议，第一步 A 用户生成随机点 RA，供发给 B
+  输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥
+  输出：随机值 OutARand；生成的随机点 RA（发给 B）}
 
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; InRA: TCnEccPoint;
-  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A}
+  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest;
+  out OutOptionalS2: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A
+  输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、A 传来的 RA
+  输出：计算成功的共享密钥 Kb、生成的随机点 RB（发给 A）、可选的校验杂凑 SB（发给 A 验证），可选的校验杂凑 S2}
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; InRB: TCnEccPoint;
-  out OutKeyA: AnsiString; out OutOptionalSA: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第三步 A 用户收到 B 的数据计算 Ka，并把可选的验证结果返回 B，初步协商好 Ka = Kb}
+  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; MyRA, InRB: TCnEccPoint;
+  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TSM3Digest;
+  out OutOptionalSA: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 的密钥交换协议，第三步 A 用户收到 B 的数据计算 Ka，并把可选的验证结果返回 B，初步协商好 Ka = Kb
+  输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、B 传来的 RB 与可选的 SB，自己的点 RA、自己的随机值 MyARand
+  输出：计算成功的共享密钥 Ka、可选的校验杂凑 SA（发给 B 验证）}
 
 function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
-  const InOptionalSA: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选}
+  InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选
+  实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA}
 
 implementation
 
@@ -576,37 +586,43 @@ begin
   end;
 end;
 
+// X <= 2^W + (x and (2^W - 1) 表示把 x 的第 W 位置 1，W + 1 以上全塞 0
+procedure BuildShortXValue(X: TCnBigNumber; W: Integer);
+var
+  I: Integer;
+begin
+  BigNumberSetBit(X, W);
+  for I := W + 1 to X.GetBitsCount - 1 do
+    BigNumberClearBit(X, I);
+end;
+
 {
   随机值 rA * G => RA 传给 B
 }
 function CnSM2KeyExchangeAStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
-  OutRA: TCnEccPoint; Sm2: TCnSM2): Boolean;
+  OutARand: TCnBigNumber; OutRA: TCnEccPoint; Sm2: TCnSM2): Boolean;
 var
-  R: TCnBigNumber;
   Sm2IsNil: Boolean;
 begin
   Result := False;
-  if (KeyByteLength <= 0) or (APrivateKey = nil) or (APublicKey = nil) or (OutRA = nil) then
+  if (KeyByteLength <= 0) or (APrivateKey = nil) or (APublicKey = nil) or (OutRA = nil)
+    or (OutARand = nil) then
     Exit;
 
   Sm2IsNil := Sm2 = nil;
-  R := nil;
-
   try
     if Sm2IsNil then
       Sm2 := TCnSM2.Create;
 
-    R := TCnBigNumber.Create;
-    if not BigNumberRandRange(R, Sm2.Order) then
+    if not BigNumberRandRange(OutARand, Sm2.Order) then
       Exit;
-    R.SetHex('83A2C9C8B96E5AF70BD480B472409A9A327257F1EBB73F5B073354B248668563');
+    // OutARand.SetHex('83A2C9C8B96E5AF70BD480B472409A9A327257F1EBB73F5B073354B248668563');
 
     OutRA.Assign(Sm2.Generator);
-    Sm2.MultiplePoint(R, OutRA);
+    Sm2.MultiplePoint(OutARand, OutRA);
     Result := True;
   finally
-    R.Free;
     if Sm2IsNil then
       Sm2.Free;
   end;
@@ -626,10 +642,11 @@ end;
 }
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; InRA: TCnEccPoint;
-  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest; Sm2: TCnSM2): Boolean;
+  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest;
+  out OutOptionalS2: TSM3Digest; Sm2: TCnSM2): Boolean;
 var
   Sm2IsNil: Boolean;
-  I, W: Integer;
+  W: Integer;
   R, X, T: TCnBigNumber;
   V: TCnEccPoint;
   Za, Zb: TSM3Digest;
@@ -656,7 +673,7 @@ begin
     if not BigNumberRandRange(R, Sm2.Order) then
       Exit;
 
-    // R.SetHex('33FE21940342161C55619C4A0C060293D543C80AF19748CE176D83477DE71C80');
+    R.SetHex('33FE21940342161C55619C4A0C060293D543C80AF19748CE176D83477DE71C80');
     OutRB.Assign(Sm2.Generator);
     Sm2.MultiplePoint(R, OutRB);
 
@@ -667,9 +684,7 @@ begin
 
     // 2^W 次方表示第 W 位 1（位从 0 开始算） ，2^W - 1 则表示 0 位到 W - 1 位全置 1
     // X2 = 2^W + (x2 and (2^W - 1) 表示把 x2 的第 W 位置 1，W + 1 以上全塞 0，x2 是 RB.X
-    BigNumberSetBit(X, W);
-    for I := W + 1 to X.GetBitsCount - 1 do
-      BigNumberClearBit(X, I);
+    BuildShortXValue(X, W);
 
     if not BigNumberMul(X, R, X) then
       Exit;
@@ -680,9 +695,7 @@ begin
       Exit;
 
     BigNumberCopy(X, InRA.X);
-    BigNumberSetBit(X, W);
-    for I := W + 1 to X.GetBitsCount - 1 do
-      BigNumberClearBit(X, I);
+    BuildShortXValue(X, W);
 
     // 计算 XV YV。 (h * t) * (APublicKey + X * RA)
     V := TCnEccPoint.Create;
@@ -701,6 +714,9 @@ begin
 
     // 然后计算 SB 供 A 核对
     OutOptionalSB := CalcSM2OptionalSig(V, InRA, OutRB, Za, Zb, True);
+
+    // 顺便计算 S2 等 A 发来 SA 时核对
+    OutOptionalS2 := CalcSM2OptionalSig(V, InRA, OutRB, Za, Zb, False);
     Result := True;
   finally
     V.Free;
@@ -713,20 +729,76 @@ begin
 end;
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; InRB: TCnEccPoint;
-  out OutKeyA: AnsiString; out OutOptionalSA: TSM3Digest; Sm2: TCnSM2): Boolean;
+  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; MyRA, InRB: TCnEccPoint;
+  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TSM3Digest;
+  out OutOptionalSA: TSM3Digest; Sm2: TCnSM2): Boolean;
 var
   Sm2IsNil: Boolean;
+  W: Integer;
+  X, T: TCnBigNumber;
+  U: TCnEccPoint;
+  Za, Zb: TSM3Digest;
 begin
+  Result := False;
+  if (KeyByteLength <= 0) or (APrivateKey = nil) or (APublicKey = nil) or
+    (BPublicKey = nil) or (MyRA = nil) or (InRB = nil) or (MyARand = nil) then
+    Exit;
+
   Sm2IsNil := Sm2 = nil;
+  X := nil;
+  T := nil;
+  U := nil;
 
   try
-
     if Sm2IsNil then
       Sm2 := TCnSM2.Create;
 
+    if not Sm2.IsPointOnCurve(InRB) then // 验证传过来的 RB 是否满足方程
+      Exit;
 
+    W := (Sm2.Order.GetBitsCount + 1) div 2 - 1;
+    X := TCnBigNumber.Create;
+    BigNumberCopy(X, MyRA.X);
+    BuildShortXValue(X, W);     // 从 RA 里整出 X1
+
+    if not BigNumberMul(X, MyARand, X) then
+      Exit;
+    if not BigNumberAdd(X, X, APrivateKey) then
+      Exit;
+    T := TCnBigNumber.Create;
+    if not BigNumberNonNegativeMod(T, X, Sm2.Order) then // T = (APrivateKey + 随机值 * X1) mod N
+      Exit;
+
+    BigNumberCopy(X, InRB.X);
+    BuildShortXValue(X, W);
+
+    // 计算 XU YU。 (h * t) * (BPublicKey + X * RB)
+    U := TCnEccPoint.Create;
+    U.Assign(InRB);
+    Sm2.MultiplePoint(X, U);
+    Sm2.PointAddPoint(U, BPublicKey, U);
+    Sm2.MultiplePoint(T, U);
+
+    if U.X.IsZero or U.Y.IsZero then // 如果是无穷远点则协商失败
+      Exit;
+
+    // 协商初步成功，计算 KA
+    Za := CalcSM2UserHash(AUserID, APublicKey, Sm2);
+    Zb := CalcSM2UserHash(BUserID, BPublicKey, Sm2);
+    OutKeyA := CalcSM2ExchangeKey(U, Za, Zb, KeyByteLength); // 共享密钥协商成功！
+
+    // 然后计算 SB 核对
+    OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, True);
+    if not CompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TSM3Digest)) then
+      Exit;
+
+    // 然后计算 SA 供 B 核对
+    OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, False);
+    Result := True;
   finally
+    U.Free;
+    T.Free;
+    X.Free;
     if Sm2IsNil then
       Sm2.Free;
   end;
@@ -734,22 +806,9 @@ end;
 
 function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
-  const InOptionalSA: TSM3Digest; Sm2: TCnSM2): Boolean;
-var
-  Sm2IsNil: Boolean;
+  InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; Sm2: TCnSM2): Boolean;
 begin
-  Sm2IsNil := Sm2 = nil;
-
-  try
-
-    if Sm2IsNil then
-      Sm2 := TCnSM2.Create;
-
-
-  finally
-    if Sm2IsNil then
-      Sm2.Free;
-  end;
+  Result := CompareMem(@InOptionalSA[0], @MyOptionalS2[0], SizeOf(TSM3Digest));
 end;
 
 end.
