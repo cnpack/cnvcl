@@ -78,12 +78,12 @@ var
   Sm2: TCnSM2;
   PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey;
-  Sig: TCnEccPoint;
+  Sig: TCnSM2Signature;
 begin
   Sm2 := TCnSM2.Create(ctSM2Example256);
   PrivateKey := TCnEccPrivateKey.Create;
   PublicKey := TCnEccPublicKey.Create;
-  Sig := TCnEccPoint.Create;
+  Sig := TCnSM2Signature.Create;
 
   PublicKey.X.SetHex('0AE4C7798AA0F119471BEE11825BE46202BB79E2A5844495E97C04FF4DF2548A');
   PublicKey.Y.SetHex('7C0240F88F1CD4E16352A73C17B7F16F07353E53A176D684A9FE0C6BB798E857');
@@ -93,6 +93,8 @@ begin
   if CnSM2SignData('ALICE123@YAHOO.COM', @MSG2[1], Length(MSG2), Sig, PrivateKey, PublicKey, Sm2) then
   begin
     ShowMessage('Sig OK: ' + Sig.X.ToHex + ', ' + Sig.Y.ToHex);
+    if CnSM2VerifyData('ALICE123@YAHOO.COM', @MSG2[1], Length(MSG2), Sig, PublicKey, Sm2) then
+      ShowMessage('Verify OK.');
   end;
 
   Sig.Free;

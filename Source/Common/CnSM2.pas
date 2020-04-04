@@ -46,6 +46,9 @@ type
     constructor Create; override;
   end;
 
+  TCnSM2Signature = class(TCnEccPoint);
+  {* 签名是两个大数，X Y 分别代表 R S}
+
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
   TStream; PublicKey: TCnEccPublicKey; Sm2: TCnSm2 = nil): Boolean;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
@@ -57,10 +60,15 @@ function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则}
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  OutSignature: TCnEccPoint; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
   Sm2: TCnSM2 = nil): Boolean;
 {* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要}
+
+function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  InSignature: TCnSM2Signature; PublicKey: TCnEccPublicKey; Sm2: TCnSM2 = nil): Boolean;
+{* 公钥验证数据块的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
+   第2部分:数字签名算法》中的运算规则来}
 
 implementation
 
@@ -252,47 +260,19 @@ begin
   end;
 end;
 
-{
-  ZA = Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
-  e = Hash(ZA‖M)
-
-  k * G => (x1, y1)
-
-  r <= (e + x1) mod n
-
-  s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
-}
-function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  OutSignature: TCnEccPoint; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
-  Sm2: TCnSM2): Boolean;
+function CalcSM2SignatureHash(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  PublicKey: TCnEccPublicKey; Sm2: TCnSM2): TSM3Digest;
 var
   Stream: TMemoryStream;
   Len: Integer;
-  K, R, E: TCnBigNumber;
-  P: TCnEccPoint;
   ULen: Word;
-  Sm2IsNil: Boolean;
   Sm3Dig: TSM3Digest;
 begin
-  Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or (PrivateKey = nil) then
-    Exit;
-
-  K := nil;
-  P := nil;
-  E := nil;
-  R := nil;
-  Stream := nil;
-  Sm2IsNil := Sm2 = nil;
-
+  Stream := TMemoryStream.Create;
   try
-    if Sm2IsNil then
-      Sm2 := TCnSM2.Create;
-
     Len := Length(UserID) * 8;
     ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
 
-    Stream := TMemoryStream.Create;
     Stream.Write(ULen, SizeOf(ULen));
     if ULen > 0 then
       Stream.Write(UserID[1], Length(UserID));
@@ -309,7 +289,47 @@ begin
     Stream.Write(Sm3Dig[0], SizeOf(TSM3Digest));
     Stream.Write(PlainData^, DataLen);
 
-    Sm3Dig := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 再次算出杂凑值 e
+    Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 再次算出杂凑值 e
+  finally
+    Stream.Free;
+  end;
+end;
+
+{
+  ZA <= Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
+  e <= Hash(ZA‖M)
+
+  k * G => (x1, y1)
+
+  r <= (e + x1) mod n
+
+  s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
+}
+function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
+  Sm2: TCnSM2): Boolean;
+var
+  K, R, E: TCnBigNumber;
+  P: TCnEccPoint;
+  Sm2IsNil: Boolean;
+  Sm3Dig: TSM3Digest;
+begin
+  Result := False;
+  if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or
+    (PrivateKey = nil) or (PublicKey = nil) then
+    Exit;
+
+  K := nil;
+  P := nil;
+  E := nil;
+  R := nil;
+  Sm2IsNil := Sm2 = nil;
+
+  try
+    if Sm2IsNil then
+      Sm2 := TCnSM2.Create;
+
+    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, Sm2); // 杂凑值 e
 
     P := TCnEccPoint.Create;
     E := TCnBigNumber.Create;
@@ -363,9 +383,85 @@ begin
       Break;
     end;
   finally
-    Stream.Free;
     K.Free;
     P.Free;
+    R.Free;
+    E.Free;
+    if Sm2IsNil then
+      Sm2.Free;
+  end;
+end;
+
+{
+  ZA = Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
+  e <= Hash(ZA‖M)
+
+  t <= (r + s) mod n
+  P <= s * G + t * PublicKey
+  r' <= (e + P.x) mod n
+  比对 r' 和 r
+}
+function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  InSignature: TCnSM2Signature; PublicKey: TCnEccPublicKey; Sm2: TCnSM2 = nil): Boolean;
+var
+  K, R, E: TCnBigNumber;
+  P, Q: TCnEccPoint;
+  Sm2IsNil: Boolean;
+  Sm3Dig: TSM3Digest;
+begin
+  Result := False;
+  if (PlainData = nil) or (DataLen <= 0) or (InSignature = nil) or (PublicKey = nil) then
+    Exit;
+
+  K := nil;
+  P := nil;
+  Q := nil;
+  E := nil;
+  R := nil;
+  Sm2IsNil := Sm2 = nil;
+
+  try
+    if Sm2IsNil then
+      Sm2 := TCnSM2.Create;
+
+    if BigNumberCompare(InSignature.X, Sm2.Order) >= 0 then
+      Exit;
+    if BigNumberCompare(InSignature.Y, Sm2.Order) >= 0 then
+      Exit;
+
+    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, Sm2); // 杂凑值 e
+
+    P := TCnEccPoint.Create;
+    Q := TCnEccPoint.Create;
+    E := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
+    K := TCnBigNumber.Create;
+
+    if not BigNumberAdd(K, InSignature.X, InSignature.Y) then
+      Exit;
+    if not BigNumberNonNegativeMod(R, K, Sm2.Order) then
+      Exit;
+    if R.IsZero then  // (r + s) mod n = 0 则失败，这里 R 是文中的 T
+      Exit;
+
+    P.Assign(Sm2.Generator);
+    Sm2.MultiplePoint(InSignature.Y, P);
+    Q.Assign(PublicKey);
+    Sm2.MultiplePoint(R, Q);
+    Sm2.PointAddPoint(P, Q, P);   // s * G + t * PublicKey => P
+
+    E.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
+    if not BigNumberAdd(E, E, P.X) then
+      Exit;
+
+    if not BigNumberNonNegativeMod(R, E, Sm2.Order) then
+      Exit;
+
+    Result := BigNumberCompare(R, InSignature.X) = 0;
+  finally
+    K.Free;
+    P.Free;
+    Q.Free;
     R.Free;
     E.Free;
     if Sm2IsNil then
