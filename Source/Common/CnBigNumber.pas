@@ -56,7 +56,6 @@ uses
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
   BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是指向外部的静态数据
-  // BN_FLG_CONSTTIME      = $4;
 
   BN_FLG_FREE           = $8000;
 
@@ -87,7 +86,7 @@ type
   PUInt64Array = ^TUInt64Array;
 {$ENDIF}
 
-  {* 用来代表一个大数的对象 }
+  {* 用来代表一个大数的对象}
   TCnBigNumber = class(TObject)
   private
 {$IFDEF DEBUG}
@@ -110,51 +109,51 @@ type
     {* 初始化为全 0，并不分配 D 内存}
 
     procedure Clear;
-    {* 将自身数据空间填 0，并不释放 D 内存 }
+    {* 将自身数据空间填 0，并不释放 D 内存}
 
     function IsZero: Boolean;
-    {* 返回大数是否为 0 }
+    {* 返回大数是否为 0}
 
     procedure SetZero;
-    {* 将大数设置为 0 }
+    {* 将大数设置为 0}
 
     function IsOne: Boolean;
-    {* 返回大数是否为 1 }
+    {* 返回大数是否为 1}
 
     function IsNegOne: Boolean;
-    {* 返回大数是否为 -1 }
+    {* 返回大数是否为 -1}
 
     function SetOne: Boolean;
-    {* 将大数设置为 1 }
+    {* 将大数设置为 1}
 
     function IsOdd: Boolean;
-    {* 返回大数是否为奇数 }
+    {* 返回大数是否为奇数}
 
     function GetBitsCount: Integer;
-    {* 返回大数有多少个有效 bit }
+    {* 返回大数有多少个有效 Bits}
 
     function GetBytesCount: Integer;
-    {* 返回大数有多少个有效 bytes }
+    {* 返回大数有多少个有效 Bytes}
 
     function GetWord: LongWord;
-    {* 取 DWORD 型首值 }
+    {* 取 DWORD 型首值}
 
     function SetWord(W: LongWord): Boolean;
-    {* 给大数赋 DWORD 型首值 }
+    {* 给大数赋 DWORD 型首值}
 
     function GetInt64: Int64;
-    {* 取 Int64 型首值 }
+    {* 取 Int64 型首值}
 
     function SetInt64(W: Int64): Boolean;
-    {* 给大数赋 Int64 型首值 }
+    {* 给大数赋 Int64 型首值}
 
 {$IFDEF SUPPORT_UINT64}
 
     function GetUInt64: UInt64;
-    {* 取 UInt64 型首值 }
+    {* 取 UInt64 型首值}
 
     function SetUInt64(W: UInt64): Boolean;
-    {* 给大数赋 UInt64 型首值 }
+    {* 给大数赋 UInt64 型首值}
 
 {$ENDIF}
 
@@ -177,19 +176,19 @@ type
     {* 大数除以一个 DWORD，商重新放在自身中，返回余数}
 
     procedure SetNegative(Negative: Boolean);
-    {* 设置大数是否负值 }
+    {* 设置大数是否负值}
 
     function IsNegative: Boolean;
-    {* 返回大数是否负值 }
+    {* 返回大数是否负值}
 
     function ClearBit(N: Integer): Boolean;
-    {* 给大数的第 N 个 Bit 置 0，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1 }
+    {* 给大数的第 N 个 Bit 置 0，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1}
 
     function SetBit(N: Integer): Boolean;
-    {* 给大数的第 N 个 Bit 置 1，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1 }
+    {* 给大数的第 N 个 Bit 置 1，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1}
 
     function IsBitSet(N: Integer): Boolean;
-    {* 返回大数的第 N 个 Bit 是否为 1。N 从最低位 0 到最高位 GetBitsCount - 1 }
+    {* 返回大数的第 N 个 Bit 是否为 1。N 从最低位 0 到最高位 GetBitsCount - 1}
 
     function WordExpand(Words: Integer): TCnBigNumber;
     {* 将大数扩展成支持 Words 个 DWORD，成功返回扩展的大数对象本身 Self，失败返回 nil}
@@ -204,7 +203,7 @@ type
     {* 根据一个二进制块产生一个新的大数对象}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将大数转成字符串 }
+    {* 将大数转成字符串}
 
     function ToHex: string;
     {* 将大数转成十六进制字符串}
@@ -251,61 +250,61 @@ type
   end;
 
 function BigNumberNew: TCnBigNumber;
-{* 创建一个动态分配的大数对象，等同于 TCnBigNumber.Create }
+{* 创建一个动态分配的大数对象，等同于 TCnBigNumber.Create}
 
 procedure BigNumberFree(const Num: TCnBigNumber);
 {* 按需要释放一个由 BigNumerNew 函数创建的大数对象，并按需要释放其 D 对象
-   等同于直接调用 Free }
+   等同于直接调用 Free}
 
 procedure BigNumberInit(const Num: TCnBigNumber);
 {* 初始化一个大数对象，全为 0，并不分配 D 内存}
 
 procedure BigNumberClear(const Num: TCnBigNumber);
-{* 清除一个大数对象，并将其数据空间填 0，并不释放 D 内存 }
+{* 清除一个大数对象，并将其数据空间填 0，并不释放 D 内存}
 
 function BigNumberIsZero(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 返回一个大数对象里的大数是否为 0 }
+{* 返回一个大数对象里的大数是否为 0}
 
 function BigNumberSetZero(const Num: TCnBigNumber): Boolean;
-{* 将一个大数对象里的大数设置为 0 }
+{* 将一个大数对象里的大数设置为 0}
 
 function BigNumberIsOne(const Num: TCnBigNumber): Boolean;
-{* 返回一个大数对象里的大数是否为 1 }
+{* 返回一个大数对象里的大数是否为 1}
 
 function BigNumberIsNegOne(const Num: TCnBigNumber): Boolean;
-{* 返回一个大数对象里的大数是否为 -1 }
+{* 返回一个大数对象里的大数是否为 -1}
 
 function BigNumberSetOne(const Num: TCnBigNumber): Boolean;
-{* 将一个大数对象里的大数设置为 1 }
+{* 将一个大数对象里的大数设置为 1}
 
 function BigNumberIsOdd(const Num: TCnBigNumber): Boolean;
-{* 返回一个大数对象里的大数是否为奇数 }
+{* 返回一个大数对象里的大数是否为奇数}
 
 function BigNumberGetBitsCount(const Num: TCnBigNumber): Integer;
-{* 返回一个大数对象里的大数有多少个有效 bit }
+{* 返回一个大数对象里的大数有多少个有效 Bits}
 
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
-{* 返回一个大数对象里的大数有多少个有效 bytes }
+{* 返回一个大数对象里的大数有多少个有效 Bytes}
 
 function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
-{* 取一个大数对象的首值 }
+{* 取一个大数对象的首值}
 
 function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
-{* 给一个大数对象赋首值 }
+{* 给一个大数对象赋首值}
 
 function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
-{* 取一个大数对象的首值 Int64 }
+{* 取一个大数对象的首值 Int64}
 
 function BigNumberSetInt64(const Num: TCnBigNumber; W: Int64): Boolean;
-{* 给一个大数对象赋首值 Int64 }
+{* 给一个大数对象赋首值 Int64}
 
 {$IFDEF SUPPORT_UINT64}
 
 function BigNumberGetUInt64(const Num: TCnBigNumber): UInt64;
-{* 取一个大数对象的首值 UInt64 }
+{* 取一个大数对象的首值 UInt64}
 
 function BigNumberSetUInt64(const Num: TCnBigNumber; W: UInt64): Boolean;
-{* 给一个大数对象赋首值 UInt64 }
+{* 给一个大数对象赋首值 UInt64}
 
 {$ENDIF}
 
@@ -331,10 +330,10 @@ function BigNumberDivWord(const Num: TCnBigNumber; W: LongWord): LongWord;
 {* 大数除以一个 DWORD，商重新放在 Num 中，返回余数}
 
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
-{* 给一个大数对象设置是否负值 }
+{* 给一个大数对象设置是否负值}
 
 function BigNumberIsNegative(const Num: TCnBigNumber): Boolean;
-{* 返回一个大数对象是否负值 }
+{* 返回一个大数对象是否负值}
 
 function BigNumberClearBit(const Num: TCnBigNumber; N: Integer): Boolean;
 {* 给一个大数对象的第 N 个 Bit 置 0，返回成功与否。N 为 0 时代表二进制最低位。}
@@ -384,10 +383,10 @@ function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
-{* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1 }
+{* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1}
 
 function BigNumberUnsignedCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
-{* 无符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1 }
+{* 无符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1}
 
 function BigNumberDuplicate(const Num: TCnBigNumber): TCnBigNumber;
 {* 创建并复制一个大数对象，返回此新大数对象，需要用 BigNumberFree 来释放}
@@ -551,7 +550,7 @@ procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
 {* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数
    Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
-   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -1501,7 +1500,7 @@ end;
 
 // ============================ 低阶运算定义结束 ===============================
 
-{* Words 系列内部计算函数开始 }
+{* Words 系列内部计算函数开始}
 
 function BigNumberAddWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer): LongWord;
 var
@@ -1726,7 +1725,7 @@ begin
 {$ENDIF}
 end;
 
-{*  Words 系列内部计算函数结束 }
+{*  Words 系列内部计算函数结束}
 
 function BigNumberUnsignedAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;

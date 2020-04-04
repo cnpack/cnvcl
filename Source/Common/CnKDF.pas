@@ -56,14 +56,16 @@ function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; Key
 
 function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
   KeyHash: TCnPBKDF1KeyHash = cpdfMd5): AnsiString;
-{* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1}
+{* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1，
+   DerivedKeyLength 是所需的密钥字节数，长度固定}
 
 function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
   KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): AnsiString;
-{* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256}
+{* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256，
+   DerivedKeyLength 是所需的密钥字节数，长度可变，允许超长}
 
 function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
-{* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数}
+{* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数}
 
 implementation
 

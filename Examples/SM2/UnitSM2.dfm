@@ -19,7 +19,7 @@ object FormSM2: TFormSM2
     Top = 16
     Width = 921
     Height = 521
-    ActivePage = tsSignVerify
+    ActivePage = tsKeyExchange
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsEncDec: TTabSheet
@@ -34,9 +34,9 @@ object FormSM2: TFormSM2
         object btnSm2Example1: TButton
           Left = 16
           Top = 32
-          Width = 89
+          Width = 113
           Height = 25
-          Caption = 'Sm2 Example1'
+          Caption = 'Sm2 Example 192'
           TabOrder = 0
           OnClick = btnSm2Example1Click
         end
@@ -55,11 +55,32 @@ object FormSM2: TFormSM2
         object btnSm2SignVerify: TButton
           Left = 16
           Top = 32
-          Width = 89
+          Width = 113
           Height = 25
-          Caption = 'Sm2 Example2'
+          Caption = 'Sm2 Example 256'
           TabOrder = 0
           OnClick = btnSm2SignVerifyClick
+        end
+      end
+    end
+    object tsKeyExchange: TTabSheet
+      Caption = 'Key Exchange'
+      ImageIndex = 2
+      object grpSM2KeyExchange: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 889
+        Height = 473
+        Caption = 'Encryption / Decryption'
+        TabOrder = 0
+        object btnSM2KeyExchange: TButton
+          Left = 16
+          Top = 32
+          Width = 113
+          Height = 25
+          Caption = 'Sm2 Example 256'
+          TabOrder = 0
+          OnClick = btnSM2KeyExchangeClick
         end
       end
     end
