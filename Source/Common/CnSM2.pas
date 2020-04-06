@@ -26,6 +26,7 @@ unit CnSM2;
 * 单元作者：刘啸
 * 备    注：实现了 GM/T0003.x-2012《SM2椭圆曲线公钥密码算法》
 *           规范中的基于 SM2 的数据加解密、签名验签、密钥交换
+*           注意其签名规范完全不同于 openssl 中的 Ecc 签名，并且杂凑函数只能使用 SM3
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -108,7 +109,7 @@ function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLengt
   BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
   InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选
-  实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA}
+  实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA，其余参数均不使用}
 
 implementation
 

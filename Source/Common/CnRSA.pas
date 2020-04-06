@@ -83,7 +83,7 @@ interface
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnPrimeNumber, CnBigNumber,
-  CnBase64, CnBerUtils, CnPemUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2;
+  CnBase64, CnBerUtils, CnPemUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const
   // 以下 OID 都预先写死，不动态计算编码了
@@ -102,7 +102,7 @@ const
   ECN_RSA_PEM_CRYPT_ERROR              = 7; // PEM 加解密错误
 
 type
-  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256);
+  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3);
   {* RSA 签名所支持的数字摘要算法，可无摘要}
 
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
@@ -1409,6 +1409,7 @@ var
   Md5: TMD5Digest;
   Sha1: TSHA1Digest;
   Sha256: TSHA256Digest;
+  Sm3Dig: TSM3Digest;
 begin
   Result := False;
   case SignType of
@@ -1430,6 +1431,12 @@ begin
         outStream.Write(Sha256, SizeOf(TSHA256Digest));
         Result := True;
       end;
+    rsdtSM3:
+      begin
+        Sm3Dig := SM3Stream(InStream);
+        outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
+        Result := True;
+      end
   end;
 
   if not Result then
@@ -1443,6 +1450,7 @@ var
   Md5: TMD5Digest;
   Sha1: TSHA1Digest;
   Sha256: TSHA256Digest;
+  Sm3Dig: TSM3Digest;
 begin
   Result := False;
   case SignType of
@@ -1462,6 +1470,12 @@ begin
       begin
         Sha256 := SHA256File(FileName);
         outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        Result := True;
+      end;
+    rsdtSM3:
+      begin
+        Sm3Dig := SM3File(FileName);
+        outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
         Result := True;
       end;
   end;

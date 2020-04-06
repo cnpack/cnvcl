@@ -31,13 +31,18 @@ unit CnECC;
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2020.04.06 V1.5
 *               实现 ECC 签名验签，类似于 openssl 的功能
-*               openssl dgst -sha256 -sign eckey.pem -out hello.sig hello
+*               openssl dgst -sha256 -sign ec.pem -out hello.sig hello
+*               openssl dgst -sha256 -verify ecpub.pem -signature hello.sig hello
+*               注意 Ecc 的签名只针对消息 Hash，输出中不带 Hash 算法种类与用户信息，
+*               与 SM2 规范不同，与 RSA 的 Hash 后补 Hash 种类再对齐成 BER 内容也不同
 *           2020.03.28 V1.4
-*               实现 ECC 公私钥 PEM 文件的读写
+*               实现 ECC 公私钥 PEM 文件的生成与读写，类似于 openssl 的功能
+*               openssl ecparam -name secp256k1 -genkey -out ec.pem
+*               openssl ec -in ec.pem -pubout -out ecpub.pem
 *           2018.09.29 V1.3
 *               实现大数椭圆曲线根据 X 求 Y 的两种算法，并默认用速度更快的 Lucas
 *           2018.09.13 V1.2
-*               初步实现大数椭圆曲线的加解密功能，支持 SM2 以及 Secp256k1 曲线
+*               初步实现大数椭圆曲线的加解密功能，支持 SM2 以及 Secp256k1 等曲线
 *           2018.09.10 V1.1
 *               能够生成系数很小的椭圆曲线参数
 *           2018.09.05 V1.0
@@ -232,7 +237,7 @@ type
     property Order: TCnBigNumber read FOrder;
     {* 基点的阶数 N}
     property CoFactor: Integer read FCoFactor;
-    {* 辅助因子 H，也就是总点数 mod N，先用 Integer 表示}
+    {* 辅助因子 H，也就是总点数 mod N，先用 Integer 表示，一般都是 1}
     property BitsCount: Integer read GetBitsCount;
     {* 该椭圆曲线的素数域位数}
   end;
@@ -356,19 +361,6 @@ resourcestring
   SCnEccErrorCurveType = 'Invalid Curve Type.';
   SCnEccErrorKeyData = 'Invalid Key or Data.';
 
-const
-  OID_SIGN_MD5: array[0..7] of Byte = (            // 1.2.840.113549.2.5
-    $2A, $86, $48, $86, $F7, $0D, $02, $05
-  );
-
-  OID_SIGN_SHA1: array[0..4] of Byte = (           // 1.3.14.3.2.26
-    $2B, $0E, $03, $02, $1A
-  );
-
-  OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
-    $60, $86, $48, $01, $65, $03, $04, $02, $01
-  );
-
 type
   TCnEccPredefinedHexParams = packed record
     P: AnsiString;
@@ -460,11 +452,15 @@ const
   // ECC 私钥文件里两个节点的 BER Tag 要求的特殊 TypeMask
   ECC_PRIVATEKEY_TYPE_MASK  = $80;
 
-  // 预定义的椭圆曲线类型的 OID 及其长度
-  EC_CURVE_TYPE_OID_LENGTH = 5;
+  // 预定义的椭圆曲线类型的 OID 及其最大长度
+  EC_CURVE_TYPE_OID_MAX_LENGTH = 8;
 
   OID_ECPARAM_CURVE_TYPE_SECP256K1: array[0..4] of Byte = ( // 1.3.132.0.10
     $2B, $81, $04, $00, $0A
+  );
+
+  OID_ECPARAM_CURVE_TYPE_SM2: array[0..7] of Byte = (       // 1.2.156.10197.301
+    $2A, $81, $1C, $CF, $55, $01, $82, $2D
   );
 
   // ecPublicKey 的 OID
@@ -1741,13 +1737,16 @@ begin
   Inc(P);
 
   L := P^;
-  if L <> EC_CURVE_TYPE_OID_LENGTH then
+  if L > EC_CURVE_TYPE_OID_MAX_LENGTH then
     Exit;
 
   Inc(P);
   if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0],
     Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP256K1))) then
     Result := ctSecp256k1
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM2[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SM2))) then
+    Result := ctSM2;
   // else if
 end;
 
@@ -1762,6 +1761,11 @@ begin
       begin
         OIDAddr := @OID_ECPARAM_CURVE_TYPE_SECP256K1[0];
         Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SECP256K1);
+      end;
+    ctSM2:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_SM2[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SM2);
       end;
   end;
 end;
@@ -2161,23 +2165,6 @@ begin
         outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
         Result := True;
       end;
-  end;
-end;
-
-function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnEccSignDigestType;
-  AParent: TCnBerWriteNode): TCnBerWriteNode;
-begin
-  Result := nil;
-  case ASignType of
-    esdtMD5:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_MD5[0],
-        SizeOf(OID_SIGN_MD5), AParent);
-    esdtSHA1:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
-        SizeOf(OID_SIGN_SHA1), AParent);
-    esdtSHA256:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
-        SizeOf(OID_SIGN_SHA256), AParent);
   end;
 end;
 
