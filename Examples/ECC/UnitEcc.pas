@@ -220,6 +220,8 @@ type
     btnKeyVerify: TButton;
     lblKeyHash: TLabel;
     cbbKeyHash: TComboBox;
+    btnKeyGenerate: TButton;
+    btnKeyLoadSig: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -277,6 +279,8 @@ type
     procedure btnSaveKeyClick(Sender: TObject);
     procedure btnKeySignClick(Sender: TObject);
     procedure btnKeyVerifyClick(Sender: TObject);
+    procedure btnKeyGenerateClick(Sender: TObject);
+    procedure btnKeyLoadSigClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -1851,12 +1855,22 @@ var
 begin
   InStream := TMemoryStream.Create;
   OutStream := TMemoryStream.Create;
-  S := edtKeyData.Text;
+  S := edtKeyData.Text; //  'abc';
   InStream.Write(S[1], Length(S));
+
+  // TEST
+  // FKeyEcc.Load(ctRfc4754ECDSAExample256);
+  // FPrivateKey.SetHex('DC51D3866A15BACDE33D96F992FCA99DA7E6EF0934E7097559C27F1614C88A7F');
+  // FPublicKey.X.SetHex('2442A5CC0ECD015FA3CA31DC8E2BBC70BF42D60CBCA20085E0822CB04235E970');
+  // FPublicKey.Y.SetHex('6FC98BD7E50211A4A27102FA3549DF79EBCB4BF246B80945CDDFE7D509BBFD7D');
+  // TEST
 
   if CnEccSignStream(InStream, OutStream, FKeyEcc, FPrivateKey,
     TCnEccSignDigestType(cbbKeyHash.ItemIndex)) then
   begin
+    if dlgSave1.Execute then
+      OutStream.SaveToFile(dlgSave1.FileName);
+
     SetLength(S, OutStream.Size);
     OutStream.Position := 0;
     OutStream.Read(S[1], OutStream.Size);
@@ -1875,18 +1889,48 @@ var
 begin
   InStream := TMemoryStream.Create;
   SignStream := TMemoryStream.Create;
-  S := edtKeyData.Text;
+  S := edtKeyData.Text; // 'abc'
   InStream.Write(S[1], Length(S));
 
   S := MyHexToStr(edtKeySign.Text);
   SignStream.Write(S[1], Length(S));
+  SignStream.Position := 0;
+
   if CnEccVerifyStream(InStream, SignStream, FKeyEcc, FPublicKey,
     TCnEccSignDigestType(cbbKeyHash.ItemIndex)) then
-    ShowMessage('Verify OK.');
+    ShowMessage('Verify OK.')
+  else
+    ShowMessage('Verify Fail.');
 
   InStream.Free;
   SignStream.Free;
   SetLength(S, 0);
+end;
+
+procedure TFormEcc.btnKeyGenerateClick(Sender: TObject);
+begin
+  FKeyEcc.GenerateKeys(FPrivateKey, FPublicKey);
+  edtKeyPrivate.Text := FPrivateKey.ToDec;
+  edtKeyPublic.Text := CnEccPointToString(FPublicKey);
+end;
+
+procedure TFormEcc.btnKeyLoadSigClick(Sender: TObject);
+var
+  Stream: TMemoryStream;
+  S: AnsiString;
+begin
+  if dlgOpen1.Execute then
+  begin
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(dlgOpen1.FileName);
+
+    SetLength(S, Stream.Size);
+    Stream.Position := 0;
+    Stream.Read(S[1], Stream.Size);
+    edtKeySign.Text := MyStrToHex(@S[1], Length(S));
+
+    Stream.Free;
+  end;
 end;
 
 end.

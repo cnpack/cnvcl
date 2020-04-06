@@ -1501,7 +1501,7 @@ object FormEcc: TFormEcc
       end
     end
     object tsPem: TTabSheet
-      Caption = 'Keys Load/Save Sig / Verify'
+      Caption = 'Keys Load/Save and Sig / Verify'
       ImageIndex = 7
       object grpEccKeys: TGroupBox
         Left = 16
@@ -1691,7 +1691,7 @@ object FormEcc: TFormEcc
           TabOrder = 8
         end
         object btnKeyCheckPublic: TButton
-          Left = 352
+          Left = 288
           Top = 24
           Width = 75
           Height = 25
@@ -1755,7 +1755,26 @@ object FormEcc: TFormEcc
           Items.Strings = (
             'MD5'
             'SHA1'
-            'SHA256')
+            'SHA256'
+            'SM3')
+        end
+        object btnKeyGenerate: TButton
+          Left = 392
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Key Generate'
+          TabOrder = 16
+          OnClick = btnKeyGenerateClick
+        end
+        object btnKeyLoadSig: TButton
+          Left = 488
+          Top = 384
+          Width = 121
+          Height = 25
+          Caption = 'Load Signature to Verify'
+          TabOrder = 17
+          OnClick = btnKeyLoadSigClick
         end
       end
     end

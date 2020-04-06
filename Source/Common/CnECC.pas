@@ -29,7 +29,10 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.28 V1.4
+* 修改记录：2020.04.06 V1.5
+*               实现 ECC 签名验签，类似于 openssl 的功能
+*               openssl dgst -sha256 -sign eckey.pem -out hello.sig hello
+*           2020.03.28 V1.4
 *               实现 ECC 公私钥 PEM 文件的读写
 *           2018.09.29 V1.3
 *               实现大数椭圆曲线根据 X 求 Y 的两种算法，并默认用速度更快的 Lucas
@@ -161,7 +164,7 @@ type
   {* 椭圆曲线的私钥，计算次数 k 次}
 
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
-    ctSecp224r1, ctSecp224k1, ctSecp256k1);
+    ctRfc4754ECDSAExample256, ctSecp224r1, ctSecp224k1, ctSecp256k1);
   {* 支持的椭圆曲线类型}
 
   TCnEcc = class
@@ -407,6 +410,15 @@ const
       N: '8542D69E4C044F18E8B92435BF6FF7DD297720630485628D5AE74EE7C32E79B7';
       H: '01'
     ),
+    ( // RFC 4754 ECDSA Example 256
+      P: 'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF';
+      A: '-03';
+      B: '5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B';
+      X: '6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296';
+      Y: '4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5';
+      N: 'FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551';
+      H: '01'
+    ),
     ( // ctSecp224r1
       P: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001';
       A: '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE';
@@ -425,7 +437,7 @@ const
       N: '010000000000000000000000000001DCE8D2EC6184CAF0A971769FB1F7';
       H: '01'
     ),
-    ( // secp256k1
+    ( // ctSecp256k1
       P: 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F';
       A: '00';
       B: '07';
@@ -2197,6 +2209,8 @@ begin
       if not BigNumberRandRange(K, Ecc.Order) then // 生成重要的随机 K
         Exit;
 
+      // K.SetHex('9E56F509196784D963D1C0A401510EE7ADA3DCC5DEE04B154BF61AF1D5A6DECE');   // 指定随机值时做测试
+
       P.Assign(Ecc.Generator);
       Ecc.MultiplePoint(K, P);
 
@@ -2207,14 +2221,14 @@ begin
         Continue;
       // 算出了签名的一部分 R
 
-      if not BigNumberMul(X, PrivateKey, K) then
+      if not BigNumberMul(X, PrivateKey, OutR) then   // X <= r * PrivateKey
         Exit;
-      if not BigNumberAdd(X, X, InE) then
+      if not BigNumberAdd(X, X, InE) then             // X <= X + z
         Exit;
       BigNumberModularInverse(KInv, K, Ecc.Order);
-      if not BigNumberMul(X, KInv, X) then
+      if not BigNumberMul(X, KInv, X) then            // X <= K^-1 * X
         Exit;
-      if not BigNumberNonNegativeMod(OutS, X, Ecc.Order) then  // OutS <= K^-1 * (z + K * PrivateKey)
+      if not BigNumberNonNegativeMod(OutS, X, Ecc.Order) then  // OutS <= K^-1 * (z + r * PrivateKey) mod N
         Exit;
 
       if OutS.IsZero then
