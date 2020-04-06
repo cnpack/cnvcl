@@ -112,6 +112,20 @@ function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLengt
 
 implementation
 
+{* X <= 2^W + (x and (2^W - 1) 表示把 x 的第 W 位置 1，第 W + 1 及以上全塞 0
+   简而言之就是取 X 的低 W 位并保证再一位的第 W 位是 1，位从 0 开始数
+  其中 W 是 N 的 BitsCount 的一半少点儿，该函数用于密钥交换
+  注意：它和 CnECC 中的同名函数功能不同}
+procedure BuildShortXValue(X: TCnBigNumber; Order: TCnBigNumber);
+var
+  I, W: Integer;
+begin
+  W := (Order.GetBitsCount + 1) div 2 - 1;
+  BigNumberSetBit(X, W);
+  for I := W + 1 to X.GetBitsCount - 1 do
+    BigNumberClearBit(X, I);
+end;
+
 { TCnSM2 }
 
 constructor TCnSM2.Create;
@@ -586,16 +600,6 @@ begin
   end;
 end;
 
-// X <= 2^W + (x and (2^W - 1) 表示把 x 的第 W 位置 1，W + 1 以上全塞 0
-procedure BuildShortXValue(X: TCnBigNumber; W: Integer);
-var
-  I: Integer;
-begin
-  BigNumberSetBit(X, W);
-  for I := W + 1 to X.GetBitsCount - 1 do
-    BigNumberClearBit(X, I);
-end;
-
 {
   随机值 rA * G => RA 传给 B
 }
@@ -646,7 +650,6 @@ function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLengt
   out OutOptionalS2: TSM3Digest; Sm2: TCnSM2): Boolean;
 var
   Sm2IsNil: Boolean;
-  W: Integer;
   R, X, T: TCnBigNumber;
   V: TCnEccPoint;
   Za, Zb: TSM3Digest;
@@ -677,14 +680,12 @@ begin
     OutRB.Assign(Sm2.Generator);
     Sm2.MultiplePoint(R, OutRB);
 
-    W := (Sm2.Order.GetBitsCount + 1) div 2 - 1;
     X := TCnBigNumber.Create;
-
     BigNumberCopy(X, OutRB.X);
 
     // 2^W 次方表示第 W 位 1（位从 0 开始算） ，2^W - 1 则表示 0 位到 W - 1 位全置 1
     // X2 = 2^W + (x2 and (2^W - 1) 表示把 x2 的第 W 位置 1，W + 1 以上全塞 0，x2 是 RB.X
-    BuildShortXValue(X, W);
+    BuildShortXValue(X, Sm2.Order);
 
     if not BigNumberMul(X, R, X) then
       Exit;
@@ -695,7 +696,7 @@ begin
       Exit;
 
     BigNumberCopy(X, InRA.X);
-    BuildShortXValue(X, W);
+    BuildShortXValue(X, Sm2.Order);
 
     // 计算 XV YV。 (h * t) * (APublicKey + X * RA)
     V := TCnEccPoint.Create;
@@ -734,7 +735,6 @@ function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLengt
   out OutOptionalSA: TSM3Digest; Sm2: TCnSM2): Boolean;
 var
   Sm2IsNil: Boolean;
-  W: Integer;
   X, T: TCnBigNumber;
   U: TCnEccPoint;
   Za, Zb: TSM3Digest;
@@ -756,10 +756,9 @@ begin
     if not Sm2.IsPointOnCurve(InRB) then // 验证传过来的 RB 是否满足方程
       Exit;
 
-    W := (Sm2.Order.GetBitsCount + 1) div 2 - 1;
     X := TCnBigNumber.Create;
     BigNumberCopy(X, MyRA.X);
-    BuildShortXValue(X, W);     // 从 RA 里整出 X1
+    BuildShortXValue(X, Sm2.Order);     // 从 RA 里整出 X1
 
     if not BigNumberMul(X, MyARand, X) then
       Exit;
@@ -770,7 +769,7 @@ begin
       Exit;
 
     BigNumberCopy(X, InRB.X);
-    BuildShortXValue(X, W);
+    BuildShortXValue(X, Sm2.Order);
 
     // 计算 XU YU。 (h * t) * (BPublicKey + X * RB)
     U := TCnEccPoint.Create;

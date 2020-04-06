@@ -1501,7 +1501,7 @@ object FormEcc: TFormEcc
       end
     end
     object tsPem: TTabSheet
-      Caption = 'Keys Load/Save'
+      Caption = 'Keys Load/Save Sig / Verify'
       ImageIndex = 7
       object grpEccKeys: TGroupBox
         Left = 16
@@ -1588,6 +1588,34 @@ object FormEcc: TFormEcc
           Width = 65
           Height = 13
           Caption = 'Public (Point):'
+        end
+        object bvlSig: TBevel
+          Left = 16
+          Top = 336
+          Width = 745
+          Height = 17
+          Shape = bsTopLine
+        end
+        object lblKeyData: TLabel
+          Left = 16
+          Top = 356
+          Width = 26
+          Height = 13
+          Caption = 'Data:'
+        end
+        object lblKeySign: TLabel
+          Left = 16
+          Top = 422
+          Width = 18
+          Height = 13
+          Caption = 'Sig:'
+        end
+        object lblKeyHash: TLabel
+          Left = 232
+          Top = 390
+          Width = 46
+          Height = 13
+          Caption = 'KeyHash:'
         end
         object btnLoad: TButton
           Left = 16
@@ -1679,6 +1707,55 @@ object FormEcc: TFormEcc
           Caption = 'Save Key'
           TabOrder = 10
           OnClick = btnSaveKeyClick
+        end
+        object edtKeyData: TEdit
+          Left = 56
+          Top = 352
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 11
+          Text = '1234567890ABCDEF'
+        end
+        object btnKeySign: TButton
+          Left = 56
+          Top = 384
+          Width = 129
+          Height = 25
+          Caption = 'Sign Using PrivateKey'
+          TabOrder = 12
+          OnClick = btnKeySignClick
+        end
+        object edtKeySign: TEdit
+          Left = 56
+          Top = 418
+          Width = 708
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 13
+        end
+        object btnKeyVerify: TButton
+          Left = 634
+          Top = 384
+          Width = 129
+          Height = 25
+          Anchors = [akTop, akRight]
+          Caption = 'Verfiy Using PublicKey'
+          TabOrder = 14
+          OnClick = btnKeyVerifyClick
+        end
+        object cbbKeyHash: TComboBox
+          Left = 288
+          Top = 384
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 15
+          Items.Strings = (
+            'MD5'
+            'SHA1'
+            'SHA256')
         end
       end
     end

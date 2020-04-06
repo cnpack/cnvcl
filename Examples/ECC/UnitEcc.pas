@@ -211,6 +211,15 @@ type
     edtKeyPublic: TEdit;
     btnKeyCheckPublic: TButton;
     btnSaveKey: TButton;
+    bvlSig: TBevel;
+    edtKeyData: TEdit;
+    lblKeyData: TLabel;
+    btnKeySign: TButton;
+    edtKeySign: TEdit;
+    lblKeySign: TLabel;
+    btnKeyVerify: TButton;
+    lblKeyHash: TLabel;
+    cbbKeyHash: TComboBox;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -266,6 +275,8 @@ type
     procedure btnLoadClick(Sender: TObject);
     procedure btnKeyCheckPublicClick(Sender: TObject);
     procedure btnSaveKeyClick(Sender: TObject);
+    procedure btnKeySignClick(Sender: TObject);
+    procedure btnKeyVerifyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -302,6 +313,56 @@ var
   FPublicKey: TCnEccPublicKey;
   FCurveType: TCnEccCurveType;
   FKeyEcc: TCnEcc;
+
+function HexToInt(Hex: AnsiString): Integer;
+var
+  I, Res: Integer;
+  ch: AnsiChar;
+begin
+  Res := 0;
+  for I := 0 to Length(Hex) - 1 do
+  begin
+    ch := Hex[I + 1];
+    if (ch >= '0') and (ch <= '9') then
+      Res := Res * 16 + Ord(ch) - Ord('0')
+    else if (ch >= 'A') and (ch <= 'F') then
+      Res := Res * 16 + Ord(ch) - Ord('A') + 10
+    else if (ch >= 'a') and (ch <= 'f') then
+      Res := Res * 16 + Ord(ch) - Ord('a') + 10
+    else raise Exception.Create('Error: not a Hex String');
+  end;
+  Result := Res;
+end;
+
+function MyStrToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
+const
+  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+var
+  I: Integer;
+  B: Byte;
+begin
+  Result := '';
+  for I := 0 to Length - 1 do
+  begin
+    B := PByte(Integer(Buffer) + I)^;
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
+      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+end;
+
+function MyHexToStr(Hex: string): AnsiString;
+var
+  S: string;
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Length(Hex) div 2 - 1 do
+  begin
+    S := Copy(Hex, I * 2 + 1, 2);
+    Result := Result + AnsiChar(HexToInt(S));
+  end;
+end;
 
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
@@ -412,6 +473,7 @@ begin
   FPrivateKey := TCnEccPrivateKey.Create;
   FPublicKey := TCnEccPublicKey.Create;
   FKeyEcc := TCnEcc.Create;
+  cbbKeyHash.ItemIndex := 0;
 end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
@@ -1763,10 +1825,15 @@ begin
     else if BigNumberCompare(FPublicKey.Y, P.Y) = 0 then
       ShowMessage('Public Key Verify OK.');
   end;
-  P.Free;
 
   if FKeyEcc.IsPointOnCurve(FPublicKey) then
     ShowMessage('PublicKey is On Curve.');
+  P.Assign(FPublicKey);
+  FKeyEcc.MultiplePoint(FKeyEcc.Order, P);
+  if P.IsZero then
+    ShowMessage('PublicKey Point * Order = O');
+
+  P.Free;
 end;
 
 procedure TFormEcc.btnSaveKeyClick(Sender: TObject);
@@ -1775,6 +1842,51 @@ begin
     if CnEccSaveKeysToPem(dlgSave1.FileName, FPrivateKey, FPublicKey, FCurveType) then
       ShowMessage('Private Key Save OK.');
 // CnEccSavePublicKeyToPem(dlgSave1.FileName, PublicKey, CurveType);
+end;
+
+procedure TFormEcc.btnKeySignClick(Sender: TObject);
+var
+  InStream, OutStream: TMemoryStream;
+  S: AnsiString;
+begin
+  InStream := TMemoryStream.Create;
+  OutStream := TMemoryStream.Create;
+  S := edtKeyData.Text;
+  InStream.Write(S[1], Length(S));
+
+  if CnEccSignStream(InStream, OutStream, FKeyEcc, FPrivateKey,
+    TCnEccSignDigestType(cbbKeyHash.ItemIndex)) then
+  begin
+    SetLength(S, OutStream.Size);
+    OutStream.Position := 0;
+    OutStream.Read(S[1], OutStream.Size);
+    edtKeySign.Text := MyStrToHex(@S[1], Length(S));
+  end;
+
+  InStream.Free;
+  OutStream.Free;
+  SetLength(S, 0);
+end;
+
+procedure TFormEcc.btnKeyVerifyClick(Sender: TObject);
+var
+  InStream, SignStream: TMemoryStream;
+  S: AnsiString;
+begin
+  InStream := TMemoryStream.Create;
+  SignStream := TMemoryStream.Create;
+  S := edtKeyData.Text;
+  InStream.Write(S[1], Length(S));
+
+  S := MyHexToStr(edtKeySign.Text);
+  SignStream.Write(S[1], Length(S));
+  if CnEccVerifyStream(InStream, SignStream, FKeyEcc, FPublicKey,
+    TCnEccSignDigestType(cbbKeyHash.ItemIndex)) then
+    ShowMessage('Verify OK.');
+
+  InStream.Free;
+  SignStream.Free;
+  SetLength(S, 0);
 end;
 
 end.
