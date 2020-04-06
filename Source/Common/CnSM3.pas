@@ -134,6 +134,13 @@ function SM3File(const FileName: string; CallBack: TSM3CalcProgressFunc = nil): 
    CallBack: TSM3PgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
+function SM3Stream(Stream: TStream; CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
+{* 对指定流数据进行 SM3 计算
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   CallBack: TSM3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
 function SM3Print(const Digest: TSM3Digest): string;
 {* 以十六进制格式输出 SM3 计算值
  |<PRE>
@@ -699,6 +706,13 @@ begin
     SM3Finish(Context, Result);
 {$ENDIF}
   end;
+end;
+
+// 对指定流进行 SM3 计算
+function SM3Stream(Stream: TStream;
+  CallBack: TSM3CalcProgressFunc = nil): TSM3Digest;
+begin
+  InternalSM3Stream(Stream, 4096 * 1024, Result, CallBack);
 end;
 
 function SM3Print(const Digest: TSM3Digest): string;
