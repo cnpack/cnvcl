@@ -1855,7 +1855,7 @@ begin
     Inc(P, PublicKey.X.GetBytesCount);
     PublicKey.Y.ToBinary(PAnsiChar(P));
   end;
-  Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, P, Cnt + 1, ParentNode);
+  Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, OP, Cnt + 1, ParentNode);
   FreeMemory(OP);
 end;
 
