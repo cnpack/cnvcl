@@ -186,7 +186,6 @@ type
     {* 该节点对应的数据内容在整体中的偏移}
     property BerDataAddress: Pointer read GetBerDataAddress;
     {* 该节点对应的数据的起始地址，等于 FOriginData + FBerDataOffset}
-
   end;
 
   TCnBerReader = class(TObject)

@@ -21,7 +21,8 @@ object FormCA: TFormCA
     Top = 8
     Width = 681
     Height = 457
-    ActivePage = tsSign
+    ActivePage = tsRequest
+    Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsRequest: TTabSheet
       Caption = 'Certificate Sign Request'
@@ -30,6 +31,7 @@ object FormCA: TFormCA
         Top = 8
         Width = 657
         Height = 185
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'Generate Certificate Sign Request'
         TabOrder = 0
         object lblKey: TLabel
@@ -204,6 +206,7 @@ object FormCA: TFormCA
         Top = 200
         Width = 657
         Height = 217
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Parse CSR File'
         TabOrder = 1
         object lblCSR: TLabel
@@ -218,6 +221,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 313
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseCSR: TButton
@@ -225,6 +229,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 73
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Browse CSR'
           TabOrder = 1
           OnClick = btnBrowseCSRClick
@@ -234,6 +239,7 @@ object FormCA: TFormCA
           Top = 56
           Width = 625
           Height = 145
+          Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 2
         end
         object btnParseCSR: TButton
@@ -241,6 +247,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 73
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Parse CSR'
           TabOrder = 3
           OnClick = btnParseCSRClick
@@ -250,6 +257,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 73
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Verify CSR'
           TabOrder = 4
           OnClick = btnVerifyCSRClick
@@ -264,6 +272,7 @@ object FormCA: TFormCA
         Top = 8
         Width = 657
         Height = 153
+        Anchors = [akLeft, akTop, akRight]
         Caption = 'Sign CSR File'
         TabOrder = 0
         object lblSignCSR: TLabel
@@ -292,6 +301,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 457
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnSignCSRBrowse: TButton
@@ -299,6 +309,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 91
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Browse CSR File'
           TabOrder = 1
           OnClick = btnSignCSRBrowseClick
@@ -308,6 +319,7 @@ object FormCA: TFormCA
           Top = 52
           Width = 457
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
         end
         object btnSignKeyBrowse: TButton
@@ -315,6 +327,7 @@ object FormCA: TFormCA
           Top = 52
           Width = 91
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Browse Key File'
           TabOrder = 3
           OnClick = btnSignKeyBrowseClick
@@ -324,6 +337,7 @@ object FormCA: TFormCA
           Top = 118
           Width = 625
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           Caption = 'Sign CSR File to CRT File '
           TabOrder = 4
           OnClick = btnSignClick
@@ -333,6 +347,7 @@ object FormCA: TFormCA
           Top = 84
           Width = 457
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
         end
         object btnRootCRTBrowse: TButton
@@ -340,6 +355,7 @@ object FormCA: TFormCA
           Top = 84
           Width = 91
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Browse CRT File'
           TabOrder = 6
           OnClick = btnRootCRTBrowseClick
@@ -350,6 +366,7 @@ object FormCA: TFormCA
         Top = 168
         Width = 657
         Height = 249
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Parse CRT File'
         TabOrder = 1
         object lblCRT: TLabel
@@ -364,6 +381,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 313
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseCRT: TButton
@@ -371,6 +389,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 73
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Browse CRT'
           TabOrder = 1
           OnClick = btnBrowseCRTClick
@@ -380,6 +399,7 @@ object FormCA: TFormCA
           Top = 56
           Width = 625
           Height = 177
+          Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 2
         end
         object btnParseCRT: TButton
@@ -387,6 +407,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 73
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Parse CRT'
           TabOrder = 3
           OnClick = btnParseCRTClick
@@ -396,6 +417,7 @@ object FormCA: TFormCA
           Top = 20
           Width = 73
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Verify CRT'
           TabOrder = 4
           OnClick = btnVerifyCRTClick

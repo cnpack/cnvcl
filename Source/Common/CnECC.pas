@@ -63,6 +63,12 @@ uses
   SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber,
   CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
+const
+  // ecPublicKey 的 OID
+  OID_EC_PUBLIC_KEY: array [0..6] of Byte = (               // 1.2.840.10045.2.1
+    $2A, $86, $48, $CE, $3D, $02, $01
+  );
+
 type
   TCnEccSignDigestType = (esdtMD5, esdtSHA1, esdtSHA256, esdtSM3);
   {* ECC 签名所支持的数字摘要算法，不支持无摘要的方式}
@@ -304,6 +310,8 @@ function CnEccSavePublicKeyToPem(const PemFileName: string;
 
 // ========================= ECC 文件签名与验证实现 ============================
 // 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
+// 注意 ECC 签名验证并不是像 RSA 那样解密后比对加密进去的 Hash 值
+// 而是比对中间结果的大数，Ecc 签名内容并不能在验签名时还原原始 Hash 值
 
 function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
@@ -350,10 +358,27 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定内存流}
 
-// 其他辅助函数
+// ============================= 其他辅助函数 ==================================
 
 function CheckEccPublicKey(Ecc: TCnEcc; PublicKey: TCnEccPublicKey): Boolean;
 {* 检验给定曲线的 PublicKey 是否合法}
+
+function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
+{* 通过 BER 中的原始 OID 数据（包括头）获取对应的曲线类型}
+
+function GetOIDFromCurveType(Curve: TCnEccCurveType; out OIDAddr: Pointer): Integer;
+{* 根据曲线类型返回其 OID 地址与长度，外界使用后无需释放}
+
+function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode;
+  PublicKey: TCnEccPublicKey): Boolean;
+{* 读取 BER 节点 BITSTRING 中的 ECC 公钥，返回是否成功}
+
+function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
+  ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey): Boolean;
+{* 将 ECC 公钥写入 BER 中的 BITSTRING 节点}
+
+function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): string;
+{* 从签名散列算法枚举值获取其名称}
 
 implementation
 
@@ -452,6 +477,11 @@ const
   // ECC 私钥文件里两个节点的 BER Tag 要求的特殊 TypeMask
   ECC_PRIVATEKEY_TYPE_MASK  = $80;
 
+  // 公钥的存储形式
+  EC_PUBLICKEY_COMPRESSED1  = 02;
+  EC_PUBLICKEY_COMPRESSED2  = 03;
+  EC_PUBLICKEY_UNCOMPRESSED = 04;
+
   // 预定义的椭圆曲线类型的 OID 及其最大长度
   EC_CURVE_TYPE_OID_MAX_LENGTH = 8;
 
@@ -462,16 +492,6 @@ const
   OID_ECPARAM_CURVE_TYPE_SM2: array[0..7] of Byte = (       // 1.2.156.10197.301
     $2A, $81, $1C, $CF, $55, $01, $82, $2D
   );
-
-  // ecPublicKey 的 OID
-  OID_EC_PUBLIC_KEY: array [0..6] of Byte = (               // 1.2.840.10045.2.1
-    $2A, $86, $48, $CE, $3D, $02, $01
-  );
-
-  // 公钥的存储形式
-  EC_PUBLICKEY_COMPRESSED1  = 02;
-  EC_PUBLICKEY_COMPRESSED2  = 03;
-  EC_PUBLICKEY_UNCOMPRESSED = 04;
 
 function Min(A, B: Integer): Integer;
 begin
@@ -1770,6 +1790,75 @@ begin
   end;
 end;
 
+function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode; PublicKey: TCnEccPublicKey): Boolean;
+var
+  B: PByte;
+  Len: Integer;
+begin
+  Result := False;
+  if (BitStringNode = nil) or (PublicKey = nil) then
+    Exit;
+
+  // PubNode 的 Data 是 BITSTRING，00 04 开头
+  // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，这里是 0，跳过
+  B := BitStringNode.BerDataAddress;
+  Inc(B); // 跳过 00，指向压缩模式字节
+
+  if B^ = EC_PUBLICKEY_UNCOMPRESSED then
+  begin
+    // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
+    Len := (BitStringNode.BerDataLength - 2) div 2;
+    PublicKey.X.SetBinary(PAnsiChar(B), Len);
+    Inc(B, Len div 2);
+    PublicKey.Y.SetBinary(PAnsiChar(B), Len);
+
+    Result := True;
+  end
+  else if (B^ = EC_PUBLICKEY_COMPRESSED1) or (B^ = EC_PUBLICKEY_COMPRESSED2) then
+  begin
+    // 压缩格式，全是公钥 X
+    PublicKey.X.SetBinary(PAnsiChar(B), BitStringNode.BerDataLength - 2);
+    PublicKey.Y.SetZero; // Y 先 0，外部再去求解
+
+    Result := True;
+  end;
+end;
+
+function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
+  ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey): Boolean;
+var
+  Cnt: Integer;
+  B: Byte;
+  OP, P: PByte;
+begin
+  Result := False;
+  if (ParentNode = nil) or (PublicKey = nil) then
+    Exit;
+
+  Cnt := PublicKey.X.GetBytesCount;
+  if not PublicKey.Y.IsZero then
+  begin
+    Cnt := Cnt + PublicKey.Y.GetBytesCount;
+    B := EC_PUBLICKEY_UNCOMPRESSED;
+  end
+  else
+    B := EC_PUBLICKEY_COMPRESSED2;
+
+  OP := GetMemory(Cnt + 1);
+  P := OP;
+  P^ := B;
+
+  Inc(P);
+  PublicKey.X.ToBinary(PAnsiChar(P));
+  if B = EC_PUBLICKEY_UNCOMPRESSED then
+  begin
+    Inc(P, PublicKey.X.GetBytesCount);
+    PublicKey.Y.ToBinary(PAnsiChar(P));
+  end;
+  Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, P, Cnt + 1, ParentNode);
+  FreeMemory(OP);
+end;
+
 (*
   SEQUENCE (2 elem)
     SEQUENCE (2 elem)
@@ -1784,8 +1873,6 @@ var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
-  B: PByte;
-  Len: Integer;
 begin
   Result := False;
   MemStream := nil;
@@ -1814,31 +1901,7 @@ begin
         CurveType := GetCurveTypeFromOID(Node.BerDataAddress, Node.BerDataLength);
 
         // 读 4 里的公钥
-        Node := Reader.Items[4];
-        if PublicKey <> nil then
-        begin
-          // Node 的 Data 是 BITSTRING，00 04 开头
-          // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，这里是 0，跳过
-          B := Node.BerDataAddress;
-          Inc(B); // 跳过 00，指向压缩模式字节
-
-          if B^ = EC_PUBLICKEY_UNCOMPRESSED then
-          begin
-            // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
-            Len := (Node.BerDataLength - 2) div 2;
-            PublicKey.X.SetBinary(PAnsiChar(B), Len);
-            Inc(B, Len div 2);
-            PublicKey.Y.SetBinary(PAnsiChar(B), Len);
-          end
-          else if (B^ = EC_PUBLICKEY_COMPRESSED1) or (B^ = EC_PUBLICKEY_COMPRESSED2) then
-          begin
-            // 压缩格式，全是公钥 X
-            PublicKey.X.SetBinary(PAnsiChar(B), Node.BerDataLength - 2);
-            PublicKey.Y.SetZero; // Y 先 0，外部再去求解
-          end;
-        end;
-
-        Result := True;
+        Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey);
       end;
     end;
   finally
@@ -1871,8 +1934,6 @@ var
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
   CurveType2: TCnEccCurveType;
-  B: PByte;
-  Len: Integer;
 begin
   Result := False;
   MemStream := nil;
@@ -1907,33 +1968,8 @@ begin
 
           CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
 
-          // 读公钥
-          Node := Reader.Items[6];
-          if PublicKey <> nil then
-          begin
-            // Node 的 Data 是 BITSTRING，00 04 开头
-            // BITSTRING 数据区第一个内容字节是该 BITSTRING 凑成 8 的倍数所缺少的 Bit 数，这里是 0，跳过
-            B := Node.BerDataAddress;
-            Inc(B); // 跳过 00，指向压缩模式字节
-
-            if B^ = EC_PUBLICKEY_UNCOMPRESSED then
-            begin
-              // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
-              Inc(B);
-              Len := (Node.BerDataLength - 2) div 2;
-              PublicKey.X.SetBinary(PAnsiChar(B), Len);
-              Inc(B, Len);
-              PublicKey.Y.SetBinary(PAnsiChar(B), Len);
-            end
-            else if (B ^ = EC_PUBLICKEY_COMPRESSED1) or (B ^ = EC_PUBLICKEY_COMPRESSED2) then
-            begin
-              // 压缩格式，全是公钥 X
-              PublicKey.X.SetBinary(PAnsiChar(B), Node.BerDataLength - 2);
-              PublicKey.Y.SetZero; // Y 先 0，外部再去求解
-            end;
-          end;
-
-          Result := True;
+          // 读 6 里的公钥
+          Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey);
         end;
       end;
     end;
@@ -1952,9 +1988,8 @@ var
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
   OIDPtr: Pointer;
-  OIDLen, Cnt: Integer;
+  OIDLen: Integer;
   B: Byte;
-  P: PByte;
 begin
   Result := False;
   if (PrivateKey = nil) or (PublicKey = nil) then
@@ -1999,24 +2034,7 @@ begin
     Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Root); // 居然要用 BOOLEAN 才行
     Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
 
-    Cnt := PublicKey.X.GetBytesCount;
-    if not PublicKey.Y.IsZero then
-    begin
-      Cnt := Cnt + PublicKey.Y.GetBytesCount;
-      B := EC_PUBLICKEY_UNCOMPRESSED;
-    end
-    else
-      B := EC_PUBLICKEY_COMPRESSED2;
-
-    P := GetMemory(Cnt + 1);
-    P^ := B;
-
-    PublicKey.X.ToBinary(PAnsiChar(Integer(P) + 1));
-    if B = EC_PUBLICKEY_UNCOMPRESSED then
-      PublicKey.Y.ToBinary(PAnsiChar(Integer(P) + 1 + PublicKey.X.GetBytesCount));
-    Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, P, Cnt + 1, Node);
-    FreeMemory(P);
-
+    WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
     Writer.SaveToStream(Mem);
     Result := SaveMemoryToPemFile(PemFileName, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL, Mem,
       KeyEncryptMethod, KeyHashMethod, Password, True);
@@ -2035,9 +2053,7 @@ var
   Writer: TCnBerWriter;
   Mem: TMemoryStream;
   OIDPtr: Pointer;
-  OIDLen, Cnt: Integer;
-  CompressFlag: Byte;
-  P: PByte;
+  OIDLen: Integer;
 begin
   Result := False;
   if (PublicKey = nil) or (PublicKey.X.IsZero) then
@@ -2058,26 +2074,8 @@ begin
     // 给 Node 加 ECPublicKey 与 曲线类型的 ObjectIdentifier
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EC_PUBLIC_KEY[0],
       SizeOf(OID_EC_PUBLIC_KEY), Node);
-    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0],
-      SizeOf(OID_ECPARAM_CURVE_TYPE_SECP256K1), Node);
-
-    Cnt := PublicKey.X.GetBytesCount;
-    if not PublicKey.Y.IsZero then
-    begin
-      Cnt := Cnt + PublicKey.Y.GetBytesCount;
-      CompressFlag := EC_PUBLICKEY_UNCOMPRESSED;
-    end
-    else
-      CompressFlag := EC_PUBLICKEY_COMPRESSED2;
-
-    P := GetMemory(Cnt + 1);
-    P^ := CompressFlag;
-
-    PublicKey.X.ToBinary(PAnsiChar(Integer(P) + 1));
-    if CompressFlag = EC_PUBLICKEY_UNCOMPRESSED then
-      PublicKey.Y.ToBinary(PAnsiChar(Integer(P) + 1 + PublicKey.X.GetBytesCount));
-    Writer.AddBasicNode(CN_BER_TAG_BIT_STRING, P, Cnt + 1, Root);
-    FreeMemory(P);
+    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, Node);
+    WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
 
     Mem := TMemoryStream.Create;
     Writer.SaveToStream(Mem);
@@ -2421,7 +2419,6 @@ end;
 
 {
   ECC 签名输出的 BER 格式如下，直接存成二进制文件即可
-
   SEQUENCE (2 elem)
     INTEGER r
     INTEGER s
@@ -2576,4 +2573,17 @@ begin
     end;
   end;
 end;
+
+function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): string;
+begin
+  case Digest of
+    esdtMD5: Result := 'MD5';
+    esdtSHA1: Result := 'SHA1';
+    esdtSHA256: Result := 'SHA256';
+    esdtSM3: Result := 'SM3';
+  else
+    Result := '<Unknown>';
+  end;
+end;
+
 end.

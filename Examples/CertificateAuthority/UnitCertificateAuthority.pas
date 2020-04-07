@@ -131,20 +131,20 @@ end;
 
 procedure TFormCA.btnParseCSRClick(Sender: TObject);
 var
-  CSR: TCnRSACertificateRequest;
+  CSR: TCnCertificateRequest;
   OutBuf: array of Byte;
   OutLen: Integer;
 begin
-  CSR := TCnRSACertificateRequest.Create;
+  CSR := TCnCertificateRequest.Create;
   if CnCALoadCertificateSignRequestFromFile(edtCSR.Text, CSR) then
   begin
     mmoCSRParse.Clear;
     mmoCSRParse.Lines.Add(CSR.ToString);
 
-    if (CSR.SignValue <> nil) and (CSR.SignLength > 0) and (CSR.PublicKey.BitsCount > 128) then
+    if CSR.IsRSA and (CSR.SignValue <> nil) and (CSR.SignLength > 0) and (CSR.RSAPublicKey.BitsCount > 128) then
     begin
-      SetLength(OutBuf, CSR.PublicKey.BitsCount div 8);
-      if CnRSADecryptRawData(CSR.SignValue, CSR.SignLength, @OutBuf[0], OutLen, CSR.PublicKey) then
+      SetLength(OutBuf, CSR.RSAPublicKey.BitsCount div 8);
+      if CnRSADecryptRawData(CSR.SignValue, CSR.SignLength, @OutBuf[0], OutLen, CSR.RSAPublicKey) then
       begin
         mmoCSRParse.Lines.Add('');
         mmoCSRParse.Lines.Add('--------');
@@ -192,9 +192,9 @@ end;
 
 procedure TFormCA.btnParseCRTClick(Sender: TObject);
 var
-  CRT: TCnRSACertificate;
+  CRT: TCnCertificate;
 begin
-  CRT := TCnRSACertificate.Create;
+  CRT := TCnCertificate.Create;
   if not CnCALoadCertificateFromFile(edtCRT.Text, CRT) then
     ShowMessage('Parse CRT File Failed.')
   else

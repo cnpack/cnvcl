@@ -221,7 +221,7 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Data: TCnBigNumber): Boolean;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
-// RSA 数据与文件加解密实现
+// ======================== RSA 数据与文件加解密实现 ===========================
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
@@ -279,7 +279,10 @@ function CnRSADecryptFile(const InFileName, OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中}
 
-// RSA 文件签名与验证实现，流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
+// =========================== RSA 文件签名与验证实现 ==========================
+// 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
+// 注意 RSA 签名是先 Hash 再拼一段数据用 RSA 私钥加密，验证时能解出 Hash 值
+// 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数
 
 function CnRSASignFile(const InFileName, OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
@@ -318,7 +321,7 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
    其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime}
 
-// 其他辅助函数
+// ================================= 其他辅助函数 ==============================
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
 {* 从 BER 解析出的 OID 获取其对应的散列摘要类型}
@@ -327,7 +330,7 @@ function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASi
   AParent: TCnBerWriteNode): TCnBerWriteNode;
 {* 将一个散列算法的 OID 写入一个 Ber 节点}
 
-function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
+function GetRSADigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
 {* 从签名散列算法枚举值获取其名称}
 
 function GetLastCnRSAError: Integer;
@@ -1948,13 +1951,13 @@ begin
     Result := rsdtSHA256;
 end;
 
-function GetDigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
+function GetRSADigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
 begin
   case Digest of
     rsdtNone: Result := '<None>';
     rsdtMD5: Result := 'MD5';
     rsdtSHA1: Result := 'SHA1';
-    rsdtSHA256: Result := 'SHA256' ;
+    rsdtSHA256: Result := 'SHA256';
   else
     Result := '<Unknown>';
   end;
