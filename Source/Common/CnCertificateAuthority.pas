@@ -1492,7 +1492,7 @@ function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
 var
   CSR: TCnCertificateRequest;
   Reader: TCnBerReader;
-  MemStream, SignStream: TMemoryStream;
+  MemStream, SignStream, InfoStream: TMemoryStream;
   InfoRoot: TCnBerReadNode;
   P: Pointer;
 begin
@@ -1501,6 +1501,7 @@ begin
   Reader := nil;
   MemStream := nil;
   SignStream := nil;
+  InfoStream := nil;
 
   try
     CSR := TCnCertificateRequest.Create;
@@ -1519,20 +1520,36 @@ begin
     if Reader.TotalCount > 2 then
     begin
       InfoRoot := Reader.Items[1];
-
-      // 计算其 Hash
       SignStream := TMemoryStream.Create;
-      P := InfoRoot.BerAddress;
-      CalcDigestData(P, InfoRoot.BerLength, CSR.CASignType, SignStream);
 
-      if SignStream.Size = CSR.DigestLength then
-        Result := CompareMem(SignStream.Memory, CSR.DigestValue, SignStream.Size);
+      if CSR.IsRSA then
+      begin
+        // 计算其 Hash
+        P := InfoRoot.BerAddress;
+        CalcDigestData(P, InfoRoot.BerLength, CSR.CASignType, SignStream);
+
+        // 并与 RSA 解密出来的签名值手工对比
+        if SignStream.Size = CSR.DigestLength then
+          Result := CompareMem(SignStream.Memory, CSR.DigestValue, SignStream.Size);
+      end
+      else // ECC 直接验证数据块的签名与 Hash 值
+      begin
+        SignStream.Write(CSR.SignValue^, CSR.SignLength);
+        InfoStream := TMemoryStream.Create;
+        InfoStream.Write(InfoRoot.BerAddress^, InfoRoot.BerLength);
+        InfoStream.Position := 0;
+        SignStream.Position := 0;
+
+        Result := CnEccVerifyStream(InfoStream, SignStream, CSR.EccCurveType, CSR.EccPublicKey,
+          GetEccSignTypeFromCASignType(CSR.CASignType));
+      end;
     end;
   finally
     CSR.Free;
     Reader.Free;
     MemStream.Free;
     SignStream.Free;
+    InfoStream.Free;
   end;
 end;
 
