@@ -255,7 +255,10 @@ function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
 function CnEccPointToString(const P: TCnEccPoint): string;
-{* 将一个 TCnEccPoint 点坐标转换为字符串}
+{* 将一个 TCnEccPoint 点坐标转换为十进制字符串}
+
+function CnEccPointToHex(const P: TCnEccPoint): string;
+{* 将一个 TCnEccPoint 点坐标转换为十六进制字符串}
 
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
@@ -518,10 +521,16 @@ begin
   Result := Format('%d,%d', [P.X, P.Y]);
 end;
 
-// 将一个 TCnEccPoint 点坐标转换为字符串
+// 将一个 TCnEccPoint 点坐标转换为十进制字符串
 function CnEccPointToString(const P: TCnEccPoint): string;
 begin
   Result := Format('%s,%s', [P.X.ToDec, P.Y.ToDec]);
+end;
+
+// 将一个 TCnEccPoint 点坐标转换为十六进制字符串
+function CnEccPointToHex(const P: TCnEccPoint): string;
+begin
+  Result := Format('%s,%s', [P.X.ToHex, P.Y.ToHex]);
 end;
 
 // 判断两个点是否相等
@@ -1807,15 +1816,17 @@ begin
   if B^ = EC_PUBLICKEY_UNCOMPRESSED then
   begin
     // 未压缩格式，前一半是公钥的 X，后一半是公钥的 Y
+    Inc(B);
     Len := (BitStringNode.BerDataLength - 2) div 2;
     PublicKey.X.SetBinary(PAnsiChar(B), Len);
-    Inc(B, Len div 2);
+    Inc(B, Len);
     PublicKey.Y.SetBinary(PAnsiChar(B), Len);
 
     Result := True;
   end
   else if (B^ = EC_PUBLICKEY_COMPRESSED1) or (B^ = EC_PUBLICKEY_COMPRESSED2) then
   begin
+    Inc(B);
     // 压缩格式，全是公钥 X
     PublicKey.X.SetBinary(PAnsiChar(B), BitStringNode.BerDataLength - 2);
     PublicKey.Y.SetZero; // Y 先 0，外部再去求解
