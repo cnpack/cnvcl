@@ -2205,6 +2205,9 @@ begin
   end;
 end;
 
+{
+   签发证书。客户端证书文件中，先写签发者，再写被签发者
+}
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean;
@@ -2256,33 +2259,10 @@ begin
     AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
     Writer.AddNullNode(Node);
 
-    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
-    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
     PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
-
-    // 写被签发者
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
-      SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0],
-      SizeOf(OID_DN_STATEORPROVINCENAME), CSR.CertificateRequestInfo.StateOrProvinceName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0],
-      SizeOf(OID_DN_LOCALITYNAME), CSR.CertificateRequestInfo.LocalityName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONNAME), CSR.CertificateRequestInfo.OrganizationName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
-      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CSR.CertificateRequestInfo.OrganizationalUnitName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0],
-      SizeOf(OID_DN_COMMONNAME), CSR.CertificateRequestInfo.CommonName);
-    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0],
-      SizeOf(OID_DN_EMAILADDRESS), CSR.CertificateRequestInfo.EmailAddress, CN_BER_TAG_IA5STRING);
-
-    // 写有效时间
-    UTCTime := TCnUTCTime.Create;
-    UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
-    UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
 
     // 写签发者
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
@@ -2299,6 +2279,29 @@ begin
       SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
     AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
       SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    // 写有效时间
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+
+    // 写被签发者
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CSR.CertificateRequestInfo.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CSR.CertificateRequestInfo.LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CSR.CertificateRequestInfo.OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CSR.CertificateRequestInfo.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CSR.CertificateRequestInfo.CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CSR.CertificateRequestInfo.EmailAddress, CN_BER_TAG_IA5STRING);
 
     // 写公钥节点内容
     WriteRSAPublicKeyToNode(Writer, PubNode, CRT.BasicCertificate.SubjectRSAPublicKey);
