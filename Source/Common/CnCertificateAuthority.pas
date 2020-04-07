@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
+  SysUtils, Classes, TypInfo, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
   CnBigNumber, CnRSA, CnECC, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2;
 
 const
@@ -1694,7 +1694,7 @@ begin
   end
   else
   begin
-    Result := Result + SCRLF + 'ECC:';
+    Result := Result + SCRLF + 'ECC: ' + GetEnumName(TypeInfo(TCnEccCurveType), Ord(FEccCurveType));
     Result := Result + SCRLF + 'Ecc Public Key: ' + CnEccPointToString(FEccPublicKey);
   end;
 
