@@ -435,8 +435,15 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
-  CASignType: TCnCASignType = ctSha1RSA): Boolean;
-{* 根据公私钥与一些 DN 信息以及指定散列算法生成 CRT 格式的自签名证书，目前只支持 v1 格式}
+  CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定散列算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式}
+
+function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
+  const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
+  const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
+  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定散列算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式}
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnCertificateRequest): Boolean;
@@ -713,21 +720,24 @@ end;
       OBJECT IDENTIFIER 1.3.132.0.10 secp256k1 (SECG (Certicom) named elliptic curve)
     BIT STRING （里头是非压缩公钥存储格式）
 }
-procedure WriteEccPublicKeyToNode(AWriter: TCnBerWriter; PubNode: TCnBerWriteNode;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType);
+function WriteEccPublicKeyToNode(AWriter: TCnBerWriter; PubNode: TCnBerWriteNode;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType): Boolean;
 var
   Node: TCnBerWriteNode;
   CurvePtr: Pointer;
   CurveLen: Integer;
 begin
+  Result := False;
   Node := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, PubNode);
   AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EC_PUBLIC_KEY[0],
     SizeOf(OID_EC_PUBLIC_KEY), Node);
   CurveLen := GetOIDFromCurveType(CurveType, CurvePtr);
-  if CurveLen > 0 then
-    AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, CurvePtr, CurveLen, Node);
+  if CurveLen <= 0 then
+    Exit;
 
+  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, CurvePtr, CurveLen, Node);
   WriteEccPublicKeyToBitStringNode(AWriter, PubNode, PublicKey);
+  Result := True;
 end;
 
 {
@@ -970,7 +980,8 @@ begin
     WriteDNNameToNode(Writer, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, DNRoot, CN_BER_TAG_IA5STRING);
 
     // 写公钥节点的内容
-    WriteEccPublicKeyToNode(Writer, PubNode, PublicKey, CurveType);
+    if not WriteEccPublicKeyToNode(Writer, PubNode, PublicKey, CurveType) then
+      Exit;
 
     // 计算 InfoRoot 块的数字摘要并签名
     GenerateEccSignatureNode(Writer, Root, InfoRoot, PrivateKey, CurveType, CASignType);
@@ -1157,7 +1168,9 @@ begin
       SetLength(OutBuf, 0);
       Reader.Free;
     end;
-  end;
+  end
+  else
+    Result := True;
 end;
 
 function ExtractExtensions(Root: TCnBerReadNode; StandardExt: TCnCertificateStandardExtensions;
@@ -1452,7 +1465,7 @@ begin
         CertificateRequest.FRSADigestType, CertificateRequest.FSignValue, CertificateRequest.FDigestValue,
         CertificateRequest.FSignLength, CertificateRequest.FDigestLength);
 
-      if not IsRSA then
+      if Result and not IsRSA then
       begin
         // ECC 得自行计算其 Hash
         HashStream := TMemoryStream.Create;
@@ -2191,7 +2204,100 @@ begin
       Exit;
 
     // 保存
-    FreeAndNil(Stream);
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, Stream);
+    Result := True;
+  finally
+    Writer.Free;
+    Stream.Free;
+    SerialNum.Free;
+    UTCTime.Free;
+  end;
+end;
+
+function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
+  const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
+  const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
+  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Stream: TMemoryStream;
+  Buf: array of Byte;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+  if CurveType = ctCustomized then
+    Exit;
+
+  Writer := nil;
+  SerialNum := nil;
+  UTCTime := nil;
+  Stream := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    // 版本忽略，写序列号
+    SerialNum := TCnBigNumber.Create;
+    SerialNum.SetDec(IntSerialNum);
+    SetLength(Buf, SerialNum.GetBytesCount);
+    SerialNum.ToBinary(@Buf[0]);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+
+    // 写算法
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
+    Writer.AddNullNode(Node);
+
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+
+    // 写签发者
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
+
+    // 写有效时间
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+
+    // 写被签发者
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
+
+    // 写公钥节点内容
+    if not WriteEccPublicKeyToNode(Writer, PubNode, PublicKey, CurveType) then
+      Exit;
+
+    // 计算并写签名值
+    if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey, CurveType, CASignType) then
+      Exit;
+
+    // 保存
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
     Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
@@ -2311,7 +2417,6 @@ begin
       Exit;
 
     // 保存
-    FreeAndNil(Stream);
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
     Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
