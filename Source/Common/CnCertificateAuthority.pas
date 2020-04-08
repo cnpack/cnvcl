@@ -22,19 +22,22 @@ unit CnCertificateAuthority;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：基于 RSA 的 CA 证书认证单元
+* 单元名称：基于 RSA 与 ECC 的 CA 证书认证单元
 * 单元作者：刘啸
 * 备    注：生成客户端 CSR 文件做证书签名请求，类似于命令：
 *               openssl req -new -key clientkey.pem -out client.csr -config /c/Program\ Files/Git/ssl/openssl.cnf
-*               其中 clientkey.pem 是预先生成的 RSA 私钥
+*               其中 clientkey.pem 是预先生成的 RSA 或 ECC 私钥
 *           一次性生成自签名的 crt 证书：
 *               openssl req -new -x509 -keyout ca.key -out ca.crt -config /c/Program\ Files/Git/ssl/openssl.cnf
 *           或利用现有 Key 对此 Key 生成的 CSR 请求文件进行自签名：
 *               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsigned.crt
+*           或利用 openssl ca 命令，用根私钥与根证书签发其他的 CSR 生成 CRT 证书
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.05.06 V1.2
+* 修改记录：2020.04.08 V1.3
+*               支持 ECC 证书请求与自签名校验等
+*           2019.05.06 V1.2
 *               支持 Win32/Win64/MacOS
 *           2018.07.22 V1.1
 *               初步完成签发证书的功能
@@ -1830,18 +1833,21 @@ end;
 function CnCALoadCertificateFromStream(Stream: TStream;
   Certificate: TCnCertificate): Boolean;
 var
-  Mem: TMemoryStream;
+  Mem, HashStream: TMemoryStream;
   Reader: TCnBerReader;
   SerialNum: TCnBigNumber;
   Root, Node, VerNode, SerialNode: TCnBerReadNode;
   BSCNode, SignAlgNode, SignValueNode: TCnBerReadNode;
   List: TStringList;
   IsRSA, IsEcc: Boolean;
+  P: Pointer;
 begin
   Result := False;
 
   Mem := nil;
+  HashStream := nil;
   Reader := nil;
+
   try
     Mem := TMemoryStream.Create;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Mem) then
@@ -1947,20 +1953,43 @@ begin
     end
     else
     begin
-      // if not ReadEccPublicKeyFromNode(Node, Certificate.BasicCertificate.Sub)
+      if not ReadEccPublicKeyFromBitStringNode(Node, Certificate.BasicCertificate.SubjectEccPublicKey) then
+        Exit;
     end;
 
-    // 自签名证书可以解开散列值
+
+    // 自签名证书可以解开散列值，要兼容 RSA 与 ECC
     if Certificate.IsSelfSigned then
+    begin
       Result := ExtractSignaturesByPublicKey(IsRSA, Certificate.BasicCertificate.SubjectRSAPublicKey,
         Certificate.BasicCertificate.SubjectEccPublicKey, SignAlgNode, SignValueNode,
         Certificate.FCASignType, Certificate.FRSADigestType, Certificate.FSignValue,
-        Certificate.FDigestValue, Certificate.FSignLength, Certificate.FDigestLength)
+        Certificate.FDigestValue, Certificate.FSignLength, Certificate.FDigestLength);
+
+      if Result and not IsRSA then
+      begin
+        // ECC 得自行计算其 Hash
+        HashStream := TMemoryStream.Create;
+        P := Reader.Items[1].BerAddress;
+        if not CalcDigestData(P, Reader.Items[1].BerLength, Certificate.CASignType, HashStream) then
+          Exit;
+
+        FreeMemory(Certificate.DigestValue);
+        Certificate.DigestValue := GetMemory(HashStream.Size);
+        Certificate.DigestLength := HashStream.Size;
+        Move(HashStream.Memory^, Certificate.DigestValue^, HashStream.Size);
+
+        Certificate.EccDigestType := GetEccSignTypeFromCASignType(Certificate.CASignType);
+        Result := True;
+      end;
+    end
     else
+    begin
       // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正散列值
       Result := ExtractSignaturesByPublicKey(IsRSA, nil, nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
         DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
         DummyInteger);
+    end;
 
     // 解开标准扩展与私有互联网扩展节点
     if Result then
@@ -1978,6 +2007,7 @@ begin
     end;
   finally
     Mem.Free;
+    HashStream.Free;
     Reader.Free;
   end;
 end;
