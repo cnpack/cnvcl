@@ -69,6 +69,7 @@
 			<DCCReference Include="..\..\Source\Common\CnBase64.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnBerUtils.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnBigNumber.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnBigRational.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnBinaryDiffPatch.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnBloomFilter.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnCalClass.pas"/>
@@ -87,6 +88,7 @@
 			<DCCReference Include="..\..\Source\Common\CnECC.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnEventBus.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnEventHook.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnFEC.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnFitCurve.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnFloatConvert.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnGraphUtils.pas"/>
@@ -96,14 +98,18 @@
 			<DCCReference Include="..\..\Source\Common\CnIni.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIniCfg.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIniStrUtils.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnKDF.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnLinkedList.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnMartrix.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMD5.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMemProf.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMethodHook.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMulticastEvent.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnNativeDecl.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnObjAuto.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnPemUtils.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnPrimeNumber.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnRandom.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnRopes.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnRSA.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSHA1.pas"/>
@@ -113,6 +119,7 @@
 			<DCCReference Include="..\..\Source\Common\CnSingleton.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSingletonComp.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSkipList.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnSM2.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSM3.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSM4.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnSQLite.pas"/>
@@ -227,6 +234,9 @@
 				<Form>CnRS232Dlg</Form>
 			</DCCReference>
 			<DCCReference Include="..\..\Source\NetComm\CnTwain.pas"/>
+			<DCCReference Include="..\..\Source\NetComm\CnTCPClient.pas"/>
+			<DCCReference Include="..\..\Source\NetComm\CnTCPForwarder.pas"/>
+			<DCCReference Include="..\..\Source\NetComm\CnThreadingTCPServer.pas"/>
 			<DCCReference Include="..\..\Source\NetComm\CnUDP.pas"/>
 			<DCCReference Include="..\..\Source\NonVisual\CnActionListHook.pas"/>
 			<DCCReference Include="..\..\Source\NonVisual\CnActiveScript.pas"/>
