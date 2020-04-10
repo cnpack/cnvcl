@@ -573,13 +573,13 @@ begin
   // 分离出符号位、有效数字与指数
   FloatToDecimal(F, AFloat, fvExtended, 18, 9999);
 
-  L := StrLen(F.Digits);
+  L := StrLen(PAnsiChar(@F.Digits[0]));
   // 分母是 10 的 L - F.Exponent 次方，分子是纯的 Digits
   FDenominator.SetOne;
   for I := 1 to L - F.Exponent do
     FDenominator.MulWord(10);
 
-  FNominator.SetDec(F.Digits);
+  FNominator.SetDec(PAnsiChar(@F.Digits[0]));
   FNominator.SetNegative(F.Negative);
   Reduce;
 end;
