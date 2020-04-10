@@ -924,7 +924,7 @@ end;
 function BigNumberGetUInt64(const Num: TCnBigNumber): UInt64;
 begin
   if Num.Top > 2 then
-    Result := BN_MASK3U
+    Result := UInt64(BN_MASK3U)
   else if Num.Top = 2 then
     Result := PUInt64Array(Num.D)^[0]
   else if Num.Top = 1 then
