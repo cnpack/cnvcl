@@ -264,7 +264,7 @@ begin
           tk := Pplst[i]^.PropType^.Kind;
           if tk <> tkMethod then
           begin
-            if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
+            if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE} or (tk = tkUString) {$ENDIF} then
               FieldDefs.Add(ppName, ftString, 255, False);
             if tk = tkInteger then
               FieldDefs.Add(ppName, ftInteger, 8, False);
@@ -449,7 +449,7 @@ begin
               tk := Pplst[k]^.PropType^.Kind;
               if tk <> tkMethod then
               begin
-                if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
+                if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE} or (tk = tkUString) {$ENDIF} then
                   FieldByName(ppName).AsString := GetStrProp((obj as clazz), ppName);
                 if tk = tkInteger then
                   FieldByName(ppName).AsInteger := GetInt64Prop((obj as clazz), ppName);

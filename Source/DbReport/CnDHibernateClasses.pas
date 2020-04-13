@@ -277,7 +277,7 @@ begin
           if tk <> tkMethod then
           begin
             // set the string properties
-            if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
+            if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE} or (tk = tkUString) {$ENDIF} then
             begin
               SetStrProp((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), FieldByName({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name)).AsString);
             end; 
@@ -439,7 +439,7 @@ begin
             if tk <> tkMethod then
             begin
               // set the string properties
-              if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
+              if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE} or (tk = tkUString) {$ENDIF} then
               begin
                 SetStrProp((obj as clazz), LeftStr(ppName, Length(ppName) - 4) + '_FORMULA', Fields[0].AsString);
               end; 

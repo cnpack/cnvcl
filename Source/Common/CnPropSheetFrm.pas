@@ -965,7 +965,7 @@ begin
         else
           S := 'nil';
       end;
-    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+    tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
       S := GetStrProp(Instance, PropInfo);
     tkVariant:
       S := VarToStr(GetVariantProp(Instance, PropInfo));
@@ -1077,7 +1077,7 @@ begin
           end;
         end;
       end;
-    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+    tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
       S := RttiProperty.GetValue(Instance).AsString;
     tkVariant:
       S := VarToStr(RttiProperty.GetValue(Instance).AsVariant);
@@ -1201,7 +1201,7 @@ begin
           end;
         end;
       end;
-    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+    tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
       S := RttiField.GetValue(Instance).AsString;
     tkVariant:
       S := VarToStr(RttiField.GetValue(Instance).AsVariant);

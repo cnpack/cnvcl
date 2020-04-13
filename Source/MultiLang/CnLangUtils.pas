@@ -473,7 +473,7 @@ begin
 
       APropType := PropType(AObject, APropName);
       if (APropType in [tkString, tkLString, tkWString //, tkWChar
-        {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}]) then
+        {$IFDEF UNICODE}, tkUString{$ENDIF}]) then
       begin
         try
           APropValue := VartoStr(GetPropValue(AObject, APropName));

@@ -288,7 +288,7 @@ var
             WC := #0;
           Result := WC;
         end;
-      tkWString {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      tkWString {$IFDEF UNICODE}, tkUString{$ENDIF}:
         begin
           WS := Value;
           Result := WS;
@@ -737,7 +737,7 @@ begin
           else
             Result := okFloat;
         end;
-      tkChar, tkString, tkWChar, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      tkChar, tkString, tkWChar, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
         begin
           if Item.List.Count > 0 then
             Result := okStringCombo

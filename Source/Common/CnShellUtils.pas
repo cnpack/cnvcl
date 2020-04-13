@@ -96,7 +96,7 @@ begin
       if Succeeded(DesktopFolder.BindToObject(Drives, nil, IID_IShellFolder,
         Pointer(Folder))) then
       begin
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
         MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED,
           PAnsiChar(AnsiString(IncludeTrailingBackslash(DriveName))), -1, Path, MAX_PATH);
 {$ELSE}
@@ -124,7 +124,7 @@ var
   Path, ItemName: TUnicodePath;
 begin
   Result := nil;
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PAnsiChar(AnsiString(_CnExtractFilePath(FileName))), -1, Path, MAX_PATH);
   MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, PAnsiChar(AnsiString(_CnExtractFileName(FileName))), -1, ItemName, MAX_PATH);
 {$ELSE}

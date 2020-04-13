@@ -47,10 +47,10 @@ const
   ROOT_OBJECT = 'XMLPersistent';
   tkPersistent = [tkInteger, tkChar, tkEnumeration, tkSet,
     tkClass, tkInterface, tkFloat, tkWChar, tkString, tkLString, tkWString
-    {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}, tkVariant, tkInt64,
+    {$IFDEF UNICODE}, tkUString{$ENDIF}, tkVariant, tkInt64,
     tkRecord, tkArray, tkDynArray, tkUnknown];
   tkObj = [tkClass, tkInterface];
-  tkStr = [tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}];
+  tkStr = [tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}];
   tkValue = tkPersistent - tkObj;
   tkOthers = [tkMethod];
   tkAll = tkPersistent + tkOthers;
@@ -237,7 +237,7 @@ begin
       begin
         Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
       end;
-    tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+    tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
       begin
         Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
       end;

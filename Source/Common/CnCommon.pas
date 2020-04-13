@@ -1087,7 +1087,7 @@ function GetParentFont(AControl: TComponent): TFont;
 const
   InvalidFileNameChar: set of AnsiChar = ['\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
-function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
+function _CnPChar(const S: string): {$IFDEF UNICODE} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
 {* 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用}
 
 function _CnExtractFileExt(const FileName: string): string;
@@ -1548,9 +1548,9 @@ end;
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
 // 另外，D2009 或以上版本，必须加 inline，
 // 避免产生实质转换时返回值指向局部被释放的内容
-function _CnPChar(const S: string): {$IFDEF UNICODE_STRING} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
+function _CnPChar(const S: string): {$IFDEF UNICODE} PAnsiChar; inline {$ELSE} PChar {$ENDIF};
 begin
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   Result := PAnsiChar(AnsiString(S));
 {$ELSE}
   Result := PChar(S);
@@ -1849,7 +1849,7 @@ end;
 // Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
 begin
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
 {$ELSE}
   {$IFDEF COMPILER6_UP}
@@ -1862,7 +1862,7 @@ end;
 
 function CnUtf8ToAnsi2(const Text: string): string;
 begin
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
 {$ELSE}
   {$IFDEF COMPILER6_UP}
@@ -1875,7 +1875,7 @@ end;
 
 function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 begin
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   Result := AnsiString(Utf8Encode(Text)); // 返回值不可改为 UTF8String 类型，否则此处转换无效
 {$ELSE}
   {$IFDEF COMPILER6_UP}
@@ -1888,7 +1888,7 @@ end;
 
 function CnAnsiToUtf82(const Text: string): string;
 begin
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   Result := string(Utf8Encode(Text));
 {$ELSE}
   {$IFDEF COMPILER6_UP}
@@ -3112,7 +3112,7 @@ end;
 // 短文件名转长文件名
 function ShortNameToLongName(const FileName: string): string;
 const
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
   SCnGetLongPathName = 'GetLongPathNameW';
 {$ELSE}
   SCnGetLongPathName = 'GetLongPathNameA';

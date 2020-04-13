@@ -496,7 +496,7 @@ begin
                   if WS <> '' then
                     SetOrdProp(AObject, PropInfo, Ord(WS[1]));
                 end;
-              tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+              tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
                 SetStrProp(AObject, PropInfo, ReadString(Section, PropInfoName(PropInfo),
                   GetStrProp(AObject, PropInfo)));
               tkFloat:
@@ -571,7 +571,7 @@ begin
                 WriteString(Section, PropInfoName(PropInfo), Char(GetOrdProp(AObject, PropInfo)));
               tkWChar:
                 WriteString(Section, PropInfoName(PropInfo), WideChar(GetOrdProp(AObject, PropInfo)));
-              tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+              tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
                 WriteString(Section, PropInfoName(PropInfo), GetStrProp(AObject, PropInfo));
               tkFloat:
                 WriteFloat(Section, PropInfoName(PropInfo), GetFloatProp(AObject, PropInfo));

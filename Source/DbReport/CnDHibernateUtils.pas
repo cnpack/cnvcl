@@ -1441,7 +1441,7 @@ begin
           if tk <> tkMethod then
           begin
             // set the string properties
-            if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF} then
+            if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE} or (tk = tkUString) {$ENDIF} then
             begin
               SetStrProp((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[j]^.Name),
                 dc.FieldByName({$IFDEF UNICODE}String{$ENDIF}(pplst[j]^.Name)).AsString);

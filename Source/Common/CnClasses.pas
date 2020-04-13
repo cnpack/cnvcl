@@ -417,7 +417,7 @@ begin
             SetOrdProp(Dest, PropInfo, GetOrdProp(Source, PropInfo));
           tkFloat:
             SetFloatProp(Dest, PropInfo, GetFloatProp(Source, PropInfo));
-          tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+          tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
             SetStrProp(Dest, PropInfo, GetStrProp(Source, PropInfo));
           tkVariant:
             SetVariantProp(Dest, PropInfo, GetVariantProp(Source, PropInfo));

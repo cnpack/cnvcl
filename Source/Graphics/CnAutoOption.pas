@@ -299,7 +299,7 @@ begin
             SetOrdProp(Self, PropInfo, GetOrdProp(Source, PropInfo));
           tkFloat:
             SetFloatProp(Self, PropInfo, GetFloatProp(Source, PropInfo));
-          tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+          tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
             SetStrProp(Self, PropInfo, GetStrProp(Source, PropInfo));
           tkVariant:
             SetVariantProp(Self, PropInfo, GetVariantProp(Source, PropInfo));
@@ -514,7 +514,7 @@ var
 begin
   case PropInfo.PropType^^.Kind of
     tkInteger, tkChar, tkWChar, tkEnumeration, tkSet, tkFloat,
-    tkString, tkLString, tkWString, tkVariant, tkInt64{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+    tkString, tkLString, tkWString, tkVariant, tkInt64{$IFDEF UNICODE}, tkUString{$ENDIF}:
       begin
         if IsBooleanType(PropInfo.PropType^) then
         begin
@@ -556,7 +556,7 @@ begin
         FDefaultValue := VarToIntVar(Value);
       tkFloat:
         FDefaultValue := VarToFloatVar(Value);
-      tkChar, tkWChar, tkString, tkLString, tkWString{$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      tkChar, tkWChar, tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
         FDefaultValue := VarToStr(Value);
     else
       FDefaultValue := Value;

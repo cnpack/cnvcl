@@ -280,7 +280,7 @@ begin
         if tk <> tkMethod then
         begin
           // set the string properties
-          if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE_STRING} or (tk = tkUString) {$ENDIF}  then
+          if (tk = tkString) or (tk = tkLString) or (tk = tkWString) {$IFDEF UNICODE} or (tk = tkUString) {$ENDIF}  then
           begin
             map.put({$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name), GetStrProp((obj as clazz), {$IFDEF UNICODE}String{$ENDIF}(pplst[i]^.Name)));
           end; 

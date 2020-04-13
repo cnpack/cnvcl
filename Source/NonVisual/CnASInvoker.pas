@@ -637,7 +637,7 @@ begin
       tkLString,
       tkString,
       tkWString
-      {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      {$IFDEF UNICODE}, tkUString{$ENDIF}:
         Result := True;
       tkVariant:
         Result := True;
@@ -864,7 +864,7 @@ begin
     begin
       PString(P)^ := '';
       AddStrToClear(P);
-    end else if (MD.Params[I].Info.kind = tkWString) {$IFDEF UNICODE_STRING} or (MD.Params[I].Info.kind = tkUString) {$ENDIF} then
+    end else if (MD.Params[I].Info.kind = tkWString) {$IFDEF UNICODE} or (MD.Params[I].Info.kind = tkUString) {$ENDIF} then
     begin
       PWideString(P)^ := '';
       AddWStrToClear(P);
@@ -880,7 +880,7 @@ begin
           PString(P)^ := '';
           AddStrToClear(P);
         end;
-      tkWString {$IFDEF UNICODE_STRING}, tkUString{$ENDIF}:
+      tkWString {$IFDEF UNICODE}, tkUString{$ENDIF}:
         begin
           P := AllocData(sizeof(PWideString));
           PWideString(P)^ := '';
@@ -1354,7 +1354,7 @@ begin
       end;
     tkWString:
       PWideString(NatData)^ := Value;
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
     tkUString:
       PUnicodeString(NatData)^ := Value;
 {$ENDIF}
@@ -1420,7 +1420,7 @@ begin
       Value := WideChar(NatData^);
     tkWString:
       Value := PWideString(NatData)^;
-{$IFDEF UNICODE_STRING}
+{$IFDEF UNICODE}
     tkUString:
       Value := PUnicodeString(NatData)^;
 {$ENDIF}
