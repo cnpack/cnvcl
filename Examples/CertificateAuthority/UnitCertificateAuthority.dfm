@@ -1,8 +1,8 @@
 object FormCA: TFormCA
-  Left = 218
-  Top = 85
-  Width = 705
-  Height = 503
+  Left = 360
+  Top = 146
+  Width = 889
+  Height = 613
   Caption = 'Certificate Authority'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,9 +19,9 @@ object FormCA: TFormCA
   object pgc1: TPageControl
     Left = 8
     Top = 8
-    Width = 681
-    Height = 457
-    ActivePage = tsRequest
+    Width = 865
+    Height = 567
+    ActivePage = tsSign
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsRequest: TTabSheet
@@ -29,7 +29,7 @@ object FormCA: TFormCA
       object grpGenRequest: TGroupBox
         Left = 8
         Top = 8
-        Width = 657
+        Width = 841
         Height = 185
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Generate Certificate Sign Request'
@@ -37,9 +37,9 @@ object FormCA: TFormCA
         object lblKey: TLabel
           Left = 16
           Top = 24
-          Width = 46
+          Width = 72
           Height = 13
-          Caption = 'RSA Key:'
+          Caption = 'RSA/ECC Key:'
         end
         object lblContryName: TLabel
           Left = 16
@@ -100,15 +100,17 @@ object FormCA: TFormCA
         object edtRSAKey: TEdit
           Left = 88
           Top = 20
-          Width = 457
+          Width = 641
           Height = 21
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseKey: TButton
-          Left = 552
+          Left = 736
           Top = 20
           Width = 91
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Browse Key File'
           TabOrder = 1
           OnClick = btnBrowseKeyClick
@@ -183,19 +185,21 @@ object FormCA: TFormCA
             'SHA256')
         end
         object btnGenerateCSR: TButton
-          Left = 304
+          Left = 488
           Top = 144
           Width = 209
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Generate Certificate Sign Request'
           TabOrder = 10
           OnClick = btnGenerateCSRClick
         end
         object btnSelfSign: TButton
-          Left = 528
+          Left = 712
           Top = 144
           Width = 113
           Height = 21
+          Anchors = [akTop, akRight]
           Caption = 'Self Sign'
           TabOrder = 11
           OnClick = btnSelfSignClick
@@ -204,8 +208,8 @@ object FormCA: TFormCA
       object grpParse: TGroupBox
         Left = 8
         Top = 200
-        Width = 657
-        Height = 217
+        Width = 841
+        Height = 327
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Parse CSR File'
         TabOrder = 1
@@ -219,13 +223,13 @@ object FormCA: TFormCA
         object edtCSR: TEdit
           Left = 88
           Top = 20
-          Width = 313
+          Width = 497
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseCSR: TButton
-          Left = 408
+          Left = 592
           Top = 20
           Width = 73
           Height = 21
@@ -237,13 +241,13 @@ object FormCA: TFormCA
         object mmoCSRParse: TMemo
           Left = 16
           Top = 56
-          Width = 625
-          Height = 145
+          Width = 809
+          Height = 255
           Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 2
         end
         object btnParseCSR: TButton
-          Left = 488
+          Left = 672
           Top = 20
           Width = 73
           Height = 21
@@ -253,7 +257,7 @@ object FormCA: TFormCA
           OnClick = btnParseCSRClick
         end
         object btnVerifyCSR: TButton
-          Left = 568
+          Left = 752
           Top = 20
           Width = 73
           Height = 21
@@ -270,7 +274,7 @@ object FormCA: TFormCA
       object grpSign: TGroupBox
         Left = 8
         Top = 8
-        Width = 657
+        Width = 841
         Height = 153
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Sign CSR File'
@@ -299,13 +303,13 @@ object FormCA: TFormCA
         object edtSignCSR: TEdit
           Left = 88
           Top = 20
-          Width = 457
+          Width = 641
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnSignCSRBrowse: TButton
-          Left = 552
+          Left = 736
           Top = 20
           Width = 91
           Height = 21
@@ -317,13 +321,13 @@ object FormCA: TFormCA
         object edtSignKey: TEdit
           Left = 88
           Top = 52
-          Width = 457
+          Width = 641
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
         end
         object btnSignKeyBrowse: TButton
-          Left = 552
+          Left = 736
           Top = 52
           Width = 91
           Height = 21
@@ -335,7 +339,7 @@ object FormCA: TFormCA
         object btnSign: TButton
           Left = 16
           Top = 118
-          Width = 625
+          Width = 809
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Caption = 'Sign CSR File to CRT File '
@@ -345,13 +349,13 @@ object FormCA: TFormCA
         object edtRootCRT: TEdit
           Left = 88
           Top = 84
-          Width = 457
+          Width = 641
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
         end
         object btnRootCRTBrowse: TButton
-          Left = 552
+          Left = 736
           Top = 84
           Width = 91
           Height = 21
@@ -364,8 +368,8 @@ object FormCA: TFormCA
       object grpParseCER: TGroupBox
         Left = 8
         Top = 168
-        Width = 657
-        Height = 249
+        Width = 841
+        Height = 359
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Parse CRT File'
         TabOrder = 1
@@ -379,13 +383,13 @@ object FormCA: TFormCA
         object edtCRT: TEdit
           Left = 88
           Top = 20
-          Width = 313
+          Width = 377
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseCRT: TButton
-          Left = 408
+          Left = 472
           Top = 20
           Width = 73
           Height = 21
@@ -397,13 +401,13 @@ object FormCA: TFormCA
         object mmoCRT: TMemo
           Left = 16
           Top = 56
-          Width = 625
-          Height = 177
+          Width = 809
+          Height = 287
           Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 2
         end
         object btnParseCRT: TButton
-          Left = 488
+          Left = 552
           Top = 20
           Width = 73
           Height = 21
@@ -412,14 +416,24 @@ object FormCA: TFormCA
           TabOrder = 3
           OnClick = btnParseCRTClick
         end
+        object btnVerifySelfSignedCRT: TButton
+          Left = 632
+          Top = 20
+          Width = 113
+          Height = 21
+          Anchors = [akTop, akRight]
+          Caption = 'Verify Self-Signed CRT'
+          TabOrder = 4
+          OnClick = btnVerifySelfSignedCRTClick
+        end
         object btnVerifyCRT: TButton
-          Left = 568
+          Left = 752
           Top = 20
           Width = 73
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Verify CRT'
-          TabOrder = 4
+          TabOrder = 5
           OnClick = btnVerifyCRTClick
         end
       end

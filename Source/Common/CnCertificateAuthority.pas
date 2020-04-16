@@ -32,6 +32,14 @@ unit CnCertificateAuthority;
 *           或利用现有 Key 对此 Key 生成的 CSR 请求文件进行自签名：
 *               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsigned.crt
 *           或利用 openssl ca 命令，用根私钥与根证书签发其他的 CSR 生成 CRT 证书
+*
+*           证书 CRT 文件解析字段说明，散列算法以 sha256 为例：
+*                    RSA 签 RSA                RSA 签 ECC                ECC 签 RSA           ECC 签 ECC
+* 靠近签发者的类型： sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
+* 被签发者的类型：   rsaEncryption             ecPublicKey + 曲线类型    rsaEncryption        ecPublicKey + 曲线类型
+* 最下面的总类型：   sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
+*           注意：签发者类型和总类型俩字段总是相同的，被签发者的类型不包括散列算法
+*
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -62,6 +70,7 @@ const
 type
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA, ctMd5Ecc, ctSha1Ecc, ctSha256Ecc);
   {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA}
+  TCnCASignTypes = set of TCnCASignType;
 
   TCnCertificateBaseInfo = class(TPersistent)
   {* 描述证书中包含的普通字段信息}
@@ -317,8 +326,8 @@ type
                          -- If present, version MUST be v3
 }
 
-  TCnRSABasicCertificate = class(TObject)
-  {* 证书中的基本信息域}
+  TCnBasicCertificate = class(TObject)
+  {* 证书中的基本信息域，包括签发者与被签发者的信息}
   private
     FSerialNumber: string;
     FNotAfter: TCnUTCTime;
@@ -330,10 +339,10 @@ type
     FIssuerUniqueID: string;
     FSubjectRSAPublicKey: TCnRSAPublicKey;
     FSubjectEccPublicKey: TCnEccPublicKey;
-    FCASignType: TCnCASignType;
     FPrivateInternetExtension: TCnCertificatePrivateInternetExtensions;
     FStandardExtension: TCnCertificateStandardExtensions;
     FSubjectEccCurveType: TCnEccCurveType;
+    FSubjectIsRSA: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -346,8 +355,8 @@ type
       建议生成版本 v3 的}
     property SerialNumber: string read FSerialNumber write FSerialNumber;
     {* 序列号，本来应该是整型，但当作字符串处理}
-    property CASignType: TCnCASignType read FCASignType write FCASignType;
-    {* 客户端使用的散列与签名算法，应该与证书外层的保持一直}
+    property SubjectIsRSA: Boolean read FSubjectIsRSA write FSubjectIsRSA;
+    {* 被签发者是 RSA 还是 ECC，注意没有散列算法类型，散列算法由签发者决定}
     property Subject: TCnCertificateSubjectInfo read FSubject write FSubject;
     {* 被签发者的基本信息}
     property SubjectRSAPublicKey: TCnRSAPublicKey read FSubjectRSAPublicKey write FSubjectRSAPublicKey;
@@ -389,7 +398,7 @@ type
     FSignValue: Pointer;
     FCASignType: TCnCASignType;
     FRSADigestType: TCnRSASignDigestType;
-    FBasicCertificate: TCnRSABasicCertificate;
+    FBasicCertificate: TCnBasicCertificate;
     FIsRSA: Boolean;
     FEccDigestType: TCnEccSignDigestType;
     function GetIsSelfSigned: Boolean;
@@ -402,12 +411,12 @@ type
     property IsSelfSigned: Boolean read GetIsSelfSigned;
     {* 是否自签名证书，使用签发者与被签发者信息是否相同来判断}
     property IsRSA: Boolean read FIsRSA write FIsRSA;
-    {* 是否是 RSA 证书，否则是 ECC 证书}
+    {* 是否是 RSA 证书，否则是 ECC 证书。这个字段指签发者的证书类型}
 
-    property BasicCertificate: TCnRSABasicCertificate read FBasicCertificate;
-    {* 证书基本信息类}
+    property BasicCertificate: TCnBasicCertificate read FBasicCertificate;
+    {* 证书基本信息类，包括签发者与被签发者的信息}
     property CASignType: TCnCASignType read FCASignType write FCASignType;
-    {* 客户端使用的散列与签名算法}
+    {* 签发者使用的散列与签名算法}
     property SignValue: Pointer read FSignValue write FSignValue;
     {* 散列后签名的结果}
     property SignLength: Integer read FSignLength write FSignLength;
@@ -470,6 +479,22 @@ function CnCAVerifySelfSignedCertificateFile(const FileName: string): Boolean;
 
 function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
 {* 验证一自签名的 CRT 流的内容是否合乎签名}
+
+function CnCAVerifyCertificateFile(const FileName: string;
+  ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名}
+
+function CnCAVerifyCertificateFile(const FileName: string;
+  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+{* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名}
+
+function CnCAVerifyCertificateStream(Stream: TStream;
+  ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名}
+
+function CnCAVerifyCertificateStream(Stream: TStream;
+  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+{* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnCertificate): Boolean;
@@ -593,6 +618,9 @@ const
   SDN_ORGANIZATIONALUNITNAME     = 'OrganizationalUnitName';
   SDN_COMMONNAME                 = 'CommonName';
   SDN_EMAILADDRESS               = 'EmailAddress';
+
+  RSA_CA_TYPES: TCnCASignTypes = [ctMd5RSA, ctSha1RSA, ctSha256RSA];
+  ECC_CA_TYPES: TCnCASignTypes = [ctMd5Ecc, ctSha1Ecc, ctSha256Ecc];
 
 var
   DummyPointer: Pointer;
@@ -1595,7 +1623,7 @@ function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
 var
   CRT: TCnCertificate;
   Reader: TCnBerReader;
-  MemStream, SignStream: TMemoryStream;
+  MemStream, SignStream, InfoStream: TMemoryStream;
   InfoRoot: TCnBerReadNode;
   P: Pointer;
 begin
@@ -1604,6 +1632,7 @@ begin
   Reader := nil;
   MemStream := nil;
   SignStream := nil;
+  InfoStream := nil;
 
   try
     CRT := TCnCertificate.Create;
@@ -1628,18 +1657,71 @@ begin
 
       // 计算其 Hash
       SignStream := TMemoryStream.Create;
-      P := InfoRoot.BerAddress;
-      CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
 
-      if SignStream.Size = CRT.DigestLength then
-        Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
+      if CRT.IsRSA then // RSA 自签名证书的散列值是能从证书里解密出来的，对比计算值即可
+      begin
+        P := InfoRoot.BerAddress;
+        CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
+        if SignStream.Size = CRT.DigestLength then
+          Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
+      end
+      else // ECC 自签名证书里没有散列值，字段里的散列值是我们计算出来的没有对比意义，需要按 ECC 的方式验证签名值
+      begin
+        SignStream.Write(CRT.SignValue^, CRT.SignLength);
+        InfoStream := TMemoryStream.Create;
+        InfoStream.Write(InfoRoot.BerAddress^, InfoRoot.BerLength);
+        InfoStream.Position := 0;
+        SignStream.Position := 0;
+
+        Result := CnEccVerifyStream(InfoStream, SignStream, CRT.BasicCertificate.SubjectEccCurveType,
+          CRT.BasicCertificate.SubjectEccPublicKey, GetEccSignTypeFromCASignType(CRT.CASignType));
+      end;
     end;
   finally
     CRT.Free;
     Reader.Free;
     MemStream.Free;
     SignStream.Free;
+    InfoStream.Free;
   end;
+end;
+
+function CnCAVerifyCertificateFile(const FileName: string;
+  ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCAVerifyCertificateFile(const FileName: string;
+  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCAVerifyCertificateStream(Stream: TStream;
+  ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
+begin
+
+end;
+
+function CnCAVerifyCertificateStream(Stream: TStream;
+  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+begin
+
 end;
 
 { TCnCertificateBasicInfo }
@@ -1904,8 +1986,13 @@ begin
 
     // 基本信息中的签名算法字段
     Node := SerialNode.GetNextSibling;
-    if (Node <> nil) and (Node.Count = 2) then
-      Certificate.BasicCertificate.CASignType := ExtractCASignType(Node.Items[0]);
+    if (Node <> nil) and (Node.Count >= 1) then
+    begin
+      Certificate.CASignType := ExtractCASignType(Node.Items[0]);
+      Certificate.IsRSA := Certificate.CASignType in RSA_CA_TYPES;
+    end
+    else
+      Exit;
 
     // 解析众多其它字段
     List := TStringList.Create;
@@ -1940,7 +2027,7 @@ begin
       List.Free;
     end;
 
-    Node := Node.GetNextSibling; // Subject 节点后的同级节点是公钥
+    Node := Node.GetNextSibling; // Subject 节点后的同级节点是被签发者的公钥
     IsRSA := False;
     if (Node.Count = 2) and (Node.Items[0].Count = 2) then
       IsRSA := CompareObjectIdentifier(Node.Items[0].Items[0],
@@ -1951,10 +2038,10 @@ begin
       IsECC := CompareObjectIdentifier(Node.Items[0].Items[0],
         @OID_EC_PUBLIC_KEY[0], SizeOf(OID_EC_PUBLIC_KEY));
 
-    if not IsRSA and not IsECC then // 算法不是 RSA 也不是 ECC
+    if not IsRSA and not IsECC then // 被签发者的算法不是 RSA 也不是 ECC
       Exit;
 
-    Certificate.IsRSA := IsRSA;
+    Certificate.BasicCertificate.SubjectIsRSA := IsRSA;
     if not IsRSA then
     begin
       CurveType := GetCurveTypeFromOID(Node.Items[0].Items[1].BerAddress,
@@ -1977,7 +2064,7 @@ begin
         Exit;
     end;
 
-    // 自签名证书可以解开散列值，要兼容 RSA 与 ECC
+    // RSA 自签名证书可以解开散列值，ECC 的没有
     if Certificate.IsSelfSigned then
     begin
       Result := ExtractSignaturesByPublicKey(IsRSA, Certificate.BasicCertificate.SubjectRSAPublicKey,
@@ -2035,7 +2122,7 @@ end;
 
 constructor TCnCertificate.Create;
 begin
-  FBasicCertificate := TCnRSABasicCertificate.Create;
+  FBasicCertificate := TCnBasicCertificate.Create;
 end;
 
 destructor TCnCertificate.Destroy;
@@ -2072,7 +2159,7 @@ end;
 
 { TCnRSABasicCertificate }
 
-constructor TCnRSABasicCertificate.Create;
+constructor TCnBasicCertificate.Create;
 begin
   FNotBefore := TCnUTCTime.Create;
   FNotAfter := TCnUTCTime.Create;
@@ -2084,7 +2171,7 @@ begin
   FPrivateInternetExtension := TCnCertificatePrivateInternetExtensions.Create;
 end;
 
-destructor TCnRSABasicCertificate.Destroy;
+destructor TCnBasicCertificate.Destroy;
 begin
   FPrivateInternetExtension.Free;
   FStandardExtension.Free;
@@ -2097,7 +2184,7 @@ begin
   inherited;
 end;
 
-function TCnRSABasicCertificate.ToString: string;
+function TCnBasicCertificate.ToString: string;
 begin
   Result := 'Version: ' + IntToStr(FVersion);
   Result := Result + SCRLF + 'SerialNumber: ' + FSerialNumber;
@@ -2381,6 +2468,9 @@ begin
   if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
     Exit;
 
+  if not (CASignType in RSA_CA_TYPES) then
+    Exit;
+
   CSR := nil;
   CRT := nil;
   Writer := nil;
@@ -2503,6 +2593,9 @@ var
 begin
   Result := False;
   if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  if not (CASignType in ECC_CA_TYPES) then
     Exit;
 
   CSR := nil;

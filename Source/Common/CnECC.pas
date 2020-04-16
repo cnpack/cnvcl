@@ -175,7 +175,7 @@ type
   {* 椭圆曲线的私钥，计算次数 k 次}
 
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
-    ctRfc4754ECDSAExample256, ctSecp224r1, ctSecp224k1, ctSecp256k1);
+    ctRfc4754ECDSAExample256, ctSecp224r1, ctSecp224k1, ctSecp256k1, ctPrime256v1);
   {* 支持的椭圆曲线类型}
 
   TCnEcc = class
@@ -465,6 +465,15 @@ const
       Y: '483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8';
       N: 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141';
       H: '01'
+    ),
+    ( // ctPrime256v1
+      P: 'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF';
+      A: 'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC';
+      B: '5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B';
+      X: '6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296';
+      Y: '4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5';
+      N: 'FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551';
+      H: '01'
     )
   );
 
@@ -494,6 +503,10 @@ const
 
   OID_ECPARAM_CURVE_TYPE_SM2: array[0..7] of Byte = (       // 1.2.156.10197.301
     $2A, $81, $1C, $CF, $55, $01, $82, $2D
+  );
+
+  OID_ECPARAM_CURVE_TYPE_PRIME256V1: array[0..7] of Byte = (  // 1.2.840.10045.3.1.7
+    $2A, $86, $48, $CE, $3D, $03, $01, $07
   );
 
 function Min(A, B: Integer): Integer;
@@ -1775,8 +1788,10 @@ begin
     Result := ctSecp256k1
   else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM2[0],
     Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SM2))) then
-    Result := ctSM2;
-  // else if
+    Result := ctSM2
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_PRIME256V1[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_PRIME256V1))) then
+    Result := ctPrime256v1
 end;
 
 // 根据曲线类型返回其 OID 地址与长度，外界使用后无需释放
@@ -1795,6 +1810,11 @@ begin
       begin
         OIDAddr := @OID_ECPARAM_CURVE_TYPE_SM2[0];
         Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SM2);
+      end;
+    ctPrime256v1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_PRIME256V1[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_PRIME256V1);
       end;
   end;
 end;
