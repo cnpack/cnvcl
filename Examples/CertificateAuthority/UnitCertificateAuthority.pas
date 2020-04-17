@@ -12,7 +12,7 @@ type
     tsRequest: TTabSheet;
     grpGenRequest: TGroupBox;
     lblKey: TLabel;
-    edtRSAKey: TEdit;
+    edtRSAECCKey: TEdit;
     btnBrowseKey: TButton;
     lblContryName: TLabel;
     edtContryName: TEdit;
@@ -78,16 +78,16 @@ type
     procedure btnRootCRTBrowseClick(Sender: TObject);
     procedure btnVerifyCRTClick(Sender: TObject);
   private
-    FCRSAPriv: TCnRSAPrivateKey;
-    FCRSAPub: TCnRSAPublicKey;
-    FSRSAPriv: TCnRSAPrivateKey;
-    FSRSAPub: TCnRSAPublicKey;
-    FCEccPriv: TCnEccPrivateKey;
-    FCEccPub: TCnEccPublicKey;
-    FCCurveType: TCnEccCurveType;
-    FSEccPriv: TCnEccPrivateKey;
-    FSEccPub: TCnEccPublicKey;
-    FSCurveType: TCnEccCurveType;
+    FClientRsaPriv: TCnRSAPrivateKey;
+    FClientRsaPub: TCnRSAPublicKey;
+    FServerRsaPriv: TCnRSAPrivateKey;
+    FServerRsaPub: TCnRSAPublicKey;
+    FClientEccPriv: TCnEccPrivateKey;
+    FClientEccPub: TCnEccPublicKey;
+    FClientCurveType: TCnEccCurveType;
+    FServerEccPriv: TCnEccPrivateKey;
+    FServerEccPub: TCnEccPublicKey;
+    FServerCurveType: TCnEccCurveType;
   public
     { Public declarations }
   end;
@@ -119,14 +119,14 @@ end;
 procedure TFormCA.FormCreate(Sender: TObject);
 begin
   cbbHash.ItemIndex := 1;
-  FCRSAPriv := TCnRSAPrivateKey.Create;
-  FCRSAPub := TCnRSAPublicKey.Create;
-  FSRSAPriv := TCnRSAPrivateKey.Create;
-  FSRSAPub := TCnRSAPublicKey.Create;
-  FCEccPriv := TCnEccPrivateKey.Create;
-  FCEccPub := TCnEccPublicKey.Create;
-  FSEccPriv := TCnEccPrivateKey.Create;
-  FSEccPub := TCnEccPublicKey.Create;
+  FClientRsaPriv := TCnRSAPrivateKey.Create;
+  FClientRsaPub := TCnRSAPublicKey.Create;
+  FServerRsaPriv := TCnRSAPrivateKey.Create;
+  FServerRsaPub := TCnRSAPublicKey.Create;
+  FClientEccPriv := TCnEccPrivateKey.Create;
+  FClientEccPub := TCnEccPublicKey.Create;
+  FServerEccPriv := TCnEccPrivateKey.Create;
+  FServerEccPub := TCnEccPublicKey.Create;
 end;
 
 procedure TFormCA.btnBrowseCSRClick(Sender: TObject);
@@ -138,7 +138,7 @@ end;
 procedure TFormCA.btnBrowseKeyClick(Sender: TObject);
 begin
   if dlgOpen.Execute then
-    edtRSAKey.Text := dlgOpen.FileName;
+    edtRSAECCKey.Text := dlgOpen.FileName;
 end;
 
 procedure TFormCA.btnParseCSRClick(Sender: TObject);
@@ -170,35 +170,59 @@ begin
   CSR.Free;
 end;
 
+function ConvertItemIndexToCASignType(ItemIndex: Integer; IsRSA: Boolean): TCnCASignType;
+begin
+  if IsRSA then
+    Result := TCnCASignType(ItemIndex)
+  else
+    Result := TCnCASignType(ItemIndex + 3);
+end;
+
 procedure TFormCA.btnGenerateCSRClick(Sender: TObject);
 begin
-  if FileExists(edtRSAKey.Text) and CnRSALoadKeysFromPem(edtRSAKey.Text, FCRSAPriv, FCRSAPub) then
+  if FileExists(edtRSAECCKey.Text) then
   begin
-    if dlgSave.Execute then
+    if CnRSALoadKeysFromPem(edtRSAECCKey.Text, FClientRsaPriv, FClientRsaPub) then
     begin
-      if CnCANewCertificateSignRequest(FCRSAPriv, FCRSAPub, dlgSave.FileName, edtContryName.Text,
-        edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
-        edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, TCnCASignType(cbbHash.ItemIndex)) then
-        ShowMessage('Generate CSR File Success.')
-      else
-        ShowMessage('Generate CSR File Fail.');
+      if dlgSave.Execute then
+      begin
+        if CnCANewCertificateSignRequest(FClientRsaPriv, FClientRsaPub, dlgSave.FileName, edtContryName.Text,
+          edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text, edtOrgUnitName.Text,
+          edtCommonName.Text, edtEmail.Text, ConvertItemIndexToCASignType(cbbHash.ItemIndex, True)) then
+          ShowMessage('Generate RSA CSR File Success.')
+        else
+          ShowMessage('Generate RSA CSR File Fail.');
+      end;
+    end
+    else if CnEccLoadKeysFromPem(edtRSAECCKey.Text, FClientEccPriv, FClientEccPub, FClientCurveType) then
+    begin
+      if dlgSave.Execute then
+      begin
+        if CnCANewCertificateSignRequest(FClientEccPriv, FClientEccPub, FClientCurveType,
+          dlgSave.FileName, edtContryName.Text, edtStateOrProvinceName.Text,
+          edtLocalityName.Text, edtOrgName.Text, edtOrgUnitName.Text, edtCommonName.Text,
+          edtEmail.Text, ConvertItemIndexToCASignType(cbbHash.ItemIndex, False)) then
+          ShowMessage('Generate ECC CSR File Success.')
+        else
+          ShowMessage('Generate ECC CSR File Fail.');
+      end;
     end;
   end
   else
-    ShowMessage('Invalid RSA Keys');
+    ShowMessage('Invalid RSA or ECC Keys');
 end;
 
 procedure TFormCA.FormDestroy(Sender: TObject);
 begin
-  FCEccPriv.Free;
-  FCEccPub.Free;
-  FSEccPriv.Free;
-  FSEccPub.Free;
+  FClientEccPriv.Free;
+  FClientEccPub.Free;
+  FServerEccPriv.Free;
+  FServerEccPub.Free;
 
-  FSRSAPub.Free;
-  FSRSAPriv.Free;
-  FCRSAPub.Free;
-  FCRSAPriv.Free;
+  FServerRsaPub.Free;
+  FServerRsaPriv.Free;
+  FClientRsaPub.Free;
+  FClientRsaPriv.Free;
 end;
 
 procedure TFormCA.btnBrowseCRTClick(Sender: TObject);
@@ -232,16 +256,16 @@ end;
 
 procedure TFormCA.btnSelfSignClick(Sender: TObject);
 begin
-  if FileExists(edtRSAKey.Text) then
+  if FileExists(edtRSAECCKey.Text) then
   begin
-    if CnRSALoadKeysFromPem(edtRSAKey.Text, FCRSAPriv, FCRSAPub) then
+    if CnRSALoadKeysFromPem(edtRSAECCKey.Text, FClientRsaPriv, FClientRsaPub) then
     begin
       if dlgSave.Execute then
       begin
-        if CnCANewSelfSignedCertificate(FCRSAPriv, FCRSAPub, dlgSave.FileName, edtContryName.Text,
+        if CnCANewSelfSignedCertificate(FClientRsaPriv, FClientRsaPub, dlgSave.FileName, edtContryName.Text,
           edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
           edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
-          Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
+          Now - 1, Now + 365, ConvertItemIndexToCASignType(cbbHash.ItemIndex, True)) then
           ShowMessage('Self-Signed RSA CRT File OK.')
         else
           ShowMessage('Self-Signed RSA CRT File Fail.');
@@ -249,14 +273,14 @@ begin
     end
     else
     begin
-      if CnEccLoadKeysFromPem(edtRSAKey.Text, FCEccPriv, FCEccPub, FCCurveType) then
+      if CnEccLoadKeysFromPem(edtRSAECCKey.Text, FClientEccPriv, FClientEccPub, FClientCurveType) then
       begin
         if dlgSave.Execute then
         begin
-          if CnCANewSelfSignedCertificate(FCEccPriv, FCEccPub, FCCurveType, dlgSave.FileName,
+          if CnCANewSelfSignedCertificate(FClientEccPriv, FClientEccPub, FClientCurveType, dlgSave.FileName,
             edtContryName.Text, edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
             edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
-            Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex + 3)) then
+            Now - 1, Now + 365, ConvertItemIndexToCASignType(cbbHash.ItemIndex, False)) then
             ShowMessage('Self-Signed ECC CRT File OK.')
           else
             ShowMessage('Self-Signed ECC CRT File Fail.');
@@ -278,22 +302,22 @@ procedure TFormCA.btnSignClick(Sender: TObject);
 begin
   if FileExists(edtSignCSR.Text) and FileExists(edtRootCRT.Text) and FileExists(edtSignKey.Text) then
   begin
-    if CnRSALoadKeysFromPem(edtSignKey.Text, FSRSAPriv, FSRSAPub) then
+    if CnRSALoadKeysFromPem(edtSignKey.Text, FServerRsaPriv, FServerRsaPub) then
     begin
       if dlgSave.Execute then
       begin
-        if CnCASignCertificate(FSRSAPriv, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+        if CnCASignCertificate(FServerRsaPriv, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
           '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
           ShowMessage('Sign CRT File OK.')
         else
           ShowMessage('Sign CRT File Fail.');
       end;
     end
-    else if CnEccLoadKeysFromPem(edtSignKey.Text, FSEccPriv, FSEccPub, FSCurveType) then
+    else if CnEccLoadKeysFromPem(edtSignKey.Text, FServerEccPriv, FServerEccPub, FServerCurveType) then
     begin
       if dlgSave.Execute then
       begin
-        if CnCASignCertificate(FSEccPriv, FSCurveType, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+        if CnCASignCertificate(FServerEccPriv, FServerCurveType, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
           '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex + 3)) then
           ShowMessage('Sign CRT File OK.')
         else
@@ -322,10 +346,63 @@ begin
 end;
 
 procedure TFormCA.btnVerifyCRTClick(Sender: TObject);
+var
+  ParentCRT: TCnCertificate;
+  RSAPub: TCnRSAPublicKey;
+  EccPub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
 begin
-  if dlgOpen.Execute then
+  if FileExists(edtCRT.Text) and dlgOpen.Execute then
   begin
-    // 读 Parent CRT 或 ECC/RSA 的父公钥
+    ParentCRT := nil;
+    RSAPub := nil;
+    EccPub := nil;
+
+    try
+      // 读 Parent CRT 的被签发者信息、或 ECC/RSA 的父公钥
+      ParentCRT := TCnCertificate.Create;
+      RSAPub := TCnRSAPublicKey.Create;
+      EccPub := TCnEccPublicKey.Create;
+
+      if CnCALoadCertificateFromFile(dlgOpen.FileName, ParentCRT) then  // 是父证书
+      begin
+        if ParentCRT.BasicCertificate.SubjectIsRSA then
+        begin
+          if CnCAVerifyCertificateFile(edtCRT.Text, ParentCRT.BasicCertificate.SubjectRSAPublicKey) then
+            ShowMessage('Verify CRT using RSA Parent CRT OK.')
+          else
+            ShowMessage('Verify CRT using RSA Parent CRT Fail.')
+        end
+        else
+        begin
+          if CnCAVerifyCertificateFile(edtCRT.Text, ParentCRT.BasicCertificate.SubjectEccPublicKey,
+            ParentCRT.BasicCertificate.SubjectEccCurveType) then
+            ShowMessage('Verify CRT using Ecc Parent CRT OK.')
+          else
+            ShowMessage('Verify CRT using Ecc Parent CRT Fail.');
+        end;
+      end
+      else if CnRSALoadPublicKeyFromPem(dlgOpen.FileName, RSAPub) or  
+        CnRSALoadKeysFromPem(dlgOpen.FileName, nil ,RSAPub) then        // 是父 RSA 公钥
+      begin
+        if CnCAVerifyCertificateFile(edtCRT.Text, RSAPub) then
+            ShowMessage('Verify CRT using RSA Parent Public Key OK.')
+          else
+            ShowMessage('Verify CRT using RSA Parent Public Key Fail.');
+      end
+      else if CnEccLoadKeysFromPem(dlgOpen.FileName, nil, EccPub, CurveType) or
+        CnEccLoadPublicKeyFromPem(dlgOpen.FileName, EccPub, CurveType) then  // 是父 ECC 公钥
+      begin
+        if CnCAVerifyCertificateFile(edtCRT.Text, EccPub, CurveType) then
+            ShowMessage('Verify CRT using ECC Parent Public Key OK.')
+          else
+            ShowMessage('Verify CRT using ECC Parent Public Key Fail.');
+      end;
+    finally
+      EccPub.Free;
+      RSAPub.Free;
+      ParentCRT.Free;
+    end;
   end;
 end;
 

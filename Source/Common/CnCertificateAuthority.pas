@@ -484,16 +484,16 @@ function CnCAVerifyCertificateFile(const FileName: string;
   ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名}
 
-function CnCAVerifyCertificateFile(const FileName: string;
-  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
-{* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名}
+function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey: TCnEccPublicKey;
+  ParentCurveType: TCnEccCurveType): Boolean; overload;
+{* 用 ECC 签发者公钥验证一 CRT 文件的内容是否合乎签名}
 
 function CnCAVerifyCertificateStream(Stream: TStream;
   ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名}
+{* 用 RSA 签发者公钥验证一 CRT 流的内容是否合乎签名}
 
-function CnCAVerifyCertificateStream(Stream: TStream;
-  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey: TCnEccPublicKey;
+  ParentCurveType: TCnEccCurveType): Boolean; overload;
 {* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
@@ -1700,13 +1700,13 @@ begin
 end;
 
 function CnCAVerifyCertificateFile(const FileName: string;
-  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+  ParentPublicKey: TCnEccPublicKey; ParentCurveType: TCnEccCurveType): Boolean; overload;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey);
+    Result := CnCAVerifyCertificateStream(Stream, ParentPublicKey, ParentCurveType);
   finally
     Stream.Free;
   end;
@@ -1714,14 +1714,129 @@ end;
 
 function CnCAVerifyCertificateStream(Stream: TStream;
   ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
+var
+  CRT: TCnCertificate;
+  Reader: TCnBerReader;
+  Root, InfoRoot, SignAlgNode, SignValueNode: TCnBerReadNode;
+  MemStream, SignStream, InfoStream: TMemoryStream;
+  P: Pointer;
 begin
+  Result := False;
+  if ParentPublicKey = nil then
+    Exit;
 
+  CRT := nil;
+  Reader := nil;
+  MemStream := nil;
+  SignStream := nil;
+  InfoStream := nil;
+
+  try
+    CRT := TCnCertificate.Create;
+    if not CnCALoadCertificateFromStream(Stream, CRT) then
+      Exit;
+
+    if not CRT.IsRSA then
+      raise Exception.Create('NOT RSA. Can NOT Verify using RSA Key.');
+
+    MemStream := TMemoryStream.Create;
+    Stream.Position := 0;
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, MemStream) then
+      Exit;
+
+    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount > 2 then
+    begin
+      Root := Reader.Items[0];
+      SignAlgNode := Root.Items[1];
+      SignValueNode := Root.Items[2];
+
+      // 计算其 Hash
+      InfoRoot := Reader.Items[1];
+      SignStream := TMemoryStream.Create;
+      P := InfoRoot.BerAddress;
+      CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
+
+      // RSA 证书的散列值要用父公钥才能从证书里解密出来
+      if not ExtractSignaturesByPublicKey(True, ParentPublicKey,
+        nil, SignAlgNode, SignValueNode,
+        CRT.FCASignType, CRT.FRSADigestType, CRT.FSignValue,
+        CRT.FDigestValue, CRT.FSignLength, CRT.FDigestLength) then
+        Exit;
+
+      // 对比计算值
+      if SignStream.Size = CRT.DigestLength then
+        Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
+    end;
+  finally
+    CRT.Free;
+    Reader.Free;
+    MemStream.Free;
+    SignStream.Free;
+    InfoStream.Free;
+  end;
 end;
 
 function CnCAVerifyCertificateStream(Stream: TStream;
-  ParentPublicKey: TCnEccPublicKey): Boolean; overload;
+  ParentPublicKey: TCnEccPublicKey; ParentCurveType: TCnEccCurveType): Boolean; overload;
+var
+  CRT: TCnCertificate;
+  Reader: TCnBerReader;
+  MemStream, SignStream, InfoStream: TMemoryStream;
+  InfoRoot: TCnBerReadNode;
 begin
+  Result := False;
+  if (ParentPublicKey = nil) or (ParentCurveType = ctCustomized) then
+    Exit;
 
+  CRT := nil;
+  Reader := nil;
+  MemStream := nil;
+  SignStream := nil;
+  InfoStream := nil;
+
+  try
+    CRT := TCnCertificate.Create;
+    if not CnCALoadCertificateFromStream(Stream, CRT) then
+      Exit;
+
+    if CRT.IsRSA then
+      raise Exception.Create('NOT ECC. Can NOT Verify.');
+
+    MemStream := TMemoryStream.Create;
+    Stream.Position := 0;
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, MemStream) then
+      Exit;
+
+    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount > 2 then
+    begin
+      InfoRoot := Reader.Items[1];
+
+      // ECC 证书里没有散列值，字段里的散列值是我们计算出来的没有对比意义，需要按 ECC 的方式把原始数据塞进去验证签名值
+      SignStream := TMemoryStream.Create;
+      SignStream.Write(CRT.SignValue^, CRT.SignLength);
+      InfoStream := TMemoryStream.Create;
+      InfoStream.Write(InfoRoot.BerAddress^, InfoRoot.BerLength);
+      InfoStream.Position := 0;
+      SignStream.Position := 0;
+
+      Result := CnEccVerifyStream(InfoStream, SignStream, ParentCurveType,
+        ParentPublicKey, GetEccSignTypeFromCASignType(CRT.CASignType));
+    end;
+  finally
+    CRT.Free;
+    Reader.Free;
+    MemStream.Free;
+    SignStream.Free;
+    InfoStream.Free;
+  end;
 end;
 
 { TCnCertificateBasicInfo }

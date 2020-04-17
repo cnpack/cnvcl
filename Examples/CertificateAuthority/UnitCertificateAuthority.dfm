@@ -97,7 +97,7 @@ object FormCA: TFormCA
           Height = 13
           Caption = 'Hash Algorithm:'
         end
-        object edtRSAKey: TEdit
+        object edtRSAECCKey: TEdit
           Left = 88
           Top = 20
           Width = 641
