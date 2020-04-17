@@ -40,11 +40,14 @@ unit CnCertificateAuthority;
 * 最下面的总类型：   sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
 *           注意：签发者类型和总类型俩字段总是相同的，被签发者的类型不包括散列算法
 *
+*           逐级验证证书时，是拿父证书里的被签发者公钥来验证子证书的内容的 Hash 是否与子证书的签名内容是否对得上号
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.04.08 V1.3
-*               支持 ECC 证书请求、自签名、校验与证书签发等
+* 修改记录：2020.04.17 V1.4
+*               支持 ECC / RSA 证书父子校验
+*           2020.04.08 V1.3
+*               支持 ECC 证书请求、自签名、自签名校验与证书签发等
 *           2019.05.06 V1.2
 *               支持 Win32/Win64/MacOS
 *           2018.07.22 V1.1
@@ -1122,8 +1125,8 @@ begin
 end;
 
 // RSA: 用已知公钥从类似于以下结构中拿出签名值解密并去除 PKCS1 对齐拿到摘要值
-// ECC: 直接拿到签名值
-// 如果无公钥，则只取签名值，不解开
+// ECC: 直接拿到签名值的原始树结构
+// RSA 如果无公钥，则只取签名值，不解开。ECC 不管有没有都解不开
 {
   SEQUENCE
     OBJECT IDENTIFIER 1.2.840.113549.1.1.5　sha1WithRSAEncryption(PKCS #1) 或 sha256WithECDSA
@@ -1152,11 +1155,6 @@ begin
   begin
     Result := True;
     Exit;
-  end
-  else if not IsRSA and (EccPublicKey = nil) then
-  begin
-    Result := True;
-    Exit;
   end;
 
   if not IsRSA then // ECC 签名是树
@@ -1167,7 +1165,7 @@ begin
       Exit;
   end;
 
-  // 复制签名内容，跳过 BIT String 的前导对齐 0
+  // 解析出原始签名内容，跳过 BIT String 的前导对齐 0
   FreeMemory(SignValue);
   SignLength := SignNode.BerDataLength - 1;
   SignValue := GetMemory(SignLength);

@@ -66,6 +66,7 @@ type
     btnSetUInt64: TButton;
     btnPowerModCompare: TButton;
     btnMulModCompare: TButton;
+    btnCheckPrime: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -109,6 +110,7 @@ type
     procedure btnSetUInt64Click(Sender: TObject);
     procedure btnPowerModCompareClick(Sender: TObject);
     procedure btnMulModCompareClick(Sender: TObject);
+    procedure btnCheckPrimeClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -714,14 +716,14 @@ begin
     '300058715351813427200113310977605056839185172045391687814960');
 
   T1 := GetTickCount;
-  for I := 1 to 10 do
+  for I := 1 to 1 do
     BigNumberPowerMod(R, A, B, C);
   T1 := GetTickCount - T1;
 
-  ShowMessage(R.ToDec);
+  ShowMessage(R.ToHex);
 
   T2 := GetTickCount;
-  for I := 1 to 10 do
+  for I := 1 to 1 do
     BigNumberMontgomeryPowerMod(R, A, B, C);
   T2 := GetTickCount - T2;
 
@@ -768,6 +770,26 @@ begin
   C.Free;
   B.Free;
   A.Free;
+  R.Free;
+end;
+
+procedure TFormBigNumber.btnCheckPrimeClick(Sender: TObject);
+var
+  R: TCnBigNumber;
+  I: Integer;
+  T1: Cardinal;
+begin
+  R := TCnBigNumber.Create;
+  R.SetHex('9A674C0F2098EDEAB7B2D07B080273D24AA394AD5457CB72E3093C010E79C7DF1D6808D54F77A0B08E77EA56281C00508B361FE8C47C51458E527' +
+    'BEA7BD6430263431D968E27248D85743699ED190D025B3BDE1E0DA6CBC14FFE7F2965C0D953F5CB6E1D9047DCF1F064620B0E295852009F7A5A543E9B1B74' +
+    '6871BC144844026DF2DEF6AAB6B0E17761CEFFD8616DDA0341A38A1A006384EE2176F2157AF350E73A1FACBC509A71EA2D69A61B67CD9D449058EADBB2C50' +
+    '93B67292A5CD520CC033147789944B94B02B8E7114C8CCD4888ED79813C592F0BBAA0590C032FFFEC6B7D1CB7C1642DC9EFEBDFE6041B9545E73F61DDE75C01489F70F51CCBC1EF69');
+
+  T1 := GetTickCount;
+  for I := 1 to 1 do
+    BigNumberIsProbablyPrime(R, False, 5);
+  T1 := GetTickCount - T1;
+  ShowMessage(IntToStr(T1));
   R.Free;
 end;
 

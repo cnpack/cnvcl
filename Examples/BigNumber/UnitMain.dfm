@@ -516,6 +516,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 47
         OnClick = btnMulModCompareClick
       end
+      object btnCheckPrime: TButton
+        Left = 904
+        Top = 264
+        Width = 129
+        Height = 25
+        Caption = 'Check Prime'
+        TabOrder = 48
+        OnClick = btnCheckPrimeClick
+      end
     end
   end
 end
