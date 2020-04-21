@@ -23,7 +23,7 @@ unit CnCommon;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：公共运行基础库单元
-* 单元作者：CnPack开发组
+* 单元作者：CnPack 开发组
 * 备    注：该单元定义了组件包的基础类库
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
@@ -39,7 +39,7 @@ unit CnCommon;
 *           2007.01.31 by LiuXiao
 *               增加获取一对象所有属性列表的函数
 *           2006.11.29 by shenloqi
-*               修改了ShortNameToLongName函数，使其支持Win95/NT（不支持Linux）
+*               修改了  ShortNameToLongName 函数，使其支持 Win95/NT（不支持 Linux）
 *           2005.08.02 by shenloqi
 *               增加了SameCharCounts，CharCounts ，RelativePath函数，重写了
 *               GetRelativePath函数
@@ -50,7 +50,7 @@ unit CnCommon;
 *           2005.05.03 by hubdog
 *               增加 ExploreFile 函数
 *           2004.09.18 by Shenloqi
-*               为Delphi5增加了 BoolToStr 函数
+*               为 Delphi 5 增加了 BoolToStr 函数
 *           2004.05.21 by Icebird
 *               修改了函数 GetLine, IsInt, IsFloat, CnDateToStr, MyDateToStr
 *           2003.10.29 by Shenloqi
@@ -829,6 +829,12 @@ function CnSetWindowAlphaBlend(Hwnd: THandle; Alpha: Byte): Boolean;
 function ForceForegroundWindow(HWND: HWND): Boolean;
 {* 强制让一个窗口显示在前台}
 
+function AllowGlobalFileDragMessage: Boolean;
+{* Windows 10 下调用 ChangeWindowMessageFilter 设置允许接收低权限进程的拖拽等消息}
+
+function AllowWindowFileDragMessage(HWnd: THandle): Boolean;
+{* Windows 10 下调用 ChangeWindowMessageFilterEx 设置允许窗口接收低权限进程的拖拽等消息}
+
 function GetWorkRect(const Form: TCustomForm = nil): TRect;
 {* 取桌面区域}
 
@@ -839,13 +845,16 @@ procedure EndWait;
 {* 结束等待光标}
 
 function CheckWindows9598: Boolean;
-{* 检测是否Win95/98平台}
+{* 检测是否 Win95/98 平台}
 
 function CheckWinXP: Boolean;
-{* 检测是否WinXP以上平台}
+{* 检测是否 WinXP 或以上平台}
 
 function CheckWinVista: Boolean;
-{* 检查是否 Vista/Win7 以上系统 }
+{* 检查是否 Vista/Win7 或以上系统 }
+
+function CheckWin10: Boolean;
+{* 检查是否 Windows 10 或以上系统}
 
 function CheckWow64: Boolean;
 {* 检查是否 64bit 系统 }
@@ -6106,11 +6115,15 @@ end;
 type
   TSetLayeredWindowAttributes = function (Hwnd: THandle; crKey: COLORREF;
     bAlpha: Byte; dwFlags: DWORD): BOOL; stdcall;
+  TChangeWindowMessageFilter = function (Message: UINT; dwFlag: DWORD): BOOL; stdcall;
+  TChangeWindowMessageFilterEx = function (HWnd: THandle; Message: UINT; action: DWORD; Dummy: Pointer): BOOL; stdcall;
 
 var
-  SetLayeredWindowAttributes: TSetLayeredWindowAttributes;
+  SetLayeredWindowAttributesProc: TSetLayeredWindowAttributes = nil;
+  ChangeWindowMessageFilterProc: TChangeWindowMessageFilter = nil;
+  ChangeWindowMessageFilterExProc: TChangeWindowMessageFilterEx = nil;
 
-procedure InitSetLayeredWindowAttributesFunc;
+procedure InitAPIs;
 const
   sUser32 = 'User32.dll';
 var
@@ -6118,7 +6131,11 @@ var
 begin
   ModH := GetModuleHandle(sUser32);
   if ModH <> 0 then
-     @SetLayeredWindowAttributes := GetProcAddress(ModH, 'SetLayeredWindowAttributes');
+  begin
+     @SetLayeredWindowAttributesProc := GetProcAddress(ModH, 'SetLayeredWindowAttributes');
+     @ChangeWindowMessageFilterProc := GetProcAddress(ModH, 'ChangeWindowMessageFilter');
+     @ChangeWindowMessageFilterExProc := GetProcAddress(ModH, 'ChangeWindowMessageFilterEx');
+  end;
 end;
 
 // 设置窗体 Alpha 透明值
@@ -6129,12 +6146,12 @@ const
 var
   AStyle: Integer;
 begin
-  if Assigned(SetLayeredWindowAttributes) then
+  if Assigned(SetLayeredWindowAttributesProc) then
   begin
     AStyle := GetWindowLong(Hwnd, GWL_EXSTYLE);
     if (AStyle and WS_EX_LAYERED) = 0 then
       SetWindowLong(Hwnd, GWL_EXSTYLE, AStyle or WS_EX_LAYERED);
-    Result := SetLayeredWindowAttributes(Hwnd, 0, Alpha, LWA_ALPHA);
+    Result := SetLayeredWindowAttributesProc(Hwnd, 0, Alpha, LWA_ALPHA);
   end
   else
     Result := False;
@@ -6163,6 +6180,32 @@ begin
       ShowWindow(HWND, SW_RESTORE)
     else
       ShowWindow(HWND, SW_SHOW);
+  end;
+end;
+
+// Windows 10 下调用 ChangeWindowMessageFilter 设置允许接收低权限进程的拖拽等消息
+function AllowGlobalFileDragMessage: Boolean;
+begin
+  Result := False;
+  if CheckWin10 and Assigned(ChangeWindowMessageFilterProc) then
+  begin
+    ChangeWindowMessageFilterProc(WM_COPYGLOBALDATA, MSGFLT_ADD);
+    ChangeWindowMessageFilterProc(WM_COPYDATA, MSGFLT_ADD);
+    ChangeWindowMessageFilterProc(WM_DROPFILES, MSGFLT_ADD);
+    Result := True;
+  end;
+end;
+
+// Windows 10 下调用 ChangeWindowMessageFilterEx 设置允许窗口接收低权限进程的拖拽等消息
+function AllowWindowFileDragMessage(HWnd: THandle): Boolean;
+begin
+  Result := False;
+  if CheckWin10 and Assigned(ChangeWindowMessageFilterExProc) then
+  begin
+    ChangeWindowMessageFilterExProc(HWnd, WM_COPYGLOBALDATA, MSGFLT_ADD, nil);
+    ChangeWindowMessageFilterExProc(HWnd, WM_COPYDATA, MSGFLT_ADD, nil);
+    ChangeWindowMessageFilterExProc(HWnd, WM_DROPFILES, MSGFLT_ADD, nil);
+    Result := True;
   end;
 end;
 
@@ -6202,7 +6245,7 @@ begin
   Screen.Cursor := crDefault;
 end;
 
-// 检测是否Win95/98平台
+// 检测是否 Win95/98 平台
 function CheckWindows9598: Boolean;
 var
   V: TOSVersionInfo;
@@ -6214,17 +6257,23 @@ begin
     Result := True;
 end;
 
-// 检测是否WinXP以上平台
+// 检测是否 WinXP 或以上平台
 function CheckWinXP: Boolean;
 begin
   Result := (Win32MajorVersion > 5) or
     ((Win32MajorVersion = 5) and (Win32MinorVersion >= 1));
 end;
 
-// 检查是否 Vista/Win7 以上系统
+// 检查是否 Vista/Win7 或以上系统
 function CheckWinVista: Boolean;
 begin
   Result := Win32MajorVersion >= 6;
+end;
+
+// 检查是否 Windows 10 或以上系统
+function CheckWin10: Boolean;
+begin
+  Result := Win32MajorVersion >= 10;
 end;
 
 // 检查是否 64bit 系统
@@ -6280,7 +6329,7 @@ begin
   end;
   if not OSSupport then
     AppValid := False;
-end;  
+end;
 
 // 获得Dll的版本信息
 function DllGetVersion(const dllname: string;
@@ -6349,6 +6398,21 @@ begin
             0: OSPlatform := 'Windows 2000';
             1: OSPlatform := 'Windows XP';
           end;
+        end
+        else if Win32MajorVersion = 7 then
+        begin
+          OSPlatform := 'Windows 7';
+        end
+        else if Win32MajorVersion = 8 then
+        begin
+          if Win32MinorVersion >= 1 then
+            OSPlatform := 'Windows 8.1'
+          else
+            OSPlatform := 'Windows 8';
+        end
+        else if Win32MajorVersion = 10 then
+        begin
+          OSPlatform := 'Windows 10';
         end;
         BuildNumber := Win32BuildNumber;
       end;
@@ -7038,13 +7102,13 @@ end;
 function InheritsFromClassName(AObject: TObject; const AClass: string): Boolean;
 begin
   Result := InheritsFromClassName(AObject.ClassType, AClass);
-end;  
+end;
 
 // 提升自身权限到SeDebug或取消此权限
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 var
   Token: THandle;
-  
+
   function InternalEnablePrivilege(Token: Cardinal; PrivName: string; Enable: Boolean): Boolean;
   var
     TP: TOKEN_PRIVILEGES;
@@ -7396,20 +7460,20 @@ var
 begin
   if PropNames = nil then
     Exit;
-    
+
   APropCount := GetTypeData(PTypeInfo(AComp.ClassInfo))^.PropCount;
   if APropCount > 0 then
   begin
     GetMem(PropListPtr, APropCount * SizeOf(Pointer));
     GetPropList(PTypeInfo(AComp.ClassInfo), tkAny, PropListPtr);
-    
+
     try
       for I := 0 to APropCount - 1 do
       begin
         PropInfo := PropListPtr^[I];
         if PropInfo^.Name = '' then
           Continue;
-      
+
         if PropInfo^.PropType^^.Kind in (tkProperties + tkMethods) then
         begin
           if BaseName = '' then
@@ -7517,7 +7581,7 @@ end;
 
 initialization
   WndLong := GetWindowLong(Application.Handle, GWL_EXSTYLE);
-  InitSetLayeredWindowAttributesFunc;
+  InitAPIs;
 
 finalization
   if NtDllHandle <> 0 then
