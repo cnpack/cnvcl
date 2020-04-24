@@ -1194,6 +1194,11 @@ const
   MINOR_SINGLE = 1E-6;
   // 不同类型浮点数判断相等时使用的差值，依具体场合而定，尚不够准确。
 
+{$IFNDEF DELPHIXE5_UP}
+  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA and MSGFIT_ADD
+  MSGFLT_ADD        = $00000001;
+{$ENDIF}
+
 type
   TNtQueryInformationProcess = function(ProcessHandle: THANDLE; ProcessInformationClass: DWORD;
     ProcessInformation: Pointer; ProcessInformationLength: ULONG; ReturnLength: PULONG): LongInt; stdcall;
@@ -6185,11 +6190,6 @@ end;
 
 // Windows 10 下调用 ChangeWindowMessageFilter 设置允许接收低权限进程的拖拽等消息
 function AllowGlobalFileDragMessage: Boolean;
-{$IFNDEF DELPHIXE5_UP}
-const
-  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA and MSGFIT_ADD
-  MSGFLT_ADD        = $00000001;
-{$ENDIF}
 begin
   Result := False;
   if CheckWin10 and Assigned(ChangeWindowMessageFilterProc) then
