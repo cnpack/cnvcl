@@ -6185,6 +6185,10 @@ end;
 
 // Windows 10 下调用 ChangeWindowMessageFilter 设置允许接收低权限进程的拖拽等消息
 function AllowGlobalFileDragMessage: Boolean;
+{$IFNDEF DELPHIXE5_UP}
+const
+  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA
+{$ENDIF}
 begin
   Result := False;
   if CheckWin10 and Assigned(ChangeWindowMessageFilterProc) then
