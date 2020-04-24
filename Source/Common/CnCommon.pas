@@ -6187,7 +6187,8 @@ end;
 function AllowGlobalFileDragMessage: Boolean;
 {$IFNDEF DELPHIXE5_UP}
 const
-  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA
+  WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA and MSGFIT_ADD
+  MSGFLT_ADD        = $00000001;
 {$ENDIF}
 begin
   Result := False;
