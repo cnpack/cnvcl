@@ -195,13 +195,13 @@ begin
     if Res > 0 then
     begin
       SetLength(Info.FBaseName, Res);
-      System.Move(AName[0], Info.FBaseName[1], Res);
+      System.Move(AName[0], Info.FBaseName[1], Res * SizeOf(Char));
     end;
     Res := GetModuleFileName(MH, @AName[0], SizeOf(AName));
     if Res > 0 then
     begin
       SetLength(Info.FFullName, Res);
-      System.Move(AName[0], Info.FFullName[1], Res);
+      System.Move(AName[0], Info.FFullName[1], Res * SizeOf(Char));
     end;
     Add(Info);
     Result := Info;
