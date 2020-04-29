@@ -13,7 +13,13 @@ type
     grpModule: TGroupBox;
     btnGetMyModule: TButton;
     mmoMyModules: TMemo;
+    tsStack: TTabSheet;
+    grpStack: TGroupBox;
+    btnGetStack: TButton;
+    mmoStack: TMemo;
     procedure btnGetMyModuleClick(Sender: TObject);
+    procedure btnGetStackClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -35,6 +41,26 @@ begin
   mmoMyModules.Lines.Clear;
   List.DumpToStrings(mmoMyModules.Lines);
   List.Free;
+end;
+
+function GetEBP32: Pointer;
+asm
+        MOV     EAX, EBP
+end;
+
+procedure TFormRtlUtils.btnGetStackClick(Sender: TObject);
+var
+  List: TCnStackInfoList;
+begin
+  List := TCnStackInfoList.Create(GetEBP32);
+  mmoStack.Lines.Clear;
+  List.DumpToStrings(mmoStack.Lines);
+  List.Free;
+end;
+
+procedure TFormRtlUtils.FormCreate(Sender: TObject);
+begin
+  pgc1.ActivePageIndex := 0;
 end;
 
 end.
