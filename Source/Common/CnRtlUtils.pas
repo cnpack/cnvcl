@@ -29,7 +29,9 @@ unit CnRtlUtils;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.04.26
+* 修改记录：2020.05.04
+*               实现当前堆栈的两种调用地址追踪实现，同时支持 32/64，其中 StackWalk64 有问题
+*           2020.04.26
 *               创建单元,实现功能
 ================================================================================
 |</PRE>}
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, TLHelp32, Psapi;
+  SysUtils, Classes, Windows, Contnrs, TLHelp32, Psapi, Imagehlp;
 
 type
   PCnStackFrame = ^TCnStackFrame;
@@ -102,6 +104,7 @@ type
   end;
 
   TCnStackInfo = class
+  {* 描述一层堆栈调用地址，支持 32/64 位}
   private
     FCallerAddr: Pointer;
   public
@@ -109,22 +112,13 @@ type
   end;
 
   TCnStackInfoList = class(TObjectList)
+  {* 描述对象实例化时当前调用栈的多层地址，支持 32/64 位}
   private
     FModuleList: TCnModuleInfoList;
-    FStackBase: Pointer;
-    FStackTop: Pointer;
     function GetItems(Index: Integer): TCnStackInfo;
     procedure TraceStackFrames;
-    function IsValidStackAddr(StackAddr: Pointer): Boolean;
-{$IFDEF WIN64}
-    function ValidCallSite64(CodeAddr: Pointer; var CallInstructionSize: Cardinal): Boolean;
-{$ELSE}
-    function ValidCallSite32(CodeAddr: DWORD; var CallInstructionSize: Cardinal): Boolean;
-{$ENDIF}
-    function NextStackFrame(var StackFrame: PCnStackFrame; var ACallersEBP: Pointer;
-      out CallerAddr: Pointer): Boolean;
   public
-    constructor Create(AStackBase: Pointer; OnlyDelphi: Boolean = False);
+    constructor Create(OnlyDelphi: Boolean = False);
     destructor Destroy; override;
 
     procedure DumpToStrings(List: TStrings);
@@ -145,7 +139,8 @@ const
     HEX_FMT + ' Size: ' + HEX_FMT + ' IsDelphiModule %d. Name: %s - %s';
   STACK_INFO_FMT = 'Caller: ' + HEX_FMT;
 
-  MAX_STACK_COUNT = 2048;
+  MAX_STACK_COUNT = 1024;
+  ImagehlpLib = 'IMAGEHLP.DLL';
 
 type
 {$IFDEF WIN64}
@@ -154,15 +149,101 @@ type
   TCnNativeUInt = Cardinal;
 {$ENDIF}
 
-  NT_TIB32 = packed record
-    ExceptionList: DWORD;
-    StackBase: DWORD;           // 以下暂不需要了
-  end;
+  TRtlCaptureStackBackTrace = function (FramesToSkip: LongWord; FramesToCapture: LongWord;
+    var BackTrace: Pointer; BackTraceHash: PLongWord): Word; stdcall;
+  TRtlCaptureContext = procedure (ContextRecord: PContext); stdcall;
 
-  NT_TIB64 = packed record
-    ExceptionList: TCnNativeUInt;
-    StackBase: TCnNativeUInt;   // 以下暂不需要了
+{$IFDEF WIN64}
+  // Types of Address
+  LPADDRESS64 = ^ADDRESS64;
+  {$EXTERNALSYM PADDRESS64}
+  _tagADDRESS64 = record
+    Offset: DWORD64;
+    Segment: WORD;
+    Mode: ADDRESS_MODE;
   end;
+  {$EXTERNALSYM _tagADDRESS64}
+  ADDRESS64 = _tagADDRESS64;
+  {$EXTERNALSYM ADDRESS64}
+  TAddress64 = ADDRESS64;
+  PAddress64 = LPADDRESS64;
+
+  // Types of KDHelp
+  PKDHELP64 = ^KDHELP64;
+  {$EXTERNALSYM PKDHELP64}
+  _KDHELP64 = record
+    Thread: DWORD64;
+    ThCallbackStack: DWORD;
+    ThCallbackBStore: DWORD;
+    NextCallback: DWORD;
+    FramePointer: DWORD;
+    KiCallUserMode: DWORD64;
+    KeUserCallbackDispatcher: DWORD64;
+    SystemRangeStart: DWORD64;
+    Reserved: array [0..7] of DWORD64;
+  end;
+  {$EXTERNALSYM _KDHELP64}
+  KDHELP64 = _KDHELP64;
+  {$EXTERNALSYM KDHELP64}
+  TKdHelp64 = KDHELP64;
+
+  // Types of StackFrame64
+  LPSTACKFRAME64 = ^STACKFRAME64;
+  {$EXTERNALSYM LPSTACKFRAME64}
+  _tagSTACKFRAME64 = record
+    AddrPC: ADDRESS64; // program counter
+    AddrReturn: ADDRESS64; // return address
+    AddrFrame: ADDRESS64; // frame pointer
+    AddrStack: ADDRESS64; // stack pointer
+    AddrBStore: ADDRESS64; // backing store pointer
+    FuncTableEntry: PVOID; // pointer to pdata/fpo or NULL
+    Params: array [0..3] of DWORD64; // possible arguments to the function
+    Far: BOOL; // WOW far call
+    Virtual: BOOL; // is this a virtual frame?
+    Reserved: array [0..2] of DWORD64;
+    KdHelp: KDHELP64;
+  end;
+  {$EXTERNALSYM _tagSTACKFRAME64}
+  STACKFRAME64 = _tagSTACKFRAME64;
+  {$EXTERNALSYM STACKFRAME64}
+  TStackFrame64 = STACKFRAME64;
+  PStackFrame64 = LPSTACKFRAME64;
+
+  // Types of Other Routines
+  PREAD_PROCESS_MEMORY_ROUTINE64 = function (hProcess: THandle; qwBaseAddress: DWORD64;
+    lpBuffer: PVOID; nSize: DWORD; var lpNumberOfBytesRead: DWORD): BOOL; stdcall;
+
+  PFUNCTION_TABLE_ACCESS_ROUTINE64 = function (hProcess: THandle;
+    AddrBase: DWORD64): PVOID; stdcall;
+
+  PGET_MODULE_BASE_ROUTINE64 = function (hProcess: THandle;
+    Address: DWORD64): DWORD64; stdcall;
+
+  PTRANSLATE_ADDRESS_ROUTINE64 = function (hProcess: THandle; hThread: THandle;
+    const lpaddr: ADDRESS64): DWORD64; stdcall;
+
+  TStackWalk64 = function(MachineType: DWORD; hProcess, hThread: THandle;
+    StackFrame: PStackFrame64; ContextRecord: Pointer;
+    ReadMemoryRoutine: PREAD_PROCESS_MEMORY_ROUTINE64;
+    FunctionTableAccessRoutine: PFUNCTION_TABLE_ACCESS_ROUTINE64;
+    GetModuleBaseRoutine: PGET_MODULE_BASE_ROUTINE64;
+    TranslateAddress: PTRANSLATE_ADDRESS_ROUTINE64): BOOL; stdcall;
+
+function SymFunctionTableAccess64(hProcess: THandle; AddrBase: DWORD64): PVOID; stdcall;
+  external ImagehlpLib name 'SymFunctionTableAccess64';
+function SymGetModuleBase64(hProcess: THandle; Address: DWORD64): DWORD64; stdcall;
+  external ImagehlpLib name 'SymGetModuleBase64';
+
+{$ENDIF}
+
+var
+  // XP 以前的平台不支持这批 API，需要动态加载
+  RtlCaptureStackBackTrace: TRtlCaptureStackBackTrace = nil;
+  RtlCaptureContext: TRtlCaptureContext = nil;
+
+{$IFDEF WIN64} // 64 位下必须用未声明的 StackWalk64
+  StackWalk64: TStackWalk64 = nil;
+{$ENDIF}
 
 // 查询某虚拟地址所属的分配模块 Handle，也就是 AllocationBase
 function ModuleFromAddr(const Addr: Pointer): HMODULE;
@@ -176,55 +257,12 @@ begin
     Result := HMODULE(MI.AllocationBase);
 end;
 
-{$IFDEF WIN64}
-
-function GetEBP64: Pointer;
-asm
-        MOV     RAX, RBP
-end;
-
-function GetESP64: Pointer;
-asm
-        MOV     RAX, RSP
-end;
-
-function GetStackTop64: TCnNativeUInt;
-asm
-        MOV     RAX, FS:[0].NT_TIB64.StackBase
-end;
-
-{$ELSE}
-
-function GetEBP32: Pointer;
-asm
-        MOV     EAX, EBP
-end;
-
-function GetESP32: Pointer;
-asm
-        MOV     EAX, ESP
-end;
-
-function GetStackTop32: TCnNativeUInt;
-asm
-        MOV     EAX, FS:[0].NT_TIB32.StackBase
-end;
-
-{$ENDIF}
-
 { TCnStackInfoList }
 
-constructor TCnStackInfoList.Create(AStackBase: Pointer; OnlyDelphi: Boolean);
+constructor TCnStackInfoList.Create(OnlyDelphi: Boolean);
 begin
   inherited Create(True);
-  FStackBase := AStackBase;
-{$IFDEF WIN64}
-  FStackTop := Pointer(GetStackTop64);
-{$ELSE}
-  FStackTop := Pointer(GetStackTop32);
-{$ENDIF}
   FModuleList := TCnModuleInfoList.Create(OnlyDelphi);
-
   TraceStackFrames;
 end;
 
@@ -239,188 +277,102 @@ begin
   Result := TCnStackInfo(inherited Items[Index]);
 end;
 
-{$IFDEF WIN64}
-
-function TCnStackInfoList.ValidCallSite64(CodeAddr: Pointer; var CallInstructionSize: Cardinal): Boolean;
-begin
-  Result := False;
-end;
-
-{$ELSE}
-
-// Copied from JCL
-function TCnStackInfoList.ValidCallSite32(CodeAddr: DWORD; var CallInstructionSize: Cardinal): Boolean;
-var
-  CodeDWORD4: DWORD;
-  CodeDWORD8: DWORD;
-  C4P, C8P: PDWORD;
-  RM1, RM2, RM5: Byte;
-begin
-  // First check that the address is within range of our code segment!
-  C8P := PDWORD(CodeAddr - 8);
-  C4P := PDWORD(CodeAddr - 4);
-  Result := (CodeAddr > 8) and FModuleList.IsValidModuleAddress(Pointer(C8P)) and not IsBadReadPtr(C8P, 8);
-
-  // Now check to see if the instruction preceding the return address
-  // could be a valid CALL instruction
-  if Result then
-  begin
-    try
-      CodeDWORD8 := PDWORD(C8P)^;
-      CodeDWORD4 := PDWORD(C4P)^;
-      // CodeDWORD8 = (ReturnAddr-5):(ReturnAddr-6):(ReturnAddr-7):(ReturnAddr-8)
-      // CodeDWORD4 = (ReturnAddr-1):(ReturnAddr-2):(ReturnAddr-3):(ReturnAddr-4)
-
-      // ModR/M bytes contain the following bits:
-      // Mod        = (76)
-      // Reg/Opcode = (543)
-      // R/M        = (210)
-      RM1 := (CodeDWORD4 shr 24) and $7;
-      RM2 := (CodeDWORD4 shr 16) and $7;
-      //RM3 := (CodeDWORD4 shr 8)  and $7;
-      //RM4 :=  CodeDWORD4         and $7;
-      RM5 := (CodeDWORD8 shr 24) and $7;
-      //RM6 := (CodeDWORD8 shr 16) and $7;
-      //RM7 := (CodeDWORD8 shr 8)  and $7;
-
-      // Check the instruction prior to the potential call site.
-      // We consider it a valid call site if we find a CALL instruction there
-      // Check the most common CALL variants first
-      if ((CodeDWORD8 and $FF000000) = $E8000000) then
-        // 5 bytes, "CALL NEAR REL32" (E8 cd)
-        CallInstructionSize := 5
-      else
-      if ((CodeDWORD4 and $F8FF0000) = $10FF0000) and not (RM1 in [4, 5]) then
-        // 2 bytes, "CALL NEAR [EAX]" (FF /2) where Reg = 010, Mod = 00, R/M <> 100 (1 extra byte)
-        // and R/M <> 101 (4 extra bytes)
-        CallInstructionSize := 2
-      else
-      if ((CodeDWORD4 and $F8FF0000) = $D0FF0000) then
-        // 2 bytes, "CALL NEAR EAX" (FF /2) where Reg = 010 and Mod = 11
-        CallInstructionSize := 2
-      else
-      if ((CodeDWORD4 and $00FFFF00) = $0014FF00) then
-        // 3 bytes, "CALL NEAR [EAX+EAX*i]" (FF /2) where Reg = 010, Mod = 00 and RM = 100
-        // SIB byte not validated
-        CallInstructionSize := 3
-      else
-      if ((CodeDWORD4 and $00F8FF00) = $0050FF00) and (RM2 <> 4) then
-        // 3 bytes, "CALL NEAR [EAX+$12]" (FF /2) where Reg = 010, Mod = 01 and RM <> 100 (1 extra byte)
-        CallInstructionSize := 3
-      else
-      if ((CodeDWORD4 and $0000FFFF) = $000054FF) then
-        // 4 bytes, "CALL NEAR [EAX+EAX+$12]" (FF /2) where Reg = 010, Mod = 01 and RM = 100
-        // SIB byte not validated
-        CallInstructionSize := 4
-      else
-      if ((CodeDWORD8 and $FFFF0000) = $15FF0000) then
-        // 6 bytes, "CALL NEAR [$12345678]" (FF /2) where Reg = 010, Mod = 00 and RM = 101
-        CallInstructionSize := 6
-      else
-      if ((CodeDWORD8 and $F8FF0000) = $90FF0000) and (RM5 <> 4) then
-        // 6 bytes, "CALL NEAR [EAX+$12345678]" (FF /2) where Reg = 010, Mod = 10 and RM <> 100 (1 extra byte)
-        CallInstructionSize := 6
-      else
-      if ((CodeDWORD8 and $00FFFF00) = $0094FF00) then
-        // 7 bytes, "CALL NEAR [EAX+EAX+$1234567]" (FF /2) where Reg = 010, Mod = 10 and RM = 100
-        CallInstructionSize := 7
-      else
-      if ((CodeDWORD8 and $0000FF00) = $00009A00) then
-        // 7 bytes, "CALL FAR $1234:12345678" (9A ptr16:32)
-        CallInstructionSize := 7
-      else
-        Result := False;
-      // Because we're not doing a complete disassembly, we will potentially report
-      // false positives. If there is odd code that uses the CALL 16:32 format, we
-      // can also get false negatives.
-    except
-      Result := False;
-    end;
-  end;
-end;
-
-{$ENDIF}
-
 procedure TCnStackInfoList.TraceStackFrames;
 var
+  Ctx: TContext;     // Ctx 貌似得声明靠上，不能放 Callers 这个大数组后面，否则虚拟机会出莫名其妙的错
   Info: TCnStackInfo;
-  PSF: PCnStackFrame;
-  ACallerAddr, ACallersEBP: Pointer;
+  C: Word;
+  I: Integer;
+  Callers: array[0..MAX_STACK_COUNT - 1] of Pointer;
+{$IFDEF WIN64}
+  STKF64: TStackFrame64;
+{$ELSE}
+  STKF: TStackFrame;
+{$ENDIF}
+  P, T: THandle;
+  Res: Boolean;
 begin
   Capacity := 32;
-  if FStackBase = nil then
+  if Assigned(RtlCaptureStackBackTrace) then // XP/2003 or above, Support 32/64
   begin
-{$IFDEF WIN64}
-    FStackBase := GetEBP64;
-{$ELSE}
-    FStackBase := GetEBP32;
-{$ENDIF}
-  end;
-  PSF := PCnStackFrame(FStackBase);
-
-  FStackBase := Pointer(TCnNativeUInt(PSF) - SizeOf(TCnNativeUInt));
-  ACallersEBP := nil;
-  ACallerAddr := nil;
-  while NextStackFrame(PSF, ACallersEBP, ACallerAddr) and (Count < MAX_STACK_COUNT) do
-  begin
-    Info := TCnStackInfo.Create;
-    Info.CallerAddr := ACallerAddr;
-    Add(Info);
-  end;
-end;
-
-function TCnStackInfoList.NextStackFrame(var StackFrame: PCnStackFrame; var ACallersEBP: Pointer; out CallerAddr: Pointer): Boolean;
-var
-  CallInstructionSize: Cardinal;
-  StackFrameCallersEBP, NewEBP: Pointer;
-  StackFrameCallerAdr: Pointer;
-begin
-  StackFrameCallersEBP := ACallersEBP;
-  while IsValidStackAddr(StackFrame) do
-  begin
-    NewEBP := StackFrame^.CallersEBP;
-    if TCnNativeUInt(NewEBP) <= TCnNativeUInt(StackFrameCallersEBP) then
-      Break;
-    StackFrameCallersEBP := NewEBP;
-
-    StackFrameCallerAdr := StackFrame^.CallerAdr;
-    if FModuleList.IsValidModuleAddress(Pointer(StackFrameCallerAdr))
-      and IsValidStackAddr(StackFrameCallersEBP) then
+    C := RtlCaptureStackBackTrace(0, MAX_STACK_COUNT, Callers[0], nil);
+    for I := 0 to C - 1 do
     begin
-      if TCnNativeUInt(StackFrameCallersEBP) > TCnNativeUInt(ACallersEBP) then
-        ACallersEBP := StackFrameCallersEBP
-      else
-        Break;
-
-{$IFDEF WIN64}
-      if ValidCallSite64(StackFrameCallerAdr, CallInstructionSize) then
-        CallerAddr := Pointer(TCnNativeUInt(StackFrameCallerAdr) - CallInstructionSize)
-      else
-        CallerAddr := Pointer(StackFrameCallerAdr);
-{$ELSE}
-      if ValidCallSite32(DWORD(StackFrameCallerAdr), CallInstructionSize) then
-        CallerAddr := Pointer(TCnNativeUInt(StackFrameCallerAdr) - CallInstructionSize)
-      else
-        CallerAddr := Pointer(StackFrameCallerAdr);
-{$ENDIF}
-      if PCnStackFrame(StackFrame^.CallersEBP) = StackFrame then
-        Break;
-
-      StackFrame := PCnStackFrame(StackFrameCallersEBP);
-      Result := True;
-      Exit;
+      Info := TCnStackInfo.Create;
+      Info.CallerAddr := Callers[I];
+      Add(Info);
     end;
+  end
+  else if Assigned(RtlCaptureContext) {$IFDEF WIN64} and Assigned(StackWalk64) {$ENDIF} then
+  begin
+    // Using StackWalk in ImageHlp and RtlCaptureContext
+    FillChar(Ctx, SizeOf(TContext), 0);
+    RtlCaptureContext(@Ctx);                   // 64位的情况下，居然虚拟机上可能会出错
+{$IFDEF WIN64}
+    FillChar(STKF64, SizeOf(TStackFrame64), 0);
 
-    StackFrame := PCnStackFrame(StackFrameCallersEBP);
+    STKF64.AddrPC.Mode         := AddrModeFlat;
+    STKF64.AddrStack.Mode      := AddrModeFlat;
+    STKF64.AddrFrame.Mode      := AddrModeFlat;
+    STKF64.AddrPC.Offset       := Ctx.Rip;
+    STKF64.AddrStack.Offset    := Ctx.Rsp;
+    STKF64.AddrFrame.Offset    := Ctx.Rbp;
+{$ELSE}
+    FillChar(STKF, SizeOf(TStackFrame), 0);
+
+    STKF.AddrPC.Mode         := AddrModeFlat;
+    STKF.AddrStack.Mode      := AddrModeFlat;
+    STKF.AddrFrame.Mode      := AddrModeFlat;
+    STKF.AddrPC.Offset       := Ctx.Eip;
+    STKF.AddrStack.Offset    := Ctx.Esp;
+    STKF.AddrFrame.Offset    := Ctx.Ebp;
+{$ENDIF}
+
+    P := GetCurrentProcess;
+    T := GetCurrentThread;
+
+    while True do
+    begin
+{$IFDEF WIN64}
+      // FIXME: 64位下 StackWalk64 始终抓不到堆栈，咋办？
+      Res := StackWalk64(IMAGE_FILE_MACHINE_AMD64, P, T, @STKF64, @Ctx, nil, @SymFunctionTableAccess64,
+        @SymGetModuleBase64, nil);
+
+      if Res and (STKF64.AddrPC.Offset <> 0) then
+      begin
+        if STKF64.AddrReturn.Offset = 0 then
+          Break;
+
+        Info := TCnStackInfo.Create;
+        Info.CallerAddr := Pointer(STKF64.AddrPC.Offset);
+        Add(Info);
+      end
+      else
+        Break;
+
+      if STKF64.AddrReturn.Offset = 0 then
+        Break;
+{$ELSE}
+      Res := StackWalk(IMAGE_FILE_MACHINE_I386, P, T, @STKF, @Ctx, nil, @SymFunctionTableAccess,
+        @SymGetModuleBase, nil);
+
+      if Res and (STKF.AddrPC.Offset <> 0) then
+      begin
+        if STKF.AddrReturn.Offset = 0 then
+          Break;
+
+        Info := TCnStackInfo.Create;
+        Info.CallerAddr := Pointer(STKF.AddrPC.Offset);
+        Add(Info);
+      end
+      else
+        Break;
+
+      if STKF.AddrReturn.Offset = 0 then
+        Break;
+{$ENDIF}
+    end;
   end;
-
-  Result := False;
-end;
-
-function TCnStackInfoList.IsValidStackAddr(StackAddr: Pointer): Boolean;
-begin
-  Result := (TCnNativeUInt(FStackBase) < TCnNativeUInt(StackAddr)) and
-    (TCnNativeUInt(StackAddr) < TCnNativeUInt(FStackTop));
 end;
 
 procedure TCnStackInfoList.DumpToStrings(List: TStrings);
@@ -641,5 +593,38 @@ begin
   Result := Format(MODULE_INFO_FMT, [FHModule, TCnNativeUInt(FStartAddr),
     TCnNativeUInt(FEndAddr), FSize, Integer(FIsDelphi), FBaseName, FFullName]);
 end;
+
+procedure InitAPIs;
+var
+  H: HINST;
+  P: Pointer;
+begin
+  H := GetModuleHandle(kernel32);
+  if H <> 0 then
+  begin
+    P := GetProcAddress(H, 'RtlCaptureStackBackTrace');
+    if P <> nil then
+      RtlCaptureStackBackTrace := TRtlCaptureStackBackTrace(P);
+  end;
+  H := GetModuleHandle('ntdll.dll');
+  if H <> 0 then
+  begin
+    P := GetProcAddress(H, 'RtlCaptureContext');
+    if P <> nil then
+      RtlCaptureContext := TRtlCaptureContext(P);
+  end;
+{$IFDEF WIN64}
+  H := GetModuleHandle(ImagehlpLib);
+  if H <> 0 then
+  begin
+    P := GetProcAddress(H, 'StackWalk64');
+    if P <> nil then
+      StackWalk64 := TStackWalk64(P);
+  end;
+{$ENDIF}
+end;
+
+initialization
+  InitAPIs;
 
 end.
