@@ -30,6 +30,9 @@ unit CnRtlUtils;
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2020.05.04
+*               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64，
+*               但部分 PE 加载后获取的 OriginalFirstTrunk 为 0 无法 Hook
+*           2020.05.04
 *               实现当前堆栈的两种调用地址追踪实现，同时支持 32/64，其中 StackWalk64 有问题
 *           2020.04.26
 *               创建单元,实现功能
@@ -126,6 +129,16 @@ type
     property Items[Index: Integer]: TCnStackInfo read GetItems; default;
   end;
 
+// ===================== 进程内用改写 IAT 表的方式 Hook API ====================
+
+function CnHookImportAddressTable(const ModuleName: string; const FuncName: string;
+  out OldAddress: Pointer; NewAddress: Pointer): Boolean;
+{* 进程内改写本 EXE 的导入表以达到 Hook 本 EXE 内对外部模块的函数调用的目的，支持 32/64 位}
+
+function CnUnHookImportAddressTable(const ModuleName: string; const FuncName: string;
+  OldAddress: Pointer): Boolean;
+{* 进程内改写本 EXE 的导入表还原 Hook，支持 32/64 位}
+
 implementation
 
 const
@@ -141,6 +154,7 @@ const
 
   MAX_STACK_COUNT = 1024;
   ImagehlpLib = 'IMAGEHLP.DLL';
+  IMAGE_ORDINAL_FLAG = LongWord($80000000);
 
 type
 {$IFDEF WIN64}
@@ -234,6 +248,81 @@ function SymFunctionTableAccess64(hProcess: THandle; AddrBase: DWORD64): PVOID; 
 function SymGetModuleBase64(hProcess: THandle; Address: DWORD64): DWORD64; stdcall;
   external ImagehlpLib name 'SymGetModuleBase64';
 
+{$ENDIF}
+
+type
+  _IMAGE_IMPORT_DESCRIPTOR = record
+    case Byte of
+      0: (Characteristics: DWORD);          // 0 for terminating null import descriptor
+      1: (OriginalFirstThunk: DWORD;        // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+          TimeDateStamp: DWORD;             // 0 if not bound,
+                                            // -1 if bound, and real date\time stamp
+                                            //     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
+                                            // O.W. date/time stamp of DLL bound to (Old BIND)
+
+          ForwarderChain: DWORD;            // -1 if no forwarders
+          Name: DWORD;
+          FirstThunk: DWORD);                // RVA to IAT (if bound this IAT has actual addresses)
+  end;
+  {$EXTERNALSYM _IMAGE_IMPORT_DESCRIPTOR}
+  IMAGE_IMPORT_DESCRIPTOR = _IMAGE_IMPORT_DESCRIPTOR;
+  {$EXTERNALSYM IMAGE_IMPORT_DESCRIPTOR}
+  TImageImportDescriptor = _IMAGE_IMPORT_DESCRIPTOR;
+  PIMAGE_IMPORT_DESCRIPTOR = ^_IMAGE_IMPORT_DESCRIPTOR;
+  {$EXTERNALSYM PIMAGE_IMPORT_DESCRIPTOR}
+  PImageImportDescriptor = ^_IMAGE_IMPORT_DESCRIPTOR;
+
+  _IMAGE_IMPORT_BY_NAME = record
+    Hint: Word;
+    Name: array[0..0] of Byte;
+  end;
+  {$EXTERNALSYM _IMAGE_IMPORT_BY_NAME}
+  IMAGE_IMPORT_BY_NAME = _IMAGE_IMPORT_BY_NAME;
+  {$EXTERNALSYM IMAGE_IMPORT_BY_NAME}
+  TImageImportByName = _IMAGE_IMPORT_BY_NAME;
+  PIMAGE_IMPORT_BY_NAME = ^_IMAGE_IMPORT_BY_NAME;
+  {$EXTERNALSYM PIMAGE_IMPORT_BY_NAME}
+  PImageImportByName = ^_IMAGE_IMPORT_BY_NAME;
+
+  _IMAGE_THUNK_DATA32 = record
+    case Byte of
+      0: (ForwarderString: DWORD); // PBYTE
+      1: (_Function: DWORD);       // PDWORD Function -> _Function
+      2: (Ordinal: DWORD);
+      3: (AddressOfData: DWORD);   // PIMAGE_IMPORT_BY_NAME
+  end;
+  {$EXTERNALSYM _IMAGE_THUNK_DATA32}
+  IMAGE_THUNK_DATA32 = _IMAGE_THUNK_DATA32;
+  {$EXTERNALSYM IMAGE_THUNK_DATA32}
+  TImageThunkData32 = _IMAGE_THUNK_DATA32;
+  PIMAGE_THUNK_DATA32 = ^_IMAGE_THUNK_DATA32;
+  {$EXTERNALSYM PIMAGE_THUNK_DATA32}
+  PImageThunkData32 = ^_IMAGE_THUNK_DATA32;
+
+{$IFDEF WIN64}
+
+  _IMAGE_THUNK_DATA64 = record
+    case Byte of
+      0: (ForwarderString: ULONGLONG); // PBYTE
+      1: (_Function: ULONGLONG);       // PDWORD Function -> _Function
+      2: (Ordinal: ULONGLONG);
+      3: (AddressOfData: ULONGLONG);   // PIMAGE_IMPORT_BY_NAME
+  end;
+  {$EXTERNALSYM _IMAGE_THUNK_DATA64}
+  IMAGE_THUNK_DATA64 = _IMAGE_THUNK_DATA64;
+  {$EXTERNALSYM IMAGE_THUNK_DATA64}
+  TImageThunkData64 = _IMAGE_THUNK_DATA64;
+  PIMAGE_THUNK_DATA64 = ^_IMAGE_THUNK_DATA64;
+  {$EXTERNALSYM PIMAGE_THUNK_DATA64}
+  PImageThunkData64 = ^_IMAGE_THUNK_DATA64;
+
+{$ENDIF}
+
+type
+{$IFDEF WIN64}
+  PImageThunkData = PImageThunkData64;
+{$ELSE}
+  PImageThunkData = PImageThunkData32;
 {$ENDIF}
 
 var
@@ -624,7 +713,124 @@ begin
 {$ENDIF}
 end;
 
+// ===================== 进程内用改写 IAT 表的方式 Hook API ====================
+
+// Hook 为 True 时进行 Hook 动作，要求传入新地址。旧地址通过 OldAddress 传出去
+// Hook 为 False 时进行 UnHook 动作，要求传入旧地址。
+function HookImportAddressTable(Hook: Boolean; const ModuleName, FuncName: string;
+  var OldAddress: Pointer; NewAddress: Pointer): Boolean;
+var
+  HP: THandle;
+  Size: DWORD;
+  MN, FN: PAnsiChar;
+  FoundName: Boolean;
+  PIP: PImageImportDescriptor;
+  PIIBN: PImageImportByName;
+  PITO, PITR: PImageThunkData;
+  AMN, AFN: AnsiString;
+  MBI: TMemoryBasicInformation;
+begin
+  Result := False;
+  if (ModuleName = '') or (FuncName = '') then
+    Exit;
+
+  if Hook and (NewAddress = nil) then
+    Exit;
+
+  if not Hook and (OldAddress = nil) then
+    Exit;
+
+  HP := GetModuleHandle(nil); // 获得 EXE 的模块 Handle
+  if HP = 0 then
+    Exit;
+
+  Size := 0;
+  PIP := PImageImportDescriptor(ImageDirectoryEntryToData(Pointer(HP), True,
+    IMAGE_DIRECTORY_ENTRY_IMPORT, Size));
+
+  if PIP = nil then
+    Exit;
+
+  FoundName := False;
+  AMN := AnsiString(LowerCase(ModuleName));
+  while PIP^.Name <> 0 do
+  begin
+    MN := PAnsiChar(TCnNativeUInt(HP) + PIP^.Name);
+    if MN = '' then
+      Break;
+
+    if AnsiStrIComp(MN, PAnsiChar(AMN)) = 0 then
+    begin
+      FoundName := True;
+      Break;
+    end;
+    Inc(PIP);
+  end;
+
+  if not FoundName then
+    Exit;
+
+  // 找到了输入的 DLL
+  PITR := PImageThunkData(TCnNativeUInt(HP) + PIP^.FirstThunk);
+  if PIP^.OriginalFirstThunk = 0 then
+    PITO := PITR
+  else
+    PITO := PImageThunkData(TCnNativeUInt(HP) + PIP^.OriginalFirstThunk);
+
+  AFN := AnsiString(FuncName);
+  while PITO^._Function <> 0 do
+  begin
+    if (PITO^.Ordinal and IMAGE_ORDINAL_FLAG) <> IMAGE_ORDINAL_FLAG then
+    begin
+      PIIBN := PImageImportByName(TCnNativeUInt(HP) + PITO^.AddressOfData);
+      FN := PAnsiChar(@(PIIBN^.Name[0]));
+
+      if (FN <> '') and (AnsiStrIComp(FN, PAnsiChar(AFN)) = 0) then
+      begin
+        // 找到了要替换的函数地址，改权限先
+        VirtualQuery(PITR, MBI, SizeOf(TMemoryBasicInformation));
+        VirtualProtect(MBI.BaseAddress, MBI.RegionSize, PAGE_READWRITE, @MBI.Protect);
+
+        if Hook then
+        begin
+          // 替换
+          OldAddress := Pointer(PITR^._Function);
+          PITR^._Function := TCnNativeUInt(NewAddress);
+        end
+        else
+        begin
+          // 恢复
+          PITR^._Function := TCnNativeUInt(OldAddress);
+        end;
+
+        Result := True;
+        Exit;
+      end;
+    end;
+
+    Inc(PITO);
+    Inc(PITR);
+  end;
+end;
+
+function CnHookImportAddressTable(const ModuleName: string; const FuncName: string;
+  out OldAddress: Pointer; NewAddress: Pointer): Boolean;
+begin
+  Result := HookImportAddressTable(True, ModuleName, FuncName, OldAddress, NewAddress);
+end;
+
+function CnUnHookImportAddressTable(const ModuleName: string; const FuncName: string;
+  OldAddress: Pointer): Boolean;
+begin
+  Result := HookImportAddressTable(False, ModuleName, FuncName, OldAddress, nil);
+end;
+
 initialization
   InitAPIs;
 
 end.
+
+
+
+
+

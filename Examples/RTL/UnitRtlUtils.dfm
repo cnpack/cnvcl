@@ -1,8 +1,8 @@
 object FormRtlUtils: TFormRtlUtils
-  Left = 229
-  Top = 86
+  Left = 204
+  Top = 75
   Width = 798
-  Height = 554
+  Height = 603
   Caption = 'Test RTL Utils'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,8 +19,8 @@ object FormRtlUtils: TFormRtlUtils
     Left = 8
     Top = 8
     Width = 766
-    Height = 503
-    ActivePage = tsStack
+    Height = 552
+    ActivePage = tsIATHook
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsModule: TTabSheet
@@ -29,7 +29,7 @@ object FormRtlUtils: TFormRtlUtils
         Left = 8
         Top = 4
         Width = 742
-        Height = 459
+        Height = 508
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Module Info'
         TabOrder = 0
@@ -67,7 +67,7 @@ object FormRtlUtils: TFormRtlUtils
         Left = 8
         Top = 4
         Width = 742
-        Height = 459
+        Height = 508
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Module Info'
         TabOrder = 0
@@ -95,6 +95,46 @@ object FormRtlUtils: TFormRtlUtils
           ScrollBars = ssBoth
           TabOrder = 1
           WordWrap = False
+        end
+      end
+    end
+    object tsIATHook: TTabSheet
+      Caption = 'IAT Hook'
+      ImageIndex = 2
+      object grpIATHook: TGroupBox
+        Left = 8
+        Top = 4
+        Width = 742
+        Height = 508
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Caption = 'Hook API by Replacing IAT '
+        TabOrder = 0
+        object btnHookIAT: TButton
+          Left = 24
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'Hook MessageBoxA'
+          TabOrder = 0
+          OnClick = btnHookIATClick
+        end
+        object btnUnHookIAT: TButton
+          Left = 232
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'UnHook MessageBoxA'
+          TabOrder = 1
+          OnClick = btnUnHookIATClick
+        end
+        object btnCallMessageBox: TButton
+          Left = 552
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'Call MessageBoxA'
+          TabOrder = 2
+          OnClick = btnCallMessageBoxClick
         end
       end
     end
