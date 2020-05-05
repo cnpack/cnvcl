@@ -30,8 +30,9 @@ unit CnRtlUtils;
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2020.05.04
-*               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64，
-*               但部分 PE 加载后获取的 OriginalFirstTrunk 为 0 无法 Hook
+*               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64。
+*               当模块内的 OriginalFirstThunk 有效时根据函数名来搜索 IAT
+*               当模块内的 OriginalFirstThunk 为 0 时直接用地址来搜索 IAT
 *           2020.05.04
 *               实现当前堆栈的两种调用地址追踪实现，同时支持 32/64，其中 StackWalk64 有问题
 *           2020.04.26
@@ -129,15 +130,37 @@ type
     property Items[Index: Integer]: TCnStackInfo read GetItems; default;
   end;
 
-// ===================== 进程内用改写 IAT 表的方式 Hook API ====================
+// ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
 
-function CnHookImportAddressTable(const ModuleName: string; const FuncName: string;
-  out OldAddress: Pointer; NewAddress: Pointer): Boolean;
-{* 进程内改写本 EXE 的导入表以达到 Hook 本 EXE 内对外部模块的函数调用的目的，支持 32/64 位}
+function CnHookImportAddressTable(const ImportModuleName, ImportFuncName: string;
+  out OldAddress: Pointer; NewAddress: Pointer; ModuleHandle: THandle = 0): Boolean;
+{* 进程内改写指定模块的导入表以达到 Hook 该模块内对外部模块的函数调用的目的，支持 32/64 位
 
-function CnUnHookImportAddressTable(const ModuleName: string; const FuncName: string;
-  OldAddress: Pointer): Boolean;
-{* 进程内改写本 EXE 的导入表还原 Hook，支持 32/64 位}
+  ImportModuleName: 待 Hook 的函数所在的模块名，不是全路径名，如 user32.dll
+  ImportFuncName:   待 Hook 的函数名称，如 MessageBoxA
+  OldAddress:       Hook 成功后供返回的旧地址，无需传入值，由调用者保存，供 UnHook 时恢复
+  NewAddress:       新函数的地址，如 @MyMessageBoxA
+  ModuleHandle:     待 Hook 的模块，可以用 GetModuleHandle 根据需要获得，
+                    如传 0，表示 Hook 本进程的 exe 内
+
+  返回值 True 表示 Hook 成功
+  注：对于同一个模块内，Hook 同一个外部模块的同一个函数时，要控制不能重复 Hook，以及和 UnHook 要严格配对
+}
+
+function CnUnHookImportAddressTable(const ImportModuleName, ImportFuncName: string;
+  OldAddress, NewAddress: Pointer; ModuleHandle: THandle = 0): Boolean;
+{* 进程内改写指定模块的导入表 Hook 的还原，支持 32/64 位
+
+  ImportModuleName: 待 Hook 的函数所在的模块名，不是全路径名，如 user32.dll
+  ImportFuncName:   待 Hook 的函数名称，如 MessageBoxA
+  OldAddress:       Hook 成功后返回的旧地址
+  NewAddress:       新函数的地址，如 @MyMessageBoxA
+  ModuleHandle:     待 Hook 的模块，可以用 GetModuleHandle 根据需要获得，
+                    如传 0，表示 Hook 本进程的 exe 内
+
+  返回值 True 表示 UnHook 成功
+  注：对于同一个模块内，Hook 同一个外部模块的同一个函数时，要控制不能重复 UnHook，以及和 Hook 要严格配对
+}
 
 implementation
 
@@ -718,17 +741,17 @@ end;
 // Hook 为 True 时进行 Hook 动作，要求传入新地址。旧地址通过 OldAddress 传出去
 // Hook 为 False 时进行 UnHook 动作，要求传入旧地址。
 function HookImportAddressTable(Hook: Boolean; const ModuleName, FuncName: string;
-  var OldAddress: Pointer; NewAddress: Pointer): Boolean;
+  var OldAddress: Pointer; NewAddress: Pointer; ModuleHandle: THandle): Boolean;
 var
-  HP: THandle;
+  HP, HM: THandle;
   Size: DWORD;
   MN, FN: PAnsiChar;
-  FoundName: Boolean;
   PIP: PImageImportDescriptor;
   PIIBN: PImageImportByName;
   PITO, PITR: PImageThunkData;
   AMN, AFN: AnsiString;
   MBI: TMemoryBasicInformation;
+  FindingAddress: Pointer;
 begin
   Result := False;
   if (ModuleName = '') or (FuncName = '') then
@@ -740,7 +763,9 @@ begin
   if not Hook and (OldAddress = nil) then
     Exit;
 
-  HP := GetModuleHandle(nil); // 获得 EXE 的模块 Handle
+  HP := ModuleHandle;           // 获得要实施 Hook 的模块
+  if HP = 0 then
+    HP := GetModuleHandle(nil); // 获得 EXE 的模块 Handle
   if HP = 0 then
     Exit;
 
@@ -751,7 +776,6 @@ begin
   if PIP = nil then
     Exit;
 
-  FoundName := False;
   AMN := AnsiString(LowerCase(ModuleName));
   while PIP^.Name <> 0 do
   begin
@@ -761,68 +785,110 @@ begin
 
     if AnsiStrIComp(MN, PAnsiChar(AMN)) = 0 then
     begin
-      FoundName := True;
-      Break;
+      PITR := PImageThunkData(TCnNativeUInt(HP) + PIP^.FirstThunk);
+
+      // 找到了输入的 DLL，分两种情况处理
+      if PIP^.OriginalFirstThunk <> 0 then // 有 OFT，表示可以根据名字找 IAT 里的东西
+      begin
+        PITO := PImageThunkData(TCnNativeUInt(HP) + PIP^.OriginalFirstThunk);
+        AFN := AnsiString(FuncName);
+
+        while PITO^._Function <> 0 do
+        begin
+          if (PITO^.Ordinal and IMAGE_ORDINAL_FLAG) <> IMAGE_ORDINAL_FLAG then
+          begin
+            PIIBN := PImageImportByName(TCnNativeUInt(HP) + PITO^.AddressOfData);
+            FN := PAnsiChar(@(PIIBN^.Name[0]));
+
+            if (FN <> '') and (AnsiStrIComp(FN, PAnsiChar(AFN)) = 0) then
+            begin
+              // 找到了要替换的函数地址，改权限先
+              VirtualQuery(PITR, MBI, SizeOf(TMemoryBasicInformation));
+              VirtualProtect(MBI.BaseAddress, MBI.RegionSize, PAGE_READWRITE, @MBI.Protect);
+
+              if Hook then
+              begin
+                // 替换
+                OldAddress := Pointer(PITR^._Function);
+                PITR^._Function := TCnNativeUInt(NewAddress);
+              end
+              else
+              begin
+                // 恢复
+                PITR^._Function := TCnNativeUInt(OldAddress);
+              end;
+
+              Result := True;
+              Exit;
+            end;
+          end;
+
+          Inc(PITO);
+          Inc(PITR);
+        end;
+      end
+      else // OFT 为 0，表示要自行搜索 FirstTrunk 指向的 IAT，可能有多个
+      begin
+        HM := GetModuleHandle(PChar(ModuleName));
+        if HM <> 0 then
+        begin
+          FindingAddress := GetProcAddress(HM, PChar(FuncName));
+
+          if Hook then
+          begin
+            while PITR^._Function <> 0 do
+            begin
+              if PITR^._Function = TCnNativeUInt(FindingAddress) then
+              begin
+                // 替换
+                VirtualQuery(PITR, MBI, SizeOf(TMemoryBasicInformation));
+                VirtualProtect(MBI.BaseAddress, MBI.RegionSize, PAGE_READWRITE, @MBI.Protect);
+
+                OldAddress := Pointer(PITR^._Function);
+                PITR^._Function := TCnNativeUInt(NewAddress);
+                Result := True;
+              end;
+              Inc(PITR);
+            end;
+          end
+          else // 循环查找恢复，可能有多个
+          begin
+            while PITR^._Function <> 0 do
+            begin
+              if PITR^._Function = TCnNativeUInt(NewAddress) then
+              begin
+                VirtualQuery(PITR, MBI, SizeOf(TMemoryBasicInformation));
+                VirtualProtect(MBI.BaseAddress, MBI.RegionSize, PAGE_READWRITE, @MBI.Protect);
+
+                if OldAddress <> nil then // 恢复时优先以传入的地址为准
+                  PITR^._Function := TCnNativeUInt(OldAddress)
+                else
+                  PITR^._Function := TCnNativeUInt(FindingAddress);
+
+                Result := True;
+              end;
+              Inc(PITR);
+            end;
+          end;
+        end;
+      end;
     end;
     Inc(PIP);
   end;
-
-  if not FoundName then
-    Exit;
-
-  // 找到了输入的 DLL
-  PITR := PImageThunkData(TCnNativeUInt(HP) + PIP^.FirstThunk);
-  if PIP^.OriginalFirstThunk = 0 then
-    PITO := PITR
-  else
-    PITO := PImageThunkData(TCnNativeUInt(HP) + PIP^.OriginalFirstThunk);
-
-  AFN := AnsiString(FuncName);
-  while PITO^._Function <> 0 do
-  begin
-    if (PITO^.Ordinal and IMAGE_ORDINAL_FLAG) <> IMAGE_ORDINAL_FLAG then
-    begin
-      PIIBN := PImageImportByName(TCnNativeUInt(HP) + PITO^.AddressOfData);
-      FN := PAnsiChar(@(PIIBN^.Name[0]));
-
-      if (FN <> '') and (AnsiStrIComp(FN, PAnsiChar(AFN)) = 0) then
-      begin
-        // 找到了要替换的函数地址，改权限先
-        VirtualQuery(PITR, MBI, SizeOf(TMemoryBasicInformation));
-        VirtualProtect(MBI.BaseAddress, MBI.RegionSize, PAGE_READWRITE, @MBI.Protect);
-
-        if Hook then
-        begin
-          // 替换
-          OldAddress := Pointer(PITR^._Function);
-          PITR^._Function := TCnNativeUInt(NewAddress);
-        end
-        else
-        begin
-          // 恢复
-          PITR^._Function := TCnNativeUInt(OldAddress);
-        end;
-
-        Result := True;
-        Exit;
-      end;
-    end;
-
-    Inc(PITO);
-    Inc(PITR);
-  end;
 end;
 
-function CnHookImportAddressTable(const ModuleName: string; const FuncName: string;
-  out OldAddress: Pointer; NewAddress: Pointer): Boolean;
+function CnHookImportAddressTable(const ImportModuleName, ImportFuncName: string;
+  out OldAddress: Pointer; NewAddress: Pointer; ModuleHandle: THandle): Boolean;
 begin
-  Result := HookImportAddressTable(True, ModuleName, FuncName, OldAddress, NewAddress);
+  Result := HookImportAddressTable(True, ImportModuleName, ImportFuncName,
+    OldAddress, NewAddress, ModuleHandle);
 end;
 
-function CnUnHookImportAddressTable(const ModuleName: string; const FuncName: string;
-  OldAddress: Pointer): Boolean;
+function CnUnHookImportAddressTable(const ImportModuleName, ImportFuncName: string;
+  OldAddress, NewAddress: Pointer; ModuleHandle: THandle): Boolean;
 begin
-  Result := HookImportAddressTable(False, ModuleName, FuncName, OldAddress, nil);
+  Result := HookImportAddressTable(False, ImportModuleName, ImportFuncName,
+    OldAddress, NewAddress, ModuleHandle);
 end;
 
 initialization

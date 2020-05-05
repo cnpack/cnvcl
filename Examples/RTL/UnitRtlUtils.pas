@@ -22,12 +22,14 @@ type
     btnHookIAT: TButton;
     btnUnHookIAT: TButton;
     btnCallMessageBox: TButton;
+    btnJCLHookMessageBoxA: TButton;
     procedure btnGetMyModuleClick(Sender: TObject);
     procedure btnGetStackClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnHookIATClick(Sender: TObject);
     procedure btnUnHookIATClick(Sender: TObject);
     procedure btnCallMessageBoxClick(Sender: TObject);
+    procedure btnJCLHookMessageBoxAClick(Sender: TObject);
   private
     procedure Proc1;
     procedure Proc2;
@@ -41,8 +43,10 @@ var
 
 implementation
 
-//uses
-//  JclDebug;
+{$IFDEF USE_JCL}
+uses
+  JclDebug, JclHookExcept, JclPeImage;
+{$ENDIF}
 
 {$R *.DFM}
 
@@ -89,16 +93,20 @@ end;
 procedure TFormRtlUtils.Proc3;
 var
   List: TCnStackInfoList;
-//  SL: TJclStackInfoList;
+{$IFDEF USE_JCL}
+  SL: TJclStackInfoList;
+{$ENDIF}
 begin
   List := TCnStackInfoList.Create(True);
   mmoStack.Lines.Clear;
   List.DumpToStrings(mmoStack.Lines);
   List.Free;
 
-//  SL := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, nil, nil);
-//  SL.AddToStrings(mmoMyModules.Lines, True, True, True, False);
-//  SL.Free;
+{$IFDEF USE_JCL}
+  SL := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, nil, nil);
+  SL.AddToStrings(mmoMyModules.Lines, True, True, True, False);
+  SL.Free;
+{$ENDIF}
 end;
 
 type
@@ -141,7 +149,7 @@ procedure TFormRtlUtils.btnUnHookIATClick(Sender: TObject);
 begin
   if MessageBoxHooked then
   begin
-    if CnUnHookImportAddressTable(user32, 'MessageBoxA', OldMessageBoxA) then
+    if CnUnHookImportAddressTable(user32, 'MessageBoxA', OldMessageBoxA, @MyMessageBoxA) then
     begin
       MessageBoxHooked := False;
       ShowMessage('UnHook OK');
@@ -151,6 +159,16 @@ begin
   end
   else
     ShowMessage('NOT Hooked. Please Hook it First.');
+end;
+
+procedure TFormRtlUtils.btnJCLHookMessageBoxAClick(Sender: TObject);
+begin
+{$IFDEF USE_JCL}
+  OldMessageBoxA := GetProcAddress(GetModuleHandle(user32), 'MessageBoxA');
+  if TJclPeMapImgHooks.ReplaceImport(TJclPeMapImgHooks.SystemBase, user32,
+    OldMessageBoxA, @MyMessageBoxA) then
+    ShowMessage('JCL Hooked.');
+{$ENDIF}
 end;
 
 end.

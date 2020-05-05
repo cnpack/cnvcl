@@ -20,7 +20,7 @@ object FormRtlUtils: TFormRtlUtils
     Top = 8
     Width = 766
     Height = 552
-    ActivePage = tsIATHook
+    ActivePage = tsModule
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsModule: TTabSheet
@@ -135,6 +135,15 @@ object FormRtlUtils: TFormRtlUtils
           Caption = 'Call MessageBoxA'
           TabOrder = 2
           OnClick = btnCallMessageBoxClick
+        end
+        object btnJCLHookMessageBoxA: TButton
+          Left = 24
+          Top = 80
+          Width = 161
+          Height = 25
+          Caption = 'Hook MessageBoxA'
+          TabOrder = 3
+          OnClick = btnJCLHookMessageBoxAClick
         end
       end
     end
