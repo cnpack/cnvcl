@@ -20,7 +20,7 @@ object FormRtlUtils: TFormRtlUtils
     Top = 8
     Width = 766
     Height = 552
-    ActivePage = tsModule
+    ActivePage = tsIATHook
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsModule: TTabSheet
@@ -99,13 +99,13 @@ object FormRtlUtils: TFormRtlUtils
       end
     end
     object tsIATHook: TTabSheet
-      Caption = 'IAT Hook'
+      Caption = 'Hook'
       ImageIndex = 2
       object grpIATHook: TGroupBox
         Left = 8
         Top = 4
         Width = 742
-        Height = 508
+        Height = 141
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Hook API by Replacing IAT '
         TabOrder = 0
@@ -141,9 +141,53 @@ object FormRtlUtils: TFormRtlUtils
           Top = 80
           Width = 161
           Height = 25
-          Caption = 'Hook MessageBoxA'
+          Caption = 'JCL Hook MessageBoxA'
           TabOrder = 3
           OnClick = btnJCLHookMessageBoxAClick
+        end
+      end
+      object grpException: TGroupBox
+        Left = 8
+        Top = 160
+        Width = 742
+        Height = 313
+        Caption = 'Hook Exception'
+        TabOrder = 1
+        object btnHookException: TButton
+          Left = 24
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'Hook Exception'
+          TabOrder = 0
+          OnClick = btnHookExceptionClick
+        end
+        object btnUnHookException: TButton
+          Left = 232
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'UnHook Exception'
+          TabOrder = 1
+          OnClick = btnUnHookExceptionClick
+        end
+        object btnRaiseException: TButton
+          Left = 552
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'Raise Language Exception'
+          TabOrder = 2
+          OnClick = btnRaiseExceptionClick
+        end
+        object btnRaiseOSException: TButton
+          Left = 552
+          Top = 80
+          Width = 161
+          Height = 25
+          Caption = 'Raise OS Exception'
+          TabOrder = 3
+          OnClick = btnRaiseOSExceptionClick
         end
       end
     end

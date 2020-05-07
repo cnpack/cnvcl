@@ -23,6 +23,11 @@ type
     btnUnHookIAT: TButton;
     btnCallMessageBox: TButton;
     btnJCLHookMessageBoxA: TButton;
+    grpException: TGroupBox;
+    btnHookException: TButton;
+    btnUnHookException: TButton;
+    btnRaiseException: TButton;
+    btnRaiseOSException: TButton;
     procedure btnGetMyModuleClick(Sender: TObject);
     procedure btnGetStackClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -30,12 +35,17 @@ type
     procedure btnUnHookIATClick(Sender: TObject);
     procedure btnCallMessageBoxClick(Sender: TObject);
     procedure btnJCLHookMessageBoxAClick(Sender: TObject);
+    procedure btnHookExceptionClick(Sender: TObject);
+    procedure btnUnHookExceptionClick(Sender: TObject);
+    procedure btnRaiseExceptionClick(Sender: TObject);
+    procedure btnRaiseOSExceptionClick(Sender: TObject);
   private
     procedure Proc1;
     procedure Proc2;
     procedure Proc3;
   public
-    { Public declarations }
+    procedure MyExceptionHandler(ExceptObj: Exception; ExceptAddr: Pointer;
+      IsOSException: Boolean);
   end;
 
 var
@@ -169,6 +179,38 @@ begin
     OldMessageBoxA, @MyMessageBoxA) then
     ShowMessage('JCL Hooked.');
 {$ENDIF}
+end;
+
+procedure TFormRtlUtils.btnHookExceptionClick(Sender: TObject);
+begin
+  CnHookException;
+  CnSetAdditionalExceptionRecorder(MyExceptionHandler);
+end;
+
+procedure TFormRtlUtils.btnUnHookExceptionClick(Sender: TObject);
+begin
+  CnUnHookException;
+end;
+
+procedure TFormRtlUtils.btnRaiseExceptionClick(Sender: TObject);
+begin
+  raise Exception.Create('test');
+end;
+
+procedure TFormRtlUtils.MyExceptionHandler(ExceptObj: Exception;
+  ExceptAddr: Pointer; IsOSException: Boolean);
+begin
+  ShowMessage(ExceptObj.Message);
+end;
+
+procedure TFormRtlUtils.btnRaiseOSExceptionClick(Sender: TObject);
+var
+  I, J: Integer;
+begin
+  I := 0;
+  J := 3;
+  if J / I = 1 then
+    Caption := '';
 end;
 
 end.

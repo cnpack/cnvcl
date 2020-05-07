@@ -29,7 +29,9 @@ unit CnRtlUtils;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.05.04
+* 修改记录：2020.05.07
+*               实现 Delphi 模块的异常挂接，包括 raise 与 OS 异常两种，支持 32/64。
+*           2020.05.05
 *               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64。
 *               当模块内的 OriginalFirstThunk 有效时根据函数名来搜索 IAT
 *               当模块内的 OriginalFirstThunk 为 0 时直接用地址来搜索 IAT
@@ -161,6 +163,33 @@ function CnUnHookImportAddressTable(const ImportModuleName, ImportFuncName: stri
   返回值 True 表示 UnHook 成功
   注：对于同一个模块内，Hook 同一个外部模块的同一个函数时，要控制不能重复 UnHook，以及和 Hook 要严格配对
 }
+
+// ======================== 全局的异常 Hook 处理 ===============================
+
+{*
+  Delphi 中有两种异常，一种是代码中 raise 的：创建 Exception 对象并转换为 ExceptionRecord，
+  再调用 Kernel32.RaiseException，触发 SEH 跳至对应的 except/finally 语句处
+
+  一种是代码遇到异常如除 0、访问违例等，CPU 的 SEH 机制会将其包装成 ExceptionRecord，
+  跳至 Delphi 预先设置好的 _ExceptionHandler，再层层上去转换成 Exception 对象
+
+  两处都得挂。
+}
+type
+  TCnExceptionNotifier = procedure (ExceptObj: Exception; ExceptAddr: Pointer;
+    IsOSException: Boolean) of object;
+
+function CnHookException: Boolean;
+{* 挂接异常处理，返回是否挂接成功}
+
+function CnUnHookException: Boolean;
+{* 解除异常处理的挂接，返回是否解除成功}
+
+function CnGetExceptionHooked: Boolean;
+{* 返回是否已 HookException}
+
+procedure CnSetAdditionalExceptionRecorder(ARecorder: TCnExceptionNotifier);
+{* 设置一个异常挂接的记录器，只支持单个处理}
 
 implementation
 
@@ -889,6 +918,103 @@ function CnUnHookImportAddressTable(const ImportModuleName, ImportFuncName: stri
 begin
   Result := HookImportAddressTable(False, ImportModuleName, ImportFuncName,
     OldAddress, NewAddress, ModuleHandle);
+end;
+
+// ======================== 全局的异常 Hook 处理 ===============================
+
+const
+  cDelphiException = $0EEDFADE;
+  cNonContinuable = 1;
+
+type
+  PExceptionArguments = ^TExceptionArguments;
+  TExceptionArguments = record
+    ExceptAddr: Pointer;
+    ExceptObj: Exception;
+  end;
+
+  TRaiseException = procedure (dwExceptionCode, dwExceptionFlags, nNumberOfArguments: DWORD;
+    lpArguments: TCnNativeUInt); stdcall;
+
+var
+  FExceptionHooked: Boolean = False;
+  FExceptionRecorder: TCnExceptionNotifier = nil;
+
+  Kernel32RaiseException: Pointer = nil;
+  SysUtilsExceptObjProc: function (P: PExceptionRecord): Exception = nil;
+
+function SystemTObjectInstance: HINST;
+begin
+  Result := FindClassHInstance(System.TObject);
+end;
+
+procedure MyKernel32RaiseException(ExceptionCode, ExceptionFlags, NumberOfArguments: DWORD;
+  Arguments: PExceptionArguments); stdcall;
+const
+  OFFSET = 4;
+begin
+  if (ExceptionFlags = cNonContinuable) and (ExceptionCode = cDelphiException) and (NumberOfArguments = 7)
+    {$IFNDEF WIN64} and (TCnNativeUInt(Arguments) = TCnNativeUInt(@Arguments) + OFFSET) {$ENDIF}
+    then
+  begin
+    if Assigned(FExceptionRecorder) then
+      FExceptionRecorder(Arguments.ExceptObj, Arguments.ExceptAddr, False);
+  end;
+  TRaiseException(Kernel32RaiseException)(ExceptionCode, ExceptionFlags,
+    NumberOfArguments, TCnNativeUInt(Arguments));
+end;
+
+function MyExceptObjProc(P: PExceptionRecord): Exception;
+begin
+  Result := SysUtilsExceptObjProc(P);
+  if Assigned(FExceptionRecorder) then
+    FExceptionRecorder(Result, P^.ExceptionAddress, True);
+end;
+
+function CnHookException: Boolean;
+begin
+  Result := False;
+  if not FExceptionHooked then
+  begin
+    Result := CnHookImportAddressTable(kernel32, 'RaiseException', Kernel32RaiseException,
+      @MyKernel32RaiseException, SystemTObjectInstance);
+
+    if Result then
+    begin
+      SysUtilsExceptObjProc := System.ExceptObjProc;
+      System.ExceptObjProc := @MyExceptObjProc;
+    
+      FExceptionHooked := True;
+    end;
+  end;
+end;
+
+function CnUnHookException: Boolean;
+begin
+  Result := False;
+  if FExceptionHooked then
+  begin
+    Result := CnUnHookImportAddressTable(kernel32, 'RaiseException', Kernel32RaiseException,
+      @MyKernel32RaiseException, SystemTObjectInstance);
+
+    if Result then
+    begin
+      System.ExceptObjProc := @SysUtilsExceptObjProc;
+      SysUtilsExceptObjProc := nil;
+
+      FExceptionHooked := False;
+    end;
+  end;
+end;
+
+function CnGetExceptionHooked: Boolean;
+begin
+  Result := FExceptionHooked;
+end;
+
+procedure CnSetAdditionalExceptionRecorder(ARecorder: TCnExceptionNotifier);
+begin
+  FExceptionRecorder := ARecorder;
 end;
 
 initialization
