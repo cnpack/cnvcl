@@ -34,7 +34,7 @@ unit CnRtlUtils;
 *           抓当前调用堆栈           抓语言抛异常             抓 OS 异常
 * 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnExceptionStackInfoList
 * 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     拿 EBP/ExecptionAddress 再 StackWalk64
-* 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     没招 1、没 Context；2、有也没用。
+* 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
 *           2020.05.05
 *               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64。
 *               当模块内的 OriginalFirstThunk 有效时根据函数名来搜索 IAT
@@ -142,12 +142,12 @@ type
   TCnManualStackInfoList = class(TCnStackInfoList)
   {* 根据外部的运行地址与堆栈基址回溯调用堆栈}
   private
-    FStackBase: Pointer;
+    FStackBase32OrPContext64: Pointer;
     FAddr: Pointer;
   protected
     procedure TraceStackFrames; override;
   public
-    constructor Create(StackBase, Addr: Pointer; OnlyDelphi: Boolean = False);
+    constructor Create(StackBase32OrPContext64, Addr: Pointer; OnlyDelphi: Boolean = False);
   end;
 
 // ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
@@ -323,6 +323,15 @@ type
 
   TSymGetModuleBase64 = function (hProcess: THandle; Address: DWORD64): DWORD64; stdcall;
 
+  PEXCEPTION_POINTERS = ^EXCEPTION_POINTERS;
+
+  PVectoredExceptionHandler = function(ExceptionInfo: PEXCEPTION_POINTERS): Integer; stdcall;
+
+  TAddVectoredExceptionHandler = function(FirstHandler: DWORD;
+    VectoredHandler: PVectoredExceptionHandler): Pointer; stdcall;
+
+  TRemoveVectoredExceptionHandler = function(VectoredHandlerHandle: Pointer): DWORD; stdcall;
+
   _IMAGE_IMPORT_DESCRIPTOR = record
     case Byte of
       0: (Characteristics: DWORD);          // 0 for terminating null import descriptor
@@ -406,6 +415,9 @@ var
   StackWalk64: TStackWalk64 = nil;
   SymFunctionTableAccess64: TSymFunctionTableAccess64 = nil;
   SymGetModuleBase64: TSymGetModuleBase64 = nil;
+
+  AddVectoredExceptionHandler: TAddVectoredExceptionHandler = nil;
+  RemoveVectoredExceptionHandler: TRemoveVectoredExceptionHandler = nil;
 
 // 查询某虚拟地址所属的分配模块 Handle，也就是 AllocationBase
 function ModuleFromAddr(const Addr: Pointer): HMODULE;
@@ -680,7 +692,14 @@ begin
     P := GetProcAddress(H, 'RtlCaptureStackBackTrace');
     if P <> nil then
       RtlCaptureStackBackTrace := TRtlCaptureStackBackTrace(P);
+    P := GetProcAddress(H, 'AddVectoredExceptionHandler');
+    if P <> nil then
+      AddVectoredExceptionHandler := TAddVectoredExceptionHandler(P);
+    P := GetProcAddress(H, 'RemoveVectoredExceptionHandler');
+    if P <> nil then
+      RemoveVectoredExceptionHandler := TRemoveVectoredExceptionHandler(P);
   end;
+
   H := GetModuleHandle('ntdll.dll');
   if H <> 0 then
   begin
@@ -894,6 +913,7 @@ begin
     FExceptionRecorder(ExceptObj, ExceptAddr, IsOSException, StackList);
 end;
 
+// 语言 raise 异常只走这里
 procedure MyKernel32RaiseException(ExceptionCode, ExceptionFlags, NumberOfArguments: DWORD;
   Arguments: PExceptionArguments); stdcall;
 const
@@ -930,6 +950,10 @@ asm
         MOV     EAX, EBP
 end;
 
+threadvar
+  ExceptionContext: TContext;
+
+// OS 异常后走这里，先走 Vectored
 function MyExceptObjProc(P: PExceptionRecord): Exception;
 var
   StackList: TCnStackInfoList;
@@ -937,8 +961,8 @@ begin
   Result := SysUtilsExceptObjProc(P);  // 先调用旧的返回 Exception 对象
 
 {$IFDEF WIN64}
-  // 64 位下这参数都没用，得换整个 Context，但即使是整个 Context 也没用
-  StackList := TCnManualStackInfoList.Create(nil, P^.ExceptionAddress);
+  // 64 位下这参数都没用，得换整个 Context
+  StackList := TCnManualStackInfoList.Create(@ExceptionContext, P^.ExceptionAddress);
 {$ELSE}
   // 32 位下生成 Exception 的堆栈
   StackList := TCnManualStackInfoList.Create(GetEBP32, P^.ExceptionAddress);
@@ -951,7 +975,16 @@ begin
   end;
 end;
 
+// OS 异常先走这里，后走 ExceptObjProc
+function MyVectoredExceptionHandler(ExceptionInfo: PEXCEPTION_POINTERS): DWORD; stdcall;
+begin
+  ExceptionContext := ExceptionInfo^.ContextRecord^;
+  Result := 0; // EXCEPTION_CONTINUE_SEARCH;
+end;
+
 function CnHookException: Boolean;
+const
+  CALL_FIRST = 1;
 begin
   Result := False;
   if not FExceptionHooked then
@@ -963,6 +996,9 @@ begin
     begin
       SysUtilsExceptObjProc := System.ExceptObjProc;
       System.ExceptObjProc := @MyExceptObjProc;
+
+      if Assigned(AddVectoredExceptionHandler) then
+        AddVectoredExceptionHandler(CALL_FIRST, @MyVectoredExceptionHandler);
 
       FExceptionHooked := True;
     end;
@@ -981,6 +1017,9 @@ begin
     begin
       System.ExceptObjProc := @SysUtilsExceptObjProc;
       SysUtilsExceptObjProc := nil;
+
+      if Assigned(RemoveVectoredExceptionHandler) then
+        RemoveVectoredExceptionHandler(@MyVectoredExceptionHandler);
 
       FExceptionHooked := False;
     end;
@@ -1021,10 +1060,10 @@ end;
 
 { TCnExceptionStackInfoList }
 
-constructor TCnManualStackInfoList.Create(StackBase, Addr: Pointer;
+constructor TCnManualStackInfoList.Create(StackBase32OrPContext64, Addr: Pointer;
   OnlyDelphi: Boolean);
 begin
-  FStackBase := StackBase;
+  FStackBase32OrPContext64 := StackBase32OrPContext64;
   FAddr := Addr;
   inherited Create(OnlyDelphi);
 end;
@@ -1032,23 +1071,35 @@ end;
 procedure TCnManualStackInfoList.TraceStackFrames;
 var
   Ctx: TContext;     // Ctx 貌似得声明靠上，不能放大数组后面，否则虚拟机会出莫名其妙的错
+  PCtx: PContext;
   Info: TCnStackInfo;
   STKF64: TStackFrame64;
   P, T: THandle;
   Res: Boolean;
+  MachineType: DWORD;
 begin
   if Assigned(RtlCaptureContext) and Assigned(StackWalk64) then
   begin
-    // Using StackWalk in ImageHlp and RtlCaptureContext
     FillChar(Ctx, SizeOf(TContext), 0);
-    RtlCaptureContext(@Ctx);                   // 64位的情况下，居然虚拟机上可能会出错
+    RtlCaptureContext(@Ctx);                   // 64 位的情况下，居然虚拟机上可能会出错
 
-{$IFNDEF WIN64}
-    // 32 位下，无 EIP/EBP 时用 Context 里的
+{$IFDEF WIN64}
+    // 64 位下，FStackBase32OrPContext64 指向外部传入的一个完整的 TContext
+    MachineType := IMAGE_FILE_MACHINE_AMD64;
+    if FStackBase32OrPContext64 <> nil then
+      PCtx := PContext(FStackBase32OrPContext64)
+    else
+      PCtx := @Ctx;
+    if FAddr = nil then
+      FAddr := Pointer(PCtx^.Rip);
+{$ELSE}
+    // 32 位下，FStackBase32OrPContext64 是外界传入的 EBP，无 EIP/EBP 时用 Context 里的
+    MachineType := IMAGE_FILE_MACHINE_I386;
     if FAddr = nil then
       FAddr := Pointer(Ctx.Eip);
-    if FStackBase = nil then
-      FStackBase := Pointer(Ctx.Ebp);
+    if FStackBase32OrPContext64 = nil then
+      FStackBase32OrPContext64 := Pointer(Ctx.Ebp);
+    PCtx := nil;
 {$ENDIF}
 
     FillChar(STKF64, SizeOf(TStackFrame64), 0);
@@ -1056,13 +1107,13 @@ begin
     STKF64.AddrStack.Mode      := AddrModeFlat;
     STKF64.AddrFrame.Mode      := AddrModeFlat;
 {$IFDEF WIN64}
-    STKF64.AddrPC.Offset       := Ctx.Rip;
-    STKF64.AddrStack.Offset    := Ctx.Rsp;
-    STKF64.AddrFrame.Offset    := Ctx.Rbp;
+    STKF64.AddrPC.Offset       := TCnNativeUInt(FAddr);
+    STKF64.AddrStack.Offset    := PCtx^.Rsp;
+    STKF64.AddrFrame.Offset    := PCtx^.Rbp;
 {$ELSE}
     STKF64.AddrPC.Offset       := TCnNativeUInt(FAddr);
-    STKF64.AddrStack.Offset    := TCnNativeUInt(FStackBase);
-    STKF64.AddrFrame.Offset    := TCnNativeUInt(FStackBase);
+    STKF64.AddrStack.Offset    := TCnNativeUInt(FStackBase32OrPContext64);
+    STKF64.AddrFrame.Offset    := TCnNativeUInt(FStackBase32OrPContext64);
 {$ENDIF}
 
     P := GetCurrentProcess;
@@ -1070,16 +1121,11 @@ begin
 
     while True do
     begin
-      // FIXME: 64 位下 StackWalk64 始终抓不到堆栈，咋办？
-{$IFDEF WIN64}
-      Res := StackWalk64(IMAGE_FILE_MACHINE_AMD64, P, T, @STKF64, @Ctx, nil, @SymFunctionTableAccess64,
-        @SymGetModuleBase64, nil);
-{$ELSE}
       // 32 位下貌似不用 PContext 参数，只需正确的 EIP/ESP/EBP 即可完成回溯，
       // 而且 ESP 貌似能用 EBP 代替，以无局部变量的情况来模拟堆栈指针
-      Res := StackWalk64(IMAGE_FILE_MACHINE_I386, P, T, @STKF64, nil, nil, @SymFunctionTableAccess64,
+      // FIXME: 64 位下 StackWalk64 始终抓不到堆栈，咋办？
+      Res := StackWalk64(MachineType, P, T, @STKF64, PCtx, nil, @SymFunctionTableAccess64,
         @SymGetModuleBase64, nil);
-{$ENDIF}
 
       if Res and (STKF64.AddrPC.Offset <> 0) then
       begin
