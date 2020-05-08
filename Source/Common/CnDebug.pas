@@ -126,7 +126,7 @@ uses
   {$ELSE}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts,
   Posix.Unistd, Posix.Pthread, FMX.Controls, FMX.Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
-  {$IFDEF USE_JCL}, JclDebug, JclHookExcept {$ENDIF USE_JCL};
+  {$IFDEF USE_JCL}, JclDebug, JclHookExcept, CnRtlUtils {$ENDIF USE_JCL};
 
 const
   CnMaxTagLength = 8; // 不可改变
@@ -346,6 +346,7 @@ type
     function FormatObjectInterface(AObj: TObject): string;
     function GUIDToString(const GUID: TGUID): string;
 
+    procedure GetCurrentTrace(Strings: TStrings);
     procedure GetTraceFromAddr(Addr: Pointer; Strings: TStrings);
 
     procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
@@ -2212,7 +2213,7 @@ begin
 
   try
     Strings := TStringList.Create;
-    GetTraceFromAddr(GetEBP, Strings);
+    GetCurrentTrace(Strings);
 
     LogMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
   finally
@@ -2902,7 +2903,7 @@ begin
 
   try
     Strings := TStringList.Create;
-    GetTraceFromAddr(GetEBP, Strings);
+    GetCurrentTrace(Strings);
 
     TraceMsgWithType('Dump Call Stack: ' + AMsg + SCnCRLF + Strings.Text, cmtInformation);
   finally
@@ -3871,6 +3872,37 @@ begin
     end;
     ClassPtr := ClassPtr.ClassParent;
   end;
+end;
+
+procedure TCnDebugger.GetCurrentTrace(Strings: TStrings);
+{$IFDEF USE_JCL}
+var
+  I: Integer;
+  List: TCnStackInfoList;
+{$ENDIF}
+begin
+  if Strings = nil then
+    Exit;
+  Strings.Clear;
+
+{$IFDEF USE_JCL}
+  List := nil;
+  try
+    List := TCnCurrentStackInfoList.Create;
+    if List.Count > 2 then
+    begin
+      List.Delete(0);  // 删除这里多余的堆栈条目，但可能随编译选项里的 StackFrame 不同有 2 到 3 个
+      List.Delete(0);
+    end;
+
+    for I := 0 to List.Count - 1 do
+      Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr, True, True, True, False));
+  finally
+    List.Free;
+  end;
+{$ELSE}
+  Strings.Add(SCnStackTraceNotSupport);
+{$ENDIF}
 end;
 
 procedure TCnDebugger.GetTraceFromAddr(Addr: Pointer; Strings: TStrings);

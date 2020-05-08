@@ -139,7 +139,7 @@ type
   end;
 
   TCnExceptionStackInfoList = class(TCnStackInfoList)
-  var
+  private
     FStackBase: Pointer;
     FAddr: Pointer;
   protected
@@ -232,6 +232,12 @@ type
   TCnNativeUInt = Cardinal;
 {$ENDIF}
 
+{$IFDEF SUPPORT_UINT64}
+  DWORD64 = UInt64;
+{$ELSE}
+  DWORD64 = Int64;
+{$ENDIF}
+
   TRtlCaptureStackBackTrace = function (FramesToSkip: LongWord; FramesToCapture: LongWord;
     var BackTrace: Pointer; BackTraceHash: PLongWord): Word; stdcall;
   TRtlCaptureContext = procedure (ContextRecord: PContext); stdcall;
@@ -278,7 +284,7 @@ type
     AddrFrame: ADDRESS64; // frame pointer
     AddrStack: ADDRESS64; // stack pointer
     AddrBStore: ADDRESS64; // backing store pointer
-    FuncTableEntry: PVOID; // pointer to pdata/fpo or NULL
+    FuncTableEntry: Pointer; // pointer to pdata/fpo or NULL
     Params: array [0..3] of DWORD64; // possible arguments to the function
     Far: BOOL; // WOW far call
     Virtual: BOOL; // is this a virtual frame?
@@ -293,10 +299,10 @@ type
 
   // Types of Other Routines
   PREAD_PROCESS_MEMORY_ROUTINE64 = function (hProcess: THandle; qwBaseAddress: DWORD64;
-    lpBuffer: PVOID; nSize: DWORD; var lpNumberOfBytesRead: DWORD): BOOL; stdcall;
+    lpBuffer: Pointer; nSize: DWORD; var lpNumberOfBytesRead: DWORD): BOOL; stdcall;
 
   PFUNCTION_TABLE_ACCESS_ROUTINE64 = function (hProcess: THandle;
-    AddrBase: DWORD64): PVOID; stdcall;
+    AddrBase: DWORD64): Pointer; stdcall;
 
   PGET_MODULE_BASE_ROUTINE64 = function (hProcess: THandle;
     Address: DWORD64): DWORD64; stdcall;
@@ -311,7 +317,7 @@ type
     GetModuleBaseRoutine: PGET_MODULE_BASE_ROUTINE64;
     TranslateAddress: PTRANSLATE_ADDRESS_ROUTINE64): BOOL; stdcall;
 
-  TSymFunctionTableAccess64 = function (hProcess: THandle; AddrBase: DWORD64): PVOID; stdcall;
+  TSymFunctionTableAccess64 = function (hProcess: THandle; AddrBase: DWORD64): Pointer; stdcall;
 
   TSymGetModuleBase64 = function (hProcess: THandle; Address: DWORD64): DWORD64; stdcall;
 
