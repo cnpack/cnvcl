@@ -20,7 +20,7 @@ object FormRtlUtils: TFormRtlUtils
     Top = 8
     Width = 766
     Height = 552
-    ActivePage = tsIATHook
+    ActivePage = tsModule
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsModule: TTabSheet

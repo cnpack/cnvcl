@@ -29,14 +29,19 @@ unit CnRtlUtils;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.05.07
-*               实现 Delphi 模块的异常挂接，包括 raise 与 OS 异常两种，支持 32/64。
+* 修改记录：2020.05.08
+*               实现 Delphi 模块的异常挂接，包括 raise 与 OS 异常两种，基本支持 32/64。
+*           抓当前调用堆栈           抓语言抛异常             抓 OS 异常
+* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnExceptionStackInfoList
+* 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     拿 EBP/ExecptionAddress 再 StackWalk64
+* 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     没招 1、没 Context；2、有也没用。
 *           2020.05.05
 *               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64。
 *               当模块内的 OriginalFirstThunk 有效时根据函数名来搜索 IAT
 *               当模块内的 OriginalFirstThunk 为 0 时直接用地址来搜索 IAT
 *           2020.05.04
-*               实现当前堆栈的两种调用地址追踪实现，同时支持 32/64，其中 StackWalk64 有问题
+*               实现当前堆栈的两种调用地址追踪实现，同时支持 32/64，
+*               其中 64 位下调用 StackWalk64 有问题
 *           2020.04.26
 *               创建单元,实现功能
 ================================================================================
@@ -50,12 +55,6 @@ uses
   SysUtils, Classes, Windows, Contnrs, TLHelp32, Psapi, Imagehlp;
 
 type
-  PCnStackFrame = ^TCnStackFrame;
-  TCnStackFrame = record
-    CallersEBP: Pointer;
-    CallerAdr: Pointer;
-  end;
-
   TCnModuleInfo = class(TObject)
   {* 描述一个模块信息，exe 或 dll 或 bpl 等，支持 32/64 位}
   private
@@ -122,7 +121,9 @@ type
   private
     FModuleList: TCnModuleInfoList;
     function GetItems(Index: Integer): TCnStackInfo;
-    procedure TraceStackFrames;
+    procedure TrimNonDelphi;
+  protected
+    procedure TraceStackFrames; virtual; abstract;
   public
     constructor Create(OnlyDelphi: Boolean = False);
     destructor Destroy; override;
@@ -130,6 +131,21 @@ type
     procedure DumpToStrings(List: TStrings);
 
     property Items[Index: Integer]: TCnStackInfo read GetItems; default;
+  end;
+
+  TCnCurrentStackInfoList = class(TCnStackInfoList)
+  protected
+    procedure TraceStackFrames; override;
+  end;
+
+  TCnExceptionStackInfoList = class(TCnStackInfoList)
+  var
+    FStackBase: Pointer;
+    FAddr: Pointer;
+  protected
+    procedure TraceStackFrames; override;
+  public
+    constructor Create(StackBase, Addr: Pointer; OnlyDelphi: Boolean = False);
   end;
 
 // ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
@@ -170,14 +186,15 @@ function CnUnHookImportAddressTable(const ImportModuleName, ImportFuncName: stri
   Delphi 中有两种异常，一种是代码中 raise 的：创建 Exception 对象并转换为 ExceptionRecord，
   再调用 Kernel32.RaiseException，触发 SEH 跳至对应的 except/finally 语句处
 
-  一种是代码遇到异常如除 0、访问违例等，CPU 的 SEH 机制会将其包装成 ExceptionRecord，
+  一种是代码遇到外部异常如除 0、访问违例等，也就是转换后的 EExternal 型异常
+  CPU 的 SEH 机制会在遇到外部异常时将其包装成 ExceptionRecord，
   跳至 Delphi 预先设置好的 _ExceptionHandler，再层层上去转换成 Exception 对象
 
   两处都得挂。
 }
 type
   TCnExceptionNotifier = procedure (ExceptObj: Exception; ExceptAddr: Pointer;
-    IsOSException: Boolean) of object;
+    IsOSException: Boolean; StackList: TCnStackInfoList) of object;
 
 function CnHookException: Boolean;
 {* 挂接异常处理，返回是否挂接成功}
@@ -219,7 +236,6 @@ type
     var BackTrace: Pointer; BackTraceHash: PLongWord): Word; stdcall;
   TRtlCaptureContext = procedure (ContextRecord: PContext); stdcall;
 
-{$IFDEF WIN64}
   // Types of Address
   LPADDRESS64 = ^ADDRESS64;
   {$EXTERNALSYM PADDRESS64}
@@ -295,14 +311,10 @@ type
     GetModuleBaseRoutine: PGET_MODULE_BASE_ROUTINE64;
     TranslateAddress: PTRANSLATE_ADDRESS_ROUTINE64): BOOL; stdcall;
 
-function SymFunctionTableAccess64(hProcess: THandle; AddrBase: DWORD64): PVOID; stdcall;
-  external ImagehlpLib name 'SymFunctionTableAccess64';
-function SymGetModuleBase64(hProcess: THandle; Address: DWORD64): DWORD64; stdcall;
-  external ImagehlpLib name 'SymGetModuleBase64';
+  TSymFunctionTableAccess64 = function (hProcess: THandle; AddrBase: DWORD64): PVOID; stdcall;
 
-{$ENDIF}
+  TSymGetModuleBase64 = function (hProcess: THandle; Address: DWORD64): DWORD64; stdcall;
 
-type
   _IMAGE_IMPORT_DESCRIPTOR = record
     case Byte of
       0: (Characteristics: DWORD);          // 0 for terminating null import descriptor
@@ -381,10 +393,9 @@ var
   // XP 以前的平台不支持这批 API，需要动态加载
   RtlCaptureStackBackTrace: TRtlCaptureStackBackTrace = nil;
   RtlCaptureContext: TRtlCaptureContext = nil;
-
-{$IFDEF WIN64} // 64 位下必须用未声明的 StackWalk64
   StackWalk64: TStackWalk64 = nil;
-{$ENDIF}
+  SymFunctionTableAccess64: TSymFunctionTableAccess64 = nil;
+  SymGetModuleBase64: TSymGetModuleBase64 = nil;
 
 // 查询某虚拟地址所属的分配模块 Handle，也就是 AllocationBase
 function ModuleFromAddr(const Addr: Pointer): HMODULE;
@@ -405,6 +416,8 @@ begin
   inherited Create(True);
   FModuleList := TCnModuleInfoList.Create(OnlyDelphi);
   TraceStackFrames;
+  if OnlyDelphi then
+    TrimNonDelphi;
 end;
 
 destructor TCnStackInfoList.Destroy;
@@ -418,102 +431,13 @@ begin
   Result := TCnStackInfo(inherited Items[Index]);
 end;
 
-procedure TCnStackInfoList.TraceStackFrames;
+procedure TCnStackInfoList.TrimNonDelphi;
 var
-  Ctx: TContext;     // Ctx 貌似得声明靠上，不能放 Callers 这个大数组后面，否则虚拟机会出莫名其妙的错
-  Info: TCnStackInfo;
-  C: Word;
   I: Integer;
-  Callers: array[0..MAX_STACK_COUNT - 1] of Pointer;
-{$IFDEF WIN64}
-  STKF64: TStackFrame64;
-{$ELSE}
-  STKF: TStackFrame;
-{$ENDIF}
-  P, T: THandle;
-  Res: Boolean;
 begin
-  Capacity := 32;
-  if Assigned(RtlCaptureStackBackTrace) then // XP/2003 or above, Support 32/64
-  begin
-    C := RtlCaptureStackBackTrace(0, MAX_STACK_COUNT, Callers[0], nil);
-    for I := 0 to C - 1 do
-    begin
-      Info := TCnStackInfo.Create;
-      Info.CallerAddr := Callers[I];
-      Add(Info);
-    end;
-  end
-  else if Assigned(RtlCaptureContext) {$IFDEF WIN64} and Assigned(StackWalk64) {$ENDIF} then
-  begin
-    // Using StackWalk in ImageHlp and RtlCaptureContext
-    FillChar(Ctx, SizeOf(TContext), 0);
-    RtlCaptureContext(@Ctx);                   // 64位的情况下，居然虚拟机上可能会出错
-{$IFDEF WIN64}
-    FillChar(STKF64, SizeOf(TStackFrame64), 0);
-
-    STKF64.AddrPC.Mode         := AddrModeFlat;
-    STKF64.AddrStack.Mode      := AddrModeFlat;
-    STKF64.AddrFrame.Mode      := AddrModeFlat;
-    STKF64.AddrPC.Offset       := Ctx.Rip;
-    STKF64.AddrStack.Offset    := Ctx.Rsp;
-    STKF64.AddrFrame.Offset    := Ctx.Rbp;
-{$ELSE}
-    FillChar(STKF, SizeOf(TStackFrame), 0);
-
-    STKF.AddrPC.Mode         := AddrModeFlat;
-    STKF.AddrStack.Mode      := AddrModeFlat;
-    STKF.AddrFrame.Mode      := AddrModeFlat;
-    STKF.AddrPC.Offset       := Ctx.Eip;
-    STKF.AddrStack.Offset    := Ctx.Esp;
-    STKF.AddrFrame.Offset    := Ctx.Ebp;
-{$ENDIF}
-
-    P := GetCurrentProcess;
-    T := GetCurrentThread;
-
-    while True do
-    begin
-{$IFDEF WIN64}
-      // FIXME: 64位下 StackWalk64 始终抓不到堆栈，咋办？
-      Res := StackWalk64(IMAGE_FILE_MACHINE_AMD64, P, T, @STKF64, @Ctx, nil, @SymFunctionTableAccess64,
-        @SymGetModuleBase64, nil);
-
-      if Res and (STKF64.AddrPC.Offset <> 0) then
-      begin
-        if STKF64.AddrReturn.Offset = 0 then
-          Break;
-
-        Info := TCnStackInfo.Create;
-        Info.CallerAddr := Pointer(STKF64.AddrPC.Offset);
-        Add(Info);
-      end
-      else
-        Break;
-
-      if STKF64.AddrReturn.Offset = 0 then
-        Break;
-{$ELSE}
-      Res := StackWalk(IMAGE_FILE_MACHINE_I386, P, T, @STKF, @Ctx, nil, @SymFunctionTableAccess,
-        @SymGetModuleBase, nil);
-
-      if Res and (STKF.AddrPC.Offset <> 0) then
-      begin
-        if STKF.AddrReturn.Offset = 0 then
-          Break;
-
-        Info := TCnStackInfo.Create;
-        Info.CallerAddr := Pointer(STKF.AddrPC.Offset);
-        Add(Info);
-      end
-      else
-        Break;
-
-      if STKF.AddrReturn.Offset = 0 then
-        Break;
-{$ENDIF}
-    end;
-  end;
+  for I := Count - 1 downto 0 do
+    if not FModuleList.IsDelphiModuleAddress(Items[I].CallerAddr) then
+      Delete(I);
 end;
 
 procedure TCnStackInfoList.DumpToStrings(List: TStrings);
@@ -754,15 +678,19 @@ begin
     if P <> nil then
       RtlCaptureContext := TRtlCaptureContext(P);
   end;
-{$IFDEF WIN64}
   H := GetModuleHandle(ImagehlpLib);
   if H <> 0 then
   begin
     P := GetProcAddress(H, 'StackWalk64');
     if P <> nil then
       StackWalk64 := TStackWalk64(P);
+    P := GetProcAddress(H, 'SymFunctionTableAccess64');
+    if P <> nil then
+      SymFunctionTableAccess64 := TSymFunctionTableAccess64(P);
+    P := GetProcAddress(H, 'SymGetModuleBase64');
+    if P <> nil then
+      SymGetModuleBase64 := TSymGetModuleBase64(P);
   end;
-{$ENDIF}
 end;
 
 // ===================== 进程内用改写 IAT 表的方式 Hook API ====================
@@ -948,27 +876,62 @@ begin
   Result := FindClassHInstance(System.TObject);
 end;
 
+procedure DoExceptionNotify(ExceptObj: Exception; ExceptAddr: Pointer;
+  IsOSException: Boolean; StackList: TCnStackInfoList);
+begin
+  if Assigned(FExceptionRecorder) then
+    FExceptionRecorder(ExceptObj, ExceptAddr, IsOSException, StackList);
+end;
+
 procedure MyKernel32RaiseException(ExceptionCode, ExceptionFlags, NumberOfArguments: DWORD;
   Arguments: PExceptionArguments); stdcall;
 const
   OFFSET = 4;
+var
+  StackList: TCnStackInfoList;
 begin
   if (ExceptionFlags = cNonContinuable) and (ExceptionCode = cDelphiException) and (NumberOfArguments = 7)
     {$IFNDEF WIN64} and (TCnNativeUInt(Arguments) = TCnNativeUInt(@Arguments) + OFFSET) {$ENDIF}
     then
   begin
-    if Assigned(FExceptionRecorder) then
-      FExceptionRecorder(Arguments.ExceptObj, Arguments.ExceptAddr, False);
+    // 在此记录当前堆栈
+    StackList := TCnCurrentStackInfoList.Create();
+    try
+      DoExceptionNotify(Arguments.ExceptObj, Arguments.ExceptAddr, False, StackList);
+    finally
+      StackList.Free;
+    end;
   end;
+
+  // 后调用 API 进行真正的抛出
   TRaiseException(Kernel32RaiseException)(ExceptionCode, ExceptionFlags,
     NumberOfArguments, TCnNativeUInt(Arguments));
 end;
 
+function GetEBP32: Pointer;
+asm
+        MOV     EAX, EBP
+end;
+
 function MyExceptObjProc(P: PExceptionRecord): Exception;
+var
+  StackList: TCnStackInfoList;
 begin
-  Result := SysUtilsExceptObjProc(P);
-  if Assigned(FExceptionRecorder) then
-    FExceptionRecorder(Result, P^.ExceptionAddress, True);
+  Result := SysUtilsExceptObjProc(P);  // 先调用旧的返回 Exception 对象
+
+{$IFDEF WIN64}
+  // 64 位下这参数都没用，得换整个 Context，但即使是整个 Context 也没用
+  StackList := TCnExceptionStackInfoList.Create(nil, P^.ExceptionAddress);
+{$ELSE}
+  // 32 位下生成 Exception 的堆栈
+  StackList := TCnExceptionStackInfoList.Create(GetEBP32, P^.ExceptionAddress);
+{$ENDIF}
+
+  try
+    DoExceptionNotify(Result, P^.ExceptionAddress, True, StackList);
+  finally
+    StackList.Free;
+  end;
 end;
 
 function CnHookException: Boolean;
@@ -1015,6 +978,104 @@ end;
 procedure CnSetAdditionalExceptionRecorder(ARecorder: TCnExceptionNotifier);
 begin
   FExceptionRecorder := ARecorder;
+end;
+
+{ TCnCurrentStackInfoList }
+
+procedure TCnCurrentStackInfoList.TraceStackFrames;
+var
+  Info: TCnStackInfo;
+  C: Word;
+  I: Integer;
+  Callers: array[0..MAX_STACK_COUNT - 1] of Pointer;
+begin
+  if Assigned(RtlCaptureStackBackTrace) then // XP/2003 or above, Support 32/64
+  begin
+    Capacity := 32;
+    C := RtlCaptureStackBackTrace(0, MAX_STACK_COUNT, Callers[0], nil);
+    for I := 0 to C - 1 do
+    begin
+      Info := TCnStackInfo.Create;
+      Info.CallerAddr := Callers[I];
+      Add(Info);
+    end;
+  end
+end;
+
+{ TCnExceptionStackInfoList }
+
+constructor TCnExceptionStackInfoList.Create(StackBase, Addr: Pointer;
+  OnlyDelphi: Boolean);
+begin
+  FStackBase := StackBase;
+  FAddr := Addr;
+  inherited Create(OnlyDelphi);
+end;
+
+procedure TCnExceptionStackInfoList.TraceStackFrames;
+var
+{$IFDEF WIN64}
+  Ctx: TContext;     // Ctx 貌似得声明靠上，不能放大数组后面，否则虚拟机会出莫名其妙的错
+{$ENDIF}
+  Info: TCnStackInfo;
+  STKF64: TStackFrame64;
+  P, T: THandle;
+  Res: Boolean;
+begin
+  if Assigned(RtlCaptureContext) and Assigned(StackWalk64) then
+  begin
+    // Using StackWalk in ImageHlp and RtlCaptureContext
+{$IFDEF WIN64}
+    FillChar(Ctx, SizeOf(TContext), 0);
+    RtlCaptureContext(@Ctx);                   // 64位的情况下，居然虚拟机上可能会出错
+{$ENDIF}
+
+    FillChar(STKF64, SizeOf(TStackFrame64), 0);
+    STKF64.AddrPC.Mode         := AddrModeFlat;
+    STKF64.AddrStack.Mode      := AddrModeFlat;
+    STKF64.AddrFrame.Mode      := AddrModeFlat;
+{$IFDEF WIN64}
+    STKF64.AddrPC.Offset       := Ctx.Rip;
+    STKF64.AddrStack.Offset    := Ctx.Rsp;
+    STKF64.AddrFrame.Offset    := Ctx.Rbp;
+{$ELSE}
+    STKF64.AddrPC.Offset       := TCnNativeUInt(FAddr);
+    STKF64.AddrStack.Offset    := TCnNativeUInt(FStackBase);
+    STKF64.AddrFrame.Offset    := TCnNativeUInt(FStackBase);
+{$ENDIF}
+
+    P := GetCurrentProcess;
+    T := GetCurrentThread;
+
+    while True do
+    begin
+      // FIXME: 64 位下 StackWalk64 始终抓不到堆栈，咋办？
+{$IFDEF WIN64}
+      Res := StackWalk64(IMAGE_FILE_MACHINE_AMD64, P, T, @STKF64, @Ctx, nil, @SymFunctionTableAccess64,
+        @SymGetModuleBase64, nil);
+{$ELSE}
+      // 32 位下貌似不用 PContext 参数，只需正确的 EIP/ESP/EBP 即可完成回溯，
+      // 而且 ESP 貌似能用 EBP 代替，以无局部变量的情况来模拟堆栈指针
+      Res := StackWalk64(IMAGE_FILE_MACHINE_I386, P, T, @STKF64, nil, nil, @SymFunctionTableAccess64,
+        @SymGetModuleBase64, nil);
+{$ENDIF}
+
+      if Res and (STKF64.AddrPC.Offset <> 0) then
+      begin
+        if STKF64.AddrReturn.Offset = 0 then
+          Break;
+
+        Info := TCnStackInfo.Create;
+        Info.CallerAddr := Pointer(STKF64.AddrPC.Offset);
+        Add(Info);
+      end
+      else
+        Break;
+
+      if STKF64.AddrReturn.Offset = 0 then
+        Break;
+    end;
+  end;
 end;
 
 initialization

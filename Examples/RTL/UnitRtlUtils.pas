@@ -45,7 +45,7 @@ type
     procedure Proc3;
   public
     procedure MyExceptionHandler(ExceptObj: Exception; ExceptAddr: Pointer;
-      IsOSException: Boolean);
+      IsOSException: Boolean; StackList: TCnStackInfoList);
   end;
 
 var
@@ -107,7 +107,7 @@ var
   SL: TJclStackInfoList;
 {$ENDIF}
 begin
-  List := TCnStackInfoList.Create(True);
+  List := TCnCurrentStackInfoList.Create(False);
   mmoStack.Lines.Clear;
   List.DumpToStrings(mmoStack.Lines);
   List.Free;
@@ -198,9 +198,17 @@ begin
 end;
 
 procedure TFormRtlUtils.MyExceptionHandler(ExceptObj: Exception;
-  ExceptAddr: Pointer; IsOSException: Boolean);
+  ExceptAddr: Pointer; IsOSException: Boolean; StackList: TCnStackInfoList);
 begin
   ShowMessage(ExceptObj.Message);
+  if ExceptObj is EExternal then
+    ShowMessage('Is EExternal');
+
+  if StackList <> nil then
+  begin
+    mmoStack.Lines.Clear;
+    StackList.DumpToStrings(mmoStack.Lines);
+  end;
 end;
 
 procedure TFormRtlUtils.btnRaiseOSExceptionClick(Sender: TObject);
