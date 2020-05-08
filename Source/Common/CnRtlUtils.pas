@@ -399,6 +399,8 @@ type
 
 var
   // XP 以前的平台不支持这批 API，需要动态加载
+  FImagehlpLibHandle: THandle = 0;
+
   RtlCaptureStackBackTrace: TRtlCaptureStackBackTrace = nil;
   RtlCaptureContext: TRtlCaptureContext = nil;
   StackWalk64: TStackWalk64 = nil;
@@ -686,16 +688,17 @@ begin
     if P <> nil then
       RtlCaptureContext := TRtlCaptureContext(P);
   end;
-  H := GetModuleHandle(ImagehlpLib);
-  if H <> 0 then
+
+  FImagehlpLibHandle := LoadLibrary(ImagehlpLib);
+  if FImagehlpLibHandle <> 0 then
   begin
-    P := GetProcAddress(H, 'StackWalk64');
+    P := GetProcAddress(FImagehlpLibHandle, 'StackWalk64');
     if P <> nil then
       StackWalk64 := TStackWalk64(P);
-    P := GetProcAddress(H, 'SymFunctionTableAccess64');
+    P := GetProcAddress(FImagehlpLibHandle, 'SymFunctionTableAccess64');
     if P <> nil then
       SymFunctionTableAccess64 := TSymFunctionTableAccess64(P);
-    P := GetProcAddress(H, 'SymGetModuleBase64');
+    P := GetProcAddress(FImagehlpLibHandle, 'SymGetModuleBase64');
     if P <> nil then
       SymGetModuleBase64 := TSymGetModuleBase64(P);
   end;
@@ -1092,6 +1095,10 @@ end;
 
 initialization
   InitAPIs;
+
+finalization
+  if FImagehlpLibHandle <> 0 then
+    FreeLibrary(FImagehlpLibHandle);
 
 end.
 
