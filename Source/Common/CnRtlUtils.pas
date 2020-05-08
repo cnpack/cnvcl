@@ -905,8 +905,14 @@ begin
     {$IFNDEF WIN64} and (TCnNativeUInt(Arguments) = TCnNativeUInt(@Arguments) + OFFSET) {$ENDIF}
     then
   begin
-    // 在此记录当前堆栈
-    StackList := TCnCurrentStackInfoList.Create();
+    // 在此记录当前堆栈，并去除本单元内部的记录
+    StackList := TCnCurrentStackInfoList.Create;
+    if StackList.Count > 2 then
+    begin
+      StackList.Delete(0);
+      StackList.Delete(0);
+    end;
+
     try
       DoExceptionNotify(Arguments.ExceptObj, Arguments.ExceptAddr, False, StackList);
     finally

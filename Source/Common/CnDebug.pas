@@ -29,7 +29,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.03.25
+* 修改记录：2020.05.08
+*               用 CnRTLUtils 取代 JCL 的堆栈捕获功能，留行号获取功能，待测试
+*           2019.03.25
 *               移植部分功能包括写文件到 MACOS
 *           2018.07.29
 *               增加遍历全局组件与控件的功能
@@ -126,7 +128,7 @@ uses
   {$ELSE}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts,
   Posix.Unistd, Posix.Pthread, FMX.Controls, FMX.Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
-  {$IFDEF USE_JCL}, JclDebug, JclHookExcept, CnRtlUtils {$ENDIF USE_JCL};
+  {$IFDEF USE_JCL}, JclDebug, CnRtlUtils {$ENDIF USE_JCL};
 
 const
   CnMaxTagLength = 8; // 不可改变
@@ -322,6 +324,10 @@ type
     procedure InternalFindComponent(AComponent: TComponent);
 {$IFDEF MSWINDOWS}
     procedure InternalFindControl(AControl: TControl);
+{$ENDIF}
+{$IFDEF USE_JCL}
+     procedure ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
+      IsOSException: Boolean; StackList: TCnStackInfoList);
 {$ENDIF}
   protected
     function CheckEnabled: Boolean;
@@ -768,10 +774,6 @@ var
   FFixedCalling: Cardinal = 0;
 
   FUseLocalSession: Boolean = {$IFDEF LOCAL_SESSION}True{$ELSE}False{$ENDIF};
-
-{$IFDEF USE_JCL}
-  FCSExcept: TCnCriticalSection;
-{$ENDIF}
 
 procedure CnEnterCriticalSection(Section: TCnCriticalSection);
 begin
@@ -2301,6 +2303,11 @@ procedure TCnDebugger.SetExceptTracking(const Value: Boolean);
 begin
 {$IFNDEF NDEBUG}
   FExceptTracking := Value;
+
+  if FExceptTracking then
+    CnHookException
+  else
+    CnUnHookException;
 {$ENDIF}
 end;
 
@@ -4192,6 +4199,40 @@ end;
 
 {$ENDIF}
 
+{$IFDEF USE_JCL}
+
+procedure TCnDebugger.ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
+  IsOSException: Boolean; StackList: TCnStackInfoList);
+var
+  I: Integer;
+  Strings: TStrings;
+begin
+  if not FCnDebugger.Active or not FCnDebugger.ExceptTracking then
+    Exit;
+
+  if FCnDebugger.FExceptFilter.IndexOf(ExceptObj.ClassName) >= 0 then
+    Exit;
+
+  if IsOSException then
+    FCnDebugger.TraceMsgWithType('OS Exception: ' + ExceptObj.ClassName + ': '
+      + ExceptObj.Message, cmtError)
+  else
+    FCnDebugger.TraceMsgWithType(ExceptObj.ClassName + ': ' + ExceptObj.Message,
+      cmtError);
+
+  Strings := TStringList.Create;
+  try
+    for I := 0 to StackList.Count - 1 do
+      Strings.Add(GetLocationInfoStr(StackList.Items[I].CallerAddr, True, True, True));
+    FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
+      Strings.Text, cmtException);
+  finally
+    Strings.Free;
+  end;
+end;
+
+{$ENDIF}
+
 { TCnDebugChannel }
 
 function TCnDebugChannel.CheckFilterChanged: Boolean;
@@ -4552,39 +4593,6 @@ end;
 
 {$ENDIF}
 
-{$IFDEF USE_JCL}
-
-procedure ExceptNotifyProc(ExceptObj: TObject; ExceptAddr: Pointer; OSException: Boolean);
-var
-  Strings: TStrings;
-begin
-  if not FCnDebugger.Active or not FCnDebugger.ExceptTracking then Exit;
-
-  CnEnterCriticalSection(FCSExcept);
-  try
-    if FCnDebugger.FExceptFilter.IndexOf(ExceptObj.ClassName) >= 0 then Exit;
-  finally
-    CnLeaveCriticalSection(FCSExcept);
-  end;
-
-  if OSException then
-    FCnDebugger.TraceMsgWithType('OS Exceptions', cmtError)
-  else
-    with Exception(ExceptObj) do
-      FCnDebugger.TraceMsgWithType(ClassName + ': ' + Message, cmtError);
-
-  Strings := TStringList.Create;
-  try
-    JclLastExceptStackListToStrings(Strings, True, True, True);
-    FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
-      Strings.Text, cmtException);
-  finally
-    Strings.Free;
-  end;
-end;
-
-{$ENDIF}
-
 initialization
 {$IFNDEF NDEBUG}
   {$IFDEF MSWINDOWS}
@@ -4598,11 +4606,10 @@ initialization
   {$ENDIF}
   FCnDebugger := TCnDebugger.Create;
   FixCallingCPUPeriod;
+
   {$IFDEF USE_JCL}
-  InitializeCriticalSection(FCSExcept);
-  JclHookExceptions;
-  JclAddExceptNotifier(ExceptNotifyProc);
-  JclStartExceptionTracking;
+  CnSetAdditionalExceptionRecorder(FCnDebugger.ExceptionRecorder);
+  CnHookException;
   {$ENDIF}
 {$ELSE}
   CnDebugChannelClass := nil; // NDEBUG 环境下不创建 Channel
@@ -4617,7 +4624,7 @@ finalization
   FStartCriticalSection.Free;
   {$ENDIF}
 {$IFDEF USE_JCL}
-  DeleteCriticalSection(FCSExcept);
+  CnUnHookException;
 {$ENDIF}
   FreeAndNil(FCnDebugger);
 
