@@ -347,7 +347,7 @@ type
     function GUIDToString(const GUID: TGUID): string;
 
     procedure GetCurrentTrace(Strings: TStrings);
-    procedure GetTraceFromAddr(Addr: Pointer; Strings: TStrings);
+    procedure GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
 
     procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
       ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: LongWord; CPUPeriod: Int64);
@@ -3905,17 +3905,18 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.GetTraceFromAddr(Addr: Pointer; Strings: TStrings);
+procedure TCnDebugger.GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
 {$IFDEF USE_JCL}
 var
-  List: TJclStackInfoList;
+  I: Integer;
+  List: TCnStackInfoList;
 {$ENDIF}
 begin
   if Strings = nil then
     Exit;
   Strings.Clear;
 
-  if Addr = nil then
+  if StackBaseAddr = nil then
   begin
     Strings.Add(SCnStackTraceNil);
     Exit;
@@ -3924,8 +3925,9 @@ begin
 {$IFDEF USE_JCL}
   List := nil;
   try
-    List := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, Addr, nil);
-    List.AddToStrings(Strings, True, True, True, False);
+    List := TCnManualStackInfoList.Create(StackBaseAddr, nil);
+    for I := 0 to List.Count - 1 do
+      Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr, True, True, True, False));
   finally
     List.Free;
   end;
