@@ -28,6 +28,7 @@ type
     btnUnHookException: TButton;
     btnRaiseException: TButton;
     btnRaiseOSException: TButton;
+    btnManuallyGetStack: TButton;
     procedure btnGetMyModuleClick(Sender: TObject);
     procedure btnGetStackClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -39,10 +40,14 @@ type
     procedure btnUnHookExceptionClick(Sender: TObject);
     procedure btnRaiseExceptionClick(Sender: TObject);
     procedure btnRaiseOSExceptionClick(Sender: TObject);
+    procedure btnManuallyGetStackClick(Sender: TObject);
   private
     procedure Proc1;
     procedure Proc2;
     procedure Proc3;
+    procedure Func1;
+    procedure Func2;
+    procedure Func3;
   public
     procedure MyExceptionHandler(ExceptObj: Exception; ExceptAddr: Pointer;
       IsOSException: Boolean; StackList: TCnStackInfoList);
@@ -219,6 +224,40 @@ begin
   J := 3;
   if J / I = 1 then
     Caption := '';
+end;
+
+procedure TFormRtlUtils.btnManuallyGetStackClick(Sender: TObject);
+begin
+  Func1;
+end;
+
+procedure TFormRtlUtils.Func1;
+begin
+  Func2;
+end;
+
+procedure TFormRtlUtils.Func2;
+begin
+  Func3;
+end;
+
+procedure TFormRtlUtils.Func3;
+var
+  List: TCnManualStackInfoList;
+{$IFDEF USE_JCL}
+  SL: TJclStackInfoList;
+{$ENDIF}
+begin
+  List := TCnManualStackInfoList.Create(GetEBP32, nil);
+  mmoStack.Lines.Clear;
+  List.DumpToStrings(mmoStack.Lines);
+  List.Free;
+
+{$IFDEF USE_JCL}
+  SL := TJclStackInfoList.Create(False, Cardinal(-1), nil, False, nil, nil);
+  SL.AddToStrings(mmoMyModules.Lines, True, True, True, False);
+  SL.Free;
+{$ENDIF}
 end;
 
 end.

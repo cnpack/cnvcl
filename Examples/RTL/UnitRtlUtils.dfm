@@ -76,7 +76,7 @@ object FormRtlUtils: TFormRtlUtils
           Top = 32
           Width = 161
           Height = 25
-          Caption = 'Get My Stacks'
+          Caption = 'Get My Stack'
           TabOrder = 0
           OnClick = btnGetStackClick
         end
@@ -95,6 +95,15 @@ object FormRtlUtils: TFormRtlUtils
           ScrollBars = ssBoth
           TabOrder = 1
           WordWrap = False
+        end
+        object btnManuallyGetStack: TButton
+          Left = 248
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'Manually Get My Stack'
+          TabOrder = 2
+          OnClick = btnManuallyGetStackClick
         end
       end
     end

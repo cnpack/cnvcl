@@ -134,11 +134,13 @@ type
   end;
 
   TCnCurrentStackInfoList = class(TCnStackInfoList)
+  {* 返回创建本实例时的堆栈}
   protected
     procedure TraceStackFrames; override;
   end;
 
-  TCnExceptionStackInfoList = class(TCnStackInfoList)
+  TCnManualStackInfoList = class(TCnStackInfoList)
+  {* 根据外部的运行地址与堆栈基址回溯调用堆栈}
   private
     FStackBase: Pointer;
     FAddr: Pointer;
@@ -927,10 +929,10 @@ begin
 
 {$IFDEF WIN64}
   // 64 位下这参数都没用，得换整个 Context，但即使是整个 Context 也没用
-  StackList := TCnExceptionStackInfoList.Create(nil, P^.ExceptionAddress);
+  StackList := TCnManualStackInfoList.Create(nil, P^.ExceptionAddress);
 {$ELSE}
   // 32 位下生成 Exception 的堆栈
-  StackList := TCnExceptionStackInfoList.Create(GetEBP32, P^.ExceptionAddress);
+  StackList := TCnManualStackInfoList.Create(GetEBP32, P^.ExceptionAddress);
 {$ENDIF}
 
   try
@@ -952,7 +954,7 @@ begin
     begin
       SysUtilsExceptObjProc := System.ExceptObjProc;
       System.ExceptObjProc := @MyExceptObjProc;
-    
+
       FExceptionHooked := True;
     end;
   end;
@@ -1010,7 +1012,7 @@ end;
 
 { TCnExceptionStackInfoList }
 
-constructor TCnExceptionStackInfoList.Create(StackBase, Addr: Pointer;
+constructor TCnManualStackInfoList.Create(StackBase, Addr: Pointer;
   OnlyDelphi: Boolean);
 begin
   FStackBase := StackBase;
@@ -1018,11 +1020,9 @@ begin
   inherited Create(OnlyDelphi);
 end;
 
-procedure TCnExceptionStackInfoList.TraceStackFrames;
+procedure TCnManualStackInfoList.TraceStackFrames;
 var
-{$IFDEF WIN64}
   Ctx: TContext;     // Ctx 貌似得声明靠上，不能放大数组后面，否则虚拟机会出莫名其妙的错
-{$ENDIF}
   Info: TCnStackInfo;
   STKF64: TStackFrame64;
   P, T: THandle;
@@ -1031,9 +1031,15 @@ begin
   if Assigned(RtlCaptureContext) and Assigned(StackWalk64) then
   begin
     // Using StackWalk in ImageHlp and RtlCaptureContext
-{$IFDEF WIN64}
     FillChar(Ctx, SizeOf(TContext), 0);
     RtlCaptureContext(@Ctx);                   // 64位的情况下，居然虚拟机上可能会出错
+
+{$IFNDEF WIN64}
+    // 32 位下，无 EIP/EBP 时用 Context 里的
+    if FAddr = nil then
+      FAddr := Pointer(Ctx.Eip);
+    if FStackBase = nil then
+      FStackBase := Pointer(Ctx.Ebp);
 {$ENDIF}
 
     FillChar(STKF64, SizeOf(TStackFrame64), 0);
