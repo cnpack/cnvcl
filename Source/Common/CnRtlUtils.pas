@@ -140,14 +140,15 @@ type
   end;
 
   TCnManualStackInfoList = class(TCnStackInfoList)
-  {* 根据外部的运行地址与堆栈基址回溯调用堆栈}
+  {* 根据外部的 Context 与运行地址回溯调用堆栈}
   private
-    FStackBase32OrPContext64: Pointer;
+    FCtxPtr: Pointer;
     FAddr: Pointer;
   protected
     procedure TraceStackFrames; override;
   public
-    constructor Create(StackBase32OrPContext64, Addr: Pointer; OnlyDelphi: Boolean = False);
+    constructor Create(CtxPtr, Addr: Pointer; OnlyDelphi: Boolean = False);
+    {* 参数为 Context 指针、发生异常时的地址/EIP}
   end;
 
 // ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
@@ -188,11 +189,13 @@ function CnUnHookImportAddressTable(const ImportModuleName, ImportFuncName: stri
   Delphi 中有两种异常，一种是代码中 raise 的：创建 Exception 对象并转换为 ExceptionRecord，
   再调用 Kernel32.RaiseException，触发 SEH 跳至对应的 except/finally 语句处
 
-  一种是代码遇到外部异常如除 0、访问违例等，也就是转换后的 EExternal 型异常
+  一种是代码遇到外部 OS 异常如除 0、访问违例等，也就是转换后的 EExternal 型异常
   CPU 的 SEH 机制会在遇到外部异常时将其包装成 ExceptionRecord，
   跳至 Delphi 预先设置好的 _ExceptionHandler，再层层上去转换成 Exception 对象
 
-  两处都得挂。
+  两处都得挂，任何一个异常只会选走一处。
+  同时还得用 Add/RemoveVectoredExceptionHandler 提前记录异常的 Context
+  因为 Delphi 没把 Context 传出来。
 }
 type
   TCnExceptionNotifier = procedure (ExceptObj: Exception; ExceptAddr: Pointer;
@@ -945,11 +948,6 @@ begin
     NumberOfArguments, TCnNativeUInt(Arguments));
 end;
 
-function GetEBP32: Pointer;
-asm
-        MOV     EAX, EBP
-end;
-
 threadvar
   ExceptionContext: TContext;
 
@@ -959,14 +957,7 @@ var
   StackList: TCnStackInfoList;
 begin
   Result := SysUtilsExceptObjProc(P);  // 先调用旧的返回 Exception 对象
-
-{$IFDEF WIN64}
-  // 64 位下这参数都没用，得换整个 Context
   StackList := TCnManualStackInfoList.Create(@ExceptionContext, P^.ExceptionAddress);
-{$ELSE}
-  // 32 位下生成 Exception 的堆栈
-  StackList := TCnManualStackInfoList.Create(GetEBP32, P^.ExceptionAddress);
-{$ENDIF}
 
   try
     DoExceptionNotify(Result, P^.ExceptionAddress, True, StackList);
@@ -978,6 +969,7 @@ end;
 // OS 异常先走这里，后走 ExceptObjProc
 function MyVectoredExceptionHandler(ExceptionInfo: PEXCEPTION_POINTERS): DWORD; stdcall;
 begin
+  // 记录 Context
   ExceptionContext := ExceptionInfo^.ContextRecord^;
   Result := 0; // EXCEPTION_CONTINUE_SEARCH;
 end;
@@ -1060,10 +1052,10 @@ end;
 
 { TCnExceptionStackInfoList }
 
-constructor TCnManualStackInfoList.Create(StackBase32OrPContext64, Addr: Pointer;
+constructor TCnManualStackInfoList.Create(CtxPtr, Addr: Pointer;
   OnlyDelphi: Boolean);
 begin
-  FStackBase32OrPContext64 := StackBase32OrPContext64;
+  FCtxPtr := CtxPtr;
   FAddr := Addr;
   inherited Create(OnlyDelphi);
 end;
@@ -1080,40 +1072,36 @@ var
 begin
   if Assigned(RtlCaptureContext) and Assigned(StackWalk64) then
   begin
-    FillChar(Ctx, SizeOf(TContext), 0);
-    RtlCaptureContext(@Ctx);                   // 64 位的情况下，居然虚拟机上可能会出错
+    if FCtxPtr = nil then
+    begin
+      FillChar(Ctx, SizeOf(TContext), 0);
+      RtlCaptureContext(@Ctx);  // 64 位的情况下，居然虚拟机上可能会出错
+      FCtxPtr := @Ctx;
+    end;
+    PCtx := PContext(FCtxPtr);
 
 {$IFDEF WIN64}
-    // 64 位下，FStackBase32OrPContext64 指向外部传入的一个完整的 TContext
     MachineType := IMAGE_FILE_MACHINE_AMD64;
-    if FStackBase32OrPContext64 <> nil then
-      PCtx := PContext(FStackBase32OrPContext64)
-    else
-      PCtx := @Ctx;
     if FAddr = nil then
       FAddr := Pointer(PCtx^.Rip);
 {$ELSE}
-    // 32 位下，FStackBase32OrPContext64 是外界传入的 EBP，无 EIP/EBP 时用 Context 里的
     MachineType := IMAGE_FILE_MACHINE_I386;
     if FAddr = nil then
-      FAddr := Pointer(Ctx.Eip);
-    if FStackBase32OrPContext64 = nil then
-      FStackBase32OrPContext64 := Pointer(Ctx.Ebp);
-    PCtx := nil;
+      FAddr := Pointer(PCtx^.Eip);
 {$ENDIF}
 
     FillChar(STKF64, SizeOf(TStackFrame64), 0);
     STKF64.AddrPC.Mode         := AddrModeFlat;
     STKF64.AddrStack.Mode      := AddrModeFlat;
     STKF64.AddrFrame.Mode      := AddrModeFlat;
-{$IFDEF WIN64}
     STKF64.AddrPC.Offset       := TCnNativeUInt(FAddr);
+
+{$IFDEF WIN64}
     STKF64.AddrStack.Offset    := PCtx^.Rsp;
     STKF64.AddrFrame.Offset    := PCtx^.Rbp;
 {$ELSE}
-    STKF64.AddrPC.Offset       := TCnNativeUInt(FAddr);
-    STKF64.AddrStack.Offset    := TCnNativeUInt(FStackBase32OrPContext64);
-    STKF64.AddrFrame.Offset    := TCnNativeUInt(FStackBase32OrPContext64);
+    STKF64.AddrStack.Offset    := TCnNativeUInt(PCtx^.Esp);
+    STKF64.AddrFrame.Offset    := TCnNativeUInt(PCtx^.Ebp);
 {$ENDIF}
 
     P := GetCurrentProcess;
@@ -1121,8 +1109,6 @@ begin
 
     while True do
     begin
-      // 32 位下貌似不用 PContext 参数，只需正确的 EIP/ESP/EBP 即可完成回溯，
-      // 而且 ESP 貌似能用 EBP 代替，以无局部变量的情况来模拟堆栈指针
       // FIXME: 64 位下 StackWalk64 始终抓不到堆栈，咋办？
       Res := StackWalk64(MachineType, P, T, @STKF64, PCtx, nil, @SymFunctionTableAccess64,
         @SymGetModuleBase64, nil);
@@ -1149,6 +1135,7 @@ initialization
   InitAPIs;
 
 finalization
+  CnUnHookException;
   if FImagehlpLibHandle <> 0 then
     FreeLibrary(FImagehlpLibHandle);
 
