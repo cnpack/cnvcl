@@ -2303,11 +2303,12 @@ procedure TCnDebugger.SetExceptTracking(const Value: Boolean);
 begin
 {$IFNDEF NDEBUG}
   FExceptTracking := Value;
-
+  {$IFDEF USE_JCL}
   if FExceptTracking then
     CnHookException
   else
     CnUnHookException;
+  {$ENDIF}
 {$ENDIF}
 end;
 
