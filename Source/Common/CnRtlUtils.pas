@@ -33,7 +33,7 @@ unit CnRtlUtils;
 *               实现 Delphi 模块的异常挂接，包括 raise 与 OS 异常两种，基本支持 32/64。
 *           抓当前调用堆栈           抓语言抛异常             抓 OS 异常
 * 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnExceptionStackInfoList
-* 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     拿 EBP/ExecptionAddress 再 StackWalk64
+* 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，再 StackWalk64
 * 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
 *           2020.05.05
 *               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64。
