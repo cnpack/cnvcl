@@ -54,6 +54,7 @@ type
 
   TBalloonType = (btNone, btError, btInfo, btWarning);
 
+  // Now we NO UnicodeSupport
   TNotifyIconDataXP = record
     cbSize: DWORD;
     Wnd: HWND;
@@ -498,20 +499,29 @@ end;
 
 procedure TCnTrayIcon.UpdateNotifyData;
 var
-  ShortHint: AnsiString;
+  ShortHint: string;
+{$IFDEF UNICODE}
+  Len: Integer;
+{$ENDIF}
 begin
   FIconData.cbSize := SizeOf(TNotifyIconData);
   FIconData.Wnd := FHandle;
   FIconData.uFlags := NIF_ICON or NIF_MESSAGE or NIF_TIP or NIF_INFO;
   FIconData.hIcon := FIcon.Handle;
-  ShortHint := {$IFDEF UNICODE}AnsiString{$ENDIF}(GetShortHint(FHint));
+  ShortHint := GetShortHint(FHint);
 {$IFDEF UNICODE}
   if ShortHint <> '' then
-    CopyMemory(@FIconData.szTip, Pointer(ShortHint), 63)
+  begin
+    Len := Length(ShortHint);
+    if Len > SizeOf(FIconData.szTip) - 1 then
+      Len := SizeOf(FIconData.szTip) - 1;
+
+    CopyMemory(@FIconData.szTip, Pointer(ShortHint), Len);
+  end
   else
     FIconData.szTip[0] := #0;
 {$ELSE}
-  StrPLCopy(FIconData.szTip, ShortHint, 63);
+  StrPLCopy(FIconData.szTip, ShortHint, SizeOf(FIconData.szTip));
 {$ENDIF}
   FIconData.uCallbackMessage := WM_CNTRAYICONCALLBACK;
   FIconData.uID := 0;

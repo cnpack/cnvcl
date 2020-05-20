@@ -63,7 +63,7 @@ end;
 
 procedure TTrayIconDemoFrm.BalloonHint1Click(Sender: TObject);
 begin
-  tiCnTrayIconDemo.BalloonHint('hello', 'I am ballon hint demo of CnTrayIcon', btWarning, 10);
+  tiCnTrayIconDemo.BalloonHint('hello', 'I am ballon hint demo of CnTrayIcon. Very very very long long long long long long hint for cnpack cnvcl', btWarning, 10);
 end;
 
 procedure TTrayIconDemoFrm.HideApp1Click(Sender: TObject);
