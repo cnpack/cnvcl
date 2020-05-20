@@ -87,6 +87,8 @@ type
   PDynamicCode = ^DynamicCode;
 
   DynamicCode = packed record
+    Mov: Word;
+    EspConst: DWORD;
     Push: Byte;
     Self: DWORD;
     Call: Word;
@@ -95,6 +97,7 @@ type
     RetXX: WORD;
     EventAddr: Pointer;
     ExtraData: Pointer;
+    ParamEsp: DWORD;
   end;
 
   TOnHookProc = function(Data: PDynamicCode): DWORD of object;
@@ -169,13 +172,6 @@ type
 implementation
 
 {$IFDEF WIN32}
-
-const
-{$IFDEF UNICODE}
-  PARAM_OFFSET = $54;  // 暂不支持
-{$ELSE}
-  PARAM_OFFSET = $50;  // D5 到 D2007 是这个偏移
-{$ENDIF}
 
 { TCnHookCore }
 
@@ -392,6 +388,8 @@ begin
   FDynamicCode^.EventAddr := @DoOnHookProc;
 
   //写入相应语句
+  FDynamicCode.mov := $2589; // Mov
+  FDynamicCode.EspConst := DWORD(@FDynamicCode.ParamEsp);
   FDynamicCode^.Push := $68;  //PUSH
   FDynamicCode^.Self := DWORD(Self);  //写上 Self
   FDynamicCode^.Call := $15FF;  //CALL
@@ -506,7 +504,6 @@ end;
 
 function TCnInProcessAPIHook.OnHookProc(Data: PDynamicCode): DWORD;
 var
-  AESP: Pointer;
   OBJ: TCnInProcessAPIHook;
   Params: array of Pointer;
   Param: Pointer;
@@ -517,12 +514,10 @@ begin
   OBJ := Data^.ExtraData;
   if Assigned(OBJ.FOnAPIHookProc) then
   begin
-    asm
-        mov     AESP, ESP
-    end;
-    Param := Pointer(DWORD(AESP) + PARAM_OFFSET);  // 参数开始，此处随编译器变动而变
+    Param := Pointer(Data.ParamEsp + 4);
     SetLength(Params, OBJ.ParamCount);  // 设置参数个数
     CopyMemory(@Params[0], Param, Obj.ParamCount * 4);
+
     if OBJ.Mutex then
     begin
       _Handle := OpenMutex(MUTEX_ALL_ACCESS, True, PChar(OBJ.FHookMark));
