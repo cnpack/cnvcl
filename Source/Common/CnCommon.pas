@@ -541,8 +541,8 @@ procedure SeparateStrAndNum(const AInStr: string; var AOutStr: string;
   var AOutNum: Integer);
 {* 分割"非数字+数字"格式的字符串中的非数字和数字}
 
-function UnQuotedStr(const str: string; const ch: Char;
-  const sep: string = ''): string;
+function UnQuotedStr(const Str: string; const Ch: Char;
+  const Sep: string = ''): string;
 {* 去除被引用的字符串的引用}
 
 function CharPosWithCounter(const Sub: Char; const AStr: String;
@@ -4771,23 +4771,33 @@ begin
 end;
 
 // 去除被引用的字符串的引用
-function UnQuotedStr(const str: string; const ch: Char;
-  const sep: string = ''): string;
+function UnQuotedStr(const Str: string; const Ch: Char;
+  const Sep: string = ''): string;
 var
-  s: string;
-  ps: PChar;
+  First: Boolean;
+  S: string;
+  PS: PChar;
 begin
   Result := '';
-  s := str;
-  ps := PChar(s);
-  while ps <> nil do
+  S := Str;
+  PS := PChar(S);
+  First := True;
+
+  while PS <> nil do
   begin
-    ps := AnsiStrScan(ps, ch);
-    s := AnsiExtractQuotedStr(ps, ch);
-    if (Result = '') or (s = '') then
-      Result := Result + s
+    PS := AnsiStrScan(PS, Ch);
+    if First and (PS = nil) and (Result = '') then // 从来就没有 Quote 符的情况下
+    begin
+      Result := Str;
+      Exit;
+    end;
+    First := False;
+
+    S := AnsiExtractQuotedStr(PS, Ch);
+    if (Result = '') or (S = '') then
+      Result := Result + S
     else
-      Result := Result + sep + s;
+      Result := Result + Sep + S;
   end;
 end;
 
