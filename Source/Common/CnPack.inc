@@ -2859,6 +2859,10 @@
   {$ENDIF}
 {$ENDIF}
 
+{$IFDEF DELPHI104_SYDNEY_UP}
+  {$DEFINE IDE_SUPPORT_LSP}         // Sydney 10.4 或以上支持 LSP 语言服务器
+{$ENDIF}
+
 {$IFDEF DELPHI102_TOKYO_UP}
   {$DEFINE IDE_SUPPORT_THEMING}         // Tokyo 10.2.2 或以上支持 IDE 主题切换
 {$ENDIF}
