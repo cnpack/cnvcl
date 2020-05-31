@@ -117,7 +117,10 @@ unit CnRS232;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2012.03.22 V1.2
+* 修改记录：
+*           2020.05.31 V1.3
+*                修正创建后立即发送数据失败的问题。
+*           2012.03.22 V1.2
 *                修正一处读入数据成功但长度为0而退出的问题，感谢大雄
 *           2008.11.17 V1.1
 *                增加 D2009 支持后修正问题，感谢大雄
@@ -421,7 +424,9 @@ type
     hCloseEvent: THandle;
     hComm32Window: THandle;
     pFSendDataEmpty: ^Boolean;
+    MsgCreate:Boolean;
     procedure PostHangupCall;
+
   end;
 
 //------------------------------------------------------------------------------
@@ -943,6 +948,8 @@ end;
 
 { TWriteThread }
 
+
+
 procedure TWriteThread.Execute;
 var
   Msg: TMsg;
@@ -963,7 +970,7 @@ begin
   end;
 
   CompleteOneWriteRequire := True;
-
+  MsgCreate:=True;
   // This is the main loop.  Loop until we break out.
   while True do
   begin
@@ -1713,10 +1720,12 @@ function TCnRS232.WriteCommData(pDataToWrite: PAnsiChar; dwSizeofDataToWrite: WO
 var
   Buffer: Pointer;
 begin
+
   if (WriteThread <> nil) and (dwSizeofDataToWrite <> 0) then
   begin
     Buffer := Pointer(LocalAlloc(LPTR, dwSizeofDataToWrite + 1));
     Move(pDataToWrite^, Buffer^, dwSizeofDataToWrite);
+    while not WriteThread.MsgCreate do Sleep(1);
     if PostThreadMessage(WriteThread.ThreadID, PWM_COMMWRITE,
       WPARAM(dwSizeofDataToWrite), LPARAM(Buffer)) then
     begin
@@ -1725,7 +1734,6 @@ begin
       Exit;
     end;
   end;
-
   Result := False;
 end;
 
