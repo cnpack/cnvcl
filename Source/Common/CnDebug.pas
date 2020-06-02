@@ -2098,8 +2098,8 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    LogMsgWithType('Object: $' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
-      List.Text, cmtObject);
+    LogMsgWithTypeTag('Object: $' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
+      List.Text, cmtObject, ATag);
   finally
     List.Free;
   end;
@@ -2787,8 +2787,8 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    TraceMsgWithType('Object: ' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
-      List.Text, cmtObject);
+    TraceMsgWithTypeTag('Object: ' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
+      List.Text, cmtObject, ATag);
   finally
     List.Free;
   end;
