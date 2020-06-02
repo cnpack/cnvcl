@@ -1215,7 +1215,7 @@ var
 begin
   New(ADesc);
   FillChar(ADesc^, SizeOf(TCnTimeDesc), 0);
-  TTag := AnsiString(TTag);
+  TTag := AnsiString(ATag);
   Len := Length(TTag);
   if Len > CnMaxTagLength then
     Len := CnMaxTagLength;
