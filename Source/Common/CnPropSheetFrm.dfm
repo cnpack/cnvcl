@@ -23,18 +23,77 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlTree: TPanel
     Left = 0
     Top = 0
-    Width = 1
-    Height = 497
+    Width = 100
+    Height = 486
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
     Visible = False
-    object TreeView: TTreeView
+    object pnlSearch: TPanel
       Left = 0
       Top = 0
-      Width = 1
-      Height = 476
+      Width = 100
+      Height = 30
+      Align = alTop
+      BevelOuter = bvNone
+      TabOrder = 2
+      object btnSearch: TSpeedButton
+        Left = 75
+        Top = 4
+        Width = 23
+        Height = 22
+        Hint = 'Search'
+        Anchors = [akRight]
+        Flat = True
+        Glyph.Data = {
+          36030000424D3603000000000000360000002800000010000000100000000100
+          1800000000000003000000000000000000000000000000000000FF00FF4A637B
+          BD9494FF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00
+          FFFF00FFFF00FFFF00FF6B9CC6188CE74A7BA5C69494FF00FFFF00FFFF00FFFF
+          00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF4AB5FF52B5FF
+          218CEF4A7BA5C69494FF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00
+          FFFF00FFFF00FFFF00FFFF00FF52B5FF52B5FF1884E74A7BA5C69494FF00FFFF
+          00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF
+          52B5FF4AB5FF188CE74A7BA5BD9494FF00FFFF00FFFF00FFFF00FFFF00FFFF00
+          FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF52B5FF4AB5FF2184DE5A6B73FF
+          00FFAD7B73C6A59CD6B5A5CEA59CFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF
+          FF00FFFF00FF52BDFFB5D6EFA5948CB59C8CF7E7CEFFFFD6FFFFD6FFFFD6E7DE
+          BDCEADA5FF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFCEB5B5D6B5A5FF
+          EFC6FFFFD6FFFFD6FFFFD6FFFFDEFFFFEFF7F7EFB58C8CFF00FFFF00FFFF00FF
+          FF00FFFF00FFFF00FFC6948CF7DEB5F7D6A5FFF7CEFFFFD6FFFFDEFFFFEFFFFF
+          F7FFFFFFDED6BDFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFDEBDA5FFE7ADF7
+          CE94FFF7CEFFFFDEFFFFE7FFFFF7FFFFF7FFFFEFF7EFD6C69C94FF00FFFF00FF
+          FF00FFFF00FFFF00FFE7C6ADFFDEADEFBD84F7E7B5FFFFD6FFFFDEFFFFE7FFFF
+          E7FFFFDEF7F7D6C6AD9CFF00FFFF00FFFF00FFFF00FFFF00FFDEBDADFFE7B5EF
+          BD84F7CE94FFEFC6FFFFDEFFFFDEFFFFDEFFFFDEF7EFD6C6A59CFF00FFFF00FF
+          FF00FFFF00FFFF00FFC69C94FFEFC6FFEFC6F7D6A5F7CE9CF7E7B5FFF7CEFFF7
+          D6FFFFD6E7DEBDFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFDEC6ADFF
+          FFFFFFF7EFF7CE94EFBD84F7CE9CFFE7B5FFF7C6BD9C8CFF00FFFF00FFFF00FF
+          FF00FFFF00FFFF00FFFF00FFFF00FFD6BDBDF7EFD6FFEFC6FFE7ADFFE7B5F7DE
+          B5CEAD9CFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF
+          00FFCEAD94CEAD9CDEBDA5DEBDA5FF00FFFF00FFFF00FFFF00FF}
+        ParentShowHint = False
+        ShowHint = True
+        OnClick = btnSearchClick
+      end
+      object edtSearch: TEdit
+        Left = 3
+        Top = 5
+        Width = 70
+        Height = 21
+        Hint = 'Search Text'
+        Anchors = [akLeft, akTop, akRight]
+        TabOrder = 0
+        OnKeyPress = edtSearchKeyPress
+      end
+    end
+    object TreeView: TTreeView
+      Left = 0
+      Top = 30
+      Width = 100
+      Height = 435
       Align = alClient
+      HideSelection = False
       Indent = 19
       ReadOnly = True
       TabOrder = 0
@@ -42,8 +101,8 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsTree: TTabSet
       Left = 0
-      Top = 476
-      Width = 1
+      Top = 465
+      Width = 100
       Height = 21
       Align = alBottom
       Font.Charset = ANSI_CHARSET
@@ -59,17 +118,17 @@ object CnPropSheetForm: TCnPropSheetForm
     end
   end
   object pnlRight: TPanel
-    Left = 1
+    Left = 100
     Top = 0
-    Width = 390
-    Height = 497
+    Width = 283
+    Height = 486
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 390
+      Width = 283
       Height = 30
       Align = alTop
       BevelOuter = bvNone
@@ -113,7 +172,7 @@ object CnPropSheetForm: TCnPropSheetForm
         OnClick = btnRefreshClick
       end
       object btnTop: TSpeedButton
-        Left = 553
+        Left = 454
         Top = 5
         Width = 20
         Height = 21
@@ -230,8 +289,8 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsSwitch: TTabSet
       Left = 0
-      Top = 476
-      Width = 390
+      Top = 465
+      Width = 283
       Height = 21
       Align = alBottom
       Font.Charset = ANSI_CHARSET
@@ -254,8 +313,8 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlMain: TPanel
       Left = 0
       Top = 30
-      Width = 390
-      Height = 446
+      Width = 283
+      Height = 435
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 2
@@ -531,8 +590,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlHierarchy: TPanel
         Left = 0
         Top = 0
-        Width = 390
-        Height = 446
+        Width = 283
+        Height = 435
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -542,8 +601,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlGraphic: TPanel
         Left = 0
         Top = 0
-        Width = 390
-        Height = 446
+        Width = 283
+        Height = 435
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -552,8 +611,8 @@ object CnPropSheetForm: TCnPropSheetForm
         Visible = False
         object pnlGraphicInfo: TPanel
           Left = 1
-          Top = 404
-          Width = 388
+          Top = 393
+          Width = 281
           Height = 41
           Align = alBottom
           BevelOuter = bvNone
@@ -574,8 +633,8 @@ object CnPropSheetForm: TCnPropSheetForm
         object bxGraphic: TScrollBox
           Left = 1
           Top = 1
-          Width = 388
-          Height = 403
+          Width = 281
+          Height = 392
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 1

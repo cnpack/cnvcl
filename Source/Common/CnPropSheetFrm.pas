@@ -373,6 +373,9 @@ type
     lblGraphicInfo: TLabel;
     lblPixel: TLabel;
     btnTree: TSpeedButton;
+    pnlSearch: TPanel;
+    edtSearch: TEdit;
+    btnSearch: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -403,6 +406,8 @@ type
     procedure tsTreeChange(Sender: TObject; NewTab: Integer;
       var AllowChange: Boolean);
     procedure TreeViewDblClick(Sender: TObject);
+    procedure btnSearchClick(Sender: TObject);
+    procedure edtSearchKeyPress(Sender: TObject; var Key: Char);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -3413,6 +3418,63 @@ begin
 end;
 
 {$ENDIF}
+
+procedure TCnPropSheetForm.btnSearchClick(Sender: TObject);
+var
+  StartIdx, I: Integer;
+  S: string;
+begin
+  // Search Tree，从当前选中处往后找，找到尾巴没有再回来，再从头找到自己就停
+  if edtSearch.Text = '' then
+    Exit;
+
+  if TreeView.Selected <> nil then
+  begin
+    StartIdx := TreeView.Selected.AbsoluteIndex + 1;
+  end
+  else
+  begin
+    StartIdx := 1;
+  end;
+
+  S := UpperCase(edtSearch.Text);
+
+  // 往后找
+  for I := StartIdx to TreeView.Items.Count - 1 do
+  begin
+    if Pos(S, UpperCase(TreeView.Items[I].Text)) > 0 then
+    begin
+      TreeView.Items[I].Selected := True;
+      TreeView.Items[I].MakeVisible;
+      TreeView.SetFocus;
+      Exit;
+    end;
+  end;
+
+  // 回到前面找到自己
+  for I := 0 to StartIdx - 1 do
+  begin
+    if Pos(S, UpperCase(TreeView.Items[I].Text)) > 0 then
+    begin
+      TreeView.Items[I].Selected := True;
+      TreeView.Items[I].MakeVisible;
+      TreeView.SetFocus;
+      Exit;
+    end;
+  end;
+
+  MessageBox(Handle, 'NOT Found.', 'Hint', MB_OK or MB_ICONERROR);
+end;
+
+procedure TCnPropSheetForm.edtSearchKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  if Key = #13 then
+  begin
+    btnSearch.Click;
+    edtSearch.SetFocus;
+  end;
+end;
 
 initialization
   FSheetList := TComponentList.Create(True);
