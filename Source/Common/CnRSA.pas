@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.27 V1.8
+* 修改记录：2020.06.10 V1.9
+*               公私钥允许从 Stream 中载入
+*           2020.03.27 V1.8
 *               公钥允许用 3。实现了加密的 PEM 文件的读写，不过只支持 des/3des/aes
 *           2020.03.13 V1.7
 *               加入详细的错误码。调用返回 False 时可通过 GetLastCnRSAError 获取 ECN_RSA_* 形式的错误码
@@ -186,8 +188,16 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
 
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
-  const Password: string = ''): Boolean;
+  const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入
+  KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
+  Password: PEM 文件如加密，此处应传对应密码
+}
+
+function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean; overload;
+{* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入
   KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码
 }
@@ -205,12 +215,18 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
-  const Password: string = ''): Boolean;
+  const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式文件中加载公钥数据，返回是否成功}
+
+function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean; overload;
+{* 从 PEM 格式流中加载公钥数据，返回是否成功}
 
 function CnRSASavePublicKeyToPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
-  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone; const Password: string = ''): BOolean;
+  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  const Password: string = ''): Boolean;
 {* 将公钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
@@ -704,9 +720,28 @@ PKCS#8:
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(PemFileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnRSALoadKeysFromPem(Stream, PrivateKey, PublicKey, KeyHashMethod, Password);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean; overload;
+var
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
+{$IFDEF TSTREAM_LONGINT}
+  oldPos: LongInt;
+{$ELSE}
+  OldPos: Int64;
+{$ENDIF}
 begin
   Result := False;
   MemStream := nil;
@@ -714,7 +749,9 @@ begin
 
   try
     MemStream := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL,
+    OldPos := PemStream.Position;
+
+    if LoadPemStreamToMemory(PemStream, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL,
       MemStream, Password, KeyHashMethod) then
     begin
       // 读 PKCS#1 的 PEM 公私钥格式
@@ -744,8 +781,13 @@ begin
           Result := True;
         end;
       end;
-    end
-    else if LoadPemFileToMemory(PemFileName, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
+    end;
+
+    if Result then
+      Exit;
+
+    PemStream.Position := OldPos;
+    if LoadPemStreamToMemory(PemStream, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
       MemStream, Password, KeyHashMethod) then
     begin
       // 读 PKCS#8 的 PEM 公私钥格式
@@ -762,7 +804,7 @@ begin
             PutIndexedBigIntegerToBigInt(Reader.Items[8], PublicKey.PubKeyProduct);
             PutIndexedBigIntegerToBigInt(Reader.Items[9], PublicKey.PubKeyExponent);
           end;
-      
+
           // 8 10 11 12 整成私钥
           if PrivateKey <> nil then
           begin
@@ -771,7 +813,7 @@ begin
             PutIndexedBigIntegerToBigInt(Reader.Items[11], PrivateKey.PrimeKey1);
             PutIndexedBigIntegerToBigInt(Reader.Items[12], PrivateKey.PrimeKey2);
           end;
-      
+
           Result := True;
         end;
       end;
@@ -815,8 +857,27 @@ PKCS#8:
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(PemFileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := CnRSALoadPublicKeyFromPem(Stream, PublicKey, KeyHashMethod, Password);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean; overload;
+var
   Mem: TMemoryStream;
   Reader: TCnBerReader;
+{$IFDEF TSTREAM_LONGINT}
+  oldPos: LongInt;
+{$ELSE}
+  OldPos: Int64;
+{$ENDIF}
 begin
   Result := False;
   Mem := nil;
@@ -824,7 +885,9 @@ begin
 
   try
     Mem := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem,
+    OldPos := PemStream.Position;
+
+    if LoadPemStreamToMemory(PemStream, PEM_PUBLIC_HEAD, PEM_PUBLIC_TAIL, Mem,
       Password, KeyHashMethod) then
     begin
       // 读 PKCS#8 格式的公钥
@@ -841,8 +904,13 @@ begin
 
         Result := True;
       end;
-    end
-    else if LoadPemFileToMemory(PemFileName, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL,
+    end;
+
+    if Result then
+      Exit;
+
+    PemStream.Position := OldPos;
+    if LoadPemStreamToMemory(PemStream, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL,
       Mem, Password, KeyHashMethod) then
     begin
       // 读 PKCS#1 格式的公钥

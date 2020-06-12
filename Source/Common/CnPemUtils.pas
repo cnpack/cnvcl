@@ -323,7 +323,7 @@ begin
 end;
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
-  Stream: TMemoryStream; const Password: string; out EncryptedHead: string): Boolean;
+  Stream: TStream; const Password: string; out EncryptedHead: string): Boolean;
 const
   CRLF = #13#10;
 var
@@ -417,7 +417,8 @@ begin
     if ES.Size > 0 then
     begin
       // ES Ð´»Ø Stream
-      Stream.Clear;
+      Stream.Size := 0;
+      Stream.Position := 0;
       ES.SaveToStream(Stream);
       Stream.Position := 0;
     end;
@@ -742,7 +743,6 @@ begin
         List.Free;
       end;
     end;
-
   end;
 end;
 
