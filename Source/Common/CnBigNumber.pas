@@ -181,6 +181,9 @@ type
     function IsNegative: Boolean;
     {* 返回大数是否负值}
 
+    procedure Negate;
+    {* 大数正负号反号}
+
     function ClearBit(N: Integer): Boolean;
     {* 给大数的第 N 个 Bit 置 0，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1}
 
@@ -335,6 +338,9 @@ procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
 function BigNumberIsNegative(const Num: TCnBigNumber): Boolean;
 {* 返回一个大数对象是否负值}
 
+procedure BigNumberNegate(const Num: TCnBigNumber);
+{* 给一个大数对象设置正负反号}
+
 function BigNumberClearBit(const Num: TCnBigNumber; N: Integer): Boolean;
 {* 给一个大数对象的第 N 个 Bit 置 0，返回成功与否。N 为 0 时代表二进制最低位。}
 
@@ -417,25 +423,25 @@ function BigNumberUnsignedSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
 
 function BigNumberAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
-{* 两个大数对象带符号相加，结果放至 Res 中，返回相加是否成功}
+{* 两个大数对象带符号相加，结果放至 Res 中，返回相加是否成功，Res 可以是 Num1 或 Num2}
 
 function BigNumberSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
-{* 两个大数对象带符号相减，结果放至 Res 中，返回相减是否成功}
+{* 两个大数对象带符号相减，结果放至 Res 中，返回相减是否成功，Res 可以是 Num1 或 Num2}
 
 function BigNumberShiftLeftOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
-{* 将一大数对象左移一位，结果放至 Res 中，返回左移是否成功}
+{* 将一大数对象左移一位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num}
 
 function BigNumberShiftRightOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
-{* 将一大数对象右移一位，结果放至 Res 中，返回右移是否成功}
+{* 将一大数对象右移一位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num}
 
 function BigNumberShiftLeft(const Res: TCnBigNumber; const Num: TCnBigNumber;
   N: Integer): Boolean;
-{* 将一大数对象左移 N 位，结果放至 Res 中，返回左移是否成功}
+{* 将一大数对象左移 N 位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num}
 
 function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
   N: Integer): Boolean;
-{* 将一大数对象右移 N 位，结果放至 Res 中，返回右移是否成功}
+{* 将一大数对象右移 N 位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num}
 
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功}
@@ -1084,6 +1090,16 @@ end;
 function BigNumberIsNegative(const Num: TCnBigNumber): Boolean;
 begin
   Result := Num.Neg <> 0;
+end;
+
+procedure BigNumberNegate(const Num: TCnBigNumber);
+begin
+  if BigNumberIsZero(Num) then
+    Exit;
+  if Num.Neg <> 0 then
+    Num.Neg := 0
+  else
+    Num.Neg := 1;
 end;
 
 function BigNumberClearBit(const Num: TCnBigNumber; N: Integer): Boolean;
@@ -1761,7 +1777,6 @@ begin
   Carry := BigNumberAddWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
 
   AP := PLongWord(Integer(AP) + Min * SizeOf(LongWord));
-//  BP := PDWORD(Integer(BP) + Min * SizeOf(DWORD));
   RP := PLongWord(Integer(RP) + Min * SizeOf(LongWord));
 
   if Carry <> 0 then
@@ -4899,6 +4914,11 @@ end;
 function TCnBigNumber.SetInt64(W: Int64): Boolean;
 begin
   Result := BigNumberSetInt64(Self, W);
+end;
+
+procedure TCnBigNumber.Negate;
+begin
+  BigNumberNegate(Self);
 end;
 
 { TCnBigNumberList }
