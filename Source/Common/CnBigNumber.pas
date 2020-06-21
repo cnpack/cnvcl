@@ -1774,7 +1774,7 @@ end;
 
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D，不管商的高 32 位
 // 因此要保证 D 的最高位为 1，商的高 32 位才会为 0，此函数调用才不会出错，所以 32 位下才可以用 DIV 指令优化
-function BigNumberDivWords(H: LongWord; L: LongWord; D: LongWord): LongWord;
+function InternalDivWords(H: LongWord; L: LongWord; D: LongWord): LongWord;
 begin
   if D = 0 then
   begin
@@ -2498,7 +2498,7 @@ begin
   for I := Num.Top - 1 downto 0 do
   begin
     L := PLongWordArray(Num.D)^[I];
-    D := BigNumberDivWords(Result, L, W); // W 保证了最高位为 1，结果才是 32 位
+    D := InternalDivWords(Result, L, W); // W 保证了最高位为 1，结果才是 32 位
     Result := (L - ((D * W) and BN_MASK2)) and BN_MASK2;
 
     PLongWordArray(Num.D)^[I] := D;
@@ -3158,7 +3158,7 @@ begin
         Q := BN_MASK2
       else
       begin
-        Q := BigNumberDivWords(N0, N1, D0); // D0 已由上文保证最高位是 1
+        Q := InternalDivWords(N0, N1, D0); // D0 已由上文保证最高位是 1
         Rem := (N1 - Q * D0) and BN_MASK2;
 
         T2 := UInt64Mul(D1, Q);
