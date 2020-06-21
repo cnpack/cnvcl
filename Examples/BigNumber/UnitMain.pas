@@ -67,6 +67,9 @@ type
     btnPowerModCompare: TButton;
     btnMulModCompare: TButton;
     btnCheckPrime: TButton;
+    btnIntPower: TButton;
+    seIntPower: TSpinEdit;
+    lblIntPower: TLabel;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -111,6 +114,7 @@ type
     procedure btnPowerModCompareClick(Sender: TObject);
     procedure btnMulModCompareClick(Sender: TObject);
     procedure btnCheckPrimeClick(Sender: TObject);
+    procedure btnIntPowerClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -787,10 +791,16 @@ begin
 
   T1 := GetTickCount;
   for I := 1 to 1 do
-    BigNumberIsProbablyPrime(R, False, 5);
+    BigNumberIsProbablyPrime(R, 5);
   T1 := GetTickCount - T1;
   ShowMessage(IntToStr(T1));
   R.Free;
+end;
+
+procedure TFormBigNumber.btnIntPowerClick(Sender: TObject);
+begin
+  if BigNumberPower(Num2, Num1, seIntPower.Value) then
+    ShowNumbers;
 end;
 
 end.

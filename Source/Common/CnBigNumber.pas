@@ -24,13 +24,15 @@ unit CnBigNumber;
 * 软件名称：开发包基础库
 * 单元名称：大数算法单元
 * 单元作者：刘啸
-* 备    注：大部分从 Openssl 的 C 代码移植而来
+* 备    注：大部分从 Openssl 的 C 代码移植而来，大数池不支持多线程
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.01.16 V1.5
+* 修改记录：2020.06.20 V1.6
+*               加入快速乘方函数
+*           2020.01.16 V1.5
 *               优化乘法与 MulMod 的速度，去除汇编代码
 *           2019.04.16 V1.4
 *               支持 Win32/Win64/MacOS
@@ -50,7 +52,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
+  Classes, SysUtils, Math, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   Contnrs, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
@@ -175,6 +177,9 @@ type
     function DivWord(W: LongWord): LongWord;
     {* 大数除以一个 DWORD，商重新放在自身中，返回余数}
 
+    function PowerWord(W: LongWord): Boolean;
+    {* 大数乘方，结果重新放在自身中，返回乘方是否成功}
+
     procedure SetNegative(Negative: Boolean);
     {* 设置大数是否负值}
 
@@ -288,6 +293,9 @@ function BigNumberGetBitsCount(const Num: TCnBigNumber): Integer;
 
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效 Bytes}
+
+function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
+{* 返回一个大数对象里的大数有多少个有效十进制位数}
 
 function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
 {* 取一个大数对象的首值}
@@ -463,6 +471,10 @@ function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 {* 两大数对象非负求余，Num mod Divisor，余数放 Remain 中，0 <= Remain < |Divisor|
    Remain 始终大于零，返回求余计算是否成功}
+
+function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
+  Exponent: LongWord): Boolean;
+{* 求大数的整数次方，返回计算是否成功，Res 可以是 Num}
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
   Exponent: TCnBigNumber): Boolean;
@@ -742,6 +754,39 @@ end;
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
 begin
   Result := (BigNumberGetBitsCount(Num) + 7) div 8;
+end;
+
+function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
+const
+  LOG_10_2 = 0.30103;
+var
+  B: Integer;
+  N: TCnBigNumber;
+begin
+  Result := 0;
+  if Num.IsZero then
+    Exit;
+
+  B := Num.GetBitsCount;
+  if B <= 3 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  B := Trunc(LOG_10_2 * (B - 1));
+  // N 位二进制全 1 时，比它略大的 10 次幂，是 (N + 1) * Log10(2) 的整数部分 + 1，假设为 P
+  // N 位二进制只有高位 1 时，比它略小的 10 次幂，是 (N - 1) * Log10(2) 的整数部分，假设为 Q
+  // 也就是说，N 位二进制代表的值，其值必然在 10^Q 到 10^P 之间，P Q 最多差 2 或 3，只要比较两三次就行了
+  // 但如何快速计算出 10^Q，还是得用幂乘法
+
+
+  N := ObtainBigNumberFromPool;
+  try
+    // TODO: 先计算 10 的 B 次幂
+  finally
+    RecycleBigNumberToPool(N);
+  end;
 end;
 
 function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PLongWord;
@@ -2622,10 +2667,7 @@ begin
     SetLength(Result, N + 3);
     FillChar(Result[1], Length(Result), 0);
 
-    T := BigNumberNew;
-    if T = nil then
-      Exit;
-
+    T := ObtainBigNumberFromPool;
     if BigNumberCopy(T, Num) = nil then
       Exit;
 
@@ -2678,7 +2720,7 @@ begin
     if BnData <> nil then
       FreeMemory(BnData);
     if T <> nil then
-      BigNumberFree(T);
+      RecycleBigNumberToPool(T);
   end;
 
   Len := SysUtils.StrLen(PAnsiChar(Result));
@@ -3185,6 +3227,50 @@ begin
     Result := BigNumberSub(Remain, Remain, Divisor)
   else
     Result := BigNumberAdd(Remain, Remain, Divisor);
+end;
+
+function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
+  Exponent: LongWord): Boolean;
+var
+  B: Boolean;
+  T: TCnBigNumber;
+begin
+  Result := False;
+  B := False;
+  if Exponent = 0 then
+  begin
+    if Num.IsZero then  // 0 无 0 次方
+      Exit;
+
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent = 1 then // 1 次方为本身
+  begin
+    BigNumberCopy(Res, Num);
+    Result := True;
+    Exit;
+  end;
+
+  T := ObtainBigNumberFromPool;
+  BigNumberCopy(T, Num);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while Exponent > 0 do
+    begin
+      if (Exponent and 1) <> 0 then
+        BigNumberMul(Res, Res, T);
+
+      Exponent := Exponent shr 1;
+      BigNumberMul(T, T, T);
+    end;
+    Result := True;
+  finally
+    RecycleBigNumberToPool(T);
+  end;
 end;
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
@@ -4919,6 +5005,11 @@ end;
 procedure TCnBigNumber.Negate;
 begin
   BigNumberNegate(Self);
+end;
+
+function TCnBigNumber.PowerWord(W: LongWord): Boolean;
+begin
+  Result := BigNumberPower(Self, Self, W);
 end;
 
 { TCnBigNumberList }

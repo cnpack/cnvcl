@@ -1,8 +1,8 @@
 object FormBigNumber: TFormBigNumber
-  Left = 332
-  Top = 118
+  Left = 217
+  Top = 85
   Width = 1096
-  Height = 765
+  Height = 720
   Caption = 'Big Number Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -51,6 +51,13 @@ object FormBigNumber: TFormBigNumber
         Width = 24
         Height = 13
         Caption = 'Shift:'
+      end
+      object lblIntPower: TLabel
+        Left = 912
+        Top = 120
+        Width = 48
+        Height = 13
+        Caption = 'Exponent:'
       end
       object mmoNum1: TMemo
         Left = 16
@@ -524,6 +531,25 @@ object FormBigNumber: TFormBigNumber
         Caption = 'Check Prime'
         TabOrder = 48
         OnClick = btnCheckPrimeClick
+      end
+      object btnIntPower: TButton
+        Left = 912
+        Top = 80
+        Width = 121
+        Height = 25
+        Caption = 'Integer Power'
+        TabOrder = 49
+        OnClick = btnIntPowerClick
+      end
+      object seIntPower: TSpinEdit
+        Left = 976
+        Top = 116
+        Width = 57
+        Height = 22
+        MaxValue = 1024
+        MinValue = 0
+        TabOrder = 50
+        Value = 18
       end
     end
   end
