@@ -551,6 +551,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 50
         Value = 18
       end
+      object btnGetTenCount: TButton
+        Left = 912
+        Top = 48
+        Width = 121
+        Height = 25
+        Caption = '10 Precision'
+        TabOrder = 51
+        OnClick = btnGetTenCountClick
+      end
     end
   end
 end

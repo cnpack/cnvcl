@@ -70,6 +70,7 @@ type
     btnIntPower: TButton;
     seIntPower: TSpinEdit;
     lblIntPower: TLabel;
+    btnGetTenCount: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -115,6 +116,7 @@ type
     procedure btnMulModCompareClick(Sender: TObject);
     procedure btnCheckPrimeClick(Sender: TObject);
     procedure btnIntPowerClick(Sender: TObject);
+    procedure btnGetTenCountClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -801,6 +803,11 @@ procedure TFormBigNumber.btnIntPowerClick(Sender: TObject);
 begin
   if BigNumberPower(Num2, Num1, seIntPower.Value) then
     ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnGetTenCountClick(Sender: TObject);
+begin
+  ShowMessage(IntToStr(BigNumberGetTenPrecision(Num1)));
 end;
 
 end.

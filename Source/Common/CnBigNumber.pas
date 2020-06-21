@@ -31,7 +31,7 @@ unit CnBigNumber;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2020.06.20 V1.6
-*               加入快速乘方函数
+*               加入快速乘方函数与十进制位数函数
 *           2020.01.16 V1.5
 *               优化乘法与 MulMod 的速度，去除汇编代码
 *           2019.04.16 V1.4
@@ -136,6 +136,9 @@ type
 
     function GetBytesCount: Integer;
     {* 返回大数有多少个有效 Bytes}
+
+    function GetTenPrecision: Integer;
+    {* 返回大数有多少个十进制位}
 
     function GetWord: LongWord;
     {* 取 DWORD 型首值}
@@ -760,7 +763,7 @@ function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
 const
   LOG_10_2 = 0.30103;
 var
-  B: Integer;
+  B, P, Q: Integer;
   N: TCnBigNumber;
 begin
   Result := 0;
@@ -774,16 +777,32 @@ begin
     Exit;
   end;
 
-  B := Trunc(LOG_10_2 * (B - 1));
+  P := Trunc(LOG_10_2 * (B + 1)) + 1;
+  Q := Trunc(LOG_10_2 * (B - 1));
+  B := P - Q;
   // N 位二进制全 1 时，比它略大的 10 次幂，是 (N + 1) * Log10(2) 的整数部分 + 1，假设为 P
   // N 位二进制只有高位 1 时，比它略小的 10 次幂，是 (N - 1) * Log10(2) 的整数部分，假设为 Q
   // 也就是说，N 位二进制代表的值，其值必然在 10^Q 到 10^P 之间，P Q 最多差 2 或 3，只要比较两三次就行了
-  // 但如何快速计算出 10^Q，还是得用幂乘法
-
+  // 但如何快速计算出 10^Q，还是得用二进制幂乘法 BigNumberPower
 
   N := ObtainBigNumberFromPool;
   try
-    // TODO: 先计算 10 的 B 次幂
+    // 先计算 10 的 Q + 1 次幂（10 的 Q 次幂肯定比 Num 小，无需比）
+    Inc(Q);
+    Dec(B);
+    N.SetWord(10);
+    N.PowerWord(Q);
+
+    Result := Q;
+    while B >= 0 do // 计算到 P 为止
+    begin
+      if BignumberUnsignedCompare(Num, N) < 0 then
+        Exit;
+
+      Inc(Result);
+      N.MulWord(10);
+      Dec(B);
+    end;
   finally
     RecycleBigNumberToPool(N);
   end;
@@ -3232,11 +3251,9 @@ end;
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
   Exponent: LongWord): Boolean;
 var
-  B: Boolean;
   T: TCnBigNumber;
 begin
   Result := False;
-  B := False;
   if Exponent = 0 then
   begin
     if Num.IsZero then  // 0 无 0 次方
@@ -5010,6 +5027,11 @@ end;
 function TCnBigNumber.PowerWord(W: LongWord): Boolean;
 begin
   Result := BigNumberPower(Self, Self, W);
+end;
+
+function TCnBigNumber.GetTenPrecision: Integer;
+begin
+  Result := BigNumberGetTenPrecision(Self);
 end;
 
 { TCnBigNumberList }
