@@ -16,11 +16,13 @@ type
     bvl1: TBevel;
     btnStrUInt64: TButton;
     btnMul32: TButton;
+    btnHighLowBits: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
     procedure btnStrUInt64Click(Sender: TObject);
     procedure btnMul32Click(Sender: TObject);
+    procedure btnHighLowBitsClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -148,6 +150,28 @@ begin
   mmoRes.Lines.Add(UInt64ToStr(D));
 {$ENDIF}
 
+end;
+
+procedure TFormNative.btnHighLowBitsClick(Sender: TObject);
+var
+  H, L: Integer;
+  T1: Cardinal;
+  T2: TUInt64;               //    28
+begin                        //    *                          1
+  T1 := 349583946;           // 00010100110101100011101001001010
+  T2 := 102849293434583456;  // 0000000101101101011001001110001100110000100100010111100110100000
+                             //        *                                                  5
+                             //        56
+
+//  T1 := $FFFFFFFF;
+//  T2 := $FFFFFFFFFFFFFFFC;
+  H := GetUInt32HighBits(T1);
+  L := GetUInt32LowBits(T1);
+  mmoRes.Lines.Add(Format('32: High %d Low %d.', [H, L]));
+
+  H := GetUInt64HighBits(T2);
+  L := GetUInt64LowBits(T2);
+  mmoRes.Lines.Add(Format('64: High %d Low %d.', [H, L]));
 end;
 
 end.

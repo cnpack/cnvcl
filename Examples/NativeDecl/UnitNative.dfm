@@ -1,6 +1,6 @@
 object FormNative: TFormNative
-  Left = 192
-  Top = 107
+  Left = 236
+  Top = 152
   BorderStyle = bsDialog
   Caption = 
     'Test some Native Declarations and Methods - Run on D567 and can ' +
@@ -74,5 +74,14 @@ object FormNative: TFormNative
     Caption = 'Mul U32 to Int64'
     TabOrder = 4
     OnClick = btnMul32Click
+  end
+  object btnHighLowBits: TButton
+    Left = 496
+    Top = 16
+    Width = 97
+    Height = 25
+    Caption = 'Test High Low Bits'
+    TabOrder = 5
+    OnClick = btnHighLowBitsClick
   end
 end
