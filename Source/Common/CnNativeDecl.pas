@@ -133,13 +133,13 @@ function GetUInt32HighBits(B: Cardinal): Integer;
 {* 返回 Cardinal 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
 
 function GetUInt64LowBits(B: TUInt64): Integer;
-{* 返回 Int64 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 Int64 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
 
 function GetUInt32LowBits(B: Cardinal): Integer;
-{* 返回 Cardinal 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 Cardinal 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
 
 function Int64Mod(M, N: Int64): Int64;
-{* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 C 仍要求正数否则结果不靠谱}
+{* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱}
 
 implementation
 

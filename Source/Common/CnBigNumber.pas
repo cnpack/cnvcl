@@ -192,6 +192,12 @@ type
     procedure Negate;
     {* 大数正负号反号}
 
+    procedure ShiftLeft(N: Integer);
+    {* 左移 N 位}
+
+    procedure ShiftRight(N: Integer);
+    {* 右移 N 位}
+
     function ClearBit(N: Integer): Boolean;
     {* 给大数的第 N 个 Bit 置 0，返回成功与否。N 从最低位 0 到最高位 GetBitsCount - 1}
 
@@ -311,6 +317,9 @@ function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
 
 function BigNumberSetInt64(const Num: TCnBigNumber; W: Int64): Boolean;
 {* 给一个大数对象赋首值 Int64}
+
+function BigNumberSetUInt64UsingInt64(const Num: TCnBigNumber; W: TUInt64): Boolean;
+{* 使用 Int64 给一个大数对象赋 UInt64 首值}
 
 {$IFDEF SUPPORT_UINT64}
 
@@ -777,32 +786,32 @@ begin
     Exit;
   end;
 
-  P := Trunc(LOG_10_2 * (B + 1)) + 1;
-  Q := Trunc(LOG_10_2 * (B - 1));
-  B := P - Q;
-  // N 位二进制全 1 时，比它略大的 10 次幂，是 (N + 1) * Log10(2) 的整数部分 + 1，假设为 P
-  // N 位二进制只有高位 1 时，比它略小的 10 次幂，是 (N - 1) * Log10(2) 的整数部分，假设为 Q
-  // 也就是说，N 位二进制代表的值，其值必然在 10^Q 到 10^P 之间，P Q 最多差 2 或 3，只要比较两三次就行了
+  P := Trunc(LOG_10_2 * B) + 1;
+  Q := Trunc(LOG_10_2 * (B - 1)) + 1;
+  // N 位二进制全 1 时，比它略大的（也就是 N + 1 位的二进制只有高位 1 的） 10 进制形式的位数，是 (N) * Log10(2) 的整数部分 + 1，假设为 P
+  // N 位二进制只有高位 1 时，它的 10 进制形式的位数，是 (N - 1) * Log10(2) 的整数部分 + 1，假设为 Q
+  // 也就是 N 位二进制最大时，其 10 进制位数等于 P，N 位二进制最小只有高位为 1 时，其 10 进制位数等于 Q
+  // 也就是说，N 位二进制代表的值，其值必然大于 10^Q，并且有可能提前大于 10^P，P、Q 最多差 1，最多只要比较一次就行了
+
   // 但如何快速计算出 10^Q，还是得用二进制幂乘法 BigNumberPower
+
+  if P = Q then  // 如果这个 N，最大最小的 10 进制位数都一样，则无需额外比较计算，直接返回
+  begin
+    Result := P;
+    Exit;
+  end;
 
   N := ObtainBigNumberFromPool;
   try
-    // 先计算 10 的 Q + 1 次幂（10 的 Q 次幂肯定比 Num 小，无需比）
-    Inc(Q);
-    Dec(B);
+    // 先计算 P 位 10 进制的最小值 10^(P - 1) 次幂，和本数比较，注意这里 P 比 Q 大一，
     N.SetWord(10);
     N.PowerWord(Q);
 
     Result := Q;
-    while B >= 0 do // 计算到 P 为止
-    begin
-      if BignumberUnsignedCompare(Num, N) < 0 then
+    if BignumberUnsignedCompare(Num, N) < 0 then
         Exit;
 
-      Inc(Result);
-      N.MulWord(10);
-      Dec(B);
-    end;
+    Inc(Result); // 如果大于或等于 P 位 10 进制的最小值 10^(P - 1) 次幂，则位数比 Q 多 1
   finally
     RecycleBigNumberToPool(N);
   end;
@@ -979,13 +988,29 @@ begin
       Num.Top := 0
     else
       Num.Top := 2;
-  end                 
+  end
   else // W < 0
   begin
     Num.Neg := 1;
     PInt64Array(Num.D)^[0] := (not W) + 1;
     Num.Top := 2;
   end;
+  Result := True;
+end;
+
+function BigNumberSetUInt64UsingInt64(const Num: TCnBigNumber; W: TUInt64): Boolean;
+begin
+  Result := False;
+  if BigNumberExpandBits(Num, SizeOf(Int64) * 8) = nil then
+    Exit;
+
+  Num.Neg := 0;
+  PInt64Array(Num.D)^[0] := Int64(W);
+  if W = 0 then
+    Num.Top := 0
+  else
+    Num.Top := 2;
+
   Result := True;
 end;
 
@@ -5032,6 +5057,16 @@ end;
 function TCnBigNumber.GetTenPrecision: Integer;
 begin
   Result := BigNumberGetTenPrecision(Self);
+end;
+
+procedure TCnBigNumber.ShiftLeft(N: Integer);
+begin
+  BigNumberShiftLeft(Self, Self, N);
+end;
+
+procedure TCnBigNumber.ShiftRight(N: Integer);
+begin
+  BigNumberShiftRight(Self, Self, N);
 end;
 
 { TCnBigNumberList }
