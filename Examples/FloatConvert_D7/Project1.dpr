@@ -2,13 +2,13 @@ program Project1;
 
 uses
   Forms,
-  Unit1 in 'Unit1.pas' {Form1},
+  Unit1 in 'Unit1.pas' {FormFloat},
   CnFloatConvert in '..\..\Source\Common\CnFloatConvert.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormFloat, FormFloat);
   Application.Run;
 end.

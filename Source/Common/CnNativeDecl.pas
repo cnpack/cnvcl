@@ -86,6 +86,7 @@ type
   TUInt64          = UInt64;
 {$ELSE}
   TUInt64          = Int64;
+  PUInt64          = ^TUInt64;
 {$ENDIF}
 
 {$IFDEF MACOS}

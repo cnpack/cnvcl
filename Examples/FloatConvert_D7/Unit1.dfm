@@ -1,9 +1,9 @@
-object Form1: TForm1
+object FormFloat: TFormFloat
   Left = 318
   Top = 219
   Width = 404
   Height = 175
-  Caption = '浮点数转换成字符串测试'
+  Caption = '浮点数转换成字符串 & Extract Float 测试'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -78,5 +78,14 @@ object Form1: TForm1
     Height = 17
     Caption = '十六进制(Hexdecimal)'
     TabOrder = 6
+  end
+  object btnExtract: TButton
+    Left = 312
+    Top = 72
+    Width = 75
+    Height = 25
+    Caption = 'Extract'
+    TabOrder = 7
+    OnClick = btnExtractClick
   end
 end
