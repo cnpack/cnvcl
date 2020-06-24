@@ -101,28 +101,46 @@ const
   CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 其实就是 8 字节整
 
 procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
-  out Exponent: Integer; out Significand: Cardinal);
+  out Exponent: Integer; out Mantissa: Cardinal);
 {* 从单精度浮点数中解出符号位、指数、有效数字}
 
 procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
-  out Exponent: Integer; out Significand: TUInt64);
+  out Exponent: Integer; out Mantissa: TUInt64);
 {* 从双精度浮点数中解出符号位、指数、有效数字}
 
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
-  out Exponent: Integer; out Significand: TUInt64);
+  out Exponent: Integer; out Mantissa: TUInt64);
 {* 从扩展精度浮点数中解出符号位、指数、有效数字}
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
-  Significand: Cardinal; var Value: Single);
+  Mantissa: Cardinal; var Value: Single);
 {* 把符号位、指数、有效数字拼成单精度浮点数}
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
-  Significand: TUInt64; var Value: Double);
+  Mantissa: TUInt64; var Value: Double);
 {* 把符号位、指数、有效数字拼成双精度浮点数}
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
-  Significand: TUInt64; var Value: Extended);
+  Mantissa: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数}
+
+function SingleIsInfinite(const AValue: Single): Boolean;
+{* 单精度浮点数是否无穷大}
+
+function DoubleIsInfinite(const AValue: Double): Boolean;
+{* 双精度浮点数是否无穷大}
+
+function ExtendedIsInfinite(const AValue: Extended): Boolean;
+{* 扩展精度浮点数是否无穷大}
+
+function SingleIsNan(const AValue: Single): Boolean;
+{* 单精度浮点数是否非实数}
+
+function DoubleIsNan(const AValue: Double): Boolean;
+{* 双精度浮点数是否非实数}
+
+function ExtendedIsNan(const AValue: Extended): Boolean;
+{* 扩展精度浮点数是否非实数}
 
 {$IFNDEF WIN64}        // 64 位以及 Delphi 5、6 不支持以下三个函数
 {$IFNDEF COMPILER5}
@@ -148,7 +166,7 @@ implementation
 
 type
   TExtendedRec = packed record
-    Significand: TUInt64;
+    Mantissa: TUInt64;
     ExpSign: Word;
   end;
   PExtendedRec = ^TExtendedRec;
@@ -833,36 +851,36 @@ end;
 {$ENDIF}
 
 procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
-  out Exponent: Integer; out Significand: Cardinal);
+  out Exponent: Integer; out Mantissa: Cardinal);
 begin
   SignNegative := (PLongWord(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
   Exponent := ((PLongWord(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - 127;
-  Significand := PLongWord(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
-  Significand := Significand or (1 shl 23); // 高位再加个 1
+  Mantissa := PLongWord(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
+  Mantissa := Mantissa or (1 shl 23); // 高位再加个 1
 end;
 
 procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
-  out Exponent: Integer; out Significand: TUInt64);
+  out Exponent: Integer; out Mantissa: TUInt64);
 begin
   SignNegative := (PUInt64(@Value)^ and CN_SIGN_DOUBLE_MASK) <> 0;
   Exponent := ((PUInt64(@Value)^ and CN_EXPONENT_DOUBLE_MASK) shr 52) - 1023;
-  Significand := PUInt64(@Value)^ and CN_SIGNIFICAND_DOUBLE_MASK;
-  Significand := Significand or (TUInt64(1) shl 52); // 高位再加个 1
+  Mantissa := PUInt64(@Value)^ and CN_SIGNIFICAND_DOUBLE_MASK;
+  Mantissa := Mantissa or (TUInt64(1) shl 52); // 高位再加个 1
 end;
 
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
-  out Exponent: Integer; out Significand: TUInt64);
+  out Exponent: Integer; out Mantissa: TUInt64);
 begin
   SignNegative := (PExtendedRec(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
   Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - 16383;
-  Significand := PExtendedRec(@Value)^.Significand; // 有 1，不用加了
+  Mantissa := PExtendedRec(@Value)^.Mantissa; // 有 1，不用加了
 end;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
-  Significand: Cardinal; var Value: Single);
+  Mantissa: Cardinal; var Value: Single);
 begin
-  Significand := Significand and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
-  PLongWord(@Value)^ := Significand and CN_SIGNIFICAND_SINGLE_MASK;
+  Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
+  PLongWord(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
   Inc(Exponent, 127);
   PLongWord(@Value)^ := PLongWord(@Value)^ or (LongWord(Exponent) shl 23);
   if SignNegative then
@@ -872,10 +890,10 @@ begin
 end;
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
-  Significand: TUInt64; var Value: Double);
+  Mantissa: TUInt64; var Value: Double);
 begin
-  Significand := Significand and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
-  PUInt64(@Value)^ := Significand and CN_SIGNIFICAND_DOUBLE_MASK;
+  Mantissa := Mantissa and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
+  PUInt64(@Value)^ := Mantissa and CN_SIGNIFICAND_DOUBLE_MASK;
   Inc(Exponent, 1023);
   PUInt64(@Value)^ := PUInt64(@Value)^ or (TUInt64(Exponent) shl 52);
   if SignNegative then
@@ -885,15 +903,51 @@ begin
 end;
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
-  Significand: TUInt64; var Value: Extended);
+  Mantissa: TUInt64; var Value: Extended);
 begin
-  PExtendedRec(@Value)^.Significand := Significand;
+  PExtendedRec(@Value)^.Mantissa := Mantissa;
   Inc(Exponent, 16383);
   PExtendedRec(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
   if SignNegative then
     PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
   else
     PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+end;
+
+function SingleIsInfinite(const AValue: Single): Boolean;
+begin
+  Result := ((PLongWord(@AValue)^ and $7F800000) = $7F800000) and
+            ((PLongWord(@AValue)^ and $007FFFFF) = $00000000);
+end;
+
+function DoubleIsInfinite(const AValue: Double): Boolean;
+begin
+  Result := ((PUInt64(@AValue)^ and $7FF0000000000000) = $7FF0000000000000) and
+            ((PUInt64(@AValue)^ and $000FFFFFFFFFFFFF) = $0000000000000000);
+end;
+
+function ExtendedIsInfinite(const AValue: Extended): Boolean;
+begin
+  Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF) = $7FFF) and
+            ((PExtendedRec(@AValue)^.Mantissa) = 0);
+end;
+
+function SingleIsNan(const AValue: Single): Boolean;
+begin
+  Result := ((PLongWord(@AValue)^ and $7F800000)  = $7F800000) and
+            ((PLongWord(@AValue)^ and $007FFFFF) <> $00000000);
+end;
+
+function DoubleIsNan(const AValue: Double): Boolean;
+begin
+  Result := ((PUInt64(@AValue)^ and $7FF0000000000000)  = $7FF0000000000000) and
+            ((PUInt64(@AValue)^ and $000FFFFFFFFFFFFF) <> $0000000000000000);
+end;
+
+function ExtendedIsNan(const AValue: Extended): Boolean;
+begin
+  Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
+            ((PExtendedRec(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0);
 end;
 
 end.

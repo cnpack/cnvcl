@@ -57,9 +57,9 @@ procedure TFormFloat.btnExtractClick(Sender: TObject);
 var
   SignNeg1, SignNeg2, SignNeg3: Boolean;
   Exponent1, Exponent2, Exponent3: Integer;
-  Significand1: Cardinal;
-  Significand2: TUInt64;
-  Significand3: TUInt64;
+  Mantissa1: Cardinal;
+  Mantissa2: TUInt64;
+  Mantissa3: TUInt64;
   A1, A2: Single;
   B1, B2: Double;
   C1, C2: Extended;
@@ -68,13 +68,13 @@ begin
   B1 := 1003.2354545;     // 91 09 F8 35 E2 59 8F 40，处理时同样倒过来
   C1 := -88843453452.091981100001; // 97 60 BC 60 20 DC 7B A5 23 C0
 
-  ExtractFloatSingle(A1, SignNeg1, Exponent1, Significand1);
-  ExtractFloatDouble(B1, SignNeg2, Exponent2, Significand2);
-  ExtractFloatExtended(C1, SignNeg3, Exponent3, Significand3);
+  ExtractFloatSingle(A1, SignNeg1, Exponent1, Mantissa1);
+  ExtractFloatDouble(B1, SignNeg2, Exponent2, Mantissa2);
+  ExtractFloatExtended(C1, SignNeg3, Exponent3, Mantissa3);
 
-  CombineFloatSingle(SignNeg1, Exponent1, Significand1, A2);
-  CombineFloatDouble(SignNeg2, Exponent2, Significand2, B2);
-  CombineFloatExtended(SignNeg3, Exponent3, Significand3, C2);
+  CombineFloatSingle(SignNeg1, Exponent1, Mantissa1, A2);
+  CombineFloatDouble(SignNeg2, Exponent2, Mantissa2, B2);
+  CombineFloatExtended(SignNeg3, Exponent3, Mantissa3, C2);
 
   if (A1 = A2) and (B1 = B2) and (C1 = C2) then
     ShowMessage('Float Extract and Combine OK.');
