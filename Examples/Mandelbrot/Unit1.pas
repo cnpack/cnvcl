@@ -12,6 +12,8 @@ type
     procedure FormCreate(Sender: TObject);
   private
     procedure ImageClick(Sender: TObject);
+    function OnFloatColor(Sender: TObject; X, Y: Extended;
+      XZ, YZ: Extended; Count: Integer): TColor;
   public
     { Public declarations }
   end;
@@ -40,8 +42,8 @@ begin
     Height := 800;
     Anchors := [akLeft, akTop, akBottom, akRight];
     ShowAxis := True;
-    // InfiniteMode := True;
     OnClick := ImageClick;
+    OnColor := OnFloatColor;
   end;
 end;
 
@@ -51,11 +53,11 @@ var
   R, I: Extended;
   OW, OH: Extended;
   Img: TCnMandelbrotImage;
-  RR, RI, ROW, ROH, X1, X2, Y1, Y2: TCnBigRationalNumber;
+  RR, RI, ROW, ROH, X1, X2, Y1, Y2: TCnBigRational;
 begin
   Img := Sender as TCnMandelbrotImage;
   P := Img.ScreenToClient(Point(Mouse.CursorPos.X, Mouse.CursorPos.Y));
-  if not Img.InfiniteMode then
+  if Img.Mode = mmFloat then
   begin
     Img.GetComplexValues(P.x, P.y, R, I);
     lblMark.Caption := Format('X %d Y %d ***** %8.8f + %8.8f i', [P.x, P.y, R, I]);
@@ -69,21 +71,21 @@ begin
     Img.MaxX := R + OW / (2 * ENLARGE_FACTOR);
     Img.MaxY := I + OH / (2 * ENLARGE_FACTOR);
   end
-  else
+  else if Img.Mode = mmBigRational then
   begin
-    RR := TCnBigRationalNumber.Create;
-    RI := TCnBigRationalNumber.Create;
+    RR := TCnBigRational.Create;
+    RI := TCnBigRational.Create;
 
     Img.GetComplexRational(P.x, P.y, RR, RI);
     Caption := Format('X %d Y %d ***** %s + %s i', [P.x, P.y, RR.ToDec(20), RI.ToDec(20)]);
 
-    ROW := TCnBigRationalNumber.Create;
-    ROH := TCnBigRationalNumber.Create;
+    ROW := TCnBigRational.Create;
+    ROH := TCnBigRational.Create;
 
-    X1 := TCnBigRationalNumber.Create;
-    X2 := TCnBigRationalNumber.Create;
-    Y1 := TCnBigRationalNumber.Create;
-    Y2 := TCnBigRationalNumber.Create;
+    X1 := TCnBigRational.Create;
+    X2 := TCnBigRational.Create;
+    Y1 := TCnBigRational.Create;
+    Y2 := TCnBigRational.Create;
 
     X1.Assign(RR);
     X1.Sub(ROW);
@@ -111,7 +113,28 @@ begin
     ROH.Free;
     RR.Free;
     RI.Free;
+  end
+  else
+  begin
 
+  end;
+end;
+
+function TFormMandelbrot.OnFloatColor(Sender: TObject; X, Y, XZ,
+  YZ: Extended; Count: Integer): TColor;
+var
+  R: Byte;
+begin
+  if Count > CN_MANDELBROT_MAX_COUNT then
+    Result := clNavy  // 收敛，用深蓝色
+  else
+  begin
+    if 3 * Count > 255 then
+      R := 0
+    else
+      R := 255 - 3 * Byte(Count); // 次数越多越黑
+    // R := R * 10;
+    Result := RGB(R, R, R);
   end;
 end;
 

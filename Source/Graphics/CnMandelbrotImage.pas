@@ -40,18 +40,25 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Graphics, Controls, ExtCtrls, Contnrs, CnBigRational;
+  SysUtils, Classes, Windows, Graphics, Controls, ExtCtrls, Contnrs, CnBigRational,
+  CnBigDecimal;
 
 const
   CN_MANDELBROT_MAX_COUNT = 100;
 
 type
-  TCnMandelbrotColorEvent = function (Sender: TObject; X, Y: Extended;
+  TCnMandelbrotMode = (mmFloat, mmBigRational, mmBigDecimal);
+  // 浮点数运算、大有理数运算、大浮点数运算
+
+  TCnMandelbrotFloatColorEvent = function (Sender: TObject; X, Y: Extended;
     XZ, YZ: Extended; Count: Integer): TColor of object;
   {* 迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
 
-  TCnMandelbrotInfiniteColorEvent = function (Sender: TObject; X, Y: TCnBigRationalNumber;
-    XZ, YZ: TCnBigRationalNumber; Count: Integer): TColor of object;
+  TCnMandelbrotRationalColorEvent = function (Sender: TObject; X, Y: TCnBigRational;
+    XZ, YZ: TCnBigRational; Count: Integer): TColor of object;
+
+  TCnMandelbrotDecimalColorEvent = function (Sender: TObject; X, Y: TCnBigDecimal;
+    XZ, YZ: TCnBigDecimal; Count: Integer): TColor of object;
 
   TCnMandelbrotImage = class(TGraphicControl)
   {* 曼德布罗集图实现控件}
@@ -62,19 +69,27 @@ type
     FYValues: array of Extended;
     FXRationals: TObjectList;
     FYRationals: TObjectList;
+    FXDecimals: TObjectList;
+    FYDecimals: TObjectList;
     FMaxY: Extended;
     FMinX: Extended;
     FMinY: Extended;
     FMaxX: Extended;
-    FMaxRX: TCnBigRationalNumber;
-    FMinRX: TCnBigRationalNumber;
-    FMaxRY: TCnBigRationalNumber;
-    FMinRY: TCnBigRationalNumber;
-    FOnColor: TCnMandelbrotColorEvent;
-    FOnInfiniteColor: TCnMandelbrotInfiniteColorEvent;
+    FMaxRX: TCnBigRational;
+    FMinRX: TCnBigRational;
+    FMaxRY: TCnBigRational;
+    FMinRY: TCnBigRational;
+    FMaxDX: TCnBigDecimal;
+    FMinDX: TCnBigDecimal;
+    FMaxDY: TCnBigDecimal;
+    FMinDY: TCnBigDecimal;
+    FOnColor: TCnMandelbrotFloatColorEvent;
+    FOnInfiniteColor: TCnMandelbrotRationalColorEvent;
     FShowAxis: Boolean;
     FAxisColor: TColor;
-    FInfiniteMode: Boolean;
+    FMode: TCnMandelbrotMode;
+    FInSetCount: Integer;
+    FOutSetCount: Integer;
     procedure SetMaxX(const Value: Extended);
     procedure SetMaxY(const Value: Extended);
     procedure SetMinX(const Value: Extended);
@@ -84,15 +99,17 @@ type
     procedure UpdateMatrixes(AWidth, AHeight: Integer);
     procedure SetShowAxis(const Value: Boolean);
     procedure SetAxisColor(const Value: TColor);
-    procedure SetOnColor(const Value: TCnMandelbrotColorEvent);
-    procedure SetInfiniteMode(const Value: Boolean);
+    procedure SetOnColor(const Value: TCnMandelbrotFloatColorEvent);
+    procedure SetMode(const Value: TCnMandelbrotMode);
     procedure SetOnInfiniteColor(
-      const Value: TCnMandelbrotInfiniteColorEvent);
+      const Value: TCnMandelbrotRationalColorEvent);
   protected
-    function CalcColor(X, Y: Extended): TColor;
-    function CalcInfiniteColor(X, Y: TCnBigRationalNumber; XZ, YZ: TCnBigRationalNumber): TColor;
+    function CalcFloatColor(X, Y: Extended; out InSet: Boolean): TColor;
+    function CalcInfiniteColor(X, Y: TCnBigRational; XZ, YZ: TCnBigRational): TColor;
     procedure ReCalcColors;
-    procedure ReCalcInfiniteColors;
+    procedure ReCalcFloatColors;
+    procedure ReCalcBigRationalColors;
+    procedure ReCalcBigDecimalColors;
     procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -102,12 +119,12 @@ type
     
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: Extended); overload;
-    procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigRationalNumber); overload;
+    procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigRational); overload;
     procedure GetComplexValues(X, Y: Integer; out R, I: Extended);
-    procedure GetComplexRational(X, Y: Integer; R, I: TCnBigRationalNumber);
+    procedure GetComplexRational(X, Y: Integer; R, I: TCnBigRational);
   published
-    property InfiniteMode: Boolean read FInfiniteMode write SetInfiniteMode;
-    {* 是否使用大有理数算法来计算的无限放大模式}
+    property Mode: TCnMandelbrotMode read FMode write SetMode;
+    {* 计算模式，是使用精度有限的扩展精度浮点，还是大有理数、还是大浮点数}
 
     property MinX: Extended read FMinX write SetMinX;
     {* X 轴左侧值}
@@ -118,9 +135,14 @@ type
     property MaxY: Extended read FMaxY write SetMaxY;
     {* Y 轴上缘值}
 
-    property OnColor: TCnMandelbrotColorEvent read FOnColor write SetOnColor;
+    property InSetCount: Integer read FInSetCount;
+    {* 一次完整计算中，画面在集合内的点数量}
+    property OutSetCount: Integer read FOutSetCount;
+    {* 一次完整计算中，画面在集合外的点数量}
+
+    property OnColor: TCnMandelbrotFloatColorEvent read FOnColor write SetOnColor;
     {* 自定义曼德布罗集像素点的颜色事，如无，则内部使用黑白色}
-    property OnInfiniteColor: TCnMandelbrotInfiniteColorEvent read FOnInfiniteColor
+    property OnInfiniteColor: TCnMandelbrotRationalColorEvent read FOnInfiniteColor
       write SetOnInfiniteColor;
     property ShowAxis: Boolean read FShowAxis write SetShowAxis;
     {* 是否绘制坐标轴}
@@ -132,19 +154,20 @@ type
 
 implementation
 
-{ TCnMandelbrotImage }
+resourcestring
+  SCnMandelbrotOutOfBounds = 'Invalid Mode or X Y Out of Bounds.';
 
 type
   PRGBTripleArray = ^TRGBTripleArray;
   TRGBTripleArray = array [Byte] of TRGBTriple;
 
 var
-  TmpXZ, TmpYZ: TCnBigRationalNumber;
+  TmpXZ, TmpYZ: TCnBigRational;
 
-procedure CalcMandelbortSetInfinitePoint(X, Y: TCnBigRationalNumber; XZ, YZ: TCnBigRationalNumber;
+procedure CalcMandelbortSetInfinitePoint(X, Y: TCnBigRational; XZ, YZ: TCnBigRational;
   out Count: Integer);
 
-  function R2SqrSumGT4(A, B: TCnBigRationalNumber): Boolean;
+  function R2SqrSumGT4(A, B: TCnBigRational): Boolean;
   begin
     Result := False;
     TmpXZ.Assign(A);
@@ -159,9 +182,9 @@ procedure CalcMandelbortSetInfinitePoint(X, Y: TCnBigRationalNumber; XZ, YZ: TCn
 begin
   // 以有理数的方式迭代计算
   if TmpXZ = nil then
-    TmpXZ := TCnBigRationalNumber.Create;
+    TmpXZ := TCnBigRational.Create;
   if TmpYZ = nil then
-    TmpYZ := TCnBigRationalNumber.Create;
+    TmpYZ := TCnBigRational.Create;
 
   Count := 0;
   if R2SqrSumGT4(X, Y) then
@@ -185,7 +208,7 @@ begin
   until R2SqrSumGT4(XZ, YZ) or (Count > CN_MANDELBROT_MAX_COUNT);
 end;
 
-procedure CalcMandelbortSetPoint(X, Y: Extended; out XZ, YZ: Extended; out Count: Integer);
+procedure CalcMandelbortSetFloatPoint(X, Y: Extended; out XZ, YZ: Extended; out Count: Integer);
 var
   XZ2, YZ2: Extended;
 begin
@@ -208,7 +231,9 @@ begin
   until (XZ * XZ + YZ * YZ > 4.0) or (Count > CN_MANDELBROT_MAX_COUNT);
 end;
 
-function TCnMandelbrotImage.CalcColor(X, Y: Extended): TColor;
+{ TCnMandelbrotImage }
+
+function TCnMandelbrotImage.CalcFloatColor(X, Y: Extended; out InSet: Boolean): TColor;
 var
   XZ, YZ: Extended;
   C: Integer;
@@ -217,10 +242,11 @@ begin
   YZ := 0.0;
   C := 0;
 
-  CalcMandelbortSetPoint(X, Y, XZ, YZ, C);
+  CalcMandelbortSetFloatPoint(X, Y, XZ, YZ, C);
 
   if C > CN_MANDELBROT_MAX_COUNT then
   begin
+    InSet := True;
     if Assigned(FOnColor) then
       Result := FOnColor(Self, X, Y, XZ, YZ, C)
     else
@@ -228,6 +254,7 @@ begin
   end
   else
   begin
+    InSet := False;
     if Assigned(FOnColor) then
       Result := FOnColor(Self, X, Y, XZ, YZ, C)
     else
@@ -236,7 +263,7 @@ begin
 end;
 
 function TCnMandelbrotImage.CalcInfiniteColor(X,
-  Y: TCnBigRationalNumber; XZ, YZ: TCnBigRationalNumber): TColor;
+  Y: TCnBigRational; XZ, YZ: TCnBigRational): TColor;
 var
   C: Integer;
 begin
@@ -273,10 +300,10 @@ begin
   FAxisColor := clTeal;
   FXRationals := TObjectList.Create(True);
   FYRationals := TObjectList.Create(True);
-  FMaxRX := TCnBigRationalNumber.Create;
-  FMinRX := TCnBigRationalNumber.Create;
-  FMaxRY := TCnBigRationalNumber.Create;
-  FMinRY := TCnBigRationalNumber.Create;
+  FMaxRX := TCnBigRational.Create;
+  FMinRX := TCnBigRational.Create;
+  FMaxRY := TCnBigRational.Create;
+  FMinRY := TCnBigRational.Create;
 end;
 
 destructor TCnMandelbrotImage.Destroy;
@@ -295,34 +322,34 @@ begin
 end;
 
 procedure TCnMandelbrotImage.GetComplexRational(X, Y: Integer; R,
-  I: TCnBigRationalNumber);
+  I: TCnBigRational);
 begin
-  if FInfiniteMode and (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
+  if (FMode = mmBigRational) and (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
   begin
-    R.Assign(TCnBigRationalNumber(FXRationals[X]));
-    I.Assign(TCnBigRationalNumber(FYRationals[Y]));
+    R.Assign(TCnBigRational(FXRationals[X]));
+    I.Assign(TCnBigRational(FYRationals[Y]));
   end
   else
-    raise Exception.Create('X Y Index Out of Bounds.');
+    raise Exception.Create(SCnMandelbrotOutOfBounds);
 end;
 
 procedure TCnMandelbrotImage.GetComplexValues(X, Y: Integer; out R,
   I: Extended);
 begin
-  if not FInfiniteMode and (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
+  if (FMode = mmFloat) and (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
   begin
     R := FXValues[X];
     I := FYValues[Y];
   end
   else
-    raise Exception.Create('X Y Index Out of Bounds.');
+    raise Exception.Create(SCnMandelbrotOutOfBounds);
 end;
 
 procedure TCnMandelbrotImage.Loaded;
 begin
   inherited;
   UpdateMatrixes(Width, Height);
-  ReCalcColors;
+  ReCalcFloatColors;
 end;
 
 procedure TCnMandelbrotImage.Paint;
@@ -346,19 +373,28 @@ begin
   end;
 end;
 
-procedure TCnMandelbrotImage.ReCalcColors;
+procedure TCnMandelbrotImage.ReCalcFloatColors;
 var
   X, Y, C: Integer;
   AColor: TColor;
   R, G, B: Byte;
   Arr: PRGBTripleArray;
+  InSet: Boolean;
 begin
+  FInSetCount := 0;
+  FOutSetCount := 0;
+
   for Y := 0 to Height - 1 do
   begin
     Arr := PRGBTripleArray(FBitmap.ScanLine[Y]);
     for X := 0 to Width - 1 do
     begin
-      AColor := CalcColor(FXValues[X], FYValues[Y]);
+      AColor := CalcFloatColor(FXValues[X], FYValues[Y], InSet);
+      if InSet then
+        Inc(FInSetCount)
+      else
+        Inc(FOutSetCount);
+
       C := ColorToRGB(AColor);
       B := C and $FF0000 shr 16;
       G := C and $00FF00 shr 8;
@@ -372,27 +408,27 @@ begin
   Invalidate;
 end;
 
-procedure TCnMandelbrotImage.ReCalcInfiniteColors;
+procedure TCnMandelbrotImage.ReCalcBigRationalColors;
 var
   X, Y, C: Integer;
   AColor: TColor;
   R, G, B: Byte;
   Arr: PRGBTripleArray;
-  XZ, YZ: TCnBigRationalNumber;
+  XZ, YZ: TCnBigRational;
 begin
   XZ := nil;
   YZ := nil;
   try
-    XZ := TCnBigRationalNumber.Create;
-    YZ := TCnBigRationalNumber.Create;
+    XZ := TCnBigRational.Create;
+    YZ := TCnBigRational.Create;
 
     for Y := 0 to Height - 1 do
     begin
       Arr := PRGBTripleArray(FBitmap.ScanLine[Y]);
       for X := 0 to Width - 1 do
       begin
-        AColor := CalcInfiniteColor(TCnBigRationalNumber(FXRationals[X]),
-          TCnBigRationalNumber(FYRationals[Y]), XZ, YZ);
+        AColor := CalcInfiniteColor(TCnBigRational(FXRationals[X]),
+          TCnBigRational(FYRationals[Y]), XZ, YZ);
         C := ColorToRGB(AColor);
         B := C and $FF0000 shr 16;
         G := C and $00FF00 shr 8;
@@ -426,18 +462,15 @@ begin
   if not (csLoading in ComponentState) then
   begin
     UpdateMatrixes(AWidth, AHeight);
-    if FInfiniteMode then
-      ReCalcInfiniteColors
-    else
-      ReCalcColors;
+    ReCalcColors;
   end;
 end;
 
-procedure TCnMandelbrotImage.SetInfiniteMode(const Value: Boolean);
+procedure TCnMandelbrotImage.SetMode(const Value: TCnMandelbrotMode);
 begin
-  if Value <> FInfiniteMode then
+  if Value <> FMode then
   begin
-    FInfiniteMode := Value;
+    FMode := Value;
     FMinRX.SetFloat(FMinX);
     FMinRY.SetFloat(FMinY);
     FMaxRX.SetFloat(FMaxX);
@@ -446,10 +479,7 @@ begin
     UpdateMatrixes(Width, Height);
     UpdatePointsValues(Width, Height);
 
-    if FInfiniteMode then
-      ReCalcInfiniteColors
-    else
-      ReCalcColors;
+    ReCalcColors;
   end;
 end;
 
@@ -461,8 +491,7 @@ begin
     if not (csLoading in ComponentState) then
     begin
       UpdatePointsValues(Width, Height);
-      if not FInfiniteMode then
-        ReCalcColors;
+      ReCalcColors;
     end;
   end;
 end;
@@ -475,8 +504,7 @@ begin
     if not (csLoading in ComponentState) then
     begin
       UpdatePointsValues(Width, Height);
-      if not FInfiniteMode then
-        ReCalcColors;
+      ReCalcColors;;
     end;
   end;
 end;
@@ -489,8 +517,7 @@ begin
     if not (csLoading in ComponentState) then
     begin
       UpdatePointsValues(Width, Height);
-      if not FInfiniteMode then
-        ReCalcColors;
+      ReCalcColors;
     end;
   end;
 end;
@@ -503,19 +530,19 @@ begin
     if not (csLoading in ComponentState) then
     begin
       UpdatePointsValues(Width, Height);
-      ReCalcColors;
+      ReCalcFloatColors;
     end;
   end;
 end;
 
-procedure TCnMandelbrotImage.SetOnColor(const Value: TCnMandelbrotColorEvent);
+procedure TCnMandelbrotImage.SetOnColor(const Value: TCnMandelbrotFloatColorEvent);
 begin
   FOnColor := Value;
   Invalidate;
 end;
 
 procedure TCnMandelbrotImage.SetOnInfiniteColor(
-  const Value: TCnMandelbrotInfiniteColorEvent);
+  const Value: TCnMandelbrotRationalColorEvent);
 begin
   FOnInfiniteColor := Value;
   Invalidate;
@@ -529,11 +556,11 @@ begin
   FMaxY := AMaxY;
 
   UpdatePointsValues(Width, Height);
-  ReCalcColors;
+  ReCalcFloatColors;
 end;
 
 procedure TCnMandelbrotImage.SetRect(AMinX, AMaxX, AMinY,
-  AMaxY: TCnBigRationalNumber);
+  AMaxY: TCnBigRational);
 begin
   FMinRX.Assign(AMinX);
   FMinRY.Assign(AMinY);
@@ -541,7 +568,7 @@ begin
   FMaxRY.Assign(AMaxY);
 
   UpdatePointsValues(Width, Height);
-  ReCalcInfiniteColors;
+  ReCalcBigRationalColors;
 end;
 
 procedure TCnMandelbrotImage.SetShowAxis(const Value: Boolean);
@@ -557,20 +584,30 @@ procedure TCnMandelbrotImage.UpdateMatrixes(AWidth, AHeight: Integer);
 var
   I: Integer;
 begin
-  if not FInfiniteMode then
+  if FMode = mmFloat then
   begin
     SetLength(FXValues, AWidth);
     SetLength(FYValues, AHeight);
   end
-  else
+  else if FMode = mmBigRational then
   begin
     // 初始化 X、Y 的有理数列表
     FXRationals.Clear;
     for I := 1 to AWidth do
-      FXRationals.Add(TCnBigRationalNumber.Create);
+      FXRationals.Add(TCnBigRational.Create);
     FYRationals.Clear;
     for I := 1 to AHeight do
-      FYRationals.Add(TCnBigRationalNumber.Create);
+      FYRationals.Add(TCnBigRational.Create);
+  end
+  else
+  begin
+    // 初始化 X、Y 的大浮点数列表
+    FXDecimals.Clear;
+    for I := 1 to AWidth do
+      FXDecimals.Add(TCnBigDecimal.Create);
+    FYRationals.Clear;
+    for I := 1 to AHeight do
+      FYDecimals.Add(TCnBigDecimal.Create);
   end;
 
   FreeAndNil(FBitmap);
@@ -586,36 +623,12 @@ procedure TCnMandelbrotImage.UpdatePointsValues(AWidth, AHeight: Integer);
 var
   X, Y, W, H: Integer;
   WX, HY: Extended;
-  WRX, HRY: TCnBigRationalNumber;
+  WRX, HRY: TCnBigRational;
+  WDX, HDY: TCnBigDecimal;
 begin
   W := Width - 1;
   H := Height - 1;
-  if FInfiniteMode then
-  begin
-    // 初始化 X、Y 的有理数点值
-    WRX := TCnBigRationalNumber.Create;
-    HRY := TCnBigRationalNumber.Create;
-
-    CnBigRationalNumberSub(FMaxRX, FMinRX, WRX);
-    WRX.Divide(W);
-    CnBigRationalNumberSub(FMaxRY, FMinRY, HRY);
-    HRY.Divide(H);
-
-    for X := 0 to W do
-    begin
-      TCnBigRationalNumber(FXRationals[X]).Assign(WRX);
-      TCnBigRationalNumber(FXRationals[X]).Mul(X);
-      CnBigRationalNumberAdd(TCnBigRationalNumber(FXRationals[X]), FMinRX, TCnBigRationalNumber(FXRationals[X]));
-    end;
-
-    for Y := 0 to H do
-    begin
-      TCnBigRationalNumber(FYRationals[Y]).Assign(HRY);
-      TCnBigRationalNumber(FYRationals[Y]).Mul(Y);
-      CnBigRationalNumberAdd(TCnBigRationalNumber(FYRationals[Y]), FMinRY, TCnBigRationalNumber(FYRationals[Y]));
-    end;
-  end
-  else
+  if FMode = mmFloat then
   begin
     WX := (FMaxX - FMinX) / W;
     HY := (FMaxY - FMinY) / H;
@@ -625,11 +638,76 @@ begin
 
     for Y := 0 to H do
       FYValues[Y] := FMinY + (H - Y) * HY;
+  end
+  else if FMode = mmBigRational then
+  begin
+    // 初始化 X、Y 的有理数点值
+    WRX := TCnBigRational.Create;
+    HRY := TCnBigRational.Create;
+
+    CnBigRationalNumberSub(FMaxRX, FMinRX, WRX);
+    WRX.Divide(W);
+    CnBigRationalNumberSub(FMaxRY, FMinRY, HRY);
+    HRY.Divide(H);
+
+    for X := 0 to W do
+    begin
+      TCnBigRational(FXRationals[X]).Assign(WRX);
+      TCnBigRational(FXRationals[X]).Mul(X);
+      CnBigRationalNumberAdd(TCnBigRational(FXRationals[X]), FMinRX, TCnBigRational(FXRationals[X]));
+    end;
+
+    for Y := 0 to H do
+    begin
+      TCnBigRational(FYRationals[Y]).Assign(HRY);
+      TCnBigRational(FYRationals[Y]).Mul(Y);
+      CnBigRationalNumberAdd(TCnBigRational(FYRationals[Y]), FMinRY, TCnBigRational(FYRationals[Y]));
+    end;
+  end
+  else
+  begin
+    // 初始化 X、Y 的大浮点数点值
+//    WDX := TCnBigDecimal.Create;
+//    HDY := TCnBigDecimal.Create;
+//
+//    BigDecimalSub(FMaxDX, FMinDX, WDX);
+//    WDX.Divide(W);
+//    BigDecimalSub(FMaxDY, FMinDY, HDY);
+//    HDY.Divide(H);
+//
+//    for X := 0 to W do
+//    begin
+//      BigDecimalCopy(WDX, TCnBigDecimal(FXDecimals[X]));
+//      TCnBigDecimal(FXDecimals[X]).Mul(X);
+//      CnBigRationalNumberAdd(TCnBigDecimal(FXDecimals[X]), FMinRX, TCnBigDecimal(FXDecimals[X]));
+//    end;
+//
+//    for Y := 0 to H do
+//    begin
+//      TCnBigDecimal(FYDecimals[Y]).Assign(HDY);
+//      TCnBigDecimal(FYDecimals[Y]).Mul(Y);
+//      CnBigRationalNumberAdd(TCnBigDecimal(FYDecimals[Y]), FMinRY, TCnBigDecimal(FYDecimals[Y]));
+//    end;
   end;
 
   FBitmap.Canvas.Brush.Color := clWhite;
   FBitmap.Canvas.Brush.Style := bsSolid;
   FBitmap.Canvas.FillRect(Rect(0, 0, AHeight, AWidth));
+end;
+
+procedure TCnMandelbrotImage.ReCalcColors;
+begin
+  if FMode = mmFloat then
+    ReCalcFloatColors
+  else if FMode = mmBigRational then
+    ReCalcBigRationalColors
+  else if FMode = mmBigDecimal then
+    RecalcBigDecimalColors;
+end;
+
+procedure TCnMandelbrotImage.ReCalcBigDecimalColors;
+begin
+
 end;
 
 initialization
