@@ -64,6 +64,7 @@ type
   {* 曼德布罗集图实现控件}
   private
     // FMaps: array of array of TColor;
+    FLock: Boolean;
     FBitmap: TBitmap;
     FXValues: array of Extended;
     FYValues: array of Extended;
@@ -122,6 +123,9 @@ type
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigRational); overload;
     procedure GetComplexValues(X, Y: Integer; out R, I: Extended);
     procedure GetComplexRational(X, Y: Integer; R, I: TCnBigRational);
+
+    procedure Lock;
+    procedure UnLock;
   published
     property Mode: TCnMandelbrotMode read FMode write SetMode;
     {* 计算模式，是使用精度有限的扩展精度浮点，还是大有理数、还是大浮点数}
@@ -459,7 +463,7 @@ procedure TCnMandelbrotImage.SetBounds(ALeft, ATop, AWidth,
   AHeight: Integer);
 begin
   inherited;
-  if not (csLoading in ComponentState) then
+  if not (csLoading in ComponentState) and not FLock then
   begin
     UpdateMatrixes(AWidth, AHeight);
     ReCalcColors;
@@ -488,7 +492,7 @@ begin
   if Value <> FMaxX then
   begin
     FMaxX := Value;
-    if not (csLoading in ComponentState) then
+    if not (csLoading in ComponentState) and not FLock then
     begin
       UpdatePointsValues(Width, Height);
       ReCalcColors;
@@ -501,7 +505,7 @@ begin
   if Value <> FMaxY then
   begin
     FMaxY := Value;
-    if not (csLoading in ComponentState) then
+    if not (csLoading in ComponentState) and not FLock then
     begin
       UpdatePointsValues(Width, Height);
       ReCalcColors;;
@@ -514,7 +518,7 @@ begin
   if Value <> FMinX then
   begin
     FMinX := Value;
-    if not (csLoading in ComponentState) then
+    if not (csLoading in ComponentState) and not FLock then
     begin
       UpdatePointsValues(Width, Height);
       ReCalcColors;
@@ -527,7 +531,7 @@ begin
   if Value <> FMinY then
   begin
     FMinY := Value;
-    if not (csLoading in ComponentState) then
+    if not (csLoading in ComponentState) and not FLock then
     begin
       UpdatePointsValues(Width, Height);
       ReCalcFloatColors;
@@ -708,6 +712,17 @@ end;
 procedure TCnMandelbrotImage.ReCalcBigDecimalColors;
 begin
 
+end;
+
+procedure TCnMandelbrotImage.Lock;
+begin
+  FLock := True;
+end;
+
+procedure TCnMandelbrotImage.UnLock;
+begin
+  FLock := False;
+  SetBounds(Left, Top, Width, Height);
 end;
 
 initialization

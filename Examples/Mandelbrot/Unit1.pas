@@ -38,10 +38,12 @@ begin
   with TCnMandelbrotImage.Create(Self) do
   begin
     Parent := Self;
+    Lock;
     Left := 10;
     Top := 10;
     Width := 800;
     Height := 800;
+    UnLock;
     Anchors := [akLeft, akTop, akBottom, akRight];
     ShowAxis := True;
     OnClick := ImageClick;
@@ -67,11 +69,13 @@ begin
     OW := Img.MaxX - Img.MinX;
     OH := Img.MaxY - Img.MinY;
 
+    Img.Lock;
     Img.MinX := R - OW / (2 * ENLARGE_FACTOR);
     Img.MinY := I - OH / (2 * ENLARGE_FACTOR);
 
     Img.MaxX := R + OW / (2 * ENLARGE_FACTOR);
     Img.MaxY := I + OH / (2 * ENLARGE_FACTOR);
+    Img.UnLock;
   end
   else if Img.Mode = mmBigRational then
   begin
