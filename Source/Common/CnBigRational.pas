@@ -41,7 +41,7 @@ uses
   SysUtils, Classes, CnBigNumber;
 
 type
-  TCnBigRationalNumber = class(TPersistent)
+  TCnBigRational = class(TPersistent)
   {* 表示一个无限精度的大有理数}
   private
     FNominator: TCnBigNumber;
@@ -73,7 +73,7 @@ type
     {* 是否与另一值相等}
     function EqualInt(Value: TCnBigNumber): Boolean; overload;
     {* 是否与另一值相等}
-    function Equal(Value: TCnBigRationalNumber): Boolean;
+    function Equal(Value: TCnBigRational): Boolean;
     {* 是否与另一值相等}
 
     procedure Add(Value: Int64); overload;
@@ -92,13 +92,13 @@ type
     {* 乘以一个整数}
     procedure Divide(Value: TCnBigNumber); overload;
     {* 除以一个整数}
-    procedure Add(Value: TCnBigRationalNumber); overload;
+    procedure Add(Value: TCnBigRational); overload;
     {* 加上一个有理数}
-    procedure Sub(Value: TCnBigRationalNumber); overload;
+    procedure Sub(Value: TCnBigRational); overload;
     {* 减去一个有理数}
-    procedure Mul(Value: TCnBigRationalNumber); overload;
+    procedure Mul(Value: TCnBigRational); overload;
     {* 乘以一个有理数}
-    procedure Divide(Value: TCnBigRationalNumber); overload;
+    procedure Divide(Value: TCnBigRational); overload;
     {* 除以一个有理数}
 
     procedure SetIntValue(Value: LongWord); overload;
@@ -129,34 +129,34 @@ type
 
 // ============================= 大有理数运算方法 ==============================
 
-procedure CnBigRationalNumberAdd(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberAdd(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 {* 大有理数加法，三数可以相等}
 
-procedure CnBigRationalNumberSub(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberSub(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 {* 大有理数减法，三数可以相等}
 
-procedure CnBigRationalNumberMul(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberMul(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 {* 大有理数乘法，三数可以相等}
 
-procedure CnBigRationalNumberDiv(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberDiv(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 {* 大有理数除法，三数可以相等}
 
-function CnBigRationalNumberCompare(Number1, Number2: TCnBigRationalNumber): Integer; overload;
+function CnBigRationalNumberCompare(Number1, Number2: TCnBigRational): Integer; overload;
 {* 大有理数比较，> = < 分别返回 1 0 -1}
 
-function CnBigRationalNumberCompare(Number1: TCnBigRationalNumber; Number2: Int64): Integer; overload;
+function CnBigRationalNumberCompare(Number1: TCnBigRational; Number2: Int64): Integer; overload;
 {^ 大有理数与整数比较，> = < 分别返回 1 0 -1}
 
 procedure CnReduceBigNumber(X, Y: TCnBigNumber);
 {* 尽量比例缩小，也就是约分}
 
 var
-  CnBigRationalNumberOne: TCnBigRationalNumber = nil;
-  CnBigRationalNumberZero: TCnBigRationalNumber = nil;
+  CnBigRationalNumberOne: TCnBigRational = nil;
+  CnBigRationalNumberZero: TCnBigRational = nil;
 
 implementation
 
-procedure CnBigRationalNumberAdd(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberAdd(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 const
   SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
@@ -230,7 +230,7 @@ begin
   RationalResult.Reduce;
 end;
 
-procedure CnBigRationalNumberSub(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberSub(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 begin
   Number2.Nominator.SetNegative(not Number2.Nominator.IsNegative);
   CnBigRationalNumberAdd(Number1, Number2, RationalResult);
@@ -238,7 +238,7 @@ begin
     Number2.Nominator.SetNegative(not Number2.Nominator.IsNegative);
 end;
 
-procedure CnBigRationalNumberMul(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberMul(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 var
   N: TCnBigNumber;
 begin
@@ -253,7 +253,7 @@ begin
   RationalResult.Reduce;
 end;
 
-procedure CnBigRationalNumberDiv(Number1, Number2: TCnBigRationalNumber; RationalResult: TCnBigRationalNumber);
+procedure CnBigRationalNumberDiv(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
 var
   N: TCnBigNumber;
 begin
@@ -271,9 +271,9 @@ begin
   RationalResult.Reduce;
 end;
 
-function CnBigRationalNumberCompare(Number1, Number2: TCnBigRationalNumber): Integer;
+function CnBigRationalNumberCompare(Number1, Number2: TCnBigRational): Integer;
 var
-  Res: TCnBigRationalNumber;
+  Res: TCnBigRational;
 begin
   if not Number1.IsNegative and Number2.IsNegative then
     Result := 1
@@ -286,7 +286,7 @@ begin
   else
   begin
     //  同号，非整，比较
-    Res := TCnBigRationalNumber.Create;
+    Res := TCnBigRational.Create;
     try
       CnBigRationalNumberSub(Number1, Number2, Res);
       if Res.IsZero then
@@ -301,7 +301,7 @@ begin
   end;
 end;
 
-function CnBigRationalNumberCompare(Number1: TCnBigRationalNumber; Number2: Int64): Integer;
+function CnBigRationalNumberCompare(Number1: TCnBigRational; Number2: Int64): Integer;
 var
   Res: TCnBigNumber;
 begin
@@ -345,11 +345,11 @@ end;
 
 { TCnBigRationalNumber }
 
-procedure TCnBigRationalNumber.Add(Value: TCnBigNumber);
+procedure TCnBigRational.Add(Value: TCnBigNumber);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Nominator, Value);
@@ -359,11 +359,11 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Add(Value: Int64);
+procedure TCnBigRational.Add(Value: Int64);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     N.Nominator.SetInt64(Value);
@@ -373,23 +373,23 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Add(Value: TCnBigRationalNumber);
+procedure TCnBigRational.Add(Value: TCnBigRational);
 begin
   CnBigRationalNumberAdd(Self, Value, Self);
 end;
 
-procedure TCnBigRationalNumber.AssignTo(Dest: TPersistent);
+procedure TCnBigRational.AssignTo(Dest: TPersistent);
 begin
-  if Dest is TCnBigRationalNumber then
+  if Dest is TCnBigRational then
   begin
-    BigNumberCopy(TCnBigRationalNumber(Dest).Nominator, FNominator);
-    BigNumberCopy(TCnBigRationalNumber(Dest).Denominator, FDenominator);
+    BigNumberCopy(TCnBigRational(Dest).Nominator, FNominator);
+    BigNumberCopy(TCnBigRational(Dest).Denominator, FDenominator);
   end
   else
     inherited;
 end;
 
-constructor TCnBigRationalNumber.Create;
+constructor TCnBigRational.Create;
 begin
   FNominator := TCnBigNumber.Create;
   FDenominator := TCnBigNumber.Create;
@@ -397,18 +397,18 @@ begin
   FNominator.SetZero;
 end;
 
-destructor TCnBigRationalNumber.Destroy;
+destructor TCnBigRational.Destroy;
 begin
   FDenominator.Free;
   FNominator.Free;
   inherited;
 end;
 
-procedure TCnBigRationalNumber.Divide(Value: Int64);
+procedure TCnBigRational.Divide(Value: Int64);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     N.Nominator.SetInt64(Value);
@@ -418,11 +418,11 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Divide(Value: TCnBigNumber);
+procedure TCnBigRational.Divide(Value: TCnBigNumber);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Nominator, Value);
@@ -432,17 +432,17 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Divide(Value: TCnBigRationalNumber);
+procedure TCnBigRational.Divide(Value: TCnBigRational);
 begin
   CnBigRationalNumberDiv(Self, Value, Self);
 end;
 
-function TCnBigRationalNumber.Equal(Value: TCnBigRationalNumber): Boolean;
+function TCnBigRational.Equal(Value: TCnBigRational): Boolean;
 begin
   Result := CnBigRationalNumberCompare(Self, Value) = 0;
 end;
 
-function TCnBigRationalNumber.EqualInt(Value: TCnBigNumber): Boolean;
+function TCnBigRational.EqualInt(Value: TCnBigNumber): Boolean;
 begin
   if FDenominator.IsOne then
     Result := BigNumberCompare(Value, FNominator) = 0
@@ -453,7 +453,7 @@ begin
     Result := False;
 end;
 
-function TCnBigRationalNumber.EqualInt(Value: LongWord): Boolean;
+function TCnBigRational.EqualInt(Value: LongWord): Boolean;
 begin
   if FDenominator.IsOne then
     Result := FNominator.IsWord(Value)
@@ -463,36 +463,36 @@ begin
     Result := False;
 end;
 
-function TCnBigRationalNumber.IsInt: Boolean;
+function TCnBigRational.IsInt: Boolean;
 begin
   Result := FDenominator.IsOne or FDenominator.IsNegOne;
 end;
 
-function TCnBigRationalNumber.IsNegative: Boolean;
+function TCnBigRational.IsNegative: Boolean;
 begin
   Result := FNominator.IsNegative <> FDenominator.IsNegative;
 end;
 
-function TCnBigRationalNumber.IsOne: Boolean;
+function TCnBigRational.IsOne: Boolean;
 begin
   Result := BigNumberCompare(FNominator, FDenominator) = 0;
 end;
 
-function TCnBigRationalNumber.IsZero: Boolean;
+function TCnBigRational.IsZero: Boolean;
 begin
   Result := FNominator.IsZero;
 end;
 
-procedure TCnBigRationalNumber.Mul(Value: TCnBigRationalNumber);
+procedure TCnBigRational.Mul(Value: TCnBigRational);
 begin
   CnBigRationalNumberMul(Self, Value, Self);
 end;
 
-procedure TCnBigRationalNumber.Mul(Value: TCnBigNumber);
+procedure TCnBigRational.Mul(Value: TCnBigNumber);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Nominator, Value);
@@ -502,11 +502,11 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Mul(Value: Int64);
+procedure TCnBigRational.Mul(Value: Int64);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     N.Nominator.SetInt64(Value);
@@ -516,7 +516,7 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Neg;
+procedure TCnBigRational.Neg;
 begin
   FNominator.SetNegative(not FNominator.IsNegative);
   if FNominator.IsNegative and FDenominator.IsNegative then
@@ -526,7 +526,7 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Reciprocal;
+procedure TCnBigRational.Reciprocal;
 var
   T: TCnBigNumber;
 begin
@@ -536,7 +536,7 @@ begin
   BigNumberCopy(FNominator, T);
 end;
 
-procedure TCnBigRationalNumber.Reduce;
+procedure TCnBigRational.Reduce;
 begin
   if FDenominator.IsNegative and FNominator.IsNegative then
   begin
@@ -559,13 +559,13 @@ begin
     CnReduceBigNumber(FNominator, FDenominator);
 end;
 
-procedure TCnBigRationalNumber.SetIntValue(Value: LongWord);
+procedure TCnBigRational.SetIntValue(Value: LongWord);
 begin
   FNominator.SetWord(Value);
   FDenominator.SetOne;
 end;
 
-procedure TCnBigRationalNumber.SetFloat(AFloat: Extended);
+procedure TCnBigRational.SetFloat(AFloat: Extended);
 var
   F: TFloatRec;
   I, L: Integer;
@@ -584,19 +584,19 @@ begin
   Reduce;
 end;
 
-procedure TCnBigRationalNumber.SetIntValue(Value: TCnBigNumber);
+procedure TCnBigRational.SetIntValue(Value: TCnBigNumber);
 begin
   BigNumberCopy(FNominator, Value);
   FDenominator.SetOne;
 end;
 
-procedure TCnBigRationalNumber.SetOne;
+procedure TCnBigRational.SetOne;
 begin
   FNominator.SetOne;
   FDenominator.SetOne;
 end;
 
-procedure TCnBigRationalNumber.SetString(const Value: string);
+procedure TCnBigRational.SetString(const Value: string);
 var
   P: Integer;
   N, D: string;
@@ -632,31 +632,31 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.SetValue(ANominator,
+procedure TCnBigRational.SetValue(ANominator,
   ADenominator: TCnBigNumber);
 begin
   BigNumberCopy(FNominator, ANominator);
   BigNumberCopy(FDenominator, ADenominator);
 end;
 
-procedure TCnBigRationalNumber.SetValue(const ANominator,
+procedure TCnBigRational.SetValue(const ANominator,
   ADenominator: string);
 begin
   FNominator.SetDec(ANominator);
   FDenominator.SetDec(ADenominator);
 end;
 
-procedure TCnBigRationalNumber.SetZero;
+procedure TCnBigRational.SetZero;
 begin
   FNominator.SetZero;
   FDenominator.SetOne;
 end;
 
-procedure TCnBigRationalNumber.Sub(Value: Int64);
+procedure TCnBigRational.Sub(Value: Int64);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     N.Nominator.SetInt64(Value);
@@ -666,16 +666,16 @@ begin
   end;
 end;
 
-procedure TCnBigRationalNumber.Sub(Value: TCnBigRationalNumber);
+procedure TCnBigRational.Sub(Value: TCnBigRational);
 begin
   CnBigRationalNumberSub(Self, Value, Self);
 end;
 
-procedure TCnBigRationalNumber.Sub(Value: TCnBigNumber);
+procedure TCnBigRational.Sub(Value: TCnBigNumber);
 var
-  N: TCnBigRationalNumber;
+  N: TCnBigRational;
 begin
-  N := TCnBigRationalNumber.Create;
+  N := TCnBigRational.Create;
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Nominator, Value);
@@ -685,7 +685,7 @@ begin
   end;
 end;
 
-function TCnBigRationalNumber.ToDec(Digits: Integer): string;
+function TCnBigRational.ToDec(Digits: Integer): string;
 var
   Remain, Res: TCnBigNumber;
   I: Integer;
@@ -742,7 +742,7 @@ begin
   end;
 end;
 
-function TCnBigRationalNumber.ToString: string;
+function TCnBigRational.ToString: string;
 begin
   if FDenominator.IsOne then
     Result := FNominator.ToDec
@@ -751,8 +751,8 @@ begin
 end;
 
 initialization
-  CnBigRationalNumberOne := TCnBigRationalNumber.Create;
-  CnBigRationalNumberZero := TCnBigRationalNumber.Create;
+  CnBigRationalNumberOne := TCnBigRational.Create;
+  CnBigRationalNumberZero := TCnBigRational.Create;
   CnBigRationalNumberOne.SetOne;
   CnBigRationalNumberZero.SetZero;
 

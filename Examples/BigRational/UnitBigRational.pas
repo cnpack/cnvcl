@@ -68,7 +68,7 @@ type
     procedure btnCompareIntClick(Sender: TObject);
     procedure btnCompareBNClick(Sender: TObject);
   private
-    FR1, FR2, FR: TCnBigRationalNumber;
+    FR1, FR2, FR: TCnBigRational;
   public
     { Public declarations }
   end;
@@ -85,9 +85,9 @@ uses
 
 procedure TFormRational.FormCreate(Sender: TObject);
 begin
-  FR1 := TCnBigRationalNumber.Create;
-  FR2 := TCnBigRationalNumber.Create;
-  FR := TCnBigRationalNumber.Create;
+  FR1 := TCnBigRational.Create;
+  FR2 := TCnBigRational.Create;
+  FR := TCnBigRational.Create;
 end;
 
 procedure TFormRational.FormDestroy(Sender: TObject);
