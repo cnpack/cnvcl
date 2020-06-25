@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls;
+  StdCtrls, ExtCtrls, CnGraphics;
 
 type
   TFormMandelbrot = class(TForm)
@@ -12,7 +12,9 @@ type
     procedure FormCreate(Sender: TObject);
   private
     procedure ImageClick(Sender: TObject);
-    function OnFloatColor(Sender: TObject; X, Y: Extended;
+    function OnFloatColor1(Sender: TObject; X, Y: Extended;
+      XZ, YZ: Extended; Count: Integer): TColor;
+    function OnFloatColor2(Sender: TObject; X, Y: Extended;
       XZ, YZ: Extended; Count: Integer): TColor;
   public
     { Public declarations }
@@ -43,7 +45,7 @@ begin
     Anchors := [akLeft, akTop, akBottom, akRight];
     ShowAxis := True;
     OnClick := ImageClick;
-    OnColor := OnFloatColor;
+    OnColor := OnFloatColor2;
   end;
 end;
 
@@ -120,7 +122,7 @@ begin
   end;
 end;
 
-function TFormMandelbrot.OnFloatColor(Sender: TObject; X, Y, XZ,
+function TFormMandelbrot.OnFloatColor1(Sender: TObject; X, Y, XZ,
   YZ: Extended; Count: Integer): TColor;
 var
   R: Byte;
@@ -133,8 +135,19 @@ begin
       R := 0
     else
       R := 255 - 3 * Byte(Count); // 次数越多越黑
-    // R := R * 10;
     Result := RGB(R, R, R);
+  end;
+end;
+
+function TFormMandelbrot.OnFloatColor2(Sender: TObject; X, Y, XZ,
+  YZ: Extended; Count: Integer): TColor;
+begin
+  if Count > CN_MANDELBROT_MAX_COUNT then
+    Result := clNavy  // 收敛，用深蓝色
+  else
+  begin
+    // 用 Count 做色相
+    Result := HSLRangeToRGB(Count, 240, 120);
   end;
 end;
 
