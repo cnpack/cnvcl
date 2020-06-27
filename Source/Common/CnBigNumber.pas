@@ -5135,6 +5135,9 @@ initialization
   CnBigNumberZero.SetZero;
 
 finalization
+  CnBigNumberZero.DecString;  // 手工调用这两句防止被编译器忽略
+  CnBigNumberZero.DebugDump;
+
   CnBigNumberOne.Free;
   CnBigNumberZero.Free;
   FreeBigNumberPool;

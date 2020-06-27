@@ -59,12 +59,26 @@ type
     FScale 代表小数点离有效数字最右边的位置，往左为正，往右为负}
   private
     FValue: TCnBigNumber;
-    FScale: Integer;   // 精确值为 FValue / (10^FScale)
+    FScale: Integer;                 // 精确值为 FValue / (10^FScale)
+    function GetDecString: string;
+    function GetDebugDump: string;
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
-    procedure Clear;
+    procedure SetZero;
+    {* 设置成 0}
+    procedure SetOne;
+    {* 设置成 1}
+    procedure SetNegative(Neg: Boolean);
+    {* 设置是否负数}
+    procedure Negate;
+    {* 负号设置反}
+
+    function SetWord(W: LongWord): Boolean;
+    {* 设置为一个 UInt32}
+    function SetInt64(W: Int64): Boolean;
+    {* 设置为一个 Int64}
     function SetDec(const Buf: string): Boolean;
     {* 设置字符串值}
     procedure SetSingle(Value: Single);
@@ -74,8 +88,25 @@ type
     procedure SetExtended(Value: Extended);
     {* 扩展精度浮点值}
 
+    procedure AddWord(W: LongWord);
+    {* 加上一个 UInt32}
+    procedure SubWord(W: LongWord);
+    {* 减去一个 UInt32}
+    procedure MulWord(W: LongWord);
+    {* 乘以一个 UInt32}
+    procedure DivWord(W: LongWord);
+    {* 除以一个 UInt32}
+
+    function IsNegative: Boolean;
+    {* 是否负数}
+    function IsZero: Boolean;
+    {* 是否是 0}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串}
+
+    property DecString: string read GetDecString;
+    property DebugDump: string read GetDebugDump;
   end;
 
 procedure BigDecimalClear(const Num: TCnBigDecimal);
@@ -83,6 +114,12 @@ procedure BigDecimalClear(const Num: TCnBigDecimal);
 
 function BigDecimalSetDec(const Buf: string; const Res: TCnBigDecimal): Boolean;
 {* 为大浮点数对象设置字符串值}
+
+function BigDecimalSetWord(W: LongWord; const Res: TCnBigDecimal): Boolean;
+{* 为大浮点数对象设置整数值}
+
+function BigDecimalSetInt64(W: Int64; const Res: TCnBigDecimal): Boolean;
+{* 为大浮点数对象设置 Int64 整数值}
 
 function BigDecimalSetSingle(const Value: Single; const Res: TCnBigDecimal): Boolean;
 {* 为大浮点数对象设置单精度浮点值}
@@ -96,10 +133,13 @@ function BigDecimalSetExtended(const Value: Extended; const Res: TCnBigDecimal):
 function BigDecimalToString(const Num: TCnBigDecimal): string;
 {* 大浮点数对象转换为字符串}
 
-function BigDecimalCompare(const Num1, Num2: TCnBigDecimal): Integer;
+function BigDecimalCompare(const Num1, Num2: TCnBigDecimal): Integer; overload;
 {* 比较两个大浮点数对象}
 
-procedure BigDecimalCopy(const Source, Dest: TCnBigDecimal);
+function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Int64): Integer; overload;
+{* 比较大浮点数对象与整数}
+
+procedure BigDecimalCopy(const Dest, Source: TCnBigDecimal);
 {* 大浮点数赋值}
 
 function BigDecimalGetPrecision(const Num: TCnBigDecimal): Integer;
@@ -119,10 +159,14 @@ function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
 
 function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
   const Num2: TCnBigDecimal; DivPrecision: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION): Boolean;
-{* 大浮点数除}
+{* 大浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
 
 function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
 {* 打印大浮点数内部信息}
+
+var
+  CnBigDecimalOne: TCnBigDecimal = nil;     // 表示 1 的常量
+  CnBigDecimalZero: TCnBigDecimal = nil;    // 表示 0 的常量
 
 implementation
 
@@ -192,6 +236,38 @@ const
 
 var
   FLocalBigDecimalPool: TObjectList = nil;
+
+{* 大浮点数池操作方法开始}
+
+function ObtainBigDecimalFromPool: TCnBigDecimal;
+begin
+  if FLocalBigDecimalPool.Count = 0 then
+  begin
+    Result := TCnBigDecimal.Create
+  end
+  else
+  begin
+    Result := TCnBigDecimal(FLocalBigDecimalPool.Items[FLocalBigDecimalPool.Count - 1]);
+    FLocalBigDecimalPool.Delete(FLocalBigDecimalPool.Count - 1);
+    Result.SetZero;
+  end;
+end;
+
+procedure RecycleBigDecimalToPool(Num: TCnBigDecimal);
+begin
+  if Num <> nil then
+    FLocalBigDecimalPool.Add(Num);
+end;
+
+procedure FreeBigNumberPool;
+var
+  I: Integer;
+begin
+  for I := 0 to FLocalBigDecimalPool.Count - 1 do
+    TObject(FLocalBigDecimalPool[I]).Free;
+
+  FreeAndNil(FLocalBigDecimalPool);
+end;
 
 function CheckScaleRange(AScale: Integer): Integer;
 begin
@@ -333,6 +409,20 @@ begin
   if (not Res.FValue.IsNegative) and Neg then
     Res.FValue.SetNegative(True);
 
+  Result := True;
+end;
+
+function BigDecimalSetWord(W: LongWord; const Res: TCnBigDecimal): Boolean;
+begin
+  Res.FValue.SetWord(W);
+  Res.FScale := 1;
+  Result := True;
+end;
+
+function BigDecimalSetInt64(W: Int64; const Res: TCnBigDecimal): Boolean;
+begin
+  Res.FValue.SetInt64(W);
+  Res.FScale := 1;
   Result := True;
 end;
 
@@ -526,7 +616,30 @@ begin
   end;
 end;
 
-procedure BigDecimalCopy(const Source, Dest: TCnBigDecimal);
+function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Int64): Integer; overload;
+var
+  T: TCnBigDecimal;
+begin
+  if not Num1.IsNegative and (Num2 < 0) then
+    Result := 1
+  else if Num1.IsNegative and (Num2 > 0) then
+    Result := -1
+  else if Num1.IsZero and (Num2 = 0) then
+    Result := 0
+  else
+  begin
+    T := ObtainBigDecimalFromPool;
+    try
+      T.FScale := 1;
+      T.FValue.SetInt64(Num2);
+      Result := BigDecimalCompare(Num1, T);
+    finally
+      RecycleBigDecimalToPool(T);
+    end;
+  end;
+end;
+
+procedure BigDecimalCopy(const Dest, Source: TCnBigDecimal);
 begin
   if (Source <> nil) and (Dest <> nil) then
   begin
@@ -553,13 +666,13 @@ var
 begin
   if Num1.FValue.IsZero then
   begin
-    BigNumberCopy(Num2.FValue, Res.FValue);
+    BigDecimalCopy(Res, Num2);
     Result := True;
     Exit;
   end
   else if Num2.FValue.IsZero then
   begin
-    BigNumberCopy(Num1.FValue, Res.FValue);
+    BigDecimalCopy(Res, Num1);
     Result := True;
     Exit;
   end
@@ -663,7 +776,7 @@ function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
 begin
   if Num1.FValue.IsZero or Num2.FValue.IsZero then
   begin
-    Res.Clear;
+    Res.SetZero;
     Result := True;
     Exit;
   end
@@ -686,7 +799,7 @@ begin
 
   if Num1.FValue.IsZero then
   begin
-    Res.Clear;
+    Res.SetZero;
     Result := True;
     Exit;
   end;
@@ -713,7 +826,7 @@ begin
 
     Res.FScale := TS;
 
-    // TODO: 约分
+    // TODO: 十进制约分
     Res.FValue.SetNegative(S);
     Result := True;
   finally
@@ -724,46 +837,22 @@ end;
 
 function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
 begin
-  Result := 'Scale: ' + IntToStr(Num.FScale) + ' ' + BigNumberDebugDump(Num.FValue);
-end;
-
-{* 大浮点数池操作方法开始}
-
-function ObtainBigDecimalFromPool: TCnBigDecimal;
-begin
-  if FLocalBigDecimalPool.Count = 0 then
-  begin
-    Result := TCnBigDecimal.Create
-  end
-  else
-  begin
-    Result := TCnBigDecimal(FLocalBigDecimalPool.Items[FLocalBigDecimalPool.Count - 1]);
-    FLocalBigDecimalPool.Delete(FLocalBigDecimalPool.Count - 1);
-    Result.Clear;
-  end;
-end;
-
-procedure RecycleBigDecimalToPool(Num: TCnBigDecimal);
-begin
-  if Num <> nil then
-    FLocalBigDecimalPool.Add(Num);
-end;
-
-procedure FreeBigNumberPool;
-var
-  I: Integer;
-begin
-  for I := 0 to FLocalBigDecimalPool.Count - 1 do
-    TObject(FLocalBigDecimalPool[I]).Free;
-
-  FreeAndNil(FLocalBigDecimalPool);
+  Result := 'Scale: ' + IntToStr(Num.FScale) + '. ' + BigNumberDebugDump(Num.FValue);
 end;
 
 { TCnBigDecimal }
 
-procedure TCnBigDecimal.Clear;
+procedure TCnBigDecimal.AddWord(W: LongWord);
+var
+  T: TCnBigDecimal;
 begin
-  BigDecimalClear(Self);
+  T := ObtainBigDecimalFromPool;
+  try
+    T.SetWord(W);
+    BigDecimalAdd(Self, Self, T);
+  finally
+    RecycleBigDecimalToPool(T);
+  end;
 end;
 
 constructor TCnBigDecimal.Create;
@@ -776,6 +865,49 @@ destructor TCnBigDecimal.Destroy;
 begin
   FValue.Free;
   inherited;
+end;
+
+procedure TCnBigDecimal.DivWord(W: LongWord);
+var
+  T: TCnBigDecimal;
+begin
+  T := ObtainBigDecimalFromPool;
+  try
+    T.SetWord(W);
+    BigDecimalDiv(Self, Self, T);
+  finally
+    RecycleBigDecimalToPool(T);
+  end;
+end;
+
+function TCnBigDecimal.GetDebugDump: string;
+begin
+  Result := BigDecimalDebugDump(Self);
+end;
+
+function TCnBigDecimal.GetDecString: string;
+begin
+  Result := BigDecimalToString(Self);
+end;
+
+function TCnBigDecimal.IsNegative: Boolean;
+begin
+  Result := FValue.IsNegative;
+end;
+
+function TCnBigDecimal.IsZero: Boolean;
+begin
+  Result := FValue.IsZero;
+end;
+
+procedure TCnBigDecimal.MulWord(W: LongWord);
+begin
+  FValue.MulWord(W);
+end;
+
+procedure TCnBigDecimal.Negate;
+begin
+  FValue.Negate;
 end;
 
 function TCnBigDecimal.SetDec(const Buf: string): Boolean;
@@ -793,9 +925,49 @@ begin
   BigDecimalSetExtended(Value, Self);
 end;
 
+function TCnBigDecimal.SetInt64(W: Int64): Boolean;
+begin
+  Result := BigDecimalSetInt64(W, Self);
+end;
+
+procedure TCnBigDecimal.SetNegative(Neg: Boolean);
+begin
+  FValue.SetNegative(Neg);
+end;
+
+procedure TCnBigDecimal.SetOne;
+begin
+  FValue.SetOne;
+  FScale := 0;
+end;
+
 procedure TCnBigDecimal.SetSingle(Value: Single);
 begin
   BigDecimalSetSingle(Value, Self);
+end;
+
+function TCnBigDecimal.SetWord(W: LongWord): Boolean;
+begin
+  Result := BigDecimalSetWord(W, Self);
+end;
+
+procedure TCnBigDecimal.SetZero;
+begin
+  FValue.SetZero;
+  FScale := 0;
+end;
+
+procedure TCnBigDecimal.SubWord(W: LongWord);
+var
+  T: TCnBigDecimal;
+begin
+  T := ObtainBigDecimalFromPool;
+  try
+    T.SetWord(W);
+    BigDecimalSub(Self, Self, T);
+  finally
+    RecycleBigDecimalToPool(T);
+  end;
 end;
 
 function TCnBigDecimal.ToString: string;
@@ -805,8 +977,17 @@ end;
 
 initialization
   FLocalBigDecimalPool := TObjectList.Create(False);
+  CnBigDecimalOne := TCnBigDecimal.Create;
+  CnBigDecimalOne.SetOne;
+  CnBigDecimalZero := TCnBigDecimal.Create;
+  CnBigDecimalZero.SetZero;
 
 finalization
+  CnBigDecimalZero.DecString; // 手工调用这两句防止被编译器忽略
+  CnBigDecimalZero.DebugDump;
+
+  CnBigDecimalZero.Free;
+  CnBigDecimalOne.Free;
   FreeBigNumberPool;
 
 end.
