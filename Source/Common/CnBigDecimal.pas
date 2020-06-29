@@ -54,9 +54,19 @@ const
 type
   ECnBigDecimalException = class(Exception);
 
+  TCnBigDecimalRoundMode = (
+  {* 取整的模式，包括六种}
+    drAwayFromZero,            // 往绝对值大的数取
+    drTowardsZero,             // 往绝对值小的数取，等于只留整数部分的 Trunc
+    drCeilingToInfinite,       // 往正无穷大取
+    drFloorToNegInfinite,      // 往负无穷大取
+    dr45RoundFromZero,         // 四舍五入、入至绝对值大的数
+    dr45RoundToInfinite);      // 四舍五入、入至正无穷方向
+
   TCnBigDecimal = class
   {* 大浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存指数也就是小数点位置
-    FScale 代表小数点离有效数字最右边的位置，往左为正，往右为负}
+    FScale 代表小数点离有效数字最右边的位置，往左为正，往右为负，
+    正时简而言之就是小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
   private
     FValue: TCnBigNumber;
     FScale: Integer;                 // 精确值为 FValue / (10^FScale)
@@ -160,6 +170,13 @@ function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
 function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
   const Num2: TCnBigDecimal; DivPrecision: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION): Boolean;
 {* 大浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+
+function BigDecimalRoundToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  Scale: Integer; RoundMode: TCnBigDecimalRoundMode = drTowardsZero): Boolean;
+{* 将大浮点数按指定模式舍入到指定 Scale，也就是小数点后 Scale 位，如果 Scale 负代表小数点左方，也就是舍入到整 10 次方}
+
+function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
+{* 将大浮点数 Trunc 到只剩整数}
 
 function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
 {* 打印大浮点数内部信息}
@@ -276,6 +293,7 @@ begin
   Result := AScale;
 end;
 
+// 大数乘以 10 的 Power5 次方
 procedure BigNumberMulPower5(Num: TCnBigNumber; Power5: Integer);
 var
   I, L, D, R: Integer;
@@ -292,6 +310,7 @@ begin
   Num.MulWord(SCN_POWER_FIVES32[R]);  // 补上乘剩下的
 end;
 
+// 大数乘以 10 的 Power10 次方
 procedure BigNumberMulPower10(Num: TCnBigNumber; Power10: Integer);
 var
   I, L, D, R: Integer;
@@ -641,7 +660,7 @@ end;
 
 procedure BigDecimalCopy(const Dest, Source: TCnBigDecimal);
 begin
-  if (Source <> nil) and (Dest <> nil) then
+  if (Source <> nil) and (Dest <> nil) and (Source <> Dest) then
   begin
     BigNumberCopy(Dest.FValue, Source.FValue);
     Dest.FScale := Source.FScale;
@@ -832,6 +851,68 @@ begin
   finally
     T.Free;
     R.Free;
+  end;
+end;
+
+function BigDecimalRoundToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  Scale: Integer; RoundMode: TCnBigDecimalRoundMode): Boolean;
+var
+  DS: Integer;
+  D, Q, R: TCnBigNumber;
+  Neg: Boolean;
+begin
+  DS := CheckScaleRange(Num.FScale - Scale);
+  if DS > 0 then // 新的小数点后的位数比原来少，要除之后舍入
+  begin
+    D := TCnBigNumber.Create;
+    Q := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
+    try
+      D.SetOne;
+      BigNumberMulPower10(D, DS);  // 算出个 10 的 DS 次方，做除数
+
+      Neg := Num.FValue.IsNegative;
+      Num.FValue.SetNegative(False);
+
+      // 除出商和余数来
+      BigNumberDiv(Q, R, Num.FValue, D);
+
+      // TODO: 根据商和余数以及规则决定舍入
+
+      BigNumberCopy(Res.FValue, Q);
+      Res.FScale := Scale;
+      Res.FValue.SetNegative(Neg);
+
+      if Res <> Num then           // 如果 Num 是独立的，这里要还原其 Neg
+        Num.FValue.SetNegative(Neg);
+      Result := True;
+    finally
+      D.Free;
+      Q.Free;
+      R.Free;
+    end;
+  end
+  else // 新的小数点位数比原来还多，简单变换一下就行
+  begin
+    BigNumberCopy(Res.FValue, Num.FValue);
+    if DS < 0 then
+      BigNumberMulPower10(Res.FValue, -DS);
+    Res.FScale := Scale;
+    Result := True;
+  end;
+end;
+
+function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
+begin
+  if Num.FScale <= 0 then // 无小数部分
+  begin
+    BigDecimalCopy(Res, Num);
+    Result := True;
+    Exit;
+  end
+  else // 有小数部分 FScale 位，干掉
+  begin
+    Result := BigDecimalRoundToScale(Res, Num, 0, drTowardsZero);
   end;
 end;
 

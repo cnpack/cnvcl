@@ -134,6 +134,23 @@ object FormBigDecimal: TFormBigDecimal
           TabOrder = 10
           Text = '-932.232401'
         end
+        object btnRoundToScale: TButton
+          Left = 640
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Round To:'
+          TabOrder = 11
+          OnClick = btnRoundToScaleClick
+        end
+        object edtRoundDigits: TEdit
+          Left = 728
+          Top = 88
+          Width = 65
+          Height = 21
+          TabOrder = 12
+          Text = '4'
+        end
       end
     end
   end

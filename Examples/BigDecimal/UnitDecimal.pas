@@ -23,6 +23,8 @@ type
     edtBigDecimalResult: TEdit;
     btnSetFloat: TButton;
     edtFloat: TEdit;
+    btnRoundToScale: TButton;
+    edtRoundDigits: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnSetAndGetClick(Sender: TObject);
@@ -32,6 +34,7 @@ type
     procedure btnBigDecimalMulClick(Sender: TObject);
     procedure btnBigDecimalDivideClick(Sender: TObject);
     procedure btnSetFloatClick(Sender: TObject);
+    procedure btnRoundToScaleClick(Sender: TObject);
   private
     FBD1: TCnBigDecimal;
     FBD2: TCnBigDecimal;
@@ -121,6 +124,16 @@ begin
     edtBigDecimal2.Text := BigDecimalToString(FBD2);
   if BigDecimalSetExtended(E, FBD3) then
     edtBigDecimalResult.Text := BigDecimalToString(FBD3);
+end;
+
+procedure TFormBigDecimal.btnRoundToScaleClick(Sender: TObject);
+var
+  Dig: Integer;
+begin
+  BigDecimalSetDec(edtBigDecimal1.Text, FBD1);
+  Dig := StrToInt(edtRoundDigits.Text);
+  BigDecimalRoundToScale(FBD3, FBD1, Dig);
+  edtBigDecimalResult.Text := BigDecimalToString(FBD3);
 end;
 
 end.
