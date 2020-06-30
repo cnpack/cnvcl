@@ -25,6 +25,8 @@ type
     edtFloat: TEdit;
     btnRoundToScale: TButton;
     edtRoundDigits: TEdit;
+    mmoRound: TMemo;
+    btnGetDigits: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnSetAndGetClick(Sender: TObject);
@@ -35,6 +37,7 @@ type
     procedure btnBigDecimalDivideClick(Sender: TObject);
     procedure btnSetFloatClick(Sender: TObject);
     procedure btnRoundToScaleClick(Sender: TObject);
+    procedure btnGetDigitsClick(Sender: TObject);
   private
     FBD1: TCnBigDecimal;
     FBD2: TCnBigDecimal;
@@ -129,11 +132,26 @@ end;
 procedure TFormBigDecimal.btnRoundToScaleClick(Sender: TObject);
 var
   Dig: Integer;
+  Mode: TCnBigDecimalRoundMode;
 begin
   BigDecimalSetDec(edtBigDecimal1.Text, FBD1);
   Dig := StrToInt(edtRoundDigits.Text);
-  BigDecimalRoundToScale(FBD3, FBD1, Dig);
-  edtBigDecimalResult.Text := BigDecimalToString(FBD3);
+  mmoRound.Lines.Clear;
+  for Mode := Low(TCnBigDecimalRoundMode) to High(TCnBigDecimalRoundMode) do
+  begin
+    BigDecimalRoundToScale(FBD3, FBD1, Dig, Mode);
+    mmoRound.Lines.Add(BigDecimalToString(FBD3));
+  end;
+end;
+
+procedure TFormBigDecimal.btnGetDigitsClick(Sender: TObject);
+var
+  P, I, D: Integer;
+begin
+  BigDecimalSetDec(edtBigDecimal1.Text, FBD1);
+  P := BigDecimalGetPrecision(FBD1);
+  BigDecimalGetIntDecimalCount(FBD1, I, D);
+  ShowMessage(Format('Precision %d. Int Count %d. Decimal Count %d.', [P, I, D]));
 end;
 
 end.

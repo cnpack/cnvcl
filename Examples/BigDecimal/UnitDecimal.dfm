@@ -135,8 +135,8 @@ object FormBigDecimal: TFormBigDecimal
           Text = '-932.232401'
         end
         object btnRoundToScale: TButton
-          Left = 640
-          Top = 88
+          Left = 16
+          Top = 168
           Width = 75
           Height = 21
           Caption = 'Round To:'
@@ -144,12 +144,35 @@ object FormBigDecimal: TFormBigDecimal
           OnClick = btnRoundToScaleClick
         end
         object edtRoundDigits: TEdit
-          Left = 728
-          Top = 88
+          Left = 104
+          Top = 168
           Width = 65
           Height = 21
           TabOrder = 12
           Text = '4'
+        end
+        object mmoRound: TMemo
+          Left = 16
+          Top = 208
+          Width = 225
+          Height = 241
+          Hint = 
+            '往绝对值大的数取'#13#10'往绝对值小的数取，等于只留整数部分的 Trunc'#13#10'往' +
+            '正无穷大取'#13#10'往负无穷大取'#13#10'四舍五入、入至绝对值大的数'#13#10'四舍六入五' +
+            '成双、入至绝对值大的数'
+          ParentShowHint = False
+          ReadOnly = True
+          ShowHint = True
+          TabOrder = 13
+        end
+        object btnGetDigits: TButton
+          Left = 640
+          Top = 88
+          Width = 153
+          Height = 21
+          Caption = 'Get Digits Counts'
+          TabOrder = 14
+          OnClick = btnGetDigitsClick
         end
       end
     end

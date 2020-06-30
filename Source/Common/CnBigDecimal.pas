@@ -55,13 +55,15 @@ type
   ECnBigDecimalException = class(Exception);
 
   TCnBigDecimalRoundMode = (
-  {* 取整的模式，包括六种}
+  {* 取整的模式，包括六种，不处理四舍六入五成单的特殊需求
+    注意：四舍五入的入只有入至绝对值大的情况，没有正负无穷的情况，因为舍动作必然是往绝对值小的数取}
     drAwayFromZero,            // 往绝对值大的数取
     drTowardsZero,             // 往绝对值小的数取，等于只留整数部分的 Trunc
     drCeilingToInfinite,       // 往正无穷大取
     drFloorToNegInfinite,      // 往负无穷大取
-    dr45RoundFromZero,         // 四舍五入、入至绝对值大的数
-    dr45RoundToInfinite);      // 四舍五入、入至正无穷方向
+    dr45Round,                 // 四舍五入、入至绝对值大的数
+    dr465RoundEven             // 四舍六入五成双、入至绝对值大的数
+  );
 
   TCnBigDecimal = class
   {* 大浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存指数也就是小数点位置
@@ -153,7 +155,11 @@ procedure BigDecimalCopy(const Dest, Source: TCnBigDecimal);
 {* 大浮点数赋值}
 
 function BigDecimalGetPrecision(const Num: TCnBigDecimal): Integer;
-{* 计算大浮点数的十进制位数}
+{* 计算大浮点数的十进制位数，也即有效数字长度}
+
+function BigDecimalGetIntDecimalCount(const Num: TCnBigDecimal;
+  out IntCount: Integer; out DecimalCount: Integer): Boolean;
+{* 计算大浮点数的整数部分长度与小数部分长度}
 
 function BigDecimalAdd(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
   const Num2: TCnBigDecimal): Boolean;
@@ -293,6 +299,62 @@ begin
   Result := AScale;
 end;
 
+procedure RoundByMode(Quotient, Divisor, Remainder: TCnBigNumber; QWillBeNeg: Boolean;
+  Mode: TCnBigDecimalRoundMode);
+var
+  R2: TCnBigNumber;
+  R2CD: Integer;
+begin
+  if Remainder.IsZero then
+    Exit;
+
+  case Mode of
+    drAwayFromZero:            // 往绝对值大的数取
+      begin
+        BigNumberAddWord(Quotient, 1);
+      end;
+    drTowardsZero:             // 往绝对值小的数取，等于只留整数部分的 Trunc
+      begin
+        // 啥都不用做
+      end;
+    drCeilingToInfinite:       // 往正无穷大取
+      begin
+        if not QWillBeNeg then
+          BigNumberAddWord(Quotient, 1);
+      end;
+    drFloorToNegInfinite:      // 往负无穷大取
+      begin
+        if QWillBeNeg then
+          BigNumberAddWord(Quotient, 1);
+      end;
+  else
+    R2 := TCnBigNumber.Create;
+    try
+      BigNumberCopy(R2, Remainder);
+      BigNumberShiftLeftOne(R2, R2);
+      R2CD := BigNumberCompare(R2, Divisor);
+
+      // 四舍五入模式下，R2CD 如果大于等于 0，说明余数大于等于 5，要入
+      // 四舍六入模式下，如果等于 1，要判断商的末位是否偶，偶才入，其余情况不入
+      // 确定入与否后，无需再根据正负处理，舍都是朝绝对值小的方向，入是绝对值大的方向
+      case Mode of
+        dr45Round:         // 四舍五入、入至绝对值大的数
+          begin
+            if R2CD >= 0 then
+              BigNumberAddWord(Quotient, 1);
+          end;
+        dr465RoundEven:     // 四舍六入五成双、入至绝对值大的数
+          begin
+            if (R2CD > 0) or ((R2CD = 0) and not Quotient.IsOdd) then
+              BigNumberAddWord(Quotient, 1);
+          end;
+      end;
+    finally
+      R2.Free;
+    end;
+  end;
+end;
+
 // 大数乘以 10 的 Power5 次方
 procedure BigNumberMulPower5(Num: TCnBigNumber; Power5: Integer);
 var
@@ -305,7 +367,7 @@ begin
   D := Power5 div L;
   R := Power5 mod L;
 
-  for I := 1 to D do                 // 一次整 13 个乘
+  for I := 1 to D do                  // 一次整 13 个乘
     Num.MulWord(SCN_POWER_FIVES32[L]);
   Num.MulWord(SCN_POWER_FIVES32[R]);  // 补上乘剩下的
 end;
@@ -671,9 +733,32 @@ function BigDecimalGetPrecision(const Num: TCnBigDecimal): Integer;
 begin
   Result := 0;
   if Num <> nil then
+    Result := BigNumberGetTenPrecision(Num.FValue); // 得到十进制整数位数
+end;
+
+function BigDecimalGetIntDecimalCount(const Num: TCnBigDecimal;
+  out IntCount: Integer; out DecimalCount: Integer): Boolean;
+var
+  P: Integer;
+begin
+  Result := False;
+  if Num <> nil then
   begin
-    Result := BigNumberGetTenPrecision(Num.FValue); // 得到整数位
-    // TODO: 如何根据指数再计算精度？
+    P := BigNumberGetTenPrecision(Num.FValue);
+    if Num.FScale > 0 then  // 有小数部分
+    begin
+      DecimalCount := Num.FScale;
+      IntCount := P - DecimalCount;
+      if IntCount < 0 then
+        IntCount := 0;
+    end
+    else
+    begin
+      // 没有小数部分
+      DecimalCount := 0;
+      IntCount := P + Num.FScale;
+    end;
+    Result := True;
   end;
 end;
 
@@ -843,6 +928,7 @@ begin
     R := TCnBigNumber.Create;
     BigNumberDiv(Res.FValue, R, T, Num2.FValue);  // Num1.FValue * 10 ^ M div Num2.FValue 得到商和余数
 
+    RoundByMode(Res.FValue, Num2.FValue, R, Res.FValue.IsNegative, drTowardsZero);
     Res.FScale := TS;
 
     // TODO: 十进制约分
@@ -877,7 +963,8 @@ begin
       // 除出商和余数来
       BigNumberDiv(Q, R, Num.FValue, D);
 
-      // TODO: 根据商和余数以及规则决定舍入
+      // 根据商和余数以及规则决定舍入
+      RoundByMode(Q, D, R, Neg, RoundMode);
 
       BigNumberCopy(Res.FValue, Q);
       Res.FScale := Scale;
