@@ -27,6 +27,8 @@ type
     edtRoundDigits: TEdit;
     mmoRound: TMemo;
     btnGetDigits: TButton;
+    chkMulDivPrecision: TCheckBox;
+    edtMulDivRoundDigits: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnSetAndGetClick(Sender: TObject);
@@ -97,18 +99,28 @@ begin
 end;
 
 procedure TFormBigDecimal.btnBigDecimalMulClick(Sender: TObject);
+var
+  D: Integer;
 begin
   BigDecimalSetDec(edtBigDecimal1.Text, FBD1);
   BigDecimalSetDec(edtBigDecimal2.Text, FBD2);
-  if BigDecimalMul(FBD3, FBD1, FBD2) then
+  D := 0;
+  if chkMulDivPrecision.Checked then
+    D := StrToInt(edtMulDivRoundDigits.Text);
+  if BigDecimalMul(FBD3, FBD1, FBD2, D) then
     edtBigDecimalResult.Text := BigDecimalToString(FBD3);
 end;
 
 procedure TFormBigDecimal.btnBigDecimalDivideClick(Sender: TObject);
+var
+  D: Integer;
 begin
   BigDecimalSetDec(edtBigDecimal1.Text, FBD1);
   BigDecimalSetDec(edtBigDecimal2.Text, FBD2);
-  if BigDecimalDiv(FBD3, FBD1, FBD2) then
+  D := 0;
+  if chkMulDivPrecision.Checked then
+    D := StrToInt(edtMulDivRoundDigits.Text);
+  if BigDecimalDiv(FBD3, FBD1, FBD2, D) then
     edtBigDecimalResult.Text := BigDecimalToString(FBD3);
 end;
 
@@ -139,7 +151,7 @@ begin
   mmoRound.Lines.Clear;
   for Mode := Low(TCnBigDecimalRoundMode) to High(TCnBigDecimalRoundMode) do
   begin
-    BigDecimalRoundToScale(FBD3, FBD1, Dig, Mode);
+    BigDecimalChangeToScale(FBD3, FBD1, Dig, Mode);
     mmoRound.Lines.Add(BigDecimalToString(FBD3));
   end;
 end;

@@ -166,13 +166,29 @@ object FormBigDecimal: TFormBigDecimal
           TabOrder = 13
         end
         object btnGetDigits: TButton
-          Left = 640
-          Top = 88
-          Width = 153
+          Left = 184
+          Top = 168
+          Width = 129
           Height = 21
           Caption = 'Get Digits Counts'
           TabOrder = 14
           OnClick = btnGetDigitsClick
+        end
+        object chkMulDivPrecision: TCheckBox
+          Left = 624
+          Top = 92
+          Width = 113
+          Height = 17
+          Caption = 'Mul/Div Precision'
+          TabOrder = 15
+        end
+        object edtMulDivRoundDigits: TEdit
+          Left = 744
+          Top = 88
+          Width = 65
+          Height = 21
+          TabOrder = 16
+          Text = '4'
         end
       end
     end

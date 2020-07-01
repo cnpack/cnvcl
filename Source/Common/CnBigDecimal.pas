@@ -43,13 +43,13 @@ uses
   CnNativeDecl, CnFloatConvert, CnBigNumber;
 
 const
-  CN_BIG_DECIMAL_MAX_SCALE = MaxInt div SizeOf(Integer);     // 最大指数
+//  CN_BIG_DECIMAL_MAX_SCALE = MaxInt div SizeOf(Integer);     // 最大指数
+//
+//  CN_BIG_DECIMAL_MIN_SCALE = -CN_BIG_DECIMAL_MAX_SCALE - 1;  // 最小指数
+//
+//  // 不直接用 Integer 的最大最小值是因为要防止溢出留的空白区
 
-  CN_BIG_DECIMAL_MIN_SCALE = -CN_BIG_DECIMAL_MAX_SCALE - 1;  // 最小指数
-
-  // 不直接用 Integer 的最大最小值是因为要防止溢出留的空白区
-
-  CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;                     // 除法的默认精度
+  CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;                       // 乘除法的小数点后的默认精度
 
 type
   ECnBigDecimalException = class(Exception);
@@ -117,6 +117,9 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串}
 
+//    class function GetMulDivPrecision: Integer;
+//    class function SetMulDivPrecision(Value: Integer);
+
     property DecString: string read GetDecString;
     property DebugDump: string read GetDebugDump;
   end;
@@ -170,16 +173,22 @@ function BigDecimalSub(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
 {* 大浮点数减，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
 
 function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal): Boolean;
-{* 大浮点数乘，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+  const Num2: TCnBigDecimal; MulPrecision: Integer = 0): Boolean;
+{* 大浮点数乘，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
+  MulPrecision 表示乘法最多保留小数点后几位，0 表示全保留}
 
 function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal; DivPrecision: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION): Boolean;
-{* 大浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+  const Num2: TCnBigDecimal; DivPrecision: Integer = 0): Boolean;
+{* 大浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
+  DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
 
-function BigDecimalRoundToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+function BigDecimalChangeToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
   Scale: Integer; RoundMode: TCnBigDecimalRoundMode = drTowardsZero): Boolean;
 {* 将大浮点数按指定模式舍入到指定 Scale，也就是小数点后 Scale 位，如果 Scale 负代表小数点左方，也就是舍入到整 10 次方}
+
+function BigDecimalRoundToDigits(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  Digits: Integer; RoundMode: TCnBigDecimalRoundMode = drTowardsZero): Boolean;
+{* 将大浮点数按指定模式舍入到指定小数点后 Digits 位，如果本身精度不够 Digits 位则不变}
 
 function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
 {* 将大浮点数 Trunc 到只剩整数}
@@ -259,6 +268,7 @@ const
 
 var
   FLocalBigDecimalPool: TObjectList = nil;
+  FDefaultPrecisionDigits: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
 {* 大浮点数池操作方法开始}
 
@@ -292,12 +302,19 @@ begin
   FreeAndNil(FLocalBigDecimalPool);
 end;
 
-function CheckScaleRange(AScale: Integer): Integer;
+function CheckScaleAddRange(Scale1, Scale2: Integer): Integer;
 begin
-  if (AScale < CN_BIG_DECIMAL_MIN_SCALE) or (AScale > CN_BIG_DECIMAL_MAX_SCALE) then
+  if IsInt32AddOverflow(Scale1, Scale2) then
     raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
-  Result := AScale;
+  Result := Scale1 + Scale2;
 end;
+
+//function CheckScaleRange(AScale: Integer): Integer;
+//begin
+//  if (AScale < CN_BIG_DECIMAL_MIN_SCALE) or (AScale > CN_BIG_DECIMAL_MAX_SCALE) then
+//    raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
+//  Result := AScale;
+//end;
 
 procedure RoundByMode(Quotient, Divisor, Remainder: TCnBigNumber; QWillBeNeg: Boolean;
   Mode: TCnBigDecimalRoundMode);
@@ -674,8 +691,7 @@ begin
     // 要把 Scale 大的也就是小数点靠左因而可能相对较小的 Value，
     // 乘以 10 的指数差次幂以对齐小数点，再和另一个比较（无需保持值不变，所以和加减有区别）
     T := TCnBigNumber.Create;
-    L := Num1.FScale - Num2.FScale;
-    CheckScaleRange(L);
+    L := CheckScaleAddRange(Num1.FScale, -Num2.FScale);
 
     try
       if L > 0 then
@@ -793,8 +809,7 @@ begin
     // 乘以 10 的指数差次幂并减小到同等的 Scale 以对齐小数点并保持总值不变，
     // 再和另一个相加，结果的 Scale 取小的
     T := TCnBigNumber.Create;
-    L := Num1.FScale - Num2.FScale;
-    CheckScaleRange(L);
+    L := CheckScaleAddRange(Num1.FScale, -Num2.FScale);
 
     try
       if L > 0 then
@@ -850,8 +865,7 @@ begin
     // 乘以 10 的指数差次幂并减小到同等的 Scale 以对齐小数点并保持总值不变，
     // 再和另一个相减，结果的 Scale 取小的
     T := TCnBigNumber.Create;
-    L := Num1.FScale - Num2.FScale;
-    CheckScaleRange(L);
+    L := CheckScaleAddRange(Num1.FScale, -Num2.FScale);
 
     try
       if L > 0 then
@@ -876,7 +890,7 @@ begin
 end;
 
 function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal): Boolean;
+  const Num2: TCnBigDecimal; MulPrecision: Integer): Boolean;
 begin
   if Num1.FValue.IsZero or Num2.FValue.IsZero then
   begin
@@ -886,8 +900,10 @@ begin
   end
   else
   begin
-    Res.FScale := CheckScaleRange(Num1.FScale + Num2.FScale);
+    Res.FScale := CheckScaleAddRange(Num1.FScale, Num2.FScale);
     Result := BigNumberMul(Res.FValue, Num1.FValue, Num2.FValue);
+    if Result and (MulPrecision > 0) then
+      Result := BigDecimalRoundToDigits(Res, Res, MulPrecision, drTowardsZero);
   end;
 end;
 
@@ -911,12 +927,15 @@ begin
   // 继续除
   S := Num1.FValue.isNegative <> Num2.FValue.IsNegative; // 符号不等结果才负
   TS := Num1.FScale - Num2.FScale;
-  if DivPrecision < 0 then
-    DivPrecision := 0;
 
-  // 根据精度要求计算将被除数和除数同时扩大的倍数
-  M := CheckScaleRange(DivPrecision + (Num2.FValue.Top - Num2.FValue.Top + 1) * 9 + 3);
-  TS := CheckScaleRange(TS + M);
+  if DivPrecision <= 0 then
+    DivPrecision := FDefaultPrecisionDigits;
+  if DivPrecision < 0 then
+    DivPrecision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  // 根据精度要求计算将被除数和除数同时扩大的倍数，注意存在乘以 9 时就可能溢出的情况但先不管
+  M := CheckScaleAddRange(DivPrecision, (Num2.FValue.Top - Num2.FValue.Top + 1) * 9 + 3);
+  TS := CheckScaleAddRange(TS, M);
 
   T := nil;
   R := nil;
@@ -930,8 +949,9 @@ begin
 
     RoundByMode(Res.FValue, Num2.FValue, R, Res.FValue.IsNegative, drTowardsZero);
     Res.FScale := TS;
-
     // TODO: 十进制约分
+
+    BigDecimalRoundToDigits(Res, Res, DivPrecision, drTowardsZero);
     Res.FValue.SetNegative(S);
     Result := True;
   finally
@@ -940,14 +960,14 @@ begin
   end;
 end;
 
-function BigDecimalRoundToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+function BigDecimalChangeToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
   Scale: Integer; RoundMode: TCnBigDecimalRoundMode): Boolean;
 var
   DS: Integer;
   D, Q, R: TCnBigNumber;
   Neg: Boolean;
 begin
-  DS := CheckScaleRange(Num.FScale - Scale);
+  DS := CheckScaleAddRange(Num.FScale, -Scale);
   if DS > 0 then // 新的小数点后的位数比原来少，要除之后舍入
   begin
     D := TCnBigNumber.Create;
@@ -989,6 +1009,49 @@ begin
   end;
 end;
 
+function BigDecimalRoundToDigits(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  Digits: Integer; RoundMode: TCnBigDecimalRoundMode = drTowardsZero): Boolean;
+var
+  DS: Integer;
+  D, Q, R: TCnBigNumber;
+  Neg: Boolean;
+begin
+  Result := False;
+  DS := CheckScaleAddRange(Num.FScale, -Digits);
+
+  if DS > 0 then // 新的小数点后的位数得比原来少，才能除之后舍入
+  begin
+    D := TCnBigNumber.Create;
+    Q := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
+    try
+      D.SetOne;
+      BigNumberMulPower10(D, DS);  // 算出个 10 的 DS 次方，做除数
+
+      Neg := Num.FValue.IsNegative;
+      Num.FValue.SetNegative(False);
+
+      // 除出商和余数来
+      BigNumberDiv(Q, R, Num.FValue, D);
+
+      // 根据商和余数以及规则决定舍入
+      RoundByMode(Q, D, R, Neg, RoundMode);
+
+      BigNumberCopy(Res.FValue, Q);
+      Res.FScale := Digits;
+      Res.FValue.SetNegative(Neg);
+
+      if Res <> Num then           // 如果 Num 是独立的，这里要还原其 Neg
+        Num.FValue.SetNegative(Neg);
+      Result := True;
+    finally
+      D.Free;
+      Q.Free;
+      R.Free;
+    end;
+  end;
+end;
+
 function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
 begin
   if Num.FScale <= 0 then // 无小数部分
@@ -999,7 +1062,7 @@ begin
   end
   else // 有小数部分 FScale 位，干掉
   begin
-    Result := BigDecimalRoundToScale(Res, Num, 0, drTowardsZero);
+    Result := BigDecimalChangeToScale(Res, Num, 0, drTowardsZero);
   end;
 end;
 
