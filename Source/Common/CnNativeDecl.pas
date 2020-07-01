@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.06.20 V1.4
+* 修改记录：2020.07.01 V1.5
+*               加入判断 32 位与 64 位有无符号数相加是否溢出的函数
+*           2020.06.20 V1.4
 *               加入 32 位与 64 位获取最高与最低的 1 位位置的函数
 *           2020.01.01 V1.3
 *               加入 32 位无符号整型的 mul 运算，在不支持 UInt64 的系统上以 Int64 代替以避免溢出
@@ -140,6 +142,18 @@ function GetUInt32LowBits(B: Cardinal): Integer;
 
 function Int64Mod(M, N: Int64): Int64;
 {* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱}
+
+function IsInt32AddOverflow(A, B: Integer): Boolean;
+{* 判断两个 32 位有符号数相加是否溢出}
+
+function IsUInt32AddOverflow(A, B: Cardinal): Boolean;
+{* 判断两个 32 位无符号数相加是否溢出}
+
+function IsInt64AddOverflow(A, B: Int64): Boolean;
+{* 判断两个 64 位有符号数相加是否溢出}
+
+function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
+{* 判断两个 64 位无符号数相加是否溢出}
 
 implementation
 
@@ -535,6 +549,38 @@ begin
     Result := M mod N
   else
     Result := N - ((-M) mod N);
+end;
+
+// 判断两个 32 位有符号数相加是否溢出
+function IsInt32AddOverflow(A, B: Integer): Boolean;
+var
+  C: Integer;
+begin
+  C := A + B;
+  Result := ((A > 0) and (B > 0) and (C < 0)) or   // 同符号且结果换号了说明出现了溢出
+    ((A < 0) and (B < 0) and (C > 0));
+end;
+
+// 判断两个 32 位无符号数相加是否溢出
+function IsUInt32AddOverflow(A, B: Cardinal): Boolean;
+begin
+  Result := (A + B) < A; // 无符号相加，结果只要小于任一个数就说明溢出了
+end;
+
+// 判断两个 64 位有符号数相加是否溢出
+function IsInt64AddOverflow(A, B: Int64): Boolean;
+var
+  C: Int64;
+begin
+  C := A + B;
+  Result := ((A > 0) and (B > 0) and (C < 0)) or   // 同符号且结果换号了说明出现了溢出
+    ((A < 0) and (B < 0) and (C > 0));
+end;
+
+// 判断两个 64 位无符号数相加是否溢出
+function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
+begin
+  Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
 end.
