@@ -513,14 +513,14 @@ end;
 function BigDecimalSetWord(W: LongWord; const Res: TCnBigDecimal): Boolean;
 begin
   Res.FValue.SetWord(W);
-  Res.FScale := 1;
+  Res.FScale := 0;
   Result := True;
 end;
 
 function BigDecimalSetInt64(W: Int64; const Res: TCnBigDecimal): Boolean;
 begin
   Res.FValue.SetInt64(W);
-  Res.FScale := 1;
+  Res.FScale := 0;
   Result := True;
 end;
 
@@ -727,7 +727,7 @@ begin
   begin
     T := ObtainBigDecimalFromPool;
     try
-      T.FScale := 1;
+      T.FScale := 0;
       T.FValue.SetInt64(Num2);
       Result := BigDecimalCompare(Num1, T);
     finally
