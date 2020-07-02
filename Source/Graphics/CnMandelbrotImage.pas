@@ -25,9 +25,8 @@ unit CnMandelbrotImage;
 * 单元名称：曼德布罗集图实现单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：浮点精度受 Extended 类型影响不能无限制放大
-*           大有理数运算比较慢，一个点迭代到十几次就慢得不能忍受了
-*           大浮点数运算比较慢，一个点迭代到十几次也慢得不能忍受了
-*           应当尝试保留精度，用每个像素点所代表的数值精度加几位作为迭代判断的精度
+*           大有理数运算特别慢，一个点迭代到十几次就慢得不能忍受了
+*           大浮点数运算比较慢，一个点指定精度迭代到一百次得差不多 0.1 秒
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -61,9 +60,11 @@ type
 
   TCnMandelbrotRationalColorEvent = function (Sender: TObject; X, Y: TCnBigRational;
     XZ, YZ: TCnBigRational; Count: Integer): TColor of object;
+  {* 大有理数模式下迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
 
   TCnMandelbrotDecimalColorEvent = function (Sender: TObject; X, Y: TCnBigDecimal;
     XZ, YZ: TCnBigDecimal; Count: Integer): TColor of object;
+  {* 大浮点数模式下迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
 
   TCnMandelbrotImage = class(TGraphicControl)
   {* 曼德布罗集图实现控件}
@@ -96,6 +97,7 @@ type
     FMode: TCnMandelbrotMode;
     FInSetCount: Integer;
     FOutSetCount: Integer;
+    FDigits: Integer;                           // 计算过程中设置运算精度用的
     procedure SetMaxX(const Value: Extended);   // 改变控件右边缘代表的最大值，控件尺寸不变
     procedure SetMaxY(const Value: Extended);   // 改变控件上边缘代表的最大值，控件尺寸不变
     procedure SetMinX(const Value: Extended);   // 改变控件左边缘代表的最小值，控件尺寸不变
@@ -257,15 +259,15 @@ begin
 end;
 
 procedure CalcMandelbortSetDecimalPoint(X, Y: TCnBigDecimal; XZ, YZ: TCnBigDecimal;
-  out Count: Integer);
+  const Digits: Integer; out Count: Integer);
 
   function D2SqrSumGT4(A, B: TCnBigDecimal): Boolean;
   begin
     Result := False;
     BigDecimalCopy(TmpDXZ, A);
     BigDecimalCopy(TmpDYZ, B);
-    BigDecimalMul(TmpDXZ, TmpDXZ, TmpDXZ);
-    BigDecimalMul(TmpDYZ, TmpDYZ, TmpDYZ);
+    BigDecimalMul(TmpDXZ, TmpDXZ, TmpDXZ, Digits);
+    BigDecimalMul(TmpDYZ, TmpDYZ, TmpDYZ, Digits);
     BigDecimalAdd(TmpDXZ, TmpDXZ, TmpDYZ);
 
     if BigDecimalCompare(TmpDXZ, 4) > 0 then
@@ -286,10 +288,10 @@ begin
   repeat
     BigDecimalCopy(TmpDXZ, XZ);
     BigDecimalCopy(TmpDYZ, YZ);
-    BigDecimalMul(TmpDXZ, TmpDXZ, XZ);
-    BigDecimalMul(TmpDYZ, TmpDYZ, YZ);
+    BigDecimalMul(TmpDXZ, TmpDXZ, XZ, Digits);
+    BigDecimalMul(TmpDYZ, TmpDYZ, YZ, Digits);
 
-    BigDecimalMul(YZ, YZ, XZ);
+    BigDecimalMul(YZ, YZ, XZ, Digits);
     YZ.MulWord(2);
     BigDecimalAdd(YZ, YZ, Y);
 
@@ -370,7 +372,7 @@ begin
   YZ.SetZero;
   C := 0;
 
-  CalcMandelbortSetDecimalPoint(X, Y, XZ, YZ, C);
+  CalcMandelbortSetDecimalPoint(X, Y, XZ, YZ, FDigits, C);
 
   if C > CN_MANDELBROT_MAX_COUNT then
   begin
@@ -397,6 +399,8 @@ begin
   FMaxX := 1.0;
   FMinY := -1.5;
   FMaxY := 1.5;
+
+  FDigits := 6;
 
   FAxisColor := clTeal;
   FXRationals := TObjectList.Create(True);
