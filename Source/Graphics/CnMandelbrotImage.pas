@@ -448,7 +448,7 @@ begin
   FMinY := -1.5;
   FMaxY := 1.5;
 
-  FDigits := 6;
+  FDigits := 8;
 
   FAxisColor := clTeal;
   FXRationals := TObjectList.Create(True);
@@ -957,10 +957,20 @@ end;
 
 procedure TCnMandelbrotImage.TriggerCalcColors;
 begin
+  if Mode = mmFloat then
+  begin
+    ReCalcColors;
+    Exit;
+  end;
+
   if FThread <> nil then
   begin
     FThread.Terminate;
-    FThread.WaitFor;
+    try
+      FThread.WaitFor;
+    except
+      ;
+    end;
     FThread := nil;
   end;
 
@@ -985,6 +995,7 @@ end;
 
 procedure TCnMandelbrotImage.ThreadTerminate(Sender: TObject);
 begin
+  FThread := nil;
   Invalidate;
 end;
 
@@ -1028,5 +1039,7 @@ initialization
 finalization
   TmpRXZ.Free;
   TmpRYZ.Free;
+  TmpDXZ.Free;
+  TmpDYZ.Free;
 
 end.
