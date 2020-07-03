@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, CnGraphics;
+  StdCtrls, ExtCtrls, CnGraphics, CnBigDecimal;
 
 type
   TFormMandelbrot = class(TForm)
@@ -16,6 +16,10 @@ type
       XZ, YZ: Extended; Count: Integer): TColor;
     function OnFloatColor2(Sender: TObject; X, Y: Extended;
       XZ, YZ: Extended; Count: Integer): TColor;
+    function OnDecimalColor1(Sender: TObject; X, Y: TCnBigDecimal;
+      XZ, YZ: TCnBigDecimal; Count: Integer): TColor;
+    function OnDecimalColor2(Sender: TObject; X, Y: TCnBigDecimal;
+      XZ, YZ: TCnBigDecimal; Count: Integer): TColor;
   public
     { Public declarations }
   end;
@@ -43,11 +47,13 @@ begin
     Top := 10;
     Width := 800;
     Height := 800;
-    UnLock;
     Anchors := [akLeft, akTop, akBottom, akRight];
     ShowAxis := True;
+    Mode := mmBigDecimal;
     OnClick := ImageClick;
     OnColor := OnFloatColor2;
+    OnDecimalColor := OnDecimalColor2;
+    UnLock;
   end;
 end;
 
@@ -57,7 +63,8 @@ var
   R, I: Extended;
   OW, OH: Extended;
   Img: TCnMandelbrotImage;
-  RR, RI, ROW, ROH, X1, X2, Y1, Y2: TCnBigRational;
+  RR, RI, ROW, ROH, XR1, XR2, YR1, YR2: TCnBigRational;
+  DR, DI, DOW, DOH, XD1, XD2, YD1, YD2: TCnBigDecimal;
 begin
   Img := Sender as TCnMandelbrotImage;
   P := Img.ScreenToClient(Point(Mouse.CursorPos.X, Mouse.CursorPos.Y));
@@ -70,11 +77,8 @@ begin
     OH := Img.MaxY - Img.MinY;
 
     Img.Lock;
-    Img.MinX := R - OW / (2 * ENLARGE_FACTOR);
-    Img.MinY := I - OH / (2 * ENLARGE_FACTOR);
-
-    Img.MaxX := R + OW / (2 * ENLARGE_FACTOR);
-    Img.MaxY := I + OH / (2 * ENLARGE_FACTOR);
+    Img.SetRect(R - OW / (2 * ENLARGE_FACTOR), R + OW / (2 * ENLARGE_FACTOR),
+      I - OH / (2 * ENLARGE_FACTOR), I + OH / (2 * ENLARGE_FACTOR));
     Img.UnLock;
   end
   else if Img.Mode = mmBigRational then
@@ -87,34 +91,36 @@ begin
 
     ROW := TCnBigRational.Create;
     ROH := TCnBigRational.Create;
+    CnBigRationalNumberSub(Img.MaxRX, Img.MinRX, ROW);
+    CnBigRationalNumberSub(Img.MaxRY, Img.MinRX, ROH);
 
-    X1 := TCnBigRational.Create;
-    X2 := TCnBigRational.Create;
-    Y1 := TCnBigRational.Create;
-    Y2 := TCnBigRational.Create;
+    XR1 := TCnBigRational.Create;
+    XR2 := TCnBigRational.Create;
+    YR1 := TCnBigRational.Create;
+    YR2 := TCnBigRational.Create;
 
-    X1.Assign(RR);
-    X1.Sub(ROW);
-    X1.Divide(2 * ENLARGE_FACTOR);
+    XR1.Assign(RR);
+    XR1.Sub(ROW);
+    XR1.Divide(2 * ENLARGE_FACTOR);
 
-    Y1.Assign(RI);
-    Y1.Sub(ROH);
-    Y1.Divide(2 * ENLARGE_FACTOR);
+    YR1.Assign(RI);
+    YR1.Sub(ROH);
+    YR1.Divide(2 * ENLARGE_FACTOR);
 
-    X2.Assign(RR);
-    X2.Add(ROW);
-    X2.Divide(2 * ENLARGE_FACTOR);
+    XR2.Assign(RR);
+    XR2.Add(ROW);
+    XR2.Divide(2 * ENLARGE_FACTOR);
 
-    Y2.Assign(RI);
-    Y2.Add(ROH);
-    Y2.Divide(2 * ENLARGE_FACTOR);
+    YR2.Assign(RI);
+    YR2.Add(ROH);
+    YR2.Divide(2 * ENLARGE_FACTOR);
 
-    Img.SetRect(X1, X2, Y1, Y2);
+    Img.SetRect(XR1, XR2, YR1, YR2);
 
-    X1.Free;
-    X2.Free;
-    Y1.Free;
-    Y2.Free;
+    XR1.Free;
+    XR2.Free;
+    YR1.Free;
+    YR2.Free;
     ROW.Free;
     ROH.Free;
     RR.Free;
@@ -122,7 +128,78 @@ begin
   end
   else
   begin
+    DR := TCnBigDecimal.Create;
+    DI := TCnBigDecimal.Create;
 
+    Img.GetComplexDecimal(P.x, P.y, DR, DI);
+    Caption := Format('X %d Y %d ***** %s + %s i', [P.x, P.y, DR.ToString, DI.ToString]);
+
+    DOW := TCnBigDecimal.Create;
+    DOH := TCnBigDecimal.Create;
+    BigDecimalSub(DOW, Img.MaxDX, Img.MinDX);
+    BigDecimalSub(DOH, Img.MaxDY, Img.MinDY);
+
+    XD1 := TCnBigDecimal.Create;
+    XD2 := TCnBigDecimal.Create;
+    YD1 := TCnBigDecimal.Create;
+    YD2 := TCnBigDecimal.Create;
+
+    BigDecimalCopy(XD1, DR);
+    BigDecimalSub(XD1, XD1, DOW);
+    XD1.DivWord(2 * ENLARGE_FACTOR);
+
+    BigDecimalCopy(YD1, DI);
+    BigDecimalSub(YD1, YD1, DOH);
+    YD1.DivWord(2 * ENLARGE_FACTOR);
+
+    BigDecimalCopy(XD2, DR);
+    BigDecimalAdd(XD2, XD2, DOW);
+    XD2.DivWord(2 * ENLARGE_FACTOR);
+
+    BigDecimalCopy(YD2, DI);
+    BigDecimalAdd(YD2, YD2, DOH);
+    YD2.DivWord(2 * ENLARGE_FACTOR);
+
+    Img.Digits := Img.Digits + 1;
+    Img.SetRect(XD1, XD2, YD1, YD2);
+
+    XD1.Free;
+    XD2.Free;
+    YD1.Free;
+    YD2.Free;
+    DOW.Free;
+    DOH.Free;
+    DR.Free;
+    DI.Free;
+  end;
+end;
+
+function TFormMandelbrot.OnDecimalColor1(Sender: TObject; X, Y, XZ,
+  YZ: TCnBigDecimal; Count: Integer): TColor;
+var
+  R: Byte;
+begin
+  if Count > CN_MANDELBROT_MAX_COUNT then
+    Result := clNavy  // 收敛，用深蓝色
+  else
+  begin
+    if 3 * Count > 255 then
+      R := 0
+    else
+      R := 255 - 3 * Byte(Count); // 次数越多越黑
+    Result := RGB(R, R, R);
+  end;
+end;
+
+function TFormMandelbrot.OnDecimalColor2(Sender: TObject; X, Y, XZ,
+  YZ: TCnBigDecimal; Count: Integer): TColor;
+begin
+  if Count > CN_MANDELBROT_MAX_COUNT then
+    Result := clNavy  // 收敛，用深蓝色
+  else
+  begin
+    // 用 Count 做色相
+    Result := HSLRangeToRGB(Count, 240, 120);
   end;
 end;
 

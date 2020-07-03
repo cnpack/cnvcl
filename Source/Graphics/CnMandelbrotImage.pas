@@ -66,10 +66,18 @@ type
     XZ, YZ: TCnBigDecimal; Count: Integer): TColor of object;
   {* 大浮点数模式下迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
 
+  TCnMandelbrotThreadCalcEvent = procedure (Sender: TObject; Progress, Total: Integer;
+    var AbortCalc: Boolean) of object;
+  {* 线程计算的内部进度事件}
+
+  TCnMandelbrotProgressEvent = procedure (Sender: TObject; Progress, Total: Integer) of object;
+  {* 线程计算的内部进度事件}
+
   TCnMandelbrotImage = class(TGraphicControl)
   {* 曼德布罗集图实现控件}
   private
     FLock: Boolean;   // 控件尺寸改变或边缘代表值改变时是否立即重新计算
+    FThread: TThread;
     FBitmap: TBitmap;
     FXValues: array of Extended;
     FYValues: array of Extended;
@@ -89,7 +97,7 @@ type
     FMinDX: TCnBigDecimal;
     FMaxDY: TCnBigDecimal;
     FMinDY: TCnBigDecimal;
-    FOnColor: TCnMandelbrotFloatColorEvent;
+    FOnFloatColor: TCnMandelbrotFloatColorEvent;
     FOnRationalColor: TCnMandelbrotRationalColorEvent;
     FOnDecimalColor: TCnMandelbrotDecimalColorEvent;
     FShowAxis: Boolean;
@@ -97,18 +105,15 @@ type
     FMode: TCnMandelbrotMode;
     FInSetCount: Integer;
     FOutSetCount: Integer;
-    FDigits: Integer;                           // 计算过程中设置运算精度用的
-    procedure SetMaxX(const Value: Extended);   // 改变控件右边缘代表的最大值，控件尺寸不变
-    procedure SetMaxY(const Value: Extended);   // 改变控件上边缘代表的最大值，控件尺寸不变
-    procedure SetMinX(const Value: Extended);   // 改变控件左边缘代表的最小值，控件尺寸不变
-    procedure SetMinY(const Value: Extended);   // 改变控件下边缘代表的最小值，控件尺寸不变
-
+    FDigits: Integer;
+    FOnThreadCalcEvent: TCnMandelbrotThreadCalcEvent;
+    FOnProgress: TCnMandelbrotProgressEvent;                           // 计算过程中设置运算精度用的
     procedure UpdatePointsValues(AWidth, AHeight: Integer); // 边缘值改变时重新给二维数组内容赋值
     procedure UpdateMatrixes(AWidth, AHeight: Integer);     // 尺寸改变时重新生成二维数组值，并调用 UpdatePointsValues 重新给每个元素赋值
+    procedure SetMode(const Value: TCnMandelbrotMode);
     procedure SetShowAxis(const Value: Boolean);
     procedure SetAxisColor(const Value: TColor);
-    procedure SetOnColor(const Value: TCnMandelbrotFloatColorEvent);
-    procedure SetMode(const Value: TCnMandelbrotMode);
+    procedure SetOnFloatColor(const Value: TCnMandelbrotFloatColorEvent);
     procedure SetOnRationalColor(const Value: TCnMandelbrotRationalColorEvent);
     procedure SetOnDecimalColor(const Value: TCnMandelbrotDecimalColorEvent);
     procedure CheckLockedState;
@@ -118,12 +123,17 @@ type
     function CalcRationalColor(X, Y: TCnBigRational; XZ, YZ: TCnBigRational; out InSet: Boolean): TColor;
     function CalcDecimalColor(X, Y: TCnBigDecimal; XZ, YZ: TCnBigDecimal; out InSet: Boolean): TColor;
 
-    procedure ReCalcColors;   // 根据 FMode 的值分别调用下面仨重新计算所有点的颜色
+    procedure TriggerCalcColors;
+    procedure ReCalcColors;   // 根据 FMode 的值分别调用下面仨重新计算所有点的颜色，特耗时，要放线程里执行
 
     procedure ReCalcFloatColors;
     procedure ReCalcBigRationalColors;
     procedure ReCalcBigDecimalColors;
     procedure Paint; override;
+
+    procedure DoProgress(Progress, Total: Integer); virtual;
+    procedure ThreadTerminate(Sender: TObject);
+    property OnThreadCalcEvent: TCnMandelbrotThreadCalcEvent read FOnThreadCalcEvent write FOnThreadCalcEvent;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -131,6 +141,8 @@ type
     procedure Loaded; override;
     
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
+
+    // 以下仨函数在仨模式下改变控件上下左右四边缘代表的最大值，控件尺寸不变
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: Extended); overload;
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigRational); overload;
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigDecimal); overload;
@@ -145,21 +157,39 @@ type
     property Mode: TCnMandelbrotMode read FMode write SetMode;
     {* 计算模式，是使用精度有限的扩展精度浮点，还是大有理数、还是大浮点数}
 
-    property MinX: Extended read FMinX write SetMinX;
-    {* X 轴左侧值}
-    property MinY: Extended read FMinY write SetMinY;
-    {* Y 轴下缘值}
-    property MaxX: Extended read FMaxX write SetMaxX;
-    {* X 轴左侧值}
-    property MaxY: Extended read FMaxY write SetMaxY;
-    {* Y 轴上缘值}
+    property MinX: Extended read FMinX;
+    {* 浮点数模式下的 X 轴左侧值}
+    property MinY: Extended read FMinY;
+    {* 浮点数模式下的 Y 轴下缘值}
+    property MaxX: Extended read FMaxX;
+    {* 浮点数模式下的 X 轴左侧值}
+    property MaxY: Extended read FMaxY;
+    {* 浮点数模式下的 Y 轴上缘值}
+
+    property MinRX: TCnBigRational read FMinRX;
+    {* 大有理数模式下的 X 轴左侧值}
+    property MinRY: TCnBigRational read FMinRY;
+    {* 大有理数模式下的 Y 轴下缘值}
+    property MaxRX: TCnBigRational read FMaxRX;
+    {* 大有理数模式下的 X 轴左侧值}
+    property MaxRY: TCnBigRational read FMaxRY;
+    {* 大有理数模式下的 Y 轴上缘值}
+
+    property MinDX: TCnBigDecimal read FMinDX;
+    {* 大浮点数模式下的 X 轴左侧值}
+    property MinDY: TCnBigDecimal read FMinDY;
+    {* 大浮点数模式下的 Y 轴下缘值}
+    property MaxDX: TCnBigDecimal read FMaxDX;
+    {* 大浮点数模式下的 X 轴左侧值}
+    property MaxDY: TCnBigDecimal read FMaxDY;
+    {* 大浮点数模式下的 Y 轴上缘值}
 
     property InSetCount: Integer read FInSetCount;
     {* 一次完整计算中，画面在集合内的点数量}
     property OutSetCount: Integer read FOutSetCount;
     {* 一次完整计算中，画面在集合外的点数量}
 
-    property OnColor: TCnMandelbrotFloatColorEvent read FOnColor write SetOnColor;
+    property OnColor: TCnMandelbrotFloatColorEvent read FOnFloatColor write SetOnFloatColor;
     {* 自定义浮点模式下曼德布罗集像素点的颜色事件，如无，则内部使用纯色区分}
     property OnRationalColor: TCnMandelbrotRationalColorEvent read FOnRationalColor
       write SetOnRationalColor;
@@ -168,6 +198,10 @@ type
       write SetOnDecimalColor;
     {* 自定义大浮点数模式下曼德布罗集像素点的颜色事件，如无，则内部使用纯色区分}
 
+    property OnProgress: TCnMandelbrotProgressEvent read FOnProgress write FOnProgress;
+    {* 计算进度事件}
+    property Digits: Integer read FDigits write FDigits;
+    {* 外部设置的运算精度也就是小数点后的数字}
     property ShowAxis: Boolean read FShowAxis write SetShowAxis;
     {* 是否绘制坐标轴}
     property AxisColor: TColor read FAxisColor write SetAxisColor;
@@ -184,6 +218,20 @@ resourcestring
 type
   PRGBTripleArray = ^TRGBTripleArray;
   TRGBTripleArray = array [Byte] of TRGBTriple;
+
+  TCnMandelbrotThread = class(TThread)
+  private
+    FProgress: Integer;
+    FTotal: Integer;
+    FImage: TCnMandelbrotImage;
+    procedure OnImageCalcEvent(Sender: TObject; Progress, Total: Integer;
+      var AbortCalc: Boolean);
+    procedure NotifyProgress;
+  protected
+    procedure Execute; override;
+  public
+    property Image: TCnMandelbrotImage read FImage write FImage;
+  end;
 
 var
   TmpRXZ: TCnBigRational = nil;
@@ -319,16 +367,16 @@ begin
   if C > CN_MANDELBROT_MAX_COUNT then
   begin
     InSet := True;
-    if Assigned(FOnColor) then
-      Result := FOnColor(Self, X, Y, XZ, YZ, C)
+    if Assigned(FOnFloatColor) then
+      Result := FOnFloatColor(Self, X, Y, XZ, YZ, C)
     else
       Result := clNavy;
   end
   else
   begin
     InSet := False;
-    if Assigned(FOnColor) then
-      Result := FOnColor(Self, X, Y, XZ, YZ, C)
+    if Assigned(FOnFloatColor) then
+      Result := FOnFloatColor(Self, X, Y, XZ, YZ, C)
     else
       Result := clWhite;
   end;
@@ -471,8 +519,8 @@ procedure TCnMandelbrotImage.GetComplexDecimal(X, Y: Integer; R,
 begin
   if (FMode = mmBigDecimal) and (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
   begin
-    BigDecimalCopy(R, TCnBigDecimal(FXRationals[X]));
-    BigDecimalCopy(I, TCnBigDecimal(FYRationals[Y]));
+    BigDecimalCopy(R, TCnBigDecimal(FXDecimals[X]));
+    BigDecimalCopy(I, TCnBigDecimal(FYDecimals[Y]));
   end
   else
     raise Exception.Create(SCnMandelbrotOutOfBounds);
@@ -594,13 +642,15 @@ var
   R, G, B: Byte;
   Arr: PRGBTripleArray;
   XZ, YZ: TCnBigDecimal;
-  InSet: Boolean;
+  InSet, AbortCalc: Boolean;
 begin
   FInSetCount := 0;
   FOutSetCount := 0;
 
   XZ := nil;
   YZ := nil;
+  AbortCalc := False;
+
   try
     XZ := TCnBigDecimal.Create;
     YZ := TCnBigDecimal.Create;
@@ -627,12 +677,18 @@ begin
         Arr^[X].rgbtGreen := G;
         Arr^[X].rgbtBlue := B;
       end;
+
+      if Assigned(FOnThreadCalcEvent) then
+        FOnThreadCalcEvent(Self, Y, Height - 1, AbortCalc);
+
+      if AbortCalc then
+        Exit;
     end;
   finally
     XZ.Free;
     YZ.Free;
   end;
-  Invalidate;
+  // Invalidate;
 end;
 
 procedure TCnMandelbrotImage.SetAxisColor(const Value: TColor);
@@ -671,53 +727,11 @@ begin
   end;
 end;
 
-procedure TCnMandelbrotImage.SetMaxX(const Value: Extended);
-begin
-  if Value <> FMaxX then
-  begin
-    FMaxX := Value;
-    CheckLockedState;
-  end;
-end;
-
-procedure TCnMandelbrotImage.SetMaxY(const Value: Extended);
-begin
-  if Value <> FMaxY then
-  begin
-    FMaxY := Value;
-    CheckLockedState;
-  end;
-end;
-
-procedure TCnMandelbrotImage.SetMinX(const Value: Extended);
-begin
-  if Value <> FMinX then
-  begin
-    FMinX := Value;
-    CheckLockedState;
-  end;
-end;
-
-procedure TCnMandelbrotImage.SetMinY(const Value: Extended);
-begin
-  if Value <> FMinY then
-  begin
-    FMinY := Value;
-    CheckLockedState;
-  end;
-end;
-
-procedure TCnMandelbrotImage.SetOnColor(const Value: TCnMandelbrotFloatColorEvent);
-begin
-  FOnColor := Value;
-  Invalidate;
-end;
-
 procedure TCnMandelbrotImage.SetOnRationalColor(
   const Value: TCnMandelbrotRationalColorEvent);
 begin
   FOnRationalColor := Value;
-  Invalidate;
+  CheckLockedState;
 end;
 
 procedure TCnMandelbrotImage.SetRect(AMinX, AMaxX, AMinY, AMaxY: Extended);
@@ -930,7 +944,7 @@ begin
   if not (csLoading in ComponentState) and not FLock then
   begin
     UpdateMatrixes(Width, Height); // 中间会调用 UpdatePointsValue
-    ReCalcColors;
+    TriggerCalcColors;
   end;
 end;
 
@@ -938,6 +952,75 @@ procedure TCnMandelbrotImage.SetOnDecimalColor(
   const Value: TCnMandelbrotDecimalColorEvent);
 begin
   FOnDecimalColor := Value;
+  CheckLockedState;
+end;
+
+procedure TCnMandelbrotImage.TriggerCalcColors;
+begin
+  if FThread <> nil then
+  begin
+    FThread.Terminate;
+    FThread.WaitFor;
+    FThread := nil;
+  end;
+
+  if FThread = nil then
+  begin
+    FThread := TCnMandelbrotThread.Create(True);
+    TCnMandelbrotThread(FThread).Image := Self;
+    FOnThreadCalcEvent := TCnMandelbrotThread(FThread).OnImageCalcEvent;
+    FThread.FreeOnTerminate := True;
+    FThread.OnTerminate := ThreadTerminate;
+
+    FThread.Resume;
+  end;
+end;
+
+procedure TCnMandelbrotImage.DoProgress(Progress, Total: Integer);
+begin
+  if Assigned(FOnProgress) then
+    FOnProgress(Self, Progress, Total);
+  Invalidate;
+end;
+
+procedure TCnMandelbrotImage.ThreadTerminate(Sender: TObject);
+begin
+  Invalidate;
+end;
+
+procedure TCnMandelbrotImage.SetOnFloatColor(
+  const Value: TCnMandelbrotFloatColorEvent);
+begin
+  FOnFloatColor := Value;
+  CheckLockedState;
+end;
+
+{ TCnMandelbrotThread }
+
+procedure TCnMandelbrotThread.Execute;
+begin
+  if FImage <> nil then
+    FImage.ReCalcColors;
+end;
+
+procedure TCnMandelbrotThread.NotifyProgress;
+begin
+  if FImage <> nil then
+    FImage.DoProgress(FProgress, FTotal);
+end;
+
+procedure TCnMandelbrotThread.OnImageCalcEvent(Sender: TObject; Progress,
+  Total: Integer; var AbortCalc: Boolean);
+begin
+  // 线程内得到进度通知
+  if Terminated then
+    AbortCalc := True
+  else
+  begin
+    FProgress := Progress;
+    FTotal := Total;
+    Synchronize(NotifyProgress);
+  end;
 end;
 
 initialization
