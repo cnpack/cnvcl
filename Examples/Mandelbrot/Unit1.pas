@@ -4,13 +4,21 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, CnGraphics, CnBigDecimal;
+  StdCtrls, ExtCtrls, CnGraphics, CnMandelbrotImage, CnBigDecimal;
 
 type
   TFormMandelbrot = class(TForm)
     lblMark: TLabel;
+    grpInfo: TGroupBox;
+    edtMaxY: TEdit;
+    edtMinY: TEdit;
+    edtMinX: TEdit;
+    edtMaxX: TEdit;
+    lblDigits: TLabel;
+    lblPoint: TLabel;
     procedure FormCreate(Sender: TObject);
   private
+    FImage: TCnMandelbrotImage;
     procedure ImageClick(Sender: TObject);
     function OnFloatColor1(Sender: TObject; X, Y: Extended;
       XZ, YZ: Extended; Count: Integer): TColor;
@@ -20,6 +28,8 @@ type
       XZ, YZ: TCnBigDecimal; Count: Integer): TColor;
     function OnDecimalColor2(Sender: TObject; X, Y: TCnBigDecimal;
       XZ, YZ: TCnBigDecimal; Count: Integer): TColor;
+
+    procedure ShowEdges;
   public
     { Public declarations }
   end;
@@ -29,9 +39,6 @@ var
 
 implementation
 
-uses
-  CnMandelbrotImage, CnBigRational;
-
 {$R *.DFM}
 
 const
@@ -39,7 +46,8 @@ const
 
 procedure TFormMandelbrot.FormCreate(Sender: TObject);
 begin
-  with TCnMandelbrotImage.Create(Self) do
+  FImage := TCnMandelbrotImage.Create(Self);
+  with FImage do
   begin
     Parent := Self;
     Lock;
@@ -55,6 +63,7 @@ begin
     OnDecimalColor := OnDecimalColor2;
     UnLock;
   end;
+  ShowEdges;
 end;
 
 procedure TFormMandelbrot.ImageClick(Sender: TObject);
@@ -63,7 +72,6 @@ var
   R, I: Extended;
   OW, OH: Extended;
   Img: TCnMandelbrotImage;
-  RR, RI, ROW, ROH, XR1, XR2, YR1, YR2: TCnBigRational;
   DR, DI, DOW, DOH, XD1, XD2, YD1, YD2: TCnBigDecimal;
 begin
   Img := Sender as TCnMandelbrotImage;
@@ -81,63 +89,21 @@ begin
       I - OH / (2 * ENLARGE_FACTOR), I + OH / (2 * ENLARGE_FACTOR));
     Img.UnLock;
   end
-  else if Img.Mode = mmBigRational then
-  begin
-    RR := TCnBigRational.Create;
-    RI := TCnBigRational.Create;
-
-    Img.GetComplexRational(P.x, P.y, RR, RI);
-    Caption := Format('X %d Y %d ***** %s + %s i', [P.x, P.y, RR.ToDec(20), RI.ToDec(20)]);
-
-    ROW := TCnBigRational.Create;
-    ROH := TCnBigRational.Create;
-    CnBigRationalNumberSub(Img.MaxRX, Img.MinRX, ROW);
-    CnBigRationalNumberSub(Img.MaxRY, Img.MinRX, ROH);
-
-    XR1 := TCnBigRational.Create;
-    XR2 := TCnBigRational.Create;
-    YR1 := TCnBigRational.Create;
-    YR2 := TCnBigRational.Create;
-
-    XR1.Assign(RR);
-    XR1.Sub(ROW);
-    XR1.Divide(2 * ENLARGE_FACTOR);
-
-    YR1.Assign(RI);
-    YR1.Sub(ROH);
-    YR1.Divide(2 * ENLARGE_FACTOR);
-
-    XR2.Assign(RR);
-    XR2.Add(ROW);
-    XR2.Divide(2 * ENLARGE_FACTOR);
-
-    YR2.Assign(RI);
-    YR2.Add(ROH);
-    YR2.Divide(2 * ENLARGE_FACTOR);
-
-    Img.SetRect(XR1, XR2, YR1, YR2);
-
-    XR1.Free;
-    XR2.Free;
-    YR1.Free;
-    YR2.Free;
-    ROW.Free;
-    ROH.Free;
-    RR.Free;
-    RI.Free;
-  end
-  else
+  else if Img.Mode = mmBigDecimal then
   begin
     DR := TCnBigDecimal.Create;
     DI := TCnBigDecimal.Create;
 
     Img.GetComplexDecimal(P.x, P.y, DR, DI);
-    Caption := Format('X %d Y %d ***** %s + %s i', [P.x, P.y, DR.ToString, DI.ToString]);
+    lblPoint.Caption := Format('X %d Y %d ***** %s + %s i', [P.x, P.y, DR.ToString, DI.ToString]);
 
     DOW := TCnBigDecimal.Create;
     DOH := TCnBigDecimal.Create;
     BigDecimalSub(DOW, Img.MaxDX, Img.MinDX);
     BigDecimalSub(DOH, Img.MaxDY, Img.MinDY);
+
+    DOW.DivWord(2 * ENLARGE_FACTOR);
+    DOH.DivWord(2 * ENLARGE_FACTOR);
 
     XD1 := TCnBigDecimal.Create;
     XD2 := TCnBigDecimal.Create;
@@ -146,21 +112,16 @@ begin
 
     BigDecimalCopy(XD1, DR);
     BigDecimalSub(XD1, XD1, DOW);
-    XD1.DivWord(2 * ENLARGE_FACTOR);
 
     BigDecimalCopy(YD1, DI);
     BigDecimalSub(YD1, YD1, DOH);
-    YD1.DivWord(2 * ENLARGE_FACTOR);
 
     BigDecimalCopy(XD2, DR);
     BigDecimalAdd(XD2, XD2, DOW);
-    XD2.DivWord(2 * ENLARGE_FACTOR);
 
     BigDecimalCopy(YD2, DI);
     BigDecimalAdd(YD2, YD2, DOH);
-    YD2.DivWord(2 * ENLARGE_FACTOR);
 
-    Img.Digits := Img.Digits + 1;
     Img.SetRect(XD1, XD2, YD1, YD2);
 
     XD1.Free;
@@ -172,6 +133,7 @@ begin
     DR.Free;
     DI.Free;
   end;
+  ShowEdges;
 end;
 
 function TFormMandelbrot.OnDecimalColor1(Sender: TObject; X, Y, XZ,
@@ -230,6 +192,25 @@ begin
     // 用 Count 做色相
     Result := HSLRangeToRGB(Count, 240, 120);
   end;
+end;
+
+procedure TFormMandelbrot.ShowEdges;
+begin
+  if FImage.Mode = mmFloat then
+  begin
+    edtMinX.Text := FloatToStr(FImage.MinX);
+    edtMaxX.Text := FloatToStr(FImage.MaxX);
+    edtMinY.Text := FloatToStr(FImage.MinY);
+    edtMaxY.Text := FloatToStr(FImage.MaxY);
+  end
+  else if FImage.Mode = mmBigDecimal then
+  begin
+    edtMinX.Text := FImage.MinDX.ToString;
+    edtMaxX.Text := FImage.MaxDX.ToString;
+    edtMinY.Text := FImage.MinDY.ToString;
+    edtMaxY.Text := FImage.MaxDY.ToString;
+  end;
+  lblDigits.Caption := 'Digits: ' + IntToStr(FImage.GetCurrentCalcDigits);
 end;
 
 end.
