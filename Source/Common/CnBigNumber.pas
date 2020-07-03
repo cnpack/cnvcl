@@ -266,6 +266,16 @@ type
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
   end;
 
+  TCnBigNumberPool = class(TObjectList)
+  private
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Obtain: TCnBigNumber;
+    procedure Recycle(Num: TCnBigNumber);
+  end;
+
 function BigNumberNew: TCnBigNumber;
 {* 创建一个动态分配的大数对象，等同于 TCnBigNumber.Create}
 
@@ -609,34 +619,7 @@ const
 {$ENDIF}
 
 var
-  FLocalBigNumberPool: TObjectList = nil;
-
-{* 大数池操作方法开始}
-
-function ObtainBigNumberFromPool: TCnBigNumber;
-begin
-  if FLocalBigNumberPool.Count = 0 then
-  begin
-    Result := TCnBigNumber.Create;
-{$IFDEF DEBUG}
-    Result.FIsFromPool := True;
-{$ENDIF}
-  end
-  else
-  begin
-    Result := TCnBigNumber(FLocalBigNumberPool.Items[FLocalBigNumberPool.Count - 1]);
-    FLocalBigNumberPool.Delete(FLocalBigNumberPool.Count - 1);
-    Result.Clear;
-  end;
-end;
-
-procedure RecycleBigNumberToPool(Num: TCnBigNumber);
-begin
-  if Num <> nil then
-    FLocalBigNumberPool.Add(Num);
-end;
-
-{* 大数池操作方法结束}
+  FLocalBigNumberPool: TCnBigNumberPool = nil;
 
 procedure BigNumberSetFlag(const Num: TCnBigNumber; N: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
@@ -801,7 +784,7 @@ begin
     Exit;
   end;
 
-  N := ObtainBigNumberFromPool;
+  N := FLocalBigNumberPool.Obtain;
   try
     // 先计算 P 位 10 进制的最小值 10^(P - 1) 次幂，和本数比较，注意这里 P 比 Q 大一，
     N.SetWord(10);
@@ -813,7 +796,7 @@ begin
 
     Inc(Result); // 如果大于或等于 P 位 10 进制的最小值 10^(P - 1) 次幂，则位数比 Q 多 1
   finally
-    RecycleBigNumberToPool(N);
+    FLocalBigNumberPool.Recycle(N);
   end;
 end;
 
@@ -2711,7 +2694,7 @@ begin
     SetLength(Result, N + 3);
     FillChar(Result[1], Length(Result), 0);
 
-    T := ObtainBigNumberFromPool;
+    T := FLocalBigNumberPool.Obtain;
     if BigNumberCopy(T, Num) = nil then
       Exit;
 
@@ -2764,7 +2747,7 @@ begin
     if BnData <> nil then
       FreeMemory(BnData);
     if T <> nil then
-      RecycleBigNumberToPool(T);
+      FLocalBigNumberPool.Recycle(T);
   end;
 
   Len := SysUtils.StrLen(PAnsiChar(Result));
@@ -2903,11 +2886,11 @@ begin
       RR := Res
     else
     begin
-      RR := ObtainBigNumberFromPool;
+      RR := FLocalBigNumberPool.Obtain;
       IsFromPool := True;
     end;
 
-    Tmp := ObtainBigNumberFromPool;
+    Tmp := FLocalBigNumberPool.Obtain;
     if (RR = nil) or (Tmp = nil) then
       Exit;
 
@@ -2941,8 +2924,8 @@ begin
     Result := True;
   finally
     if IsFromPool then
-      RecycleBigNumberToPool(RR);
-    RecycleBigNumberToPool(Tmp);
+      FLocalBigNumberPool.Recycle(RR);
+    FLocalBigNumberPool.Recycle(Tmp);
   end;
 end;
 
@@ -3034,7 +3017,7 @@ begin
   try
     if (Res = Num1) or (Res = Num2) then
     begin
-      RR := ObtainBigNumberFromPool;
+      RR := FLocalBigNumberPool.Obtain;
       IsFromPool := True;
       if RR = nil then
         Exit;
@@ -3059,7 +3042,7 @@ begin
     Result := True;
   finally
     if IsFromPool then
-      RecycleBigNumberToPool(RR);
+      FLocalBigNumberPool.Recycle(RR);
   end;
 end;
 
@@ -3099,9 +3082,9 @@ begin
   BackupD := nil;
 
   try
-    Tmp := ObtainBigNumberFromPool;
-    SNum := ObtainBigNumberFromPool;
-    SDiv := ObtainBigNumberFromPool;
+    Tmp := FLocalBigNumberPool.Obtain;
+    SNum := FLocalBigNumberPool.Obtain;
+    SDiv := FLocalBigNumberPool.Obtain;
     SRes := Res;
 
     if (Tmp = nil) or (SNum = nil) or (SDiv = nil) or (SRes = nil) then
@@ -3123,7 +3106,7 @@ begin
     NumN := SNum.Top;
     Loop := NumN - DivN;
 
-    WNum := ObtainBigNumberFromPool;
+    WNum := FLocalBigNumberPool.Obtain;
     BackupNeg := WNum.Neg;
     BackupD := WNum.D;
     BackupTop := WNum.Top;
@@ -3231,15 +3214,15 @@ begin
 
     Result := True;
   finally
-    RecycleBigNumberToPool(Tmp);
-    RecycleBigNumberToPool(SNum);
-    RecycleBigNumberToPool(SDiv);
+    FLocalBigNumberPool.Recycle(Tmp);
+    FLocalBigNumberPool.Recycle(SNum);
+    FLocalBigNumberPool.Recycle(SDiv);
     // 恢复 WNum 内容并扔回池子里
     WNum.Neg := BackupNeg;
     WNum.D := BackupD;
     WNum.Top := BackupTop;
     WNum.DMax := BackupDMax;
-    RecycleBigNumberToPool(WNum);
+    FLocalBigNumberPool.Recycle(WNum);
   end;
 end;
 
@@ -3248,11 +3231,11 @@ function BigNumberMod(const Remain: TCnBigNumber;
 var
   Res: TCnBigNumber;
 begin
-  Res := ObtainBigNumberFromPool;
+  Res := FLocalBigNumberPool.Obtain;
   try
     Result := BigNumberDiv(Res, Remain, Num, Divisor);
   finally
-    RecycleBigNumberToPool(Res);
+    FLocalBigNumberPool.Recycle(Res);
   end;
 end;
 
@@ -3295,7 +3278,7 @@ begin
     Exit;
   end;
 
-  T := ObtainBigNumberFromPool;
+  T := FLocalBigNumberPool.Obtain;
   BigNumberCopy(T, Num);
 
   try
@@ -3311,7 +3294,7 @@ begin
     end;
     Result := True;
   finally
-    RecycleBigNumberToPool(T);
+    FLocalBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -3330,13 +3313,13 @@ begin
   try
     if (Res = Num) or (Res = Exponent) then
     begin
-      RR := ObtainBigNumberFromPool;
+      RR := FLocalBigNumberPool.Obtain;
       IsFromPool := True;
     end
     else
       RR := Res;
 
-    V := ObtainBigNumberFromPool;
+    V := FLocalBigNumberPool.Obtain;
     if (RR = nil) or (V = nil) then
       Exit;
 
@@ -3370,8 +3353,8 @@ begin
     Result := True;
   finally
     if IsFromPool then
-      RecycleBigNumberToPool(RR);
-    RecycleBigNumberToPool(V);
+      FLocalBigNumberPool.Recycle(RR);
+    FLocalBigNumberPool.Recycle(V);
   end;
 end;
 
@@ -3455,8 +3438,8 @@ begin
   B := nil;
 
   try
-    A := ObtainBigNumberFromPool;
-    B := ObtainBigNumberFromPool;
+    A := FLocalBigNumberPool.Obtain;
+    B := FLocalBigNumberPool.Obtain;
     if (A = nil) or (B = nil) then
       Exit;
 
@@ -3483,8 +3466,8 @@ begin
 
     Result := True;
   finally
-    RecycleBigNumberToPool(A);
-    RecycleBigNumberToPool(B);
+    FLocalBigNumberPool.Recycle(A);
+    FLocalBigNumberPool.Recycle(B);
   end;
 end;
 
@@ -3506,9 +3489,9 @@ begin
   R := nil;
 
   try
-    G := ObtainBigNumberFromPool;
-    M := ObtainBigNumberFromPool;
-    R := ObtainBigNumberFromPool;
+    G := FLocalBigNumberPool.Obtain;
+    M := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
 
     if not BigNumberGcd(G, Num1, Num2) then
       Exit;
@@ -3521,9 +3504,9 @@ begin
 
     Result := True;
   finally
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(M);
-    RecycleBigNumberToPool(G);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(M);
+    FLocalBigNumberPool.Recycle(G);
   end;
 end;
 
@@ -3536,8 +3519,8 @@ begin
     Result := BigNumberUnsignedMulMod(Res, A, B, C)
   else if BigNumberIsNegative(A) and BigNumberIsNegative(B) then
   begin
-    T := ObtainBigNumberFromPool;
-    P := ObtainBigNumberFromPool;
+    T := FLocalBigNumberPool.Obtain;
+    P := FLocalBigNumberPool.Obtain;
     try
       BigNumberCopy(T, A);
       BigNumberCopy(P, B);
@@ -3545,32 +3528,32 @@ begin
       BigNumberSetNegative(P, False);
       Result := BigNumberUnsignedMulMod(Res, T, P, C);
     finally
-      RecycleBigNumberToPool(T);
-      RecycleBigNumberToPool(P);
+      FLocalBigNumberPool.Recycle(T);
+      FLocalBigNumberPool.Recycle(P);
     end;
   end
   else if BigNumberIsNegative(A) and not BigNumberIsNegative(B) then // A 负
   begin
-    T := ObtainBigNumberFromPool;
+    T := FLocalBigNumberPool.Obtain;
     try
       BigNumberCopy(T, A);
       BigNumberSetNegative(T, False);
       Result := BigNumberUnsignedMulMod(Res, T, B, C);
       BigNumberSub(Res, C, Res);
     finally
-      RecycleBigNumberToPool(T);
+      FLocalBigNumberPool.Recycle(T);
     end;
   end
   else if not BigNumberIsNegative(A) and BigNumberIsNegative(B) then // B 负
   begin
-    T := ObtainBigNumberFromPool;
+    T := FLocalBigNumberPool.Obtain;
     try
       BigNumberCopy(T, B);
       BigNumberSetNegative(T, False);
       Result := BigNumberUnsignedMulMod(Res, A, T, C);
       BigNumberSub(Res, C, Res);
     finally
-      RecycleBigNumberToPool(T);
+      FLocalBigNumberPool.Recycle(T);
     end;
   end
   else
@@ -3588,8 +3571,8 @@ begin
 
   try
     // 使用临时变量，保证 A、B 自身的值不发生变化
-    AA := ObtainBigNumberFromPool;
-    BB := ObtainBigNumberFromPool;
+    AA := FLocalBigNumberPool.Obtain;
+    BB := FLocalBigNumberPool.Obtain;
 
     BigNumberCopy(AA, A);
     BigNumberCopy(BB, B);
@@ -3626,8 +3609,8 @@ begin
         Exit;
     end;
   finally
-    RecycleBigNumberToPool(AA);
-    RecycleBigNumberToPool(BB);
+    FLocalBigNumberPool.Recycle(AA);
+    FLocalBigNumberPool.Recycle(BB);
   end;
   Result := True;
 end;
@@ -3692,7 +3675,7 @@ begin
     Val[I] := nil;
 
   try
-    Val[0] := ObtainBigNumberFromPool;
+    Val[0] := FLocalBigNumberPool.Obtain;
     if not BigNumberNonNegativeMod(Val[0], A, C) then
       Exit;
 
@@ -3705,7 +3688,7 @@ begin
     end;
 
     Window := WindowBit(Bits);
-    D := ObtainBigNumberFromPool;
+    D := FLocalBigNumberPool.Obtain;
     if Window > 1 then
     begin
       if not BigNumberDirectMulMod(D, Val[0], Val[0], C) then
@@ -3714,7 +3697,7 @@ begin
       J := 1 shl (Window - 1);
       for I := 1 to J - 1 do
       begin
-        Val[I] := ObtainBigNumberFromPool;
+        Val[I] := FLocalBigNumberPool.Obtain;
         if not BigNumberDirectMulMod(Val[I], Val[I - 1], D, C) then
           Exit;
       end;
@@ -3774,9 +3757,9 @@ begin
     end;
     Result := True;
   finally
-    RecycleBigNumberToPool(D);
+    FLocalBigNumberPool.Recycle(D);
     for I := Low(Val) to High(Val) do
-      RecycleBigNumberToPool(Val[I]);
+      FLocalBigNumberPool.Recycle(Val[I]);
   end;
 end;
 
@@ -3798,9 +3781,9 @@ begin
   T := nil;
 
   try
-    AA := ObtainBigNumberFromPool;
-    BB := ObtainBigNumberFromPool;
-    T := ObtainBigNumberFromPool;
+    AA := FLocalBigNumberPool.Obtain;
+    BB := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
 
     if not T.SetOne then
       Exit;
@@ -3828,9 +3811,9 @@ begin
     if not BigNumberMulMod(Res, AA, T, C) then
       Exit;
   finally
-    RecycleBigNumberToPool(T);
-    RecycleBigNumberToPool(AA);
-    RecycleBigNumberToPool(BB);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(AA);
+    FLocalBigNumberPool.Recycle(BB);
   end;
   Result := True;
 end;
@@ -3847,15 +3830,15 @@ begin
   S := nil;
 
   try
-    R := ObtainBigNumberFromPool;
+    R := FLocalBigNumberPool.Obtain;
     if not BigNumberPowerMod(R, A, C, B) then
       Exit;
 
-    L := ObtainBigNumberFromPool;
+    L := FLocalBigNumberPool.Obtain;
     if BigNumberCopy(L, R) = nil then // L := R;
       Exit;
 
-    S := ObtainBigNumberFromPool;
+    S := FLocalBigNumberPool.Obtain;
     for I := 1 to T do
     begin
       if not BigNumberMulMod(R, R, R, B) then
@@ -3877,9 +3860,9 @@ begin
 
     Result := not R.IsOne;
   finally
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(L);
-    RecycleBigNumberToPool(S);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(L);
+    FLocalBigNumberPool.Recycle(S);
   end;
 end;
 
@@ -3898,7 +3881,7 @@ begin
     Exit;
 
   // 小额素数先对比判断，包括 2
-  X := ObtainBigNumberFromPool;
+  X := FLocalBigNumberPool.Obtain;
   try
     X.SetWord(CN_PRIME_NUMBERS_SQRT_UINT32[High(CN_PRIME_NUMBERS_SQRT_UINT32)]);
     if BigNumberCompare(Num, X) <= 0 then
@@ -3913,7 +3896,7 @@ begin
       end;
     end;
   finally
-    RecycleBigNumberToPool(X);
+    FLocalBigNumberPool.Recycle(X);
   end;
 
   // 再用小额素数整除，不用 2 了，因为 2 之外的偶数已经被排除了
@@ -3929,9 +3912,9 @@ begin
   W := nil;
 
   try
-    X := ObtainBigNumberFromPool;
-    R := ObtainBigNumberFromPool;
-    W := ObtainBigNumberFromPool;
+    X := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
+    W := FLocalBigNumberPool.Obtain;
 
     if BigNumberCopy(X, Num) = nil then
       Exit;
@@ -3962,9 +3945,9 @@ begin
         Exit;
     end;
   finally
-    RecycleBigNumberToPool(X);
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(W);
+    FLocalBigNumberPool.Recycle(X);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(W);
   end;
   Result := True;
 end;
@@ -4056,10 +4039,10 @@ var
   Res, SubOne, T, Remain: TCnBigNumber;
 begin
   Result := False;
-  Res := ObtainBigNumberFromPool;
-  T := ObtainBigNumberFromPool;
-  Remain := ObtainBigNumberFromPool;
-  SubOne := ObtainBigNumberFromPool;
+  Res := FLocalBigNumberPool.Obtain;
+  T := FLocalBigNumberPool.Obtain;
+  Remain := FLocalBigNumberPool.Obtain;
+  SubOne := FLocalBigNumberPool.Obtain;
 
   BigNumberCopy(SubOne, Prime);
   BigNumberSubWord(SubOne, 1);
@@ -4074,10 +4057,10 @@ begin
     end;
     Result := True;
   finally
-    RecycleBigNumberToPool(Res);
-    RecycleBigNumberToPool(T);
-    RecycleBigNumberToPool(Remain);
-    RecycleBigNumberToPool(SubOne);
+    FLocalBigNumberPool.Recycle(Res);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(Remain);
+    FLocalBigNumberPool.Recycle(SubOne);
   end;
 end;
 
@@ -4179,9 +4162,9 @@ begin
     M := nil;
 
     try
-      T := ObtainBigNumberFromPool;
-      P := ObtainBigNumberFromPool;
-      M := ObtainBigNumberFromPool;
+      T := FLocalBigNumberPool.Obtain;
+      P := FLocalBigNumberPool.Obtain;
+      M := FLocalBigNumberPool.Obtain;
       BigNumberMod(P, A, B);
 
       BigNumberExtendedEuclideanGcd(B, P, X, Y);
@@ -4199,9 +4182,9 @@ begin
       BigNumberMul(P, P, Y);
       BigNumberSub(Y, T, P);
     finally
-      RecycleBigNumberToPool(M);
-      RecycleBigNumberToPool(P);
-      RecycleBigNumberToPool(T);
+      FLocalBigNumberPool.Recycle(M);
+      FLocalBigNumberPool.Recycle(P);
+      FLocalBigNumberPool.Recycle(T);
     end;
   end;
 end;
@@ -4224,9 +4207,9 @@ begin
     M := nil;
 
     try
-      T := ObtainBigNumberFromPool;
-      P := ObtainBigNumberFromPool;
-      M := ObtainBigNumberFromPool;
+      T := FLocalBigNumberPool.Obtain;
+      P := FLocalBigNumberPool.Obtain;
+      M := FLocalBigNumberPool.Obtain;
       BigNumberMod(P, A, B);
 
       BigNumberExtendedEuclideanGcd2(B, P, Y, X);
@@ -4240,9 +4223,9 @@ begin
       BigNumberMul(P, P, X);
       BigNumberSub(Y, Y, P);
     finally
-      RecycleBigNumberToPool(M);
-      RecycleBigNumberToPool(P);
-      RecycleBigNumberToPool(T);
+      FLocalBigNumberPool.Recycle(M);
+      FLocalBigNumberPool.Recycle(P);
+      FLocalBigNumberPool.Recycle(T);
     end;
   end;
 end;
@@ -4259,8 +4242,8 @@ begin
   Y := nil;
 
   try
-    X1 := ObtainBigNumberFromPool;
-    Y := ObtainBigNumberFromPool;
+    X1 := FLocalBigNumberPool.Obtain;
+    Y := FLocalBigNumberPool.Obtain;
 
     BigNumberCopy(X1, X);
     if BigNumberIsNegative(X1) then
@@ -4279,8 +4262,8 @@ begin
     if BigNumberIsNegative(Res) then
       BigNumberAdd(Res, Res, Modulus);
   finally
-    RecycleBigNumberToPool(X1);
-    RecycleBigNumberToPool(Y);
+    FLocalBigNumberPool.Recycle(X1);
+    FLocalBigNumberPool.Recycle(Y);
   end;
 end;
 
@@ -4298,8 +4281,8 @@ begin
     Exit;
   end;
 
-  AA := ObtainBigNumberFromPool;
-  Q := ObtainBigNumberFromPool;
+  AA := FLocalBigNumberPool.Obtain;
+  Q := FLocalBigNumberPool.Obtain;
 
   try
     if A.IsOdd then
@@ -4332,8 +4315,8 @@ begin
         Result := -Result;
     end;
   finally
-    RecycleBigNumberToPool(Q);
-    RecycleBigNumberToPool(AA);
+    FLocalBigNumberPool.Recycle(Q);
+    FLocalBigNumberPool.Recycle(AA);
   end;
 end;
 
@@ -4345,8 +4328,8 @@ begin
   if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
     raise Exception.Create('A, P Must > 0');
 
-  R := ObtainBigNumberFromPool;
-  Res := ObtainBigNumberFromPool;
+  R := FLocalBigNumberPool.Obtain;
+  Res := FLocalBigNumberPool.Obtain;
 
   try
     // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
@@ -4366,8 +4349,8 @@ begin
         Result := -1;
     end;
   finally
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(Res);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(Res);
   end;
 end;
 
@@ -4386,15 +4369,15 @@ begin
   if BigNumberLegendre(A, P) <> 1 then
     Exit;
 
-  Q := ObtainBigNumberFromPool;
-  Z := ObtainBigNumberFromPool;
-  C := ObtainBigNumberFromPool;
-  R := ObtainBigNumberFromPool;
-  T := ObtainBigNumberFromPool;
-  L := ObtainBigNumberFromPool;
-  U := ObtainBigNumberFromPool;
-  B := ObtainBigNumberFromPool;
-  N := ObtainBigNumberFromPool;
+  Q := FLocalBigNumberPool.Obtain;
+  Z := FLocalBigNumberPool.Obtain;
+  C := FLocalBigNumberPool.Obtain;
+  R := FLocalBigNumberPool.Obtain;
+  T := FLocalBigNumberPool.Obtain;
+  L := FLocalBigNumberPool.Obtain;
+  U := FLocalBigNumberPool.Obtain;
+  B := FLocalBigNumberPool.Obtain;
+  N := FLocalBigNumberPool.Obtain;
 
   try
     S := 0;
@@ -4455,15 +4438,15 @@ begin
     BigNumberMod(Res, L, P);
     Result := True;
   finally
-    RecycleBigNumberToPool(Q);
-    RecycleBigNumberToPool(Z);
-    RecycleBigNumberToPool(C);
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(T);
-    RecycleBigNumberToPool(L);
-    RecycleBigNumberToPool(U);
-    RecycleBigNumberToPool(B);
-    RecycleBigNumberToPool(N);
+    FLocalBigNumberPool.Recycle(Q);
+    FLocalBigNumberPool.Recycle(Z);
+    FLocalBigNumberPool.Recycle(C);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(L);
+    FLocalBigNumberPool.Recycle(U);
+    FLocalBigNumberPool.Recycle(B);
+    FLocalBigNumberPool.Recycle(N);
   end;
 end;
 
@@ -4482,12 +4465,12 @@ begin
   T := nil;
 
   try
-    G := ObtainBigNumberFromPool;
-    X := ObtainBigNumberFromPool;
-    Z := ObtainBigNumberFromPool;
-    U := ObtainBigNumberFromPool;
-    V := ObtainBigNumberFromPool;
-    T := ObtainBigNumberFromPool;
+    G := FLocalBigNumberPool.Obtain;
+    X := FLocalBigNumberPool.Obtain;
+    Z := FLocalBigNumberPool.Obtain;
+    U := FLocalBigNumberPool.Obtain;
+    V := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
 
     while True do
     begin
@@ -4531,12 +4514,12 @@ begin
       end;
     end;
   finally
-    RecycleBigNumberToPool(G);
-    RecycleBigNumberToPool(X);
-    RecycleBigNumberToPool(Z);
-    RecycleBigNumberToPool(U);
-    RecycleBigNumberToPool(V);
-    RecycleBigNumberToPool(T);
+    FLocalBigNumberPool.Recycle(G);
+    FLocalBigNumberPool.Recycle(X);
+    FLocalBigNumberPool.Recycle(Z);
+    FLocalBigNumberPool.Recycle(U);
+    FLocalBigNumberPool.Recycle(V);
+    FLocalBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -4544,14 +4527,14 @@ procedure BigNumberPollardRho(X: TCnBigNumber; C: TCnBigNumber; Res: TCnBigNumbe
 var
   I, K, X0, Y0, Y, D, X1, R: TCnBigNumber;
 begin
-  I := ObtainBigNumberFromPool;
-  K := ObtainBigNumberFromPool;
-  X0 := ObtainBigNumberFromPool;
-  X1 := ObtainBigNumberFromPool;
-  Y0 := ObtainBigNumberFromPool;
-  Y := ObtainBigNumberFromPool;
-  D := ObtainBigNumberFromPool;
-  R := ObtainBigNumberFromPool;
+  I := FLocalBigNumberPool.Obtain;
+  K := FLocalBigNumberPool.Obtain;
+  X0 := FLocalBigNumberPool.Obtain;
+  X1 := FLocalBigNumberPool.Obtain;
+  Y0 := FLocalBigNumberPool.Obtain;
+  Y := FLocalBigNumberPool.Obtain;
+  D := FLocalBigNumberPool.Obtain;
+  R := FLocalBigNumberPool.Obtain;
 
   try
     I.SetOne;
@@ -4593,14 +4576,14 @@ begin
       end;
     end;
   finally
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(I);
-    RecycleBigNumberToPool(K);
-    RecycleBigNumberToPool(X0);
-    RecycleBigNumberToPool(X1);
-    RecycleBigNumberToPool(Y0);
-    RecycleBigNumberToPool(Y);
-    RecycleBigNumberToPool(D);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(I);
+    FLocalBigNumberPool.Recycle(K);
+    FLocalBigNumberPool.Recycle(X0);
+    FLocalBigNumberPool.Recycle(X1);
+    FLocalBigNumberPool.Recycle(Y0);
+    FLocalBigNumberPool.Recycle(Y);
+    FLocalBigNumberPool.Recycle(D);
   end;
 end;
 
@@ -4615,10 +4598,10 @@ begin
     Exit;
   end;
 
-  P := ObtainBigNumberFromPool;
-  R := ObtainBigNumberFromPool;
-  S := ObtainBigNumberFromPool;
-  D := ObtainBigNumberFromPool;
+  P := FLocalBigNumberPool.Obtain;
+  R := FLocalBigNumberPool.Obtain;
+  S := FLocalBigNumberPool.Obtain;
+  D := FLocalBigNumberPool.Obtain;
   try
     P := BigNumberCopy(P, Num);
 
@@ -4632,14 +4615,14 @@ begin
     end;
 
     BigNumberFindFactors(P, Factors);
-    D := ObtainBigNumberFromPool;
+    D := FLocalBigNumberPool.Obtain;
     BigNumberDiv(D, R, Num, P);
     BigNumberFindFactors(D, Factors);
   finally
-    RecycleBigNumberToPool(D);
-    RecycleBigNumberToPool(S);
-    RecycleBigNumberToPool(R);
-    RecycleBigNumberToPool(P);
+    FLocalBigNumberPool.Recycle(D);
+    FLocalBigNumberPool.Recycle(S);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(P);
   end;
 end;
 
@@ -4677,13 +4660,13 @@ begin
   C2 := nil;
 
   try
-    V0 := ObtainBigNumberFromPool;
-    V1 := ObtainBigNumberFromPool;
-    Q0 := ObtainBigNumberFromPool;
-    Q1 := ObtainBigNumberFromPool;
-    T0 := ObtainBigNumberFromPool;
-    T1 := ObtainBigNumberFromPool;
-    C2 := ObtainBigNumberFromPool;
+    V0 := FLocalBigNumberPool.Obtain;
+    V1 := FLocalBigNumberPool.Obtain;
+    Q0 := FLocalBigNumberPool.Obtain;
+    Q1 := FLocalBigNumberPool.Obtain;
+    T0 := FLocalBigNumberPool.Obtain;
+    T1 := FLocalBigNumberPool.Obtain;
+    C2 := FLocalBigNumberPool.Obtain;
 
     C2.SetWord(2);
     V0.SetWord(2);
@@ -4751,13 +4734,13 @@ begin
     BigNumberCopy(V, V0);
     Result := True;
   finally
-    RecycleBigNumberToPool(V0);
-    RecycleBigNumberToPool(V1);
-    RecycleBigNumberToPool(Q0);
-    RecycleBigNumberToPool(Q1);
-    RecycleBigNumberToPool(T0);
-    RecycleBigNumberToPool(T1);
-    RecycleBigNumberToPool(C2);
+    FLocalBigNumberPool.Recycle(V0);
+    FLocalBigNumberPool.Recycle(V1);
+    FLocalBigNumberPool.Recycle(Q0);
+    FLocalBigNumberPool.Recycle(Q1);
+    FLocalBigNumberPool.Recycle(T0);
+    FLocalBigNumberPool.Recycle(T1);
+    FLocalBigNumberPool.Recycle(C2);
   end;
 end;
 
@@ -5020,20 +5003,6 @@ begin
   Result := BigNumberDebugDump(Self);
 end;
 
-procedure FreeBigNumberPool;
-var
-  I: Integer;
-begin
-  for I := 0 to FLocalBigNumberPool.Count - 1 do
-  begin
-{$IFDEF DEBUG}
-    TCnBigNumber(FLocalBigNumberPool[I]).FIsFromPool := False;
-{$ENDIF}
-    TObject(FLocalBigNumberPool[I]).Free;
-  end;
-  FreeAndNil(FLocalBigNumberPool);
-end;
-
 function TCnBigNumber.GetInt64: Int64;
 begin
   Result := BigNumberGetInt64(Self);
@@ -5127,8 +5096,53 @@ begin
   inherited SetItem(Index, ABigNumber);
 end;
 
+{ TCnBigNumberPool }
+
+constructor TCnBigNumberPool.Create;
+begin
+  inherited Create(False);
+end;
+
+destructor TCnBigNumberPool.Destroy;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+  begin
+{$IFDEF DEBUG}
+    TCnBigNumber(Items[I]).FIsFromPool := False;
+{$ENDIF}
+    TObject(Items[I]).Free;
+  end;
+  inherited;
+end;
+
+function TCnBigNumberPool.Obtain: TCnBigNumber;
+begin
+  if Count = 0 then
+  begin
+    Result := TCnBigNumber.Create;
+{$IFDEF DEBUG}
+    Result.FIsFromPool := True;
+{$ENDIF}
+  end
+  else
+  begin
+    Result := TCnBigNumber(Items[Count - 1]);
+    Delete(Count - 1);
+    Result.Clear;
+  end;
+end;
+
+procedure TCnBigNumberPool.Recycle(Num: TCnBigNumber);
+begin
+  if Num <> nil then
+    Add(Num);
+end;
+
 initialization
-  FLocalBigNumberPool := TObjectList.Create(False);
+  FLocalBigNumberPool := TCnBigNumberPool.Create;
+
   CnBigNumberOne := TCnBigNumber.Create;
   CnBigNumberOne.SetOne;
   CnBigNumberZero := TCnBigNumber.Create;
@@ -5140,7 +5154,7 @@ finalization
 
   CnBigNumberOne.Free;
   CnBigNumberZero.Free;
-  FreeBigNumberPool;
+  FLocalBigNumberPool.Free;
 
 end.
 
