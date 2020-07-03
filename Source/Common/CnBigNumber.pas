@@ -910,7 +910,9 @@ begin
     Exit;
 
   if Num.D <> nil then
-    FillChar(Num.D^, Num.DMax * SizeOf(LongWord), 0);
+    Num.D^ := 0;
+
+    // FillChar(Num.D^, Num.DMax * SizeOf(LongWord), 0);
   Num.Top := 0;
   Num.Neg := 0;
 end;

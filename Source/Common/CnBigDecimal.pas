@@ -164,6 +164,9 @@ function BigDecimalGetIntDecimalCount(const Num: TCnBigDecimal;
   out IntCount: Integer; out DecimalCount: Integer): Boolean;
 {* 计算大浮点数的整数部分长度与小数部分长度}
 
+function BigDecimalGetHighScale(const Num: TCnBigDecimal): Integer;
+{* 计算大浮点数的最高有效数字位是小数点后第几位，如果返回小于 0，则求负后表示是小数点前第几位}
+
 function BigDecimalAdd(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
   const Num2: TCnBigDecimal): Boolean;
 {* 大浮点数加，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
@@ -268,6 +271,7 @@ const
 
 var
   FLocalBigDecimalPool: TObjectList = nil;
+  FLocalBigNumberPool: TCnBigNumberPool = nil;
   FDefaultPrecisionDigits: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
 {* 大浮点数池操作方法开始}
@@ -345,7 +349,7 @@ begin
           BigNumberAddWord(Quotient, 1);
       end;
   else
-    R2 := TCnBigNumber.Create;
+    R2 := FLocalBigNumberPool.Obtain;
     try
       BigNumberCopy(R2, Remainder);
       BigNumberShiftLeftOne(R2, R2);
@@ -367,7 +371,7 @@ begin
           end;
       end;
     finally
-      R2.Free;
+      FLocalBigNumberPool.Recycle(R2);
     end;
   end;
 end;
@@ -690,7 +694,7 @@ begin
   begin
     // 要把 Scale 大的也就是小数点靠左因而可能相对较小的 Value，
     // 乘以 10 的指数差次幂以对齐小数点，再和另一个比较（无需保持值不变，所以和加减有区别）
-    T := TCnBigNumber.Create;
+    T := FLocalBigNumberPool.Obtain;
     L := CheckScaleAddRange(Num1.FScale, -Num2.FScale);
 
     try
@@ -708,7 +712,7 @@ begin
         Result := BigNumberCompare(T, Num2.FValue);
       end;
     finally
-      T.Free;
+      FLocalBigNumberPool.Recycle(T);
     end;
   end;
 end;
@@ -778,6 +782,19 @@ begin
   end;
 end;
 
+function BigDecimalGetHighScale(const Num: TCnBigDecimal): Integer;
+begin
+  Result := 0;
+  if Num <> nil then
+  begin
+    Result := BigNumberGetTenPrecision(Num.FValue);
+    // 小数点后有 FScale 位，减去有效数字
+    Result := Num.FScale - Result + 1;
+    if Result <= 0 then // 小数点前第几位是从 1 开始的
+      Dec(Result)
+  end;
+end;
+
 function BigDecimalAdd(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
   const Num2: TCnBigDecimal): Boolean;
 var
@@ -808,7 +825,7 @@ begin
     // 要把 Scale 小的也就是小数点靠右因而可能相对较大的 Value，
     // 乘以 10 的指数差次幂并减小到同等的 Scale 以对齐小数点并保持总值不变，
     // 再和另一个相加，结果的 Scale 取小的
-    T := TCnBigNumber.Create;
+    T := FLocalBigNumberPool.Obtain;
     L := CheckScaleAddRange(Num1.FScale, -Num2.FScale);
 
     try
@@ -828,7 +845,7 @@ begin
         Result := BigNumberAdd(Res.FValue, T, Num2.FValue);
       end;
     finally
-      T.Free;
+      FLocalBigNumberPool.Recycle(T);
     end;
   end;
 end;
@@ -864,7 +881,7 @@ begin
     // 要把 Scale 小的也就是小数点靠右因而可能相对较大的 Value，
     // 乘以 10 的指数差次幂并减小到同等的 Scale 以对齐小数点并保持总值不变，
     // 再和另一个相减，结果的 Scale 取小的
-    T := TCnBigNumber.Create;
+    T := FLocalBigNumberPool.Obtain;
     L := CheckScaleAddRange(Num1.FScale, -Num2.FScale);
 
     try
@@ -884,7 +901,7 @@ begin
         Result := BigNumberSub(Res.FValue, T, Num2.FValue);
       end;
     finally
-      T.Free;
+      FLocalBigNumberPool.Recycle(T);
     end;
   end;
 end;
@@ -940,11 +957,11 @@ begin
   T := nil;
   R := nil;
   try
-    T := TCnBigNumber.Create;
+    T := FLocalBigNumberPool.Obtain;
     BigNumberCopy(T, Num1.FValue);
     BigNumberMulPower10(T, M);
 
-    R := TCnBigNumber.Create;
+    R := FLocalBigNumberPool.Obtain;
     BigNumberDiv(Res.FValue, R, T, Num2.FValue);  // Num1.FValue * 10 ^ M div Num2.FValue 得到商和余数
 
     RoundByMode(Res.FValue, Num2.FValue, R, Res.FValue.IsNegative, drTowardsZero);
@@ -955,8 +972,8 @@ begin
     Res.FValue.SetNegative(S);
     Result := True;
   finally
-    T.Free;
-    R.Free;
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(R);
   end;
 end;
 
@@ -970,9 +987,9 @@ begin
   DS := CheckScaleAddRange(Num.FScale, -Scale);
   if DS > 0 then // 新的小数点后的位数比原来少，要除之后舍入
   begin
-    D := TCnBigNumber.Create;
-    Q := TCnBigNumber.Create;
-    R := TCnBigNumber.Create;
+    D := FLocalBigNumberPool.Obtain;
+    Q := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
     try
       D.SetOne;
       BigNumberMulPower10(D, DS);  // 算出个 10 的 DS 次方，做除数
@@ -994,9 +1011,9 @@ begin
         Num.FValue.SetNegative(Neg);
       Result := True;
     finally
-      D.Free;
-      Q.Free;
-      R.Free;
+      FLocalBigNumberPool.Recycle(D);
+      FLocalBigNumberPool.Recycle(Q);
+      FLocalBigNumberPool.Recycle(R);
     end;
   end
   else // 新的小数点位数比原来还多，简单变换一下就行
@@ -1021,9 +1038,9 @@ begin
 
   if DS > 0 then // 新的小数点后的位数得比原来少，才能除之后舍入
   begin
-    D := TCnBigNumber.Create;
-    Q := TCnBigNumber.Create;
-    R := TCnBigNumber.Create;
+    D := FLocalBigNumberPool.Obtain;
+    Q := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
     try
       D.SetOne;
       BigNumberMulPower10(D, DS);  // 算出个 10 的 DS 次方，做除数
@@ -1045,9 +1062,9 @@ begin
         Num.FValue.SetNegative(Neg);
       Result := True;
     finally
-      D.Free;
-      Q.Free;
-      R.Free;
+      FLocalBigNumberPool.Recycle(D);
+      FLocalBigNumberPool.Recycle(Q);
+      FLocalBigNumberPool.Recycle(R);
     end;
   end;
 end;
@@ -1208,6 +1225,8 @@ end;
 
 initialization
   FLocalBigDecimalPool := TObjectList.Create(False);
+  FLocalBigNumberPool := TCnBigNumberPool.Create;
+
   CnBigDecimalOne := TCnBigDecimal.Create;
   CnBigDecimalOne.SetOne;
   CnBigDecimalZero := TCnBigDecimal.Create;
@@ -1219,6 +1238,8 @@ finalization
 
   CnBigDecimalZero.Free;
   CnBigDecimalOne.Free;
+
+  FLocalBigNumberPool.Free;
   FreeBigNumberPool;
 
 end.
