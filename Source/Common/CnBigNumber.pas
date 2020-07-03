@@ -267,7 +267,9 @@ type
   end;
 
   TCnBigNumberPool = class(TObjectList)
+  {* 大数池实现类，允许使用到大数的地方自行创建大数池}
   private
+
   public
     constructor Create;
     destructor Destroy; override;

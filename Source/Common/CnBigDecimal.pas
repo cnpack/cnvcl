@@ -43,12 +43,6 @@ uses
   CnNativeDecl, CnFloatConvert, CnBigNumber;
 
 const
-//  CN_BIG_DECIMAL_MAX_SCALE = MaxInt div SizeOf(Integer);     // 最大指数
-//
-//  CN_BIG_DECIMAL_MIN_SCALE = -CN_BIG_DECIMAL_MAX_SCALE - 1;  // 最小指数
-//
-//  // 不直接用 Integer 的最大最小值是因为要防止溢出留的空白区
-
   CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;                       // 乘除法的小数点后的默认精度
 
 type
@@ -122,6 +116,17 @@ type
 
     property DecString: string read GetDecString;
     property DebugDump: string read GetDebugDump;
+  end;
+
+  TCnBigDecimalPool = class(TObjectList)
+  {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
+  private
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Obtain: TCnBigDecimal;
+    procedure Recycle(Num: TCnBigDecimal);
   end;
 
 procedure BigDecimalClear(const Num: TCnBigDecimal);
@@ -270,41 +275,9 @@ const
 //  );
 
 var
-  FLocalBigDecimalPool: TObjectList = nil;
+  FLocalBigDecimalPool: TCnBigDecimalPool = nil;
   FLocalBigNumberPool: TCnBigNumberPool = nil;
   FDefaultPrecisionDigits: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION;
-
-{* 大浮点数池操作方法开始}
-
-function ObtainBigDecimalFromPool: TCnBigDecimal;
-begin
-  if FLocalBigDecimalPool.Count = 0 then
-  begin
-    Result := TCnBigDecimal.Create
-  end
-  else
-  begin
-    Result := TCnBigDecimal(FLocalBigDecimalPool.Items[FLocalBigDecimalPool.Count - 1]);
-    FLocalBigDecimalPool.Delete(FLocalBigDecimalPool.Count - 1);
-    Result.SetZero;
-  end;
-end;
-
-procedure RecycleBigDecimalToPool(Num: TCnBigDecimal);
-begin
-  if Num <> nil then
-    FLocalBigDecimalPool.Add(Num);
-end;
-
-procedure FreeBigNumberPool;
-var
-  I: Integer;
-begin
-  for I := 0 to FLocalBigDecimalPool.Count - 1 do
-    TObject(FLocalBigDecimalPool[I]).Free;
-
-  FreeAndNil(FLocalBigDecimalPool);
-end;
 
 function CheckScaleAddRange(Scale1, Scale2: Integer): Integer;
 begin
@@ -312,13 +285,6 @@ begin
     raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
   Result := Scale1 + Scale2;
 end;
-
-//function CheckScaleRange(AScale: Integer): Integer;
-//begin
-//  if (AScale < CN_BIG_DECIMAL_MIN_SCALE) or (AScale > CN_BIG_DECIMAL_MAX_SCALE) then
-//    raise ECnBigDecimalException.Create(SCnScaleOutOfRange);
-//  Result := AScale;
-//end;
 
 procedure RoundByMode(Quotient, Divisor, Remainder: TCnBigNumber; QWillBeNeg: Boolean;
   Mode: TCnBigDecimalRoundMode);
@@ -729,13 +695,13 @@ begin
     Result := 0
   else
   begin
-    T := ObtainBigDecimalFromPool;
+    T := FLocalBigDecimalPool.Obtain;
     try
       T.FScale := 0;
       T.FValue.SetInt64(Num2);
       Result := BigDecimalCompare(Num1, T);
     finally
-      RecycleBigDecimalToPool(T);
+      FLocalBigDecimalPool.Recycle(T);
     end;
   end;
 end;
@@ -1094,12 +1060,12 @@ procedure TCnBigDecimal.AddWord(W: LongWord);
 var
   T: TCnBigDecimal;
 begin
-  T := ObtainBigDecimalFromPool;
+  T := FLocalBigDecimalPool.Obtain;
   try
     T.SetWord(W);
     BigDecimalAdd(Self, Self, T);
   finally
-    RecycleBigDecimalToPool(T);
+    FLocalBigDecimalPool.Recycle(T);
   end;
 end;
 
@@ -1119,12 +1085,12 @@ procedure TCnBigDecimal.DivWord(W: LongWord);
 var
   T: TCnBigDecimal;
 begin
-  T := ObtainBigDecimalFromPool;
+  T := FLocalBigDecimalPool.Obtain;
   try
     T.SetWord(W);
     BigDecimalDiv(Self, Self, T);
   finally
-    RecycleBigDecimalToPool(T);
+    FLocalBigDecimalPool.Recycle(T);
   end;
 end;
 
@@ -1209,12 +1175,12 @@ procedure TCnBigDecimal.SubWord(W: LongWord);
 var
   T: TCnBigDecimal;
 begin
-  T := ObtainBigDecimalFromPool;
+  T := FLocalBigDecimalPool.Obtain;
   try
     T.SetWord(W);
     BigDecimalSub(Self, Self, T);
   finally
-    RecycleBigDecimalToPool(T);
+    FLocalBigDecimalPool.Recycle(T);
   end;
 end;
 
@@ -1223,8 +1189,44 @@ begin
   Result := BigDecimalToString(Self);
 end;
 
+{ TCnBigDecimalPool }
+
+constructor TCnBigDecimalPool.Create;
+begin
+  inherited Create(False);
+end;
+
+destructor TCnBigDecimalPool.Destroy;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    TObject(Items[I]).Free;
+  inherited;
+end;
+
+function TCnBigDecimalPool.Obtain: TCnBigDecimal;
+begin
+  if Count = 0 then
+  begin
+    Result := TCnBigDecimal.Create
+  end
+  else
+  begin
+    Result := TCnBigDecimal(Items[Count - 1]);
+    Delete(Count - 1);
+    Result.SetZero;
+  end;
+end;
+
+procedure TCnBigDecimalPool.Recycle(Num: TCnBigDecimal);
+begin
+  if Num <> nil then
+    Add(Num);
+end;
+
 initialization
-  FLocalBigDecimalPool := TObjectList.Create(False);
+  FLocalBigDecimalPool := TCnBigDecimalPool.Create;
   FLocalBigNumberPool := TCnBigNumberPool.Create;
 
   CnBigDecimalOne := TCnBigDecimal.Create;
@@ -1240,6 +1242,6 @@ finalization
   CnBigDecimalOne.Free;
 
   FLocalBigNumberPool.Free;
-  FreeBigNumberPool;
+  FLocalBigDecimalPool.Free;
 
 end.
