@@ -30,7 +30,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.06.20 V1.6
+* 修改记录：2020.07.04 V1.7
+*               独立出大数池对象，加入多线程控制
+*           2020.06.20 V1.6
 *               加入快速乘方函数与十进制位数函数
 *           2020.01.16 V1.5
 *               优化乘法与 MulMod 的速度，去除汇编代码
@@ -54,6 +56,8 @@ interface
 uses
   Classes, SysUtils, Math, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   Contnrs, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
+
+{$DEFINE MULTI_THREAD} // 大数池支持多线程，性能略有下降，如不需要，注释此行即可
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -269,7 +273,15 @@ type
   TCnBigNumberPool = class(TObjectList)
   {* 大数池实现类，允许使用到大数的地方自行创建大数池}
   private
-
+{$IFDEF MULTI_THREAD}
+  {$IFDEF MSWINDOWS}
+    FCriticalSection: TRTLCriticalSection;
+  {$ELSE}
+    FCriticalSection: TCriticalSection;
+  {$ENDIF}
+{$ENDIF}
+    procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+    procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   public
     constructor Create;
     destructor Destroy; override;
@@ -911,10 +923,10 @@ begin
   if Num = nil then
     Exit;
 
+  //if Num.D <> nil then
+  //  Num.D^ := 0;
   if Num.D <> nil then
-    Num.D^ := 0;
-
-    // FillChar(Num.D^, Num.DMax * SizeOf(LongWord), 0);
+    FillChar(Num.D^, Num.DMax * SizeOf(LongWord), 0);
   Num.Top := 0;
   Num.Neg := 0;
 end;
@@ -5105,6 +5117,13 @@ end;
 constructor TCnBigNumberPool.Create;
 begin
   inherited Create(False);
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  InitializeCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection := TCriticalSection.Create;
+{$ENDIF}
+{$ENDIF}
 end;
 
 destructor TCnBigNumberPool.Destroy;
@@ -5118,11 +5137,42 @@ begin
 {$ENDIF}
     TObject(Items[I]).Free;
   end;
+
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  DeleteCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Free;
+{$ENDIF}
+{$ENDIF}
   inherited;
+end;
+
+procedure TCnBigNumberPool.Enter;
+begin
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  EnterCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Acquire;
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TCnBigNumberPool.Leave;
+begin
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  LeaveCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Release;
+{$ENDIF}
+{$ENDIF}
 end;
 
 function TCnBigNumberPool.Obtain: TCnBigNumber;
 begin
+  Enter;
   if Count = 0 then
   begin
     Result := TCnBigNumber.Create;
@@ -5134,14 +5184,20 @@ begin
   begin
     Result := TCnBigNumber(Items[Count - 1]);
     Delete(Count - 1);
-    Result.Clear;
   end;
+  Leave;
+
+  Result.Clear;
 end;
 
 procedure TCnBigNumberPool.Recycle(Num: TCnBigNumber);
 begin
   if Num <> nil then
+  begin
+    Enter;
     Add(Num);
+    Leave;
+  end;
 end;
 
 initialization
