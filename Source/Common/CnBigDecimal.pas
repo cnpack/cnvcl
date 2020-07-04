@@ -39,8 +39,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, SysConst, Math,
+  SysUtils, Classes, Contnrs, SysConst, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   CnNativeDecl, CnFloatConvert, CnBigNumber;
+
+{$DEFINE MULTI_THREAD} // 大浮点数池支持多线程，性能略有下降，如不需要，注释此行即可
 
 const
   CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;                       // 乘除法的小数点后的默认精度
@@ -121,6 +123,15 @@ type
   TCnBigDecimalPool = class(TObjectList)
   {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
   private
+{$IFDEF MULTI_THREAD}
+  {$IFDEF MSWINDOWS}
+    FCriticalSection: TRTLCriticalSection;
+  {$ELSE}
+    FCriticalSection: TCriticalSection;
+  {$ENDIF}
+{$ENDIF}
+    procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+    procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   public
     constructor Create;
     destructor Destroy; override;
@@ -1194,6 +1205,13 @@ end;
 constructor TCnBigDecimalPool.Create;
 begin
   inherited Create(False);
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  InitializeCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection := TCriticalSection.Create;
+{$ENDIF}
+{$ENDIF}
 end;
 
 destructor TCnBigDecimalPool.Destroy;
@@ -1202,11 +1220,41 @@ var
 begin
   for I := 0 to Count - 1 do
     TObject(Items[I]).Free;
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  DeleteCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Free;
+{$ENDIF}
+{$ENDIF}
   inherited;
+end;
+
+procedure TCnBigDecimalPool.Enter;
+begin
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  EnterCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Acquire;
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TCnBigDecimalPool.Leave;
+begin
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  LeaveCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Release;
+{$ENDIF}
+{$ENDIF}
 end;
 
 function TCnBigDecimalPool.Obtain: TCnBigDecimal;
 begin
+  Enter;
   if Count = 0 then
   begin
     Result := TCnBigDecimal.Create
@@ -1215,14 +1263,19 @@ begin
   begin
     Result := TCnBigDecimal(Items[Count - 1]);
     Delete(Count - 1);
-    Result.SetZero;
   end;
+  Leave;
+  Result.SetZero;
 end;
 
 procedure TCnBigDecimalPool.Recycle(Num: TCnBigDecimal);
 begin
   if Num <> nil then
+  begin
+    Enter;
     Add(Num);
+    Leave;
+  end;
 end;
 
 initialization
@@ -1235,8 +1288,8 @@ initialization
   CnBigDecimalZero.SetZero;
 
 finalization
-  CnBigDecimalZero.DecString; // 手工调用这两句防止被编译器忽略
-  CnBigDecimalZero.DebugDump;
+//  CnBigDecimalZero.DecString; // 手工调用这两句防止被编译器忽略
+//  CnBigDecimalZero.DebugDump;
 
   CnBigDecimalZero.Free;
   CnBigDecimalOne.Free;

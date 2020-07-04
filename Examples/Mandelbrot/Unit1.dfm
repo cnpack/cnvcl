@@ -25,7 +25,7 @@ object FormMandelbrot: TFormMandelbrot
     Left = 904
     Top = 24
     Width = 369
-    Height = 353
+    Height = 377
     Caption = 'Information'
     TabOrder = 0
     object lblDigits: TLabel
@@ -69,6 +69,19 @@ object FormMandelbrot: TFormMandelbrot
       Width = 233
       Height = 21
       TabOrder = 3
+    end
+    object cbbMode: TComboBox
+      Left = 80
+      Top = 336
+      Width = 145
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      TabOrder = 4
+      OnChange = cbbModeChange
+      Items.Strings = (
+        'Extended'
+        'BigDecimal')
     end
   end
 end

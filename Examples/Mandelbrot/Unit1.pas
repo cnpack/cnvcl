@@ -16,7 +16,9 @@ type
     edtMaxX: TEdit;
     lblDigits: TLabel;
     lblPoint: TLabel;
+    cbbMode: TComboBox;
     procedure FormCreate(Sender: TObject);
+    procedure cbbModeChange(Sender: TObject);
   private
     FImage: TCnMandelbrotImage;
     procedure ImageClick(Sender: TObject);
@@ -57,12 +59,13 @@ begin
     Height := 800;
     Anchors := [akLeft, akTop, akBottom, akRight];
     ShowAxis := True;
-    Mode := mmBigDecimal;
+    //Mode := mmBigDecimal;
     OnClick := ImageClick;
     OnColor := OnFloatColor2;
     OnDecimalColor := OnDecimalColor2;
     UnLock;
   end;
+  cbbMode.ItemIndex := Ord(FImage.Mode);
   ShowEdges;
 end;
 
@@ -79,7 +82,7 @@ begin
   if Img.Mode = mmFloat then
   begin
     Img.GetComplexValues(P.x, P.y, R, I);
-    lblMark.Caption := Format('X %d Y %d ***** %8.8f + %8.8f i', [P.x, P.y, R, I]);
+    lblPoint.Caption := Format('X %d Y %d ***** %8.8f + %8.8f i', [P.x, P.y, R, I]);
 
     OW := Img.MaxX - Img.MinX;
     OH := Img.MaxY - Img.MinY;
@@ -102,7 +105,7 @@ begin
     BigDecimalSub(DOW, Img.MaxDX, Img.MinDX);
     BigDecimalSub(DOH, Img.MaxDY, Img.MinDY);
 
-    DOW.DivWord(2 * ENLARGE_FACTOR);
+    DOW.DivWord(2 * ENLARGE_FACTOR);   // TODO: 要逐渐将精度放大
     DOH.DivWord(2 * ENLARGE_FACTOR);
 
     XD1 := TCnBigDecimal.Create;
@@ -211,6 +214,12 @@ begin
     edtMaxY.Text := FImage.MaxDY.ToString;
   end;
   lblDigits.Caption := 'Digits: ' + IntToStr(FImage.GetCurrentCalcDigits);
+end;
+
+procedure TFormMandelbrot.cbbModeChange(Sender: TObject);
+begin
+  FImage.Mode := TCnMandelbrotMode(cbbMode.ItemIndex);
+  ShowEdges;
 end;
 
 end.
