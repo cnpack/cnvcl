@@ -102,8 +102,8 @@ type
     {* 减去一个 UInt32}
     procedure MulWord(W: LongWord);
     {* 乘以一个 UInt32}
-    procedure DivWord(W: LongWord);
-    {* 除以一个 UInt32}
+    procedure DivWord(W: LongWord; DivPrecision: Integer = 0);
+    {* 除以一个 UInt32。DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
 
     function IsNegative: Boolean;
     {* 是否负数}
@@ -258,32 +258,32 @@ const
     1000000000                       // 10 ^ 9
   );
 
-//const
-//  SCN_POWER_TENS64: array[0..19] of TUInt64 = (
-//    1,                               // 10 ^ 0
-//    10,                              // 10 ^ 1
-//    100,                             // 10 ^ 2
-//    1000,                            // 10 ^ 3
-//    10000,                           // 10 ^ 4
-//    100000,                          // 10 ^ 5
-//    1000000,                         // 10 ^ 6
-//    10000000,                        // 10 ^ 7
-//    100000000,                       // 10 ^ 8
-//    1000000000,                      // 10 ^ 9
-//    10000000000,                     // 10 ^ 10
-//    100000000000,                    // 10 ^ 11
-//    1000000000000,                   // 10 ^ 12
-//    10000000000000,                  // 10 ^ 13
-//    100000000000000,                 // 10 ^ 14
-//    1000000000000000,                // 10 ^ 15
-//    10000000000000000,               // 10 ^ 16
-//    100000000000000000,              // 10 ^ 17
-//    1000000000000000000,             // 10 ^ 18
-//    $8AC7230489E80000                // 10 ^ 19
-//
-//    // 10 ^ 19 10000000000000000000 已经超了 Int64 9223372036854775807
-//    // 所以得用 16 进制写但没超 UInt64 18446744073709551615，10 ^ 20 才超
-//  );
+const
+  SCN_POWER_TENS64: array[0..19] of TUInt64 = (
+    1,                               // 10 ^ 0
+    10,                              // 10 ^ 1
+    100,                             // 10 ^ 2
+    1000,                            // 10 ^ 3
+    10000,                           // 10 ^ 4
+    100000,                          // 10 ^ 5
+    1000000,                         // 10 ^ 6
+    10000000,                        // 10 ^ 7
+    100000000,                       // 10 ^ 8
+    1000000000,                      // 10 ^ 9
+    10000000000,                     // 10 ^ 10
+    100000000000,                    // 10 ^ 11
+    1000000000000,                   // 10 ^ 12
+    10000000000000,                  // 10 ^ 13
+    100000000000000,                 // 10 ^ 14
+    1000000000000000,                // 10 ^ 15
+    10000000000000000,               // 10 ^ 16
+    100000000000000000,              // 10 ^ 17
+    1000000000000000000,             // 10 ^ 18
+    $8AC7230489E80000                // 10 ^ 19
+
+    // 10 ^ 19 10000000000000000000 已经超了 Int64 9223372036854775807
+    // 所以得用 16 进制写但没超 UInt64 18446744073709551615，10 ^ 20 才超
+  );
 
 var
   FLocalBigDecimalPool: TCnBigDecimalPool = nil;
@@ -1092,14 +1092,14 @@ begin
   inherited;
 end;
 
-procedure TCnBigDecimal.DivWord(W: LongWord);
+procedure TCnBigDecimal.DivWord(W: LongWord; DivPrecision: Integer);
 var
   T: TCnBigDecimal;
 begin
   T := FLocalBigDecimalPool.Obtain;
   try
     T.SetWord(W);
-    BigDecimalDiv(Self, Self, T);
+    BigDecimalDiv(Self, Self, T, DivPrecision);
   finally
     FLocalBigDecimalPool.Recycle(T);
   end;
