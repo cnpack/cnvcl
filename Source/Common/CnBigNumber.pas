@@ -103,8 +103,8 @@ type
     function GetDebugDump: string;
   public
     D: PLongWord;       // 一个 array[0..Top-1] of LongWord 数组，越往后越代表高位
-    Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
-    DMax: Integer;      // D 数组的存储上限
+    Top: Integer;       // Top 表示数字上限，D[Top] 值为 0，D[Top - 1] 是最高位有效数所在的 LongWord
+    DMax: Integer;      // D 数组已分配的存储上限，单位是 LongWord 个
     Neg: Integer;       // 1 为负，0 为正
     Flags: Integer;
 
@@ -195,6 +195,12 @@ type
 
     procedure Negate;
     {* 大数正负号反号}
+
+    procedure ShiftLeftOne;
+    {* 左移 1 位}
+
+    procedure ShiftRightOne;
+    {* 右移 1 位}
 
     procedure ShiftLeft(N: Integer);
     {* 左移 N 位}
@@ -387,6 +393,9 @@ procedure BigNumberNegate(const Num: TCnBigNumber);
 
 function BigNumberClearBit(const Num: TCnBigNumber; N: Integer): Boolean;
 {* 给一个大数对象的第 N 个 Bit 置 0，返回成功与否。N 为 0 时代表二进制最低位。}
+
+function BigNumberKeepLowBits(const Num: TCnBigNumber; Count: Integer): Boolean;
+{* 给一个大数对象只保留第 0 到 Count - 1 个 Bit 位，高位清零，返回成功与否。}
 
 function BigNumberSetBit(const Num: TCnBigNumber; N: Integer): Boolean;
 {* 给一个大数对象的第 N 个 Bit 置 1，返回成功与否。N 为 0 时代表二进制最低位。}
@@ -1205,6 +1214,43 @@ begin
     Exit;
 
   PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] and LongWord(not (1 shl J));
+  BigNumberCorrectTop(Num);
+  Result := True;
+end;
+
+function BigNumberKeepLowBits(const Num: TCnBigNumber; Count: Integer): Boolean;
+var
+  I, J: Integer;
+  B: LongWord;
+begin
+  Result := False;
+  if Count < 0 then
+    Exit;
+
+  if Count = 0 then
+  begin
+    Num.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  I := Count div BN_BITS2;
+  J := Count mod BN_BITS2;
+
+  if Num.Top <= I then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Num.Top := I + 1;
+  if J > 0 then // 要保留最高一个 LongWord 中的 0 到 J - 1 位，共 J 位，J 最多 31
+  begin
+    B := 1 shl J;         // 0000100000 如果 J 是 31 也不会溢出
+    B := B - 1;           // 0000011111
+    PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] and B;
+  end;
+
   BigNumberCorrectTop(Num);
   Result := True;
 end;
@@ -5052,6 +5098,16 @@ end;
 procedure TCnBigNumber.ShiftRight(N: Integer);
 begin
   BigNumberShiftRight(Self, Self, N);
+end;
+
+procedure TCnBigNumber.ShiftLeftOne;
+begin
+  BigNumberShiftLeftOne(Self, Self);
+end;
+
+procedure TCnBigNumber.ShiftRightOne;
+begin
+  BigNumberShiftRightOne(Self, Self);
 end;
 
 { TCnBigNumberList }
