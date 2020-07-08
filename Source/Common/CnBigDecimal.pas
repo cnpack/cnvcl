@@ -534,7 +534,7 @@ begin
   end;
 end;
 
-// 大数乘以 10 的 Power5 次方
+// 大数乘以 10 的 Power5 次方，不支持负
 procedure BigNumberMulPower5(Num: TCnBigNumber; Power5: Integer);
 var
   I, L, D, R: Integer;
@@ -551,7 +551,7 @@ begin
   Num.MulWord(SCN_POWER_FIVES32[R]);  // 补上乘剩下的
 end;
 
-// 大数乘以 10 的 Power10 次方
+// 大数乘以 10 的 Power10 次方，不支持负
 procedure BigNumberMulPower10(Num: TCnBigNumber; Power10: Integer);
 var
   I, L, D, R: Integer;
@@ -821,19 +821,108 @@ begin
     Result := C + Result;
 end;
 
-function BigDecimalToSingle(const Num: TCnBigDecimal): Single;
+// 通过巨大的变换让大浮点数的原始值等于 Value / 2^Scale，并且有效数字满足特定位数 
+function InternalBigDecimalConvertToBitsCount(const Num: TCnBigDecimal; BitsCount: Integer): Boolean;
+var
+  C, D: Integer;
 begin
+//  FValue * 10^-FScale 要变成 M * 2^E 次方的形式，FValue 就得除以 5^-FScale，如果 FScale > 0，就是直接乘 5^FScale
+//  如果 FScale < 0，意味着 FValue 要除以 5 的 -FScale 正整数次方，
+//  (FValue * 5^-FScale) * 2^-FScale，然后还得再次规约，让前者成为特定位数，后者再调整
 
+  Result := False;
+  if Num <> nil then
+  begin
+    if Num.FScale > 0 then
+    begin
+      BigNumberMulPower5(Num.FValue, Num.FScale);  // 乘 5 的正整数次方
+    end
+    else // FScale 小于 0
+    begin
+      // 除以 5 的正整数（-FScale）次方，等于除以 10 的正整数次方，再乘以 2 的正整数次方
+      Num.FScale := Num.FScale * 2;
+      Num.FValue.ShiftLeft(-Num.FScale);
+    end;
+
+    // 再规约
+    C := Num.FValue.GetBitsCount;
+    if C < BitsCount then
+    begin
+      D := BitsCount - C;
+      Num.FValue.ShiftLeft(D);
+      Num.FScale := Num.FScale + D;
+    end
+    else if C > BitsCount then
+    begin
+      D := C - BitsCount;  // 要截掉 D 个位，也就是要把 FScale 减少 D
+      Num.FValue.ShiftRight(D);
+      Num.FScale := Num.FScale - D;
+    end;
+    Result := True;
+  end;
+end;
+
+function BigDecimalToSingle(const Num: TCnBigDecimal): Single;
+var
+  T: TCnBigDecimal;
+  E: Integer;
+  M: Cardinal;
+begin
+  T := FLocalBigDecimalPool.Obtain;
+  try
+    BigDecimalCopy(T, Num);
+    InternalBigDecimalConvertToBitsCount(T, CN_SINGLE_SIGNIFICAND_BITLENGTH + 1);
+    T.FValue.ClearBit(T.FValue.GetBitsCount - 1); // 清除最高位的 1
+
+    M := T.FValue.GetWord;
+    E := -T.FScale;
+
+    CombineFloatSingle(Num.IsNegative, E + CN_SINGLE_SIGNIFICAND_BITLENGTH, M, Result);
+  finally
+    FLocalBigDecimalPool.Recycle(T);
+  end;
 end;
 
 function BigDecimalToDouble(const Num: TCnBigDecimal): Double;
+var
+  T: TCnBigDecimal;
+  E: Integer;
+  M: TUInt64;
 begin
+  T := FLocalBigDecimalPool.Obtain;
+  try
+    BigDecimalCopy(T, Num);
+    InternalBigDecimalConvertToBitsCount(T, CN_DOUBLE_SIGNIFICAND_BITLENGTH + 1);
+    T.FValue.ClearBit(T.FValue.GetBitsCount - 1); // 清除最高位的 1
 
+    M := BigNumberGetUInt64UsingInt64(T.FValue);
+    E := -T.FScale;
+
+    CombineFloatDouble(Num.IsNegative, E + CN_DOUBLE_SIGNIFICAND_BITLENGTH, M, Result);
+  finally
+    FLocalBigDecimalPool.Recycle(T);
+  end;
 end;
 
 function BigDecimalToExtended(const Num: TCnBigDecimal): Extended;
+var
+  T: TCnBigDecimal;
+  E: Integer;
+  M: TUInt64;
 begin
+  T := FLocalBigDecimalPool.Obtain;
+  try
+    BigDecimalCopy(T, Num);
+    InternalBigDecimalConvertToBitsCount(T, CN_EXTENDED_SIGNIFICAND_BITLENGTH + 1);
+    // 无需清除最高位的 1
 
+    M := BigNumberGetUInt64UsingInt64(T.FValue);
+    E := -T.FScale;
+
+    CombineFloatExtended(Num.IsNegative, E + CN_EXTENDED_SIGNIFICAND_BITLENGTH, M, Result);
+  finally
+    FLocalBigDecimalPool.Recycle(T);
+  end;
 end;
 
 function BigDecimalCompare(const Num1, Num2: TCnBigDecimal): Integer;
@@ -1930,6 +2019,7 @@ begin
   end;
 end;
 
+// 通过值基本不变的变换让大二进制浮点数的有效数字满足特定位数，超长时截断，不够时乘 2 的整数次方补全，并同时都调整 FScale
 function InternalBigBinaryChangeToBitsCount(const Num: TCnBigBinary; BitsCount: Integer): Boolean;
 var
   C, D: Integer;
