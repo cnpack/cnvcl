@@ -94,11 +94,15 @@ const
 
   CN_EXPONENT_SINGLE_MASK =      $7F800000;          // 还要右移 23 位
   CN_EXPONENT_DOUBLE_MASK =      $7FF0000000000000;  // 还要右移 52 位
-  CN_EXPONENT_EXTENDED_MASK =    $7FFF;      // 刨去了 8 字节有效数字
+  CN_EXPONENT_EXTENDED_MASK =    $7FFF;       // 刨去了 8 字节有效数字
 
   CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;
   CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;
   CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 其实就是 8 字节整
+
+  CN_SINGLE_SIGNIFICAND_BITLENGTH         = 23;
+  CN_DOUBLE_SIGNIFICAND_BITLENGTH         = 52;
+  CN_EXTENDED_SIGNIFICAND_BITLENGTH       = 63;
 
 procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
