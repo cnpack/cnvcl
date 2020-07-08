@@ -1,6 +1,6 @@
 object FormBigDecimal: TFormBigDecimal
   Left = 192
-  Top = 108
+  Top = 109
   Width = 975
   Height = 563
   Caption = 'Test Big Decimal'
@@ -185,10 +185,166 @@ object FormBigDecimal: TFormBigDecimal
         object edtMulDivRoundDigits: TEdit
           Left = 744
           Top = 88
-          Width = 65
+          Width = 49
           Height = 21
           TabOrder = 16
           Text = '4'
+        end
+        object btnGetHighScale: TButton
+          Left = 328
+          Top = 168
+          Width = 121
+          Height = 21
+          Caption = 'Get High Point Value'
+          TabOrder = 17
+          OnClick = btnGetHighScaleClick
+        end
+        object btnBigDecimalToFloat: TButton
+          Left = 816
+          Top = 88
+          Width = 89
+          Height = 21
+          Caption = 'To Float'
+          TabOrder = 18
+          OnClick = btnBigDecimalToFloatClick
+        end
+      end
+    end
+    object tsBigBinary: TTabSheet
+      Caption = 'Big Binary'
+      ImageIndex = 1
+      object grpBigBinary: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 921
+        Height = 465
+        Caption = 'grpBigBinary'
+        TabOrder = 0
+        object lblBigBinary: TLabel
+          Left = 16
+          Top = 24
+          Width = 41
+          Height = 13
+          Caption = 'Decimal:'
+        end
+        object edtBigBinary1: TEdit
+          Left = 72
+          Top = 20
+          Width = 545
+          Height = 21
+          TabOrder = 0
+          Text = '193289.02'
+        end
+        object edtBigBinary2: TEdit
+          Left = 72
+          Top = 52
+          Width = 545
+          Height = 21
+          TabOrder = 1
+          Text = '193289.02302002003020000000000000000000000000023828387188738238'
+        end
+        object btnBigBinarySetGet: TButton
+          Left = 640
+          Top = 20
+          Width = 153
+          Height = 21
+          Caption = 'Set Dec && Get String'
+          TabOrder = 2
+          OnClick = btnBigBinarySetGetClick
+        end
+        object btnBigBinarySetFloat: TButton
+          Left = 816
+          Top = 20
+          Width = 89
+          Height = 21
+          Caption = 'Set Float'
+          TabOrder = 3
+          OnClick = btnBigBinarySetFloatClick
+        end
+        object btnBigBinaryCompare: TButton
+          Left = 640
+          Top = 51
+          Width = 153
+          Height = 21
+          Caption = 'Compare'
+          TabOrder = 4
+          OnClick = btnBigBinaryCompareClick
+        end
+        object edtBigBinaryFloat: TEdit
+          Left = 816
+          Top = 48
+          Width = 89
+          Height = 21
+          TabOrder = 5
+          Text = '-932.232401'
+        end
+        object btnBigBinaryAdd: TButton
+          Left = 72
+          Top = 88
+          Width = 121
+          Height = 21
+          Caption = 'Add'
+          TabOrder = 6
+          OnClick = btnBigBinaryAddClick
+        end
+        object btnBigBinarySub: TButton
+          Left = 208
+          Top = 88
+          Width = 121
+          Height = 21
+          Caption = 'Subtract'
+          TabOrder = 7
+          OnClick = btnBigBinarySubClick
+        end
+        object btnBigBinaryMul: TButton
+          Left = 344
+          Top = 88
+          Width = 121
+          Height = 21
+          Caption = 'Multiply'
+          TabOrder = 8
+          OnClick = btnBigBinaryMulClick
+        end
+        object btnBigBinaryDiv: TButton
+          Left = 488
+          Top = 88
+          Width = 121
+          Height = 21
+          Caption = 'Divide'
+          TabOrder = 9
+          OnClick = btnBigBinaryDivClick
+        end
+        object chkBigBinaryPrecision: TCheckBox
+          Left = 624
+          Top = 92
+          Width = 113
+          Height = 17
+          Caption = 'Mul/Div Precision'
+          TabOrder = 10
+        end
+        object edtBBMulDivRoundDigits: TEdit
+          Left = 744
+          Top = 88
+          Width = 49
+          Height = 21
+          TabOrder = 11
+          Text = '4'
+        end
+        object edtBigBinaryResult: TEdit
+          Left = 8
+          Top = 128
+          Width = 897
+          Height = 21
+          TabOrder = 12
+        end
+        object btnBigBinaryToFloat: TButton
+          Left = 816
+          Top = 88
+          Width = 89
+          Height = 21
+          Caption = 'To Float'
+          TabOrder = 13
+          OnClick = btnBigBinaryToFloatClick
         end
       end
     end
