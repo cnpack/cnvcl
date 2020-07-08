@@ -348,6 +348,9 @@ function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
 function BigNumberSetInt64(const Num: TCnBigNumber; W: Int64): Boolean;
 {* 给一个大数对象赋首值 Int64}
 
+function BigNumberGetUInt64UsingInt64(const Num: TCnBigNumber): TUInt64;
+{* 使用 Int64 取一个大数对象的首值 UInt64}
+
 function BigNumberSetUInt64UsingInt64(const Num: TCnBigNumber; W: TUInt64): Boolean;
 {* 使用 Int64 给一个大数对象赋 UInt64 首值}
 
@@ -994,6 +997,8 @@ begin
     PInt64Array(Num.D)^[0] := W;
     if W = 0 then
       Num.Top := 0
+    else if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
+      Num.Top := 1
     else
       Num.Top := 2;
   end
@@ -1006,6 +1011,18 @@ begin
   Result := True;
 end;
 
+function BigNumberGetUInt64UsingInt64(const Num: TCnBigNumber): TUInt64;
+begin
+  if Num.Top > 2 then
+    Result := TUInt64(BN_MASK3U)
+  else if Num.Top = 2 then
+    Result := TUInt64(PInt64Array(Num.D)^[0])
+  else if Num.Top = 1 then
+    Result := TUInt64(PLongWordArray(Num.D)^[0])
+  else
+    Result := 0;
+end;
+
 function BigNumberSetUInt64UsingInt64(const Num: TCnBigNumber; W: TUInt64): Boolean;
 begin
   Result := False;
@@ -1016,6 +1033,8 @@ begin
   PInt64Array(Num.D)^[0] := Int64(W);
   if W = 0 then
     Num.Top := 0
+  else if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
+    Num.Top := 1
   else
     Num.Top := 2;
 
@@ -1046,6 +1065,8 @@ begin
   PUInt64Array(Num.D)^[0] := W;
   if W <> 0 then
     Num.Top := 2
+  else if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 UInt64 高 32 位是 0
+    Num.Top := 1
   else
     Num.Top := 0;
   Result := True;
