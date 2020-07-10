@@ -27,7 +27,7 @@ implementation
 {$R *.DFM}
 
 uses
-  CnBigNumber;
+  CnBigNumber, CnRandom;
 
 procedure TBloomFilterForm.FormCreate(Sender: TObject);
 begin
@@ -52,7 +52,7 @@ begin
     Len := 1 + Trunc(Random * 128);
     SetLength(S, Len);
 
-    RandBytes(PAnsiChar(S), Len * SizeOf(Char));
+    CnRandomFillBytes(PAnsiChar(S), Len * SizeOf(Char));
     if chkDuplicate.Checked then
       if FBloomFilter.StrExists(S) then
       begin
