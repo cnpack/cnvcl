@@ -357,6 +357,9 @@ function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Extended): Integer; ov
 procedure BigBinaryCopy(const Dest, Source: TCnBigBinary);
 {* 大二进制浮点数赋值}
 
+function BigBinaryGetHighScale(const Num: TCnBigBinary): Integer;
+{* 计算大二进制浮点数的最高有效数字位是小数点后第几位，如果返回小于 0，则求负后表示是小数点前第几位}
+
 function BigBinaryAdd(const Res: TCnBigBinary; const Num1: TCnBigBinary;
   const Num2: TCnBigBinary): Boolean;
 {* 大二进制浮点数加，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
@@ -2145,6 +2148,19 @@ begin
   begin
     BigNumberCopy(Dest.FValue, Source.FValue);
     Dest.FScale := Source.FScale;
+  end;
+end;
+
+function BigBinaryGetHighScale(const Num: TCnBigBinary): Integer;
+begin
+  Result := 0;
+  if Num <> nil then
+  begin
+    Result := Num.FValue.GetBitsCount;
+    // 小数点后有 FScale 位，减去有效数字
+    Result := Num.FScale - Result + 1;
+    if Result <= 0 then // 小数点前第几位是从 1 开始的
+      Dec(Result)
   end;
 end;
 

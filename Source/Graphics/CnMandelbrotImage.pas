@@ -53,8 +53,8 @@ const
   CN_MANDELBROT_MAX_COUNT = 100;
 
 type
-  TCnMandelbrotMode = (mmFloat, mmBigDecimal);
-  // 浮点数运算、大浮点数运算
+  TCnMandelbrotMode = (mmFloat, mmBigDecimal, mmBigBinary);
+  // 浮点数运算、大浮点数运算、大二进制浮点数运算
 
   TCnMandelbrotFloatColorEvent = function (Sender: TObject; X, Y: Extended;
     XZ, YZ: Extended; Count: Integer): TColor of object;
@@ -63,6 +63,10 @@ type
   TCnMandelbrotDecimalColorEvent = function (Sender: TObject; X, Y: TCnBigDecimal;
     XZ, YZ: TCnBigDecimal; Count: Integer): TColor of object;
   {* 大浮点数模式下迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
+
+  TCnMandelbrotBinaryColorEvent = function (Sender: TObject; X, Y: TCnBigBinary;
+    XZ, YZ: TCnBigBinary; Count: Integer): TColor of object;
+  {* 大二进制浮点数模式下迭代结果取色彩函数，注意 C 如果大于 C > CN_MANDELBROT_MAX_COUNT 表示收敛，应该返回显著点儿的颜色}
 
   TCnMandelbrotThreadCalcEvent = procedure (Sender: TObject; Progress, Total: Integer;
     var AbortCalc: Boolean) of object;
@@ -81,6 +85,8 @@ type
     FYValues: array of Extended;
     FXDecimals: TObjectList;
     FYDecimals: TObjectList;
+    FXBinaries: TObjectList;
+    FYBinaries: TObjectList;
     FMaxY: Extended;
     FMinX: Extended;
     FMinY: Extended;
@@ -89,8 +95,13 @@ type
     FMinDX: TCnBigDecimal;
     FMaxDY: TCnBigDecimal;
     FMinDY: TCnBigDecimal;
+    FMaxBX: TCnBigBinary;
+    FMinBX: TCnBigBinary;
+    FMaxBY: TCnBigBinary;
+    FMinBY: TCnBigBinary;
     FOnFloatColor: TCnMandelbrotFloatColorEvent;
     FOnDecimalColor: TCnMandelbrotDecimalColorEvent;
+    FOnBinaryColor: TCnMandelbrotBinaryColorEvent;
     FShowAxis: Boolean;
     FAxisColor: TColor;
     FMode: TCnMandelbrotMode;
@@ -98,7 +109,7 @@ type
     FOutSetCount: Integer;
     FDigits: Integer;
     FOnThreadCalcEvent: TCnMandelbrotThreadCalcEvent;
-    FOnProgress: TCnMandelbrotProgressEvent;                           // 计算过程中设置运算精度用的
+    FOnProgress: TCnMandelbrotProgressEvent;                // 计算过程中设置运算精度用的
     procedure UpdatePointsValues(AWidth, AHeight: Integer); // 边缘值改变时重新给二维数组内容赋值
     procedure UpdateMatrixes(AWidth, AHeight: Integer);     // 尺寸改变时重新生成二维数组值，并调用 UpdatePointsValues 重新给每个元素赋值
     procedure SetMode(const Value: TCnMandelbrotMode);
@@ -107,16 +118,19 @@ type
     procedure SetOnFloatColor(const Value: TCnMandelbrotFloatColorEvent);
     procedure SetOnDecimalColor(const Value: TCnMandelbrotDecimalColorEvent);
     procedure CheckLockedState;
+    procedure SetOnBinaryColor(const Value: TCnMandelbrotBinaryColorEvent);
   protected
     // 计算单个点的颜色
     function CalcFloatColor(X, Y: Extended; out InSet: Boolean): TColor;
     function CalcDecimalColor(X, Y: TCnBigDecimal; XZ, YZ: TCnBigDecimal; out InSet: Boolean): TColor;
+    function CalcBinaryColor(X, Y: TCnBigBinary; XZ, YZ: TCnBigBinary; out InSet: Boolean): TColor;
 
     procedure TriggerCalcColors;
     procedure ReCalcColors;   // 根据 FMode 的值分别调用下面仨重新计算所有点的颜色，特耗时，要放线程里执行
 
     procedure ReCalcFloatColors;
     procedure ReCalcBigDecimalColors;
+    procedure ReCalcBigBinaryColors;
     procedure Paint; override;
 
     procedure DoProgress(Progress, Total: Integer); virtual;
@@ -133,16 +147,19 @@ type
     // 以下仨函数在仨模式下改变控件上下左右四边缘代表的最大值，控件尺寸不变
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: Extended); overload;
     procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigDecimal); overload;
+    procedure SetRect(AMinX, AMaxX, AMinY, AMaxY: TCnBigBinary); overload;
+    procedure AdjustDigits;
 
     procedure GetComplexValues(X, Y: Integer; out R, I: Extended);
     procedure GetComplexDecimal(X, Y: Integer; R, I: TCnBigDecimal);
+    procedure GetComplexBinary(X, Y: Integer; R, I: TCnBigBinary);
     function GetCurrentCalcDigits: Integer;
     {* 返回当前的计算精度，也就是小数点后第几位}
     procedure Lock;
     procedure UnLock;
   published
     property Mode: TCnMandelbrotMode read FMode write SetMode;
-    {* 计算模式，是使用精度有限的扩展精度浮点，还是大有理数、还是大浮点数}
+    {* 计算模式，是使用精度有限的扩展精度浮点，还是大浮点数}
 
     property MinX: Extended read FMinX;
     {* 浮点数模式下的 X 轴左侧值}
@@ -162,6 +179,15 @@ type
     property MaxDY: TCnBigDecimal read FMaxDY;
     {* 大浮点数模式下的 Y 轴上缘值}
 
+    property MinBX: TCnBigBinary read FMinBX;
+    {* 大二进制浮点数模式下的 X 轴左侧值}
+    property MinBY: TCnBigBinary read FMinBY;
+    {* 大二进制浮点数模式下的 Y 轴下缘值}
+    property MaxBX: TCnBigBinary read FMaxBX;
+    {* 大二进制浮点数模式下的 X 轴左侧值}
+    property MaxBY: TCnBigBinary read FMaxBY;
+    {* 大二进制浮点数模式下的 Y 轴上缘值}
+
     property InSetCount: Integer read FInSetCount;
     {* 一次完整计算中，画面在集合内的点数量}
     property OutSetCount: Integer read FOutSetCount;
@@ -171,6 +197,9 @@ type
     {* 自定义浮点模式下曼德布罗集像素点的颜色事件，如无，则内部使用纯色区分}
     property OnDecimalColor: TCnMandelbrotDecimalColorEvent read FOnDecimalColor
       write SetOnDecimalColor;
+    {* 自定义大浮点数模式下曼德布罗集像素点的颜色事件，如无，则内部使用纯色区分}
+    property OnBinaryColor: TCnMandelbrotBinaryColorEvent read FOnBinaryColor
+      write SetOnBinaryColor;
     {* 自定义大浮点数模式下曼德布罗集像素点的颜色事件，如无，则内部使用纯色区分}
 
     property OnProgress: TCnMandelbrotProgressEvent read FOnProgress write FOnProgress;
@@ -210,6 +239,11 @@ type
 var
   TmpDXZ: TCnBigDecimal = nil;
   TmpDYZ: TCnBigDecimal = nil;
+  TmpBXZ: TCnBigBinary = nil;
+  TmpBYZ: TCnBigBinary = nil;
+
+  Decimal4: TCnBigDecimal = nil;
+  Binary4: TCnBigBinary = nil;
 
 procedure CalcMandelbortSetFloatPoint(X, Y: Extended; out XZ, YZ: Extended; out Count: Integer);
 var
@@ -246,7 +280,7 @@ procedure CalcMandelbortSetDecimalPoint(X, Y: TCnBigDecimal; XZ, YZ: TCnBigDecim
     BigDecimalMul(TmpDYZ, TmpDYZ, TmpDYZ, Digits);
     BigDecimalAdd(TmpDXZ, TmpDXZ, TmpDYZ);
 
-    if BigDecimalCompare(TmpDXZ, 4) > 0 then
+    if BigDecimalCompare(TmpDXZ, Decimal4) > 0 then
       Result := True;
   end;
 
@@ -274,6 +308,51 @@ begin
     BigDecimalCopy(XZ, TmpDXZ);
     BigDecimalSub(XZ, XZ, TmpDYZ);
     BigDecimalAdd(XZ, XZ, X);
+
+    Inc(Count);
+  until D2SqrSumGT4(XZ, YZ) or (Count > CN_MANDELBROT_MAX_COUNT);
+end;
+
+procedure CalcMandelbortSetBinaryPoint(X, Y: TCnBigBinary; XZ, YZ: TCnBigBinary;
+  const Digits: Integer; out Count: Integer);
+
+  function D2SqrSumGT4(A, B: TCnBigBinary): Boolean;
+  begin
+    Result := False;
+    BigBinaryCopy(TmpBXZ, A);
+    BigBinaryCopy(TmpBYZ, B);
+    BigBinaryMul(TmpBXZ, TmpBXZ, TmpBXZ, Digits);
+    BigBinaryMul(TmpBYZ, TmpBYZ, TmpBYZ, Digits);
+    BigBinaryAdd(TmpBXZ, TmpBXZ, TmpBYZ);
+
+    if BigBinaryCompare(TmpBXZ, Binary4) > 0 then
+      Result := True;
+  end;
+
+begin
+  // 以大二进制浮点数的方式迭代计算
+  if TmpBXZ = nil then
+    TmpBXZ := TCnBigBinary.Create;
+  if TmpBYZ = nil then
+    TmpBYZ := TCnBigBinary.Create;
+
+  Count := 0;
+  if D2SqrSumGT4(X, Y) then
+    Exit;
+
+  repeat
+    BigBinaryCopy(TmpBXZ, XZ);
+    BigBinaryCopy(TmpBYZ, YZ);
+    BigBinaryMul(TmpBXZ, TmpBXZ, XZ, Digits);
+    BigBinaryMul(TmpBYZ, TmpBYZ, YZ, Digits);
+
+    BigBinaryMul(YZ, YZ, XZ, Digits);
+    YZ.MulWord(2);
+    BigBinaryAdd(YZ, YZ, Y);
+
+    BigBinaryCopy(XZ, TmpBXZ);
+    BigBinarySub(XZ, XZ, TmpBYZ);
+    BigBinaryAdd(XZ, XZ, X);
 
     Inc(Count);
   until D2SqrSumGT4(XZ, YZ) or (Count > CN_MANDELBROT_MAX_COUNT);
@@ -339,6 +418,35 @@ begin
   end;
 end;
 
+function TCnMandelbrotImage.CalcBinaryColor(X, Y, XZ,
+  YZ: TCnBigBinary; out InSet: Boolean): TColor;
+var
+  C: Integer;
+begin
+  XZ.SetZero;
+  YZ.SetZero;
+  C := 0;
+
+  CalcMandelbortSetBinaryPoint(X, Y, XZ, YZ, FDigits, C);
+
+  if C > CN_MANDELBROT_MAX_COUNT then
+  begin
+    InSet := True;
+    if Assigned(FOnBinaryColor) then
+      Result := FOnBinaryColor(Self, X, Y, XZ, YZ, C)
+    else
+      Result := clNavy;
+  end
+  else
+  begin
+    InSet := False;
+    if Assigned(FOnBinaryColor) then
+      Result := FOnBinaryColor(Self, X, Y, XZ, YZ, C)
+    else
+      Result := clWhite;
+  end;
+end;
+
 constructor TCnMandelbrotImage.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -347,25 +455,50 @@ begin
   FMinY := -1.5;
   FMaxY := 1.5;
 
-  FDigits := 8;
+  FDigits := 8; // 十进制的默认精度
 
   FAxisColor := clTeal;
   FXDecimals := TObjectList.Create(True);
   FYDecimals := TObjectList.Create(True);
+  FXBinaries := TObjectList.Create(True);
+  FYBinaries := TObjectList.Create(True);
 
   FMaxDX := TCnBigDecimal.Create;
   FMinDX := TCnBigDecimal.Create;
   FMaxDY := TCnBigDecimal.Create;
   FMinDY := TCnBigDecimal.Create;
+
+  FMaxBX := TCnBigBinary.Create;
+  FMinBX := TCnBigBinary.Create;
+  FMaxBY := TCnBigBinary.Create;
+  FMinBY := TCnBigBinary.Create;
 end;
 
 destructor TCnMandelbrotImage.Destroy;
 begin
+  if FThread <> nil then
+  begin
+    FThread.Terminate;
+    try
+      FThread.WaitFor;
+    except
+      ;
+    end;
+    FThread := nil;
+  end;
+
+  FMaxBX.Free;
+  FMinBX.Free;
+  FMaxBY.Free;
+  FMinBY.Free;
+
   FMaxDX.Free;
   FMinDX.Free;
   FMaxDY.Free;
   FMinDY.Free;
 
+  FXBinaries.Free;
+  FYBinaries.Free;
   FYDecimals.Free;
   FXDecimals.Free;
 
@@ -399,6 +532,18 @@ begin
     raise Exception.Create(SCnMandelbrotOutOfBounds);
 end;
 
+procedure TCnMandelbrotImage.GetComplexBinary(X, Y: Integer; R,
+  I: TCnBigBinary);
+begin
+  if (FMode = mmBigBinary) and (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
+  begin
+    BigBinaryCopy(R, TCnBigBinary(FXBinaries[X]));
+    BigBinaryCopy(I, TCnBigBinary(FYBinaries[Y]));
+  end
+  else
+    raise Exception.Create(SCnMandelbrotOutOfBounds);
+end;
+
 procedure TCnMandelbrotImage.Loaded;
 begin
   inherited;
@@ -408,14 +553,63 @@ end;
 procedure TCnMandelbrotImage.Paint;
 var
   X, Y: Integer;
+  DD, DT: TCnBigDecimal;
+  BD, BT: TCnBigBinary;
 begin
   Canvas.Draw(0, 0, FBitmap);
 
   if ShowAxis then
   begin
     // 算出 X Y 轴的位置，画线
-    X := Trunc(Width * (-FMinX) / (FMaxX - FMinX));
-    Y := Trunc(Height * (FMaxY) / (FMaxY - FMinY));
+    if FMode = mmFloat then
+    begin
+      X := Trunc(Width * (-FMinX) / (FMaxX - FMinX));
+      Y := Trunc(Height * (FMaxY) / (FMaxY - FMinY));
+    end
+    else if FMode = mmBigDecimal then
+    begin
+      DD := TCnBigDecimal.Create;
+      DT := TCnBigDecimal.Create;
+      try
+        BigDecimalSub(DD, FMaxDX, FMinDX);
+        BigDecimalCopy(DT, FMinDX);
+        DT.Negate;
+        DT.MulWord(Width);
+        BigDecimalDiv(DT, DT, DD);
+        X := Trunc(BigDecimalToExtended(DT));
+
+        BigDecimalSub(DD, FMaxDY, FMinDY);
+        BigDecimalCopy(DT, FMaxDY);
+        DT.MulWord(Height);
+        BigDecimalDiv(DT, DT, DD);
+        Y := Trunc(BigDecimalToExtended(DT));
+      finally
+        DT.Free;
+        DD.Free;
+      end;
+    end
+    else if FMode = mmBigBinary then
+    begin
+      BD := TCnBigBinary.Create;
+      BT := TCnBigBinary.Create;
+      try
+        BigBinarySub(BD, FMaxBX, FMinBX);
+        BigBinaryCopy(BT, FMinBX);
+        BT.Negate;
+        BT.MulWord(Width);
+        BigBinaryDiv(BT, BT, BD);
+        X := Trunc(BigBinaryToExtended(BT));
+
+        BigBinarySub(BD, FMaxBY, FMinBY);
+        BigBinaryCopy(BT, FMaxBY);
+        BT.MulWord(Height);
+        BigBinaryDiv(BT, BT, BD);
+        Y := Trunc(BigBinaryToExtended(BT));
+      finally
+        BT.Free;
+        BD.Free;
+      end;
+    end;
 
     Canvas.Pen.Color := FAxisColor;
     Canvas.Pen.Style := psSolid;
@@ -517,6 +711,62 @@ begin
   // Invalidate;
 end;
 
+procedure TCnMandelbrotImage.ReCalcBigBinaryColors;
+var
+  X, Y, C: Integer;
+  AColor: TColor;
+  R, G, B: Byte;
+  Arr: PRGBTripleArray;
+  XZ, YZ: TCnBigBinary;
+  InSet, AbortCalc: Boolean;
+begin
+  FInSetCount := 0;
+  FOutSetCount := 0;
+
+  XZ := nil;
+  YZ := nil;
+  AbortCalc := False;
+
+  try
+    XZ := TCnBigBinary.Create;
+    YZ := TCnBigBinary.Create;
+
+    for Y := 0 to Height - 1 do
+    begin
+      Arr := PRGBTripleArray(FBitmap.ScanLine[Y]);
+      for X := 0 to Width - 1 do
+      begin
+        AColor := CalcBinaryColor(TCnBigBinary(FXBinaries[X]),
+          TCnBigBinary(FYBinaries[Y]), XZ, YZ, InSet);
+
+        if InSet then
+          Inc(FInSetCount)
+        else
+          Inc(FOutSetCount);
+
+        C := ColorToRGB(AColor);
+        B := C and $FF0000 shr 16;
+        G := C and $00FF00 shr 8;
+        R := C and $0000FF;
+
+        Arr^[X].rgbtRed := R;
+        Arr^[X].rgbtGreen := G;
+        Arr^[X].rgbtBlue := B;
+      end;
+
+      if Assigned(FOnThreadCalcEvent) then
+        FOnThreadCalcEvent(Self, Y, Height - 1, AbortCalc);
+
+      if AbortCalc then
+        Exit;
+    end;
+  finally
+    XZ.Free;
+    YZ.Free;
+  end;
+  // Invalidate;
+end;
+
 procedure TCnMandelbrotImage.SetAxisColor(const Value: TColor);
 begin
   if Value <> FAxisColor then
@@ -544,6 +794,12 @@ begin
     FMaxDX.SetExtended(FMaxX);
     FMaxDY.SetExtended(FMaxY);
 
+    FMinBX.SetExtended(FMinX);
+    FMinBY.SetExtended(FMinY);
+    FMaxBX.SetExtended(FMaxX);
+    FMaxBY.SetExtended(FMaxY);
+
+    AdjustDigits;
     CheckLockedState;
   end;
 end;
@@ -563,9 +819,6 @@ end;
 
 procedure TCnMandelbrotImage.SetRect(AMinX, AMaxX, AMinY,
   AMaxY: TCnBigDecimal);
-var
-  W, H: TCnBigDecimal;
-  N: Integer;
 begin
   if FMode = mmBigDecimal then
   begin
@@ -574,47 +827,22 @@ begin
     BigDecimalCopy(FMaxDX, AMaxX);
     BigDecimalCopy(FMaxDY, AMaxY);
 
-    // 根据控件尺寸与位置确定计算精度，已知 800 像素，3 的距离，运算精度 8 满足要求
-    // 推测：相邻两个像素的值的差决定了运算精度，0.00375 需要精度 8，按指数比例，0.0375 只需要 7，0.375 只需要 6
-    // 简化成 0.001 需要 8，10^-3 需要 8，10^-2 需要 7，10^-n 需要 5 + n
-    // 其中 n 是最高位有效数字是小数点后多少位
+    AdjustDigits;
+    CheckLockedState;
+  end;
+end;
 
-    W := TCnBigDecimal.Create;
-    H := TCnBigDecimal.Create;
-    try
-      BigDecimalSub(W, AMaxX, AMinX);
-      BigDecimalSub(H, AMaxX, AMinX);
+procedure TCnMandelbrotImage.SetRect(AMinX, AMaxX, AMinY,
+  AMaxY: TCnBigBinary);
+begin
+  if FMode = mmBigBinary then
+  begin
+    BigBinaryCopy(FMinBX, AMinX);
+    BigBinaryCopy(FMinBY, AMinY);
+    BigBinaryCopy(FMaxBX, AMaxX);
+    BigBinaryCopy(FMaxBY, AMaxY);
 
-      W.DivWord(Width);
-      H.DivWord(Height);
-
-      if W.IsNegative then
-        W.Negate;
-      if H.IsNegative then
-        H.Negate;
-
-      if BigDecimalCompare(W, H) >= 0 then
-      begin
-        // H 更小
-        N := BigDecimalGetHighScale(H);
-
-      end
-      else
-      begin
-        // W 更小
-        N := BigDecimalGetHighScale(W);
-      end;
-
-      if N > 0 then
-      begin
-        N := N + 5;
-        FDigits := N;
-      end;
-    finally
-      W.Free;
-      H.Free;
-    end;
-
+    AdjustDigits;
     CheckLockedState;
   end;
 end;
@@ -655,6 +883,22 @@ begin
       for I := 1 to AHeight do
         FYDecimals.Add(TCnBigDecimal.Create);
     end;
+  end
+  else if FMode = mmBigBinary then
+  begin
+    // 判断并重新初始化 X、Y 的大二进制浮点数列表
+    if FXBinaries.Count <> AWidth then
+    begin
+      FXBinaries.Clear;
+      for I := 1 to AWidth do
+        FXBinaries.Add(TCnBigBinary.Create);
+    end;
+    if FYBinaries.Count <> AHeight then
+    begin
+      FYBinaries.Clear;
+      for I := 1 to AHeight do
+        FYBinaries.Add(TCnBigBinary.Create);
+    end;
   end;
 
   // 判断并重新初始化内部位图
@@ -675,6 +919,7 @@ var
   X, Y, W, H: Integer;
   WX, HY: Extended;
   WDX, HDY: TCnBigDecimal;
+  WBX, HBY: TCnBigBinary;
 begin
   W := Width - 1;
   H := Height - 1;
@@ -713,6 +958,31 @@ begin
       TCnBigDecimal(FYDecimals[Y]).MulWord(H - Y);
       BigDecimalAdd(TCnBigDecimal(FYDecimals[Y]), FMinDY, TCnBigDecimal(FYDecimals[Y]));
     end;
+  end
+  else if FMode = mmBigBinary then
+  begin
+    // 初始化 X、Y 的大二进制浮点数点值
+    WBX := TCnBigBinary.Create;
+    HBY := TCnBigBinary.Create;
+
+    BigBinarySub(WBX, FMaxBX, FMinBX);
+    WBX.DivWord(W);
+    BigBinarySub(HBY, FMaxBY, FMinBY);
+    HBY.DivWord(H);
+
+    for X := 0 to W do
+    begin
+      BigBinaryCopy(TCnBigBinary(FXBinaries[X]), WBX);
+      TCnBigBinary(FXBinaries[X]).MulWord(X);
+      BigBinaryAdd(TCnBigBinary(FXBinaries[X]), FMinBX, TCnBigBinary(FXBinaries[X]));
+    end;
+
+    for Y := 0 to H do
+    begin
+      BigBinaryCopy(TCnBigBinary(FYBinaries[Y]), HBY);
+      TCnBigBinary(FYBinaries[Y]).MulWord(H - Y);
+      BigBinaryAdd(TCnBigBinary(FYBinaries[Y]), FMinBY, TCnBigBinary(FYBinaries[Y]));
+    end;
   end;
 
   FBitmap.Canvas.Brush.Color := clWhite;
@@ -725,7 +995,9 @@ begin
   if FMode = mmFloat then
     ReCalcFloatColors
   else if FMode = mmBigDecimal then
-    RecalcBigDecimalColors;
+    RecalcBigDecimalColors
+  else if FMode = mmBigBinary then
+    ReCalcBigBinaryColors;
 end;
 
 procedure TCnMandelbrotImage.Lock;
@@ -757,12 +1029,6 @@ end;
 
 procedure TCnMandelbrotImage.TriggerCalcColors;
 begin
-  if Mode = mmFloat then
-  begin
-    ReCalcColors;
-    Exit;
-  end;
-
   if FThread <> nil then
   begin
     FThread.Terminate;
@@ -772,6 +1038,12 @@ begin
       ;
     end;
     FThread := nil;
+  end;
+
+  if Mode = mmFloat then
+  begin
+    ReCalcColors;
+    Exit;
   end;
 
   if FThread = nil then
@@ -811,6 +1083,105 @@ begin
   Result := FDigits;
 end;
 
+procedure TCnMandelbrotImage.AdjustDigits;
+var
+  DW, DH: TCnBigDecimal;
+  BW, BH: TCnBigBinary;
+  N: Integer;
+begin
+  // 根据控件尺寸与位置确定计算精度，已知 800 像素，3 的距离，运算精度十进制 8、二进制 32 满足要求
+
+  if FMode = mmBigDecimal then
+  begin
+    // 推测：相邻两个像素的值的差决定了运算精度，0.00375 需要精度 8，按指数比例，0.0375 只需要 7，0.375 只需要 6
+    // 简化成 0.001 需要 8，10^-3 需要 8，10^-2 需要 7，10^-n 需要 5 + n
+    // 其中 n 是最高位有效数字是小数点后多少位
+
+    DW := TCnBigDecimal.Create;
+    DH := TCnBigDecimal.Create;
+    try
+      BigDecimalSub(DW, FMaxDX, FMinDX);
+      BigDecimalSub(DH, FMaxDY, FMinDY);
+
+      DW.DivWord(Width);
+      DH.DivWord(Height);
+
+      if DW.IsNegative then
+        DW.Negate;
+      if DH.IsNegative then
+        DH.Negate;
+
+      if BigDecimalCompare(DW, DH) >= 0 then
+      begin
+        // DH 更小
+        N := BigDecimalGetHighScale(DH);
+      end
+      else
+      begin
+        // DW 更小
+        N := BigDecimalGetHighScale(DW);
+      end;
+
+      if N > 0 then
+      begin
+        N := N + 5;
+        FDigits := N;
+      end;
+    finally
+      DW.Free;
+      DH.Free;
+    end;
+  end
+  else if FMode = mmBigBinary then
+  begin
+    // 推测：相邻两个像素的值的差决定了运算精度，0.00375 需要二进制精度 32
+    // 简化成 2 的 -8 次方需要 32 位精度，那么 2 的 -9 次方就需要 33 位精度，2 的 -n 次方就需要 24 + n 位精度
+    // 其中 n 是最高位有效数字是二进制小数点后多少位
+
+    BW := TCnBigBinary.Create;
+    BH := TCnBigBinary.Create;
+    try
+      BigBinarySub(BW, FMaxBX, FMinBX);
+      BigBinarySub(BH, FMaxBY, FMinBY);
+
+      BW.DivWord(Width);
+      BH.DivWord(Height);
+
+      if BW.IsNegative then
+        BW.Negate;
+      if BH.IsNegative then
+        BH.Negate;
+
+      if BigBinaryCompare(BW, BH) >= 0 then
+      begin
+        // BH 更小
+        N := BigBinaryGetHighScale(BH);
+      end
+      else
+      begin
+        // BW 更小
+        N := BigBinaryGetHighScale(BW);
+      end;
+
+      if N > 0 then
+      begin
+        N := N + 24;
+        FDigits := N;
+      end;
+    finally
+      DW.Free;
+      DH.Free;
+    end;
+  end;
+end;
+
+procedure TCnMandelbrotImage.SetOnBinaryColor(
+  const Value: TCnMandelbrotBinaryColorEvent);
+begin
+  FOnBinaryColor := Value;
+  CheckLockedState;
+end;
+
 { TCnMandelbrotThread }
 
 procedure TCnMandelbrotThread.Execute;
@@ -840,9 +1211,17 @@ begin
 end;
 
 initialization
+  Decimal4 := TCnBigDecimal.Create;
+  Decimal4.SetWord(4);
+  Binary4 := TCnBigBinary.Create;
+  Binary4.SetWord(4);
 
 finalization
   TmpDXZ.Free;
   TmpDYZ.Free;
+  TmpBXZ.Free;
+  TmpBYZ.Free;
+  Decimal4.Free;
+  Binary4.Free;
 
 end.

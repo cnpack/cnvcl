@@ -81,7 +81,8 @@ object FormMandelbrot: TFormMandelbrot
       OnChange = cbbModeChange
       Items.Strings = (
         'Extended'
-        'BigDecimal')
+        'BigDecimal'
+        'BigBinary')
     end
   end
 end

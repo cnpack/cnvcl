@@ -30,7 +30,10 @@ type
       XZ, YZ: TCnBigDecimal; Count: Integer): TColor;
     function OnDecimalColor2(Sender: TObject; X, Y: TCnBigDecimal;
       XZ, YZ: TCnBigDecimal; Count: Integer): TColor;
-
+    function OnBinaryColor1(Sender: TObject; X, Y: TCnBigBinary;
+      XZ, YZ: TCnBigBinary; Count: Integer): TColor;
+    function OnBinaryColor2(Sender: TObject; X, Y: TCnBigBinary;
+      XZ, YZ: TCnBigBinary; Count: Integer): TColor;
     procedure ShowEdges;
   public
     { Public declarations }
@@ -44,7 +47,8 @@ implementation
 {$R *.DFM}
 
 const
-  ENLARGE_FACTOR = 10;
+  ENLARGE_FACTOR_DECIMAL = 10;
+  ENLARGE_FACTOR_BINARY = 4;
 
 procedure TFormMandelbrot.FormCreate(Sender: TObject);
 begin
@@ -63,6 +67,7 @@ begin
     OnClick := ImageClick;
     OnColor := OnFloatColor2;
     OnDecimalColor := OnDecimalColor2;
+    OnBinaryColor := OnBinaryColor2;
     UnLock;
   end;
   cbbMode.ItemIndex := Ord(FImage.Mode);
@@ -76,6 +81,7 @@ var
   OW, OH: Extended;
   Img: TCnMandelbrotImage;
   DR, DI, DOW, DOH, XD1, XD2, YD1, YD2: TCnBigDecimal;
+  BR, BI, BOW, BOH, XB1, XB2, YB1, YB2: TCnBigBinary;
 begin
   Img := Sender as TCnMandelbrotImage;
   P := Img.ScreenToClient(Point(Mouse.CursorPos.X, Mouse.CursorPos.Y));
@@ -88,8 +94,8 @@ begin
     OH := Img.MaxY - Img.MinY;
 
     Img.Lock;
-    Img.SetRect(R - OW / (2 * ENLARGE_FACTOR), R + OW / (2 * ENLARGE_FACTOR),
-      I - OH / (2 * ENLARGE_FACTOR), I + OH / (2 * ENLARGE_FACTOR));
+    Img.SetRect(R - OW / (2 * ENLARGE_FACTOR_DECIMAL), R + OW / (2 * ENLARGE_FACTOR_DECIMAL),
+      I - OH / (2 * ENLARGE_FACTOR_DECIMAL), I + OH / (2 * ENLARGE_FACTOR_DECIMAL));
     Img.UnLock;
   end
   else if Img.Mode = mmBigDecimal then
@@ -105,8 +111,8 @@ begin
     BigDecimalSub(DOW, Img.MaxDX, Img.MinDX);
     BigDecimalSub(DOH, Img.MaxDY, Img.MinDY);
 
-    DOW.DivWord(2 * ENLARGE_FACTOR);   // TODO: 要逐渐将精度放大
-    DOH.DivWord(2 * ENLARGE_FACTOR);
+    DOW.DivWord(2 * ENLARGE_FACTOR_DECIMAL);   // TODO: 要逐渐将精度放大
+    DOH.DivWord(2 * ENLARGE_FACTOR_DECIMAL);
 
     XD1 := TCnBigDecimal.Create;
     XD2 := TCnBigDecimal.Create;
@@ -135,6 +141,50 @@ begin
     DOH.Free;
     DR.Free;
     DI.Free;
+  end
+  else if Img.Mode = mmBigBinary then
+  begin
+    BR := TCnBigBinary.Create;
+    BI := TCnBigBinary.Create;
+
+    Img.GetComplexBinary(P.x, P.y, BR, BI);
+    lblPoint.Caption := Format('X %d Y %d ***** %s + %s i', [P.x, P.y, BR.ToString, BI.ToString]);
+
+    BOW := TCnBigBinary.Create;
+    BOH := TCnBigBinary.Create;
+    BigBinarySub(BOW, Img.MaxBX, Img.MinBX);
+    BigBinarySub(BOH, Img.MaxBY, Img.MinBY);
+
+    BOW.DivWord(2 * ENLARGE_FACTOR_BINARY);   // TODO: 要逐渐将精度放大
+    BOH.DivWord(2 * ENLARGE_FACTOR_BINARY);
+
+    XB1 := TCnBigBinary.Create;
+    XB2 := TCnBigBinary.Create;
+    YB1 := TCnBigBinary.Create;
+    YB2 := TCnBigBinary.Create;
+
+    BigBinaryCopy(XB1, BR);
+    BigBinarySub(XB1, XB1, BOW);
+
+    BigBinaryCopy(YB1, BI);
+    BigBinarySub(YB1, YB1, BOH);
+
+    BigBinaryCopy(XB2, BR);
+    BigBinaryAdd(XB2, XB2, BOW);
+
+    BigBinaryCopy(YB2, BI);
+    BigBinaryAdd(YB2, YB2, BOH);
+
+    Img.SetRect(XB1, XB2, YB1, YB2);
+
+    XB1.Free;
+    XB2.Free;
+    YB1.Free;
+    YB2.Free;
+    BOW.Free;
+    BOH.Free;
+    BR.Free;
+    BI.Free;
   end;
   ShowEdges;
 end;
@@ -212,6 +262,13 @@ begin
     edtMaxX.Text := FImage.MaxDX.ToString;
     edtMinY.Text := FImage.MinDY.ToString;
     edtMaxY.Text := FImage.MaxDY.ToString;
+  end
+  else if FImage.Mode = mmBigBinary then
+  begin
+    edtMinX.Text := FImage.MinBX.ToString;
+    edtMaxX.Text := FImage.MaxBX.ToString;
+    edtMinY.Text := FImage.MinBY.ToString;
+    edtMaxY.Text := FImage.MaxBY.ToString;
   end;
   lblDigits.Caption := 'Digits: ' + IntToStr(FImage.GetCurrentCalcDigits);
 end;
@@ -220,6 +277,35 @@ procedure TFormMandelbrot.cbbModeChange(Sender: TObject);
 begin
   FImage.Mode := TCnMandelbrotMode(cbbMode.ItemIndex);
   ShowEdges;
+end;
+
+function TFormMandelbrot.OnBinaryColor1(Sender: TObject; X, Y, XZ,
+  YZ: TCnBigBinary; Count: Integer): TColor;
+var
+  R: Byte;
+begin
+  if Count > CN_MANDELBROT_MAX_COUNT then
+    Result := clNavy  // 收敛，用深蓝色
+  else
+  begin
+    if 3 * Count > 255 then
+      R := 0
+    else
+      R := 255 - 3 * Byte(Count); // 次数越多越黑
+    Result := RGB(R, R, R);
+  end;
+end;
+
+function TFormMandelbrot.OnBinaryColor2(Sender: TObject; X, Y, XZ,
+  YZ: TCnBigBinary; Count: Integer): TColor;
+begin
+  if Count > CN_MANDELBROT_MAX_COUNT then
+    Result := clNavy  // 收敛，用深蓝色
+  else
+  begin
+    // 用 Count 做色相
+    Result := HSLRangeToRGB(Count, 240, 120);
+  end;
 end;
 
 end.
