@@ -144,15 +144,14 @@ type
   ECnBigBinaryException = class(Exception);
 
   TCnBigBinary = class
-  private
-    function GetDebugDump: string;
-    function GetDecString: string;
   {* 大二进制浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存基于 2 的指数
     FScale 代表二进制模式下小数点离有效数字最右边的位置，往左为正，往右为负，
     正时简而言之就是二进制模式下小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
   private
     FValue: TCnBigNumber;
     FScale: Integer;                 // 精确值为 FValue / (2^FScale)
+    function GetDebugDump: string;
+    function GetDecString: string;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -825,26 +824,47 @@ end;
 function InternalBigDecimalConvertToBitsCount(const Num: TCnBigDecimal; BitsCount: Integer): Boolean;
 var
   C, D: Integer;
+  Di, R: TCnBigNumber;
 begin
-//  FValue * 10^-FScale 要变成 M * 2^E 次方的形式，FValue 就得除以 5^-FScale，如果 FScale > 0，就是直接乘 5^FScale
-//  如果 FScale < 0，意味着 FValue 要除以 5 的 -FScale 正整数次方，
+//  FValue * 10^-FScale 要变成 M * 2^E 次方的形式，FValue 就得乘以 5^-FScale，如果 FScale < 0，就是直接乘 5^-FScale
+//  如果 FScale > 0，意味着 FValue 要除以 5 的 FScale 次方，
 //  (FValue * 5^-FScale) * 2^-FScale，然后还得再次规约，让前者成为特定位数，后者再调整
 
   Result := False;
   if Num <> nil then
   begin
-    if Num.FScale > 0 then
+    if Num.FScale < 0 then
     begin
-      BigNumberMulPower5(Num.FValue, Num.FScale);  // 乘 5 的正整数次方
+      BigNumberMulPower5(Num.FValue, -Num.FScale);  // 乘 5 的正整数次方
     end
-    else // FScale 小于 0
+    else // FScale 大于 0
     begin
-      // 除以 5 的正整数（-FScale）次方，等于除以 10 的正整数次方，再乘以 2 的正整数次方
-      Num.FScale := Num.FScale * 2;
-      Num.FValue.ShiftLeft(-Num.FScale);
+      // 除以 5 的 FScale 次方。注意不能取巧地除以 10 的 FScale 次方（减 FScale）
+      // 再乘以 2 的 FScale 次方（左移），因为两个操作里 FScale 含义不一样了
+      // 得以二进制的方式把 FValue 直接除以 5 的 FScale 次方，得到的结果要二进制调整 FScale 值
+
+      Di := FLocalBigNumberPool.Obtain;
+      R := FLocalBigNumberPool.Obtain;
+      try
+        Di.SetWord(5);
+        Di.PowerWord(Num.FScale); // 得到除数
+
+        // FValue / Di 要得到小数结果，所以不能直接 BigNumberDiv，得将 FValue 扩大 2 的整数次方
+        // 扩大多少次方取决于精度，可以认为需要小数点后十进制 FScale 位，胡乱折算成 2 进制
+        C := Num.FScale * 2;
+        if C < CN_BIG_BINARY_DEFAULT_PRECISION then
+          C := CN_BIG_BINARY_DEFAULT_PRECISION;
+
+        BigNumberShiftLeft(Num.FValue, Num.FValue, C);
+        BigNumberDiv(Num.FValue, R, Num.FValue, Di);
+        Num.FScale := Num.FScale + C;
+      finally
+        FLocalBigNumberPool.Recycle(R);
+        FLocalBigNumberPool.Recycle(Di);
+      end;
     end;
 
-    // 再规约
+    // 再规约，注意此时 FValue 和 FScale 已经是 2^ 关系了（Num 相当于一个 TCnBigBinary 了）
     C := Num.FValue.GetBitsCount;
     if C < BitsCount then
     begin
@@ -1225,9 +1245,9 @@ begin
   if DivPrecision < 0 then
     DivPrecision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
-  // 根据精度要求计算将被除数和除数同时扩大的倍数，注意存在乘以 9 时就可能溢出的情况但先不管
+  // 根据精度要求计算将被除数扩大的倍数，注意存在乘以 9 时就可能溢出的情况但先不管
   M := CheckScaleAddRange(DivPrecision, (Num2.FValue.Top - Num2.FValue.Top + 1) * 9 + 3);
-  TS := CheckScaleAddRange(TS, M);
+  TS := CheckScaleAddRange(TS, M); // 扩大的倍数在这里抵消
 
   T := nil;
   R := nil;
@@ -2283,9 +2303,9 @@ begin
   if DivPrecision < 0 then
     DivPrecision := CN_BIG_BINARY_DEFAULT_PRECISION;
 
-  // 根据精度要求计算将被除数和除数同时扩大的倍数
+  // 根据精度要求计算将被除数扩大的倍数
   M := CheckScaleAddRange(DivPrecision, (Num2.FValue.GetBitsCount - Num2.FValue.GetBitsCount + 1));
-  TS := CheckScaleAddRange(TS, M);
+  TS := CheckScaleAddRange(TS, M); // 扩大的倍数在这里抵消
 
   T := nil;
   R := nil;
