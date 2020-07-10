@@ -2494,6 +2494,18 @@ procedure TCnBigBinary.DivWord(W: LongWord; DivPrecision: Integer);
 var
   T: TCnBigBinary;
 begin
+  if W = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  while (W and 1) = 0 do
+  begin
+    W := W shr 1;
+    Inc(FScale);
+  end;
+
+  if W = 1 then // 除的是 2 的整数次方
+    Exit;
+
   T := FLocalBigBinaryPool.Obtain;
   try
     T.SetWord(W);
