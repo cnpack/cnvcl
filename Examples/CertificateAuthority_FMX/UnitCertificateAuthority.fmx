@@ -19,7 +19,7 @@ object FormCA: TFormCA
     Size.Width = 681.000000000000000000
     Size.Height = 457.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 0
     TabPosition = Top
     Sizes = (
@@ -31,7 +31,7 @@ object FormCA: TFormCA
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       Size.Width = 154.000000000000000000
       Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
@@ -54,7 +54,7 @@ object FormCA: TFormCA
           Size.Width = 46.000000000000000000
           Size.Height = 13.000000000000000000
           Size.PlatformDefault = False
-          Text = 'RSA Key:'
+          Text = 'Key:'
         end
         object lblContryName: TLabel
           Position.X = 16.000000000000000000
@@ -120,7 +120,7 @@ object FormCA: TFormCA
           Size.PlatformDefault = False
           Text = 'Hash Algorithm:'
         end
-        object edtRSAKey: TEdit
+        object edtRSAECCKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 0
           Position.X = 88.000000000000000000
@@ -317,7 +317,7 @@ object FormCA: TFormCA
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       ImageIndex = 1
       Size.Width = 107.000000000000000000
       Size.Height = 28.000000000000000000
@@ -448,12 +448,12 @@ object FormCA: TFormCA
           TabOrder = 0
           Position.X = 88.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 313.000000000000000000
+          Size.Width = 233.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnBrowseCRT: TButton
-          Position.X = 408.000000000000000000
+          Position.X = 328.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
@@ -471,19 +471,29 @@ object FormCA: TFormCA
           Size.Width = 625.000000000000000000
           Size.Height = 177.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 2
+          TabOrder = 5
           Viewport.Width = 621.000000000000000000
           Viewport.Height = 173.000000000000000000
         end
         object btnParseCRT: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Parse CRT'
+          OnClick = btnParseCRTClick
+        end
+        object btnVerifySelfSignedCRT: TButton
           Position.X = 488.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 3
-          Text = 'Parse CRT'
-          OnClick = btnParseCRTClick
+          Text = 'Verify Self-Signed CRT'
+          OnClick = btnVerifySelfSignedCRTClick
         end
         object btnVerifyCRT: TButton
           Position.X = 568.000000000000000000
@@ -492,7 +502,7 @@ object FormCA: TFormCA
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 4
-          Text = 'Verify CRT'
+          Text = 'Verify Self-Signed CRT'
           OnClick = btnVerifyCRTClick
         end
       end
