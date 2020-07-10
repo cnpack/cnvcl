@@ -25,50 +25,50 @@ object FormCrypt: TFormCrypt
     TabPosition = Top
     Sizes = (
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s
+      357s
       1169s
-      359s)
+      357s)
     object tsDES: TTabItem
       CustomIcon = <
         item
         end>
       IsSelected = False
-      Size.Width = 41.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 46.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -182,8 +182,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 1
-      Size.Width = 46.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 51.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -292,8 +292,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 2
-      Size.Width = 58.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 63.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -409,8 +409,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 3
-      Size.Width = 55.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 61.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -509,8 +509,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 4
-      Size.Width = 55.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 61.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -609,8 +609,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 5
-      Size.Width = 50.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 54.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -719,8 +719,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 6
-      Size.Width = 44.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 49.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -828,8 +828,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = True
       ImageIndex = 7
-      Size.Width = 44.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 49.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -961,8 +961,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 8
-      Size.Width = 41.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 45.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1116,8 +1116,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 10
-      Size.Width = 63.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 68.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1226,8 +1226,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 9
-      Size.Width = 63.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 68.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1336,8 +1336,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 12
-      Size.Width = 63.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 68.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1445,8 +1445,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 11
-      Size.Width = 63.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 68.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1554,8 +1554,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 10
-      Size.Width = 74.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1664,8 +1664,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 9
-      Size.Width = 74.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1774,8 +1774,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 12
-      Size.Width = 74.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1883,8 +1883,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 11
-      Size.Width = 74.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1992,8 +1992,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 13
-      Size.Width = 43.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -2095,8 +2095,8 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 18
-      Size.Width = 41.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 45.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
