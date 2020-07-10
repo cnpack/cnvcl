@@ -1169,8 +1169,8 @@ begin
         FDigits := N;
       end;
     finally
-      DW.Free;
-      DH.Free;
+      BW.Free;
+      BH.Free;
     end;
   end;
 end;
