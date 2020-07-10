@@ -21,7 +21,7 @@ object FormCA: TFormCA
     Top = 8
     Width = 865
     Height = 567
-    ActivePage = tsSign
+    ActivePage = tsRequest
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsRequest: TTabSheet
@@ -244,7 +244,7 @@ object FormCA: TFormCA
           Width = 809
           Height = 255
           Anchors = [akLeft, akTop, akRight, akBottom]
-          TabOrder = 2
+          TabOrder = 4
         end
         object btnParseCSR: TButton
           Left = 672
@@ -253,7 +253,7 @@ object FormCA: TFormCA
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Parse CSR'
-          TabOrder = 3
+          TabOrder = 2
           OnClick = btnParseCSRClick
         end
         object btnVerifyCSR: TButton
@@ -263,7 +263,7 @@ object FormCA: TFormCA
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Verify CSR'
-          TabOrder = 4
+          TabOrder = 3
           OnClick = btnVerifyCSRClick
         end
       end
@@ -404,7 +404,7 @@ object FormCA: TFormCA
           Width = 809
           Height = 287
           Anchors = [akLeft, akTop, akRight, akBottom]
-          TabOrder = 2
+          TabOrder = 5
         end
         object btnParseCRT: TButton
           Left = 552
@@ -413,7 +413,7 @@ object FormCA: TFormCA
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Parse CRT'
-          TabOrder = 3
+          TabOrder = 2
           OnClick = btnParseCRTClick
         end
         object btnVerifySelfSignedCRT: TButton
@@ -423,7 +423,7 @@ object FormCA: TFormCA
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Verify Self-Signed CRT'
-          TabOrder = 4
+          TabOrder = 3
           OnClick = btnVerifySelfSignedCRTClick
         end
         object btnVerifyCRT: TButton
@@ -433,7 +433,7 @@ object FormCA: TFormCA
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Verify CRT'
-          TabOrder = 5
+          TabOrder = 4
           OnClick = btnVerifyCRTClick
         end
       end
