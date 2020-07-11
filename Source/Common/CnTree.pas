@@ -376,6 +376,12 @@ type
 {$ENDIF}
   end;
 
+{$IFDEF SUPPORT_FMX}
+
+function GetNextSiblingItem(Item: TTreeViewItem): TTreeViewItem;
+
+{$ENDIF}
+
 implementation
 
 {$IFDEF SUPPORT_FMX}

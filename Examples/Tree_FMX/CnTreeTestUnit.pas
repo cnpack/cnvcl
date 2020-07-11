@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Controls, FMX.Dialogs, FMX.Edit, FMX.Forms, FMX.Graphics, FMX.StdCtrls, FMX.TreeView, FMX.Types,
-  CnTree, FMX.Controls.Presentation, FMX.Layouts;
+  CnTree, CnTreeClasses, FMX.Controls.Presentation, FMX.Layouts;
 
 type
   TCnTreeTestForm = class(TForm)
