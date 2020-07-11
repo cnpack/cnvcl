@@ -5,9 +5,9 @@ CD Examples
 SETLOCAL ENABLEDELAYEDEXPANSION
 SET ROOTDIR=%~dp0
 ECHO ROOTDIR=!ROOTDIR!
-SET DCC32="C:\Program Files (x86)\Borland\Delphi7\Bin\dcc32.exe"
-SET DCC7_32="C:\Program Files (x86)\Borland\Delphi7\Bin\dcc32.exe"
-SET DCCR_32="C:\Program Files (x86)\Embarcadero\Studio\20.0\bin\dcc32.exe"
+SET DCC32="C:\Program Files\Borland\Delphi7\Bin\dcc32.exe"
+SET DCC7_32="C:\Program Files\Borland\Delphi7\Bin\dcc32.exe"
+SET DCCR_32="C:\Program Files\Embarcadero\Studio\20.0\bin\dcc32.exe"
 
 CD %ROOTDIR%
 SET DPR="NOVALUE"
