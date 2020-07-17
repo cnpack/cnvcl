@@ -28,8 +28,10 @@ unit CnNetRegister;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2002.04.18 V1.1
-*                为TCnRS232Dialog增加两个属性编辑器声明
+* 修改记录：2020.07.17 V1.2
+*                增加 TCP 系列组件的注册
+*           2002.04.18 V1.1
+*                为 TCnRS232Dialog 增加两个属性编辑器声明
 *           2002.04.08 V1.0
 *                创建单元
 ================================================================================
@@ -49,7 +51,7 @@ uses
   {$IFNDEF BCB5} {$IFNDEF BCB6} CnUDP, {$ENDIF} {$ENDIF}
   CnConsts, CnRS232, CnModem, CnRS232Dialog, CnIP, CnPing, CnDNS, CnDialUp,
   CnCameraEye, CnIISCtrl, CnTwain, CnIocpSimpleMemPool, CnIocpSocketAdapter,
-  CnNetPropEditor;
+  CnTCPClient, CnTCPForwarder, CnThreadingTCPServer, CnNetPropEditor;
 
 procedure Register;
 {* 控件、组件编辑器、属性编辑器注册过程}
@@ -65,6 +67,7 @@ begin
   RegisterComponents(SCnNetPalette, [TCnIP, TCnPing, TCnDNS]);
   RegisterComponents(SCnNetPalette, [TCnCameraEye, TCnIISCtrl, TCnTwain]);
   RegisterComponents(SCnNetPalette, [TCnIocpSimpleMemPool, TCnIocpSocketAdapter]);
+  RegisterComponents(SCnNetPalette, [TCnTCPClient, TCnTCPForwarder, TCnThreadingTCPServer]);
 {$IFNDEF BCB5} {$IFNDEF BCB6}
   RegisterComponents(SCnNetPalette, [TCnUDP]);
 {$ENDIF} {$ENDIF}
