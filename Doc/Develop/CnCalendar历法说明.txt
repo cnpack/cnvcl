@@ -329,6 +329,6 @@
 ======================================================================
 
     开发网站：http://www.cnpack.org
-　　开发论坛：http://bbs.cnpack.org
-　　管理员信箱：master@cnpack.org
+    开发论坛：http://bbs.cnpack.org
+    管理员信箱：master@cnpack.org
     源码：https://github.com/cnpack
