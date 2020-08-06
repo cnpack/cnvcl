@@ -141,7 +141,7 @@ const
     ($18, $F0, $7D, $EC, $3A, $DC, $4D, $20, $79, $EE, $5F, $3E, $D7, $CB, $39, $48)
   );
 
-  FK: array[0..3] of LongWord = ($3B1BAC6, $56AA3350, $677D9197, $B27022DC);
+  FK: array[0..3] of LongWord = ($A3B1BAC6, $56AA3350, $677D9197, $B27022DC);
 
   CK: array[0..SM4_KEYSIZE * 2 - 1] of LongWord = (
     $00070E15, $1C232A31, $383F464D, $545B6269,

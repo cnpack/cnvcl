@@ -80,7 +80,8 @@ function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
   DataLen: Integer; outStream: TStream): Boolean;
 {* 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
    PaddingType 取 0、1、2，BlockLen 字节数如 128 等
-   EB = 00 || BT || PS || 00 || D}
+   EB = 00 || BT || PS || 00 || D
+   其中 00 是前导规定字节，BT 是 1 字节的 PaddingType，PS 是填充的多字节内容，再 00 是规定的结尾字节}
 
 function RemovePKCS1Padding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
   out OutLen: Integer): Boolean;
