@@ -28,6 +28,9 @@ type
     btnIPDiv: TButton;
     lblIPEqual: TLabel;
     edtIP3: TEdit;
+    btnTestExample1: TButton;
+    btnTestExample2: TButton;
+    bvl2: TBevel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -37,6 +40,8 @@ type
     procedure btnIPSubClick(Sender: TObject);
     procedure btnIPMulClick(Sender: TObject);
     procedure btnIPDivClick(Sender: TObject);
+    procedure btnTestExample1Click(Sender: TObject);
+    procedure btnTestExample2Click(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -153,6 +158,87 @@ begin
   if mmoIP1.Lines.Text = FIP3.ToString then
     ShowMessage('Equal Verified OK.');
   R.Free;
+end;
+
+procedure TFormPolynomial.btnTestExample1Click(Sender: TObject);
+var
+  X, Y, P: TCnIntegerPolynomial;
+begin
+{
+  用例一：
+  构造一个有限域的二阶扩域 67*67，并指定其本原多项式是 u^2 + 1 = 0，
+  然后在上面构造一条椭圆曲线 y^2 = x^3 + 4x + 3，选一个点 2u + 16, 30u + 39
+  验证这个点在该椭圆曲线上。（注意 n 阶扩域上的椭圆曲线上的点的坐标是一对 n 次多项式）
+
+  该俩用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
+
+  具体实现就是计算(Y^2 - X^3 - A*X - B) mod Primtive，然后每个系数运算时都要 mod p
+  这里 A = 4，B = 3。
+  二阶扩域上，p 是素数 67，本原多项式是 u^2 + 1
+}
+
+  X := TCnIntegerPolynomial.Create([16, 2]);
+  Y := TCnIntegerPolynomial.Create([39, 30]);
+  P := TCnIntegerPolynomial.Create([1, 0, 1]);
+  try
+    IntegerPolynomialGaloisMul(Y, Y, Y, 67, P); // Y^2 得到 62X + 18
+
+    IntegerPolynomialMulWord(X, 4);
+    IntegerPolynomialSub(Y, Y, X);
+    IntegerPolynomialSubWord(Y, 3);             // Y 减去了 A*X - B，得到 54X + 18
+    IntegerPolynomialNonNegativeModWord(Y, 67);
+
+    X.SetCoefficents([16, 2]);
+    IntegerPolynomialGaloisPower(X, X, 3, 67, P);  // 得到 54X + 18
+
+
+    IntegerPolynomialSub(Y, Y, X);
+    IntegerPolynomialMod(Y, Y, P);    // 算出 0
+    ShowMessage(Y.ToString);
+  finally
+    P.Free;
+    Y.Free;
+    X.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnTestExample2Click(Sender: TObject);
+var
+  X, Y, P: TCnIntegerPolynomial;
+begin
+{
+  用例二：
+  构造一个有限域的二阶扩域 7691*7691，并指定其本原多项式是 u^2 + 1 = 0，
+  然后在上面构造一条椭圆曲线 y^2=x^3+1 mod 7691，选一个点 633u + 6145, 7372u + 109
+  验证这个点在该椭圆曲线上。
+
+  该俩用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 4.0.1
+
+  具体实现就是计算(Y^2 - X^3 - A*X - B) mod Primtive，然后每个系数运算时都要 mod p
+  这里 A = 0，B = 1
+  二阶扩域上，p 是素数 67，本原多项式是 u^2 + 1
+}
+
+  X := TCnIntegerPolynomial.Create([6145, 633]);
+  Y := TCnIntegerPolynomial.Create([109, 7372]);
+  P := TCnIntegerPolynomial.Create([1, 0, 1]);
+  try
+    IntegerPolynomialGaloisMul(Y, Y, Y, 7691, P);
+
+    IntegerPolynomialSubWord(Y, 1);
+    IntegerPolynomialNonNegativeModWord(Y, 7691);
+
+    X.SetCoefficents([6145, 633]);
+    IntegerPolynomialGaloisPower(X, X, 3, 7691, P);
+
+    IntegerPolynomialSub(Y, Y, X);
+    IntegerPolynomialMod(Y, Y, P);    // 算出 0
+    ShowMessage(Y.ToString);
+  finally
+    P.Free;
+    Y.Free;
+    X.Free;
+  end;
 end;
 
 end.

@@ -33,7 +33,7 @@ object FormPolynomial: TFormPolynomial
         TabOrder = 0
         object bvl1: TBevel
           Left = 24
-          Top = 64
+          Top = 68
           Width = 857
           Height = 17
           Shape = bsTopLine
@@ -64,6 +64,13 @@ object FormPolynomial: TFormPolynomial
           Font.Name = 'MS Sans Serif'
           Font.Style = [fsBold]
           ParentFont = False
+        end
+        object bvl2: TBevel
+          Left = 24
+          Top = 292
+          Width = 857
+          Height = 17
+          Shape = bsTopLine
         end
         object btnIPCreate: TButton
           Left = 24
@@ -173,6 +180,24 @@ object FormPolynomial: TFormPolynomial
           Width = 833
           Height = 21
           TabOrder = 12
+        end
+        object btnTestExample1: TButton
+          Left = 24
+          Top = 312
+          Width = 129
+          Height = 25
+          Caption = 'Galois Test Example 1'
+          TabOrder = 13
+          OnClick = btnTestExample1Click
+        end
+        object btnTestExample2: TButton
+          Left = 168
+          Top = 312
+          Width = 137
+          Height = 25
+          Caption = 'GaloisTest Example 2'
+          TabOrder = 14
+          OnClick = btnTestExample2Click
         end
       end
     end

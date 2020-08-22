@@ -25,7 +25,7 @@ unit CnECC;
 * 单元名称：椭圆曲线算法单元
 * 单元作者：刘啸
 * 备    注：目前实现了 Int64 范围内以及大数形式的形如 y^2 = x^3 + Ax + B mod p
-*           这类椭圆曲线的计算。
+*           这类椭圆曲线的计算，x 和 y 限于有限素域。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -1710,11 +1710,14 @@ var
   Inv: TCnEccPoint;
 begin
   Inv := TCnEccPoint.Create;
-  Inv.X := Q.X;
-  Inv.Y := Q.Y;
-  PointInverse(Inv);
-  PointAddPoint(P, Inv, Diff);
-  Inv.Free;
+  try
+    Inv.X := Q.X;
+    Inv.Y := Q.Y;
+    PointInverse(Inv);
+    PointAddPoint(P, Inv, Diff);
+  finally
+    Inv.Free;
+  end;
 end;
 
 function TCnEcc.PointToPlain(Point: TCnEccPoint;
