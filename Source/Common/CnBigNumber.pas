@@ -479,11 +479,11 @@ function BigNumberUnsignedSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
 
 function BigNumberAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
-{* 两个大数对象带符号相加，结果放至 Res 中，返回相加是否成功，Res 可以是 Num1 或 Num2}
+{* 两个大数对象带符号相加，结果放至 Res 中，返回相加是否成功，Num1 可以是 Num2，Res 可以是 Num1 或 Num2}
 
 function BigNumberSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
-{* 两个大数对象带符号相减，结果放至 Res 中，返回相减是否成功，Res 可以是 Num1 或 Num2}
+{* 两个大数对象带符号相减，结果放至 Res 中，返回相减是否成功，Num1 可以是 Num2，Res 可以是 Num1 或 Num2}
 
 function BigNumberShiftLeftOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 将一大数对象左移一位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num}

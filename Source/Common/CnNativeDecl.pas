@@ -155,6 +155,12 @@ function IsInt64AddOverflow(A, B: Int64): Boolean;
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 {* 判断两个 64 位无符号数相加是否溢出}
 
+function PointerToInteger(P: Pointer): Integer;
+{* 指针类型转换成整型，支持 32/64 位}
+
+function IntegerToPointer(I: Integer): Pointer;
+{* 整型转换成指针类型，支持 32/64 位}
+
 implementation
 
 {$IFDEF WIN64}
@@ -581,6 +587,28 @@ end;
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
+end;
+
+// 指针类型转换成整型，支持 32/64 位
+function PointerToInteger(P: Pointer): Integer;
+begin
+{$IFDEF WIN64}
+  // 先这么写，利用 Pointer 的低 32 位存 Integer
+  Result := Integer(P);
+{$ELSE}
+  Result := Integer(P);
+{$ENDIF}
+end;
+
+// 整型转换成指针类型，支持 32/64 位
+function IntegerToPointer(I: Integer): Pointer;
+begin
+{$IFDEF WIN64}
+  // 先这么写，利用 Pointer 的低 32 位存 Integer
+  Result := Pointer(I);
+{$ELSE}
+  Result := Pointer(I);
+{$ENDIF}
 end;
 
 end.
