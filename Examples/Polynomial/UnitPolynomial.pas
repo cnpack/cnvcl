@@ -31,6 +31,7 @@ type
     btnTestExample1: TButton;
     btnTestExample2: TButton;
     bvl2: TBevel;
+    btnTestExample3: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -42,6 +43,7 @@ type
     procedure btnIPDivClick(Sender: TObject);
     procedure btnTestExample1Click(Sender: TObject);
     procedure btnTestExample2Click(Sender: TObject);
+    procedure btnTestExample3Click(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -239,6 +241,31 @@ begin
     Y.Free;
     X.Free;
   end;
+end;
+
+procedure TFormPolynomial.btnTestExample3Click(Sender: TObject);
+var
+  X, P: TCnIntegerPolynomial;
+begin
+{
+  用例三：
+  构造一个有限域的二阶扩域 67*67，并指定其本原多项式是 u^2 + 1 = 0，
+  验证：(2u + 16)^67 = 65u + 16, (30u + 39)^67 = 37u + 39
+}
+
+  X := TCnIntegerPolynomial.Create([16, 2]);
+  P := TCnIntegerPolynomial.Create([1, 0, 1]);
+  try
+    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    ShowMessage(X.ToString);
+
+    X.SetCoefficents([39, 30]);
+    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    ShowMessage(X.ToString);
+  finally
+    X.Free;
+    P.Free;
+  end;   
 end;
 
 end.

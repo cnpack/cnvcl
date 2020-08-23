@@ -763,6 +763,9 @@ procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
    递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
+function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
+
 implementation
 
 {$IFDEF MACOS}
@@ -1810,6 +1813,43 @@ begin
   end;
   Q := Q0;
   V := V0;
+end;
+
+function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;
+var
+  I, J: Integer;
+  G, N, Sum: TUInt64;
+begin
+  Result := 0;
+  if High(Remainers) <> High(Factors) then
+    Exit;
+
+  Sum := 0;
+  for I := Low(Remainers) to High(Remainers) do
+  begin
+    // 对于每一个余数和对应除数，找出其他除数的公倍数中除以该除数余 1 的数（涉及到模逆元），
+    // 如 5 7 的公倍数 35n，对 3 余 1 的是 70。3 7 对 5 余 1 的是 21，3 5 对 7 余 1 的是 14
+    // 然后该余数和该模逆元相乘
+    // 所有的乘积加起来，mod 一下全体除数们的最小公倍数，就得到结果了
+    G := 1;
+    for J := Low(Factors) to High(Factors) do
+      if J <> I then
+        G := G * Factors[J];
+
+    // G 此刻是最小公倍数，因为 Factors 互素
+    // 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1
+    N := CnInt64ModularInverse(G, Factors[I]);
+    G := N * G; // 得到乘数
+
+    G := Remainers[I] * G; // 乘数与余数相乘
+    Sum := Sum + G;        // 求和
+  end;
+
+  // 得到 Sum 后，针对全体除数的最小公倍数求余即可
+  G := 1;
+  for J := Low(Factors) to High(Factors) do
+    G := G * Factors[J];
+  Result := UInt64Mod(Sum, G);
 end;
 
 end.

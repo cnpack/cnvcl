@@ -184,20 +184,29 @@ object FormPolynomial: TFormPolynomial
         object btnTestExample1: TButton
           Left = 24
           Top = 312
-          Width = 129
+          Width = 113
           Height = 25
-          Caption = 'Galois Test Example 1'
+          Caption = 'Galois Test Point 1'
           TabOrder = 13
           OnClick = btnTestExample1Click
         end
         object btnTestExample2: TButton
-          Left = 168
+          Left = 152
           Top = 312
-          Width = 137
+          Width = 113
           Height = 25
-          Caption = 'GaloisTest Example 2'
+          Caption = 'Galois Test Point 2'
           TabOrder = 14
           OnClick = btnTestExample2Click
+        end
+        object btnTestExample3: TButton
+          Left = 280
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Power 3'
+          TabOrder = 15
+          OnClick = btnTestExample3Click
         end
       end
     end

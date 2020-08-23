@@ -80,6 +80,8 @@ type
     btnDHIsRoot32: TButton;
     btnDHIsPrimitiveRoot64: TButton;
     btnDHRand: TButton;
+    tsCRT: TTabSheet;
+    btnCRTTest: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -104,6 +106,7 @@ type
     procedure btnDHIsRoot32Click(Sender: TObject);
     procedure btnDHIsPrimitiveRoot64Click(Sender: TObject);
     procedure btnDHRandClick(Sender: TObject);
+    procedure btnCRTTestClick(Sender: TObject);
   private
 
   public
@@ -466,6 +469,21 @@ begin
   Prime := StrToUInt64(edtDHPrime.Text);
   edtDHXa.Text := UInt64ToStr(Trunc(Random * Prime));
   edtDHXb.Text := UInt64ToStr(Trunc(Random * Prime));
+end;
+
+procedure TFormPrime.btnCRTTestClick(Sender: TObject);
+var
+  R, F: array of TUInt64;
+  C: TUInt64;
+begin
+  SetLength(R, 3);
+  SetLength(F, 3);
+
+  // 有物不知其数，三三数之剩二，五五数之剩三，七七数之剩二。问物几何？
+  F[0] := 3; F[1] := 5; F[2] := 7;
+  R[0] := 2; R[1] := 3; R[2] := 2;
+  C := ChineseRemainderTheoremInt64(R, F);
+  ShowMessage(IntToStr(C));
 end;
 
 end.

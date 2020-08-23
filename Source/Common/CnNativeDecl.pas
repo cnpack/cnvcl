@@ -91,6 +91,8 @@ type
   PUInt64          = ^TUInt64;
 {$ENDIF}
 
+  TUInt64Array = array of TUInt64;
+
 {$IFDEF MACOS}
   TCnUInt32List = TList<LongWord>;
   TCnUInt64List = TList<UInt64>;
