@@ -123,7 +123,8 @@ type
     {* 判断 P 点是否在本曲线上}
 
     function PlainToPoint(Plain: Int64; var OutPoint: TCnInt64EccPoint): Boolean;
-    {* 将要加密的明文数值包装成一个待加密的点}
+    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y
+       注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有 (0, 非零 Y)形式的合法点存在}
 
     procedure GenerateKeys(out PrivateKey: TCnInt64PrivateKey; out PublicKey: TCnInt64PublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
@@ -204,8 +205,8 @@ type
     {* 析构函数}
 
     procedure Load(Predefined: TCnEccCurveType); overload; virtual;
-    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1);overload; virtual;
-    {* 加载曲线参数}
+    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload; virtual;
+    {* 加载曲线参数，注意字符串参数是十六进制格式}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
@@ -219,7 +220,8 @@ type
     {* 判断 P 点是否在本曲线上}
 
     function PlainToPoint(Plain: TCnBigNumber; OutPoint: TCnEccPoint): Boolean;
-    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y}
+    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y
+       注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有 (0, 非零 Y)形式的合法点存在}
     function PointToPlain(Point: TCnEccPoint; OutPlain: TCnBigNumber): Boolean;
     {* 将解密出的明文点解开成一个明文数值，也就是将点的 X 值取出}
 
@@ -692,8 +694,10 @@ var
   R: Int64;
 begin
   inherited Create;
-  if not CnInt64IsPrime(FieldPrime) or not CnInt64IsPrime(Order) then
-    raise ECnEccException.Create('Infinite Field and Order must be a Prime Number.');
+
+  // 由外界保证 Order 为素数
+  if not CnInt64IsPrime(FieldPrime) then // or not CnInt64IsPrime(Order) then
+    raise ECnEccException.Create('Infinite Field must be a Prime Number.');
 
   if not (GX >= 0) and (GX < FieldPrime) or
     not (GY >= 0) and (GY < FieldPrime) then
@@ -884,6 +888,13 @@ begin
   B := FCoefficientB mod FFiniteFieldSize;
 
   G := (X3 + AX + B) mod FFiniteFieldSize; // 如果不溢出的话
+  if G = 0 then   // 如果 X^3 + AX + B 为 0，则直接返回 (Plain, 0) 并且肯定满足曲线方程
+  begin
+    OutPoint.X := Plain;
+    OutPoint.Y := 0;
+    Result := True;
+    Exit;
+  end;
 
   // 化为 Y^2 = N * p + B 要求找出 N 让右边为完全平方数，再求 Y 的正值
   // 要是硬算 N 从 0 开始加 1 遍历并开方计算是否完全平方数会特慢，不能这么整
@@ -1361,6 +1372,8 @@ begin
   FCoFactor := H;
 
   // TODO: 要确保 4*a^3+27*b^2 <> 0
+
+//  由调用者保证有限域边界为素数
 //  if not BigNumberIsProbablyPrime(FFiniteFieldSize) then
 //    raise ECnEccException.Create('Error: Finite Field Size must be Prime.');
 
@@ -1482,6 +1495,14 @@ begin
     CalcX3AddAXAddB(X);
     BigNumberMod(X, X, FFiniteFieldSize);
     BigNumberCopy(X3, X);    // 保存原始 g
+
+    if X3.IsZero then // 如果 (X^3 + AX + B) mod p 为 0，则直接返回 (Plain, 0) 并且肯定满足曲线方程
+    begin
+      BigNumberCopy(OutPoint.X, Plain);
+      OutPoint.Y.SetZero;
+      Result := True;
+      Exit;
+    end;
 
     // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节，这里 g 是 X 经过运算后的方程右半部分值
     case FSizePrimeType of

@@ -222,6 +222,13 @@ type
     cbbKeyHash: TComboBox;
     btnKeyGenerate: TButton;
     btnKeyLoadSig: TButton;
+    grpAttack: TGroupBox;
+    btnSimpleAttack: TButton;
+    btnTestCRT: TButton;
+    btnBNUpdate: TButton;
+    btnBNEccCalc: TButton;
+    cbbInt64EccPreset: TComboBox;
+    btnEccTestAdd: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -281,6 +288,12 @@ type
     procedure btnKeyVerifyClick(Sender: TObject);
     procedure btnKeyGenerateClick(Sender: TObject);
     procedure btnKeyLoadSigClick(Sender: TObject);
+    procedure btnSimpleAttackClick(Sender: TObject);
+    procedure btnTestCRTClick(Sender: TObject);
+    procedure btnBNUpdateClick(Sender: TObject);
+    procedure btnBNEccCalcClick(Sender: TObject);
+    procedure cbbInt64EccPresetChange(Sender: TObject);
+    procedure btnEccTestAddClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -706,35 +719,44 @@ begin
   chtEccInt64.LeftAxis.Maximum := P - 1;
 
   List := TStringList.Create;
-  for I := 0 to N + 1 do
-  begin
-    Q.X := X;
-    Q.Y := Y;
-    Ecc.MultiplePoint(I, Q);
-
-    if (Q.X = 0) and (Q.Y = 0) then
-      List.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
-    else
-      List.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
-    chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
-
-    X1 := Q.X;
-    Y1 := Q.Y;
-    // 顺便解 Q 点上的 X Y 方程验证
-    if not Ecc.PlainToPoint(X1, Q) then
+  try
+    for I := 0 to N + 1 do
     begin
-      ShowMessage(Format('Error %d: X: %d', [I, X1]));
-      Exit;
-    end
-    else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
-    begin
-      ShowMessage(Format('Error %d: X: %d. Y %d <> %d', [I, X1, Y1, Q.Y]));
-      Exit;
+      Q.X := X;
+      Q.Y := Y;
+      Ecc.MultiplePoint(I, Q);
+
+      if (Q.X = 0) and (Q.Y = 0) then
+        List.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
+      else
+        List.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
+      chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
+
+      X1 := Q.X;
+      Y1 := Q.Y;
+
+      if Q.X <> 0 then // 注意 X 为 0 时 PlainToPoint 直接用上零点了
+      begin
+        // 顺便解 Q 点上的 X Y 方程验证
+        if not Ecc.PlainToPoint(X1, Q) then // 求不出 X 指定的 Y
+        begin
+          mmoGenECCPoints.Lines.Assign(List);
+          ShowMessage(Format('Error %d: X: %d', [I, X1]));
+          // Exit;
+        end // 求出来了要判断是否和之前计算的一样,
+        else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
+        begin
+          mmoGenECCPoints.Lines.Assign(List);
+          ShowMessage(Format('Error %d: X: %d. Y %d <> %d', [I, X1, Y1, Q.Y]));
+          // Exit;
+        end;
+      end;
     end;
+    mmoGenECCPoints.Lines.Assign(List);
+  finally
+    List.Free;
+    Ecc.Free;
   end;
-  mmoGenECCPoints.Lines.Assign(List);
-  List.Free;
-  Ecc.Free;
 end;
 
 // 计算勒让德符号 ( A / P) 的值
@@ -1931,6 +1953,191 @@ begin
 
     Stream.Free;
   end;
+end;
+
+procedure TFormEcc.btnSimpleAttackClick(Sender: TObject);
+const
+  Factors: array[0..3] of Integer = (2, 3, 7, 23);
+var
+  I, J: Integer;
+  Ecc: TCnInt64Ecc;
+  Gi, Q, Qi: TCnInt64EccPoint;
+begin
+{
+  用例：E/F1021 上的椭圆曲线: y^2 = x^3 + 905x + 100，阶也就是点总数为 966
+  基点：1006, 416，有点（612, 827），求这个点是 G 的 k 倍点的 k 值
+
+  966 = 2 * 3 * 7 * 23，要求 k 值，只需要求各子群内和 k 同余的几个值，
+  然后用中国剩余定理求 k。
+  如何求 2、3、7、23 等子群里同余的值呢？
+
+  先针对每一个素因子 i，先求 G 的 966/i 倍点 Gi，同时也求 Q 的 966/i 倍点 Qi，
+  再从 1 到 i - 1 遍历，求 Qi 的几倍点是 Gi，这个几就是 ki
+}
+
+  Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 967);
+  // G 点阶用例中没提供，用下面注释掉的代码求得正是 966。说明这个曲线中的 h = 1
+
+//  for I := 1 to 1000 do
+//  begin
+//    GT := Ecc.Generator;
+//    Ecc.MultiplePoint(I, GT);
+//    if (GT.X = 0) and (GT.Y = 0) then
+//      ShowMessage(IntToStr(I));
+//  end;
+
+  for I := Low(Factors) to High(Factors) do
+  begin
+    Gi := Ecc.Generator;
+    Ecc.MultiplePoint(966 div Factors[I], Gi);  // 得到 966/i 倍点 Gi，分别是(174,0) (147,933) (906,201) (890,665)
+
+    Q.X := 612;
+    Q.Y := 827;
+                                                                   // 倍点值   1        0          1       ?
+    Qi := Q;
+    Ecc.MultiplePoint(966 div Factors[I], Qi); // 得到 966/i 倍点 Qi，分别是(174,0)   (0,0)    (906,201) (68,281)
+
+    ShowMessage(Format('G%d: %s. Q%d: %s',[I, CnInt64EccPointToString(Gi), I, CnInt64EccPointToString(Qi)]));
+
+    if (Qi.X = 0) and (Qi.Y = 0) then
+    begin
+      // Gi 的 0 倍点是 0
+      ShowMessage(Format('Found k 0 for factor %d', [Factors[I]]));
+    end
+    else
+    begin
+      // 循环求 Qi 是 Gi 的几倍点, 结果累加在 Qi 中
+      for J := 1 to Factors[I] do
+      begin
+        if (Qi.X = Gi.X) and (Qi.Y = Gi.Y) then
+          ShowMessage(Format('Found k %d for factor %d', [J, Factors[I]]));
+        Ecc.PointAddPoint(Gi, Qi, Qi);
+      end;
+    end;
+  end;
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnTestCRTClick(Sender: TObject);
+var
+  R, F: array of TUInt64;
+  C: TUInt64;
+begin
+  SetLength(R, 4);
+  SetLength(F, 4);
+
+  // 中国剩余定理攻击阶的素因子较小的椭圆曲线，用例来源于
+  // Craig Costello 的《Pairings for beginners》中的 Example 2.2.2
+  F[0] := 2; F[1] := 3; F[2] := 7; F[3] := 23;
+  R[0] := 1; R[1] := 0; R[2] := 1; R[3] := 20;
+  C := ChineseRemainderTheoremInt64(R, F);
+  ShowMessage(IntToStr(C)); // 得到 687
+end;
+
+procedure TFormEcc.btnBNUpdateClick(Sender: TObject);
+begin
+//  FBNEcc.Load(IntToHex(StrToInt(edtBNEccA.Text), 8),
+//    IntToHex(StrToInt(edtBNEccB.Text), 8),
+//    IntToHex(StrToInt(edtBNEccP.Text), 8),
+//    IntToHex(StrToInt(edtBNEccGX.Text), 8),
+//    IntToHex(StrToInt(edtBNEccGY.Text), 8),
+//    IntToHex(StrToInt(edtBNEccOrder.Text), 8));
+
+  FBNEcc.CoefficientA.SetDec(edtBNEccA.Text);
+  FBNEcc.CoefficientB.SetDec(edtBNEccB.Text);
+  FBNEcc.FiniteFieldSize.SetDec(edtBNEccP.Text);
+  FBNEcc.Generator.X.SetDec(edtBNEccGX.Text);
+  FBNEcc.Generator.Y.SetDec(edtBNEccGY.Text);
+  FBNEcc.Order.SetDec(edtBNEccOrder.Text);
+end;
+
+procedure TFormEcc.btnBNEccCalcClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+  K: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  K := TCnBigNumber.Create;
+  K.SetDec(CnInputBox('Enter', 'Enter a Multiple Count', '10'));
+  FBNEcc.MultiplePoint(K, P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  P.Free;
+  K.Free;
+end;
+
+procedure TFormEcc.cbbInt64EccPresetChange(Sender: TObject);
+begin
+  case cbbInt64EccPreset.ItemIndex of
+    0:
+    begin
+      edtEccA.Text := '12';
+      edtEccB.Text := '199';
+      edtEccP.Text := '73';
+      edtEccGX.Text := '21';
+      edtEccGY.Text := '21';
+      edtEccOrder.Text := '61';
+    end;
+    1:
+    begin
+      edtEccA.Text := '905';
+      edtEccB.Text := '100';
+      edtEccP.Text := '1021';
+      edtEccGX.Text := '1006';
+      edtEccGY.Text := '416';
+      edtEccOrder.Text := '966';
+    end;
+  end;
+end;
+
+procedure TFormEcc.btnEccTestAddClick(Sender: TObject);
+var
+  P, A, B, X, Y, N, X1, Y1: Int64;
+  Ecc: TCnInt64Ecc;
+  Q: TCnInt64EccPoint;
+begin
+  A := StrToInt(edtEccA.Text);
+  B := StrToInt(edtEccB.Text);
+  X := StrToInt(edtEccGX.Text);
+  Y := StrToInt(edtEccGY.Text);
+  P := StrToInt(edtEccP.Text);
+  N := StrToInt(edtEccOrder.Text);
+
+  Ecc := TCnInt64Ecc.Create(A, B, P, X, Y, N);
+  mmoGenECCPoints.Lines.Clear;
+  chtEccInt64.BottomAxis.Maximum := P - 1;
+  chtEccInt64.LeftAxis.Maximum := P - 1;
+
+  Q.X := X;
+  Q.Y := Y;
+  Ecc.MultiplePoint(StrToInt(CnInputBox('Enter', 'Enter a Multiple Count', '23')), Q);
+
+  if (Q.X = 0) and (Q.Y = 0) then
+    mmoGenECCPoints.Lines.Add(Format('*** (%d,%d)***', [Q.X, Q.Y]))
+  else
+    mmoGenECCPoints.Lines.Add(Format('(%d,%d)', [Q.X, Q.Y]));
+
+  if Ecc.IsPointOnCurve(Q) then
+    ShowMessage('Point is on Curve.')
+  else
+    ShowMessage('Point is NOT on Curve.');
+
+  X1 := Q.X;
+  Y1 := Q.Y;
+
+  // 顺便解 Q 点上的 X Y 方程验证
+  if X1 <> 0 then // 如果 X1 是 0，PlainToPoint 会直接返回零点
+  begin
+    if not Ecc.PlainToPoint(X1, Q) then
+    begin
+      ShowMessage(Format('Error: X: %d', [X1]));
+    end
+    else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
+    begin
+      ShowMessage(Format('Error: X: %d. Y %d <> %d', [X1, Y1, Q.Y]));
+    end;
+  end;
+  Ecc.Free;
 end;
 
 end.
