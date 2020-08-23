@@ -1956,12 +1956,11 @@ begin
 end;
 
 procedure TFormEcc.btnSimpleAttackClick(Sender: TObject);
-const
-  Factors: array[0..3] of Integer = (2, 3, 7, 23);
 var
   I, J: Integer;
   Ecc: TCnInt64Ecc;
-  Gi, Q, Qi: TCnInt64EccPoint;
+  Gi, Q, Qi, Sum: TCnInt64EccPoint;
+  Factors, Remains: array of Int64;
 begin
 {
   用例：E/F1021 上的椭圆曲线: y^2 = x^3 + 905x + 100，阶也就是点总数为 966
@@ -1975,7 +1974,10 @@ begin
   再从 1 到 i - 1 遍历，求 Qi 的几倍点是 Gi，这个几就是 ki
 }
 
-  Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 967);
+  SetLength(Factors, 4);
+  SetLength(Remains, 4);
+  Factors[0] := 2; Factors[1] := 3; Factors[2] := 7; Factors[3] := 23;
+  Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 966);
   // G 点阶用例中没提供，用下面注释掉的代码求得正是 966。说明这个曲线中的 h = 1
 
 //  for I := 1 to 1000 do
@@ -1988,33 +1990,41 @@ begin
 
   for I := Low(Factors) to High(Factors) do
   begin
-    Gi := Ecc.Generator;
-    Ecc.MultiplePoint(966 div Factors[I], Gi);  // 得到 966/i 倍点 Gi，分别是(174,0) (147,933) (906,201) (890,665)
+    Gi := Ecc.Generator;                                                   //  G483    G322      G138      G42
+    Ecc.MultiplePoint(966 div Factors[I], Gi);  // 得到 966/i 倍点 Gi，分别是 (174,0) (147,933) (906,201) (890,665)
 
-    Q.X := 612;
+    Q.X := 612; // G687 是要求的
     Q.Y := 827;
-                                                                   // 倍点值   1        0          1       ?
+                                                                   // 倍点值   1        0          1       20
     Qi := Q;
-    Ecc.MultiplePoint(966 div Factors[I], Qi); // 得到 966/i 倍点 Qi，分别是(174,0)   (0,0)    (906,201) (68,281)
-
+    Ecc.MultiplePoint(966 div Factors[I], Qi); // 得到 966/i 倍点 Qi，分别是 (174,0)   (0,0)    (906,201) (68,281)
+                                                                          //  G483/Q483 G0/Q322  G138/Q138 G840/Q42
     ShowMessage(Format('G%d: %s. Q%d: %s',[I, CnInt64EccPointToString(Gi), I, CnInt64EccPointToString(Qi)]));
 
     if (Qi.X = 0) and (Qi.Y = 0) then
     begin
       // Gi 的 0 倍点是 0
       ShowMessage(Format('Found k 0 for factor %d', [Factors[I]]));
+      Remains[I] := 0;
     end
     else
     begin
-      // 循环求 Qi 是 Gi 的几倍点, 结果累加在 Qi 中
+      Sum := Gi;
+      // 循环求 Qi 是 Gi 的几倍点, 结果累加在 Sum 中，也就是求 42*X mod 1021 = 840 照理 X = 20
       for J := 1 to Factors[I] do
       begin
-        if (Qi.X = Gi.X) and (Qi.Y = Gi.Y) then
+        if (Qi.X = Sum.X) and (Qi.Y = Sum.Y) then
+        begin
           ShowMessage(Format('Found k %d for factor %d', [J, Factors[I]]));
-        Ecc.PointAddPoint(Gi, Qi, Qi);
+          Remains[I] := J;
+        end;
+        Ecc.PointAddPoint(Gi, Sum, Sum);
       end;
     end;
   end;
+
+  // 求得各余数后用中国剩余定理求得 687
+  ShowMessage(IntToStr(ChineseRemainderTheoremInt64(Remains, Factors)));
   Ecc.Free;
 end;
 

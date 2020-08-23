@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsInt64ECC
+    ActivePage = tsWrapData
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
