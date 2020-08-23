@@ -32,6 +32,7 @@ type
     btnTestExample2: TButton;
     bvl2: TBevel;
     btnTestExample3: TButton;
+    btnTestExample4: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -44,6 +45,7 @@ type
     procedure btnTestExample1Click(Sender: TObject);
     procedure btnTestExample2Click(Sender: TObject);
     procedure btnTestExample3Click(Sender: TObject);
+    procedure btnTestExample4Click(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -218,7 +220,7 @@ begin
 
   具体实现就是计算(Y^2 - X^3 - A*X - B) mod Primtive，然后每个系数运算时都要 mod p
   这里 A = 0，B = 1
-  二阶扩域上，p 是素数 67，本原多项式是 u^2 + 1
+  二阶扩域上，p 是素数 7691，本原多项式是 u^2 + 1
 }
 
   X := TCnIntegerPolynomial.Create([6145, 633]);
@@ -251,6 +253,8 @@ begin
   用例三：
   构造一个有限域的二阶扩域 67*67，并指定其本原多项式是 u^2 + 1 = 0，
   验证：(2u + 16)^67 = 65u + 16, (30u + 39)^67 = 37u + 39
+
+  该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
 }
 
   X := TCnIntegerPolynomial.Create([16, 2]);
@@ -265,7 +269,54 @@ begin
   finally
     X.Free;
     P.Free;
-  end;   
+  end;
+end;
+
+procedure TFormPolynomial.btnTestExample4Click(Sender: TObject);
+var
+  X, P: TCnIntegerPolynomial;
+begin
+{
+  用例四：
+  构造一个有限域的三阶扩域 67*67*67，并指定其本原多项式是 u^3 + 2 = 0，
+  验证：
+  (15v^2 + 4v + 8)^67  = 33v^2 + 14v + 8, 44v^2 + 30v + 21)^67 = 3v^2 + 38v + 21
+  (15v^2 + 4v + 8)^(67^2)  = 19v^2 + 49v + 8, (44v^2 + 30v + 21)^(67^2) = 20v^2 + 66v + 21
+  (15v^2 + 4v + 8)^(67^3)  = 15v^2 + 4v + 8,  (44v^2 + 30v + 21)^(67^3) = 44v^2 + 30v + 21 都回到自身
+
+  该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
+}
+
+  X := TCnIntegerPolynomial.Create;
+  P := TCnIntegerPolynomial.Create([2, 0, 0, 1]);
+  try
+    X.SetCoefficents([8, 4, 15]);
+    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    ShowMessage(X.ToString);
+
+    X.SetCoefficents([21, 30, 44]);
+    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    ShowMessage(X.ToString);
+
+    X.SetCoefficents([8, 4, 15]);
+    IntegerPolynomialGaloisPower(X, X, 67 * 67, 67, P);
+    ShowMessage(X.ToString);
+
+    X.SetCoefficents([21, 30, 44]);
+    IntegerPolynomialGaloisPower(X, X, 67 * 67, 67, P);
+    ShowMessage(X.ToString);
+
+    X.SetCoefficents([8, 4, 15]);
+    IntegerPolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
+    ShowMessage(X.ToString);
+
+    X.SetCoefficents([21, 30, 44]);
+    IntegerPolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
+    ShowMessage(X.ToString);
+  finally
+    X.Free;
+    P.Free;
+  end;
 end;
 
 end.

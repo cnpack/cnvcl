@@ -784,6 +784,8 @@ begin
 
     for I := 0 to D do
     begin
+      if P.MaxDegree - I > SubRes.MaxDegree then                 // 中间结果可能跳位
+        Continue;
       IntegerPolynomialCopy(MulRes, Divisor);
       IntegerPolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
       IntegerPolynomialMulWord(MulRes, SubRes[P.MaxDegree - I]); // 除式乘到最高次系数相同

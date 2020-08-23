@@ -1,6 +1,6 @@
 object FormPolynomial: TFormPolynomial
   Left = 192
-  Top = 108
+  Top = 109
   Width = 955
   Height = 601
   Caption = 'Polynomial Test'
@@ -207,6 +207,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Galois Test Power 3'
           TabOrder = 15
           OnClick = btnTestExample3Click
+        end
+        object btnTestExample4: TButton
+          Left = 408
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Power 4'
+          TabOrder = 16
+          OnClick = btnTestExample4Click
         end
       end
     end
