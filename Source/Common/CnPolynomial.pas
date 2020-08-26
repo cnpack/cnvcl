@@ -72,6 +72,10 @@ type
     {* 剔除高次的 0 系数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将多项式转成字符串}
+    function IsZero: Boolean;
+    {* 返回是否为 0}
+    procedure SetZero;
+    {* 设为 0}
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
     {* 最高次数，0 开始}
   end;
@@ -257,6 +261,11 @@ begin
   Result := Count - 1;
 end;
 
+function TCnIntegerPolynomial.IsZero: Boolean;
+begin
+  Result := IntegerPolynomialIsZero(Self);
+end;
+
 procedure TCnIntegerPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
 var
   I: Integer;
@@ -296,6 +305,11 @@ begin
   if Value < 0 then
     raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Value]);
   Count := Value + 1;
+end;
+
+procedure TCnIntegerPolynomial.SetZero;
+begin
+  IntegerPolynomialSetZero(Self);
 end;
 
 function TCnIntegerPolynomial.ToString: string;

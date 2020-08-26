@@ -61,7 +61,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber,
-  CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
+  CnPolynomial, CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const
   // ecPublicKey 的 OID
@@ -91,7 +91,7 @@ type
   {* Int64 范围内的椭圆曲线的私钥，计算次数 k 次}
 
   TCnInt64Ecc = class
-  {* 描述一有限域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Int64 范围内}
+  {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Int64 范围内}
   private
     FGenerator: TCnInt64EccPoint;
     FCoefficientA: Int64;
@@ -149,7 +149,7 @@ type
   end;
 
   TCnEccPoint = class(TPersistent)
-  {* 椭圆曲线上的点描述类}
+  {* 有限素域上的椭圆曲线上的点描述类}
   private
     FY: TCnBigNumber;
     FX: TCnBigNumber;
@@ -180,7 +180,7 @@ type
   {* 支持的椭圆曲线类型}
 
   TCnEcc = class
-  {* 描述一有限域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
+  {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
   private
     FCoefficientB: TCnBigNumber;
     FCoefficientA: TCnBigNumber;
@@ -252,6 +252,74 @@ type
 
   TCnEccKeyType = (cktPKCS1, cktPKCS8);
   {* ECC 密钥文件格式}
+
+  TCnIntegerPolynomialEccPoint = class(TPersistent)
+  {* 有限扩域上的椭圆曲线上的多项式点描述类}
+  private
+    FY: TCnIntegerPolynomial;
+    FX: TCnIntegerPolynomial;
+    procedure SetX(const Value: TCnIntegerPolynomial);
+    procedure SetY(const Value: TCnIntegerPolynomial);
+  public
+    constructor Create; overload;
+    constructor Create(const XLowToHighCoefficients, YLowToHighCoefficients: array of const); overload;
+
+    destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
+    function IsZero: Boolean;
+    procedure SetZero;
+
+    property X: TCnIntegerPolynomial read FX write SetX;
+    property Y: TCnIntegerPolynomial read FY write SetY;
+  end;
+  
+  TCnIntegerPolynomialEcc = class
+  {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Integer 范围内}
+  private
+    FGenerator: TCnIntegerPolynomialEccPoint;
+    FCoefficientA: Integer;
+    FCoefficientB: Integer;
+    FFiniteFieldSize: Integer;
+    FOrder: Integer;
+    FExtension: Integer;
+    FPrimitive: TCnIntegerPolynomial;
+    procedure SetPrimitive(const Value: TCnIntegerPolynomial);
+  protected
+
+  public
+    constructor Create(A, B, FieldPrime, Ext: Integer; GX, GY: array of const;
+      Order: Integer; PrimitivePolynomial: array of const);
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure MultiplePoint(K: Integer; Point: TCnIntegerPolynomialEccPoint);
+    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    procedure PointAddPoint(P, Q, Sum: TCnIntegerPolynomialEccPoint);
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    procedure PointSubPoint(P, Q, Diff: TCnIntegerPolynomialEccPoint);
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    procedure PointInverse(P: TCnIntegerPolynomialEccPoint);
+    {* 计算 P 点的逆元 -P，值重新放入 P}
+    function IsPointOnCurve(P: TCnIntegerPolynomialEccPoint): Boolean;
+    {* 判断 P 点是否在本曲线上}
+
+    property Generator: TCnIntegerPolynomialEccPoint read FGenerator;
+    {* 基点坐标 G}
+    property CoefficientA: Integer read FCoefficientA;
+    {* 方程系数 A}
+    property CoefficientB: Integer read FCoefficientB;
+    {* 方程系数 B}
+    property FiniteFieldSize: Integer read FFiniteFieldSize;
+    {* 有限素域的上界，素数 p}
+    property Extension: Integer read FExtension write FExtension;
+    {* 有限扩域的次数，也即素数 p 的指数}
+    property Order: Integer read FOrder;
+    {* 基点的阶数}
+    property Primitive: TCnIntegerPolynomial read FPrimitive write SetPrimitive;
+    {* 本原多项式}
+  end;
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
@@ -2638,6 +2706,178 @@ begin
     esdtSM3: Result := 'SM3';
   else
     Result := '<Unknown>';
+  end;
+end;
+
+{ TCnIntegerPolynomialEccPoint }
+
+procedure TCnIntegerPolynomialEccPoint.Assign(Source: TPersistent);
+begin
+  if Source is TCnIntegerPolynomialEccPoint then
+  begin
+    IntegerPolynomialCopy(FX, (Source as TCnIntegerPolynomialEccPoint).X);
+    IntegerPolynomialCopy(FY, (Source as TCnIntegerPolynomialEccPoint).Y);
+  end
+  else
+    inherited;
+end;
+
+constructor TCnIntegerPolynomialEccPoint.Create;
+begin
+  inherited;
+  FX := TCnIntegerPolynomial.Create;
+  FY := TCnIntegerPolynomial.Create;
+end;
+
+constructor TCnIntegerPolynomialEccPoint.Create(
+  const XLowToHighCoefficients, YLowToHighCoefficients: array of const);
+begin
+  Create;
+  FX.SetCoefficents(XLowToHighCoefficients);
+  FY.SetCoefficents(YLowToHighCoefficients);
+end;
+
+destructor TCnIntegerPolynomialEccPoint.Destroy;
+begin
+  FY.Free;
+  FX.Free;
+  inherited;
+end;
+
+function TCnIntegerPolynomialEccPoint.IsZero: Boolean;
+begin
+  Result := FX.IsZero and FY.IsZero;
+end;
+
+procedure TCnIntegerPolynomialEccPoint.SetX(
+  const Value: TCnIntegerPolynomial);
+begin
+  if Value <> nil then
+    IntegerPolynomialCopy(FX, Value);
+end;
+
+procedure TCnIntegerPolynomialEccPoint.SetY(
+  const Value: TCnIntegerPolynomial);
+begin
+  if Value <> nil then
+    IntegerPolynomialCopy(FY, Value);
+end;
+
+procedure TCnIntegerPolynomialEccPoint.SetZero;
+begin
+  FX.SetZero;
+  FY.SetZero;
+end;
+
+{ TCnIntegerPolynomialEcc }
+
+constructor TCnIntegerPolynomialEcc.Create(A, B, FieldPrime, Ext: Integer; GX, GY: array of const;
+  Order: Integer; PrimitivePolynomial: array of const);
+begin
+  inherited Create;
+
+  // 由外界保证 Order 为素数
+  if not CnInt64IsPrime(FieldPrime) then // or not CnInt64IsPrime(Order) then
+    raise ECnEccException.Create('Infinite Field must be a Prime Number.');
+
+  // 扩域次数得大于 1
+  if Ext <= 1 then
+    raise ECnEccException.Create('Field Extension must > 1.');
+
+  // 要确保 4*a^3+27*b^2 <> 0
+  if 4 * A * A * A + 27 * B * B = 0 then
+    raise ECnEccException.Create('Error: 4 * A^3 + 27 * B^2 = 0');
+
+  FCoefficientA := A;
+  FCoefficientB := B;
+  FFiniteFieldSize := FieldPrime;
+  FExtension := Ext;
+
+  FGenerator := TCnIntegerPolynomialEccPoint.Create;
+  FGenerator.X.SetCoefficents(GX);
+  FGenerator.Y.SetCoefficents(GY);
+
+  FOrder := Order;
+
+  FPrimitive := TCnIntegerPolynomial.Create;
+  FPrimitive.SetCoefficents(PrimitivePolynomial);
+end;
+
+destructor TCnIntegerPolynomialEcc.Destroy;
+begin
+  FPrimitive.Free;
+  FGenerator.Free;
+  inherited;
+end;
+
+function TCnIntegerPolynomialEcc.IsPointOnCurve(
+  P: TCnIntegerPolynomialEccPoint): Boolean;
+var
+  X, Y: TCnIntegerPolynomial;
+begin
+  // 计算 (Y^2 - X^3 - A*X - B) mod primitive （多项式系数运算要 mod p）是否等于 0 多项式
+  Result := False;
+  if P <> nil then
+  begin
+    X := nil;
+    Y := nil;
+    try
+      Y := IntegerPolynomialDuplicate(P.Y);
+      IntegerPolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
+
+      X := IntegerPolynomialDuplicate(P.X);
+      IntegerPolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
+
+      IntegerPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);                // Y := Y^2 - X^3
+
+      IntegerPolynomialCopy(X, P.X);
+      IntegerPolynomialMulWord(X, FCoefficientA);
+      IntegerPolynomialAddWord(X, FCoefficientB);   // X := A*X + B
+      IntegerPolynomialNonNegativeModWord(X, FFiniteFieldSize);
+
+      IntegerPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
+      IntegerPolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+
+      Result := Y.IsZero;
+    finally
+      Y.Free;
+      X.Free;
+    end;
+  end;
+end;
+
+procedure TCnIntegerPolynomialEcc.MultiplePoint(K: Integer;
+  Point: TCnIntegerPolynomialEccPoint);
+begin
+
+end;
+
+procedure TCnIntegerPolynomialEcc.PointAddPoint(P, Q,
+  Sum: TCnIntegerPolynomialEccPoint);
+begin
+
+end;
+
+procedure TCnIntegerPolynomialEcc.PointInverse(
+  P: TCnIntegerPolynomialEccPoint);
+begin
+
+end;
+
+procedure TCnIntegerPolynomialEcc.PointSubPoint(P, Q,
+  Diff: TCnIntegerPolynomialEccPoint);
+begin
+
+end;
+
+procedure TCnIntegerPolynomialEcc.SetPrimitive(
+  const Value: TCnIntegerPolynomial);
+begin
+  if Value <> nil then
+  begin
+    if Value.MaxDegree <> FExtension then
+      raise ECnEccException.Create('Primitive Polynomial Max Degree must be Field Extension.');
+    IntegerPolynomialCopy(FPrimitive, Value);
   end;
 end;
 

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnPolynomial, StdCtrls, ComCtrls, ExtCtrls;
+  StdCtrls, ComCtrls, ExtCtrls, CnPolynomial, CnECC;
 
 type
   TFormPolynomial = class(TForm)
@@ -33,6 +33,9 @@ type
     bvl2: TBevel;
     btnTestExample3: TButton;
     btnTestExample4: TButton;
+    tsExtensionEcc: TTabSheet;
+    grpEccGalois: TGroupBox;
+    btnGaloisOnCurve: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -46,6 +49,7 @@ type
     procedure btnTestExample2Click(Sender: TObject);
     procedure btnTestExample3Click(Sender: TObject);
     procedure btnTestExample4Click(Sender: TObject);
+    procedure btnGaloisOnCurveClick(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -79,7 +83,7 @@ procedure TFormPolynomial.btnIPCreateClick(Sender: TObject);
 var
   IP: TCnIntegerPolynomial;
 begin
-  IP := TCnIntegerPolynomial.Create([23,4,-45,6,-78,23,34,1,0,-34,4]);
+  IP := TCnIntegerPolynomial.Create([23, 4, -45, 6, -78, 23, 34, 1, 0, -34, 4]);
   edtIP1.Text := IP.ToString;
   IP.Free;
 end;
@@ -319,4 +323,40 @@ begin
   end;
 end;
 
+procedure TFormPolynomial.btnGaloisOnCurveClick(Sender: TObject);
+var
+  Ecc: TCnIntegerPolynomialEcc;
+begin
+{
+  用例一：
+  椭圆曲线 y^2 = x^3 + 4x + 3, 如果定义在二次扩域 F67^2 上，本原多项式 u^2 + 1
+  判断基点 P(2u+16, 30u+39) 在曲线上
+
+  用例二：
+  椭圆曲线 y^2 = x^3 + 4x + 3, 如果定义在三次扩域 F67^3 上，本原多项式 u^3 + 2
+  判断基点 P((15v^2 + 4v + 8, 44v^2 + 30v + 21)) 在曲线上
+
+  该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
+}
+
+  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 2, [16, 2], [39, 30], 0, [1, 0,
+    1]); // Order 未指定，先不传
+  if Ecc.IsPointOnCurve(Ecc.Generator) then
+    ShowMessage('Ecc 1 Generator is on Curve')
+  else
+    ShowMessage('Error');
+
+  Ecc.Free;
+
+  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0,
+    [1, 0, 0, 1]); // Order 未指定，先不传
+  if Ecc.IsPointOnCurve(Ecc.Generator) then
+    ShowMessage('Ecc 2 Generator is on Curve')
+  else
+    ShowMessage('Error');  // 暂未成功
+
+  Ecc.Free;
+end;
+
 end.
+
