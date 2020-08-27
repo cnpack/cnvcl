@@ -1,6 +1,6 @@
 object FormPolynomial: TFormPolynomial
-  Left = 320
-  Top = 253
+  Left = 241
+  Top = 141
   Width = 955
   Height = 601
   Caption = 'Polynomial Test'
@@ -20,7 +20,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsExtensionEcc
+    ActivePage = tsIntegerPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Integer Polynomial'
@@ -68,7 +68,7 @@ object FormPolynomial: TFormPolynomial
         object bvl2: TBevel
           Left = 24
           Top = 292
-          Width = 857
+          Width = 865
           Height = 17
           Shape = bsTopLine
         end
@@ -216,6 +216,33 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Galois Test Power 4'
           TabOrder = 16
           OnClick = btnTestExample4Click
+        end
+        object btnPolyGcd: TButton
+          Left = 792
+          Top = 312
+          Width = 97
+          Height = 25
+          Caption = 'Test Poly Gcd'
+          TabOrder = 17
+          OnClick = btnPolyGcdClick
+        end
+        object btnGaloisTestGcd: TButton
+          Left = 536
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test GCD'
+          TabOrder = 18
+          OnClick = btnGaloisTestGcdClick
+        end
+        object btnTestGaloisMI: TButton
+          Left = 664
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Inverse'
+          TabOrder = 19
+          OnClick = btnTestGaloisMIClick
         end
       end
     end

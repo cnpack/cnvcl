@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, Math, CnNativeDecl;
+  SysUtils, Classes, SysConst, Math, CnPrimeNumber, CnNativeDecl;
 
 type
   ECnPolynomialException = class(Exception);
@@ -141,11 +141,13 @@ function IntegerPolynomialMul(const Res: TCnIntegerPolynomial; P1: TCnIntegerPol
 function IntegerPolynomialDiv(const Res: TCnIntegerPolynomial; const Remain: TCnIntegerPolynomial;
   const P: TCnIntegerPolynomial; const Divisor: TCnIntegerPolynomial): Boolean;
 {* 两个整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+   注意当商式或余式出现无法整除的分数时会抛出异常，无法支持，
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function IntegerPolynomialMod(const Res: TCnIntegerPolynomial; const P: TCnIntegerPolynomial;
   const Divisor: TCnIntegerPolynomial): Boolean;
 {* 两个整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
+   注意当商式或余式出现无法整除的分数时会抛出异常，无法支持，
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function IntegerPolynomialPower(const Res: TCnIntegerPolynomial;
@@ -153,50 +155,72 @@ function IntegerPolynomialPower(const Res: TCnIntegerPolynomial;
 {* 计算整系数多项式的 Exponent 次幂，不考虑系数溢出的问题，
    返回计算是否成功，Res 可以是 P}
 
-// ===================== 有限扩域下的整系数多项式模运算 =========================
+function IntegerPolynomialReduce(const P: TCnIntegerPolynomial): Integer;
+{* 化简多项式系数，也就是找多项式系数的最大公约数，各个系数除以它，返回最大公约数}
+
+function IntegerPolynomialGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
+  const P1, P2: TCnIntegerPolynomial): Boolean;
+{* 计算两个整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
+   注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行}
+
+// ===================== 有限扩域下的整系数多项式模运算 ========================
 
 function IntegerPolynomialGaloisAdd(const Res: TCnIntegerPolynomial; const P1: TCnIntegerPolynomial;
   const P2: TCnIntegerPolynomial; Prime: LongWord; Primitive: TCnIntegerPolynomial = nil): Boolean;
-{* 两个整系数多项式对象在 P 次方阶有限域上相加，结果放至 Res 中，
-   调用者需自行保证 P 是素数且 Res 次数低于本原多项式
+{* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function IntegerPolynomialGaloisSub(const Res: TCnIntegerPolynomial; const P1: TCnIntegerPolynomial;
   const P2: TCnIntegerPolynomial; Prime: LongWord; Primitive: TCnIntegerPolynomial = nil): Boolean;
-{* 两个整系数多项式对象在 P 次方阶有限域上相加，结果放至 Res 中，
-   调用者需自行保证 P 是素数且 Res 次数低于本原多项式
+{* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function IntegerPolynomialGaloisMul(const Res: TCnIntegerPolynomial; P1: TCnIntegerPolynomial;
   P2: TCnIntegerPolynomial; Prime: LongWord; Primitive: TCnIntegerPolynomial = nil): Boolean;
-{* 两个整系数多项式对象在 P 次方阶有限域上相乘，结果放至 Res 中，
-   调用者需自行保证 P 是素数且本原多项式 Primitive 为不可约多项式
+{* 两个整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function IntegerPolynomialGaloisDiv(const Res: TCnIntegerPolynomial;
   const Remain: TCnIntegerPolynomial; const P: TCnIntegerPolynomial;
   const Divisor: TCnIntegerPolynomial; Prime: LongWord; Primitive: TCnIntegerPolynomial = nil): Boolean;
-{* 两个整系数多项式对象在 P 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
-   调用者需自行保证 P 是素数且本原多项式 Primitive 为不可约多项式
+{* 两个整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function IntegerPolynomialGaloisMod(const Res: TCnIntegerPolynomial; const P: TCnIntegerPolynomial;
   const Divisor: TCnIntegerPolynomial; Prime: LongWord; Primitive: TCnIntegerPolynomial = nil): Boolean;
-{* 两个整系数多项式对象在 P 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
-   调用者需自行保证 P 是素数且本原多项式 Primitive 为不可约多项式
+{* 两个整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function IntegerPolynomialGaloisPower(const Res, P: TCnIntegerPolynomial;
   Exponent, Prime: LongWord; Primitive: TCnIntegerPolynomial): Boolean;
-{* 计算整系数多项式在 P 次方阶有限域上的 Exponent 次幂，
-   调用者需自行保证 P 是素数且本原多项式 Primitive 为不可约多项式
+{* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
+
+function IntegerPolynomialGaloisMulWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+{* 将 Prime 次方阶有限域上的整系数多项式各项系数乘以 N 再 mod Prime}
+
+function IntegerPolynomialGaloisDivWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+{* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
+
+function IntegerPolynomialGaloisMonic(const P: TCnIntegerPolynomial; Prime: LongWord): Integer;
+{* 将 Prime 次方阶有限域上的整系数多项式各项系数同除最高项，使首项为一，返回除的值}
+
+function IntegerPolynomialGaloisGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
+  const P1, P2: TCnIntegerPolynomial; Prime: LongWord): Boolean;
+{* 计算两个整系数多项式在 Prime 次方阶有限域上的的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
 
 implementation
 
 resourcestring
   SCnInvalidDegree = 'Invalid Degree %d';
   SCnErrorDivMaxDegree = 'Only MaxDegree 1 Support for Integer Polynomial.';
+  SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
 
 // 封装的非负求余函数，也就是余数为负时，加个除数变正
 function NonNegativeMod(N: Integer; P: LongWord): Integer;
@@ -601,9 +625,6 @@ begin
   if IntegerPolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
 
-  if Divisor[Divisor.MaxDegree] <> 1 then
-    raise ECnPolynomialException.Create(SCnErrorDivMaxDegree);
-
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
     if Res <> nil then
@@ -630,9 +651,16 @@ begin
 
     for I := 0 to D do
     begin
+      if P.MaxDegree - I > SubRes.MaxDegree then                 // 中间结果可能跳位
+        Continue;
+
+      // 判断 Divisor[Divisor.MaxDegree] 是否能整除 SubRes[P.MaxDegree - I] 不能则说明超出了整型多项式范围，无法支持，只能出错
+      if (SubRes[P.MaxDegree - I] mod Divisor[Divisor.MaxDegree]) <> 0 then
+        raise ECnPolynomialException.Create(SCnErrorDivExactly);
+
       IntegerPolynomialCopy(MulRes, Divisor);
       IntegerPolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
-      IntegerPolynomialMulWord(MulRes, SubRes[P.MaxDegree - I]); // 除式乘到最高次系数相同
+      IntegerPolynomialMulWord(MulRes, SubRes[P.MaxDegree - I] div MulRes[MulRes.MaxDegree]); // 除式乘到最高次系数相同
       DivRes[D - I] := SubRes[P.MaxDegree - I];                  // 商放到 DivRes 位置
       IntegerPolynomialSub(SubRes, SubRes, MulRes);              // 减后结果重新放回 SubRes
     end;
@@ -641,12 +669,12 @@ begin
       IntegerPolynomialCopy(Remain, SubRes);
     if Res <> nil then
       IntegerPolynomialCopy(Res, DivRes);
-    Result := True;
   finally
     SubRes.Free;
     MulRes.Free;
     DivRes.Free;
   end;
+  Result := True;
 end;
 
 function IntegerPolynomialMod(const Res: TCnIntegerPolynomial; const P: TCnIntegerPolynomial;
@@ -689,6 +717,85 @@ begin
     Result := True;
   finally
     T.Free;
+  end;
+end;
+
+function IntegerPolynomialReduce(const P: TCnIntegerPolynomial): Integer;
+var
+  I, D: Integer;
+
+  function Gcd(A, B: Integer): Integer;
+  var
+    T: Integer;
+  begin
+    while B <> 0 do
+    begin
+      T := B;
+      B := A mod B;
+      A := T;
+    end;
+    Result := A;
+  end;
+
+begin
+  if P.MaxDegree = 0 then
+  begin
+    Result := P[P.MaxDegree];
+    if P[P.MaxDegree] <> 0 then
+      P[P.MaxDegree] := 1;
+  end
+  else
+  begin
+    D := P[0];
+    for I := 0 to P.MaxDegree - 1 do
+    begin
+      D := Gcd(D, P[I + 1]);
+      if D = 1 then
+        Break;
+    end;
+
+    Result := D;
+    if Result > 1 then
+      IntegerPolynomialDivWord(P, Result);
+  end;
+end;
+
+function IntegerPolynomialGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
+  const P1, P2: TCnIntegerPolynomial): Boolean;
+var
+  A, B, C: TCnIntegerPolynomial;
+begin
+  A := nil;
+  B := nil;
+  C := nil;
+  try
+    if P1.MaxDegree >= P2.MaxDegree then
+    begin
+      A := IntegerPolynomialDuplicate(P1);
+      B := IntegerPolynomialDuplicate(P2);
+    end
+    else
+    begin
+      A := IntegerPolynomialDuplicate(P2);
+      B := IntegerPolynomialDuplicate(P1);
+    end;
+
+    C := TCnIntegerPolynomial.Create;
+    while not B.IsZero do
+    begin
+      IntegerPolynomialCopy(C, B);        // 备份 B
+      IntegerPolynomialMod(B, A, B);      // A mod B 给 B
+      // B 要系数约分化简
+      IntegerPolynomialReduce(B);
+      IntegerPolynomialCopy(A, C);        // 原始 B 给 A
+    end;
+
+    IntegerPolynomialCopy(Res, A);
+    Result := True;
+  finally
+    A.Free;
+    B.Free;
+    C.Free;
   end;
 end;
 
@@ -764,13 +871,12 @@ var
   SubRes: TCnIntegerPolynomial; // 容纳递减差
   MulRes: TCnIntegerPolynomial; // 容纳除数乘积
   DivRes: TCnIntegerPolynomial; // 容纳临时商
-  I, D: Integer;
+  I, D, K, T: Integer;
 begin
   if IntegerPolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
 
-  if Divisor[Divisor.MaxDegree] <> 1 then
-    raise ECnPolynomialException.Create(SCnErrorDivMaxDegree);
+  // 无需担心不能整除的问题，因为有逆元和 mod 操作
 
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -796,13 +902,22 @@ begin
     DivRes.MaxDegree := D;
     MulRes := TCnIntegerPolynomial.Create;
 
+    if Divisor[Divisor.MaxDegree] = 1 then
+      K := 1
+    else
+      K := CnInt64ModularInverse(Divisor[Divisor.MaxDegree], Prime); // K 是除式最高位的逆元
+
     for I := 0 to D do
     begin
       if P.MaxDegree - I > SubRes.MaxDegree then                 // 中间结果可能跳位
         Continue;
       IntegerPolynomialCopy(MulRes, Divisor);
       IntegerPolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
-      IntegerPolynomialMulWord(MulRes, SubRes[P.MaxDegree - I]); // 除式乘到最高次系数相同
+
+      // 除式要乘一个数，这个数是 SubRes 最高位除以除式最高位得到的结果，也即 SubRes 最高位乘以除式最高位的逆元再 mod Prime
+      T := NonNegativeMod(SubRes[P.MaxDegree - I] * K, Prime);
+      IntegerPolynomialGaloisMulWord(MulRes, T, Prime);          // 除式乘到最高次系数相同
+
       DivRes[D - I] := SubRes[P.MaxDegree - I];                  // 商放到 DivRes 位置
       IntegerPolynomialGaloisSub(SubRes, SubRes, MulRes, Prime); // 减求模后结果重新放回 SubRes
     end;
@@ -866,6 +981,80 @@ begin
     Result := True;
   finally
     T.Free;
+  end;
+end;
+
+function IntegerPolynomialGaloisMulWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+begin
+  IntegerPolynomialMulWord(P, N);
+  IntegerPolynomialNonNegativeModWord(P, Prime);
+  Result := True;
+end;
+
+function IntegerPolynomialGaloisDivWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+var
+  I, K: Integer;
+  B: Boolean;
+begin
+  if N = 0 then
+    raise ECnPolynomialException.Create(SDivByZero);
+
+  B := N < 0;
+  if B then
+    N := -N;
+
+  K := CnInt64ModularInverse(N, Prime); 
+  for I := 0 to P.MaxDegree do
+  begin
+    P[I] := NonNegativeMod(P[I] * K, Prime);
+    if B then
+      P[I] := -P[I] + Prime;
+  end;
+  Result := True;
+end;
+
+function IntegerPolynomialGaloisMonic(const P: TCnIntegerPolynomial; Prime: LongWord): Integer;
+begin
+  Result := P[P.MaxDegree];
+  if (Result <> 1) and (Result <> 0) then
+    IntegerPolynomialGaloisDivWord(P, Result, Prime);
+end;
+
+function IntegerPolynomialGaloisGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
+  const P1, P2: TCnIntegerPolynomial; Prime: LongWord): Boolean;
+var
+  A, B, C: TCnIntegerPolynomial;
+begin
+  A := nil;
+  B := nil;
+  C := nil;
+  try
+    if P1.MaxDegree >= P2.MaxDegree then
+    begin
+      A := IntegerPolynomialDuplicate(P1);
+      B := IntegerPolynomialDuplicate(P2);
+    end
+    else
+    begin
+      A := IntegerPolynomialDuplicate(P2);
+      B := IntegerPolynomialDuplicate(P1);
+    end;
+
+    C := TCnIntegerPolynomial.Create;
+    while not B.IsZero do
+    begin
+      IntegerPolynomialCopy(C, B);          // 备份 B
+      IntegerPolynomialGaloisMod(B, A, B, Prime);  // A mod B 给 B
+      IntegerPolynomialCopy(A, C);          // 原始 B 给 A
+    end;
+
+    IntegerPolynomialCopy(Res, A);
+    IntegerPolynomialGaloisMonic(Res, Prime);      // 首项化为一
+    Result := True;
+  finally
+    A.Free;
+    B.Free;
+    C.Free;
   end;
 end;
 

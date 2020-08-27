@@ -36,6 +36,9 @@ type
     tsExtensionEcc: TTabSheet;
     grpEccGalois: TGroupBox;
     btnGaloisOnCurve: TButton;
+    btnPolyGcd: TButton;
+    btnGaloisTestGcd: TButton;
+    btnTestGaloisMI: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -50,6 +53,9 @@ type
     procedure btnTestExample3Click(Sender: TObject);
     procedure btnTestExample4Click(Sender: TObject);
     procedure btnGaloisOnCurveClick(Sender: TObject);
+    procedure btnPolyGcdClick(Sender: TObject);
+    procedure btnGaloisTestGcdClick(Sender: TObject);
+    procedure btnTestGaloisMIClick(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -349,13 +355,46 @@ begin
   Ecc.Free;
 
   Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0,
-    [1, 0, 0, 1]); // Order 未指定，先不传
+    [2, 0, 0, 1]); // Order 未指定，先不传
   if Ecc.IsPointOnCurve(Ecc.Generator) then
     ShowMessage('Ecc 2 Generator is on Curve')
   else
-    ShowMessage('Error');  // 暂未成功
+    ShowMessage('Error');
 
   Ecc.Free;
+end;
+
+procedure TFormPolynomial.btnPolyGcdClick(Sender: TObject);
+begin
+  if (FIP2[FIP2.MaxDegree] <> 1) and (FIP2[FIP2.MaxDegree] <> 1) then
+  begin
+    ShowMessage('Divisor MaxDegree only Support 1, change to 1');
+    FIP1[FIP1.MaxDegree] := 1;
+    mmoIP1.Lines.Text := FIP1.ToString;
+    FIP2[FIP2.MaxDegree] := 1;
+    mmoIP2.Lines.Text := FIP2.ToString;
+  end;
+
+//  FIP1.SetCoefficents([-5, 2, 0, 3]);
+//  FIP2.SetCoefficents([-1, -2, 0, 3]);
+  if IntegerPolynomialGreatestCommonDivisor(FIP3, FIP1, FIP2) then
+    edtIP3.Text := FIP3.ToString;
+end;
+
+procedure TFormPolynomial.btnGaloisTestGcdClick(Sender: TObject);
+begin
+// GCD 例子：
+// F11 扩域上的 x^2 + 8x + 7 和 x^3 + 7x^2 + x + 7 的最大公因式是 x + 7
+  FIP1.SetCoefficents([7, 8, 1]);
+  FIP2.SetCoefficents([7, 1, 7, 1]);
+  if IntegerPolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 11) then
+    edtIP3.Text := FIP3.ToString;
+end;
+
+procedure TFormPolynomial.btnTestGaloisMIClick(Sender: TObject);
+begin
+// Modulus Inverse 例子：
+// F3 的扩域上的本原多项式 x^3 + 2x + 1 有 x^2 + 1 的模逆多项式为 2x^2 + x + 2
 end;
 
 end.
