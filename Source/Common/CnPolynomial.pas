@@ -29,7 +29,9 @@ unit CnPolynomial;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.08.21 V1.0
+* 修改记录：2020.08.28 V1.1
+*               实现有限扩域中对本原多项式求余的模逆元
+*           2020.08.21 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, Math, CnPrimeNumber, CnNativeDecl;
+  SysUtils, Classes, SysConst, Math, Contnrs, CnPrimeNumber, CnNativeDecl;
 
 type
   ECnPolynomialException = class(Exception);
@@ -76,8 +78,30 @@ type
     {* 返回是否为 0}
     procedure SetZero;
     {* 设为 0}
+    procedure SetOne;
+    {* 设为 1}
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
     {* 最高次数，0 开始}
+  end;
+
+  TCnIntegerPolynomialPool = class(TObjectList)
+  {* 整系数多项式池实现类，允许使用到大数的地方自行创建大数池}
+  private
+{$IFDEF MULTI_THREAD}
+  {$IFDEF MSWINDOWS}
+    FCriticalSection: TRTLCriticalSection;
+  {$ELSE}
+    FCriticalSection: TCriticalSection;
+  {$ENDIF}
+{$ENDIF}
+    procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+    procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Obtain: TCnIntegerPolynomial;
+    procedure Recycle(Poly: TCnIntegerPolynomial);
   end;
 
 function IntegerPolynomialNew: TCnIntegerPolynomial;
@@ -102,6 +126,9 @@ function IntegerPolynomialIsZero(const P: TCnIntegerPolynomial): Boolean;
 
 procedure IntegerPolynomialSetZero(const P: TCnIntegerPolynomial);
 {* 将一个整系数多项式对象设为 0}
+
+procedure IntegerPolynomialSetOne(const P: TCnIntegerPolynomial);
+{* 将一个整系数多项式对象设为 1}
 
 procedure IntegerPolynomialShiftLeft(const P: TCnIntegerPolynomial; N: Integer);
 {* 将一个整系数多项式对象左移 N 次，也就是各项指数都加 N}
@@ -213,7 +240,16 @@ function IntegerPolynomialGaloisMonic(const P: TCnIntegerPolynomial; Prime: Long
 
 function IntegerPolynomialGaloisGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
   const P1, P2: TCnIntegerPolynomial; Prime: LongWord): Boolean;
-{* 计算两个整系数多项式在 Prime 次方阶有限域上的的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
+{* 计算两个整系数多项式在 Prime 次方阶有限域上的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
+
+procedure IntegerPolynomialGaloisExtendedEuclideanGcd(A, B: TCnIntegerPolynomial;
+  X, Y: TCnIntegerPolynomial; Prime: LongWord);
+{* 扩展欧几里得辗转相除法在 Prime 次方阶有限域上求二元一次不定整系数多项式方程 A * X - B * Y = 1 的解}
+
+procedure IntegerPolynomialGaloisModularInverse(const Res: TCnIntegerPolynomial;
+  X, Modulus: TCnIntegerPolynomial; Prime: LongWord);
+{* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
+   满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素}
 
 implementation
 
@@ -221,6 +257,9 @@ resourcestring
   SCnInvalidDegree = 'Invalid Degree %d';
   SCnErrorDivMaxDegree = 'Only MaxDegree 1 Support for Integer Polynomial.';
   SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
+
+var
+  FLocalIntegerPolynomialPool: TCnIntegerPolynomialPool = nil;
 
 // 封装的非负求余函数，也就是余数为负时，加个除数变正
 function NonNegativeMod(N: Integer; P: LongWord): Integer;
@@ -331,6 +370,11 @@ begin
   Count := Value + 1;
 end;
 
+procedure TCnIntegerPolynomial.SetOne;
+begin
+  IntegerPolynomialSetOne(Self);
+end;
+
 procedure TCnIntegerPolynomial.SetZero;
 begin
   IntegerPolynomialSetZero(Self);
@@ -432,6 +476,12 @@ procedure IntegerPolynomialSetZero(const P: TCnIntegerPolynomial);
 begin
   P.Clear;
   P.Add(0);
+end;
+
+procedure IntegerPolynomialSetOne(const P: TCnIntegerPolynomial);
+begin
+  P.Clear;
+  P.Add(1);
 end;
 
 procedure IntegerPolynomialShiftLeft(const P: TCnIntegerPolynomial; N: Integer);
@@ -589,7 +639,7 @@ begin
   end;
 
   if (Res = P1) or (Res = P2) then
-    R := TCnIntegerPolynomial.Create
+    R := FLocalIntegerPolynomialPool.Obtain
   else
     R := Res;
 
@@ -609,7 +659,7 @@ begin
   if (Res = P1) or (Res = P2) then
   begin
     IntegerPolynomialCopy(Res, R);
-    R.Free;
+    FLocalIntegerPolynomialPool.Recycle(R);
   end;
   Result := True;
 end;
@@ -641,13 +691,13 @@ begin
   DivRes := nil;
 
   try
-    SubRes := TCnIntegerPolynomial.Create;
+    SubRes := FLocalIntegerPolynomialPool.Obtain;
     IntegerPolynomialCopy(SubRes, P);
 
     D := P.MaxDegree - Divisor.MaxDegree;
-    DivRes := TCnIntegerPolynomial.Create;
+    DivRes := FLocalIntegerPolynomialPool.Obtain;
     DivRes.MaxDegree := D;
-    MulRes := TCnIntegerPolynomial.Create;
+    MulRes := FLocalIntegerPolynomialPool.Obtain;
 
     for I := 0 to D do
     begin
@@ -670,9 +720,9 @@ begin
     if Res <> nil then
       IntegerPolynomialCopy(Res, DivRes);
   finally
-    SubRes.Free;
-    MulRes.Free;
-    DivRes.Free;
+    FLocalIntegerPolynomialPool.Recycle(SubRes);
+    FLocalIntegerPolynomialPool.Recycle(MulRes);
+    FLocalIntegerPolynomialPool.Recycle(DivRes);
   end;
   Result := True;
 end;
@@ -769,18 +819,21 @@ begin
   B := nil;
   C := nil;
   try
+    A := FLocalIntegerPolynomialPool.Obtain;
+    B := FLocalIntegerPolynomialPool.Obtain;
+
     if P1.MaxDegree >= P2.MaxDegree then
     begin
-      A := IntegerPolynomialDuplicate(P1);
-      B := IntegerPolynomialDuplicate(P2);
+      IntegerPolynomialCopy(A, P1);
+      IntegerPolynomialCopy(B, P2);
     end
     else
     begin
-      A := IntegerPolynomialDuplicate(P2);
-      B := IntegerPolynomialDuplicate(P1);
+      IntegerPolynomialCopy(A, P2);
+      IntegerPolynomialCopy(B, P1);
     end;
 
-    C := TCnIntegerPolynomial.Create;
+    C := FLocalIntegerPolynomialPool.Obtain;
     while not B.IsZero do
     begin
       IntegerPolynomialCopy(C, B);        // 备份 B
@@ -793,9 +846,9 @@ begin
     IntegerPolynomialCopy(Res, A);
     Result := True;
   finally
-    A.Free;
-    B.Free;
-    C.Free;
+    FLocalIntegerPolynomialPool.Recycle(A);
+    FLocalIntegerPolynomialPool.Recycle(B);
+    FLocalIntegerPolynomialPool.Recycle(C);
   end;
 end;
 
@@ -837,7 +890,7 @@ begin
   end;
 
   if (Res = P1) or (Res = P2) then
-    R := TCnIntegerPolynomial.Create
+    R := FLocalIntegerPolynomialPool.Obtain
   else
     R := Res;
 
@@ -854,12 +907,15 @@ begin
   end;
 
   R.CorrectTop;
+
   // 再对本原多项式取模，注意这里传入的本原多项式是 mod 操作的除数，不是本原多项式参数
-  IntegerPolynomialGaloisMod(R, R, Primitive, Prime);
+  if Primitive <> nil then
+    IntegerPolynomialGaloisMod(R, R, Primitive, Prime);
+
   if (Res = P1) or (Res = P2) then
   begin
     IntegerPolynomialCopy(Res, R);
-    R.Free;
+    FLocalIntegerPolynomialPool.Recycle(R);
   end;
   Result := True;
 end;
@@ -894,13 +950,13 @@ begin
   DivRes := nil;
 
   try
-    SubRes := TCnIntegerPolynomial.Create;
+    SubRes := FLocalIntegerPolynomialPool.Obtain;
     IntegerPolynomialCopy(SubRes, P);
 
     D := P.MaxDegree - Divisor.MaxDegree;
-    DivRes := TCnIntegerPolynomial.Create;
+    DivRes := FLocalIntegerPolynomialPool.Obtain;
     DivRes.MaxDegree := D;
-    MulRes := TCnIntegerPolynomial.Create;
+    MulRes := FLocalIntegerPolynomialPool.Obtain;
 
     if Divisor[Divisor.MaxDegree] = 1 then
       K := 1
@@ -935,9 +991,9 @@ begin
       IntegerPolynomialCopy(Res, DivRes);
     Result := True;
   finally
-    SubRes.Free;
-    MulRes.Free;
-    DivRes.Free;
+    FLocalIntegerPolynomialPool.Recycle(SubRes);
+    FLocalIntegerPolynomialPool.Recycle(MulRes);
+    FLocalIntegerPolynomialPool.Recycle(DivRes);
   end;
 end;
 
@@ -1008,7 +1064,7 @@ begin
   begin
     P[I] := NonNegativeMod(P[I] * K, Prime);
     if B then
-      P[I] := -P[I] + Prime;
+      P[I] := Prime - LongWord(P[I]);
   end;
   Result := True;
 end;
@@ -1029,18 +1085,21 @@ begin
   B := nil;
   C := nil;
   try
+    A := FLocalIntegerPolynomialPool.Obtain;
+    B := FLocalIntegerPolynomialPool.Obtain;
+
     if P1.MaxDegree >= P2.MaxDegree then
     begin
-      A := IntegerPolynomialDuplicate(P1);
-      B := IntegerPolynomialDuplicate(P2);
+      IntegerPolynomialCopy(A, P1);
+      IntegerPolynomialCopy(B, P2);
     end
     else
     begin
-      A := IntegerPolynomialDuplicate(P2);
-      B := IntegerPolynomialDuplicate(P1);
+      IntegerPolynomialCopy(A, P2);
+      IntegerPolynomialCopy(B, P1);
     end;
 
-    C := TCnIntegerPolynomial.Create;
+    C := FLocalIntegerPolynomialPool.Obtain;
     while not B.IsZero do
     begin
       IntegerPolynomialCopy(C, B);          // 备份 B
@@ -1052,10 +1111,157 @@ begin
     IntegerPolynomialGaloisMonic(Res, Prime);      // 首项化为一
     Result := True;
   finally
-    A.Free;
-    B.Free;
-    C.Free;
+    FLocalIntegerPolynomialPool.Recycle(A);
+    FLocalIntegerPolynomialPool.Recycle(B);
+    FLocalIntegerPolynomialPool.Recycle(C);
   end;
 end;
+
+procedure IntegerPolynomialGaloisExtendedEuclideanGcd(A, B: TCnIntegerPolynomial;
+  X, Y: TCnIntegerPolynomial; Prime: LongWord);
+var
+  T, P, M: TCnIntegerPolynomial;
+begin
+  if B.IsZero then
+  begin
+    X.SetZero;
+    X[0] := CnInt64ModularInverse(A[0], Prime);
+    // X 得是 A 对于 P 的模逆元而不能像整数的辗转相除法那样是 1
+    // 因为 A 可能是不等于 1 的整数
+    Y.SetZero;
+  end
+  else
+  begin
+    T := nil;
+    P := nil;
+    M := nil;
+
+    try
+      T := FLocalIntegerPolynomialPool.Obtain;
+      P := FLocalIntegerPolynomialPool.Obtain;
+      M := FLocalIntegerPolynomialPool.Obtain;
+
+      IntegerPolynomialGaloisMod(P, A, B, Prime);
+
+      IntegerPolynomialGaloisExtendedEuclideanGcd(B, P, Y, X, Prime);
+
+      // Y := Y - (A div B) * X;
+      IntegerPolynomialGaloisDiv(P, M, A, B, Prime);
+      IntegerPolynomialGaloisMul(P, P, X, Prime);
+      IntegerPolynomialGaloisSub(Y, Y, P, Prime);
+    finally
+      FLocalIntegerPolynomialPool.Recycle(M);
+      FLocalIntegerPolynomialPool.Recycle(P);
+      FLocalIntegerPolynomialPool.Recycle(T);
+    end;
+  end;
+end;
+
+procedure IntegerPolynomialGaloisModularInverse(const Res: TCnIntegerPolynomial;
+  X, Modulus: TCnIntegerPolynomial; Prime: LongWord);
+var
+  X1, Y: TCnIntegerPolynomial;
+begin
+  X1 := nil;
+  Y := nil;
+
+  try
+    X1 := FLocalIntegerPolynomialPool.Obtain;
+    Y := FLocalIntegerPolynomialPool.Obtain;
+
+    IntegerPolynomialCopy(X1, X);
+
+    // 扩展欧几里得辗转相除法求二元一次不定整系数多项式方程 A * X - B * Y = 1 的整数解
+    IntegerPolynomialGaloisExtendedEuclideanGcd(X1, Modulus, Res, Y, Prime);
+  finally
+    FLocalIntegerPolynomialPool.Recycle(X1);
+    FLocalIntegerPolynomialPool.Recycle(Y);
+  end;
+end;
+
+{ TCnIntegerPolynomialPool }
+
+constructor TCnIntegerPolynomialPool.Create;
+begin
+  inherited Create(False);
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  InitializeCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection := TCriticalSection.Create;
+{$ENDIF}
+{$ENDIF}
+end;
+
+destructor TCnIntegerPolynomialPool.Destroy;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    TObject(Items[I]).Free;
+
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  DeleteCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Free;
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TCnIntegerPolynomialPool.Enter;
+begin
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  EnterCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Acquire;
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TCnIntegerPolynomialPool.Leave;
+begin
+{$IFDEF MULTI_THREAD}
+{$IFDEF MSWINDOWS}
+  LeaveCriticalSection(FCriticalSection);
+{$ELSE}
+  FCriticalSection.Release;
+{$ENDIF}
+{$ENDIF}
+end;
+
+function TCnIntegerPolynomialPool.Obtain: TCnIntegerPolynomial;
+begin
+  Enter;
+  if Count = 0 then
+  begin
+    Result := TCnIntegerPolynomial.Create;
+  end
+  else
+  begin
+    Result := TCnIntegerPolynomial(Items[Count - 1]);
+    Delete(Count - 1);
+  end;
+  Leave;
+
+  Result.SetZero;
+end;
+
+procedure TCnIntegerPolynomialPool.Recycle(Poly: TCnIntegerPolynomial);
+begin
+  if Poly <> nil then
+  begin
+    Enter;
+    Add(Poly);
+    Leave;
+  end;
+end;
+
+initialization
+  FLocalIntegerPolynomialPool := TCnIntegerPolynomialPool.Create;
+
+finalization
+  FLocalIntegerPolynomialPool.Free;
 
 end.

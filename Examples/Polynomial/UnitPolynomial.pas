@@ -383,11 +383,18 @@ end;
 
 procedure TFormPolynomial.btnGaloisTestGcdClick(Sender: TObject);
 begin
-// GCD 例子：
+// GCD 例子一：
 // F11 扩域上的 x^2 + 8x + 7 和 x^3 + 7x^2 + x + 7 的最大公因式是 x + 7
   FIP1.SetCoefficents([7, 8, 1]);
-  FIP2.SetCoefficents([7, 1, 7, 1]);
+  FIP2.SetCoefficents([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
   if IntegerPolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 11) then
+    ShowMessage(FIP3.ToString);
+
+// GCD 例子二：
+// F2 扩域上的 x^6 + x^5 + x^4 + x^3 + x^2 + x + 1 和 x^4 + x^2 + x + 1 的最大公因式是 x^3 + x^2 + 1
+  FIP1.SetCoefficents([1,1,1,1,1,1,1]);
+  FIP2.SetCoefficents([1,1,1,0,1]);
+  if IntegerPolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 2) then
     edtIP3.Text := FIP3.ToString;
 end;
 
@@ -395,6 +402,10 @@ procedure TFormPolynomial.btnTestGaloisMIClick(Sender: TObject);
 begin
 // Modulus Inverse 例子：
 // F3 的扩域上的本原多项式 x^3 + 2x + 1 有 x^2 + 1 的模逆多项式为 2x^2 + x + 2
+  FIP1.SetCoefficents([1, 0, 1]);
+  FIP2.SetCoefficents([1, 2, 0, 1]);
+  IntegerPolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 3);
+    edtIP3.Text := FIP3.ToString;
 end;
 
 end.

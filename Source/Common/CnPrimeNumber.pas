@@ -740,20 +740,20 @@ function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
 {* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、M 必须互质}
 
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
-   如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
+   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: Cardinal);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
-   如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
+   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，
-   如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
+   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，
-   如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
+   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 function CnInt64Legendre(A, P: Int64): Integer;
 {* 计算勒让德符号 ( A / P) 的值}
