@@ -39,6 +39,8 @@ type
     btnPolyGcd: TButton;
     btnGaloisTestGcd: TButton;
     btnTestGaloisMI: TButton;
+    btnGF28Test1: TButton;
+    btnEccPointAdd: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -56,6 +58,8 @@ type
     procedure btnPolyGcdClick(Sender: TObject);
     procedure btnGaloisTestGcdClick(Sender: TObject);
     procedure btnTestGaloisMIClick(Sender: TObject);
+    procedure btnGF28Test1Click(Sender: TObject);
+    procedure btnEccPointAddClick(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -406,6 +410,58 @@ begin
   FIP2.SetCoefficents([1, 2, 0, 1]);
   IntegerPolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 3);
     edtIP3.Text := FIP3.ToString;
+end;
+
+procedure TFormPolynomial.btnGF28Test1Click(Sender: TObject);
+var
+  IP: TCnIntegerPolynomial;
+begin
+  FIP1.SetCoefficents([1,1,1,0,1,0,1]); // 57
+  FIP2.SetCoefficents([1,1,0,0,0,0,0,1]); // 83
+  FIP3.SetCoefficents([1,1,0,1,1,0,0,0,1]); // 本原多项式
+
+  IP := TCnIntegerPolynomial.Create;
+  IntegerPolynomialGaloisMul(IP, FIP1, FIP2, 2, FIP3);
+  edtIP3.Text := IP.ToString;  // 得到 1,0,0,0,0,0,1,1 
+  IP.Free;
+end;
+
+procedure TFormPolynomial.btnEccPointAddClick(Sender: TObject);
+var
+  Ecc: TCnIntegerPolynomialEcc;
+  P, Q, S: TCnIntegerPolynomialEccPoint;
+begin
+// 有限扩域上的多项式椭圆曲线点加
+// F67^2 上的椭圆曲线 y^2 = x^3 + 4x + 3 本原多项式 u^2 + 1
+// 点 P(2u + 16, 30u + 39) 满足 68P + 11πP = 0
+// 其中 πP 是 P 的 Frob 映射也就是 X Y 各 67 次方为用例三中的(65u + 16, 37u + 39)
+
+// 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
+
+  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 2, [16, 2], [39, 30], 0, [1, 0,
+    1]); // Order 未指定，先不传
+
+  P := TCnIntegerPolynomialEccPoint.Create;
+  P.Assign(Ecc.Generator);
+  Ecc.MultiplePoint(68, P);
+  ShowMessage(P.ToString);   // 15x+6, 63x+4
+
+  Q := TCnIntegerPolynomialEccPoint.Create;
+  Q.Assign(Ecc.Generator);
+  IntegerPolynomialGaloisPower(Q.X, Q.X, 67, 67, Ecc.Primitive);
+  IntegerPolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);
+
+  Ecc.MultiplePoint(11, Q);
+  ShowMessage(Q.ToString);   // 39x+2, 38x+48
+
+  S := TCnIntegerPolynomialEccPoint.Create;
+  Ecc.PointAddPoint(S, P, Q);
+  ShowMessage(S.ToString);   // 0, 0
+
+  S.Free;
+  P.Free;
+  Q.Free;
+  Ecc.Free;
 end;
 
 end.

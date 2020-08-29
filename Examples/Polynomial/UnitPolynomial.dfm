@@ -20,7 +20,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsIntegerPolynomial
+    ActivePage = tsExtensionEcc
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Integer Polynomial'
@@ -244,6 +244,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 19
           OnClick = btnTestGaloisMIClick
         end
+        object btnGF28Test1: TButton
+          Left = 24
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'GF2^8 Test1'
+          TabOrder = 20
+          OnClick = btnGF28Test1Click
+        end
       end
     end
     object tsExtensionEcc: TTabSheet
@@ -264,6 +273,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test 1 Point on Curve'
           TabOrder = 0
           OnClick = btnGaloisOnCurveClick
+        end
+        object btnEccPointAdd: TButton
+          Left = 176
+          Top = 32
+          Width = 113
+          Height = 25
+          Caption = 'Test Point Add'
+          TabOrder = 1
+          OnClick = btnEccPointAddClick
         end
       end
     end
