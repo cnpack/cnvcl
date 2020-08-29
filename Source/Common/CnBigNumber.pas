@@ -595,7 +595,7 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
 
 procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
-   调用者须自行保证 X、Modulus 互质}
+   调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
 
 function BigNumberLegendre(A, P: TCnBigNumber): Integer;
 {* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快}

@@ -136,6 +136,9 @@ procedure IntegerPolynomialShiftLeft(const P: TCnIntegerPolynomial; N: Integer);
 procedure IntegerPolynomialShiftRight(const P: TCnIntegerPolynomial; N: Integer);
 {* 将一个整系数多项式对象右移 N 次，也就是各项指数都减 N，小于 0 的忽略了}
 
+function IntegerPolynomialEqual(const A, B: TCnIntegerPolynomial): Boolean;
+{* 判断俩整系数多项式每项系数是否对应相等，是则返回 True}
+
 // =========================== 多项式普通运算 ==================================
 
 procedure IntegerPolynomialAddWord(const P: TCnIntegerPolynomial; N: Integer);
@@ -229,6 +232,12 @@ function IntegerPolynomialGaloisPower(const Res, P: TCnIntegerPolynomial;
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
+function IntegerPolynomialGaloisAddWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+{* 将 Prime 次方阶有限域上的整系数多项式的常系数加上 N 再 mod Prime}
+
+function IntegerPolynomialGaloisSubWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+{* 将 Prime 次方阶有限域上的整系数多项式的常系数减去 N 再 mod Prime}
+
 function IntegerPolynomialGaloisMulWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数乘以 N 再 mod Prime}
 
@@ -249,7 +258,7 @@ procedure IntegerPolynomialGaloisExtendedEuclideanGcd(A, B: TCnIntegerPolynomial
 procedure IntegerPolynomialGaloisModularInverse(const Res: TCnIntegerPolynomial;
   X, Modulus: TCnIntegerPolynomial; Prime: LongWord);
 {* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
-   满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素}
+   满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus}
 
 implementation
 
@@ -518,6 +527,24 @@ begin
 
     if P.Count = 0 then
       P.Add(0);
+  end;
+end;
+
+function IntegerPolynomialEqual(const A, B: TCnIntegerPolynomial): Boolean;
+var
+  I: Integer;
+begin
+  Result := A.MaxDegree = B.MaxDegree;
+  if Result then
+  begin
+    for I := A.MaxDegree downto 0 do
+    begin
+      if A[I] <> B[I] then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
   end;
 end;
 
@@ -1038,6 +1065,16 @@ begin
   finally
     T.Free;
   end;
+end;
+
+function IntegerPolynomialGaloisAddWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+begin
+  P[0] := NonNegativeMod(P[0] + N, Prime);
+end;
+
+function IntegerPolynomialGaloisSubWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
+begin
+  P[0] := NonNegativeMod(P[0] - N, Prime);
 end;
 
 function IntegerPolynomialGaloisMulWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
