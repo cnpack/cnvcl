@@ -41,6 +41,7 @@ type
     btnTestGaloisMI: TButton;
     btnGF28Test1: TButton;
     btnEccPointAdd: TButton;
+    btnTestEccPointAdd2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -60,6 +61,7 @@ type
     procedure btnTestGaloisMIClick(Sender: TObject);
     procedure btnGF28Test1Click(Sender: TObject);
     procedure btnEccPointAddClick(Sender: TObject);
+    procedure btnTestEccPointAdd2Click(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -461,6 +463,49 @@ begin
   S.Free;
   P.Free;
   Q.Free;
+  Ecc.Free;
+end;
+
+procedure TFormPolynomial.btnTestEccPointAdd2Click(Sender: TObject);
+var
+  Ecc: TCnIntegerPolynomialEcc;
+  P, Q, S: TCnIntegerPolynomialEccPoint;
+begin
+// 有限扩域上的多项式椭圆曲线点加
+// F67^3 上的椭圆曲线 y^2 = x^3 + 4x + 3 本原多项式 u^3 + 2
+// 点 P(15v^2 + 4v + 8, 44v^2 + 30v + 21) 满足 π2P - (-11)πP + 67P = 0
+// 其中 πP 是 P 的 Frob 映射也就是 X Y 各 67 次方
+// πP为用例四中的(33v^2 + 14v + 8, 3v^2 + 38v + 21)
+// π2P为用例四中的 67^2 次方(19v^2 + 49v + 8, 20v^2 + 66v + 21)
+
+// 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
+
+  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0, [2,
+    0, 0 ,1]); // Order 未指定，先不传
+
+  P := TCnIntegerPolynomialEccPoint.Create;
+  P.Assign(Ecc.Generator);
+  Ecc.MultiplePoint(67, P);                                        // 算 67P
+
+  Q := TCnIntegerPolynomialEccPoint.Create;
+  Q.Assign(Ecc.Generator);
+  IntegerPolynomialGaloisPower(Q.X, Q.X, 67, 67, Ecc.Primitive);
+  IntegerPolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);   // 算 πP
+  Ecc.MultiplePoint(-11, Q);                                       // 算 -11πp
+
+  S := TCnIntegerPolynomialEccPoint.Create;
+  Ecc.PointSubPoint(S, P, Q);
+
+  Q.Assign(Ecc.Generator);
+  IntegerPolynomialGaloisPower(Q.X, Q.X, 67*67, 67, Ecc.Primitive);
+  IntegerPolynomialGaloisPower(Q.Y, Q.Y, 67*67, 67, Ecc.Primitive); // 算 π2P
+
+  Ecc.PointAddPoint(S, S, Q);
+  ShowMessage(Q.ToString);
+
+  P.Free;
+  Q.Free;
+  S.Free;
   Ecc.Free;
 end;
 

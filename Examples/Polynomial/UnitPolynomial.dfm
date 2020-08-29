@@ -279,9 +279,18 @@ object FormPolynomial: TFormPolynomial
           Top = 32
           Width = 113
           Height = 25
-          Caption = 'Test Point Add'
+          Caption = 'Test Point Add 1'
           TabOrder = 1
           OnClick = btnEccPointAddClick
+        end
+        object btnTestEccPointAdd2: TButton
+          Left = 312
+          Top = 32
+          Width = 105
+          Height = 25
+          Caption = 'Test Point Add 2'
+          TabOrder = 2
+          OnClick = btnTestEccPointAdd2Click
         end
       end
     end
