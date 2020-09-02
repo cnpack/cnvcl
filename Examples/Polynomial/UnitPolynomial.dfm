@@ -292,6 +292,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 2
           OnClick = btnTestEccPointAdd2Click
         end
+        object btnTestDivPoly: TButton
+          Left = 440
+          Top = 32
+          Width = 177
+          Height = 25
+          Caption = 'Test Ecc Division Polynomial'
+          TabOrder = 3
+          OnClick = btnTestDivPolyClick
+        end
       end
     end
   end

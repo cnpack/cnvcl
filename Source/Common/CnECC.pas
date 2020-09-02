@@ -122,6 +122,9 @@ type
     function IsPointOnCurve(var P: TCnInt64EccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
 
+    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意 Integer 范围内次数一多就容易溢出}
+
     function PlainToPoint(Plain: Int64; var OutPoint: TCnInt64EccPoint): Boolean;
     {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y
        注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有 (0, 非零 Y)形式的合法点存在}
@@ -304,6 +307,9 @@ type
     {* 计算 P 点的逆元 -P，值重新放入 P}
     function IsPointOnCurve(P: TCnIntegerPolynomialEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
+
+    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意 Integer 范围内次数一多就容易溢出}
 
     property Generator: TCnIntegerPolynomialEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -832,6 +838,13 @@ destructor TCnInt64Ecc.Destroy;
 begin
 
   inherited;
+end;
+
+function TCnInt64Ecc.DivisionPolynomial(Degree: Integer;
+  outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+begin
+  Result := IntegerPolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
+    Degree, outDivisionPolynomial, FFiniteFieldSize);
 end;
 
 procedure TCnInt64Ecc.Encrypt(var PlainPoint: TCnInt64EccPoint;
@@ -2803,6 +2816,13 @@ begin
   FPrimitive.Free;
   FGenerator.Free;
   inherited;
+end;
+
+function TCnIntegerPolynomialEcc.DivisionPolynomial(Degree: Integer;
+  outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+begin
+  Result := IntegerPolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
+    Degree, outDivisionPolynomial, FFiniteFieldSize);
 end;
 
 function TCnIntegerPolynomialEcc.IsPointOnCurve(

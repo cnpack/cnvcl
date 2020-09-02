@@ -193,6 +193,16 @@ function IntegerPolynomialGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
 {* 计算两个整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行}
 
+function IntegerPolynomialReplace(const Res: TCnIntegerPolynomial;
+  const F, P: TCnIntegerPolynomial): Boolean;
+{* 整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
+
+function IntegerPolynomialCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
+  outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+{* 递归计算可除多项式，返回是否计算成功，注意 Integer 范围内次数一多就容易溢出
+   规则参考自 F. MORAIN 的文章
+  《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
+
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
 function IntegerPolynomialGaloisAdd(const Res: TCnIntegerPolynomial; const P1: TCnIntegerPolynomial;
@@ -227,7 +237,7 @@ function IntegerPolynomialGaloisMod(const Res: TCnIntegerPolynomial; const P: TC
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function IntegerPolynomialGaloisPower(const Res, P: TCnIntegerPolynomial;
-  Exponent, Prime: LongWord; Primitive: TCnIntegerPolynomial): Boolean;
+  Exponent, Prime: LongWord; Primitive: TCnIntegerPolynomial = nil): Boolean;
 {* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
@@ -260,11 +270,20 @@ procedure IntegerPolynomialGaloisModularInverse(const Res: TCnIntegerPolynomial;
 {* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
    满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus}
 
+function IntegerPolynomialGaloisReplace(const Res: TCnIntegerPolynomial;
+  const F, P: TCnIntegerPolynomial; Prime: LongWord): Boolean;
+{* 在 Prime 次方阶有限域上进行整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
+
+function IntegerPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
+  outDivisionPolynomial: TCnIntegerPolynomial; Prime: LongWord): Boolean;
+{* 递归计算在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
+   规则参考自 F. MORAIN 的文章
+  《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
+
 implementation
 
 resourcestring
   SCnInvalidDegree = 'Invalid Degree %d';
-  SCnErrorDivMaxDegree = 'Only MaxDegree 1 Support for Integer Polynomial.';
   SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
 
 var
@@ -879,6 +898,174 @@ begin
   end;
 end;
 
+function IntegerPolynomialReplace(const Res: TCnIntegerPolynomial;
+  const F, P: TCnIntegerPolynomial): Boolean;
+var
+  I: Integer;
+  R, X, T: TCnIntegerPolynomial;
+begin
+  if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
+  begin
+    Res.SetOne;
+    Res[0] := F[0];
+    Result := True;
+    Exit;
+  end;
+
+  if (Res = F) or (Res = P) then
+    R := FLocalIntegerPolynomialPool.Obtain
+  else
+    R := Res;
+
+  X := FLocalIntegerPolynomialPool.Obtain;
+  T := FLocalIntegerPolynomialPool.Obtain;
+  X.SetOne;
+  R.SetZero;
+
+  // 把 F 中的每个系数都和 P 的对应次幂相乘，最后相加
+  for I := 0 to F.MaxDegree do
+  begin
+    IntegerPolynomialCopy(T, X);
+    IntegerPolynomialMulWord(T, F[I]);
+    IntegerPolynomialAdd(R, R, T);
+
+    if I <> F.MaxDegree then
+      IntegerPolynomialMul(X, X, P);
+  end;
+
+  if (Res = F) or (Res = P) then
+  begin
+    IntegerPolynomialCopy(Res, R);
+    FLocalIntegerPolynomialPool.Recycle(R);
+  end;
+  Result := True;
+end;
+
+function IntegerPolynomialCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
+  outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+var
+  N: Integer;
+  D1, D2, D3, Y: TCnIntegerPolynomial;
+begin
+  Result := False;
+  if Degree < 0 then
+    Exit
+  else if Degree = 0 then
+  begin
+    outDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
+    Result := True;
+  end
+  else if (Degree = 1) or (Degree = 2) then
+  begin
+    outDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1, f2(X) = 1,
+    Result := True;
+  end
+  else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
+  begin
+    outDivisionPolynomial.SetCoefficents([- A * A,
+      12 * B, 6 * A, 0, 3]);
+    Result := True;
+  end
+  else if Degree = 4 then // f4(X) = 2 X6 + 10 a X4 + 40 b X3 - 10 a2X2 - 8 a b X - 2 a3 - 16 b^2
+  begin
+    outDivisionPolynomial.SetCoefficents([
+      -2 * A * A * A - 16 * B * B,
+      -8 * A * B, -10 * A * A,
+      40 * B, 10 * A, 0, 2]);
+    Result := True;
+  end
+  else
+  begin
+    D1 := nil;
+    D2 := nil;
+    D3 := nil;
+    Y := nil;
+
+    try
+      // 开始递归计算
+      N := Degree shr 1;
+      if (Degree and 1) = 0 then // Degree 是偶数
+      begin
+        D1 := FLocalIntegerPolynomialPool.Obtain;
+        IntegerPolynomialCalcDivisionPolynomial(A, B, N + 2, D1);
+
+        D2 := FLocalIntegerPolynomialPool.Obtain;
+        IntegerPolynomialCalcDivisionPolynomial(A, B, N - 1, D2);
+        IntegerPolynomialMul(D2, D2, D2);
+
+        IntegerPolynomialAdd(D1, D1, D2);   // D1 得到 Fn+2 * Fn-1 ^ 2
+
+        D3 := FLocalIntegerPolynomialPool.Obtain;
+        IntegerPolynomialCalcDivisionPolynomial(A, B, N - 2, D3);
+
+        IntegerPolynomialCalcDivisionPolynomial(A, B, N + 1, D2);
+        IntegerPolynomialMul(D2, D2, D2);   // D2 得到 Fn-2 * Fn+1 ^ 2
+
+        IntegerPolynomialSub(D1, D1, D2);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
+
+        IntegerPolynomialCalcDivisionPolynomial(A, B, N, D2);          // D2 得到 Fn
+        IntegerPolynomialReplace(outDivisionPolynomial, D2, D1); // 代入得到 F2n
+      end
+      else // Degree 是奇数
+      begin
+        Y := FLocalIntegerPolynomialPool.Obtain;
+        Y.SetCoefficents([4 * B, 4 * A, 0, 4]);
+        IntegerPolynomialMul(Y, Y, Y);
+
+        if (N and 1) <> 0 then // N 是奇数
+        begin
+          D1 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N + 2, D1);
+
+          D2 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N, D2);
+          IntegerPolynomialPower(D2, D2, 3);
+
+          IntegerPolynomialMul(D1, D1, D2);  // D1 得到 Fn+2 * Fn ^ 3
+
+          D3 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N + 1, D3);
+          IntegerPolynomialPower(D3, D3, 3); // D3 得到 Fn+1 ^ 3
+
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N - 1, D2);
+          IntegerPolynomialReplace(D2, D2, Y); // D2 得到 Fn-1(Y)
+
+          IntegerPolynomialMul(D2, D2, D3);    // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
+          IntegerPolynomialSub(outDivisionPolynomial, D1, D2);
+        end
+        else // N 是偶数
+        begin
+          D1 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N + 2, D1);
+
+          D2 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N, D2);
+          IntegerPolynomialPower(D2, D2, 3);
+
+          IntegerPolynomialMul(D1, D1, D2);
+          IntegerPolynomialMul(D1, D1, Y);   // D1 得到 Y * Fn+2 * Fn ^ 3
+
+          D3 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N + 1, D3);
+          IntegerPolynomialPower(D3, D3, 3); // D3 得到 Fn+1 ^ 3
+
+          IntegerPolynomialCalcDivisionPolynomial(A, B, N - 1, D2);     // D2 得到 Fn-1
+
+          IntegerPolynomialMul(D2, D2, D3);  // D2 得到 Fn+1 ^ 3 * Fn-1
+
+          IntegerPolynomialSub(outDivisionPolynomial, D1, D2);
+        end;
+      end;
+    finally
+      FLocalIntegerPolynomialPool.Recycle(D1);
+      FLocalIntegerPolynomialPool.Recycle(D2);
+      FLocalIntegerPolynomialPool.Recycle(D3);
+      FLocalIntegerPolynomialPool.Recycle(Y);
+    end;
+    Result := True;
+  end;
+end;
+
 function IntegerPolynomialGaloisAdd(const Res: TCnIntegerPolynomial; const P1: TCnIntegerPolynomial;
   const P2: TCnIntegerPolynomial; Prime: LongWord; Primitive: TCnIntegerPolynomial): Boolean;
 begin
@@ -1070,11 +1257,13 @@ end;
 function IntegerPolynomialGaloisAddWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
 begin
   P[0] := NonNegativeMod(P[0] + N, Prime);
+  Result := True;
 end;
 
 function IntegerPolynomialGaloisSubWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
 begin
   P[0] := NonNegativeMod(P[0] - N, Prime);
+  Result := True;
 end;
 
 function IntegerPolynomialGaloisMulWord(const P: TCnIntegerPolynomial; N: Integer; Prime: LongWord): Boolean;
@@ -1213,6 +1402,174 @@ begin
   finally
     FLocalIntegerPolynomialPool.Recycle(X1);
     FLocalIntegerPolynomialPool.Recycle(Y);
+  end;
+end;
+
+function IntegerPolynomialGaloisReplace(const Res: TCnIntegerPolynomial;
+  const F, P: TCnIntegerPolynomial; Prime: LongWord): Boolean;
+var
+  I: Integer;
+  R, X, T: TCnIntegerPolynomial;
+begin
+  if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
+  begin
+    Res.SetOne;
+    Res[0] := NonNegativeMod(F[0], Prime);
+    Result := True;
+    Exit;
+  end;
+
+  if (Res = F) or (Res = P) then
+    R := FLocalIntegerPolynomialPool.Obtain
+  else
+    R := Res;
+
+  X := FLocalIntegerPolynomialPool.Obtain;
+  T := FLocalIntegerPolynomialPool.Obtain;
+  X.SetOne;
+  R.SetZero;
+
+  // 把 F 中的每个系数都和 P 的对应次幂相乘，最后相加
+  for I := 0 to F.MaxDegree do
+  begin
+    IntegerPolynomialCopy(T, X);
+    IntegerPolynomialGaloisMulWord(T, F[I], Prime);
+    IntegerPolynomialGaloisAdd(R, R, T, Prime);
+
+    if I <> F.MaxDegree then
+      IntegerPolynomialGaloisMul(X, X, P, Prime);
+  end;
+
+  if (Res = F) or (Res = P) then
+  begin
+    IntegerPolynomialCopy(Res, R);
+    FLocalIntegerPolynomialPool.Recycle(R);
+  end;
+  Result := True;
+end;
+
+function IntegerPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
+  outDivisionPolynomial: TCnIntegerPolynomial; Prime: LongWord): Boolean;
+var
+  N: Integer;
+  D1, D2, D3, Y: TCnIntegerPolynomial;
+begin
+  Result := False;
+  if Degree < 0 then
+    Exit
+  else if Degree = 0 then
+  begin
+    outDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
+    Result := True;
+  end
+  else if (Degree = 1) or (Degree = 2) then
+  begin
+    outDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1, f2(X) = 1,
+    Result := True;
+  end
+  else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
+  begin
+    outDivisionPolynomial.SetCoefficents([- A * A,
+      12 * B, 6 * A, 0, 3]);
+    IntegerPolynomialNonNegativeModWord(outDivisionPolynomial, Prime);
+    Result := True;
+  end
+  else if Degree = 4 then // f4(X) = 2 X6 + 10 a X4 + 40 b X3 - 10 a2X2 - 8 a b X - 2 a3 - 16 b^2
+  begin
+    outDivisionPolynomial.SetCoefficents([-2 * A * A * A - 16 * B * B,
+      -8 * A * B, -10 * A * A, 40 * B, 10 * A, 0, 2]);
+    IntegerPolynomialNonNegativeModWord(outDivisionPolynomial, Prime);
+    Result := True;
+  end
+  else
+  begin
+    D1 := nil;
+    D2 := nil;
+    D3 := nil;
+    Y := nil;
+
+    try
+      // 开始递归计算
+      N := Degree shr 1;
+      if (Degree and 1) = 0 then // Degree 是偶数
+      begin
+        D1 := FLocalIntegerPolynomialPool.Obtain;
+        IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N + 2, D1, Prime);
+
+        D2 := FLocalIntegerPolynomialPool.Obtain;
+        IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);
+        IntegerPolynomialGaloisMul(D2, D2, D2, Prime);
+
+        IntegerPolynomialGaloisAdd(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
+
+        D3 := FLocalIntegerPolynomialPool.Obtain;
+        IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N - 2, D3, Prime);
+
+        IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N + 1, D2, Prime);
+        IntegerPolynomialGaloisMul(D2, D2, D2, Prime);   // D2 得到 Fn-2 * Fn+1 ^ 2
+
+        IntegerPolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
+
+        IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);          // D2 得到 Fn
+        IntegerPolynomialReplace(outDivisionPolynomial, D2, D1); // 代入得到 F2n
+      end
+      else // Degree 是奇数
+      begin
+        Y := FLocalIntegerPolynomialPool.Obtain;
+        Y.SetCoefficents([4 * B, 4 * A, 0, 4]);
+        IntegerPolynomialGaloisMul(Y, Y, Y, Prime);
+
+        if (N and 1) <> 0 then // N 是奇数
+        begin
+          D1 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N + 2, D1, Prime);
+
+          D2 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);
+          IntegerPolynomialGaloisPower(D2, D2, 3, Prime);
+
+          IntegerPolynomialGaloisMul(D1, D1, D2, Prime);  // D1 得到 Fn+2 * Fn ^ 3
+
+          D3 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N + 1, D3, Prime);
+          IntegerPolynomialGaloisPower(D3, D3, 3, Prime); // D3 得到 Fn+1 ^ 3
+
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);
+          IntegerPolynomialGaloisReplace(D2, D2, Y, Prime); // D2 得到 Fn-1(Y)
+
+          IntegerPolynomialGaloisMul(D2, D2, D3, Prime);    // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
+          IntegerPolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
+        end
+        else // N 是偶数
+        begin
+          D1 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N + 2, D1, Prime);
+
+          D2 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);
+          IntegerPolynomialGaloisPower(D2, D2, 3, Prime);
+
+          IntegerPolynomialGaloisMul(D1, D1, D2, Prime);
+          IntegerPolynomialGaloisMul(D1, D1, Y, Prime);   // D1 得到 Y * Fn+2 * Fn ^ 3
+
+          D3 := FLocalIntegerPolynomialPool.Obtain;
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N + 1, D3, Prime);
+          IntegerPolynomialGaloisPower(D3, D3, 3, Prime); // D3 得到 Fn+1 ^ 3
+
+          IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);     // D2 得到 Fn-1
+
+          IntegerPolynomialGaloisMul(D2, D2, D3, Prime);  // D2 得到 Fn+1 ^ 3 * Fn-1
+
+          IntegerPolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
+        end;
+      end;
+    finally
+      FLocalIntegerPolynomialPool.Recycle(D1);
+      FLocalIntegerPolynomialPool.Recycle(D2);
+      FLocalIntegerPolynomialPool.Recycle(D3);
+      FLocalIntegerPolynomialPool.Recycle(Y);
+    end;
+    Result := True;
   end;
 end;
 
