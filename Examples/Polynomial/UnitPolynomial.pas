@@ -43,6 +43,7 @@ type
     btnEccPointAdd: TButton;
     btnTestEccPointAdd2: TButton;
     btnTestDivPoly: TButton;
+    btnTestDivPoly2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -64,6 +65,7 @@ type
     procedure btnEccPointAddClick(Sender: TObject);
     procedure btnTestEccPointAdd2Click(Sender: TObject);
     procedure btnTestDivPolyClick(Sender: TObject);
+    procedure btnTestDivPoly2Click(Sender: TObject);
   private
     FIP1: TCnIntegerPolynomial;
     FIP2: TCnIntegerPolynomial;
@@ -533,6 +535,33 @@ begin
   IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 4, P, 101);  // ...
   ShowMessage(P.ToString);
   IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 5, P, 101);  // 5x12 ... 16
+  ShowMessage(P.ToString);
+
+  P.Free;
+end;
+
+procedure TFormPolynomial.btnTestDivPoly2Click(Sender: TObject);
+var
+  P: TCnIntegerPolynomial;
+begin
+  // 验证可除多项式的生成
+  // 如在 F13 上定义的椭圆曲线: y^2 = x^3 + 2x + 1
+  // 用例数据不完整只能认为基本通过
+  // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.10
+
+  P := TCnIntegerPolynomial.Create;
+
+  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 0, P, 13);
+  ShowMessage(P.ToString);
+  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 1, P, 13);
+  ShowMessage(P.ToString);
+  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 2, P, 13);
+  ShowMessage(P.ToString);
+  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 3, P, 13);  // 3x4 +12x2+12x+9
+  ShowMessage(P.ToString);
+  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 4, P, 13);  // ...
+  ShowMessage(P.ToString);
+  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 5, P, 13);  // 5x12 ... 6x + 7
   ShowMessage(P.ToString);
 
   P.Free;

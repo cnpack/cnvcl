@@ -193,7 +193,7 @@ function IntegerPolynomialGreatestCommonDivisor(const Res: TCnIntegerPolynomial;
 {* 计算两个整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行}
 
-function IntegerPolynomialReplace(const Res: TCnIntegerPolynomial;
+function IntegerPolynomialCompose(const Res: TCnIntegerPolynomial;
   const F, P: TCnIntegerPolynomial): Boolean;
 {* 整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
 
@@ -270,7 +270,7 @@ procedure IntegerPolynomialGaloisModularInverse(const Res: TCnIntegerPolynomial;
 {* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
    满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus}
 
-function IntegerPolynomialGaloisReplace(const Res: TCnIntegerPolynomial;
+function IntegerPolynomialGaloisCompose(const Res: TCnIntegerPolynomial;
   const F, P: TCnIntegerPolynomial; Prime: LongWord): Boolean;
 {* 在 Prime 次方阶有限域上进行整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
 
@@ -898,7 +898,7 @@ begin
   end;
 end;
 
-function IntegerPolynomialReplace(const Res: TCnIntegerPolynomial;
+function IntegerPolynomialCompose(const Res: TCnIntegerPolynomial;
   const F, P: TCnIntegerPolynomial): Boolean;
 var
   I: Integer;
@@ -1004,7 +1004,7 @@ begin
         IntegerPolynomialSub(D1, D1, D2);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
 
         IntegerPolynomialCalcDivisionPolynomial(A, B, N, D2);          // D2 得到 Fn
-        IntegerPolynomialReplace(outDivisionPolynomial, D2, D1); // 代入得到 F2n
+        IntegerPolynomialCompose(outDivisionPolynomial, D2, D1); // 代入得到 F2n
       end
       else // Degree 是奇数
       begin
@@ -1028,7 +1028,7 @@ begin
           IntegerPolynomialPower(D3, D3, 3); // D3 得到 Fn+1 ^ 3
 
           IntegerPolynomialCalcDivisionPolynomial(A, B, N - 1, D2);
-          IntegerPolynomialReplace(D2, D2, Y); // D2 得到 Fn-1(Y)
+          IntegerPolynomialCompose(D2, D2, Y); // D2 得到 Fn-1(Y)
 
           IntegerPolynomialMul(D2, D2, D3);    // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
           IntegerPolynomialSub(outDivisionPolynomial, D1, D2);
@@ -1405,7 +1405,7 @@ begin
   end;
 end;
 
-function IntegerPolynomialGaloisReplace(const Res: TCnIntegerPolynomial;
+function IntegerPolynomialGaloisCompose(const Res: TCnIntegerPolynomial;
   const F, P: TCnIntegerPolynomial; Prime: LongWord): Boolean;
 var
   I: Integer;
@@ -1511,7 +1511,7 @@ begin
         IntegerPolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
 
         IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);          // D2 得到 Fn
-        IntegerPolynomialReplace(outDivisionPolynomial, D2, D1); // 代入得到 F2n
+        IntegerPolynomialCompose(outDivisionPolynomial, D2, D1); // 代入得到 F2n
       end
       else // Degree 是奇数
       begin
@@ -1535,7 +1535,7 @@ begin
           IntegerPolynomialGaloisPower(D3, D3, 3, Prime); // D3 得到 Fn+1 ^ 3
 
           IntegerPolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);
-          IntegerPolynomialGaloisReplace(D2, D2, Y, Prime); // D2 得到 Fn-1(Y)
+          IntegerPolynomialGaloisCompose(D2, D2, Y, Prime); // D2 得到 Fn-1(Y)
 
           IntegerPolynomialGaloisMul(D2, D2, D3, Prime);    // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
           IntegerPolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
