@@ -229,6 +229,8 @@ type
     btnBNEccCalc: TButton;
     cbbInt64EccPreset: TComboBox;
     btnEccTestAdd: TButton;
+    btnHassenTest: TButton;
+    btnHassenTest2: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -294,6 +296,8 @@ type
     procedure btnBNEccCalcClick(Sender: TObject);
     procedure cbbInt64EccPresetChange(Sender: TObject);
     procedure btnEccTestAddClick(Sender: TObject);
+    procedure btnHassenTestClick(Sender: TObject);
+    procedure btnHassenTest2Click(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -2147,6 +2151,86 @@ begin
       ShowMessage(Format('Error: X: %d. Y %d <> %d', [X1, Y1, Q.Y]));
     end;
   end;
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnHassenTestClick(Sender: TObject);
+var
+  Ecc: TCnInt64Ecc;
+  D1, D2, D3: TCnInt64EccPoint;
+  I: Integer;
+begin
+  // 用例：给定椭圆曲线上的一个点比如基点 P(x, y)
+  // 验证其是否符合 π^2 - tπ+ q = 0
+  // 也就是穷举求 (x^(q^2), y^(q^2) - t * (x^q, y^q) + q * (x, y) = 0 中的 t
+  // 如 F1021 上定义的 y2 = x3 + 905 + 100  P(1006, 416) 阶为 966，点总数也为 966，那么 t 应该是 1021 + 1 - 966 = 56
+
+  Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 966);
+  D1 := Ecc.Generator;
+  D1.X := MontgomeryPowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.Y := MontgomeryPowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D2 := Ecc.Generator;
+  Ecc.MultiplePoint(Ecc.FiniteFieldSize, D2);
+
+  Ecc.PointAddPoint(D1, D2, D1);  // D1 得到 (x^(q^2), y^(q^2) + q * (x, y) 要验证它等于 t * (x^q, y^q)
+
+  D2 := Ecc.Generator;
+  D2.X := MontgomeryPowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.Y := MontgomeryPowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D3 := D2;
+  // D2 得到 (x^q, y^q) 用 D3 累加验证多少等于 D1
+  for I := 1 to Ecc.FiniteFieldSize - 1 do // 实际上不需要这么大
+  begin
+    if CnInt64EccPointsEqual(D3, D1) then
+    begin
+      ShowMessage(IntToStr(I));  // 得到 13 符合 1021 + 1 - 966 = 56
+      Break;
+    end;
+    Ecc.PointAddPoint(D3, D2, D3);
+  end;
+
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnHassenTest2Click(Sender: TObject);
+var
+  Ecc: TCnInt64Ecc;
+  D1, D2, D3: TCnInt64EccPoint;
+  I: Integer;
+begin
+  // 用例：给定椭圆曲线上的一个点比如基点 P(x, y)
+  // 验证其是否符合 π^2 - tπ+ q = 0
+  // 也就是穷举求 (x^(q^2), y^(q^2) - t * (x^q, y^q) + q * (x, y) = 0 中的 t
+  // 如 F73 上定义的 y2 = x3 + 12x + 199  P(21, 21) 阶为 61，点总数也为 61，那么 t 应该是 73 + 1 - 61 = 13
+
+  Ecc := TCnInt64Ecc.Create(12, 199, 73, 21, 21, 61);
+  D1 := Ecc.Generator;
+  D1.X := MontgomeryPowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.Y := MontgomeryPowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D2 := Ecc.Generator;
+  Ecc.MultiplePoint(Ecc.FiniteFieldSize, D2);
+
+  Ecc.PointAddPoint(D1, D2, D1);  // D1 得到 (x^(q^2), y^(q^2) + q * (x, y) 要验证它等于 t * (x^q, y^q)
+
+  D2 := Ecc.Generator;
+  D2.X := MontgomeryPowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.Y := MontgomeryPowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D3 := D2;
+  // D2 得到 (x^q, y^q) 用 D3 累加验证多少等于 D1
+  for I := 1 to Ecc.FiniteFieldSize - 1 do // 实际上不需要这么大
+  begin
+    if CnInt64EccPointsEqual(D3, D1) then
+    begin
+      ShowMessage(IntToStr(I));  // 得到 13 符合 73 + 1 - 13 = 61
+      Break;
+    end;
+    Ecc.PointAddPoint(D3, D2, D3);
+  end;
+
   Ecc.Free;
 end;
 

@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsWrapData
+    ActivePage = tsInt64ECC
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
@@ -737,6 +737,24 @@ object FormEcc: TFormEcc
           Caption = '? * G'
           TabOrder = 14
           OnClick = btnEccTestAddClick
+        end
+        object btnHassenTest: TButton
+          Left = 483
+          Top = 200
+          Width = 75
+          Height = 25
+          Caption = 'Hassen Test 1'
+          TabOrder = 15
+          OnClick = btnHassenTestClick
+        end
+        object btnHassenTest2: TButton
+          Left = 483
+          Top = 232
+          Width = 75
+          Height = 25
+          Caption = 'Hassen Test 2'
+          TabOrder = 16
+          OnClick = btnHassenTest2Click
         end
       end
     end

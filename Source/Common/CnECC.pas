@@ -350,8 +350,11 @@ function CnInt64EccDiffieHellmanComputeKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCn
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
+function CnInt64EccPointsEqual(var P1, P2: TCnInt64EccPoint): Boolean;
+{* 判断两个 TCnInt64EccPoint 点是否相等}
+
 function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
-{* 判断两个点是否相等}
+{* 判断两个 TCnEccPoint 点是否相等}
 
 function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey): Boolean;
@@ -643,6 +646,11 @@ begin
     Exit;
   end;
   Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0);
+end;
+
+function CnInt64EccPointsEqual(var P1, P2: TCnInt64EccPoint): Boolean;
+begin
+  Result := (P1.X = P2.X) and (P1.Y = P2.Y);
 end;
 
 // 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现
