@@ -102,6 +102,54 @@ const
   MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
   MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
 
+type
+  TCnIntegerList = class(TList)
+  {* 整数列表}
+  private
+    function Get(Index: Integer): Integer;
+    procedure Put(Index: Integer; const Value: Integer);
+  public
+    function Add(Item: Integer): Integer; reintroduce;
+    procedure Insert(Index: Integer; Item: Integer); reintroduce;
+    property Items[Index: Integer]: Integer read Get write Put; default;
+  end;
+
+  PInt64List = ^TInt64List;
+  TInt64List = array[0..MaxListSize - 1] of Int64;
+
+  TCnInt64List = class(TObject)
+  {* 64 位整数列表}
+  private
+    FList: PInt64List;
+    FCount: Integer;
+    FCapacity: Integer;
+  protected
+    function Get(Index: Integer): Int64;
+    procedure Grow; virtual;
+    procedure Put(Index: Integer; Item: Int64);
+    procedure SetCapacity(NewCapacity: Integer);
+    procedure SetCount(NewCount: Integer);
+  public
+    destructor Destroy; override;
+    function Add(Item: Int64): Integer;
+    procedure Clear; virtual;
+    procedure Delete(Index: Integer);
+    class procedure Error(const Msg: string; Data: Integer); virtual;
+    procedure Exchange(Index1, Index2: Integer);
+    function Expand: TCnInt64List;
+    function First: Int64;
+    function IndexOf(Item: Int64): Integer;
+    procedure Insert(Index: Integer; Item: Int64);
+    function Last: Int64;
+    procedure Move(CurIndex, NewIndex: Integer);
+    function Remove(Item: Int64): Integer;
+
+    property Capacity: Integer read FCapacity write SetCapacity;
+    property Count: Integer read FCount write SetCount;
+    property Items[Index: Integer]: Int64 read Get write Put; default;
+    property List: PInt64List read FList;
+  end;
+
 {*
   对于 D567 等不支持 UInt64 的编译器，虽然可以用 Int64 代替 UInt64 进行加减、存储
   但乘除运算则无法直接完成，这里封装了两个调用 System 库中的 _lludiv 与 _llumod
@@ -164,6 +212,9 @@ function IntegerToPointer(I: Integer): Pointer;
 {* 整型转换成指针类型，支持 32/64 位}
 
 implementation
+
+resourcestring
+  SCnInt64ListError = 'Int64 List Error. %d';
 
 {$IFDEF WIN64}
 
@@ -611,6 +662,197 @@ begin
 {$ELSE}
   Result := Pointer(I);
 {$ENDIF}
+end;
+
+{ TCnIntegerList }
+
+function TCnIntegerList.Add(Item: Integer): Integer;
+begin
+  Result := inherited Add(IntegerToPointer(Item));
+end;
+
+function TCnIntegerList.Get(Index: Integer): Integer;
+begin
+  Result := PointerToInteger(inherited Get(Index));
+end;
+
+procedure TCnIntegerList.Insert(Index, Item: Integer);
+begin
+  inherited Insert(Index, IntegerToPointer(Item));
+end;
+
+procedure TCnIntegerList.Put(Index: Integer; const Value: Integer);
+begin
+  inherited Put(Index, IntegerToPointer(Value));
+end;
+
+{ TCnInt64List }
+
+destructor TCnInt64List.Destroy;
+begin
+  Clear;
+end;
+
+function TCnInt64List.Add(Item: Int64): Integer;
+begin
+  Result := FCount;
+  if Result = FCapacity then
+    Grow;
+  FList^[Result] := Item;
+  Inc(FCount);
+end;
+
+procedure TCnInt64List.Clear;
+begin
+  SetCount(0);
+  SetCapacity(0);
+end;
+
+procedure TCnInt64List.Delete(Index: Integer);
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(SCnInt64ListError, Index);
+
+  Dec(FCount);
+  if Index < FCount then
+    System.Move(FList^[Index + 1], FList^[Index],
+      (FCount - Index) * SizeOf(Int64));
+end;
+
+class procedure TCnInt64List.Error(const Msg: string; Data: Integer);
+begin
+  raise EListError.CreateFmt(Msg, [Data]);
+end;
+
+procedure TCnInt64List.Exchange(Index1, Index2: Integer);
+var
+  Item: Int64;
+begin
+  if (Index1 < 0) or (Index1 >= FCount) then
+    Error(SCnInt64ListError, Index1);
+  if (Index2 < 0) or (Index2 >= FCount) then
+    Error(SCnInt64ListError, Index2);
+  Item := FList^[Index1];
+  FList^[Index1] := FList^[Index2];
+  FList^[Index2] := Item;
+end;
+
+function TCnInt64List.Expand: TCnInt64List;
+begin
+  if FCount = FCapacity then
+    Grow;
+  Result := Self;
+end;
+
+function TCnInt64List.First: Int64;
+begin
+  Result := Get(0);
+end;
+
+function TCnInt64List.Get(Index: Integer): Int64;
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(SCnInt64ListError, Index);
+  Result := FList^[Index];
+end;
+
+procedure TCnInt64List.Grow;
+var
+  Delta: Integer;
+begin
+  if FCapacity > 64 then
+    Delta := FCapacity div 4
+  else
+    if FCapacity > 8 then
+      Delta := 16
+    else
+      Delta := 4;
+  SetCapacity(FCapacity + Delta);
+end;
+
+function TCnInt64List.IndexOf(Item: Int64): Integer;
+begin
+  Result := 0;
+  while (Result < FCount) and (FList^[Result] <> Item) do
+    Inc(Result);
+  if Result = FCount then
+    Result := -1;
+end;
+
+procedure TCnInt64List.Insert(Index: Integer; Item: Int64);
+begin
+  if (Index < 0) or (Index > FCount) then
+    Error(SCnInt64ListError, Index);
+  if FCount = FCapacity then
+    Grow;
+  if Index < FCount then
+    System.Move(FList^[Index], FList^[Index + 1],
+      (FCount - Index) * SizeOf(Int64));
+  FList^[Index] := Item;
+  Inc(FCount);
+end;
+
+function TCnInt64List.Last: Int64;
+begin
+  Result := Get(FCount - 1);
+end;
+
+procedure TCnInt64List.Move(CurIndex, NewIndex: Integer);
+var
+  Item: Int64;
+begin
+  if CurIndex <> NewIndex then
+  begin
+    if (NewIndex < 0) or (NewIndex >= FCount) then
+      Error(SCnInt64ListError, NewIndex);
+    Item := Get(CurIndex);
+    FList^[CurIndex] := 0;
+    Delete(CurIndex);
+    Insert(NewIndex, 0);
+    FList^[NewIndex] := Item;
+  end;
+end;
+
+procedure TCnInt64List.Put(Index: Integer; Item: Int64);
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(SCnInt64ListError, Index);
+
+  FList^[Index] := Item;
+end;
+
+function TCnInt64List.Remove(Item: Int64): Integer;
+begin
+  Result := IndexOf(Item);
+  if Result >= 0 then
+    Delete(Result);
+end;
+
+procedure TCnInt64List.SetCapacity(NewCapacity: Integer);
+begin
+  if (NewCapacity < FCount) or (NewCapacity > MaxListSize) then
+    Error(SCnInt64ListError, NewCapacity);
+  if NewCapacity <> FCapacity then
+  begin
+    ReallocMem(FList, NewCapacity * SizeOf(Int64));
+    FCapacity := NewCapacity;
+  end;
+end;
+
+procedure TCnInt64List.SetCount(NewCount: Integer);
+var
+  I: Integer;
+begin
+  if (NewCount < 0) or (NewCount > MaxListSize) then
+    Error(SCnInt64ListError, NewCount);
+  if NewCount > FCapacity then
+    SetCapacity(NewCount);
+  if NewCount > FCount then
+    FillChar(FList^[FCount], (NewCount - FCount) * SizeOf(Int64), 0)
+  else
+    for I := FCount - 1 downto NewCount do
+      Delete(I);
+  FCount := NewCount;
 end;
 
 end.

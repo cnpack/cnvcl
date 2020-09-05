@@ -46,17 +46,6 @@ uses
 type
   ECnPolynomialException = class(Exception);
 
-  TCnIntegerList = class(TList)
-  {* 整数列表}
-  private
-    function Get(Index: Integer): Integer;
-    procedure Put(Index: Integer; const Value: Integer);
-  public
-    function Add(Item: Integer): Integer; reintroduce;
-    procedure Insert(Index: Integer; Item: Integer); reintroduce;
-    property Items[Index: Integer]: Integer read Get write Put; default;
-  end;
-
   TCnIntegerPolynomial = class(TCnIntegerList)
   {* 整系数多项式}
   private
@@ -295,28 +284,6 @@ begin
   Result := N mod P;
   if N < 0 then
     Inc(Result, P);
-end;
-
-{ TCnIntegerList }
-
-function TCnIntegerList.Add(Item: Integer): Integer;
-begin
-  Result := inherited Add(IntegerToPointer(Item));
-end;
-
-function TCnIntegerList.Get(Index: Integer): Integer;
-begin
-  Result := PointerToInteger(inherited Get(Index));
-end;
-
-procedure TCnIntegerList.Insert(Index, Item: Integer);
-begin
-  inherited Insert(Index, IntegerToPointer(Item));
-end;
-
-procedure TCnIntegerList.Put(Index: Integer; const Value: Integer);
-begin
-  inherited Put(Index, IntegerToPointer(Value));
 end;
 
 { TCnIntegerPolynomial }
