@@ -122,8 +122,8 @@ type
     function IsPointOnCurve(var P: TCnInt64EccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
 
-    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
-    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意 Integer 范围内次数一多就容易溢出}
+    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnInt64Polynomial): Boolean;
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功}
 
     function PlainToPoint(Plain: Int64; var OutPoint: TCnInt64EccPoint): Boolean;
     {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y
@@ -253,13 +253,13 @@ type
   TCnEccKeyType = (cktPKCS1, cktPKCS8);
   {* ECC 密钥文件格式}
 
-  TCnIntegerPolynomialEccPoint = class(TPersistent)
+  TCnInt64PolynomialEccPoint = class(TPersistent)
   {* 有限扩域上的椭圆曲线上的多项式点描述类}
   private
-    FY: TCnIntegerPolynomial;
-    FX: TCnIntegerPolynomial;
-    procedure SetX(const Value: TCnIntegerPolynomial);
-    procedure SetY(const Value: TCnIntegerPolynomial);
+    FY: TCnInt64Polynomial;
+    FX: TCnInt64Polynomial;
+    procedure SetX(const Value: TCnInt64Polynomial);
+    procedure SetY(const Value: TCnInt64Polynomial);
   public
     constructor Create; overload;
     constructor Create(const XLowToHighCoefficients, YLowToHighCoefficients: array of const); overload;
@@ -273,21 +273,21 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将多项式转成字符串}
 
-    property X: TCnIntegerPolynomial read FX write SetX;
-    property Y: TCnIntegerPolynomial read FY write SetY;
+    property X: TCnInt64Polynomial read FX write SetX;
+    property Y: TCnInt64Polynomial read FY write SetY;
   end;
   
-  TCnIntegerPolynomialEcc = class
+  TCnInt64PolynomialEcc = class
   {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Integer 范围内}
   private
-    FGenerator: TCnIntegerPolynomialEccPoint;
+    FGenerator: TCnInt64PolynomialEccPoint;
     FCoefficientA: Integer;
     FCoefficientB: Integer;
     FFiniteFieldSize: Integer;
     FOrder: Integer;
     FExtension: Integer;
-    FPrimitive: TCnIntegerPolynomial;
-    procedure SetPrimitive(const Value: TCnIntegerPolynomial);
+    FPrimitive: TCnInt64Polynomial;
+    procedure SetPrimitive(const Value: TCnInt64Polynomial);
   protected
 
   public
@@ -297,21 +297,21 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure MultiplePoint(K: Integer; Point: TCnIntegerPolynomialEccPoint);
+    procedure MultiplePoint(K: Integer; Point: TCnInt64PolynomialEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure PointAddPoint(P, Q, Sum: TCnIntegerPolynomialEccPoint);
+    procedure PointAddPoint(P, Q, Sum: TCnInt64PolynomialEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointSubPoint(P, Q, Diff: TCnIntegerPolynomialEccPoint);
+    procedure PointSubPoint(P, Q, Diff: TCnInt64PolynomialEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointInverse(P: TCnIntegerPolynomialEccPoint);
+    procedure PointInverse(P: TCnInt64PolynomialEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
-    function IsPointOnCurve(P: TCnIntegerPolynomialEccPoint): Boolean;
+    function IsPointOnCurve(P: TCnInt64PolynomialEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
 
-    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnInt64Polynomial): Boolean;
     {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意 Integer 范围内次数一多就容易溢出}
 
-    property Generator: TCnIntegerPolynomialEccPoint read FGenerator;
+    property Generator: TCnInt64PolynomialEccPoint read FGenerator;
     {* 基点坐标 G}
     property CoefficientA: Integer read FCoefficientA;
     {* 方程系数 A}
@@ -323,7 +323,7 @@ type
     {* 有限扩域的次数，也即素数 p 的指数}
     property Order: Integer read FOrder;
     {* 基点的阶数}
-    property Primitive: TCnIntegerPolynomial read FPrimitive write SetPrimitive;
+    property Primitive: TCnInt64Polynomial read FPrimitive write SetPrimitive;
     {* 本原多项式}
   end;
 
@@ -442,10 +442,10 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 
 // ===================== 基于有限扩域的多项式椭圆曲线运算 ======================
 
-function CnIntegerPolynomialEccPointToString(const P: TCnIntegerPolynomialEccPoint): string;
-{* 将一个 TCnIntegerPolynomialEccPoint 点坐标转换为多项式字符串}
+function CnInt64PolynomialEccPointToString(const P: TCnInt64PolynomialEccPoint): string;
+{* 将一个 TCnInt64PolynomialEccPoint 点坐标转换为多项式字符串}
 
-function CnIntegerPolynomialEccPointsEqual(P1, P2: TCnIntegerPolynomialEccPoint): Boolean;
+function CnInt64PolynomialEccPointsEqual(P1, P2: TCnInt64PolynomialEccPoint): Boolean;
 {* 判断两个多项式点是否相等}
 
 // ============================= 其他辅助函数 ==================================
@@ -598,7 +598,7 @@ const
 
 var
   FEccBigNumberPool: TCnBigNumberPool = nil;
-  FEccIntegerPolynomialPool: TCnIntegerPolynomialPool = nil;
+  FEccInt64PolynomialPool: TCnInt64PolynomialPool = nil;
 
 function Min(A, B: Integer): Integer;
 begin
@@ -849,9 +849,9 @@ begin
 end;
 
 function TCnInt64Ecc.DivisionPolynomial(Degree: Integer;
-  outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+  outDivisionPolynomial: TCnInt64Polynomial): Boolean;
 begin
-  Result := IntegerPolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
+  Result := Int64PolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
     Degree, outDivisionPolynomial, FFiniteFieldSize);
 end;
 
@@ -2710,27 +2710,27 @@ begin
   end;
 end;
 
-{ TCnIntegerPolynomialEccPoint }
+{ TCnInt64PolynomialEccPoint }
 
-procedure TCnIntegerPolynomialEccPoint.Assign(Source: TPersistent);
+procedure TCnInt64PolynomialEccPoint.Assign(Source: TPersistent);
 begin
-  if Source is TCnIntegerPolynomialEccPoint then
+  if Source is TCnInt64PolynomialEccPoint then
   begin
-    IntegerPolynomialCopy(FX, (Source as TCnIntegerPolynomialEccPoint).X);
-    IntegerPolynomialCopy(FY, (Source as TCnIntegerPolynomialEccPoint).Y);
+    Int64PolynomialCopy(FX, (Source as TCnInt64PolynomialEccPoint).X);
+    Int64PolynomialCopy(FY, (Source as TCnInt64PolynomialEccPoint).Y);
   end
   else
     inherited;
 end;
 
-constructor TCnIntegerPolynomialEccPoint.Create;
+constructor TCnInt64PolynomialEccPoint.Create;
 begin
   inherited;
-  FX := TCnIntegerPolynomial.Create;
-  FY := TCnIntegerPolynomial.Create;
+  FX := TCnInt64Polynomial.Create;
+  FY := TCnInt64Polynomial.Create;
 end;
 
-constructor TCnIntegerPolynomialEccPoint.Create(
+constructor TCnInt64PolynomialEccPoint.Create(
   const XLowToHighCoefficients, YLowToHighCoefficients: array of const);
 begin
   Create;
@@ -2738,56 +2738,56 @@ begin
   FY.SetCoefficents(YLowToHighCoefficients);
 end;
 
-destructor TCnIntegerPolynomialEccPoint.Destroy;
+destructor TCnInt64PolynomialEccPoint.Destroy;
 begin
   FY.Free;
   FX.Free;
   inherited;
 end;
 
-function TCnIntegerPolynomialEccPoint.IsZero: Boolean;
+function TCnInt64PolynomialEccPoint.IsZero: Boolean;
 begin
   Result := FX.IsZero and FY.IsZero;
 end;
 
-procedure TCnIntegerPolynomialEccPoint.SetX(
-  const Value: TCnIntegerPolynomial);
+procedure TCnInt64PolynomialEccPoint.SetX(
+  const Value: TCnInt64Polynomial);
 begin
   if Value <> nil then
-    IntegerPolynomialCopy(FX, Value);
+    Int64PolynomialCopy(FX, Value);
 end;
 
-procedure TCnIntegerPolynomialEccPoint.SetY(
-  const Value: TCnIntegerPolynomial);
+procedure TCnInt64PolynomialEccPoint.SetY(
+  const Value: TCnInt64Polynomial);
 begin
   if Value <> nil then
-    IntegerPolynomialCopy(FY, Value);
+    Int64PolynomialCopy(FY, Value);
 end;
 
-procedure TCnIntegerPolynomialEccPoint.SetZero;
+procedure TCnInt64PolynomialEccPoint.SetZero;
 begin
   FX.SetZero;
   FY.SetZero;
 end;
 
-function TCnIntegerPolynomialEccPoint.ToString: string;
+function TCnInt64PolynomialEccPoint.ToString: string;
 begin
-  Result := CnIntegerPolynomialEccPointToString(Self);
+  Result := CnInt64PolynomialEccPointToString(Self);
 end;
 
-function CnIntegerPolynomialEccPointToString(const P: TCnIntegerPolynomialEccPoint): string;
+function CnInt64PolynomialEccPointToString(const P: TCnInt64PolynomialEccPoint): string;
 begin
   Result := Format('%s; %s', [P.X.ToString, P.Y.ToString]);
 end;
 
-function CnIntegerPolynomialEccPointsEqual(P1, P2: TCnIntegerPolynomialEccPoint): Boolean;
+function CnInt64PolynomialEccPointsEqual(P1, P2: TCnInt64PolynomialEccPoint): Boolean;
 begin
-  Result := IntegerPolynomialEqual(P1.X, P2.X) and IntegerPolynomialEqual(P1.Y, P2.Y);
+  Result := Int64PolynomialEqual(P1.X, P2.X) and Int64PolynomialEqual(P1.Y, P2.Y);
 end;
 
-{ TCnIntegerPolynomialEcc }
+{ TCnInt64PolynomialEcc }
 
-constructor TCnIntegerPolynomialEcc.Create(A, B, FieldPrime, Ext: Integer; GX, GY: array of const;
+constructor TCnInt64PolynomialEcc.Create(A, B, FieldPrime, Ext: Integer; GX, GY: array of const;
   Order: Integer; PrimitivePolynomial: array of const);
 begin
   inherited Create;
@@ -2809,34 +2809,34 @@ begin
   FFiniteFieldSize := FieldPrime;
   FExtension := Ext;
 
-  FGenerator := TCnIntegerPolynomialEccPoint.Create;
+  FGenerator := TCnInt64PolynomialEccPoint.Create;
   FGenerator.X.SetCoefficents(GX);
   FGenerator.Y.SetCoefficents(GY);
 
   FOrder := Order;
 
-  FPrimitive := TCnIntegerPolynomial.Create;
+  FPrimitive := TCnInt64Polynomial.Create;
   FPrimitive.SetCoefficents(PrimitivePolynomial);
 end;
 
-destructor TCnIntegerPolynomialEcc.Destroy;
+destructor TCnInt64PolynomialEcc.Destroy;
 begin
   FPrimitive.Free;
   FGenerator.Free;
   inherited;
 end;
 
-function TCnIntegerPolynomialEcc.DivisionPolynomial(Degree: Integer;
-  outDivisionPolynomial: TCnIntegerPolynomial): Boolean;
+function TCnInt64PolynomialEcc.DivisionPolynomial(Degree: Integer;
+  outDivisionPolynomial: TCnInt64Polynomial): Boolean;
 begin
-  Result := IntegerPolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
+  Result := Int64PolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
     Degree, outDivisionPolynomial, FFiniteFieldSize);
 end;
 
-function TCnIntegerPolynomialEcc.IsPointOnCurve(
-  P: TCnIntegerPolynomialEccPoint): Boolean;
+function TCnInt64PolynomialEcc.IsPointOnCurve(
+  P: TCnInt64PolynomialEccPoint): Boolean;
 var
-  X, Y: TCnIntegerPolynomial;
+  X, Y: TCnInt64Polynomial;
 begin
   // 计算 (Y^2 - X^3 - A*X - B) mod primitive （多项式系数运算要 mod p）是否等于 0 多项式
   Result := False;
@@ -2845,21 +2845,21 @@ begin
     X := nil;
     Y := nil;
     try
-      Y := IntegerPolynomialDuplicate(P.Y);
-      IntegerPolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
+      Y := Int64PolynomialDuplicate(P.Y);
+      Int64PolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
 
-      X := IntegerPolynomialDuplicate(P.X);
-      IntegerPolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
+      X := Int64PolynomialDuplicate(P.X);
+      Int64PolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
 
-      IntegerPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);                // Y := Y^2 - X^3
+      Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);                // Y := Y^2 - X^3
 
-      IntegerPolynomialCopy(X, P.X);
-      IntegerPolynomialMulWord(X, FCoefficientA);
-      IntegerPolynomialAddWord(X, FCoefficientB);   // X := A*X + B
-      IntegerPolynomialNonNegativeModWord(X, FFiniteFieldSize);
+      Int64PolynomialCopy(X, P.X);
+      Int64PolynomialMulWord(X, FCoefficientA);
+      Int64PolynomialAddWord(X, FCoefficientB);   // X := A*X + B
+      Int64PolynomialNonNegativeModWord(X, FFiniteFieldSize);
 
-      IntegerPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
-      IntegerPolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+      Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
+      Int64PolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
 
       Result := Y.IsZero;
     finally
@@ -2869,10 +2869,10 @@ begin
   end;
 end;
 
-procedure TCnIntegerPolynomialEcc.MultiplePoint(K: Integer;
-  Point: TCnIntegerPolynomialEccPoint);
+procedure TCnInt64PolynomialEcc.MultiplePoint(K: Integer;
+  Point: TCnInt64PolynomialEccPoint);
 var
-  E, R: TCnIntegerPolynomialEccPoint;
+  E, R: TCnInt64PolynomialEccPoint;
 begin
   if K = 0 then
   begin
@@ -2889,8 +2889,8 @@ begin
   E := nil;
 
   try
-    R := TCnIntegerPolynomialEccPoint.Create;
-    E := TCnIntegerPolynomialEccPoint.Create;
+    R := TCnInt64PolynomialEccPoint.Create;
+    E := TCnInt64PolynomialEccPoint.Create;
 
     R.SetZero;
     E.Assign(Point);
@@ -2911,10 +2911,10 @@ begin
   end;
 end;
 
-procedure TCnIntegerPolynomialEcc.PointAddPoint(P, Q,
-  Sum: TCnIntegerPolynomialEccPoint);
+procedure TCnInt64PolynomialEcc.PointAddPoint(P, Q,
+  Sum: TCnInt64PolynomialEccPoint);
 var
-  K, X, Y, A: TCnIntegerPolynomial;
+  K, X, Y, A: TCnInt64Polynomial;
 begin
   K := nil;
   X := nil;
@@ -2932,20 +2932,20 @@ begin
       Sum.Assign(P);
       Exit;
     end
-    else if IntegerPolynomialEqual(P.X, Q.X) and IntegerPolynomialEqual(P.Y, Q.Y) then
+    else if Int64PolynomialEqual(P.X, Q.X) and Int64PolynomialEqual(P.Y, Q.Y) then
     begin
       // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
-      X := FEccIntegerPolynomialPool.Obtain;
-      Y := FEccIntegerPolynomialPool.Obtain;
+      X := FEccInt64PolynomialPool.Obtain;
+      Y := FEccInt64PolynomialPool.Obtain;
 
       // X := 3 * P.X * P.X + FCoefficientA
-      IntegerPolynomialGaloisMul(X, P.X, P.X, FFiniteFieldSize, FPrimitive);
-      IntegerPolynomialGaloisMulWord(X, 3, FFiniteFieldSize);
-      IntegerPolynomialGaloisAddWord(X, FCoefficientA, FFiniteFieldSize);
+      Int64PolynomialGaloisMul(X, P.X, P.X, FFiniteFieldSize, FPrimitive);
+      Int64PolynomialGaloisMulWord(X, 3, FFiniteFieldSize);
+      Int64PolynomialGaloisAddWord(X, FCoefficientA, FFiniteFieldSize);
 
       // Y := 2 * P.Y;
-      IntegerPolynomialCopy(Y, P.Y);
-      IntegerPolynomialGaloisMulWord(Y, 2, FFiniteFieldSize);
+      Int64PolynomialCopy(Y, P.Y);
+      Int64PolynomialGaloisMulWord(Y, 2, FFiniteFieldSize);
 
       if Y.IsZero then
       begin
@@ -2954,21 +2954,21 @@ begin
       end;
 
       // Y := Y^-1
-      A := FEccIntegerPolynomialPool.Obtain;
-      IntegerPolynomialCopy(A, Y);
-      IntegerPolynomialGaloisModularInverse(Y, A, FPrimitive, FFiniteFieldSize);
+      A := FEccInt64PolynomialPool.Obtain;
+      Int64PolynomialCopy(A, Y);
+      Int64PolynomialGaloisModularInverse(Y, A, FPrimitive, FFiniteFieldSize);
 
       // K := X * Y mod FFiniteFieldSize;
-      K := FEccIntegerPolynomialPool.Obtain;
-      IntegerPolynomialGaloisMul(K, X, Y, FFiniteFieldSize, FPrimitive);
+      K := FEccInt64PolynomialPool.Obtain;
+      Int64PolynomialGaloisMul(K, X, Y, FFiniteFieldSize, FPrimitive);
       // 得到切线斜率 K
     end
     else // 是不同点
     begin
-      if IntegerPolynomialEqual(P.X, Q.X) then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
+      if Int64PolynomialEqual(P.X, Q.X) then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
       begin
-        A := FEccIntegerPolynomialPool.Obtain;
-        IntegerPolynomialGaloisAdd(A, P.Y, Q.Y, FFiniteFieldSize);
+        A := FEccInt64PolynomialPool.Obtain;
+        Int64PolynomialGaloisAdd(A, P.Y, Q.Y, FFiniteFieldSize);
         if A.IsZero then
           Sum.SetZero
         else
@@ -2979,42 +2979,42 @@ begin
       end;
 
       // 到这里，X 确定不同，斜率 K := ((Q.Y - P.Y) / (Q.X - P.X)) mod p
-      X := FEccIntegerPolynomialPool.Obtain;
-      Y := FEccIntegerPolynomialPool.Obtain;
-      K := FEccIntegerPolynomialPool.Obtain;
+      X := FEccInt64PolynomialPool.Obtain;
+      Y := FEccInt64PolynomialPool.Obtain;
+      K := FEccInt64PolynomialPool.Obtain;
 
-      IntegerPolynomialGaloisSub(Y, Q.Y, P.Y, FFiniteFieldSize);
-      IntegerPolynomialGaloisSub(X, Q.X, P.X, FFiniteFieldSize);
+      Int64PolynomialGaloisSub(Y, Q.Y, P.Y, FFiniteFieldSize);
+      Int64PolynomialGaloisSub(X, Q.X, P.X, FFiniteFieldSize);
 
-      A := FEccIntegerPolynomialPool.Obtain;
-      IntegerPolynomialCopy(A, X);
-      IntegerPolynomialGaloisModularInverse(X, A, FPrimitive, FFiniteFieldSize);
-      IntegerPolynomialGaloisMul(K, Y, X, FFiniteFieldSize, FPrimitive); // 得到斜率
+      A := FEccInt64PolynomialPool.Obtain;
+      Int64PolynomialCopy(A, X);
+      Int64PolynomialGaloisModularInverse(X, A, FPrimitive, FFiniteFieldSize);
+      Int64PolynomialGaloisMul(K, Y, X, FFiniteFieldSize, FPrimitive); // 得到斜率
     end;
 
     //  X := K * K - P.X - Q.X;
-    IntegerPolynomialCopy(X, K);
-    IntegerPolynomialGaloisMul(X, X, K, FFiniteFieldSize, FPrimitive);
-    IntegerPolynomialGaloisSub(X, X, P.X, FFiniteFieldSize);
-    IntegerPolynomialGaloisSub(X, X, Q.X, FFiniteFieldSize);
+    Int64PolynomialCopy(X, K);
+    Int64PolynomialGaloisMul(X, X, K, FFiniteFieldSize, FPrimitive);
+    Int64PolynomialGaloisSub(X, X, P.X, FFiniteFieldSize);
+    Int64PolynomialGaloisSub(X, X, Q.X, FFiniteFieldSize);
 
     // Ysum = (K * (X1 - Xsum) - Y1) mod p
-    IntegerPolynomialGaloisSub(X, P.X, X, FFiniteFieldSize);
-    IntegerPolynomialGaloisMul(Y, K, X, FFiniteFieldSize, FPrimitive);
-    IntegerPolynomialGaloisSub(Y, Y, P.Y, FFiniteFieldSize);
+    Int64PolynomialGaloisSub(X, P.X, X, FFiniteFieldSize);
+    Int64PolynomialGaloisMul(Y, K, X, FFiniteFieldSize, FPrimitive);
+    Int64PolynomialGaloisSub(Y, Y, P.Y, FFiniteFieldSize);
 
-    IntegerPolynomialCopy(Sum.X, X);
-    IntegerPolynomialCopy(Sum.Y, Y);
+    Int64PolynomialCopy(Sum.X, X);
+    Int64PolynomialCopy(Sum.Y, Y);
   finally
-    FEccIntegerPolynomialPool.Recycle(K);
-    FEccIntegerPolynomialPool.Recycle(X);
-    FEccIntegerPolynomialPool.Recycle(Y);
-    FEccIntegerPolynomialPool.Recycle(A);
+    FEccInt64PolynomialPool.Recycle(K);
+    FEccInt64PolynomialPool.Recycle(X);
+    FEccInt64PolynomialPool.Recycle(Y);
+    FEccInt64PolynomialPool.Recycle(A);
   end;
 end;
 
-procedure TCnIntegerPolynomialEcc.PointInverse(
-  P: TCnIntegerPolynomialEccPoint);
+procedure TCnInt64PolynomialEcc.PointInverse(
+  P: TCnInt64PolynomialEccPoint);
 var
   I: Integer;
 begin
@@ -3022,12 +3022,12 @@ begin
     P.Y[I] := FFiniteFieldSize - P.Y[I];
 end;
 
-procedure TCnIntegerPolynomialEcc.PointSubPoint(P, Q,
-  Diff: TCnIntegerPolynomialEccPoint);
+procedure TCnInt64PolynomialEcc.PointSubPoint(P, Q,
+  Diff: TCnInt64PolynomialEccPoint);
 var
-  Inv: TCnIntegerPolynomialEccPoint;
+  Inv: TCnInt64PolynomialEccPoint;
 begin
-  Inv := TCnIntegerPolynomialEccPoint.Create;
+  Inv := TCnInt64PolynomialEccPoint.Create;
   try
     Inv.Assign(Q);
     PointInverse(Inv);
@@ -3037,23 +3037,23 @@ begin
   end;
 end;
 
-procedure TCnIntegerPolynomialEcc.SetPrimitive(
-  const Value: TCnIntegerPolynomial);
+procedure TCnInt64PolynomialEcc.SetPrimitive(
+  const Value: TCnInt64Polynomial);
 begin
   if Value <> nil then
   begin
     if Value.MaxDegree <> FExtension then
       raise ECnEccException.Create('Primitive Polynomial Max Degree must be Field Extension.');
-    IntegerPolynomialCopy(FPrimitive, Value);
+    Int64PolynomialCopy(FPrimitive, Value);
   end;
 end;
 
 initialization
   FEccBigNumberPool := TCnBigNumberPool.Create;
-  FEccIntegerPolynomialPool := TCnIntegerPolynomialPool.Create;
+  FEccInt64PolynomialPool := TCnInt64PolynomialPool.Create;
 
 finalization
-  FEccIntegerPolynomialPool.Free;
+  FEccInt64PolynomialPool.Free;
   FEccBigNumberPool.Free;
 
 end.

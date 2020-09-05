@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsInt64ECC
+    ActivePage = tsSimpleECC
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
@@ -743,7 +743,7 @@ object FormEcc: TFormEcc
           Top = 200
           Width = 75
           Height = 25
-          Caption = 'Hassen Test 1'
+          Caption = 'Hasse Test 1'
           TabOrder = 15
           OnClick = btnHassenTestClick
         end
@@ -752,7 +752,7 @@ object FormEcc: TFormEcc
           Top = 232
           Width = 75
           Height = 25
-          Caption = 'Hassen Test 2'
+          Caption = 'Hasse Test 2'
           TabOrder = 16
           OnClick = btnHassenTest2Click
         end

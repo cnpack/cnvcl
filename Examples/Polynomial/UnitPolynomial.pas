@@ -67,9 +67,9 @@ type
     procedure btnTestDivPolyClick(Sender: TObject);
     procedure btnTestDivPoly2Click(Sender: TObject);
   private
-    FIP1: TCnIntegerPolynomial;
-    FIP2: TCnIntegerPolynomial;
-    FIP3: TCnIntegerPolynomial;
+    FIP1: TCnInt64Polynomial;
+    FIP2: TCnInt64Polynomial;
+    FIP3: TCnInt64Polynomial;
   public
     { Public declarations }
   end;
@@ -83,9 +83,9 @@ implementation
 
 procedure TFormPolynomial.FormCreate(Sender: TObject);
 begin
-  FIP1 := TCnIntegerPolynomial.Create;
-  FIP2 := TCnIntegerPolynomial.Create;
-  FIP3 := TCnIntegerPolynomial.Create;
+  FIP1 := TCnInt64Polynomial.Create;
+  FIP2 := TCnInt64Polynomial.Create;
+  FIP3 := TCnInt64Polynomial.Create;
 end;
 
 procedure TFormPolynomial.FormDestroy(Sender: TObject);
@@ -97,9 +97,9 @@ end;
 
 procedure TFormPolynomial.btnIPCreateClick(Sender: TObject);
 var
-  IP: TCnIntegerPolynomial;
+  IP: TCnInt64Polynomial;
 begin
-  IP := TCnIntegerPolynomial.Create([23, 4, -45, 6, -78, 23, 34, 1, 0, -34, 4]);
+  IP := TCnInt64Polynomial.Create([23, 4, -45, 6, -78, 23, 34, 1, 0, -34, 4]);
   edtIP1.Text := IP.ToString;
   IP.Free;
 end;
@@ -130,32 +130,32 @@ end;
 
 procedure TFormPolynomial.btnIPAddClick(Sender: TObject);
 begin
-  if IntegerPolynomialAdd(FIP3, FIP1, FIP2) then
+  if Int64PolynomialAdd(FIP3, FIP1, FIP2) then
     edtIP3.Text := FIP3.ToString;
 end;
 
 procedure TFormPolynomial.btnIPSubClick(Sender: TObject);
 begin
-  if IntegerPolynomialSub(FIP3, FIP1, FIP2) then
+  if Int64PolynomialSub(FIP3, FIP1, FIP2) then
     edtIP3.Text := FIP3.ToString;
 end;
 
 procedure TFormPolynomial.btnIPMulClick(Sender: TObject);
 begin
-  if IntegerPolynomialMul(FIP3, FIP1, FIP2) then
+  if Int64PolynomialMul(FIP3, FIP1, FIP2) then
     edtIP3.Text := FIP3.ToString;
 end;
 
 procedure TFormPolynomial.btnIPDivClick(Sender: TObject);
 var
-  R: TCnIntegerPolynomial;
+  R: TCnInt64Polynomial;
 begin
-  R := TCnIntegerPolynomial.Create;
+  R := TCnInt64Polynomial.Create;
 
   // 测试代码
 //  FIP1.SetCoefficents([1, 2, 3]);
 //  FIP2.SetCoefficents([2, 1]);
-//  if IntegerPolynomialDiv(FIP3, R, FIP1, FIP2) then
+//  if Int64PolynomialDiv(FIP3, R, FIP1, FIP2) then
 //  begin
 //    edtIP3.Text := FIP3.ToString;          // 3X - 4
 //    ShowMessage('Remain: ' + R.ToString);  // 9
@@ -169,15 +169,15 @@ begin
     mmoIP2.Lines.Text := FIP2.ToString;
   end;
 
-  if IntegerPolynomialDiv(FIP3, R, FIP1, FIP2) then
+  if Int64PolynomialDiv(FIP3, R, FIP1, FIP2) then
   begin
     edtIP3.Text := FIP3.ToString;
     ShowMessage('Remain: ' + R.ToString);
   end;
 
   // 验算 FIP3 * FIP2 + R
-  IntegerPolynomialMul(FIP3, FIP3, FIP2);
-  IntegerPolynomialAdd(FIP3, FIP3, R);
+  Int64PolynomialMul(FIP3, FIP3, FIP2);
+  Int64PolynomialAdd(FIP3, FIP3, R);
   ShowMessage(FIP3.ToString);
   if mmoIP1.Lines.Text = FIP3.ToString then
     ShowMessage('Equal Verified OK.');
@@ -186,7 +186,7 @@ end;
 
 procedure TFormPolynomial.btnTestExample1Click(Sender: TObject);
 var
-  X, Y, P: TCnIntegerPolynomial;
+  X, Y, P: TCnInt64Polynomial;
 begin
 {
   用例一：
@@ -201,23 +201,23 @@ begin
   二阶扩域上，p 是素数 67，本原多项式是 u^2 + 1
 }
 
-  X := TCnIntegerPolynomial.Create([16, 2]);
-  Y := TCnIntegerPolynomial.Create([39, 30]);
-  P := TCnIntegerPolynomial.Create([1, 0, 1]);
+  X := TCnInt64Polynomial.Create([16, 2]);
+  Y := TCnInt64Polynomial.Create([39, 30]);
+  P := TCnInt64Polynomial.Create([1, 0, 1]);
   try
-    IntegerPolynomialGaloisMul(Y, Y, Y, 67, P); // Y^2 得到 62X + 18
+    Int64PolynomialGaloisMul(Y, Y, Y, 67, P); // Y^2 得到 62X + 18
 
-    IntegerPolynomialMulWord(X, 4);
-    IntegerPolynomialSub(Y, Y, X);
-    IntegerPolynomialSubWord(Y, 3);             // Y 减去了 A*X - B，得到 54X + 18
-    IntegerPolynomialNonNegativeModWord(Y, 67);
+    Int64PolynomialMulWord(X, 4);
+    Int64PolynomialSub(Y, Y, X);
+    Int64PolynomialSubWord(Y, 3);             // Y 减去了 A*X - B，得到 54X + 18
+    Int64PolynomialNonNegativeModWord(Y, 67);
 
     X.SetCoefficents([16, 2]);
-    IntegerPolynomialGaloisPower(X, X, 3, 67, P);  // 得到 54X + 18
+    Int64PolynomialGaloisPower(X, X, 3, 67, P);  // 得到 54X + 18
 
 
-    IntegerPolynomialSub(Y, Y, X);
-    IntegerPolynomialMod(Y, Y, P);    // 算出 0
+    Int64PolynomialSub(Y, Y, X);
+    Int64PolynomialMod(Y, Y, P);    // 算出 0
     ShowMessage(Y.ToString);
   finally
     P.Free;
@@ -228,7 +228,7 @@ end;
 
 procedure TFormPolynomial.btnTestExample2Click(Sender: TObject);
 var
-  X, Y, P: TCnIntegerPolynomial;
+  X, Y, P: TCnInt64Polynomial;
 begin
 {
   用例二：
@@ -243,20 +243,20 @@ begin
   二阶扩域上，p 是素数 7691，本原多项式是 u^2 + 1
 }
 
-  X := TCnIntegerPolynomial.Create([6145, 633]);
-  Y := TCnIntegerPolynomial.Create([109, 7372]);
-  P := TCnIntegerPolynomial.Create([1, 0, 1]);
+  X := TCnInt64Polynomial.Create([6145, 633]);
+  Y := TCnInt64Polynomial.Create([109, 7372]);
+  P := TCnInt64Polynomial.Create([1, 0, 1]);
   try
-    IntegerPolynomialGaloisMul(Y, Y, Y, 7691, P);
+    Int64PolynomialGaloisMul(Y, Y, Y, 7691, P);
 
-    IntegerPolynomialSubWord(Y, 1);
-    IntegerPolynomialNonNegativeModWord(Y, 7691);
+    Int64PolynomialSubWord(Y, 1);
+    Int64PolynomialNonNegativeModWord(Y, 7691);
 
     X.SetCoefficents([6145, 633]);
-    IntegerPolynomialGaloisPower(X, X, 3, 7691, P);
+    Int64PolynomialGaloisPower(X, X, 3, 7691, P);
 
-    IntegerPolynomialSub(Y, Y, X);
-    IntegerPolynomialMod(Y, Y, P);    // 算出 0
+    Int64PolynomialSub(Y, Y, X);
+    Int64PolynomialMod(Y, Y, P);    // 算出 0
     ShowMessage(Y.ToString);
   finally
     P.Free;
@@ -267,7 +267,7 @@ end;
 
 procedure TFormPolynomial.btnTestExample3Click(Sender: TObject);
 var
-  X, P: TCnIntegerPolynomial;
+  X, P: TCnInt64Polynomial;
 begin
 {
   用例三：
@@ -277,14 +277,14 @@ begin
   该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
 }
 
-  X := TCnIntegerPolynomial.Create([16, 2]);
-  P := TCnIntegerPolynomial.Create([1, 0, 1]);
+  X := TCnInt64Polynomial.Create([16, 2]);
+  P := TCnInt64Polynomial.Create([1, 0, 1]);
   try
-    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);
 
     X.SetCoefficents([39, 30]);
-    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);
   finally
     X.Free;
@@ -294,7 +294,7 @@ end;
 
 procedure TFormPolynomial.btnTestExample4Click(Sender: TObject);
 var
-  X, P: TCnIntegerPolynomial;
+  X, P: TCnInt64Polynomial;
 begin
 {
   用例四：
@@ -307,31 +307,31 @@ begin
   该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
 }
 
-  X := TCnIntegerPolynomial.Create;
-  P := TCnIntegerPolynomial.Create([2, 0, 0, 1]);
+  X := TCnInt64Polynomial.Create;
+  P := TCnInt64Polynomial.Create([2, 0, 0, 1]);
   try
     X.SetCoefficents([8, 4, 15]);
-    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);
 
     X.SetCoefficents([21, 30, 44]);
-    IntegerPolynomialGaloisPower(X, X, 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);
 
     X.SetCoefficents([8, 4, 15]);
-    IntegerPolynomialGaloisPower(X, X, 67 * 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67 * 67, 67, P);
     ShowMessage(X.ToString);
 
     X.SetCoefficents([21, 30, 44]);
-    IntegerPolynomialGaloisPower(X, X, 67 * 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67 * 67, 67, P);
     ShowMessage(X.ToString);
 
     X.SetCoefficents([8, 4, 15]);
-    IntegerPolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
     ShowMessage(X.ToString);
 
     X.SetCoefficents([21, 30, 44]);
-    IntegerPolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
+    Int64PolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
     ShowMessage(X.ToString);
   finally
     X.Free;
@@ -341,7 +341,7 @@ end;
 
 procedure TFormPolynomial.btnGaloisOnCurveClick(Sender: TObject);
 var
-  Ecc: TCnIntegerPolynomialEcc;
+  Ecc: TCnInt64PolynomialEcc;
 begin
 {
   用例一：
@@ -355,7 +355,7 @@ begin
   该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
 }
 
-  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 2, [16, 2], [39, 30], 0, [1, 0,
+  Ecc := TCnInt64PolynomialEcc.Create(4, 3, 67, 2, [16, 2], [39, 30], 0, [1, 0,
     1]); // Order 未指定，先不传
   if Ecc.IsPointOnCurve(Ecc.Generator) then
     ShowMessage('Ecc 1 Generator is on Curve')
@@ -364,7 +364,7 @@ begin
 
   Ecc.Free;
 
-  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0,
+  Ecc := TCnInt64PolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0,
     [2, 0, 0, 1]); // Order 未指定，先不传
   if Ecc.IsPointOnCurve(Ecc.Generator) then
     ShowMessage('Ecc 2 Generator is on Curve')
@@ -387,7 +387,7 @@ begin
 
 //  FIP1.SetCoefficents([-5, 2, 0, 3]);
 //  FIP2.SetCoefficents([-1, -2, 0, 3]);
-  if IntegerPolynomialGreatestCommonDivisor(FIP3, FIP1, FIP2) then
+  if Int64PolynomialGreatestCommonDivisor(FIP3, FIP1, FIP2) then
     edtIP3.Text := FIP3.ToString;
 end;
 
@@ -397,14 +397,14 @@ begin
 // F11 扩域上的 x^2 + 8x + 7 和 x^3 + 7x^2 + x + 7 的最大公因式是 x + 7
   FIP1.SetCoefficents([7, 8, 1]);
   FIP2.SetCoefficents([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
-  if IntegerPolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 11) then
+  if Int64PolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 11) then
     ShowMessage(FIP3.ToString);
 
 // GCD 例子二：
 // F2 扩域上的 x^6 + x^5 + x^4 + x^3 + x^2 + x + 1 和 x^4 + x^2 + x + 1 的最大公因式是 x^3 + x^2 + 1
   FIP1.SetCoefficents([1,1,1,1,1,1,1]);
   FIP2.SetCoefficents([1,1,1,0,1]);
-  if IntegerPolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 2) then
+  if Int64PolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 2) then
     edtIP3.Text := FIP3.ToString;
 end;
 
@@ -414,28 +414,28 @@ begin
 // F3 的扩域上的本原多项式 x^3 + 2x + 1 有 x^2 + 1 的模逆多项式为 2x^2 + x + 2
   FIP1.SetCoefficents([1, 0, 1]);
   FIP2.SetCoefficents([1, 2, 0, 1]);
-  IntegerPolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 3);
+  Int64PolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 3);
     edtIP3.Text := FIP3.ToString;
 end;
 
 procedure TFormPolynomial.btnGF28Test1Click(Sender: TObject);
 var
-  IP: TCnIntegerPolynomial;
+  IP: TCnInt64Polynomial;
 begin
   FIP1.SetCoefficents([1,1,1,0,1,0,1]); // 57
   FIP2.SetCoefficents([1,1,0,0,0,0,0,1]); // 83
   FIP3.SetCoefficents([1,1,0,1,1,0,0,0,1]); // 本原多项式
 
-  IP := TCnIntegerPolynomial.Create;
-  IntegerPolynomialGaloisMul(IP, FIP1, FIP2, 2, FIP3);
+  IP := TCnInt64Polynomial.Create;
+  Int64PolynomialGaloisMul(IP, FIP1, FIP2, 2, FIP3);
   edtIP3.Text := IP.ToString;  // 得到 1,0,0,0,0,0,1,1 
   IP.Free;
 end;
 
 procedure TFormPolynomial.btnEccPointAddClick(Sender: TObject);
 var
-  Ecc: TCnIntegerPolynomialEcc;
-  P, Q, S: TCnIntegerPolynomialEccPoint;
+  Ecc: TCnInt64PolynomialEcc;
+  P, Q, S: TCnInt64PolynomialEccPoint;
 begin
 // 有限扩域上的多项式椭圆曲线点加
 // F67^2 上的椭圆曲线 y^2 = x^3 + 4x + 3 本原多项式 u^2 + 1
@@ -444,23 +444,23 @@ begin
 
 // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
 
-  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 2, [16, 2], [39, 30], 0, [1, 0,
+  Ecc := TCnInt64PolynomialEcc.Create(4, 3, 67, 2, [16, 2], [39, 30], 0, [1, 0,
     1]); // Order 未指定，先不传
 
-  P := TCnIntegerPolynomialEccPoint.Create;
+  P := TCnInt64PolynomialEccPoint.Create;
   P.Assign(Ecc.Generator);
   Ecc.MultiplePoint(68, P);
   ShowMessage(P.ToString);   // 15x+6, 63x+4
 
-  Q := TCnIntegerPolynomialEccPoint.Create;
+  Q := TCnInt64PolynomialEccPoint.Create;
   Q.Assign(Ecc.Generator);
-  IntegerPolynomialGaloisPower(Q.X, Q.X, 67, 67, Ecc.Primitive);
-  IntegerPolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);
+  Int64PolynomialGaloisPower(Q.X, Q.X, 67, 67, Ecc.Primitive);
+  Int64PolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);
 
   Ecc.MultiplePoint(11, Q);
   ShowMessage(Q.ToString);   // 39x+2, 38x+48
 
-  S := TCnIntegerPolynomialEccPoint.Create;
+  S := TCnInt64PolynomialEccPoint.Create;
   Ecc.PointAddPoint(S, P, Q);
   ShowMessage(S.ToString);   // 0, 0
 
@@ -472,8 +472,8 @@ end;
 
 procedure TFormPolynomial.btnTestEccPointAdd2Click(Sender: TObject);
 var
-  Ecc: TCnIntegerPolynomialEcc;
-  P, Q, S: TCnIntegerPolynomialEccPoint;
+  Ecc: TCnInt64PolynomialEcc;
+  P, Q, S: TCnInt64PolynomialEccPoint;
 begin
 // 有限扩域上的多项式椭圆曲线点加
 // F67^3 上的椭圆曲线 y^2 = x^3 + 4x + 3 本原多项式 u^3 + 2
@@ -484,25 +484,25 @@ begin
 
 // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
 
-  Ecc := TCnIntegerPolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0, [2,
+  Ecc := TCnInt64PolynomialEcc.Create(4, 3, 67, 3, [8, 4, 15], [21, 30, 44], 0, [2,
     0, 0 ,1]); // Order 未指定，先不传
 
-  P := TCnIntegerPolynomialEccPoint.Create;
+  P := TCnInt64PolynomialEccPoint.Create;
   P.Assign(Ecc.Generator);
   Ecc.MultiplePoint(67, P);                                        // 算 67P
 
-  Q := TCnIntegerPolynomialEccPoint.Create;
+  Q := TCnInt64PolynomialEccPoint.Create;
   Q.Assign(Ecc.Generator);
-  IntegerPolynomialGaloisPower(Q.X, Q.X, 67, 67, Ecc.Primitive);
-  IntegerPolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);   // 算 πP
+  Int64PolynomialGaloisPower(Q.X, Q.X, 67, 67, Ecc.Primitive);
+  Int64PolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);   // 算 πP
   Ecc.MultiplePoint(-11, Q);                                       // 算 -11πp
 
-  S := TCnIntegerPolynomialEccPoint.Create;
+  S := TCnInt64PolynomialEccPoint.Create;
   Ecc.PointSubPoint(S, P, Q);
 
   Q.Assign(Ecc.Generator);
-  IntegerPolynomialGaloisPower(Q.X, Q.X, 67*67, 67, Ecc.Primitive);
-  IntegerPolynomialGaloisPower(Q.Y, Q.Y, 67*67, 67, Ecc.Primitive); // 算 π2P
+  Int64PolynomialGaloisPower(Q.X, Q.X, 67*67, 67, Ecc.Primitive);
+  Int64PolynomialGaloisPower(Q.Y, Q.Y, 67*67, 67, Ecc.Primitive); // 算 π2P
 
   Ecc.PointAddPoint(S, S, Q);
   ShowMessage(Q.ToString);                                          // 得到 0,0
@@ -515,26 +515,26 @@ end;
 
 procedure TFormPolynomial.btnTestDivPolyClick(Sender: TObject);
 var
-  P: TCnIntegerPolynomial;
+  P: TCnInt64Polynomial;
 begin
   // 验证可除多项式的生成
   // 如在 F101 上定义的椭圆曲线: y^2 = x^3 + x + 1
   // 用例数据不完整只能认为基本通过
   // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.9
 
-  P := TCnIntegerPolynomial.Create;
+  P := TCnInt64Polynomial.Create;
 
-  IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 0, P, 101);
+  Int64PolynomialGaloisCalcDivisionPolynomial(1, 1, 0, P, 101);
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 1, P, 101);
+  Int64PolynomialGaloisCalcDivisionPolynomial(1, 1, 1, P, 101);
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 2, P, 101);
+  Int64PolynomialGaloisCalcDivisionPolynomial(1, 1, 2, P, 101);
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 3, P, 101);  // 3x4 +6x2+12x+100
+  Int64PolynomialGaloisCalcDivisionPolynomial(1, 1, 3, P, 101);  // 3x4 +6x2+12x+100
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 4, P, 101);  // ...
+  Int64PolynomialGaloisCalcDivisionPolynomial(1, 1, 4, P, 101);  // ...
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(1, 1, 5, P, 101);  // 5x12 ... 16
+  Int64PolynomialGaloisCalcDivisionPolynomial(1, 1, 5, P, 101);  // 5x12 ... 16
   ShowMessage(P.ToString);
 
   P.Free;
@@ -542,26 +542,26 @@ end;
 
 procedure TFormPolynomial.btnTestDivPoly2Click(Sender: TObject);
 var
-  P: TCnIntegerPolynomial;
+  P: TCnInt64Polynomial;
 begin
   // 验证可除多项式的生成
   // 如在 F13 上定义的椭圆曲线: y^2 = x^3 + 2x + 1
   // 用例数据不完整只能认为基本通过
   // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.10
 
-  P := TCnIntegerPolynomial.Create;
+  P := TCnInt64Polynomial.Create;
 
-  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 0, P, 13);
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 0, P, 13);
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 1, P, 13);
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 1, P, 13);
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 2, P, 13);
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 2, P, 13);
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 3, P, 13);  // 3x4 +12x2+12x+9
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 3, P, 13);  // 3x4 +12x2+12x+9
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 4, P, 13);  // ...
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 4, P, 13);  // ...
   ShowMessage(P.ToString);
-  IntegerPolynomialGaloisCalcDivisionPolynomial(2, 1, 5, P, 13);  // 5x12 ... 6x + 7
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 5, P, 13);  // 5x12 ... 6x + 7
   ShowMessage(P.ToString);
 
   P.Free;

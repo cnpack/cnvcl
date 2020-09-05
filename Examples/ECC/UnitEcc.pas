@@ -2185,7 +2185,7 @@ begin
   begin
     if CnInt64EccPointsEqual(D3, D1) then
     begin
-      ShowMessage(IntToStr(I));  // 得到 13 符合 1021 + 1 - 966 = 56
+      ShowMessage(IntToStr(I));  // 得到 56 符合 1021 + 1 - 966 = 56
       Break;
     end;
     Ecc.PointAddPoint(D3, D2, D3);
