@@ -51,7 +51,6 @@ type
   private
     function GetMaxDegree: Integer;
     procedure SetMaxDegree(const Value: Integer);
-
   public
     constructor Create(LowToHighCoefficients: array of const); overload;
     constructor Create; overload;
@@ -67,6 +66,8 @@ type
     {* 返回是否为 0}
     procedure SetZero;
     {* 设为 0}
+    function IsOne: Boolean;
+    {* 返回是否为 1}
     procedure SetOne;
     {* 设为 1}
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
@@ -116,8 +117,14 @@ function Int64PolynomialIsZero(const P: TCnInt64Polynomial): Boolean;
 procedure Int64PolynomialSetZero(const P: TCnInt64Polynomial);
 {* 将一个整系数多项式对象设为 0}
 
+function Int64PolynomialIsOne(const P: TCnInt64Polynomial): Boolean;
+{* 判断一个整系数多项式对象是否为 1}
+
 procedure Int64PolynomialSetOne(const P: TCnInt64Polynomial);
 {* 将一个整系数多项式对象设为 1}
+
+procedure Int64PolynomialNegate(const P: TCnInt64Polynomial);
+{* 将一个整系数多项式对象所有系数求反}
 
 procedure Int64PolynomialShiftLeft(const P: TCnInt64Polynomial; N: Integer);
 {* 将一个整系数多项式对象左移 N 次，也就是各项指数都加 N}
@@ -142,7 +149,7 @@ procedure Int64PolynomialMulWord(const P: TCnInt64Polynomial; N: Integer);
 procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Integer);
 {* 将一个整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
-procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: LongWord);
+procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: Int64);
 {* 将一个整系数多项式对象的各个系数都对 N 非负求余}
 
 function Int64PolynomialAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
@@ -195,76 +202,76 @@ function Int64PolynomialCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
-  const P2: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial = nil): Boolean;
+  const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisSub(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
-  const P2: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial = nil): Boolean;
+  const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
-  P2: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial = nil): Boolean;
+  P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisDiv(const Res: TCnInt64Polynomial;
   const Remain: TCnInt64Polynomial; const P: TCnInt64Polynomial;
-  const Divisor: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial = nil): Boolean;
+  const Divisor: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function Int64PolynomialGaloisMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;
-  const Divisor: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial = nil): Boolean;
+  const Divisor: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
-  Exponent, Prime: LongWord; Primitive: TCnInt64Polynomial = nil): Boolean;
+  Exponent: LongWord; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
-function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式的常系数加上 N 再 mod Prime}
 
-function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式的常系数减去 N 再 mod Prime}
 
-function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数乘以 N 再 mod Prime}
 
-function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
-function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: LongWord): Integer;
+function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: Int64): Integer;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数同除最高项，使首项为一，返回除的值}
 
 function Int64PolynomialGaloisGreatestCommonDivisor(const Res: TCnInt64Polynomial;
-  const P1, P2: TCnInt64Polynomial; Prime: LongWord): Boolean;
+  const P1, P2: TCnInt64Polynomial; Prime: Int64): Boolean;
 {* 计算两个整系数多项式在 Prime 次方阶有限域上的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
 
 procedure Int64PolynomialGaloisExtendedEuclideanGcd(A, B: TCnInt64Polynomial;
-  X, Y: TCnInt64Polynomial; Prime: LongWord);
+  X, Y: TCnInt64Polynomial; Prime: Int64);
 {* 扩展欧几里得辗转相除法在 Prime 次方阶有限域上求二元一次不定整系数多项式方程 A * X - B * Y = 1 的解}
 
 procedure Int64PolynomialGaloisModularInverse(const Res: TCnInt64Polynomial;
-  X, Modulus: TCnInt64Polynomial; Prime: LongWord);
+  X, Modulus: TCnInt64Polynomial; Prime: Int64);
 {* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
    满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus}
 
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
-  const F, P: TCnInt64Polynomial; Prime: LongWord): Boolean;
+  const F, P: TCnInt64Polynomial; Prime: Int64): Boolean;
 {* 在 Prime 次方阶有限域上进行整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
-  outDivisionPolynomial: TCnInt64Polynomial; Prime: LongWord): Boolean;
+  outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
 {* 递归计算在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    规则参考自 F. MORAIN 的文章
   《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
@@ -278,9 +285,12 @@ resourcestring
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
 
-// 封装的非负求余函数，也就是余数为负时，加个除数变正
-function NonNegativeMod(N: Integer; P: LongWord): Integer;
+// 封装的非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0
+function NonNegativeMod(N: Int64; P: Int64): Int64;
 begin
+  if P <= 0 then
+    raise ECnPolynomialException.Create('Can NOT Mod a Negative Prime.');
+
   Result := N mod P;
   if N < 0 then
     Inc(Result, P);
@@ -319,6 +329,11 @@ begin
   Result := Count - 1;
 end;
 
+function TCnInt64Polynomial.IsOne: Boolean;
+begin
+  Result := Int64PolynomialIsOne(Self);
+end;
+
 function TCnInt64Polynomial.IsZero: Boolean;
 begin
   Result := Int64PolynomialIsZero(Self);
@@ -335,6 +350,10 @@ begin
     vtInteger:
       begin
         Add(LowToHighCoefficients[I].VInteger);
+      end;
+    vtInt64:
+      begin
+        Add(LowToHighCoefficients[I].VInt64^);
       end;
     vtBoolean:
       begin
@@ -473,10 +492,23 @@ begin
   P.Add(0);
 end;
 
+function Int64PolynomialIsOne(const P: TCnInt64Polynomial): Boolean;
+begin
+  Result := (P.MaxDegree = 0) and (P[0] = 1);
+end;
+
 procedure Int64PolynomialSetOne(const P: TCnInt64Polynomial);
 begin
   P.Clear;
   P.Add(1);
+end;
+
+procedure Int64PolynomialNegate(const P: TCnInt64Polynomial);
+var
+  I: Integer;
+begin
+  for I := 0 to P.MaxDegree do
+    P[I] := -P[I];
 end;
 
 procedure Int64PolynomialShiftLeft(const P: TCnInt64Polynomial; N: Integer);
@@ -571,7 +603,7 @@ begin
     P[I] := P[I] div N;
 end;
 
-procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: LongWord);
+procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: Int64);
 var
   I: Integer;
 begin
@@ -1034,7 +1066,7 @@ begin
 end;
 
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
-  const P2: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial): Boolean;
+  const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 begin
   Result := Int64PolynomialAdd(Res, P1, P2);
   if Result then
@@ -1046,7 +1078,7 @@ begin
 end;
 
 function Int64PolynomialGaloisSub(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
-  const P2: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial): Boolean;
+  const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 begin
   Result := Int64PolynomialSub(Res, P1, P2);
   if Result then
@@ -1058,7 +1090,7 @@ begin
 end;
 
 function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
-  P2: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial): Boolean;
+  P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   R: TCnInt64Polynomial;
   I, J, M: Integer;
@@ -1103,12 +1135,13 @@ end;
 
 function Int64PolynomialGaloisDiv(const Res: TCnInt64Polynomial;
   const Remain: TCnInt64Polynomial; const P: TCnInt64Polynomial;
-  const Divisor: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial): Boolean;
+  const Divisor: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   SubRes: TCnInt64Polynomial; // 容纳递减差
   MulRes: TCnInt64Polynomial; // 容纳除数乘积
   DivRes: TCnInt64Polynomial; // 容纳临时商
-  I, D, K, T: Integer;
+  I, D: Integer;
+  K, T: Int64;
 begin
   if Int64PolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
@@ -1142,7 +1175,7 @@ begin
     if Divisor[Divisor.MaxDegree] = 1 then
       K := 1
     else
-      K := CnInt64ModularInverse(Divisor[Divisor.MaxDegree], Prime); // K 是除式最高位的逆元
+      K := CnInt64ModularInverse2(Divisor[Divisor.MaxDegree], Prime); // K 是除式最高位的逆元
 
     for I := 0 to D do
     begin
@@ -1179,13 +1212,13 @@ begin
 end;
 
 function Int64PolynomialGaloisMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;
-  const Divisor: TCnInt64Polynomial; Prime: LongWord; Primitive: TCnInt64Polynomial): Boolean;
+  const Divisor: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 begin
   Result := Int64PolynomialGaloisDiv(nil, Res, P, Divisor, Prime, Primitive);
 end;
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
-  Exponent, Prime: LongWord; Primitive: TCnInt64Polynomial): Boolean;
+  Exponent: LongWord; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   T: TCnInt64Polynomial;
 begin
@@ -1221,28 +1254,29 @@ begin
   end;
 end;
 
-function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 begin
   P[0] := NonNegativeMod(P[0] + N, Prime);
   Result := True;
 end;
 
-function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 begin
   P[0] := NonNegativeMod(P[0] - N, Prime);
   Result := True;
 end;
 
-function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 begin
   Int64PolynomialMulWord(P, N);
   Int64PolynomialNonNegativeModWord(P, Prime);
   Result := True;
 end;
 
-function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Integer; Prime: LongWord): Boolean;
+function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
 var
-  I, K: Integer;
+  I: Integer;
+  K: Int64;
   B: Boolean;
 begin
   if N = 0 then
@@ -1252,7 +1286,7 @@ begin
   if B then
     N := -N;
 
-  K := CnInt64ModularInverse(N, Prime); 
+  K := CnInt64ModularInverse2(N, Prime);
   for I := 0 to P.MaxDegree do
   begin
     P[I] := NonNegativeMod(P[I] * K, Prime);
@@ -1262,7 +1296,7 @@ begin
   Result := True;
 end;
 
-function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: LongWord): Integer;
+function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: Int64): Integer;
 begin
   Result := P[P.MaxDegree];
   if (Result <> 1) and (Result <> 0) then
@@ -1270,7 +1304,7 @@ begin
 end;
 
 function Int64PolynomialGaloisGreatestCommonDivisor(const Res: TCnInt64Polynomial;
-  const P1, P2: TCnInt64Polynomial; Prime: LongWord): Boolean;
+  const P1, P2: TCnInt64Polynomial; Prime: Int64): Boolean;
 var
   A, B, C: TCnInt64Polynomial;
 begin
@@ -1311,14 +1345,14 @@ begin
 end;
 
 procedure Int64PolynomialGaloisExtendedEuclideanGcd(A, B: TCnInt64Polynomial;
-  X, Y: TCnInt64Polynomial; Prime: LongWord);
+  X, Y: TCnInt64Polynomial; Prime: Int64);
 var
   T, P, M: TCnInt64Polynomial;
 begin
   if B.IsZero then
   begin
     X.SetZero;
-    X[0] := CnInt64ModularInverse(A[0], Prime);
+    X[0] := CnInt64ModularInverse2(A[0], Prime);
     // X 得是 A 对于 P 的模逆元而不能像整数的辗转相除法那样是 1
     // 因为 A 可能是不等于 1 的整数
     Y.SetZero;
@@ -1351,7 +1385,7 @@ begin
 end;
 
 procedure Int64PolynomialGaloisModularInverse(const Res: TCnInt64Polynomial;
-  X, Modulus: TCnInt64Polynomial; Prime: LongWord);
+  X, Modulus: TCnInt64Polynomial; Prime: Int64);
 var
   X1, Y: TCnInt64Polynomial;
 begin
@@ -1373,7 +1407,7 @@ begin
 end;
 
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
-  const F, P: TCnInt64Polynomial; Prime: LongWord): Boolean;
+  const F, P: TCnInt64Polynomial; Prime: Int64): Boolean;
 var
   I: Integer;
   R, X, T: TCnInt64Polynomial;
@@ -1416,7 +1450,7 @@ begin
 end;
 
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
-  outDivisionPolynomial: TCnInt64Polynomial; Prime: LongWord): Boolean;
+  outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
 var
   N: Integer;
   D1, D2, D3, Y: TCnInt64Polynomial;
