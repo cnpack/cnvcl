@@ -703,6 +703,9 @@ function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
 function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
 {* 求两个 64 位无符号数的最大公约数}
 
+function CnInt64GreatestCommonDivisor2(A, B: Int64): Int64;
+{* 求两个 64 位有符号数的最大公约数}
+
 procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
 {* 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt32}
 
@@ -739,6 +742,9 @@ function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
 function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
 {* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、M 必须互质}
 
+function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
+
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
@@ -748,18 +754,22 @@ procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: 
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
+   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+
+function CnInt64ExtendedEuclideanGcd1(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 Int64，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
 function CnInt64Legendre(A, P: Int64): Integer;
-{* 计算勒让德符号 ( A / P) 的值}
+{* 计算勒让德符号 ( A / P) 的值，范围为 Int64}
 
 procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
-{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64
    递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
@@ -1479,6 +1489,20 @@ begin
     Result := CnInt64GreatestCommonDivisor(B, UInt64Mod(A, B));
 end;
 
+// 求两个 64 位有符号数的最大公约数
+function CnInt64GreatestCommonDivisor2(A, B: Int64): Int64;
+begin
+  if A < 0 then
+    A := -A;
+  if B < 0 then
+    B := -B;
+
+  if B = 0 then
+    Result := A
+  else
+    Result := CnInt64GreatestCommonDivisor2(B, A mod B);
+end;
+
 function PollardRho32(X: Cardinal; C: Cardinal): Cardinal;
 var
   I, K, X0, Y, D: Cardinal;
@@ -1681,6 +1705,20 @@ begin
     Result := Result + Modulus;
 end;
 
+function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
+var
+  N: Int64;
+begin
+  Result := 0;
+  if CnInt64GreatestCommonDivisor2(X, Modulus) <> 1 then
+    Exit;
+
+  // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
+  CnInt64ExtendedEuclideanGcd1(X, Modulus, Result, N);
+  if Result < 0 then
+    Result := Result + Modulus;
+end;
+
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 var
@@ -1717,7 +1755,7 @@ begin
   end;
 end;
 
-// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 UInt64
 function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
 var
   R, T: TUInt64;
@@ -1734,6 +1772,30 @@ begin
     T := X;
     X := Y;
     Y := T - UInt64Div(A, B) * Y;
+    Result := R;
+  end;
+end;
+
+// 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 Int64
+function CnInt64ExtendedEuclideanGcd1(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+var
+  R, T: Int64;
+begin
+  if B = 0 then
+  begin
+    if A < 0 then
+      X := -1
+    else
+      X := 1;
+    Y := 0;
+    Result := A;
+  end
+  else
+  begin
+    R := CnInt64ExtendedEuclideanGcd1(B, A mod B, X, Y);
+    T := X;
+    X := Y;
+    Y := T - (A div B) * Y;
     Result := R;
   end;
 end;
