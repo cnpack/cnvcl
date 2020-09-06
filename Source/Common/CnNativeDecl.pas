@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.07.01 V1.5
+* 修改记录：2020.09.06 V1.5
+*               加入求 UInt64 整数平方根的函数
+*           2020.07.01 V1.5
 *               加入判断 32 位与 64 位有无符号数相加是否溢出的函数
 *           2020.06.20 V1.4
 *               加入 32 位与 64 位获取最高与最低的 1 位位置的函数
@@ -156,18 +158,26 @@ type
   函数，实现以 Int64 表示的 UInt64 数据的 div 与 mod 功能。
 }
 function UInt64Mod(A, B: TUInt64): TUInt64;
+{* 两个 UInt64 求余}
 
 function UInt64Div(A, B: TUInt64): TUInt64;
+{* 两个 UInt64 整除}
 
 function UInt64Mul(A, B: Cardinal): TUInt64;
 {* 无符号 32 位整数不溢出的相乘，在不支持 UInt64 的平台上，结果以 UInt64 的形式放在 Int64 里，
   如果结果直接使用 Int64 计算则有可能溢出}
 
 function UInt64ToStr(N: TUInt64): string;
+{* 将 UInt64 转换为字符串}
 
 function StrToUInt64(const S: string): TUInt64;
+{* 将字符串转换为 UInt64}
 
 function UInt64Compare(A, B: TUInt64): Integer;
+{* 比较两个 UInt64 值，分别根据 > = < 返回 1、0、-1}
+
+function UInt64Sqrt(N: TUInt64): TUInt64;
+{* 求 UInt64 的平方根的整数部分}
 
 function UInt32IsNegative(N: Cardinal): Boolean;
 {* 该 Cardinal 被当成 Integer 时是否小于 0}
@@ -422,6 +432,44 @@ begin
       Result := 0;
   end;
 {$ENDIF}
+end;
+
+function UInt64Sqrt(N: TUInt64): TUInt64;
+var
+  Rem, Root: TUInt64;
+  I: Integer;
+begin
+  Result := 0;
+  if N = 0 then
+    Exit;
+
+  if N < 4 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  Rem := 0;
+  Root := 0;
+
+  for I := 0 to 31 do
+  begin
+    Root := Root shl 1;
+    Inc(Root);
+
+    Rem := Rem shl 2;
+    Rem := Rem or (N shr 62);
+    N := N shl 2;
+
+    if UInt64Compare(Root, Rem) <= 0 then
+    begin
+      Rem := Rem - Root;
+      Inc(Root);
+    end
+    else
+      Dec(Root);
+  end;
+  Result := Root shr 1;
 end;
 
 function UInt32IsNegative(N: Cardinal): Boolean;
