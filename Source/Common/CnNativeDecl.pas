@@ -443,7 +443,7 @@ begin
   if N = 0 then
     Exit;
 
-  if N < 4 then
+  if UInt64Compare(N, 4) < 0 then
   begin
     Result := 1;
     Exit;
