@@ -1983,6 +1983,10 @@ begin
 end;
 
 function CnInt64SquareRoot(X, P: Int64): Int64;
+const
+  PT4U3 = 0;
+  PT8U1 = 1;
+  PT8U5 = 2;
 var
   R, U, Y, Z: Int64;
   Pt: Integer;
@@ -1994,7 +1998,7 @@ begin
   R := P mod 4;
   if R = 3 then
   begin
-    Pt := 0; // pt4U3;
+    Pt := PT4U3;
     U := P div 4;
   end
   else
@@ -2002,12 +2006,12 @@ begin
     R := P mod 8;
     if R = 1 then
     begin
-      Pt := 1; // pt8U1;
+      Pt := PT8U1;
       U := P div 8;
     end
     else if R = 5 then
     begin
-      Pt := 2; // pt8U5;
+      Pt := PT8U5;
       U := P div 8;
     end
     else
@@ -2015,17 +2019,17 @@ begin
   end;
 
   case Pt of
-  0: // pt4U3 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+  PT4U3: // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
     begin
       Result := MontgomeryPowerMod(X, U + 1, P);   // 55, 103 得 63
     end;
-  1: // pt8U1
+  PT8U1:
     begin
       // IEEE P1363 中说的 Lucas 序列
       if SquareRootModPrimeLucas(X, P, Y) then
         Result := Y;
     end;
-  2: // pt8U5 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+  PT8U5: // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
     begin
       Z := MontgomeryPowerMod(X, 2 * U + 1, P);
       if Z = 1 then
