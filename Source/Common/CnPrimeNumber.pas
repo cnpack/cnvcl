@@ -773,6 +773,9 @@ procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
    递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
+function CnInt64SquareRoot(X, P: Int64): Int64;
+{*  计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，负值暂不支持}
+
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
 
@@ -1879,6 +1882,169 @@ begin
   end;
   Q := Q0;
   V := V0;
+end;
+
+// P1363 上的 Lucas 计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
+// V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
+// V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
+procedure CalcLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+var
+  C, I: Integer;
+  V0, V1, Q0, Q1: Int64;
+begin
+  if K < 0 then
+    raise Exception.Create('Invalid K for Lucas Sequence');
+
+  // V0 = 2, V1 = P, and Vk = P * Vk-1 - Q * Vk-2   for k >= 2
+
+  if K = 0 then
+  begin
+    Q := 1;
+    V := 2;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    Q := 1;
+    V := X;
+    Exit;
+  end;
+
+  V0 := 2;
+  V1 := X;
+  Q0 := 1;
+  Q1 := 1;
+
+  C := GetUInt64HighBits(K);
+  for I := C downto 0 do
+  begin
+    Q0 := Int64MultipleMod(Q0, Q1, N);
+    if GetUInt64BitSet(K, I) then
+    begin
+      Q1 := Int64MultipleMod(Q0, Y, N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);
+    end
+    else
+    begin
+      Q1 := Q0;
+      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
+      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);
+    end;
+  end;
+  Q := Q0;
+  V := V0;
+end;
+
+// 封装的对于 P 为 8*u+1 的奇素数，用 Lucas 方法求其模平方根
+function SquareRootModPrimeLucas(X, P: Int64; out Y: Int64): Boolean;
+var
+  G, Z, U, V: Int64;
+
+  function RandomInt64LessThan(HighValue: Int64): Int64;
+  var
+    Hi, Lo: Cardinal;
+  begin
+    Randomize;
+    Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
+    Randomize;
+    Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+    Result := (Int64(Hi) shl 32) + Lo;
+    Result := Result mod HighValue;
+  end;
+
+begin
+  Result := False;
+  G := X;
+  while True do
+  begin
+    // 随机取 X
+    X := RandomInt64LessThan(P);
+
+    // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
+    CalcLucasSequenceMod(X, G, (P + 1) shr 1, P, U, V);
+
+    // V 偶则直接右移 1 再 mod P，V 奇则加 P 再右移 1
+    if (V and 1) = 0 then
+      Z := (V shr 1) mod P
+    else
+      Z := (V + P) shr 1;
+    // Z := (V div 2) mod P;
+
+    if Int64MultipleMod(Z, Z, P) = G then
+    begin
+      Y := Z;
+      Result := True;
+      Exit;
+    end
+    else if (U > 1) and (U < P - 1) then
+      Break;
+  end;
+end;
+
+function CnInt64SquareRoot(X, P: Int64): Int64;
+var
+  R, U, Y, Z: Int64;
+  Pt: Integer;
+begin
+  Result := 0;
+  if CnInt64Legendre(X, P) <> 1 then
+    Exit;
+
+  R := P mod 4;
+  if R = 3 then
+  begin
+    Pt := 0; // pt4U3;
+    U := P div 4;
+  end
+  else
+  begin
+    R := P mod 8;
+    if R = 1 then
+    begin
+      Pt := 1; // pt8U1;
+      U := P div 8;
+    end
+    else if R = 5 then
+    begin
+      Pt := 2; // pt8U5;
+      U := P div 8;
+    end
+    else
+      raise Exception.Create('Invalid Prime');
+  end;
+
+  case Pt of
+  0: // pt4U3 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+    begin
+      Result := MontgomeryPowerMod(X, U + 1, P);   // 55, 103 得 63
+    end;
+  1: // pt8U1
+    begin
+      // IEEE P1363 中说的 Lucas 序列
+      if SquareRootModPrimeLucas(X, P, Y) then
+        Result := Y;
+    end;
+  2: // pt8U5 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
+    begin
+      Z := MontgomeryPowerMod(X, 2 * U + 1, P);
+      if Z = 1 then
+      begin
+        Result := MontgomeryPowerMod(X, U + 1, P);
+      end
+      else
+      begin
+        Z := P - Z;
+        if Z = 1 then
+        begin
+          // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
+          Result := (Int64MultipleMod(X, 2, P) *
+            MontgomeryPowerMod(4, U, P) *
+            MontgomeryPowerMod(X, U, P)) mod P;
+        end;
+      end;
+    end;
+  end;
 end;
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;
