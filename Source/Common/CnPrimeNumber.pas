@@ -773,7 +773,10 @@ procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
    递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
-function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;
+function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64; overload;
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
+
+function ChineseRemainderTheoremInt64(Remainers, Factors: TCnInt64List): Int64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
 
 implementation
@@ -1705,6 +1708,7 @@ begin
     Result := Result + Modulus;
 end;
 
+// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质
 function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
 var
   N: Int64;
@@ -1912,6 +1916,43 @@ begin
   for J := Low(Factors) to High(Factors) do
     G := G * Factors[J];
   Result := UInt64Mod(Sum, G);
+end;
+
+function ChineseRemainderTheoremInt64(Remainers, Factors: TCnInt64List): Int64;
+var
+  I, J: Integer;
+  G, N, Sum: Int64;
+begin
+  Result := 0;
+  if Remainers.Count <> Factors.Count then
+    Exit;
+
+  Sum := 0;
+  for I := 0 to Remainers.Count - 1 do
+  begin
+    // 对于每一个余数和对应除数，找出其他除数的公倍数中除以该除数余 1 的数（涉及到模逆元），
+    // 如 5 7 的公倍数 35n，对 3 余 1 的是 70。3 7 对 5 余 1 的是 21，3 5 对 7 余 1 的是 14
+    // 然后该余数和该模逆元相乘
+    // 所有的乘积加起来，mod 一下全体除数们的最小公倍数，就得到结果了
+    G := 1;
+    for J := 0 to Factors.Count - 1 do
+      if J <> I then
+        G := G * Factors[J];
+
+    // G 此刻是最小公倍数，因为 Factors 互素
+    // 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1
+    N := CnInt64ModularInverse2(G, Factors[I]);
+    G := N * G; // 得到乘数
+
+    G := Remainers[I] * G; // 乘数与余数相乘
+    Sum := Sum + G;        // 求和
+  end;
+
+  // 得到 Sum 后，针对全体除数的最小公倍数求余即可
+  G := 1;
+  for J := 0 to Factors.Count - 1 do
+    G := G * Factors[J];
+  Result := Sum mod G;
 end;
 
 end.
