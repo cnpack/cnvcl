@@ -191,7 +191,7 @@ function Int64PolynomialGreatestCommonDivisor(const Res: TCnInt64Polynomial;
 
 function Int64PolynomialCompose(const Res: TCnInt64Polynomial;
   const F, P: TCnInt64Polynomial): Boolean;
-{* 整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
 function Int64PolynomialCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
   outDivisionPolynomial: TCnInt64Polynomial): Boolean;
@@ -262,13 +262,14 @@ procedure Int64PolynomialGaloisExtendedEuclideanGcd(A, B: TCnInt64Polynomial;
 {* 扩展欧几里得辗转相除法在 Prime 次方阶有限域上求二元一次不定整系数多项式方程 A * X - B * Y = 1 的解}
 
 procedure Int64PolynomialGaloisModularInverse(const Res: TCnInt64Polynomial;
-  X, Modulus: TCnInt64Polynomial; Prime: Int64);
+  X, Modulus: TCnInt64Polynomial; Prime: Int64; CheckGcd: Boolean = False);
 {* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
-   满足 (X * Y) mod M = 1，调用者须自行保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus}
+   满足 (X * Y) mod M = 1，调用者须尽量保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus
+   CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素}
 
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
-  const F, P: TCnInt64Polynomial; Prime: Int64): Boolean;
-{* 在 Prime 次方阶有限域上进行整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功}
+  const F, P: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
+{* 在 Prime 次方阶有限域上进行整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
   outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
@@ -1188,7 +1189,7 @@ begin
       T := NonNegativeMod(SubRes[P.MaxDegree - I] * K, Prime);
       Int64PolynomialGaloisMulWord(MulRes, T, Prime);          // 除式乘到最高次系数相同
 
-      DivRes[D - I] := SubRes[P.MaxDegree - I];                  // 商放到 DivRes 位置
+      DivRes[D - I] := T;                                      // 对应位的商放到 DivRes 位置
       Int64PolynomialGaloisSub(SubRes, SubRes, MulRes, Prime); // 减求模后结果重新放回 SubRes
     end;
 
@@ -1385,14 +1386,23 @@ begin
 end;
 
 procedure Int64PolynomialGaloisModularInverse(const Res: TCnInt64Polynomial;
-  X, Modulus: TCnInt64Polynomial; Prime: Int64);
+  X, Modulus: TCnInt64Polynomial; Prime: Int64; CheckGcd: Boolean);
 var
-  X1, Y: TCnInt64Polynomial;
+  X1, Y, G: TCnInt64Polynomial;
 begin
   X1 := nil;
   Y := nil;
+  G := nil;
 
   try
+    if CheckGcd then
+    begin
+      G := FLocalInt64PolynomialPool.Obtain;
+      Int64PolynomialGaloisGreatestCommonDivisor(G, X, Modulus, Prime);
+      if not G.IsOne then
+        raise ECnPolynomialException.Create('Modular Inverse Need GCD = 1');
+    end;
+
     X1 := FLocalInt64PolynomialPool.Obtain;
     Y := FLocalInt64PolynomialPool.Obtain;
 
@@ -1403,11 +1413,12 @@ begin
   finally
     FLocalInt64PolynomialPool.Recycle(X1);
     FLocalInt64PolynomialPool.Recycle(Y);
+    FLocalInt64PolynomialPool.Recycle(G);
   end;
 end;
 
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
-  const F, P: TCnInt64Polynomial; Prime: Int64): Boolean;
+  const F, P: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   I: Integer;
   R, X, T: TCnInt64Polynomial;
@@ -1441,6 +1452,9 @@ begin
       Int64PolynomialGaloisMul(X, X, P, Prime);
   end;
 
+  if Primitive <> nil then
+    Int64PolynomialGaloisMod(R, R, Primitive, Prime);
+
   if (Res = F) or (Res = P) then
   begin
     Int64PolynomialCopy(Res, R);
@@ -1455,9 +1469,8 @@ var
   N: Integer;
   D1, D2, D3, Y: TCnInt64Polynomial;
 begin
-  Result := False;
   if Degree < 0 then
-    Exit
+    raise ECnPolynomialException.Create('Galois Division Polynomial Invalid Degree')
   else if Degree = 0 then
   begin
     outDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
