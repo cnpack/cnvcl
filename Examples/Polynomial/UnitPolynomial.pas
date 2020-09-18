@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnPolynomial, CnECC;
+  StdCtrls, ComCtrls, ExtCtrls, Contnrs, CnPolynomial, CnECC;
 
 type
   TFormPolynomial = class(TForm)
@@ -44,6 +44,18 @@ type
     btnTestEccPointAdd2: TButton;
     btnTestDivPoly: TButton;
     btnTestDivPoly2: TButton;
+    btnTestGaloisPoint2: TButton;
+    btnTestPolyPoint2: TButton;
+    btnTestPolyEccPoint3: TButton;
+    btnTestPolyAdd2: TButton;
+    btnTestGaloisPolyMulMod: TButton;
+    btnTestGaloisModularInverse1: TButton;
+    btnTestEuclid2: TButton;
+    btnTestExtendEuclid3: TButton;
+    btnTestGaloisDiv: TButton;
+    btnTestEccDivisionPoly3: TButton;
+    mmoTestDivisionPolynomial: TMemo;
+    btnGenerateDivisionPolynomial: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -66,6 +78,17 @@ type
     procedure btnTestEccPointAdd2Click(Sender: TObject);
     procedure btnTestDivPolyClick(Sender: TObject);
     procedure btnTestDivPoly2Click(Sender: TObject);
+    procedure btnTestGaloisPoint2Click(Sender: TObject);
+    procedure btnTestPolyPoint2Click(Sender: TObject);
+    procedure btnTestPolyEccPoint3Click(Sender: TObject);
+    procedure btnTestPolyAdd2Click(Sender: TObject);
+    procedure btnTestGaloisPolyMulModClick(Sender: TObject);
+    procedure btnTestGaloisModularInverse1Click(Sender: TObject);
+    procedure btnTestEuclid2Click(Sender: TObject);
+    procedure btnTestExtendEuclid3Click(Sender: TObject);
+    procedure btnTestGaloisDivClick(Sender: TObject);
+    procedure btnTestEccDivisionPoly3Click(Sender: TObject);
+    procedure btnGenerateDivisionPolynomialClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -565,6 +588,348 @@ begin
   ShowMessage(P.ToString);
 
   P.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisPoint2Click(Sender: TObject);
+var
+  X, Y, P, E: TCnInt64Polynomial;
+begin
+  X := TCnInt64Polynomial.Create([12, 8, 11, 1]);
+  Y := TCnInt64Polynomial.Create([12, 5, 2, 12]);
+  P := TCnInt64Polynomial.Create([9, 12, 12, 0, 3]);
+  E := TCnInt64Polynomial.Create([1, 2, 0, 1]);
+
+  Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
+  Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点 2x3+7x2+12x+5
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入，也得到 2x3+7x2+12x+5
+  Int64PolynomialGaloisCompose(E, E, X, 13, P);
+
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('Pi On Curve')
+  else
+    ShowMessage('Pi NOT');
+
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnTestPolyPoint2Click(Sender: TObject);
+var
+  X, Y, P, E: TCnInt64Polynomial;
+begin
+  X := TCnInt64Polynomial.Create([12,11,5,6]);
+  Y := TCnInt64Polynomial.Create([8,5]);
+  P := TCnInt64Polynomial.Create([9, 12, 12, 0, 3]);
+  E := TCnInt64Polynomial.Create([1, 2, 0, 1]);
+
+  Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
+  Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点 2x3+7x2+12x+5
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入，也得到 2x3+7x2+12x+5
+  Int64PolynomialGaloisCompose(E, E, X, 13, P);
+
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('Pi^2 On Curve')
+  else
+    ShowMessage('Pi^2 NOT');
+
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnTestPolyEccPoint3Click(Sender: TObject);
+var
+  X, Y, P, E: TCnInt64Polynomial;
+begin
+  E := TCnInt64Polynomial.Create([1, 2, 0, 1]);
+  P := TCnInt64Polynomial.Create([7, 6, 1, 9, 10, 11, 12, 12, 9, 3, 7, 5]);
+
+  // 某 Pi
+  X := TCnInt64Polynomial.Create([9,4,5,6,11,3,8,8,6,2,9]);
+  Y := TCnInt64Polynomial.Create([12,1,11,0,1,1,7,1,8,9,12,7]);
+
+  Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
+  Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  Int64PolynomialGaloisCompose(E, E, X, 13, P);
+
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('Pi On Curve')
+  else
+    ShowMessage('Pi NOT');
+
+  // 某 Pi^2
+  X.SetCoefficents([5,11,3,2,2,7,5,2,11,6,12,5]);
+  Y.SetCoefficents([9,3,9,9,2,10,5,3,5,6,2,6]);
+
+  Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
+  Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  Int64PolynomialGaloisCompose(E, E, X, 13, P);
+
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('Pi^2 On Curve')
+  else
+    ShowMessage('Pi^2 NOT');
+
+  // 某 3 * P
+  X.SetCoefficents([10,8,7,9,5,12,4,12,3,4,1,6]);
+  Y.SetCoefficents([7,2,10,0,3,7,4,6,3,0,11,12]);
+
+  Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
+  Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  Int64PolynomialGaloisCompose(E, E, X, 13, P);
+
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('3 * P On Curve')
+  else
+    ShowMessage('3 * P NOT');
+
+  // 某点加 π^2 + 3 * P
+  X.SetCoefficents([4,5,1,11,4,4,9,6,12,2,6,3]);
+  Y.SetCoefficents([2,7,9,11,7,2,9,5,5,6,12,3]);
+
+  Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
+  Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  Int64PolynomialGaloisCompose(E, E, X, 13, P);
+
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('Pi^2 + 3 * P On Curve')
+  else
+    ShowMessage('Pi^2 + 3 * P NOT');
+
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnTestPolyAdd2Click(Sender: TObject);
+var
+  X, Y, P, E, RX, RY: TCnInt64Polynomial;
+begin
+  X := TCnInt64Polynomial.Create([0, 1]);
+  Y := TCnInt64Polynomial.Create([1]);
+  P := TCnInt64Polynomial.Create([9, 12, 12, 0, 3]);
+  E := TCnInt64Polynomial.Create([1, 2, 0, 1]);
+
+  RX := TCnInt64Polynomial.Create;
+  RY := TCnInt64Polynomial.Create;
+
+  TCnInt64PolynomialEcc.PointAddPoint1(X, Y, X, Y, RX, RY, 2, 1, 13, P);
+
+  ShowMessage(RX.ToString);
+  ShowMessage(RY.ToString);
+
+  Int64PolynomialGaloisMul(RY, RY, RY, 13, P); // 计算 Y 系数的平方
+  Int64PolynomialGaloisMul(RY, RY, E, 13, P);  // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  Int64PolynomialGaloisCompose(E, E, RX, 13, P);
+  if Int64PolynomialEqual(E, Y) then
+    ShowMessage('Add Point On Curve')
+  else
+    ShowMessage('Add Point NOT');
+
+  RX.Free;
+  RY.Free;
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisPolyMulModClick(Sender: TObject);
+var
+  P, Q, H: TCnInt64Polynomial;
+begin
+  P := TCnInt64Polynomial.Create([11,0,6,12]);
+  Q := TCnInt64Polynomial.Create([2,4,0,2]);
+  H := TCnInt64Polynomial.Create([9,12,12,0,3]);
+  Int64PolynomialGaloisMul(P, P, Q, 13, H);
+  ShowMessage(P.ToString);
+
+  H.Free;
+  Q.Free;
+  P.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisModularInverse1Click(
+  Sender: TObject);
+begin
+  FIP1.SetCoefficents([1,2,0,1]);
+  FIP2.SetCoefficents([3,4,4,0,1]);  // 本原多项式
+  Int64PolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 13);
+  ShowMessage(FIP3.ToString);  // 得到 5x^3+6x+2
+
+  Int64PolynomialGaloisMul(FIP3, FIP3, FIP1, 13, FIP2); // 乘一下验算看是不是得到 1
+  ShowMessage(FIP3.ToString);
+
+  FIP1.SetCoefficents([4,8,0,4]);
+  FIP2.SetCoefficents([9,12,12,0,3]);
+  Int64PolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 13);
+  ShowMessage(FIP3.ToString);  // 得到 11x^3+8x+7
+
+  // 以下不用，
+//  FIP1.SetCoefficents([4,-8,-4,0,1]);
+//  Int64PolynomialGaloisMul(FIP1, FIP1, FIP3, 13, FIP2);
+//  // Int64PolynomialGaloisMul(FIP3, FIP3, FIP1, 13, FIP2); // 乘一下验算看是不是得到 1
+//  ShowMessage(FIP1.ToString); // 居然得到 x
+end;
+
+procedure TFormPolynomial.btnTestEuclid2Click(Sender: TObject);
+var
+  A, B, X, Y: TCnInt64Polynomial;
+begin
+  A := TCnInt64Polynomial.Create([0,6]);
+  B := TCnInt64Polynomial.Create([3]);
+  X := TCnInt64Polynomial.Create;
+  Y := TCnInt64Polynomial.Create;
+
+  // 求 6x * X + 3 * Y = 1 mod 13 的解，得到 0，9
+  Int64PolynomialGaloisExtendedEuclideanGcd(A, B, X, Y, 13);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  A.Free;
+  B.Free;
+  X.Free;
+  Y.Free;
+end;
+
+procedure TFormPolynomial.btnTestExtendEuclid3Click(Sender: TObject);
+var
+  A, B, X, Y: TCnInt64Polynomial;
+begin
+  A := TCnInt64Polynomial.Create([3,3,2]);
+  B := TCnInt64Polynomial.Create([0,6]);
+  X := TCnInt64Polynomial.Create;
+  Y := TCnInt64Polynomial.Create;
+
+  // 求 2x2+3x+3 * X - 6x * Y = 1 mod 13 的解，应该得到 9 和 10x+2
+  Int64PolynomialGaloisExtendedEuclideanGcd(A, B, X, Y, 13);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  A.Free;
+  B.Free;
+  X.Free;
+  Y.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisDivClick(Sender: TObject);
+var
+  A, B, C, D: TCnInt64Polynomial;
+begin
+  // GF13 上 (2x^2+3x+3) div (6x) 应该等于 9x + 7
+  A := TCnInt64Polynomial.Create([3,3,2]);
+  B := TCnInt64Polynomial.Create([0,6]);
+  C := TCnInt64Polynomial.Create;
+  D := TCnInt64Polynomial.Create;
+  Int64PolynomialGaloisDiv(C, D, A, B, 13);
+  ShowMessage(C.ToString);
+  ShowMessage(D.ToString);
+  A.Free;
+  B.Free;
+  C.Free;
+  D.Free;
+end;
+
+procedure TFormPolynomial.btnTestEccDivisionPoly3Click(Sender: TObject);
+var
+  DP: TCnInt64Polynomial;
+  A, B, P, V, X1, X2: Int64;
+begin
+  // Division Polynomial 测试用例，来自 John J. McGee 的
+  // 《Rene Schoof's Algorithm for Determing the Order of the Group of Points
+  //    on an Elliptic Curve over a Finite Field》第 31 页
+  A := 46;
+  B := 74;
+  P := 97;
+
+  X1 := 4;
+  X2 := 90;
+
+  DP := TCnInt64Polynomial.Create;
+  mmoTestDivisionPolynomial.Lines.Clear;
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 2, DP, P);
+  mmoTestDivisionPolynomial.Lines.Add('2: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 2
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 2
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 3, DP, P);
+  mmoTestDivisionPolynomial.Lines.Add('3: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 24
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 76
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 4, DP, P);
+  mmoTestDivisionPolynomial.Lines.Add('4: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 0
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 14
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 5, DP, P);
+  mmoTestDivisionPolynomial.Lines.Add('5: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 47
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 得到 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 6, DP, P);
+  mmoTestDivisionPolynomial.Lines.Add('6: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 有错，应该得到 25，结果得到 85
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 有错，应该得到 21，结果得到 36
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 7, DP, P);
+  mmoTestDivisionPolynomial.Lines.Add('7: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 得到 22
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 有错，应该得到得到 23，结果得到 69
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 8, DP, P); 
+  mmoTestDivisionPolynomial.Lines.Add('8: === ' + DP.ToString);
+  V := Int64PolynomialGaloisGetValue(DP, X1, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 有错，应该得到 0，
+  V := Int64PolynomialGaloisGetValue(DP, X2, P);
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 得到 29 ？
+
+  DP.Free;
+end;
+
+procedure TFormPolynomial.btnGenerateDivisionPolynomialClick(
+  Sender: TObject);
+var
+  List: TObjectList;
+  I: Integer;
+begin
+  List := TObjectList.Create(True);
+  CnInt64GenerateGaloisDivisionPolynomials(46, 74, 97, 20, List);
+
+  mmoTestDivisionPolynomial.Lines.Clear;
+  for I := 0 to List.Count - 1 do
+    mmoTestDivisionPolynomial.Lines.Add(TCnInt64Polynomial(List[I]).ToString);
+
+  List.Free;
 end;
 
 end.

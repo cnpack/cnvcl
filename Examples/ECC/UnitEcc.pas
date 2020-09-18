@@ -231,6 +231,7 @@ type
     btnEccTestAdd: TButton;
     btnHassenTest: TButton;
     btnHassenTest2: TButton;
+    btnInt64SchoofTest: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -298,6 +299,7 @@ type
     procedure btnEccTestAddClick(Sender: TObject);
     procedure btnHassenTestClick(Sender: TObject);
     procedure btnHassenTest2Click(Sender: TObject);
+    procedure btnInt64SchoofTestClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -1659,78 +1661,7 @@ begin
   X := StrToInt64(edtSRX.Text);
   edtSRY.Text := '';
 
-  if CnInt64Legendre(X, P) <> 1 then
-  begin
-    ShowMessage('NO Answer');
-    Exit;
-  end;
-
-  R := P mod 4;
-  if R = 3 then
-  begin
-    PrimeType := pt4U3;
-    U := P div 4;
-  end
-  else
-  begin
-    R := P mod 8;
-    if R = 1 then
-    begin
-      PrimeType := pt8U1;
-      U := P div 8;
-    end
-    else if R = 5 then
-    begin
-      PrimeType := pt8U5;
-      U := P div 8;
-    end
-    else
-      raise ECnEccException.Create('Invalid Finite Field Size.');
-  end;
-
-  case PrimeType of
-  pt4U3:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
-    begin
-      Y := MontgomeryPowerMod(X, U + 1, P);   // 55, 103 得 63
-      Z := Int64MultipleMod(Y, Y, P);
-      if Z = X then
-      begin
-        edtSRY.Text := IntToStr(Y);
-      end;
-    end;
-  pt8U5:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
-    begin
-      Z := MontgomeryPowerMod(X, 2 * U + 1, P);
-      if Z = 1 then
-      begin
-        Y := MontgomeryPowerMod(X, U + 1, P);
-        edtSRY.Text := IntToStr(Y);
-      end
-      else
-      begin
-        Z := P - Z;
-        if Z = 1 then
-        begin
-          // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
-          Y := (Int64MultipleMod(X, 2, P) *
-            MontgomeryPowerMod(4, U, P) *
-            MontgomeryPowerMod(X, U, P)) mod P;
-          edtSRY.Text := IntToStr(Y);
-        end;
-      end;
-    end;
-  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
-    begin
-      // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
-      // 换成 IEEE P1363 中说的 Lucas 序列
-      if SquareRootModPrimeLucas(X, P, Y) then
-      begin
-        edtSRY.Text := IntToStr(Y);
-        Exit;
-      end;
-    end;
-  end;
-
+  edtSRY.Text := IntToStr(CnInt64SquareRoot(X, P));
   if edtSRY.Text = '' then
     ShowMessage('NO Result')
   else
@@ -2232,6 +2163,12 @@ begin
   end;
 
   Ecc.Free;
+end;
+
+procedure TFormEcc.btnInt64SchoofTestClick(Sender: TObject);
+begin
+  // Schoof 算法测试
+  ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 13)));
 end;
 
 end.

@@ -253,6 +253,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 20
           OnClick = btnGF28Test1Click
         end
+        object btnTestGaloisDiv: TButton
+          Left = 152
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Galois Div'
+          TabOrder = 21
+          OnClick = btnTestGaloisDivClick
+        end
       end
     end
     object tsExtensionEcc: TTabSheet
@@ -309,6 +318,105 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Ecc Division Polynomial 2'
           TabOrder = 4
           OnClick = btnTestDivPoly2Click
+        end
+        object btnTestGaloisPoint2: TButton
+          Left = 24
+          Top = 80
+          Width = 129
+          Height = 25
+          Caption = 'Test ? Point on Curve 1'
+          TabOrder = 5
+          OnClick = btnTestGaloisPoint2Click
+        end
+        object btnTestPolyPoint2: TButton
+          Left = 176
+          Top = 80
+          Width = 129
+          Height = 25
+          Caption = 'Test ? Point on Curve 2'
+          TabOrder = 6
+          OnClick = btnTestPolyPoint2Click
+        end
+        object btnTestPolyEccPoint3: TButton
+          Left = 320
+          Top = 80
+          Width = 241
+          Height = 25
+          Caption = 'Test 4 Points on Curve?'
+          TabOrder = 7
+          OnClick = btnTestPolyEccPoint3Click
+        end
+        object btnTestPolyAdd2: TButton
+          Left = 592
+          Top = 80
+          Width = 177
+          Height = 25
+          Caption = 'Test Poly Point Add'
+          TabOrder = 8
+          OnClick = btnTestPolyAdd2Click
+        end
+        object btnTestGaloisPolyMulMod: TButton
+          Left = 784
+          Top = 80
+          Width = 105
+          Height = 25
+          Caption = 'Test Galois MulMod'
+          TabOrder = 9
+          OnClick = btnTestGaloisPolyMulModClick
+        end
+        object btnTestGaloisModularInverse1: TButton
+          Left = 24
+          Top = 128
+          Width = 161
+          Height = 25
+          Caption = 'Test Galois Modular Inverse'
+          TabOrder = 10
+          OnClick = btnTestGaloisModularInverse1Click
+        end
+        object btnTestEuclid2: TButton
+          Left = 192
+          Top = 128
+          Width = 161
+          Height = 25
+          Caption = 'Test Extended Euclid 2'
+          TabOrder = 11
+          OnClick = btnTestEuclid2Click
+        end
+        object btnTestExtendEuclid3: TButton
+          Left = 360
+          Top = 128
+          Width = 161
+          Height = 25
+          Caption = 'Test Extended Euclid 3'
+          TabOrder = 12
+          OnClick = btnTestExtendEuclid3Click
+        end
+        object btnTestEccDivisionPoly3: TButton
+          Left = 528
+          Top = 128
+          Width = 177
+          Height = 25
+          Caption = 'Test Ecc Division Polynomial 3'
+          TabOrder = 13
+          OnClick = btnTestEccDivisionPoly3Click
+        end
+        object mmoTestDivisionPolynomial: TMemo
+          Left = 24
+          Top = 176
+          Width = 849
+          Height = 313
+          ScrollBars = ssBoth
+          TabOrder = 14
+          WordWrap = False
+        end
+        object btnGenerateDivisionPolynomial: TButton
+          Left = 720
+          Top = 128
+          Width = 169
+          Height = 25
+          Caption = 'Generate Division Polynomial'
+          TabOrder = 15
+          OnClick = btnGenerateDivisionPolynomialClick
         end
       end
     end
