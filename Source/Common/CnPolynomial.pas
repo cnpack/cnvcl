@@ -474,13 +474,28 @@ begin
     end
     else if C > 0 then
     begin
-      if Result = '' then  // 最高项无需加号
-        Result := IntToStr(C) + VarPower(I)
+      if (C = 1) and (I > 0) then  // 非常数项的 1 系数无需显示
+      begin
+        if Result = '' then  // 最高项无需加号
+          Result := VarPower(I)
+        else
+          Result := Result + '+' + VarPower(I);
+      end
       else
-        Result := Result + '+' + IntToStr(C) + VarPower(I);
+      begin
+        if Result = '' then  // 最高项无需加号
+          Result := IntToStr(C) + VarPower(I)
+        else
+          Result := Result + '+' + IntToStr(C) + VarPower(I);
+      end;
     end
     else // 小于 0，要用减号
-      Result := Result + IntToStr(C) + VarPower(I);
+    begin
+      if (C = -1) and (I > 0) then // 非常数项的 -1 无需显示 1，只需减号
+        Result := Result + '-' + VarPower(I)
+      else
+        Result := Result + IntToStr(C) + VarPower(I);
+    end;
   end;
 end;
 
@@ -1386,7 +1401,7 @@ begin
   // 把 F 中的每个系数都和 X 的对应次幂相乘，最后相加
   for I := 1 to F.MaxDegree do
   begin
-    Result := Result + NonNegativeMod(F[I] * T, Prime);
+    Result := NonNegativeMod(Result + NonNegativeMod(F[I] * T, Prime), Prime);
     if I <> F.MaxDegree then
       T := NonNegativeMod(T * X, Prime);
   end;
@@ -1397,6 +1412,7 @@ function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Inte
   outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
 var
   N: Integer;
+  MI: Int64;
   D1, D2, D3, Y: TCnInt64Polynomial;
 begin
   if Degree < 0 then
@@ -1445,22 +1461,25 @@ begin
         D1 := FLocalInt64PolynomialPool.Obtain;
         Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N + 2, D1, Prime);
 
-        D2 := FLocalInt64PolynomialPool.Obtain;
+        D2 := FLocalInt64PolynomialPool.Obtain;        // D1 得到 Fn+2
         Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);
         Int64PolynomialGaloisMul(D2, D2, D2, Prime);
 
         Int64PolynomialGaloisAdd(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
 
         D3 := FLocalInt64PolynomialPool.Obtain;
-        Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N - 2, D3, Prime);
+        Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N - 2, D3, Prime);  // D3 得到 Fn-2
 
         Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N + 1, D2, Prime);
-        Int64PolynomialGaloisMul(D2, D2, D2, Prime);   // D2 得到 Fn-2 * Fn+1 ^ 2
+        Int64PolynomialGaloisMul(D2, D2, D2, Prime);   // D2 得到 Fn+1 ^ 2
+        Int64PolynomialGaloisMul(D2, D2, D3, Prime);   // D2 得到 Fn-2 * Fn+1 ^ 2
 
         Int64PolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
 
         Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);    // D2 得到 Fn
-        Int64PolynomialGaloisCompose(outDivisionPolynomial, D2, D1, Prime); // 代入得到 F2n
+        Int64PolynomialGaloisMul(outDivisionPolynomial, D2, D1, Prime);     // 相乘得到 F2n
+        MI := CnInt64ModularInverse(2, Prime);
+        Int64PolynomialGaloisMulWord(outDivisionPolynomial, MI, Prime);     // 再除以 2
       end
       else // Degree 是奇数
       begin
