@@ -774,7 +774,7 @@ procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
 function CnInt64SquareRoot(X, P: Int64): Int64;
-{*  计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，负值暂不支持}
+{*  计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持}
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}

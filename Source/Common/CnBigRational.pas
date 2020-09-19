@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnBigNumber;
+  SysUtils, Classes, SysConst, CnBigNumber;
 
 type
   TCnBigRational = class(TPersistent)
@@ -475,7 +475,7 @@ end;
 
 function TCnBigRational.IsOne: Boolean;
 begin
-  Result := BigNumberCompare(FNominator, FDenominator) = 0;
+  Result := not FNominator.IsZero and BigNumberCompare(FNominator, FDenominator) = 0;
 end;
 
 function TCnBigRational.IsZero: Boolean;
@@ -530,10 +530,14 @@ procedure TCnBigRational.Reciprocal;
 var
   T: TCnBigNumber;
 begin
+  if FNominator.IsZero then
+    raise EDivByZero.Create(SDivByZero);
+
   T := TCnBigNumber.Create;
   BigNumberCopy(T, FDenominator);
   BigNumberCopy(FDenominator, FNominator);
   BigNumberCopy(FNominator, T);
+  T.Free;
 end;
 
 procedure TCnBigRational.Reduce;
