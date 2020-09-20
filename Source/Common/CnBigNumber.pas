@@ -1360,6 +1360,12 @@ var
   I, Gt, Lt: Integer;
   T1, T2: LongWord;
 begin
+  if Num1 = Num2 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
   if (Num1 = nil) or (Num2 = nil) then
   begin
     if Num1 <> nil then

@@ -166,6 +166,7 @@ begin
   if Number1.IsInt and Number2.IsInt then
   begin
     BigNumberAdd(RationalResult.Nominator, Number1.Nominator, Number2.Nominator);
+    RationalResult.Denominator.SetOne;
     Exit;
   end
   else if Number1.IsZero then
@@ -239,17 +240,9 @@ begin
 end;
 
 procedure CnBigRationalNumberMul(Number1, Number2: TCnBigRational; RationalResult: TCnBigRational);
-var
-  N: TCnBigNumber;
 begin
-  N := TCnBigNumber.Create;
-  try
-    BigNumberMul(N, Number1.Nominator, Number2.Nominator);
-    BigNumberMul(RationalResult.Denominator, Number1.Denominator, Number2.Denominator);
-    BigNumberCopy(RationalResult.Nominator, N);
-  finally
-    N.Free;
-  end;
+  BigNumberMul(RationalResult.Nominator, Number1.Nominator, Number2.Nominator);
+  BigNumberMul(RationalResult.Denominator, Number1.Denominator, Number2.Denominator);
   RationalResult.Reduce;
 end;
 
@@ -260,7 +253,7 @@ begin
   if Number2.IsZero then
     raise EDivByZero.Create('Divide by Zero.');
 
-  N := TCnBigNumber.Create;
+  N := TCnBigNumber.Create;  // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
     BigNumberMul(N, Number1.Nominator, Number2.Denominator);
     BigNumberMul(RationalResult.Denominator, Number1.Denominator, Number2.Nominator);
@@ -305,7 +298,9 @@ function CnBigRationalNumberCompare(Number1: TCnBigRational; Number2: Int64): In
 var
   Res: TCnBigNumber;
 begin
-  if not Number1.IsNegative and (Number2 < 0) then
+  if Number1 = Number2 then
+    Result := 0
+  else if not Number1.IsNegative and (Number2 < 0) then
     Result := 1
   else if Number1.IsNegative and (Number2 > 0) then
     Result := -1
