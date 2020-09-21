@@ -245,6 +245,9 @@ function Int64PolynomialCompose(const Res: TCnInt64Polynomial;
 function Int64PolynomialGetValue(const F: TCnInt64Polynomial; X: Int64): Int64;
 {* 整系数多项式求值，也就是计算 F(x)，返回计算结果}
 
+procedure Int64PolynomialReduce2(P1, P2: TCnInt64Polynomial);
+{* 针对两个整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
+
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
@@ -331,6 +334,9 @@ function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Inte
    本结果只给出 x 的多项式部分。
    规则参考自 F. MORAIN 的文章
   《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
+
+procedure Int64PolynomialGaloisReduce2(P1, P2: TCnInt64Polynomial; Prime: Int64);
+{* 在 Prime 次方阶有限域上针对两个整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
 
 // ========================== 有理分式常规运算 =================================
 
@@ -1148,6 +1154,31 @@ begin
   end;
 end;
 
+procedure Int64PolynomialReduce2(P1, P2: TCnInt64Polynomial);
+var
+  D: TCnInt64Polynomial;
+begin
+  if P1 = P2 then
+  begin
+    P1.SetOne;
+    Exit;
+  end;
+
+  D := FLocalInt64PolynomialPool.Obtain;
+  try
+    if not Int64PolynomialGreatestCommonDivisor(D, P1, P2) then
+      Exit;
+
+    if not D.IsOne then
+    begin
+      Int64PolynomialDiv(P1, nil, P1, D);
+      Int64PolynomialDiv(P1, nil, P1, D);
+    end;
+  finally
+    FLocalInt64PolynomialPool.Recycle(D);
+  end;
+end;
+
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 begin
@@ -1741,6 +1772,31 @@ begin
       FLocalInt64PolynomialPool.Recycle(Y);
     end;
     Result := True;
+  end;
+end;
+
+procedure Int64PolynomialGaloisReduce2(P1, P2: TCnInt64Polynomial; Prime: Int64);
+var
+  D: TCnInt64Polynomial;
+begin
+  if P1 = P2 then
+  begin
+    P1.SetOne;
+    Exit;
+  end;
+
+  D := FLocalInt64PolynomialPool.Obtain;
+  try
+    if not Int64PolynomialGaloisGreatestCommonDivisor(D, P1, P2, Prime) then
+      Exit;
+
+    if not D.IsOne then
+    begin
+      Int64PolynomialGaloisDiv(P1, nil, P1, D, Prime);
+      Int64PolynomialGaloisDiv(P1, nil, P1, D, Prime);
+    end;
+  finally
+    FLocalInt64PolynomialPool.Recycle(D);
   end;
 end;
 
