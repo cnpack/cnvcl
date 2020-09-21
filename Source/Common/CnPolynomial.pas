@@ -340,46 +340,78 @@ procedure Int64PolynomialGaloisReduce2(P1, P2: TCnInt64Polynomial; Prime: Int64)
 
 // ========================== 有理分式常规运算 =================================
 
-function Int64RationalPolynomialEqual(Number1, Number2: TCnInt64RationalPolynomial): Boolean;
+function Int64RationalPolynomialEqual(R1, R2: TCnInt64RationalPolynomial): Boolean;
 {* 比较两个有理分式是否相等}
 
 function Int64RationalPolynomialCopy(const Dst: TCnInt64RationalPolynomial;
   const Src: TCnInt64RationalPolynomial): TCnInt64RationalPolynomial;
 {* 有理分式复制}
 
-procedure Int64RationalPolynomialAdd(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialAdd(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial); overload;
 {* 有理分式普通加法，三数可以相等}
 
-procedure Int64RationalPolynomialSub(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialSub(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial); overload;
 {* 有理分式普通减法，三数可以相等}
 
-procedure Int64RationalPolynomialMul(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialMul(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial); overload;
 {* 有理分式普通乘法，三数可以相等}
 
-procedure Int64RationalPolynomialDiv(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialDiv(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial); overload;
 {* 有理分式普通除法，三数可以相等}
+
+procedure Int64RationalPolynomialAdd(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+{* 有理分式与整系数多项式的普通加法，RationalResult 可以是 R1}
+
+procedure Int64RationalPolynomialSub(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+{* 有理分式与整系数多项式的普通减法，RationalResult 可以是 R1}
+
+procedure Int64RationalPolynomialMul(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+{* 有理分式与整系数多项式的普通乘法，RationalResult 可以是 R1}
+
+procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+{* 有理分式与整系数多项式的普通除法，RationalResult 可以是 R1}
 
 // ====================== 有理分式在有限域上的模运算 ===========================
 
-procedure Int64RationalPolynomialGaloisAdd(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 {* 有理分式模系数加法，三数可以相等}
 
-procedure Int64RationalPolynomialGaloisSub(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisSub(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 {* 有理分式模系数减法，三数可以相等}
 
-procedure Int64RationalPolynomialGaloisMul(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisMul(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 {* 有理分式模系数乘法，三数可以相等}
 
-procedure Int64RationalPolynomialGaloisDiv(Number1, Number2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisDiv(R1, R2: TCnInt64RationalPolynomial;
+  RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 {* 有理分式模系数除法，三数可以相等}
+
+procedure Int64RationalPolynomialGaloisAdd(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+{* 有理分式与整系数多项式的模系数加法，RationalResult 可以是 R1}
+
+procedure Int64RationalPolynomialGaloisSub(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+{* 有理分式与整系数多项式的模系数减法，RationalResult 可以是 R1}
+
+procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+{* 有理分式与整系数多项式的模系数乘法，RationalResult 可以是 R1}
+
+procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+{* 有理分式与整系数多项式的模系数除法，RationalResult 可以是 R1}
 
 implementation
 
@@ -1963,25 +1995,27 @@ begin
     Result := FNominator.ToString + ' / ' + FDenominator.ToString;
 end;
 
-function Int64RationalPolynomialEqual(Number1, Number2: TCnInt64RationalPolynomial): Boolean;
+// ============================= 有理分式运算 ==================================
+
+function Int64RationalPolynomialEqual(R1, R2: TCnInt64RationalPolynomial): Boolean;
 var
   Res: TCnInt64RationalPolynomial;
 begin
-  if Number1 = Number2 then
+  if R1 = R2 then
   begin
     Result := True;
     Exit;
   end;
 
-  if Number1.IsInt and Number2.IsInt then
+  if R1.IsInt and R2.IsInt then
   begin
-    Result := Int64PolynomialEqual(Number1.Nominator, Number2.Nominator);
+    Result := Int64PolynomialEqual(R1.Nominator, R2.Nominator);
     Exit;
   end;
 
   Res := TCnInt64RationalPolynomial.Create;
   try
-    Int64RationalPolynomialSub(Number1, Number2, Res);
+    Int64RationalPolynomialSub(R1, R2, Res);
     Result := Res.IsZero;
   finally
     Res.Free;
@@ -1999,26 +2033,26 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialAdd(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial);
 var
   M, R, F1, F2, D1, D2: TCnInt64Polynomial;
 begin
-  if Number1.IsInt and Number2.IsInt then
+  if R1.IsInt and R2.IsInt then
   begin
-    Int64PolynomialAdd(RationalResult.Nominator, Number1.Nominator, Number2.Nominator);
+    Int64PolynomialAdd(RationalResult.Nominator, R1.Nominator, R2.Nominator);
     RationalResult.Denominator.SetOne;
     Exit;
   end
-  else if Number1.IsZero then
+  else if R1.IsZero then
   begin
-    if Number2 <> RationalResult then
-      RationalResult.Assign(Number2);
+    if R2 <> RationalResult then
+      RationalResult.Assign(R2);
   end
-  else if Number2.IsZero then
+  else if R2.IsZero then
   begin
-    if Number1 <> RationalResult then
-      RationalResult.Assign(Number1);
+    if R1 <> RationalResult then
+      RationalResult.Assign(R1);
   end
   else
   begin
@@ -2038,8 +2072,8 @@ begin
       D1 := FLocalInt64PolynomialPool.Obtain;
       D2 := FLocalInt64PolynomialPool.Obtain;
 
-      Int64PolynomialCopy(D1, Number1.Denominator);
-      Int64PolynomialCopy(D2, Number2.Denominator);
+      Int64PolynomialCopy(D1, R1.Denominator);
+      Int64PolynomialCopy(D2, R2.Denominator);
 
       if not Int64PolynomialLeastCommonMultiple(M, D1, D2) then
         Int64PolynomialMul(M, D1, D2);   // 无法求最小公倍式表示系数无法整除，直接相乘
@@ -2048,8 +2082,8 @@ begin
       Int64PolynomialDiv(F2, R, M, D2);
 
       Int64PolynomialCopy(RationalResult.Denominator, M);
-      Int64PolynomialMul(R, Number1.Nominator, F1);
-      Int64PolynomialMul(M, Number2.Nominator, F2);
+      Int64PolynomialMul(R, R1.Nominator, F1);
+      Int64PolynomialMul(M, R2.Nominator, F2);
       Int64PolynomialAdd(RationalResult.Nominator, R, M);
     finally
       FLocalInt64PolynomialPool.Recycle(M);
@@ -2062,63 +2096,126 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialSub(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialSub(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial);
 begin
-  Number2.Nominator.Negate;
-  Int64RationalPolynomialAdd(Number1, Number2, RationalResult);
-  if RationalResult <> Number2 then
-    Number2.Nominator.Negate;
+  R2.Nominator.Negate;
+  Int64RationalPolynomialAdd(R1, R2, RationalResult);
+  if RationalResult <> R2 then
+    R2.Nominator.Negate;
 end;
 
-procedure Int64RationalPolynomialMul(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialMul(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial);
 begin
-  Int64PolynomialMul(RationalResult.Nominator, Number1.Nominator, Number2.Nominator);
-  Int64PolynomialMul(RationalResult.Denominator, Number1.Denominator, Number2.Denominator);
+  Int64PolynomialMul(RationalResult.Nominator, R1.Nominator, R2.Nominator);
+  Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Denominator);
 end;
 
-procedure Int64RationalPolynomialDiv(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialDiv(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial);
 var
   N: TCnInt64Polynomial;
 begin
-  if Number2.IsZero then
+  if R2.IsZero then
     raise EDivByZero.Create('Divide by Zero.');
 
   N := FLocalInt64PolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
-    Int64PolynomialMul(N, Number1.Nominator, Number2.Denominator);
-    Int64PolynomialMul(RationalResult.Denominator, Number1.Denominator, Number2.Nominator);
+    Int64PolynomialMul(N, R1.Nominator, R2.Denominator);
+    Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Nominator);
     Int64PolynomialCopy(RationalResult.Nominator, N);
   finally
     FLocalInt64PolynomialPool.Recycle(N);
   end;
 end;
 
+procedure Int64RationalPolynomialAdd(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+var
+  T: TCnInt64RationalPolynomial;
+begin
+  if P1.IsZero then
+  begin
+    if R1 <> RationalResult then
+    begin
+      Int64RationalPolynomialCopy(RationalResult, R1);
+      Exit;
+    end;
+  end;
+
+  T := TCnInt64RationalPolynomial.Create;
+  try
+    T.Denominator.SetOne;
+    Int64PolynomialCopy(T.Nominator, P1);
+    Int64RationalPolynomialAdd(R1, T, RationalResult);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure Int64RationalPolynomialSub(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+begin
+  P1.Negate;
+  try
+    Int64RationalPolynomialAdd(R1, P1, RationalResult);
+  finally
+    P1.Negate;
+  end;
+end;
+
+procedure Int64RationalPolynomialMul(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+begin
+  if P1.IsZero then
+    RationalResult.SetZero
+  else if P1.IsOne then
+    RationalResult.Assign(R1)
+  else
+  begin
+    Int64PolynomialMul(RationalResult.Nominator, R1.Nominator, P1);
+    Int64PolynomialCopy(RationalResult.Denominator, R1.Denominator);
+  end;
+end;
+
+procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+begin
+  if P1.IsZero then
+    raise EDivByZero.Create('Divide by Zero.')
+  else if P1.IsOne then
+    RationalResult.Assign(R1)
+  else
+  begin
+    Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, P1);
+    Int64PolynomialCopy(RationalResult.Nominator, R1.Nominator);
+  end;
+end;
+
 // ====================== 有理分式在有限域上的模运算 ===========================
 
-procedure Int64RationalPolynomialGaloisAdd(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
 var
   M, R, F1, F2, D1, D2: TCnInt64Polynomial;
 begin
-  if Number1.IsInt and Number2.IsInt then
+  if R1.IsInt and R2.IsInt then
   begin
-    Int64PolynomialGaloisAdd(RationalResult.Nominator, Number1.Nominator,
-      Number2.Nominator, Prime);
+    Int64PolynomialGaloisAdd(RationalResult.Nominator, R1.Nominator,
+      R2.Nominator, Prime);
     RationalResult.Denominator.SetOne;
     Exit;
   end
-  else if Number1.IsZero then
+  else if R1.IsZero then
   begin
-    if Number2 <> RationalResult then
-      RationalResult.Assign(Number2);
+    if R2 <> RationalResult then
+      RationalResult.Assign(R2);
   end
-  else if Number2.IsZero then
+  else if R2.IsZero then
   begin
-    if Number1 <> RationalResult then
-      RationalResult.Assign(Number1);
+    if R1 <> RationalResult then
+      RationalResult.Assign(R1);
   end
   else
   begin
@@ -2138,8 +2235,8 @@ begin
       D1 := FLocalInt64PolynomialPool.Obtain;
       D2 := FLocalInt64PolynomialPool.Obtain;
 
-      Int64PolynomialCopy(D1, Number1.Denominator);
-      Int64PolynomialCopy(D2, Number2.Denominator);
+      Int64PolynomialCopy(D1, R1.Denominator);
+      Int64PolynomialCopy(D2, R2.Denominator);
 
       if not Int64PolynomialGaloisLeastCommonMultiple(M, D1, D2, Prime) then
         Int64PolynomialGaloisMul(M, D1, D2, Prime);   // 无法求最小公倍式表示系数无法整除，直接相乘
@@ -2148,8 +2245,8 @@ begin
       Int64PolynomialGaloisDiv(F2, R, M, D2, Prime);
 
       Int64PolynomialCopy(RationalResult.Denominator, M);
-      Int64PolynomialGaloisMul(R, Number1.Nominator, F1, Prime);
-      Int64PolynomialGaloisMul(M, Number2.Nominator, F2, Prime);
+      Int64PolynomialGaloisMul(R, R1.Nominator, F1, Prime);
+      Int64PolynomialGaloisMul(M, R2.Nominator, F2, Prime);
       Int64PolynomialGaloisAdd(RationalResult.Nominator, R, M, Prime);
     finally
       FLocalInt64PolynomialPool.Recycle(M);
@@ -2162,37 +2259,100 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialGaloisSub(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisSub(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
 begin
-  Number2.Nominator.Negate;
-  Int64RationalPolynomialGaloisAdd(Number1, Number2, RationalResult, Prime);
-  if RationalResult <> Number2 then
-    Number2.Nominator.Negate;
+  R2.Nominator.Negate;
+  Int64RationalPolynomialGaloisAdd(R1, R2, RationalResult, Prime);
+  if RationalResult <> R2 then
+    R2.Nominator.Negate;
 end;
 
-procedure Int64RationalPolynomialGaloisMul(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisMul(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
 begin
-  Int64PolynomialGaloisMul(RationalResult.Nominator, Number1.Nominator, Number2.Nominator, Prime);
-  Int64PolynomialGaloisMul(RationalResult.Denominator, Number1.Denominator, Number2.Denominator, Prime);
+  Int64PolynomialGaloisMul(RationalResult.Nominator, R1.Nominator, R2.Nominator, Prime);
+  Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Denominator, Prime);
 end;
 
-procedure Int64RationalPolynomialGaloisDiv(Number1, Number2: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisDiv(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
 var
   N: TCnInt64Polynomial;
 begin
-  if Number2.IsZero then
+  if R2.IsZero then
     raise EDivByZero.Create('Divide by Zero.');
 
   N := FLocalInt64PolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
-    Int64PolynomialGaloisMul(N, Number1.Nominator, Number2.Denominator, Prime);
-    Int64PolynomialGaloisMul(RationalResult.Denominator, Number1.Denominator, Number2.Nominator, Prime);
+    Int64PolynomialGaloisMul(N, R1.Nominator, R2.Denominator, Prime);
+    Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Nominator, Prime);
     Int64PolynomialCopy(RationalResult.Nominator, N);
   finally
     FLocalInt64PolynomialPool.Recycle(N);
+  end;
+end;
+
+procedure Int64RationalPolynomialGaloisAdd(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+var
+  T: TCnInt64RationalPolynomial;
+begin
+  if P1.IsZero then
+  begin
+    if R1 <> RationalResult then
+    begin
+      Int64RationalPolynomialCopy(RationalResult, R1);
+      Exit;
+    end;
+  end;
+
+  T := TCnInt64RationalPolynomial.Create;
+  try
+    T.Denominator.SetOne;
+    Int64PolynomialCopy(T.Nominator, P1);
+    Int64RationalPolynomialGaloisAdd(R1, T, RationalResult, Prime);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure Int64RationalPolynomialGaloisSub(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+begin
+  P1.Negate;
+  try
+    Int64RationalPolynomialGaloisAdd(R1, P1, RationalResult, Prime);
+  finally
+    P1.Negate;
+  end;
+end;
+
+procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+begin
+  if P1.IsZero then
+    RationalResult.SetZero
+  else if P1.IsOne then
+    RationalResult.Assign(R1)
+  else
+  begin
+    Int64PolynomialGaloisMul(RationalResult.Nominator, R1.Nominator, P1, Prime);
+    Int64PolynomialCopy(RationalResult.Denominator, R1.Denominator);
+  end;
+end;
+
+procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
+  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+begin
+  if P1.IsZero then
+    raise EDivByZero.Create('Divide by Zero.')
+  else if P1.IsOne then
+    RationalResult.Assign(R1)
+  else
+  begin
+    Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, P1, Prime);
+    Int64PolynomialCopy(RationalResult.Nominator, R1.Nominator);
   end;
 end;
 
