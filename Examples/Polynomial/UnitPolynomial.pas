@@ -56,6 +56,27 @@ type
     btnTestEccDivisionPoly3: TButton;
     mmoTestDivisionPolynomial: TMemo;
     btnGenerateDivisionPolynomial: TButton;
+    tsRationalPolynomial: TTabSheet;
+    grpRationalPolynomial: TGroupBox;
+    btnRP2Point: TButton;
+    bvl3: TBevel;
+    edtRationalNominator1: TEdit;
+    lbl1: TLabel;
+    edtRationalDenominator1: TEdit;
+    btnRationalPolynomialAdd: TButton;
+    btnRationalPolynomialSub: TButton;
+    btnRationalPolynomialMul: TButton;
+    btnRationalPolynomialDiv: TButton;
+    chkRationalPolynomialGalois: TCheckBox;
+    edtRationalPolynomialPrime: TEdit;
+    edtRationalNominator2: TEdit;
+    lbl2: TLabel;
+    edtRationalDenominator2: TEdit;
+    lbl3: TLabel;
+    lbl4: TLabel;
+    btnRationalPolynomialGenerate: TButton;
+    edtRationalResultNominator: TEdit;
+    edtRationalResultDenominator: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -89,10 +110,19 @@ type
     procedure btnTestGaloisDivClick(Sender: TObject);
     procedure btnTestEccDivisionPoly3Click(Sender: TObject);
     procedure btnGenerateDivisionPolynomialClick(Sender: TObject);
+    procedure btnRP2PointClick(Sender: TObject);
+    procedure btnRationalPolynomialGenerateClick(Sender: TObject);
+    procedure btnRationalPolynomialAddClick(Sender: TObject);
+    procedure btnRationalPolynomialSubClick(Sender: TObject);
+    procedure btnRationalPolynomialMulClick(Sender: TObject);
+    procedure btnRationalPolynomialDivClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
     FIP3: TCnInt64Polynomial;
+    FRP1: TCnInt64RationalPolynomial;
+    FRP2: TCnInt64RationalPolynomial;
+    FRP3: TCnInt64RationalPolynomial;
   public
     { Public declarations }
   end;
@@ -109,10 +139,18 @@ begin
   FIP1 := TCnInt64Polynomial.Create;
   FIP2 := TCnInt64Polynomial.Create;
   FIP3 := TCnInt64Polynomial.Create;
+
+  FRP1 := TCnInt64RationalPolynomial.Create;
+  FRP2 := TCnInt64RationalPolynomial.Create;
+  FRP3 := TCnInt64RationalPolynomial.Create;
 end;
 
 procedure TFormPolynomial.FormDestroy(Sender: TObject);
 begin
+  FRP1.Free;
+  FRP2.Free;
+  FRP3.Free;
+
   FIP1.Free;
   FIP2.Free;
   FIP3.Free;
@@ -930,6 +968,85 @@ begin
     mmoTestDivisionPolynomial.Lines.Add(TCnInt64Polynomial(List[I]).ToString);
 
   List.Free;
+end;
+
+procedure TFormPolynomial.btnRP2PointClick(Sender: TObject);
+var
+  X, Y: TCnInt64RationalPolynomial;
+begin
+  X := TCnInt64RationalPolynomial.Create;
+  Y := TCnInt64RationalPolynomial.Create;
+
+  TCnInt64PolynomialEcc.RationalMultiplePoint(2, X, Y, 2, 1, 13);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  X.Free;
+  Y.Free;
+end;
+
+procedure TFormPolynomial.btnRationalPolynomialGenerateClick(
+  Sender: TObject);
+var
+  I, D: Integer;
+begin
+  D := 2;
+  FRP1.SetZero;
+  FRP2.SetZero;
+
+  Randomize;
+  for I := 0 to D do
+  begin
+    FRP1.Nominator.Add(Random(16) - 1);
+    FRP2.Nominator.Add(Random(16) - 1);
+    FRP1.Denominator.Add(Random(16) - 1);
+    FRP2.Denominator.Add(Random(16) - 1);
+  end;
+
+  edtRationalNominator1.Text := FRP1.Nominator.ToString;
+  edtRationalNominator2.Text := FRP2.Nominator.ToString;
+  edtRationalDenominator1.Text := FRP1.Denominator.ToString;
+  edtRationalDenominator2.Text := FRP2.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnRationalPolynomialAddClick(Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisAdd(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialAdd(FRP1, FRP2, FRP3);
+  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnRationalPolynomialSubClick(Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisSub(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialSub(FRP1, FRP2, FRP3);
+  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnRationalPolynomialMulClick(Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisMul(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialMul(FRP1, FRP2, FRP3);
+  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnRationalPolynomialDivClick(Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisDiv(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialDiv(FRP1, FRP2, FRP3);
+  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
 
 end.
