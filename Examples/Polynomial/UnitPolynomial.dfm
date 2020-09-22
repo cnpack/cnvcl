@@ -447,8 +447,8 @@ object FormPolynomial: TFormPolynomial
         object lbl1: TLabel
           Left = 425
           Top = 100
-          Width = 31
-          Height = 21
+          Width = 5
+          Height = 13
           Caption = '/'
         end
         object lbl2: TLabel
@@ -576,6 +576,15 @@ object FormPolynomial: TFormPolynomial
           Width = 385
           Height = 21
           TabOrder = 13
+        end
+        object btnManualOnCurve: TButton
+          Left = 224
+          Top = 24
+          Width = 209
+          Height = 25
+          Caption = 'Manual Test OnCurve'
+          TabOrder = 14
+          OnClick = btnManualOnCurveClick
         end
       end
     end

@@ -41,7 +41,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, Math, Contnrs, CnPrimeNumber, CnNativeDecl;
+  SysUtils, Classes, SysConst, Math, Contnrs, CnPrimeNumber, CnNativeDecl,
+  CnMatrix;
 
 type
   ECnPolynomialException = class(Exception);
@@ -103,6 +104,8 @@ type
     {* 设为 0}
     procedure SetOne;
     {* 设为 1}
+    procedure Reduce;
+    {* 约分}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 输出成字符串}
@@ -379,6 +382,10 @@ procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
 {* 有理分式与整系数多项式的普通除法，RationalResult 可以是 R1}
 
+procedure Int64RationalPolynomialGetValue(const F: TCnInt64RationalPolynomial;
+  X: Int64; outResult: TCnRationalNumber);
+{* 有理分式求值，也就是计算 F(x)，将结果放在 outResult 中}
+
 // ====================== 有理分式在有限域上的模运算 ===========================
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
@@ -412,6 +419,10 @@ procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
 procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 {* 有理分式与整系数多项式的模系数除法，RationalResult 可以是 R1}
+
+function Int64RationalPolynomialGaloisGetValue(const F: TCnInt64RationalPolynomial;
+  X: Int64; Prime: Int64): Int64;
+{* 有理分式模系数求值，也就是模计算 F(x)，除法用乘法模逆元表示}
 
 implementation
 
@@ -889,6 +900,7 @@ var
   MulRes: TCnInt64Polynomial; // 容纳除数乘积
   DivRes: TCnInt64Polynomial; // 容纳临时商
   I, D: Integer;
+  T: Int64;
 begin
   if Int64PolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
@@ -932,8 +944,9 @@ begin
 
       Int64PolynomialCopy(MulRes, Divisor);
       Int64PolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
-      Int64PolynomialMulWord(MulRes, SubRes[P.MaxDegree - I] div MulRes[MulRes.MaxDegree]); // 除式乘到最高次系数相同
-      DivRes[D - I] := SubRes[P.MaxDegree - I];                // 商放到 DivRes 位置
+      T := SubRes[P.MaxDegree - I] div MulRes[MulRes.MaxDegree];
+      Int64PolynomialMulWord(MulRes, T); // 除式乘到最高次系数相同
+      DivRes[D - I] := T;                // 商放到 DivRes 位置
       Int64PolynomialSub(SubRes, SubRes, MulRes);              // 减后结果重新放回 SubRes
     end;
 
@@ -1974,6 +1987,11 @@ begin
   end;
 end;
 
+procedure TCnInt64RationalPolynomial.Reduce;
+begin
+  Int64PolynomialReduce2(FNominator, FDenominator);
+end;
+
 procedure TCnInt64RationalPolynomial.SetOne;
 begin
   FDenominator.SetOne;
@@ -2192,6 +2210,14 @@ begin
   end;
 end;
 
+procedure Int64RationalPolynomialGetValue(const F: TCnInt64RationalPolynomial;
+  X: Int64; outResult: TCnRationalNumber);
+begin
+  outResult.Nominator := Int64PolynomialGetValue(F.Nominator, X);
+  outResult.Denominator := Int64PolynomialGetValue(F.Denominator, X);
+  outResult.Reduce;
+end;
+
 // ====================== 有理分式在有限域上的模运算 ===========================
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
@@ -2353,6 +2379,19 @@ begin
     Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, P1, Prime);
     Int64PolynomialCopy(RationalResult.Nominator, R1.Nominator);
   end;
+end;
+
+function Int64RationalPolynomialGaloisGetValue(const F: TCnInt64RationalPolynomial;
+  X: Int64; Prime: Int64): Int64;
+var
+  N, D:Int64;
+begin
+  D := Int64PolynomialGaloisGetValue(F.Denominator, X, Prime);
+  if D = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  N := Int64PolynomialGaloisGetValue(F.Nominator, X, Prime);
+  Result := NonNegativeMod(N * CnInt64ModularInverse2(D, Prime), Prime);
 end;
 
 initialization

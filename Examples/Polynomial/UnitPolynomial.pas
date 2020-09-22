@@ -77,6 +77,7 @@ type
     btnRationalPolynomialGenerate: TButton;
     edtRationalResultNominator: TEdit;
     edtRationalResultDenominator: TEdit;
+    btnManualOnCurve: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -116,6 +117,7 @@ type
     procedure btnRationalPolynomialSubClick(Sender: TObject);
     procedure btnRationalPolynomialMulClick(Sender: TObject);
     procedure btnRationalPolynomialDivClick(Sender: TObject);
+    procedure btnManualOnCurveClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -933,9 +935,9 @@ begin
   Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 6, DP, P);
   mmoTestDivisionPolynomial.Lines.Add('6: === ' + DP.ToString);
   V := Int64PolynomialGaloisGetValue(DP, X1, P);
-  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 有错，应该得到 25，结果得到 85
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 有错，应该得到 25，结果得到 30
   V := Int64PolynomialGaloisGetValue(DP, X2, P);
-  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 有错，应该得到 21，结果得到 36
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                    // 有错，应该得到 21，结果得到 76
 
   Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 7, DP, P);
   mmoTestDivisionPolynomial.Lines.Add('7: === ' + DP.ToString);
@@ -947,9 +949,9 @@ begin
   Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 8, DP, P); 
   mmoTestDivisionPolynomial.Lines.Add('8: === ' + DP.ToString);
   V := Int64PolynomialGaloisGetValue(DP, X1, P);
-  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 有错，应该得到 0，
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 得到 0，
   V := Int64PolynomialGaloisGetValue(DP, X2, P);
-  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 得到 29 ？
+  mmoTestDivisionPolynomial.Lines.Add(IntToStr(V));                                     // 得到 30 ？
 
   DP.Free;
 end;
@@ -1056,6 +1058,102 @@ begin
     Int64RationalPolynomialDiv(FRP1, FRP2, FRP3);
   edtRationalResultNominator.Text := FRP3.Nominator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnManualOnCurveClick(Sender: TObject);
+var
+  A, B, Q: Int64;
+  X, Y: TCnInt64RationalPolynomial;
+  P, Y2, XI, YI: TCnInt64Polynomial;
+  RL, RR, T: TCnInt64RationalPolynomial;
+begin
+  // 简单椭圆曲线二倍点用可除多项式手工计算的结果验证，通过
+  X := TCnInt64RationalPolynomial.Create;
+  Y := TCnInt64RationalPolynomial.Create;
+  Y2 := TCnInt64Polynomial.Create;
+  P := TCnInt64Polynomial.Create;
+
+  RL := TCnInt64RationalPolynomial.Create;
+  RR := TCnInt64RationalPolynomial.Create;
+  T := TCnInt64RationalPolynomial.Create;
+
+  A := 1;
+  B := 1;
+  Q := 23;   // 有限域F23上的 Y^2=X^3+X+1  （6，19）* 2 = （13，16）
+
+  // 先求整数域
+  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
+
+  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+
+  Y2.SetCoefficents([B, A, 0, 1]);
+  // 验证 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
+
+  Int64RationalPolynomialMul(Y, Y, Y);
+  Int64RationalPolynomialMul(Y, Y2, RL); // 得到 Y^2 (x^3+Ax+B)
+  RL.Reduce;
+  ShowMessage(RL.ToString);
+
+  Int64RationalPolynomialMul(X, X, RR);
+  Int64RationalPolynomialMul(RR, X, RR); // 得到 X^3
+
+  P.SetCoefficents([A]);
+  Int64RationalPolynomialMul(X, P, T);   // T 得到 A * X
+  Int64RationalPolynomialAdd(RR, T, RR); // RR 得到 X^3 + AX
+
+  P.SetCoefficents([B]);
+  Int64RationalPolynomialAdd(RR, P, RR); // RR 得到 X^3 + AX + B
+  RR.Reduce;
+  ShowMessage(RR.ToString);
+
+  // RL/RR 在整数域内有除式不等，换 Fq 看看，原始点（6，19），二倍点公式套上去得到（13，16）
+  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
+  ShowMessage('2*X (X=6) using Division Polynomial is '
+    + IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, Q))); // 得到 13 对了
+
+  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+  ShowMessage('2*Y (X=6) using Division Polynomial is '
+    + IntToStr((Int64RationalPolynomialGaloisGetValue(Y, 6, Q) * 19) mod Q)); // 得到 16 对了
+
+  Y2.SetCoefficents([B, A, 0, 1]);
+  // 验证二倍点公式用一倍点坐标算出来的值 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
+
+  Int64RationalPolynomialGaloisMul(Y, Y, Y, Q);
+  Int64RationalPolynomialGaloisMul(Y, Y2, RL, Q); // 得到 Y^2 (x^3+Ax+B)
+  ShowMessage(RL.ToString);
+
+  Int64RationalPolynomialGaloisMul(X, X, RR, Q);
+  Int64RationalPolynomialGaloisMul(RR, X, RR, Q); // 得到 X^3
+
+  P.SetCoefficents([A]);
+  Int64RationalPolynomialGaloisMul(X, P, T, Q);   // T 得到 A * X
+  Int64RationalPolynomialGaloisAdd(RR, T, RR, Q); // RR 得到 X^3 + AX
+
+  P.SetCoefficents([B]);
+  Int64RationalPolynomialGaloisAdd(RR, P, RR, Q); // RR 得到 X^3 + AX + B
+  ShowMessage(RR.ToString);
+
+  // RL/RR 在 F23 内表达式还是不等，但各自求值看看，居然相等！
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(RL, 6, Q)));  // 3 = 二倍点 Y 坐标平方 16^2 mod 23 = 3
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(RR, 6, Q)));  // 3 = 二倍点 X 坐标 13^3 + 13 + 1 mod 23 = 3
+
+  // 再拿另外一个点 （13，16）的二倍点（5，19）试一试，也对
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(RL, 13, Q)));  // 16 = 二倍点 Y 坐标平方 19^2 mod 23 = 16
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(RR, 13, Q)));  // 16 = 二倍点 X 坐标 5^3 + 5 + 1 mod 23 = 16
+
+  // 如果把 X Y 二倍点公式的模逆多项式求出来，会不会相等？但没有本原多项式，完全没法求逆
+
+  P.Free;
+  T.Free;
+  RL.Free;
+  RR.Free;
+  Y2.Free;
+  Y.Free;
+  X.Free;
 end;
 
 end.
