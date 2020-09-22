@@ -847,7 +847,7 @@ function Int64PolynomialMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomia
   P2: TCnInt64Polynomial): Boolean;
 var
   R: TCnInt64Polynomial;
-  I, J, M: Integer;
+  I, J: Integer;
 begin
   if Int64PolynomialIsZero(P1) or Int64PolynomialIsZero(P2) then
   begin
@@ -861,8 +861,8 @@ begin
   else
     R := Res;
 
-  M := P1.MaxDegree + P2.MaxDegree;
-  R.MaxDegree := M;
+  R.Clear;
+  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
 
   for I := 0 to P1.MaxDegree do
   begin
@@ -1239,7 +1239,7 @@ function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; P1: TCnInt64Pol
   P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   R: TCnInt64Polynomial;
-  I, J, M: Integer;
+  I, J: Integer;
 begin
   if Int64PolynomialIsZero(P1) or Int64PolynomialIsZero(P2) then
   begin
@@ -1253,9 +1253,8 @@ begin
   else
     R := Res;
 
-  M := P1.MaxDegree + P2.MaxDegree;
-  R.MaxDegree := M;
-
+  R.Clear;
+  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
   for I := 0 to P1.MaxDegree do
   begin
     // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分，再取模
@@ -2241,10 +2240,10 @@ begin
       if not Int64PolynomialGaloisLeastCommonMultiple(M, D1, D2, Prime) then
         Int64PolynomialGaloisMul(M, D1, D2, Prime);   // 无法求最小公倍式表示系数无法整除，直接相乘
 
-      Int64PolynomialGaloisDiv(F1, R, M, D1, Prime);
-      Int64PolynomialGaloisDiv(F2, R, M, D2, Prime);
+      Int64PolynomialGaloisDiv(F1, R, M, D1, Prime);  // 最小公倍数 M div D1 结果放 F1
+      Int64PolynomialGaloisDiv(F2, R, M, D2, Prime);  // 最小公倍数 M div D2 结果放 F2
 
-      Int64PolynomialCopy(RationalResult.Denominator, M);
+      Int64PolynomialCopy(RationalResult.Denominator, M);  // 结果的分母是最小公倍数
       Int64PolynomialGaloisMul(R, R1.Nominator, F1, Prime);
       Int64PolynomialGaloisMul(M, R2.Nominator, F2, Prime);
       Int64PolynomialGaloisAdd(RationalResult.Nominator, R, M, Prime);

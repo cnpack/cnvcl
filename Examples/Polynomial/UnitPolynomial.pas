@@ -977,9 +977,18 @@ begin
   X := TCnInt64RationalPolynomial.Create;
   Y := TCnInt64RationalPolynomial.Create;
 
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
   TCnInt64PolynomialEcc.RationalMultiplePoint(2, X, Y, 2, 1, 13);
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
+
+  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 2, 1, 13) then
+    ShowMessage('On Curve')
+  else
+    ShowMessage('NOT On Curve');
 
   X.Free;
   Y.Free;
