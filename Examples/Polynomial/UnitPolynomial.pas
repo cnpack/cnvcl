@@ -988,8 +988,8 @@ begin
   ShowMessage(Y.ToString);
 
   // 验证 6 19 的二倍点是 13 16
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 13 对了;
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 16 对了;
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 13 对了
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 16 对了
 
   X.SetOne;
   X.Nominator.SetCoefficents([0, 1]);
@@ -1000,8 +1000,32 @@ begin
   ShowMessage(Y.ToString);
 
   // 验证 6 19 的三倍点是 7 11
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 7 对了;
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 21 错了，11 才对，三倍点的 Y 值有问题！
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 7 对了
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 11 对了
+
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
+  TCnInt64PolynomialEcc.RationalMultiplePoint(4, X, Y, 1, 1, 23);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  // 验证 6 19 的四倍点是 5 19
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 5 对了
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 17 不对，应该是 19
+
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
+  TCnInt64PolynomialEcc.RationalMultiplePoint(5, X, Y, 1, 1, 23);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  // 验证 6 19 的五倍点是 12 4
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 3 不对，应该是 12
+  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 15 不对，应该是 4
 
 // 多项式本身不会符合曲线方程，得值代入再模逆后才等于
 //  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 2, 1, 13) then

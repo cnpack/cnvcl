@@ -3502,7 +3502,7 @@ begin
         Int64PolynomialGaloisSub(MY.Nominator, P1, P2, APrime); // MY 分子计算完毕
       end;
 
-      Int64PolynomialGaloisPower(MY.Denominator, FN, 3, APrime); // 
+      Int64PolynomialGaloisPower(MY.Denominator, FN, 3, APrime);
       Int64PolynomialGaloisMulWord(MY.Denominator, 4, APrime);   // 奇数分母 4 * fn^3 计算完毕
 
       if (K and 1) = 0 then // 偶数分母还得乘以 y^4
