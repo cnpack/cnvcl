@@ -335,7 +335,7 @@ function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
 {* 递归计算在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
    本结果只给出 x 的多项式部分。
-   规则参考自 F. MORAIN 的文章
+   规则参考自 F. MORAIN 的文章并加上除以 2 的推导修正
   《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
 
 procedure Int64PolynomialGaloisReduce2(P1, P2: TCnInt64Polynomial; Prime: Int64);
@@ -1715,7 +1715,6 @@ end;
     f2n+1 = fn+2 * fn^3 - fn-1 * fn+1^3 * (x^3 + Ax + B)^2     //  n为奇
           = (x^3 + Ax + B)^2 * fn+2 * fn^3 - fn-1 * fn+1^3     //  n为偶
 
-  FIXME: 10 阶、12 阶或以上有问题但不确定是否最低阶问题，8 阶没问题，要测 9 阶有无问题
 }
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
   outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
@@ -1812,7 +1811,7 @@ begin
           Int64PolynomialGaloisMul(D1, D1, D2, Prime);  // D1 得到 fn+2 * fn^3
 
           Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);
-          Int64PolynomialGaloisCompose(D2, D2, Y4, Prime); // D2 得到 fn-1 * Y4
+          Int64PolynomialGaloisMul(D2, D2, Y4, Prime);     // D2 得到 fn-1 * Y^4
 
           Int64PolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 fn+1^3 * fn-1 * Y^4
           Int64PolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);

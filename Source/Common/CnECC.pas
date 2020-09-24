@@ -508,7 +508,8 @@ function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): strin
 
 procedure CnInt64GenerateGaloisDivisionPolynomials(A, B, Prime: Int64; MaxDegree: Integer;
   PolynomialList: TObjectList);
-{* 批量生成 0 到 MaxDegree 阶的可除多项式}
+{* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 Int64PolynomialGaloisCalcDivisionPolynomial
+   的递归实现完全相同}
 
 implementation
 
@@ -3561,7 +3562,7 @@ var
   var
     MI: Int64;
     F1, F2, F3, F4, F5: TCnInt64Polynomial; // 从递归 GetInt64GaloisDivisionPolynomial 拿到的引用，不允许改动
-    D1, D2, D3, Y: TCnInt64Polynomial;      // 计算中间结果，要创建要释放
+    D1, D2, D3, Y4: TCnInt64Polynomial;      // 计算中间结果，要创建要释放
   begin
     if PolynomialList[Degree] <> nil then // 如果有缓存就返回缓存的
     begin
@@ -3609,7 +3610,7 @@ var
       D1 := nil;
       D2 := nil;
       D3 := nil;
-      Y := nil;
+      Y4 := nil;
 
       try
         // 开始递归计算
@@ -3623,7 +3624,7 @@ var
           Int64PolynomialGaloisMul(D2, F2, F2, Prime);   // D2 得到 Fn-1 ^ 2
 
           D1 := FEccInt64PolynomialPool.Obtain;
-          Int64PolynomialGaloisAdd(D1, F1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
+          Int64PolynomialGaloisMul(D1, F1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
 
           F3 := GetInt64GaloisDivisionPolynomial(N - 2);  // F3 得到 Fn-2
           F4 := GetInt64GaloisDivisionPolynomial(N + 1);  // F4 得到 Fn+1
@@ -3645,57 +3646,47 @@ var
         end
         else // Degree 是奇数
         begin
-          Y := FEccInt64PolynomialPool.Obtain;
-          Y.SetCoefficents([B, A, 0, 1]);
-          Int64PolynomialGaloisMul(Y, Y, Y, Prime);
+          Y4 := FEccInt64PolynomialPool.Obtain;
+          Y4.SetCoefficents([B, A, 0, 1]);
+          Int64PolynomialGaloisMul(Y4, Y4, Y4, Prime);
+
+          F1 := GetInt64GaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
+
+          D2 := FEccInt64PolynomialPool.Obtain;
+          F2 := GetInt64GaloisDivisionPolynomial(N);     // F2 得到 Fn
+          Int64PolynomialGaloisPower(D2, F2, 3, Prime);  // D2 得到 Fn^3
+
+          D3 := FEccInt64PolynomialPool.Obtain;
+          F3 := GetInt64GaloisDivisionPolynomial(N + 1); // F3 得到 Fn+1
+          Int64PolynomialGaloisPower(D3, F3, 3, Prime);  // D3 得到 Fn+1 ^ 3
 
           if (N and 1) <> 0 then // N 是奇数
           begin
-            F1 := GetInt64GaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
-
-            D2 := FEccInt64PolynomialPool.Obtain;
-            F2 := GetInt64GaloisDivisionPolynomial(N);     // F2 得到 Fn
-            Int64PolynomialGaloisPower(D2, F2, 3, Prime);  // D2 得到 Fn^3
-
             D1 := FEccInt64PolynomialPool.Obtain;
-            Int64PolynomialGaloisMul(D1, F1, D2, Prime);    // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
-
-            D3 := FEccInt64PolynomialPool.Obtain;
-            F3 := GetInt64GaloisDivisionPolynomial(N + 1); // F3 得到 Fn+1
-            Int64PolynomialGaloisPower(D3, F3, 3, Prime);   // D3 得到 Fn+1 ^ 3
+            Int64PolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
 
             F4 := GetInt64GaloisDivisionPolynomial(N - 1);
-            Int64PolynomialGaloisCompose(D2, F4, Y, Prime); // D2 得到 Fn-1(Y)
+            Int64PolynomialGaloisMul(D2, F4, Y4, Prime);     // D2 得到 Fn-1 * Y^2
 
-            Int64PolynomialGaloisMul(D2, D2, D3, Prime);    // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
+            Int64PolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
 
             Result := TCnInt64Polynomial.Create;
-            Int64PolynomialGaloisSub(Result, D1, D2, Prime);  // D1 - D2
+            Int64PolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
 
             PolynomialList[Degree] := Result;
           end
           else // N 是偶数
           begin
-            F1 := GetInt64GaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
-
-            D2 := FEccInt64PolynomialPool.Obtain;
-            F2 := GetInt64GaloisDivisionPolynomial(N);     // F2 得到 Fn
-            Int64PolynomialGaloisPower(D2, F2, 3, Prime);               // D2 得到 Fn^3
-
             D1 := FEccInt64PolynomialPool.Obtain;
-            Int64PolynomialGaloisMul(D1, F1, D2, Prime);  // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
-            Int64PolynomialGaloisMul(D1, D1, Y, Prime);   // D1 得到 Y * Fn+2 * Fn ^ 3
+            Int64PolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+            Int64PolynomialGaloisMul(D1, D1, Y4, Prime);     // D1 得到 Y * Fn+2 * Fn ^ 3
 
-            D3 := FEccInt64PolynomialPool.Obtain;
-            F3 := GetInt64GaloisDivisionPolynomial(N + 1); // F3 得到 Fn+1
-            Int64PolynomialGaloisPower(D3, F3, 3, Prime); // D3 得到 Fn+1 ^ 3
+            F4 := GetInt64GaloisDivisionPolynomial(N - 1);   // F4 得到 Fn-1
 
-            F4 := GetInt64GaloisDivisionPolynomial(N - 1);     // F4 得到 Fn-1
-
-            Int64PolynomialGaloisMul(D2, F4, D3, Prime);  // D2 得到 Fn+1 ^ 3 * Fn-1
+            Int64PolynomialGaloisMul(D2, F4, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1
 
             Result := TCnInt64Polynomial.Create;
-            Int64PolynomialGaloisSub(Result, D1, D2, Prime);  // D1 - D2
+            Int64PolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
 
             PolynomialList[Degree] := Result;
           end;
@@ -3704,7 +3695,7 @@ var
         FEccInt64PolynomialPool.Recycle(D1);
         FEccInt64PolynomialPool.Recycle(D2);
         FEccInt64PolynomialPool.Recycle(D3);
-        FEccInt64PolynomialPool.Recycle(Y);
+        FEccInt64PolynomialPool.Recycle(Y4);
       end;
     end;
   end;
