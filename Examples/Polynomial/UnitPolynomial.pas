@@ -78,6 +78,10 @@ type
     edtRationalResultNominator: TEdit;
     edtRationalResultDenominator: TEdit;
     btnManualOnCurve: TButton;
+    btnCheckDivisionPolynomialZero: TButton;
+    btnCalcSimpleEcc: TButton;
+    mmoEcc: TMemo;
+    bvl4: TBevel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -118,6 +122,8 @@ type
     procedure btnRationalPolynomialMulClick(Sender: TObject);
     procedure btnRationalPolynomialDivClick(Sender: TObject);
     procedure btnManualOnCurveClick(Sender: TObject);
+    procedure btnCheckDivisionPolynomialZeroClick(Sender: TObject);
+    procedure btnCalcSimpleEccClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -1195,6 +1201,130 @@ begin
   Y2.Free;
   Y.Free;
   X.Free;
+end;
+
+procedure TFormPolynomial.btnCheckDivisionPolynomialZeroClick(
+  Sender: TObject);
+var
+  F: TCnInt64Polynomial;
+  A, B, Q, V: Int64;
+begin
+  // 拿椭圆曲线里 nP = 0 的点的坐标 x y，验证 fn(x) 是否等于 0
+  // 要找 2 3 4 5 6 的例子
+
+  F := TCnInt64Polynomial.Create;
+  // F29 下的 Y^2 = X^3 + 6X + 1，阶为 24，有 2 3 4 的例子，后面也有 6 8 12 24
+
+  A := 6; B := 1; Q := 29;
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 2, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 25, Q);  // 25, 0 是二阶点
+  ShowMessage(IntToStr(V));                      // 2 不是 0，正常
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 3, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 18, Q);  // 18, 5 是三阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 4, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 20, Q);  // 20, 1 是四阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 6, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 9, Q);   // 9, 28 是六阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 8, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 7, Q);   // 7, 26 是八阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 12, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 24, Q);  // 24, 22 是十二阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  // F23 下的 Y^2 = X^3 + X + 9，阶为 20，有 2 4 5 的例子，后面也有 10 20
+
+  A := 1; B := 9; Q := 23;
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 2, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 8, Q);   // 8, 0 是二阶点
+  ShowMessage(IntToStr(V));                      // 2 不是 0，正常
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 4, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 5, Q);   // 5, 22 是四阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 5, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 3, Q);   // 3, 4 是五阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 10, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 16, Q);  // 16, 2 是十阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(A, B, 20, F, Q);
+  ShowMessage(F.ToString);
+  V := Int64PolynomialGaloisGetValue(F, 6, Q);   // 6, 22 是二十阶点
+  ShowMessage(IntToStr(V));                      // 是 0
+  F.Free;
+end;
+
+procedure TFormPolynomial.btnCalcSimpleEccClick(Sender: TObject);
+var
+  List: TStrings;
+
+  procedure CalcEccPoints(A, B, Q: Int64; AList: TStrings);
+  var
+    Ecc: TCnInt64Ecc;
+    I, J, K: Integer;
+    P, T: TCnInt64EccPoint;
+  begin
+    AList.Clear;
+    Ecc := TCnInt64Ecc.Create(A, B, Q, 0, 0, Q);
+    for J := 0 to Q - 1 do
+    begin
+      P.X := J;
+      for I := 0 to Q - 1 do
+      begin
+        P.Y := I;
+        if Ecc.IsPointOnCurve(P) then
+        begin
+          // 找到一个点，然后验证它乘多少到 0
+          for K := 1 to 2 * Q do
+          begin
+            T := P;
+            Ecc.MultiplePoint(K, T);
+            if (T.X = 0) and (T.Y = 0) then
+            begin
+              AList.Add(Format('(%d, %d) * %d = 0', [P.X, P.Y, K]));
+              Break;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+begin
+  List := TStringList.Create;
+  mmoEcc.Clear;
+  CalcEccPoints(6, 1, 29, List); // 有 2 3 4 6 8 12 24 阶点
+  ShowMessage(List.Text);
+  mmoEcc.Lines.AddStrings(List);
+  mmoEcc.Lines.Add('');
+
+  CalcEccPoints(1, 9, 23, List); // 有 2 4 5 10 20 阶点
+  ShowMessage(List.Text);
+  mmoEcc.Lines.AddStrings(List);
+
+  List.Free;
 end;
 
 end.

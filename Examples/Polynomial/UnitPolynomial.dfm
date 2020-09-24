@@ -465,6 +465,13 @@ object FormPolynomial: TFormPolynomial
           Height = 13
           Caption = '='
         end
+        object bvl4: TBevel
+          Left = 16
+          Top = 280
+          Width = 873
+          Height = 9
+          Shape = bsTopLine
+        end
         object btnRP2Point: TButton
           Left = 16
           Top = 24
@@ -585,6 +592,31 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Manual Test OnCurve'
           TabOrder = 14
           OnClick = btnManualOnCurveClick
+        end
+        object btnCheckDivisionPolynomialZero: TButton
+          Left = 464
+          Top = 24
+          Width = 225
+          Height = 25
+          Caption = 'Check Division Polynomial Zero'
+          TabOrder = 15
+          OnClick = btnCheckDivisionPolynomialZeroClick
+        end
+        object btnCalcSimpleEcc: TButton
+          Left = 728
+          Top = 24
+          Width = 161
+          Height = 25
+          Caption = 'Calc Simple Ecc Int64'
+          TabOrder = 16
+          OnClick = btnCalcSimpleEccClick
+        end
+        object mmoEcc: TMemo
+          Left = 16
+          Top = 296
+          Width = 225
+          Height = 193
+          TabOrder = 17
         end
       end
     end
