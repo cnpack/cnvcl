@@ -991,20 +991,23 @@ begin
     Exit;
   end;
 
-  R.X := 0;
-  R.Y := 0;
-  E := Point;
-
-  while K <> 0 do
+  if K > 1 then
   begin
-    if (K and 1) <> 0 then
-      PointAddPoint(R, E, R);
+    R.X := 0;
+    R.Y := 0;
+    E := Point;
 
-    PointAddPoint(E, E, E);
-    K := K shr 1;
+    while K <> 0 do
+    begin
+      if (K and 1) <> 0 then
+        PointAddPoint(R, E, R);
+
+      PointAddPoint(E, E, E);
+      K := K shr 1;
+    end;
+
+    Point := R;
   end;
-
-  Point := R;
 end;
 
 function TCnInt64Ecc.PlainToPoint(Plain: Int64;
@@ -1162,7 +1165,8 @@ begin
   begin
     X := -X;
     Sum.X := X mod FFiniteFieldSize;
-    Sum.X := FFiniteFieldSize - Sum.X;
+    if Sum.X > 0 then                      // 如果 X 刚好整除，则是 0
+      Sum.X := FFiniteFieldSize - Sum.X;
   end
   else
     Sum.X := X mod FFiniteFieldSize;
@@ -1175,7 +1179,8 @@ begin
   begin
     Y := -Y;
     Sum.Y := Y mod FFiniteFieldSize;
-    Sum.Y := FFiniteFieldSize - Sum.Y;
+    if Sum.Y > 0 then                      // 如果 Y 刚好整除，则是 0
+      Sum.Y := FFiniteFieldSize - Sum.Y;
   end
   else
     Sum.Y := Y mod FFiniteFieldSize;
@@ -1803,7 +1808,8 @@ begin
     begin
       BigNumberSetNegative(X, False);
       BigNumberMod(SX, X, FFiniteFieldSize);
-      BigNumberSub(SX, FFiniteFieldSize, SX);
+      if not SX.IsZero then                   // 刚好整除时无需减，保持 0，避免出现 X 值等于有限域上界的情况
+        BigNumberSub(SX, FFiniteFieldSize, SX);
     end
     else
       BigNumberMod(SX, X, FFiniteFieldSize);
@@ -1819,7 +1825,8 @@ begin
     begin
       BigNumberSetNegative(Y, False);
       BigNumberMod(SY, Y, FFiniteFieldSize);
-      BigNumberSub(SY, FFiniteFieldSize, SY);
+      if not SY.IsZero then                     // 刚好整除时无需减，保持 0，避免出现 Y 值等于有限域上界的情况
+        BigNumberSub(SY, FFiniteFieldSize, SY);
     end
     else
       BigNumberMod(SY, Y, FFiniteFieldSize);
