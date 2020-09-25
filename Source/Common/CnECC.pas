@@ -328,19 +328,20 @@ type
     {* 供外界直接调用的点加方法，将点（PX, PY) 和点（QX, QY）相加，结果放到（SX, SY）点中
        椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
 
-    class procedure RationalPointAddPoint(PX, PY, QX, QY: TCnInt64RationalPolynomial; SX, SY: TCnInt64RationalPolynomial;
-      A, B, APrime: Int64);
+    class procedure RationalPointAddPoint(PX, PY, QX, QY: TCnInt64RationalPolynomial;
+      SX, SY: TCnInt64RationalPolynomial; A, B, APrime: Int64; XEqual: Boolean = False; YEqual: Boolean = False);
     {* 供外界直接调用的无本原多项式的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
-       注意无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出}
+       注意无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
+       另外多项式无法可靠判断 PX 与 QX、PY 与 QY 是否相等，因此增加两个变量 XEqual、YEqual 供外界控制}
 
     class procedure RationalMultiplePoint(K: Integer; MX, MY: TCnInt64RationalPolynomial;
       A, B, APrime: Int64);
-    {* 供外界直接调用的无本原多项式的多倍点方法，使用可除多项式计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
+    {* 供外界直接调用的无本原多项式的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
        注意在无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出}
 
     class function IsRationalPointOnCurve(PX, PY: TCnInt64RationalPolynomial;
       A, B, APrime: Int64): Boolean;
-    {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，
+    {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，基本上没有被调用的场合
        椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数
        注意在无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示}
 
@@ -3536,9 +3537,85 @@ begin
 end;
 
 class procedure TCnInt64PolynomialEcc.RationalPointAddPoint(PX, PY, QX, QY,
-  SX, SY: TCnInt64RationalPolynomial; A, B, APrime: Int64);
+  SX, SY: TCnInt64RationalPolynomial; A, B, APrime: Int64; XEqual, YEqual: Boolean);
+var
+  R, T1, T2: TCnInt64RationalPolynomial;
+  Y2, C: TCnInt64Polynomial;
 begin
+  // 点 (PX, PY * y) + (QX, QY * y) = (SX, SY * y)
+  // 先求斜率 R = (QY - PY) / (QX - PX) 或 3PX^2 + A) / 2PY (x^3+Ax+B)
 
+  R := nil;
+  T1 := nil;
+  T2 := nil;
+
+  Y2 := nil;
+  C := nil;
+
+  try
+    R := TCnInt64RationalPolynomial.Create;
+    T1 := TCnInt64RationalPolynomial.Create;
+    T2 := TCnInt64RationalPolynomial.Create;
+
+    Y2 := FEccInt64PolynomialPool.Obtain;
+    C := FEccInt64PolynomialPool.Obtain;
+
+    if XEqual or Int64RationalPolynomialEqual(PX, QX) then
+    begin
+      // X 相等，判断 Y 是否相等，不等则返回 0
+      if not Int64RationalPolynomialEqual(PY, QY) and not YEqual then
+      begin
+        // 如果 PY、QY 形式相等，则不能进这里，要出去
+        // 如果 PY、QY 形式不等，但 YEqual 为 True，也不能进这里，要出去
+        // 也就是形式不等，且没有外界声明 YEqual，才表示 Y 确实不等，进这里
+        SX.SetZero;
+        SY.SetZero;
+        Exit;
+      end;
+
+      // X Y 都相等，求导
+      Y2.SetCoefficents([B, A, 0, 1]);
+      C.SetCoefficents([3]);
+
+      Int64RationalPolynomialGaloisMul(PX, PX, T1, APrime);
+      Int64RationalPolynomialGaloisMul(T1, C, T1, APrime);  // T1 得到 3PX^2
+
+      C.SetCoefficents([A]);
+      Int64RationalPolynomialGaloisAdd(T1, C, T1, APrime);  // T1 得到 3PX^2 + A
+
+      C.SetCoefficents([2]);
+      Int64RationalPolynomialGaloisMul(PY, Y2, T2, APrime); // T2 得到 PY * (x^3+Ax+B)
+      Int64RationalPolynomialGaloisMul(T2, C, T2, APrime);  // T2 得到 2PY * (x^3+Ax+B)
+
+      Int64RationalPolynomialGaloisDiv(T1, T2, R, APrime);
+    end
+    else
+    begin
+      // 不相等，减
+      Int64RationalPolynomialGaloisSub(QY, PY, T1, APrime);
+      Int64RationalPolynomialGaloisSub(QX, PX, T2, APrime);
+      Int64RationalPolynomialGaloisDiv(T1, T2, R, APrime);
+    end;
+
+    // R 得到斜率了
+    // SX = R^2 * (x^3+Ax+B) - PX - QX
+    Int64RationalPolynomialGaloisMul(R, R, SX, APrime);
+    Int64RationalPolynomialGaloisMul(SX, Y2, SX, APrime);
+    Int64RationalPolynomialGaloisSub(SX, PX, SX, APrime);
+    Int64RationalPolynomialGaloisMul(SX, QX, SX, APrime);
+
+    // SY = R * (PX - SX) - PY
+    Int64RationalPolynomialGaloisSub(PX, SX, SY, APrime);
+    Int64RationalPolynomialGaloisMul(SY, R, SY, APrime);
+    Int64RationalPolynomialGaloisSub(SY, PY, SY, APrime);
+  finally
+    FEccInt64PolynomialPool.Recycle(Y2);
+    FEccInt64PolynomialPool.Recycle(C);
+
+    T2.Free;
+    T1.Free;
+    R.Free;
+  end;
 end;
 
 procedure TCnInt64PolynomialEcc.SetPrimitive(
@@ -3561,7 +3638,7 @@ var
   function GetInt64GaloisDivisionPolynomial(Degree: Integer): TCnInt64Polynomial;
   var
     MI: Int64;
-    F1, F2, F3, F4, F5: TCnInt64Polynomial; // 从递归 GetInt64GaloisDivisionPolynomial 拿到的引用，不允许改动
+    F1, F2, F3, F4, F5: TCnInt64Polynomial;  // 从递归 GetInt64GaloisDivisionPolynomial 拿到的引用，不允许改动
     D1, D2, D3, Y4: TCnInt64Polynomial;      // 计算中间结果，要创建要释放
   begin
     if PolynomialList[Degree] <> nil then // 如果有缓存就返回缓存的

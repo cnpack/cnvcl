@@ -618,6 +618,15 @@ object FormPolynomial: TFormPolynomial
           Height = 193
           TabOrder = 17
         end
+        object btnCheckRationalAdd: TButton
+          Left = 264
+          Top = 296
+          Width = 209
+          Height = 25
+          Caption = 'Check Rational Polynomial Add'
+          TabOrder = 18
+          OnClick = btnCheckRationalAddClick
+        end
       end
     end
   end
