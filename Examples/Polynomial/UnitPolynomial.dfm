@@ -627,6 +627,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 18
           OnClick = btnCheckRationalAddClick
         end
+        object btnTestPiXPolynomial: TButton
+          Left = 504
+          Top = 296
+          Width = 177
+          Height = 25
+          Caption = 'Test Pi^2 + 2P Polynomial in Ring'
+          TabOrder = 19
+          OnClick = btnTestPiXPolynomialClick
+        end
       end
     end
   end

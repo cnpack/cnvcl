@@ -83,6 +83,7 @@ type
     mmoEcc: TMemo;
     bvl4: TBevel;
     btnCheckRationalAdd: TButton;
+    btnTestPiXPolynomial: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -126,6 +127,7 @@ type
     procedure btnCheckDivisionPolynomialZeroClick(Sender: TObject);
     procedure btnCalcSimpleEccClick(Sender: TObject);
     procedure btnCheckRationalAddClick(Sender: TObject);
+    procedure btnTestPiXPolynomialClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -1371,6 +1373,145 @@ begin
   M2Y.Free;
   M3X.Free;
   M3Y.Free;
+end;
+
+procedure TFormPolynomial.btnTestPiXPolynomialClick(Sender: TObject);
+var
+  DP, X, Y, Pi1X, Pi1Y, Pi2X, Pi2Y, SX, SY: TCnInt64Polynomial;
+  RX, RY: TCnInt64RationalPolynomial;
+//  Pi2RX, Pi2RY, R2X, R2Y, S2X, S2Y: TCnInt64RationalPolynomial;
+begin
+{
+  对于 F97 上的椭圆曲线 Y2=X3+31X-12 的五阶扭点，注意系数只要针对 97 同余就相等
+  计算 π(x^97, y^97) 与　π(x^97^2, y^97^2) 与 2 * (x, 1*y)
+
+π(x, y) =
+[47 x^11 + 11 x^10 - 16 x^9 + 8 x^8 + 44 x^7 + 8 x^6 + 10 x^5 + 12 x^4 - 40 x^3 + 42 x^2 + 11 x + 26,
+(6 x^11 + 45 x^10 + 34 x^9 + 28 x^8 - 11 x^7 + 3 x^6 - 3 x^5 + 2 x^4 - 39 x^3 -^48 x^2 - x - 9)y].
+
+π^2(x, y) =
+[-17 x^11 + 2 x^10 - 25 x^9 - x^8 + 28 x^7 + 31 x^6 + 25 x^5 - 32 x^4 + 45 x^3 + 26 x^2 + 36 x + 60,
+(34 x^11 + 35 x^10 - 8 x^9 - 11 x^8 - 48 x^7 + 34 x^6 - 8 x^5 - 37 x^4 - 21 x^3 + 40 x^2 + 11 x + 48)y].
+
+2 *(x, y) =
+[22 x^11 + 17 x^10 + 18 x^9 + 40 x^8 + 41 x^7 - 13 x^6 + 30 x^5 + 11 x^4 - 38 x^3 + 7 x^2 + 20 x + 17,
+(-11 x^10 - 17 x^9 - 48 x^8 - 12 x^7 + 17 x^6 + 44 x^5 - 10 x^4 + 8 x^3 + 38 x^2 + 25 x + 24)y].
+
+π^2(x, y) + [2]P =   (就这个不对！如果在 Ring 5 中计算的话，5 阶可除多项式最高 12 次方，所以上述均最高只有 11 次，但和为何冒出了 14 次？)
+[-14 x^14 + 15 x^13 - 20 x^12 - 43 x^11 - 10 x^10 - 27 x^9 + 5 x^7 + 11 x^6 + 45 x^5 - 17 x^4 + 30 x^3 - 2 x^2 + 35 x - 46,
+(-11 x^14 - 35 x^13 - 26 x^12 - 21 x^11 + 25 x^10 + 23 x^9 + 4 x^8 - 24 x^7 + 9 x^6 + 43 x^5 - 47 x^4 + 26 x^3 + 19 x^2 - 40 x - 32)y].
+
+最后和点的 x 坐标和 π的 1 倍点的 x 坐标有最大公因式 <> 1，y 也一样，所以得到 t5 = 1
+
+  用例来源于一个 PPT
+
+  Counting points on elliptic curves over Fq
+           Christiane Peters
+        DIAMANT-Summer School on
+ Elliptic and Hyperelliptic Curve Cryptography
+          September 17, 2008
+}
+
+  DP := TCnInt64Polynomial.Create;
+  Pi1X := TCnInt64Polynomial.Create;
+  Pi1Y := TCnInt64Polynomial.Create;
+  Pi2X := TCnInt64Polynomial.Create;
+  Pi2Y := TCnInt64Polynomial.Create;
+  SX := TCnInt64Polynomial.Create;
+  SY := TCnInt64Polynomial.Create;
+
+  X := TCnInt64Polynomial.Create;
+  Y := TCnInt64Polynomial.Create([-12, 31, 0, 1]);
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(31, -12, 5, DP, 97);
+
+  X.MaxDegree := 1;
+  X[1] := 1;                 // x
+  Int64PolynomialGaloisPower(Pi1X, X, 97, 97, DP);
+  ShowMessage(Pi1X.ToString);               // 得到正确结果，Ring 几内计算就是 mod f几
+
+  Int64PolynomialGaloisPower(Pi1Y, Y, (97 - 1) div 2, 97, DP);
+  ShowMessage(Pi1Y.ToString);               // 得到正确结果，y^q = y^q-1 * y = (x3+Ax+B)^((q-1)/2) * y
+
+  X.MaxDegree := 1;
+  X[1] := 1;                 // x
+  Int64PolynomialGaloisPower(Pi2X, X, 97 * 97, 97, DP);
+  ShowMessage(Pi2X.ToString);         // 得到基本正确的结果，Ring 几内计算就是 mod f几，原用例最后一项常数项可能有错
+
+  Y.SetCoefficents([-12, 31, 0, 1]);
+  Int64PolynomialGaloisPower(Pi2Y, Y, (97 * 97 - 1) div 2, 97, DP);
+  ShowMessage(Pi2Y.ToString);               // 得到正确结果，y^q^2 = y^q^2-1 * y = (x3+Ax+B)^((q^2-1)/2) * y
+
+  RX := TCnInt64RationalPolynomial.Create;
+  RY := TCnInt64RationalPolynomial.Create;
+  TCnInt64PolynomialEcc.RationalMultiplePoint(2, RX, RY, 31, -12, 97);
+  // ShowMessage(RX.ToString);
+  // ShowMessage(RY.ToString);              // 得到 2P 的 X 和 Y 坐标的有理形式
+
+  Int64PolynomialGaloisModularInverse(X, RX.Denominator, DP, 97);
+  Int64PolynomialGaloisMul(X, X, RX.Nominator, 97, DP);
+  ShowMessage(X.ToString);               // 用模逆多项式将 2P 的 X 坐标转换为多项式，得到正确结果
+
+  Int64PolynomialGaloisModularInverse(Y, RY.Denominator, DP, 97);
+  Int64PolynomialGaloisMul(Y, Y, RY.Nominator, 97, DP);
+  ShowMessage(Y.ToString);               // 用模逆多项式将 2P 的 Y 坐标转换为多项式，得到正确结果
+
+  // 不能简单相加，得判断两个 X 是否相等，直接判断模系数等式？
+  if Int64PolynomialGaloisEqual(Pi2X, X, 97) then
+    ShowMessage('π^2 (x) == 2 * P (x)')
+  else
+    ShowMessage('π^2 (x) <> 2 * P (x)');
+
+  // 不能简单相加，得判断两个 Y 是否相等，直接判断模系数等式？
+  if Int64PolynomialGaloisEqual(Pi2Y, Y, 97) then
+    ShowMessage('π^2 (y) == 2 * P (y)')
+  else
+    ShowMessage('π^2 (y) <> 2 * P (y)');
+
+  // 将其相加得到有理点
+//  Pi2RX := TCnInt64RationalPolynomial.Create;
+//  Pi2RY := TCnInt64RationalPolynomial.Create;
+//  R2X := TCnInt64RationalPolynomial.Create;
+//  R2Y := TCnInt64RationalPolynomial.Create;
+//  S2X := TCnInt64RationalPolynomial.Create;
+//  S2Y := TCnInt64RationalPolynomial.Create;
+//
+//  Pi2RX.Denominator.SetOne;
+//  Int64PolynomialCopy(Pi2RX.Nominator, Pi2X);
+//  Pi2RY.Denominator.SetOne;
+//  Int64PolynomialCopy(Pi2RY.Nominator, Pi2Y);
+//  R2X.Denominator.SetOne;
+//  Int64PolynomialCopy(R2X.Nominator, X);
+//  R2Y.Denominator.SetOne;
+//  Int64PolynomialCopy(R2Y.Nominator, Y);
+
+  TCnInt64PolynomialEcc.PointAddPoint1(Pi2X, Pi2Y, X, Y, SX, SY, 31, -12, 97, DP);
+  ShowMessage(SX.ToString);
+  ShowMessage(SY.ToString);                // 将 DP 作为本原多项式直接加，结果不对
+
+//  Int64PolynomialGaloisModularInverse(X, S2X.Denominator, DP, 97);
+//  Int64PolynomialGaloisMul(X, X, S2X.Nominator, 97, DP);
+//  ShowMessage(X.ToString);               // 用模逆多项式将和点的 X 坐标转换为多项式，结果不对
+//
+//  Int64PolynomialGaloisModularInverse(Y, S2Y.Denominator, DP, 97);
+//  Int64PolynomialGaloisMul(Y, Y, S2Y.Nominator, 97, DP);
+//  ShowMessage(Y.ToString);               // 用模逆多项式将和点的 Y 坐标转换为多项式，结果不对
+
+//  Pi2RX.Free;
+//  Pi2RY.Free;
+//  R2X.Free;
+//  R2Y.Free;
+//  S2X.Free;
+//  S2Y.Free;
+  RX.Free;
+  RY.Free;
+  Pi1X.Free;
+  Pi1Y.Free;
+  Pi2X.Free;
+  Pi2Y.Free;
+  DP.Free;
+  X.Free;
+  Y.Free;
 end;
 
 end.
