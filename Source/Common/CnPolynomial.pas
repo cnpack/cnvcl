@@ -253,6 +253,9 @@ procedure Int64PolynomialReduce2(P1, P2: TCnInt64Polynomial);
 
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
+function Int64PolynomialGaloisEqual(const A, B: TCnInt64Polynomial; Prime: Int64): Boolean;
+{* 两个整系数多项式在模 Prime 的条件下是否相等}
+
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
@@ -1224,6 +1227,30 @@ begin
   end;
 end;
 
+function Int64PolynomialGaloisEqual(const A, B: TCnInt64Polynomial; Prime: Int64): Boolean;
+var
+  I: Integer;
+begin
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := A.MaxDegree = B.MaxDegree;
+  if Result then
+  begin
+    for I := A.MaxDegree downto 0 do
+    begin
+      if NonNegativeMod(A[I], Prime) <> NonNegativeMod(B[I], Prime) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 begin
@@ -1695,7 +1722,10 @@ end;
   F2 = 2y
   F3 = 3x^4 + 6Ax^2 + 12Bx - A^2
   F4 = 4y * (x^6 + 5Ax^4 + 20Bx^3 - 5A^2x^2 - 4ABx - 8B^2 - A^3)
-  F5 = ......
+  F5 = 5x^12 + 62Ax^10 + 380Bx^9 + 105A^2x^8 + 240BAx^7 + (-300A^3 - 240B^2)x^6
+    - 696BA^2x^5 + (-125A^4 - 1920B^2A)x^4 + (-80BA^3 - 1600B^3)x^3 + (-50A^5 - 240B^2A^2)x^2
+    + (100BA^4 - 640B^3A)x + (A^6 - 32B^2A^3 - 256B4)
+  ......
 
   一般：
     F2n+1 = Fn+2 * Fn^3 - Fn-1 * Fn+1^3
@@ -1708,7 +1738,10 @@ end;
   f2 = 2
   f3 = 3x^4 + 6Ax^2 + 12Bx - A^2
   f4 = 4 * (x^6 + 5Ax^4 + 20Bx^3 - 5A^2x^2 - 4ABx - 8B^2 - A^3)
-  f5 = ......
+  f5 = 5x^12 + 62Ax^10 + 380Bx^9 + 105A^2x^8 + 240BAx^7 + (-300A^3 - 240B^2)x^6
+    - 696BA^2x^5 + (-125A^4 - 1920B^2A)x^4 + (-80BA^3 - 1600B^3)x^3 + (-50A^5 - 240B^2A^2)x^2
+    + (100BA^4 - 640B^3A)x + (A^6 - 32B^2A^3 - 256B4)
+  ......
 
   一般：
     f2n = fn * (fn+2 * fn-1 ^ 2 - fn-2 * fn+1 ^ 2) / 2
