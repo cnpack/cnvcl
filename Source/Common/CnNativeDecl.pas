@@ -142,6 +142,8 @@ type
     function First: Int64;
     function IndexOf(Item: Int64): Integer;
     procedure Insert(Index: Integer; Item: Int64);
+    procedure InsertBatch(Index: Integer; ACount: Integer);
+    {* 新增方法，在某位置批量插入全 0 值 ACount 个}
     function Last: Int64;
     procedure Move(CurIndex, NewIndex: Integer);
     function Remove(Item: Int64): Integer;
@@ -838,6 +840,21 @@ begin
       (FCount - Index) * SizeOf(Int64));
   FList^[Index] := Item;
   Inc(FCount);
+end;
+
+procedure TCnInt64List.InsertBatch(Index, ACount: Integer);
+begin
+  if ACount <= 0 then
+    Exit;
+
+  if (Index < 0) or (Index > FCount) then
+    Error(SCnInt64ListError, Index);
+  SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
+
+  System.Move(FList^[Index], FList^[Index + ACount],
+    (FCount - Index) * SizeOf(Int64));
+  System.FillChar(FList^[Index], ACount * SizeOf(Int64), 0);
+  FCount := FCount + ACount;
 end;
 
 function TCnInt64List.Last: Int64;

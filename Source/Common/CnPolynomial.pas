@@ -701,10 +701,7 @@ begin
   else if N < 0 then
     Int64PolynomialShiftRight(P, -N)
   else
-  begin
-    for I := 1 to N do
-      P.Insert(0, 0);
-  end;
+    P.InsertBatch(0, N);
 end;
 
 procedure Int64PolynomialShiftRight(const P: TCnInt64Polynomial; N: Integer);
@@ -1364,7 +1361,7 @@ begin
 
     for I := 0 to D do
     begin
-      if P.MaxDegree - I > SubRes.MaxDegree then                 // 中间结果可能跳位
+      if P.MaxDegree - I > SubRes.MaxDegree then               // 中间结果可能跳位
         Continue;
       Int64PolynomialCopy(MulRes, Divisor);
       Int64PolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
