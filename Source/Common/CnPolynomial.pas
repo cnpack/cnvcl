@@ -807,7 +807,6 @@ begin
   D1 := Max(P1.MaxDegree, P2.MaxDegree);
   D2 := Min(P1.MaxDegree, P2.MaxDegree);
 
-  Res.MaxDegree := D1;
   if D1 > D2 then
   begin
     if P1.MaxDegree > P2.MaxDegree then
@@ -815,9 +814,12 @@ begin
     else
       PBig := P2;
 
+    Res.MaxDegree := D1; // 考虑到 Res 可能是 P1 或 P2，所以给 Res 的 MaxDegree 赋值得放上面的比较之后
     for I := D1 downto D2 + 1 do
       Res[I] := PBig[I];
-  end;
+  end
+  else // D1 = D2 说明俩加式同次
+    Res.MaxDegree := D1;
 
   for I := D2 downto 0 do
     Res[I] := P1[I] + P2[I];
