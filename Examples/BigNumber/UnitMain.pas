@@ -71,6 +71,7 @@ type
     seIntPower: TSpinEdit;
     lblIntPower: TLabel;
     btnGetTenCount: TButton;
+    btnCheckPrime2: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -117,6 +118,7 @@ type
     procedure btnCheckPrimeClick(Sender: TObject);
     procedure btnIntPowerClick(Sender: TObject);
     procedure btnGetTenCountClick(Sender: TObject);
+    procedure btnCheckPrime2Click(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -808,6 +810,32 @@ end;
 procedure TFormBigNumber.btnGetTenCountClick(Sender: TObject);
 begin
   ShowMessage(IntToStr(BigNumberGetTenPrecision(Num1)));
+end;
+
+procedure TFormBigNumber.btnCheckPrime2Click(Sender: TObject);
+var
+  R: TCnBigNumber;
+  T1: Cardinal;
+  S: string;
+  B: Boolean;
+begin
+  R := TCnBigNumber.Create;
+
+  SetLength(S, 6400);
+  FillChar(S[1], Length(S), Ord('9'));
+  S[48] := '8';
+  R.SetDec(S);
+  T1 := GetTickCount;
+  B := BigNumberIsProbablyPrime(R, 2);
+  T1 := GetTickCount - T1;
+
+  if B then
+    ShowMessage('Prime')
+  else
+    ShowMessage('NOT Prime');
+
+  ShowMessage(IntToStr(T1));
+  R.Free;
 end;
 
 end.
