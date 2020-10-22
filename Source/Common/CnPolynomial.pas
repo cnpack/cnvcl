@@ -391,6 +391,10 @@ procedure Int64RationalPolynomialGetValue(const F: TCnInt64RationalPolynomial;
 
 // ====================== 有理分式在有限域上的模运算 ===========================
 
+function Int64RationalPolynomialGaloisEqual(R1, R2: TCnInt64RationalPolynomial;
+  Prime: Int64): Boolean;
+{* 比较两个模系数有理分式是否相等}
+
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 {* 有理分式模系数加法，三数可以相等}
@@ -693,8 +697,6 @@ begin
 end;
 
 procedure Int64PolynomialShiftLeft(const P: TCnInt64Polynomial; N: Integer);
-var
-  I: Integer;
 begin
   if N = 0 then
     Exit
@@ -705,8 +707,6 @@ begin
 end;
 
 procedure Int64PolynomialShiftRight(const P: TCnInt64Polynomial; N: Integer);
-var
-  I: Integer;
 begin
   if N = 0 then
     Exit
@@ -714,12 +714,7 @@ begin
     Int64PolynomialShiftLeft(P, -N)
   else
   begin
-    for I := 1 to N do
-    begin
-      if P.Count = 0 then
-        Break;
-      P.Delete(0);
-    end;
+    P.DeleteLow(N);
 
     if P.Count = 0 then
       P.Add(0);
@@ -2067,7 +2062,7 @@ end;
 
 function Int64RationalPolynomialEqual(R1, R2: TCnInt64RationalPolynomial): Boolean;
 var
-  Res: TCnInt64RationalPolynomial;
+  T1, T2: TCnInt64Polynomial;
 begin
   if R1 = R2 then
   begin
@@ -2081,12 +2076,17 @@ begin
     Exit;
   end;
 
-  Res := TCnInt64RationalPolynomial.Create;
+  T1 := FLocalInt64PolynomialPool.Obtain;
+  T2 := FLocalInt64PolynomialPool.Obtain;
+
   try
-    Int64RationalPolynomialSub(R1, R2, Res);
-    Result := Res.IsZero;
+    // 判断分子分母互相乘的结果是否相等
+    Int64PolynomialMul(T1, R1.Nominator, R2.Denominator);
+    Int64PolynomialMul(T2, R2.Nominator, R1.Denominator);
+    Result := Int64PolynomialEqual(T1, T2);
   finally
-    Res.Free;
+    FLocalInt64PolynomialPool.Recycle(T2);
+    FLocalInt64PolynomialPool.Recycle(T1);
   end;
 end;
 
@@ -2270,6 +2270,37 @@ begin
 end;
 
 // ====================== 有理分式在有限域上的模运算 ===========================
+
+function Int64RationalPolynomialGaloisEqual(R1, R2: TCnInt64RationalPolynomial;
+  Prime: Int64): Boolean;
+var
+  T1, T2: TCnInt64Polynomial;
+begin
+  if R1 = R2 then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if R1.IsInt and R2.IsInt then
+  begin
+    Result := Int64PolynomialGaloisEqual(R1.Nominator, R2.Nominator, Prime);
+    Exit;
+  end;
+
+  T1 := FLocalInt64PolynomialPool.Obtain;
+  T2 := FLocalInt64PolynomialPool.Obtain;
+
+  try
+    // 判断分子分母互相乘的结果是否相等
+    Int64PolynomialGaloisMul(T1, R1.Nominator, R2.Denominator, Prime);
+    Int64PolynomialGaloisMul(T2, R2.Nominator, R1.Denominator, Prime);
+    Result := Int64PolynomialGaloisEqual(T1, T2, Prime);
+  finally
+    FLocalInt64PolynomialPool.Recycle(T2);
+    FLocalInt64PolynomialPool.Recycle(T1);
+  end;
+end;
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);

@@ -136,6 +136,8 @@ type
     function Add(Item: Int64): Integer;
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
+    procedure DeleteLow(ACount: Integer);
+    {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
     class procedure Error(const Msg: string; Data: Integer); virtual;
     procedure Exchange(Index1, Index2: Integer);
     function Expand: TCnInt64List;
@@ -767,6 +769,23 @@ begin
   if Index < FCount then
     System.Move(FList^[Index + 1], FList^[Index],
       (FCount - Index) * SizeOf(Int64));
+end;
+
+procedure TCnInt64List.DeleteLow(ACount: Integer);
+begin
+  if ACount > 0 then
+  begin
+    if ACount >= FCount then
+      Clear
+    else
+    begin
+      Dec(FCount, ACount);
+
+      // 从 0 删除到 ACount - 1，也就是把 ACount 到 Count - 1 处的 Move 到 0
+      System.Move(FList^[ACount], FList^[0],
+        FCount * SizeOf(Int64));
+    end;
+  end;
 end;
 
 class procedure TCnInt64List.Error(const Msg: string; Data: Integer);
