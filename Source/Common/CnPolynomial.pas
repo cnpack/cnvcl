@@ -256,6 +256,9 @@ procedure Int64PolynomialReduce2(P1, P2: TCnInt64Polynomial);
 function Int64PolynomialGaloisEqual(const A, B: TCnInt64Polynomial; Prime: Int64): Boolean;
 {* 两个整系数多项式在模 Prime 的条件下是否相等}
 
+procedure Int64PolynomialGaloisNegate(const P: TCnInt64Polynomial; Prime: Int64);
+{* 将一个整系数多项式对象所有系数在模 Prime 的条件下求反}
+
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
@@ -335,7 +338,7 @@ function Int64PolynomialGaloisGetValue(const F: TCnInt64Polynomial; X, Prime: In
 
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
   outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
-{* 递归计算在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
+{* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
    本结果只给出 x 的多项式部分。
    规则参考自 F. MORAIN 的文章并加上除以 2 的推导修正
@@ -394,6 +397,10 @@ procedure Int64RationalPolynomialGetValue(const F: TCnInt64RationalPolynomial;
 function Int64RationalPolynomialGaloisEqual(R1, R2: TCnInt64RationalPolynomial;
   Prime: Int64): Boolean;
 {* 比较两个模系数有理分式是否相等}
+
+procedure Int64RationalPolynomialGaloisNegate(const P: TCnInt64RationalPolynomial;
+  Prime: Int64);
+{* 将一个有理分式对象分子的所有系数在模 Prime 的条件下求反}
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
@@ -1236,13 +1243,21 @@ begin
   begin
     for I := A.MaxDegree downto 0 do
     begin
-      if NonNegativeMod(A[I], Prime) <> NonNegativeMod(B[I], Prime) then
+      if (A[I] <> B[I]) and (NonNegativeMod(A[I], Prime) <> NonNegativeMod(B[I], Prime)) then
       begin
         Result := False;
         Exit;
       end;
     end;
   end;
+end;
+
+procedure Int64PolynomialGaloisNegate(const P: TCnInt64Polynomial; Prime: Int64);
+var
+  I: Integer;
+begin
+  for I := 0 to P.MaxDegree do
+    P[I] := NonNegativeMod(-P[I], Prime);
 end;
 
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
@@ -2300,6 +2315,12 @@ begin
     FLocalInt64PolynomialPool.Recycle(T2);
     FLocalInt64PolynomialPool.Recycle(T1);
   end;
+end;
+
+procedure Int64RationalPolynomialGaloisNegate(const P: TCnInt64RationalPolynomial;
+  Prime: Int64);
+begin
+  Int64PolynomialGaloisNegate(P.Nominator, Prime);
 end;
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
