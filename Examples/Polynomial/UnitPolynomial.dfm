@@ -1,6 +1,6 @@
 object FormPolynomial: TFormPolynomial
   Left = 241
-  Top = 141
+  Top = 142
   Width = 955
   Height = 601
   Caption = 'Polynomial Test'
@@ -268,6 +268,24 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Galois Div'
           TabOrder = 21
           OnClick = btnTestGaloisDivClick
+        end
+        object btnTestGaloisDivTime: TButton
+          Left = 24
+          Top = 408
+          Width = 241
+          Height = 25
+          Caption = 'Test Galois Div Time'
+          TabOrder = 22
+          OnClick = btnTestGaloisDivTimeClick
+        end
+        object btnTestGaloisCalc: TButton
+          Left = 280
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Galois Calc'
+          TabOrder = 23
+          OnClick = btnTestGaloisCalcClick
         end
       end
     end
@@ -635,6 +653,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Pi^2 + 2P Polynomial in Ring'
           TabOrder = 19
           OnClick = btnTestPiXPolynomialClick
+        end
+        object btnTestGaloisEqual: TButton
+          Left = 696
+          Top = 296
+          Width = 137
+          Height = 25
+          Caption = 'Test Galois Equal'
+          TabOrder = 20
+          OnClick = btnTestGaloisEqualClick
         end
       end
     end

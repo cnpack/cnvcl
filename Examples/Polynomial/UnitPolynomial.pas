@@ -84,6 +84,9 @@ type
     bvl4: TBevel;
     btnCheckRationalAdd: TButton;
     btnTestPiXPolynomial: TButton;
+    btnTestGaloisDivTime: TButton;
+    btnTestGaloisCalc: TButton;
+    btnTestGaloisEqual: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -128,6 +131,9 @@ type
     procedure btnCalcSimpleEccClick(Sender: TObject);
     procedure btnCheckRationalAddClick(Sender: TObject);
     procedure btnTestPiXPolynomialClick(Sender: TObject);
+    procedure btnTestGaloisDivTimeClick(Sender: TObject);
+    procedure btnTestGaloisCalcClick(Sender: TObject);
+    procedure btnTestGaloisEqualClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -1333,7 +1339,8 @@ end;
 
 procedure TFormPolynomial.btnCheckRationalAddClick(Sender: TObject);
 var
-  X, Y, M2X, M2Y, M3X, M3Y: TCnInt64RationalPolynomial;
+  X, Y, M2X, M2Y, M3X, M3Y, M4X, M4Y, M5X, M5Y: TCnInt64RationalPolynomial;
+  DP: TCnInt64Polynomial;
 begin
   // 检查一倍点表达式和二倍点表达式相加，结果是否等于三倍点
   // 一倍点 (x, 1 * y)，二倍点用 RationalMultiplePoint 算
@@ -1344,35 +1351,52 @@ begin
   M2Y := TCnInt64RationalPolynomial.Create;
   M3X := TCnInt64RationalPolynomial.Create;
   M3Y := TCnInt64RationalPolynomial.Create;
+  M4X := TCnInt64RationalPolynomial.Create;
+  M4Y := TCnInt64RationalPolynomial.Create;
+  M5X := TCnInt64RationalPolynomial.Create;
+  M5Y := TCnInt64RationalPolynomial.Create;
+  DP := TCnInt64Polynomial.Create;
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(6, 1, 5, DP, 29); // 算得 5 阶可除多项式
+  ShowMessage('DP5: ' + DP.ToString);
 
   X.Denominator.SetOne;
   X.Nominator.SetCoefficents([0, 1]);
-  Y.Denominator.SetOne;
-  Y.Denominator.SetCoefficents([1]);
+  Y.Nominator.SetOne;
+  Y.Denominator.SetCoefficents([1]);     // ( x/1, 1/1 *y)
 
-  TCnInt64PolynomialEcc.RationalMultiplePoint(2, M2X, M2Y, 6, 1, 29);
-  ShowMessage(M2X.ToString);
-  ShowMessage(M2Y.ToString);
+  ShowMessage('P2:');
+  TCnInt64PolynomialEcc.RationalPointAddPoint(X, Y, X, Y, M2X, M2Y, 6, 1, 29, DP);
+  ShowMessage(M2X.ToString);  // 应该输出 7x^0,21x^1,17x^2,0x^3,1x^4 / 4x^0,24x^1,0x^2,4x^3
+  ShowMessage(M2Y.ToString);  // 应该输出 8x^0,5x^1,23x^2,20x^3,1x^4,0x^5,1x^6 / (8x^0,19x^1,0x^2,8x^3) * y
+  // 分母也就是再乘以 y，并将 y^2 替换成 x^3 + 6x + 1，得到 8x^6+9x^4+16x^3+27x^2+9x+8 结果对了
 
-  // 一倍点设为 18, 5
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(M2X, 18, 29))); // 求二倍点的 X 坐标 18，对了
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(M2Y, 18, 29) * 5 mod 29)); // 求二倍点的 Y 坐标 24，对了
+  ShowMessage('P3:');
+  TCnInt64PolynomialEcc.RationalPointAddPoint(X, Y, M2X, M2Y, M3X, M3Y, 6, 1, 29, DP);
+  ShowMessage(M3X.ToString);  // 应该输出 24x^0,8x^1,21x^2,21x^3,18x^4,3x^5,16x^6,27x^7,13x^8,6x^9,1x^10,18x^11 / 27x^0,6x^1,20x^2,19x^3,11x^4,27x^5,2x^6,16x^7,12x^8,2x^9,3x^10,8x^11 结果对了
+  ShowMessage(M3Y.ToString);  // 应该输出 18x^0,28x^1,17x^2,16x^3,0x^4,21x^5,10x^6,14x^7,10x^8,12x^9,23x^10,27x^11 / 6x^0,25x^1,25x^2,0x^3,25x^4,9x^5,3x^6,25x^7,6x^8,9x^9,14x^10,1x^11 结果虽然对不上号但经过验算是相等的
 
-  // 计算多项式无法判断两个形式不同的点 X 和 Y 是否相等，必须外界指定
-  TCnInt64PolynomialEcc.RationalPointAddPoint(X, Y, M2X, M2Y, M3X, M3Y, 6, 1, 29, True); // 指定 X 相等，但 Y 不相等
-  ShowMessage(M3X.ToString);  // 多项式返回 0
-  ShowMessage(M3Y.ToString);  // 多项式返回 0
+  ShowMessage('P4:');
+  TCnInt64PolynomialEcc.RationalPointAddPoint(X, Y, M3X, M3Y, M4X, M4Y, 6, 1, 29, DP);
+  ShowMessage(M4X.ToString);
+  ShowMessage(M4Y.ToString);  // 不一致但相等，略
 
-  // 三倍点应该是 0，0
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(M3X, 18, 29))); // 求三倍点的 X 坐标 0
-  ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(M3Y, 18, 29) * 5 mod 29)); // 求三倍点的 Y 坐标 0
+  ShowMessage('P5:');
+  TCnInt64PolynomialEcc.RationalPointAddPoint(X, Y, M4X, M4Y, M5X, M5Y, 6, 1, 29, DP);
+  ShowMessage(M5X.ToString);  // 应该输出 0
+  ShowMessage(M5Y.ToString);
 
+  DP.Free;
   X.Free;
   Y.Free;
   M2X.Free;
   M2Y.Free;
   M3X.Free;
   M3Y.Free;
+  M4X.Free;
+  M4Y.Free;
+  M5X.Free;
+  M5Y.Free;
 end;
 
 procedure TFormPolynomial.btnTestPiXPolynomialClick(Sender: TObject);
@@ -1512,6 +1536,87 @@ begin
   DP.Free;
   X.Free;
   Y.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisDivTimeClick(Sender: TObject);
+var
+  T: Cardinal;
+  P1, P2, R, M: TCnInt64Polynomial;
+begin
+  // X^97^2 - X div 5X^12+79X^10+96X^9+72X^8+57X^7+58X^6+7X^5+3X^4+83X^3+26X^2+40X+47 的耗时
+  P1 := TCnInt64Polynomial.Create;
+  P2 := TCnInt64Polynomial.Create([47,40,26,83,3,7,58,57,72,96,79,0,5]);
+  P1.MaxDegree := 97 * 97;
+  P1[P1.MaxDegree] := 1;
+  P1[1] := -1;   // P1 := X^97^2 - X
+
+  R := TCnInt64Polynomial.Create;
+  M := TCnInt64Polynomial.Create;
+  T := GetTickCount;
+  Int64PolynomialGaloisDiv(R, M, P1, P2, 97);  // 优化 ShiftLeft 的批量插入，由 90 多秒优化到 10 秒左右
+  T := GetTickCount - T;
+
+  ShowMessage(IntToStr(T) + ': ' + M.ToString);
+
+  R.Free;
+  M.Free;
+  P2.Free;
+  P1.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisCalcClick(Sender: TObject);
+var
+  A, B, DP, R: TCnInt64Polynomial;
+begin
+  // 8x^11,15x^10,23x^9,23x^8,27x^7,9x^6,25x^5,19x^4,6x^3,23x^2,5x^1,22x^0  * 1 0 6 1 mod DP5 ?= 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6
+  A := TCnInt64Polynomial.Create([1, 6, 0 ,1]);
+  B := TCnInt64Polynomial.Create([22,5,23,6,19,25,9,27,23,23,15,8]);
+  DP := TCnInt64Polynomial.Create;
+  Int64PolynomialGaloisCalcDivisionPolynomial(6, 1, 5, DP, 29); // 算得 5 阶可除多项式
+  R := TCnInt64Polynomial.Create;
+  Int64PolynomialGaloisMul(R, B, A, 29, DP);
+
+  ShowMessage(R.ToString);
+  R.Free;
+  DP.Free;
+  B.Free;
+  A.Free;
+end;
+
+procedure TFormPolynomial.btnTestGaloisEqualClick(Sender: TObject);
+var
+  A, B: TCnInt64RationalPolynomial;
+  DP, TI1, TI2: TCnInt64Polynomial;
+begin
+  A := TCnInt64RationalPolynomial.Create;
+  B := TCnInt64RationalPolynomial.Create;
+  DP := TCnInt64Polynomial.Create;
+  Int64PolynomialGaloisCalcDivisionPolynomial(6, 1, 5, DP, 29); // 算得 5 阶可除多项式
+
+  // 比较 '6X^11+20X^10+13X^9+20X^8+15X^7+X^6+25X^5+2X^4+13X^3+7X^2+25X+13 / 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6'
+  // 和 27x^11,23x^10,12x^9,10x^8,14x^7,10x^6,21x^5,0x^4,16x^3,17x^2,28x^1,18x^0 / 1x^11,14x^10,9x^9,6x^8,25x^7,3x^6,9x^5,25x^4,0x^3,25x^2,25x^1,6x^0
+  A.Nominator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
+  A.Denominator.SetCoefficents([6,16,23,22,11,17,23,5,4,12,5,21]);
+
+  B.Nominator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
+  B.Denominator.SetCoefficents([6,25,25,0,25,9,3,25,6,9,14,1]);
+
+  TI1 := TCnInt64Polynomial.Create;
+  TI2 := TCnInt64Polynomial.Create;
+
+  Int64PolynomialGaloisMul(TI1, A.Nominator, B.Denominator, 29, DP);
+  Int64PolynomialGaloisMul(TI2, A.Denominator, B.Nominator, 29, DP);
+
+  if Int64PolynomialGaloisEqual(TI1, TI2, 29) then
+    ShowMessage('Equal')
+  else
+    ShowMessage('NOT Equal');
+
+  TI2.Free;
+  TI1.Free;
+
+  B.Free;
+  A.Free;
 end;
 
 end.
