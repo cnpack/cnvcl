@@ -1654,8 +1654,7 @@ end;
 
 procedure TFormEcc.btnSRLucasClick(Sender: TObject);
 var
-  R, P, U, X, Y, Z: Int64;
-  PrimeType: TCnEccPrimeType;
+  X, Y, P: Int64;
 begin
   P := StrToInt64(edtSRP.Text);
   X := StrToInt64(edtSRX.Text);
@@ -2168,7 +2167,11 @@ end;
 procedure TFormEcc.btnInt64SchoofTestClick(Sender: TObject);
 begin
   // Schoof À„∑®≤‚ ‘
-  ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 13)));
+  ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 13)));   // 8
+  ShowMessage(IntToStr(CnInt64EccSchoof(46, 74, 97))); // 80
+  ShowMessage(IntToStr(CnInt64EccSchoof(31, -12, 97))); // 112
+  ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 19)));    // 27
+  ShowMessage(IntToStr(CnInt64EccSchoof(4, 2, 23))); // 21
 end;
 
 end.
