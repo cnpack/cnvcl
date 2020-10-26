@@ -2172,6 +2172,7 @@ begin
   ShowMessage(IntToStr(CnInt64EccSchoof(31, -12, 97))); // 112
   ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 19)));    // 27
   ShowMessage(IntToStr(CnInt64EccSchoof(4, 2, 23))); // 21
+  ShowMessage(IntToStr(CnInt64EccSchoof(71, 602, 32003))); // 32021
 end;
 
 end.
