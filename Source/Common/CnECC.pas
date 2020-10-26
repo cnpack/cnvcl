@@ -3900,10 +3900,9 @@ begin
     Y2.SetCoefficents([B, A, 0, 1]);
 
     // Ta 与 Pa 数组已准备好，先处理 t = 2 的情况
-    P1.MaxDegree := Q;
-    P1[P1.MaxDegree] := 1; // P1 := X^q
+    P1.SetCoefficents([0, 1]); // P1 := X
+    Int64PolynomialGaloisPower(P1, P1, Q, Q, Y2); // X^q 先 mod Y^2
 
-    Int64PolynomialGaloisMod(P1, P1, Y2, Q); // X^q 先 mod Y^2
     P2.SetCoefficents([0, 1]); // P2 := X
     Int64PolynomialGaloisSub(P1, P1, P2, Q); // P1 := (X^q mod Y^2) - x
 
