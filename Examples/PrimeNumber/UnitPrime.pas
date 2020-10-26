@@ -82,6 +82,7 @@ type
     btnDHRand: TButton;
     tsCRT: TTabSheet;
     btnCRTTest: TButton;
+    btnCheckPrime: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -107,6 +108,7 @@ type
     procedure btnDHIsPrimitiveRoot64Click(Sender: TObject);
     procedure btnDHRandClick(Sender: TObject);
     procedure btnCRTTestClick(Sender: TObject);
+    procedure btnCheckPrimeClick(Sender: TObject);
   private
 
   public
@@ -484,6 +486,47 @@ begin
   R[0] := 2; R[1] := 3; R[2] := 2;
   C := ChineseRemainderTheoremInt64(R, F);
   ShowMessage(IntToStr(C));
+end;
+
+procedure TFormPrime.btnCheckPrimeClick(Sender: TObject);
+var
+  I: Cardinal;
+  K: Int64;
+  M: TUInt64;
+begin
+  I := MaxInt;
+  while not CnUInt32IsPrime(I) do   // < Int32
+    Dec(I);
+  ShowMessage(IntToStr(I));
+  I := Cardinal(MaxInt) + 1;
+  while not CnUInt32IsPrime(I) do  // > Int32
+    Inc(I);
+  ShowMessage(IntToStr(I));
+
+  I := $FFFFFFFF;
+  while not CnUInt32IsPrime(I) do  // < UInt32
+    Dec(I);
+  ShowMessage(IntToStr(I));
+
+  K := $FFFFFFFF;
+  while not CnInt64IsPrime(K) do  // > UInt32
+    Inc(K);
+  ShowMessage(IntToStr(K));
+
+  K := MAX_SIGNED_INT64_IN_TUINT64;
+  while not CnInt64IsPrime(K) do
+    Dec(K);
+  ShowMessage(IntToStr(K));
+
+  M := MAX_SIGNED_INT64_IN_TUINT64;
+  while not CnInt64IsPrime(M) do
+    Inc(M);
+  ShowMessage(UInt64ToStr(M));
+
+  M := MAX_TUINT64;
+  while not CnInt64IsPrime(M) do
+    Dec(M);
+  ShowMessage(UInt64ToStr(M));
 end;
 
 end.

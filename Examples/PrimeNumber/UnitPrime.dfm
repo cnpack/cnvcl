@@ -21,7 +21,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsCRT
+    ActivePage = tsIsPrime
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
@@ -580,6 +580,15 @@ object FormPrime: TFormPrime
         Caption = 'CRT Test'
         TabOrder = 0
         OnClick = btnCRTTestClick
+      end
+      object btnCheckPrime: TButton
+        Left = 504
+        Top = 24
+        Width = 129
+        Height = 25
+        Caption = 'Check Prime'
+        TabOrder = 1
+        OnClick = btnCheckPrimeClick
       end
     end
   end
