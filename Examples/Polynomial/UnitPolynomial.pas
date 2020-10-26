@@ -47,7 +47,6 @@ type
     btnTestGaloisPoint2: TButton;
     btnTestPolyPoint2: TButton;
     btnTestPolyEccPoint3: TButton;
-    btnTestPolyAdd2: TButton;
     btnTestGaloisPolyMulMod: TButton;
     btnTestGaloisModularInverse1: TButton;
     btnTestEuclid2: TButton;
@@ -112,7 +111,6 @@ type
     procedure btnTestGaloisPoint2Click(Sender: TObject);
     procedure btnTestPolyPoint2Click(Sender: TObject);
     procedure btnTestPolyEccPoint3Click(Sender: TObject);
-    procedure btnTestPolyAdd2Click(Sender: TObject);
     procedure btnTestGaloisPolyMulModClick(Sender: TObject);
     procedure btnTestGaloisModularInverse1Click(Sender: TObject);
     procedure btnTestEuclid2Click(Sender: TObject);
@@ -771,41 +769,6 @@ begin
   X.Free;
 end;
 
-procedure TFormPolynomial.btnTestPolyAdd2Click(Sender: TObject);
-var
-  X, Y, P, E, RX, RY: TCnInt64Polynomial;
-begin
-  X := TCnInt64Polynomial.Create([0, 1]);
-  Y := TCnInt64Polynomial.Create([1]);
-  P := TCnInt64Polynomial.Create([9, 12, 12, 0, 3]);
-  E := TCnInt64Polynomial.Create([1, 2, 0, 1]);
-
-  RX := TCnInt64Polynomial.Create;
-  RY := TCnInt64Polynomial.Create;
-
-  TCnInt64PolynomialEcc.PointAddPoint1(X, Y, X, Y, RX, RY, 2, 1, 13, P);
-
-  ShowMessage(RX.ToString);
-  ShowMessage(RY.ToString);
-
-  Int64PolynomialGaloisMul(RY, RY, RY, 13, P); // 计算 Y 系数的平方
-  Int64PolynomialGaloisMul(RY, RY, E, 13, P);  // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
-
-  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
-  Int64PolynomialGaloisCompose(E, E, RX, 13, P);
-  if Int64PolynomialEqual(E, Y) then
-    ShowMessage('Add Point On Curve')
-  else
-    ShowMessage('Add Point NOT');
-
-  RX.Free;
-  RY.Free;
-  E.Free;
-  P.Free;
-  Y.Free;
-  X.Free;
-end;
-
 procedure TFormPolynomial.btnTestGaloisPolyMulModClick(Sender: TObject);
 var
   P, Q, H: TCnInt64Polynomial;
@@ -1401,7 +1364,7 @@ end;
 
 procedure TFormPolynomial.btnTestPiXPolynomialClick(Sender: TObject);
 var
-  DP, X, Y, Pi1X, Pi1Y, Pi2X, Pi2Y, SX, SY: TCnInt64Polynomial;
+  DP, X, Y, Pi1X, Pi1Y, Pi2X, Pi2Y: TCnInt64Polynomial;
   RX, RY: TCnInt64RationalPolynomial;
 //  Pi2RX, Pi2RY, R2X, R2Y, S2X, S2Y: TCnInt64RationalPolynomial;
 begin
@@ -1441,8 +1404,6 @@ begin
   Pi1Y := TCnInt64Polynomial.Create;
   Pi2X := TCnInt64Polynomial.Create;
   Pi2Y := TCnInt64Polynomial.Create;
-  SX := TCnInt64Polynomial.Create;
-  SY := TCnInt64Polynomial.Create;
 
   X := TCnInt64Polynomial.Create;
   Y := TCnInt64Polynomial.Create([-12, 31, 0, 1]);
@@ -1492,41 +1453,6 @@ begin
   else
     ShowMessage('π^2 (y) <> 2 * P (y)');
 
-  // 将其相加得到有理点
-//  Pi2RX := TCnInt64RationalPolynomial.Create;
-//  Pi2RY := TCnInt64RationalPolynomial.Create;
-//  R2X := TCnInt64RationalPolynomial.Create;
-//  R2Y := TCnInt64RationalPolynomial.Create;
-//  S2X := TCnInt64RationalPolynomial.Create;
-//  S2Y := TCnInt64RationalPolynomial.Create;
-//
-//  Pi2RX.Denominator.SetOne;
-//  Int64PolynomialCopy(Pi2RX.Nominator, Pi2X);
-//  Pi2RY.Denominator.SetOne;
-//  Int64PolynomialCopy(Pi2RY.Nominator, Pi2Y);
-//  R2X.Denominator.SetOne;
-//  Int64PolynomialCopy(R2X.Nominator, X);
-//  R2Y.Denominator.SetOne;
-//  Int64PolynomialCopy(R2Y.Nominator, Y);
-
-  TCnInt64PolynomialEcc.PointAddPoint1(Pi2X, Pi2Y, X, Y, SX, SY, 31, -12, 97, DP);
-  ShowMessage(SX.ToString);
-  ShowMessage(SY.ToString);                // 将 DP 作为本原多项式直接加，结果不对
-
-//  Int64PolynomialGaloisModularInverse(X, S2X.Denominator, DP, 97);
-//  Int64PolynomialGaloisMul(X, X, S2X.Nominator, 97, DP);
-//  ShowMessage(X.ToString);               // 用模逆多项式将和点的 X 坐标转换为多项式，结果不对
-//
-//  Int64PolynomialGaloisModularInverse(Y, S2Y.Denominator, DP, 97);
-//  Int64PolynomialGaloisMul(Y, Y, S2Y.Nominator, 97, DP);
-//  ShowMessage(Y.ToString);               // 用模逆多项式将和点的 Y 坐标转换为多项式，结果不对
-
-//  Pi2RX.Free;
-//  Pi2RY.Free;
-//  R2X.Free;
-//  R2Y.Free;
-//  S2X.Free;
-//  S2Y.Free;
   RX.Free;
   RY.Free;
   Pi1X.Free;

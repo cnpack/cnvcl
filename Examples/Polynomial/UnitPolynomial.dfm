@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsRationalPolynomial
+    ActivePage = tsIntegerPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Integer Polynomial'
@@ -371,22 +371,13 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 7
           OnClick = btnTestPolyEccPoint3Click
         end
-        object btnTestPolyAdd2: TButton
-          Left = 592
-          Top = 80
-          Width = 177
-          Height = 25
-          Caption = 'Test Poly Point Add'
-          TabOrder = 8
-          OnClick = btnTestPolyAdd2Click
-        end
         object btnTestGaloisPolyMulMod: TButton
           Left = 784
           Top = 80
           Width = 105
           Height = 25
           Caption = 'Test Galois MulMod'
-          TabOrder = 9
+          TabOrder = 8
           OnClick = btnTestGaloisPolyMulModClick
         end
         object btnTestGaloisModularInverse1: TButton
@@ -395,7 +386,7 @@ object FormPolynomial: TFormPolynomial
           Width = 161
           Height = 25
           Caption = 'Test Galois Modular Inverse'
-          TabOrder = 10
+          TabOrder = 9
           OnClick = btnTestGaloisModularInverse1Click
         end
         object btnTestEuclid2: TButton
@@ -404,7 +395,7 @@ object FormPolynomial: TFormPolynomial
           Width = 161
           Height = 25
           Caption = 'Test Extended Euclid 2'
-          TabOrder = 11
+          TabOrder = 10
           OnClick = btnTestEuclid2Click
         end
         object btnTestExtendEuclid3: TButton
@@ -413,7 +404,7 @@ object FormPolynomial: TFormPolynomial
           Width = 161
           Height = 25
           Caption = 'Test Extended Euclid 3'
-          TabOrder = 12
+          TabOrder = 11
           OnClick = btnTestExtendEuclid3Click
         end
         object btnTestEccDivisionPoly3: TButton
@@ -422,7 +413,7 @@ object FormPolynomial: TFormPolynomial
           Width = 177
           Height = 25
           Caption = 'Test Ecc Division Polynomial 3'
-          TabOrder = 13
+          TabOrder = 12
           OnClick = btnTestEccDivisionPoly3Click
         end
         object mmoTestDivisionPolynomial: TMemo
@@ -431,7 +422,7 @@ object FormPolynomial: TFormPolynomial
           Width = 849
           Height = 313
           ScrollBars = ssBoth
-          TabOrder = 14
+          TabOrder = 13
           WordWrap = False
         end
         object btnGenerateDivisionPolynomial: TButton
@@ -440,7 +431,7 @@ object FormPolynomial: TFormPolynomial
           Width = 169
           Height = 25
           Caption = 'Generate Division Polynomial'
-          TabOrder = 15
+          TabOrder = 14
           OnClick = btnGenerateDivisionPolynomialClick
         end
       end
