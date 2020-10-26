@@ -2173,6 +2173,15 @@ begin
   ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 19)));    // 27
   ShowMessage(IntToStr(CnInt64EccSchoof(4, 2, 23))); // 21
   ShowMessage(IntToStr(CnInt64EccSchoof(71, 602, 32003))); // 32021
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 48299))); // 47988
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 58657))); // 58971
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 64007))); // 63585
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65173))); // 65462
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65423))); // 65340
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65521))); // 65772
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65521))); // 65772
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65537))); // 65751
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 98993))); // 99279
 end;
 
 end.

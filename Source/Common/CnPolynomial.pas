@@ -222,7 +222,7 @@ function Int64PolynomialMod(const Res: TCnInt64Polynomial; const P: TCnInt64Poly
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialPower(const Res: TCnInt64Polynomial;
-  const P: TCnInt64Polynomial;  Exponent: LongWord): Boolean;
+  const P: TCnInt64Polynomial; Exponent: Int64): Boolean;
 {* 计算整系数多项式的 Exponent 次幂，不考虑系数溢出的问题，
    返回计算是否成功，Res 可以是 P}
 
@@ -291,7 +291,7 @@ function Int64PolynomialGaloisMod(const Res: TCnInt64Polynomial; const P: TCnInt
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
-  Exponent: LongWord; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
+  Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
@@ -443,6 +443,7 @@ implementation
 resourcestring
   SCnInvalidDegree = 'Invalid Degree %d';
   SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
+  SCnEInvalidExponent = 'Invalid Exponent %d';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -973,7 +974,7 @@ begin
 end;
 
 function Int64PolynomialPower(const Res: TCnInt64Polynomial;
-  const P: TCnInt64Polynomial; Exponent: LongWord): Boolean;
+  const P: TCnInt64Polynomial; Exponent: Int64): Boolean;
 var
   T: TCnInt64Polynomial;
 begin
@@ -989,7 +990,9 @@ begin
       Int64PolynomialCopy(Res, P);
     Result := True;
     Exit;
-  end;
+  end
+  else if Exponent < 0 then
+    raise ECnPolynomialException.CreateFmt(SCnEInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
   try
@@ -1412,7 +1415,7 @@ begin
 end;
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
-  Exponent: LongWord; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
+  Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   T: TCnInt64Polynomial;
 begin
@@ -1428,7 +1431,8 @@ begin
       Int64PolynomialCopy(Res, P);
     Result := True;
     Exit;
-  end;
+  end else if Exponent < 0 then
+    raise ECnPolynomialException.CreateFmt(SCnEInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
   try

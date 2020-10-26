@@ -3982,7 +3982,7 @@ begin
     // 求出各个余数后，用中国剩余定理求最终解
     L := ChineseRemainderTheoremInt64(Ta, Pa); // 复用 L W K 等变量
 
-    // 注意求出的 T 必须满足Hasse 定理，T 的绝对值 <= 2 * 根号 Q，如超出范围，还得修正
+    // 注意求出的 T 必须满足 Hasse 定理：T 的绝对值 <= 2 * 根号 Q，如超出范围，还得修正
     K := UInt64Sqrt(TUInt64(Q)) * 2 + 1;
     if (L <= -K) or (L >= K) then
     begin
