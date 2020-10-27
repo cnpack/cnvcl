@@ -182,16 +182,16 @@ function Int64PolynomialEqual(const A, B: TCnInt64Polynomial): Boolean;
 
 // =========================== 多项式普通运算 ==================================
 
-procedure Int64PolynomialAddWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialAddWord(const P: TCnInt64Polynomial; N: Int64);
 {* 将一个整系数多项式对象的常系数加上 N}
 
-procedure Int64PolynomialSubWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialSubWord(const P: TCnInt64Polynomial; N: Int64);
 {* 将一个整系数多项式对象的常系数减去 N}
 
-procedure Int64PolynomialMulWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialMulWord(const P: TCnInt64Polynomial; N: Int64);
 {* 将一个整系数多项式对象的各个系数都乘以 N}
 
-procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Int64);
 {* 将一个整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
 procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: Int64);
@@ -296,16 +296,16 @@ function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
-function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式的常系数加上 N 再 mod Prime}
 
-function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式的常系数减去 N 再 mod Prime}
 
-function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数乘以 N 再 mod Prime}
 
-function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: Int64): Integer;
@@ -759,17 +759,17 @@ begin
   end;
 end;
 
-procedure Int64PolynomialAddWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialAddWord(const P: TCnInt64Polynomial; N: Int64);
 begin
   P[0] := P[0] + N;
 end;
 
-procedure Int64PolynomialSubWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialSubWord(const P: TCnInt64Polynomial; N: Int64);
 begin
   P[0] := P[0] - N;
 end;
 
-procedure Int64PolynomialMulWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialMulWord(const P: TCnInt64Polynomial; N: Int64);
 var
   I: Integer;
 begin
@@ -785,7 +785,7 @@ begin
   end;
 end;
 
-procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Integer);
+procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Int64);
 var
   I: Integer;
 begin
@@ -1459,26 +1459,30 @@ begin
   end;
 end;
 
-function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64): Boolean;
 begin
   P[0] := NonNegativeMod(P[0] + N, Prime);
   Result := True;
 end;
 
-function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64): Boolean;
 begin
   P[0] := NonNegativeMod(P[0] - N, Prime);
   Result := True;
 end;
 
-function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64): Boolean;
 begin
   Int64PolynomialMulWord(P, N);
   Int64PolynomialNonNegativeModWord(P, Prime);
   Result := True;
 end;
 
-function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Integer; Prime: Int64): Boolean;
+function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64): Boolean;
 var
   I: Integer;
   K: Int64;
