@@ -438,12 +438,17 @@ function Int64RationalPolynomialGaloisGetValue(const F: TCnInt64RationalPolynomi
   X: Int64; Prime: Int64): Int64;
 {* 有理分式模系数求值，也就是模计算 F(x)，除法用乘法模逆元表示}
 
+var
+  CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
+  CnInt64PolynomialZero: TCnInt64Polynomial = nil;    // 表示 0 的常量
+
 implementation
 
 resourcestring
   SCnInvalidDegree = 'Invalid Degree %d';
   SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
-  SCnEInvalidExponent = 'Invalid Exponent %d';
+  SCnInvalidExponent = 'Invalid Exponent %d';
+  SCnInvalidModulus = 'Can NOT Mod a Negative or Zero Value.';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -452,10 +457,10 @@ var
 function NonNegativeMod(N: Int64; P: Int64): Int64;
 begin
   if P <= 0 then
-    raise ECnPolynomialException.Create('Can NOT Mod a Negative Prime.');
+    raise ECnPolynomialException.Create(SCnInvalidModulus);
 
   Result := N mod P;
-  if N < 0 then
+  if Result < 0 then
     Inc(Result, P);
 end;
 
@@ -615,7 +620,8 @@ end;
 function Int64PolynomialToString(const P: TCnInt64Polynomial;
   const VarName: string = 'X'): string;
 var
-  I, C: Integer;
+  I: Integer;
+  C: Int64;
 
   function VarPower(E: Integer): string;
   begin
@@ -992,7 +998,7 @@ begin
     Exit;
   end
   else if Exponent < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnEInvalidExponent, [Exponent]);
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
   try
@@ -1312,6 +1318,7 @@ begin
     // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分，再取模
     for J := 0 to P2.MaxDegree do
     begin
+      // TODO: 容易溢出，不好办
       R[I + J] := NonNegativeMod(R[I + J] + P1[I] * P2[J], Prime);
     end;
   end;
@@ -1432,7 +1439,7 @@ begin
     Result := True;
     Exit;
   end else if Exponent < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnEInvalidExponent, [Exponent]);
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
   try
@@ -2498,7 +2505,15 @@ end;
 initialization
   FLocalInt64PolynomialPool := TCnInt64PolynomialPool.Create;
 
+  CnInt64PolynomialOne := TCnInt64Polynomial.Create([1]);
+  CnInt64PolynomialZero := TCnInt64Polynomial.Create([0]);
+
 finalization
+  // CnInt64PolynomialOne.ToString; // 手工调用防止被编译器忽略
+
+  CnInt64PolynomialOne.Free;
+  CnInt64PolynomialZero.Free;
+
   FLocalInt64PolynomialPool.Free;
 
 end.
