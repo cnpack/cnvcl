@@ -2193,7 +2193,10 @@ begin
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 4294967291))); // 两分钟左右，4295191334
 
   // 刚刚 > Max UInt32 测试基本通过，Q 平方超过了 UInt64，但没超过 2 * Max UInt64
-  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 4294967311))); // 四分钟左右 4295222567
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 4294967311))); // 三分钟左右，295222567
+
+  // < Sqrt(2 * Max UInt64) 测试基本通过，Q 平方接近 2 * Max UInt64
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 6074000687))); // 四分钟左右，6074114217
 
   // Q 平方超过 2 * Max UInt64 的目前暂时还没法处理，因为计算 (Q*Q) shr 1 会出问题
 end;

@@ -247,6 +247,9 @@ function PointerToInteger(P: Pointer): Integer;
 function IntegerToPointer(I: Integer): Pointer;
 {* 整型转换成指针类型，支持 32/64 位}
 
+function UInt64NonNegativeAddMod(A, B, N: TUInt64): TUInt64;
+{* 求 UInt64 范围内俩加数的和求余，处理溢出的情况}
+
 function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
 {* Int64 范围内的相乘求余，不能直接计算，容易溢出。要求 N 大于 0}
 
@@ -864,6 +867,33 @@ begin
 {$ELSE}
   Result := Pointer(I);
 {$ENDIF}
+end;
+
+// 求 UInt64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0
+function UInt64NonNegativeAddMod(A, B, N: TUInt64): TUInt64;
+var
+  C, D: TUInt64;
+begin
+  if IsUInt64AddOverflow(A, B) then // 如果加起来溢出
+  begin
+    C := UInt64Mod(A, N);  // 就各自求模
+    D := UInt64Mod(B, N);
+    if IsUInt64AddOverflow(C, D) then
+    begin
+      // 如果还是溢出，说明模比两个加数都大，各自求模没用。
+      // 至少有一个加数大于等于 2^63，N 至少是 2^63 + 1
+      // 和 = 溢出结果 + 2^64
+      // 和 mod N = 溢出结果 mod N + (2^64 - 1) mod N) - 1
+      // 这里 N 至少是 2^63 + 1，溢出结果最多是 2^64 - 2，所以前两项相加不会溢出，可以直接相加后减一再求模
+      Result := UInt64Mod(UInt64Mod(A + B, N) + UInt64Mod(MAX_TUINT64, N) - 1, N);
+    end
+    else
+      Result := UInt64Mod(C + D, N);
+  end
+  else
+  begin
+    Result := UInt64Mod(A + B, N);
+  end;
 end;
 
 function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
