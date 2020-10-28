@@ -18,6 +18,8 @@ type
     btnMul32: TButton;
     btnHighLowBits: TButton;
     btnInt64MulMod: TButton;
+    btnUInt64Add: TButton;
+    btnUInt64Mul: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -25,6 +27,8 @@ type
     procedure btnMul32Click(Sender: TObject);
     procedure btnHighLowBitsClick(Sender: TObject);
     procedure btnInt64MulModClick(Sender: TObject);
+    procedure btnUInt64AddClick(Sender: TObject);
+    procedure btnUInt64MulClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -185,6 +189,30 @@ begin
   B := Int64NonNegativeMulMod(A, B, 4294967291);
   // B := UInt64NonNegativeMulMod(A, B, 4294967291);
   mmoRes.Lines.Add(IntToStr(B)); // 要等于 1 才对
+end;
+
+procedure TFormNative.btnUInt64AddClick(Sender: TObject);
+var
+  A, B, L, H: TUInt64;
+begin
+  A := MAX_TUINT64;
+  B := MAX_TUINT64;
+
+  UInt64AddUInt64(A, B, L, H);
+  ShowMessage(UInt64ToHex(L));
+  ShowMessage(UInt64ToHex(H));
+end;
+
+procedure TFormNative.btnUInt64MulClick(Sender: TObject);
+var
+  A, B, L, H: TUInt64;
+begin
+  A := $FFFFFFFFFFFFFF3C;
+  B := $FFFFFFFFFFFFFF2E;
+
+  UInt64MulUInt64(A, B, L, H);
+  ShowMessage(UInt64ToHex(L));
+  ShowMessage(UInt64ToHex(H));
 end;
 
 end.

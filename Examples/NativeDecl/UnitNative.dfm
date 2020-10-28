@@ -45,9 +45,9 @@ object FormNative: TFormNative
   end
   object mmoRes: TMemo
     Left = 16
-    Top = 64
+    Top = 104
     Width = 704
-    Height = 394
+    Height = 354
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -92,5 +92,23 @@ object FormNative: TFormNative
     Caption = 'Int64 MulMod'
     TabOrder = 6
     OnClick = btnInt64MulModClick
+  end
+  object btnUInt64Add: TButton
+    Left = 16
+    Top = 64
+    Width = 75
+    Height = 25
+    Caption = 'UInt64 Add'
+    TabOrder = 7
+    OnClick = btnUInt64AddClick
+  end
+  object btnUInt64Mul: TButton
+    Left = 112
+    Top = 64
+    Width = 75
+    Height = 25
+    Caption = 'UInt64 Mul'
+    TabOrder = 8
+    OnClick = btnUInt64MulClick
   end
 end
