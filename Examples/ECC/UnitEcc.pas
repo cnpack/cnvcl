@@ -2172,6 +2172,7 @@ begin
   ShowMessage(IntToStr(CnInt64EccSchoof(31, -12, 97))); // 112
   ShowMessage(IntToStr(CnInt64EccSchoof(2, 1, 19)));    // 27
   ShowMessage(IntToStr(CnInt64EccSchoof(4, 2, 23))); // 21
+
   ShowMessage(IntToStr(CnInt64EccSchoof(71, 602, 32003))); // 32021
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 48299))); // 47988
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 58657))); // 58971
@@ -2179,9 +2180,19 @@ begin
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65173))); // 65462
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65423))); // 65340
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65521))); // 65772
-  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65521))); // 65772
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 65537))); // 65751
   ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 98993))); // 99279
+
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 2147483629))); // 30 秒左右，2147464597
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 2147483659))); // 30 秒左右，2147476793
+
+  // < Max Int64 的平方根再测测
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 3037000493))); // 50 秒左右，3036927405
+
+  // < Max UInt32 测试基本通过，Q 平方超过了 Int64，但没超过 UInt64
+  ShowMessage(IntToStr(CnInt64EccSchoof(7, 1, 4294967291))); // 两分钟左右，4295191334
+
+  // Q 平方超过 Int64 的目前暂时还没法处理
 end;
 
 end.

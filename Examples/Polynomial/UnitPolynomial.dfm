@@ -287,6 +287,33 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 23
           OnClick = btnTestGaloisCalcClick
         end
+        object btnTestHugeDiv: TButton
+          Left = 408
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Huge Div 1'
+          TabOrder = 24
+          OnClick = btnTestHugeDivClick
+        end
+        object btnTestHugeDiv2: TButton
+          Left = 536
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Huge Div 2'
+          TabOrder = 25
+          OnClick = btnTestHugeDiv2Click
+        end
+        object btnTestHugeDiv3: TButton
+          Left = 664
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Huge Div 3'
+          TabOrder = 26
+          OnClick = btnTestHugeDiv3Click
+        end
       end
     end
     object tsExtensionEcc: TTabSheet

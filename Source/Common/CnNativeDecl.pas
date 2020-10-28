@@ -221,6 +221,15 @@ function IsInt64AddOverflow(A, B: Int64): Boolean;
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 {* 判断两个 64 位无符号数相加是否溢出}
 
+function IsInt32MulOverflow(A, B: Integer): Boolean;
+{* 判断两个 32 位有符号数相乘是否溢出}
+
+function IsUInt32MulOverflow(A, B: Cardinal): Boolean;
+{* 判断两个 32 位无符号数相乘是否溢出}
+
+function IsInt64MulOverflow(A, B: Int64): Boolean;
+{* 判断两个 64 位有符号数相乘是否溢出}
+
 function PointerToInteger(P: Pointer): Integer;
 {* 指针类型转换成整型，支持 32/64 位}
 
@@ -232,6 +241,9 @@ function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
 
 function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
 {* UInt64 范围内的相乘求余，不能直接计算，容易溢出。未完整测试}
+
+function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
+{* 封装的 Int64 非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0}
 
 implementation
 
@@ -702,6 +714,33 @@ begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
+// 判断两个 32 位有符号数相乘是否溢出
+function IsInt32MulOverflow(A, B: Integer): Boolean;
+var
+  T: Integer;
+begin
+  T := A * B;
+  Result := (B <> 0) and ((T div B) <> A);
+end;
+
+// 判断两个 32 位无符号数相乘是否溢出
+function IsUInt32MulOverflow(A, B: Cardinal): Boolean;
+var
+  T: TUInt64;
+begin
+  T := TUInt64(A) * TUInt64(B);
+  Result := (T = Cardinal(T));
+end;
+
+// 判断两个 64 位有符号数相乘是否溢出
+function IsInt64MulOverflow(A, B: Int64): Boolean;
+var
+  T: Int64;
+begin
+  T := A * B;
+  Result := (B <> 0) and ((T div B) <> A);
+end;
+
 // 指针类型转换成整型，支持 32/64 位
 function PointerToInteger(P: Pointer): Integer;
 begin
@@ -732,8 +771,7 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   // 范围小就直接算
-  if (A < MAX_SQRT_INT64) and (A > -MAX_SQRT_INT64)
-    and (B < MAX_SQRT_INT64) and (B > -MAX_SQRT_INT64) then
+  if not IsInt64MulOverflow(A, B) then
   begin
     Result := A * B mod N;
     if Result < 0 then
@@ -801,6 +839,17 @@ begin
       B := B shr 1;
     end;
   end;
+end;
+
+// 封装的非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0
+function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
+begin
+  if P <= 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  Result := N mod P;
+  if Result < 0 then
+    Inc(Result, P);
 end;
 
 { TCnIntegerList }

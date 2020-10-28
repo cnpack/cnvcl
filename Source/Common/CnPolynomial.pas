@@ -54,6 +54,7 @@ type
     procedure SetMaxDegree(const Value: Integer);
   public
     constructor Create(LowToHighCoefficients: array of const); overload;
+    {* 构造函数，参数为从低到高的系数，注意系数初始化时大于 MaxInt32/MaxInt64 的会被当成 Integer/Int64 而变负}
     constructor Create; overload;
     destructor Destroy; override;
 
@@ -292,7 +293,7 @@ function Int64PolynomialGaloisMod(const Res: TCnInt64Polynomial; const P: TCnInt
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
   Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
+{* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，Exponent 如果是负值，自动转成 UInt64
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
@@ -452,17 +453,6 @@ resourcestring
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
-
-// 封装的非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0
-function NonNegativeMod(N: Int64; P: Int64): Int64;
-begin
-  if P <= 0 then
-    raise ECnPolynomialException.Create(SCnInvalidModulus);
-
-  Result := N mod P;
-  if Result < 0 then
-    Inc(Result, P);
-end;
 
 { TCnInt64Polynomial }
 
@@ -804,7 +794,7 @@ begin
     raise ECnPolynomialException.Create(SZeroDivide);
 
   for I := 0 to P.MaxDegree do
-    P[I] := NonNegativeMod(P[I], N);
+    P[I] := Int64NonNegativeMod(P[I], N);
 end;
 
 function Int64PolynomialAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
@@ -996,8 +986,7 @@ begin
       Int64PolynomialCopy(Res, P);
     Result := True;
     Exit;
-  end
-  else if Exponent < 0 then
+  end else if Exponent < 0 then
     raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
@@ -1252,7 +1241,7 @@ begin
   begin
     for I := A.MaxDegree downto 0 do
     begin
-      if (A[I] <> B[I]) and (NonNegativeMod(A[I], Prime) <> NonNegativeMod(B[I], Prime)) then
+      if (A[I] <> B[I]) and (Int64NonNegativeMod(A[I], Prime) <> Int64NonNegativeMod(B[I], Prime)) then
       begin
         Result := False;
         Exit;
@@ -1266,7 +1255,7 @@ var
   I: Integer;
 begin
   for I := 0 to P.MaxDegree do
-    P[I] := NonNegativeMod(-P[I], Prime);
+    P[I] := Int64NonNegativeMod(-P[I], Prime);
 end;
 
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
@@ -1298,6 +1287,7 @@ function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; P1: TCnInt64Pol
 var
   R: TCnInt64Polynomial;
   I, J: Integer;
+  T: Int64;
 begin
   if Int64PolynomialIsZero(P1) or Int64PolynomialIsZero(P2) then
   begin
@@ -1318,8 +1308,10 @@ begin
     // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分，再取模
     for J := 0 to P2.MaxDegree do
     begin
-      // TODO: 容易溢出，不好办
-      R[I + J] := NonNegativeMod(R[I + J] + P1[I] * P2[J], Prime);
+      // 容易溢出，不能直接相乘
+      T := Int64NonNegativeMulMod(P1[I], P2[J], Prime);
+      R[I + J] := Int64NonNegativeMod(R[I + J] + Int64NonNegativeMod(T, Prime), Prime);
+      // TODO: 暂未处理加法溢出的情况
     end;
   end;
 
@@ -1389,7 +1381,7 @@ begin
       Int64PolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
 
       // 除式要乘一个数，这个数是 SubRes 最高位除以除式最高位得到的结果，也即 SubRes 最高位乘以除式最高位的逆元再 mod Prime
-      T := NonNegativeMod(SubRes[P.MaxDegree - I] * K, Prime);
+      T := Int64NonNegativeMulMod(SubRes[P.MaxDegree - I], K, Prime);
       Int64PolynomialGaloisMulWord(MulRes, T, Prime);          // 除式乘到最高次系数相同
 
       DivRes[D - I] := T;                                      // 对应位的商放到 DivRes 位置
@@ -1438,14 +1430,15 @@ begin
       Int64PolynomialCopy(Res, P);
     Result := True;
     Exit;
-  end else if Exponent < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
+  end;
+  // else if Exponent < 0 then
+  //  raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetCoefficents([1]);
-    while Exponent > 0 do
+    while Exponent <> 0 do
     begin
       if (Exponent and 1) <> 0 then
         Int64PolynomialGaloisMul(Res, Res, T, Prime, Primitive);
@@ -1462,22 +1455,31 @@ end;
 function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64;
   Prime: Int64): Boolean;
 begin
-  P[0] := NonNegativeMod(P[0] + N, Prime);
+  P[0] := Int64NonNegativeMod(P[0] + N, Prime);
   Result := True;
 end;
 
 function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64;
   Prime: Int64): Boolean;
 begin
-  P[0] := NonNegativeMod(P[0] - N, Prime);
+  P[0] := Int64NonNegativeMod(P[0] - N, Prime);
   Result := True;
 end;
 
 function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64;
   Prime: Int64): Boolean;
+var
+  I: Integer;
 begin
-  Int64PolynomialMulWord(P, N);
-  Int64PolynomialNonNegativeModWord(P, Prime);
+  if N = 0 then
+  begin
+    Int64PolynomialSetZero(P);
+  end
+  else
+  begin
+    for I := 0 to P.MaxDegree do
+      P[I] := Int64NonNegativeMulMod(P[I], N, Prime);
+  end;
   Result := True;
 end;
 
@@ -1498,7 +1500,7 @@ begin
   K := CnInt64ModularInverse2(N, Prime);
   for I := 0 to P.MaxDegree do
   begin
-    P[I] := NonNegativeMod(P[I] * K, Prime);
+    P[I] := Int64NonNegativeMod(P[I] * K, Prime);
     if B then
       P[I] := Prime - LongWord(P[I]);
   end;
@@ -1673,7 +1675,7 @@ begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
     Res.SetOne;
-    Res[0] := NonNegativeMod(F[0], Prime);
+    Res[0] := Int64NonNegativeMod(F[0], Prime);
     Result := True;
     Exit;
   end;
@@ -1721,7 +1723,7 @@ var
   I: Integer;
   T: Int64;
 begin
-  Result := NonNegativeMod(F[0], Prime);
+  Result := Int64NonNegativeMod(F[0], Prime);
   if (X = 0) or (F.MaxDegree = 0) then    // 只有常数项的情况下，得常数项
     Exit;
 
@@ -1730,11 +1732,11 @@ begin
   // 把 F 中的每个系数都和 X 的对应次幂相乘，最后相加
   for I := 1 to F.MaxDegree do
   begin
-    Result := NonNegativeMod(Result + NonNegativeMod(F[I] * T, Prime), Prime);
+    Result := Int64NonNegativeMod(Result + Int64NonNegativeMod(F[I] * T, Prime), Prime);
     if I <> F.MaxDegree then
-      T := NonNegativeMod(T * X, Prime);
+      T := Int64NonNegativeMod(T * X, Prime);
   end;
-  Result := NonNegativeMod(Result, Prime);
+  Result := Int64NonNegativeMod(Result, Prime);
 end;
 
 {
@@ -2503,7 +2505,7 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   N := Int64PolynomialGaloisGetValue(F.Nominator, X, Prime);
-  Result := NonNegativeMod(N * CnInt64ModularInverse2(D, Prime), Prime);
+  Result := Int64NonNegativeMod(N * CnInt64ModularInverse2(D, Prime), Prime);
 end;
 
 initialization

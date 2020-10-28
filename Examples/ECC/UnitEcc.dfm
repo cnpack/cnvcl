@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
   Left = 346
-  Top = 145
+  Top = 146
   Width = 860
   Height = 598
   Caption = 'ECC Test'

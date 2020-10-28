@@ -3674,7 +3674,7 @@ begin
     if not BigNumberMod(BB, BB, C) then
       Exit;
 
-    Res.SetZero; // 如果 Res 是 A 或 B，后面参与运算的是 AA 或 BB，改变 A 或 B不影响
+    Res.SetZero; // 如果 Res 是 A 或 B，后面参与运算的是 AA 或 BB，改变 A 或 B 不影响
 
     while not BB.IsZero do
     begin

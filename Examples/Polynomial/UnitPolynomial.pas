@@ -86,6 +86,9 @@ type
     btnTestGaloisDivTime: TButton;
     btnTestGaloisCalc: TButton;
     btnTestGaloisEqual: TButton;
+    btnTestHugeDiv: TButton;
+    btnTestHugeDiv2: TButton;
+    btnTestHugeDiv3: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -132,6 +135,9 @@ type
     procedure btnTestGaloisDivTimeClick(Sender: TObject);
     procedure btnTestGaloisCalcClick(Sender: TObject);
     procedure btnTestGaloisEqualClick(Sender: TObject);
+    procedure btnTestHugeDivClick(Sender: TObject);
+    procedure btnTestHugeDiv2Click(Sender: TObject);
+    procedure btnTestHugeDiv3Click(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -1540,6 +1546,67 @@ begin
 
   TI2.Free;
   TI1.Free;
+
+  B.Free;
+  A.Free;
+end;
+
+procedure TFormPolynomial.btnTestHugeDivClick(Sender: TObject);
+var
+  A, B: TCnInt64Polynomial;
+begin
+  // '1426381536X^2+998173947X+1548285621' ^ 2 div X^3+7X+1
+  A := TCnInt64Polynomial.Create([1548285621, 998173947, 1426381536]);
+  B := TCnInt64Polynomial.Create([1, 0, 7, 1]);
+
+  Int64PolynomialGaloisMul(A, A, A, 3037000493, B);
+  ShowMessage(A.ToString);
+
+  B.Free;
+  A.Free;
+end;
+
+procedure TFormPolynomial.btnTestHugeDiv2Click(Sender: TObject);
+var
+  A, B: TCnInt64Polynomial;
+begin
+  // '25X^3+3855419515X+4165899502' mod '3352796231X^2+4242209446X+55674432'
+  A := TCnInt64Polynomial.Create;
+  A.MaxDegree := 3;
+  A[0] := 4165899502;
+  A[1] := 3855419515;
+  A[2] := 0;
+  A[3] := 25;
+  B := TCnInt64Polynomial.Create;
+  B.MaxDegree := 2;
+  B[0] := 55674432;
+  B[1] := 4242209446;
+  B[2] := 3352796231;
+
+  Int64PolynomialGaloisMod(B, A, B, 4294967291);
+  ShowMessage(B.ToString);
+
+  B.Free;
+  A.Free;
+end;
+
+procedure TFormPolynomial.btnTestHugeDiv3Click(Sender: TObject);
+var
+  A, B: TCnInt64Polynomial;
+begin
+  // 3632376218X^2+3632376218X+1810096466' mod '488892432X+2787301319'
+  A := TCnInt64Polynomial.Create;
+  A.MaxDegree := 2;
+  A[0] := 1810096466;
+  A[1] := 3632376218;
+  A[2] := 3632376218;
+  B := TCnInt64Polynomial.Create;
+  B.MaxDegree := 1;
+  B[0] := 2787301319;
+  B[1] := 488892432;
+
+  Int64PolynomialGaloisMod(B, A, B, 4294967291);
+  ShowMessage(B.ToString);
 
   B.Free;
   A.Free;

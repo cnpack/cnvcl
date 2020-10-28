@@ -372,7 +372,7 @@ function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
 function CnInt64EccSchoof(A, B, Q: Int64): Int64;
-{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数
+{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，Q 最大支持 UInt32
    Schoof 算法有两个版本，思想一样，但运算过程不同，
    一个是利用点的多项分式在素数域以及基于可除多项式环上进行完整循环运算，比较慢
    一个是判断时多用各种分子的最大公因式以减少数据量}
@@ -3690,7 +3690,7 @@ var
   // 返回第 Degree 个可除表达式的引用，并同时存入 PolynomialList 的对应位置，注意返回值不要改动
   function GetInt64GaloisDivisionPolynomial(Degree: Integer): TCnInt64Polynomial;
   var
-    MI: Int64;
+    MI, T1, T2: Int64;
     F1, F2, F3, F4, F5: TCnInt64Polynomial;  // 从递归 GetInt64GaloisDivisionPolynomial 拿到的引用，不允许改动
     D1, D2, D3, Y4: TCnInt64Polynomial;      // 计算中间结果，要创建要释放
   begin
@@ -3721,17 +3721,29 @@ var
     else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
     begin
       Result := TCnInt64Polynomial.Create;
-      Result.SetCoefficents([- A * A,
-        12 * B, 6 * A, 0, 3]);
-      Int64PolynomialNonNegativeModWord(Result, Prime);
+      Result.MaxDegree := 4;
+      Result[4] := 3;
+      Result[3] := 0;
+      Result[2] := Int64NonNegativeMulMod(6, A, Prime);
+      Result[1] := Int64NonNegativeMulMod(12, B, Prime);
+      Result[0] := Int64NonNegativeMulMod(-A, A, Prime);
+
       PolynomialList[3] := Result;
     end
     else if Degree = 4 then // f4(X) = 4 X6 + 20 a X4 + 80 b X3 - 20 a2X2 - 16 a b X - 4 a3 - 32 b^2
     begin
       Result := TCnInt64Polynomial.Create;
-      Result.SetCoefficents([-4 * A * A * A - 32 * B * B,
-        -16 * A * B, -20 * A * A, 80 * B, 20 * A, 0, 4]);
-      Int64PolynomialNonNegativeModWord(Result, Prime);
+      Result.MaxDegree := 6;
+      Result[6] := 4;
+      Result[5] := 0;
+      Result[4] := Int64NonNegativeMulMod(20, A, Prime);
+      Result[3] := Int64NonNegativeMulMod(80, B, Prime);
+      Result[2] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-20, A, Prime), A, Prime);
+      Result[1] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-16, A, Prime), B, Prime);
+      T1 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(Int64NonNegativeMulMod(-4, A, Prime), A, Prime), A, Prime);
+      T2 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-32, B, Prime), B, Prime);
+      Result[0] := Int64NonNegativeMod(T1 + T2, Prime); // TODO: 暂未处理相加溢出的取模
+
       PolynomialList[4] := Result;
     end
     else
