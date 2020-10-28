@@ -372,7 +372,8 @@ function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
 function CnInt64EccSchoof(A, B, Q: Int64): Int64;
-{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，Q 最大支持 UInt32
+{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，
+   Q 最大支持 Sqrt(2 * Max UInt64)，略大于 Max UInt32
    Schoof 算法有两个版本，思想一样，但运算过程不同，
    一个是利用点的多项分式在素数域以及基于可除多项式环上进行完整循环运算，比较慢
    一个是判断时多用各种分子的最大公因式以减少数据量}
@@ -3856,6 +3857,7 @@ var
   Pa, Ta: TCnInt64List;
   QMul, QMax, L, K, W: Int64;
   I, J: Integer;
+  Q2Lo, Q2Hi: TUInt64;
   F, G, Y2, P1, P2, LDP: TCnInt64Polynomial;
   Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnInt64RationalPolynomial;
   F1, F2, F3, F4, F5: TCnInt64Polynomial; // 可除多项式引用，不可改变
@@ -3947,8 +3949,19 @@ begin
       Int64PolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
 
       // 算得 π^2 的 Y 坐标在 LDP 环内的表达分式，Q*Q 个 y 相乘等于 y * [(Q*Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
-      Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, (Q * Q) shr 1, Q, LDP);
-      // TODO: 容易溢出，暂无好办法
+      UInt64MulUInt64(Q, Q, Q2Lo, Q2Hi);
+      if Q2Hi = 0 then
+        Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, (Q * Q) shr 1, Q, LDP)
+      else if Q2Hi = 1 then
+      begin
+        // 处理 (Q * Q) > UInt64 但 (Q * Q) shr 1 < UInt64 的情形
+        Q2Lo := Q2Lo shr 1;
+        Q2Lo := Q2Lo or $F000000000000000;
+        Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, Q2Lo, Q, LDP);
+      end
+      else
+        raise ECnEccException.Create('Prime Number is Too Large!');
+      // TODO: 再大就容易溢出了，暂无好办法
 
       KPX.SetOne;                             // 原始点
       KPX.Nominator.SetCoefficents([0, 1]);   // x

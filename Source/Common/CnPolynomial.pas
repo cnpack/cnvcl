@@ -1431,8 +1431,6 @@ begin
     Result := True;
     Exit;
   end;
-  // else if Exponent < 0 then
-  //  raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
   T := Int64PolynomialDuplicate(P);
   try
