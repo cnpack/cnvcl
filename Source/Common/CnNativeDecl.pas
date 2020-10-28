@@ -101,6 +101,8 @@ type
 {$ENDIF}
 
 const
+  MAX_SQRT_INT64: Cardinal               = 3037000499;
+  MAX_UINT32: Cardinal                   = $FFFFFFFF;
   MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
   MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
 
@@ -224,6 +226,12 @@ function PointerToInteger(P: Pointer): Integer;
 
 function IntegerToPointer(I: Integer): Pointer;
 {* 整型转换成指针类型，支持 32/64 位}
+
+function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
+{* Int64 范围内的相乘求余，不能直接计算，容易溢出。要求 N 大于 0}
+
+function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
+{* UInt64 范围内的相乘求余，不能直接计算，容易溢出。未完整测试}
 
 implementation
 
@@ -714,6 +722,85 @@ begin
 {$ELSE}
   Result := Pointer(I);
 {$ENDIF}
+end;
+
+function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
+var
+  Neg: Boolean;
+begin
+  if N <= 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  // 范围小就直接算
+  if (A < MAX_SQRT_INT64) and (A > -MAX_SQRT_INT64)
+    and (B < MAX_SQRT_INT64) and (B > -MAX_SQRT_INT64) then
+  begin
+    Result := A * B mod N;
+    if Result < 0 then
+      Result := Result + N;
+    Exit;
+  end;
+
+  // 调整符号到正
+  Result := 0;
+  if (A = 0) or (B = 0) then
+    Exit;
+
+  Neg := False;
+  if (A < 0) and (B > 0) then
+  begin
+    A := -A;
+    Neg := True;
+  end
+  else if (A > 0) and (B < 0) then
+  begin
+    B := -B;
+    Neg := True;
+  end
+  else if (A < 0) and (B < 0) then
+  begin
+    A := -A;
+    B := -B;
+  end;
+
+  // 移位循环算
+  while B <> 0 do
+  begin
+    if (B and 1) <> 0 then
+      Result := ((Result mod N) + (A mod N)) mod N;
+
+    A := A shl 1;
+    if A >= N then
+      A := A mod N;
+
+    B := B shr 1;
+  end;
+
+  if Neg then
+    Result := N - Result;
+end;
+
+function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
+begin
+  Result := 0;
+  if (A <= MAX_UINT32) and (B <= MAX_UINT32) then
+  begin
+    Result := UInt64Mod(A * B, N); // 足够小的话直接乘后求模
+  end
+  else
+  begin
+    while B <> 0 do
+    begin
+      if (B and 1) <> 0 then
+        Result := UInt64Mod(UInt64Mod(Result, N) + UInt64Mod(A, N), N);
+
+      A := A shl 1;
+      if UInt64Compare(A, N) >= 0 then
+        A := UInt64Mod(A, N);
+
+      B := B shr 1;
+    end;
+  end;
 end;
 
 { TCnIntegerList }

@@ -1,12 +1,12 @@
 object FormNative: TFormNative
   Left = 236
-  Top = 152
+  Top = 153
   BorderStyle = bsDialog
   Caption = 
     'Test some Native Declarations and Methods - Run on D567 and can ' +
     'be verified in BDS.'
-  ClientHeight = 399
-  ClientWidth = 614
+  ClientHeight = 477
+  ClientWidth = 741
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -46,8 +46,8 @@ object FormNative: TFormNative
   object mmoRes: TMemo
     Left = 16
     Top = 64
-    Width = 577
-    Height = 316
+    Width = 704
+    Height = 394
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -76,12 +76,21 @@ object FormNative: TFormNative
     OnClick = btnMul32Click
   end
   object btnHighLowBits: TButton
-    Left = 496
+    Left = 440
     Top = 16
     Width = 97
     Height = 25
     Caption = 'Test High Low Bits'
     TabOrder = 5
     OnClick = btnHighLowBitsClick
+  end
+  object btnInt64MulMod: TButton
+    Left = 552
+    Top = 16
+    Width = 97
+    Height = 25
+    Caption = 'Int64 MulMod'
+    TabOrder = 6
+    OnClick = btnInt64MulModClick
   end
 end
