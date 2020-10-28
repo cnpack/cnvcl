@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.09.06 V1.5
+* 修改记录：2020.10.28 V1.6
+*               加入 UInt64 溢出相关的判断与运算函数
+*           2020.09.06 V1.5
 *               加入求 UInt64 整数平方根的函数
 *           2020.07.01 V1.5
 *               加入判断 32 位与 64 位有无符号数相加是否溢出的函数
@@ -172,6 +174,15 @@ function UInt64Div(A, B: TUInt64): TUInt64;
 function UInt64Mul(A, B: Cardinal): TUInt64;
 {* 无符号 32 位整数不溢出的相乘，在不支持 UInt64 的平台上，结果以 UInt64 的形式放在 Int64 里，
   如果结果直接使用 Int64 计算则有可能溢出}
+
+procedure UInt64AddUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
+{* 两个无符号 64 位整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中}
+
+procedure UInt64MulUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
+{* 两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中}
+
+function UInt64ToHex(N: TUInt64): string;
+{* 将 UInt64 转换为十六进制字符串}
 
 function UInt64ToStr(N: TUInt64): string;
 {* 将 UInt64 转换为字符串}
@@ -324,6 +335,76 @@ end;
 
 {$ENDIF}
 
+// 两个无符号 64 位整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中
+procedure UInt64AddUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
+var
+  X, Y, Z, T, R0L, R0H, R1L, R1H: Cardinal;
+  R0, R1, R01, R12: TUInt64;
+begin
+  // 基本思想：2^32 是系数 M，拆成 (xM+y) + (zM+t) = (x+z) M + (y+t)
+  // y+t 是 R0 占 0、1，x+z 是 R1 占 1、2，把 R0, R1 再拆开相加成 R01, R12
+  if IsUInt64AddOverflow(A, B) then
+  begin
+    X := Int64Rec(A).Hi;
+    Y := Int64Rec(A).Lo;
+    Z := Int64Rec(B).Hi;
+    T := Int64Rec(B).Lo;
+
+    R0 := TUInt64(Y) + TUInt64(T);
+    R1 := TUInt64(X) + TUInt64(Z);
+
+    R0L := Int64Rec(R0).Lo;
+    R0H := Int64Rec(R0).Hi;
+    R1L := Int64Rec(R1).Lo;
+    R1H := Int64Rec(R1).Hi;
+
+    R01 := TUInt64(R0H) + TUInt64(R1L);
+    R12 := TUInt64(R1H) + TUInt64(Int64Rec(R01).Hi);
+
+    Int64Rec(ResLo).Lo := R0L;
+    Int64Rec(ResLo).Hi := Int64Rec(R01).Lo;
+    Int64Rec(ResHi).Lo := Int64Rec(R12).Lo;
+    Int64Rec(ResHi).Hi := Int64Rec(R12).Hi;
+  end
+  else
+  begin
+    ResLo := A + B;
+    ResHi := 0;
+  end;
+end;
+
+// 两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中
+procedure UInt64MulUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
+var
+  X, Y, Z, T: Cardinal;
+  YT, XT, ZY, ZX: TUInt64;
+  P, R1Lo, R1Hi, R2Lo, R2Hi: TUInt64;
+begin
+  // 基本思想：2^32 是系数 M，拆成 (xM+y)*(zM+t) = xzM^2 + (xt+yz)M + yt
+  // 各项系数都是 UInt64，xz 占 2、3、4，xt+yz 占 1、2、3，yt 占0、1，然后累加
+  X := Int64Rec(A).Hi;
+  Y := Int64Rec(A).Lo;
+  Z := Int64Rec(B).Hi;
+  T := Int64Rec(B).Lo;
+
+  YT := UInt64Mul(Y, T);
+  XT := UInt64Mul(X, T);
+  ZY := UInt64Mul(Y, Z);
+  ZX := UInt64Mul(X, Z);
+
+  Int64Rec(ResLo).Lo := Int64Rec(YT).Lo;
+
+  P := Int64Rec(YT).Hi;
+  UInt64AddUInt64(P, XT, R1Lo, R1Hi);
+  UInt64AddUInt64(ZY, R1Lo, R2Lo, R2Hi);
+
+  Int64Rec(ResLo).Hi := Int64Rec(R2Lo).Lo;
+
+  P := TUInt64(Int64Rec(R2Lo).Hi) + TUInt64(Int64Rec(ZX).Lo);
+
+  Int64Rec(ResHi).Lo := Int64Rec(P).Lo;
+  Int64Rec(ResHi).Hi := Int64Rec(R1Hi).Lo + Int64Rec(R2Hi).Lo + Int64Rec(ZX).Hi + Int64Rec(P).Hi;
+end;
 
 function _ValUInt64(const S: string; var Code: Integer): TUInt64;
 const
@@ -403,6 +484,28 @@ begin
     Code := I + 1 - FirstIndex
   else
     Code := 0;
+end;
+
+function UInt64ToHex(N: TUInt64): string;
+const
+  Digits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+
+  function HC(B: Byte): string;
+  begin
+    Result := string(Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+
+begin
+  Result :=
+      HC(Byte((N and $FF00000000000000) shr 56))
+    + HC(Byte((N and $00FF000000000000) shr 48))
+    + HC(Byte((N and $0000FF0000000000) shr 40))
+    + HC(Byte((N and $000000FF00000000) shr 32))
+    + HC(Byte((N and $00000000FF000000) shr 24))
+    + HC(Byte((N and $0000000000FF0000) shr 16))
+    + HC(Byte((N and $000000000000FF00) shr 8))
+    + HC(Byte((N and $00000000000000FF)));
 end;
 
 function UInt64ToStr(N: TUInt64): string;

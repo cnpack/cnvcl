@@ -1779,7 +1779,7 @@ function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
   outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
 var
   N: Integer;
-  MI: Int64;
+  MI, T1, T2: Int64;
   D1, D2, D3, Y4: TCnInt64Polynomial;
 begin
   if Degree < 0 then
@@ -1801,16 +1801,28 @@ begin
   end
   else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
   begin
-    outDivisionPolynomial.SetCoefficents([- A * A,
-      12 * B, 6 * A, 0, 3]);
-    Int64PolynomialNonNegativeModWord(outDivisionPolynomial, Prime);
+    outDivisionPolynomial.MaxDegree := 4;
+    outDivisionPolynomial[4] := 3;
+    outDivisionPolynomial[3] := 0;
+    outDivisionPolynomial[2] := Int64NonNegativeMulMod(6, A, Prime);
+    outDivisionPolynomial[1] := Int64NonNegativeMulMod(12, B, Prime);
+    outDivisionPolynomial[0] := Int64NonNegativeMulMod(-A, A, Prime);
+
     Result := True;
   end
   else if Degree = 4 then // f4(X) = 4 X6 + 20 a X4 + 80 b X3 - 20 a2X2 - 16 a b X - 4 a3 - 32 b^2
   begin
-    outDivisionPolynomial.SetCoefficents([-4 * A * A * A - 32 * B * B,
-      -16 * A * B, -20 * A * A, 80 * B, 20 * A, 0, 4]);
-    Int64PolynomialNonNegativeModWord(outDivisionPolynomial, Prime);
+    outDivisionPolynomial.MaxDegree := 6;
+    outDivisionPolynomial[6] := 4;
+    outDivisionPolynomial[5] := 0;
+    outDivisionPolynomial[4] := Int64NonNegativeMulMod(20, A, Prime);
+    outDivisionPolynomial[3] := Int64NonNegativeMulMod(80, B, Prime);
+    outDivisionPolynomial[2] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-20, A, Prime), A, Prime);
+    outDivisionPolynomial[1] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-16, A, Prime), B, Prime);
+    T1 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(Int64NonNegativeMulMod(-4, A, Prime), A, Prime), A, Prime);
+    T2 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-32, B, Prime), B, Prime);
+    outDivisionPolynomial[0] := Int64NonNegativeMod(T1 + T2, Prime); // TODO: 暂未处理相加溢出的取模
+
     Result := True;
   end
   else

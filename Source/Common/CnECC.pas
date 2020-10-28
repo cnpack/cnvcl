@@ -3943,10 +3943,12 @@ begin
       Pi2PY.Setone;                           // 1 * y
 
       // 算得 π^2 的 X 坐标在 LDP 环内的表达分式，也就是 Q*Q 个 x 相乘再 mod LDP
-      Int64PolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q * Q, Q, LDP);
+      Int64PolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);
+      Int64PolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
 
       // 算得 π^2 的 Y 坐标在 LDP 环内的表达分式，Q*Q 个 y 相乘等于 y * [(Q*Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
       Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, (Q * Q) shr 1, Q, LDP);
+      // TODO: 容易溢出，暂无好办法
 
       KPX.SetOne;                             // 原始点
       KPX.Nominator.SetCoefficents([0, 1]);   // x
