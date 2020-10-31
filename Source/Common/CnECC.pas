@@ -3952,16 +3952,16 @@ begin
       UInt64MulUInt64(Q, Q, Q2Lo, Q2Hi);
       if Q2Hi = 0 then
         Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, (Q * Q) shr 1, Q, LDP)
-      else if Q2Hi = 1 then
-      begin
-        // 处理 (Q * Q) > UInt64 但 (Q * Q) shr 1 < UInt64 的情形
-        Q2Lo := Q2Lo shr 1;
-        Q2Lo := Q2Lo or $F000000000000000;
-        Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, Q2Lo, Q, LDP);
-      end
       else
-        raise ECnEccException.Create('Prime Number is Too Large!');
-      // TODO: 再大就容易溢出了，暂无好办法
+      begin
+        // 处理 (Q * Q) > UInt64 的情形
+        Q2Lo := Q2Lo shr 1;
+        if (Q2Hi and 1) <> 0 then
+          Q2Lo := Q2Lo or $F000000000000000;
+        Q2Hi := Q2Hi shr 1;
+
+        Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, Q2Lo, Q, LDP, Q2Hi);
+      end;
 
       KPX.SetOne;                             // 原始点
       KPX.Nominator.SetCoefficents([0, 1]);   // x
