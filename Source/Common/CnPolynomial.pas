@@ -292,8 +292,10 @@ function Int64PolynomialGaloisMod(const Res: TCnInt64Polynomial; const P: TCnInt
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
-  Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，Exponent 如果是负值，自动转成 UInt64
+  Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial = nil;
+  ExponentHi: Int64 = 0): Boolean;
+{* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，Exponent 可以是 128 位，
+   Exponent 两个部分如果是负值，自动转成 UInt64
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
@@ -1414,17 +1416,37 @@ begin
 end;
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
-  Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
+  Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial;
+  ExponentHi: Int64): Boolean;
 var
   T: TCnInt64Polynomial;
+
+  function ExponentIsZero: Boolean;
+  begin
+    Result := (Exponent = 0) and (ExponentHi = 0);
+  end;
+
+  function ExponentIsOne: Boolean;
+  begin
+    Result := (Exponent = 1) and (ExponentHi = 0);
+  end;
+
+  procedure ExponentShiftRightOne;
+  begin
+    Exponent := Exponent shr 1;
+    if (ExponentHi and 1) <> 0 then
+      Exponent := Exponent or $F000000000000000;
+    ExponentHi := ExponentHi shr 1;
+  end;
+
 begin
-  if Exponent = 0 then
+  if ExponentIsZero then
   begin
     Res.SetCoefficents([1]);
     Result := True;
     Exit;
   end
-  else if Exponent = 1 then
+  else if ExponentIsOne then
   begin
     if Res <> P then
       Int64PolynomialCopy(Res, P);
@@ -1436,12 +1458,12 @@ begin
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetCoefficents([1]);
-    while Exponent <> 0 do
+    while not ExponentIsZero do
     begin
       if (Exponent and 1) <> 0 then
         Int64PolynomialGaloisMul(Res, Res, T, Prime, Primitive);
 
-      Exponent := Exponent shr 1;
+      ExponentShiftRightOne;
       Int64PolynomialGaloisMul(T, T, T, Prime, Primitive);
     end;
     Result := True;
