@@ -72,6 +72,7 @@ type
     lblIntPower: TLabel;
     btnGetTenCount: TButton;
     btnCheckPrime2: TButton;
+    btnBNCRT: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -119,6 +120,7 @@ type
     procedure btnIntPowerClick(Sender: TObject);
     procedure btnGetTenCountClick(Sender: TObject);
     procedure btnCheckPrime2Click(Sender: TObject);
+    procedure btnBNCRTClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -826,7 +828,7 @@ begin
   S[48] := '8';
   R.SetDec(S);
   T1 := GetTickCount;
-  B := BigNumberIsProbablyPrime(R, 2);
+  B := BigNumberIsProbablyPrime(R);    // 2 次得400多秒，默认50次得万把秒，三四个小时
   T1 := GetTickCount - T1;
 
   if B then
@@ -835,6 +837,32 @@ begin
     ShowMessage('NOT Prime');
 
   ShowMessage(IntToStr(T1));
+  R.Free;
+end;
+
+procedure TFormBigNumber.btnBNCRTClick(Sender: TObject);
+var
+  R, F: TCnBigNumberList;
+  M: TCnBigNumber;
+begin
+  // 有物不知其数，三三数之剩二，五五数之剩三，七七数之剩二。问物几何？
+  R := TCnBigNumberList.Create;
+  F := TCnBigNumberList.Create;
+
+  F.Add.SetDec('3');
+  F.Add.SetDec('5');
+  F.Add.SetDec('7');
+
+  R.Add.SetDec('2');
+  R.Add.SetDec('3');
+  R.Add.SetDec('2');
+
+  M := TCnBigNumber.Create;
+  if BigNumberChineseRemainderTheorem(M, R, F) then
+    ShowMessage(M.ToDec); // 23
+
+  M.Free;
+  F.Free;
   R.Free;
 end;
 

@@ -569,6 +569,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 52
         OnClick = btnCheckPrime2Click
       end
+      object btnBNCRT: TButton
+        Left = 904
+        Top = 440
+        Width = 129
+        Height = 25
+        Caption = 'Chinese Remainder '
+        TabOrder = 53
+        OnClick = btnBNCRTClick
+      end
     end
   end
 end

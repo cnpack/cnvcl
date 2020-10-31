@@ -2117,7 +2117,7 @@ var
   G, N, Sum: Int64;
 begin
   Result := 0;
-  if Remainers.Count <> Factors.Count then
+  if (Remainers.Count <> Factors.Count) or (Remainers.Count = 0) then
     Exit;
 
   Sum := 0;

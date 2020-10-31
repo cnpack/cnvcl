@@ -267,8 +267,10 @@ type
   public
     constructor Create(AOwnsObjects: Boolean); overload;
 
-    function Add(ABigNumber: TCnBigNumber): Integer;
-    {* 添加大数对象，注意添加后无需手动释放}
+    function Add: TCnBigNumber; overload;
+    {* 新增一个大数对象，返回该对象，注意添加后无需也不能手动释放}
+    function Add(ABigNumber: TCnBigNumber): Integer; overload;
+    {* 添加外部的大数对象，注意添加后无需也不能手动释放}
     function Remove(ABigNumber: TCnBigNumber): Integer;
     function IndexOfValue(ABigNumber: TCnBigNumber): Integer;
     procedure Insert(Index: Integer; ABigNumber: TCnBigNumber);
@@ -617,6 +619,10 @@ function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber)
 {* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数
    Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N}
+
+function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
+  Remainers, Factors: TCnBigNumberList): Boolean;
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -2835,8 +2841,8 @@ begin
   finally
     if BnData <> nil then
       FreeMemory(BnData);
-    if T <> nil then
-      FLocalBigNumberPool.Recycle(T);
+
+    FLocalBigNumberPool.Recycle(T);
   end;
 
   Len := SysUtils.StrLen(PAnsiChar(Result));
@@ -4833,6 +4839,67 @@ begin
   end;
 end;
 
+// 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
+function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
+  Remainers, Factors: TCnBigNumberList): Boolean;
+var
+  I, J: Integer;
+  G, N, Sum: TCnBigNumber;
+begin
+  Result := False;
+  if (Remainers.Count <> Factors.Count) or (Remainers.Count = 0) then
+    Exit;
+
+  Sum := nil;
+  G := nil;
+  N := nil;
+
+  try
+    Sum := FLocalBigNumberPool.Obtain;
+    G := FLocalBigNumberPool.Obtain;
+    N := FLocalBigNumberPool.Obtain;
+
+    BigNumberSetZero(Sum);
+    for I := 0 to Remainers.Count - 1 do
+    begin
+      // 对于每一个余数和对应除数，找出其他除数的公倍数中除以该除数余 1 的数（涉及到模逆元），
+      // 如 5 7 的公倍数 35n，对 3 余 1 的是 70。3 7 对 5 余 1 的是 21，3 5 对 7 余 1 的是 14
+      // 然后该余数和该模逆元相乘
+      // 所有的乘积加起来，mod 一下全体除数们的最小公倍数，就得到结果了
+
+      G.SetOne;
+      for J := 0 to Factors.Count - 1 do
+        if J <> I then
+          if not BigNumberMul(G, G, Factors[J]) then
+            Exit;
+
+      // G 此刻是最小公倍数，因为 Factors 互素
+      // 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1
+      BigNumberModularInverse(N, G, Factors[I]);
+
+      if not BigNumberMul(G, N, G) then // 得到乘数
+        Exit;
+
+      if not BigNumberMul(G, Remainers[I], G) then // 乘数与余数相乘
+        Exit;
+
+      if not BigNumberAdd(Sum, Sum, G) then // 求和
+        Exit;
+    end;
+
+    G.SetOne;
+    for J := 0 to Factors.Count - 1 do
+      if not BigNumberMul(G, G, Factors[J]) then
+        Exit;
+
+    Result := BigNumberMod(Res, Sum, G);
+  finally
+    FLocalBigNumberPool.Recycle(N);
+    FLocalBigNumberPool.Recycle(G);
+    FLocalBigNumberPool.Recycle(Sum);
+  end;
+end;
+
 // 打印大数内部信息
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 var
@@ -5142,6 +5209,12 @@ end;
 function TCnBigNumberList.Add(ABigNumber: TCnBigNumber): Integer;
 begin
   Result := inherited Add(ABigNumber);
+end;
+
+function TCnBigNumberList.Add: TCnBigNumber;
+begin
+  Result := TCnBigNumber.Create;
+  Add(Result);
 end;
 
 constructor TCnBigNumberList.Create(AOwnsObjects: Boolean);
