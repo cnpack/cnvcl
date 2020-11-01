@@ -71,6 +71,7 @@ const
   BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
   BN_BITS4              = 16;
   BN_TBIT               = $80000000;
+  BN_MASK2S             = $7FFFFFFF;
   BN_MASK2              = $FFFFFFFF;
   BN_MASK2l             = $FFFF;
   BN_MASK2h             = $FFFF0000;
@@ -149,6 +150,12 @@ type
 
     function SetWord(W: LongWord): Boolean;
     {* 给大数赋 DWORD 型首值}
+
+    function GetInteger: Integer;
+    {* 取 Integer 型首值}
+
+    function SetInteger(W: Integer): Boolean;
+    {* 给大数赋 Integer 型首值}
 
     function GetInt64: Int64;
     {* 取 Int64 型首值}
@@ -265,7 +272,7 @@ type
     function GetItem(Index: Integer): TCnBigNumber;
     procedure SetItem(Index: Integer; ABigNumber: TCnBigNumber);
   public
-    constructor Create(AOwnsObjects: Boolean); overload;
+    constructor Create; reintroduce;
 
     function Add: TCnBigNumber; overload;
     {* 新增一个大数对象，返回该对象，注意添加后无需也不能手动释放}
@@ -339,10 +346,16 @@ function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效十进制位数}
 
 function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
-{* 取一个大数对象的首值}
+{* 取一个大数对象的首值，也就是低 32 位无符号值}
 
 function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
-{* 给一个大数对象赋首值}
+{* 给一个大数对象赋首值，也就是低 32 位无符号值}
+
+function BigNumberGetInteger(const Num: TCnBigNumber): Integer;
+{* 取一个大数对象的首值，也就是低 32 位有符号数}
+
+function BigNumberSetInteger(const Num: TCnBigNumber; W: Integer): Boolean;
+{* 给一个大数对象赋首值，也就是低 32 位有符号数}
 
 function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
 {* 取一个大数对象的首值 Int64}
@@ -949,6 +962,16 @@ begin
   Num.Neg := 0;
 end;
 
+function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
+begin
+  if Num.Top > 1 then
+    Result := BN_MASK2
+  else if Num.Top = 1 then
+    Result := PLongWordArray(Num.D)^[0]
+  else
+    Result := 0;
+end;
+
 function BigNumberSetWord(const Num: TCnBigNumber; W: LongWord): Boolean;
 begin
   Result := False;
@@ -963,14 +986,32 @@ begin
   Result := True;
 end;
 
-function BigNumberGetWord(const Num: TCnBigNumber): LongWord;
+function BigNumberGetInteger(const Num: TCnBigNumber): Integer;
 begin
   if Num.Top > 1 then
-    Result := BN_MASK2
+    Result := BN_MASK2S
   else if Num.Top = 1 then
-    Result := PLongWordArray(Num.D)^[0]
+  begin
+    Result := Integer(PLongWordArray(Num.D)^[0]);
+    if Result < 0 then        // UInt32 最高位有值，说明已经超出了 Integer 的范围，返回 Max Integer
+      Result := BN_MASK2S
+    else if Num.Neg <> 0 then // 负则求反加一
+      Result := (not Result) + 1;
+  end
   else
     Result := 0;
+end;
+
+function BigNumberSetInteger(const Num: TCnBigNumber; W: Integer): Boolean;
+begin
+  if W < 0 then
+  begin
+    BigNumberSetWord(Num, -W);
+    Num.Negate;
+  end
+  else
+    BigNumberSetWord(Num ,W);
+  Result := True;
 end;
 
 function BigNumberGetInt64(const Num: TCnBigNumber): Int64;
@@ -980,7 +1021,7 @@ begin
   else if Num.Top = 2 then
   begin
     Result := PInt64Array(Num.D)^[0];
-    if Result < 0 then      // Int64 high bit set
+    if Result < 0 then        // UInt64 最高位有值，说明已经超出了 Int64 的范围，返回 Max Int64
       Result := BN_MASK3S
     else if Num.Neg <> 0 then // 负则求反加一
       Result := (not Result) + 1;
@@ -5204,6 +5245,16 @@ begin
   BigNumberShiftRightOne(Self, Self);
 end;
 
+function TCnBigNumber.GetInteger: Integer;
+begin
+  Result := BigNumberGetInteger(Self);
+end;
+
+function TCnBigNumber.SetInteger(W: Integer): Boolean;
+begin
+  Result := BigNumberSetInteger(Self, W);
+end;
+
 { TCnBigNumberList }
 
 function TCnBigNumberList.Add(ABigNumber: TCnBigNumber): Integer;
@@ -5217,10 +5268,8 @@ begin
   Add(Result);
 end;
 
-constructor TCnBigNumberList.Create(AOwnsObjects: Boolean);
+constructor TCnBigNumberList.Create;
 begin
-  if not AOwnsObjects then
-    raise Exception.Create('MUST Owns Objects.');
   inherited Create(True);
 end;
 
