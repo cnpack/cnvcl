@@ -1894,7 +1894,7 @@ var
   I, J: Integer;
   Ecc: TCnInt64Ecc;
   Gi, Q, Qi, Sum: TCnInt64EccPoint;
-  Factors, Remains: array of Int64;
+  Factors, Remains: array of TUInt64;
 begin
 {
   用例：E/F1021 上的椭圆曲线: y^2 = x^3 + 905x + 100，阶也就是点总数为 966
