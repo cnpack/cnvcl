@@ -459,6 +459,9 @@ function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolea
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
+function BigNumberEqual(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Boolean;
+{* 比较两个大数对象是否相等，相等返回 True，不等返回 False}
+
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1}
 
@@ -545,11 +548,11 @@ function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
 
 function BigNumberGcd(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
-{* 求俩大数 Num1 与 Num2 的最大公约数}
+{* 求俩大数 Num1 与 Num2 的最大公约数，Res 可以是 Num1 或 Num2}
 
 function BigNumberLcm(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
-{* 求俩大数 Num1 与 Num2 的最小公倍数}
+{* 求俩大数 Num1 与 Num2 的最小公倍数，Res 可以是 Num1 或 Num2}
 
 function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
@@ -1400,6 +1403,11 @@ begin
     end;
   end;
   Result := 0;
+end;
+
+function BigNumberEqual(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Boolean;
+begin
+  Result := BigNumberCompare(Num1, Num2) = 0;
 end;
 
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
