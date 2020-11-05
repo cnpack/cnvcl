@@ -298,9 +298,7 @@ function CnBigRationalNumberCompare(Number1: TCnBigRational; Number2: Int64): In
 var
   Res: TCnBigNumber;
 begin
-  if Number1 = Number2 then
-    Result := 0
-  else if not Number1.IsNegative and (Number2 < 0) then
+  if not Number1.IsNegative and (Number2 < 0) then
     Result := 1
   else if Number1.IsNegative and (Number2 > 0) then
     Result := -1
@@ -470,7 +468,7 @@ end;
 
 function TCnBigRational.IsOne: Boolean;
 begin
-  Result := not FNominator.IsZero and BigNumberCompare(FNominator, FDenominator) = 0;
+  Result := not FNominator.IsZero and (BigNumberCompare(FNominator, FDenominator) = 0);
 end;
 
 function TCnBigRational.IsZero: Boolean;
