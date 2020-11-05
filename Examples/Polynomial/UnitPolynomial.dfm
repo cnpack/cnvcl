@@ -27,16 +27,16 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsIntegerPolynomial
+    ActivePage = tsBNPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
-      Caption = 'Integer Polynomial'
+      Caption = 'Int64 Polynomial'
       object grpIntegerPolynomial: TGroupBox
         Left = 8
         Top = 4
         Width = 905
         Height = 513
-        Caption = 'Integer Polynomial'
+        Caption = 'Int64 Polynomial'
         TabOrder = 0
         object bvl1: TBevel
           Left = 24
@@ -314,6 +314,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 26
           OnClick = btnTestHugeDiv3Click
         end
+        object btnTestPowerMod: TButton
+          Left = 792
+          Top = 360
+          Width = 97
+          Height = 25
+          Caption = 'Test Power Mod'
+          TabOrder = 27
+          OnClick = btnTestPowerModClick
+        end
       end
     end
     object tsExtensionEcc: TTabSheet
@@ -468,10 +477,10 @@ object FormPolynomial: TFormPolynomial
       ImageIndex = 2
       object grpRationalPolynomial: TGroupBox
         Left = 8
-        Top = 8
+        Top = 4
         Width = 905
-        Height = 505
-        Caption = 'Rational Polynomial'
+        Height = 509
+        Caption = 'Int64 Rational Polynomial'
         TabOrder = 0
         object bvl3: TBevel
           Left = 16
@@ -680,6 +689,154 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Galois Equal'
           TabOrder = 20
           OnClick = btnTestGaloisEqualClick
+        end
+      end
+    end
+    object tsBNPolynomial: TTabSheet
+      Caption = 'BigNumber Polynomial'
+      ImageIndex = 3
+      object grpBNPolynomial: TGroupBox
+        Left = 8
+        Top = 4
+        Width = 905
+        Height = 505
+        Caption = 'BigNumber Polynomial'
+        TabOrder = 0
+        object lblBPEqual: TLabel
+          Left = 24
+          Top = 256
+          Width = 11
+          Height = 20
+          Caption = '='
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -16
+          Font.Name = 'MS Sans Serif'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object lblBP1Deg: TLabel
+          Left = 816
+          Top = 220
+          Width = 38
+          Height = 13
+          Caption = 'Degree:'
+        end
+        object lblBP2Deg: TLabel
+          Left = 816
+          Top = 124
+          Width = 38
+          Height = 13
+          Caption = 'Degree:'
+        end
+        object btnBNPToString: TButton
+          Left = 24
+          Top = 32
+          Width = 75
+          Height = 21
+          Caption = 'To String'
+          TabOrder = 0
+          OnClick = btnBNPToStringClick
+        end
+        object edtBNPolynomial: TEdit
+          Left = 128
+          Top = 32
+          Width = 753
+          Height = 21
+          TabOrder = 1
+        end
+        object mmoBP1: TMemo
+          Left = 24
+          Top = 88
+          Width = 777
+          Height = 57
+          ReadOnly = True
+          TabOrder = 2
+        end
+        object mmoBP2: TMemo
+          Left = 24
+          Top = 184
+          Width = 777
+          Height = 57
+          ReadOnly = True
+          TabOrder = 3
+        end
+        object btnBPAdd: TButton
+          Left = 88
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Add'
+          TabOrder = 4
+          OnClick = btnBPAddClick
+        end
+        object btnBPSub: TButton
+          Left = 192
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Sub'
+          TabOrder = 5
+          OnClick = btnBPSubClick
+        end
+        object btnBPMul: TButton
+          Left = 296
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Mul'
+          TabOrder = 6
+          OnClick = btnBPMulClick
+        end
+        object btnBPDivMod: TButton
+          Left = 408
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Div && Mod'
+          TabOrder = 7
+          OnClick = btnBPDivModClick
+        end
+        object edtBP3: TEdit
+          Left = 56
+          Top = 256
+          Width = 833
+          Height = 21
+          TabOrder = 8
+        end
+        object edtBP2Deg: TEdit
+          Left = 864
+          Top = 216
+          Width = 25
+          Height = 21
+          TabOrder = 9
+          Text = '7'
+        end
+        object btnBP1Rand: TButton
+          Left = 816
+          Top = 184
+          Width = 75
+          Height = 21
+          Caption = 'Random'
+          TabOrder = 10
+          OnClick = btnBP1RandClick
+        end
+        object edtBP1Deg: TEdit
+          Left = 864
+          Top = 120
+          Width = 25
+          Height = 21
+          TabOrder = 11
+          Text = '9'
+        end
+        object btnBP2Rand: TButton
+          Left = 816
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Random'
+          TabOrder = 12
+          OnClick = btnBP2RandClick
         end
       end
     end

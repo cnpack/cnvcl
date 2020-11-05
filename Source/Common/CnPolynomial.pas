@@ -378,8 +378,8 @@ function Int64PolynomialGaloisSub(const Res: TCnInt64Polynomial; const P1: TCnIn
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
-function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
-  P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
+function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
+  const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 两个整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
@@ -405,16 +405,16 @@ function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
-function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
 {* 将 Prime 次方阶有限域上的整系数多项式的常系数加上 N 再 mod Prime}
 
-function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
 {* 将 Prime 次方阶有限域上的整系数多项式的常系数减去 N 再 mod Prime}
 
-function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数乘以 N 再 mod Prime}
 
-function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: Int64): Integer;
@@ -595,20 +595,35 @@ function BigNumberPolynomialEqual(const A, B: TCnBigNumberPolynomial): Boolean;
 
 // ======================== 大整系数多项式普通运算 =============================
 
-procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: LongWord);
 {* 将一个大整系数多项式对象的常系数加上 N}
 
-procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: LongWord);
 {* 将一个大整系数多项式对象的常系数减去 N}
 
-procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: LongWord);
 {* 将一个大整系数多项式对象的各个系数都乘以 N}
 
-procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: LongWord);
 {* 将一个大整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
-procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
 {* 将一个大整系数多项式对象的各个系数都对 N 非负求余}
+
+procedure BigNumberPolynomialAddBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+{* 将一个大整系数多项式对象的常系数加上大数 N}
+
+procedure BigNumberPolynomialSubBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+{* 将一个大整系数多项式对象的常系数减去大数 N}
+
+procedure BigNumberPolynomialMulBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+{* 将一个大整系数多项式对象的各个系数都乘以大数 N}
+
+procedure BigNumberPolynomialDivBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+{* 将一个大整系数多项式对象的各个系数都除以大数 N，如不能整除则取整}
+
+procedure BigNumberPolynomialNonNegativeModBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+{* 将一个大整系数多项式对象的各个系数都对大数 N 非负求余}
 
 function BigNumberPolynomialAdd(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
   const P2: TCnBigNumberPolynomial): Boolean;
@@ -635,11 +650,11 @@ function BigNumberPolynomialMod(const Res: TCnBigNumberPolynomial; const P: TCnB
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function BigNumberPolynomialPower(const Res: TCnBigNumberPolynomial;
-  const P: TCnBigNumberPolynomial; Exponent: TUInt64): Boolean;
+  const P: TCnBigNumberPolynomial; Exponent: TCnBigNumber): Boolean;
 {* 计算大整系数多项式的 Exponent 次幂，返回计算是否成功，Res 可以是 P}
 
-function BigNumberPolynomialReduce(const P: TCnBigNumberPolynomial): Integer;
-{* 化简大整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它，返回最大公约数}
+procedure BigNumberPolynomialReduce(const P: TCnBigNumberPolynomial);
+{* 化简大整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它}
 
 function BigNumberPolynomialGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
@@ -657,76 +672,100 @@ function BigNumberPolynomialCompose(const Res: TCnBigNumberPolynomial;
   const F, P: TCnBigNumberPolynomial): Boolean;
 {* 大整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
-function BigNumberPolynomialGetValue(Res: TCnBigNumber; F: TCnBigNumberPolynomial;
-  X: TCnBigNumber): Boolean;
-{* 大整系数多项式求值，也就是计算 F(x)，返回计算是否成功}
+procedure BigNumberPolynomialGetValue(Res: TCnBigNumber; F: TCnBigNumberPolynomial;
+  X: TCnBigNumber);
+{* 大整系数多项式求值，也就是计算 F(x)，返回计算是否成功，Res 不能是 X}
 
 procedure BigNumberPolynomialReduce2(P1, P2: TCnBigNumberPolynomial);
 {* 针对两个大整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
 
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
-function BigNumberPolynomialGaloisEqual(const A, B: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+function BigNumberPolynomialGaloisEqual(const A, B: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber): Boolean;
 {* 两个大整系数多项式在模 Prime 的条件下是否相等}
 
-procedure BigNumberPolynomialGaloisNegate(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
+procedure BigNumberPolynomialGaloisNegate(const P: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber);
 {* 将一个大整系数多项式对象所有系数在模 Prime 的条件下求反}
 
-function BigNumberPolynomialGaloisAdd(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
-  const P2: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisAdd(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 {* 两个大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
-function BigNumberPolynomialGaloisSub(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
-  const P2: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisSub(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 {* 两个大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
-function BigNumberPolynomialGaloisMul(const Res: TCnBigNumberPolynomial; P1: TCnBigNumberPolynomial;
-  P2: TCnBigNumberPolynomial; Prime: Int64; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisMul(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 {* 两个大整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialGaloisDiv(const Res: TCnBigNumberPolynomial;
   const Remain: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
-  const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+  const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  Primitive: TCnBigNumberPolynomial = nil): Boolean;
 {* 两个大整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
-function BigNumberPolynomialGaloisMod(const Res: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
-  const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisMod(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 {* 两个大整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
-function BigNumberPolynomialGaloisPower(const Res, P: TCnBigNumberPolynomial;
-  Exponent: TCnBigNumber; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
+  Primitive: TCnBigNumberPolynomial = nil): Boolean;
 {* 计算大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
 function BigNumberPolynomialGaloisAddWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的大整系数多项式的常系数加上 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisSubWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的大整系数多项式的常系数减去 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisMulWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的大整系数多项式各项系数乘以 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisDivWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
-function BigNumberPolynomialGaloisMonic(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber): Integer;
-{* 将 Prime 次方阶有限域上的整系数多项式各项系数同除最高项，使首项为一，返回除的值}
+procedure BigNumberPolynomialGaloisAddBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的大整系数多项式的常系数加上 N 再 mod Prime}
+
+procedure BigNumberPolynomialGaloisSubBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的大整系数多项式的常系数减去 N 再 mod Prime}
+
+procedure BigNumberPolynomialGaloisMulBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的大整系数多项式各项系数乘以 N 再 mod Prime}
+
+procedure BigNumberPolynomialGaloisDivBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
+
+procedure BigNumberPolynomialGaloisMonic(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的整系数多项式各项系数同除最高项，使首项为一}
 
 function BigNumberPolynomialGaloisGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
@@ -874,6 +913,8 @@ resourcestring
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
   FLocalBigNumberPolynomialPool: TCnBigNumberPolynomialPool = nil;
+  FLocalBigNumberPool: TCnBigNumberPool = nil;
+
 
 { TCnInt64Polynomial }
 
@@ -1185,11 +1226,8 @@ var
   I: Integer;
 begin
   if N = 0 then
-  begin
-    Int64PolynomialSetZero(P);
-    Exit;
-  end
-  else
+    Int64PolynomialSetZero(P)
+  else if N <> 1 then
   begin
     for I := 0 to P.MaxDegree do
       P[I] := P[I] * N;
@@ -1203,8 +1241,9 @@ begin
   if N = 0 then
     raise ECnPolynomialException.Create(SZeroDivide);
 
-  for I := 0 to P.MaxDegree do
-    P[I] := P[I] div N;
+  if N <> 1 then
+    for I := 0 to P.MaxDegree do
+      P[I] := P[I] div N;
 end;
 
 procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: Int64);
@@ -1407,10 +1446,13 @@ begin
       Int64PolynomialCopy(Res, P);
     Result := True;
     Exit;
-  end else if Exponent < 0 then
+  end
+  else if Exponent < 0 then
     raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
-  T := Int64PolynomialDuplicate(P);
+  T := FLocalInt64PolynomialPool.Obtain;
+  Int64PolynomialCopy(T, P);
+
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetCoefficents([1]);
@@ -1424,17 +1466,18 @@ begin
     end;
     Result := True;
   finally
-    T.Free;
+    FLocalInt64PolynomialPool.Recycle(T);
   end;
 end;
 
 function Int64PolynomialReduce(const P: TCnInt64Polynomial): Integer;
 var
-  I, D: Integer;
+  I: Integer;
+  D: Int64;
 
-  function Gcd(A, B: Integer): Integer;
+  function Gcd(A, B: Int64): Int64;
   var
-    T: Integer;
+    T: Int64;
   begin
     while B <> 0 do
     begin
@@ -1703,8 +1746,8 @@ begin
   end;
 end;
 
-function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
-  P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
+function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
+  const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
   R: TCnInt64Polynomial;
   I, J: Integer;
@@ -1724,6 +1767,7 @@ begin
 
   R.Clear;
   R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+
   for I := 0 to P1.MaxDegree do
   begin
     // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分，再取模
@@ -1873,7 +1917,9 @@ begin
     Exit;
   end;
 
-  T := Int64PolynomialDuplicate(P);
+  T := FLocalInt64PolynomialPool.Obtain;
+  Int64PolynomialCopy(T, P);
+
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetCoefficents([1]);
@@ -1887,26 +1933,26 @@ begin
     end;
     Result := True;
   finally
-    T.Free;
+    FLocalInt64PolynomialPool.Recycle(T);
   end;
 end;
 
-function Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64;
-  Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64);
 begin
-  P[0] := Int64NonNegativeMod(P[0] + N, Prime);
-  Result := True;
+  if N <> 0 then
+    P[0] := Int64NonNegativeMod(P[0] + N, Prime);
 end;
 
-function Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64;
-  Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64);
 begin
-  P[0] := Int64NonNegativeMod(P[0] - N, Prime);
-  Result := True;
+  if N <> 0 then
+    P[0] := Int64NonNegativeMod(P[0] - N, Prime);
 end;
 
-function Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64;
-  Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64);
 var
   I: Integer;
 begin
@@ -1914,16 +1960,15 @@ begin
   begin
     Int64PolynomialSetZero(P);
   end
-  else
+  else if N <> 1 then
   begin
     for I := 0 to P.MaxDegree do
       P[I] := Int64NonNegativeMulMod(P[I], N, Prime);
   end;
-  Result := True;
 end;
 
-function Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64;
-  Prime: Int64): Boolean;
+procedure Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64;
+  Prime: Int64);
 var
   I: Integer;
   K: Int64;
@@ -1943,7 +1988,6 @@ begin
     if B then
       P[I] := Prime - LongWord(P[I]);
   end;
-  Result := True;
 end;
 
 function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: Int64): Integer;
@@ -2964,139 +3008,214 @@ end;
 
 procedure TCnBigNumberPolynomial.CorrectTop;
 begin
-
+  while (MaxDegree > 0) and Items[MaxDegree].IsZero do
+    Delete(MaxDegree);
 end;
 
 constructor TCnBigNumberPolynomial.Create;
 begin
-
+  inherited Create;
+  Add.SetZero;   // 常系数项
 end;
 
 constructor TCnBigNumberPolynomial.Create(
   LowToHighCoefficients: array of const);
 begin
-
+  inherited Create;
+  SetCoefficents(LowToHighCoefficients);
 end;
 
 destructor TCnBigNumberPolynomial.Destroy;
 begin
-  inherited;
 
+  inherited;
 end;
 
 function TCnBigNumberPolynomial.GetMaxDegree: Integer;
 begin
-
+  if Count = 0 then
+    Add.SetZero;
+  Result := Count - 1;
 end;
 
 function TCnBigNumberPolynomial.IsNegOne: Boolean;
 begin
-
+  Result := BigNumberPolynomialIsNegOne(Self);
 end;
 
 function TCnBigNumberPolynomial.IsOne: Boolean;
 begin
-
+  Result := BigNumberPolynomialIsOne(Self);
 end;
 
 function TCnBigNumberPolynomial.IsZero: Boolean;
 begin
-
+  Result := BigNumberPolynomialIsZero(Self);
 end;
 
 procedure TCnBigNumberPolynomial.Negate;
 begin
-
+  BigNumberPolynomialNegate(Self);
 end;
 
 procedure TCnBigNumberPolynomial.SetCoefficents(
   LowToHighCoefficients: array of const);
+var
+  I: Integer;
 begin
+  Clear;
+  for I := Low(LowToHighCoefficients) to High(LowToHighCoefficients) do
+  begin
+    case LowToHighCoefficients[I].VType of
+    vtInteger:
+      begin
+        Add.SetInteger(LowToHighCoefficients[I].VInteger);
+      end;
+    vtInt64:
+      begin
+        Add.SetInt64(LowToHighCoefficients[I].VInt64^);
+      end;
+    vtBoolean:
+      begin
+        if LowToHighCoefficients[I].VBoolean then
+          Add.SetOne
+        else
+          Add.SetZero;
+      end;
+    vtString:
+      begin
+        Add.SetDec(LowToHighCoefficients[I].VString^);
+      end;
+    else
+      raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + IntToStr(I)]);
+    end;
+  end;
 
+  if Count = 0 then
+    Add.SetZero
+  else
+    CorrectTop;
 end;
 
 procedure TCnBigNumberPolynomial.SetMaxDegree(const Value: Integer);
+var
+  I, OC: Integer;
 begin
+  if Value < 0 then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Value]);
 
+  OC := Count;
+  Count := Value + 1; // 直接设置 Count，如变小，会自动释放多余的对象
+
+  if Count > OC then  // 增加的部分创建新对象
+  begin
+    for I := OC to Count - 1 do
+      Items[I] := TCnBigNumber.Create;
+  end;
 end;
 
 procedure TCnBigNumberPolynomial.SetOne;
 begin
-
+  BigNumberPolynomialSetOne(Self);
 end;
 
 procedure TCnBigNumberPolynomial.SetZero;
 begin
-
+  BigNumberPolynomialSetZero(Self);
 end;
 
 function TCnBigNumberPolynomial.ToString: string;
 begin
-
+  Result := BigNumberPolynomialToString(Self);
 end;
 
 { TCnBigNumberRationalPolynomial }
 
 procedure TCnBigNumberRationalPolynomial.AssignTo(Dest: TPersistent);
 begin
-  inherited;
-
+  if Dest is TCnBigNumberRationalPolynomial then
+  begin
+    BigNumberPolynomialCopy(TCnBigNumberRationalPolynomial(Dest).Nominator, FNominator);
+    BigNumberPolynomialCopy(TCnBigNumberRationalPolynomial(Dest).Denominator, FDenominator);
+  end
+  else
+    inherited;
 end;
 
 constructor TCnBigNumberRationalPolynomial.Create;
 begin
-
+  inherited;
+  FNominator := TCnBigNumberPolynomial.Create([0]);
+  FDenominator := TCnBigNumberPolynomial.Create([1]);
 end;
 
 destructor TCnBigNumberRationalPolynomial.Destroy;
 begin
+  FDenominator.Free;
+  FNominator.Free;
   inherited;
-
 end;
 
 function TCnBigNumberRationalPolynomial.IsInt: Boolean;
 begin
-
+  Result := FDenominator.IsOne or FDenominator.IsNegOne;
 end;
 
 function TCnBigNumberRationalPolynomial.IsOne: Boolean;
 begin
-
+  Result := not FNominator.IsZero and BigNumberPolynomialEqual(FNominator, FDenominator);
 end;
 
 function TCnBigNumberRationalPolynomial.IsZero: Boolean;
 begin
-
+  Result := not FDenominator.IsZero and FNominator.IsZero;
 end;
 
 procedure TCnBigNumberRationalPolynomial.Neg;
 begin
-
+  FNominator.Negate;
 end;
 
 procedure TCnBigNumberRationalPolynomial.Reciprocal;
+var
+  T: TCnBigNumberPolynomial;
 begin
+  if FNominator.IsZero then
+    raise EDivByZero.Create(SDivByZero);
 
+  T := FLocalBigNumberPolynomialPool.Obtain;
+  try
+    BigNumberPolynomialCopy(T, FDenominator);
+    BigNumberPolynomialCopy(FDenominator, FNominator);
+    BigNumberPolynomialCopy(FNominator, T);
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(T);
+  end;
 end;
 
 procedure TCnBigNumberRationalPolynomial.Reduce;
 begin
-
+  BigNumberPolynomialReduce2(FNominator, FDenominator);
 end;
 
 procedure TCnBigNumberRationalPolynomial.SetOne;
 begin
-
+  FDenominator.SetOne;
+  FNominator.SetOne;
 end;
 
 procedure TCnBigNumberRationalPolynomial.SetZero;
 begin
-
+  FDenominator.SetOne;
+  FNominator.SetZero;
 end;
 
 function TCnBigNumberRationalPolynomial.ToString: string;
 begin
-
+  if FDenominator.IsOne then
+    Result := FNominator.ToString
+  else
+    Result := FNominator.ToString + ' / ' + FDenominator.ToString;
 end;
 
 { TCnBigNumberPolynomialPool }
@@ -3182,249 +3301,1153 @@ end;
 
 function BigNumberPolynomialNew: TCnBigNumberPolynomial;
 begin
-
+  Result := TCnBigNumberPolynomial.Create;
 end;
 
 procedure BigNumberPolynomialFree(const P: TCnBigNumberPolynomial);
 begin
-
+  P.Free;
 end;
 
 function BigNumberPolynomialDuplicate(const P: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
 begin
+  if P = nil then
+  begin
+    Result := nil;
+    Exit;
+  end;
 
+  Result := BigNumberPolynomialNew;
+  if Result <> nil then
+    BigNumberPolynomialCopy(Result, P);
 end;
 
 function BigNumberPolynomialCopy(const Dst: TCnBigNumberPolynomial;
   const Src: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
+var
+  I: Integer;
 begin
-
+  Result := Dst;
+  if Src <> Dst then
+  begin
+    Dst.Clear;
+    for I := 0 to Src.Count - 1 do
+      Dst.Add(BigNumberDuplicate(Src[I]));
+    Dst.CorrectTop;
+  end;
 end;
 
 function BigNumberPolynomialToString(const P: TCnBigNumberPolynomial;
   const VarName: string = 'X'): string;
-begin
+var
+  I: Integer;
 
+  function VarPower(E: Integer): string;
+  begin
+    if E = 0 then
+      Result := ''
+    else if E = 1 then
+      Result := VarName
+    else
+      Result := VarName + '^' + IntToStr(E);
+  end;
+
+begin
+  Result := '';
+  if BigNumberPolynomialIsZero(P) then
+  begin
+    Result := '0';
+    Exit;
+  end;
+
+  for I := P.MaxDegree downto 0 do
+  begin
+    if P[I].IsZero then
+    begin
+      Continue;
+    end
+    else if not P[I].IsNegative then
+    begin
+      if P[I].IsOne and (I > 0) then  // 非常数项的 1 系数无需显示
+      begin
+        if Result = '' then  // 最高项无需加号
+          Result := VarPower(I)
+        else
+          Result := Result + '+' + VarPower(I);
+      end
+      else
+      begin
+        if Result = '' then  // 最高项无需加号
+          Result := P[I].ToDec + VarPower(I)
+        else
+          Result := Result + '+' + P[I].ToDec + VarPower(I);
+      end;
+    end
+    else // 小于 0，要用减号
+    begin
+      if P[I].IsNegOne and (I > 0) then // 非常数项的 -1 无需显示 1，只需减号
+        Result := Result + '-' + VarPower(I)
+      else
+        Result := Result + P[I].ToDec + VarPower(I);
+    end;
+  end;
 end;
 
 function BigNumberPolynomialIsZero(const P: TCnBigNumberPolynomial): Boolean;
 begin
-
+  Result := (P.MaxDegree = 0) and P[0].IsZero;
 end;
 
 procedure BigNumberPolynomialSetZero(const P: TCnBigNumberPolynomial);
 begin
-
+  P.Clear;
+  P.Add.SetZero;
 end;
 
 function BigNumberPolynomialIsOne(const P: TCnBigNumberPolynomial): Boolean;
 begin
-
+  Result := (P.MaxDegree = 0) and P[0].IsOne;
 end;
 
 procedure BigNumberPolynomialSetOne(const P: TCnBigNumberPolynomial);
 begin
-
+  P.Clear;
+  P.Add.SetOne;
 end;
 
 function BigNumberPolynomialIsNegOne(const P: TCnBigNumberPolynomial): Boolean;
 begin
-
+  Result := (P.MaxDegree = 0) and P[0].IsNegOne;
 end;
 
 procedure BigNumberPolynomialNegate(const P: TCnBigNumberPolynomial);
+var
+  I: Integer;
 begin
-
+  for I := 0 to P.MaxDegree do
+    P[I].Negate;
 end;
 
 procedure BigNumberPolynomialShiftLeft(const P: TCnBigNumberPolynomial; N: Integer);
+var
+  I: Integer;
 begin
-
+  if N = 0 then
+    Exit
+  else if N < 0 then
+    BigNumberPolynomialShiftRight(P, -N)
+  else
+    for I := 1 to N do
+      P.Insert(0, TCnBigNumber.Create);
 end;
 
 procedure BigNumberPolynomialShiftRight(const P: TCnBigNumberPolynomial; N: Integer);
+var
+  I: Integer;
 begin
+  if N = 0 then
+    Exit
+  else if N < 0 then
+    BigNumberPolynomialShiftLeft(P, -N)
+  else
+  begin
+    for I := 1 to N do
+      P.Delete(0);
 
+    if P.Count = 0 then
+      P.Add.SetZero;
+  end;
 end;
 
 function BigNumberPolynomialEqual(const A, B: TCnBigNumberPolynomial): Boolean;
+var
+  I: Integer;
 begin
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
 
+  Result := A.MaxDegree = B.MaxDegree;
+  if Result then
+  begin
+    for I := A.MaxDegree downto 0 do
+    begin
+      if BigNumberCompare(A[I], B[I]) <> 0 then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  end;
 end;
 
 // ======================== 大整系数多项式普通运算 =============================
 
-procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: LongWord);
 begin
-
+  if N <> 0 then
+    BigNumberAddWord(P[0], N);
 end;
 
-procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: LongWord);
 begin
-
+  if N <> 0 then
+    BigNumberSubWord(P[0], N);
 end;
 
-procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: LongWord);
+var
+  I: Integer;
 begin
-
+  if N = 0 then
+    BigNumberPolynomialSetZero(P)
+  else if N <> 1 then
+  begin
+    for I := 0 to P.MaxDegree do
+      BigNumberMulWord(P[I], N);
+  end;
 end;
 
-procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: LongWord);
+var
+  I: Integer;
 begin
+  if N = 0 then
+    raise ECnPolynomialException.Create(SZeroDivide);
 
+  for I := 0 to P.MaxDegree do
+    BigNumberDivWord(P[I], N);
 end;
 
-procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: Int64);
+procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
+var
+  I: Integer;
 begin
+  if N = 0 then
+    raise ECnPolynomialException.Create(SZeroDivide);
 
+  for I := 0 to P.MaxDegree do
+  begin
+    BigNumberModWord(P[I], N);
+    if P[I].IsNegative then
+      BigNumberAddWord(P[I], N);
+  end;
 end;
 
-function BigNumberPolynomialAdd(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
-  const P2: TCnBigNumberPolynomial): Boolean;
+procedure BigNumberPolynomialAddBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
 begin
-
+  BigNumberAdd(P[0], P[0], N);
 end;
 
-function BigNumberPolynomialSub(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
-  const P2: TCnBigNumberPolynomial): Boolean;
+procedure BigNumberPolynomialSubBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
 begin
+  BigNumberSub(P[0], P[0], N);
+end;
 
+procedure BigNumberPolynomialMulBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+var
+  I: Integer;
+begin
+  if N.IsZero then
+    BigNumberPolynomialSetZero(P)
+  else if not N.IsOne then
+  begin
+    for I := 0 to P.MaxDegree do
+      BigNumberMul(P[I], P[I], N);
+  end;
+end;
+
+procedure BigNumberPolynomialDivBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+var
+  I: Integer;
+  T: TCnBigNumber;
+begin
+  if N.IsZero then
+    BigNumberPolynomialSetZero(P)
+  else if not N.IsOne then
+  begin
+    T := FLocalBigNumberPool.Obtain;
+    try
+      for I := 0 to P.MaxDegree do
+        BigNumberDiv(P[I], T, P[I], N);
+    finally
+      FLocalBigNumberPool.Recycle(T);
+    end;
+  end;
+end;
+
+procedure BigNumberPolynomialNonNegativeModBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
+var
+  I: Integer;
+begin
+  if N.IsZero then
+    raise ECnPolynomialException.Create(SZeroDivide);
+
+  for I := 0 to P.MaxDegree do
+    BigNumberNonNegativeMod(P[I], P[I], N);
+end;
+
+function BigNumberPolynomialAdd(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial): Boolean;
+var
+  I, D1, D2: Integer;
+  PBig: TCnBigNumberPolynomial;
+begin
+  D1 := Max(P1.MaxDegree, P2.MaxDegree);
+  D2 := Min(P1.MaxDegree, P2.MaxDegree);
+
+  if D1 > D2 then
+  begin
+    if P1.MaxDegree > P2.MaxDegree then
+      PBig := P1
+    else
+      PBig := P2;
+
+    Res.MaxDegree := D1; // 考虑到 Res 可能是 P1 或 P2，所以给 Res 的 MaxDegree 赋值得放上面的比较之后
+    for I := D1 downto D2 + 1 do
+      BigNumberCopy(Res[I], PBig[I]);
+  end
+  else // D1 = D2 说明俩加式同次
+    Res.MaxDegree := D1;
+
+  for I := D2 downto 0 do
+    BigNumberAdd(Res[I], P1[I], P2[I]);
+
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function BigNumberPolynomialSub(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial): Boolean;
+var
+  I, D1, D2: Integer;
+begin
+  D1 := Max(P1.MaxDegree, P2.MaxDegree);
+  D2 := Min(P1.MaxDegree, P2.MaxDegree);
+
+  Res.MaxDegree := D1;
+  if D1 > D2 then
+  begin
+    if P1.MaxDegree > P2.MaxDegree then // 被减式大
+    begin
+      for I := D1 downto D2 + 1 do
+        BigNumberCopy(Res[I], P1[I]);
+    end
+    else  // 减式大
+    begin
+      for I := D1 downto D2 + 1 do
+      begin
+        BigNumberCopy(Res[I], P2[I]);
+        P2[I].Negate;
+      end;
+    end;
+  end;
+
+  for I := D2 downto 0 do
+    BigNumberSub(Res[I], P1[I], P2[I]);
+
+  Res.CorrectTop;
+  Result := True;
 end;
 
 function BigNumberPolynomialMul(const Res: TCnBigNumberPolynomial; P1: TCnBigNumberPolynomial;
   P2: TCnBigNumberPolynomial): Boolean;
+var
+  R: TCnBigNumberPolynomial;
+  T: TCnBigNumber;
+  I, J: Integer;
 begin
+  if BigNumberPolynomialIsZero(P1) or BigNumberPolynomialIsZero(P2) then
+  begin
+    BigNumberPolynomialSetZero(Res);
+    Result := True;
+    Exit;
+  end;
 
+  T := FLocalBigNumberPool.Obtain;
+  if (Res = P1) or (Res = P2) then
+    R := FLocalBigNumberPolynomialPool.Obtain
+  else
+    R := Res;
+
+  R.Clear;
+  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+
+  for I := 0 to P1.MaxDegree do
+  begin
+    // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
+    for J := 0 to P2.MaxDegree do
+    begin
+      BigNumberMul(T, P1[I], P2[J]);
+      BigNumberAdd(R[I + J], R[I + J], T);
+    end;
+  end;
+
+  R.CorrectTop;
+  if (Res = P1) or (Res = P2) then
+  begin
+    BigNumberPolynomialCopy(Res, R);
+    FLocalBigNumberPolynomialPool.Recycle(R);
+  end;
+  FLocalBigNumberPool.Recycle(T);
+  Result := True;
 end;
 
 function BigNumberPolynomialDiv(const Res: TCnBigNumberPolynomial; const Remain: TCnBigNumberPolynomial;
   const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial): Boolean;
+var
+  SubRes: TCnBigNumberPolynomial; // 容纳递减差
+  MulRes: TCnBigNumberPolynomial; // 容纳除数乘积
+  DivRes: TCnBigNumberPolynomial; // 容纳临时商
+  I, D: Integer;
+  T, R: TCnBigNumber;
 begin
+  if BigNumberPolynomialIsZero(Divisor) then
+    raise ECnPolynomialException.Create(SDivByZero);
 
+  if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
+  begin
+    if Res <> nil then
+      BigNumberPolynomialSetZero(Res);
+    if (Remain <> nil) and (P <> Remain) then
+      BigNumberPolynomialCopy(Remain, P);
+    Result := True;
+    Exit;
+  end;
+
+  // 够除，循环
+  SubRes := nil;
+  MulRes := nil;
+  DivRes := nil;
+  T := nil;
+  R := nil;
+
+  try
+    T := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
+
+    SubRes := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialCopy(SubRes, P);
+
+    D := P.MaxDegree - Divisor.MaxDegree;
+    DivRes := FLocalBigNumberPolynomialPool.Obtain;
+    DivRes.MaxDegree := D;
+    MulRes := FLocalBigNumberPolynomialPool.Obtain;
+
+    Result := False;
+    for I := 0 to D do
+    begin
+      if P.MaxDegree - I > SubRes.MaxDegree then                 // 中间结果可能跳位
+        Continue;
+
+      // 判断 Divisor[Divisor.MaxDegree] 是否能整除 SubRes[P.MaxDegree - I] 不能则说明超出了整型多项式范围，无法支持，只能出错
+      if not BigNumberMod(T, SubRes[P.MaxDegree - I], Divisor[Divisor.MaxDegree]) then
+        Exit;
+
+      if not T.IsZero then
+        Exit;
+
+      BigNumberPolynomialCopy(MulRes, Divisor);
+      BigNumberPolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
+      BigNumberDiv(T, R, SubRes[P.MaxDegree - I], MulRes[MulRes.MaxDegree]);
+
+      BigNumberPolynomialMulBigNumber(MulRes, T); // 除式乘到最高次系数相同
+      BigNumberCopy(DivRes[D - I], T);            // 商放到 DivRes 位置
+
+      BigNumberPolynomialSub(SubRes, SubRes, MulRes);              // 减后结果重新放回 SubRes
+    end;
+
+    if Remain <> nil then
+      BigNumberPolynomialCopy(Remain, SubRes);
+    if Res <> nil then
+      BigNumberPolynomialCopy(Res, DivRes);
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(SubRes);
+    FLocalBigNumberPolynomialPool.Recycle(MulRes);
+    FLocalBigNumberPolynomialPool.Recycle(DivRes);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(R);
+  end;
+  Result := True;
 end;
 
 function BigNumberPolynomialMod(const Res: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
   const Divisor: TCnBigNumberPolynomial): Boolean;
 begin
-
+  Result := BigNumberPolynomialDiv(nil, Res, P, Divisor);
 end;
 
 function BigNumberPolynomialPower(const Res: TCnBigNumberPolynomial;
-  const P: TCnBigNumberPolynomial; Exponent: TUInt64): Boolean;
+  const P: TCnBigNumberPolynomial; Exponent: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumberPolynomial;
+  E: TCnBigNumber;
 begin
+  if Exponent.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsOne then
+  begin
+    if Res <> P then
+      BigNumberPolynomialCopy(Res, P);
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsNegative then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
+  T := FLocalBigNumberPolynomialPool.Obtain;
+  BigNumberPolynomialCopy(T, P);
+  E := FLocalBigNumberPool.Obtain;
+  BigNumberCopy(E, Exponent);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while not E.IsNegative and not E.IsZero do
+    begin
+      if BigNumberIsBitSet(E, 0) then
+        BigNumberPolynomialMul(Res, Res, T);
+
+      BigNumberShiftRightOne(E, E);
+      BigNumberPolynomialMul(T, T, T);
+    end;
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(E);
+    FLocalBigNumberPolynomialPool.Recycle(T);
+  end;
 end;
 
-function BigNumberPolynomialReduce(const P: TCnBigNumberPolynomial): Integer;
+procedure BigNumberPolynomialReduce(const P: TCnBigNumberPolynomial);
+var
+  I: Integer;
+  D: TCnBigNumber;
 begin
+  if P.MaxDegree = 0 then
+  begin
+    if not P[P.MaxDegree].IsZero then
+      P[P.MaxDegree].SetOne;
+  end
+  else
+  begin
+    D := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(D, P[0]);
 
+    for I := 0 to P.MaxDegree - 1 do
+    begin
+      BigNumberGcd(D, D, P[I + 1]);
+      if D.IsOne then
+        Break;
+    end;
+
+    if not D.IsOne then
+      BigNumberPolynomialDivBigNumber(P, D);
+  end;
 end;
 
 function BigNumberPolynomialGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
+var
+  A, B, C: TCnBigNumberPolynomial;
 begin
+  Result := False;
+  A := nil;
+  B := nil;
+  C := nil;
 
+  try
+    A := FLocalBigNumberPolynomialPool.Obtain;
+    B := FLocalBigNumberPolynomialPool.Obtain;
+
+    if P1.MaxDegree >= P2.MaxDegree then
+    begin
+      BigNumberPolynomialCopy(A, P1);
+      BigNumberPolynomialCopy(B, P2);
+    end
+    else
+    begin
+      BigNumberPolynomialCopy(A, P2);
+      BigNumberPolynomialCopy(B, P1);
+    end;
+
+    C := FLocalBigNumberPolynomialPool.Obtain;
+    while not B.IsZero do
+    begin
+      BigNumberPolynomialCopy(C, B);        // 备份 B
+      if not BigNumberPolynomialMod(B, A, B) then   // A mod B 给 B
+        Exit;
+
+      // B 要系数约分化简
+      BigNumberPolynomialReduce(B);
+      BigNumberPolynomialCopy(A, C);        // 原始 B 给 A
+    end;
+
+    BigNumberPolynomialCopy(Res, A);
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(A);
+    FLocalBigNumberPolynomialPool.Recycle(B);
+    FLocalBigNumberPolynomialPool.Recycle(C);
+  end;
 end;
 
 function BigNumberPolynomialLeastCommonMultiple(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
+var
+  G, M, R: TCnBigNumberPolynomial;
 begin
+  Result := False;
+  if BigNumberPolynomialEqual(P1, P2) then
+  begin
+    BigNumberPolynomialCopy(Res, P1);
+    Result := True;
+    Exit;
+  end;
 
+  G := nil;
+  M := nil;
+  R := nil;
+
+  try
+    G := FLocalBigNumberPolynomialPool.Obtain;
+    M := FLocalBigNumberPolynomialPool.Obtain;
+    R := FLocalBigNumberPolynomialPool.Obtain;
+
+    if not BigNumberPolynomialMul(M, P1, P2) then
+      Exit;
+
+    if not BigNumberPolynomialGreatestCommonDivisor(G, P1, P2) then
+      Exit;
+
+    if not BigNumberPolynomialDiv(Res, R, M, G) then
+      Exit;
+
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(R);
+    FLocalBigNumberPolynomialPool.Recycle(M);
+    FLocalBigNumberPolynomialPool.Recycle(G);
+  end;
 end;
 
 function BigNumberPolynomialCompose(const Res: TCnBigNumberPolynomial;
   const F, P: TCnBigNumberPolynomial): Boolean;
+var
+  I: Integer;
+  R, X, T: TCnBigNumberPolynomial;
 begin
+  if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
+  begin
+    Res.SetOne;
+    BigNumberCopy(Res[0], F[0]);
+    Result := True;
+    Exit;
+  end;
 
+  if (Res = F) or (Res = P) then
+    R := FLocalBigNumberPolynomialPool.Obtain
+  else
+    R := Res;
+
+  X := FLocalBigNumberPolynomialPool.Obtain;
+  T := FLocalBigNumberPolynomialPool.Obtain;
+
+  try
+    X.SetOne;
+    R.SetZero;
+
+    // 把 F 中的每个系数都和 P 的对应次幂相乘，最后相加
+    for I := 0 to F.MaxDegree do
+    begin
+      BigNumberPolynomialCopy(T, X);
+      BigNumberPolynomialMulBigNumber(T, F[I]);
+      BigNumberPolynomialAdd(R, R, T);
+
+      if I <> F.MaxDegree then
+        BigNumberPolynomialMul(X, X, P);
+    end;
+
+    if (Res = F) or (Res = P) then
+    begin
+      BigNumberPolynomialCopy(Res, R);
+      FLocalBigNumberPolynomialPool.Recycle(R);
+    end;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(X);
+    FLocalBigNumberPolynomialPool.Recycle(T);
+  end;
+  Result := True;
 end;
 
-function BigNumberPolynomialGetValue(Res: TCnBigNumber; F: TCnBigNumberPolynomial;
-  X: TCnBigNumber): Boolean;
+procedure BigNumberPolynomialGetValue(Res: TCnBigNumber; F: TCnBigNumberPolynomial;
+  X: TCnBigNumber);
+var
+  I: Integer;
+  T, M: TCnBigNumber;
 begin
+  BigNumberCopy(Res, F[0]);
+  if X.IsZero or (F.MaxDegree = 0) then    // 只有常数项的情况下，得常数项
+    Exit;
 
+  T := FLocalBigNumberPool.Obtain;
+  M := FLocalBigNumberPool.Obtain;
+
+  try
+    BigNumberCopy(T, X);
+
+    // 把 F 中的每个系数都和 X 的对应次幂相乘，最后相加
+    for I := 1 to F.MaxDegree do
+    begin
+      BigNumberMul(M, F[I], T);
+      BigNumberAdd(Res, Res, M);
+
+      if I <> F.MaxDegree then
+        BigNumberMul(T, T, X);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(M);
+  end;
 end;
 
 procedure BigNumberPolynomialReduce2(P1, P2: TCnBigNumberPolynomial);
+var
+  D: TCnBigNumberPolynomial;
 begin
+  if P1 = P2 then
+  begin
+    P1.SetOne;
+    Exit;
+  end;
 
+  D := FLocalBigNumberPolynomialPool.Obtain;
+  try
+    if not BigNumberPolynomialGreatestCommonDivisor(D, P1, P2) then
+      Exit;
+
+    if not D.IsOne then
+    begin
+      BigNumberPolynomialDiv(P1, nil, P1, D);
+      BigNumberPolynomialDiv(P1, nil, P1, D);
+    end;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(D);
+  end;
 end;
 
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
-function BigNumberPolynomialGaloisEqual(const A, B: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+function BigNumberPolynomialGaloisEqual(const A, B: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  T1, T2: TCnBigNumber;
 begin
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
 
+  Result := A.MaxDegree = B.MaxDegree;
+  if Result then
+  begin
+    T1 := FLocalBigNumberPool.Obtain;
+    T2 := FLocalBigNumberPool.Obtain;
+
+    try
+      for I := A.MaxDegree downto 0 do
+      begin
+        if BigNumberEqual(A[I], B[I]) then
+          Continue;
+
+        // 不相等则判断余数
+        BigNumberNonNegativeMod(T1, A[I], Prime);
+        BigNumberNonNegativeMod(T2, B[I], Prime);
+
+        if not BigNumberEqual(T1, T2) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    finally
+      FLocalBigNumberPool.Recycle(T2);
+      FLocalBigNumberPool.Recycle(T1);
+    end;
+  end;
 end;
 
-procedure BigNumberPolynomialGaloisNegate(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
+procedure BigNumberPolynomialGaloisNegate(const P: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber);
+var
+  I: Integer;
 begin
-
+  for I := 0 to P.MaxDegree do
+  begin
+    P[I].Negate;
+    BigNumberNonNegativeMod(P[I], P[I], Prime);
+  end;
 end;
 
-function BigNumberPolynomialGaloisAdd(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
-  const P2: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisAdd(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 begin
-
+  Result := BigNumberPolynomialAdd(Res, P1, P2);
+  if Result then
+  begin
+    BigNumberPolynomialNonNegativeModBigNumber(Res, Prime);
+    if Primitive <> nil then
+      BigNumberPolynomialGaloisMod(Res, Res, Primitive, Prime);
+  end;
 end;
 
-function BigNumberPolynomialGaloisSub(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
-  const P2: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisSub(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 begin
-
+  Result := BigNumberPolynomialSub(Res, P1, P2);
+  if Result then
+  begin
+    BigNumberPolynomialNonNegativeModBigNumber(Res, Prime);
+    if Primitive <> nil then
+      BigNumberPolynomialGaloisMod(Res, Res, Primitive, Prime);
+  end;
 end;
 
-function BigNumberPolynomialGaloisMul(const Res: TCnBigNumberPolynomial; P1: TCnBigNumberPolynomial;
-  P2: TCnBigNumberPolynomial; Prime: Int64; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisMul(const Res: TCnBigNumberPolynomial;
+  const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+var
+  R: TCnBigNumberPolynomial;
+  T: TCnBigNumber;
+  I, J: Integer;
 begin
+  if BigNumberPolynomialIsZero(P1) or BigNumberPolynomialIsZero(P2) then
+  begin
+    BigNumberPolynomialSetZero(Res);
+    Result := True;
+    Exit;
+  end;
 
+  T := FLocalBigNumberPool.Obtain;
+  if (Res = P1) or (Res = P2) then
+    R := FLocalBigNumberPolynomialPool.Obtain
+  else
+    R := Res;
+
+  R.Clear;
+  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+
+  for I := 0 to P1.MaxDegree do
+  begin
+    // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
+    for J := 0 to P2.MaxDegree do
+    begin
+      BigNumberMul(T, P1[I], P2[J]);
+      BigNumberAdd(R[I + J], R[I + J], T);
+      BigNumberNonNegativeMod(R[I + J], R[I + J], Prime);
+    end;
+  end;
+
+  R.CorrectTop;
+
+  // 再对本原多项式取模，注意这里传入的本原多项式是 mod 操作的除数，不是本原多项式参数
+  if Primitive <> nil then
+    BigNumberPolynomialGaloisMod(R, R, Primitive, Prime);
+
+  if (Res = P1) or (Res = P2) then
+  begin
+    BigNumberPolynomialCopy(Res, R);
+    FLocalBigNumberPolynomialPool.Recycle(R);
+  end;
+  FLocalBigNumberPool.Recycle(T);
+  Result := True;
 end;
 
 function BigNumberPolynomialGaloisDiv(const Res: TCnBigNumberPolynomial;
   const Remain: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
-  const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+  const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber;
+  Primitive: TCnBigNumberPolynomial = nil): Boolean;
+var
+  SubRes: TCnBigNumberPolynomial; // 容纳递减差
+  MulRes: TCnBigNumberPolynomial; // 容纳除数乘积
+  DivRes: TCnBigNumberPolynomial; // 容纳临时商
+  I, D: Integer;
+  K, T: TCnBigNumber;
 begin
+  if BigNumberPolynomialIsZero(Divisor) then
+    raise ECnPolynomialException.Create(SDivByZero);
 
+  if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
+  begin
+    if Res <> nil then
+      BigNumberPolynomialSetZero(Res);
+    if (Remain <> nil) and (P <> Remain) then
+      BigNumberPolynomialCopy(Remain, P);
+    Result := True;
+    Exit;
+  end;
+
+  // 够除，循环
+  SubRes := nil;
+  MulRes := nil;
+  DivRes := nil;
+  T := nil;
+  K := nil;
+
+  try
+    T := FLocalBigNumberPool.Obtain;
+    SubRes := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialCopy(SubRes, P);
+
+    D := P.MaxDegree - Divisor.MaxDegree;
+    DivRes := FLocalBigNumberPolynomialPool.Obtain;
+    DivRes.MaxDegree := D;
+    MulRes := FLocalBigNumberPolynomialPool.Obtain;
+
+    K := FLocalBigNumberPool.Obtain;
+    if Divisor[Divisor.MaxDegree].IsOne then
+      K.SetOne
+    else
+      BigNumberModularInverse(K, Divisor[Divisor.MaxDegree], Prime);
+
+    for I := 0 to D do
+    begin
+      if P.MaxDegree - I > SubRes.MaxDegree then               // 中间结果可能跳位
+        Continue;
+      BigNumberPolynomialCopy(MulRes, Divisor);
+      BigNumberPolynomialShiftLeft(MulRes, D - I);             // 对齐到 SubRes 的最高次
+
+      // 除式要乘一个数，这个数是 SubRes 最高位除以除式最高位得到的结果，也即 SubRes 最高位乘以除式最高位的逆元再 mod Prime
+      BigNumberDirectMulMod(T, SubRes[P.MaxDegree - I], K, Prime);
+      BigNumberPolynomialGaloisMulBigNumber(MulRes, T, Prime);          // 除式乘到最高次系数相同
+
+      BigNumberCopy(DivRes[D - I], T);                             // 对应位的商放到 DivRes 位置
+      BigNumberPolynomialGaloisSub(SubRes, SubRes, MulRes, Prime); // 减求模后结果重新放回 SubRes
+    end;
+
+    // 商与余式都需要再模本原多项式
+    if Primitive <> nil then
+    begin
+      BigNumberPolynomialGaloisMod(SubRes, SubRes, Primitive, Prime);
+      BigNumberPolynomialGaloisMod(DivRes, DivRes, Primitive, Prime);
+    end;
+
+    if Remain <> nil then
+      BigNumberPolynomialCopy(Remain, SubRes);
+    if Res <> nil then
+      BigNumberPolynomialCopy(Res, DivRes);
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(SubRes);
+    FLocalBigNumberPolynomialPool.Recycle(MulRes);
+    FLocalBigNumberPolynomialPool.Recycle(DivRes);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(K);
+  end;
 end;
 
-function BigNumberPolynomialGaloisMod(const Res: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
-  const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisMod(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
 begin
-
+  Result := BigNumberPolynomialGaloisDiv(nil, Res, P, Divisor, Prime, Primitive);
 end;
 
-function BigNumberPolynomialGaloisPower(const Res, P: TCnBigNumberPolynomial;
-  Exponent: TCnBigNumber; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberPolynomial; Exponent: TCnBigNumber;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
+var
+  T: TCnBigNumberPolynomial;
+  E: TCnBigNumber;
 begin
+  if Exponent.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsOne then
+  begin
+    if Res <> P then
+      BigNumberPolynomialCopy(Res, P);
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsNegative then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
 
+  T := FLocalBigNumberPolynomialPool.Obtain;
+  BigNumberPolynomialCopy(T, P);
+  E := TCnBigNumber.Create;
+  BigNumberCopy(E, Exponent);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while not E.IsNegative and not E.IsZero do
+    begin
+      if BigNumberIsBitSet(E, 0) then
+        BigNumberPolynomialGaloisMul(Res, Res, T, Prime, Primitive);
+
+      BigNumberShiftRightOne(E, E);
+      BigNumberPolynomialGaloisMul(T, T, T, Prime, Primitive);
+    end;
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(E);
+    FLocalBigNumberPolynomialPool.Recycle(T);
+  end;
 end;
 
 function BigNumberPolynomialGaloisAddWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
 begin
-
+  if N <> 0 then
+  begin
+    BigNumberAddWord(P[0], N);
+    BigNumberNonNegativeMod(P[0], P[0], Prime);
+  end;
+  Result := True;
 end;
 
 function BigNumberPolynomialGaloisSubWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
 begin
-
+  if N <> 0 then
+  begin
+    BigNumberSubWord(P[0], N);
+    BigNumberNonNegativeMod(P[0], P[0], Prime);
+  end;
+  Result := True;
 end;
 
 function BigNumberPolynomialGaloisMulWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
+var
+  I: Integer;
 begin
-
+  if N = 0 then
+  begin
+    BigNumberPolynomialSetZero(P);
+  end
+  else if N <> 1 then
+  begin
+    for I := 0 to P.MaxDegree do
+    begin
+      BigNumberMulWord(P[I], N);
+      BigNumberNonNegativeMod(P[I], P[I], Prime);
+    end;
+  end;
+  Result := True;
 end;
 
 function BigNumberPolynomialGaloisDivWord(const P: TCnBigNumberPolynomial;
-  N: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+  N: LongWord; Prime: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  K, T: TCnBigNumber;
 begin
+  if N = 0 then
+    raise ECnPolynomialException.Create(SDivByZero);
 
+  K := nil;
+  T := nil;
+
+  try
+    K := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
+    T.SetWord(N);
+
+    BigNumberModularInverse(K, T, Prime);
+    for I := 0 to P.MaxDegree do
+    begin
+      BigNumberMul(P[I], P[I], T);
+      BigNumberNonNegativeMod(P[I], P[I], Prime);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(K);
+    FLocalBigNumberPool.Recycle(T);
+  end;
+  Result := True;
 end;
 
-function BigNumberPolynomialGaloisMonic(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber): Integer;
+procedure BigNumberPolynomialGaloisAddBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
 begin
+  BigNumberAdd(P[0], P[0], N);
+  BigNumberNonNegativeMod(P[0], P[0], Prime);
+end;
 
+procedure BigNumberPolynomialGaloisSubBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+begin
+  BigNumberSub(P[0], P[0], N);
+  BigNumberNonNegativeMod(P[0], P[0], Prime);
+end;
+
+procedure BigNumberPolynomialGaloisMulBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+var
+  I: Integer;
+begin
+  if N.IsZero then
+    BigNumberPolynomialSetZero(P)
+  else if not N.IsOne then
+  begin
+    for I := 0 to P.MaxDegree do
+    begin
+      BigNumberMul(P[I], P[I], N);
+      BigNumberNonNegativeMod(P[0], P[0], Prime);
+    end;
+  end;
+end;
+
+procedure BigNumberPolynomialGaloisDivBigNumber(const P: TCnBigNumberPolynomial;
+  N: TCnBigNumber; Prime: TCnBigNumber);
+var
+  I: Integer;
+  K: TCnBigNumber;
+  B: Boolean;
+begin
+  if N.IsZero then
+    raise ECnPolynomialException.Create(SDivByZero);
+
+  B := N.IsNegative;
+  if B then
+    N.Negate;
+
+  K := FLocalBigNumberPool.Obtain;
+  try
+    BigNumberModularInverse(K, N, Prime);
+
+    for I := 0 to P.MaxDegree do
+    begin
+      BigNumberMul(P[I], P[I], K);
+      BigNumberNonNegativeMod(P[I], P[I], Prime);
+
+      if B then
+        BigNumberSub(P[I], Prime, P[I]);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(K);
+    if B then
+      N.Negate;
+  end;
+end;
+
+procedure BigNumberPolynomialGaloisMonic(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
+begin
+  if not P[P.MaxDegree].IsZero and not P[P.MaxDegree].IsOne then
+    BigNumberPolynomialGaloisDivBigNumber(P, P[P.MaxDegree], Prime);
 end;
 
 function BigNumberPolynomialGaloisGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
@@ -3612,6 +4635,7 @@ end;
 initialization
   FLocalInt64PolynomialPool := TCnInt64PolynomialPool.Create;
   FLocalBigNumberPolynomialPool := TCnBigNumberPolynomialPool.Create;
+  FLocalBigNumberPool := TCnBigNumberPool.Create;
 
   CnInt64PolynomialOne := TCnInt64Polynomial.Create([1]);
   CnInt64PolynomialZero := TCnInt64Polynomial.Create([0]);
@@ -3630,5 +4654,6 @@ finalization
 
   FLocalInt64PolynomialPool.Free;
   FLocalBigNumberPolynomialPool.Free;
+  FLocalBigNumberPool.Free;
 
 end.

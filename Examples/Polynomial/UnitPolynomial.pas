@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, Contnrs, CnPolynomial, CnECC;
+  StdCtrls, ComCtrls, ExtCtrls, Contnrs, CnPolynomial, CnECC, CnBigNumber;
 
 type
   TFormPolynomial = class(TForm)
@@ -89,6 +89,25 @@ type
     btnTestHugeDiv: TButton;
     btnTestHugeDiv2: TButton;
     btnTestHugeDiv3: TButton;
+    btnTestPowerMod: TButton;
+    tsBNPolynomial: TTabSheet;
+    grpBNPolynomial: TGroupBox;
+    btnBNPToString: TButton;
+    edtBNPolynomial: TEdit;
+    mmoBP1: TMemo;
+    mmoBP2: TMemo;
+    btnBPAdd: TButton;
+    btnBPSub: TButton;
+    btnBPMul: TButton;
+    btnBPDivMod: TButton;
+    lblBPEqual: TLabel;
+    edtBP3: TEdit;
+    lblBP1Deg: TLabel;
+    edtBP2Deg: TEdit;
+    btnBP1Rand: TButton;
+    lblBP2Deg: TLabel;
+    edtBP1Deg: TEdit;
+    btnBP2Rand: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -138,6 +157,14 @@ type
     procedure btnTestHugeDivClick(Sender: TObject);
     procedure btnTestHugeDiv2Click(Sender: TObject);
     procedure btnTestHugeDiv3Click(Sender: TObject);
+    procedure btnTestPowerModClick(Sender: TObject);
+    procedure btnBNPToStringClick(Sender: TObject);
+    procedure btnBP2RandClick(Sender: TObject);
+    procedure btnBP1RandClick(Sender: TObject);
+    procedure btnBPAddClick(Sender: TObject);
+    procedure btnBPSubClick(Sender: TObject);
+    procedure btnBPMulClick(Sender: TObject);
+    procedure btnBPDivModClick(Sender: TObject);
   private
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
@@ -145,6 +172,9 @@ type
     FRP1: TCnInt64RationalPolynomial;
     FRP2: TCnInt64RationalPolynomial;
     FRP3: TCnInt64RationalPolynomial;
+    FBP1: TCnBigNumberPolynomial;
+    FBP2: TCnBigNumberPolynomial;
+    FBP3: TCnBigNumberPolynomial;
   public
     { Public declarations }
   end;
@@ -165,10 +195,18 @@ begin
   FRP1 := TCnInt64RationalPolynomial.Create;
   FRP2 := TCnInt64RationalPolynomial.Create;
   FRP3 := TCnInt64RationalPolynomial.Create;
+
+  FBP1 := TCnBigNumberPolynomial.Create;
+  FBP2 := TCnBigNumberPolynomial.Create;
+  FBP3 := TCnBigNumberPolynomial.Create;
 end;
 
 procedure TFormPolynomial.FormDestroy(Sender: TObject);
 begin
+  FBP1.Free;
+  FBP2.Free;
+  FBP3.Free;
+
   FRP1.Free;
   FRP2.Free;
   FRP3.Free;
@@ -1610,6 +1648,125 @@ begin
 
   B.Free;
   A.Free;
+end;
+
+procedure TFormPolynomial.btnTestPowerModClick(Sender: TObject);
+var
+  LDP, P1, P2: TCnInt64Polynomial;
+  Q: Int64;
+begin
+  Q := 13;
+
+  LDP := TCnInt64Polynomial.Create;
+  P1 := TCnInt64Polynomial.Create;
+  P2 := TCnInt64Polynomial.Create;
+
+  P1.SetCoefficents([0, 1]); // x
+  P2.SetCoefficents([0, 1]); // x
+
+  Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 3, LDP, Q);
+  ShowMessage(LDP.ToString);
+
+  Int64PolynomialGaloisPower(P1, P1, Q * Q, Q, LDP);
+  ShowMessage(P1.ToString);
+
+  Int64PolynomialGaloisPower(P2, P2, Q, Q, LDP);
+  Int64PolynomialGaloisPower(P2, P2, Q, Q, LDP);
+  ShowMessage(P2.ToString);
+
+  P2.Free;
+  P1.Free;
+  LDP.Free;
+end;
+
+procedure TFormPolynomial.btnBNPToStringClick(Sender: TObject);
+var
+  BP: TCnBigNumberPolynomial;
+begin
+  BP := TCnBigNumberPolynomial.Create([23, 4, -45, 6, -78, 23, 34, 1, 0, -34, 4]);
+  edtBNPolynomial.Text := BP.ToString;
+  BP.Free;
+end;
+
+procedure TFormPolynomial.btnBP2RandClick(Sender: TObject);
+var
+  I, D: Integer;
+  T: TCnBigNumber;
+begin
+  D := StrToIntDef(edtBP1Deg.Text, 10);
+  FBP1.Clear;
+  Randomize;
+  for I := 0 to D do
+  begin
+    T := TCnBigNumber.Create;
+    T.SetDec(IntToStr(Random(256000) - 128000));
+    FBP1.Add(T);
+  end;
+  mmoBP1.Lines.Text := FBP1.ToString;
+end;
+
+procedure TFormPolynomial.btnBP1RandClick(Sender: TObject);
+var
+  I, D: Integer;
+  T: TCnBigNumber;
+begin
+  D := StrToIntDef(edtBP2Deg.Text, 10);
+  FBP2.Clear;
+  Randomize;
+  for I := 0 to D do
+  begin
+    T := TCnBigNumber.Create;
+    T.SetDec(IntToStr(Random(256000) - 128000));
+    FBP2.Add(T);
+  end;
+  mmoBP2.Lines.Text := FBP2.ToString;
+
+end;
+
+procedure TFormPolynomial.btnBPAddClick(Sender: TObject);
+begin
+  if BigNumberPolynomialAdd(FBP3, FBP1, FBP2) then
+    edtBP3.Text := BigNumberPolynomialToString(FBP3);
+end;
+
+procedure TFormPolynomial.btnBPSubClick(Sender: TObject);
+begin
+  if BigNumberPolynomialSub(FBP3, FBP1, FBP2) then
+    edtBP3.Text := BigNumberPolynomialToString(FBP3);
+end;
+
+procedure TFormPolynomial.btnBPMulClick(Sender: TObject);
+begin
+  if BigNumberPolynomialMul(FBP3, FBP1, FBP2) then
+    edtBP3.Text := BigNumberPolynomialToString(FBP3);
+end;
+
+procedure TFormPolynomial.btnBPDivModClick(Sender: TObject);
+var
+  R: TCnBigNumberPolynomial;
+begin
+  R := TCnBigNumberPolynomial.Create;
+
+  if not FBP2[FBP2.MaxDegree].IsOne then
+  begin
+    ShowMessage('Divisor MaxDegree only Support 1, change to 1');
+    FBP2[FBP2.MaxDegree].SetOne;
+    mmoBP2.Lines.Text := FBP2.ToString;
+  end;
+
+  if BigNumberPolynomialDiv(FBP3, R, FBP1, FBP2) then
+  begin
+    edtBP3.Text := FBP3.ToString;
+    ShowMessage('Remain: ' + R.ToString);
+  end;
+
+  // бщЫу FIP3 * FIP2 + R
+  BigNumberPolynomialMul(FBP3, FBP3, FBP2);
+  BigNumberPolynomialAdd(FBP3, FBP3, R);
+  ShowMessage(FBP3.ToString);
+  if mmoBP1.Lines.Text = FBP3.ToString then
+    ShowMessage('Equal Verified OK.');
+  R.Free;
 end;
 
 end.
