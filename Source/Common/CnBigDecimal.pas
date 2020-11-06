@@ -43,7 +43,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, SysConst, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF},
-  CnNativeDecl, CnFloatConvert, CnBigNumber;
+  CnNativeDecl, CnFloatConvert, CnContainers, CnBigNumber;
 
 {$DEFINE MULTI_THREAD} // 大浮点数池支持多线程，性能略有下降，如不需要，注释此行即可
 
@@ -123,20 +123,9 @@ type
 
   TCnBigDecimalPool = class(TObjectList)
   {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
-  private
-{$IFDEF MULTI_THREAD}
-  {$IFDEF MSWINDOWS}
-    FCriticalSection: TRTLCriticalSection;
-  {$ELSE}
-    FCriticalSection: TCriticalSection;
-  {$ENDIF}
-{$ENDIF}
-    procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  protected
+    function CreateObject: TObject; override;
   public
-    constructor Create;
-    destructor Destroy; override;
-
     function Obtain: TCnBigDecimal;
     procedure Recycle(Num: TCnBigDecimal);
   end;
@@ -199,24 +188,13 @@ type
     property DebugDump: string read GetDebugDump;
   end;
 
-  TCnBigBinaryPool = class(TObjectList)
+  TCnBigBinaryPool = class(TCnMathObjectPool)
   {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
-  private
-{$IFDEF MULTI_THREAD}
-  {$IFDEF MSWINDOWS}
-    FCriticalSection: TRTLCriticalSection;
-  {$ELSE}
-    FCriticalSection: TCriticalSection;
-  {$ENDIF}
-{$ENDIF}
-    procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  protected
+    function CreateObject: TObject; override;
   public
-    constructor Create;
-    destructor Destroy; override;
-
-    function Obtain: TCnBigBinary;
-    procedure Recycle(Num: TCnBigBinary);
+    function Obtain: TCnBigBinary; reintroduce;
+    procedure Recycle(Num: TCnBigBinary); reintroduce;
   end;
 
 // ======================== 大浮点数操作函数 ===================================
@@ -1523,80 +1501,20 @@ end;
 
 { TCnBigDecimalPool }
 
-constructor TCnBigDecimalPool.Create;
+function TCnBigDecimalPool.CreateObject: TObject;
 begin
-  inherited Create(False);
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  InitializeCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection := TCriticalSection.Create;
-{$ENDIF}
-{$ENDIF}
-end;
-
-destructor TCnBigDecimalPool.Destroy;
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do
-    TObject(Items[I]).Free;
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  DeleteCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Free;
-{$ENDIF}
-{$ENDIF}
-  inherited;
-end;
-
-procedure TCnBigDecimalPool.Enter;
-begin
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  EnterCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Acquire;
-{$ENDIF}
-{$ENDIF}
-end;
-
-procedure TCnBigDecimalPool.Leave;
-begin
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  LeaveCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Release;
-{$ENDIF}
-{$ENDIF}
+  Result := TCnBigDecimal.Create;
 end;
 
 function TCnBigDecimalPool.Obtain: TCnBigDecimal;
 begin
-  Enter;
-  if Count = 0 then
-  begin
-    Result := TCnBigDecimal.Create
-  end
-  else
-  begin
-    Result := TCnBigDecimal(Items[Count - 1]);
-    Delete(Count - 1);
-  end;
-  Leave;
+  Result := TCnBigDecimal(inherited Obtain);
   Result.SetZero;
 end;
 
 procedure TCnBigDecimalPool.Recycle(Num: TCnBigDecimal);
 begin
-  if Num <> nil then
-  begin
-    Enter;
-    Add(Num);
-    Leave;
-  end;
+  inherited Recycle(Num);
 end;
 
 procedure BigBinaryClear(const Num: TCnBigBinary);
@@ -2612,81 +2530,20 @@ end;
 
 { TCnBigBinaryPool }
 
-constructor TCnBigBinaryPool.Create;
+function TCnBigBinaryPool.CreateObject: TObject;
 begin
-  inherited Create(False);
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  InitializeCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection := TCriticalSection.Create;
-{$ENDIF}
-{$ENDIF}
-end;
-
-destructor TCnBigBinaryPool.Destroy;
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do
-    TObject(Items[I]).Free;
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  DeleteCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Free;
-{$ENDIF}
-{$ENDIF}
-  inherited;
-end;
-
-procedure TCnBigBinaryPool.Enter;
-begin
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  EnterCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Acquire;
-{$ENDIF}
-{$ENDIF}
-
-end;
-
-procedure TCnBigBinaryPool.Leave;
-begin
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  LeaveCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Release;
-{$ENDIF}
-{$ENDIF}
+  Result := TCnBigBinary.Create;
 end;
 
 function TCnBigBinaryPool.Obtain: TCnBigBinary;
 begin
-  Enter;
-  if Count = 0 then
-  begin
-    Result := TCnBigBinary.Create
-  end
-  else
-  begin
-    Result := TCnBigBinary(Items[Count - 1]);
-    Delete(Count - 1);
-  end;
-  Leave;
+  Result := TCnBigBinary(inherited Obtain);
   Result.SetZero;
 end;
 
 procedure TCnBigBinaryPool.Recycle(Num: TCnBigBinary);
 begin
-  if Num <> nil then
-  begin
-    Enter;
-    Add(Num);
-    Leave;
-  end;
+  inherited Recycle(Num);
 end;
 
 initialization
