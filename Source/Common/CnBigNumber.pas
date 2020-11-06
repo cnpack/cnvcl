@@ -55,9 +55,7 @@ interface
 
 uses
   Classes, SysUtils, Math, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
-  Contnrs, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
-
-{$DEFINE MULTI_THREAD} // 大数池支持多线程，性能略有下降，如不需要，注释此行即可
+  Contnrs, CnContainers, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
   BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
@@ -109,7 +107,7 @@ type
     Neg: Integer;       // 1 为负，0 为正
     Flags: Integer;
 
-    constructor Create;
+    constructor Create; virtual;
     destructor Destroy; override;
 
     procedure Init;
@@ -285,24 +283,13 @@ type
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
   end;
 
-  TCnBigNumberPool = class(TObjectList)
+  TCnBigNumberPool = class(TCnMathObjectPool)
   {* 大数池实现类，允许使用到大数的地方自行创建大数池}
-  private
-{$IFDEF MULTI_THREAD}
-  {$IFDEF MSWINDOWS}
-    FCriticalSection: TRTLCriticalSection;
-  {$ELSE}
-    FCriticalSection: TCriticalSection;
-  {$ENDIF}
-{$ENDIF}
-    procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  protected
+    function CreateObject: TObject; override;
   public
-    constructor Create;
-    destructor Destroy; override;
-
-    function Obtain: TCnBigNumber;
-    procedure Recycle(Num: TCnBigNumber);
+    function Obtain: TCnBigNumber; reintroduce;
+    procedure Recycle(Num: TCnBigNumber); reintroduce;
   end;
 
 function BigNumberNew: TCnBigNumber;
@@ -5327,90 +5314,20 @@ end;
 
 { TCnBigNumberPool }
 
-constructor TCnBigNumberPool.Create;
+function TCnBigNumberPool.CreateObject: TObject;
 begin
-  inherited Create(False);
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  InitializeCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection := TCriticalSection.Create;
-{$ENDIF}
-{$ENDIF}
-end;
-
-destructor TCnBigNumberPool.Destroy;
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do
-  begin
-{$IFDEF DEBUG}
-    TCnBigNumber(Items[I]).FIsFromPool := False;
-{$ENDIF}
-    TObject(Items[I]).Free;
-  end;
-
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  DeleteCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Free;
-{$ENDIF}
-{$ENDIF}
-  inherited;
-end;
-
-procedure TCnBigNumberPool.Enter;
-begin
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  EnterCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Acquire;
-{$ENDIF}
-{$ENDIF}
-end;
-
-procedure TCnBigNumberPool.Leave;
-begin
-{$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  LeaveCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Release;
-{$ENDIF}
-{$ENDIF}
+  Result := TCnBigNumber.Create;
 end;
 
 function TCnBigNumberPool.Obtain: TCnBigNumber;
 begin
-  Enter;
-  if Count = 0 then
-  begin
-    Result := TCnBigNumber.Create;
-{$IFDEF DEBUG}
-    Result.FIsFromPool := True;
-{$ENDIF}
-  end
-  else
-  begin
-    Result := TCnBigNumber(Items[Count - 1]);
-    Delete(Count - 1);
-  end;
-  Leave;
-
+  Result := TCnBigNumber(inherited Obtain);
   Result.Clear;
 end;
 
 procedure TCnBigNumberPool.Recycle(Num: TCnBigNumber);
 begin
-  if Num <> nil then
-  begin
-    Enter;
-    Add(Num);
-    Leave;
-  end;
+  inherited Recycle(Num);
 end;
 
 initialization
