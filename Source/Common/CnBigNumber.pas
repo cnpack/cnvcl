@@ -525,6 +525,11 @@ function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
 {* 两大数对象非负求余，Num mod Divisor，余数放 Remain 中，0 <= Remain < |Divisor|
    Remain 始终大于零，返回求余计算是否成功}
 
+function BigNumberMulWordNonNegativeMod(const Res: TCnBigNumber;
+  const Num: TCnBigNumber; N: Integer; const Divisor: TCnBigNumber): Boolean;
+{* 大数对象乘以 32位有符号整型再非负求余，余数放 Res 中，0 <= Remain < |Divisor|
+   Res 始终大于零，返回求余计算是否成功}
+
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
   Exponent: LongWord): Boolean;
 {* 求大数的整数次方，返回计算是否成功，Res 可以是 Num}
@@ -551,7 +556,7 @@ function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): 
 
 function BigNumberDirectMulMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
-  注意：位数较少时，该方法比上面的 BigNumberMulMod 方法要快不少，其余同上}
+  注意：位数较少时，该方法比上面的 BigNumberMulMod 方法要快不少，另外内部执行的是 NonNegativeMod，余数为正}
 
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
@@ -600,6 +605,10 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
 
 procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
+
+procedure BigNumberModularInverseWord(const Res: TCnBigNumber; X: Integer; Modulus: TCnBigNumber);
+{* 求 32 位有符号数 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
 
 function BigNumberLegendre(A, P: TCnBigNumber): Integer;
@@ -3387,6 +3396,20 @@ begin
     Result := BigNumberAdd(Remain, Remain, Divisor);
 end;
 
+function BigNumberMulWordNonNegativeMod(const Res: TCnBigNumber;
+  const Num: TCnBigNumber; N: Integer; const Divisor: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  T := FLocalBigNumberPool.Obtain;
+  try
+    T.SetInteger(N);
+    Result := BigNumberDirectMulMod(Res, Num, T, Divisor);
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
   Exponent: LongWord): Boolean;
 var
@@ -4395,6 +4418,20 @@ begin
   finally
     FLocalBigNumberPool.Recycle(X1);
     FLocalBigNumberPool.Recycle(Y);
+  end;
+end;
+
+procedure BigNumberModularInverseWord(const Res: TCnBigNumber; X: Integer;
+  Modulus: TCnBigNumber);
+var
+  T: TCnBigNumber;
+begin
+  T := FLocalBigNumberPool.Obtain;
+  try
+    T.SetInteger(X);
+    BigNumberModularInverse(Res, T, Modulus);
+  finally
+    FLocalBigNumberPool.Recycle(T);
   end;
 end;
 
