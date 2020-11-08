@@ -162,7 +162,6 @@ type
   TCnMathObjectPool = class(TObjectList)
   {* 数学对象池实现类，允许使用到数学对象池的地方自行继承并创建池}
   private
-    FObjectClass: TClass;
 {$IFDEF MULTI_THREAD}
   {$IFDEF MSWINDOWS}
     FCriticalSection: TRTLCriticalSection;
@@ -173,7 +172,7 @@ type
     procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   protected
-    function CreateObject: TObject; virtual;
+    function CreateObject: TObject; virtual; abstract;
     {* 子类必须重载的创建具体对象的方法}
   public
     constructor Create; reintroduce;
@@ -478,11 +477,6 @@ begin
   FCriticalSection := TCriticalSection.Create;
 {$ENDIF}
 {$ENDIF}
-end;
-
-function TCnMathObjectPool.CreateObject: TObject;
-begin
-  Result := TObject.Create;
 end;
 
 destructor TCnMathObjectPool.Destroy;
