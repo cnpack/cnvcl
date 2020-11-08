@@ -108,6 +108,26 @@ type
     lblBP2Deg: TLabel;
     edtBP1Deg: TEdit;
     btnBP2Rand: TButton;
+    btnBNTestExample1: TButton;
+    btnBNTestExample2: TButton;
+    btnBNTestExample3: TButton;
+    btnBNTestExample4: TButton;
+    btnBNGaloisTestGcd: TButton;
+    btnBNTestGaloisMI: TButton;
+    btnBNPolyGcd: TButton;
+    btnBNGF28Test1: TButton;
+    btnBNTestGaloisDiv: TButton;
+    btnBNTestGaloisCalc: TButton;
+    btnBNTestHugeDiv1: TButton;
+    btnBNTestHugeDiv2: TButton;
+    btnBNTestHugeDiv3: TButton;
+    btnBNTestPowerMod: TButton;
+    btnBNTestGaloisDivTime: TButton;
+    bvl5: TBevel;
+    tsBNEccOnGalois: TTabSheet;
+    grp1: TGroupBox;
+    btnBNTestMI1: TButton;
+    btnBNTestEuclid2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -165,7 +185,25 @@ type
     procedure btnBPSubClick(Sender: TObject);
     procedure btnBPMulClick(Sender: TObject);
     procedure btnBPDivModClick(Sender: TObject);
+    procedure btnBNTestExample1Click(Sender: TObject);
+    procedure btnBNTestExample2Click(Sender: TObject);
+    procedure btnBNTestExample3Click(Sender: TObject);
+    procedure btnBNTestExample4Click(Sender: TObject);
+    procedure btnBNGaloisTestGcdClick(Sender: TObject);
+    procedure btnBNTestGaloisMIClick(Sender: TObject);
+    procedure btnBNGF28Test1Click(Sender: TObject);
+    procedure btnBNPolyGcdClick(Sender: TObject);
+    procedure btnBNTestGaloisDivClick(Sender: TObject);
+    procedure btnBNTestGaloisCalcClick(Sender: TObject);
+    procedure btnBNTestHugeDiv1Click(Sender: TObject);
+    procedure btnBNTestHugeDiv2Click(Sender: TObject);
+    procedure btnBNTestHugeDiv3Click(Sender: TObject);
+    procedure btnBNTestPowerModClick(Sender: TObject);
+    procedure btnBNTestGaloisDivTimeClick(Sender: TObject);
+    procedure btnBNTestMI1Click(Sender: TObject);
+    procedure btnBNTestEuclid2Click(Sender: TObject);
   private
+    FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
     FIP2: TCnInt64Polynomial;
     FIP3: TCnInt64Polynomial;
@@ -188,6 +226,8 @@ implementation
 
 procedure TFormPolynomial.FormCreate(Sender: TObject);
 begin
+  FQ := TCnBigNumber.Create;
+
   FIP1 := TCnInt64Polynomial.Create;
   FIP2 := TCnInt64Polynomial.Create;
   FIP3 := TCnInt64Polynomial.Create;
@@ -214,6 +254,8 @@ begin
   FIP1.Free;
   FIP2.Free;
   FIP3.Free;
+
+  FQ.Free;
 end;
 
 procedure TFormPolynomial.btnIPCreateClick(Sender: TObject);
@@ -336,9 +378,8 @@ begin
     X.SetCoefficents([16, 2]);
     Int64PolynomialGaloisPower(X, X, 3, 67, P);  // 得到 54X + 18
 
-
-    Int64PolynomialSub(Y, Y, X);
-    Int64PolynomialMod(Y, Y, P);    // 算出 0
+    Int64PolynomialGaloisSub(Y, Y, X, 67);
+    Int64PolynomialGaloisMod(Y, Y, P, 67);    // 算出 0
     ShowMessage(Y.ToString);
   finally
     P.Free;
@@ -376,8 +417,8 @@ begin
     X.SetCoefficents([6145, 633]);
     Int64PolynomialGaloisPower(X, X, 3, 7691, P);
 
-    Int64PolynomialSub(Y, Y, X);
-    Int64PolynomialMod(Y, Y, P);    // 算出 0
+    Int64PolynomialGaloisSub(Y, Y, X, 7691);
+    Int64PolynomialGaloisMod(Y, Y, P, 7691);    // 算出 0
     ShowMessage(Y.ToString);
   finally
     P.Free;
@@ -402,11 +443,11 @@ begin
   P := TCnInt64Polynomial.Create([1, 0, 1]);
   try
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);   // 得到 65x + 16
 
     X.SetCoefficents([39, 30]);
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);   // 得到 37x + 39
   finally
     X.Free;
     P.Free;
@@ -433,27 +474,27 @@ begin
   try
     X.SetCoefficents([8, 4, 15]);
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);  // 33x^2 + 14x + 8
 
     X.SetCoefficents([21, 30, 44]);
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);  // 3x^2 + 38x + 21
 
     X.SetCoefficents([8, 4, 15]);
     Int64PolynomialGaloisPower(X, X, 67 * 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);  // 19x^2 + 49x + 8
 
     X.SetCoefficents([21, 30, 44]);
     Int64PolynomialGaloisPower(X, X, 67 * 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);  // 20x^2 + 66x + 21
 
     X.SetCoefficents([8, 4, 15]);
     Int64PolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);  // 15x^2 + 4x + 8
 
     X.SetCoefficents([21, 30, 44]);
     Int64PolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
-    ShowMessage(X.ToString);
+    ShowMessage(X.ToString);  // 44x^2 + 30x + 21
   finally
     X.Free;
     P.Free;
@@ -497,7 +538,7 @@ end;
 
 procedure TFormPolynomial.btnPolyGcdClick(Sender: TObject);
 begin
-  if (FIP2[FIP2.MaxDegree] <> 1) and (FIP2[FIP2.MaxDegree] <> 1) then
+  if (FIP1[FIP1.MaxDegree] <> 1) and (FIP2[FIP2.MaxDegree] <> 1) then
   begin
     ShowMessage('Divisor MaxDegree only Support 1, change to 1');
     FIP1[FIP1.MaxDegree] := 1;
@@ -526,7 +567,7 @@ begin
   FIP1.SetCoefficents([1,1,1,1,1,1,1]);
   FIP2.SetCoefficents([1,1,1,0,1]);
   if Int64PolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 2) then
-    edtIP3.Text := FIP3.ToString;
+    ShowMessage(FIP3.ToString);
 end;
 
 procedure TFormPolynomial.btnTestGaloisMIClick(Sender: TObject);
@@ -549,7 +590,7 @@ begin
 
   IP := TCnInt64Polynomial.Create;
   Int64PolynomialGaloisMul(IP, FIP1, FIP2, 2, FIP3);
-  edtIP3.Text := IP.ToString;  // 得到 1,0,0,0,0,0,1,1 
+  edtIP3.Text := IP.ToString;  // 得到 1,0,0,0,0,0,1,1
   IP.Free;
 end;
 
@@ -895,14 +936,14 @@ procedure TFormPolynomial.btnTestGaloisDivClick(Sender: TObject);
 var
   A, B, C, D: TCnInt64Polynomial;
 begin
-  // GF13 上 (2x^2+3x+3) div (6x) 应该等于 9x + 7
+  // GF13 上 (2x^2+3x+3) div (6x) 应该等于 9x + 7 余 3
   A := TCnInt64Polynomial.Create([3,3,2]);
   B := TCnInt64Polynomial.Create([0,6]);
   C := TCnInt64Polynomial.Create;
   D := TCnInt64Polynomial.Create;
   Int64PolynomialGaloisDiv(C, D, A, B, 13);
-  ShowMessage(C.ToString);
-  ShowMessage(D.ToString);
+  ShowMessage(C.ToString); // 9x + 7
+  ShowMessage(D.ToString); // 3
   A.Free;
   B.Free;
   C.Free;
@@ -1526,7 +1567,7 @@ begin
   Int64PolynomialGaloisDiv(R, M, P1, P2, 97);  // 优化 ShiftLeft 的批量插入，由 90 多秒优化到 10 秒左右
   T := GetTickCount - T;
 
-  ShowMessage(IntToStr(T) + ': ' + M.ToString);
+  ShowMessage(IntToStr(T) + ': ' + M.ToString); // 80x^11 + 2x^10 + 72^9 + 96x^8 + 28x^7 + 31x^6 + 25x^5 + 65x^4 + 45x^3 + 26^2 + 35x + 34
 
   R.Free;
   M.Free;
@@ -1665,14 +1706,14 @@ begin
   P2.SetCoefficents([0, 1]); // x
 
   Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 3, LDP, Q);
-  ShowMessage(LDP.ToString);
+  ShowMessage(LDP.ToString);  // 3x^4 + 12x^2 + 12x + 9
 
   Int64PolynomialGaloisPower(P1, P1, Q * Q, Q, LDP);
-  ShowMessage(P1.ToString);
+  ShowMessage(P1.ToString);  // X
 
   Int64PolynomialGaloisPower(P2, P2, Q, Q, LDP);
   Int64PolynomialGaloisPower(P2, P2, Q, Q, LDP);
-  ShowMessage(P2.ToString);
+  ShowMessage(P2.ToString);  // X
 
   P2.Free;
   P1.Free;
@@ -1767,6 +1808,486 @@ begin
   if mmoBP1.Lines.Text = FBP3.ToString then
     ShowMessage('Equal Verified OK.');
   R.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestExample1Click(Sender: TObject);
+var
+  X, Y, P: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+{
+  用例一：
+  构造一个有限域的二阶扩域 67*67，并指定其本原多项式是 u^2 + 1 = 0，
+  然后在上面构造一条椭圆曲线 y^2 = x^3 + 4x + 3，选一个点 2u + 16, 30u + 39
+  验证这个点在该椭圆曲线上。（注意 n 阶扩域上的椭圆曲线上的点的坐标是一对 n 次多项式）
+
+  该俩用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
+
+  具体实现就是计算(Y^2 - X^3 - A*X - B) mod Primtive，然后每个系数运算时都要 mod p
+  这里 A = 4，B = 3。
+  二阶扩域上，p 是素数 67，本原多项式是 u^2 + 1
+}
+
+  X := TCnBigNumberPolynomial.Create([16, 2]);
+  Y := TCnBigNumberPolynomial.Create([39, 30]);
+  P := TCnBigNumberPolynomial.Create([1, 0, 1]);
+  Q := TCnBigNumber.Create;
+  Q.SetWord(67);
+
+  try
+    BigNumberPolynomialGaloisMul(Y, Y, Y, Q, P); // Y^2 得到 62X + 18
+
+    BigNumberPolynomialMulWord(X, 4);
+    BigNumberPolynomialSub(Y, Y, X);
+    BigNumberPolynomialSubWord(Y, 3);             // Y 减去了 A*X - B，得到 54X + 18
+    BigNumberPolynomialNonNegativeModWord(Y, 67);
+
+    X.SetCoefficents([16, 2]);
+    BigNumberPolynomialGaloisPower(X, X, 3, Q, P);  // 得到 54X + 18
+
+    BigNumberPolynomialGaloisSub(Y, Y, X, Q);
+    BigNumberPolynomialGaloisMod(Y, Y, P, Q);    // 算出 0
+    ShowMessage(Y.ToString);
+  finally
+    P.Free;
+    Y.Free;
+    X.Free;
+    Q.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnBNTestExample2Click(Sender: TObject);
+var
+  X, Y, P: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+{
+  用例二：
+  构造一个有限域的二阶扩域 7691*7691，并指定其本原多项式是 u^2 + 1 = 0，
+  然后在上面构造一条椭圆曲线 y^2=x^3+1 mod 7691，选一个点 633u + 6145, 7372u + 109
+  验证这个点在该椭圆曲线上。
+
+  该俩用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 4.0.1
+
+  具体实现就是计算(Y^2 - X^3 - A*X - B) mod Primtive，然后每个系数运算时都要 mod p
+  这里 A = 0，B = 1
+  二阶扩域上，p 是素数 7691，本原多项式是 u^2 + 1
+}
+
+  X := TCnBigNumberPolynomial.Create([6145, 633]);
+  Y := TCnBigNumberPolynomial.Create([109, 7372]);
+  P := TCnBigNumberPolynomial.Create([1, 0, 1]);
+  Q := TCnBigNumber.Create;
+  Q.SetWord(7691);
+
+  try
+    BigNumberPolynomialGaloisMul(Y, Y, Y, Q, P);
+
+    BigNumberPolynomialSubWord(Y, 1);
+    BigNumberPolynomialNonNegativeModWord(Y, 7691);
+
+    X.SetCoefficents([6145, 633]);
+    BigNumberPolynomialGaloisPower(X, X, 3, Q, P);
+
+    BigNumberPolynomialGaloisSub(Y, Y, X, Q);
+    BigNumberPolynomialGaloisMod(Y, Y, P, Q);    // 算出 0
+    ShowMessage(Y.ToString);
+  finally
+    P.Free;
+    Y.Free;
+    X.Free;
+    Q.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnBNTestExample3Click(Sender: TObject);
+var
+  X, P: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+{
+  用例三：
+  构造一个有限域的二阶扩域 67*67，并指定其本原多项式是 u^2 + 1 = 0，
+  验证：(2u + 16)^67 = 65u + 16, (30u + 39)^67 = 37u + 39
+
+  该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
+}
+
+  X := TCnBigNumberPolynomial.Create([16, 2]);
+  P := TCnBigNumberPolynomial.Create([1, 0, 1]);
+  Q := TCnBigNumber.Create;
+  Q.SetWord(67);
+
+  try
+    BigNumberPolynomialGaloisPower(X, X, Q, Q, P);
+    ShowMessage(X.ToString);  // 得到 65x + 16
+
+    X.SetCoefficents([39, 30]);
+    BigNumberPolynomialGaloisPower(X, X, Q, Q, P);
+    ShowMessage(X.ToString);  // 得到 37x + 39
+  finally
+    X.Free;
+    P.Free;
+    Q.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnBNTestExample4Click(Sender: TObject);
+var
+  X, P: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+{
+  用例四：
+  构造一个有限域的三阶扩域 67*67*67，并指定其本原多项式是 u^3 + 2 = 0，
+  验证：
+  (15v^2 + 4v + 8)^67  = 33v^2 + 14v + 8, 44v^2 + 30v + 21)^67 = 3v^2 + 38v + 21
+  (15v^2 + 4v + 8)^(67^2)  = 19v^2 + 49v + 8, (44v^2 + 30v + 21)^(67^2) = 20v^2 + 66v + 21
+  (15v^2 + 4v + 8)^(67^3)  = 15v^2 + 4v + 8,  (44v^2 + 30v + 21)^(67^3) = 44v^2 + 30v + 21 都回到自身
+
+  该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.5
+}
+
+  X := TCnBigNumberPolynomial.Create;
+  P := TCnBigNumberPolynomial.Create([2, 0, 0, 1]);
+  Q := TCnBigNumber.Create;
+  Q.SetWord(67);
+
+  try
+    X.SetCoefficents([8, 4, 15]);
+    BigNumberPolynomialGaloisPower(X, X, 67, Q, P);
+    ShowMessage(X.ToString);  // 33x^2 + 14x + 8
+
+    X.SetCoefficents([21, 30, 44]);
+    BigNumberPolynomialGaloisPower(X, X, 67, Q, P);
+    ShowMessage(X.ToString);  // 3x^2 + 38x + 21
+
+    X.SetCoefficents([8, 4, 15]);
+    BigNumberPolynomialGaloisPower(X, X, 67 * 67, Q, P);
+    ShowMessage(X.ToString);  // 19x^2 + 49x + 8
+
+    X.SetCoefficents([21, 30, 44]);
+    BigNumberPolynomialGaloisPower(X, X, 67 * 67, Q, P);
+    ShowMessage(X.ToString);  // 20x^2 + 66x + 21
+
+    X.SetCoefficents([8, 4, 15]);
+    BigNumberPolynomialGaloisPower(X, X, 67 * 67 * 67, Q, P);
+    ShowMessage(X.ToString);  // 15x^2 + 4x + 8
+
+    X.SetCoefficents([21, 30, 44]);
+    BigNumberPolynomialGaloisPower(X, X, 67 * 67 * 67, Q, P);
+    ShowMessage(X.ToString);  // 44x^2 + 30x + 21
+  finally
+    X.Free;
+    P.Free;
+    Q.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnBNGaloisTestGcdClick(Sender: TObject);
+var
+  Q: TCnBigNumber;
+begin
+// GCD 例子一：
+// F11 扩域上的 x^2 + 8x + 7 和 x^3 + 7x^2 + x + 7 的最大公因式是 x + 7
+  Q := TCnBigNumber.Create;
+  Q.SetWord(11);
+
+  FBP1.SetCoefficents([7, 8, 1]);
+  FBP2.SetCoefficents([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
+  if BigNumberPolynomialGaloisGreatestCommonDivisor(FBP3, FBP1, FBP2, Q) then
+    ShowMessage(FBP3.ToString);
+
+// GCD 例子二：
+// F2 扩域上的 x^6 + x^5 + x^4 + x^3 + x^2 + x + 1 和 x^4 + x^2 + x + 1 的最大公因式是 x^3 + x^2 + 1
+  FBP1.SetCoefficents([1,1,1,1,1,1,1]);
+  FBP2.SetCoefficents([1,1,1,0,1]);
+  Q.SetWord(2);
+  if BigNumberPolynomialGaloisGreatestCommonDivisor(FBP3, FBP1, FBP2, Q) then
+    ShowMessage(FBP3.ToString);
+
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestGaloisMIClick(Sender: TObject);
+var
+  Q: TCnBigNumber;
+begin
+// Modulus Inverse 例子：
+// F3 的扩域上的本原多项式 x^3 + 2x + 1 有 x^2 + 1 的模逆多项式为 2x^2 + x + 2
+  FBP1.SetCoefficents([1, 0, 1]);
+  FBP2.SetCoefficents([1, 2, 0, 1]);
+  Q := TCnBigNumber.Create;
+  Q.SetWord(3);
+
+  BigNumberPolynomialGaloisModularInverse(FBP3, FBP1, FBP2, Q);
+    ShowMessage(FBP3.ToString);
+
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNGF28Test1Click(Sender: TObject);
+var
+  BP: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  FBP1.SetCoefficents([1,1,1,0,1,0,1]); // 57
+  FBP2.SetCoefficents([1,1,0,0,0,0,0,1]); // 83
+  FBP3.SetCoefficents([1,1,0,1,1,0,0,0,1]); // 本原多项式
+
+  BP := TCnBigNumberPolynomial.Create;
+  Q := TCnBigNumber.Create;
+  Q.SetWord(2);
+  BigNumberPolynomialGaloisMul(BP, FBP1, FBP2, Q, FBP3);
+  ShowMessage(BP.ToString);  // 得到 1,0,0,0,0,0,1,1
+  BP.Free;
+end;
+
+procedure TFormPolynomial.btnBNPolyGcdClick(Sender: TObject);
+begin
+  if not FBP1[FBP1.MaxDegree].IsOne and not FBP2[FBP2.MaxDegree].IsOne then
+  begin
+    ShowMessage('Divisor MaxDegree only Support 1, change to 1');
+    FBP1[FBP1.MaxDegree].SetOne;
+    mmoBP1.Lines.Text := FBP1.ToString;
+    FBP2[FBP2.MaxDegree].SetOne;
+    mmoBP2.Lines.Text := FBP2.ToString;
+  end;
+
+//  FIP1.SetCoefficents([-5, 2, 0, 3]);
+//  FIP2.SetCoefficents([-1, -2, 0, 3]);
+  if BigNumberPolynomialGreatestCommonDivisor(FBP3, FBP1, FBP2) then
+    edtBP3.Text := FIP3.ToString;
+end;
+
+procedure TFormPolynomial.btnBNTestGaloisDivClick(Sender: TObject);
+var
+  A, B, C, D: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  // GF13 上 (2x^2+3x+3) div (6x) 应该等于 9x + 7 余 3
+  A := TCnBigNumberPolynomial.Create([3,3,2]);
+  B := TCnBigNumberPolynomial.Create([0,6]);
+  C := TCnBigNumberPolynomial.Create;
+  D := TCnBigNumberPolynomial.Create;
+  Q := TCnBigNumber.Create;
+  Q.SetWord(13);
+  BigNumberPolynomialGaloisDiv(C, D, A, B, Q);
+  ShowMessage(C.ToString); // 9x + 7
+  ShowMessage(D.ToString); // 3
+  A.Free;
+  B.Free;
+  C.Free;
+  D.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestGaloisCalcClick(Sender: TObject);
+var
+  A, B, DP, R: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  // 8x^11,15x^10,23x^9,23x^8,27x^7,9x^6,25x^5,19x^4,6x^3,23x^2,5x^1,22x^0  * 1 0 6 1 mod DP5 ?= 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6
+  A := TCnBigNumberPolynomial.Create([1, 6, 0 ,1]);
+  B := TCnBigNumberPolynomial.Create([22,5,23,6,19,25,9,27,23,23,15,8]);
+  DP := TCnBigNumberPolynomial.Create;
+  Q := TCnBigNumber.Create;
+  Q.SetWord(29);
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(6, 1, 5, DP, Q); // 算得 5 阶可除多项式
+  R := TCnBigNumberPolynomial.Create;
+  BigNumberPolynomialGaloisMul(R, B, A, Q, DP);
+
+  ShowMessage(R.ToString);
+  R.Free;
+  DP.Free;
+  B.Free;
+  A.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestHugeDiv1Click(Sender: TObject);
+var
+  A, B: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  // '1426381536X^2+998173947X+1548285621' ^ 2 div X^3+7X+1
+  A := TCnBigNumberPolynomial.Create([1548285621, 998173947, 1426381536]);
+  B := TCnBigNumberPolynomial.Create([1, 0, 7, 1]);
+  Q := TCnBigNumber.Create;
+  Q.SetInt64(3037000493);
+
+  BigNumberPolynomialGaloisMul(A, A, A, Q, B);
+  ShowMessage(A.ToString);
+
+  B.Free;
+  A.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestHugeDiv2Click(Sender: TObject);
+var
+  A, B: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  // '25X^3+3855419515X+4165899502' mod '3352796231X^2+4242209446X+55674432'
+  A := TCnBigNumberPolynomial.Create;
+  A.MaxDegree := 3;
+  A[0].SetInt64(4165899502);
+  A[1].SetInt64(3855419515);
+  A[2].SetInt64(0);
+  A[3].SetInt64(25);
+  B := TCnBigNumberPolynomial.Create;
+  B.MaxDegree := 2;
+  B[0].SetInt64(55674432);
+  B[1].SetInt64(4242209446);
+  B[2].SetInt64(3352796231);
+
+  Q := TCnBigNumber.Create;
+  Q.SetInt64(4294967291);
+  BigNumberPolynomialGaloisMod(B, A, B, Q);
+  ShowMessage(B.ToString);
+
+  B.Free;
+  A.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestHugeDiv3Click(Sender: TObject);
+var
+  A, B: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  // 3632376218X^2+3632376218X+1810096466' mod '488892432X+2787301319'
+  A := TCnBigNumberPolynomial.Create;
+  A.MaxDegree := 2;
+  A[0].SetInt64(1810096466);
+  A[1].SetInt64(3632376218);
+  A[2].SetInt64(3632376218);
+  B := TCnBigNumberPolynomial.Create;
+  B.MaxDegree := 1;
+  B[0].SetInt64(2787301319);
+  B[1].SetInt64(488892432);
+  Q := TCnBigNumber.Create;
+  Q.SetInt64(4294967291);
+
+  BigNumberPolynomialGaloisMod(B, A, B, Q);
+  ShowMessage(B.ToString);
+
+  B.Free;
+  A.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestPowerModClick(Sender: TObject);
+var
+  LDP, P1, P2: TCnBigNumberPolynomial;
+  Q, Q2: TCnBigNumber;
+begin
+  Q := TCnBigNumber.Create;
+  Q.SetInteger(13);
+  Q2 := TCnBigNumber.Create;
+  BigNumberMul(Q2, Q, Q);
+
+  LDP := TCnBigNumberPolynomial.Create;
+  P1 := TCnBigNumberPolynomial.Create;
+  P2 := TCnBigNumberPolynomial.Create;
+
+  P1.SetCoefficents([0, 1]); // x
+  P2.SetCoefficents([0, 1]); // x
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 3, LDP, Q);
+  ShowMessage(LDP.ToString);
+
+  BigNumberPolynomialGaloisPower(P1, P1, Q2, Q, LDP);
+  ShowMessage(P1.ToString);  // X
+
+  BigNumberPolynomialGaloisPower(P2, P2, Q, Q, LDP);
+  BigNumberPolynomialGaloisPower(P2, P2, Q, Q, LDP);
+  ShowMessage(P2.ToString);  // X
+
+  P2.Free;
+  P1.Free;
+  LDP.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestGaloisDivTimeClick(Sender: TObject);
+var
+  T: Cardinal;
+  P1, P2, R, M: TCnBigNumberPolynomial;
+  Q: TCnBigNumber;
+begin
+  // X^97^2 - X div 5X^12+79X^10+96X^9+72X^8+57X^7+58X^6+7X^5+3X^4+83X^3+26X^2+40X+47 的耗时
+  P1 := TCnBigNumberPolynomial.Create;
+  P2 := TCnBigNumberPolynomial.Create([47,40,26,83,3,7,58,57,72,96,79,0,5]);
+  P1.MaxDegree := 97 * 97;
+  P1[P1.MaxDegree].SetOne;
+  P1[1].SetOne;
+  P1[1].Negate;   // P1 := X^97^2 - X
+
+  R := TCnBigNumberPolynomial.Create;
+  M := TCnBigNumberPolynomial.Create;
+  Q := TCnBigNumber.Create;
+  Q.SetInteger(97);
+
+  T := GetTickCount;
+  BigNumberPolynomialGaloisDiv(R, M, P1, P2, Q);
+  T := GetTickCount - T;
+
+  ShowMessage(IntToStr(T) + ': ' + M.ToString); // 80x^11 + 2x^10 + 72^9 + 96x^8 + 28x^7 + 31x^6 + 25x^5 + 65x^4 + 45x^3 + 26^2 + 35x + 34
+  // 耗时 70 多秒
+
+  R.Free;
+  M.Free;
+  P2.Free;
+  P1.Free;
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestMI1Click(Sender: TObject);
+var
+  Q: TCnBigNumber;
+begin
+  Q := TCnBigNumber.Create;
+  Q.SetInteger(13);
+
+  FBP1.SetCoefficents([1,2,0,1]);
+  FBP2.SetCoefficents([3,4,4,0,1]);  // 本原多项式
+  BigNumberPolynomialGaloisModularInverse(FBP3, FBP1, FBP2, Q);
+  ShowMessage(FBP3.ToString);  // 得到 5x^3+6x+2
+
+  BigNumberPolynomialGaloisMul(FBP3, FBP3, FBP1, Q, FBP2); // 乘一下验算看是不是得到 1
+  ShowMessage(FBP3.ToString);
+
+  FBP1.SetCoefficents([4,8,0,4]);
+  FBP2.SetCoefficents([9,12,12,0,3]);
+  BigNumberPolynomialGaloisModularInverse(FBP3, FBP1, FBP2, Q);
+  ShowMessage(FBP3.ToString);  // 得到 11x^3+8x+7
+
+  Q.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestEuclid2Click(Sender: TObject);
+var
+  A, B, X, Y: TCnBigNumberPolynomial;
+begin
+  FQ.SetWord(3);
+
+  A := TCnBigNumberPolynomial.Create([1,0,1]);
+  B := TCnBigNumberPolynomial.Create([1, 1]);
+  X := TCnBigNumberPolynomial.Create;
+  Y := TCnBigNumberPolynomial.Create;
+
+  // 求 6x * X + 3 * Y = 1 mod 13 的解，得到 0，9
+  BigNumberPolynomialGaloisExtendedEuclideanGcd(A, B, X, Y, FQ);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  A.Free;
+  B.Free;
+  X.Free;
+  Y.Free;
 end;
 
 end.

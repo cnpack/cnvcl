@@ -796,8 +796,15 @@ function BigNumberPolynomialGaloisGetValue(Res: TCnBigNumber;
   const F: TCnBigNumberPolynomial; X, Prime: TCnBigNumber): Boolean;
 {* 在 Prime 次方阶有限域上进行大整系数多项式求值，也就是计算 F(x)，返回计算是否成功}
 
+function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
+  outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
+{* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
+   注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
+   本结果只给出 x 的多项式部分。
+   其中 A B 是 32 位有符号整数}
+
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: TCnBigNumber; Degree: Integer;
-  outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+  outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
 {* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
    本结果只给出 x 的多项式部分。
@@ -3538,7 +3545,7 @@ begin
       for I := D1 downto D2 + 1 do
       begin
         BigNumberCopy(Res[I], P2[I]);
-        P2[I].Negate;
+        Res[I].Negate;
       end;
     end;
   end;
@@ -4604,6 +4611,25 @@ begin
   end;
 end;
 
+function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
+  outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
+var
+  NA, NB: TCnBigNumber;
+begin
+  NA := FLocalBigNumberPool.Obtain;
+  NB := FLocalBigNumberPool.Obtain;
+
+  try
+    NA.SetInteger(A);
+    NB.SetInteger(B);
+    Result := BigNumberPolynomialGaloisCalcDivisionPolynomial(NA, NB, Degree,
+      outDivisionPolynomial, Prime);
+  finally
+    FLocalBigNumberPool.Recycle(NB);
+    FLocalBigNumberPool.Recycle(NA);
+  end;
+end;
+
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: TCnBigNumber; Degree: Integer;
   outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
 var
@@ -4634,7 +4660,7 @@ begin
     outDivisionPolynomial[4].SetWord(3);
     outDivisionPolynomial[3].SetWord(0);
     BigNumberMulWordNonNegativeMod(outDivisionPolynomial[2], A, 6, Prime);
-    BigNumberMulWordNonNegativeMod(outDivisionPolynomial[2], B, 12, Prime);
+    BigNumberMulWordNonNegativeMod(outDivisionPolynomial[1], B, 12, Prime);
 
     T := FLocalBigNumberPool.Obtain;
     try

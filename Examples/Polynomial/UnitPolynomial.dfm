@@ -729,6 +729,13 @@ object FormPolynomial: TFormPolynomial
           Height = 13
           Caption = 'Degree:'
         end
+        object bvl5: TBevel
+          Left = 24
+          Top = 292
+          Width = 865
+          Height = 17
+          Shape = bsTopLine
+        end
         object btnBNPToString: TButton
           Left = 24
           Top = 32
@@ -837,6 +844,183 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Random'
           TabOrder = 12
           OnClick = btnBP2RandClick
+        end
+        object btnBNTestExample1: TButton
+          Left = 24
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Point 1'
+          TabOrder = 13
+          OnClick = btnBNTestExample1Click
+        end
+        object btnBNTestExample2: TButton
+          Left = 152
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Point 2'
+          TabOrder = 14
+          OnClick = btnBNTestExample2Click
+        end
+        object btnBNTestExample3: TButton
+          Left = 280
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Power 3'
+          TabOrder = 15
+          OnClick = btnBNTestExample3Click
+        end
+        object btnBNTestExample4: TButton
+          Left = 408
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Power 4'
+          TabOrder = 16
+          OnClick = btnBNTestExample4Click
+        end
+        object btnBNGaloisTestGcd: TButton
+          Left = 536
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test GCD'
+          TabOrder = 17
+          OnClick = btnBNGaloisTestGcdClick
+        end
+        object btnBNTestGaloisMI: TButton
+          Left = 664
+          Top = 312
+          Width = 113
+          Height = 25
+          Caption = 'Galois Test Inverse'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'MS Sans Serif'
+          Font.Style = []
+          ParentFont = False
+          TabOrder = 18
+          OnClick = btnBNTestGaloisMIClick
+        end
+        object btnBNPolyGcd: TButton
+          Left = 792
+          Top = 312
+          Width = 97
+          Height = 25
+          Caption = 'Test Poly Gcd'
+          TabOrder = 19
+          OnClick = btnBNPolyGcdClick
+        end
+        object btnBNGF28Test1: TButton
+          Left = 24
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'GF2^8 Test1'
+          TabOrder = 20
+          OnClick = btnBNGF28Test1Click
+        end
+        object btnBNTestGaloisDiv: TButton
+          Left = 152
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Galois Div'
+          TabOrder = 21
+          OnClick = btnBNTestGaloisDivClick
+        end
+        object btnBNTestGaloisCalc: TButton
+          Left = 280
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Galois Calc'
+          TabOrder = 22
+          OnClick = btnBNTestGaloisCalcClick
+        end
+        object btnBNTestHugeDiv1: TButton
+          Left = 408
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Huge Div 1'
+          TabOrder = 23
+          OnClick = btnBNTestHugeDiv1Click
+        end
+        object btnBNTestHugeDiv2: TButton
+          Left = 536
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Huge Div 2'
+          TabOrder = 24
+          OnClick = btnBNTestHugeDiv2Click
+        end
+        object btnBNTestHugeDiv3: TButton
+          Left = 664
+          Top = 360
+          Width = 113
+          Height = 25
+          Caption = 'Test Huge Div 3'
+          TabOrder = 25
+          OnClick = btnBNTestHugeDiv3Click
+        end
+        object btnBNTestPowerMod: TButton
+          Left = 792
+          Top = 360
+          Width = 97
+          Height = 25
+          Caption = 'Test Power Mod'
+          TabOrder = 26
+          OnClick = btnBNTestPowerModClick
+        end
+        object btnBNTestGaloisDivTime: TButton
+          Left = 24
+          Top = 408
+          Width = 241
+          Height = 25
+          Caption = 'Test Galois Div Time'
+          TabOrder = 27
+          OnClick = btnBNTestGaloisDivTimeClick
+        end
+      end
+    end
+    object tsBNEccOnGalois: TTabSheet
+      Caption = 'Big Number Ecc on Galois'
+      ImageIndex = 4
+      object grp1: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 897
+        Height = 505
+        Caption = 'BigNumber Ecc on Galois'
+        TabOrder = 0
+        object btnBNTestMI1: TButton
+          Left = 24
+          Top = 128
+          Width = 161
+          Height = 25
+          Caption = 'Test Galois Modular Inverse'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'MS Sans Serif'
+          Font.Style = []
+          ParentFont = False
+          TabOrder = 0
+          OnClick = btnBNTestMI1Click
+        end
+        object btnBNTestEuclid2: TButton
+          Left = 192
+          Top = 128
+          Width = 161
+          Height = 25
+          Caption = 'Test Extended Euclid 2'
+          TabOrder = 1
+          OnClick = btnBNTestEuclid2Click
         end
       end
     end
