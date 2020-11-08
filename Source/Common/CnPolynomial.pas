@@ -4692,6 +4692,7 @@ begin
       BigNumberDirectMulMod(outDivisionPolynomial[0], T, A, Prime);
 
       BigNumberMulWordNonNegativeMod(T, B, -32, Prime);
+      BigNumberDirectMulMod(T, T, B, Prime);
       BigNumberAdd(outDivisionPolynomial[0], outDivisionPolynomial[0], T);
       BigNumberNonNegativeMod(outDivisionPolynomial[0], outDivisionPolynomial[0], Prime);
     finally

@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsBNPolynomial
+    ActivePage = tsBNEccOnGalois
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -1021,6 +1021,69 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Extended Euclid 2'
           TabOrder = 1
           OnClick = btnBNTestEuclid2Click
+        end
+        object btnBNTestGaloisMulMod: TButton
+          Left = 784
+          Top = 80
+          Width = 105
+          Height = 25
+          Caption = 'Test Galois MulMod'
+          TabOrder = 2
+          OnClick = btnBNTestGaloisMulModClick
+        end
+        object btnBNTestEuclid3: TButton
+          Left = 360
+          Top = 128
+          Width = 161
+          Height = 25
+          Caption = 'Test Extended Euclid 3'
+          TabOrder = 3
+          OnClick = btnBNTestEuclid3Click
+        end
+        object btnBNEccDivisionPoly: TButton
+          Left = 528
+          Top = 128
+          Width = 177
+          Height = 25
+          Caption = 'Test Ecc Division Polynomial 3'
+          TabOrder = 4
+          OnClick = btnBNEccDivisionPolyClick
+        end
+        object btnBNGenerateDP: TButton
+          Left = 720
+          Top = 128
+          Width = 169
+          Height = 25
+          Caption = 'Generate Division Polynomial'
+          TabOrder = 5
+          OnClick = btnBNGenerateDPClick
+        end
+        object mmoBNTestDivisionPolynomials: TMemo
+          Left = 24
+          Top = 176
+          Width = 849
+          Height = 313
+          ScrollBars = ssBoth
+          TabOrder = 6
+          WordWrap = False
+        end
+        object btnBNTestDivPoly1: TButton
+          Left = 440
+          Top = 32
+          Width = 177
+          Height = 25
+          Caption = 'Test Ecc Division Polynomial 1'
+          TabOrder = 7
+          OnClick = btnBNTestDivPoly1Click
+        end
+        object btnBNTestDivPoly2: TButton
+          Left = 640
+          Top = 32
+          Width = 177
+          Height = 25
+          Caption = 'Test Ecc Division Polynomial 2'
+          TabOrder = 8
+          OnClick = btnBNTestDivPoly2Click
         end
       end
     end

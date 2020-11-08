@@ -128,6 +128,13 @@ type
     grp1: TGroupBox;
     btnBNTestMI1: TButton;
     btnBNTestEuclid2: TButton;
+    btnBNTestGaloisMulMod: TButton;
+    btnBNTestEuclid3: TButton;
+    btnBNEccDivisionPoly: TButton;
+    btnBNGenerateDP: TButton;
+    mmoBNTestDivisionPolynomials: TMemo;
+    btnBNTestDivPoly1: TButton;
+    btnBNTestDivPoly2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -202,6 +209,12 @@ type
     procedure btnBNTestGaloisDivTimeClick(Sender: TObject);
     procedure btnBNTestMI1Click(Sender: TObject);
     procedure btnBNTestEuclid2Click(Sender: TObject);
+    procedure btnBNTestGaloisMulModClick(Sender: TObject);
+    procedure btnBNTestEuclid3Click(Sender: TObject);
+    procedure btnBNEccDivisionPolyClick(Sender: TObject);
+    procedure btnBNGenerateDPClick(Sender: TObject);
+    procedure btnBNTestDivPoly1Click(Sender: TObject);
+    procedure btnBNTestDivPoly2Click(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -862,7 +875,7 @@ begin
   Q := TCnInt64Polynomial.Create([2,4,0,2]);
   H := TCnInt64Polynomial.Create([9,12,12,0,3]);
   Int64PolynomialGaloisMul(P, P, Q, 13, H);
-  ShowMessage(P.ToString);
+  ShowMessage(P.ToString); // 4x3+6x2+5x+10
 
   H.Free;
   Q.Free;
@@ -2288,6 +2301,194 @@ begin
   B.Free;
   X.Free;
   Y.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestGaloisMulModClick(Sender: TObject);
+var
+  P, Q, H: TCnBigNumberPolynomial;
+begin
+  FQ.SetWord(13);
+  P := TCnBigNumberPolynomial.Create([11,0,6,12]);
+  Q := TCnBigNumberPolynomial.Create([2,4,0,2]);
+  H := TCnBigNumberPolynomial.Create([9,12,12,0,3]);
+  BigNumberPolynomialGaloisMul(P, P, Q, FQ, H);
+  ShowMessage(P.ToString); // 4x3+6x2+5x+10
+
+  H.Free;
+  Q.Free;
+  P.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestEuclid3Click(Sender: TObject);
+var
+  A, B, X, Y: TCnBigNumberPolynomial;
+begin
+  FQ.SetWord(13);
+
+  A := TCnBigNumberPolynomial.Create([3,3,2]);
+  B := TCnBigNumberPolynomial.Create([0,6]);
+  X := TCnBigNumberPolynomial.Create;
+  Y := TCnBigNumberPolynomial.Create;
+
+  // 求 2x2+3x+3 * X - 6x * Y = 1 mod 13 的解，应该得到 9 和 10x+2
+  BigNumberPolynomialGaloisExtendedEuclideanGcd(A, B, X, Y, FQ);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  A.Free;
+  B.Free;
+  X.Free;
+  Y.Free;
+end;
+
+procedure TFormPolynomial.btnBNEccDivisionPolyClick(Sender: TObject);
+var
+  DP: TCnBigNumberPolynomial;
+  P, V, X1, X2: TCnBigNumber;
+  A, B: Int64;
+begin
+  // Division Polynomial 测试用例，来自 John J. McGee 的
+  // 《Rene Schoof's Algorithm for Determing the Order of the Group of Points
+  //    on an Elliptic Curve over a Finite Field》第 31 页
+  A := 46;
+  B := 74;
+  P := TCnBigNumber.Create;
+  P.SetWord(97);
+  V := TCnBigNumber.Create;
+
+  X1 := TCnBigNumber.Create;
+  X2 := TCnBigNumber.Create;
+  X1.SetWord(4);
+  X2.SetWord(90);
+
+  DP := TCnBigNumberPolynomial.Create;
+  mmoBNTestDivisionPolynomials.Lines.Clear;
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 2, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('2: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 2
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 2
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 3, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('3: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 24
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 76
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 4, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('4: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 0
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 14
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 5, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('5: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 47
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 6, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('6: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 25
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 21
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 7, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('7: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 22
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 23
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 8, DP, P);
+  mmoBNTestDivisionPolynomials.Lines.Add('8: === ' + DP.ToString);
+  BigNumberPolynomialGaloisGetValue(V, DP, X1, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 0，
+  BigNumberPolynomialGaloisGetValue(V, DP, X2, P);
+  mmoBNTestDivisionPolynomials.Lines.Add(V.ToDec);                                    // 得到 31
+
+  DP.Free;
+  P.Free;
+  V.Free;
+  X2.Free;
+  X1.Free;
+end;
+
+procedure TFormPolynomial.btnBNGenerateDPClick(Sender: TObject);
+//var
+//  List: TObjectList;
+//  I: Integer;
+begin
+//  List := TObjectList.Create(True);
+//  CnInt64GenerateGaloisDivisionPolynomials(46, 74, 97, 20, List);
+//
+//  mmoTestDivisionPolynomial.Lines.Clear;
+//  for I := 0 to List.Count - 1 do
+//    mmoTestDivisionPolynomial.Lines.Add(TCnInt64Polynomial(List[I]).ToString);
+//
+//  List.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestDivPoly1Click(Sender: TObject);
+var
+  P: TCnBigNumberPolynomial;
+begin
+  // 验证可除多项式的生成
+  // 如在 F101 上定义的椭圆曲线: y^2 = x^3 + x + 1
+  // 用例数据不完整只能认为基本通过
+  // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.9
+
+  P := TCnBigNumberPolynomial.Create;
+  FQ.SetWord(101);
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(1, 1, 0, P, FQ);
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(1, 1, 1, P, FQ);
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(1, 1, 2, P, FQ);
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(1, 1, 3, P, FQ);  // 3x4 +6x2+12x+100
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(1, 1, 4, P, FQ);  // ...
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(1, 1, 5, P, FQ);  // 5x12 ... 16
+  ShowMessage(P.ToString);
+
+  P.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestDivPoly2Click(Sender: TObject);
+var
+  P: TCnBigNumberPolynomial;
+begin
+  // 验证可除多项式的生成
+  // 如在 F13 上定义的椭圆曲线: y^2 = x^3 + 2x + 1
+  // 用例数据不完整只能认为基本通过
+  // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.10
+
+  P := TCnBigNumberPolynomial.Create;
+  FQ.SetWord(13);
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 0, P, FQ);
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 1, P, FQ);
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 2, P, FQ);
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 3, P, FQ);  // 3x4 +12x2+12x+9
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 4, P, FQ);  // ...
+  ShowMessage(P.ToString);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 5, P, FQ);  // 5x12 ... 6x + 7
+  ShowMessage(P.ToString);
+
+  P.Free;
 end;
 
 end.
