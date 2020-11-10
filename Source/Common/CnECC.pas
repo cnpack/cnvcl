@@ -210,7 +210,9 @@ type
     procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload; virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
 
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+    procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
@@ -278,7 +280,7 @@ type
     property X: TCnInt64Polynomial read FX write SetX;
     property Y: TCnInt64Polynomial read FY write SetY;
   end;
-  
+
   TCnInt64PolynomialEcc = class
   {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Int64 范围内}
   private
@@ -290,8 +292,6 @@ type
     FExtension: Integer;
     FPrimitive: TCnInt64Polynomial;
     procedure SetPrimitive(const Value: TCnInt64Polynomial);
-//    class procedure MultiplePoint1(K: Integer; PX, PY: TCnInt64Polynomial;
-//      A, B, APrime: Int64; APrimitive: TCnInt64Polynomial);
   protected
 
   public
@@ -301,7 +301,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure MultiplePoint(K: Integer; Point: TCnInt64PolynomialEccPoint);
+    procedure MultiplePoint(K: Int64; Point: TCnInt64PolynomialEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure PointAddPoint(P, Q, Sum: TCnInt64PolynomialEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
@@ -319,16 +319,6 @@ type
       APrimitive: TCnInt64Polynomial): Boolean;
     {* 供外界直接调用的判断（PX, PY）点是否在本曲线上，
        椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
-
-//    class procedure PointAddPoint1(PX, PY, QX, QY, SX, SY: TCnInt64Polynomial; A, B, APrime: Int64;
-//      APrimitive: TCnInt64Polynomial);
-//    {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
-//       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数，SX/SY 不可以是 PX/PY/QX/QY}
-//
-//    class procedure PointAddPoint2(PX, PY, QX, QY, SX, SY: TCnInt64Polynomial; A, B, APrime: Int64;
-//      APrimitive: TCnInt64Polynomial);
-//    {* 供外界直接调用的点加方法，将点（PX, PY) 和点（QX, QY）相加，结果放到（SX, SY）点中，暂时用不上
-//       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
 
     class procedure RationalPointAddPoint(PX, PY, QX, QY: TCnInt64RationalPolynomial;
       SX, SY: TCnInt64RationalPolynomial; A, B, APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
@@ -368,6 +358,115 @@ type
     {* 本原多项式}
   end;
 
+  TCnPolynomialEccPoint = class(TPersistent)
+  {* 有限扩域上的椭圆曲线上的多项式点描述类}
+  private
+    FY: TCnBigNumberPolynomial;
+    FX: TCnBigNumberPolynomial;
+    procedure SetX(const Value: TCnBigNumberPolynomial);
+    procedure SetY(const Value: TCnBigNumberPolynomial);
+  public
+    constructor Create; overload;
+    constructor Create(const XLowToHighCoefficients, YLowToHighCoefficients: array of const); overload;
+
+    destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
+    function IsZero: Boolean;
+    procedure SetZero;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将多项式转成字符串}
+
+    property X: TCnBigNumberPolynomial read FX write SetX;
+    property Y: TCnBigNumberPolynomial read FY write SetY;
+  end;
+
+  TCnPolynomialEcc = class
+  {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均以大数表示}
+  private
+    FGenerator: TCnPolynomialEccPoint;
+    FCoefficientA: TCnBigNumber;
+    FCoefficientB: TCnBigNumber;
+    FFiniteFieldSize: TCnBigNumber;
+    FOrder: TCnBigNumber;
+    FExtension: Integer;
+    FPrimitive: TCnBigNumberPolynomial;
+    procedure SetPrimitive(const Value: TCnBigNumberPolynomial);
+  protected
+
+  public
+    constructor Create(const A, B, FieldPrime: AnsiString; Ext: Integer; GX, GY: TCnBigNumberPolynomial;
+      const Order: AnsiString; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
+       参数均复制内容入对象内部，不持有参数的对象引用}
+
+    constructor Create(const A, B, FieldPrime: TCnBigNumber; Ext: Integer; GX, GY: TCnBigNumberPolynomial;
+      const AnOrder: TCnBigNumber; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
+       参数均复制内容入对象内部，不持有参数的对象引用}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure MultiplePoint(K: Int64; Point: TCnPolynomialEccPoint); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnPolynomialEccPoint); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    procedure PointAddPoint(P, Q, Sum: TCnPolynomialEccPoint);
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    procedure PointSubPoint(P, Q, Diff: TCnPolynomialEccPoint);
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    procedure PointInverse(P: TCnPolynomialEccPoint);
+    {* 计算 P 点的逆元 -P，值重新放入 P}
+    function IsPointOnCurve(P: TCnPolynomialEccPoint): Boolean;
+    {* 判断 P 点是否在本曲线上}
+
+    function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnBigNumberPolynomial): Boolean;
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢}
+
+    class function IsPointOnCurve2(PX, PY: TCnBigNumberPolynomial; A, B, APrime: TCnBigNumber;
+      APrimitive: TCnBigNumberPolynomial): Boolean;
+    {* 供外界直接调用的判断（PX, PY）点是否在本曲线上，
+       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
+
+    class procedure RationalPointAddPoint(PX, PY, QX, QY: TCnBigNumberRationalPolynomial;
+      SX, SY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil);
+    {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
+       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
+       PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY
+       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
+       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过}
+
+    class procedure RationalMultiplePoint(K: Integer; MX, MY: TCnBigNumberRationalPolynomial;
+      A, B, APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil);
+    {* 供外界直接调用的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
+       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
+       PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，，SX、SY 不能是 PX、PY、QX、QY
+       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
+       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数}
+
+    class function IsRationalPointOnCurve(PX, PY: TCnBigNumberRationalPolynomial;
+      A, B, APrime: TCnBigNumber): Boolean;
+    {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，基本上没有被调用的场合
+       椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数
+       注意在无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示}
+
+    property Generator: TCnPolynomialEccPoint read FGenerator;
+    {* 基点坐标 G}
+    property CoefficientA: TCnBigNumber read FCoefficientA;
+    {* 方程系数 A}
+    property CoefficientB: TCnBigNumber read FCoefficientB;
+    {* 方程系数 B}
+    property FiniteFieldSize: TCnBigNumber read FFiniteFieldSize;
+    {* 有限素域的上界，素数 p}
+    property Extension: Integer read FExtension write FExtension;
+    {* 有限扩域的次数，也即素数 p 的指数}
+    property Order: TCnBigNumber read FOrder;
+    {* 基点的阶数}
+    property Primitive: TCnBigNumberPolynomial read FPrimitive write SetPrimitive;
+    {* 本原多项式}
+  end;
+
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
@@ -403,6 +502,12 @@ function CnInt64EccPointsEqual(var P1, P2: TCnInt64EccPoint): Boolean;
 
 function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
 {* 判断两个 TCnEccPoint 点是否相等}
+
+function CnPolynomialEccPointToString(P: TCnPolynomialEccPoint): string;
+{* 将一个 TCnPolynomialEccPoint 点坐标转换为字符串}
+
+function CnPolynomialEccPointsEqual(P1, P2: TCnPolynomialEccPoint): Boolean;
+{* 判断两个 TCnPolynomialEccPoint 点是否相等}
 
 function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey): Boolean;
@@ -521,6 +626,11 @@ function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): strin
 procedure CnInt64GenerateGaloisDivisionPolynomials(A, B, Prime: Int64; MaxDegree: Integer;
   PolynomialList: TObjectList);
 {* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 Int64PolynomialGaloisCalcDivisionPolynomial
+   的递归实现完全相同}
+
+procedure CnGenerateGaloisDivisionPolynomials(A, B, Prime: TCnBigNumber; MaxDegree: Integer;
+  PolynomialList: TObjectList);
+{* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 BigNumberPolynomialGaloisCalcDivisionPolynomial
    的递归实现完全相同}
 
 implementation
@@ -652,6 +762,7 @@ const
 var
   FEccBigNumberPool: TCnBigNumberPool = nil;
   FEccInt64PolynomialPool: TCnInt64PolynomialPool = nil;
+  FEccPolynomialPool: TCnBigNumberPolynomialPool = nil;
 
 function Min(A, B: Integer): Integer;
 begin
@@ -690,15 +801,28 @@ begin
   Result := Format('%s,%s', [P.X.ToHex, P.Y.ToHex]);
 end;
 
+// 将一个 TCnPolynomialEccPoint 点坐标转换为字符串
+function CnPolynomialEccPointToString(P: TCnPolynomialEccPoint): string;
+begin
+  Result := Format('%s,%s', [P.X.ToString, P.Y.ToString]);
+end;
+
+// 判断两个 TCnPolynomialEccPoint 点是否相等
+function CnPolynomialEccPointsEqual(P1, P2: TCnPolynomialEccPoint): Boolean;
+begin
+  if P1 = P2 then
+    Result := True
+  else
+    Result := BigNumberPolynomialEqual(P1.X, P2.X) and BigNumberPolynomialEqual(P1.Y, P2.Y);
+end;
+
 // 判断两个点是否相等
 function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
 begin
   if P1 = P2 then
-  begin
-    Result := True;
-    Exit;
-  end;
-  Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0);
+    Result := True
+  else
+    Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0);
 end;
 
 function CnInt64EccPointsEqual(var P1, P2: TCnInt64EccPoint): Boolean;
@@ -1591,6 +1715,19 @@ begin
   finally
     R.Free;
     E.Free;
+  end;
+end;
+
+procedure TCnEcc.MultiplePoint(K: Int64; Point: TCnEccPoint);
+var
+  BK: TCnBigNumber;
+begin
+  BK := FEccBigNumberPool.Obtain;
+  try
+    BK.SetInt64(K);
+    MultiplePoint(BK, Point);
+  finally
+    FEccBigNumberPool.Recycle(BK);
   end;
 end;
 
@@ -2852,9 +2989,9 @@ constructor TCnInt64PolynomialEcc.Create(A, B, FieldPrime: Int64; Ext: Integer;
 begin
   inherited Create;
 
-  // 由外界保证 Order 为素数
-  if not CnInt64IsPrime(FieldPrime) then // or not CnInt64IsPrime(Order) then
-    raise ECnEccException.Create('Infinite Field must be a Prime Number.');
+  // 由外界保证 Prime 与 Order 为素数
+  // if not CnInt64IsPrime(FieldPrime) then // or not CnInt64IsPrime(Order) then
+  //  raise ECnEccException.Create('Infinite Field must be a Prime Number.');
 
   // 扩域次数得大于 1
   if Ext <= 1 then
@@ -2915,12 +3052,12 @@ begin
       Int64PolynomialCopy(X, P.X);
       Int64PolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
 
-      Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);                // Y := Y^2 - X^3
+      Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);  // Y := Y^2 - X^3 mod
 
       Int64PolynomialCopy(X, P.X);
       Int64PolynomialMulWord(X, FCoefficientA);
-      Int64PolynomialAddWord(X, FCoefficientB);   // X := A*X + B
-      Int64PolynomialNonNegativeModWord(X, FFiniteFieldSize);
+      Int64PolynomialAddWord(X, FCoefficientB);
+      Int64PolynomialNonNegativeModWord(X, FFiniteFieldSize);  // X := A*X + B mod
 
       Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
       Int64PolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
@@ -2994,7 +3131,7 @@ begin
     RR := TCnInt64RationalPolynomial.Create;
     Int64RationalPolynomialGaloisMul(PX, PX, RR, APrime);
     Int64RationalPolynomialGaloisMul(RR, PX, RR, APrime);  // 得到 PX^3
-    
+
     T1 := FEccInt64PolynomialPool.Obtain;
     T1.SetCoefficents([A]);
 
@@ -3016,7 +3153,7 @@ begin
   end;
 end;
 
-procedure TCnInt64PolynomialEcc.MultiplePoint(K: Integer;
+procedure TCnInt64PolynomialEcc.MultiplePoint(K: Int64;
   Point: TCnInt64PolynomialEccPoint);
 var
   E, R: TCnInt64PolynomialEccPoint;
@@ -3223,190 +3360,6 @@ begin
     FEccInt64PolynomialPool.Recycle(T);
   end;
 end;
-
-//class procedure TCnInt64PolynomialEcc.PointAddPoint1(PX, PY, QX, QY, SX,
-//  SY: TCnInt64Polynomial; A, B, APrime: Int64; APrimitive: TCnInt64Polynomial);
-//var
-//  R, E, T1, T2, T3: TCnInt64Polynomial;
-//begin
-//  // 该方法为 Schoof 算法中使用，传入的点坐标均具有（a(x), b(x) * y) 的形式
-//  // (PX(x), PY(x) * y) + (QX(x), QY(x) * y) = (SX(x), SY(x) * y)
-//
-//  // 先求斜率表达式，X 不同时斜率为 y * (PY-QY)/(PX-QX) ，相同时斜率为 y * (3*PX^2 + A)/(2*PY * (x^3+Ax+B))
-//  // 用 R 代表斜率中 y 的系数，那么 SX = R^2 * (x^3+Ax+B) - PX - QX       SY = R * (PX - SX) - PY
-//
-//  R := nil;
-//  E := nil;
-//  T1 := nil;
-//  T2 := nil;
-//  T3 := nil;
-//
-//  try
-//    R := FEccInt64PolynomialPool.Obtain;
-//    E := FEccInt64PolynomialPool.Obtain;
-//    T1 := FEccInt64PolynomialPool.Obtain;
-//    T2 := FEccInt64PolynomialPool.Obtain;
-//    T3 := FEccInt64PolynomialPool.Obtain;
-//
-//    E.SetCoefficents([B, A, 0, 1]);
-//    if Int64PolynomialEqual(PX, QX) then
-//    begin
-//      if not Int64PolynomialEqual(PY, QY) then // 竖直
-//      begin
-//        SX.SetZero;
-//        SY.SetZero;
-//        Exit;
-//      end;
-//
-//      // 求切线斜率，计算 (3*PX^2 + A)/(2*PY * (x^3+Ax+B))
-//      Int64PolynomialGaloisMul(T1, PX, PX, APrime, APrimitive);
-//      Int64PolynomialGaloisMulWord(T1, 3, APrime);
-//      Int64PolynomialGaloisAddWord(T1, A, APrime); // T1 得到 3*PX^2 + A
-//
-//      Int64PolynomialCopy(T2, PY);
-//      Int64PolynomialGaloisMulWord(T2, 2, APrime);
-//      Int64PolynomialGaloisMul(T2, T2, E, APrime, APrimitive); // T2 得到 2*PY * (x^3+Ax+B)
-//
-//      Int64PolynomialGaloisModularInverse(T3, T2, APrimitive, APrime); // T3 得到 T2^-1
-//      Int64PolynomialGaloisMul(R, T1, T3, APrime, APrimitive);         // R 得到切线斜率
-//    end
-//    else
-//    begin
-//      // 求连线斜率，计算 (PY-QY)/(PX-QX)
-//      Int64PolynomialGaloisSub(T1, PY, QY, APrime, APrimitive);
-//      Int64PolynomialGaloisSub(T2, PX, QX, APrime, APrimitive);
-//      Int64PolynomialGaloisModularInverse(T3, T2, APrimitive, APrime); // T3 得到 T2^-1
-//      Int64PolynomialGaloisMul(R, T1, T3, APrime, APrimitive);         // R 得到连线斜率
-//    end;
-//
-//    // 斜率求好后求和点，SX = R^2 * (x^3+Ax+B) - PX - QX
-//    Int64PolynomialCopy(T1, R);
-//    Int64PolynomialGaloisMul(T1, T1, T1, APrime, APrimitive);
-//    Int64PolynomialGaloisMul(T1, T1, E, APrime, APrimitive); // T1 得到 R^2 * (x^3+Ax+B)
-//
-//    Int64PolynomialGaloisSub(SX, T1, PX, APrime);
-//    Int64PolynomialGaloisSub(SX, SX, QX, APrime);            // 算出 SX
-//
-//    // 计算 SY = R * (PX - SX) - PY
-//    Int64PolynomialGaloisSub(T1, PX, SX, APrime);
-//    Int64PolynomialGaloisMul(T2, R, T1, APrime, APrimitive);
-//    Int64PolynomialGaloisSub(SY, T2, PY, APrime);            // 算出 SY
-//  finally
-//    FEccInt64PolynomialPool.Recycle(T3);
-//    FEccInt64PolynomialPool.Recycle(T2);
-//    FEccInt64PolynomialPool.Recycle(T1);
-//    FEccInt64PolynomialPool.Recycle(E);
-//    FEccInt64PolynomialPool.Recycle(R);
-//  end;
-//end;
-//
-//class procedure TCnInt64PolynomialEcc.PointAddPoint2(PX, PY, QX, QY,
-//  SX, SY: TCnInt64Polynomial; A, B, APrime: Int64;
-//  APrimitive: TCnInt64Polynomial);
-//var
-//  K, X, Y, T: TCnInt64Polynomial;
-//begin
-//  K := nil;
-//  X := nil;
-//  Y := nil;
-//  T := nil;
-//
-//  try
-//    if PX.IsZero and PY.IsZero then
-//    begin
-//      Int64PolynomialCopy(SX, QX);
-//      Int64PolynomialCopy(SY, QY);
-//      Exit;
-//    end
-//    else if QX.IsZero and QY.IsZero then
-//    begin
-//      Int64PolynomialCopy(SX, PX);
-//      Int64PolynomialCopy(SY, PY);
-//      Exit;
-//    end
-//    else if Int64PolynomialEqual(PX, QX) and Int64PolynomialEqual(PY, QY) then
-//    begin
-//      // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
-//      X := FEccInt64PolynomialPool.Obtain;
-//      Y := FEccInt64PolynomialPool.Obtain;
-//
-//      // X := 3 * PX * PX + A
-//      Int64PolynomialGaloisMul(X, PX, PX, APrime, APrimitive);
-//      Int64PolynomialGaloisMulWord(X, 3, APrime);
-//      Int64PolynomialGaloisAddWord(X, A, APrime);
-//
-//      // Y := 2 * PY;
-//      Int64PolynomialCopy(Y, PY);
-//      Int64PolynomialGaloisMulWord(Y, 2, APrime);
-//
-//      if Y.IsZero then
-//      begin
-//        SX.SetZero;
-//        SY.SetZero;
-//      end;
-//
-//      // Y := Y^-1
-//      T := FEccInt64PolynomialPool.Obtain;
-//      Int64PolynomialCopy(T, Y);
-//      Int64PolynomialGaloisModularInverse(Y, T, APrimitive, APrime);
-//
-//      // K := X * Y mod APrime;
-//      K := FEccInt64PolynomialPool.Obtain;
-//      Int64PolynomialGaloisMul(K, X, Y, APrime, APrimitive);
-//      // 得到切线斜率 K
-//    end
-//    else // 是不同点
-//    begin
-//      if Int64PolynomialEqual(PX, QX) then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
-//      begin
-//        T := FEccInt64PolynomialPool.Obtain;
-//        Int64PolynomialGaloisAdd(T, PY, QY, APrime);
-//        if T.IsZero then
-//        begin
-//          SX.SetZero;
-//          SY.SetZero;
-//        end
-//        else
-//          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
-//            [PX.ToString, PY.ToString, QX.ToString, QY.ToString]);
-//
-//        Exit;
-//      end;
-//
-//      // 到这里，X 确定不同，斜率 K := ((QY - PY) / (QX - PX)) mod p
-//      X := FEccInt64PolynomialPool.Obtain;
-//      Y := FEccInt64PolynomialPool.Obtain;
-//      K := FEccInt64PolynomialPool.Obtain;
-//
-//      Int64PolynomialGaloisSub(Y, QY, PY, APrime);
-//      Int64PolynomialGaloisSub(X, QX, PX, APrime);
-//
-//      T := FEccInt64PolynomialPool.Obtain;
-//      Int64PolynomialCopy(T, X);
-//      Int64PolynomialGaloisModularInverse(X, T, APrimitive, APrime);
-//      Int64PolynomialGaloisMul(K, Y, X, APrime, APrimitive); // 得到斜率
-//    end;
-//
-//    //  X := K * K - PX - QX;
-//    Int64PolynomialCopy(X, K);
-//    Int64PolynomialGaloisMul(X, X, K, APrime, APrimitive);
-//    Int64PolynomialGaloisSub(X, X, PX, APrime);
-//    Int64PolynomialGaloisSub(X, X, QX, APrime);
-//
-//    // SY = (K * (X1 - SX) - Y1) mod p
-//    Int64PolynomialGaloisSub(X, PX, X, APrime);
-//    Int64PolynomialGaloisMul(Y, K, X, APrime, APrimitive);
-//    Int64PolynomialGaloisSub(Y, Y, PY, APrime);
-//
-//    Int64PolynomialCopy(SX, X);
-//    Int64PolynomialCopy(SY, Y);
-//  finally
-//    FEccInt64PolynomialPool.Recycle(K);
-//    FEccInt64PolynomialPool.Recycle(X);
-//    FEccInt64PolynomialPool.Recycle(Y);
-//    FEccInt64PolynomialPool.Recycle(T);
-//  end;
-//end;
 
 procedure TCnInt64PolynomialEcc.PointInverse(
   P: TCnInt64PolynomialEccPoint);
@@ -3852,6 +3805,204 @@ begin
     GetInt64GaloisDivisionPolynomial(I);
 end;
 
+procedure CnGenerateGaloisDivisionPolynomials(A, B, Prime: TCnBigNumber; MaxDegree: Integer;
+  PolynomialList: TObjectList);
+var
+  I: Integer;
+
+  // 返回第 Degree 个可除表达式的引用，并同时存入 PolynomialList 的对应位置，注意返回值不要改动
+  function GetGaloisDivisionPolynomial(Degree: Integer): TCnBigNumberPolynomial;
+  var
+    N: Integer;
+    MI, T: TCnBigNumber;
+    F1, F2, F3, F4, F5: TCnBigNumberPolynomial;  // 从递归 GetInt64GaloisDivisionPolynomial 拿到的引用，不允许改动
+    D1, D2, D3, Y4: TCnBigNumberPolynomial;      // 计算中间结果，要创建要释放
+  begin
+    if PolynomialList[Degree] <> nil then // 如果有缓存就返回缓存的
+    begin
+      Result := TCnBigNumberPolynomial(PolynomialList[Degree]);
+      Exit;
+    end;
+
+    if Degree = 0 then
+    begin
+      Result := TCnBigNumberPolynomial.Create;
+      Result.SetCoefficents([0]);  // f0(X) = 0
+      PolynomialList[0] := Result;
+    end
+    else if Degree = 1 then
+    begin
+      Result := TCnBigNumberPolynomial.Create;
+      Result.SetCoefficents([1]);  // f1(X) = 1
+      PolynomialList[1] := Result;
+    end
+    else if Degree = 2 then
+    begin
+      Result := TCnBigNumberPolynomial.Create;
+      Result.SetCoefficents([2]);  // f2(X) = 2
+      PolynomialList[2] := Result;
+    end
+    else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
+    begin
+      Result := TCnBigNumberPolynomial.Create;
+      Result.MaxDegree := 4;
+      Result[4].SetWord(3);
+      Result[3].SetWord(0);
+      BigNumberMulWordNonNegativeMod(Result[2], A, 6, Prime);
+      BigNumberMulWordNonNegativeMod(Result[1], B, 12, Prime);
+
+      T := FEccBigNumberPool.Obtain;
+      try
+        BigNumberCopy(T, A);
+        T.Negate;
+        BigNumberDirectMulMod(Result[0], T, A, Prime);
+      finally
+        FEccBigNumberPool.Recycle(T);
+      end;
+      PolynomialList[3] := Result;
+    end
+    else if Degree = 4 then // f4(X) = 4 X6 + 20 a X4 + 80 b X3 - 20 a2X2 - 16 a b X - 4 a3 - 32 b^2
+    begin
+      Result := TCnBigNumberPolynomial.Create;
+      Result.MaxDegree := 6;
+      Result[6].SetWord(4);
+      Result[5].SetWord(0);
+      BigNumberMulWordNonNegativeMod(Result[4], A, 20, Prime);
+      BigNumberMulWordNonNegativeMod(Result[3], B, 80, Prime);
+
+      T := FEccBigNumberPool.Obtain;
+      try
+        BigNumberMulWordNonNegativeMod(T, A, -20, Prime);
+        BigNumberDirectMulMod(Result[2], T, A, Prime);
+        BigNumberMulWordNonNegativeMod(T, A, -16, Prime);
+        BigNumberDirectMulMod(Result[1], T, B, Prime);
+
+        BigNumberMulWordNonNegativeMod(T, A, -4, Prime);
+        BigNumberDirectMulMod(T, T, A, Prime);
+        BigNumberDirectMulMod(Result[0], T, A, Prime);
+
+        BigNumberMulWordNonNegativeMod(T, B, -32, Prime);
+        BigNumberDirectMulMod(T, T, B, Prime);
+        BigNumberAdd(Result[0], Result[0], T);
+        BigNumberNonNegativeMod(Result[0], Result[0], Prime);
+      finally
+        FEccBigNumberPool.Recycle(T);
+      end;
+      PolynomialList[4] := Result;
+    end
+    else
+    begin
+      // 计算第 Degree 个可除表达式，中间可能递归调用到自身，同样尽量从缓存中取
+      D1 := nil;
+      D2 := nil;
+      D3 := nil;
+      Y4 := nil;
+      MI := nil;
+
+      try
+        // 开始递归计算
+        N := Degree shr 1;
+        if (Degree and 1) = 0 then // Degree 是偶数
+        begin
+          F1 := GetGaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
+          F2 := GetGaloisDivisionPolynomial(N - 1); // F2 得到 Fn-1
+
+          D2 := FEccPolynomialPool.Obtain;
+          BigNumberPolynomialGaloisMul(D2, F2, F2, Prime);   // D2 得到 Fn-1 ^ 2
+
+          D1 := FEccPolynomialPool.Obtain;
+          BigNumberPolynomialGaloisMul(D1, F1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
+
+          F3 := GetGaloisDivisionPolynomial(N - 2);  // F3 得到 Fn-2
+          F4 := GetGaloisDivisionPolynomial(N + 1);  // F4 得到 Fn+1
+
+          BigNumberPolynomialGaloisMul(D2, F4, F4, Prime);   // D2 得到 Fn+1 ^ 2
+          BigNumberPolynomialGaloisMul(D2, D2, F3, Prime);   // D2 得到 Fn-2 * Fn+1 ^ 2
+
+          BigNumberPolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
+
+          F5 := GetGaloisDivisionPolynomial(N);     // F5 得到 Fn
+
+          Result := TCnBigNumberPolynomial.Create;
+          BigNumberPolynomialGaloisMul(Result, F5, D1, Prime);           // 相乘得到 Fn * (Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2)
+
+          MI := FEccBigNumberPool.Obtain;
+          BigNumberModularInverseWord(MI, 2, Prime);
+          BigNumberPolynomialGaloisMulBigNumber(Result, MI, Prime);           // 再除以 2
+
+          PolynomialList[Degree] := Result;
+        end
+        else // Degree 是奇数
+        begin
+          Y4 := FEccPolynomialPool.Obtain;
+          Y4.MaxDegree := 3;
+          BigNumberCopy(Y4[0], B);
+          BigNumberCopy(Y4[1], A);
+          Y4[2].SetZero;
+          Y4[3].SetOne;
+
+          BigNumberPolynomialGaloisMul(Y4, Y4, Y4, Prime);
+
+          F1 := GetGaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
+
+          D2 := FEccPolynomialPool.Obtain;
+          F2 := GetGaloisDivisionPolynomial(N);     // F2 得到 Fn
+          BigNumberPolynomialGaloisPower(D2, F2, 3, Prime);  // D2 得到 Fn^3
+
+          D3 := FEccPolynomialPool.Obtain;
+          F3 := GetGaloisDivisionPolynomial(N + 1); // F3 得到 Fn+1
+          BigNumberPolynomialGaloisPower(D3, F3, 3, Prime);  // D3 得到 Fn+1 ^ 3
+
+          if (N and 1) <> 0 then // N 是奇数
+          begin
+            D1 := FEccPolynomialPool.Obtain;
+            BigNumberPolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+
+            F4 := GetGaloisDivisionPolynomial(N - 1);
+            BigNumberPolynomialGaloisMul(D2, F4, Y4, Prime);     // D2 得到 Fn-1 * Y^2
+
+            BigNumberPolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
+
+            Result := TCnBigNumberPolynomial.Create;
+            BigNumberPolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
+
+            PolynomialList[Degree] := Result;
+          end
+          else // N 是偶数
+          begin
+            D1 := FEccPolynomialPool.Obtain;
+            BigNumberPolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+            BigNumberPolynomialGaloisMul(D1, D1, Y4, Prime);     // D1 得到 Y * Fn+2 * Fn ^ 3
+
+            F4 := GetGaloisDivisionPolynomial(N - 1);   // F4 得到 Fn-1
+
+            BigNumberPolynomialGaloisMul(D2, F4, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1
+
+            Result := TCnBigNumberPolynomial.Create;
+            BigNumberPolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
+
+            PolynomialList[Degree] := Result;
+          end;
+        end;
+      finally
+        FEccPolynomialPool.Recycle(D1);
+        FEccPolynomialPool.Recycle(D2);
+        FEccPolynomialPool.Recycle(D3);
+        FEccPolynomialPool.Recycle(Y4);
+        FEccBigNumberPool.Recycle(MI);
+      end;
+    end;
+  end;
+
+begin
+  // 生成 0 至 MaxDegree 的可除多项式并存储于 PolynomialList 中。
+  PolynomialList.Clear;
+  PolynomialList.Count := MaxDegree + 1;
+
+  for I := 0 to MaxDegree do
+    GetGaloisDivisionPolynomial(I);
+end;
+
 function CnInt64EccSchoof(A, B, Q: Int64): Int64;
 var
   Pa, Ta: TCnInt64List;
@@ -4052,11 +4203,488 @@ begin
   end;
 end;
 
+{ TCnPolynomialEccPoint }
+
+procedure TCnPolynomialEccPoint.Assign(Source: TPersistent);
+begin
+  if Source is TCnPolynomialEccPoint then
+  begin
+    BigNumberPolynomialCopy(FX, (Source as TCnPolynomialEccPoint).X);
+    BigNumberPolynomialCopy(FY, (Source as TCnPolynomialEccPoint).Y);
+  end
+  else
+    inherited;
+end;
+
+constructor TCnPolynomialEccPoint.Create;
+begin
+  inherited;
+  FX := TCnBigNumberPolynomial.Create;
+  FY := TCnBigNumberPolynomial.Create;
+end;
+
+constructor TCnPolynomialEccPoint.Create(const XLowToHighCoefficients,
+  YLowToHighCoefficients: array of const);
+begin
+  Create;
+  FX.SetCoefficents(XLowToHighCoefficients);
+  FY.SetCoefficents(YLowToHighCoefficients);
+end;
+
+destructor TCnPolynomialEccPoint.Destroy;
+begin
+  FY.Free;
+  FX.Free;
+  inherited;
+end;
+
+function TCnPolynomialEccPoint.IsZero: Boolean;
+begin
+  Result := FX.IsZero and FY.IsZero;
+end;
+
+procedure TCnPolynomialEccPoint.SetX(const Value: TCnBigNumberPolynomial);
+begin
+  if Value <> nil then
+    BigNumberPolynomialCopy(FX, Value);
+end;
+
+procedure TCnPolynomialEccPoint.SetY(const Value: TCnBigNumberPolynomial);
+begin
+  if Value <> nil then
+    BigNumberPolynomialCopy(FY, Value);
+end;
+
+procedure TCnPolynomialEccPoint.SetZero;
+begin
+  FX.SetZero;
+  FY.SetZero;
+end;
+
+function TCnPolynomialEccPoint.ToString: string;
+begin
+  Result := CnPolynomialEccPointToString(Self);
+end;
+
+{ TCnPolynomialEcc }
+
+constructor TCnPolynomialEcc.Create(const A, B, FieldPrime: TCnBigNumber;
+  Ext: Integer; GX, GY: TCnBigNumberPolynomial; const AnOrder: TCnBigNumber;
+  PrimitivePolynomial: TCnBigNumberPolynomial);
+begin
+  inherited Create;
+  if not BigNumberIsProbablyPrime(FieldPrime) then
+    raise ECnEccException.Create('Infinite Field must be a Prime Number.');
+
+  // 扩域次数得大于 1
+  if Ext <= 1 then
+    raise ECnEccException.Create('Field Extension must > 1.');
+
+  // TODO: 要确保 4*a^3+27*b^2 <> 0，由外界确定
+
+  FGenerator := TCnPolynomialEccPoint.Create;
+  FCoefficientB := TCnBigNumber.Create;
+  FCoefficientA := TCnBigNumber.Create;
+  FOrder := TCnBigNumber.Create;
+  FFiniteFieldSize := TCnBigNumber.Create;
+  FPrimitive := TCnBigNumberPolynomial.Create;
+
+  BigNumberCopy(FCoefficientA, A);
+  BigNumberCopy(FCoefficientB, B);
+  BigNumberCopy(FOrder, AnOrder);
+  BigNumberCopy(FFiniteFieldSize, FieldPrime);
+
+  BigNumberPolynomialCopy(FGenerator.X, GX);
+  BigNumberPolynomialCopy(FGenerator.Y, GY);
+
+  FExtension := Ext;
+  BigNumberPolynomialCopy(FPrimitive, PrimitivePolynomial);
+end;
+
+constructor TCnPolynomialEcc.Create(const A, B, FieldPrime: AnsiString;
+  Ext: Integer; GX, GY: TCnBigNumberPolynomial; const Order: AnsiString;
+  PrimitivePolynomial: TCnBigNumberPolynomial);
+var
+  BA, BB, BFP, BO: TCnBigNumber;
+begin
+  BA := nil;
+  BB := nil;
+  BFP := nil;
+  BO := nil;
+
+  try
+    BA := FEccBigNumberPool.Obtain;
+    BB := FEccBigNumberPool.Obtain;
+    BFP := FEccBigNumberPool.Obtain;
+    BO := FEccBigNumberPool.Obtain;
+
+    BA.SetHex(A);
+    BB.SetHex(B);
+    BFP.SetHex(FieldPrime);
+    BO.SetHex(Order);
+
+    Create(BA, BB, BFP, Ext, GX, GY, BO, PrimitivePolynomial);
+  finally
+    FEccBigNumberPool.Recycle(BO);
+    FEccBigNumberPool.Recycle(BB);
+    FEccBigNumberPool.Recycle(BFP);
+    FEccBigNumberPool.Recycle(BA);
+  end;
+end;
+
+destructor TCnPolynomialEcc.Destroy;
+begin
+  FPrimitive.Free;
+  FGenerator.Free;
+  FCoefficientB.Free;
+  FCoefficientA.Free;
+  FOrder.Free;
+  FFiniteFieldSize.Free;
+  inherited;
+end;
+
+function TCnPolynomialEcc.DivisionPolynomial(Degree: Integer;
+  outDivisionPolynomial: TCnBigNumberPolynomial): Boolean;
+begin
+  Result := BigNumberPolynomialGaloisCalcDivisionPolynomial(FCoefficientA, FCoefficientB,
+    Degree, outDivisionPolynomial, FFiniteFieldSize);
+end;
+
+function TCnPolynomialEcc.IsPointOnCurve(
+  P: TCnPolynomialEccPoint): Boolean;
+var
+  X, Y: TCnBigNumberPolynomial;
+begin
+  // 计算 (Y^2 - X^3 - A*X - B) mod primitive （多项式系数运算要 mod p）是否等于 0 多项式
+  Result := False;
+  if P <> nil then
+  begin
+    X := nil;
+    Y := nil;
+
+    try
+      X := FEccPolynomialPool.Obtain;
+      Y := FEccPolynomialPool.Obtain;
+
+      BigNumberPolynomialCopy(Y, P.Y);
+      BigNumberPolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
+
+      BigNumberPolynomialCopy(X, P.X);
+      BigNumberPolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
+
+      BigNumberPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);   // Y := Y^2 - X^3 mod
+
+      BigNumberPolynomialCopy(X, P.X);
+      BigNumberPolynomialMulBigNumber(X, FCoefficientA);
+      BigNumberPolynomialAddBigNumber(X, FCoefficientB);
+      BigNumberPolynomialNonNegativeModBigNumber(X, FFiniteFieldSize);  // X := A*X + B  mod
+
+      BigNumberPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
+      BigNumberPolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+
+      Result := Y.IsZero;
+    finally
+      FEccPolynomialPool.Recycle(Y);
+      FEccPolynomialPool.Recycle(X);
+    end;
+  end;
+end;
+
+class function TCnPolynomialEcc.IsPointOnCurve2(PX,
+  PY: TCnBigNumberPolynomial; A, B, APrime: TCnBigNumber;
+  APrimitive: TCnBigNumberPolynomial): Boolean;
+var
+  X, Y: TCnBigNumberPolynomial;
+begin
+  // 计算 (Y^2 - X^3 - A*X - B) mod primitive （多项式系数运算要 mod p）是否等于 0 多项式
+  X := nil;
+  Y := nil;
+
+  try
+    X := FEccPolynomialPool.Obtain;
+    Y := FEccPolynomialPool.Obtain;
+
+    BigNumberPolynomialCopy(Y, PY);
+    BigNumberPolynomialGaloisMul(Y, Y, Y, APrime, APrimitive);
+
+    BigNumberPolynomialCopy(X, PX);
+    BigNumberPolynomialGaloisPower(X, X, 3, APrime, APrimitive);
+
+    BigNumberPolynomialGaloisSub(Y, Y, X, APrime, APrimitive);  // Y := Y^2 - X^3 mod
+
+    BigNumberPolynomialCopy(X, PX);
+    BigNumberPolynomialMulBigNumber(X, A);
+    BigNumberPolynomialAddBigNumber(X, B);
+    BigNumberPolynomialNonNegativeModBigNumber(X, APrime); // X := A*X + B mod
+
+    BigNumberPolynomialGaloisSub(Y, Y, X, APrime, APrimitive);
+    BigNumberPolynomialGaloisMod(Y, Y, APrimitive, APrime);
+
+    Result := Y.IsZero;
+  finally
+    FEccPolynomialPool.Recycle(Y);
+    FEccPolynomialPool.Recycle(X);
+  end;
+end;
+
+class function TCnPolynomialEcc.IsRationalPointOnCurve(PX,
+  PY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber): Boolean;
+var
+  Y2, T1: TCnBigNumberPolynomial;
+  RL, RR, T2: TCnBigNumberRationalPolynomial;
+begin
+  // 计算 PY^2 * (x^3 + Ax + B) 是否等于 PX^3 + A * PX + B，系数均 mod APrime
+  Y2 := nil;
+  T1 := nil;
+  T2 := nil;
+  RL := nil;
+  RR := nil;
+
+  try
+    Y2 := FEccPolynomialPool.Obtain;
+    Y2.SetCoefficents([B, A, 0, 1]);
+
+    RL := TCnBigNumberRationalPolynomial.Create;
+    BigNumberRationalPolynomialGaloisMul(PY, PY, RL, APrime);
+    BigNumberRationalPolynomialGaloisMul(RL, Y2, RL, APrime);  // 得到等号左边的值
+
+    RR := TCnBigNumberRationalPolynomial.Create;
+    BigNumberRationalPolynomialGaloisMul(PX, PX, RR, APrime);
+    BigNumberRationalPolynomialGaloisMul(RR, PX, RR, APrime);  // 得到 PX^3
+
+    T1 := FEccPolynomialPool.Obtain;
+    T1.SetCoefficents([A]);
+
+    T2 := TCnBigNumberRationalPolynomial.Create;
+    BigNumberRationalPolynomialGaloisMul(PX, T1, T2, APrime);  // T2 得到 A * PX
+
+    T1.SetCoefficents([B]);
+    BigNumberRationalPolynomialGaloisAdd(T2, T1, T2, APrime);  // T2 得到 A * PX + B
+
+    BigNumberRationalPolynomialGaloisAdd(T2, RR, RR, APrime);  // RR 得到 PX^3 + A * PX + B
+
+    Result := BigNumberRationalPolynomialEqual(RL, RR);       // 比较是否相等
+  finally
+    FEccPolynomialPool.Recycle(Y2);
+    FEccPolynomialPool.Recycle(T1);
+    T2.Free;
+    RL.Free;
+    RR.Free;
+  end;
+end;
+
+procedure TCnPolynomialEcc.MultiplePoint(K: TCnBigNumber;
+  Point: TCnPolynomialEccPoint);
+var
+  I: Integer;
+  E, R: TCnPolynomialEccPoint;
+begin
+  if K.IsZero then
+  begin
+    Point.SetZero;
+    Exit;
+  end
+  else if K.IsNegative then
+  begin
+    K.Negate;
+    PointInverse(Point);
+  end;
+
+  R := nil;
+  E := nil;
+
+  try
+    R := TCnPolynomialEccPoint.Create;
+    E := TCnPolynomialEccPoint.Create;
+
+    R.SetZero;
+    E.Assign(Point);
+
+    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    begin
+      if BigNumberIsBitSet(K, I) then
+        PointAddPoint(R, E, R);
+
+      PointAddPoint(E, E, E);
+    end;
+
+    Point.Assign(R);
+  finally
+    R.Free;
+    E.Free;
+  end;
+end;
+
+procedure TCnPolynomialEcc.MultiplePoint(K: Int64;
+  Point: TCnPolynomialEccPoint);
+var
+  BK: TCnBigNumber;
+begin
+  BK := FEccBigNumberPool.Obtain;
+  try
+    BK.SetInt64(K);
+    MultiplePoint(BK, Point);
+  finally
+    FEccBigNumberPool.Recycle(BK);
+  end;
+end;
+
+procedure TCnPolynomialEcc.PointAddPoint(P, Q, Sum: TCnPolynomialEccPoint);
+var
+  K, X, Y, T: TCnBigNumberPolynomial;
+begin
+  K := nil;
+  X := nil;
+  Y := nil;
+  T := nil;
+
+  try
+    if P.IsZero then
+    begin
+      Sum.Assign(Q);
+      Exit;
+    end
+    else if Q.IsZero then
+    begin
+      Sum.Assign(P);
+      Exit;
+    end
+    else if BigNumberPolynomialEqual(P.X, Q.X) and BigNumberPolynomialEqual(P.Y, Q.Y) then
+    begin
+      // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
+      X := FEccPolynomialPool.Obtain;
+      Y := FEccPolynomialPool.Obtain;
+
+      // X := 3 * P.X * P.X + FCoefficientA
+      BigNumberPolynomialGaloisMul(X, P.X, P.X, FFiniteFieldSize, FPrimitive);
+      BigNumberPolynomialGaloisMulWord(X, 3, FFiniteFieldSize);
+      BigNumberPolynomialGaloisAddBigNumber(X, FCoefficientA, FFiniteFieldSize);
+
+      // Y := 2 * P.Y;
+      BigNumberPolynomialCopy(Y, P.Y);
+      BigNumberPolynomialGaloisMulWord(Y, 2, FFiniteFieldSize);
+
+      if Y.IsZero then
+      begin
+        Sum.X.SetZero;
+        Sum.Y.SetZero;
+      end;
+
+      // Y := Y^-1
+      T := FEccPolynomialPool.Obtain;
+      BigNumberPolynomialCopy(T, Y);
+      BigNumberPolynomialGaloisModularInverse(Y, T, FPrimitive, FFiniteFieldSize);
+
+      // K := X * Y mod FFiniteFieldSize;
+      K := FEccPolynomialPool.Obtain;
+      BigNumberPolynomialGaloisMul(K, X, Y, FFiniteFieldSize, FPrimitive);
+      // 得到切线斜率 K
+    end
+    else // 是不同点
+    begin
+      if BigNumberPolynomialEqual(P.X, Q.X) then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
+      begin
+        T := FEccPolynomialPool.Obtain;
+        BigNumberPolynomialGaloisAdd(T, P.Y, Q.Y, FFiniteFieldSize);
+        if T.IsZero then
+          Sum.SetZero
+        else
+          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+            [P.X.ToString, P.Y.ToString, Q.X.ToString, Q.Y.ToString]);
+
+        Exit;
+      end;
+
+      // 到这里，X 确定不同，斜率 K := ((Q.Y - P.Y) / (Q.X - P.X)) mod p
+      X := FEccPolynomialPool.Obtain;
+      Y := FEccPolynomialPool.Obtain;
+      K := FEccPolynomialPool.Obtain;
+
+      BigNumberPolynomialGaloisSub(Y, Q.Y, P.Y, FFiniteFieldSize);
+      BigNumberPolynomialGaloisSub(X, Q.X, P.X, FFiniteFieldSize);
+
+      T := FEccPolynomialPool.Obtain;
+      BigNumberPolynomialCopy(T, X);
+      BigNumberPolynomialGaloisModularInverse(X, T, FPrimitive, FFiniteFieldSize);
+      BigNumberPolynomialGaloisMul(K, Y, X, FFiniteFieldSize, FPrimitive); // 得到斜率
+    end;
+
+    //  X := K * K - P.X - Q.X;
+    BigNumberPolynomialCopy(X, K);
+    BigNumberPolynomialGaloisMul(X, X, K, FFiniteFieldSize, FPrimitive);
+    BigNumberPolynomialGaloisSub(X, X, P.X, FFiniteFieldSize);
+    BigNumberPolynomialGaloisSub(X, X, Q.X, FFiniteFieldSize);
+
+    // Ysum = (K * (X1 - Xsum) - Y1) mod p
+    BigNumberPolynomialGaloisSub(X, P.X, X, FFiniteFieldSize);
+    BigNumberPolynomialGaloisMul(Y, K, X, FFiniteFieldSize, FPrimitive);
+    BigNumberPolynomialGaloisSub(Y, Y, P.Y, FFiniteFieldSize);
+
+    BigNumberPolynomialCopy(Sum.X, X);
+    BigNumberPolynomialCopy(Sum.Y, Y);
+  finally
+    FEccPolynomialPool.Recycle(K);
+    FEccPolynomialPool.Recycle(X);
+    FEccPolynomialPool.Recycle(Y);
+    FEccPolynomialPool.Recycle(T);
+  end;
+end;
+
+procedure TCnPolynomialEcc.PointInverse(P: TCnPolynomialEccPoint);
+var
+  I: Integer;
+begin
+  for I := 0 to P.Y.MaxDegree do
+    BigNumberSub(P.Y[I], FFiniteFieldSize, P.Y[I]);
+end;
+
+procedure TCnPolynomialEcc.PointSubPoint(P, Q,
+  Diff: TCnPolynomialEccPoint);
+var
+  Inv: TCnPolynomialEccPoint;
+begin
+  Inv := TCnPolynomialEccPoint.Create;
+  try
+    Inv.Assign(Q);
+    PointInverse(Inv);
+    PointAddPoint(P, Inv, Diff);
+  finally
+    Inv.Free;
+  end;
+end;
+
+class procedure TCnPolynomialEcc.RationalMultiplePoint(K: Integer; MX,
+  MY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber;
+  APrimitive: TCnBigNumberPolynomial);
+begin
+
+end;
+
+class procedure TCnPolynomialEcc.RationalPointAddPoint(PX, PY, QX, QY, SX,
+  SY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber;
+  APrimitive: TCnBigNumberPolynomial);
+begin
+
+end;
+
+procedure TCnPolynomialEcc.SetPrimitive(
+  const Value: TCnBigNumberPolynomial);
+begin
+  if Value <> nil then
+  begin
+    if Value.MaxDegree <> FExtension then
+      raise ECnEccException.Create('Primitive Polynomial Max Degree must be Field Extension.');
+    BigNumberPolynomialCopy(FPrimitive, Value);
+  end;
+end;
+
 initialization
   FEccBigNumberPool := TCnBigNumberPool.Create;
   FEccInt64PolynomialPool := TCnInt64PolynomialPool.Create;
+  FEccPolynomialPool := TCnBigNumberPolynomialPool.Create;
 
 finalization
+  FEccPolynomialPool.Free;
   FEccInt64PolynomialPool.Free;
   FEccBigNumberPool.Free;
 

@@ -135,6 +135,13 @@ type
     mmoBNTestDivisionPolynomials: TMemo;
     btnBNTestDivPoly1: TButton;
     btnBNTestDivPoly2: TButton;
+    tsBNRationalPolynomial: TTabSheet;
+    grpBNRationalPolynomial: TGroupBox;
+    btnBNTestDivPoly: TButton;
+    bvl6: TBevel;
+    btnBNEccOnCurve: TButton;
+    btnBNEccPointAdd1: TButton;
+    btnBNEccPointAdd2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -215,6 +222,10 @@ type
     procedure btnBNGenerateDPClick(Sender: TObject);
     procedure btnBNTestDivPoly1Click(Sender: TObject);
     procedure btnBNTestDivPoly2Click(Sender: TObject);
+    procedure btnBNTestDivPolyClick(Sender: TObject);
+    procedure btnBNEccOnCurveClick(Sender: TObject);
+    procedure btnBNEccPointAdd1Click(Sender: TObject);
+    procedure btnBNEccPointAdd2Click(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -625,7 +636,7 @@ begin
   P := TCnInt64PolynomialEccPoint.Create;
   P.Assign(Ecc.Generator);
   Ecc.MultiplePoint(68, P);
-  ShowMessage(P.ToString);   // 15x+6, 63x+4
+  ShowMessage(P.ToString);  // 37x+31,51x+39       // 15x+6, 63x+4
 
   Q := TCnInt64PolynomialEccPoint.Create;
   Q.Assign(Ecc.Generator);
@@ -633,7 +644,7 @@ begin
   Int64PolynomialGaloisPower(Q.Y, Q.Y, 67, 67, Ecc.Primitive);
 
   Ecc.MultiplePoint(11, Q);
-  ShowMessage(Q.ToString);   // 39x+2, 38x+48
+  ShowMessage(Q.ToString);   // 18x+30,41x+49      // 39x+2, 38x+48
 
   S := TCnInt64PolynomialEccPoint.Create;
   Ecc.PointAddPoint(S, P, Q);
@@ -2421,18 +2432,30 @@ begin
 end;
 
 procedure TFormPolynomial.btnBNGenerateDPClick(Sender: TObject);
-//var
-//  List: TObjectList;
-//  I: Integer;
+var
+  List: TObjectList;
+  I: Integer;
+  A, B, P: TCnBigNumber;
 begin
-//  List := TObjectList.Create(True);
-//  CnInt64GenerateGaloisDivisionPolynomials(46, 74, 97, 20, List);
-//
-//  mmoTestDivisionPolynomial.Lines.Clear;
-//  for I := 0 to List.Count - 1 do
-//    mmoTestDivisionPolynomial.Lines.Add(TCnInt64Polynomial(List[I]).ToString);
-//
-//  List.Free;
+  List := TObjectList.Create(True);
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+
+  A.SetWord(46);
+  B.SetWord(74);
+  P.SetWord(97);
+
+  CnGenerateGaloisDivisionPolynomials(A, B, P, 20, List);
+  P.Free;
+  B.Free;
+  A.Free;
+
+  mmoBNTestDivisionPolynomials.Lines.Clear;
+  for I := 0 to List.Count - 1 do
+    mmoBNTestDivisionPolynomials.Lines.Add(TCnBigNumberPolynomial(List[I]).ToString);
+
+  List.Free;
 end;
 
 procedure TFormPolynomial.btnBNTestDivPoly1Click(Sender: TObject);
@@ -2489,6 +2512,259 @@ begin
   ShowMessage(P.ToString);
 
   P.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestDivPolyClick(Sender: TObject);
+var
+  F: TCnBigNumberPolynomial;
+  A, B: Integer;
+  Q, V, X: TCnBigNumber;
+begin
+  // 拿椭圆曲线里 nP = 0 的点的坐标 x y，验证 fn(x) 是否等于 0
+  // 要找 2 3 4 5 6 的例子
+
+  F := TCnBigNumberPolynomial.Create;
+  // F29 下的 Y^2 = X^3 + 6X + 1，阶为 24，有 2 3 4 的例子，后面也有 6 8 12 24
+
+  A := 6; B := 1;
+  Q := TCnBigNumber.Create;
+  Q.SetWord(29);
+  V := TCnBigNumber.Create;
+  X := TCnBigNumber.Create;
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 2, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(25);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);  // 25, 0 是二阶点
+  ShowMessage(V.ToDec);                      // 2 不是 0，正常
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 3, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(18);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);  // 18, 5 是三阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 4, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(20);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);  // 20, 1 是四阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 6, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(9);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);   // 9, 28 是六阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 8, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(7);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);   // 7, 26 是八阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 12, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(24);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);  // 24, 22 是十二阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  // F23 下的 Y^2 = X^3 + X + 9，阶为 20，有 2 4 5 的例子，后面也有 10 20
+
+  A := 1; B := 9;
+  Q.SetWord(23);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 2, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(8);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);   // 8, 0 是二阶点
+  ShowMessage(V.ToDec);                      // 2 不是 0，正常
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 4, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(5);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);   // 5, 22 是四阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 5, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(3);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);   // 3, 4 是五阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 10, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(16);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);  // 16, 2 是十阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, 20, F, Q);
+  ShowMessage(F.ToString);
+  X.SetWord(6);
+  BigNumberPolynomialGaloisGetValue(V, F, X, Q);   // 6, 22 是二十阶点
+  ShowMessage(V.ToDec);                      // 是 0
+
+  F.Free;
+  Q.Free;
+  V.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnBNEccOnCurveClick(Sender: TObject);
+var
+  Ecc: TCnPolynomialEcc;
+  G: TCnPolynomialEccPoint;
+  PM: TCnBigNumberPolynomial;
+begin
+{
+  用例一：
+  椭圆曲线 y^2 = x^3 + 4x + 3, 如果定义在二次扩域 F67^2 上，本原多项式 u^2 + 1
+  判断基点 P(2u+16, 30u+39) 在曲线上
+
+  用例二：
+  椭圆曲线 y^2 = x^3 + 4x + 3, 如果定义在三次扩域 F67^3 上，本原多项式 u^3 + 2
+  判断基点 P((15v^2 + 4v + 8, 44v^2 + 30v + 21)) 在曲线上
+
+  该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
+}
+
+  G := TCnPolynomialEccPoint.Create;
+  G.X.SetCoefficents([16, 2]);
+  G.Y.SetCoefficents([39, 30]);
+  PM := TCnBigNumberPolynomial.Create;
+  PM.SetCoefficents([1, 0, 1]);
+
+  // $43 = 67
+  Ecc := TCnPolynomialEcc.Create('4', '3', '43', 2, G.X, G.Y, '0', PM); // Order 未指定，先不传
+  if Ecc.IsPointOnCurve(Ecc.Generator) then
+    ShowMessage('Ecc 1 Generator is on Curve')
+  else
+    ShowMessage('Error');
+
+  Ecc.Free;
+
+  G.X.SetCoefficents([8, 4, 15]);
+  G.Y.SetCoefficents([21, 30, 44]);
+  PM.SetCoefficents([2, 0, 0, 1]);
+  Ecc := TCnPolynomialEcc.Create('4', '3', '43', 3, G.X, G.Y, '0', PM); // Order 未指定，先不传
+  if Ecc.IsPointOnCurve(Ecc.Generator) then
+    ShowMessage('Ecc 2 Generator is on Curve')
+  else
+    ShowMessage('Error');
+
+  Ecc.Free;
+  PM.Free;
+  G.Free;
+end;
+
+procedure TFormPolynomial.btnBNEccPointAdd1Click(Sender: TObject);
+var
+  Ecc: TCnPolynomialEcc;
+  K, Prime: TCnBigNumber;
+  P, Q, S, G: TCnPolynomialEccPoint;
+  PM: TCnBigNumberPolynomial;
+begin
+// 有限扩域上的多项式椭圆曲线点加
+// F67^2 上的椭圆曲线 y^2 = x^3 + 4x + 3 本原多项式 u^2 + 1
+// 点 P(2u + 16, 30u + 39) 满足 68P + 11πP = 0
+// 其中 πP 是 P 的 Frob 映射也就是 X Y 各 67 次方为用例三中的(65u + 16, 37u + 39)
+
+// 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
+  G := TCnPolynomialEccPoint.Create;
+  G.X.SetCoefficents([16, 2]);
+  G.Y.SetCoefficents([39, 30]);
+  PM := TCnBigNumberPolynomial.Create;
+  PM.SetCoefficents([1,0,1]);
+  K := TCnBigNumber.Create;
+  Prime := TCnBigNumber.Create;
+
+  // $43 = 67
+  Ecc := TCnPolynomialEcc.Create('4', '3', '43', 2, G.X, G.Y, '0', PM); // Order 未指定，先不传
+
+  P := TCnPolynomialEccPoint.Create;
+  P.Assign(Ecc.Generator);
+  K.SetWord(68);
+  Ecc.MultiplePoint(K, P);
+  ShowMessage(P.ToString);   // 37x+31,51x+39       // 15x+6, 63x+4
+
+  Q := TCnPolynomialEccPoint.Create;
+  Q.Assign(Ecc.Generator);
+  Prime.SetWord(67);
+  BigNumberPolynomialGaloisPower(Q.X, Q.X, Prime, Prime, Ecc.Primitive);
+  BigNumberPolynomialGaloisPower(Q.Y, Q.Y, Prime, Prime, Ecc.Primitive);
+
+  K.SetWord(11);
+  Ecc.MultiplePoint(K, Q);
+  ShowMessage(Q.ToString);   // 18x+30,41x+49       // 39x+2, 38x+48
+
+  S := TCnPolynomialEccPoint.Create;
+  Ecc.PointAddPoint(S, P, Q);
+  ShowMessage(S.ToString);   // 0, 0
+
+  K.Free;
+  S.Free;
+  P.Free;
+  Q.Free;
+  G.Free;
+  PM.Free;
+  Ecc.Free;
+end;
+
+procedure TFormPolynomial.btnBNEccPointAdd2Click(Sender: TObject);
+var
+  Ecc: TCnPolynomialEcc;
+  P, Q, S, G: TCnPolynomialEccPoint;
+  Prime, Prime2: TCnBigNumber;
+  PM: TCnBigNumberPolynomial;
+begin
+// 有限扩域上的多项式椭圆曲线点加
+// F67^3 上的椭圆曲线 y^2 = x^3 + 4x + 3 本原多项式 u^3 + 2
+// 点 P(15v^2 + 4v + 8, 44v^2 + 30v + 21) 满足 π2P - (-11)πP + 67P = 0
+// 其中 πP 是 P 的 Frob 映射也就是 X Y 各 67 次方
+// πP为用例四中的(33v^2 + 14v + 8, 3v^2 + 38v + 21)
+// π2P为用例四中的 67^2 次方(19v^2 + 49v + 8, 20v^2 + 66v + 21)
+
+// 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
+  Prime := TCnBigNumber.Create;
+  Prime.SetWord(67);
+  Prime2 := TCnBigNumber.Create;
+  Prime2.SetWord(67*67);
+
+  G := TCnPolynomialEccPoint.Create;
+  G.X.SetCoefficents([8, 4, 15]);
+  G.Y.SetCoefficents([21, 30, 44]);
+
+  PM := TCnBigNumberPolynomial.Create([2, 0, 0, 1]);
+
+  // $43 = 67
+  Ecc := TCnPolynomialEcc.Create('4', '3', '43', 3, G.X, G.Y, '0', PM); // Order 未指定，先不传
+
+  P := TCnPolynomialEccPoint.Create;
+  P.Assign(Ecc.Generator);
+  Ecc.MultiplePoint(Prime, P);                                        // 算 67P
+
+  Q := TCnPolynomialEccPoint.Create;
+  Q.Assign(Ecc.Generator);
+  BigNumberPolynomialGaloisPower(Q.X, Q.X, Prime, Prime, Ecc.Primitive);
+  BigNumberPolynomialGaloisPower(Q.Y, Q.Y, Prime, Prime, Ecc.Primitive);   // 算 πP
+  Ecc.MultiplePoint(-11, Q);                                       // 算 -11πp
+
+  S := TCnPolynomialEccPoint.Create;
+  Ecc.PointSubPoint(S, P, Q);
+
+  Q.Assign(Ecc.Generator);
+  BigNumberPolynomialGaloisPower(Q.X, Q.X, Prime2, Prime, Ecc.Primitive);
+  BigNumberPolynomialGaloisPower(Q.Y, Q.Y, Prime2, Prime, Ecc.Primitive); // 算 π2P
+
+  Ecc.PointAddPoint(S, S, Q);
+  ShowMessage(Q.ToString);                                          // 得到 0,0
+
+  P.Free;
+  Q.Free;
+  S.Free;
+  G.Free;
+  Ecc.Free;
+  Prime.Free;
+  Prime2.Free;
+  PM.Free;
 end;
 
 end.

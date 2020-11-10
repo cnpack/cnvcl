@@ -1085,6 +1085,61 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 8
           OnClick = btnBNTestDivPoly2Click
         end
+        object btnBNEccOnCurve: TButton
+          Left = 24
+          Top = 32
+          Width = 129
+          Height = 25
+          Caption = 'Test 1 Point on Curve'
+          TabOrder = 9
+          OnClick = btnBNEccOnCurveClick
+        end
+        object btnBNEccPointAdd1: TButton
+          Left = 176
+          Top = 32
+          Width = 113
+          Height = 25
+          Caption = 'Test Point Add 1'
+          TabOrder = 10
+          OnClick = btnBNEccPointAdd1Click
+        end
+        object btnBNEccPointAdd2: TButton
+          Left = 312
+          Top = 32
+          Width = 105
+          Height = 25
+          Caption = 'Test Point Add 2'
+          TabOrder = 11
+          OnClick = btnBNEccPointAdd2Click
+        end
+      end
+    end
+    object tsBNRationalPolynomial: TTabSheet
+      Caption = 'BigNumber Rational Polynomial'
+      ImageIndex = 5
+      object grpBNRationalPolynomial: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 905
+        Height = 505
+        Caption = 'BigNumber Rational Polynomial'
+        TabOrder = 0
+        object bvl6: TBevel
+          Left = 16
+          Top = 72
+          Width = 873
+          Height = 9
+          Shape = bsTopLine
+        end
+        object btnBNTestDivPoly: TButton
+          Left = 464
+          Top = 24
+          Width = 225
+          Height = 25
+          Caption = 'Check Division Polynomial Zero'
+          TabOrder = 0
+          OnClick = btnBNTestDivPolyClick
+        end
       end
     end
   end
