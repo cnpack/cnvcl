@@ -24,12 +24,15 @@ unit CnPolynomial;
 * 软件名称：开发包基础库
 * 单元名称：多项式运算实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org）
-* 备    注：支持普通的整系数多项式四则运算，除法只支持除数最高次数为 1 的情况
+* 备    注：1、支持普通的整系数多项式四则运算，除法只支持除数最高次数为 1 的情况
 *           支持有限扩域范围内的多项式四则运算，系数均 mod p 并且结果对本原多项式求余
+*           2、支持大整数系数多项式以及有理分式在普通四则运算以及在有限扩域范围内的运算
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.10.20 V1.2
+* 修改记录：2020.11.08 V1.3
+*               实现有限扩域中大整数范围内的多项式以及有理分式及其运算
+*           2020.10.20 V1.2
 *               实现有限扩域中 Int64 范围内的有理分式及其运算
 *           2020.08.28 V1.1
 *               实现有限扩域中 Int64 范围内的多项式及其运算，包括对本原多项式求余的模逆元
@@ -3036,6 +3039,12 @@ begin
       begin
         Add.SetDec(LowToHighCoefficients[I].VString^);
       end;
+    vtObject:
+      begin
+        // 接受 TCnBigNumber 并从中复制值
+        if LowToHighCoefficients[I].VObject is TCnBigNumber then
+          BigNumberCopy(Add, LowToHighCoefficients[I].VObject as TCnBigNumber);
+      end;
     else
       raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + IntToStr(I)]);
     end;
@@ -4326,7 +4335,7 @@ begin
     for I := 0 to P.MaxDegree do
     begin
       BigNumberMul(P[I], P[I], N);
-      BigNumberNonNegativeMod(P[0], P[0], Prime);
+      BigNumberNonNegativeMod(P[I], P[I], Prime);
     end;
   end;
 end;
