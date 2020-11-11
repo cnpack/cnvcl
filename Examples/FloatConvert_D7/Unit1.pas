@@ -19,8 +19,10 @@ type
    rdoOct: TRadioButton;
    rdoHex: TRadioButton;
     btnExtract: TButton;
+    btnUInt64ToFloat: TButton;
    procedure Button1Click(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
+    procedure btnUInt64ToFloatClick(Sender: TObject);
   private
    { Private declarations }
   public
@@ -78,6 +80,22 @@ begin
 
   if (A1 = A2) and (B1 = B2) and (C1 = C2) then
     ShowMessage('Float Extract and Combine OK.');
+end;
+
+procedure TFormFloat.btnUInt64ToFloatClick(Sender: TObject);
+var
+  U: TUInt64;
+  D: Double;
+  E: Extended;
+begin
+  U := -234567869758674564;
+  ShowMessage(UInt64ToStr(U));
+
+  D := UInt64ToDouble(U);
+  ShowMessage(FloatToStr(D));
+
+  E := UInt64ToExtended(U);
+  ShowMessage(FloatToStr(E));
 end;
 
 end.

@@ -128,6 +128,12 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数}
 
+function UInt64ToDouble(U: TUInt64): Double;
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Double}
+
+function UInt64ToExtended(U: TUInt64): Extended;
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Extended}
+
 function SingleIsInfinite(const AValue: Single): Boolean;
 {* 单精度浮点数是否无穷大}
 
@@ -916,6 +922,50 @@ begin
     PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
   else
     PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+end;
+
+function UInt64ToDouble(U: TUInt64): Double;
+{$IFNDEF SUPPORT_UINT64}
+var
+  L, H: Cardinal;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_UINT64}
+  Result := U;
+{$ELSE}
+  if U < 0 then // Int64 小于 0 时，代表的 UInt64 是大于 Int64 的最大值的
+  begin
+    H := Int64Rec(U).Hi;
+    L := Int64Rec(U).Lo;
+    Result := Int64(H) * Int64(MAX_UINT16 + 1); // 拆开两步乘
+    Result := Result * (MAX_UINT16 + 1);
+    Result := Result + L;
+  end
+  else
+    Result := U;
+{$ENDIF}
+end;
+
+function UInt64ToExtended(U: TUInt64): Extended;
+{$IFNDEF SUPPORT_UINT64}
+var
+  L, H: Cardinal;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_UINT64}
+  Result := U;
+{$ELSE}
+  if U < 0 then // Int64 小于 0 时，代表的 UInt64 是大于 Int64 的最大值的
+  begin
+    H := Int64Rec(U).Hi;
+    L := Int64Rec(U).Lo;
+    Result := Int64(H) * Int64(MAX_UINT16 + 1); // 拆开两步乘
+    Result := Result * (MAX_UINT16 + 1);
+    Result := Result + L;
+  end
+  else
+    Result := U;
+{$ENDIF}
 end;
 
 function SingleIsInfinite(const AValue: Single): Boolean;

@@ -88,4 +88,13 @@ object FormFloat: TFormFloat
     TabOrder = 7
     OnClick = btnExtractClick
   end
+  object btnUInt64ToFloat: TButton
+    Left = 184
+    Top = 72
+    Width = 97
+    Height = 25
+    Caption = 'UInt64 To Float'
+    TabOrder = 8
+    OnClick = btnUInt64ToFloatClick
+  end
 end

@@ -104,6 +104,7 @@ type
 
 const
   MAX_SQRT_INT64: Cardinal               = 3037000499;
+  MAX_UINT16: Word                       = $FFFF;
   MAX_UINT32: Cardinal                   = $FFFFFFFF;
   MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
   MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
