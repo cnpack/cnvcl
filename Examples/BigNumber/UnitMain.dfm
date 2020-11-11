@@ -578,6 +578,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 53
         OnClick = btnBNCRTClick
       end
+      object btnBNSqrt: TButton
+        Left = 904
+        Top = 224
+        Width = 129
+        Height = 25
+        Caption = 'Sqrt'
+        TabOrder = 54
+        OnClick = btnBNSqrtClick
+      end
     end
   end
 end

@@ -507,6 +507,9 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功}
 
+function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
+{* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功}
+
 function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2}
@@ -514,7 +517,7 @@ function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 {* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功，
-   Res 可以是 Num}
+   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数}
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -633,8 +636,14 @@ function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber)
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N}
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
-  Remainers, Factors: TCnBigNumberList): Boolean;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功}
+  Remainers, Factors: TCnBigNumberList): Boolean; overload;
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
+  参数为大数列表}
+
+function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
+  Remainers, Factors: TCnInt64List): Boolean; overload;
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
+   参数为 Int64 列表}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -3069,6 +3078,69 @@ begin
   end;
 end;
 
+function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
+var
+  U: TUInt64;
+  BitLength, Shift: Integer;
+  XK, XK1: TCnBigNumber;
+begin
+  Result := False;
+  if Num.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end
+  else if Num.IsNegative then
+    Exit
+  else if Num.Top <= 2 then
+  begin
+    U := BigNumberGetUInt64UsingInt64(Num);
+    U := UInt64Sqrt(U);
+    BigNumberSetUInt64UsingInt64(Res, U);
+    Result := True;
+    Exit;
+  end
+  else
+  begin
+    BitLength := Num.GetBitsCount;
+    Shift := BitLength - 63;
+    if (Shift and 1) <> 0 then
+      Inc(Shift);
+
+    XK := FLocalBigNumberPool.Obtain;
+    XK1 := FLocalBigNumberPool.Obtain;
+
+    BigNumberCopy(XK, Num);
+    XK.ShiftRight(Shift); // 取最高的 UInt64 位来估算平方根
+
+    U := XK.GetInt64;
+    U := UInt64Sqrt(U);
+    XK.SetInt64(U);  // XK 是估算的平方根
+
+    XK.ShiftLeft(Shift shr 1);
+
+    // 牛顿迭代法
+    while True do
+    begin
+      // xk1 = (xk + n/xk)/2
+      BigNumberDiv(XK1, nil, Num, XK);
+      BigNumberAdd(XK1, XK1, XK);
+      XK1.ShiftRightOne;
+
+      if BigNumberCompare(XK1, XK) >= 0 then
+      begin
+        // 迭代 XK 是结果
+        BigNumberCopy(Res, XK);
+        Result := True;
+        Exit;
+      end;
+      // xk = xk1
+      BigNumberCopy(XK, XK1);
+    end;
+  end;
+end;
+
 procedure BigNumberMulNormal(R: PLongWord; A: PLongWord; NA: Integer; B: PLongWord;
   NB: Integer);
 var
@@ -3205,8 +3277,9 @@ begin
 
   if BigNumberUnsignedCompare(Num, Divisor) < 0 then
   begin
-    if BigNumberCopy(Remain, Num) = nil then
-      Exit;
+    if Remain <> nil then
+      if BigNumberCopy(Remain, Num) = nil then
+        Exit;
     BigNumberSetZero(Res);
     Result := True;
     Exit;
@@ -3348,9 +3421,13 @@ begin
 
     BigNumberCorrectTop(SNum);
     Neg := Num.Neg;
-    BigNumberShiftRight(Remain, SNum, NormShift);
-    if not BigNumberIsZero(Remain) then
-      Remain.Neg := Neg;
+
+    if Remain <> nil then // 需要余数时
+    begin
+      BigNumberShiftRight(Remain, SNum, NormShift);
+      if not BigNumberIsZero(Remain) then
+        Remain.Neg := Neg;
+    end;
 
     Result := True;
   finally
@@ -4970,6 +5047,32 @@ begin
     FLocalBigNumberPool.Recycle(N);
     FLocalBigNumberPool.Recycle(G);
     FLocalBigNumberPool.Recycle(Sum);
+  end;
+end;
+
+function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
+  Remainers, Factors: TCnInt64List): Boolean; overload;
+var
+  I: Integer;
+  BR, BF: TCnBigNumberList;
+begin
+  BR := nil;
+  BF := nil;
+
+  try
+    BR := TCnBigNumberList.Create;
+    BF := TCnBigNumberList.Create;
+
+    for I := 0 to Remainers.Count - 1 do
+      BR.Add.SetInt64(Remainers[I]);
+
+    for I := 0 to Factors.Count - 1 do
+      BF.Add.SetInt64(Factors[I]);
+
+    Result := BigNumberChineseRemainderTheorem(Res, BR, BF);
+  finally
+    BF.Free;
+    BR.Free;
   end;
 end;
 
