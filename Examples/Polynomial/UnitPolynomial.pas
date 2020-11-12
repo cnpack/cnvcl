@@ -142,6 +142,35 @@ type
     btnBNEccOnCurve: TButton;
     btnBNEccPointAdd1: TButton;
     btnBNEccPointAdd2: TButton;
+    btnBNTestPoly1: TButton;
+    btnBNTestPoly2: TButton;
+    btnBNTestPoly3: TButton;
+    btnBNTestPointAdd: TButton;
+    btnBNTestManualPoint: TButton;
+    lbl5: TLabel;
+    edtBNRationalNominator1: TEdit;
+    edtBNRationalDenominator1: TEdit;
+    btnBNRationalGenerate: TButton;
+    btnBNRationalAdd: TButton;
+    btnBNRationalSub: TButton;
+    btnBNRationalMul: TButton;
+    btnBNRationalDiv: TButton;
+    chkBNRationalGalois: TCheckBox;
+    edtBNRationalGalois: TEdit;
+    edtBNRationalNominator2: TEdit;
+    edtBNRationalDenominator2: TEdit;
+    lbl6: TLabel;
+    lbl7: TLabel;
+    edtBNRationalResultNominator: TEdit;
+    edtBNRationalResultDenominator: TEdit;
+    bvl7: TBevel;
+    btnBNTestRationalPointAdd1: TButton;
+    btnBNTestRationalPointAdd2: TButton;
+    btnBNTestGaloisEqual: TButton;
+    btnInt64PolySetString: TButton;
+    btnBNPolySetString: TButton;
+    btnRationalSetString: TButton;
+    btnBNRationalSetString: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -226,6 +255,23 @@ type
     procedure btnBNEccOnCurveClick(Sender: TObject);
     procedure btnBNEccPointAdd1Click(Sender: TObject);
     procedure btnBNEccPointAdd2Click(Sender: TObject);
+    procedure btnBNTestPoly1Click(Sender: TObject);
+    procedure btnBNTestPoly2Click(Sender: TObject);
+    procedure btnBNTestPoly3Click(Sender: TObject);
+    procedure btnBNTestPointAddClick(Sender: TObject);
+    procedure btnBNTestManualPointClick(Sender: TObject);
+    procedure btnBNRationalGenerateClick(Sender: TObject);
+    procedure btnBNRationalAddClick(Sender: TObject);
+    procedure btnBNRationalSubClick(Sender: TObject);
+    procedure btnBNRationalMulClick(Sender: TObject);
+    procedure btnBNRationalDivClick(Sender: TObject);
+    procedure btnBNTestRationalPointAdd1Click(Sender: TObject);
+    procedure btnBNTestRationalPointAdd2Click(Sender: TObject);
+    procedure btnBNTestGaloisEqualClick(Sender: TObject);
+    procedure btnInt64PolySetStringClick(Sender: TObject);
+    procedure btnBNPolySetStringClick(Sender: TObject);
+    procedure btnRationalSetStringClick(Sender: TObject);
+    procedure btnBNRationalSetStringClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -237,6 +283,9 @@ type
     FBP1: TCnBigNumberPolynomial;
     FBP2: TCnBigNumberPolynomial;
     FBP3: TCnBigNumberPolynomial;
+    FBRP1: TCnBigNumberRationalPolynomial;
+    FBRP2: TCnBigNumberRationalPolynomial;
+    FBRP3: TCnBigNumberRationalPolynomial;
   public
     { Public declarations }
   end;
@@ -263,10 +312,18 @@ begin
   FBP1 := TCnBigNumberPolynomial.Create;
   FBP2 := TCnBigNumberPolynomial.Create;
   FBP3 := TCnBigNumberPolynomial.Create;
+
+  FBRP1 := TCnBigNumberRationalPolynomial.Create;
+  FBRP2 := TCnBigNumberRationalPolynomial.Create;
+  FBRP3 := TCnBigNumberRationalPolynomial.Create;
 end;
 
 procedure TFormPolynomial.FormDestroy(Sender: TObject);
 begin
+  FBRP1.Free;
+  FBRP2.Free;
+  FBRP3.Free;
+
   FBP1.Free;
   FBP2.Free;
   FBP3.Free;
@@ -1643,7 +1700,7 @@ begin
   Int64PolynomialGaloisMul(TI2, A.Denominator, B.Nominator, 29, DP);
 
   if Int64PolynomialGaloisEqual(TI1, TI2, 29) then
-    ShowMessage('Equal')
+    ShowMessage('Equal')  // 应该得到 Equal
   else
     ShowMessage('NOT Equal');
 
@@ -2765,6 +2822,638 @@ begin
   Prime.Free;
   Prime2.Free;
   PM.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestPoly1Click(Sender: TObject);
+var
+  X, Y, P, E: TCnBigNumberPolynomial;
+begin
+  X := TCnBigNumberPolynomial.Create([12, 8, 11, 1]);
+  Y := TCnBigNumberPolynomial.Create([12, 5, 2, 12]);
+  P := TCnBigNumberPolynomial.Create([9, 12, 12, 0, 3]);
+  E := TCnBigNumberPolynomial.Create([1, 2, 0, 1]);
+
+  FQ.SetWord(13);
+  BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
+  BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点 2x3+7x2+12x+5
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入，也得到 2x3+7x2+12x+5
+  BigNumberPolynomialGaloisCompose(E, E, X, FQ, P);
+
+  if BigNumberPolynomialEqual(E, Y) then
+    ShowMessage('Pi On Curve')
+  else
+    ShowMessage('Pi NOT');
+
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestPoly2Click(Sender: TObject);
+var
+  X, Y, P, E: TCnBigNumberPolynomial;
+begin
+  X := TCnBigNumberPolynomial.Create([12,11,5,6]);
+  Y := TCnBigNumberPolynomial.Create([8,5]);
+  P := TCnBigNumberPolynomial.Create([9, 12, 12, 0, 3]);
+  E := TCnBigNumberPolynomial.Create([1, 2, 0, 1]);
+
+  FQ.SetWord(13);
+  BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
+  BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点 2x3+7x2+12x+5
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入，也得到 2x3+7x2+12x+5
+  BigNumberPolynomialGaloisCompose(E, E, X, FQ, P);
+
+  if BigNumberPolynomialEqual(E, Y) then
+    ShowMessage('Pi^2 On Curve')
+  else
+    ShowMessage('Pi^2 NOT');
+
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestPoly3Click(Sender: TObject);
+var
+  X, Y, P, E: TCnBigNumberPolynomial;
+begin
+  E := TCnBigNumberPolynomial.Create([1, 2, 0, 1]);
+  P := TCnBigNumberPolynomial.Create([7, 6, 1, 9, 10, 11, 12, 12, 9, 3, 7, 5]);
+
+  // 某 Pi
+  X := TCnBigNumberPolynomial.Create([9,4,5,6,11,3,8,8,6,2,9]);
+  Y := TCnBigNumberPolynomial.Create([12,1,11,0,1,1,7,1,8,9,12,7]);
+
+  FQ.SetWord(13);
+  BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
+  BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  BigNumberPolynomialGaloisCompose(E, E, X, FQ, P);
+
+  if BigNumberPolynomialEqual(E, Y) then
+    ShowMessage('Pi On Curve')
+  else
+    ShowMessage('Pi NOT');
+
+  // 某 Pi^2
+  X.SetCoefficents([5,11,3,2,2,7,5,2,11,6,12,5]);
+  Y.SetCoefficents([9,3,9,9,2,10,5,3,5,6,2,6]);
+
+  BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
+  BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  BigNumberPolynomialGaloisCompose(E, E, X, FQ, P);
+
+  if BigNumberPolynomialEqual(E, Y) then
+    ShowMessage('Pi^2 On Curve')
+  else
+    ShowMessage('Pi^2 NOT');
+
+  // 某 3 * P
+  X.SetCoefficents([10,8,7,9,5,12,4,12,3,4,1,6]);
+  Y.SetCoefficents([7,2,10,0,3,7,4,6,3,0,11,12]);
+
+  BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
+  BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  BigNumberPolynomialGaloisCompose(E, E, X, FQ, P);
+
+  if BigNumberPolynomialEqual(E, Y) then
+    ShowMessage('3 * P On Curve')
+  else
+    ShowMessage('3 * P NOT');
+
+  // 某点加 π^2 + 3 * P
+  X.SetCoefficents([4,5,1,11,4,4,9,6,12,2,6,3]);
+  Y.SetCoefficents([2,7,9,11,7,2,9,5,5,6,12,3]);
+
+  BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
+  BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
+
+  // 再计算 x 坐标，也就是计算 X3+AX+B，把 x 的多项式代入
+  BigNumberPolynomialGaloisCompose(E, E, X, FQ, P);
+
+  if BigNumberPolynomialEqual(E, Y) then
+    ShowMessage('Pi^2 + 3 * P On Curve')
+  else
+    ShowMessage('Pi^2 + 3 * P NOT');
+
+  E.Free;
+  P.Free;
+  Y.Free;
+  X.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestPointAddClick(Sender: TObject);
+var
+  X, Y: TCnBigNumberRationalPolynomial;
+  A, B, P, Res: TCnBigNumber;
+begin
+  X := TCnBigNumberRationalPolynomial.Create;
+  Y := TCnBigNumberRationalPolynomial.Create;
+  Res := TCnBigNumber.Create;
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  P := TCnBigNumber.Create;
+
+  A.SetOne;
+  B.SetOne;
+  FQ.SetWord(23);
+
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
+  TCnPolynomialEcc.RationalMultiplePoint(2, X, Y, A, B, FQ);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  // 验证 6 19 的二倍点是 13 16
+  P.SetWord(6);
+  BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
+  ShowMessage(Res.ToDec);  // 得到 13 对了
+  BigNumberRationalPolynomialGaloisGetValue(Res, Y, P, FQ);
+  BigNumberMulWord(Res, 19);
+  BigNumberMod(Res, Res, FQ);
+  ShowMessage(Res.ToDec);  // 得到 16 对了
+
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
+  TCnPolynomialEcc.RationalMultiplePoint(3, X, Y, A, B, FQ);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  // 验证 6 19 的三倍点是 7 11
+  BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
+  ShowMessage(Res.ToDec);   // 得到 7 对了
+  BigNumberRationalPolynomialGaloisGetValue(Res, Y, P, FQ);
+  BigNumberMulWord(Res, 19);
+  BigNumberMod(Res, Res, FQ);
+  ShowMessage(Res.ToDec);   // 得到 11 对了
+
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
+  TCnPolynomialEcc.RationalMultiplePoint(4, X, Y, A, B, FQ);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  // 验证 6 19 的四倍点是 5 19
+  BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
+  ShowMessage(Res.ToDec);   // 得到 5
+  BigNumberRationalPolynomialGaloisGetValue(Res, Y, P, FQ);
+  BigNumberMulWord(Res, 19);
+  BigNumberMod(Res, Res, FQ);
+  ShowMessage(Res.ToDec);   // 得到 19
+
+  X.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.SetOne;
+
+  TCnPolynomialEcc.RationalMultiplePoint(5, X, Y, A, B, FQ);
+  ShowMessage(X.ToString);
+  ShowMessage(Y.ToString);
+
+  // 验证 6 19 的五倍点是 12 4
+  BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
+  ShowMessage(Res.ToDec);  // 得到 12
+  BigNumberRationalPolynomialGaloisGetValue(Res, Y, P, FQ);
+  BigNumberMulWord(Res, 19);
+  BigNumberMod(Res, Res, FQ);
+  ShowMessage(Res.ToDec);  // 得到 4
+
+  X.Free;
+  Y.Free;
+  Res.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestManualPointClick(Sender: TObject);
+var
+  A, B: Int64;
+  X, Y: TCnBigNumberRationalPolynomial;
+  P, Y2: TCnBigNumberPolynomial;
+  RL, RR, T: TCnBigNumberRationalPolynomial;
+  Res, V: TCnBigNumber;
+begin
+  // 简单椭圆曲线二倍点用可除多项式手工计算的结果验证，通过
+  X := TCnBigNumberRationalPolynomial.Create;
+  Y := TCnBigNumberRationalPolynomial.Create;
+  Y2 := TCnBigNumberPolynomial.Create;
+  P := TCnBigNumberPolynomial.Create;
+
+  RL := TCnBigNumberRationalPolynomial.Create;
+  RR := TCnBigNumberRationalPolynomial.Create;
+  T := TCnBigNumberRationalPolynomial.Create;
+
+  A := 1;
+  B := 1;
+  FQ.SetWord(23);   // 有限域F23上的 Y^2=X^3+X+1  （6，19）* 2 = （13，16）
+  Res := TCnBigNumber.Create;
+  V := TCnBigNumber.Create;
+
+  // 先求整数域
+  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
+
+  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+
+  Y2.SetCoefficents([B, A, 0, 1]);
+  // 验证 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
+
+  BigNumberRationalPolynomialMul(Y, Y, Y);
+  BigNumberRationalPolynomialMul(Y, Y2, RL); // 得到 Y^2 (x^3+Ax+B)
+  RL.Reduce;
+  ShowMessage(RL.ToString);
+
+  BigNumberRationalPolynomialMul(X, X, RR);
+  BigNumberRationalPolynomialMul(RR, X, RR); // 得到 X^3
+
+  P.SetCoefficents([A]);
+  BigNumberRationalPolynomialMul(X, P, T);   // T 得到 A * X
+  BigNumberRationalPolynomialAdd(RR, T, RR); // RR 得到 X^3 + AX
+
+  P.SetCoefficents([B]);
+  BigNumberRationalPolynomialAdd(RR, P, RR); // RR 得到 X^3 + AX + B
+  RR.Reduce;
+  ShowMessage(RR.ToString);
+
+  // RL/RR 在整数域内有除式不等，换 Fq 看看，原始点（6，19），二倍点公式套上去得到（13，16）
+  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
+  V.SetWord(6);
+  BigNumberRationalPolynomialGaloisGetValue(Res, X, V, FQ);
+  ShowMessage('2*X (X=6) using Division Polynomial is ' + Res.ToDec); // 得到 13 对了
+
+  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+  BigNumberRationalPolynomialGaloisGetValue(Res, Y, V, FQ);
+  BigNumberMulWord(Res, 19);
+  BigNumberMod(Res, Res, FQ);
+
+  ShowMessage('2*Y (X=6) using Division Polynomial is ' + Res.ToDec); // 得到 16 对了
+
+  Y2.SetCoefficents([B, A, 0, 1]);
+  // 验证二倍点公式用一倍点坐标算出来的值 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
+
+  BigNumberRationalPolynomialGaloisMul(Y, Y, Y, FQ);
+  BigNumberRationalPolynomialGaloisMul(Y, Y2, RL, FQ); // 得到 Y^2 (x^3+Ax+B)
+  ShowMessage(RL.ToString);
+
+  BigNumberRationalPolynomialGaloisMul(X, X, RR, FQ);
+  BigNumberRationalPolynomialGaloisMul(RR, X, RR, FQ); // 得到 X^3
+
+  P.SetCoefficents([A]);
+  BigNumberRationalPolynomialGaloisMul(X, P, T, FQ);   // T 得到 A * X
+  BigNumberRationalPolynomialGaloisAdd(RR, T, RR, FQ); // RR 得到 X^3 + AX
+
+  P.SetCoefficents([B]);
+  BigNumberRationalPolynomialGaloisAdd(RR, P, RR, FQ); // RR 得到 X^3 + AX + B
+  ShowMessage(RR.ToString);
+
+  // RL/RR 在 F23 内表达式还是不等，但各自求值看看，居然相等！
+  V.SetWord(6);
+  BigNumberRationalPolynomialGaloisGetValue(Res, RL, V, FQ);
+  BigNumberRationalPolynomialGaloisGetValue(Res, RR, V, FQ);
+  ShowMessage(Res.ToDec);  // 3 = 二倍点 Y 坐标平方 16^2 mod 23 = 3
+  ShowMessage(Res.ToDec);  // 3 = 二倍点 X 坐标 13^3 + 13 + 1 mod 23 = 3
+
+  // 再拿另外一个点 （13，16）的二倍点（5，19）试一试，也对
+  V.SetWord(13);
+  BigNumberRationalPolynomialGaloisGetValue(Res, RL, V, FQ);
+  BigNumberRationalPolynomialGaloisGetValue(Res, RR, V, FQ);
+  ShowMessage(Res.ToDec);  // 16 = 二倍点 Y 坐标平方 19^2 mod 23 = 16
+  ShowMessage(Res.ToDec);  // 16 = 二倍点 X 坐标 5^3 + 5 + 1 mod 23 = 16
+
+  // 如果把 X Y 二倍点公式的模逆多项式求出来，会不会相等？但没有本原多项式，完全没法求逆
+
+  P.Free;
+  T.Free;
+  RL.Free;
+  RR.Free;
+  Y2.Free;
+  Y.Free;
+  X.Free;
+  Res.Free;
+  V.Free;
+end;
+
+procedure TFormPolynomial.btnBNRationalGenerateClick(Sender: TObject);
+var
+  I, D: Integer;
+begin
+  D := 4;
+  FBRP1.SetZero;
+  FBRP2.SetZero;
+
+  Randomize;
+  for I := 0 to D do
+  begin
+    FBRP1.Nominator.Add.SetInteger(Random(16) - 1);
+    FBRP2.Nominator.Add.SetInteger(Random(16) - 1);
+    FBRP1.Denominator.Add.SetInteger(Random(16) - 1);
+    FBRP2.Denominator.Add.SetInteger(Random(16) - 1);
+  end;
+
+  edtBNRationalNominator1.Text := FBRP1.Nominator.ToString;
+  edtBNRationalNominator2.Text := FBRP2.Nominator.ToString;
+  edtBNRationalDenominator1.Text := FBRP1.Denominator.ToString;
+  edtBNRationalDenominator2.Text := FBRP2.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnBNRationalAddClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisAdd(FBRP1, FBRP2, FBRP3, FQ)
+  else
+    BigNumberRationalPolynomialAdd(FBRP1, FBRP2, FBRP3);
+  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnBNRationalSubClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisSub(FBRP1, FBRP2, FBRP3, FQ)
+  else
+    BigNumberRationalPolynomialSub(FBRP1, FBRP2, FBRP3);
+  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnBNRationalMulClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisMul(FBRP1, FBRP2, FBRP3, FQ)
+  else
+    BigNumberRationalPolynomialMul(FBRP1, FBRP2, FBRP3);
+  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnBNRationalDivClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisDiv(FBRP1, FBRP2, FBRP3, FQ)
+  else
+    BigNumberRationalPolynomialDiv(FBRP1, FBRP2, FBRP3);
+  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
+end;
+
+procedure TFormPolynomial.btnBNTestRationalPointAdd1Click(Sender: TObject);
+var
+  X, Y, M2X, M2Y, M3X, M3Y, M4X, M4Y, M5X, M5Y: TCnBigNumberRationalPolynomial;
+  DP: TCnBigNumberPolynomial;
+  A, B: TCnBigNumber;
+begin
+  // 检查一倍点表达式和二倍点表达式相加，结果是否等于三倍点
+  // 一倍点 (x, 1 * y)，二倍点用 RationalMultiplePoint 算
+
+  X := TCnBigNumberRationalPolynomial.Create;
+  Y := TCnBigNumberRationalPolynomial.Create;
+  M2X := TCnBigNumberRationalPolynomial.Create;
+  M2Y := TCnBigNumberRationalPolynomial.Create;
+  M3X := TCnBigNumberRationalPolynomial.Create;
+  M3Y := TCnBigNumberRationalPolynomial.Create;
+  M4X := TCnBigNumberRationalPolynomial.Create;
+  M4Y := TCnBigNumberRationalPolynomial.Create;
+  M5X := TCnBigNumberRationalPolynomial.Create;
+  M5Y := TCnBigNumberRationalPolynomial.Create;
+  DP := TCnBigNumberPolynomial.Create;
+
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  A.SetWord(6);
+  B.SetOne;
+
+  FQ.SetWord(29);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(6, 1, 5, DP, FQ); // 算得 5 阶可除多项式
+  ShowMessage('DP5: ' + DP.ToString);
+
+  X.Denominator.SetOne;
+  X.Nominator.SetCoefficents([0, 1]);
+  Y.Nominator.SetOne;
+  Y.Denominator.SetCoefficents([1]);     // ( x/1, 1/1 *y)
+
+  ShowMessage('P2:');
+  TCnPolynomialEcc.RationalPointAddPoint(X, Y, X, Y, M2X, M2Y, A, B, FQ, DP);
+  ShowMessage(M2X.ToString);  // 应该输出 7x^0,21x^1,17x^2,0x^3,1x^4 / 4x^0,24x^1,0x^2,4x^3
+  ShowMessage(M2Y.ToString);  // 应该输出 8x^0,5x^1,23x^2,20x^3,1x^4,0x^5,1x^6 / (8x^0,19x^1,0x^2,8x^3) * y
+  // 分母也就是再乘以 y，并将 y^2 替换成 x^3 + 6x + 1，得到 8x^6+9x^4+16x^3+27x^2+9x+8 结果对了
+
+  ShowMessage('P3:');
+  TCnPolynomialEcc.RationalPointAddPoint(X, Y, M2X, M2Y, M3X, M3Y, A, B, FQ, DP);
+  ShowMessage(M3X.ToString);  // 应该输出 24x^0,8x^1,21x^2,21x^3,18x^4,3x^5,16x^6,27x^7,13x^8,6x^9,1x^10,18x^11 / 27x^0,6x^1,20x^2,19x^3,11x^4,27x^5,2x^6,16x^7,12x^8,2x^9,3x^10,8x^11 结果对了
+  ShowMessage(M3Y.ToString);  // 应该输出 18x^0,28x^1,17x^2,16x^3,0x^4,21x^5,10x^6,14x^7,10x^8,12x^9,23x^10,27x^11 / 6x^0,25x^1,25x^2,0x^3,25x^4,9x^5,3x^6,25x^7,6x^8,9x^9,14x^10,1x^11 结果虽然对不上号但经过验算是相等的
+
+  ShowMessage('P4:');
+  TCnPolynomialEcc.RationalPointAddPoint(X, Y, M3X, M3Y, M4X, M4Y, A, B, FQ, DP);
+  ShowMessage(M4X.ToString);
+  ShowMessage(M4Y.ToString);  // 不一致但相等，略
+
+  ShowMessage('P5:');
+  TCnPolynomialEcc.RationalPointAddPoint(X, Y, M4X, M4Y, M5X, M5Y, A, B, FQ, DP);
+  ShowMessage(M5X.ToString);  // 应该输出 0
+  ShowMessage(M5Y.ToString);
+
+  A.Free;
+  B.Free;
+
+  DP.Free;
+  X.Free;
+  Y.Free;
+  M2X.Free;
+  M2Y.Free;
+  M3X.Free;
+  M3Y.Free;
+  M4X.Free;
+  M4Y.Free;
+  M5X.Free;
+  M5Y.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestRationalPointAdd2Click(Sender: TObject);
+var
+  DP, X, Y, Pi1X, Pi1Y, Pi2X, Pi2Y: TCnBigNumberPolynomial;
+  RX, RY: TCnBigNumberRationalPolynomial;
+  A, B: TCnBigNumber;
+begin
+{
+  对于 F97 上的椭圆曲线 Y2=X3+31X-12 的五阶扭点，注意系数只要针对 97 同余就相等
+  计算 π(x^97, y^97) 与　π(x^97^2, y^97^2) 与 2 * (x, 1*y)
+
+π(x, y) =
+[47 x^11 + 11 x^10 - 16 x^9 + 8 x^8 + 44 x^7 + 8 x^6 + 10 x^5 + 12 x^4 - 40 x^3 + 42 x^2 + 11 x + 26,
+(6 x^11 + 45 x^10 + 34 x^9 + 28 x^8 - 11 x^7 + 3 x^6 - 3 x^5 + 2 x^4 - 39 x^3 -^48 x^2 - x - 9)y].
+
+π^2(x, y) =
+[-17 x^11 + 2 x^10 - 25 x^9 - x^8 + 28 x^7 + 31 x^6 + 25 x^5 - 32 x^4 + 45 x^3 + 26 x^2 + 36 x + 60,
+(34 x^11 + 35 x^10 - 8 x^9 - 11 x^8 - 48 x^7 + 34 x^6 - 8 x^5 - 37 x^4 - 21 x^3 + 40 x^2 + 11 x + 48)y].
+
+2 *(x, y) =
+[22 x^11 + 17 x^10 + 18 x^9 + 40 x^8 + 41 x^7 - 13 x^6 + 30 x^5 + 11 x^4 - 38 x^3 + 7 x^2 + 20 x + 17,
+(-11 x^10 - 17 x^9 - 48 x^8 - 12 x^7 + 17 x^6 + 44 x^5 - 10 x^4 + 8 x^3 + 38 x^2 + 25 x + 24)y].
+
+π^2(x, y) + [2]P =   (就这个不对！如果在 Ring 5 中计算的话，5 阶可除多项式最高 12 次方，所以上述均最高只有 11 次，但和为何冒出了 14 次？)
+[-14 x^14 + 15 x^13 - 20 x^12 - 43 x^11 - 10 x^10 - 27 x^9 + 5 x^7 + 11 x^6 + 45 x^5 - 17 x^4 + 30 x^3 - 2 x^2 + 35 x - 46,
+(-11 x^14 - 35 x^13 - 26 x^12 - 21 x^11 + 25 x^10 + 23 x^9 + 4 x^8 - 24 x^7 + 9 x^6 + 43 x^5 - 47 x^4 + 26 x^3 + 19 x^2 - 40 x - 32)y].
+
+最后和点的 x 坐标和 π的 1 倍点的 x 坐标有最大公因式 <> 1，y 也一样，所以得到 t5 = 1
+
+  用例来源于一个 PPT
+
+  Counting points on elliptic curves over Fq
+           Christiane Peters
+        DIAMANT-Summer School on
+ Elliptic and Hyperelliptic Curve Cryptography
+          September 17, 2008
+}
+
+  DP := TCnBigNumberPolynomial.Create;
+  Pi1X := TCnBigNumberPolynomial.Create;
+  Pi1Y := TCnBigNumberPolynomial.Create;
+  Pi2X := TCnBigNumberPolynomial.Create;
+  Pi2Y := TCnBigNumberPolynomial.Create;
+
+  X := TCnBigNumberPolynomial.Create;
+  Y := TCnBigNumberPolynomial.Create([-12, 31, 0, 1]);
+  A := TCnBigNumber.Create;
+  A.SetWord(31);
+  B := TCnBigNumber.Create;
+  B.SetInteger(-12);
+
+  FQ.SetWord(97);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(31, -12, 5, DP, FQ);
+
+  X.MaxDegree := 1;
+  X[1].SetOne;                 // x
+  BigNumberPolynomialGaloisPower(Pi1X, X, FQ, FQ, DP);
+  ShowMessage(Pi1X.ToString);               // 得到正确结果，Ring 几内计算就是 mod f几
+
+  BigNumberPolynomialGaloisPower(Pi1Y, Y, (97 - 1) div 2, FQ, DP);
+  ShowMessage(Pi1Y.ToString);               // 得到正确结果，y^q = y^q-1 * y = (x3+Ax+B)^((q-1)/2) * y
+
+  X.MaxDegree := 1;
+  X[1].SetOne;                 // x
+  BigNumberPolynomialGaloisPower(Pi2X, X, 97 * 97, FQ, DP);
+  ShowMessage(Pi2X.ToString);         // 得到基本正确的结果，Ring 几内计算就是 mod f几，原用例最后一项常数项可能有错
+
+  Y.SetCoefficents([-12, 31, 0, 1]);
+  BigNumberPolynomialGaloisPower(Pi2Y, Y, (97 * 97 - 1) div 2, FQ, DP);
+  ShowMessage(Pi2Y.ToString);               // 得到正确结果，y^q^2 = y^q^2-1 * y = (x3+Ax+B)^((q^2-1)/2) * y
+
+  RX := TCnBigNumberRationalPolynomial.Create;
+  RY := TCnBigNumberRationalPolynomial.Create;
+  TCnPolynomialEcc.RationalMultiplePoint(2, RX, RY, A, B, FQ);
+  // ShowMessage(RX.ToString);
+  // ShowMessage(RY.ToString);              // 得到 2P 的 X 和 Y 坐标的有理形式
+
+  BigNumberPolynomialGaloisModularInverse(X, RX.Denominator, DP, FQ);
+  BigNumberPolynomialGaloisMul(X, X, RX.Nominator, FQ, DP);
+  ShowMessage(X.ToString);               // 用模逆多项式将 2P 的 X 坐标转换为多项式，得到正确结果
+
+  BigNumberPolynomialGaloisModularInverse(Y, RY.Denominator, DP, FQ);
+  BigNumberPolynomialGaloisMul(Y, Y, RY.Nominator, FQ, DP);
+  ShowMessage(Y.ToString);               // 用模逆多项式将 2P 的 Y 坐标转换为多项式，得到正确结果
+
+  // 不能简单相加，得判断两个 X 是否相等，直接判断模系数等式？
+  if BigNumberPolynomialGaloisEqual(Pi2X, X, FQ) then
+    ShowMessage('π^2 (x) == 2 * P (x)')
+  else
+    ShowMessage('π^2 (x) <> 2 * P (x)');
+
+  // 不能简单相加，得判断两个 Y 是否相等，直接判断模系数等式？
+  if BigNumberPolynomialGaloisEqual(Pi2Y, Y, FQ) then
+    ShowMessage('π^2 (y) == 2 * P (y)')
+  else
+    ShowMessage('π^2 (y) <> 2 * P (y)');
+
+  RX.Free;
+  RY.Free;
+  Pi1X.Free;
+  Pi1Y.Free;
+  Pi2X.Free;
+  Pi2Y.Free;
+  DP.Free;
+  X.Free;
+  Y.Free;
+end;
+
+procedure TFormPolynomial.btnBNTestGaloisEqualClick(Sender: TObject);
+var
+  A, B: TCnBigNumberRationalPolynomial;
+  DP, TI1, TI2: TCnBigNumberPolynomial;
+begin
+  A := TCnBigNumberRationalPolynomial.Create;
+  B := TCnBigNumberRationalPolynomial.Create;
+  DP := TCnBigNumberPolynomial.Create;
+  FQ.SetWord(29);
+  BigNumberPolynomialGaloisCalcDivisionPolynomial(6, 1, 5, DP, FQ); // 算得 5 阶可除多项式
+
+  // 比较 '6X^11+20X^10+13X^9+20X^8+15X^7+X^6+25X^5+2X^4+13X^3+7X^2+25X+13 / 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6'
+  // 和 27x^11,23x^10,12x^9,10x^8,14x^7,10x^6,21x^5,0x^4,16x^3,17x^2,28x^1,18x^0 / 1x^11,14x^10,9x^9,6x^8,25x^7,3x^6,9x^5,25x^4,0x^3,25x^2,25x^1,6x^0
+  A.Nominator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
+  A.Denominator.SetCoefficents([6,16,23,22,11,17,23,5,4,12,5,21]);
+
+  B.Nominator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
+  B.Denominator.SetCoefficents([6,25,25,0,25,9,3,25,6,9,14,1]);
+
+  TI1 := TCnBigNumberPolynomial.Create;
+  TI2 := TCnBigNumberPolynomial.Create;
+
+  BignumberPolynomialGaloisMul(TI1, A.Nominator, B.Denominator, FQ, DP);
+  BignumberPolynomialGaloisMul(TI2, A.Denominator, B.Nominator, FQ, DP);
+
+  if BignumberPolynomialGaloisEqual(TI1, TI2, FQ) then
+    ShowMessage('Equal')  // 应该得到 Equal
+  else
+    ShowMessage('NOT Equal');
+
+  TI2.Free;
+  TI1.Free;
+
+  B.Free;
+  A.Free;
+end;
+
+procedure TFormPolynomial.btnInt64PolySetStringClick(Sender: TObject);
+begin
+  FIP1.SetString(edtIP1.Text);
+  ShowMessage(FIP1.ToString);
+end;
+
+procedure TFormPolynomial.btnBNPolySetStringClick(Sender: TObject);
+begin
+  FBP1.SetString(edtBNPolynomial.Text);
+  ShowMessage(FBP1.ToString);
+end;
+
+procedure TFormPolynomial.btnRationalSetStringClick(Sender: TObject);
+begin
+  FRP1.SetString(edtRationalNominator1.Text + ' / ' + edtRationalDenominator1.Text);
+  ShowMessage(FRP1.ToString);
+end;
+
+procedure TFormPolynomial.btnBNRationalSetStringClick(Sender: TObject);
+begin
+  FBRP1.SetString(edtBNRationalNominator1.Text + ' / ' + edtBNRationalDenominator1.Text);
+  ShowMessage(FBRP1.ToString);
 end;
 
 end.

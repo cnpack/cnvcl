@@ -75,6 +75,8 @@ type
     {* 剔除高次的 0 系数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将多项式转成字符串}
+    procedure SetString(const Poly: string);
+    {* 将多项式字符串转换为本对象的内容}
     function IsZero: Boolean;
     {* 返回是否为 0}
     procedure SetZero;
@@ -121,6 +123,8 @@ type
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 输出成字符串}
+    procedure SetString(const Rational: string);
+    {* 将多项式或分式字符串转换为本对象的内容}
 
     property Nominator: TCnInt64Polynomial read FNominator;
     {* 分子式}
@@ -169,6 +173,8 @@ type
     {* 剔除高次的 0 系数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将多项式转成字符串}
+    procedure SetString(const Poly: string);
+    {* 将多项式字符串转换为本对象的内容}
     function IsZero: Boolean;
     {* 返回是否为 0}
     procedure SetZero;
@@ -215,6 +221,8 @@ type
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 输出成字符串}
+    procedure SetString(const Rational: string);
+    {* 将多项式或分式字符串转换为本对象的内容}
 
     property Nominator: TCnBigNumberPolynomial read FNominator;
     {* 分子式}
@@ -256,8 +264,12 @@ function Int64PolynomialCopy(const Dst: TCnInt64Polynomial;
 {* 复制一个整系数多项式对象，成功返回 Dst}
 
 function Int64PolynomialToString(const P: TCnInt64Polynomial;
-  const VarName: string = 'X'): string;
+  const VarName: Char = 'X'): string;
 {* 将一个整系数多项式对象转成字符串，未知数默认以 X 表示}
+
+function Int64PolynomialSetString(const P: TCnInt64Polynomial;
+  const Str: string; const VarName: Char = 'X'): Boolean;
+{* 将字符串形式的整系数多项式赋值给整系数多项式对象，返回是否赋值成功}
 
 function Int64PolynomialIsZero(const P: TCnInt64Polynomial): Boolean;
 {* 判断一个整系数多项式对象是否为 0}
@@ -564,6 +576,10 @@ function BigNumberPolynomialCopy(const Dst: TCnBigNumberPolynomial;
 function BigNumberPolynomialToString(const P: TCnBigNumberPolynomial;
   const VarName: string = 'X'): string;
 {* 将一个大整系数多项式对象转成字符串，未知数默认以 X 表示}
+
+function BigNumberPolynomialSetString(const P: TCnBigNumberPolynomial;
+  const Str: string; const VarName: Char = 'X'): Boolean;
+{* 将字符串形式的大整系数多项式赋值给整系数多项式对象，返回是否赋值成功}
 
 function BigNumberPolynomialIsZero(const P: TCnBigNumberPolynomial): Boolean;
 {* 判断一个大整系数多项式对象是否为 0}
@@ -1033,6 +1049,11 @@ begin
   Int64PolynomialSetOne(Self);
 end;
 
+procedure TCnInt64Polynomial.SetString(const Poly: string);
+begin
+  Int64PolynomialSetString(Self, Poly);
+end;
+
 procedure TCnInt64Polynomial.SetZero;
 begin
   Int64PolynomialSetZero(Self);
@@ -1084,7 +1105,7 @@ begin
 end;
 
 function Int64PolynomialToString(const P: TCnInt64Polynomial;
-  const VarName: string = 'X'): string;
+  const VarName: Char = 'X'): string;
 var
   I: Integer;
   C: Int64;
@@ -1138,6 +1159,86 @@ begin
       else
         Result := Result + IntToStr(C) + VarPower(I);
     end;
+  end;
+end;
+
+function Int64PolynomialSetString(const P: TCnInt64Polynomial;
+  const Str: string; const VarName: Char = 'X'): Boolean;
+var
+  C, Ptr: PChar;
+  Num: string;
+  MDFlag, E: Integer;
+  F: Int64;
+  IsNeg: Boolean;
+begin
+  Result := False;
+  if Str = '' then
+    Exit;
+
+  MDFlag := -1;
+  C := @Str[1];
+
+  while C^ <> #0 do
+  begin
+    if not (C^ in ['+', '-', '0'..'9']) then
+    begin
+      Inc(C);
+      Continue;
+    end;
+
+    IsNeg := False;
+    if C^ = '+' then
+      Inc(C)
+    else if C^ = '-' then
+    begin
+      IsNeg := True;
+      Inc(C);
+    end;
+
+    F := 1;
+    if C^ in ['0'..'9'] then // 找系数
+    begin
+      Ptr := C;
+      while C^ in ['0'..'9'] do
+        Inc(C);
+
+      // Ptr 到 C 之间是数字，代表一个系数
+      SetString(Num, Ptr, C - Ptr);
+      F := StrToInt64(Num);
+      if IsNeg then
+        F := -F;
+    end;
+
+    if C^ = VarName then
+    begin
+      E := 1;
+      Inc(C);
+      if C^ = '^' then // 找指数
+      begin
+        Inc(C);
+        if C^ in ['0'..'9'] then
+        begin
+          Ptr := C;
+          while C^ in ['0'..'9'] do
+            Inc(C);
+
+          // Ptr 到 C 之间是数字，代表一个指数
+          SetString(Num, Ptr, C - Ptr);
+          E := StrToInt64(Num);
+        end;
+      end;
+    end
+    else
+      E := 0;
+
+    // 指数找完了，凑
+    if MDFlag = -1 then // 第一个指数是 MaxDegree
+    begin
+      P.MaxDegree := E;
+      MDFlag := 0;
+    end;
+
+    P[E] := F;
   end;
 end;
 
@@ -2525,6 +2626,27 @@ begin
   FNominator.SetOne;
 end;
 
+procedure TCnInt64RationalPolynomial.SetString(const Rational: string);
+var
+  P: Integer;
+  N, D: string;
+begin
+  P := Pos('/', Rational);
+  if P > 1 then
+  begin
+    N := Copy(Rational, 1, P - 1);
+    D := Copy(Rational, P + 1, MaxInt);
+
+    FNominator.SetString(Trim(N));
+    FDenominator.SetString(Trim(D));
+  end
+  else
+  begin
+    FNominator.SetString(Rational);
+    FDenominator.SetOne;
+  end;
+end;
+
 procedure TCnInt64RationalPolynomial.SetZero;
 begin
   FDenominator.SetOne;
@@ -3078,6 +3200,11 @@ begin
   BigNumberPolynomialSetOne(Self);
 end;
 
+procedure TCnBigNumberPolynomial.SetString(const Poly: string);
+begin
+  BigNumberPolynomialSetString(Self, Poly);
+end;
+
 procedure TCnBigNumberPolynomial.SetZero;
 begin
   BigNumberPolynomialSetZero(Self);
@@ -3161,6 +3288,27 @@ procedure TCnBigNumberRationalPolynomial.SetOne;
 begin
   FDenominator.SetOne;
   FNominator.SetOne;
+end;
+
+procedure TCnBigNumberRationalPolynomial.SetString(const Rational: string);
+var
+  P: Integer;
+  N, D: string;
+begin
+  P := Pos('/', Rational);
+  if P > 1 then
+  begin
+    N := Copy(Rational, 1, P - 1);
+    D := Copy(Rational, P + 1, MaxInt);
+
+    FNominator.SetString(Trim(N));
+    FDenominator.SetString(Trim(D));
+  end
+  else
+  begin
+    FNominator.SetString(Rational);
+    FDenominator.SetOne;
+  end;
 end;
 
 procedure TCnBigNumberRationalPolynomial.SetZero;
@@ -3304,6 +3452,84 @@ begin
       else
         Result := Result + P[I].ToDec + VarPower(I);
     end;
+  end;
+end;
+
+function BigNumberPolynomialSetString(const P: TCnBigNumberPolynomial;
+  const Str: string; const VarName: Char = 'X'): Boolean;
+var
+  C, Ptr: PChar;
+  Num, ES: string;
+  MDFlag, E: Integer;
+  IsNeg: Boolean;
+begin
+  Result := False;
+  if Str = '' then
+    Exit;
+
+  MDFlag := -1;
+  C := @Str[1];
+
+  while C^ <> #0 do
+  begin
+    if not (C^ in ['+', '-', '0'..'9']) then
+    begin
+      Inc(C);
+      Continue;
+    end;
+
+    IsNeg := False;
+    if C^ = '+' then
+      Inc(C)
+    else if C^ = '-' then
+    begin
+      IsNeg := True;
+      Inc(C);
+    end;
+
+    Num := '1';
+    if C^ in ['0'..'9'] then // 找系数
+    begin
+      Ptr := C;
+      while C^ in ['0'..'9'] do
+        Inc(C);
+
+      // Ptr 到 C 之间是数字，代表一个系数
+      SetString(Num, Ptr, C - Ptr);
+      if IsNeg then
+        Num := '-' + Num;
+    end;
+
+    if C^ = VarName then
+    begin
+      E := 1;
+      Inc(C);
+      if C^ = '^' then // 找指数
+      begin
+        Inc(C);
+        if C^ in ['0'..'9'] then
+        begin
+          Ptr := C;
+          while C^ in ['0'..'9'] do
+            Inc(C);
+
+          // Ptr 到 C 之间是数字，代表一个指数
+          SetString(ES, Ptr, C - Ptr);
+          E := StrToInt64(ES);
+        end;
+      end;
+    end
+    else
+      E := 0;
+
+    // 指数找完了，凑
+    if MDFlag = -1 then // 第一个指数是 MaxDegree
+    begin
+      P.MaxDegree := E;
+      MDFlag := 0;
+    end;
+
+    P[E].SetDec(Num);
   end;
 end;
 

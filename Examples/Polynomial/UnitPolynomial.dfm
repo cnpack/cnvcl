@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsBNEccOnGalois
+    ActivePage = tsBNRationalPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -91,7 +91,7 @@ object FormPolynomial: TFormPolynomial
         object edtIP1: TEdit
           Left = 128
           Top = 32
-          Width = 753
+          Width = 673
           Height = 21
           TabOrder = 1
         end
@@ -322,6 +322,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Power Mod'
           TabOrder = 27
           OnClick = btnTestPowerModClick
+        end
+        object btnInt64PolySetString: TButton
+          Left = 816
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'Set String'
+          TabOrder = 28
+          OnClick = btnInt64PolySetStringClick
         end
       end
     end
@@ -690,6 +699,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 20
           OnClick = btnTestGaloisEqualClick
         end
+        object btnRationalSetString: TButton
+          Left = 120
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Set String'
+          TabOrder = 21
+          OnClick = btnRationalSetStringClick
+        end
       end
     end
     object tsBNPolynomial: TTabSheet
@@ -748,7 +766,7 @@ object FormPolynomial: TFormPolynomial
         object edtBNPolynomial: TEdit
           Left = 128
           Top = 32
-          Width = 753
+          Width = 673
           Height = 21
           TabOrder = 1
         end
@@ -986,6 +1004,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 27
           OnClick = btnBNTestGaloisDivTimeClick
         end
+        object btnBNPolySetString: TButton
+          Left = 816
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'Set String'
+          TabOrder = 28
+          OnClick = btnBNPolySetStringClick
+        end
       end
     end
     object tsBNEccOnGalois: TTabSheet
@@ -1112,6 +1139,33 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 11
           OnClick = btnBNEccPointAdd2Click
         end
+        object btnBNTestPoly1: TButton
+          Left = 24
+          Top = 80
+          Width = 129
+          Height = 25
+          Caption = 'Test ? Point on Curve 1'
+          TabOrder = 12
+          OnClick = btnBNTestPoly1Click
+        end
+        object btnBNTestPoly2: TButton
+          Left = 176
+          Top = 80
+          Width = 129
+          Height = 25
+          Caption = 'Test ? Point on Curve 2'
+          TabOrder = 13
+          OnClick = btnBNTestPoly2Click
+        end
+        object btnBNTestPoly3: TButton
+          Left = 320
+          Top = 80
+          Width = 241
+          Height = 25
+          Caption = 'Test 4 Points on Curve?'
+          TabOrder = 14
+          OnClick = btnBNTestPoly3Click
+        end
       end
     end
     object tsBNRationalPolynomial: TTabSheet
@@ -1131,6 +1185,34 @@ object FormPolynomial: TFormPolynomial
           Height = 9
           Shape = bsTopLine
         end
+        object lbl5: TLabel
+          Left = 425
+          Top = 100
+          Width = 5
+          Height = 13
+          Caption = '/'
+        end
+        object lbl6: TLabel
+          Left = 425
+          Top = 180
+          Width = 5
+          Height = 13
+          Caption = '/'
+        end
+        object lbl7: TLabel
+          Left = 416
+          Top = 208
+          Width = 6
+          Height = 13
+          Caption = '='
+        end
+        object bvl7: TBevel
+          Left = 16
+          Top = 280
+          Width = 873
+          Height = 9
+          Shape = bsTopLine
+        end
         object btnBNTestDivPoly: TButton
           Left = 464
           Top = 24
@@ -1139,6 +1221,163 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Check Division Polynomial Zero'
           TabOrder = 0
           OnClick = btnBNTestDivPolyClick
+        end
+        object btnBNTestPointAdd: TButton
+          Left = 16
+          Top = 24
+          Width = 169
+          Height = 25
+          Caption = 'Calc 2 * Point (x, 1*y£©on Ecc'
+          TabOrder = 1
+          OnClick = btnBNTestPointAddClick
+        end
+        object btnBNTestManualPoint: TButton
+          Left = 224
+          Top = 24
+          Width = 209
+          Height = 25
+          Caption = 'Manual Test OnCurve'
+          TabOrder = 2
+          OnClick = btnBNTestManualPointClick
+        end
+        object edtBNRationalNominator1: TEdit
+          Left = 16
+          Top = 96
+          Width = 385
+          Height = 21
+          TabOrder = 3
+        end
+        object edtBNRationalDenominator1: TEdit
+          Left = 448
+          Top = 96
+          Width = 385
+          Height = 21
+          TabOrder = 4
+        end
+        object btnBNRationalGenerate: TButton
+          Left = 16
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Generate'
+          TabOrder = 5
+          OnClick = btnBNRationalGenerateClick
+        end
+        object btnBNRationalAdd: TButton
+          Left = 264
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Add'
+          TabOrder = 6
+          OnClick = btnBNRationalAddClick
+        end
+        object btnBNRationalSub: TButton
+          Left = 352
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Sub'
+          TabOrder = 7
+          OnClick = btnBNRationalSubClick
+        end
+        object btnBNRationalMul: TButton
+          Left = 440
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Mul'
+          TabOrder = 8
+          OnClick = btnBNRationalMulClick
+        end
+        object btnBNRationalDiv: TButton
+          Left = 528
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Div'
+          TabOrder = 9
+          OnClick = btnBNRationalDivClick
+        end
+        object chkBNRationalGalois: TCheckBox
+          Left = 648
+          Top = 140
+          Width = 73
+          Height = 17
+          Caption = 'Galois'
+          TabOrder = 10
+        end
+        object edtBNRationalGalois: TEdit
+          Left = 728
+          Top = 136
+          Width = 105
+          Height = 21
+          TabOrder = 11
+          Text = '97'
+        end
+        object edtBNRationalNominator2: TEdit
+          Left = 448
+          Top = 176
+          Width = 385
+          Height = 21
+          TabOrder = 12
+        end
+        object edtBNRationalDenominator2: TEdit
+          Left = 16
+          Top = 176
+          Width = 385
+          Height = 21
+          TabOrder = 13
+        end
+        object edtBNRationalResultNominator: TEdit
+          Left = 20
+          Top = 240
+          Width = 385
+          Height = 21
+          TabOrder = 14
+        end
+        object edtBNRationalResultDenominator: TEdit
+          Left = 452
+          Top = 240
+          Width = 385
+          Height = 21
+          TabOrder = 15
+        end
+        object btnBNTestRationalPointAdd1: TButton
+          Left = 264
+          Top = 296
+          Width = 209
+          Height = 25
+          Caption = 'Check Rational Polynomial Add'
+          TabOrder = 16
+          OnClick = btnBNTestRationalPointAdd1Click
+        end
+        object btnBNTestRationalPointAdd2: TButton
+          Left = 504
+          Top = 296
+          Width = 177
+          Height = 25
+          Caption = 'Test Pi^2 + 2P Polynomial in Ring'
+          TabOrder = 17
+          OnClick = btnBNTestRationalPointAdd2Click
+        end
+        object btnBNTestGaloisEqual: TButton
+          Left = 696
+          Top = 296
+          Width = 137
+          Height = 25
+          Caption = 'Test Galois Equal'
+          TabOrder = 18
+          OnClick = btnBNTestGaloisEqualClick
+        end
+        object btnBNRationalSetString: TButton
+          Left = 120
+          Top = 136
+          Width = 75
+          Height = 25
+          Caption = 'Set String'
+          TabOrder = 19
+          OnClick = btnBNRationalSetStringClick
         end
       end
     end
