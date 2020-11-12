@@ -3082,7 +3082,7 @@ function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolea
 var
   U: TUInt64;
   BitLength, Shift: Integer;
-  XK, XK1: TCnBigNumber;
+  X, XNext: TCnBigNumber;
 begin
   Result := False;
   if Num.IsZero then
@@ -3105,38 +3105,46 @@ begin
   begin
     BitLength := Num.GetBitsCount;
     Shift := BitLength - 63;
-    if (Shift and 1) <> 0 then
+    if (Shift and 1) <> 0 then  // 减 63 位如果是奇数则变成 64，也就是偶数位取高 64 位，奇数位取高 63 位，作平方根估算
       Inc(Shift);
 
-    XK := FLocalBigNumberPool.Obtain;
-    XK1 := FLocalBigNumberPool.Obtain;
+    X := nil;
+    XNext := nil;
 
-    BigNumberCopy(XK, Num);
-    XK.ShiftRight(Shift); // 取最高的 UInt64 位来估算平方根
+    try
+      X := FLocalBigNumberPool.Obtain;
+      XNext := FLocalBigNumberPool.Obtain;
 
-    U := XK.GetInt64;
-    U := UInt64Sqrt(U);
-    XK.SetInt64(U);  // XK 是估算的平方根
+      BigNumberCopy(X, Num);
+      X.ShiftRight(Shift); // 取最高的 64 位或 63 位来估算平方根
 
-    XK.ShiftLeft(Shift shr 1);
+      U := X.GetInt64;
+      U := UInt64Sqrt(U);
+      X.SetInt64(U);
 
-    // 牛顿迭代法
-    while True do
-    begin
-      // xk1 = (xk + n/xk)/2
-      BigNumberDiv(XK1, nil, Num, XK);
-      BigNumberAdd(XK1, XK1, XK);
-      XK1.ShiftRightOne;
+      X.ShiftLeft(Shift shr 1); // X 是估算的平方根
 
-      if BigNumberCompare(XK1, XK) >= 0 then
+      // 牛顿迭代法
+      while True do
       begin
-        // 迭代 XK 是结果
-        BigNumberCopy(Res, XK);
-        Result := True;
-        Exit;
+        // Xnext = (x + n/x)/2
+        BigNumberDiv(XNext, nil, Num, X);
+        BigNumberAdd(XNext, XNext, X);
+        XNext.ShiftRightOne;
+
+        if BigNumberCompare(XNext, X) = 0 then
+        begin
+          // 迭代 X 的整数部分不再变化时就是结果
+          BigNumberCopy(Res, X);
+          Result := True;
+          Exit;
+        end;
+        // X := XNext
+        BigNumberCopy(X, XNext);
       end;
-      // xk = xk1
-      BigNumberCopy(XK, XK1);
+    finally
+      FLocalBigNumberPool.Recycle(XNext);
+      FLocalBigNumberPool.Recycle(X);
     end;
   end;
 end;
