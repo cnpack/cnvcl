@@ -29,7 +29,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.10.25 V1.6
+* 修改记录：2020.11.13 V1.7
+*               实现大数范围内的基础 Schoof 算法并初步小范围测试通过，大范围无从验证
+*           2020.10.25 V1.6
 *               实现 Int64 范围内的基础 Schoof 算法并初步测试通过
 *           2020.04.06 V1.5
 *               实现 ECC 签名验签，类似于 openssl 的功能
@@ -405,6 +407,7 @@ type
       const AnOrder: TCnBigNumber; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
        参数均复制内容入对象内部，不持有参数的对象引用}
+
     destructor Destroy; override;
     {* 析构函数}
 
@@ -482,6 +485,9 @@ function CnEccPointToString(const P: TCnEccPoint): string;
 
 function CnEccPointToHex(const P: TCnEccPoint): string;
 {* 将一个 TCnEccPoint 点坐标转换为十六进制字符串}
+
+function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
+{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
 
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
@@ -886,40 +892,6 @@ begin
     end;
   until (GX > 0) and (GY > 0);
   Ecc64.Free;
-
-//    以下代码用穷举法来验证 N 是否正确，目前小范围看起来基本上没错
-//    N := 1;
-//    Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
-//    for I := 0 to FiniteFieldSize - 1 do
-//    begin
-//      for J := 0 to FiniteFieldSize - 1 do
-//      begin
-//        P.X := I;
-//        P.Y := J;
-//        if Ecc64.IsPointOnCurve(P) then
-//        begin
-//          Inc(N);
-//          if (GX = 0) or (GY = 0) then // 第一个满足的就当作基点
-//          begin
-//            GX := P.X;
-//            GY := P.Y;
-//          end;
-//
-//          if P.Y > 0 then
-//          begin
-//            P.Y := FiniteFieldSize - P.Y;
-//            if Ecc64.IsPointOnCurve(P) then
-//              Inc(N);
-//          end;
-//
-//          // 这个 X 已经查完了，每个 X 不会有多于两个 Y。
-//          Break;
-//        end;
-//      end;
-//      // Break 到此，进行下一个 X 的循环
-//    end;
-
-    // N 为这条椭圆曲线的阶
 
   Order := N;
   Result := True;
@@ -3597,7 +3569,6 @@ begin
       Int64RationalPolynomialGaloisMul(SX, Y2, SX, APrime);
       Int64RationalPolynomialGaloisSub(SX, PX, SX, APrime);
       Int64RationalPolynomialGaloisSub(SX, QX, SX, APrime);
-
       if APrimitive <> nil then
       begin
         Int64PolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
@@ -3625,8 +3596,7 @@ begin
   end;
 end;
 
-procedure TCnInt64PolynomialEcc.SetPrimitive(
-  const Value: TCnInt64Polynomial);
+procedure TCnInt64PolynomialEcc.SetPrimitive(const Value: TCnInt64Polynomial);
 begin
   if Value <> nil then
   begin
@@ -4029,7 +3999,7 @@ begin
   F := FEccInt64PolynomialPool.Obtain;
   G := FEccInt64PolynomialPool.Obtain;
 
-  QMax := 1 + 4 * UInt64Sqrt(Q);
+  QMax := 4 * (UInt64Sqrt(Q) + 1);
   QMul := 1;
   I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
 
@@ -4127,6 +4097,7 @@ begin
 
       // 求 π^2(P) + K * (P) 的和点 SX SY
       TCnInt64PolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
+
       if LSX.IsZero and LSY.IsZero then  // 如果和点为 0，则表示 t * π结果等于 0，t 自然等于 0
         Ta[I] := 0
       else
@@ -4169,7 +4140,7 @@ begin
       for J := 0 to Pa.Count - 1 do
         W := W * Pa[J];
 
-      if L <= -B then
+      if L <= -K then
         L := L + W
       else
         L := L - W;
@@ -4656,15 +4627,243 @@ end;
 class procedure TCnPolynomialEcc.RationalMultiplePoint(K: Integer; MX,
   MY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber;
   APrimitive: TCnBigNumberPolynomial);
+var
+  Neg: Boolean;
+  FN, FNa1, FNa2, FNs1, FNs2, P1, P2, X1, Y2: TCnBigNumberPolynomial;
 begin
+  if K = 0 then
+  begin
+    MX.SetZero;
+    MY.SetZero;
+    Exit;
+  end;
 
+  Neg := K < 0;
+  if Neg then
+    K := -K;
+
+  if K = 1 then // 没乘，原封不动返回 x 和 1
+  begin
+    MX.Nominator.SetCoefficents([0, 1]);
+    MX.Denominator.SetOne;
+
+    MY.Nominator.SetOne;
+    MY.Denominator.SetOne;
+  end
+  else
+  begin
+    FN := FEccPolynomialPool.Obtain;
+    FNa1 := FEccPolynomialPool.Obtain;
+    FNa2 := FEccPolynomialPool.Obtain;
+    FNs1 := FEccPolynomialPool.Obtain;
+    FNs2 := FEccPolynomialPool.Obtain;
+    X1 := FEccPolynomialPool.Obtain;
+    Y2 := FEccPolynomialPool.Obtain;
+    P1 := FEccPolynomialPool.Obtain;
+    P2 := FEccPolynomialPool.Obtain;
+
+    try
+      X1.SetCoefficents([0, 1]);
+      Y2.SetCoefficents([B, A, 0, 1]);
+
+      BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, K, FN, APrime);
+      BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, K + 1, FNa1, APrime);
+      BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, K + 2, FNa2, APrime);
+      BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, K - 1, FNs1, APrime);
+      BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, K - 2, FNs2, APrime);
+
+      // 求 X 表达式
+      if (K and 1) = 0 then // K 偶数时
+      begin
+        // 结果的 x 坐标为 (x*fn^2 * Y^2 - fn+1 * fn-1) / fn^2 * Y^2
+        BigNumberPolynomialGaloisMul(MX.Denominator, FN, FN, APrime);
+        BigNumberPolynomialGaloisMul(MX.Denominator, MX.Denominator, Y2, APrime);
+
+        BigNumberPolynomialGaloisMul(P1, FNa1, FNs1, APrime); // P1 得到 fn+1 * fn-1
+        BigNumberPolynomialGaloisMul(P2, FN, FN, APrime);
+        BigNumberPolynomialGaloisMul(P2, P2, X1, APrime);     // P2 得到 x*fn^2
+        BigNumberPolynomialGaloisMul(P2, P2, Y2, APrime);     // P2 得到 x*fn^2 * Y^2
+
+        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+      end
+      else // K 奇数时
+      begin
+        // 结果的 x 坐标为 (x*fn^2 - Y^2 * fn+1 * fn-1) / fn^2
+        BigNumberPolynomialGaloisMul(MX.Denominator, FN, FN, APrime);
+
+        BigNumberPolynomialGaloisMul(P1, FNa1, FNs1, APrime); // P1 得到 fn+1 * fn-1
+        BigNumberPolynomialGaloisMul(P1, P1, Y2, APrime);     // P1 得到 Y^2 * fn+1 * fn-1
+
+        BigNumberPolynomialGaloisMul(P2, FN, FN, APrime);
+        BigNumberPolynomialGaloisMul(P2, P2, X1, APrime);     // P2 得到 x*fn^2
+        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+      end;
+
+      // 求 Y 表达式
+      if K = 2 then // Y 的分子是 f2n，n 为 2 时不需递归，直接用 f4
+      begin
+        BigNumberPolynomialCopy(MY.Nominator, FNa2);
+      end
+      else
+      begin
+        // 结果的 y 坐标分子为 fn+2 * fn-1^2 - fn-2 * fn+1 ^2
+        BigNumberPolynomialGaloisMul(P1, FNs1, FNs1, APrime);
+        BigNumberPolynomialGaloisMul(P1, P1, FNa2, APrime);
+        BigNumberPolynomialGaloisMul(P2, FNa1, FNa1, APrime);
+        BigNumberPolynomialGaloisMul(P2, P2, FNs2, APrime);
+
+        BigNumberPolynomialGaloisSub(MY.Nominator, P1, P2, APrime); // MY 分子计算完毕
+      end;
+
+      BigNumberPolynomialGaloisPower(MY.Denominator, FN, 3, APrime);
+      BigNumberPolynomialGaloisMulWord(MY.Denominator, 4, APrime);   // 奇数分母 4 * fn^3 计算完毕
+
+      if (K and 1) = 0 then // 偶数分母还得乘以 y^4
+      begin
+        BigNumberPolynomialGaloisMul(MY.Denominator, Y2, MY.Denominator, APrime);
+        BigNumberPolynomialGaloisMul(MY.Denominator, Y2, MY.Denominator, APrime);
+      end;
+    finally
+      FEccPolynomialPool.Recycle(FN);
+      FEccPolynomialPool.Recycle(FNa1);
+      FEccPolynomialPool.Recycle(FNa2);
+      FEccPolynomialPool.Recycle(FNs1);
+      FEccPolynomialPool.Recycle(FNs2);
+      FEccPolynomialPool.Recycle(X1);
+      FEccPolynomialPool.Recycle(Y2);
+      FEccPolynomialPool.Recycle(P1);
+      FEccPolynomialPool.Recycle(P2);
+    end;
+  end;
+
+  if Neg then
+    MY.Neg;
+
+  if APrimitive <> nil then
+  begin
+    BigNumberPolynomialGaloisMod(MX.Nominator, MX.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MX.Denominator, MX.Denominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MY.Nominator, MY.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MY.Denominator, MY.Denominator, APrimitive, APrime);
+  end;
 end;
 
 class procedure TCnPolynomialEcc.RationalPointAddPoint(PX, PY, QX, QY, SX,
   SY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber;
   APrimitive: TCnBigNumberPolynomial);
+var
+  R, T1, T2: TCnBigNumberRationalPolynomial;
+  Y2, C: TCnBigNumberPolynomial;
 begin
+  // 点 (PX, PY * y) + (QX, QY * y) = (SX, SY * y)
+  // 先求斜率 R = y * (QY - PY) / (QX - PX) 或 (3PX^2 + A) / 2PY * y
 
+  R := nil;
+  T1 := nil;
+  T2 := nil;
+
+  Y2 := nil;
+  C := nil;
+
+  try
+    R := TCnBigNumberRationalPolynomial.Create;
+    T1 := TCnBigNumberRationalPolynomial.Create;
+    T2 := TCnBigNumberRationalPolynomial.Create;
+
+    Y2 := FEccPolynomialPool.Obtain;
+    C := FEccPolynomialPool.Obtain;
+    Y2.SetCoefficents([B, A, 0, 1]);
+
+    if BigNumberRationalPolynomialGaloisEqual(PX, QX, APrime, APrimitive) then // 不能直接判断相等，得互乘后各自针对本原多项式求余后再判断相等
+    begin
+      // X 相等，判断 Y 是否相等，不等则假设它们相反，返回 0
+      // TODO: 判断 PY QY 是否相反
+      if not BigNumberRationalPolynomialGaloisEqual(PY, QY, APrime, APrimitive) then
+      begin
+        SX.SetZero;
+        SY.SetZero;
+        Exit;
+      end;
+
+      // X Y 都相等，求导
+      C.SetCoefficents([3]);
+
+      BigNumberRationalPolynomialGaloisMul(PX, PX, T1, APrime);
+      BigNumberRationalPolynomialGaloisMul(T1, C, T1, APrime);  // T1 得到 3PX^2
+
+      C.SetCoefficents([A]);
+      BigNumberRationalPolynomialGaloisAdd(T1, C, T1, APrime);  // T1 得到 3PX^2 + A
+
+      C.SetCoefficents([2]);
+      BigNumberRationalPolynomialGaloisMul(PY, C, T2, APrime);  // T2 得到 2PY，实际上还要乘以一个 y
+
+      BigNumberRationalPolynomialGaloisDiv(T1, T2, R, APrime);  // 得到斜率 R，但真实的斜率分母实际上还要乘以一个 y，后面补上
+
+      // SX = 真实斜率^2 - PX - QX = R^2 / (x^3+Ax+B) - PX - QX
+      // 真实斜率的平方 = R^2 / y^2，分母可替换成 x^3+Ax+B
+      BigNumberRationalPolynomialGaloisMul(R, R, SX, APrime);
+      BigNumberRationalPolynomialGaloisDiv(SX, Y2, SX, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, PX, SX, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, QX, SX, APrime);
+
+      if APrimitive <> nil then
+      begin
+        BigNumberPolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SX.Denominator, SX.Denominator, APrimitive, APrime);
+      end;
+
+      // SY * y = 真实斜率 * (PX - SX) - PY * y
+      // SY = (R/y * (PX - SX) - PY * y) / y = R * (PX - SX)/ y^2 - PY
+      BigNumberRationalPolynomialGaloisSub(PX, SX, SY, APrime);
+      BigNumberRationalPolynomialGaloisMul(SY, R, SY, APrime);
+      BigNumberRationalPolynomialGaloisDiv(SY, Y2, SY, APrime);
+      BigNumberRationalPolynomialGaloisSub(SY, PY, SY, APrime);
+
+      if APrimitive <> nil then
+      begin
+        BigNumberPolynomialGaloisMod(SY.Nominator, SY.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SY.Denominator, SY.Denominator, APrimitive, APrime);
+      end;
+    end
+    else
+    begin
+      // 不相等，减，真实斜率等于 y * (QY - PY) / (QX - PX)
+      BigNumberRationalPolynomialGaloisSub(QY, PY, T1, APrime);
+      BigNumberRationalPolynomialGaloisSub(QX, PX, T2, APrime);
+      BigNumberRationalPolynomialGaloisDiv(T1, T2, R, APrime);
+
+      // R 得到斜率了，但真实的斜率分子实际上还要乘以一个 y，后面补上
+      // SX = R^2 * (x^3+Ax+B) - PX - QX
+      BigNumberRationalPolynomialGaloisMul(R, R, SX, APrime);
+      BigNumberRationalPolynomialGaloisMul(SX, Y2, SX, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, PX, SX, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, QX, SX, APrime); // 这步溢出了？
+
+      if APrimitive <> nil then
+      begin
+        BigNumberPolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SX.Denominator, SX.Denominator, APrimitive, APrime);
+      end;
+
+      // SY * y = R * y * (PX - SX) - PY * y 都除以 y 得 SY = R * (PX - SX) - PY
+      BigNumberRationalPolynomialGaloisSub(PX, SX, SY, APrime);
+      BigNumberRationalPolynomialGaloisMul(SY, R, SY, APrime);
+      BigNumberRationalPolynomialGaloisSub(SY, PY, SY, APrime);
+
+      if APrimitive <> nil then
+      begin
+        BigNumberPolynomialGaloisMod(SY.Nominator, SY.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SY.Denominator, SY.Denominator, APrimitive, APrime);
+      end;
+    end;
+  finally
+    FEccPolynomialPool.Recycle(Y2);
+    FEccPolynomialPool.Recycle(C);
+
+    T2.Free;
+    T1.Free;
+    R.Free;
+  end;
 end;
 
 procedure TCnPolynomialEcc.SetPrimitive(
@@ -4675,6 +4874,225 @@ begin
     if Value.MaxDegree <> FExtension then
       raise ECnEccException.Create('Primitive Polynomial Max Degree must be Field Extension.');
     BigNumberPolynomialCopy(FPrimitive, Value);
+  end;
+end;
+
+function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
+var
+  Pa, Ta: TCnInt64List;
+  QMul, QMax, BQ: TCnBigNumber;
+  L, K, W: Int64;
+  I, J: Integer;
+  F, G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
+  Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnBigNumberRationalPolynomial;
+  F1, F2, F3, F4, F5: TCnBigNumberPolynomial; // 可除多项式引用，不可改变
+  DPs: TObjectList;
+begin
+  // 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数
+  // 先建个 List，存所需的 2 ~ lmax 的素数，其中 3 * ... * lmax 刚好 > 4 倍根号 q
+  // 求 x^q -x 与 x^3 + Ax + B 的公因式，如果是 1 则 t2 = 1，否则 t2 = 0，
+  // 这里 t2 是 List 中针对素数 2 的元素，并非下标，后面同
+
+  Result := False;
+  if Q.IsZero or Q.IsNegative then
+    Exit;
+
+  Pa := TCnInt64List.Create;
+  Ta := TCnInt64List.Create;
+
+  Y2 := FEccPolynomialPool.Obtain;
+  P1 := FEccPolynomialPool.Obtain;
+  P2 := FEccPolynomialPool.Obtain;
+
+  F := FEccPolynomialPool.Obtain;
+  G := FEccPolynomialPool.Obtain;
+
+  QMax := FEccBigNumberPool.Obtain;
+  QMul := FEccBigNumberPool.Obtain;
+  BQ := FEccBigNumberPool.Obtain;
+
+  if not BigNumberSqrt(QMax, Q) then
+    Exit;
+
+  BigNumberAddWord(QMax, 1);
+  BigNumberMulWord(QMax, 4);
+  QMul.SetOne;
+  I := Low(CN_PRIME_NUMBERS_SQRT_UINT32);
+
+  DPs := nil;
+  Pi2PX := TCnBigNumberRationalPolynomial.Create;
+  Pi2PY := TCnBigNumberRationalPolynomial.Create;
+  PiPX := TCnBigNumberRationalPolynomial.Create;
+  PiPY := TCnBigNumberRationalPolynomial.Create;
+  KPX := TCnBigNumberRationalPolynomial.Create;
+  KPY := TCnBigNumberRationalPolynomial.Create;
+  LSX := TCnBigNumberRationalPolynomial.Create;
+  LSY := TCnBigNumberRationalPolynomial.Create;
+  RSX := TCnBigNumberRationalPolynomial.Create;
+  RSY := TCnBigNumberRationalPolynomial.Create;
+  TSX := TCnBigNumberRationalPolynomial.Create;
+  TSY := TCnBigNumberRationalPolynomial.Create;
+
+  try
+    Pa := TCnInt64List.Create;
+    Ta := TCnInt64List.Create;
+
+    while (BigNumberCompare(QMul, QMax) <= 0) and (I <= High(CN_PRIME_NUMBERS_SQRT_UINT32)) do
+    begin
+      BigNumberMulWord(QMul, CN_PRIME_NUMBERS_SQRT_UINT32[I]);
+      Pa.Add(CN_PRIME_NUMBERS_SQRT_UINT32[I]);
+      Ta.Add(0);
+      Inc(I);
+    end;
+
+    if I > High(CN_PRIME_NUMBERS_SQRT_UINT32) then
+      raise ECnEccException.Create('Prime Number is Too Large.');
+
+    Y2.SetCoefficents([B, A, 0, 1]);
+
+    // Ta 与 Pa 数组已准备好，先处理 t = 2 的情况
+    P1.SetCoefficents([0, 1]); // P1 := X
+    BigNumberPolynomialGaloisPower(P1, P1, Q, Q, Y2); // X^q 先 mod Y^2
+
+    P2.SetCoefficents([0, 1]); // P2 := X
+    BigNumberPolynomialGaloisSub(P1, P1, P2, Q); // P1 := (X^q mod Y^2) - x
+
+    // 求最大公约式
+    BigNumberPolynomialGaloisGreatestCommonDivisor(G, P1, Y2, Q);
+
+    if G.IsOne then
+      Ta[0] := 1
+    else
+      Ta[0] := 0;   // 求得 T2。理解了并且基本算对了
+
+    // 提前算好最大素数 + 2 阶的可除多项式们以及准备好 Y^2
+    DPs := TObjectList.Create(True);
+    CnGenerateGaloisDivisionPolynomials(A, B, Q, Pa[Pa.Count - 1] + 2, DPs);
+
+    for I := 1 to Ta.Count - 1 do  // 针对每一个 L
+    begin
+      L := Pa[I];
+      K := BigNumberModWord(Q, L);
+
+      // 先得到 L 阶可除多项式，作为后续计算的模多项式
+      LDP := TCnBigNumberPolynomial(DPs[L]);
+
+      Pi2PX.SetOne;                           // 原始点
+      Pi2PX.Nominator.SetCoefficents([0, 1]); // x
+      Pi2PY.Setone;                           // 1 * y
+
+      // 算得 π^2 的 X 坐标在 LDP 环内的表达分式，也就是 Q*Q 个 x 相乘再 mod LDP
+      BigNumberPolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);
+      BigNumberPolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
+
+      // 算得 π^2 的 Y 坐标在 LDP 环内的表达分式，Q*Q 个 y 相乘等于 y * [(Q*Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
+      BigNumberMul(BQ, Q, Q);
+      BigNumberShiftRightOne(BQ, BQ);
+      BigNumberPolynomialGaloisPower(Pi2PY.Nominator, Y2, BQ, Q, LDP);
+
+      KPX.SetOne;                             // 原始点
+      KPX.Nominator.SetCoefficents([0, 1]);   // x
+      KPY.SetOne;                             // 1 * y
+
+      // 算得 K * P 的 X Y 坐标
+      TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, Q, LDP);
+
+      PiPX.SetOne;                            // 原始点
+      PiPX.Nominator.SetCoefficents([0, 1]);  // x
+      PiPY.Setone;                            // 1 * y
+
+      // 求 π^2(P) + K * (P) 的和点 SX SY
+      TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
+
+      if LSX.IsZero and LSY.IsZero then  // 如果和点为 0，则表示 t * π结果等于 0，t 自然等于 0
+      begin
+        Ta[I] := 0;
+      end
+      else
+      begin
+        // 算得 π的 X 坐标在 LDP 环内的表达分式，也就是 Q 个 x 相乘再 mod LDP
+        BigNumberPolynomialGaloisPower(PiPX.Nominator, PiPX.Nominator, Q, Q, LDP);
+
+        // 算得 π的 Y 坐标在 LDP 环内的表达分式，Q 个 y 相乘等于 y * [(Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
+        BigNumberShiftRightOne(BQ, Q);
+        BigNumberPolynomialGaloisPower(PiPY.Nominator, Y2, BQ, Q, LDP);
+
+        BigNumberRationalPolynomialCopy(RSX, PiPX);
+        BigNumberRationalPolynomialCopy(RSY, PiPY);
+        for J := 1 to (L + 1) shr 1 do
+        begin
+          if BigNumberRationalPolynomialGaloisEqual(LSX, RSX, Q, LDP) then
+          begin
+            if BigNumberRationalPolynomialGaloisEqual(LSY, RSY, Q, LDP) then
+              Ta[I] := J
+            else
+              Ta[I] := L - J;
+            Break;
+          end;
+
+          TCnPolynomialEcc.RationalPointAddPoint(RSX, RSY, PiPX, PiPY, TSX, TSY, A, B, Q, LDP);
+          BigNumberRationalPolynomialCopy(RSX, TSX);
+          BigNumberRationalPolynomialCopy(RSY, TSY);
+        end;
+      end;
+    end;
+
+    // 求出各个余数后，用中国剩余定理求最终解
+    BigNumberChineseRemainderTheorem(Res, Ta, Pa);
+
+    // 注意求出的 T 必须满足 Hasse 定理：T 的绝对值 <= 2 * 根号 Q，如超出范围，还得修正
+    BigNumberSqrt(QMax, Q);
+    QMax.AddWord(1);
+    QMax.ShiftLeftOne;     // QMax 复用，是 2 根号 Q + 1，其绝对值必须比 Res 大
+
+    if BigNumberUnsignedCompare(Res, QMax) >= 0 then
+    begin
+      // 中国剩余定理求出的一般是最小正数，需要减去全体 Pa 的乘积
+      QMul.SetOne;
+      for J := 0 to Pa.Count - 1 do
+      begin
+        BQ.SetInt64(Pa[J]);
+        BigNumberMul(QMul, QMul, BQ);
+      end;
+
+      if Res.IsNegative then
+        BigNumberAdd(Res, Res, QMul)
+      else
+        BigNumberSub(Res, Res, QMul);
+    end;
+
+    Res.Negate;
+    BigNumberAdd(Res, Res, Q);
+    Res.AddWord(1); // Q + 1 - L
+    Result := True;
+  finally
+    FEccPolynomialPool.Recycle(Y2);
+    FEccPolynomialPool.Recycle(P1);
+    FEccPolynomialPool.Recycle(P2);
+
+    FEccPolynomialPool.Recycle(G);
+    FEccPolynomialPool.Recycle(F);
+
+    FEccBigNumberPool.Recycle(QMax);
+    FEccBigNumberPool.Recycle(QMul);
+    FEccBigNumberPool.Recycle(BQ);
+
+    Pi2PX.Free;
+    Pi2PY.Free;
+    PiPX.Free;
+    PiPY.Free;
+    KPX.Free;
+    KPY.Free;
+    LSX.Free;
+    LSY.Free;
+    RSX.Free;
+    RSY.Free;
+    TSX.Free;
+    TSY.Free;
+
+    DPs.Free;
+    Pa.Free;
+    Ta.Free;
   end;
 end;
 

@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils;
+  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils, CnPolynomial;
 
 type
   TFormEcc = class(TForm)
@@ -222,9 +222,6 @@ type
     cbbKeyHash: TComboBox;
     btnKeyGenerate: TButton;
     btnKeyLoadSig: TButton;
-    grpAttack: TGroupBox;
-    btnSimpleAttack: TButton;
-    btnTestCRT: TButton;
     btnBNUpdate: TButton;
     btnBNEccCalc: TButton;
     cbbInt64EccPreset: TComboBox;
@@ -232,6 +229,12 @@ type
     btnHassenTest: TButton;
     btnHassenTest2: TButton;
     btnInt64SchoofTest: TButton;
+    btnEccSchoof: TButton;
+    btnSimpleAttack: TButton;
+    btnTestCRT: TButton;
+    btnInt64EccCountOrder: TButton;
+    btnInt64CountOrder1: TButton;
+    btnInt64CountEccPoints3: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -300,6 +303,10 @@ type
     procedure btnHassenTestClick(Sender: TObject);
     procedure btnHassenTest2Click(Sender: TObject);
     procedure btnInt64SchoofTestClick(Sender: TObject);
+    procedure btnEccSchoofClick(Sender: TObject);
+    procedure btnInt64EccCountOrderClick(Sender: TObject);
+    procedure btnInt64CountOrder1Click(Sender: TObject);
+    procedure btnInt64CountEccPoints3Click(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -316,7 +323,10 @@ type
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
+    procedure ShowMsg(Data: Int64);
     procedure CalcLucas(X, Y, U_2, V_2, U_1, V_1: Int64; var U, V: Int64);
+
+    procedure CallUseless; // 调用必要的函数防止被 Link 时忽略
   public
     { Public declarations }
   end;
@@ -497,6 +507,8 @@ begin
   FPublicKey := TCnEccPublicKey.Create;
   FKeyEcc := TCnEcc.Create;
   cbbKeyHash.ItemIndex := 0;
+
+  CallUseless;
 end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
@@ -2164,15 +2176,15 @@ begin
   Ecc.Free;
 end;
 
-procedure TFormEcc.btnInt64SchoofTestClick(Sender: TObject);
+procedure TFormEcc.ShowMsg(Data: Int64);
+var
+  S: string;
+begin
+  S := IntToStr(Data) + ' - ' + TimeToStr(Now);
+  mmoGenECCPoints.Lines.Add(S);
+end;
 
-  procedure ShowMsg(Data: Int64);
-  var
-    S: string;
-  begin
-    S := IntToStr(Data) + ' - ' + TimeToStr(Now);
-    mmoGenECCPoints.Lines.Add(S);
-  end;
+procedure TFormEcc.btnInt64SchoofTestClick(Sender: TObject);
 begin
   // Schoof 算法测试
   ShowMsg(CnInt64EccSchoof(2, 1, 13));   // 8
@@ -2189,27 +2201,230 @@ begin
   ShowMsg(CnInt64EccSchoof(7, 1, 65423)); // 65340
   ShowMsg(CnInt64EccSchoof(7, 1, 65521)); // 65772
   ShowMsg(CnInt64EccSchoof(7, 1, 65537)); // 65751
-  ShowMsg(CnInt64EccSchoof(7, 1, 98993)); // 99279
+  ShowMsg(CnInt64EccSchoof(7, 1, 98993)); // 99279  Singular online 上核对通过
 
-  ShowMsg(CnInt64EccSchoof(7, 1, 2147483629)); // 30 秒左右，2147464597
+  ShowMsg(CnInt64EccSchoof(7, 1, 2147483629)); // 30 秒左右，2147464597   以下 Singular online 上已无法计算核对
   ShowMsg(CnInt64EccSchoof(7, 1, 2147483659)); // 30 秒左右，2147476793
 
   // < Max Int64 的平方根再测测
   ShowMsg(CnInt64EccSchoof(7, 1, 3037000493)); // 50 秒左右，3036927405
 
   // < Max UInt32 测试基本通过，Q 平方超过了 Int64，但没超过 UInt64
-  ShowMsg(CnInt64EccSchoof(7, 1, 4294967291)); // 两分钟左右，4295191334
+  ShowMsg(CnInt64EccSchoof(7, 1, 4294967291)); // 两分钟左右，4294994984
 
   // 刚刚 > Max UInt32 测试基本通过，Q 平方超过了 UInt64，但没超过 2 * Max UInt64
   ShowMsg(CnInt64EccSchoof(7, 1, 4294967311)); // 三分钟左右，4295222567
 
   // < Sqrt(2 * Max UInt64) 测试基本通过，Q 平方接近 2 * Max UInt64
-  ShowMsg(CnInt64EccSchoof(7, 1, 6074000687)); // 四分钟左右，6074114217
+  ShowMsg(CnInt64EccSchoof(7, 1, 6074000687)); // 四分钟左右，6074024457
 
   // > Sqrt(2 * Max UInt64) 测试有问题，Q 平方超过 2 * Max UInt64
-  ShowMsg(CnInt64EccSchoof(7, 1, 6074001169)); // 返回 6074001170 是错的
+  // ShowMsg(CnInt64EccSchoof(7, 1, 6074001169)); // 返回 6074001170 是错的
 
   // Q 平方超过 2 * Max UInt64 的目前还在想办法处理，因为计算 (Q*Q) shr 1 会出问题
+end;
+
+procedure TFormEcc.btnEccSchoofClick(Sender: TObject);
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  A.SetWord(2);
+  B.SetWord(1);
+  Q.SetWord(13);
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到 8，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetWord(65537);
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到 85751，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('2147483629');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到 2147464597，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetWord(3037000493);
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到 3036927405，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('4294967291');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到 4294994984，本来和上面的不对，然后上面发现有溢出，修正了，就对了
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('6074000687');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到 6074024457，本来和上面的不对，然后上面发现有溢出，修正了，就对了
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('6074001169');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱
+
+  R.Free;
+  Q.Free;
+  B.Free;
+  A.Free;
+end;
+
+// 硬性双重遍历求阶，极慢
+function InternalInt64CountEccPoints1(A, B, Q: Int64): Int64;
+var
+  I, J: Int64;
+  Ecc64: TCnInt64Ecc;
+  P: TCnInt64EccPoint;
+begin
+  Result := 1;
+  Ecc64 := TCnInt64Ecc.Create(A, B, Q, 0, 0, Q);
+
+  I := 0;
+  while I < Q do
+  begin
+    J := 0;
+    while J < Q do
+    begin
+      P.X := I;
+      P.Y := J;
+      if Ecc64.IsPointOnCurve(P) then
+      begin
+        Inc(Result);
+        if P.Y > 0 then
+        begin
+          P.Y := Q - P.Y;
+          if Ecc64.IsPointOnCurve(P) then
+            Inc(Result);
+        end;
+
+        // 这个 X 已经查完了，每个 X 不会有多于两个 Y。
+        Break;
+      end;
+      J := J + 1;
+    end;
+    // Break 到此，进行下一个 X 的循环
+    I := I + 1;
+  end;
+end;
+
+// 硬性单重遍历求阶，也不快
+function InternalInt64CountEccPoints2(A, B, Q: Int64): Int64;
+var
+  I: Int64;
+  Ecc64: TCnInt64Ecc;
+  P: TCnInt64EccPoint;
+begin
+  Result := 1;
+  Ecc64 := TCnInt64Ecc.Create(A, B, Q, 0, 0, Q);
+
+  I := 0;
+  while I < Q do
+  begin
+    if Ecc64.PlainToPoint(I, P) then
+      Result := Result + 2;
+    I := I + 1;
+  end;
+end;
+
+// 硬性单重勒让德符号求阶，快点儿
+function InternalInt64CountEccPoints3(A, B, Q: Int64): Int64;
+var
+  I: Int64;
+begin
+  Result := 1 + Q;
+
+  I := 0;
+  while I < Q do
+  begin
+    Result := Result + CnInt64Legendre(I * I * I + A * I + B, Q);
+    I := I + 1;
+  end;
+end;
+
+procedure TFormEcc.btnInt64EccCountOrderClick(Sender: TObject);
+begin
+  // 素数一大，基本上跑不完，不能跑
+  ShowMsg(InternalInt64CountEccPoints1(2, 1, 13));
+  ShowMsg(InternalInt64CountEccPoints1(46, 74, 97)); // 80
+  ShowMsg(InternalInt64CountEccPoints1(31, -12, 97)); // 112
+  ShowMsg(InternalInt64CountEccPoints1(2, 1, 19));    // 27
+  ShowMsg(InternalInt64CountEccPoints1(4, 2, 23)); // 21
+
+  ShowMsg(InternalInt64CountEccPoints1(71, 602, 32003)); // 32021  跑了 26 分钟
+  ShowMsg(InternalInt64CountEccPoints1(7, 1, 48299)); // 47988     跑了 38 分钟
+  ShowMsg(InternalInt64CountEccPoints1(7, 1, 58657)); // 58971     跑了 101 分钟
+end;
+
+procedure TFormEcc.btnInt64CountOrder1Click(Sender: TObject);
+begin
+  // 比上面的容易跑，但是也跑不完
+  ShowMsg(InternalInt64CountEccPoints2(2, 1, 13));
+  ShowMsg(InternalInt64CountEccPoints2(46, 74, 97)); // 80
+  ShowMsg(InternalInt64CountEccPoints2(31, -12, 97)); // 112
+  ShowMsg(InternalInt64CountEccPoints2(2, 1, 19));    // 27
+  ShowMsg(InternalInt64CountEccPoints2(4, 2, 23)); // 21
+
+  ShowMsg(InternalInt64CountEccPoints2(71, 602, 32003)); // 32021 一秒就搞定
+  ShowMsg(InternalInt64CountEccPoints2(7, 1, 48299)); // 47988    一秒也搞定
+  ShowMsg(InternalInt64CountEccPoints2(7, 1, 58657)); // 58971    30 秒
+end;
+
+procedure TFormEcc.btnInt64CountEccPoints3Click(Sender: TObject);
+begin
+  // 比上面的更容易跑点儿
+  ShowMsg(InternalInt64CountEccPoints3(2, 1, 13));
+  ShowMsg(InternalInt64CountEccPoints3(46, 74, 97)); // 80
+  ShowMsg(InternalInt64CountEccPoints3(31, -12, 97)); // 112
+  ShowMsg(InternalInt64CountEccPoints3(2, 1, 19));    // 27
+  ShowMsg(InternalInt64CountEccPoints3(4, 2, 23)); // 21
+
+  ShowMsg(InternalInt64CountEccPoints3(71, 602, 32003)); // 32021
+  ShowMsg(InternalInt64CountEccPoints3(7, 1, 48299)); // 47988
+  ShowMsg(InternalInt64CountEccPoints3(7, 1, 58657)); // 58971
+
+  ShowMsg(InternalInt64CountEccPoints3(7, 1, 98993)); // 99279     都一秒搞定
+end;
+
+procedure TFormEcc.CallUseless;
+var
+  TIP: TCnInt64Polynomial;
+  TIRP: TCnInt64RationalPolynomial;
+  TRP: TCnBigNumberPolynomial;
+  TBRP: TCnBigNumberRationalPolynomial;
+begin
+  TIP := TCnInt64Polynomial.Create;
+  TIRP := TCnInt64RationalPolynomial.Create;
+  TRP := TCnBigNumberPolynomial.Create;
+  TBRP := TCnBigNumberRationalPolynomial.Create;
+
+  TIP.ToString;
+  TIRP.ToString;
+  TBRP.ToString;
+  TBRP.ToString;
+
+  TIP.Free;
+  TIRP.Free;
+  TRP.Free;
+  TBRP.Free;
 end;
 
 end.
