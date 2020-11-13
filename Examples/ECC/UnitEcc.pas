@@ -235,6 +235,7 @@ type
     btnInt64EccCountOrder: TButton;
     btnInt64CountOrder1: TButton;
     btnInt64CountEccPoints3: TButton;
+    mmoBNEccPoints: TMemo;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -323,7 +324,8 @@ type
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
-    procedure ShowMsg(Data: Int64);
+    procedure ShowMsg(Data: Int64); overload;
+    procedure ShowMsg(const Data: string); overload;
     procedure CalcLucas(X, Y, U_2, V_2, U_1, V_1: Int64; var U, V: Int64);
 
     procedure CallUseless; // 调用必要的函数防止被 Link 时忽略
@@ -2182,6 +2184,13 @@ var
 begin
   S := IntToStr(Data) + ' - ' + TimeToStr(Now);
   mmoGenECCPoints.Lines.Add(S);
+  Application.ProcessMessages;
+end;
+
+procedure TFormEcc.ShowMsg(const Data: string);
+begin
+  mmoBNEccPoints.Lines.Add(Data + ' - ' + TimeToStr(Now));
+  Application.ProcessMessages;
 end;
 
 procedure TFormEcc.btnInt64SchoofTestClick(Sender: TObject);
@@ -2238,56 +2247,56 @@ begin
   Q.SetWord(13);
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 8，成功！
+    ShowMsg(R.ToDec); // 得到 8，成功！
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetWord(65537);
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 65751，成功！
+    ShowMsg(R.ToDec); // 得到 65751，成功！
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetDec('2147483629');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 2147464597，成功！
+    ShowMsg(R.ToDec); // 得到 2147464597，成功！
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetWord(3037000493);
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 3036927405，成功！
+    ShowMsg(R.ToDec); // 得到 3036927405，成功！
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetDec('4294967291');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 4294994984，本来和上面的不对，然后上面发现有溢出，修正了，就对了
+    ShowMsg(R.ToDec); // 得到 4294994984，本来和上面的不对，然后上面发现有溢出，修正了，就对了
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetDec('6074000687');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 6074024457，本来和上面的不对，然后上面发现有溢出，修正了，就对了
+    ShowMsg(R.ToDec); // 得到 6074024457，本来和上面的不对，然后上面发现有溢出，修正了，就对了
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetDec('6074001169');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱
+    ShowMsg(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱
 
   A.SetWord(7);
   B.SetWord(1);
   Q.SetDec('9223372036854775783');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
+    ShowMsg(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
 
   R.Free;
   Q.Free;

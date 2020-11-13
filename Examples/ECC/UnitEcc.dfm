@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsInt64ECC
+    ActivePage = tsWrapData
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
@@ -1296,6 +1296,13 @@ object FormEcc: TFormEcc
         Caption = 'CRT Sample'
         TabOrder = 3
         OnClick = btnTestCRTClick
+      end
+      object mmoBNEccPoints: TMemo
+        Left = 304
+        Top = 368
+        Width = 217
+        Height = 121
+        TabOrder = 4
       end
     end
     object tsLucas: TTabSheet
