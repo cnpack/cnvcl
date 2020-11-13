@@ -2245,7 +2245,7 @@ begin
   Q.SetWord(65537);
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMessage(R.ToDec); // 得到 85751，成功！
+    ShowMessage(R.ToDec); // 得到 65751，成功！
 
   A.SetWord(7);
   B.SetWord(1);
@@ -2281,6 +2281,13 @@ begin
 
   if CnEccSchoof(R, A, B, Q) then
     ShowMessage(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('9223372036854775783');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMessage(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
 
   R.Free;
   Q.Free;
