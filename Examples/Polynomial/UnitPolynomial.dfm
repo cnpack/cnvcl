@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsBNRationalPolynomial
+    ActivePage = tsIntegerPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -331,6 +331,24 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Set String'
           TabOrder = 28
           OnClick = btnInt64PolySetStringClick
+        end
+        object btnTestBigDiv: TButton
+          Left = 280
+          Top = 408
+          Width = 113
+          Height = 25
+          Caption = 'A Big Div'
+          TabOrder = 29
+          OnClick = btnTestBigDivClick
+        end
+        object btnTestBigGCD: TButton
+          Left = 408
+          Top = 408
+          Width = 113
+          Height = 25
+          Caption = 'A Big GCD'
+          TabOrder = 30
+          OnClick = btnTestBigGCDClick
         end
       end
     end

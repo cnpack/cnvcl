@@ -1180,7 +1180,7 @@ begin
 
   while C^ <> #0 do
   begin
-    if not (C^ in ['+', '-', '0'..'9']) then
+    if not (C^ in ['+', '-', '0'..'9']) and (C^ <> VarName) then
     begin
       Inc(C);
       Continue;
@@ -2099,9 +2099,9 @@ begin
   K := CnInt64ModularInverse2(N, Prime);
   for I := 0 to P.MaxDegree do
   begin
-    P[I] := Int64NonNegativeMod(P[I] * K, Prime);
+    P[I] := Int64NonNegativeMulMod(P[I], K, Prime);
     if B then
-      P[I] := Prime - LongWord(P[I]);
+      P[I] := Prime - P[I];
   end;
 end;
 
@@ -3472,7 +3472,7 @@ begin
 
   while C^ <> #0 do
   begin
-    if not (C^ in ['+', '-', '0'..'9']) then
+    if not (C^ in ['+', '-', '0'..'9']) and (C^ <> VarName) then
     begin
       Inc(C);
       Continue;
