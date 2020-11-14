@@ -578,6 +578,11 @@ function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: I
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
+function BigNumberNextPrime(Res, Num: TCnBigNumber;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+{* 生成一个比 Num 大或相等的大素数，结果放 Res，Res 可以是 Num，
+  TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+
 function BigNumberCheckPrimitiveRoot(R, Prime: TCnBigNumber; Factors: TCnBigNumberList): Boolean;
 {* 原根判断辅助函数。判断 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
    Factors 必须是 Prime - 1 的不重复的质因数列表，可从 BigNumberFindFactors 获取并去重而来}
@@ -4258,17 +4263,29 @@ begin
     Num.AddWord(1);
 
   while not BigNumberIsProbablyPrime(Num, TestCount) do
-  begin
     Num.AddWord(2);
-//    if not BigNumberRandBits(Num, BitsCount) then
-//      Exit;
-//    if not BigNumberSetBit(Num, BitsCount - 1) then
-//      Exit;
-//
-//    if not Num.IsOdd then
-//      Num.AddWord(1);
-  end;
+
   Result := True;
+end;
+
+function BigNumberNextPrime(Res, Num: TCnBigNumber;
+  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+begin
+  Result := True;
+  if Num.IsNegative or Num.IsZero or Num.IsOne or (Num.GetWord = 2) then
+  begin
+    Res.SetWord(2);
+    Exit;
+  end
+  else
+  begin
+    BigNumberCopy(Res, Num);
+    if not Res.IsOdd then
+      Res.AddWord(1);
+
+    while not BigNumberIsProbablyPrime(Res, TestCount) do
+      Res.AddWord(2);
+  end;
 end;
 
 // 查 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1

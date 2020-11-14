@@ -74,6 +74,7 @@ type
     btnCheckPrime2: TButton;
     btnBNCRT: TButton;
     btnBNSqrt: TButton;
+    btnBNNextPrime: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -123,6 +124,7 @@ type
     procedure btnCheckPrime2Click(Sender: TObject);
     procedure btnBNCRTClick(Sender: TObject);
     procedure btnBNSqrtClick(Sender: TObject);
+    procedure btnBNNextPrimeClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -876,6 +878,12 @@ begin
   if BigNumberSqrt(Res, Num1) then
     ShowResult(Res);
   BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnBNNextPrimeClick(Sender: TObject);
+begin
+  BigNumberNextPrime(Num2, Num1);
+  ShowNumbers;
 end;
 
 end.

@@ -587,6 +587,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 54
         OnClick = btnBNSqrtClick
       end
+      object btnBNNextPrime: TButton
+        Left = 904
+        Top = 184
+        Width = 129
+        Height = 25
+        Caption = 'Next Prime'
+        TabOrder = 55
+        OnClick = btnBNNextPrimeClick
+      end
     end
   end
 end
