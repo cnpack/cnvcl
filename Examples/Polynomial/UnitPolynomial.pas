@@ -173,6 +173,12 @@ type
     btnBNRationalSetString: TButton;
     btnTestBigDiv: TButton;
     btnTestBigGCD: TButton;
+    btnInt64ComposeRationalRational: TButton;
+    btnInt64ComposePolyRational: TButton;
+    btnInt64ComposeRationalPolynomial: TButton;
+    btnBNRationalRational: TButton;
+    btnBNPolyRational: TButton;
+    btnBNRationalPoly: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -276,6 +282,12 @@ type
     procedure btnBNRationalSetStringClick(Sender: TObject);
     procedure btnTestBigDivClick(Sender: TObject);
     procedure btnTestBigGCDClick(Sender: TObject);
+    procedure btnInt64ComposeRationalPolynomialClick(Sender: TObject);
+    procedure btnInt64ComposeRationalRationalClick(Sender: TObject);
+    procedure btnInt64ComposePolyRationalClick(Sender: TObject);
+    procedure btnBNRationalRationalClick(Sender: TObject);
+    procedure btnBNPolyRationalClick(Sender: TObject);
+    procedure btnBNRationalPolyClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -3665,6 +3677,66 @@ begin
   IQ1.Free;
   BR1.Free;
   BQ1.Free;
+end;
+
+procedure TFormPolynomial.btnInt64ComposeRationalPolynomialClick(
+  Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisCompose(FRP3, FRP1, FIP1, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialCompose(FRP3, FRP1, FIP1);
+  ShowMessage(FRP3.ToString);
+end;
+
+procedure TFormPolynomial.btnInt64ComposeRationalRationalClick(
+  Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisCompose(FRP3, FRP1, FRP2, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialCompose(FRP3, FRP1, FRP2);
+  ShowMessage(FRP3.ToString);
+end;
+
+procedure TFormPolynomial.btnInt64ComposePolyRationalClick(
+  Sender: TObject);
+begin
+  if chkRationalPolynomialGalois.Checked then
+    Int64RationalPolynomialGaloisCompose(FRP3, FIP1, FRP2, StrToInt(edtRationalPolynomialPrime.Text))
+  else
+    Int64RationalPolynomialCompose(FRP3, FIP1, FRP2);
+  ShowMessage(FRP3.ToString);
+end;
+
+procedure TFormPolynomial.btnBNRationalRationalClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisCompose(FBRP3, FBRP1, FBRP2, FQ)
+  else
+    BigNumberRationalPolynomialCompose(FBRP3, FBRP1, FBRP2);
+  ShowMessage(FBRP3.ToString);
+end;
+
+procedure TFormPolynomial.btnBNPolyRationalClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisCompose(FBRP3, FBP1, FBRP2, FQ)
+  else
+    BigNumberRationalPolynomialCompose(FBRP3, FBP1, FBRP2);
+  ShowMessage(FBRP3.ToString);
+end;
+
+procedure TFormPolynomial.btnBNRationalPolyClick(Sender: TObject);
+begin
+  FQ.SetDec(edtBNRationalGalois.Text);
+  if chkBNRationalGalois.Checked then
+    BigNumberRationalPolynomialGaloisCompose(FBRP3, FBRP1, FBP1, FQ)
+  else
+    BigNumberRationalPolynomialCompose(FBRP3, FBRP1, FBP1);
+  ShowMessage(FBRP3.ToString);
 end;
 
 end.

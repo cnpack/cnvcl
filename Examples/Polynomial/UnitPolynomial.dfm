@@ -726,6 +726,33 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 21
           OnClick = btnRationalSetStringClick
         end
+        object btnInt64ComposeRationalRational: TButton
+          Left = 264
+          Top = 352
+          Width = 209
+          Height = 25
+          Caption = 'Compose Rational using Rational'
+          TabOrder = 22
+          OnClick = btnInt64ComposeRationalRationalClick
+        end
+        object btnInt64ComposePolyRational: TButton
+          Left = 264
+          Top = 400
+          Width = 209
+          Height = 25
+          Caption = 'Compose Polynomial using Rational'
+          TabOrder = 23
+          OnClick = btnInt64ComposePolyRationalClick
+        end
+        object btnInt64ComposeRationalPolynomial: TButton
+          Left = 264
+          Top = 448
+          Width = 209
+          Height = 25
+          Caption = 'Compose Rational using Polynomial'
+          TabOrder = 24
+          OnClick = btnInt64ComposeRationalPolynomialClick
+        end
       end
     end
     object tsBNPolynomial: TTabSheet
@@ -1396,6 +1423,33 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Set String'
           TabOrder = 19
           OnClick = btnBNRationalSetStringClick
+        end
+        object btnBNRationalRational: TButton
+          Left = 264
+          Top = 352
+          Width = 209
+          Height = 25
+          Caption = 'Compose Rational using Rational'
+          TabOrder = 20
+          OnClick = btnBNRationalRationalClick
+        end
+        object btnBNPolyRational: TButton
+          Left = 264
+          Top = 400
+          Width = 209
+          Height = 25
+          Caption = 'Compose Polynomial using Rational'
+          TabOrder = 21
+          OnClick = btnBNPolyRationalClick
+        end
+        object btnBNRationalPoly: TButton
+          Left = 264
+          Top = 448
+          Width = 209
+          Height = 25
+          Caption = 'Compose Rational using Polynomial'
+          TabOrder = 22
+          OnClick = btnBNRationalPolyClick
         end
       end
     end
