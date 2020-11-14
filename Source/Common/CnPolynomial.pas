@@ -2129,7 +2129,7 @@ var
   begin
     Exponent := Exponent shr 1;
     if (ExponentHi and 1) <> 0 then
-      Exponent := Exponent or $F000000000000000;
+      Exponent := Exponent or $8000000000000000;
     ExponentHi := ExponentHi shr 1;
   end;
 
