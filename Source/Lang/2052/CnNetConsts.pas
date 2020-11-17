@@ -86,6 +86,18 @@ resourcestring
   SCnDNSTooLong = '字符串长度超界';
   SCnDNSInvalidHeadByteFmt = '字符串长度 %d 位于 %d 处非法';
 
+  // CnThreadingTCPServer
+  SCnThreadingTCPServerName = '多线程TCP服务器组件';
+  SCnThreadingTCPServerComment = '阻塞式多线程TCP服务器组件';
+
+  // CnTCPClient
+  SCnTCPClientName = 'TCP客户端组件';
+  SCnTCPClientComment = 'TCP客户端组件';
+
+  // CnTCPForwarder
+  SCnTCPForwarderName = 'TCP端口转发组件';
+  SCnTCPForwarderComment = 'TCP端口转发组件';
+
 implementation
 
 end.
