@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsIntegerPolynomial
+    ActivePage = tsRationalPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -752,6 +752,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Compose Rational using Polynomial'
           TabOrder = 24
           OnClick = btnInt64ComposeRationalPolynomialClick
+        end
+        object btnCompareRationalMul2Method: TButton
+          Left = 504
+          Top = 352
+          Width = 329
+          Height = 25
+          Caption = 'Compare Int64 Rational Mul using  Division Polynomial and Add'
+          TabOrder = 25
+          OnClick = btnCompareRationalMul2MethodClick
         end
       end
     end

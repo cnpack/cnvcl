@@ -179,6 +179,7 @@ type
     btnBNRationalRational: TButton;
     btnBNPolyRational: TButton;
     btnBNRationalPoly: TButton;
+    btnCompareRationalMul2Method: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -288,6 +289,7 @@ type
     procedure btnBNRationalRationalClick(Sender: TObject);
     procedure btnBNPolyRationalClick(Sender: TObject);
     procedure btnBNRationalPolyClick(Sender: TObject);
+    procedure btnCompareRationalMul2MethodClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -1257,6 +1259,11 @@ begin
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
 
+  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 1, 1, 23) then
+    ShowMessage('2*P On Curve')
+  else
+    ShowMessage('2*P NOT On Curve');
+
   // 验证 6 19 的二倍点是 13 16
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 13 对了
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 16 对了
@@ -1268,6 +1275,11 @@ begin
   TCnInt64PolynomialEcc.RationalMultiplePoint(3, X, Y, 1, 1, 23);
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
+
+  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 1, 1, 23) then
+    ShowMessage('3*P On Curve')
+  else
+    ShowMessage('3*P NOT On Curve');
 
   // 验证 6 19 的三倍点是 7 11
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 7 对了
@@ -1281,6 +1293,11 @@ begin
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
 
+  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 1, 1, 23) then
+    ShowMessage('4*P On Curve')
+  else
+    ShowMessage('4*P NOT On Curve');
+
   // 验证 6 19 的四倍点是 5 19
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 5
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 19
@@ -1293,15 +1310,16 @@ begin
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
 
+  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 1, 1, 23) then
+    ShowMessage('5*P On Curve')
+  else
+    ShowMessage('5*P NOT On Curve');
+
   // 验证 6 19 的五倍点是 12 4
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, 23))); // 得到 12
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 4
 
-// 多项式本身不会符合曲线方程，得值代入再模逆后才等于
-//  if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, 2, 1, 13) then
-//    ShowMessage('On Curve')
-//  else
-//    ShowMessage('NOT On Curve');
+  // 多项式本身也符合曲线方程
 
   X.Free;
   Y.Free;
@@ -3101,6 +3119,11 @@ begin
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
 
+  if TCnPolynomialEcc.IsRationalPointOnCurve(X, Y, A, B, FQ) then
+    ShowMessage('2*P On Curve')
+  else
+    ShowMessage('2*P NOT On Curve');
+
   // 验证 6 19 的二倍点是 13 16
   P.SetWord(6);
   BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
@@ -3118,6 +3141,11 @@ begin
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
 
+  if TCnPolynomialEcc.IsRationalPointOnCurve(X, Y, A, B, FQ) then
+    ShowMessage('3*P On Curve')
+  else
+    ShowMessage('3*P NOT On Curve');
+
   // 验证 6 19 的三倍点是 7 11
   BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
   ShowMessage(Res.ToDec);   // 得到 7 对了
@@ -3134,6 +3162,11 @@ begin
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
 
+  if TCnPolynomialEcc.IsRationalPointOnCurve(X, Y, A, B, FQ) then
+    ShowMessage('4*P On Curve')
+  else
+    ShowMessage('4*P NOT On Curve');
+
   // 验证 6 19 的四倍点是 5 19
   BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
   ShowMessage(Res.ToDec);   // 得到 5
@@ -3149,6 +3182,11 @@ begin
   TCnPolynomialEcc.RationalMultiplePoint(5, X, Y, A, B, FQ);
   ShowMessage(X.ToString);
   ShowMessage(Y.ToString);
+
+  if TCnPolynomialEcc.IsRationalPointOnCurve(X, Y, A, B, FQ) then
+    ShowMessage('5*P On Curve')
+  else
+    ShowMessage('5*P NOT On Curve');
 
   // 验证 6 19 的五倍点是 12 4
   BigNumberRationalPolynomialGaloisGetValue(Res, X, P, FQ);
@@ -3737,6 +3775,121 @@ begin
   else
     BigNumberRationalPolynomialCompose(FBRP3, FBRP1, FBP1);
   ShowMessage(FBRP3.ToString);
+end;
+
+procedure TFormPolynomial.btnCompareRationalMul2MethodClick(
+  Sender: TObject);
+var
+  A, B, Q: Int64;
+  DPS: TObjectList;
+  Ecc: TCnInt64PolynomialEcc;
+  X, Y, X1, Y1, X2, Y2, XT, YT: TCnInt64RationalPolynomial;
+  TY2: TCnInt64Polynomial;
+  I, J, K: Integer;
+begin
+  // 比较点加生成的和坐标多项式与直接通过 DivisionPolynomial 计算得到的积坐标多项式是否相等
+  // F97 上的椭圆曲线 Y2=X3+31X-12
+  Q := 19;
+  A := 2;
+  B := 1;
+
+  DPS := TObjectList.Create;
+
+  CnInt64GenerateGaloisDivisionPolynomials(A, B, Q, 8, DPS);
+  for I := 0 to DPS.Count - 1 do
+    mmoEcc.Lines.Add(TCnInt64Polynomial(DPS[I]).ToString);
+  mmoEcc.Lines.Add('');
+
+  Ecc := TCnInt64PolynomialEcc.Create(A, B, Q, 2, [0], [0], 0, [0]);
+
+  X := TCnInt64RationalPolynomial.Create;   // X Y 保持不变
+  Y := TCnInt64RationalPolynomial.Create;
+
+  X1 := TCnInt64RationalPolynomial.Create;  // 容纳叠加结果
+  Y1 := TCnInt64RationalPolynomial.Create;
+
+  X2 := TCnInt64RationalPolynomial.Create;  // 容纳直接计算的结果
+  Y2 := TCnInt64RationalPolynomial.Create;
+
+  XT := TCnInt64RationalPolynomial.Create;  // 临时的
+  YT := TCnInt64RationalPolynomial.Create;
+
+  for J := 0 to 1 do
+  begin
+    X.SetOne;
+    Y.SetOne;
+
+    if J = 0 then
+    begin
+      mmoEcc.Lines.Add('For Simple Polynomial:');
+
+      X.Nominator.SetCoefficents([0, 1]);
+      Y.Nominator.SetCoefficents([1]);        // (x, 1*y)，在曲线上，下面的多倍点都在曲线上
+      K := 4;
+    end
+    else
+    begin
+      mmoEcc.Lines.Add('');
+      mmoEcc.Lines.Add('For Complex Polynomial:');
+
+      X.Nominator.MaxDegree := Q;             // (x^q, y^q)，是否也在曲线上？
+      Y.Nominator.MaxDegree := Q;             // 其中 y^q = (y^2)^(q-1)/2 * y
+      X.Nominator[Q] := 1;                    // y^2 可以替换成 x^3+Ax+B
+
+      TY2 := TCnInt64Polynomial.Create([B, A, 0, 1]);
+      Int64PolynomialGaloisMul(TY2, TY2, TY2, Q); // 得到 y^2
+
+      Int64PolynomialGaloisPower(Y.Nominator, TY2, (Q - 1) shr 1, Q);
+      TY2.Free;
+
+      // 先判断该点在曲线上
+      if TCnInt64PolynomialEcc.IsRationalPointOnCurve(X, Y, A, B, Q) then
+        ShowMessage('(X^Q, Y^Q) is On Curve.');
+
+      K := 2;
+    end;
+
+    X1.SetZero;
+    Y1.SetZero;
+
+    for I := 0 to K do
+    begin
+      TCnInt64PolynomialEcc.RationalPointAddPoint(X1, Y1, X, Y, XT, YT, A, B, Q);
+      // X1 和 Y1 是连续相加 X 和 Y 得到的坐标多项式
+      Int64RationalPolynomialCopy(X1, XT);
+      Int64RationalPolynomialCopy(Y1, YT);
+
+      Int64RationalMultiplePointX(X2, X, I + 1, A, B, Q, DPS);
+      Int64RationalMultiplePointY(Y2, X, Y, I + 1, A, B, Q, DPS);
+      // X2 和 Y2 是直接通过 DivisionPolynomial 计算得到的积坐标多项式
+
+      mmoEcc.Lines.Add('# ' + IntToStr(I + 1));
+      mmoEcc.Lines.Add('  ' + X1.ToString);
+      mmoEcc.Lines.Add('  ' + Y1.ToString);
+      mmoEcc.Lines.Add('  ' + X2.ToString);
+      mmoEcc.Lines.Add('  ' + Y2.ToString);
+
+      if Int64RationalPolynomialGaloisEqual(X1, X2, Q) then
+        mmoEcc.Lines.Add('=== X Equal ! ===');
+      if Int64RationalPolynomialGaloisEqual(Y1, Y2, Q) then
+        mmoEcc.Lines.Add('=== Y Equal ! ===');
+
+      // 再判断该点在曲线上
+      if Ecc.IsRationalPointOnCurve(X1, Y1, A, B, Q) then
+        mmoEcc.Lines.Add('(X1, Y1) is On Curve.');
+    end;
+  end;
+
+  XT.Free;
+  YT.Free;
+  X2.Free;
+  Y2.Free;
+  X1.Free;
+  Y1.Free;
+  X.Free;
+  Y.Free;
+  Ecc.Free;
+  DPS.Free;
 end;
 
 end.

@@ -2447,9 +2447,9 @@ begin
   // 把 F 中的每个系数都和 X 的对应次幂相乘，最后相加
   for I := 1 to F.MaxDegree do
   begin
-    Result := Int64NonNegativeMod(Result + Int64NonNegativeMod(F[I] * T, Prime), Prime);
+    Result := Int64NonNegativeMod(Result + Int64NonNegativeMulMod(F[I], T, Prime), Prime);
     if I <> F.MaxDegree then
-      T := Int64NonNegativeMod(T * X, Prime);
+      T := Int64NonNegativeMulMod(T, X, Prime);
   end;
   Result := Int64NonNegativeMod(Result, Prime);
 end;
@@ -3490,7 +3490,7 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   N := Int64PolynomialGaloisGetValue(F.Nominator, X, Prime);
-  Result := Int64NonNegativeMod(N * CnInt64ModularInverse2(D, Prime), Prime);
+  Result := Int64NonNegativeMulMod(N, CnInt64ModularInverse2(D, Prime), Prime);
 end;
 
 { TCnBigNumberPolynomial }
