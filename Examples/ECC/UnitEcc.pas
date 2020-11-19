@@ -2227,10 +2227,8 @@ begin
   // < Sqrt(2 * Max UInt64) 测试基本通过，Q 平方接近 2 * Max UInt64
   ShowMsg(CnInt64EccSchoof(7, 1, 6074000687)); // 四分钟左右，6074024457
 
-  // > Sqrt(2 * Max UInt64) 测试有问题，Q 平方超过 2 * Max UInt64
-  // ShowMsg(CnInt64EccSchoof(7, 1, 6074001169)); // 返回 6074001170 是错的
-
-  // Q 平方超过 2 * Max UInt64 的目前还在想办法处理，因为计算 (Q*Q) shr 1 会出问题
+  // > Sqrt(2 * Max UInt64) 测试通过，Q 平方超过 2 * Max UInt64
+  ShowMsg(CnInt64EccSchoof(7, 1, 6074001169)); // 返回 6074123004 是能和大数版互相印证的
 end;
 
 procedure TFormEcc.btnEccSchoofClick(Sender: TObject);
@@ -2289,7 +2287,7 @@ begin
   Q.SetDec('6074001169');
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMsg(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱
+    ShowMsg(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱，以上几个均跑一两分钟
 
   A.SetWord(7);
   B.SetWord(1);

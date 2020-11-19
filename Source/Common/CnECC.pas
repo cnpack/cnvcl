@@ -658,8 +658,8 @@ procedure CnGenerateGaloisDivisionPolynomials(A, B, Prime: TCnBigNumber; MaxDegr
 {* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 BigNumberPolynomialGaloisCalcDivisionPolynomial
    的递归实现完全相同}
 
-//procedure RationalMultiplePointX(Res, PX: TCnBigNumberRationalPolynomial; K: TCnBigNumber;
-//  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
+procedure RationalMultiplePointX(Res, PX: TCnBigNumberRationalPolynomial; K: Integer;
+  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
 {* 用可除多项式直接算到 K 次倍点的坐标，范围是大整数。
    DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
    的可除多项式列表。计算原理如下：
@@ -667,8 +667,8 @@ procedure CnGenerateGaloisDivisionPolynomials(A, B, Prime: TCnBigNumber; MaxDegr
    那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
    本函数返回 F(f(x))}
 
-//procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K: TCnBigNumber;
-//  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
+procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K: Integer;
+  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
 {* 用可除多项式直接算到 K 次倍点的坐标，范围是大整数。
    DivisionPolynomialList 必须是 CnGenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
    的可除多项式列表。计算原理如下：
@@ -4092,9 +4092,7 @@ begin
 
       FN := TCnInt64Polynomial(DivisionPolynomialList[K]);
       FNa1 := TCnInt64Polynomial(DivisionPolynomialList[K + 1]);
-//      FNa2 := TCnInt64Polynomial(DivisionPolynomialList[K + 2]);
       FNs1 := TCnInt64Polynomial(DivisionPolynomialList[K - 1]);
-//      FNs2 := TCnInt64Polynomial(DivisionPolynomialList[K - 2]);
 
       // 求 X 表达式
       if (K and 1) = 0 then // K 偶数时
@@ -4108,12 +4106,12 @@ begin
         Int64PolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
         Int64PolynomialGaloisMul(P2, P2, Y2, APrime, APrimitive);     // P2 得到 x*fn^2 * Y^2
 
-        Int64PolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+        Int64PolynomialGaloisSub(MX.Nominator, P2, P1, APrime, APrimitive); // MX 计算完毕
       end
       else // K 奇数时
       begin
         // 结果的 x 坐标为 (x*fn^2 - Y^2 * fn+1 * fn-1) / fn^2
-        Int64PolynomialGaloisMul(MX.Denominator, FN, FN, APrime);
+        Int64PolynomialGaloisMul(MX.Denominator, FN, FN, APrime, APrimitive);
 
         Int64PolynomialGaloisMul(P1, FNa1, FNs1, APrime, APrimitive); // P1 得到 fn+1 * fn-1
         Int64PolynomialGaloisMul(P1, P1, Y2, APrime, APrimitive);     // P1 得到 Y^2 * fn+1 * fn-1
@@ -4249,7 +4247,7 @@ var
   I, J: Integer;
   Q2Lo, Q2Hi: TUInt64;
   F, G, Y2, P1, P2, LDP: TCnInt64Polynomial;
-  Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY, DirectRSX, DirectRSY: TCnInt64RationalPolynomial;
+  Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnInt64RationalPolynomial;
   F1, F2, F3, F4, F5: TCnInt64Polynomial; // 可除多项式引用，不可改变
   DPs: TObjectList;
 begin
@@ -4282,8 +4280,6 @@ begin
   LSX := FEccInt64RationalPolynomialPool.Obtain;
   LSY := FEccInt64RationalPolynomialPool.Obtain;
   RSX := FEccInt64RationalPolynomialPool.Obtain;
-  DirectRSX := FEccInt64RationalPolynomialPool.Obtain;
-  DirectRSY := FEccInt64RationalPolynomialPool.Obtain;
   RSY := FEccInt64RationalPolynomialPool.Obtain;
   TSX := FEccInt64RationalPolynomialPool.Obtain;
   TSY := FEccInt64RationalPolynomialPool.Obtain;
@@ -5169,6 +5165,184 @@ begin
   end;
 end;
 
+procedure RationalMultiplePointX(Res, PX: TCnBigNumberRationalPolynomial; K: Integer;
+  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial);
+var
+  MX: TCnBigNumberRationalPolynomial;
+  FN, FNa1, FNs1, P1, P2, X1, Y2: TCnBigNumberPolynomial;
+begin
+  if K = 0 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
+  if K < 0 then
+    K := -K;
+
+  MX := FEccRationalPolynomialPool.Obtain;
+  if K = 1 then // 没乘，原封不动返回 x 和 1
+  begin
+    MX.Nominator.SetCoefficents([0, 1]);
+    MX.Denominator.SetOne;
+  end
+  else
+  begin
+    X1 := FEccPolynomialPool.Obtain;
+    Y2 := FEccPolynomialPool.Obtain;
+    P1 := FEccPolynomialPool.Obtain;
+    P2 := FEccPolynomialPool.Obtain;
+
+    try
+      X1.SetCoefficents([0, 1]);
+      Y2.SetCoefficents([B, A, 0, 1]);
+
+      FN := TCnBigNumberPolynomial(DivisionPolynomialList[K]);
+      FNa1 := TCnBigNumberPolynomial(DivisionPolynomialList[K + 1]);
+      FNs1 := TCnBigNumberPolynomial(DivisionPolynomialList[K - 1]);
+
+      // 求 X 表达式
+      if (K and 1) = 0 then // K 偶数时
+      begin
+        // 结果的 x 坐标为 (x*fn^2 * Y^2 - fn+1 * fn-1) / fn^2 * Y^2
+        BigNumberPolynomialGaloisMul(MX.Denominator, FN, FN, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(MX.Denominator, MX.Denominator, Y2, APrime, APrimitive);
+
+        BigNumberPolynomialGaloisMul(P1, FNa1, FNs1, APrime, APrimitive); // P1 得到 fn+1 * fn-1
+        BigNumberPolynomialGaloisMul(P2, FN, FN, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
+        BigNumberPolynomialGaloisMul(P2, P2, Y2, APrime, APrimitive);     // P2 得到 x*fn^2 * Y^2
+
+        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+      end
+      else // K 奇数时
+      begin
+        // 结果的 x 坐标为 (x*fn^2 - Y^2 * fn+1 * fn-1) / fn^2
+        BigNumberPolynomialGaloisMul(MX.Denominator, FN, FN, APrime, APrimitive);
+
+        BigNumberPolynomialGaloisMul(P1, FNa1, FNs1, APrime, APrimitive); // P1 得到 fn+1 * fn-1
+        BigNumberPolynomialGaloisMul(P1, P1, Y2, APrime, APrimitive);     // P1 得到 Y^2 * fn+1 * fn-1
+
+        BigNumberPolynomialGaloisMul(P2, FN, FN, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
+        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime, APrimitive); // MX 计算完毕
+      end;
+    finally
+      FEccPolynomialPool.Recycle(X1);
+      FEccPolynomialPool.Recycle(Y2);
+      FEccPolynomialPool.Recycle(P1);
+      FEccPolynomialPool.Recycle(P2);
+    end;
+
+    if APrimitive <> nil then
+    begin
+      BigNumberPolynomialGaloisMod(MX.Nominator, MX.Nominator, APrimitive, APrime);
+      BigNumberPolynomialGaloisMod(MX.Denominator, MX.Denominator, APrimitive, APrime);
+    end;
+  end;
+
+  BigNumberRationalPolynomialGaloisCompose(Res, MX, PX, APrime, APrimitive);
+  FEccRationalPolynomialPool.Recycle(MX);
+
+  if APrimitive <> nil then
+  begin
+    BigNumberPolynomialGaloisMod(Res.Nominator, Res.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(Res.Denominator, Res.Denominator, APrimitive, APrime);
+  end;
+end;
+
+procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K: Integer;
+  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
+var
+  Neg: Boolean;
+  MY: TCnBigNumberRationalPolynomial;
+  FN, FNa1, FNa2, FNs1, FNs2, P1, P2, X1, Y2: TCnBigNumberPolynomial;
+begin
+  if K = 0 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
+  Neg := K < 0;
+  if K < 0 then
+    K := -K;
+
+  MY := FEccRationalPolynomialPool.Obtain;
+  if K = 1 then // 没乘，原封不动返回 x 和 1
+  begin
+    MY.Nominator.SetOne;
+    MY.Denominator.SetOne;
+  end
+  else
+  begin
+    X1 := FEccPolynomialPool.Obtain;
+    Y2 := FEccPolynomialPool.Obtain;
+    P1 := FEccPolynomialPool.Obtain;
+    P2 := FEccPolynomialPool.Obtain;
+
+    try
+      X1.SetCoefficents([0, 1]);
+      Y2.SetCoefficents([B, A, 0, 1]);
+
+      FN := TCnBigNumberPolynomial(DivisionPolynomialList[K]);
+      FNa1 := TCnBigNumberPolynomial(DivisionPolynomialList[K + 1]);
+      FNa2 := TCnBigNumberPolynomial(DivisionPolynomialList[K + 2]);
+      FNs1 := TCnBigNumberPolynomial(DivisionPolynomialList[K - 1]);
+      FNs2 := TCnBigNumberPolynomial(DivisionPolynomialList[K - 2]);
+
+      if K = 2 then // Y 的分子是 f2n，n 为 2 时不需递归，直接用 f4
+      begin
+        MY.Denominator.SetOne;
+        BigNumberPolynomialCopy(MY.Nominator, FNa2);
+      end
+      else
+      begin
+        // 结果的 y 坐标分子为 fn+2 * fn-1^2 - fn-2 * fn+1 ^2
+        BigNumberPolynomialGaloisMul(P1, FNs1, FNs1, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(P1, P1, FNa2, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(P2, FNa1, FNa1, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(P2, P2, FNs2, APrime, APrimitive);
+
+        BigNumberPolynomialGaloisSub(MY.Nominator, P1, P2, APrime, APrimitive); // MY 分子计算完毕
+      end;
+
+      BigNumberPolynomialGaloisPower(MY.Denominator, FN, 3, APrime, APrimitive);
+      BigNumberPolynomialGaloisMulWord(MY.Denominator, 4, APrime);   // 奇数分母 4 * fn^3 计算完毕
+
+      if (K and 1) = 0 then // 偶数分母还得乘以 y^4
+      begin
+        BigNumberPolynomialGaloisMul(MY.Denominator, Y2, MY.Denominator, APrime, APrimitive);
+        BigNumberPolynomialGaloisMul(MY.Denominator, Y2, MY.Denominator, APrime, APrimitive);
+      end;
+    finally
+      FEccPolynomialPool.Recycle(X1);
+      FEccPolynomialPool.Recycle(Y2);
+      FEccPolynomialPool.Recycle(P1);
+      FEccPolynomialPool.Recycle(P2);
+    end;
+  end;
+
+  if Neg then
+    MY.Neg;
+
+  if APrimitive <> nil then
+  begin
+    BigNumberPolynomialGaloisMod(MY.Nominator, MY.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MY.Denominator, MY.Denominator, APrimitive, APrime);
+  end;
+
+  BigNumberRationalPolynomialGaloisCompose(Res, MY, PX, APrime, APrimitive);
+  BigNumberRationalPolynomialGaloisMul(Res, PY, Res, APrime);
+  FEccRationalPolynomialPool.Recycle(MY);
+
+  if APrimitive <> nil then
+  begin
+    BigNumberPolynomialGaloisMod(Res.Nominator, Res.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(Res.Denominator, Res.Denominator, APrimitive, APrime);
+  end;
+end;
+
 function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 var
   Pa, Ta: TCnInt64List;
@@ -5311,10 +5485,17 @@ begin
 
         BigNumberRationalPolynomialCopy(RSX, PiPX);
         BigNumberRationalPolynomialCopy(RSY, PiPY);
+
         for J := 1 to (L + 1) shr 1 do
         begin
+          // 本来可以直接用可除多项式计算 RSX := J * (PiPX, PiPY) 的 X，但似乎还会比点加慢，还是用点加
+          // RationalMultiplePointX(RSX, PiPX, J, A, B, Q, DPs, LDP);
+
           if BigNumberRationalPolynomialGaloisEqual(LSX, RSX, Q, LDP) then
           begin
+            // 本来可以直接用可除多项式计算 RSY := J * (PiPX, PiPY) 的 Y，但似乎还会比点加慢，还是用点加
+            // RationalMultiplePointY(RSY, PiPX, PiPY, J, A, B, Q, DPs, LDP);
+
             if BigNumberRationalPolynomialGaloisEqual(LSY, RSY, Q, LDP) then
               Ta[I] := J
             else
