@@ -596,6 +596,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 55
         OnClick = btnBNNextPrimeClick
       end
+      object btnBNMulKaratsuba: TButton
+        Left = 904
+        Top = 488
+        Width = 129
+        Height = 25
+        Caption = 'Mul Karatsuba'
+        TabOrder = 56
+        OnClick = btnBNMulKaratsubaClick
+      end
     end
   end
 end

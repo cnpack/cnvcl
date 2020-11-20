@@ -102,8 +102,8 @@ type
     function GetDebugDump: string;
   public
     D: PLongWord;       // 一个 array[0..Top-1] of LongWord 数组，越往后越代表高位
-    Top: Integer;       // Top 表示数字上限，D[Top] 值为 0，D[Top - 1] 是最高位有效数所在的 LongWord
-    DMax: Integer;      // D 数组已分配的存储上限，单位是 LongWord 个
+    Top: Integer;       // Top 表示数字上限，也即有 Top 个有效 LongWord，D[Top] 值为 0，D[Top - 1] 是最高位有效数所在的 LongWord
+    DMax: Integer;      // D 数组已分配的存储上限，单位是 LongWord 个，大于或等于 Top，不参与运算
     Neg: Integer;       // 1 为负，0 为正
     Flags: Integer;
 
@@ -139,6 +139,9 @@ type
 
     function GetBytesCount: Integer;
     {* 返回大数有多少个有效 Bytes}
+
+    function GetWordCount: Integer;
+    {* 返回大数有多少个有效 LongWord}
 
     function GetTenPrecision: Integer;
     {* 返回大数有多少个十进制位}
@@ -329,6 +332,9 @@ function BigNumberGetBitsCount(const Num: TCnBigNumber): Integer;
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效 Bytes}
 
+function BigNumberGetWordsCount(const Num: TCnBigNumber): Integer;
+{* 返回一个大数对象里的大数有多少个有效 LongWord}
+
 function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效十进制位数}
 
@@ -461,6 +467,14 @@ function BigNumberDuplicate(const Num: TCnBigNumber): TCnBigNumber;
 function BigNumberCopy(const Dst: TCnBigNumber; const Src: TCnBigNumber): TCnBigNumber;
 {* 复制一个大数对象，成功返回 Dst}
 
+function BigNumberCopyLow(const Dst: TCnBigNumber; const Src: TCnBigNumber;
+  WordCount: Integer): TCnBigNumber;
+{* 复制一个大数对象的低 WordCount 个 LongWord，成功返回 Dst}
+
+function BigNumberCopyHigh(const Dst: TCnBigNumber; const Src: TCnBigNumber;
+  WordCount: Integer): TCnBigNumber;
+{* 复制一个大数对象的高 WordCount 个 LongWord，成功返回 Dst}
+
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 交换两个大数对象的内容}
 
@@ -513,6 +527,10 @@ function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolea
 function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2}
+
+function BigNumberMulKaratsuba(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
+{* 用 Karatsuba 算法计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2}
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -672,6 +690,8 @@ const
   BN_DEC_FMT2 = '%.9u';
   BN_PRIME_NUMBERS = 2048;
 
+  BN_MUL_KARATSUBA = 80;  // 大于等于 80 个 LongWord 的乘法才用 Karatsuba 算法
+
 {$IFNDEF MSWINDOWS}
   MAXDWORD = LongWord($FFFFFFFF);
 {$ENDIF}
@@ -807,6 +827,11 @@ end;
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
 begin
   Result := (BigNumberGetBitsCount(Num) + 7) div 8;
+end;
+
+function BigNumberGetWordsCount(const Num: TCnBigNumber): Integer;
+begin
+  Result := Num.Top;
 end;
 
 function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
@@ -967,8 +992,6 @@ begin
   if Num = nil then
     Exit;
 
-  //if Num.D <> nil then
-  //  Num.D^ := 0;
   if Num.D <> nil then
     FillChar(Num.D^, Num.DMax * SizeOf(LongWord), 0);
   Num.Top := 0;
@@ -1674,6 +1697,80 @@ begin
   Dst.Top := Src.Top;
   Dst.Neg := Src.Neg;
   Result := Dst;
+end;
+
+function BigNumberCopyLow(const Dst: TCnBigNumber; const Src: TCnBigNumber;
+  WordCount: Integer): TCnBigNumber;
+var
+  I: Integer;
+  A, B: PLongWordArray;
+begin
+  if WordCount <= 0 then
+  begin
+    Result := Dst;
+    Dst.SetZero;
+    Exit;
+  end
+  else if Src = Dst then // 不支持 Src 和 Dst 相同的情况
+    Result := nil
+  else
+  begin
+    if WordCount > Src.GetWordCount then
+      WordCount := Src.GetWordCount;
+
+    if BigNumberWordExpand(Dst, WordCount) = nil then
+    begin
+      Result := nil;
+      Exit;
+    end;
+
+    A := PLongWordArray(Dst.D);
+    B := PLongWordArray(Src.D);
+
+    Result := Dst;
+    for I := 0 to WordCount - 1 do // 从 Src 的 0 到 WordCount - 1 赋值给 Dst 的 0 到 WordCount - 1
+      A[I] := B[I];
+
+    Dst.Top := WordCount;
+    Dst.Neg := Src.Neg;
+  end;
+end;
+
+function BigNumberCopyHigh(const Dst: TCnBigNumber; const Src: TCnBigNumber;
+  WordCount: Integer): TCnBigNumber;
+var
+  I: Integer;
+  A, B: PLongWordArray;
+begin
+  if WordCount <= 0 then
+  begin
+    Result := Dst;
+    Dst.SetZero;
+    Exit;
+  end
+  else if Src = Dst then // 不支持 Src 和 Dst 相同的情况
+    Result := nil
+  else
+  begin
+    if WordCount > Src.GetWordCount then
+      WordCount := Src.GetWordCount;
+
+    if BigNumberWordExpand(Dst, WordCount) = nil then
+    begin
+      Result := nil;
+      Exit;
+    end;
+
+    A := PLongWordArray(Dst.D);
+    B := PLongWordArray(Src.D);
+
+    Result := Dst;
+    for I := 0 to WordCount - 1 do // 从 Src 的 Top - WordCount 到 Top - 1 赋值给 Dst 的 0 到 WordCount - 1
+      A[I] := B[Src.Top - WordCount + I];
+
+    Dst.Top := WordCount;
+    Dst.Neg := Src.Neg;
+  end;
 end;
 
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
@@ -3217,6 +3314,62 @@ begin
   end;
 end;
 
+function BigNumberMulKaratsuba(const Res: TCnBigNumber; Num1: TCnBigNumber;
+  Num2: TCnBigNumber): Boolean;
+var
+  H: Integer;
+  XL, XH, YL, YH, P1, P2, P3: TCnBigNumber;
+begin
+  H := Num1.GetWordCount;
+  if H < Num2.GetWordCount then
+    H := Num2.GetWordCount;
+
+  Inc(H);
+  H := H shr 1;
+
+  XL := FLocalBigNumberPool.Obtain;
+  XH := FLocalBigNumberPool.Obtain;
+  YL := FLocalBigNumberPool.Obtain;
+  YH := FLocalBigNumberPool.Obtain;
+  P1 := FLocalBigNumberPool.Obtain;
+  P2 := FLocalBigNumberPool.Obtain;
+  P3 := FLocalBigNumberPool.Obtain;
+
+  try
+    BigNumberCopyLow(XL, Num1, H);
+    BigNumberCopyHigh(XH, Num1, Num1.GetWordCount - H);
+    BigNumberCopyLow(YL, Num2, H);
+    BigNumberCopyHigh(YH, Num2, Num2.GetWordCount - H);
+
+    BigNumberAdd(P1, XH, XL);
+    BigNumberAdd(P2, YH, YL);
+    BigNumberMul(P3, P1, P2); // p3=(xh+xl)*(yh+yl)
+
+    BigNumberMul(P1, XH, YH); // p1 = xh*yh
+    BigNumberMul(P2, XL, YL); // p2 = xl*yl
+
+    // p1 * 2^(32*2*h) + (p3 - p1 - p2) * 2^(32*h) + p2
+    BigNumberSub(P3, P3, P1);
+    BigNumberSub(P3, P3, P2);
+    BigNumberShiftLeft(P3, P3, 32 * H); // P3 得到 (p3 - p1 - p2) * 2^(32*h)
+
+    BigNumberShiftLeft(P1, P1, 32 * 2 * H); // P1 得到 p1 * 2^(32*2*h)
+
+    BigNumberAdd(Res, P3, P1);
+    BigNumberAdd(Res, Res, P2);
+    Res.SetNegative(Num1.IsNegative <> Num2.IsNegative);
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(XL);
+    FLocalBigNumberPool.Recycle(XH);
+    FLocalBigNumberPool.Recycle(YL);
+    FLocalBigNumberPool.Recycle(YH);
+    FLocalBigNumberPool.Recycle(P1);
+    FLocalBigNumberPool.Recycle(P2);
+    FLocalBigNumberPool.Recycle(P3);
+  end;
+end;
+
 function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 var
@@ -3234,41 +3387,47 @@ begin
     Result := True;
     Exit;
   end;
-  Top := AL + BL;
 
-  RR := nil;
-  IsFromPool := False;
+  if (AL < BN_MUL_KARATSUBA) and (BL < BN_MUL_KARATSUBA) then // 小的、直接乘
+  begin
+    Top := AL + BL;
 
-  try
-    if (Res = Num1) or (Res = Num2) then
-    begin
-      RR := FLocalBigNumberPool.Obtain;
-      IsFromPool := True;
-      if RR = nil then
+    RR := nil;
+    IsFromPool := False;
+
+    try
+      if (Res = Num1) or (Res = Num2) then
+      begin
+        RR := FLocalBigNumberPool.Obtain;
+        IsFromPool := True;
+        if RR = nil then
+          Exit;
+      end
+      else
+        RR := Res;
+
+      if Num1.Neg <> Num2.Neg then
+        RR.Neg := 1
+      else
+        RR.Neg := 0;
+
+      if BigNumberWordExpand(RR, Top) = nil then
         Exit;
-    end
-    else
-      RR := Res;
+      RR.Top := Top;
+      BigNumberMulNormal(RR.D, Num1.D, AL, Num2.D, BL);
 
-    if Num1.Neg <> Num2.Neg then
-      RR.Neg := 1
-    else
-      RR.Neg := 0;
+      if RR <> Res then
+        BigNumberCopy(Res, RR);
 
-    if BigNumberWordExpand(RR, Top) = nil then
-      Exit;
-    RR.Top := Top;
-    BigNumberMulNormal(RR.D, Num1.D, AL, Num2.D, BL);
-
-    if RR <> Res then
-      BigNumberCopy(Res, RR);
-
-    BigNumberCorrectTop(Res);
-    Result := True;
-  finally
-    if IsFromPool then
-      FLocalBigNumberPool.Recycle(RR);
-  end;
+      BigNumberCorrectTop(Res);
+      Result := True;
+    finally
+      if IsFromPool then
+        FLocalBigNumberPool.Recycle(RR);
+    end;
+  end
+  else // 超长，换算法
+    Result := BigNumberMulKaratsuba(Res, Num1, Num2);
 end;
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
@@ -5413,6 +5572,11 @@ end;
 function TCnBigNumber.SetInteger(W: Integer): Boolean;
 begin
   Result := BigNumberSetInteger(Self, W);
+end;
+
+function TCnBigNumber.GetWordCount: Integer;
+begin
+  Result := BigNumberGetWordsCount(Self);
 end;
 
 { TCnBigNumberList }

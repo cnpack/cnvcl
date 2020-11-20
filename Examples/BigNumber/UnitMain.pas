@@ -75,6 +75,7 @@ type
     btnBNCRT: TButton;
     btnBNSqrt: TButton;
     btnBNNextPrime: TButton;
+    btnBNMulKaratsuba: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -125,6 +126,7 @@ type
     procedure btnBNCRTClick(Sender: TObject);
     procedure btnBNSqrtClick(Sender: TObject);
     procedure btnBNNextPrimeClick(Sender: TObject);
+    procedure btnBNMulKaratsubaClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -884,6 +886,16 @@ procedure TFormBigNumber.btnBNNextPrimeClick(Sender: TObject);
 begin
   BigNumberNextPrime(Num2, Num1);
   ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnBNMulKaratsubaClick(Sender: TObject);
+var
+  Res: TCnBigNumber;
+begin
+  Res := BigNumberNew;
+  if BigNumberMulKaratsuba(Res, Num1, Num2) then
+    ShowResult(Res);
+  BigNumberFree(Res);
 end;
 
 end.
