@@ -58,10 +58,10 @@ uses
   Contnrs, CnContainers, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
-  BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
-  BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是指向外部的静态数据
+  // BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
+  // BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是指向外部的静态数据
 
-  BN_FLG_FREE           = $8000;
+  // BN_FLG_FREE           = $8000;
 
   BN_BITS_UINT_32       = 32;
   BN_BITS_UINT_64       = 64;
@@ -105,7 +105,6 @@ type
     Top: Integer;       // Top 表示数字上限，也即有 Top 个有效 LongWord，D[Top] 值为 0，D[Top - 1] 是最高位有效数所在的 LongWord
     DMax: Integer;      // D 数组已分配的存储上限，单位是 LongWord 个，大于或等于 Top，不参与运算
     Neg: Integer;       // 1 为负，0 为正
-    Flags: Integer;
 
     constructor Create; virtual;
     destructor Destroy; override;
@@ -699,16 +698,6 @@ const
 var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
 
-procedure BigNumberSetFlag(const Num: TCnBigNumber; N: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-begin
-  Num.Flags := Num.Flags or N;
-end;
-
-function BigNumberGetFlag(const Num: TCnBigNumber; N: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-begin
-  Result := Num.Flags and N;
-end;
-
 function BigNumberNew: TCnBigNumber;
 begin
   Result := TCnBigNumber.Create;
@@ -719,7 +708,7 @@ begin
   // FillChar(Num, SizeOf(TCnBigNumber), 0);
   if Num = nil then
     Exit;
-  Num.Flags := 0;
+
   Num.Top := 0;
   Num.Neg := 0;
   Num.DMax := 0;
@@ -891,9 +880,6 @@ var
 begin
   Result := nil;
   if Words > (MaxInt div (4 * BN_BITS2)) then
-    Exit;
-
-  if BigNumberGetFlag(Num, BN_FLG_STATIC_DATA) <> 0 then
     Exit;
 
   A := PLongWord(GetMemory(SizeOf(MAXDWORD) * Words));
@@ -1775,13 +1761,9 @@ end;
 
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 var
-  OldFlag1, OldFlag2: LongWord;
   TmpD: PLongWord;
   TmpTop, TmpDMax, TmpNeg: Integer;
 begin
-  OldFlag1 := Num1.Flags;
-  OldFlag2 := Num2.Flags;
-
   TmpD := Num1.D;
   TmpTop := Num1.Top;
   TmpDMax := Num1.DMax;
@@ -1796,10 +1778,6 @@ begin
   Num2.Top := TmpTop;
   Num2.DMax := TmpDMax;
   Num2.Neg := TmpNeg;
-
-  // 数据区的属性交换
-  Num1.Flags := (OldFlag1 and BN_FLG_MALLOCED) or (OldFlag2 and BN_FLG_STATIC_DATA);
-  Num2.Flags := (OldFlag2 and BN_FLG_MALLOCED) or (OldFlag1 and BN_FLG_STATIC_DATA);
 end;
 
 // ============================ 低阶运算定义开始 ===============================
@@ -5269,13 +5247,7 @@ begin
   if Num = nil then
     Exit;
 
-//    D: PDWORD;          // 一个 array[0..Top-1] of DWORD 数组，越往后越代表高位
-//    Top: Integer;       // Top 表示上限，D[Top] 为 0，D[Top - 1] 是最高位有效数
-//    DMax: Integer;      // D 数组的存储上限
-//    Neg: Integer;       // 1 为负，0 为正
-//    Flags: Integer;
-
-  Result := Format('Flag %d. Neg %d. DMax %d. Top %d.', [Num.Flags, Num.Neg, Num.DMax, Num.Top]);
+  Result := Format('Neg %d. DMax %d. Top %d.', [Num.Neg, Num.DMax, Num.Top]);
   if (Num.D <> nil) and (Num.Top > 0) then
     for I := 0 to Num.Top do
       Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
@@ -5301,7 +5273,6 @@ end;
 constructor TCnBigNumber.Create;
 begin
   inherited;
-  Flags := BN_FLG_MALLOCED;
   Top := 0;
   Neg := 0;
   DMax := 0;
@@ -5315,17 +5286,10 @@ begin
     raise Exception.Create('Error. Try to Free a Big Number From Pool.');
 {$ENDIF}
 
-  if (D <> nil) and (BigNumberGetFlag(Self, BN_FLG_STATIC_DATA) = 0) then
-    FreeMemory(Self.D);     // 不是外部管理的静态数据，需要释放
-  if BigNumberGetFlag(Self, BN_FLG_MALLOCED) <> 0 then
-  begin
-    // Dispose(Num);
-  end
-  else
-  begin
-    BigNumberSetFlag(Self, BN_FLG_FREE);
-    D := nil;
-  end;
+  if D <> nil then
+    FreeMemory(D);
+
+  D := nil;
   inherited;
 end;
 
