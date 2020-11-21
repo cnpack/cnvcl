@@ -58,11 +58,6 @@ uses
   Contnrs, CnContainers, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
-  // BN_FLG_MALLOCED       = $1;    // 本大数对象中的 D 内存是动态分配而来并自行管理
-  // BN_FLG_STATIC_DATA    = $2;    // 本大数对象中的 D 内存是指向外部的静态数据
-
-  // BN_FLG_FREE           = $8000;
-
   BN_BITS_UINT_32       = 32;
   BN_BITS_UINT_64       = 64;
   BN_BYTES              = 4;
