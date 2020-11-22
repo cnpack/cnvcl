@@ -49,7 +49,7 @@ end;
 
 procedure TFormComplex.ShowComplexValue;
 begin
-  edtComplexResult.Text := ComplexToString(FCR);
+  edtComplexResult.Text := ComplexNumberToString(FCR);
 end;
 
 procedure TFormComplex.btnAddClick(Sender: TObject);

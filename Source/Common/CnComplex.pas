@@ -48,6 +48,10 @@ type
   end;
   PCnComplexNumber = ^TCnComplexNumber;
 
+  TCnComplexArray = array[0..8191] of TCnComplexNumber;
+
+  PCnComplexArray = ^TCnComplexArray;
+
 procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
 {* 复数置 0}
 
@@ -59,11 +63,14 @@ procedure ComplexNumberSetValue(var Complex: TCnComplexNumber;
   const AR, AI: string); overload;
 {* 复数赋值}
 
-function ComplexToString(var Complex: TCnComplexNumber): string;
+function ComplexNumberToString(var Complex: TCnComplexNumber): string;
 {* 复数转换为字符串}
 
 function ComplexNumberEqual(var Complex1, Complex2: TCnComplexNumber): Boolean;
 {* 判断两个复数结构是否相等}
+
+procedure ComplexNumberSwap(var Complex1, Complex2: TCnComplexNumber);
+{* 交换两个复数值}
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
   var Complex1, Complex2: TCnComplexNumber);
@@ -125,7 +132,7 @@ begin
     ComplexNumberSetValue(Complex, StrToFloat(AR), StrToFloat(AI));
 end;
 
-function ComplexToString(var Complex: TCnComplexNumber): string;
+function ComplexNumberToString(var Complex: TCnComplexNumber): string;
 begin
   if ComplexIsPureReal(Complex) then
     Result := Format('%f', [Complex.R])
@@ -140,6 +147,19 @@ end;
 function ComplexNumberEqual(var Complex1, Complex2: TCnComplexNumber): Boolean;
 begin
   Result := ExtendedEqual(Complex1.R, Complex2.R) and ExtendedEqual(Complex1.I, Complex2.I);
+end;
+
+procedure ComplexNumberSwap(var Complex1, Complex2: TCnComplexNumber);
+var
+  T: Extended;
+begin
+  T := Complex1.R;
+  Complex1.R := Complex2.R;
+  Complex2.R := T;
+
+  T := Complex1.I;
+  Complex1.I := Complex2.I;
+  Complex2.I := T;
 end;
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
