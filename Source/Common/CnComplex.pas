@@ -76,20 +76,36 @@ procedure ComplexNumberCopy(var Dst, Src: TCnComplexNumber);
 {* 复数复制值}
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
-  var Complex1, Complex2: TCnComplexNumber);
+  var Complex1, Complex2: TCnComplexNumber); overload;
 {* 复数加法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
 
 procedure ComplexNumberSub(var Res: TCnComplexNumber;
-  var Complex1, Complex2: TCnComplexNumber);
+  var Complex1, Complex2: TCnComplexNumber); overload;
 {* 复数减法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
 
 procedure ComplexNumberMul(var Res: TCnComplexNumber;
-  var Complex1, Complex2: TCnComplexNumber);
+  var Complex1, Complex2: TCnComplexNumber); overload;
 {* 复数乘法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
 
 procedure ComplexNumberDiv(var Res: TCnComplexNumber;
-  var Complex1, Complex2: TCnComplexNumber);
+  var Complex1, Complex2: TCnComplexNumber); overload;
 {* 复数除法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
+
+procedure ComplexNumberAdd(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+{* 复数与浮点数的加法，Complex 和 Res 可以是同一个结构}
+
+procedure ComplexNumberSub(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+{* 复数与浮点数的减法，Complex 和 Res 可以是同一个结构}
+
+procedure ComplexNumberMul(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+{* 复数与浮点数的乘法，Complex 和 Res 可以是同一个结构}
+
+procedure ComplexNumberDiv(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+{* 复数与浮点数的除法，Complex 和 Res 可以是同一个结构}
 
 procedure ComplexConjugate(var Res, Complex: TCnComplexNumber);
 {* 获得共轭复数，Res 可以是 Complex}
@@ -207,6 +223,34 @@ begin
   T := (Complex1.R * Complex2.R + Complex1.I * Complex2.I) / D;
   Res.I := (Complex1.I * Complex2.R - Complex1.R * Complex2.I) / D;
   Res.R := T;
+end;
+
+procedure ComplexNumberAdd(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+begin
+  Res.R := Complex.R + Value;
+  Res.I := Complex.I;
+end;
+
+procedure ComplexNumberSub(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+begin
+  Res.R := Complex.R - Value;
+  Res.I := Complex.I;
+end;
+
+procedure ComplexNumberMul(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+begin
+  Res.R := Complex.R * Value;
+  Res.I := Complex.I;
+end;
+
+procedure ComplexNumberDiv(var Res: TCnComplexNumber;
+  var Complex: TCnComplexNumber; Value: Extended); overload;
+begin
+  Res.R := Complex.R / Value;
+  Res.I := Complex.I;
 end;
 
 procedure ComplexConjugate(var Res, Complex: TCnComplexNumber);

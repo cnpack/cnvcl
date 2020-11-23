@@ -79,7 +79,8 @@ begin
   SetLength(R, 0);
 end;
 
-function FFT(Data: PCnComplexArray; Len: Integer; IsReverse: Boolean = False): Boolean;
+// 迭代非递归方式实现的快速傅立叶变换及其逆变换
+function FFT(Data: PCnComplexArray; Len: Integer; IsReverse: Boolean): Boolean;
 var
   J, T, M, R, K: Integer;
   WN, W, X, Y: TCnComplexNumber;
@@ -130,6 +131,11 @@ begin
 
     M := M shl 1;
   end;
+
+  if IsReverse then
+    for J := 0 to Len - 1 do
+      ComplexNumberDiv(Data^[J], Data^[J], Len);
+
   Result := True;
 end;
 

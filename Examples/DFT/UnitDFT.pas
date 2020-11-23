@@ -12,8 +12,12 @@ type
     edtButterFly: TEdit;
     btnTwiddleFactors: TButton;
     edtTwiddleFactors: TEdit;
+    btnTestDFT: TButton;
+    edtFFT: TEdit;
+    edtIFFT: TEdit;
     procedure btnDFTButterFlyClick(Sender: TObject);
     procedure btnTwiddleFactorsClick(Sender: TObject);
+    procedure btnTestDFTClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -69,6 +73,33 @@ begin
   for I := Low(CA) to High(CA) do
     S := S + ComplexNumberToString(CA[I]) + ' ; ';
   edtTwiddleFactors.Text := S;
+end;
+
+procedure TFormDFT.btnTestDFTClick(Sender: TObject);
+const
+  LEN = 8;
+var
+  I: Integer;
+  S: string;
+  CA: array[0..LEN - 1] of TCnComplexNumber;
+begin
+  for I := Low(CA) to High(CA) do
+  begin
+    CA[I].R := I * 2 + 3;
+    CA[I].I := 0;
+  end;
+
+  CnFFT(@CA, LEN);
+  S := '';
+  for I := Low(CA) to High(CA) do
+    S := S + ComplexNumberToString(CA[I]) + ' ; ';
+  edtFFT.Text := S;
+
+  CnIFFT(@CA, LEN);
+  S := '';
+  for I := Low(CA) to High(CA) do
+    S := S + ComplexNumberToString(CA[I]) + ' ; ';
+  edtIFFT.Text := S;
 end;
 
 end.

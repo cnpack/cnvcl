@@ -45,4 +45,27 @@ object FormDFT: TFormDFT
     Height = 21
     TabOrder = 3
   end
+  object btnTestDFT: TButton
+    Left = 24
+    Top = 120
+    Width = 89
+    Height = 25
+    Caption = 'Test FFT && IFFT'
+    TabOrder = 4
+    OnClick = btnTestDFTClick
+  end
+  object edtFFT: TEdit
+    Left = 128
+    Top = 120
+    Width = 753
+    Height = 21
+    TabOrder = 5
+  end
+  object edtIFFT: TEdit
+    Left = 128
+    Top = 168
+    Width = 753
+    Height = 21
+    TabOrder = 6
+  end
 end
