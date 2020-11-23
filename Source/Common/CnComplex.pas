@@ -72,6 +72,9 @@ function ComplexNumberEqual(var Complex1, Complex2: TCnComplexNumber): Boolean;
 procedure ComplexNumberSwap(var Complex1, Complex2: TCnComplexNumber);
 {* 交换两个复数值}
 
+procedure ComplexNumberCopy(var Dst, Src: TCnComplexNumber);
+{* 复数复制值}
+
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
   var Complex1, Complex2: TCnComplexNumber);
 {* 复数加法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
@@ -160,6 +163,12 @@ begin
   T := Complex1.I;
   Complex1.I := Complex2.I;
   Complex2.I := T;
+end;
+
+procedure ComplexNumberCopy(var Dst, Src: TCnComplexNumber);
+begin
+  Dst.R := Src.R;
+  Dst.I := Src.I;
 end;
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
