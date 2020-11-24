@@ -221,6 +221,12 @@ function GetUInt32LowBits(B: Cardinal): Integer;
 function Int64Mod(M, N: Int64): Int64;
 {* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱}
 
+function IsUInt32PowerOf2(N: Cardinal): Boolean;
+{* 判断一 32 位无符号整数是否 2 的整数次幂}
+
+function IsUInt64PowerOf2(N: TUInt64): Boolean;
+{* 判断一 64 位无符号整数是否 2 的整数次幂}
+
 function IsInt32AddOverflow(A, B: Integer): Boolean;
 {* 判断两个 32 位有符号数相加是否溢出}
 
@@ -787,6 +793,16 @@ begin
     Result := M mod N
   else
     Result := N - ((-M) mod N);
+end;
+
+function IsUInt32PowerOf2(N: Cardinal): Boolean;
+begin
+  Result := (N and (N - 1)) = 0;
+end;
+
+function IsUInt64PowerOf2(N: TUInt64): Boolean;
+begin
+  Result := (N and (N - 1)) = 0;
 end;
 
 // 判断两个 32 位有符号数相加是否溢出

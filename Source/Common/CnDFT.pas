@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Math, CnComplex;
+  SysUtils, Classes, Math, CnNativeDecl, CnComplex;
 
 procedure ButterflyChange(CA: PCnComplexArray; Len: Integer);
 {* 蝴蝶变换，调整数组内部元素的顺序以便奇偶分治}
@@ -90,7 +90,7 @@ begin
     Exit;
 
   // Len 必须 2 的整数次幂
-  if Len and (Len - 1) <> 0 then
+  if not IsUInt32PowerOf2(Cardinal(Len)) then
     Exit;
 
   if IsReverse then
