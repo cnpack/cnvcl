@@ -359,6 +359,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 31
           OnClick = btnInt64MulDFTClick
         end
+        object btnTestInt64SimpleDFT: TButton
+          Left = 536
+          Top = 408
+          Width = 185
+          Height = 25
+          Caption = 'Test Int64 Simple Mul DFT'
+          TabOrder = 32
+          OnClick = btnTestInt64SimpleDFTClick
+        end
       end
     end
     object tsExtensionEcc: TTabSheet

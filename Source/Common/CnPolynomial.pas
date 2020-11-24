@@ -333,7 +333,7 @@ function Int64PolynomialDftMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polyno
   P2: TCnInt64Polynomial): Boolean;
 {* 两个整系数多项式对象使用离散傅立叶变换与离散傅立叶逆变换相乘，结果放至 Res 中，
   返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2
-  注：使用复数提速但因为浮点缘故可能出现部分系数有个位误差，最低位可能有更大误差，不推荐使用}
+  注：使用复数提速但因为浮点缘故可能出现部分系数有个位误差，不是很推荐使用}
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
@@ -1598,7 +1598,6 @@ var
   M1, M2: PCnComplexNumber;
   C1, C2: PCnComplexArray;
   M, I: Integer;
-  T: Int64;
 begin
   Result := False;
   M := P1.MaxDegree;
@@ -1616,12 +1615,23 @@ begin
     Exit;
   end;
 
-  M := GetUInt32HighBits(M); // M 不会是 0
-  if M > 30 then
-    raise ECnPolynomialException.Create(SCnDegreeTooLarge);
-
+  // M 得到最高次数，加 1 表示多项式最多项数
   Inc(M);
-  M := 1 shl M; // 得到 2 的幂
+
+  // 乘以 2 表示多项式积的最多项数
+  M := M shl 1;
+
+  // 再找比 M 大或者等于 M 的 2 的整数次幂
+  if not IsUInt32PowerOf2(Cardinal(M)) then
+  begin
+    // 如果不是 2 的整数次幂
+    M := GetUInt32HighBits(Cardinal(M)); // M 得到最高位的 1 的位置，不会是 -1
+    if M > 30 then
+      raise ECnPolynomialException.Create(SCnDegreeTooLarge);
+
+    Inc(M);
+    M := 1 shl M; // 得到比 M 大的最小的 2 的整数次幂
+  end;
 
   M1 := GetMemory(M * SizeOf(TCnComplexNumber));
   M2 := GetMemory(M * SizeOf(TCnComplexNumber));
@@ -1629,41 +1639,42 @@ begin
   C1 := PCnComplexArray(M1);
   C2 := PCnComplexArray(M2);
 
-  for I := 0 to M - 1 do
-  begin
-    ComplexNumberSetZero(C1^[I]);
-    ComplexNumberSetZero(C2^[I]);
+  try
+    for I := 0 to M - 1 do
+    begin
+      ComplexNumberSetZero(C1^[I]);
+      ComplexNumberSetZero(C2^[I]);
+    end;
+
+    for I := 0 to P1.MaxDegree do
+    begin
+      C1^[I].R := P1[I];
+      C1^[I].I := 0.0;
+    end;
+    for I := 0 to P2.MaxDegree do
+    begin
+      C2^[I].R := P2[I];
+      C2^[I].I := 0.0;
+    end;
+
+    CnFFT(C1, M);
+    CnFFT(C2, M);        // 得到两组点值
+
+    for I := 0 to M - 1 do   // 点值相乘
+      ComplexNumberMul(C1^[I], C1^[I], C2^[I]);
+
+    Result := CnIFFT(C1, M);       // 点值变回系数表达式
+
+    Res.SetZero;
+    Res.SetMaxDegree(M);
+    for I := 0 to M - 1 do   // 点值四舍五入整数部分取整
+      Res[I] := Round(C1^[I].R);
+
+    Res.CorrectTop;
+  finally
+    FreeMemory(M1);
+    FreeMemory(M2);
   end;
-
-  for I := 0 to P1.MaxDegree do
-  begin
-    T := P1[I];
-    C1^[I].R := T;
-    C1^[I].I := 0.0;
-  end;
-  for I := 0 to P2.MaxDegree do
-  begin
-    T := P2[I];
-    C2^[I].R := T;
-    C2^[I].I := 0.0;
-  end;
-
-  CnFFT(C1, M);
-  CnFFT(C2, M);        // 得到两组点值
-
-  for I := 0 to M - 1 do   // 点值相乘
-    ComplexNumberMul(C1^[I], C1^[I], C2^[I]);
-
-  Result := CnIFFT(C1, M);       // 点值变回系数表达式
-
-  Res.SetMaxDegree(M);
-  for I := 0 to M - 1 do   // 点值四舍五入整数部分取整
-    Res[I] := Round(C1^[I].R);
-
-  Res.CorrectTop;
-
-  FreeMemory(M1);
-  FreeMemory(M2);
 end;
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
