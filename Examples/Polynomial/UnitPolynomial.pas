@@ -180,6 +180,7 @@ type
     btnBNPolyRational: TButton;
     btnBNRationalPoly: TButton;
     btnCompareRationalMul2Method: TButton;
+    btnInt64MulDFT: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -290,6 +291,7 @@ type
     procedure btnBNPolyRationalClick(Sender: TObject);
     procedure btnBNRationalPolyClick(Sender: TObject);
     procedure btnCompareRationalMul2MethodClick(Sender: TObject);
+    procedure btnInt64MulDFTClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -3890,6 +3892,14 @@ begin
   Y.Free;
   Ecc.Free;
   DPS.Free;
+end;
+
+procedure TFormPolynomial.btnInt64MulDFTClick(Sender: TObject);
+begin
+  if Int64PolynomialDftMul(FIP3, FIP1, FIP2) then
+    edtIP3.Text := FIP3.ToString
+  else
+    edtIP3.Text := '';
 end;
 
 end.

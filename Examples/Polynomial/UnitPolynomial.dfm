@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsRationalPolynomial
+    ActivePage = tsIntegerPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -349,6 +349,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'A Big GCD'
           TabOrder = 30
           OnClick = btnTestBigGCDClick
+        end
+        object btnInt64MulDFT: TButton
+          Left = 624
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Mul DFT'
+          TabOrder = 31
+          OnClick = btnInt64MulDFTClick
         end
       end
     end

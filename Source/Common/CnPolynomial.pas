@@ -49,7 +49,7 @@ interface
 
 uses
   SysUtils, Classes, SysConst, Math, Contnrs, CnPrimeNumber, CnNativeDecl,
-  CnMatrix, CnContainers, CnBigNumber, CnBigRational;
+  CnMatrix, CnContainers, CnBigNumber, CnBigRational, CnComplex, CnDFT;
 
 type
   ECnPolynomialException = class(Exception);
@@ -328,6 +328,12 @@ function Int64PolynomialSub(const Res: TCnInt64Polynomial; const P1: TCnInt64Pol
 function Int64PolynomialMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
   P2: TCnInt64Polynomial): Boolean;
 {* 两个整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function Int64PolynomialDftMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
+  P2: TCnInt64Polynomial): Boolean;
+{* 两个整系数多项式对象使用离散傅立叶变换与离散傅立叶逆变换相乘，结果放至 Res 中，
+  返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2
+  注：使用复数提速但因为浮点缘故可能出现部分系数有个位误差，最低位可能有更大误差，不推荐使用}
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
@@ -1054,6 +1060,7 @@ resourcestring
   SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
   SCnInvalidExponent = 'Invalid Exponent %d';
   SCnInvalidModulus = 'Can NOT Mod a Negative or Zero Value.';
+  SCnDegreeTooLarge = 'Degree Too Large';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -1583,6 +1590,80 @@ begin
     FLocalInt64PolynomialPool.Recycle(R);
   end;
   Result := True;
+end;
+
+function Int64PolynomialDftMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
+  P2: TCnInt64Polynomial): Boolean;
+var
+  M1, M2: PCnComplexNumber;
+  C1, C2: PCnComplexArray;
+  M, I: Integer;
+  T: Int64;
+begin
+  Result := False;
+  M := P1.MaxDegree;
+  if M < P2.MaxDegree then
+    M := P2.MaxDegree;
+
+  if M < 0 then
+    Exit;
+
+  if M = 0 then // 俩常数项，直接算
+  begin
+    Res.SetMaxDegree(0);
+    Res[0] := P1[0] * P2[0];
+    Result := True;
+    Exit;
+  end;
+
+  M := GetUInt32HighBits(M); // M 不会是 0
+  if M > 30 then
+    raise ECnPolynomialException.Create(SCnDegreeTooLarge);
+
+  Inc(M);
+  M := 1 shl M; // 得到 2 的幂
+
+  M1 := GetMemory(M * SizeOf(TCnComplexNumber));
+  M2 := GetMemory(M * SizeOf(TCnComplexNumber));
+
+  C1 := PCnComplexArray(M1);
+  C2 := PCnComplexArray(M2);
+
+  for I := 0 to M - 1 do
+  begin
+    ComplexNumberSetZero(C1^[I]);
+    ComplexNumberSetZero(C2^[I]);
+  end;
+
+  for I := 0 to P1.MaxDegree do
+  begin
+    T := P1[I];
+    C1^[I].R := T;
+    C1^[I].I := 0.0;
+  end;
+  for I := 0 to P2.MaxDegree do
+  begin
+    T := P2[I];
+    C2^[I].R := T;
+    C2^[I].I := 0.0;
+  end;
+
+  CnFFT(C1, M);
+  CnFFT(C2, M);        // 得到两组点值
+
+  for I := 0 to M - 1 do   // 点值相乘
+    ComplexNumberMul(C1^[I], C1^[I], C2^[I]);
+
+  Result := CnIFFT(C1, M);       // 点值变回系数表达式
+
+  Res.SetMaxDegree(M);
+  for I := 0 to M - 1 do   // 点值四舍五入整数部分取整
+    Res[I] := Round(C1^[I].R);
+
+  Res.CorrectTop;
+
+  FreeMemory(M1);
+  FreeMemory(M2);
 end;
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
