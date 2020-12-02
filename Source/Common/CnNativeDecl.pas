@@ -90,6 +90,9 @@ type
 // TUInt64 用于 cnvcl 库中不支持 UInt64 的运算如 div mod 等
 {$IFDEF SUPPORT_UINT64}
   TUInt64          = UInt64;
+  {$IFNDEF SUPPORT_PUINT64}
+  PUInt64          = ^UInt64;
+  {$ENDIF}
 {$ELSE}
   TUInt64          = Int64;
   PUInt64          = ^TUInt64;
