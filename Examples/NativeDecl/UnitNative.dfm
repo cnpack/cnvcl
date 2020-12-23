@@ -111,4 +111,22 @@ object FormNative: TFormNative
     TabOrder = 8
     OnClick = btnUInt64MulClick
   end
+  object btnGetGT2Power: TButton
+    Left = 232
+    Top = 64
+    Width = 75
+    Height = 25
+    Caption = '> 2^n 32'
+    TabOrder = 9
+    OnClick = btnGetGT2PowerClick
+  end
+  object btnGetGT2Power64: TButton
+    Left = 328
+    Top = 64
+    Width = 75
+    Height = 25
+    Caption = '> 2^n 64'
+    TabOrder = 10
+    OnClick = btnGetGT2Power64Click
+  end
 end

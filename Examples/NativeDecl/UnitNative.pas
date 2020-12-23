@@ -20,6 +20,8 @@ type
     btnInt64MulMod: TButton;
     btnUInt64Add: TButton;
     btnUInt64Mul: TButton;
+    btnGetGT2Power: TButton;
+    btnGetGT2Power64: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -29,6 +31,8 @@ type
     procedure btnInt64MulModClick(Sender: TObject);
     procedure btnUInt64AddClick(Sender: TObject);
     procedure btnUInt64MulClick(Sender: TObject);
+    procedure btnGetGT2PowerClick(Sender: TObject);
+    procedure btnGetGT2Power64Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -213,6 +217,25 @@ begin
   UInt64MulUInt64(A, B, L, H);
   ShowMessage(UInt64ToHex(L));
   ShowMessage(UInt64ToHex(H));
+end;
+
+procedure TFormNative.btnGetGT2PowerClick(Sender: TObject);
+var
+  N, R: Cardinal;
+begin
+  N := Trunc(Random(MaxInt) * 2);
+  R := GetUInt32PowerOf2GreaterThan(N);
+  ShowMessage(UInt64ToStr(N) + ' < ' + UInt64ToStr(R));
+end;
+
+procedure TFormNative.btnGetGT2Power64Click(Sender: TObject);
+var
+  N, R: TUInt64;
+begin
+  N := Trunc(Random(MaxInt) * 2);
+  N := UInt64Mul(N, N);
+  R := GetUInt64PowerOf2GreaterThan(N);
+  ShowMessage(UInt64ToStr(N) + ' < ' + UInt64ToStr(R));
 end;
 
 end.

@@ -230,6 +230,12 @@ function IsUInt32PowerOf2(N: Cardinal): Boolean;
 function IsUInt64PowerOf2(N: TUInt64): Boolean;
 {* 判断一 64 位无符号整数是否 2 的整数次幂}
 
+function GetUInt32PowerOf2GreaterThan(N: Cardinal): Cardinal;
+{* 得到一比指定 32 位无符号整数数大的 2 的整数次幂，如溢出则返回 0}
+
+function GetUInt64PowerOf2GreaterThan(N: TUInt64): TUInt64;
+{* 得到一比指定 64 位无符号整数数大的 2 的整数次幂，如溢出则返回 0}
+
 function IsInt32AddOverflow(A, B: Integer): Boolean;
 {* 判断两个 32 位有符号数相加是否溢出}
 
@@ -798,14 +804,41 @@ begin
     Result := N - ((-M) mod N);
 end;
 
+// 判断一 32 位无符号整数是否 2 的整数次幂
 function IsUInt32PowerOf2(N: Cardinal): Boolean;
 begin
   Result := (N and (N - 1)) = 0;
 end;
 
+// 判断一 64 位无符号整数是否 2 的整数次幂
 function IsUInt64PowerOf2(N: TUInt64): Boolean;
 begin
   Result := (N and (N - 1)) = 0;
+end;
+
+// 得到一比指定 32 位无符号整数数大的 2 的整数次幂，如溢出则返回 0
+function GetUInt32PowerOf2GreaterThan(N: Cardinal): Cardinal;
+begin
+  Result := N - 1;
+  Result := Result or (Result shr 1);
+  Result := Result or (Result shr 2);
+  Result := Result or (Result shr 4);
+  Result := Result or (Result shr 8);
+  Result := Result or (Result shr 16);
+  Inc(Result);
+end;
+
+// 得到一比指定 64 位无符号整数数大的 2 的整数次幂，如溢出则返回 0
+function GetUInt64PowerOf2GreaterThan(N: TUInt64): TUInt64;
+begin
+  Result := N - 1;
+  Result := Result or (Result shr 1);
+  Result := Result or (Result shr 2);
+  Result := Result or (Result shr 4);
+  Result := Result or (Result shr 8);
+  Result := Result or (Result shr 16);
+  Result := Result or (Result shr 32);
+  Inc(Result);
 end;
 
 // 判断两个 32 位有符号数相加是否溢出
