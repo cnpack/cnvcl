@@ -806,7 +806,13 @@ function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUI
 function ChineseRemainderTheoremInt64(Remainers, Factors: TCnInt64List): Int64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
 
+function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
+{* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素}
+
 implementation
+
+uses
+  CnHashMap;
 
 {$IFDEF MACOS}
 
@@ -2147,6 +2153,44 @@ begin
   for J := 0 to Factors.Count - 1 do
     G := G * Factors[J];
   Result := Sum mod G;
+end;
+
+function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
+var
+  T, C, Q, N: Int64;
+  Map: TCnHashMap;
+  I: Integer;
+begin
+  Result := -1;
+  if (A < 0) or (B < 0) or (M < 0) then
+    Exit;
+
+  T := UInt64Sqrt(M) + 1;
+  C := Int64MultipleMod(A, B, M);
+
+  Map := TCnHashMap.Create;
+  try
+    for I := 1 to T do
+    begin
+      Map.Add(C, I);
+      C := Int64MultipleMod(A, C, M);
+    end;
+
+    Q := MontgomeryPowerMod(A, T, M);
+    N := Q;
+
+    for I := 1 to T do
+    begin
+      if Map.HasKey(N) then
+      begin
+        Result := I * T - Map.Find(N);
+        Exit;
+      end;
+      N := Int64MultipleMod(Q, N, M);
+    end;
+  finally
+    Map.Free;
+  end;
 end;
 
 end.

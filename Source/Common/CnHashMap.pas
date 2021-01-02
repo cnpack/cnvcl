@@ -272,7 +272,6 @@ type
     procedure CheckResize;
     procedure Resize(NewCapacity: Integer);
     procedure ClearAll(Shrink: Boolean = False);
-    function GetNodesCount(Node: TCnHashNode): Integer;
 
     function Get(HashCode: Integer; Key: TObject; out Value: TObject {$IFNDEF CPUX64};
       Key32: TObject = nil; ValueHigh32: PObject = nil {$ENDIF}): Boolean;
@@ -1297,16 +1296,6 @@ begin
 
   FCapacity := NewCapacity;
   FThreshold := Trunc(FloadFactor * FCapacity);
-end;
-
-function TCnHashMap.GetNodesCount(Node: TCnHashNode): Integer;
-begin
-  Result := 0;
-  while Node <> nil do
-  begin
-    Inc(Result);
-    Node := Node.Next;
-  end;
 end;
 
 procedure TCnHashMap.ClearAll(Shrink: Boolean);

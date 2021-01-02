@@ -83,6 +83,7 @@ type
     tsCRT: TTabSheet;
     btnCRTTest: TButton;
     btnCheckPrime: TButton;
+    btnInt64BSGS: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -109,6 +110,7 @@ type
     procedure btnDHRandClick(Sender: TObject);
     procedure btnCRTTestClick(Sender: TObject);
     procedure btnCheckPrimeClick(Sender: TObject);
+    procedure btnInt64BSGSClick(Sender: TObject);
   private
 
   public
@@ -543,6 +545,29 @@ begin
   while not CnInt64IsPrime(M) do     // < Sqrt 2 * UInt64
     Dec(M);
   ShowMessage(UInt64ToStr(M));
+
+  // 比 Sqrt(2 * Max UInt64) 大的，也就是 MaxUInt32 * 1.4142136
+  M := Trunc(MAX_UINT32 * 1.4142136);
+  while not CnInt64IsPrime(M) do     // > Sqrt 2 * UInt64
+    Inc(M);
+  ShowMessage(UInt64ToStr(M));
+end;
+
+procedure TFormPrime.btnInt64BSGSClick(Sender: TObject);
+var
+  A, B, M, R: Int64;
+begin
+  A := 8723;
+  B := 3623;
+  M := 65537;
+
+  R := CnInt64BigStepGiantStep(8723, 3623, 65537);
+  ShowMessage(IntToStr(R));
+
+  if MontgomeryPowerMod(A, R, M) = B then
+    ShowMessage('Verify OK')
+  else
+    ShowMessage('Verify Fail');
 end;
 
 end.

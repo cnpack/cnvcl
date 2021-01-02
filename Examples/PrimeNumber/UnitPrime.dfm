@@ -570,7 +570,7 @@ object FormPrime: TFormPrime
       end
     end
     object tsCRT: TTabSheet
-      Caption = 'Chinese Remainer Theorem'
+      Caption = 'CRT && BSGS'
       ImageIndex = 4
       object btnCRTTest: TButton
         Left = 24
@@ -582,13 +582,22 @@ object FormPrime: TFormPrime
         OnClick = btnCRTTestClick
       end
       object btnCheckPrime: TButton
-        Left = 504
+        Left = 192
         Top = 24
         Width = 129
         Height = 25
         Caption = 'Check Prime'
         TabOrder = 1
         OnClick = btnCheckPrimeClick
+      end
+      object btnInt64BSGS: TButton
+        Left = 416
+        Top = 24
+        Width = 121
+        Height = 25
+        Caption = 'Int64 BSGS'
+        TabOrder = 2
+        OnClick = btnInt64BSGSClick
       end
     end
   end
