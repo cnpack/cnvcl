@@ -376,6 +376,9 @@ type
     pnlSearch: TPanel;
     edtSearch: TEdit;
     btnSearch: TSpeedButton;
+    pmSheet: TPopupMenu;
+    Copy1: TMenuItem;
+    CopyAll1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -408,6 +411,8 @@ type
     procedure TreeViewDblClick(Sender: TObject);
     procedure btnSearchClick(Sender: TObject);
     procedure edtSearchKeyPress(Sender: TObject; var Key: Char);
+    procedure Copy1Click(Sender: TObject);
+    procedure CopyAll1Click(Sender: TObject);
   private
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
@@ -3473,6 +3478,54 @@ begin
   begin
     btnSearch.Click;
     edtSearch.SetFocus;
+  end;
+end;
+
+procedure TCnPropSheetForm.Copy1Click(Sender: TObject);
+var
+  LV: TListView;
+begin
+  if pmSheet.PopupComponent is TListView then
+  begin
+    LV := pmSheet.PopupComponent as TListView;
+    if LV.Selected <> nil then
+    begin
+      if LV.Columns.Count = 2 then
+        Clipboard.AsText := LV.Selected.Caption + ' ' + LV.Selected.SubItems[0]
+      else if LV.Columns.Count = 1 then
+        Clipboard.AsText := LV.Selected.Caption
+    end;
+  end;
+end;
+
+procedure TCnPropSheetForm.CopyAll1Click(Sender: TObject);
+var
+  SL: TStringList;
+  LV: TListView;
+  I: Integer;
+begin
+  if pmSheet.PopupComponent is TListView then
+  begin
+    LV := pmSheet.PopupComponent as TListView;
+    if LV.Items.Count = 0 then
+      Exit;
+
+    SL := TStringList.Create;
+    try
+      if LV.Columns.Count = 2 then
+      begin
+        for I := 0 to LV.Items.Count - 1 do
+          SL.Add(LV.Items[I].Caption + ' ' + LV.Items[I].SubItems[0]);
+      end
+      else if LV.Columns.Count = 1 then
+      begin
+        for I := 0 to LV.Items.Count - 1 do
+          SL.Add(LV.Items[I].Caption);
+      end;
+      Clipboard.AsText := SL.Text;
+    finally
+      SL.Free;
+    end;
   end;
 end;
 

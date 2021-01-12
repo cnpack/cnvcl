@@ -340,6 +340,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         TabOrder = 11
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -370,6 +371,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         TabOrder = 9
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -408,6 +410,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         ShowWorkAreas = True
         TabOrder = 2
         ViewStyle = vsReport
@@ -438,6 +441,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         TabOrder = 10
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -491,6 +495,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         ShowWorkAreas = True
         TabOrder = 4
         ViewStyle = vsReport
@@ -521,6 +526,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         ShowWorkAreas = True
         TabOrder = 0
         ViewStyle = vsReport
@@ -551,6 +557,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         TabOrder = 5
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -580,6 +587,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ReadOnly = True
         RowSelect = True
         ParentFont = False
+        PopupMenu = pmSheet
         TabOrder = 6
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -649,4 +657,17 @@ object CnPropSheetForm: TCnPropSheetForm
       end
     end
   end
+  object pmSheet: TPopupMenu
+    Left = 197
+    Top = 351
+    object Copy1: TMenuItem
+      Caption = '&Copy'
+      OnClick = Copy1Click
+    end
+    object CopyAll1: TMenuItem
+      Caption = 'Copy &All'
+      OnClick = CopyAll1Click
+    end
+  end
+
 end
