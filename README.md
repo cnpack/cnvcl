@@ -16,6 +16,11 @@ CnPack Team are Made up of Many Chinese Programmers and Delphi / C++ Builder Fan
   * CnPack BBS: http://bbs.cnpack.org
   * Email: master@cnpack.org
 
+#Related Links
+
+  * https://www.embarcadero.com/
+  * https://www.learndelphi.org/
+
 # CnPack组件包
 ## 1. 许可协议
 
