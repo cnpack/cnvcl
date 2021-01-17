@@ -15,18 +15,21 @@ type
     btnTestLockFreeInsert: TButton;
     btnLockFreeLinkedListInsert: TButton;
     mmoLinkedListResult: TMemo;
+    btnLockFreeLinkedListInsertDelete: TButton;
     procedure btnTestNoCriticalClick(Sender: TObject);
     procedure btnTestCriticalClick(Sender: TObject);
     procedure btnTestSysCriticalClick(Sender: TObject);
     procedure btnTestLockFreeLinkedListClick(Sender: TObject);
     procedure btnTestLockFreeInsertClick(Sender: TObject);
     procedure btnLockFreeLinkedListInsertClick(Sender: TObject);
+    procedure btnLockFreeLinkedListInsertDeleteClick(Sender: TObject);
   private
     procedure NoCriticalTerminate(Sender: TObject);
     procedure CriticalTerminate(Sender: TObject);
     procedure SysCriticalTerminate(Sender: TObject);
     procedure LinkedListTerminate(Sender: TObject);
-
+    procedure LinkedListInsertTerminate(Sender: TObject);
+    procedure LinkedListDeleteTerminate(Sender: TObject);
     procedure TravelNode(Sender: TObject; Node: PCnLockFreeLinkedNode);
   public
     { Public declarations }
@@ -65,6 +68,15 @@ type
   end;
 
   TLinkedListInsertThread = class(TThread)
+  private
+    FBase: Integer;
+  protected
+    procedure Execute; override;
+  public
+    property Base: Integer read FBase write FBase;
+  end;
+
+  TLinkedListDeleteThread = class(TThread)
   private
     FBase: Integer;
   protected
@@ -338,6 +350,90 @@ begin
   begin
     Sleep(0);
     FLink.Insert(TObject(I * 3 + FBase), nil);
+  end;
+end;
+
+procedure TFormLockFree.btnLockFreeLinkedListInsertDeleteClick(
+  Sender: TObject);
+var
+  T1, T2, T3: TLinkedListInsertThread;
+begin
+  FLink := TCnLockFreeLinkedList.Create;
+  LinkTerminateCount := 0;
+
+  T1 := TLinkedListInsertThread.Create(True);
+  T2 := TLinkedListInsertThread.Create(True);
+  T3 := TLinkedListInsertThread.Create(True);
+  T1.Base := 0;
+  T2.Base := 1;
+  T3.Base := 2;
+
+  T1.FreeOnTerminate := True;
+  T2.FreeOnTerminate := True;
+  T3.FreeOnTerminate := True;
+  T1.OnTerminate := LinkedListInsertTerminate;
+  T2.OnTerminate := LinkedListInsertTerminate;
+  T3.OnTerminate := LinkedListInsertTerminate;
+  T1.Resume;
+  T2.Resume;
+  T3.Resume;
+end;
+
+procedure TFormLockFree.LinkedListInsertTerminate(Sender: TObject);
+var
+  T1, T2, T3: TLinkedListDeleteThread;
+begin
+  LinkTerminateCount := LinkTerminateCount + 1;
+
+  if LinkTerminateCount >= 3 then
+  begin
+    ShowMessage(IntToStr(FLink.GetCount) + ' Terminated: ' + IntToStr(LinkTerminateCount));
+    mmoLinkedListResult.Lines.Clear;
+    FLink.OnTravelNode := TravelNode;
+    FLink.Travel;
+
+    LinkTerminateCount := 0;
+
+    T1 := TLinkedListDeleteThread.Create(True);
+    T2 := TLinkedListDeleteThread.Create(True);
+    T3 := TLinkedListDeleteThread.Create(True);
+    T1.Base := 0;
+    T2.Base := 1;
+    T3.Base := 2;
+
+    T1.FreeOnTerminate := True;
+    T2.FreeOnTerminate := True;
+    T3.FreeOnTerminate := True;
+    T1.OnTerminate := LinkedListDeleteTerminate;
+    T2.OnTerminate := LinkedListDeleteTerminate;
+    T3.OnTerminate := LinkedListDeleteTerminate;
+    T1.Resume;
+    T2.Resume;
+    T3.Resume;
+  end;
+end;
+
+{ TLinkedListDeleteThread }
+
+procedure TLinkedListDeleteThread.Execute;
+var
+  I: Integer;
+begin
+  for I := 1 to 1000 do
+  begin
+    Sleep(0);
+    FLink.Delete(TObject(I * 3 + FBase));
+  end;
+end;
+
+procedure TFormLockFree.LinkedListDeleteTerminate(Sender: TObject);
+begin
+  LinkTerminateCount := LinkTerminateCount + 1;
+
+  if LinkTerminateCount >= 3 then
+  begin
+    ShowMessage(IntToStr(FLink.GetCount) + ' Terminated: ' + IntToStr(LinkTerminateCount));
+    FLink.Free;
   end;
 end;
 

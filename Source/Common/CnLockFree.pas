@@ -268,15 +268,10 @@ end;
 
 function DefaultKeyCompare(Key1, Key2: TObject): Integer;
 var
-  K1, K2: Integer;
+  K1, K2: TCnNativeInt;
 begin
-{$IFDEF OBJECT_HAS_GETHASHCODE}
-  K1 := Key1.GetHashCode;
-  K2 := Key2.GetHashCode;
-{$ELSE}
-  K1 := Integer(Key1);
-  K2 := Integer(Key2);
-{$ENDIF}
+  K1 := TCnNativeInt(Key1);
+  K2 := TCnNativeInt(Key2);
 
   if K1 > K2 then
     Result := 1

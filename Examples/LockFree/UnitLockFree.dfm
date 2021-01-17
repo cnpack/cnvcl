@@ -77,4 +77,13 @@ object FormLockFree: TFormLockFree
     ScrollBars = ssVertical
     TabOrder = 6
   end
+  object btnLockFreeLinkedListInsertDelete: TButton
+    Left = 184
+    Top = 72
+    Width = 297
+    Height = 25
+    Caption = 'Test Lock-Free LinkedList Insert and Delete in Threads'
+    TabOrder = 7
+    OnClick = btnLockFreeLinkedListInsertDeleteClick
+  end
 end
