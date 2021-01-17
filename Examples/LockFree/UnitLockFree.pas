@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, SyncObjs;
+  StdCtrls, SyncObjs, CnLockFree;
 
 type
   TFormLockFree = class(TForm)
@@ -12,15 +12,22 @@ type
     btnTestCritical: TButton;
     btnTestSysCritical: TButton;
     btnTestLockFreeLinkedList: TButton;
+    btnTestLockFreeInsert: TButton;
+    btnLockFreeLinkedListInsert: TButton;
+    mmoLinkedListResult: TMemo;
     procedure btnTestNoCriticalClick(Sender: TObject);
     procedure btnTestCriticalClick(Sender: TObject);
     procedure btnTestSysCriticalClick(Sender: TObject);
     procedure btnTestLockFreeLinkedListClick(Sender: TObject);
+    procedure btnTestLockFreeInsertClick(Sender: TObject);
+    procedure btnLockFreeLinkedListInsertClick(Sender: TObject);
   private
     procedure NoCriticalTerminate(Sender: TObject);
     procedure CriticalTerminate(Sender: TObject);
     procedure SysCriticalTerminate(Sender: TObject);
     procedure LinkedListTerminate(Sender: TObject);
+
+    procedure TravelNode(Sender: TObject; Node: PCnLockFreeLinkedNode);
   public
     { Public declarations }
   end;
@@ -29,9 +36,6 @@ var
   FormLockFree: TFormLockFree;
 
 implementation
-
-uses
-  CnLockFree;
 
 {$R *.DFM}
 
@@ -51,7 +55,16 @@ type
     procedure Execute; override;
   end;
 
-  TLinkedListThread = class(TThread)
+  TLinkedListAppendThread = class(TThread)
+  private
+    FBase: Integer;
+  protected
+    procedure Execute; override;
+  public
+    property Base: Integer read FBase write FBase;
+  end;
+
+  TLinkedListInsertThread = class(TThread)
   private
     FBase: Integer;
   protected
@@ -213,14 +226,14 @@ end;
 
 procedure TFormLockFree.btnTestLockFreeLinkedListClick(Sender: TObject);
 var
-  T1, T2, T3: TLinkedListThread;
+  T1, T2, T3: TLinkedListAppendThread;
 begin
   FLink := TCnLockFreeLinkedList.Create;
   LinkTerminateCount := 0;
 
-  T1 := TLinkedListThread.Create(True);
-  T2 := TLinkedListThread.Create(True);
-  T3 := TLinkedListThread.Create(True);
+  T1 := TLinkedListAppendThread.Create(True);
+  T2 := TLinkedListAppendThread.Create(True);
+  T3 := TLinkedListAppendThread.Create(True);
   T1.Base := 0;
   T2.Base := 10000;
   T3.Base := 20000;
@@ -238,12 +251,15 @@ end;
 
 { TLinkedListThread }
 
-procedure TLinkedListThread.Execute;
+procedure TLinkedListAppendThread.Execute;
 var
   I: Integer;
 begin
   for I := 1 to 1000 do
+  begin
+    Sleep(0);
     FLink.Append(TObject(I + FBase), nil);
+  end;
 end;
 
 procedure TFormLockFree.LinkedListTerminate(Sender: TObject);
@@ -253,7 +269,75 @@ begin
   if LinkTerminateCount >= 3 then
   begin
     ShowMessage(IntToStr(FLink.GetCount) + ' Terminated: ' + IntToStr(LinkTerminateCount));
+    mmoLinkedListResult.Lines.Clear;
+    FLink.OnTravelNode := TravelNode;
+    FLink.Travel;
     FLink.Free;
+  end;
+end;
+
+procedure TFormLockFree.btnTestLockFreeInsertClick(Sender: TObject);
+var
+  I: Integer;
+  List: TCnLockFreeLinkedList;
+begin
+  List := TCnLockFreeLinkedList.Create;
+  for I := 1 to 10 do
+    List.Insert(TObject(I * 3), nil);
+  for I := 1 to 10 do
+    List.Insert(TObject(I * 3 + 1), nil);
+
+  mmoLinkedListResult.Lines.Clear;
+  List.OnTravelNode := TravelNode;
+  ShowMessage(IntToStr(List.GetCount));
+  List.Travel;
+
+  List.Delete(TObject(6));
+  List.Travel;
+  List.Free;
+end;
+
+procedure TFormLockFree.TravelNode(Sender: TObject;
+  Node: PCnLockFreeLinkedNode);
+begin
+  mmoLinkedListResult.Lines.Add(IntToStr(Integer(Node^.Key)));
+end;
+
+procedure TFormLockFree.btnLockFreeLinkedListInsertClick(Sender: TObject);
+var
+  T1, T2, T3: TLinkedListInsertThread;
+begin
+  FLink := TCnLockFreeLinkedList.Create;
+  LinkTerminateCount := 0;
+
+  T1 := TLinkedListInsertThread.Create(True);
+  T2 := TLinkedListInsertThread.Create(True);
+  T3 := TLinkedListInsertThread.Create(True);
+  T1.Base := 0;
+  T2.Base := 1;
+  T3.Base := 2;
+
+  T1.FreeOnTerminate := True;
+  T2.FreeOnTerminate := True;
+  T3.FreeOnTerminate := True;
+  T1.OnTerminate := LinkedListTerminate;
+  T2.OnTerminate := LinkedListTerminate;
+  T3.OnTerminate := LinkedListTerminate;
+  T1.Resume;
+  T2.Resume;
+  T3.Resume;
+end;
+
+{ TLinkedListInsertThread }
+
+procedure TLinkedListInsertThread.Execute;
+var
+  I: Integer;
+begin
+  for I := 1 to 1000 do
+  begin
+    Sleep(0);
+    FLink.Insert(TObject(I * 3 + FBase), nil);
   end;
 end;
 

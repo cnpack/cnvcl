@@ -43,10 +43,38 @@ object FormLockFree: TFormLockFree
   object btnTestLockFreeLinkedList: TButton
     Left = 504
     Top = 32
-    Width = 153
+    Width = 233
     Height = 25
-    Caption = 'Test Lock-Free LinkedList'
+    Caption = 'Test Lock-Free LinkedList Append in Threads'
     TabOrder = 3
     OnClick = btnTestLockFreeLinkedListClick
+  end
+  object btnTestLockFreeInsert: TButton
+    Left = 784
+    Top = 32
+    Width = 153
+    Height = 25
+    Caption = 'Lock Free Linked List Insert'
+    TabOrder = 4
+    OnClick = btnTestLockFreeInsertClick
+  end
+  object btnLockFreeLinkedListInsert: TButton
+    Left = 504
+    Top = 72
+    Width = 233
+    Height = 25
+    Caption = 'Test Lock-Free LinkedList Insert in Threads'
+    TabOrder = 5
+    OnClick = btnLockFreeLinkedListInsertClick
+  end
+  object mmoLinkedListResult: TMemo
+    Left = 504
+    Top = 128
+    Width = 233
+    Height = 369
+    Lines.Strings = (
+      '')
+    ScrollBars = ssVertical
+    TabOrder = 6
   end
 end

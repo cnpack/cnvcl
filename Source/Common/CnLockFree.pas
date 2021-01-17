@@ -25,7 +25,9 @@ unit CnLockFree;
 * 单元名称：涉及到无锁机制的一些原子操作封装以及无锁数据结构的实现
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：封装了 CnAtomicCompareAndSet 的 CAS 实现，适应 32 位和 64 位
-*           并基于此实现了自旋锁
+*           并基于此实现了自旋锁与无所有序链表
+*           无锁有序链表参考了 Timothy L. Harris 的论文：
+*             《A Pragmatic Implementation of Non-Blocking Linked-Lists》
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/ 10.3，包括 Win32/64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Classes;
+  SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Classes, CnNativeDecl;
 
 type
 {$IFDEF WIN64}
@@ -48,6 +50,9 @@ type
   TCnSpinLockRecord = Integer;
 {$ENDIF}
   {* 自旋锁，值为 1 时表示有别人锁了它，0 表示空闲}
+
+  TCnLockFreeNodeKeyCompare = function(Key1, Key2: TObject): Integer;
+  {* 用来比较 Key 的方法类型，返回 -1、0、1}
 
   PCnLockFreeLinkedNode = ^TCnLockFreeLinkedNode;
 
@@ -58,31 +63,51 @@ type
     Next: PCnLockFreeLinkedNode;
   end;
 
+  TCnLockFreeNodeTravelEvent = procedure(Sender: TObject; Node: PCnLockFreeLinkedNode) of object;
+
   TCnLockFreeLinkedList = class
-  {* 无锁单链表实现}
+  {* 无锁有序单链表实现}
   private
-    FHead: PCnLockFreeLinkedNode; // 固定的头节点指针
-    FNode: TCnLockFreeLinkedNode; // 隐藏的头节点，不参与统计、搜索、删除等
-    function GetTailNode: PCnLockFreeLinkedNode;
+    FCompare: TCnLockFreeNodeKeyCompare;
+    FGuardHead: PCnLockFreeLinkedNode; // 固定的头节点指针
+    FGuardTail: PCnLockFreeLinkedNode; // 固定的尾节点指针
+    FHiddenHead, FHiddenTail: TCnLockFreeLinkedNode;
+    FOnTravelNode: TCnLockFreeNodeTravelEvent;
+    function GetLastNode: PCnLockFreeLinkedNode; // 获得链表中 FGuadTail 之前的最后一个活指针
+
+    function CompareKey(Key1, Key2: TObject): Integer;
+    function IsNodePointerMarked(Node: PCnLockFreeLinkedNode): Boolean;  // 节点指针用最低位存储一 Mark 标记
+    function GetMarkedNodePointer(Node: PCnLockFreeLinkedNode): PCnLockFreeLinkedNode;   // 将一个节点指针加上 Mark 标记
+    function ExtractRealNodePointer(Node: PCnLockFreeLinkedNode): PCnLockFreeLinkedNode; // 返回一个节点指针的实际值无论有无加上 Mark 标记
+    function GetNextNode(Node: PCnLockFreeLinkedNode): PCnLockFreeLinkedNode; // 返回一个节点的后续真实节点，去除 Mark 标记的
+    procedure InternalSearch(Key: TObject; var LeftNode, RightNode: PCnLockFreeLinkedNode);
+    {* 内部搜索方法，返回针对特定 Key 的左右相邻未标记节点，其中左节点的 Key < Key，右节点的 Key >= Key}
   protected
     function CreateNode: PCnLockFreeLinkedNode;
     procedure FreeNode(Node: PCnLockFreeLinkedNode);
+    procedure DoTravelNode(Node: PCnLockFreeLinkedNode); virtual;
   public
-    constructor Create;
+    constructor Create(KeyCompare: TCnLockFreeNodeKeyCompare = nil);
     destructor Destroy; override;
 
     function GetCount: Integer;
     {* 遍历获取有多少个节点，不包括隐藏节点}
     procedure Clear;
-    {* 全部清空}
+    {* 全部清空，该方法不支持多线程}
+    procedure Travel;
+    {* 从头遍历，针对每个节点调用 OnTravelNode 事件，不支持多线程}
+
     procedure Append(Key, Value: TObject);
-    {* 在链表尾部直接添加新节点，调用者需自行保证 Key 不存在于链表中否则搜索会出错}
-    procedure Add(Key, Value: TObject);
-    {* 在链表中根据 Key 查找节点并替换，如不存在则在尾部添加新节点}
-    function Remove(Key: TObject): Boolean;
-    {* （还未实现）在链表中根据 Key 查找节点并删除，返回是否删除成功}
+    {* 在链表尾部直接添加新节点，调用者需自行保证 Key 递增，否则搜索会出错}
+    function Insert(Key, Value: TObject): Boolean;
+    {* 在链表中根据 Key 查找位置并插入并返回 True，如果 Key 已经存在则返回 False}
     function HasKey(Key: TObject): Boolean;
     {* 在链表中搜索指定 Key 是否存在}
+    function Delete(Key: TObject): Boolean;
+    {* 在链表中删除指定 Key 匹配的节点，返回是否找到}
+
+    property OnTravelNode: TCnLockFreeNodeTravelEvent read FOnTravelNode write FOnTravelNode;
+    {* 遍历时触发的事件}
   end;
 
 //------------------------------------------------------------------------------
@@ -241,23 +266,24 @@ end;
 
 { TCnLockFreeLinkedList }
 
-procedure TCnLockFreeLinkedList.Add(Key, Value: TObject);
+function DefaultKeyCompare(Key1, Key2: TObject): Integer;
 var
-  P: PCnLockFreeLinkedNode;
+  K1, K2: Integer;
 begin
-  P := FHead.Next;
-  while P <> nil do
-  begin
-    if P^.Key = Key then
-    begin
-      P^.Value := Value;
-      Exit;
-    end;
-    P := P^.Next;
-  end;
+{$IFDEF OBJECT_HAS_GETHASHCODE}
+  K1 := Key1.GetHashCode;
+  K2 := Key2.GetHashCode;
+{$ELSE}
+  K1 := Integer(Key1);
+  K2 := Integer(Key2);
+{$ENDIF}
 
-  // 没找到 Key，添加
-  Append(Key, Value);
+  if K1 > K2 then
+    Result := 1
+  else if K1 < K2 then
+    Result := -1
+  else
+    Result := 0;
 end;
 
 procedure TCnLockFreeLinkedList.Append(Key, Value: TObject);
@@ -267,36 +293,54 @@ begin
   Node := CreateNode;
   Node^.Key := Key;
   Node^.Value := Value;
+  Node^.Next := FGuardTail;
 
-  // 原子操作，先摸到尾巴 Tail，判断 Tail 的 Next 是否是 nil，是则将 Tail 的 Next 设为 NewNode
+  // 原子操作，先摸到尾巴 Tail，判断 Tail 的 Next 是否是 FGuardTail，是则将 Tail 的 Next 设为 NewNode
   // 如果其他线程修改了 Tail，导致这里取到的 Tail 不是尾巴，那么 Tail 的 Next 就不为 nil，就得重试
+  // 注意这里的尾巴是指不包括 FGuardTail 内的最后一个节点，尾巴的 Next 应该是 FGuardTail
   repeat
-    P := GetTailNode;
-  until CnAtomicCompareAndSet(Pointer(P^.Next), Pointer(Node), nil);
+    P := GetLastNode;
+  until CnAtomicCompareAndSet(Pointer(P^.Next), Pointer(Node), FGuardTail);
 end;
 
 procedure TCnLockFreeLinkedList.Clear;
 var
   P, N: PCnLockFreeLinkedNode;
 begin
-  P := FHead.Next;
-  while P <> nil do
+  P := GetNextNode(FGuardHead);
+  while (P <> nil) and (P <> FGuardTail) do
   begin
     N := P;
-    P := P^.Next;
+    P := GetNextNode(P);
     FreeNode(N);
   end;
-  FHead := @FNode;
+  FGuardHead := @FHiddenHead;
+  FGuardTail := @FHiddenTail;
 end;
 
-constructor TCnLockFreeLinkedList.Create;
+function TCnLockFreeLinkedList.CompareKey(Key1, Key2: TObject): Integer;
 begin
-  inherited;
-  FNode.Key := nil;
-  FNode.Value := nil;
-  FNode.Next := nil;
+  if Assigned(FCompare) then
+    Result := FCompare(Key1, Key2)
+  else
+    Result := DefaultKeyCompare(Key1, Key2);
+end;
 
-  FHead := @FNode;
+constructor TCnLockFreeLinkedList.Create(KeyCompare: TCnLockFreeNodeKeyCompare);
+begin
+  inherited Create;
+  FCompare := KeyCompare;
+
+  FHiddenTail.Key := nil;
+  FHiddenTail.Value := nil;
+  FHiddenTail.Next := nil;
+
+  FHiddenHead.Key := nil;
+  FHiddenHead.Value := nil;
+  FHiddenHead.Next := @FHiddenTail;
+
+  FGuardHead := @FHiddenHead;
+  FGuardTail := @FHiddenTail;
 end;
 
 function TCnLockFreeLinkedList.CreateNode: PCnLockFreeLinkedNode;
@@ -305,15 +349,46 @@ begin
   Result^.Next := nil;
 end;
 
+function TCnLockFreeLinkedList.Delete(Key: TObject): Boolean;
+var
+  R, RN, L: PCnLockFreeLinkedNode;
+begin
+  Result := False;
+  RN := nil;
+
+  while True do
+  begin
+    InternalSearch(Key, L, R);
+    if (R = FGuardTail) or (CompareKey(R^.Key, Key) <> 0) then
+      Exit;
+
+    RN := R^.Next;
+    if not IsNodePointerMarked(RN) then
+      if CnAtomicCompareAndSet(Pointer(R^.Next), GetMarkedNodePointer(RN), RN) then
+        Break;
+  end;
+
+  if not CnAtomicCompareAndSet(Pointer(L^.Next), RN, R) then
+    InternalSearch(R^.Key, L, R);
+  Result := True;
+end;
+
 destructor TCnLockFreeLinkedList.Destroy;
 begin
   Clear;
   inherited;
 end;
 
+function TCnLockFreeLinkedList.ExtractRealNodePointer(
+  Node: PCnLockFreeLinkedNode): PCnLockFreeLinkedNode;
+begin
+  Result := PCnLockFreeLinkedNode(TCnNativeUInt(Node) and TCnNativeUInt(not 1));
+end;
+
 procedure TCnLockFreeLinkedList.FreeNode(Node: PCnLockFreeLinkedNode);
 begin
-  Dispose(Node);
+  if Node <> nil then
+    Dispose(Node);
 end;
 
 function TCnLockFreeLinkedList.GetCount: Integer;
@@ -321,42 +396,145 @@ var
   P: PCnLockFreeLinkedNode;
 begin
   Result := 0;
-  P := FHead.Next;
-  while P <> nil do
+  P := GetNextNode(FGuardHead);
+  while (P <> nil) and (P <> FGuardTail) do
   begin
     Inc(Result);
-    P := P^.Next;
+    P := GetNextNode(P);
   end;
 end;
 
-function TCnLockFreeLinkedList.GetTailNode: PCnLockFreeLinkedNode;
+function TCnLockFreeLinkedList.GetLastNode: PCnLockFreeLinkedNode;
 begin
-  Result := FHead;
-  while Result^.Next <> nil do
+  Result := FGuardHead;
+  while (Result^.Next <> nil) and (Result^.Next <> FGuardTail) do
     Result := Result^.Next;
+end;
+
+function TCnLockFreeLinkedList.GetNextNode(
+  Node: PCnLockFreeLinkedNode): PCnLockFreeLinkedNode;
+begin
+  Result := ExtractRealNodePointer(Node^.Next);
 end;
 
 function TCnLockFreeLinkedList.HasKey(Key: TObject): Boolean;
 var
-  P: PCnLockFreeLinkedNode;
+  L, R: PCnLockFreeLinkedNode;
+begin
+  InternalSearch(Key, L, R);
+  if (R = FGuardTail) or (R^.Key <> Key) then
+    Result := False
+  else
+    Result := True;
+end;
+
+procedure TCnLockFreeLinkedList.InternalSearch(Key: TObject; var LeftNode,
+  RightNode: PCnLockFreeLinkedNode);
+var
+  T, TN, L: PCnLockFreeLinkedNode;
+begin
+  L := nil;
+  while True do
+  begin
+    T := FGuardHead;
+    TN := T^.Next;
+
+    // 搜索节点，初步得到左右节点
+    repeat
+      if not IsNodePointerMarked(TN) then
+      begin
+        LeftNode := T;
+        L := TN;
+      end;
+
+      T := ExtractRealNodePointer(TN);
+      if T = FGuardTail then
+        Break;
+
+      TN := T^.Next;
+    until (not IsNodePointerMarked(TN)) and (CompareKey(T^.Key, Key) >= 0);
+    RightNode := T;
+
+    // 检查 LeftNode 和 RightNode 是否相邻
+    if L = RightNode then
+    begin
+      // 如果右节点的下个节点被标记了，要重来
+      if (RightNode <> FGuardTail) and IsNodePointerMarked(RightNode^.Next) then
+        Continue
+      else
+      begin
+        Exit;
+      end;
+    end;
+
+    // 删掉标记过的节点
+    if CnAtomicCompareAndSet(Pointer(LeftNode^.Next), RightNode, L) then
+    begin
+      if (RightNode <> FGuardTail) and IsNodePointerMarked(RightNode^.Next) then
+        Continue
+      else
+      begin
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+function TCnLockFreeLinkedList.IsNodePointerMarked(
+  Node: PCnLockFreeLinkedNode): Boolean;
+begin
+  Result := (TCnNativeUInt(Node) and 1) <> 0;
+end;
+
+function TCnLockFreeLinkedList.GetMarkedNodePointer(
+  Node: PCnLockFreeLinkedNode): PCnLockFreeLinkedNode;
+begin
+  Result := PCnLockFreeLinkedNode(TCnNativeUInt(Node) or 1);
+end;
+
+function TCnLockFreeLinkedList.Insert(Key, Value: TObject): Boolean;
+var
+  L, R, N: PCnLockFreeLinkedNode;
 begin
   Result := False;
-  P := FHead.Next;
-  while P <> nil do
+  N := nil;
+
+  while True do
   begin
-    if P^.Key = Key then
+    InternalSearch(Key, L, R);
+    if (R <> FGuardTail) and (CompareKey(R^.Key, Key) = 0) then
+      Exit; // Key 已存在
+
+    FreeNode(N);
+    N := CreateNode;
+    N^.Next := R;
+    N^.Key := Key;
+    N^.Value := Value;
+
+    if CnAtomicCompareAndSet(Pointer(L^.Next), N, R) then
     begin
       Result := True;
       Exit;
     end;
-    P := P^.Next;
   end;
 end;
 
-function TCnLockFreeLinkedList.Remove(Key: TObject): Boolean;
+procedure TCnLockFreeLinkedList.Travel;
+var
+  P: PCnLockFreeLinkedNode;
 begin
-  // TODO: 这个比较难实现
-  raise Exception.Create('NOT Implemented');
+  P := GetNextNode(FGuardHead);
+  while (P <> nil) and (P <> FGuardTail) do
+  begin
+    DoTravelNode(P);
+    P := GetNextNode(P);
+  end;
+end;
+
+procedure TCnLockFreeLinkedList.DoTravelNode(Node: PCnLockFreeLinkedNode);
+begin
+  if Assigned(FOnTravelNode) then
+    FOnTravelNode(Self, Node);
 end;
 
 end.
