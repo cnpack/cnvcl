@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, SyncObjs, CnLockFree;
+  StdCtrls, SyncObjs, CnLockFree, ExtCtrls;
 
 type
   TFormLockFree = class(TForm)
@@ -16,6 +16,8 @@ type
     btnLockFreeLinkedListInsert: TButton;
     mmoLinkedListResult: TMemo;
     btnLockFreeLinkedListInsertDelete: TButton;
+    btnTestIncDec: TButton;
+    rgIncDec: TRadioGroup;
     procedure btnTestNoCriticalClick(Sender: TObject);
     procedure btnTestCriticalClick(Sender: TObject);
     procedure btnTestSysCriticalClick(Sender: TObject);
@@ -23,6 +25,7 @@ type
     procedure btnTestLockFreeInsertClick(Sender: TObject);
     procedure btnLockFreeLinkedListInsertClick(Sender: TObject);
     procedure btnLockFreeLinkedListInsertDeleteClick(Sender: TObject);
+    procedure btnTestIncDecClick(Sender: TObject);
   private
     procedure NoCriticalTerminate(Sender: TObject);
     procedure CriticalTerminate(Sender: TObject);
@@ -31,6 +34,7 @@ type
     procedure LinkedListInsertTerminate(Sender: TObject);
     procedure LinkedListDeleteTerminate(Sender: TObject);
     procedure TravelNode(Sender: TObject; Node: PCnLockFreeLinkedNode);
+    procedure IncDecTerminate(Sender: TObject);
   public
     { Public declarations }
   end;
@@ -85,6 +89,15 @@ type
     property Base: Integer read FBase write FBase;
   end;
 
+  TIncDecThread = class(TThread)
+  private
+    FMode: Integer; // 0, 1, 2, 3 分别代表 Int32 + 1, Int32 - 1, Int64 + 1, Int64 - 1;
+  protected
+    procedure Execute; override;
+  public
+    property Mode: Integer read FMode write FMode;
+  end;
+
 var
   NoCriticalValue: Integer;
   NoCriticalTerminateCount: Integer;
@@ -97,6 +110,10 @@ var
 
   FLink: TCnLockFreeLinkedList;
   LinkTerminateCount: Integer;
+
+  FCas32: Integer;
+  FCas64: Int64;
+  CasTerminateCount: Integer;
 
 procedure TFormLockFree.btnTestNoCriticalClick(Sender: TObject);
 var
@@ -434,6 +451,61 @@ begin
   begin
     ShowMessage(IntToStr(FLink.GetCount) + ' Terminated: ' + IntToStr(LinkTerminateCount));
     FLink.Free;
+  end;
+end;
+
+{ TIncDecThread }
+
+procedure TIncDecThread.Execute;
+var
+  I: Integer;
+begin
+  for I := 1 to 1000 do
+  begin
+    case FMode of
+      0: CnAtomicIncrement32(FCas32);
+      1: CnAtomicDecrement32(FCas32);
+      2: CnAtomicIncrement64(FCas64);
+      3: CnAtomicDecrement64(FCas64);
+    end;
+  end;
+end;
+
+procedure TFormLockFree.btnTestIncDecClick(Sender: TObject);
+var
+  T1, T2, T3: TIncDecThread;
+begin
+  FCas32 := 5000;
+  FCas64 := 5000000;
+  CasTerminateCount := 0;
+
+  T1 := TIncDecThread.Create(True);
+  T2 := TIncDecThread.Create(True);
+  T3 := TIncDecThread.Create(True);
+  T1.Mode := rgIncDec.ItemIndex;
+  T2.Mode := rgIncDec.ItemIndex;
+  T3.Mode := rgIncDec.ItemIndex;
+
+  T1.FreeOnTerminate := True;
+  T2.FreeOnTerminate := True;
+  T3.FreeOnTerminate := True;
+  T1.OnTerminate := IncDecTerminate;
+  T2.OnTerminate := IncDecTerminate;
+  T3.OnTerminate := IncDecTerminate;
+  T1.Resume;
+  T2.Resume;
+  T3.Resume;
+end;
+
+procedure TFormLockFree.IncDecTerminate(Sender: TObject);
+begin
+  Inc(CasTerminateCount);
+  if CasTerminateCount >= 3 then
+  begin
+    case rgIncDec.ItemIndex of
+      0, 1: ShowMessage(IntToStr(FCas32));
+      2, 3: ShowMessage(IntToStr(FCas64));
+    end;
   end;
 end;
 

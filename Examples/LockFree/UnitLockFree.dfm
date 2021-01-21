@@ -86,4 +86,27 @@ object FormLockFree: TFormLockFree
     TabOrder = 7
     OnClick = btnLockFreeLinkedListInsertDeleteClick
   end
+  object btnTestIncDec: TButton
+    Left = 32
+    Top = 72
+    Width = 75
+    Height = 25
+    Caption = 'Test Inc Dec'
+    TabOrder = 8
+    OnClick = btnTestIncDecClick
+  end
+  object rgIncDec: TRadioGroup
+    Left = 32
+    Top = 120
+    Width = 89
+    Height = 137
+    Caption = 'Inc Dec'
+    ItemIndex = 0
+    Items.Strings = (
+      'Inc 32'
+      'Dec 32'
+      'Inc 64'
+      'Dec 64')
+    TabOrder = 9
+  end
 end

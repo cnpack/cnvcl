@@ -115,16 +115,28 @@ type
 //------------------------------------------------------------------------------
 
 function CnAtomicIncrement32(var Addend: Integer): Integer;
-{* 原子操作令一 32 位值增 1}
+{* 原子操作令一 32 位值增 1，返回增加后的值}
 
 function CnAtomicDecrement32(var Addend: Integer): Integer;
-{* 原子操作令一 32 位值减 1}
+{* 原子操作令一 32 位值减 1，返回减少后的值}
 
 function CnAtomicExchange32(var Target: Integer; Value: Integer): Integer;
-{* 原子操作令俩 32 位值交换}
+{* 原子操作令俩 32 位值交换，返回 Targe 的原始值}
 
 function CnAtomicExchangeAdd32(var Addend: LongInt; Value: LongInt): Longint;
 {* 原子操作令 32 位值 Addend := Addend + Value，返回 Addend 原始值}
+
+function CnAtomicIncrement64(var Addend: Int64): Int64;
+{* 原子操作令一 64 位值增 1，返回增加后的值}
+
+function CnAtomicDecrement64(var Addend: Int64): Int64;
+{* 原子操作令一 64 位值减 1，返回减少后的值}
+
+function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
+{* 原子操作令俩 64 位值交换，返回 Targe 的原始值}
+
+function CnAtomicExchangeAdd64(var Addend: Int64; Value: Int64): Int64;
+{* 原子操作令 64 位值 Addend := Addend + Value，返回 Addend 原始值}
 
 function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Pointer;
 {* 原子操作比较 Target 与 Comperand 俩值，相等时则将 NewValue 赋值给 Target，返回旧的 Target 值
@@ -158,10 +170,21 @@ procedure CnSpinLockLeave(var Critical: TCnSpinLockRecord);
 
 implementation
 
+const
+{$IFDEF MSWINDOWS}
+  kernel32  = 'kernel32.dll';
+{$ENDIF}
+{$IFDEF LINUX}
+  kernel32  = 'libwine.borland.so';
+{$ENDIF}
+
+function InterlockedCompareExchange64(var Destination: Int64; Exchange: Int64;
+  Comparand: Int64): Int64 stdcall; external kernel32 name 'InterlockedCompareExchange64';
+
 function CnAtomicIncrement32(var Addend: Integer): Integer;
 begin
 {$IFDEF SUPPORT_ATOMIC}
-  AtomicIncrement(Addend);
+  Result := AtomicIncrement(Addend);
 {$ELSE}
   Result := InterlockedIncrement(Addend);
 {$ENDIF}
@@ -170,7 +193,7 @@ end;
 function CnAtomicDecrement32(var Addend: Integer): Integer;
 begin
 {$IFDEF SUPPORT_ATOMIC}
-  AtomicDecrement(Addend);
+  Result := AtomicDecrement(Addend);
 {$ELSE}
   Result := InterlockedDecrement(Addend);
 {$ENDIF}
@@ -179,7 +202,7 @@ end;
 function CnAtomicExchange32(var Target: Integer; Value: Integer): Integer;
 begin
 {$IFDEF SUPPORT_ATOMIC}
-  AtomicExchange(Target, Value);
+  Result := AtomicExchange(Target, Value);
 {$ELSE}
   Result := InterlockedExchange(Target, Value);
 {$ENDIF}
@@ -194,12 +217,80 @@ begin
 {$ENDIF}
 end;
 
+function CnAtomicIncrement64(var Addend: Int64): Int64;
+{$IFNDEF SUPPORT_ATOMIC}
+var
+  Tmp: Int64;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_ATOMIC}
+  Result := AtomicIncrement(Addend);
+{$ELSE}
+  repeat
+    Tmp := Addend;
+    Result := InterlockedCompareExchange64(Addend, Tmp + 1, Tmp);
+  until Result = Tmp;
+  Inc(Result);
+{$ENDIF}
+end;
+
+function CnAtomicDecrement64(var Addend: Int64): Int64;
+{$IFNDEF SUPPORT_ATOMIC}
+var
+  Tmp: Int64;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_ATOMIC}
+  Result := AtomicDecrement(Addend);
+{$ELSE}
+  repeat
+    Tmp := Addend;
+    Result := InterlockedCompareExchange64(Addend, Tmp - 1, Tmp);
+  until Result = Tmp;
+  Dec(Result);
+{$ENDIF}
+end;
+
+function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
+{$IFNDEF SUPPORT_ATOMIC}
+var
+  Tmp: Int64;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_ATOMIC}
+  Result := AtomicExchange(Target, Value);
+{$ELSE}
+  repeat
+    Tmp := Target;
+    Result := InterlockedCompareExchange64(Target, Value, Tmp);
+  until Result = Tmp;
+{$ENDIF}
+end;
+
+function CnAtomicExchangeAdd64(var Addend: Int64; Value: Int64): Int64;
+var
+  Tmp: Int64;
+begin
+  repeat
+    Tmp := Addend;
+{$IFDEF SUPPORT_ATOMIC}
+    Result := AtomicCmpExchange(Addend, Addend + Value, Tmp);
+{$ELSE}
+    Result := InterlockedCompareExchange64(Addend, Addend + Value, Tmp);
+{$ENDIF}
+  until Result = Tmp;
+end;
+
 function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Pointer;
 begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicCmpExchange(Target, NewValue, Comperand);
 {$ELSE}
+  {$IFDEF BDS}
+  Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
+  {$ELSE} // D567 下的 InterlockedCompareExchange 被声明为 Pointer
   Result := InterlockedCompareExchange(Target, NewValue, Comperand);
+  {$ENDIF}
 {$ENDIF}
 end;
 
