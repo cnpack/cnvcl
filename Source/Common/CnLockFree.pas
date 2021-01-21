@@ -101,8 +101,8 @@ type
     {* 在链表尾部直接添加新节点，调用者需自行保证 Key 递增，否则搜索会出错}
     function Insert(Key, Value: TObject): Boolean;
     {* 在链表中根据 Key 查找位置并插入并返回 True，如果 Key 已经存在则返回 False}
-    function HasKey(Key: TObject): Boolean;
-    {* 在链表中搜索指定 Key 是否存在}
+    function HasKey(Key: TObject; out Value: TObject): Boolean;
+    {* 在链表中搜索指定 Key 是否存在，如存在则返回 True 并将对应 Value 返回}
     function Delete(Key: TObject): Boolean;
     {* 在链表中删除指定 Key 匹配的节点，返回是否找到}
 
@@ -412,15 +412,21 @@ begin
   Result := ExtractRealNodePointer(Node^.Next);
 end;
 
-function TCnLockFreeLinkedList.HasKey(Key: TObject): Boolean;
+function TCnLockFreeLinkedList.HasKey(Key: TObject; out Value: TObject): Boolean;
 var
   L, R: PCnLockFreeLinkedNode;
 begin
   InternalSearch(Key, L, R);
   if (R = FGuardTail) or (R^.Key <> Key) then
-    Result := False
+  begin
+    Value := nil;
+    Result := False;
+  end
   else
+  begin
+    Value := R^.Value;
     Result := True;
+  end;
 end;
 
 procedure TCnLockFreeLinkedList.InternalSearch(Key: TObject; var LeftNode,
