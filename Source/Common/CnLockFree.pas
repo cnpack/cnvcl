@@ -25,13 +25,15 @@ unit CnLockFree;
 * 单元名称：涉及到无锁机制的一些原子操作封装以及无锁数据结构的实现
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：封装了 CnAtomicCompareAndSet 的 CAS 实现，适应 32 位和 64 位
-*           并基于此实现了自旋锁与无所有序链表
+*           并基于此实现了自旋锁与无锁有序链表、单读单写的无锁循环队列
 *           无锁有序链表参考了 Timothy L. Harris 的论文：
 *             《A Pragmatic Implementation of Non-Blocking Linked-Lists》
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/ 10.3，包括 Win32/64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.01.10 V1.0
+* 修改记录：2021.01.22 V1.1
+*               实现单线程读单线程写的无锁循环队列
+*           2021.01.10 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -42,6 +44,9 @@ interface
 
 uses
   SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Classes, CnNativeDecl;
+
+const
+  CN_RING_QUEUE_DEFAULT_CAPACITY = 16;
 
 type
 {$IFDEF WIN64}
@@ -108,6 +113,41 @@ type
 
     property OnTravelNode: TCnLockFreeNodeTravelEvent read FOnTravelNode write FOnTravelNode;
     {* 遍历时触发的事件}
+  end;
+
+  TCnLockFreeSingleRingQueueNode = packed record
+    Key: TObject;
+    Value: TObject;
+  end;
+
+  TCnLockFreeSingleRingQueue = class
+  {* 只支持一线程读一线程写的无锁循环队列}
+  private
+    FSize: Integer;
+    FHead: Cardinal; // 如队列不空，Head 始终指向有效节点。Head 后一个节点始终无效，无论队列满或空
+    FTail: Cardinal; // 无论队列满或空，Tail 始终指向无效节点。如队列不空，Tail 后一个节点始终有效
+    FNodes: array of TCnLockFreeSingleRingQueueNode;
+    function GetCount: Integer;
+    function GetIndex(Seq: Cardinal): Integer;
+  protected
+
+  public
+    constructor Create(ASize: Integer = CN_RING_QUEUE_DEFAULT_CAPACITY);
+    destructor Destroy; override;
+
+    function Enqueue(Key, Value: TObject): Boolean;
+    {* 入队列头，返回是否入成功，如队列满则返回 False}
+    function Dequeue(out Key, Value: TObject): Boolean;
+    {* 出队列尾，返回是否出成功，如队列空则返回 False}
+
+    function IsEmpty: Boolean;
+    {* 返回是否空，也就是头指针和尾指针相等}
+    function IsFull: Boolean;
+    {* 返回是否满，也就是头指针比尾指针差一}
+    property Count: Integer read GetCount;
+    {* 队列中有几个有效元素}
+    property Size: Integer read FSize;
+    {* 队列的大小}
   end;
 
 //------------------------------------------------------------------------------
@@ -627,6 +667,82 @@ procedure TCnLockFreeLinkedList.DoTravelNode(Node: PCnLockFreeLinkedNode);
 begin
   if Assigned(FOnTravelNode) then
     FOnTravelNode(Self, Node);
+end;
+
+{ TCnLockFreeSingleRingQueue }
+
+constructor TCnLockFreeSingleRingQueue.Create(ASize: Integer);
+begin
+  if ASize <= 0 then
+    ASize := CN_RING_QUEUE_DEFAULT_CAPACITY;
+
+  FSize := GetUInt32PowerOf2GreaterEqual(ASize);
+  if FSize <= 1 then
+    FSize := CN_RING_QUEUE_DEFAULT_CAPACITY;
+
+  SetLength(FNodes, FSize);
+  FHead := 0;
+  FTail := 0;
+end;
+
+function TCnLockFreeSingleRingQueue.Dequeue(out Key, Value: TObject): Boolean;
+var
+  Idx: Integer;
+begin
+  // 先出队列再改 Tail
+  Result := False;
+  if not IsEmpty then
+  begin
+    Idx := GetIndex(FTail + 1);
+    Key := FNodes[Idx].Key;
+    Value := FNodes[Idx].Value;
+
+    Inc(FTail);
+    Result := True;
+  end;
+end;
+
+destructor TCnLockFreeSingleRingQueue.Destroy;
+begin
+  SetLength(FNodes, 0);
+  inherited;
+end;
+
+function TCnLockFreeSingleRingQueue.Enqueue(Key, Value: TObject): Boolean;
+var
+  Idx: Integer;
+begin
+  // 先进队列再改 Head
+  Result := False;
+  if not IsFull then
+  begin
+    Idx := GetIndex(FHead + 1);
+    FNodes[Idx].Key := Key;
+    FNodes[Idx].Value := Value;
+
+    Inc(FHead);
+    Result := True;
+  end;
+end;
+
+function TCnLockFreeSingleRingQueue.GetCount: Integer;
+begin
+  Result := FHead - FTail;
+end;
+
+function TCnLockFreeSingleRingQueue.GetIndex(Seq: Cardinal): Integer;
+begin
+  Result := Seq and (FSize - 1);
+end;
+
+function TCnLockFreeSingleRingQueue.IsEmpty: Boolean;
+begin
+  Result := (GetIndex(FHead) = GetIndex(FTail));
+end;
+
+function TCnLockFreeSingleRingQueue.IsFull: Boolean;
+begin
+  Result := (GetIndex(FHead) = GetIndex(FTail - 1));
 end;
 
 end.

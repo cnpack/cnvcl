@@ -109,4 +109,13 @@ object FormLockFree: TFormLockFree
       'Dec 64')
     TabOrder = 9
   end
+  object btnTestSingleRing: TButton
+    Left = 192
+    Top = 128
+    Width = 289
+    Height = 25
+    Caption = 'Test Single Read Write Ring Queue'
+    TabOrder = 10
+    OnClick = btnTestSingleRingClick
+  end
 end

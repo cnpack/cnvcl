@@ -18,6 +18,7 @@ type
     btnLockFreeLinkedListInsertDelete: TButton;
     btnTestIncDec: TButton;
     rgIncDec: TRadioGroup;
+    btnTestSingleRing: TButton;
     procedure btnTestNoCriticalClick(Sender: TObject);
     procedure btnTestCriticalClick(Sender: TObject);
     procedure btnTestSysCriticalClick(Sender: TObject);
@@ -26,6 +27,7 @@ type
     procedure btnLockFreeLinkedListInsertClick(Sender: TObject);
     procedure btnLockFreeLinkedListInsertDeleteClick(Sender: TObject);
     procedure btnTestIncDecClick(Sender: TObject);
+    procedure btnTestSingleRingClick(Sender: TObject);
   private
     procedure NoCriticalTerminate(Sender: TObject);
     procedure CriticalTerminate(Sender: TObject);
@@ -35,6 +37,7 @@ type
     procedure LinkedListDeleteTerminate(Sender: TObject);
     procedure TravelNode(Sender: TObject; Node: PCnLockFreeLinkedNode);
     procedure IncDecTerminate(Sender: TObject);
+    procedure SingleQueueTerminate(Sender: TObject);
   public
     { Public declarations }
   end;
@@ -98,6 +101,16 @@ type
     property Mode: Integer read FMode write FMode;
   end;
 
+  TSingleQueueReadThread = class(TThread)
+  protected
+    procedure Execute; override;
+  end;
+
+  TSingleQueueWriteThread = class(TThread)
+  protected
+    procedure Execute; override;
+  end;
+
 var
   NoCriticalValue: Integer;
   NoCriticalTerminateCount: Integer;
@@ -114,6 +127,9 @@ var
   FCas32: Integer;
   FCas64: Int64;
   CasTerminateCount: Integer;
+
+  FSingleQueue: TCnLockFreeSingleRingQueue;
+  SingleQueueTerminateCount: Integer;
 
 procedure TFormLockFree.btnTestNoCriticalClick(Sender: TObject);
 var
@@ -506,6 +522,61 @@ begin
       0, 1: ShowMessage(IntToStr(FCas32));
       2, 3: ShowMessage(IntToStr(FCas64));
     end;
+  end;
+end;
+
+procedure TFormLockFree.btnTestSingleRingClick(Sender: TObject);
+var
+  T1: TSingleQueueReadThread;
+  T2: TSingleQueueWriteThread;
+begin
+  FSingleQueue := TCnLockFreeSingleRingQueue.Create(128);
+  SingleQueueTerminateCount := 0;
+
+  T1 := TSingleQueueReadThread.Create(True);
+  T2 := TSingleQueueWriteThread.Create(True);
+  T1.FreeOnTerminate := True;
+  T2.FreeOnTerminate := True;
+  T1.OnTerminate := SingleQueueTerminate;
+  T2.OnTerminate := SingleQueueTerminate;
+  T1.Resume;
+  T2.Resume;
+end;
+
+{ TSingleQueueWriteThread }
+
+procedure TSingleQueueWriteThread.Execute;
+var
+  I: Integer;
+begin
+  for I := 1 to 1000 do
+  begin
+    while not FSingleQueue.Enqueue(TObject(I), nil) do
+      ;
+  end;
+end;
+
+{ TSingleQueueReadThread }
+
+procedure TSingleQueueReadThread.Execute;
+var
+  I: Integer;
+  K, V: TObject;
+begin
+  for I := 1 to 1000 do
+  begin
+    while not FSingleQueue.Dequeue(K, V) do
+      ;
+  end;
+end;
+
+procedure TFormLockFree.SingleQueueTerminate(Sender: TObject);
+begin
+  Inc(SingleQueueTerminateCount);
+  if SingleQueueTerminateCount >= 2 then
+  begin
+    ShowMessage(IntToStr(FSingleQueue.Count));
+    FSingleQueue.Free;
   end;
 end;
 
