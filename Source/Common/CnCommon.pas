@@ -376,6 +376,9 @@ function StringReplaceNonAnsi(const S, OldPattern, NewPattern: string;
   Flags: TReplaceFlags): string;
 {* 非 Ansi 方式的字符串替换}
 
+function StringKMP(const Pattern, S: string): Integer;
+{* KMP 匹配算法，返回 S 中第一次出现 Pattern 的位置，位置以 1 开始，未匹配则返回 0}
+
 function Deltree(const Dir: string; DelRoot: Boolean = True;
   DelEmptyDirOnly: Boolean = False): Boolean;
 {* 删除整个目录, DelRoot 表示是否删除目录本身}
@@ -4026,6 +4029,68 @@ begin
     end;
     SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
   end;
+end;
+
+// KMP 字符串匹配算法，返回 S 中第一次出现 Pattern 的位置，位置以 1 开始，未匹配则返回 0
+function StringKMP(const Pattern, S: string): Integer;
+var
+  LP, LS, I, J: Integer;
+  N: array of Integer;
+  PS, PP: PChar;
+
+  procedure CalcNext(P: PChar);
+  var
+    II, JJ: Integer;
+  begin
+    N[0] := -1;
+    II := 0;
+    JJ := -1;
+
+    while II < LP do
+    begin
+      if (JJ = -1) or (P[II] = P[JJ]) then
+      begin
+        Inc(II);
+        Inc(JJ);
+        N[II] := JJ;
+      end
+      else
+        JJ := N[JJ];
+    end;
+  end;
+
+begin
+  Result := 0;
+  if (Pattern = '') or (S = '') then
+    Exit;
+
+  LP := Length(Pattern);
+  LS := Length(S);
+  if LS < LP then
+    Exit;
+
+  PS := PChar(S);
+  PP := PChar(Pattern);
+
+  SetLength(N, LP + 1); // 注意 N 的下标从 0 到 LP - 1，但 CalcNext 中会用到 N[LP]
+  CalcNext(PP);
+
+  I := 0;
+  J := 0;
+  while (I < LS) and (J < LP) do
+  begin
+    if (J = -1) or (PS[I] = PP[J]) then
+    begin
+      Inc(I);
+      Inc(J);
+    end
+    else
+      J := N[J];
+  end;
+
+  SetLength(N, 0);
+  if J = LP then
+    Result := I - J + 1;
 end;
 
 // 创建备份文件

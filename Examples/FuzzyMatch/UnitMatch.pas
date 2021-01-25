@@ -14,10 +14,17 @@ type
     mmoResult: TMemo;
     chkScore: TCheckBox;
     pbString: TPaintBox;
+    bvl: TBevel;
+    lblSearchKMP: TLabel;
+    edtKMPPattern: TEdit;
+    lblKMPIn: TLabel;
+    edtKMPText: TEdit;
+    btnKMPSearch: TButton;
     procedure edtSearchChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure pbStringPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btnKMPSearchClick(Sender: TObject);
   private
     FPaintStr: string;
     FPaintText: string;
@@ -34,7 +41,7 @@ var
 implementation
 
 uses
-  CnStrings;
+  CnStrings, CnCommon;
 
 {$R *.DFM}
 
@@ -1572,6 +1579,11 @@ end;
 procedure TFormFuzzy.FormDestroy(Sender: TObject);
 begin
   FMatchedIndexes.Free;
+end;
+
+procedure TFormFuzzy.btnKMPSearchClick(Sender: TObject);
+begin
+  ShowMessage(IntToStr(StringKMP(edtKMPPattern.Text, edtKMPText.Text)));
 end;
 
 end.
