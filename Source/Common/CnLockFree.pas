@@ -65,7 +65,7 @@ type
   {* 无锁单链表节点}
     Key: TObject;
     Value: TObject;
-    Next: PCnLockFreeLinkedNode;
+    Next: PCnLockFreeLinkedNode; // 该指针低位为 1 表示该节点待删除
   end;
 
   TCnLockFreeNodeTravelEvent = procedure(Sender: TObject; Node: PCnLockFreeLinkedNode) of object;
@@ -79,6 +79,8 @@ type
     FHiddenHead, FHiddenTail: TCnLockFreeLinkedNode;
     FOnTravelNode: TCnLockFreeNodeTravelEvent;
     function GetLastNode: PCnLockFreeLinkedNode; // 获得链表中 FGuadTail 之前的最后一个活指针
+    function GetLast2Nodes(out P1, P2: PCnLockFreeLinkedNode): Boolean;
+    // 获得链表中 FGuadTail 之前的最后两个指针，P1.Next 指向 P2，P2.Next 指向 FTail
 
     function CompareKey(Key1, Key2: TObject): Integer;
     function IsNodePointerMarked(Node: PCnLockFreeLinkedNode): Boolean;  // 节点指针用最低位存储一 Mark 标记
@@ -104,6 +106,9 @@ type
 
     procedure Append(Key, Value: TObject);
     {* 在链表尾部直接添加新节点，调用者需自行保证 Key 递增，否则搜索会出错}
+    function RemoveTail(out Key, Value: TObject): Boolean;
+    {* 删除链表尾节点，并把删除的尾节点的 Key 和 Value 返回。如无尾节点，返回 False}
+
     function Insert(Key, Value: TObject): Boolean;
     {* 在链表中根据 Key 查找位置并插入并返回 True，如果 Key 已经存在则返回 False}
     function HasKey(Key: TObject; out Value: TObject): Boolean;
@@ -115,7 +120,17 @@ type
     {* 遍历时触发的事件}
   end;
 
+  TCnLockFreeLinkedStack = class(TCnLockFreeLinkedList)
+  {* 以无锁链表为基础实现的无锁单链表堆栈}
+  public
+    procedure Push(Key, Value: TObject);
+    {* 入栈}
+    function Pop(out Key, Value: TObject): Boolean;
+    {* 出栈，如栈空则返回 False}
+  end;
+
   TCnLockFreeSingleRingQueueNode = packed record
+  {* 队列节点}
     Key: TObject;
     Value: TObject;
   end;
@@ -488,14 +503,16 @@ begin
     if (R = FGuardTail) or (CompareKey(R^.Key, Key) <> 0) then
       Exit;
 
+    // R 符合要求，要删掉 R，先把 R 的 Next 标记为待删除
     RN := R^.Next;
     if not IsNodePointerMarked(RN) then
       if CnAtomicCompareAndSet(Pointer(R^.Next), GetMarkedNodePointer(RN), RN) then
         Break;
   end;
 
+  // 再把 L 的 Next 挂到 R 的 Next
   if not CnAtomicCompareAndSet(Pointer(L^.Next), RN, R) then
-    InternalSearch(R^.Key, L, R);
+    InternalSearch(R^.Key, L, R); // 然后删 R
   Result := True;
 end;
 
@@ -587,7 +604,7 @@ begin
     until (not IsNodePointerMarked(TN)) and (CompareKey(T^.Key, Key) >= 0);
     RightNode := T;
 
-    // 检查 LeftNode 和 RightNode 是否相邻
+    // 检查 LeftNode 和 RightNode 是否相邻，其中 L 是 LeftNode 的下一个节点，
     if L = RightNode then
     begin
       // 如果右节点的下个节点被标记了，要重来
@@ -599,9 +616,10 @@ begin
       end;
     end;
 
-    // 删掉标记过的节点
+    // 到这里的话说明 L 和 RightNode 不一样，中间有标记过的节点，于是删掉标记过的节点 L，让 LeftNode 的 Next 指向 Right
     if CnAtomicCompareAndSet(Pointer(LeftNode^.Next), RightNode, L) then
     begin
+      FreeNode(L);
       if (RightNode <> FGuardTail) and IsNodePointerMarked(RightNode^.Next) then
         Continue
       else
@@ -667,6 +685,91 @@ procedure TCnLockFreeLinkedList.DoTravelNode(Node: PCnLockFreeLinkedNode);
 begin
   if Assigned(FOnTravelNode) then
     FOnTravelNode(Self, Node);
+end;
+
+function TCnLockFreeLinkedList.RemoveTail(out Key, Value: TObject): Boolean;
+var
+  P1, P2, RN: PCnLockFreeLinkedNode;
+begin
+  Result := False;
+  RN := nil;
+
+  while True do
+  begin
+    if not GetLast2Nodes(P1, P2) then
+      Exit;
+
+    RN := P2^.Next;
+    if not IsNodePointerMarked(RN) then
+      if CnAtomicCompareAndSet(Pointer(P2^.Next), GetMarkedNodePointer(RN), RN) then
+        Break;
+  end;
+
+  Key := P2^.Key;
+  Value := P2^.Value;
+
+  if not CnAtomicCompareAndSet(Pointer(P1^.Next), RN, P2) then
+    InternalSearch(P2^.Key, P1, P2);
+  Result := True;
+end;
+
+function TCnLockFreeLinkedList.GetLast2Nodes(out P1,
+  P2: PCnLockFreeLinkedNode): Boolean;
+var
+  T, TN, L: PCnLockFreeLinkedNode;
+begin
+  Result := False;
+  if FGuardHead^.Next = FGuardTail then
+    Exit;
+
+  L := nil;
+  while True do
+  begin
+    T := FGuardHead;
+    P1 := T;
+    TN := T^.Next;
+
+    // 搜索节点，初步得到左右节点
+    repeat
+      if not IsNodePointerMarked(TN) then
+      begin
+        P1 := T;
+        L := TN;
+      end;
+
+      T := ExtractRealNodePointer(TN);
+      if T^.Next = FGuardTail then
+        Break;
+
+      TN := T^.Next;
+    until False;
+    P2 := T;
+
+    // 检查 LeftNode 和 RightNode 是否相邻
+    if L = P2 then
+    begin
+      // 如果右节点的下个节点被标记了，要重来
+      if (P2 <> FGuardTail) and IsNodePointerMarked(P2^.Next) then
+        Continue
+      else
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+
+    // 删掉标记过的节点
+    if CnAtomicCompareAndSet(Pointer(P1^.Next), P2, L) then
+    begin
+      if (P2 <> FGuardTail) and IsNodePointerMarked(P2^.Next) then
+        Continue
+      else
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
 end;
 
 { TCnLockFreeSingleRingQueue }
@@ -743,6 +846,18 @@ end;
 function TCnLockFreeSingleRingQueue.IsFull: Boolean;
 begin
   Result := (GetIndex(FHead) = GetIndex(FTail - 1));
+end;
+
+{ TCnLockFreeLinkedStack }
+
+function TCnLockFreeLinkedStack.Pop(out Key, Value: TObject): Boolean;
+begin
+  Result := RemoveTail(Key, Value);
+end;
+
+procedure TCnLockFreeLinkedStack.Push(Key, Value: TObject);
+begin
+  Append(Key, Value);
 end;
 
 end.

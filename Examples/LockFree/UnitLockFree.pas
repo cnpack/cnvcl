@@ -19,6 +19,7 @@ type
     btnTestIncDec: TButton;
     rgIncDec: TRadioGroup;
     btnTestSingleRing: TButton;
+    btnTestPushAndPop: TButton;
     procedure btnTestNoCriticalClick(Sender: TObject);
     procedure btnTestCriticalClick(Sender: TObject);
     procedure btnTestSysCriticalClick(Sender: TObject);
@@ -28,6 +29,7 @@ type
     procedure btnLockFreeLinkedListInsertDeleteClick(Sender: TObject);
     procedure btnTestIncDecClick(Sender: TObject);
     procedure btnTestSingleRingClick(Sender: TObject);
+    procedure btnTestPushAndPopClick(Sender: TObject);
   private
     procedure NoCriticalTerminate(Sender: TObject);
     procedure CriticalTerminate(Sender: TObject);
@@ -38,6 +40,7 @@ type
     procedure TravelNode(Sender: TObject; Node: PCnLockFreeLinkedNode);
     procedure IncDecTerminate(Sender: TObject);
     procedure SingleQueueTerminate(Sender: TObject);
+    procedure StackTerminate(Sender: TObject);
   public
     { Public declarations }
   end;
@@ -48,6 +51,9 @@ var
 implementation
 
 {$R *.DFM}
+
+uses
+  CnDebug;
 
 type
   TNoCriticalThread = class(TThread)
@@ -111,6 +117,18 @@ type
     procedure Execute; override;
   end;
 
+  TStackPushThread = class(TThread)
+  protected
+    Count: Integer;
+    procedure Execute; override;
+  end;
+
+  TStackPopThread = class(TThread)
+  protected
+    Count: Integer;
+    procedure Execute; override;
+  end;
+
 var
   NoCriticalValue: Integer;
   NoCriticalTerminateCount: Integer;
@@ -122,7 +140,7 @@ var
   CriticalTerminateCount: Integer;
 
   FLink: TCnLockFreeLinkedList;
-  LinkTerminateCount: Integer;
+  LinkTerminateCount, PushCount, PopCount: Integer;
 
   FCas32: Integer;
   FCas64: Int64;
@@ -577,6 +595,74 @@ begin
   begin
     ShowMessage(IntToStr(FSingleQueue.Count));
     FSingleQueue.Free;
+  end;
+end;
+
+procedure TFormLockFree.btnTestPushAndPopClick(Sender: TObject);
+var
+  T1: TStackPushThread;
+  T2: TStackPopThread;
+begin
+  FLink := TCnLockFreeLinkedList.Create;
+  LinkTerminateCount := 0;
+  PushCount := 0;
+  PopCount := 0;
+
+//  for I := 1 to 1000 do
+//    FLink.Append(TObject(I), nil);
+//  ShowMessage(IntToStr(FLink.GetCount));
+//  for I := 1 to 1002 do
+//    if not FLink.RemoveTail(K, V) then
+//      ShowMessage('Error');
+//
+//  ShowMessage(IntToStr(FLink.GetCount));
+//  FLink.Free;
+
+  T1 := TStackPushThread.Create(True);
+  T2 := TStackPopThread.Create(True);
+  T1.FreeOnTerminate := True;
+  T2.FreeOnTerminate := True;
+  T1.OnTerminate := StackTerminate;
+  T2.OnTerminate := StackTerminate;
+  T1.Resume;
+  T2.Resume;
+end;
+
+{ TStackPushThread }
+
+procedure TStackPushThread.Execute;
+var
+  I: Integer;
+begin
+  for I := 1 to 10000 do
+  begin
+    FLink.Append(TObject(I), nil);
+    Inc(PushCount);
+  end;
+end;
+
+{ TStackPopThread }
+
+procedure TStackPopThread.Execute;
+var
+  I: Integer;
+  K, V: TObject;
+begin
+  for I := 1 to 10000 do
+  begin
+    if FLink.RemoveTail(K, V) then
+      Inc(PopCount);
+  end;
+end;
+
+procedure TFormLockFree.StackTerminate(Sender: TObject);
+begin
+  Inc(LinkTerminateCount);
+  if LinkTerminateCount >= 2 then
+  begin
+    ShowMessage('Push ' + IntToStr(PushCount) + ' Pop ' + IntToStr(PopCount) +
+      ' Remain ' + IntToStr(FLink.GetCount));
+    FLink.Free;
   end;
 end;
 

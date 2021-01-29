@@ -110,12 +110,21 @@ object FormLockFree: TFormLockFree
     TabOrder = 9
   end
   object btnTestSingleRing: TButton
-    Left = 192
+    Left = 184
     Top = 128
-    Width = 289
+    Width = 297
     Height = 25
     Caption = 'Test Single Read Write Ring Queue'
     TabOrder = 10
     OnClick = btnTestSingleRingClick
+  end
+  object btnTestPushAndPop: TButton
+    Left = 184
+    Top = 184
+    Width = 297
+    Height = 25
+    Caption = 'Test Lock-Free Link Stack Push And Pop'
+    TabOrder = 11
+    OnClick = btnTestPushAndPopClick
   end
 end
