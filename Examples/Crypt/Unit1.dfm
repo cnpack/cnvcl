@@ -377,7 +377,7 @@ object FormCrypt: TFormCrypt
       object GroupBox1: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Base64'
@@ -460,6 +460,14 @@ object FormCrypt: TFormCrypt
           Caption = 'Base64 Decode to File'
           TabOrder = 5
           OnClick = btnDeBase64FileClick
+        end
+        object chkBase64UseTBytes: TCheckBox
+          Left = 320
+          Top = 84
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 7
         end
       end
     end

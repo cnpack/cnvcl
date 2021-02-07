@@ -93,14 +93,36 @@ function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload
 
 {$ENDIF}
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean = True): Byte; overload;
-function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean = True): Byte; overload;
+function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
+  FixZero: Boolean = True): Byte; overload;
 {* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要解码的数据
   var OutputData: AnsiString   - 解码后的数据
   FixZero: Boolean             - 是否移去尾部的 #0
 |</PRE>}
+
+function Base64Decode(const InputData: AnsiString; OutputData: TStream;
+  FixZero: Boolean = True): Byte; overload;
+{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
+|<PRE>
+  InputData: AnsiString        - 要解码的数据
+  var OutputData: TStream      - 解码后的数据
+  FixZero: Boolean             - 是否移去尾部的 #0
+|</PRE>}
+
+{$IFDEF TBYTES_DEFINED}
+
+function Base64Decode(InputData: string; var OutputData: TBytes;
+  FixZero: Boolean = True): Byte; overload;
+{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
+|<PRE>
+  InputData: string            - 要编码的数据流
+  var OutputData: TBytes       - 解码后的数据
+  FixZero: Boolean             - 是否移去尾部的 0
+|</PRE>}
+
+{$ENDIF}
 
 // 原始移植的版本，比较慢
 function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;
@@ -502,6 +524,20 @@ begin
     OutputData.Write(Str[1], Length(Str));
 end;
 
+{$IFDEF TBYTES_DEFINED}
+
+function Base64Decode(InputData: string; var OutputData: TBytes;
+  FixZero: Boolean): Byte; overload;
+var
+  InStr, OutStr: AnsiString;
+begin
+  Result := Base64Decode(AnsiString(InputData), OutStr, FixZero);
+  if Result = BASE64_OK then
+    OutputData := TEncoding.Default.GetBytes(OutStr);
+end;
+
+{$ENDIF}
+
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Byte;
 var
   SrcLen, DstLen, Times, i: Integer;
@@ -556,7 +592,7 @@ begin
       Inc(ToDec);
   end;
 
-  SetLength(OutputData, DstLen);  //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+  SetLength(OutputData, DstLen);  // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
   Times := SrcLen div 4;
   C := 1;
 

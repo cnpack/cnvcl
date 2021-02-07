@@ -271,6 +271,7 @@ type
     chkSM4UseTBytes: TCheckBox;
     chkDESUseTBytes: TCheckBox;
     chk3DESUseTBytes: TCheckBox;
+    chkBase64UseTBytes: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -527,15 +528,33 @@ procedure TFormCrypt.Button1Click(Sender: TObject);
 var
   S: string;
 begin
-  Base64Encode(edtBase64from.Text, S);
+  if chkBase64UseTBytes.Checked then
+  begin
+{$IFDEF TBYTES_DEFINED}
+    Base64Encode(TEncoding.Default.GetBytes(edtBase64from.Text), S);
+{$ENDIF}
+  end
+  else
+    Base64Encode(edtBase64from.Text, S);
   edtBase64Result.Text := S;
 end;
 
 procedure TFormCrypt.btnBase64DecodeClick(Sender: TObject);
 var
   S: AnsiString;
+{$IFDEF TBYTES_DEFINED}
+  Res: TBytes;
+{$ENDIF}
 begin
-  Base64Decode(edtBase64Result.Text, S);
+  if chkBase64UseTBytes.Checked then
+  begin
+{$IFDEF TBYTES_DEFINED}
+    Base64Decode(edtBase64Result.Text, Res);
+    S := TEncoding.Default.GetString(Res);
+{$ENDIF}
+  end
+  else
+    Base64Decode(edtBase64Result.Text, S);
   edtbase64Decode.Text := S;
 end;
 
@@ -573,6 +592,7 @@ begin
   chkSM4UseTBytes.Visible := False;
   chkDESUseTBytes.Visible := False;
   chk3DESUseTBytes.Visible := False;
+  chkBase64UseTBytes.Visible := False;
 {$ENDIF}
 end;
 
