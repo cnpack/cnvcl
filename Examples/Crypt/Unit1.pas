@@ -2,6 +2,8 @@ unit Unit1;
 
 interface
 
+{$I CnPack.inc}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, StdCtrls, ComCtrls, Clipbrd;
@@ -266,6 +268,7 @@ type
     edt3DesIv: TEdit;
     rb3DesCBC: TRadioButton;
     rb3DesECB: TRadioButton;
+    chkSM4UseTBytes: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -347,6 +350,9 @@ type
     { Private declarations }
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
+{$IFDEF TBYTES_DEFINED}
+    function BytesToHex(Data: TBytes): AnsiString;
+{$ENDIF}
     function HexToStr(Hex: string): AnsiString;
   public
     { Public declarations }
@@ -396,7 +402,7 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
-  IvStr: string;
+  IvStr: AnsiString;
 begin
   Len := Length(edtDesFrom.Text);
   if Len < 8 then
@@ -507,6 +513,9 @@ begin
   PageControl1.ActivePageIndex := 0;
   cbbAesKeyBitType.ItemIndex := 0;
   Application.Title := Caption;
+{$IFNDEF TBYTES_DEFINED}
+  chkSM4UseTBytes.Visible := False;
+{$ENDIF}
 end;
 
 procedure TFormCrypt.btnCRC64Click(Sender: TObject);
@@ -573,7 +582,10 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..15] of Byte;
-  IvStr: string;
+  IvStr: AnsiString;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   Len := Length(edtSm4.Text);
   if Len < 16 then
@@ -584,7 +596,19 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rbSm4Ecb.Checked then
-    SM4EncryptEcbStr(edtSm4Key.Text, edtSm4.Text, @(Output[1]))
+  begin
+    if chkSM4UseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
+      ResBytes := SM4EncryptEcbBytes(KeyBytes, TEncoding.Default.GetBytes(edtSm4.Text));
+      edtSm4Code.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      SM4EncryptEcbStr(edtSm4Key.Text, edtSm4.Text, @(Output[1]));
+  end
   else
   begin
     IvStr := HexToStr(edtSM4Iv.Text);
@@ -595,7 +619,19 @@ begin
     end
     else
       CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
-    SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
+
+    if chkSM4UseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      ResBytes := SM4EncryptCbcBytes(KeyBytes, IvBytes, TEncoding.Default.GetBytes(edtSm4.Text));
+      edtSm4Code.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
   end;
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
@@ -623,6 +659,9 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..15] of Byte;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   S := AnsiString(HexToStr(edtSm4Code.Text));
   Len := Length(S);
@@ -1430,7 +1469,7 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
-  IvStr: string;
+  IvStr: AnsiString;
 begin
   Len := Length(edt3DesFrom.Text);
   if Len < 8 then
@@ -1494,5 +1533,32 @@ begin
 
   // edt3DesOrigin.Text := TripleDESDecryptStrFromHex(edt3DESCode.Text, edt3DESKey.Text);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function TFormCrypt.BytesToHex(Data: TBytes): AnsiString;
+const
+  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+var
+  I, Len: Integer;
+  B: Byte;
+  Buffer: PAnsiChar;
+begin
+  Result := '';
+  Len := Length(Data);
+  if Len = 0 then
+    Exit;
+
+  Buffer := @Data[0];
+  for I := 0 to Len - 1 do
+  begin
+    B := PByte(Integer(Buffer) + I)^;
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
+      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+end;
+
+{$ENDIF}
 
 end.

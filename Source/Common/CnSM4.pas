@@ -95,6 +95,44 @@ procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
+{$IFDEF TBYTES_DEFINED}
+
+function SM4EncryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
+{* SM4-ECB 封装好的针对 TBytes 的加密方法
+ |<PRE>
+  Key      16 字节密码，太长则截断，不足则补 0
+  Input    input 内容，其长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
+  返回值   加密内容
+ |</PRE>}
+
+function SM4DecryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
+{* SM4-ECB 封装好的针对 TBytes 的解密方法
+ |<PRE>
+  Key      16 字节密码，太长则截断，不足则补 0
+  Input    input 密文，其长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
+  返回值   解密内容
+ |</PRE>}
+
+function SM4EncryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+{* SM4-CBC 封装好的针对 TBytes 的加密方法
+ |<PRE>
+  Key      16 字节密码，太长则截断，不足则补 0
+  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input 明文
+  返回值   加密内容
+ |</PRE>}
+
+function SM4DecryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+{* SM4-CBC 封装好的针对 TBytes 的解密方法
+ |<PRE>
+  Key      16 字节密码，太长则截断，不足则补 0
+  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Input    input 密文
+  返回值   解密内容
+ |</PRE>}
+
+{$ENDIF}
+
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TSM4Key; Dest: TStream); overload;
 {* SM4-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
@@ -478,6 +516,108 @@ procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
 begin
   SM4CryptCbcStr(SM4_DECRYPT, Key, Iv, Input, Output);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function SM4CryptEcbBytes(Mode: Integer; Key: TBytes;
+  const Input: TBytes): TBytes;
+var
+  Ctx: TSM4Context;
+  I, Len: Integer;
+begin
+  Len := Length(Input);
+  if Len <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+  SetLength(Result, (((Len - 1) div 16) + 1) * 16);
+
+  Len := Length(Key);
+  if Len < SM4_KEYSIZE then // Key 长度小于 16 字节补 0
+  begin
+    SetLength(Key, SM4_KEYSIZE);
+    for I := Len to SM4_KEYSIZE - 1 do
+      Key[I] := 0;
+  end;
+  // 长度大于 16 字节时 SM4SetKeyEnc 会自动忽略后面的部分
+
+  if Mode = SM4_ENCRYPT then
+  begin
+    SM4SetKeyEnc(Ctx, @(Key[0]));
+    SM4CryptEcb(Ctx, SM4_ENCRYPT, Length(Input), @(Input[0]), @(Result[0]));
+  end
+  else if Mode = SM4_DECRYPT then
+  begin
+    SM4SetKeyDec(Ctx, @(Key[0]));
+    SM4CryptEcb(Ctx, SM4_DECRYPT, Length(Input), @(Input[0]), @(Result[0]));
+  end;
+end;
+
+function SM4CryptCbcBytes(Mode: Integer; Key, Iv: TBytes;
+  const Input: TBytes): TBytes;
+var
+  Ctx: TSM4Context;
+  I, Len: Integer;
+begin
+  Len := Length(Input);
+  if Len <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+  SetLength(Result, (((Len - 1) div 16) + 1) * 16);
+
+  Len := Length(Key);
+  if Len < SM4_KEYSIZE then // Key 长度小于 16 字节补 0
+  begin
+    SetLength(Key, SM4_KEYSIZE);
+    for I := Len to SM4_KEYSIZE - 1 do
+      Key[I] := 0;
+  end;
+  // 长度大于 16 字节时 SM4SetKeyEnc 会自动忽略后面的部分
+
+  Len := Length(Iv);
+  if Len < SM4_BLOCKSIZE then // Iv 长度小于 16 字节补 0
+  begin
+    SetLength(Iv, SM4_BLOCKSIZE);
+    for I := Len to SM4_BLOCKSIZE - 1 do
+      Iv[I] := 0;
+  end;
+
+  if Mode = SM4_ENCRYPT then
+  begin
+    SM4SetKeyEnc(Ctx, @(Key[0]));
+    SM4CryptCbc(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+  end
+  else if Mode = SM4_DECRYPT then
+  begin
+    SM4SetKeyDec(Ctx, @(Key[0]));
+    SM4CryptCbc(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+  end;
+end;
+
+function SM4EncryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
+begin
+  Result := SM4CryptEcbBytes(SM4_ENCRYPT, Key, Input);
+end;
+
+function SM4DecryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
+begin
+  Result := SM4CryptEcbBytes(SM4_DECRYPT, Key, Input);
+end;
+
+function SM4EncryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+begin
+  Result := SM4CryptCbcBytes(SM4_ENCRYPT, Key, Iv, Input);
+end;
+
+function SM4DecryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+begin
+  Result := SM4CryptCbcBytes(SM4_DECRYPT, Key, Iv, Input);
+end;
+
+{$ENDIF}
 
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TSM4Key; Dest: TStream); overload;
