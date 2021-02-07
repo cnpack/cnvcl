@@ -269,6 +269,7 @@ type
     rb3DesCBC: TRadioButton;
     rb3DesECB: TRadioButton;
     chkSM4UseTBytes: TCheckBox;
+    chkDESUseTBytes: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -350,10 +351,11 @@ type
     { Private declarations }
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
+    function HexToStr(Hex: string): AnsiString;
 {$IFDEF TBYTES_DEFINED}
     function BytesToHex(Data: TBytes): AnsiString;
+    function HexToBytes(Hex: string): TBytes;
 {$ENDIF}
-    function HexToStr(Hex: string): AnsiString;
   public
     { Public declarations }
   end;
@@ -403,6 +405,9 @@ var
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
   IvStr: AnsiString;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   Len := Length(edtDesFrom.Text);
   if Len < 8 then
@@ -413,7 +418,19 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rbDESEcb.Checked then
-    DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]))
+  begin
+    if chkDESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
+      ResBytes := DESEncryptEcbBytes(KeyBytes, TEncoding.Default.GetBytes(edtDesFrom.Text));
+      edtDESCode.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]));
+  end
   else
   begin
     IvStr := HexToStr(edtDESIv.Text);
@@ -424,7 +441,19 @@ begin
     end
     else
       CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
-    DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
+
+    if chkDESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      ResBytes := DESEncryptCbcBytes(KeyBytes, IvBytes, TEncoding.Default.GetBytes(edtDesFrom.Text));
+      edtDESCode.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
   end;
   edtDESCode.Text := ToHex(@(Output[1]), Length(Output));
 
@@ -437,6 +466,9 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   S := AnsiString(HexToStr(edtDESCode.Text));
   Len := Length(S);
@@ -448,7 +480,19 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rbDESEcb.Checked then
-    DESDecryptEcbStr(edtDESKey.Text, S, @(Output[1]))
+  begin
+    if chkDESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
+      ResBytes := DESDecryptEcbBytes(KeyBytes, HexToBytes(edtDESCode.Text));
+      edtDesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      DESDecryptEcbStr(edtDESKey.Text, S, @(Output[1]));
+  end
   else
   begin
     IvStr := HexToStr(edtDESIv.Text);
@@ -460,6 +504,17 @@ begin
     else
       CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
 
+    if chkDESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      ResBytes := DESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtDESCode.Text));
+      edtDesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
     DESDecryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
   end;
   edtDesOrigin.Text := Output;
@@ -515,6 +570,7 @@ begin
   Application.Title := Caption;
 {$IFNDEF TBYTES_DEFINED}
   chkSM4UseTBytes.Visible := False;
+  chkDESUseTBytes.Visible := False;
 {$ENDIF}
 end;
 
@@ -673,7 +729,19 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rbSm4Ecb.Checked then
-    SM4DecryptEcbStr(edtSm4Key.Text, S, @(Output[1]))
+  begin
+    if chkSM4UseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
+      ResBytes := SM4DecryptEcbBytes(KeyBytes, HexToBytes(edtSm4Code.Text));
+      edtSm4Dec.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      SM4DecryptEcbStr(edtSm4Key.Text, S, @(Output[1]));
+  end
   else
   begin
     IvStr := HexToStr(edtSM4Iv.Text);
@@ -685,7 +753,18 @@ begin
     else
       CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
 
-    SM4DecryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
+    if chkSM4UseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      ResBytes := SM4DecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text));
+      edtSm4Dec.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      SM4DecryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
   end;
   edtSm4Dec.Text := Output;
 end;
@@ -1556,6 +1635,25 @@ begin
     B := PByte(Integer(Buffer) + I)^;
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}
       (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+end;
+
+function TFormCrypt.HexToBytes(Hex: string): TBytes;
+var
+  S: string;
+  I: Integer;
+begin
+  if Hex = '' then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SetLength(Result, (Length(Hex) + 1) div 2);
+  for I := 0 to Length(Hex) div 2 - 1 do
+  begin
+    S := Copy(Hex, I * 2 + 1, 2);
+    Result[I] := HexToInt(S);
   end;
 end;
 

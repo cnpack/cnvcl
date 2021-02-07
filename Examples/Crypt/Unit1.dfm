@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
   Left = 318
-  Top = 216
+  Top = 219
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 437
@@ -142,6 +142,14 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'ECB'
           TabOrder = 8
+        end
+        object chkDESUseTBytes: TCheckBox
+          Left = 352
+          Top = 116
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 9
         end
       end
     end

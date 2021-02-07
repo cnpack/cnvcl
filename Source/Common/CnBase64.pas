@@ -67,25 +67,30 @@ function Base64Encode(InputData: TStream; var OutputData: string): Byte; overloa
   InputData: TStream           - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
+
 function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
 {* 对字符串进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
+
 function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
 {* 对数据进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
+
 {$IFDEF TBYTES_DEFINED}
+
 function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
 {* 对 TBytes 进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
   InputData: TBytes           - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
+
 {$ENDIF}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean = True): Byte; overload;

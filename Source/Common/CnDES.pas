@@ -28,7 +28,9 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.03.25 V1.3
+* 修改记录：2021.02.07 V1.4
+*               增加对 TBytes 的支持
+*           2020.03.25 V1.3
 *               增加 3DES 的支持
 *           2020.03.24 V1.2
 *               增加 ECB/CBC 字符串与流加解密函数，删除原有的字符串加密函数
@@ -46,17 +48,24 @@ interface
 uses
   SysUtils, Classes;
 
+const
+  DES_KEYSIZE = 8;
+  DES_BLOCKSIZE = 8;
+
+  TRIPLE_DES_KEYSIZE = DES_KEYSIZE * 3;
+  TRIPLE_DES_BLOCKSIZE = DES_BLOCKSIZE;
+
 type
-  TDESKey = array[0..7] of Byte;
+  TDESKey = array[0..DES_KEYSIZE - 1] of Byte;
   {* DES 的加密 Key}
 
-  TDESBuffer = array[0..7] of Byte;
+  TDESBuffer = array[0..DES_BLOCKSIZE - 1] of Byte;
   {* DES 的加密块}
 
-  TDESIv  = array[0..7] of Byte;
+  TDESIv  = array[0..DES_BLOCKSIZE - 1] of Byte;
   {* DES 的 CBC 的初始化向量}
 
-  T3DESKey = array[0..23] of Byte;
+  T3DESKey = array[0..TRIPLE_DES_KEYSIZE - 1] of Byte;
   {* 3DES 的密码}
 
   T3DESBuffer = TDESBuffer;
@@ -108,6 +117,44 @@ function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
+
+{$IFDEF TBYTES_DEFINED}
+
+function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
+{* DES-ECB 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 0
+  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+function DESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+{* DES-ECB 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 0
+  Input    待解密密文
+  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+function DESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
+{* DES-CBC 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+function DESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+{* DES-CBC 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 0
+  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Input    待解密密文
+  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+{$ENDIF}
 
 procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TDESKey; Dest: TStream); overload;
@@ -168,6 +215,44 @@ function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 
 function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
+
+{$IFDEF TBYTES_DEFINED}
+
+function TripleDESEncryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+{* 3DES-ECB 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 0
+  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+function TripleDESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+{* 3DES-ECB 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 0
+  Input    待解密密文
+  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+function TripleDESEncryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+{* 3DES-CBC 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 #0
+  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+function TripleDESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+{* 3DES-CBC 封装好的针对 TBytes 的加解密方法
+ |<PRE>
+  Key      8 字节密码，太长则截断，不足则补 0
+  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Input    待解密密文
+  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
+ |</PRE>}
+
+{$ENDIF}
 
 procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: T3DESKey; Dest: TStream); overload;
@@ -482,16 +567,47 @@ end;
 
 procedure MakeKeyAlign(var Key: AnsiString);
 begin
-  if Length(Key) < 8 then
-    while Length(Key) < 8 do
+  if Length(Key) < DES_KEYSIZE then
+    while Length(Key) < DES_KEYSIZE do
       Key := Key + Chr(0);
 end;
 
 procedure MakeInputAlign(var Str: AnsiString);
 begin
-  while Length(Str) mod 8 <> 0 do
+  while Length(Str) mod DES_KEYSIZE <> 0 do
     Str := Str + Chr(0);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+procedure MakeKeyBytesAlign(var Key: TBytes);
+var
+  I, Len: Integer;
+begin
+  Len := Length(Key);
+  if Len < DES_KEYSIZE then
+  begin
+    SetLength(Key, DES_KEYSIZE);
+    for I := Len to DES_KEYSIZE - 1 do
+      Key[I] := 0;
+  end;
+end;
+
+procedure MakeInputBytesAlign(var Input: TBytes);
+var
+  I, Len, NL: Integer;
+begin
+  Len := Length(Input);
+  if Len mod DES_BLOCKSIZE <> 0 then
+  begin
+    NL := ((Len div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE;
+    SetLength(Input, NL);
+    for I := Len to NL - 1 do
+      Input[I] := 0;
+  end;
+end;
+
+{$ENDIF}
 
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
@@ -509,13 +625,11 @@ begin
   Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
 
-  for I := 0 to Length(Str) div 8 - 1 do
+  for I := 0 to Length(Str) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
-
+    Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
     DesData(dmEncry, SubKey, StrByte, OutByte);
-
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
   end;
 end;
 
@@ -530,13 +644,11 @@ begin
   Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
 
-  for I := 0 to Length(Input) div 8 - 1 do
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
-
+    Move(Input[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
     DesData(dmDecry, SubKey, StrByte, OutByte);
-
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
   end;
 
   // 末尾补的 0 由外部判断删除
@@ -561,9 +673,9 @@ begin
   MakeKey(KeyByte, SubKey);
   Move(Iv^, Vector[0], SizeOf(TDESIv));
 
-  for I := 0 to Length(Str) div 8 - 1 do
+  for I := 0 to Length(Str) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
     PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
@@ -571,8 +683,7 @@ begin
 
     // 再加密
     DesData(dmEncry, SubKey, StrByte, OutByte);
-
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
     // 加密结果更新到 Iv
     Move(OutByte[0], Vector[0], SizeOf(TDESIv));
@@ -594,9 +705,9 @@ begin
   MakeKey(KeyByte, SubKey);
   Move(Iv^, Vector[0], SizeOf(TDESIv));
 
-  for I := 0 to Length(Input) div 8 - 1 do
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(Input[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
     Move(StrByte[0], TV[0], SizeOf(TDESIv)); // 密文先存一下
 
     // 先解密
@@ -606,7 +717,7 @@ begin
     PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
     PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
 
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
     // 密文更新到 Iv
     Move(TV[0], Vector[0], SizeOf(TDESIv));
@@ -620,10 +731,10 @@ var
   Len: Integer;
 begin
   Len := Length(Str);
-  if Len < 8 then
-    Len := 8
+  if Len < DES_BLOCKSIZE then
+    Len := DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div 8) + 1) * 8;
+    Len := (((Len - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE;
   SetLength(Res, Len);
 end;
 
@@ -681,6 +792,146 @@ begin
   SetResultLengthUsingInput(Str, Result);
   DESDecryptECBStr(Key, Str, @(Result[1]));
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
+  I: Integer;
+  SubKey: TSubKey;
+begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  MakeKeyBytesAlign(Key);
+  MakeInputBytesAlign(Input);
+
+  Move(Key[0], KeyByte[0], SizeOf(TDESKey));
+  MakeKey(KeyByte, SubKey);
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+    DesData(dmEncry, SubKey, StrByte, OutByte);
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+  end;
+end;
+
+function DESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
+  I: Integer;
+  SubKey: TSubKey;
+begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  MakeKeyBytesAlign(Key);
+  Move(Key[0], KeyByte[0], SizeOf(TDESKey));
+  MakeKey(KeyByte, SubKey);
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+    DesData(dmDecry, SubKey, StrByte, OutByte);
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+  end;
+end;
+
+function DESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
+  Vector: TDESIv;
+  I: Integer;
+  SubKey: TSubKey;
+begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  MakeKeyBytesAlign(Key);
+  MakeKeyBytesAlign(Iv);
+
+  MakeInputBytesAlign(Input);
+
+  Move(Key[0], KeyByte[0], SizeOf(TDESKey));
+  MakeKey(KeyByte, SubKey);
+  Move(Iv[0], Vector[0], SizeOf(TDESIv));
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+
+    // CBC 数据块的值先跟 Iv 异或
+    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+
+    // 再加密
+    DesData(dmEncry, SubKey, StrByte, OutByte);
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+
+    // 加密结果更新到 Iv
+    Move(OutByte[0], Vector[0], SizeOf(TDESIv));
+  end;
+end;
+
+function DESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  KeyByte: TDESKey;
+  Vector, TV: TDESIv;
+  I: Integer;
+  SubKey: TSubKey;
+begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  MakeKeyBytesAlign(Key);
+  Move(Key[0], KeyByte[0], SizeOf(TDESKey));
+
+  MakeKey(KeyByte, SubKey);
+  MakeKeyBytesAlign(Iv);
+  Move(Iv[0], Vector[0], SizeOf(TDESIv));
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+    Move(StrByte[0], TV[0], SizeOf(TDESIv)); // 密文先存一下
+
+    // 先解密
+    DesData(dmDecry, SubKey, StrByte, OutByte);
+
+    // CBC 数据块解密后的值再跟 Iv 异或
+    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+
+    // 密文更新到 Iv
+    Move(TV[0], Vector[0], SizeOf(TDESIv));
+  end;
+end;
+
+{$ENDIF}
 
 procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TDESKey; Dest: TStream); overload;
@@ -876,15 +1127,15 @@ procedure Make3DESKeys(Keys: AnsiString; var K1, K2, K3: TDESKey); overload;
 var
   I: Integer;
 begin
-  if Length(Keys) < 24 then
-    while Length(Keys) < 24 do
+  if Length(Keys) < TRIPLE_DES_KEYSIZE then
+    while Length(Keys) < TRIPLE_DES_KEYSIZE do
       Keys := Keys + Chr(0);
 
-  for I := 0 to 7 do
+  for I := 0 to DES_KEYSIZE - 1 do
   begin
     K1[I] := Ord(Keys[I + 1]);
-    K2[I] := Ord(Keys[I + 9]);
-    K3[I] := Ord(Keys[I + 17]);
+    K2[I] := Ord(Keys[I + 1 + DES_KEYSIZE]);
+    K3[I] := Ord(Keys[I + 1 + DES_KEYSIZE * 2]);
   end;
 end;
 
@@ -892,11 +1143,11 @@ procedure Make3DESKeys(Keys: T3DESKey; var K1, K2, K3: TDESKey); overload;
 var
   I: Integer;
 begin
-  for I := 0 to 7 do
+  for I := 0 to DES_KEYSIZE - 1 do
   begin
     K1[I] := Keys[I];
-    K2[I] := Keys[I + 8];
-    K3[I] := Keys[I + 16];
+    K2[I] := Keys[I + DES_KEYSIZE];
+    K3[I] := Keys[I + DES_KEYSIZE * 2];
   end;
 end;
 
@@ -916,15 +1167,15 @@ begin
   Str := Input;
   MakeInputAlign(Str);
 
-  for I := 0 to Length(Str) div 8 - 1 do
+  for I := 0 to Length(Str) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     DesData(dmEncry, SubKey1, StrByte, OutByte);
     DesData(dmDecry, SubKey2, OutByte, StrByte);
     DesData(dmEncry, SubKey3, StrByte, OutByte);
 
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
   end;
 end;
 
@@ -940,15 +1191,15 @@ begin
   MakeKey(K2, SubKey2);
   MakeKey(K3, SubKey3);
 
-  for I := 0 to Length(Input) div 8 - 1 do
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(Input[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     DesData(dmDecry, SubKey3, StrByte, OutByte);
     DesData(dmEncry, SubKey2, OutByte, StrByte);
     DesData(dmDecry, SubKey1, StrByte, OutByte);
 
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
   end;
 
   // 末尾补的 0 由外部判断删除
@@ -973,9 +1224,9 @@ begin
   MakeInputAlign(Str);
   Move(Iv^, Vector[0], SizeOf(TDESIv));
 
-  for I := 0 to Length(Str) div 8 - 1 do
+  for I := 0 to Length(Str) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Str[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
     PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
@@ -986,7 +1237,7 @@ begin
     DesData(dmDecry, SubKey2, OutByte, StrByte);
     DesData(dmEncry, SubKey3, StrByte, OutByte);
 
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
     // 加密结果更新到 Iv
     Move(OutByte[0], Vector[0], SizeOf(TDESIv));
@@ -1009,9 +1260,9 @@ begin
 
   Move(Iv^, Vector[0], SizeOf(TDESIv));
 
-  for I := 0 to Length(Input) div 8 - 1 do
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
   begin
-    Move(Input[I * 8 + 1], StrByte[0], SizeOf(TDESBuffer));
+    Move(Input[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
     Move(StrByte[0], TV[0], SizeOf(TDESIv)); // 密文先存一下
 
     // 先解密
@@ -1023,7 +1274,7 @@ begin
     PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
     PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
 
-    Move(OutByte[0], Output[I * 8], SizeOf(TDESBuffer));
+    Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
     // 密文更新到 Iv
     Move(TV[0], Vector[0], SizeOf(TDESIv));
@@ -1065,6 +1316,30 @@ begin
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptECBStr(Key, Str, @(Result[1]));
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function TripleDESEncryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+begin
+
+end;
+
+function TripleDESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+begin
+
+end;
+
+function TripleDESEncryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+begin
+
+end;
+
+function TripleDESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+begin
+
+end;
+
+{$ENDIF}
 
 procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: T3DESKey; Dest: TStream); overload;
