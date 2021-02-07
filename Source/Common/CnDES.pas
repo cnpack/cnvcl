@@ -218,7 +218,7 @@ function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 
 {$IFDEF TBYTES_DEFINED}
 
-function TripleDESEncryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 {* 3DES-ECB 封装好的针对 TBytes 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 0
@@ -234,7 +234,7 @@ function TripleDESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
   返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function TripleDESEncryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function TripleDESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 {* 3DES-CBC 封装好的针对 TBytes 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
@@ -1151,6 +1151,30 @@ begin
   end;
 end;
 
+{$IFDEF TBYTES_DEFINED}
+
+procedure Make3DESKeys(Keys: TBytes; var K1, K2, K3: TDESKey); overload;
+var
+  I, Len: Integer;
+begin
+  Len := Length(Keys);
+  if Len < TRIPLE_DES_KEYSIZE then
+  begin
+    SetLength(Keys, TRIPLE_DES_KEYSIZE);
+    for I := Len to TRIPLE_DES_KEYSIZE - 1 do
+      Keys[I] := 0;
+  end;
+
+  for I := 0 to DES_KEYSIZE - 1 do
+  begin
+    K1[I] := Ord(Keys[I]);
+    K2[I] := Ord(Keys[I + DES_KEYSIZE]);
+    K3[I] := Ord(Keys[I + DES_KEYSIZE * 2]);
+  end;
+end;
+
+{$ENDIF}
+
 procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
   StrByte, OutByte: TDESBuffer;
@@ -1319,24 +1343,154 @@ end;
 
 {$IFDEF TBYTES_DEFINED}
 
-function TripleDESEncryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  I: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
 begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
 
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  MakeInputBytesAlign(Input);
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+
+    DesData(dmEncry, SubKey1, StrByte, OutByte);
+    DesData(dmDecry, SubKey2, OutByte, StrByte);
+    DesData(dmEncry, SubKey3, StrByte, OutByte);
+
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+  end;
 end;
 
 function TripleDESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  I: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
 begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
 
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+
+    DesData(dmDecry, SubKey3, StrByte, OutByte);
+    DesData(dmEncry, SubKey2, OutByte, StrByte);
+    DesData(dmDecry, SubKey1, StrByte, OutByte);
+
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+  end;
 end;
 
-function TripleDESEncryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function TripleDESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  Vector: TDESIv;
+  I: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
 begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
 
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  MakeInputBytesAlign(Input);
+  Move(Iv[0], Vector[0], SizeOf(TDESIv));
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+
+    // CBC 数据块的值先跟 Iv 异或
+    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+
+    // 再加密
+    DesData(dmEncry, SubKey1, StrByte, OutByte);
+    DesData(dmDecry, SubKey2, OutByte, StrByte);
+    DesData(dmEncry, SubKey3, StrByte, OutByte);
+
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+
+    // 加密结果更新到 Iv
+    Move(OutByte[0], Vector[0], SizeOf(TDESIv));
+  end;
 end;
 
 function TripleDESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+var
+  StrByte, OutByte: TDESBuffer;
+  K1, K2, K3: TDESKey;
+  Vector, TV: TDESIv;
+  I: Integer;
+  SubKey1, SubKey2, SubKey3: TSubKey;
 begin
+  if Length(Input) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
 
+  Make3DESKeys(Key, K1, K2, K3);
+  MakeKey(K1, SubKey1);
+  MakeKey(K2, SubKey2);
+  MakeKey(K3, SubKey3);
+
+  Move(Iv[0], Vector[0], SizeOf(TDESIv));
+
+  SetLength(Result, (((Length(Input) - 1) div DES_BLOCKSIZE) + 1) * DES_BLOCKSIZE);
+  for I := 0 to Length(Input) div DES_BLOCKSIZE - 1 do
+  begin
+    Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
+    Move(StrByte[0], TV[0], SizeOf(TDESIv)); // 密文先存一下
+
+    // 先解密
+    DesData(dmDecry, SubKey3, StrByte, OutByte);
+    DesData(dmEncry, SubKey2, OutByte, StrByte);
+    DesData(dmDecry, SubKey1, StrByte, OutByte);
+
+    // CBC 数据块解密后的值再跟 Iv 异或
+    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
+    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+
+    Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
+
+    // 密文更新到 Iv
+    Move(TV[0], Vector[0], SizeOf(TDESIv));
+  end;
 end;
 
 {$ENDIF}

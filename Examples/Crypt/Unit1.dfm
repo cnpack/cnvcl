@@ -273,6 +273,14 @@ object FormCrypt: TFormCrypt
           Caption = 'ECB'
           TabOrder = 8
         end
+        object chk3DESUseTBytes: TCheckBox
+          Left = 352
+          Top = 116
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 9
+        end
       end
     end
     object tsMD5: TTabSheet

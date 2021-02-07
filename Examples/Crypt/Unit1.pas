@@ -270,6 +270,7 @@ type
     rb3DesECB: TRadioButton;
     chkSM4UseTBytes: TCheckBox;
     chkDESUseTBytes: TCheckBox;
+    chk3DESUseTBytes: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -515,7 +516,7 @@ begin
 {$ENDIF}
     end
     else
-    DESDecryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
+      DESDecryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
   end;
   edtDesOrigin.Text := Output;
 
@@ -571,6 +572,7 @@ begin
 {$IFNDEF TBYTES_DEFINED}
   chkSM4UseTBytes.Visible := False;
   chkDESUseTBytes.Visible := False;
+  chk3DESUseTBytes.Visible := False;
 {$ENDIF}
 end;
 
@@ -1549,6 +1551,9 @@ var
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
   IvStr: AnsiString;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   Len := Length(edt3DesFrom.Text);
   if Len < 8 then
@@ -1559,7 +1564,19 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rb3DESEcb.Checked then
-    TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]))
+  begin
+    if chk3DESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
+      ResBytes := TripleDESEncryptEcbBytes(KeyBytes, TEncoding.Default.GetBytes(edt3DesFrom.Text));
+      edt3DESCode.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]));
+  end
   else
   begin
     IvStr := HexToStr(edt3DESIv.Text);
@@ -1570,7 +1587,19 @@ begin
     end
     else
       CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
-    TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
+
+    if chk3DESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      ResBytes := TripleDESEncryptCbcBytes(KeyBytes, IvBytes, TEncoding.Default.GetBytes(edt3DesFrom.Text));
+      edt3DESCode.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
   end;
   edt3DESCode.Text := ToHex(@(Output[1]), Length(Output));
 
@@ -1583,6 +1612,9 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   S := AnsiString(HexToStr(edt3DESCode.Text));
   Len := Length(S);
@@ -1594,7 +1626,19 @@ begin
   ZeroMemory(@(Output[1]), Len);
 
   if rb3DESEcb.Checked then
-    TripleDESDecryptEcbStr(edt3DESKey.Text, S, @(Output[1]))
+  begin
+    if chk3DESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
+      ResBytes := TripleDESDecryptEcbBytes(KeyBytes, HexToBytes(edt3DESCode.Text));
+      edt3DesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      TripleDESDecryptEcbStr(edt3DESKey.Text, S, @(Output[1]));
+  end
   else
   begin
     IvStr := HexToStr(edt3DESIv.Text);
@@ -1606,7 +1650,18 @@ begin
     else
       CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
 
-    TripleDESDecryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
+    if chk3DESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      ResBytes := TripleDESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edt3DESCode.Text));
+      edt3DesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+      TripleDESDecryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
   end;
   edt3DesOrigin.Text := Output;
 
