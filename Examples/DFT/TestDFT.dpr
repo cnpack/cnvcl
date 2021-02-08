@@ -3,7 +3,7 @@ program TestDFT;
 uses
   Forms,
   UnitDFT in 'UnitDFT.pas' {FormDFT},
-  CnDFT in '..\..\Source\Common\CnDFT.pas';
+  CnDFT in '..\..\Source\Crypto\CnDFT.pas';
 
 {$R *.RES}
 

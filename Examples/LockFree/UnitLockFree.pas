@@ -52,9 +52,6 @@ implementation
 
 {$R *.DFM}
 
-uses
-  CnDebug;
-
 type
   TNoCriticalThread = class(TThread)
   protected

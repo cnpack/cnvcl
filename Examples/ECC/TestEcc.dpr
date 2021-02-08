@@ -3,7 +3,7 @@ program TestEcc;
 uses
   Forms,
   UnitEcc in 'UnitEcc.pas' {FormEcc},
-  CnECC in '..\..\Source\Common\CnECC.pas';
+  CnECC in '..\..\Source\Crypto\CnECC.pas';
 
 {$R *.RES}
 

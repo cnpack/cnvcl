@@ -4,7 +4,7 @@ uses
   Forms,
   TestBloomFilterUnit in 'TestBloomFilterUnit.pas' {BloomFilterForm},
   CnBloomFilter in '..\..\Source\Common\CnBloomFilter.pas',
-  CnCRC32 in '..\..\Source\Common\CnCRC32.pas';
+  CnCRC32 in '..\..\Source\Crypto\CnCRC32.pas';
 
 {$R *.RES}
 

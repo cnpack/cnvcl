@@ -3,7 +3,7 @@ program CertificateAuthority;
 uses
   Forms,
   UnitCertificateAuthority in 'UnitCertificateAuthority.pas' {FormCA},
-  CnCertificateAuthority in '..\..\Source\Common\CnCertificateAuthority.pas';
+  CnCertificateAuthority in '..\..\Source\Crypto\CnCertificateAuthority.pas';
 
 {$R *.RES}
 

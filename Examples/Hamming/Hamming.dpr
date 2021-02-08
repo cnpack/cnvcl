@@ -3,7 +3,7 @@ program Hamming;
 uses
   Forms,
   UnitHamming in 'UnitHamming.pas' {FormHamming},
-  CnFEC in '..\..\Source\Common\CnFEC.pas',
+  CnFEC in '..\..\Source\Crypto\CnFEC.pas',
   CnMatrix in '..\..\Source\Common\CnMatrix.pas';
 
 {$R *.RES}

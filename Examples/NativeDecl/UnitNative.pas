@@ -224,7 +224,7 @@ var
   N, R: Cardinal;
 begin
   N := Trunc(Random(MaxInt) * 2);
-  R := GetUInt32PowerOf2GreaterThan(N);
+  R := GetUInt32PowerOf2GreaterEqual(N);
   ShowMessage(UInt64ToStr(N) + ' < ' + UInt64ToStr(R));
 end;
 
@@ -234,7 +234,7 @@ var
 begin
   N := Trunc(Random(MaxInt) * 2);
   N := UInt64Mul(N, N);
-  R := GetUInt64PowerOf2GreaterThan(N);
+  R := GetUInt64PowerOf2GreaterEqual(N);
   ShowMessage(UInt64ToStr(N) + ' < ' + UInt64ToStr(R));
 end;
 

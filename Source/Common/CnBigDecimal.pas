@@ -121,7 +121,7 @@ type
     property DebugDump: string read GetDebugDump;
   end;
 
-  TCnBigDecimalPool = class(TObjectList)
+  TCnBigDecimalPool = class(TCnMathObjectPool)
   {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
   protected
     function CreateObject: TObject; override;

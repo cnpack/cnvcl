@@ -4,7 +4,7 @@ uses
   Forms,
   UnitMatrix in 'UnitMatrix.pas' {FormMatrix},
   CnMatrix in '..\..\Source\Common\CnMatrix.pas',
-  CnFEC in '..\..\Source\Common\CnFEC.pas';
+  CnFEC in '..\..\Source\Crypto\CnFEC.pas';
 
 {$R *.RES}
 
