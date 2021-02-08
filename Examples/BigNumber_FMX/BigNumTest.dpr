@@ -4,7 +4,7 @@ uses
   System.StartUpCopy,
   FMX.Forms,
   UnitMain in 'UnitMain.pas' {FormBigNumber},
-  CnBigNumber in '..\..\Source\Common\CnBigNumber.pas';
+  CnBigNumber in '..\..\Source\Crypto\CnBigNumber.pas';
 
 {$R *.res}
 

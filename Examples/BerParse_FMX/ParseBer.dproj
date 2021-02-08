@@ -74,7 +74,7 @@
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <SanitizedProjectName>ParseBer</SanitizedProjectName>
-        <DCC_UnitSearchPath>..\..\Source\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\Source\Common;..\..\Source\Crypto;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 	<DCC_Define>ENABLE_FMX;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX32)'!=''">
@@ -146,7 +146,7 @@
             <Form>FormParseBer</Form>
             <FormType>fmx</FormType>
         </DCCReference>
-        <DCCReference Include="..\..\Source\Common\CnBerUtils.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnBerUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnTree.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

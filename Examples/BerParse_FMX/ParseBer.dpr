@@ -4,7 +4,7 @@ uses
   System.StartUpCopy,
   FMX.Forms,
   UnitBer in 'UnitBer.pas' {FormParseBer},
-  CnBerUtils in '..\..\Source\Common\CnBerUtils.pas',
+  CnBerUtils in '..\..\Source\Crypto\CnBerUtils.pas',
   CnTree in '..\..\Source\Common\CnTree.pas';
 
 {$R *.res}
