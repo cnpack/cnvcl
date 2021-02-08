@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Common;..\..\Source\Crypto
+SearchPath=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Crypto
 Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50
 Conditionals=
 DebugSourceDirs=
@@ -85,5 +85,5 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=2
-Item0=..\..\Source\Common;..\..\Source\Crypto
-Item1=..\..\Source\Common
+Item0=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Crypto
+Item1=..\..\Source\Common;..\..\Source\Crypto

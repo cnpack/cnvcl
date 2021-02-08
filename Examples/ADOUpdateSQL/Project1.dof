@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Common;..\..\Source\DbReport
+SearchPath=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;dbexpress;dbxcds;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl
 Conditionals=
 DebugSourceDirs=
@@ -86,5 +86,5 @@ Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=3
 Item0=..\..\Source\DbReport
-Item1=..\..\Source\Common
+Item1=..\..\Source\Common;..\..\Source\Crypto
 Item2=..\Source\Common

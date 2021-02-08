@@ -94,7 +94,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Common;..\..\Source\NetComm;..\..\Source\Graphics
+SearchPath=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\NetComm;..\..\Source\Graphics
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;dbexpress;dbxcds;inetdb;bdertl;vcldbx;webdsnap
 Conditionals=
 DebugSourceDirs=
@@ -141,4 +141,4 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=1
-Item0=..\..\Source\Common;..\..\Source\NetComm
+Item0=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\NetComm

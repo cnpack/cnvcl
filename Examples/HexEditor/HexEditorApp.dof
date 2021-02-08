@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Graphics;..\..\Source\Common
+SearchPath=..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto
 Packages=vcl;rtl;dbrtl;adortl;vcldb;vclx;bdertl;vcldbx;ibxpress;dsnap;cds;bdecds;qrpt;teeui;teedb;tee;dss;teeqr;visualclx;visualdbclx;dsnapcrba;dsnapcon;VclSmp;vclshlctrls;inetdb;inet;nmfast;vclie;dbexpress;dbxcds;indy;dclOffice2k
 Conditionals=
 DebugSourceDirs=
@@ -88,7 +88,7 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=3
-Item0=..\..\Source\Graphics;..\..\Source\Common
+Item0=..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto
 Item1=..\..\Source\Graphics
 Item2=$(DELPHI)\Lib\Debug
 [HistoryLists\hlUnitOutputDirectory]

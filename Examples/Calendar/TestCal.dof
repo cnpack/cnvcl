@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source\Common;..\..\Source\Graphics
+SearchPath=..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics
 Packages=
 Conditionals=
 DebugSourceDirs=
@@ -85,4 +85,4 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=1
-Item0=..\..\Source\Common
+Item0=..\..\Source\Common;..\..\Source\Crypto
