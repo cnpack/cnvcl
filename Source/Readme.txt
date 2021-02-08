@@ -2,20 +2,8 @@ cnpack\Source 目录内容说明：
 
 \Common －公共库目录
 
-  CnAES.pas
-    AES 算法单元
-
   CnAntiCheater.pas
     使用内存变换防明文搜索的工具类
-
-  CnBase64.pas
-    Base64 编码解码算法单元
-
-  CnBerUtils.pas
-    BER/DER 编码格式解析单元
-
-  CnBigNumber.pas
-    大数计算单元
 
   CnBinaryDiffPatch.pas
     二进制差分与合并算法实现单元
@@ -31,9 +19,6 @@ cnpack\Source 目录内容说明：
 
   CnCallBack.pas
     回调函数转换库
-
-  CnCertificateAuthority.pas
-    证书签名验证的实现单元
 
   CnClasses.pas
     基础类定义单元
@@ -53,32 +38,20 @@ cnpack\Source 目录内容说明：
   CnContainers.pas
     自定义容器实现单元
 
-  CnCRC32.pas
-    CRC32循环冗余校验单元
-
   CnDancingLinks.pas
     十字循环双向链表的稀疏矩阵以及跳舞链表的实现单元
 
   CnDebug.pas
     CnDebug 调试信息输出接口单元
 
-  CnDES.pas
-    DES 加密解密算法实现单元
-
   CnDynObjBuilder.pas
     根据字符串动态创建对象
-
-  CnECC.pas
-    椭圆曲线加密算法实现单元
 
   CnEventBus.pas
     模拟 EventBus 实现的事件通知单元
 
   CnEventHook.pas
     事件挂接的实现单元
-
-  CnFEC.pas
-    前向纠错编码解码单元的部分实现
 
   CnFitCurve.pas
     曲线拟合实现单元
@@ -113,14 +86,14 @@ cnpack\Source 目录内容说明：
   CnIniStrUtils.pas
     扩展的 INI 访问的字符串处理
 
+  CnLockFree.pas
+    无锁数据结构实现单元
+
   CnLinkedList.pas
     双向链表实现单元
 
   CnMatrix.pas
     整数以及有理数矩阵运算的实现单元
-
-  CnMD5.pas
-    MD5 算法单元
 
   CnMemProf.pas
     一个简单的内存防护管理器实现单元
@@ -130,9 +103,6 @@ cnpack\Source 目录内容说明：
 
   CnMulticastEvent.pas
     多播实现类
-
-  CnNativeDecl.pas
-    Win32/64 的部分通用声明单元
 
   CnObjAuto.pas
     部分自动化对象实现单元
@@ -146,9 +116,6 @@ cnpack\Source 目录内容说明：
   CnPackRegister.pas
     组件包注册单元
 
-  CnPrimeNumber.pas
-    素数运算单元
-
   CnPropEditors.pas
     开发包属性组件编辑器
 
@@ -157,18 +124,6 @@ cnpack\Source 目录内容说明：
 
   CnRopes.pas
     Ropes 数据结构实现单元
-
-  CnRSA.pas
-    RSA 算法实现单元
-
-  CnSHA1.pas
-    SHA1 算法实现单元
-
-  CnSHA2.pas
-    SHA2 算法实现单元
-
-  CnSHA3.pas
-    SHA3 算法实现单元
 
   CnShellUtils.pas
     Shell 工具单元
@@ -182,12 +137,6 @@ cnpack\Source 目录内容说明：
   CnSkipList.pas
     跳跃链表实现单元
 
-  CnSM3.pas
-    中国国家密码管理局发布的 SM3 密码杂凑算法实现单元
-
-  CnSM4.pas
-    中国国家密码管理局发布的 SM4 分组密码算法实现单元
-
   CnSQLite.pas
     SQLite 数据库的 Delphi 封装
 
@@ -199,9 +148,6 @@ cnpack\Source 目录内容说明：
 
   CnStrings.pas
     Ansi 版 StringList 实现单元
-
-  CnTEA.pas
-    TEA/XTEA/XXTEA 算法实现单元
 
   CnThreadTaskMgr.pas
     多线程任务管理单元
@@ -233,10 +179,92 @@ cnpack\Source 目录内容说明：
   CnZip.pas
     Zip 压缩文件实现单元
 
+              58 文件
+
+\Crypto - 加解密算法目录
+
+  CnAES.pas
+    AES 算法单元
+
+  CnBase64.pas
+    Base64 编码解码算法单元
+
+  CnBerUtils.pas
+    BER/DER 编码格式解析单元
+
+  CnBigNumber.pas
+    大数计算单元
+
+  CnCertificateAuthority.pas
+    证书签名验证的实现单元
+
+  CnComplex.pas
+    浮点复数实现单元
+
+  CnCRC32.pas
+    CRC32循环冗余校验单元
+
+  CnDES.pas
+    DES 加密解密算法实现单元
+
+  CnDFT.pas
+    离散傅立叶变换实现单元
+
+  CnECC.pas
+    椭圆曲线加密算法实现单元
+
+  CnFEC.pas
+    前向纠错编码解码单元的部分实现
+
+  CnKDF.pas
+    密码生成算法单元
+
+  CnMD5.pas
+    MD5 算法单元
+
+  CnNativeDecl.pas
+    Win32/64 的部分通用声明单元
+
+  CnPemUtils.pas
+    PEM 格式处理工具单元
+
+  CnPolynomial.pas
+    多项式运算单元
+
+  CnPrimeNumber.pas
+    素数运算单元
+
+  CnRandom.pas
+    随机数生成单元
+
+  CnRSA.pas
+    RSA 算法实现单元
+
+  CnSHA1.pas
+    SHA1 算法实现单元
+
+  CnSHA2.pas
+    SHA2 算法实现单元
+
+  CnSHA3.pas
+    SHA3 算法实现单元
+
+  CnSM2.pas
+    中国国家密码管理局发布的 SM2 椭圆曲线算法实现单元
+
+  CnSM3.pas
+    中国国家密码管理局发布的 SM3 密码杂凑算法实现单元
+
+  CnSM4.pas
+    中国国家密码管理局发布的 SM4 分组密码算法实现单元
+
+  CnTEA.pas
+    TEA/XTEA/XXTEA 算法实现单元
+
   CnZUC.pas
     祖冲之算法实现单元
 
-              75 文件
+                共 27 文件
 
 \DbReport －数据库组件与报表库目录
 
