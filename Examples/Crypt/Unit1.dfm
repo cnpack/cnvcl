@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
   Left = 318
-  Top = 219
+  Top = 220
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 437
@@ -472,7 +472,7 @@ object FormCrypt: TFormCrypt
       end
     end
     object tsCRC32: TTabSheet
-      Caption = 'CRC32'
+      Caption = 'CRC8/16/32'
       ImageIndex = 3
       object grpCRC32: TGroupBox
         Left = 24
@@ -480,7 +480,7 @@ object FormCrypt: TFormCrypt
         Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'CRC32'
+        Caption = 'CRC8/16/32'
         TabOrder = 0
         object lblCRC: TLabel
           Left = 24
@@ -547,6 +547,42 @@ object FormCrypt: TFormCrypt
           Caption = 'CRC32 Hmac'
           TabOrder = 3
           OnClick = btnCRC32HmacClick
+        end
+        object btnCRC16: TButton
+          Left = 152
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC16'
+          TabOrder = 6
+          OnClick = btnCRC16Click
+        end
+        object btnFileCRC16: TButton
+          Left = 152
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File CRC16'
+          TabOrder = 7
+          OnClick = btnFileCRC16Click
+        end
+        object btnCRC8: TButton
+          Left = 232
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC8'
+          TabOrder = 8
+          OnClick = btnCRC8Click
+        end
+        object btnFileCRC8: TButton
+          Left = 232
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File CRC8'
+          TabOrder = 9
+          OnClick = btnFileCRC8Click
         end
       end
     end

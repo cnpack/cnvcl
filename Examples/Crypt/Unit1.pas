@@ -273,6 +273,10 @@ type
     chk3DESUseTBytes: TCheckBox;
     chkBase64UseTBytes: TCheckBox;
     chkAESUseTBytes: TCheckBox;
+    btnCRC16: TButton;
+    btnFileCRC16: TButton;
+    btnCRC8: TButton;
+    btnFileCRC8: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -350,6 +354,10 @@ type
     procedure btnXXTeaDecClick(Sender: TObject);
     procedure btn3DesCryptClick(Sender: TObject);
     procedure btn3DesDecryptClick(Sender: TObject);
+    procedure btnCRC16Click(Sender: TObject);
+    procedure btnFileCRC16Click(Sender: TObject);
+    procedure btnCRC8Click(Sender: TObject);
+    procedure btnFileCRC8Click(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -1820,5 +1828,43 @@ begin
 end;
 
 {$ENDIF}
+
+procedure TFormCrypt.btnCRC16Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlCRC32.Caption := IntToHex(StrCRC16A(0, AnsiString(edtCRC32.Text)), 2);
+{$ELSE}
+  pnlCRC32.Caption := IntToHex(StrCRC16(0, edtCRC32.Text), 2);
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnFileCRC16Click(Sender: TObject);
+var
+  Crc: WORD;
+begin
+  Crc := 0;
+  if OpenDialog1.Execute then
+    if FileCRC16(OpenDialog1.FileName, Crc) then
+      pnlCRC32.Caption := IntToHex(Crc, 2);
+end;
+
+procedure TFormCrypt.btnCRC8Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  pnlCRC32.Caption := IntToHex(StrCRC8A(0, AnsiString(edtCRC32.Text)), 2);
+{$ELSE}
+  pnlCRC32.Caption := IntToHex(StrCRC8(0, edtCRC32.Text), 2);
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnFileCRC8Click(Sender: TObject);
+var
+  Crc: Byte;
+begin
+  Crc := 0;
+  if OpenDialog1.Execute then
+    if FileCRC8(OpenDialog1.FileName, Crc) then
+      pnlCRC32.Caption := IntToHex(Crc, 2);
+end;
 
 end.
