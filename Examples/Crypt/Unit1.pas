@@ -272,6 +272,7 @@ type
     chkDESUseTBytes: TCheckBox;
     chk3DESUseTBytes: TCheckBox;
     chkBase64UseTBytes: TCheckBox;
+    chkAESUseTBytes: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -593,6 +594,7 @@ begin
   chkDESUseTBytes.Visible := False;
   chk3DESUseTBytes.Visible := False;
   chkBase64UseTBytes.Visible := False;
+  chkAESUseTBytes.Visible := False;
 {$ENDIF}
 end;
 
@@ -828,16 +830,38 @@ procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
   IvStr: AnsiString;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   if rbAesecb.Checked then
   begin
-    case cbbAesKeyBitType.ItemIndex of
-      0:                       
-        edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt128);
-      1:
-        edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt192);
-      2:
-        edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt256);
+    if chkAESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          ResBytes := AESEncryptEcbBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, kbt128);
+        1:
+          ResBytes := AESEncryptEcbBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, kbt192);
+        2:
+          ResBytes := AESEncryptEcbBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, kbt256);
+      end;
+      edtAesResult.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+    begin
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt128);
+        1:
+          edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt192);
+        2:
+          edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt256);
+      end;
     end;
   end
   else
@@ -851,13 +875,33 @@ begin
     else
       CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
 
-    case cbbAesKeyBitType.ItemIndex of
-      0:
-        edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
-      1:
-        edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt192);
-      2:
-        edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt256);
+    if chkAESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          ResBytes := AESEncryptCbcBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, IvBytes, kbt128);
+        1:
+          ResBytes := AESEncryptCbcBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, IvBytes, kbt192);
+        2:
+          ResBytes := AESEncryptCbcBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, IvBytes, kbt256);
+      end;
+      edtAesResult.Text := BytesToHex(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+    begin
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
+        1:
+          edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt192);
+        2:
+          edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt256);
+      end;
     end;
   end;
 end;
@@ -866,16 +910,38 @@ procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
   TmpAesIv: TAESBuffer;
   IvStr: AnsiString;
+{$IFDEF TBYTES_DEFINED}
+  KeyBytes, IvBytes, ResBytes: TBytes;
+{$ENDIF}
 begin
   if rbAesecb.Checked then
   begin
-    case cbbAesKeyBitType.ItemIndex of
-      0:
-        edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt128);
-      1:
-        edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt192);
-      2:
-        edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt256);
+    if chkAESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          ResBytes := AESDecryptEcbBytes(HexToBytes(edtAesResult.Text), KeyBytes, kbt128);
+        1:
+          ResBytes := AESDecryptEcbBytes(HexToBytes(edtAesResult.Text), KeyBytes, kbt192);
+        2:
+          ResBytes := AESDecryptEcbBytes(HexToBytes(edtAesResult.Text), KeyBytes, kbt256);
+      end;
+      edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+    begin
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt128);
+        1:
+          edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt192);
+        2:
+          edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt256);
+      end;
     end;
   end
   else
@@ -889,13 +955,34 @@ begin
     else
       CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
 
-    case cbbAesKeyBitType.ItemIndex of
-      0:
-        edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt128);
-      1:
-        edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt192);
-      2:
-        edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt256);
+    if chkAESUseTBytes.Checked then
+    begin
+{$IFDEF TBYTES_DEFINED}
+      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
+      IvBytes := TEncoding.Default.GetBytes(IvStr);
+
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          ResBytes := AESDecryptCbcBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt128);
+        1:
+          ResBytes := AESDecryptCbcBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt192);
+        2:
+          ResBytes := AESDecryptCbcBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt256);
+      end;
+      edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
+      Exit;
+{$ENDIF}
+    end
+    else
+    begin
+      case cbbAesKeyBitType.ItemIndex of
+        0:
+          edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt128);
+        1:
+          edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt192);
+        2:
+          edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt256);
+      end;
     end;
   end;
 end;

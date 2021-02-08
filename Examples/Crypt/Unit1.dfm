@@ -1076,6 +1076,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 9
           Text = '0123456789ABCDEFFEDCBA9876543210'
         end
+        object chkAESUseTBytes: TCheckBox
+          Left = 352
+          Top = 132
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 10
+        end
       end
     end
     object tsSHA224: TTabSheet

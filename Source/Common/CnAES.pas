@@ -203,6 +203,22 @@ function AESEncryptCbcStrToHex(Value: AnsiString; Key: AnsiString;
 function AESDecryptCbcStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
 
+{$IFDEF TBYTES_DEFINED}
+
+// AES ECB 模式加密字节数组
+function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES ECB 模式解密字节数组
+function AESDecryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES CBC 模式加密字节数组
+function AESEncryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES CBC 模式解密字节数组
+function AESDecryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+{$ENDIF}
+
 implementation
 
 resourcestring
@@ -2595,28 +2611,28 @@ var
   AESKey256: TAESKey256;
 begin
   Result := '';
-  SS := TMemoryStream.Create();
+  SS := TMemoryStream.Create;
   SS.Write(PAnsiChar(@Value[1])^, Length(Value));
   SS.Position := 0;
 
-  DS := TMemoryStream.Create();
+  DS := TMemoryStream.Create;
   try
     case KeyBit of
     kbt128:
       begin
-        FillChar(AESKey128, SizeOf(AESKey128), 0 );
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
         EncryptAESStreamECB(SS, 0, AESKey128, DS);
       end;
     kbt192:
       begin
-        FillChar(AESKey192, SizeOf(AESKey192), 0 );
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
         EncryptAESStreamECB(SS, 0, AESKey192, DS);
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         EncryptAESStreamECB(SS, 0, AESKey256, DS);
       end;
@@ -2639,29 +2655,29 @@ var
   Tmp: AnsiString;
 begin
   Result := '';
-  SS := TMemoryStream.Create();
+  SS := TMemoryStream.Create;
   Tmp := HexToStr(Value);
   SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
   SS.Position := 0;
 
-  DS := TMemoryStream.Create();
+  DS := TMemoryStream.Create;
   try
     case KeyBit of
     kbt128:
       begin
-        FillChar(AESKey128, SizeOf(AESKey128), 0 );
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
         DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey128, DS);
       end;
     kbt192:
       begin
-        FillChar(AESKey192, SizeOf(AESKey192), 0 );
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
         DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey192, DS);
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey256, DS);
       end;
@@ -2684,27 +2700,27 @@ var
   AESKey256: TAESKey256;
 begin
   Result := '';
-  SS := TMemoryStream.Create();
+  SS := TMemoryStream.Create;
   SS.Write(PAnsiChar(@Value[1])^, Length(Value));
   SS.Position := 0;
-  DS := TMemoryStream.Create();
+  DS := TMemoryStream.Create;
   try
     case KeyBit of
     kbt128:
       begin
-        FillChar(AESKey128, SizeOf(AESKey128), 0 );
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
         EncryptAESStreamCBC(SS, 0, AESKey128, Iv, DS);
       end;
     kbt192:
       begin
-        FillChar(AESKey192, SizeOf(AESKey192), 0 );
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
         EncryptAESStreamCBC(SS, 0, AESKey192, Iv, DS);
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         EncryptAESStreamCBC(SS, 0, AESKey256, Iv, DS);
       end;
@@ -2727,12 +2743,12 @@ var
   Tmp: AnsiString;
 begin
   Result := '';
-  SS := TMemoryStream.Create();
+  SS := TMemoryStream.Create;
   Tmp := HexToStr(Value);
   SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
   SS.Position := 0;
   
-  DS := TMemoryStream.Create();
+  DS := TMemoryStream.Create;
   try
     case KeyBit of
     kbt128:
@@ -2761,6 +2777,216 @@ begin
     DS.Free;
   end;
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+// AES ECB 模式加密字节数组
+function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        EncryptAESStreamECB(SS, 0, AESKey128, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        EncryptAESStreamECB(SS, 0, AESKey192, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        EncryptAESStreamECB(SS, 0, AESKey256, DS);
+      end;
+    end;
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES ECB 模式解密字节数组
+function AESDecryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey128, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey192, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey256, DS);
+      end;
+    end;
+
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES CBC 模式加密字节数组
+function AESEncryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AESIv: TAESBuffer;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  FillChar(AESIv, SizeOF(AESIv), 0);
+  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        EncryptAESStreamCBC(SS, 0, AESKey128, AESIv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        EncryptAESStreamCBC(SS, 0, AESKey192, AESIv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        EncryptAESStreamCBC(SS, 0, AESKey256, AESIv, DS);
+      end;
+    end;
+
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES CBC 模式解密字节数组
+function AESDecryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AESIv: TAESBuffer;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  FillChar(AESIv, SizeOF(AESIv), 0);
+  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey128, AESIv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey192, AESIv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey256, AESIv, DS);
+      end;
+    end;
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+{$ENDIF}
 
 end.
 
