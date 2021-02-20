@@ -41,7 +41,6 @@ uses
   SysUtils, Classes;
 
 resourcestring
-  
   SCnLangMgrName = 'Language Manager';
   SCnLangMgrComment = 'Language Manager';
   SCnIniLangStorageName = 'INI Language Storage Component';

@@ -28,7 +28,9 @@ unit CnLangUtils;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2006.10.12 V1.0
+* 修改记录：2021.02.20 V1.1
+*               增加代码页的获取
+*           2006.10.12 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -73,10 +75,17 @@ type
     {* 设置过滤 *}
   end;
 
+  TCnLangRec = packed record
+    FName: string;
+    FLCID: LCID;
+    FExt: string;
+    FCodePage: DWORD; // 增加语言对应的代码页
+  end;
+
   {* 从 SysUtils 的 TLanguages 移植而来但修正了 DEP 错误的语言列表类}
   TCnLanguages = class(TObject)
   private
-    FSysLangs: array of TLangRec;
+    FSysLangs: array of TCnLangRec;
     function LocalesCallback(LocaleID: PChar): Integer; stdcall;
     function GetExt(Index: Integer): string;
     function GetID(Index: Integer): string;
@@ -114,11 +123,11 @@ const
   
 var
   FLanguages: TCnLanguages;
-  FTempLanguages: TCnLanguages = nil;
+  FTempLanguagesRef: TCnLanguages = nil;
 
 function EnumLocalesCallback(LocaleID: PChar): Integer; stdcall;
 begin
-  Result := FTempLanguages.LocalesCallback(LocaleID);
+  Result := FTempLanguagesRef.LocalesCallback(LocaleID);
 end;
   
 { TCnLanguages }
@@ -143,7 +152,7 @@ end;
 function TCnLanguages.LocalesCallback(LocaleID: PChar): Integer; stdcall;
 var
   AID: LCID;
-  ShortLangName: string;
+  ResStr: string;
   GetLocaleDataProc: function (ID: LCID; Flag: DWORD): string;
 begin
   if Win32Platform = VER_PLATFORM_WIN32_NT then
@@ -151,24 +160,32 @@ begin
   else
     GetLocaleDataProc := @GetLocaleDataA;
   AID := StrToInt('$' + Copy(LocaleID, 5, 4));
-  ShortLangName := GetLocaleDataProc(AID, LOCALE_SABBREVLANGNAME);
-  if ShortLangName <> '' then
+  ResStr := GetLocaleDataProc(AID, LOCALE_SABBREVLANGNAME);
+  if ResStr <> '' then
   begin
     SetLength(FSysLangs, Length(FSysLangs) + 1);
     with FSysLangs[High(FSysLangs)] do
     begin
       FName := GetLocaleDataProc(AID, LOCALE_SLANGUAGE);
       FLCID := AID;
-      FExt := ShortLangName;
+      FExt := ResStr;
     end;
   end;
+
+  ResStr := GetLocaleDataProc(AID, LOCALE_IDEFAULTANSICODEPAGE);
+  if ResStr <> '' then
+  begin
+    with FSysLangs[High(FSysLangs)] do
+      FCodePage := StrToIntDef(ResStr, 0);
+  end;
+
   Result := 1;
 end;
 
 constructor TCnLanguages.Create;
 begin
   inherited Create;
-  FTempLanguages := Self; 
+  FTempLanguagesRef := Self;
   EnumSystemLocales(@EnumLocalesCallback, LCID_SUPPORTED);
 end;
 
