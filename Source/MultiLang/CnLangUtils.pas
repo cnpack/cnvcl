@@ -79,7 +79,7 @@ type
     FName: string;
     FLCID: LCID;
     FExt: string;
-    FCodePage: DWORD; // 增加语言对应的代码页
+    FCodePage: Cardinal; // 增加语言对应的代码页
   end;
 
   {* 从 SysUtils 的 TLanguages 移植而来但修正了 DEP 错误的语言列表类}
@@ -94,6 +94,7 @@ type
     function GetNameFromLocaleID(ID: LCID): string;
     function GetNameFromLCID(const ID: string): string;
     function GetCount: integer;
+    function GetCodePage(Index: Integer): Cardinal;
   public
     constructor Create;
     destructor Destroy; override;
@@ -105,6 +106,7 @@ type
     property ID[Index: Integer]: string read GetID;
     property LocaleID[Index: Integer]: LCID read GetLCID;
     property Ext[Index: Integer]: string read GetExt;
+    property CodePage[Index: Integer]: Cardinal read GetCodePage;
   end;
 
 function CnLanguages: TCnLanguages;
@@ -246,6 +248,11 @@ begin
   if FLanguages = nil then
     FLanguages := TCnLanguages.Create;
   Result := FLanguages;
+end;
+
+function TCnLanguages.GetCodePage(Index: Integer): Cardinal;
+begin
+  Result := FSysLangs[Index].FCodePage;
 end;
 
 { TCnLangStringExtractor }
