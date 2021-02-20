@@ -355,7 +355,7 @@ type
     procedure GetCurrentTrace(Strings: TStrings);
     procedure GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
 
-    procedure InternalOutputMsg(const AMsg: AnsiString; Size: Integer; const ATag: AnsiString;
+    procedure InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer; const ATag: AnsiString;
       ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: LongWord; CPUPeriod: Int64);
     procedure InternalOutput(var Data; Size: Integer);
   public
@@ -1457,7 +1457,7 @@ begin
   end;
 end;
 
-procedure TCnDebugger.InternalOutputMsg(const AMsg: AnsiString; Size: Integer;
+procedure TCnDebugger.InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer;
   const ATag: AnsiString; ALevel, AIndent: Integer; AType: TCnMsgType;
   ThreadID: LongWord; CPUPeriod: Int64);
 var
@@ -1542,7 +1542,7 @@ begin
     Exit;
   end;
 
-  MsgBufPtr := @AMsg[1];
+  MsgBufPtr := AMsg;
   IsFirst := True;
   repeat
     if Size > CnMaxMsgLength then
@@ -1701,7 +1701,7 @@ begin
       InStream.Seek(0, soFromBeginning);
       ObjectBinaryToText(InStream, OutStream);
       ThrdID := GetCurrentThreadId;
-      InternalOutputMsg(AnsiString(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
+      InternalOutputMsg(PAnsiChar(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
         GetCurrentIndent(ThrdID), cmtComponent, ThrdID, 0);
     end
     else
@@ -1817,6 +1817,9 @@ procedure TCnDebugger.LogFull(const AMsg, ATag: string; ALevel: Integer;
 {$IFNDEF NDEBUG}
 var
   ThrdID: LongWord;
+{$IFDEF UNICODE}
+  Msg: AnsiString;
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 begin
@@ -1824,8 +1827,14 @@ begin
 {$IFNDEF NDEBUG}
   if AMsg = '' then Exit;
   ThrdID := GetCurrentThreadId;
-  InternalOutputMsg(AnsiString(AMsg), Length(AnsiString(AMsg)), AnsiString(ATag),
+  {$IFDEF UNICODE}
+  Msg := AnsiString(AMsg);
+  InternalOutputMsg(PAnsiChar(Msg), Length(Msg), AnsiString(ATag),
     ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+  {$ELSE}
+  InternalOutputMsg(PAnsiChar(AMsg), Length(AnsiString(AMsg)), AnsiString(ATag),
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+  {$ENDIF}
 {$ENDIF}
 {$ENDIF}
 end;
@@ -1967,7 +1976,7 @@ var
 begin
 {$IFDEF DEBUG}
   ThrdID := GetCurrentThreadId;
-  InternalOutputMsg(AnsiString(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
+  InternalOutputMsg(PAnsiChar(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
     cmtMemoryDump, ThrdID, 0);
 {$ENDIF}
 end;
@@ -2479,7 +2488,7 @@ begin
       InStream.Seek(0, soFromBeginning);
       ObjectBinaryToText(InStream, OutStream);
       ThrdID := GetCurrentThreadId;
-      InternalOutputMsg(AnsiString(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
+      InternalOutputMsg(PAnsiChar(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
         GetCurrentIndent(ThrdID), cmtComponent, ThrdID, 0);
     end
     else
@@ -2561,13 +2570,22 @@ procedure TCnDebugger.TraceFull(const AMsg, ATag: string; ALevel: Integer;
 {$IFNDEF NDEBUG}
 var
   ThrdID: LongWord;
+{$IFDEF UNICODE}
+  Msg: AnsiString;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFNDEF NDEBUG}
   if AMsg = '' then Exit;
   ThrdID := GetCurrentThreadId;
-  InternalOutputMsg(AnsiString(AMsg), Length(AnsiString(AMsg)), AnsiString(ATag),
+  {$IFDEF UNICODE}
+  Msg := AnsiString(AMsg);
+  InternalOutputMsg(PAnsiChar(Msg), Length(Msg), AnsiString(ATag),
     ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+  {$ELSE}
+  InternalOutputMsg(PAnsiChar(AMsg), Length(AMsg), AnsiString(ATag),
+    ALevel, GetCurrentIndent(ThrdID), AType, ThrdID, CPUPeriod);
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -2690,7 +2708,7 @@ var
 begin
 {$IFNDEF NDEBUG}
   ThrdID := GetCurrentThreadId;
-  InternalOutputMsg(AnsiString(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
+  InternalOutputMsg(PAnsiChar(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
     cmtMemoryDump, ThrdID, 0);
 {$ENDIF}
 end;
