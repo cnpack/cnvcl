@@ -45,7 +45,6 @@
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Crypto\CnMD5.obj 
-      ..\..\Source\Common\CnMemProf.obj 
       ..\..\Source\Common\CnMethodHook.obj 
       ..\..\Source\Common\CnMulticastEvent.obj 
       ..\..\Source\Crypto\CnNativeDecl.obj 
@@ -315,7 +314,6 @@
       <FILE FILENAME="..\..\Source\Common\CnLinkedList.pas" FORMNAME="" UNITNAME="CnLinkedList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMatrix.pas" FORMNAME="" UNITNAME="CnMatrix" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnMemProf.pas" FORMNAME="" UNITNAME="CnMemProf" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMethodHook.pas" FORMNAME="" UNITNAME="CnMethodHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMulticastEvent.pas" FORMNAME="" UNITNAME="CnMulticastEvent" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnNativeDecl.pas" FORMNAME="" UNITNAME="CnNativeDecl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

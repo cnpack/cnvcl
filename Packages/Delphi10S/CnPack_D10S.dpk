@@ -86,7 +86,6 @@ contains
   CnLinkedList in '..\..\Source\Common\CnLinkedList.pas',
   CnMatrix in '..\..\Source\Common\CnMatrix.pas',
   CnMD5 in '..\..\Source\Crypto\CnMD5.pas',
-  CnMemProf in '..\..\Source\Common\CnMemProf.pas',
   CnMethodHook in '..\..\Source\Common\CnMethodHook.pas',
   CnMulticastEvent in '..\..\Source\Common\CnMulticastEvent.pas',
   CnNativeDecl in '..\..\Source\Crypto\CnNativeDecl.pas',

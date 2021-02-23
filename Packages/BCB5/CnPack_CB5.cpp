@@ -47,7 +47,6 @@ USEUNIT("..\..\Source\Crypto\CnKDF.pas");
 USEUNIT("..\..\Source\Common\CnLinkedList.pas");
 USEUNIT("..\..\Source\Common\CnMatrix.pas");
 USEUNIT("..\..\Source\Crypto\CnMD5.pas");
-USEUNIT("..\..\Source\Common\CnMemProf.pas");
 USEUNIT("..\..\Source\Common\CnMethodHook.pas");
 USEUNIT("..\..\Source\Crypto\CnNativeDecl.pas");
 USEUNIT("..\..\Source\Crypto\CnPemUtils.pas");

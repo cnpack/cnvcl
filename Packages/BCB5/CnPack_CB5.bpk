@@ -42,7 +42,6 @@
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Crypto\CnMD5.obj 
-      ..\..\Source\Common\CnMemProf.obj 
       ..\..\Source\Common\CnMethodHook.obj 
       ..\..\Source\Crypto\CnNativeDecl.obj 
       ..\..\Source\Crypto\CnPemUtils.obj 

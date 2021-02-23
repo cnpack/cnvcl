@@ -100,7 +100,6 @@
 			<DCCReference Include="..\..\Source\Common\CnLinkedList.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMartrix.pas"/>
 			<DCCReference Include="..\..\Source\Crypto\CnMD5.pas"/>
-			<DCCReference Include="..\..\Source\Common\CnMemProf.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMethodHook.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMulticastEvent.pas"/>
 			<DCCReference Include="..\..\Source\Crypto\CnNativeDecl.pas"/>
