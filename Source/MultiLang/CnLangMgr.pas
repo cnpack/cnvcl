@@ -72,7 +72,7 @@ interface
 uses
   SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
   Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
-  CnConsts, CnClasses, CnCommon, CnLangStorage, CnIniStrUtils;
+  CnConsts, CnClasses, CnCommon, CnLangStorage, CnLangCollection, CnIniStrUtils;
 
 const
   CN_MULTI_LANG_TAG_NOT_TRANSLATE = 2001;
@@ -98,11 +98,11 @@ type
   {* 描述一自动翻译的字符串}
   private
     FStringAddr: Pointer;
-    FStringName: WideString;
+    FStringName: TCnLangString;
     FType: TCnStrObjType;
   public
     property StringAddr: Pointer read FStringAddr write FStringAddr;
-    property StringName: WideString read FStringName write FStringName;
+    property StringName: TCnLangString read FStringName write FStringName;
     property AType: TCnStrObjType read FType write FType;
   end;
 
@@ -110,15 +110,15 @@ type
   {* 描述一自动翻译的资源字符串}
   private
     FStringRecAddr: Pointer;
-    FStringName: WideString;
+    FStringName: TCnLangString;
     FDstStr: string;
   public
     property StringRecAddr: Pointer read FStringRecAddr write FStringRecAddr;
-    property StringName: WideString read FStringName write FStringName;
+    property StringName: TCnLangString read FStringName write FStringName;
   end;
 
-  TTranslateStringEvent = procedure (Sender: TObject; const Src: WideString;
-    var Dst: WideString) of object;
+  TTranslateStringEvent = procedure (Sender: TObject; const Src: TCnLangString;
+    var Dst: TCnLangString) of object;
   {* 翻译字符串事件，可用于统一检查或修改目标字符串 }
 
   TCnBaseLangManager = class(TCnComponent)
@@ -147,11 +147,11 @@ type
     {* 构造方法 }
     destructor Destroy; override;
     {* 销毁方法 }
-    function Translate(Src: WideString): WideString;
+    function Translate(Src: TCnLangString): TCnLangString;
     {* 根据当前语言获得翻译的字符串 }
-    function TranslateString(Src: WideString): WideString;
+    function TranslateString(Src: TCnLangString): TCnLangString;
     {* 根据当前语言获得翻译的字符串，无则返回空 }
-    function TranslateStrFmt(Src: WideString; Args: array of const): WideString;
+    function TranslateStrFmt(Src: TCnLangString; Args: array of const): TCnLangString;
     {* 根据当前语言获得格式化的翻译字符串 }
 
     property AutoTranslateStrings: Boolean read FAutoTranslateStrings
@@ -195,28 +195,28 @@ type
     FTranslationMode: TCnTranslationMode;
     FOldTransForms: TList;
     FOldTransDMs: TList;
-    FOldFormPrefix: WideString;
-    FOldDMPrefix: WideString;
+    FOldFormPrefix: TCnLangString;
+    FOldDMPrefix: TCnLangString;
     FIgnoreAction: Boolean;
     FOnTranslateObjectProperty: TCnTranslateObjectPropertyEvent;
     FOnTranslateObject: TCnTranslateObjectEvent;
     procedure SetTranslationMode(const Value: TCnTranslationMode);
   protected
     procedure TranslateRecurComponent(AComponent: TComponent;
-      AList: TList; const BaseName: WideString); virtual;
+      AList: TList; const BaseName: TCnLangString); virtual;
     {* 递归翻译一 Component 和其 Children }
     procedure TranslateRecurObject(AObject: TObject; AList: TList;
-      const BaseName: WideString = ''); virtual;
+      const BaseName: TCnLangString = ''); virtual;
     {* 递归翻译一 Object 和其属性中的 Object }
-    function GetRecurOwner(AComponent: TComponent): WideString;
+    function GetRecurOwner(AComponent: TComponent): TCnLangString;
     {* 回溯获得一 Component 的祖先标识字符串 }
-    procedure TranslateKeyToValue(const Key, Value: WideString);
+    procedure TranslateKeyToValue(const Key, Value: TCnLangString);
     {* 翻译级联的字符串 }
     procedure SetCurrentLanguageIndex(const Value: Integer); override;
     procedure DoLanguageChanged; override;
     function DoTranslateObject(AObject: TObject): Boolean; virtual;
     function DoTranslateObjectProperty(AObject: TObject;
-      const PropName: WideString): Boolean; virtual;
+      const PropName: TCnLangString): Boolean; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -225,11 +225,11 @@ type
     {* 增加语言改变时的事件通知 }
     procedure RemoveChangeNotifier(Notify: TNotifyEvent);
     {* 删除语言改变时的事件通知 }
-    procedure TranslateComponent(AComponent: TComponent; const BaseName: WideString = '');
+    procedure TranslateComponent(AComponent: TComponent; const BaseName: TCnLangString = '');
     {* 翻译一个元件及其子对象和子属性 }
     procedure TranslateForm(AForm: TCustomForm);
     {* 翻译一个 Form 及其子对象和子属性 }
-    procedure TranslateObject(AObject: TObject; const BaseName: WideString = '');
+    procedure TranslateObject(AObject: TObject; const BaseName: TCnLangString = '');
     {* 翻译一个对象及其子对象和子属性 }
     property AutoTranslate: Boolean read FAutoTranslate
       write FAutoTranslate default True;
@@ -304,13 +304,13 @@ function CnLanguageManager: TCnCustomLangManager;
 procedure CreateLanguageManager(AOwner: TComponent = nil);
 {* 创建多语言管理器，用于非可视化或手工创建多语言管理器的场合 }
 
-function GetPropName(Instance: TObject; Index: Integer): WideString;
+function GetPropName(Instance: TObject; Index: Integer): TCnLangString;
 {* 获得某对象的第 n 个 published 的属性名 }
 
-function GetValueByTransName(Owner: TComponent; const Name: WideString): WideString;
+function GetValueByTransName(Owner: TComponent; const Name: TCnLangString): TCnLangString;
 {* 获得级联字符串的属性值 }
 
-procedure SetValueByTransName(Owner: TComponent; const Name, Value: WideString);
+procedure SetValueByTransName(Owner: TComponent; const Name, Value: TCnLangString);
 {* 设置级联字符串的属性值 }
 
 procedure TranslateStr(var SrcStr: string; const IDStr: string); overload;
@@ -324,12 +324,12 @@ procedure TranslateWideStrArray(var StrArray: array of WideString; const IDStr: 
 type
   PCnString = ^string;
 
-procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: WideString);
-procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: WideString);
-procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString);
+procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: TCnLangString);
+procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: TCnLangString);
+procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: TCnLangString);
 {* 注册一字符串，传入地址与名称，可在语言改变时被自动翻译，无需手工调 Translate}
 
-procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: WideString);
+procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: TCnLangString);
 {* 注册一资源字符串，传入地址与名称，可在语言改变时被自动翻译}
 
 procedure TranslateReggedStrings;
@@ -376,7 +376,7 @@ end;
 
 procedure TranslateStr(var SrcStr: string; const IDStr: string);
 var
-  DstStr: WideString;
+  DstStr: TCnLangString;
 begin
   if CnLanguageManager <> nil then
   begin
@@ -401,7 +401,7 @@ end;
 procedure TranslateStrArray(var StrArray: array of string; const IDStr: string);
 var
   I: Integer;
-  DstStr: WideString;
+  DstStr: TCnLangString;
 begin
   if CnLanguageManager <> nil then
   begin
@@ -546,12 +546,12 @@ begin
   end;
 end;
 
-function TCnBaseLangManager.Translate(Src: WideString): WideString;
+function TCnBaseLangManager.Translate(Src: TCnLangString): TCnLangString;
 begin
   Result := TranslateString(Src);
 end;
 
-function TCnBaseLangManager.TranslateString(Src: WideString): WideString;
+function TCnBaseLangManager.TranslateString(Src: TCnLangString): TCnLangString;
 begin
   if FLanguageStorage <> nil then
   begin
@@ -565,8 +565,8 @@ begin
     Result := '';
 end;
 
-function TCnBaseLangManager.TranslateStrFmt(Src: WideString; Args:
-  array of const): WideString;
+function TCnBaseLangManager.TranslateStrFmt(Src: TCnLangString; Args:
+  array of const): TCnLangString;
 begin
 {$IFDEF COMPILER6_UP}
   Result := WideFormat(Translate(Src), Args);
@@ -576,7 +576,7 @@ begin
 {$ENDIF}
 end;
 
-function GetPropName(Instance: TObject; Index: Integer): WideString;
+function GetPropName(Instance: TObject; Index: Integer): TCnLangString;
 var
   PropList: PPropList;
   PropInfo: PPropInfo;
@@ -594,10 +594,10 @@ begin
   end;
 end;
 
-function IterateTransName(Owner: TComponent; const Name, Value: WideString;
-  Mode: TCnIterateByTransName): WideString;
+function IterateTransName(Owner: TComponent; const Name, Value: TCnLangString;
+  Mode: TCnIterateByTransName): TCnLangString;
 var
-  S, R, P, Q, Prefix, SubFix: WideString;
+  S, R, P, Q, Prefix, SubFix: TCnLangString;
   OutS: string;
   I, J, K, OutN: Integer;
   AObject: TObject;
@@ -755,12 +755,12 @@ begin
   end;
 end;
 
-function GetValueByTransName(Owner: TComponent; const Name: WideString): WideString;
+function GetValueByTransName(Owner: TComponent; const Name: TCnLangString): TCnLangString;
 begin
   Result := IterateTransName(Owner, Name, '', itGet);
 end;
 
-procedure SetValueByTransName(Owner: TComponent; const Name, Value: WideString);
+procedure SetValueByTransName(Owner: TComponent; const Name, Value: TCnLangString);
 begin
   IterateTransName(Owner, Name, Value, itSet);
 end;
@@ -800,12 +800,12 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateComponent(AComponent: TComponent;
-  const BaseName: WideString);
+  const BaseName: TCnLangString);
 var
   List: TList;
-  ABaseName, Prefix: WideString;
+  ABaseName, Prefix: TCnLangString;
   Iterator: ICnLangStringIterator;
-  AKey, AValue: WideString;
+  AKey, AValue: TCnLangString;
   APos: Integer;
 begin
   if (AComponent <> nil) and (AComponent.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE) then
@@ -855,7 +855,7 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateRecurComponent(
-  AComponent: TComponent;  AList: TList; const BaseName: WideString);
+  AComponent: TComponent;  AList: TList; const BaseName: TCnLangString);
 var
   I: Integer;
   T: TComponent;
@@ -931,7 +931,7 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateObject(AObject: TObject;
-  const BaseName: WideString = '');
+  const BaseName: TCnLangString = '');
 var
   AList: TList;
 begin
@@ -952,10 +952,10 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateRecurObject(AObject: TObject;
-  AList: TList; const BaseName: WideString);
+  AList: TList; const BaseName: TCnLangString);
 var
   i: Integer;
-  APropName, APropValue, TransStr, AStr: WideString;
+  APropName, APropValue, TransStr, AStr: TCnLangString;
   APropType: TTypeKind;
   Data: PTypeData;
   ActionObj, SubObj: TObject;
@@ -964,7 +964,7 @@ var
   ATreeNode: TTreeNode;
   IsForm, IsInList: Boolean;
   NeedCheckIgnoreAction: Boolean;
-  ActionCaption, ActionHint: WideString;
+  ActionCaption, ActionHint: TCnLangString;
   Info: PPropInfo;
 begin
   if (AObject <> nil) {and (AList <> nil)} and Assigned(FLanguageStorage) then
@@ -1301,7 +1301,7 @@ procedure TCnCustomLangManager.SetCurrentLanguageIndex(
 var
   I: Integer;
   Iterator: ICnLangStringIterator;
-  AKey, AValue: WideString;
+  AKey, AValue: TCnLangString;
 begin
   inherited;
 
@@ -1405,14 +1405,14 @@ begin
 end;
 
 function TCnCustomLangManager.DoTranslateObjectProperty(AObject: TObject;
-  const PropName: WideString): Boolean;
+  const PropName: TCnLangString): Boolean;
 begin
   Result := True;
   if Assigned(FOnTranslateObjectProperty) then
     FOnTranslateObjectProperty(AObject, PropName, Result);
 end;
 
-function TCnCustomLangManager.GetRecurOwner(AComponent: TComponent): WideString;
+function TCnCustomLangManager.GetRecurOwner(AComponent: TComponent): TCnLangString;
 begin
   if (AComponent is TCustomForm) or (AComponent is TDataModule) then
     Result := AComponent.ClassName
@@ -1432,10 +1432,10 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateKeyToValue(const Key,
-  Value: WideString);
+  Value: TCnLangString);
 var
   I, APos: Integer;
-  Prefix: WideString;
+  Prefix: TCnLangString;
 begin
   if Key = '' then
     Exit;
@@ -1512,7 +1512,7 @@ begin
 end;
 
 procedure RegisterTranslateResourceString(
-  const ResStringAddr: Pointer; const IDStr: WideString);
+  const ResStringAddr: Pointer; const IDStr: TCnLangString);
 var
   AObj: TCnResourceStringObj;
 begin
@@ -1525,7 +1525,7 @@ begin
   end;
 end;
 
-procedure DoRegisterTranslateString(const StringAddr: Pointer; const IDStr: WideString; AType: TCnStrObjType);
+procedure DoRegisterTranslateString(const StringAddr: Pointer; const IDStr: TCnLangString; AType: TCnStrObjType);
 var
   AObj: TCnStringObj;
 begin
@@ -1539,17 +1539,17 @@ begin
   end;
 end;
 
-procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: WideString);
+procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: TCnLangString);
 begin
   DoRegisterTranslateString(StringAddr, IDStr, csotString);
 end;
 
-procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: WideString);
+procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: TCnLangString);
 begin
   DoRegisterTranslateString(StringAddr, IDStr, csotAnsi);
 end;
 
-procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: WideString);
+procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: TCnLangString);
 begin
   DoRegisterTranslateString(StringAddr, IDStr, csotWide);
 end;
@@ -1559,7 +1559,7 @@ var
   I: Integer;
   AObj: TCnStringObj;
   BObj: TCnResourceStringObj;
-  DstStr: WideString;
+  DstStr: TCnLangString;
   OldProtect: Cardinal;
 begin
   if CnLanguageManager = nil then
