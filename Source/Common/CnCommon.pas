@@ -6666,6 +6666,7 @@ begin
         Item.Hint := AItem.Hint;
         Item.Tag := AItem.Tag;
         Item.ShortCut := AItem.ShortCut;
+        Item.Visible := AItem.Visible;
         Item.OnClick := AItem.OnClick;
 
         Item.Checked := AItem.Checked;
