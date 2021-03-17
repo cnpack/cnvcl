@@ -515,6 +515,9 @@ implementation
 
 {$R *.DFM}
 
+const
+  SCnCanNotReadValue = '<Can NOT Read Value>';
+
 type
   PParamData = ^TParamData;
   TParamData = record
@@ -1013,6 +1016,12 @@ var
   AClass: TClass;
 begin
   Result := '';
+  if not RttiProperty.IsReadable then
+  begin
+    Result := SCnCanNotReadValue;
+    Exit;
+  end;
+
   case RttiProperty.PropertyType.TypeKind of
     tkInteger:
       begin
@@ -1729,68 +1738,76 @@ begin
       PropInfo := PropListPtr^[I];
       if PropInfo^.PropType^^.Kind in tkProperties then
       begin
-        if not IsRefresh then
-          AProp := TCnPropertyObject.Create
-        else
-          AProp := IndexOfProperty(Properties, PropInfoName(PropInfo));
-
-        AProp.PropName := PropInfoName(PropInfo);
-        AProp.PropType := PropInfo^.PropType^^.Kind;
-        AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
-
-        // 有写入权限，并且指定类型，才可修改，否则界面上没法整
-        AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
-          in CnCanModifyPropTypes);
-
-        AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
-
-        AProp.ObjValue := nil;
-        AProp.IntfValue := nil;
-        if AProp.IsObjOrIntf then
-        begin
-          if AProp.PropType = tkClass then
-            AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
+        try
+          if not IsRefresh then
+            AProp := TCnPropertyObject.Create
           else
-            AProp.IntfValue := IUnknown(GetOrdProp(FObjectInstance, PropInfo));
+            AProp := IndexOfProperty(Properties, PropInfoName(PropInfo));
+
+          AProp.PropName := PropInfoName(PropInfo);
+          AProp.PropType := PropInfo^.PropType^^.Kind;
+          AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
+
+          // 有写入权限，并且指定类型，才可修改，否则界面上没法整
+          AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
+            in CnCanModifyPropTypes);
+
+          AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
+
+          AProp.ObjValue := nil;
+          AProp.IntfValue := nil;
+          if AProp.IsObjOrIntf then
+          begin
+            if AProp.PropType = tkClass then
+              AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
+            else
+              AProp.IntfValue := IUnknown(GetOrdProp(FObjectInstance, PropInfo));
+          end;
+
+          S := GetPropValueStr(FObjectInstance, PropInfo);
+          if S <> AProp.DisplayValue then
+          begin
+            AProp.DisplayValue := S;
+            AProp.Changed := True;
+          end
+          else
+            AProp.Changed := False;
+
+          if not IsRefresh then
+            Properties.Add(AProp);
+
+          Include(FContentTypes, pctProps);
+        except
+          ;
         end;
-
-        S := GetPropValueStr(FObjectInstance, PropInfo);
-        if S <> AProp.DisplayValue then
-        begin
-          AProp.DisplayValue := S;
-          AProp.Changed := True;
-        end
-        else
-          AProp.Changed := False;
-
-        if not IsRefresh then
-          Properties.Add(AProp);
-
-        Include(FContentTypes, pctProps);
       end;
 
       if PropInfo^.PropType^^.Kind = tkMethod then
       begin
-        if not IsRefresh then
-          AEvent := TCnEventObject.Create
-        else
-          AEvent := IndexOfEvent(FEvents, PropInfoName(PropInfo));
+        try
+          if not IsRefresh then
+            AEvent := TCnEventObject.Create
+          else
+            AEvent := IndexOfEvent(FEvents, PropInfoName(PropInfo));
 
-        AEvent.EventName := PropInfoName(PropInfo);
-        AEvent.EventType := VarToStr(GetPropValue(FObjectInstance, PropInfoName(PropInfo)));
-        S := GetPropValueStr(FObjectInstance, PropInfo);
-        if S <> AEvent.DisplayValue then
-        begin
-          AEvent.DisplayValue := S;
-          AEvent.Changed := True;
-        end
-        else
-          AEvent.Changed := False;
+          AEvent.EventName := PropInfoName(PropInfo);
+          AEvent.EventType := VarToStr(GetPropValue(FObjectInstance, PropInfoName(PropInfo)));
+          S := GetPropValueStr(FObjectInstance, PropInfo);
+          if S <> AEvent.DisplayValue then
+          begin
+            AEvent.DisplayValue := S;
+            AEvent.Changed := True;
+          end
+          else
+            AEvent.Changed := False;
 
-        if not IsRefresh then
-          FEvents.Add(AEvent);
+          if not IsRefresh then
+            FEvents.Add(AEvent);
 
-        Include(FContentTypes, pctEvents);
+          Include(FContentTypes, pctEvents);
+        except
+          ;
+        end;
       end;
     end;
     FreeMem(PropListPtr);
@@ -1825,24 +1842,29 @@ begin
               AProp.CanModify := (RttiProperty.IsWritable) and (RttiProperty.PropertyType.TypeKind
                 in CnCanModifyPropTypes);
 
-              try
-                AProp.PropRttiValue := RttiProperty.GetValue(FObjectInstance);
-              except
-                // Getting Some Property causes Exception. Catch it.
-                AProp.PropRttiValue := nil;
-              end;
+              if RttiProperty.IsReadable then
+              begin
+                try
+                  AProp.PropRttiValue := RttiProperty.GetValue(FObjectInstance)
+                except
+                  // Getting Some Property causes Exception. Catch it.
+                  AProp.PropRttiValue := nil;
+                end;
 
-              AProp.ObjValue := nil;
-              AProp.IntfValue := nil;
-              try
-                if AProp.IsObjOrIntf and RttiProperty.GetValue(FObjectInstance).IsObject then
-                  AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
-                else if AProp.IsObjOrIntf and (RttiProperty.GetValue(FObjectInstance).TypeInfo <> nil) and
-                  (RttiProperty.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
-                  AProp.IntfValue := RttiProperty.GetValue(FObjectInstance).AsInterface;
-              except
-                // Getting Some Property causes Exception. Catch it.;
-              end;
+                AProp.ObjValue := nil;
+                AProp.IntfValue := nil;
+                try
+                  if AProp.IsObjOrIntf and RttiProperty.GetValue(FObjectInstance).IsObject then
+                    AProp.ObjValue := RttiProperty.GetValue(FObjectInstance).AsObject
+                  else if AProp.IsObjOrIntf and (RttiProperty.GetValue(FObjectInstance).TypeInfo <> nil) and
+                    (RttiProperty.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+                    AProp.IntfValue := RttiProperty.GetValue(FObjectInstance).AsInterface;
+                except
+                  // Getting Some Property causes Exception. Catch it.;
+                end;
+              end
+              else
+                AProp.PropRttiValue := SCnCanNotReadValue;
 
               S := GetRttiPropValueStr(FObjectInstance, RttiProperty);
               if S <> AProp.DisplayValue then
