@@ -43,7 +43,8 @@ interface
 
 uses
   SysUtils, Classes, Windows, IniFiles, Dialogs, FileCtrl, CnCommon,
-  CnConsts, CnLangConsts, CnHashMap, CnWideStrings, CnLangStorage, CnLangCollection, CnIniStrUtils;
+  CnConsts, CnLangConsts, CnHashMap, CnWideStrings, CnLangStorage,
+  CnLangCollection, CnIniStrUtils;
 
 type
 {$IFDEF UNICODE}
