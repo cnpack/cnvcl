@@ -327,8 +327,8 @@ procedure TFrmTransEditor.UpdateLangDisplay(Storage: TCnCustomLangStorage;
 
 var
   List: TStringList;
-  i: Integer;
-  S: WideString;
+  I: Integer;
+  S: TCnLangString;
   bPrompted: Boolean;
 begin
   Self.lblLangNameValue.Caption := Item.LanguageName;
@@ -367,35 +367,35 @@ begin
   begin
     //清除空行和注释
     bPrompted := False;
-    for i := List.Count - 1 downto 0 do
+    for I := List.Count - 1 downto 0 do
     begin
-      if (List[i] = '') or IsLangComment(List[i]) then
+      if (List[I] = '') or IsLangComment(List[I]) then
       begin
         if not bPrompted then
         begin
           WarningDlg(SCnLangInvalidLine);
           bPrompted := True;
         end;
-        List.Delete(i);
+        List.Delete(I);
       end;
     end;
 
     Self.StringGrid.RowCount := List.Count + 1;
-    for i := 1 to Self.StringGrid.RowCount - 1 do
-      Self.StringGrid.Cells[0, i] := InttoStr(i);
-      
-    for i := 0 to List.Count - 1 do
+    for I := 1 to Self.StringGrid.RowCount - 1 do
+      Self.StringGrid.Cells[0, I] := InttoStr(I);
+
+    for I := 0 to List.Count - 1 do
     begin
-      Self.StringGrid.Cells[1, i + 1] := List[i];
-      S := List[i];
+      Self.StringGrid.Cells[1, I + 1] := List[I];
+      S := TCnLangString(List[I]);
       if S[1] <> SystemNamePrefix then // 正常字符获取其原文值
       begin
-        S := GetValueByTransName(Self.Container, S);
-        Self.StringGrid.Cells[2, i + 1] := S
+        S := TCnLangString(GetValueByTransName(Self.Container, S));
+        Self.StringGrid.Cells[2, I + 1] := S
       end;
       // 显示其翻译后的值
-      if Storage.GetString(List[i], S) then
-        Self.StringGrid.Cells[3, i + 1] := S;
+      if Storage.GetString(List[I], S) then
+        Self.StringGrid.Cells[3, I + 1] := S;
     end;
   end
   else
