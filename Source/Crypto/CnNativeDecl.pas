@@ -58,7 +58,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
+  Classes, SysUtils, SysConst;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
@@ -71,7 +71,7 @@ type
   TCnNativePointer = Cardinal;
 {$ENDIF}
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
   TCnUInt64        = NativeUInt;
   TCnInt64         = NativeInt;
 {$ELSE}
@@ -100,9 +100,10 @@ type
 
   TUInt64Array = array of TUInt64;
 
-{$IFDEF MACOS}
-  TCnUInt32List = TList<LongWord>;
-  TCnUInt64List = TList<UInt64>;
+{$IFDEF POSIX64}
+  TCnLongWord32 = Cardinal; // Linux64 (or POSIX64?) LongWord is 64 Bits
+{$ELSE}
+  TCnLongWord32 = LongWord;
 {$ENDIF}
 
 const
@@ -280,7 +281,7 @@ implementation
 resourcestring
   SCnInt64ListError = 'Int64 List Error. %d';
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
 
 function UInt64Mod(A, B: TUInt64): TUInt64;
 begin

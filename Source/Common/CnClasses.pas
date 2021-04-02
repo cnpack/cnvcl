@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, TypInfo,
+  SysUtils, Classes, TypInfo, SyncObjs,
   {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} CnNativeDecl;
 
 type
@@ -62,7 +62,7 @@ type
   TCnLockObject = class (TObject)
   {* 用于线程同步的对象类}
   private
-    FLock: TRTLCriticalSection;
+    FLock: TCriticalSection;
     FLockCount: Integer;
     function GetLocking: Boolean;
   protected
@@ -384,12 +384,12 @@ procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties:
 implementation
 
 uses
-  CnConsts;
+  CnConsts, CnLockFree;
 
 type
   TPersistentHack = class(TPersistent);
 
-procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties: 
+procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties:
   Boolean = True);
 var
   Stream: TMemoryStream;
@@ -459,7 +459,7 @@ end;
 //==============================================================================
 
 var
-  CounterLock: TRTLCriticalSection;
+  CounterLock: TCriticalSection = nil;
 
 { TCnLockObject }
 
@@ -467,44 +467,40 @@ var
 constructor TCnLockObject.Create;
 begin
   inherited;
-  InitializeCriticalSection(FLock); // 初始化临界区
+  FLock := TCriticalSection.Create; // 初始化临界区
 end;
 
 // 释放
 destructor TCnLockObject.Destroy;
 begin
-  DeleteCriticalSection(FLock);
+  FLock.Free;
   inherited;
 end;
 
 // 尝试进入临界区（如果已加锁返回 False）
 function TCnLockObject.TryLock: Boolean;
 begin
-  EnterCriticalSection(CounterLock);
+  CounterLock.Enter;
   try
     Result := FLockCount = 0;
     if Result then Lock;
   finally
-    LeaveCriticalSection(CounterLock);
+    CounterLock.Leave;
   end;
 end;
 
 // 加锁
 procedure TCnLockObject.Lock;
 begin
-  EnterCriticalSection(CounterLock);
-  Inc(FLockCount);
-  LeaveCriticalSection(CounterLock);
-  EnterCriticalSection(FLock);
+  CnAtomicIncrement32(FLockCount);
+  FLock.Enter;
 end;
 
 // 释放锁
 procedure TCnLockObject.Unlock;
 begin
-  LeaveCriticalSection(FLock);
-  EnterCriticalSection(CounterLock);
-  Dec(FLockCount);
-  LeaveCriticalSection(CounterLock);
+  FLock.Leave;
+  CnAtomicDecrement32(FLockCount);
 end;
 
 function TCnLockObject.GetLocking: Boolean;
@@ -1211,10 +1207,10 @@ begin
 end;
 
 initialization
-  InitializeCriticalSection(CounterLock);
+  CounterLock := TCriticalSection.Create;
 
 finalization
-  DeleteCriticalSection(CounterLock);
+  CounterLock.Free;
 
 end.
 

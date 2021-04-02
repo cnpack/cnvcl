@@ -32,7 +32,7 @@ unit CnPrimeNumber;
 *           但加入二次探测后就被筛了，和其他素数保持同等概率）。
 *           另外本单元中的 Int64 系列均是 32 位编译器下靠 Int64 封装支持 UInt64，
 *           为的是照顾不支持 UInt64 的编译器。
-*           真正的 UInt64 系列函数均是 WIN64 位下实现。
+*           真正的 UInt64 系列函数均是 CPUX64 位下实现。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -711,7 +711,7 @@ function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 
 {$ENDIF}
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
 
 function CnUInt64IsPrime(N: NativeUInt): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
@@ -1198,7 +1198,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
 
 function FermatCheckComposite64(A, B, C, T: NativeUInt): Boolean;
 var

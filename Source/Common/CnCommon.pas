@@ -71,13 +71,16 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Math, Menus, PsAPI, Registry, ComObj, CnNativeDecl,
+  SysUtils, Classes, TypInfo, IniFiles,
+{$IFDEF MSWINDOWS}
+  Windows, Messages, Graphics, Controls, Forms, Dialogs,
+  ComCtrls, Math, Menus, PsAPI, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
+  MMSystem, StdCtrls, TLHelp32, ActiveX, ShlObj, CheckLst, MultiMon,
+{$ENDIF}
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
-  FileCtrl, ShellAPI, CommDlg, MMSystem, StdCtrls, TLHelp32, ActiveX, ShlObj,
-  CnConsts, CnIni, CnIniStrUtils, CheckLst, IniFiles, MultiMon, TypInfo;
+  CnConsts, CnNativeDecl, CnIni, CnIniStrUtils;
 
 //------------------------------------------------------------------------------
 // 公共类型定义
@@ -4110,28 +4113,29 @@ end;
 // 删除整个目录
 function Deltree(const Dir: string; DelRoot: Boolean; DelEmptyDirOnly: Boolean): Boolean;
 var
-  sr: TSearchRec;
-  fr: Integer;
+  SR: TSearchRec;
+  FR: Integer;
 begin
   Result := True;
   if not DirectoryExists(Dir) then
     Exit;
-  fr := FindFirst(AddDirSuffix(Dir) + '*.*', faAnyFile, sr);
+
+  FR := FindFirst(AddDirSuffix(Dir) + '*.*', faAnyFile, SR);
   try
-    while fr = 0 do
+    while FR = 0 do
     begin
-      if (sr.Name <> '.') and (sr.Name <> '..') then
+      if (SR.Name <> '.') and (SR.Name <> '..') then
       begin
-        SetFileAttributes(PChar(AddDirSuffix(Dir) + sr.Name), FILE_ATTRIBUTE_NORMAL);
-        if sr.Attr and faDirectory = faDirectory then
-          Result := Deltree(AddDirSuffix(Dir) + sr.Name, True, DelEmptyDirOnly)
+        SetFileAttributes(PChar(AddDirSuffix(Dir) + SR.Name), FILE_ATTRIBUTE_NORMAL);
+        if SR.Attr and faDirectory = faDirectory then
+          Result := Deltree(AddDirSuffix(Dir) + SR.Name, True, DelEmptyDirOnly)
         else if not DelEmptyDirOnly then
-          Result := DeleteFile(AddDirSuffix(Dir) + sr.Name);
+          Result := SysUtils.DeleteFile(AddDirSuffix(Dir) + SR.Name);
       end;
-      fr := FindNext(sr);
+      FR := FindNext(SR);
     end;
   finally
-    FindClose(sr);
+    SysUtils.FindClose(SR);
   end;
 
   if DelRoot then
@@ -4157,7 +4161,7 @@ begin
       fr := FindNext(sr);
     end;
   finally
-    FindClose(sr);
+    SysUtils.FindClose(sr);
   end;
 
   if DelRoot then
@@ -4186,7 +4190,7 @@ begin
     end;
     Fr := FindNext(Sr);
   end;
-  FindClose(Sr);
+  SysUtils.FindClose(Sr);
 end;
 
 // 根据指定类名查找窗体
@@ -4258,7 +4262,7 @@ function FindFile(const Path: string; const FileName: string = '*.*';
         Succ := FindNext(Info);
       end;
     finally
-      FindClose(Info);
+      SysUtils.FindClose(Info);
     end;
 
     if bSub then
@@ -4280,7 +4284,7 @@ function FindFile(const Path: string; const FileName: string = '*.*';
           Succ := FindNext(Info);
         end;
       finally
-        FindClose(Info);
+        SysUtils.FindClose(Info);
       end;
     end;
   end;

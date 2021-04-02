@@ -70,7 +70,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Contnrs;
+  SysUtils, Classes, Contnrs, SyncObjs;
 
 {$DEFINE MULTI_THREAD} // 数学对象池支持多线程，性能略有下降，如不需要，注释此行即可
 
@@ -81,7 +81,7 @@ type
     FHead: TObject;
     FTail: TObject;
     FSize: Integer;
-    FLock: TRTLCriticalSection;
+    FLock: TCriticalSection;
     procedure FreeNode(Value: TObject);
     function GetSize: Integer;
   public
@@ -119,7 +119,7 @@ type
     FMultiThread: Boolean;
     FSize: Integer;
     FList: TList;
-    FLock: TRTLCriticalSection;
+    FLock: TCriticalSection;
     // Idx 可以理解为始终指向相邻位置中间的缝，编号从第 0 到第 Size - 1 ( 第 Size 也即等于第 0 )
     // 有元素的情况下，FrontIdx 高后始终是元素，前可能是空，或绕回来的尾巴
     //                 BackIdx 的低前始终是元素，后可能是空，或绕回来的头
@@ -163,11 +163,7 @@ type
   {* 数学对象池实现类，允许使用到数学对象池的地方自行继承并创建池}
   private
 {$IFDEF MULTI_THREAD}
-  {$IFDEF MSWINDOWS}
-    FCriticalSection: TRTLCriticalSection;
-  {$ELSE}
     FCriticalSection: TCriticalSection;
-  {$ENDIF}
 {$ENDIF}
     procedure Enter; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     procedure Leave; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
@@ -215,7 +211,7 @@ begin
   FTail := nil;
   FSize := 0;
   if FMultiThread then
-    InitializeCriticalSection(FLock);
+    FLock := TCriticalSection.Create;
 end;
 
 destructor TCnQueue.Destroy;
@@ -223,7 +219,7 @@ begin
   if FHead <> nil then
     FreeNode(FHead);
   if FMultiThread then
-    DeleteCriticalSection(FLock);
+    FLock.Free;
   inherited;
 end;
 
@@ -232,7 +228,8 @@ var
   Tmp: TCnNode;
 begin
   if FMultiThread then
-    EnterCriticalSection(FLock);
+    FLock.Enter;
+
   try
     Result := nil;
     if FHead = nil then
@@ -248,7 +245,7 @@ begin
     FSize := FSize - 1;
   finally
     if FMultiThread then
-      LeaveCriticalSection(FLock);
+      FLock.Leave;
   end;
 end;
 
@@ -257,7 +254,8 @@ var
   Tmp: TCnNode;
 begin
   if FMultiThread then
-    EnterCriticalSection(FLock);
+    FLock.Enter;
+
   try
     if Data = nil then Exit;
     Tmp := TCnNode.Create;
@@ -278,7 +276,7 @@ begin
     FSize := FSize + 1;
   finally
     if FMultiThread then
-      LeaveCriticalSection(FLock);
+      FLock.Leave;
   end;
 end;
 
@@ -346,13 +344,13 @@ begin
   FList.Count := FSize;
 
   if FMultiThread then
-    InitializeCriticalSection(FLock);
+    FLock := TCriticalSection.Create;
 end;
 
 destructor TCnObjectRingBuffer.Destroy;
 begin
   if FMultiThread then
-    DeleteCriticalSection(FLock);
+    FLock.Free;
   FList.Free;
   inherited;
 end;
@@ -380,7 +378,7 @@ function TCnObjectRingBuffer.PopFromBack: TObject;
 begin
   Result := nil;
   if FMultiThread then
-    EnterCriticalSection(FLock);
+    FLock.Enter;
 
   try
     if FCount <= 0 then
@@ -394,7 +392,7 @@ begin
     Dec(FCount);
   finally
     if FMultiThread then
-      LeaveCriticalSection(FLock);
+      FLock.Leave;
   end;
 end;
 
@@ -402,7 +400,7 @@ function TCnObjectRingBuffer.PopFromFront: TObject;
 begin
   Result := nil;
   if FMultiThread then
-    EnterCriticalSection(FLock);
+    FLock.Enter;
 
   try
     if FCount <= 0 then
@@ -417,14 +415,14 @@ begin
     Dec(FCount);
   finally
     if FMultiThread then
-      LeaveCriticalSection(FLock);
+      FLock.Leave;
   end;
 end;
 
 procedure TCnObjectRingBuffer.PushToBack(AObject: TObject);
 begin
   if FMultiThread then
-    EnterCriticalSection(FLock);
+    FLock.Enter;
 
   try
     if not FFullOverwrite and (FCount >= FSize) then
@@ -439,14 +437,14 @@ begin
       Inc(FCount);
   finally
     if FMultiThread then
-      LeaveCriticalSection(FLock);
+      FLock.Leave;
   end;
 end;
 
 procedure TCnObjectRingBuffer.PushToFront(AObject: TObject);
 begin
   if FMultiThread then
-    EnterCriticalSection(FLock);
+    FLock.Enter;
 
   try
     if not FFullOverwrite and (FCount >= FSize) then
@@ -461,7 +459,7 @@ begin
       Inc(FCount);
   finally
     if FMultiThread then
-      LeaveCriticalSection(FLock);
+      FLock.Leave;
   end;
 end;
 
@@ -471,11 +469,7 @@ constructor TCnMathObjectPool.Create;
 begin
   inherited Create(False);
 {$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  InitializeCriticalSection(FCriticalSection);
-{$ELSE}
   FCriticalSection := TCriticalSection.Create;
-{$ENDIF}
 {$ENDIF}
 end;
 
@@ -487,11 +481,7 @@ begin
     TObject(Items[I]).Free;
 
 {$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  DeleteCriticalSection(FCriticalSection);
-{$ELSE}
   FCriticalSection.Free;
-{$ENDIF}
 {$ENDIF}
   inherited;
 end;
@@ -499,22 +489,14 @@ end;
 procedure TCnMathObjectPool.Enter;
 begin
 {$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  EnterCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Acquire;
-{$ENDIF}
+  FCriticalSection.Enter;
 {$ENDIF}
 end;
 
 procedure TCnMathObjectPool.Leave;
 begin
 {$IFDEF MULTI_THREAD}
-{$IFDEF MSWINDOWS}
-  LeaveCriticalSection(FCriticalSection);
-{$ELSE}
-  FCriticalSection.Release;
-{$ENDIF}
+  FCriticalSection.Leave;
 {$ENDIF}
 end;
 

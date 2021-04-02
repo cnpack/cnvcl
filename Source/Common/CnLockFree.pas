@@ -49,7 +49,7 @@ const
   CN_RING_QUEUE_DEFAULT_CAPACITY = 16;
 
 type
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
   TCnSpinLockRecord = NativeInt;
 {$ELSE}
   TCnSpinLockRecord = Integer;
@@ -225,11 +225,11 @@ procedure CnSpinLockLeave(var Critical: TCnSpinLockRecord);
 
 implementation
 
-const
 {$IFDEF MSWINDOWS}
+const
   kernel32  = 'kernel32.dll';
-{$ENDIF}
-{$IFDEF LINUX}
+{$ELSE}
+const // MACOS 和 Linux 都用这个，TODO: 不确定 Mac 上行不
   kernel32  = 'libwine.borland.so';
 {$ENDIF}
 
@@ -265,10 +265,14 @@ end;
 
 function CnAtomicExchangeAdd32(var Addend: LongInt; Value: LongInt): LongInt;
 begin
-{$IFDEF WIN64}
-  Result := InterlockedExchangeAdd(Addend, Value);
+{$IFDEF SUPPORT_ATOMIC}
+  Result := AtomicIncrement(Addend, Value) - Value;
 {$ELSE}
+  {$IFDEF WIN64}
+  Result := InterlockedExchangeAdd(Addend, Value);
+  {$ELSE}
   Result := InterlockedExchangeAdd(@Addend, Value);
+  {$ENDIF}
 {$ENDIF}
 end;
 

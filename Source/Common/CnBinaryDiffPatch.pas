@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, FileCtrl, CnCommon;
+  SysUtils, Classes, CnCommon;
 
 const
   CN_BINARY_DIFF_NAME_VER: AnsiString = 'CnBDiff1';
