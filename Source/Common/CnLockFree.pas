@@ -31,7 +31,9 @@ unit CnLockFree;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/ 10.3，包括 Win32/64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.01.22 V1.1
+* 修改记录：2021.04.02 V1.2
+*               不支持 Atomic 的 C++Buider 平台上有四个函数会抛出异常
+*           2021.01.22 V1.1
 *               实现单线程读单线程写的无锁循环队列
 *           2021.01.10 V1.0
 *               创建单元，实现功能
@@ -181,6 +183,8 @@ function CnAtomicExchange32(var Target: Integer; Value: Integer): Integer;
 function CnAtomicExchangeAdd32(var Addend: LongInt; Value: LongInt): Longint;
 {* 原子操作令 32 位值 Addend := Addend + Value，返回 Addend 原始值}
 
+// 以下 4 个 64 位函数由于引用了 API，在不支持 Atomic 的 C++Buider 平台上不支持，会抛出异常
+
 function CnAtomicIncrement64(var Addend: Int64): Int64;
 {* 原子操作令一 64 位值增 1，返回增加后的值}
 
@@ -192,6 +196,8 @@ function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
 
 function CnAtomicExchangeAdd64(var Addend: Int64; Value: Int64): Int64;
 {* 原子操作令 64 位值 Addend := Addend + Value，返回 Addend 原始值}
+
+// 以上 4 个 64 位函数由于引用了 API，在不支持 Atomic 的 C++Buider 平台上不支持
 
 function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Pointer;
 {* 原子操作比较 Target 与 Comperand 俩值，相等时则将 NewValue 赋值给 Target，返回旧的 Target 值
@@ -233,8 +239,12 @@ const // MACOS 和 Linux 都用这个，TODO: 不确定 Mac 上行不
   kernel32  = 'libwine.borland.so';
 {$ENDIF}
 
+{$IFDEF DELPHI}
+
 function InterlockedCompareExchange64(var Destination: Int64; Exchange: Int64;
   Comparand: Int64): Int64 stdcall; external kernel32 name 'InterlockedCompareExchange64';
+
+{$ENDIF}
 
 function CnAtomicIncrement32(var Addend: Integer): Integer;
 begin
@@ -278,51 +288,69 @@ end;
 
 function CnAtomicIncrement64(var Addend: Int64): Int64;
 {$IFNDEF SUPPORT_ATOMIC}
+{$IFDEF DELPHI}
 var
   Tmp: Int64;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicIncrement(Addend);
 {$ELSE}
+  {$IFDEF DELPHI}
   repeat
     Tmp := Addend;
     Result := InterlockedCompareExchange64(Addend, Tmp + 1, Tmp);
   until Result = Tmp;
   Inc(Result);
+  {$ELSE}
+  raise Exception.Create('NOT Implemented.');
+  {$ENDIF}
 {$ENDIF}
 end;
 
 function CnAtomicDecrement64(var Addend: Int64): Int64;
 {$IFNDEF SUPPORT_ATOMIC}
+{$IFDEF DELPHI}
 var
   Tmp: Int64;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicDecrement(Addend);
 {$ELSE}
+  {$IFDEF DELPHI}
   repeat
     Tmp := Addend;
     Result := InterlockedCompareExchange64(Addend, Tmp - 1, Tmp);
   until Result = Tmp;
   Dec(Result);
+  {$ELSE}
+  raise Exception.Create('NOT Implemented.');
+  {$ENDIF}
 {$ENDIF}
 end;
 
 function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
 {$IFNDEF SUPPORT_ATOMIC}
+{$IFDEF DELPHI}
 var
   Tmp: Int64;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicExchange(Target, Value);
 {$ELSE}
+  {$IFDEF DELPHI}
   repeat
     Tmp := Target;
     Result := InterlockedCompareExchange64(Target, Value, Tmp);
   until Result = Tmp;
+  {$ELSE}
+  raise Exception.Create('NOT Implemented.');
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -331,11 +359,16 @@ var
   Tmp: Int64;
 begin
   repeat
-    Tmp := Addend;
 {$IFDEF SUPPORT_ATOMIC}
+    Tmp := Addend;
     Result := AtomicCmpExchange(Addend, Addend + Value, Tmp);
 {$ELSE}
+    {$IFDEF DELPHI}
+    Tmp := Addend;
     Result := InterlockedCompareExchange64(Addend, Addend + Value, Tmp);
+    {$ELSE}
+    raise Exception.Create('NOT Implemented.');
+    {$ENDIF}
 {$ENDIF}
   until Result = Tmp;
 end;
