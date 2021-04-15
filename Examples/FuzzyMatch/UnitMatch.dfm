@@ -1,6 +1,6 @@
 object FormFuzzy: TFormFuzzy
   Left = 193
-  Top = 108
+  Top = 109
   BorderStyle = bsDialog
   Caption = 'Test String Fuzzy Match'
   ClientHeight = 543

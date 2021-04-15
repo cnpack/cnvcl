@@ -46,6 +46,12 @@ uses
 {$R *.DFM}
 
 const
+{
+  SAR_STRS: array[1..6] of string = (
+    'TextOutA', 'Tag', 'tata', 'TabStop', 'ToAscii', 'TextOukA'
+  );
+}
+
   SAR_STRS: array[1..1390] of string =
     (
       'CleanInplace.bat',
@@ -1465,6 +1471,13 @@ begin
   begin
     FirstMatch := True;
     MatchedIndexes := TList.Create;
+
+//if FuzzyMatchStrWithScore('ta', 'TextOutA', Score, MatchedIndexes, chkCase.Checked) then
+//begin
+//  ShowMessage(IntToStr(Score));
+//  Exit;
+//end;
+
     if chkScore.Checked then
     begin
       for I := Low(SAR_STRS) to High(SAR_STRS) do

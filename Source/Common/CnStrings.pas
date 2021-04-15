@@ -385,19 +385,19 @@ end;
 function FuzzyMatchStrWithScore(const Pattern: string; const Str: string;
   out Score: Integer; MatchedIndexes: TList; CaseSensitive: Boolean): Boolean;
 const
-  ADJACENCY_BONUS = 5;
-  SEPARATOR_BONUS = 10;
-  CAMEL_BONUS = 10;
-  LEADING_LETTER_PENALTY = -3;
-  MAX_LEADING_LETTER_PENALTY = -9;
-  UNMATCHED_LETTER_PENALTY = -1;
+  ADJACENCY_BONUS = 6;               // 每多一个字符的紧邻匹配时加分
+  SEPARATOR_BONUS = 10;              // 每多一个字符匹配发生在一个分隔符号后的加分
+  CAMEL_BONUS = 8;                   // 前一个匹配是小写而本次是大写时加分
+  LEADING_LETTER_PENALTY = -3;       // 第一个匹配的字母越靠母串后越扣分
+  MAX_LEADING_LETTER_PENALTY = -9;   // 第一个匹配的字母哪怕最后，封顶只扣这么点分
+  UNMATCHED_LETTER_PENALTY = -1;     // 不匹配的扣分
   START_BONUS = 6;
 var
   PIdx, SIdx: Integer;
   PrevMatch, PrevLow, PrevSep: Boolean;
   BestLetterPtr: PChar;
   BestLetterScore, NewScore, Penalty: Integer;
-  PatternLetter, StrLetter: Char;
+  PatternLetter, StrLetter: Char; // 分别用来遍历子串和母串的字符
   ThisMatch, Rematch, Advanced, PatternRepeat: Boolean;
 begin
   Score := 0;
@@ -418,7 +418,7 @@ begin
   BestLetterPtr := nil;
   BestLetterScore := 0;
 
-  while SIdx <= Length(Str) do
+  while SIdx <= Length(Str) do // SIdx 是母串索引位置，1 开始
   begin
     if PIdx <= Length(Pattern) then
       PatternLetter := Pattern[PIdx]
@@ -444,8 +444,8 @@ begin
     if ThisMatch and (MatchedIndexes <> nil) then
     begin
       MatchedIndexes.Add(Pointer(SIdx));
-      if SIdx < START_BONUS then        // 提高前匹配的优先级
-        Inc(Score, START_BONUS - SIdx);
+      if SIdx <= START_BONUS then        // 提高靠母串前头单个匹配字符的分数
+        Inc(Score, (START_BONUS - SIdx + 1) * 2);
     end;
 
     if Advanced or PatternRepeat then
@@ -460,7 +460,7 @@ begin
       NewScore := 0;
       if PIdx = 1 then
       begin
-        Penalty := LEADING_LETTER_PENALTY * SIdx;
+        Penalty := LEADING_LETTER_PENALTY * (SIdx - 1); // 最头上匹配不扣分
         if Penalty < MAX_LEADING_LETTER_PENALTY then
           Penalty := MAX_LEADING_LETTER_PENALTY;
 
