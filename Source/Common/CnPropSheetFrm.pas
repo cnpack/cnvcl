@@ -52,6 +52,12 @@ uses
 const
   CN_INSPECTOBJECT = WM_USER + $C10; // Cn Inspect Object
 
+  CnCanModifyPropTypes: TTypeKinds =
+    [tkInteger, tkChar, tkEnumeration, tkFloat, tkString, tkSet, tkWChar,
+    tkLString, tkWString, tkInt64];
+
+  SCnCanNotReadValue = '<Can NOT Read Value>';
+
 type
   TCnPropContentType = (pctProps, pctFields, pctEvents, pctMethods, pctCollectionItems, pctMenuItems,
     pctStrings, pctGraphics, pctComponents, pctControls, pctHierarchy);
@@ -515,9 +521,6 @@ implementation
 
 {$R *.DFM}
 
-const
-  SCnCanNotReadValue = '<Can NOT Read Value>';
-
 type
   PParamData = ^TParamData;
   TParamData = record
@@ -579,9 +582,6 @@ const
   SCnInputNewValuePrompt = 'Enter a New Value for %s:';
   SCnErrorChangeValue = 'Change Property Value Failed!';
 
-  CnCanModifyPropTypes: TTypeKinds =
-    [tkInteger, tkChar, tkEnumeration, tkFloat, tkString, tkSet, tkWChar,
-    tkLString, tkWString, tkInt64];
 
 var
   FSheetList: TComponentList = nil;
