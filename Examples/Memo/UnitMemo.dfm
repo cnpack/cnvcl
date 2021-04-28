@@ -1,8 +1,8 @@
 object CnMemoForm: TCnMemoForm
   Left = 201
-  Top = 195
-  Width = 792
-  Height = 474
+  Top = 197
+  Width = 850
+  Height = 512
   Caption = 'CnMemo Demo'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,104 +14,247 @@ object CnMemoForm: TCnMemoForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object lblLeftMargin: TLabel
-    Left = 344
-    Top = 24
-    Width = 53
-    Height = 13
-    Caption = 'Left Margin'
-  end
-  object lblRightMargin: TLabel
-    Left = 480
-    Top = 24
-    Width = 60
-    Height = 13
-    Caption = 'Right Margin'
-  end
-  object chkShowLineNumber: TCheckBox
-    Left = 16
-    Top = 24
-    Width = 121
-    Height = 17
-    Caption = 'Show LineNumber'
+  object PageControl1: TPageControl
+    Left = 8
+    Top = 8
+    Width = 825
+    Height = 465
+    ActivePage = tsTextControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
-    OnClick = chkShowLineNumberClick
-  end
-  object chkHilightLineNumber: TCheckBox
-    Left = 152
-    Top = 24
-    Width = 161
-    Height = 17
-    Caption = 'Highlight Current LineNumber'
-    Checked = True
-    State = cbChecked
-    TabOrder = 1
-    OnClick = chkHilightLineNumberClick
-  end
-  object btnChangeFont: TButton
-    Left = 680
-    Top = 24
-    Width = 75
-    Height = 25
-    Caption = 'Change Font'
-    TabOrder = 2
-    OnClick = btnChangeFontClick
-  end
-  object seLeftMargin: TCnSpinEdit
-    Left = 416
-    Top = 24
-    Width = 41
-    Height = 22
-    MaxValue = 0
-    MinValue = 0
-    TabOrder = 3
-    Value = 0
-    OnChange = seLeftMarginChange
-  end
-  object seRightMargin: TCnSpinEdit
-    Left = 552
-    Top = 24
-    Width = 41
-    Height = 22
-    MaxValue = 0
-    MinValue = 0
-    TabOrder = 4
-    Value = 0
-    OnChange = seRightMarginChange
-  end
-  object grpColors: TGroupBox
-    Left = 568
-    Top = 72
-    Width = 185
-    Height = 153
-    Caption = 'Colors'
-    TabOrder = 5
-    object btnLineBkColor: TButton
-      Left = 16
-      Top = 24
-      Width = 153
-      Height = 25
-      Caption = 'Line Number Background'
-      TabOrder = 0
-      OnClick = btnLineBkColorClick
+    object ts1: TTabSheet
+      Caption = 'CnMemo'
+      object lblLeftMargin: TLabel
+        Left = 344
+        Top = 24
+        Width = 53
+        Height = 13
+        Caption = 'Left Margin'
+      end
+      object lblRightMargin: TLabel
+        Left = 480
+        Top = 24
+        Width = 60
+        Height = 13
+        Caption = 'Right Margin'
+      end
+      object chkShowLineNumber: TCheckBox
+        Left = 16
+        Top = 24
+        Width = 121
+        Height = 17
+        Caption = 'Show LineNumber'
+        TabOrder = 0
+        OnClick = chkShowLineNumberClick
+      end
+      object chkHilightLineNumber: TCheckBox
+        Left = 152
+        Top = 24
+        Width = 161
+        Height = 17
+        Caption = 'Highlight Current LineNumber'
+        Checked = True
+        State = cbChecked
+        TabOrder = 1
+        OnClick = chkHilightLineNumberClick
+      end
+      object btnChangeFont: TButton
+        Left = 680
+        Top = 24
+        Width = 75
+        Height = 25
+        Caption = 'Change Font'
+        TabOrder = 2
+        OnClick = btnChangeFontClick
+      end
+      object grpColors: TGroupBox
+        Left = 568
+        Top = 72
+        Width = 185
+        Height = 153
+        Caption = 'Colors'
+        TabOrder = 3
+        object btnLineBkColor: TButton
+          Left = 16
+          Top = 24
+          Width = 153
+          Height = 25
+          Caption = 'Line Number Background'
+          TabOrder = 0
+          OnClick = btnLineBkColorClick
+        end
+        object btnLineNumberColor: TButton
+          Left = 16
+          Top = 64
+          Width = 153
+          Height = 25
+          Caption = 'Line Number'
+          TabOrder = 1
+          OnClick = btnLineNumberColorClick
+        end
+        object btnLineNumberHighlight: TButton
+          Left = 16
+          Top = 104
+          Width = 153
+          Height = 25
+          Caption = 'Line Number Highlight'
+          TabOrder = 2
+          OnClick = btnLineNumberHighlightClick
+        end
+      end
+      object edtMemoLeftMargin: TEdit
+        Left = 408
+        Top = 24
+        Width = 49
+        Height = 21
+        TabOrder = 4
+        Text = '0'
+      end
+      object edtMemoRightMargin: TEdit
+        Left = 552
+        Top = 24
+        Width = 49
+        Height = 21
+        TabOrder = 5
+        Text = '0'
+      end
+      object udMemoLeftMargin: TUpDown
+        Left = 457
+        Top = 24
+        Width = 15
+        Height = 21
+        Associate = edtMemoLeftMargin
+        Min = 0
+        Position = 0
+        TabOrder = 6
+        Wrap = False
+      end
+      object udMemoRightMargin: TUpDown
+        Left = 601
+        Top = 24
+        Width = 15
+        Height = 21
+        Associate = edtMemoRightMargin
+        Min = 0
+        Position = 0
+        TabOrder = 7
+        Wrap = False
+      end
     end
-    object btnLineNumberColor: TButton
-      Left = 16
-      Top = 64
-      Width = 153
-      Height = 25
-      Caption = 'Line Number'
-      TabOrder = 1
-      OnClick = btnLineNumberColorClick
+    object tsEditorStringList: TTabSheet
+      Caption = 'EditorStringList'
+      ImageIndex = 1
+      object mmoEditorStringList: TMemo
+        Left = 8
+        Top = 16
+        Width = 353
+        Height = 409
+        TabOrder = 0
+      end
     end
-    object btnLineNumberHighlight: TButton
-      Left = 16
-      Top = 104
-      Width = 153
-      Height = 25
-      Caption = 'Line Number Highlight'
-      TabOrder = 2
-      OnClick = btnLineNumberHighlightClick
+    object tsTextControl: TTabSheet
+      Caption = 'TextControl'
+      ImageIndex = 2
+      object Label1: TLabel
+        Left = 400
+        Top = 16
+        Width = 32
+        Height = 13
+        Caption = 'Label1'
+      end
+      object lblCaretRow: TLabel
+        Left = 408
+        Top = 144
+        Width = 53
+        Height = 13
+        Caption = 'Caret Row:'
+      end
+      object lblCaretCol: TLabel
+        Left = 408
+        Top = 176
+        Width = 46
+        Height = 13
+        Caption = 'Caret Col:'
+      end
+      object chkTCLine: TCheckBox
+        Left = 400
+        Top = 40
+        Width = 113
+        Height = 17
+        Caption = 'Show LineNumber'
+        Checked = True
+        State = cbChecked
+        TabOrder = 0
+        OnClick = chkTCLineClick
+      end
+      object btnTCFont: TButton
+        Left = 408
+        Top = 72
+        Width = 75
+        Height = 25
+        Caption = 'Font'
+        TabOrder = 1
+        OnClick = btnTCFontClick
+      end
+      object StatusBar1: TStatusBar
+        Left = 0
+        Top = 418
+        Width = 817
+        Height = 19
+        Panels = <>
+        SimplePanel = False
+      end
+      object chkShowCaret: TCheckBox
+        Left = 400
+        Top = 112
+        Width = 113
+        Height = 17
+        Caption = 'Show Caret'
+        TabOrder = 3
+        OnClick = chkShowCaretClick
+      end
+      object edtCaretRow: TEdit
+        Left = 472
+        Top = 144
+        Width = 49
+        Height = 21
+        TabOrder = 4
+        Text = '1'
+        OnChange = edtCaretRowChange
+      end
+      object edtCaretCol: TEdit
+        Left = 472
+        Top = 176
+        Width = 49
+        Height = 21
+        TabOrder = 5
+        Text = '1'
+        OnChange = edtCaretColChange
+      end
+      object udCaretRow: TUpDown
+        Left = 521
+        Top = 144
+        Width = 15
+        Height = 21
+        Associate = edtCaretRow
+        Min = 1
+        Max = 1000
+        Position = 1
+        TabOrder = 6
+        Wrap = False
+      end
+      object udCaretCol: TUpDown
+        Left = 521
+        Top = 176
+        Width = 15
+        Height = 21
+        Associate = edtCaretCol
+        Min = 1
+        Max = 1000
+        Position = 1
+        TabOrder = 7
+        Wrap = False
+      end
     end
   end
   object dlgFontMemo: TFontDialog
@@ -127,7 +270,7 @@ object CnMemoForm: TCnMemoForm
   end
   object dlgColor: TColorDialog
     Ctl3D = True
-    Left = 384
-    Top = 256
+    Left = 376
+    Top = 40
   end
 end

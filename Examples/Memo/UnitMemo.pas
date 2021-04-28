@@ -4,23 +4,41 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnMemo, CnSpin;
+  StdCtrls, CnMemo, CnSpin, ComCtrls, CnTextControl;
 
 type
   TCnMemoForm = class(TForm)
+    PageControl1: TPageControl;
+    ts1: TTabSheet;
+    lblLeftMargin: TLabel;
+    lblRightMargin: TLabel;
     chkShowLineNumber: TCheckBox;
     chkHilightLineNumber: TCheckBox;
     btnChangeFont: TButton;
-    dlgFontMemo: TFontDialog;
-    lblLeftMargin: TLabel;
-    seLeftMargin: TCnSpinEdit;
-    lblRightMargin: TLabel;
-    seRightMargin: TCnSpinEdit;
     grpColors: TGroupBox;
     btnLineBkColor: TButton;
     btnLineNumberColor: TButton;
     btnLineNumberHighlight: TButton;
+    dlgFontMemo: TFontDialog;
     dlgColor: TColorDialog;
+    tsEditorStringList: TTabSheet;
+    mmoEditorStringList: TMemo;
+    tsTextControl: TTabSheet;
+    Label1: TLabel;
+    chkTCLine: TCheckBox;
+    btnTCFont: TButton;
+    StatusBar1: TStatusBar;
+    edtMemoLeftMargin: TEdit;
+    edtMemoRightMargin: TEdit;
+    udMemoLeftMargin: TUpDown;
+    udMemoRightMargin: TUpDown;
+    chkShowCaret: TCheckBox;
+    lblCaretRow: TLabel;
+    lblCaretCol: TLabel;
+    edtCaretRow: TEdit;
+    edtCaretCol: TEdit;
+    udCaretRow: TUpDown;
+    udCaretCol: TUpDown;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -30,9 +48,17 @@ type
     procedure btnLineBkColorClick(Sender: TObject);
     procedure btnLineNumberColorClick(Sender: TObject);
     procedure btnLineNumberHighlightClick(Sender: TObject);
+    procedure chkTCLineClick(Sender: TObject);
+    procedure btnTCFontClick(Sender: TObject);
+    procedure chkShowCaretClick(Sender: TObject);
+    procedure edtCaretRowChange(Sender: TObject);
+    procedure edtCaretColChange(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
+    FTextControl: TCnVirtualTextControl;
+    procedure TestVirtualClick(Sender: TObject);
+    procedure TestVirtualCaretChange(Sender: TObject);
   public
     { Public declarations }
   end;
@@ -44,6 +70,20 @@ implementation
 
 {$R *.DFM}
 
+type
+  TCnTestVirtualText = class(TCnVirtualTextControl)
+  private
+
+  protected
+    procedure DoPaintLine(ScreenLineNumber, LineNumber, HoriCharOffset: Integer;
+      LineRect: TRect); override;
+    procedure Paint; override;
+  public
+    procedure PaintCursorFrame;
+
+    property OnClick;
+  end;
+
 procedure TCnMemoForm.FormCreate(Sender: TObject);
 begin
   FMemo := TCnMemo.Create(Self);
@@ -53,9 +93,19 @@ begin
   FMemo.Height := 200;
   FMemo.Anchors := [akLeft, akRight, akTop, akBottom];
 
-  FMemo.Parent := Self;
-  seLeftMargin.Value := FMemo.LineNumberLeftMargin;
-  seRightMargin.Value := FMemo.LineNumberRightMargin;
+  FMemo.Parent := ts1;
+  udMemoLeftMargin.Position := FMemo.LineNumberLeftMargin;
+  udMemoRightMargin.Position := FMemo.LineNumberRightMargin;
+
+  FTextControl := TCnTestVirtualText.Create(Self);
+  FTextControl.MaxLineCount := 1000;
+  FTextControl.Anchors := [akLeft, akTop, akRight, akBottom];
+  FTextControl.Height := 400;
+  FTextControl.ShowLineNumber := True;
+  FTextControl.Font.Name := 'Courier New';
+  FTextControl.Parent := tsTextControl;
+  FTextControl.OnCaretChange := TestVirtualCaretChange;
+  (FTextControl as TCnTestVirtualText).OnClick := TestVirtualClick;
 end;
 
 procedure TCnMemoForm.chkShowLineNumberClick(Sender: TObject);
@@ -76,12 +126,12 @@ end;
 
 procedure TCnMemoForm.seLeftMarginChange(Sender: TObject);
 begin
-  FMemo.LineNumberLeftMargin := seLeftMargin.Value;
+  FMemo.LineNumberLeftMargin := udMemoLeftMargin.Position;
 end;
 
 procedure TCnMemoForm.seRightMarginChange(Sender: TObject);
 begin
-  FMemo.LineNumberRightMargin := seRightMargin.Value;
+  FMemo.LineNumberRightMargin := udMemoRightMargin.Position;
 end;
 
 procedure TCnMemoForm.btnLineBkColorClick(Sender: TObject);
@@ -100,6 +150,75 @@ procedure TCnMemoForm.btnLineNumberHighlightClick(Sender: TObject);
 begin
   if dlgColor.Execute then
     FMemo.HighlightNumberColor := dlgColor.Color;
+end;
+
+procedure TCnMemoForm.chkTCLineClick(Sender: TObject);
+begin
+  FTextControl.ShowLineNumber := chkTCLine.Checked;
+end;
+
+procedure TCnMemoForm.btnTCFontClick(Sender: TObject);
+begin
+  if dlgFontMemo.Execute then
+    FTextControl.Font := dlgFontMemo.Font;
+end;
+
+{ TCnTestVirtualText }
+
+procedure TCnTestVirtualText.DoPaintLine(ScreenLineNumber, LineNumber,
+  HoriCharOffset: Integer; LineRect: TRect);
+var
+  S: string;
+begin
+  S := '=== *** ' + IntToStr(ScreenLineNumber) + ' - ' + IntToStr(LineNumber);
+  if HoriCharOffset > 0 then
+    Delete(S, 1, HoriCharOffset);
+  Canvas.TextOut(LineRect.Left, LineRect.Top, S);
+end;
+
+procedure TCnMemoForm.TestVirtualClick(Sender: TObject);
+begin
+  FTextControl.Invalidate;
+end;
+
+procedure TCnTestVirtualText.Paint;
+begin
+  inherited;
+  PaintCursorFrame;
+end;
+
+procedure TCnTestVirtualText.PaintCursorFrame;
+var
+  R: TRect;
+begin
+  GetScreenCharPosRect(CharFrameRow, CharFrameCol, R);
+  Canvas.Brush.Style := bsSolid;
+  Canvas.Brush.Color := clRed;
+  Canvas.FillRect(R);
+end;
+
+procedure TCnMemoForm.chkShowCaretClick(Sender: TObject);
+begin
+  FTextControl.UseCaret := chkShowCaret.Checked;
+end;
+
+procedure TCnMemoForm.edtCaretRowChange(Sender: TObject);
+begin
+  if FTextControl <> nil then
+    FTextControl.CaretRow := StrToInt(edtCaretRow.Text);
+end;
+
+procedure TCnMemoForm.edtCaretColChange(Sender: TObject);
+begin
+  if FTextControl <> nil then
+    FTextControl.CaretCol := StrToInt(edtCaretCol.Text);
+end;
+
+procedure TCnMemoForm.TestVirtualCaretChange(Sender: TObject);
+begin
+  StatusBar1.SimpleText := Format('Line: %d. Col: %d.  ScreenLine %d. Screen Col %d',
+    [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.ScreenCaretRow,
+     FTextControl.ScreenCaretCol]);
 end;
 
 end.
