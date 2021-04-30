@@ -51,7 +51,7 @@ uses
 
 type
   TCnVirtualTextControl = class(TCustomControl)
-  {* 能够显示不同字体的文字并滚动的基类}
+  {* 能够显示不同字体的文字并滚动的基类，和具体字符串内容无关}
   private
     FFontIsFixedWidth: Boolean;   // 字体是否等宽
     FCharFrameSize: TPoint;       // 单个字符的外框尺寸，供绘制用
@@ -84,9 +84,12 @@ type
     FSelectStartCol: Integer;         // 选择区起始列号
     FSelectEndCol: Integer;           // 选择区结束列号
     FLeftMouseDown: Boolean;          // 记录鼠标左键按下与否
+    FLeftMouseMoveAfterDown: Boolean; // 记录鼠标左键按下后是否拖动过
     FIsWheeling: Boolean;             // 当前滚动时是否是由鼠标滚轮事件触发
     FOnCaretChange: TNotifyEvent;
     FOnScroll: TNotifyEvent;
+    FUseSelection: Boolean;
+    FOnSelectChange: TNotifyEvent;
     procedure UpdateScrollBars;       // 根据屏幕状况确定滚动条的位置尺寸等
     procedure UpdateRects;
     {* 计算文本区、行号区等的尺寸，注意在 Paint 中没有使用}
@@ -115,23 +118,33 @@ type
     {* 将屏幕上的虚拟行号（1 开始的）转换成屏幕上的物理行号（1 开始的）}
     function ColNumberToScreenColNumber(ColNumber: Integer): Integer;
     {* 将屏幕上的虚拟列号（1 开始的）转换成屏幕上的物理列号（1 开始的）}
+    function CalcRowCol(Pt: TPoint; out ACharFrameRow, ACharFrameCol,
+      AScreenCaretRow, AScreenCaretCol, ACaretRow, ACaretCol: Integer;
+      out ACharFrameIsLeft: Boolean): Boolean;
+    {* 根据控件内坐标计算字符位置，返回计算是否成功}
     procedure UpdateCursorFrameCaret;
     {* 根据当前鼠标位置定位字符框位置}
     procedure LimitRowColumnInLine(var LineNumber, Column: Integer);
     {* 根据当前光标位置以及最大行数以及是否允许光标超行尾的设置来调整光标行列位置}
+    procedure SyncSelectionStartEnd(Force: Boolean = False);
+    {* 不在选择状态时（或强制），将光标位置同步塞给选择起始结束位置，也意味着取消选择}
+    procedure CalcSelectEnd(Pt: TPoint);
+    {* 根据控件内坐标计算并更新选择区末尾，会控制在光标可移动范围内}
 
     procedure SetCaretCol(const Value: Integer);
     procedure SetCaretRow(const Value: Integer);
     procedure SetCaretRowCol(Row, Col: Integer);
     procedure SetCaretAfterLineEnd(const Value: Boolean);
-    procedure SetSelectEndCol(const Value: Integer);
-    procedure SetSelectEndRow(const Value: Integer);
+    procedure SetSelectEndCol(const Value: Integer);    // 光标跟着选择区尾走
+    procedure SetSelectEndRow(const Value: Integer);    // 光标跟着选择区尾走
     procedure SetSelectStartCol(const Value: Integer);
     procedure SetSelectStartRow(const Value: Integer);
     function GetTopLine: Integer;
     function GetBottomLine: Integer;
     function GetLeftColumn: Integer;
     function GetRightColumn: Integer;
+    procedure SetUseSelection(const Value: Boolean);
+    procedure SetOnSelectChange(const Value: TNotifyEvent);
   protected
     FVertExp: Integer;            // 纵向滚动的指数，用于控制纵向行太多时避免竖向滚动条太细
     FVertOffset: Integer;         // 纵向滚动偏移量，以物理行为单位，0 开始，加 1 就是 TopLine
@@ -157,10 +170,11 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
 
     procedure KeyDown(var Key: WORD; Shift: TShiftState); override;
-    procedure Click; override;
     procedure DoScroll; virtual;
     procedure DoCaretChange; virtual;
     {* 光标位置发生改变时调用}
+    procedure DoSelectChange; virtual;
+    {* 选择区发生改变时调用}
 
     procedure NavigationKey(Key: WORD; Shift: TShiftState); virtual;
     {* 收到左右上下方向键以及 PageUp/PageDown Home/End 键的处理，基类只滚动内容
@@ -169,6 +183,15 @@ type
     {* 虚拟位置在屏幕外时将当前光标位置移动至屏幕上}
     procedure ScrollToVislbleCaret;
     {* 虚拟位置在屏幕外时滚动屏幕以将光标露出，虚拟光标不变，物理光标可能发生变化}
+
+    procedure ScrollUpLine;      // 上滚一行
+    procedure ScrollDownLine;    // 下滚一行
+    procedure ScrollLeftCol;     // 左滚一列
+    procedure ScrollRightCol;    // 右滚一列
+    procedure ScrollUpPage;      // 上滚一屏
+    procedure ScrollDownPage;    // 下滚一屏
+    procedure ScrollLeftPage;    // 左滚一屏
+    procedure ScrollRightPage;   // 右滚一屏
 
     procedure GetScreenCharPosRect(ScreenRow, ScreenCol: Integer; var Rect: TRect);
     {* 从物理文字坐标获得其控件内的 Rect}
@@ -188,10 +211,11 @@ type
       子类返回不同值以处理折叠情况，注意返回值不要超过最大行号值}
 
     function ClientPosToCharPos(Pt: TPoint; out ScreenRow, ScreenCol: Integer;
-      out LeftHalf: Boolean): Boolean; virtual;
+      out LeftHalf: Boolean; ExtendOut: Boolean = True): Boolean; virtual;
     {* 将控件内的像素坐标转换为文字坐标，也就是落在物理第几行，行内第几个字符方框内，
       以及在字符矩形内属于靠左半还是靠右半，用于确定插入光标的位置。返回是否成功
-      Row、Col 均以 1 开始}
+      Row、Col 均以 1 开始，ExtendOut 为 True 时表示光标在文字区外也往里靠地算进去
+      注意点在文字区左边一点点也能计算成功返回 True}
 
     function GetColumnFromLine(ScreenLineNumber, LineNumber, X: Integer;
       out ScreenCol: Integer; out LeftHalf: Boolean): Boolean; virtual;
@@ -211,6 +235,9 @@ type
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
+    function HasSelection: Boolean;
+    {* 是否有选择区存在，也就是判断起始和结束位置是否相同}
 
     property LineHeight: Integer read FLineHeight;
     {* 行高，包括文字高度、文字 ExternalLeading 以及行间画波浪线预留的空隙}
@@ -263,6 +290,9 @@ type
     {* 当前光标位置所在的滚动后的虚拟列号，1 开始，滚动时不变，允许外界设置
       和 ScreenCaretCol 差一个 FHoriOffset}
 
+    property UseSelection: Boolean read FUseSelection write SetUseSelection;
+    {* 是否启用选择区功能}
+
     property SelectStartRow: Integer read FSelectStartRow write SetSelectStartRow;
     {* 选择区起始行，1 开始，虚拟行号}
     property SelectStartCol: Integer read FSelectStartCol write SetSelectStartCol;
@@ -276,6 +306,8 @@ type
     {* 滚动事件}
     property OnCaretChange: TNotifyEvent read FOnCaretChange write FOnCaretChange;
     {* 光标移动事件}
+    property OnSelectChange: TNotifyEvent read FOnSelectChange write SetOnSelectChange;
+    {* 选择区发生改变时触发，注意此时鼠标不一定抬起了}
   published
     property Align;
     property Ctl3D;
@@ -377,28 +409,31 @@ begin
 end;
 
 function TCnVirtualTextControl.ClientPosToCharPos(Pt: TPoint; out ScreenRow,
-  ScreenCol: Integer; out LeftHalf: Boolean): Boolean;
+  ScreenCol: Integer; out LeftHalf: Boolean; ExtendOut: Boolean): Boolean;
 var
   TR: TRect;
 begin
   Result := False;
   TR := GetTextRect;
+
+  if ExtendOut then
+  begin
+    // 坐标在方框外时，判断方向并往里移
+    if Pt.x < TR.Left then
+      Pt.x := TR.Left + 1;
+    if Pt.x > TR.Right then
+      Pt.x := TR.Right - 1;
+    if Pt.y < TR.Top then
+      Pt.y := TR.Top + 1;
+    if Pt.y > TR.Bottom then
+      Pt.y := TR.Bottom - 1;
+  end;
+
   if PtInRect(TR, Pt) then
   begin
     ScreenRow := ((Pt.y - TR.Top) div FLineHeight) + 1;
     Result := GetColumnFromLine(ScreenRow, ScreenLineNumberToLineNumber(ScreenRow),
       Pt.x, ScreenCol, LeftHalf);
-  end
-  else if (Pt.y > TR.Top) and (Pt.y < TR.Bottom) and (Pt.x < TR.Left) then
-  begin
-    if Pt.x >= TR.Left - LEFT_MARGIN * 2 then
-    begin
-      ScreenRow := ((Pt.y - TR.Top) div FLineHeight) + 1;
-      // 如果点击位置超出文字区左边一小块，也把 ScreenCol 定为 1
-      ScreenCol := 1;
-      LeftHalf := True;
-      Result := True;
-    end;
   end;
 end;
 
@@ -607,36 +642,86 @@ begin
     end
     else
     begin
-      // TODO: 按了 Shift，变更选择区
+      // TODO: 按了 Shift，变更选择区终点位置
+      if not FUseSelection then
+        Exit;
+
+      case Key of
+        VK_LEFT:
+          begin
+            // 选择区终点列左移并保持可见
+            SelectEndCol := SelectEndCol - 1;
+            ScrollToVislbleCaret;
+          end;
+        VK_RIGHT:
+          begin
+            // 选择区终点列右移并保持可见
+            SelectEndCol := SelectEndCol + 1;
+            ScrollToVislbleCaret;
+          end;
+        VK_UP:
+          begin
+            // 选择区终点行上移并保持可见
+            SelectEndRow := SelectEndRow - 1;
+            ScrollToVislbleCaret;
+          end;
+        VK_DOWN:
+          begin
+            // 选择区终点行下移并保持可见
+            SelectEndRow := SelectEndRow + 1;
+            ScrollToVislbleCaret;
+          end;
+        VK_PRIOR:
+          begin
+            SelectEndRow := SelectEndRow - GetVisibleLineCount;
+            ScrollToVislbleCaret;
+          end;
+        VK_NEXT:
+          begin
+            SelectEndRow := SelectEndRow + GetVisibleLineCount;
+            ScrollToVislbleCaret;
+          end;
+        VK_HOME:
+          begin
+            if ssCtrl in Shift then // Ctrl 按下时选择到首行首列
+              SelectEndRow := 1;
+
+            SelectEndCol := 1; // 选择到首列
+            ScrollToVislbleCaret;
+          end;
+        VK_END:
+          begin
+            if ssCtrl in Shift then // Ctrl 按下时选择到尾行尾列
+              SelectEndRow := FMaxLineCount;
+
+            SelectEndCol := GetLastColumnFromLine(FMaxLineCount); // 选择到尾列
+            ScrollToVislbleCaret;
+          end;
+      end;
     end;
   end
-  else // 没有光标，单纯移动绘制区域
+  else // 没有光标，单纯移动绘制区域，不处理 Ctrl 到文件头尾的情况
   begin
     case Key of
-      VK_LEFT: Msg.ScrollCode := SB_LINEUP;
-      VK_RIGHT: Msg.ScrollCode := SB_LINEDOWN;
-      VK_UP:
-        Msg.ScrollCode := SB_LINEUP;
-      VK_DOWN:
-        Msg.ScrollCode := SB_LINEDOWN;
-      VK_PRIOR: Msg.ScrollCode := SB_PAGEUP;
-      VK_NEXT: Msg.ScrollCode := SB_PAGEDOWN;
+      VK_LEFT: ScrollLeftCol;
+      VK_RIGHT: ScrollRightCol;
+      VK_UP: ScrollUpLine;
+      VK_DOWN: ScrollDownLine;
+      VK_PRIOR: ScrollUpPage;
+      VK_NEXT: ScrollDownPage;
       VK_HOME:
         begin
           Msg.ScrollCode := SB_THUMBTRACK;
           Msg.Pos := 0;
+          WMHScroll(Msg);
         end;
       VK_END:
         begin
           Msg.ScrollCode := SB_THUMBTRACK;
           Msg.Pos := FMaxLineCount;
+          WMHScroll(Msg);
         end;
     end;
-
-    if (Key in [VK_LEFT, VK_RIGHT]) or (Key in [VK_HOME, VK_END]) and (Shift = []) then
-      WMHScroll(Msg)
-    else
-      WMVScroll(Msg);
   end;
 end;
 
@@ -662,7 +747,10 @@ begin
   UpdateCursorFrameCaret;
 
   if Button = mbLeft then
+  begin
     FLeftMouseDown := True;
+    FLeftMouseMoveAfterDown := False;
+  end;
 end;
 
 procedure TCnVirtualTextControl.Paint;
@@ -886,36 +974,36 @@ end;
 
 procedure TCnVirtualTextControl.WMMouseWheel(var message: TWMMouseWheel);
 var
-  Msg: TWMScroll;
   I: Integer;
   R: TRect;
 begin
   // 注意滚动时 FCaretRow 和 FCaretCol 不变，并且可能跑到 TextRect 外头去
   if GetKeyState(VK_CONTROL) < 0 then
   begin
-    if message.WheelDelta > 0 then
-      Msg.ScrollCode := SB_PAGEUP
-    else
-      Msg.ScrollCode := SB_PAGEDOWN;
-
     FIsWheeling := True;
     try
-      WMVScroll(Msg);
+      if message.WheelDelta > 0 then
+        ScrollUpPage
+      else
+        ScrollDownPage;
     finally
       FIsWheeling := False;
     end;
   end
   else
   begin
-    if message.WheelDelta > 0 then
-      Msg.ScrollCode := SB_LINEUP
-    else
-      Msg.ScrollCode := SB_LINEDOWN;
-
     FIsWheeling := True;
     try
-      for I := 0 to FWheelLinesCount - 1 do
-        WMVScroll(Msg);
+      if message.WheelDelta > 0 then
+      begin
+        for I := 0 to FWheelLinesCount - 1 do
+          ScrollUpLine;
+      end
+      else
+      begin
+        for I := 0 to FWheelLinesCount - 1 do
+          ScrollDownLine;
+      end;
     finally
       FIsWheeling := False;
     end;
@@ -926,6 +1014,8 @@ begin
   FScreenCaretCol := ColNumberToScreenColNumber(FCaretCol);
   GetScreenCharPosRect(FScreenCaretRow, FScreenCaretCol, R);
   SetCaretPos(R.Left, R.Top);
+
+  SyncSelectionStartEnd;
 end;
 
 procedure TCnVirtualTextControl.WMSetFocus(var message: TWMSetFocus);
@@ -1042,54 +1132,19 @@ begin
   end;
 end;
 
-procedure TCnVirtualTextControl.Click;
-//var
-//  TR: TRect;
-//  Pt: TPoint;
-begin
-  inherited;
-//  UpdateCursorFrameCaret;
-//
-//  TR := GetTextRect;
-//  Pt := ScreenToClient(Mouse.CursorPos);
-//  if PtInRect(Pt, TR) then // 点击在文字区里
-//  begin
-//    // 取消选择
-//    FSelectStartRow := FCaretRow;
-//    FSelectEndRow := FCaretRow;
-//    FSelectStartCol := FCaretCol;
-//    FSelectEndCol := FCaretCol;
-//  end;
-end;
-
 procedure TCnVirtualTextControl.UpdateCursorFrameCaret;
 var
   P: TPoint;
   R: TRect;
 begin
   P := ScreenToClient(Mouse.CursorPos);
-  if ClientPosToCharPos(P, FCharFrameRow, FCharFrameCol, FCharFrameIsLeft) then
+  if CalcRowCol(P, FCharFrameRow, FCharFrameCol, FScreenCaretRow, FScreenCaretCol,
+    FCaretRow, FCaretCol, FCharFrameIsLeft) then
   begin
-    FScreenCaretRow := FCharFrameRow;
-    if FCharFrameIsLeft then
-      FScreenCaretCol := FCharFrameCol
-    else
-      FScreenCaretCol := FCharFrameCol + 1;
-
-    // 转换成虚拟 CaretRow/Col
-    FCaretRow := ScreenLineNumberToLineNumber(FScreenCaretRow);
-    FCaretCol := ScreenColNumberToColNumber(FScreenCaretCol);
-
-    // 通过虚拟 Row/Col 判断限制
-    LimitRowColumnInLine(FCaretRow, FCaretCol);
-
-    // 再同步转回 ScreenCaretRow/Col
-    FScreenCaretRow := LineNumberToScreenLineNumber(FCaretRow);
-    FScreenCaretCol := ColNumberToScreenColNumber(FCaretCol);
-
     // 设置光标位置
     GetScreenCharPosRect(FScreenCaretRow, FScreenCaretCol, R);
     SetCaretPos(R.Left, R.Top);
+    SyncSelectionStartEnd;
     DoCaretChange;
   end;
 end;
@@ -1118,6 +1173,7 @@ begin
   begin
     GetScreenCharPosRect(FScreenCaretRow, FScreenCaretCol, R);
     SetCaretPos(R.Left, R.Top);
+    SyncSelectionStartEnd;
     DoCaretChange;
   end;
 end;
@@ -1140,6 +1196,7 @@ begin
   begin
     GetScreenCharPosRect(FScreenCaretRow, FScreenCaretCol, R);
     SetCaretPos(R.Left, R.Top);
+    SyncSelectionStartEnd;
     DoCaretChange;
   end;
 end;
@@ -1210,6 +1267,7 @@ begin
     begin
       GetScreenCharPosRect(FScreenCaretRow, FScreenCaretCol, R);
       SetCaretPos(R.Left, R.Top);
+      SyncSelectionStartEnd;
       DoCaretChange;
     end;
     Invalidate;
@@ -1239,31 +1297,89 @@ end;
 
 procedure TCnVirtualTextControl.SetSelectEndCol(const Value: Integer);
 begin
-  FSelectEndCol := Value;
+  if FSelectEndCol <> Value then
+  begin
+    FSelectEndCol := Value;
+    LimitRowColumnInLine(FSelectEndRow, FSelectEndCol);
+    SetCaretRowCol(FSelectEndRow, FSelectEndCol);
+    Invalidate;
+    DoSelectChange;
+  end;
 end;
 
 procedure TCnVirtualTextControl.SetSelectEndRow(const Value: Integer);
 begin
-  FSelectEndRow := Value;
+  if FSelectEndRow <> Value then
+  begin
+    FSelectEndRow := Value;
+    LimitRowColumnInLine(FSelectEndRow, FSelectEndCol);
+    SetCaretRowCol(FSelectEndRow, FSelectEndCol);
+    Invalidate;
+    DoSelectChange;
+  end;
 end;
 
 procedure TCnVirtualTextControl.SetSelectStartCol(const Value: Integer);
 begin
-  FSelectStartCol := Value;
+  if FSelectStartCol <> Value then
+  begin
+    FSelectStartCol := Value;
+    LimitRowColumnInLine(FSelectStartRow, FSelectStartCol);
+    Invalidate;
+    DoSelectChange;
+  end;
 end;
 
 procedure TCnVirtualTextControl.SetSelectStartRow(const Value: Integer);
 begin
-  FSelectStartRow := Value;
+  if FSelectStartRow <> Value then
+  begin
+    FSelectStartRow := Value;
+    LimitRowColumnInLine(FSelectStartRow, FSelectStartCol);
+    Invalidate;
+    DoSelectChange;
+  end;
 end;
 
 procedure TCnVirtualTextControl.MouseMove(Shift: TShiftState; X,
   Y: Integer);
+var
+  P: TPoint;
+  TR: TRect;
 begin
   inherited;
+
   if FLeftMouseDown then
   begin
-    // TODO: 处理拖动选择
+    if FUseSelection then     // 左键拖动时如果支持选择区，则更新选择区尾
+    begin
+      if not FLeftMouseMoveAfterDown then // 本次拖动是 MouseDown 后的首次 Move
+      begin
+        // TODO: 判断是否在选择区内再次拖动，如果是则处理拖拽，现在简单地取消选择准备再次选择
+        SyncSelectionStartEnd(True);
+      end;
+
+      FLeftMouseMoveAfterDown := True;
+      P.x := X;
+      P.y := Y;
+
+      // 拖动到了边缘，先滚动一次区域，无需 SetCapture
+      TR := GetTextRect;
+      if P.x < TR.Left then
+        ScrollLeftCol
+      else if P.x > TR.Right then
+        ScrollRightCol;
+
+      if P.y < TR.Top then
+        ScrollUpLine
+      else if P.y > TR.Bottom then
+        ScrollDownLine;
+
+      CalcSelectEnd(P); // 然后再连续更新这次的选择区
+      SetCaretRowCol(FSelectEndRow, FSelectEndCol); // 同时也移动光标
+    end
+    else
+      UpdateCursorFrameCaret; // 左键拖动时如果不支持选择区，则也移动光标
   end;
 end;
 
@@ -1271,8 +1387,19 @@ procedure TCnVirtualTextControl.MouseUp(Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   inherited;
+
   if Button = mbLeft then
+  begin
     FLeftMouseDown := False;
+    if FUseSelection then  // 鼠标左键抬起时，要通过什么条件取消当前选择区？本次未拖动
+    begin
+      if not FLeftMouseMoveAfterDown then // 拖动过的啥都不做，未拖动过的取消选择
+      begin
+        SyncSelectionStartEnd(True);
+        DoSelectChange;
+      end;
+    end;
+  end;
 end;
 
 procedure TCnVirtualTextControl.MoveCaretToVisible;
@@ -1342,6 +1469,7 @@ begin
   begin
     GetScreenCharPosRect(FScreenCaretRow, FScreenCaretCol, R);
     SetCaretPos(R.Left, R.Top);
+    SyncSelectionStartEnd;
     DoCaretChange;
   end;
 end;
@@ -1382,6 +1510,158 @@ begin
     UpdateScrollBars;
     DoScroll;
   end;
+end;
+
+procedure TCnVirtualTextControl.SetUseSelection(const Value: Boolean);
+begin
+  FUseSelection := Value;
+end;
+
+function TCnVirtualTextControl.HasSelection: Boolean;
+begin
+  Result := (FSelectStartRow <> FSelectEndRow) or (FSelectStartCol <> FSelectEndCol);
+end;
+
+procedure TCnVirtualTextControl.SyncSelectionStartEnd(Force: Boolean);
+begin
+  if FUseSelection and (Force or not HasSelection) then
+  begin
+    FSelectStartRow := FCaretRow;
+    FSelectEndRow := FCaretRow;
+    FSelectStartCol := FCaretCol;
+    FSelectEndCol := FCaretCol;
+  end;
+end;
+
+function TCnVirtualTextControl.CalcRowCol(Pt: TPoint; out ACharFrameRow,
+  ACharFrameCol, AScreenCaretRow, AScreenCaretCol, ACaretRow, ACaretCol: Integer;
+  out ACharFrameIsLeft: Boolean): Boolean;
+begin
+  Result := ClientPosToCharPos(Pt, ACharFrameRow, ACharFrameCol, ACharFrameIsLeft);
+  if Result then
+  begin
+    AScreenCaretRow := ACharFrameRow;
+    if ACharFrameIsLeft then
+      AScreenCaretCol := ACharFrameCol
+    else
+      AScreenCaretCol := ACharFrameCol + 1;
+
+    // 转换成虚拟 CaretRow/Col
+    ACaretRow := ScreenLineNumberToLineNumber(AScreenCaretRow);
+    ACaretCol := ScreenColNumberToColNumber(AScreenCaretCol);
+
+    // 通过虚拟 Row/Col 判断限制
+    LimitRowColumnInLine(ACaretRow, ACaretCol);
+
+    // 再同步转回 ScreenCaretRow/Col
+    AScreenCaretRow := LineNumberToScreenLineNumber(ACaretRow);
+    AScreenCaretCol := ColNumberToScreenColNumber(ACaretCol);
+  end;
+end;
+
+procedure TCnVirtualTextControl.DoSelectChange;
+begin
+  if Assigned(FOnSelectChange) then
+    FOnSelectChange(Self);
+end;
+
+procedure TCnVirtualTextControl.CalcSelectEnd(Pt: TPoint);
+var
+  ACharFrameRow, ACharFrameCol: Integer;
+  AScreenCaretRow, AScreenCaretCol: Integer;
+  ACaretRow, ACaretCol: Integer;
+  OldSelEndRow, OldSelEndCol: Integer;
+  ACharFrameIsLeft: Boolean;
+begin
+  // 处理拖动选择，注意 Down 时已经确定好了选择起始处
+  OldSelEndRow := FSelectEndRow;
+  OldSelEndCol := FSelectEndCol;
+
+  if CalcRowCol(Pt, ACharFrameRow, ACharFrameCol, AScreenCaretRow,
+    AScreenCaretCol, ACaretRow, ACaretCol, ACharFrameIsLeft) then
+  begin
+    // 光标在文字区内或文字区左侧包括行号区
+    FSelectEndRow := ACaretRow;
+    FSelectEndCol := ACaretCol;
+
+    LimitRowColumnInLine(FSelectEndRow, FSelectEndCol); // 限制避免拖出范围
+
+    if (FSelectEndRow <> OldSelEndRow) or (FSelectEndCol <> OldSelEndCol) then
+    begin
+      Invalidate;
+      DoSelectChange;
+    end;
+  end;
+end;
+
+procedure TCnVirtualTextControl.SetOnSelectChange(
+  const Value: TNotifyEvent);
+begin
+  FOnSelectChange := Value;
+end;
+
+procedure TCnVirtualTextControl.ScrollDownLine;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_LINEDOWN;
+  WMVScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollDownPage;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_PAGEDOWN;
+  WMVScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollLeftCol;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_LINELEFT;
+  WMHScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollLeftPage;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_PAGELEFT;
+  WMHScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollRightCol;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_LINERIGHT;
+  WMHScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollRightPage;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_PAGERIGHT;
+  WMHScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollUpLine;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_LINEUP;
+  WMVScroll(Msg);
+end;
+
+procedure TCnVirtualTextControl.ScrollUpPage;
+var
+  Msg: TWMScroll;
+begin
+  Msg.ScrollCode := SB_PAGEUP;
+  WMVScroll(Msg);
 end;
 
 end.

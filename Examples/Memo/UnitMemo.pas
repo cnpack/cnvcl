@@ -39,6 +39,7 @@ type
     edtCaretCol: TEdit;
     udCaretRow: TUpDown;
     udCaretCol: TUpDown;
+    chkUseSelection: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -53,12 +54,15 @@ type
     procedure chkShowCaretClick(Sender: TObject);
     procedure edtCaretRowChange(Sender: TObject);
     procedure edtCaretColChange(Sender: TObject);
+    procedure chkUseSelectionClick(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
     FTextControl: TCnVirtualTextControl;
     procedure TestVirtualClick(Sender: TObject);
     procedure TestVirtualCaretChange(Sender: TObject);
+    procedure TestVirtualSelectChange(Sender: TObject);
+    procedure UpdateStatusBar;
   public
     { Public declarations }
   end;
@@ -80,8 +84,6 @@ type
     procedure Paint; override;
   public
     procedure PaintCursorFrame;
-
-    property OnClick;
   end;
 
 procedure TCnMemoForm.FormCreate(Sender: TObject);
@@ -105,6 +107,7 @@ begin
   FTextControl.Font.Name := 'Courier New';
   FTextControl.Parent := tsTextControl;
   FTextControl.OnCaretChange := TestVirtualCaretChange;
+  FTextControl.OnSelectChange := TestVirtualSelectChange;
   (FTextControl as TCnTestVirtualText).OnClick := TestVirtualClick;
 end;
 
@@ -216,9 +219,30 @@ end;
 
 procedure TCnMemoForm.TestVirtualCaretChange(Sender: TObject);
 begin
-  StatusBar1.SimpleText := Format('Line: %d. Col: %d.  ScreenLine %d. Screen Col %d',
-    [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.ScreenCaretRow,
-     FTextControl.ScreenCaretCol]);
+  UpdateStatusBar;
+end;
+
+procedure TCnMemoForm.chkUseSelectionClick(Sender: TObject);
+begin
+  FTextControl.UseSelection := chkUseSelection.Checked;
+end;
+
+procedure TCnMemoForm.UpdateStatusBar;
+begin
+  if FTextControl.HasSelection then
+    StatusBar1.SimpleText := Format('Line: %d. Col: %d.  ScreenLine %d. Screen Col %d. Selection from %d/%d to %d/%d',
+      [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.ScreenCaretRow,
+       FTextControl.ScreenCaretCol, FTextControl.SelectStartRow, FTextControl.SelectStartCol,
+       FTextControl.SelectEndRow, FTextControl.SelectEndCol])
+  else
+    StatusBar1.SimpleText := Format('Line: %d. Col: %d.  ScreenLine %d. Screen Col %d. No Selection %d/%d',
+      [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.ScreenCaretRow,
+       FTextControl.ScreenCaretCol, FTextControl.SelectStartRow, FTextControl.SelectStartCol]);
+end;
+
+procedure TCnMemoForm.TestVirtualSelectChange(Sender: TObject);
+begin
+  UpdateStatusBar;
 end;
 
 end.

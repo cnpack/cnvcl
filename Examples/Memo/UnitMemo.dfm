@@ -255,6 +255,15 @@ object CnMemoForm: TCnMemoForm
         TabOrder = 7
         Wrap = False
       end
+      object chkUseSelection: TCheckBox
+        Left = 400
+        Top = 216
+        Width = 97
+        Height = 17
+        Caption = 'Use Selection'
+        TabOrder = 8
+        OnClick = chkUseSelectionClick
+      end
     end
   end
   object dlgFontMemo: TFontDialog
