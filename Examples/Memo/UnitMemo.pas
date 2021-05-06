@@ -40,21 +40,24 @@ type
     udCaretRow: TUpDown;
     udCaretCol: TUpDown;
     chkUseSelection: TCheckBox;
+    chkMemoShowCaret: TCheckBox;
+    chkMemoUseSelection: TCheckBox;
+    btnMemoLoad: TButton;
+    dlgOpen1: TOpenDialog;
+    chkCaretAfterLineEnd: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
-    procedure chkHilightLineNumberClick(Sender: TObject);
-    procedure seLeftMarginChange(Sender: TObject);
-    procedure seRightMarginChange(Sender: TObject);
-    procedure btnLineBkColorClick(Sender: TObject);
-    procedure btnLineNumberColorClick(Sender: TObject);
-    procedure btnLineNumberHighlightClick(Sender: TObject);
     procedure chkTCLineClick(Sender: TObject);
     procedure btnTCFontClick(Sender: TObject);
     procedure chkShowCaretClick(Sender: TObject);
     procedure edtCaretRowChange(Sender: TObject);
     procedure edtCaretColChange(Sender: TObject);
     procedure chkUseSelectionClick(Sender: TObject);
+    procedure chkMemoShowCaretClick(Sender: TObject);
+    procedure chkMemoUseSelectionClick(Sender: TObject);
+    procedure btnMemoLoadClick(Sender: TObject);
+    procedure chkCaretAfterLineEndClick(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
@@ -79,7 +82,7 @@ type
   private
 
   protected
-    procedure DoPaintLine(ScreenLineNumber, LineNumber, HoriCharOffset: Integer;
+    procedure DoPaintLine(LineCanvas:TCanvas; LineNumber, HoriCharOffset: Integer;
       LineRect: TRect); override;
     procedure Paint; override;
   public
@@ -94,10 +97,13 @@ begin
   FMemo.Width := 300;
   FMemo.Height := 200;
   FMemo.Anchors := [akLeft, akRight, akTop, akBottom];
+  FMemo.Lines.Add('');
+  FMemo.Lines.Add('123');
+  FMemo.Lines.Add('W啊');
+  FMemo.Lines.Add('我吃饭');
+  FMemo.Lines.Add(' a c .');
 
   FMemo.Parent := ts1;
-  udMemoLeftMargin.Position := FMemo.LineNumberLeftMargin;
-  udMemoRightMargin.Position := FMemo.LineNumberRightMargin;
 
   FTextControl := TCnTestVirtualText.Create(Self);
   FTextControl.MaxLineCount := 1000;
@@ -122,39 +128,6 @@ begin
     FMemo.Font := dlgFontMemo.Font;
 end;
 
-procedure TCnMemoForm.chkHilightLineNumberClick(Sender: TObject);
-begin
-  FMemo.HighlightNumber := chkHilightLineNumber.Checked;
-end;
-
-procedure TCnMemoForm.seLeftMarginChange(Sender: TObject);
-begin
-  FMemo.LineNumberLeftMargin := udMemoLeftMargin.Position;
-end;
-
-procedure TCnMemoForm.seRightMarginChange(Sender: TObject);
-begin
-  FMemo.LineNumberRightMargin := udMemoRightMargin.Position;
-end;
-
-procedure TCnMemoForm.btnLineBkColorClick(Sender: TObject);
-begin
-  if dlgColor.Execute then
-    FMemo.LineNumberBkColor := dlgColor.Color;
-end;
-
-procedure TCnMemoForm.btnLineNumberColorClick(Sender: TObject);
-begin
-  if dlgColor.Execute then
-    FMemo.LineNumberColor := dlgColor.Color;
-end;
-
-procedure TCnMemoForm.btnLineNumberHighlightClick(Sender: TObject);
-begin
-  if dlgColor.Execute then
-    FMemo.HighlightNumberColor := dlgColor.Color;
-end;
-
 procedure TCnMemoForm.chkTCLineClick(Sender: TObject);
 begin
   FTextControl.ShowLineNumber := chkTCLine.Checked;
@@ -168,15 +141,105 @@ end;
 
 { TCnTestVirtualText }
 
-procedure TCnTestVirtualText.DoPaintLine(ScreenLineNumber, LineNumber,
+procedure TCnTestVirtualText.DoPaintLine(LineCanvas: TCanvas; LineNumber,
   HoriCharOffset: Integer; LineRect: TRect);
 var
-  S: string;
+  S, S1, S2: string;
+  SSR, SSC, SER, SEC, T: Integer;
 begin
-  S := '=== *** ' + IntToStr(ScreenLineNumber) + ' - ' + IntToStr(LineNumber);
-  if HoriCharOffset > 0 then
-    Delete(S, 1, HoriCharOffset);
-  Canvas.TextOut(LineRect.Left, LineRect.Top, S);
+  S := '=== *** ' + IntToStr(LineNumber - FVertOffset) + ' - ' + IntToStr(LineNumber) + ' qwertyuiop ASDFGHJKL zxcvbnm,. 0987654321';
+//  if HoriCharOffset > 0 then
+//    Delete(S, 1, HoriCharOffset);
+
+  if UseSelection and HasSelection then
+  begin
+    // 判断本行是否在选择区，分五种情况
+    // 不在、整行全是、整行左半是、整行右半是、整行中间是
+    SSR := SelectStartRow;
+    SSC := SelectStartCol;
+    SER := SelectEndRow;
+    SEC := SelectEndCol;
+
+    if (SER < SSR) or ((SER = SSR) and (SEC < SSC)) then
+    begin
+      T := SER;
+      SER := SSR;
+      SSR := T;
+
+      T := SEC;
+      SEC := SSC;
+      SSC := T;
+    end;    // 确保 StartRow/Col 在 EndRow/Col 前面
+
+    // TODO: 把四个虚拟光标坐标转换成物理字符列与像素坐标以正确处理字符串劈开以及绘制
+
+    if ((LineNumber < SSR) and (LineNumber < SER)) or
+      ((LineNumber > SSR) and (LineNumber > SER)) then
+    begin
+      // 在选择区外，正常画
+      LineCanvas.Font.Color := Font.Color;
+      LineCanvas.Brush.Style := bsClear;
+      LineCanvas.TextOut(LineRect.Left, LineRect.Top, S);
+    end
+    else if (LineNumber = SSR) and (LineNumber <> SER) then
+    begin
+      // 等于起始行但不等于结尾行，从 1 到 SSC - 1 画正常区，SSC 后画选择区
+      LineCanvas.Font.Color := Font.Color;
+      LineCanvas.Brush.Style := bsClear;
+      S1 := Copy(S, 1, SSC - 1);
+      if S1 <> '' then
+      begin
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
+        T := LineCanvas.TextWidth(S1);
+        Inc(LineRect.Left, T);
+      end;
+
+      LineCanvas.Brush.Style := bsSolid;
+      LineCanvas.Brush.Color := clHighlight;
+      LineCanvas.FillRect(LineRect);
+      S1 := Copy(S, SSC, MaxInt);
+      if S1 <> '' then
+      begin
+        LineCanvas.Font.Color := clHighlightText;
+        LineCanvas.Brush.Style := bsClear;
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
+      end;
+    end
+    else if (LineNumber = SER) and (LineNumber <> SSR) then
+    begin
+      // 等于结尾行但不等于起始行，从 1 到 SEC - 1 画选择区，SEC 后画正常区
+      S1 := Copy(S, 1, SEC - 1);
+      if S1 <> '' then
+      begin
+        T := LineCanvas.TextWidth(S1);
+        
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
+        T := LineCanvas.TextWidth(S1);
+        Inc(LineRect.Left, T);
+      end;
+    end
+    else if (LineNumber > SSR) and (LineNumber < SER) then
+    begin
+      // 在选择区内，全画选择色
+      LineCanvas.Brush.Style := bsSolid;
+      LineCanvas.Brush.Color := clHighlight;
+      LineCanvas.FillRect(LineRect);
+
+      LineCanvas.Font.Color := clHighlightText;
+      LineCanvas.Brush.Style := bsClear;
+      LineCanvas.TextOut(LineRect.Left, LineRect.Top, S);
+    end
+    else
+    begin
+      // 在选择行内，从 SSC 到 SEC 中间画选择区
+    end;
+  end
+  else
+  begin
+    LineCanvas.Font.Color := Font.Color;
+    LineCanvas.Brush.Style := bsClear;
+    LineCanvas.TextOut(LineRect.Left, LineRect.Top, S);
+  end;
 end;
 
 procedure TCnMemoForm.TestVirtualClick(Sender: TObject);
@@ -194,7 +257,7 @@ procedure TCnTestVirtualText.PaintCursorFrame;
 var
   R: TRect;
 begin
-  GetScreenCharPosRect(CharFrameRow, CharFrameCol, R);
+  GetVirtualCharPosPhysicalRect(CaretRow, CaretCol, R);
   Canvas.Brush.Style := bsSolid;
   Canvas.Brush.Color := clRed;
   Canvas.FillRect(R);
@@ -230,19 +293,38 @@ end;
 procedure TCnMemoForm.UpdateStatusBar;
 begin
   if FTextControl.HasSelection then
-    StatusBar1.SimpleText := Format('Line: %d. Col: %d.  ScreenLine %d. Screen Col %d. Selection from %d/%d to %d/%d',
-      [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.ScreenCaretRow,
-       FTextControl.ScreenCaretCol, FTextControl.SelectStartRow, FTextControl.SelectStartCol,
+    StatusBar1.SimpleText := Format('Line: %d. Col: %d. Selection from %d/%d to %d/%d',
+      [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.SelectStartRow, FTextControl.SelectStartCol,
        FTextControl.SelectEndRow, FTextControl.SelectEndCol])
   else
-    StatusBar1.SimpleText := Format('Line: %d. Col: %d.  ScreenLine %d. Screen Col %d. No Selection %d/%d',
-      [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.ScreenCaretRow,
-       FTextControl.ScreenCaretCol, FTextControl.SelectStartRow, FTextControl.SelectStartCol]);
+    StatusBar1.SimpleText := Format('Line: %d. Col: %d. No Selection %d/%d',
+      [FTextControl.CaretRow, FTextControl.CaretCol, FTextControl.SelectStartRow, FTextControl.SelectStartCol]);
 end;
 
 procedure TCnMemoForm.TestVirtualSelectChange(Sender: TObject);
 begin
   UpdateStatusBar;
+end;
+
+procedure TCnMemoForm.chkMemoShowCaretClick(Sender: TObject);
+begin
+  FMemo.UseCaret := chkMemoShowCaret.Checked;
+end;
+
+procedure TCnMemoForm.chkMemoUseSelectionClick(Sender: TObject);
+begin
+  FMemo.UseSelection := chkUseSelection.Checked;
+end;
+
+procedure TCnMemoForm.btnMemoLoadClick(Sender: TObject);
+begin
+  if dlgOpen1.Execute then
+    FMemo.LoadFromFile(dlgOpen1.FileName);
+end;
+
+procedure TCnMemoForm.chkCaretAfterLineEndClick(Sender: TObject);
+begin
+  FMemo.CaretAfterLineEnd := chkCaretAfterLineEnd.Checked;
 end;
 
 end.

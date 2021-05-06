@@ -56,11 +56,10 @@ object CnMemoForm: TCnMemoForm
         Checked = True
         State = cbChecked
         TabOrder = 1
-        OnClick = chkHilightLineNumberClick
       end
       object btnChangeFont: TButton
-        Left = 680
-        Top = 24
+        Left = 400
+        Top = 184
         Width = 75
         Height = 25
         Caption = 'Change Font'
@@ -81,7 +80,6 @@ object CnMemoForm: TCnMemoForm
           Height = 25
           Caption = 'Line Number Background'
           TabOrder = 0
-          OnClick = btnLineBkColorClick
         end
         object btnLineNumberColor: TButton
           Left = 16
@@ -90,7 +88,6 @@ object CnMemoForm: TCnMemoForm
           Height = 25
           Caption = 'Line Number'
           TabOrder = 1
-          OnClick = btnLineNumberColorClick
         end
         object btnLineNumberHighlight: TButton
           Left = 16
@@ -99,7 +96,6 @@ object CnMemoForm: TCnMemoForm
           Height = 25
           Caption = 'Line Number Highlight'
           TabOrder = 2
-          OnClick = btnLineNumberHighlightClick
         end
       end
       object edtMemoLeftMargin: TEdit
@@ -139,6 +135,44 @@ object CnMemoForm: TCnMemoForm
         Position = 0
         TabOrder = 7
         Wrap = False
+      end
+      object chkMemoShowCaret: TCheckBox
+        Left = 400
+        Top = 112
+        Width = 113
+        Height = 17
+        Caption = 'Show Caret'
+        TabOrder = 8
+        OnClick = chkMemoShowCaretClick
+      end
+      object chkMemoUseSelection: TCheckBox
+        Left = 400
+        Top = 160
+        Width = 97
+        Height = 17
+        Caption = 'Use Selection'
+        TabOrder = 9
+        OnClick = chkMemoUseSelectionClick
+      end
+      object btnMemoLoad: TButton
+        Left = 400
+        Top = 72
+        Width = 89
+        Height = 25
+        Caption = 'Load From File'
+        TabOrder = 10
+        OnClick = btnMemoLoadClick
+      end
+      object chkCaretAfterLineEnd: TCheckBox
+        Left = 400
+        Top = 136
+        Width = 129
+        Height = 17
+        Caption = 'Caret After Line End'
+        Checked = True
+        State = cbChecked
+        TabOrder = 11
+        OnClick = chkCaretAfterLineEndClick
       end
     end
     object tsEditorStringList: TTabSheet
@@ -281,5 +315,9 @@ object CnMemoForm: TCnMemoForm
     Ctl3D = True
     Left = 376
     Top = 40
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 404
+    Top = 240
   end
 end
