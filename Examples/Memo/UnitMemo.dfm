@@ -19,7 +19,7 @@ object CnMemoForm: TCnMemoForm
     Top = 8
     Width = 825
     Height = 465
-    ActivePage = tsTextControl
+    ActivePage = ts1
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object ts1: TTabSheet

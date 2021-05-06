@@ -131,8 +131,9 @@ type
     {* 根据当前光标位置以及最大行数以及是否允许光标超行尾的设置来调整光标行列位置}
     procedure SyncCaretPosition;
     {* 根据当前虚拟行列重新设置物理光标位置}
-    procedure SyncSelectionStartEnd(Force: Boolean = False);
-    {* 不在选择状态时（或强制），将光标位置同步塞给选择起始结束位置，也意味着取消选择}
+    function SyncSelectionStartEnd(Force: Boolean = False): Boolean;
+    {* 不在选择状态时（或强制），将光标位置同步塞给选择起始结束位置，也意味着取消选择
+      返回值为 True 时表示执行了同步并取消选择动作}
     procedure CalcSelectEnd(Pt: TPoint);
     {* 根据控件内坐标计算并更新选择区末尾，会控制在光标可移动范围内}
 
@@ -639,8 +640,10 @@ begin
     // 处理有光标时的方向键
     if not (ssShift in Shift) then
     begin
-      // 没按 Shift，不是选择模式，纯移动光标，先取消选择
-      SyncSelectionStartEnd(True);
+      // 没按 Shift，不是选择模式，纯移动光标，先取消选择并更新界面
+      if SyncSelectionStartEnd(True) then
+        Invalidate;
+
       case Key of
         VK_LEFT:
           begin
@@ -882,13 +885,14 @@ begin
   LineBmp.Height := FLineHeight;
   LineBmp.Width := H + (FTextRect.Right - FTextRect.Left);
 
-  LineRect := Bounds(0, 0, LineBmp.Width, LineBmp.Height);
   LineCanvas := LineBmp.Canvas;
   LineCanvas.Font.Assign(Font);
 
   try
     for I := 1 to V do // I 是物理行
     begin
+      LineRect := Bounds(0, 0, LineBmp.Width, LineBmp.Height);
+
       // 绘制 LineBmp Background
       DoPaintLineBackground(LineCanvas, I + FVertOffset, LineRect);
 
@@ -896,8 +900,8 @@ begin
       DoPaintLine(LineCanvas, I + FVertOffset, FHoriOffset, LineRect);
 
       // 内容复制过去
-      BitBlt(Canvas.Handle, TR.Left, TR.Top, LineRect.Right - LineRect.Left - H,
-        LineRect.Bottom - LineRect.Top, LineCanvas.Handle, H, 0, SRCCOPY);
+      BitBlt(Canvas.Handle, TR.Left, TR.Top, LineBmp.Width - H,
+        LineBmp.Height, LineCanvas.Handle, H, 0, SRCCOPY);
 
       Inc(TR.Top, FLineHeight);
       Inc(TR.Bottom, FLineHeight);
@@ -1525,7 +1529,12 @@ end;
 
 procedure TCnVirtualTextControl.SetUseSelection(const Value: Boolean);
 begin
-  FUseSelection := Value;
+  if FUseSelection <> Value then
+  begin
+    FUseSelection := Value;
+    SyncSelectionStartEnd(True);
+    Invalidate;
+  end;
 end;
 
 function TCnVirtualTextControl.HasSelection: Boolean;
@@ -1533,7 +1542,7 @@ begin
   Result := (FSelectStartRow <> FSelectEndRow) or (FSelectStartCol <> FSelectEndCol);
 end;
 
-procedure TCnVirtualTextControl.SyncSelectionStartEnd(Force: Boolean);
+function TCnVirtualTextControl.SyncSelectionStartEnd(Force: Boolean): Boolean;
 begin
   if FUseSelection and (Force or not HasSelection) then
   begin
@@ -1541,7 +1550,11 @@ begin
     FSelectEndRow := FCaretRow;
     FSelectStartCol := FCaretCol;
     FSelectEndCol := FCaretCol;
-  end;
+
+    Result := True;
+  end
+  else
+    Result := False;
 end;
 
 function TCnVirtualTextControl.CalcRowCol(Pt: TPoint; out ACaretRow, ACaretCol: Integer;

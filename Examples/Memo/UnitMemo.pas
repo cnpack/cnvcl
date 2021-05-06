@@ -144,7 +144,7 @@ end;
 procedure TCnTestVirtualText.DoPaintLine(LineCanvas: TCanvas; LineNumber,
   HoriCharOffset: Integer; LineRect: TRect);
 var
-  S, S1, S2: string;
+  S, S1: string;
   SSR, SSC, SER, SEC, T: Integer;
 begin
   S := '=== *** ' + IntToStr(LineNumber - FVertOffset) + ' - ' + IntToStr(LineNumber) + ' qwertyuiop ASDFGHJKL zxcvbnm,. 0987654321';
@@ -170,8 +170,6 @@ begin
       SEC := SSC;
       SSC := T;
     end;    // 确保 StartRow/Col 在 EndRow/Col 前面
-
-    // TODO: 把四个虚拟光标坐标转换成物理字符列与像素坐标以正确处理字符串劈开以及绘制
 
     if ((LineNumber < SSR) and (LineNumber < SER)) or
       ((LineNumber > SSR) and (LineNumber > SER)) then
@@ -212,10 +210,22 @@ begin
       if S1 <> '' then
       begin
         T := LineCanvas.TextWidth(S1);
-        
+
+        LineCanvas.Brush.Style := bsSolid;
+        LineCanvas.Brush.Color := clHighlight;
+
+        LineRect.Right := T;
+        LineCanvas.FillRect(LineRect);
+
         LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
-        T := LineCanvas.TextWidth(S1);
         Inc(LineRect.Left, T);
+      end;
+      S1 := Copy(S, SEC, MaxInt);
+      if S1 <> '' then
+      begin
+        LineCanvas.Brush.Style := bsClear;
+        LineCanvas.Font.Color := Font.Color;
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
       end;
     end
     else if (LineNumber > SSR) and (LineNumber < SER) then
@@ -231,7 +241,40 @@ begin
     end
     else
     begin
-      // 在选择行内，从 SSC 到 SEC 中间画选择区
+      // 在选择行内，从 1 到 SSC - 1 画正常，SSC 到 SEC 中间画选择区，SEC + 1 后画正常
+      S1 := Copy(S, 1, SSC - 1);
+      if S1 <> '' then   // 画正常区
+      begin
+        T := LineCanvas.TextWidth(S1);
+        LineCanvas.Font.Color := Font.Color;
+        LineCanvas.Brush.Style := bsClear;
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
+        Inc(LineRect.Left, T);
+      end;
+
+      S1 := Copy(S, SSC, SEC - SSC);
+      if S1 <> '' then   // 画选择区
+      begin
+        T := LineCanvas.TextWidth(S1);
+        LineCanvas.Brush.Style := bsSolid;
+        LineCanvas.Brush.Color := clHighlight;
+        LineRect.Right := LineRect.Left + T;
+        LineCanvas.FillRect(LineRect);
+
+        LineCanvas.Font.Color := clHighlightText;
+        LineCanvas.Brush.Style := bsClear;
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
+
+        Inc(LineRect.Left, T);
+      end;
+
+      S1 := Copy(S, SEC, MaxInt);
+      if S1 <> '' then   // 画正常区
+      begin
+        LineCanvas.Font.Color := Font.Color;
+        LineCanvas.Brush.Style := bsClear;
+        LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
+      end;
     end;
   end
   else
@@ -313,7 +356,7 @@ end;
 
 procedure TCnMemoForm.chkMemoUseSelectionClick(Sender: TObject);
 begin
-  FMemo.UseSelection := chkUseSelection.Checked;
+  FMemo.UseSelection := chkMemoUseSelection.Checked;
 end;
 
 procedure TCnMemoForm.btnMemoLoadClick(Sender: TObject);
