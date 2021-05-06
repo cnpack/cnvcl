@@ -63,7 +63,6 @@ type
     FFontIsFixedWidth: Boolean;   // 字体是否等宽
     FCharFrameSize: TPoint;       // 单个字符的外框尺寸，供绘制用
     FCharFrameWidthHalf: Integer; // 单个字符的外框尺寸的一半，供判断点击时光标在字符前后使用
-    FCharWidth: Integer;          // 字体的字符平均宽度，用来计算横向滚动
     FLineHeight: Integer;         // 行高，由字体计算而来
     FShowLineNumber: Boolean;     // 是否显示行号区
     FLineNumCount: Integer;       // 最大行号的位数
@@ -155,6 +154,8 @@ type
     FVertExp: Integer;            // 纵向滚动的指数，用于控制纵向行太多时避免竖向滚动条太细
     FVertOffset: Integer;         // 纵向滚动偏移量，以物理行为单位，0 开始，加 1 就是 TopLine
     FHoriOffset: Integer;         // 横向滚动偏移量，以平均字符宽度为单位，0 开始，非等宽字体下和列号没有直接关系
+    FAveCharWidth: Integer;       // 字体的字符平均宽度，用来计算横向滚动
+    FMaxCharWidth: Integer;       // 字体的字符的最大宽度
 
     procedure CreateParams(var Params: TCreateParams); override;
     procedure WMSetFont(var message: TMessage); message WM_SETFONT;
@@ -345,6 +346,7 @@ const
   SEP_WIDTH = 3;               // 行号区与正文区分隔线的宽度
   LINE_GAP = 2;                // 行与行之间的空隙，让画下划线波浪线用
   CARET_MARGIN = 3;
+  DEFAULT_MAX_WIDTH = 255;
 
 resourcestring
   SCnErrorColumn = 'Error Column';
@@ -390,7 +392,8 @@ begin
         DeleteObject(AHandle);
 
       GetTextMetrics(DC, TM);
-      FCharWidth := TM.tmAveCharWidth; // 得到字符平均宽度
+      FAveCharWidth := TM.tmAveCharWidth; // 得到字符平均宽度
+      FMaxCharWidth := TM.tmMaxCharWidth; // 得到字符的最大宽度
 
       GetTextExtentPoint(DC, csAlphaText, Length(csAlphaText), ASize);
 
@@ -405,8 +408,8 @@ begin
       Inc(FLineHeight, LINE_GAP);
 
       // 更新
-      if ASize.cx div Length(csAlphaText) > FCharWidth then
-        FCharWidth := ASize.cx div Length(csAlphaText);
+      if ASize.cx div Length(csAlphaText) > FAveCharWidth then
+        FAveCharWidth := ASize.cx div Length(csAlphaText);
 
       // 通过另一种方式获得字符框的大小
       GetTextExtentPoint32(DC, csWidthText, Length(csWidthText), ASize);
@@ -581,9 +584,9 @@ var
 begin
   // 等宽字体这样计算没啥问题，但不适用汉字
   // 非等宽字体就惨了，得子类好好实现
-  Col := (VirtualX div FCharWidth) + 1;
+  Col := (VirtualX div FAveCharWidth) + 1;
 
-  T := VirtualX - (Col - 1) * FCharWidth;
+  T := VirtualX - (Col - 1) * FAveCharWidth;
   LeftHalf := T <= FCharFrameWidthHalf;
   DoubleWidth := False;
 
@@ -771,11 +774,25 @@ begin
           Msg.ScrollCode := SB_THUMBTRACK;
           Msg.Pos := 0;
           WMHScroll(Msg);
+
+          if ssCtrl in Shift then
+          begin
+            Msg.ScrollCode := SB_THUMBTRACK;
+            Msg.Pos := 0;
+            WMVScroll(Msg);
+          end;
         end;
       VK_END:
         begin
+          if ssCtrl in Shift then
+          begin
+            Msg.ScrollCode := SB_THUMBTRACK;
+            Msg.Pos := FMaxLineCount;
+            WMVScroll(Msg);
+          end;
+
           Msg.ScrollCode := SB_THUMBTRACK;
-          Msg.Pos := FMaxLineCount;
+          Msg.Pos := DEFAULT_MAX_WIDTH;
           WMHScroll(Msg);
         end;
     end;
@@ -1001,8 +1018,8 @@ begin
   SetScrollInfo(Handle, SB_VERT, SI, True);
 
   // 横向滚动条
-  SI.nMax := 255;                            // 不知道最宽，写死 256 先
-  SI.nPage := ClientWidth div FCharWidth;    // nPage 是一屏内容对应的字符宽度
+  SI.nMax := DEFAULT_MAX_WIDTH;              // 不知道最宽，写死 256 先
+  SI.nPage := ClientWidth div FAveCharWidth;    // nPage 是一屏内容对应的字符宽度
   SI.nPos := FHoriOffset;
   SetScrollInfo(Handle, SB_HORZ, SI, True);
 end;
@@ -1023,15 +1040,15 @@ begin
 
   Old := FHoriOffset;
   case message.ScrollCode of
-    SB_PAGEUP: Dec(FHoriOffset, (FTextRect.Right - FTextRect.Left) div FCharWidth);  // 横向一屏的宽度
-    SB_PAGEDOWN: Inc(FHoriOffset, (FTextRect.Right - FTextRect.Left) div FCharWidth);
+    SB_PAGEUP: Dec(FHoriOffset, (FTextRect.Right - FTextRect.Left) div FAveCharWidth);  // 横向一屏的宽度
+    SB_PAGEDOWN: Inc(FHoriOffset, (FTextRect.Right - FTextRect.Left) div FAveCharWidth);
     SB_LINEUP: Dec(FHoriOffset);
     SB_LINEDOWN: Inc(FHoriOffset);
     SB_THUMBTRACK: FHoriOffset := message.Pos;
   end;
 
-  if FHoriOffset > SI.nMax - (FTextRect.Right - FTextRect.Left) div FCharWidth then
-    FHoriOffset := SI.nMax - (FTextRect.Right - FTextRect.Left) div FCharWidth;
+  if FHoriOffset > SI.nMax - (FTextRect.Right - FTextRect.Left) div FAveCharWidth then
+    FHoriOffset := SI.nMax - (FTextRect.Right - FTextRect.Left) div FAveCharWidth;
 
   if FHoriOffset < 0 then
     FHoriOffset := 0;
@@ -1180,7 +1197,7 @@ begin
     begin
       if HandleAllocated then
       begin
-        CreateCaret(Handle, HBITMAP(0), 2, FCharFrameSize.y - 2);
+        CreateCaret(Handle, HBITMAP(0), 2, FLineHeight - 2);
         SetCaretBlinkTime(GetCaretBlinkTime);
 
         DisplayCaret(Focused);
@@ -1507,14 +1524,14 @@ begin
   if GetHoriPixelsOffset > L - CARET_MARGIN then
   begin
     // 如果已滚过的左侧距更大，说明当前 Column 隐藏在左侧，需要减少左侧距到刚好比 L 对应的字符宽度小一点点
-    FHoriOffset := L div FCharWidth;
+    FHoriOffset := L div FAveCharWidth;
     M := True;
   end
   else if GetHoriPixelsOffset + (FTextRect.Right - FTextRect.Left) < L + CARET_MARGIN then
   begin
     // 如果已滚过的左侧距加文本区宽度（也就是已滚过的右侧距）太小，说明当前 Column 隐藏在右侧，
     // 需要增加左侧距到右侧距对应的字符宽度大一点点
-    FHoriOffset := ((L - (FTextRect.Right - FTextRect.Left)) div FCharWidth) + 1;
+    FHoriOffset := ((L - (FTextRect.Right - FTextRect.Left)) div FAveCharWidth) + 1;
     M := True;
   end;
 
@@ -1697,15 +1714,15 @@ end;
 
 function TCnVirtualTextControl.GetHoriPixelsOffset: Integer;
 begin
-  Result := FHoriOffset * FCharWidth;
+  Result := FHoriOffset * FAveCharWidth;
 end;
 
 function TCnVirtualTextControl.CalcPixelOffsetFromColumnInLine(
   ARow, ACol: Integer; out Rect: TRect; out DoubleWidth: Boolean): Boolean;
 begin
   Rect.Top := 0;
-  Rect.Left := FCharWidth * (ACol - 1);
-  Rect.Right := Rect.Left + FCharWidth;
+  Rect.Left := FAveCharWidth * (ACol - 1);
+  Rect.Right := Rect.Left + FAveCharWidth;
   Rect.Bottom := FLineHeight;
 
   DoubleWidth := False;

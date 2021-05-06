@@ -19,7 +19,7 @@ object CnMemoForm: TCnMemoForm
     Top = 8
     Width = 825
     Height = 465
-    ActivePage = ts1
+    ActivePage = tsEditorStringList
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object ts1: TTabSheet
@@ -178,12 +178,42 @@ object CnMemoForm: TCnMemoForm
     object tsEditorStringList: TTabSheet
       Caption = 'EditorStringList'
       ImageIndex = 1
+      object lblString: TLabel
+        Left = 400
+        Top = 40
+        Width = 39
+        Height = 13
+        Caption = 'String£º'
+      end
       object mmoEditorStringList: TMemo
         Left = 8
         Top = 16
         Width = 353
         Height = 409
         TabOrder = 0
+      end
+      object edtString: TEdit
+        Left = 448
+        Top = 40
+        Width = 329
+        Height = 21
+        TabOrder = 1
+        Text = '³Ôed·¹tS123µÄr¶¥ÉÏigÊÇ'
+        OnChange = edtStringChange
+      end
+      object mmoColumnIndex: TMemo
+        Left = 448
+        Top = 88
+        Width = 161
+        Height = 337
+        TabOrder = 2
+      end
+      object mmoIndexColumn: TMemo
+        Left = 616
+        Top = 88
+        Width = 161
+        Height = 337
+        TabOrder = 3
       end
     end
     object tsTextControl: TTabSheet

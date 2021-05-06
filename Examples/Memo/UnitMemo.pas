@@ -45,6 +45,10 @@ type
     btnMemoLoad: TButton;
     dlgOpen1: TOpenDialog;
     chkCaretAfterLineEnd: TCheckBox;
+    lblString: TLabel;
+    edtString: TEdit;
+    mmoColumnIndex: TMemo;
+    mmoIndexColumn: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -58,6 +62,7 @@ type
     procedure chkMemoUseSelectionClick(Sender: TObject);
     procedure btnMemoLoadClick(Sender: TObject);
     procedure chkCaretAfterLineEndClick(Sender: TObject);
+    procedure edtStringChange(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
@@ -66,6 +71,7 @@ type
     procedure TestVirtualCaretChange(Sender: TObject);
     procedure TestVirtualSelectChange(Sender: TObject);
     procedure UpdateStatusBar;
+    procedure CalcIndexColumnMaps;
   public
     { Public declarations }
   end;
@@ -115,6 +121,8 @@ begin
   FTextControl.OnCaretChange := TestVirtualCaretChange;
   FTextControl.OnSelectChange := TestVirtualSelectChange;
   (FTextControl as TCnTestVirtualText).OnClick := TestVirtualClick;
+
+  CalcIndexColumnMaps;
 end;
 
 procedure TCnMemoForm.chkShowLineNumberClick(Sender: TObject);
@@ -368,6 +376,30 @@ end;
 procedure TCnMemoForm.chkCaretAfterLineEndClick(Sender: TObject);
 begin
   FMemo.CaretAfterLineEnd := chkCaretAfterLineEnd.Checked;
+end;
+
+procedure TCnMemoForm.CalcIndexColumnMaps;
+var
+  S: string;
+  I, L, R: Integer;
+begin
+  mmoColumnIndex.Lines.Clear;
+  mmoIndexColumn.Lines.Clear;
+
+  S := edtString.Text;
+  for I := -1 to 100 do
+  begin
+    if MapColumnToCharIndexes(S, I, L, R) then
+      mmoColumnIndex.Lines.Add(Format('Col %d: Left Idx %d, Right Idx %d.', [I, L, R]));
+
+    if MapCharIndexToColumns(S, I, L, R) then
+      mmoIndexColumn.Lines.Add(Format('Idx %d: Left Col %d, Right Col %d.', [I, L, R]));
+  end;
+end;
+
+procedure TCnMemoForm.edtStringChange(Sender: TObject);
+begin
+  CalcIndexColumnMaps;
 end;
 
 end.
