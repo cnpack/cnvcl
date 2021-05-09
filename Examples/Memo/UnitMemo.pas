@@ -49,6 +49,8 @@ type
     edtString: TEdit;
     mmoColumnIndex: TMemo;
     mmoIndexColumn: TMemo;
+    statMemo: TStatusBar;
+    chkMapAfterEnd: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -63,6 +65,7 @@ type
     procedure btnMemoLoadClick(Sender: TObject);
     procedure chkCaretAfterLineEndClick(Sender: TObject);
     procedure edtStringChange(Sender: TObject);
+    procedure chkMapAfterEndClick(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
@@ -70,7 +73,10 @@ type
     procedure TestVirtualClick(Sender: TObject);
     procedure TestVirtualCaretChange(Sender: TObject);
     procedure TestVirtualSelectChange(Sender: TObject);
+    procedure MemoCaretChange(Sender: TObject);
+    procedure MemoSelectChange(Sender: TObject);
     procedure UpdateStatusBar;
+    procedure UpdateMemoStatusBar;
     procedure CalcIndexColumnMaps;
   public
     { Public declarations }
@@ -108,7 +114,8 @@ begin
   FMemo.Lines.Add('W∞°');
   FMemo.Lines.Add('Œ“≥‘∑π');
   FMemo.Lines.Add(' a c .');
-
+  FMemo.OnCaretChange := MemoCaretChange;
+  FMemo.OnSelectChange := MemoSelectChange;
   FMemo.Parent := ts1;
 
   FTextControl := TCnTestVirtualText.Create(Self);
@@ -387,17 +394,44 @@ begin
   mmoIndexColumn.Lines.Clear;
 
   S := edtString.Text;
-  for I := -1 to 100 do
+  for I := -1 to 50 do
   begin
     if MapColumnToCharIndexes(S, I, L, R) then
       mmoColumnIndex.Lines.Add(Format('Col %d: Left Idx %d, Right Idx %d.', [I, L, R]));
 
-    if MapCharIndexToColumns(S, I, L, R) then
+    if MapCharIndexToColumns(S, I, L, R, chkMapAfterEnd.Checked) then
       mmoIndexColumn.Lines.Add(Format('Idx %d: Left Col %d, Right Col %d.', [I, L, R]));
   end;
 end;
 
 procedure TCnMemoForm.edtStringChange(Sender: TObject);
+begin
+  CalcIndexColumnMaps;
+end;
+
+procedure TCnMemoForm.MemoCaretChange(Sender: TObject);
+begin
+  UpdateMemoStatusBar;
+end;
+
+procedure TCnMemoForm.MemoSelectChange(Sender: TObject);
+begin
+  UpdateMemoStatusBar;
+end;
+
+procedure TCnMemoForm.UpdateMemoStatusBar;
+begin
+  if FMemo.HasSelection then
+    statMemo.SimpleText := Format('Line: %d. Col: %d. Selection from %d/%d to %d/%d',
+      [FMemo.CaretRow, FMemo.CaretCol, FMemo.SelectStartRow, FMemo.SelectStartCol,
+       FMemo.SelectEndRow, FMemo.SelectEndCol])
+  else
+    statMemo.SimpleText := Format('Line: %d. Col: %d. No Selection %d/%d',
+      [FMemo.CaretRow, FMemo.CaretCol, FMemo.SelectStartRow, FMemo.SelectStartCol]);
+
+end;
+
+procedure TCnMemoForm.chkMapAfterEndClick(Sender: TObject);
 begin
   CalcIndexColumnMaps;
 end;

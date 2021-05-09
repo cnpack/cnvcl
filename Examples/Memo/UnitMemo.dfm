@@ -174,6 +174,14 @@ object CnMemoForm: TCnMemoForm
         TabOrder = 11
         OnClick = chkCaretAfterLineEndClick
       end
+      object statMemo: TStatusBar
+        Left = 0
+        Top = 418
+        Width = 817
+        Height = 19
+        Panels = <>
+        SimplePanel = False
+      end
     end
     object tsEditorStringList: TTabSheet
       Caption = 'EditorStringList'
@@ -214,6 +222,15 @@ object CnMemoForm: TCnMemoForm
         Width = 161
         Height = 337
         TabOrder = 3
+      end
+      object chkMapAfterEnd: TCheckBox
+        Left = 376
+        Top = 64
+        Width = 81
+        Height = 17
+        Caption = 'After End'
+        TabOrder = 4
+        OnClick = chkMapAfterEndClick
       end
     end
     object tsTextControl: TTabSheet

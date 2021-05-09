@@ -172,12 +172,14 @@ function MapColumnToCharIndexes(const S: string; AColumn: Integer;
 }
 
 function MapCharIndexToColumns(const S: string; ACharIndex: Integer;
-  out LeftColumn, RightColumn: Integer): Boolean;
+  out LeftColumn, RightColumn: Integer; AfterEnd: Boolean = False): Boolean;
 {* 返回字符串中指定字符索引左右两边的 Column，俩均 1 开始，非法的 CharIndex 返回 False
    CharIndex 指向最后一个字符时 RightColumn 返回末列
-   CharIndex 超过末字符时，LeftColumn 返回末列，RightColumn 未定义
-   特别的：空字符串只有当 CharIndex >= 1 时 LeftColumn 返回 1，RightColumn 未定义
-}
+   CharIndex 超过末字符时，根据 AfterEnd 的值判断。AfterEnd 表示 Column 是否允许超行尾
+     False 时 LeftColumn 返回末列，RightColumn 未定义
+       特别的：空字符串只有当 CharIndex >= 1 时 LeftColumn 返回 1，RightColumn 未定义
+     True 时 CharInde 是末字符 + 1 对应 末列与末列 + 1，以空格堆叠过去以此类推
+   }
 
 implementation
 
@@ -531,11 +533,6 @@ begin
   SW := WideString(S);
 {$ENDIF}
 
-  if AColumn = 1 then
-  begin
-
-  end;
-
   while I <= L do
   begin
 {$IFDEF UNICODE}
@@ -564,7 +561,7 @@ begin
 end;
 
 function MapCharIndexToColumns(const S: string; ACharIndex: Integer;
-  out LeftColumn, RightColumn: Integer): Boolean;
+  out LeftColumn, RightColumn: Integer; AfterEnd: Boolean): Boolean;
 var
   L, I, Idx: Integer;
   C: WideChar;
@@ -579,12 +576,18 @@ begin
   L := Length(S);
   if L = 0 then
   begin
-    if ACharIndex >= 1 then
+    if AfterEnd then
+    begin
+      LeftColumn := ACharIndex;
+      RightColumn := ACharIndex + 1;
+    end
+    else if ACharIndex >= 1 then // 不允许超过行尾
     begin
       LeftColumn := 1;
       RightColumn := -1;
-      Result := True;
     end;
+
+    Result := True;
     Exit;
   end;
 
@@ -616,10 +619,18 @@ begin
     Inc(I);
   end;
 
-  if I > L then
+  if I > L then // 此时 I 指向末字符的后一个字符
   begin
-    LeftColumn := RightColumn;
-    RightColumn := -1;
+    if AfterEnd then
+    begin
+      LeftColumn := RightColumn + ACharIndex - L - 1;
+      RightColumn := LeftColumn + 1;
+    end
+    else
+    begin
+      LeftColumn := RightColumn;
+      RightColumn := -1;
+    end;
   end;
   Result := True;
 end;
@@ -633,13 +644,24 @@ var
   S: Integer;
   BKC: Char;
 begin
+  if FFontIsFixedWidth then
+  begin
+    Result := inherited CalcColumnFromPixelOffsetInLine(ARow, VirtualX, Col,
+      LeftHalf, DoubleWidth);
+    Exit;
+  end;
+
   // 用平均宽度和最大宽度确定一个范围，在这范围内进行搜索到底哪个 Column 会超过 X
 end;
 
 function TCnMemo.CalcPixelOffsetFromColumnInLine(ARow, ACol: Integer;
   out Rect: TRect; out DoubleWidth: Boolean): Boolean;
 begin
-
+  if FFontIsFixedWidth then
+  begin
+    Result := inherited CalcPixelOffsetFromColumnInLine(ARow, ACol, Rect, DoubleWidth);
+    Exit;
+  end;
 end;
 
 constructor TCnMemo.Create(AOwner: TComponent);
@@ -662,11 +684,11 @@ var
   S, S1: string;
   SSR, SSC, SER, SEC, T: Integer;
 begin
-  Dec(LineNumber); // TODO: 更新下标
+  // Dec(LineNumber); // TODO: 更新下标
 
-  if (LineNumber >= 0) and (LineNumber < FStrings.Count) then
+  if (LineNumber - 1 >= 0) and (LineNumber - 1 < FStrings.Count) then
   begin
-    S := FStrings[LineNumber];
+    S := FStrings[LineNumber - 1];
     if UseSelection and HasSelection then
     begin
       // 判断本行是否在选择区，分五种情况
@@ -733,6 +755,7 @@ begin
           LineRect.Right := T;
           LineCanvas.FillRect(LineRect);
 
+          LineCanvas.Font.Color := clHighlightText;
           LineCanvas.TextOut(LineRect.Left, LineRect.Top, S1);
           Inc(LineRect.Left, T);
         end;
@@ -803,12 +826,14 @@ begin
 end;
 
 function TCnMemo.GetLastColumnFromLine(LineNumber: Integer): Integer;
+var
+  R: Integer;
 begin
   Result := 1;
   Dec(LineNumber); // TODO: 更新下标
 
   if (LineNumber >= 1) and (LineNumber <= FStrings.Count) then
-    Result := Length(FStrings[LineNumber]) + 1;
+    MapCharIndexToColumns(FStrings[LineNumber], MaxInt, Result, R);
 end;
 
 function TCnMemo.GetLines: TStringList;
@@ -817,13 +842,40 @@ begin
 end;
 
 function TCnMemo.GetNextColumn(AColumn, ARow: Integer): Integer;
+var
+  L, R: Integer;
 begin
+  Result := AColumn + 1;
+  Dec(ARow); // TODO: 更新下标
 
+  if (ARow >= 1) and (ARow <= FStrings.Count) then
+  begin
+    if not MapColumnToCharIndexes(FStrings[ARow], AColumn, L, R) then
+      Exit;
+    if not MapCharIndexToColumns(FStrings[ARow], R, L, Result) then
+      Exit;
+    if Result = -1 then // 超过末列时返回末列
+      Result := L;
+  end;
 end;
 
 function TCnMemo.GetPrevColumn(AColumn, ARow: Integer): Integer;
+var
+  L, R: Integer;
 begin
+  Result := AColumn + 1;
+  Dec(ARow); // TODO: 更新下标
 
+  if (ARow >= 1) and (ARow <= FStrings.Count) then
+  begin
+    if not MapColumnToCharIndexes(FStrings[ARow], AColumn, L, R) then
+      Exit;
+
+    if L = 0 then // 超过首列时返回首列
+      Result := 1
+    else if not MapCharIndexToColumns(FStrings[ARow], L, Result, R) then
+      Exit;
+  end;
 end;
 
 procedure TCnMemo.LoadFromFile(const AFile: string);

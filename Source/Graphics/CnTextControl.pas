@@ -60,7 +60,6 @@ type
   TCnVirtualTextControl = class(TCustomControl)
   {* 能够显示不同字体的文字并滚动的基类，和具体字符串内容无关}
   private
-    FFontIsFixedWidth: Boolean;   // 字体是否等宽
     FCharFrameSize: TPoint;       // 单个字符的外框尺寸，供绘制用
     FCharFrameWidthHalf: Integer; // 单个字符的外框尺寸的一半，供判断点击时光标在字符前后使用
     FLineHeight: Integer;         // 行高，由字体计算而来
@@ -156,6 +155,7 @@ type
     FHoriOffset: Integer;         // 横向滚动偏移量，以平均字符宽度为单位，0 开始，非等宽字体下和列号没有直接关系
     FAveCharWidth: Integer;       // 字体的字符平均宽度，用来计算横向滚动
     FMaxCharWidth: Integer;       // 字体的字符的最大宽度
+    FFontIsFixedWidth: Boolean;   // 字体是否等宽
 
     procedure CreateParams(var Params: TCreateParams); override;
     procedure WMSetFont(var message: TMessage); message WM_SETFONT;
@@ -1582,6 +1582,9 @@ begin
 
   if Result then
   begin
+    // 通过虚拟 Row/Col 判断限制
+    LimitRowColumnInLine(ACaretRow, ACaretCol);
+
     if not ACharFrameIsLeft then
       ACaretCol := GetNextColumn(ACaretCol, ACaretRow);
 
