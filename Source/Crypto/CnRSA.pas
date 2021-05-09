@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.06.10 V1.9
+* 修改记录：2021.05.09 V2.0
+*               私钥载入时自动判断 PEM 内是 PKCS1 还是 PKCS8 格式，不依赖于头尾行的横杠注释
+*           2020.06.10 V1.9
 *               公私钥允许从 Stream 中载入
 *           2020.03.27 V1.8
 *               公钥允许用 3。实现了加密的 PEM 文件的读写，不过只支持 des/3des/aes
@@ -191,6 +193,7 @@ function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPriva
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入
+  自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码
 }
@@ -199,6 +202,7 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入
+  自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码
 }
@@ -735,11 +739,12 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
 var
+  LoadOK: Boolean;
   MemStream: TMemoryStream;
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
 {$IFDEF TSTREAM_LONGINT}
-  oldPos: LongInt;
+  OldPos: LongInt;
 {$ELSE}
   OldPos: Int64;
 {$ENDIF}
@@ -752,13 +757,55 @@ begin
     MemStream := TMemoryStream.Create;
     OldPos := PemStream.Position;
 
-    if LoadPemStreamToMemory(PemStream, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL,
-      MemStream, Password, KeyHashMethod) then
+    LoadOK := LoadPemStreamToMemory(PemStream, PEM_RSA_PRIVATE_HEAD, PEM_RSA_PRIVATE_TAIL,
+      MemStream, Password, KeyHashMethod);
+    if not LoadOK then
     begin
-      // 读 PKCS#1 的 PEM 公私钥格式
+      PemStream.Position := OldPos;
+      LoadOK := LoadPemStreamToMemory(PemStream, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
+        MemStream, Password, KeyHashMethod);
+    end;
+
+    if not LoadOK then
+    begin
+      RSAErrorCode := ECN_RSA_PEM_FORMAT_ERROR;
+      Exit;
+    end;
+
+    Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount >= 12 then // 子节点多，说明是 PKCS#8 的 PEM 公私钥格式
+    begin
+      Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
+      if Node.AsByte = 0 then // 只支持版本 0
+      begin
+        // 8 和 9 整成公钥
+        if PublicKey <> nil then
+        begin
+          PutIndexedBigIntegerToBigInt(Reader.Items[8], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigInt(Reader.Items[9], PublicKey.PubKeyExponent);
+        end;
+
+        // 8 10 11 12 整成私钥
+        if PrivateKey <> nil then
+        begin
+          PutIndexedBigIntegerToBigInt(Reader.Items[8], PrivateKey.PrivKeyProduct);
+          PutIndexedBigIntegerToBigInt(Reader.Items[10], PrivateKey.PrivKeyExponent);
+          PutIndexedBigIntegerToBigInt(Reader.Items[11], PrivateKey.PrimeKey1);
+          PutIndexedBigIntegerToBigInt(Reader.Items[12], PrivateKey.PrimeKey2);
+        end;
+
+        Result := True;
+      end;
+    end
+    else // 子节点太少，重新不解析内部字符串地读
+    begin
+      Reader.Free;
       Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
       Reader.ParseToTree;
-      if Reader.TotalCount >= 8 then
+
+      if Reader.TotalCount >= 8 then // 这个数量的子节点，是 PKCS#1 的 PEM 公私钥格式
       begin
         Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
         if Node.AsByte = 0 then // 只支持版本 0
@@ -777,42 +824,6 @@ begin
             PutIndexedBigIntegerToBigInt(Reader.Items[4], PrivateKey.PrivKeyExponent);
             PutIndexedBigIntegerToBigInt(Reader.Items[5], PrivateKey.PrimeKey1);
             PutIndexedBigIntegerToBigInt(Reader.Items[6], PrivateKey.PrimeKey2);
-          end;
-
-          Result := True;
-        end;
-      end;
-    end;
-
-    if Result then
-      Exit;
-
-    PemStream.Position := OldPos;
-    if LoadPemStreamToMemory(PemStream, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
-      MemStream, Password, KeyHashMethod) then
-    begin
-      // 读 PKCS#8 的 PEM 公私钥格式
-      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
-      Reader.ParseToTree;
-      if Reader.TotalCount >= 12 then
-      begin
-        Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
-        if Node.AsByte = 0 then // 只支持版本 0
-        begin
-          // 8 和 9 整成公钥
-          if PublicKey <> nil then
-          begin
-            PutIndexedBigIntegerToBigInt(Reader.Items[8], PublicKey.PubKeyProduct);
-            PutIndexedBigIntegerToBigInt(Reader.Items[9], PublicKey.PubKeyExponent);
-          end;
-
-          // 8 10 11 12 整成私钥
-          if PrivateKey <> nil then
-          begin
-            PutIndexedBigIntegerToBigInt(Reader.Items[8], PrivateKey.PrivKeyProduct);
-            PutIndexedBigIntegerToBigInt(Reader.Items[10], PrivateKey.PrivKeyExponent);
-            PutIndexedBigIntegerToBigInt(Reader.Items[11], PrivateKey.PrimeKey1);
-            PutIndexedBigIntegerToBigInt(Reader.Items[12], PrivateKey.PrimeKey2);
           end;
 
           Result := True;
@@ -878,7 +889,7 @@ var
   Mem: TMemoryStream;
   Reader: TCnBerReader;
 {$IFDEF TSTREAM_LONGINT}
-  oldPos: LongInt;
+  OldPos: LongInt;
 {$ELSE}
   OldPos: Int64;
 {$ENDIF}
