@@ -101,7 +101,8 @@ const
   ECN_RSA_BER_ERROR                    = 4; // BER 格式编码错误
   ECN_RSA_PADDING_ERROR                = 5; // PADDING 对齐错误
   ECN_RSA_DIGEST_ERROR                 = 6; // 数字摘要错误
-  ECN_RSA_PEM_CRYPT_ERROR              = 7; // PEM 加解密错误
+  ECN_RSA_PEM_FORMAT_ERROR             = 7; // PEM 格式错误
+  ECN_RSA_PEM_CRYPT_ERROR              = 8; // PEM 加解密错误
 
 type
   TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3);
@@ -818,6 +819,9 @@ begin
         end;
       end;
     end;
+
+    if not Result then
+      RSAErrorCode := ECN_RSA_PEM_FORMAT_ERROR;
   finally
     MemStream.Free;
     Reader.Free;
@@ -928,6 +932,9 @@ begin
         Result := True;
       end;
     end;
+
+    if not Result then
+      RSAErrorCode := ECN_RSA_PEM_FORMAT_ERROR;
   finally
     Mem.Free;
     Reader.Free;
