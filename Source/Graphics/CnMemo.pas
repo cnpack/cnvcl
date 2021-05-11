@@ -522,16 +522,18 @@ begin
     Exit;
   end;
 
+{$IFDEF UNICODE}
   L := Length(S);
+{$ELSE}
+  SW := WideString(S);
+  L := Length(SW);
+{$ENDIF}
+
   if L = 0 then
     Exit;  // 空字符只能处理 Column 为 1 的情况
 
   I := 1;
   Col := 1;
-
-{$IFNDEF UNICODE}
-  SW := WideString(S);
-{$ENDIF}
 
   while I <= L do
   begin
@@ -573,7 +575,13 @@ begin
   if ACharIndex <= 0 then
     Exit;
 
+{$IFDEF UNICODE}
   L := Length(S);
+{$ELSE}
+  SW := WideString(S);
+  L := Length(SW);
+{$ENDIF}
+
   if L = 0 then
   begin
     if AfterEnd then
@@ -592,13 +600,9 @@ begin
   end;
 
   I := 1;
-
-{$IFNDEF UNICODE}
-  SW := WideString(S);
-{$ENDIF}
-
   LeftColumn := 1;
   RightColumn := 1;
+
   while I <= L do
   begin
 {$IFDEF UNICODE}
@@ -640,18 +644,93 @@ end;
 function TCnMemo.CalcColumnFromPixelOffsetInLine(ARow, VirtualX: Integer;
   out Col: Integer; out LeftHalf, DoubleWidth: Boolean): Boolean;
 var
-  I: Integer;
-  S: Integer;
+  I, L, X, W2: Integer;
+  W: Boolean;
+  S: string;
+  SW: WideString;
+  C: WideChar;
   BKC: Char;
 begin
-  if FFontIsFixedWidth then
-  begin
-    Result := inherited CalcColumnFromPixelOffsetInLine(ARow, VirtualX, Col,
-      LeftHalf, DoubleWidth);
-    Exit;
-  end;
+  Dec(ARow); // TODO: 更新下标
 
-  // 用平均宽度和最大宽度确定一个范围，在这范围内进行搜索到底哪个 Column 会超过 X
+  if (ARow >= 0) and (ARow < FStrings.Count) then
+  begin
+    // 有字符串，按字符串实际来
+    S := FStrings[ARow];
+
+    if FFontIsFixedWidth then
+    begin
+      // 是等宽字符串。从 S[1] 到 S[length] 累加计算 Column，并计算横坐标右侧，看哪个刚好超出 X
+
+      I := 1;
+{$IFDEF UNICODE}
+      L := Length(S);
+{$ELSE}
+      SW := WideString(S);
+      L := Length(SW);
+{$ENDIF}
+
+      W2 := FAveCharWidth * 2;
+      X := 0;
+      Col := 1;
+
+      while I <= L do
+      begin
+{$IFDEF UNICODE}
+        C := S[I];
+{$ELSE}
+        C := SW[I];
+{$ENDIF}
+
+        W := WideCharIsWideLength(C);
+        if W then
+        begin
+          Inc(X, W2);
+          Inc(Col, 2);
+        end
+        else
+        begin
+          Inc(X, FAveCharWidth); // 增加后，X 是第 I 个字符的右侧坐标，Col 是第 I 个字符右侧
+          Inc(Col);
+        end;
+
+        if X > VirtualX then
+        begin
+          // 刚好超过，说明就是这个字符，Col 要把刚加的给减回去
+          if W then
+            Dec(Col, 2)
+          else
+            Dec(Col);
+
+          DoubleWidth := W;
+          if DoubleWidth then
+            LeftHalf := (VirtualX - X) <= FAveCharWidthHalf
+          else
+            LeftHalf := (VirtualX - X) <= FAveCharWidth;
+
+          Result := True;
+          Exit;
+        end;
+        Inc(I);
+      end;
+
+      // 如果到这都还没超过，说明光标过尾巴了，此时 X 是尾字符右侧，I 是尾字符，Col 是尾字符右侧
+      DoubleWidth := False;
+      I := (VirtualX - X) div FAveCharWidth;
+      Inc(Col, I);
+      Result := True;
+    end
+    else
+    begin
+      // 用平均宽度和最大宽度确定一个范围，在这范围内进行搜索到底哪个 Column 会超过 X
+    end;
+  end
+  else
+  begin
+    // 没有字符串，按等宽直接计算
+    Result := inherited CalcColumnFromPixelOffsetInLine(ARow + 1, VirtualX, Col,
+      LeftHalf, DoubleWidth);
+  end;
 end;
 
 function TCnMemo.CalcPixelOffsetFromColumnInLine(ARow, ACol: Integer;
@@ -848,12 +927,13 @@ begin
   Result := AColumn + 1;
   Dec(ARow); // TODO: 更新下标
 
-  if (ARow >= 1) and (ARow <= FStrings.Count) then
+  if (ARow >= 0) and (ARow < FStrings.Count) then
   begin
     if not MapColumnToCharIndexes(FStrings[ARow], AColumn, L, R) then
       Exit;
-    if not MapCharIndexToColumns(FStrings[ARow], R, L, Result) then
+    if not MapCharIndexToColumns(FStrings[ARow], R, L, Result, CaretAfterLineEnd) then
       Exit;
+
     if Result = -1 then // 超过末列时返回末列
       Result := L;
   end;
@@ -863,10 +943,10 @@ function TCnMemo.GetPrevColumn(AColumn, ARow: Integer): Integer;
 var
   L, R: Integer;
 begin
-  Result := AColumn + 1;
+  Result := AColumn - 1;
   Dec(ARow); // TODO: 更新下标
 
-  if (ARow >= 1) and (ARow <= FStrings.Count) then
+  if (ARow >= 0) and (ARow < FStrings.Count) then
   begin
     if not MapColumnToCharIndexes(FStrings[ARow], AColumn, L, R) then
       Exit;

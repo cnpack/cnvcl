@@ -61,8 +61,6 @@ type
   {* 能够显示不同字体的文字并滚动的基类，和具体字符串内容无关}
   private
     FCharFrameSize: TPoint;       // 单个字符的外框尺寸，供绘制用
-    FCharFrameWidthHalf: Integer; // 单个字符的外框尺寸的一半，供判断点击时光标在字符前后使用
-    FLineHeight: Integer;         // 行高，由字体计算而来
     FShowLineNumber: Boolean;     // 是否显示行号区
     FLineNumCount: Integer;       // 最大行号的位数
     FLineNumPattern: string;      // 最大虚拟行号所对应的字符串样本，如 0000
@@ -106,7 +104,7 @@ type
     procedure SetLineNumNoFocusBkColor(const Value: TColor);
     procedure SetUseCaret(const Value: Boolean);
 
-    procedure DisplayCaret(CaretVisible: Boolean);
+    procedure DisplayCaret(ACaretVisible: Boolean);
     {* 控制光标显示与否}
     function GetTextRectLeft: Integer;
     {* 动态计算文本显示区的相对于控件左上角的物理左坐标，考虑行号显示与否的情形}
@@ -155,6 +153,8 @@ type
     FHoriOffset: Integer;         // 横向滚动偏移量，以平均字符宽度为单位，0 开始，非等宽字体下和列号没有直接关系
     FAveCharWidth: Integer;       // 字体的字符平均宽度，用来计算横向滚动
     FMaxCharWidth: Integer;       // 字体的字符的最大宽度
+    FAveCharWidthHalf: Integer;   // 单个字符的外框尺寸的一半，供判断点击时光标在字符前后使用
+    FLineHeight: Integer;         // 行高，由字体计算而来
     FFontIsFixedWidth: Boolean;   // 字体是否等宽
 
     procedure CreateParams(var Params: TCreateParams); override;
@@ -239,7 +239,7 @@ type
       out Col: Integer; out LeftHalf, DoubleWidth: Boolean): Boolean; virtual;
     {*** 根据虚拟行号与点的虚拟排版区内的横坐标获得所在的字符方框（或者字符方框左侧边线）的序号也就是虚拟列号，1 开始，
       LeftHalf 返回 X 位置是否在此字符方框的左半边，DoubleWidth 返回该字符方框是否是双倍宽
-      内部实现是：等宽字体时，直接根据字符尺寸 FCharFrameSize 计算，但没考虑内容是否汉字
+      内部实现是：等宽字体时，直接根据字符平均宽度 FAveCharWidth 计算，但没考虑内容是否汉字
       返回是否成功}
 
     function CalcPixelOffsetFromColumnInLine(ARow, ACol: Integer; out Rect: TRect;
@@ -414,7 +414,7 @@ begin
       // 通过另一种方式获得字符框的大小
       GetTextExtentPoint32(DC, csWidthText, Length(csWidthText), ASize);
       FCharFrameSize.x := ASize.cx;
-      FCharFrameWidthHalf := FCharFrameSize.x shr 1;
+      FAveCharWidthHalf := FCharFrameSize.x shr 1;
 
       GetTextExtentPoint32(DC, csHeightText, Length(csHeightText), ASize);
       FCharFrameSize.y := ASize.cy;
@@ -587,7 +587,7 @@ begin
   Col := (VirtualX div FAveCharWidth) + 1;
 
   T := VirtualX - (Col - 1) * FAveCharWidth;
-  LeftHalf := T <= FCharFrameWidthHalf;
+  LeftHalf := T <= FAveCharWidthHalf;
   DoubleWidth := False;
 
   Result := True;
@@ -1211,9 +1211,9 @@ begin
   end;
 end;
 
-procedure TCnVirtualTextControl.DisplayCaret(CaretVisible: Boolean);
+procedure TCnVirtualTextControl.DisplayCaret(ACaretVisible: Boolean);
 begin
-  if CaretVisible and Focused then
+  if ACaretVisible and Focused then
   begin
     if HandleAllocated then
     begin
@@ -1221,7 +1221,7 @@ begin
       SyncCaretPosition;
     end;
   end
-  else if not CaretVisible then
+  else if not ACaretVisible then
   begin
     HideCaret(Handle);
     FCaretVisible := False;
@@ -1335,8 +1335,8 @@ begin
     FCaretAfterLineEnd := Value;
     LimitRowColumnInLine(FCaretRow, FCaretCol);
 
-    // 设置光标位置
-    if FUseCaret then
+    // 当前有焦点才设置光标位置
+    if FUseCaret and Focused then
     begin
       SyncCaretPosition;
       SyncSelectionStartEnd;

@@ -116,6 +116,7 @@ begin
   FMemo.Lines.Add(' a c .');
   FMemo.OnCaretChange := MemoCaretChange;
   FMemo.OnSelectChange := MemoSelectChange;
+  FMemo.Font.Name := 'Courier New';
   FMemo.Parent := ts1;
 
   FTextControl := TCnTestVirtualText.Create(Self);
