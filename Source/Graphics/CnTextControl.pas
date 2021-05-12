@@ -819,6 +819,7 @@ begin
     Windows.SetFocus(Handle);
 
   UpdateCursorFrameCaret;
+  ScrollToVisibleCaret;
 
   if Button = mbLeft then
   begin

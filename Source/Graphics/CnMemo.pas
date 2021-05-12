@@ -42,6 +42,12 @@ uses
   Dialogs, SysConst, CnTextControl, CnCommon;
 
 type
+{$IFDEF UNICODE}
+  TCnEditorString = string;
+{$ELSE}
+  TCnEditorString = WideString;
+{$ENDIF}
+
   PCnEditorStringMark = ^TCnEditorStringMark;
   TCnEditorStringMark = packed record
     LineNumNoWrap: Integer;       // 未自动换行时当前行的物理行号，1 开始，供显示在侧边栏上。如自动换行，值和上一行相同
@@ -163,17 +169,17 @@ type
 
   end;
 
-function MapColumnToCharIndexes(const S: string; AColumn: Integer;
+function MapColumnToWideCharIndexes(const S: TCnEditorString; AColumn: Integer;
   out LeftCharIndex, RightCharIndex: Integer): Boolean;
-{* 返回字符串中指定 Column 左、右的字符索引，俩均 1 开始。非法的或超大的 Column 返回 False
+{* 返回宽字符串中指定 Column 左、右的字符索引，俩均 1 开始。非法的或超大的 Column 返回 False
    注意 Column 是字符串尾时，RightIndex 会比 Length 大 1
    注意 Column 是字符串头也就是 1 时，LeftIndex 是 0
    更要注意的是字符串是空且 Column 是 1 时，LeftIndex 是 0，RightIndex 是 1
 }
 
-function MapCharIndexToColumns(const S: string; ACharIndex: Integer;
+function MapWideCharIndexToColumns(const S: TCnEditorString; ACharIndex: Integer;
   out LeftColumn, RightColumn: Integer; AfterEnd: Boolean = False): Boolean;
-{* 返回字符串中指定字符索引左右两边的 Column，俩均 1 开始，非法的 CharIndex 返回 False
+{* 返回宽字符串中指定字符索引左右两边的 Column，俩均 1 开始，非法的 CharIndex 返回 False
    CharIndex 指向最后一个字符时 RightColumn 返回末列
    CharIndex 超过末字符时，根据 AfterEnd 的值判断。AfterEnd 表示 Column 是否允许超行尾
      False 时 LeftColumn 返回末列，RightColumn 未定义
@@ -501,14 +507,11 @@ begin
   FWrapWidth := Value;
 end;
 
-function MapColumnToCharIndexes(const S: string; AColumn: Integer;
+function MapColumnToWideCharIndexes(const S: TCnEditorString; AColumn: Integer;
   out LeftCharIndex, RightCharIndex: Integer): Boolean;
 var
   L, I, Col: Integer;
   C: WideChar;
-{$IFNDEF UNICODE}
-  SW: WideString;
-{$ENDIF}
 begin
   Result := False;
   if AColumn <= 0 then
@@ -522,13 +525,7 @@ begin
     Exit;
   end;
 
-{$IFDEF UNICODE}
   L := Length(S);
-{$ELSE}
-  SW := WideString(S);
-  L := Length(SW);
-{$ENDIF}
-
   if L = 0 then
     Exit;  // 空字符只能处理 Column 为 1 的情况
 
@@ -537,11 +534,7 @@ begin
 
   while I <= L do
   begin
-{$IFDEF UNICODE}
     C := S[I];
-{$ELSE}
-    C := SW[I];
-{$ENDIF}
 
     if WideCharIsWideLength(C) then
       Inc(Col, 2)
@@ -562,25 +555,17 @@ begin
   end;
 end;
 
-function MapCharIndexToColumns(const S: string; ACharIndex: Integer;
+function MapWideCharIndexToColumns(const S: TCnEditorString; ACharIndex: Integer;
   out LeftColumn, RightColumn: Integer; AfterEnd: Boolean): Boolean;
 var
-  L, I, Idx: Integer;
+  L, I: Integer;
   C: WideChar;
-{$IFNDEF UNICODE}
-  SW: WideString;
-{$ENDIF}
 begin
   Result := False;
   if ACharIndex <= 0 then
     Exit;
 
-{$IFDEF UNICODE}
   L := Length(S);
-{$ELSE}
-  SW := WideString(S);
-  L := Length(SW);
-{$ENDIF}
 
   if L = 0 then
   begin
@@ -605,11 +590,7 @@ begin
 
   while I <= L do
   begin
-{$IFDEF UNICODE}
     C := S[I];
-{$ELSE}
-    C := SW[I];
-{$ENDIF}
 
     LeftColumn := RightColumn;
     if WideCharIsWideLength(C) then
@@ -696,11 +677,17 @@ begin
 
         if X > VirtualX then
         begin
-          // 刚好超过，说明就是这个字符，Col 要把刚加的给减回去
+          // 刚好超过，说明就是这个字符，X 和 Col 要把刚加的给减回去
           if W then
-            Dec(Col, 2)
+          begin
+            Dec(Col, 2);
+            Dec(X, W2);
+          end
           else
+          begin
             Dec(Col);
+            Dec(X, FAveCharWidth);
+          end;
 
           DoubleWidth := W;
           if DoubleWidth then
@@ -718,11 +705,12 @@ begin
       DoubleWidth := False;
       I := (VirtualX - X) div FAveCharWidth;
       Inc(Col, I);
+      LeftHalf := (VirtualX - X - FAveCharWidth * I) < FAveCharWidthHalf;
       Result := True;
     end
     else
     begin
-      // 用平均宽度和最大宽度确定一个范围，在这范围内进行搜索到底哪个 Column 会超过 X
+      // TODO: 用平均宽度和最大宽度确定一个范围，在这范围内进行搜索到底哪个 Column 会超过 X
     end;
   end
   else
@@ -761,7 +749,10 @@ procedure TCnMemo.DoPaintLine(LineCanvas: TCanvas; LineNumber,
   HoriCharOffset: Integer; LineRect: TRect);
 var
   S, S1: string;
-  SSR, SSC, SER, SEC, T: Integer;
+{$IFNDEF UNICODE}
+  WS: WideString;
+{$ENDIF}
+  SSR, SSC, SER, SEC, T, NewValue: Integer;
 begin
   // Dec(LineNumber); // TODO: 更新下标
 
@@ -788,6 +779,9 @@ begin
         SSC := T;
       end;    // 确保 StartRow/Col 在 EndRow/Col 前面
 
+      // 注意 SSC 与 SRC 是视觉列号也就是 Column，Ansi 下大部分类似于 Ansi 的字符下标
+      // 但在 Unicode 环境下不能直接拿来做字符串下标，得转成字符串下标
+
       if ((LineNumber < SSR) and (LineNumber < SER)) or
         ((LineNumber > SSR) and (LineNumber > SER)) then
       begin
@@ -799,6 +793,17 @@ begin
       else if (LineNumber = SSR) and (LineNumber <> SER) then
       begin
         // 等于起始行但不等于结尾行，从 1 到 SSC - 1 画正常区，SSC 后画选择区
+        // SSC 转成 CharIndex，要 Column 右边的 CharIndex
+        if MapColumnToWideCharIndexes(S, SSC, T, NewValue) then
+        begin
+{$IFDEF UNICODE}
+          SSC := NewValue;
+{$ELSE}
+          WS := WideString(S);
+          SSC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        end;
+
         LineCanvas.Font.Color := Font.Color;
         LineCanvas.Brush.Style := bsClear;
         S1 := Copy(S, 1, SSC - 1);
@@ -823,6 +828,17 @@ begin
       else if (LineNumber = SER) and (LineNumber <> SSR) then
       begin
         // 等于结尾行但不等于起始行，从 1 到 SEC - 1 画选择区，SEC 后画正常区
+        // SEC 转成 CharIndex，要 Column 右边的 CharIndex
+        if MapColumnToWideCharIndexes(S, SEC, T, NewValue) then
+        begin
+{$IFDEF UNICODE}
+          SEC := NewValue;
+{$ELSE}
+          WS := WideString(S);
+          SEC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        end;
+
         S1 := Copy(S, 1, SEC - 1);
         if S1 <> '' then
         begin
@@ -860,6 +876,28 @@ begin
       else
       begin
         // 在选择行内，从 1 到 SSC - 1 画正常，SSC 到 SEC 中间画选择区，SEC + 1 后画正常
+        // SSC，SEC 都转成 CharIndex，要 Column 右边的 CharIndex
+{$IFNDEF UNICODE}
+        WS := WideString(S);
+{$ENDIF}
+        if MapColumnToWideCharIndexes(S, SSC, T, NewValue) then
+        begin
+{$IFDEF UNICODE}
+          SSC := NewValue;
+{$ELSE}
+          SSC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        end;
+
+        if MapColumnToWideCharIndexes(S, SEC, T, NewValue) then
+        begin
+{$IFDEF UNICODE}
+          SEC := NewValue;
+{$ELSE}
+          SEC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        end;
+
         S1 := Copy(S, 1, SSC - 1);
         if S1 <> '' then   // 画正常区
         begin
@@ -912,7 +950,7 @@ begin
   Dec(LineNumber); // TODO: 更新下标
 
   if (LineNumber >= 1) and (LineNumber <= FStrings.Count) then
-    MapCharIndexToColumns(FStrings[LineNumber], MaxInt, Result, R);
+    MapWideCharIndexToColumns(FStrings[LineNumber], MaxInt, Result, R);
 end;
 
 function TCnMemo.GetLines: TStringList;
@@ -929,9 +967,9 @@ begin
 
   if (ARow >= 0) and (ARow < FStrings.Count) then
   begin
-    if not MapColumnToCharIndexes(FStrings[ARow], AColumn, L, R) then
+    if not MapColumnToWideCharIndexes(FStrings[ARow], AColumn, L, R) then
       Exit;
-    if not MapCharIndexToColumns(FStrings[ARow], R, L, Result, CaretAfterLineEnd) then
+    if not MapWideCharIndexToColumns(FStrings[ARow], R, L, Result, CaretAfterLineEnd) then
       Exit;
 
     if Result = -1 then // 超过末列时返回末列
@@ -948,12 +986,12 @@ begin
 
   if (ARow >= 0) and (ARow < FStrings.Count) then
   begin
-    if not MapColumnToCharIndexes(FStrings[ARow], AColumn, L, R) then
+    if not MapColumnToWideCharIndexes(FStrings[ARow], AColumn, L, R) then
       Exit;
 
     if L = 0 then // 超过首列时返回首列
       Result := 1
-    else if not MapCharIndexToColumns(FStrings[ARow], L, Result, R) then
+    else if not MapWideCharIndexToColumns(FStrings[ARow], L, Result, R) then
       Exit;
   end;
 end;

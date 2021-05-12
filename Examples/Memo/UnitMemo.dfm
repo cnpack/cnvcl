@@ -19,7 +19,7 @@ object CnMemoForm: TCnMemoForm
     Top = 8
     Width = 825
     Height = 465
-    ActivePage = tsEditorStringList
+    ActivePage = ts1
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object ts1: TTabSheet
@@ -59,7 +59,7 @@ object CnMemoForm: TCnMemoForm
       end
       object btnChangeFont: TButton
         Left = 400
-        Top = 184
+        Top = 192
         Width = 75
         Height = 25
         Caption = 'Change Font'
@@ -187,11 +187,11 @@ object CnMemoForm: TCnMemoForm
       Caption = 'EditorStringList'
       ImageIndex = 1
       object lblString: TLabel
-        Left = 400
+        Left = 384
         Top = 40
-        Width = 39
+        Width = 67
         Height = 13
-        Caption = 'String£º'
+        Caption = 'Wide String£º'
       end
       object mmoEditorStringList: TMemo
         Left = 8
