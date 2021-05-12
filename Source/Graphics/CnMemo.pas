@@ -157,6 +157,8 @@ type
     function GetPrevColumn(AColumn, ARow: Integer): Integer; override;
 
     function GetNextColumn(AColumn, ARow: Integer): Integer; override;
+
+    function GetNearestColumn(AColumn, ARow: Integer): Integer; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -625,12 +627,12 @@ end;
 function TCnMemo.CalcColumnFromPixelOffsetInLine(ARow, VirtualX: Integer;
   out Col: Integer; out LeftHalf, DoubleWidth: Boolean): Boolean;
 var
-  I, L, X, W2: Integer;
-  W: Boolean;
+  I, L, X, OldX, W2, T: Integer;
+  W, DirectCalc: Boolean;
   S: string;
   SW: WideString;
   C: WideChar;
-  BKC: Char;
+  Size: TSize;
 begin
   Dec(ARow); // TODO: 更新下标
 
@@ -639,79 +641,86 @@ begin
     // 有字符串，按字符串实际来
     S := FStrings[ARow];
 
-    if FFontIsFixedWidth then
+{$IFDEF UNICODE}
+    L := Length(S);
+{$ELSE}
+    SW := WideString(S);
+    L := Length(SW);
+{$ENDIF}
+
+    I := 1;
+    X := 0;
+    Col := 1;
+
+    DirectCalc := FFontIsFixedWidth or not HandleAllocated;
+    // 从 S[1] 到 S[length] 累加计算 Column，并直接计算横坐标右侧（等宽字体）
+    // 或 TextWidth （非等宽），看哪个刚好超出 X
+
+    W2 := FAveCharWidth * 2;
+    while I <= L do
     begin
-      // 是等宽字符串。从 S[1] 到 S[length] 累加计算 Column，并计算横坐标右侧，看哪个刚好超出 X
-
-      I := 1;
 {$IFDEF UNICODE}
-      L := Length(S);
+      C := S[I];
 {$ELSE}
-      SW := WideString(S);
-      L := Length(SW);
+      C := SW[I];
 {$ENDIF}
 
-      W2 := FAveCharWidth * 2;
-      X := 0;
-      Col := 1;
+      W := WideCharIsWideLength(C);
+      OldX := X;
 
-      while I <= L do
+      if not DirectCalc then
       begin
+        // 用 Canvas.TextWidth 计算 S[1] 到 S[I] 的长度 X，而不是下面的字符宽度累加
 {$IFDEF UNICODE}
-        C := S[I];
+        GetTextExtentPoint32(Canvas.Handle, PChar(S), I, Size);
 {$ELSE}
-        C := SW[I];
+        // I 指向宽字符串的下标索引，非 Unicode 环境下要转成 Ansi 模式再量宽度
+        T := CalcAnsiLengthFromWideStringOffset(PWideChar(SW), I);
+        GetTextExtentPoint32(Canvas.Handle, PChar(S), T, Size);
 {$ENDIF}
-
-        W := WideCharIsWideLength(C);
-        if W then
-        begin
-          Inc(X, W2);
-          Inc(Col, 2);
-        end
-        else
-        begin
-          Inc(X, FAveCharWidth); // 增加后，X 是第 I 个字符的右侧坐标，Col 是第 I 个字符右侧
-          Inc(Col);
-        end;
-
-        if X > VirtualX then
-        begin
-          // 刚好超过，说明就是这个字符，X 和 Col 要把刚加的给减回去
-          if W then
-          begin
-            Dec(Col, 2);
-            Dec(X, W2);
-          end
-          else
-          begin
-            Dec(Col);
-            Dec(X, FAveCharWidth);
-          end;
-
-          DoubleWidth := W;
-          if DoubleWidth then
-            LeftHalf := (VirtualX - X) <= FAveCharWidthHalf
-          else
-            LeftHalf := (VirtualX - X) <= FAveCharWidth;
-
-          Result := True;
-          Exit;
-        end;
-        Inc(I);
+        X := Size.cx;
       end;
 
-      // 如果到这都还没超过，说明光标过尾巴了，此时 X 是尾字符右侧，I 是尾字符，Col 是尾字符右侧
-      DoubleWidth := False;
-      I := (VirtualX - X) div FAveCharWidth;
-      Inc(Col, I);
-      LeftHalf := (VirtualX - X - FAveCharWidth * I) < FAveCharWidthHalf;
-      Result := True;
-    end
-    else
-    begin
-      // TODO: 用平均宽度和最大宽度确定一个范围，在这范围内进行搜索到底哪个 Column 会超过 X
+      if W then
+      begin
+        if DirectCalc then
+          Inc(X, W2);
+        Inc(Col, 2);
+      end
+      else
+      begin
+        if DirectCalc then
+          Inc(X, FAveCharWidth);  // 增加后，X 是第 I 个字符的右侧坐标，Col 是第 I 个字符右侧
+        Inc(Col);
+      end;
+
+      if X > VirtualX then
+      begin
+        // 刚好超过，说明就是这个字符，X 和 Col 要把刚加的给减回去
+        X := OldX;
+        if W then
+          Dec(Col, 2)
+        else
+          Dec(Col);
+
+        DoubleWidth := W;
+        if DoubleWidth then
+          LeftHalf := (VirtualX - X) <= FAveCharWidthHalf
+        else
+          LeftHalf := (VirtualX - X) <= FAveCharWidth;
+
+        Result := True;
+        Exit;
+      end;
+      Inc(I);
     end;
+
+    // 如果到这都还没超过，说明光标过尾巴了，此时 X 是尾字符右侧，I 是尾字符，Col 是尾字符右侧
+    DoubleWidth := False;
+    I := (VirtualX - X) div FAveCharWidth;
+    Inc(Col, I);
+    LeftHalf := (VirtualX - X - FAveCharWidth * I) < FAveCharWidthHalf;
+    Result := True;
   end
   else
   begin
@@ -723,11 +732,109 @@ end;
 
 function TCnMemo.CalcPixelOffsetFromColumnInLine(ARow, ACol: Integer;
   out Rect: TRect; out DoubleWidth: Boolean): Boolean;
+var
+  W, DirectCalc: Boolean;
+  I, W2, X, OldX, Col, OldCol, T, L: Integer;
+  S: string;
+  SW: WideString;
+  C: WideChar;
+  Size: TSize;
 begin
-  if FFontIsFixedWidth then
+  Dec(ARow); // TODO: 更新下标
+
+  if (ARow >= 0) and (ARow < FStrings.Count) then
   begin
-    Result := inherited CalcPixelOffsetFromColumnInLine(ARow, ACol, Rect, DoubleWidth);
-    Exit;
+    // 有字符串，按字符串实际来
+    S := FStrings[ARow];
+{$IFDEF UNICODE}
+    L := Length(S);
+{$ELSE}
+    SW := WideString(S);
+    L := Length(SW);
+{$ENDIF}
+
+    I := 1;
+    X := 0;
+    Col := 1;
+
+    DirectCalc := FFontIsFixedWidth or not HandleAllocated;
+    W2 := FAveCharWidth * 2;
+
+    while I <= L do
+    begin
+{$IFDEF UNICODE}
+      C := S[I];
+{$ELSE}
+      C := SW[I];
+{$ENDIF}
+
+      W := WideCharIsWideLength(C);
+      OldX := X;
+      OldCol := Col;
+
+      if not DirectCalc then
+      begin
+        // 用 Canvas.TextWidth 计算 S[1] 到 S[I] 的长度 X，而不是下面的字符宽度累加
+{$IFDEF UNICODE}
+        GetTextExtentPoint32(Canvas.Handle, PChar(S), I, Size);
+{$ELSE}
+        // I 指向宽字符串的下标索引，非 Unicode 环境下要转成 Ansi 模式再量宽度
+        T := CalcAnsiLengthFromWideStringOffset(PWideChar(SW), I);
+        GetTextExtentPoint32(Canvas.Handle, PChar(S), T, Size);
+{$ENDIF}
+        X := Size.cx;
+      end;
+
+      if W then
+      begin
+        if DirectCalc then
+          Inc(X, W2);
+        Inc(Col, 2);
+      end
+      else
+      begin
+        if DirectCalc then
+          Inc(X, FAveCharWidth);
+        Inc(Col);
+      end;
+      // 增加后，X 是第 I 个字符的右侧坐标，OldX 是左侧，
+      // OldCol 是第 I 个字符左侧，Col 是第 I 个字符右侧
+
+      if OldCol = ACol then
+      begin
+        // 刚好相等，说明就是这个字符
+        Rect.Left := OldX;
+        Rect.Right := X;
+        Rect.Top := 0;
+        Rect.Bottom := FLineHeight;
+
+        DoubleWidth := W;
+        Result := True;
+        Exit;
+      end
+      else if OldCol > ACol then // 本列无效，退出
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      Inc(I);
+    end;
+
+    // 如果到这都还没超过，说明光标过尾巴了，此时 X 是尾字符右侧，OldX 是左侧，
+    // I 是尾字符，Col 是尾字符右侧，OldCol 是左侧
+    DoubleWidth := False;
+    Rect.Top := 0;
+    Rect.Bottom := FLineHeight;
+    Rect.Left := X + (ACol - Col) * FAveCharWidth;
+    Rect.Right := Rect.Left + FAveCharWidth;
+
+    Result := True;
+  end
+  else
+  begin
+    // 没有字符串，按等宽直接计算
+    Result := inherited CalcPixelOffsetFromColumnInLine(ARow, ACol, Rect, DoubleWidth)
   end;
 end;
 
@@ -956,6 +1063,20 @@ end;
 function TCnMemo.GetLines: TStringList;
 begin
   Result := FStrings;
+end;
+
+function TCnMemo.GetNearestColumn(AColumn, ARow: Integer): Integer;
+var
+  L, R: Integer;
+begin
+  Result := AColumn;
+  Dec(ARow); // TODO: 更新下标
+
+  if (ARow >= 0) and (ARow < FStrings.Count) then
+  begin
+    if not MapColumnToWideCharIndexes(FStrings[ARow], AColumn, L, R) then
+      Result := AColumn - 1;
+  end;
 end;
 
 function TCnMemo.GetNextColumn(AColumn, ARow: Integer): Integer;

@@ -205,8 +205,8 @@ type
 
     procedure GetVirtualCharPosVirtualRect(ARow, ACol: Integer; var Rect: TRect);
     {* 从虚拟文字坐标获得在虚拟排版区内的 Rect，虚拟排版区左上角是原点}
-    procedure GetVirtualCharPosPhysicalRect(ARow, ACol: Integer; var Rect: TRect);
-    {* 从虚拟文字坐标获得其控件上的物理 Rect，注意可能超出 TextRect}
+    function GetVirtualCharPosPhysicalRect(ARow, ACol: Integer; var Rect: TRect): Boolean;
+    {* 从虚拟文字坐标获得其控件上的物理 Rect，返回是否成功。注意可能超出 TextRect}
     function GetColumnVirtualX(ARow, ACol: Integer): Integer;
     {* 获得某虚拟文字坐标左侧的光标位置相对于整个虚拟文字区左侧的像素横坐标}
     procedure Paint; override;
@@ -245,6 +245,7 @@ type
     function CalcPixelOffsetFromColumnInLine(ARow, ACol: Integer; out Rect: TRect;
       out DoubleWidth: Boolean): Boolean; virtual;
     {*** 根据虚拟行号与虚拟列号，计算返回该列所在字符方框相对于当前行所在虚拟行方框的位置
+      或者说该列光标所在位置的右边字符的字符方框以及该字符方框是否是双倍，光标在方框左侧
      （Rect 的原点是当前完整行的左上角，其 Left 就是光标在当前完整行内的坐标）
       返回是否成功，False 表示该列不存在（譬如双字节字符不可分割）}
 
@@ -256,6 +257,8 @@ type
     {** 某虚拟行里，返回某列的前一列，和具体绘制无关}
     function GetNextColumn(AColumn, ARow: Integer): Integer; virtual;
     {** 某虚拟行里，返回某列的后一列，和具体绘制无关}
+    function GetNearestColumn(AColumn, ARow: Integer): Integer; virtual;
+    {** 某虚拟行里，返回某列附近的合法列，如碰到汉字中间时要加减一}
   public
     procedure SetBounds(ALeft: Integer; ATop: Integer; AWidth: Integer;
       AHeight: Integer); override;
@@ -554,14 +557,15 @@ begin
   Inc(Rect.Bottom, DV);
 end;
 
-procedure TCnVirtualTextControl.GetVirtualCharPosPhysicalRect(ARow, ACol: Integer;
-  var Rect: TRect);
+function TCnVirtualTextControl.GetVirtualCharPosPhysicalRect(ARow, ACol: Integer;
+  var Rect: TRect): Boolean;
 var
   DW: Boolean;
   DH, DV: Integer;
 begin
+  Result := False;
   if not CalcPixelOffsetFromColumnInLine(ARow, ACol, Rect, DW) then
-    raise ECnTextControlException.Create(SCnErrorColumn);
+    Exit;
 
   // 拿到的 Rect 是一行内的字符方框坐标，左上角为完整行头，需要转换成控件内坐标
 
@@ -575,6 +579,7 @@ begin
   // 返回的横坐标减去横向滚动的像素数就是 Rect.Left 离 TextRect 左边的距离
   Inc(Rect.Left, DH);
   Inc(Rect.Right, DH);
+  Result := True;
 end;
 
 function TCnVirtualTextControl.CalcColumnFromPixelOffsetInLine(ARow,
@@ -664,22 +669,26 @@ begin
           begin
             // 虚拟光标上移并保持可见
             CaretRow := CaretRow - 1;
+            CaretCol := GetNearestColumn(CaretCol, CaretRow);
             ScrollToVisibleCaret;
           end;
         VK_DOWN:
           begin
             // 虚拟光标下移并保持可见
             CaretRow := CaretRow + 1;
+            CaretCol := GetNearestColumn(CaretCol, CaretRow);
             ScrollToVisibleCaret;
           end;
         VK_PRIOR:
           begin
             CaretRow := CaretRow - GetVisibleLineCount;
+            CaretCol := GetNearestColumn(CaretCol, CaretRow);
             ScrollToVisibleCaret;
           end;
         VK_NEXT:
           begin
             CaretRow := CaretRow + GetVisibleLineCount;
+            CaretCol := GetNearestColumn(CaretCol, CaretRow);
             ScrollToVisibleCaret;
           end;
         VK_HOME:
@@ -702,7 +711,7 @@ begin
     end
     else
     begin
-      // TODO: 按了 Shift，变更选择区终点位置
+      // 按了 Shift，变更选择区终点位置
       if not FUseSelection then
         Exit;
 
@@ -723,22 +732,26 @@ begin
           begin
             // 选择区终点行上移并保持可见
             SelectEndRow := SelectEndRow - 1;
+            SelectEndCol := GetNearestColumn(SelectEndCol, SelectEndRow);
             ScrollToVisibleCaret;
           end;
         VK_DOWN:
           begin
             // 选择区终点行下移并保持可见
             SelectEndRow := SelectEndRow + 1;
+            SelectEndCol := GetNearestColumn(SelectEndCol, SelectEndRow);
             ScrollToVisibleCaret;
           end;
         VK_PRIOR:
           begin
             SelectEndRow := SelectEndRow - GetVisibleLineCount;
+            SelectEndCol := GetNearestColumn(SelectEndCol, SelectEndRow);
             ScrollToVisibleCaret;
           end;
         VK_NEXT:
           begin
             SelectEndRow := SelectEndRow + GetVisibleLineCount;
+            SelectEndCol := GetNearestColumn(SelectEndCol, SelectEndRow);
             ScrollToVisibleCaret;
           end;
         VK_HOME:
@@ -1764,7 +1777,9 @@ var
 begin
   if FUseCaret then
   begin
-    GetVirtualCharPosPhysicalRect(FCaretRow, FCaretCol, R);
+    if not GetVirtualCharPosPhysicalRect(FCaretRow, FCaretCol, R) then
+      Exit;
+
     if (R.Left >= FTextRect.Left) and (R.Left <= FTextRect.Right) then
     begin
       if not FCaretVisible then
@@ -1791,6 +1806,12 @@ begin
   LineCanvas.Brush.Color := Color;
   LineCanvas.Brush.Style := bsSolid;
   LineCanvas.FillRect(LineRect);
+end;
+
+function TCnVirtualTextControl.GetNearestColumn(AColumn,
+  ARow: Integer): Integer;
+begin
+  Result := AColumn;
 end;
 
 end.

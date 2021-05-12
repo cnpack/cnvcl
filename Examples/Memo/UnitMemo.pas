@@ -113,10 +113,15 @@ begin
   FMemo.Lines.Add('123');
   FMemo.Lines.Add('W°¡');
   FMemo.Lines.Add('ÎÒ³Ô·¹Ë¯¾õ´ò¶¹¶¹sleep eat hit¶¹¶¹');
-  FMemo.Lines.Add(' a c .');
+  FMemo.Lines.Add(' a c .¶¹¶¹sleep eat hit¶¹¡¡ËÍ´ï·½Ê½£¬£ó£ì£ì¡£---');
+  FMemo.Lines.Add('');
+  FMemo.Lines.Add(' ³Ôa ·¹');
+  FMemo.Lines.Add('--,.,.¡¡');
+  FMemo.Lines.Add('');
+
   FMemo.OnCaretChange := MemoCaretChange;
   FMemo.OnSelectChange := MemoSelectChange;
-  FMemo.Font.Name := 'Courier New';
+  //FMemo.Font.Name := 'Courier New';
   FMemo.Parent := ts1;
 
   FTextControl := TCnTestVirtualText.Create(Self);
