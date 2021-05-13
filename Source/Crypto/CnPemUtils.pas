@@ -28,7 +28,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.27 V1.2
+* 修改记录：2021.05.14 V1.3
+*               增加四个 PKCS7 对齐的处理函数
+*           2020.03.27 V1.2
 *               模拟 Openssl 实现 PEM 的加密写入，只支持部分加密算法与机制
 *               目前写入兼容 des/3des/aes128/192/256 PKCS7 对齐，基于 Openssl 1.0.2g
 *           2020.03.23 V1.1
@@ -98,6 +100,16 @@ function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Byte): AnsiString;
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
 {* 去除 PKCS7 规定的字符串末尾填充“几个几”的填充数据}
+
+{$IFDEF TBYTES_DEFINED}
+
+procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
+{* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据}
+
+procedure BytesRemovePKCS7Padding(var Data: TBytes);
+{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据}
+
+{$ENDIF}
 
 implementation
 
@@ -346,18 +358,54 @@ end;
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
 var
-  L: Byte;
+  L: Integer;
+  V: Byte;
 begin
   Result := Str;
   if Result = '' then
     Exit;
 
   L := Length(Result);
-  L := Ord(Result[L]);
+  V := Ord(Result[L]);  // 末是几表示加了几
 
-  if L < Length(Result) then
-    Delete(Result, Length(Result) - L + 1, L);
+  if V <= L then
+    Delete(Result, L - V + 1, V);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
+var
+  R: Byte;
+  L, I: Integer;
+begin
+  L := Length(Data);
+  R := L mod BlockSize;
+  R := BlockSize - R;
+  if R = 0 then
+    R := R + BlockSize;
+
+  SetLength(Data, L + R);
+  for I := 0 to R - 1 do
+    Data[L + I] := R;
+end;
+
+procedure BytesRemovePKCS7Padding(var Data: TBytes);
+var
+  L: Integer;
+  V: Byte;
+begin
+  L := Length(Data);
+  if L = 0 then
+    Exit;
+
+  V := Ord(Data[L - 1]);  // 末是几表示加了几
+
+  if V <= L then
+    SetLength(Data, L - V);
+end;
+
+{$ENDIF}
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
   Stream: TStream; const Password: string; out EncryptedHead: string): Boolean;

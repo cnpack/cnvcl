@@ -888,6 +888,13 @@ object FormCrypt: TFormCrypt
           Height = 13
           Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
         end
+        object lblSm4Padding: TLabel
+          Left = 264
+          Top = 162
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
+        end
         object edtSm4: TEdit
           Left = 72
           Top = 32
@@ -969,6 +976,19 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'Use TBytes'
           TabOrder = 9
+          OnClick = chkSM4UseTBytesClick
+        end
+        object cbbSm4Padding: TComboBox
+          Left = 320
+          Top = 160
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 10
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
         end
       end
     end
