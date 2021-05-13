@@ -851,7 +851,7 @@ object FormCrypt: TFormCrypt
         Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'SM3'
+        Caption = 'SM4'
         TabOrder = 0
         object lblSm4: TLabel
           Left = 24

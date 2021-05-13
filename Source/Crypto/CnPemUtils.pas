@@ -93,6 +93,12 @@ procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Byte);
 procedure RemovePKCS7Padding(Stream: TMemoryStream);
 {* 去除 PKCS7 规定的末尾填充“几个几”的填充数据}
 
+function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Byte): AnsiString;
+{* 给字符串末尾加上 PKCS7 规定的填充“几个几”的填充数据}
+
+function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
+{* 去除 PKCS7 规定的字符串末尾填充“几个几”的填充数据}
+
 implementation
 
 const
@@ -311,6 +317,9 @@ begin
     Stream.Position := Stream.Size - 1;
     Stream.Read(L, 1);
 
+    if Stream.Size - L < 0 then  // 尺寸不靠谱，不干
+      Exit;
+
     Len := Stream.Size - L;
     Mem := GetMemory(Len);
     if Mem <> nil then
@@ -321,6 +330,33 @@ begin
       FreeMemory(Mem);
     end;
   end;
+end;
+
+function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Byte): AnsiString;
+var
+  R: Byte;
+begin
+  R := Length(Str) mod BlockSize;
+  R := BlockSize - R;
+  if R = 0 then
+    R := R + BlockSize;
+
+  Result := Str + AnsiString(StringOfChar(Chr(R), R));
+end;
+
+function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
+var
+  L: Byte;
+begin
+  Result := Str;
+  if Result = '' then
+    Exit;
+
+  L := Length(Result);
+  L := Ord(Result[L]);
+
+  if L < Length(Result) then
+    Delete(Result, Length(Result) - L + 1, L);
 end;
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
