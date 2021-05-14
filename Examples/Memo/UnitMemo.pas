@@ -51,6 +51,7 @@ type
     mmoIndexColumn: TMemo;
     statMemo: TStatusBar;
     chkMapAfterEnd: TCheckBox;
+    mmoSelection: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -423,6 +424,7 @@ end;
 procedure TCnMemoForm.MemoSelectChange(Sender: TObject);
 begin
   UpdateMemoStatusBar;
+  mmoSelection.Lines.Text := FMemo.SelectText;
 end;
 
 procedure TCnMemoForm.UpdateMemoStatusBar;

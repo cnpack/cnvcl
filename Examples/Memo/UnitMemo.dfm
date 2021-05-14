@@ -182,6 +182,14 @@ object CnMemoForm: TCnMemoForm
         Panels = <>
         SimplePanel = False
       end
+      object mmoSelection: TMemo
+        Left = 400
+        Top = 256
+        Width = 353
+        Height = 145
+        ReadOnly = True
+        TabOrder = 13
+      end
     end
     object tsEditorStringList: TTabSheet
       Caption = 'EditorStringList'

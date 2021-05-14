@@ -142,6 +142,8 @@ type
     FStrings: TStringList;
     procedure StringsChange(Sender: TObject);
     function GetLines: TStringList;
+    function GetSelectText: string;
+    procedure MakeOrderSelection(var SelStartRow, SelStartCol, SelEndRow, SelEndCol: Integer);
   protected
     procedure DoPaintLine(LineCanvas: TCanvas; LineNumber, HoriCharOffset: Integer;
       LineRect: TRect); override;
@@ -167,6 +169,7 @@ type
     procedure SaveToFile(const AFile: string);
 
     property Lines: TStringList read GetLines;
+    property SelectText: string read GetSelectText;
   published
 
   end;
@@ -875,16 +878,8 @@ begin
       SER := SelectEndRow;
       SEC := SelectEndCol;
 
-      if (SER < SSR) or ((SER = SSR) and (SEC < SSC)) then
-      begin
-        T := SER;
-        SER := SSR;
-        SSR := T;
-
-        T := SEC;
-        SEC := SSC;
-        SSC := T;
-      end;    // 确保 StartRow/Col 在 EndRow/Col 前面
+      MakeOrderSelection(SSR, SSC, SER, SEC);
+      // 确保 StartRow/Col 在 EndRow/Col 前面
 
       // 注意 SSC 与 SRC 是视觉列号也就是 Column，Ansi 下大部分类似于 Ansi 的字符下标
       // 但在 Unicode 环境下不能直接拿来做字符串下标，得转成字符串下标
@@ -1117,9 +1112,129 @@ begin
   end;
 end;
 
+function TCnMemo.GetSelectText: string;
+var
+  SSR, SSC, SER, SEC, I, Line, T, NewValue: Integer;
+  S: string;
+{$IFNDEF UNICODE}
+  WS: WideString;
+{$ENDIF}
+begin
+  Result := '';
+  if HasSelection then
+  begin
+    SSR := SelectStartRow;
+    SSC := SelectStartCol;
+    SER := SelectEndRow;
+    SEC := SelectEndCol;
+
+    MakeOrderSelection(SSR, SSC, SER, SEC);
+    // 确保 StartRow/Col 在 EndRow/Col 前面
+
+    if SSR = SER then
+    begin
+      Line := SSR - 1;
+      if (Line >= 0) and (Line < FStrings.Count) then
+      begin
+        S := FStrings[Line];
+{$IFNDEF UNICODE}
+        WS := WideString(S);
+{$ENDIF}
+
+        if MapColumnToWideCharIndexes(S, SSC, T, NewValue) then
+        begin
+{$IFDEF UNICODE}
+          SSC := NewValue;
+{$ELSE}
+          SSC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        end;
+
+        if MapColumnToWideCharIndexes(S, SEC, T, NewValue) then
+        begin
+{$IFDEF UNICODE}
+          SEC := NewValue;
+{$ELSE}
+          SEC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        end;
+
+        // 截取 S 的中间
+        Result := Copy(S, SSC, SEC - SSC); 
+      end;
+    end
+    else
+    begin
+      for I := SSR to SER do
+      begin
+        Line := I - 1;
+        if (Line < 0) or (Line >= FStrings.Count) then
+        begin
+          Result := Result + CRLF;
+          Continue;
+        end;
+
+        // S 是当前行内容
+        S := FStrings[Line];
+        if I = SSR then
+        begin
+          // 拿首行，这到尾
+          if MapColumnToWideCharIndexes(S, SSC, T, NewValue) then
+          begin
+{$IFDEF UNICODE}
+            SSC := NewValue;
+{$ELSE}
+            WS := WideString(S);
+            SSC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+            Result := Copy(S, SSC, MaxInt);
+          end;
+        end
+        else if I = SER then
+        begin
+          // 拿末行，头到这
+          if MapColumnToWideCharIndexes(S, SEC, T, NewValue) then
+          begin
+{$IFDEF UNICODE}
+            SEC := NewValue;
+{$ELSE}
+            WS := WideString(S);
+            SEC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+            Result := Result + CRLF + Copy(S, 1, SEC - 1);
+          end
+          else
+            Result := Result + CRLF + S; // Column 转换失败说明超过字符串尾巴了，全加上
+        end
+        else // 拿整行
+        begin
+          Result := Result + CRLF + S;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure TCnMemo.LoadFromFile(const AFile: string);
 begin
   FStrings.LoadFromFile(AFile);
+end;
+
+procedure TCnMemo.MakeOrderSelection(var SelStartRow, SelStartCol,
+  SelEndRow, SelEndCol: Integer);
+var
+  T: Integer;
+begin
+  if (SelEndRow < SelStartRow) or ((SelEndRow = SelStartRow) and (SelEndCol < SelStartCol)) then
+  begin
+    T := SelEndRow;
+    SelEndRow := SelStartRow;
+    SelStartRow := T;
+
+    T := SelEndCol;
+    SelEndCol := SelStartCol;
+    SelStartCol := T;
+  end;    // 确保 StartRow/Col 在 EndRow/Col 前面
 end;
 
 procedure TCnMemo.SaveToFile(const AFile: string);

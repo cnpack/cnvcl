@@ -1487,9 +1487,10 @@ begin
     FLeftMouseDown := False;
     if FUseSelection then  // 鼠标左键抬起时，要通过什么条件取消当前选择区？本次未拖动
     begin
-      if not FLeftMouseMoveAfterDown then // 拖动过的啥都不做，未拖动过的取消选择
+      if not FLeftMouseMoveAfterDown and HasSelection then // 拖动过的啥都不做，未拖动过的取消选择
       begin
         SyncSelectionStartEnd(True);
+        Invalidate;
         DoSelectChange;
       end;
     end;
