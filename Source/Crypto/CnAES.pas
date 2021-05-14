@@ -49,6 +49,9 @@ interface
 uses
   Classes, SysUtils;
 
+const
+  AES_BLOCKSIZE = 16;
+
 type
   TKeyBitType = (kbt128, kbt192, kbt256);
 

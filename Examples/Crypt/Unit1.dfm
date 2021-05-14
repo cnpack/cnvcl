@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
   Left = 318
-  Top = 220
+  Top = 221
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 437
@@ -68,6 +68,13 @@ object FormCrypt: TFormCrypt
           Width = 142
           Height = 13
           Caption = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object lblDesPadding: TLabel
+          Left = 264
+          Top = 162
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edtDesFrom: TEdit
           Left = 72
@@ -151,6 +158,18 @@ object FormCrypt: TFormCrypt
           Caption = 'Use TBytes'
           TabOrder = 9
         end
+        object cbbDesPadding: TComboBox
+          Left = 320
+          Top = 160
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 10
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+        end
       end
     end
     object ts3DES: TTabSheet
@@ -198,6 +217,13 @@ object FormCrypt: TFormCrypt
           Width = 142
           Height = 13
           Caption = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object lbl3DesPadding: TLabel
+          Left = 264
+          Top = 162
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edt3DesFrom: TEdit
           Left = 72
@@ -280,6 +306,18 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'Use TBytes'
           TabOrder = 9
+        end
+        object cbb3DesPadding: TComboBox
+          Left = 320
+          Top = 160
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 10
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
         end
       end
     end
@@ -976,7 +1014,6 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'Use TBytes'
           TabOrder = 9
-          OnClick = chkSM4UseTBytesClick
         end
         object cbbSm4Padding: TComboBox
           Left = 320
@@ -1044,6 +1081,13 @@ object FormCrypt: TFormCrypt
           Width = 148
           Height = 13
           Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
+        end
+        object lblAesPadding: TLabel
+          Left = 264
+          Top = 178
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edtAes: TEdit
           Left = 72
@@ -1139,6 +1183,18 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'Use TBytes'
           TabOrder = 10
+        end
+        object cbbAesPadding: TComboBox
+          Left = 320
+          Top = 176
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 11
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
         end
       end
     end

@@ -279,6 +279,12 @@ type
     btnFileCRC8: TButton;
     lblSm4Padding: TLabel;
     cbbSm4Padding: TComboBox;
+    cbbDesPadding: TComboBox;
+    lblDesPadding: TLabel;
+    cbb3DesPadding: TComboBox;
+    lbl3DesPadding: TLabel;
+    cbbAesPadding: TComboBox;
+    lblAesPadding: TLabel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -515,7 +521,7 @@ var
   TmpDesIv: array[0..7] of Byte;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
-  KeyBytes, IvBytes, ResBytes: TBytes;
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
   Len := Length(edtDesFrom.Text);
@@ -532,13 +538,23 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
-      ResBytes := DESEncryptEcbBytes(KeyBytes, TEncoding.Default.GetBytes(edtDesFrom.Text));
+      DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
+      if cbbDesPadding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, DES_BLOCKSIZE);
+
+      ResBytes := DESEncryptEcbBytes(KeyBytes, DataBytes);
       edtDESCode.Text := BytesToHex(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
-      DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]));
+    begin
+      if cbbDesPadding.ItemIndex = 1 then
+        DESEncryptEcbStr(edtDESKey.Text, StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE), @(Output[1]))
+      else
+        DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]));
+    end;
+      
   end
   else
   begin
@@ -556,13 +572,23 @@ begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
       IvBytes := TEncoding.Default.GetBytes(IvStr);
-      ResBytes := DESEncryptCbcBytes(KeyBytes, IvBytes, TEncoding.Default.GetBytes(edtDesFrom.Text));
+      DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
+      if cbbDesPadding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, DES_BLOCKSIZE);
+
+      ResBytes := DESEncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
       edtDESCode.Text := BytesToHex(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
-      DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
+    begin
+      if cbbDesPadding.ItemIndex = 1 then
+        DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])),
+          StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE), @(Output[1]))
+      else
+        DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
+    end;
   end;
   edtDESCode.Text := ToHex(@(Output[1]), Length(Output));
 
@@ -595,12 +621,18 @@ begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
       ResBytes := DESDecryptEcbBytes(KeyBytes, HexToBytes(edtDESCode.Text));
+      if cbbDesPadding.ItemIndex = 1 then
+        BytesRemovePKCS7Padding(ResBytes);
       edtDesOrigin.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
+    begin
       DESDecryptEcbStr(edtDESKey.Text, S, @(Output[1]));
+      if cbbDesPadding.ItemIndex = 1 then
+        Output := StrRemovePKCS7Padding(Output);
+    end;
   end
   else
   begin
@@ -619,12 +651,18 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
       IvBytes := TEncoding.Default.GetBytes(IvStr);
       ResBytes := DESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtDESCode.Text));
+      if cbbDesPadding.ItemIndex = 1 then
+        BytesRemovePKCS7Padding(ResBytes);
       edtDesOrigin.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
+    begin
       DESDecryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
+      if cbbDesPadding.ItemIndex = 1 then
+        Output := StrRemovePKCS7Padding(Output);
+    end;
   end;
   edtDesOrigin.Text := Output;
 
@@ -697,6 +735,10 @@ begin
   Application.Title := Caption;
 
   cbbSm4Padding.ItemIndex := 0;
+  cbbDesPadding.ItemIndex := 0;
+  cbb3DesPadding.ItemIndex := 0;
+  cbbAesPadding.ItemIndex := 0;
+
 {$IFNDEF TBYTES_DEFINED}
   chkSM4UseTBytes.Visible := False;
   chkDESUseTBytes.Visible := False;
@@ -921,7 +963,7 @@ var
   TmpAesIv: TAESBuffer;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
-  KeyBytes, IvBytes, ResBytes: TBytes;
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
   if rbAesecb.Checked then
@@ -930,13 +972,17 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
+      DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
+      if cbbAesPadding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
+
       case cbbAesKeyBitType.ItemIndex of
         0:
-          ResBytes := AESEncryptEcbBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, kbt128);
+          ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt128);
         1:
-          ResBytes := AESEncryptEcbBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, kbt192);
+          ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt192);
         2:
-          ResBytes := AESEncryptEcbBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, kbt256);
+          ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt256);
       end;
       edtAesResult.Text := BytesToHex(ResBytes);
       Exit;
@@ -944,13 +990,30 @@ begin
     end
     else
     begin
-      case cbbAesKeyBitType.ItemIndex of
-        0:
-          edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt128);
-        1:
-          edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt192);
-        2:
-          edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt256);
+      if cbbAesPadding.ItemIndex = 1 then
+      begin
+        case cbbAesKeyBitType.ItemIndex of
+          0:
+            edtAesResult.Text := AESEncryptEcbStrToHex(StrAddPKCS7Padding(edtAes.Text,
+              AES_BLOCKSIZE), edtAesKey.Text, kbt128);
+          1:
+            edtAesResult.Text := AESEncryptEcbStrToHex(StrAddPKCS7Padding(edtAes.Text,
+              AES_BLOCKSIZE), edtAesKey.Text, kbt192);
+          2:
+            edtAesResult.Text := AESEncryptEcbStrToHex(StrAddPKCS7Padding(edtAes.Text,
+              AES_BLOCKSIZE), edtAesKey.Text, kbt256);
+        end;
+      end
+      else
+      begin
+        case cbbAesKeyBitType.ItemIndex of
+          0:
+            edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt128);
+          1:
+            edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt192);
+          2:
+            edtAesResult.Text := AESEncryptEcbStrToHex(edtAes.Text, edtAesKey.Text, kbt256);
+        end;
       end;
     end;
   end
@@ -970,13 +1033,17 @@ begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
       IvBytes := TEncoding.Default.GetBytes(IvStr);
+      DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
+      if cbbAesPadding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
+
       case cbbAesKeyBitType.ItemIndex of
         0:
-          ResBytes := AESEncryptCbcBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, IvBytes, kbt128);
+          ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt128);
         1:
-          ResBytes := AESEncryptCbcBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, IvBytes, kbt192);
+          ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt192);
         2:
-          ResBytes := AESEncryptCbcBytes(TEncoding.Default.GetBytes(edtAes.Text), KeyBytes, IvBytes, kbt256);
+          ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt256);
       end;
       edtAesResult.Text := BytesToHex(ResBytes);
       Exit;
@@ -984,13 +1051,30 @@ begin
     end
     else
     begin
-      case cbbAesKeyBitType.ItemIndex of
-        0:
-          edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
-        1:
-          edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt192);
-        2:
-          edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt256);
+      if cbbAesPadding.ItemIndex = 1 then
+      begin
+        case cbbAesKeyBitType.ItemIndex of
+          0:
+            edtAesResult.Text := AESEncryptCbcStrToHex(StrAddPKCS7Padding(edtAes.Text,
+              AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt128);
+          1:
+            edtAesResult.Text := AESEncryptCbcStrToHex(StrAddPKCS7Padding(edtAes.Text,
+              AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt192);
+          2:
+            edtAesResult.Text := AESEncryptCbcStrToHex(StrAddPKCS7Padding(edtAes.Text,
+              AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt256);
+        end;
+      end
+      else
+      begin
+        case cbbAesKeyBitType.ItemIndex of
+          0:
+            edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
+          1:
+            edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt192);
+          2:
+            edtAesResult.Text := AESEncryptCbcStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt256);
+        end;
       end;
     end;
   end;
@@ -1018,6 +1102,8 @@ begin
         2:
           ResBytes := AESDecryptEcbBytes(HexToBytes(edtAesResult.Text), KeyBytes, kbt256);
       end;
+      if cbbAesPadding.ItemIndex = 1 then
+        BytesRemovePKCS7Padding(ResBytes);
       edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
 {$ENDIF}
@@ -1032,6 +1118,8 @@ begin
         2:
           edtAesDecrypt.Text := AESDecryptEcbStrFromHex(edtAesResult.Text, edtAesKey.Text, kbt256);
       end;
+      if cbbAesPadding.ItemIndex = 1 then
+        edtAesDecrypt.Text := StrRemovePKCS7Padding(edtAesDecrypt.Text);
     end;
   end
   else
@@ -1059,6 +1147,8 @@ begin
         2:
           ResBytes := AESDecryptCbcBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt256);
       end;
+      if cbbAesPadding.ItemIndex = 1 then
+        BytesRemovePKCS7Padding(ResBytes);
       edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
 {$ENDIF}
@@ -1073,6 +1163,8 @@ begin
         2:
           edtAesDecrypt.Text := AESDecryptCbcStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt256);
       end;
+      if cbbAesPadding.ItemIndex = 1 then
+        edtAesDecrypt.Text := StrRemovePKCS7Padding(edtAesDecrypt.Text);
     end;
   end;
 end;
@@ -1749,7 +1841,7 @@ var
   TmpDesIv: array[0..7] of Byte;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
-  KeyBytes, IvBytes, ResBytes: TBytes;
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
   Len := Length(edt3DesFrom.Text);
@@ -1766,13 +1858,23 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
-      ResBytes := TripleDESEncryptEcbBytes(KeyBytes, TEncoding.Default.GetBytes(edt3DesFrom.Text));
+      DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
+      if cbb3DesPadding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, TRIPLE_DES_BLOCKSIZE);
+
+      ResBytes := TripleDESEncryptEcbBytes(KeyBytes, DataBytes);
       edt3DESCode.Text := BytesToHex(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
-      TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]));
+    begin
+      if cbb3DesPadding.ItemIndex = 1 then
+        TripleDESEncryptEcbStr(edt3DESKey.Text,
+          StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE), @(Output[1]))
+      else
+        TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]));
+    end;
   end
   else
   begin
@@ -1790,13 +1892,23 @@ begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
       IvBytes := TEncoding.Default.GetBytes(IvStr);
-      ResBytes := TripleDESEncryptCbcBytes(KeyBytes, IvBytes, TEncoding.Default.GetBytes(edt3DesFrom.Text));
+      DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
+      if cbb3DesPadding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, TRIPLE_DES_BLOCKSIZE);
+
+      ResBytes := TripleDESEncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
       edt3DESCode.Text := BytesToHex(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
-      TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
+    begin
+      if cbb3DesPadding.ItemIndex = 1 then
+        TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])),
+          StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE), @(Output[1]))
+      else
+        TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
+    end;
   end;
   edt3DESCode.Text := ToHex(@(Output[1]), Length(Output));
 
@@ -1829,12 +1941,18 @@ begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
       ResBytes := TripleDESDecryptEcbBytes(KeyBytes, HexToBytes(edt3DESCode.Text));
+      if cbb3DesPadding.ItemIndex = 1 then
+        BytesRemovePKCS7Padding(ResBytes);
       edt3DesOrigin.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
+    begin
       TripleDESDecryptEcbStr(edt3DESKey.Text, S, @(Output[1]));
+      if cbb3DesPadding.ItemIndex = 1 then
+        Output := StrRemovePKCS7Padding(Output);
+    end;
   end
   else
   begin
@@ -1853,12 +1971,18 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
       IvBytes := TEncoding.Default.GetBytes(IvStr);
       ResBytes := TripleDESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edt3DESCode.Text));
+      if cbb3DesPadding.ItemIndex = 1 then
+        BytesRemovePKCS7Padding(ResBytes);
       edt3DesOrigin.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
 {$ENDIF}
     end
     else
+    begin
       TripleDESDecryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]));
+      if cbb3DesPadding.ItemIndex = 1 then
+        Output := StrRemovePKCS7Padding(Output);
+    end;
   end;
   edt3DesOrigin.Text := Output;
 
