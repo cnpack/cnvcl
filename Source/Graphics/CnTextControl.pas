@@ -79,10 +79,6 @@ type
     FCaretRow: Integer;               // 光标所在的虚拟行号，1 开始，是 LineNumber
     FCaretCol: Integer;               // 光标所在的虚拟列号，1 开始
     FCaretAfterLineEnd: Boolean;      // 是否允许光标越过行尾
-    FSelectStartRow: Integer;         // 选择区起始虚拟行号，注意起始和结束不一定哪个靠前
-    FSelectEndRow: Integer;           // 选择区结束虚拟行号
-    FSelectStartCol: Integer;         // 选择区起始虚拟列号
-    FSelectEndCol: Integer;           // 选择区结束虚拟列号
     FLeftMouseDown: Boolean;          // 记录鼠标左键按下与否
     FLeftMouseMoveAfterDown: Boolean; // 记录鼠标左键按下后是否拖动过
     FIsWheeling: Boolean;             // 当前滚动时是否是由鼠标滚轮事件触发
@@ -127,15 +123,11 @@ type
     {* 根据当前光标位置以及最大行数以及是否允许光标超行尾的设置来调整光标行列位置}
     procedure SyncCaretPosition;
     {* 根据当前虚拟行列重新设置物理光标位置}
-    function SyncSelectionStartEnd(Force: Boolean = False): Boolean;
-    {* 不在选择状态时（或强制），将光标位置同步塞给选择起始结束位置，也意味着取消选择
-      返回值为 True 时表示执行了同步并取消选择动作}
     procedure CalcSelectEnd(Pt: TPoint);
     {* 根据控件内坐标计算并更新选择区末尾，会控制在光标可移动范围内}
 
     procedure SetCaretCol(const Value: Integer);
     procedure SetCaretRow(const Value: Integer);
-    procedure SetCaretRowCol(Row, Col: Integer);
     procedure SetCaretAfterLineEnd(const Value: Boolean);
     procedure SetSelectEndCol(const Value: Integer);    // 光标跟着选择区尾走
     procedure SetSelectEndRow(const Value: Integer);    // 光标跟着选择区尾走
@@ -156,6 +148,10 @@ type
     FAveCharWidthHalf: Integer;   // 单个字符的外框尺寸的一半，供判断点击时光标在字符前后使用
     FLineHeight: Integer;         // 行高，由字体计算而来
     FFontIsFixedWidth: Boolean;   // 字体是否等宽
+    FSelectStartRow: Integer;     // 选择区起始虚拟行号，注意起始和结束不一定哪个靠前
+    FSelectEndRow: Integer;       // 选择区结束虚拟行号
+    FSelectStartCol: Integer;     // 选择区起始虚拟列号
+    FSelectEndCol: Integer;       // 选择区结束虚拟列号
 
     procedure CreateParams(var Params: TCreateParams); override;
     procedure WMSetFont(var message: TMessage); message WM_SETFONT;
@@ -189,6 +185,9 @@ type
     procedure ScrollToVisibleCaret;
     {* 虚拟位置在屏幕外时滚动屏幕以将光标露出，虚拟光标不变，物理光标可能发生变化
       内部实现是修改 FVertOffset 和 FHoriOffset 并重绘}
+    function SyncSelectionStartEnd(Force: Boolean = False): Boolean;
+    {* 不在选择状态时（或强制），将光标位置同步塞给选择起始结束位置，也意味着取消选择
+      返回值为 True 时表示执行了同步并取消选择动作}
 
     procedure ScrollUpLine;      // 上滚一行
     procedure ScrollDownLine;    // 下滚一行
@@ -198,6 +197,8 @@ type
     procedure ScrollDownPage;    // 下滚一屏
     procedure ScrollLeftPage;    // 左滚一屏
     procedure ScrollRightPage;   // 右滚一屏
+
+    procedure SetCaretRowCol(Row, Col: Integer);
 
     function ClientXToVirtualX(X: Integer): Integer;
     function VirtualXToClientX(X: Integer): Integer;
@@ -255,7 +256,7 @@ type
 
     function GetPrevColumn(AColumn, ARow: Integer): Integer; virtual;
     {** 某虚拟行里，返回某列的前一列，和具体绘制无关}
-    function GetNextColumn(AColumn, ARow: Integer): Integer; virtual;
+    function GetNextColumn(AColumn, ARow: Integer; ACaretAfterLineEnd: Boolean): Integer; virtual;
     {** 某虚拟行里，返回某列的后一列，和具体绘制无关}
     function GetNearestColumn(AColumn, ARow: Integer): Integer; virtual;
     {** 某虚拟行里，返回某列附近的合法列，如碰到汉字中间时要加减一}
@@ -662,7 +663,7 @@ begin
         VK_RIGHT:
           begin
             // 虚拟光标右移并保持可见
-            CaretCol := GetNextColumn(CaretCol, CaretRow);
+            CaretCol := GetNextColumn(CaretCol, CaretRow, CaretAfterLineEnd);
             ScrollToVisibleCaret;
           end;
         VK_UP:
@@ -725,7 +726,7 @@ begin
         VK_RIGHT:
           begin
             // 选择区终点列右移并保持可见
-            SelectEndCol := GetNextColumn(SelectEndCol, CaretRow);;
+            SelectEndCol := GetNextColumn(SelectEndCol, CaretRow, CaretAfterLineEnd);
             ScrollToVisibleCaret;
           end;
         VK_UP:
@@ -1601,7 +1602,7 @@ begin
     LimitRowColumnInLine(ACaretRow, ACaretCol);
 
     if not ACharFrameIsLeft then
-      ACaretCol := GetNextColumn(ACaretCol, ACaretRow);
+      ACaretCol := GetNextColumn(ACaretCol, ACaretRow, CaretAfterLineEnd);
 
     // 通过虚拟 Row/Col 判断限制
     LimitRowColumnInLine(ACaretRow, ACaretCol);
@@ -1719,7 +1720,7 @@ begin
 end;
 
 function TCnVirtualTextControl.GetNextColumn(AColumn,
-  ARow: Integer): Integer;
+  ARow: Integer; ACaretAfterLineEnd: Boolean): Integer;
 begin
   Result := AColumn + 1;
 end;

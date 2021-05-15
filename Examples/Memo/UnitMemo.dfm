@@ -23,7 +23,7 @@ object CnMemoForm: TCnMemoForm
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object ts1: TTabSheet
-      Caption = 'CnMemo'
+      Caption = 'Memo'
       object lblLeftMargin: TLabel
         Left = 344
         Top = 24
