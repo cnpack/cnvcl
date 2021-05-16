@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Windows, Classes, Messages, Controls, Graphics, StdCtrls, ExtCtrls,
-  Dialogs, SysConst, CnTextControl, CnCommon;
+  Dialogs, SysConst, Forms, CnTextControl, CnCommon;
 
 type
 {$IFDEF UNICODE}
@@ -187,7 +187,7 @@ type
       out DeltaRow, DeltaCol: Integer): Boolean;
     {* 在指定光标位置处插入文本，并返回计算的光标移动偏移量供调用者移动}
   protected
-
+    procedure WMKeyDown(var Message: TMessage); message WM_KEYDOWN;
     procedure KeyDown(var Key: WORD; Shift: TShiftState); override;
 
   public
@@ -1589,6 +1589,7 @@ var
   SR, SC, ER, EC, NC: Integer;
 begin
   inherited;
+
   if Key = VK_DELETE then
   begin
     if FReadOnly then
@@ -1652,6 +1653,39 @@ begin
       ScrollToVisibleCaret;
       Invalidate;
     end;
+  end;
+end;
+
+procedure TCnMemo.WMKeyDown(var Message: TMessage);
+var
+  Shift: TShiftState;
+  ScanCode: Word;
+  Key: Word;
+  KeyDownChar: AnsiChar;
+begin
+  inherited;
+
+  Key := Message.wParam;
+  Shift := KeyDataToShiftState(Message.lParam);
+  ScanCode := (Message.lParam and $00FF0000) shr 16;
+
+  if Key = VK_PROCESSKEY then
+    Key := MapVirtualKey(ScanCode, 1);
+
+  KeyDownChar := VK_ScanCodeToAscii(Key, ScanCode);
+
+  // 回车 #13 要作成回车换行，退格 #8 等处要忽略，让 inherited 里的删除键来处理
+  if KeyDownChar = #13 then
+  begin
+    if FReadOnly then
+      Exit;
+    InsertText(CRLF);
+  end
+  else if Ord(KeyDownChar) >= Ord(20) then
+  begin
+    if FReadOnly then
+      Exit;
+    InsertText(string(KeyDownChar));
   end;
 end;
 
