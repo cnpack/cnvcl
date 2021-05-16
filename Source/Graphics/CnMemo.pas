@@ -178,6 +178,7 @@ type
   TCnMemo = class(TCnStringsControl)
   {* 有字符串编辑功能的文本组件}
   private
+    FReadOnly: Boolean;
     procedure DisableStringsChange;
     procedure EnableStringsChange;
     function DeleteText(StartRow, StartCol, EndRow, EndCol: Integer): Boolean;
@@ -192,6 +193,8 @@ type
   public
     procedure DeleteSelection;
     procedure InsertText(const Text: string);
+
+    property ReadOnly: Boolean read FReadOnly write FReadOnly;
   end;
 
 function MapColumnToWideCharIndexes(const S: TCnEditorString; AColumn: Integer;
@@ -1292,7 +1295,7 @@ end;
 
 procedure TCnMemo.DeleteSelection;
 begin
-  if HasSelection then
+  if not FReadOnly and HasSelection then
   begin
     MakeOrderSelection(FSelectStartRow, FSelectStartCol, FSelectEndRow, FSelectEndCol);
     DeleteText(FSelectStartRow, FSelectStartCol, FSelectEndRow, FSelectEndCol);
@@ -1440,7 +1443,7 @@ procedure TCnMemo.InsertText(const Text: string);
 var
   DR, DC: Integer;
 begin
-  if not UseCaret then
+  if not UseCaret or FReadOnly then
     Exit;
 
   if UseSelection and HasSelection then
@@ -1588,6 +1591,9 @@ begin
   inherited;
   if Key = VK_DELETE then
   begin
+    if FReadOnly then
+      Exit;
+
     if UseSelection and HasSelection then // 有选择区就删选择区，光标要停留在顺序的 StartRow/Col
       DeleteSelection
     else
@@ -1616,6 +1622,9 @@ begin
   end
   else if Key = VK_BACK then
   begin
+    if FReadOnly then
+      Exit;
+
     if UseSelection and HasSelection then // 有选择区就删选择区，光标要停留在顺序的 StartRow/Col
       DeleteSelection
     else
