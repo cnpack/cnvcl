@@ -336,6 +336,9 @@ type
     property Font;
   end;
 
+resourcestring
+  SCnTextControlErrorColumn = 'Error Column';
+
 implementation
 
 {$IFDEF DEBUG}
@@ -351,9 +354,6 @@ const
   LINE_GAP = 2;                // 行与行之间的空隙，让画下划线波浪线用
   CARET_MARGIN = 3;
   DEFAULT_MAX_WIDTH = 255;
-
-resourcestring
-  SCnErrorColumn = 'Error Column';
 
 function GetNumWidth(Int: Integer): Integer;
 begin
@@ -547,7 +547,7 @@ var
   DV: Integer;
 begin
   if not CalcPixelOffsetFromColumnInLine(ARow, ACol, Rect, DW) then
-    raise ECnTextControlException.Create(SCnErrorColumn);
+    raise ECnTextControlException.Create(SCnTextControlErrorColumn);
 
   // 拿到的 Rect 是一行内的字符方框坐标，左上角为完整行头，需要转换成虚拟排版区内坐标
   // 注意横向不用改动

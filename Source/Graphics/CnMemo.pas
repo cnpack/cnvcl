@@ -182,13 +182,16 @@ type
     procedure EnableStringsChange;
     function DeleteText(StartRow, StartCol, EndRow, EndCol: Integer): Boolean;
     {* 删除起始行列到结束行列间的内容}
-
+    function InsertTextAt(const Text: string; ARow, ACol: Integer;
+      out DeltaRow, DeltaCol: Integer): Boolean;
+    {* 在指定光标位置处插入文本，并返回计算的光标移动偏移量供调用者移动}
   protected
 
     procedure KeyDown(var Key: WORD; Shift: TShiftState); override;
 
   public
     procedure DeleteSelection;
+    procedure InsertText(const Text: string);
   end;
 
 function MapColumnToWideCharIndexes(const S: TCnEditorString; AColumn: Integer;
@@ -207,7 +210,11 @@ function MapWideCharIndexToColumns(const S: TCnEditorString; ACharIndex: Integer
      False 时 LeftColumn 返回末列，RightColumn 未定义
        特别的：空字符串只有当 CharIndex >= 1 时 LeftColumn 返回 1，RightColumn 未定义
      True 时 CharInde 是末字符 + 1 对应 末列与末列 + 1，以空格堆叠过去以此类推
+   特别的，AfterEnd 为 False 且 CharIndex 超大如 MaxInt 时，LeftColumn 返回末列，
+     LeftColumn - 1 为该字符串所占的列宽
    }
+function GetColumnWidthFromWideString(const S: TCnEditorString): Integer;
+{* 返回宽字符串所占的列宽}
 
 implementation
 
@@ -640,6 +647,16 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function GetColumnWidthFromWideString(const S: TCnEditorString): Integer;
+var
+  R: Integer;
+begin
+  if MapWideCharIndexToColumns(S, MaxInt, Result, R) then
+    Dec(Result)
+  else
+    raise ECnTextControlException.Create(SCnTextControlErrorColumn);
 end;
 
 { TCnStringsControl }
@@ -1315,26 +1332,26 @@ begin
       if (Line >= 0) and (Line < FStrings.Count) then
       begin
         S := FStrings[Line];
-  {$IFNDEF UNICODE}
+{$IFNDEF UNICODE}
         WS := WideString(S);
-  {$ENDIF}
+{$ENDIF}
 
         if MapColumnToWideCharIndexes(S, SSC, T, NewValue) then
         begin
-  {$IFDEF UNICODE}
+{$IFDEF UNICODE}
           SSC := NewValue;
-  {$ELSE}
+{$ELSE}
           SSC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
-  {$ENDIF}
+{$ENDIF}
         end;
 
         if MapColumnToWideCharIndexes(S, SEC, T, NewValue) then
         begin
-  {$IFDEF UNICODE}
+{$IFDEF UNICODE}
           SEC := NewValue;
-  {$ELSE}
+{$ELSE}
           SEC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
-  {$ENDIF}
+{$ENDIF}
         end;
 
         // 删除 S 的中间，从 SSC 开始，长 SEC - SSC 的字符
@@ -1384,12 +1401,12 @@ begin
           // 删末行中，头到这的内容
           if MapColumnToWideCharIndexes(S, SEC, T, NewValue) then
           begin
-  {$IFDEF UNICODE}
+{$IFDEF UNICODE}
             SEC := NewValue;
-  {$ELSE}
+{$ELSE}
             WS := WideString(S);
             SEC := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
-  {$ENDIF}
+{$ENDIF}
             Delete(S, 1, SEC - 1);
 
             // 此时末行剩下这部分内容，最后还要拼到首行头上去，末行本身不用改动
@@ -1419,6 +1436,151 @@ begin
   FStrings.OnChange := StringsChange;
 end;
 
+procedure TCnMemo.InsertText(const Text: string);
+var
+  DR, DC: Integer;
+begin
+  if not UseCaret then
+    Exit;
+
+  if UseSelection and HasSelection then
+    DeleteSelection;
+
+  InsertTextAt(Text, CaretRow, CaretCol, DR, DC);
+  SetCaretRowCol(CaretRow + DR, CaretCol + DC);
+
+  ScrollToVisibleCaret;
+  Invalidate;
+end;
+
+function TCnMemo.InsertTextAt(const Text: string; ARow, ACol: Integer;
+  out DeltaRow, DeltaCol: Integer): Boolean;
+var
+  SL: TStringList;
+  I, P, T, NewValue, OldCol: Integer;
+  S, LastS: string;
+{$IFNDEF UNICODE}
+  WS: WideString;
+{$ENDIF}
+begin
+  Result := False;
+  if (ARow <= 0) or (ACol <= 0) then
+    Exit;
+
+  if ARow > MaxLineCount then
+    Exit;
+
+  SetCaretRowCol(ARow, ACol);
+
+  // 解析 Text 为多个回车分开的内容
+  S := Text;
+  SL := TStringList.Create;
+  FStrings.BeginUpdate;
+
+  try
+    P := Pos(CRLF, S);
+    if P > 0 then
+    begin
+      // 有回车
+      while P > 0 do
+      begin
+        SL.Add(Copy(S, 1, P - 1));
+        Delete(S, 1, P - 1 + Length(CRLF));
+        P := Pos(CRLF, S);
+      end;
+      SL.Add(S); // 最后一个回车后面的部分
+    end
+    else
+      SL.Add(S); // 没回车，直接加
+
+    if SL.Count = 1 then
+    begin
+      // 单行，拿 ARow 行内容，找插入的 CharIndex
+      S := FStrings[ARow - 1];
+      DeltaRow := 0;
+      DeltaCol := 0;
+
+      // 删首行中，这到尾的内容
+      if MapColumnToWideCharIndexes(S, ACol, T, NewValue) then
+      begin
+{$IFDEF UNICODE}
+        ACol := NewValue;
+{$ELSE}
+        WS := WideString(S);
+        ACol := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+        FStrings[ARow - 1] := Copy(S, 1, ACol - 1) + SL[0] + Copy(S, ACol, MaxInt);
+      end
+      else
+      begin
+        // 如果光标超末尾，则 S 要加上相应的空格到指定 SSC
+        T := GetLastColumnFromLine(ARow);
+        if ACol > T then
+        begin
+          S := S + StringOfChar(' ', ACol - T);
+          Inc(DeltaCol, ACol - T);
+        end;
+        FStrings[ARow - 1] := S + SL[0];
+      end;
+      Inc(DeltaCol, GetColumnWidthFromWideString(SL[0]));
+      Result := True;
+    end
+    else
+    begin
+      DeltaRow := SL.Count - 1;
+      LastS := '';
+      OldCol := ACol;
+
+      P := 0; // 复用 P 作为插行的增量
+      for I := 0 to SL.Count - 1 do
+      begin
+        // 挨个插入 SL[I]
+        if I = 0 then
+        begin
+          // 第 CaretRow 行的 CaretCol 对应的字符前面的内容 + S[0]
+          // 取出首行中，光标前后的内容
+          S := FStrings[ARow - 1];
+          if MapColumnToWideCharIndexes(S, ACol, T, NewValue) then
+          begin
+{$IFDEF UNICODE}
+            ACol := NewValue;
+{$ELSE}
+            WS := WideString(S);
+            ACol := CalcAnsiLengthFromWideStringOffset(PWideChar(WS), NewValue - 1) + 1;
+{$ENDIF}
+            FStrings[ARow - 1] := Copy(S, 1, ACol - 1) + SL[0];
+            LastS := Copy(S, ACol, MaxInt);
+          end
+          else
+          begin
+            // 如果光标超末尾，则 S 要加上相应的空格到指定 SSC
+            T := GetLastColumnFromLine(ARow);
+            if ACol > T then
+              S := S + StringOfChar(' ', ACol - T);
+            FStrings[ARow - 1] := S + SL[0];
+          end;
+        end
+        else if I = SL.Count - 1 then
+        begin
+          // SL[LAST] 拼在原有的 LastS 之前
+          FStrings.Insert(ARow - 1 + I, '');
+          FStrings[ARow - 1 + I] := SL[I] + LastS;
+          DeltaCol := 1 + GetColumnWidthFromWideString(SL[I]) - OldCol;
+          // SL[Last] 在行头，会把光标朝右推 GetColumnWidthFromWideString，所以末尾要加一
+        end
+        else
+        begin
+          FStrings.Insert(ARow + P, SL[I]); // 都在原处插的话，后来的会插到先来的后面，所以需要一个 P 累加
+          Inc(P);
+        end;
+      end;
+    end;
+  finally
+    FStrings.EndUpdate;
+    SL.Free;
+  end;
+end;
+
 procedure TCnMemo.KeyDown(var Key: WORD; Shift: TShiftState);
 var
   SR, SC, ER, EC, NC: Integer;
@@ -1426,7 +1588,7 @@ begin
   inherited;
   if Key = VK_DELETE then
   begin
-    if HasSelection then // 有选择区就删选择区，光标要停留在顺序的 StartRow/Col
+    if UseSelection and HasSelection then // 有选择区就删选择区，光标要停留在顺序的 StartRow/Col
       DeleteSelection
     else
     begin
@@ -1454,7 +1616,7 @@ begin
   end
   else if Key = VK_BACK then
   begin
-    if HasSelection then // 有选择区就删选择区，光标要停留在顺序的 StartRow/Col
+    if UseSelection and HasSelection then // 有选择区就删选择区，光标要停留在顺序的 StartRow/Col
       DeleteSelection
     else
     begin

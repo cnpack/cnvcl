@@ -52,6 +52,10 @@ type
     statMemo: TStatusBar;
     chkMapAfterEnd: TCheckBox;
     mmoSelection: TMemo;
+    edtMemoInsert: TEdit;
+    btnMemoInsert: TButton;
+    btnMemoInsertCRLF: TButton;
+    btnMemoInsertMulti: TButton;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -67,6 +71,9 @@ type
     procedure chkCaretAfterLineEndClick(Sender: TObject);
     procedure edtStringChange(Sender: TObject);
     procedure chkMapAfterEndClick(Sender: TObject);
+    procedure btnMemoInsertClick(Sender: TObject);
+    procedure btnMemoInsertCRLFClick(Sender: TObject);
+    procedure btnMemoInsertMultiClick(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
@@ -436,12 +443,30 @@ begin
   else
     statMemo.SimpleText := Format('Line: %d. Col: %d. No Selection %d/%d',
       [FMemo.CaretRow, FMemo.CaretCol, FMemo.SelectStartRow, FMemo.SelectStartCol]);
-
 end;
 
 procedure TCnMemoForm.chkMapAfterEndClick(Sender: TObject);
 begin
   CalcIndexColumnMaps;
+end;
+
+procedure TCnMemoForm.btnMemoInsertClick(Sender: TObject);
+begin
+  FMemo.InsertText(edtMemoInsert.Text);
+end;
+
+procedure TCnMemoForm.btnMemoInsertCRLFClick(Sender: TObject);
+begin
+  FMemo.InsertText(#13#10);
+end;
+
+procedure TCnMemoForm.btnMemoInsertMultiClick(Sender: TObject);
+var
+  S: string;
+begin
+  S := '第一行' + #13#10 + '第二行' + #13#10 + '第三行' + #13#10 + '第四行'
+     + #13#10 + '第五行' + #13#10;
+  FMemo.InsertText(S);
 end;
 
 end.

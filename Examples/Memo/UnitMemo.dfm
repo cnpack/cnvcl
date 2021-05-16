@@ -1,6 +1,6 @@
 object CnMemoForm: TCnMemoForm
   Left = 201
-  Top = 197
+  Top = 198
   Width = 850
   Height = 512
   Caption = 'CnMemo Demo'
@@ -180,7 +180,7 @@ object CnMemoForm: TCnMemoForm
         Width = 817
         Height = 19
         Panels = <>
-        SimplePanel = False
+        SimplePanel = True
       end
       object mmoSelection: TMemo
         Left = 400
@@ -189,6 +189,41 @@ object CnMemoForm: TCnMemoForm
         Height = 145
         ReadOnly = True
         TabOrder = 13
+      end
+      object edtMemoInsert: TEdit
+        Left = 16
+        Top = 384
+        Width = 121
+        Height = 21
+        TabOrder = 14
+        Text = '文本Insert进去'
+      end
+      object btnMemoInsert: TButton
+        Left = 144
+        Top = 384
+        Width = 65
+        Height = 21
+        Caption = 'Insert Single'
+        TabOrder = 15
+        OnClick = btnMemoInsertClick
+      end
+      object btnMemoInsertCRLF: TButton
+        Left = 216
+        Top = 384
+        Width = 65
+        Height = 21
+        Caption = 'Insert CRLF'
+        TabOrder = 16
+        OnClick = btnMemoInsertCRLFClick
+      end
+      object btnMemoInsertMulti: TButton
+        Left = 296
+        Top = 384
+        Width = 65
+        Height = 21
+        Caption = 'Insert Lines'
+        TabOrder = 17
+        OnClick = btnMemoInsertMultiClick
       end
     end
     object tsEditorStringList: TTabSheet
