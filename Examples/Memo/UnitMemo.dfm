@@ -1,6 +1,6 @@
 object CnMemoForm: TCnMemoForm
   Left = 201
-  Top = 198
+  Top = 199
   Width = 850
   Height = 512
   Caption = 'CnMemo Demo'
@@ -59,7 +59,7 @@ object CnMemoForm: TCnMemoForm
       end
       object btnChangeFont: TButton
         Left = 400
-        Top = 192
+        Top = 208
         Width = 75
         Height = 25
         Caption = 'Change Font'
@@ -224,6 +224,15 @@ object CnMemoForm: TCnMemoForm
         Caption = 'Insert Lines'
         TabOrder = 17
         OnClick = btnMemoInsertMultiClick
+      end
+      object chkMemoReadOnly: TCheckBox
+        Left = 400
+        Top = 184
+        Width = 97
+        Height = 17
+        Caption = 'ReadOnly'
+        TabOrder = 18
+        OnClick = chkMemoReadOnlyClick
       end
     end
     object tsEditorStringList: TTabSheet

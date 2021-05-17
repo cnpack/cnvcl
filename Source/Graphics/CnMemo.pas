@@ -179,6 +179,7 @@ type
   {* 有字符串编辑功能的文本组件}
   private
     FReadOnly: Boolean;
+    FPrevChar: Char;
     procedure DisableStringsChange;
     procedure EnableStringsChange;
     function DeleteText(StartRow, StartCol, EndRow, EndCol: Integer): Boolean;
@@ -187,7 +188,7 @@ type
       out DeltaRow, DeltaCol: Integer): Boolean;
     {* 在指定光标位置处插入文本，并返回计算的光标移动偏移量供调用者移动}
   protected
-    procedure WMKeyDown(var Message: TMessage); message WM_KEYDOWN;
+    procedure WMKeyChar(var Message: TMessage); message WM_CHAR;
     procedure KeyDown(var Key: WORD; Shift: TShiftState); override;
 
   public
@@ -1656,36 +1657,44 @@ begin
   end;
 end;
 
-procedure TCnMemo.WMKeyDown(var Message: TMessage);
+procedure TCnMemo.WMKeyChar(var Message: TMessage);
 var
-  Shift: TShiftState;
-  ScanCode: Word;
   Key: Word;
-  KeyDownChar: AnsiChar;
+  Ch: Char;
 begin
-  inherited;
-
   Key := Message.wParam;
-  Shift := KeyDataToShiftState(Message.lParam);
-  ScanCode := (Message.lParam and $00FF0000) shr 16;
+  Ch := Char(Key);
 
-  if Key = VK_PROCESSKEY then
-    Key := MapVirtualKey(ScanCode, 1);
+  if FReadOnly then
+    Exit;
 
-  KeyDownChar := VK_ScanCodeToAscii(Key, ScanCode);
-
-  // 回车 #13 要作成回车换行，退格 #8 等处要忽略，让 inherited 里的删除键来处理
-  if KeyDownChar = #13 then
+  if Ch in [#13, #10] then
+    InsertText(CRLF)
+  else if Ch = #8 then
   begin
-    if FReadOnly then
-      Exit;
-    InsertText(CRLF);
+    // TODO: 处理 Tab
   end
-  else if Ord(KeyDownChar) >= Ord(20) then
+  else if Ord(Ch) >= Ord(20) then
   begin
-    if FReadOnly then
-      Exit;
-    InsertText(string(KeyDownChar));
+{$IFDEF UNICODE}
+    InsertText(string(Ch)); // Unicode 时输入法敲出来的双字节字符直接通过一个 WM_CHAR 发来
+{$ELSE}
+    if Ord(Ch) > 127 then // 非 Unicode 时输入法敲出来的双字节字符会连来两个 WM_CHAR
+    begin
+      if FPrevChar <> #0 then
+      begin
+        InsertText(string(FPrevChar) + string(Ch));
+        FPrevChar := #0;
+      end
+      else
+        FPrevChar := Ch;
+    end
+    else
+    begin
+      InsertText(string(Ch));
+      FPrevChar := #0;
+    end;
+{$ENDIF}
   end;
 end;
 

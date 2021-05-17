@@ -56,6 +56,7 @@ type
     btnMemoInsert: TButton;
     btnMemoInsertCRLF: TButton;
     btnMemoInsertMulti: TButton;
+    chkMemoReadOnly: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -74,6 +75,7 @@ type
     procedure btnMemoInsertClick(Sender: TObject);
     procedure btnMemoInsertCRLFClick(Sender: TObject);
     procedure btnMemoInsertMultiClick(Sender: TObject);
+    procedure chkMemoReadOnlyClick(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
@@ -467,6 +469,11 @@ begin
   S := '第一行' + #13#10 + '第二行' + #13#10 + '第三行' + #13#10 + '第四行'
      + #13#10 + '第五行' + #13#10;
   FMemo.InsertText(S);
+end;
+
+procedure TCnMemoForm.chkMemoReadOnlyClick(Sender: TObject);
+begin
+  FMemo.ReadOnly := chkMemoReadOnly.Checked;
 end;
 
 end.
