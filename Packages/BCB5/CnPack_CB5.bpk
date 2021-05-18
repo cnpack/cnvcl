@@ -108,6 +108,7 @@
       ..\..\Source\Graphics\CnSpin.obj 
       ..\..\Source\Graphics\CnSplitter.obj 
       ..\..\Source\Graphics\CnTabSet.obj 
+      ..\..\Source\Graphics\CnTextControl.obj 
       ..\..\Source\Graphics\CnValidateImage.obj 
       ..\..\Source\Graphics\CnWaterEffect.obj 
       ..\..\Source\Graphics\CnWaterImage.obj 

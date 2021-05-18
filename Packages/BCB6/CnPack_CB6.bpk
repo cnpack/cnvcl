@@ -137,6 +137,7 @@
       ..\..\Source\Graphics\CnSpin.obj 
       ..\..\Source\Graphics\CnSplitter.obj 
       ..\..\Source\Graphics\CnTabSet.obj 
+      ..\..\Source\Graphics\CnTextControl.obj 
       ..\..\Source\Graphics\CnValidateImage.obj 
       ..\..\Source\Graphics\CnWaterEffect.obj 
       ..\..\Source\Graphics\CnWaterImage.obj 
@@ -407,6 +408,7 @@
       <FILE FILENAME="..\..\Source\Graphics\CnSpin.pas" FORMNAME="" UNITNAME="CnSpin" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnSplitter.pas" FORMNAME="" UNITNAME="CnSplitter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnTabSet.pas" FORMNAME="" UNITNAME="CnTabSet" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphics\CnTextControl.pas" FORMNAME="" UNITNAME="CnTextControl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnValidateImage.pas" FORMNAME="" UNITNAME="CnValidateImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnWaterEffect.pas" FORMNAME="" UNITNAME="CnWaterEffect" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphics\CnWaterImage.pas" FORMNAME="" UNITNAME="CnWaterImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

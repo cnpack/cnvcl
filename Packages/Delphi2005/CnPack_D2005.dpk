@@ -178,6 +178,7 @@ contains
   CnSpin in '..\..\Source\Graphics\CnSpin.pas',
   CnSplitter in '..\..\Source\Graphics\CnSplitter.pas',
   CnTabSet in '..\..\Source\Graphics\CnTabSet.pas',
+  CnTextControl in '..\..\Source\Graphics\CnTextControl.pas',
   CnValidateImage in '..\..\Source\Graphics\CnValidateImage.pas',
   CnWaterEffect in '..\..\Source\Graphics\CnWaterEffect.pas',
   CnWaterImage in '..\..\Source\Graphics\CnWaterImage.pas',

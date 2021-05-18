@@ -241,6 +241,7 @@
         <DCCReference Include="..\..\Source\Graphics\CnSpin.pas"/>
         <DCCReference Include="..\..\Source\Graphics\CnSplitter.pas"/>
         <DCCReference Include="..\..\Source\Graphics\CnTabSet.pas"/>
+        <DCCReference Include="..\..\Source\Graphics\CnTextControl.pas"/>
         <DCCReference Include="..\..\Source\Graphics\CnValidateImage.pas"/>
         <DCCReference Include="..\..\Source\Graphics\CnWaterEffect.pas"/>
         <DCCReference Include="..\..\Source\Graphics\CnWaterImage.pas"/>

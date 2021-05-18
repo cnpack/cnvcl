@@ -113,6 +113,7 @@ USEUNIT("..\..\Source\Graphics\CnSkinMagic.pas");
 USEUNIT("..\..\Source\Graphics\CnSpin.pas");
 USEUNIT("..\..\Source\Graphics\CnSplitter.pas");
 USEUNIT("..\..\Source\Graphics\CnTabSet.pas");
+USEUNIT("..\..\Source\Graphics\CnTextControl.pas");
 USEUNIT("..\..\Source\Graphics\CnValidateImage.pas");
 USEUNIT("..\..\Source\Graphics\CnWaterEffect.pas");
 USEUNIT("..\..\Source\Graphics\CnWaterImage.pas");

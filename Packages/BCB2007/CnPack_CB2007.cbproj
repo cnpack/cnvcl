@@ -340,6 +340,9 @@
     <DelphiCompile Include="..\..\Source\Graphics\CnTabSet.pas">
       <BuildOrder>83</BuildOrder>
     </DelphiCompile>
+    <DelphiCompile Include="..\..\Source\Graphics\CnTextControl.pas">
+      <BuildOrder>157</BuildOrder>
+    </DelphiCompile>
     <DelphiCompile Include="..\..\Source\Graphics\CnWaterEffect.pas">
       <BuildOrder>79</BuildOrder>
     </DelphiCompile>
