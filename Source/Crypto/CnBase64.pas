@@ -533,7 +533,15 @@ var
 begin
   Result := Base64Decode(AnsiString(InputData), OutStr, FixZero);
   if Result = BASE64_OK then
+  begin
+{$IFDEF UNICODE}
     OutputData := TEncoding.Default.GetBytes(OutStr);
+{$ELSE}
+    SetLength(OutputData, Length(OutStr));
+    if Length(OutStr) > 0 then
+      Move(OutStr[1], OutputData[0], Length(OutStr));
+{$ENDIF}
+  end;
 end;
 
 {$ENDIF}
