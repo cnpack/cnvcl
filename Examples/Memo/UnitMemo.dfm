@@ -234,6 +234,42 @@ object CnMemoForm: TCnMemoForm
         TabOrder = 18
         OnClick = chkMemoReadOnlyClick
       end
+      object btnMemoSelectRange: TButton
+        Left = 16
+        Top = 344
+        Width = 75
+        Height = 21
+        Caption = 'Select Range'
+        TabOrder = 19
+        OnClick = btnMemoSelectRangeClick
+      end
+      object btnMemoCut: TButton
+        Left = 128
+        Top = 344
+        Width = 41
+        Height = 21
+        Caption = 'Cut'
+        TabOrder = 20
+        OnClick = btnMemoCutClick
+      end
+      object btnMemoCopy: TButton
+        Left = 184
+        Top = 344
+        Width = 41
+        Height = 21
+        Caption = 'Copy'
+        TabOrder = 21
+        OnClick = btnMemoCopyClick
+      end
+      object btnMemoPaste: TButton
+        Left = 240
+        Top = 344
+        Width = 41
+        Height = 21
+        Caption = 'Paste'
+        TabOrder = 22
+        OnClick = btnMemoPasteClick
+      end
     end
     object tsEditorStringList: TTabSheet
       Caption = 'EditorStringList'

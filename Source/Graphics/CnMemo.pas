@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Windows, Classes, Messages, Controls, Graphics, StdCtrls, ExtCtrls,
-  Dialogs, SysConst, Forms, CnTextControl, CnCommon;
+  Dialogs, SysConst, Forms, Clipbrd, CnTextControl, CnCommon;
 
 type
 {$IFDEF UNICODE}
@@ -144,7 +144,6 @@ type
     procedure StringsChange(Sender: TObject);
     function GetLines: TStringList;
     function GetSelectText: string;
-    procedure MakeOrderSelection(var SelStartRow, SelStartCol, SelEndRow, SelEndCol: Integer);
   protected
     procedure DoPaintLine(LineCanvas: TCanvas; LineNumber, HoriCharOffset: Integer;
       LineRect: TRect); override;
@@ -168,6 +167,9 @@ type
 
     procedure LoadFromFile(const AFile: string);
     procedure SaveToFile(const AFile: string);
+
+    procedure CopySelectionToClipboard;
+    {* 将选择内容复制到剪贴板}
 
     property Lines: TStringList read GetLines;
     property SelectText: string read GetSelectText;
@@ -193,6 +195,12 @@ type
 
   public
     procedure DeleteSelection;
+    {* 删除选择区，但不重画}
+    procedure CutSelectionToClipboard;
+    {* 将选择区内容剪切至剪贴板}
+    procedure PasteFromClipboard;
+    {* 从剪贴板粘贴}
+
     procedure InsertText(const Text: string);
 
     property ReadOnly: Boolean read FReadOnly write FReadOnly;
@@ -879,6 +887,15 @@ begin
   end;
 end;
 
+procedure TCnStringsControl.CopySelectionToClipboard;
+var
+  S: string;
+begin
+  S := SelectText;
+  if S <> '' then
+    Clipboard.AsText := S;
+end;
+
 constructor TCnStringsControl.Create(AOwner: TComponent);
 begin
   inherited;
@@ -1259,23 +1276,6 @@ begin
   FStrings.LoadFromFile(AFile);
 end;
 
-procedure TCnStringsControl.MakeOrderSelection(var SelStartRow, SelStartCol,
-  SelEndRow, SelEndCol: Integer);
-var
-  T: Integer;
-begin
-  if (SelEndRow < SelStartRow) or ((SelEndRow = SelStartRow) and (SelEndCol < SelStartCol)) then
-  begin
-    T := SelEndRow;
-    SelEndRow := SelStartRow;
-    SelStartRow := T;
-
-    T := SelEndCol;
-    SelEndCol := SelStartCol;
-    SelStartCol := T;
-  end;    // 确保 StartRow/Col 在 EndRow/Col 前面
-end;
-
 procedure TCnStringsControl.SaveToFile(const AFile: string);
 begin
   FStrings.SaveToFile(AFile);
@@ -1293,6 +1293,22 @@ begin
 end;
 
 { TCnMemo }
+
+procedure TCnMemo.CutSelectionToClipboard;
+var
+  S: string;
+begin
+  if FReadOnly then
+    Exit;
+
+  S := SelectText;
+  if S <> '' then
+  begin
+    Clipboard.AsText := S;
+    DeleteSelection;
+    Invalidate;
+  end;
+end;
 
 procedure TCnMemo.DeleteSelection;
 begin
@@ -1655,6 +1671,18 @@ begin
       Invalidate;
     end;
   end;
+end;
+
+procedure TCnMemo.PasteFromClipboard;
+var
+  S: string;
+begin
+  if FReadOnly then
+    Exit;
+
+  S := ClipBoard.AsText;
+  if S <> '' then
+    InsertText(S);
 end;
 
 procedure TCnMemo.WMKeyChar(var Message: TMessage);

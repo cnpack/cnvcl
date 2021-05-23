@@ -57,6 +57,10 @@ type
     btnMemoInsertCRLF: TButton;
     btnMemoInsertMulti: TButton;
     chkMemoReadOnly: TCheckBox;
+    btnMemoSelectRange: TButton;
+    btnMemoCut: TButton;
+    btnMemoCopy: TButton;
+    btnMemoPaste: TButton;
     procedure FormCreate(Sender: TObject);
     procedure chkShowLineNumberClick(Sender: TObject);
     procedure btnChangeFontClick(Sender: TObject);
@@ -76,6 +80,10 @@ type
     procedure btnMemoInsertCRLFClick(Sender: TObject);
     procedure btnMemoInsertMultiClick(Sender: TObject);
     procedure chkMemoReadOnlyClick(Sender: TObject);
+    procedure btnMemoSelectRangeClick(Sender: TObject);
+    procedure btnMemoCutClick(Sender: TObject);
+    procedure btnMemoCopyClick(Sender: TObject);
+    procedure btnMemoPasteClick(Sender: TObject);
   private
     { Private declarations }
     FMemo: TCnMemo;
@@ -474,6 +482,26 @@ end;
 procedure TCnMemoForm.chkMemoReadOnlyClick(Sender: TObject);
 begin
   FMemo.ReadOnly := chkMemoReadOnly.Checked;
+end;
+
+procedure TCnMemoForm.btnMemoSelectRangeClick(Sender: TObject);
+begin
+  FMemo.SelectRange(2, 3, 7, 9);
+end;
+
+procedure TCnMemoForm.btnMemoCutClick(Sender: TObject);
+begin
+  FMemo.CutSelectionToClipboard;
+end;
+
+procedure TCnMemoForm.btnMemoCopyClick(Sender: TObject);
+begin
+  FMemo.CopySelectionToClipboard;
+end;
+
+procedure TCnMemoForm.btnMemoPasteClick(Sender: TObject);
+begin
+  FMemo.PasteFromClipboard;
 end;
 
 end.

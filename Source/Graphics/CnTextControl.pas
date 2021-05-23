@@ -199,6 +199,7 @@ type
     procedure ScrollRightPage;   // 右滚一屏
 
     procedure SetCaretRowCol(Row, Col: Integer);
+    procedure MakeOrderSelection(var SelStartRow, SelStartCol, SelEndRow, SelEndCol: Integer);
 
     function ClientXToVirtualX(X: Integer): Integer;
     function VirtualXToClientX(X: Integer): Integer;
@@ -269,6 +270,10 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    procedure SelectRange(StartRow, StartCol, EndRow, EndCol: Integer);
+    {* 选择指定区域，光标顺便移动到选择区尾}
+    procedure SelectAll;
+    {* 选择全部}
     function HasSelection: Boolean;
     {* 是否有选择区存在，也就是判断起始和结束位置是否相同}
 
@@ -1814,6 +1819,47 @@ function TCnVirtualTextControl.GetNearestColumn(AColumn,
   ARow: Integer): Integer;
 begin
   Result := AColumn;
+end;
+
+procedure TCnVirtualTextControl.MakeOrderSelection(var SelStartRow,
+  SelStartCol, SelEndRow, SelEndCol: Integer);
+var
+  T: Integer;
+begin
+  if (SelEndRow < SelStartRow) or ((SelEndRow = SelStartRow) and (SelEndCol < SelStartCol)) then
+  begin
+    T := SelEndRow;
+    SelEndRow := SelStartRow;
+    SelStartRow := T;
+
+    T := SelEndCol;
+    SelEndCol := SelStartCol;
+    SelStartCol := T;
+  end;    // 确保 StartRow/Col 在 EndRow/Col 前面
+end;
+
+procedure TCnVirtualTextControl.SelectRange(StartRow, StartCol, EndRow,
+  EndCol: Integer);
+begin
+  if not FUseSelection then
+    Exit;
+
+  MakeOrderSelection(StartRow, StartCol, EndRow, EndCol);
+  FSelectStartRow := StartRow;
+  FSelectStartCol := StartCol;
+  FSelectEndRow := EndRow;
+  FSelectEndCol := EndCol;
+  LimitRowColumnInLine(FSelectStartRow, FSelectStartCol);
+  LimitRowColumnInLine(FSelectEndRow, FSelectEndCol);
+  SetCaretRowCol(FSelectEndRow, FSelectEndCol);
+  SyncSelectionStartEnd;
+  Invalidate;
+  DoSelectChange;
+end;
+
+procedure TCnVirtualTextControl.SelectAll;
+begin
+  SelectRange(1, 1, MaxInt, MaxInt);
 end;
 
 end.
