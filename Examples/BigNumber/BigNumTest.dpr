@@ -3,7 +3,7 @@ program BigNumTest;
 uses
   Forms,
   UnitMain in 'UnitMain.pas' {FormBigNumber},
-  CnBigNumber in '..\..\Source\Common\CnBigNumber.pas';
+  CnBigNumber in '..\..\Source\Crypto\CnBigNumber.pas';
 
 {$R *.RES}
 

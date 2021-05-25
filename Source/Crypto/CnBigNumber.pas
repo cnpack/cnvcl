@@ -567,7 +567,7 @@ function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigN
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
   注意: 三个参数均会忽略负值，也就是均用正值参与计算}
 
-function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
+function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
   注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余
   另外该方法因为比下面的 BigNumberDirectMulMod 慢，所以不建议使用}
