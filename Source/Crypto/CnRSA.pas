@@ -1718,25 +1718,25 @@ begin
       SetLength(ResBuf, Res.GetBytesCount);
       Res.ToBinary(@ResBuf[0]);
 
+      // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
+      SetLength(BerBuf, Length(ResBuf));
+      if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+      begin
+        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        Exit;
+      end;
+
       if SignType = rsdtNone then
       begin
-        // 无摘要时，直接比对解密内容与原始文件
-        Result := InStream.Size = Res.GetBytesCount;
+        // 无摘要时，从解密内容里去除了 PKCS1 的 Padding 的剩下内容直接与原始 InStream 内容比对
+        Result := InStream.Size = BerLen;
         if Result then
-          Result := CompareMem(InStream.Memory, @ResBuf[0], InStream.Size);
+          Result := CompareMem(InStream.Memory, @BerBuf[0], InStream.Size);
 
         RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
       end
       else
       begin
-        // 从 Res 中解出 PKCS1 对齐的内容
-        SetLength(BerBuf, Length(ResBuf));
-        if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
-        begin
-          RSAErrorCode := ECN_RSA_PADDING_ERROR;
-          Exit;
-        end;
-
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
           RSAErrorCode := ECN_RSA_BER_ERROR;
@@ -1896,25 +1896,25 @@ begin
       SetLength(ResBuf, Res.GetBytesCount);
       Res.ToBinary(@ResBuf[0]);
 
+      // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
+      SetLength(BerBuf, Length(ResBuf));
+      if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+      begin
+        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        Exit;
+      end;
+
       if SignType = rsdtNone then
       begin
         Stream.LoadFromFile(InFileName); // 无摘要时，直接比对解密内容与原始文件
-        Result := Stream.Size = Res.GetBytesCount;
+        Result := Stream.Size = BerLen;
         if Result then
-          Result := CompareMem(Stream.Memory, @ResBuf[0], Stream.Size);
+          Result := CompareMem(Stream.Memory, @BerBuf[0], Stream.Size);
 
         RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
       end
       else
       begin
-        // 从 Res 中解出 PKCS1 对齐的内容
-        SetLength(BerBuf, Length(ResBuf));
-        if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
-        begin
-          RSAErrorCode := ECN_RSA_PADDING_ERROR;
-          Exit;
-        end;
-
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
           RSAErrorCode := ECN_RSA_BER_ERROR;
