@@ -569,7 +569,8 @@ function BigNumberUnsignedMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigN
 
 function BigNumberMulMod(const Res: TCnBigNumber; const A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
-  注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余}
+  注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余
+  另外该方法因为比下面的 BigNumberDirectMulMod 慢，所以不建议使用}
 
 function BigNumberDirectMulMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
@@ -4176,17 +4177,17 @@ begin
     begin
       if BigNumberIsBitSet(BB, 0) then
       begin
-        if not BigNumberMulMod(T, AA, T, C) then
+        if not BigNumberDirectMulMod(T, AA, T, C) then
           Exit;
       end;
-      if not BigNumberMulMod(AA, AA, AA, C) then
+      if not BigNumberDirectMulMod(AA, AA, AA, C) then
         Exit;
 
       if not BigNumberShiftRightOne(BB, BB) then
         Exit;
     end;
 
-    if not BigNumberMulMod(Res, AA, T, C) then
+    if not BigNumberDirectMulMod(Res, AA, T, C) then
       Exit;
   finally
     FLocalBigNumberPool.Recycle(T);
