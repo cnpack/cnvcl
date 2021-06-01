@@ -599,7 +599,7 @@ end;
 function MapWideCharIndexToColumns(const S: TCnEditorString; ACharIndex: Integer;
   out LeftColumn, RightColumn: Integer; AfterEnd: Boolean): Boolean;
 var
-  L, I: Integer;
+  L, I, T: Integer;
   C: WideChar;
 begin
   Result := False;
@@ -633,7 +633,9 @@ begin
   begin
     C := S[I];
 
-    LeftColumn := RightColumn;
+    T := RightColumn; // 2 out can NOT direct assign
+    LeftColumn := T;
+
     if WideCharIsWideLength(C) then
       Inc(RightColumn, 2)
     else
@@ -654,7 +656,8 @@ begin
     end
     else
     begin
-      LeftColumn := RightColumn;
+      T := RightColumn;  // 2 out can NOT direct assign
+      LeftColumn := T;
       RightColumn := -1;
     end;
   end;
