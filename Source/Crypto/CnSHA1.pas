@@ -52,6 +52,7 @@ uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
+  PSHA1Digest = ^TSHA1Digest;
   TSHA1Digest = array[0..19] of Byte;
 
   TSHA1Context = record

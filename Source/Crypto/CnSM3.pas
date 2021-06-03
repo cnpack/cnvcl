@@ -56,6 +56,7 @@ type
   end;
   PSM3Context = ^TSM3Context;
 
+  PSM3Digest = ^TSM3Digest;
   TSM3Digest = array[0..31] of Byte;
 
   TSM3CalcProgressFunc = procedure (ATotal, AProgress: Int64;

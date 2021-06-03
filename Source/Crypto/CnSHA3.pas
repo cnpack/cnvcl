@@ -47,14 +47,19 @@ uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
+  PSHA3GeneralDigest = ^TSHA3GeneralDigest;
   TSHA3GeneralDigest = array[0..63] of Byte;
 
+  PSHA3_224Digest = ^TSHA3_224Digest;
   TSHA3_224Digest = array[0..27] of Byte;
 
+  PSHA3_256Digest = ^TSHA3_256Digest;
   TSHA3_256Digest = array[0..31] of Byte;
 
+  PSHA3_384Digest = ^TSHA3_384Digest;
   TSHA3_384Digest = array[0..47] of Byte;
 
+  PSHA3_512Digest = ^TSHA3_512Digest;
   TSHA3_512Digest = array[0..63] of Byte;
 
   TSHA3Context = packed record

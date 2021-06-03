@@ -79,6 +79,8 @@ uses
   Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
+  PMD5Digest = ^TMD5Digest;
+
   TMD5Count = array[0..1] of LongWord;
   TMD5State = array[0..3] of LongWord;
   TMD5Block = array[0..15] of LongWord;

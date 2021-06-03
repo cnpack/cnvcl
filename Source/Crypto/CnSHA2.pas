@@ -52,14 +52,19 @@ uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
+  PSHAGeneralDigest = ^PSHAGeneralDigest;
   TSHAGeneralDigest = array[0..63] of Byte;
 
+  PSHA224Digest = ^TSHA224Digest;
   TSHA224Digest = array[0..27] of Byte;
 
+  PSHA256Digest = ^TSHA256Digest;
   TSHA256Digest = array[0..31] of Byte;
 
+  PSHA384Digest = ^TSHA384Digest;
   TSHA384Digest = array[0..47] of Byte;
 
+  PSHA512Digest = ^TSHA512Digest;
   TSHA512Digest = array[0..63] of Byte;
 
   TSHA256Context = packed record
