@@ -98,20 +98,20 @@ object Form1: TForm1
         Top = 8
         Width = 137
         Height = 25
-        Caption = '隐藏任务栏上的所有'
+        Caption = '隐藏任务栏上所有任务'
         TabOrder = 3
         OnClick = Button0Click
       end
     end
     object TabSheet3: TTabSheet
-      Caption = '开始按扭操作'
+      Caption = '开始按钮操作'
       ImageIndex = 2
       object Button1: TButton
         Left = 96
         Top = 48
         Width = 139
         Height = 25
-        Caption = '修改开始按扭名称'
+        Caption = '修改开始按钮名称'
         TabOrder = 0
         OnClick = Button1Click
       end
@@ -120,7 +120,7 @@ object Form1: TForm1
         Top = 88
         Width = 139
         Height = 25
-        Caption = '隐藏开始按扭'
+        Caption = '隐藏开始按钮'
         TabOrder = 1
         OnClick = Button2Click
       end
@@ -129,7 +129,7 @@ object Form1: TForm1
         Top = 128
         Width = 139
         Height = 25
-        Caption = '使开始按扭不可用'
+        Caption = '使开始按钮不可用'
         TabOrder = 2
         OnClick = Button3Click
       end

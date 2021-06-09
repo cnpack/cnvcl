@@ -49,10 +49,10 @@ type
     FBtnInfo: TTBButton;
     FBtnIndex: Integer;
     FBtnCaption: string;
-    FIsSysHide: Boolean;//是否为系统隐藏图标
-    FHandle: THandle; //事件处理句柄
-    FPicture: TBitmap; //图标
-    FBtnRect: TRect;  //区域
+    FIsSysHide: Boolean;  // 是否为系统隐藏图标
+    FHandle: THandle;     // 事件处理句柄
+    FPicture: TBitmap;    // 图标
+    FBtnRect: TRect;      // 区域
     FVisible: Boolean;
     FEnabled: Boolean;
     FIsTrayBtn: Boolean;
@@ -79,8 +79,8 @@ type
   TCnTaskBar = Class(TComponent) 
   {* 任务栏操作组件}
   private
-    FTrayBtnList, FTaskBtnList: TstringList;
-    FHigherThenXp: Boolean; //是否为xp以上的系统版本
+    FTrayBtnList, FTaskBtnList: TStringList;
+    FHigherThenXp: Boolean;  //是否为 xp 以上的系统版本
     FTrayBarHandle: THandle;
     FTaskBarHandle: THandle;
     FStartBtnHandle: THandle;
@@ -124,43 +124,67 @@ type
   protected
     procedure StartBtnWndProc(var Message: TMessage);
   public
-    Constructor Create(AOwner: TComponent);override;
-    destructor Destroy;override;
-    procedure SetTimeDlg;       //设置时间对话框
-    procedure HideTrayBtnClick; //显示隐藏按扭单击
-    procedure ImeRectBtnClick;//输入法按扭单击
-    procedure ClearTrayBtnList; //清除托盘区列表
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure SetTimeDlg;         // 设置时间对话框
+    procedure HideTrayBtnClick;   // 显示隐藏按钮单击
+    procedure ImeRectBtnClick;    // 输入法按钮单击
+    procedure ClearTrayBtnList;   // 清除托盘区列表
     procedure ClearTaskBtnList;
     procedure ShowTime;
     procedure StartBtnClick;
     procedure HideOn;
     procedure ShowOn;
-    property TrayBarHandle: THandle read FTrayBarHandle;//托盘区句柄
-    property TaskBarHandle: THandle read FTaskBarHandle;//任务栏句柄
-    property StartBtnHandle: THandle read FStartBtnHandle;//开始按扭句柄
-    property QuitLauchHandle: THandle read FQuitLauchHandle;//快速启动栏句柄
-    property ImeRecHandle: THandle read FImeRecHandle;//输入法选择区域句柄
-    property ProgramToolBarHandle: THandle read FProgramToolBarHandle;//程序最小化按扭容器
-    property HideTrayBtnHandle: THandle read FHideTrayBtnHandle;//显示隐藏图标的按扭
-    property ClockHandle: THandle read FClockHandle;//时钟显示区域
+
+    property TrayBarHandle: THandle read FTrayBarHandle;
+    {* 托盘区句柄}
+    property TaskBarHandle: THandle read FTaskBarHandle;
+    {* 任务栏句柄}
+    property StartBtnHandle: THandle read FStartBtnHandle;
+    {* 开始按钮句柄}
+    property QuitLauchHandle: THandle read FQuitLauchHandle;
+    {* 快速启动栏句柄}
+    property ImeRecHandle: THandle read FImeRecHandle;
+    {* 输入法选择区域句柄}
+    property ProgramToolBarHandle: THandle read FProgramToolBarHandle;
+    {* 程序最小化按钮容器}
+    property HideTrayBtnHandle: THandle read FHideTrayBtnHandle;
+    {* 显示隐藏图标的按钮}
+    property ClockHandle: THandle read FClockHandle;
+    {* 时钟显示区域}
     property TrayBtnList: TstringList read FTrayBtnList;
     property TaskBtnList: TstringList read FTaskBtnList;
-    property TrayBtnCount: Integer read GetTrayBtnCount;//托盘图标的个数
-    property TaskBtnCount: Integer read GetTaskBtnCount;//任务栏应用程序按扭个数
-    property TrayBtns[index: Integer]: TCnSysToolBarBtn read GetTrayBtns; //托盘按扭
-    Property TaskBtns[index: Integer]: TCnSysToolBarBtn read GetTaskBtns; //任务栏按扭
+    property TrayBtnCount: Integer read GetTrayBtnCount;
+    {* 托盘图标的个数}
+    property TaskBtnCount: Integer read GetTaskBtnCount;
+    {* 任务栏应用程序按钮个数}
+    property TrayBtns[index: Integer]: TCnSysToolBarBtn read GetTrayBtns;
+    {* 托盘按钮}
+    Property TaskBtns[index: Integer]: TCnSysToolBarBtn read GetTaskBtns;
+    {* 任务栏按钮}
   published
-    property TrayBarVisible: Boolean read FTrayBarVisible write SetTrayBarVisible; //托盘区域隐藏
-    property ImeBarVisible: Boolean read FImeBarVisible write SetImeBarVisible; //语言区域隐藏
-    property ReBarVisible: Boolean read FRegBarVisible write SetReBaVisible;//任务栏按扭隐藏
-    property TaskToolBarVisible: Boolean read FTaskToolBarVisible write SetTaskToolBarVisible;//任务栏应用程序区域隐藏
-    property TaskBarVisible: Boolean read FTaskBarVisible write SetTaskBarVisible;//和上面一样
-    property QuickBarVisible: Boolean read FQuickBarVisible write SetQuickBarVisible;//快速启动栏
-    property Visible: Boolean read FVisible write SetVisible; //是否隐藏任务栏
-    property ShowHideBtn: Boolean read FShowHideBtn write SetShowHideBtn;//是否显示系统隐藏的托盘按扭
-    property StartBtnVisible: Boolean read FStartBtnVisible write SetStartBtnVisible;//开始按扭隐藏
-    property StartBtnCaption: string read GetStartBtnCaption write SetStartBtnCaption; //开始按扭
-    property StartBtnEnabled: Boolean read FStartBtnEnabled write SetStartBtnEnabled;//开始按扭
+    property TrayBarVisible: Boolean read FTrayBarVisible write SetTrayBarVisible;
+    {* 托盘区域隐藏}
+    property ImeBarVisible: Boolean read FImeBarVisible write SetImeBarVisible;
+    {* 语言区域隐藏}
+    property ReBarVisible: Boolean read FRegBarVisible write SetReBaVisible;
+    {* 任务栏按钮隐藏}
+    property TaskToolBarVisible: Boolean read FTaskToolBarVisible write SetTaskToolBarVisible;
+    {* 任务栏应用程序区域隐藏}
+    property TaskBarVisible: Boolean read FTaskBarVisible write SetTaskBarVisible;
+    {* 和上面一样}
+    property QuickBarVisible: Boolean read FQuickBarVisible write SetQuickBarVisible;
+    {* 快速启动栏}
+    property Visible: Boolean read FVisible write SetVisible;
+    {* 是否隐藏任务栏}
+    property ShowHideBtn: Boolean read FShowHideBtn write SetShowHideBtn;
+    {* 是否显示系统隐藏的托盘按钮}
+    property StartBtnVisible: Boolean read FStartBtnVisible write SetStartBtnVisible;
+    {* 开始按钮隐藏}
+    property StartBtnCaption: string read GetStartBtnCaption write SetStartBtnCaption;
+    {* 开始按钮}
+    property StartBtnEnabled: Boolean read FStartBtnEnabled write SetStartBtnEnabled;
+    {* 开始按钮}
   end;
 
 implementation
@@ -169,10 +193,10 @@ var
   hWndTip: DWORD;
   ToolInfo: TToolInfo;
   
-//得到BitNum的二进制位上的第bitPos位上的数字是为1还是为0
+//得到 BitNum 的二进制位上的第 bitPos 位上的数字是为 1 还是为 0
 function GetBitNum(bitPos: ShortInt; bitNum: Integer): ShortInt;
 begin
-  Result := BitNum shr (BitPos - 1) and 1;  //位数从1开始
+  Result := BitNum shr (BitPos - 1) and 1;  //位数从 1 开始
 end;
 
 procedure AddTipTool(hWnd: DWORD; IconType: Integer;
@@ -244,7 +268,7 @@ begin
   if (Win32MajorVersion = 5) and (Win32MinorVersion >= 0) then
     FTrayBarHandle := FindWindowEx(FTrayBarHandle, 0, 'ToolbarWindow32', nil);
 
-  FQuitLauchHandle := FindWindowEx(FQuitLauchHandle, 0, 'ToolbarWindow32', nil);//快速启动栏
+  FQuitLauchHandle := FindWindowEx(FQuitLauchHandle, 0, 'ToolbarWindow32', nil);// 快速启动栏
   //SetWindowLong(FStartBtnHandle,  GWL_WNDPROC,  Longint(MakeObjectInstance(StartBtnWndProc)));
   GetIconList;
   GetTaskList;
@@ -270,27 +294,31 @@ end;
 procedure TCnTaskBar.GetIconList;
 var
   ThreadID: THandle;
-  ThreadHandle: THandle; //线程句柄
-  Buff: pchar;
-  i, BtnCount: Integer;
+  ThreadHandle: THandle; // 线程句柄
+  Buff: PChar;
+  I, BtnCount: Integer;
   R: TCnNativeUInt;
   BtnInfo: TTBButton;
   SysHide: Boolean;
   SysToolBtn: TCnSysToolBarBtn;
-  S: array[0..512] of char;
+  S: array[0..512] of Char;
   BtnRect: TRect;
 begin
-  GetWindowThreadProcessId(FTrayBarHandle,  @ThreadID);//获取托盘窗口的线程 ID
-  ThreadHandle := OpenProcess(PROCESS_VM_OPERATION or PROCESS_VM_READ or PROCESS_VM_WRITE,  False,  ThreadID);//得到线程句柄
-  Buff := VirtualAllocEx(ThreadHandle, nil, 4096, MEM_RESERVE or MEM_COMMIT, PAGE_READWRITE);//指定进程的虚拟空间保留或提交内存区域，除非指定MEM_RESET参数，否则将该内存区域置0
-  BtnCount := SendMessage(FTrayBarHandle, TB_BUTTONCOUNT, 0,  0);//得到托盘按扭个数
+  GetWindowThreadProcessId(FTrayBarHandle,  @ThreadID);// 获取托盘窗口的线程 ID
+  ThreadHandle := OpenProcess(PROCESS_VM_OPERATION or PROCESS_VM_READ or PROCESS_VM_WRITE,  False,  ThreadID);
+  // 得到线程句柄
+
+  Buff := VirtualAllocEx(ThreadHandle, nil, 4096, MEM_RESERVE or MEM_COMMIT, PAGE_READWRITE);
+  // 指定进程的虚拟空间保留或提交内存区域，除非指定 MEM_RESET 参数，否则将该内存区域置 0
+
+  BtnCount := SendMessage(FTrayBarHandle, TB_BUTTONCOUNT, 0,  0);// 得到托盘按钮个数
   //SendMessage(FTrayBarHandle, TB_GETIMAGELIST, 0, 0);
   //SendMessage(FTrayBarHandle, TB_GETBITMAPFLAGS, 0, 0);
   try
-    for i := 0 to BtnCount - 1 do
+    for I := 0 to BtnCount - 1 do
     begin
       WriteProcessMemory(ThreadHandle, Buff, @BtnInfo, SizeOf(BtnInfo), R);
-      SendMessage(FTrayBarHandle, TB_GETBUTTON, i, Integer(Buff));
+      SendMessage(FTrayBarHandle, TB_GETBUTTON, I, Integer(Buff));
       ReadProcessMemory(ThreadHandle, Buff, @BtnInfo, SizeOf(BtnInfo), R);
       SysHide := IsSysBtnHide(BtnInfo.fsState);
       if SysHide and (not FShowHideBtn) then
@@ -311,17 +339,17 @@ begin
       if not SysHide then
       begin
         SendMessage(FTrayBarHandle, TB_GETRECT, BtnInfo.idCommand, Integer(Integer(@Buff[0]) + SizeOf(BtnInfo)));
-        ReadProcessMemory(ThreadHandle, Pointer(Integer(@Buff[0]) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), R);//得到Rect信息
-        SysToolBtn.FBtnRect :=  BtnRect;
+        ReadProcessMemory(ThreadHandle, Pointer(Integer(@Buff[0]) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), R);// 得到 Rect 信息
+        SysToolBtn.FBtnRect := BtnRect;
 
-        SysToolBtn.FPicture.Width :=  BtnRect.Right - BtnRect.Left;
-        SysToolBtn.FPicture.Height :=  BtnRect.Bottom - BtnRect.Top;
+        SysToolBtn.FPicture.Width := BtnRect.Right - BtnRect.Left;
+        SysToolBtn.FPicture.Height := BtnRect.Bottom - BtnRect.Top;
 
         BitBlt(SysToolBtn.FPicture.Canvas.Handle, 0, 0, SysToolBtn.FPicture.Width, SysToolBtn.FPicture.Height,
-               GetDc(FTrayBarHandle), BtnRect.Left, BtnRect.Top, SRCCOPY); //抓图
+          GetDc(FTrayBarHandle), BtnRect.Left, BtnRect.Top, SRCCOPY); // 抓图
       end;
       FTrayBtnList.AddObject(SysToolBtn.FBtnCaption, SysToolBtn);
-      {if BtnInfo.fsState <> TBSTATE_HIDDEN then //如果是隐藏的，则不显示出来
+      {if BtnInfo.fsState <> TBSTATE_HIDDEN then // 如果是隐藏的，则不显示出来
       begin
          //FTrayBtnList.Add(s)
       end;}
@@ -340,13 +368,13 @@ end;
 function TCnTaskBar.GetTaskBtns(Index: Integer): TCnSysToolBarBtn;
 begin
    if (Index > -1 ) and (Index < FTaskBtnList.Count) then
-     Result :=  TCnSysToolBarBtn(FTaskBtnList.Objects[Index])
-   else Result :=  nil;
+     Result := TCnSysToolBarBtn(FTaskBtnList.Objects[Index])
+   else Result := nil;
 end;
 
 procedure TCnTaskBar.GetTaskList;
 var
-  i, BtnCount: Integer;
+  I, BtnCount: Integer;
   ThreadId: LongInt;
   ThreadHandle: THandle;
   vBuffer: array[0..255] of Char;
@@ -357,20 +385,21 @@ var
   WriteNum: TCnNativeUInt;
   SysHide: Boolean;
 begin
-  BtnCount :=  SendMessage(FProgramToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+  BtnCount := SendMessage(FProgramToolBarHandle, TB_BUTTONCOUNT, 0, 0);
   GetWindowThreadProcessId(FProgramToolBarHandle, @ThreadId);
-  ThreadHandle :=  OpenProcess(PROCESS_VM_OPERATION or PROCESS_VM_READ or
+  ThreadHandle := OpenProcess(PROCESS_VM_OPERATION or PROCESS_VM_READ or
                               PROCESS_VM_WRITE, False, ThreadId);
-  Buff :=  VirtualAllocEx(ThreadHandle, nil, 4096, MEM_RESERVE or MEM_COMMIT, PAGE_READWRITE);
+  Buff := VirtualAllocEx(ThreadHandle, nil, 4096, MEM_RESERVE or MEM_COMMIT, PAGE_READWRITE);
   try
-    for i := 0 to BtnCount - 1 do
+    for I := 0 to BtnCount - 1 do
     begin
       WriteProcessMemory(ThreadHandle, Buff, @BtnInfo, Sizeof(BtnInfo), WriteNum);
-      SendMessage(FProgramToolBarHandle, TB_GETBUTTON,  i, Integer(Buff));
+      SendMessage(FProgramToolBarHandle, TB_GETBUTTON,  I, Integer(Buff));
       ReadProcessMemory(ThreadHandle, Buff, @BtnInfo, SizeOf(BtnInfo), WriteNum);
 
       SendMessage(FProgramToolBarHandle, TB_GETRECT, BtnInfo.idCommand, Integer(Integer(Buff) + SizeOf(BtnInfo)));
-      ReadProcessMemory(ThreadHandle, Pointer(Integer(Buff) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), WriteNum);//得到Rect信息
+      ReadProcessMemory(ThreadHandle, Pointer(Integer(Buff) + SizeOf(BtnInfo)),  @BtnRect, SizeOf(BtnRect), WriteNum);
+      // 得到 Rect 信息
       SysHide := (BtnRect.Right - BtnRect.Left = 0) and (BtnRect.Bottom - BtnRect.Top  = 0);
       SysHide := IsSysBtnHide(BtnInfo.fsState) or SysHide;
       if SysHide and (not FShowHideBtn) then
@@ -387,8 +416,8 @@ begin
       ReadProcessMemory(ThreadHandle, Pointer(Integer(Buff) + SizeOf(@SysToolBtn.FBtnInfo)), @VBuffer, SizeOf(VBuffer),  WriteNum);
       SysToolBtn.FBtnCaption := string(VBuffer);
 
-      SysToolBtn.FHandle :=  FProgramToolBarHandle;
-      SysToolBtn.FBtnRect :=  BtnRect;
+      SysToolBtn.FHandle := FProgramToolBarHandle;
+      SysToolBtn.FBtnRect := BtnRect;
       FTaskBtnList.AddObject(SysToolBtn.FBtnCaption, SysToolBtn);
     end;
   finally
@@ -399,14 +428,14 @@ end;
 
 function TCnTaskBar.GetTrayBtnCount: Integer;
 begin
-   Result :=  FTrayBtnList.Count;
+   Result := FTrayBtnList.Count;
 end;
 
 function TCnTaskBar.GetTrayBtns(Index: Integer): TCnSysToolBarBtn;
 begin
    if (Index > -1 ) and (Index < FTrayBtnList.Count) then
-     Result :=  TCnSysToolBarBtn(FTrayBtnList.Objects[Index])
-   else Result :=  nil;
+     Result := TCnSysToolBarBtn(FTrayBtnList.Objects[Index])
+   else Result := nil;
 end;
 
 procedure TCnTaskBar.HideTrayBtnClick;
@@ -423,18 +452,18 @@ end;
 
 function TCnTaskBar.IsSysBtnHide(BtnState: Dword): Boolean;
 begin
-  Result :=  GetBitNum(4, BtnState) = 1;
+  Result := GetBitNum(4, BtnState) = 1;
 end;
 
 procedure TCnTaskBar.SetReBaVisible(const Value: Boolean);
 begin
   if (FRegBarVisible <> Value) and Visible then
   begin
-    FRegBarVisible :=  Value;
+    FRegBarVisible := Value;
     if Value then
-      ShowWindow(FReBarHandle, SW_Normal)
+      ShowWindow(FReBarHandle, SW_NORMAL)
     else
-      ShowWindow(FReBarHandle, SW_Hide);
+      ShowWindow(FReBarHandle, SW_HIDE);
   end;
 end;
 
@@ -442,11 +471,11 @@ procedure TCnTaskBar.SetQuickBarVisible(const Value: Boolean);
 begin
   if (FQuickBarVisible <> Value) and TaskBarVisible then
   begin
-    FQuickBarVisible :=  Value;
+    FQuickBarVisible := Value;
     if Value then
-      ShowWindow(FQuitLauchHandle, SW_Normal)
+      ShowWindow(FQuitLauchHandle, SW_NORMAL)
     else
-      ShowWindow(FQuitLauchHandle, SW_Hide);
+      ShowWindow(FQuitLauchHandle, SW_HIDE);
   end;
 end;
 
@@ -454,7 +483,7 @@ procedure TCnTaskBar.SetShowHideBtn(const Value: Boolean);
 begin
   if FShowHideBtn <> Value then
   begin
-    FShowHideBtn :=  Value;
+    FShowHideBtn := Value;
     ClearTrayBtnList;
     GetIconList;
     ClearTaskBtnList;
@@ -466,11 +495,11 @@ procedure TCnTaskBar.SetTaskBarVisible(const Value: Boolean);
 begin
   if (FTaskBarVisible <> Value) and FRegBarVisible then
   begin
-    FTaskBarVisible :=  Value;
+    FTaskBarVisible := Value;
     if Value then
-      ShowWindow(FProgramContrainerHandle, SW_Normal)
+      ShowWindow(FProgramContrainerHandle, SW_NORMAL)
     else
-      ShowWindow(FProgramContrainerHandle, SW_Hide);
+      ShowWindow(FProgramContrainerHandle, SW_HIDE);
   end;
 end;
 
@@ -478,17 +507,17 @@ procedure TCnTaskBar.SetTaskToolBarVisible(const Value: Boolean);
 begin
   if (FTaskToolBarVisible <> Value) and (FTaskBarVisible) then
   begin
-    FTaskToolBarVisible :=  Value;
+    FTaskToolBarVisible := Value;
     if Value then
-      ShowWindow(FProgramToolBarHandle, SW_Normal)
+      ShowWindow(FProgramToolBarHandle, SW_NORMAL)
     else
-      ShowWindow(FProgramToolBarHandle, SW_Hide);
+      ShowWindow(FProgramToolBarHandle, SW_HIDE);
   end;
 end;
 
 procedure TCnTaskBar.SetTimeDlg;
 begin
-  winexec('rundll32.exe   shell32.dll, Control_RunDLL   timedate.cpl', 9);
+  WinExec('rundll32.exe shell32.dll, Control_RunDLL timedate.cpl', 9);
   //SendMessage(FClockHandle,  WM_LBUTTONDBLCLK, 0, MakeLong(2, 2));
   //SendMessage(FClockHandle, WM_LBUTTONUP, 0, MakeLong(2, 2));
 end;
@@ -497,7 +526,7 @@ procedure TCnTaskBar.SetVisible(const Value: Boolean);
 begin
   if FVisible <> Value then
   begin
-    FVisible :=  Value;
+    FVisible := Value;
     if FVisible then
       ShowWindow(FTaskBarHandle, SW_NORMAL)
     else
@@ -508,7 +537,7 @@ end;
 procedure TCnTaskBar.ShowTime;
 begin
   AddTipTool(FProgramToolBarHandle, 1, PChar('时间显示'),
-             PChar(DateToStr(now)), $00FFBFBF, $00A60053);//添加气泡提示
+             PChar(DateToStr(now)), $00FFBFBF, $00A60053); // 添加气泡提示
 end;
 
 procedure TCnTaskBar.StartBtnClick;
@@ -529,9 +558,9 @@ begin
   begin
     FStartBtnVisible := Value;
     if Value then
-      ShowWindow(FStartBtnHandle, SW_Normal)
+      ShowWindow(FStartBtnHandle, SW_NORMAL)
     else
-      ShowWindow(FStartBtnHandle, SW_Hide);
+      ShowWindow(FStartBtnHandle, SW_HIDE);
   end;
 end;
 
@@ -539,11 +568,11 @@ procedure TCnTaskBar.SetImeBarVisible(const Value: Boolean);
 begin
   if (FImeBarVisible <> Value) and FRegBarVisible then
   begin
-    FImeBarVisible :=  Value;
+    FImeBarVisible := Value;
     if Value then
-      ShowWindow(FImeRecHandle, SW_Normal)
+      ShowWindow(FImeRecHandle, SW_NORMAL)
     else
-      ShowWindow(FImeRecHandle, SW_Hide);
+      ShowWindow(FImeRecHandle, SW_HIDE);
   end;
 end;
 
@@ -553,9 +582,9 @@ begin
   begin
     FTrayBarVisible := Value;
     if Value then
-      ShowWindow(FTrayNotifyHandle, SW_Normal)
+      ShowWindow(FTrayNotifyHandle, SW_NORMAL)
     else
-      ShowWindow(FTrayNotifyHandle, SW_Hide);
+      ShowWindow(FTrayNotifyHandle, SW_HIDE);
   end;
 end;
 
@@ -600,7 +629,7 @@ constructor TCnSysToolBarBtn.Create;
 begin
   Inherited Create;
   FillChar(FBtnInfo, SizeOf(FBtnInfo), 0);
-  FPicture :=  TBitMap.Create;
+  FPicture := TBitMap.Create;
 end;
 
 procedure TCnSysToolBarBtn.DbClick;
@@ -613,9 +642,9 @@ destructor TCnSysToolBarBtn.Destroy;
 begin
   FPicture.Free;
   if (not isSysHide) and (not FVisible) then
-    Visible :=  True
+    Visible := True
   else if IsSysHide and FVisible then
-    Visible :=  False;
+    Visible := False;
   ZeroMemory(Pointer(@FBtnInfo), Sizeof(FBtnInfo));
   inherited;
 end;
@@ -630,7 +659,7 @@ procedure TCnSysToolBarBtn.SetEnabled(const Value: Boolean);
 begin
   if FVisible <> Value then
   begin
-    FVisible :=  Value;
+    FVisible := Value;
     EnableWindow(FHandle, Value);
   end;
 end;
@@ -639,7 +668,7 @@ procedure TCnSysToolBarBtn.SetVisible(const Value: Boolean);
 begin
   if FVisible <> Value then
   begin
-    FVisible :=  Value;
+    FVisible := Value;
     if FVisible then
       SendMessage(FHandle, TB_HIDEBUTTON, BtnInfo.idCommand, 0)
     else
@@ -654,17 +683,17 @@ end;
 
 function TCnTaskBar.GetStartBtnCaption: string;
 var
-  buff: array[0..255] of char;
+  Buff: array[0..255] of Char;
 begin
   SendMessage(FStartBtnHandle, WM_GETTEXT, 256, Integer(@Buff));
-  Result :=  buff;
+  Result := Buff;
 end;
 
 procedure TCnTaskBar.SetStartBtnEnabled(const Value: Boolean);
 begin
   if  FStartBtnEnabled <> Value then
   begin
-    FStartBtnEnabled :=  Value;
+    FStartBtnEnabled := Value;
     EnableWindow(FStartBtnHandle, Value);
   end;
 end;
