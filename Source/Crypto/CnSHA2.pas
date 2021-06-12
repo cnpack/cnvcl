@@ -52,7 +52,7 @@ uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
-  PSHAGeneralDigest = ^PSHAGeneralDigest;
+  PSHAGeneralDigest = ^TSHAGeneralDigest;
   TSHAGeneralDigest = array[0..63] of Byte;
 
   PSHA224Digest = ^TSHA224Digest;

@@ -179,6 +179,7 @@ type
     bvlLoadPEM: TBevel;
     lblKeyHash: TLabel;
     cbbLoadKeyHash: TComboBox;
+    chkOAEP: TCheckBox;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -649,10 +650,17 @@ begin
 end;
 
 procedure TFormRSA.btnPubCryptClick(Sender: TObject);
+var
+  R: Boolean;
 begin
   if dlgSaveFile.Execute then
   begin
-    if CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey) then
+    if chkOAEP.Checked then
+      R := CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey, cpmOAEP)
+    else
+      R := CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey);
+
+    if R then
     begin
       ShowMessage('RSA Public Key Encrypt File Success.');
       if Trim(edtFile2.Text) = '' then
@@ -662,10 +670,16 @@ begin
 end;
 
 procedure TFormRSA.btnDePrivateClick(Sender: TObject);
+var
+  R: Boolean;
 begin
   if dlgSaveFile.Execute then
   begin
-    if CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey) then
+    if chkOAEP.Checked then
+      R := CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey, cpmOAEP)
+    else
+      R := CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey);
+    if R then
       ShowMessage('RSA Private Key Decrypt File Success.');
   end;
 end;

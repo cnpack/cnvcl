@@ -87,7 +87,8 @@ function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
 
 function RemovePKCS1Padding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
   out OutLen: Integer): Boolean;
-{* 去掉 PKCS1 的 Padding，返回成功与否}
+{* 去掉 PKCS1 的 Padding，返回成功与否。OutBuf 所指区域的可用长度需调用者自行保证
+  如成功，OutLen 返回原文数据长度}
 
 procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Byte);
 {* 给数据末尾加上 PKCS7 规定的填充“几个几”的填充数据}
