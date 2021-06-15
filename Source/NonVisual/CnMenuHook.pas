@@ -45,7 +45,9 @@ unit CnMenuHook;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串支持本地化处理方式
-* 修改记录：2003.10.11
+* 修改记录：2021.06.15
+*               增加快捷键
+*           2003.10.11
 *               修改部分标识符，使之更容易理解，增加注释
 *           2003.05.01
 *               创建单元
@@ -83,6 +85,7 @@ type
     function GetStatus : TCnMenuItemStatus; virtual; abstract;
     function GetAction: TCustomAction; virtual; abstract;
     function GetImageIndex: Integer; virtual; abstract;
+    function GetShortCut: TShortCut; virtual; abstract;
 
     procedure MenuItemCreated(MenuItem: TMenuItem); virtual; abstract;
     {* 当用户菜单项被创建后调用该方法}
@@ -108,6 +111,8 @@ type
     {* 菜单项对应的 Action}
     property ImageIndex: Integer read GetImageIndex;
     {* 菜单项对应的 ImageIndex}
+    property ShortCut: TShortCut read GetShortCut;
+    {* 菜单项对应的快捷键}
   end;
 
 //==============================================================================
@@ -127,6 +132,7 @@ type
     FHint: string;
     FAction: TCustomAction;
     FImageIndex: Integer;
+    FShortCut: TShortCut;
     FStatus: TCnMenuItemStatus;
     FOnClick: TNotifyEvent;
     FOnCreated: TMenuItemCreatedEvent;
@@ -139,11 +145,13 @@ type
     function GetStatus: TCnMenuItemStatus; override;
     function GetAction: TCustomAction; override;
     function GetImageIndex: Integer; override;
+    function GetShortCut: TShortCut; override;
     procedure MenuItemCreated(MenuItem: TMenuItem); override;
   public
     constructor Create(const AName, ACaption: string; AOnClick: TNotifyEvent;
       AInsertPos: TCnMenuItemInsertPos; const ARelItemName: string = '';
-      const AHint: string = ''; AAction: TCustomAction = nil; ImgIndex: Integer = -1);
+      const AHint: string = ''; AAction: TCustomAction = nil; ImgIndex: Integer = -1;
+      AShortCut: TShortCut = 0);
     destructor Destroy; override;
     procedure Execute(Sender: TObject); override;
 
@@ -259,7 +267,7 @@ const
 
 constructor TCnMenuItemDef.Create(const AName, ACaption: string;
   AOnClick: TNotifyEvent; AInsertPos: TCnMenuItemInsertPos; const ARelItemName,
-  AHint: string; AAction: TCustomAction; ImgIndex: Integer);
+  AHint: string; AAction: TCustomAction; ImgIndex: Integer; AShortCut: TShortCut);
 begin
   inherited Create;
   FActive := True;
@@ -272,6 +280,7 @@ begin
   FHint := AHint;
   FAction := AAction;
   FImageIndex := ImgIndex;
+  FShortCut := AShortCut;
   FOnCreated := nil;
 end;
 
@@ -352,6 +361,11 @@ end;
 // 分隔菜单项类
 //==============================================================================
 
+function TCnMenuItemDef.GetShortCut: TShortCut;
+begin
+  Result := FShortCut;
+end;
+
 { TCnSepMenuItemDef }
 
 constructor TCnSepMenuItemDef.Create(AInsertPos: TCnMenuItemInsertPos;
@@ -410,15 +424,15 @@ end;
 function TCnMenuHook.FindMenuItem(AMenu: TPopupMenu;
   const AName: string): TMenuItem;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := nil;
   if (AMenu = nil) or (AName = '') then Exit;
 
-  for i := 0 to AMenu.Items.Count - 1 do
-    if SameText(AMenu.Items[i].Name, AName) then
+  for I := 0 to AMenu.Items.Count - 1 do
+    if SameText(AMenu.Items[I].Name, AName) then
     begin
-      Result := AMenu.Items[i];
+      Result := AMenu.Items[I];
       Exit;
     end;
 end;
@@ -468,6 +482,7 @@ begin
     MenuItem.Visible := msVisible in Item.Status;
     MenuItem.Checked := msChecked in Item.Status;
     MenuItem.ImageIndex := Item.ImageIndex;
+    MenuItem.ShortCut := Item.ShortCut;
     MenuItem.OnClick := Item.Execute;
     MenuItem.Action := Item.Action;
     
@@ -491,12 +506,12 @@ end;
 
 function TCnMenuHook.GetMenuObj(Menu: TPopupMenu): TMenuObj;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FMenuList.Count - 1 do
-    if TMenuObj(FMenuList[i]).Menu = Menu then
+  for I := 0 to FMenuList.Count - 1 do
+    if TMenuObj(FMenuList[I]).Menu = Menu then
     begin
-      Result := TMenuObj(FMenuList[i]);
+      Result := TMenuObj(FMenuList[I]);
       Exit;
     end;
   Result := nil;
@@ -556,12 +571,12 @@ end;
 function TCnMenuHook.IndexOfMenuItemDef(
   const AName: string): Integer;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to MenuItemDefCount - 1 do
-    if SameText(MenuItemDefs[i].Name, AName) then
+  for I := 0 to MenuItemDefCount - 1 do
+    if SameText(MenuItemDefs[I].Name, AName) then
     begin
-      Result := i;
+      Result := I;
       Exit;
     end;
   Result := -1;
@@ -582,7 +597,7 @@ procedure TCnMenuHook.OnMenuPopup(Sender: TObject);
 var
   Menu: TPopupMenu;
   MenuObj: TMenuObj;
-  i: Integer;
+  I: Integer;
 begin
   if not (Sender is TPopupMenu) then
     Exit;
@@ -590,13 +605,13 @@ begin
   Menu := Sender as TPopupMenu;
 
   // 必须先把以前注册的菜单清掉，否则会出错
-  for i := 0 to MenuItemDefCount - 1 do
-    DoRemoveMenuItem(Menu, MenuItemDefs[i].Name);
+  for I := 0 to MenuItemDefCount - 1 do
+    DoRemoveMenuItem(Menu, MenuItemDefs[I].Name);
     
   // 根据 Tag 移去没有名字的菜单项
-  for i := Menu.Items.Count - 1 downto 0 do
-    if Menu.Items[i].Tag = csMenuItemTag then
-      Menu.Items[i].Free;
+  for I := Menu.Items.Count - 1 downto 0 do
+    if Menu.Items[I].Tag = csMenuItemTag then
+      Menu.Items[I].Free;
 
   if Assigned(FOnBeforePopup) then
     FOnBeforePopup(Self, Menu);
@@ -614,9 +629,9 @@ begin
   if Active then
   begin
     // 重新更新自定义菜单项
-    for i := 0 to MenuItemDefCount - 1 do
-      if MenuItemDefs[i].Active then
-        DoAddMenuItem(Menu, MenuItemDefs[i]);
+    for I := 0 to MenuItemDefCount - 1 do
+      if MenuItemDefs[I].Active then
+        DoAddMenuItem(Menu, MenuItemDefs[I]);
 
     if Assigned(FOnAfterPopup) then
       FOnAfterPopup(Self, Menu);
