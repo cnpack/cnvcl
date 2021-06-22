@@ -28,7 +28,9 @@ unit CnCommon;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.02.25 by LiuXiao
+* 修改记录：2021.06.22 by LiuXiao
+*               增加多按钮提示框的函数，暂不支持图标
+*           2019.02.25 by LiuXiao
 *               增加检查中国大陆 18 位身份证号是否正确的函数
 *           2012.01.19 by LiuXiao
 *               增加一个移植自外国牛人的快速开根号倒数的函数
@@ -97,10 +99,10 @@ type
 
   ENotImplementedException = class(Exception);
 
-  TCnDlgButtonCaption = (cdbOK, cdbCancel, cdbYes, cdbNo, cdbYesToAll, cdbNoToAll);
+  TCnDlgButtonCaption = (cdbCancel, cdbOK, cdbNo, cdbYes, cdbNoToAll, cdbYesToAll);
   {* 自定义多按钮对话框的按钮值}
 
-  TCnDlgResult = (cdrOK, cdrCancel, cdrYes, cdrNo, cdrYesToAll, cdrNoToAll);
+  TCnDlgResult = (ccdrCancel, drOK, cdrNo, cdrYes, cdrNoToAll, cdrYesToAll);
   {* 自定义多按钮对话框的返回值}
 
   TCnDlgButtonCaptions = set of TCnDlgButtonCaption;
@@ -5860,7 +5862,7 @@ var
   Prompt: TLabel;
   DialogUnits: TPoint;
   ButtonTop, ButtonWidth, ButtonHeight, ButtonGap: Integer;
-  ButtonsVal, BC, I, J: Integer;
+  ButtonsVal, BC, I, J, W: Integer;
   ButtonSet: TIntegerSet;
   Btn: TButton;
 {$IFDEF CREATE_PARAMS_BUG}
@@ -5901,12 +5903,18 @@ begin
     ButtonHeight := MulDiv(14, DialogUnits.Y, 8);
     ButtonGap := MulDiv(6, DialogUnits.X, 4);
 
+    // 计算文字宽度加上左右边距
+    W := Form.Canvas.TextWidth(Caption) + 2 * MulDiv(8, DialogUnits.X, 4);
+
     // 计算 ClientWidth
     if BC > 2 then
       Form.ClientWidth := MulDiv(180, DialogUnits.X, 4)
         + (ButtonWidth + ButtonGap) * (BC - 2)
     else
       Form.ClientWidth := MulDiv(180, DialogUnits.X, 4);
+
+    if Form.ClientWidth < W then // 如果文字超宽就需要放宽窗体
+      Form.ClientWidth := W;
 
     Form.ClientHeight := MulDiv(64, DialogUnits.Y, 8);
     Form.Position := poScreenCenter;
