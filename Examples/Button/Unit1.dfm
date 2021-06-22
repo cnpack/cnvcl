@@ -287,6 +287,14 @@ object Form1: TForm1
     Margin = 4
     OnClick = SpeedBtnClick
   end
+  object lblTestMultiDlg: TLabel
+    Left = 592
+    Top = 576
+    Width = 62
+    Height = 13
+    Caption = 'Test MultiDlg'
+    OnClick = lblTestMultiDlgClick
+  end
   object btn1: TCnButton
     Left = 40
     Top = 96

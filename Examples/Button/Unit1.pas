@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnButtons, StdCtrls, ExtCtrls;
+  CnButtons, StdCtrls, ExtCtrls, CnCommon;
 
 type
   TForm1 = class(TForm)
@@ -65,12 +65,14 @@ type
     cnbtbtnWrap2: TCnBitBtn;
     cnbtbtnWrap3: TCnBitBtn;
     cnbtbtnWrap4: TCnBitBtn;
+    lblTestMultiDlg: TLabel;
     procedure chk1Click(Sender: TObject);
     procedure chk2Click(Sender: TObject);
     procedure chk3Click(Sender: TObject);
     procedure CnBtnClick(Sender: TObject);
     procedure btn14Click(Sender: TObject);
     procedure SpeedBtnClick(Sender: TObject);
+    procedure lblTestMultiDlgClick(Sender: TObject);
   private
     { Private declarations }
     procedure ChangeAllEnabled(Value: Boolean);
@@ -166,6 +168,15 @@ begin
   if Sender is TCnSpeedButton then
     pnl1.Caption := (Sender as TCnSpeedButton).Name + ': "' +
       (Sender as TCnSpeedButton).Caption + '" Clicked!'
+end;
+
+procedure TForm1.lblTestMultiDlgClick(Sender: TObject);
+begin
+  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message Empty', [])));
+  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 1 Button', [cdbCancel])));
+  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 2 Buttons', [cdbYes, cdbNo])));
+  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 3 Buttons', [cdbOK, cdbCancel, cdbYes])));
+  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 4 Buttons', [cdbYes, cdbNo, cdbYesToAll, cdbNoToAll])));
 end;
 
 end.

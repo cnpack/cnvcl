@@ -97,6 +97,15 @@ type
 
   ENotImplementedException = class(Exception);
 
+  TCnDlgButtonCaption = (cdbOK, cdbCancel, cdbYes, cdbNo, cdbYesToAll, cdbNoToAll);
+  {* 自定义多按钮对话框的按钮值}
+
+  TCnDlgResult = (cdrOK, cdrCancel, cdrYes, cdrNo, cdrYesToAll, cdrNoToAll);
+  {* 自定义多按钮对话框的返回值}
+
+  TCnDlgButtonCaptions = set of TCnDlgButtonCaption;
+  TCnDlgResults = set of TCnDlgResult;
+
 {$IFDEF COMPILER5}
   UTF8String = type string; // Delphi 5 has no UTF8String definition
 {$ENDIF}
@@ -728,6 +737,10 @@ function QueryDlg(const Mess: string; DefaultNo: Boolean = False;
   Caption: string = ''): Boolean;
 {* 显示查询是否窗口}
 
+function MultiButtonsDlg(const Mess: string; Buttons: TCnDlgButtonCaptions;
+  Caption: string = ''): TCnDlgResult;
+{* 显示多按钮对话框，动态构造按钮并返回其 ModalResult，暂不支持图标}
+
 const
   csDefComboBoxSection = 'History';
 
@@ -1192,6 +1205,9 @@ function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' ')
 function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '): AnsiString;
 {* 手动将 Utf8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
 
+function GetSetElementCount(const ASet; ASetSize: Integer): Integer;
+{* 获取某集合内的元素数目，尺寸不对则返回 -1}
+
 implementation
 
 const
@@ -1204,6 +1220,11 @@ const
   WM_COPYGLOBALDATA = $0049; // XE4 and below does not support WM_COPYGLOBALDATA and MSGFIT_ADD
   MSGFLT_ADD        = $00000001;
 {$ENDIF}
+
+  SCnDlgButtonCaptions: array[Low(TCnDlgButtonCaption)..High(TCnDlgButtonCaption)] of PString = (
+    @SCnMsgDlgOK, @SCnMsgDlgCancel, @SCnMsgDlgYes, @SCnMsgDlgNo, @SCnMsgDlgYesToAll,
+    @SCnMsgDlgNoToAll
+  );
 
 type
   TNtQueryInformationProcess = function(ProcessHandle: THANDLE; ProcessInformationClass: DWORD;
@@ -5832,6 +5853,112 @@ begin
   Result.X := Result.X div 52;
 end;
 
+function MultiButtonsDlg(const Mess: string; Buttons: TCnDlgButtonCaptions;
+  Caption: string = ''): TCnDlgResult;
+var
+  Form: TForm;
+  Prompt: TLabel;
+  DialogUnits: TPoint;
+  ButtonTop, ButtonWidth, ButtonHeight, ButtonGap: Integer;
+  ButtonsVal, BC, I, J: Integer;
+  ButtonSet: TIntegerSet;
+  Btn: TButton;
+{$IFDEF CREATE_PARAMS_BUG}
+  OldLong: Longint;
+  AHandle: THandle;
+  NeedChange: Boolean;
+{$ENDIF}
+begin
+  if Caption = '' then
+    Caption := SCnInformation;
+
+  if Buttons = [] then
+    Buttons := [cdbOK];
+
+  ButtonsVal := 0;
+  Move(Buttons, ButtonsVal, SizeOf(Buttons));
+  BC := GetSetElementCount(Buttons, SizeOf(Buttons));
+  Integer(ButtonSet) := ButtonsVal;
+
+  // 共有 BC 个按钮，要根据这个数字设置窗体宽度
+{$IFDEF CREATE_PARAMS_BUG}
+  NeedChange := False;
+  OldLong := 0;
+  AHandle := Application.ActiveFormHandle;
+{$ENDIF}
+
+  Form := TForm.Create(Application);
+  try
+    Form.Scaled := False;
+    Form.Font.Handle := GetStockObject(DEFAULT_GUI_FONT);
+    Form.Canvas.Font := Form.Font;
+    DialogUnits := GetAveCharSize(Form.Canvas);
+    Form.BorderStyle := bsDialog;
+    Form.Caption := Caption;
+
+    ButtonTop := MulDiv(41, DialogUnits.Y, 8);
+    ButtonWidth := MulDiv(50, DialogUnits.X, 4);
+    ButtonHeight := MulDiv(14, DialogUnits.Y, 8);
+    ButtonGap := MulDiv(6, DialogUnits.X, 4);
+
+    // 计算 ClientWidth
+    if BC > 2 then
+      Form.ClientWidth := MulDiv(180, DialogUnits.X, 4)
+        + (ButtonWidth + ButtonGap) * (BC - 2)
+    else
+      Form.ClientWidth := MulDiv(180, DialogUnits.X, 4);
+
+    Form.ClientHeight := MulDiv(64, DialogUnits.Y, 8);
+    Form.Position := poScreenCenter;
+
+    // 创建提示文字
+    Prompt := TLabel.Create(Form);
+    Prompt.Parent := Form;
+    Prompt.AutoSize := True;
+    Prompt.Left := MulDiv(8, DialogUnits.X, 4);
+    Prompt.Top := MulDiv(8, DialogUnits.Y, 8);
+    Prompt.Caption := Mess;
+
+    // 循环创建按钮
+    J := 0;
+    for I := 0 to SizeOf(Integer) * 8 - 1 do
+    begin
+      if I in ButtonSet then
+      begin
+        Inc(J);
+        Btn := TButton.Create(Form);
+        Btn.Parent := Form;
+        Btn.Caption := SCnDlgButtonCaptions[TCnDlgButtonCaption(I)]^;
+        Btn.ModalResult := I + 1;
+
+        // Width - 右边距 - (Gap + ButtonWidth) * J
+        Btn.SetBounds(Form.Width - MulDiv(8, DialogUnits.X, 4) -
+          (ButtonGap + ButtonWidth) * J, ButtonTop, ButtonWidth, ButtonHeight);
+      end;
+    end;
+
+{$IFDEF CREATE_PARAMS_BUG}
+    if AHandle <> 0 then
+    begin
+      OldLong := GetWindowLong(AHandle, GWL_EXSTYLE);
+      NeedChange := OldLong and WS_EX_TOOLWINDOW = WS_EX_TOOLWINDOW;
+      if NeedChange then
+        SetWindowLong(AHandle, GWL_EXSTYLE, OldLong and not WS_EX_TOOLWINDOW);
+    end;
+{$ENDIF}
+
+    J := Form.ShowModal;
+    if J > 0 then
+      Result := TCnDlgResult(J - 1);
+  finally
+{$IFDEF CREATE_PARAMS_BUG}
+    if NeedChange and (OldLong <> 0) then
+      SetWindowLong(AHandle, GWL_EXSTYLE, OldLong);
+{$ENDIF}
+    Form.Free;
+  end;
+end;
+
 // 输入对话框
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string; Ini: TCustomIniFile; const Section: string;
@@ -7662,6 +7789,28 @@ begin
       Result := Index;
       Exit;
     end;
+end;
+
+// 获取某集合内的元素数目，尺寸不对则返回 -1
+function GetSetElementCount(const ASet; ASetSize: Integer): Integer;
+var
+  I, SetVal: Integer;
+  S: TIntegerSet;
+begin
+  Result := -1;
+  if (ASetSize <= 0) or (ASetSize > SizeOf(Integer)) then
+    Exit;
+
+  SetVal := 0;
+  Move(ASet, SetVal, ASetSize);
+  Integer(S) := SetVal;
+
+  Result := 0;
+  for I := 0 to SizeOf(Integer) * 8 - 1 do
+  begin
+    if I in S then
+      Inc(Result);
+  end;
 end;
 
 initialization

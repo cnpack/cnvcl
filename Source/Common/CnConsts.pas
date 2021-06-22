@@ -63,6 +63,10 @@ var
   SCnDisabled: string = 'Disabled';
   SCnMsgDlgOK: string = '&OK';
   SCnMsgDlgCancel: string = '&Cancel';
+  SCnMsgDlgYes: string = '&Yes';
+  SCnMsgDlgNo: string = '&No';
+  SCnMsgDlgYesToAll: string = 'Yes to &All';
+  SCnMsgDlgNoToAll: string = 'No to A&ll';
 
 const
   // CnPack Information
