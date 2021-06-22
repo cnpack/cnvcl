@@ -102,7 +102,7 @@ type
   TCnDlgButtonCaption = (cdbCancel, cdbOK, cdbNo, cdbYes, cdbNoToAll, cdbYesToAll);
   {* 自定义多按钮对话框的按钮值}
 
-  TCnDlgResult = (ccdrCancel, drOK, cdrNo, cdrYes, cdrNoToAll, cdrYesToAll);
+  TCnDlgResult = (cdrCancel, cdrOK, cdrNo, cdrYes, cdrNoToAll, cdrYesToAll);
   {* 自定义多按钮对话框的返回值}
 
   TCnDlgButtonCaptions = set of TCnDlgButtonCaption;
@@ -5871,6 +5871,7 @@ var
   NeedChange: Boolean;
 {$ENDIF}
 begin
+  Result := cdrOK;
   if Caption = '' then
     Caption := SCnInformation;
 
@@ -5904,7 +5905,7 @@ begin
     ButtonGap := MulDiv(6, DialogUnits.X, 4);
 
     // 计算文字宽度加上左右边距
-    W := Form.Canvas.TextWidth(Caption) + 2 * MulDiv(8, DialogUnits.X, 4);
+    W := Form.Canvas.TextWidth(Mess) + 2 * MulDiv(8, DialogUnits.X, 4);
 
     // 计算 ClientWidth
     if BC > 2 then
