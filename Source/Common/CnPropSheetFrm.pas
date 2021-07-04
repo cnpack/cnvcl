@@ -420,6 +420,7 @@ type
     procedure Copy1Click(Sender: TObject);
     procedure CopyAll1Click(Sender: TObject);
   private
+    FImgBk: TBitmap;
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
     FPropListPtr: PPropList;
@@ -474,6 +475,7 @@ type
     procedure AfterEvaluateProperties(Sender: TObject);
     procedure AfterEvaluateHierarchy(Sender: TObject);
   protected
+    procedure TileBkToImage;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     procedure SetPropListSize(const Value: Integer);
@@ -520,6 +522,8 @@ var
 implementation
 
 {$R *.DFM}
+
+{$R CnPropSheet.res}
 
 type
   PParamData = ^TParamData;
@@ -581,7 +585,6 @@ const
   SCnInputNewValueCaption = 'Modify Value';
   SCnInputNewValuePrompt = 'Enter a New Value for %s:';
   SCnErrorChangeValue = 'Change Property Value Failed!';
-
 
 var
   FSheetList: TComponentList = nil;
@@ -2468,6 +2471,9 @@ begin
   if CnFormLeft >= Screen.Width - Self.Width - 30 then CnFormLeft := 50;
   if CnFormTop >= Screen.Height - Self.Height - 30 then CnFormTop := 50;
 
+  FImgBk := TBitmap.Create;
+  FImgBk.Handle := LoadBitmap(HInstance, 'CNTRANSBK');
+
 {$IFDEF COMPILER7_UP}
   pnlHierarchy.ParentBackground := False;
 {$ENDIF}
@@ -2492,7 +2498,14 @@ var
 
     imgGraphic.Height := AGraphic.Height;
     imgGraphic.Width := AGraphic.Width;
-    imgGraphic.Picture.Assign(AGraphic);
+
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+    if AGraphic.SupportsPartialTransparency then // 如果有透明度，就先画个背景
+      TileBkToImage;
+{$ENDIF}
+
+    imgGraphic.Picture.Bitmap.Canvas.Draw(0, 0, AGraphic);
+    // imgGraphic.Picture.Assign(AGraphic);
 
     if AGraphic.Empty then
       S := EMPTY_STR
@@ -2502,6 +2515,10 @@ var
 
       if AGraphic.Transparent then
         S := S + ' Transparent.'
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+      else if AGraphic.SupportsPartialTransparency then // 如果支持 Alpha 透明度
+        S := S + ' Alpha Transparent.'
+{$ENDIF}
       else
         S := S + ' No Transparent.';
     end;
@@ -2746,6 +2763,7 @@ end;
 
 procedure TCnPropSheetForm.FormDestroy(Sender: TObject);
 begin
+  FImgBk.Free;
   FHierarchys.Free;
   FHierLines.Free;
   FHierPanels.Free;
@@ -3432,6 +3450,27 @@ begin
   Node := TreeView.Selected;
   if Node.Data <> nil then
     EvaluatePointer(Node.Data, FInspectParam, Self);
+end;
+
+procedure TCnPropSheetForm.TileBkToImage;
+var
+  X, Y, DX, DY: Integer;
+begin
+  DX := FImgBk.Width;
+  DY := FImgBk.Height;
+  Y := 0;
+  while Y < imgGraphic.Height do
+  begin
+    X := 0;
+    while X < imgGraphic.Width do
+    begin
+      BitBlt(imgGraphic.Picture.Bitmap.Canvas.Handle, X, Y, DX, DY,
+        FImgBk.Canvas.Handle, 0, 0, SRCCOPY);
+      // FImgBk.Canvas.Draw(X, Y, imgGraphic.Picture.Bitmap.Canvas);
+      Inc(X, DX);
+    end;
+    Inc(Y, DY);
+  end;
 end;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
