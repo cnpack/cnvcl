@@ -1149,6 +1149,12 @@ var
   AClass: TClass;
 begin
   Result := '';
+  if RttiField.FieldType = nil then
+  begin
+    Result := '<Rtti Exception>';
+    Exit;
+  end;
+
   case RttiField.FieldType.TypeKind of
     tkInteger:
       begin
@@ -1982,7 +1988,11 @@ begin
           AField.FieldName := RttiField.Name; // 不能用 RttiField.ToString，否则 IndexOfFields 找不到
           AField.Offset := RttiField.Offset;
           AField.FieldType := RttiField.FieldType;
-          AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface];
+
+          if RttiField.FieldType <> nil then // 有可能 FieldType 为 nil
+            AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface]
+          else
+            AField.IsObjOrIntf := False;
 
           try
             AField.FieldValue := RttiField.GetValue(FObjectInstance);
