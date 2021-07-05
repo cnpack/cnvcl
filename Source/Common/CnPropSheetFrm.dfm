@@ -24,7 +24,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Left = 0
     Top = 0
     Width = 100
-    Height = 486
+    Height = 497
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
@@ -91,7 +91,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Left = 0
       Top = 30
       Width = 100
-      Height = 435
+      Height = 446
       Align = alClient
       HideSelection = False
       Indent = 19
@@ -101,7 +101,7 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsTree: TTabSet
       Left = 0
-      Top = 465
+      Top = 476
       Width = 100
       Height = 21
       Align = alBottom
@@ -120,15 +120,15 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlRight: TPanel
     Left = 100
     Top = 0
-    Width = 283
-    Height = 486
+    Width = 291
+    Height = 497
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 283
+      Width = 291
       Height = 30
       Align = alTop
       BevelOuter = bvNone
@@ -289,8 +289,8 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsSwitch: TTabSet
       Left = 0
-      Top = 465
-      Width = 283
+      Top = 476
+      Width = 291
       Height = 21
       Align = alBottom
       Font.Charset = ANSI_CHARSET
@@ -313,8 +313,8 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlMain: TPanel
       Left = 0
       Top = 30
-      Width = 283
-      Height = 435
+      Width = 291
+      Height = 446
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 2
@@ -598,8 +598,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlHierarchy: TPanel
         Left = 0
         Top = 0
-        Width = 283
-        Height = 435
+        Width = 291
+        Height = 446
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -609,8 +609,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlGraphic: TPanel
         Left = 0
         Top = 0
-        Width = 283
-        Height = 435
+        Width = 291
+        Height = 446
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -619,8 +619,8 @@ object CnPropSheetForm: TCnPropSheetForm
         Visible = False
         object pnlGraphicInfo: TPanel
           Left = 1
-          Top = 393
-          Width = 281
+          Top = 404
+          Width = 289
           Height = 41
           Align = alBottom
           BevelOuter = bvNone
@@ -641,17 +641,18 @@ object CnPropSheetForm: TCnPropSheetForm
         object bxGraphic: TScrollBox
           Left = 1
           Top = 1
-          Width = 281
-          Height = 392
+          Width = 289
+          Height = 403
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 1
-          object imgGraphic: TImage
+          object pbGraphic: TPaintBox
             Left = 0
             Top = 0
             Width = 387
             Height = 400
-            OnMouseMove = imgGraphicMouseMove
+            OnMouseMove = pbGraphicMouseMove
+            OnPaint = pbGraphicPaint
           end
         end
       end
@@ -669,5 +670,4 @@ object CnPropSheetForm: TCnPropSheetForm
       OnClick = CopyAll1Click
     end
   end
-
 end

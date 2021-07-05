@@ -120,6 +120,9 @@ type
     btnEvaluateScreen: TButton;
     btnFindComponent: TButton;
     btnFindControl: TButton;
+    btnEvaluateTransBmp: TButton;
+    btnEvaluateImage: TButton;
+    img1: TImage;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -167,6 +170,8 @@ type
     procedure btnFindComponentClick(Sender: TObject);
     procedure btnFindControlClick(Sender: TObject);
     procedure FormClick(Sender: TObject);
+    procedure btnEvaluateTransBmpClick(Sender: TObject);
+    procedure btnEvaluateImageClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -520,10 +525,17 @@ begin
 end;
 
 procedure TFormSend.btnAddrClick(Sender: TObject);
+var
+  I, J: Integer;
 begin
   try
-    raise Exception.Create('Test Address of Exception.');
+    // raise Exception.Create('Test Address of Exception.');
+    I := 0;
+    J := 3;
+    if J / I = 0 then
+      Exit;
   except
+    // 这段代码有问题：StackFromAddress 需要的是 EBP 地址才能跟踪堆栈，给 EIP 或 ExceptAddr 无法跟踪
     if rgMethod.ItemIndex = 1 then
       CnDebugger.TraceStackFromAddress(ExceptAddr)
     else
@@ -560,10 +572,17 @@ var
   R: TRect;
 begin
   Bmp := TBitmap.Create;
+  Bmp.PixelFormat := pf24bit;
   Bmp.Width := 760;
   Bmp.Height := 260;
+
+  Bmp.Canvas.Brush.Style := bsSolid;
   Bmp.Canvas.Brush.Color := clRed;
-  R := Rect(0, 0, Bmp.Width, Bmp.Height);
+  R := Rect(0, 0, Bmp.Width div 2, Bmp.Height div 2);
+  Bmp.Canvas.FillRect(R);
+
+  Bmp.Canvas.Brush.Color := clNavy;
+  R := Rect(Bmp.Width div 2, Bmp.Height div 2, Bmp.Width, Bmp.Height);
   Bmp.Canvas.FillRect(R);
 
   CnDebugger.EvaluateObject(Bmp, True);
@@ -667,6 +686,40 @@ begin
   else
     CnDebugger.LogEnumType<TAnchorKind>;
 {$ENDIF}
+end;
+
+procedure TFormSend.btnEvaluateTransBmpClick(Sender: TObject);
+var
+  Bmp: TBitmap;
+  R: TRect;
+  Y, ScanLineWidth: Integer;
+begin
+  Bmp := TBitmap.Create;
+  Bmp.PixelFormat := pf32bit;
+  Bmp.Width := 460;
+  Bmp.Height := 260;
+  Bmp.Transparent := True;
+
+  ScanLineWidth := Width * SizeOf(TRGBQuad);
+  for Y := 0 to Bmp.Height - 1 do
+    ZeroMemory(Bmp.ScanLine[Y], ScanLineWidth);
+
+  Bmp.Canvas.Brush.Style := bsSolid;
+  Bmp.Canvas.Brush.Color := clRed;
+  R := Rect(0, 0, Bmp.Width div 2, Bmp.Height div 2);
+  Bmp.Canvas.FillRect(R);
+
+  Bmp.Canvas.Brush.Color := clNavy;
+  R := Rect(Bmp.Width div 2, Bmp.Height div 2, Bmp.Width, Bmp.Height);
+  Bmp.Canvas.FillRect(R);
+
+  CnDebugger.EvaluateObject(Bmp, True);
+  Bmp.Free;
+end;
+
+procedure TFormSend.btnEvaluateImageClick(Sender: TObject);
+begin
+  CnDebugger.EvaluateObject(img1.Picture);
 end;
 
 end.

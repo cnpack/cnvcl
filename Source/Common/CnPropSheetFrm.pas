@@ -375,7 +375,7 @@ type
     lvFields: TListView;
     pnlGraphicInfo: TPanel;
     bxGraphic: TScrollBox;
-    imgGraphic: TImage;
+    pbGraphic: TPaintBox;
     lblGraphicInfo: TLabel;
     lblPixel: TLabel;
     btnTree: TSpeedButton;
@@ -409,7 +409,7 @@ type
     procedure ListViewKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure btnLocateClick(Sender: TObject);
-    procedure imgGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
+    procedure pbGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure btnTreeClick(Sender: TObject);
     procedure tsTreeChange(Sender: TObject; NewTab: Integer;
@@ -419,8 +419,10 @@ type
     procedure edtSearchKeyPress(Sender: TObject; var Key: Char);
     procedure Copy1Click(Sender: TObject);
     procedure CopyAll1Click(Sender: TObject);
+    procedure pbGraphicPaint(Sender: TObject);
   private
     FImgBk: TBitmap;
+    FGraphicBmp: TBitmap;  // 用于显示的
     FListViewHeaderHeight: Integer;
     FContentTypes: TCnPropContentTypes;
     FPropListPtr: PPropList;
@@ -475,7 +477,7 @@ type
     procedure AfterEvaluateProperties(Sender: TObject);
     procedure AfterEvaluateHierarchy(Sender: TObject);
   protected
-    procedure TileBkToImage;
+    procedure TileBkToImageBmp;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     procedure SetPropListSize(const Value: Integer);
@@ -2483,6 +2485,7 @@ begin
 
   FImgBk := TBitmap.Create;
   FImgBk.Handle := LoadBitmap(HInstance, 'CNTRANSBK');
+  FGraphicBmp := TBitmap.Create;
 
 {$IFDEF COMPILER7_UP}
   pnlHierarchy.ParentBackground := False;
@@ -2496,6 +2499,7 @@ const
 var
   I, ImgTop, ImgLeft: Integer;
   ImageList: TImageList;
+  CountInLine, PaintHeight: Integer;
 
   procedure InternalDrawGraphic(AGraphic: TGraphic);
   const
@@ -2503,19 +2507,19 @@ var
   var
     S: string;
   begin
-    if (AGraphic = nil) or (imgGraphic.Picture = nil) then
+    if AGraphic = nil then
       Exit;
 
-    imgGraphic.Height := AGraphic.Height;
-    imgGraphic.Width := AGraphic.Width;
+    FGraphicBmp.Height := AGraphic.Height;
+    FGraphicBmp.Width := AGraphic.Width;
 
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
     if AGraphic.SupportsPartialTransparency then // 如果有透明度，就先画个背景
-      TileBkToImage;
+      TileBkToImageBmp;
 {$ENDIF}
 
-    imgGraphic.Picture.Bitmap.Canvas.Draw(0, 0, AGraphic);
-    // imgGraphic.Picture.Assign(AGraphic);
+    FGraphicBmp.Canvas.Draw(0, 0, AGraphic);
+    pbGraphic.Invalidate;
 
     if AGraphic.Empty then
       S := EMPTY_STR
@@ -2667,7 +2671,7 @@ begin
   FHierarchys.Text := FInspector.Hierarchy;
   FGraphicObject := FInspector.Graphics.Graphic;
 
-  imgGraphic.Canvas.FillRect(imgGraphic.Canvas.ClipRect);
+  pbGraphic.Canvas.FillRect(pbGraphic.Canvas.ClipRect);
   if FGraphicObject <> nil then
   begin
     if FGraphicObject is TPicture then
@@ -2683,16 +2687,29 @@ begin
     begin
       if (FGraphicObject as TImageList).Count > 0 then
       begin
-        // 根据 ImageList 尺寸以及 Image 尺寸来排版绘制
+        // 根据 ImageList 尺寸以及 PaintBox 尺寸来排版绘制
+        FGraphicBmp.Width := bxGraphic.Width;
+
         ImageList := FGraphicObject as TImageList;
+
+        // 一行画 (FGraphicBmp.Width - IMG_INTERVAL) div (ImageList.Width + IMG_INTERVAL) 个
+        CountInLine := (FGraphicBmp.Width - IMG_INTERVAL) div (ImageList.Width + IMG_INTERVAL);
+
+        // 能画 ImageList.Count div CountInLine + 1 行，计算其高度
+        PaintHeight := (ImageList.Count div CountInLine + 1) * (ImageList.Height + IMG_INTERVAL) + IMG_INTERVAL;
+        if bxGraphic.Height > PaintHeight then
+          FGraphicBmp.Height := bxGraphic.Height  // 少则充满高度
+        else
+          FGraphicBmp.Height := PaintHeight;      // 多则超出高度
+
         ImgLeft := IMG_MARGIN;
         ImgTop := IMG_MARGIN;
 
         for I := 0 to ImageList.Count - 1 do
         begin
-          ImageList.Draw(imgGraphic.Canvas, ImgLeft, ImgTop, I);
+          ImageList.Draw(FGraphicBmp.Canvas, ImgLeft, ImgTop, I);
           Inc(ImgLeft, ImageList.Width + IMG_INTERVAL);
-          if ImgLeft + IMG_MARGIN > imgGraphic.Width - ImageList.Width then
+          if ImgLeft + IMG_MARGIN > FGraphicBmp.Width - ImageList.Width then
           begin
             Inc(ImgTop, ImageList.Height + IMG_INTERVAL);
             ImgLeft := IMG_MARGIN;
@@ -2773,6 +2790,7 @@ end;
 
 procedure TCnPropSheetForm.FormDestroy(Sender: TObject);
 begin
+  FGraphicBmp.Free;
   FImgBk.Free;
   FHierarchys.Free;
   FHierLines.Free;
@@ -3241,11 +3259,10 @@ begin
   end;
 end;
 
-procedure TCnPropSheetForm.imgGraphicMouseMove(Sender: TObject;
+procedure TCnPropSheetForm.pbGraphicMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 var
   S: string;
-  Bmp: TBitmap;
   Rec: TRect;
   Pt: TPoint;
   C: TColor;
@@ -3267,16 +3284,14 @@ var
 
 begin
   S := '';
-  if (imgGraphic.Picture <> nil) and (imgGraphic.Picture.Bitmap <> nil)
-    and not imgGraphic.Picture.Bitmap.Empty then
+  if not FGraphicBmp.Empty then
   begin
-    Bmp := imgGraphic.Picture.Bitmap;
-    Rec := Rect(0, 0, Bmp.Width, Bmp.Height);
+    Rec := Rect(0, 0, FGraphicBmp.Width, FGraphicBmp.Height);
     Pt := Point(X, Y);
     if PtInRect(Rec, Pt) then
     begin
-      C := Bmp.Canvas.Pixels[X, Y];
-      S := Format('%s: X: %d, Y: %d, Color $%8.8x', [GetPixelFormatName(Bmp.PixelFormat),
+      C := FGraphicBmp.Canvas.Pixels[X, Y];
+      S := Format('%s: X: %d, Y: %d, Color $%8.8x', [GetPixelFormatName(FGraphicBmp.PixelFormat),
         X, Y, C]);
     end;
   end;
@@ -3462,21 +3477,19 @@ begin
     EvaluatePointer(Node.Data, FInspectParam, Self);
 end;
 
-procedure TCnPropSheetForm.TileBkToImage;
+procedure TCnPropSheetForm.TileBkToImageBmp;
 var
   X, Y, DX, DY: Integer;
 begin
   DX := FImgBk.Width;
   DY := FImgBk.Height;
   Y := 0;
-  while Y < imgGraphic.Height do
+  while Y < FGraphicBmp.Height do
   begin
     X := 0;
-    while X < imgGraphic.Width do
+    while X < FGraphicBmp.Width do
     begin
-      BitBlt(imgGraphic.Picture.Bitmap.Canvas.Handle, X, Y, DX, DY,
-        FImgBk.Canvas.Handle, 0, 0, SRCCOPY);
-      // FImgBk.Canvas.Draw(X, Y, imgGraphic.Picture.Bitmap.Canvas);
+      FGraphicBmp.Canvas.Draw(X, Y, FImgBk);
       Inc(X, DX);
     end;
     Inc(Y, DY);
@@ -3598,6 +3611,21 @@ begin
       SL.Free;
     end;
   end;
+end;
+
+procedure TCnPropSheetForm.pbGraphicPaint(Sender: TObject);
+var
+  R: TRect;
+begin
+  if not FGraphicBmp.Empty and (pbGraphic.Width <> FGraphicBmp.Width) then
+    pbGraphic.Width := FGraphicBmp.Width;
+
+  R := Rect(0, 0, pbGraphic.Width, pbGraphic.Height);
+  pbGraphic.Canvas.Brush.Color := pbGraphic.Color;
+  pbGraphic.Canvas.Brush.Style := bsSolid;
+  pbGraphic.Canvas.FillRect(R);
+
+  pbGraphic.Canvas.Draw(0, 0, FGraphicBmp);
 end;
 
 initialization
