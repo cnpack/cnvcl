@@ -41,7 +41,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, UnitThread, Buttons,
-  ImgList, Menus;
+  ImgList, Menus {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}, PNGImage {$ENDIF};
 
 type
   ITest = interface
@@ -123,6 +123,8 @@ type
     btnEvaluateTransBmp: TButton;
     btnEvaluateImage: TButton;
     img1: TImage;
+    dlgOpen1: TOpenDialog;
+    btnDrawTransparent: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -172,6 +174,7 @@ type
     procedure FormClick(Sender: TObject);
     procedure btnEvaluateTransBmpClick(Sender: TObject);
     procedure btnEvaluateImageClick(Sender: TObject);
+    procedure btnDrawTransparentClick(Sender: TObject);
   private
     { Private declarations }
     FTimeStamp: Boolean;
@@ -689,37 +692,54 @@ begin
 end;
 
 procedure TFormSend.btnEvaluateTransBmpClick(Sender: TObject);
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
 var
   Bmp: TBitmap;
-  R: TRect;
-  Y, ScanLineWidth: Integer;
+  Png: TPngImage;
+{$ENDIF}
 begin
-  Bmp := TBitmap.Create;
-  Bmp.PixelFormat := pf32bit;
-  Bmp.Width := 460;
-  Bmp.Height := 260;
-  Bmp.Transparent := True;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  ShowMessage('Please Open a Transparent PNG File.');
+  if dlgOpen1.Execute then
+  begin
+    Bmp := TBitmap.Create;
+    Png := TPngImage.Create;
 
-  ScanLineWidth := Width * SizeOf(TRGBQuad);
-  for Y := 0 to Bmp.Height - 1 do
-    ZeroMemory(Bmp.ScanLine[Y], ScanLineWidth);
+    Png.LoadFromFile(dlgOpen1.FileName);
+    Bmp.Assign(Png);
 
-  Bmp.Canvas.Brush.Style := bsSolid;
-  Bmp.Canvas.Brush.Color := clRed;
-  R := Rect(0, 0, Bmp.Width div 2, Bmp.Height div 2);
-  Bmp.Canvas.FillRect(R);
-
-  Bmp.Canvas.Brush.Color := clNavy;
-  R := Rect(Bmp.Width div 2, Bmp.Height div 2, Bmp.Width, Bmp.Height);
-  Bmp.Canvas.FillRect(R);
-
-  CnDebugger.EvaluateObject(Bmp, True);
-  Bmp.Free;
+    CnDebugger.EvaluateObject(Bmp, True);
+    Bmp.Free;
+    Png.Free;
+  end;
+{$ELSE}
+  ShowMessage('Please RUN under Delphi 2009 or Above.');
+{$ENDIF}
 end;
 
 procedure TFormSend.btnEvaluateImageClick(Sender: TObject);
 begin
   CnDebugger.EvaluateObject(img1.Picture);
+end;
+
+procedure TFormSend.btnDrawTransparentClick(Sender: TObject);
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+var
+  Bmp: TBitmap;
+{$ENDIF}
+begin
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  Bmp := TBitmap.Create;
+  Bmp.PixelFormat := pf32Bit;
+  Bmp.AlphaFormat := afDefined;
+
+  // TODO: Draw transparent Shapes
+
+  CnDebugger.EvaluateObject(Bmp, True);
+  Bmp.Free;
+{$ELSE}
+  ShowMessage('Please RUN under Delphi 2009 or Above.');
+{$ENDIF}
 end;
 
 end.

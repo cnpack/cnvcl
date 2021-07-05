@@ -793,6 +793,17 @@ object FormSend: TFormSend
     TabOrder = 56
     OnClick = btnEvaluateImageClick
   end
+  object btnDrawTransparent: TButton
+    Left = 120
+    Top = 388
+    Width = 97
+    Height = 21
+    Caption = '¿´ÊÖ»æÍ¸Ã÷'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 57
+    OnClick = btnDrawTransparentClick
+  end
   object dlgColor: TColorDialog
     Ctl3D = True
     Left = 256
@@ -1096,5 +1107,9 @@ object FormSend: TFormSend
         Caption = 'Test 22'
       end
     end
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 216
+    Top = 352
   end
 end
