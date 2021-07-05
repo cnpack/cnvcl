@@ -726,14 +726,34 @@ procedure TFormSend.btnDrawTransparentClick(Sender: TObject);
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
 var
   Bmp: TBitmap;
+  Y, SW: Integer;
+  R: TRect;
 {$ENDIF}
 begin
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
   Bmp := TBitmap.Create;
   Bmp.PixelFormat := pf32Bit;
   Bmp.AlphaFormat := afDefined;
+  Bmp.Width := 400;
+  Bmp.Height := 300;
 
-  // TODO: Draw transparent Shapes
+  // Draw transparent background
+  SW := Bmp.Width * SizeOf(TRGBQuad);
+  for Y := 0 to Bmp.Height - 1 do
+    ZeroMemory(Bmp.ScanLine[Y], SW);
+
+  // why Alpha also painted when only not clWhite
+  Bmp.Canvas.Brush.Color := clGreen;
+  Bmp.Canvas.Brush.Style := bsSolid;
+
+  R := Rect(Bmp.Width div 3, Bmp.Height div 3, 2 * Bmp.Width div 3, 2 * Bmp.Height div 3);
+  Bmp.Canvas.FillRect(R);
+
+  Bmp.Canvas.Brush.Style := bsClear;
+  Bmp.Canvas.Font.Size := 36;
+  Bmp.Canvas.Font.Style := [fsBold];
+  Bmp.Canvas.Font.Color := clRed;
+  Bmp.Canvas.TextOut(Bmp.Width div 2 - 60, Bmp.Height div 2 - 40, 'Hello!');
 
   CnDebugger.EvaluateObject(Bmp, True);
   Bmp.Free;
