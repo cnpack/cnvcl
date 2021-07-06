@@ -734,6 +734,8 @@ begin
   Bmp := TBitmap.Create;
   Bmp.PixelFormat := pf32Bit;
   Bmp.AlphaFormat := afDefined;
+  Bmp.Transparent := True;      // 3 Very Important !
+
   Bmp.Width := 400;
   Bmp.Height := 300;
 
@@ -742,7 +744,6 @@ begin
   for Y := 0 to Bmp.Height - 1 do
     ZeroMemory(Bmp.ScanLine[Y], SW);
 
-  // why Alpha also painted when only not clWhite
   Bmp.Canvas.Brush.Color := clGreen;
   Bmp.Canvas.Brush.Style := bsSolid;
 
@@ -756,6 +757,8 @@ begin
   Bmp.Canvas.TextOut(Bmp.Width div 2 - 60, Bmp.Height div 2 - 40, 'Hello!');
 
   CnDebugger.EvaluateObject(Bmp, True);
+  // Bmp.SaveToFile('C:\CnPack\A64.bmp'); È«ºÚ
+
   Bmp.Free;
 {$ELSE}
   ShowMessage('Please RUN under Delphi 2009 or Above.');
