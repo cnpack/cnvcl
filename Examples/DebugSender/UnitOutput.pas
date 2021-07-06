@@ -723,17 +723,16 @@ begin
 end;
 
 procedure TFormSend.btnDrawTransparentClick(Sender: TObject);
-{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
 var
   Bmp: TBitmap;
   Y, SW: Integer;
   R: TRect;
-{$ENDIF}
 begin
-{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
   Bmp := TBitmap.Create;
   Bmp.PixelFormat := pf32Bit;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
   Bmp.AlphaFormat := afDefined;
+{$ENDIF}
   Bmp.Transparent := True;      // 3 Very Important !
 
   Bmp.Width := 400;
@@ -742,7 +741,7 @@ begin
   // Draw transparent background
   SW := Bmp.Width * SizeOf(TRGBQuad);
   for Y := 0 to Bmp.Height - 1 do
-    ZeroMemory(Bmp.ScanLine[Y], SW);
+    FillChar(Bmp.ScanLine[Y]^, SW, 0);
 
   Bmp.Canvas.Brush.Color := clGreen;
   Bmp.Canvas.Brush.Style := bsSolid;
@@ -760,9 +759,9 @@ begin
   // Bmp.SaveToFile('C:\CnPack\A64.bmp'); È«ºÚ
 
   Bmp.Free;
-{$ELSE}
-  ShowMessage('Please RUN under Delphi 2009 or Above.');
-{$ENDIF}
+//{$ELSE}
+//  ShowMessage('Please RUN under Delphi 2009 or Above.');
+//{$ENDIF}
 end;
 
 end.

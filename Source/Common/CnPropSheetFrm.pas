@@ -2513,12 +2513,14 @@ var
     FGraphicBmp.Height := AGraphic.Height;
     FGraphicBmp.Width := AGraphic.Width;
 
+    if AGraphic.Transparent
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
-    if AGraphic.SupportsPartialTransparency then // 如果有透明度，就先画个背景
-      TileBkToImageBmp;
+      or AGraphic.SupportsPartialTransparency
 {$ENDIF}
+      then // 如果有透明度或半透明度，就先画个背景
+      TileBkToImageBmp;
 
-    FGraphicBmp.Canvas.Draw(0, 0, AGraphic);
+    FGraphicBmp.Canvas.Draw(0, 0, AGraphic); // Draw 封装了全透明度的画、以及半透明混合画，但后者似乎不起作用
     pbGraphic.Invalidate;
 
     if AGraphic.Empty then
