@@ -24,7 +24,9 @@ unit CnPropSheetFrm;
 * 软件名称：CnPack 公用单元
 * 单元名称：对象 RTTI 信息显示窗体单元
 * 单元作者：刘啸（LiuXiao） liuxiao@cnpack.org
-* 备    注：
+* 备    注：部分类在遍历其属性并读属性值时其内部会发生改动，如高版本的 TPicture
+*           读 Bitmap/Icon/Metafile 属性时读什么内部就会强行转成什么导致原有数据丢失
+*           该类副作用遇到时要注意
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：未测试
 * 本 地 化：该窗体中的字符串暂不符合本地化处理方式
@@ -1741,87 +1743,90 @@ begin
     end;
 
     APropCount := GetTypeData(PTypeInfo(FObjectInstance.ClassInfo))^.PropCount;
-    GetMem(PropListPtr, APropCount * SizeOf(Pointer));
-    GetPropList(PTypeInfo(FObjectInstance.ClassInfo), tkAny, PropListPtr);
-
-    for I := 0 to APropCount - 1 do
+    if APropCount > 0 then
     begin
-      PropInfo := PropListPtr^[I];
-      if PropInfo^.PropType^^.Kind in tkProperties then
+      GetMem(PropListPtr, APropCount * SizeOf(Pointer));
+      GetPropList(PTypeInfo(FObjectInstance.ClassInfo), tkAny, PropListPtr);
+
+      for I := 0 to APropCount - 1 do
       begin
-        try
-          if not IsRefresh then
-            AProp := TCnPropertyObject.Create
-          else
-            AProp := IndexOfProperty(Properties, PropInfoName(PropInfo));
-
-          AProp.PropName := PropInfoName(PropInfo);
-          AProp.PropType := PropInfo^.PropType^^.Kind;
-          AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
-
-          // 有写入权限，并且指定类型，才可修改，否则界面上没法整
-          AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
-            in CnCanModifyPropTypes);
-
-          AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
-
-          AProp.ObjValue := nil;
-          AProp.IntfValue := nil;
-          if AProp.IsObjOrIntf then
-          begin
-            if AProp.PropType = tkClass then
-              AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
+        PropInfo := PropListPtr^[I];
+        if PropInfo^.PropType^^.Kind in tkProperties then
+        begin
+          try
+            if not IsRefresh then
+              AProp := TCnPropertyObject.Create
             else
-              AProp.IntfValue := IUnknown(GetOrdProp(FObjectInstance, PropInfo));
+              AProp := IndexOfProperty(Properties, PropInfoName(PropInfo));
+
+            AProp.PropName := PropInfoName(PropInfo);
+            AProp.PropType := PropInfo^.PropType^^.Kind;
+            AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
+
+            // 有写入权限，并且指定类型，才可修改，否则界面上没法整
+            AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
+              in CnCanModifyPropTypes);
+
+            AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
+
+            AProp.ObjValue := nil;
+            AProp.IntfValue := nil;
+            if AProp.IsObjOrIntf then
+            begin
+              if AProp.PropType = tkClass then
+                AProp.ObjValue := GetObjectProp(FObjectInstance, PropInfo)
+              else
+                AProp.IntfValue := IUnknown(GetOrdProp(FObjectInstance, PropInfo));
+            end;
+
+            S := GetPropValueStr(FObjectInstance, PropInfo);
+            if S <> AProp.DisplayValue then
+            begin
+              AProp.DisplayValue := S;
+              AProp.Changed := True;
+            end
+            else
+              AProp.Changed := False;
+
+            if not IsRefresh then
+              Properties.Add(AProp);
+
+            Include(FContentTypes, pctProps);
+          except
+            ;
           end;
+        end;
 
-          S := GetPropValueStr(FObjectInstance, PropInfo);
-          if S <> AProp.DisplayValue then
-          begin
-            AProp.DisplayValue := S;
-            AProp.Changed := True;
-          end
-          else
-            AProp.Changed := False;
+        if PropInfo^.PropType^^.Kind = tkMethod then
+        begin
+          try
+            if not IsRefresh then
+              AEvent := TCnEventObject.Create
+            else
+              AEvent := IndexOfEvent(FEvents, PropInfoName(PropInfo));
 
-          if not IsRefresh then
-            Properties.Add(AProp);
+            AEvent.EventName := PropInfoName(PropInfo);
+            AEvent.EventType := VarToStr(GetPropValue(FObjectInstance, PropInfoName(PropInfo)));
+            S := GetPropValueStr(FObjectInstance, PropInfo);
+            if S <> AEvent.DisplayValue then
+            begin
+              AEvent.DisplayValue := S;
+              AEvent.Changed := True;
+            end
+            else
+              AEvent.Changed := False;
 
-          Include(FContentTypes, pctProps);
-        except
-          ;
+            if not IsRefresh then
+              FEvents.Add(AEvent);
+
+            Include(FContentTypes, pctEvents);
+          except
+            ;
+          end;
         end;
       end;
-
-      if PropInfo^.PropType^^.Kind = tkMethod then
-      begin
-        try
-          if not IsRefresh then
-            AEvent := TCnEventObject.Create
-          else
-            AEvent := IndexOfEvent(FEvents, PropInfoName(PropInfo));
-
-          AEvent.EventName := PropInfoName(PropInfo);
-          AEvent.EventType := VarToStr(GetPropValue(FObjectInstance, PropInfoName(PropInfo)));
-          S := GetPropValueStr(FObjectInstance, PropInfo);
-          if S <> AEvent.DisplayValue then
-          begin
-            AEvent.DisplayValue := S;
-            AEvent.Changed := True;
-          end
-          else
-            AEvent.Changed := False;
-
-          if not IsRefresh then
-            FEvents.Add(AEvent);
-
-          Include(FContentTypes, pctEvents);
-        except
-          ;
-        end;
-      end;
+      FreeMem(PropListPtr);
     end;
-    FreeMem(PropListPtr);
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     // D2010 及以上，使用新 RTTI 方法获取更多属性
