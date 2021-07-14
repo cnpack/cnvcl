@@ -385,9 +385,9 @@ end;
 function FuzzyMatchStrWithScore(const Pattern: string; const Str: string;
   out Score: Integer; MatchedIndexes: TList; CaseSensitive: Boolean): Boolean;
 const
-  ADJACENCY_BONUS = 6;               // 每多一个字符的紧邻匹配时加分
+  ADJACENCY_BONUS = 4;               // 每多一个字符的紧邻匹配时加分
   SEPARATOR_BONUS = 10;              // 每多一个字符匹配发生在一个分隔符号后的加分
-  CAMEL_BONUS = 8;                   // 前一个匹配是小写而本次是大写时加分
+  CAMEL_BONUS = 5;                   // 前一个匹配是小写而本次是大写时加分
   LEADING_LETTER_PENALTY = -3;       // 第一个匹配的字母越靠母串后越扣分
   MAX_LEADING_LETTER_PENALTY = -9;   // 第一个匹配的字母哪怕最后，封顶只扣这么点分
   UNMATCHED_LETTER_PENALTY = -1;     // 不匹配的扣分
