@@ -433,7 +433,7 @@ begin
       FLineNumWidth := ASize.cx;
 
       // ÅÐ¶ÏÊÇ·ñµÈ¿í
-      FFontIsFixedWidth := EnumFontFamiliesEx(DC, LogFont, @EnumFontsProc, 0, 0) = 1;
+      FFontIsFixedWidth := EnumFontFamiliesEx(DC, LogFont, @EnumFontsProc, 0, 0) = BOOL(1);
     finally
       SaveFont := SelectObject(DC, SaveFont);
       if SaveFont <> 0 then
