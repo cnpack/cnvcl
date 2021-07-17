@@ -29,11 +29,17 @@ unit CnAAFont;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：平滑字体算法由李文松朋友提供的AAFont修改而来
-* 最后更新：2015.06.15
+* 最后更新：2021.07.17
+*               TCnAABlend 的 Blend 方法以及 TCnAAFont 的 TextOutput 方法支持目
+*               标为 32 位带 Alpha 通道的位图，需要调用者指定 DestIsAlpha 为 True
+*               注意在 XE 或以下版本中 32 位 Bitmap 对 Alpha 通道支持不完整，
+*               要显示 TCnAAFont 所输出的带透明度的平滑文字图，需要自行调用
+*               Windows.AlphaBlend 来显示。
+* 移植日期：2015.06.15
 *               修改输出名以躲过 BCB Unicode 下命名混淆的问题
+* 移植日期：2006.08.18
 *           2004.11.29
 *               写成
-* 移植日期：2006.08.18
 ================================================================================
 |</PRE>}
 
@@ -50,15 +56,15 @@ type
   TAAQuality = (aqHigh, aqNormal, aqLow, aqNone);
   {* 平滑字体显示精度类型
    |<PRE>
-     aqHigh     - 4X4采样的最高显示精度，速度较慢
-     aqNormal   - 3X3采样的普通显示精度，最佳性能速度比
-     aqLow      - 2X2采样的低显示精度，速度较快
+     aqHigh     - 4X4 采样的最高显示精度，速度较慢
+     aqNormal   - 3X3 采样的普通显示精度，最佳性能速度比
+     aqLow      - 2X2 采样的低显示精度，速度较快
      aqNone     - 无平滑效果
    |</PRE>}
   TAlpha = 0..100;
-  {* 不透明度类型，0为完全透明，100为完全不透明}
+  {* 不透明度类型，0 为完全透明，100 为完全不透明}
   TBlurStrength = 0..100;
-  {* 模糊度类型，0为不模糊，100为最大模糊度}
+  {* 模糊度类型，0 为不模糊，100 为最大模糊度}
   TOffset = -20..20;
   {* 阴影偏移量范围}
   TSprayRange = 0..100;
@@ -91,7 +97,7 @@ type
      stRightToLeft      - 从右到左滚动
      stLeftToRight      - 从左到右滚动
    |</PRE>}
-   
+
   TCnAAEffect = class;
   TCnAAMask = class;
   TCnAABlend = class;
@@ -101,7 +107,7 @@ type
 { TCnEnabledClass }
 
   TCnEnabledClass = class(TCnNotifyClass)
-  {* 带Enabled功能的更新通知的持久性类，一般不需要直接使用}
+  {* 带 Enabled 功能的更新通知的持久性类，一般不需要直接使用}
   private
     FEnabled: Boolean;
   protected
@@ -139,9 +145,9 @@ type
     {* 对象赋值方法}
   published
     property Blur: TBlurStrength read FBlur write SetBlur default 80;
-    {* 阴影模糊度，参数范围为0..100，0为不模糊}
+    {* 阴影模糊度，参数范围为 0..100，0 为不模糊}
     property Alpha: TAlpha read FAlpha write SetAlpha default 70;
-    {* 阴影不透明度，参数范围为0..100，0为全透明，100为不透明}
+    {* 阴影不透明度，参数范围为 0..100，0 为全透明，100 为不透明}
     property Color: TColor read FColor write SetColor default $00444444;
     {* 阴影颜色}
     property OffsetX: TOffset read FOffsetX write SetOffsetX default 2;
@@ -244,15 +250,15 @@ type
     property Texture: TCnAATexture read FTexture write SetTexture;
     {* 字体纹理参数}
     property Alpha: TAlpha read FAlpha write SetAlpha default 100;
-    {* 不透明度，参数范围为0..100，0为完全透明，100为不透明}
+    {* 不透明度，参数范围为 0..100，0 为完全透明，100 为不透明}
     property Blur: TBlurStrength read FBlur write SetBlur default 0;
-    {* 模糊度，参数范围为0..100，0为不模糊}
+    {* 模糊度，参数范围为 0..100，0 为不模糊}
     property Angle: TAngle read FAngle write SetAngle default 0;
-    {* 字体旋转角度，参数范围为-360..360，单位为度}
+    {* 字体旋转角度，参数范围为 -360..360，单位为度}
     property Noise: Byte read FNoise write SetNoise default 0;
-    {* 噪声效果，参数范围为0..255}
+    {* 噪声效果，参数范围为 0..255}
     property Spray: TSprayRange read FSpray write SetSpray default 0;
-    {* 喷溅效果，参数范围为0..100}
+    {* 喷溅效果，参数范围为 0..100}
     property Outline: Boolean read FOutline write SetOutline default False;
     {* 是否显示轮廓效果}
     property HorzMirror: Boolean read FHorzMirror write SetHorzMirror default False;
@@ -272,29 +278,34 @@ type
   {* 字节数组类型}
 
   PRGBArray = ^TRGBArray;
-  {* RGB数组指针}
+  {* RGB 数组指针}
   TRGBArray = array[0..8192] of tagRGBTriple;
-  {* RGB数组类型}
+  {* RGB 数组类型}
+
+  PBGRAArray = ^TBGRAArray;
+  {* BGRA 数组指针}
+  TBGRAArray = array[0..8192] of tagRGBQUAD;
+  {* BGRA 数组类型}
 
   TCnAAMask = class(TPersistent)
   {* 平滑特效字体蒙板处理类，供绘制平滑字体时内部使用}
   private
     FQuality: TAAQuality;
-    FpMaskBuff: PByteArray;
+    FPMaskBuff: PByteArray; // 存储画出的经过平滑处理的 8bit 灰度内容
     FHeight: Integer;
     FWidth: Integer;
     BytesLineGray: Integer;
     BytesLineMask: Integer;
     Scale: Integer;
-    AAFont: TCnAAFont;
-    GrayBmp: TBitmap;
+    FAAFont: TCnAAFont;
+    FGrayBmp: TBitmap;
     procedure InitGrayBmp;
     procedure FreeGrayBmp;
     procedure SetQuality(const Value: TAAQuality);
-    function TextExtentEx(s: string; var Point: TPoint): TSize;
+    function TextExtentEx(const S: string; var Point: TPoint): TSize;
   protected
     function ScanLine(Line: Integer; pAData: PByteArray): PByteArray; overload;
-    property pMaskBuff: PByteArray read FpMaskBuff;
+    property pMaskBuff: PByteArray read FPMaskBuff;
   public
     constructor Create(AOwner: TCnAAFont);
     {* 类构造器}
@@ -302,9 +313,9 @@ type
     {* 类析构器}
     procedure Assign(Source: TPersistent); override;
     {* 对象赋值方法}
-    procedure DrawMask(Text: string);
+    procedure DrawMask(const Text: string);
     {* 绘制文本蒙板图}
-    procedure DrawMaskEx(Text: string; Extend: TSize; Point: TPoint);
+    procedure DrawMaskEx(const Text: string; Extend: TSize; Point: TPoint);
     {* 绘制文本蒙板图增强版}
     procedure Blur(Blur: TBlurStrength);
     {* 对蒙板图进行模糊处理}
@@ -316,17 +327,17 @@ type
     {* 对蒙板图进行水平镜象处理}
     procedure VertMirror;
     {* 对蒙板图进行垂直镜象处理}
-    function TextExtent(s: string): TSize;
+    function TextExtent(const S: string): TSize;
     {* 返回文本高、宽}
-    function TextHeight(s: string): Integer;
+    function TextHeight(const S: string): Integer;
     {* 返回文本高度}
-    function TextWidth(s: string): Integer;
+    function TextWidth(const S: string): Integer;
     {* 返回文本宽度}
     function ScanLine(Line: Integer): Pointer; overload;
     {* 返回蒙板图扫描线地址}
-    function Pixel(x, y: Integer): Byte;
+    function Pixel(X, Y: Integer): Byte;
     {* 返回蒙板图指定象素灰度值}
-    function PixelAddr(x, y: Integer): Pointer;
+    function PixelAddr(X, Y: Integer): Pointer;
     {* 返回蒙板图指定象素地址}
     property Height: Integer read FHeight;
     {* 蒙板图的高度}
@@ -344,8 +355,10 @@ type
   {* 平滑特效字体图像混合处理类，供绘制平滑字体时内部使用}
   private
     FForeBmp: TBitmap;
-    RGBBmp: TBitmap;
-    AAFont: TCnAAFont;
+    FRGBBmp: TBitmap;
+    FForeBmp32: TBitmap;
+    FBGRABmp: TBitmap;
+    FAAFont: TCnAAFont;
     procedure SetForeBmp(const Value: TBitmap);
   public
     constructor Create(AOwner: TCnAAFont);
@@ -354,10 +367,11 @@ type
     {* 类析构器}
     procedure Assign(Source: TPersistent); override;
     {* 对象赋值方法}
-    procedure Blend(x, y: Integer; AColor: TColor; Alpha: TAlpha; Mask: TCnAAMask);
-    {* 按指定颜色进行混合}
-    procedure BlendEx(x, y: Integer; Alpha: TAlpha; Mask: TCnAAMask);
-    {* 使用前景图ForeBmp进行混合}
+    procedure Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
+      Mask: TCnAAMask; DestIsAlpha: Boolean = False);
+    {* 按指定颜色进行混合，当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True}
+    procedure BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask);
+    {* 使用前景图 ForeBmp 进行混合}
     property ForeBmp: TBitmap read FForeBmp write SetForeBmp;
     {* 字体前景图}
   end;
@@ -372,7 +386,7 @@ type
    !  W, H: Integer;
    !  S: string;
    !begin
-   !  // 创建TCnAAFont实例，并指定它使用PaintBox1的画布进行绘制
+   !  // 创建 TCnAAFont 实例，并指定它使用 PaintBox1 的画布进行绘制
    !  AAFont := TCnAAFont.Create(PaintBox1.Canvas);
    !  try
    !    with PaintBox1.Canvas do
@@ -386,7 +400,7 @@ type
    !    W := AAFont.TextWidth(S);
    !    H := AAFont.TextHeight(S);
    !    with PaintBox1 do // 在控件中心输出文本
-   !      AAFont.TextOut((Width - W) div 2, (Height - H) div 2, S, 80, 0);
+   !      AAFont.TextOutput((Width - W) div 2, (Height - H) div 2, S, 80, 0);
    !    AAFont.Canvas := Image1.Canvas; // 也可以切换到另一画布
    !    AAFont.TextOut(10, 10, S); // 绘制时将使用Image1.Canvas的字体属性
    !  finally
@@ -403,25 +417,26 @@ type
   public
     constructor Create(ACanvas: TCanvas); virtual;
     {* 类构造器，参数为绘制平滑字体文本和计算文本大小时使用的画布。
-     |<BR> 允许为nil，如果为nil，请在调用文本方法前对Canvas属性赋值}
+     |<BR> 允许为 nil，如果为 nil，请在调用文本方法前对 Canvas 属性赋值}
     destructor Destroy; override;
     {* 类析构器}
-    procedure TextOutput(x, y: Integer; s: string; Alpha: TAlpha = 100;
-      Blur: TBlurStrength = 0);
-    {* 输出平滑字体文本到当前设置的Canvas中，使用它的字体属性和画刷设置。
-     |<BR> 如果要输出背景透明的文本，需要将Canvas.Brush.Style设为bsClear。
+    procedure TextOutput(X, Y: Integer; const S: string; Alpha: TAlpha = 100;
+      Blur: TBlurStrength = 0; DestIsAlpha: Boolean = False);
+    {* 输出平滑字体文本到当前设置的 Canvas 中，使用它的字体属性和画刷设置。
+     |<BR> 如果要输出背景透明的文本，需要将 Canvas.Brush.Style 设为 bsClear。
      |<BR> 注：该方法不支持多行文本。
      |<PRE>
        x, y: Integer    - 文本输出位置
        s: string        - 要绘制的字符串
-       Alpha: TAlpha    - 文本的不透明度，默认为完全不透明
+       Alpha: TAlpha    - 文本的不透明度，0~100，默认为完全不透明 100
        Blur: TBlurStrength  - 文本的模糊度，默认为不进行模糊处理
+       DestIsAlpha: Boolean - 当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True
      |</PRE>}
-    function TextExtent(s: string): TSize; virtual;
+    function TextExtent(const S: string): TSize; virtual;
     {* 返回文本高、宽}
-    function TextHeight(s: string): Integer; virtual;
-    {* 返回指定文本的显示高度，使用当前的Canvas属性}
-    function TextWidth(s: string): Integer; virtual;
+    function TextHeight(const S: string): Integer; virtual;
+    {* 返回指定文本的显示高度，使用当前的 Canvas 属性}
+    function TextWidth(const S: string): Integer; virtual;
     {* 返回指定文本的显示宽度，使用当前的Canvas属性}
     property Quality: TAAQuality read GetQuality write SetQuality;
     {* 平滑字体绘制精度}
@@ -433,7 +448,8 @@ type
 
   TCnAAFontEx = class(TCnAAFont)
   {* 扩展的平滑特效字体绘制类，实现了阴影、渐变、纹理等特效。
-   |<BR> 用户可手动TCnAAFontEx来绘制带特效的平滑字体文本，使用方法类似于TCnAAFont。}
+   |<BR> 用户可手动创建 TCnAAFontEx 对象来绘制带特效的平滑字体文本，
+   使用方法类似于 TCnAAFont。}
   private
     FEffect: TCnAAEffect;
     procedure SetEffect(const Value: TCnAAEffect);
@@ -448,15 +464,15 @@ type
   public
     constructor Create(ACanvas: TCanvas); override;
     {* 类构造器，参数为绘制平滑字体文本和计算文本大小时使用的画布。
-     |<BR> 允许为nil，如果为nil，请在调用文本方法前对Canvas属性赋值}
+     |<BR> 允许为 nil，如果为 nil，请在调用文本方法前对 Canvas 属性赋值}
     destructor Destroy; override;
     {* 类析构器}
-    function TextExtent(s: string): TSize; override;
+    function TextExtent(const S: string): TSize; override;
     {* 返回文本高、宽
      |<BR> 注：Effect参数中的阴影、旋转角度等设置将影响返回结果}
-    procedure TextOutput(x, y: Integer; s: string);
+    procedure TextOutput(X, Y: Integer; const S: string);
     {* 使用Effect设置的字体特效，输出平滑字体文本到当前设置的Canvas中，使用它的字体属性和画刷设置。
-     |<BR> 如果要输出背景透明的文本，需要将Canvas.Brush.Style设为bsClear。
+     |<BR> 如果要输出背景透明的文本，需要将 Canvas.Brush.Style 设为 bsClear。
      |<BR> 注：该方法不支持多行文本。
      |<PRE>
        x, y: Integer    - 文本输出位置
@@ -481,7 +497,7 @@ type
 { TCnFontLabel }
 
   TCnFontLabel = class(TCollectionItem)
-  {* 字体标签列表项类，TCnFontLabels的子项，一般不需要用户直接创建}
+  {* 字体标签列表项类，TCnFontLabels 的子项，一般不需要用户直接创建}
   private
     FName: string;
     FFont: TFont;
@@ -535,7 +551,7 @@ type
     procedure Check(var AText: string; AFont: TFont; AEffect: TCnAAEffect);
     {* 检查可能带字体标签的字符串。
      |<BR> 如果找到相应的标签，删除字符串中的标签（包含<>标记），并用该标签
-       定义的Font和Effect属性设置参数中的对应属性}
+       定义的 Font 和 Effect 属性设置参数中的对应属性}
     property Items[Index: Integer]: TCnFontLabel read GetItem write SetItem; default;
     {* 字体标签项数组属性}
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
@@ -566,7 +582,7 @@ type
    |</PRE>}
 
   TCnUserLabel = class(TCollectionItem)
-  {* 用户文本标签列表项类，TCnUserLabels的子项，一般不需要用户直接创建}
+  {* 用户文本标签列表项类，TCnUserLabels 的子项，一般不需要用户直接创建}
   private
     FName: string;
     FText: string;
@@ -622,8 +638,8 @@ type
     {* 根据标签名查找子项索引}
     procedure Check(var AText: string; var Align: TAlignment);
     {* 检查可能带文本标签的字符串。
-     |<BR> 如果找到相应的标签，将文本中的标签（包含<>符号）用标签的Text属性取代，
-       同时，还将调用标签的OnGetText事件。如果是对齐标签，将设置参数中的Align属性。}
+     |<BR> 如果找到相应的标签，将文本中的标签（包含<>符号）用标签的 Text 属性取代，
+       同时，还将调用标签的 OnGetText 事件。如果是对齐标签，将设置参数中的 Align 属性。}
     property Items[Index: Integer]: TCnUserLabel read GetItem write SetItem; default;
     {* 用户标签项数组属性}
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
@@ -658,11 +674,11 @@ type
     procedure SetDragMode(const Value: TDragMode);
   published
     property DragKind: TDragKind read GetDragKind write SetDragKind default dkDrag;
-    {* 拖放类型，同TControl中定义}
+    {* 拖放类型，同 TControl 中定义}
     property DragCursor: TCursor read GetDragCursor write SetDragCursor default crDrag;
-    {* 拖放光标，同TControl中定义}
+    {* 拖放光标，同 TControl 中定义}
     property DragMode: TDragMode read GetDragMode write SetDragMode default dmManual;
-    {* 拖放模式，同TControl中定义}
+    {* 拖放模式，同 TControl 中定义}
   end;
 
 { TCnParentEffect }
@@ -684,12 +700,12 @@ type
   published
     property ParentColor: Boolean read GetParentColor write SetParentColor default
       True;
-    {* 使用父控件的颜色，同TControl中定义}
+    {* 使用父控件的颜色，同 TControl 中定义}
     property ParentFont: Boolean read GetParentFont write SetParentFont default True;
-    {* 使用父控件的字体，同TControl中定义}
+    {* 使用父控件的字体，同 TControl 中定义}
     property ParentShowHint: Boolean read GetParentShowHint write SetParentShowHint
       default True;
-    {* 使用父控件的提示显示设置，同TControl中定义}
+    {* 使用父控件的提示显示设置，同 TControl 中定义}
   end;
 
 { TCnCustomParam }
@@ -819,7 +835,6 @@ type
   {* 平滑字体控件基类，所有平滑字体控件由该基类派生而来，一般不需要用户直接创建
    |<BR> 如果用户需要编写自己的平滑字体控件，可仔细分析该基类源码}
   private
-    { Private declarations }
 {$IFNDEF COMPILER6_UP}
     FAutoSize: Boolean;
 {$ENDIF}
@@ -843,7 +858,6 @@ type
       BreakChars: TSysCharSet; MaxCol: Integer): string;
     procedure SetAutoUpdate(const Value: Boolean);
   protected
-    { Protected declarations }
 {$IFDEF COMPILER6_UP}
     procedure SetAutoSize(Value: Boolean); override;
 {$ELSE}
@@ -874,7 +888,6 @@ type
     property Border: TBorderWidth read FBorder write SetBorder default 0;
     {* 控件边界保留宽度}
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
     destructor Destroy; override;
@@ -884,13 +897,12 @@ type
     procedure BeginUpdate;
     {* 开始更新，调用该方法后，对控件属性的更改不会导致控件重绘，建议在批量修改
        控件时使用。
-     |<BR> 注意该方法必须与EndUpate成对使用。}
+     |<BR> 注意该方法必须与 EndUpate 成对使用。}
     procedure EndUpdate;
-    {* 结束更新，见BeginUpdate。用户结束更新后通常还应调用Changed方法通知控件重绘。}
+    {* 结束更新，见 BeginUpdate。用户结束更新后通常还应调用 Changed 方法通知控件重绘。}
     procedure Changed;
     {* 通知控件属性已变更，要求控件重绘}
   published
-    { Published declarations }
     property Drag: TCnDrag read FDrag write SetDrag;
     {* 拖动相关属性打包}
     property ParentEffect: TCnParentEffect read FParentEffect write SetParentEffect;
@@ -928,7 +940,6 @@ type
      一般不需要用户直接创建。
    |<BR> 如果用户需要编写自己的平滑字体控件，可分析该基类源码}
   private
-    { Private declarations }
     FFonts: TCnFontLabels;
     FOnTextReady: TNotifyEvent;
     FOnComplete: TNotifyEvent;
@@ -939,7 +950,6 @@ type
     procedure SetFonts(const Value: TCnFontLabels);
     procedure SetLabels(const Value: TCnUserLabels);
   protected
-    { Protected declarations }
     procedure CreateDefLabels; virtual;
     procedure CreateDefFonts; virtual;
     procedure CreateDefault;
@@ -950,13 +960,11 @@ type
     property OnTextReady: TNotifyEvent read FOnTextReady write FOnTextReady;
     property OnPainted: TNotifyEvent read FOnPainted write FOnPainted;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
     destructor Destroy; override;
     {* 类析构器}
   published
-    { Published declarations }
     property Fonts: TCnFontLabels read FFonts write SetFonts;
     {* 字体标签属性}
     property Labels: TCnUserLabels read FLabels write SetLabels;
@@ -967,12 +975,12 @@ var
   HSLRange: Integer = 240;
   {* HSL整数型颜色的范围值}
 
-//HSL颜色与RGB色转换函数
+// HSL颜色与RGB色转换函数
 function HSLtoRGB(H, S, L: Double): TColor;
 {* HSL颜色转换为RGB颜色
  |<PRE>
    H, S, L: Double      - 分别为色调、饱和度、亮度分量，为"0"到"1"之间的小数
-   Result: TColor       - 返回RGB颜色值
+   Result: TColor       - 返回 RGB 颜色值
  |</PRE>}
 function HSLRangeToRGB(H, S, L: Integer): TColor;
 {* HSL颜色转换为RGB颜色
@@ -999,8 +1007,13 @@ implementation
 {$OVERFLOWCHECKS OFF}
 
 const
-  ItalicAdjust = 0.3;                   //斜体字宽度校正系数
+  ItalicAdjust = 0.3;                   // 斜体字宽度校正系数
   SDuplicateString = 'Duplicate string!';
+
+type
+  PDWordArray = ^TDWordArray;
+  TDWordArray = array[0..8192] of DWORD;
+  {* DWORD 数组类型}
 
 function HSLtoRGB(H, S, L: Double): TColor;
 var
@@ -1117,14 +1130,14 @@ var
 begin
   if AGraphic is TIcon then
   begin
-    // TIcon 不支持缩放绘制，通过 TBitmap 中转
+    //  TIcon 不支持缩放绘制，通过 TBitmap 中转
     Bmp := TBitmap.Create;
     try
       Bmp.Canvas.Brush.Color := BkColor;
       Bmp.Canvas.Brush.Style := bsSolid;
       Bmp.Width := AGraphic.Width;
       Bmp.Height := AGraphic.Height;
-      //Bmp.Canvas.FillRect(Rect(0, 0, Bmp.Width, Bmp.Height));
+      // Bmp.Canvas.FillRect(Rect(0, 0, Bmp.Width, Bmp.Height));
       Bmp.Canvas.Draw(0, 0, AGraphic);
       ACanvas.StretchDraw(ARect, Bmp);
     finally
@@ -1145,19 +1158,19 @@ var
   HGrayPal: HPALETTE = 0;
   LogPal: TLogPal;
 
-//初始化灰度位图
+// 初始化灰度位图
 procedure InitGrayPal;
 var
-  i: Integer;
+  I: Integer;
 begin
   LogPal.lpal.palVersion := $300;
   LogPal.lpal.palNumEntries := 256;
-  for i := 0 to 255 do
+  for I := 0 to 255 do
   begin
-    LogPal.dummy[i].peRed := i;
-    LogPal.dummy[i].peGreen := i;
-    LogPal.dummy[i].peBlue := i;
-    LogPal.dummy[i].peFlags := 0;
+    LogPal.dummy[I].peRed := I;
+    LogPal.dummy[I].peGreen := I;
+    LogPal.dummy[I].peBlue := I;
+    LogPal.dummy[I].peFlags := 0;
   end;
   HGrayPal := CreatePalette(LogPal.lpal);
 end;
@@ -1165,10 +1178,10 @@ end;
 { TCnAAMask }
 
 //--------------------------------------------------------//
-//平滑字体蒙板类                                          //
+// 平滑字体蒙板类                                         //
 //--------------------------------------------------------//
 
-//赋值
+// 赋值
 procedure TCnAAMask.Assign(Source: TPersistent);
 begin
   if Source is TCnAAMask then
@@ -1178,8 +1191,8 @@ begin
     Quality := TCnAAMask(Source).Quality;
     BytesLineGray := TCnAAMask(Source).BytesLineGray;
     BytesLineMask := TCnAAMask(Source).BytesLineMask;
-    ReAllocMem(FpMaskBuff, FHeight * BytesLineMask);
-    CopyMemory(FpMaskBuff, TCnAAMask(Source).FpMaskBuff, FHeight * BytesLineMask);
+    ReAllocMem(FPMaskBuff, FHeight * BytesLineMask);
+    CopyMemory(FPMaskBuff, TCnAAMask(Source).FPMaskBuff, FHeight * BytesLineMask);
   end
   else
   begin
@@ -1187,31 +1200,31 @@ begin
   end;
 end;
 
-//初始化
+// 初始化
 constructor TCnAAMask.Create(AOwner: TCnAAFont);
 begin
-  AAFont := AOwner;
-  FpMaskBuff := nil;
+  FAAFont := AOwner;
+  FPMaskBuff := nil;
   Quality := aqNormal;
 end;
 
-//释放
+// 释放
 destructor TCnAAMask.Destroy;
 begin
   FreeGrayBmp;
-  FreeMem(FpMaskBuff);
+  FreeMem(FPMaskBuff);
   inherited;
 end;
 
 procedure TCnAAMask.InitGrayBmp;
 begin
-  if GrayBmp = nil then
+  if FGrayBmp = nil then
   begin
-    GrayBmp := TBitmap.Create;
-    GrayBmp.PixelFormat := pf8bit;
-    GrayBmp.Canvas.Brush.Style := bsSolid;
-    GrayBmp.Canvas.Brush.Color := clBlack;
-    GrayBmp.Palette := CopyPalette(HGrayPal);
+    FGrayBmp := TBitmap.Create;
+    FGrayBmp.PixelFormat := pf8bit;
+    FGrayBmp.Canvas.Brush.Style := bsSolid;
+    FGrayBmp.Canvas.Brush.Color := clBlack;
+    FGrayBmp.Palette := CopyPalette(HGrayPal);
   end;
 end;
 
@@ -1219,83 +1232,85 @@ procedure TCnAAMask.FreeGrayBmp;
 var
   P: HPALETTE;
 begin
-  if GrayBmp <> nil then
+  if FGrayBmp <> nil then
   begin
-    P := GrayBmp.Palette;
-    GrayBmp.Palette := 0;
-    FreeAndNil(GrayBmp);
+    P := FGrayBmp.Palette;
+    FGrayBmp.Palette := 0;
+    FreeAndNil(FGrayBmp);
     DeleteObject(P);
   end;
 end;
 
-//绘制平滑字体蒙板
-procedure TCnAAMask.DrawMaskEx(Text: string; Extend: TSize; Point: TPoint);
+// 绘制平滑字体蒙板
+procedure TCnAAMask.DrawMaskEx(const Text: string; Extend: TSize; Point: TPoint);
 var
-  i, j: Integer;
+  I, J: Integer;
   pS1, pS2, pS3, pS4: PByteArray;
   pDes: PByteArray;
-  x, y: Integer;
+  X, Y: Integer;
   P: TPoint;
   LogFont: TLogFont;
   Beta: Double;
   TextSize: TSize;
   R: TRect;
 begin
-  if (AAFont = nil) or (AAFont.Canvas = nil) then
+  if (FAAFont = nil) or (FAAFont.Canvas = nil) then
     Exit;
 
   InitGrayBmp;
-  FWidth := Extend.cx;                  //大小
+  FWidth := Extend.cx;                  // 大小
   FHeight := Extend.cy;
-  if GrayBmp.Width < Width * Scale then //放大
-    GrayBmp.Width := Width * Scale;
-  if GrayBmp.Height < Height * Scale then
-    GrayBmp.Height := Height * Scale;
+  if FGrayBmp.Width < Width * Scale then // 放大
+    FGrayBmp.Width := Width * Scale;
+  if FGrayBmp.Height < Height * Scale then
+    FGrayBmp.Height := Height * Scale;
 
-  GetObject(AAFont.Canvas.Font.Handle, SizeOf(TLogFont), @LogFont);
+  GetObject(FAAFont.Canvas.Font.Handle, SizeOf(TLogFont), @LogFont);
   with LogFont do
   begin
     lfHeight := lfHeight * Scale;
     lfWidth := lfWidth * Scale;
     Beta := lfEscapement * Pi / 1800;
   end;
-  GrayBmp.Canvas.Font.Handle := CreateFontIndirect(LogFont);
-  GrayBmp.Canvas.Font.Color := clWhite;
-  FillRect(GrayBmp.Canvas.Handle, Bounds(0, 0, GrayBmp.Width, GrayBmp.Height), 0);
-  x := Point.x * Scale;
-  y := Point.y * Scale;
+
+  FGrayBmp.Canvas.Font.Handle := CreateFontIndirect(LogFont);
+  FGrayBmp.Canvas.Font.Color := clWhite;
+  FillRect(FGrayBmp.Canvas.Handle, Bounds(0, 0, FGrayBmp.Width, FGrayBmp.Height), 0);
+  X := Point.X * Scale;
+  Y := Point.Y * Scale;
   if Beta <> 0 then      // 考虑字体旋转
   begin
     TextSize := TextExtentEx(Text, P);
-    Inc(x, P.x * Scale);
-    Inc(y, P.y * Scale);
+    Inc(X, P.X * Scale);
+    Inc(Y, P.Y * Scale);
   end;
-  R := Bounds(0, 0, GrayBmp.Width, GrayBmp.Height);
-  Windows.TextOut(GrayBmp.Canvas.Handle, x, y, PChar(Text), Length(Text));
+  R := Bounds(0, 0, FGrayBmp.Width, FGrayBmp.Height);
+  Windows.TextOut(FGrayBmp.Canvas.Handle, X, Y, PChar(Text), Length(Text));
 
-  BytesLineGray := (GrayBmp.Width + 3) div 4 * 4; //扫描线宽度
+  BytesLineGray := (FGrayBmp.Width + 3) div 4 * 4; // 扫描线宽度
   BytesLineMask := (Width + 3) div 4 * 4;
-  ReAllocMem(FpMaskBuff, BytesLineMask * Height);
+  ReAllocMem(FPMaskBuff, BytesLineMask * Height);
 
-  pS1 := GrayBmp.ScanLine[0];           //源灰度图
+  pS1 := FGrayBmp.ScanLine[0];           // 源灰度图
   pS2 := PByteArray(Integer(pS1) - BytesLineGray);
   pS3 := PByteArray(Integer(pS2) - BytesLineGray);
   pS4 := PByteArray(Integer(pS3) - BytesLineGray);
   pDes := PByteArray(Integer(pMaskBuff) + (Height - 1) * BytesLineMask);
-    //目标灰度为源矩形块的平均值
+  // 目标灰度为源矩形块的平均值
+
   case Quality of
     aqHigh:
-      begin                             //高精度4X4采样
-        for i := 0 to Height - 1 do
+      begin                             // 高精度 4X4 采样
+        for I := 0 to Height - 1 do
         begin
-          for j := 0 to Width - 1 do
+          for J := 0 to Width - 1 do
           begin
-            x := j * 4;
-            pDes^[j] :=
-              (pS1^[x] + pS1^[x + 1] + pS1^[x + 2] + pS1^[x + 3] +
-              pS2^[x] + pS2^[x + 1] + pS2^[x + 2] + pS2^[x + 3] +
-              pS3^[x] + pS3^[x + 1] + pS3^[x + 2] + pS3^[x + 3] +
-              pS4^[x] + pS4^[x + 1] + pS4^[x + 2] + pS4^[x + 3]) shr 4;
+            X := J * 4;
+            pDes^[J] :=
+              (pS1^[X] + pS1^[X + 1] + pS1^[X + 2] + pS1^[X + 3] +
+              pS2^[X] + pS2^[X + 1] + pS2^[X + 2] + pS2^[X + 3] +
+              pS3^[X] + pS3^[X + 1] + pS3^[X + 2] + pS3^[X + 3] +
+              pS4^[X] + pS4^[X + 1] + pS4^[X + 2] + pS4^[X + 3]) shr 4;
           end;
           pS1 := PByteArray(Integer(pS4) - BytesLineGray);
           pS2 := PByteArray(Integer(pS1) - BytesLineGray);
@@ -1305,16 +1320,16 @@ begin
         end;
       end;
     aqNormal:
-      begin                             //普通精度3X3采样
-        for i := 0 to Height - 1 do
+      begin                             // 普通精度 3X3 采样
+        for I := 0 to Height - 1 do
         begin
-          for j := 0 to Width - 1 do
+          for J := 0 to Width - 1 do
           begin
-            x := j * 3;
-            pDes^[j] :=
-              (pS1^[x] + pS1^[x + 1] + pS1^[x + 2] shr 1 +
-              pS2^[x] + pS2^[x + 1] + pS2^[x + 2] +
-              pS3^[x] shr 1 + pS3^[x + 1] + pS3^[x + 2]) shr 3;
+            X := J * 3;
+            pDes^[J] :=
+              (pS1^[X] + pS1^[X + 1] + pS1^[X + 2] shr 1 +
+              pS2^[X] + pS2^[X + 1] + pS2^[X + 2] +
+              pS3^[X] shr 1 + pS3^[X + 1] + pS3^[X + 2]) shr 3;
           end;
           pS1 := PByteArray(Integer(pS3) - BytesLineGray);
           pS2 := PByteArray(Integer(pS1) - BytesLineGray);
@@ -1323,15 +1338,15 @@ begin
         end;
       end;
     aqLow:
-      begin                             //低精度2X2采样
-        for i := 0 to Height - 1 do
+      begin                             // 低精度 2X2 采样
+        for I := 0 to Height - 1 do
         begin
-          for j := 0 to Width - 1 do
+          for J := 0 to Width - 1 do
           begin
-            x := j * 2;
-            pDes^[j] :=
-              (pS1^[x] + pS1^[x + 1] +
-              pS2^[x] + pS2^[x + 1]) shr 2;
+            X := J * 2;
+            pDes^[J] :=
+              (pS1^[X] + pS1^[X + 1] +
+              pS2^[X] + pS2^[X + 1]) shr 2;
           end;
           pS1 := PByteArray(Integer(pS2) - BytesLineGray);
           pS2 := PByteArray(Integer(pS1) - BytesLineGray);
@@ -1339,8 +1354,8 @@ begin
         end;
       end;
     aqNone:
-      begin                             //无平滑效果
-        for i := 0 to Height - 1 do
+      begin                             // 无平滑效果
+        for I := 0 to Height - 1 do
         begin
           CopyMemory(pDes, pS1, Width);
           pS1 := PByteArray(Integer(pS1) - BytesLineGray);
@@ -1351,41 +1366,41 @@ begin
   FreeGrayBmp;
 end;
 
-//绘制平滑字体
-procedure TCnAAMask.DrawMask(Text: string);
+// 绘制平滑字体
+procedure TCnAAMask.DrawMask(const Text: string);
 begin
   DrawMaskEx(Text, TextExtent(Text), Point(0, 0));
 end;
 
-//边缘检测
+// 边缘检测
 procedure TCnAAMask.Outline;
 var
-  x, y: Integer;
+  X, Y: Integer;
   s1, s2, s3, s4, Sum: Integer;
   pTempBuff: PByteArray;
   pDes: PByteArray;
-  pUp, pMiddle, pDown: PByteArray;      //卷积用指针
+  pUp, pMiddle, pDown: PByteArray;      // 卷积用指针
 begin
-  GetMem(pTempBuff, BytesLineMask * Height); //临时缓冲区
+  GetMem(pTempBuff, BytesLineMask * Height); // 临时缓冲区
   try
     CopyMemory(pTempBuff, pMaskBuff, BytesLineMask * Height);
-    for y := 1 to Height - 2 do
+    for Y := 1 to Height - 2 do
     begin
-      pUp := ScanLine(y - 1, pTempBuff);
-      pMiddle := ScanLine(y, pTempBuff);
-      pDown := ScanLine(y + 1, pTempBuff);
-      pDes := ScanLine(y);
-      for x := 1 to Width - 2 do
+      pUp := ScanLine(Y - 1, pTempBuff);
+      pMiddle := ScanLine(Y, pTempBuff);
+      pDown := ScanLine(Y + 1, pTempBuff);
+      pDes := ScanLine(Y);
+      for X := 1 to Width - 2 do
       begin
-        s1 := Abs(pDown^[x] - pUp^[x]);
-        s2 := Abs(pMiddle^[x + 1] - pMiddle^[x - 1]);
-        s3 := Abs(pDown^[x - 1] - pUp^[x + 1]);
-        s4 := Abs(pDown^[x + 1] - pUp^[x - 1]);
+        s1 := Abs(pDown^[X] - pUp^[X]);
+        s2 := Abs(pMiddle^[X + 1] - pMiddle^[X - 1]);
+        s3 := Abs(pDown^[X - 1] - pUp^[X + 1]);
+        s4 := Abs(pDown^[X + 1] - pUp^[X - 1]);
         Sum := (s1 + s2 + s3 + s4) shr 2;
         if Sum > 255 then
-          pDes^[x] := 255
+          pDes^[X] := 255
         else
-          pDes^[x] := Sum;
+          pDes^[X] := Sum;
       end;
     end;
   finally
@@ -1393,64 +1408,64 @@ begin
   end;
 end;
 
-//字体模糊
+// 字体模糊
 procedure TCnAAMask.Blur(Blur: TBlurStrength);
 type
   TLine = array[0..4] of Integer;
 const
   csLine: array[0..4] of TLine = (
     (0, 0, 0, 1, 2), (-1, -1, 0, 1, 2), (-2, -1, 0, 1, 2),
-    (-2, -1, 0, 1, 1), (-2, -1, 0, 0, 0)); //边界处理常量
+    (-2, -1, 0, 1, 1), (-2, -1, 0, 0, 0)); // 边界处理常量
 var
   pTempBuff: PByteArray;
   pSour: array[0..4] of PByteArray;
   pDes: PByteArray;
   xLine: TLine;
   yLine: TLine;
-  x, y, i: Integer;
+  X, Y, I: Integer;
   Sum: Integer;
   ABlur: Byte;
 begin
-  GetMem(pTempBuff, BytesLineMask * Height); //临时缓冲区
+  GetMem(pTempBuff, BytesLineMask * Height); // 临时缓冲区
   try
     CopyMemory(pTempBuff, pMaskBuff, BytesLineMask * Height);
     ABlur := Round(Blur * 255 / 100);
-    for y := 0 to Height - 1 do         //边界处理
+    for Y := 0 to Height - 1 do         // 边界处理
     begin
-      if y = 0 then
+      if Y = 0 then
         yLine := csLine[0]
-      else if y = 1 then
+      else if Y = 1 then
         yLine := csLine[1]
-      else if y = Height - 2 then
+      else if Y = Height - 2 then
         yLine := csLine[3]
-      else if y = Height - 1 then
+      else if Y = Height - 1 then
         yLine := csLine[4]
       else
         yLine := csLine[2];
-      for i := 0 to 4 do
-        pSour[i] := ScanLine(yLine[i] + y, pTempBuff);
-      pDes := ScanLine(y, pMaskBuff);
-      for x := 0 to Width - 1 do        //边界处理
+      for I := 0 to 4 do
+        pSour[I] := ScanLine(yLine[I] + Y, pTempBuff);
+      pDes := ScanLine(Y, pMaskBuff);
+      for X := 0 to Width - 1 do        // 边界处理
       begin
-        if x = 0 then
+        if X = 0 then
           xLine := csLine[0]
-        else if x = 1 then
+        else if X = 1 then
           xLine := csLine[1]
-        else if x = Width - 2 then
+        else if X = Width - 2 then
           xLine := csLine[3]
-        else if x = Width - 1 then
+        else if X = Width - 1 then
           xLine := csLine[4]
         else
           xLine := csLine[2];
         Sum := 0;
-        for i := 0 to 4 do              //5X5均值处理
-          Inc(Sum, pSour[i]^[x + xLine[0]] + pSour[i]^[x + xLine[1]] +
-            pSour[i]^[x + xLine[2]] + pSour[i]^[x + xLine[3]] +
-            pSour[i]^[x + xLine[3]]);
-        if ABlur = 255 then             //模糊度
-          pDes^[x] := Round(Sum / 25)
+        for I := 0 to 4 do              // 5X5均值处理
+          Inc(Sum, pSour[I]^[X + xLine[0]] + pSour[I]^[X + xLine[1]] +
+            pSour[I]^[X + xLine[2]] + pSour[I]^[X + xLine[3]] +
+            pSour[I]^[X + xLine[3]]);
+        if ABlur = 255 then             // 模糊度
+          pDes^[X] := Round(Sum / 25)
         else
-          pDes^[x] := (Round(Sum / 25) - pDes^[x]) * ABlur shr 8 + pDes^[x];
+          pDes^[X] := (Round(Sum / 25) - pDes^[X]) * ABlur shr 8 + pDes^[X];
       end;
     end;
   finally
@@ -1458,65 +1473,65 @@ begin
   end;
 end;
 
-// 喷溅效果
+//  喷溅效果
 procedure TCnAAMask.Spray(Amount: Integer);
 var
-  r, x, y, ax, ay: Integer;
+  r, X, Y, ax, ay: Integer;
   pDes: PByteArray;
 begin
   pDes := ScanLine(0);
-  for y := 0 to FHeight - 1 do
+  for Y := 0 to FHeight - 1 do
   begin
-    for x := 0 to FWidth - 1 do
+    for X := 0 to FWidth - 1 do
     begin
       r := Random(Amount + 1);
-      ax := x + r - Random(r * 2);
+      ax := X + r - Random(r * 2);
       if ax < 0 then
         ax := 0
       else if ax > FWidth - 1 then
         ax := FWidth - 1;
-      ay := y + r - Random(r * 2);
+      ay := Y + r - Random(r * 2);
       if ay < 0 then
         ay := 0
       else if ay > FHeight - 1 then
         ay := FHeight - 1;
-      pDes^[x] := PByteArray(ScanLine(ay))[ax];
+      pDes^[X] := PByteArray(ScanLine(ay))[ax];
     end;
     pDes := PByteArray(Integer(pDes) - BytesLineMask);
   end;
 end;
 
-//对蒙板图进行水平镜象处理
+// 对蒙板图进行水平镜象处理
 procedure TCnAAMask.HorzMirror;
 var
-  x, y: Integer;
+  X, Y: Integer;
   c: Byte;
   pLine: PByteArray;
 begin
-  for y := 0 to FHeight - 1 do
+  for Y := 0 to FHeight - 1 do
   begin
-    pLine := ScanLine(y);
-    for x := 0 to FWidth div 2 - 1 do
+    pLine := ScanLine(Y);
+    for X := 0 to FWidth div 2 - 1 do
     begin
-      c := pLine[x];
-      pLine[x] := pLine[FWidth - 1 - x];
-      pLine[FWidth - 1 - x] := c;
+      c := pLine[X];
+      pLine[X] := pLine[FWidth - 1 - X];
+      pLine[FWidth - 1 - X] := c;
     end;
   end;
 end;
 
-//对蒙板图进行垂直镜象处理
+// 对蒙板图进行垂直镜象处理
 procedure TCnAAMask.VertMirror;
 var
   pSrc, pDst, pBuf: PByteArray;
-  i: Integer;
+  I: Integer;
 begin
   GetMem(pBuf, BytesLineMask);
   try
-    for i := 0 to FHeight div 2 - 1 do
+    for I := 0 to FHeight div 2 - 1 do
     begin
-      pSrc := ScanLine(i);
-      pDst := ScanLine(FHeight - 1 - i);
+      pSrc := ScanLine(I);
+      pDst := ScanLine(FHeight - 1 - I);
       CopyMemory(pBuf, pSrc, BytesLineMask);
       CopyMemory(pSrc, pDst, BytesLineMask);
       CopyMemory(pDst, pBuf, BytesLineMask);
@@ -1526,31 +1541,31 @@ begin
   end;
 end;
 
-//象素地址
-function TCnAAMask.PixelAddr(x, y: Integer): Pointer;
+// 象素地址
+function TCnAAMask.PixelAddr(X, Y: Integer): Pointer;
 begin
-  if (x < 0) or (x > Width - 1) or (y < 0) or (y > Height - 1) then
+  if (X < 0) or (X > Width - 1) or (Y < 0) or (Y > Height - 1) then
     raise EInvalidPixel.Create('Invalid pixel!')
   else
-    Result := Pointer(Integer(FpMaskBuff) + (Height - 1 + y) * BytesLineMask + x);
+    Result := Pointer(Integer(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask + X);
 end;
 
-//象素
-function TCnAAMask.Pixel(x, y: Integer): Byte;
+// 象素
+function TCnAAMask.Pixel(X, Y: Integer): Byte;
 begin
-  if (x < 0) or (x > Width - 1) or (y < 0) or (y > Height - 1) then
+  if (X < 0) or (X > Width - 1) or (Y < 0) or (Y > Height - 1) then
     raise EInvalidPixel.Create('Invalid pixel!')
   else
-    Result := PByteArray(Integer(FpMaskBuff) + (Height - 1 + y) * BytesLineMask)[x];
+    Result := PByteArray(Integer(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask)[X];
 end;
 
-//扫描线地址
+// 扫描线地址
 function TCnAAMask.ScanLine(Line: Integer): Pointer;
 begin
   if (Line < 0) or (Line > Height - 1) then
     raise EInvalidLine.Create('Invalid line!')
   else
-    Result := Pointer(Integer(FpMaskBuff) + (Height - 1 - Line) * BytesLineMask);
+    Result := Pointer(Integer(FPMaskBuff) + (Height - 1 - Line) * BytesLineMask);
 end;
 
 function TCnAAMask.ScanLine(Line: Integer; pAData: PByteArray): PByteArray;
@@ -1558,7 +1573,7 @@ begin
   Result := PByteArray(Integer(pAData) + (Height - 1 - Line) * BytesLineMask);
 end;
 
-//设置精度
+// 设置精度
 procedure TCnAAMask.SetQuality(const Value: TAAQuality);
 begin
   FQuality := Value;
@@ -1590,29 +1605,29 @@ begin
   hCos := SrcH2 * cAngle;
   wSin := SrcW2 * sAngle;
   hSin := SrcH2 * sAngle;
-  p1.x := Round(-wCos + hSin); // 左下
-  p1.y := Round(-wSin - hCos);
-  p2.x := Round(wCos + hSin); // 右下
-  p2.y := Round(wSin - hCos);
-  p3.x := Round(-wCos - hSin); // 左上
-  p3.y := Round(-wSin + hCos);
-  p4.x := Round(wCos - hSin); // 右上
-  p4.y := Round(wSin + hCos);
+  p1.X := Round(-wCos + hSin); // 左下
+  p1.Y := Round(-wSin - hCos);
+  p2.X := Round(wCos + hSin); // 右下
+  p2.Y := Round(wSin - hCos);
+  p3.X := Round(-wCos - hSin); // 左上
+  p3.Y := Round(-wSin + hCos);
+  p4.X := Round(wCos - hSin); // 右上
+  p4.Y := Round(wSin + hCos);
 
   // 计算包含矩形
-  Rect.Left := MinIntValue([p1.x, p2.x, p3.x, p4.x]);
-  Rect.Right := MaxIntValue([p1.x, p2.x, p3.x, p4.x]);
-  Rect.Top := MinIntValue([p1.y, p2.y, p3.y, p4.y]);
-  Rect.Bottom := MaxIntValue([p1.y, p2.y, p3.y, p4.y]);
+  Rect.Left := MinIntValue([p1.X, p2.X, p3.X, p4.X]);
+  Rect.Right := MaxIntValue([p1.X, p2.X, p3.X, p4.X]);
+  Rect.Top := MinIntValue([p1.Y, p2.Y, p3.Y, p4.Y]);
+  Rect.Bottom := MaxIntValue([p1.Y, p2.Y, p3.Y, p4.Y]);
 
   Result.cx := Rect.Right - Rect.Left;
   Result.cy := Rect.Bottom - Rect.Top;
-  StartPoint.x := p1.x + Result.cx div 2;
-  StartPoint.y := p1.y + Result.cy div 2;
+  StartPoint.X := p1.X + Result.cx div 2;
+  StartPoint.Y := p1.Y + Result.cy div 2;
 end;
 
-//文本高、宽，旋转后起始位置
-function TCnAAMask.TextExtentEx(s: string; var Point: TPoint): TSize;
+// 文本高、宽，旋转后起始位置
+function TCnAAMask.TextExtentEx(const S: string; var Point: TPoint): TSize;
 var
   LogFont: TLogFont;
   TempFont, SaveFont: HFONT;
@@ -1621,11 +1636,12 @@ var
 begin
   Result.cx := 0;
   Result.cy := 0;
-  if (AAFont = nil) or (AAFont.Canvas = nil) then
+  if (FAAFont = nil) or (FAAFont.Canvas = nil) then
     Exit;
+
   DC := GetDC(0);
   try
-    GetObject(AAFont.Canvas.Font.Handle, SizeOf(TLogFont), @LogFont);
+    GetObject(FAAFont.Canvas.Font.Handle, SizeOf(TLogFont), @LogFont);
     with LogFont do
     begin
       lfHeight := lfHeight * Scale;
@@ -1635,11 +1651,11 @@ begin
     TempFont := CreateFontIndirect(LogFont);
     try
       SaveFont := SelectObject(DC, TempFont);
-      GetTextExtentPoint32(DC, PChar(s), Length(s), Result);
+      GetTextExtentPoint32(DC, PChar(S), Length(S), Result);
       Result.cx := (Result.cx + Scale - 1) div Scale;
       Result.cy := (Result.cy + Scale - 1) div Scale;
-      if (fsItalic in AAFont.Canvas.Font.Style) and (Length(s) > 0) then
-        Result.cx := Result.cx + Round(Result.cx / Length(s) * ItalicAdjust);
+      if (fsItalic in FAAFont.Canvas.Font.Style) and (Length(S) > 0) then
+        Result.cx := Result.cx + Round(Result.cx / Length(S) * ItalicAdjust);
       SelectObject(DC, SaveFont);
       if Beta <> 0 then
       begin
@@ -1653,51 +1669,65 @@ begin
   end;
 end;
 
-//文本高、宽
-function TCnAAMask.TextExtent(s: string): TSize;
+// 文本高、宽
+function TCnAAMask.TextExtent(const S: string): TSize;
 var
   Point: TPoint;
 begin
-  Result := TextExtentEx(s, Point);
+  Result := TextExtentEx(S, Point);
 end;
 
-//文本高度
-function TCnAAMask.TextHeight(s: string): Integer;
+// 文本高度
+function TCnAAMask.TextHeight(const S: string): Integer;
 begin
-  Result := TextExtent(s).cy;
+  Result := TextExtent(S).cy;
 end;
 
-//文本宽度
-function TCnAAMask.TextWidth(s: string): Integer;
+// 文本宽度
+function TCnAAMask.TextWidth(const S: string): Integer;
 begin
-  Result := TextExtent(s).cx;
+  Result := TextExtent(S).cx;
 end;
 
 { TCnAABlend }
 
 //--------------------------------------------------------//
-//前景背景蒙板混合类                                      //
+// 前景背景蒙板混合类                                     //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAABlend.Create(AOwner: TCnAAFont);
 begin
-  AAFont := AOwner;
+  FAAFont := AOwner;
   FForeBmp := TBitmap.Create;
   FForeBmp.PixelFormat := pf24bit;
-  RGBBmp := TBitmap.Create;
-  RGBBmp.PixelFormat := pf24bit;
+  FRGBBmp := TBitmap.Create;
+  FRGBBmp.PixelFormat := pf24bit;
+
+  FForeBmp32 := TBitmap.Create;
+  FForeBmp32.PixelFormat := pf32bit;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  FForeBmp32.AlphaFormat := afDefined;
+{$ENDIF}
+
+  FBGRABmp := TBitmap.Create;
+  FBGRABmp.PixelFormat := pf32bit;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  FBGRABmp.AlphaFormat := afDefined;
+{$ENDIF}
 end;
 
-//释放
+// 释放
 destructor TCnAABlend.Destroy;
 begin
   ForeBmp.Free;
-  RGBBmp.Free;
+  FForeBmp32.Free;
+  FRGBBmp.Free;
+  FBGRABmp.Free;
   inherited;
 end;
 
-//赋值
+// 赋值
 procedure TCnAABlend.Assign(Source: TPersistent);
 begin
   if Source is TCnAABlend then
@@ -1706,123 +1736,215 @@ begin
     inherited Assign(Source);
 end;
 
-//文本按前景色与背景混合
-procedure TCnAABlend.Blend(x, y: Integer; AColor: TColor; Alpha: TAlpha;
-  Mask: TCnAAMask);
+// 文本按前景色与背景混合
+procedure TCnAABlend.Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
+  Mask: TCnAAMask; DestIsAlpha: Boolean);
 var
-  r, b, g: Byte;
-  AAlpha: DWORD;
+  R, B, G: Byte;
+  AAlpha, DiffForeAlpha: DWORD;
+  ForeAlpha, BkAlpha: Byte;
   pMask: PByteArray;
   pRGB: PRGBArray;
+  pBGRA: PBGRAArray;
+  PDW: PDWordArray;
   Weight: Byte;
-  i, j: Integer;
-  Color: TColor;
+  I, J: Integer;
+  Color, BColor: TColor;
+  Color32Rec: TRGBQuad;
+  Bf: TBlendFunction;
 begin
-  if (AAFont = nil) or (AAFont.Canvas = nil) then
+  if (FAAFont = nil) or (FAAFont.Canvas = nil) then
     Exit;
 
-  RGBBmp.Width := Mask.Width;
-  RGBBmp.Height := Mask.Height;
-  Color := ColorToRGB(AColor);          //实际前景色
-  r := GetRValue(Color);                //色彩分量
-  g := GetGValue(Color);
-  b := GetBValue(Color);
-  AAlpha := Alpha * $100 div 100;       //透明度
-  RGBBmp.Canvas.Brush.Assign(AAFont.Canvas.Brush);
-  if RGBBmp.Canvas.Brush.Style <> bsSolid then
-    Bitblt(RGBBmp.Canvas.Handle, 0, 0, RGBBmp.Width, RGBBmp.Height,
-      AAFont.Canvas.Handle, x, y, SRCCOPY) //透明
-  else
-    FillRect(RGBBmp.Canvas.Handle, Bounds(0, 0, RGBBmp.Width, RGBBmp.Height), 0);
+  Color := ColorToRGB(AColor);          // 实际前景色
+  R := GetRValue(Color);                // 色彩分量
+  G := GetGValue(Color);
+  B := GetBValue(Color);
+  AAlpha := Alpha * $100 div 100;       // 得到前景透明度运算系数（0 到 256 范围）
 
-  for j := 0 to RGBBmp.Height - 1 do
+  if DestIsAlpha then // 如果目标是 32 位带 Alpha 通道的
   begin
-    pMask := Mask.ScanLine(j);
-    pRGB := RGBBmp.ScanLine[j];
-    for i := 0 to RGBBmp.Width - 1 do
+    FBGRABmp.Width := Mask.Width;
+    FBGRABmp.Height := Mask.Height;
+
+    FBGRABmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
+    if FBGRABmp.Canvas.Brush.Style <> bsSolid then
     begin
-      Weight := pMask^[i] * AAlpha shr 8; //混合系数
-      if Weight <> 0 then
+      J := FBGRABmp.Width * SizeOf(TRGBQuad);
+      for I := 0 to FBGRABmp.Height - 1 do
+        FillChar(FBGRABmp.ScanLine[I]^, J, $00); // 先填充全透明，否则默认会白色填充
+
+      // 透明，先带透明度地复制目标背景到 FBGRABmp
+      Bf.BlendOp := AC_SRC_OVER;
+      Bf.BlendFlags := 0;
+      Bf.SourceConstantAlpha := $FF;
+      Bf.AlphaFormat := AC_SRC_ALPHA;
+
+      AlphaBlend(FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height,
+        FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height, Bf);
+    end
+    else
+    begin
+      // Solid 时，用 FBGRABmp.Canvas.Brush.Color 来填充全不透明
+      // FBGRABmp.Canvas.FillRect(Bounds(0, 0, FBGRABmp.Width, FBGRABmp.Height)); 无效，改手工
+
+      BColor := ColorToRGB(FBGRABmp.Canvas.Brush.Color);     // 实际背景色
+      Color32Rec.rgbRed := GetRValue(BColor);                // 色彩分量
+      Color32Rec.rgbGreen := GetGValue(BColor);
+      Color32Rec.rgbBlue := GetBValue(BColor);
+      Color32Rec.rgbReserved := $FF;
+
+      for I := 0 to FBGRABmp.Height - 1 do
       begin
-        if Weight = 255 then
-        begin                           //前景色
-          pRGB^[i].rgbtBlue := b;
-          pRGB^[i].rgbtGreen := g;
-          pRGB^[i].rgbtRed := r;
-        end
-        else
-        begin                           //混合
-          Inc(pRGB^[i].rgbtBlue, Weight * (b - pRGB^[i].rgbtBlue) shr 8);
-          Inc(pRGB^[i].rgbtGreen, Weight * (g - pRGB^[i].rgbtGreen) shr 8);
-          Inc(pRGB^[i].rgbtRed, Weight * (r - pRGB^[i].rgbtRed) shr 8);
+        PDW := FBGRABmp.ScanLine[I];
+        for J := 0 to FBGRABmp.Width - 1 do
+          PDW^[J] := PDWORD(@Color32Rec)^; // 直接访问内存填色
+      end;
+    end;
+
+    for J := 0 to FBGRABmp.Height - 1 do
+    begin
+      // 对于每一个像素的前后两像素颜色混合公式：
+      // 目标透明度=1-（1-前透明度）*（1-后透明度）
+      // 目标分量=（前分量*前透明度 + 后分量*后透明度*（1-前透明度））/目标透明度
+      // （其中透明度在 0 到 1 闭区间内，1 表示不透明，要想办法转换成 0 到 255
+
+      pMask := Mask.ScanLine(J);
+      pBGRA := FBGRABmp.ScanLine[J];
+      for I := 0 to FBGRABmp.Width - 1 do
+      begin
+        // pMask[i] 是 0 到 255 范围内的文字前透明度，需要 * AAlpha shr 8 得到实际前透明度
+        // pBGRA^[i].rgbReserved 是 0 到 255 范围内的后透明度
+        // 所以目标透明度 = (65536 - (255 - ForeAlpha)(255 - BkAlpha)) / 255
+        ForeAlpha := pMask[I] * AAlpha shr 8;
+        BkAlpha := pBGRA^[I].rgbReserved;
+        DiffForeAlpha := ($FF - ForeAlpha) * BkAlpha;
+
+        // Weight 得到目标透明度
+        Weight := ($FF * $FF - ($FF - ForeAlpha) * ($FF - BkAlpha)) div $FF;
+        // 当前景完全不透明也就是 ForeAlpha 为 255 时，无论背景透明度多少，混合透明度为 255，也就是完全不透明
+        // 当前景完全透明也就是 ForeAlpha 为 0 时，混合透明度为背景透明度 BkAlpha
+
+        pBGRA^[I].rgbReserved := Weight;
+        if Weight <> 0 then // 0 表示全透明，就不需要填色了
+        begin
+          pBGRA^[I].rgbBlue := (B * ForeAlpha + (pBGRA^[I].rgbBlue * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbGreen := (G * ForeAlpha + (pBGRA^[I].rgbGreen * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbRed := (R * ForeAlpha + (pBGRA^[I].rgbRed * DiffForeAlpha) div $FF) div Weight;
         end;
       end;
     end;
-  end;
 
-  Bitblt(AAFont.Canvas.Handle, x, y, RGBBmp.Width, RGBBmp.Height,
-    RGBBmp.Canvas.Handle, 0, 0, SRCCOPY); //输出
+    // 注意此处 FBGRABmp 是已经混合了 FAAFont 原始内容了，
+    // 不能再次和 FAAFont 内容再次透明度混合，而是全盘复制过去
+    Bf.BlendOp := AC_SRC_OVER;
+    Bf.BlendFlags := 0;
+    Bf.SourceConstantAlpha := 255;
+    Bf.AlphaFormat := 0;  // 不能再次用透明度混合了，必须复制
+
+    AlphaBlend(FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height,
+      FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height, Bf); // 输出
+  end
+  else
+  begin
+    FRGBBmp.Width := Mask.Width;
+    FRGBBmp.Height := Mask.Height;
+    FRGBBmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
+    if FRGBBmp.Canvas.Brush.Style <> bsSolid then
+      Bitblt(FRGBBmp.Canvas.Handle, 0, 0, FRGBBmp.Width, FRGBBmp.Height,
+        FAAFont.Canvas.Handle, X, Y, SRCCOPY) // 透明
+    else
+      FillRect(FRGBBmp.Canvas.Handle, Bounds(0, 0, FRGBBmp.Width, FRGBBmp.Height), 0);
+
+    for J := 0 to FRGBBmp.Height - 1 do
+    begin
+      pMask := Mask.ScanLine(J);
+      pRGB := FRGBBmp.ScanLine[J];
+      for I := 0 to FRGBBmp.Width - 1 do
+      begin
+        Weight := pMask^[I] * AAlpha shr 8; // 混合系数
+        if Weight <> 0 then
+        begin
+          if Weight = 255 then
+          begin                           // 前景色
+            pRGB^[I].rgbtBlue := B;
+            pRGB^[I].rgbtGreen := G;
+            pRGB^[I].rgbtRed := R;
+          end
+          else
+          begin                           // 混合
+            Inc(pRGB^[I].rgbtBlue, Weight * (B - pRGB^[I].rgbtBlue) shr 8);
+            Inc(pRGB^[I].rgbtGreen, Weight * (G - pRGB^[I].rgbtGreen) shr 8);
+            Inc(pRGB^[I].rgbtRed, Weight * (R - pRGB^[I].rgbtRed) shr 8);
+          end;
+        end;
+      end;
+    end;
+
+    Bitblt(FAAFont.Canvas.Handle, X, Y, FRGBBmp.Width, FRGBBmp.Height,
+      FRGBBmp.Canvas.Handle, 0, 0, SRCCOPY); // 输出
+  end;
 end;
 
-//文本按纹理与背景混合
-procedure TCnAABlend.BlendEx(x, y: Integer; Alpha: TAlpha; Mask: TCnAAMask);
+// 文本按纹理与背景混合
+procedure TCnAABlend.BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask);
 var
   AAlpha: WORD;
   pMask: PByteArray;
   pRGB: PRGBArray;
   pFore: PRGBArray;
   Weight: Byte;
-  i, j: Integer;
+  I, J: Integer;
 begin
-  if (AAFont = nil) or (AAFont.Canvas = nil) then
+  if (FAAFont = nil) or (FAAFont.Canvas = nil) then
     Exit;
   if (ForeBmp.Width <> Mask.Width) or (ForeBmp.Height <> Mask.Height)
     or (ForeBmp.PixelFormat <> pf24bit) then
-  begin                                 //错误的纹理图
+  begin                                 // 错误的纹理图
     raise EInvalidForeBmp.Create('Invalid foreground bitmap!');
     Exit;
   end;
 
-  RGBBmp.Width := Mask.Width;
-  RGBBmp.Height := Mask.Height;
-  AAlpha := Alpha * $100 div 100;       //透明度
-  RGBBmp.Canvas.Brush.Assign(AAFont.Canvas.Brush);
-  if RGBBmp.Canvas.Brush.Style <> bsSolid then
-    Bitblt(RGBBmp.Canvas.Handle, 0, 0, RGBBmp.Width, RGBBmp.Height,
-      AAFont.Canvas.Handle, x, y, SRCCOPY) //透明
+  FRGBBmp.Width := Mask.Width;
+  FRGBBmp.Height := Mask.Height;
+  AAlpha := Alpha * $100 div 100;       // 透明度
+  FRGBBmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
+  if FRGBBmp.Canvas.Brush.Style <> bsSolid then
+    Bitblt(FRGBBmp.Canvas.Handle, 0, 0, FRGBBmp.Width, FRGBBmp.Height,
+      FAAFont.Canvas.Handle, X, Y, SRCCOPY) // 透明
   else
-    FillRect(RGBBmp.Canvas.Handle, Bounds(0, 0, RGBBmp.Width, RGBBmp.Height), 0);
+    FillRect(FRGBBmp.Canvas.Handle, Bounds(0, 0, FRGBBmp.Width, FRGBBmp.Height), 0);
 
-  for j := 0 to RGBBmp.Height - 1 do
+  for J := 0 to FRGBBmp.Height - 1 do
   begin
-    pMask := Mask.ScanLine(j);
-    pRGB := RGBBmp.ScanLine[j];
-    pFore := ForeBmp.ScanLine[j];
-    for i := 0 to RGBBmp.Width - 1 do
+    pMask := Mask.ScanLine(J);
+    pRGB := FRGBBmp.ScanLine[J];
+    pFore := ForeBmp.ScanLine[J];
+    for I := 0 to FRGBBmp.Width - 1 do
     begin
-      Weight := pMask^[i] * AAlpha shr 8; //混合系数
+      Weight := pMask^[I] * AAlpha shr 8; // 混合系数
       if Weight = 255 then
       begin
-        pRGB^[i].rgbtBlue := pFore^[i].rgbtBlue;
-        pRGB^[i].rgbtGreen := pFore^[i].rgbtGreen;
-        pRGB^[i].rgbtRed := pFore^[i].rgbtRed;
+        pRGB^[I].rgbtBlue := pFore^[I].rgbtBlue;
+        pRGB^[I].rgbtGreen := pFore^[I].rgbtGreen;
+        pRGB^[I].rgbtRed := pFore^[I].rgbtRed;
       end
-      else if Weight <> 0 then          //混合
+      else if Weight <> 0 then          // 混合
       begin
-        Inc(pRGB^[i].rgbtBlue, Weight * (pFore^[i].rgbtBlue - pRGB^[i].rgbtBlue) shr
+        Inc(pRGB^[I].rgbtBlue, Weight * (pFore^[I].rgbtBlue - pRGB^[I].rgbtBlue) shr
           8);
-        Inc(pRGB^[i].rgbtGreen, Weight * (pFore^[i].rgbtGreen - pRGB^[i].rgbtGreen) shr
+        Inc(pRGB^[I].rgbtGreen, Weight * (pFore^[I].rgbtGreen - pRGB^[I].rgbtGreen) shr
           8);
-        Inc(pRGB^[i].rgbtRed, Weight * (pFore^[i].rgbtRed - pRGB^[i].rgbtRed) shr 8);
+        Inc(pRGB^[I].rgbtRed, Weight * (pFore^[I].rgbtRed - pRGB^[I].rgbtRed) shr 8);
       end;
     end;
   end;
 
-  Bitblt(AAFont.Canvas.Handle, x, y, RGBBmp.Width, RGBBmp.Height,
-    RGBBmp.Canvas.Handle, 0, 0, SRCCOPY); //输出
+  Bitblt(FAAFont.Canvas.Handle, X, Y, FRGBBmp.Width, FRGBBmp.Height,
+    FRGBBmp.Canvas.Handle, 0, 0, SRCCOPY); // 输出
 end;
 
-//设置前景纹理图
+// 设置前景纹理图
 procedure TCnAABlend.SetForeBmp(const Value: TBitmap);
 begin
   FForeBmp.Assign(Value);
@@ -1831,10 +1953,10 @@ end;
 { TCnAAFont }
 
 //--------------------------------------------------------//
-//平滑字体类                                              //
+// 平滑字体类                                             //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAAFont.Create(ACanvas: TCanvas);
 begin
   FCanvas := ACanvas;
@@ -1842,7 +1964,7 @@ begin
   Blend := TCnAABlend.Create(Self);
 end;
 
-//释放
+// 释放
 destructor TCnAAFont.Destroy;
 begin
   Mask.Free;
@@ -1850,119 +1972,119 @@ begin
   inherited;
 end;
 
-//取显示精度
+// 取显示精度
 function TCnAAFont.GetQuality: TAAQuality;
 begin
   Result := Mask.Quality;
 end;
 
-//设置显示精度
+// 设置显示精度
 procedure TCnAAFont.SetQuality(const Value: TAAQuality);
 begin
   Mask.Quality := Value;
 end;
 
-//文本高、宽
-function TCnAAFont.TextExtent(s: string): TSize;
+// 文本高、宽
+function TCnAAFont.TextExtent(const S: string): TSize;
 begin
-  Result := Mask.TextExtent(s);
+  Result := Mask.TextExtent(S);
 end;
 
-//文本高度
-function TCnAAFont.TextHeight(s: string): Integer;
+// 文本高度
+function TCnAAFont.TextHeight(const S: string): Integer;
 begin
-  Result := TextExtent(s).cy;
+  Result := TextExtent(S).cy;
 end;
 
-//文本宽度
-function TCnAAFont.TextWidth(s: string): Integer;
+// 文本宽度
+function TCnAAFont.TextWidth(const S: string): Integer;
 begin
-  Result := TextExtent(s).cx;
+  Result := TextExtent(S).cx;
 end;
 
-//平滑文本输出
-procedure TCnAAFont.TextOutput(x, y: Integer; s: string; Alpha: TAlpha;
-  Blur: TBlurStrength);
+// 平滑文本输出
+procedure TCnAAFont.TextOutput(X, Y: Integer; const S: string; Alpha: TAlpha;
+  Blur: TBlurStrength; DestIsAlpha: Boolean);
 begin
-  if (Canvas = nil) or (s = '') then
+  if (Canvas = nil) or (S = '') then
     Exit;
 
-  Mask.DrawMask(s);                     //创建字体蒙板
+  Mask.DrawMask(S);                     // 创建字体蒙板
   if Blur > 0 then
-    Mask.Blur(Blur);                    //模糊
-  Blend.Blend(x, y, Canvas.Font.Color, Alpha, Mask); //与前景色混合
+    Mask.Blur(Blur);                    // 模糊
+  Blend.Blend(X, Y, Canvas.Font.Color, Alpha, Mask, DestIsAlpha); // 与前景色混合
 end;
 
 { TCnAAFontEx }
 
 //--------------------------------------------------------//
-//增强平滑字体类                                          //
+// 增强平滑字体类                                         //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAAFontEx.Create(ACanvas: TCanvas);
 begin
   inherited Create(ACanvas);
   FEffect := TCnAAEffect.Create(nil);
 end;
 
-//释放
+// 释放
 destructor TCnAAFontEx.Destroy;
 begin
   FEffect.Free;
   inherited;
 end;
 
-//设置显示风格
+// 设置显示风格
 procedure TCnAAFontEx.SetEffect(const Value: TCnAAEffect);
 begin
   FEffect.Assign(Value);
 end;
 
-//计算阴影偏移
+// 计算阴影偏移
 function TCnAAFontEx.GetShadowPoint: TPoint;
 begin
   if Effect.Shadow.Enabled then
   begin
     if Effect.Shadow.OffsetX > 0 then
-      Result.x := Effect.Shadow.OffsetX
+      Result.X := Effect.Shadow.OffsetX
     else
-      Result.x := 0;
+      Result.X := 0;
     if Effect.Shadow.OffsetY > 0 then
-      Result.y := Effect.Shadow.OffsetY
+      Result.Y := Effect.Shadow.OffsetY
     else
-      Result.y := 0;
+      Result.Y := 0;
   end
   else
   begin
-    Result.x := 0;
-    Result.y := 0;
+    Result.X := 0;
+    Result.Y := 0;
   end;
 end;
 
-//计算文本偏移
+// 计算文本偏移
 function TCnAAFontEx.GetTextPoint: TPoint;
 begin
   if Effect.Shadow.Enabled then
   begin
     if Effect.Shadow.OffsetX < 0 then
-      Result.x := Abs(Effect.Shadow.OffsetX)
+      Result.X := Abs(Effect.Shadow.OffsetX)
     else
-      Result.x := 0;
+      Result.X := 0;
     if Effect.Shadow.OffsetY < 0 then
-      Result.y := Abs(Effect.Shadow.OffsetY)
+      Result.Y := Abs(Effect.Shadow.OffsetY)
     else
-      Result.y := 0;
+      Result.Y := 0;
   end
   else
   begin
-    Result.x := 0;
-    Result.y := 0;
+    Result.X := 0;
+    Result.Y := 0;
   end;
 end;
 
-//文本高、宽
-function TCnAAFontEx.TextExtent(s: string): TSize;
+// 文本高、宽
+function TCnAAFontEx.TextExtent(const S: string): TSize;
 var
   LogFont: TLogFont;
   TempFont: HFONT;
@@ -1977,7 +2099,7 @@ begin
       SaveFont.Assign(Canvas.Font);
       TempFont := CreateFontIndirect(LogFont);
       Canvas.Font.Handle := TempFont;
-      Result := inherited TextExtent(s);
+      Result := inherited TextExtent(S);
       Canvas.Font.Assign(SaveFont);
       DeleteObject(TempFont);
     finally
@@ -1985,7 +2107,7 @@ begin
     end;
   end
   else
-    Result := inherited TextExtent(s);
+    Result := inherited TextExtent(S);
 
   if Effect.Shadow.Enabled then
   begin
@@ -1994,7 +2116,7 @@ begin
   end;
 end;
 
-//创建渐变色前景
+// 创建渐变色前景
 procedure TCnAAFontEx.CreateGradual;
 var
   Buf, Dst: PRGBArray;
@@ -2003,7 +2125,7 @@ var
   sr, sb, sg: Byte;
   er, eb, eg: Byte;
   BufSize: Integer;
-  i, j: Integer;
+  I, J: Integer;
   Width, Height: Integer;
 begin
   if (Canvas = nil) or not Effect.Gradual.Enabled then
@@ -2015,7 +2137,7 @@ begin
   Blend.ForeBmp.Width := Width;
 
   if Effect.Gradual.Style in [gsLeftToRight, gsRightToLeft, gsCenterToLR] then
-    BufLen := Width                     // 缓冲区长度
+    BufLen := Width                     //  缓冲区长度
   else
     BufLen := Height;
   if Effect.Gradual.Style in [gsCenterToLR, gsCenterToTB] then
@@ -2035,43 +2157,43 @@ begin
       SCol := ColorToRGB(Effect.Gradual.EndColor);
       ECol := ColorToRGB(Effect.Gradual.StartColor);
     end;
-    sr := GetRValue(SCol);              //起始色
+    sr := GetRValue(SCol);              // 起始色
     sg := GetGValue(SCol);
     sb := GetBValue(SCol);
-    er := GetRValue(ECol);              //结束色
+    er := GetRValue(ECol);              // 结束色
     eg := GetGValue(ECol);
     eb := GetBValue(ECol);
-    for i := 0 to Len - 1 do
+    for I := 0 to Len - 1 do
     begin
-      Buf[i].rgbtRed := sr + (er - sr) * i div Len;
-      Buf[i].rgbtGreen := sg + (eg - sg) * i div Len;
-      Buf[i].rgbtBlue := sb + (eb - sb) * i div Len;
+      Buf[I].rgbtRed := sr + (er - sr) * I div Len;
+      Buf[I].rgbtGreen := sg + (eg - sg) * I div Len;
+      Buf[I].rgbtBlue := sb + (eb - sb) * I div Len;
     end;
 
     if Effect.Gradual.Style in [gsCenterToLR, gsCenterToTB] then // 对称渐变
-      for i := 0 to Len - 1 do
-        Buf[BufLen - 1 - i] := Buf[i];
+      for I := 0 to Len - 1 do
+        Buf[BufLen - 1 - I] := Buf[I];
 
     if Effect.Gradual.Style in [gsLeftToRight, gsRightToLeft, gsCenterToLR] then
-      for i := 0 to Height - 1 do  // 水平渐变
-        Move(Buf[0], Blend.ForeBmp.ScanLine[i]^, BufSize)
+      for I := 0 to Height - 1 do  // 水平渐变
+        Move(Buf[0], Blend.ForeBmp.ScanLine[I]^, BufSize)
     else
-      for i := 0 to Height - 1 do  // 垂直渐变
+      for I := 0 to Height - 1 do  // 垂直渐变
       begin
-        Dst := Blend.ForeBmp.ScanLine[i];
-        for j := 0 to Width - 1 do
-          Dst^[j] := Buf[i];
+        Dst := Blend.ForeBmp.ScanLine[I];
+        for J := 0 to Width - 1 do
+          Dst^[J] := Buf[I];
       end;
   finally
     FreeMem(Buf);
   end;
 end;
 
-//创建噪声前景图
+// 创建噪声前景图
 procedure TCnAAFontEx.CreateNoiseBmp;
 var
   pLine: PRGBArray;
-  x, y: Integer;
+  X, Y: Integer;
   r, g, b: Byte;
   nr, ng, nb: Integer;
   Amount: Byte;
@@ -2084,10 +2206,10 @@ begin
   Blend.ForeBmp.Height := Mask.Height;
   Blend.ForeBmp.Width := Mask.Width;
 
-  for y := 0 to Blend.ForeBmp.Height - 1 do
+  for Y := 0 to Blend.ForeBmp.Height - 1 do
   begin
-    pLine := Blend.ForeBmp.ScanLine[y];
-    for x := 0 to Blend.ForeBmp.Width - 1 do
+    pLine := Blend.ForeBmp.ScanLine[Y];
+    for X := 0 to Blend.ForeBmp.Width - 1 do
     begin
       nr := r + Random(Amount) - Amount shr 1;
       ng := g + Random(Amount) - Amount shr 1;
@@ -2104,15 +2226,15 @@ begin
         nb := 0
       else if nb > 255 then
         nb := 255;
-      pLine^[x].rgbtRed := nr;
-      pLine^[x].rgbtGreen := ng;
-      pLine^[x].rgbtBlue := nb;
+      pLine^[X].rgbtRed := nr;
+      pLine^[X].rgbtGreen := ng;
+      pLine^[X].rgbtBlue := nb;
     end;
   end;
 end;
 
-//增强平滑文本输出
-procedure TCnAAFontEx.TextOutput(x, y: Integer; s: string);
+// 增强平滑文本输出
+procedure TCnAAFontEx.TextOutput(X, Y: Integer; const S: string);
 var
   TextPoint, ShadowPoint: TPoint;
   OldBrushStyle: TBrushStyle;
@@ -2121,7 +2243,7 @@ var
   TempFont: HFONT;
   SaveFont: TFont;
 begin
-  if (Canvas = nil) or (s = '') then
+  if (Canvas = nil) or (S = '') then
     Exit;
 
   TempFont := 0;
@@ -2137,21 +2259,21 @@ begin
       Canvas.Font.Handle := TempFont;
     end;
 
-    if Effect.Shadow.Enabled then         //阴影计算
+    if Effect.Shadow.Enabled then         // 阴影计算
     begin
       TextPoint := GetTextPoint;
       ShadowPoint := GetShadowPoint;
-      TextPoint.x := TextPoint.x + x;
-      TextPoint.y := TextPoint.y + y;
-      ShadowPoint.x := ShadowPoint.x + x;
-      ShadowPoint.y := ShadowPoint.y + y;
+      TextPoint.X := TextPoint.X + X;
+      TextPoint.Y := TextPoint.Y + Y;
+      ShadowPoint.X := ShadowPoint.X + X;
+      ShadowPoint.Y := ShadowPoint.Y + Y;
     end
     else
     begin
-      TextPoint := Point(x, y);
+      TextPoint := Point(X, Y);
     end;
 
-    Mask.DrawMask(s);                     //创建字体蒙板
+    Mask.DrawMask(S);                     // 创建字体蒙板
     if Effect.Outline then
       Mask.Outline;
     if Effect.Spray > 0 then
@@ -2162,45 +2284,45 @@ begin
       Mask.VertMirror;
 
     OldBrushStyle := Canvas.Brush.Style;
-    if Effect.Shadow.Enabled then         //阴影处理
+    if Effect.Shadow.Enabled then         // 阴影处理
     begin
       ShadowMask := TCnAAMask.Create(Self);
-      ShadowMask.Assign(Mask);            //阴影蒙板
+      ShadowMask.Assign(Mask);            // 阴影蒙板
       if Effect.Shadow.Blur > 0 then
-        ShadowMask.Blur(Effect.Shadow.Blur); //阴影模糊
-      Blend.Blend(ShadowPoint.x, ShadowPoint.y, Effect.Shadow.Color,
+        ShadowMask.Blur(Effect.Shadow.Blur); // 阴影模糊
+      Blend.Blend(ShadowPoint.X, ShadowPoint.Y, Effect.Shadow.Color,
         Effect.Shadow.Alpha * Effect.Alpha div 100, ShadowMask);
       ShadowMask.Free;
-      Canvas.Brush.Style := bsClear;      //透明
+      Canvas.Brush.Style := bsClear;      // 透明
     end;
 
-    if Effect.Blur > 0 then               //文本模糊
+    if Effect.Blur > 0 then               // 文本模糊
       Mask.Blur(Effect.Blur);
 
     if Effect.Texture.Enabled and Assigned(Effect.Texture.Picture.Graphic) and
       not Effect.Texture.Picture.Graphic.Empty then
     begin
-      CreateForeBmp;                      //创建字体纹理图
+      CreateForeBmp;                      // 创建字体纹理图
       if Effect.Noise > 0 then
         AddNoise(Effect.Noise);
-      Blend.BlendEx(TextPoint.x, TextPoint.y, Effect.Alpha, Mask);
+      Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask);
     end
     else if Effect.Gradual.Enabled then
-    begin                                 //创建渐变色前景图
+    begin                                 // 创建渐变色前景图
       CreateGradual;
       if Effect.Noise > 0 then
         AddNoise(Effect.Noise);
-      Blend.BlendEx(TextPoint.x, TextPoint.y, Effect.Alpha, Mask);
+      Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask);
     end
     else
-    begin                                 //混合输出
+    begin                                 // 混合输出
       if Effect.Noise > 0 then
       begin
         CreateNoiseBmp;
-        Blend.BlendEx(TextPoint.x, TextPoint.y, Effect.Alpha, Mask);
+        Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask);
       end
       else
-        Blend.Blend(TextPoint.x, TextPoint.y, Canvas.Font.Color, Effect.Alpha, Mask);
+        Blend.Blend(TextPoint.X, TextPoint.Y, Canvas.Font.Color, Effect.Alpha, Mask);
     end;
 
     if Effect.Shadow.Enabled then
@@ -2215,7 +2337,7 @@ begin
   end;
 end;
 
-//绘制平铺图
+// 绘制平铺图
 procedure TCnAAFontEx.DrawTiled(Canvas: TCanvas; Rect: TRect; G: TGraphic);
 var
   R, Rows, C, Cols: Integer;
@@ -2230,7 +2352,7 @@ begin
   end;
 end;
 
-//创建纹理图
+// 创建纹理图
 procedure TCnAAFontEx.CreateForeBmp;
 var
   Width, Height: Integer;
@@ -2247,43 +2369,43 @@ begin
   Blend.ForeBmp.Canvas.Brush.Style := bsSolid;
   Blend.ForeBmp.Canvas.FillRect(Rect(0, 0, Width, Height));
   case Effect.Texture.Mode of
-    tmTiled:                            //平铺
+    tmTiled:                            // 平铺
       with Blend.ForeBmp do
         DrawTiled(Canvas, Rect(0, 0, Width, Height),
           Effect.Texture.Picture.Graphic);
-    tmStretched:                        //拉伸
+    tmStretched:                        // 拉伸
       with Blend.ForeBmp do
         StrectchDrawGraphic(Canvas, Rect(0, 0, Width, Height),
           Effect.Texture.Picture.Graphic, Canvas.Font.Color);
-    tmCenter:                           //中心
+    tmCenter:                           // 中心
       with Effect.Texture.Picture do
         Blend.ForeBmp.Canvas.Draw((Blend.ForeBmp.Width - Graphic.Width) div 2,
           (Blend.ForeBmp.Height - Graphic.Height) div 2, Graphic);
-    tmNormal:                           //普通
+    tmNormal:                           // 普通
       with Effect.Texture.Picture do
         Blend.ForeBmp.Canvas.Draw(0, 0, Graphic);
   end;
 end;
 
-//增加噪声点
+// 增加噪声点
 procedure TCnAAFontEx.AddNoise(Amount: Byte);
 var
   pLine: PByteArray;
-  x, y: Integer;
+  X, Y: Integer;
   Val: Integer;
 begin
-  for y := 0 to Blend.ForeBmp.Height - 1 do
+  for Y := 0 to Blend.ForeBmp.Height - 1 do
   begin
-    pLine := Blend.ForeBmp.ScanLine[y];
-    for x := 0 to Blend.ForeBmp.Width * 3 - 1 do
+    pLine := Blend.ForeBmp.ScanLine[Y];
+    for X := 0 to Blend.ForeBmp.Width * 3 - 1 do
     begin
-      Val := pLine^[x];
+      Val := pLine^[X];
       Val := Val + Random(Amount) - Amount shr 1;
       if Val < 0 then
         Val := 0
       else if Val > 255 then
         Val := 255;
-      pLine^[x] := Val;
+      pLine^[X] := Val;
     end;
   end;
 end;
@@ -2291,7 +2413,7 @@ end;
 { TCnEnabledClass }
 
 //--------------------------------------------------------//
-//带Enabled功能的更新通知类                               //
+// 带Enabled功能的更新通知类                              //
 //--------------------------------------------------------//
 
 //赋值
@@ -2304,21 +2426,21 @@ begin
   end;
 end;
 
-//更新通知
+// 更新通知
 procedure TCnEnabledClass.Changed;
 begin
-  if FEnabled then                      //如果能用则通知
+  if FEnabled then                      // 如果能用则通知
     inherited Changed;
 end;
 
-//创建
+// 创建
 constructor TCnEnabledClass.Create(ChangedProc: TNotifyEvent);
 begin
   inherited Create(ChangedProc);
   FEnabled := False;
 end;
 
-//设置参数
+// 设置参数
 procedure TCnEnabledClass.SetEnabled(const Value: Boolean);
 begin
   if FEnabled <> Value then
@@ -2332,10 +2454,10 @@ end;
 { TCnAAShadow }
 
 //--------------------------------------------------------//
-//阴影参数类                                              //
+// 阴影参数类                                             //
 //--------------------------------------------------------//
 
-//赋值
+// 赋值
 procedure TCnAAShadow.Assign(Source: TPersistent);
 begin
   inherited Assign(Source);
@@ -2348,7 +2470,7 @@ begin
   end;
 end;
 
-//创建
+// 创建
 constructor TCnAAShadow.Create(ChangedProc: TNotifyEvent);
 begin
   inherited Create(ChangedProc);
@@ -2359,7 +2481,7 @@ begin
   FOffsetY := 2;
 end;
 
-//设置不透明度
+// 设置不透明度
 procedure TCnAAShadow.SetAlpha(const Value: TAlpha);
 begin
   if FAlpha <> Value then
@@ -2369,7 +2491,7 @@ begin
   end;
 end;
 
-//设置模糊度
+// 设置模糊度
 procedure TCnAAShadow.SetBlur(const Value: TBlurStrength);
 begin
   if FBlur <> Value then
@@ -2379,7 +2501,7 @@ begin
   end;
 end;
 
-//设置阴影色
+// 设置阴影色
 procedure TCnAAShadow.SetColor(const Value: TColor);
 begin
   if FColor <> Value then
@@ -2389,7 +2511,7 @@ begin
   end;
 end;
 
-//设置水平偏移
+// 设置水平偏移
 procedure TCnAAShadow.SetOffsetX(const Value: TOffset);
 begin
   if FOffsetX <> Value then
@@ -2399,7 +2521,7 @@ begin
   end;
 end;
 
-//设置垂直偏移
+// 设置垂直偏移
 procedure TCnAAShadow.SetOffsetY(const Value: TOffset);
 begin
   if FOffsetY <> Value then
@@ -2412,10 +2534,10 @@ end;
 { TCnAAGradual }
 
 //--------------------------------------------------------//
-//渐变色参数类                                            //
+// 渐变色参数类                                           //
 //--------------------------------------------------------//
 
-//赋值
+// 赋值
 procedure TCnAAGradual.Assign(Source: TPersistent);
 begin
   inherited Assign(Source);
@@ -2427,7 +2549,7 @@ begin
   end;
 end;
 
-//创建
+// 创建
 constructor TCnAAGradual.Create(ChangedProc: TNotifyEvent);
 begin
   inherited Create(ChangedProc);
@@ -2436,7 +2558,7 @@ begin
   FEndColor := clBlack;
 end;
 
-//设置结束色
+// 设置结束色
 procedure TCnAAGradual.SetEndColor(const Value: TColor);
 begin
   if FEndColor <> Value then
@@ -2446,7 +2568,7 @@ begin
   end;
 end;
 
-//设置开始色
+// 设置开始色
 procedure TCnAAGradual.SetStartColor(const Value: TColor);
 begin
   if FStartColor <> Value then
@@ -2456,7 +2578,7 @@ begin
   end;
 end;
 
-//设置渐变方式
+// 设置渐变方式
 procedure TCnAAGradual.SetStyle(const Value: TGradualStyle);
 begin
   if FStyle <> Value then
@@ -2472,7 +2594,7 @@ end;
 //字体纹理参数类                                          //
 //--------------------------------------------------------//
 
-//赋值
+// 赋值
 procedure TCnAATexture.Assign(Source: TPersistent);
 begin
   inherited Assign(Source);
@@ -2483,7 +2605,7 @@ begin
   end;
 end;
 
-//创建
+// 创建
 constructor TCnAATexture.Create(ChangedProc: TNotifyEvent);
 begin
   inherited Create(ChangedProc);
@@ -2492,20 +2614,20 @@ begin
   FMode := tmTiled;
 end;
 
-//释放
+// 释放
 destructor TCnAATexture.Destroy;
 begin
   FPicture.Free;
   inherited Destroy;
 end;
 
-//图像内容改变
+// 图像内容改变
 procedure TCnAATexture.PictureChanged(Sender: TObject);
 begin
   Changed;
 end;
 
-//设置显示模式
+// 设置显示模式
 procedure TCnAATexture.SetMode(const Value: TTextureMode);
 begin
   if FMode <> Value then
@@ -2515,7 +2637,7 @@ begin
   end;
 end;
 
-//设置图像
+// 设置图像
 procedure TCnAATexture.SetPicture(const Value: TPicture);
 begin
   FPicture.Assign(Value);
@@ -2524,10 +2646,10 @@ end;
 { TCnAAEffect }
 
 //--------------------------------------------------------//
-//字体特效参数类                                          //
+// 字体特效参数类                                         //
 //--------------------------------------------------------//
 
-//赋值
+// 赋值
 procedure TCnAAEffect.Assign(Source: TPersistent);
 begin
   inherited Assign(Source);
@@ -2547,7 +2669,7 @@ begin
   end;
 end;
 
-//创建
+// 创建
 constructor TCnAAEffect.Create(ChangedProc: TNotifyEvent);
 begin
   inherited Create(ChangedProc);
@@ -2564,7 +2686,7 @@ begin
   FTexture := TCnAATexture.Create(OnChildChanged);
 end;
 
-//释放
+// 释放
 destructor TCnAAEffect.Destroy;
 begin
   FShadow.Free;
@@ -2666,7 +2788,7 @@ begin
   end;
 end;
 
-//设置模糊度
+// 设置模糊度
 procedure TCnAAEffect.SetBlur(const Value: TBlurStrength);
 begin
   if FBlur <> Value then
@@ -2676,7 +2798,7 @@ begin
   end;
 end;
 
-//设置字体边缘
+// 设置字体边缘
 procedure TCnAAEffect.SetOutline(const Value: Boolean);
 begin
   if FOutline <> Value then
@@ -2686,7 +2808,7 @@ begin
   end;
 end;
 
-//设置噪声参数
+// 设置噪声参数
 procedure TCnAAEffect.SetNoise(const Value: Byte);
 begin
   if FNoise <> Value then
@@ -2696,7 +2818,7 @@ begin
   end;
 end;
 
-//设置水平镜象
+// 设置水平镜象
 procedure TCnAAEffect.SetHorzMirror(const Value: Boolean);
 begin
   if FHorzMirror <> Value then
@@ -2706,7 +2828,7 @@ begin
   end;
 end;
 
-//设置垂直镜象
+// 设置垂直镜象
 procedure TCnAAEffect.SetVertMirror(const Value: Boolean);
 begin
   if FVertMirror <> Value then
@@ -2716,7 +2838,7 @@ begin
   end;
 end;
 
-//设置喷溅
+// 设置喷溅
 procedure TCnAAEffect.SetSpray(const Value: TSprayRange);
 begin
   if FSpray <> Value then
@@ -2726,7 +2848,7 @@ begin
   end;
 end;
 
-//设置旋转角度
+// 设置旋转角度
 procedure TCnAAEffect.SetAngle(const Value: TAngle);
 begin
   if FAngle <> Value then
@@ -2736,21 +2858,21 @@ begin
   end;
 end;
 
-//设置渐变色
+// 设置渐变色
 procedure TCnAAEffect.SetGradual(const Value: TCnAAGradual);
 begin
   FGradual.Assign(Value);
   Changed;
 end;
 
-//设置阴影参数
+// 设置阴影参数
 procedure TCnAAEffect.SetShadow(const Value: TCnAAShadow);
 begin
   FShadow.Assign(Value);
   Changed;
 end;
 
-//设置字体纹理参数
+// 设置字体纹理参数
 procedure TCnAAEffect.SetTexture(const Value: TCnAATexture);
 begin
   FTexture.Assign(Value);
@@ -2760,17 +2882,17 @@ end;
 { TCnFontLabel }
 
 //--------------------------------------------------------//
-//字体标签类                                              //
+// 字体标签类                                             //
 //--------------------------------------------------------//
 
-//字体变动通知
+// 字体变动通知
 procedure TCnFontLabel.Changed;
 begin
   if Assigned(FontLabels) then
     FontLabels.Changed;
 end;
 
-//初始化
+// 初始化
 constructor TCnFontLabel.Create(Collection: TCollection);
 begin
   inherited Create(Collection);
@@ -2781,7 +2903,7 @@ begin
   FEffect.FOwner := Self;
 end;
 
-//释放
+// 释放
 destructor TCnFontLabel.Destroy;
 begin
   FFont.Free;
@@ -2789,7 +2911,7 @@ begin
   inherited;
 end;
 
-//对象赋值方法
+// 对象赋值方法
 procedure TCnFontLabel.Assign(Source: TPersistent);
 begin
   if Source is TCnFontLabel then
@@ -2802,7 +2924,7 @@ begin
     inherited;
 end;
 
-//取显示名
+// 取显示名
 function TCnFontLabel.GetDisplayName: string;
 begin
   if Name <> '' then
@@ -2811,7 +2933,7 @@ begin
     Result := inherited GetDisplayName;
 end;
 
-//取字体标签集
+// 取字体标签集
 function TCnFontLabel.GetFontLabels: TCnFontLabels;
 begin
   if Collection is TCnFontLabels then
@@ -2820,30 +2942,30 @@ begin
     Result := nil;
 end;
 
-//字体风格变动通知
+// 字体风格变动通知
 procedure TCnFontLabel.OnEffectChanged(Sender: TObject);
 begin
   Changed;
 end;
 
-//设置字体
+// 设置字体
 procedure TCnFontLabel.SetFont(const Value: TFont);
 begin
   FFont.Assign(Value);
   Changed;
 end;
 
-//设置标签名
+// 设置标签名
 procedure TCnFontLabel.SetName(const Value: string);
 begin
   if (Value <> '') and (AnsiCompareText(Value, FName) <> 0) and
     (Collection is TCnFontLabels) and (TCnFontLabels(Collection).IndexOf(Value) >= 0) then
-    raise Exception.Create(SDuplicateString); //命名重复
+    raise Exception.Create(SDuplicateString); // 命名重复
   FName := Value;
   Changed;
 end;
 
-//设置字体显示风格
+// 设置字体显示风格
 procedure TCnFontLabel.SetEffect(const Value: TCnAAEffect);
 begin
   FEffect.Assign(Value);
@@ -2853,10 +2975,10 @@ end;
 { TCnFontLabels }
 
 //--------------------------------------------------------//
-//字体标签集类                                            //
+// 字体标签集类                                           //
 //--------------------------------------------------------//
 
-//新增标签
+// 新增标签
 function TCnFontLabels.AddItem(AName, AFontName: string; AFontSize: Integer;
   AFontColor: TColor; AFontEffect: TFontStyles; Shadow: Boolean;
   OffsetX, OffsetY: Integer): TCnFontLabel;
@@ -2880,32 +3002,32 @@ begin
     Result := nil;
 end;
 
-//设置改变通知
+// 设置改变通知
 procedure TCnFontLabels.Changed;
 begin
   if Assigned(FOnChanged) then
     FOnChanged(Self);
 end;
 
-//更新
+// 更新
 procedure TCnFontLabels.Update(Item: TCollectionItem);
 begin
   inherited;
   Changed;
 end;
 
-//标签检查
+// 标签检查
 procedure TCnFontLabels.Check(var AText: string; AFont: TFont;
   AEffect: TCnAAEffect);
 var
   StartPos, Index: Integer;
 begin
   for Index := 0 to Count - 1 do
-  begin                                 //查找字体标签
+  begin                                 // 查找字体标签
     StartPos := Pos('<' + UpperCase(Items[Index].Name) + '>',
       UpperCase(AText));
     if StartPos >= 1 then
-    begin                               //切换字体
+    begin                               // 切换字体
       if Assigned(AFont) then
         AFont.Assign(Items[Index].Font);
       if Assigned(AEffect) then
@@ -2915,19 +3037,19 @@ begin
   end;
 end;
 
-//初始化
+// 初始化
 constructor TCnFontLabels.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner, TCnFontLabel);
 end;
 
-//取子项
+// 取子项
 function TCnFontLabels.GetItem(Index: Integer): TCnFontLabel;
 begin
   Result := TCnFontLabel(inherited Items[Index]);
 end;
 
-//取索引
+// 取索引
 function TCnFontLabels.IndexOf(const Name: string): Integer;
 begin
   for Result := 0 to Count - 1 do
@@ -2935,7 +3057,7 @@ begin
   Result := -1;
 end;
 
-//设置子项
+// 设置子项
 procedure TCnFontLabels.SetItem(Index: Integer; const Value: TCnFontLabel);
 begin
   inherited SetItem(Index, TCollectionItem(Value));
@@ -2944,10 +3066,10 @@ end;
 { TCnUserLabel }
 
 //--------------------------------------------------------//
-//用户标签类                                              //
+// 用户标签类                                             //
 //--------------------------------------------------------//
 
-//对象赋值方法
+// 对象赋值方法
 procedure TCnUserLabel.Assign(Source: TPersistent);
 begin
   if Source is TCnUserLabel then
@@ -2961,14 +3083,14 @@ begin
     inherited;
 end;
 
-//变更通知
+// 变更通知
 procedure TCnUserLabel.Changed;
 begin
   if Assigned(UserLabels) then
     UserLabels.Changed;
 end;
 
-//初始化
+// 初始化
 constructor TCnUserLabel.Create(Collection: TCollection);
 begin
   inherited Create(Collection);
@@ -2978,7 +3100,7 @@ begin
   FOnGetText := nil;
 end;
 
-//取显示名
+// 取显示名
 function TCnUserLabel.GetDisplayName: string;
 begin
   if Name <> '' then
@@ -2987,24 +3109,24 @@ begin
     Result := inherited GetDisplayName;
 end;
 
-//取文本
+// 取文本
 function TCnUserLabel.GetText: string;
 begin
   case Style of
-    lsLeftJustify, lsCenter, lsRightJustify: Result := ''; //对齐标签
-    lsRegOwner: Result := TCnUserLabels(Collection).RegOwner; //用户名
-    lsRegOrganization: Result := TCnUserLabels(Collection).RegOrganization; //组织名
-    lsAppTitle: Result := Application.Title; //应用程序标题
-    lsDate: Result := DateToStr(Date);  //当前日期
-    lsTime: Result := TimeToStr(Time);  //当前时间
+    lsLeftJustify, lsCenter, lsRightJustify: Result := ''; // 对齐标签
+    lsRegOwner: Result := TCnUserLabels(Collection).RegOwner; // 用户名
+    lsRegOrganization: Result := TCnUserLabels(Collection).RegOrganization; // 组织名
+    lsAppTitle: Result := Application.Title; // 应用程序标题
+    lsDate: Result := DateToStr(Date);  // 当前日期
+    lsTime: Result := TimeToStr(Time);  // 当前时间
   else
-    Result := FText;                    //自定义
+    Result := FText;                    // 自定义
   end;
   if Assigned(OnGetText) then
-    OnGetText(Self, Result);            //取文本事件
+    OnGetText(Self, Result);            // 取文本事件
 end;
 
-//取标签集
+// 取标签集
 function TCnUserLabel.GetUserLabels: TCnUserLabels;
 begin
   if Collection is TCnUserLabels then
@@ -3013,13 +3135,13 @@ begin
     Result := nil;
 end;
 
-//文本是否存储
+// 文本是否存储
 function TCnUserLabel.IsTextStored: Boolean;
 begin
   Result := FStyle = lsCustom;
 end;
 
-//设置标签名
+// 设置标签名
 procedure TCnUserLabel.SetName(const Value: string);
 begin
   if (Value <> '') and (AnsiCompareText(Value, FName) <> 0) and
@@ -3029,7 +3151,7 @@ begin
   Changed;
 end;
 
-//设置标签风格
+// 设置标签风格
 procedure TCnUserLabel.SetStyle(const Value: TLabelStyle);
 begin
   if FStyle <> Value then
@@ -3039,7 +3161,7 @@ begin
   end;
 end;
 
-//设置文本
+// 设置文本
 procedure TCnUserLabel.SetText(const Value: string);
 begin
   if (FStyle = lsCustom) and (FText <> Value) then
@@ -3052,17 +3174,17 @@ end;
 { TCnUserLabels }
 
 //--------------------------------------------------------//
-//用户标签集类                                            //
+// 用户标签集类                                           //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnUserLabels.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner, TCnUserLabel);
   InitRegInfo;
 end;
 
-//增加新标签
+// 增加新标签
 function TCnUserLabels.AddItem(AName, AText: string;
   AStyle: TLabelStyle): TCnUserLabel;
 begin
@@ -3080,14 +3202,14 @@ begin
     Result := nil;
 end;
 
-//标签变动通知
+// 标签变动通知
 procedure TCnUserLabels.Changed;
 begin
   if Assigned(FOnChanged) then
     FOnChanged(Self);
 end;
 
-//标签检查
+// 标签检查
 procedure TCnUserLabels.Check(var AText: string; var Align: TAlignment);
 const
   csAlignArray: array[lsLeftJustify..lsRightJustify] of TAlignment =
@@ -3096,32 +3218,32 @@ var
   StartPos, Index: Integer;
 begin
   for Index := 0 to Count - 1 do
-  begin                                 //查找用户标签
+  begin                                 // 查找用户标签
     StartPos := Pos('<' + UpperCase(Items[Index].Name) + '>',
       UpperCase(AText));
     if StartPos >= 1 then
-    begin                               //删除标签
+    begin                               // 删除标签
       system.Delete(AText, StartPos, Length(Items[Index].Name) + 2);
-      case Items[Index].Style of        //对齐标签
+      case Items[Index].Style of        // 对齐标签
         lsLeftJustify, lsCenter, lsRightJustify:
           begin
             Align := csAlignArray[Items[Index].Style];
           end;
-      else                              //置换为文本
+      else                              // 置换为文本
         system.insert(Items[Index].Text, AText, StartPos);
       end;
     end;
   end;
 end;
 
-//更新
+// 更新
 procedure TCnUserLabels.Update(Item: TCollectionItem);
 begin
   inherited;
   Changed;
 end;
 
-//初始化注册表信息
+// 初始化注册表信息
 procedure TCnUserLabels.InitRegInfo;
 var
   V: TOSVersionInfo;
@@ -3133,7 +3255,7 @@ begin
   V.dwOSVersionInfoSize := SizeOf(V);
   IsWin98 := GetVersionEx(V) and (V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS);
   Reg := TRegistry.Create;
-  try                                   //从注册表中读取用户名和组织名
+  try                                   // 从注册表中读取用户名和组织名
     Reg.Rootkey := HKEY_LOCAL_MACHINE;
     if IsWin98 then
       Reg.OpenKeyReadOnly('SOFTWARE\Microsoft\Windows\CurrentVersion')
@@ -3153,13 +3275,13 @@ begin
   end;
 end;
 
-//取子项
+// 取子项
 function TCnUserLabels.GetItem(Index: Integer): TCnUserLabel;
 begin
   Result := TCnUserLabel(inherited Items[Index]);
 end;
 
-//查找索引号
+// 查找索引号
 function TCnUserLabels.IndexOf(const Name: string): Integer;
 begin
   for Result := 0 to Count - 1 do
@@ -3167,7 +3289,7 @@ begin
   Result := -1;
 end;
 
-//设置子项
+// 设置子项
 procedure TCnUserLabels.SetItem(Index: Integer; const Value: TCnUserLabel);
 begin
   inherited SetItem(Index, TCollectionItem(Value));
@@ -3176,10 +3298,10 @@ end;
 { TCnPackParam }
 
 //--------------------------------------------------------//
-//打包参数类                                              //
+// 打包参数类                                             //
 //--------------------------------------------------------//
 
-//赋值
+// 赋值
 procedure TCnPackParam.Assign(Source: TPersistent);
 begin
   if Source is TCnPackParam then
@@ -3188,7 +3310,7 @@ begin
     inherited;
 end;
 
-//创建
+// 创建
 constructor TCnPackParam.Create(AOwner: TControl);
 begin
   FOwner := AOwner;
@@ -3197,7 +3319,7 @@ end;
 { TCnDrag }
 
 //--------------------------------------------------------//
-//拖动打包参数类                                          //
+// 拖动打包参数类                                         //
 //--------------------------------------------------------//
 
 function TCnDrag.GetDragCursor: TCursor;
@@ -3233,7 +3355,7 @@ end;
 { TCnParentEffect }
 
 //--------------------------------------------------------//
-//Parent打包参数类                                        //
+// Parent打包参数类                                       //
 //--------------------------------------------------------//
 
 function TCnParentEffect.GetParentBiDiMode: Boolean;
@@ -3279,10 +3401,10 @@ end;
 { TCnCustomParam }
 
 //--------------------------------------------------------//
-//控件定制参数类                                          //
+// 控件定制参数类                                         //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnCustomParam.Create(AOwner: TCnAAGraphicControl;
   ChangedProc: TNotifyEvent);
 begin
@@ -3297,14 +3419,14 @@ begin
   FWordWrap := False;
 end;
 
-//释放
+// 释放
 destructor TCnCustomParam.Destroy;
 begin
   FBackGround.Free;
   inherited;
 end;
 
-//赋值
+// 赋值
 procedure TCnCustomParam.Assign(Source: TPersistent);
 begin
   inherited;
@@ -3320,57 +3442,57 @@ begin
   end;
 end;
 
-//背景为空
+// 背景为空
 function TCnCustomParam.IsBackEmpty: Boolean;
 begin
   Result := not Assigned(FBackGround.Graphic) or
     FBackGround.Graphic.Empty;
 end;
 
-//取背景色
+// 取背景色
 function TCnCustomParam.GetColor: TColor;
 begin
   Result := FOwner.Color;
 end;
 
-//取字体
+// 取字体
 function TCnCustomParam.GetFont: TFont;
 begin
   Result := FOwner.Font;
 end;
 
-//设置背景色
+// 设置背景色
 procedure TCnCustomParam.SetColor(const Value: TColor);
 begin
   FOwner.Color := Value;
 end;
 
-//设置字体
+// 设置字体
 procedure TCnCustomParam.SetFont(const Value: TFont);
 begin
   FOwner.Font := Value;
 end;
 
-//背景图更新
+// 背景图更新
 procedure TCnCustomParam.BackGroundChanged(Sender: TObject);
 begin
   Changed;
 end;
 
-//设置字体风格
+// 设置字体风格
 function TCnCustomParam.GetFontEffect: TCnAAEffect;
 begin
   Result := FOwner.FAAFont.Effect;
 end;
 
-//取字体风格
+// 取字体风格
 procedure TCnCustomParam.SetFontEffect(const Value: TCnAAEffect);
 begin
   FOwner.FAAFont.Effect.Assign(Value);
   Changed;
 end;
 
-//设置垂直对齐
+// 设置垂直对齐
 procedure TCnCustomParam.SetLayout(const Value: TTextLayout);
 begin
   if FLayout <> Value then
@@ -3380,7 +3502,7 @@ begin
   end;
 end;
 
-//设置缺省对齐方式
+// 设置缺省对齐方式
 procedure TCnCustomParam.SetAlignment(const Value: TAlignment);
 begin
   if FAlignment <> Value then
@@ -3390,7 +3512,7 @@ begin
   end;
 end;
 
-//设置自动换行
+// 设置自动换行
 procedure TCnCustomParam.SetWordWrap(const Value: Boolean);
 begin
   if FWordWrap <> Value then
@@ -3400,7 +3522,7 @@ begin
   end;
 end;
 
-//设置背景图模式
+// 设置背景图模式
 procedure TCnCustomParam.SetBackGroundMode(const Value: TBackGroundMode);
 begin
   if FBackGroundMode <> Value then
@@ -3410,13 +3532,13 @@ begin
   end;
 end;
 
-//取显示精度
+// 取显示精度
 function TCnCustomParam.GetQuality: TAAQuality;
 begin
   Result := FOwner.FAAFont.Quality;
 end;
 
-//设置显示精度
+// 设置显示精度
 procedure TCnCustomParam.SetQuality(const Value: TAAQuality);
 begin
   if FOwner.FAAFont.Quality <> Value then
@@ -3426,7 +3548,7 @@ begin
   end;
 end;
 
-//设置透明
+// 设置透明
 procedure TCnCustomParam.SetTransparent(const Value: Boolean);
 begin
   if FTransparent <> Value then
@@ -3436,13 +3558,13 @@ begin
   end;
 end;
 
-//设置背景图
+// 设置背景图
 procedure TCnCustomParam.SetBackGround(const Value: TPicture);
 begin
   FBackGround.Assign(Value);
 end;
 
-//存储背景色
+// 存储背景色
 function TCnCustomParam.IsColorStroed: Boolean;
 begin
   Result := not FOwner.ParentColor;
@@ -3451,10 +3573,10 @@ end;
 { TCnCustomTextParam }
 
 //--------------------------------------------------------//
-//可定制的文本参数类                                      //
+// 可定制的文本参数类                                     //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnCustomTextParam.Create(AOwner: TCnAAGraphicControl;
   ChangedProc: TNotifyEvent);
 begin
@@ -3466,7 +3588,7 @@ begin
   FLabelEffect := leUntilNextLabel;
 end;
 
-//释放
+// 释放
 destructor TCnCustomTextParam.Destroy;
 begin
   FLines.Free;
@@ -3474,7 +3596,7 @@ begin
   inherited;
 end;
 
-//赋值
+// 赋值
 procedure TCnCustomTextParam.Assign(Source: TPersistent);
 begin
   inherited;
@@ -3486,26 +3608,26 @@ begin
   end;
 end;
 
-//文本内容是否存储
+// 文本内容是否存储
 function TCnCustomTextParam.IsLinesStored: Boolean;
 begin
   Result := True;
 end;
 
-//文本内容改变
+// 文本内容改变
 procedure TCnCustomTextParam.LinesChanged(Sender: TObject);
 begin
   Changed;
 end;
 
-//设置文本内容
+// 设置文本内容
 procedure TCnCustomTextParam.SetLines(const Value: TStrings);
 begin
   FLines.Assign(Value);
   Changed;
 end;
 
-//设置行间距
+// 设置行间距
 procedure TCnCustomTextParam.SetRowPitch(const Value: TRowPitch);
 begin
   if FRowPitch <> Value then
@@ -3515,7 +3637,7 @@ begin
   end;
 end;
 
-//设置标签作用范围
+// 设置标签作用范围
 procedure TCnCustomTextParam.SetLabelEffect(const Value: TLabelEffect);
 begin
   if FLabelEffect <> Value then
@@ -3525,7 +3647,7 @@ begin
   end;
 end;
 
-//设置默认字体风格
+// 设置默认字体风格
 procedure TCnCustomTextParam.SetFontEffect(const Value: TCnAAEffect);
 begin
   FFontEffect.Assign(Value);
@@ -3534,10 +3656,10 @@ end;
 { TCnAAGraphicControl }
 
 //--------------------------------------------------------//
-//平滑字体控件基类                                        //
+// 平滑字体控件基类                                       //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAAGraphicControl.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -3559,7 +3681,7 @@ begin
   AWidth := 0;
 end;
 
-//释放
+// 释放
 destructor TCnAAGraphicControl.Destroy;
 begin
   FAAFont.Free;
@@ -3568,7 +3690,7 @@ begin
   inherited;
 end;
 
-//参数改变
+// 参数改变
 procedure TCnAAGraphicControl.Changed;
 begin
   if Inited and AutoUpdate and ([csLoading, csDestroying, csReading,
@@ -3577,13 +3699,13 @@ begin
     Reset;
 end;
 
-//重新设置
+// 重新设置
 procedure TCnAAGraphicControl.Reset;
 begin
   Invalidate;
 end;
 
-//运行时属性已装载
+// 运行时属性已装载
 procedure TCnAAGraphicControl.Loaded;
 begin
   inherited;
@@ -3591,13 +3713,13 @@ begin
   LoadedEx;
 end;
 
-//属性已装载（设计时和运行时）供重载用
+// 属性已装载（设计时和运行时）供重载用
 procedure TCnAAGraphicControl.LoadedEx;
 begin
   Changed;
 end;
 
-//控件重绘
+// 控件重绘
 procedure TCnAAGraphicControl.Paint;
 begin
   if [csLoading, csDestroying, csReading, csUpdating, csWriting]
@@ -3617,13 +3739,13 @@ begin
   Drawing := False;
 end;
 
-//重绘画布（子控件中重载该方法输出）
+// 重绘画布（子控件中重载该方法输出）
 procedure TCnAAGraphicControl.PaintCanvas;
 begin
 
 end;
 
-//消息处理
+// 消息处理
 procedure TCnAAGraphicControl.WndProc(var message: TMessage);
 begin
   case message.Msg of
@@ -3639,7 +3761,7 @@ begin
   inherited;
 end;
 
-//大小变化
+// 大小变化
 procedure TCnAAGraphicControl.Resize;
 begin
   if (Height <> AHeight) or (Width <> AWidth) then
@@ -3651,13 +3773,13 @@ begin
   inherited Resize;
 end;
 
-//字体风格变化
+// 字体风格变化
 procedure TCnAAGraphicControl.OnEffectChanged(Sender: TObject);
 begin
   Changed;
 end;
 
-//设置自动大小
+// 设置自动大小
 {$IFDEF COMPILER6_UP}
 procedure TCnAAGraphicControl.SetAutoSize(Value: Boolean);
 begin
@@ -3676,7 +3798,7 @@ begin
 end;
 {$ENDIF}
 
-//设置边界宽度
+// 设置边界宽度
 procedure TCnAAGraphicControl.SetBorder(const Value: TBorderWidth);
 begin
   if FBorder <> Value then
@@ -3686,19 +3808,19 @@ begin
   end;
 end;
 
-//设置拖动属性
+// 设置拖动属性
 procedure TCnAAGraphicControl.SetDrag(const Value: TCnDrag);
 begin
   FDrag.Assign(Value);
 end;
 
-//设置属性
+// 设置属性
 procedure TCnAAGraphicControl.SetParentEffect(const Value: TCnParentEffect);
 begin
   FParentEffect.Assign(Value);
 end;
 
-//设置自动更新
+// 设置自动更新
 procedure TCnAAGraphicControl.SetAutoUpdate(const Value: Boolean);
 begin
   if FAutoUpdate <> Value then
@@ -3709,24 +3831,24 @@ begin
   end;
 end;
 
-//开始更新
+// 开始更新
 procedure TCnAAGraphicControl.BeginUpdate;
 begin
   Inc(FUpdateCount);
 end;
 
-//结束更新
+// 结束更新
 procedure TCnAAGraphicControl.EndUpdate;
 begin
   Dec(FUpdateCount);
 end;
 
-//图像混合
+// 图像混合
 procedure TCnAAGraphicControl.Blend(DesBmp, BkBmp, ForeBmp: TBitmap;
   AProgress: TProgress);
 var
   pMem, pHot, pBlend: PByteArray;
-  x, y, i: Integer;
+  X, Y, I: Integer;
   Weight: Byte;
   AHeight, AWidth: Integer;
   Table: array[-255..255] of Byte;
@@ -3746,21 +3868,21 @@ begin
   else
   begin
     Weight := Round(AProgress * $FF / csMaxProgress);
-    for i := Low(Table) to High(Table) do
-      Table[i] := i * Weight shr 8;
-    for y := 0 to AHeight - 1 do
+    for I := Low(Table) to High(Table) do
+      Table[I] := I * Weight shr 8;
+    for Y := 0 to AHeight - 1 do
     begin
-      pMem := BkBmp.ScanLine[y];
-      pHot := ForeBmp.ScanLine[y];
-      pBlend := DesBmp.ScanLine[y];
-      for x := 0 to AWidth * 3 - 1 do
-        pBlend[x] := Table[pHot[x] - pMem[x]] + pMem[x];
+      pMem := BkBmp.ScanLine[Y];
+      pHot := ForeBmp.ScanLine[Y];
+      pBlend := DesBmp.ScanLine[Y];
+      for X := 0 to AWidth * 3 - 1 do
+        pBlend[X] := Table[pHot[X] - pMem[X]] + pMem[X];
     end;
   end;
 end;
 
-//从父控件复制背景
-//这个过程来自RxLibrary VCLUtils
+// 从父控件复制背景
+// 这个过程来自RxLibrary VCLUtils
 procedure TCnAAGraphicControl.CopyParentImage(Dest: TCanvas);
 var
   I, Count, X, Y, SaveIndex: Integer;
@@ -3827,7 +3949,7 @@ begin
   end;
 end;
 
-//绘制平铺图
+// 绘制平铺图
 procedure TCnAAGraphicControl.DrawTiled(Canvas: TCanvas; Rect: TRect; G: TGraphic);
 var
   R, Rows, C, Cols: Integer;
@@ -3842,7 +3964,7 @@ begin
   end;
 end;
 
-//绘制背景图
+// 绘制背景图
 procedure TCnAAGraphicControl.DrawBackGround(Canvas: TCanvas; Rect: TRect;
   G: TGraphic; Mode: TBackGroundMode);
 var
@@ -3865,7 +3987,7 @@ begin
   end;
 end;
 
-//自动换行
+// 自动换行
 function TCnAAGraphicControl.GetWrapText(const Line, BreakStr: string; BreakChars:
   TSysCharSet; MaxCol: Integer): string;
 const
@@ -3945,7 +4067,7 @@ begin
   Result := Result + Copy(Line, LinePos, MaxInt);
 end;
 
-//文字自动换行
+// 文字自动换行
 procedure TCnAAGraphicControl.WrapText(const S: string; Strs: TStrings;
   Col: Integer);
 begin
@@ -3959,10 +4081,10 @@ end;
 { TCnAACustomText }
 
 //--------------------------------------------------------//
-//平滑文本控件基类                                        //
+// 平滑文本控件基类                                       //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAACustomText.Create(AOwner: TComponent);
 begin
   inherited;
@@ -3974,7 +4096,7 @@ begin
   FLabelsInited := False;
 end;
 
-//创建默认字体和标签
+// 创建默认字体和标签
 procedure TCnAACustomText.CreateDefault;
 begin
   BeginUpdate;
@@ -3996,13 +4118,13 @@ begin
   end;
 end;
 
-//是否创建默认字体和标签
+// 是否创建默认字体和标签
 function TCnAACustomText.UseDefaultLabels: Boolean;
 begin
   Result := True;
 end;
 
-//创建默认字体
+// 创建默认字体
 procedure TCnAACustomText.CreateDefFonts;
 begin
   with Fonts do
@@ -4015,29 +4137,29 @@ begin
   end;
 end;
 
-//创建默认标签
+// 创建默认标签
 procedure TCnAACustomText.CreateDefLabels;
 begin
   with Labels do
   begin
-    AddItem('Left', '', lsLeftJustify); //左对齐
-    AddItem('Center', '', lsCenter);    //中心对齐
-    AddItem('Right', '', lsRightJustify); //右对齐
-    AddItem('Owner', '', lsRegOwner);   //用户名
-    AddItem('Organization', '', lsRegOrganization); //组织名
-    AddItem('AppTitle', '', lsAppTitle); //应用程序标题
-    AddItem('Date', '', lsDate);        //当前日期
-    AddItem('Time', '', lsTime);        //当前时间
+    AddItem('Left', '', lsLeftJustify); // 左对齐
+    AddItem('Center', '', lsCenter);    // 中心对齐
+    AddItem('Right', '', lsRightJustify); // 右对齐
+    AddItem('Owner', '', lsRegOwner);   // 用户名
+    AddItem('Organization', '', lsRegOrganization); // 组织名
+    AddItem('AppTitle', '', lsAppTitle); // 应用程序标题
+    AddItem('Date', '', lsDate);        // 当前日期
+    AddItem('Time', '', lsTime);        // 当前时间
   end;
 end;
 
-//属性已装载
+// 属性已装载
 procedure TCnAACustomText.LoadedEx;
 begin
   CreateDefault;
 end;
 
-//释放
+// 释放
 destructor TCnAACustomText.Destroy;
 begin
   FFonts.Free;
@@ -4045,19 +4167,19 @@ begin
   inherited;
 end;
 
-//标签变动
+// 标签变动
 procedure TCnAACustomText.OnLabelChanged(Sender: TObject);
 begin
   Changed;
 end;
 
-//设置字体
+// 设置字体
 procedure TCnAACustomText.SetFonts(const Value: TCnFontLabels);
 begin
   FFonts.Assign(Value);
 end;
 
-//设置用户标签
+// 设置用户标签
 procedure TCnAACustomText.SetLabels(const Value: TCnUserLabels);
 begin
   FLabels.Assign(Value);
