@@ -440,6 +440,7 @@ type
 {$ENDIF}
     procedure LogException(E: Exception; const AMsg: string = '');
     procedure LogMemDump(AMem: Pointer; Size: Integer);
+    procedure LogBitmapMemory(ABmp: TBitmap);
 {$IFDEF MSWINDOWS}
     procedure LogVirtualKey(AKey: Word);
     procedure LogVirtualKeyWithTag(AKey: Word; const ATag: string);
@@ -522,6 +523,7 @@ type
 {$ENDIF}
     procedure TraceException(E: Exception; const AMsg: string = '');
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
+    procedure TraceBitmapMemory(ABmp: TBitmap);
 {$IFDEF MSWINDOWS}
     procedure TraceVirtualKey(AKey: Word);
     procedure TraceVirtualKeyWithTag(AKey: Word; const ATag: string);
@@ -1176,6 +1178,17 @@ begin
   AList.Add('end');
 end;
 
+function GetBitmapPixelBytesCount(APixelFormat: TPixelFormat): Integer;
+begin
+  case APixelFormat of
+    pf8bit: Result := 1;
+    pf15bit, pf16bit: Result := 2;
+    pf24bit: Result := 3;
+    pf32bit: Result := 4;
+  else
+    raise Exception.Create('NOT Suppport');
+  end;
+end;
 
 function CnDebugger: TCnDebugger;
 begin
@@ -1982,6 +1995,24 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogBitmapMemory(ABmp: TBitmap);
+{$IFDEF DEBUG}
+var
+  H, B: Integer;
+{$ENDIF}
+begin
+{$IFDEF DEBUG}
+  if (ABmp <> nil) and not (ABmp.Empty) then
+  begin
+    LogFmt('Bmp Width %d, Height %d.', [ABmp.Width, ABmp.Height]);
+
+    B := GetBitmapPixelBytesCount(ABmp.PixelFormat);
+    for H := 0 to ABmp.Height - 1 do
+      LogMemDump(ABmp.ScanLine[H], ABmp.Width * B);
+  end;
+{$ENDIF}
+end;
+
 {$IFDEF MSWINDOWS}
 
 procedure TCnDebugger.LogVirtualKey(AKey: Word);
@@ -2711,6 +2742,24 @@ begin
   ThrdID := GetCurrentThreadId;
   InternalOutputMsg(PAnsiChar(AMem), Size, AnsiString(CurrentTag), CurrentLevel, GetCurrentIndent(ThrdID),
     cmtMemoryDump, ThrdID, 0);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.TraceBitmapMemory(ABmp: TBitmap);
+{$IFNDEF NDEBUG}
+var
+  H, B: Integer;
+{$ENDIF}
+begin
+{$IFNDEF NDEBUG}
+  if (ABmp <> nil) and not (ABmp.Empty) then
+  begin
+    TraceFmt('Bmp Width %d, Height %d.', [ABmp.Width, ABmp.Height]);
+
+    B := GetBitmapPixelBytesCount(ABmp.PixelFormat);
+    for H := 0 to ABmp.Height - 1 do
+      TraceMemDump(ABmp.ScanLine[H], ABmp.Width * B);
+  end;
 {$ENDIF}
 end;
 
