@@ -29,13 +29,13 @@ unit CnButtons;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2014.08.29
-*               增加WordWrap属性
+*               增加 WordWrap 属性
 *           2013.07.24
-*               修正未处理Action的问题
+*               修正未处理 Action 的问题
 *           2013.07.03
-*               修补Glyph在某些BPL环境下宽高变为0从而出错的情况
+*               修补 Glyph 在某些BPL环境下宽高变为0从而出错的情况
 *           2009.06.29 
-*               修补了当在设计期设置Caption为空时运行期会改为Name的BUG
+*               修补了当在设计期设置 Caption 为空时运行期会改为 Name 的 BUG
 *           2007.12.18 V0.2
 *               加入 SpeedButton。
 *           2007.12.10 V0.1
@@ -54,6 +54,7 @@ uses
 type
   TBtnColorStyle = (bcsCustom, bcsGold, bcsChrome, bcsBlue, bcsRed,
     bcsFlat1, bcsFlat2, bcsAqua);
+
   TModernBtnStyle = (bsNormal, bsThin, bsFlat, bsModern);
   {* 按钮绘制风格，正常、薄、平、渐变效果}
 
@@ -62,7 +63,6 @@ type
     FAlignment: TAlignment;
     FShadowColor: TColor;
     FDownColor: TColor;
-
     FGlyph: TBitmap;
     FHotTrackColor: TColor;
     FKind: TBitBtnKind;
@@ -74,14 +74,11 @@ type
     FOnClick: TNotifyEvent;
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
-
     FBtnColorStyle: TBtnColorStyle;
     FModernBtnStyle: TModernBtnStyle;
     FDefault, FCancel: Boolean;
-
     FDown: Boolean;
     FCursorOnButton: Boolean;
-
     FDownBold: Boolean;
     FHotTrackBold: Boolean;
     FFlatBorder: Boolean;
@@ -316,7 +313,6 @@ type
     FSpacing: Integer;
     FTransparent: Boolean;
     FMargin: Integer;
-
     FCursorOnButton: Boolean;
     FHotTrackBold: Boolean;
     FFlatBorder: Boolean;
@@ -331,7 +327,6 @@ type
     FOnMouseEnter: TNotifyEvent;
     FAlignment: TAlignment;
     FRoundCorner: Boolean;
-
     procedure UpdateExclusive;
     function GetGlyph: TBitmap;
     procedure SetGlyph(Value: TBitmap);
@@ -366,7 +361,7 @@ type
     procedure SetHotTrackColor(const Value: TColor);
     procedure SetRoundCorner(const Value: Boolean);
     procedure GlyphChanged(Sender: TObject);
-    {* 2009-06-05 添加，处理FGlyph的OnChange事件，否则当直接调用Glyph的方法控件无法得到通知及时刷新 }
+    {* 2009-06-05 添加，处理 FGlyph 的 OnChange 事件，否则当直接调用 Glyph 的方法控件无法得到通知及时刷新 }
     function GetFlat: Boolean;
     procedure SetFlat(const Value: Boolean);
   protected

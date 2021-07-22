@@ -360,6 +360,7 @@ type
     FBGRABmp: TBitmap;
     FAAFont: TCnAAFont;
     procedure SetForeBmp(const Value: TBitmap);
+    procedure SetForeBmp32(const Value: TBitmap);
   public
     constructor Create(AOwner: TCnAAFont);
     {* 类构造器}
@@ -370,10 +371,13 @@ type
     procedure Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
       Mask: TCnAAMask; DestIsAlpha: Boolean = False);
     {* 按指定颜色进行混合，当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True}
-    procedure BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask);
-    {* 使用前景图 ForeBmp 进行混合}
+    procedure BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask;
+      DestIsAlpha: Boolean = False);
+    {* 使用前景图进行混合，DestIsAlpha 为 True 时使用 ForeBmp32，否则使用 ForeBmp}
     property ForeBmp: TBitmap read FForeBmp write SetForeBmp;
-    {* 字体前景图}
+    {* 字体前景图，24 位 RGB 色彩的}
+    property ForeBmp32: TBitmap read FForeBmp32 write SetForeBmp32;
+    {* 字体前景图，32 位 Alpha 通道的}
   end;
 
 { TCnAAFont }
@@ -471,7 +475,7 @@ type
     {* 返回文本高、宽
      |<BR> 注：Effect参数中的阴影、旋转角度等设置将影响返回结果}
     procedure TextOutput(X, Y: Integer; const S: string);
-    {* 使用Effect设置的字体特效，输出平滑字体文本到当前设置的Canvas中，使用它的字体属性和画刷设置。
+    {* 使用 Effect 设置的字体特效，输出平滑字体文本到当前设置的 Canvas 中，使用它的字体属性和画刷设置。
      |<BR> 如果要输出背景透明的文本，需要将 Canvas.Brush.Style 设为 bsClear。
      |<BR> 注：该方法不支持多行文本。
      |<PRE>
@@ -1008,7 +1012,14 @@ implementation
 
 const
   ItalicAdjust = 0.3;                   // 斜体字宽度校正系数
+{$IFNDEF COMPILER6_UP}
+  AC_SRC_ALPHA = $01;
+{$ENDIF}
+
+resourcestring
+  SInvalidForeground = 'Invalid foreground bitmap!';
   SDuplicateString = 'Duplicate string!';
+  SAlreadyMultiplied = 'Already Multiplied!';
 
 type
   PDWordArray = ^TDWordArray;
@@ -1146,6 +1157,36 @@ begin
   end
   else
     ACanvas.StretchDraw(ARect, AGraphic);
+end;
+
+procedure PreMultiplyBitmap(Bmp: TBitmap);
+var
+  W, H, I: Integer;
+  Alpha: Word;
+  PBGRA: PBGRAArray;
+begin
+  if (Bmp = nil) or (Bmp.PixelFormat <> pf32bit) then
+    Exit;
+
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  if Bmp.AlphaFormat <> afPremultiplied then
+    Bmp.AlphaFormat := afPremultiplied
+  else
+    raise Exception.Create(SAlreadyMultiplied);
+{$ELSE}
+  // 手工 PreMultiply
+  for H := 0 to Bmp.Height - 1 do
+  begin
+    PBGRA := Bmp.ScanLine[H];
+    for W := 0 to Bmp.Width - 1 do
+    begin
+      Alpha := PBGRA[W].rgbReserved;
+      PBGRA[W].rgbBlue := MulDiv(PBGRA[W].rgbBlue, Alpha, 255);
+      PBGRA[W].rgbGreen := MulDiv(PBGRA[W].rgbGreen, Alpha, 255);
+      PBGRA[W].rgbRed := MulDiv(PBGRA[W].rgbRed, Alpha, 255);
+    end;
+  end;
+{$ENDIF}
 end;
 
 type
@@ -1707,13 +1748,13 @@ begin
   FForeBmp32 := TBitmap.Create;
   FForeBmp32.PixelFormat := pf32bit;
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
-  FForeBmp32.AlphaFormat := afDefined;
+  FForeBmp32.AlphaFormat := afIgnored;
 {$ENDIF}
 
   FBGRABmp := TBitmap.Create;
   FBGRABmp.PixelFormat := pf32bit;
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
-  FBGRABmp.AlphaFormat := afDefined;
+  FBGRABmp.AlphaFormat := afIgnored;
 {$ENDIF}
 end;
 
@@ -1740,7 +1781,7 @@ end;
 procedure TCnAABlend.Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
   Mask: TCnAAMask; DestIsAlpha: Boolean);
 var
-  R, B, G: Byte;
+  R, B, G, T: Byte;
   AAlpha, DiffForeAlpha: DWORD;
   ForeAlpha, BkAlpha: Byte;
   pMask: PByteArray;
@@ -1835,6 +1876,8 @@ begin
       end;
     end;
 
+    PreMultiplyBitmap(FBGRABmp); // 很重要，做过 PreMultiply 的才能正常绘制
+
     // 注意此处 FBGRABmp 是已经混合了 FAAFont 原始内容了，
     // 不能再次和 FAAFont 内容再次透明度混合，而是全盘复制过去
     Bf.BlendOp := AC_SRC_OVER;
@@ -1887,61 +1930,161 @@ begin
 end;
 
 // 文本按纹理与背景混合
-procedure TCnAABlend.BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask);
+procedure TCnAABlend.BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask;
+  DestIsAlpha: Boolean);
 var
-  AAlpha: WORD;
+  AAlpha, DiffForeAlpha: DWORD;
+  ForeAlpha, BkAlpha: Byte;
   pMask: PByteArray;
   pRGB: PRGBArray;
   pFore: PRGBArray;
+  pBGRA: PBGRAArray;
   Weight: Byte;
   I, J: Integer;
+  Bf: TBlendFunction;
+  PDW: PDWordArray;
+  BColor: TColor;
+  Color32Rec: TRGBQuad;
 begin
   if (FAAFont = nil) or (FAAFont.Canvas = nil) then
     Exit;
-  if (ForeBmp.Width <> Mask.Width) or (ForeBmp.Height <> Mask.Height)
-    or (ForeBmp.PixelFormat <> pf24bit) then
-  begin                                 // 错误的纹理图
-    raise EInvalidForeBmp.Create('Invalid foreground bitmap!');
-    Exit;
-  end;
 
-  FRGBBmp.Width := Mask.Width;
-  FRGBBmp.Height := Mask.Height;
-  AAlpha := Alpha * $100 div 100;       // 透明度
-  FRGBBmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
-  if FRGBBmp.Canvas.Brush.Style <> bsSolid then
-    Bitblt(FRGBBmp.Canvas.Handle, 0, 0, FRGBBmp.Width, FRGBBmp.Height,
-      FAAFont.Canvas.Handle, X, Y, SRCCOPY) // 透明
-  else
-    FillRect(FRGBBmp.Canvas.Handle, Bounds(0, 0, FRGBBmp.Width, FRGBBmp.Height), 0);
-
-  for J := 0 to FRGBBmp.Height - 1 do
+  if DestIsAlpha then
   begin
-    pMask := Mask.ScanLine(J);
-    pRGB := FRGBBmp.ScanLine[J];
-    pFore := ForeBmp.ScanLine[J];
-    for I := 0 to FRGBBmp.Width - 1 do
+    if (ForeBmp32.Width <> Mask.Width) or (ForeBmp32.Height <> Mask.Height)
+      or (ForeBmp32.PixelFormat <> pf32bit) then
+    begin                                 // 错误的纹理图
+      raise EInvalidForeBmp.Create(SInvalidForeground);
+      Exit;
+    end;
+
+    FBGRABmp.Width := Mask.Width;
+    FBGRABmp.Height := Mask.Height;
+    AAlpha := Alpha * $100 div 100;       // 透明度
+    FBGRABmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
+
+    if FBGRABmp.Canvas.Brush.Style <> bsSolid then
     begin
-      Weight := pMask^[I] * AAlpha shr 8; // 混合系数
-      if Weight = 255 then
+      J := FBGRABmp.Width * SizeOf(TRGBQuad);
+      for I := 0 to FBGRABmp.Height - 1 do
+        FillChar(FBGRABmp.ScanLine[I]^, J, $00); // 先填充全透明，否则默认会白色填充
+
+      // 透明，先带透明度地复制目标背景到 FBGRABmp
+      Bf.BlendOp := AC_SRC_OVER;
+      Bf.BlendFlags := 0;
+      Bf.SourceConstantAlpha := $FF;
+      Bf.AlphaFormat := AC_SRC_ALPHA;
+
+      AlphaBlend(FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height,
+        FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height, Bf);
+    end
+    else
+    begin
+      // Solid 时，用 FBGRABmp.Canvas.Brush.Color 来填充全不透明
+      BColor := ColorToRGB(FBGRABmp.Canvas.Brush.Color);     // 实际背景色
+      Color32Rec.rgbRed := GetRValue(BColor);                // 色彩分量
+      Color32Rec.rgbGreen := GetGValue(BColor);
+      Color32Rec.rgbBlue := GetBValue(BColor);
+      Color32Rec.rgbReserved := $FF;
+
+      for I := 0 to FBGRABmp.Height - 1 do
       begin
-        pRGB^[I].rgbtBlue := pFore^[I].rgbtBlue;
-        pRGB^[I].rgbtGreen := pFore^[I].rgbtGreen;
-        pRGB^[I].rgbtRed := pFore^[I].rgbtRed;
-      end
-      else if Weight <> 0 then          // 混合
-      begin
-        Inc(pRGB^[I].rgbtBlue, Weight * (pFore^[I].rgbtBlue - pRGB^[I].rgbtBlue) shr
-          8);
-        Inc(pRGB^[I].rgbtGreen, Weight * (pFore^[I].rgbtGreen - pRGB^[I].rgbtGreen) shr
-          8);
-        Inc(pRGB^[I].rgbtRed, Weight * (pFore^[I].rgbtRed - pRGB^[I].rgbtRed) shr 8);
+        PDW := FBGRABmp.ScanLine[I];
+        for J := 0 to FBGRABmp.Width - 1 do
+          PDW^[J] := PDWORD(@Color32Rec)^; // 直接访问内存填色
       end;
     end;
-  end;
 
-  Bitblt(FAAFont.Canvas.Handle, X, Y, FRGBBmp.Width, FRGBBmp.Height,
-    FRGBBmp.Canvas.Handle, 0, 0, SRCCOPY); // 输出
+    for J := 0 to FBGRABmp.Height - 1 do
+    begin
+      pMask := Mask.ScanLine(J);
+      pBGRA := FBGRABmp.ScanLine[J];
+      pFore := ForeBmp32.ScanLine[J];
+
+      for I := 0 to FBGRABmp.Width - 1 do
+      begin
+        // pMask[i] 是 0 到 255 范围内的文字前透明度，需要 * AAlpha shr 8 得到实际前透明度
+        // pBGRA^[i].rgbReserved 是 0 到 255 范围内的后透明度
+        // 所以目标透明度 = (65536 - (255 - ForeAlpha)(255 - BkAlpha)) / 255
+        ForeAlpha := pMask[I] * AAlpha shr 8;
+        BkAlpha := pBGRA^[I].rgbReserved;
+        DiffForeAlpha := ($FF - ForeAlpha) * BkAlpha;
+
+        // Weight 得到目标透明度
+        Weight := ($FF * $FF - ($FF - ForeAlpha) * ($FF - BkAlpha)) div $FF;
+        // 当前景完全不透明也就是 ForeAlpha 为 255 时，无论背景透明度多少，混合透明度为 255，也就是完全不透明
+        // 当前景完全透明也就是 ForeAlpha 为 0 时，混合透明度为背景透明度 BkAlpha
+
+        pBGRA^[I].rgbReserved := Weight;
+        if Weight <> 0 then // 0 表示全透明，就不需要填色了
+        begin
+          pBGRA^[I].rgbBlue := (pFore^[I].rgbtBlue * ForeAlpha + (pBGRA^[I].rgbBlue * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbGreen := (pFore^[I].rgbtGreen * ForeAlpha + (pBGRA^[I].rgbGreen * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbRed := (pFore^[I].rgbtRed * ForeAlpha + (pBGRA^[I].rgbRed * DiffForeAlpha) div $FF) div Weight;
+        end;
+      end;
+    end;
+
+    PreMultiplyBitmap(FBGRABmp); // 很重要，做过 PreMultiply 的才能正常绘制
+
+    // 注意此处 FBGRABmp 是已经混合了 FAAFont 原始内容了，
+    // 不能再次和 FAAFont 内容再次透明度混合，而是全盘复制过去
+    Bf.BlendOp := AC_SRC_OVER;
+    Bf.BlendFlags := 0;
+    Bf.SourceConstantAlpha := 255;
+    Bf.AlphaFormat := 0;  // 不能再次用透明度混合了，必须复制
+
+    AlphaBlend(FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height,
+      FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height, Bf); // 输出
+  end
+  else
+  begin
+    if (ForeBmp.Width <> Mask.Width) or (ForeBmp.Height <> Mask.Height)
+      or (ForeBmp.PixelFormat <> pf24bit) then
+    begin                                 // 错误的纹理图
+      raise EInvalidForeBmp.Create(SInvalidForeground);
+      Exit;
+    end;
+
+    FRGBBmp.Width := Mask.Width;
+    FRGBBmp.Height := Mask.Height;
+    AAlpha := Alpha * $100 div 100;       // 透明度
+    FRGBBmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
+    if FRGBBmp.Canvas.Brush.Style <> bsSolid then
+      Bitblt(FRGBBmp.Canvas.Handle, 0, 0, FRGBBmp.Width, FRGBBmp.Height,
+        FAAFont.Canvas.Handle, X, Y, SRCCOPY) // 透明
+    else
+      FillRect(FRGBBmp.Canvas.Handle, Bounds(0, 0, FRGBBmp.Width, FRGBBmp.Height), 0);
+
+    for J := 0 to FRGBBmp.Height - 1 do
+    begin
+      pMask := Mask.ScanLine(J);
+      pRGB := FRGBBmp.ScanLine[J];
+      pFore := ForeBmp.ScanLine[J];
+
+      for I := 0 to FRGBBmp.Width - 1 do
+      begin
+        Weight := pMask^[I] * AAlpha shr 8; // 混合系数
+        if Weight = 255 then
+        begin
+          pRGB^[I].rgbtBlue := pFore^[I].rgbtBlue;
+          pRGB^[I].rgbtGreen := pFore^[I].rgbtGreen;
+          pRGB^[I].rgbtRed := pFore^[I].rgbtRed;
+        end
+        else if Weight <> 0 then          // 以 pMask 为透明度，pFore 为原始分量进行混合
+        begin
+          Inc(pRGB^[I].rgbtBlue, Weight * (pFore^[I].rgbtBlue - pRGB^[I].rgbtBlue) shr
+            8);
+          Inc(pRGB^[I].rgbtGreen, Weight * (pFore^[I].rgbtGreen - pRGB^[I].rgbtGreen) shr
+            8);
+          Inc(pRGB^[I].rgbtRed, Weight * (pFore^[I].rgbtRed - pRGB^[I].rgbtRed) shr 8);
+        end;
+      end;
+    end;
+
+    Bitblt(FAAFont.Canvas.Handle, X, Y, FRGBBmp.Width, FRGBBmp.Height,
+      FRGBBmp.Canvas.Handle, 0, 0, SRCCOPY); // 输出
+  end;
 end;
 
 // 设置前景纹理图
@@ -1949,6 +2092,12 @@ procedure TCnAABlend.SetForeBmp(const Value: TBitmap);
 begin
   FForeBmp.Assign(Value);
 end;
+
+procedure TCnAABlend.SetForeBmp32(const Value: TBitmap);
+begin
+  FForeBmp32.Assign(Value);
+end;
+
 
 { TCnAAFont }
 
