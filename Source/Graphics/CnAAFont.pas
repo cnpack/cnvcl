@@ -368,6 +368,8 @@ type
     {* 类析构器}
     procedure Assign(Source: TPersistent); override;
     {* 对象赋值方法}
+    procedure SyncForeBmp32;
+    {* 把 24 位前景图内容塞给 32 位前景图}
     procedure Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
       Mask: TCnAAMask; DestIsAlpha: Boolean = False);
     {* 按指定颜色进行混合，当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True}
@@ -430,8 +432,8 @@ type
      |<BR> 如果要输出背景透明的文本，需要将 Canvas.Brush.Style 设为 bsClear。
      |<BR> 注：该方法不支持多行文本。
      |<PRE>
-       x, y: Integer    - 文本输出位置
-       s: string        - 要绘制的字符串
+       X, Y: Integer    - 文本输出位置
+       S: string        - 要绘制的字符串
        Alpha: TAlpha    - 文本的不透明度，0~100，默认为完全不透明 100
        Blur: TBlurStrength  - 文本的模糊度，默认为不进行模糊处理
        DestIsAlpha: Boolean - 当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True
@@ -474,13 +476,14 @@ type
     function TextExtent(const S: string): TSize; override;
     {* 返回文本高、宽
      |<BR> 注：Effect参数中的阴影、旋转角度等设置将影响返回结果}
-    procedure TextOutput(X, Y: Integer; const S: string);
+    procedure TextOutput(X, Y: Integer; const S: string; DestIsAlpha: Boolean = False);
     {* 使用 Effect 设置的字体特效，输出平滑字体文本到当前设置的 Canvas 中，使用它的字体属性和画刷设置。
      |<BR> 如果要输出背景透明的文本，需要将 Canvas.Brush.Style 设为 bsClear。
      |<BR> 注：该方法不支持多行文本。
      |<PRE>
-       x, y: Integer    - 文本输出位置
-       s: string        - 要绘制的字符串
+       X, Y: Integer    - 文本输出位置
+       S: string        - 要绘制的字符串
+       DestIsAlpha: Boolean - 当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True
      |</PRE>}
     property Effect: TCnAAEffect read FEffect write SetEffect;
     {* 平滑字体绘制时的特效参数}
@@ -1160,10 +1163,12 @@ begin
 end;
 
 procedure PreMultiplyBitmap(Bmp: TBitmap);
+{$IFNDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
 var
-  W, H, I: Integer;
+  W, H: Integer;
   Alpha: Word;
   PBGRA: PBGRAArray;
+{$ENDIF}
 begin
   if (Bmp = nil) or (Bmp.PixelFormat <> pf32bit) then
     Exit;
@@ -1772,9 +1777,32 @@ end;
 procedure TCnAABlend.Assign(Source: TPersistent);
 begin
   if Source is TCnAABlend then
-    ForeBmp.Assign(TCnAABlend(Source).ForeBmp)
+  begin
+    ForeBmp.Assign(TCnAABlend(Source).ForeBmp);
+    ForeBmp32.Assign(TCnAABlend(Source).ForeBmp32);
+  end
   else
     inherited Assign(Source);
+end;
+
+procedure TCnAABlend.SyncForeBmp32;
+var
+  Bf: TBlendFunction;
+begin
+  if FForeBmp.Empty then
+    Exit;
+
+  FForeBmp32.Width := FForeBmp.Width;
+  FForeBmp32.Height := FForeBmp.Height;
+
+  // 全盘复制过去
+  Bf.BlendOp := AC_SRC_OVER;
+  Bf.BlendFlags := 0;
+  Bf.SourceConstantAlpha := 255;
+  Bf.AlphaFormat := 0;  // 不能用透明度混合，必须复制
+
+  AlphaBlend(FForeBmp32.Canvas.Handle, 0, 0, FForeBmp.Width, FForeBmp.Height,
+    FForeBmp.Canvas.Handle, 0, 0, FForeBmp.Width, FForeBmp.Height, Bf);
 end;
 
 // 文本按前景色与背景混合
@@ -1938,6 +1966,7 @@ var
   pMask: PByteArray;
   pRGB: PRGBArray;
   pFore: PRGBArray;
+  pFor32: PBGRAArray;
   pBGRA: PBGRAArray;
   Weight: Byte;
   I, J: Integer;
@@ -1999,7 +2028,7 @@ begin
     begin
       pMask := Mask.ScanLine(J);
       pBGRA := FBGRABmp.ScanLine[J];
-      pFore := ForeBmp32.ScanLine[J];
+      pFor32 := ForeBmp32.ScanLine[J];
 
       for I := 0 to FBGRABmp.Width - 1 do
       begin
@@ -2018,9 +2047,12 @@ begin
         pBGRA^[I].rgbReserved := Weight;
         if Weight <> 0 then // 0 表示全透明，就不需要填色了
         begin
-          pBGRA^[I].rgbBlue := (pFore^[I].rgbtBlue * ForeAlpha + (pBGRA^[I].rgbBlue * DiffForeAlpha) div $FF) div Weight;
-          pBGRA^[I].rgbGreen := (pFore^[I].rgbtGreen * ForeAlpha + (pBGRA^[I].rgbGreen * DiffForeAlpha) div $FF) div Weight;
-          pBGRA^[I].rgbRed := (pFore^[I].rgbtRed * ForeAlpha + (pBGRA^[I].rgbRed * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbBlue := (pFor32^[I].rgbBlue * ForeAlpha +
+            (pBGRA^[I].rgbBlue * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbGreen := (pFor32^[I].rgbGreen * ForeAlpha +
+            (pBGRA^[I].rgbGreen * DiffForeAlpha) div $FF) div Weight;
+          pBGRA^[I].rgbRed := (pFor32^[I].rgbRed * ForeAlpha +
+            (pBGRA^[I].rgbRed * DiffForeAlpha) div $FF) div Weight;
         end;
       end;
     end;
@@ -2097,7 +2129,6 @@ procedure TCnAABlend.SetForeBmp32(const Value: TBitmap);
 begin
   FForeBmp32.Assign(Value);
 end;
-
 
 { TCnAAFont }
 
@@ -2383,7 +2414,8 @@ begin
 end;
 
 // 增强平滑文本输出
-procedure TCnAAFontEx.TextOutput(X, Y: Integer; const S: string);
+procedure TCnAAFontEx.TextOutput(X, Y: Integer; const S: string;
+  DestIsAlpha: Boolean);
 var
   TextPoint, ShadowPoint: TPoint;
   OldBrushStyle: TBrushStyle;
@@ -2454,24 +2486,34 @@ begin
       CreateForeBmp;                      // 创建字体纹理图
       if Effect.Noise > 0 then
         AddNoise(Effect.Noise);
-      Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask);
+
+      if DestIsAlpha then
+        Blend.SyncForeBmp32;
+      Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask, DestIsAlpha);
     end
     else if Effect.Gradual.Enabled then
     begin                                 // 创建渐变色前景图
       CreateGradual;
       if Effect.Noise > 0 then
         AddNoise(Effect.Noise);
-      Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask);
+
+      if DestIsAlpha then
+        Blend.SyncForeBmp32;
+      Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask, DestIsAlpha);
     end
     else
     begin                                 // 混合输出
       if Effect.Noise > 0 then
       begin
         CreateNoiseBmp;
-        Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask);
+
+        if DestIsAlpha then
+          Blend.SyncForeBmp32;
+        Blend.BlendEx(TextPoint.X, TextPoint.Y, Effect.Alpha, Mask, DestIsAlpha);
       end
       else
-        Blend.Blend(TextPoint.X, TextPoint.Y, Canvas.Font.Color, Effect.Alpha, Mask);
+        Blend.Blend(TextPoint.X, TextPoint.Y, Canvas.Font.Color, Effect.Alpha,
+          Mask, DestIsAlpha);
     end;
 
     if Effect.Shadow.Enabled then
