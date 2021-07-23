@@ -29,7 +29,11 @@ unit CnAAFont;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：平滑字体算法由李文松朋友提供的AAFont修改而来
-* 最后更新：2021.07.17
+* 最后更新：2021.07.23
+*               TCnAABlend 的 BlendEx 方法以及 TCnAAFontEx 的 TextOutput 方法支持
+*               目标为 32 位带 Alpha 通道的位图，需要调用者指定 DestIsAlpha 为 True
+*               注意源图要 UnPreMultiply 的，输出为 PreMultiply 的。
+*           2021.07.17
 *               TCnAABlend 的 Blend 方法以及 TCnAAFont 的 TextOutput 方法支持目
 *               标为 32 位带 Alpha 通道的位图，需要调用者指定 DestIsAlpha 为 True
 *               注意在 XE 或以下版本中 32 位 Bitmap 对 Alpha 通道支持不完整，
@@ -372,14 +376,20 @@ type
     {* 把 24 位前景图内容塞给 32 位前景图}
     procedure Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
       Mask: TCnAAMask; DestIsAlpha: Boolean = False);
-    {* 按指定颜色进行混合，当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True}
+    {* 按指定颜色进行混合，当目标需要支持 Alpha 透明度时需指定 DestIsAlpha 为 True
+      注意 DestIsAlpha 为 True 时，要求 AAFont.Canvas 中的源是 32 位
+        并且在不支持 AlphaFormat 的情况下，要求内容是 UnPreMultiply 的（内部进行 PreMultiply）
+      输出则是 PreMultiply 过的内容}
     procedure BlendEx(X, Y: Integer; Alpha: TAlpha; Mask: TCnAAMask;
       DestIsAlpha: Boolean = False);
-    {* 使用前景图进行混合，DestIsAlpha 为 True 时使用 ForeBmp32，否则使用 ForeBmp}
+    {* 使用前景图进行混合，DestIsAlpha 为 True 时使用 ForeBmp32，否则使用 ForeBmp
+      注意 DestIsAlpha 为 True 时，要求 ForeBmp32 在不支持 AlphaFormat 的情况下
+        要求内容是 UnPreMultiply 的（内部进行 PreMultiply）
+      输出则是 PreMultiply 过的内容 }
     property ForeBmp: TBitmap read FForeBmp write SetForeBmp;
     {* 字体前景图，24 位 RGB 色彩的}
     property ForeBmp32: TBitmap read FForeBmp32 write SetForeBmp32;
-    {* 字体前景图，32 位 Alpha 通道的}
+    {* 字体前景图，32 位 Alpha 通道的，内容是 UnPreMultiply 的}
   end;
 
 { TCnAAFont }
@@ -1023,6 +1033,7 @@ resourcestring
   SInvalidForeground = 'Invalid foreground bitmap!';
   SDuplicateString = 'Duplicate string!';
   SAlreadyMultiplied = 'Already Multiplied!';
+  SAlreadyUnMultiplied = 'Already UnMultiplied!';
 
 type
   PDWordArray = ^TDWordArray;
@@ -1175,9 +1186,9 @@ begin
 
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
   if Bmp.AlphaFormat <> afPremultiplied then
-    Bmp.AlphaFormat := afPremultiplied
-  else
-    raise Exception.Create(SAlreadyMultiplied);
+    Bmp.AlphaFormat := afPremultiplied;
+//  else
+//    raise Exception.Create(SAlreadyMultiplied);
 {$ELSE}
   // 手工 PreMultiply
   for H := 0 to Bmp.Height - 1 do
@@ -1189,6 +1200,38 @@ begin
       PBGRA[W].rgbBlue := MulDiv(PBGRA[W].rgbBlue, Alpha, 255);
       PBGRA[W].rgbGreen := MulDiv(PBGRA[W].rgbGreen, Alpha, 255);
       PBGRA[W].rgbRed := MulDiv(PBGRA[W].rgbRed, Alpha, 255);
+    end;
+  end;
+{$ENDIF}
+end;
+
+procedure UnPreMultiplyBitmap(Bmp: TBitmap);
+{$IFNDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+var
+  W, H: Integer;
+  Alpha: Word;
+  PBGRA: PBGRAArray;
+{$ENDIF}
+begin
+  if (Bmp = nil) or (Bmp.PixelFormat <> pf32bit) then
+    Exit;
+
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  if Bmp.AlphaFormat = afPremultiplied then
+    Bmp.AlphaFormat := afIgnored;
+//  else
+//    raise Exception.Create(SAlreadyUnMultiplied);
+{$ELSE}
+  // 手工 UnPreMultiply
+  for H := 0 to Bmp.Height - 1 do
+  begin
+    PBGRA := Bmp.ScanLine[H];
+    for W := 0 to Bmp.Width - 1 do
+    begin
+      Alpha := PBGRA[W].rgbReserved;
+      PBGRA[W].rgbBlue := MulDiv(PBGRA[W].rgbBlue, 255, Alpha);
+      PBGRA[W].rgbGreen := MulDiv(PBGRA[W].rgbGreen, 255, Alpha);
+      PBGRA[W].rgbRed := MulDiv(PBGRA[W].rgbRed, 255, Alpha);
     end;
   end;
 {$ENDIF}
@@ -1835,6 +1878,9 @@ begin
   begin
     FBGRABmp.Width := Mask.Width;
     FBGRABmp.Height := Mask.Height;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+    FBGRABmp.AlphaFormat := afPremultiplied;
+{$ENDIF}
 
     FBGRABmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
     if FBGRABmp.Canvas.Brush.Style <> bsSolid then
@@ -1851,6 +1897,9 @@ begin
 
       AlphaBlend(FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height,
         FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height, Bf);
+
+      // UnPremutiply 化才能做下文的混合
+      UnPreMultiplyBitmap(FBGRABmp);
     end
     else
     begin
@@ -1867,13 +1916,13 @@ begin
       begin
         PDW := FBGRABmp.ScanLine[I];
         for J := 0 to FBGRABmp.Width - 1 do
-          PDW^[J] := PDWORD(@Color32Rec)^; // 直接访问内存填色
+          PDW^[J] := PDWORD(@Color32Rec)^; // 直接访问内存填色，已经是 UnPreMultiply 的了
       end;
     end;
 
     for J := 0 to FBGRABmp.Height - 1 do
     begin
-      // 对于每一个像素的前后两像素颜色混合公式：
+      // 对于每一个像素的 UnPreMultiply 的前后两像素颜色混合公式：
       // 目标透明度=1-（1-前透明度）*（1-后透明度）
       // 目标分量=（前分量*前透明度 + 后分量*后透明度*（1-前透明度））/目标透明度
       // （其中透明度在 0 到 1 闭区间内，1 表示不透明，要想办法转换成 0 到 255
@@ -1904,7 +1953,7 @@ begin
       end;
     end;
 
-    PreMultiplyBitmap(FBGRABmp); // 很重要，做过 PreMultiply 的才能正常绘制
+    PreMultiplyBitmap(FBGRABmp); // 很重要，做过 PreMultiply 后才能正常绘制
 
     // 注意此处 FBGRABmp 是已经混合了 FAAFont 原始内容了，
     // 不能再次和 FAAFont 内容再次透明度混合，而是全盘复制过去
@@ -1922,7 +1971,7 @@ begin
     FRGBBmp.Height := Mask.Height;
     FRGBBmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
     if FRGBBmp.Canvas.Brush.Style <> bsSolid then
-      Bitblt(FRGBBmp.Canvas.Handle, 0, 0, FRGBBmp.Width, FRGBBmp.Height,
+      BitBlt(FRGBBmp.Canvas.Handle, 0, 0, FRGBBmp.Width, FRGBBmp.Height,
         FAAFont.Canvas.Handle, X, Y, SRCCOPY) // 透明
     else
       FillRect(FRGBBmp.Canvas.Handle, Bounds(0, 0, FRGBBmp.Width, FRGBBmp.Height), 0);
@@ -1952,7 +2001,7 @@ begin
       end;
     end;
 
-    Bitblt(FAAFont.Canvas.Handle, X, Y, FRGBBmp.Width, FRGBBmp.Height,
+    BitBlt(FAAFont.Canvas.Handle, X, Y, FRGBBmp.Width, FRGBBmp.Height,
       FRGBBmp.Canvas.Handle, 0, 0, SRCCOPY); // 输出
   end;
 end;
@@ -1989,6 +2038,10 @@ begin
 
     FBGRABmp.Width := Mask.Width;
     FBGRABmp.Height := Mask.Height;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+    FBGRABmp.AlphaFormat := afPremultiplied;
+{$ENDIF}
+
     AAlpha := Alpha * $100 div 100;       // 透明度
     FBGRABmp.Canvas.Brush.Assign(FAAFont.Canvas.Brush);
 
@@ -2006,6 +2059,9 @@ begin
 
       AlphaBlend(FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height,
         FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height, Bf);
+
+      // UnPremutiply 化才能做下文的混合
+      UnPreMultiplyBitmap(FBGRABmp);
     end
     else
     begin
@@ -2020,9 +2076,14 @@ begin
       begin
         PDW := FBGRABmp.ScanLine[I];
         for J := 0 to FBGRABmp.Width - 1 do
-          PDW^[J] := PDWORD(@Color32Rec)^; // 直接访问内存填色
+          PDW^[J] := PDWORD(@Color32Rec)^; // 直接访问内存填色，已经是 UnPreMultiply 的了
       end;
     end;
+
+    // 在不支持 AlphaFormat 的版本中，ForeBmp32 的内容由外界保证 PreMultiply，在此处进行 UnPreMultiply
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+    ForeBmp32.AlphaFormat := afIgnored;
+{$ENDIF}
 
     for J := 0 to FBGRABmp.Height - 1 do
     begin
@@ -2057,7 +2118,7 @@ begin
       end;
     end;
 
-    PreMultiplyBitmap(FBGRABmp); // 很重要，做过 PreMultiply 的才能正常绘制
+    PreMultiplyBitmap(FBGRABmp); // 很重要，做过 PreMultiply 后才能正常绘制
 
     // 注意此处 FBGRABmp 是已经混合了 FAAFont 原始内容了，
     // 不能再次和 FAAFont 内容再次透明度混合，而是全盘复制过去
@@ -2472,7 +2533,8 @@ begin
       if Effect.Shadow.Blur > 0 then
         ShadowMask.Blur(Effect.Shadow.Blur); // 阴影模糊
       Blend.Blend(ShadowPoint.X, ShadowPoint.Y, Effect.Shadow.Color,
-        Effect.Shadow.Alpha * Effect.Alpha div 100, ShadowMask);
+        Effect.Shadow.Alpha * Effect.Alpha div 100, ShadowMask, DestIsAlpha);
+      // 此处把 ShadowMask 中的模糊阴影复制到了 Blend.AAFont.Canvas 中
       ShadowMask.Free;
       Canvas.Brush.Style := bsClear;      // 透明
     end;
