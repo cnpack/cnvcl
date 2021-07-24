@@ -433,7 +433,11 @@ begin
       FLineNumWidth := ASize.cx;
 
       // ÅÐ¶ÏÊÇ·ñµÈ¿í
+{$IFDEF DELPHI104_SYDNEY_UP}
+      FFontIsFixedWidth := EnumFontFamiliesEx(DC, LogFont, @EnumFontsProc, 0, 0) = 1;
+{$ELSE}
       FFontIsFixedWidth := EnumFontFamiliesEx(DC, LogFont, @EnumFontsProc, 0, 0) = BOOL(1);
+{$ENDIF}
     finally
       SaveFont := SelectObject(DC, SaveFont);
       if SaveFont <> 0 then
