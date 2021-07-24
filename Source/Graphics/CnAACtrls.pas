@@ -50,7 +50,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnAAFont, CnTimer, ExtCtrls, StdCtrls, ShellAPI;
+  ExtCtrls, StdCtrls, ShellAPI, CnAAFont, CnTimer;
 
 const
   // 暂时不使用版本号
@@ -84,29 +84,25 @@ type
 { TAALabel }
 
   TCnAALabel = class(TCnAAGraphicControl)
-  {* 平滑特效字体标签控件，用于显示单行文本，在控件的Effect属性中定义了所有与
+  {* 平滑特效字体标签控件，用于显示单行文本，在控件的 Effect 属性中定义了所有与
      特效显示相关的设置。
-   |<BR> 注：该控件不支持多行文本，如果需要显示多行文本，用TCnAAText来代替。
+   |<BR> 注：该控件不支持多行文本，如果需要显示多行文本，用 TCnAAText 来代替。
    |<BR> 在设计期，可通过双击控件来快速设置字体特效属性}
   private
-    { Private declarations }
     FEffect: TCnAAFontEffect;
-    MemBmp: TBitmap;
+    FMemBmp: TBitmap;
     procedure SetEffect(const Value: TCnAAFontEffect);
   protected
-    { Protected declarations }
     procedure PaintCanvas; override;
     procedure Reset; override;
     procedure TransparentPaint;
     procedure DrawMem;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
     destructor Destroy; override;
     {* 类析构器}
   published
-    { Published declarations }
     property AutoSize;
     {* 是否自动设置控件尺寸}
     property Border;
@@ -183,15 +179,14 @@ type
   TCnAALinkLabel = class(TCnAALabel)
   {* 平滑特效超链接标签控件，用于显示超链接，支持切换时的淡入淡出效果}
   private
-    { Private declarations }
-    HotBmp: TBitmap;
-    BlendBmp: TBitmap;
-    FadeTimer: TTimer;
+    FHotBmp: TBitmap;
+    FBlendBmp: TBitmap;
+    FFadeTimer: TTimer;
     FFadeStyle: TCnFadeStyle;
     FProgress: TProgress;
     FHotLink: TCnHotLink;
     FMouseIn: Boolean;
-    NewProg: Double;
+    FNewProg: Double;
 
     procedure OnFadeTimer(Sender: TObject);
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
@@ -200,7 +195,6 @@ type
     procedure SeTCnFadeStyle(const Value: TCnFadeStyle);
     procedure SeTCnHotLink(const Value: TCnHotLink);
   protected
-    { Protected declarations }
     property Progress: TProgress read FProgress write SetProgress;
     property FadeStyle: TCnFadeStyle read FFadeStyle write SeTCnFadeStyle;
     procedure DrawHot;
@@ -208,15 +202,13 @@ type
     procedure SetEnabled(Value: Boolean); override;
     procedure LoadedEx; override;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
     destructor Destroy; override;
     {* 类析构器}
     procedure Click; override;
-    {* 模拟用户点击该控件，调用HotLink的URL属性}
+    {* 模拟用户点击该控件，调用 HotLink 的 URL 属性}
   published
-    { Published declarations }
     property HotLink: TCnHotLink read FHotLink write SeTCnHotLink;
     {* 超链接属性}
   end;
@@ -241,17 +233,17 @@ type
     property Lines;
     {* 文本内容属性，允许使用字体标签和用户标签来控制每一行文本的对齐方式和字体特效。
        使用标签时用一对尖括号'<'、'>'将标签名引起来，控制标签的作用范围由LabelEffect
-       决定。另见文本控件的Fonts、Labels属性。}
+       决定。另见文本控件的 Fonts、Labels 属性。}
     property Transparent;
     {* 是否允许控件透明}
     property Alignment;
     {* 默认的文本对齐方式，如果文本内有对齐标签，则由对齐标签决定。
-     |<BR> 另见LabelEffect、Lines、Labels属性}
+     |<BR> 另见 LabelEffect、Lines、Labels 属性}
     property Quality;
     {* 平滑字显示精度}
     property FontEffect;
     {* 默认的字体特效参数，如果文本内有字体标签，则由字体标签决定。
-     |<BR> 另见LabelEffect、Lines、Fonts、Font属性}
+     |<BR> 另见 LabelEffect、Lines、Fonts、Font 属性}
     property LabelEffect;
     {* 字体、对齐标签作用范围}
     property BackColor;
@@ -268,12 +260,10 @@ type
   {* 平滑特效文本控件，用于显示多行文本，通过使用标签，允许每行文本使用不同的
      对齐方式和字体特效。}
   private
-    { Private declarations }
     FText: TCnTextParam;
     procedure SetText(const Value: TCnTextParam);
   protected
-    { Protected declarations }
-    TextBmp: TBitmap;
+    FTextBmp: TBitmap;
     procedure PaintCanvas; override;
     procedure LoadedEx; override;
     function UseDefaultLabels: Boolean; override;
@@ -283,13 +273,11 @@ type
     procedure TransparentPaint;
     procedure Reset; override;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
     destructor Destroy; override;
     {* 类析构器}
   published
-    { Published declarations }
     property AutoSize;
     {* 是否自动设置控件尺寸}
     property Border;
@@ -339,7 +327,7 @@ type
     {* 滚动内容尾部空白高度，单位为控件高度的百分比}
     property Alignment default taCenter;
     {* 默认的文本对齐方式，如果文本内有对齐标签，则由对齐标签决定。
-     |<BR> 另见LabelEffect、Lines、Labels属性}
+     |<BR> 另见 LabelEffect、Lines、Labels 属性}
     property RowPitch;
     {* 文本行间距，单位为字体高度的百分比}
     property WordWrap;
@@ -347,17 +335,17 @@ type
     property Lines;
     {* 文本内容属性，允许使用字体标签和用户标签来控制每一行文本的对齐方式和字体特效。
        使用标签时用一对尖括号'<'、'>'将标签名引起来，控制标签的作用范围由LabelEffect
-       决定。另见文本控件的Fonts、Labels属性。}
+       决定。另见文本控件的 Fonts、Labels 属性。}
     property Quality;
     {* 平滑字显示精度}
     property FontEffect;
     {* 默认的字体特效参数，如果文本内有字体标签，则由字体标签决定。
-     |<BR> 另见LabelEffect、Lines、Fonts、Font属性}
+     |<BR> 另见 LabelEffect、Lines、Fonts、Font 属性}
     property LabelEffect;
     {* 字体、对齐标签作用范围}
     property Font;
     {* 默认的字体参数，如果文本内有字体标签，则由字体标签决定。
-     |<BR> 另见LabelEffect、Lines、Fonts属性}
+     |<BR> 另见 LabelEffect、Lines、Fonts 属性}
     property BackColor default clWhite;
     {* 控件背景颜色}
     property BackGround;
@@ -371,7 +359,6 @@ type
   TCnAAScrollText = class(TCnAACustomText)
   {* 平滑滚动文本控件，用于多行文本的动态滚动显示}
   private
-    { Private declarations }
     FScrollDelay: Word;
     FScrollStep: Integer;
     FRepeatDelay: Word;
@@ -379,10 +366,10 @@ type
     FRepeatedCount: Integer;
     FText: TCnScrollTextParam;
     FCurrPos: Integer;
-    TextBmp: TBitmap;
-    CurrBmp: TBitmap;
-    DelayTimer: TTimer;
-    ScrollTimer: TCnTimer;
+    FTextBmp: TBitmap;
+    FCurrBmp: TBitmap;
+    FDelayTimer: TTimer;
+    FScrollTimer: TCnTimer;
     FActive: Boolean;
     FTransparent: Boolean;
 
@@ -399,14 +386,12 @@ type
     function GetBmpHeight: Integer;
     procedure SetTransparent(const Value: Boolean);
   protected
-    { Protected declarations }
     procedure CreateDefFonts; override;
     procedure PaintCanvas; override;
     function UseDefaultLabels: Boolean; override;
     procedure LoadedEx; override;
     function CanResize(var NewWidth, NewHeight: Integer): Boolean; override;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
     destructor Destroy; override;
@@ -422,10 +407,9 @@ type
     property BmpHeight: Integer read GetBmpHeight;
     {* 整个图象的高度}
   published
-    { Published declarations }
     property AutoUpdate;
     {* 是否允许控件参数变更时自动重新创建滚动内容。如果有很多参数需要在运行时设置，
-       可将该属性设为False，待设定完参数后调用Reset方法。}
+       可将该属性设为 False，待设定完参数后调用 Reset 方法。}
     property Active: Boolean read FActive write SetActive default True;
     {* 是否允许文本滚动}
     property Height default 280;
@@ -437,16 +421,16 @@ type
     property ScrollStep: Integer read FScrollStep write SetScrollStep default 1;
     {* 一次滚动的象素数，如果设定为负数将向下滚动}
     property RepeatCount: TBorderWidth read FRepeatCount write SetRepeatCount default 0;
-    {* 允许循环次数，指定次数的循环结束将自动停止滚动，并产生OnComplete事件。
-     |<BR> 该值设为0将无限循环。}
+    {* 允许循环次数，指定次数的循环结束将自动停止滚动，并产生 OnComplete 事件。
+     |<BR> 该值设为 0 将无限循环。}
     property RepeatDelay: Word read FRepeatDelay write SetRepeatDelay default 2000;
-    {* 完成一次滚动循环后的延时，如果不需要延时，可设为0}
+    {* 完成一次滚动循环后的延时，如果不需要延时，可设为 0}
     property Text: TCnScrollTextParam read FText write SetText;
     {* 滚动文本内容和参数属性}
     property Transparent: Boolean read FTransparent write SetTransparent;
     {* 背景是否透明}
     property OnComplete;
-    {* 指定次数的滚动循环结束事件，见RepeatCount}
+    {* 指定次数的滚动循环结束事件，见 RepeatCount}
     property OnTextReady;
     {* 滚动内容已初始化事件}
     property OnPainted;
@@ -537,7 +521,7 @@ type
     property Lines;
     {* 文本内容属性，允许使用字体标签和用户标签来控制每一行文本的对齐方式和字体特效。
        使用标签时用一对尖括号'<'、'>'将标签名引起来，控制标签的作用范围由LabelEffect
-       决定。另见文本控件的Fonts、Labels属性。}
+       决定。另见文本控件的 Fonts、Labels 属性。}
     property Transparent;
     {* 是否允许控件透明}
     property Alignment default taCenter;
@@ -549,7 +533,7 @@ type
     {* 平滑字显示精度}
     property FontEffect;
     {* 默认的字体特效参数，如果文本内有字体标签，则由字体标签决定。
-     |<BR> 另见LabelEffect、Lines、Fonts、Font属性}
+     |<BR> 另见 LabelEffect、Lines、Fonts、Font 属性}
     property LabelEffect;
     {* 字体、对齐标签作用范围}
     property BackColor default clWhite;
@@ -565,20 +549,19 @@ type
   TCnAAFadeText = class(TCnAACustomText)
   {* 平滑特效渐隐文本控件，用于多行文本的淡入淡出切换显示}
   private
-    { Private declarations }
     FActive: Boolean;
     FLineIndex: Integer;
     FText: TCnFadeTextParam;
     FFadeProgress: TProgress;
-    InBmp, OutBmp, TextBmp: TBitmap;
-    FadeTimer: TTimer;
-    DelayTimer: TTimer;
+    FInBmp, FOutBmp, FTextBmp: TBitmap;
+    FFadeTimer: TTimer;
+    FDelayTimer: TTimer;
     LastText: string;
     CurrText: string;
     CurrAlign: TAlignment;
     FRepeatedCount: Integer;
     FRepeatCount: TBorderWidth;
-    NewProg: Double;
+    FNewProg: Double;
 
     procedure SetActive(const Value: Boolean);
     procedure SetLineIndex(const Value: Integer);
@@ -589,7 +572,6 @@ type
     procedure DrawFadeBmp(AText: string; Bmp: TBitmap);
     procedure SetRepeatCount(const Value: TBorderWidth);
   protected
-    { Protected declarations }
     procedure CreateDefFonts; override;
     procedure PaintCanvas; override;
     function UseDefaultLabels: Boolean; override;
@@ -612,7 +594,6 @@ type
     procedure FadeToStr(AText: string);
     {* 淡入淡出切换到指定文本}
   published
-    { Published declarations }
     property Active: Boolean read FActive write SetActive default True;
     {* 是否允许文本淡入淡出切换}
     property Height default 34;
@@ -627,7 +608,7 @@ type
     property Text: TCnFadeTextParam read FText write SetText;
     {* 控件文本内容和参数属性}
     property OnComplete;
-    {* 指定次数的滚动循环结束事件，见RepeatCount}
+    {* 指定次数的滚动循环结束事件，见 RepeatCount}
     property OnPainted;
     {* 控件重绘事件}
   end;
@@ -710,30 +691,30 @@ const
 { TCnAALabel }
 
 //--------------------------------------------------------//
-//平滑特效字体标签                                        //
+// 平滑特效字体标签                                       //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAALabel.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  MemBmp := TBitmap.Create;
-  MemBmp.PixelFormat := pf24bit;
+  FMemBmp := TBitmap.Create;
+  FMemBmp.PixelFormat := pf24bit;
   FEffect := TCnAAFontEffect.Create(Self, OnEffectChanged);
   ControlStyle := ControlStyle + [csReplicatable, csSetCaption];
   Width := 46;
   Height := 12;
 end;
 
-//释放
+// 释放
 destructor TCnAALabel.Destroy;
 begin
   FEffect.Free;
-  MemBmp.Free;
+  FMemBmp.Free;
   inherited;
 end;
 
-//重绘
+// 重绘
 procedure TCnAALabel.Reset;
 begin
   if not Effect.Transparent then
@@ -741,14 +722,14 @@ begin
   inherited;
 end;
 
-//绘制缓冲区
+// 绘制缓冲区
 procedure TCnAALabel.DrawMem;
 var
   OffPoint: TPoint;
   th, tw: Integer;
 begin
-  AAFont.Canvas := MemBmp.Canvas;
-  MemBmp.Canvas.Font.Assign(Font); //字体
+  AAFont.Canvas := FMemBmp.Canvas;
+  FMemBmp.Canvas.Font.Assign(Font); //字体
   th := AAFont.TextHeight(Caption); //文本高度
   tw := AAFont.TextWidth(Caption); //文本宽度
   //自动设定大小
@@ -757,32 +738,32 @@ begin
   if AutoSize and (Align in [alNone, alTop, alBottom]) then
     ClientHeight := th + 2 * Border;
   case Effect.Alignment of    //水平对齐方式
-    taLeftJustify: OffPoint.x := Border;
-    taCenter: OffPoint.x := (ClientWidth - tw) div 2;
-    taRightJustify: OffPoint.x := ClientWidth - Border - tw;
+    taLeftJustify: OffPoint.X := Border;
+    taCenter: OffPoint.X := (ClientWidth - tw) div 2;
+    taRightJustify: OffPoint.X := ClientWidth - Border - tw;
   end;
   case Effect.Layout of       //垂直对齐方式
-    tlTop: OffPoint.y := Border;
-    tlCenter: OffPoint.y := (ClientHeight - th) div 2;
-    tlBottom: OffPoint.y := ClientHeight - Border - th;
+    tlTop: OffPoint.Y := Border;
+    tlCenter: OffPoint.Y := (ClientHeight - th) div 2;
+    tlBottom: OffPoint.Y := ClientHeight - Border - th;
   end;
-  MemBmp.Height := ClientHeight;
-  MemBmp.Width := ClientWidth;
-  MemBmp.Canvas.Brush.Color := Color;
-  MemBmp.Canvas.Brush.Style := bsSolid;
+  FMemBmp.Height := ClientHeight;
+  FMemBmp.Width := ClientWidth;
+  FMemBmp.Canvas.Brush.Color := Color;
+  FMemBmp.Canvas.Brush.Style := bsSolid;
   if Effect.Transparent then  //透明
   begin
-    CopyParentImage(MemBmp.Canvas); //复制父控件画布
+    CopyParentImage(FMemBmp.Canvas); //复制父控件画布
   end else if not Effect.IsBackEmpty then
   begin                       //绘制背景图
-    DrawBackGround(MemBmp.Canvas, Rect(0, 0, MemBmp.Width, MemBmp.Height),
+    DrawBackGround(FMemBmp.Canvas, Rect(0, 0, FMemBmp.Width, FMemBmp.Height),
       Effect.BackGround.Graphic, Effect.BackGroundMode);
   end else
   begin                       //填充背景色
-    MemBmp.Canvas.FillRect(ClientRect);
+    FMemBmp.Canvas.FillRect(ClientRect);
   end;
-  MemBmp.Canvas.Brush.Style := bsClear;
-  AAFont.TextOutput(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
+  FMemBmp.Canvas.Brush.Style := bsClear;
+  AAFont.TextOutput(OffPoint.X, OffPoint.Y, Caption); //平滑字体输出
 end;
 
 // 透明绘制
@@ -801,32 +782,32 @@ begin
   if AutoSize and (Align in [alNone, alTop, alBottom]) then
     ClientHeight := th + 2 * Border;
   case Effect.Alignment of    //水平对齐方式
-    taLeftJustify: OffPoint.x := Border;
-    taCenter: OffPoint.x := (ClientWidth - tw) div 2;
-    taRightJustify: OffPoint.x := ClientWidth - Border - tw;
+    taLeftJustify: OffPoint.X := Border;
+    taCenter: OffPoint.X := (ClientWidth - tw) div 2;
+    taRightJustify: OffPoint.X := ClientWidth - Border - tw;
   end;
   case Effect.Layout of       //垂直对齐方式
-    tlTop: OffPoint.y := Border;
-    tlCenter: OffPoint.y := (ClientHeight - th) div 2;
-    tlBottom: OffPoint.y := ClientHeight - Border - th;
+    tlTop: OffPoint.Y := Border;
+    tlCenter: OffPoint.Y := (ClientHeight - th) div 2;
+    tlBottom: OffPoint.Y := ClientHeight - Border - th;
   end;
   Canvas.Brush.Color := Color;
   Canvas.Brush.Style := bsSolid;
   Canvas.Brush.Style := bsClear;
-  AAFont.TextOutput(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
+  AAFont.TextOutput(OffPoint.X, OffPoint.Y, Caption); //平滑字体输出
 end;
 
-//控件重绘
+// 控件重绘
 procedure TCnAALabel.PaintCanvas;
 begin
   if Effect.Transparent then
     TransparentPaint
   else
-    Bitblt(Canvas.Handle, 0, 0, Width, Height, MemBmp.Canvas.Handle, 0, 0,
+    Bitblt(Canvas.Handle, 0, 0, Width, Height, FMemBmp.Canvas.Handle, 0, 0,
       SRCCOPY);
 end;
 
-//设置字体特效
+// 设置字体特效
 procedure TCnAALabel.SetEffect(const Value: TCnAAFontEffect);
 begin
   FEffect.Assign(Value);
@@ -835,10 +816,10 @@ end;
 { TCnHotLink }
 
 //--------------------------------------------------------//
-//超链接参数类                                            //
+// 超链接参数类                                           //
 //--------------------------------------------------------//
 
-//链接参数
+// 链接参数
 procedure TCnHotLink.Assign(Source: TPersistent);
 begin
   inherited;
@@ -854,7 +835,7 @@ begin
   end;
 end;
 
-//初始化
+// 初始化
 constructor TCnHotLink.Create;
 begin
   inherited Create(nil, nil);
@@ -867,7 +848,7 @@ begin
   FFontEffect := TCnAAEffect.Create(nil);
 end;
 
-//释放
+// 释放
 destructor TCnHotLink.Destroy;
 begin
   FFontEffect.Free;
@@ -883,78 +864,78 @@ end;
 { TCnAALinkLabel }
 
 //--------------------------------------------------------//
-//平滑特效超链接标签                                      //
+// 平滑特效超链接标签                                     //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAALinkLabel.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FHotLink := TCnHotLink.Create;
-  HotBmp := TBitmap.Create;
-  HotBmp.PixelFormat := pf24bit;
-  BlendBmp := TBitmap.Create;
-  BlendBmp.PixelFormat := pf24bit;
-  FadeTimer := TTimer.Create(Self);
-  FadeTimer.Interval := 55;
-  FadeTimer.OnTimer := OnFadeTimer;
-  FadeTimer.Enabled := False;
+  FHotBmp := TBitmap.Create;
+  FHotBmp.PixelFormat := pf24bit;
+  FBlendBmp := TBitmap.Create;
+  FBlendBmp.PixelFormat := pf24bit;
+  FFadeTimer := TTimer.Create(Self);
+  FFadeTimer.Interval := 55;
+  FFadeTimer.OnTimer := OnFadeTimer;
+  FFadeTimer.Enabled := False;
   FProgress := 0;
   FFadeStyle := fsNone;
-  NewProg := 0;
+  FNewProg := 0;
 end;
 
-//释放
+// 释放
 destructor TCnAALinkLabel.Destroy;
 begin
-  HotBmp.Free;
-  BlendBmp.Free;
-  FadeTimer.Free;
+  FHotBmp.Free;
+  FBlendBmp.Free;
+  FFadeTimer.Free;
   HotLink.Free;
   inherited;
 end;
 
-//绘制画布
+// 绘制画布
 procedure TCnAALinkLabel.PaintCanvas;
 begin
   if FMouseIn or (FadeStyle <> fsNone) then
-    Bitblt(Canvas.Handle, 0, 0, Width, Height, BlendBmp.Canvas.Handle, 0, 0,
+    Bitblt(Canvas.Handle, 0, 0, Width, Height, FBlendBmp.Canvas.Handle, 0, 0,
       SRCCOPY)
   else
     inherited;
 end;
 
-//淡入淡出
+// 淡入淡出
 procedure TCnAALinkLabel.OnFadeTimer(Sender: TObject);
 begin
-  if Abs(NewProg - Progress) > 1 then
-    NewProg := Progress;
+  if Abs(FNewProg - Progress) > 1 then
+    FNewProg := Progress;
   case FadeStyle of
     fsIn: begin               //淡入
-        NewProg := NewProg + csMaxProgress * FadeTimer.Interval div HotLink.FadeDelay;
-        if NewProg > csMaxProgress then
+        FNewProg := FNewProg + csMaxProgress * FFadeTimer.Interval div HotLink.FadeDelay;
+        if FNewProg > csMaxProgress then
         begin
-          NewProg := csMaxProgress;
+          FNewProg := csMaxProgress;
           FadeStyle := fsNone;
         end;
-        Progress := Round(NewProg);
+        Progress := Round(FNewProg);
       end;
     fsOut: begin              //淡出
-        NewProg := NewProg - csMaxProgress * FadeTimer.Interval div HotLink.FadeDelay;
-        if NewProg < 0 then
+        FNewProg := FNewProg - csMaxProgress * FFadeTimer.Interval div HotLink.FadeDelay;
+        if FNewProg < 0 then
         begin
-          NewProg := 0;
+          FNewProg := 0;
           FadeStyle := fsNone;
         end;
-        Progress := Round(NewProg);
+        Progress := Round(FNewProg);
       end;
     fsNone: begin             //无
-        FadeTimer.Enabled := False;
+        FFadeTimer.Enabled := False;
       end;
   end;
 end;
 
-//绘制热点画布
+// 绘制热点画布
 procedure TCnAALinkLabel.DrawHot;
 var
   OffPoint: TPoint;
@@ -966,12 +947,12 @@ begin
     AAEffect := TCnAAEffect.Create(nil);
     AAEffect.Assign(AAFont.Effect);
 
-    AAFont.Canvas := HotBmp.Canvas;
+    AAFont.Canvas := FHotBmp.Canvas;
     AAFont.Effect.Assign(HotLink.FontEffect);
-    HotBmp.Canvas.Font.Assign(Font); //字体
-    HotBmp.Canvas.Font.Color := HotLink.Color;
+    FHotBmp.Canvas.Font.Assign(Font); //字体
+    FHotBmp.Canvas.Font.Color := HotLink.Color;
     if HotLink.UnderLine then
-      HotBmp.Canvas.Font.Style := HotBmp.Canvas.Font.Style + [fsUnderline];
+      FHotBmp.Canvas.Font.Style := FHotBmp.Canvas.Font.Style + [fsUnderline];
     th := AAFont.TextHeight(Caption); //文本高度
     tw := AAFont.TextWidth(Caption); //文本宽度
     if AutoSize and (Align = alNone) then //自动设定大小
@@ -979,33 +960,33 @@ begin
       OffPoint := Point(Border, Border);
     end else begin
       case Effect.Alignment of //水平对齐方式
-        taLeftJustify: OffPoint.x := Border;
-        taCenter: OffPoint.x := (ClientWidth - tw) div 2;
-        taRightJustify: OffPoint.x := ClientWidth - Border - tw;
+        taLeftJustify: OffPoint.X := Border;
+        taCenter: OffPoint.X := (ClientWidth - tw) div 2;
+        taRightJustify: OffPoint.X := ClientWidth - Border - tw;
       end;
       case Effect.Layout of   //垂直对齐方式
-        tlTop: OffPoint.y := Border;
-        tlCenter: OffPoint.y := (ClientHeight - th) div 2;
-        tlBottom: OffPoint.y := ClientHeight - Border - th;
+        tlTop: OffPoint.Y := Border;
+        tlCenter: OffPoint.Y := (ClientHeight - th) div 2;
+        tlBottom: OffPoint.Y := ClientHeight - Border - th;
       end;
     end;
-    HotBmp.Height := ClientHeight;
-    HotBmp.Width := ClientWidth;
-    HotBmp.Canvas.Brush.Color := HotLink.BackColor;
-    HotBmp.Canvas.Brush.Style := bsSolid;
+    FHotBmp.Height := ClientHeight;
+    FHotBmp.Width := ClientWidth;
+    FHotBmp.Canvas.Brush.Color := HotLink.BackColor;
+    FHotBmp.Canvas.Brush.Style := bsSolid;
     if HotLink.Transparent then
     begin
-      CopyParentImage(HotBmp.Canvas);
+      CopyParentImage(FHotBmp.Canvas);
     end else if not HotLink.IsBackEmpty then
     begin
-      DrawBackGround(HotBmp.Canvas, Rect(0, 0, HotBmp.Width, HotBmp.Height),
+      DrawBackGround(FHotBmp.Canvas, Rect(0, 0, FHotBmp.Width, FHotBmp.Height),
         HotLink.BackGround.Graphic, HotLink.BackGroundMode);
     end else
     begin
-      HotBmp.Canvas.FillRect(ClientRect);
+      FHotBmp.Canvas.FillRect(ClientRect);
     end;
-    HotBmp.Canvas.Brush.Style := bsClear;
-    AAFont.TextOutput(OffPoint.x, OffPoint.y, Caption); //平滑字体输出
+    FHotBmp.Canvas.Brush.Style := bsClear;
+    AAFont.TextOutput(OffPoint.X, OffPoint.Y, Caption); //平滑字体输出
 
     AAFont.Effect.Assign(AAEffect);
     AAEffect.Free;
@@ -1014,7 +995,7 @@ begin
   end;
 end;
 
-//鼠标移入开始淡入
+// 鼠标移入开始淡入
 procedure TCnAALinkLabel.CMMouseEnter(var Message: TMessage);
 begin
   if Enabled then
@@ -1031,7 +1012,7 @@ begin
   inherited;
 end;
 
-//鼠标称出开始淡出
+// 鼠标称出开始淡出
 procedure TCnAALinkLabel.CMMouseLeave(var Message: TMessage);
 begin
   if Enabled then
@@ -1046,7 +1027,7 @@ begin
   inherited;
 end;
 
-//点击控件
+// 点击控件
 procedure TCnAALinkLabel.Click;
 var
   Wnd: THandle;
@@ -1062,25 +1043,25 @@ begin
   inherited;
 end;
 
-//属性已装载
+// 属性已装载
 procedure TCnAALinkLabel.LoadedEx;
 begin
   inherited;
   Reset;
 end;
 
-//设置淡入淡出进度
+// 设置淡入淡出进度
 procedure TCnAALinkLabel.SetProgress(const Value: TProgress);
 begin
   if FProgress <> Value then
   begin
     FProgress := Value;
-    Blend(BlendBmp, MemBmp, HotBmp, Progress);
+    Blend(FBlendBmp, FMemBmp, FHotBmp, Progress);
     Paint;
   end;
 end;
 
-//设置启用
+// 设置启用
 procedure TCnAALinkLabel.SetEnabled(Value: Boolean);
 begin
   inherited;
@@ -1091,17 +1072,17 @@ begin
   end;
 end;
 
-//设置淡入淡出
+// 设置淡入淡出
 procedure TCnAALinkLabel.SeTCnFadeStyle(const Value: TCnFadeStyle);
 begin
   if FFadeStyle <> Value then
   begin
     FFadeStyle := Value;
-    FadeTimer.Enabled := FFadeStyle <> fsNone;
+    FFadeTimer.Enabled := FFadeStyle <> fsNone;
   end;
 end;
 
-//设置链接参数
+// 设置链接参数
 procedure TCnAALinkLabel.SeTCnHotLink(const Value: TCnHotLink);
 begin
   FHotLink.Assign(Value);
@@ -1110,13 +1091,13 @@ end;
 { TCnAAText }
 
 //--------------------------------------------------------//
-//平滑特效超链接标签                                      //
+// 平滑特效超链接标签                                     //
 //--------------------------------------------------------//
 
-//调整尺寸
+// 调整尺寸
 procedure TCnAAText.CalcSize;
 var
-  i, j: Integer;
+  I, J: Integer;
   DispLines: TStrings;
   WrapLines: TStrings;
   CurrText: string;
@@ -1148,18 +1129,18 @@ begin
         AAFont.Canvas := Canvas;
         AAFont.Effect.Assign(FText.FontEffect);
         Canvas.Font.Assign(Font);
-        for i := 0 to DispLines.Count - 1 do
+        for I := 0 to DispLines.Count - 1 do
         begin
-          CurrText := DispLines[i]; //当前处理字符串
+          CurrText := DispLines[I]; // 当前处理字符串
           if LabelEffect = leOnlyALine then
           begin
             Canvas.Font.Assign(Font);
             AAFont.Effect.Assign(FText.FontEffect);
           end;
-          Fonts.Check(CurrText, Canvas.Font, AAFont.Effect); //检查字体标签
-          Labels.Check(CurrText, CurrAlign); //检查用户标签
+          Fonts.Check(CurrText, Canvas.Font, AAFont.Effect); // 检查字体标签
+          Labels.Check(CurrText, CurrAlign); // 检查用户标签
           TextWidth := AAFont.TextWidth(CurrText);
-          if WordWrap and (TextWidth > AWidth) then //自动换行
+          if WordWrap and (TextWidth > AWidth) then // 自动换行
           begin
             MaxCol := AWidth * Length(CurrText) div TextWidth;
             while AAFont.TextWidth(Copy(CurrText, 1, MaxCol)) > AWidth do
@@ -1169,18 +1150,18 @@ begin
             WrapLines.Text := CurrText
           else
             WrapLines.Text := ' ';
-          if xFree and (TextWidth > AWidth) then //确定宽度
+          if xFree and (TextWidth > AWidth) then // 确定宽度
           begin
             AWidth := TextWidth;
           end;
-          if yFree then       //确定高度
+          if yFree then       // 确定高度
           begin
-            for j := 0 to WrapLines.Count - 1 do
+            for J := 0 to WrapLines.Count - 1 do
             begin
-              CurrText := WrapLines[j];
+              CurrText := WrapLines[J];
               TextHeight := AAFont.TextHeight(CurrText + ' ');
               Inc(AHeight, TextHeight);
-              if (i < DispLines.Count - 1) or (j < WrapLines.Count - 1) then
+              if (I < DispLines.Count - 1) or (J < WrapLines.Count - 1) then
                 Inc(AHeight, Round(TextHeight * RowPitch / 100));
             end;
           end;
@@ -1196,58 +1177,58 @@ begin
   end;
 end;
 
-//创建
+// 创建
 constructor TCnAAText.Create(AOwner: TComponent);
 begin
   inherited;
   ControlStyle := ControlStyle + [csReplicatable];
   FText := TCnTextParam.Create(Self, OnLabelChanged);
-  TextBmp := TBitmap.Create;
-  TextBmp.PixelFormat := pf24bit;
+  FTextBmp := TBitmap.Create;
+  FTextBmp.PixelFormat := pf24bit;
   Width := 46;
   Height := 12;
 end;
 
-//创建显示文本
+// 创建显示文本
 procedure TCnAAText.CreateText;
 begin
   CalcSize;
-  TextBmp.Canvas.Brush.Color := Color;
-  TextBmp.Canvas.Brush.Style := bsSolid;
-  TextBmp.Width := ClientWidth;
-  TextBmp.Height := ClientHeight;
-  if FText.Transparent then     //透明
+  FTextBmp.Canvas.Brush.Color := Color;
+  FTextBmp.Canvas.Brush.Style := bsSolid;
+  FTextBmp.Width := ClientWidth;
+  FTextBmp.Height := ClientHeight;
+  if FText.Transparent then     // 透明
   begin
-    CopyParentImage(TextBmp.Canvas); //复制父控件画布
+    CopyParentImage(FTextBmp.Canvas); // 复制父控件画布
   end else if not FText.IsBackEmpty then
-  begin                   //绘制背景图
-    DrawBackGround(TextBmp.Canvas, Rect(0, 0, TextBmp.Width, TextBmp.Height),
+  begin                   // 绘制背景图
+    DrawBackGround(FTextBmp.Canvas, Rect(0, 0, FTextBmp.Width, FTextBmp.Height),
       FText.BackGround.Graphic, FText.BackGroundMode);
   end else
-  begin                   //填充背景色
-    TextBmp.Canvas.FillRect(ClientRect);
+  begin                   // 填充背景色
+    FTextBmp.Canvas.FillRect(ClientRect);
   end;
-  TextBmp.Canvas.Brush.Style := bsClear;
-  DrawCanvas(TextBmp.Canvas);
+  FTextBmp.Canvas.Brush.Style := bsClear;
+  DrawCanvas(FTextBmp.Canvas);
 end;
 
-//释放
+// 释放
 destructor TCnAAText.Destroy;
 begin
-  TextBmp.Free;
+  FTextBmp.Free;
   FText.Free;
   inherited;
 end;
 
-//绘制
+// 绘制
 procedure TCnAAText.DrawCanvas(ACanvas: TCanvas);
 var
-  i, j: Integer;
+  I, J: Integer;
   DispLines: TStrings;
   WrapLines: TStrings;
   CurrText: string;
   CurrAlign: TAlignment;
-  x, y: Integer;
+  X, Y: Integer;
   TextWidth: Integer;
   TextHeight: Integer;
   MaxCol: Integer;
@@ -1256,7 +1237,7 @@ begin
   DispLines := nil;
   WrapLines := nil;
   try
-    DispLines := TStringList.Create; //临时文本
+    DispLines := TStringList.Create; // 临时文本
     WrapLines := TStringList.Create;
     with FText do
     begin
@@ -1266,23 +1247,23 @@ begin
       ACanvas.Font.Assign(Font);
       AAFont.Canvas := ACanvas;
       AAFont.Effect.Assign(FText.FontEffect);
-      CurrAlign := Alignment; //默认对齐方式
-      y := Border;
-      for i := 0 to DispLines.Count - 1 do
+      CurrAlign := Alignment; // 默认对齐方式
+      Y := Border;
+      for I := 0 to DispLines.Count - 1 do
       begin
-        if y > ClientHeight - Border then
+        if Y > ClientHeight - Border then
           Break;
-        CurrText := DispLines[i]; //当前处理字符串
+        CurrText := DispLines[I]; // 当前处理字符串
         if LabelEffect = leOnlyALine then
         begin
           ACanvas.Font.Assign(Font);
           AAFont.Effect.Assign(FText.FontEffect);
           CurrAlign := Alignment;
         end;
-        Fonts.Check(CurrText, ACanvas.Font, AAFont.Effect); //检查字体标签
-        Labels.Check(CurrText, CurrAlign); //检查用户标签
+        Fonts.Check(CurrText, ACanvas.Font, AAFont.Effect); // 检查字体标签
+        Labels.Check(CurrText, CurrAlign); // 检查用户标签
         TextWidth := AAFont.TextWidth(CurrText);
-        if WordWrap and (TextWidth > ClientWidth - 2 * Border) then //自动换行
+        if WordWrap and (TextWidth > ClientWidth - 2 * Border) then // 自动换行
         begin
           MaxCol := (ClientWidth - 2 * Border) * Length(CurrText) div TextWidth;
           while AAFont.TextWidth(Copy(CurrText, 1, MaxCol)) > ClientWidth - 2
@@ -1293,19 +1274,19 @@ begin
           WrapLines.Text := CurrText
         else
           WrapLines.Text := ' ';
-        for j := 0 to WrapLines.Count - 1 do
+        for J := 0 to WrapLines.Count - 1 do
         begin
-          CurrText := WrapLines[j];
+          CurrText := WrapLines[J];
           TextHeight := AAFont.TextHeight(CurrText + ' ');
           TextWidth := AAFont.TextWidth(CurrText);
-          case CurrAlign of   //对齐方式
-            taLeftJustify: x := Border;
-            taCenter: x := (ClientWidth - TextWidth) div 2;
-            taRightJustify: x := ClientWidth - Border - TextWidth;
-          else x := 0;
+          case CurrAlign of   // 对齐方式
+            taLeftJustify: X := Border;
+            taCenter: X := (ClientWidth - TextWidth) div 2;
+            taRightJustify: X := ClientWidth - Border - TextWidth;
+          else X := 0;
           end;
-          AAFont.TextOutput(x, y, CurrText);
-          y := y + Round(TextHeight * (1 + RowPitch / 100));
+          AAFont.TextOutput(X, Y, CurrText);
+          Y := Y + Round(TextHeight * (1 + RowPitch / 100));
         end;
       end;
       AAFont.Effect.Assign(FText.FontEffect);
@@ -1317,24 +1298,24 @@ begin
   end;
 end;
 
-//控件属性已装载
+// 控件属性已装载
 procedure TCnAAText.LoadedEx;
 begin
   inherited;
   Reset;
 end;
 
-//绘制画布
+// 绘制画布
 procedure TCnAAText.PaintCanvas;
 begin
   if Text.Transparent then
-    TransparentPaint    //透明
+    TransparentPaint    // 透明
   else
-    Bitblt(Canvas.Handle, 0, 0, Width, Height, TextBmp.Canvas.Handle, 0, 0,
+    Bitblt(Canvas.Handle, 0, 0, Width, Height, FTextBmp.Canvas.Handle, 0, 0,
       SRCCOPY);
 end;
 
-//复位
+// 复位
 procedure TCnAAText.Reset;
 begin
   if not Text.Transparent then
@@ -1342,20 +1323,20 @@ begin
   inherited;
 end;
 
-//设置文本
+// 设置文本
 procedure TCnAAText.SetText(const Value: TCnTextParam);
 begin
   Text.Assign(Value);
 end;
 
-//透明绘制
+// 透明绘制
 procedure TCnAAText.TransparentPaint;
 begin
   CalcSize;
   DrawCanvas(Canvas);
 end;
 
-//默认文本创建默认标签
+// 默认文本创建默认标签
 function TCnAAText.UseDefaultLabels: Boolean;
 begin
   Result := not FText.IsLinesStored;
@@ -1364,10 +1345,10 @@ end;
 { TCnTextParam }
 
 //--------------------------------------------------------//
-//平滑文本参数类                                          //
+// 平滑文本参数类                                         //
 //--------------------------------------------------------//
 
-//创建
+// 创建
 constructor TCnTextParam.Create(AOwner: TCnAAGraphicControl;
   ChangedProc: TNotifyEvent);
 begin
@@ -1375,13 +1356,13 @@ begin
   Lines.Text := csAATextCopyRight;
 end;
 
-//释放
+// 释放
 destructor TCnTextParam.Destroy;
 begin
   inherited;
 end;
 
-//文本存储
+// 文本存储
 function TCnTextParam.IsLinesStored: Boolean;
 begin
   Result := Lines.Text <> csAATextCopyRight;
@@ -1390,28 +1371,28 @@ end;
 { TCnAAScrollText }
 
 //--------------------------------------------------------//
-//平滑滚动文本控件                                        //
+// 平滑滚动文本控件                                       //
 //--------------------------------------------------------//
 
-//控件初始化
+// 控件初始化
 constructor TCnAAScrollText.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csOpaque]; //由控件绘制所有客户区
+  ControlStyle := ControlStyle + [csOpaque]; // 由控件绘制所有客户区
   FText := TCnScrollTextParam.Create(Self, OnLabelChanged);
-  TextBmp := TBitmap.Create;
-  TextBmp.PixelFormat := pf32bit;
+  FTextBmp := TBitmap.Create;
+  FTextBmp.PixelFormat := pf32bit;
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
-  TextBmp.AlphaFormat := afDefined;
+  FTextBmp.AlphaFormat := afDefined;
 {$ENDIF}
-  CurrBmp := TBitmap.Create;
-  CurrBmp.PixelFormat := pf24bit;
-  ScrollTimer := TCnTimer.Create(Self);
-  ScrollTimer.Enabled := False;
-  ScrollTimer.OnTimer := OnScrollTimer;
-  DelayTimer := TTimer.Create(Self);
-  DelayTimer.Enabled := False;
-  DelayTimer.OnTimer := OnDelayTimer;
+  FCurrBmp := TBitmap.Create;
+  FCurrBmp.PixelFormat := pf24bit;
+  FScrollTimer := TCnTimer.Create(Self);
+  FScrollTimer.Enabled := False;
+  FScrollTimer.OnTimer := OnScrollTimer;
+  FDelayTimer := TTimer.Create(Self);
+  FDelayTimer.Enabled := False;
+  FDelayTimer.OnTimer := OnDelayTimer;
   FCurrPos := 0;
   FRepeatCount := 0;
   FActive := True;
@@ -1422,19 +1403,19 @@ begin
   SetBounds(0, 0, 240, 280);
 end;
 
-//释放
+// 释放
 destructor TCnAAScrollText.Destroy;
 begin
   Active := False;
-  ScrollTimer.Free;
-  DelayTimer.Free;
-  TextBmp.Free;
-  CurrBmp.Free;
+  FScrollTimer.Free;
+  FDelayTimer.Free;
+  FTextBmp.Free;
+  FCurrBmp.Free;
   FText.Free;
   inherited;
 end;
 
-//显示文本复位
+// 显示文本复位
 procedure TCnAAScrollText.Reset;
 var
   tActive: Boolean;
@@ -1448,7 +1429,7 @@ begin
   Active := tActive;
 end;
 
-//绘制控件
+// 绘制控件
 procedure TCnAAScrollText.PaintCanvas;
 var
   I, FH, U, D: Integer;
@@ -1464,18 +1445,18 @@ var
     X, NT: Integer;
     B: Byte;
   begin
-    if (CurrBmp = nil) or (TextBmp = nil) then
+    if (FCurrBmp = nil) or (FTextBmp = nil) then
       Exit;
-    if (YSrc < 0) or (YSrc >= TextBmp.Height) then
+    if (YSrc < 0) or (YSrc >= FTextBmp.Height) then
       Exit;
-    if (YDst < 0) or (YDst >= CurrBmp.Height) then
+    if (YDst < 0) or (YDst >= FCurrBmp.Height) then
       Exit;
 
-    SrcRow := TextBmp.ScanLine[YSrc];
-    DstRow := CurrBmp.ScanLine[YDst];
+    SrcRow := FTextBmp.ScanLine[YSrc];
+    DstRow := FCurrBmp.ScanLine[YDst];
 
     // 注意 TextBmp 中是 PreMultiply 过的内容，也就是其自身透明度已经混合完毕了。
-    for X := 0 to CurrBmp.Width - 1 do
+    for X := 0 to FCurrBmp.Width - 1 do
     begin
       if (Transparency > 0) and (SrcRow^[X].rgbReserved > 0) then // 有不透明才混合
       begin
@@ -1501,8 +1482,8 @@ var
     Row: PRGBArray;
     X: Integer;
   begin
-    Row := CurrBmp.ScanLine[Y];
-    for X := 0 to CurrBmp.Width - 1 do
+    Row := FCurrBmp.ScanLine[Y];
+    for X := 0 to FCurrBmp.Width - 1 do
     begin
       if Row[X].rgbtRed <> BkRed then
         Row[X].rgbtRed := Transparency * (Row[X].rgbtRed - BkRed) shr 8 + BkRed;
@@ -1517,8 +1498,8 @@ begin
   // 把内容固定的包含文字的 TextBmp，按竖向滚动进度切分画到 CurrBmp 上
   // 不支持透明时，32 位 TextBmp 通过 BitBlt 复制到 24 位 CurrBmp 上再绘制到背景上
   // 支持透明时，24 位的 CurrBmp 先复制背景进来，32 位带 Alpha 的 TextBmp 通过 AlphaBlend 复制到 CurrBmp 上
-  CurrBmp.Height := Height;
-  CurrBmp.Width := Width;
+  FCurrBmp.Height := Height;
+  FCurrBmp.Width := Width;
 
   FH := 0;
   U := 0;
@@ -1526,7 +1507,7 @@ begin
 
   if FTransparent then
   begin
-    CopyParentImage(CurrBmp.Canvas);
+    CopyParentImage(FCurrBmp.Canvas);
 
     Bf.BlendOp := AC_SRC_OVER;
     Bf.BlendFlags := 0;
@@ -1540,18 +1521,18 @@ begin
   // FCurrPos 指 CurrBmp 上缘应该在 TextBmp 垂直方向上距 TextBmp 上缘的距离
   // U D 为上下 Fade 时 TextBmp 垂直方向的绘制起始点距 TextBmp 上缘的距离
 
-  if FCurrPos + Height <= TextBmp.Height then // TextBmp 足够大，完整显示
+  if FCurrPos + Height <= FTextBmp.Height then // TextBmp 足够大，完整显示
   begin
     if FTransparent then  // 透明时上下留出各 FH 的高度供后面混合
     begin
-      AlphaBlend(CurrBmp.Canvas.Handle, 0, FH, Width, Height - FH * 2,
-        TextBmp.Canvas.Handle, 0, FCurrPos + FH, Width, Height - FH * 2, Bf);
+      AlphaBlend(FCurrBmp.Canvas.Handle, 0, FH, Width, Height - FH * 2,
+        FTextBmp.Canvas.Handle, 0, FCurrPos + FH, Width, Height - FH * 2, Bf);
 
       U := FCurrPos;
       D := FCurrPos + Height;
     end
     else
-      BitBlt(CurrBmp.Canvas.Handle, 0, 0, Width, Height, TextBmp.Canvas.Handle, 0,
+      BitBlt(FCurrBmp.Canvas.Handle, 0, 0, Width, Height, FTextBmp.Canvas.Handle, 0,
         FCurrPos, SRCCopy);
   end
   else // TextBmp 跨屏了，拆成两部分上下首尾相接绘制，透明时上下留出各 FH 的高度供后面混合
@@ -1559,22 +1540,22 @@ begin
     if FTransparent then
     begin
       // 画上面
-      AlphaBlend(CurrBmp.Canvas.Handle, 0, FH, Width, TextBmp.Height - FCurrPos - FH,
-        TextBmp.Canvas.Handle, 0, FCurrPos + FH, Width, TextBmp.Height - FCurrPos - FH, Bf);
+      AlphaBlend(FCurrBmp.Canvas.Handle, 0, FH, Width, FTextBmp.Height - FCurrPos - FH,
+        FTextBmp.Canvas.Handle, 0, FCurrPos + FH, Width, FTextBmp.Height - FCurrPos - FH, Bf);
       // 画下面
-      AlphaBlend(CurrBmp.Canvas.Handle, 0, TextBmp.Height - FCurrPos, Width, Height -
-        (TextBmp.Height - FCurrPos) - FH, TextBmp.Canvas.Handle, 0, 0, Width, Height -
-        (TextBmp.Height - FCurrPos) - FH, Bf);
+      AlphaBlend(FCurrBmp.Canvas.Handle, 0, FTextBmp.Height - FCurrPos, Width, Height -
+        (FTextBmp.Height - FCurrPos) - FH, FTextBmp.Canvas.Handle, 0, 0, Width, Height -
+        (FTextBmp.Height - FCurrPos) - FH, Bf);
 
       U := FCurrPos;
-      D := Height - (TextBmp.Height - FCurrPos);
+      D := Height - (FTextBmp.Height - FCurrPos);
     end
     else
     begin
-      BitBlt(CurrBmp.Canvas.Handle, 0, 0, Width, TextBmp.Height - FCurrPos,
-        TextBmp.Canvas.Handle, 0, FCurrPos, SRCCopy);
-      BitBlt(CurrBmp.Canvas.Handle, 0, TextBmp.Height - FCurrPos, Width, Height -
-        (TextBmp.Height - FCurrPos), TextBmp.Canvas.Handle, 0, 0, SRCCopy);
+      BitBlt(FCurrBmp.Canvas.Handle, 0, 0, Width, FTextBmp.Height - FCurrPos,
+        FTextBmp.Canvas.Handle, 0, FCurrPos, SRCCopy);
+      BitBlt(FCurrBmp.Canvas.Handle, 0, FTextBmp.Height - FCurrPos, Width, Height -
+        (FTextBmp.Height - FCurrPos), FTextBmp.Canvas.Handle, 0, 0, SRCCopy);
     end;
   end;
 
@@ -1606,52 +1587,52 @@ begin
 
   // 绘制到控件画布
   if not (csDestroying in ComponentState) then
-    BitBlt(Canvas.Handle, 0, 0, Width, Height, CurrBmp.Canvas.Handle, 0, 0, SRCCopy);
+    BitBlt(Canvas.Handle, 0, 0, Width, Height, FCurrBmp.Canvas.Handle, 0, 0, SRCCopy);
 
   if Assigned(OnPainted) then
     OnPainted(Self);
 end;
 
-//执行滚动
+// 执行滚动
 procedure TCnAAScrollText.OnScrollTimer(Sender: TObject);
 begin
-  if CurrPos = 0 then         //单次滚动完成
+  if CurrPos = 0 then         // 单次滚动完成
   begin
     FRepeatedCount := FRepeatedCount + 1;
     if (RepeatCount > 0) and (RepeatedCount >= RepeatCount) then
-    begin                     //滚动完成
+    begin                     // 滚动完成
       Active := False;
       FRepeatedCount := -1;
       if Assigned(OnComplete) then
         OnComplete(Self);
       Exit;
     end
-    else if DelayTimer.Interval > 0 then
-    begin                     //循环延时
-      ScrollTimer.Enabled := False;
-      DelayTimer.Enabled := True;
+    else if FDelayTimer.Interval > 0 then
+    begin                     // 循环延时
+      FScrollTimer.Enabled := False;
+      FDelayTimer.Enabled := True;
       Exit;
     end;
   end;
 
-  if (FScrollStep > 0) and (CurrPos + FScrollStep >= TextBmp.Height) then
+  if (FScrollStep > 0) and (CurrPos + FScrollStep >= FTextBmp.Height) then
     CurrPos := 0
   else if (FScrollStep < 0) and (CurrPos + FScrollStep < 0) then
     CurrPos := 0
   else
-    CurrPos := CurrPos + FScrollStep; //当前位置增加
+    CurrPos := CurrPos + FScrollStep; // 当前位置增加
 end;
 
-//创建文本位图
+// 创建文本位图
 procedure TCnAAScrollText.CreateText;
 var
-  i, j: Integer;
+  I, J: Integer;
   DispLines: TStrings;
   CurrText: string;
   WrapLines: TStrings;
   CurrHeight: Integer;
   CurrAlign: TAlignment;
-  x, y: Integer;
+  X, Y: Integer;
   TextWidth: Integer;
   TextHeight: Integer;
   MaxCol: Integer;
@@ -1660,37 +1641,37 @@ begin
   DispLines := nil;
   WrapLines := nil;
   try
-    DispLines := TStringList.Create; //临时文本
+    DispLines := TStringList.Create; // 临时文本
     WrapLines := TStringList.Create;
     with FText do
     begin
-      TextBmp.Height := 0;
-      TextBmp.Width := Width;
-      TextBmp.Canvas.Brush.Color := Color;
-      TextBmp.Canvas.Brush.Style := bsSolid;
+      FTextBmp.Height := 0;
+      FTextBmp.Width := Width;
+      FTextBmp.Canvas.Brush.Color := Color;
+      FTextBmp.Canvas.Brush.Style := bsSolid;
       DispLines.Clear;
       DispLines.AddStrings(Lines);
-      AAFont.Canvas := TextBmp.Canvas;
+      AAFont.Canvas := FTextBmp.Canvas;
       AAFont.Effect.Assign(FText.FontEffect);
-      if Fade then            //淡入淡出空白
+      if Fade then            // 淡入淡出空白
         CurrHeight := FadeHeight
       else
         CurrHeight := 0;
-      CurrHeight := CurrHeight + Height * HeadSpace div 100; //头部空白
-      TextBmp.Canvas.Font.Assign(Font);
-      for i := 0 to DispLines.Count - 1 do
+      CurrHeight := CurrHeight + Height * HeadSpace div 100; // 头部空白
+      FTextBmp.Canvas.Font.Assign(Font);
+      for I := 0 to DispLines.Count - 1 do
       begin
-        CurrText := DispLines[i]; //当前处理字符串
+        CurrText := DispLines[I]; // 当前处理字符串
         if LabelEffect = leOnlyALine then
         begin
-          TextBmp.Canvas.Font.Assign(Font);
+          FTextBmp.Canvas.Font.Assign(Font);
           AAFont.Effect.Assign(FText.FontEffect);
         end;
-        Fonts.Check(CurrText, TextBmp.Canvas.Font, AAFont.Effect); //检查字体标签
-        Labels.Check(CurrText, CurrAlign); //检查用户标签
+        Fonts.Check(CurrText, FTextBmp.Canvas.Font, AAFont.Effect); // 检查字体标签
+        Labels.Check(CurrText, CurrAlign); // 检查用户标签
         TextHeight := AAFont.TextHeight(CurrText + ' ');
         TextWidth := AAFont.TextWidth(CurrText);
-        if WordWrap and (TextWidth > Width) then //自动换行
+        if WordWrap and (TextWidth > Width) then // 自动换行
         begin
           MaxCol := Width * Length(CurrText) div TextWidth;
           while AAFont.TextWidth(Copy(CurrText, 1, MaxCol)) > Width do
@@ -1704,78 +1685,80 @@ begin
         CurrHeight := CurrHeight + Round(TextHeight * (1 + RowPitch / 100)) *
           WrapLines.Count;
       end;
-      TextBmp.Canvas.Brush.Color := Color;
-      TextBmp.Canvas.Brush.Style := bsSolid;
-      CurrHeight := CurrHeight + Height * TailSpace div 100; //尾部空白
+      FTextBmp.Canvas.Brush.Color := Color;
+      FTextBmp.Canvas.Brush.Style := bsSolid;
+      CurrHeight := CurrHeight + Height * TailSpace div 100; // 尾部空白
       if CurrHeight < ClientHeight then
         CurrHeight := ClientHeight;
-      TextBmp.Height := CurrHeight;
+      FTextBmp.Height := CurrHeight;
 
       if FTransparent then
       begin
         // 需透明的话先填充全 0
-        X := TextBmp.Width * SizeOf(TRGBQuad);
-        for Y := 0 to TextBmp.Height - 1 do
-          FillChar(TextBmp.ScanLine[Y]^, X, 0); // 先填充全透明，这里画出来没错
+        X := FTextBmp.Width * SizeOf(TRGBQuad);
+        for Y := 0 to FTextBmp.Height - 1 do
+          FillChar(FTextBmp.ScanLine[Y]^, X, 0); // 先填充全透明，这里画出来没错
       end;
 
       if Assigned(FText.BackGround.Graphic) and not
         FText.BackGround.Graphic.Empty then
-        DrawBackGround(TextBmp.Canvas, Rect(0, 0, TextBmp.Width,
-          TextBmp.Height), FText.BackGround.Graphic, FText.BackGroundMode);
+        DrawBackGround(FTextBmp.Canvas, Rect(0, 0, FTextBmp.Width,
+          FTextBmp.Height), FText.BackGround.Graphic, FText.BackGroundMode);
 
       DispLines.Clear;
       DispLines.AddStrings(Lines);
-      TextBmp.Canvas.Brush.Style := bsClear;
+      FTextBmp.Canvas.Brush.Style := bsClear;
       AAFont.Effect.Assign(FText.FontEffect);
-      if Fade then            //淡入淡出空白
+      if Fade then            // 淡入淡出空白
         CurrHeight := FadeHeight
       else
         CurrHeight := 0;
-      CurrHeight := CurrHeight + Height * HeadSpace div 100; //头部空白
-      TextBmp.Canvas.Font.Assign(Font);
-      CurrAlign := Alignment; //默认对齐方式
-      for i := 0 to DispLines.Count - 1 do
+      CurrHeight := CurrHeight + Height * HeadSpace div 100; // 头部空白
+      FTextBmp.Canvas.Font.Assign(Font);
+      CurrAlign := Alignment; // 默认对齐方式
+      for I := 0 to DispLines.Count - 1 do
       begin
-        CurrText := DispLines[i]; //当前处理字符串
+        CurrText := DispLines[I]; // 当前处理字符串
         if LabelEffect = leOnlyALine then
         begin
-          TextBmp.Canvas.Font.Assign(Font);
+          FTextBmp.Canvas.Font.Assign(Font);
           AAFont.Effect.Assign(FText.FontEffect);
           CurrAlign := Alignment;
         end;
-        Fonts.Check(CurrText, TextBmp.Canvas.Font, AAFont.Effect); //检查字体标签
-        Labels.Check(CurrText, CurrAlign); //检查用户标签
+        Fonts.Check(CurrText, FTextBmp.Canvas.Font, AAFont.Effect); // 检查字体标签
+        Labels.Check(CurrText, CurrAlign); // 检查用户标签
         TextWidth := AAFont.TextWidth(CurrText);
-        if WordWrap and (TextWidth > Width) then //自动换行
+        if WordWrap and (TextWidth > Width) then // 自动换行
         begin
           MaxCol := Width * Length(CurrText) div TextWidth;
           while AAFont.TextWidth(Copy(CurrText, 1, MaxCol)) > Width do
             Dec(MaxCol);
           WrapText(CurrText, WrapLines, MaxCol);
-        end else if CurrText <> '' then
+        end
+        else if CurrText <> '' then
           WrapLines.Text := CurrText
         else
           WrapLines.Text := ' ';
-        for j := 0 to WrapLines.Count - 1 do
+
+        for J := 0 to WrapLines.Count - 1 do
         begin
-          CurrText := WrapLines[j];
+          CurrText := WrapLines[J];
           TextHeight := AAFont.TextHeight(CurrText + ' ');
           TextWidth := AAFont.TextWidth(CurrText);
-          case CurrAlign of     //对齐方式
-            taLeftJustify: x := 0;
-            taCenter: x := (TextBmp.Width - TextWidth) div 2;
-            taRightJustify: x := TextBmp.Width - TextWidth;
-          else x := 0;
+          case CurrAlign of     // 对齐方式
+            taLeftJustify: X := 0;
+            taCenter: X := (FTextBmp.Width - TextWidth) div 2;
+            taRightJustify: X := FTextBmp.Width - TextWidth;
+          else X := 0;
           end;
-          y := CurrHeight;      //行间距
-          AAFont.TextOutput(x, y, CurrText, FTransparent);
+          Y := CurrHeight;      // 行间距
+          AAFont.TextOutput(X, Y, CurrText, FTransparent);
 
           CurrHeight := CurrHeight + Round(TextHeight * (1 + RowPitch / 100));
         end;
       end;
 
-      if Assigned(OnTextReady) then //调用OnTextReady事件
+      if Assigned(OnTextReady) then //调用 OnTextReady 事件
         OnTextReady(Self);
     end;
   finally
@@ -1785,19 +1768,19 @@ begin
   end;
 end;
 
-//设置活动
+// 设置活动
 procedure TCnAAScrollText.SetActive(const Value: Boolean);
 begin
   if FActive <> Value then
   begin
     FActive := Value;
-    ScrollTimer.Enabled := FActive;
+    FScrollTimer.Enabled := FActive;
     if not FActive then
-      DelayTimer.Enabled := False;
+      FDelayTimer.Enabled := False;
   end;
 end;
 
-//设置循环延时
+// 设置循环延时
 procedure TCnAAScrollText.SetRepeatDelay(const Value: Word);
 begin
   if FRepeatDelay <> Value then
@@ -1805,11 +1788,11 @@ begin
     FRepeatDelay := Value;
     if FRepeatDelay <= 0 then
       FRepeatDelay := 0;
-    DelayTimer.Interval := Value;
+    FDelayTimer.Interval := Value;
   end;
 end;
 
-//设置滚动延时
+// 设置滚动延时
 procedure TCnAAScrollText.SetScrollDelay(const Value: Word);
 begin
   if FScrollDelay <> Value then
@@ -1817,11 +1800,11 @@ begin
     FScrollDelay := Value;
     if FScrollDelay <= 0 then
       FScrollDelay := 0;
-    ScrollTimer.Interval := FScrollDelay;
+    FScrollTimer.Interval := FScrollDelay;
   end;
 end;
 
-//设置每次滚动增量
+// 设置每次滚动增量
 procedure TCnAAScrollText.SetScrollStep(const Value: Integer);
 begin
   if FScrollStep <> Value then
@@ -1830,7 +1813,7 @@ begin
   end;
 end;
 
-//设置循环次数
+// 设置循环次数
 procedure TCnAAScrollText.SetRepeatCount(const Value: TBorderWidth);
 begin
   if FRepeatCount <> Value then
@@ -1842,32 +1825,32 @@ begin
   end;
 end;
 
-//设置文本内容
+// 设置文本内容
 procedure TCnAAScrollText.SetText(const Value: TCnScrollTextParam);
 begin
   FText.Assign(Value);
 end;
 
-//重头开始滚动
+// 从头开始滚动
 procedure TCnAAScrollText.ReStart;
 begin
   FRepeatedCount := -1;
   CurrPos := 0;
 end;
 
-//设置当前位置
+// 设置当前位置
 procedure TCnAAScrollText.SetCurrPos(const Value: Integer);
 begin
   if FCurrPos <> Value then
   begin
-    FCurrPos := Value mod TextBmp.Height;
+    FCurrPos := Value mod FTextBmp.Height;
     if FCurrPos < 0 then
-      Inc(FCurrPos, TextBmp.Height);
+      Inc(FCurrPos, FTextBmp.Height);
     Paint;
   end;
 end;
 
-//大小变化消息
+// 大小变化消息
 function TCnAAScrollText.CanResize(var NewWidth,
   NewHeight: Integer): Boolean;
 begin
@@ -1876,16 +1859,16 @@ begin
   Result := inherited CanResize(NewWidth, NewHeight);
 end;
 
-//循环延时
+// 循环延时
 procedure TCnAAScrollText.OnDelayTimer(Sender: TObject);
 begin
-  DelayTimer.Enabled := False;
+  FDelayTimer.Enabled := False;
   CurrPos := CurrPos + FScrollStep;
   if Active then
-    ScrollTimer.Enabled := True;
+    FScrollTimer.Enabled := True;
 end;
 
-//创建默认字体集
+// 创建默认字体集
 procedure TCnAAScrollText.CreateDefFonts;
 var
   FLabel: TCnFontLabel;
@@ -1911,13 +1894,13 @@ begin
   end;
 end;
 
-//默认文本创建默认标签
+// 默认文本创建默认标签
 function TCnAAScrollText.UseDefaultLabels: Boolean;
 begin
   Result := not FText.IsLinesStored;
 end;
 
-//控件属性已装载
+// 控件属性已装载
 procedure TCnAAScrollText.LoadedEx;
 begin
   inherited;
@@ -1927,10 +1910,10 @@ end;
 { TCnAAMarqueeText }
 
 //--------------------------------------------------------//
-//平滑字幕文本控件                                        //
+// 平滑字幕文本控件                                       //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnAAMarqueeText.Create(AOwner: TComponent);
 begin
   inherited;
@@ -1949,7 +1932,7 @@ begin
   FTimer.OnTimer := OnTimer;
 end;
 
-//释放
+// 释放
 destructor TCnAAMarqueeText.Destroy;
 begin
   FEffect.Free;
@@ -1957,7 +1940,7 @@ begin
   inherited;
 end;
 
-//定时器事件
+// 定时器事件
 procedure TCnAAMarqueeText.OnTimer(Sender: TObject);
 begin
   if not FTimer.Enabled or not Visible then Exit;
@@ -1967,29 +1950,30 @@ begin
     FCurrentStep := 0;
 end;
 
-//绘制画布
+// 绘制画布
 procedure TCnAAMarqueeText.PaintCanvas;
 var
   R: TRect;
   X, Y: Integer;
   lpPaint: tagPAINTSTRUCT;
-  MemBmp: TBitmap;
+  FMemBmp: TBitmap;
 begin
   inherited;
   X := 0;
   BeginPaint(Canvas.Handle, lpPaint);
-  MemBmp := TBitmap.Create;
+  FMemBmp := TBitmap.Create;
   try
-    MemBmp.PixelFormat := pf24bit;
-    AAFont.Canvas := MemBmp.Canvas;
-    MemBmp.Canvas.Font.Assign(Font); //字体
+    FMemBmp.PixelFormat := pf24bit;
+    AAFont.Canvas := FMemBmp.Canvas;
+    FMemBmp.Canvas.Font.Assign(Font); //字体
     R := ClientRect;
     case FEffect.Layout of
       tlTop: Y := 0;
-      tlCenter: Y := R.Top + (R.Bottom - R.Top - MemBmp.Canvas.TextHeight('Pp')) div 2;
-      tlBottom: Y := R.Bottom - R.Top - MemBmp.Canvas.TextHeight(Caption);
+      tlCenter: Y := R.Top + (R.Bottom - R.Top - FMemBmp.Canvas.TextHeight('Pp')) div 2;
+      tlBottom: Y := R.Bottom - R.Top - FMemBmp.Canvas.TextHeight(Caption);
       else Y := 0;
     end;
+
     case FScrollType of
       stRightToLeft: X := Width - FCurrentStep;
       stLeftToRight: X := - FTextWidth + FCurrentStep;
@@ -2001,34 +1985,37 @@ begin
         end;
     else X := 0;
     end;
-    MemBmp.Height := ClientHeight;
-    MemBmp.Width := ClientWidth;
-    MemBmp.Canvas.Brush.Color := Color;
-    MemBmp.Canvas.Brush.Style := bsSolid;
-    if FEffect.Transparent then  //透明
+
+    FMemBmp.Height := ClientHeight;
+    FMemBmp.Width := ClientWidth;
+    FMemBmp.Canvas.Brush.Color := Color;
+    FMemBmp.Canvas.Brush.Style := bsSolid;
+
+    if FEffect.Transparent then  // 透明
     begin
-      CopyParentImage(MemBmp.Canvas); //复制父控件画布
-    end else if not FEffect.IsBackEmpty then
-    begin                       //绘制背景图
-      DrawBackGround(MemBmp.Canvas, Rect(0, 0, MemBmp.Width, MemBmp.Height),
+      CopyParentImage(FMemBmp.Canvas); // 复制父控件画布
+    end
+    else if not FEffect.IsBackEmpty then
+    begin                       // 绘制背景图
+      DrawBackGround(FMemBmp.Canvas, Rect(0, 0, FMemBmp.Width, FMemBmp.Height),
         FEffect.BackGround.Graphic, FEffect.BackGroundMode);
     end else
-    begin                       //填充背景色
-      MemBmp.Canvas.FillRect(ClientRect);
+    begin                       // 填充背景色
+      FMemBmp.Canvas.FillRect(ClientRect);
     end;
-    MemBmp.Canvas.Brush.Style := bsClear;
-    AAFont.TextOutput(X, Y, Caption); //平滑字体输出
-    Bitblt(Canvas.Handle, 0, 0, Width, Height, MemBmp.Canvas.Handle, 0, 0,
+    FMemBmp.Canvas.Brush.Style := bsClear;
+    AAFont.TextOutput(X, Y, Caption); // 平滑字体输出
+    Bitblt(Canvas.Handle, 0, 0, Width, Height, FMemBmp.Canvas.Handle, 0, 0,
       SRCCOPY);
   finally
-    MemBmp.Free;
+    FMemBmp.Free;
     EndPaint(Canvas.Handle, lpPaint);
   end;
   if Assigned(OnPainted) then
     OnPainted(Self);
 end;
 
-//复位
+// 复位
 procedure TCnAAMarqueeText.Reset;
 var
   Bmp: TBitmap;
@@ -2054,7 +2041,7 @@ begin
   end;
 end;
 
-//设置滚动延时
+// 设置滚动延时
 procedure TCnAAMarqueeText.SetScrollDelay(Value: Word);
 begin
   if FScrollDelay <> Value then
@@ -2065,7 +2052,7 @@ begin
   end;
 end;
 
-//设置每次滚动增量
+// 设置每次滚动增量
 procedure TCnAAMarqueeText.SetScrollStep(Value: Word);
 begin
   if FScrollStep <> Value then
@@ -2076,7 +2063,7 @@ begin
   end;
 end;
 
-//设置活跃
+// 设置活跃
 procedure TCnAAMarqueeText.SetActive(Value: Boolean);
 begin
   if FActive <> Value then
@@ -2089,13 +2076,13 @@ begin
   end;
 end;
 
-//设置字体特效
+// 设置字体特效
 procedure TCnAAMarqueeText.SetEffect(const Value: TCnAAFontEffect);
 begin
   FEffect.Assign(Value);
 end;
 
-//设置滚动类型
+// 设置滚动类型
 procedure TCnAAMarqueeText.SetScrollType(Value: THoriScrollType);
 begin
   if FScrollType <> Value then
@@ -2109,10 +2096,10 @@ end;
 { TCnScrollTextParam }
 
 //--------------------------------------------------------//
-//平滑滚动文本参数                                        //
+// 平滑滚动文本参数                                       //
 //--------------------------------------------------------//
 
-//初始化
+// 初始化
 constructor TCnScrollTextParam.Create(AOwner: TCnAAGraphicControl;
   ChangedProc: TNotifyEvent);
 begin
@@ -2126,13 +2113,13 @@ begin
   BackGroundMode := bmTiled;
 end;
 
-//释放
+// 释放
 destructor TCnScrollTextParam.Destroy;
 begin
   inherited;
 end;
 
-//设置淡入淡出
+// 设置淡入淡出
 procedure TCnScrollTextParam.SetFade(const Value: Boolean);
 begin
   if FFade <> Value then
@@ -2142,7 +2129,7 @@ begin
   end;
 end;
 
-//设置淡入淡出高度
+// 设置淡入淡出高度
 procedure TCnScrollTextParam.SetFadeHeight(const Value: Integer);
 begin
   if FFadeHeight <> Value then
@@ -2152,7 +2139,7 @@ begin
   end;
 end;
 
-//设置头部空白
+// 设置头部空白
 procedure TCnScrollTextParam.SetHeadSpace(const Value: Integer);
 begin
   if FHeadSpace <> Value then
@@ -2166,7 +2153,7 @@ begin
   end;
 end;
 
-//设置尾部空白
+// 设置尾部空白
 procedure TCnScrollTextParam.SetTailSpace(const Value: Integer);
 begin
   if FTailSpace <> Value then
@@ -2180,7 +2167,7 @@ begin
   end;
 end;
 
-//文本内容是否存储
+// 文本内容是否存储
 function TCnScrollTextParam.IsLinesStored: Boolean;
 begin
   Result := Lines.Text <> csAAScrollTextCopyRight;
@@ -2189,27 +2176,27 @@ end;
 { TCnAAFadeText }
 
 //--------------------------------------------------------//
-//平滑特效渐隐文本控件                                    //
+// 平滑特效渐隐文本控件                                   //
 //--------------------------------------------------------//
 
-//创建
+// 创建
 constructor TCnAAFadeText.Create(AOwner: TComponent);
 begin
   inherited;
   ControlStyle := ControlStyle + [csOpaque, csReplicatable];
-  TextBmp := TBitmap.Create;
-  TextBmp.PixelFormat := pf24bit;
-  InBmp := TBitmap.Create;
-  InBmp.PixelFormat := pf24bit;
-  OutBmp := TBitmap.Create;
-  OutBmp.PixelFormat := pf24bit;
-  FadeTimer := TTimer.Create(Self);
-  FadeTimer.Interval := 25;
-  FadeTimer.Enabled := False;
-  FadeTimer.OnTimer := OnFadeTimer;
-  DelayTimer := TTimer.Create(Self);
-  DelayTimer.Enabled := False;
-  DelayTimer.OnTimer := OnDelayTimer;
+  FTextBmp := TBitmap.Create;
+  FTextBmp.PixelFormat := pf24bit;
+  FInBmp := TBitmap.Create;
+  FInBmp.PixelFormat := pf24bit;
+  FOutBmp := TBitmap.Create;
+  FOutBmp.PixelFormat := pf24bit;
+  FFadeTimer := TTimer.Create(Self);
+  FFadeTimer.Interval := 25;
+  FFadeTimer.Enabled := False;
+  FFadeTimer.OnTimer := OnFadeTimer;
+  FDelayTimer := TTimer.Create(Self);
+  FDelayTimer.Enabled := False;
+  FDelayTimer.OnTimer := OnDelayTimer;
   FText := TCnFadeTextParam.Create(Self, OnLabelChanged);
   FLineIndex := -1;
   FFadeProgress := 0;
@@ -2219,11 +2206,11 @@ begin
   Color := clWhite;
   LastText := '';
   CurrText := '';
-  NewProg := 0;
+  FNewProg := 0;
   SetBounds(0, 0, 240, 34);
 end;
 
-//创建默认字体标签
+// 创建默认字体标签
 procedure TCnAAFadeText.CreateDefFonts;
 var
   FLabel: TCnFontLabel;
@@ -2249,19 +2236,19 @@ begin
   end;
 end;
 
-//释放
+// 释放
 destructor TCnAAFadeText.Destroy;
 begin
   FText.Free;
-  DelayTimer.Free;
-  FadeTimer.Free;
-  OutBmp.Free;
-  InBmp.Free;
-  TextBmp.Free;
+  FDelayTimer.Free;
+  FFadeTimer.Free;
+  FOutBmp.Free;
+  FInBmp.Free;
+  FTextBmp.Free;
   inherited;
 end;
 
-//绘制渐隐图
+// 绘制渐隐图
 procedure TCnAAFadeText.DrawFadeBmp(AText: string; Bmp: TBitmap);
 var
   OffPoint: TPoint;
@@ -2274,20 +2261,22 @@ begin
     AAFont.Effect.Assign(Text.FontEffect);
     CurrAlign := Text.Alignment;
   end;
-  Fonts.Check(AText, Bmp.Canvas.Font, AAFont.Effect); //检查字体标签
-  Labels.Check(AText, CurrAlign); //检查用户标签
-  th := AAFont.TextHeight(AText); //文本高度
-  tw := AAFont.TextWidth(AText); //文本宽度
-  case CurrAlign of           //水平对齐方式
-    taLeftJustify: OffPoint.x := 0;
-    taRightJustify: OffPoint.x := ClientWidth - tw;
-    taCenter: OffPoint.x := (ClientWidth - tw) div 2;
+  Fonts.Check(AText, Bmp.Canvas.Font, AAFont.Effect); // 检查字体标签
+  Labels.Check(AText, CurrAlign); // 检查用户标签
+  th := AAFont.TextHeight(AText); // 文本高度
+  tw := AAFont.TextWidth(AText);  // 文本宽度
+
+  case CurrAlign of               // 水平对齐方式
+    taLeftJustify: OffPoint.X := 0;
+    taRightJustify: OffPoint.X := ClientWidth - tw;
+    taCenter: OffPoint.X := (ClientWidth - tw) div 2;
   end;
   case Text.Layout of         //垂直对齐方式
-    tlTop: OffPoint.y := 0;
-    tlCenter: OffPoint.y := (ClientHeight - th) div 2;
-    tlBottom: OffPoint.y := ClientHeight - th;
+    tlTop: OffPoint.Y := 0;
+    tlCenter: OffPoint.Y := (ClientHeight - th) div 2;
+    tlBottom: OffPoint.Y := ClientHeight - th;
   end;
+
   Bmp.Height := ClientHeight;
   Bmp.Width := ClientWidth;
   Bmp.Canvas.Brush.Color := Color;
@@ -2304,7 +2293,7 @@ begin
     Bmp.Canvas.FillRect(ClientRect);
   end;
   Bmp.Canvas.Brush.Style := bsClear;
-  AAFont.TextOutput(OffPoint.x, OffPoint.y, AText); //平滑字体输出
+  AAFont.TextOutput(OffPoint.X, OffPoint.Y, AText); //平滑字体输出
 end;
 
 //渐隐到指定行
@@ -2333,103 +2322,103 @@ begin
   FLineIndex := Line;
 end;
 
-//渐隐到下一行
+// 渐隐到下一行
 procedure TCnAAFadeText.FadeToNext;
 begin
   FadeTo(LineIndex + 1);
 end;
 
-//渐隐到指定文本
+// 渐隐到指定文本
 procedure TCnAAFadeText.FadeToStr(AText: string);
 begin
-  OutBmp.Assign(TextBmp);
-  DrawFadeBmp(AText, InBmp);
+  FOutBmp.Assign(FTextBmp);
+  DrawFadeBmp(AText, FInBmp);
   LastText := CurrText;
   CurrText := AText;
   FFadeProgress := 0;
-  FadeTimer.Enabled := False;
-  FadeTimer.Enabled := True;
-  if DelayTimer.Enabled then
+  FFadeTimer.Enabled := False;
+  FFadeTimer.Enabled := True;
+  if FDelayTimer.Enabled then
   begin
-    DelayTimer.Enabled := False;
-    DelayTimer.Enabled := True;
+    FDelayTimer.Enabled := False;
+    FDelayTimer.Enabled := True;
   end;
 end;
 
-//属性已装载
+// 属性已装载
 procedure TCnAAFadeText.LoadedEx;
 begin
   inherited;
   CurrAlign := Text.Alignment;
   Reset;
   FRepeatedCount := 0;
-  DelayTimer.Enabled := FActive;
+  FDelayTimer.Enabled := FActive;
   if FActive then
     OnDelayTimer(Self);
 end;
 
-//渐隐切换文本定时事件
+// 渐隐切换文本定时事件
 procedure TCnAAFadeText.OnDelayTimer(Sender: TObject);
 begin
   FadeToNext;
 end;
 
 
-//渐隐过程定时事件
+// 渐隐过程定时事件
 procedure TCnAAFadeText.OnFadeTimer(Sender: TObject);
 begin
-  if Abs(NewProg - FadeProgress) > 1 then
-    NewProg := FadeProgress;
-  NewProg := NewProg + csMaxProgress * FadeTimer.Interval div Text.FadeDelay;
-  if NewProg > csMaxProgress then
+  if Abs(FNewProg - FadeProgress) > 1 then
+    FNewProg := FadeProgress;
+  FNewProg := FNewProg + csMaxProgress * FFadeTimer.Interval div Text.FadeDelay;
+  if FNewProg > csMaxProgress then
   begin
-    NewProg := csMaxProgress;
-    FadeTimer.Enabled := False;
+    FNewProg := csMaxProgress;
+    FFadeTimer.Enabled := False;
   end;
-  FadeProgress := Round(NewProg);
+  FadeProgress := Round(FNewProg);
 end;
 
-//绘制控件画布
+// 绘制控件画布
 procedure TCnAAFadeText.PaintCanvas;
 begin
   inherited;
   if Text.Transparent then
-  begin                       //透明且完整重绘
+  begin                       // 透明且完整重绘
     if FadeProgress = 0 then
-      DrawFadeBmp(CurrText, TextBmp)
+      DrawFadeBmp(CurrText, FTextBmp)
     else begin
-      DrawFadeBmp(LastText, OutBmp);
-      DrawFadeBmp(CurrText, InBmp);
+      DrawFadeBmp(LastText, FOutBmp);
+      DrawFadeBmp(CurrText, FInBmp);
     end;
   end;
-  if FadeProgress <> 0 then   //渐隐中
-    Blend(TextBmp, OutBmp, InBmp, FFadeProgress);
-  Bitblt(Canvas.Handle, 0, 0, Width, Height, TextBmp.Canvas.Handle, 0, 0,
+  if FadeProgress <> 0 then   // 渐隐中
+    Blend(FTextBmp, FOutBmp, FInBmp, FFadeProgress);
+  Bitblt(Canvas.Handle, 0, 0, Width, Height, FTextBmp.Canvas.Handle, 0, 0,
     SRCCOPY);
   if Assigned(OnPainted) then
     OnPainted(Self);
 end;
 
-//更新显示
+// 更新显示
 procedure TCnAAFadeText.Reset;
 begin
   if FadeProgress = 0 then
-    DrawFadeBmp(CurrText, TextBmp)
+    DrawFadeBmp(CurrText, FTextBmp)
   else begin
-    DrawFadeBmp(LastText, OutBmp);
-    DrawFadeBmp(CurrText, InBmp);
-    Blend(TextBmp, OutBmp, InBmp, FFadeProgress);
+    DrawFadeBmp(LastText, FOutBmp);
+    DrawFadeBmp(CurrText, FInBmp);
+    Blend(FTextBmp, FOutBmp, FInBmp, FFadeProgress);
   end;
   inherited;
 end;
 
-//设置活跃
+// 设置活跃
 procedure TCnAAFadeText.SetActive(const Value: Boolean);
 begin
   if FActive <> Value then
   begin
     FActive := Value;
-    DelayTimer.Enabled := FActive;
+    FDelayTimer.Enabled := FActive;
     if FActive then
     begin
       FRepeatedCount := 0;
@@ -2438,7 +2427,7 @@ begin
   end;
 end;
 
-//设置渐隐进程
+// 设置渐隐进程
 procedure TCnAAFadeText.SetFadeProgress(const Value: TProgress);
 begin
   if FFadeProgress <> Value then
@@ -2448,7 +2437,7 @@ begin
   end;
 end;
 
-//设置当前行
+// 设置当前行
 procedure TCnAAFadeText.SetLineIndex(const Value: Integer);
 begin
   if FLineIndex <> Value then
@@ -2457,7 +2446,7 @@ begin
   end;
 end;
 
-//设置总循环次数
+// 设置总循环次数
 procedure TCnAAFadeText.SetRepeatCount(const Value: TBorderWidth);
 begin
   if FRepeatCount <> Value then
@@ -2467,13 +2456,13 @@ begin
   end;
 end;
 
-//设置文本
+// 设置文本
 procedure TCnAAFadeText.SetText(const Value: TCnFadeTextParam);
 begin
   FText.Assign(Value);
 end;
 
-//是默认文本时创建默认标签
+// 是默认文本时创建默认标签
 function TCnAAFadeText.UseDefaultLabels: Boolean;
 begin
   Result := not FText.IsLinesStored;
@@ -2482,7 +2471,7 @@ end;
 { TCnFadeTextParam }
 
 //--------------------------------------------------------//
-//平滑特效渐隐文本参数                                    //
+// 平滑特效渐隐文本参数                                   //
 //--------------------------------------------------------//
 
 //赋值
@@ -2496,7 +2485,7 @@ begin
   end;
 end;
 
-//创建
+// 创建
 constructor TCnFadeTextParam.Create(AOwner: TCnAAGraphicControl;
   ChangedProc: TNotifyEvent);
 begin
@@ -2508,31 +2497,31 @@ begin
   Layout := tlCenter;
 end;
 
-//释放
+// 释放
 destructor TCnFadeTextParam.Destroy;
 begin
   inherited;
 end;
 
-//取行延时
+// 取行延时
 function TCnFadeTextParam.GetLineDelay: Cardinal;
 begin
-  Result := TCnAAFadeText(Owner).DelayTimer.Interval;
+  Result := TCnAAFadeText(Owner).FDelayTimer.Interval;
 end;
 
 // 取图像高度
 function TCnAAScrollText.GetBmpHeight: Integer;
 begin
-  Result := TextBmp.Height;
+  Result := FTextBmp.Height;
 end;
 
-//存储文本
+// 存储文本
 function TCnFadeTextParam.IsLinesStored: Boolean;
 begin
   Result := Lines.Text <> csAAFadeTextCopyRight;
 end;
 
-//设置渐隐延时
+// 设置渐隐延时
 procedure TCnFadeTextParam.SetFadeDelay(const Value: Cardinal);
 begin
   if FFadeDelay <> Value then
@@ -2545,7 +2534,7 @@ begin
   end;
 end;
 
-//设置行延时
+// 设置行延时
 procedure TCnFadeTextParam.SetLineDelay(const Value: Cardinal);
 var
   T: Cardinal;
@@ -2553,7 +2542,7 @@ begin
   T := Value;
   if T < FFadeDelay + 200 then
     T := FFadeDelay + 200;
-  TCnAAFadeText(Owner).DelayTimer.Interval := T;
+  TCnAAFadeText(Owner).FDelayTimer.Interval := T;
 end;
 
 procedure TCnAAScrollText.SetTransparent(const Value: Boolean);
