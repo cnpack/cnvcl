@@ -35,7 +35,9 @@ unit CnAACtrls;
 *           平滑滚动文本控件 TCnAAScrollText
 *           平滑字幕文本控件 TCnAAMarqueeText
 *           平滑特效渐隐文本控件 TCnAAFadeText
-* 最后更新：2015.06.15
+* 最后更新：2021.07.24
+*               TCnAAScrollText 支持 Transparent 属性
+*           2015.06.15
 *               修改输出名以躲过 BCB Unicode 下命名混淆的问题
 *           2007.12.29
 * 移植日期：2006.08.18
@@ -382,6 +384,7 @@ type
     DelayTimer: TTimer;
     ScrollTimer: TCnTimer;
     FActive: Boolean;
+    FTransparent: Boolean;
 
     procedure CreateText;
     procedure OnDelayTimer(Sender: TObject);
@@ -394,6 +397,7 @@ type
     procedure SetText(const Value: TCnScrollTextParam);
     procedure SetCurrPos(const Value: Integer);
     function GetBmpHeight: Integer;
+    procedure SetTransparent(const Value: Boolean);
   protected
     { Protected declarations }
     procedure CreateDefFonts; override;
@@ -439,6 +443,8 @@ type
     {* 完成一次滚动循环后的延时，如果不需要延时，可设为0}
     property Text: TCnScrollTextParam read FText write SetText;
     {* 滚动文本内容和参数属性}
+    property Transparent: Boolean read FTransparent write SetTransparent;
+    {* 背景是否透明}
     property OnComplete;
     {* 指定次数的滚动循环结束事件，见RepeatCount}
     property OnTextReady;
@@ -696,6 +702,10 @@ const
     csAACopyRight + csAACopyRightStart +
     '<Text1>用于显示滚动文本信息'#13#10 +
     csAACopyRightEnd;
+
+{$IFNDEF COMPILER6_UP}
+  AC_SRC_ALPHA = $01;
+{$ENDIF}
 
 { TCnAALabel }
 
@@ -1390,7 +1400,10 @@ begin
   ControlStyle := ControlStyle + [csOpaque]; //由控件绘制所有客户区
   FText := TCnScrollTextParam.Create(Self, OnLabelChanged);
   TextBmp := TBitmap.Create;
-  TextBmp.PixelFormat := pf24bit;
+  TextBmp.PixelFormat := pf32bit;
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+  TextBmp.AlphaFormat := afDefined;
+{$ENDIF}
   CurrBmp := TBitmap.Create;
   CurrBmp.PixelFormat := pf24bit;
   ScrollTimer := TCnTimer.Create(Self);
@@ -1438,59 +1451,163 @@ end;
 //绘制控件
 procedure TCnAAScrollText.PaintCanvas;
 var
-  i: Integer;
+  I, FH, U, D: Integer;
   BkRed, BkGreen, BkBlue: Byte;
   tBkColor: TColor;
+  Bf: TBlendFunction;
 
-  //透明混合
-  procedure DrawFade(y: Integer; Transparency: Integer);
-  const
-    MaxPixelCount = 32768;
-  type
-    PRGBTripleArray = ^TRGBTripleArray;
-    TRGBTripleArray = array[0..MaxPixelCount] of TRGBTriple;
+  // 透明混合 TextBmp 与指定透明度到 CurrBmp 的一根横线，Transparency 从 0 到 255
+  procedure BlendFadeOnLine(YDst, YSrc: Integer; Transparency: Integer);
   var
-    Row: PRGBTripleArray;
-    x: Integer;
+    SrcRow: PBGRAArray;
+    DstRow: PRGBArray;
+    X, NT: Integer;
+    B: Byte;
   begin
-    Row := CurrBmp.ScanLine[y];
-    for x := 0 to CurrBmp.Width - 1 do
+    if (CurrBmp = nil) or (TextBmp = nil) then
+      Exit;
+    if (YSrc < 0) or (YSrc >= TextBmp.Height) then
+      Exit;
+    if (YDst < 0) or (YDst >= CurrBmp.Height) then
+      Exit;
+
+    SrcRow := TextBmp.ScanLine[YSrc];
+    DstRow := CurrBmp.ScanLine[YDst];
+
+    // 注意 TextBmp 中是 PreMultiply 过的内容，也就是其自身透明度已经混合完毕了。
+    for X := 0 to CurrBmp.Width - 1 do
     begin
-      if Row[x].rgbtRed <> BkRed then
-        Row[x].rgbtRed := Transparency * (Row[X].rgbtRed - BkRed) shr 8 + BkRed;
-      if Row[x].rgbtGreen <> BkGreen then
-        Row[x].rgbtGreen := Transparency * (Row[X].rgbtGreen - BkGreen) shr 8 + BkGreen;
-      if Row[x].rgbtBlue <> BkBlue then
-        Row[x].rgbtBlue := Transparency * (Row[X].rgbtBlue - BkBlue) shr 8 + BkBlue;
+      if (Transparency > 0) and (SrcRow^[X].rgbReserved > 0) then // 有不透明才混合
+      begin
+        // 目标透明度=1-（1-前透明度）*（1-后透明度）
+        // 目标分量=（前分量*前透明度 + 后分量*后透明度*（1-前透明度））/目标透明度
+        // 此处后透明度为 1，因此简化成：目标透明度 1
+        // 目标分量=（前分量*前透明度 + 后分量*（1-前透明度）
+        NT := MulDiv(Transparency, SrcRow^[X].rgbReserved, 255); // 新的前透明度
+
+        B := MulDiv(SrcRow^[X].rgbRed, 255, SrcRow^[X].rgbReserved);    // 新前分量
+        DstRow^[X].rgbtRed := (NT * B + (255 - NT) * DstRow^[X].rgbtRed) div $FF;
+        B := MulDiv(SrcRow^[X].rgbGreen, 255, SrcRow^[X].rgbReserved);  // 新前分量
+        DstRow^[X].rgbtGreen := (NT * B + (255 - NT) * DstRow^[X].rgbtGreen) div $FF;
+        B := MulDiv(SrcRow^[X].rgbBlue, 255, SrcRow^[X].rgbReserved);   // 新前分量
+        DstRow^[X].rgbtBlue := (NT * B + (255 - NT) * DstRow^[X].rgbtBlue) div $FF;
+      end;
     end;
   end;
+
+  // 透明混合前景色与指定透明度到 CurrBmp 的一根横线，Transparency 从 0 到 255
+  procedure DrawColorFadeOnLine(Y: Integer; Transparency: Integer);
+  var
+    Row: PRGBArray;
+    X: Integer;
+  begin
+    Row := CurrBmp.ScanLine[Y];
+    for X := 0 to CurrBmp.Width - 1 do
+    begin
+      if Row[X].rgbtRed <> BkRed then
+        Row[X].rgbtRed := Transparency * (Row[X].rgbtRed - BkRed) shr 8 + BkRed;
+      if Row[X].rgbtGreen <> BkGreen then
+        Row[X].rgbtGreen := Transparency * (Row[X].rgbtGreen - BkGreen) shr 8 + BkGreen;
+      if Row[X].rgbtBlue <> BkBlue then
+        Row[X].rgbtBlue := Transparency * (Row[X].rgbtBlue - BkBlue) shr 8 + BkBlue;
+    end;
+  end;
+
 begin
+  // 把内容固定的包含文字的 TextBmp，按竖向滚动进度切分画到 CurrBmp 上
+  // 不支持透明时，32 位 TextBmp 通过 BitBlt 复制到 24 位 CurrBmp 上再绘制到背景上
+  // 支持透明时，24 位的 CurrBmp 先复制背景进来，32 位带 Alpha 的 TextBmp 通过 AlphaBlend 复制到 CurrBmp 上
   CurrBmp.Height := Height;
   CurrBmp.Width := Width;
-  if FCurrPos + Height <= TextBmp.Height then //完整显示
-    BitBlt(CurrBmp.Canvas.Handle, 0, 0, Width, Height, TextBmp.Canvas.Handle, 0,
-      FCurrPos, SRCCopy)
-  else
-  begin                       //首尾相接
-    BitBlt(CurrBmp.Canvas.Handle, 0, 0, Width, TextBmp.Height - FCurrPos,
-      TextBmp.Canvas.Handle, 0, FCurrPos, SRCCopy);
-    BitBlt(CurrBmp.Canvas.Handle, 0, TextBmp.Height - FCurrPos, Width, Height -
-      (TextBmp.Height - FCurrPos), TextBmp.Canvas.Handle, 0, 0, SRCCopy);
-  end;
-  if FText.Fade then          //淡入淡出
+
+  FH := 0;
+  U := 0;
+  D := 0;
+
+  if FTransparent then
   begin
-    tBkColor := ColorToRGB(Color);
-    BkRed := GetRValue(tBkColor);
-    BkGreen := GetGValue(tBkColor);
-    BkBlue := GetBValue(tBkColor);
-    for i := 0 to FText.FadeHeight - 1 do
+    CopyParentImage(CurrBmp.Canvas);
+
+    Bf.BlendOp := AC_SRC_OVER;
+    Bf.BlendFlags := 0;
+    Bf.SourceConstantAlpha := $FF;
+    Bf.AlphaFormat := AC_SRC_ALPHA;
+
+    if FText.Fade then
+      FH := FText.FadeHeight;
+  end;
+
+  // FCurrPos 指 CurrBmp 上缘应该在 TextBmp 垂直方向上距 TextBmp 上缘的距离
+  // U D 为上下 Fade 时 TextBmp 垂直方向的绘制起始点距 TextBmp 上缘的距离
+
+  if FCurrPos + Height <= TextBmp.Height then // TextBmp 足够大，完整显示
+  begin
+    if FTransparent then  // 透明时上下留出各 FH 的高度供后面混合
     begin
-      DrawFade(i, 255 * i div (FText.FadeHeight - 1));
-      DrawFade(Height - 1 - i, 255 * i div (FText.FadeHeight - 1));
+      AlphaBlend(CurrBmp.Canvas.Handle, 0, FH, Width, Height - FH * 2,
+        TextBmp.Canvas.Handle, 0, FCurrPos + FH, Width, Height - FH * 2, Bf);
+
+      U := FCurrPos;
+      D := FCurrPos + Height;
+    end
+    else
+      BitBlt(CurrBmp.Canvas.Handle, 0, 0, Width, Height, TextBmp.Canvas.Handle, 0,
+        FCurrPos, SRCCopy);
+  end
+  else // TextBmp 跨屏了，拆成两部分上下首尾相接绘制，透明时上下留出各 FH 的高度供后面混合
+  begin                       
+    if FTransparent then
+    begin
+      // 画上面
+      AlphaBlend(CurrBmp.Canvas.Handle, 0, FH, Width, TextBmp.Height - FCurrPos - FH,
+        TextBmp.Canvas.Handle, 0, FCurrPos + FH, Width, TextBmp.Height - FCurrPos - FH, Bf);
+      // 画下面
+      AlphaBlend(CurrBmp.Canvas.Handle, 0, TextBmp.Height - FCurrPos, Width, Height -
+        (TextBmp.Height - FCurrPos) - FH, TextBmp.Canvas.Handle, 0, 0, Width, Height -
+        (TextBmp.Height - FCurrPos) - FH, Bf);
+
+      U := FCurrPos;
+      D := Height - (TextBmp.Height - FCurrPos);
+    end
+    else
+    begin
+      BitBlt(CurrBmp.Canvas.Handle, 0, 0, Width, TextBmp.Height - FCurrPos,
+        TextBmp.Canvas.Handle, 0, FCurrPos, SRCCopy);
+      BitBlt(CurrBmp.Canvas.Handle, 0, TextBmp.Height - FCurrPos, Width, Height -
+        (TextBmp.Height - FCurrPos), TextBmp.Canvas.Handle, 0, 0, SRCCopy);
     end;
-  end;                        //绘制到控件画布
+  end;
+
+  // 淡入淡出上下边缘
+  if FText.Fade then
+  begin
+    if FTransparent then
+    begin
+      for I := 0 to FText.FadeHeight - 1 do
+      begin
+        BlendFadeOnLine(I, U + I, 255 * I div (FH - 1));
+        BlendFadeOnLine(Height - 1 - I, D - 1 - I, 255 * I div (FH - 1));
+      end;
+    end
+    else
+    begin
+      tBkColor := ColorToRGB(Color);
+      BkRed := GetRValue(tBkColor);
+      BkGreen := GetGValue(tBkColor);
+      BkBlue := GetBValue(tBkColor);
+
+      for I := 0 to FText.FadeHeight - 1 do
+      begin
+        DrawColorFadeOnLine(I, 255 * I div (FText.FadeHeight - 1));
+        DrawColorFadeOnLine(Height - 1 - I, 255 * I div (FText.FadeHeight - 1));
+      end;
+    end;
+  end;
+
+  // 绘制到控件画布
   if not (csDestroying in ComponentState) then
     BitBlt(Canvas.Handle, 0, 0, Width, Height, CurrBmp.Canvas.Handle, 0, 0, SRCCopy);
+
   if Assigned(OnPainted) then
     OnPainted(Self);
 end;
@@ -1579,7 +1696,8 @@ begin
           while AAFont.TextWidth(Copy(CurrText, 1, MaxCol)) > Width do
             Dec(MaxCol);
           WrapText(CurrText, WrapLines, MaxCol);
-        end else if CurrText <> '' then
+        end
+        else if CurrText <> '' then
           WrapLines.Text := CurrText
         else
           WrapLines.Text := ' ';
@@ -1592,6 +1710,15 @@ begin
       if CurrHeight < ClientHeight then
         CurrHeight := ClientHeight;
       TextBmp.Height := CurrHeight;
+
+      if FTransparent then
+      begin
+        // 需透明的话先填充全 0
+        X := TextBmp.Width * SizeOf(TRGBQuad);
+        for Y := 0 to TextBmp.Height - 1 do
+          FillChar(TextBmp.ScanLine[Y]^, X, 0); // 先填充全透明，这里画出来没错
+      end;
+
       if Assigned(FText.BackGround.Graphic) and not
         FText.BackGround.Graphic.Empty then
         DrawBackGround(TextBmp.Canvas, Rect(0, 0, TextBmp.Width,
@@ -1642,10 +1769,12 @@ begin
           else x := 0;
           end;
           y := CurrHeight;      //行间距
-          AAFont.TextOutput(x, y, CurrText);
+          AAFont.TextOutput(x, y, CurrText, FTransparent);
+
           CurrHeight := CurrHeight + Round(TextHeight * (1 + RowPitch / 100));
         end;
       end;
+
       if Assigned(OnTextReady) then //调用OnTextReady事件
         OnTextReady(Self);
     end;
@@ -2425,6 +2554,16 @@ begin
   if T < FFadeDelay + 200 then
     T := FFadeDelay + 200;
   TCnAAFadeText(Owner).DelayTimer.Interval := T;
+end;
+
+procedure TCnAAScrollText.SetTransparent(const Value: Boolean);
+begin
+  if Value <> FTransparent then
+  begin
+    FTransparent := Value;
+    if not (csLoading in ComponentState) then
+      Reset;
+  end;
 end;
 
 end.

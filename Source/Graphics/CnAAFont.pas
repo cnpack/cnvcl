@@ -384,7 +384,7 @@ type
       DestIsAlpha: Boolean = False);
     {* 使用前景图进行混合，DestIsAlpha 为 True 时使用 ForeBmp32，否则使用 ForeBmp
       注意 DestIsAlpha 为 True 时，要求 ForeBmp32 在不支持 AlphaFormat 的情况下
-        要求内容是 UnPreMultiply 的（内部进行 PreMultiply）
+        要求内容是 PreMultiply 的（内部进行 UnPreMultiply）
       输出则是 PreMultiply 过的内容 }
     property ForeBmp: TBitmap read FForeBmp write SetForeBmp;
     {* 字体前景图，24 位 RGB 色彩的}
@@ -485,7 +485,7 @@ type
     {* 类析构器}
     function TextExtent(const S: string): TSize; override;
     {* 返回文本高、宽
-     |<BR> 注：Effect参数中的阴影、旋转角度等设置将影响返回结果}
+     |<BR> 注：Effect 参数中的阴影、旋转角度等设置将影响返回结果}
     procedure TextOutput(X, Y: Integer; const S: string; DestIsAlpha: Boolean = False);
     {* 使用 Effect 设置的字体特效，输出平滑字体文本到当前设置的 Canvas 中，使用它的字体属性和画刷设置。
      |<BR> 如果要输出背景透明的文本，需要将 Canvas.Brush.Style 设为 bsClear。
@@ -1874,7 +1874,9 @@ begin
   B := GetBValue(Color);
   AAlpha := Alpha * $100 div 100;       // 得到前景透明度运算系数（0 到 256 范围）
 
-  if DestIsAlpha then // 如果目标是 32 位带 Alpha 通道的
+  // 如果目标是 32 位带 Alpha 通道的需要 Alpha 支持，则使用 32 位带 Alpha 的中间图混合
+  // 带 Alpha 混合完毕后再通过 AlphaBlend 复制透明度内容过去
+  if DestIsAlpha then
   begin
     FBGRABmp.Width := Mask.Width;
     FBGRABmp.Height := Mask.Height;
@@ -1965,7 +1967,7 @@ begin
     AlphaBlend(FAAFont.Canvas.Handle, X, Y, FBGRABmp.Width, FBGRABmp.Height,
       FBGRABmp.Canvas.Handle, 0, 0, FBGRABmp.Width, FBGRABmp.Height, Bf); // 输出
   end
-  else
+  else // 如果目标不需要 Alpha 支持，无论目标是 24 位还是 32 位，都用 24 位中间图，再 BitBlt 过去
   begin
     FRGBBmp.Width := Mask.Width;
     FRGBBmp.Height := Mask.Height;
