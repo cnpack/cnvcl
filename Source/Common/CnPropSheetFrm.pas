@@ -589,6 +589,9 @@ const
   SCnInputNewValueCaption = 'Modify Value';
   SCnInputNewValuePrompt = 'Enter a New Value for %s:';
   SCnErrorChangeValue = 'Change Property Value Failed!';
+{$IFNDEF COMPILER6_UP}
+  AC_SRC_ALPHA = $01;
+{$ENDIF}
 
 var
   FSheetList: TComponentList = nil;
@@ -2511,21 +2514,52 @@ var
     EMPTY_STR = '<Empty>';
   var
     S: string;
+    Bmp32Draw: Boolean;
+//    Bf: TBlendFunction;
   begin
     if AGraphic = nil then
       Exit;
 
+{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+    Bmp32Draw := False; // 支持 AlphaFormat 的，无需自己画
+{$ELSE}
+    Bmp32Draw := (AGraphic is TBitmap) and ((AGraphic as TBitmap).PixelFormat = pf32bit);
+{$ENDIF}
+
+    if Bmp32Draw then
+      FGraphicBmp.PixelFormat := pf32bit
+    else
+      FGraphicBmp.PixelFormat := pf24bit;
+
     FGraphicBmp.Height := AGraphic.Height;
     FGraphicBmp.Width := AGraphic.Width;
 
-    if AGraphic.Transparent
-{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
-      or AGraphic.SupportsPartialTransparency
-{$ENDIF}
-      then // 如果有透明度或半透明度，就先画个背景
-      TileBkToImageBmp;
+//    if AGraphic.Transparent
+//{$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
+//      or AGraphic.SupportsPartialTransparency
+//{$ENDIF}
+//      then // 如果有透明度或半透明度，就
 
-    FGraphicBmp.Canvas.Draw(0, 0, AGraphic); // Draw 封装了全透明度的画、以及半透明混合画，但后者似乎不起作用
+    // 先不管怎样都画个背景
+    TileBkToImageBmp;
+
+    // 不支持 Alpha 的情形下，32 位如果直接调用 Draw 则会画出黑底
+    // 如果用 AlphaBlend 则难以判断其内容是否 PreMultiply 过，权衡一下还是直接画
+
+//    if Bmp32Draw and not AGraphic.Empty then
+//    begin
+//      // 不支持 Alpha 的情形下，32 位位图自己画半透明度输出，但从没成功过，先不用
+//      Bf.BlendOp := AC_SRC_OVER;
+//      Bf.BlendFlags := 0;
+//      Bf.SourceConstantAlpha := $FF;
+//      Bf.AlphaFormat := AC_SRC_ALPHA;
+//
+//      Windows.AlphaBlend(FGraphicBmp.Canvas.Handle, 0, 0, FGraphicBmp.Width, FGraphicBmp.Height,
+//        (AGraphic as TBitmap).Canvas.Handle, 0, 0, FGraphicBmp.Width, FGraphicBmp.Height, Bf);
+//    end
+//    else
+      FGraphicBmp.Canvas.Draw(0, 0, AGraphic);
+      // Draw 封装了全透明度的画、以及半透明混合画，但后者只在 XE2 或以上版本起作用
     pbGraphic.Invalidate;
 
     if AGraphic.Empty then
