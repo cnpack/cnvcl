@@ -39,8 +39,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Graphics, ExtCtrls, Math, CnClasses, CnCommon,
-  CnGraphConsts;
+  Windows, SysUtils, Classes, Graphics, ExtCtrls, Math, Controls, Messages,
+  CnClasses, CnCommon, CnGraphConsts;
 
 type
 
@@ -1282,6 +1282,8 @@ function PointF(x, y: Single): TPointF;
 {* 返回一个浮点数坐标TPointF}
 function RectF(Left, Top, Right, Bottom: Single): TRectF;
 {* 返回一个浮点数矩形TRectF}
+
+procedure CopyControlParentImageToCanvas(AControl: TControl; Dest: TCanvas);
 
 // 常用卷积核
 const
@@ -7327,6 +7329,77 @@ begin
       FontMaskBlend(TextPoint.x, TextPoint.y, Font.Color, Font.Alpha, FFontMask);
   finally
     EndUpdate;
+  end;
+end;
+
+type
+  TCnParentControl = class(TWinControl);
+
+// 从父控件复制背景。这个过程来自 RxLibrary VCLUtils
+procedure CopyControlParentImageToCanvas(AControl: TControl; Dest: TCanvas);
+var
+  I, Count, X, Y, SaveIndex: Integer;
+  DC: HDC;
+  R, SelfR, CtlR: TRect;
+begin
+  if AControl.Parent = nil then Exit;
+  Count := AControl.Parent.ControlCount;
+  DC := Dest.Handle;
+  with AControl.Parent do
+    ControlState := ControlState + [csPaintCopy];
+
+  try
+    SelfR := Bounds(AControl.Left, AControl.Top, AControl.Width, AControl.Height);
+    X := -AControl.Left;
+    Y := -AControl.Top;
+    { Copy parent control image }
+    SaveIndex := SaveDC(DC);
+    try
+      SetViewportOrgEx(DC, X, Y, nil);
+      IntersectClipRect(DC, 0, 0, AControl.Parent.ClientWidth,
+        AControl.Parent.ClientHeight);
+      try
+        with TCnParentControl(AControl.Parent) do
+        begin
+          Perform(WM_ERASEBKGND, DC, 0);
+          PaintWindow(DC);
+        end;
+      except
+        ;
+      end;
+    finally
+      RestoreDC(DC, SaveIndex);
+    end;
+    { Copy images of graphic controls }
+    for I := 0 to Count - 1 do
+    begin
+      if AControl.Parent.Controls[I] = AControl then
+        Break
+      else if (AControl.Parent.Controls[I] <> nil) and
+        (AControl.Parent.Controls[I] is TGraphicControl) then
+      begin
+        with TGraphicControl(AControl.Parent.Controls[I]) do
+        begin
+          CtlR := Bounds(Left, Top, Width, Height);
+          if Bool(IntersectRect(R, SelfR, CtlR)) and Visible then
+          begin
+            ControlState := ControlState + [csPaintCopy];
+            SaveIndex := SaveDC(DC);
+            try
+              SetViewportOrgEx(DC, Left + X, Top + Y, nil);
+              IntersectClipRect(DC, 0, 0, Width, Height);
+              Perform(WM_PAINT, DC, 0);
+            finally
+              RestoreDC(DC, SaveIndex);
+              ControlState := ControlState - [csPaintCopy];
+            end;
+          end;
+        end;
+      end;
+    end;
+  finally
+    with AControl.Parent do
+      ControlState := ControlState - [csPaintCopy];
   end;
 end;
 
