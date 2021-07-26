@@ -503,8 +503,6 @@ const
   csMaxProgress = 255;
 
 type
-  TCnParentControl = class(TWinControl);
-  TCnMyControl = class(TControl);
   TCnFontLabel = class;
   TCnFontLabels = class;
   TCnUserLabel = class;
@@ -1039,6 +1037,9 @@ type
   PDWordArray = ^TDWordArray;
   TDWordArray = array[0..8192] of DWORD;
   {* DWORD 数组类型}
+
+  TCnParentControl = class(TWinControl);
+  TCnMyControl = class(TControl);
 
 function HSLtoRGB(H, S, L: Double): TColor;
 var
@@ -4137,7 +4138,7 @@ begin
 end;
 
 // 从父控件复制背景
-// 这个过程来自RxLibrary VCLUtils
+// 这个过程来自 RxLibrary VCLUtils
 procedure TCnAAGraphicControl.CopyParentImage(Dest: TCanvas);
 var
   I, Count, X, Y, SaveIndex: Integer;

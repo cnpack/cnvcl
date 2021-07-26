@@ -1,12 +1,12 @@
 //-------------------------------------------------------------------------
-//控 件 包：平滑特效字体控件包
-//单元名称：演示程序主窗体单元  　　　　　　　
-//单元作者：CnPack 开发组 周劲羽
-//下载网址：http://www.cnvcl.org
-//Eamil   ：zjy@cnvcl.org
-//发布类型：免费单元　　　　　　　　　　　　　　　　　　
-//备　　注：该单元演示了控件包的一些功能
-//最后更新：2002.06.26
+// 控 件 包：平滑特效字体控件包
+// 单元名称：演示程序主窗体单元  　　　　　　　
+// 单元作者：CnPack 开发组 周劲羽
+// 下载网址：http://www.cnvcl.org
+// Eamil   ：zjy@cnvcl.org
+// 发布类型：免费单元　　　　　　　　　　　　　　　　　　
+// 备　　注：该单元演示了控件包的一些功能
+// 最后更新：2002.06.26
 //-------------------------------------------------------------------------
 unit Unit1;
 
@@ -106,7 +106,7 @@ procedure TForm1.FormShow(Sender: TObject);
 var
   TempPath: array[0..MAX_PATH] of Char;
 begin
-  MediaPlayer := TMediaPlayer.Create(Self); // 创建媒体播放器用于播放MIDI
+  MediaPlayer := TMediaPlayer.Create(Self); // 创建媒体播放器用于播放 MIDI
   MediaPlayer.Parent := Self;
   MediaPlayer.Visible := False;
   MediaPlayer.OnNotify := OnNotify;
@@ -139,7 +139,7 @@ end;
 
 procedure TForm1.SpeedButton1Click(Sender: TObject);
 begin
-  CnAALinkLabel1.Click; // 使用TCnAALinkLabel.Click方法相当于用户点击控件
+  CnAALinkLabel1.Click; // 使用 TCnAALinkLabel.Click 方法相当于用户点击控件
 end;
 
 procedure TForm1.SpeedButton2Click(Sender: TObject);
@@ -155,7 +155,7 @@ begin
   MediaPlayer.Notify := True;
 end;
 
-// 切换页面控制背景MIDI
+// 切换页面控制背景 MIDI
 procedure TForm1.PageControl1Change(Sender: TObject);
 begin
   if PageControl1.ActivePage = TabSheet4 then
@@ -166,7 +166,7 @@ end;
 
 // 调节滚动速度
 procedure TForm1.tbSpeedChange(Sender: TObject);
-begin                      // 如果为0将停止滚动，故加1
+begin                      // 如果为 0 将停止滚动，故加 1
   CnAAScrollText.ScrollDelay := 10 * tbSpeed.Position + 1;
 end;
 
@@ -176,10 +176,10 @@ procedure TForm1.CnAAScrollTextLabels8GetText(Sender: TCnUserLabel;
 const
   Vers: array[0..2] of string = ('激情版', '伤情版', '深情版');
 begin
-  Text := Vers[Ver];  // 运行时可更改滚动文本内容，该内容在控件Reset时读取
+  Text := Vers[Ver];  // 运行时可更改滚动文本内容，该内容在控件 Reset 时读取
 end;
 
-// 更新作者填词的《与月共舞》并播放MIDI原曲《蝶恋》
+// 更新作者填词的《与月共舞》并播放 MIDI 原曲《蝶恋》
 procedure TForm1.bbtnRandomUpdateClick(Sender: TObject);
 const
   csFontMax = 9;
@@ -191,7 +191,7 @@ var
   FontName: string;
   ResStream: TResourceStream;
   ResName: string;
-  function RandomColor: TColor;   //随机色
+  function RandomColor: TColor;   // 随机色
   begin
     Result := HSLToRGB(Random, 0.75 + Random * 0.25, 0.3 + Random * 0.25);
   end;
@@ -234,7 +234,7 @@ begin
       with CnAAScrollText.Fonts do   // 设置随机字体
       begin
         if Fonts.Count > 0 then
-        begin    // 使用IndexOf来取得字体标签项
+        begin    // 使用 IndexOf 来取得字体标签项
           Items[IndexOf(csTitleYygw)].Font.Name := Fonts[Random(Fonts.Count)];
           Items[IndexOf(csTextYygw)].Font.Name := Fonts[Random(Fonts.Count)];
           Items[IndexOf(csTextVer)].Font.Name := Fonts[Random(Fonts.Count)];
