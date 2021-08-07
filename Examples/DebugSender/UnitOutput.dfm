@@ -1,6 +1,6 @@
 object FormSend: TFormSend
   Left = 329
-  Top = 188
+  Top = 164
   BorderStyle = bsDialog
   Caption = 'Send Debug'
   ClientHeight = 434
@@ -776,7 +776,7 @@ object FormSend: TFormSend
     Top = 388
     Width = 97
     Height = 21
-    Caption = '看透明位图'
+    Caption = '看（半）透明PNG'
     ParentShowHint = False
     ShowHint = True
     TabOrder = 55
@@ -803,6 +803,17 @@ object FormSend: TFormSend
     ShowHint = True
     TabOrder = 57
     OnClick = btnDrawTransparentClick
+  end
+  object btnEvaluateSample: TButton
+    Left = 8
+    Top = 388
+    Width = 97
+    Height = 21
+    Caption = '看Sample控件'
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 58
+    OnClick = btnEvaluateSampleClick
   end
   object dlgColor: TColorDialog
     Ctl3D = True

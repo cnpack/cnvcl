@@ -125,6 +125,7 @@ type
     img1: TImage;
     dlgOpen1: TOpenDialog;
     btnDrawTransparent: TButton;
+    btnEvaluateSample: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -175,8 +176,9 @@ type
     procedure btnEvaluateTransBmpClick(Sender: TObject);
     procedure btnEvaluateImageClick(Sender: TObject);
     procedure btnDrawTransparentClick(Sender: TObject);
+    procedure btnEvaluateSampleClick(Sender: TObject);
   private
-    { Private declarations }
+    FComponenet: TComponent;
     FTimeStamp: Boolean;
     FThread: TSendThread;
     FOldWndProc: TWndMethod;
@@ -194,7 +196,8 @@ var
 
 implementation
 
-uses CnDebug;
+uses
+  CnDebug, CnSampleComponent;
 
 {$R *.dfm}
 
@@ -762,6 +765,14 @@ begin
 //{$ELSE}
 //  ShowMessage('Please RUN under Delphi 2009 or Above.');
 //{$ENDIF}
+end;
+
+procedure TFormSend.btnEvaluateSampleClick(Sender: TObject);
+begin
+  if FComponenet = nil then
+    FComponenet := TCnSampleComponent.Create(Self);
+
+  CnDebugger.EvaluateObject(FComponenet);
 end;
 
 end.

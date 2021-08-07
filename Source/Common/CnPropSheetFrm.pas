@@ -953,8 +953,24 @@ begin
             S := IntToStr(GetOrdProp(Instance, PropInfo));
         end;
       end;
-    tkChar, tkWChar:
-      S := IntToStr(GetOrdProp(Instance, PropInfo));
+    tkChar:
+      S := Chr(GetOrdProp(Instance, PropInfo));
+    tkWChar:
+      begin
+        iTmp := GetOrdProp(Instance, PropInfo);
+        // 得到的是 WideChar 的 Unicode 双字节值，转换成能显示的字符串
+{$IFDEF UNICODE}
+        S := Chr(iTmp);
+{$ELSE}
+//        SetLength(WS, 1);       // 用 WideString 容纳 Unicode 字符
+//        P := PByte(@WS[1]);
+//        P^ := iTmp and $FF;
+//        Inc(P);
+//        P^ := ((iTmp shr 8) and $FF);
+//        S := string(WS);        // 转 AnsiString
+        S := WideChar(iTmp);
+{$ENDIF}
+      end;
     tkClass:
       begin
         iTmp := GetOrdProp(Instance, PropInfo);

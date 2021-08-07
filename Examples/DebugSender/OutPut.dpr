@@ -36,7 +36,9 @@ uses
   JclWin32 in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclWin32.pas',
   Snmp in '..\..\..\cnwizards\Source\ThirdParty\JCL\Snmp.pas',
 {$ENDIF}
-  UnitThread in 'UnitThread.pas';
+  UnitThread in 'UnitThread.pas',
+  CnRtlUtils in '..\..\Source\Common\CnRtlUtils.pas',
+  CnSampleComponent in '..\..\..\cnwizards\Source\Examples\CnSampleComponent.pas';
 
 {$R *.res}
 
