@@ -1745,6 +1745,7 @@ begin
       end;
     end;
 
+    // 以旧方式拿属性
     APropCount := GetTypeData(PTypeInfo(FObjectInstance.ClassInfo))^.PropCount;
     if APropCount > 0 then
     begin
@@ -1770,7 +1771,11 @@ begin
             AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
               in CnCanModifyPropTypes);
 
-            AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
+            try
+              AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
+            except
+              ; // Interface 类型可能会出错，屏蔽之
+            end;
 
             AProp.ObjValue := nil;
             AProp.IntfValue := nil;
@@ -1800,6 +1805,7 @@ begin
           end;
         end;
 
+        // 拿事件
         if PropInfo^.PropType^^.Kind = tkMethod then
         begin
           try
