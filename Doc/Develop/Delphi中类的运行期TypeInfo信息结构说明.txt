@@ -1,0 +1,211 @@
+**********************************************************************
+                     CnPack For Delphi/C++Builder
+                     中国人自己的免费第三方开发包
+                 (C)Copyright 2001-2021 CnPack 开发组
+**********************************************************************
+
+Delphi中类的运行期TypeInfo信息结构说明
+作者：刘啸
+CnPack开发组 http://www.cnpack.org
+关键字：RTTI, TypeInfo, TypeData, PropInfo
+
+一、引子
+
+Delphi运行期间，一个对象变量实际上是一个四字节指针，指向内存中此对象具体占据的一片区域，而该区域的首个四字节又是一个指针指向该类的VMT，所有该类的实例对象的区域的首四字节指针都指向同一个VMT，故此一个VMT基本上就可以代表类本身。而每个类的VMT前面（VMT指针所指处的负偏移处）保存了该类的一些运行期信息，包括-44（vmtClassName）处的指向ClassName的字符串指针，-40（vmtInstanceSize）处的对象实例大小InstanceSize等。而本文专门讲述其-60（vmtTypeInfo）处的TypeInfo/ClassInfo指针所指的、本类的属性的RTTI信息。
+
+二、TTypeInfo及其结构
+
+TypInfo单元中声明的TTypeInfo结构描述了所有带RTTI的基本类型信息，而不光是针对类的。一个类的VMT首部偏移-60（vmtTypeInfo）处的四字节是一个TypeInfo/ClassInfo指针，指向一个TTypeInfo结构。
+TTypeInfo在TypInfo中的定义与加的注释如下：
+
+  TTypeInfo = record
+    Kind: TTypeKind; // 该类型信息所描述的类型，是类则为tkClass
+    Name: ShortString; // 该类型信息所描述的类型名，是类时则为类名。
+   {TypeData: TTypeData}
+  end;
+  
+虽然看起来它定义得挺简单，只有两个成员，但它在运行期却是个巨大的复杂结构，因为它后面实际上紧接着一个TTypeData结构。TTypeData 结构是个大的共用体，对于类来说，它的定义和注释节选一段如下：
+
+  TTypeData = packed record
+  ...
+    case TTypeKind of
+      tkClass: (
+        ClassType: TClass;
+        ParentInfo: PPTypeInfo; // 指向父类的 TypeInfo 结构
+        PropCount: SmallInt;    // 本类的总属性数目，包括父类的属性数
+        UnitName: ShortStringBase; // 本类所在的单元名
+       {PropData: TPropData});  
+  ...
+  end;
+        
+这个结构除了这四个成员外，后面在运行期间跟着一个TPropData结构，这个结构则存储了所有属性的类型信息。TPropData的结构定义和注释如下：
+
+  TPropData = packed record
+    PropCount: Word;  // 本类的属性数目，不包括父类
+    PropList: record end;
+    {PropList: array[1..PropCount] of TPropInfo}
+  end;
+  
+它其中就一个PropCount，后面是个不定长的PropList的数组，每个元素是一个属性描述结构TPropInfo。
+TPropInfo定义又如下：
+
+  PPropInfo = ^TPropInfo;
+  TPropInfo = packed record
+    PropType: PPTypeInfo;
+    GetProc: Pointer;
+    SetProc: Pointer;
+    StoredProc: Pointer;
+    Index: Integer;
+    Default: Longint;
+    NameIndex: SmallInt;
+    // NameIndex 是本属性在本类所有属性中的排名。
+    // 一个类的所有直属属性的排名可能不是从0开始的，因为父类可能有属性。
+    Name: ShortString;
+  end;
+  
+这样，以上几个结构便嵌套而组成了一个类的巨大的属性信息，所有内容全是顺序排列，连ShortString都是。
+需要说明的是，这儿所写的ShortString在实际场合并不是固定的长255，而是个可变长的字符串，第0个字节是长度，从字符串第一位开始跳过长度所指明的距离便到了下一个成员。这样的字符串紧凑结构有利于节省内存。
+
+三、图示
+
+以上介绍难免不够直观，这里用文本画一个图以指明它们的关系：
+
+
+                              |---------|
+                              |ClassInfo|---|
+                              |---------|   |
+Object Ref                    |---------|   |
+|-------|                     | ...     |   |
+|  Ref  |       Object        |---------|   |
+|-------|----->|-------|0     |---------|   |
+               |VMT Ptr|----->|---------|0  |
+               |Field1 |      | VM 1    |   |
+               |Field2 |      | VM 2    |   |
+               |-------|      |---------|   |
+                                            |
+                                            |
+|-------------------------------------------
+|
+|
+|--->|TTypeInfo--------------------------|0
+      |Kind: TTypeKind;                   |
+      |Name: ShortString; // 不定长       |
+      | |TTypeData------------------------|
+      | |ClassType: TClass;               |
+      | |ParentInfo: PPTypeInfo;          |// 指向父类的ClassInfo
+      | |PropCount: SmallInt;             |
+      | |UnitName: ShortStringBase;       |// 不定长
+      | | |TPropData----------------------|
+      | | |PropCount: Word;               |
+      | | | |PropList(TPropInfo array)----|
+      | | | | |1PropType: PPTypeInfo;     |
+      | | | | |1GetProc: Pointer;         |
+      | | | | |1SetProc: Pointer;         |
+      | | | | |1StoredProc: Pointer;      |
+      | | | | |1Index: Integer;           |
+      | | | | |1Default: Longint;         |
+      | | | | |1NameIndex: SmallInt;      |
+      | | | | |1Name: ShortString;        |// 不定长
+      | | | | |2PropType: PPTypeInfo;     |
+      | | | | |2GetProc: Pointer;         |
+      | | | | |2SetProc: Pointer;         |
+      | | | | |2StoredProc: Pointer;      |
+      | | | | |2Index: Integer;           |
+      | | | | |2Default: Longint;         |
+      | | | | |2NameIndex: SmallInt;      |
+      | | | | |2Name: ShortString;        |
+      | | | | |...                        |
+      | | | | |...                        |
+
+四、获取属性信息的系统函数分析
+
+这里分析几个运行期获得类属性的RTTI信息的函数，以加深对本文的理解。
+
+1.GetTypeData 从一个类的 TypeInfo/ClassInfo 指针得到一个类的 TypeData 指针。
+
+function GetTypeData(TypeInfo: PTypeInfo): PTypeData; assembler;
+asm
+        { ->    EAX Pointer to type info }
+        { <-    EAX Pointer to type data }
+        {       it's really just to skip the kind and the name  }
+        XOR     EDX,EDX
+        MOV     DL,[EAX].TTypeInfo.Name.Byte[0]
+        LEA     EAX,[EAX].TTypeInfo.Name[EDX+1]
+end;
+
+这个函数比较简单，就是从TTypeInfo中跳过Kind和Name，直接到TypeData的指针。代码中的注释也说明了这一点。
+
+2. GetPropInfos
+
+本函数将一个类的所有属性信息的地址转存到一个预先分配好的列表中，其内在机制稍微复杂一点，简而言之是遍历本类以及父类的属性数组并把遍历到的每一处的属性地址写入列表中。详见注释：
+
+procedure GetPropInfos(TypeInfo: PTypeInfo; PropList: PPropList); assembler;
+asm
+        { ->    EAX Pointer to type info        }
+        {       EDX Pointer to prop list        }
+        { <-    nothing                         }
+
+        PUSH    EBX
+        PUSH    ESI
+        PUSH    EDI
+
+        XOR     ECX,ECX
+        MOV     ESI,EAX // ESI 指向 TypeInfo
+        MOV     CL,[EAX].TTypeInfo.Name.Byte[0]
+        MOV     EDI,EDX
+        XOR     EAX,EAX
+        MOVZX   ECX,[ESI].TTypeInfo.Name[ECX+1].TTypeData.PropCount
+        // 跳过类型名，得到后面的TypeData
+        REP     STOSD  
+        // 根据本类的总属性数目(已经包括了父类了)，将目的数组初始化填0
+
+@outerLoop:
+        MOV     CL,[ESI].TTypeInfo.Name.Byte[0]
+        // 跳过 Name 字符串长度
+        LEA     ESI,[ESI].TTypeInfo.Name[ECX+1]
+        // ESI 得到一个类的TypeData，循环开始时是本类的TypeData，
+        // 下一个循环时可能是父类的TypeData
+        MOV     CL,[ESI].TTypeData.UnitName.Byte[0]
+        // 跳过UnitName字符串的长度
+        MOVZX   EAX,[ESI].TTypeData.UnitName[ECX+1].TPropData.PropCount
+        // 得到本类的属性数目，不包括父类
+        TEST    EAX,EAX
+        JE      @parent // 如果本类无属性则跳到寻找父类处
+        LEA     EDI,[ESI].TTypeData.UnitName[ECX+1].TPropData.PropList
+        // 准备写入PropList
+
+@innerLoop: // 第一次进入时，EDI 指向 PropList中的第一个元素，此后 EDI 递增。
+
+        MOVZX   EBX,[EDI].TPropInfo.NameIndex
+        // EBX 获得 EDI 指向的属性的 Index
+        MOV     CL,[EDI].TPropInfo.Name.Byte[0]
+        CMP     dword ptr [EDX+EBX*4],0
+        // 查该PropList的Index位置上是否已经存了指针了。
+        JNE     @alreadySet
+        MOV     [EDX+EBX*4],EDI         // 没存过，则存
+
+@alreadySet:
+        LEA     EDI,[EDI].TPropInfo.Name[ECX+1]
+        // 跳过一个Name的ShortString，EDI便指向PropList中的下一个元素了。
+        DEC     EAX
+        JNE     @innerLoop
+
+@parent:
+        MOV     ESI,[ESI].TTypeData.ParentInfo
+        // 寻找父类的，如果有父类的信息，则 ESI 指向父类的 TypeInfo
+        XOR     ECX,ECX
+        TEST    ESI,ESI
+        JE      @exit
+        MOV     ESI,[ESI]
+        JMP     @outerLoop
+@exit:
+        POP     EDI
+        POP     ESI
+        POP     EBX
+
+end;
+
+五、总结
+
+本文是作者在写代码过程中的一些研究总结的结果，主要以D5/D7为准。其他版本IDE的VCL源码的相关部分和本文中的应该也没多大本质区别，欢迎一起讨论。
+
