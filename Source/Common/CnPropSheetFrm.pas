@@ -56,7 +56,7 @@ const
 
   CnCanModifyPropTypes: TTypeKinds =
     [tkInteger, tkChar, tkEnumeration, tkFloat, tkString, tkSet, tkWChar,
-    tkLString, tkWString, tkInt64];
+    tkLString, tkWString, {$IFDEF UNICODE} tkUString, {$ENDIF} tkInt64];
 
   SCnCanNotReadValue = '<Can NOT Read Value>';
 
