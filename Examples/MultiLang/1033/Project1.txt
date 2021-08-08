@@ -1,9 +1,9 @@
-!LanguageID=1033
+ï»¿!LanguageID=1033
 !LanguageName=English
 !TranslationAuthor=LiuXiao
 !TranslationAuthorEmail=liuxiao@cnpack.org
 !TranslationDefaultFont=MS Sans Serif,8,,0,clWindowText,DEFAULT_CHARSET
-TForm1.!Font=ËÎÌå,9,,0,clWindowText,GB2312_CHARSET
+TForm1.!Font=å®‹ä½“,9,,0,clWindowText,GB2312_CHARSET
 TForm1.Action1.Caption=Action1 Test
 TForm1.Action2.Caption=Action2 Test
 TForm1.BitBtn1.Caption=BitBtn
