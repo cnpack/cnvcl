@@ -101,6 +101,12 @@ type
     procedure UpdateFile; override;
   end;
 
+function CnUtf8EncodeWideString(const S: WideString): AnsiString;
+{* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符}
+
+function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
+{* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符}
+
 implementation
 
 { TCnWideStringList }
@@ -489,6 +495,176 @@ begin
     WList.Free;
     List.Free;
   end;   
+end;
+
+// D5 下没有内置 UTF8/Ansi 转换函数
+
+function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
+  Source: PWideChar; SourceChars: Cardinal): Cardinal;
+var
+  I, Cnt: Cardinal;
+  C: Cardinal;
+begin
+  Result := 0;
+  if Source = nil then Exit;
+  Cnt := 0;
+  I := 0;
+  if Dest <> nil then
+  begin
+    while (I < SourceChars) and (Cnt < MaxDestBytes) do
+    begin
+      C := Cardinal(Source[I]);
+      Inc(I);
+      if C <= $7F then
+      begin
+        Dest[Cnt] := AnsiChar(C);
+        Inc(Cnt);
+      end
+      else if C > $7FF then
+      begin
+        if Cnt + 3 > MaxDestBytes then
+          break;
+        Dest[Cnt] := AnsiChar($E0 or (C shr 12));
+        Dest[Cnt + 1] := AnsiChar($80 or ((C shr 6) and $3F));
+        Dest[Cnt + 2] := AnsiChar($80 or (C and $3F));
+        Inc(Cnt, 3);
+      end
+      else //  $7F < Source[i] <= $7FF
+      begin
+        if Cnt + 2 > MaxDestBytes then
+          break;
+        Dest[Cnt] := AnsiChar($C0 or (C shr 6));
+        Dest[Cnt + 1] := AnsiChar($80 or (C and $3F));
+        Inc(Cnt,2);
+      end;
+    end;
+    if Cnt >= MaxDestBytes then Cnt := MaxDestBytes - 1;
+    Dest[Cnt] := #0;
+  end
+  else
+  begin
+    while I < SourceChars do
+    begin
+      C := Integer(Source[I]);
+      Inc(I);
+      if C > $7F then
+      begin
+        if C > $7FF then
+          Inc(Cnt);
+        Inc(Cnt);
+      end;
+      Inc(Cnt);
+    end;
+  end;
+  Result := Cnt + 1;  // convert zero based index to byte count
+end;
+
+function InternalUtf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal;
+  Source: PAnsiChar; SourceBytes: Cardinal): Cardinal;
+var
+  I, Cnt: Cardinal;
+  C: Byte;
+  WC: Cardinal;
+begin
+  if Source = nil then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  Result := Cardinal(-1);
+  Cnt := 0;
+  I := 0;
+  if Dest <> nil then
+  begin
+    while (I < SourceBytes) and (Cnt < MaxDestChars) do
+    begin
+      WC := Cardinal(Source[I]);
+      Inc(I);
+      if (WC and $80) <> 0 then
+      begin
+        if I >= SourceBytes then Exit;          // incomplete multibyte char
+        WC := WC and $3F;
+        if (WC and $20) <> 0 then
+        begin
+          C := Byte(Source[I]);
+          Inc(I);
+          if (C and $C0) <> $80 then Exit;      // malformed trail byte or out of range char
+          if I >= SourceBytes then Exit;        // incomplete multibyte char
+          WC := (WC shl 6) or (C and $3F);
+        end;
+        C := Byte(Source[I]);
+        Inc(I);
+        if (C and $C0) <> $80 then Exit;       // malformed trail byte
+
+        Dest[Cnt] := WideChar((WC shl 6) or (C and $3F));
+      end
+      else
+        Dest[Cnt] := WideChar(WC);
+      Inc(Cnt);
+    end;
+    if Cnt >= MaxDestChars then Cnt := MaxDestChars-1;
+    Dest[Cnt] := #0;
+  end
+  else
+  begin
+    while (I < SourceBytes) do
+    begin
+      C := Byte(Source[I]);
+      Inc(I);
+      if (C and $80) <> 0 then
+      begin
+        if I >= SourceBytes then Exit;          // incomplete multibyte char
+        C := C and $3F;
+        if (C and $20) <> 0 then
+        begin
+          C := Byte(Source[I]);
+          Inc(I);
+          if (C and $C0) <> $80 then Exit;      // malformed trail byte or out of range char
+          if I >= SourceBytes then Exit;        // incomplete multibyte char
+        end;
+        C := Byte(Source[I]);
+        Inc(I);
+        if (C and $C0) <> $80 then Exit;       // malformed trail byte
+      end;
+      Inc(Cnt);
+    end;
+  end;
+  Result := Cnt + 1;
+end;
+
+// 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
+function CnUtf8EncodeWideString(const S: WideString): AnsiString;
+var
+  L: Integer;
+  Temp: AnsiString;
+begin
+  Result := '';
+  if S = '' then Exit;
+  SetLength(Temp, Length(S) * 3); // SetLength includes space for null terminator
+
+  L := InternalUnicodeToUtf8(PAnsiChar(Temp), Length(Temp) + 1, PWideChar(S), Length(S));
+  if L > 0 then
+    SetLength(Temp, L - 1)
+  else
+    Temp := '';
+  Result := Temp;
+end;
+
+// 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符
+function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
+var
+  L: Integer;
+begin
+  Result := '';
+  if S = '' then Exit;
+  SetLength(Result, Length(S));
+
+  L := InternalUtf8ToUnicode(PWideChar(Result), Length(Result) + 1, PAnsiChar(S), Length(S));
+  if L > 0 then
+    SetLength(Result, L - 1)
+  else
+    Result := '';
 end;
 
 end.
