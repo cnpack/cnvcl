@@ -82,7 +82,7 @@ uses
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
 {$ENDIF}
-  CnConsts, CnNativeDecl, CnIni, CnIniStrUtils;
+  CnConsts, CnNativeDecl, CnIni, CnIniStrUtils, CnWideStrings;
 
 //------------------------------------------------------------------------------
 // 公共类型定义
