@@ -519,13 +519,13 @@ function IsDateTime(const s: string): Boolean;
 {* 判断字符串是否可转换成 DateTime }
 
 function IsValidEmail(const s: string): Boolean;
-{* 判断是否有效的邮件地址 }
-
-function AverageNoOverflow(A, B: Integer): Integer;
-{* 以不溢出的方式计算两个整型的算术平均数}
+{* 判断是否有效的邮件地址}
 
 function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 {* 去掉字符串中的分隔符－字符转换}
+
+function AverageNoOverflow(A, B: Integer): Integer;
+{* 以不溢出的方式计算两个整型的算术平均数}
 
 function ByteToBin(Value: Byte): string;
 {* 字节转二进制串}
@@ -551,7 +551,7 @@ function GetTextFileLineCount(const FileName: String): Integer;
 function Spc(Len: Integer): string;
 {* 返回空格串}
 
-procedure SwapStr(var s1, s2: string);
+procedure SwapStr(var S1, S2: string);
 {* 交换字串}
 
 procedure SeparateStrAndNum(const AInStr: string; var AOutStr: string;
@@ -562,9 +562,12 @@ function UnQuotedStr(const Str: string; const Ch: Char;
   const Sep: string = ''): string;
 {* 去除被引用的字符串的引用}
 
+function LastCharPos(const S: string; C: Char): Integer;
+{* 查找字符串中最后一次出现某字符的位置，无则返回 0}
+
 function CharPosWithCounter(const Sub: Char; const AStr: String;
   Counter: Integer = 1): Integer;
-{* 查找字符串中出现的第 Counter 次的字符的位置 }
+{* 查找字符串中出现的第 Counter 次的字符的位置}
 
 function CountCharInStr(const Sub: Char; const AStr: string): Integer;
 {* 查找字符串中字符的出现次数}
@@ -4654,13 +4657,13 @@ begin
 end;
 
 // 交换字串
-procedure SwapStr(var s1, s2: string);
+procedure SwapStr(var S1, S2: string);
 var
-  tempstr: string;
+  T: string;
 begin
-  tempstr := s1;
-  s1 := s2;
-  s2 := tempstr;
+  T := S1;
+  S1 := S2;
+  S2 := T;
 end;
 
 // 分割"非数字+数字"格式的字符串中的非数字和数字
@@ -4708,6 +4711,17 @@ begin
     else
       Result := Result + Sep + S;
   end;
+end;
+
+// 查找字符串中最后一次出现某字符的位置，无则返回 0
+function LastCharPos(const S: string; C: Char): Integer;
+var
+  I: Integer;
+begin
+  I := Length(S);
+  while (I > 0) and (S[I] <> C) do
+    Dec(I);
+  Result := I;
 end;
 
 // 查找字符串中出现的第 Counter 次的字符的位置
@@ -5358,16 +5372,6 @@ function WildcardCompare(const FileWildcard, FileName: string; const IgnoreCase:
       Inc(FilePos);
     end;
     Result := (FilePos > Length(IstS));
-  end;
-
-  function LastCharPos(const S: string; C: Char): Integer;
-  var
-    i: Integer;
-  begin
-    i := Length(S);
-    while (i > 0) and (S[i] <> C) do
-      Dec(i);
-    Result := i;
   end;
 
 var
