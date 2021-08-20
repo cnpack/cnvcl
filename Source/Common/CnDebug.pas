@@ -571,6 +571,9 @@ type
     {* 全局范围内发起 Control 遍历，每个组件触发 OnFindComponent 事件，用于查找}
 {$ENDIF}
 
+    procedure Enable;
+    procedure Disable;
+
     // 其他属性
     property Channel: TCnDebugChannel read GetChannel;
     property Filter: TCnDebugFilter read GetFilter;
@@ -4170,6 +4173,16 @@ procedure TCnDebugger.WatchMsg(const AVarName, AValue: string);
 begin
   if AVarName <> '' then
     TraceFull(AVarName + '|' + AValue, CurrentTag, CurrentLevel, cmtWatch);
+end;
+
+procedure TCnDebugger.Enable;
+begin
+  Active := True;
+end;
+
+procedure TCnDebugger.Disable;
+begin
+  Active := False;
 end;
 
 procedure TCnDebugger.FindComponent;
