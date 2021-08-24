@@ -651,6 +651,7 @@ object CnPropSheetForm: TCnPropSheetForm
             Top = 0
             Width = 387
             Height = 400
+            Anchors = [akLeft, akTop, akRight]
             OnMouseMove = pbGraphicMouseMove
             OnPaint = pbGraphicPaint
           end

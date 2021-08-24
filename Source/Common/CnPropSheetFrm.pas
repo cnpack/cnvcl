@@ -2582,7 +2582,6 @@ var
 //    else
       FGraphicBmp.Canvas.Draw(0, 0, AGraphic);
       // Draw 封装了全透明度的画、以及半透明混合画，但后者只在 XE2 或以上版本起作用
-    pbGraphic.Invalidate;
 
     if AGraphic.Empty then
       S := EMPTY_STR
@@ -2755,15 +2754,18 @@ begin
 
         ImageList := FGraphicObject as TImageList;
 
-        // 一行画 (FGraphicBmp.Width - IMG_INTERVAL) div (ImageList.Width + IMG_INTERVAL) 个
-        CountInLine := (FGraphicBmp.Width - IMG_INTERVAL) div (ImageList.Width + IMG_INTERVAL);
+        // 一行画 (FGraphicBmp.Width - IMG_MARGIN) div (ImageList.Width + IMG_INTERVAL) 个
+        CountInLine := (FGraphicBmp.Width - IMG_MARGIN) div (ImageList.Width + IMG_INTERVAL);
 
         // 能画 ImageList.Count div CountInLine + 1 行，计算其高度
         PaintHeight := (ImageList.Count div CountInLine + 1) * (ImageList.Height + IMG_INTERVAL) + IMG_INTERVAL;
         if bxGraphic.Height > PaintHeight then
           FGraphicBmp.Height := bxGraphic.Height  // 少则充满高度
         else
+        begin
           FGraphicBmp.Height := PaintHeight;      // 多则超出高度
+          pbGraphic.Height := PaintHeight;
+        end;
 
         ImgLeft := IMG_MARGIN;
         ImgTop := IMG_MARGIN;
@@ -2780,6 +2782,7 @@ begin
         end;
       end;
     end;
+    pbGraphic.Invalidate;
   end;
 
   UpdateHierarchys;
