@@ -401,7 +401,7 @@ procedure DelEmptyTree(const Dir: string; DelRoot: Boolean = True);
 {* 删除整个目录中的空目录, DelRoot 表示是否删除目录本身}
 
 function GetDirFiles(const Dir: string; FileNames: TStrings = nil): Integer;
-{* 取文件夹下的直系文件列表，不包括子目录。返回文件数}
+{* 取文件夹下的直系文件列表，文件名不包含路径名。不搜索子目录。返回文件数}
 
 type
   TFindCallBack = procedure(const FileName: string; const Info: TSearchRec;
@@ -4011,7 +4011,7 @@ begin
     RemoveDir(Dir);
 end;
 
-// 取文件夹下的直系文件列表，不包括子目录，返回文件数
+// 取文件夹下的直系文件列表，文件名不包含路径名。不搜索子目录，返回文件数
 function GetDirFiles(const Dir: string; FileNames: TStrings): Integer;
 var
   Sr: TSearchRec;
