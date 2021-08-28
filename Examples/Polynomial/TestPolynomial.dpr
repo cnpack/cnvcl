@@ -3,7 +3,7 @@ program TestPolynomial;
 uses
   Forms,
   UnitPolynomial in 'UnitPolynomial.pas' {FormPolynomial},
-  CnPolynomial in '..\..\Source\Common\CnPolynomial.pas';
+  CnPolynomial in '..\..\Source\Crypto\CnPolynomial.pas';
 
 {$R *.RES}
 

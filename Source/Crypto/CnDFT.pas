@@ -40,7 +40,10 @@ interface
 uses
   SysUtils, Classes, Math, CnNativeDecl, CnComplex;
 
-procedure ButterflyChange(CA: PCnComplexArray; Len: Integer);
+procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
+{* 蝴蝶变换，调整数组内部元素的顺序以便奇偶分治}
+
+procedure ButterflyChangeInt64(IA: PInt64Array; Len: Integer);
 {* 蝴蝶变换，调整数组内部元素的顺序以便奇偶分治}
 
 function CnFFT(Data: PCnComplexArray; Len: Integer): Boolean;
@@ -49,13 +52,22 @@ function CnFFT(Data: PCnComplexArray; Len: Integer): Boolean;
 function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
 {* 快速傅立叶逆变换，将点值向量数组转换为多项式的系数数组，要确保 Len 为 2 的整数次幂}
 
+function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
+{* 快速数论变换，将多项式的系数数组转换为点值向量数组，要确保 Len 为 2 的整数次幂}
+
+function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
+{* 快速数论逆变换，将点值向量数组转换为多项式的系数数组，要确保 Len 为 2 的整数次幂}
+
 implementation
+
+uses
+  CnPrimeNumber;
 
 const
   Pi = 3.1415926535897932384626;
 
 // 蝴蝶变换，调整数组内部元素的顺序，要确保 Len 为 2 的整数次幂
-procedure ButterflyChange(CA: PCnComplexArray; Len: Integer);
+procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
 var
   I: Integer;
   R: array of Integer;
@@ -79,6 +91,36 @@ begin
   SetLength(R, 0);
 end;
 
+// 蝴蝶变换，调整数组内部元素的顺序，要确保 Len 为 2 的整数次幂
+procedure ButterflyChangeInt64(IA: PInt64Array; Len: Integer);
+var
+  I: Integer;
+  R: array of Integer;
+  T: Int64;
+begin
+  if Len <= 1 then
+    Exit;
+
+  SetLength(R, Len);
+  for I := 0 to Len - 1 do
+  begin
+    R[I] := R[I shr 1] shr 1;
+    if (I and 1) <> 0 then
+      R[I] := R[I] or (Len shr 1);
+  end;
+
+  for I := 0 to Len - 1 do
+  begin
+    if I < R[I] then
+    begin
+      T := IA^[I];
+      IA^[I] := IA^[R[I]];
+      IA^[R[I]] := T;
+    end;
+  end;
+  SetLength(R, 0);
+end;
+
 // 迭代非递归方式实现的快速傅立叶变换及其逆变换
 function FFT(Data: PCnComplexArray; Len: Integer; IsReverse: Boolean): Boolean;
 var
@@ -98,7 +140,7 @@ begin
   else
     T := 1;
 
-  ButterflyChange(Data, Len);
+  ButterflyChangeComplex(Data, Len);
 
   M := 1;
   while M < Len do
@@ -147,6 +189,68 @@ end;
 function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
 begin
   Result := FFT(Data, Len, True);
+end;
+
+// 迭代非递归方式实现的快速数论变换及其逆变换
+function NTT(Data: PInt64Array; Len: Integer; IsReverse: Boolean): Boolean;
+const
+  CN_NR = 1 shl 22;     // 2 的 23 次方的一半，最多只能处理次数为 CN_NR 的多项式
+  CN_G = 3;             // 下面素数的原根是 3
+  CN_G_INV = 332748118; // 该原根对该素数的逆元为 332748118
+  CN_P = 998244353;     // 选取素数为 998244353 = 2^23*119 + 1
+var
+  M, K, J, R: Integer;
+  G0, GN, X, Y: Int64;
+begin
+  Result := False;
+  if (Data = nil) or (Len <= 0) or (Len > CN_NR) then
+    Exit;
+
+  // Len 必须 2 的整数次幂
+  if not IsUInt32PowerOf2(Cardinal(Len)) then
+    Exit;
+
+  M := 1;
+  while M < Len do
+  begin
+    // MontgomeryPowerMod 会把负的 Int64 作为正的无符号 UInt64，但这里各系数都为正，可以使用
+    if IsReverse then
+      GN := MontgomeryPowerMod(CN_G_INV, (CN_P - 1) div (M shl 1), CN_P)
+    else
+      GN := MontgomeryPowerMod(CN_G, (CN_P - 1) div (M shl 1) , CN_P);
+
+    J := 0;
+    R := M shl 1;
+    while J < Len do
+    begin
+      G0 := 1;
+      K := 0;
+      while K < M do
+      begin
+        X := Data^[J + K];
+        Y := MultipleMod(G0, Data^[J + K + M], CN_P);
+        Data^[J + K] := AddMod(X, Y, CN_P);
+        Data^[J + K + M] := AddMod(X - Y, CN_P, CN_P);
+
+        G0 := MultipleMod(G0, GN, CN_P);
+        Inc(K);
+      end;
+
+      J := J + R;
+    end;
+
+    M := M shl 1;
+  end;
+end;
+
+function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
+begin
+  Result := NTT(Data, Len, False);
+end;
+
+function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
+begin
+  Result := NTT(Data, Len, True);
 end;
 
 end.
