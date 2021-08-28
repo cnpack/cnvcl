@@ -80,9 +80,6 @@ type
   TLongWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of TCnLongWord32;
   PLongWordArray = ^TLongWordArray;
 
-  TInt64Array = array [0..MaxInt div SizeOf(Int64) - 1] of Int64;
-  PInt64Array = ^TInt64Array;
-
 {$IFDEF SUPPORT_UINT64}
   TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
   PUInt64Array = ^TUInt64Array;

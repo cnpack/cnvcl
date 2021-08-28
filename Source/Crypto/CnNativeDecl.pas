@@ -98,7 +98,13 @@ type
   PUInt64          = ^TUInt64;
 {$ENDIF}
 
-  TUInt64Array = array of TUInt64;
+{$IFNDEF SUPPORT_INT64ARRAY}
+  // 如果系统没有定义 Int64Array
+  Int64Array  = array[0..$0FFFFFFE] of Int64;
+  PInt64Array = ^Int64Array;
+{$ENDIF}
+
+  TUInt64Array = array of TUInt64; // 这个动态数组声明似乎容易和静态数组声明有冲突
 
 {$IFDEF POSIX64}
   TCnLongWord32 = Cardinal; // Linux64 (or POSIX64?) LongWord is 64 Bits

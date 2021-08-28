@@ -700,7 +700,7 @@ begin
   U := 12345678900987654321;
   Num1.SetUInt64(U);
   ShowMessage(Num1.ToDec);
-  ShowMessage(Num1.GetUInt64.ToString);
+  ShowMessage(Format('%u', [Num1.GetUInt64]));
 {$ENDIF}
   I := -1234567890987654321;
   Num1.SetInt64(I);
