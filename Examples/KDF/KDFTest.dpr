@@ -3,7 +3,7 @@ program KDFTest;
 uses
   Forms,
   UnitkKeyDF in 'UnitkKeyDF.pas' {FormKDF},
-  CnKDF in '..\..\Source\Common\CnKDF.pas';
+  CnKDF in '..\..\Source\Crypto\CnKDF.pas';
 
 {$R *.RES}
 

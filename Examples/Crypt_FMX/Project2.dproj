@@ -141,18 +141,18 @@
         <DCCReference Include="Unit2.pas">
             <Form>FormCrypt</Form>
         </DCCReference>
-        <DCCReference Include="..\..\Source\Common\CnMD5.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnDES.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnAES.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnCRC32.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnBase64.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnTEA.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnZUC.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnSM3.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnSM4.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnSHA1.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnSHA2.pas"/>
-        <DCCReference Include="..\..\Source\Common\CnSHA3.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnMD5.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnDES.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnAES.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnCRC32.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnBase64.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnTEA.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnZUC.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSM3.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSM4.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSHA1.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSHA2.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSHA3.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
