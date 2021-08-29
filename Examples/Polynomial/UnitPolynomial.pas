@@ -182,6 +182,7 @@ type
     btnCompareRationalMul2Method: TButton;
     btnInt64MulDFT: TButton;
     btnTestInt64SimpleDFT: TButton;
+    btnTestInt64SimpleNTT: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -294,6 +295,7 @@ type
     procedure btnCompareRationalMul2MethodClick(Sender: TObject);
     procedure btnInt64MulDFTClick(Sender: TObject);
     procedure btnTestInt64SimpleDFTClick(Sender: TObject);
+    procedure btnTestInt64SimpleNTTClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -3909,6 +3911,14 @@ begin
   FIP1.SetCoefficents([1, 1, 1]);
   FIP2.SetCoefficents([1, 1, 1]);
   if Int64PolynomialDftMul(FIP3, FIP1, FIP2) then
+    ShowMessage(FIP3.ToString);
+end;
+
+procedure TFormPolynomial.btnTestInt64SimpleNTTClick(Sender: TObject);
+begin
+  FIP1.SetCoefficents([1, 1, 1]);
+  FIP2.SetCoefficents([1, 1, 1]);
+  if Int64PolynomialNttMul(FIP3, FIP1, FIP2) then
     ShowMessage(FIP3.ToString);
 end;
 

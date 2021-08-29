@@ -362,11 +362,20 @@ object FormPolynomial: TFormPolynomial
         object btnTestInt64SimpleDFT: TButton
           Left = 536
           Top = 408
-          Width = 185
+          Width = 169
           Height = 25
           Caption = 'Test Int64 Simple Mul DFT'
           TabOrder = 32
           OnClick = btnTestInt64SimpleDFTClick
+        end
+        object btnTestInt64SimpleNTT: TButton
+          Left = 720
+          Top = 408
+          Width = 169
+          Height = 25
+          Caption = 'Test Int64 Simple Mul NTT'
+          TabOrder = 33
+          OnClick = btnTestInt64SimpleNTTClick
         end
       end
     end

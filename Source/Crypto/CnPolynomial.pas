@@ -30,7 +30,9 @@ unit CnPolynomial;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.11.14 V1.3
+* 修改记录：2020.08.29 V1.4
+*               实现 Int64 范围内的快速数论变换/快速傅立叶变换多项式乘法
+*           2020.11.14 V1.3
 *               实现有限扩域中 Int64 以及大整数范围内的有理分式的代换
 *           2020.11.08 V1.3
 *               实现有限扩域中大整数范围内的多项式以及有理分式及其运算
@@ -334,6 +336,11 @@ function Int64PolynomialDftMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polyno
 {* 两个整系数多项式对象使用离散傅立叶变换与离散傅立叶逆变换相乘，结果放至 Res 中，
   返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2
   注：使用复数提速但因为浮点缘故可能出现部分系数有个位误差，不是很推荐使用}
+
+function Int64PolynomialNttMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
+  P2: TCnInt64Polynomial): Boolean;
+{* 两个整系数多项式对象使用快速数论变换与快速数论逆变换相乘，结果放至 Res 中，
+  返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
@@ -1677,6 +1684,86 @@ begin
   end;
 end;
 
+function Int64PolynomialNttMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
+  P2: TCnInt64Polynomial): Boolean;
+var
+  M1, M2: PInt64;
+  C1, C2: PInt64Array;
+  M, I: Integer;
+begin
+  Result := False;
+  M := P1.MaxDegree;
+  if M < P2.MaxDegree then
+    M := P2.MaxDegree;
+
+  if M < 0 then
+    Exit;
+
+  if M = 0 then // 俩常数项，直接算
+  begin
+    Res.SetMaxDegree(0);
+    Res[0] := P1[0] * P2[0];
+    Result := True;
+    Exit;
+  end;
+
+  // M 得到最高次数，加 1 表示多项式最多项数
+  Inc(M);
+
+  // 乘以 2 表示多项式积的最多项数
+  M := M shl 1;
+
+  // 再找比 M 大或者等于 M 的 2 的整数次幂
+  if not IsUInt32PowerOf2(Cardinal(M)) then
+  begin
+    // 如果不是 2 的整数次幂
+    M := GetUInt32HighBits(Cardinal(M)); // M 得到最高位的 1 的位置，不会是 -1
+    if M > 30 then
+      raise ECnPolynomialException.Create(SCnDegreeTooLarge);
+
+    Inc(M);
+    M := 1 shl M; // 得到比 M 大的最小的 2 的整数次幂
+  end;
+
+  M1 := GetMemory(M * SizeOf(Int64));
+  M2 := GetMemory(M * SizeOf(Int64));
+
+  C1 := PInt64Array(M1);
+  C2 := PInt64Array(M2);
+
+  try
+    for I := 0 to M - 1 do
+    begin
+      C1^[I] := 0;
+      C2^[I] := 0;
+    end;
+
+    for I := 0 to P1.MaxDegree do
+      C1^[I] := P1[I];
+
+    for I := 0 to P2.MaxDegree do
+      C2^[I] := P2[I];
+
+    CnNTT(C1, M);
+    CnNTT(C2, M);        // 得到两组点值
+
+    for I := 0 to M - 1 do   // 点值相乘，但容易溢出
+      C1^[I] := C1^[I] * C2^[I];
+
+    Result := CnINTT(C1, M);       // 点值变回系数表达式
+
+    Res.SetZero;
+    Res.SetMaxDegree(M);
+    for I := 0 to M - 1 do
+      Res[I] := C1^[I];
+
+    Res.CorrectTop;
+  finally
+    FreeMemory(M1);
+    FreeMemory(M2);
+  end;
+end;
+
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
 var
@@ -1686,6 +1773,7 @@ var
   I, D: Integer;
   T: Int64;
 begin
+  Result := False;
   if Int64PolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
 

@@ -22,13 +22,16 @@ unit CnDFT;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：基于浮点复数的离散傅立叶变换实现单元
+* 单元名称：基于浮点复数的离散傅立叶变换以及基于 int 64 的快速数论变换实现单元
 * 单元作者：刘啸
 * 备    注：使用快速傅立叶变换实现离散傅立叶变换以加速多项式乘法但因浮点存在会损失精度
+*           使用快速数论变换则没这个问题
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.11.23 V1.0
+* 修改记录：2021.08.29 V1.1
+*               增加快速数论变换，使用特定素数
+*           2020.11.23 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -41,22 +44,22 @@ uses
   SysUtils, Classes, Math, CnNativeDecl, CnComplex;
 
 procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
-{* 蝴蝶变换，调整数组内部元素的顺序以便奇偶分治}
+{* 蝴蝶变换，调整复数数组内部元素的顺序以便奇偶分治}
 
 procedure ButterflyChangeInt64(IA: PInt64Array; Len: Integer);
-{* 蝴蝶变换，调整数组内部元素的顺序以便奇偶分治}
+{* 蝴蝶变换，调整 int64 数组内部元素的顺序以便奇偶分治}
 
 function CnFFT(Data: PCnComplexArray; Len: Integer): Boolean;
-{* 快速傅立叶变换，将多项式的系数数组转换为点值向量数组，要确保 Len 为 2 的整数次幂}
+{* 快速傅立叶变换，将多项式的系数复数数组转换为点值向量复数数组，要确保 Len 为 2 的整数次幂}
 
 function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
-{* 快速傅立叶逆变换，将点值向量数组转换为多项式的系数数组，要确保 Len 为 2 的整数次幂}
+{* 快速傅立叶逆变换，将点值向量复数数组转换为多项式的系数复数数组，要确保 Len 为 2 的整数次幂}
 
 function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
-{* 快速数论变换，将多项式的系数数组转换为点值向量数组，要确保 Len 为 2 的整数次幂}
+{* 快速数论变换，将多项式的系数 int 64 数组转换为点值向量 int64 数组，要确保 Len 为 2 的整数次幂}
 
 function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
-{* 快速数论逆变换，将点值向量数组转换为多项式的系数数组，要确保 Len 为 2 的整数次幂}
+{* 快速数论逆变换，将点值向量 int 64 数组转换为多项式的系数 int 64 数组，要确保 Len 为 2 的整数次幂}
 
 implementation
 
@@ -210,6 +213,8 @@ begin
   if not IsUInt32PowerOf2(Cardinal(Len)) then
     Exit;
 
+  ButterflyChangeInt64(Data, Len);
+
   M := 1;
   while M < Len do
   begin
@@ -230,7 +235,11 @@ begin
         X := Data^[J + K];
         Y := MultipleMod(G0, Data^[J + K + M], CN_P);
         Data^[J + K] := AddMod(X, Y, CN_P);
-        Data^[J + K + M] := AddMod(X - Y, CN_P, CN_P);
+
+        X := X - Y;
+        if X < 0 then
+          X := X + CN_P; // X - Y 可能是负数，不能用 AddMod
+        Data^[J + K + M] := X mod CN_P;
 
         G0 := MultipleMod(G0, GN, CN_P);
         Inc(K);
@@ -241,6 +250,12 @@ begin
 
     M := M shl 1;
   end;
+
+  if IsReverse then
+    for J := 0 to Len - 1 do
+       Data^[J] := Data^[J] div Len;
+
+  Result := True;
 end;
 
 function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
