@@ -25,7 +25,9 @@ unit CnDFT;
 * 单元名称：基于浮点复数的离散傅立叶变换以及基于 int 64 的快速数论变换实现单元
 * 单元作者：刘啸
 * 备    注：使用快速傅立叶变换实现离散傅立叶变换以加速多项式乘法但因浮点存在会损失精度
-*           使用快速数论变换则没这个问题
+*           使用快速数论变换则没这个问题。但快速数论变换也有限制：
+*           1、多项式系数必须为正数并小于模数（负的系数还不知道咋搞）。
+*           2、多项式项数小于 2^23（本单元模数限制）
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -56,10 +58,12 @@ function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
 {* 快速傅立叶逆变换，将点值向量复数数组转换为多项式的系数复数数组，要确保 Len 为 2 的整数次幂}
 
 function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
-{* 快速数论变换，将多项式的系数 int 64 数组转换为点值向量 int64 数组，要确保 Len 为 2 的整数次幂}
+{* 快速数论变换，将多项式的系数 int 64 数组转换为点值向量 int64 数组，
+  注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P}
 
 function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
-{* 快速数论逆变换，将点值向量 int 64 数组转换为多项式的系数 int 64 数组，要确保 Len 为 2 的整数次幂}
+{* 快速数论逆变换，将点值向量 int 64 数组转换为多项式的系数 int 64 数组，
+  注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P}
 
 implementation
 
@@ -68,6 +72,11 @@ uses
 
 const
   Pi = 3.1415926535897932384626;
+
+  CN_NR = 1 shl 22;     // 2 的 23 次方的一半，最多只能处理次数为 CN_NR 的多项式
+  CN_G = 3;             // 下面素数的原根是 3
+  CN_G_INV = 332748118; // 该原根对该素数的逆元为 332748118
+  CN_P = 998244353;     // 选取素数为 998244353 = 2^23*119 + 1，小于 Int32 的最大值 2147483647
 
 // 蝴蝶变换，调整数组内部元素的顺序，要确保 Len 为 2 的整数次幂
 procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
@@ -196,11 +205,6 @@ end;
 
 // 迭代非递归方式实现的快速数论变换及其逆变换
 function NTT(Data: PInt64Array; Len: Integer; IsReverse: Boolean): Boolean;
-const
-  CN_NR = 1 shl 22;     // 2 的 23 次方的一半，最多只能处理次数为 CN_NR 的多项式
-  CN_G = 3;             // 下面素数的原根是 3
-  CN_G_INV = 332748118; // 该原根对该素数的逆元为 332748118
-  CN_P = 998244353;     // 选取素数为 998244353 = 2^23*119 + 1
 var
   M, K, J, R: Integer;
   G0, GN, X, Y: Int64;
@@ -230,18 +234,19 @@ begin
     begin
       G0 := 1;
       K := 0;
+
       while K < M do
       begin
         X := Data^[J + K];
-        Y := MultipleMod(G0, Data^[J + K + M], CN_P);
-        Data^[J + K] := AddMod(X, Y, CN_P);
+        Y := Int64MultipleMod(G0, Data^[J + K + M], CN_P);
+        Data^[J + K] := Int64AddMod(X, Y, CN_P);
 
         X := X - Y;
         if X < 0 then
           X := X + CN_P; // X - Y 可能是负数，不能用 AddMod
         Data^[J + K + M] := X mod CN_P;
 
-        G0 := MultipleMod(G0, GN, CN_P);
+        G0 := Int64MultipleMod(G0, GN, CN_P);
         Inc(K);
       end;
 
@@ -253,7 +258,7 @@ begin
 
   if IsReverse then
     for J := 0 to Len - 1 do
-       Data^[J] := Data^[J] div Len;
+      Data^[J] := Data^[J] div Len;
 
   Result := True;
 end;

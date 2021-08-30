@@ -681,10 +681,13 @@ function CnInt64IsPrime(N: TUInt64): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
 
 function AddMod(A, B, C: TUInt64): TUInt64;
-{* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
+{* 想办法计算全是正值的 (A + B) mod C，不能直接算，容易溢出}
 
 function MultipleMod(A, B, C: TUInt64): TUInt64;
-{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
+{* 快速计算全是正值的 (A * B) mod C，不能直接算，容易溢出}
+
+function Int64AddMod(A, B, C: Int64): Int64;
+{* 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数否则结果不靠谱}
 
 function Int64MultipleMod(A, B, C: Int64): Int64;
 {* 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱}
@@ -978,6 +981,28 @@ begin
 
     B := B shr 1;
   end;
+end;
+
+// 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数否则结果不靠谱}
+function Int64AddMod(A, B, C: Int64): Int64;
+var
+  T: Int64;
+begin
+  if (A > 0) and (B > 0) then // 都正，按 UInt64 处理
+    Result := AddMod(A, B, C)
+  else if (A < 0) and (B < 0) then // 都负，按 UInt64 处理后用 C 减
+    Result := C - AddMod(-A, -B, C)
+  else if ((A > 0) and (B < 0)) or ((A < 0) and (B > 0)) then
+  begin
+    // 异号，相加不会溢出
+    T := A + B;
+    if T >= 0 then
+      Result := UInt64Mod(T, C)
+    else
+      Result := C - UInt64Mod(-T, C)
+  end
+  else
+    Result := 0;
 end;
 
 // 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱
