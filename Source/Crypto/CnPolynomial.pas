@@ -31,7 +31,7 @@ unit CnPolynomial;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2020.08.29 V1.4
-*               实现 Int64 范围内的快速数论变换/快速傅立叶变换多项式乘法
+*               实现 Int64 范围内的快速数论变换/快速傅立叶变换多项式乘法，但都有所限制
 *           2020.11.14 V1.3
 *               实现有限扩域中 Int64 以及大整数范围内的有理分式的代换
 *           2020.11.08 V1.3
@@ -340,7 +340,8 @@ function Int64PolynomialDftMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polyno
 function Int64PolynomialNttMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
   P2: TCnInt64Polynomial): Boolean;
 {* 两个整系数多项式对象使用快速数论变换与快速数论逆变换相乘，结果放至 Res 中，
-  返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+  返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2
+  注：多项式系数只支持 [0, CN_P) 区间，多项式项数必须小于模数的 2^23，因此适用范围也不广}
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;

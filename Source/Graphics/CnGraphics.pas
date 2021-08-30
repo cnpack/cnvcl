@@ -1283,6 +1283,7 @@ function PointF(x, y: Single): TPointF;
 function RectF(Left, Top, Right, Bottom: Single): TRectF;
 {* 返回一个浮点数矩形TRectF}
 
+// 从父控件复制背景。这个过程来自 RxLibrary VCLUtils。注意并不总是有效，尤其是 IDE 编辑器中
 procedure CopyControlParentImageToCanvas(AControl: TControl; Dest: TCanvas);
 
 // 常用卷积核
