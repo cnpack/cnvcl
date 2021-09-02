@@ -84,6 +84,8 @@ type
     btnCRTTest: TButton;
     btnCheckPrime: TButton;
     btnInt64BSGS: TButton;
+    edtPower: TEdit;
+    btnIsPerfectPower: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -111,6 +113,7 @@ type
     procedure btnCRTTestClick(Sender: TObject);
     procedure btnCheckPrimeClick(Sender: TObject);
     procedure btnInt64BSGSClick(Sender: TObject);
+    procedure btnIsPerfectPowerClick(Sender: TObject);
   private
 
   public
@@ -568,6 +571,17 @@ begin
     ShowMessage('Verify OK')
   else
     ShowMessage('Verify Fail');
+end;
+
+procedure TFormPrime.btnIsPerfectPowerClick(Sender: TObject);
+var
+  N: Int64;
+begin
+  N := StrToInt64(edtPower.Text);
+  if CnInt64IsPerfectPower(N) then
+    ShowMessage('Is Perfect Power')
+  else
+    ShowMessage('Not Perfect Power');
 end;
 
 end.

@@ -59,7 +59,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl
+  SysUtils, Classes, Math, CnNativeDecl
   {$IFDEF MSWINDOWS}, CnClasses {$ENDIF}
   {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
 
@@ -811,6 +811,9 @@ function ChineseRemainderTheoremInt64(Remainers, Factors: TCnInt64List): Int64; 
 
 function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
 {* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素}
+
+function CnInt64IsPerfectPower(N: Int64): Boolean;
+{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0}
 
 implementation
 
@@ -2215,6 +2218,38 @@ begin
     end;
   finally
     Map.Free;
+  end;
+end;
+
+function CnInt64IsPerfectPower(N: Int64): Boolean;
+var
+  LG2, I: Integer;
+  A: Int64;
+begin
+  Result := False;
+  if (N < 0) or (N = 2) or (N = 3) then
+    Exit;
+
+  if (N = 0) or (N = 1) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  LG2 := GetUInt64HighBits(N); // 比 LOG2(N) 略大
+  for I := 2 to LG2 do
+  begin
+    // 求 N 的 I 次方根的整数部分
+    A := Trunc(Power(N, 1.0 / I));
+    // 整数部分再求幂
+    A := Int64NonNegativPower(A, I);
+
+    // 判断是否相等
+    if A = N then
+    begin
+      Result := True;
+      Exit;
+    end;
   end;
 end;
 

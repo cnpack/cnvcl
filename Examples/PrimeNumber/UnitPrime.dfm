@@ -570,7 +570,7 @@ object FormPrime: TFormPrime
       end
     end
     object tsCRT: TTabSheet
-      Caption = 'CRT && BSGS'
+      Caption = 'CRT && BSGS && Perfect Power'
       ImageIndex = 4
       object btnCRTTest: TButton
         Left = 24
@@ -598,6 +598,23 @@ object FormPrime: TFormPrime
         Caption = 'Int64 BSGS'
         TabOrder = 2
         OnClick = btnInt64BSGSClick
+      end
+      object edtPower: TEdit
+        Left = 24
+        Top = 72
+        Width = 121
+        Height = 21
+        TabOrder = 3
+        Text = '1350851717672992089'
+      end
+      object btnIsPerfectPower: TButton
+        Left = 160
+        Top = 72
+        Width = 105
+        Height = 25
+        Caption = 'Is Perfect Power'
+        TabOrder = 4
+        OnClick = btnIsPerfectPowerClick
       end
     end
   end
