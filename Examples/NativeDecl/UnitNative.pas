@@ -25,6 +25,7 @@ type
     edtPower: TEdit;
     btnPower: TSpeedButton;
     edtExponent: TEdit;
+    btnRoot: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -37,6 +38,7 @@ type
     procedure btnGetGT2PowerClick(Sender: TObject);
     procedure btnGetGT2Power64Click(Sender: TObject);
     procedure btnPowerClick(Sender: TObject);
+    procedure btnRootClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -244,7 +246,16 @@ end;
 
 procedure TFormNative.btnPowerClick(Sender: TObject);
 begin
-  mmoRes.Lines.Text := IntToStr(Int64NonNegativPower(StrToInt(edtPower.Text), StrToInt(edtExponent.Text)));
+  mmoRes.Lines.Text := IntToStr(Int64NonNegativPower(StrToInt64(edtPower.Text), StrToInt64(edtExponent.Text)));
+end;
+
+procedure TFormNative.btnRootClick(Sender: TObject);
+var
+  M: Int64;
+begin
+  M := Int64NonNegativeRoot(StrToInt64(edtPower.Text), StrToInt(edtExponent.Text));
+  mmoRes.Lines.Text := IntToStr(M) + ' ' + IntToStr(Int64NonNegativPower(M, StrToInt(edtExponent.Text)));
+
 end;
 
 end.

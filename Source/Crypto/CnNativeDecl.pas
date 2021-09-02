@@ -58,7 +58,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst;
+  Classes, SysUtils, SysConst, Math;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
@@ -284,6 +284,9 @@ function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
 
 function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
 {* Int64 的非负整数指数幂，不考虑溢出的情况}
+
+function Int64NonNegativeRoot(N: Int64; Exp: Integer): Int64;
+{* 求 Int64 的非负整数次方根的整数部分，不考虑溢出的情况}
 
 implementation
 
@@ -1076,6 +1079,44 @@ begin
 
       Exp := Exp shr 1;
       T := T * T;
+    end;
+  end;
+end;
+
+function Int64NonNegativeRoot(N: Int64; Exp: Integer): Int64;
+var
+  I: Integer;
+  X: Int64;
+  X0, X1: Extended;
+begin
+  if (Exp < 0) or (N < 0) then
+    raise ERangeError.Create(SRangeError)
+  else if Exp = 0 then
+    raise EDivByZero.Create(SDivByZero)
+  else if (N = 0) or (N = 1) then
+    Result := N
+  else if Exp = 2 then
+    Result := UInt64Sqrt(N)
+  else
+  begin
+    // 牛顿迭代法求根
+    I := GetUInt64HighBits(N) + 1; // 得到大约 Log2 N 的值
+    I := (I div Exp) + 1;
+    X := 1 shl I;                  // 得到一个较大的 X0 值作为起始值
+
+    X0 := X;
+    X1 := X0 - (Power(X0, Exp) - N) / (Exp * Power(X0, Exp - 1));
+
+    while True do
+    begin
+      if (Trunc(X0) = Trunc(X1)) and (Abs(X0 - X1) < 0.001) then
+      begin
+        Result := Trunc(X1);
+        Exit;
+      end;
+
+      X0 := X1;
+      X1 := X0 - (Power(X0, Exp) - N) / (Exp * Power(X0, Exp - 1));
     end;
   end;
 end;

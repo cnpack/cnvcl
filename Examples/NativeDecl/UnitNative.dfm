@@ -27,11 +27,19 @@ object FormNative: TFormNative
   end
   object btnPower: TSpeedButton
     Left = 496
-    Top = 64
+    Top = 56
     Width = 23
     Height = 22
     Caption = '^'
     OnClick = btnPowerClick
+  end
+  object btnRoot: TSpeedButton
+    Left = 496
+    Top = 80
+    Width = 23
+    Height = 22
+    Caption = 'root'
+    OnClick = btnRootClick
   end
   object btnUInt64Div: TButton
     Left = 16
