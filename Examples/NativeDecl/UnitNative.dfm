@@ -25,6 +25,14 @@ object FormNative: TFormNative
     Height = 41
     Shape = bsLeftLine
   end
+  object btnPower: TSpeedButton
+    Left = 496
+    Top = 64
+    Width = 23
+    Height = 22
+    Caption = '^'
+    OnClick = btnPowerClick
+  end
   object btnUInt64Div: TButton
     Left = 16
     Top = 16
@@ -128,5 +136,21 @@ object FormNative: TFormNative
     Caption = '> 2^n 64'
     TabOrder = 10
     OnClick = btnGetGT2Power64Click
+  end
+  object edtPower: TEdit
+    Left = 440
+    Top = 64
+    Width = 49
+    Height = 21
+    TabOrder = 11
+    Text = '9'
+  end
+  object edtExponent: TEdit
+    Left = 528
+    Top = 64
+    Width = 49
+    Height = 21
+    TabOrder = 12
+    Text = '10'
   end
 end

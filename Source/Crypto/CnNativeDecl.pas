@@ -282,6 +282,9 @@ function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
 function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
 {* 封装的 Int64 非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0}
 
+function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
+{* Int64 的非负整数指数幂，不考虑溢出的情况}
+
 implementation
 
 resourcestring
@@ -1043,6 +1046,38 @@ begin
   Result := N mod P;
   if Result < 0 then
     Inc(Result, P);
+end;
+
+// Int64 的非负整数指数幂
+function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
+var
+  T: Int64;
+begin
+  if Exp < 0 then
+    raise ERangeError.Create(SRangeError)
+  else if Exp = 0 then
+  begin
+    if N <> 0 then
+      Result := 1
+    else
+      raise EDivByZero.Create(SDivByZero);
+  end
+  else if Exp = 1 then
+    Result := N
+  else
+  begin
+    Result := 1;
+    T := N;
+
+    while Exp > 0 do
+    begin
+      if (Exp and 1) <> 0 then
+        Result := Result * T;
+
+      Exp := Exp shr 1;
+      T := T * T;
+    end;
+  end;
 end;
 
 { TCnIntegerList }

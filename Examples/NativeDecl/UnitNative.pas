@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnNativeDecl, ExtCtrls;
+  StdCtrls, CnNativeDecl, ExtCtrls, Buttons;
 
 type
   TFormNative = class(TForm)
@@ -22,6 +22,9 @@ type
     btnUInt64Mul: TButton;
     btnGetGT2Power: TButton;
     btnGetGT2Power64: TButton;
+    edtPower: TEdit;
+    btnPower: TSpeedButton;
+    edtExponent: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -33,6 +36,7 @@ type
     procedure btnUInt64MulClick(Sender: TObject);
     procedure btnGetGT2PowerClick(Sender: TObject);
     procedure btnGetGT2Power64Click(Sender: TObject);
+    procedure btnPowerClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -236,6 +240,11 @@ begin
   N := UInt64Mul(N, N);
   R := GetUInt64PowerOf2GreaterEqual(N);
   ShowMessage(UInt64ToStr(N) + ' < ' + UInt64ToStr(R));
+end;
+
+procedure TFormNative.btnPowerClick(Sender: TObject);
+begin
+  mmoRes.Lines.Text := IntToStr(Int64NonNegativPower(StrToInt(edtPower.Text), StrToInt(edtExponent.Text)));
 end;
 
 end.
