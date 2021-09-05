@@ -76,6 +76,7 @@ type
     btnBNSqrt: TButton;
     btnBNNextPrime: TButton;
     btnBNMulKaratsuba: TButton;
+    btnRoot: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -127,6 +128,7 @@ type
     procedure btnBNSqrtClick(Sender: TObject);
     procedure btnBNNextPrimeClick(Sender: TObject);
     procedure btnBNMulKaratsubaClick(Sender: TObject);
+    procedure btnRootClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -896,6 +898,30 @@ begin
   if BigNumberMulKaratsuba(Res, Num1, Num2) then
     ShowResult(Res);
   BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnRootClick(Sender: TObject);
+var
+  R: TCnBigNumber;
+begin
+  if BigNumberRoot(Num2, Num1, seIntPower.Value) then
+    ShowNumbers;
+
+  // 验证 Num2 的 Power 小于等于 Num1，Num2 + 1 的 Power 大于 Num1
+  R := TCnBigNumber.Create;
+
+  BigNumberPower(R, Num2, seIntPower.Value);
+  if BigNumberCompare(R, Num1) <= 0 then
+    ShowMessage('Verify 1 OK');
+
+  BigNumberCopy(R, Num2);
+  BigNumberAddWord(R, 1);
+  BigNumberPower(R, R, seIntPower.Value);
+
+  if BigNumberCompare(R, Num1) > 0 then
+    ShowMessage('Verify 2 OK');
+
+  R.Free;
 end;
 
 end.

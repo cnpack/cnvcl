@@ -1194,7 +1194,7 @@ begin
 
     while True do
     begin
-      if (Trunc(X0) = Trunc(X1)) and (Abs(X0 - X1) < 0.001) then
+      if (ExtendedToUInt64(X0) = ExtendedToUInt64(X1)) and (Abs(X0 - X1) < 0.001) then
       begin
         Result := ExtendedToUInt64(X1);
         Exit;

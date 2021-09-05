@@ -605,6 +605,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 56
         OnClick = btnBNMulKaratsubaClick
       end
+      object btnRoot: TButton
+        Left = 912
+        Top = 144
+        Width = 121
+        Height = 25
+        Caption = 'Integer Root'
+        TabOrder = 57
+        OnClick = btnRootClick
+      end
     end
   end
 end

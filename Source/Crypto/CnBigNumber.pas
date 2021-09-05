@@ -517,6 +517,11 @@ function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean
 function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功}
 
+function BigNumberRoot(const Res: TCnBigNumber; const Num: TCnBigNumber; Exponent: Integer): Boolean;
+{* 计算一大数对象的 Exp 次方根的整数部分，结果放 Res 中，返回根计算是否成功
+  要求 Num 不能为负，Exponent 不能为 0 或负
+  注：FIXME: 因为大数无法进行浮点计算，目前整数运算有偏差，结果偏大，不推荐使用！}
+
 function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2}
@@ -3220,6 +3225,85 @@ begin
     finally
       FLocalBigNumberPool.Recycle(XNext);
       FLocalBigNumberPool.Recycle(X);
+    end;
+  end;
+end;
+
+function BigNumberRoot(const Res: TCnBigNumber; const Num: TCnBigNumber;
+  Exponent: Integer): Boolean;
+var
+  I: Integer;
+  X0, X1, T1, T2: TCnBigNumber;
+  U: TUInt64;
+begin
+  Result := False;
+  if (Exponent <= 0) or Num.IsNegative then
+    Exit;
+
+  if Num.IsOne or Num.IsZero then
+  begin
+    BigNumberCopy(Res, Num);
+    Result := True;
+    Exit;
+  end
+  else if Exponent = 2 then
+    Result := BigNumberSqrt(Res, Num)
+  else if Num.Top <= 2 then
+  begin
+    U := BigNumberGetUInt64UsingInt64(Num);
+    U := UInt64NonNegativeRoot(U, Exponent);
+    BigNumberSetUInt64UsingInt64(Res, U);
+    Result := True;
+    Exit;
+  end
+  else
+  begin
+    // 牛顿迭代法求根
+    I := Num.GetBitsCount + 1;  // 得到大约 Log2 N 的值
+    I := (I div Exponent) + 1;
+
+    X0 := nil;
+    X1 := nil;
+    T1 := nil;
+    T2 := nil;
+
+    try
+      X0 := FLocalBigNumberPool.Obtain;
+      X1 := FLocalBigNumberPool.Obtain;
+      T1 := FLocalBigNumberPool.Obtain;
+      T2 := FLocalBigNumberPool.Obtain;
+
+      X0.SetOne;
+      X0.ShiftLeft(I);                  // 得到一个较大的 X0 值作为起始值
+
+      repeat
+        // X1 := X0 - (Power(X0, Exponent) - N) / (Exponent * Power(X0, Exponent - 1));
+        BigNumberCopy(T1, X0);
+        BigNumberPower(T1, T1, Exponent);
+        BigNumberSub(T1, T1, Num);           // 得到 Power(X0, Exponent) - N
+
+        BigNumberCopy(T2, X0);
+        BigNumberPower(T2, T2, Exponent - 1);
+        BigNumberMulWord(T2, Exponent);      // 得到 Exponent * Power(X0, Exponent - 1)
+
+        BigNumberDiv(T1, nil, T1, T2);       // 得到商的整数部分
+        BigNumberSub(X1, X0, T1);            // 算出 X1
+
+        if BigNumberCompare(X0, X1) = 0 then
+        begin
+          // 暂且认为 X0 X1 整数部分不发生变化即认为达到精度了
+          BigNumberCopy(Res, X0);
+          Result := True;
+          Exit;
+        end;
+
+        BigNumberCopy(X0, X1);
+      until False;
+    finally
+      FLocalBigNumberPool.Recycle(X1);
+      FLocalBigNumberPool.Recycle(X0);
+      FLocalBigNumberPool.Recycle(T2);
+      FLocalBigNumberPool.Recycle(T1);
     end;
   end;
 end;
