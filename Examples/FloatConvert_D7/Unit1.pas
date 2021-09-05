@@ -20,13 +20,15 @@ type
    rdoHex: TRadioButton;
     btnExtract: TButton;
     btnUInt64ToFloat: TButton;
+    btnFloatToUInt64: TButton;
    procedure Button1Click(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
     procedure btnUInt64ToFloatClick(Sender: TObject);
+    procedure btnFloatToUInt64Click(Sender: TObject);
   private
-   { Private declarations }
+
   public
-   { Public declarations }
+
   end;
 
 var
@@ -85,17 +87,45 @@ end;
 procedure TFormFloat.btnUInt64ToFloatClick(Sender: TObject);
 var
   U: TUInt64;
+  S: Single;
   D: Double;
   E: Extended;
 begin
+{$IFNDEF SUPPORT_UINT64}
   U := -234567869758674564;
   ShowMessage(UInt64ToStr(U));
+{$ENDIF}
+
+  S := UInt64ToSingle(U);
+  ShowMessage(FloatToStr(S));
 
   D := UInt64ToDouble(U);
   ShowMessage(FloatToStr(D));
 
   E := UInt64ToExtended(U);
   ShowMessage(FloatToStr(E));
+end;
+
+procedure TFormFloat.btnFloatToUInt64Click(Sender: TObject);
+var
+  A1: Single;
+  B1: Double;
+  C1, D1: Extended;
+  U: TUInt64;
+begin
+  A1 := 0.33;
+  B1 := 1003.2354545;
+  C1 := 88843453452.091981100001;
+  D1 := 1.5e19;
+
+  U := SingleToUInt64(A1);
+  ShowMessage(UInt64ToStr(U));
+  U := DoubleToUInt64(B1);
+  ShowMessage(UInt64ToStr(U));
+  U := ExtendedToUInt64(C1);
+  ShowMessage(UInt64ToStr(U));
+  U := ExtendedToUInt64(D1);
+  ShowMessage(UInt64ToStr(U));
 end;
 
 end.

@@ -1,8 +1,8 @@
 object FormFloat: TFormFloat
-  Left = 318
-  Top = 219
-  Width = 404
-  Height = 175
+  Left = 350
+  Top = 240
+  Width = 447
+  Height = 189
   Caption = '¸¡µãÊý×ª»»³É×Ö·û´® & Extract Float ²âÊÔ'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -23,7 +23,7 @@ object FormFloat: TFormFloat
   object Edit1: TEdit
     Left = 8
     Top = 27
-    Width = 299
+    Width = 337
     Height = 21
     TabOrder = 0
     Text = '128.125'
@@ -45,7 +45,7 @@ object FormFloat: TFormFloat
     TabOrder = 2
   end
   object Button1: TButton
-    Left = 313
+    Left = 353
     Top = 25
     Width = 75
     Height = 25
@@ -80,8 +80,8 @@ object FormFloat: TFormFloat
     TabOrder = 6
   end
   object btnExtract: TButton
-    Left = 312
-    Top = 72
+    Left = 352
+    Top = 64
     Width = 75
     Height = 25
     Caption = 'Extract'
@@ -89,12 +89,21 @@ object FormFloat: TFormFloat
     OnClick = btnExtractClick
   end
   object btnUInt64ToFloat: TButton
-    Left = 184
-    Top = 72
+    Left = 144
+    Top = 64
     Width = 97
     Height = 25
     Caption = 'UInt64 To Float'
     TabOrder = 8
     OnClick = btnUInt64ToFloatClick
+  end
+  object btnFloatToUInt64: TButton
+    Left = 248
+    Top = 64
+    Width = 97
+    Height = 25
+    Caption = 'Float To UInt64'
+    TabOrder = 9
+    OnClick = btnFloatToUInt64Click
   end
 end

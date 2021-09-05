@@ -24,26 +24,26 @@ unit CnFloatConvert;
 * 软件名称：开发包基础库
 * 单元名称：浮点数转换
 * 单元作者：王乾元(wqyfavor@163.com)
-* 备    注：该单元实现了三个将Extended类型转换为二、八、十六进制字符串的函数。
-*           算法是读取Extended类型在内存中的二进制内容进行转换。关于Extended类型的说明
-*           可以参考其它资料。Double与Single类型为系统通用支持的浮点类型，与Delphi特有的
-*           Extended在存储形式上稍有不同。三者均将尾数规格化，但Double与Single尾数部分略
-*           掉了默认的1。比如尾数二进制内容为1.001，则在Double与Single中存储为001，略去
-*           小数点前的1，而在Extended里存储为1001。
-*           NaN意为 "not a number"，不是个数，定义参看Math.pas单元中的常量NaN
-*           Infinity为无穷大，定义参看Math.pas单元中的常量Infinity与NegInfinity.
-*           解释一下DecimalExp与AlwaysUseExponent参数。
+* 备    注：该单元实现了三个将 Extended 类型转换为二、八、十六进制字符串的函数。
+*           算法是读取 Extended 类型在内存中的二进制内容进行转换。关于 Extended 类型的说明
+*           可以参考其它资料。Double 与 Single 类型为系统通用支持的浮点类型，与 Delphi 特有的
+*           Extended 在存储形式上稍有不同。三者均将尾数规格化，但 Double 与 Single 尾数部分略
+*           掉了默认的 1。比如尾数二进制内容为 1.001，则在 Double 与 Single 中存储为 001，略去
+*           小数点前的 1，而在 Extended 里存储为 1001。
+*           NaN 意为 "not a number"，不是个数，定义参看 Math.pas 单元中的常量 NaN
+*           Infinity 为无穷大，定义参看 Math.pas 单元中的常量 Infinity 与 NegInfinity.
+*           解释一下 DecimalExp 与 AlwaysUseExponent 参数。
 *           将十进制浮点数度转换成其他进制时，如果用指数形式（科学计算法）表达（有些情况
-*           也只能用指数形式，比如1E-1000，不用指数时是0.0000000...0001)，转换后指数部分
+*           也只能用指数形式，比如 1E-1000，不用指数时是 0.0000000...0001，转换后指数部分
 *           也应该用相应进制表示。但有时可以仍用十进制表示指数部分，比如二进制串
-*           1.001E101，真值为100100，将指数用十进制表达更清楚一些1.001D5，表示将小数点
-*           右移5位。DecimalExp这个参数就是指定是否用十进制表达指数部分的。注意，用十进制
-*           数表示指数并无规定表达法，程序中使用"D"来表示，"E"为用相应进制表示。另外，由于
-*           十六进制比较特殊，"D"与"E"均为十六进制特殊字符，所以十六进制表达时使用了"^"
-*           字符，输出样例3.BD^D(12)、A.BD^E(ABCE)。如不喜欢这种格式可以自行修改。
-*           AlwaysUseExponent参数指定是否一定用科学读数法表达，比如100.111位数比较少，
-*           程序自动判断不需要使用科学计数法，当AlwaysUseExponent为真时则一定表达为指数
-*           形式1.00111E2。
+*           1.001E101，真值为 100100，将指数用十进制表达更清楚一些 1.001D5，表示将小数点
+*           右移 5 位。DecimalExp 这个参数就是指定是否用十进制表达指数部分的。注意，用十进制
+*           数表示指数并无规定表达法，程序中使用 "D" 来表示，"E" 为用相应进制表示。另外，由于
+*           十六进制比较特殊，"D" 与 "E" 均为十六进制特殊字符，所以十六进制表达时使用了 "^"
+*           字符，输出样例 3.BD^D(12)、A.BD^E(ABCE)。如不喜欢这种格式可以自行修改。
+*           AlwaysUseExponent 参数指定是否一定用科学读数法表达，比如 100.111 位数比较少，
+*           程序自动判断不需要使用科学计数法，当 AlwaysUseExponent 为真时则一定表达为指数
+*           形式 1.00111E2。
 *           const
 *             MaxBinDigits = 120;
 *             MaxHexDigits = 30;
@@ -52,8 +52,10 @@ unit CnFloatConvert;
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.11.11
-*               加入两个将 UInt64（不支持 UInt64 的以 Int64 代替）转换为浮点数的函数
+* 修改记录：2021.09.05
+*               加入三个将浮点数转换为 UInt64（不支持 UInt64 的以 Int64 代替）的函数
+*           2020.11.11
+*               加入三个将 UInt64（不支持 UInt64 的以 Int64 代替）转换为浮点数的函数
 *           2020.06.24
 *               加入六个浮点数解开与拼凑的函数
 *           2009.1.12
@@ -66,7 +68,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnNativeDecl;
+  SysUtils, Classes, Windows, SysConst, CnNativeDecl;
 
 {
   IEEE 754 规定的三种浮点格式，有效数在低位 0：
@@ -77,7 +79,7 @@ uses
 
   其中，符号位 S，0 表示正，1 表示负；E 要减去 127/1023/16383 才是真正指数
         M: 规范化单/双精度的二进制 M 的高位加个 1. 代表有效数，扩展的无需加，自身有 1.
-           最终值：有效数乘以 2 的 E 次方
+           最终值：有效数（二进制 1.xxxx 的形式）乘以 2 的 E 次方（注意不是 10 的 E 次方！）
 
   格式	        字节 1    字节 2    字节 3    字节 4    ...  字节 n（低位 0）
   单精度 4      SXXXXXXX  XMMMMMMM  MMMMMMMM  MMMMMMMM
@@ -130,11 +132,23 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数}
 
+function UInt64ToSingle(U: TUInt64): Single;
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Single，仨函数实现相同}
+
 function UInt64ToDouble(U: TUInt64): Double;
-{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Double}
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Double，仨函数实现相同}
 
 function UInt64ToExtended(U: TUInt64): Extended;
-{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Extended}
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Extended，仨函数实现相同}
+
+function SingleToUInt64(F: Single): TUInt64;
+{* 把 Single 赋值给用 Int64 有符号整型模拟的 64 位无符号整型}
+
+function DoubleToUInt64(F: Double): TUInt64;
+{* 把 Double 赋值给用 Int64 有符号整型模拟的 64 位无符号整型}
+
+function ExtendedToUInt64(F: Extended): TUInt64;
+{* 把 Extended 赋值给用 Int64 有符号整型模拟的 64 位无符号整型}
 
 function SingleIsInfinite(const AValue: Single): Boolean;
 {* 单精度浮点数是否无穷大}
@@ -176,12 +190,18 @@ function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
 
 implementation
 
+const
+  UINT64_EXTENDED_EXP_MAX = $4040; // UINT64 最大整数对应 Extended 浮点的最大指数
+
 type
   TExtendedRec = packed record
     Mantissa: TUInt64;
     ExpSign: Word;
   end;
   PExtendedRec = ^TExtendedRec;
+
+  TExtendedWords = array[0..4] of Word;
+  PExtendedWords = ^TExtendedWords;
 
 {$IFNDEF WIN64}
 {$IFNDEF COMPILER5}
@@ -926,7 +946,8 @@ begin
     PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
 end;
 
-function UInt64ToDouble(U: TUInt64): Double;
+// 将 UInt64 设为浮点数
+function UFloat(U: TUInt64): Extended;
 {$IFNDEF SUPPORT_UINT64}
 var
   L, H: Cardinal;
@@ -948,26 +969,61 @@ begin
 {$ENDIF}
 end;
 
-function UInt64ToExtended(U: TUInt64): Extended;
-{$IFNDEF SUPPORT_UINT64}
-var
-  L, H: Cardinal;
-{$ENDIF}
+function UInt64ToSingle(U: TUInt64): Single;
 begin
-{$IFDEF SUPPORT_UINT64}
-  Result := U;
-{$ELSE}
-  if U < 0 then // Int64 小于 0 时，代表的 UInt64 是大于 Int64 的最大值的
-  begin
-    H := Int64Rec(U).Hi;
-    L := Int64Rec(U).Lo;
-    Result := Int64(H) * Int64(MAX_UINT16 + 1); // 拆开两步乘
-    Result := Result * (MAX_UINT16 + 1);
-    Result := Result + L;
-  end
+  Result := UFloat(U);
+end;
+
+function UInt64ToDouble(U: TUInt64): Double;
+begin
+  Result := UFloat(U);
+end;
+
+function UInt64ToExtended(U: TUInt64): Extended;
+begin
+  Result := UFloat(U);
+end;
+
+// 普通 Trunc 浮点数最大只能返回 Int64，本函数返回最大 UInt64
+function UTrunc(F: Extended): TUInt64;
+var
+  T: Integer;
+  SignNeg: Boolean;
+  Exponent: Integer;
+  Mantissa: TUInt64;
+begin
+  // 得到真实指数与 1 开头的有效数字（小数点在 1 后）
+  ExtractFloatExtended(F, SignNeg, Exponent, Mantissa);
+  if SignNeg then
+    raise ERangeError.Create(SRangeError); // 负数不支持
+
+  // Mantissa 有 64 位有效数字，其中小数点后 63 位，如果指数小于 0 说明小数点要往左移，那么值就是 0 了
+  if Exponent < 0 then
+    Result := 0
   else
-    Result := U;
-{$ENDIF}
+  begin
+    // 将小数点往右移 Exponent 位，小数点左边的是整数部分
+    T := 63 - Exponent;    // 小数点在 0 到 63 位的 63 位右边，小数点右移后在 T 位右边
+    if T < 0 then
+      raise ERangeError.Create(SRangeError); // Exponent 太大，
+
+    Result := Mantissa shr T;
+  end;
+end;
+
+function SingleToUInt64(F: Single): TUInt64;
+begin
+  Result := UTrunc(F);
+end;
+
+function DoubleToUInt64(F: Double): TUInt64;
+begin
+  Result := UTrunc(F);
+end;
+
+function ExtendedToUInt64(F: Extended): TUInt64;
+begin
+  Result := UTrunc(F);
 end;
 
 function SingleIsInfinite(const AValue: Single): Boolean;
