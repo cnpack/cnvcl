@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.10.28 V1.6
+* 修改记录：2021.09.05 V1.7
+*               加入 Int64/UInt64 的整数次幂与根的运算函数
+*           2020.10.28 V1.6
 *               加入 UInt64 溢出相关的判断与运算函数
 *           2020.09.06 V1.5
 *               加入求 UInt64 整数平方根的函数
@@ -288,7 +290,16 @@ function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
 function Int64NonNegativeRoot(N: Int64; Exp: Integer): Int64;
 {* 求 Int64 的非负整数次方根的整数部分，不考虑溢出的情况}
 
+function UInt64NonNegativPower(N: TUInt64; Exp: Integer): TUInt64;
+{* UInt64 的非负整数指数幂，不考虑溢出的情况}
+
+function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
+{* 求 UInt64 的非负整数次方根的整数部分，不考虑溢出的情况}
+
 implementation
+
+uses
+  CnFloatConvert;
 
 resourcestring
   SCnInt64ListError = 'Int64 List Error. %d';
@@ -1111,12 +1122,86 @@ begin
     begin
       if (Trunc(X0) = Trunc(X1)) and (Abs(X0 - X1) < 0.001) then
       begin
-        Result := Trunc(X1);
+        Result := Trunc(X1); // Trunc 只支持 Int64，超界了会出错
         Exit;
       end;
 
       X0 := X1;
       X1 := X0 - (Power(X0, Exp) - N) / (Exp * Power(X0, Exp - 1));
+    end;
+  end;
+end;
+
+function UInt64NonNegativPower(N: TUInt64; Exp: Integer): TUInt64;
+var
+  T, RL, RH: TUInt64;
+begin
+  if Exp < 0 then
+    raise ERangeError.Create(SRangeError)
+  else if Exp = 0 then
+  begin
+    if N <> 0 then
+      Result := 1
+    else
+      raise EDivByZero.Create(SDivByZero);
+  end
+  else if Exp = 1 then
+    Result := N
+  else
+  begin
+    Result := 1;
+    T := N;
+
+    while Exp > 0 do
+    begin
+      if (Exp and 1) <> 0 then
+      begin
+        UInt64MulUInt64(Result, T, RL, RH);
+        Result := RL;
+      end;
+
+      Exp := Exp shr 1;
+      UInt64MulUInt64(T, T, RL, RH);
+      T := RL;
+    end;
+  end;
+end;
+
+function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
+var
+  I: Integer;
+  X: TUInt64;
+  XN, X0, X1: Extended;
+begin
+  if Exp < 0 then
+    raise ERangeError.Create(SRangeError)
+  else if Exp = 0 then
+    raise EDivByZero.Create(SDivByZero)
+  else if (N = 0) or (N = 1) then
+    Result := N
+  else if Exp = 2 then
+    Result := UInt64Sqrt(N)
+  else
+  begin
+    // 牛顿迭代法求根
+    I := GetUInt64HighBits(N) + 1; // 得到大约 Log2 N 的值
+    I := (I div Exp) + 1;
+    X := 1 shl I;                  // 得到一个较大的 X0 值作为起始值
+
+    X0 := UInt64ToExtended(X);
+    XN := UInt64ToExtended(N);
+    X1 := X0 - (Power(X0, Exp) - XN) / (Exp * Power(X0, Exp - 1));
+
+    while True do
+    begin
+      if (Trunc(X0) = Trunc(X1)) and (Abs(X0 - X1) < 0.001) then
+      begin
+        Result := ExtendedToUInt64(X1);
+        Exit;
+      end;
+
+      X0 := X1;
+      X1 := X0 - (Power(X0, Exp) - XN) / (Exp * Power(X0, Exp - 1));
     end;
   end;
 end;

@@ -26,7 +26,7 @@ object FormNative: TFormNative
     Shape = bsLeftLine
   end
   object btnPower: TSpeedButton
-    Left = 496
+    Left = 472
     Top = 56
     Width = 23
     Height = 22
@@ -34,12 +34,34 @@ object FormNative: TFormNative
     OnClick = btnPowerClick
   end
   object btnRoot: TSpeedButton
-    Left = 496
+    Left = 472
     Top = 80
     Width = 23
     Height = 22
     Caption = 'root'
     OnClick = btnRootClick
+  end
+  object btnURoot: TSpeedButton
+    Left = 656
+    Top = 64
+    Width = 23
+    Height = 22
+    Caption = 'root'
+    OnClick = btnURootClick
+  end
+  object bvl2: TBevel
+    Left = 208
+    Top = 56
+    Width = 17
+    Height = 41
+    Shape = bsLeftLine
+  end
+  object bvl3: TBevel
+    Left = 576
+    Top = 56
+    Width = 17
+    Height = 41
+    Shape = bsLeftLine
   end
   object btnUInt64Div: TButton
     Left = 16
@@ -74,7 +96,7 @@ object FormNative: TFormNative
     TabOrder = 2
   end
   object btnStrUInt64: TButton
-    Left = 232
+    Left = 224
     Top = 16
     Width = 75
     Height = 25
@@ -83,7 +105,7 @@ object FormNative: TFormNative
     OnClick = btnStrUInt64Click
   end
   object btnMul32: TButton
-    Left = 328
+    Left = 320
     Top = 16
     Width = 89
     Height = 25
@@ -92,7 +114,7 @@ object FormNative: TFormNative
     OnClick = btnMul32Click
   end
   object btnHighLowBits: TButton
-    Left = 440
+    Left = 424
     Top = 16
     Width = 97
     Height = 25
@@ -101,7 +123,7 @@ object FormNative: TFormNative
     OnClick = btnHighLowBitsClick
   end
   object btnInt64MulMod: TButton
-    Left = 552
+    Left = 536
     Top = 16
     Width = 97
     Height = 25
@@ -128,7 +150,7 @@ object FormNative: TFormNative
     OnClick = btnUInt64MulClick
   end
   object btnGetGT2Power: TButton
-    Left = 232
+    Left = 224
     Top = 64
     Width = 75
     Height = 25
@@ -137,7 +159,7 @@ object FormNative: TFormNative
     OnClick = btnGetGT2PowerClick
   end
   object btnGetGT2Power64: TButton
-    Left = 328
+    Left = 320
     Top = 64
     Width = 75
     Height = 25
@@ -146,7 +168,7 @@ object FormNative: TFormNative
     OnClick = btnGetGT2Power64Click
   end
   object edtPower: TEdit
-    Left = 440
+    Left = 416
     Top = 64
     Width = 49
     Height = 21
@@ -154,11 +176,27 @@ object FormNative: TFormNative
     Text = '9'
   end
   object edtExponent: TEdit
-    Left = 528
+    Left = 504
     Top = 64
     Width = 49
     Height = 21
     TabOrder = 12
+    Text = '10'
+  end
+  object edtUPower: TEdit
+    Left = 600
+    Top = 64
+    Width = 49
+    Height = 21
+    TabOrder = 13
+    Text = '9'
+  end
+  object edtUExponent: TEdit
+    Left = 688
+    Top = 64
+    Width = 49
+    Height = 21
+    TabOrder = 14
     Text = '10'
   end
 end
