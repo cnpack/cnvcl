@@ -53,7 +53,7 @@ object FormBigNumber: TFormBigNumber
         Caption = 'Shift:'
       end
       object lblIntPower: TLabel
-        Left = 912
+        Left = 904
         Top = 120
         Width = 48
         Height = 13
@@ -507,7 +507,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnPowerModCompare: TButton
         Left = 904
-        Top = 304
+        Top = 408
         Width = 129
         Height = 25
         Caption = 'Power Mod Compare'
@@ -516,7 +516,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnMulModCompare: TButton
         Left = 904
-        Top = 352
+        Top = 440
         Width = 129
         Height = 25
         Caption = 'Mul Mod Compare'
@@ -525,7 +525,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnCheckPrime: TButton
         Left = 904
-        Top = 264
+        Top = 328
         Width = 129
         Height = 25
         Caption = 'Check Prime 1'
@@ -533,9 +533,9 @@ object FormBigNumber: TFormBigNumber
         OnClick = btnCheckPrimeClick
       end
       object btnIntPower: TButton
-        Left = 912
+        Left = 904
         Top = 80
-        Width = 121
+        Width = 129
         Height = 25
         Caption = 'Integer Power'
         TabOrder = 49
@@ -552,9 +552,9 @@ object FormBigNumber: TFormBigNumber
         Value = 18
       end
       object btnGetTenCount: TButton
-        Left = 912
+        Left = 904
         Top = 48
-        Width = 121
+        Width = 129
         Height = 25
         Caption = '10 Precision'
         TabOrder = 51
@@ -562,7 +562,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnCheckPrime2: TButton
         Left = 904
-        Top = 392
+        Top = 368
         Width = 129
         Height = 25
         Caption = 'Check Prime 2'
@@ -571,7 +571,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNCRT: TButton
         Left = 904
-        Top = 440
+        Top = 480
         Width = 129
         Height = 25
         Caption = 'Chinese Remainder '
@@ -580,7 +580,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNSqrt: TButton
         Left = 904
-        Top = 224
+        Top = 288
         Width = 129
         Height = 25
         Caption = 'Sqrt'
@@ -589,7 +589,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNNextPrime: TButton
         Left = 904
-        Top = 184
+        Top = 224
         Width = 129
         Height = 25
         Caption = 'Next Prime'
@@ -598,7 +598,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNMulKaratsuba: TButton
         Left = 904
-        Top = 488
+        Top = 512
         Width = 129
         Height = 25
         Caption = 'Mul Karatsuba'
@@ -606,13 +606,22 @@ object FormBigNumber: TFormBigNumber
         OnClick = btnBNMulKaratsubaClick
       end
       object btnRoot: TButton
-        Left = 912
+        Left = 904
         Top = 144
-        Width = 121
+        Width = 129
         Height = 25
         Caption = 'Integer Root'
         TabOrder = 57
         OnClick = btnRootClick
+      end
+      object btnIsPerfectPower: TButton
+        Left = 904
+        Top = 184
+        Width = 129
+        Height = 25
+        Caption = 'Is Perfect Power'
+        TabOrder = 58
+        OnClick = btnIsPerfectPowerClick
       end
     end
   end

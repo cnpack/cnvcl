@@ -30,7 +30,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.04.02 V1.8
+* 修改记录：2021.09.05 V1.9
+*               实现完全幂的判断
+*           2021.04.02 V1.8
 *               POSIX 64 的 LongWord 是 64 位，迁移
 *           2020.07.04 V1.7
 *               独立出大数池对象，加入多线程控制
@@ -667,6 +669,9 @@ function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
   Remainers, Factors: TCnInt64List): Boolean; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
    参数为 Int64 列表}
+
+function BigNumberIsPerfectPower(Num: TCnBigNumber): Boolean;
+{* 判断大数是否是完全幂，大数较大时有一定耗时}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -5336,6 +5341,44 @@ begin
   finally
     BF.Free;
     BR.Free;
+  end;
+end;
+
+function BigNumberIsPerfectPower(Num: TCnBigNumber): Boolean;
+var
+  LG2, I: Integer;
+  T: TCnBigNumber;
+begin
+  Result := False;
+  if Num.IsNegative or Num.IsWord(2) or Num.IsWord(3) then
+    Exit;
+
+  if Num.IsZero or Num.IsOne then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  LG2 := Num.GetBitsCount;
+  T := FLocalBigNumberPool.Obtain;
+
+  try
+    for I := 2 to LG2 do
+    begin
+      // 求 Num 的 I 次方根的整数部分
+      BigNumberRoot(T, Num, I);
+      // 整数部分再求幂
+      BigNumberPower(T, T, I);
+
+      // 判断是否相等
+      if BigNumberCompare(T, Num) = 0 then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
   end;
 end;
 

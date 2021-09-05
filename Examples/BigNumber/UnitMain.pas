@@ -77,6 +77,7 @@ type
     btnBNNextPrime: TButton;
     btnBNMulKaratsuba: TButton;
     btnRoot: TButton;
+    btnIsPerfectPower: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -129,6 +130,7 @@ type
     procedure btnBNNextPrimeClick(Sender: TObject);
     procedure btnBNMulKaratsubaClick(Sender: TObject);
     procedure btnRootClick(Sender: TObject);
+    procedure btnIsPerfectPowerClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -935,6 +937,14 @@ begin
     ShowMessage('Verify 2 OK');
 
   R.Free;
+end;
+
+procedure TFormBigNumber.btnIsPerfectPowerClick(Sender: TObject);
+begin
+  if BigNumberIsPerfectPower(Num1) then
+    ShowMessage('Num 1 is Perfect Power.')
+  else
+    ShowMessage('Num 1 is NOT Perfect Power.');
 end;
 
 end.
