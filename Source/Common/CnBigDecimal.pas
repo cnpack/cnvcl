@@ -30,7 +30,9 @@ unit CnBigDecimal;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.07.08 V1.1
+* 修改记录：2021.09.05 V1.2
+*               增加一批 TCnBigBinary 操作函数
+*           2020.07.08 V1.1
 *               实现基于二进制的浮点数 TCnBigBinary
 *           2020.06.25 V1.0
 *               创建单元
@@ -44,8 +46,6 @@ interface
 uses
   SysUtils, Classes, Contnrs, SysConst, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   CnNativeDecl, CnFloatConvert, CnContainers, CnBigNumber;
-
-{$DEFINE MULTI_THREAD} // 大浮点数池支持多线程，性能略有下降，如不需要，注释此行即可
 
 const
   CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;         // 大浮点数乘除法的小数点后的默认精度
@@ -138,7 +138,7 @@ type
     正时简而言之就是二进制模式下小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
   private
     FValue: TCnBigNumber;
-    FScale: Integer;                 // 精确值为 FValue / (2^FScale)
+    FScale: Integer;                 // 精确值为 FValue / (2^FScale)，默认 FScale 为 0，也就是除以 1，等于不除
     function GetDebugDump: string;
     function GetDecString: string;
   public
@@ -166,6 +166,8 @@ type
     {* 双精度浮点值}
     procedure SetExtended(Value: Extended);
     {* 扩展精度浮点值}
+    procedure SetBigNumber(Value: TCnBigNumber);
+    {* 大整数值}
 
     procedure AddWord(W: LongWord);
     {* 加上一个 UInt32}
@@ -175,6 +177,14 @@ type
     {* 乘以一个 UInt32}
     procedure DivWord(W: LongWord; DivPrecision: Integer = 0);
     {* 除以一个 UInt32。DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
+
+    procedure ShiftLeft(N: Integer);
+    {* 左移 N 位}
+    procedure ShiftRight(N: Integer);
+    {* 右移 N 位}
+
+    procedure Power(N: Integer);
+    {* 求幂}
 
     function IsNegative: Boolean;
     {* 是否负数}
@@ -311,6 +321,9 @@ function BigBinarySetDouble(const Value: Double; const Res: TCnBigBinary): Boole
 function BigBinarySetExtended(const Value: Extended; const Res: TCnBigBinary): Boolean;
 {* 为大二进制浮点数对象设置扩展精度浮点值}
 
+function BigBinarySetBigNumber(const Num: TCnBigNumber; const Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置大数值}
+
 function BigBinaryToString(const Num: TCnBigBinary): string;
 {* 大二进制浮点数对象转换为字符串}
 
@@ -356,6 +369,15 @@ function BigBinaryDiv(const Res: TCnBigBinary; const Num1: TCnBigBinary;
 {* 大二进制浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
   DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
 
+procedure BigBinaryShiftLeft(const Res: TCnBigBinary; const N: Integer);
+{* 大二进制浮点数左移，内部直接调整 FScale}
+
+procedure BigBinaryShiftRight(const Res: TCnBigBinary; const N: Integer);
+{* 大二进制浮点数右移，内部直接调整 FScale}
+
+function BigBinaryPower(const Res: TCnBigBinary; const N: Integer): Boolean;
+{* 大二进制求幂，只支持非负整数幂}
+
 function BigBinaryChangeToScale(const Res: TCnBigBinary; const Num: TCnBigBinary;
   Scale: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 {* 将大二进制浮点数在值不咋变的前提下转换到指定 Scale，也就是小数点后 Scale 位，可能产生舍入，按指定模式进行。
@@ -368,6 +390,9 @@ function BigBinaryRoundToDigits(const Res: TCnBigBinary; const Num: TCnBigBinary
 
 function BigBinaryTrunc(const Res: TCnBigBinary; const Num: TCnBigBinary): Boolean;
 {* 将大二进制浮点数 Trunc 到只剩整数。Res 可以是 Num}
+
+function BigBinaryTruncTo(const Res: TCnBigNumber; const Num: TCnBigBinary): Boolean;
+{* 将大二进制浮点数 Trunc 到只剩整数并放大数中。}
 
 function BigBinaryDebugDump(const Num: TCnBigBinary): string;
 {* 打印大二进制浮点数内部信息}
@@ -1813,6 +1838,12 @@ begin
   Result := InternalBigBinarySetFloat(N, E - 63, S, Res);
 end;
 
+function BigBinarySetBigNumber(const Num: TCnBigNumber; const Res: TCnBigBinary): Boolean;
+begin
+  Res.FScale := 0;
+  Result := BigNumberCopy(Res.FValue, Num) <> nil;
+end;
+
 function BigBinaryToString(const Num: TCnBigBinary): string;
 var
   T, P10, S: TCnBigNumber;
@@ -2243,6 +2274,7 @@ begin
 
   T := nil;
   R := nil;
+
   try
     T := FLocalBigNumberPool.Obtain;
     BigNumberCopy(T, Num1.FValue);
@@ -2261,6 +2293,32 @@ begin
   finally
     FLocalBigNumberPool.Recycle(T);
     FLocalBigNumberPool.Recycle(R);
+  end;
+end;
+
+procedure BigBinaryShiftLeft(const Res: TCnBigBinary; const N: Integer);
+begin
+  Dec(Res.FScale, N);
+end;
+
+procedure BigBinaryShiftRight(const Res: TCnBigBinary; const N: Integer);
+begin
+  Inc(Res.FScale, N);
+end;
+
+function BigBinaryPower(const Res: TCnBigBinary; const N: Integer): Boolean;
+begin
+  Result := False;
+  if N = 0 then
+  begin
+    if Res.IsZero then
+      raise EZeroDivide.Create(SDivByZero);
+    Res.SetOne;
+  end
+  else if N > 0 then
+  begin
+    Res.FScale := Res.FScale * N;
+    Result := Res.FValue.PowerWord(N);
   end;
 end;
 
@@ -2376,6 +2434,30 @@ begin
   end;
 end;
 
+function BigBinaryTruncTo(const Res: TCnBigNumber; const Num: TCnBigBinary): Boolean;
+var
+  T: TCnBigBinary;
+begin
+  if Num.FScale <= 0 then // 无小数部分
+  begin
+    BigNumberCopy(Res, Num.FValue);
+    Res.ShiftLeft(-Num.FScale);
+
+    Result := True;
+    Exit;
+  end
+  else // 有小数部分 FScale 位，干掉
+  begin
+    T := FLocalBigBinaryPool.Obtain;
+    try
+      Result := BigBinaryChangeToScale(T, Num, 0, drTowardsZero);
+      BigNumberCopy(Res, T.FValue); // Scale 已经为 0 了可以直接忽略
+    finally
+      FLocalBigBinaryPool.Recycle(T);
+    end;
+  end;
+end;
+
 function BigBinaryDebugDump(const Num: TCnBigBinary): string;
 begin
   Result := '2 Scale: ' + IntToStr(Num.FScale) + '. ' + BigNumberDebugDump(Num.FValue);
@@ -2463,6 +2545,16 @@ begin
   FValue.Negate;
 end;
 
+procedure TCnBigBinary.Power(N: Integer);
+begin
+  BigBinaryPower(Self, N);
+end;
+
+procedure TCnBigBinary.SetBigNumber(Value: TCnBigNumber);
+begin
+  BigBinarySetBigNumber(Value, Self);
+end;
+
 function TCnBigBinary.SetDec(const Buf: string): Boolean;
 begin
   Result := BigBinarySetDec(Buf, Self);
@@ -2508,6 +2600,16 @@ procedure TCnBigBinary.SetZero;
 begin
   FValue.SetZero;
   FScale := 0;
+end;
+
+procedure TCnBigBinary.ShiftLeft(N: Integer);
+begin
+  BigBinaryShiftLeft(Self, N);
+end;
+
+procedure TCnBigBinary.ShiftRight(N: Integer);
+begin
+  BigBinaryShiftRight(Self, N);
 end;
 
 procedure TCnBigBinary.SubWord(W: LongWord);

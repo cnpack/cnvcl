@@ -528,7 +528,8 @@ function BigNumberMul(const Res: TCnBigNumber; Num1: TCnBigNumber;
 
 function BigNumberMulKaratsuba(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
-{* 用 Karatsuba 算法计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2}
+{* 用 Karatsuba 算法计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2
+  注：好像也没见快到哪里去}
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -677,7 +678,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber;
+  CnPrimeNumber, CnBigDecimal;
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -697,6 +698,7 @@ const
 
 var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
+  FLocalBigBinaryPool: TCnBigBinaryPool = nil;
 
 function BigNumberNew: TCnBigNumber;
 begin
@@ -3233,7 +3235,8 @@ function BigNumberRoot(const Res: TCnBigNumber; const Num: TCnBigNumber;
   Exponent: Integer): Boolean;
 var
   I: Integer;
-  X0, X1, T1, T2: TCnBigNumber;
+  X0, X1, T1, T2, T3: TCnBigBinary;
+  C0, C1: TCnBigNumber;
   U: TUInt64;
 begin
   Result := False;
@@ -3266,44 +3269,63 @@ begin
     X1 := nil;
     T1 := nil;
     T2 := nil;
+    T3 := nil;
+    C0 := nil;
+    C1 := nil;
+
+    // 别的对方没使用，延迟到此处初始化
+    if FLocalBigBinaryPool = nil then
+      FLocalBigBinaryPool := TCnBigBinaryPool.Create;
 
     try
-      X0 := FLocalBigNumberPool.Obtain;
-      X1 := FLocalBigNumberPool.Obtain;
-      T1 := FLocalBigNumberPool.Obtain;
-      T2 := FLocalBigNumberPool.Obtain;
+      X0 := FLocalBigBinaryPool.Obtain;
+      X1 := FLocalBigBinaryPool.Obtain;
+      T1 := FLocalBigBinaryPool.Obtain;
+      T2 := FLocalBigBinaryPool.Obtain;
+      T3 := FLocalBigBinaryPool.Obtain;
+
+      C0 := FLocalBigNumberPool.Obtain;
+      C1 := FLocalBigNumberPool.Obtain;
 
       X0.SetOne;
       X0.ShiftLeft(I);                  // 得到一个较大的 X0 值作为起始值
 
       repeat
         // X1 := X0 - (Power(X0, Exponent) - N) / (Exponent * Power(X0, Exponent - 1));
-        BigNumberCopy(T1, X0);
-        BigNumberPower(T1, T1, Exponent);
-        BigNumberSub(T1, T1, Num);           // 得到 Power(X0, Exponent) - N
+        BigBinaryCopy(T1, X0);
+        T1.Power(Exponent);
+        T2.SetBigNumber(Num);
+        BigBinarySub(T1, T1, T2);             // 得到 Power(X0, Exponent) - N
 
-        BigNumberCopy(T2, X0);
-        BigNumberPower(T2, T2, Exponent - 1);
-        BigNumberMulWord(T2, Exponent);      // 得到 Exponent * Power(X0, Exponent - 1)
+        BigBinaryCopy(T2, X0);
+        T2.Power(Exponent - 1);
+        T2.MulWord(Exponent);                // 得到 Exponent * Power(X0, Exponent - 1)
 
-        BigNumberDiv(T1, nil, T1, T2);       // 得到商的整数部分
-        BigNumberSub(X1, X0, T1);            // 算出 X1
+        BigBinaryDiv(T1, T1, T2, 10);            // 得到商，保留一定精度
+        BigBinarySub(X1, X0, T1);            // 算出 X1
 
-        if BigNumberCompare(X0, X1) = 0 then
+        // 得到 X0 和 X1 的整数部分并比较
+        BigBinaryTruncTo(C0, X0);
+        BigBinaryTruncTo(C1, X1);
+        if BigNumberCompare(C0, C1) = 0 then
         begin
           // 暂且认为 X0 X1 整数部分不发生变化即认为达到精度了
-          BigNumberCopy(Res, X0);
+          BigNumberCopy(Res, C0);
           Result := True;
           Exit;
         end;
 
-        BigNumberCopy(X0, X1);
+        BigBinaryCopy(X0, X1);
       until False;
     finally
-      FLocalBigNumberPool.Recycle(X1);
-      FLocalBigNumberPool.Recycle(X0);
-      FLocalBigNumberPool.Recycle(T2);
-      FLocalBigNumberPool.Recycle(T1);
+      FLocalBigBinaryPool.Recycle(X1);
+      FLocalBigBinaryPool.Recycle(X0);
+      FLocalBigBinaryPool.Recycle(T3);
+      FLocalBigBinaryPool.Recycle(T2);
+      FLocalBigBinaryPool.Recycle(T1);
+
+      FLocalBigNumberPool.Recycle(C1);
+      FLocalBigNumberPool.Recycle(C0);
     end;
   end;
 end;
@@ -5717,6 +5739,7 @@ finalization
   CnBigNumberOne.Free;
   CnBigNumberZero.Free;
   FLocalBigNumberPool.Free;
+  FLocalBigBinaryPool.Free;
 
 end.
 

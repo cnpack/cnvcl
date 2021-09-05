@@ -892,11 +892,24 @@ end;
 
 procedure TFormBigNumber.btnBNMulKaratsubaClick(Sender: TObject);
 var
+  I: Integer;
+  Tick: Cardinal;
   Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
   if BigNumberMulKaratsuba(Res, Num1, Num2) then
     ShowResult(Res);
+
+  Tick := GetTickCount;
+  for I := 0 to 1000 do
+    BigNumberMul(Res, Num1, Num2);
+  ShowMessage(IntToStr(GetTickCount - Tick));
+
+  Tick := GetTickCount;
+  for I := 0 to 1000 do
+    BigNumberMulKaratsuba(Res, Num1, Num2);
+  ShowMessage(IntToStr(GetTickCount - Tick));
+
   BigNumberFree(Res);
 end;
 
