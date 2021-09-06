@@ -1193,6 +1193,40 @@ begin
   end;
 end;
 
+function IsWin64: Boolean;
+const
+  PROCESSOR_ARCHITECTURE_AMD64 = 9;
+  PROCESSOR_ARCHITECTURE_IA64 = 6;
+var
+  Kernel32Handle: THandle;
+  IsWow64Process: function(Handle: Windows.THandle; var Res: Windows.BOOL): Windows.BOOL; stdcall;
+  GetNativeSystemInfo : procedure(var lpSystemInfo: TSystemInfo); stdcall; isWoW64 :BOOL;SystemInfo :  TSystemInfo;
+begin
+  Result := False;
+  Kernel32Handle := GetModuleHandle(kernel32);
+
+  if Kernel32Handle = 0 then
+    Kernel32Handle := LoadLibrary(kernel32);
+
+  if Kernel32Handle <> 0 then
+  begin
+    IsWow64Process := GetProcAddress(Kernel32Handle, 'IsWow64Process');
+    GetNativeSystemInfo := GetProcAddress(Kernel32Handle, 'GetNativeSystemInfo');
+
+    if Assigned(IsWow64Process) then
+    begin
+      IsWow64Process(GetCurrentProcess, isWoW64);
+      Result := isWoW64 and Assigned(GetNativeSystemInfo);
+      if Result then
+      begin
+        GetNativeSystemInfo(SystemInfo);
+        Result := (SystemInfo.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_AMD64)
+          or (SystemInfo.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_IA64);
+      end;
+    end;
+  end;
+end;
+
 function CnDebugger: TCnDebugger;
 begin
 {$IFNDEF NDEBUG}
@@ -4621,11 +4655,14 @@ end;
 
 procedure TCnMapFileChannel.StartDebugViewer;
 const
-  SCnDebugViewerExeName = 'CnDebugViewer.exe -a ';
+  SCnDebugViewerExeName = 'CnDebugViewer.exe';
+  SCnDotExe = '.exe';
+  SCn64DotExe = '64.exe';
 var
   hStarting: THandle;
   Reg: TRegistry;
-  S: string;
+  S, Subfix, Subfix64: string;
+  Len: Integer;
   ViewerExe: AnsiString;
 begin
   ViewerExe := '';
@@ -4639,12 +4676,46 @@ begin
     Reg.Free;
   end;
 
-  // 加上调用参数
+  // 设置运行文件名
   if S <> '' then
-    ViewerExe := AnsiString(S + ' -a ')
+    ViewerExe := AnsiString(S)
   else
     ViewerExe := SCnDebugViewerExeName;
 
+  // 判断是否支持 64 位
+  if IsWin64 then
+  begin
+    S := LowerCase(ViewerExe);
+    Len := Length(S);
+
+    if Len > Length(SCnDotExe) + 4 then
+    begin
+      if (S[1] = '"') and (S[Len] = '"') then
+      begin
+        Subfix := SCnDotExe + '"';
+        Subfix64 := SCn64DotExe + '"';
+      end
+      else
+      begin
+        Subfix := SCnDotExe;
+        Subfix64 := SCn64DotExe;
+      end;
+
+      if Copy(S, Len - Length(Subfix) + 1, MaxInt) = Subfix then // 末尾是 .exe
+      begin
+        if Copy(S, Len - Length(Subfix64) + 1, MaxInt) <> Subfix64 then // 但末尾不是 64.exe
+        begin
+          S := ViewerExe;
+          Insert('64', S, Len - Length(Subfix) + 1);
+          if FileExists(S) then
+            Insert('64', ViewerExe, Len - Length(Subfix) + 1); // 把 64 插点前面并且判断文件存在不
+        end;
+      end;
+    end;
+  end;
+
+  // 加上调用参数
+  ViewerExe := ViewerExe + ' -a ';
   if FUseLocalSession then
     ViewerExe := ViewerExe + ' -local ';
 
