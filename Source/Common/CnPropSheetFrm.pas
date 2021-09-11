@@ -48,7 +48,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
-  Clipbrd, CnTree {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
+  Clipbrd, ImgList, CnTree {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF};
 
 const
@@ -2406,7 +2406,7 @@ begin
       end;
 
       // 如果是 ImageList，画其子图片
-      if ObjectInstance is TImageList then
+      if ObjectInstance is TCustomImageList then
       begin
         FGraphics.Graphic := ObjectInstance;
         Include(FContentTypes, pctGraphics);
@@ -2528,7 +2528,7 @@ const
   IMG_INTERVAL = 30;
 var
   I, ImgTop, ImgLeft: Integer;
-  ImageList: TImageList;
+  ImageList: TCustomImageList;
   CountInLine, PaintHeight: Integer;
 
   procedure InternalDrawGraphic(AGraphic: TGraphic);
@@ -2745,14 +2745,14 @@ begin
     begin
       InternalDrawGraphic(FGraphicObject as TGraphic);
     end
-    else if FGraphicObject is TImageList then
+    else if FGraphicObject is TCustomImageList then
     begin
-      if (FGraphicObject as TImageList).Count > 0 then
+      if (FGraphicObject as TCustomImageList).Count > 0 then
       begin
         // 根据 ImageList 尺寸以及 PaintBox 尺寸来排版绘制
         FGraphicBmp.Width := bxGraphic.Width;
 
-        ImageList := FGraphicObject as TImageList;
+        ImageList := FGraphicObject as TCustomImageList;
 
         // 一行画 (FGraphicBmp.Width - IMG_MARGIN) div (ImageList.Width + IMG_INTERVAL) 个
         CountInLine := (FGraphicBmp.Width - IMG_MARGIN) div (ImageList.Width + IMG_INTERVAL);
