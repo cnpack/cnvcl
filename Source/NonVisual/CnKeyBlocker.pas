@@ -30,7 +30,9 @@ unit CnKeyBlocker;
 * 开发平台：PWinXP + Delphi 7.0 (Build 8.1)
 * 兼容测试：PWin2003 + Delphi 7.0 (Build 8.1)
 * 本 地 化：该单元中无字符串资源
-* 修改记录：2008.10.24 v1.1
+* 修改记录：2021.09.17 v1.1
+*               重命名变量，修正一处 CustomKeyCode 未更新的问题
+*           2008.10.24 v1.1
 *               加入一简陋事件
 *           2008.05.29 v1.0
 *               移植单元
@@ -42,66 +44,67 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, windows, ShlObj, Registry, Shellapi, Messages;
+  SysUtils, Classes, Windows, ShlObj, Registry, ShellAPI, Messages;
 
 type
   TCnBlockKeyEvent = procedure(VirtualKey: Cardinal) of object;
 
   TCnKeyBlocker = class(TComponent)
   private
-    FBCAD: Boolean;
-    FBAT: Boolean;
-    FBCE: Boolean;
+    FBlockCtrlAltDelete: Boolean;
+    FBlockAltTab: Boolean;
+    FBlockCtrlEsc: Boolean;
     FEnabled: Boolean;
-    FBAE: Boolean;
-    FBCR: Boolean;
-    FBCK: Boolean;
-    FBP: Boolean;
-    FBS: Boolean;
-    FCKC: Cardinal;
-    FBWA: Boolean;
-    FBCAE: Boolean;
+    FBlockAltEsc: Boolean;
+    FBlockCtrlEnter: Boolean;
+    FBlockCustomKey: Boolean;
+    FBlockPower: Boolean;
+    FBlockSleep: Boolean;
+    FCustomKeyCode: Cardinal;
+    FBlockWinApps: Boolean;
+    FBlockCtrlAltEnter: Boolean;
     FOnBlockKey: TCnBlockKeyEvent;
-    procedure SetBCAD(const Value: Boolean);
-    procedure SetBAT(const Value: Boolean);
-    procedure SetBCE(const Value: Boolean);
+    procedure SetBlockCtrlAltDelete(const Value: Boolean);
+    procedure SetBlockAltTab(const Value: Boolean);
+    procedure SetBlockCtrlEsc(const Value: Boolean);
     procedure SetEnabled(const Value: Boolean);
-    procedure SetBAE(const Value: Boolean);
-    procedure SetBCK(const Value: Boolean);
-    procedure SetBCR(const Value: Boolean);
-    procedure SetBP(const Value: Boolean);
-    procedure SetBS(const Value: Boolean);
-    procedure SetBWA(const Value: Boolean);
-    procedure SetBCAE(const Value: Boolean);
+    procedure SetBlockAltEsc(const Value: Boolean);
+    procedure SetBlockCustomKey(const Value: Boolean);
+    procedure SetBlockCtrlEnter(const Value: Boolean);
+    procedure SetBlockPower(const Value: Boolean);
+    procedure SetBlockSleep(const Value: Boolean);
+    procedure SetBlockWinApps(const Value: Boolean);
+    procedure SetBlockCtrlAltEnter(const Value: Boolean);
+    procedure SetCustomKeyCode(const Value: Cardinal);
   protected
     procedure UpdateKeyBlock;
     procedure DoBlock(VirtualKey: Cardinal);
-    property BlockCtrlAltDelete: Boolean read FBCAD write SetBCAD;
+    property BlockCtrlAltDelete: Boolean read FBlockCtrlAltDelete write SetBlockCtrlAltDelete;
     {* 是否屏蔽 Ctrl+Alt+Delete 键，此属性可能无法工作，暂时不开放}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   published
-    property BlockAltTab: Boolean read FBAT write SetBAT;
+    property BlockAltTab: Boolean read FBlockAltTab write SetBlockAltTab;
     {* 是否屏蔽 Alt+Tab 键}
-    property BlockCtrlEsc: Boolean read FBCE write SetBCE;
+    property BlockCtrlEsc: Boolean read FBlockCtrlEsc write SetBlockCtrlEsc;
     {* 是否屏蔽 Ctrl+Esc 键}
-    property BlockAltEsc: Boolean read FBAE write SetBAE;
+    property BlockAltEsc: Boolean read FBlockAltEsc write SetBlockAltEsc;
     {* 是否屏蔽 Alt+Esc 键}
-    property BlockCtrlEnter: Boolean read FBCR write SetBCR;
+    property BlockCtrlEnter: Boolean read FBlockCtrlEnter write SetBlockCtrlEnter;
     {* 是否屏蔽 Ctrl+Enter 键}
-    property BlockSleep: Boolean read FBS write SetBS;
+    property BlockSleep: Boolean read FBlockSleep write SetBlockSleep;
     {* 是否屏蔽 Sleep 休眠键}
-    property BlockPower: Boolean read FBP write SetBP;
+    property BlockPower: Boolean read FBlockPower write SetBlockPower;
     {* 是否屏蔽 Power 电源键}
-    property BlockWinApps: Boolean read FBWA write SetBWA;
+    property BlockWinApps: Boolean read FBlockWinApps write SetBlockWinApps;
     {* 是否屏蔽 Windows 键}
-    property BlockCtrlAltEnter: Boolean read FBCAE write SetBCAE;
+    property BlockCtrlAltEnter: Boolean read FBlockCtrlAltEnter write SetBlockCtrlAltEnter;
     {* 是否屏蔽 Ctrl+Alt+Enter 键}
 
-    property CustomKeyCode: Cardinal read FCKC write FCKC default 0;
+    property CustomKeyCode: Cardinal read FCustomKeyCode write SetCustomKeyCode default 0;
     {* 自定义的屏蔽键}
-    property BlockCustomKey: Boolean read FBCK write SetBCK;
+    property BlockCustomKey: Boolean read FBlockCustomKey write SetBlockCustomKey;
     {* 是否屏蔽自定义键}
 
     property Enabled: Boolean read FEnabled write SetEnabled default False;
@@ -130,17 +133,17 @@ type
 
 var
   hhkNTKeyboard: HHOOK = 0;
-  aBCAD: Boolean = False;
-  aBWA: Boolean = False;
-  aBCE: Boolean = False;
-  aBAT: Boolean = False;
-  aBAE: Boolean = False;
-  aBCR: Boolean = False;
-  aBCAE: Boolean = False;
-  aBP: Boolean = False;
-  aaBS: Boolean = False;
-  aBCK: Boolean = False;
-  aCKC: Cardinal = 0;
+  aBlockCtrlAltDelete: Boolean = False;
+  aBlockWinApps: Boolean = False;
+  aBlockCtrlEsc: Boolean = False;
+  aBlockAltTab: Boolean = False;
+  aBlockAltEsc: Boolean = False;
+  aBlockCtrlEnter: Boolean = False;
+  aBlockCtrlAltEnter: Boolean = False;
+  aBlockPower: Boolean = False;
+  aBlockSleep: Boolean = False;
+  aBlockCustomKey: Boolean = False;
+  aCustomKeyCode: Cardinal = 0;
 
   FKeyBlocker: TCnKeyBlocker = nil;
 
@@ -244,58 +247,58 @@ begin
 
       //-------系统热键---------------------------------------------
       //WIN(Left or Right)+APPS
-          if aBWA then
+          if aBlockWinApps then
           begin
             if (p.vkCode = VK_LWIN) or (p.vkCode = VK_RWIN) or (p.vkCode = VK_APPS) then
               boolKey := True;
           end;
       //CTRL+ESC
-          if aBCE then
+          if aBlockCtrlEsc then
           begin
             if (p.vkCode = VK_ESCAPE) and ((GetKeyState(VK_CONTROL) and $8000) <> 0) then
               boolKey := True;
           end;
       //ALT+TAB
-          if aBAT then
+          if aBlockAltTab then
           begin
             if (p.vkCode = VK_TAB) and ((GetAsyncKeyState(VK_MENU) and $8000) <> 0) then
               boolKey := True;
           end;
       //ALT+ESC
-          if aBAE then
+          if aBlockAltEsc then
           begin
             if (p.vkCode = VK_ESCAPE) and ((p.flags and LLKHF_ALTDOWN) <> 0) then
               boolKey := True;
           end;
       //CTRL+ENTER
-          if aBCR then
+          if aBlockCtrlEnter then
           begin
             if (p.vkCode = VK_RETURN) and ((GetKeyState(VK_CONTROL) and $8000) <> 0) then
               boolKey := True;
           end;
       //CTRL+ALT+ENTR
-          if aBCAE then
+          if aBlockCtrlAltEnter then
           begin
             if (p.vkCode = VK_RETURN) and ((p.flags and LLKHF_ALTDOWN) <> 0)
               and ((GetKeyState(VK_CONTROL) and $8000) <> 0) then
               boolKey := True;
           end;
       //POWER
-          if aBP then
+          if aBlockPower then
           begin
             if (p.vkCode = VK_POWER) then
               boolKey := True;
           end;
       //SLEEP
-          if aaBS then
+          if aBlockSleep then
           begin
             if (p.vkCode = VK_SLEEP) then
               boolKey := True;
           end;
       //Custom
-          if aBCK then
+          if aBlockCustomKey then
           begin
-            if (p.vkCode = aCKC) then
+            if (p.vkCode = aCustomKeyCode) then
               boolKey := True;
           end;
 
@@ -329,64 +332,70 @@ begin
     FOnBlockKey(VirtualKey);
 end;
 
-procedure TCnKeyBlocker.SetBAE(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockAltEsc(const Value: Boolean);
 begin
-  FBAE := Value;
-  aBAE := FBAE;
+  FBlockAltEsc := Value;
+  aBlockAltEsc := FBlockAltEsc;
 end;
 
-procedure TCnKeyBlocker.SetBAT(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockAltTab(const Value: Boolean);
 begin
-  FBAT := Value;
-  aBAT := FBAT;
+  FBlockAltTab := Value;
+  aBlockAltTab := FBlockAltTab;
 end;
 
-procedure TCnKeyBlocker.SetBCAD(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockCtrlAltDelete(const Value: Boolean);
 begin
-  FBCAD := Value;
-  aBCAD := FBCAD;
+  FBlockCtrlAltDelete := Value;
+  aBlockCtrlAltDelete := FBlockCtrlAltDelete;
 end;
 
-procedure TCnKeyBlocker.SetBCAE(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockCtrlAltEnter(const Value: Boolean);
 begin
-  FBCAE := Value;
-  aBCAE := FBCAE;
+  FBlockCtrlAltEnter := Value;
+  aBlockCtrlAltEnter := FBlockCtrlAltEnter;
 end;
 
-procedure TCnKeyBlocker.SetBCE(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockCtrlEsc(const Value: Boolean);
 begin
-  FBCE := Value;
-  aBCE := FBCE;
+  FBlockCtrlEsc := Value;
+  aBlockCtrlEsc := FBlockCtrlEsc;
 end;
 
-procedure TCnKeyBlocker.SetBCK(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockCustomKey(const Value: Boolean);
 begin
-  FBCK := Value;
-  aBCK := FBCK;
+  FBlockCustomKey := Value;
+  aBlockCustomKey := FBlockCustomKey;
 end;
 
-procedure TCnKeyBlocker.SetBCR(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockCtrlEnter(const Value: Boolean);
 begin
-  FBCR := Value;
-  aBCR := FBCR;
+  FBlockCtrlEnter := Value;
+  aBlockCtrlEnter := FBlockCtrlEnter;
 end;
 
-procedure TCnKeyBlocker.SetBP(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockPower(const Value: Boolean);
 begin
-  FBP := Value;
-  aBP := FBP;
+  FBlockPower := Value;
+  aBlockPower := FBlockPower;
 end;
 
-procedure TCnKeyBlocker.SetBS(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockSleep(const Value: Boolean);
 begin
-  FBS := Value;
-  aaBS := FBS;
+  FBlockSleep := Value;
+  aBlockSleep := FBlockSleep;
 end;
 
-procedure TCnKeyBlocker.SetBWA(const Value: Boolean);
+procedure TCnKeyBlocker.SetBlockWinApps(const Value: Boolean);
 begin
-  FBWA := Value;
-  aBWA := FBWA;
+  FBlockWinApps := Value;
+  aBlockWinApps := FBlockWinApps;
+end;
+
+procedure TCnKeyBlocker.SetCustomKeyCode(const Value: Cardinal);
+begin
+  FCustomKeyCode := Value;
+  aCustomKeyCode := FCustomKeyCode;
 end;
 
 procedure TCnKeyBlocker.SetEnabled(const Value: Boolean);
@@ -407,7 +416,7 @@ begin
           Exit;
 
         hhkNTKeyboard := SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardFunc, HInstance, 0);
-        if FBCAD then
+        if FBlockCtrlAltDelete then
         begin
           EnableCTRLALTDEL(False);
           SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);
