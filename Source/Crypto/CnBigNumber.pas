@@ -30,7 +30,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.09.05 V1.9
+* 修改记录：2021.09.20 V2.0
+*               实现大数按位计算
+*           2021.09.05 V1.9
 *               实现完全幂的判断
 *           2021.04.02 V1.8
 *               POSIX 64 的 LongWord 是 64 位，迁移
@@ -482,9 +484,21 @@ function BigNumberRandBits(const Num: TCnBigNumber; BitsCount: Integer): Boolean
 function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
 {* 产生 [0, Range) 之间的随机大数}
 
+function BigNumberAnd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
+  const Num2: TCnBigNumber): Boolean;
+{* 两个大数对象按位与，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2}
+
+function BigNumberOr(const Res: TCnBigNumber; const Num1: TCnBigNumber;
+  const Num2: TCnBigNumber): Boolean;
+{* 两个大数对象按位或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2}
+
+function BigNumberXor(const Res: TCnBigNumber; const Num1: TCnBigNumber;
+  const Num2: TCnBigNumber): Boolean;
+{* 两个大数对象按位异或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2}
+
 function BigNumberUnsignedAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
-{* 两个大数对象无符号相加，结果放至 Res 中，返回相加是否成功}
+{* 两个大数对象无符号相加，结果放至 Res 中，返回相加是否成功。Res 可以是 Num1 或 Num2}
 
 function BigNumberUnsignedSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
@@ -1822,9 +1836,84 @@ begin
   C := TCnLongWord32(T shr BN_BITS2) and BN_MASK2;
 end;
 
+type
+  TCnBitOperation = (boAnd, boOr, boXor);
+
+procedure BigNumberBitOperation(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray;
+  N: Integer; Op: TCnBitOperation);
+begin
+  if N <= 0 then
+    Exit;
+
+  while (N and (not 3)) <> 0 do
+  begin
+    case Op of
+      boAnd:
+        begin
+          RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
+          RP[1] := TCnLongWord32((Int64(AP[1]) and Int64(BP[1])) and BN_MASK2);
+          RP[2] := TCnLongWord32((Int64(AP[2]) and Int64(BP[2])) and BN_MASK2);
+          RP[3] := TCnLongWord32((Int64(AP[3]) and Int64(BP[3])) and BN_MASK2);
+        end;
+      boOr:
+        begin
+          RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
+          RP[1] := TCnLongWord32((Int64(AP[1]) or Int64(BP[1])) and BN_MASK2);
+          RP[2] := TCnLongWord32((Int64(AP[2]) or Int64(BP[2])) and BN_MASK2);
+          RP[3] := TCnLongWord32((Int64(AP[3]) or Int64(BP[3])) and BN_MASK2);
+        end;
+      boXor:
+        begin
+          RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
+          RP[1] := TCnLongWord32((Int64(AP[1]) xor Int64(BP[1])) and BN_MASK2);
+          RP[2] := TCnLongWord32((Int64(AP[2]) xor Int64(BP[2])) and BN_MASK2);
+          RP[3] := TCnLongWord32((Int64(AP[3]) xor Int64(BP[3])) and BN_MASK2);
+        end;
+    end;
+
+    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(TCnLongWord32));
+    BP := PLongWordArray(Integer(BP) + 4 * SizeOf(TCnLongWord32));
+    RP := PLongWordArray(Integer(RP) + 4 * SizeOf(TCnLongWord32));
+
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    case Op of
+      boAnd:
+        RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
+      boOr:
+        RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
+      boXor:
+        RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
+    end;
+
+    AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
+    BP := PLongWordArray(Integer(BP) + SizeOf(TCnLongWord32));
+    RP := PLongWordArray(Integer(RP) + SizeOf(TCnLongWord32));
+    Dec(N);
+  end;
+end;
+
 // ============================ 低阶运算定义结束 ===============================
 
 {* Words 系列内部计算函数开始}
+
+procedure BigNumberAndWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer);
+begin
+  BigNumberBitOperation(RP, AP, BP, N, boAnd);
+end;
+
+procedure BigNumberOrWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer);
+begin
+  BigNumberBitOperation(RP, AP, BP, N, boOr);
+end;
+
+procedure BigNumberXorWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer);
+begin
+  BigNumberBitOperation(RP, AP, BP, N, boXor);
+end;
 
 function BigNumberAddWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer): TCnLongWord32;
 var
@@ -2050,6 +2139,105 @@ begin
 end;
 
 {*  Words 系列内部计算函数结束}
+
+function BigNumberAnd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
+  const Num2: TCnBigNumber): Boolean;
+var
+  Max, Min: Integer;
+  AP, BP, RP: PLongWord;
+  A, B, Tmp: TCnBigNumber;
+begin
+  Result := False;
+
+  A := Num1;
+  B := Num2;
+  if A.Top < B.Top then
+  begin
+    Tmp := A;
+    A := B;
+    B := Tmp;
+  end;
+
+  Max := A.Top;
+  Min := B.Top;
+
+  if BigNumberWordExpand(Res, Max) = nil then
+    Exit;
+
+  Res.Top := Max;
+  AP := PLongWord(A.D);
+  BP := PLongWord(B.D);
+  RP := PLongWord(Res.D);
+
+  BigNumberAndWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  Result := True;
+end;
+
+function BigNumberOr(const Res: TCnBigNumber; const Num1: TCnBigNumber;
+  const Num2: TCnBigNumber): Boolean;
+var
+  Max, Min: Integer;
+  AP, BP, RP: PLongWord;
+  A, B, Tmp: TCnBigNumber;
+begin
+  Result := False;
+
+  A := Num1;
+  B := Num2;
+  if A.Top < B.Top then
+  begin
+    Tmp := A;
+    A := B;
+    B := Tmp;
+  end;
+
+  Max := A.Top;
+  Min := B.Top;
+
+  if BigNumberWordExpand(Res, Max) = nil then
+    Exit;
+
+  Res.Top := Max;
+  AP := PLongWord(A.D);
+  BP := PLongWord(B.D);
+  RP := PLongWord(Res.D);
+
+  BigNumberOrWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  Result := True;
+end;
+
+function BigNumberXor(const Res: TCnBigNumber; const Num1: TCnBigNumber;
+  const Num2: TCnBigNumber): Boolean;
+var
+  Max, Min: Integer;
+  AP, BP, RP: PLongWord;
+  A, B, Tmp: TCnBigNumber;
+begin
+  Result := False;
+
+  A := Num1;
+  B := Num2;
+  if A.Top < B.Top then
+  begin
+    Tmp := A;
+    A := B;
+    B := Tmp;
+  end;
+
+  Max := A.Top;
+  Min := B.Top;
+
+  if BigNumberWordExpand(Res, Max) = nil then
+    Exit;
+
+  Res.Top := Max;
+  AP := PLongWord(A.D);
+  BP := PLongWord(B.D);
+  RP := PLongWord(Res.D);
+
+  BigNumberXorWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  Result := True;
+end;
 
 function BigNumberUnsignedAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
