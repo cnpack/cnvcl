@@ -1839,60 +1839,71 @@ end;
 type
   TCnBitOperation = (boAnd, boOr, boXor);
 
+// N 个 TCnLongWord32 长的数组内容进行位运算，如果 BP 为 nil，表示不够长，作为 0 处理
 procedure BigNumberBitOperation(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray;
   N: Integer; Op: TCnBitOperation);
 begin
   if N <= 0 then
     Exit;
 
-  while (N and (not 3)) <> 0 do
+  if BP <> nil then
   begin
-    case Op of
-      boAnd:
-        begin
+    while (N and (not 3)) <> 0 do
+    begin
+      case Op of
+        boAnd:
+          begin
+            RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
+            RP[1] := TCnLongWord32((Int64(AP[1]) and Int64(BP[1])) and BN_MASK2);
+            RP[2] := TCnLongWord32((Int64(AP[2]) and Int64(BP[2])) and BN_MASK2);
+            RP[3] := TCnLongWord32((Int64(AP[3]) and Int64(BP[3])) and BN_MASK2);
+          end;
+        boOr:
+          begin
+            RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
+            RP[1] := TCnLongWord32((Int64(AP[1]) or Int64(BP[1])) and BN_MASK2);
+            RP[2] := TCnLongWord32((Int64(AP[2]) or Int64(BP[2])) and BN_MASK2);
+            RP[3] := TCnLongWord32((Int64(AP[3]) or Int64(BP[3])) and BN_MASK2);
+          end;
+        boXor:
+          begin
+            RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
+            RP[1] := TCnLongWord32((Int64(AP[1]) xor Int64(BP[1])) and BN_MASK2);
+            RP[2] := TCnLongWord32((Int64(AP[2]) xor Int64(BP[2])) and BN_MASK2);
+            RP[3] := TCnLongWord32((Int64(AP[3]) xor Int64(BP[3])) and BN_MASK2);
+          end;
+      end;
+
+      AP := PLongWordArray(Integer(AP) + 4 * SizeOf(TCnLongWord32));
+      BP := PLongWordArray(Integer(BP) + 4 * SizeOf(TCnLongWord32));
+      RP := PLongWordArray(Integer(RP) + 4 * SizeOf(TCnLongWord32));
+
+      Dec(N, 4);
+    end;
+
+    while N <> 0 do
+    begin
+      case Op of
+        boAnd:
           RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
-          RP[1] := TCnLongWord32((Int64(AP[1]) and Int64(BP[1])) and BN_MASK2);
-          RP[2] := TCnLongWord32((Int64(AP[2]) and Int64(BP[2])) and BN_MASK2);
-          RP[3] := TCnLongWord32((Int64(AP[3]) and Int64(BP[3])) and BN_MASK2);
-        end;
-      boOr:
-        begin
+        boOr:
           RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
-          RP[1] := TCnLongWord32((Int64(AP[1]) or Int64(BP[1])) and BN_MASK2);
-          RP[2] := TCnLongWord32((Int64(AP[2]) or Int64(BP[2])) and BN_MASK2);
-          RP[3] := TCnLongWord32((Int64(AP[3]) or Int64(BP[3])) and BN_MASK2);
-        end;
-      boXor:
-        begin
+        boXor:
           RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
-          RP[1] := TCnLongWord32((Int64(AP[1]) xor Int64(BP[1])) and BN_MASK2);
-          RP[2] := TCnLongWord32((Int64(AP[2]) xor Int64(BP[2])) and BN_MASK2);
-          RP[3] := TCnLongWord32((Int64(AP[3]) xor Int64(BP[3])) and BN_MASK2);
-        end;
+      end;
+
+      AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
+      BP := PLongWordArray(Integer(BP) + SizeOf(TCnLongWord32));
+      RP := PLongWordArray(Integer(RP) + SizeOf(TCnLongWord32));
+      Dec(N);
     end;
-
-    AP := PLongWordArray(Integer(AP) + 4 * SizeOf(TCnLongWord32));
-    BP := PLongWordArray(Integer(BP) + 4 * SizeOf(TCnLongWord32));
-    RP := PLongWordArray(Integer(RP) + 4 * SizeOf(TCnLongWord32));
-
-    Dec(N, 4);
-  end;
-
-  while N <> 0 do
+  end
+  else // BP 为 nil，代表数组不够长，当成 0 处理
   begin
-    case Op of
-      boAnd:
-        RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
-      boOr:
-        RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
-      boXor:
-        RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
-    end;
-
-    AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
-    BP := PLongWordArray(Integer(BP) + SizeOf(TCnLongWord32));
-    RP := PLongWordArray(Integer(RP) + SizeOf(TCnLongWord32));
-    Dec(N);
+    if Op = boAnd then
+      FillChar(RP[0], N * SizeOf(TCnLongWord32), 0)
+    else if Op in [boOr, boXor] then
+      Move(AP[0], RP[0], N * SizeOf(TCnLongWord32));
   end;
 end;
 
@@ -2143,7 +2154,7 @@ end;
 function BigNumberAnd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
-  Max, Min: Integer;
+  Max, Min, Dif: Integer;
   AP, BP, RP: PLongWord;
   A, B, Tmp: TCnBigNumber;
 begin
@@ -2160,6 +2171,7 @@ begin
 
   Max := A.Top;
   Min := B.Top;
+  Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
@@ -2170,13 +2182,19 @@ begin
   RP := PLongWord(Res.D);
 
   BigNumberAndWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+
+  // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
+  Inc(AP, Min);
+  BigNumberAndWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
+
+  BigNumberCorrectTop(Res);
   Result := True;
 end;
 
 function BigNumberOr(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
-  Max, Min: Integer;
+  Max, Min, Dif: Integer;
   AP, BP, RP: PLongWord;
   A, B, Tmp: TCnBigNumber;
 begin
@@ -2193,6 +2211,7 @@ begin
 
   Max := A.Top;
   Min := B.Top;
+  Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
@@ -2203,13 +2222,19 @@ begin
   RP := PLongWord(Res.D);
 
   BigNumberOrWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+
+  // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
+  Inc(AP, Min);
+  BigNumberOrWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
+
+  BigNumberCorrectTop(Res);
   Result := True;
 end;
 
 function BigNumberXor(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
-  Max, Min: Integer;
+  Max, Min, Dif: Integer;
   AP, BP, RP: PLongWord;
   A, B, Tmp: TCnBigNumber;
 begin
@@ -2226,6 +2251,7 @@ begin
 
   Max := A.Top;
   Min := B.Top;
+  Dif := Max - Min;
 
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
@@ -2236,6 +2262,12 @@ begin
   RP := PLongWord(Res.D);
 
   BigNumberXorWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+
+  // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
+  Inc(AP, Min);
+  BigNumberXorWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
+
+  BigNumberCorrectTop(Res);
   Result := True;
 end;
 
