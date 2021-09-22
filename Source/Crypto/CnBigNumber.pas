@@ -2185,6 +2185,7 @@ begin
 
   // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
   Inc(AP, Min);
+  Inc(RP, Min);
   BigNumberAndWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
 
   BigNumberCorrectTop(Res);
@@ -2225,6 +2226,7 @@ begin
 
   // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
   Inc(AP, Min);
+  Inc(RP, Min);
   BigNumberOrWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
 
   BigNumberCorrectTop(Res);
@@ -2265,6 +2267,7 @@ begin
 
   // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
   Inc(AP, Min);
+  Inc(RP, Min);
   BigNumberXorWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
 
   BigNumberCorrectTop(Res);
