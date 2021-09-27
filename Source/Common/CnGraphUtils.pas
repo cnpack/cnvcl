@@ -28,7 +28,9 @@ unit CnGraphUtils;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2002.10.20 V1.0
+* 修改记录：2021.09.28 V1.1
+*               加入一个平滑拉伸绘制位图的函数，使用 GDI+
+*           2002.10.20 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -38,7 +40,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Graphics, Math, Controls;
+  Windows, Graphics, Math, Classes, Controls
+  {$IFDEF SUPPORT_GDIPLUS}, WinApi.GDIPOBJ, WinApi.GDIPAPI {$ENDIF};
 
 
 //==============================================================================
@@ -143,10 +146,13 @@ procedure DeRGB(Color: TColor; var r, g, b: Byte);
 //==============================================================================
 
 function CreateEmptyBmp24(Width, Height: Integer; Color: TColor): TBitmap;
-{* 创建一个以 Color 为背景色，指定大小的 24位位图 }
+{* 创建一个以 Color 为背景色，指定大小的 24 位位图 }
 
 function DrawBmpToIcon(Bmp: TBitmap; Icon: TIcon): Boolean;
 {* 将 Bitmap 的内容放到 Icon 里}
+
+function StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True): Boolean;
+{* 将位图 Src 拉伸绘制至 Dst，可以使用平滑拉伸}
 
 implementation
 
@@ -470,6 +476,47 @@ begin
   finally
     ImageList.Free;
   end;
+end;
+
+function StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True): Boolean;
+var
+  Rd: TRect;
+{$IFDEF SUPPORT_GDIPLUS}
+  Bmp: TGPBitmap;
+  GP: TGPGraphics;
+  Rf: TGPRectF;
+{$ENDIF}
+begin
+  Result := False;
+  if (Src = nil) or (Dst = nil) then
+    Exit;
+
+{$IFDEF SUPPORT_GDIPLUS}
+  GP := nil;
+  Bmp := nil;
+  try
+    GP := TGPGraphics.Create(Dst.Canvas.Handle);
+    if Smooth then
+      GP.SetSmoothingMode(SmoothingModeAntiAlias);
+
+    Rf.X := 0;
+    Rf.Y := 0;
+    Rf.Width := Dst.Width;
+    Rf.Height := Dst.Height;
+
+    Bmp := TGPBitmap.Create(Src.Handle, Src.Palette);
+    GP.DrawImage(Bmp, Rf);
+  finally
+    Bmp.Free;
+    GP.Free;
+  end;
+{$ELSE}
+  Rd := Rect(0, 0, Dst.Width, Dst.Height);
+  if (Src.Width <> Dst.Width) or (Src.Height <> Dst.Height) then
+    Dst.Canvas.StretchDraw(Rd, Src)
+  else
+    Dst.Canvas.Draw(0, 0, Src);
+{$ENDIF}
 end;
 
 end.
