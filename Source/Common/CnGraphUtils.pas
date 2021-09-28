@@ -165,7 +165,7 @@ procedure CnShutDownGdiPlus;
 implementation
 
 {$IFNDEF SUPPORT_GDIPLUS}
-{$IFNDEF BCB}
+{$IFNDEF BCB5OR6}
 
 //==============================================================================
 // 编译器不支持 GDI+ 时手工定义 GDI+ 相关函数
@@ -611,7 +611,7 @@ var
   GP: TGPGraphics;
   Rf: TGPRectF;
 {$ELSE}
-  {$IFDEF BCB}
+  {$IFDEF BCB5OR6}
   Rd: TRect;
   {$ELSE}
   GP: GpGraphics;
@@ -645,7 +645,7 @@ begin
 {$ELSE}
   if (Src.Width <> Dst.Width) or (Src.Height <> Dst.Height) then
   begin
-{$IFDEF BCB}
+{$IFDEF BCB5OR6}
     Rd := Rect(0, 0, Dst.Width, Dst.Height);
     Dst.Canvas.StretchDraw(Rd, Src);
 {$ELSE}
