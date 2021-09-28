@@ -2751,6 +2751,9 @@ begin
       begin
         // 根据 ImageList 尺寸以及 PaintBox 尺寸来排版绘制
         FGraphicBmp.Width := bxGraphic.Width;
+        FGraphicBmp.Canvas.Brush.Color := clWhite;
+        FGraphicBmp.Canvas.Brush.Style := bsSolid;
+        FGraphicBmp.Canvas.FillRect(Rect(0, 0, FGraphicBmp.Width, FGraphicBmp.Height));
 
         ImageList := FGraphicObject as TCustomImageList;
 
