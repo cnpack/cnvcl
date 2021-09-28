@@ -658,14 +658,14 @@ begin
 
     try
       if Smooth then
-        St := GdipSetSmoothingMode(GP, SmoothingModeAntiAlias);
+        GdipSetSmoothingMode(GP, SmoothingModeAntiAlias);
 
       Bmp := nil;
       St := GdipCreateBitmapFromHBITMAP(Src.Handle, Src.Palette, Bmp);
       if (St <> Ok) or (Bmp = nil) then
         Exit;
 
-      St := GdipDrawImageRectI(GP, Bmp, 0, 0, Dst.Width, Dst.Height);
+      GdipDrawImageRectI(GP, Bmp, 0, 0, Dst.Width, Dst.Height);
     finally
       if Bmp <> nil then
         GdipDisposeImage(Bmp);
