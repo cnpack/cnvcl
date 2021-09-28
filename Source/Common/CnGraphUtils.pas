@@ -209,6 +209,40 @@ type
   TSmoothingMode = Integer;
   {* 使用 const 中的 SmoothingMode* 值}
 
+  TDebugEventLevel = (DebugEventLevelFatal, DebugEventLevelWarning);
+
+  DebugEventProc = procedure(Level: TDebugEventLevel; Message: PChar); stdcall;
+  NotificationHookProc = function(out Token: ULONG): TStatus; stdcall;
+  NotificationUnhookProc = procedure(Token: ULONG); stdcall;
+
+  GdiplusStartupInput = record
+    GdiplusVersion          : Cardinal;       // Must be 1
+    DebugEventCallback      : DebugEventProc;
+    SuppressBackgroundThread: BOOL;
+    SuppressExternalCodecs  : BOOL;
+  end;
+  TGdiplusStartupInput = GdiplusStartupInput;
+  PGdiplusStartupInput = ^TGdiplusStartupInput;
+
+  GdiplusStartupOutput = record
+    NotificationHook  : NotificationHookProc;
+    NotificationUnhook: NotificationUnhookProc;
+  end;
+  TGdiplusStartupOutput = GdiplusStartupOutput;
+  PGdiplusStartupOutput = ^TGdiplusStartupOutput;
+
+var
+  GdiPlusInit: Boolean = False;
+  StartupInput: TGDIPlusStartupInput;
+  GdiplusToken: ULONG;
+
+function GdiplusStartup(out Token: ULONG; Input: PGdiplusStartupInput;
+  Output: PGdiplusStartupOutput): GPSTATUS; stdcall;
+  external WINGDIPDLL name 'GdiplusStartup' {$IFDEF SUPPORT_EXTERNAL_DELAYED} delayed {$ENDIF};
+
+procedure GdiplusShutdown(Token: ULONG); stdcall;
+  external WINGDIPDLL name 'GdiplusShutdown' {$IFDEF SUPPORT_EXTERNAL_DELAYED} delayed {$ENDIF};
+
 function GdipCreateFromHDC(hdc: HDC; out Graphic: GPGRAPHICS): GPSTATUS; stdcall;
   external WINGDIPDLL name 'GdipCreateFromHDC' {$IFDEF SUPPORT_EXTERNAL_DELAYED} delayed {$ENDIF};
 
@@ -559,15 +593,35 @@ begin
   end;
 end;
 
+{$IFNDEF SUPPORT_GDIPLUS}
+
+procedure CheckGdiPlusInit;
+begin
+  if not GdiPlusInit then
+  begin
+    StartupInput.DebugEventCallback := nil;
+    StartupInput.SuppressBackgroundThread := False;
+    StartupInput.SuppressExternalCodecs   := False;
+    StartupInput.GdiplusVersion := 1;
+
+    GdiplusStartup(GdiPlusToken, @StartupInput, nil);
+
+    GdiPlusInit := True;
+  end;
+end;
+
+{$ENDIF}
+
 procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 var
-  Rd: TRect;
 {$IFDEF SUPPORT_GDIPLUS}
   Bmp: TGPBitmap;
   GP: TGPGraphics;
   Rf: TGPRectF;
 {$ELSE}
-
+  GP: GpGraphics;
+  Bmp: GpBitmap;
+  St: TStatus;
 {$ENDIF}
 begin
   if (Src = nil) or (Dst = nil) then
@@ -593,19 +647,43 @@ begin
     GP.Free;
   end;
 {$ELSE}
-  Rd := Rect(0, 0, Dst.Width, Dst.Height);
   if (Src.Width <> Dst.Width) or (Src.Height <> Dst.Height) then
   begin
-    Dst.Canvas.StretchDraw(Rd, Src);
+    CheckGdiPlusInit;
 
-    if Smooth then
-    begin
-      // TODO: 平滑处理
+    GP := nil;
+    St := GdipCreateFromHDC(Dst.Canvas.Handle, GP);
+    if (St <> Ok) or (GP = nil) then
+      Exit;
+
+    try
+      if Smooth then
+        St := GdipSetSmoothingMode(GP, SmoothingModeAntiAlias);
+
+      Bmp := nil;
+      St := GdipCreateBitmapFromHBITMAP(Src.Handle, Src.Palette, Bmp);
+      if (St <> Ok) or (Bmp = nil) then
+        Exit;
+
+      St := GdipDrawImageRectI(GP, Bmp, 0, 0, Dst.Width, Dst.Height);
+    finally
+      if Bmp <> nil then
+        GdipDisposeImage(Bmp);
+      if GP <> nil then
+        GdipDeleteGraphics(GP);
     end;
   end
   else
     Dst.Canvas.Draw(0, 0, Src);
 {$ENDIF}
 end;
+
+initialization
+
+finalization
+{$IFNDEF SUPPORT_GDIPLUS}
+  if GdiPlusInit then
+    GdiplusShutdown(gdiplusToken);
+{$ENDIF}
 
 end.
