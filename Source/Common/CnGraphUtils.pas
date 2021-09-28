@@ -151,8 +151,8 @@ function CreateEmptyBmp24(Width, Height: Integer; Color: TColor): TBitmap;
 function DrawBmpToIcon(Bmp: TBitmap; Icon: TIcon): Boolean;
 {* 将 Bitmap 的内容放到 Icon 里}
 
-function StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True): Boolean;
-{* 将位图 Src 拉伸绘制至 Dst，可以使用平滑拉伸}
+procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
+{* 将位图 Src 拉伸绘制至 Dst，支持 GDI+ 时可以使用平滑拉伸}
 
 implementation
 
@@ -430,7 +430,7 @@ end;
 // 扩展的位图处理函数
 //==============================================================================
 
-// 创建一个以 Color 为背景色，指定大小的 24位位图
+// 创建一个以 Color 为背景色，指定大小的 24 位位图
 function CreateEmptyBmp24(Width, Height: Integer; Color: TColor): TBitmap;
 type
   TRGBArray = array[0..65535] of TRGBTriple;
@@ -478,7 +478,7 @@ begin
   end;
 end;
 
-function StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True): Boolean;
+procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 var
   Rd: TRect;
 {$IFDEF SUPPORT_GDIPLUS}
@@ -487,7 +487,6 @@ var
   Rf: TGPRectF;
 {$ENDIF}
 begin
-  Result := False;
   if (Src = nil) or (Dst = nil) then
     Exit;
 
@@ -513,7 +512,14 @@ begin
 {$ELSE}
   Rd := Rect(0, 0, Dst.Width, Dst.Height);
   if (Src.Width <> Dst.Width) or (Src.Height <> Dst.Height) then
-    Dst.Canvas.StretchDraw(Rd, Src)
+  begin
+    Dst.Canvas.StretchDraw(Rd, Src);
+
+    if Smooth then
+    begin
+      // TODO: 平滑处理
+    end;
+  end;
   else
     Dst.Canvas.Draw(0, 0, Src);
 {$ENDIF}
