@@ -156,6 +156,7 @@ procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 implementation
 
 {$IFNDEF SUPPORT_GDIPLUS}
+{$IFNDEF BCB}
 
 //==============================================================================
 // 编译器不支持 GDI+ 时手工定义 GDI+ 相关函数
@@ -269,6 +270,7 @@ function GdipDrawImageRectI(Graphic: GPGRAPHICS; Image: GPIMAGE; x: Integer;
   y: Integer; Width: Integer; Height: Integer): GPSTATUS; stdcall;
   external WINGDIPDLL name 'GdipDrawImageRectI' {$IFDEF SUPPORT_EXTERNAL_DELAYED} delayed {$ENDIF};
 
+{$ENDIF}
 {$ENDIF}
 
 //==============================================================================
@@ -594,6 +596,7 @@ begin
 end;
 
 {$IFNDEF SUPPORT_GDIPLUS}
+{$IFNDEF BCB}
 
 procedure CheckGdiPlusInit;
 begin
@@ -611,6 +614,7 @@ begin
 end;
 
 {$ENDIF}
+{$ENDIF}
 
 procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 var
@@ -619,9 +623,13 @@ var
   GP: TGPGraphics;
   Rf: TGPRectF;
 {$ELSE}
+  {$IFDEF BCB}
+  Rd: TRect;
+  {$ELSE}
   GP: GpGraphics;
   Bmp: GpBitmap;
   St: TStatus;
+  {$ENDIF}
 {$ENDIF}
 begin
   if (Src = nil) or (Dst = nil) then
@@ -649,6 +657,10 @@ begin
 {$ELSE}
   if (Src.Width <> Dst.Width) or (Src.Height <> Dst.Height) then
   begin
+{$IFDEF BCB}
+    Rd := Rect(0, 0, Dst.Width, Dst.Height);
+    Dst.Canvas.StretchDraw(Rd, Src);
+{$ELSE}
     CheckGdiPlusInit;
 
     GP := nil;
@@ -672,6 +684,7 @@ begin
       if GP <> nil then
         GdipDeleteGraphics(GP);
     end;
+{$ENDIF}
   end
   else
     Dst.Canvas.Draw(0, 0, Src);
@@ -682,8 +695,10 @@ initialization
 
 finalization
 {$IFNDEF SUPPORT_GDIPLUS}
+{$IFNDEF BCB}
   if GdiPlusInit then
     GdiplusShutdown(gdiplusToken);
+{$ENDIF}
 {$ENDIF}
 
 end.
