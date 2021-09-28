@@ -609,7 +609,6 @@ var
 {$IFDEF SUPPORT_GDIPLUS}
   Bmp: TGPBitmap;
   GP: TGPGraphics;
-  Rf: TGPRectF;
 {$ELSE}
   {$IFDEF BCB5OR6}
   Rd: TRect;
@@ -631,13 +630,8 @@ begin
     if Smooth then
       GP.SetSmoothingMode(SmoothingModeAntiAlias);
 
-    Rf.X := 0;
-    Rf.Y := 0;
-    Rf.Width := Dst.Width;
-    Rf.Height := Dst.Height;
-
     Bmp := TGPBitmap.Create(Src.Handle, Src.Palette);
-    GP.DrawImage(Bmp, Rf);
+    GP.DrawImage(Bmp, 0, 0, Dst.Width + 1, Dst.Height + 1);
   finally
     Bmp.Free;
     GP.Free;
@@ -663,7 +657,7 @@ begin
       if (St <> Ok) or (Bmp = nil) then
         Exit;
 
-      GdipDrawImageRectI(GP, Bmp, 0, 0, Dst.Width, Dst.Height);
+      GdipDrawImageRectI(GP, Bmp, 0, 0, Dst.Width + 1, Dst.Height + 1);
     finally
       if Bmp <> nil then
         GdipDisposeImage(Bmp);
