@@ -681,6 +681,7 @@ end;
 
 procedure CnStartUpGdiPlus;
 begin
+{$IFNDEF BCB5OR6}
   if not GdiPlusInit then
   begin
     StartupInput.DebugEventCallback := nil;
@@ -692,10 +693,12 @@ begin
 
     GdiPlusInit := True;
   end;
+{$ENDIF}
 end;
 
 procedure CnShutDownGdiPlus;
 begin
+{$IFNDEF BCB5OR6}
   if GdiPlusInit then
   begin
     GdiplusShutdown(GdiplusToken);
@@ -703,6 +706,7 @@ begin
     GdiplusToken := 0;
     GdiPlusInit := False;
   end;
+{$ENDIF}
 end;
 
 {$ENDIF}
