@@ -153,6 +153,15 @@ function DrawBmpToIcon(Bmp: TBitmap; Icon: TIcon): Boolean;
 procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 {* 将位图 Src 拉伸绘制至 Dst，支持 GDI+ 时可以使用平滑拉伸}
 
+{$IFNDEF SUPPORT_GDIPLUS}
+
+procedure CnStartUpGdiPlus;
+{* 由于 DLL 中不允许跟着单元来初始化/释放 GDI+，所以输出给宿主调用，初始化 GDI+}
+procedure CnShutDownGdiPlus;
+{* 由于 DLL 中不允许跟着单元来初始化/释放 GDI+，所以输出给宿主调用，释放 GDI+}
+
+{$ENDIF}
+
 implementation
 
 {$IFNDEF SUPPORT_GDIPLUS}
@@ -595,27 +604,6 @@ begin
   end;
 end;
 
-{$IFNDEF SUPPORT_GDIPLUS}
-{$IFNDEF BCB}
-
-procedure CheckGdiPlusInit;
-begin
-  if not GdiPlusInit then
-  begin
-    StartupInput.DebugEventCallback := nil;
-    StartupInput.SuppressBackgroundThread := False;
-    StartupInput.SuppressExternalCodecs   := False;
-    StartupInput.GdiplusVersion := 1;
-
-    GdiplusStartup(GdiPlusToken, @StartupInput, nil);
-
-    GdiPlusInit := True;
-  end;
-end;
-
-{$ENDIF}
-{$ENDIF}
-
 procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 var
 {$IFDEF SUPPORT_GDIPLUS}
@@ -661,8 +649,6 @@ begin
     Rd := Rect(0, 0, Dst.Width, Dst.Height);
     Dst.Canvas.StretchDraw(Rd, Src);
 {$ELSE}
-    CheckGdiPlusInit;
-
     GP := nil;
     St := GdipCreateFromHDC(Dst.Canvas.Handle, GP);
     if (St <> Ok) or (GP = nil) then
@@ -691,14 +677,34 @@ begin
 {$ENDIF}
 end;
 
-initialization
-
-finalization
 {$IFNDEF SUPPORT_GDIPLUS}
-{$IFNDEF BCB}
+
+procedure CnStartUpGdiPlus;
+begin
+  if not GdiPlusInit then
+  begin
+    StartupInput.DebugEventCallback := nil;
+    StartupInput.SuppressBackgroundThread := False;
+    StartupInput.SuppressExternalCodecs   := False;
+    StartupInput.GdiplusVersion := 1;
+
+    GdiplusStartup(GdiPlusToken, @StartupInput, nil);
+
+    GdiPlusInit := True;
+  end;
+end;
+
+procedure CnShutDownGdiPlus;
+begin
   if GdiPlusInit then
-    GdiplusShutdown(gdiplusToken);
-{$ENDIF}
+  begin
+    GdiplusShutdown(GdiplusToken);
+
+    GdiplusToken := 0;
+    GdiPlusInit := False;
+  end;
+end;
+
 {$ENDIF}
 
 end.
