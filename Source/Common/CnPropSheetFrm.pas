@@ -2431,6 +2431,7 @@ var
   VInt: Integer;
   VInt64: Int64;
   VFloat: Double;
+  C: TColor;
 begin
   Result := False;
   if ObjectInstance = nil then
@@ -2447,7 +2448,18 @@ begin
           VInt := StrToInt(Value);
           SetOrdProp(ObjectInstance, PropName, VInt);
         except
-          Exit;
+          // 判断是否是 TColor 和 clRed 这种
+          if PropInfo^.PropType^^.Name = 'TColor' then
+          begin
+            try
+              C := StringToColor(Value);
+              SetOrdProp(ObjectInstance, PropName, C);
+            except
+              Exit;
+            end;
+          end
+          else
+            Exit;
         end;
       end;
     tkInt64:
