@@ -285,8 +285,12 @@ type
 
     procedure InspectObject;
     procedure Clear;
-
-    function ChangePropertyValue(const PropName, Value: string; PropObj: TCnPropertyObject): Boolean; virtual;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    function ChangeFieldValue(const FieldName, Value: string;
+      FieldObj: TCnFieldObject): Boolean; virtual;
+{$ENDIF}
+    function ChangePropertyValue(const PropName, Value: string;
+      PropObj: TCnPropertyObject): Boolean; virtual;
     property ObjectAddr: Pointer read FObjectAddr write SetObjectAddr;
     {* 主要供外部写，写入 Object，或 String }
 
@@ -344,6 +348,10 @@ type
 
     procedure DoEvaluate; override;
   public
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+    function ChangeFieldValue(const FieldName, Value: string;
+      FieldObj: TCnFieldObject): Boolean; override;
+{$ENDIF}
     function ChangePropertyValue(const PropName, Value: string;
       PropObj: TCnPropertyObject): Boolean; override;
     property ObjectInstance: TObject read FObjectInstance;
@@ -423,6 +431,7 @@ type
     procedure Copy1Click(Sender: TObject);
     procedure CopyAll1Click(Sender: TObject);
     procedure pbGraphicPaint(Sender: TObject);
+    procedure lvFieldsDblClick(Sender: TObject);
   private
     FImgBk: TBitmap;
     FGraphicBmp: TBitmap;  // 用于显示的
@@ -589,7 +598,7 @@ const
 
   SCnInputNewValueCaption = 'Modify Value';
   SCnInputNewValuePrompt = 'Enter a New Value for %s:';
-  SCnErrorChangeValue = 'Change Property Value Failed!';
+  SCnErrorChangeValue = 'Change Field/Property Value Failed!';
 {$IFNDEF COMPILER6_UP}
   AC_SRC_ALPHA = $01;
 {$ENDIF}
@@ -1546,8 +1555,18 @@ begin
     FOnAfterEvaluateMenuItems(Self);
 end;
 
-function TCnObjectInspector.ChangePropertyValue(const PropName,
-  Value: string; PropObj: TCnPropertyObject): Boolean;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function TCnObjectInspector.ChangeFieldValue(const FieldName, Value: string;
+  FieldObj: TCnFieldObject): Boolean;
+begin
+  Result := False;
+end;
+
+{$ENDIF}
+
+function TCnObjectInspector.ChangePropertyValue(const PropName, Value: string;
+  PropObj: TCnPropertyObject): Boolean;
 begin
   Result := False;
 end;
@@ -2425,8 +2444,118 @@ begin
   FInspectComplete := True;
 end;
 
-function TCnLocalObjectInspector.ChangePropertyValue(const PropName,
-  Value: string; PropObj: TCnPropertyObject): Boolean;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+
+function TCnLocalObjectInspector.ChangeFieldValue(const FieldName, Value: string;
+  FieldObj: TCnFieldObject): Boolean;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+var
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiField: TRttiField;
+  ValueRec: TValue;
+  ASet: Integer;
+{$ENDIF}
+begin
+  Result := False;
+  if ObjectInstance = nil then
+    Exit;
+
+  RttiContext := TRttiContext.Create;
+  try
+    RttiType := RttiContext.GetType(ObjectInstance.ClassInfo);
+    if RttiType = nil then
+      Exit;
+
+    RttiField := RttiType.GetField(FieldName);
+    if (RttiField = nil) or (RttiField.FieldType = nil) then
+      Exit;
+
+    case RttiField.FieldType.TypeKind of
+      tkInteger:
+        begin
+          try
+            ValueRec := StrToInt(Value);
+            RttiField.SetValue(ObjectInstance, ValueRec);
+          except
+            // 判断是否是 TColor 和 clRed 这种
+            if RttiField.FieldType.Name = 'TColor' then
+            begin
+              try
+                ValueRec := StringToColor(Value);
+                RttiField.SetValue(ObjectInstance, ValueRec);
+              except
+                Exit;
+              end;
+            end
+            else
+              Exit;
+          end;
+        end;
+      tkInt64:
+        begin
+          try
+            ValueRec := StrToInt64(Value);
+            RttiField.SetValue(ObjectInstance, ValueRec);
+          except
+            Exit;
+          end;
+        end;
+      tkFloat:
+        begin
+          try
+            ValueRec := StrToFloat(Value);
+            RttiField.SetValue(ObjectInstance, ValueRec);
+          except
+            Exit;
+          end;
+        end;
+      tkChar,
+      tkWChar:
+        begin
+          try
+            ValueRec := TValue.FromOrdinal(RttiField.FieldType.Handle, StrToInt64(Value));
+            RttiField.SetValue(ObjectInstance, ValueRec);
+          except
+            Exit;
+          end;
+        end;
+      tkLString,
+      tkWString,
+{$IFDEF UNICODE}
+      tkUString,
+{$ENDIF}
+      tkString:
+        begin
+          ValueRec := Value;
+          RttiField.SetValue(ObjectInstance, ValueRec);
+        end;
+      tkEnumeration:
+        begin
+          // 枚举与 Boolean 都会到这，先从字符串转成 Integer，再转成 Enum 值
+          ValueRec := TValue.FromOrdinal(RttiField.FieldType.Handle,
+            GetEnumValue(RttiField.FieldType.Handle, Value));
+          RttiField.SetValue(ObjectInstance, ValueRec);
+        end;
+      tkSet:
+        begin
+          // 集合字符串先转成 Integer，再通过 Make 转成 TValue
+          ASet := StringToSet(RttiField.FieldType.Handle, Value);
+          TValue.Make(@ASet, RttiField.FieldType.Handle, ValueRec);
+          RttiField.SetValue(ObjectInstance, ValueRec);
+        end;
+    end;
+
+    Result := True;
+  finally
+    RttiContext.Free;
+  end;
+end;
+
+{$ENDIF}
+
+function TCnLocalObjectInspector.ChangePropertyValue(const PropName, Value: string;
+  PropObj: TCnPropertyObject): Boolean;
 var
   PropInfo: PPropInfo;
   VInt: Integer;
@@ -3811,6 +3940,32 @@ begin
   pbGraphic.Canvas.FillRect(R);
 
   pbGraphic.Canvas.Draw(0, 0, FGraphicBmp);
+end;
+
+procedure TCnPropSheetForm.lvFieldsDblClick(Sender: TObject);
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+var
+  Field: TCnFieldObject;
+  S: string;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  if lvFields.Selected = nil then
+    Exit;
+
+  Field := TCnFieldObject(lvFields.Selected.Data);
+  if (Field = nil) or not Field.CanModify then
+    Exit;
+
+  S := Field.DisplayValue;
+  if InputQuery(SCnInputNewValueCaption, Format(SCnInputNewValuePrompt, [Field.FieldName]), S) then
+  begin
+    if FInspector.ChangeFieldValue(Field.FieldName, S, Field) then
+      btnRefresh.Click
+    else
+      ShowMessage(SCnErrorChangeValue);
+  end;
+{$ENDIF}
 end;
 
 initialization
