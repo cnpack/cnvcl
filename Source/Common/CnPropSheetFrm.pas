@@ -286,7 +286,7 @@ type
     procedure InspectObject;
     procedure Clear;
 
-    function ChangePropertyValue(const PropName, Value: string): Boolean; virtual;
+    function ChangePropertyValue(const PropName, Value: string; PropObj: TCnPropertyObject): Boolean; virtual;
     property ObjectAddr: Pointer read FObjectAddr write SetObjectAddr;
     {* 主要供外部写，写入 Object，或 String }
 
@@ -344,7 +344,8 @@ type
 
     procedure DoEvaluate; override;
   public
-    function ChangePropertyValue(const PropName, Value: string): Boolean; override;
+    function ChangePropertyValue(const PropName, Value: string;
+      PropObj: TCnPropertyObject): Boolean; override;
     property ObjectInstance: TObject read FObjectInstance;
   end;
 
@@ -1546,7 +1547,7 @@ begin
 end;
 
 function TCnObjectInspector.ChangePropertyValue(const PropName,
-  Value: string): Boolean;
+  Value: string; PropObj: TCnPropertyObject): Boolean;
 begin
   Result := False;
 end;
@@ -2425,17 +2426,120 @@ begin
 end;
 
 function TCnLocalObjectInspector.ChangePropertyValue(const PropName,
-  Value: string): Boolean;
+  Value: string; PropObj: TCnPropertyObject): Boolean;
 var
   PropInfo: PPropInfo;
   VInt: Integer;
   VInt64: Int64;
   VFloat: Double;
   C: TColor;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiProperty: TRttiProperty;
+  ValueRec: TValue;
+  ASet: Integer;
+{$ENDIF}
 begin
   Result := False;
   if ObjectInstance = nil then
     Exit;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  if PropObj.IsNewRTTI then
+  begin
+    RttiContext := TRttiContext.Create;
+    try
+      RttiType := RttiContext.GetType(ObjectInstance.ClassInfo);
+      if RttiType = nil then
+        Exit;
+
+      RttiProperty := RttiType.GetProperty(PropName);
+      if (RttiProperty = nil) or (RttiProperty.PropertyType = nil) then
+        Exit;
+
+      case RttiProperty.PropertyType.TypeKind of
+        tkInteger:
+          begin
+            try
+              ValueRec := StrToInt(Value);
+              RttiProperty.SetValue(ObjectInstance, ValueRec);
+            except
+              // 判断是否是 TColor 和 clRed 这种
+              if RttiProperty.PropertyType.Name = 'TColor' then
+              begin
+                try
+                  ValueRec := StringToColor(Value);
+                  RttiProperty.SetValue(ObjectInstance, ValueRec);
+                except
+                  Exit;
+                end;
+              end
+              else
+                Exit;
+            end;
+          end;
+        tkInt64:
+          begin
+            try
+              ValueRec := StrToInt64(Value);
+              RttiProperty.SetValue(ObjectInstance, ValueRec);
+            except
+              Exit;
+            end;
+          end;
+        tkFloat:
+          begin
+            try
+              ValueRec := StrToFloat(Value);
+              RttiProperty.SetValue(ObjectInstance, ValueRec);
+            except
+              Exit;
+            end;
+          end;
+        tkChar,
+        tkWChar:
+          begin
+            try
+              ValueRec := TValue.FromOrdinal(RttiProperty.PropertyType.Handle, StrToInt64(Value));
+              RttiProperty.SetValue(ObjectInstance, ValueRec);
+            except
+              Exit;
+            end;
+          end;
+        tkLString,
+        tkWString,
+{$IFDEF UNICODE}
+        tkUString,
+{$ENDIF}
+        tkString:
+          begin
+            ValueRec := Value;
+            RttiProperty.SetValue(ObjectInstance, ValueRec);
+          end;
+        tkEnumeration:
+          begin
+            // 枚举与 Boolean 都会到这，先从字符串转成 Integer，再转成 Enum 值
+            ValueRec := TValue.FromOrdinal(RttiProperty.PropertyType.Handle,
+              GetEnumValue(RttiProperty.PropertyType.Handle, Value));
+            RttiProperty.SetValue(ObjectInstance, ValueRec);
+          end;
+        tkSet:
+          begin
+            // 集合字符串先转成 Integer，再通过 Make 转成 TValue
+            ASet := StringToSet(RttiProperty.PropertyType.Handle, Value);
+            TValue.Make(@ASet, RttiProperty.PropertyType.Handle, ValueRec);
+            RttiProperty.SetValue(ObjectInstance, ValueRec);
+          end;
+      end;
+
+      Result := True;
+    finally
+      RttiContext.Free;
+    end;
+    Exit;
+  end;
+{$ENDIF}
 
   PropInfo := GetPropInfo(ObjectInstance, PropName);
   if (PropInfo = nil) or (PropInfo^.SetProc = nil) then
@@ -3238,7 +3342,7 @@ begin
   S := Prop.DisplayValue;
   if InputQuery(SCnInputNewValueCaption, Format(SCnInputNewValuePrompt, [Prop.PropName]), S) then
   begin
-    if FInspector.ChangePropertyValue(Prop.PropName, S) then
+    if FInspector.ChangePropertyValue(Prop.PropName, S, Prop) then
       btnRefresh.Click
     else
       ShowMessage(SCnErrorChangeValue);
