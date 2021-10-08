@@ -410,6 +410,47 @@ const
   CN_SOCKS_REPLY_COMMAND_NOT_SUPPORTED      = $07; // 命令不支持
   CN_SOCKS_REPLY_ADDRESS_TYPE_NOT_SUPPORTED = $08; // 地址类型不支持
 
+  {* BGP 边界网关协议的数据类型字段的定义}
+  CN_BGP_TYPE_OPEN                          = $01; // BGP 的 TCP 连接建立后的首包
+  CN_BGP_TYPE_UPDATE                        = $02; // BGP 的路由更新
+  CN_BGP_TYPE_NOTIFICATION                  = $03; // 出错中断
+  CN_BGP_TYPE_KEEPALIVE                     = $04; // 只有头的保持连接类型
+  CN_BGP_TYPE_ROUTE_REFRESH                 = $05; // 刷新路由信息
+
+  {* BGP 边界网关协议的主错误码的定义}
+  CN_BGP_ERRORCODE_HEAD_ERROE               = $01; // 包头消息错误
+  CN_BGP_ERRORCODE_OPEN_ERROE               = $02; // Open 消息错误
+  CN_BGP_ERRORCODE_UPDATE_ERROE             = $03; // Update 消息错误
+  CN_BGP_ERRORCODE_HOLDTIMER_EXPIRED        = $04; // 超时错误
+  CN_BGP_ERRORCODE_FINITE_STATE_MACHINE     = $05; // 有限状态机错误
+  CN_BGP_ERRORCODE_CEASE                    = $06; // 终止
+
+  {* BGP 边界网关协议的头子错误码的定义}
+  CN_BGP_ERRORSUBCODE_HEAD_CONNECTION_NOT_SYNCHRONIZED = $01; // Connection Not Synchronized
+  CN_BGP_ERRORSUBCODE_HEAD_BAD_MESSAGE_LENGTH          = $02; // BAD MESSAGE LENGTH
+  CN_BGP_ERRORSUBCODE_HEAD_BAD_MESSAGE_TYPE            = $03; // Bad Message Type
+
+  {* BGP 边界网关协议的 Open 子错误码的定义}
+  CN_BGP_ERRORSUBCODE_OPEN_UNSUPPORTED_VERSION         = $01; // Unsupported Version Number
+  CN_BGP_ERRORSUBCODE_OPEN_BAD_PEER_AS                 = $02; // Bad Peer AS
+  CN_BGP_ERRORSUBCODE_OPEN_BAD_BGP_IDENTIFIER          = $03; // Bad BGP Identifier
+  CN_BGP_ERRORSUBCODE_OPEN_UNSUPPORTED_OPTIONAL        = $04; // Unsupported Optional Parameter
+  CN_BGP_ERRORSUBCODE_OPEN_DEPRECATED                  = $05; // Deprecated
+  CN_BGP_ERRORSUBCODE_OPEN_UNACCEPTABLE_HOLDTIME       = $06; // Unacceptable Hold Time
+
+  {* BGP 边界网关协议的 Update 子错误码的定义}
+  CN_BGP_ERRORSUBCODE_UPDATE_MALFORMED_ATTRIBUTE_LIST            = $01; // Malformed Attribute List
+  CN_BGP_ERRORSUBCODE_UPDATE_UNRECOGNIZED_WELLKNOWN_ATTRIBUTE    = $02; // Unrecognized Well-known Attribute
+  CN_BGP_ERRORSUBCODE_UPDATE_MISSING_WELLKNOWN_ATTRIBUTE         = $03; // Missing Well-known Attribute
+  CN_BGP_ERRORSUBCODE_UPDATE_ATTRIBUTE_FLAGS_ERROR               = $04; // Attribute Flags Error
+  CN_BGP_ERRORSUBCODE_UPDATE_ATTRIBUTE_LENGTH_ERROR              = $05; // Attribute Length Error
+  CN_BGP_ERRORSUBCODE_UPDATE_INVALID_ORIGIN_ATTRIBUTE            = $06; // Invalid ORIGIN Attribute
+  CN_BGP_ERRORSUBCODE_UPDATE_DEPRECATED                          = $07; // Deprecated
+  CN_BGP_ERRORSUBCODE_UPDATE_INVALID_NEXT_HOP_ATTRIBUTE          = $08; // Invalid NEXT_HOP Attribute
+  CN_BGP_ERRORSUBCODE_UPDATE_OPTIONAL_ATTRIBUTE_ERROR            = $09; // Optional Attribute Error
+  CN_BGP_ERRORSUBCODE_UPDATE_INVALID_NETWORK_FIELD               = $0A; // Invalid Network Field
+  CN_BGP_ERRORSUBCODE_UPDATE_MALFORMED_AS_PATH                   = $0B; // Malformed AS_PATH
+
 type
 
 {*
@@ -849,6 +890,121 @@ type
 
   PCnSocksResponse = ^TCnSocksResponse;
 
+{*
+  BGP 边界网关协议 Notification 型数据包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | Error code    | Error subcode |   Data (variable)             |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnBGPNotificationData = packed record
+    ErrorCode:             Byte;        // 对应 CN_BGP_ERRORCODE_*
+    ErrorSubcode:          Byte;        // 对应 CN_BGP_ERRORSUBCODE_*
+    Data:                  Word;
+  end;
+
+  PTCnBGPNotificationData = ^TCnBGPNotificationData;
+
+{*
+  BGP 边界网关协议 Route-Refresh 型数据包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |             AFI               |      Res.     |     SAFI      |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnBGPRouteRefreshData = packed record
+    AFI:                   Word;
+    Res:                   Byte;
+    SAFI:                  Byte;
+  end;
+
+  PCnBGPRouteRefreshData = ^TCnBGPRouteRefreshData;
+
+{*
+  BGP 边界网关协议 Open 型数据包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |    Version    |                                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |     My Autonomous System      |                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |           Hold Time           |                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                         BGP Identifier                        |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | Opt Parm Len  |                                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                                                               |
+  |             Optional Parameters (variable)                    |
+  |                                                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnBGPOpenData = packed record
+    Version:               Byte;                      // Version 4
+      Padding1:            Byte;
+      Padding2:            Word;
+    MyAS:                  Word;                      // My Autonomous System Number
+      Padding3:            Word;
+    HoldTime:              Word;                      // 单位秒，默认 180，0 表示不发 Keepalive
+      Padding4:            Word;
+    BGPIdentifier:         LongWord;                  // 发送者的 Router ID
+    OptParamLen:           Byte;                      // OptionalParameters 的长度
+      Padding5:            Byte;
+      Padding6:            Word;
+    OptionalParameters:    LongWord;
+  end;
+  PCnBGPOpenData = ^TCnBGPOpenData;
+
+{*
+  BGP 边界网关协议包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意它跑在 TCP 协议上，因而本包头是 TCP 包头后的负载内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                                                               |
+  +                                                               +
+  |                                                               |
+  +                            Marker                             +
+  |                                                               |
+  +                                                               +
+  |                                                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |          Length               |   Type        |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}
+
+  TCnBGPHeader = packed record
+    Marker:                array[0..15] of Byte;      // 兼容头，必须全 1
+    Length:                Word;                      // 包括本包头在内的总包长度
+    BGPType:               Byte;                      // 类型，对应常量 CN_BGP_TYPE_*
+    case Integer of
+      1: (OpenData:          TCnBGPOpenData);
+      // 2: (UpdateData:     TCnBGPUpdateData);
+      3: (NotificationData:  TCnBGPNotificationData);
+      5: (RouteRefreshData:  TCnBGPRouteRefreshData);
+      // 4 KeepAlive 无数据，2 Update 类型数据变长不易声明
+  end;
+
+  PCnBGPHeader = ^TCnBGPHeader;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -1099,6 +1255,17 @@ procedure CnSetSocksResponseBindAddress(const SocksResp: PCnSocksResponse; Addre
 
 function CnSetSocksResponseBindPort(const SocksResp: PCnSocksResponse; Port: Word): Integer;
 {* 设置 Socks 应答中的绑定端口号，返回 SocksResp 结构总长度}
+
+// ===================== BGP 边界网关协议包系列函数 ============================
+
+procedure CnFillBGPHeaderMarkers(const BGPHeader: PCnBGPHeader);
+{* 填充 BGP 边界网关协议包头中的 Marker 字段}
+
+function CnGetBGPHeaderLength(const BGPHeader: PCnBGPHeader): Word;
+{* 返回 BGP 边界网关协议包头中的长度}
+
+procedure CnSetBGPHeaderLength(const BGPHeader: PCnBGPHeader; Length: Word);
+{* 设置 BGP 边界网关协议包头中的长度}
 
 // ========================= 字节顺序调换函数 ==================================
 
@@ -1817,6 +1984,21 @@ begin
     PortAddr^ := CnHostToNetworkWord(Port);
   end;
   Result := Len + 4 + SizeOf(Word);
+end;
+
+procedure CnFillBGPHeaderMarkers(const BGPHeader: PCnBGPHeader);
+begin
+  FillChar(BGPHeader^.Marker[0], Length(BGPHeader^.Marker), $FF);
+end;
+
+function CnGetBGPHeaderLength(const BGPHeader: PCnBGPHeader): Word;
+begin
+  Result := CnNetworkToHostWord(BGPHeader^.Length);
+end;
+
+procedure CnSetBGPHeaderLength(const BGPHeader: PCnBGPHeader; Length: Word);
+begin
+  BGPHeader^.Length := CnHostToNetworkWord(Length);
 end;
 
 end.
