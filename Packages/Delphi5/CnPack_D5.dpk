@@ -38,11 +38,12 @@ requires
 {$ENDIF}
   VclSmp50;
 
-contains
+contains 
   CnAES in '..\..\Source\Crypto\CnAES.pas',
   CnAntiCheater in '..\..\Source\Common\CnAntiCheater.pas',
   CnBase64 in '..\..\Source\Crypto\CnBase64.pas',
   CnBerUtils in '..\..\Source\Crypto\CnBerUtils.pas',
+  CnBigDecimal in '..\..\Source\Common\CnBigDecimal.pas',
   CnBigNumber in '..\..\Source\Crypto\CnBigNumber.pas',
   CnBigRational in '..\..\Source\Common\CnBigRational.pas',
   CnBinaryDiffPatch in '..\..\Source\Common\CnBinaryDiffPatch.pas',
@@ -75,6 +76,7 @@ contains
   CnIniStrUtils in '..\..\Source\Common\CnIniStrUtils.pas',
   CnKDF in '..\..\Source\Crypto\CnKDF.pas',
   CnLinkedList in '..\..\Source\Common\CnLinkedList.pas',
+  CnLockFree in '..\..\Source\Common\CnLockFree.pas',
   CnMatrix in '..\..\Source\Common\CnMatrix.pas',
   CnMD5 in '..\..\Source\Crypto\CnMD5.pas',
   CnMethodHook in '..\..\Source\Common\CnMethodHook.pas',
