@@ -8,6 +8,7 @@
       ..\..\Source\Common\CnAntiCheater.obj 
       ..\..\Source\Crypto\CnBase64.obj 
       ..\..\Source\Crypto\CnBerUtils.obj 
+      ..\..\Source\Common\CnBigDecimal.obj 
       ..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\Source\Common\CnBigRational.obj 
       ..\..\Source\Common\CnBinaryDiffPatch.obj 
@@ -40,6 +41,7 @@
       ..\..\Source\Common\CnIniStrUtils.obj 
       ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Common\CnLinkedList.obj 
+      ..\..\Source\Common\CnLockFree.obj 
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Common\CnMethodHook.obj 

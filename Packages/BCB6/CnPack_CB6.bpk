@@ -9,6 +9,7 @@
       ..\..\Source\Common\CnAntiCheater.obj 
       ..\..\Source\Crypto\CnBase64.obj 
       ..\..\Source\Crypto\CnBerUtils.obj 
+      ..\..\Source\Common\CnBigDecimal.obj 
       ..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\Source\Common\CnBigRational.obj 
       ..\..\Source\Common\CnBinaryDiffPatch.obj 
@@ -43,6 +44,7 @@
       ..\..\Source\Common\CnIniStrUtils.obj 
       ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Common\CnLinkedList.obj 
+      ..\..\Source\Common\CnLockFree.obj 
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Common\CnMethodHook.obj 
@@ -279,6 +281,7 @@
       <FILE FILENAME="..\..\Source\Common\CnAntiCheater.pas" FORMNAME="" UNITNAME="CnAntiCheater" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBase64.pas" FORMNAME="" UNITNAME="CnBase64" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBerUtils.pas" FORMNAME="" UNITNAME="CnBerUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnBigDecimal.pas" FORMNAME="" UNITNAME="CnBigDecimal" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBigNumber.pas" FORMNAME="" UNITNAME="CnBigNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBigRational.pas" FORMNAME="" UNITNAME="CnBigRational" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBinaryDiffPatch.pas" FORMNAME="" UNITNAME="CnBinaryDiffPatch" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
@@ -313,6 +316,7 @@
       <FILE FILENAME="..\..\Source\Common\CnIniStrUtils.pas" FORMNAME="" UNITNAME="CnIniStrUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnKDF.pas" FORMNAME="" UNITNAME="CnKDF" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLinkedList.pas" FORMNAME="" UNITNAME="CnLinkedList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnLockFree.pas" FORMNAME="" UNITNAME="CnLockFree" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMatrix.pas" FORMNAME="" UNITNAME="CnMatrix" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMethodHook.pas" FORMNAME="" UNITNAME="CnMethodHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
