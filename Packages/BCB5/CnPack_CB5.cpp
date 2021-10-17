@@ -199,6 +199,7 @@ USEUNIT("..\..\Source\Skin\CnSkinXPGreenStyle.pas");
 USEUNIT("..\..\Source\Skin\CnSkinXPSilverStyle.pas");
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
+#pragma link "msimg32.lib"
 //---------------------------------------------------------------------------
 
 //   Package source.

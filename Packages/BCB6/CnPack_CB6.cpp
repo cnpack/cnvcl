@@ -3,6 +3,7 @@
 #include <vcl.h>
 #pragma hdrstop
 #pragma package(smart_init)
+#pragma link "msimg32.lib"
 //---------------------------------------------------------------------------
 
 //   Package source.
