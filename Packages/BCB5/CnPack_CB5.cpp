@@ -24,7 +24,7 @@ USEUNIT("..\..\Source\Common\CnCallBack.pas");
 USEUNIT("..\..\Source\Crypto\CnCertificateAuthority.pas");
 USEUNIT("..\..\Source\Common\CnClasses.pas");
 USEUNIT("..\..\Source\Common\CnCommon.pas");
-USEUNIT("..\..\Source\Common\CnComplex.pas");
+USEUNIT("..\..\Source\Crypto\CnComplex.pas");
 USEUNIT("..\..\Source\Common\CnCompUtils.pas");
 USEUNIT("..\..\Source\Common\CnConsts.pas");
 USEUNIT("..\..\Source\Common\CnContainers.pas");

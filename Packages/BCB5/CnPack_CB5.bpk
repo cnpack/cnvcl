@@ -19,7 +19,7 @@
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Common\CnClasses.obj 
       ..\..\Source\Common\CnCommon.obj 
-      ..\..\Source\Common\CnComplex.obj 
+      ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Common\CnCompUtils.obj 
       ..\..\Source\Common\CnConsts.obj 
       ..\..\Source\Common\CnContainers.obj 

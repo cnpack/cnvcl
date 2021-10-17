@@ -20,7 +20,7 @@
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Common\CnClasses.obj 
       ..\..\Source\Common\CnCommon.obj 
-      ..\..\Source\Common\CnComplex.obj 
+      ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Common\CnCompUtils.obj 
       ..\..\Source\Common\CnConsts.obj 
       ..\..\Source\Common\CnContainers.obj 
@@ -293,7 +293,7 @@
       <FILE FILENAME="..\..\Source\Common\CnClasses.pas" FORMNAME="" UNITNAME="CnClasses" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCommon.pas" FORMNAME="" UNITNAME="CnCommon" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCompUtils.pas" FORMNAME="" UNITNAME="CnCompUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnComplex.pas" FORMNAME="" UNITNAME="CnComplex" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnComplex.pas" FORMNAME="" UNITNAME="CnComplex" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnConsts.pas" FORMNAME="" UNITNAME="CnConsts" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnContainers.pas" FORMNAME="" UNITNAME="CnContainers" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
