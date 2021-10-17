@@ -45,12 +45,12 @@ type
 
   ECnGraphException = class(Exception);
 
-  TCnMatrix = array of array of Integer;
+  TCnGraphMatrix = array of array of Integer;
 
-  TCnAdjacencyMatrix = TCnMatrix;
+  TCnAdjacencyMatrix = TCnGraphMatrix;
   {* 邻接矩阵，顶点与顶点}
 
-  TCnIncidenceMatrix = TCnMatrix;
+  TCnIncidenceMatrix = TCnGraphMatrix;
   {* 关联矩阵，顶点与边}
 
   TCnVertex = class(TObject)
@@ -188,12 +188,12 @@ type
     {* 广度优先遍历时遍历到一个顶点时的触发事件，Sender 是此顶点 }
   end;
 
-procedure CnMatrixToStrings(Matrix: TCnMatrix; List: TStrings);
+procedure CnMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
 {* 将矩阵转换为字符串列表用来显示}
 
 implementation
 
-procedure CnMatrixToStrings(Matrix: TCnMatrix; List: TStrings);
+procedure CnMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
 var
   I, J: Integer;
   S: string;
