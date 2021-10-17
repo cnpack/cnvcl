@@ -103,6 +103,7 @@
         <DCCReference Include="..\..\Source\Common\CnAntiCheater.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnBase64.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnBerUtils.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnBigDecimal.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnBigNumber.pas"/>
         <DCCReference Include="..\..\Source\Common\CnBigRational.pas"/>
         <DCCReference Include="..\..\Source\Common\CnBinaryDiffPatch.pas"/>
@@ -138,6 +139,7 @@
         <DCCReference Include="..\..\Source\Common\CnIniStrUtils.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnKDF.pas"/>
         <DCCReference Include="..\..\Source\Common\CnLinkedList.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnLockFree.pas"/>
         <DCCReference Include="..\..\Source\Common\CnMartrix.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnMD5.pas"/>
         <DCCReference Include="..\..\Source\Common\CnMethodHook.pas"/>
