@@ -27,7 +27,7 @@ unit CnBigNumber;
 * 备    注：大部分从 Openssl 的 C 代码移植而来，大数池不支持多线程
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
-*           === !!! D5/D6/CB5/CB6 下可能遇上编译器 Bug 无法修复，无法支持 !!! ==
+*           ======== !!! D5/D6/CB5/CB6 下可能遇上编译器 Bug 无法修复 !!! =======
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -1107,7 +1107,13 @@ begin
   if Num.Top > 2 then
     Result := TUInt64(BN_MASK3U)
   else if Num.Top = 2 then
-    Result := TUInt64(PInt64Array(Num.D)^[0])
+  begin
+{$IFDEF SUPPORT_UINT64}
+    Result := TUInt64(PInt64Array(Num.D)^[0]);
+{$ELSE}
+    Result := PInt64Array(Num.D)^[0]; // 在 D5/6 下 Int64转 Int64 出现 C3517 错误！！！
+{$ENDIF}
+  end
   else if Num.Top = 1 then
     Result := TUInt64(PLongWordArray(Num.D)^[0])
   else
