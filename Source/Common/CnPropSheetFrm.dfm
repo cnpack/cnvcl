@@ -1,8 +1,8 @@
 object CnPropSheetForm: TCnPropSheetForm
   Left = 432
   Top = 96
-  Width = 399
-  Height = 524
+  ClientWidth = 399
+  ClientHeight = 524
   BorderStyle = bsSizeToolWin
   Caption = 'CnDebug Inspector'
   Color = clBtnFace
