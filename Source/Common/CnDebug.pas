@@ -871,7 +871,13 @@ begin
       if TypInfo = nil then
         Result := Result + IntToStr(I)
       else
-        Result := Result + GetEnumName(TypInfo, I);
+      begin
+        try
+          Result := Result + GetEnumName(TypInfo, I);
+        except
+          Result := Result + IntToStr(I);
+        end;
+      end;
     end;
   end;
   Result := '[' + Result + ']';
@@ -2162,6 +2168,12 @@ var
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
+  if AObject = nil then
+  begin
+    LogMsgWithTypeTag('Object: nil', cmtObject, ATag);
+    Exit;
+  end;
+
   List := nil;
   try
     List := TStringList.Create;
@@ -2878,6 +2890,12 @@ var
 {$ENDIF}
 begin
 {$IFNDEF NDEBUG}
+  if AObject = nil then
+  begin
+    TraceMsgWithTypeTag('Object: nil', cmtObject, ATag);
+    Exit;
+  end;
+
   List := nil;
   try
     List := TStringList.Create;
