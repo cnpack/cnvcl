@@ -524,7 +524,7 @@ var
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
-  Len := Length(edtDesFrom.Text);
+  Len := Length(AnsiString(edtDesFrom.Text));
   if Len < 8 then
     Len := 8
   else
@@ -817,7 +817,7 @@ var
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
-  Len := Length(edtSm4.Text);
+  Len := Length(AnsiString(edtSm4.Text));
   if Len < 16 then
     Len := 16
   else
@@ -1844,7 +1844,7 @@ var
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
-  Len := Length(edt3DesFrom.Text);
+  Len := Length(AnsiString(edt3DesFrom.Text));
   if Len < 8 then
     Len := 8
   else
