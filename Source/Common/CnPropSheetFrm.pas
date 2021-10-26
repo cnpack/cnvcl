@@ -97,10 +97,26 @@ type
     FPropRttiValue: TValue;
   {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
     FIndexParamCount: Integer;
+    FIndexNames: TStringList;
   {$ENDIF}
 {$ENDIF}
     FCanModify: Boolean;
+  protected
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+    function GetIndexNames(Index: Integer): string;
+  {$ENDIF}
+{$ENDIF}
   public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+    function AddIndexName(const AName: string): Integer;
+  {$ENDIF}
+{$ENDIF}
+
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
     property PropValue: Variant read FPropValue write FPropValue;
@@ -110,6 +126,7 @@ type
   {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
     // Indexed Property Support
     property IndexParamCount: Integer read FIndexParamCount write FIndexParamCount;
+    property IndexNames[Index: Integer]: string read GetIndexNames;
   {$ENDIF}
 {$ENDIF}
     property CanModify: Boolean read FCanModify write FCanModify;
@@ -445,6 +462,11 @@ type
     FInspectParam: Pointer;
     FCurrObj: TObject;
     FCurrIntf: IUnknown;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+    FCurrProp: TCnPropertyObject;  // 目前用于 Indexed Property
+  {$ENDIF}
+{$ENDIF}
     FParentSheetForm: TCnPropSheetForm;
     FHierarchys: TStrings;
     FGraphicObject: TObject;
@@ -595,6 +617,9 @@ const
   SCnPropContentType: array[TCnPropContentType] of string =
     ('Properties', 'Fields', 'Events', 'Methods', 'CollectionItems', 'MenuItems',
      'Strings', 'Graphics', 'Components', 'Controls', 'Hierarchy');
+
+  SCnInputGetIndexedPropertyCaption = 'Get Indexed Property Value';
+  SCnInputGetIndexedPropertyPrompt = 'Enter a Value for %s:';
 
   SCnInputNewValueCaption = 'Modify Value';
   SCnInputNewValuePrompt = 'Enter a New Value for %s:';
@@ -1717,8 +1742,12 @@ var
       P := M.GetParameters;
       IndexedProp.IndexParamCount := Length(P);
       for I := 0 to Length(P) - 2 do
+      begin
         IndexedProp.PropName := IndexedProp.PropName + P[I].ToString + ', ';
+        IndexedProp.AddIndexName(P[I].ToString);
+      end;
       IndexedProp.PropName := IndexedProp.PropName + P[Length(P) - 1].ToString;
+      IndexedProp.AddIndexName(P[Length(P) - 1].ToString);
     end
     else
     begin
@@ -1731,8 +1760,12 @@ var
       P := M.GetParameters;
       IndexedProp.IndexParamCount := Length(P) - 1;
       for I := 0 to Length(P) - 3 do
+      begin
         IndexedProp.PropName := IndexedProp.PropName + P[I].ToString + ', ';
+        IndexedProp.AddIndexName(P[I].ToString);
+      end;
       IndexedProp.PropName := IndexedProp.PropName + P[Length(P) - 2].ToString;
+      IndexedProp.AddIndexName(P[Length(P) - 2].ToString);
     end;
     IndexedProp.PropName := IndexedProp.PropName + ']';
   end;
@@ -3188,6 +3221,18 @@ end;
 procedure TCnPropSheetForm.btnInspectClick(Sender: TObject);
 var
   Obj: TObject;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+  I: Integer;
+  S: string;
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiIndexedProp: TRttiIndexedProperty;
+  IndexParams: array of TValue;
+  P: TArray<TRttiParameter>;
+  IndexedValue: TValue;
+  {$ENDIF}
+{$ENDIF}
 
   // 移植自 A.Bouchez 的实现
   function ObjectFromInterface(const AIntf: IUnknown): TObject;
@@ -3218,6 +3263,68 @@ begin
     Obj := ObjectFromInterface(FCurrIntf);
     EvaluatePointer(Obj, FInspectParam, nil, False, Self);
   end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+  if (FCurrProp <> nil) and (FCurrProp.IndexParamCount > 0) then
+  begin
+    // TODO: 拿到获取该属性需要的一个或多个 Index 值并调用 Rtti 方法获取真实值
+    RttiContext := TRttiContext.Create;
+    IndexParams := nil;
+    try
+      RttiType := RttiContext.GetType(TObject(FObjectPointer).ClassInfo);
+      if RttiType <> nil then
+      begin
+        S := FCurrProp.PropName; // PropName 后面有 [I: Integer] 的字样要去掉
+        I := Pos('[', S);
+        if I > 1 then
+          S := Copy(S, 1, I - 1);
+
+        RttiIndexedProp := RttiType.GetIndexedProperty(S);
+        // 先从 Obj 与 PropName 拿到 RttiIndexedProperty
+        if (RttiIndexedProp <> nil) and (RttiIndexedProp.ReadMethod <> nil) then
+        begin
+          SetLength(IndexParams, FCurrProp.IndexParamCount);
+          P := RttiIndexedProp.ReadMethod.GetParameters;
+
+          for I := Low(IndexParams) to High(IndexParams) do
+          begin
+            S := '0';
+            if InputQuery(SCnInputGetIndexedPropertyCaption,
+              Format(SCnInputGetIndexedPropertyPrompt, [FCurrProp.IndexNames[I]]), S) then
+              // 根据 ReadMethod 的 GetParam 列表让用户输入各个 Index 值
+              case P[I].ParamType.TypeKind of
+                tkInteger, tkInt64:
+                  IndexParams[I] := StrToInt(S);
+                tkFloat:
+                  IndexParams[I] := StrToFloat(S);
+                tkChar, tkWideChar, tkString, tkWString{$IFDEF UNICODE}, tkUString {$ENDIF}:
+                  IndexParams[I] := S;
+              end
+            else
+              Exit;
+          end;
+          IndexedValue := RttiIndexedProp.GetValue(FObjectPointer, IndexParams);
+
+          if RttiIndexedProp.PropertyType.TypeKind = tkClass then
+          begin
+            if IndexedValue.AsObject <> nil then
+            begin
+              EvaluatePointer(IndexedValue.AsObject);
+              Exit;
+            end;
+          end;
+
+          ShowMessage(IndexedValue.ToString);
+        end;
+      end;
+    finally
+      SetLength(IndexParams, 0);
+      RttiContext.Free;
+    end;
+  end;
+  {$ENDIF}
+{$ENDIF}
 end;
 
 procedure TCnPropSheetForm.lvPropCustomDrawItem(Sender: TCustomListView;
@@ -3248,11 +3355,26 @@ begin
     begin
       if (Item <> nil) and (Item.Data <> nil) and (ALv.Selected = Item) and
         ((TCnDisplayObject(Item.Data).ObjValue <> nil) or
-        (TCnDisplayObject(Item.Data).IntfValue <> nil)) then
+        (TCnDisplayObject(Item.Data).IntfValue <> nil)
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+        or (TCnPropertyObject(Item.Data).IndexParamCount > 0) // 表示是 Index 类型的属性
+  {$ENDIF}
+{$ENDIF}
+        ) then
       begin
         ARect := Item.DisplayRect(drSelectBounds);
         FCurrObj := TCnDisplayObject(Item.Data).ObjValue;
         FCurrIntf := TCnDisplayObject(Item.Data).IntfValue;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+        if TCnDisplayObject(Item.Data) is TCnPropertyObject then
+          FCurrProp := TCnPropertyObject(Item.Data)
+        else
+          FCurrProp := nil;
+  {$ENDIF}
+{$ENDIF}
 
         if ARect.Top >= FListViewHeaderHeight then
         begin
@@ -3276,8 +3398,15 @@ procedure TCnPropSheetForm.lvPropSelectItem(Sender: TObject;
 begin
   if Sender is TListView then
   begin
-    if (Item <> nil) and (Item.Data <> nil) and ((Sender as TListView).Selected = Item)
-      and (TCnDisplayObject(Item.Data).ObjValue <> nil) then
+    if (Item <> nil) and (Item.Data <> nil) and ((Sender as TListView).Selected = Item) and
+       ((TCnDisplayObject(Item.Data).ObjValue <> nil)
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+  {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+        or (TCnPropertyObject(Item.Data).IndexParamCount > 0) // 表示是 Index 类型的属性
+  {$ENDIF}
+{$ENDIF}
+      ) then
+      // pnlInspectBtn.Visible := True
     else
       pnlInspectBtn.Visible := False;
   end;
@@ -3967,6 +4096,44 @@ begin
   end;
 {$ENDIF}
 end;
+
+{ TCnPropertyObject }
+
+constructor TCnPropertyObject.Create;
+begin
+  inherited;
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+  FIndexNames := TStringList.Create;
+{$ENDIF}
+{$ENDIF}
+end;
+
+destructor TCnPropertyObject.Destroy;
+begin
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+  FIndexNames.Free;
+{$ENDIF}
+{$ENDIF}
+  inherited;
+end;
+
+{$IFDEF SUPPORT_ENHANCED_RTTI}
+{$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
+
+function TCnPropertyObject.GetIndexNames(Index: Integer): string;
+begin
+  Result := FIndexNames[Index];
+end;
+
+function TCnPropertyObject.AddIndexName(const AName: string): Integer;
+begin
+  Result := FIndexNames.Add(AName);
+end;
+
+{$ENDIF}
+{$ENDIF}
 
 initialization
   FSheetList := TComponentList.Create(True);
