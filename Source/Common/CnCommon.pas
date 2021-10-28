@@ -927,6 +927,9 @@ procedure ListboxHorizontalScrollbar(Listbox: TCustomListBox);
 procedure CloneMenuItem(Source, Dest: TMenuItem);
 {* 复制菜单项和其子项}
 
+procedure SelectMemoOneLine(AMemo: TMemo; FromLine: Integer);
+{* 选中 Memo 的第 FromLine 后的一整行，首行是第 1 行}
+
 //------------------------------------------------------------------------------
 // 其它过程
 //------------------------------------------------------------------------------
@@ -6638,6 +6641,40 @@ begin
 
       CloneMenuItem(Source.Items[I], Item);
     end;
+  end;
+end;
+
+procedure SelectMemoOneLine(AMemo: TMemo; FromLine: Integer);
+var
+  L, I: Integer;
+{$IFDEF DELPHI2007}
+  J, Len: Integer;
+{$ENDIF}
+begin
+  if AMemo = nil then
+    Exit;
+
+  if AMemo.Lines.Count > FromLine then // 有待显示内容
+  begin
+    L := 0;
+    for I := 0 to FromLine - 1 do
+    begin
+{$IFDEF DELPHI2007}
+      Len := Length(AMemo.Lines[I]);
+      for J := 0 to Length(AMemo.Lines[I]) - 1 do
+      begin
+        if Ord(AMemo.Lines[I][J]) < 128 then
+          Inc(Len);
+      end;
+      Len := Len div 2;
+      L := L + Len + 2;
+{$ELSE}
+      L := L + Length(AMemo.Lines[I]) + 2;
+{$ENDIF}
+    end;
+
+    AMemo.SelStart := L;
+    AMemo.SelLength := Length(AMemo.Lines[FromLine]);
   end;
 end;
 
