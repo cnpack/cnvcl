@@ -5685,10 +5685,10 @@ begin
     btnOK := TButton.Create(FormMess);
 
     FormMess.Name := 'FormMess';
-    FormMess.BorderStyle := bsDialog;
+    FormMess.BorderStyle := bsSizeable;
     FormMess.Color := clBtnFace;
-    FormMess.ClientWidth := 500;
-    FormMess.ClientHeight := 400;
+    FormMess.ClientWidth := 600;
+    FormMess.ClientHeight := 500;
     FormMess.Scaled := True;
     FormMess.Font.Charset := DEFAULT_CHARSET;
     FormMess.Font.Color := clWindowText;
@@ -5708,8 +5708,8 @@ begin
     mmoMess.Parent := FormMess;
     mmoMess.Left := 0;
     mmoMess.Top := 0;
-    mmoMess.Width := 500;
-    mmoMess.Height := 380;
+    mmoMess.Width := 600;
+    mmoMess.Height := 480;
     mmoMess.Align := alTop;
     mmoMess.Anchors := [akLeft, akTop, akRight, akBottom];
     mmoMess.ReadOnly := True;
@@ -5723,17 +5723,18 @@ begin
 
     btnOK.Name := 'btnOK';
     btnOK.Parent := FormMess;
-    btnOK.Left := 417;
-    btnOK.Top := 368;
     btnOK.Width := 75;
     btnOK.Height := 21;
+
+    btnOK.Left := FormMess.ClientWidth - btnOK.Width - 8;
+    btnOK.Top := FormMess.ClientHeight - btnOK.Height - 8;
     btnOK.Anchors := [akRight, akBottom];
     btnOK.Caption := SCnMsgDlgOK;
     btnOK.TabOrder := 1;
     btnOK.ModalResult := mrOk;
 
-//    FormMess.Height := Screen.Width div 2;
-//    FormMess.Width := Screen.Height div 2;
+    mmoMess.Height := FormMess.ClientHeight - btnOK.Height - 16;
+
     FormMess.ShowModal;
   finally
     FormMess.Free;
