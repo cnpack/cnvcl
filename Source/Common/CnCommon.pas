@@ -742,6 +742,10 @@ function QueryDlg(const Mess: string; DefaultNo: Boolean = False;
   Caption: string = ''): Boolean;
 {* 显示查询是否窗口}
 
+procedure LongMessageDlg(const Mess: string; AutoWrap: Boolean = False;
+  const Caption: string = '');
+{* 用 Memo 显示长字符串或多行字符串}
+
 function MultiButtonsDlg(const Mess: string; Buttons: TCnDlgButtonCaptions;
   Caption: string = ''): TCnDlgResult;
 {* 显示多按钮对话框，动态构造按钮并返回其 ModalResult，暂不支持图标}
@@ -5666,6 +5670,74 @@ begin
     Caption := SCnInformation;
   Result := Application.MessageBox(PChar(Mess), PChar(Caption),
     MB_YESNO + MB_ICONQUESTION + Defaults[DefaultNo]) = IDYES;
+end;
+
+procedure LongMessageDlg(const Mess: string; AutoWrap: Boolean;
+  const Caption: string);
+var
+  FormMess: TForm;
+  mmoMess: TMemo;
+  btnOK: TButton;
+begin
+  FormMess := TForm.Create(Application);
+  try
+    mmoMess := TMemo.Create(FormMess);
+    btnOK := TButton.Create(FormMess);
+
+    FormMess.Name := 'FormMess';
+    FormMess.BorderStyle := bsDialog;
+    FormMess.Color := clBtnFace;
+    FormMess.ClientWidth := 500;
+    FormMess.ClientHeight := 400;
+    FormMess.Scaled := True;
+    FormMess.Font.Charset := DEFAULT_CHARSET;
+    FormMess.Font.Color := clWindowText;
+    FormMess.Font.Height := -11;
+    FormMess.Font.Name := 'MS Sans Serif';
+    FormMess.Font.Style := [];
+    FormMess.OldCreateOrder := False;
+    FormMess.Position := poScreenCenter;
+    FormMess.PixelsPerInch := 96;
+
+    if Caption = '' then
+      FormMess.Caption := SCnInformation
+    else
+      FormMess.Caption := Caption;
+
+    mmoMess.Name := 'mmoMess';
+    mmoMess.Parent := FormMess;
+    mmoMess.Left := 0;
+    mmoMess.Top := 0;
+    mmoMess.Width := 500;
+    mmoMess.Height := 380;
+    mmoMess.Align := alTop;
+    mmoMess.Anchors := [akLeft, akTop, akRight, akBottom];
+    mmoMess.ReadOnly := True;
+    mmoMess.TabOrder := 0;
+    mmoMess.ScrollBars := ssBoth;
+
+    if AutoWrap then
+      mmoMess.WordWrap := True;
+
+    mmoMess.Lines.Text := Mess;
+
+    btnOK.Name := 'btnOK';
+    btnOK.Parent := FormMess;
+    btnOK.Left := 417;
+    btnOK.Top := 368;
+    btnOK.Width := 75;
+    btnOK.Height := 21;
+    btnOK.Anchors := [akRight, akBottom];
+    btnOK.Caption := SCnMsgDlgOK;
+    btnOK.TabOrder := 1;
+    btnOK.ModalResult := mrOk;
+
+//    FormMess.Height := Screen.Width div 2;
+//    FormMess.Width := Screen.Height div 2;
+    FormMess.ShowModal;
+  finally
+    FormMess.Free;
+  end;
 end;
 
 function GetAveCharSize(Canvas: TCanvas): TPoint;
