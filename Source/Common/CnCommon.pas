@@ -5695,7 +5695,9 @@ begin
     FormMess.Font.Height := -11;
     FormMess.Font.Name := 'MS Sans Serif';
     FormMess.Font.Style := [];
+{$IFNDEF NO_OLDCREATEORDER}
     FormMess.OldCreateOrder := False;
+{$ENDIF}
     FormMess.Position := poScreenCenter;
     FormMess.PixelsPerInch := 96;
 
