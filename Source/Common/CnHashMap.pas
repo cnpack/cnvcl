@@ -294,7 +294,7 @@ type
     procedure DoFreeNode(Node: TCnHashNode); virtual;
   public
     constructor Create(ACapacity: Integer = CN_HASH_MAP_DEFAULT_CAPACITY;
-      ALoadFactor: Real = CN_HASH_MAP_DEFAULT_LOADFACTOR); virtual;
+      ALoadFactor: Double = CN_HASH_MAP_DEFAULT_LOADFACTOR); virtual;
     destructor Destroy; override;
 
     procedure Add(Key: TObject; Value: TObject); overload;
@@ -984,7 +984,7 @@ begin
   until Node = nil;
 end;
 
-constructor TCnHashMap.Create(ACapacity: Integer; ALoadFactor: Real);
+constructor TCnHashMap.Create(ACapacity: Integer; ALoadFactor: Double);
 begin
   if ACapacity <= 0 then
     ACapacity := CN_HASH_MAP_DEFAULT_CAPACITY;
