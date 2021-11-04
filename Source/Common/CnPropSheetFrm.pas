@@ -3298,7 +3298,7 @@ begin
                   IndexParams[I] := StrToInt(S);
                 tkFloat:
                   IndexParams[I] := StrToFloat(S);
-                tkChar, tkWideChar, tkString, tkWString{$IFDEF UNICODE}, tkUString {$ENDIF}:
+                tkChar, tkWChar, tkString, tkWString{$IFDEF UNICODE}, tkUString {$ENDIF}:
                   IndexParams[I] := S;
               end
             else
