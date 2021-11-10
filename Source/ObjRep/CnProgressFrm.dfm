@@ -14,7 +14,7 @@ object ProgressForm: TProgressForm
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = False
-  Position = poMainFormCenter
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object SpeedButton1: TSpeedButton
