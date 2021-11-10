@@ -4,8 +4,8 @@ object ProgressForm: TProgressForm
   AutoSize = True
   BorderStyle = bsNone
   Caption = 'Progress'
-  ClientHeight = 81
-  ClientWidth = 297
+  ClientHeight = 88
+  ClientWidth = 322
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,33 +16,26 @@ object ProgressForm: TProgressForm
   OldCreateOrder = False
   Position = poMainFormCenter
   PixelsPerInch = 96
-  TextHeight = 12
+  TextHeight = 13
   object SpeedButton1: TSpeedButton
     Left = 0
     Top = 0
-    Width = 297
-    Height = 81
+    Width = 322
+    Height = 88
     Enabled = False
   end
   object lblTitle: TLabel
-    Left = 8
-    Top = 8
-    Width = 48
-    Height = 12
+    Left = 9
+    Top = 20
+    Width = 30
+    Height = 13
     Caption = 'lblTitle'
   end
-  object Label1: TLabel
-    Left = 8
-    Top = 27
-    Width = 54
-    Height = 12
-    Caption = 'Please Wait...'
-  end
   object ProgressBar: TProgressBar
-    Left = 8
-    Top = 48
-    Width = 281
-    Height = 23
+    Left = 9
+    Top = 52
+    Width = 304
+    Height = 25
     Min = 0
     Max = 100
     Smooth = True

@@ -509,16 +509,16 @@ function IntToStrSp(Value: Integer; SpLen: Integer = 3; Sp: Char = ',';
   ShowPlus: Boolean = False): string;
 {* 带分隔符的整数－字符转换}
 
-function IsFloat(const s: String): Boolean;
+function IsFloat(const S: String): Boolean;
 {* 判断字符串是否可转换成浮点型}
 
-function IsInt(const s: String): Boolean;
+function IsInt(const S: String): Boolean;
 {* 判断字符串是否可转换成整型}
 
-function IsDateTime(const s: string): Boolean;
+function IsDateTime(const S: string): Boolean;
 {* 判断字符串是否可转换成 DateTime }
 
-function IsValidEmail(const s: string): Boolean;
+function IsValidEmail(const S: string): Boolean;
 {* 判断是否有效的邮件地址}
 
 function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
@@ -649,7 +649,7 @@ function FastSqrt(N: LongWord): LongWord;
 function FastSqrt64(N: Int64): Int64;
 {* 逐位确定法快速计算整数的平方根的整数部分}
 
-function StrToRegRoot(const s: string): HKEY;
+function StrToRegRoot(const S: string): HKEY;
 {* 字符串转注册表根键，支持 'HKEY_CURRENT_USER' 'HKCR' 长短两种格式}
 
 function RegRootToStr(Key: HKEY; ShortFormat: Boolean = True): string;
@@ -1870,15 +1870,15 @@ end;
 // 删除文件到回收站
 function DeleteToRecycleBin(const FileName: string): Boolean;
 var
-  s: string;
+  S: string;
   lpFileOp: TSHFileOpStruct;
 begin
-  s := PChar(FileName) + #0#0;
+  S := PChar(FileName) + #0#0;
   with lpFileOp do
   begin
     Wnd := Application.Handle;
     wFunc := FO_DELETE;
-    pFrom := PChar(s);
+    pFrom := PChar(S);
     pTo := nil;
     fFlags := FOF_ALLOWUNDO or FOF_SILENT or FOF_NOCONFIRMATION;
     hNameMappings := nil;
@@ -2659,15 +2659,15 @@ var
 
   procedure ReadLinesFromPipe(IsEnd: Boolean);
   var
-    s: AnsiString;
+    S: AnsiString;
     ls: TStringList;
     i: Integer;
   begin
     if InStream.Position < InStream.Size then
     begin
-      SetLength(s, InStream.Size - InStream.Position);
-      InStream.Read(PAnsiChar(s)^, InStream.Size - InStream.Position);
-      strTemp := strTemp + string(s);
+      SetLength(S, InStream.Size - InStream.Position);
+      InStream.Read(PAnsiChar(S)^, InStream.Size - InStream.Position);
+      strTemp := strTemp + string(S);
       ls := TStringList.Create;
       try
         ls.Text := strTemp;
@@ -2853,13 +2853,13 @@ begin
   SetLength(S, StrLen(PChar(S)));
 end;
 
-// 取Program Files目录
+// 取 Program Files 目录
 function GetProgramFilesDir: string;
 begin
   Result := RegReadStringDef(HKEY_LOCAL_MACHINE, HKLM_CURRENT_VERSION_WINDOWS, 'ProgramFilesDir', '');
 end;
 
-// 取Windows目录
+// 取 Windows 目录
 function GetWindowsDir: string;
 var
   Required: Cardinal;
@@ -4453,32 +4453,32 @@ end;
 //------------------------------------------------------------------------------
 
 // 判断字符串是否可转换成浮点型
-function IsFloat(const s: String): Boolean;
+function IsFloat(const S: String): Boolean;
 var
   I: Real;
   E: Integer;
 begin
-  Val(s, I, E);
+  Val(S, I, E);
   Result := E = 0;
   E := Trunc( I );
 end;
 
 // 判断字符串是否可转换成整型
-function IsInt(const s: String): Boolean;
+function IsInt(const S: String): Boolean;
 var
   I: Integer;
   E: Integer;
 begin
-  Val(s, I, E);
+  Val(S, I, E);
   Result := E = 0;
   E := Trunc( I );
 end;
 
 // 判断字符串是否可转换成 DateTime
-function IsDateTime(const s: string): Boolean;
+function IsDateTime(const S: string): Boolean;
 begin
   try
-    StrToDateTime(s);
+    StrToDateTime(S);
     Result := True;
   except
     Result := False;
@@ -4486,23 +4486,23 @@ begin
 end;
 
 // 判断是否有效的邮件地址
-function IsValidEmail(const s: string): Boolean;
+function IsValidEmail(const S: string): Boolean;
 var
   i: Integer;
   AtCount: Integer;
 begin
   Result := False;
-  if s = '' then Exit;
+  if S = '' then Exit;
   AtCount := 0;
-  for i := 1 to Length(s) do
+  for i := 1 to Length(S) do
   begin
-    if s[i] = '@' then
+    if S[i] = '@' then
     begin
       Inc(AtCount);
       if AtCount > 1 then
         Exit;
     end
-    else if not CharInSet(s[i], ['0'..'9', 'a'..'z', 'A'..'Z', '_', '.', '-']) then
+    else if not CharInSet(S[i], ['0'..'9', 'a'..'z', 'A'..'Z', '_', '.', '-']) then
       Exit;
   end;
   Result := AtCount = 1;
@@ -4548,19 +4548,19 @@ end;
 // 带分隔符的整数－字符转换
 function IntToStrSp(Value: Integer; SpLen: Integer; Sp: Char; ShowPlus: Boolean): string;
 var
-  s: string;
+  S: string;
   i, j: Integer;
 begin
-  s := IntToStr(Value);
+  S := IntToStr(Value);
   if ShowPlus and (Value > 0) then
-    s := '+' + s;
+    S := '+' + S;
   Result := '';
   j := 0;
-  for i := Length(s) downto 1 do
+  for i := Length(S) downto 1 do
   begin
-    Result := s[i] + Result;
+    Result := S[i] + Result;
     Inc(j);
-    if ((j mod SpLen) = 0) and (i <> 1) and not CharInSet(s[i - 1], ['+', '-']) then
+    if ((j mod SpLen) = 0) and (i <> 1) and not CharInSet(S[i - 1], ['+', '-']) then
       Result := Sp + Result;
   end;
 end;
@@ -5253,21 +5253,21 @@ begin
 end;
 
 // 字符串转注册表根键，支持 'HKEY_CURRENT_USER' 'HKCR' 长短两种格式
-function StrToRegRoot(const s: string): HKEY;
+function StrToRegRoot(const S: string): HKEY;
 begin
-  if SameText(s, 'HKEY_CLASSES_ROOT') or SameText(s, 'HKCR') then
+  if SameText(S, 'HKEY_CLASSES_ROOT') or SameText(S, 'HKCR') then
     Result := HKEY_CLASSES_ROOT
-  else if SameText(s, 'HKEY_CURRENT_USER') or SameText(s, 'HKCU') then
+  else if SameText(S, 'HKEY_CURRENT_USER') or SameText(S, 'HKCU') then
     Result := HKEY_CURRENT_USER
-  else if SameText(s, 'HKEY_LOCAL_MACHINE') or SameText(s, 'HKLM') then
+  else if SameText(S, 'HKEY_LOCAL_MACHINE') or SameText(S, 'HKLM') then
     Result := HKEY_LOCAL_MACHINE
-  else if SameText(s, 'HKEY_USERS') or SameText(s, 'HKU') then
+  else if SameText(S, 'HKEY_USERS') or SameText(S, 'HKU') then
     Result := HKEY_USERS
-  else if SameText(s, 'HKEY_PERFORMANCE_DATA') or SameText(s, 'HKPD') then
+  else if SameText(S, 'HKEY_PERFORMANCE_DATA') or SameText(S, 'HKPD') then
     Result := HKEY_PERFORMANCE_DATA
-  else if SameText(s, 'HKEY_CURRENT_CONFIG') or SameText(s, 'HKCC') then
+  else if SameText(S, 'HKEY_CURRENT_CONFIG') or SameText(S, 'HKCC') then
     Result := HKEY_CURRENT_CONFIG
-  else if SameText(s, 'HKEY_DYN_DATA') or SameText(s, 'HKDD') then
+  else if SameText(S, 'HKEY_DYN_DATA') or SameText(S, 'HKDD') then
     Result := HKEY_DYN_DATA
   else
     Result := HKEY_CURRENT_USER;
@@ -5593,20 +5593,20 @@ function CnAuthorEmailToStr(Author, Email: string): string;
 var
   s1, s2: string;
 
-  function GetLeftStr(var s: string; Sep: string): string;
+  function GetLeftStr(var S: string; Sep: string): string;
   var
     i: Integer;
   begin
     Result := '';
-    i := AnsiPos(Sep, s);
+    i := AnsiPos(Sep, S);
     if i > 0 then
     begin
-      Result := Trim(Copy(s, 1, i - 1));
-      Delete(s, 1, i);
+      Result := Trim(Copy(S, 1, i - 1));
+      Delete(S, 1, i);
     end
     else begin
-      Result := s;
-      s := '';
+      Result := S;
+      S := '';
     end;
   end;
 
@@ -7146,14 +7146,14 @@ end;
 // 全角字符转换为半角字符。其中句号"。"转为"."，顿号"、"转为","
 function TextFullWidthToHalfWidth(const Text: string): string;
 var
-  s: string;
+  S: string;
   s1, s2: WideString;
   l: Integer;
 begin
   // 中文句号和顿号不会自动替换为 . 号，需要自行处理
-  s := StringReplace(Text, '。', '.', [rfReplaceAll]);
-  s := StringReplace(s, '、', ',', [rfReplaceAll]);
-  s1 := s;
+  S := StringReplace(Text, '。', '.', [rfReplaceAll]);
+  S := StringReplace(S, '、', ',', [rfReplaceAll]);
+  s1 := S;
   l := Length(s1);
   SetLength(s2, l);
   LCMapStringW(GetThreadLocale, LCMAP_HALFWIDTH, PWideChar(s1), l, PWideChar(s2), l);
