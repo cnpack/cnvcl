@@ -183,6 +183,11 @@ type
     btnInt64MulDFT: TButton;
     btnTestInt64SimpleDFT: TButton;
     btnTestInt64SimpleNTT: TButton;
+    tsBiInt64Polynomial: TTabSheet;
+    grpBiInt64Poly: TGroupBox;
+    btnBiInt64ToString: TButton;
+    edtBIP: TEdit;
+    btnBiInt64SetString: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -296,6 +301,7 @@ type
     procedure btnInt64MulDFTClick(Sender: TObject);
     procedure btnTestInt64SimpleDFTClick(Sender: TObject);
     procedure btnTestInt64SimpleNTTClick(Sender: TObject);
+    procedure btnBiInt64ToStringClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -476,7 +482,7 @@ procedure TFormPolynomial.btnIPCreateClick(Sender: TObject);
 var
   IP: TCnInt64Polynomial;
 begin
-  IP := TCnInt64Polynomial.Create([23, 4, -45, 6, -78, 23, 34, 1, 0, -34, 4]);
+  IP := TCnInt64Polynomial.Create([23, 4, -45, 0, -78, 23, 34, 1, 0, -34, 4, -1]);
   edtIP1.Text := IP.ToString;
   IP.Free;
 end;
@@ -3920,6 +3926,21 @@ begin
   FIP2.SetCoefficents([1, 1, 1]);
   if Int64PolynomialNttMul(FIP3, FIP1, FIP2) then
     ShowMessage(FIP3.ToString);
+end;
+
+procedure TFormPolynomial.btnBiInt64ToStringClick(Sender: TObject);
+var
+  IBP: TCnInt64BiPolynomial;
+begin
+  IBP := TCnInt64BiPolynomial.Create;
+
+  IBP.SetYCoefficents(0, [23, 4, -45]);
+  IBP.SetYCoefficents(1, [0, -78, 23, 34]);
+  IBP.SetYCoefficents(3, [1, 0]);
+  IBP.SetYCoefficents(4, [-34, 4, -1]);
+
+  edtBIP.Text := IBP.ToString;
+  IBP.Free;
 end;
 
 end.

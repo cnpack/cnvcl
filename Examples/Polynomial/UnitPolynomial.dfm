@@ -576,7 +576,7 @@ object FormPolynomial: TFormPolynomial
           Top = 24
           Width = 169
           Height = 25
-          Caption = 'Calc 2 * Point (x, 1*y£©on Ecc'
+          Caption = 'Calc 2 * Point (x, 1*y) on Ecc'
           TabOrder = 0
           OnClick = btnRP2PointClick
         end
@@ -1308,7 +1308,7 @@ object FormPolynomial: TFormPolynomial
           Top = 24
           Width = 169
           Height = 25
-          Caption = 'Calc 2 * Point (x, 1*y£©on Ecc'
+          Caption = 'Calc 2 * Point (x, 1*y) on Ecc'
           TabOrder = 1
           OnClick = btnBNTestPointAddClick
         end
@@ -1486,6 +1486,43 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Compose Rational using Polynomial'
           TabOrder = 22
           OnClick = btnBNRationalPolyClick
+        end
+      end
+    end
+    object tsBiInt64Polynomial: TTabSheet
+      Caption = 'Bi Int64 Polynomial'
+      ImageIndex = 6
+      object grpBiInt64Poly: TGroupBox
+        Left = 8
+        Top = 4
+        Width = 897
+        Height = 513
+        Caption = 'Bi Int64 Polynomial'
+        TabOrder = 0
+        object btnBiInt64ToString: TButton
+          Left = 24
+          Top = 32
+          Width = 75
+          Height = 21
+          Caption = 'To String'
+          TabOrder = 0
+          OnClick = btnBiInt64ToStringClick
+        end
+        object edtBIP: TEdit
+          Left = 128
+          Top = 32
+          Width = 673
+          Height = 21
+          TabOrder = 1
+        end
+        object btnBiInt64SetString: TButton
+          Left = 816
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'Set String'
+          TabOrder = 2
+          OnClick = btnInt64PolySetStringClick
         end
       end
     end

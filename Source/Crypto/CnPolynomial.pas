@@ -58,12 +58,12 @@ type
 
 // =============================================================================
 //
-//                         整系数多项式与有理分式
+//                      一元整系数多项式与一元有理分式
 //
 // =============================================================================
 
   TCnInt64Polynomial = class(TCnInt64List)
-  {* 整系数多项式，系数范围为 Int64}
+  {* 一元整系数多项式，系数范围为 Int64}
   private
     function GetMaxDegree: Integer;
     procedure SetMaxDegree(const Value: Integer);
@@ -98,7 +98,7 @@ type
   end;
 
   TCnInt64RationalPolynomial = class(TPersistent)
-  {* 整系数分式，分母分子分别为整系数多项式}
+  {* 一元整系数有理分式，分母分子分别为一元整系数多项式}
   private
     FNominator: TCnInt64Polynomial;
     FDenominator: TCnInt64Polynomial;
@@ -137,7 +137,7 @@ type
   end;
 
   TCnInt64PolynomialPool = class(TCnMathObjectPool)
-  {* 整系数多项式池实现类，允许使用到整系数多项式的地方自行创建整系数多项式池}
+  {* 一元整系数多项式池实现类，允许使用到一元整系数多项式的地方自行创建一元整系数多项式池}
   protected
     function CreateObject: TObject; override;
   public
@@ -146,7 +146,7 @@ type
   end;
 
   TCnInt64RationalPolynomialPool = class(TCnMathObjectPool)
-  {* 整系数有理分式池实现类，允许使用到整系数有理分式的地方自行创建整系数有理分式池}
+  {* 一元整系数有理分式池实现类，允许使用到一元整系数有理分式的地方自行创建整一元系数有理分式池}
   protected
     function CreateObject: TObject; override;
   public
@@ -156,12 +156,12 @@ type
 
 // =============================================================================
 //
-//                       大整系数多项式与有理分式
+//                 一元大整系数多项式与一元大整系数有理分式
 //
 // =============================================================================
 
   TCnBigNumberPolynomial = class(TCnBigNumberList)
-  {* 大整系数多项式}
+  {* 一元大整系数多项式}
   private
     function GetMaxDegree: Integer;
     procedure SetMaxDegree(const Value: Integer);
@@ -196,7 +196,7 @@ type
   end;
 
   TCnBigNumberRationalPolynomial = class(TPersistent)
-  {* 大整系数分式，分母分子分别为大整系数多项式}
+  {* 一元大整系数有理分式，分母分子分别为一元大整系数多项式}
   private
     FNominator: TCnBigNumberPolynomial;
     FDenominator: TCnBigNumberPolynomial;
@@ -235,7 +235,7 @@ type
   end;
 
   TCnBigNumberPolynomialPool = class(TCnMathObjectPool)
-  {* 大整系数多项式池实现类，允许使用到大整数系数多项式的地方自行创建大整数系数多项式池}
+  {* 一元大整系数多项式池实现类，允许使用到一元大整数系数多项式的地方自行创建一元大整数系数多项式池}
   protected
     function CreateObject: TObject; override;
   public
@@ -244,7 +244,7 @@ type
   end;
 
   TCnBigNumberRationalPolynomialPool = class(TCnMathObjectPool)
-  {* 大整系数有理分式池实现类，允许使用到大整系数有理分式的地方自行创建大整系数有理分式池}
+  {* 一元大整系数有理分式池实现类，允许使用到一元大整系数有理分式的地方自行创建一元大整系数有理分式池}
   protected
     function CreateObject: TObject; override;
   public
@@ -252,208 +252,208 @@ type
     procedure Recycle(Poly: TCnBigNumberRationalPolynomial); reintroduce;
   end;
 
-// ======================== 整系数多项式基础运算 ===============================
+// ====================== 一元整系数多项式基础运算 =============================
 
 function Int64PolynomialNew: TCnInt64Polynomial;
-{* 创建一个动态分配的整系数多项式对象，等同于 TCnInt64Polynomial.Create}
+{* 创建一个动态分配的一元整系数多项式对象，等同于 TCnInt64Polynomial.Create}
 
 procedure Int64PolynomialFree(const P: TCnInt64Polynomial);
-{* 释放一个整系数多项式对象，等同于 TCnInt64Polynomial.Free}
+{* 释放一个一元整系数多项式对象，等同于 TCnInt64Polynomial.Free}
 
 function Int64PolynomialDuplicate(const P: TCnInt64Polynomial): TCnInt64Polynomial;
-{* 从一个整系数多项式对象克隆一个新对象}
+{* 从一个一元整系数多项式对象克隆一个新对象}
 
 function Int64PolynomialCopy(const Dst: TCnInt64Polynomial;
   const Src: TCnInt64Polynomial): TCnInt64Polynomial;
-{* 复制一个整系数多项式对象，成功返回 Dst}
+{* 复制一个一元整系数多项式对象，成功返回 Dst}
 
 function Int64PolynomialToString(const P: TCnInt64Polynomial;
   const VarName: Char = 'X'): string;
-{* 将一个整系数多项式对象转成字符串，未知数默认以 X 表示}
+{* 将一个一元整系数多项式对象转成字符串，未知数默认以 X 表示}
 
 function Int64PolynomialSetString(const P: TCnInt64Polynomial;
   const Str: string; const VarName: Char = 'X'): Boolean;
-{* 将字符串形式的整系数多项式赋值给整系数多项式对象，返回是否赋值成功}
+{* 将字符串形式的一元整系数多项式赋值给一元整系数多项式对象，返回是否赋值成功}
 
 function Int64PolynomialIsZero(const P: TCnInt64Polynomial): Boolean;
-{* 判断一个整系数多项式对象是否为 0}
+{* 判断一个一元整系数多项式对象是否为 0}
 
 procedure Int64PolynomialSetZero(const P: TCnInt64Polynomial);
-{* 将一个整系数多项式对象设为 0}
+{* 将一个一元整系数多项式对象设为 0}
 
 function Int64PolynomialIsOne(const P: TCnInt64Polynomial): Boolean;
-{* 判断一个整系数多项式对象是否为 1}
+{* 判断一个一元整系数多项式对象是否为 1}
 
 procedure Int64PolynomialSetOne(const P: TCnInt64Polynomial);
-{* 将一个整系数多项式对象设为 1}
+{* 将一个一元整系数多项式对象设为 1}
 
 function Int64PolynomialIsNegOne(const P: TCnInt64Polynomial): Boolean;
-{* 判断一个整系数多项式对象是否为 -1}
+{* 判断一个一元整系数多项式对象是否为 -1}
 
 procedure Int64PolynomialNegate(const P: TCnInt64Polynomial);
-{* 将一个整系数多项式对象所有系数求反}
+{* 将一个一元整系数多项式对象所有系数求反}
 
 procedure Int64PolynomialShiftLeft(const P: TCnInt64Polynomial; N: Integer);
-{* 将一个整系数多项式对象左移 N 次，也就是各项指数都加 N}
+{* 将一个一元整系数多项式对象左移 N 次，也就是各项指数都加 N}
 
 procedure Int64PolynomialShiftRight(const P: TCnInt64Polynomial; N: Integer);
-{* 将一个整系数多项式对象右移 N 次，也就是各项指数都减 N，小于 0 的忽略了}
+{* 将一个一元整系数多项式对象右移 N 次，也就是各项指数都减 N，小于 0 的忽略了}
 
 function Int64PolynomialEqual(const A, B: TCnInt64Polynomial): Boolean;
-{* 判断俩整系数多项式每项系数是否对应相等，是则返回 True}
+{* 判断俩一元整系数多项式每项系数是否对应相等，是则返回 True}
 
 // =========================== 多项式普通运算 ==================================
 
 procedure Int64PolynomialAddWord(const P: TCnInt64Polynomial; N: Int64);
-{* 将一个整系数多项式对象的常系数加上 N}
+{* 将一个一元整系数多项式对象的常系数加上 N}
 
 procedure Int64PolynomialSubWord(const P: TCnInt64Polynomial; N: Int64);
-{* 将一个整系数多项式对象的常系数减去 N}
+{* 将一个一元整系数多项式对象的常系数减去 N}
 
 procedure Int64PolynomialMulWord(const P: TCnInt64Polynomial; N: Int64);
-{* 将一个整系数多项式对象的各个系数都乘以 N}
+{* 将一个一元整系数多项式对象的各个系数都乘以 N}
 
 procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Int64);
-{* 将一个整系数多项式对象的各个系数都除以 N，如不能整除则取整}
+{* 将一个一元整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
 procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: Int64);
-{* 将一个整系数多项式对象的各个系数都对 N 非负求余}
+{* 将一个一元整系数多项式对象的各个系数都对 N 非负求余}
 
 function Int64PolynomialAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象相加，结果放至 Res 中，返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+{* 两个一元整系数多项式对象相加，结果放至 Res 中，返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialSub(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象相减，结果放至 Res 中，返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+{* 两个一元整系数多项式对象相减，结果放至 Res 中，返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
   P2: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+{* 两个一元整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialDftMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
   P2: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象使用离散傅立叶变换与离散傅立叶逆变换相乘，结果放至 Res 中，
+{* 两个一元整系数多项式对象使用离散傅立叶变换与离散傅立叶逆变换相乘，结果放至 Res 中，
   返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2
   注：使用复数提速但因为浮点缘故可能出现部分系数有个位误差，不是很推荐使用}
 
 function Int64PolynomialNttMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polynomial;
   P2: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象使用快速数论变换与快速数论逆变换相乘，结果放至 Res 中，
+{* 两个一元整系数多项式对象使用快速数论变换与快速数论逆变换相乘，结果放至 Res 中，
   返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2
   注：多项式系数只支持 [0, CN_P) 区间，多项式项数必须小于模数的 2^23，因此适用范围也不广}
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+{* 两个一元整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function Int64PolynomialMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;
   const Divisor: TCnInt64Polynomial): Boolean;
-{* 两个整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
+{* 两个一元整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值，
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialPower(const Res: TCnInt64Polynomial;
   const P: TCnInt64Polynomial; Exponent: Int64): Boolean;
-{* 计算整系数多项式的 Exponent 次幂，不考虑系数溢出的问题，
+{* 计算一元整系数多项式的 Exponent 次幂，不考虑系数溢出的问题，
    返回计算是否成功，Res 可以是 P}
 
 function Int64PolynomialReduce(const P: TCnInt64Polynomial): Integer;
-{* 化简多项式系数，也就是找多项式系数的最大公约数，各个系数除以它，返回最大公约数}
+{* 化简一元整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它，返回最大公约数}
 
 function Int64PolynomialGreatestCommonDivisor(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial): Boolean;
-{* 计算两个整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
+{* 计算两个一元整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行
    如返回 False，调用者可干脆认为互素，最大公因式为 1}
 
 function Int64PolynomialLeastCommonMultiple(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial): Boolean;
-{* 计算两个整系数多项式的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2
+{* 计算两个一元整系数多项式的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行
    如返回 False，调用者可干脆认为互素，最小公倍式为两者相乘，自行进行}
 
 function Int64PolynomialCompose(const Res: TCnInt64Polynomial;
   const F, P: TCnInt64Polynomial): Boolean;
-{* 整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
+{* 一元整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
 function Int64PolynomialGetValue(const F: TCnInt64Polynomial; X: Int64): Int64;
-{* 整系数多项式求值，也就是计算 F(x)，返回计算结果}
+{* 一元整系数多项式求值，也就是计算 F(x)，返回计算结果}
 
 procedure Int64PolynomialReduce2(P1, P2: TCnInt64Polynomial);
-{* 针对两个整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
+{* 针对两个一元整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
 
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
 function Int64PolynomialGaloisEqual(const A, B: TCnInt64Polynomial; Prime: Int64): Boolean;
-{* 两个整系数多项式在模 Prime 的条件下是否相等}
+{* 两个一元整系数多项式在模 Prime 的条件下是否相等}
 
 procedure Int64PolynomialGaloisNegate(const P: TCnInt64Polynomial; Prime: Int64);
-{* 将一个整系数多项式对象所有系数在模 Prime 的条件下求反}
+{* 将一个一元整系数多项式对象所有系数在模 Prime 的条件下求反}
 
 function Int64PolynomialGaloisAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+{* 两个一元整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisSub(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 两个整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+{* 两个一元整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisMul(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 两个整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
+{* 两个一元整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisDiv(const Res: TCnInt64Polynomial;
   const Remain: TCnInt64Polynomial; const P: TCnInt64Polynomial;
   const Divisor: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 两个整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+{* 两个一元整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function Int64PolynomialGaloisMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;
   const Divisor: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 两个整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
+{* 两个一元整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
   Exponent: Int64; Prime: Int64; Primitive: TCnInt64Polynomial = nil;
   ExponentHi: Int64 = 0): Boolean;
-{* 计算整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，Exponent 可以是 128 位，
+{* 计算一元整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，Exponent 可以是 128 位，
    Exponent 两个部分如果是负值，自动转成 UInt64
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
 procedure Int64PolynomialGaloisAddWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
-{* 将 Prime 次方阶有限域上的整系数多项式的常系数加上 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元整系数多项式的常系数加上 N 再 mod Prime}
 
 procedure Int64PolynomialGaloisSubWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
-{* 将 Prime 次方阶有限域上的整系数多项式的常系数减去 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元整系数多项式的常系数减去 N 再 mod Prime}
 
 procedure Int64PolynomialGaloisMulWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
-{* 将 Prime 次方阶有限域上的整系数多项式各项系数乘以 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元整系数多项式各项系数乘以 N 再 mod Prime}
 
 procedure Int64PolynomialGaloisDivWord(const P: TCnInt64Polynomial; N: Int64; Prime: Int64);
-{* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 function Int64PolynomialGaloisMonic(const P: TCnInt64Polynomial; Prime: Int64): Integer;
-{* 将 Prime 次方阶有限域上的整系数多项式各项系数同除最高项，使首项为一，返回除的值}
+{* 将 Prime 次方阶有限域上的一元整系数多项式各项系数同除最高项，使首项为一，返回除的值}
 
 function Int64PolynomialGaloisGreatestCommonDivisor(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial; Prime: Int64): Boolean;
-{* 计算两个整系数多项式在 Prime 次方阶有限域上的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
+{* 计算两个一元整系数多项式在 Prime 次方阶有限域上的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
 
 function Int64PolynomialGaloisLeastCommonMultiple(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial; Prime: Int64): Boolean;
-{* 计算两个整系数多项式在 Prime 次方阶有限域上的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2}
+{* 计算两个一元整系数多项式在 Prime 次方阶有限域上的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2}
 
 procedure Int64PolynomialGaloisExtendedEuclideanGcd(A, B: TCnInt64Polynomial;
   X, Y: TCnInt64Polynomial; Prime: Int64);
@@ -461,16 +461,16 @@ procedure Int64PolynomialGaloisExtendedEuclideanGcd(A, B: TCnInt64Polynomial;
 
 procedure Int64PolynomialGaloisModularInverse(const Res: TCnInt64Polynomial;
   X, Modulus: TCnInt64Polynomial; Prime: Int64; CheckGcd: Boolean = False);
-{* 求整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
+{* 求一元整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
    满足 (X * Y) mod M = 1，调用者须尽量保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus
    CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素}
 
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
   const F, P: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 在 Prime 次方阶有限域上进行整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
+{* 在 Prime 次方阶有限域上进行一元整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
 function Int64PolynomialGaloisGetValue(const F: TCnInt64Polynomial; X, Prime: Int64): Int64;
-{* 在 Prime 次方阶有限域上进行整系数多项式求值，也就是计算 F(x)，返回计算结果}
+{* 在 Prime 次方阶有限域上进行一元整系数多项式求值，也就是计算 F(x)，返回计算结果}
 
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
   outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
@@ -481,168 +481,168 @@ function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
   《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
 
 procedure Int64PolynomialGaloisReduce2(P1, P2: TCnInt64Polynomial; Prime: Int64);
-{* 在 Prime 次方阶有限域上针对两个整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
+{* 在 Prime 次方阶有限域上针对两个一元整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
 
-// ========================== 有理分式常规运算 =================================
+// ======================== 一元有理分式常规运算 ===============================
 
 function Int64RationalPolynomialEqual(R1, R2: TCnInt64RationalPolynomial): Boolean;
-{* 比较两个有理分式是否相等}
+{* 比较两个一元有理分式是否相等}
 
 function Int64RationalPolynomialCopy(const Dst: TCnInt64RationalPolynomial;
   const Src: TCnInt64RationalPolynomial): TCnInt64RationalPolynomial;
-{* 有理分式复制}
+{* 一元有理分式复制}
 
 procedure Int64RationalPolynomialAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式普通加法，三数可以相等}
+{* 一元有理分式普通加法，三数可以相等}
 
 procedure Int64RationalPolynomialSub(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式普通减法，三数可以相等}
+{* 一元有理分式普通减法，三数可以相等}
 
 procedure Int64RationalPolynomialMul(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式普通乘法，三数可以相等}
+{* 一元有理分式普通乘法，三数可以相等}
 
 procedure Int64RationalPolynomialDiv(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式普通除法，三数可以相等}
+{* 一元有理分式普通除法，三数可以相等}
 
 procedure Int64RationalPolynomialAddWord(R: TCnInt64RationalPolynomial; N: Int64);
-{* 有理分式普通加法加上 Int64}
+{* 一元有理分式普通加法加上 Int64}
 
 procedure Int64RationalPolynomialSubWord(R: TCnInt64RationalPolynomial; N: Int64);
-{* 有理分式普通减法减去 Int64}
+{* 一元有理分式普通减法减去 Int64}
 
 procedure Int64RationalPolynomialMulWord(R: TCnInt64RationalPolynomial; N: Int64);
-{* 有理分式普通乘法乘以 Int64}
+{* 一元有理分式普通乘法乘以 Int64}
 
 procedure Int64RationalPolynomialDivWord(R: TCnInt64RationalPolynomial; N: Int64);
-{* 有理分式普通除法除以 Int64}
+{* 一元有理分式普通除法除以 Int64}
 
 procedure Int64RationalPolynomialAdd(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式与整系数多项式的普通加法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的普通加法，RationalResult 可以是 R1}
 
 procedure Int64RationalPolynomialSub(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式与整系数多项式的普通减法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的普通减法，RationalResult 可以是 R1}
 
 procedure Int64RationalPolynomialMul(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式与整系数多项式的普通乘法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的普通乘法，RationalResult 可以是 R1}
 
 procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
-{* 有理分式与整系数多项式的普通除法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的普通除法，RationalResult 可以是 R1}
 
 function Int64RationalPolynomialCompose(Res: TCnInt64RationalPolynomial;
   F, P: TCnInt64RationalPolynomial): Boolean; overload;
-{* 整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function Int64RationalPolynomialCompose(Res: TCnInt64RationalPolynomial;
   F: TCnInt64RationalPolynomial; P: TCnInt64Polynomial): Boolean; overload;
-{* 整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function Int64RationalPolynomialCompose(Res: TCnInt64RationalPolynomial;
   F: TCnInt64Polynomial; P: TCnInt64RationalPolynomial): Boolean; overload;
-{* 整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
 
 procedure Int64RationalPolynomialGetValue(const F: TCnInt64RationalPolynomial;
   X: Int64; outResult: TCnRationalNumber);
-{* 有理分式求值，也就是计算 F(x)，将结果放在 outResult 中}
+{* 一元有理分式求值，也就是计算 F(x)，将结果放在 outResult 中}
 
 // ====================== 有理分式在有限域上的模运算 ===========================
 
 function Int64RationalPolynomialGaloisEqual(R1, R2: TCnInt64RationalPolynomial;
   Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
-{* 比较两个模系数有理分式是否相等}
+{* 比较两个模系数一元有理分式是否相等}
 
 procedure Int64RationalPolynomialGaloisNegate(const P: TCnInt64RationalPolynomial;
   Prime: Int64);
-{* 将一个有理分式对象分子的所有系数在模 Prime 的条件下求反}
+{* 将一个一元有理分式对象分子的所有系数在模 Prime 的条件下求反}
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式模系数加法，三数可以相等}
+{* 一元有理分式模系数加法，三数可以相等}
 
 procedure Int64RationalPolynomialGaloisSub(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式模系数减法，三数可以相等}
+{* 一元有理分式模系数减法，三数可以相等}
 
 procedure Int64RationalPolynomialGaloisMul(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式模系数乘法，三数可以相等}
+{* 一元有理分式模系数乘法，三数可以相等}
 
 procedure Int64RationalPolynomialGaloisDiv(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式模系数除法，三数可以相等}
+{* 一元有理分式模系数除法，三数可以相等}
 
 procedure Int64RationalPolynomialGaloisAddWord(R: TCnInt64RationalPolynomial;
   N: Int64; Prime: Int64);
-{* 有理分式模系数加法加上 Int64}
+{* 一元有理分式模系数加法加上 Int64}
 
 procedure Int64RationalPolynomialGaloisSubWord(R: TCnInt64RationalPolynomial;
   N: Int64; Prime: Int64);
-{* 有理分式模系数减法减去 Int64}
+{* 一元有理分式模系数减法减去 Int64}
 
 procedure Int64RationalPolynomialGaloisMulWord(R: TCnInt64RationalPolynomial;
   N: Int64; Prime: Int64);
-{* 有理分式模系数乘法乘以 Int64}
+{* 一元有理分式模系数乘法乘以 Int64}
 
 procedure Int64RationalPolynomialGaloisDivWord(R: TCnInt64RationalPolynomial;
   N: Int64; Prime: Int64);
-{* 有理分式模系数除法除以 Int64}
+{* 一元有理分式模系数除法除以 Int64}
 
 procedure Int64RationalPolynomialGaloisAdd(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式与整系数多项式的模系数加法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的模系数加法，RationalResult 可以是 R1}
 
 procedure Int64RationalPolynomialGaloisSub(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式与整系数多项式的模系数减法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的模系数减法，RationalResult 可以是 R1}
 
 procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式与整系数多项式的模系数乘法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的模系数乘法，RationalResult 可以是 R1}
 
 procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
-{* 有理分式与整系数多项式的模系数除法，RationalResult 可以是 R1}
+{* 一元有理分式与整系数多项式的模系数除法，RationalResult 可以是 R1}
 
 function Int64RationalPolynomialGaloisCompose(Res: TCnInt64RationalPolynomial;
   F, P: TCnInt64RationalPolynomial; Prime: Int64;
   Primitive: TCnInt64Polynomial = nil): Boolean; overload;
-{* 有理分式模系数代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元有理分式模系数代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function Int64RationalPolynomialGaloisCompose(Res: TCnInt64RationalPolynomial;
   F: TCnInt64RationalPolynomial; P: TCnInt64Polynomial; Prime: Int64;
   Primitive: TCnInt64Polynomial = nil): Boolean; overload;
-{* 有理分式模系数代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元有理分式模系数代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function Int64RationalPolynomialGaloisCompose(Res: TCnInt64RationalPolynomial;
   F: TCnInt64Polynomial; P: TCnInt64RationalPolynomial; Prime: Int64;
   Primitive: TCnInt64Polynomial = nil): Boolean; overload;
-{* 有理分式模系数代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元有理分式模系数代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function Int64RationalPolynomialGaloisGetValue(const F: TCnInt64RationalPolynomial;
   X: Int64; Prime: Int64): Int64;
-{* 有理分式模系数求值，也就是模计算 F(x)，除法用乘法模逆元表示}
+{* 一元有理分式模系数求值，也就是模计算 F(x)，除法用乘法模逆元表示}
 
-// ======================= 大整系数多项式基础运算 ==============================
+// ===================== 一元大整系数多项式基础运算 ============================
 
 function BigNumberPolynomialNew: TCnBigNumberPolynomial;
-{* 创建一个动态分配的大整系数多项式对象，等同于 TCnBigNumberPolynomial.Create}
+{* 创建一个动态分配的一元大整系数多项式对象，等同于 TCnBigNumberPolynomial.Create}
 
 procedure BigNumberPolynomialFree(const P: TCnBigNumberPolynomial);
-{* 释放一个大整系数多项式对象，等同于 TCnBigNumberPolynomial.Free}
+{* 释放一个一元大整系数多项式对象，等同于 TCnBigNumberPolynomial.Free}
 
 function BigNumberPolynomialDuplicate(const P: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
-{* 从一个大整系数多项式对象克隆一个新对象}
+{* 从一个一元大整系数多项式对象克隆一个新对象}
 
 function BigNumberPolynomialCopy(const Dst: TCnBigNumberPolynomial;
   const Src: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
-{* 复制一个大整系数多项式对象，成功返回 Dst}
+{* 复制一个一元大整系数多项式对象，成功返回 Dst}
 
 function BigNumberPolynomialToString(const P: TCnBigNumberPolynomial;
   const VarName: string = 'X'): string;
@@ -650,149 +650,149 @@ function BigNumberPolynomialToString(const P: TCnBigNumberPolynomial;
 
 function BigNumberPolynomialSetString(const P: TCnBigNumberPolynomial;
   const Str: string; const VarName: Char = 'X'): Boolean;
-{* 将字符串形式的大整系数多项式赋值给整系数多项式对象，返回是否赋值成功}
+{* 将字符串形式的一元大整系数多项式赋值给整系数多项式对象，返回是否赋值成功}
 
 function BigNumberPolynomialIsZero(const P: TCnBigNumberPolynomial): Boolean;
-{* 判断一个大整系数多项式对象是否为 0}
+{* 判断一个一元大整系数多项式对象是否为 0}
 
 procedure BigNumberPolynomialSetZero(const P: TCnBigNumberPolynomial);
-{* 将一个大整系数多项式对象设为 0}
+{* 将一个一元大整系数多项式对象设为 0}
 
 function BigNumberPolynomialIsOne(const P: TCnBigNumberPolynomial): Boolean;
-{* 判断一个大整系数多项式对象是否为 1}
+{* 判断一个一元大整系数多项式对象是否为 1}
 
 procedure BigNumberPolynomialSetOne(const P: TCnBigNumberPolynomial);
-{* 将一个大整系数多项式对象设为 1}
+{* 将一个一元大整系数多项式对象设为 1}
 
 function BigNumberPolynomialIsNegOne(const P: TCnBigNumberPolynomial): Boolean;
-{* 判断一个大整系数多项式对象是否为 -1}
+{* 判断一个一元大整系数多项式对象是否为 -1}
 
 procedure BigNumberPolynomialNegate(const P: TCnBigNumberPolynomial);
-{* 将一个大整系数多项式对象所有系数求反}
+{* 将一个一元大整系数多项式对象所有系数求反}
 
 procedure BigNumberPolynomialShiftLeft(const P: TCnBigNumberPolynomial; N: Integer);
-{* 将一个大整系数多项式对象左移 N 次，也就是各项指数都加 N}
+{* 将一个一元大整系数多项式对象左移 N 次，也就是各项指数都加 N}
 
 procedure BigNumberPolynomialShiftRight(const P: TCnBigNumberPolynomial; N: Integer);
-{* 将一个大整系数多项式对象右移 N 次，也就是各项指数都减 N，小于 0 的忽略了}
+{* 将一个一元大整系数多项式对象右移 N 次，也就是各项指数都减 N，小于 0 的忽略了}
 
 function BigNumberPolynomialEqual(const A, B: TCnBigNumberPolynomial): Boolean;
 {* 判断俩整系数多项式每项系数是否对应相等，是则返回 True}
 
-// ======================== 大整系数多项式普通运算 =============================
+// ======================== 一元大整系数多项式普通运算 =============================
 
 procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: LongWord);
-{* 将一个大整系数多项式对象的常系数加上 N}
+{* 将一个一元大整系数多项式对象的常系数加上 N}
 
 procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: LongWord);
-{* 将一个大整系数多项式对象的常系数减去 N}
+{* 将一个一元大整系数多项式对象的常系数减去 N}
 
 procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: LongWord);
-{* 将一个大整系数多项式对象的各个系数都乘以 N}
+{* 将一个一元大整系数多项式对象的各个系数都乘以 N}
 
 procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: LongWord);
-{* 将一个大整系数多项式对象的各个系数都除以 N，如不能整除则取整}
+{* 将一个一元大整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
 procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
-{* 将一个大整系数多项式对象的各个系数都对 N 非负求余}
+{* 将一个一元大整系数多项式对象的各个系数都对 N 非负求余}
 
 procedure BigNumberPolynomialAddBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
-{* 将一个大整系数多项式对象的常系数加上大数 N}
+{* 将一个一元大整系数多项式对象的常系数加上大数 N}
 
 procedure BigNumberPolynomialSubBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
-{* 将一个大整系数多项式对象的常系数减去大数 N}
+{* 将一个一元大整系数多项式对象的常系数减去大数 N}
 
 procedure BigNumberPolynomialMulBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
-{* 将一个大整系数多项式对象的各个系数都乘以大数 N}
+{* 将一个一元大整系数多项式对象的各个系数都乘以大数 N}
 
 procedure BigNumberPolynomialDivBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
-{* 将一个大整系数多项式对象的各个系数都除以大数 N，如不能整除则取整}
+{* 将一个一元大整系数多项式对象的各个系数都除以大数 N，如不能整除则取整}
 
 procedure BigNumberPolynomialNonNegativeModBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
-{* 将一个大整系数多项式对象的各个系数都对大数 N 非负求余}
+{* 将一个一元大整系数多项式对象的各个系数都对大数 N 非负求余}
 
 function BigNumberPolynomialAdd(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
   const P2: TCnBigNumberPolynomial): Boolean;
-{* 两个大整系数多项式对象相加，结果放至 Res 中，返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+{* 两个一元大整系数多项式对象相加，结果放至 Res 中，返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialSub(const Res: TCnBigNumberPolynomial; const P1: TCnBigNumberPolynomial;
   const P2: TCnBigNumberPolynomial): Boolean;
-{* 两个大整系数多项式对象相减，结果放至 Res 中，返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+{* 两个一元大整系数多项式对象相减，结果放至 Res 中，返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialMul(const Res: TCnBigNumberPolynomial; P1: TCnBigNumberPolynomial;
   P2: TCnBigNumberPolynomial): Boolean;
-{* 两个大整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+{* 两个一元大整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialDiv(const Res: TCnBigNumberPolynomial; const Remain: TCnBigNumberPolynomial;
   const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial): Boolean;
-{* 两个大整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+{* 两个一元大整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function BigNumberPolynomialMod(const Res: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
   const Divisor: TCnBigNumberPolynomial): Boolean;
-{* 两个大整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
+{* 两个一元大整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值，
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function BigNumberPolynomialPower(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberPolynomial; Exponent: TCnBigNumber): Boolean;
-{* 计算大整系数多项式的 Exponent 次幂，返回计算是否成功，Res 可以是 P}
+{* 计算一元大整系数多项式的 Exponent 次幂，返回计算是否成功，Res 可以是 P}
 
 procedure BigNumberPolynomialReduce(const P: TCnBigNumberPolynomial);
-{* 化简大整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它}
+{* 化简一元大整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它}
 
 function BigNumberPolynomialGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
-{* 计算两个大整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
+{* 计算两个一元大整系数多项式的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行
    如返回 False，调用者可干脆认为互素，最大公因式为 1}
 
 function BigNumberPolynomialLeastCommonMultiple(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
-{* 计算两个大整系数多项式的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2
+{* 计算两个一元大整系数多项式的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2
    注意计算可能会因为系数不能整除而失败，即使调用者自行保证 P1 P2 均为首一多项式也不能保证行
    如返回 False，调用者可干脆认为互素，最小公倍式为两者相乘，自行进行}
 
 function BigNumberPolynomialCompose(const Res: TCnBigNumberPolynomial;
   const F, P: TCnBigNumberPolynomial): Boolean;
-{* 大整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
+{* 一元大整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
 procedure BigNumberPolynomialGetValue(Res: TCnBigNumber; F: TCnBigNumberPolynomial;
   X: TCnBigNumber);
-{* 大整系数多项式求值，也就是计算 F(x)，返回计算是否成功，Res 不能是 X}
+{* 一元大整系数多项式求值，也就是计算 F(x)，返回计算是否成功，Res 不能是 X}
 
 procedure BigNumberPolynomialReduce2(P1, P2: TCnBigNumberPolynomial);
-{* 针对两个大整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
+{* 针对两个一元大整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
 
 // ===================== 有限扩域下的整系数多项式模运算 ========================
 
 function BigNumberPolynomialGaloisEqual(const A, B: TCnBigNumberPolynomial;
   Prime: TCnBigNumber): Boolean;
-{* 两个大整系数多项式在模 Prime 的条件下是否相等}
+{* 两个一元大整系数多项式在模 Prime 的条件下是否相等}
 
 procedure BigNumberPolynomialGaloisNegate(const P: TCnBigNumberPolynomial;
   Prime: TCnBigNumber);
-{* 将一个大整系数多项式对象所有系数在模 Prime 的条件下求反}
+{* 将一个一元大整系数多项式对象所有系数在模 Prime 的条件下求反}
 
 function BigNumberPolynomialGaloisAdd(const Res: TCnBigNumberPolynomial;
   const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 两个大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+{* 两个一元大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialGaloisSub(const Res: TCnBigNumberPolynomial;
   const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 两个大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+{* 两个一元大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
    返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialGaloisMul(const Res: TCnBigNumberPolynomial;
   const P1: TCnBigNumberPolynomial; const P2: TCnBigNumberPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 两个大整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
+{* 两个一元大整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
@@ -800,42 +800,42 @@ function BigNumberPolynomialGaloisDiv(const Res: TCnBigNumberPolynomial;
   const Remain: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
   const Divisor: TCnBigNumberPolynomial; Prime: TCnBigNumber;
   Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 两个大整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+{* 两个一元大整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function BigNumberPolynomialGaloisMod(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 两个大整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
+{* 两个一元大整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; Prime: TCnBigNumber;
   Primitive: TCnBigNumberPolynomial = nil): Boolean; overload;
-{* 计算大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
+{* 计算一元大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
 function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberPolynomial; Exponent: LongWord; Prime: TCnBigNumber;
   Primitive: TCnBigNumberPolynomial = nil): Boolean; overload;
-{* 计算大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
+{* 计算一元大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
 function BigNumberPolynomialGaloisAddWord(const P: TCnBigNumberPolynomial;
   N: LongWord; Prime: TCnBigNumber): Boolean;
-{* 将 Prime 次方阶有限域上的大整系数多项式的常系数加上 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数加上 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisSubWord(const P: TCnBigNumberPolynomial;
   N: LongWord; Prime: TCnBigNumber): Boolean;
-{* 将 Prime 次方阶有限域上的大整系数多项式的常系数减去 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数减去 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisMulWord(const P: TCnBigNumberPolynomial;
   N: LongWord; Prime: TCnBigNumber): Boolean;
-{* 将 Prime 次方阶有限域上的大整系数多项式各项系数乘以 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式各项系数乘以 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisDivWord(const P: TCnBigNumberPolynomial;
   N: LongWord; Prime: TCnBigNumber): Boolean;
@@ -843,48 +843,48 @@ function BigNumberPolynomialGaloisDivWord(const P: TCnBigNumberPolynomial;
 
 procedure BigNumberPolynomialGaloisAddBigNumber(const P: TCnBigNumberPolynomial;
   N: TCnBigNumber; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的大整系数多项式的常系数加上 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数加上 N 再 mod Prime}
 
 procedure BigNumberPolynomialGaloisSubBigNumber(const P: TCnBigNumberPolynomial;
   N: TCnBigNumber; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的大整系数多项式的常系数减去 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数减去 N 再 mod Prime}
 
 procedure BigNumberPolynomialGaloisMulBigNumber(const P: TCnBigNumberPolynomial;
   N: TCnBigNumber; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的大整系数多项式各项系数乘以 N 再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式各项系数乘以 N 再 mod Prime}
 
 procedure BigNumberPolynomialGaloisDivBigNumber(const P: TCnBigNumberPolynomial;
   N: TCnBigNumber; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的大整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 procedure BigNumberPolynomialGaloisMonic(const P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的大整系数多项式各项系数同除最高项，使首项为一}
+{* 将 Prime 次方阶有限域上的一元大整系数多项式各项系数同除最高项，使首项为一}
 
 function BigNumberPolynomialGaloisGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
-{* 计算两个大整系数多项式在 Prime 次方阶有限域上的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
+{* 计算两个一元大整系数多项式在 Prime 次方阶有限域上的最大公因式，返回计算是否成功，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialGaloisLeastCommonMultiple(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
-{* 计算两个大整系数多项式在 Prime 次方阶有限域上的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2}
+{* 计算两个一元大整系数多项式在 Prime 次方阶有限域上的最小公倍式，返回计算是否成功，Res 可以是 P1 或 P2}
 
 procedure BigNumberPolynomialGaloisExtendedEuclideanGcd(A, B: TCnBigNumberPolynomial;
   X, Y: TCnBigNumberPolynomial; Prime: TCnBigNumber);
-{* 扩展欧几里得辗转相除法在 Prime 次方阶有限域上求二元一次不定大整系数多项式方程 A * X + B * Y = 1 的解}
+{* 扩展欧几里得辗转相除法在 Prime 次方阶有限域上求二元一次不定一元大整系数多项式方程 A * X + B * Y = 1 的解}
 
 procedure BigNumberPolynomialGaloisModularInverse(const Res: TCnBigNumberPolynomial;
   X, Modulus: TCnBigNumberPolynomial; Prime: TCnBigNumber; CheckGcd: Boolean = False);
-{* 求大整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
+{* 求一元大整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
    满足 (X * Y) mod M = 1，调用者须尽量保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus
    CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素}
 
 function BigNumberPolynomialGaloisCompose(const Res: TCnBigNumberPolynomial;
   const F, P: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 在 Prime 次方阶有限域上进行大整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
+{* 在 Prime 次方阶有限域上进行一元大整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
 
 function BigNumberPolynomialGaloisGetValue(Res: TCnBigNumber;
   const F: TCnBigNumberPolynomial; X, Prime: TCnBigNumber): Boolean;
-{* 在 Prime 次方阶有限域上进行大整系数多项式求值，也就是计算 F(x)，返回计算是否成功}
+{* 在 Prime 次方阶有限域上进行一元大整系数多项式求值，也就是计算 F(x)，返回计算是否成功}
 
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
   outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
@@ -902,72 +902,72 @@ function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: TCnBigNumber; Deg
   《COMPUTING THE CARDINALITY OF CM ELLIPTIC CURVES USING TORSION POINTS》}
 
 procedure BigNumberPolynomialGaloisReduce2(P1, P2: TCnBigNumberPolynomial; Prime: TCnBigNumber);
-{* 在 Prime 次方阶有限域上针对两个大整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
+{* 在 Prime 次方阶有限域上针对两个一元大整系数多项式进行约分，也就是缩至互素，用于有理分式约分运算}
 
-// ======================= 大整系数有理分式常规运算 ============================
+// ===================== 一元大整系数有理分式常规运算 ==========================
 
 function BigNumberRationalPolynomialEqual(R1, R2: TCnBigNumberRationalPolynomial): Boolean;
-{* 比较两个大整系数有理分式是否相等}
+{* 比较两个一元大整系数有理分式是否相等}
 
 function BigNumberRationalPolynomialCopy(const Dst: TCnBigNumberRationalPolynomial;
   const Src: TCnBigNumberRationalPolynomial): TCnBigNumberRationalPolynomial;
-{* 大整系数有理分式复制}
+{* 一元大整系数有理分式复制}
 
 procedure BigNumberRationalPolynomialAdd(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式普通加法，三数可以相等}
+{* 一元大整系数有理分式普通加法，三数可以相等}
 
 procedure BigNumberRationalPolynomialSub(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式普通减法，三数可以相等}
+{* 一元大整系数有理分式普通减法，三数可以相等}
 
 procedure BigNumberRationalPolynomialMul(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式普通乘法，三数可以相等}
+{* 一元大整系数有理分式普通乘法，三数可以相等}
 
 procedure BigNumberRationalPolynomialDiv(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式普通除法，三数可以相等}
+{* 一元大整系数有理分式普通除法，三数可以相等}
 
 procedure BigNumberRationalPolynomialAddBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber);
-{* 大整系数有理分式普通加法，加上一个大数}
+{* 一元大整系数有理分式普通加法，加上一个大数}
 
 procedure BigNumberRationalPolynomialSubBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber);
-{* 大整系数有理分式普通减法，减去一个大数}
+{* 一元大整系数有理分式普通减法，减去一个大数}
 
 procedure BigNumberRationalPolynomialMulBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber);
-{* 大整系数有理分式普通乘法，乘以一个大数}
+{* 一元大整系数有理分式普通乘法，乘以一个大数}
 
 procedure BigNumberRationalPolynomialDivBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber);
-{* 大整系数有理分式普通除法，除以一个大数}
+{* 一元大整系数有理分式普通除法，除以一个大数}
 
 procedure BigNumberRationalPolynomialAdd(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式与大整系数多项式的普通加法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的普通加法，RationalResult 可以是 R1}
 
 procedure BigNumberRationalPolynomialSub(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式与大整系数多项式的普通减法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的普通减法，RationalResult 可以是 R1}
 
 procedure BigNumberRationalPolynomialMul(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式与大整系数多项式的普通乘法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的普通乘法，RationalResult 可以是 R1}
 
 procedure BigNumberRationalPolynomialDiv(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
-{* 大整系数有理分式与整系数多项式的普通除法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与整系数多项式的普通除法，RationalResult 可以是 R1}
 
 function BigNumberRationalPolynomialCompose(Res: TCnBigNumberRationalPolynomial;
   F, P: TCnBigNumberRationalPolynomial): Boolean; overload;
-{* 大整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元大整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function BigNumberRationalPolynomialCompose(Res: TCnBigNumberRationalPolynomial;
   F: TCnBigNumberRationalPolynomial; P: TCnBigNumberPolynomial): Boolean; overload;
-{* 大整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
+{* 一元大整系数有理分式代换，也就是计算 F(P(x))，返回是否计算成功}
 
 function BigNumberRationalPolynomialCompose(Res: TCnBigNumberRationalPolynomial;
   F: TCnBigNumberPolynomial; P: TCnBigNumberRationalPolynomial): Boolean; overload;
@@ -975,65 +975,65 @@ function BigNumberRationalPolynomialCompose(Res: TCnBigNumberRationalPolynomial;
 
 procedure BigNumberRationalPolynomialGetValue(const F: TCnBigNumberRationalPolynomial;
   X: TCnBigNumber; outResult: TCnBigRational);
-{* 大整系数有理分式求值，也就是计算 F(x)，将结果放在 outResult 中}
+{* 一元大整系数有理分式求值，也就是计算 F(x)，将结果放在 outResult 中}
 
-// ==================== 大整系数有理分式在有限域上的模运算 =====================
+// ================== 一元大整系数有理分式在有限域上的模运算 ===================
 
 function BigNumberRationalPolynomialGaloisEqual(R1, R2: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
-{* 比较两个大整系数模系数有理分式是否相等}
+{* 比较两个一元大整系数模系数有理分式是否相等}
 
 procedure BigNumberRationalPolynomialGaloisNegate(const P: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber);
-{* 将一个大整系数有理分式对象分子的所有系数在模 Prime 的条件下求反}
+{* 将一个一元大整系数有理分式对象分子的所有系数在模 Prime 的条件下求反}
 
 procedure BigNumberRationalPolynomialGaloisAdd(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式模系数加法，三数可以相等}
+{* 一元大整系数有理分式模系数加法，三数可以相等}
 
 procedure BigNumberRationalPolynomialGaloisSub(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式模系数减法，三数可以相等}
+{* 一元大整系数有理分式模系数减法，三数可以相等}
 
 procedure BigNumberRationalPolynomialGaloisMul(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式模系数乘法，三数可以相等}
+{* 一元大整系数有理分式模系数乘法，三数可以相等}
 
 procedure BigNumberRationalPolynomialGaloisDiv(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式模系数除法，三数可以相等}
+{* 一元大整系数有理分式模系数除法，三数可以相等}
 
 procedure BigNumberRationalPolynomialGaloisAddBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber; Prime: TCnBigNumber);
-{* 大整系数有理分式模系数加法，加上一个大数}
+{* 一元大整系数有理分式模系数加法，加上一个大数}
 
 procedure BigNumberRationalPolynomialGaloisSubBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber; Prime: TCnBigNumber);
-{* 大整系数有理分式模系数减法，减去一个大数}
+{* 一元大整系数有理分式模系数减法，减去一个大数}
 
 procedure BigNumberRationalPolynomialGaloisMulBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber; Prime: TCnBigNumber);
-{* 大整系数有理分式模系数乘法，乘以一个大数}
+{* 一元大整系数有理分式模系数乘法，乘以一个大数}
 
 procedure BigNumberRationalPolynomialGaloisDivBigNumber(R: TCnBigNumberRationalPolynomial;
   Num: TCnBigNumber; Prime: TCnBigNumber);
-{* 大整系数有理分式模系数除法，除以一个大数}
+{* 一元大整系数有理分式模系数除法，除以一个大数}
 
 procedure BigNumberRationalPolynomialGaloisAdd(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式与大整系数多项式的模系数加法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的模系数加法，RationalResult 可以是 R1}
 
 procedure BigNumberRationalPolynomialGaloisSub(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式与大整系数多项式的模系数减法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的模系数减法，RationalResult 可以是 R1}
 
 procedure BigNumberRationalPolynomialGaloisMul(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式与大整系数多项式的模系数乘法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的模系数乘法，RationalResult 可以是 R1}
 
 procedure BigNumberRationalPolynomialGaloisDiv(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
-{* 大整系数有理分式与大整系数多项式的模系数除法，RationalResult 可以是 R1}
+{* 一元大整系数有理分式与一元大整系数多项式的模系数除法，RationalResult 可以是 R1}
 
 function BigNumberRationalPolynomialGaloisCompose(Res: TCnBigNumberRationalPolynomial;
   F, P: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber;
@@ -1052,7 +1052,75 @@ function BigNumberRationalPolynomialGaloisCompose(Res: TCnBigNumberRationalPolyn
 
 procedure BigNumberRationalPolynomialGaloisGetValue(Res: TCnBigNumber;
   const F: TCnBigNumberRationalPolynomial; X: TCnBigNumber; Prime: TCnBigNumber);
-{* 大整系数有理分式模系数求值，也就是模计算 F(x)，除法用乘法模逆元表示}
+{* 一元大整系数有理分式模系数求值，也就是模计算 F(x)，除法用乘法模逆元表示}
+
+// =============================================================================
+//
+//                            二元整系数多项式
+//
+// =============================================================================
+
+{
+   FXs TObjectList
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | X^n   的 Y 系数 List  | -> | X^n*Y^0 的系数  |X^n*Y^1 的系数   | ......
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | X^n-1 的 Y 系数 List  | -> | X^n-1*Y^0 的系数|X^n-1*Y^1 的系数 | ......
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |......                 | -> |
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | X^0   的 Y 系数 List  | -> | X^0*Y^0 的系数  | X^0*Y^1 的系数  | ......
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+type
+  TCnInt64BiPolynomial = class
+  {* 二元整系数多项式}
+  private
+    FXs: TObjectList; // 元素为 TCnInt64List，存储该 X 次幂的每一个不同的 Y 次幂的系数
+    procedure EnsureDegrees(XDegree, YDegree: Integer);
+    {* 确保 XDegree, YDegree 的元素存在}
+    function GetMaxXDegree: Integer;
+    function GetMaxYDegree: Integer;
+    procedure SetMaxXDegree(const Value: Integer);
+    procedure SetMaxYDegree(const Value: Integer);
+    function GetYFactorsList(Index: Integer): TCnInt64List;
+  protected
+    function CompactYDegree(YList: TCnInt64List): Boolean;
+    {* 去除一个 Y 系数高次零项，如全 0 则返回 True}
+    property YFactorsList[Index: Integer]: TCnInt64List read GetYFactorsList;
+    {* 封装的对 X 的 Index 次项的 Y 系数列表}
+  public
+    constructor Create(XDegree: Integer = 0; YDegree: Integer = 0);
+    {* 构造函数，传入 X 和 Y 的最高次数，可默认为 0，以后再补设}
+    destructor Destroy; override;
+
+    procedure SetYCoefficents(XDegree: Integer; LowToHighYCoefficients: array of const);
+    {* 针对特定次数的 X，一次批量设置 Y 从低到高的系数}
+    procedure SetXCoefficents(YDegree: Integer; LowToHighXCoefficients: array of const);
+    {* 针对特定次数的 Y，一次批量设置 X 从低到高的系数}
+
+    procedure CorrectTop;
+    {* 剔除高次的 0 系数}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将多项式转成字符串}
+    procedure SetString(const Poly: string);
+    {* 将多项式字符串转换为本对象的内容}
+    function IsZero: Boolean;
+    {* 返回是否为 0}
+    procedure SetZero;
+    {* 设为 0}
+    procedure Negate;
+    {* 所有系数求反}
+    property MaxXDegree: Integer read GetMaxXDegree write SetMaxXDegree;
+    {* X 元的最高次数，0 开始，基于 Count 所以只能是 Integer}
+    property MaxYDegree: Integer read GetMaxYDegree write SetMaxYDegree;
+    {* X 元的最高次数，0 开始，基于 Count 所以只能是 Integer}
+  end;
+
+function Int64BiPolynomialToString(const P: TCnInt64BiPolynomial;
+  const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): string;
+{* 将一个二元整系数多项式对象转成字符串，未知数默认以 X 和 Y 表示}
 
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
@@ -1076,6 +1144,102 @@ var
   FLocalBigNumberPolynomialPool: TCnBigNumberPolynomialPool = nil;
   FLocalBigNumberRationalPolynomialPool: TCnBigNumberRationalPolynomialPool = nil;
   FLocalBigNumberPool: TCnBigNumberPool = nil;
+
+procedure CheckDegree(Degree: Integer);
+begin
+  if Degree < 0 then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Degree]);
+end;
+
+function VarPower(const VarName: string; E: Integer): string;
+begin
+  if E = 0 then
+    Result := ''
+  else if E = 1 then
+    Result := VarName
+  else
+    Result := VarName + '^' + IntToStr(E);
+end;
+
+function VarPower2(const Var1Name, Var2Name: string; E1, E2: Integer): string;
+begin
+  Result := VarPower(Var1Name, E1) + VarPower(Var2Name, E2);
+end;
+
+// 多项式系数转字符串时封装的规则，DecStr 是该系数的字符串形式，可能有 - 号，
+// 返回值当系数非 0 时为 True，表示后面需要加单项式
+function VarItemFactor(var Res: string; ExpsIsZero: Boolean; const DecStr: string): Boolean;
+var
+  IsPositive, IsNegative, IsZero, IsOne, IsNegOne: Boolean;
+begin
+  Result := True;
+  if Length(DecStr) = 0 then
+    Exit;
+
+  IsZero := (DecStr = '0') or (DecStr = '-0');
+  IsOne := DecStr = '1';
+  IsNegOne := DecStr = '-1';
+
+  IsNegative := (not IsZero) and (DecStr[1] = '-');
+  IsPositive := (not IsZero) and (DecStr[1] <> '-');
+
+  if IsZero then // 零系数
+  begin
+    if ExpsIsZero and (Res = '') then
+      Res := '0';
+    // 否则对 Res 啥都不做
+    Result := False;
+  end
+  else if IsPositive then // 大于 0
+  begin
+    if IsOne and not ExpsIsZero then  // 非常数项的 1 系数无需显示
+    begin
+      if Res <> '' then  // 最高项 Res 为空，无需加号
+        Res := Res + '+';
+    end
+    else
+    begin
+      if Res = '' then  // 最高项无需加号
+        Res := DecStr
+      else
+        Res := Res + '+' + DecStr;
+    end;
+  end
+  else if IsNegative then // 小于 0，要用减号
+  begin
+    if IsNegOne and not ExpsIsZero then // 非常数项的 -1 无需显示 1，只需减号
+      Res := Res + '-'
+    else
+      Res := Res + DecStr; // DecStr 里有减号
+  end;
+end;
+
+function ExtractInt64FromArrayConstElement(Element: TVarRec): Int64;
+begin
+  case Element.VType of
+  vtInteger:
+    begin
+      Result := Element.VInteger;
+    end;
+  vtInt64:
+    begin
+      Result := Element.VInt64^;
+    end;
+  vtBoolean:
+    begin
+      if Element.VBoolean then
+        Result := 1
+      else
+        Result := 0;
+    end;
+  vtString:
+    begin
+      Result := StrToInt(Element.VString^);
+    end;
+  else
+    raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + Element.VString^]);
+  end;
+end;
 
 { TCnInt64Polynomial }
 
@@ -1136,31 +1300,7 @@ var
 begin
   Clear;
   for I := Low(LowToHighCoefficients) to High(LowToHighCoefficients) do
-  begin
-    case LowToHighCoefficients[I].VType of
-    vtInteger:
-      begin
-        Add(LowToHighCoefficients[I].VInteger);
-      end;
-    vtInt64:
-      begin
-        Add(LowToHighCoefficients[I].VInt64^);
-      end;
-    vtBoolean:
-      begin
-        if LowToHighCoefficients[I].VBoolean then
-          Add(1)
-        else
-          Add(0);
-      end;
-    vtString:
-      begin
-        Add(StrToInt(LowToHighCoefficients[I].VString^));
-      end;
-    else
-      raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + IntToStr(I)]);
-    end;
-  end;
+    Add(ExtractInt64FromArrayConstElement(LowToHighCoefficients[I]));
 
   if Count = 0 then
     Add(0)
@@ -1170,8 +1310,7 @@ end;
 
 procedure TCnInt64Polynomial.SetMaxDegree(const Value: Integer);
 begin
-  if Value < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Value]);
+  CheckDegree(Value);
   Count := Value + 1;
 end;
 
@@ -1239,18 +1378,6 @@ function Int64PolynomialToString(const P: TCnInt64Polynomial;
   const VarName: Char = 'X'): string;
 var
   I: Integer;
-  C: Int64;
-
-  function VarPower(E: Integer): string;
-  begin
-    if E = 0 then
-      Result := ''
-    else if E = 1 then
-      Result := VarName
-    else
-      Result := VarName + '^' + IntToStr(E);
-  end;
-
 begin
   Result := '';
   if Int64PolynomialIsZero(P) then
@@ -1261,35 +1388,8 @@ begin
 
   for I := P.MaxDegree downto 0 do
   begin
-    C := P[I];
-    if C = 0 then
-    begin
-      Continue;
-    end
-    else if C > 0 then
-    begin
-      if (C = 1) and (I > 0) then  // 非常数项的 1 系数无需显示
-      begin
-        if Result = '' then  // 最高项无需加号
-          Result := VarPower(I)
-        else
-          Result := Result + '+' + VarPower(I);
-      end
-      else
-      begin
-        if Result = '' then  // 最高项无需加号
-          Result := IntToStr(C) + VarPower(I)
-        else
-          Result := Result + '+' + IntToStr(C) + VarPower(I);
-      end;
-    end
-    else // 小于 0，要用减号
-    begin
-      if (C = -1) and (I > 0) then // 非常数项的 -1 无需显示 1，只需减号
-        Result := Result + '-' + VarPower(I)
-      else
-        Result := Result + IntToStr(C) + VarPower(I);
-    end;
+    if VarItemFactor(Result, (I = 0), IntToStr(P[I])) then
+      Result := Result + VarPower(VarName, I);
   end;
 end;
 
@@ -3777,8 +3877,7 @@ procedure TCnBigNumberPolynomial.SetMaxDegree(const Value: Integer);
 var
   I, OC: Integer;
 begin
-  if Value < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Value]);
+  CheckDegree(Value);
 
   OC := Count;
   Count := Value + 1; // 直接设置 Count，如变小，会自动释放多余的对象
@@ -4000,17 +4099,6 @@ function BigNumberPolynomialToString(const P: TCnBigNumberPolynomial;
   const VarName: string = 'X'): string;
 var
   I: Integer;
-
-  function VarPower(E: Integer): string;
-  begin
-    if E = 0 then
-      Result := ''
-    else if E = 1 then
-      Result := VarName
-    else
-      Result := VarName + '^' + IntToStr(E);
-  end;
-
 begin
   Result := '';
   if BigNumberPolynomialIsZero(P) then
@@ -4021,34 +4109,8 @@ begin
 
   for I := P.MaxDegree downto 0 do
   begin
-    if P[I].IsZero then
-    begin
-      Continue;
-    end
-    else if not P[I].IsNegative then
-    begin
-      if P[I].IsOne and (I > 0) then  // 非常数项的 1 系数无需显示
-      begin
-        if Result = '' then  // 最高项无需加号
-          Result := VarPower(I)
-        else
-          Result := Result + '+' + VarPower(I);
-      end
-      else
-      begin
-        if Result = '' then  // 最高项无需加号
-          Result := P[I].ToDec + VarPower(I)
-        else
-          Result := Result + '+' + P[I].ToDec + VarPower(I);
-      end;
-    end
-    else // 小于 0，要用减号
-    begin
-      if P[I].IsNegOne and (I > 0) then // 非常数项的 -1 无需显示 1，只需减号
-        Result := Result + '-' + VarPower(I)
-      else
-        Result := Result + P[I].ToDec + VarPower(I);
-    end;
+    if VarItemFactor(Result, (I = 0), P[I].ToDec) then
+      Result := Result + VarPower(VarName, I);
   end;
 end;
 
@@ -4220,7 +4282,7 @@ begin
   end;
 end;
 
-// ======================== 大整系数多项式普通运算 =============================
+// ======================== 一元大整系数多项式普通运算 =============================
 
 procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: LongWord);
 begin
@@ -5669,7 +5731,7 @@ begin
   inherited Recycle(Poly);
 end;
 
-// ======================= 大整系数有理分式常规运算 ============================
+// ======================= 一元大整系数有理分式常规运算 ============================
 
 function BigNumberRationalPolynomialEqual(R1, R2: TCnBigNumberRationalPolynomial): Boolean;
 var
@@ -6023,7 +6085,7 @@ begin
   outResult.Reduce;
 end;
 
-// ==================== 大整系数有理分式在有限域上的模运算 =====================
+// ================== 一元大整系数有理分式在有限域上的模运算 ===================
 
 function BigNumberRationalPolynomialGaloisEqual(R1, R2: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
@@ -6401,6 +6463,229 @@ begin
     FLocalBigNumberPool.Recycle(N);
     FLocalBigNumberPool.Recycle(T);
   end;
+end;
+
+{ TCnInt64BiPolynomial }
+
+procedure TCnInt64BiPolynomial.CorrectTop;
+var
+  I: Integer;
+  Compact, MeetNonEmpty: Boolean;
+  YL: TCnInt64List;
+begin
+  MeetNonEmpty := False;
+  for I := FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnInt64List(FXs[I]);
+    Compact := CompactYDegree(YL);
+
+    if not Compact then     // 本次压缩非 0 
+      MeetNonEmpty := True;
+
+    if Compact and not MeetNonEmpty then // 最高的一路下来压缩出来全 0 的要删掉
+    begin
+      FXs.Delete(I);
+      YL.Free;
+    end;
+  end;
+end;
+
+function TCnInt64BiPolynomial.CompactYDegree(YList: TCnInt64List): Boolean;
+var
+  I: Integer;
+begin
+  for I := YList.Count - 1 downto 0 do
+    if YList[I] = 0 then
+      YList.Delete(I);
+
+  Result := YList.Count = 0;
+end;
+
+constructor TCnInt64BiPolynomial.Create(XDegree, YDegree: Integer);
+begin
+  FXs := TObjectList.Create(False);
+  EnsureDegrees(XDegree, YDegree);
+end;
+
+destructor TCnInt64BiPolynomial.Destroy;
+var
+  I: Integer;
+begin
+  for I := FXs.Count - 1 downto 0 do
+    FXs[I].Free;
+  FXs.Free;
+  inherited;
+end;
+
+procedure TCnInt64BiPolynomial.EnsureDegrees(XDegree, YDegree: Integer);
+var
+  I, OldCount: Integer;
+begin
+  CheckDegree(XDegree);
+  CheckDegree(YDegree);
+
+  OldCount := FXs.Count;
+  if (XDegree + 1) > FXs.Count then
+  begin
+    for I := FXs.Count + 1 to XDegree + 1 do
+    begin
+      FXs.Add(TCnInt64List.Create);
+      TCnInt64List(FXs[FXs.Count - 1]).Count := YDegree + 1;
+    end;
+  end;
+
+  for I:= OldCount - 1 downto 0 do
+    if TCnInt64List(FXs[I]).Count < YDegree + 1 then
+      TCnInt64List(FXs[I]).Count := YDegree + 1;
+end;
+
+function TCnInt64BiPolynomial.GetMaxXDegree: Integer;
+begin
+  Result := FXs.Count - 1;
+end;
+
+function TCnInt64BiPolynomial.GetMaxYDegree: Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := FXs.Count - 1 downto 0 do
+    if YFactorsList[I].Count - 1 > Result then
+      Result := YFactorsList[I].Count - 1;
+end;
+
+function TCnInt64BiPolynomial.GetYFactorsList(
+  Index: Integer): TCnInt64List;
+begin
+  if (Index < 0) and (Index >= FXs.Count) then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Index]);
+
+  Result := TCnInt64List(FXs[Index]);
+end;
+
+function TCnInt64BiPolynomial.IsZero: Boolean;
+begin
+  Result := (FXs.Count = 1) and (TCnInt64List(FXs[0]).Count = 1)
+    and (TCnInt64List(FXs[0])[0] = 0);
+end;
+
+procedure TCnInt64BiPolynomial.Negate;
+var
+  I, J: Integer;
+  YL: TCnInt64List;
+begin
+  for I := FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnInt64List(FXs[I]);
+    for J := YL.Count - 1 downto 0 do
+      YL[I] := - YL[I];
+  end;
+end;
+
+procedure TCnInt64BiPolynomial.SetMaxXDegree(const Value: Integer);
+var
+  I: Integer;
+begin
+  CheckDegree(Value);
+
+  if Value + 1 > FXs.Count then
+  begin
+    for I := FXs.Count + 1 to Value + 1 do
+      FXs.Add(TCnInt64List.Create);
+  end
+  else if Value + 1 < FXs.Count then
+  begin
+    for I := FXs.Count - 1 downto Value + 1 do
+    begin
+      FXs[I].Free;
+      FXs.Delete(I);
+    end;
+  end;
+end;
+
+procedure TCnInt64BiPolynomial.SetMaxYDegree(const Value: Integer);
+var
+  I: Integer;
+begin
+  CheckDegree(Value);
+
+  for I := FXs.Count - 1 downto 0 do
+    TCnInt64List(FXs[I]).Count := Value + 1;
+end;
+
+procedure TCnInt64BiPolynomial.SetString(const Poly: string);
+begin
+
+end;
+
+procedure TCnInt64BiPolynomial.SetZero;
+var
+  I: Integer;
+begin
+  for I := FXs.Count - 1 downto 1 do
+  begin
+    FXs[I].Free;
+    FXs.Delete(I);
+  end;
+
+  for I := YFactorsList[0].Count - 1 downto 1 do
+    YFactorsList[0].Delete(I);
+  YFactorsList[0][0] := 0;
+end;
+
+function TCnInt64BiPolynomial.ToString: string;
+begin
+  Result := Int64BiPolynomialToString(Self);
+end;
+
+function Int64BiPolynomialToString(const P: TCnInt64BiPolynomial;
+  const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): string;
+var
+  I, J: Integer;
+  YL: TCnInt64List;
+begin
+  Result := '';
+  for I := P.FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnInt64List(P.FXs[I]);
+    for J := YL.Count - 1 downto 0 do
+    begin
+      if VarItemFactor(Result, (J = 0) and (I = 0), IntToStr(YL[J])) then
+        Result := Result + VarPower2(Var1Name, Var2Name, I, J);
+    end;
+  end;
+end;
+
+procedure TCnInt64BiPolynomial.SetXCoefficents(YDegree: Integer;
+  LowToHighXCoefficients: array of const);
+var
+  I: Integer;
+begin
+  CheckDegree(YDegree);
+
+  if High(LowToHighXCoefficients) > MaxXDegree then
+    MaxXDegree := High(LowToHighXCoefficients);
+
+  if YDegree > MaxYDegree then
+    MaxYDegree := YDegree;
+
+  for I := Low(LowToHighXCoefficients) to High(LowToHighXCoefficients) do
+    YFactorsList[I][YDegree] := ExtractInt64FromArrayConstElement(LowToHighXCoefficients[I]);
+end;
+
+procedure TCnInt64BiPolynomial.SetYCoefficents(XDegree: Integer;
+  LowToHighYCoefficients: array of const);
+var
+  I: Integer;
+begin
+  CheckDegree(XDegree);
+
+  if XDegree > MaxXDegree then
+    MaxXDegree := XDegree;
+
+  YFactorsList[XDegree].Clear;
+  for I := Low(LowToHighYCoefficients) to High(LowToHighYCoefficients) do
+    YFactorsList[XDegree].Add(ExtractInt64FromArrayConstElement(LowToHighYCoefficients[I]));
 end;
 
 initialization
