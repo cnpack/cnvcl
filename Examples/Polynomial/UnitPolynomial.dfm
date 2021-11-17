@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsIntegerPolynomial
+    ActivePage = tsBiInt64Polynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -1499,6 +1499,33 @@ object FormPolynomial: TFormPolynomial
         Height = 513
         Caption = 'Bi Int64 Polynomial'
         TabOrder = 0
+        object lblIBPDeg: TLabel
+          Left = 816
+          Top = 124
+          Width = 38
+          Height = 13
+          Caption = 'Degree:'
+        end
+        object lblIBP2Deg: TLabel
+          Left = 816
+          Top = 220
+          Width = 38
+          Height = 13
+          Caption = 'Degree:'
+        end
+        object lblIBPEqual: TLabel
+          Left = 24
+          Top = 256
+          Width = 11
+          Height = 20
+          Caption = '='
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -16
+          Font.Name = 'MS Sans Serif'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
         object btnBiInt64ToString: TButton
           Left = 24
           Top = 32
@@ -1522,7 +1549,91 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'Set String'
           TabOrder = 2
-          OnClick = btnInt64PolySetStringClick
+          OnClick = btnBiInt64SetStringClick
+        end
+        object mmoIBP1: TMemo
+          Left = 24
+          Top = 88
+          Width = 777
+          Height = 57
+          ReadOnly = True
+          TabOrder = 4
+        end
+        object btnIBP1Random: TButton
+          Left = 816
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Random'
+          TabOrder = 5
+          OnClick = btnIBP1RandomClick
+        end
+        object edtIBP1Deg: TEdit
+          Left = 864
+          Top = 120
+          Width = 25
+          Height = 21
+          TabOrder = 6
+          Text = '4'
+        end
+        object mmoIBP2: TMemo
+          Left = 24
+          Top = 184
+          Width = 777
+          Height = 57
+          ReadOnly = True
+          TabOrder = 7
+        end
+        object btnIBP2Rand: TButton
+          Left = 816
+          Top = 184
+          Width = 75
+          Height = 21
+          Caption = 'Random'
+          TabOrder = 8
+          OnClick = btnIBP2RandClick
+        end
+        object edtIBP2Deg: TEdit
+          Left = 864
+          Top = 216
+          Width = 25
+          Height = 21
+          TabOrder = 3
+          Text = '4'
+        end
+        object btnIBPAdd: TButton
+          Left = 88
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Add'
+          TabOrder = 9
+          OnClick = btnIBPAddClick
+        end
+        object btnIBPSub: TButton
+          Left = 192
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Sub'
+          TabOrder = 10
+          OnClick = btnIBPSubClick
+        end
+        object btnIBPMul: TButton
+          Left = 296
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Mul'
+          TabOrder = 11
+          OnClick = btnIBPMulClick
+        end
+        object edtIBP3: TEdit
+          Left = 56
+          Top = 256
+          Width = 833
+          Height = 21
+          TabOrder = 12
         end
       end
     end

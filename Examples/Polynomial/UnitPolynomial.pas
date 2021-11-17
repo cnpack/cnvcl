@@ -188,6 +188,19 @@ type
     btnBiInt64ToString: TButton;
     edtBIP: TEdit;
     btnBiInt64SetString: TButton;
+    mmoIBP1: TMemo;
+    btnIBP1Random: TButton;
+    lblIBPDeg: TLabel;
+    edtIBP1Deg: TEdit;
+    mmoIBP2: TMemo;
+    btnIBP2Rand: TButton;
+    edtIBP2Deg: TEdit;
+    lblIBP2Deg: TLabel;
+    btnIBPAdd: TButton;
+    btnIBPSub: TButton;
+    btnIBPMul: TButton;
+    lblIBPEqual: TLabel;
+    edtIBP3: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -302,6 +315,12 @@ type
     procedure btnTestInt64SimpleDFTClick(Sender: TObject);
     procedure btnTestInt64SimpleNTTClick(Sender: TObject);
     procedure btnBiInt64ToStringClick(Sender: TObject);
+    procedure btnIBPAddClick(Sender: TObject);
+    procedure btnIBPSubClick(Sender: TObject);
+    procedure btnIBPMulClick(Sender: TObject);
+    procedure btnIBP1RandomClick(Sender: TObject);
+    procedure btnBiInt64SetStringClick(Sender: TObject);
+    procedure btnIBP2RandClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -316,6 +335,9 @@ type
     FBRP1: TCnBigNumberRationalPolynomial;
     FBRP2: TCnBigNumberRationalPolynomial;
     FBRP3: TCnBigNumberRationalPolynomial;
+    FIBP1: TCnInt64BiPolynomial;
+    FIBP2: TCnInt64BiPolynomial;
+    FIBP3: TCnInt64BiPolynomial;
   public
     { Public declarations }
   end;
@@ -455,10 +477,18 @@ begin
   FBRP1 := TCnBigNumberRationalPolynomial.Create;
   FBRP2 := TCnBigNumberRationalPolynomial.Create;
   FBRP3 := TCnBigNumberRationalPolynomial.Create;
+
+  FIBP1 := TCnInt64BiPolynomial.Create;
+  FIBP2 := TCnInt64BiPolynomial.Create;
+  FIBP3 := TCnInt64BiPolynomial.Create;
 end;
 
 procedure TFormPolynomial.FormDestroy(Sender: TObject);
 begin
+  FIBP1.Free;
+  FIBP2.Free;
+  FIBP3.Free;
+
   FBRP1.Free;
   FBRP2.Free;
   FBRP3.Free;
@@ -1997,7 +2027,6 @@ begin
     FBP2.Add(T);
   end;
   mmoBP2.Lines.Text := FBP2.ToString;
-
 end;
 
 procedure TFormPolynomial.btnBPAddClick(Sender: TObject);
@@ -3930,7 +3959,7 @@ end;
 
 procedure TFormPolynomial.btnBiInt64ToStringClick(Sender: TObject);
 var
-  IBP: TCnInt64BiPolynomial;
+  IBP, IBP1: TCnInt64BiPolynomial;
 begin
   IBP := TCnInt64BiPolynomial.Create;
 
@@ -3940,7 +3969,70 @@ begin
   IBP.SetYCoefficents(4, [-34, 4, -1]);
 
   edtBIP.Text := IBP.ToString;
+
+  IBP1 := Int64BiPolynomialDuplicate(IBP);
+  edtBIP.Text := IBP1.ToString;
+
+  IBP1.Free;
   IBP.Free;
+end;
+
+procedure TFormPolynomial.btnIBPAddClick(Sender: TObject);
+begin
+  if Int64BiPolynomialAdd(FIBP3, FIBP1, FIBP2) then
+    edtIBP3.Text := FIBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPSubClick(Sender: TObject);
+begin
+  if Int64BiPolynomialSub(FIBP3, FIBP1, FIBP2) then
+    edtIBP3.Text := FIBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPMulClick(Sender: TObject);
+begin
+  if Int64BiPolynomialMul(FIBP3, FIBP1, FIBP2) then
+    edtIBP3.Text := FIBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnIBP1RandomClick(Sender: TObject);
+var
+  I, D, X, Y: Integer;
+begin
+  D := StrToIntDef(edtIBP1Deg.Text, 5);
+  FIBP1.SetZero;
+  Randomize;
+
+  for I := 0 to D do
+  begin
+    X := Random(D);
+    Y := Random(D);
+    FIBP1.SafeValue[X, Y] := Random(32) - 16;
+  end;
+  mmoIBP1.Lines.Text := FIBP1.ToString;
+end;
+
+procedure TFormPolynomial.btnIBP2RandClick(Sender: TObject);
+var
+  I, D, X, Y: Integer;
+begin
+  D := StrToIntDef(edtIBP2Deg.Text, 4);
+  FIBP2.SetZero;
+  Randomize;
+
+  for I := 0 to D do
+  begin
+    X := Random(D);
+    Y := Random(D);
+    FIBP2.SafeValue[X, Y] := Random(32) - 16;
+  end;
+  mmoIBP2.Lines.Text := FIBP2.ToString;
+end;
+
+procedure TFormPolynomial.btnBiInt64SetStringClick(Sender: TObject);
+begin
+  FIBP1.SetString('-X^4Y^2+4X^4Y-34X^4+X^3+34XY^3+23XY^2-78XY-45Y^2+4Y+23');
+  edtBIP.Text := FIBP1.ToString;
 end;
 
 end.
