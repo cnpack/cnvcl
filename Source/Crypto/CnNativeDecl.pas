@@ -173,6 +173,12 @@ type
     property List: PInt64List read FList;
   end;
 
+procedure CnIntegerListCopy(Dst, Src: TCnIntegerList);
+{* 复制 TCnIntegerList}
+
+procedure CnInt64ListCopy(Dst, Src: TCnInt64List);
+{* 复制 TCnInt64List}
+
 {*
   对于 D567 等不支持 UInt64 的编译器，虽然可以用 Int64 代替 UInt64 进行加减、存储
   但乘除运算则无法直接完成，这里封装了两个调用 System 库中的 _lludiv 与 _llumod
@@ -1427,6 +1433,26 @@ begin
     for I := FCount - 1 downto NewCount do
       Delete(I);
   FCount := NewCount;
+end;
+
+procedure CnIntegerListCopy(Dst, Src: TCnIntegerList);
+begin
+  if (Src <> nil) and (Dst <> nil) and (Src <> Dst) then
+  begin
+    Dst.Count := Src.Count;
+    if Src.Count > 0 then
+      Move(Src.List^, Dst.List^, Src.Count * SizeOf(Integer));
+  end;
+end;
+
+procedure CnInt64ListCopy(Dst, Src: TCnInt64List);
+begin
+  if (Src <> nil) and (Dst <> nil) and (Src <> Dst) then
+  begin
+    Dst.Count := Src.Count;
+    if Src.Count > 0 then
+      Move(Src.List^, Dst.List^, Src.Count * SizeOf(Int64));
+  end;
 end;
 
 end.
