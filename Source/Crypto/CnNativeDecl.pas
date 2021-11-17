@@ -1441,7 +1441,13 @@ begin
   begin
     Dst.Count := Src.Count;
     if Src.Count > 0 then
+    begin
+{$IFDEF LIST_NEW_POINTER}
+      Move(Src.List[0], Dst.List[0], Src.Count * SizeOf(Integer));
+{$ELSE}
       Move(Src.List^, Dst.List^, Src.Count * SizeOf(Integer));
+{$ENDIF}
+    end;
   end;
 end;
 
