@@ -201,6 +201,11 @@ type
     btnIBPMul: TButton;
     lblIBPEqual: TLabel;
     edtIBP3: TEdit;
+    btnIBPPower: TButton;
+    lblIBPPower: TLabel;
+    edtIBPPower: TEdit;
+    btnIBPEvalY: TButton;
+    btnIBPEvalX: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -321,6 +326,9 @@ type
     procedure btnIBP1RandomClick(Sender: TObject);
     procedure btnBiInt64SetStringClick(Sender: TObject);
     procedure btnIBP2RandClick(Sender: TObject);
+    procedure btnIBPPowerClick(Sender: TObject);
+    procedure btnIBPEvalYClick(Sender: TObject);
+    procedure btnIBPEvalXClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4033,6 +4041,46 @@ procedure TFormPolynomial.btnBiInt64SetStringClick(Sender: TObject);
 begin
   FIBP1.SetString('-X^4Y^2+4X^4Y-34X^4+X^3+34XY^3+23XY^2-78XY-45Y^2+4Y+23');
   edtBIP.Text := FIBP1.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPPowerClick(Sender: TObject);
+begin
+  if Int64BiPolynomialPower(FIBP3, FIBP1, StrToIntDef(edtIBPPower.Text, 2)) then
+    edtIBP3.Text := FIBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPEvalYClick(Sender: TObject);
+var
+  S: string;
+  Y: Int64;
+  Res: TCnInt64Polynomial;
+begin
+  S := '0';
+  if InputQuery('Hint', 'Enter Y Value:', S) then
+  begin
+    Y := StrToInt64(S);
+    Res := TCnInt64Polynomial.Create;
+    if Int64BiPolynomialEvaluateByY(Res, FIBP1, Y) then
+      edtIBP3.Text := Res.ToString;
+    Res.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnIBPEvalXClick(Sender: TObject);
+var
+  S: string;
+  X: Int64;
+  Res: TCnInt64Polynomial;
+begin
+  S := '0';
+  if InputQuery('Hint', 'Enter X Value:', S) then
+  begin
+    X := StrToInt64(S);
+    Res := TCnInt64Polynomial.Create;
+    if Int64BiPolynomialEvaluateByX(Res, FIBP1, X) then
+      edtIBP3.Text := Int64PolynomialToString(Res, 'Y');
+    Res.Free;
+  end;
 end;
 
 end.

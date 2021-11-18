@@ -1120,6 +1120,8 @@ type
     {* 返回是否为 0}
     procedure SetZero;
     {* 设为 0}
+    procedure SetOne;
+    {* 设为 1}
     procedure Negate;
     {* 所有系数求反}
     property MaxXDegree: Integer read GetMaxXDegree write SetMaxXDegree;
@@ -1167,6 +1169,9 @@ function Int64BiPolynomialIsZero(const P: TCnInt64BiPolynomial): Boolean;
 procedure Int64BiPolynomialSetZero(const P: TCnInt64BiPolynomial);
 {* 将一个二元整系数多项式对象设为 0}
 
+procedure Int64BiPolynomialSetOne(const P: TCnInt64BiPolynomial);
+{* 将一个二元整系数多项式对象设为 1}
+
 procedure Int64BiPolynomialNegate(const P: TCnInt64BiPolynomial);
 {* 将一个二元整系数多项式对象所有系数求反}
 
@@ -1201,6 +1206,18 @@ function Int64BiPolynomialSub(const Res: TCnInt64BiPolynomial; const P1: TCnInt6
 function Int64BiPolynomialMul(const Res: TCnInt64BiPolynomial; P1: TCnInt64BiPolynomial;
   P2: TCnInt64BiPolynomial): Boolean;
 {* 两个二元整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function Int64BiPolynomialPower(const Res: TCnInt64BiPolynomial;
+  const P: TCnInt64BiPolynomial; Exponent: Int64): Boolean;
+{* 计算二元整系数多项式的 Exponent 次幂，不考虑系数溢出的问题，返回计算是否成功，Res 可以是 P}
+
+function Int64BiPolynomialEvaluateByY(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; YValue: Int64): Boolean;
+{* 将一具体 Y 值代入二元整系数多项式，得到只包含 X 的一元整系数多项式}
+
+function Int64BiPolynomialEvaluateByX(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; XValue: Int64): Boolean;
+{* 将一具体 X 值代入二元整系数多项式，得到只包含 Y 的一元整系数多项式}
 
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
@@ -6739,9 +6756,14 @@ begin
   Result := Dst;
   if Src <> Dst then
   begin
-    Dst.MaxXDegree := Src.MaxXDegree;
-    for I := 0 to Src.MaxXDegree do
-      CnInt64ListCopy(Dst.YFactorsList[I], Src.YFactorsList[I]);
+    if Src.MaxXDegree >= 0 then
+    begin
+      Dst.MaxXDegree := Src.MaxXDegree;
+      for I := 0 to Src.MaxXDegree do
+        CnInt64ListCopy(Dst.YFactorsList[I], Src.YFactorsList[I]);
+    end
+    else
+      Dst.SetZero; // 如果 Src 未初始化，则 Dst 也清零
   end;
 end;
 
@@ -6875,15 +6897,48 @@ procedure Int64BiPolynomialSetZero(const P: TCnInt64BiPolynomial);
 var
   I: Integer;
 begin
-  for I := P.FXs.Count - 1 downto 1 do
-  begin
-    P.FXs[I].Free;
-    P.FXs.Delete(I);
-  end;
+  if P.FXs.Count <= 0 then
+    P.FXs.Add(TCnInt64List.Create)
+  else
+    for I := P.FXs.Count - 1 downto 1 do
+    begin
+      P.FXs[I].Free;
+      P.FXs.Delete(I);
+    end;
 
-  for I := P.YFactorsList[0].Count - 1 downto 1 do
-    P.YFactorsList[0].Delete(I);
-  P.YFactorsList[0][0] := 0;
+  if P.YFactorsList[0].Count <= 0 then
+    P.YFactorsList[0].Add(0)
+  else
+  begin
+    for I := P.YFactorsList[0].Count - 1 downto 1 do
+      P.YFactorsList[0].Delete(I);
+
+    P.YFactorsList[0][0] := 0;
+  end;
+end;
+
+procedure Int64BiPolynomialSetOne(const P: TCnInt64BiPolynomial);
+var
+  I: Integer;
+begin
+  if P.FXs.Count <= 0 then
+    P.FXs.Add(TCnInt64List.Create)
+  else
+    for I := P.FXs.Count - 1 downto 1 do
+    begin
+      P.FXs[I].Free;
+      P.FXs.Delete(I);
+    end;
+
+  if P.YFactorsList[0].Count <= 0 then
+    P.YFactorsList[0].Add(1)
+  else
+  begin
+    for I := P.YFactorsList[0].Count - 1 downto 1 do
+      P.YFactorsList[0].Delete(I);
+
+    P.YFactorsList[0][0] := 1;
+  end;
 end;
 
 procedure Int64BiPolynomialNegate(const P: TCnInt64BiPolynomial);
@@ -7061,6 +7116,95 @@ begin
   Result := True;
 end;
 
+function Int64BiPolynomialPower(const Res: TCnInt64BiPolynomial;
+  const P: TCnInt64BiPolynomial; Exponent: Int64): Boolean;
+var
+  T: TCnInt64BiPolynomial;
+begin
+  if Exponent = 0 then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent = 1 then
+  begin
+    if Res <> P then
+      Int64BiPolynomialCopy(Res, P);
+    Result := True;
+    Exit;
+  end
+  else if Exponent < 0 then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
+
+  T := FLocalInt64BiPolynomialPool.Obtain;
+  Int64BiPolynomialCopy(T, P);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while Exponent > 0 do
+    begin
+      if (Exponent and 1) <> 0 then
+        Int64BiPolynomialMul(Res, Res, T);
+
+      Exponent := Exponent shr 1;
+      Int64BiPolynomialMul(T, T, T);
+    end;
+    Result := True;
+  finally
+    FLocalInt64BiPolynomialPool.Recycle(T);
+  end;
+end;
+
+function Int64BiPolynomialEvaluateByY(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; YValue: Int64): Boolean;
+var
+  I, J: Integer;
+  Sum, TY: Int64;
+  YL: TCnInt64List;
+begin
+  // 针对每一个 FXs[I] 的 List，遍历计算其 Y 各次方值累加，作为 X 的系数
+  Res.Clear;
+  for I := 0 to P.FXs.Count - 1 do
+  begin
+    Sum := 0;
+    TY := 1;
+    YL := TCnInt64List(P.FXs[I]);
+
+    for J := 0 to YL.Count - 1 do
+    begin
+      Sum := Sum + TY * YL[J];
+      TY := TY * YValue;
+    end;
+    Res.Add(Sum);
+  end;
+  Result := True;
+end;
+
+function Int64BiPolynomialEvaluateByX(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; XValue: Int64): Boolean;
+var
+  I, J: Integer;
+  Sum, TX: Int64;
+begin
+  // 针对每一个 Y 次数，遍历 FXs[I] 的 List 中的该次数元素，相乘累加，作为 Y 的系数
+  Res.Clear;
+  for I := 0 to P.MaxYDegree do
+  begin
+    Sum := 0;
+    TX := 1;
+
+    for J := 0 to P.FXs.Count - 1 do
+    begin
+      Sum := Sum + TX * P.SafeValue[J, I];
+      TX := TX * XValue;
+    end;
+    Res.Add(Sum);
+  end;
+  Result := True;
+end;
+
 procedure TCnInt64BiPolynomial.SetXCoefficents(YDegree: Integer;
   LowToHighXCoefficients: array of const);
 var
@@ -7125,6 +7269,11 @@ procedure TCnInt64BiPolynomial.SetSafeValue(XDegree, YDegree: Integer;
   const Value: Int64);
 begin
   SetXYCoefficent(XDegree, YDegree, Value);
+end;
+
+procedure TCnInt64BiPolynomial.SetOne;
+begin
+  Int64BiPolynomialSetOne(Self);
 end;
 
 { TCnInt64BiPolynomialPool }
