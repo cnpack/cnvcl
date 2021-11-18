@@ -1124,6 +1124,9 @@ type
     {* 设为 1}
     procedure Negate;
     {* 所有系数求反}
+    procedure Transpose;
+    {* 转置，也就是互换 X Y 元}
+
     property MaxXDegree: Integer read GetMaxXDegree write SetMaxXDegree;
     {* X 元的最高次数，0 开始，基于 Count 所以只能是 Integer}
     property MaxYDegree: Integer read GetMaxYDegree write SetMaxYDegree;
@@ -1218,6 +1221,9 @@ function Int64BiPolynomialEvaluateByY(const Res: TCnInt64Polynomial;
 function Int64BiPolynomialEvaluateByX(const Res: TCnInt64Polynomial;
   const P: TCnInt64BiPolynomial; XValue: Int64): Boolean;
 {* 将一具体 X 值代入二元整系数多项式，得到只包含 Y 的一元整系数多项式}
+
+procedure Int64BiPolynomialTranspose(const Dst, Src: TCnInt64BiPolynomial);
+{* 将二元整系数多项式的 X Y 元互换至另一个二元整系数多项式对象中，Src 和 Dst 可以相同}
 
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
@@ -7205,6 +7211,32 @@ begin
   Result := True;
 end;
 
+procedure Int64BiPolynomialTranspose(const Dst, Src: TCnInt64BiPolynomial);
+var
+  I, J: Integer;
+  T: TCnInt64BiPolynomial;
+begin
+  if Src = Dst then
+    T := FLocalInt64BiPolynomialPool.Obtain
+  else
+    T := Dst;
+
+  // 将 Src 转置塞入 T 中
+  T.SetZero;
+  T.MaxXDegree := Src.MaxYDegree;
+  T.MaxYDegree := Src.MaxXDegree;
+
+  for I := Src.FXs.Count - 1 downto 0 do
+    for J := Src.YFactorsList[I].Count - 1 downto 0 do
+      T.SafeValue[J, I] := Src.SafeValue[I, J];
+
+  if Src = Dst then
+  begin
+    Int64BiPolynomialCopy(Dst, T);
+    FLocalInt64BiPolynomialPool.Recycle(T);
+  end;
+end;
+
 procedure TCnInt64BiPolynomial.SetXCoefficents(YDegree: Integer;
   LowToHighXCoefficients: array of const);
 var
@@ -7274,6 +7306,11 @@ end;
 procedure TCnInt64BiPolynomial.SetOne;
 begin
   Int64BiPolynomialSetOne(Self);
+end;
+
+procedure TCnInt64BiPolynomial.Transpose;
+begin
+  Int64BiPolynomialTranspose(Self, Self);
 end;
 
 { TCnInt64BiPolynomialPool }

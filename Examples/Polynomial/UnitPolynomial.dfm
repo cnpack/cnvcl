@@ -1,6 +1,6 @@
 object FormPolynomial: TFormPolynomial
   Left = 241
-  Top = 142
+  Top = 133
   Width = 955
   Height = 601
   Caption = 'Polynomial Test'
@@ -1676,6 +1676,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Eval X'
           TabOrder = 16
           OnClick = btnIBPEvalXClick
+        end
+        object btnIBPTranspose: TButton
+          Left = 728
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Transpose'
+          TabOrder = 17
+          OnClick = btnIBPTransposeClick
         end
       end
     end

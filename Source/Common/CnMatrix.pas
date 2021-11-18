@@ -82,6 +82,8 @@ type
     {* 设置为 Size 阶单位矩阵}
     procedure SetZero;
     {* 设置为全 0 矩阵}
+    procedure Transpose;
+    {* 矩阵转置，也就是行列互换}
 
     function Determinant: Int64; virtual;
     {* 求方阵行列式值}
@@ -244,6 +246,9 @@ type
     {* 设置为 Size 阶单位矩阵}
     procedure SetZero;
     {* 设置为全 0 矩阵}
+    procedure Transpose;
+    {* 矩阵转置，也就是行列互换}
+
     procedure DeleteRow(Row: Integer);
     {* 删除其中一行}
     procedure DeleteCol(Col: Integer);
@@ -1195,6 +1200,11 @@ begin
     Result := OperationAdd(Result, FMatrix[I, I]);
 end;
 
+procedure TCnIntMatrix.Transpose;
+begin
+  CnMatrixTranspose(Self, Self);
+end;
+
 { TCnRationalNumber }
 
 procedure TCnRationalNumber.Add(Value: TCnRationalNumber);
@@ -2055,6 +2065,11 @@ begin
   T.SetZero;
   for I := 0 to RowCount - 1 do
     T.Add(Value[I, I]);
+end;
+
+procedure TCnRationalMatrix.Transpose;
+begin
+  CnMatrixTranspose(Self, Self);
 end;
 
 end.

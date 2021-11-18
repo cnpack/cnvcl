@@ -206,6 +206,7 @@ type
     edtIBPPower: TEdit;
     btnIBPEvalY: TButton;
     btnIBPEvalX: TButton;
+    btnIBPTranspose: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -329,6 +330,7 @@ type
     procedure btnIBPPowerClick(Sender: TObject);
     procedure btnIBPEvalYClick(Sender: TObject);
     procedure btnIBPEvalXClick(Sender: TObject);
+    procedure btnIBPTransposeClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4081,6 +4083,12 @@ begin
       edtIBP3.Text := Int64PolynomialToString(Res, 'Y');
     Res.Free;
   end;
+end;
+
+procedure TFormPolynomial.btnIBPTransposeClick(Sender: TObject);
+begin
+  Int64BiPolynomialTranspose(FIBP3, FIBP1);
+  edtIBP3.Text := FIBP3.ToString;
 end;
 
 end.
