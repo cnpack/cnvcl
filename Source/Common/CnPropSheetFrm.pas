@@ -2035,82 +2035,91 @@ begin
         end;
 {$ENDIF}
 
-        for RttiMethod in RttiType.GetMethods do
-        begin
-          S := GetMethodFullName(RttiMethod);
-          if not IsRefresh then
+        // 获取 Methods
+        try
+          for RttiMethod in RttiType.GetMethods do  // 有些在此出 Exception
           begin
-            AMethod := TCnMethodObject.Create;
-            AMethod.IsNewRTTI := True;
-          end
-          else
-            AMethod := IndexOfMethod(FMethods, S);
+            S := GetMethodFullName(RttiMethod);
+            if not IsRefresh then
+            begin
+              AMethod := TCnMethodObject.Create;
+              AMethod.IsNewRTTI := True;
+            end
+            else
+              AMethod := IndexOfMethod(FMethods, S);
 
-          AMethod.MethodSimpleName := RttiMethod.Name;
-          AMethod.FullName := S;
-          if S <> AMethod.DisplayValue then
-          begin
-            AMethod.DisplayValue := S;
-            AMethod.Changed := True;
-          end
-          else
-            AMethod.Changed := False;
+            AMethod.MethodSimpleName := RttiMethod.Name;
+            AMethod.FullName := S;
+            if S <> AMethod.DisplayValue then
+            begin
+              AMethod.DisplayValue := S;
+              AMethod.Changed := True;
+            end
+            else
+              AMethod.Changed := False;
 
-          if not IsRefresh then
-            FMethods.Add(AMethod);
+            if not IsRefresh then
+              FMethods.Add(AMethod);
 
-          Include(FContentTypes, pctMethods);
+            Include(FContentTypes, pctMethods);
+          end;
+        except
+          ;
         end;
 
         // 获取 Fields
-        for RttiField in RttiType.GetFields do
-        begin
-          if not IsRefresh then
-            AField := TCnFieldObject.Create
-          else
-            AField := IndexOfField(FFields, RttiField.Name);
-
-          AField.FieldName := RttiField.Name; // 不能用 RttiField.ToString，否则 IndexOfFields 找不到
-          AField.Offset := RttiField.Offset;
-          AField.FieldType := RttiField.FieldType;
-
-          if RttiField.FieldType <> nil then // 有可能 FieldType 为 nil
-            AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface]
-          else
-            AField.IsObjOrIntf := False;
-
-          try
-            AField.FieldValue := RttiField.GetValue(FObjectInstance);
-          except
-            // Getting Some Property causes Exception. Catch it.
-            AField.FieldValue := nil;
-          end;
-
-          AField.ObjValue := nil;
-          AField.IntfValue := nil;
-          try
-            if AField.IsObjOrIntf and RttiField.GetValue(FObjectInstance).IsObject then
-              AField.ObjValue := RttiField.GetValue(FObjectInstance).AsObject
-            else if AField.IsObjOrIntf and (RttiField.GetValue(FObjectInstance).TypeInfo <> nil) and
-              (RttiField.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
-              AField.IntfValue := RttiField.GetValue(FObjectInstance).AsInterface;
-          except
-            // Getting Some Property causes Exception. Catch it.;
-          end;
-
-          S := GetRttiFieldValueStr(FObjectInstance, RttiField);
-          if S <> AField.DisplayValue then
+        try
+          for RttiField in RttiType.GetFields do // 有些在此出 Exception
           begin
-            AField.DisplayValue := S;
-            AField.Changed := True;
-          end
-          else
-            AField.Changed := False;
+            if not IsRefresh then
+              AField := TCnFieldObject.Create
+            else
+              AField := IndexOfField(FFields, RttiField.Name);
 
-          if not IsRefresh then
-            FFields.Add(AField);
+            AField.FieldName := RttiField.Name; // 不能用 RttiField.ToString，否则 IndexOfFields 找不到
+            AField.Offset := RttiField.Offset;
+            AField.FieldType := RttiField.FieldType;
 
-          Include(FContentTypes, pctFields);
+            if RttiField.FieldType <> nil then // 有可能 FieldType 为 nil
+              AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface]
+            else
+              AField.IsObjOrIntf := False;
+
+            try
+              AField.FieldValue := RttiField.GetValue(FObjectInstance);
+            except
+              // Getting Some Property causes Exception. Catch it.
+              AField.FieldValue := nil;
+            end;
+
+            AField.ObjValue := nil;
+            AField.IntfValue := nil;
+            try
+              if AField.IsObjOrIntf and RttiField.GetValue(FObjectInstance).IsObject then
+                AField.ObjValue := RttiField.GetValue(FObjectInstance).AsObject
+              else if AField.IsObjOrIntf and (RttiField.GetValue(FObjectInstance).TypeInfo <> nil) and
+                (RttiField.GetValue(FObjectInstance).TypeInfo^.Kind = tkInterface) then
+                AField.IntfValue := RttiField.GetValue(FObjectInstance).AsInterface;
+            except
+              // Getting Some Property causes Exception. Catch it.;
+            end;
+
+            S := GetRttiFieldValueStr(FObjectInstance, RttiField);
+            if S <> AField.DisplayValue then
+            begin
+              AField.DisplayValue := S;
+              AField.Changed := True;
+            end
+            else
+              AField.Changed := False;
+
+            if not IsRefresh then
+              FFields.Add(AField);
+
+            Include(FContentTypes, pctFields);
+          end;
+        except
+          ;
         end;
       end;
     finally
