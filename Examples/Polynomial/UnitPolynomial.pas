@@ -212,6 +212,8 @@ type
     lblIBPExtract: TLabel;
     edtIBPExtract: TEdit;
     btnIBPExtractXY: TButton;
+    btnIBPIsMonicX: TButton;
+    btnIPIsMonic: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -337,6 +339,8 @@ type
     procedure btnIBPEvalXClick(Sender: TObject);
     procedure btnIBPTransposeClick(Sender: TObject);
     procedure btnIBPExtractXYClick(Sender: TObject);
+    procedure btnIBPIsMonicXClick(Sender: TObject);
+    procedure btnIPIsMonicClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4111,6 +4115,22 @@ begin
   edtIBP3.Text := P.ToString;
 
   P.Free;
+end;
+
+procedure TFormPolynomial.btnIBPIsMonicXClick(Sender: TObject);
+begin
+  if FIBP1.IsMonicX then
+    ShowMessage('Is Monic X')
+  else
+    ShowMessage('Is NOT Monic X');
+end;
+
+procedure TFormPolynomial.btnIPIsMonicClick(Sender: TObject);
+begin
+  if FIP1.IsMonic then
+    ShowMessage('Is Monic')
+  else
+    ShowMessage('Is NOT Monic');
 end;
 
 end.

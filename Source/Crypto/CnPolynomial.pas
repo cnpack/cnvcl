@@ -95,6 +95,8 @@ type
     {* 返回是否为 -1}
     procedure Negate;
     {* 所有系数求反}
+    function IsMonic: Boolean;
+    {* 是否首一多项式}
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
     {* 最高次数，0 开始，基于 Count 所以只能是 Integer}
   end;
@@ -193,6 +195,8 @@ type
     {* 返回是否为 -1}
     procedure Negate;
     {* 所有系数求反}
+    function IsMonic: Boolean;
+    {* 是否首一多项式}
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
     {* 最高次数，0 开始}
   end;
@@ -294,6 +298,9 @@ function Int64PolynomialIsNegOne(const P: TCnInt64Polynomial): Boolean;
 
 procedure Int64PolynomialNegate(const P: TCnInt64Polynomial);
 {* 将一个一元整系数多项式对象所有系数求反}
+
+function Int64PolynomialIsMonic(const P: TCnInt64Polynomial): Boolean;
+{* 判断一个一元整系数多项式是否是首一多项式，也就是判断最高次系数是否为 1}
 
 procedure Int64PolynomialShiftLeft(const P: TCnInt64Polynomial; N: Integer);
 {* 将一个一元整系数多项式对象左移 N 次，也就是各项指数都加 N}
@@ -671,6 +678,9 @@ function BigNumberPolynomialIsNegOne(const P: TCnBigNumberPolynomial): Boolean;
 
 procedure BigNumberPolynomialNegate(const P: TCnBigNumberPolynomial);
 {* 将一个一元大整系数多项式对象所有系数求反}
+
+function BigNumberPolynomialIsMonic(const P: TCnBigNumberPolynomial): Boolean;
+{* 判断一个一元大整系数多项式是否是首一多项式，也就是判断最高次系数是否为 1}
 
 procedure BigNumberPolynomialShiftLeft(const P: TCnBigNumberPolynomial; N: Integer);
 {* 将一个一元大整系数多项式对象左移 N 次，也就是各项指数都加 N}
@@ -1124,6 +1134,8 @@ type
     {* 设为 1}
     procedure Negate;
     {* 所有系数求反}
+    function IsMonicX: Boolean;
+    {* 是否是关于 X 的首一多项式}
     procedure Transpose;
     {* 转置，也就是互换 X Y 元}
 
@@ -1177,6 +1189,9 @@ procedure Int64BiPolynomialSetOne(const P: TCnInt64BiPolynomial);
 
 procedure Int64BiPolynomialNegate(const P: TCnInt64BiPolynomial);
 {* 将一个二元整系数多项式对象所有系数求反}
+
+function Int64BiPolynomialIsMonicX(const P: TCnInt64BiPolynomial): Boolean;
+{* 判断一个二元整系数多项式是否是关于 X 的首一多项式，也就是判断 X 最高次的系数是否为 1}
 
 function Int64BiPolynomialEqual(const A, B: TCnInt64BiPolynomial): Boolean;
 {* 判断俩二元整系数多项式每项系数是否对应相等，是则返回 True}
@@ -1384,6 +1399,11 @@ begin
   if Count = 0 then
     Add(0);
   Result := Count - 1;
+end;
+
+function TCnInt64Polynomial.IsMonic: Boolean;
+begin
+  Result := Int64PolynomialIsMonic(Self);
 end;
 
 function TCnInt64Polynomial.IsNegOne: Boolean;
@@ -1620,6 +1640,11 @@ var
 begin
   for I := 0 to P.MaxDegree do
     P[I] := -P[I];
+end;
+
+function Int64PolynomialIsMonic(const P: TCnInt64Polynomial): Boolean;
+begin
+  Result := P[P.MaxDegree] = 1;
 end;
 
 procedure Int64PolynomialShiftLeft(const P: TCnInt64Polynomial; N: Integer);
@@ -3922,6 +3947,11 @@ begin
   Result := Count - 1;
 end;
 
+function TCnBigNumberPolynomial.IsMonic: Boolean;
+begin
+  Result := BigNumberPolynomialIsMonic(Self);
+end;
+
 function TCnBigNumberPolynomial.IsNegOne: Boolean;
 begin
   Result := BigNumberPolynomialIsNegOne(Self);
@@ -4341,6 +4371,11 @@ var
 begin
   for I := 0 to P.MaxDegree do
     P[I].Negate;
+end;
+
+function BigNumberPolynomialIsMonic(const P: TCnBigNumberPolynomial): Boolean;
+begin
+  Result := P[P.MaxDegree].IsOne;
 end;
 
 procedure BigNumberPolynomialShiftLeft(const P: TCnBigNumberPolynomial; N: Integer);
@@ -6968,6 +7003,13 @@ begin
   end;
 end;
 
+function Int64BiPolynomialIsMonicX(const P: TCnInt64BiPolynomial): Boolean;
+begin
+  Result := False;
+  if P.MaxXDegree >= 0 then
+    Result := (P.YFactorsList[P.MaxXDegree].Count = 1) and (P.YFactorsList[P.MaxXDegree][0] = 1);
+end;
+
 function Int64BiPolynomialEqual(const A, B: TCnInt64BiPolynomial): Boolean;
 var
   I, J: Integer;
@@ -7342,6 +7384,11 @@ end;
 procedure TCnInt64BiPolynomial.Transpose;
 begin
   Int64BiPolynomialTranspose(Self, Self);
+end;
+
+function TCnInt64BiPolynomial.IsMonicX: Boolean;
+begin
+  Result := Int64BiPolynomialIsMonicX(Self);
 end;
 
 { TCnInt64BiPolynomialPool }

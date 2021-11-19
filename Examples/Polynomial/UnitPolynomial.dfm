@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsBiInt64Polynomial
+    ActivePage = tsIntegerPolynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -376,6 +376,15 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Int64 Simple Mul NTT'
           TabOrder = 33
           OnClick = btnTestInt64SimpleNTTClick
+        end
+        object btnIPIsMonic: TButton
+          Left = 712
+          Top = 152
+          Width = 65
+          Height = 25
+          Caption = 'IsMonic'
+          TabOrder = 34
+          OnClick = btnIPIsMonicClick
         end
       end
     end
@@ -1716,13 +1725,22 @@ object FormPolynomial: TFormPolynomial
           Text = '2'
         end
         object btnIBPExtractXY: TButton
-          Left = 760
+          Left = 752
           Top = 152
           Width = 75
           Height = 25
           Caption = 'Extract'
           TabOrder = 19
           OnClick = btnIBPExtractXYClick
+        end
+        object btnIBPIsMonicX: TButton
+          Left = 832
+          Top = 152
+          Width = 59
+          Height = 25
+          Caption = 'IsMonicX'
+          TabOrder = 20
+          OnClick = btnIBPIsMonicXClick
         end
       end
     end
