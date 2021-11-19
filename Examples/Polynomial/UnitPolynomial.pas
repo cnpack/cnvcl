@@ -207,6 +207,11 @@ type
     btnIBPEvalY: TButton;
     btnIBPEvalX: TButton;
     btnIBPTranspose: TButton;
+    bvl8: TBevel;
+    bvl9: TBevel;
+    lblIBPExtract: TLabel;
+    edtIBPExtract: TEdit;
+    btnIBPExtractXY: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -331,6 +336,7 @@ type
     procedure btnIBPEvalYClick(Sender: TObject);
     procedure btnIBPEvalXClick(Sender: TObject);
     procedure btnIBPTransposeClick(Sender: TObject);
+    procedure btnIBPExtractXYClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4089,6 +4095,22 @@ procedure TFormPolynomial.btnIBPTransposeClick(Sender: TObject);
 begin
   Int64BiPolynomialTranspose(FIBP3, FIBP1);
   edtIBP3.Text := FIBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPExtractXYClick(Sender: TObject);
+var
+  P: TCnInt64Polynomial;
+  D: Integer;
+begin
+  D := StrToIntDef(edtIBPExtract.Text, 2);
+  P := TCnInt64Polynomial.Create;
+
+  Int64BiPolynomialExtractYByX(P, FIBP1, D);
+  mmoIBP2.Lines.Text := Int64PolynomialToString(P, 'Y');
+  Int64BiPolynomialExtractXByY(P, FIBP1, D);
+  edtIBP3.Text := P.ToString;
+
+  P.Free;
 end;
 
 end.

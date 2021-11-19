@@ -27,7 +27,7 @@ object FormPolynomial: TFormPolynomial
     Top = 8
     Width = 929
     Height = 553
-    ActivePage = tsIntegerPolynomial
+    ActivePage = tsBiInt64Polynomial
     TabOrder = 0
     object tsIntegerPolynomial: TTabSheet
       Caption = 'Int64 Polynomial'
@@ -1527,11 +1527,32 @@ object FormPolynomial: TFormPolynomial
           ParentFont = False
         end
         object lblIBPPower: TLabel
-          Left = 488
+          Left = 344
           Top = 158
           Width = 21
           Height = 13
           Caption = 'Exp:'
+        end
+        object bvl8: TBevel
+          Left = 400
+          Top = 152
+          Width = 17
+          Height = 25
+          Shape = bsLeftLine
+        end
+        object bvl9: TBevel
+          Left = 664
+          Top = 152
+          Width = 17
+          Height = 25
+          Shape = bsLeftLine
+        end
+        object lblIBPExtract: TLabel
+          Left = 672
+          Top = 158
+          Width = 38
+          Height = 13
+          Caption = 'Degree:'
         end
         object btnBiInt64ToString: TButton
           Left = 24
@@ -1609,7 +1630,7 @@ object FormPolynomial: TFormPolynomial
           Text = '4'
         end
         object btnIBPAdd: TButton
-          Left = 88
+          Left = 24
           Top = 152
           Width = 75
           Height = 25
@@ -1618,7 +1639,7 @@ object FormPolynomial: TFormPolynomial
           OnClick = btnIBPAddClick
         end
         object btnIBPSub: TButton
-          Left = 192
+          Left = 104
           Top = 152
           Width = 75
           Height = 25
@@ -1627,7 +1648,7 @@ object FormPolynomial: TFormPolynomial
           OnClick = btnIBPSubClick
         end
         object btnIBPMul: TButton
-          Left = 296
+          Left = 184
           Top = 152
           Width = 75
           Height = 25
@@ -1643,7 +1664,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 14
         end
         object btnIBPPower: TButton
-          Left = 400
+          Left = 264
           Top = 152
           Width = 75
           Height = 25
@@ -1652,7 +1673,7 @@ object FormPolynomial: TFormPolynomial
           OnClick = btnIBPPowerClick
         end
         object edtIBPPower: TEdit
-          Left = 512
+          Left = 368
           Top = 154
           Width = 25
           Height = 21
@@ -1660,7 +1681,7 @@ object FormPolynomial: TFormPolynomial
           Text = '4'
         end
         object btnIBPEvalY: TButton
-          Left = 552
+          Left = 416
           Top = 152
           Width = 75
           Height = 25
@@ -1669,7 +1690,7 @@ object FormPolynomial: TFormPolynomial
           OnClick = btnIBPEvalYClick
         end
         object btnIBPEvalX: TButton
-          Left = 640
+          Left = 496
           Top = 152
           Width = 75
           Height = 25
@@ -1678,13 +1699,30 @@ object FormPolynomial: TFormPolynomial
           OnClick = btnIBPEvalXClick
         end
         object btnIBPTranspose: TButton
-          Left = 728
+          Left = 576
           Top = 152
           Width = 75
           Height = 25
           Caption = 'Transpose'
           TabOrder = 17
           OnClick = btnIBPTransposeClick
+        end
+        object edtIBPExtract: TEdit
+          Left = 720
+          Top = 154
+          Width = 25
+          Height = 21
+          TabOrder = 18
+          Text = '2'
+        end
+        object btnIBPExtractXY: TButton
+          Left = 760
+          Top = 152
+          Width = 75
+          Height = 25
+          Caption = 'Extract'
+          TabOrder = 19
+          OnClick = btnIBPExtractXYClick
         end
       end
     end

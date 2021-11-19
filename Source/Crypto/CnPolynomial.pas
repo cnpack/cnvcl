@@ -1225,6 +1225,14 @@ function Int64BiPolynomialEvaluateByX(const Res: TCnInt64Polynomial;
 procedure Int64BiPolynomialTranspose(const Dst, Src: TCnInt64BiPolynomial);
 {* 将二元整系数多项式的 X Y 元互换至另一个二元整系数多项式对象中，Src 和 Dst 可以相同}
 
+procedure Int64BiPolynomialExtractYByX(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; XDegree: Int64);
+{* 将二元整系数多项式的 X 次方系数提取出来放到一个 Y 的一元多项式里}
+
+procedure Int64BiPolynomialExtractXByY(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; YDegree: Int64);
+{* 将二元整系数多项式的 X 次方系数提取出来放到一个 Y 的一元多项式里}
+
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
   CnInt64PolynomialZero: TCnInt64Polynomial = nil;    // 表示 0 的常量
@@ -7235,6 +7243,29 @@ begin
     Int64BiPolynomialCopy(Dst, T);
     FLocalInt64BiPolynomialPool.Recycle(T);
   end;
+end;
+
+procedure Int64BiPolynomialExtractYByX(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; XDegree: Int64);
+begin
+  CheckDegree(XDegree);
+  if XDegree < P.FXs.Count then
+    CnInt64ListCopy(Res, TCnInt64List(P.FXs[XDegree]))
+  else
+    Res.SetZero;
+end;
+
+procedure Int64BiPolynomialExtractXByY(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; YDegree: Int64);
+var
+  I: Integer;
+begin
+  CheckDegree(YDegree);
+  Res.Clear;
+  for I := 0 to P.FXs.Count - 1 do
+    Res.Add(P.SafeValue[I, YDegree]);
+
+  Res.CorrectTop;
 end;
 
 procedure TCnInt64BiPolynomial.SetXCoefficents(YDegree: Integer;
