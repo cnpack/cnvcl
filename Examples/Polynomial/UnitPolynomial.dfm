@@ -1517,14 +1517,14 @@ object FormPolynomial: TFormPolynomial
         end
         object lblIBP2Deg: TLabel
           Left = 816
-          Top = 220
+          Top = 252
           Width = 38
           Height = 13
           Caption = 'Degree:'
         end
         object lblIBPEqual: TLabel
           Left = 24
-          Top = 256
+          Top = 288
           Width = 11
           Height = 20
           Caption = '='
@@ -1562,6 +1562,20 @@ object FormPolynomial: TFormPolynomial
           Width = 38
           Height = 13
           Caption = 'Degree:'
+        end
+        object lblIBPShiftX: TLabel
+          Left = 272
+          Top = 62
+          Width = 24
+          Height = 13
+          Caption = 'Shift:'
+        end
+        object bvl10: TBevel
+          Left = 24
+          Top = 324
+          Width = 865
+          Height = 17
+          Shape = bsTopLine
         end
         object btnBiInt64ToString: TButton
           Left = 24
@@ -1615,7 +1629,7 @@ object FormPolynomial: TFormPolynomial
         end
         object mmoIBP2: TMemo
           Left = 24
-          Top = 184
+          Top = 216
           Width = 777
           Height = 57
           ReadOnly = True
@@ -1623,7 +1637,7 @@ object FormPolynomial: TFormPolynomial
         end
         object btnIBP2Rand: TButton
           Left = 816
-          Top = 184
+          Top = 216
           Width = 75
           Height = 21
           Caption = 'Random'
@@ -1632,7 +1646,7 @@ object FormPolynomial: TFormPolynomial
         end
         object edtIBP2Deg: TEdit
           Left = 864
-          Top = 216
+          Top = 248
           Width = 25
           Height = 21
           TabOrder = 13
@@ -1667,7 +1681,7 @@ object FormPolynomial: TFormPolynomial
         end
         object edtIBP3: TEdit
           Left = 56
-          Top = 256
+          Top = 288
           Width = 833
           Height = 21
           TabOrder = 14
@@ -1734,13 +1748,57 @@ object FormPolynomial: TFormPolynomial
           OnClick = btnIBPExtractXYClick
         end
         object btnIBPIsMonicX: TButton
-          Left = 832
-          Top = 152
-          Width = 59
+          Left = 24
+          Top = 184
+          Width = 73
           Height = 25
           Caption = 'IsMonicX'
           TabOrder = 20
           OnClick = btnIBPIsMonicXClick
+        end
+        object edtIBPShiftX: TEdit
+          Left = 304
+          Top = 58
+          Width = 25
+          Height = 21
+          TabOrder = 21
+          Text = '4'
+        end
+        object btnIBPShiftLeftX: TButton
+          Left = 192
+          Top = 56
+          Width = 75
+          Height = 25
+          Caption = 'Shift Left'
+          TabOrder = 22
+          OnClick = btnIBPShiftLeftXClick
+        end
+        object btnIBPShiftRightX: TButton
+          Left = 336
+          Top = 56
+          Width = 75
+          Height = 25
+          Caption = 'Shift Right'
+          TabOrder = 23
+          OnClick = btnIBPShiftRightXClick
+        end
+        object btnIBPDivModX: TButton
+          Left = 104
+          Top = 184
+          Width = 75
+          Height = 25
+          Caption = 'DivX && ModX'
+          TabOrder = 24
+          OnClick = btnIBPDivModXClick
+        end
+        object btnIBPTestMod: TButton
+          Left = 24
+          Top = 336
+          Width = 113
+          Height = 25
+          Caption = 'Test Power Mod'
+          TabOrder = 25
+          OnClick = btnIBPTestModClick
         end
       end
     end

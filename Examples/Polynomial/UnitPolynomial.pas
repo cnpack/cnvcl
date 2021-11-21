@@ -214,6 +214,13 @@ type
     btnIBPExtractXY: TButton;
     btnIBPIsMonicX: TButton;
     btnIPIsMonic: TButton;
+    lblIBPShiftX: TLabel;
+    edtIBPShiftX: TEdit;
+    btnIBPShiftLeftX: TButton;
+    btnIBPShiftRightX: TButton;
+    btnIBPDivModX: TButton;
+    bvl10: TBevel;
+    btnIBPTestMod: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -341,6 +348,10 @@ type
     procedure btnIBPExtractXYClick(Sender: TObject);
     procedure btnIBPIsMonicXClick(Sender: TObject);
     procedure btnIPIsMonicClick(Sender: TObject);
+    procedure btnIBPShiftLeftXClick(Sender: TObject);
+    procedure btnIBPShiftRightXClick(Sender: TObject);
+    procedure btnIBPDivModXClick(Sender: TObject);
+    procedure btnIBPTestModClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4131,6 +4142,80 @@ begin
     ShowMessage('Is Monic')
   else
     ShowMessage('Is NOT Monic');
+end;
+
+procedure TFormPolynomial.btnIBPShiftLeftXClick(Sender: TObject);
+begin
+  Int64BiPolynomialShiftLeftX(FIBP1, StrToIntDef(edtIBPShiftX.Text, 2));
+  edtIBP3.Text := FIBP1.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPShiftRightXClick(Sender: TObject);
+begin
+  Int64BiPolynomialShiftRightX(FIBP1, StrToIntDef(edtIBPShiftX.Text, 2));
+  edtIBP3.Text := FIBP1.ToString;
+end;
+
+procedure TFormPolynomial.btnIBPDivModXClick(Sender: TObject);
+var
+  R: TCnInt64BiPolynomial;
+begin
+  R := TCnInt64BiPolynomial.Create;
+
+  // 针对纯 X 多项式的测试代码
+  FIBP1.SetZero;
+  FIBP2.SetZero;
+  FIBP1.SetXCoefficents(0, [1, 2, 3]);
+  FIBP2.SetXCoefficents(0, [2, 1]);
+  mmoIBP1.Lines.Text := FIBP1.ToString;
+  mmoIBP2.Lines.Text := FIBP2.ToString;
+
+  if Int64BiPolynomialDivX(FIBP3, R, FIBP1, FIBP2) then
+  begin
+    edtIBP3.Text := FIBP3.ToString;          // 3X - 4
+    ShowMessage('Remain: ' + R.ToString);    // 9
+  end;
+
+  // 测试代码 End
+
+  // 针对混合 X 和 Y 的测试代码
+  FIBP1.SetString('2X^2Y+3XY^2+Y-6');
+  FIBP2.SetString('X+3Y');
+
+  mmoIBP1.Lines.Text := FIBP1.ToString;
+  mmoIBP2.Lines.Text := FIBP2.ToString;
+  if Int64BiPolynomialDivX(FIBP3, R, FIBP1, FIBP2) then
+  begin
+    edtIBP3.Text := FIBP3.ToString;          // 2XY - 3Y2
+    ShowMessage('Remain: ' + R.ToString);    // 9Y^3 + Y -6
+  end;
+
+  R.Free;
+end;
+
+procedure TFormPolynomial.btnIBPTestModClick(Sender: TObject);
+begin
+  // 计算 (X+Y)^31 mod (X^29-1)
+  FIBP1.SetString('X+Y');
+  Int64BiPolynomialPower(FIBP2, FIBP1, 29);
+  mmoIBP2.Lines.Text := FIBP2.ToString;
+
+  // 结果应该是
+  // X^29+29X^28Y+406X^27Y^2+3654X^26Y^3+23751X^25Y^4+118755X^24Y^5+475020X^23Y^6
+  // +1560780X^22Y^7+4292145X^21Y^8+10015005X^20Y^9+20030010X^19Y^10+34597290X^18Y^11
+  // +51895935X^17Y^12+67863915X^16Y^13+77558760X^15Y^14+77558760X^14Y^15+67863915X^13Y^16
+  // +51895935X^12Y^17+34597290X^11Y^18+20030010X^10Y^19+10015005X^9Y^20+4292145X^8Y^21
+  // +1560780X^7Y^22+475020X^6Y^23+118755X^5Y^24+23751X^4Y^25+3654X^3Y^26+406X^2Y^27+29XY^28+Y^29
+
+  Int64BiPolynomialPower(FIBP1, FIBP1, 29);
+  FIBP2.SetString('X^29-1');
+  mmoIBP1.Lines.Text := FIBP1.ToString;
+  mmoIBP2.Lines.Text := FIBP2.ToString;
+
+  if Int64BiPolynomialModX(FIBP3, FIBP1, FIBP2) then
+  begin
+    edtIBP3.Text := FIBP3.ToString;
+  end;
 end;
 
 end.
