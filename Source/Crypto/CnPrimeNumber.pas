@@ -36,7 +36,9 @@ unit CnPrimeNumber;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2018.08.30 V1.5
+* 修改记录：2021.11.20 V1.6
+*               实现 AKS 精确素性判断算法。
+*           2018.08.30 V1.5
 *               修正 Random 精度不够导致 Int64 生成素数末尾可能连续出现 $FF 的问题
 *               增加 UInt32/64 生成 Diffie-Hellman 密钥交换算法的素数与原根的函数，
 *               增加辗转相除法求最大公约数以及 PollardRho 算法分解质因数以及求欧拉
@@ -815,10 +817,13 @@ function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
 function CnInt64IsPerfectPower(N: Int64): Boolean;
 {* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0}
 
+function CnInt64AKSIsPrime(N: Int64): Boolean;
+{* 用 AKS 算法判断某正整数是否是素数}
+
 implementation
 
 uses
-  CnHashMap;
+  CnHashMap, CnPolynomial;
 
 {$IFDEF MACOS}
 
@@ -2250,6 +2255,108 @@ begin
       Result := True;
       Exit;
     end;
+  end;
+end;
+
+function CnInt64AKSIsPrime(N: Int64): Boolean;
+var
+  NR: Boolean;
+  R, T, C: Int64;
+  K, LG22: Integer;
+  LG2, Q: Extended;
+  P1, P2, D: TCnInt64BiPolynomial;
+  Res: TCnInt64Polynomial;
+begin
+  Result := False;
+  if N <= 1 then
+    Exit;
+  if CnInt64IsPerfectPower(N) then // 如果是完全幂则是合数
+    Exit;
+
+  // 找出最小的 R 满足 欧拉(R) > (Log二底(N))^2。
+  NR := True;
+  R := 1;
+  LG2 := Log2(N);
+  // LG2 := GetUInt64HighBits(N); // 整数会有误差
+  LG22 := Trunc(LG2 * LG2);
+
+  // 找出最小的 R
+  while NR do
+  begin
+    Inc(R);
+    NR := False;
+
+    K := 1;
+    while not NR and (K <= LG22) do
+    begin
+      T := MontgomeryPowerMod(N, K, R);  // 非负 Int64 可以使用 TUInt64 版本的 MontgomeryPowerMod
+      NR := (T = 0) or (T = 1);
+      Inc(K);
+    end;
+  end;
+
+  // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
+  T := R;
+  while T > 1 do
+  begin
+    C := CnInt64GreatestCommonDivisor(T, N);
+    if (C > 1) and (C < N) then
+      Exit;
+
+    Dec(T);
+  end;
+
+  if N <= R then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Q := CnEulerInt64(R);
+  // 此处应该用小数计算，因为整数会产生较大误差
+  C := Trunc(Sqrt(Q) * LG2);
+
+  // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N，也就是(X+Y)^N 展开后针对 X^R-1 求余，且系数都针对 N 取模
+  P1 := TCnInt64BiPolynomial.Create;
+  P1.SetString('X+Y');
+  D := TCnInt64BiPolynomial.Create;
+  D.SetOne;
+  D.Negate;
+  D.SetYCoefficents(R, [1]); // X^R - 1
+
+  // 再在环 (X^R-1, N) 上提前计算 X^N + Y
+  P2 := TCnInt64BiPolynomial.Create;
+  P2.SafeValue[N, 0] := 1;
+  P2.SafeValue[0, 1] := 1; // P2 是 X^N + Y
+  Res := TCnInt64Polynomial.Create;
+
+  try
+    Int64BiPolynomialGaloisPower(P1, P1, N, N, D);
+    Int64BiPolynomialGaloisModX(P2, P2, D, N);
+    Int64BiPolynomialGaloisSub(P1, P1, P2, N);
+
+    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分
+    T := 1;
+    while T <= C do
+    begin
+      // 求 P1 的表达式的值，猜测此时 P1 中已无 X 有效项，只有 Y 项
+      Int64BiPolynomialGaloisEvaluateByY(Res, P1, T, N);
+
+      if Res.MaxDegree > 0 then // 说明还有 X 值，不止常数项
+        Exit;
+      Int64PolynomialNonNegativeModWord(Res, N); // 常数项如果能被 N 整除
+      if not Res.IsZero then
+        Exit;
+
+      Inc(T);
+    end;
+
+    Result := True;
+  finally
+    D.Free;
+    P1.Free;
+    P2.Free;
+    Res.Free;
   end;
 end;
 

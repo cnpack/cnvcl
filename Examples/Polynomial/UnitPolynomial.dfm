@@ -1800,6 +1800,15 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 25
           OnClick = btnIBPTestModClick
         end
+        object btnIBPTestAKSExample: TButton
+          Left = 160
+          Top = 336
+          Width = 113
+          Height = 25
+          Caption = 'Test AKS Example'
+          TabOrder = 26
+          OnClick = btnIBPTestAKSExampleClick
+        end
       end
     end
   end

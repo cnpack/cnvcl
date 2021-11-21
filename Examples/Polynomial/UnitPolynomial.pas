@@ -221,6 +221,7 @@ type
     btnIBPDivModX: TButton;
     bvl10: TBevel;
     btnIBPTestMod: TButton;
+    btnIBPTestAKSExample: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -352,6 +353,7 @@ type
     procedure btnIBPShiftRightXClick(Sender: TObject);
     procedure btnIBPDivModXClick(Sender: TObject);
     procedure btnIBPTestModClick(Sender: TObject);
+    procedure btnIBPTestAKSExampleClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4237,6 +4239,21 @@ begin
   // 11X^19Y^10+19X^18Y^11+13X^17Y^12+17X^16Y^13+15X^15Y^14+15X^14Y^15+17X^13Y^16+13X^12Y^17+
   // 19X^11Y^18+11X^10Y^19+21X^9Y^20+9X^8Y^21+23X^7Y^22+7X^6Y^23+25X^5Y^24+5X^4Y^25+27X^3Y^26+3X^2Y^27+29XY^28+Y^29+1
   // 对上了！
+end;
+
+procedure TFormPolynomial.btnIBPTestAKSExampleClick(Sender: TObject);
+begin
+  // 直接计算 (x + y)^31 % (x^29-1, 31) 是否等于 y^31 + x^2
+  FIBP1.SetString('X+Y');
+  FIBP3.SetString('X^29-1');
+  Int64BiPolynomialGaloisPower(FIBP2, FIBP1, 31, 31, FIBP3);
+  mmoIBP2.Lines.Text := FIBP2.ToString;  // X^2+Y^31 正确！
+
+  // 直接计算 (x^31 + y) % (x^29-1, 31) 是否等于 = y + x^2
+  FIBP1.SetString('X^31+Y');
+  FIBP3.SetString('X^29-1');
+  Int64BiPolynomialGaloisModX(FIBP2, FIBP1, FIBP3, 31);
+  mmoIBP2.Lines.Text := FIBP2.ToString;  // X^2+Y 正确！
 end;
 
 end.

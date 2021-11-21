@@ -86,6 +86,7 @@ type
     btnInt64BSGS: TButton;
     edtPower: TEdit;
     btnIsPerfectPower: TButton;
+    btnInt64AKS: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -114,6 +115,7 @@ type
     procedure btnCheckPrimeClick(Sender: TObject);
     procedure btnInt64BSGSClick(Sender: TObject);
     procedure btnIsPerfectPowerClick(Sender: TObject);
+    procedure btnInt64AKSClick(Sender: TObject);
   private
 
   public
@@ -582,6 +584,22 @@ begin
     ShowMessage('Is Perfect Power')
   else
     ShowMessage('Not Perfect Power');
+end;
+
+procedure TFormPrime.btnInt64AKSClick(Sender: TObject);
+var
+  P: Int64;
+  S: string;
+begin
+  S := '31';
+  if InputQuery('Hint', 'Enter an Integer Value', S) then
+  begin
+    P := StrToInt64(S);
+    if CnInt64AKSIsPrime(P) then
+      ShowMessage(S + ' Is a Prime')
+    else
+      ShowMessage('NOT Prime');
+  end;
 end;
 
 end.

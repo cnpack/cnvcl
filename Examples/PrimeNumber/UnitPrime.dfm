@@ -1,6 +1,6 @@
 object FormPrime: TFormPrime
   Left = 237
-  Top = 137
+  Top = 138
   BorderStyle = bsDialog
   Caption = 'Prime Number Test'
   ClientHeight = 464
@@ -21,7 +21,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsCRT
+    ActivePage = tsIsPrime
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
@@ -118,7 +118,7 @@ object FormPrime: TFormPrime
       object btnCarmichael: TButton
         Left = 336
         Top = 64
-        Width = 297
+        Width = 137
         Height = 25
         Caption = 'Carmichael is Prime?'
         TabOrder = 4
@@ -151,6 +151,15 @@ object FormPrime: TFormPrime
         Caption = 'Generate a Int32 Prime'
         TabOrder = 7
         OnClick = btnGenInt32PrimeClick
+      end
+      object btnInt64AKS: TButton
+        Left = 488
+        Top = 64
+        Width = 145
+        Height = 25
+        Caption = 'Int64 AKS'
+        TabOrder = 8
+        OnClick = btnInt64AKSClick
       end
     end
     object tsMontgomery: TTabSheet

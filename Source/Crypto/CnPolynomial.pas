@@ -1344,6 +1344,14 @@ function Int64BiPolynomialGaloisPower(const Res, P: TCnInt64BiPolynomial;
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
+function Int64BiPolynomialGaloisEvaluateByY(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; YValue, Prime: Int64): Boolean;
+{* 将一具体 Y 值代入二元整系数多项式，得到只包含 X 的一元整系数多项式，系数针对 Prime 取模}
+
+function Int64BiPolynomialGaloisEvaluateByX(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; XValue, Prime: Int64): Boolean;
+{* 将一具体 X 值代入二元整系数多项式，得到只包含 Y 的一元整系数多项式，系数针对 Prime 取模}
+
 procedure Int64BiPolynomialGaloisAddWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
 {* 将 Prime 次方阶有限域上的二元整系数多项式的各项系数加上 N 再 mod Prime，注意不是常系数}
 
@@ -2141,7 +2149,6 @@ var
   I, D: Integer;
   T: Int64;
 begin
-  Result := False;
   if Int64PolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
 
@@ -7867,6 +7874,56 @@ begin
   finally
     FLocalInt64BiPolynomialPool.Recycle(T);
   end;
+end;
+
+function Int64BiPolynomialGaloisEvaluateByY(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; YValue, Prime: Int64): Boolean;
+var
+  I, J: Integer;
+  Sum, TY: Int64;
+  YL: TCnInt64List;
+begin
+  // 针对每一个 FXs[I] 的 List，遍历计算其 Y 各次方值累加，作为 X 的系数
+  Res.Clear;
+  for I := 0 to P.FXs.Count - 1 do
+  begin
+    Sum := 0;
+    TY := 1;
+    YL := TCnInt64List(P.FXs[I]);
+
+    for J := 0 to YL.Count - 1 do
+    begin
+      // TODO: 暂不考虑相加溢出的情况
+      Sum := Int64NonNegativeMod(Sum + Int64NonNegativeMulMod(TY, YL[J], Prime), Prime);
+      TY := Int64NonNegativeMulMod(TY, YValue, Prime);
+    end;
+    Res.Add(Sum);
+  end;
+  Result := True;
+end;
+
+function Int64BiPolynomialGaloisEvaluateByX(const Res: TCnInt64Polynomial;
+  const P: TCnInt64BiPolynomial; XValue, Prime: Int64): Boolean;
+var
+  I, J: Integer;
+  Sum, TX: Int64;
+begin
+  // 针对每一个 Y 次数，遍历 FXs[I] 的 List 中的该次数元素，相乘累加，作为 Y 的系数
+  Res.Clear;
+  for I := 0 to P.MaxYDegree do
+  begin
+    Sum := 0;
+    TX := 1;
+
+    for J := 0 to P.FXs.Count - 1 do
+    begin
+      // TODO: 暂不考虑相加溢出的情况
+      Sum := Int64NonNegativeMod(Sum + Int64NonNegativeMulMod(TX, P.SafeValue[J, I], Prime), Prime);
+      TX := Int64NonNegativeMulMod(TX, XValue, Prime);
+    end;
+    Res.Add(Sum);
+  end;
+  Result := True;
 end;
 
 procedure Int64BiPolynomialGaloisAddWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
