@@ -326,7 +326,7 @@ procedure Int64PolynomialDivWord(const P: TCnInt64Polynomial; N: Int64);
 {* 将一个一元整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
 procedure Int64PolynomialNonNegativeModWord(const P: TCnInt64Polynomial; N: Int64);
-{* 将一个一元整系数多项式对象的各个系数都对 N 非负求余}
+{* 将一个一元整系数多项式对象的各个系数都对 N 非负求余，可以用于有限域化}
 
 function Int64PolynomialAdd(const Res: TCnInt64Polynomial; const P1: TCnInt64Polynomial;
   const P2: TCnInt64Polynomial): Boolean;
@@ -706,7 +706,7 @@ procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: LongWor
 {* 将一个一元大整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
 procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
-{* 将一个一元大整系数多项式对象的各个系数都对 N 非负求余}
+{* 将一个一元大整系数多项式对象的各个系数都对 N 非负求余，可以用于有限域化}
 
 procedure BigNumberPolynomialAddBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
 {* 将一个一元大整系数多项式对象的常系数加上大数 N}
@@ -1217,10 +1217,10 @@ function Int64BiPolynomialEqual(const A, B: TCnInt64BiPolynomial): Boolean;
 // ====================== 二元整系数多项式普通运算 =============================
 
 procedure Int64BiPolynomialAddWord(const P: TCnInt64BiPolynomial; N: Int64);
-{* 将一个二元整系数多项式对象的常系数加上 N}
+{* 将一个二元整系数多项式对象的各个系数加上 N}
 
 procedure Int64BiPolynomialSubWord(const P: TCnInt64BiPolynomial; N: Int64);
-{* 将一个二元整系数多项式对象的常系数减去 N}
+{* 将一个二元整系数多项式对象的各个系数减去 N}
 
 procedure Int64BiPolynomialMulWord(const P: TCnInt64BiPolynomial; N: Int64);
 {* 将一个二元整系数多项式对象的各个系数都乘以 N}
@@ -1229,7 +1229,7 @@ procedure Int64BiPolynomialDivWord(const P: TCnInt64BiPolynomial; N: Int64);
 {* 将一个二元整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
 procedure Int64BiPolynomialNonNegativeModWord(const P: TCnInt64BiPolynomial; N: Int64);
-{* 将一个二元整系数多项式对象的各个系数都对 N 非负求余}
+{* 将一个二元整系数多项式对象的各个系数都对 N 非负求余，可以用于有限域化}
 
 function Int64BiPolynomialAdd(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
   const P2: TCnInt64BiPolynomial): Boolean;
@@ -1285,6 +1285,77 @@ procedure Int64BiPolynomialExtractYByX(const Res: TCnInt64Polynomial;
 procedure Int64BiPolynomialExtractXByY(const Res: TCnInt64Polynomial;
   const P: TCnInt64BiPolynomial; YDegree: Int64);
 {* 将二元整系数多项式的 X 次方系数提取出来放到一个 Y 的一元多项式里}
+
+// =================== 二元整系数多项式式在有限域上的模运算 ====================
+
+function Int64BiPolynomialGaloisEqual(const A, B: TCnInt64BiPolynomial; Prime: Int64): Boolean;
+{* 两个二元整系数多项式在模 Prime 的条件下是否相等}
+
+procedure Int64BiPolynomialGaloisNegate(const P: TCnInt64BiPolynomial; Prime: Int64);
+{* 将一个二元整系数多项式对象所有系数在模 Prime 的条件下求反}
+
+function Int64BiPolynomialGaloisAdd(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
+  const P2: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 两个二元整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
+   返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function Int64BiPolynomialGaloisSub(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
+  const P2: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 两个二元整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
+   返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function Int64BiPolynomialGaloisMul(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
+  const P2: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 两个二元整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
+   返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function Int64BiPolynomialGaloisMulX(const Res: TCnInt64BiPolynomial; P1: TCnInt64BiPolynomial;
+  PX: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 一个二元整系数多项式对象与一个 X 的一元整系数多项式对象在 Prime 次方阶有限域上相乘，
+  结果放至 Res 中，返回相乘是否成功，Res 可以是 P1}
+
+function Int64BiPolynomialGaloisMulY(const Res: TCnInt64BiPolynomial; P1: TCnInt64BiPolynomial;
+  PY: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 一个二元整系数多项式对象与一个 Y 的一元整系数多项式对象在 Prime 次方阶有限域上相乘，
+  结果放至 Res 中，返回相乘是否成功，Res 可以是 P1}
+
+function Int64BiPolynomialGaloisDivX(const Res: TCnInt64BiPolynomial;
+  const Remain: TCnInt64BiPolynomial; const P: TCnInt64BiPolynomial;
+  const Divisor: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 两个二元整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+   调用者需自行保证 Divisor 是 X 的首一多项式且 Prime 是素数且本原多项式 Primitive 为 X 的不可约多项式
+   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor
+   注意：和一元多项式不同，只是系数求模了}
+
+function Int64BiPolynomialGaloisModX(const Res: TCnInt64BiPolynomial; const P: TCnInt64BiPolynomial;
+  const Divisor: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil): Boolean;
+{* 两个二元整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
+   调用者需自行保证 Divisor 是 X 的首一多项式且 Prime 是素数且本原多项式 Primitive 为 X 的不可约多项式
+   Res 可以是 P 或 Divisor，P 可以是 Divisor}
+
+function Int64BiPolynomialGaloisPower(const Res, P: TCnInt64BiPolynomial;
+  Exponent: Int64; Prime: Int64; Primitive: TCnInt64BiPolynomial = nil;
+  ExponentHi: Int64 = 0): Boolean;
+{* 计算二元整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，Exponent 可以是 128 位，
+   Exponent 两个部分如果是负值，自动转成 UInt64
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
+   返回计算是否成功，Res 可以是 P}
+
+procedure Int64BiPolynomialGaloisAddWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+{* 将 Prime 次方阶有限域上的二元整系数多项式的各项系数加上 N 再 mod Prime，注意不是常系数}
+
+procedure Int64BiPolynomialGaloisSubWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+{* 将 Prime 次方阶有限域上的二元整系数多项式的各项系数减去 N 再 mod Prime，注意不是常系数}
+
+procedure Int64BiPolynomialGaloisMulWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+{* 将 Prime 次方阶有限域上的二元整系数多项式各项系数乘以 N 再 mod Prime}
+
+procedure Int64BiPolynomialGaloisDivWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+{* 将 Prime 次方阶有限域上的二元整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
+
 
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
@@ -1404,6 +1475,25 @@ begin
   else
     raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + Element.VString^]);
   end;
+end;
+
+
+function Exponent128IsZero(Exponent, ExponentHi: Int64): Boolean;
+begin
+  Result := (Exponent = 0) and (ExponentHi = 0);
+end;
+
+function Exponent128IsOne(Exponent, ExponentHi: Int64): Boolean;
+begin
+  Result := (Exponent = 1) and (ExponentHi = 0);
+end;
+
+procedure ExponentShiftRightOne(var Exponent, ExponentHi: Int64);
+begin
+  Exponent := Exponent shr 1;
+  if (ExponentHi and 1) <> 0 then
+    Exponent := Exponent or $8000000000000000;
+  ExponentHi := ExponentHi shr 1;
 end;
 
 { TCnInt64Polynomial }
@@ -2572,33 +2662,14 @@ function Int64PolynomialGaloisPower(const Res, P: TCnInt64Polynomial;
   ExponentHi: Int64): Boolean;
 var
   T: TCnInt64Polynomial;
-
-  function ExponentIsZero: Boolean;
-  begin
-    Result := (Exponent = 0) and (ExponentHi = 0);
-  end;
-
-  function ExponentIsOne: Boolean;
-  begin
-    Result := (Exponent = 1) and (ExponentHi = 0);
-  end;
-
-  procedure ExponentShiftRightOne;
-  begin
-    Exponent := Exponent shr 1;
-    if (ExponentHi and 1) <> 0 then
-      Exponent := Exponent or $8000000000000000;
-    ExponentHi := ExponentHi shr 1;
-  end;
-
 begin
-  if ExponentIsZero then
+  if Exponent128IsZero(Exponent, ExponentHi) then
   begin
     Res.SetCoefficents([1]);
     Result := True;
     Exit;
   end
-  else if ExponentIsOne then
+  else if Exponent128IsOne(Exponent, ExponentHi) then
   begin
     if Res <> P then
       Int64PolynomialCopy(Res, P);
@@ -2612,12 +2683,12 @@ begin
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetCoefficents([1]);
-    while not ExponentIsZero do
+    while not Exponent128IsZero(Exponent, ExponentHi) do
     begin
       if (Exponent and 1) <> 0 then
         Int64PolynomialGaloisMul(Res, Res, T, Prime, Primitive);
 
-      ExponentShiftRightOne;
+      ExponentShiftRightOne(Exponent, ExponentHi);
       Int64PolynomialGaloisMul(T, T, T, Prime, Primitive);
     end;
     Result := True;
@@ -4503,10 +4574,10 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SZeroDivide);
-
-  for I := 0 to P.MaxDegree do
-    BigNumberDivWord(P[I], N);
+    raise ECnPolynomialException.Create(SZeroDivide)
+  else if N <> 1 then
+    for I := 0 to P.MaxDegree do
+      BigNumberDivWord(P[I], N);
 end;
 
 procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
@@ -7158,9 +7229,12 @@ procedure Int64BiPolynomialMulWord(const P: TCnInt64BiPolynomial; N: Int64);
 var
   I, J: Integer;
 begin
-  for I := P.FXs.Count - 1 downto 0 do
-    for J := P.YFactorsList[I].Count - 1 downto 0 do
-      P.YFactorsList[I][J] := P.YFactorsList[I][J] * N;
+  if N = 0 then
+    P.SetZero
+  else if N <> 1 then
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        P.YFactorsList[I][J] := P.YFactorsList[I][J] * N;
 end;
 
 procedure Int64BiPolynomialDivWord(const P: TCnInt64BiPolynomial; N: Int64);
@@ -7168,11 +7242,11 @@ var
   I, J: Integer;
 begin
   if N = 0 then
-    raise EDivByZero.Create(SDivByZero);
-
-  for I := P.FXs.Count - 1 downto 0 do
-    for J := P.YFactorsList[I].Count - 1 downto 0 do
-      P.YFactorsList[I][J] := P.YFactorsList[I][J] div N;
+    raise EDivByZero.Create(SDivByZero)
+  else if N <> 1 then
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        P.YFactorsList[I][J] := P.YFactorsList[I][J] div N;
 end;
 
 procedure Int64BiPolynomialNonNegativeModWord(const P: TCnInt64BiPolynomial; N: Int64);
@@ -7237,6 +7311,13 @@ var
   I, J, K, L: Integer;
   R: TCnInt64BiPolynomial;
 begin
+  if P1.IsZero or P2.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
   if (Res = P1) or (Res = P2) then
     R := FLocalInt64BiPolynomialPool.Obtain
   else
@@ -7511,6 +7592,336 @@ begin
     Res.Add(P.SafeValue[I, YDegree]);
 
   Res.CorrectTop;
+end;
+
+function Int64BiPolynomialGaloisEqual(const A, B: TCnInt64BiPolynomial; Prime: Int64): Boolean;
+var
+  I, J: Integer;
+begin
+  Result := False;
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if (A = nil) or (B = nil) then
+    Exit;
+
+  if A.MaxXDegree <> B.MaxXDegree then
+    Exit;
+
+  for I := A.FXs.Count - 1 downto 0 do
+  begin
+    if A.YFactorsList[I].Count <> B.YFactorsList[I].Count then
+      Exit;
+
+    for J := A.YFactorsList[I].Count - 1 downto 0 do
+      if (A.YFactorsList[I][J] <> B.YFactorsList[I][J]) and
+        (Int64NonNegativeMod(A.YFactorsList[I][J], Prime) <> Int64NonNegativeMod(A.YFactorsList[I][J], Prime)) then
+        Exit;
+  end;
+  Result := True;
+end;
+
+procedure Int64BiPolynomialGaloisNegate(const P: TCnInt64BiPolynomial; Prime: Int64);
+var
+  I, J: Integer;
+  YL: TCnInt64List;
+begin
+  for I := P.FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnInt64List(P.FXs[I]);
+    for J := YL.Count - 1 downto 0 do
+      YL[I] := Int64NonNegativeMod(-YL[I], Prime);
+  end;
+end;
+
+function Int64BiPolynomialGaloisAdd(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
+  const P2: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+begin
+  Result := Int64BiPolynomialAdd(Res, P1, P2);
+  if Result then
+  begin
+    Int64BiPolynomialNonNegativeModWord(Res, Prime);
+    if Primitive <> nil then
+      Int64BiPolynomialGaloisModX(Res, Res, Primitive, Prime);
+  end;
+end;
+
+function Int64BiPolynomialGaloisSub(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
+  const P2: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+begin
+  Result := Int64BiPolynomialSub(Res, P1, P2);
+  if Result then
+  begin
+    Int64BiPolynomialNonNegativeModWord(Res, Prime);
+    if Primitive <> nil then
+      Int64BiPolynomialGaloisModX(Res, Res, Primitive, Prime);
+  end;
+end;
+
+function Int64BiPolynomialGaloisMul(const Res: TCnInt64BiPolynomial; const P1: TCnInt64BiPolynomial;
+  const P2: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+var
+  I, J, K, L: Integer;
+  R: TCnInt64BiPolynomial;
+  T: Int64;
+begin
+  if P1.IsZero or P2.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if (Res = P1) or (Res = P2) then
+    R := FLocalInt64BiPolynomialPool.Obtain
+  else
+    R := Res;
+
+  R.Clear;
+  R.MaxXDegree := P1.MaxXDegree + P2.MaxXDegree;
+  R.MaxYDegree := P1.MaxYDegree + P2.MaxYDegree;
+
+  for I := P1.FXs.Count - 1 downto 0 do
+  begin
+    for J := P1.YFactorsList[I].Count - 1 downto 0 do
+    begin
+      // 拿到 P1.SafeValue[I, J]，要遍历相乘 P2 的每一个
+      for K := P2.FXs.Count - 1 downto 0 do
+      begin
+        for L := P2.YFactorsList[K].Count - 1 downto 0 do
+        begin
+          // 容易溢出，不能直接相乘
+          T := Int64NonNegativeMulMod(P1.SafeValue[I, J], P2.SafeValue[K, L], Prime);
+          R.SafeValue[I + K, J + L] := Int64NonNegativeMod(R.SafeValue[I + K, J + L] + Int64NonNegativeMod(T, Prime), Prime);
+          // TODO: 暂未处理加法溢出的情况
+        end;
+      end;
+    end;
+  end;
+
+  R.CorrectTop;
+
+  // 再对本原多项式取模，注意这里传入的本原多项式是 mod 操作的除数，不是本原多项式参数
+  if Primitive <> nil then
+    Int64BiPolynomialGaloisModX(R, R, Primitive, Prime);
+
+  if (Res = P1) or (Res = P2) then
+  begin
+    Int64BiPolynomialCopy(Res, R);
+    FLocalInt64BiPolynomialPool.Recycle(R);
+  end;
+  Result := True;
+end;
+
+function Int64BiPolynomialGaloisMulX(const Res: TCnInt64BiPolynomial; P1: TCnInt64BiPolynomial;
+  PX: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+var
+  P: TCnInt64BiPolynomial;
+begin
+  P := FLocalInt64BiPolynomialPool.Obtain;
+  try
+    Int64BiPolynomialCopyFromX(P, PX);
+    Result := Int64BiPolynomialGaloisMul(Res, P1, P, Prime, Primitive);
+  finally
+    FLocalInt64BiPolynomialPool.Recycle(P);
+  end;
+end;
+
+function Int64BiPolynomialGaloisMulY(const Res: TCnInt64BiPolynomial; P1: TCnInt64BiPolynomial;
+  PY: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+var
+  P: TCnInt64BiPolynomial;
+begin
+  P := FLocalInt64BiPolynomialPool.Obtain;
+  try
+    Int64BiPolynomialCopyFromY(P, PY);
+    Result := Int64BiPolynomialGaloisMul(Res, P1, P, Prime, Primitive);
+  finally
+    FLocalInt64BiPolynomialPool.Recycle(P);
+  end;
+end;
+
+function Int64BiPolynomialGaloisDivX(const Res: TCnInt64BiPolynomial;
+  const Remain: TCnInt64BiPolynomial; const P: TCnInt64BiPolynomial;
+  const Divisor: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+var
+  SubRes: TCnInt64BiPolynomial; // 容纳递减差
+  MulRes: TCnInt64BiPolynomial; // 容纳除数乘积
+  DivRes: TCnInt64BiPolynomial; // 容纳临时商
+  I, D: Integer;
+  TY: TCnInt64Polynomial;        // 容纳首一多项式需要乘的 Y 多项式
+begin
+  Result := False;
+  if Int64BiPolynomialIsZero(Divisor) then
+    raise ECnPolynomialException.Create(SDivByZero);
+
+  if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
+  begin
+    if Res <> nil then
+      Int64BiPolynomialSetZero(Res);
+    if (Remain <> nil) and (P <> Remain) then
+      Int64BiPolynomialCopy(Remain, P);
+    Result := True;
+    Exit;
+  end;
+
+  if not Divisor.IsMonicX then // 只支持 X 的首一多项式
+    Exit;
+
+  // 够除，循环
+  SubRes := nil;
+  MulRes := nil;
+  DivRes := nil;
+  TY := nil;
+
+  try
+    SubRes := FLocalInt64BiPolynomialPool.Obtain;
+    Int64BiPolynomialCopy(SubRes, P);
+
+    D := P.MaxXDegree - Divisor.MaxXDegree;
+    DivRes := FLocalInt64BiPolynomialPool.Obtain;
+    DivRes.MaxXDegree := D;
+    MulRes := FLocalInt64BiPolynomialPool.Obtain;
+
+    TY := FLocalInt64PolynomialPool.Obtain;
+
+    for I := 0 to D do
+    begin
+      if P.MaxXDegree - I > SubRes.MaxXDegree then                 // 中间结果可能跳位
+        Continue;
+
+      Int64BiPolynomialCopy(MulRes, Divisor);
+      Int64BiPolynomialShiftLeftX(MulRes, D - I);                 // 对齐到 SubRes 的最高次
+
+      Int64BiPolynomialExtractYByX(TY, SubRes, P.MaxXDegree - I);
+      Int64BiPolynomialGaloisMulY(MulRes, MulRes, TY, Prime, Primitive);     // 除式乘到最高次系数相同
+
+      DivRes.SetYCoefficentsFromPolynomial(D - I, TY);            // 商放到 DivRes 位置
+      Int64BiPolynomialGaloisSub(SubRes, SubRes, MulRes, Prime, Primitive);  // 减后结果重新放回 SubRes
+    end;
+
+    // 商与余式都需要再模本原多项式
+    if Primitive <> nil then
+    begin
+      Int64BiPolynomialGaloisModX(SubRes, SubRes, Primitive, Prime);
+      Int64BiPolynomialGaloisModX(DivRes, DivRes, Primitive, Prime);
+    end;
+
+    if Remain <> nil then
+      Int64BiPolynomialCopy(Remain, SubRes);
+    if Res <> nil then
+      Int64BiPolynomialCopy(Res, DivRes);
+  finally
+    FLocalInt64BiPolynomialPool.Recycle(SubRes);
+    FLocalInt64BiPolynomialPool.Recycle(MulRes);
+    FLocalInt64BiPolynomialPool.Recycle(DivRes);
+    FLocalInt64PolynomialPool.Recycle(TY);
+  end;
+  Result := True;
+end;
+
+function Int64BiPolynomialGaloisModX(const Res: TCnInt64BiPolynomial; const P: TCnInt64BiPolynomial;
+  const Divisor: TCnInt64BiPolynomial; Prime: Int64; Primitive: TCnInt64BiPolynomial): Boolean;
+begin
+  Result := Int64BiPolynomialGaloisDivX(nil, Res, P, Divisor, Prime, Primitive);
+end;
+
+function Int64BiPolynomialGaloisPower(const Res, P: TCnInt64BiPolynomial;
+  Exponent: Int64; Prime: Int64; Primitive: TCnInt64BiPolynomial;
+  ExponentHi: Int64): Boolean;
+var
+  T: TCnInt64BiPolynomial;
+begin
+  if Exponent128IsZero(Exponent, ExponentHi) then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent128IsOne(Exponent, ExponentHi) then
+  begin
+    if Res <> P then
+      Int64BiPolynomialCopy(Res, P);
+    Result := True;
+    Exit;
+  end;
+
+  T := FLocalInt64BiPolynomialPool.Obtain;
+  Int64BiPolynomialCopy(T, P);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while not Exponent128IsZero(Exponent, ExponentHi) do
+    begin
+      if (Exponent and 1) <> 0 then
+        Int64BiPolynomialGaloisMul(Res, Res, T, Prime, Primitive);
+
+      ExponentShiftRightOne(Exponent, ExponentHi);
+      Int64BiPolynomialGaloisMul(T, T, T, Prime, Primitive);
+    end;
+    Result := True;
+  finally
+    FLocalInt64BiPolynomialPool.Recycle(T);
+  end;
+end;
+
+procedure Int64BiPolynomialGaloisAddWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+var
+  I, J: Integer;
+begin
+  for I := P.FXs.Count - 1 downto 0 do
+    for J := P.YFactorsList[I].Count - 1 downto 0 do
+      P.YFactorsList[I][J] := Int64NonNegativeMod(P.YFactorsList[I][J] + N, Prime);
+end;
+
+procedure Int64BiPolynomialGaloisSubWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+var
+  I, J: Integer;
+begin
+  for I := P.FXs.Count - 1 downto 0 do
+    for J := P.YFactorsList[I].Count - 1 downto 0 do
+      P.YFactorsList[I][J] := Int64NonNegativeMod(P.YFactorsList[I][J] - N, Prime);
+end;
+
+procedure Int64BiPolynomialGaloisMulWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+var
+  I, J: Integer;
+begin
+  if N = 0 then
+    P.SetZero
+  else // 有 Prime 需要 Mod，不判断是否是 1 了
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        P.YFactorsList[I][J] := Int64NonNegativeMulMod(P.YFactorsList[I][J], N, Prime);
+end;
+
+procedure Int64BiPolynomialGaloisDivWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
+var
+  I, J: Integer;
+  K: Int64;
+  B: Boolean;
+begin
+  if N = 0 then
+    raise ECnPolynomialException.Create(SDivByZero);
+
+  B := N < 0;
+  if B then
+    N := -N;
+
+  K := CnInt64ModularInverse2(N, Prime);
+  for I := P.FXs.Count - 1 downto 0 do
+  begin
+    for J := P.YFactorsList[I].Count - 1 downto 0 do
+    begin
+      P.YFactorsList[I][J] := Int64NonNegativeMulMod(P.YFactorsList[I][J], K, Prime);
+      if B then
+        P.YFactorsList[I][J] := Prime - P.YFactorsList[I][J];
+    end;
+  end;
 end;
 
 procedure TCnInt64BiPolynomial.SetXCoefficents(YDegree: Integer;
