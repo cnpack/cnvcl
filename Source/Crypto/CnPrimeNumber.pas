@@ -817,6 +817,14 @@ function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
 function CnInt64IsPerfectPower(N: Int64): Boolean;
 {* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0}
 
+procedure CnInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
+{* 计算组合数 C(m, N) 放至 Int64 数组中，其中 m 从 0 到 N，
+  N 为 61 时逼近 Int64 上限，62 溢出}
+
+procedure CnUInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
+{* 计算组合数 C(m, N) 并以 UInt64 格式放至 Int64 数组中，
+  其中 m 从 0 到 N，N 为 62 时逼近 UInt64 上限，63 溢出}
+
 function CnInt64AKSIsPrime(N: Int64): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数}
 
@@ -2255,6 +2263,60 @@ begin
       Result := True;
       Exit;
     end;
+  end;
+end;
+
+procedure CnInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
+var
+  M: Integer;
+  C, MC: Int64;
+begin
+  if (N < 0) or (List = nil) then
+    Exit;
+
+  List.Clear;
+  List.Add(1);
+  if N = 0 then
+    Exit;
+
+  MC := N div 2;
+
+  List.Count := N + 1;    // C(n, m) m 从 0 到 n，一共 n+1 个
+  List[N] := 1;
+  C := 1;
+
+  for M := 0 to MC do
+  begin
+    C := C * (N - M) div (M + 1);
+    List[M + 1] := C;
+    List[N - M - 1] := C;
+  end;
+end;
+
+procedure CnUInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
+var
+  M: Integer;
+  C, MC: TUInt64;
+begin
+  if (N < 0) or (List = nil) then
+    Exit;
+
+  List.Clear;
+  List.Add(1);
+  if N = 0 then
+    Exit;
+
+  MC := N div 2;
+
+  List.Count := N + 1;    // C(n, m) m 从 0 到 n，一共 n+1 个
+  List[N] := 1;
+  C := 1;
+
+  for M := 0 to MC do
+  begin
+    C := UInt64Div(C * (N - M), (M + 1));
+    List[M + 1] := C;
+    List[N - M - 1] := C;
   end;
 end;
 

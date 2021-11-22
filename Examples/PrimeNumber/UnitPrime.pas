@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, Buttons, ExtCtrls;
+  StdCtrls, ComCtrls, Buttons, ExtCtrls, CnNativeDecl;
 
 type
   TFormPrime = class(TForm)
@@ -87,6 +87,7 @@ type
     edtPower: TEdit;
     btnIsPerfectPower: TButton;
     btnInt64AKS: TButton;
+    btnCombinatorialNumber: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -116,10 +117,11 @@ type
     procedure btnInt64BSGSClick(Sender: TObject);
     procedure btnIsPerfectPowerClick(Sender: TObject);
     procedure btnInt64AKSClick(Sender: TObject);
+    procedure btnCombinatorialNumberClick(Sender: TObject);
   private
 
   public
-    { Public declarations }
+
   end;
 
 var
@@ -128,7 +130,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnNativeDecl, CnClasses;
+  CnPrimeNumber, CnClasses;
 
 {$R *.DFM}
 
@@ -599,6 +601,29 @@ begin
       ShowMessage(S + ' Is a Prime')
     else
       ShowMessage('NOT Prime');
+  end;
+end;
+
+procedure TFormPrime.btnCombinatorialNumberClick(Sender: TObject);
+var
+  I: Integer;
+  List: TCnInt64List;
+begin
+  List := TCnInt64List.Create;
+  try
+    CnInt64FillCombinatorialNumbers(List, 61);
+    for I := 0 to List.Count - 1 do
+      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  IntToStr(List[I]));
+
+    mmoResult.Lines.Add('');
+
+    CnUInt64FillCombinatorialNumbers(List, 62);
+    for I := 0 to List.Count - 1 do
+      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(List[I]));
+
+    pgc1.ActivePageIndex := 0;
+  finally
+    List.Free;
   end;
 end;
 

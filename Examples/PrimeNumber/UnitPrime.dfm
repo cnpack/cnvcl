@@ -1,6 +1,6 @@
 object FormPrime: TFormPrime
-  Left = 237
-  Top = 138
+  Left = 294
+  Top = 183
   BorderStyle = bsDialog
   Caption = 'Prime Number Test'
   ClientHeight = 464
@@ -21,7 +21,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsIsPrime
+    ActivePage = tsGenPrime
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
@@ -624,6 +624,15 @@ object FormPrime: TFormPrime
         Caption = 'Is Perfect Power'
         TabOrder = 4
         OnClick = btnIsPerfectPowerClick
+      end
+      object btnCombinatorialNumber: TButton
+        Left = 288
+        Top = 72
+        Width = 161
+        Height = 25
+        Caption = 'Combinatorial Numbers'
+        TabOrder = 5
+        OnClick = btnCombinatorialNumberClick
       end
     end
   end
