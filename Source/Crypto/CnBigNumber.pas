@@ -31,7 +31,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.09.20 V2.0
+* 修改记录：2021.11.23 V2.1
+*               实现生成组合数的大数
+*           2021.09.20 V2.0
 *               实现大数按位计算
 *           2021.09.05 V1.9
 *               实现完全幂的判断
@@ -690,6 +692,9 @@ function BigNumberIsPerfectPower(Num: TCnBigNumber): Boolean;
 
 procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
 {* 计算组合数 C(m, N) 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
+
+procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
+{* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -5635,7 +5640,7 @@ begin
   C.SetOne;
   List[N] := C;
 
-  C := TCnBigNumber.Create;
+  C := FLocalBigNumberPool.Obtain;
   C.SetOne;
   try
     for M := 0 to MC - 1 do
@@ -5651,8 +5656,20 @@ begin
       BigNumberCopy(C, T);
     end;
   finally
-    C.Free;
+    FLocalBigNumberPool.Recycle(C);
   end;
+end;
+
+procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
+var
+  I: Integer;
+begin
+  if (P = nil) or (N < 0) then
+    Exit;
+
+  BigNumberFillCombinatorialNumbers(List, N);
+  for I := 0 to List.Count - 1 do
+    BigNumberNonNegativeMod(List[I], List[I], P);
 end;
 
 // 打印大数内部信息

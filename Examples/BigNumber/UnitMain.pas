@@ -953,6 +953,7 @@ procedure TFormBigNumber.btnComNumClick(Sender: TObject);
 var
   I: Integer;
   List: TCnBigNumberList;
+  P: TCnBigNumber;
 begin
   List := TCnBigNumberList.Create;
   try
@@ -962,6 +963,17 @@ begin
         mmoResult.Lines.Add(Format('%4.4d  -  ', [I]) + List[I].ToDec)
       else
         mmoResult.Lines.Add(Format('%4.4d  -  !!!', [I]));
+
+    mmoResult.Lines.Add('');
+
+    P := TCnBigNumber.FromDec('31');
+    BigNumberFillCombinatorialNumbersMod(List, 29, P);
+    for I := 0 to List.Count - 1 do
+      if List[I] <> nil then
+        mmoResult.Lines.Add(Format('%4.4d  -  ', [I]) + List[I].ToDec)
+      else
+        mmoResult.Lines.Add(Format('%4.4d  -  !!!', [I]));
+    P.Free;
   finally
     List.Free;
   end;
