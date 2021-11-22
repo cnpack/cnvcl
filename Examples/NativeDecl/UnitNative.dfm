@@ -199,4 +199,13 @@ object FormNative: TFormNative
     TabOrder = 14
     Text = '10'
   end
+  object btnInt64AddMod: TButton
+    Left = 648
+    Top = 16
+    Width = 75
+    Height = 25
+    Caption = 'Int64 AddMod'
+    TabOrder = 15
+    OnClick = btnInt64AddModClick
+  end
 end

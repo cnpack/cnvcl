@@ -31,6 +31,7 @@ type
     edtUExponent: TEdit;
     bvl2: TBevel;
     bvl3: TBevel;
+    btnInt64AddMod: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -45,6 +46,7 @@ type
     procedure btnPowerClick(Sender: TObject);
     procedure btnRootClick(Sender: TObject);
     procedure btnURootClick(Sender: TObject);
+    procedure btnInt64AddModClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -271,6 +273,53 @@ var
 begin
   M := UInt64NonNegativeRoot(StrToUInt64(edtUPower.Text), StrToInt(edtUExponent.Text));
   mmoRes.Lines.Text := UInt64ToStr(M);
+end;
+
+procedure TFormNative.btnInt64AddModClick(Sender: TObject);
+var
+  A, B, P: Int64;
+begin
+  // Caption := IntToStr(High(Int64));
+
+  // 都比 High(Int64) 小，但 A+B 会在 Int64 范围内向上溢出
+  A := 9223372036854775783;  // $7FFFFFFFFFFFFFE7
+  B := 8223372036854775782;  // $721F494C589BFFE6
+  P := 1223372036854775783;  // $10FA4A62C4DFFFE7
+
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeMod(A, P))); // 659767778871345302
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeMod(B, P))); // 883139815726121084
+
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeMod(A + B, P)));
+  // 发生溢出，加法得到 -1000000000000000051，取模得到 223372036854775732，不对！
+  //                    $F21F494C589BFFCD
+
+  mmoRes.Lines.Add(IntToStr(UInt64NonNegativeAddMod(A, B, P)));
+  // 当成 UInt64 相加再取模的话没有溢出，加法得到 17446744073709551565，取模得到 319535557742690603 正确的模
+  //                                              $F21F494C589BFFCD
+
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeAddMod(A, B, P)));
+  // 应该和上面一致
+
+  mmoRes.Lines.Add('=====');
+
+  // 都比 Low(Int64) 小，但 A+B 会在 Int64 范围内向下溢出
+  A := -9223372036854775783; // $8000000000000019
+  B := -8223372036854775782; // $8DE0B6B3A764001A
+
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeMod(A, P))); // 563604257983430481 和上文的 659767778871345302 加起来等于 P
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeMod(B, P))); // 340232221128654699 和上文的 883139815726121084 加起来等于 P
+
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeMod(A + B, P)));
+  // 发生溢出，加法得到 1000000000000000051，比 P 小，取模得到 1000000000000000051，不对！
+  //                    $0DE0B6B3A7640033
+
+  mmoRes.Lines.Add(IntToStr(P - UInt64NonNegativeAddMod(-A, -B, P)));
+  // 当成 UInt64 相加再取模的话照理应该得到 -17446744073709551565，取模后得到负值，加 P，但没法直接算
+  // 所以先求反相加，加法得到 17446744073709551565，取模得到 903836479112085180 正确的模，和上文的 319535557742690603 加起来等于 P
+  //                          $F21F494C589BFFCD
+
+  mmoRes.Lines.Add(IntToStr(Int64NonNegativeAddMod(A, B, P)));
+  // 应该和上面一致
 end;
 
 end.
