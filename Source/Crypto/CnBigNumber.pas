@@ -688,6 +688,9 @@ function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
 function BigNumberIsPerfectPower(Num: TCnBigNumber): Boolean;
 {* 判断大数是否是完全幂，大数较大时有一定耗时}
 
+procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
+{* 计算组合数 C(m, N) 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
+
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
 
@@ -5609,6 +5612,46 @@ begin
     end;
   finally
     FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
+var
+  M, MC: Integer;
+  C, T: TCnBigNumber;
+begin
+  if (N < 0) or (List = nil) then
+    Exit;
+
+  List.Clear;
+  List.Add.SetOne;
+  if N = 0 then
+    Exit;
+
+  MC := N div 2;
+
+  List.Count := N + 1;    // C(n, m) m 从 0 到 n，一共 n+1 个
+  C := TCnBigNumber.Create;
+  C.SetOne;
+  List[N] := C;
+
+  C := TCnBigNumber.Create;
+  C.SetOne;
+  try
+    for M := 0 to MC - 1 do
+    begin
+      T := TCnBigNumber.Create;
+      BigNumberCopy(T, C);
+      BigNumberMulWord(T, N - M);
+      BigNumberDivWord(T, M + 1);
+
+      List[M + 1] := T;
+      if M + 1 <> N - M - 1 then
+        List[N - M - 1] := BigNumberDuplicate(T);
+      BigNumberCopy(C, T);
+    end;
+  finally
+    C.Free;
   end;
 end;
 

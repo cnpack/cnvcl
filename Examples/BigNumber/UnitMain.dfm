@@ -623,6 +623,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 58
         OnClick = btnIsPerfectPowerClick
       end
+      object btnComNum: TButton
+        Left = 904
+        Top = 552
+        Width = 129
+        Height = 25
+        Caption = 'Combinatorial Numbers'
+        TabOrder = 59
+        OnClick = btnComNumClick
+      end
     end
   end
 end

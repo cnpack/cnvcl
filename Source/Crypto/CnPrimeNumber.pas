@@ -2285,7 +2285,7 @@ begin
   List[N] := 1;
   C := 1;
 
-  for M := 0 to MC do
+  for M := 0 to MC - 1 do
   begin
     C := C * (N - M) div (M + 1);
     List[M + 1] := C;
@@ -2312,7 +2312,7 @@ begin
   List[N] := 1;
   C := 1;
 
-  for M := 0 to MC do
+  for M := 0 to MC - 1 do
   begin
     C := UInt64Div(C * (N - M), (M + 1));
     List[M + 1] := C;

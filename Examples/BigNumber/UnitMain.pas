@@ -78,6 +78,7 @@ type
     btnBNMulKaratsuba: TButton;
     btnRoot: TButton;
     btnIsPerfectPower: TButton;
+    btnComNum: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -131,6 +132,7 @@ type
     procedure btnBNMulKaratsubaClick(Sender: TObject);
     procedure btnRootClick(Sender: TObject);
     procedure btnIsPerfectPowerClick(Sender: TObject);
+    procedure btnComNumClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -945,6 +947,24 @@ begin
     ShowMessage('Num 1 is Perfect Power.')
   else
     ShowMessage('Num 1 is NOT Perfect Power.');
+end;
+
+procedure TFormBigNumber.btnComNumClick(Sender: TObject);
+var
+  I: Integer;
+  List: TCnBigNumberList;
+begin
+  List := TCnBigNumberList.Create;
+  try
+    BigNumberFillCombinatorialNumbers(List, 1000);
+    for I := 0 to List.Count - 1 do
+      if List[I] <> nil then
+        mmoResult.Lines.Add(Format('%4.4d  -  ', [I]) + List[I].ToDec)
+      else
+        mmoResult.Lines.Add(Format('%4.4d  -  !!!', [I]));
+  finally
+    List.Free;
+  end;
 end;
 
 end.
