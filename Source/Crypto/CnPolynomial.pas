@@ -2152,7 +2152,6 @@ begin
   if Int64PolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
 
-  Result := False;
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
     if Res <> nil then
@@ -2202,12 +2201,13 @@ begin
       Int64PolynomialCopy(Remain, SubRes);
     if Res <> nil then
       Int64PolynomialCopy(Res, DivRes);
+
+    Result := True;
   finally
     FLocalInt64PolynomialPool.Recycle(SubRes);
     FLocalInt64PolynomialPool.Recycle(MulRes);
     FLocalInt64PolynomialPool.Recycle(DivRes);
   end;
-  Result := True;
 end;
 
 function Int64PolynomialMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;

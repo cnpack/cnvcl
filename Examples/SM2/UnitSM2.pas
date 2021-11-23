@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3, CnBigNumber;
+  ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3, CnBigNumber, ExtCtrls;
 
 type
   TFormSM2 = class(TForm)
@@ -18,9 +18,22 @@ type
     tsKeyExchange: TTabSheet;
     grpSM2KeyExchange: TGroupBox;
     btnSM2KeyExchange: TButton;
+    bvl1: TBevel;
+    lblSM2PublicKey: TLabel;
+    lblSM2PrivateKey: TLabel;
+    edtSM2PublicKey: TEdit;
+    edtSM2PrivateKey: TEdit;
+    bvl2: TBevel;
+    lblSM2Text: TLabel;
+    edtSM2Text: TEdit;
+    btnSM2Encrypt: TButton;
+    btnGenerateKey: TButton;
+    mmoSM2Results: TMemo;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
+    procedure btnSM2EncryptClick(Sender: TObject);
+    procedure btnGenerateKeyClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -200,6 +213,91 @@ end;
 procedure TFormSM2.btnSM2KeyExchangeClick(Sender: TObject);
 begin
   TestSm2KeyExchangeExample;
+end;
+
+procedure TFormSM2.btnSM2EncryptClick(Sender: TObject);
+var
+  S, T: AnsiString;
+  Sm2: TCnSM2;
+  PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+  EnStream, DeStream: TMemoryStream;
+begin
+  if Length(edtSM2PublicKey.Text) <> 128 + 2 then
+  begin
+    ShowMessage('SM2 Public Key Hex Invalid. Hex Should be 128 Length.');
+    Exit;
+  end;
+
+  if Copy(edtSM2PublicKey.Text, 1, 2) <> '04' then
+  begin
+    ShowMessage('SM2 Public Key Hex Head Invalid. Only 04 Supported.');
+    Exit;
+  end;
+
+  if Length(edtSM2PrivateKey.Text) <> 64 then
+  begin
+    ShowMessage('SM2 Private Key Hex Invalid. Hex Should be 64 Length.');
+    Exit;
+  end;
+
+  if Length(edtSM2Text.Text) = 0 then
+  begin
+    ShowMessage('Please Enter some Text');
+    Exit;
+  end;
+
+  Sm2 := TCnSM2.Create(ctSM2);
+  PrivateKey := TCnEccPrivateKey.Create;
+  PublicKey := TCnEccPublicKey.Create;
+
+  EnStream := TMemoryStream.Create;
+  DeStream := TMemoryStream.Create;
+
+  PublicKey.X.SetHex(Copy(edtSM2PublicKey.Text, 3, 64));
+  PublicKey.Y.SetHex(Copy(edtSM2PublicKey.Text, 67, 64));
+  PrivateKey.SetHex(edtSM2PrivateKey.Text);
+
+  T := AnsiString(edtSM2Text.Text);
+  if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, Sm2) then
+  begin
+    ShowMessage('Encrypt OK');
+    mmoSM2Results.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
+
+    if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, PrivateKey, Sm2) then
+    begin
+      SetLength(S, DeStream.Size);
+      DeStream.Position := 0;
+      DeStream.Read(S[1], DeStream.Size);
+      ShowMessage('Decrypt OK: ' + S);
+    end;
+  end;
+
+  PrivateKey.Free;
+  PublicKey.Free;
+  EnStream.Free;
+  DeStream.Free;
+  Sm2.Free;
+end;
+
+procedure TFormSM2.btnGenerateKeyClick(Sender: TObject);
+var
+  Sm2: TCnSM2;
+  PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+begin
+  Sm2 := TCnSM2.Create(ctSM2);
+  PrivateKey := TCnEccPrivateKey.Create;
+  PublicKey := TCnEccPublicKey.Create;
+
+  Sm2.GenerateKeys(PrivateKey, PublicKey);
+
+  edtSM2PublicKey.Text := '04' + PublicKey.X.ToHex + PublicKey.Y.ToHex;
+  edtSM2PrivateKey.Text := PrivateKey.ToHex;
+
+  PrivateKey.Free;
+  PublicKey.Free;
+  Sm2.Free;
 end;
 
 end.

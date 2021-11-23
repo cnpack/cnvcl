@@ -43,6 +43,12 @@ uses
   SysUtils, Classes, CnECC, CnBigNumber, CnSM3, CnKDF;
 
 type
+  TCnSm2PrivateKey = TCnEccPrivateKey;
+  {* SM2 的私钥就是普通椭圆曲线的私钥}
+
+  TCnSm2PublicKey = TCnEccPublicKey;
+  {* SM2 的公钥就是普通椭圆曲线的公钥}
+
   TCnSM2 = class(TCnEcc)
   {* SM2 椭圆曲线运算类，具体实现在指定曲线类型的基类 TCnEcc 中}
   public
@@ -55,7 +61,7 @@ type
 // ========================= SM2 椭圆曲线加解密算法 ============================
 
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
-  TStream; PublicKey: TCnEccPublicKey; Sm2: TCnSm2 = nil): Boolean;
+  TStream; PublicKey: TCnSm2PublicKey; Sm2: TCnSm2 = nil): Boolean;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则}
 
@@ -67,13 +73,13 @@ function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  OutSignature: TCnSM2Signature; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnSm2PrivateKey; PublicKey: TCnSm2PublicKey;
   Sm2: TCnSM2 = nil): Boolean;
 {* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要}
 
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  InSignature: TCnSM2Signature; PublicKey: TCnEccPublicKey; Sm2: TCnSM2 = nil): Boolean;
+  InSignature: TCnSM2Signature; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): Boolean;
 {* 公钥验证数据块的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则来}
 
@@ -83,14 +89,14 @@ function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: 
   SM2 密钥交换前提：A B 双方都有自身 ID 与公私钥，并都知道对方的 ID 与对方的公钥
 }
 function CnSM2KeyExchangeAStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
+  APrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey;
   OutARand: TCnBigNumber; OutRA: TCnEccPoint; Sm2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第一步 A 用户生成随机点 RA，供发给 B
   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥
   输出：随机值 OutARand；生成的随机点 RA（发给 B）}
 
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; InRA: TCnEccPoint;
+  BPrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey; InRA: TCnEccPoint;
   out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest;
   out OutOptionalS2: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A
@@ -98,7 +104,7 @@ function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLengt
   输出：计算成功的共享密钥 Kb、生成的随机点 RB（发给 A）、可选的校验杂凑 SB（发给 A 验证），可选的校验杂凑 S2}
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; MyRA, InRB: TCnEccPoint;
+  APrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey; MyRA, InRB: TCnEccPoint;
   MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TSM3Digest;
   out OutOptionalSA: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第三步 A 用户收到 B 的数据计算 Ka，并把可选的验证结果返回 B，初步协商好 Ka = Kb
@@ -106,7 +112,7 @@ function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLengt
   输出：计算成功的共享密钥 Ka、可选的校验杂凑 SA（发给 B 验证）}
 
 function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
+  BPrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey;
   InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; Sm2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选
   实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA，其余参数均不使用}
@@ -149,7 +155,7 @@ end;
   密文为：C1‖C3‖C2
 }
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
-  TStream; PublicKey: TCnEccPublicKey; Sm2: TCnSm2 = nil): Boolean;
+  TStream; PublicKey: TCnSm2PublicKey; Sm2: TCnSm2 = nil): Boolean;
 var
   Py, P1, P2: TCnEccPoint;
   K: TCnBigNumber;
@@ -250,7 +256,7 @@ end;
   还可对比 SM3(x2‖M‖y2) Hash 是否与 C3 相等
 }
 function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
-  PrivateKey: TCnEccPrivateKey; Sm2: TCnSM2): Boolean;
+  PrivateKey: TCnSm2PrivateKey; Sm2: TCnSM2): Boolean;
 var
   MLen: Integer;
   M: PAnsiChar;
@@ -316,7 +322,7 @@ begin
 end;
 
 // 计算 Za 值也就是 Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
-function CalcSM2UserHash(const UserID: AnsiString; PublicKey: TCnEccPublicKey;
+function CalcSM2UserHash(const UserID: AnsiString; PublicKey: TCnSm2PublicKey;
   Sm2: TCnSM2): TSM3Digest;
 var
   Stream: TMemoryStream;
@@ -347,7 +353,7 @@ end;
 
 // 根据 Za 与数据再次计算杂凑值 e
 function CalcSM2SignatureHash(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  PublicKey: TCnEccPublicKey; Sm2: TCnSM2): TSM3Digest;
+  PublicKey: TCnSm2PublicKey; Sm2: TCnSM2): TSM3Digest;
 var
   Stream: TMemoryStream;
   Sm3Dig: TSM3Digest;
@@ -375,7 +381,7 @@ end;
   s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
 }
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  OutSignature: TCnSM2Signature; PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnSm2PrivateKey; PublicKey: TCnSm2PublicKey;
   Sm2: TCnSM2): Boolean;
 var
   K, R, E: TCnBigNumber;
@@ -471,7 +477,7 @@ end;
   比对 r' 和 r
 }
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  InSignature: TCnSM2Signature; PublicKey: TCnEccPublicKey; Sm2: TCnSM2 = nil): Boolean;
+  InSignature: TCnSM2Signature; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): Boolean;
 var
   K, R, E: TCnBigNumber;
   P, Q: TCnEccPoint;
@@ -605,7 +611,7 @@ end;
   随机值 rA * G => RA 传给 B
 }
 function CnSM2KeyExchangeAStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
+  APrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey;
   OutARand: TCnBigNumber; OutRA: TCnEccPoint; Sm2: TCnSM2): Boolean;
 var
   Sm2IsNil: Boolean;
@@ -646,7 +652,7 @@ end;
   注意 BigNumber 的 BitCount 为 2 为底的对数向上取整
 }
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; InRA: TCnEccPoint;
+  BPrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey; InRA: TCnEccPoint;
   out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest;
   out OutOptionalS2: TSM3Digest; Sm2: TCnSM2): Boolean;
 var
@@ -731,7 +737,7 @@ begin
 end;
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  APrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey; MyRA, InRB: TCnEccPoint;
+  APrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey; MyRA, InRB: TCnEccPoint;
   MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TSM3Digest;
   out OutOptionalSA: TSM3Digest; Sm2: TCnSM2): Boolean;
 var
@@ -805,7 +811,7 @@ begin
 end;
 
 function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  BPrivateKey: TCnEccPrivateKey; APublicKey, BPublicKey: TCnEccPublicKey;
+  BPrivateKey: TCnSm2PrivateKey; APublicKey, BPublicKey: TCnSm2PublicKey;
   InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; Sm2: TCnSM2): Boolean;
 begin
   Result := CompareMem(@InOptionalSA[0], @MyOptionalS2[0], SizeOf(TSM3Digest));
