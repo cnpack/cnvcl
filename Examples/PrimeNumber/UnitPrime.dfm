@@ -14,6 +14,9 @@ object FormPrime: TFormPrime
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  DesignSize = (
+    687
+    464)
   PixelsPerInch = 96
   TextHeight = 13
   object pgc1: TPageControl
@@ -21,11 +24,14 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsGenPrime
+    ActivePage = tsCRT
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
       Caption = 'Find Prime Numbers'
+      DesignSize = (
+        649
+        401)
       object btnGen: TButton
         Left = 16
         Top = 16
@@ -67,6 +73,9 @@ object FormPrime: TFormPrime
     object tsIsPrime: TTabSheet
       Caption = 'Is Prime'
       ImageIndex = 1
+      DesignSize = (
+        649
+        401)
       object lblCheck: TLabel
         Left = 16
         Top = 28
@@ -633,6 +642,15 @@ object FormPrime: TFormPrime
         Caption = 'Combinatorial Numbers'
         TabOrder = 5
         OnClick = btnCombinatorialNumberClick
+      end
+      object btnComNumMod: TButton
+        Left = 472
+        Top = 72
+        Width = 161
+        Height = 25
+        Caption = 'Combinatorial Numbers Mod'
+        TabOrder = 6
+        OnClick = btnComNumModClick
       end
     end
   end

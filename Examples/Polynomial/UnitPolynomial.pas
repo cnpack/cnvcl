@@ -222,6 +222,7 @@ type
     bvl10: TBevel;
     btnIBPTestMod: TButton;
     btnIBPTestAKSExample: TButton;
+    btnTestModExample: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -354,6 +355,7 @@ type
     procedure btnIBPDivModXClick(Sender: TObject);
     procedure btnIBPTestModClick(Sender: TObject);
     procedure btnIBPTestAKSExampleClick(Sender: TObject);
+    procedure btnTestModExampleClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4228,9 +4230,19 @@ begin
   // 11X^19Y^10+19X^18Y^11+13X^17Y^12+17X^16Y^13+15X^15Y^14+15X^14Y^15+17X^13Y^16+13X^12Y^17+
   // 19X^11Y^18+11X^10Y^19+21X^9Y^20+9X^8Y^21+23X^7Y^22+7X^6Y^23+25X^5Y^24+5X^4Y^25+27X^3Y^26+3X^2Y^27+29XY^28+Y^29+1
 
-  // 换 Int64BiPolynomialGaloisPower 直接计算
+  // 换 Int64BiPolynomialGaloisPower 直接计算，先不带本原多项式
   FIBP1.SetString('X+Y');
   FIBP3.SetString('X^29-1');
+  Int64BiPolynomialGaloisPower(FIBP2, FIBP1, 29, 31);
+  edtIBP3.Text := FIBP2.ToString;
+
+  // 计算得到的 FIBP2 的结果是
+  // X^29+29X^28Y+3X^27Y^2+27X^26Y^3+5X^25Y^4+25X^24Y^5+7X^23Y^6+23X^22Y^7+9X^21Y^8+
+  // 21X^20Y^9+11X^19Y^10+19X^18Y^11+13X^17Y^12+17X^16Y^13+15X^15Y^14+15X^14Y^15+17X^13Y^16+
+  // 13X^12Y^17+19X^11Y^18+11X^10Y^19+21X^9Y^20+9X^8Y^21+23X^7Y^22+7X^6Y^23+25X^5Y^24+
+  // 5X^4Y^25+27X^3Y^26+3X^2Y^27+29XY^28+Y^29
+
+  // 再加入本原多项式重新取模
   Int64BiPolynomialGaloisPower(FIBP2, FIBP1, 29, 31, FIBP3);
   mmoIBP2.Lines.Text := FIBP2.ToString;
 
@@ -4254,6 +4266,47 @@ begin
   FIBP3.SetString('X^29-1');
   Int64BiPolynomialGaloisModX(FIBP2, FIBP1, FIBP3, 31);
   mmoIBP2.Lines.Text := FIBP2.ToString;  // X^2+Y 正确！
+end;
+
+procedure TFormPolynomial.btnTestModExampleClick(Sender: TObject);
+var
+  PX, PD: TCnInt64Polynomial;
+  PBX, PBD: TCnInt64BiPolynomial;
+begin
+  // 分别计算 (x + y)^31 mod (x^29 - 1) 和 (x + 1)^31 mod (x^29 - 1)
+  PBX := TCnInt64BiPolynomial.Create;
+  PBX.SetString('X+Y');
+  Int64BiPolynomialPower(PBX, PBX, 31);
+
+  PX := TCnInt64Polynomial.Create([1, 1]);
+  Int64PolynomialPower(PX, PX, 31);
+
+  mmoIBP1.Lines.Text := PBX.ToString;
+  mmoIBP2.Lines.Text := PX.ToString;
+
+  PD := TCnInt64Polynomial.Create;
+  PD.MaxDegree := 29;
+  PD[29] :=1;
+  PD[0] := -1;
+
+  PBD := TCnInt64BiPolynomial.Create;
+  PBD.MaxXDegree := 29;
+  PBD.SafeValue[0, 0] := -1;
+  PBD.SafeValue[29, 0] := 1;
+
+  // mmoIBP1.Lines.Text := PD.ToString;
+  // mmoIBP2.Lines.Text := PBD.ToString;
+
+  Int64BiPolynomialModX(PBX, PBX, PBD);
+  Int64PolynomialMod(PX, PX, PD);
+
+  mmoIBP1.Lines.Text := PBX.ToString;
+  mmoIBP2.Lines.Text := PX.ToString;
+
+  PX.Free;
+  PBX.Free;
+  PD.Free;
+  PBD.Free;
 end;
 
 end.

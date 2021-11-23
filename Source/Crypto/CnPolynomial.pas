@@ -2152,6 +2152,7 @@ begin
   if Int64PolynomialIsZero(Divisor) then
     raise ECnPolynomialException.Create(SDivByZero);
 
+  Result := False;
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
     if Res <> nil then

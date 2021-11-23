@@ -88,6 +88,7 @@ type
     btnIsPerfectPower: TButton;
     btnInt64AKS: TButton;
     btnCombinatorialNumber: TButton;
+    btnComNumMod: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -118,6 +119,7 @@ type
     procedure btnIsPerfectPowerClick(Sender: TObject);
     procedure btnInt64AKSClick(Sender: TObject);
     procedure btnCombinatorialNumberClick(Sender: TObject);
+    procedure btnComNumModClick(Sender: TObject);
   private
 
   public
@@ -618,6 +620,29 @@ begin
     mmoResult.Lines.Add('');
 
     CnUInt64FillCombinatorialNumbers(List, 62);
+    for I := 0 to List.Count - 1 do
+      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(List[I]));
+
+    pgc1.ActivePageIndex := 0;
+  finally
+    List.Free;
+  end;
+end;
+
+procedure TFormPrime.btnComNumModClick(Sender: TObject);
+var
+  I: Integer;
+  List: TCnInt64List;
+begin
+  List := TCnInt64List.Create;
+  try
+    CnInt64FillCombinatorialNumbersMod(List, 29, 31);
+    for I := 0 to List.Count - 1 do
+      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  IntToStr(List[I]));
+
+    mmoResult.Lines.Add('');
+
+    CnUInt64FillCombinatorialNumbersMod(List, 29, 31);
     for I := 0 to List.Count - 1 do
       mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(List[I]));
 
