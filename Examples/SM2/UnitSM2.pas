@@ -254,9 +254,11 @@ begin
   EnStream := TMemoryStream.Create;
   DeStream := TMemoryStream.Create;
 
-  PublicKey.X.SetHex(Copy(edtSM2PublicKey.Text, 3, 64));
-  PublicKey.Y.SetHex(Copy(edtSM2PublicKey.Text, 67, 64));
+//  PublicKey.X.SetHex(Copy(edtSM2PublicKey.Text, 3, 64));
+//  PublicKey.Y.SetHex(Copy(edtSM2PublicKey.Text, 67, 64));
+
   PrivateKey.SetHex(edtSM2PrivateKey.Text);
+  PublicKey.SetHex(edtSM2PublicKey.Text);
 
   T := AnsiString(edtSM2Text.Text);
   if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, Sm2) then
