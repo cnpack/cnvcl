@@ -29,11 +29,13 @@ type
     btnSM2Encrypt: TButton;
     btnGenerateKey: TButton;
     mmoSM2Results: TMemo;
+    btnSM2Decrypt: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
     procedure btnSM2EncryptClick(Sender: TObject);
     procedure btnGenerateKeyClick(Sender: TObject);
+    procedure btnSM2DecryptClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -68,6 +70,43 @@ begin
     B := PByte(Integer(Buffer) + I)^;
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}
       (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
+  end;
+end;
+
+function HexToInt(const Hex: AnsiString): Integer;
+var
+  I, Res: Integer;
+  ch: AnsiChar;
+begin
+  Res := 0;
+  for I := 0 to Length(Hex) - 1 do
+  begin
+    ch := Hex[I + 1];
+    if (ch >= '0') and (ch <= '9') then
+      Res := Res * 16 + Ord(ch) - Ord('0')
+    else if (ch >= 'A') and (ch <= 'F') then
+      Res := Res * 16 + Ord(ch) - Ord('A') + 10
+    else if (ch >= 'a') and (ch <= 'f') then
+      Res := Res * 16 + Ord(ch) - Ord('a') + 10
+    else
+      raise Exception.Create('Error: not a Hex String');
+  end;
+  Result := Res;
+end;
+
+function MyStreamFromHex(const Hex: string; Stream: TStream): Integer;
+var
+  S: string;
+  I: Integer;
+  C: AnsiChar;
+begin
+  Result := 0;
+  for I := 0 to Length(Hex) div 2 - 1 do
+  begin
+    S := Copy(Hex, I * 2 + 1, 2);
+    C := AnsiChar(HexToInt(S));
+    Stream.Write(C, 1);
+    Inc(Result);
   end;
 end;
 
@@ -217,11 +256,10 @@ end;
 
 procedure TFormSM2.btnSM2EncryptClick(Sender: TObject);
 var
-  S, T: AnsiString;
+  T: AnsiString;
   Sm2: TCnSM2;
-  PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey;
-  EnStream, DeStream: TMemoryStream;
+  EnStream: TMemoryStream;
 begin
   if Length(edtSM2PublicKey.Text) <> 128 + 2 then
   begin
@@ -235,12 +273,6 @@ begin
     Exit;
   end;
 
-  if Length(edtSM2PrivateKey.Text) <> 64 then
-  begin
-    ShowMessage('SM2 Private Key Hex Invalid. Hex Should be 64 Length.');
-    Exit;
-  end;
-
   if Length(edtSM2Text.Text) = 0 then
   begin
     ShowMessage('Please Enter some Text');
@@ -248,16 +280,10 @@ begin
   end;
 
   Sm2 := TCnSM2.Create(ctSM2);
-  PrivateKey := TCnEccPrivateKey.Create;
   PublicKey := TCnEccPublicKey.Create;
 
   EnStream := TMemoryStream.Create;
-  DeStream := TMemoryStream.Create;
 
-//  PublicKey.X.SetHex(Copy(edtSM2PublicKey.Text, 3, 64));
-//  PublicKey.Y.SetHex(Copy(edtSM2PublicKey.Text, 67, 64));
-
-  PrivateKey.SetHex(edtSM2PrivateKey.Text);
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   T := AnsiString(edtSM2Text.Text);
@@ -265,20 +291,10 @@ begin
   begin
     ShowMessage('Encrypt OK');
     mmoSM2Results.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
-
-    if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, PrivateKey, Sm2) then
-    begin
-      SetLength(S, DeStream.Size);
-      DeStream.Position := 0;
-      DeStream.Read(S[1], DeStream.Size);
-      ShowMessage('Decrypt OK: ' + S);
-    end;
   end;
 
-  PrivateKey.Free;
   PublicKey.Free;
   EnStream.Free;
-  DeStream.Free;
   Sm2.Free;
 end;
 
@@ -299,6 +315,50 @@ begin
 
   PrivateKey.Free;
   PublicKey.Free;
+  Sm2.Free;
+end;
+
+procedure TFormSM2.btnSM2DecryptClick(Sender: TObject);
+var
+  S: AnsiString;
+  Sm2: TCnSM2;
+  PrivateKey: TCnEccPrivateKey;
+  EnStream, DeStream: TMemoryStream;
+begin
+  if Length(edtSM2PrivateKey.Text) <> 64 then
+  begin
+    ShowMessage('SM2 Private Key Hex Invalid. Hex Should be 64 Length.');
+    Exit;
+  end;
+
+  if Length(Trim(mmoSM2Results.Lines.Text)) < 2 then
+  begin
+    ShowMessage('SM2 Decrypted Hex Invalid.');
+    Exit;
+  end;
+
+  Sm2 := TCnSM2.Create(ctSM2);
+  PrivateKey := TCnEccPrivateKey.Create;
+
+  EnStream := TMemoryStream.Create;
+  DeStream := TMemoryStream.Create;
+
+  PrivateKey.SetHex(edtSM2PrivateKey.Text);
+
+  MyStreamFromHex(Trim(mmoSM2Results.Lines.Text), EnStream);
+
+  if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, PrivateKey, Sm2) then
+  begin
+    SetLength(S, DeStream.Size);
+    DeStream.Position := 0;
+    DeStream.Read(S[1], DeStream.Size);
+    ShowMessage('Decrypt OK: ' + S);
+    edtSM2Text.Text := S;
+  end;
+
+  PrivateKey.Free;
+  EnStream.Free;
+  DeStream.Free;
   Sm2.Free;
 end;
 

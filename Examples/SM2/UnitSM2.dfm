@@ -1,6 +1,6 @@
 object FormSM2: TFormSM2
-  Left = 306
-  Top = 189
+  Left = 277
+  Top = 167
   BorderStyle = bsDialog
   Caption = 'SM2 Test'
   ClientHeight = 561
@@ -85,11 +85,11 @@ object FormSM2: TFormSM2
           Text = '123456'
         end
         object btnSM2Encrypt: TButton
-          Left = 752
+          Left = 744
           Top = 32
-          Width = 121
+          Width = 129
           Height = 25
-          Caption = 'Encrypt using PublicKey'
+          Caption = 'Encrypt using Public Key'
           TabOrder = 2
           OnClick = btnSM2EncryptClick
         end
@@ -99,6 +99,15 @@ object FormSM2: TFormSM2
           Width = 857
           Height = 113
           TabOrder = 3
+        end
+        object btnSM2Decrypt: TButton
+          Left = 744
+          Top = 232
+          Width = 129
+          Height = 25
+          Caption = 'Decrypt using Private Key'
+          TabOrder = 4
+          OnClick = btnSM2DecryptClick
         end
       end
     end
