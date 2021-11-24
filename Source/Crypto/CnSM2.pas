@@ -26,7 +26,7 @@ unit CnSM2;
 * 单元作者：刘啸
 * 备    注：实现了 GM/T0003.x-2012《SM2椭圆曲线公钥密码算法》
 *           规范中的基于 SM2 的数据加解密、签名验签、密钥交换
-*           注意其签名规范完全不同于 openssl 中的 Ecc 签名，并且杂凑函数只能使用 SM3
+*           注意其签名规范完全不同于 Openssl 中的 Ecc 签名，并且杂凑函数只能使用 SM3
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -144,7 +144,7 @@ end;
 {
   传入明文 M，长 MLen 字节，随机生成 k，计算
 
-  Cl = k * G => (xl, yl)         // 非压缩存储，长度为两个数字位长加 1
+  C1 = k * G => (x1, y1)         // 非压缩存储，长度为两个数字位长加 1，在 SM2 中也就是 32 * 2 + 1 = 65 字节
 
   k * PublicKey => (x2, y2)
   t <= KDF(x2‖y2, Mlen)
@@ -152,7 +152,7 @@ end;
 
   C3 <= SM3(x2‖M‖y2)           // 长度 32 字节
 
-  密文为：C1‖C3‖C2
+  密文为：C1‖C3‖C2             // 总长 MLen + 97 字节
 }
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
   TStream; PublicKey: TCnSm2PublicKey; Sm2: TCnSm2 = nil): Boolean;

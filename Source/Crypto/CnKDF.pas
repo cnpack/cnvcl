@@ -28,7 +28,9 @@ unit CnKDF;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.30 V1.0
+* 修改记录：2021.11.25 V1.1
+*               修正 CnSM2KDF 在 Unicode 下的兼容性问题
+*           2020.03.30 V1.0
 *               创建单元，从 CnPemUtils 中独立出来
 ================================================================================
 |</PRE>}
@@ -311,7 +313,11 @@ begin
   D := DerivedKeyLength div SizeOf(TSM3Digest) + 1;
   for I := 1 to D do
   begin
+{$IFDEF UNICODE}
+    S := Data + AnsiChar(I shr 24) + AnsiChar(I shr 16) + AnsiChar(I shr 8) + AnsiChar(I);
+{$ELSE}
     S := Data + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
+{$ENDIF}
     Dig := SM3StringA(S);
     Move(Dig[0], SDig[1], SizeOf(TSM3Digest));
     Result := Result + SDig;
