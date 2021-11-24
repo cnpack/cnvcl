@@ -28,9 +28,11 @@ unit CnSM2;
 *           规范中的基于 SM2 的数据加解密、签名验签、密钥交换
 *           注意其签名规范完全不同于 Openssl 中的 Ecc 签名，并且杂凑函数只能使用 SM3
 * 开发平台：Win7 + Delphi 5.0
-* 兼容测试：暂未进行
+* 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.04.04 V1.0
+* 修改记录：2021.11.25 V1.1
+*               增加封装的 SignFile 与 VerifyFile 函数
+*           2020.04.04 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -82,6 +84,16 @@ function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: 
   InSignature: TCnSM2Signature; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): Boolean;
 {* 公钥验证数据块的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则来}
+
+function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
+  PrivateKey: TCnSm2PrivateKey; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): string;
+{* 封装的私钥对文件签名操作，返回签名值的十六进制字符串，注意内部操作是将文件全部加载入内存
+  如签名出错则返回空值}
+
+function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
+  const InHexSignature: string; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): Boolean;
+{* 封装的公钥验证数据块的签名，参数是签名值的十六进制字符串，注意内部操作是将文件全部加载入内存
+  验证通过返回 True，不通过或出错返回 False}
 
 // ======================== SM2 椭圆曲线密钥交换算法 ===========================
 
@@ -544,6 +556,58 @@ begin
   end;
 end;
 
+function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
+  PrivateKey: TCnSm2PrivateKey; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): string;
+var
+  OutSign: TCnSM2Signature;
+  Stream: TMemoryStream;
+begin
+  Result := '';
+  if not FileExists(FileName) then
+    Exit;
+
+  OutSign := nil;
+  Stream := nil;
+
+  try
+    OutSign := TCnSM2Signature.Create;
+    Stream := TMemoryStream.Create;
+
+    Stream.LoadFromFile(FileName);
+    if CnSM2SignData(UserID, Stream.Memory, Stream.Size, OutSign, PrivateKey, PublicKey, Sm2) then
+      Result := OutSign.ToHex;
+  finally
+    Stream.Free;
+    OutSign.Free;
+  end;
+end;
+
+function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
+  const InHexSignature: string; PublicKey: TCnSm2PublicKey; Sm2: TCnSM2 = nil): Boolean;
+var
+  InSign: TCnSM2Signature;
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if not FileExists(FileName) then
+    Exit;
+
+  InSign := nil;
+  Stream := nil;
+
+  try
+    InSign := TCnSM2Signature.Create;
+    InSign.SetHex(InHexSignature);
+
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(FileName);
+
+    Result := CnSM2VerifyData(UserID, Stream.Memory, Stream.Size, InSign, PublicKey, Sm2);
+  finally
+    Stream.Free;
+    InSign.Free;
+  end;
+end;
 {
   计算交换出的密钥：KDF(Xuv‖Yuv‖Za‖Zb, kLen)
 }

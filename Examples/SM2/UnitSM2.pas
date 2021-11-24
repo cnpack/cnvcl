@@ -30,14 +30,34 @@ type
     btnGenerateKey: TButton;
     mmoSM2Results: TMemo;
     btnSM2Decrypt: TButton;
+    bvl3: TBevel;
+    bvl4: TBevel;
+    lblUserId: TLabel;
+    edtSM2UserId: TEdit;
+    lblSM2FileSign: TLabel;
+    edtSM2FileSign: TEdit;
+    btnSignBrowse: TButton;
+    dlgOpen1: TOpenDialog;
+    mmoSignResult: TMemo;
+    btnSM2Verify: TButton;
+    btnSM2SignFile: TButton;
+    bvl5: TBevel;
+    btnSignFile: TButton;
+    btnVerifyFile: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
     procedure btnSM2EncryptClick(Sender: TObject);
     procedure btnGenerateKeyClick(Sender: TObject);
     procedure btnSM2DecryptClick(Sender: TObject);
+    procedure btnSignBrowseClick(Sender: TObject);
+    procedure btnSM2SignFileClick(Sender: TObject);
+    procedure btnSM2VerifyClick(Sender: TObject);
+    procedure btnSignFileClick(Sender: TObject);
+    procedure btnVerifyFileClick(Sender: TObject);
   private
-    { Private declarations }
+    function CheckPublicKeyStr: Boolean;
+    function CheckPrivateKeyStr: Boolean;
   public
     { Public declarations }
   end;
@@ -261,17 +281,8 @@ var
   PublicKey: TCnEccPublicKey;
   EnStream: TMemoryStream;
 begin
-  if Length(edtSM2PublicKey.Text) <> 128 + 2 then
-  begin
-    ShowMessage('SM2 Public Key Hex Invalid. Hex Should be 128 Length.');
+  if not CheckPublicKeyStr then
     Exit;
-  end;
-
-  if Copy(edtSM2PublicKey.Text, 1, 2) <> '04' then
-  begin
-    ShowMessage('SM2 Public Key Hex Head Invalid. Only 04 Supported.');
-    Exit;
-  end;
 
   if Length(edtSM2Text.Text) = 0 then
   begin
@@ -325,11 +336,8 @@ var
   PrivateKey: TCnEccPrivateKey;
   EnStream, DeStream: TMemoryStream;
 begin
-  if Length(edtSM2PrivateKey.Text) <> 64 then
-  begin
-    ShowMessage('SM2 Private Key Hex Invalid. Hex Should be 64 Length.');
+  if not CheckPrivateKeyStr then
     Exit;
-  end;
 
   if Length(Trim(mmoSM2Results.Lines.Text)) < 2 then
   begin
@@ -360,6 +368,157 @@ begin
   EnStream.Free;
   DeStream.Free;
   Sm2.Free;
+end;
+
+procedure TFormSM2.btnSignBrowseClick(Sender: TObject);
+begin
+  if dlgOpen1.Execute then
+    edtSM2FileSign.Text := dlgOpen1.FileName;
+end;
+
+procedure TFormSM2.btnSM2SignFileClick(Sender: TObject);
+var
+  Sm2: TCnSM2;
+  PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+begin
+  if not CheckPublicKeyStr or not CheckPrivateKeyStr then
+    Exit;
+
+  if not FileExists(edtSM2FileSign.Text) then
+    Exit;
+
+  Sm2 := TCnSM2.Create(ctSM2);
+  PrivateKey := TCnEccPrivateKey.Create;
+  PrivateKey.SetHex(edtSM2PrivateKey.Text);
+
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2FileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+
+  if CnSM2SignData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+    PrivateKey, PublicKey, Sm2) then
+  begin
+    mmoSignResult.Lines.Text := SignRes.ToHex;
+  end
+  else
+    ShowMessage('Sign File Failed.');
+
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
+  PrivateKey.Free;
+  Sm2.Free;
+end;
+
+function TFormSM2.CheckPrivateKeyStr: Boolean;
+begin
+  Result := True;
+  if Length(edtSM2PrivateKey.Text) <> 64 then
+  begin
+    ShowMessage('SM2 Private Key Hex Invalid. Hex Should be 64 Length.');
+    Result := False;
+    Exit;
+  end;
+end;
+
+function TFormSM2.CheckPublicKeyStr: Boolean;
+begin
+  Result := True;
+  if Length(edtSM2PublicKey.Text) <> 128 + 2 then
+  begin
+    ShowMessage('SM2 Public Key Hex Invalid. Hex Should be 128 Length.');
+    Result := False;
+    Exit;
+  end;
+
+  if Copy(edtSM2PublicKey.Text, 1, 2) <> '04' then
+  begin
+    ShowMessage('SM2 Public Key Hex Head Invalid. Only 04 Supported.');
+    Result := False;
+    Exit;
+  end;
+end;
+
+procedure TFormSM2.btnSM2VerifyClick(Sender: TObject);
+var
+  Sm2: TCnSM2;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+begin
+  if not CheckPublicKeyStr then
+    Exit;
+
+  if not FileExists(edtSM2FileSign.Text) then
+    Exit;
+
+  Sm2 := TCnSM2.Create(ctSM2);
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2FileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+  SignRes.SetHex(mmoSignResult.Lines.Text);
+
+  if CnSM2VerifyData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+    PublicKey, Sm2) then
+  begin
+    ShowMessage('Verify File OK.');
+  end
+  else
+    ShowMessage('Verify File Failed.');
+
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
+  Sm2.Free;
+end;
+
+procedure TFormSM2.btnSignFileClick(Sender: TObject);
+var
+  PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+begin
+  if not CheckPublicKeyStr or not CheckPrivateKeyStr then
+    Exit;
+
+  PrivateKey := TCnEccPrivateKey.Create;
+  PrivateKey.SetHex(edtSM2PrivateKey.Text);
+
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  mmoSignResult.Lines.Text := CnSM2SignFile(edtSM2UserId.Text, edtSM2FileSign.Text, PrivateKey, PublicKey);
+
+  PrivateKey.Free;
+  PublicKey.Free;
+end;
+
+procedure TFormSM2.btnVerifyFileClick(Sender: TObject);
+var
+  PublicKey: TCnEccPublicKey;
+begin
+  if not CheckPublicKeyStr then
+    Exit;
+
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  if CnSM2VerifyFile(edtSM2UserId.Text, edtSM2FileSign.Text, mmoSignResult.Lines.Text, PublicKey) then
+    ShowMessage('Verify File OK.')
+  else
+    ShowMessage('Verify File Failed.');
+
+  PublicKey.Free;
 end;
 
 end.
