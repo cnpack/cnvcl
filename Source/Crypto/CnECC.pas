@@ -173,15 +173,15 @@ type
     function IsZero: Boolean;
     procedure SetZero;
 
+    procedure SetHex(const Buf: AnsiString);
+    function ToHex: string;
+
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
   end;
 
-  TCnEccPublicKey = class(TCnEccPoint)
+  TCnEccPublicKey = class(TCnEccPoint);
   {* 椭圆曲线的公钥，G 点计算 k 次后的点坐标}
-  public
-    procedure SetHex(const Buf: AnsiString);
-  end;
 
   TCnEccPrivateKey = TCnBigNumber;
   {* 椭圆曲线的私钥，计算次数 k 次}
@@ -1480,6 +1480,32 @@ begin
   Result := FX.IsZero and FY.IsZero;
 end;
 
+procedure TCnEccPoint.SetHex(const Buf: AnsiString);
+var
+  C: Integer;
+  S: AnsiString;
+begin
+  if Length(Buf) < 4 then
+    raise ECnEccException.Create(SCnEccErrorKeyData);
+
+  C := StrToIntDef(Copy(Buf, 1, 2), 0);
+  S := Copy(Buf, 3, MaxInt);
+
+  if C = EC_PUBLICKEY_UNCOMPRESSED then
+  begin
+    C := Length(S) div 2;
+    FX.SetHex(Copy(S, 1, C));
+    FY.SetHex(Copy(S, C + 1, MaxInt));
+  end
+  else if (C = EC_PUBLICKEY_COMPRESSED1) or (C = EC_PUBLICKEY_COMPRESSED2) then
+  begin
+    FX.SetHex(S);
+    FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，外部再去求解
+  end
+  else
+    raise ECnEccException.Create(SCnEccErrorKeyData);
+end;
+
 procedure TCnEccPoint.SetX(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FX, Value);
@@ -1494,6 +1520,14 @@ procedure TCnEccPoint.SetZero;
 begin
   FX.SetZero;
   FY.SetZero;
+end;
+
+function TCnEccPoint.ToHex: string;
+begin
+  if FY.IsZero then
+    Result := '03' + FY.ToHex
+  else
+    Result := '04' + FX.ToHex + FY.ToHex;
 end;
 
 { TCnEcc }
@@ -5570,34 +5604,6 @@ begin
     Pa.Free;
     Ta.Free;
   end;
-end;
-
-{ TCnEccPublicKey }
-
-procedure TCnEccPublicKey.SetHex(const Buf: AnsiString);
-var
-  C: Integer;
-  S: AnsiString;
-begin
-  if Length(Buf) < 4 then
-    raise ECnEccException.Create(SCnEccErrorKeyData);
-
-  C := StrToIntDef(Copy(Buf, 1, 2), 0);
-  S := Copy(Buf, 3, MaxInt);
-
-  if C = EC_PUBLICKEY_UNCOMPRESSED then
-  begin
-    C := Length(S) div 2;
-    FX.SetHex(Copy(S, 1, C));
-    FY.SetHex(Copy(S, C + 1, MaxInt));
-  end
-  else if (C = EC_PUBLICKEY_COMPRESSED1) or (C = EC_PUBLICKEY_COMPRESSED2) then
-  begin
-    FX.SetHex(S);
-    FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，外部再去求解
-  end
-  else
-    raise ECnEccException.Create(SCnEccErrorKeyData);
 end;
 
 initialization
