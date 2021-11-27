@@ -79,6 +79,10 @@ type
     btnRoot: TButton;
     btnIsPerfectPower: TButton;
     btnComNum: TButton;
+    tsSparseBigNumberList: TTabSheet;
+    btnSBNLTest1: TButton;
+    edtSBNL: TEdit;
+    mmoSBNL: TMemo;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -133,6 +137,7 @@ type
     procedure btnRootClick(Sender: TObject);
     procedure btnIsPerfectPowerClick(Sender: TObject);
     procedure btnComNumClick(Sender: TObject);
+    procedure btnSBNLTest1Click(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -157,6 +162,7 @@ var
   Num1: TCnBigNumber = nil;
   Num2: TCnBigNumber = nil;
   Num3: TCnBigNumber = nil;
+  SpareList: TCnSparseBigNumberList = nil;
   AWord: DWORD;
   RandomLength: Integer = 4096;
 
@@ -169,6 +175,8 @@ begin
   BigNumberClear(Num2);
   BigNumberClear(Num3);
   ShowNumbers;
+
+  SpareList := TCnSparseBigNumberList.Create;
 end;
 
 procedure TFormBigNumber.btnGen1Click(Sender: TObject);
@@ -522,6 +530,7 @@ end;
 
 procedure TFormBigNumber.FormDestroy(Sender: TObject);
 begin
+  SpareList.Free;
   BigNumberFree(Num1);
   BigNumberFree(Num2);
   BigNumberFree(Num3);
@@ -977,6 +986,27 @@ begin
   finally
     List.Free;
   end;
+end;
+
+procedure TFormBigNumber.btnSBNLTest1Click(Sender: TObject);
+var
+  S: array of Int64;
+begin
+  SetLength(S, 9);
+  S[0] := 2;
+  S[1] := -1;
+  S[2] := 3;
+  S[3] := 0;
+  S[4] := 9;
+  S[5] := 0;
+  S[6] := 10;
+  S[8] := 16;
+  SpareList.SetValues(S);
+  SpareList.Compact;
+  mmoSBNL.Lines.Text := SpareList.ToString;
+
+  SpareList.SafeValue[10].SetWord(666);
+  mmoSBNL.Lines.Text := SpareList.ToString;
 end;
 
 end.

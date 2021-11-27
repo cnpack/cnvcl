@@ -295,6 +295,52 @@ type
     procedure Recycle(Num: TCnBigNumber); reintroduce;
   end;
 
+  TCnExponentBigNumberPair = class(TObject)
+  {* 指数与大数的组合类，用于稀疏列表}
+  private
+    FExponent: Integer;
+    FValue: TCnBigNumber;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将指数与大数转成字符串}
+
+    property Exponent: Integer read FExponent write FExponent;
+    property Value: TCnBigNumber read FValue;
+  end;
+
+  TCnSparseBigNumberList = class(TObjectList)
+  {* 容纳大数与指数的稀疏对象列表，同时拥有 TCnExponentBigNumberPair 对象们，
+    内部按 Exponent 从小到大排序}
+  private
+    function GetItem(Exponent: Integer): TCnBigNumber;
+    procedure SetItem(Exponent: Integer; const Value: TCnBigNumber);
+    function BinarySearchExponent(AExponent: Integer; var OutIndex: Integer): Boolean;
+    {* 二分法查找 AExponent 的位置，找到返回 True，OutIndex 放置对应列表索引位置
+      如未找到，OutIndex 则返回插入位置供直接 Insert，MaxInt 时供 Add}
+    function InsertByOutIndex(OutIndex: Integer): Integer;
+    {* 根据二分法查找失败场合返回的 OutIndex 实施插入，返回插入后的真实 Index}
+    function GetSafeValue(Exponent: Integer): TCnBigNumber;
+  public
+    constructor Create; reintroduce;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将所有元素中的指数与大数转成多行字符串}
+
+    // 需要取、增、删、改、压等操作
+    procedure SetValues(LowToHighList: array of Int64);
+    {* 从低到高设置值}
+    procedure Compact;
+    {* 压缩，也就是删掉所有 0 系数项}
+    property SafeValue[Exponent: Integer]: TCnBigNumber read GetSafeValue;
+    {* 安全的根据参数 Exponent 获取大数的方法，读时如内部查不到，会插入新建值并返回}
+    property Items[Exponent: Integer]: TCnBigNumber read GetItem write SetItem; default;
+    {* 参数是 Exponent，读时如内部查不到，则返回一个固定的 0 值 BigNumber，注意外面勿更改其内部值
+      写时如内部查不到，则新建插入指定位置后返回此 BigNumber 对象}
+  end;
+
 function BigNumberNew: TCnBigNumber;
 {* 创建一个动态分配的大数对象，等同于 TCnBigNumber.Create}
 
@@ -719,6 +765,9 @@ const
   BN_PRIME_NUMBERS = 2048;
 
   BN_MUL_KARATSUBA = 80;  // 大于等于 80 个 LongWord 的乘法才用 Karatsuba 算法
+  CRLF = #13#10;
+
+  SPARSE_BINARY_SEARCH_THRESHOLD = 4;
 
 {$IFNDEF MSWINDOWS}
   MAXDWORD = TCnLongWord32($FFFFFFFF);
@@ -6055,6 +6104,228 @@ end;
 procedure TCnBigNumberPool.Recycle(Num: TCnBigNumber);
 begin
   inherited Recycle(Num);
+end;
+
+{ TCnExponentBigNumberPair }
+
+constructor TCnExponentBigNumberPair.Create;
+begin
+  inherited;
+  FValue := TCnBigNumber.Create;
+end;
+
+destructor TCnExponentBigNumberPair.Destroy;
+begin
+  FValue.Free;
+  inherited;
+end;
+
+function TCnExponentBigNumberPair.ToString: string;
+begin
+  Result := '^' + IntToStr(FExponent) + ' ' + FValue.ToString;
+end;
+
+{ TCnSparseBigNumberList }
+
+function TCnSparseBigNumberList.BinarySearchExponent(AExponent: Integer;
+  var OutIndex: Integer): Boolean;
+var
+  I, Start,Stop, Mid: Integer;
+  Pair: TCnExponentBigNumberPair;
+begin
+  Result := False;
+  if Count = 0 then
+  begin
+    OutIndex := MaxInt;
+  end
+  else if Count <= SPARSE_BINARY_SEARCH_THRESHOLD then
+  begin
+    // 数量少，直接搜
+    for I := 0 to Count - 1 do
+    begin
+      Pair := TCnExponentBigNumberPair(inherited Items[I]);
+      if Pair.Exponent = AExponent then
+      begin
+        Result := True;
+        OutIndex := I;
+        Exit;
+      end
+      else if Pair.Exponent > AExponent then
+      begin
+        OutIndex := I;
+        Exit;
+      end;
+    end;
+    // AExponent 比最后一个 Pair 的还大
+    OutIndex := MaxInt;
+  end
+  else
+  begin
+    Pair := TCnExponentBigNumberPair(inherited Items[Count - 1]);
+    if Pair.Exponent < AExponent then // AExponent 比最后一个 Pair 的还大
+    begin
+      OutIndex := MaxInt;
+      Exit;
+    end
+    else if Pair.Exponent = AExponent then // AExponent 正好是最后一个 Pair
+    begin
+      OutIndex := Count - 1;
+      Result := True;
+      Exit;
+    end
+    else
+    begin
+      Pair := TCnExponentBigNumberPair(inherited Items[0]);
+      if Pair.Exponent > AExponent then // AExponent 比第一个 Pair 的还小
+      begin
+        OutIndex := 0;
+        Exit;
+      end
+      else if Pair.Exponent = AExponent then // AExponent 正好是第一个 Pair
+      begin
+        OutIndex := 0;
+        Result := True;
+        Exit;
+      end
+    end;
+
+    // 开始真正的二分查找
+    Start := 0;
+    Stop := Count - 1;
+    Mid := 0;
+
+    while Start <= Stop do
+    begin
+      Mid := (Start + Stop) div 2;
+
+      Pair := TCnExponentBigNumberPair(inherited Items[Mid]);
+      if Pair.Exponent = AExponent then
+      begin
+        Result := True;
+        OutIndex := Mid;
+        Exit;
+      end
+      else if Pair.Exponent < AExponent then
+      begin
+        Start := Mid + 1;
+      end
+      else if Pair.Exponent > AExponent then
+      begin
+        Stop := Mid - 1;
+      end;
+    end;
+
+    OutIndex := Mid; // 这句有问题
+    Result := False;
+  end;
+end;
+
+procedure TCnSparseBigNumberList.Compact;
+var
+  I: Integer;
+begin
+  for I := Count - 1 downto 0 do
+    if TCnExponentBigNumberPair(inherited Items[I]).Value.IsZero then
+      Delete(I);
+end;
+
+constructor TCnSparseBigNumberList.Create;
+begin
+  inherited Create(True);
+end;
+
+function TCnSparseBigNumberList.GetItem(
+  Exponent: Integer): TCnBigNumber;
+var
+  OutIndex: Integer;
+begin
+  if BinarySearchExponent(Exponent, OutIndex) then
+    Result := TCnExponentBigNumberPair(inherited Items[OutIndex]).Value
+  else
+    Result := CnBigNumberZero;
+end;
+
+function TCnSparseBigNumberList.GetSafeValue(
+  Exponent: Integer): TCnBigNumber;
+var
+  OutIndex: Integer;
+begin
+  if not BinarySearchExponent(Exponent, OutIndex) then
+  begin
+    // 未找到，要插入
+    OutIndex := InsertByOutIndex(OutIndex);
+    TCnExponentBigNumberPair(inherited Items[OutIndex]).Exponent := Exponent;
+  end;
+  Result := TCnExponentBigNumberPair(inherited Items[OutIndex]).Value;
+end;
+
+function TCnSparseBigNumberList.InsertByOutIndex(
+  OutIndex: Integer): Integer;
+var
+  Pair: TCnExponentBigNumberPair;
+begin
+  if OutIndex < 0 then
+    OutIndex := 0;
+
+  Pair := TCnExponentBigNumberPair.Create;
+  if OutIndex >= Count then
+  begin
+    Add(Pair);
+    Result := Count - 1;
+  end
+  else
+  begin
+    Insert(OutIndex, Pair);
+    Result := OutIndex;
+  end;
+end;
+
+procedure TCnSparseBigNumberList.SetItem(Exponent: Integer;
+  const Value: TCnBigNumber);
+var
+  OutIndex: Integer;
+begin
+  if not BinarySearchExponent(Exponent, OutIndex) then
+  begin
+    // 未找到，要插入
+    OutIndex := InsertByOutIndex(OutIndex);
+    TCnExponentBigNumberPair(inherited Items[OutIndex]).Exponent := Exponent;
+  end;
+  BigNumberCopy(TCnExponentBigNumberPair(inherited Items[OutIndex]).Value, Value);
+end;
+
+procedure TCnSparseBigNumberList.SetValues(LowToHighList: array of Int64);
+var
+  I: Integer;
+  Pair: TCnExponentBigNumberPair;
+begin
+  Clear;
+  for I := Low(LowToHighList) to High(LowToHighList) do
+  begin
+    Pair := TCnExponentBigNumberPair.Create;
+    Pair.Exponent := I;
+    Pair.Value.SetInt64(LowToHighList[I]);
+    Add(Pair);
+  end;
+end;
+
+function TCnSparseBigNumberList.ToString: string;
+var
+  I: Integer;
+  First: Boolean;
+begin
+  Result := '';
+  First := True;
+  for I := Count - 1 downto 0 do
+  begin
+    if First then
+    begin
+      Result := TCnExponentBigNumberPair(inherited Items[I]).ToString;
+      First := False;
+    end
+    else
+      Result := Result + CRLF + TCnExponentBigNumberPair(inherited Items[I]).ToString;
+  end;
 end;
 
 initialization

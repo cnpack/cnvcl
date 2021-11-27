@@ -23,7 +23,7 @@ object FormBigNumber: TFormBigNumber
     ActivePage = tsBigNumber
     TabOrder = 0
     object tsBigNumber: TTabSheet
-      Caption = 'tsBigNumber'
+      Caption = 'BigNumber'
       object lblNumber1: TLabel
         Left = 16
         Top = 16
@@ -631,6 +631,33 @@ object FormBigNumber: TFormBigNumber
         Caption = 'Combinatorial Numbers'
         TabOrder = 59
         OnClick = btnComNumClick
+      end
+    end
+    object tsSparseBigNumberList: TTabSheet
+      Caption = 'Sparse BigNumber List'
+      ImageIndex = 1
+      object btnSBNLTest1: TButton
+        Left = 16
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Set Values'
+        TabOrder = 0
+        OnClick = btnSBNLTest1Click
+      end
+      object edtSBNL: TEdit
+        Left = 112
+        Top = 16
+        Width = 641
+        Height = 21
+        TabOrder = 1
+      end
+      object mmoSBNL: TMemo
+        Left = 16
+        Top = 56
+        Width = 321
+        Height = 161
+        TabOrder = 2
       end
     end
   end
