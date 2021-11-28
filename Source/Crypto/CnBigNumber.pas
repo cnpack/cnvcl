@@ -315,30 +315,41 @@ type
   {* 容纳大数与指数的稀疏对象列表，同时拥有 TCnExponentBigNumberPair 对象们，
     内部按 Exponent 从小到大排序}
   private
-    function GetItem(Exponent: Integer): TCnBigNumber;
-    procedure SetItem(Exponent: Integer; const Value: TCnBigNumber);
+    function GetItem(Index: Integer): TCnExponentBigNumberPair;
+    procedure SetItem(Index: Integer; const Value: TCnExponentBigNumberPair);
     function BinarySearchExponent(AExponent: Integer; var OutIndex: Integer): Boolean;
     {* 二分法查找 AExponent 的位置，找到返回 True，OutIndex 放置对应列表索引位置
       如未找到，OutIndex 则返回插入位置供直接 Insert，MaxInt 时供 Add}
     function InsertByOutIndex(OutIndex: Integer): Integer;
     {* 根据二分法查找失败场合返回的 OutIndex 实施插入，返回插入后的真实 Index}
     function GetSafeValue(Exponent: Integer): TCnBigNumber;
+    function GetReadonlyValue(Exponent: Integer): TCnBigNumber;
+    procedure SetSafeValue(Exponent: Integer; const Value: TCnBigNumber);
   public
     constructor Create; reintroduce;
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将所有元素中的指数与大数转成多行字符串}
 
+    function Top: TCnExponentBigNumberPair;
+    {* 获得最高次对象}
+    function Bottom: TCnExponentBigNumberPair;
+    {* 获得最低次对象}
+
     // 需要取、增、删、改、压等操作
+    procedure AssignTo(Dest: TCnSparseBigNumberList);
+    {* 复制给另外一份}
     procedure SetValues(LowToHighList: array of Int64);
     {* 从低到高设置值}
     procedure Compact;
     {* 压缩，也就是删掉所有 0 系数项}
-    property SafeValue[Exponent: Integer]: TCnBigNumber read GetSafeValue;
-    {* 安全的根据参数 Exponent 获取大数的方法，读时如内部查不到，会插入新建值并返回}
-    property Items[Exponent: Integer]: TCnBigNumber read GetItem write SetItem; default;
-    {* 参数是 Exponent，读时如内部查不到，则返回一个固定的 0 值 BigNumber，注意外面勿更改其内部值
+    property SafeValue[Exponent: Integer]: TCnBigNumber read GetSafeValue write SetSafeValue;
+    {* 安全的根据参数 Exponent 获取大数的方法，读时如内部查不到，会插入新建值并返回，
       写时如内部查不到，则新建插入指定位置后返回此 BigNumber 对象}
+    property ReadonlyValue[Exponent: Integer]: TCnBigNumber read GetReadonlyValue;
+    {* 只读的根据参数 Exponent 获取大数的方法，读时如内部查不到，会返回一固定的零值 TCnBigNumber 对象，切勿修改其值}
+    property Items[Index: Integer]: TCnExponentBigNumberPair read GetItem write SetItem; default;
+    {* 重载的 Items 方法}
   end;
 
 function BigNumberNew: TCnBigNumber;
@@ -741,6 +752,10 @@ procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
 
 procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
 {* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
+
+procedure MergeSparseBigNumberList(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean = True);
+{* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减
+  Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -5721,6 +5736,137 @@ begin
     BigNumberNonNegativeMod(List[I], List[I], P);
 end;
 
+procedure MergeSparseBigNumberList(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean);
+var
+  I, J, K: Integer;
+  P1, P2: TCnExponentBigNumberPair;
+begin
+  if Src1 = Src2 then // 如果 Src1 和 Src2 是同一个，合并，支持 Dst 也是同一个的情形
+  begin
+    Dst.Count := Src1.Count;
+    for I := 0 to Src1.Count - 1 do
+    begin
+      if Dst[I] = nil then
+        Dst[I] := TCnExponentBigNumberPair.Create;
+      Dst[I].Exponent := Src1[I].Exponent;
+      if Add then
+        BigNumberAdd(Dst[I].Value, Src1[I].Value, Src2[I].Value)
+      else
+        BigNumberSub(Dst[I].Value, Src1[I].Value, Src2[I].Value);
+    end;
+  end
+  else // Src1 和 Src2 不是同一个，要归并
+  begin
+    if (Dst <> Src1) and (Dst <> Src2) then // 但 Dst 不是 Src1 或 Src2，也就是仨各异
+    begin
+      I := 0;
+      J := 0;
+      K := 0;
+
+      Dst.Count := Src1.Count + Src2.Count;
+
+      while (I < Src1.Count) and (J < Src2.Count) do
+      begin
+        P1 := Src1[I];
+        P2 := Src2[J];
+
+        if P1.Exponent = P2.Exponent then
+        begin
+          // 相等，并起来塞到 Dst 里
+          if Dst[K] = nil then
+            Dst[K] := TCnExponentBigNumberPair.Create;
+          Dst[K].Exponent := P1.Exponent;
+
+          if Add then
+            BigNumberAdd(Dst[K].Value, P1.Value, P2.Value)
+          else
+            BigNumberSub(Dst[K].Value, P1.Value, P2.Value);
+
+          Inc(I);
+          Inc(J);
+          Inc(K);
+        end
+        else if P1.Exponent < P2.Exponent then
+        begin
+          // P1 小，把 P1 搁 Dst[K] 里
+          if Dst[K] = nil then
+            Dst[K] := TCnExponentBigNumberPair.Create;
+          Dst[K].Exponent := P1.Exponent;
+
+          BigNumberCopy(Dst[K].Value, P1.Value);
+          Inc(I);
+          Inc(K);
+        end
+        else // P2 小，把 P2 搁 Dst[K] 里
+        begin
+          if Dst[K] = nil then
+            Dst[K] := TCnExponentBigNumberPair.Create;
+          Dst[K].Exponent := P2.Exponent;
+
+          BigNumberCopy(Dst[K].Value, P2.Value);
+          if not Add then
+            Dst[K].Value.Negate;
+          Inc(J);
+          Inc(K);
+        end;
+      end;
+
+      if (I = Src1.Count) and (J = Src2.Count) then
+      begin
+        Dst.Compact;
+        Exit;
+      end;
+
+      // 剩下哪个有，就全加到 Dst 里去
+      if I = Src1.Count then
+      begin
+        for K := J to Src2.Count - 1 do
+        begin
+          P2 := TCnExponentBigNumberPair.Create;
+          P2.Exponent := Src2[K].Exponent;
+          BigNumberCopy(P2.Value, Src2[K].Value);
+          Dst.Add(P2);
+        end;
+      end
+      else if J = Src2.Count then
+      begin
+        for K := I to Src1.Count - 1 do
+        begin
+          P1 := TCnExponentBigNumberPair.Create;
+          P1.Exponent := Src1[K].Exponent;
+          BigNumberCopy(P1.Value, Src1[K].Value);
+          Dst.Add(P1);
+        end;
+      end;
+      Dst.Compact;
+    end
+    else if Dst = Src1 then // Dst 是 Src1，且 Src1 和 Src2 不同
+    begin
+      // 遍历 Src2，塞到 Src1 中
+      for I := 0 to Src2.Count - 1 do
+      begin
+        P2 := Src2[I];
+        if Add then
+          BigNumberAdd(Dst.SafeValue[P2.Exponent], Dst.SafeValue[P2.Exponent], P2.Value)
+        else
+          BigNumberSub(Dst.SafeValue[P2.Exponent], Dst.SafeValue[P2.Exponent], P2.Value);
+      end;
+    end
+    else if Dst = Src2 then // Dst 是 Src2，且 Src1 和 Src2 不同
+    begin
+      // 遍历 Src1，塞到 Src2 中
+      for I := 0 to Src1.Count - 1 do
+      begin
+        P1 := Src1[I];
+        if Add then
+          BigNumberAdd(Dst.SafeValue[P1.Exponent], Dst.SafeValue[P1.Exponent], P1.Value)
+        else
+          BigNumberSub(Dst.SafeValue[P1.Exponent], Dst.SafeValue[P1.Exponent], P1.Value);
+      end;
+    end;
+  end;
+end;
+
 // 打印大数内部信息
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 var
@@ -6112,6 +6258,7 @@ constructor TCnExponentBigNumberPair.Create;
 begin
   inherited;
   FValue := TCnBigNumber.Create;
+  FValue.SetZero;
 end;
 
 destructor TCnExponentBigNumberPair.Destroy;
@@ -6127,11 +6274,30 @@ end;
 
 { TCnSparseBigNumberList }
 
+procedure TCnSparseBigNumberList.AssignTo(Dest: TCnSparseBigNumberList);
+var
+  I: Integer;
+  Pair: TCnExponentBigNumberPair;
+begin
+  if (Dest <> Self) and (Dest <> nil) then
+  begin
+    Dest.Clear;
+    for I := 0 to Count - 1 do
+    begin
+      Pair := TCnExponentBigNumberPair.Create;
+      Pair.Exponent := Items[I].Exponent;
+      BigNumberCopy(Pair.Value, Items[I].Value);
+      Dest.Add(Pair);
+    end;
+  end;
+end;
+
 function TCnSparseBigNumberList.BinarySearchExponent(AExponent: Integer;
   var OutIndex: Integer): Boolean;
 var
   I, Start,Stop, Mid: Integer;
   Pair: TCnExponentBigNumberPair;
+  BreakFromStart: Boolean;
 begin
   Result := False;
   if Count = 0 then
@@ -6143,7 +6309,7 @@ begin
     // 数量少，直接搜
     for I := 0 to Count - 1 do
     begin
-      Pair := TCnExponentBigNumberPair(inherited Items[I]);
+      Pair := Items[I];
       if Pair.Exponent = AExponent then
       begin
         Result := True;
@@ -6161,8 +6327,8 @@ begin
   end
   else
   begin
-    Pair := TCnExponentBigNumberPair(inherited Items[Count - 1]);
-    if Pair.Exponent < AExponent then // AExponent 比最后一个 Pair 的还大
+    Pair := Top;
+    if Pair.Exponent < AExponent then      // AExponent 比最后一个 Pair 的还大
     begin
       OutIndex := MaxInt;
       Exit;
@@ -6175,8 +6341,8 @@ begin
     end
     else
     begin
-      Pair := TCnExponentBigNumberPair(inherited Items[0]);
-      if Pair.Exponent > AExponent then // AExponent 比第一个 Pair 的还小
+      Pair := Bottom;
+      if Pair.Exponent > AExponent then    // AExponent 比第一个 Pair 的还小
       begin
         OutIndex := 0;
         Exit;
@@ -6193,12 +6359,13 @@ begin
     Start := 0;
     Stop := Count - 1;
     Mid := 0;
+    BreakFromStart := False;
 
     while Start <= Stop do
     begin
       Mid := (Start + Stop) div 2;
 
-      Pair := TCnExponentBigNumberPair(inherited Items[Mid]);
+      Pair := Items[Mid];
       if Pair.Exponent = AExponent then
       begin
         Result := True;
@@ -6207,17 +6374,29 @@ begin
       end
       else if Pair.Exponent < AExponent then
       begin
-        Start := Mid + 1;
+        Start := Mid + 1; // 如果最后一次是从这退出，则插入位置为 Mid + 1
+        BreakFromStart := True;
       end
       else if Pair.Exponent > AExponent then
       begin
-        Stop := Mid - 1;
+        Stop := Mid - 1;  // 如果最后一次是从这退出，则插入位置为 Mid - 1
+        BreakFromStart := False;
       end;
     end;
 
-    OutIndex := Mid; // 这句有问题
+    if BreakFromStart then
+      OutIndex := Mid + 1
+    else
+      OutIndex := Mid;
     Result := False;
   end;
+end;
+
+function TCnSparseBigNumberList.Bottom: TCnExponentBigNumberPair;
+begin
+  Result := nil;
+  if Count > 0 then
+    Result := Items[0];
 end;
 
 procedure TCnSparseBigNumberList.Compact;
@@ -6225,7 +6404,7 @@ var
   I: Integer;
 begin
   for I := Count - 1 downto 0 do
-    if TCnExponentBigNumberPair(inherited Items[I]).Value.IsZero then
+    if (Items[I] = nil) or Items[I].Value.IsZero then
       Delete(I);
 end;
 
@@ -6234,19 +6413,22 @@ begin
   inherited Create(True);
 end;
 
-function TCnSparseBigNumberList.GetItem(
-  Exponent: Integer): TCnBigNumber;
+function TCnSparseBigNumberList.GetItem(Index: Integer): TCnExponentBigNumberPair;
+begin
+  Result := TCnExponentBigNumberPair(inherited GetItem(Index));
+end;
+
+function TCnSparseBigNumberList.GetReadonlyValue(Exponent: Integer): TCnBigNumber;
 var
   OutIndex: Integer;
 begin
-  if BinarySearchExponent(Exponent, OutIndex) then
-    Result := TCnExponentBigNumberPair(inherited Items[OutIndex]).Value
+  if not BinarySearchExponent(Exponent, OutIndex) then
+    Result := CnBigNumberZero
   else
-    Result := CnBigNumberZero;
+    Result := Items[OutIndex].Value;
 end;
 
-function TCnSparseBigNumberList.GetSafeValue(
-  Exponent: Integer): TCnBigNumber;
+function TCnSparseBigNumberList.GetSafeValue(Exponent: Integer): TCnBigNumber;
 var
   OutIndex: Integer;
 begin
@@ -6254,9 +6436,9 @@ begin
   begin
     // 未找到，要插入
     OutIndex := InsertByOutIndex(OutIndex);
-    TCnExponentBigNumberPair(inherited Items[OutIndex]).Exponent := Exponent;
+    Items[OutIndex].Exponent := Exponent;
   end;
-  Result := TCnExponentBigNumberPair(inherited Items[OutIndex]).Value;
+  Result := Items[OutIndex].Value;
 end;
 
 function TCnSparseBigNumberList.InsertByOutIndex(
@@ -6280,18 +6462,34 @@ begin
   end;
 end;
 
-procedure TCnSparseBigNumberList.SetItem(Exponent: Integer;
+procedure TCnSparseBigNumberList.SetItem(Index: Integer;
+  const Value: TCnExponentBigNumberPair);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+procedure TCnSparseBigNumberList.SetSafeValue(Exponent: Integer;
   const Value: TCnBigNumber);
 var
   OutIndex: Integer;
 begin
   if not BinarySearchExponent(Exponent, OutIndex) then
   begin
-    // 未找到，要插入
-    OutIndex := InsertByOutIndex(OutIndex);
-    TCnExponentBigNumberPair(inherited Items[OutIndex]).Exponent := Exponent;
+    // 未找到，如果 Value 无或 0，则要插入
+    if (Value <> nil) and not Value.IsZero then
+    begin
+      OutIndex := InsertByOutIndex(OutIndex);
+      Items[OutIndex].Exponent := Exponent;
+    end
+    else // 未找到且是 0，不动
+      Exit;
   end;
-  BigNumberCopy(TCnExponentBigNumberPair(inherited Items[OutIndex]).Value, Value);
+
+  // 找到了或者插入了，赋值
+  if (Value <> nil) and not Value.IsZero then
+    BigNumberCopy(Items[OutIndex].Value, Value)
+  else
+    Items[OutIndex].Value.SetZero;
 end;
 
 procedure TCnSparseBigNumberList.SetValues(LowToHighList: array of Int64);
@@ -6309,6 +6507,13 @@ begin
   end;
 end;
 
+function TCnSparseBigNumberList.Top: TCnExponentBigNumberPair;
+begin
+  Result := nil;
+  if Count > 0 then
+    Result := Items[Count - 1];
+end;
+
 function TCnSparseBigNumberList.ToString: string;
 var
   I: Integer;
@@ -6320,11 +6525,11 @@ begin
   begin
     if First then
     begin
-      Result := TCnExponentBigNumberPair(inherited Items[I]).ToString;
+      Result := Items[I].ToString;
       First := False;
     end
     else
-      Result := Result + CRLF + TCnExponentBigNumberPair(inherited Items[I]).ToString;
+      Result := Result + CRLF + Items[I].ToString;
   end;
 end;
 

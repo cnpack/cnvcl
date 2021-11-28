@@ -83,6 +83,11 @@ type
     btnSBNLTest1: TButton;
     edtSBNL: TEdit;
     mmoSBNL: TMemo;
+    chkSparseUseSubMerge: TCheckBox;
+    edtSparseList2: TEdit;
+    btnSparseMerge: TButton;
+    mmoSBNL2: TMemo;
+    mmoSBNL3: TMemo;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -138,6 +143,7 @@ type
     procedure btnIsPerfectPowerClick(Sender: TObject);
     procedure btnComNumClick(Sender: TObject);
     procedure btnSBNLTest1Click(Sender: TObject);
+    procedure btnSparseMergeClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -162,7 +168,9 @@ var
   Num1: TCnBigNumber = nil;
   Num2: TCnBigNumber = nil;
   Num3: TCnBigNumber = nil;
-  SpareList: TCnSparseBigNumberList = nil;
+  SpareList1: TCnSparseBigNumberList = nil;
+  SpareList2: TCnSparseBigNumberList = nil;
+  SpareList3: TCnSparseBigNumberList = nil;
   AWord: DWORD;
   RandomLength: Integer = 4096;
 
@@ -176,7 +184,9 @@ begin
   BigNumberClear(Num3);
   ShowNumbers;
 
-  SpareList := TCnSparseBigNumberList.Create;
+  SpareList1 := TCnSparseBigNumberList.Create;
+  SpareList2 := TCnSparseBigNumberList.Create;
+  SpareList3 := TCnSparseBigNumberList.Create;
 end;
 
 procedure TFormBigNumber.btnGen1Click(Sender: TObject);
@@ -530,7 +540,10 @@ end;
 
 procedure TFormBigNumber.FormDestroy(Sender: TObject);
 begin
-  SpareList.Free;
+  SpareList1.Free;
+  SpareList2.Free;
+  SpareList3.Free;
+
   BigNumberFree(Num1);
   BigNumberFree(Num2);
   BigNumberFree(Num3);
@@ -1001,12 +1014,26 @@ begin
   S[5] := 0;
   S[6] := 10;
   S[8] := 16;
-  SpareList.SetValues(S);
-  SpareList.Compact;
-  mmoSBNL.Lines.Text := SpareList.ToString;
+  SpareList1.SetValues(S);
+  SpareList1.Compact;
+  mmoSBNL.Lines.Text := SpareList1.ToString;
 
-  SpareList.SafeValue[10].SetWord(666);
-  mmoSBNL.Lines.Text := SpareList.ToString;
+  SpareList1.SafeValue[10].SetWord(666);
+  mmoSBNL.Lines.Text := SpareList1.ToString;
+end;
+
+procedure TFormBigNumber.btnSparseMergeClick(Sender: TObject);
+begin
+  SpareList1.AssignTo(SpareList2);
+
+  // SpareList2.SafeValue[3].SetInt64(18);
+  // SpareList2.SafeValue[7].SetInt64(-64);
+  SpareList2.SafeValue[9].SetInt64(-60);
+//  SpareList2.SafeValue[6].SetInt64(-10);
+  mmoSBNL2.Lines.Text := SpareList2.ToString;
+  MergeSparseBigNumberList(SpareList3, SpareList1, SpareList2,
+    not chkSparseUseSubMerge.Checked);
+  mmoSBNL3.Lines.Text := SpareList3.ToString;
 end;
 
 end.

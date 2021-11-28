@@ -20,7 +20,7 @@ object FormBigNumber: TFormBigNumber
     Top = 8
     Width = 1057
     Height = 657
-    ActivePage = tsBigNumber
+    ActivePage = tsSparseBigNumberList
     TabOrder = 0
     object tsBigNumber: TTabSheet
       Caption = 'BigNumber'
@@ -648,16 +648,54 @@ object FormBigNumber: TFormBigNumber
       object edtSBNL: TEdit
         Left = 112
         Top = 16
-        Width = 641
+        Width = 753
         Height = 21
         TabOrder = 1
       end
       object mmoSBNL: TMemo
         Left = 16
         Top = 56
-        Width = 321
+        Width = 161
         Height = 161
         TabOrder = 2
+      end
+      object chkSparseUseSubMerge: TCheckBox
+        Left = 880
+        Top = 24
+        Width = 121
+        Height = 17
+        Caption = 'Use Subtract Merge'
+        TabOrder = 3
+      end
+      object edtSparseList2: TEdit
+        Left = 552
+        Top = 56
+        Width = 313
+        Height = 21
+        TabOrder = 4
+      end
+      object btnSparseMerge: TButton
+        Left = 888
+        Top = 56
+        Width = 113
+        Height = 25
+        Caption = 'Merge Sparse'
+        TabOrder = 5
+        OnClick = btnSparseMergeClick
+      end
+      object mmoSBNL2: TMemo
+        Left = 192
+        Top = 56
+        Width = 161
+        Height = 161
+        TabOrder = 6
+      end
+      object mmoSBNL3: TMemo
+        Left = 368
+        Top = 56
+        Width = 161
+        Height = 161
+        TabOrder = 7
       end
     end
   end
