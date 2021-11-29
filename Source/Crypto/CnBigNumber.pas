@@ -339,6 +339,8 @@ type
     {* 获得最低次对象}
 
     // 需要取、增、删、改、压等操作
+    function AddPair(AExponent: Integer; Num: TCnBigNumber): TCnExponentBigNumberPair;
+    {* 添加一个 Pair，内部复制大数}
     procedure AssignTo(Dest: TCnSparseBigNumberList);
     {* 复制给另外一份}
     procedure SetValues(LowToHighList: array of Int64);
@@ -347,7 +349,7 @@ type
     {* 压缩，也就是删掉所有 0 系数项}
     property SafeValue[Exponent: Integer]: TCnBigNumber read GetSafeValue write SetSafeValue;
     {* 安全的根据参数 Exponent 获取大数的方法，读时如内部查不到，会插入新建值并返回，
-      写时如内部查不到，则新建插入指定位置后返回此 BigNumber 对象}
+      写时如内部查不到，则新建插入指定位置后将 Value 复制入此 BigNumber 对象}
     property ReadonlyValue[Exponent: Integer]: TCnBigNumber read GetReadonlyValue;
     {* 只读的根据参数 Exponent 获取大数的方法，读时如内部查不到，会返回一固定的零值 TCnBigNumber 对象，切勿修改其值}
     property Items[Index: Integer]: TCnExponentBigNumberPair read GetItem write SetItem; default;
@@ -6333,6 +6335,15 @@ begin
 end;
 
 { TCnSparseBigNumberList }
+
+function TCnSparseBigNumberList.AddPair(AExponent: Integer;
+  Num: TCnBigNumber): TCnExponentBigNumberPair;
+begin
+  Result := TCnExponentBigNumberPair.Create;
+  Result.Exponent := AExponent;
+  BigNumberCopy(Result.Value, Num);
+  Add(Result);
+end;
 
 procedure TCnSparseBigNumberList.AssignTo(Dest: TCnSparseBigNumberList);
 begin

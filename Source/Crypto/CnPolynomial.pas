@@ -1364,6 +1364,313 @@ procedure Int64BiPolynomialGaloisMulWord(const P: TCnInt64BiPolynomial; N: Int64
 procedure Int64BiPolynomialGaloisDivWord(const P: TCnInt64BiPolynomial; N: Int64; Prime: Int64);
 {* 将 Prime 次方阶有限域上的二元整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
+// =============================================================================
+//
+//                           二元大整系数多项式
+//
+// =============================================================================
+
+{
+   FXs TObjectList
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | X^n   的 Y 系数 Sparse| -> | X^n*Y^0 的系数  |X^n*Y^3 的系数   | ......
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | X^n-1 的 Y 系数 Sparse| -> | X^n-1*Y^2 的系数|X^n-1*Y^5 的系数 | ......
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |......                 | -> |
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | X^0   的 Y 系数 Sparse| -> | X^0*Y^4 的系数  | X^0*Y^7 的系数  | ......
+  +-+-+-+-+-+-+-+-+-+-+-+-+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+type
+  TCnBigNumberBiPolynomial = class
+  {* 二元大整系数多项式}
+  private
+    FXs: TObjectList; // 元素为 TCnSparseBigNumberList，存储该 X 次幂的每一个不同的 Y 次幂的系数
+    procedure EnsureDegrees(XDegree, YDegree: Integer);
+    {* 确保 XDegree, YDegree 的元素存在}
+    function GetMaxXDegree: Integer;
+    function GetMaxYDegree: Integer;
+    procedure SetMaxXDegree(const Value: Integer);
+    procedure SetMaxYDegree(const Value: Integer);
+    function GetYFactorsList(Index: Integer): TCnSparseBigNumberList;
+    function GetSafeValue(XDegree, YDegree: Integer): TCnBigNumber;
+    procedure SetSafeValue(XDegree, YDegree: Integer; const Value: TCnBigNumber);
+    function GetReadonlyValue(XDegree, YDegree: Integer): TCnBigNumber;
+  protected
+    function CompactYDegree(YList: TCnSparseBigNumberList): Boolean;
+    {* 去除一个 Y 系数高次零项，如全 0 则返回 True}
+    property YFactorsList[Index: Integer]: TCnSparseBigNumberList read GetYFactorsList;
+    {* 封装的对 X 的 Index 次项的 Y 系数列表}
+    procedure Clear;
+    {* 内部清空所有数据，只给 FXs[0] 留一个 List，一般不对外使用}
+  public
+    constructor Create(XDegree: Integer = 0; YDegree: Integer = 0);
+    {* 构造函数，传入 X 和 Y 的最高次数，可默认为 0，以后再补设}
+    destructor Destroy; override;
+
+    procedure SetYCoefficentsFromPolynomial(XDegree: Integer; PY: TCnInt64Polynomial); overload;
+    {* 针对特定次数的 X，从一元的 Y 多项式中一次批量设置 Y 的系数}
+    procedure SetYCoefficentsFromPolynomial(XDegree: Integer; PY: TCnBigNumberPolynomial); overload;
+    {* 针对特定次数的 X，从一元的大整系数 Y 多项式中一次批量设置 Y 的系数}
+    procedure SetYCoefficents(XDegree: Integer; LowToHighYCoefficients: array of const);
+    {* 针对特定次数的 X，一次批量设置 Y 从低到高的系数}
+    procedure SetXCoefficents(YDegree: Integer; LowToHighXCoefficients: array of const);
+    {* 针对特定次数的 Y，一次批量设置 X 从低到高的系数}
+    procedure SetXYCoefficent(XDegree, YDegree: Integer; ACoefficient: TCnBigNumber);
+    {* 针对特定次数的 X 和 Y，设置其系数}
+
+    procedure CorrectTop;
+    {* 剔除高次的 0 系数}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将多项式转成字符串}
+    procedure SetString(const Poly: string);
+    {* 将多项式字符串转换为本对象的内容}
+    function IsZero: Boolean;
+    {* 返回是否为 0}
+    procedure SetZero;
+    {* 设为 0}
+    procedure SetOne;
+    {* 设为 1}
+    procedure Negate;
+    {* 所有系数求反}
+    function IsMonicX: Boolean;
+    {* 是否是关于 X 的首一多项式}
+    procedure Transpose;
+    {* 转置，也就是互换 X Y 元}
+
+    property MaxXDegree: Integer read GetMaxXDegree write SetMaxXDegree;
+    {* X 元的最高次数，0 开始，基于 Count 所以只能是 Integer，
+      设置后能保证新增的每个 XDegree，其对应的 SparseBigNumberList 都存在}
+    property MaxYDegree: Integer read GetMaxYDegree write SetMaxYDegree;
+    {* X 元的最高次数，0 开始，基于 Count 所以只能是 Integer}
+
+    property SafeValue[XDegree, YDegree: Integer]: TCnBigNumber read GetSafeValue write SetSafeValue;
+    {* 安全的读写系数方法，读不存在时返回 0。写不存在时自动扩展并内部复制大数值}
+    property ReadonlyValue[XDegree, YDegree: Integer]: TCnBigNumber read GetReadonlyValue;
+    {* 只读的根据参数的俩 Exponent 获取大数的方法，读时如内部查不到，会返回一固定的零值 TCnBigNumber 对象，切勿修改其值}
+  end;
+
+  TCnBigNumberBiPolynomialPool = class(TCnMathObjectPool)
+  {* 二元大整系数多项式池实现类，允许使用到二元大整系数多项式的地方自行创建二元大整系数多项式池}
+  protected
+    function CreateObject: TObject; override;
+  public
+    function Obtain: TCnBigNumberBiPolynomial; reintroduce;
+    procedure Recycle(Poly: TCnBigNumberBiPolynomial); reintroduce;
+  end;
+
+function BigNumberBiPolynomialNew: TCnBigNumberBiPolynomial;
+{* 创建一个二元大整系数多项式对象，等同于 TCnBigNumberBiPolynomial.Create}
+
+procedure BigNumberBiPolynomialFree(const P: TCnBigNumberBiPolynomial);
+{* 释放一个二元大整系数多项式对象，等同于 TCnBigNumberBiPolynomial.Free}
+
+function BigNumberBiPolynomialDuplicate(const P: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
+{* 从一个二元大整系数多项式对象克隆一个新对象}
+
+function BigNumberBiPolynomialCopy(const Dst: TCnBigNumberBiPolynomial;
+  const Src: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
+{* 复制一个二元大整系数多项式对象，成功返回 Dst}
+
+function BigNumberBiPolynomialCopyFromX(const Dst: TCnBigNumberBiPolynomial;
+  const SrcX: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
+{* 从一元 X 大整系数多项式中复制一个二元大整系数多项式对象，成功返回 Dst}
+
+function BigNumberBiPolynomialCopyFromY(const Dst: TCnBigNumberBiPolynomial;
+  const SrcY: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
+{* 从一元 Y 大整系数多项式中复制一个二元大整系数多项式对象，成功返回 Dst}
+
+function BigNumberBiPolynomialToString(const P: TCnBigNumberBiPolynomial;
+  const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): string;
+{* 将一个二元大整系数多项式对象转成字符串，未知数默认以 X 和 Y 表示}
+
+function BigNumberBiPolynomialSetString(const P: TCnBigNumberBiPolynomial;
+  const Str: string; const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): Boolean;
+{* 将字符串形式的二元大整系数多项式赋值给二元大整系数多项式对象，返回是否赋值成功}
+
+function BigNumberBiPolynomialIsZero(const P: TCnBigNumberBiPolynomial): Boolean;
+{* 判断一个二元大整系数多项式对象是否为 0}
+
+procedure BigNumberBiPolynomialSetZero(const P: TCnBigNumberBiPolynomial);
+{* 将一个二元大整系数多项式对象设为 0}
+
+procedure BigNumberBiPolynomialSetOne(const P: TCnBigNumberBiPolynomial);
+{* 将一个二元大整系数多项式对象设为 1}
+
+procedure BigNumberBiPolynomialNegate(const P: TCnBigNumberBiPolynomial);
+{* 将一个二元大整系数多项式对象所有系数求反}
+
+function BigNumberBiPolynomialIsMonicX(const P: TCnBigNumberBiPolynomial): Boolean;
+{* 判断一个二元大整系数多项式是否是关于 X 的首一多项式，也就是判断 X 最高次的系数是否为 1}
+
+procedure BigNumberBiPolynomialShiftLeftX(const P: TCnBigNumberBiPolynomial; N: Integer);
+{* 将一个二元大整系数多项式对象的 X 左移 N 次，也就是 X 各项指数都加 N}
+
+procedure BigNumberBiPolynomialShiftRightX(const P: TCnBigNumberBiPolynomial; N: Integer);
+{* 将一个二元大整系数多项式对象的 X 右移 N 次，也就是 X 各项指数都减 N，小于 0 的忽略了}
+
+function BigNumberBiPolynomialEqual(const A, B: TCnBigNumberBiPolynomial): Boolean;
+{* 判断俩二元大整系数多项式每项系数是否对应相等，是则返回 True}
+
+// ===================== 二元大整系数多项式普通运算 ============================
+
+// procedure BigNumberBiPolynomialAddWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+{* 将一个二元大整系数多项式对象的各个系数加上 N，但对于稀疏列表来说没啥意义，不实现}
+
+// procedure BigNumberBiPolynomialSubWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+{* 将一个二元大整系数多项式对象的各个系数减去 N，但对于稀疏列表来说没啥意义，不实现}
+
+procedure BigNumberBiPolynomialMulWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+{* 将一个二元大整系数多项式对象的各个系数都乘以 N}
+
+procedure BigNumberBiPolynomialDivWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+{* 将一个二元大整系数多项式对象的各个系数都除以 N，如不能整除则取整}
+
+procedure BigNumberBiPolynomialNonNegativeModWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+{* 将一个二元大整系数多项式对象的各个系数都对 N 非负求余，可以用于有限域化}
+
+procedure BigNumberBiPolynomialMulBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
+{* 将一个二元大整系数多项式对象的各个系数都乘以大数 N}
+
+procedure BigNumberBiPolynomialDivBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
+{* 将一个二元大整系数多项式对象的各个系数都除以大数 N，如不能整除则取整}
+
+procedure BigNumberBiPolynomialNonNegativeModBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
+{* 将一个二元大整系数多项式对象的各个系数都对 N 非负求余，可以用于有限域化}
+
+function BigNumberBiPolynomialAdd(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial): Boolean;
+{* 两个二元大整系数多项式对象相加，结果放至 Res 中，返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function BigNumberBiPolynomialSub(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial): Boolean;
+{* 两个二元大整系数多项式对象相减，结果放至 Res 中，返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function BigNumberBiPolynomialMul(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  P2: TCnBigNumberBiPolynomial): Boolean;
+{* 两个二元大整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function BigNumberBiPolynomialMulX(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PX: TCnBigNumberPolynomial): Boolean;
+{* 一个二元大整系数多项式对象与一个 X 的一元大整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，Res 可以是 P1}
+
+function BigNumberBiPolynomialMulY(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PY: TCnBigNumberPolynomial): Boolean;
+{* 一个二元大整系数多项式对象与一个 Y 的一元大整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，Res 可以是 P1}
+
+function BigNumberBiPolynomialDivX(const Res: TCnBigNumberBiPolynomial; const Remain: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial): Boolean;
+{* 两个二元大整系数多项式对象以 X 为主相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+   注意 Divisor 必须是 X 的首一多项式，否则会返回 False，表示无法支持，调用者务必判断返回值
+   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
+
+function BigNumberBiPolynomialModX(const Res: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial): Boolean;
+{* 两个二元大整系数多项式对象以 X 为主求余，余数放至 Res 中，返回求余是否成功，
+   注意 Divisor 必须是 X 的首一多项式，否则会返回 False，表示无法支持，调用者务必判断返回值
+   Res 可以是 P 或 Divisor，P 可以是 Divisor}
+
+function BigNumberBiPolynomialPower(const Res: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; Exponent: TCnBigNumber): Boolean;
+{* 计算二元大整系数多项式的 Exponent 次幂，不考虑系数溢出的问题，返回计算是否成功，Res 可以是 P}
+
+function BigNumberBiPolynomialEvaluateByY(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; YValue: TCnBigNumber): Boolean;
+{* 将一具体 Y 值代入二元大整系数多项式，得到只包含 X 的一元大整系数多项式}
+
+function BigNumberBiPolynomialEvaluateByX(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; XValue: TCnBigNumber): Boolean;
+{* 将一具体 X 值代入二元大整系数多项式，得到只包含 Y 的一元大整系数多项式}
+
+procedure BigNumberBiPolynomialTranspose(const Dst, Src: TCnBigNumberBiPolynomial);
+{* 将二元大整系数多项式的 X Y 元互换至另一个二元大整系数多项式对象中，Src 和 Dst 可以相同}
+
+procedure BigNumberBiPolynomialExtractYByX(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; XDegree: Integer);
+{* 将二元大整系数多项式的 X 次方系数提取出来放到一个 Y 的一元多项式里}
+
+procedure BigNumberBiPolynomialExtractXByY(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; YDegree: Integer);
+{* 将二元大整系数多项式的 X 次方系数提取出来放到一个 Y 的一元多项式里}
+
+// ================== 二元大整系数多项式式在有限域上的模运算 ===================
+
+function BigNumberBiPolynomialGaloisEqual(const A, B: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+{* 两个二元大整系数多项式在模 Prime 的条件下是否相等}
+
+procedure BigNumberBiPolynomialGaloisNegate(const P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber);
+{* 将一个二元大整系数多项式对象所有系数在模 Prime 的条件下求反}
+
+function BigNumberBiPolynomialGaloisAdd(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 两个二元大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
+   返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function BigNumberBiPolynomialGaloisSub(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 两个二元大整系数多项式对象在 Prime 次方阶有限域上相加，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且 Res 次数低于本原多项式
+   返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function BigNumberBiPolynomialGaloisMul(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 两个二元大整系数多项式对象在 Prime 次方阶有限域上相乘，结果放至 Res 中，
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
+   返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
+
+function BigNumberBiPolynomialGaloisMulX(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PX: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 一个二元大整系数多项式对象与一个 X 的一元大整系数多项式对象在 Prime 次方阶有限域上相乘，
+  结果放至 Res 中，返回相乘是否成功，Res 可以是 P1}
+
+function BigNumberBiPolynomialGaloisMulY(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PY: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 一个二元大整系数多项式对象与一个 Y 的一元大整系数多项式对象在 Prime 次方阶有限域上相乘，
+  结果放至 Res 中，返回相乘是否成功，Res 可以是 P1}
+
+function BigNumberBiPolynomialGaloisDivX(const Res: TCnBigNumberBiPolynomial;
+  const Remain: TCnBigNumberBiPolynomial; const P: TCnBigNumberBiPolynomial;
+  const Divisor: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 两个二元大整系数多项式对象在 Prime 次方阶有限域上相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
+   调用者需自行保证 Divisor 是 X 的首一多项式且 Prime 是素数且本原多项式 Primitive 为 X 的不可约多项式
+   Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor
+   注意：和一元多项式不同，只是系数求模了}
+
+function BigNumberBiPolynomialGaloisModX(const Res: TCnBigNumberBiPolynomial; const P: TCnBigNumberBiPolynomial;
+  const Divisor: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 两个二元大整系数多项式对象在 Prime 次方阶有限域上求余，余数放至 Res 中，返回求余是否成功，
+   调用者需自行保证 Divisor 是 X 的首一多项式且 Prime 是素数且本原多项式 Primitive 为 X 的不可约多项式
+   Res 可以是 P 或 Divisor，P 可以是 Divisor}
+
+function BigNumberBiPolynomialGaloisPower(const Res, P: TCnBigNumberBiPolynomial;
+  Exponent: TCnBigNumber; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial = nil): Boolean;
+{* 计算二元大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂
+   调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
+   返回计算是否成功，Res 可以是 P}
+
+function BigNumberBiPolynomialGaloisEvaluateByY(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; YValue, Prime: TCnBigNumber): Boolean;
+{* 将一具体 Y 值代入二元大整系数多项式，得到只包含 X 的一元大整系数多项式，系数针对 Prime 取模}
+
+function BigNumberBiPolynomialGaloisEvaluateByX(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; XValue, Prime: TCnBigNumber): Boolean;
+{* 将一具体 X 值代入二元大整系数多项式，得到只包含 Y 的一元大整系数多项式，系数针对 Prime 取模}
+
+procedure BigNumberBiPolynomialGaloisAddWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的二元大整系数多项式的各项系数加上 N 再 mod Prime，注意不是常系数}
+
+procedure BigNumberBiPolynomialGaloisSubWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的二元大整系数多项式的各项系数减去 N 再 mod Prime，注意不是常系数}
+
+procedure BigNumberBiPolynomialGaloisMulWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的二元大整系数多项式各项系数乘以 N 再 mod Prime}
+
+procedure BigNumberBiPolynomialGaloisDivWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的二元大整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
@@ -1388,6 +1695,7 @@ var
   FLocalBigNumberRationalPolynomialPool: TCnBigNumberRationalPolynomialPool = nil;
   FLocalBigNumberPool: TCnBigNumberPool = nil;
   FLocalInt64BiPolynomialPool: TCnInt64BiPolynomialPool = nil;
+  FLocalBigNumberBiPolynomialPool: TCnBigNumberBiPolynomialPool = nil;
 
 procedure CheckDegree(Degree: Integer);
 begin
@@ -1458,6 +1766,7 @@ begin
   end;
 end;
 
+// 封装的从 TVarRec 也就是 array of const 元素里返回 Int64 的函数
 function ExtractInt64FromArrayConstElement(Element: TVarRec): Int64;
 begin
   case Element.VType of
@@ -1485,6 +1794,40 @@ begin
   end;
 end;
 
+// 封装的从 TVarRec 也就是 array of const 元素里返回大数字符串的函数
+function ExtractBigNumberFromArrayConstElement(Element: TVarRec): string;
+begin
+  Result := '';
+  case Element.VType of
+  vtInteger:
+    begin
+      Result := IntToStr(Element.VInteger);
+    end;
+  vtInt64:
+    begin
+      Result := IntToStr(Element.VInt64^);
+    end;
+  vtBoolean:
+    begin
+      if Element.VBoolean then
+        Result := '1'
+      else
+        Result := '0';
+    end;
+  vtString:
+    begin
+      Result := Element.VString^;
+    end;
+  vtObject:
+    begin
+      // 接受 TCnBigNumber 并从中复制值
+      if Element.VObject is TCnBigNumber then
+        Result := (Element.VObject as TCnBigNumber).ToDec;
+    end;
+  else
+    raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + Element.VString^]);
+  end;
+end;
 
 function Exponent128IsZero(Exponent, ExponentHi: Int64): Boolean;
 begin
@@ -4866,7 +5209,7 @@ begin
     Exit;
   end
   else if Exponent.IsNegative then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent.ToDec]);
 
   T := FLocalBigNumberPolynomialPool.Obtain;
   BigNumberPolynomialCopy(T, P);
@@ -6747,7 +7090,7 @@ begin
     YL := TCnInt64List(FXs[I]);
     Compact := CompactYDegree(YL);
 
-    if not Compact then     // 本次压缩非 0 
+    if not Compact then     // 本次压缩非 0
       MeetNonEmpty := True;
 
     if Compact and not MeetNonEmpty then // 最高的一路下来压缩出来全 0 的要删掉
@@ -8068,6 +8411,7 @@ var
   I: Integer;
 begin
   CheckDegree(XDegree);
+
   if XDegree > MaxXDegree then   // 确保 X 次项的 List 存在
     MaxXDegree := XDegree;
 
@@ -8110,6 +8454,1086 @@ begin
   inherited Recycle(Poly);
 end;
 
+// ========================== 二元大整系数多项式 ===============================
+
+function BigNumberBiPolynomialNew: TCnBigNumberBiPolynomial;
+begin
+  Result := TCnBigNumberBiPolynomial.Create;
+end;
+
+procedure BigNumberBiPolynomialFree(const P: TCnBigNumberBiPolynomial);
+begin
+  P.Free;
+end;
+
+function BigNumberBiPolynomialDuplicate(const P: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
+begin
+  if P = nil then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  Result := BigNumberBiPolynomialNew;
+  if Result <> nil then
+    BigNumberBiPolynomialCopy(Result, P);
+end;
+
+function BigNumberBiPolynomialCopy(const Dst: TCnBigNumberBiPolynomial;
+  const Src: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
+var
+  I: Integer;
+begin
+  Result := Dst;
+  if Src <> Dst then
+  begin
+    if Src.MaxXDegree >= 0 then
+    begin
+      Dst.MaxXDegree := Src.MaxXDegree;
+      for I := 0 to Src.MaxXDegree do
+        Src.YFactorsList[I].AssignTo(Dst.YFactorsList[I]);
+    end
+    else
+      Dst.SetZero; // 如果 Src 未初始化，则 Dst 也清零
+  end;
+end;
+
+function BigNumberBiPolynomialCopyFromX(const Dst: TCnBigNumberBiPolynomial;
+  const SrcX: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
+var
+  I: Integer;
+begin
+  Result := Dst;
+  Dst.Clear;
+
+  Dst.MaxXDegree := SrcX.MaxDegree;
+  for I := 0 to SrcX.MaxDegree do
+    Dst.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值
+end;
+
+function BigNumberBiPolynomialCopyFromY(const Dst: TCnBigNumberBiPolynomial;
+  const SrcY: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
+var
+  I: Integer;
+begin
+  Result := Dst;
+  Dst.Clear;
+
+  for I := 0 to SrcY.MaxDegree do
+    Dst.YFactorsList[0].AddPair(I, SrcY[I]); // 给最低一个 YList 的所有元素设值
+end;
+
+function BigNumberBiPolynomialToString(const P: TCnBigNumberBiPolynomial;
+  const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): string;
+var
+  I, J: Integer;
+  YL: TCnSparseBigNumberList;
+begin
+  Result := '';
+  for I := P.FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnSparseBigNumberList(P.FXs[I]);
+    for J := YL.Count - 1 downto 0 do
+    begin
+      if VarItemFactor(Result, (YL[J].Exponent = 0) and (I = 0), YL[J].Value.ToDec) then
+        Result := Result + VarPower2(Var1Name, Var2Name, I, YL[J].Exponent);
+    end;
+  end;
+
+  if Result = '' then
+    Result := '0';
+end;
+
+function BigNumberBiPolynomialSetString(const P: TCnBigNumberBiPolynomial;
+  const Str: string; const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): Boolean;
+var
+  C, Ptr: PChar;
+  Num, ES: string;
+  E1, E2: Integer;
+  IsNeg: Boolean;
+begin
+  // 二元多项式字符串解析有点难
+  Result := False;
+  if (P = nil) or (Str = '') then
+    Exit;
+
+  P.SetZero;
+  C := @Str[1];
+
+  while C^ <> #0 do
+  begin
+    if not (C^ in ['+', '-', '0'..'9']) and (C^ <> Var1Name) and (C^ <> Var2Name) then
+    begin
+      Inc(C);
+      Continue;
+    end;
+
+    IsNeg := False;
+    if C^ = '+' then
+      Inc(C)
+    else if C^ = '-' then
+    begin
+      IsNeg := True;
+      Inc(C);
+    end;
+
+    Num := '1';
+    if C^ in ['0'..'9'] then // 找系数
+    begin
+      Ptr := C;
+      while C^ in ['0'..'9'] do
+        Inc(C);
+
+      // Ptr 到 C 之间是数字，代表一个系数
+      SetString(Num, Ptr, C - Ptr);
+      if IsNeg then
+        Num := '-' + Num;
+    end
+    else if IsNeg then
+      Num := '-' + Num;
+
+    E1 := 0;
+    if C^ = Var1Name then
+    begin
+      E1 := 1;
+      Inc(C);
+      if C^ = '^' then // 找指数
+      begin
+        Inc(C);
+        if C^ in ['0'..'9'] then
+        begin
+          Ptr := C;
+          while C^ in ['0'..'9'] do
+            Inc(C);
+
+          // Ptr 到 C 之间是数字，代表一个指数
+          SetString(ES, Ptr, C - Ptr);
+          E1 := StrToInt64(ES);
+        end;
+      end;
+    end;
+
+    E2 := 0;
+    if C^ = Var2Name then
+    begin
+      E2 := 1;
+      Inc(C);
+      if C^ = '^' then // 找指数
+      begin
+        Inc(C);
+        if C^ in ['0'..'9'] then
+        begin
+          Ptr := C;
+          while C^ in ['0'..'9'] do
+            Inc(C);
+
+          // Ptr 到 C 之间是数字，代表一个指数
+          SetString(ES, Ptr, C - Ptr);
+          E2 := StrToInt64(ES);
+        end;
+      end;
+    end;
+
+    // 俩指数找完了，凑
+    P.SafeValue[E1, E2].SetDec(Num);
+  end;
+
+  Result := True;
+end;
+
+function BigNumberBiPolynomialIsZero(const P: TCnBigNumberBiPolynomial): Boolean;
+begin
+  Result := (P.FXs.Count = 1) and
+    ((TCnSparseBigNumberList(P.FXs[0]).Count = 0) or
+   (TCnSparseBigNumberList(P.FXs[0]).Count = 1) and (TCnSparseBigNumberList(P.FXs[0])[0].Exponent = 0) and ((TCnSparseBigNumberList(P.FXs[0])[0].Value.IsZero)));
+end;
+
+procedure BigNumberBiPolynomialSetZero(const P: TCnBigNumberBiPolynomial);
+var
+  I: Integer;
+begin
+  if P.FXs.Count <= 0 then
+    P.FXs.Add(TCnSparseBigNumberList.Create)
+  else
+    for I := P.FXs.Count - 1 downto 1 do
+    begin
+      P.FXs[I].Free;
+      P.FXs.Delete(I);
+    end;
+
+  if P.YFactorsList[0].Count <= 0 then
+    P.YFactorsList[0].Add(TCnExponentBigNumberPair.Create)
+  else
+  begin
+    for I := P.YFactorsList[0].Count - 1 downto 1 do
+      P.YFactorsList[0].Delete(I);
+
+    P.YFactorsList[0][0].Exponent := 0;
+    P.YFactorsList[0][0].Value.SetZero;
+  end;
+end;
+
+procedure BigNumberBiPolynomialSetOne(const P: TCnBigNumberBiPolynomial);
+var
+  I: Integer;
+begin
+  if P.FXs.Count <= 0 then
+    P.FXs.Add(TCnSparseBigNumberList.Create)
+  else
+    for I := P.FXs.Count - 1 downto 1 do
+    begin
+      P.FXs[I].Free;
+      P.FXs.Delete(I);
+    end;
+
+  if P.YFactorsList[0].Count <= 0 then
+    P.YFactorsList[0].Add(TCnExponentBigNumberPair.Create)
+  else
+  begin
+    for I := P.YFactorsList[0].Count - 1 downto 1 do
+      P.YFactorsList[0].Delete(I);
+
+    P.YFactorsList[0][0].Exponent := 0;
+    P.YFactorsList[0][0].Value.SetOne;
+  end;
+end;
+
+procedure BigNumberBiPolynomialNegate(const P: TCnBigNumberBiPolynomial);
+var
+  I, J: Integer;
+  YL: TCnSparseBigNumberList;
+begin
+  for I := P.FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnSparseBigNumberList(P.FXs[I]);
+    for J := YL.Count - 1 downto 0 do
+      YL[I].Value.Negate;
+  end;
+end;
+
+function BigNumberBiPolynomialIsMonicX(const P: TCnBigNumberBiPolynomial): Boolean;
+begin
+  Result := False;
+  if P.MaxXDegree >= 0 then
+    Result := (P.YFactorsList[P.MaxXDegree].Count = 1) and (P.YFactorsList[P.MaxXDegree][0].Exponent = 0) and (P.YFactorsList[P.MaxXDegree][0].Value.IsOne);
+end;
+
+procedure BigNumberBiPolynomialShiftLeftX(const P: TCnBigNumberBiPolynomial; N: Integer);
+var
+  I: Integer;
+begin
+  if N = 0 then
+    Exit
+  else if N < 0 then
+    BigNumberBiPolynomialShiftRightX(P, -N)
+  else
+    for I := 0 to N - 1 do
+      P.FXs.Insert(0, TCnSparseBigNumberList.Create);
+end;
+
+procedure BigNumberBiPolynomialShiftRightX(const P: TCnBigNumberBiPolynomial; N: Integer);
+var
+  I: Integer;
+begin
+  if N = 0 then
+    Exit
+  else if N < 0 then
+    BigNumberBiPolynomialShiftLeftX(P, -N)
+  else
+  begin
+    if N > P.FXs.Count then
+      N := P.FXs.Count;
+
+    for I := 0 to N - 1 do
+    begin
+      P.FXs[0].Free;
+      P.FXs.Delete(0);
+    end;
+  end;
+end;
+
+function BigNumberBiPolynomialEqual(const A, B: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, J: Integer;
+begin
+  Result := False;
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if (A = nil) or (B = nil) then
+    Exit;
+
+  if A.MaxXDegree <> B.MaxXDegree then
+    Exit;
+
+  for I := A.FXs.Count - 1 downto 0 do
+  begin
+    if A.YFactorsList[I].Count <> B.YFactorsList[I].Count then
+      Exit;
+
+    for J := A.YFactorsList[I].Count - 1 downto 0 do
+      if (A.YFactorsList[I][J].Exponent <> B.YFactorsList[I][J].Exponent) or
+        not BigNumberEqual(A.YFactorsList[I][J].Value, B.YFactorsList[I][J].Value) then
+        Exit;
+  end;
+  Result := True;
+end;
+
+// ===================== 二元大整系数多项式普通运算 ============================
+
+procedure BigNumberBiPolynomialMulWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+var
+  I, J: Integer;
+begin
+  if N = 0 then
+    P.SetZero
+  else if N <> 1 then
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        P.YFactorsList[I][J].Value.MulWord(N);
+end;
+
+procedure BigNumberBiPolynomialDivWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+var
+  I, J: Integer;
+begin
+  if N = 0 then
+    raise EDivByZero.Create(SDivByZero)
+  else if N <> 1 then
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        P.YFactorsList[I][J].Value.DivWord(N);
+end;
+
+procedure BigNumberBiPolynomialNonNegativeModWord(const P: TCnBigNumberBiPolynomial; N: Int64);
+var
+  I, J: Integer;
+begin
+  if N = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  for I := P.FXs.Count - 1 downto 0 do
+    for J := P.YFactorsList[I].Count - 1 downto 0 do
+      P.YFactorsList[I][J].Value.ModWord(N); // 不是 NonNegativeMod 先这样
+end;
+
+procedure BigNumberBiPolynomialMulBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
+var
+  I, J: Integer;
+begin
+  if N.IsZero then
+    P.SetZero
+  else if not N.IsOne then
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        BigNumberMul(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
+end;
+
+procedure BigNumberBiPolynomialDivBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
+var
+  I, J: Integer;
+begin
+  if N.IsZero then
+    raise EDivByZero.Create(SDivByZero)
+  else if not N.IsOne then
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        BigNumberDiv(P.YFactorsList[I][J].Value, nil, P.YFactorsList[I][J].Value, N);
+end;
+
+procedure BigNumberBiPolynomialNonNegativeModBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
+var
+  I, J: Integer;
+begin
+  if N.IsZero then
+    raise EDivByZero.Create(SDivByZero);
+
+  for I := P.FXs.Count - 1 downto 0 do
+    for J := P.YFactorsList[I].Count - 1 downto 0 do
+      BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
+end;
+
+function BigNumberBiPolynomialAdd(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, M: Integer;
+  S1, S2: TCnSparseBigNumberList;
+begin
+  M := Max(P1.MaxXDegree, P2.MaxXDegree);
+  Res.SetMaxXDegree(M);
+
+  for I := M downto 0 do
+  begin
+    if I >= P1.FXs.Count then
+      S1 := nil
+    else
+      S1 := P1.YFactorsList[I];
+
+    if I >= P2.FXs.Count then
+      S2 := nil
+    else
+      S2 := P2.YFactorsList[I];
+
+    // 上面设置了 MaxXDegree 确保 Res.YFactorsList[I] 存在，本循环确保覆盖每一个 Res.YFactorsList[I]
+    SparseBigNumberListMerge(Res.YFactorsList[I], S1, S2, True);
+  end;
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function BigNumberBiPolynomialSub(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, M: Integer;
+  S1, S2: TCnSparseBigNumberList;
+begin
+  M := Max(P1.MaxXDegree, P2.MaxXDegree);
+  Res.SetMaxXDegree(M);
+
+  for I := M downto 0 do
+  begin
+    if I >= P1.FXs.Count then
+      S1 := nil
+    else
+      S1 := P1.YFactorsList[I];
+
+    if I >= P2.FXs.Count then
+      S2 := nil
+    else
+      S2 := P2.YFactorsList[I];
+
+    // 上面设置了 MaxXDegree 确保 Res.YFactorsList[I] 存在，本循环确保覆盖每一个 Res.YFactorsList[I]
+    SparseBigNumberListMerge(Res.YFactorsList[I], S1, S2, False);
+  end;
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function BigNumberBiPolynomialMul(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  P2: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, J, K, L: Integer;
+  R: TCnBigNumberBiPolynomial;
+  T: TCnBigNumber;
+  Pair1, Pair2: TCnExponentBigNumberPair;
+begin
+  if P1.IsZero or P2.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  if (Res = P1) or (Res = P2) then
+    R := FLocalBigNumberBiPolynomialPool.Obtain
+  else
+    R := Res;
+
+  R.Clear;
+  R.MaxXDegree := P1.MaxXDegree + P2.MaxXDegree;
+  R.MaxYDegree := P1.MaxYDegree + P2.MaxYDegree;
+
+  T := FLocalBigNumberPool.Obtain;
+  try
+    for I := P1.FXs.Count - 1 downto 0 do
+    begin
+      for J := P1.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        Pair1 := P1.YFactorsList[I][J];
+        // 拿到 P1.SafeValue[I, J]，要遍历相乘 P2 的每一个
+        for K := P2.FXs.Count - 1 downto 0 do
+        begin
+          for L := P2.YFactorsList[K].Count - 1 downto 0 do
+          begin
+            Pair2 := P2.YFactorsList[K][L];
+            BigNumberMul(T, Pair1.Value, Pair2.Value);
+            BigNumberAdd(R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], T)
+          end;
+        end;
+      end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+
+  R.CorrectTop;
+  if (Res = P1) or (Res = P2) then
+  begin
+    BigNumberBiPolynomialCopy(Res, R);
+    FLocalBigNumberBiPolynomialPool.Recycle(R);
+  end;
+  Result := True;
+end;
+
+function BigNumberBiPolynomialMulX(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PX: TCnBigNumberPolynomial): Boolean;
+var
+  P: TCnBigNumberBiPolynomial;
+begin
+  P := FLocalBigNumberBiPolynomialPool.Obtain;
+  try
+    BigNumberBiPolynomialCopyFromX(P, PX);
+    Result := BigNumberBiPolynomialMul(Res, P1, P);
+  finally
+    FLocalBigNumberBiPolynomialPool.Recycle(P);
+  end;
+end;
+
+function BigNumberBiPolynomialMulY(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PY: TCnBigNumberPolynomial): Boolean;
+var
+  P: TCnBigNumberBiPolynomial;
+begin
+  P := FLocalBigNumberBiPolynomialPool.Obtain;
+  try
+    BigNumberBiPolynomialCopyFromY(P, PY);
+    Result := BigNumberBiPolynomialMul(Res, P1, P);
+  finally
+    FLocalBigNumberBiPolynomialPool.Recycle(P);
+  end;
+end;
+
+function BigNumberBiPolynomialDivX(const Res: TCnBigNumberBiPolynomial; const Remain: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialModX(const Res: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial): Boolean;
+begin
+  Result := BigNumberBiPolynomialDivX(nil, Res, P, Divisor);
+end;
+
+function BigNumberBiPolynomialPower(const Res: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; Exponent: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumberBiPolynomial;
+  E: TCnBigNumber;
+begin
+  if Exponent.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsOne then
+  begin
+    if Res <> P then
+      BigNumberBiPolynomialCopy(Res, P);
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsNegative then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent.ToDec]);
+
+  T := FLocalBigNumberBiPolynomialPool.Obtain;
+  BigNumberBiPolynomialCopy(T, P);
+  E := FLocalBigNumberPool.Obtain;
+  BigNumberCopy(E, Exponent);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while not E.IsNegative and not E.IsZero do
+    begin
+      if BigNumberIsBitSet(E, 0) then
+        BigNumberBiPolynomialMul(Res, Res, T);
+
+      BigNumberShiftRightOne(E, E);
+      BigNumberBiPolynomialMul(T, T, T);
+    end;
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(E);
+    FLocalBigNumberBiPolynomialPool.Recycle(T);
+  end;
+end;
+
+function BigNumberBiPolynomialEvaluateByY(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; YValue: TCnBigNumber): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialEvaluateByX(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; XValue: TCnBigNumber): Boolean;
+begin
+
+end;
+
+procedure BigNumberBiPolynomialTranspose(const Dst, Src: TCnBigNumberBiPolynomial);
+var
+  I, J: Integer;
+  T: TCnBigNumberBiPolynomial;
+  Pair: TCnExponentBigNumberPair;
+begin
+  if Src = Dst then
+    T := FLocalBigNumberBiPolynomialPool.Obtain
+  else
+    T := Dst;
+
+  // 将 Src 转置塞入 T 中
+  T.SetZero;
+  T.MaxXDegree := Src.MaxYDegree;
+  T.MaxYDegree := Src.MaxXDegree;
+
+  for I := Src.FXs.Count - 1 downto 0 do
+  begin
+    for J := Src.YFactorsList[I].Count - 1 downto 0 do
+    begin
+      Pair := Src.YFactorsList[I][J];
+      T.SafeValue[Pair.Exponent, I] := Pair.Value; // 内部复制
+    end;
+  end;
+
+  if Src = Dst then
+  begin
+    BigNumberBiPolynomialCopy(Dst, T);
+    FLocalBigNumberBiPolynomialPool.Recycle(T);
+  end;
+end;
+
+procedure BigNumberBiPolynomialExtractYByX(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; XDegree: Integer);
+begin
+
+end;
+
+procedure BigNumberBiPolynomialExtractXByY(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; YDegree: Integer);
+begin
+
+end;
+
+// ================== 二元大整系数多项式式在有限域上的模运算 ===================
+
+function BigNumberBiPolynomialGaloisEqual(const A, B: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+begin
+
+end;
+
+procedure BigNumberBiPolynomialGaloisNegate(const P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber);
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisAdd(const Res: TCnBigNumberBiPolynomial;
+  const P1: TCnBigNumberBiPolynomial; const P2: TCnBigNumberBiPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisSub(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisMul(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
+  const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisMulX(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PX: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisMulY(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
+  PY: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisDivX(const Res: TCnBigNumberBiPolynomial;
+  const Remain: TCnBigNumberBiPolynomial; const P: TCnBigNumberBiPolynomial;
+  const Divisor: TCnBigNumberBiPolynomial; Prime: TCnBigNumber;
+  Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisModX(const Res: TCnBigNumberBiPolynomial;
+  const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial;
+  Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisPower(const Res, P: TCnBigNumberBiPolynomial;
+  Exponent: TCnBigNumber; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisEvaluateByY(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; YValue, Prime: TCnBigNumber): Boolean;
+begin
+
+end;
+
+function BigNumberBiPolynomialGaloisEvaluateByX(const Res: TCnBigNumberPolynomial;
+  const P: TCnBigNumberBiPolynomial; XValue, Prime: TCnBigNumber): Boolean;
+begin
+
+end;
+
+procedure BigNumberBiPolynomialGaloisAddWord(const P: TCnBigNumberBiPolynomial;
+  N: Int64; Prime: TCnBigNumber);
+begin
+
+end;
+
+procedure BigNumberBiPolynomialGaloisSubWord(const P: TCnBigNumberBiPolynomial;
+  N: Int64; Prime: TCnBigNumber);
+begin
+
+end;
+
+procedure BigNumberBiPolynomialGaloisMulWord(const P: TCnBigNumberBiPolynomial;
+  N: Int64; Prime: TCnBigNumber);
+begin
+
+end;
+
+procedure BigNumberBiPolynomialGaloisDivWord(const P: TCnBigNumberBiPolynomial;
+  N: Int64; Prime: TCnBigNumber);
+begin
+
+end;
+
+{ TCnBigNumberBiPolynomial }
+
+procedure TCnBigNumberBiPolynomial.Clear;
+var
+  I: Integer;
+begin
+  if FXs.Count <= 0 then
+    FXs.Add(TCnSparseBigNumberList.Create)
+  else
+    for I := FXs.Count - 1 downto 1 do
+    begin
+      FXs[I].Free;
+      FXs.Delete(I);
+    end;
+
+  YFactorsList[0].Clear;
+end;
+
+function TCnBigNumberBiPolynomial.CompactYDegree(
+  YList: TCnSparseBigNumberList): Boolean;
+var
+  I: Integer;
+begin
+  YList.Compact;
+  Result := YList.Count = 0;
+end;
+
+procedure TCnBigNumberBiPolynomial.CorrectTop;
+var
+  I: Integer;
+  Compact, MeetNonEmpty: Boolean;
+  YL: TCnSparseBigNumberList;
+begin
+  MeetNonEmpty := False;
+  for I := FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnSparseBigNumberList(FXs[I]);
+    Compact := CompactYDegree(YL);
+
+    if not Compact then     // 本次压缩非 0
+      MeetNonEmpty := True;
+
+    if Compact and not MeetNonEmpty then // 最高的一路下来压缩出来全 0 的要删掉
+    begin
+      FXs.Delete(I);
+      YL.Free;
+    end;
+  end;
+end;
+
+constructor TCnBigNumberBiPolynomial.Create(XDegree, YDegree: Integer);
+begin
+  FXs := TObjectList.Create(False);
+  EnsureDegrees(XDegree, YDegree);
+end;
+
+destructor TCnBigNumberBiPolynomial.Destroy;
+var
+  I: Integer;
+begin
+  for I := FXs.Count - 1 downto 0 do
+    FXs[I].Free;
+  FXs.Free;
+  inherited;
+end;
+
+procedure TCnBigNumberBiPolynomial.EnsureDegrees(XDegree,
+  YDegree: Integer);
+var
+  I, OldCount: Integer;
+begin
+  CheckDegree(XDegree);
+  CheckDegree(YDegree);
+
+  OldCount := FXs.Count;
+  if (XDegree + 1) > FXs.Count then
+  begin
+    for I := FXs.Count + 1 to XDegree + 1 do
+    begin
+      FXs.Add(TCnSparseBigNumberList.Create);
+      // TCnSparseBigNumberList(FXs[FXs.Count - 1]).Count := YDegree + 1;
+    end;
+  end;
+
+//  for I:= OldCount - 1 downto 0 do
+//    if TCnSparseBigNumberList(FXs[I]).Count < YDegree + 1 then
+//      TCnSparseBigNumberList(FXs[I]).Count := YDegree + 1;
+end;
+
+function TCnBigNumberBiPolynomial.GetMaxXDegree: Integer;
+begin
+  Result := FXs.Count - 1;
+end;
+
+function TCnBigNumberBiPolynomial.GetMaxYDegree: Integer;
+var
+  I: Integer;
+  Pair: TCnExponentBigNumberPair;
+begin
+  Result := 0;
+  for I := FXs.Count - 1 downto 0 do
+  begin
+    if YFactorsList[I].Count > 0 then
+    begin
+      Pair := YFactorsList[I].Top;
+      if Pair <> nil then
+      begin
+        if Pair.Exponent > Result then
+        Result := Pair.Exponent;
+      end;
+    end;
+  end;
+end;
+
+function TCnBigNumberBiPolynomial.GetReadonlyValue(XDegree,
+  YDegree: Integer): TCnBigNumber;
+var
+  YL: TCnSparseBigNumberList;
+begin
+  Result := CnBigNumberZero;
+  if (XDegree >= 0) and (XDegree < FXs.Count) then
+  begin
+    YL := TCnSparseBigNumberList(FXs[XDegree]);
+    if (YDegree >= 0) and (YDegree < YL.Count) then
+      Result := YL.ReadonlyValue[YDegree];
+  end;
+end;
+
+function TCnBigNumberBiPolynomial.GetSafeValue(XDegree,
+  YDegree: Integer): TCnBigNumber;
+var
+  YL: TCnSparseBigNumberList;
+begin
+  Result := nil;
+  if XDegree > MaxXDegree then  // 确保 XDegree 存在
+    MaxXDegree := XDegree;
+
+  YL := TCnSparseBigNumberList(FXs[XDegree]);
+  Result := YL.SafeValue[YDegree];
+end;
+
+function TCnBigNumberBiPolynomial.GetYFactorsList(
+  Index: Integer): TCnSparseBigNumberList;
+begin
+  if (Index < 0) and (Index >= FXs.Count) then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Index]);
+
+  Result := TCnSparseBigNumberList(FXs[Index]);
+end;
+
+function TCnBigNumberBiPolynomial.IsMonicX: Boolean;
+begin
+  Result := BigNumberBiPolynomialIsMonicX(Self);
+end;
+
+function TCnBigNumberBiPolynomial.IsZero: Boolean;
+begin
+  Result := BigNumberBiPolynomialIsZero(Self);
+end;
+
+procedure TCnBigNumberBiPolynomial.Negate;
+begin
+  BignumberBiPolynomialNegate(Self);
+end;
+
+procedure TCnBigNumberBiPolynomial.SetMaxXDegree(const Value: Integer);
+var
+  I: Integer;
+begin
+  CheckDegree(Value);
+
+  if Value + 1 > FXs.Count then
+  begin
+    for I := FXs.Count + 1 to Value + 1 do
+      FXs.Add(TCnSparseBigNumberList.Create);
+  end
+  else if Value + 1 < FXs.Count then
+  begin
+    for I := FXs.Count - 1 downto Value + 1 do
+    begin
+      FXs[I].Free;
+      FXs.Delete(I);
+    end;
+  end;
+end;
+
+procedure TCnBigNumberBiPolynomial.SetMaxYDegree(const Value: Integer);
+begin
+  // Not Needed
+end;
+
+procedure TCnBigNumberBiPolynomial.SetOne;
+begin
+  BigNumberBiPolynomialSetOne(Self);
+end;
+
+procedure TCnBigNumberBiPolynomial.SetSafeValue(XDegree, YDegree: Integer;
+  const Value: TCnBigNumber);
+var
+  YL: TCnSparseBigNumberList;
+begin
+  if XDegree > MaxXDegree then  // 确保 XDegree 存在
+    MaxXDegree := XDegree;
+
+  YL := TCnSparseBigNumberList(FXs[XDegree]);
+  YL.SafeValue[YDegree] := Value; // 内部 Copy 大数
+end;
+
+procedure TCnBigNumberBiPolynomial.SetString(const Poly: string);
+begin
+  BigNumberBiPolynomialSetString(Self, Poly);
+end;
+
+procedure TCnBigNumberBiPolynomial.SetXCoefficents(YDegree: Integer;
+  LowToHighXCoefficients: array of const);
+var
+  I: Integer;
+  S: string;
+begin
+  CheckDegree(YDegree);
+
+  MaxXDegree := High(LowToHighXCoefficients);
+
+  if YDegree > MaxYDegree then
+    MaxYDegree := YDegree;
+
+  for I := Low(LowToHighXCoefficients) to High(LowToHighXCoefficients) do
+  begin
+    S := ExtractBigNumberFromArrayConstElement(LowToHighXCoefficients[I]);
+    if S <> '' then
+      SafeValue[I, YDegree].SetDec(ExtractBigNumberFromArrayConstElement(LowToHighXCoefficients[I]))
+  end;
+end;
+
+procedure TCnBigNumberBiPolynomial.SetXYCoefficent(XDegree,
+  YDegree: Integer; ACoefficient: TCnBigNumber);
+begin
+  CheckDegree(XDegree);
+  CheckDegree(YDegree);
+
+  if MaxXDegree < XDegree then
+    MaxXDegree := XDegree;
+
+  YFactorsList[XDegree].SafeValue[YDegree] := ACoefficient; // 内部是 BigNumberCopy 值
+end;
+
+procedure TCnBigNumberBiPolynomial.SetYCoefficents(XDegree: Integer;
+  LowToHighYCoefficients: array of const);
+var
+  I: Integer;
+begin
+  CheckDegree(XDegree);
+
+  if XDegree > MaxXDegree then
+    MaxXDegree := XDegree;
+
+  YFactorsList[XDegree].Clear;
+  for I := Low(LowToHighYCoefficients) to High(LowToHighYCoefficients) do
+    YFactorsList[XDegree].SafeValue[I].SetDec(ExtractBigNumberFromArrayConstElement(LowToHighYCoefficients[I]));
+end;
+
+procedure TCnBigNumberBiPolynomial.SetYCoefficentsFromPolynomial(
+  XDegree: Integer; PY: TCnInt64Polynomial);
+var
+  I: Integer;
+begin
+  CheckDegree(XDegree);
+
+  if XDegree > MaxXDegree then   // 确保 X 次项的 List 存在
+    MaxXDegree := XDegree;
+
+  YFactorsList[XDegree].Clear;
+  for I := 0 to PY.MaxDegree do
+    YFactorsList[XDegree].SafeValue[I].SetInt64(PY[I]);
+end;
+
+procedure TCnBigNumberBiPolynomial.SetYCoefficentsFromPolynomial(
+  XDegree: Integer; PY: TCnBigNumberPolynomial);
+var
+  I: Integer;
+begin
+  CheckDegree(XDegree);
+
+  if XDegree > MaxXDegree then   // 确保 X 次项的 List 存在
+    MaxXDegree := XDegree;
+
+  YFactorsList[XDegree].Clear;
+  for I := 0 to PY.MaxDegree do
+    YFactorsList[XDegree].SafeValue[I] := PY[I];
+end;
+
+procedure TCnBigNumberBiPolynomial.SetZero;
+begin
+  BigNumberBiPolynomialSetZero(Self);
+end;
+
+function TCnBigNumberBiPolynomial.ToString: string;
+begin
+  Result := BigNumberBiPolynomialToString(Self);
+end;
+
+procedure TCnBigNumberBiPolynomial.Transpose;
+begin
+  BigNumberBiPolynomialTranspose(Self, Self);
+end;
+
+{ TCnBigNumberBiPolynomialPool }
+
+function TCnBigNumberBiPolynomialPool.CreateObject: TObject;
+begin
+  Result := TCnBigNumberBiPolynomial.Create;
+end;
+
+function TCnBigNumberBiPolynomialPool.Obtain: TCnBigNumberBiPolynomial;
+begin
+  Result := TCnBigNumberBiPolynomial(inherited Obtain);
+  Result.SetZero;
+end;
+
+procedure TCnBigNumberBiPolynomialPool.Recycle(
+  Poly: TCnBigNumberBiPolynomial);
+begin
+  inherited Recycle(Poly);
+end;
+
 initialization
   FLocalInt64PolynomialPool := TCnInt64PolynomialPool.Create;
   FLocalInt64RationalPolynomialPool := TCnInt64RationalPolynomialPool.Create;
@@ -8117,6 +9541,7 @@ initialization
   FLocalBigNumberRationalPolynomialPool := TCnBigNumberRationalPolynomialPool.Create;
   FLocalBigNumberPool := TCnBigNumberPool.Create;
   FLocalInt64BiPolynomialPool := TCnInt64BiPolynomialPool.Create;
+  FLocalBigNumberBiPolynomialPool := TCnBigNumberBiPolynomialPool.Create;
 
   CnInt64PolynomialOne := TCnInt64Polynomial.Create([1]);
   CnInt64PolynomialZero := TCnInt64Polynomial.Create([0]);
@@ -8133,6 +9558,7 @@ finalization
   CnInt64PolynomialOne.Free;
   CnInt64PolynomialZero.Free;
 
+  FLocalBigNumberBiPolynomialPool.Free;
   FLocalInt64BiPolynomialPool.Free;
   FLocalInt64PolynomialPool.Free;
   FLocalInt64RationalPolynomialPool.Free;
