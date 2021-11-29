@@ -31,7 +31,9 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.11.23 V2.1
+* 修改记录：2021.11.29 V2.2
+*               实现一个稀疏的大数列表类
+*           2021.11.23 V2.1
 *               实现生成组合数的大数
 *           2021.09.20 V2.0
 *               实现大数按位计算
@@ -753,12 +755,18 @@ procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
 procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
 {* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
 
-procedure MergeSparseBigNumberList(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean = True);
-{* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减
-  Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等}
+function SparseBigNumberListEqual(A, B: TCnSparseBigNumberList): Boolean;
+{* 判断两个 SparseBigNumberList 是否相等}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
+
+procedure SparseBigNumberListCopy(Dst, Src: TCnSparseBigNumberList);
+{* 将 Src 复制至 Dst}
+
+procedure SparseBigNumberListMerge(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean = True);
+{* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减
+  Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等}
 
 var
   CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的常量
@@ -1168,8 +1176,13 @@ begin
   else // W < 0
   begin
     Num.Neg := 1;
-    PInt64Array(Num.D)^[0] := (not W) + 1;
-    Num.Top := 2;
+    W := (not W) + 1;
+    PInt64Array(Num.D)^[0] := W;
+
+    if ((W and $FFFFFFFF00000000) shr 32) = 0 then // 如果 Int64 高 32 位是 0
+      Num.Top := 1
+    else
+      Num.Top := 2;
   end;
   Result := True;
 end;
@@ -5736,12 +5749,74 @@ begin
     BigNumberNonNegativeMod(List[I], List[I], P);
 end;
 
-procedure MergeSparseBigNumberList(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean);
+// 打印大数内部信息
+function BigNumberDebugDump(const Num: TCnBigNumber): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  if Num = nil then
+    Exit;
+
+  Result := Format('Neg %d. DMax %d. Top %d.', [Num.Neg, Num.DMax, Num.Top]);
+  if (Num.D <> nil) and (Num.Top > 0) then
+    for I := 0 to Num.Top do
+      Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
+end;
+
+function SparseBigNumberListEqual(A, B: TCnSparseBigNumberList): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if (A = nil) or (B = nil) then
+    Exit;
+
+  if A.Count <> B.Count then
+    Exit;
+
+  for I := A.Count - 1 downto 0 do
+  begin
+    if (A[I].Exponent <> B[I].Exponent) or not BigNumberEqual(A[I].Value, B[I].Value) then
+      Exit;
+  end;
+  Result := True;
+end;
+
+procedure SparseBigNumberListCopy(Dst, Src: TCnSparseBigNumberList);
+var
+  I: Integer;
+  Pair: TCnExponentBigNumberPair;
+begin
+  if (Dst <> Src) and (Dst <> nil) then
+  begin
+    Dst.Clear;
+    for I := 0 to Src.Count - 1 do
+    begin
+      Pair := TCnExponentBigNumberPair.Create;
+      Pair.Exponent := Src[I].Exponent;
+      BigNumberCopy(Pair.Value, Src[I].Value);
+      Dst.Add(Pair);
+    end;
+  end;
+end;
+
+procedure SparseBigNumberListMerge(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean);
 var
   I, J, K: Integer;
   P1, P2: TCnExponentBigNumberPair;
 begin
-  if Src1 = Src2 then // 如果 Src1 和 Src2 是同一个，合并，支持 Dst 也是同一个的情形
+  if Src1 = nil then                   // 只要有一个是 nil，Dst 就被塞为另一个
+    SparseBigNumberListCopy(Dst, Src2)
+  else if Src2 = nil then
+    SparseBigNumberListCopy(Dst, Src1)
+  else if Src1 = Src2 then // 如果 Src1 和 Src2 是同一个，合并，支持 Dst 也是同一个的情形
   begin
     Dst.Count := Src1.Count;
     for I := 0 to Src1.Count - 1 do
@@ -5842,7 +5917,7 @@ begin
     end
     else if Dst = Src1 then // Dst 是 Src1，且 Src1 和 Src2 不同
     begin
-      // 遍历 Src2，塞到 Src1 中
+      // 遍历 Src2，加塞到 Src1 中
       for I := 0 to Src2.Count - 1 do
       begin
         P2 := Src2[I];
@@ -5854,7 +5929,7 @@ begin
     end
     else if Dst = Src2 then // Dst 是 Src2，且 Src1 和 Src2 不同
     begin
-      // 遍历 Src1，塞到 Src2 中
+      // 遍历 Src1，加塞到 Src2 中
       for I := 0 to Src1.Count - 1 do
       begin
         P1 := Src1[I];
@@ -5865,21 +5940,6 @@ begin
       end;
     end;
   end;
-end;
-
-// 打印大数内部信息
-function BigNumberDebugDump(const Num: TCnBigNumber): string;
-var
-  I: Integer;
-begin
-  Result := '';
-  if Num = nil then
-    Exit;
-
-  Result := Format('Neg %d. DMax %d. Top %d.', [Num.Neg, Num.DMax, Num.Top]);
-  if (Num.D <> nil) and (Num.Top > 0) then
-    for I := 0 to Num.Top do
-      Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
 end;
 
 { TCnBigNumber }
@@ -6269,27 +6329,14 @@ end;
 
 function TCnExponentBigNumberPair.ToString: string;
 begin
-  Result := '^' + IntToStr(FExponent) + ' ' + FValue.ToString;
+  Result := '^' + IntToStr(FExponent) + ' ' + FValue.ToDec;
 end;
 
 { TCnSparseBigNumberList }
 
 procedure TCnSparseBigNumberList.AssignTo(Dest: TCnSparseBigNumberList);
-var
-  I: Integer;
-  Pair: TCnExponentBigNumberPair;
 begin
-  if (Dest <> Self) and (Dest <> nil) then
-  begin
-    Dest.Clear;
-    for I := 0 to Count - 1 do
-    begin
-      Pair := TCnExponentBigNumberPair.Create;
-      Pair.Exponent := Items[I].Exponent;
-      BigNumberCopy(Pair.Value, Items[I].Value);
-      Dest.Add(Pair);
-    end;
-  end;
+  SparseBigNumberListCopy(Dest, Self);
 end;
 
 function TCnSparseBigNumberList.BinarySearchExponent(AExponent: Integer;
