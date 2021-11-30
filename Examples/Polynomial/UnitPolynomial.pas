@@ -255,7 +255,7 @@ type
     btnBNBPTranspose: TButton;
     bvl13: TBevel;
     lblBNBPExtractDegree: TLabel;
-    edtBNBPExtactDegree: TEdit;
+    edtBNBPExtractDegree: TEdit;
     btnBNBPExtract: TButton;
     btnBNBPIsMonicX: TButton;
     btnBNBPDivXModX: TButton;
@@ -404,6 +404,11 @@ type
     procedure btnTestSetStringClick(Sender: TObject);
     procedure btnBNBPMulClick(Sender: TObject);
     procedure btnBNBPTransposeClick(Sender: TObject);
+    procedure btnBNBPIsMonicXClick(Sender: TObject);
+    procedure btnBNBPDivXModXClick(Sender: TObject);
+    procedure btnBNBPEvalYClick(Sender: TObject);
+    procedure btnBNBPEvalXClick(Sender: TObject);
+    procedure btnBNBPExtractClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4473,6 +4478,103 @@ procedure TFormPolynomial.btnBNBPTransposeClick(Sender: TObject);
 begin
   BigNumberBiPolynomialTranspose(FBNBP3, FBNBP1);
   edtBNBP3.Text := FBNBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnBNBPIsMonicXClick(Sender: TObject);
+begin
+  if FBNBP1.IsMonicX then
+    ShowMessage('Is Monic X')
+  else
+    ShowMessage('Is NOT Monic X');
+end;
+
+procedure TFormPolynomial.btnBNBPDivXModXClick(Sender: TObject);
+var
+  R: TCnBigNumberBiPolynomial;
+begin
+  R := TCnBigNumberBiPolynomial.Create;
+
+  // 针对纯 X 多项式的测试代码
+  FBNBP1.SetZero;
+  FBNBP2.SetZero;
+  FBNBP1.SetXCoefficents(0, [1, 2, 3]);
+  FBNBP2.SetXCoefficents(0, [2, 1]);
+  mmoBNBP1.Lines.Text := FBNBP1.ToString;
+  mmoBNBP2.Lines.Text := FBNBP2.ToString;
+
+  if BigNumberBiPolynomialDivX(FBNBP3, R, FBNBP1, FBNBP2) then
+  begin
+    edtBNBP3.Text := FBNBP3.ToString;        // 3X - 4
+    ShowMessage('Remain: ' + R.ToString);    // 9
+  end;
+
+  // 测试代码 End
+
+  // 针对混合 X 和 Y 的测试代码
+  FBNBP1.SetString('2X^2Y+3XY^2+Y-6');
+  FBNBP2.SetString('X+3Y');
+
+  mmoBNBP1.Lines.Text := FBNBP1.ToString;
+  mmoBNBP2.Lines.Text := FBNBP2.ToString;
+  if BigNumberBiPolynomialDivX(FBNBP3, R, FBNBP1, FBNBP2) then
+  begin
+    edtBNBP3.Text := FBNBP3.ToString;        // 2XY - 3Y^2
+    ShowMessage('Remain: ' + R.ToString);    // 9Y^3 + Y -6
+  end;
+
+  R.Free;
+end;
+
+procedure TFormPolynomial.btnBNBPEvalYClick(Sender: TObject);
+var
+  S: string;
+  Y: TCnBigNumber;
+  Res: TCnBigNumberPolynomial;
+begin
+  S := '0';
+  if InputQuery('Hint', 'Enter Y Value:', S) then
+  begin
+    Y := TCnBigNumber.FromDec(S);
+    Res := TCnBigNumberPolynomial.Create;
+    if BigNumberBiPolynomialEvaluateByY(Res, FBNBP1, Y) then
+      edtBNBP3.Text := Res.ToString;
+    Y.Free;
+    Res.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnBNBPEvalXClick(Sender: TObject);
+var
+  S: string;
+  X: TCnBigNumber;
+  Res: TCnBigNumberPolynomial;
+begin
+  S := '0';
+  if InputQuery('Hint', 'Enter X Value:', S) then
+  begin
+    X := TCnBigNumber.FromDec(S);
+    Res := TCnBigNumberPolynomial.Create;
+    if BigNumberBiPolynomialEvaluateByX(Res, FBNBP1, X) then
+      edtBNBP3.Text := BigNumberPolynomialToString(Res, 'Y');
+    Res.Free;
+    X.Free;
+  end;
+end;
+
+procedure TFormPolynomial.btnBNBPExtractClick(Sender: TObject);
+var
+  P: TCnBigNumberPolynomial;
+  D: Integer;
+begin
+  D := StrToIntDef(edtBNBPExtractDegree.Text, 2);
+  P := TCnBigNumberPolynomial.Create;
+
+  BigNumberBiPolynomialExtractYByX(P, FBNBP1, D);
+  mmoBNBP2.Lines.Text := BigNumberPolynomialToString(P, 'Y');
+  BigNumberBiPolynomialExtractXByY(P, FBNBP1, D);
+  edtBNBP3.Text := P.ToString;
+
+  P.Free;
 end;
 
 end.

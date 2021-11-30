@@ -2064,6 +2064,7 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'Eval Y'
           TabOrder = 18
+          OnClick = btnBNBPEvalYClick
         end
         object btnBNBPEvalX: TButton
           Left = 496
@@ -2072,6 +2073,7 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'Eval X'
           TabOrder = 19
+          OnClick = btnBNBPEvalXClick
         end
         object btnBNBPTranspose: TButton
           Left = 576
@@ -2082,7 +2084,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 20
           OnClick = btnBNBPTransposeClick
         end
-        object edtBNBPExtactDegree: TEdit
+        object edtBNBPExtractDegree: TEdit
           Left = 720
           Top = 154
           Width = 25
@@ -2097,6 +2099,7 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'Extract'
           TabOrder = 22
+          OnClick = btnBNBPExtractClick
         end
         object btnBNBPIsMonicX: TButton
           Left = 24
@@ -2105,6 +2108,7 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'IsMonicX'
           TabOrder = 23
+          OnClick = btnBNBPIsMonicXClick
         end
         object btnBNBPDivXModX: TButton
           Left = 104
@@ -2113,6 +2117,7 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'DivX && ModX'
           TabOrder = 24
+          OnClick = btnBNBPDivXModXClick
         end
         object btnTestSetString: TButton
           Left = 24

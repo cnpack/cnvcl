@@ -8996,10 +8996,76 @@ begin
   end;
 end;
 
-function BigNumberBiPolynomialDivX(const Res: TCnBigNumberBiPolynomial; const Remain: TCnBigNumberBiPolynomial;
-  const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial): Boolean;
+function BigNumberBiPolynomialDivX(const Res: TCnBigNumberBiPolynomial;
+  const Remain: TCnBigNumberBiPolynomial; const P: TCnBigNumberBiPolynomial;
+  const Divisor: TCnBigNumberBiPolynomial): Boolean;
+var
+  SubRes: TCnBigNumberBiPolynomial; // 容纳递减差
+  MulRes: TCnBigNumberBiPolynomial; // 容纳除数乘积
+  DivRes: TCnBigNumberBiPolynomial; // 容纳临时商
+  I, D: Integer;
+  TY: TCnBigNumberPolynomial;       // 容纳首一多项式需要乘的 Y 多项式
 begin
+  Result := False;
+  if BigNumberBiPolynomialIsZero(Divisor) then
+    raise ECnPolynomialException.Create(SDivByZero);
 
+  if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
+  begin
+    if Res <> nil then
+      BigNumberBiPolynomialSetZero(Res);
+    if (Remain <> nil) and (P <> Remain) then
+      BigNumberBiPolynomialCopy(Remain, P);
+    Result := True;
+    Exit;
+  end;
+
+  if not Divisor.IsMonicX then // 只支持 X 的首一多项式
+    Exit;
+
+  // 够除，循环
+  SubRes := nil;
+  MulRes := nil;
+  DivRes := nil;
+  TY := nil;
+
+  try
+    SubRes := FLocalBigNumberBiPolynomialPool.Obtain;
+    BigNumberBiPolynomialCopy(SubRes, P);
+
+    D := P.MaxXDegree - Divisor.MaxXDegree;
+    DivRes := FLocalBigNumberBiPolynomialPool.Obtain;
+    DivRes.MaxXDegree := D;
+    MulRes := FLocalBigNumberBiPolynomialPool.Obtain;
+
+    TY := FLocalBigNumberPolynomialPool.Obtain;
+
+    for I := 0 to D do
+    begin
+      if P.MaxXDegree - I > SubRes.MaxXDegree then                 // 中间结果可能跳位
+        Continue;
+
+      BigNumberBiPolynomialCopy(MulRes, Divisor);
+      BigNumberBiPolynomialShiftLeftX(MulRes, D - I);              // 对齐到 SubRes 的最高次
+
+      BigNumberBiPolynomialExtractYByX(TY, SubRes, P.MaxXDegree - I);
+      BigNumberBiPolynomialMulY(MulRes, MulRes, TY);               // 除式乘到最高次系数相同
+
+      DivRes.SetYCoefficentsFromPolynomial(D - I, TY);             // 商放到 DivRes 位置
+      BigNumberBiPolynomialSub(SubRes, SubRes, MulRes);            // 减后结果重新放回 SubRes
+    end;
+
+    if Remain <> nil then
+      BigNumberBiPolynomialCopy(Remain, SubRes);
+    if Res <> nil then
+      BigNumberBiPolynomialCopy(Res, DivRes);
+  finally
+    FLocalBigNumberBiPolynomialPool.Recycle(SubRes);
+    FLocalBigNumberBiPolynomialPool.Recycle(MulRes);
+    FLocalBigNumberBiPolynomialPool.Recycle(DivRes);
+    FLocalBigNumberPolynomialPool.Recycle(TY);
+  end;
+  Result := True;
 end;
 
 function BigNumberBiPolynomialModX(const Res: TCnBigNumberBiPolynomial;
@@ -9055,14 +9121,100 @@ end;
 
 function BigNumberBiPolynomialEvaluateByY(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberBiPolynomial; YValue: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  Sum, TY, T: TCnBigNumber;
+  YL: TCnSparseBigNumberList;
+  Pair: TCnExponentBigNumberPair;
 begin
+  // 针对每一个 FXs[I] 的 List，遍历计算其 Y 各次方值累加，作为 X 的系数
+  Res.Clear;
+  Sum := nil;
+  TY := nil;
+  T := nil;
 
+  try
+    Sum := FLocalBigNumberPool.Obtain;
+    TY := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
+
+    for I := 0 to P.FXs.Count - 1 do
+    begin
+      Sum.SetZero;
+      YL := P.YFactorsList[I];
+
+      if YL.Count > 0 then
+      begin
+        if YL.Bottom.Exponent = 0 then
+          TY.SetOne
+        else
+          BigNumberPower(TY, YValue, YL.Bottom.Exponent);
+
+        for J := 0 to YL.Count - 1 do
+        begin
+          Pair := YL[J];
+
+          // Sum := Sum + TY * YL[J];
+          BigNumberMul(T, TY, Pair.Value);
+          BigNumberAdd(Sum, Sum, T);
+
+          // TY := TY * Power(YValue, YL[J+1].Exponent - YL[J].Exponent);
+          if J < YL.Count - 1 then
+          begin
+            BigNumberPower(T, YValue, YL[J + 1].Exponent - YL[J].Exponent);
+            BigNumberMul(TY, TY, T);
+          end;
+        end;
+      end;
+      BigNumberCopy(Res.Add, Sum);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(TY);
+    FLocalBigNumberPool.Recycle(Sum);
+  end;
+  Result := True;
 end;
 
 function BigNumberBiPolynomialEvaluateByX(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberBiPolynomial; XValue: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  Sum, TX, T: TCnBigNumber;
 begin
+  // 针对每一个 Y 次数，遍历 FXs[I] 的 List 中的该次数元素，相乘累加，作为 Y 的系数
+  Res.Clear;
+  Sum := nil;
+  TX := nil;
+  T := nil;
 
+  try
+    Sum := FLocalBigNumberPool.Obtain;
+    TX := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
+
+    for I := 0 to P.MaxYDegree do
+    begin
+      Sum.SetZero;
+      TX.SetOne;
+
+      for J := 0 to P.FXs.Count - 1 do
+      begin
+        //Sum := Sum + TX * P.SafeValue[J, I];
+        BigNumberMul(T, TX, P.SafeValue[J, I]);
+        BigNumberAdd(Sum, Sum, T);
+
+        //TX := TX * XValue;
+        BigNumberMul(TX, TX, XValue);
+      end;
+      BigNumberCopy(Res.Add, Sum);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(TX);
+    FLocalBigNumberPool.Recycle(Sum);
+  end;
+  Result := True;
 end;
 
 procedure BigNumberBiPolynomialTranspose(const Dst, Src: TCnBigNumberBiPolynomial);
@@ -9099,14 +9251,40 @@ end;
 
 procedure BigNumberBiPolynomialExtractYByX(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberBiPolynomial; XDegree: Integer);
+var
+  I: Integer;
+  Pair: TCnExponentBigNumberPair;
 begin
+  CheckDegree(XDegree);
+  Res.SetZero;
 
+  if XDegree < P.FXs.Count then
+  begin
+    Pair := P.YFactorsList[XDegree].Top;
+    Res.MaxDegree := Pair.Exponent;
+
+    for I := 0 to P.YFactorsList[XDegree].Count - 1 do
+    begin
+      Pair := P.YFactorsList[XDegree][I];
+      if Res[Pair.Exponent] = nil then
+        Res[Pair.Exponent] := TCnBigNumber.Create;
+
+      BigNumberCopy(Res[Pair.Exponent], Pair.Value);
+    end;
+  end;
 end;
 
 procedure BigNumberBiPolynomialExtractXByY(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberBiPolynomial; YDegree: Integer);
+var
+  I: Integer;
 begin
+  CheckDegree(YDegree);
+  Res.Clear;
+  for I := 0 to P.FXs.Count - 1 do
+    BigNumberCopy(Res.Add, P.SafeValue[I, YDegree]);
 
+  Res.CorrectTop;
 end;
 
 // ================== 二元大整系数多项式式在有限域上的模运算 ===================
