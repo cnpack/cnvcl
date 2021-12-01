@@ -519,6 +519,9 @@ function BigNumberEqual(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Boo
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 {* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1}
 
+function BigNumberCompareInteger(const Num1: TCnBigNumber; const Num2: Integer): Integer;
+{* 带符号比较一个大数对象与一个整数，前者大于等于小于后者分别返回 1、0、-1}
+
 function BigNumberUnsignedCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 {* 无符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1}
 
@@ -1614,6 +1617,19 @@ begin
     end;
   end;
   Result := 0;
+end;
+
+function BigNumberCompareInteger(const Num1: TCnBigNumber; const Num2: Integer): Integer;
+var
+  T: TCnBigNumber;
+begin
+  T := FLocalBigNumberPool.Obtain;
+  try
+    T.SetInteger(Num2);
+    Result := BigNumberCompare(Num1, T);
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
 end;
 
 function BigNumberUnsignedCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;

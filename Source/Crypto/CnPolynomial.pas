@@ -30,8 +30,10 @@ unit CnPolynomial;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.11.17 V1.5
-*               实现 Int64 范围内的二元整系数多项式及其运算
+* 修改记录：2021.12.01 V1.6
+*               实现 BigNumber 范围内的二元整系数多项式及其运算，包括有限域内
+*           2021.11.17 V1.5
+*               实现 Int64 范围内的二元整系数多项式及其运算，包括有限域内
 *           2020.08.29 V1.4
 *               实现 Int64 范围内的快速数论变换/快速傅立叶变换多项式乘法，但都有所限制
 *           2020.11.14 V1.3
@@ -1660,11 +1662,11 @@ function BigNumberBiPolynomialGaloisEvaluateByX(const Res: TCnBigNumberPolynomia
   const P: TCnBigNumberBiPolynomial; XValue, Prime: TCnBigNumber): Boolean;
 {* 将一具体 X 值代入二元大整系数多项式，得到只包含 Y 的一元大整系数多项式，系数针对 Prime 取模}
 
-procedure BigNumberBiPolynomialGaloisAddWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的二元大整系数多项式的各项系数加上 N 再 mod Prime，注意不是常系数}
+// procedure BigNumberBiPolynomialGaloisAddWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的二元大整系数多项式的各项系数加上 N 再 mod Prime，注意不是常系数，但对于稀疏列表来说没啥意义，不实现}
 
-procedure BigNumberBiPolynomialGaloisSubWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
-{* 将 Prime 次方阶有限域上的二元大整系数多项式的各项系数减去 N 再 mod Prime，注意不是常系数}
+// procedure BigNumberBiPolynomialGaloisSubWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
+{* 将 Prime 次方阶有限域上的二元大整系数多项式的各项系数减去 N 再 mod Prime，注意不是常系数，但对于稀疏列表来说没啥意义，不实现}
 
 procedure BigNumberBiPolynomialGaloisMulWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
 {* 将 Prime 次方阶有限域上的二元大整系数多项式各项系数乘以 N 再 mod Prime}
@@ -7484,7 +7486,7 @@ begin
   begin
     YL := TCnInt64List(P.FXs[I]);
     for J := YL.Count - 1 downto 0 do
-      YL[I] := - YL[I];
+      YL[J] := - YL[J];
   end;
 end;
 
@@ -7984,7 +7986,7 @@ begin
   begin
     YL := TCnInt64List(P.FXs[I]);
     for J := YL.Count - 1 downto 0 do
-      YL[I] := Int64NonNegativeMod(-YL[I], Prime);
+      YL[J] := Int64NonNegativeMod(-YL[J], Prime);
   end;
 end;
 
@@ -8950,7 +8952,8 @@ begin
           begin
             Pair2 := P2.YFactorsList[K][L];
             BigNumberMul(T, Pair1.Value, Pair2.Value);
-            BigNumberAdd(R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], T)
+            BigNumberAdd(R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent],
+              R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], T);
           end;
         end;
       end;
@@ -9290,101 +9293,482 @@ end;
 // ================== 二元大整系数多项式式在有限域上的模运算 ===================
 
 function BigNumberBiPolynomialGaloisEqual(const A, B: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  T1, T2: TCnBigNumber;
 begin
+  Result := False;
+  if A = B then
+  begin
+    Result := True;
+    Exit;
+  end;
 
+  if (A = nil) or (B = nil) then
+    Exit;
+
+  if A.MaxXDegree <> B.MaxXDegree then
+    Exit;
+
+  T1 := nil;
+  T2 := nil;
+
+  try
+    T1 := FLocalBigNumberPool.Obtain;
+    T2 := FLocalBigNumberPool.Obtain;
+
+    for I := A.FXs.Count - 1 downto 0 do
+    begin
+      if A.YFactorsList[I].Count <> B.YFactorsList[I].Count then
+        Exit;
+
+      for J := A.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        if (A.YFactorsList[I][J].Exponent <> B.YFactorsList[I][J].Exponent) or
+          not BigNumberEqual(A.YFactorsList[I][J].Value, B.YFactorsList[I][J].Value) then
+        begin
+          BigNumberNonNegativeMod(T1, A.YFactorsList[I][J].Value, Prime);
+          BigNumberNonNegativeMod(T2, B.YFactorsList[I][J].Value, Prime);
+          if not BigNumberEqual(T1, T2) then
+            Exit;
+        end;
+      end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T1);
+    FLocalBigNumberPool.Recycle(T2);
+  end;
+  Result := True;
 end;
 
 procedure BigNumberBiPolynomialGaloisNegate(const P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber);
+var
+  I, J: Integer;
+  YL: TCnSparseBigNumberList;
 begin
-
+  for I := P.FXs.Count - 1 downto 0 do
+  begin
+    YL := TCnSparseBigNumberList(P.FXs[I]);
+    for J := YL.Count - 1 downto 0 do
+    begin
+      YL[J].Value.Negate;
+      BigNumberNonNegativeMod(YL[J].Value, YL[J].Value, Prime);
+    end;
+  end;
 end;
 
 function BigNumberBiPolynomialGaloisAdd(const Res: TCnBigNumberBiPolynomial;
   const P1: TCnBigNumberBiPolynomial; const P2: TCnBigNumberBiPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
 begin
-
+  Result := BigNumberBiPolynomialAdd(Res, P1, P2);
+  if Result then
+  begin
+    BigNumberBiPolynomialNonNegativeModBigNumber(Res, Prime);
+    if Primitive <> nil then
+      BigNumberBiPolynomialGaloisModX(Res, Res, Primitive, Prime);
+  end;
 end;
 
 function BigNumberBiPolynomialGaloisSub(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
   const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
 begin
-
+  Result := BigNumberBiPolynomialSub(Res, P1, P2);
+  if Result then
+  begin
+    BigNumberBiPolynomialNonNegativeModBigNumber(Res, Prime);
+    if Primitive <> nil then
+      BigNumberBiPolynomialGaloisModX(Res, Res, Primitive, Prime);
+  end;
 end;
 
 function BigNumberBiPolynomialGaloisMul(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
   const P2: TCnBigNumberBiPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+var
+  I, J, K, L: Integer;
+  R: TCnBigNumberBiPolynomial;
+  T: TCnBigNumber;
+  Pair1, Pair2: TCnExponentBigNumberPair;
 begin
+  if P1.IsZero or P2.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
 
+  if (Res = P1) or (Res = P2) then
+    R := FLocalBigNumberBiPolynomialPool.Obtain
+  else
+    R := Res;
+
+  R.Clear;
+  R.MaxXDegree := P1.MaxXDegree + P2.MaxXDegree;
+  R.MaxYDegree := P1.MaxYDegree + P2.MaxYDegree;
+
+  T := FLocalBigNumberPool.Obtain;
+  try
+    for I := P1.FXs.Count - 1 downto 0 do
+    begin
+      for J := P1.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        Pair1 := P1.YFactorsList[I][J];
+        // 拿到 P1.SafeValue[I, J]，要遍历相乘 P2 的每一个
+        for K := P2.FXs.Count - 1 downto 0 do
+        begin
+          for L := P2.YFactorsList[K].Count - 1 downto 0 do
+          begin
+            Pair2 := P2.YFactorsList[K][L];
+            BigNumberMul(T, Pair1.Value, Pair2.Value);
+            BigNumberAdd(R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent],
+              R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], T);
+            BigNumberNonNegativeMod(R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent],
+              R.SafeValue[I + K, Pair1.Exponent + Pair2.Exponent], Prime);
+          end;
+        end;
+      end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+
+  R.CorrectTop;
+  if Primitive <> nil then
+    BigNumberBiPolynomialGaloisModX(R, R, Primitive, Prime);
+
+  if (Res = P1) or (Res = P2) then
+  begin
+    BigNumberBiPolynomialCopy(Res, R);
+    FLocalBigNumberBiPolynomialPool.Recycle(R);
+  end;
+  Result := True;
 end;
 
 function BigNumberBiPolynomialGaloisMulX(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
   PX: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+var
+  P: TCnBigNumberBiPolynomial;
 begin
-
+  P := FLocalBigNumberBiPolynomialPool.Obtain;
+  try
+    BigNumberBiPolynomialCopyFromX(P, PX);
+    Result := BigNumberBiPolynomialGaloisMul(Res, P1, P, Prime, Primitive);
+  finally
+    FLocalBigNumberBiPolynomialPool.Recycle(P);
+  end;
 end;
 
 function BigNumberBiPolynomialGaloisMulY(const Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
   PY: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+var
+  P: TCnBigNumberBiPolynomial;
 begin
-
+  P := FLocalBigNumberBiPolynomialPool.Obtain;
+  try
+    BigNumberBiPolynomialCopyFromY(P, PY);
+    Result := BigNumberBiPolynomialGaloisMul(Res, P1, P, Prime, Primitive);
+  finally
+    FLocalBigNumberBiPolynomialPool.Recycle(P);
+  end;
 end;
 
 function BigNumberBiPolynomialGaloisDivX(const Res: TCnBigNumberBiPolynomial;
   const Remain: TCnBigNumberBiPolynomial; const P: TCnBigNumberBiPolynomial;
   const Divisor: TCnBigNumberBiPolynomial; Prime: TCnBigNumber;
   Primitive: TCnBigNumberBiPolynomial): Boolean;
+var
+  SubRes: TCnBigNumberBiPolynomial; // 容纳递减差
+  MulRes: TCnBigNumberBiPolynomial; // 容纳除数乘积
+  DivRes: TCnBigNumberBiPolynomial; // 容纳临时商
+  I, D: Integer;
+  TY: TCnBigNumberPolynomial;       // 容纳首一多项式需要乘的 Y 多项式
 begin
+  Result := False;
+  if BigNumberBiPolynomialIsZero(Divisor) then
+    raise ECnPolynomialException.Create(SDivByZero);
 
+  if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
+  begin
+    if Res <> nil then
+      BigNumberBiPolynomialSetZero(Res);
+    if (Remain <> nil) and (P <> Remain) then
+      BigNumberBiPolynomialCopy(Remain, P);
+    Result := True;
+    Exit;
+  end;
+
+  if not Divisor.IsMonicX then // 只支持 X 的首一多项式
+    Exit;
+
+  // 够除，循环
+  SubRes := nil;
+  MulRes := nil;
+  DivRes := nil;
+  TY := nil;
+
+  try
+    SubRes := FLocalBigNumberBiPolynomialPool.Obtain;
+    BigNumberBiPolynomialCopy(SubRes, P);
+
+    D := P.MaxXDegree - Divisor.MaxXDegree;
+    DivRes := FLocalBigNumberBiPolynomialPool.Obtain;
+    DivRes.MaxXDegree := D;
+    MulRes := FLocalBigNumberBiPolynomialPool.Obtain;
+
+    TY := FLocalBigNumberPolynomialPool.Obtain;
+
+    for I := 0 to D do
+    begin
+      if P.MaxXDegree - I > SubRes.MaxXDegree then                 // 中间结果可能跳位
+        Continue;
+
+      BigNumberBiPolynomialCopy(MulRes, Divisor);
+      BigNumberBiPolynomialShiftLeftX(MulRes, D - I);              // 对齐到 SubRes 的最高次
+
+      BigNumberBiPolynomialExtractYByX(TY, SubRes, P.MaxXDegree - I);
+      BigNumberBiPolynomialGaloisMulY(MulRes, MulRes, TY, Prime, Primitive);               // 除式乘到最高次系数相同
+
+      DivRes.SetYCoefficentsFromPolynomial(D - I, TY);             // 商放到 DivRes 位置
+      BigNumberBiPolynomialGaloisSub(SubRes, SubRes, MulRes, Prime, Primitive);            // 减后结果重新放回 SubRes
+    end;
+
+    // 商与余式都需要再模本原多项式
+    if Primitive <> nil then
+    begin
+      BigNumberBiPolynomialGaloisModX(SubRes, SubRes, Primitive, Prime);
+      BigNumberBiPolynomialGaloisModX(DivRes, DivRes, Primitive, Prime);
+    end;
+
+    if Remain <> nil then
+      BigNumberBiPolynomialCopy(Remain, SubRes);
+    if Res <> nil then
+      BigNumberBiPolynomialCopy(Res, DivRes);
+  finally
+    FLocalBigNumberBiPolynomialPool.Recycle(SubRes);
+    FLocalBigNumberBiPolynomialPool.Recycle(MulRes);
+    FLocalBigNumberBiPolynomialPool.Recycle(DivRes);
+    FLocalBigNumberPolynomialPool.Recycle(TY);
+  end;
+  Result := True;
 end;
 
 function BigNumberBiPolynomialGaloisModX(const Res: TCnBigNumberBiPolynomial;
   const P: TCnBigNumberBiPolynomial; const Divisor: TCnBigNumberBiPolynomial;
   Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
 begin
-
+  Result := BigNumberBiPolynomialGaloisDivX(nil, Res, P, Divisor, Prime, Primitive);
 end;
 
 function BigNumberBiPolynomialGaloisPower(const Res, P: TCnBigNumberBiPolynomial;
   Exponent: TCnBigNumber; Prime: TCnBigNumber; Primitive: TCnBigNumberBiPolynomial): Boolean;
+var
+  T: TCnBigNumberBiPolynomial;
+  E: TCnBigNumber;
 begin
+  if Exponent.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsOne then
+  begin
+    if Res <> P then
+      BigNumberBiPolynomialCopy(Res, P);
+    Result := True;
+    Exit;
+  end
+  else if Exponent.IsNegative then
+    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent.ToDec]);
 
+  T := FLocalBigNumberBiPolynomialPool.Obtain;
+  BigNumberBiPolynomialCopy(T, P);
+  E := FLocalBigNumberPool.Obtain;
+  BigNumberCopy(E, Exponent);
+
+  try
+    // 二进制形式快速计算 T 的次方，值给 Res
+    Res.SetOne;
+    while not E.IsNegative and not E.IsZero do
+    begin
+      if BigNumberIsBitSet(E, 0) then
+        BigNumberBiPolynomialGaloisMul(Res, Res, T, Prime, Primitive);
+
+      BigNumberShiftRightOne(E, E);
+      BigNumberBiPolynomialGaloisMul(T, T, T, Prime, Primitive);
+    end;
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(E);
+    FLocalBigNumberBiPolynomialPool.Recycle(T);
+  end;
 end;
 
 function BigNumberBiPolynomialGaloisEvaluateByY(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberBiPolynomial; YValue, Prime: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  Sum, TY, T, TE: TCnBigNumber;
+  YL: TCnSparseBigNumberList;
+  Pair: TCnExponentBigNumberPair;
 begin
+  // 针对每一个 FXs[I] 的 List，遍历计算其 Y 各次方值累加，作为 X 的系数
+  Res.Clear;
+  Sum := nil;
+  TY := nil;
+  TE := nil;
+  T := nil;
 
+  try
+    Sum := FLocalBigNumberPool.Obtain;
+    TY := FLocalBigNumberPool.Obtain;
+    TE := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
+
+    for I := 0 to P.FXs.Count - 1 do
+    begin
+      Sum.SetZero;
+      YL := P.YFactorsList[I];
+
+      if YL.Count > 0 then
+      begin
+        if YL.Bottom.Exponent = 0 then
+          TY.SetOne
+        else if YL.Bottom.Exponent = 1 then
+          BigNumberCopy(TY, YValue)
+        else if YL.Bottom.Exponent = 2 then
+          BigNumberDirectMulMod(TY, YValue, YValue, Prime)
+        else
+        begin
+          T.SetWord(YL.Bottom.Exponent);
+          BigNumberPowerMod(TY, YValue, T, Prime);
+        end;
+
+        for J := 0 to YL.Count - 1 do
+        begin
+          Pair := YL[J];
+
+          // Sum := Sum + TY * YL[J];
+          BigNumberMul(T, TY, Pair.Value);
+          BigNumberAdd(Sum, Sum, T);
+          BigNumberNonNegativeMod(Sum, Sum, Prime);
+
+          // TY := TY * Power(YValue, YL[J+1].Exponent - YL[J].Exponent);
+          if J < YL.Count - 1 then
+          begin
+            TE.SetWord(YL[J + 1].Exponent - YL[J].Exponent);
+            BigNumberPowerMod(T, YValue, TE, Prime);
+            BigNumberDirectMulMod(TY, TY, T, Prime);
+          end;
+        end;
+      end;
+      BigNumberCopy(Res.Add, Sum);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(TY);
+    FLocalBigNumberPool.Recycle(TE);
+    FLocalBigNumberPool.Recycle(Sum);
+  end;
+  Result := True;
 end;
 
 function BigNumberBiPolynomialGaloisEvaluateByX(const Res: TCnBigNumberPolynomial;
   const P: TCnBigNumberBiPolynomial; XValue, Prime: TCnBigNumber): Boolean;
+var
+  I, J: Integer;
+  Sum, TX, T: TCnBigNumber;
 begin
+  // 针对每一个 Y 次数，遍历 FXs[I] 的 List 中的该次数元素，相乘累加，作为 Y 的系数
+  Res.Clear;
+  Sum := nil;
+  TX := nil;
+  T := nil;
 
-end;
+  try
+    Sum := FLocalBigNumberPool.Obtain;
+    TX := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
 
-procedure BigNumberBiPolynomialGaloisAddWord(const P: TCnBigNumberBiPolynomial;
-  N: Int64; Prime: TCnBigNumber);
-begin
+    for I := 0 to P.MaxYDegree do
+    begin
+      Sum.SetZero;
+      TX.SetOne;
 
-end;
+      for J := 0 to P.FXs.Count - 1 do
+      begin
+        //Sum := Sum + TX * P.SafeValue[J, I];
+        BigNumberMul(T, TX, P.SafeValue[J, I]);
+        BigNumberAdd(Sum, Sum, T);
+        BigNumberNonNegativeMod(Sum, Sum, Prime);
 
-procedure BigNumberBiPolynomialGaloisSubWord(const P: TCnBigNumberBiPolynomial;
-  N: Int64; Prime: TCnBigNumber);
-begin
-
+        //TX := TX * XValue;
+        BigNumberMul(TX, TX, XValue);
+        BigNumberNonNegativeMod(TX, TX, Prime);
+      end;
+      BigNumberCopy(Res.Add, Sum);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(TX);
+    FLocalBigNumberPool.Recycle(Sum);
+  end;
+  Result := True;
 end;
 
 procedure BigNumberBiPolynomialGaloisMulWord(const P: TCnBigNumberBiPolynomial;
   N: Int64; Prime: TCnBigNumber);
+var
+  I, J: Integer;
 begin
-
+  if N = 0 then
+    P.SetZero
+  else // 有 Prime 需要 Mod，不判断是否是 1 了
+    for I := P.FXs.Count - 1 downto 0 do
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        P.YFactorsList[I][J].Value.MulWord(N);
+        BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, Prime);
+      end;
 end;
 
 procedure BigNumberBiPolynomialGaloisDivWord(const P: TCnBigNumberBiPolynomial;
   N: Int64; Prime: TCnBigNumber);
+var
+  I, J: Integer;
+  B: Boolean;
+  K, T: TCnBigNumber;
 begin
+  if N = 0 then
+    raise EDivByZero.Create(SDivByZero);
 
+  B := N < 0;
+  if B then
+    N := -N;
+
+  K := nil;
+  T := nil;
+
+  try
+    K := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
+    T.SetWord(N);
+
+    BigNumberModularInverse(K, T, Prime);
+
+    for I := P.FXs.Count - 1 downto 0 do
+    begin
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        BigNumberDirectMulMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, K, Prime);
+        if B then
+          BigNumberSub(P.YFactorsList[I][J].Value, Prime, P.YFactorsList[I][J].Value);
+      end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(K);
+    FLocalBigNumberPool.Recycle(T);
+  end;
 end;
 
 { TCnBigNumberBiPolynomial }
@@ -9407,8 +9791,6 @@ end;
 
 function TCnBigNumberBiPolynomial.CompactYDegree(
   YList: TCnSparseBigNumberList): Boolean;
-var
-  I: Integer;
 begin
   YList.Compact;
   Result := YList.Count = 0;
@@ -9456,12 +9838,12 @@ end;
 procedure TCnBigNumberBiPolynomial.EnsureDegrees(XDegree,
   YDegree: Integer);
 var
-  I, OldCount: Integer;
+  I: Integer;
 begin
   CheckDegree(XDegree);
   CheckDegree(YDegree);
 
-  OldCount := FXs.Count;
+  // OldCount := FXs.Count;
   if (XDegree + 1) > FXs.Count then
   begin
     for I := FXs.Count + 1 to XDegree + 1 do
@@ -9520,7 +9902,6 @@ function TCnBigNumberBiPolynomial.GetSafeValue(XDegree,
 var
   YL: TCnSparseBigNumberList;
 begin
-  Result := nil;
   if XDegree > MaxXDegree then  // 确保 XDegree 存在
     MaxXDegree := XDegree;
 
