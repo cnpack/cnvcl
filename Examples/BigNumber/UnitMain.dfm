@@ -20,7 +20,7 @@ object FormBigNumber: TFormBigNumber
     Top = 8
     Width = 1057
     Height = 657
-    ActivePage = tsSparseBigNumberList
+    ActivePage = tsBigNumber
     TabOrder = 0
     object tsBigNumber: TTabSheet
       Caption = 'BigNumber'
@@ -631,6 +631,15 @@ object FormBigNumber: TFormBigNumber
         Caption = 'Combinatorial Numbers'
         TabOrder = 59
         OnClick = btnComNumClick
+      end
+      object btnBNAKS: TButton
+        Left = 904
+        Top = 584
+        Width = 129
+        Height = 25
+        Caption = 'AKS is Prime'
+        TabOrder = 60
+        OnClick = btnBNAKSClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

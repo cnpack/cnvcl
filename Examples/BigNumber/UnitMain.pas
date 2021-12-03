@@ -88,6 +88,7 @@ type
     btnSparseMerge: TButton;
     mmoSBNL2: TMemo;
     mmoSBNL3: TMemo;
+    btnBNAKS: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -144,6 +145,7 @@ type
     procedure btnComNumClick(Sender: TObject);
     procedure btnSBNLTest1Click(Sender: TObject);
     procedure btnSparseMergeClick(Sender: TObject);
+    procedure btnBNAKSClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1031,9 +1033,25 @@ begin
   SpareList2.SafeValue[9].SetInt64(-60);
 //  SpareList2.SafeValue[6].SetInt64(-10);
   mmoSBNL2.Lines.Text := SpareList2.ToString;
-  MergeSparseBigNumberList(SpareList3, SpareList1, SpareList2,
+  SparseBigNumberListMerge(SpareList3, SpareList1, SpareList2,
     not chkSparseUseSubMerge.Checked);
   mmoSBNL3.Lines.Text := SpareList3.ToString;
+end;
+
+procedure TFormBigNumber.btnBNAKSClick(Sender: TObject);
+var
+  P: Int64;
+  S: string;
+begin
+  S := '39779';
+  if InputQuery('Hint', 'Enter an Integer Value', S) then
+  begin
+    P := StrToInt64(S);
+    if BigNumberAKSIsPrime(P) then
+      ShowMessage(S + ' Is a Prime')
+    else
+      ShowMessage('NOT Prime');
+  end;
 end;
 
 end.

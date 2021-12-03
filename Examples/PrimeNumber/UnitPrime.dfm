@@ -21,7 +21,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsGenPrime
+    ActivePage = tsIsPrime
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
@@ -92,7 +92,7 @@ object FormPrime: TFormPrime
       object btnIsPrime: TButton
         Left = 208
         Top = 24
-        Width = 75
+        Width = 57
         Height = 25
         Caption = 'Is Prime?'
         TabOrder = 1
@@ -155,11 +155,28 @@ object FormPrime: TFormPrime
       object btnInt64AKS: TButton
         Left = 488
         Top = 64
-        Width = 145
+        Width = 65
         Height = 25
         Caption = 'Int64 AKS'
         TabOrder = 8
         OnClick = btnInt64AKSClick
+      end
+      object chkRaw: TCheckBox
+        Left = 272
+        Top = 28
+        Width = 57
+        Height = 17
+        Caption = 'Raw'
+        TabOrder = 9
+      end
+      object btnMoreAKS: TButton
+        Left = 568
+        Top = 64
+        Width = 65
+        Height = 25
+        Caption = 'More AKS'
+        TabOrder = 10
+        OnClick = btnMoreAKSClick
       end
     end
     object tsMontgomery: TTabSheet
