@@ -1093,7 +1093,7 @@ procedure BigNumberRationalPolynomialGaloisGetValue(Res: TCnBigNumber;
 }
 type
   TCnInt64BiPolynomial = class
-  {* 二元整系数多项式}
+  {* 二元整系数多项式，内部实现非稀疏，因此一大就容易爆内存}
   private
     FXs: TObjectList; // 元素为 TCnInt64List，存储该 X 次幂的每一个不同的 Y 次幂的系数
     procedure EnsureDegrees(XDegree, YDegree: Integer);
@@ -1388,9 +1388,9 @@ procedure Int64BiPolynomialGaloisDivWord(const P: TCnInt64BiPolynomial; N: Int64
 
 type
   TCnBigNumberBiPolynomial = class
-  {* 二元大整系数多项式}
+  {* 二元大整系数多项式，内部采取稀疏方式，稍微少占点内存}
   private
-    FXs: TObjectList; // 元素为 TCnSparseBigNumberList，存储该 X 次幂的每一个不同的 Y 次幂的系数
+    FXs: TCnRefObjectList; // 元素为 TCnSparseBigNumberList，存储该 X 次幂的每一个不同的 Y 次幂的系数
     procedure EnsureDegrees(XDegree, YDegree: Integer);
     {* 确保 XDegree, YDegree 的元素存在}
     function GetMaxXDegree: Integer;
@@ -8763,7 +8763,7 @@ begin
     BigNumberBiPolynomialShiftRightX(P, -N)
   else
     for I := 0 to N - 1 do
-      P.FXs.Insert(0, nil); // 后面再优化批量插入操作
+      P.FXs.InsertBatch(0, N);
 end;
 
 procedure BigNumberBiPolynomialShiftRightX(const P: TCnBigNumberBiPolynomial; N: Integer);
@@ -8780,10 +8780,9 @@ begin
       N := P.FXs.Count;
 
     for I := N - 1 downto 0 do
-    begin
       P.FXs[I].Free;
-      P.FXs.Delete(I);
-    end;
+
+    P.FXs.DeleteLow(N);
   end;
 end;
 
@@ -9930,7 +9929,7 @@ end;
 
 constructor TCnBigNumberBiPolynomial.Create(XDegree, YDegree: Integer);
 begin
-  FXs := TObjectList.Create(False);
+  FXs := TCnRefObjectList.Create;
   EnsureDegrees(XDegree, YDegree);
 end;
 
