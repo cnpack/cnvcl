@@ -681,6 +681,9 @@ procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K:
 
 implementation
 
+uses
+  CnContainers;
+
 resourcestring
   SCnEccErrorCurveType = 'Invalid Curve Type.';
   SCnEccErrorKeyData = 'Invalid Key or Data.';

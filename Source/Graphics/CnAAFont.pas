@@ -1853,7 +1853,7 @@ end;
 procedure TCnAABlend.Blend(X, Y: Integer; AColor: TColor; Alpha: TAlpha;
   Mask: TCnAAMask; DestIsAlpha: Boolean);
 var
-  R, B, G, T: Byte;
+  R, B, G: Byte;
   AAlpha, DiffForeAlpha: DWORD;
   ForeAlpha, BkAlpha: Byte;
   pMask: PByteArray;

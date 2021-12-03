@@ -52,9 +52,9 @@ interface
 
 uses
   SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCRC32, ZLib
-  {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnCommon {$ELSE}
-  {$IFNDEF COMPILER6_UP} , CnCommon {$ENDIF} {$ENDIF};
-  // D5 下需要用到 CnCommon 单元做 UTF8 支持
+  {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnCommon {$ENDIF}
+  {$IFNDEF COMPILER6_UP} , CnWideStrings  {$ENDIF};
+  // D5 下需要用到 CnWideStrings 单元做 UTF8 支持
 
 type
   ECnZipException = class(Exception);
