@@ -61,7 +61,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Math, CnNativeDecl
+  SysUtils, Classes, Math, CnNativeDecl, CnContainers
   {$IFDEF MSWINDOWS}, CnClasses {$ENDIF}
   {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
 
@@ -924,7 +924,7 @@ begin
   else
   begin
     // 以现成的素数数组来除
-    if N < 2 then            //0、1 不是
+    if N < 2 then            // 0、1 不是
       Exit
     else if N = 2 then       // 2 是
     begin
@@ -2546,7 +2546,7 @@ begin
         BP1.SafeValue[K, N - K].SetInt64(X1[K]);
 
       BD := TCnBigNumberBiPolynomial.Create;
-      BD.SetOne;
+      BD.SetOne;  // 曾经有一个 SetOne 失效的 BUG，结果在计算 39779 时特别快还准确，不理解
       BD.Negate;
       BD.SetYCoefficents(R, [1]); // D 得到 X^R - 1
 

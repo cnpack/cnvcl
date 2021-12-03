@@ -1403,9 +1403,9 @@ type
     function GetReadonlyValue(XDegree, YDegree: Integer): TCnBigNumber;
   protected
     function CompactYDegree(YList: TCnSparseBigNumberList): Boolean;
-    {* 去除一个 Y 系数高次零项，如全 0 则返回 True}
+    {* 去除一个 Y 系数高次零项，如是 nil 或有内容但全 0 则返回 True}
     property YFactorsList[Index: Integer]: TCnSparseBigNumberList read GetYFactorsList;
-    {* 封装的对 X 的 Index 次项的 Y 系数列表}
+    {* 封装的对 X 的 Index 次项的 Y 系数列表，FXs[Index] 为 nil 时会自动创建出来，FXs.Count 不够时会自动扩容}
     procedure Clear;
     {* 内部清空所有数据，只给 FXs[0] 留一个 List，一般不对外使用}
   public
@@ -7174,7 +7174,7 @@ end;
 function TCnInt64BiPolynomial.GetYFactorsList(
   Index: Integer): TCnInt64List;
 begin
-  if (Index < 0) and (Index >= FXs.Count) then
+  if (Index < 0) or (Index >= FXs.Count) then
     raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Index]);
 
   Result := TCnInt64List(FXs[Index]);
@@ -8493,7 +8493,15 @@ begin
     begin
       Dst.MaxXDegree := Src.MaxXDegree;
       for I := 0 to Src.MaxXDegree do
-        Src.YFactorsList[I].AssignTo(Dst.YFactorsList[I]);
+      begin
+        if Src.FXs[I] = nil then
+        begin
+          Dst.FXs[I].Free;
+          Dst.FXs[I] := nil;
+        end
+        else
+          Src.YFactorsList[I].AssignTo(Dst.YFactorsList[I]);
+      end;
     end
     else
       Dst.SetZero; // 如果 Src 未初始化，则 Dst 也清零
@@ -8510,7 +8518,13 @@ begin
 
   Dst.MaxXDegree := SrcX.MaxDegree;
   for I := 0 to SrcX.MaxDegree do
-    Dst.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值
+    if SrcX[I].IsZero then
+    begin
+      Dst.FXs[I].Free;
+      Dst.FXs[I] := nil;
+    end
+    else
+      Dst.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值，0 则清空 FXs 对应项
 end;
 
 function BigNumberBiPolynomialCopyFromY(const Dst: TCnBigNumberBiPolynomial;
@@ -8521,8 +8535,9 @@ begin
   Result := Dst;
   Dst.Clear;
 
-  for I := 0 to SrcY.MaxDegree do
-    Dst.YFactorsList[0].AddPair(I, SrcY[I]); // 给最低一个 YList 的所有元素设值
+  if not SrcY.IsZero then
+    for I := 0 to SrcY.MaxDegree do
+      Dst.YFactorsList[0].AddPair(I, SrcY[I]); // 给最低一个 YList 的所有元素设值
 end;
 
 function BigNumberBiPolynomialToString(const P: TCnBigNumberBiPolynomial;
@@ -8534,12 +8549,13 @@ begin
   Result := '';
   for I := P.FXs.Count - 1 downto 0 do
   begin
-    YL := TCnSparseBigNumberList(P.FXs[I]);
-    for J := YL.Count - 1 downto 0 do
-    begin
-      if VarItemFactor(Result, (YL[J].Exponent = 0) and (I = 0), YL[J].Value.ToDec) then
-        Result := Result + VarPower2(Var1Name, Var2Name, I, YL[J].Exponent);
-    end;
+    YL := TCnSparseBigNumberList(P.FXs[I]);  // 只处理存在的项，无需新增 0 项
+    if YL <> nil then
+      for J := YL.Count - 1 downto 0 do
+      begin
+        if VarItemFactor(Result, (YL[J].Exponent = 0) and (I = 0), YL[J].Value.ToDec) then
+          Result := Result + VarPower2(Var1Name, Var2Name, I, YL[J].Exponent);
+      end;
   end;
 
   if Result = '' then
@@ -8645,34 +8661,49 @@ end;
 
 function BigNumberBiPolynomialIsZero(const P: TCnBigNumberBiPolynomial): Boolean;
 begin
-  Result := (P.FXs.Count = 1) and
-    ((TCnSparseBigNumberList(P.FXs[0]).Count = 0) or
-   (TCnSparseBigNumberList(P.FXs[0]).Count = 1) and (TCnSparseBigNumberList(P.FXs[0])[0].Exponent = 0) and ((TCnSparseBigNumberList(P.FXs[0])[0].Value.IsZero)));
+  Result := True;
+  if P.FXs.Count = 0 then
+    Exit;
+
+  if (P.FXs.Count = 1) and ((P.FXs[0] = nil) or (TCnSparseBigNumberList(P.FXs[0]).Count = 0)) then
+    Exit;
+
+  if (P.FXs.Count = 1) and (P.FXs[0] <> nil) and (TCnSparseBigNumberList(P.FXs[0]).Count = 1)
+    and (TCnSparseBigNumberList(P.FXs[0])[0].Exponent = 0) and TCnSparseBigNumberList(P.FXs[0])[0].Value.IsZero then
+    Exit;
+
+  Result := False;
+//  Result := (P.FXs.Count = 0) or
+//    ((P.FXs.Count = 1) and (P.FXs[0] = nil)) or
+//    (TCnSparseBigNumberList(P.FXs[0]).Count = 0) or
+//    ((TCnSparseBigNumberList(P.FXs[0]).Count = 1) and (TCnSparseBigNumberList(P.FXs[0])[0].Exponent = 0)
+//     and ((TCnSparseBigNumberList(P.FXs[0])[0].Value.IsZero)));
 end;
 
 procedure BigNumberBiPolynomialSetZero(const P: TCnBigNumberBiPolynomial);
-var
-  I: Integer;
+//var
+//  I: Integer;
 begin
-  if P.FXs.Count <= 0 then
-    P.FXs.Add(TCnSparseBigNumberList.Create)
-  else
-    for I := P.FXs.Count - 1 downto 1 do
-    begin
-      P.FXs[I].Free;
-      P.FXs.Delete(I);
-    end;
-
-  if P.YFactorsList[0].Count <= 0 then
-    P.YFactorsList[0].Add(TCnExponentBigNumberPair.Create)
-  else
-  begin
-    for I := P.YFactorsList[0].Count - 1 downto 1 do
-      P.YFactorsList[0].Delete(I);
-
-    P.YFactorsList[0][0].Exponent := 0;
-    P.YFactorsList[0][0].Value.SetZero;
-  end;
+  P.FXs.Clear;
+//  if P.FXs.Count <= 0 then
+//    P.FXs.Add(TCnSparseBigNumberList.Create)
+//  else
+//    for I := P.FXs.Count - 1 downto 1 do
+//    begin
+//      P.FXs[I].Free;
+//      P.FXs.Delete(I);
+//    end;
+//
+//  if P.YFactorsList[0].Count <= 0 then
+//    P.YFactorsList[0].Add(TCnExponentBigNumberPair.Create)
+//  else
+//  begin
+//    for I := P.YFactorsList[0].Count - 1 downto 1 do
+//      P.YFactorsList[0].Delete(I);
+//
+//    P.YFactorsList[0][0].Exponent := 0;
+//    P.YFactorsList[0][0].Value.SetZero;
+//  end;
 end;
 
 procedure BigNumberBiPolynomialSetOne(const P: TCnBigNumberBiPolynomial);
@@ -8694,10 +8725,10 @@ begin
   begin
     for I := P.YFactorsList[0].Count - 1 downto 1 do
       P.YFactorsList[0].Delete(I);
-
-    P.YFactorsList[0][0].Exponent := 0;
-    P.YFactorsList[0][0].Value.SetOne;
   end;
+
+  P.YFactorsList[0][0].Exponent := 0;
+  P.YFactorsList[0][0].Value.SetOne;
 end;
 
 procedure BigNumberBiPolynomialNegate(const P: TCnBigNumberBiPolynomial);
@@ -8707,9 +8738,10 @@ var
 begin
   for I := P.FXs.Count - 1 downto 0 do
   begin
-    YL := TCnSparseBigNumberList(P.FXs[I]);
-    for J := YL.Count - 1 downto 0 do
-      YL[I].Value.Negate;
+    YL := TCnSparseBigNumberList(P.FXs[I]); // 如不存在，无需创建
+    if YL <> nil then
+      for J := YL.Count - 1 downto 0 do
+        YL[I].Value.Negate;
   end;
 end;
 
@@ -8717,7 +8749,8 @@ function BigNumberBiPolynomialIsMonicX(const P: TCnBigNumberBiPolynomial): Boole
 begin
   Result := False;
   if P.MaxXDegree >= 0 then
-    Result := (P.YFactorsList[P.MaxXDegree].Count = 1) and (P.YFactorsList[P.MaxXDegree][0].Exponent = 0) and (P.YFactorsList[P.MaxXDegree][0].Value.IsOne);
+    Result := (P.YFactorsList[P.MaxXDegree].Count = 1) and (P.YFactorsList[P.MaxXDegree][0].Exponent = 0)
+      and (P.YFactorsList[P.MaxXDegree][0].Value.IsOne);
 end;
 
 procedure BigNumberBiPolynomialShiftLeftX(const P: TCnBigNumberBiPolynomial; N: Integer);
@@ -8730,7 +8763,7 @@ begin
     BigNumberBiPolynomialShiftRightX(P, -N)
   else
     for I := 0 to N - 1 do
-      P.FXs.Insert(0, TCnSparseBigNumberList.Create);
+      P.FXs.Insert(0, nil); // 后面再优化批量插入操作
 end;
 
 procedure BigNumberBiPolynomialShiftRightX(const P: TCnBigNumberBiPolynomial; N: Integer);
@@ -8746,17 +8779,17 @@ begin
     if N > P.FXs.Count then
       N := P.FXs.Count;
 
-    for I := 0 to N - 1 do
+    for I := N - 1 downto 0 do
     begin
-      P.FXs[0].Free;
-      P.FXs.Delete(0);
+      P.FXs[I].Free;
+      P.FXs.Delete(I);
     end;
   end;
 end;
 
 function BigNumberBiPolynomialEqual(const A, B: TCnBigNumberBiPolynomial): Boolean;
 var
-  I, J: Integer;
+  I: Integer;
 begin
   Result := False;
   if A = B then
@@ -8773,13 +8806,19 @@ begin
 
   for I := A.FXs.Count - 1 downto 0 do
   begin
-    if A.YFactorsList[I].Count <> B.YFactorsList[I].Count then
+    if not SparseBigNumberListEqual(TCnSparseBigNumberList(A.FXs[I]), TCnSparseBigNumberList(B.FXs[I])) then
       Exit;
 
-    for J := A.YFactorsList[I].Count - 1 downto 0 do
-      if (A.YFactorsList[I][J].Exponent <> B.YFactorsList[I][J].Exponent) or
-        not BigNumberEqual(A.YFactorsList[I][J].Value, B.YFactorsList[I][J].Value) then
-        Exit;
+//    if (A.FXs[I] = nil) and (B.FXs[I] = nil) then
+//      Continue;
+//
+//    if A.YFactorsList[I].Count <> B.YFactorsList[I].Count then
+//      Exit;
+//
+//    for J := A.YFactorsList[I].Count - 1 downto 0 do
+//      if (A.YFactorsList[I][J].Exponent <> B.YFactorsList[I][J].Exponent) or
+//        not BigNumberEqual(A.YFactorsList[I][J].Value, B.YFactorsList[I][J].Value) then
+//        Exit;
   end;
   Result := True;
 end;
@@ -8794,8 +8833,9 @@ begin
     P.SetZero
   else if N <> 1 then
     for I := P.FXs.Count - 1 downto 0 do
-      for J := P.YFactorsList[I].Count - 1 downto 0 do
-        P.YFactorsList[I][J].Value.MulWord(N);
+      if P.FXs[I] <> nil then
+        for J := P.YFactorsList[I].Count - 1 downto 0 do
+          P.YFactorsList[I][J].Value.MulWord(N);
 end;
 
 procedure BigNumberBiPolynomialDivWord(const P: TCnBigNumberBiPolynomial; N: Int64);
@@ -8806,8 +8846,9 @@ begin
     raise EDivByZero.Create(SDivByZero)
   else if N <> 1 then
     for I := P.FXs.Count - 1 downto 0 do
-      for J := P.YFactorsList[I].Count - 1 downto 0 do
-        P.YFactorsList[I][J].Value.DivWord(N);
+      if P.FXs[I] <> nil then
+        for J := P.YFactorsList[I].Count - 1 downto 0 do
+          P.YFactorsList[I][J].Value.DivWord(N);
 end;
 
 procedure BigNumberBiPolynomialNonNegativeModWord(const P: TCnBigNumberBiPolynomial; N: Int64);
@@ -8818,8 +8859,9 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   for I := P.FXs.Count - 1 downto 0 do
-    for J := P.YFactorsList[I].Count - 1 downto 0 do
-      P.YFactorsList[I][J].Value.ModWord(N); // 不是 NonNegativeMod 先这样
+    if P.FXs[I] <> nil then
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        P.YFactorsList[I][J].Value.ModWord(N); // 不是 NonNegativeMod 先这样
 end;
 
 procedure BigNumberBiPolynomialMulBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
@@ -8830,8 +8872,9 @@ begin
     P.SetZero
   else if not N.IsOne then
     for I := P.FXs.Count - 1 downto 0 do
-      for J := P.YFactorsList[I].Count - 1 downto 0 do
-        BigNumberMul(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
+      if P.FXs[I] <> nil then
+        for J := P.YFactorsList[I].Count - 1 downto 0 do
+          BigNumberMul(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
 end;
 
 procedure BigNumberBiPolynomialDivBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
@@ -8842,8 +8885,9 @@ begin
     raise EDivByZero.Create(SDivByZero)
   else if not N.IsOne then
     for I := P.FXs.Count - 1 downto 0 do
-      for J := P.YFactorsList[I].Count - 1 downto 0 do
-        BigNumberDiv(P.YFactorsList[I][J].Value, nil, P.YFactorsList[I][J].Value, N);
+      if P.FXs[I] <> nil then
+        for J := P.YFactorsList[I].Count - 1 downto 0 do
+          BigNumberDiv(P.YFactorsList[I][J].Value, nil, P.YFactorsList[I][J].Value, N);
 end;
 
 procedure BigNumberBiPolynomialNonNegativeModBigNumber(const P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
@@ -8854,8 +8898,9 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   for I := P.FXs.Count - 1 downto 0 do
-    for J := P.YFactorsList[I].Count - 1 downto 0 do
-      BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
+    if P.FXs[I] <> nil then
+      for J := P.YFactorsList[I].Count - 1 downto 0 do
+        BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
 end;
 
 function BigNumberBiPolynomialAdd(const Res: TCnBigNumberBiPolynomial; const P1: TCnBigNumberBiPolynomial;
@@ -8872,15 +8917,20 @@ begin
     if I >= P1.FXs.Count then
       S1 := nil
     else
-      S1 := P1.YFactorsList[I];
+      S1 := TCnSparseBigNumberList(P1.FXs[I]);
 
     if I >= P2.FXs.Count then
       S2 := nil
     else
-      S2 := P2.YFactorsList[I];
+      S2 := TCnSparseBigNumberList(P2.FXs[I]);
 
-    // 上面设置了 MaxXDegree 确保 Res.YFactorsList[I] 存在，本循环确保覆盖每一个 Res.YFactorsList[I]
-    SparseBigNumberListMerge(Res.YFactorsList[I], S1, S2, True);
+    if (S1 = nil) and (S2 = nil) then
+    begin
+      Res.FXs[I].Free;
+      Res.FXs[I] := nil;
+    end
+    else
+      SparseBigNumberListMerge(Res.YFactorsList[I], S1, S2, True); // 本循环确保覆盖每一个 Res.YFactorsList[I]
   end;
   Res.CorrectTop;
   Result := True;
@@ -8900,15 +8950,20 @@ begin
     if I >= P1.FXs.Count then
       S1 := nil
     else
-      S1 := P1.YFactorsList[I];
+      S1 := TCnSparseBigNumberList(P1.FXs[I]);
 
     if I >= P2.FXs.Count then
       S2 := nil
     else
-      S2 := P2.YFactorsList[I];
+      S2 := TCnSparseBigNumberList(P2.FXs[I]);
 
-    // 上面设置了 MaxXDegree 确保 Res.YFactorsList[I] 存在，本循环确保覆盖每一个 Res.YFactorsList[I]
-    SparseBigNumberListMerge(Res.YFactorsList[I], S1, S2, False);
+    if (S1 = nil) and (S2 = nil) then
+    begin
+      Res.FXs[I].Free;
+      Res.FXs[I] := nil;
+    end
+    else
+      SparseBigNumberListMerge(Res.YFactorsList[I], S1, S2, False);
   end;
   Res.CorrectTop;
   Result := True;
@@ -8942,12 +8997,18 @@ begin
   try
     for I := P1.FXs.Count - 1 downto 0 do
     begin
+      if P1.FXs[I] = nil then
+        Continue;
+
       for J := P1.YFactorsList[I].Count - 1 downto 0 do
       begin
         Pair1 := P1.YFactorsList[I][J];
         // 拿到 P1.SafeValue[I, J]，要遍历相乘 P2 的每一个
         for K := P2.FXs.Count - 1 downto 0 do
         begin
+          if P2.FXs[K] = nil then
+            Continue;
+
           for L := P2.YFactorsList[K].Count - 1 downto 0 do
           begin
             Pair2 := P2.YFactorsList[K][L];
@@ -9143,6 +9204,9 @@ begin
 
     for I := 0 to P.FXs.Count - 1 do
     begin
+      if P.FXs[I] = nil then
+        Continue;
+
       Sum.SetZero;
       YL := P.YFactorsList[I];
 
@@ -9204,7 +9268,7 @@ begin
       for J := 0 to P.FXs.Count - 1 do
       begin
         //Sum := Sum + TX * P.SafeValue[J, I];
-        BigNumberMul(T, TX, P.SafeValue[J, I]);
+        BigNumberMul(T, TX, P.ReadonlyValue[J, I]);
         BigNumberAdd(Sum, Sum, T);
 
         //TX := TX * XValue;
@@ -9238,11 +9302,12 @@ begin
 
   for I := Src.FXs.Count - 1 downto 0 do
   begin
-    for J := Src.YFactorsList[I].Count - 1 downto 0 do
-    begin
-      Pair := Src.YFactorsList[I][J];
-      T.SafeValue[Pair.Exponent, I] := Pair.Value; // 内部复制
-    end;
+    if Src.FXs[I] <> nil then
+      for J := Src.YFactorsList[I].Count - 1 downto 0 do
+      begin
+        Pair := Src.YFactorsList[I][J];
+        T.SafeValue[Pair.Exponent, I] := Pair.Value; // 内部复制
+      end;
   end;
 
   if Src = Dst then
@@ -9263,16 +9328,19 @@ begin
 
   if XDegree < P.FXs.Count then
   begin
-    Pair := P.YFactorsList[XDegree].Top;
-    Res.MaxDegree := Pair.Exponent;
-
-    for I := 0 to P.YFactorsList[XDegree].Count - 1 do
+    if P.FXs[XDegree] <> nil then
     begin
-      Pair := P.YFactorsList[XDegree][I];
-      if Res[Pair.Exponent] = nil then
-        Res[Pair.Exponent] := TCnBigNumber.Create;
+      Pair := P.YFactorsList[XDegree].Top;
+      Res.MaxDegree := Pair.Exponent;
 
-      BigNumberCopy(Res[Pair.Exponent], Pair.Value);
+      for I := 0 to P.YFactorsList[XDegree].Count - 1 do
+      begin
+        Pair := P.YFactorsList[XDegree][I];
+        if Res[Pair.Exponent] = nil then
+          Res[Pair.Exponent] := TCnBigNumber.Create;
+
+        BigNumberCopy(Res[Pair.Exponent], Pair.Value);
+      end;
     end;
   end;
 end;
@@ -9285,7 +9353,7 @@ begin
   CheckDegree(YDegree);
   Res.Clear;
   for I := 0 to P.FXs.Count - 1 do
-    BigNumberCopy(Res.Add, P.SafeValue[I, YDegree]);
+    BigNumberCopy(Res.Add, P.ReadonlyValue[I, YDegree]);
 
   Res.CorrectTop;
 end;
@@ -9319,6 +9387,20 @@ begin
 
     for I := A.FXs.Count - 1 downto 0 do
     begin
+      // TODO: 未处理 A[I] 和 B[I] 一个是 nil，另一个经过 mod 运算后是 0 的情形
+      if (A.FXs[I] = nil) and (B.FXs[I] = nil) then
+        Continue
+      else if A.FXs[I] = nil then // 判断 B 是否为 0
+      begin
+        if not SparseBigNumberListIsZero(TCnSparseBigNumberList(B.FXs[I])) then
+          Exit;
+      end
+      else if B.FXs[I] = nil then // 判断 A 是否为 0
+      begin
+        if not SparseBigNumberListIsZero(TCnSparseBigNumberList(A.FXs[I])) then
+          Exit;
+      end;
+
       if A.YFactorsList[I].Count <> B.YFactorsList[I].Count then
         Exit;
 
@@ -9349,11 +9431,12 @@ begin
   for I := P.FXs.Count - 1 downto 0 do
   begin
     YL := TCnSparseBigNumberList(P.FXs[I]);
-    for J := YL.Count - 1 downto 0 do
-    begin
-      YL[J].Value.Negate;
-      BigNumberNonNegativeMod(YL[J].Value, YL[J].Value, Prime);
-    end;
+    if YL <> nil then
+      for J := YL.Count - 1 downto 0 do
+      begin
+        YL[J].Value.Negate;
+        BigNumberNonNegativeMod(YL[J].Value, YL[J].Value, Prime);
+      end;
   end;
 end;
 
@@ -9410,12 +9493,18 @@ begin
   try
     for I := P1.FXs.Count - 1 downto 0 do
     begin
+      if P1.FXs[I] = nil then
+        Continue;
+
       for J := P1.YFactorsList[I].Count - 1 downto 0 do
       begin
         Pair1 := P1.YFactorsList[I][J];
-        // 拿到 P1.SafeValue[I, J]，要遍历相乘 P2 的每一个
+        // 拿到 P1.SafeValue[I, J] 里的非 0 项，要遍历相乘 P2 的每一个非 0 项
         for K := P2.FXs.Count - 1 downto 0 do
         begin
+          if P2.FXs[K] = nil then
+            Continue;
+
           for L := P2.YFactorsList[K].Count - 1 downto 0 do
           begin
             Pair2 := P2.YFactorsList[K][L];
@@ -9627,6 +9716,9 @@ begin
 
     for I := 0 to P.FXs.Count - 1 do
     begin
+      if P.FXs[I] = nil then
+        Continue;
+
       Sum.SetZero;
       YL := P.YFactorsList[I];
 
@@ -9697,10 +9789,13 @@ begin
 
       for J := 0 to P.FXs.Count - 1 do
       begin
-        //Sum := Sum + TX * P.SafeValue[J, I];
-        BigNumberMul(T, TX, P.SafeValue[J, I]);
-        BigNumberAdd(Sum, Sum, T);
-        BigNumberNonNegativeMod(Sum, Sum, Prime);
+        if P.FXs[J] <> nil then
+        begin
+          //Sum := Sum + TX * P.SafeValue[J, I];
+          BigNumberMul(T, TX, P.ReadonlyValue[J, I]);
+          BigNumberAdd(Sum, Sum, T);
+          BigNumberNonNegativeMod(Sum, Sum, Prime);
+        end;
 
         //TX := TX * XValue;
         BigNumberMul(TX, TX, XValue);
@@ -9725,11 +9820,14 @@ begin
     P.SetZero
   else // 有 Prime 需要 Mod，不判断是否是 1 了
     for I := P.FXs.Count - 1 downto 0 do
-      for J := P.YFactorsList[I].Count - 1 downto 0 do
-      begin
-        P.YFactorsList[I][J].Value.MulWord(N);
-        BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, Prime);
-      end;
+    begin
+      if P.FXs[I] <> nil then
+        for J := P.YFactorsList[I].Count - 1 downto 0 do
+        begin
+          P.YFactorsList[I][J].Value.MulWord(N);
+          BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, Prime);
+        end;
+    end;
 end;
 
 procedure BigNumberBiPolynomialGaloisDivWord(const P: TCnBigNumberBiPolynomial;
@@ -9758,12 +9856,13 @@ begin
 
     for I := P.FXs.Count - 1 downto 0 do
     begin
-      for J := P.YFactorsList[I].Count - 1 downto 0 do
-      begin
-        BigNumberDirectMulMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, K, Prime);
-        if B then
-          BigNumberSub(P.YFactorsList[I][J].Value, Prime, P.YFactorsList[I][J].Value);
-      end;
+      if P.FXs[I] <> nil then
+        for J := P.YFactorsList[I].Count - 1 downto 0 do
+        begin
+          BigNumberDirectMulMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, K, Prime);
+          if B then
+            BigNumberSub(P.YFactorsList[I][J].Value, Prime, P.YFactorsList[I][J].Value);
+        end;
     end;
   finally
     FLocalBigNumberPool.Recycle(K);
@@ -9777,23 +9876,28 @@ procedure TCnBigNumberBiPolynomial.Clear;
 var
   I: Integer;
 begin
-  if FXs.Count <= 0 then
-    FXs.Add(TCnSparseBigNumberList.Create)
-  else
-    for I := FXs.Count - 1 downto 1 do
+//  if FXs.Count <= 0 then
+//    FXs.Add(TCnSparseBigNumberList.Create)
+//  else
+    for I := FXs.Count - 1 downto 0 do
     begin
       FXs[I].Free;
       FXs.Delete(I);
     end;
 
-  YFactorsList[0].Clear;
+//  YFactorsList[0].Clear;
 end;
 
 function TCnBigNumberBiPolynomial.CompactYDegree(
   YList: TCnSparseBigNumberList): Boolean;
 begin
-  YList.Compact;
-  Result := YList.Count = 0;
+  if YList = nil then
+    Result := True
+  else
+  begin
+    YList.Compact;
+    Result := YList.Count = 0;
+  end;
 end;
 
 procedure TCnBigNumberBiPolynomial.CorrectTop;
@@ -9814,6 +9918,11 @@ begin
     if Compact and not MeetNonEmpty then // 最高的一路下来压缩出来全 0 的要删掉
     begin
       FXs.Delete(I);
+      YL.Free;
+    end
+    else if Compact then // 普通的压缩的全 0 的，需要释放 SparseBigNumberList，但 FXs 里还得占位
+    begin
+      FXs[I] := nil;
       YL.Free;
     end;
   end;
@@ -9848,7 +9957,7 @@ begin
   begin
     for I := FXs.Count + 1 to XDegree + 1 do
     begin
-      FXs.Add(TCnSparseBigNumberList.Create);
+      FXs.Add(nil);
       // TCnSparseBigNumberList(FXs[FXs.Count - 1]).Count := YDegree + 1;
     end;
   end;
@@ -9871,15 +9980,16 @@ begin
   Result := 0;
   for I := FXs.Count - 1 downto 0 do
   begin
-    if YFactorsList[I].Count > 0 then
-    begin
-      Pair := YFactorsList[I].Top;
-      if Pair <> nil then
+    if FXs[I] <> nil then
+      if YFactorsList[I].Count > 0 then
       begin
-        if Pair.Exponent > Result then
-        Result := Pair.Exponent;
+        Pair := YFactorsList[I].Top;
+        if Pair <> nil then
+        begin
+          if Pair.Exponent > Result then
+          Result := Pair.Exponent;
+        end;
       end;
-    end;
   end;
 end;
 
@@ -9892,8 +10002,9 @@ begin
   if (XDegree >= 0) and (XDegree < FXs.Count) then
   begin
     YL := TCnSparseBigNumberList(FXs[XDegree]);
-    if (YDegree >= 0) and (YDegree < YL.Count) then
-      Result := YL.ReadonlyValue[YDegree];
+    if YL <> nil then
+      if (YDegree >= 0) and (YDegree < YL.Count) then
+        Result := YL.ReadonlyValue[YDegree];
   end;
 end;
 
@@ -9902,20 +10013,28 @@ function TCnBigNumberBiPolynomial.GetSafeValue(XDegree,
 var
   YL: TCnSparseBigNumberList;
 begin
-  if XDegree > MaxXDegree then  // 确保 XDegree 存在
+  if XDegree > MaxXDegree then  
     MaxXDegree := XDegree;
 
-  YL := TCnSparseBigNumberList(FXs[XDegree]);
+  YL := YFactorsList[XDegree];  // 确保 XDegree 存在
   Result := YL.SafeValue[YDegree];
 end;
 
 function TCnBigNumberBiPolynomial.GetYFactorsList(
   Index: Integer): TCnSparseBigNumberList;
 begin
-  if (Index < 0) and (Index >= FXs.Count) then
+  if Index < 0 then
     raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Index]);
 
+  if Index >= FXs.Count then
+    FXs.Count := Index + 1;
+
   Result := TCnSparseBigNumberList(FXs[Index]);
+  if Result = nil then
+  begin
+    Result := TCnSparseBigNumberList.Create;
+    FXs[Index] := Result;
+  end;
 end;
 
 function TCnBigNumberBiPolynomial.IsMonicX: Boolean;
@@ -9941,8 +10060,9 @@ begin
 
   if Value + 1 > FXs.Count then
   begin
-    for I := FXs.Count + 1 to Value + 1 do
-      FXs.Add(TCnSparseBigNumberList.Create);
+    FXs.Count := Value + 1; // 不预先创建
+//    for I := FXs.Count + 1 to Value + 1 do
+//      FXs.Add(TCnSparseBigNumberList.Create);
   end
   else if Value + 1 < FXs.Count then
   begin
@@ -9969,10 +10089,10 @@ procedure TCnBigNumberBiPolynomial.SetSafeValue(XDegree, YDegree: Integer;
 var
   YL: TCnSparseBigNumberList;
 begin
-  if XDegree > MaxXDegree then  // 确保 XDegree 存在
+  if XDegree > MaxXDegree then  
     MaxXDegree := XDegree;
 
-  YL := TCnSparseBigNumberList(FXs[XDegree]);
+  YL := YFactorsList[XDegree];    // 确保 XDegree 存在
   YL.SafeValue[YDegree] := Value; // 内部 Copy 大数
 end;
 
@@ -10036,12 +10156,20 @@ var
 begin
   CheckDegree(XDegree);
 
-  if XDegree > MaxXDegree then   // 确保 X 次项的 List 存在
+  if XDegree > MaxXDegree then   
     MaxXDegree := XDegree;
 
-  YFactorsList[XDegree].Clear;
-  for I := 0 to PY.MaxDegree do
-    YFactorsList[XDegree].SafeValue[I].SetInt64(PY[I]);
+  if PY.IsZero then
+  begin
+    FXs[XDegree].Free;
+    FXs[XDegree] := nil;
+  end
+  else
+  begin
+    YFactorsList[XDegree].Clear; // 确保 X 次项的 List 存在
+    for I := 0 to PY.MaxDegree do
+      YFactorsList[XDegree].SafeValue[I].SetInt64(PY[I]);
+  end;
 end;
 
 procedure TCnBigNumberBiPolynomial.SetYCoefficentsFromPolynomial(
@@ -10051,12 +10179,20 @@ var
 begin
   CheckDegree(XDegree);
 
-  if XDegree > MaxXDegree then   // 确保 X 次项的 List 存在
+  if XDegree > MaxXDegree then   
     MaxXDegree := XDegree;
 
-  YFactorsList[XDegree].Clear;
-  for I := 0 to PY.MaxDegree do
-    YFactorsList[XDegree].SafeValue[I] := PY[I];
+  if PY.IsZero then
+  begin
+    FXs[XDegree].Free;
+    FXs[XDegree] := nil;
+  end
+  else
+  begin
+    YFactorsList[XDegree].Clear;   // 确保 X 次项的 List 存在
+    for I := 0 to PY.MaxDegree do
+      YFactorsList[XDegree].SafeValue[I] := PY[I];
+  end;
 end;
 
 procedure TCnBigNumberBiPolynomial.SetZero;

@@ -347,6 +347,8 @@ type
     {* 从低到高设置值}
     procedure Compact;
     {* 压缩，也就是删掉所有 0 系数项}
+    procedure Negate;
+    {* 所有系数求反}
     property SafeValue[Exponent: Integer]: TCnBigNumber read GetSafeValue write SetSafeValue;
     {* 安全的根据参数 Exponent 获取大数的方法，读时如内部查不到，会插入新建值并返回，
       写时如内部查不到，则新建插入指定位置后将 Value 复制入此 BigNumber 对象}
@@ -760,11 +762,14 @@ procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
 procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
 {* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
 
-function SparseBigNumberListEqual(A, B: TCnSparseBigNumberList): Boolean;
-{* 判断两个 SparseBigNumberList 是否相等}
-
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
+
+function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
+{* 判断 SparseBigNumberList 是否为 0，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理}
+
+function SparseBigNumberListEqual(A, B: TCnSparseBigNumberList): Boolean;
+{* 判断两个 SparseBigNumberList 是否相等，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理}
 
 procedure SparseBigNumberListCopy(Dst, Src: TCnSparseBigNumberList);
 {* 将 Src 复制至 Dst}
@@ -5782,6 +5787,12 @@ begin
       Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
 end;
 
+function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
+begin
+  Result := (P = nil) or (P.Count = 0) or
+    ((P.Count = 1) and (P[0].Exponent = 0) and (P[0].Value.IsZero));
+end;
+
 function SparseBigNumberListEqual(A, B: TCnSparseBigNumberList): Boolean;
 var
   I: Integer;
@@ -5793,8 +5804,22 @@ begin
     Exit;
   end;
 
-  if (A = nil) or (B = nil) then
-    Exit;
+  if (A = nil) and (B <> nil)then // 一个是 nil，需要判断另外一个是不是 0
+  begin
+    if (B.Count = 0) or ((B.Count = 1) and (B[0].Exponent = 0) and B[0].Value.IsZero) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end
+  else if (B = nil) and (A <> nil) then
+  begin
+    if (A.Count = 0) or ((A.Count = 1) and (A[0].Exponent = 0) and A[0].Value.IsZero) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
 
   if A.Count <> B.Count then
     Exit;
@@ -5831,7 +5856,11 @@ var
   P1, P2: TCnExponentBigNumberPair;
 begin
   if Src1 = nil then                   // 只要有一个是 nil，Dst 就被塞为另一个
-    SparseBigNumberListCopy(Dst, Src2)
+  begin
+    SparseBigNumberListCopy(Dst, Src2);
+    if not Add then  // Src2 是被减数
+      Dst.Negate;
+  end
   else if Src2 = nil then
     SparseBigNumberListCopy(Dst, Src1)
   else if Src1 = Src2 then // 如果 Src1 和 Src2 是同一个，合并，支持 Dst 也是同一个的情形
@@ -5910,25 +5939,33 @@ begin
         Exit;
       end;
 
-      // 剩下哪个有，就全加到 Dst 里去
+      // 剩下哪个有，就全加到 Dst 里 K 开始的位置去
       if I = Src1.Count then
       begin
-        for K := J to Src2.Count - 1 do
+        for I := J to Src2.Count - 1 do
         begin
-          P2 := TCnExponentBigNumberPair.Create;
-          P2.Exponent := Src2[K].Exponent;
-          BigNumberCopy(P2.Value, Src2[K].Value);
-          Dst.Add(P2);
+          if K >= Dst.Count then
+            Dst.Add(TCnExponentBigNumberPair.Create)
+          else if Dst[K] = nil then
+            Dst[K] := TCnExponentBigNumberPair.Create;
+
+          Dst[K].Exponent := Src2[I].Exponent;
+          BigNumberCopy(Dst[K].Value, Src2[I].Value);
+          Inc(K);
         end;
       end
       else if J = Src2.Count then
       begin
-        for K := I to Src1.Count - 1 do
+        for J := I to Src1.Count - 1 do
         begin
-          P1 := TCnExponentBigNumberPair.Create;
-          P1.Exponent := Src1[K].Exponent;
-          BigNumberCopy(P1.Value, Src1[K].Value);
-          Dst.Add(P1);
+          if K >= Dst.Count then
+            Dst.Add(TCnExponentBigNumberPair.Create)
+          else if Dst[K] = nil then
+            Dst[K] := TCnExponentBigNumberPair.Create;
+
+          Dst[K].Exponent := Src1[J].Exponent;
+          BigNumberCopy(Dst[K].Value, Src1[J].Value);
+          Inc(K);
         end;
       end;
       Dst.Compact;
@@ -6534,6 +6571,15 @@ begin
     Insert(OutIndex, Pair);
     Result := OutIndex;
   end;
+end;
+
+procedure TCnSparseBigNumberList.Negate;
+var
+  I: Integer;
+begin
+  for I := Count - 1 downto 0 do
+    if (Items[I] <> nil) then
+      Items[I].Value.Negate;
 end;
 
 procedure TCnSparseBigNumberList.SetItem(Index: Integer;
