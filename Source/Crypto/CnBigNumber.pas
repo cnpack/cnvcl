@@ -762,6 +762,9 @@ procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
 procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
 {* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
 
+function BigNumberAKSIsPrime(N: Int64): Boolean;
+{* 用 AKS 算法判断某正整数是否是素数，基于稀疏列表的大数二元多项式，比较慢，不具有可用性}
+
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
 
@@ -785,7 +788,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnBigDecimal;
+  CnPrimeNumber, CnBigDecimal, CnPolynomial;
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -5770,6 +5773,144 @@ begin
   BigNumberFillCombinatorialNumbers(List, N);
   for I := 0 to List.Count - 1 do
     BigNumberNonNegativeMod(List[I], List[I], P);
+end;
+
+function BigNumberAKSIsPrime(N: Int64): Boolean;
+var
+  NR: Boolean;
+  R, T, C: Int64;
+  K, LG22: Integer;
+  LG2, Q: Extended;
+  BN, BT: TCnBigNumber;
+  X1: TCnInt64Polynomial;
+  BP1, BP2, BD: TCnBigNumberBiPolynomial;
+  BX2, BRes: TCnBigNumberPolynomial;
+begin
+  Result := False;
+  if N <= 1 then
+    Exit;
+  if CnInt64IsPerfectPower(N) then // 如果是完全幂则是合数
+    Exit;
+
+  // 找出最小的 R 满足 欧拉(R) > (Log二底(N))^2。
+  NR := True;
+  R := 1;
+  LG2 := Log2(N);
+  // LG2 := GetUInt64HighBits(N); // 整数会有误差
+  LG22 := Trunc(LG2 * LG2);
+
+  // 找出最小的 R
+  while NR do
+  begin
+    Inc(R);
+    NR := False;
+
+    K := 1;
+    while not NR and (K <= LG22) do
+    begin
+      T := MontgomeryPowerMod(N, K, R);  // 非负 Int64 可以使用 TUInt64 版本的 MontgomeryPowerMod
+      NR := (T = 0) or (T = 1);
+      Inc(K);
+    end;
+  end;
+
+  // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
+  T := R;
+  while T > 1 do
+  begin
+    C := CnInt64GreatestCommonDivisor(T, N);
+    if (C > 1) and (C < N) then
+      Exit;
+
+    Dec(T);
+  end;
+
+  if N <= R then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Q := CnEulerInt64(R);
+  // 此处应该用小数计算，因为整数会产生较大误差
+  C := Trunc(Sqrt(Q) * LG2);
+
+  X1 := nil;
+  BN := nil;
+  BT := nil;
+  BD := nil;
+  BX2 := nil;
+  BP1 := nil;
+  BP2 := nil;
+  BRes := nil;
+
+  try
+    // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N，也就是(X+Y)^N 展开后针对 X^R-1 求余，且系数都针对 N 取模
+
+    // 快速展开得到 (X+Y)^N 的系数
+    X1 := TCnInt64Polynomial.Create;
+    // BigNumberFillCombinatorialNumbersMod(BX1, N, BN);
+    CnInt64FillCombinatorialNumbersMod(X1, N, N); // BigNumber 生成万级别的组合数较为耗时，换成 Int64 的
+
+    // 然后将一元 X1 转换成二元 P1，注意此处之前用 N * N * Int64 较耗内存，这里换成基于稀疏列表的 TCnBigNumberBiPolynomial
+    BP1 := TCnBigNumberBiPolynomial.Create;
+    BP1.MaxXDegree := N;
+    BP1.MaxYDegree := N;
+    for K := 0 to N do
+      BP1.SafeValue[K, N - K].SetInt64(X1[K]);
+
+    BD := TCnBigNumberBiPolynomial.Create;
+    BD.SetOne;  // 曾经有一个 SetOne 失效的 BUG，结果在计算 39779 时特别快还准确，不理解
+    BD.Negate;
+    BD.SetYCoefficents(R, [1]); // D 得到 X^R - 1
+
+    BN := TCnBigNumber.Create;
+    BN.SetInt64(N);
+
+    BigNumberBiPolynomialGaloisModX(BP1, BP1, BD, BN);  // P1 得到 (X+Y)^N 针对 X^R - 1 求余
+    BigNumberBiPolynomialNonNegativeModWord(BP1, N); // P1 系数再针对 N 取模
+
+    // 再在环 (X^R-1, N) 上提前计算 X^N + Y
+    BP2 := TCnBigNumberBiPolynomial.Create;
+    BP2.SafeValue[N, 0].SetOne;
+    BP2.SafeValue[0, 1].SetOne; // P2 是 X^N + Y
+    BigNumberBiPolynomialGaloisModX(BP2, BP2, BD, BN);  // P2 得到 X^N + Y 针对 X^R - 1 求余
+    BigNumberBiPolynomialNonNegativeModWord(BP2, N); // P2 系数再针对 N 取模
+
+    BigNumberBiPolynomialGaloisSub(BP1, BP1, BP2, BN);  // P1 - P2 得到 P1 里关于 Y 的表达式
+
+    BRes := TCnBigNumberPolynomial.Create;
+
+    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分
+
+    BT := TCnBigNumber.Create;
+    BT.SetOne;
+    while BigNumberCompareInteger(BT, C) <= 0 do
+    begin
+      // 求 P1 的表达式的值，猜测此时 P1 中已无 X 有效项，只有 Y 项
+      BT.SetInt64(T);
+      BigNumberBiPolynomialGaloisEvaluateByY(BRes, BP1, BT, BN);
+
+      if BRes.MaxDegree > 0 then // 说明还有 X 值，不止常数项
+        Exit;
+      BigNumberPolynomialNonNegativeModWord(BRes, N); // 常数项如果能被 N 整除
+      if not BRes.IsZero then
+        Exit;
+
+      Inc(T);
+    end;
+
+    Result := True;
+  finally
+    BD.Free;
+    BT.Free;
+    BN.Free;
+    BX2.Free;
+    BP1.Free;
+    BP2.Free;
+    BRes.Free;
+    X1.Free;
+  end;
 end;
 
 // 打印大数内部信息

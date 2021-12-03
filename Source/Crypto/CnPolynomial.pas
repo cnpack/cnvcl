@@ -9909,7 +9909,10 @@ begin
   for I := FXs.Count - 1 downto 0 do
   begin
     YL := TCnSparseBigNumberList(FXs[I]);
-    Compact := CompactYDegree(YL);
+    if YL = nil then
+      Compact := True
+    else
+      Compact := CompactYDegree(YL);
 
     if not Compact then     // ±¾´ÎÑ¹Ëõ·Ç 0
       MeetNonEmpty := True;
