@@ -832,9 +832,7 @@ procedure CnUInt64FillCombinatorialNumbersMod(List: TCnInt64List; N: Integer; P:
 {* 计算组合数 C(m, N) mod P 放至 Int64 数组中，其中 m 从 0 到 N，如果 P 不是素数导致内部不互素，则相应值会被置 0}
 
 function CnInt64AKSIsPrime(N: Int64): Boolean;
-{* 用 AKS 算法判断某正整数是否是素数，用 Int64 生成组合数，
-  后续计算过程中，Int64 二元多项式较为占内存的但略快，
-  一定阈值以上改用求三万左右的素数判断需要约一秒钟}
+{* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 10 秒钟}
 
 implementation
 
@@ -2394,8 +2392,6 @@ var
   R, T, C: Int64;
   K, LG22: Integer;
   LG2, Q: Extended;
-  P1, P2, D: TCnInt64BiPolynomial;
-  X1, X2, Res: TCnInt64Polynomial;
 begin
   Result := False;
   if N <= 1 then
@@ -2446,71 +2442,24 @@ begin
   // 此处应该用小数计算，因为整数会产生较大误差
   C := Trunc(Sqrt(Q) * LG2);
 
-  D := nil;
-  X1 := nil;
-  X2 := nil;
-  P1 := nil;
-  P2 := nil;
-  Res := nil;
+  // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N - (X^N + Y)，
+  // 也就是 (X+Y)^N - (X^N + Y) 展开后针对 X^R-1 求余，且系数都针对 N 取模
+  // 根据二项式定理 (X+Y)^N 展开后各项系数 mod N 后，就变成了 X^N+Y^N，其余项余数均为 0
+  // 再 mod X^R - 1 后根据加法求模规则得到的是 X^(N-R) + Y^N
+  // X^N + Y 对 X^R-1 取模则是 X^(N-R) + Y
+  // 一减，得到的结果其实是 Y^N - Y
 
-  try
-    // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N，也就是(X+Y)^N 展开后针对 X^R-1 求余，且系数都针对 N 取模
+  // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分作为 Y，计算 Y^N - Y mod N 是否是 0
+  T := 1;
+  while T <= C do
+  begin
+    if Int64NonNegativeMod(MontgomeryPowerMod(T, N, N) - T, N) <> 0 then
+      Exit;
 
-    // 快速展开得到 (X+Y)^N 的系数
-    X1 := TCnInt64Polynomial.Create;
-    CnInt64FillCombinatorialNumbersMod(X1, N, N);
-
-    // 然后将一元 X1 转换成二元 P1，注意此处 N * N * Int64 较耗内存
-    P1 := TCnInt64BiPolynomial.Create;
-    P1.MaxXDegree := N;
-    P1.MaxYDegree := N;
-    for K := 0 to N do
-      P1.SafeValue[K, N - K] := X1[K];
-
-    D := TCnInt64BiPolynomial.Create;
-    D.SetOne;
-    D.Negate;
-    D.SetYCoefficents(R, [1]); // D 得到 X^R - 1
-
-    Int64BiPolynomialGaloisModX(P1, P1, D, N);  // P1 得到 (X+Y)^N 针对 X^R - 1 求余
-    Int64BiPolynomialNonNegativeModWord(P1, N); // P1 系数再针对 N 取模
-
-    // 再在环 (X^R-1, N) 上提前计算 X^N + Y
-    P2 := TCnInt64BiPolynomial.Create;
-    P2.SafeValue[N, 0] := 1;
-    P2.SafeValue[0, 1] := 1; // P2 是 X^N + Y
-    Int64BiPolynomialGaloisModX(P2, P2, D, N);  // P2 得到 X^N + Y 针对 X^R - 1 求余
-    Int64BiPolynomialNonNegativeModWord(P2, N); // P2 系数再针对 N 取模
-
-    Int64BiPolynomialGaloisSub(P1, P1, P2, N);  // P1 - P2 得到 P1 里关于 Y 的表达式
-
-    Res := TCnInt64Polynomial.Create;
-
-    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分
-    T := 1;
-    while T <= C do
-    begin
-      // 求 P1 的表达式的值，猜测此时 P1 中已无 X 有效项，只有 Y 项
-      Int64BiPolynomialGaloisEvaluateByY(Res, P1, T, N);
-
-      if Res.MaxDegree > 0 then // 说明还有 X 值，不止常数项
-        Exit;
-      Int64PolynomialNonNegativeModWord(Res, N); // 常数项如果能被 N 整除
-      if not Res.IsZero then
-        Exit;
-
-      Inc(T);
-    end;
-
-    Result := True;
-  finally
-    D.Free;
-    X1.Free;
-    X2.Free;
-    P1.Free;
-    P2.Free;
-    Res.Free;
+    Inc(T);
   end;
+
+  Result := True;
 end;
 
 end.

@@ -21,7 +21,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsIsPrime
+    ActivePage = tsGenPrime
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet

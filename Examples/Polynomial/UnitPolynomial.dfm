@@ -2048,6 +2048,7 @@ object FormPolynomial: TFormPolynomial
           Height = 25
           Caption = 'Power'
           TabOrder = 16
+          OnClick = btnBNBPPowerClick
         end
         object edtBNBPExp: TEdit
           Left = 368
@@ -2127,6 +2128,24 @@ object FormPolynomial: TFormPolynomial
           Caption = 'Test Set Value'
           TabOrder = 25
           OnClick = btnTestSetStringClick
+        end
+        object btnTestBNBPAddSub: TButton
+          Left = 112
+          Top = 344
+          Width = 75
+          Height = 25
+          Caption = 'Test Add/Sub'
+          TabOrder = 26
+          OnClick = btnTestBNBPAddSubClick
+        end
+        object btnBNBPTestModX: TButton
+          Left = 200
+          Top = 344
+          Width = 75
+          Height = 25
+          Caption = 'Test ModX'
+          TabOrder = 27
+          OnClick = btnBNBPTestModXClick
         end
       end
     end

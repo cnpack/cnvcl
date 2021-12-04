@@ -260,6 +260,8 @@ type
     btnBNBPIsMonicX: TButton;
     btnBNBPDivXModX: TButton;
     btnTestSetString: TButton;
+    btnTestBNBPAddSub: TButton;
+    btnBNBPTestModX: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnIPCreateClick(Sender: TObject);
@@ -409,6 +411,9 @@ type
     procedure btnBNBPEvalYClick(Sender: TObject);
     procedure btnBNBPEvalXClick(Sender: TObject);
     procedure btnBNBPExtractClick(Sender: TObject);
+    procedure btnTestBNBPAddSubClick(Sender: TObject);
+    procedure btnBNBPPowerClick(Sender: TObject);
+    procedure btnBNBPTestModXClick(Sender: TObject);
   private
     FQ: TCnBigNumber;
     FIP1: TCnInt64Polynomial;
@@ -4575,6 +4580,48 @@ begin
   edtBNBP3.Text := P.ToString;
 
   P.Free;
+end;
+
+procedure TFormPolynomial.btnTestBNBPAddSubClick(Sender: TObject);
+begin
+  FBNBP1.SetString('X-Y');
+  FBNBP2.SetString('XY-1');
+  IF BigNumberBiPolynomialAdd(FBNBP3, FBNBP1, FBNBP2) then
+    edtBNBP3.Text := FBNBP3.ToString;
+end;
+
+procedure TFormPolynomial.btnBNBPPowerClick(Sender: TObject);
+var
+  BN: TCnBigNumber;
+begin
+  BN := TCnBigNumber.Create;
+  BN.SetDec(edtBNBPExp.Text);
+  if BigNumberBiPolynomialPower(FBNBP3, FBNBP1, BN) then
+    edtBNBP3.Text := FBNBP3.ToString;
+  BN.Free;
+end;
+
+procedure TFormPolynomial.btnBNBPTestModXClick(Sender: TObject);
+const
+  POLY_1 = 'X^31+Y';
+  POLY_2 = 'X^29-1';
+  POLY_3 = 'X^7+Y';
+  POLY_4 = 'X^5-1';
+var
+  BN: TCnBigNumber;
+begin
+  FBNBP1.SetString(POLY_3);
+  FBNBP2.SetString(POLY_4);
+  BN := TCnBigNumber.Create;
+  BN.SetWord(3);
+  if BigNumberBiPolynomialGaloisModX(FBNBP3, FBNBP1, FBNBP2, BN) then
+    edtBNBP3.Text := FBNBP3.ToString;
+  BN.Free;
+
+  FIBP1.SetString(POLY_3);
+  FIBP2.SetString(POLY_4);
+  if Int64BiPolynomialGaloisModX(FIBP3, FIBP1, FIBP2, 3) then
+    mmoBNBP2.Lines.Text := FIBP3.ToString;
 end;
 
 end.

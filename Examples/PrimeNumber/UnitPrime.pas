@@ -256,24 +256,43 @@ end;
 procedure TFormPrime.btnInt64IsPrimeClick(Sender: TObject);
 var
   N: TUInt64;
+  R: Extended;
+  Root: Cardinal;
   F: TCnUInt64List;
   S: string;
   I: Integer;
 begin
   N := StrToUInt64(edtInt64.Text);
-  if CnInt64IsPrime(N) then
-    ShowMessage('Is Prime Number.')
+  if chkRaw.Checked then
+  begin
+    R := N;
+    Root := Trunc(Sqrt(R));
+    for I := 2 to Root do  // 时间复杂度为 O(根号n)
+    begin
+      if N mod I = 0 then
+      begin
+        ShowMessage('Not Prime Number. One Factor is: ' + IntToStr(I));
+        Exit;
+      end;
+    end;
+    ShowMessage('Int64 Is Prime Number.');
+  end
   else
   begin
-    F := TCnUInt64List.Create;
-    CnInt64FindFactors(N, F);
-    S := #13#10#13#10;
-    for I := 0 to F.Count - 1 do
-      S := S + ' ' + UInt64ToStr(F[I]);
-    F.Free;
-    N := CnEulerInt64(N);
-    S := S + #13#10 + 'Euler: ' + UInt64ToStr(N);
-    ShowMessage('Not Prime Number. Factors are:' + S);
+    if CnInt64IsPrime(N) then
+      ShowMessage('Is Prime Number.')
+    else
+    begin
+      F := TCnUInt64List.Create;
+      CnInt64FindFactors(N, F);
+      S := #13#10#13#10;
+      for I := 0 to F.Count - 1 do
+        S := S + ' ' + UInt64ToStr(F[I]);
+      F.Free;
+      N := CnEulerInt64(N);
+      S := S + #13#10 + 'Euler: ' + UInt64ToStr(N);
+      ShowMessage('Not Prime Number. Factors are:' + S);
+    end;
   end;
 end;
 
@@ -422,6 +441,7 @@ end;
 procedure TFormPrime.FormCreate(Sender: TObject);
 var
   K: TCnBigNumberBiPolynomial;
+  P: TCnInt64Polynomial;
   M: TCnInt64BiPolynomial;
   B: TCnBigNumber;
 begin
@@ -439,6 +459,10 @@ begin
   B := TCnBigNumber.Create;
   B.ToString;
   B.Free;
+
+  P := TCnInt64Polynomial.Create;
+  P.ToString;
+  P.Free;
 end;
 
 procedure TFormPrime.btnCalcXAClick(Sender: TObject);
@@ -692,7 +716,7 @@ procedure TFormPrime.btnMoreAKSClick(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := 1 to 50 do
+  for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
   begin
     if CnInt64AKSIsPrime(CN_PRIME_NUMBERS_SQRT_UINT32[I]) then
     begin
