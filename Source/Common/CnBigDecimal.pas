@@ -30,7 +30,9 @@ unit CnBigDecimal;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.09.05 V1.2
+* 修改记录：2021.12.05 V1.3
+*               增加与 TCnBigRational 互相转换的函数以及求平方根的函数
+*           2021.09.05 V1.2
 *               增加一批 TCnBigBinary 操作函数
 *           2020.07.08 V1.1
 *               实现基于二进制的浮点数 TCnBigBinary
@@ -45,11 +47,14 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, SysConst, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF},
-  CnNativeDecl, CnFloatConvert, CnContainers, CnBigNumber;
+  CnNativeDecl, CnFloatConvert, CnContainers, CnBigRational, CnBigNumber;
 
 const
   CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;         // 大浮点数乘除法的小数点后的默认精度
   CN_BIG_BINARY_DEFAULT_PRECISION  = 32;         // 大二进制浮点数小数点后的默认精度
+
+  CN_BIG_DECIMAL_DEFAULT_DIGITS    = 20;         // 大浮点数转换为小数时默认保留的位数
+  CN_SQRT_DEFAULT_ROUND_COUNT      = 10;         // 大浮点数求平方根时默认迭代的次数
 
 type
   ECnBigDecimalException = class(Exception);
@@ -113,6 +118,8 @@ type
     {* 是否负数}
     function IsZero: Boolean;
     {* 是否是 0}
+    function IsOne: Boolean;
+    {* 是否是 1，只判断值是 1 且指数是 0}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大浮点数转成字符串}
@@ -282,6 +289,17 @@ function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
 {* 大浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
   DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
 
+function BigDecimalSqrt(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  SqrtPrecision: Integer = 0): Boolean;
+{* 大浮点数开平方根，Res 可以是 Num。由于精度以及停止条件不明确，此函数暂不推荐使用
+  SqrtPrecision 表示开平方根精度最多保留小数点后几位，0 表示按默认设置来}
+
+procedure BigDecimalSqrt2(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  RoundCount: Integer = CN_SQRT_DEFAULT_ROUND_COUNT);
+{* 大浮点数开平方根，Res 可以是 Num，小数点后准确几位不易控制因而此处未实现
+  内部使用大有理数保持精度，RoundCount 表示内部迭代次数，0 表示按默认设置来，
+  注意迭代次数如太多会导致大有理数运算较慢}
+
 function BigDecimalChangeToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
   Scale: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 {* 将大浮点数在值不咋变的前提下转换到指定 Scale，也就是小数点后 Scale 位，可能产生舍入，按指定模式来
@@ -294,6 +312,13 @@ function BigDecimalRoundToDigits(const Res: TCnBigDecimal; const Num: TCnBigDeci
 
 function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
 {* 将大浮点数 Trunc 到只剩整数。Res 可以是 Num}
+
+procedure BigDecimalToBigRational(const Res: TCnBigRational; const Num: TCnBigDecimal);
+{* 大浮点数转换为大有理数}
+
+procedure BigRationalToBigDecimal(const Res: TCnBigDecimal; const Num: TCnBigRational;
+  Digits: Integer = 20);
+{* 大有理数转换为大浮点数，可能有精度损失，默认保留小数点后 20 位}
 
 function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
 {* 打印大浮点数内部信息}
@@ -409,6 +434,8 @@ resourcestring
   SCnRoundModeNotSupport = 'Round Mode Not Support.';
 
 const
+  SCN_EXTEND_GAP = '0.000000001';
+
   SCN_FIVE_POWER_UINT32 = 13;
   SCN_POWER_FIVES32: array[0..13] of LongWord = (
     1,                               // 5 ^ 0
@@ -441,7 +468,6 @@ const
     1000000000                       // 10 ^ 9
   );
 
-const
   SCN_POWER_TENS64: array[0..19] of TUInt64 = (
     1,                               // 10 ^ 0
     10,                              // 10 ^ 1
@@ -475,6 +501,16 @@ var
 
   FDefaultDecimalPrecisionDigits: Integer = CN_BIG_DECIMAL_DEFAULT_PRECISION;
   FDefaultBinaryPrecisionDigits: Integer = CN_BIG_BINARY_DEFAULT_PRECISION;
+
+// 根据精度数字整出一个差值供迭代求解过程中停止
+procedure GetGapFromPrecisionDigits(Precision: Integer; Gap: TCnBigDecimal);
+begin
+  if Precision <= 0 then
+    Precision := FDefaultDecimalPrecisionDigits;
+
+  Gap.FValue.SetOne;
+  Gap.FScale := Precision + 1;
+end;
 
 function CheckScaleAddRange(Scale1, Scale2: Integer): Integer;
 begin
@@ -1278,6 +1314,133 @@ begin
   end;
 end;
 
+procedure BigDecimalSqrt2(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  RoundCount: Integer);
+var
+  I: Integer;
+  X0, R, T, D, G: TCnBigRational;
+begin
+  if Num.IsNegative then
+    raise ERangeError.Create('');
+
+  if Num.IsZero or Num.IsOne then
+  begin
+    if Res <> Num then
+      BigDecimalCopy(Res, Num);
+
+    Exit;
+  end;
+
+  if RoundCount <= 0 then
+    RoundCount := CN_SQRT_DEFAULT_ROUND_COUNT;
+
+  X0 := nil;
+  T := nil;
+  D := nil;
+  G := nil;
+
+  try
+    X0 := TCnBigRational.Create;
+    BigDecimalToBigRational(X0, Num);
+    R := TCnBigRational.Create;
+    D := TCnBigRational.Create;
+    D.SetIntValue(2);
+
+    I := 0;
+    while I < RoundCount do
+    begin
+      Inc(I);
+
+      // R := (X0 + Num/X0) / 2;
+      BigDecimalToBigRational(R, Num);
+      CnBigRationalNumberDiv(R, X0, R);
+      CnBigRationalNumberAdd(R, X0, R);
+      CnBigRationalNumberDiv(R, D, R);
+
+      X0.Assign(R);
+    end;
+    BigRationalToBigDecimal(Res, R);
+  finally
+    X0.Free;
+    T.Free;
+    D.Free;
+    G.Free;
+  end;
+end;
+
+function BigDecimalSqrt(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+  SqrtPrecision: Integer = 0): Boolean;
+var
+  X0, R, T, D, G: TCnBigDecimal;
+begin
+  if Num.IsNegative then
+    raise ERangeError.Create('');
+
+  if Num.IsZero or Num.IsOne then
+  begin
+    if Res <> Num then
+      BigDecimalCopy(Res, Num);
+
+    Result := True;
+    Exit;
+  end;
+
+  X0 := nil;
+  T := nil;
+  D := nil;
+  G := nil;
+
+  try
+    G := FLocalBigDecimalPool.Obtain;
+    GetGapFromPrecisionDigits(SqrtPrecision, G);
+
+    D := FLocalBigDecimalPool.Obtain;
+    D.SetWord(2);
+
+    T := FLocalBigDecimalPool.Obtain;
+
+    X0 := FLocalBigDecimalPool.Obtain;
+    BigDecimalCopy(X0, Num);
+
+    if Res <> Num then
+      R := Res
+    else
+      R := FLocalBigDecimalPool.Obtain;
+
+    while True do
+    begin
+      // R := (X0 + Num/X0) / 2;
+      BigDecimalCopy(R, Num);
+      BigDecimalDiv(R, R, X0, SqrtPrecision * 2);
+      BigDecimalAdd(R, R, X0);
+      BigDecimalDiv(R, R, D, SqrtPrecision * 2);
+
+      // if Abs(R - X0) < SCN_EXTEND_GAP then
+      BigDecimalSub(T, R, X0);
+      if T.IsNegative then
+        T.Negate;
+
+      if BigDecimalCompare(T, G) <= 0 then
+        Break;
+
+      // X0 := R;
+      BigDecimalCopy(X0, R);
+    end;
+
+    if Num = Res then
+    begin
+      BigDecimalCopy(Res, R);
+      FLocalBigDecimalPool.Recycle(R);
+    end;
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(X0);
+    FLocalBigDecimalPool.Recycle(T);
+    FLocalBigDecimalPool.Recycle(D);
+    FLocalBigDecimalPool.Recycle(G);
+  end;
+end;
+
 function BigDecimalChangeToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
   Scale: Integer; RoundMode: TCnBigRoundMode): Boolean;
 var
@@ -1384,6 +1547,49 @@ begin
   end;
 end;
 
+procedure BigDecimalToBigRational(const Res: TCnBigRational; const Num: TCnBigDecimal);
+var
+  T: TCnBigNumber;
+begin
+  if (Res <> nil) and (Num <> nil) then
+  begin
+    BigNumberCopy(Res.Nominator, Num.FValue);
+
+    // 精确值为 FValue / (10^FScale)，如果 FScale > 0 则乘方到分母上去，否则相反数乘方到分子上去
+    Res.Denominator.SetOne;
+    if Num.FScale > 0 then
+    begin
+      Res.Denominator.SetWord(10);
+      Res.Denominator.PowerWord(Num.FScale);
+    end
+    else
+    begin
+      T := FLocalBigNumberPool.Obtain;
+      try
+        T.SetWord(10);
+        T.PowerWord(-Num.FScale);
+        BigNumberMul(Res.Nominator, Res.Nominator, T);
+      finally
+        FLocalBigNumberPool.Recycle(T);
+      end;
+    end;
+    Res.Reduce;
+  end;
+end;
+
+procedure BigRationalToBigDecimal(const Res: TCnBigDecimal; const Num: TCnBigRational;
+  Digits: Integer = 20);
+var
+  S: string;
+begin
+  if (Res <> nil) and (Num <> nil) then
+  begin
+    S := Num.ToDec(Digits);
+    if S <> '' then
+      Res.SetDec(S);
+  end;
+end;
+
 function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
 begin
   Result := '10 Scale: ' + IntToStr(Num.FScale) + '. ' + BigNumberDebugDump(Num.FValue);
@@ -1442,6 +1648,11 @@ end;
 function TCnBigDecimal.IsNegative: Boolean;
 begin
   Result := FValue.IsNegative;
+end;
+
+function TCnBigDecimal.IsOne: Boolean;
+begin
+  Result := FValue.IsOne and (FScale = 0);
 end;
 
 function TCnBigDecimal.IsZero: Boolean;

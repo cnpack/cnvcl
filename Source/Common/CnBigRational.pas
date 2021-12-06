@@ -692,7 +692,7 @@ begin
   Remain := TCnBigNumber.Create;
   Res := TCnBigNumber.Create;
 
-  // 基本思想是先除，得到整数部分，如果有余数，就计数加0求余
+  // 基本思想是先除，得到整数部分，如果有余数，就计数加 0 求余
   try
     if IsInt then
     begin

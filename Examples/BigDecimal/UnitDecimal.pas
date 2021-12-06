@@ -48,6 +48,10 @@ type
     edtBigBinaryResult: TEdit;
     btnBigBinaryToFloat: TButton;
     btnBigDecimalToFloat: TButton;
+    btnBDSqrt: TButton;
+    btnDecimalToRational: TButton;
+    btnRationalToDecimal: TButton;
+    btnSqrt2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnSetAndGetClick(Sender: TObject);
@@ -69,6 +73,10 @@ type
     procedure btnBigBinarySetFloatClick(Sender: TObject);
     procedure btnBigBinaryToFloatClick(Sender: TObject);
     procedure btnBigDecimalToFloatClick(Sender: TObject);
+    procedure btnBDSqrtClick(Sender: TObject);
+    procedure btnDecimalToRationalClick(Sender: TObject);
+    procedure btnRationalToDecimalClick(Sender: TObject);
+    procedure btnSqrt2Click(Sender: TObject);
   private
     FBD1: TCnBigDecimal;
     FBD2: TCnBigDecimal;
@@ -84,6 +92,9 @@ var
   FormBigDecimal: TFormBigDecimal;
 
 implementation
+
+uses
+  CnBigRational;
 
 {$R *.DFM}
 
@@ -316,6 +327,70 @@ begin
     edtBigDecimal2.Text := FloatToStr(BigDecimalToDouble(FBD2));
   if BigDecimalSetExtended(E, FBD3) then
     edtBigDecimalResult.Text := FloatToStr(BigDecimalToExtended(FBD3));
+end;
+
+procedure TFormBigDecimal.btnBDSqrtClick(Sender: TObject);
+var
+  D: Integer;
+  S: string;
+begin
+  S := '500';
+  if InputQuery('Hint', 'Enter a Float or Integer Value', S) then
+  begin
+    D := 0;
+    if chkMulDivPrecision.Checked then
+      D := StrToInt(edtMulDivRoundDigits.Text);
+
+    FBD1.SetDec(S);
+    if BigDecimalSqrt(FBD2, FBD1, D) then
+      edtBigDecimalResult.Text := FBD2.ToString;
+  end;
+end;
+
+procedure TFormBigDecimal.btnDecimalToRationalClick(Sender: TObject);
+var
+  D: TCnBigDecimal;
+  R: TCnBigRational;
+begin
+  D := TCnBigDecimal.Create;
+  R := TCnBigRational.Create;
+
+  D.SetDec('2.71828');
+  BigDecimalToBigRational(R, D);
+  ShowMessage(R.ToString);
+
+  R.Free;
+  D.Free;
+end;
+
+procedure TFormBigDecimal.btnRationalToDecimalClick(Sender: TObject);
+var
+  D: TCnBigDecimal;
+  R: TCnBigRational;
+begin
+  D := TCnBigDecimal.Create;
+  R := TCnBigRational.Create;
+
+  R.SetString('1/7');
+  BigRationalToBigDecimal(D, R);
+  ShowMessage(D.ToString);
+
+  R.Free;
+  D.Free;
+end;
+
+procedure TFormBigDecimal.btnSqrt2Click(Sender: TObject);
+var
+  D: Integer;
+  S: string;
+begin
+  S := '500';
+  if InputQuery('Hint', 'Enter a Float or Integer Value', S) then
+  begin
+    FBD1.SetDec(S);
+    BigDecimalSqrt2(FBD2, FBD1);
+    edtBigDecimalResult.Text := FBD2.ToString;
+  end;
 end;
 
 end.

@@ -208,6 +208,42 @@ object FormBigDecimal: TFormBigDecimal
           TabOrder = 18
           OnClick = btnBigDecimalToFloatClick
         end
+        object btnBDSqrt: TButton
+          Left = 464
+          Top = 168
+          Width = 75
+          Height = 21
+          Caption = 'Sqrt'
+          TabOrder = 19
+          OnClick = btnBDSqrtClick
+        end
+        object btnDecimalToRational: TButton
+          Left = 656
+          Top = 168
+          Width = 121
+          Height = 21
+          Caption = 'Decimal To Rational'
+          TabOrder = 20
+          OnClick = btnDecimalToRationalClick
+        end
+        object btnRationalToDecimal: TButton
+          Left = 784
+          Top = 168
+          Width = 121
+          Height = 21
+          Caption = 'Rational To Decimal'
+          TabOrder = 21
+          OnClick = btnRationalToDecimalClick
+        end
+        object btnSqrt2: TButton
+          Left = 560
+          Top = 168
+          Width = 75
+          Height = 21
+          Caption = 'Sqrt2'
+          TabOrder = 22
+          OnClick = btnSqrt2Click
+        end
       end
     end
     object tsBigBinary: TTabSheet
