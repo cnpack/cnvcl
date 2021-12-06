@@ -1,9 +1,9 @@
 object FormRational: TFormRational
   Left = 192
   Top = 107
-  Width = 1142
-  Height = 656
   Caption = 'Big Rational Number Test'
+  ClientHeight = 629
+  ClientWidth = 1134
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

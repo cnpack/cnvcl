@@ -130,25 +130,25 @@ end;
 
 procedure TFormRational.btnAddClick(Sender: TObject);
 begin
-  CnBigRationalNumberAdd(FR1, FR2, FR);
+  BigRationalNumberAdd(FR, FR1, FR2);
   ShowMessage(FR.ToString);
 end;
 
 procedure TFormRational.btnSubClick(Sender: TObject);
 begin
-  CnBigRationalNumberSub(FR1, FR2, FR);
+  BigRationalNumberSub(FR, FR1, FR2);
   ShowMessage(FR.ToString);
 end;
 
 procedure TFormRational.btnMulClick(Sender: TObject);
 begin
-  CnBigRationalNumberMul(FR1, FR2, FR);
+  BigRationalNumberMul(FR, FR1, FR2);
   ShowMessage(FR.ToString);
 end;
 
 procedure TFormRational.btnDivClick(Sender: TObject);
 begin
-  CnBigRationalNumberDiv(FR1, FR2, FR);
+  BigRationalNumberDiv(FR, FR1, FR2);
   ShowMessage(FR.ToString);
 end;
 
@@ -238,12 +238,12 @@ end;
 
 procedure TFormRational.btnCompareClick(Sender: TObject);
 begin
-  ShowMessage(IntToStr(CnBigRationalNumberCompare(FR1, FR2)));
+  ShowMessage(IntToStr(BigRationalNumberCompare(FR1, FR2)));
 end;
 
 procedure TFormRational.btnCompareIntClick(Sender: TObject);
 begin
-  ShowMessage(IntToStr(CnBigRationalNumberCompare(FR1, StrToInt(edtInt.Text))));
+  ShowMessage(IntToStr(BigRationalNumberCompare(FR1, StrToInt(edtInt.Text))));
 end;
 
 procedure TFormRational.btnCompareBNClick(Sender: TObject);

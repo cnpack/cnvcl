@@ -1353,9 +1353,9 @@ begin
 
       // R := (X0 + Num/X0) / 2;
       BigDecimalToBigRational(R, Num);
-      CnBigRationalNumberDiv(R, X0, R);
-      CnBigRationalNumberAdd(R, X0, R);
-      CnBigRationalNumberDiv(R, D, R);
+      BigRationalNumberDiv(R, R, X0);
+      BigRationalNumberAdd(R, R, X0);
+      BigRationalNumberDiv(R, R, D);
 
       X0.Assign(R);
     end;
