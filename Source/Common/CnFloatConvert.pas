@@ -77,6 +77,10 @@ uses
   双精度 Double             1 符号位 S，11 位指数 E，52 位有效数 M，共 8 字节 64 位
   扩展双精度 Extended       1 符号位 S，15 位指数 E，64 位有效数 M，共 10 字节 80 位
 
+  IEEE 754-2008 加了
+  四倍精度 Quadruple        1 符号位 S，15 位指数 E，112 位有效数 M，共 16 字节 128 位
+  八倍精度 Octuple          1 符号位 S，19 位指数 E，236 位有效数 M，共 32 字节 128 位
+
   其中，符号位 S，0 表示正，1 表示负；E 要减去 127/1023/16383 才是真正指数
         M: 规范化单/双精度的二进制 M 的高位加个 1. 代表有效数，扩展的无需加，自身有 1.
            最终值：有效数（二进制 1.xxxx 的形式）乘以 2 的 E 次方（注意不是 10 的 E 次方！）
@@ -85,11 +89,22 @@ uses
   单精度 4      SXXXXXXX  XMMMMMMM  MMMMMMMM  MMMMMMMM
   双精度 8      SXXXXXXX  XXXXMMMM  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
   扩展双精度 10 SXXXXXXX  XXXXXXXX  1MMMMMMM  MMMMMMMM  ...  MMMMMMMM
+  四倍精度 16   SXXXXXXX  XXXXXXXX  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
+  八倍精度 32   SXXXXXXX  XXXXXXXX  XXXXMMMM  MMMMMMMM  ...  MMMMMMMM
 
   0：全 0
   -0：全 0 但符号位为 1
   正负无穷大：指数全 1，有效数全 0，符号 0 或 1
 }
+
+type
+  TQuadruple = array[0..15] of Byte;
+  {* Delphi 中无四倍精度类型，用数组及其指针代替}
+  PQuadruple = ^TQuadruple;
+
+  TOctuple = array[0..31] of Byte;
+  {* Delphi 中无八倍精度类型，用数组及其指针代替}
+  POctuple = ^TOctuple;
 
 const
   CN_SIGN_SINGLE_MASK =          $80000000;
@@ -100,9 +115,9 @@ const
   CN_EXPONENT_DOUBLE_MASK =      $7FF0000000000000;  // 还要右移 52 位
   CN_EXPONENT_EXTENDED_MASK =    $7FFF;       // 刨去了 8 字节有效数字
 
-  CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;
-  CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;
-  CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 其实就是 8 字节整
+  CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;          // 低 23 位
+  CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;  // 低 52 位
+  CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 低 64 位，其实就是全部 8 字节整
 
   CN_SINGLE_SIGNIFICAND_BITLENGTH         = 23;
   CN_DOUBLE_SIGNIFICAND_BITLENGTH         = 52;
@@ -110,15 +125,18 @@ const
 
 procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
-{* 从单精度浮点数中解出符号位、指数、有效数字}
+{* 从单精度浮点数中解出符号位、指数、有效数字
+  注：指数为真实指数；有效数字为低 24 位，其中原始的为 0~22 位，第 23 位为补上去的 1}
 
 procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从双精度浮点数中解出符号位、指数、有效数字}
+{* 从双精度浮点数中解出符号位、指数、有效数字
+  注：指数为真实指数；有效数字为低 53 位，其中原始的为 0~51 位，第 52 位为补上去的 1}
 
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从扩展精度浮点数中解出符号位、指数、有效数字}
+{* 从扩展精度浮点数中解出符号位、指数、有效数字
+  注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1}
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
@@ -1005,7 +1023,7 @@ begin
     // 将小数点往右移 Exponent 位，小数点左边的是整数部分
     T := 63 - Exponent;    // 小数点在 0 到 63 位的 63 位右边，小数点右移后在 T 位右边
     if T < 0 then
-      raise ERangeError.Create(SRangeError); // Exponent 太大，
+      raise ERangeError.Create(SRangeError); // Exponent 太大
 
     Result := Mantissa shr T;
   end;

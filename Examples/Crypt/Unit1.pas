@@ -370,10 +370,10 @@ type
     { Private declarations }
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
-    function FromHex(Hex: string): AnsiString;
+    function FromHex(const Hex: string): AnsiString;
 {$IFDEF TBYTES_DEFINED}
     function BytesToHex(Data: TBytes): AnsiString;
-    function HexToBytes(Hex: string): TBytes;
+    function HexToBytes(const Hex: string): TBytes;
 {$ENDIF}
   public
     { Public declarations }
@@ -409,7 +409,7 @@ var
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
 
-function HexToInt(Hex: AnsiString): Integer;
+function HexToInt(const Hex: AnsiString): Integer;
 var
   I, Res: Integer;
   ch: AnsiChar;
@@ -424,12 +424,13 @@ begin
       Res := Res * 16 + Ord(ch) - Ord('A') + 10
     else if (ch >= 'a') and (ch <= 'f') then
       Res := Res * 16 + Ord(ch) - Ord('a') + 10
-    else raise Exception.Create('Error: not a Hex String');
+    else
+      raise Exception.Create('Error: not a Hex String');
   end;
   Result := Res;
 end;
 
-function TFormCrypt.FromHex(Hex: string): AnsiString;
+function TFormCrypt.FromHex(const Hex: string): AnsiString;
 var
   S: string;
   I: Integer;
@@ -484,7 +485,7 @@ begin
   end;
 end;
 
-function TFormCrypt.HexToBytes(Hex: string): TBytes;
+function TFormCrypt.HexToBytes(const Hex: string): TBytes;
 var
   S: string;
   I: Integer;
