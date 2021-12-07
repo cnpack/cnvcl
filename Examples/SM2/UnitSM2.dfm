@@ -244,6 +244,48 @@ object FormSM2: TFormSM2
         Height = 403
         Caption = 'Key Exchange'
         TabOrder = 0
+        object bvl6: TBevel
+          Left = 152
+          Top = 16
+          Width = 17
+          Height = 50
+          Shape = bsLeftLine
+        end
+        object lblAId: TLabel
+          Left = 168
+          Top = 36
+          Width = 47
+          Height = 13
+          Caption = 'A User Id:'
+        end
+        object lblBUserId: TLabel
+          Left = 680
+          Top = 36
+          Width = 47
+          Height = 13
+          Caption = 'B User Id:'
+        end
+        object lblBSM2PublicKey: TLabel
+          Left = 16
+          Top = 84
+          Width = 119
+          Height = 13
+          Caption = 'B SM2 Public Key (Hex)::'
+        end
+        object lblBSm2PrivateKey: TLabel
+          Left = 16
+          Top = 116
+          Width = 120
+          Height = 13
+          Caption = 'B SM2 Private Key (Hex):'
+        end
+        object lbl1: TLabel
+          Left = 368
+          Top = 36
+          Width = 99
+          Height = 13
+          Caption = 'A SM2 Key is above.'
+        end
         object btnSM2KeyExchange: TButton
           Left = 16
           Top = 32
@@ -252,6 +294,50 @@ object FormSM2: TFormSM2
           Caption = 'Sm2 Example 256'
           TabOrder = 0
           OnClick = btnSM2KeyExchangeClick
+        end
+        object edtSM2AUserId: TEdit
+          Left = 232
+          Top = 32
+          Width = 121
+          Height = 21
+          TabOrder = 1
+          Text = 'CnPack Team'
+        end
+        object edtSM2BUserId: TEdit
+          Left = 744
+          Top = 32
+          Width = 121
+          Height = 21
+          TabOrder = 2
+          Text = 'A Good User'
+        end
+        object edtSM2BPrivateKey: TEdit
+          Left = 136
+          Top = 112
+          Width = 729
+          Height = 21
+          TabOrder = 3
+          Text = '9751600494B8DCFD75ED60DD24C1A0C106E42BD52AE8C7B79A9456F10CFEBE9E'
+        end
+        object edtSM2BPublicKey: TEdit
+          Left = 136
+          Top = 80
+          Width = 729
+          Height = 21
+          TabOrder = 4
+          Text = 
+            '0487A5DF8AA17DA358519587F88F1F21877D5F52B3A49E2EC7D9DAA76C3E94BD' +
+            '19AC809BB986DDBBE6B7162BCD8FC5E1886D2DBEDC3A617421B2F213C4AB6C87' +
+            '25'
+        end
+        object btnSM2ABKeyExchange: TButton
+          Left = 136
+          Top = 152
+          Width = 281
+          Height = 25
+          Caption = 'Key Exchange A and B'
+          TabOrder = 5
+          OnClick = btnSM2ABKeyExchangeClick
         end
       end
     end

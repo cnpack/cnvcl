@@ -44,6 +44,17 @@ type
     bvl5: TBevel;
     btnSignFile: TButton;
     btnVerifyFile: TButton;
+    bvl6: TBevel;
+    lblAId: TLabel;
+    edtSM2AUserId: TEdit;
+    lblBUserId: TLabel;
+    edtSM2BUserId: TEdit;
+    edtSM2BPrivateKey: TEdit;
+    edtSM2BPublicKey: TEdit;
+    lblBSM2PublicKey: TLabel;
+    lblBSm2PrivateKey: TLabel;
+    lbl1: TLabel;
+    btnSM2ABKeyExchange: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -55,9 +66,10 @@ type
     procedure btnSM2VerifyClick(Sender: TObject);
     procedure btnSignFileClick(Sender: TObject);
     procedure btnVerifyFileClick(Sender: TObject);
+    procedure btnSM2ABKeyExchangeClick(Sender: TObject);
   private
-    function CheckPublicKeyStr: Boolean;
-    function CheckPrivateKeyStr: Boolean;
+    function CheckPublicKeyStr(Edit: TEdit): Boolean;
+    function CheckPrivateKeyStr(Edit: TEdit): Boolean;
   public
     { Public declarations }
   end;
@@ -230,33 +242,36 @@ begin
   OutRA := TCnEccPoint.Create;
   OutRB := TCnEccPoint.Create;
 
-  if not CnSM2KeyExchangeAStep1(USER_A, USER_B, KEY_LENGTH, APrivateKey, APublicKey,
-    BPublicKey, RandA, OutRA, Sm2) then
-    Exit;
+  try
+    if not CnSM2KeyExchangeAStep1(USER_A, USER_B, KEY_LENGTH, APrivateKey, APublicKey,
+      BPublicKey, RandA, OutRA, Sm2) then
+      Exit;
 
-  if not CnSM2KeyExchangeBStep1(USER_A, USER_B, KEY_LENGTH, BPrivateKey,
-    APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, Sm2) then
-    Exit;
+    if not CnSM2KeyExchangeBStep1(USER_A, USER_B, KEY_LENGTH, BPrivateKey,
+      APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, Sm2) then
+      Exit;
 
-  if not CnSM2KeyExchangeAStep2(USER_A, USER_B, KEY_LENGTH, APrivateKey, APublicKey,
-    BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, Sm2) then
-    Exit;
+    if not CnSM2KeyExchangeAStep2(USER_A, USER_B, KEY_LENGTH, APrivateKey, APublicKey,
+      BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, Sm2) then
+      Exit;
 
-  if CnSM2KeyExchangeBStep2(USER_A, USER_B, KEY_LENGTH, BPrivateKey, APublicKey,
-    BPublicKey, OpSA, OpS2, Sm2) then
-    ShowMessage('Key Exchange OK: ' + MyStrToHex(PAnsiChar(KA), Length(KA)) + ' : '
-      + MyStrToHex(PAnsiChar(KB), Length(KB)));
+    if CnSM2KeyExchangeBStep2(USER_A, USER_B, KEY_LENGTH, BPrivateKey, APublicKey,
+      BPublicKey, OpSA, OpS2, Sm2) then
+      ShowMessage('Key Exchange OK: ' + MyStrToHex(PAnsiChar(KA), Length(KA)) + ' : '
+        + MyStrToHex(PAnsiChar(KB), Length(KB)));
 
-  OutRA.Free;
-  OutRB.Free;
-  RandA.Free;
-  RandB.Free;
+  finally
+    OutRA.Free;
+    OutRB.Free;
+    RandA.Free;
+    RandB.Free;
 
-  APublicKey.Free;
-  APrivateKey.Free;
-  BPublicKey.Free;
-  BPrivateKey.Free;
-  Sm2.Free;
+    APublicKey.Free;
+    APrivateKey.Free;
+    BPublicKey.Free;
+    BPrivateKey.Free;
+    Sm2.Free;
+  end;
 end;
 
 procedure TFormSM2.btnSm2Example1Click(Sender: TObject);
@@ -281,7 +296,7 @@ var
   PublicKey: TCnEccPublicKey;
   EnStream: TMemoryStream;
 begin
-  if not CheckPublicKeyStr then
+  if not CheckPublicKeyStr(edtSM2PublicKey) then
     Exit;
 
   if Length(edtSM2Text.Text) = 0 then
@@ -336,7 +351,7 @@ var
   PrivateKey: TCnEccPrivateKey;
   EnStream, DeStream: TMemoryStream;
 begin
-  if not CheckPrivateKeyStr then
+  if not CheckPrivateKeyStr(edtSM2PrivateKey) then
     Exit;
 
   if Length(Trim(mmoSM2Results.Lines.Text)) < 2 then
@@ -384,7 +399,7 @@ var
   FileStream: TMemoryStream;
   SignRes: TCnSM2Signature;
 begin
-  if not CheckPublicKeyStr or not CheckPrivateKeyStr then
+  if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPrivateKeyStr(edtSM2PrivateKey) then
     Exit;
 
   if not FileExists(edtSM2FileSign.Text) then
@@ -417,10 +432,10 @@ begin
   Sm2.Free;
 end;
 
-function TFormSM2.CheckPrivateKeyStr: Boolean;
+function TFormSM2.CheckPrivateKeyStr(Edit: TEdit): Boolean;
 begin
   Result := True;
-  if Length(edtSM2PrivateKey.Text) <> 64 then
+  if Length(Edit.Text) <> 64 then
   begin
     ShowMessage('SM2 Private Key Hex Invalid. Hex Should be 64 Length.');
     Result := False;
@@ -428,17 +443,17 @@ begin
   end;
 end;
 
-function TFormSM2.CheckPublicKeyStr: Boolean;
+function TFormSM2.CheckPublicKeyStr(Edit: TEdit): Boolean;
 begin
   Result := True;
-  if Length(edtSM2PublicKey.Text) <> 128 + 2 then
+  if Length(Edit.Text) <> 128 + 2 then
   begin
     ShowMessage('SM2 Public Key Hex Invalid. Hex Should be 128 Length.');
     Result := False;
     Exit;
   end;
 
-  if Copy(edtSM2PublicKey.Text, 1, 2) <> '04' then
+  if Copy(Edit.Text, 1, 2) <> '04' then
   begin
     ShowMessage('SM2 Public Key Hex Head Invalid. Only 04 Supported.');
     Result := False;
@@ -453,7 +468,7 @@ var
   FileStream: TMemoryStream;
   SignRes: TCnSM2Signature;
 begin
-  if not CheckPublicKeyStr then
+  if not CheckPublicKeyStr(edtSM2PublicKey) then
     Exit;
 
   if not FileExists(edtSM2FileSign.Text) then
@@ -488,7 +503,7 @@ var
   PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey;
 begin
-  if not CheckPublicKeyStr or not CheckPrivateKeyStr then
+  if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPrivateKeyStr(edtSM2PrivateKey) then
     Exit;
 
   PrivateKey := TCnEccPrivateKey.Create;
@@ -507,7 +522,7 @@ procedure TFormSM2.btnVerifyFileClick(Sender: TObject);
 var
   PublicKey: TCnEccPublicKey;
 begin
-  if not CheckPublicKeyStr then
+  if not CheckPublicKeyStr(edtSM2PublicKey) then
     Exit;
 
   PublicKey := TCnEccPublicKey.Create;
@@ -519,6 +534,86 @@ begin
     ShowMessage('Verify File Failed.');
 
   PublicKey.Free;
+end;
+
+procedure TFormSM2.btnSM2ABKeyExchangeClick(Sender: TObject);
+const
+  KEY_LENGTH = 128 div 8;
+var
+  Sm2: TCnSM2;
+  APrivateKey, BPrivateKey: TCnEccPrivateKey;
+  APublicKey, BPublicKey: TCnEccPublicKey;
+  RandA, RandB: TCnBigNumber;
+  OutRA, OutRB: TCnEccPoint;
+  KA, KB: AnsiString;
+  OpSA, OpSB, OpS2: TSM3Digest;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPublicKeyStr(edtSM2BPublicKey) then
+    Exit;
+
+  if not CheckPrivateKeyStr(edtSM2PrivateKey) or not CheckPrivateKeyStr(edtSM2BPrivateKey) then
+    Exit;
+
+  Sm2 := TCnSM2.Create;
+  APrivateKey := TCnEccPrivateKey.Create;
+  APublicKey := TCnEccPublicKey.Create;
+  BPrivateKey := TCnEccPrivateKey.Create;
+  BPublicKey := TCnEccPublicKey.Create;
+
+  RandA := TCnBigNumber.Create;
+  RandB := TCnBigNumber.Create;
+  OutRA := TCnEccPoint.Create;
+  OutRB := TCnEccPoint.Create;
+
+  APrivateKey.SetHex(edtSM2PrivateKey.Text);
+  APublicKey.SetHex(edtSM2PublicKey.Text);
+  BPrivateKey.SetHex(edtSM2BPrivateKey.Text);
+  BPublicKey.SetHex(edtSM2BPublicKey.Text);
+
+  try
+  // Step1
+  if not CnSM2KeyExchangeAStep1(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+    APrivateKey, APublicKey, BPublicKey, RandA, OutRA, Sm2) then
+    Exit;
+
+  ShowMessage('A Send RA to B: ' + OutRA.ToHex);
+
+  // Step2
+  if not CnSM2KeyExchangeBStep1(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+    BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, Sm2) then
+    Exit;
+
+  ShowMessage('B Get KeyB [' + MyStrToHex(PAnsiChar(KB), Length(KB)) + '] and Send RB to A: ' + OutRB.ToHex);
+
+  // Step3
+  if not CnSM2KeyExchangeAStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+    APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, Sm2) then
+    Exit;
+
+  ShowMessage('A Get KeyA [' +  MyStrToHex(PAnsiChar(KA), Length(KA)) + '] and Send OpSA to A: ' + SM3Print(OpSA));
+
+  // Step4
+  if not CnSM2KeyExchangeBStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+    BPrivateKey, APublicKey, BPublicKey, OpSA, OpS2, Sm2) then
+    Exit;
+
+  ShowMessage('B Optionally Check OpSA OK');
+
+  if KA = KB then
+    ShowMessage('Key Exchange OK: [' + MyStrToHex(PAnsiChar(KA), Length(KA)) + '] : ['
+      + MyStrToHex(PAnsiChar(KB), Length(KB)) + ']');
+  finally
+    OutRA.Free;
+    OutRB.Free;
+    RandA.Free;
+    RandB.Free;
+
+    APublicKey.Free;
+    APrivateKey.Free;
+    BPublicKey.Free;
+    BPrivateKey.Free;
+    Sm2.Free;
+  end;
 end;
 
 end.

@@ -762,6 +762,7 @@ begin
       Exit;
     if not BigNumberAdd(X, X, BPrivateKey) then
       Exit;
+
     T := TCnBigNumber.Create;
     if not BigNumberNonNegativeMod(T, X, Sm2.Order) then // T = (BPrivateKey + Ëæ»úÖµ * X2) mod N
       Exit;
