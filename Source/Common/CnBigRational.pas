@@ -354,7 +354,6 @@ begin
         finally
           FLocalBigNumberPool.Recycle(R);
         end;
-
       end;
     end;
   finally

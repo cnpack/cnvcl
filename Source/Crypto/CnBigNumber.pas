@@ -31,7 +31,11 @@ unit CnBigNumber;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.11.29 V2.2
+* 修改记录：2021.12.08 V2.3
+*               实现与 Extended 扩展精度浮点数相乘除，增加一批对数函数，完善 AKS
+*           2021.12.04 V2.2
+*               实现与 Extended 扩展精度浮点数互相转换
+*           2021.11.29 V2.2
 *               实现一个稀疏的大数列表类
 *           2021.11.23 V2.1
 *               实现生成组合数的大数
@@ -285,6 +289,7 @@ type
     function IndexOfValue(ABigNumber: TCnBigNumber): Integer;
     procedure Insert(Index: Integer; ABigNumber: TCnBigNumber);
     procedure RemoveDuplicated;
+    {* 去重，也就是删除并释放重复的大数值对象只留一个}
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
   end;
 
@@ -515,6 +520,15 @@ function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolea
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}
 
+function BigNumberSetFloat(F: Extended; const Res: TCnBigNumber): Boolean;
+{* 将浮点数设置给大数对象，忽略小数部分}
+
+function BigNumberGetFloat(const Num: TCnBigNumber): Extended;
+{* 将大数转换为浮点数，超标时本应抛出异常但目前暂未处理}
+
+function BigNumberFromFloat(F: Extended): TCnBigNumber;
+{* 将浮点数转换为新建的大数对象，其结果不用时必须用 BigNumberFree 释放}
+
 function BigNumberEqual(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Boolean;
 {* 比较两个大数对象是否相等，相等返回 True，不等返回 False}
 
@@ -597,10 +611,10 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
 {* 将一大数对象右移 N 位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num}
 
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
-{* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功}
+{* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num}
 
 function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
-{* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功}
+{* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num}
 
 function BigNumberRoot(const Res: TCnBigNumber; const Num: TCnBigNumber; Exponent: Integer): Boolean;
 {* 计算一大数对象的 Exp 次方根的整数部分，结果放 Res 中，返回根计算是否成功
@@ -615,6 +629,10 @@ function BigNumberMulKaratsuba(const Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 {* 用 Karatsuba 算法计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2
   注：好像也没见快到哪里去}
+
+function BigNumberMulFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
+  F: Extended): Boolean;
+{* 计算大数对象与浮点数的乘积，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num}
 
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -634,6 +652,10 @@ function BigNumberMulWordNonNegativeMod(const Res: TCnBigNumber;
   const Num: TCnBigNumber; N: Integer; const Divisor: TCnBigNumber): Boolean;
 {* 大数对象乘以 32位有符号整型再非负求余，余数放 Res 中，0 <= Remain < |Divisor|
    Res 始终大于零，返回求余计算是否成功}
+
+function BigNumberDivFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
+  F: Extended): Boolean;
+{* 计算大数对象与浮点数的商，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num}
 
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
   Exponent: TCnLongWord32): Boolean;
@@ -669,6 +691,15 @@ function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Bool
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用}
+
+function BigNumberLog2(const Num: TCnBigNumber): Extended;
+{* 返回大数的 2 为底的对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理}
+
+function BigNumberLog10(const Num: TCnBigNumber): Extended;
+{* 返回大数的 10 为底的常用对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理}
+
+function BigNumberLogN(const Num: TCnBigNumber): Extended;
+{* 返回大数的 e 为底的自然对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理}
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
@@ -738,6 +769,9 @@ function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
 
+procedure BigNumberEuler(const Res: TCnBigNumber; Num: TCnBigNumber);
+{* 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
+
 function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
 {* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数
    Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
@@ -762,8 +796,8 @@ procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
 procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
 {* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N}
 
-function BigNumberAKSIsPrime(N: Int64): Boolean;
-{* 用 AKS 算法判断某正整数是否是素数，基于稀疏列表的大数二元多项式，比较慢，不具有可用性}
+function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
+{* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -788,7 +822,11 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnBigDecimal, CnPolynomial;
+  CnPrimeNumber, CnBigDecimal, CnFloatConvert;
+
+resourcestring
+  SCN_BN_LOG_RANGE_ERROR = 'Log Range Error';
+  SCN_BN_LEGENDRE_ERROR = 'Legendre: A, P Must > 0';
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -3402,6 +3440,94 @@ begin
   end;
 end;
 
+function BigNumberSetFloat(F: Extended; const Res: TCnBigNumber): Boolean;
+var
+  N: Boolean;
+  E: Integer;
+  M: TUInt64;
+begin
+  ExtractFloatExtended(F, N, E, M);
+
+  BigNumberSetUInt64UsingInt64(Res, M);
+  Res.SetNegative(N);
+
+  E := E - 63;
+  if E > 0 then
+    Res.ShiftLeft(E)
+  else
+    Res.ShiftRight(-E);
+
+  Result := True;
+end;
+
+function BigNumberGetFloat(const Num: TCnBigNumber): Extended;
+var
+  N: Boolean;
+  E, B, K: Integer;
+  M, T: TUInt64;
+begin
+  Result := 0;
+  if not Num.IsZero then
+  begin
+    N := Num.IsNegative;
+
+    B := Num.GetBitsCount;
+    E := B - 1;
+
+    if B <= 64 then
+    begin
+      M := PInt64Array(Num.D)^[0];
+
+      if B < 64 then
+        M := M shl (64 - B);
+    end
+    else // 如 Top > 2，则只能取最高 64 位放 M 里，其余的只能舍弃
+    begin
+      // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
+      K := (B - 1) div 64;
+{$IFDEF SUPPORT_UINT64}
+      T := TUInt64(PInt64Array(Num.D)^[K]);
+{$ELSE}
+      T := PInt64Array(Num.D)^[K];
+{$ENDIF}
+      K := B mod 64;
+      if K > 0 then // T 里只有低 K 位
+        T := T shl (64 - K);
+
+      M := T; // M 拿到一批高位了
+
+      if K > 0 then // 要补充一批 M 的低位
+      begin
+        K := ((B - 1) div 64) - 1;
+{$IFDEF SUPPORT_UINT64}
+        T := TUInt64(PInt64Array(Num.D)^[K]);
+{$ELSE}
+        T := PInt64Array(Num.D)^[K];
+{$ENDIF}
+        K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
+
+        T := T shr (64 - K);
+        M := M or T;
+      end;
+    end;
+
+    CombineFloatExtended(N, E, M, Result);
+  end;
+end;
+
+function BigNumberFromFloat(F: Extended): TCnBigNumber;
+begin
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  if not BigNumberSetFloat(F, Result) then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+  end;
+end;
+
 // Tmp should have 2 * N DWORDs
 procedure BigNumberSqrNormal(R: PLongWord; A: PLongWord; N: Integer; Tmp: PLongWord);
 var
@@ -3855,6 +3981,55 @@ begin
     Result := BigNumberMulKaratsuba(Res, Num1, Num2);
 end;
 
+function BigNumberMulFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
+  F: Extended): Boolean;
+var
+  N: Boolean;
+  E: Integer;
+  M: TUInt64;
+  B: TCnBigNumber;
+begin
+  if F = 0 then
+    Res.SetZero
+  else if (F = 1) or (F = -1) then
+  begin
+    BigNumberCopy(Res, Num);
+    if F = -1 then
+      Res.Negate;
+  end
+  else
+  begin
+    // 解出符号、指数、有效数字进行整数运算
+    ExtractFloatExtended(F, N, E, M);
+    E := E - 63;
+    // 现在的真实值为 M * 2^E 次方，所以要乘以 M，再乘以 2^E
+
+    B := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberSetUInt64UsingInt64(B, M);
+      BigNumberMul(Res, Num, B);
+
+      B.SetWord(1);
+      if E > 0 then
+      begin
+        B.ShiftLeft(E);
+        BigNumberMul(Res, Res, B);
+      end
+      else
+      begin
+        B.ShiftLeft(-E);
+        BigNumberDiv(Res, nil, Res, B);
+      end;
+
+      if N then
+        Res.Negate;
+    finally
+      FLocalBigNumberPool.Recycle(B);
+    end;
+  end;
+  Result := True;
+end;
+
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 var
@@ -4082,6 +4257,16 @@ begin
   finally
     FLocalBigNumberPool.Recycle(T);
   end;
+end;
+
+function BigNumberDivFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
+  F: Extended): Boolean;
+begin
+  Result := False;
+  if F = 0 then
+     Exit;
+
+  Result := BigNumberMulFloat(Res, Num, 1 / F);
 end;
 
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
@@ -4646,6 +4831,54 @@ begin
   Result := True;
 end;
 
+procedure CheckLog(const Num: TCnBigNumber);
+begin
+  if Num.IsZero or Num.IsNegative then
+    raise ERangeError.Create(SCN_BN_LOG_RANGE_ERROR);
+end;
+
+function BigNumberLog2(const Num: TCnBigNumber): Extended;
+var
+  F: Extended;
+begin
+  CheckLog(Num);
+  if Num.IsOne then
+    Result := 0
+  else
+  begin
+    F := BigNumberGetFloat(Num);
+    Result := Log2(F);
+  end;
+end;
+
+function BigNumberLog10(const Num: TCnBigNumber): Extended;
+var
+  F: Extended;
+begin
+  CheckLog(Num);
+  if Num.IsOne then
+    Result := 0
+  else
+  begin
+    F := BigNumberGetFloat(Num);
+    Result := Log10(F);
+  end;
+end;
+
+function BigNumberLogN(const Num: TCnBigNumber): Extended;
+var
+  F: Extended;
+begin
+  CheckLog(Num);
+  if Num.IsOne then
+    Result := 0
+  else
+  begin
+    F := BigNumberGetFloat(Num);
+    Result := Ln(F);
+  end;
+end;
+
 function BigNumberFermatCheckComposite(const A, B, C: TCnBigNumber; T: Integer): Boolean;
 var
   I: Integer;
@@ -5127,7 +5360,7 @@ var
   AA, Q: TCnBigNumber;
 begin
   if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
-    raise Exception.Create('A, P Must > 0');
+    raise Exception.Create(SCN_BN_LEGENDRE_ERROR);
 
   if A.IsOne then
   begin
@@ -5180,7 +5413,7 @@ var
   R, Res: TCnBigNumber;
 begin
   if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
-    raise Exception.Create('A, P Must > 0');
+    raise Exception.Create(SCN_BN_LEGENDRE_ERROR);
 
   R := FLocalBigNumberPool.Obtain;
   Res := FLocalBigNumberPool.Obtain;
@@ -5444,20 +5677,31 @@ end;
 // 找出大数的质因数列表
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 var
-  P, R, S, D: TCnBigNumber;
+  P, R, S, D, T: TCnBigNumber;
 begin
+  if Num.IsZero or Num.IsNegative or Num.IsOne then
+    Exit;
+
   if BigNumberIsProbablyPrime(Num) then
   begin
     Factors.Add(BigNumberDuplicate(Num));
     Exit;
   end;
 
-  P := FLocalBigNumberPool.Obtain;
-  R := FLocalBigNumberPool.Obtain;
-  S := FLocalBigNumberPool.Obtain;
-  D := FLocalBigNumberPool.Obtain;
+  P := nil;
+  R := nil;
+  S := nil;
+  D := nil;
+  T := nil;
+
   try
-    P := BigNumberCopy(P, Num);
+    P := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
+    S := FLocalBigNumberPool.Obtain;
+    D := FLocalBigNumberPool.Obtain;
+    T := FLocalBigNumberPool.Obtain;
+
+    BigNumberCopy(P, Num);
 
     while BigNumberCompare(P, Num) >= 0 do
     begin
@@ -5469,14 +5713,49 @@ begin
     end;
 
     BigNumberFindFactors(P, Factors);
-    D := FLocalBigNumberPool.Obtain;
-    BigNumberDiv(D, R, Num, P);
-    BigNumberFindFactors(D, Factors);
+    T := FLocalBigNumberPool.Obtain;
+    BigNumberDiv(T, R, Num, P);
+    BigNumberFindFactors(T, Factors);
   finally
+    FLocalBigNumberPool.Remove(T);
     FLocalBigNumberPool.Recycle(D);
     FLocalBigNumberPool.Recycle(S);
     FLocalBigNumberPool.Recycle(R);
     FLocalBigNumberPool.Recycle(P);
+  end;
+end;
+
+procedure BigNumberEuler(const Res: TCnBigNumber; Num: TCnBigNumber);
+var
+  F: TCnBigNumberList;
+  T: TCnBigNumber;
+  I: Integer;
+begin
+  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  F := nil;
+  T := nil;
+
+  try
+    F := TCnBigNumberList.Create;
+    BigNumberFindFactors(Num, F);
+
+    // 手工去重
+    F.RemoveDuplicated;
+
+    BigNumberCopy(Res, Num);
+    for I := 0 to F.Count - 1 do
+      BigNumberDiv(Res, nil, Res, F[I]);
+
+    T := FLocalBigNumberPool.Obtain;
+    for I := 0 to F.Count - 1 do
+    begin
+      BigNumberCopy(T, F[I]);
+      T.SubWord(1);
+      BigNumberMul(Res, Res, T);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    F.Free;
   end;
 end;
 
@@ -5775,141 +6054,114 @@ begin
     BigNumberNonNegativeMod(List[I], List[I], P);
 end;
 
-function BigNumberAKSIsPrime(N: Int64): Boolean;
+function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 var
   NR: Boolean;
-  R, T, C: Int64;
+  R, T, C, Q: TCnBigNumber;
   K, LG22: Integer;
-  LG2, Q: Extended;
-  BN, BT: TCnBigNumber;
-  X1: TCnInt64Polynomial;
-  BP1, BP2, BD: TCnBigNumberBiPolynomial;
-  BX2, BRes: TCnBigNumberPolynomial;
+  LG2: Extended;
+  BK: TCnBigNumber;
 begin
   Result := False;
-  if N <= 1 then
+  if N.IsNegative or N.IsZero or N.IsOne then
     Exit;
-  if CnInt64IsPerfectPower(N) then // 如果是完全幂则是合数
+  if BigNumberIsPerfectPower(N) then // 如果是完全幂则是合数
     Exit;
 
-  // 找出最小的 R 满足 欧拉(R) > (Log二底(N))^2。
-  NR := True;
-  R := 1;
-  LG2 := Log2(N);
-  // LG2 := GetUInt64HighBits(N); // 整数会有误差
-  LG22 := Trunc(LG2 * LG2);
-
-  // 找出最小的 R
-  while NR do
-  begin
-    Inc(R);
-    NR := False;
-
-    K := 1;
-    while not NR and (K <= LG22) do
-    begin
-      T := MontgomeryPowerMod(N, K, R);  // 非负 Int64 可以使用 TUInt64 版本的 MontgomeryPowerMod
-      NR := (T = 0) or (T = 1);
-      Inc(K);
-    end;
-  end;
-
-  // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
-  T := R;
-  while T > 1 do
-  begin
-    C := CnInt64GreatestCommonDivisor(T, N);
-    if (C > 1) and (C < N) then
-      Exit;
-
-    Dec(T);
-  end;
-
-  if N <= R then
-  begin
-    Result := True;
-    Exit;
-  end;
-
-  Q := CnEulerInt64(R);
-  // 此处应该用小数计算，因为整数会产生较大误差
-  C := Trunc(Sqrt(Q) * LG2);
-
-  X1 := nil;
-  BN := nil;
-  BT := nil;
-  BD := nil;
-  BX2 := nil;
-  BP1 := nil;
-  BP2 := nil;
-  BRes := nil;
+  R := nil;
+  T := nil;
+  C := nil;
+  Q := nil;
+  BK := nil;
 
   try
-    // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N，也就是(X+Y)^N 展开后针对 X^R-1 求余，且系数都针对 N 取模
+    // 找出最小的 R 满足 欧拉(R) > (Log二底(N))^2。
+    NR := True;
 
-    // 快速展开得到 (X+Y)^N 的系数
-    X1 := TCnInt64Polynomial.Create;
-    // BigNumberFillCombinatorialNumbersMod(BX1, N, BN);
-    CnInt64FillCombinatorialNumbersMod(X1, N, N); // BigNumber 生成万级别的组合数较为耗时，换成 Int64 的
+    R := FLocalBigNumberPool.Obtain;
+    R.SetOne;
+    LG2 := BigNumberLog2(N);
+    // LG2 := GetUInt64HighBits(N); // 整数会有误差
+    LG22 := Trunc(LG2 * LG2);
 
-    // 然后将一元 X1 转换成二元 P1，注意此处之前用 N * N * Int64 较耗内存，这里换成基于稀疏列表的 TCnBigNumberBiPolynomial
-    BP1 := TCnBigNumberBiPolynomial.Create;
-    BP1.MaxXDegree := N;
-    BP1.MaxYDegree := N;
-    for K := 0 to N do
-      BP1.SafeValue[K, N - K].SetInt64(X1[K]);
-
-    BD := TCnBigNumberBiPolynomial.Create;
-    BD.SetOne;  // 曾经有一个 SetOne 失效的 BUG，结果在计算 39779 时特别快还准确，不理解
-    BD.Negate;
-    BD.SetYCoefficents(R, [1]); // D 得到 X^R - 1
-
-    BN := TCnBigNumber.Create;
-    BN.SetInt64(N);
-
-    BigNumberBiPolynomialGaloisModX(BP1, BP1, BD, BN);  // P1 得到 (X+Y)^N 针对 X^R - 1 求余
-    BigNumberBiPolynomialNonNegativeModWord(BP1, N); // P1 系数再针对 N 取模
-
-    // 再在环 (X^R-1, N) 上提前计算 X^N + Y
-    BP2 := TCnBigNumberBiPolynomial.Create;
-    BP2.SafeValue[N, 0].SetOne;
-    BP2.SafeValue[0, 1].SetOne; // P2 是 X^N + Y
-    BigNumberBiPolynomialGaloisModX(BP2, BP2, BD, BN);  // P2 得到 X^N + Y 针对 X^R - 1 求余
-    BigNumberBiPolynomialNonNegativeModWord(BP2, N); // P2 系数再针对 N 取模
-
-    BigNumberBiPolynomialGaloisSub(BP1, BP1, BP2, BN);  // P1 - P2 得到 P1 里关于 Y 的表达式
-
-    BRes := TCnBigNumberPolynomial.Create;
-
-    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分
-
-    BT := TCnBigNumber.Create;
-    BT.SetOne;
-    while BigNumberCompareInteger(BT, C) <= 0 do
+    T := FLocalBigNumberPool.Obtain;
+    BK := FLocalBigNumberPool.Obtain;
+    // 找出最小的 R
+    while NR do
     begin
-      // 求 P1 的表达式的值，猜测此时 P1 中已无 X 有效项，只有 Y 项
-      BT.SetInt64(T);
-      BigNumberBiPolynomialGaloisEvaluateByY(BRes, BP1, BT, BN);
+      R.AddWord(1);
+      NR := False;
 
-      if BRes.MaxDegree > 0 then // 说明还有 X 值，不止常数项
-        Exit;
-      BigNumberPolynomialNonNegativeModWord(BRes, N); // 常数项如果能被 N 整除
-      if not BRes.IsZero then
+      K := 1;
+      while not NR and (K <= LG22) do
+      begin
+        BK.SetWord(K);
+        BigNumberPowerMod(T, N, BK, R);
+        NR := T.IsZero or T.IsOne;
+        Inc(K);
+      end;
+    end;
+
+    // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
+    BigNumberCopy(T, R);
+    C := FLocalBigNumberPool.Obtain;
+
+    while BigNumberCompare(T, CnBigNumberOne) > 0 do
+    begin
+      BigNumberGcd(C, T, N);
+      if (BigNumberCompare(C, CnBigNumberOne) > 0) and (BigNumberCompare(C, N) < 0) then
         Exit;
 
-      Inc(T);
+      T.SubWord(1);
+    end;
+
+    if BigNumberCompare(N, R) <= 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    Q := FLocalBigNumberPool.Obtain;
+    BigNumberEuler(Q, R);
+    BigNumberSqrt(Q, Q);
+    BigNumberMulFloat(C, Q, LG2);
+    // 此处应该用小数计算，因为整数会产生较大误差
+    // C := Trunc(Sqrt(Q) * LG2);
+
+    // 先在环 (X^R-1, N) 上提前计算 (X+Y)^N - (X^N + Y)，
+    // 也就是 (X+Y)^N - (X^N + Y) 展开后针对 X^R-1 求余，且系数都针对 N 取模
+    // 根据二项式定理 (X+Y)^N 展开后各项系数 mod N 后，就变成了 X^N+Y^N，其余项余数均为 0
+    // 再 mod X^R - 1 后根据加法求模规则得到的是 X^(N-R) + Y^N
+    // X^N + Y 对 X^R-1 取模则是 X^(N-R) + Y
+    // 一减，得到的结果其实是 Y^N - Y
+
+    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分作为 Y，计算 Y^N - Y mod N 是否是 0
+
+    T.SetOne;
+    while BigNumberCompare(T, C) <= 0 do
+    begin
+      if not BigNumberPowerMod(R, T, N, N) then // 复用 R
+        Exit;
+
+      if not BigNumberSub(R, R, T) then
+        Exit;
+
+      if not BigNumberMod(R, R, N) then
+        Exit;
+
+      if not R.IsZero then
+        Exit;
+
+      T.AddWord(1);
     end;
 
     Result := True;
   finally
-    BD.Free;
-    BT.Free;
-    BN.Free;
-    BX2.Free;
-    BP1.Free;
-    BP2.Free;
-    BRes.Free;
-    X1.Free;
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(C);
+    FLocalBigNumberPool.Recycle(Q);
+    FLocalBigNumberPool.Recycle(BK);
   end;
 end;
 

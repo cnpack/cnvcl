@@ -54,7 +54,7 @@ object FormBigNumber: TFormBigNumber
       end
       object lblIntPower: TLabel
         Left = 904
-        Top = 120
+        Top = 84
         Width = 48
         Height = 13
         Caption = 'Exponent:'
@@ -507,7 +507,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnPowerModCompare: TButton
         Left = 904
-        Top = 408
+        Top = 294
         Width = 129
         Height = 25
         Caption = 'Power Mod Compare'
@@ -516,7 +516,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnMulModCompare: TButton
         Left = 904
-        Top = 440
+        Top = 323
         Width = 129
         Height = 25
         Caption = 'Mul Mod Compare'
@@ -525,7 +525,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnCheckPrime: TButton
         Left = 904
-        Top = 328
+        Top = 236
         Width = 129
         Height = 25
         Caption = 'Check Prime 1'
@@ -534,7 +534,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnIntPower: TButton
         Left = 904
-        Top = 80
+        Top = 44
         Width = 129
         Height = 25
         Caption = 'Integer Power'
@@ -543,7 +543,7 @@ object FormBigNumber: TFormBigNumber
       end
       object seIntPower: TSpinEdit
         Left = 976
-        Top = 116
+        Top = 80
         Width = 57
         Height = 22
         MaxValue = 1024
@@ -553,7 +553,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnGetTenCount: TButton
         Left = 904
-        Top = 48
+        Top = 12
         Width = 129
         Height = 25
         Caption = '10 Precision'
@@ -562,7 +562,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnCheckPrime2: TButton
         Left = 904
-        Top = 368
+        Top = 265
         Width = 129
         Height = 25
         Caption = 'Check Prime 2'
@@ -571,7 +571,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNCRT: TButton
         Left = 904
-        Top = 480
+        Top = 352
         Width = 129
         Height = 25
         Caption = 'Chinese Remainder '
@@ -580,7 +580,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNSqrt: TButton
         Left = 904
-        Top = 288
+        Top = 207
         Width = 129
         Height = 25
         Caption = 'Sqrt'
@@ -589,7 +589,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNNextPrime: TButton
         Left = 904
-        Top = 224
+        Top = 178
         Width = 129
         Height = 25
         Caption = 'Next Prime'
@@ -598,7 +598,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNMulKaratsuba: TButton
         Left = 904
-        Top = 512
+        Top = 381
         Width = 129
         Height = 25
         Caption = 'Mul Karatsuba'
@@ -607,7 +607,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnRoot: TButton
         Left = 904
-        Top = 144
+        Top = 120
         Width = 129
         Height = 25
         Caption = 'Integer Root'
@@ -616,7 +616,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnIsPerfectPower: TButton
         Left = 904
-        Top = 184
+        Top = 149
         Width = 129
         Height = 25
         Caption = 'Is Perfect Power'
@@ -625,7 +625,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnComNum: TButton
         Left = 904
-        Top = 552
+        Top = 410
         Width = 129
         Height = 25
         Caption = 'Combinatorial Numbers'
@@ -634,12 +634,48 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNAKS: TButton
         Left = 904
-        Top = 584
+        Top = 439
         Width = 129
         Height = 25
         Caption = 'AKS is Prime'
         TabOrder = 60
         OnClick = btnBNAKSClick
+      end
+      object btnFloatToBigNumber: TButton
+        Left = 904
+        Top = 472
+        Width = 129
+        Height = 25
+        Caption = 'Float To BigNumber'
+        TabOrder = 61
+        OnClick = btnFloatToBigNumberClick
+      end
+      object btnBigNumberToFloat: TButton
+        Left = 904
+        Top = 504
+        Width = 129
+        Height = 25
+        Caption = 'BigNumber To Float'
+        TabOrder = 62
+        OnClick = btnBigNumberToFloatClick
+      end
+      object btnBNEuler: TButton
+        Left = 904
+        Top = 536
+        Width = 129
+        Height = 25
+        Caption = 'BigNumber Euler'
+        TabOrder = 63
+        OnClick = btnBNEulerClick
+      end
+      object btnMulDivFloat: TButton
+        Left = 904
+        Top = 568
+        Width = 129
+        Height = 25
+        Caption = 'Mul Div Float'
+        TabOrder = 64
+        OnClick = btnMulDivFloatClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

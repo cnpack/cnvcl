@@ -89,6 +89,10 @@ type
     mmoSBNL2: TMemo;
     mmoSBNL3: TMemo;
     btnBNAKS: TButton;
+    btnFloatToBigNumber: TButton;
+    btnBigNumberToFloat: TButton;
+    btnBNEuler: TButton;
+    btnMulDivFloat: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -146,6 +150,10 @@ type
     procedure btnSBNLTest1Click(Sender: TObject);
     procedure btnSparseMergeClick(Sender: TObject);
     procedure btnBNAKSClick(Sender: TObject);
+    procedure btnFloatToBigNumberClick(Sender: TObject);
+    procedure btnBigNumberToFloatClick(Sender: TObject);
+    procedure btnBNEulerClick(Sender: TObject);
+    procedure btnMulDivFloatClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -910,6 +918,8 @@ begin
   if BigNumberSqrt(Res, Num1) then
     ShowResult(Res);
   BigNumberFree(Res);
+  if BigNumberSqrt(Num2, Num2) then
+    ShowNumbers;
 end;
 
 procedure TFormBigNumber.btnBNNextPrimeClick(Sender: TObject);
@@ -1040,18 +1050,51 @@ end;
 
 procedure TFormBigNumber.btnBNAKSClick(Sender: TObject);
 var
-  P: Int64;
+  P: TCnBigNumber;
   S: string;
 begin
   S := '39779';
   if InputQuery('Hint', 'Enter an Integer Value', S) then
   begin
-    P := StrToInt64(S);
+    P := TCnBigNumber.FromDec(S);
     if BigNumberAKSIsPrime(P) then
       ShowMessage(S + ' Is a Prime')
     else
       ShowMessage('NOT Prime');
+    P.Free;
   end;
+end;
+
+procedure TFormBigNumber.btnFloatToBigNumberClick(Sender: TObject);
+var
+  P: Extended;
+  S: string;
+begin
+  S := '120.3';
+  if InputQuery('Hint', 'Enter a Float Value', S) then
+  begin
+    P := StrToFloat(S);
+    if BigNumberSetFloat(P, Num1) then
+      ShowNumbers;
+  end;
+end;
+
+procedure TFormBigNumber.btnBigNumberToFloatClick(Sender: TObject);
+begin
+  ShowMessage(FloatToStr(BigNumberGetFloat(Num1)));
+end;
+
+procedure TFormBigNumber.btnBNEulerClick(Sender: TObject);
+begin
+  BigNumberEuler(Num1, Num2);
+  ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnMulDivFloatClick(Sender: TObject);
+begin
+  BigNumberMulFloat(Num2, Num1, Pi);
+  BigNumberDivFloat(Num1, Num2, Pi);
+  ShowNumbers;
 end;
 
 end.
