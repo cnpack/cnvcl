@@ -339,6 +339,15 @@ object FormSM2: TFormSM2
           TabOrder = 5
           OnClick = btnSM2ABKeyExchangeClick
         end
+        object btnLoadSM2BKey: TButton
+          Left = 760
+          Top = 144
+          Width = 105
+          Height = 25
+          Caption = 'Load SM2 Key'
+          TabOrder = 6
+          OnClick = btnLoadSM2BKeyClick
+        end
       end
     end
   end
@@ -369,6 +378,15 @@ object FormSM2: TFormSM2
     Caption = 'Generate Key'
     TabOrder = 3
     OnClick = btnGenerateKeyClick
+  end
+  object btnLoadSM2Key: TButton
+    Left = 824
+    Top = 48
+    Width = 105
+    Height = 25
+    Caption = 'Load SM2 Key'
+    TabOrder = 4
+    OnClick = btnLoadSM2KeyClick
   end
   object dlgOpen1: TOpenDialog
     Left = 876

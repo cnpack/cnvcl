@@ -44,8 +44,10 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.04.17 V1.4
-*               支持 ECC / RSA 证书父子校验
+* 修改记录：2021.12.09 V1.5
+*               加入 SM2/SM3 证书类型的解析支持
+*           2020.04.17 V1.4
+*               支持 ECC/RSA 证书父子校验
 *           2020.04.08 V1.3
 *               支持 ECC 证书请求、自签名、自签名校验与证书签发等
 *           2019.05.06 V1.2
@@ -71,8 +73,9 @@ const
   CN_CRT_BASIC_VERSION_3      = 2;
 
 type
-  TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA, ctMd5Ecc, ctSha1Ecc, ctSha256Ecc);
-  {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA}
+  TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA, ctMd5Ecc, ctSha1Ecc,
+    ctSha256Ecc, ctSM2withSM3);
+  {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA，但 ctSM2withSM3 表示先 SM3 再 SM2}
   TCnCASignTypes = set of TCnCASignType;
 
   TCnCertificateBaseInfo = class(TPersistent)
@@ -599,6 +602,7 @@ const
   OID_SHA1_RSAENCRYPTION          : array[0..8] of Byte = (
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $05
   ); // 1.2.840.113549.1.1.5
+
   OID_SHA256_RSAENCRYPTION        : array[0..8] of Byte = (
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $0B
   ); // 1.2.840.113549.1.1.11
@@ -610,6 +614,10 @@ const
   OID_SHA256_ECDSA                : array[0..7] of Byte = (
     $2A, $86, $48, $CE, $3D, $04, $03, $02
   ); // 1.2.840.10045.4.3.2
+
+  OID_SM2_SM3ENCRYPTION           : array[0..7] of Byte = (
+    $2A, $81, $1C, $CF, $55, $01, $83, $75
+  ); // 1.2.156.10197.1.501
 
   SCRLF = #13#10;
 
@@ -623,7 +631,7 @@ const
   SDN_EMAILADDRESS               = 'EmailAddress';
 
   RSA_CA_TYPES: TCnCASignTypes = [ctMd5RSA, ctSha1RSA, ctSha256RSA];
-  ECC_CA_TYPES: TCnCASignTypes = [ctMd5Ecc, ctSha1Ecc, ctSha256Ecc];
+  ECC_CA_TYPES: TCnCASignTypes = [ctMd5Ecc, ctSha1Ecc, ctSha256Ecc, ctSM2withSM3];
 
 var
   DummyPointer: Pointer;
@@ -671,6 +679,9 @@ begin
     ctSha256Ecc:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA256_ECDSA[0],
         SizeOf(OID_SHA256_ECDSA), AParent);
+    ctSM2withSM3:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SM2_SM3ENCRYPTION[0],
+        SizeOf(OID_SM2_SM3ENCRYPTION), AParent)
     // TODO: 其它算法类型支持
   end;
 end;
@@ -729,6 +740,8 @@ begin
       Result := esdtSHA1;
     ctSha256Ecc:
       Result := esdtSHA256;
+    ctSM2withSM3:
+      Result := esdtSM3;
   end;
 end;
 
@@ -1100,7 +1113,10 @@ begin
     Result := ctSha1Ecc
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA256_ECDSA[0],
     SizeOf(OID_SHA256_ECDSA)) then
-    Result := ctSha256Ecc;
+    Result := ctSha256Ecc
+  else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SM2_SM3ENCRYPTION[0],
+    SizeOf(OID_SM2_SM3ENCRYPTION)) then
+    Result := ctSM2withSM3;
 end;
 
 // 从以下结构中解出 RSA 公钥
@@ -1937,6 +1953,7 @@ begin
     ctMd5Ecc: Result := 'MD5 ECDSA';
     ctSha1Ecc: Result := 'SHA1 ECDSA';
     ctSha256Ecc: Result := 'SHA256 ECDSA';
+    ctSM2withSM3: Result := 'SM2 with SM3';
   else
     Result := '<Unknown>';
   end;

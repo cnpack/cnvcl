@@ -55,6 +55,8 @@ type
     lblBSm2PrivateKey: TLabel;
     lbl1: TLabel;
     btnSM2ABKeyExchange: TButton;
+    btnLoadSM2Key: TButton;
+    btnLoadSM2BKey: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -67,6 +69,8 @@ type
     procedure btnSignFileClick(Sender: TObject);
     procedure btnVerifyFileClick(Sender: TObject);
     procedure btnSM2ABKeyExchangeClick(Sender: TObject);
+    procedure btnLoadSM2KeyClick(Sender: TObject);
+    procedure btnLoadSM2BKeyClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -613,6 +617,66 @@ begin
     BPublicKey.Free;
     BPrivateKey.Free;
     Sm2.Free;
+  end;
+end;
+
+procedure TFormSM2.btnLoadSM2KeyClick(Sender: TObject);
+var
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  if dlgOpen1.Execute then
+  begin
+    Priv := TCnEccPrivateKey.Create;
+    Pub := TCnEccPublicKey.Create;
+
+    if CnEccLoadKeysFromPem(dlgOpen1.FileName, Priv, Pub, CurveType) then
+    begin
+      if CurveType <> ctSM2 then
+      begin
+        ShowMessage('NOT SM2 Key');
+        Exit;
+      end;
+
+      edtSM2PublicKey.Text := Pub.ToHex;
+      edtSM2PrivateKey.Text := Priv.ToHex;
+    end
+    else
+      ShowMessage('Load SM2 Key Failed.');
+
+    Priv.Free;
+    Pub.Free;
+  end;
+end;
+
+procedure TFormSM2.btnLoadSM2BKeyClick(Sender: TObject);
+var
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  if dlgOpen1.Execute then
+  begin
+    Priv := TCnEccPrivateKey.Create;
+    Pub := TCnEccPublicKey.Create;
+
+    if CnEccLoadKeysFromPem(dlgOpen1.FileName, Priv, Pub, CurveType) then
+    begin
+      if CurveType <> ctSM2 then
+      begin
+        ShowMessage('NOT SM2 Key');
+        Exit;
+      end;
+
+      edtSM2BPublicKey.Text := Pub.ToHex;
+      edtSM2BPrivateKey.Text := Priv.ToHex;
+    end
+    else
+      ShowMessage('Load SM2 Key Failed.');
+
+    Priv.Free;
+    Pub.Free;
   end;
 end;
 
