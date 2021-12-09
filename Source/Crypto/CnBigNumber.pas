@@ -827,6 +827,7 @@ uses
 resourcestring
   SCN_BN_LOG_RANGE_ERROR = 'Log Range Error';
   SCN_BN_LEGENDRE_ERROR = 'Legendre: A, P Must > 0';
+  SCN_BN_FLOAT_EXP_RANGE_ERROR = 'Extended Float Exponent Range Error';
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -3473,6 +3474,9 @@ begin
 
     B := Num.GetBitsCount;
     E := B - 1;
+
+    if E > CN_EXTENDED_MAX_EXPONENT then
+      raise ERangeError.Create(SCN_BN_FLOAT_EXP_RANGE_ERROR);
 
     if B <= 64 then
     begin

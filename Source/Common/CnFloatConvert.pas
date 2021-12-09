@@ -123,6 +123,17 @@ const
   CN_DOUBLE_SIGNIFICAND_BITLENGTH         = 52;
   CN_EXTENDED_SIGNIFICAND_BITLENGTH       = 63;
 
+  CN_EXPONENT_OFFSET_SINGLE               = 127;     // 实际指数值要加上这仨才能存到内存的指数中
+  CN_EXPONENT_OFFSET_DOUBLE               = 1023;
+  CN_EXPONENT_OFFSET_EXTENDED             = 16383;
+
+  CN_SINGLE_MIN_EXPONENT                  = -127;
+  CN_SINGLE_MAX_EXPONENT                  = 127;     // 仨 Max 均不包括指数全 1 的情形（那是正负无穷大）
+  CN_DOUBLE_MIN_EXPONENT                  = -1023;
+  CN_DOUBLE_MAX_EXPONENT                  = 1023;
+  CN_EXTENDED_MIN_EXPONENT                = -16383;
+  CN_EXTENDED_MAX_EXPONENT                = 16383;
+
 procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
 {* 从单精度浮点数中解出符号位、指数、有效数字
@@ -904,7 +915,7 @@ procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
 begin
   SignNegative := (PLongWord(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
-  Exponent := ((PLongWord(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - 127;
+  Exponent := ((PLongWord(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - CN_EXPONENT_OFFSET_SINGLE;
   Mantissa := PLongWord(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
   Mantissa := Mantissa or (1 shl 23); // 高位再加个 1
 end;
@@ -913,7 +924,7 @@ procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 begin
   SignNegative := (PUInt64(@Value)^ and CN_SIGN_DOUBLE_MASK) <> 0;
-  Exponent := ((PUInt64(@Value)^ and CN_EXPONENT_DOUBLE_MASK) shr 52) - 1023;
+  Exponent := ((PUInt64(@Value)^ and CN_EXPONENT_DOUBLE_MASK) shr 52) - CN_EXPONENT_OFFSET_DOUBLE;
   Mantissa := PUInt64(@Value)^ and CN_SIGNIFICAND_DOUBLE_MASK;
   Mantissa := Mantissa or (TUInt64(1) shl 52); // 高位再加个 1
 end;
@@ -922,7 +933,7 @@ procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 begin
   SignNegative := (PExtendedRec(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-  Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - 16383;
+  Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
   Mantissa := PExtendedRec(@Value)^.Mantissa; // 有 1，不用加了
 end;
 
@@ -931,7 +942,8 @@ procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
 begin
   Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
   PLongWord(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
-  Inc(Exponent, 127);
+  Inc(Exponent, CN_EXPONENT_OFFSET_SINGLE);
+
   PLongWord(@Value)^ := PLongWord(@Value)^ or (LongWord(Exponent) shl 23);
   if SignNegative then
     PLongWord(@Value)^ := PLongWord(@Value)^ or CN_SIGN_SINGLE_MASK
@@ -944,7 +956,8 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
 begin
   Mantissa := Mantissa and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
   PUInt64(@Value)^ := Mantissa and CN_SIGNIFICAND_DOUBLE_MASK;
-  Inc(Exponent, 1023);
+  Inc(Exponent, CN_EXPONENT_OFFSET_DOUBLE);
+
   PUInt64(@Value)^ := PUInt64(@Value)^ or (TUInt64(Exponent) shl 52);
   if SignNegative then
     PUInt64(@Value)^ := PUInt64(@Value)^ or CN_SIGN_DOUBLE_MASK
@@ -956,7 +969,8 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
 begin
   PExtendedRec(@Value)^.Mantissa := Mantissa;
-  Inc(Exponent, 16383);
+  Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
+
   PExtendedRec(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
   if SignNegative then
     PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
