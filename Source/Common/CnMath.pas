@@ -1,0 +1,366 @@
+{******************************************************************************}
+{                       CnPack For Delphi/C++Builder                           }
+{                     中国人自己的开放源码第三方开发包                         }
+{                   (C)Copyright 2001-2021 CnPack 开发组                       }
+{                   ------------------------------------                       }
+{                                                                              }
+{            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
+{        改和重新发布这一程序。                                                }
+{                                                                              }
+{            发布这一开发包的目的是希望它有用，但没有任何担保。甚至没有        }
+{        适合特定目的而隐含的担保。更详细的情况请参阅 CnPack 发布协议。        }
+{                                                                              }
+{            您应该已经和开发包一起收到一份 CnPack 发布协议的副本。如果        }
+{        还没有，可访问我们的网站：                                            }
+{                                                                              }
+{            网站地址：http://www.cnpack.org                                   }
+{            电子邮件：master@cnpack.org                                       }
+{                                                                              }
+{******************************************************************************}
+
+unit CnMath;
+{* |<PRE>
+================================================================================
+* 软件名称：开发包基础库
+* 单元名称：数学计算的算法单元
+* 单元作者：刘啸
+* 备    注：旨在脱离 Math 库，先不太管运行效率
+*           遗留问题：高斯勒让德大数精度不够
+* 开发平台：Win 7 + Delphi 5.0
+* 兼容测试：暂未进行
+* 本 地 化：该单元无需本地化处理
+* 修改记录：2021.12.08 V1.0
+*               创建单元
+================================================================================
+|</PRE>}
+
+interface
+
+{$I CnPack.inc}
+
+uses
+  SysUtils, Classes;
+
+{
+  计算连分数：
+                  A1
+  B0 +  ----------------------
+                     A2
+        B1 + -----------------
+                       A3
+             B2 + ------------
+                            An
+                  B4 + ... ---
+                            Bn
+}
+// function Int64ContinuedFraction
+
+function Int64Sqrt(N: Int64): Extended;
+{* 计算 Int64 的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2}
+
+function FloatSqrt(F: Extended): Extended;
+{* 计算扩展精度浮点数的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2}
+
+function Int64LogN(N: Int64): Extended;
+{* 计算 Int64 的自然对数，使用反双曲函数展开}
+
+function FloatLogN(F: Extended): Extended;
+{* 计算扩展精度浮点数的自然对数，使用反双曲函数展开}
+
+function Int64Log10(N: Int64): Extended;
+{* 计算 Int64 的常用对数，直接使用自然对数换算}
+
+function FloatLog10(F: Extended): Extended;
+{* 计算扩展精度浮点数的常用对数，直接使用自然对数换算}
+
+function Int64Log2(N: Int64): Extended;
+{* 计算 Int64 的 2 为底的对数，直接使用自然对数换算}
+
+function FloatLog2(F: Extended): Extended;
+{* 计算扩展精度浮点数的 2 为底的对数，直接使用自然对数换算}
+
+function FloatGaussLegendrePi(RoundCount: Integer = 3): string;
+{* 扩展精度范围内用高斯勒让德公式计算 Pi，3 轮便已抵达扩展精度极限}
+
+function GaussLegendrePi(RoundCount: Integer = 8): string;
+{* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位}
+
+implementation
+
+uses
+  CnBigDecimal;
+
+const
+  SCN_EXTEND_GAP = 0.00000000001;
+  SCN_LOGN_TO_LOG2 = 1.4426950408889634073599246810019;
+  SCN_LOGN_TO_LOG10 = 0.43429448190325182765112891891661;
+
+resourcestring
+  SCN_SQRT_RANGE_ERROR = 'Sqrt Range Error.';
+  SCN_LOG_RANGE_ERROR = 'Log Range Error.';
+
+function CnAbs(F: Extended): Extended;
+begin
+  if F < 0 then
+    Result := -F
+  else
+    Result := F;
+end;
+
+function Int64Sqrt(N: Int64): Extended;
+var
+  X0: Extended;
+begin
+  if N < 0 then
+    raise ERangeError.Create(SCN_SQRT_RANGE_ERROR);
+
+  if (N = 0) or (N = 1) then
+  begin
+    Result := N;
+    Exit;
+  end;
+
+  X0 := N;
+  while True do
+  begin
+    Result := (X0 + N/X0) / 2;
+
+    if CnAbs(Result - X0) < SCN_EXTEND_GAP then
+      Break;
+    X0 := Result;
+  end;
+end;
+
+function FloatSqrt(F: Extended): Extended;
+var
+  X0: Extended;
+begin
+  if F < 0 then
+    raise ERangeError.Create(SCN_SQRT_RANGE_ERROR);
+
+  if (F = 0) or (F = 1) then
+  begin
+    Result := F;
+    Exit;
+  end;
+
+  X0 := F;
+  while True do
+  begin
+    Result := (X0 + F/X0) / 2;
+
+    if CnAbs(Result - X0) < SCN_EXTEND_GAP then
+      Break;
+    X0 := Result;
+  end;
+end;
+
+function Int64LogN(N: Int64): Extended;
+var
+  I: Integer;
+  F: Extended;
+  Z, D: Extended;
+begin
+  if N <= 0 then
+    raise ERangeError.Create(SCN_LOG_RANGE_ERROR);
+
+  Result := 0;
+  if N = 1 then
+    Exit;
+
+  //           [ z-1   1 (z-1)^3   1 (z-1)^5        ]
+  // lnz = 2 * | --- + - ------- + - ------- + .... |
+  //           [ z+1   3 (z+1)^3   5 (z+1)^5        ]
+
+  F := N;
+  Z := (F - 1) / (F + 1);
+  D := Z;
+  Z := Z * Z;
+  I := 1;
+
+  while True do
+  begin
+    Result := Result + D / I;
+    Inc(I, 2);
+    D := D * Z;
+
+    if CnAbs(D) < SCN_EXTEND_GAP then
+      Break;
+  end;
+  Result := Result * 2;
+end;
+
+function FloatLogN(F: Extended): Extended;
+var
+  I: Integer;
+  Z, D: Extended;
+begin
+  if F <= 0 then
+    raise ERangeError.Create(SCN_LOG_RANGE_ERROR);
+
+  Result := 0;
+  if F = 1 then
+    Exit;
+
+  //           [ z-1   1 (z-1)^3   1 (z-1)^5        ]
+  // lnz = 2 * | --- + - ------- + - ------- + .... |
+  //           [ z+1   3 (z+1)^3   5 (z+1)^5        ]
+
+  Z := (F - 1) / (F + 1);
+  D := Z;
+  Z := Z * Z;
+  I := 1;
+
+  while True do
+  begin
+    Result := Result + D / I;
+    Inc(I, 2);
+    D := D * Z;
+
+    if CnAbs(D) < SCN_EXTEND_GAP then
+      Break;
+  end;
+  Result := Result * 2;
+end;
+
+function Int64Log10(N: Int64): Extended;
+begin
+  Result := Int64LogN(N) * SCN_LOGN_TO_LOG10;
+end;
+
+function FloatLog10(F: Extended): Extended;
+begin
+  Result := FloatLogN(F) * SCN_LOGN_TO_LOG10;
+end;
+
+function Int64Log2(N: Int64): Extended;
+begin
+  Result := Int64LogN(N) * SCN_LOGN_TO_LOG2;
+end;
+
+function FloatLog2(F: Extended): Extended;
+begin
+  Result := FloatLogN(F) * SCN_LOGN_TO_LOG2;
+end;
+
+function FloatGaussLegendrePi(RoundCount: Integer): string;
+var
+  I: Integer;
+  A0, B0, T0, P0: Extended;
+  A1, B1, T1, P1: Extended;
+  Res: Extended;
+begin
+  A0 := 1;
+  B0 := Sqrt(2) / 2;
+  T0 := 0.25;
+  P0 := 1;
+  Res := 0;
+
+  for I := 1 to RoundCount do
+  begin
+    A1 := (A0 + B0) / 2;
+    B1 := Sqrt(A0 * B0);
+    T1 := T0 - P0 * (A0 - A1) * (A0 - A1);
+    P1 := P0 * 2;
+
+    Res := (A1 + B1) * (A1 + B1) / (T1 * 4);
+
+    A0 := A1;
+    B0 := B1;
+    T0 := T1;
+    P0 := P1;
+  end;
+
+  Result := FloatToStr(Res);
+end;
+
+function GaussLegendrePi(RoundCount: Integer = 3): string;
+var
+  I, P: Integer;
+  A0, B0, T0, P0: TCnBigDecimal;
+  A1, B1, T1, P1: TCnBigDecimal;
+  X1, X2: TCnBigDecimal;
+  Res: TCnBigDecimal;
+begin
+  A0 := TCnBigDecimal.Create;
+  B0 := TCnBigDecimal.Create;
+  T0 := TCnBigDecimal.Create;
+  P0 := TCnBigDecimal.Create;
+
+  A1 := TCnBigDecimal.Create;
+  B1 := TCnBigDecimal.Create;
+  T1 := TCnBigDecimal.Create;
+  P1 := TCnBigDecimal.Create;
+
+  Res := TCnBigDecimal.Create;
+
+  // 临时变量
+  X1 := TCnBigDecimal.Create;
+  X1.SetWord(2);
+  X2 := TCnBigDecimal.Create;
+
+  P := 1 shl RoundCount;  // 根据 Round 数量提前确定精度
+  if P < 16 then
+    P := 16;
+
+  A0.SetOne;
+  B0.SetWord(2);
+  BigDecimalSqrt(B0, B0, P);  
+  BigDecimalDiv(B0, B0, X1, P);
+  T0.SetExtended(0.25);
+  P0.SetOne;
+
+  Res.SetZero;
+  for I := 1 to RoundCount do
+  begin
+    // A1 := (A0 + B0) / 2;
+    BigDecimalAdd(A1, A0, B0);
+    BigDecimalDiv(A1, A1, X1, P);
+
+    // B1 := Sqrt(A0 * B0);
+    BigDecimalMul(B1, A0, B0);
+    BigDecimalSqrt(B1, B1, P);
+
+    // T1 := T0 - P0 * (A0 - A1) * (A0 - A1);
+    BigDecimalSub(T1, A0, A1);
+    BigDecimalMul(T1, T1, T1);
+    BigDecimalMul(T1, T1, P0);
+    BigDecimalSub(T1, T0, T1);
+
+    // P1 := P0 * 2;
+    BigDecimalAdd(P1, P0, P0);
+
+    // Res := (A1 + B1) * (A1 + B1) / (T1 * 4);
+    BigDecimalAdd(Res, A1, B1);
+    BigDecimalMul(Res, Res, Res);
+    BigDecimalAdd(X2, T1, T1);
+    BigDecimalAdd(X2, X2, X2);
+
+    BigDecimalDiv(Res, Res, X2, P);
+
+    // 准备下一轮迭代
+    BigDecimalCopy(A0, A1);
+    BigDecimalCopy(B0, B1);
+    BigDecimalCopy(T0, T1);
+    BigDecimalCopy(P0, P1);
+  end;
+
+  Result := Res.ToString;
+
+  X1.Free;
+  X2.Free;
+
+  Res.Free;
+
+  A1.Free;
+  B1.Free;
+  T1.Free;
+  P1.Free;
+
+  A0.Free;
+  B0.Free;
+  T0.Free;
+  P0.Free;
+end;
+
+end.

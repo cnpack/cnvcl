@@ -121,6 +121,9 @@ type
     function IsOne: Boolean;
     {* 是否是 1，只判断值是 1 且指数是 0}
 
+    procedure RoundTo(Precision: Integer; RoundMode: TCnBigRoundMode = dr465RoundEven);
+    {* 取整至指定小数位数，如原来小数位数就少则不动}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大浮点数转成字符串}
 
@@ -291,7 +294,7 @@ function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
 
 function BigDecimalSqrt(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
   SqrtPrecision: Integer = 0): Boolean;
-{* 大浮点数开平方根，Res 可以是 Num。由于精度以及停止条件不明确，此函数暂不推荐使用
+{* 大浮点数开平方根，Res 可以是 Num。
   SqrtPrecision 表示开平方根精度最多保留小数点后几位，0 表示按默认设置来}
 
 procedure BigDecimalSqrt2(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
@@ -1441,7 +1444,7 @@ begin
       FLocalBigDecimalPool.Recycle(R);
     end;
 
-    // TODO: Round to SqrtPrecision
+    Res.RoundTo(SqrtPrecision);
     Result := True;
   finally
     FLocalBigDecimalPool.Recycle(X0);
@@ -1678,6 +1681,12 @@ end;
 procedure TCnBigDecimal.Negate;
 begin
   FValue.Negate;
+end;
+
+procedure TCnBigDecimal.RoundTo(Precision: Integer;
+  RoundMode: TCnBigRoundMode);
+begin
+  BigDecimalChangeToScale(Self, Self, Precision, RoundMode);
 end;
 
 function TCnBigDecimal.SetDec(const Buf: string): Boolean;
