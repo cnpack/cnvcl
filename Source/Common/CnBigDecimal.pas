@@ -432,6 +432,7 @@ resourcestring
   SCnNotImplemented = 'NOT Implemented.';
   SCnScaleOutOfRange = 'Scale Out of Range.';
   SCnRoundModeNotSupport = 'Round Mode Not Support.';
+  SCnSqrtRangeError = 'Sqrt Range Error.';
 
 const
   SCN_EXTEND_GAP = '0.000000001';
@@ -1287,9 +1288,13 @@ begin
   if DivPrecision < 0 then
     DivPrecision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
-  // 根据精度要求计算将被除数扩大的倍数，注意存在乘以 9 时就可能溢出的情况但先不管
-  M := CheckScaleAddRange(DivPrecision, (Num2.FValue.Top - Num2.FValue.Top + 1) * 9 + 3);
-  TS := CheckScaleAddRange(TS, M); // 扩大的倍数在这里抵消
+  // 根据精度要求计算将被除数扩大的倍数，注意为了加速可能有 1 位误差
+  M := CheckScaleAddRange(DivPrecision, BigNumberGetTenPrecision2(Num2.FValue)
+    - BigNumberGetTenPrecision2(Num1.FValue) + 1);
+  if M < 0 then  // 无需扩大、精度已经足够
+    M := 0
+  else if M > 0 then
+    TS := CheckScaleAddRange(TS, M); // 扩大的倍数在这里抵消
 
   T := nil;
   R := nil;
@@ -1374,7 +1379,7 @@ var
   X0, R, T, D, G: TCnBigDecimal;
 begin
   if Num.IsNegative then
-    raise ERangeError.Create('');
+    raise ERangeError.Create(SCnSqrtRangeError);
 
   if Num.IsZero or Num.IsOne then
   begin
@@ -1389,6 +1394,9 @@ begin
   T := nil;
   D := nil;
   G := nil;
+
+  if SqrtPrecision <= 0 then
+    SqrtPrecision := CN_BIG_DECIMAL_DEFAULT_PRECISION; 
 
   try
     G := FLocalBigDecimalPool.Obtain;
@@ -1432,6 +1440,8 @@ begin
       BigDecimalCopy(Res, R);
       FLocalBigDecimalPool.Recycle(R);
     end;
+
+    // TODO: Round to SqrtPrecision
     Result := True;
   finally
     FLocalBigDecimalPool.Recycle(X0);
@@ -2480,8 +2490,11 @@ begin
     DivPrecision := CN_BIG_BINARY_DEFAULT_PRECISION;
 
   // 根据精度要求计算将被除数扩大的倍数
-  M := CheckScaleAddRange(DivPrecision, (Num2.FValue.GetBitsCount - Num2.FValue.GetBitsCount + 1));
-  TS := CheckScaleAddRange(TS, M); // 扩大的倍数在这里抵消
+  M := CheckScaleAddRange(DivPrecision, (Num2.FValue.GetBitsCount - Num1.FValue.GetBitsCount + 1));
+  if M < 0 then // 无需扩大、精度已经足够
+    M := 0
+  else if M > 0 then
+    TS := CheckScaleAddRange(TS, M); // 扩大的倍数在这里抵消
 
   T := nil;
   R := nil;

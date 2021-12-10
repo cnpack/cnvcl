@@ -406,6 +406,9 @@ function BigNumberGetWordsCount(const Num: TCnBigNumber): Integer;
 function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效十进制位数}
 
+function BigNumberGetTenPrecision2(const Num: TCnBigNumber): Integer;
+{* 粗略返回一个大数对象里的大数有多少个有效十进制位数，可能有 1 位误差但较快}
+
 function BigNumberGetWord(const Num: TCnBigNumber): TCnLongWord32;
 {* 取一个大数对象的首值，也就是低 32 位无符号值}
 
@@ -1024,6 +1027,26 @@ begin
   finally
     FLocalBigNumberPool.Recycle(N);
   end;
+end;
+
+function BigNumberGetTenPrecision2(const Num: TCnBigNumber): Integer;
+const
+  LOG_10_2 = 0.30103;
+var
+  B: Integer;
+begin
+  Result := 0;
+  if Num.IsZero then
+    Exit;
+
+  B := Num.GetBitsCount;
+  if B <= 3 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  Result := Trunc(LOG_10_2 * B) + 1;
 end;
 
 function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PLongWord;
