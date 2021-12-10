@@ -83,7 +83,7 @@ function FloatGaussLegendrePi(RoundCount: Integer = 3): string;
 {* 扩展精度范围内用高斯勒让德公式计算 Pi，3 轮便已抵达扩展精度极限}
 
 function GaussLegendrePi(RoundCount: Integer = 8): string;
-{* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位}
+{* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒}
 
 implementation
 
@@ -274,7 +274,7 @@ begin
   Result := FloatToStr(Res);
 end;
 
-function GaussLegendrePi(RoundCount: Integer = 3): string;
+function GaussLegendrePi(RoundCount: Integer): string;
 var
   I, P: Integer;
   A0, B0, T0, P0: TCnBigDecimal;
