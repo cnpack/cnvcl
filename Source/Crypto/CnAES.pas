@@ -33,9 +33,11 @@ unit CnAES;
 * 单元名称：AES 实现单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：从 EldoS, Alexander Ionov 的单元移植而来，保留原有版权信息
-*           对齐方式均在末尾补 0，暂不支持 PKCS 之类的
+*           对齐方式均在末尾补 0，单元内部暂不支持 PKCS 之类的，需要外部处理
 * 开发平台：Win 7
-* 修改记录：2019.04.15 V1.1
+* 修改记录：2021.12.11 V1.2
+*               加入 CFB/OFB 模式的支持
+*           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
 *           2015.01.21 V1.0
 *               创建单元
@@ -75,7 +77,7 @@ type
   PAESExpandedKey192 = ^TAESExpandedKey192;
   PAESExpandedKey256 = ^TAESExpandedKey256;
 
-// Key expansion routines for encryption  
+// Key Expansion Routines for Encryption
 
 procedure ExpandAESKeyForEncryption(const Key: TAESKey128;
   var ExpandedKey: TAESExpandedKey128); overload;
@@ -84,7 +86,7 @@ procedure ExpandAESKeyForEncryption(const Key: TAESKey192;
 procedure ExpandAESKeyForEncryption(const Key: TAESKey256;
   var ExpandedKey: TAESExpandedKey256); overload;
 
-// Block encryption routines 独立块加密
+// Block Encryption Routines 独立块加密
 
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey128;
   var OutBuf: TAESBuffer); overload;
@@ -93,7 +95,7 @@ procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey192;
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey256;
   var OutBuf: TAESBuffer); overload;
 
-// Stream encryption routines (ECB mode) ECB 流加密
+// Stream Encryption Routines (ECB mode) ECB 流加密
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; Dest: TStream); overload;
@@ -110,7 +112,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TAESExpandedKey256; Dest: TStream); overload;
 
-// Stream encryption routines (CBC mode) CBC 流加密
+// Stream Encryption Routines (CBC mode) CBC 流加密
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
@@ -130,7 +132,47 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
-// Key transformation routines for decryption
+// Stream Encryption Routines (CFB mode) CFB 流加密
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+// Stream Encryption Routines (OFB mode) OFB 流加密
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+// Key Transformation Routines for Decryption
 
 procedure ExpandAESKeyForDecryption(var ExpandedKey: TAESExpandedKey128); overload;
 procedure ExpandAESKeyForDecryption(const Key: TAESKey128;
@@ -144,7 +186,7 @@ procedure ExpandAESKeyForDecryption(var ExpandedKey: TAESExpandedKey256); overlo
 procedure ExpandAESKeyForDecryption(const Key: TAESKey256;
   var ExpandedKey: TAESExpandedKey256); overload;
 
-// Block decryption routines  独立块解密
+// Block Decryption Routines  独立块解密
 
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey128;
   var OutBuf: TAESBuffer); overload;
@@ -153,7 +195,7 @@ procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey192;
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey256;
   var OutBuf: TAESBuffer); overload;
 
-// Stream decryption routines (ECB mode) ECB 流解密
+// Stream Decryption Routines (ECB mode) ECB 流解密
 
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; Dest: TStream); overload;
@@ -170,7 +212,7 @@ procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TAESExpandedKey256; Dest: TStream); overload;
 
-// Stream decryption routines (CBC mode) CBC 流解密
+// Stream Decryption Routines (CBC mode) CBC 流解密
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
@@ -187,6 +229,46 @@ procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+// Stream Decryption Routines (CFB mode) CFB 流解密
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+// Stream Decryption Routines (OFB mode) OFB 流解密
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream); overload;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream); overload;
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
@@ -206,6 +288,22 @@ function AESEncryptCbcStrToHex(Value: AnsiString; Key: AnsiString;
 function AESDecryptCbcStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
 
+// AES CFB 模式加密字符串并将其转换成十六进制
+function AESEncryptCfbStrToHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES CFB 解密十六进制字符串
+function AESDecryptCfbStrFromHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES OFB 模式加密字符串并将其转换成十六进制
+function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES OFB 解密十六进制字符串
+function AESDecryptOfbStrFromHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+
 {$IFDEF TBYTES_DEFINED}
 
 // AES ECB 模式加密字节数组
@@ -219,6 +317,18 @@ function AESEncryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128
 
 // AES CBC 模式解密字节数组
 function AESDecryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES CFB 模式加密字节数组
+function AESEncryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES CFB 模式解密字节数组
+function AESDecryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES OFB 模式加密字节数组
+function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES OFB 模式解密字节数组
+function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
 
 {$ENDIF}
 
@@ -1997,7 +2107,7 @@ begin
   PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
 end;
 
-// Stream encryption routines (ECB mode)
+// Stream Encryption Routines (ECB mode)
 
 procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; Dest: TStream); overload;
@@ -2137,7 +2247,7 @@ begin
   end;
 end;
 
-// Stream decryption routines (ECB mode)
+// Stream Decryption Routines (ECB mode)
 
 procedure DecryptAESStreamECB(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; Dest: TStream); overload;
@@ -2250,7 +2360,7 @@ begin
   end;
 end;
 
-// Stream encryption routines (CBC mode)
+// Stream Encryption Routines (CBC mode)
 
 procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
@@ -2280,16 +2390,16 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SReadError); // 要求每一块都是整块
     PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
-    EncryptAES(TempIn, ExpandedKey, TempOut);
-    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^; // 原始块内容与 IV 先异或
+    EncryptAES(TempIn, ExpandedKey, TempOut);                                       // 异或结果再加密
+    Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 加密内容写入结果
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
-    Vector := TempOut;
+    Vector := TempOut;                                                              // 加密内容代替原始 IV 供下一次异或使用
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then
@@ -2423,7 +2533,7 @@ begin
   end;
 end;
 
-// Stream decryption routines (CBC mode)
+// Stream Decryption Routines (CBC mode)
 
 procedure DecryptAESStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream); overload;
@@ -2542,7 +2652,7 @@ begin
   else Count := Min(Count, Source.Size - Source.Position);
   if Count = 0 then Exit;
   if (Count mod SizeOf(TAESBuffer)) > 0 then
-    raise EAESError.Create(SInvalidInBufSize);
+    raise EAESError.Create(SInvalidInBufSize);        // CBC 由于密文最后输出是因为 AES 分块加密产生的（不是其他的异或）所以必须整数块
   Vector1 := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
@@ -2550,18 +2660,713 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     Vector2 := TempIn;
-    DecryptAES(TempIn, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
+    DecryptAES(TempIn, ExpandedKey, TempOut);         // 读出密文先解密
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;   // 解密后的内容和 Iv 异或得到明文
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@Vector1[8])^;
     PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@Vector1[12])^;
-    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
-    Vector1 := Vector2;
+    Vector1 := Vector2;                                // 保留密文取代 Iv 作为下一次和解密内容异或的内容
     Dec(Count, SizeOf(TAESBuffer));
   end;
 end;
+
+// Stream Encryption Routines (CFB mode)
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey128;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  EncryptAESStreamCFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut, Vector: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+  Vector := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);                                       // Key 先加密 Iv
+    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;  // 加密结果与明文异或
+    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 异或的结果写进密文结果
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+    Vector := TempOut;                                                              // 密文结果取代 Iv 供下一轮加密
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
+    if Done < Count then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey192;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  EncryptAESStreamCFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut, Vector: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+  Vector := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+    Vector := TempOut;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempOut, Count);
+    if Done < Count then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey256;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  EncryptAESStreamCFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure EncryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut, Vector: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+  Vector := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError.Create(SWriteError);
+    Vector := TempOut;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempOut, Count);
+    if Done < Count then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+// Stream Decryption Routines (CFB mode)
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey128;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  DecryptAESStreamCFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut: TAESBuffer;
+  Vector1: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+
+  // CFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
+  Vector1 := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
+    if Done < SizeOf(TempOut) then
+      raise EStreamError(SWriteError);
+    Vector1 := TempIn;                                // 保留密文取代 Iv 作为下一次加密再异或的内容
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then                                   // 最后一块不为整
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempOut, Count);      // 明文写出去
+    if Done < Count then
+      raise EStreamError(SWriteError);
+  end;
+end;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey192;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  DecryptAESStreamCFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut: TAESBuffer;
+  Vector1: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+
+  Vector1 := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError(SWriteError);
+    Vector1 := TempIn;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempOut, Count);
+    if Done < Count then
+      raise EStreamError(SWriteError);
+  end;
+end;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey256;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  DecryptAESStreamCFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut: TAESBuffer;
+  Vector1: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+
+  Vector1 := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempOut, SizeOf(TempOut));
+    if Done < SizeOf(TempOut) then
+      raise EStreamError(SWriteError);
+    Vector1 := TempIn;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempOut, Count);
+    if Done < Count then
+      raise EStreamError(SWriteError);
+  end;
+end;
+
+// Stream Encryption Routines (OFB mode)
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey128;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  EncryptAESStreamOFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut, Vector: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+  Vector := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);                                      // Key 先加密 Iv
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;  // 加密结果与明文异或
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempIn, SizeOf(TempIn));                                    // 异或的结果写进密文结果
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SWriteError);
+    Vector := TempOut;                                                             // 加密结果取代 Iv 供下一轮加密，注意不是异或结果
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
+    if Done < Count then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey192;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  EncryptAESStreamOFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut, Vector: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+  Vector := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SWriteError);
+    Vector := TempOut;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey256;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  EncryptAESStreamOFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure EncryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut, Vector: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+  Vector := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError.Create(SWriteError);
+    Vector := TempOut;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SReadError);
+    EncryptAES(Vector, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    Done := Dest.Write(TempIn, Count);
+    if Done < Count then
+      raise EStreamError.Create(SWriteError);
+  end;
+end;
+
+// Stream Decryption Routines (OFB mode)
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey128; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey128;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  DecryptAESStreamOFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey128; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut: TAESBuffer;
+  Vector1: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+
+  // OFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
+  Vector1 := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
+    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempIn, SizeOf(TempIn));       // 明文写出去
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SWriteError);
+    Vector1 := TempOut;                               // 保留加密内容取代 Iv 作为下一次异或前的内容
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then                                   // 最后一块不为整
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempIn, Count);      // 明文写出去
+    if Done < Count then
+      raise EStreamError(SWriteError);
+  end;
+end;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey192; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey192;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  DecryptAESStreamOFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey192; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut: TAESBuffer;
+  Vector1: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+
+  Vector1 := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SWriteError);
+    Vector1 := TempOut;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SWriteError);
+  end;
+end;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const Key: TAESKey256; const InitVector: TAESBuffer; Dest: TStream);
+var
+  ExpandedKey: TAESExpandedKey256;
+begin
+  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  DecryptAESStreamOFB(Source, Count, ExpandedKey, InitVector, Dest);
+end;
+
+procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
+  const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
+  Dest: TStream);
+var
+  TempIn, TempOut: TAESBuffer;
+  Vector1: TAESBuffer;
+  Done: Cardinal;
+begin
+  if Count = 0 then
+  begin
+    Source.Position := 0;
+    Count := Source.Size;
+  end
+  else Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then Exit;
+
+  Vector1 := InitVector;
+  while Count >= SizeOf(TAESBuffer) do
+  begin
+    Done := Source.Read(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempIn, SizeOf(TempIn));
+    if Done < SizeOf(TempIn) then
+      raise EStreamError(SWriteError);
+    Vector1 := TempOut;
+    Dec(Count, SizeOf(TAESBuffer));
+  end;
+  if Count > 0 then
+  begin
+    Done := Source.Read(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SReadError);
+    EncryptAES(Vector1, ExpandedKey, TempOut);
+    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
+    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
+    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
+    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    Done := Dest.Write(TempIn, Count);
+    if Done < Count then
+      raise EStreamError(SWriteError);
+  end;
+end;
+
 
 function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
 var
@@ -2781,6 +3586,182 @@ begin
   end;
 end;
 
+// AES CFB 模式加密字符串并将其转换成十六进制
+function AESEncryptCfbStrToHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+begin
+  Result := '';
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[1])^, Length(Value));
+  SS.Position := 0;
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        EncryptAESStreamCFB(SS, 0, AESKey128, Iv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        EncryptAESStreamCFB(SS, 0, AESKey192, Iv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        EncryptAESStreamCFB(SS, 0, AESKey256, Iv, DS);
+      end;
+    end;
+    Result := StrToHex(PAnsiChar(DS.Memory), DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES CFB 解密十六进制字符串
+function AESDecryptCfbStrFromHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  Tmp: AnsiString;
+begin
+  Result := '';
+  SS := TMemoryStream.Create;
+  Tmp := HexToStr(Value);
+  SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+  SS.Position := 0;
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        DecryptAESStreamCFB(SS, SS.Size - SS.Position, AESKey128, Iv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        DecryptAESStreamCFB(SS, SS.Size - SS.Position, AESKey192, Iv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        DecryptAESStreamCFB(SS, SS.Size - SS.Position, AESKey256, Iv, DS);
+      end;
+    end;
+    SetLength(Result, DS.Size);
+    Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES OFB 模式加密字符串并将其转换成十六进制
+function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+begin
+  Result := '';
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[1])^, Length(Value));
+  SS.Position := 0;
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        EncryptAESStreamOFB(SS, 0, AESKey128, Iv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        EncryptAESStreamOFB(SS, 0, AESKey192, Iv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        EncryptAESStreamOFB(SS, 0, AESKey256, Iv, DS);
+      end;
+    end;
+    Result := StrToHex(PAnsiChar(DS.Memory), DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES OFB 解密十六进制字符串
+function AESDecryptOfbStrFromHex(Value: AnsiString; Key: AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  Tmp: AnsiString;
+begin
+  Result := '';
+  SS := TMemoryStream.Create;
+  Tmp := HexToStr(Value);
+  SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+  SS.Position := 0;
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey128, Iv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey192, Iv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey256, Iv, DS);
+      end;
+    end;
+    SetLength(Result, DS.Size);
+    Move(PAnsiChar(DS.Memory)^, Result[1], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
 {$IFDEF TBYTES_DEFINED}
 
 // AES ECB 模式加密字节数组
@@ -2978,6 +3959,220 @@ begin
         FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         DecryptAESStreamCBC(SS, SS.Size - SS.Position, AESKey256, AESIv, DS);
+      end;
+    end;
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES CFB 模式加密字节数组
+function AESEncryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AESIv: TAESBuffer;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  FillChar(AESIv, SizeOF(AESIv), 0);
+  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        EncryptAESStreamCFB(SS, 0, AESKey128, AESIv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        EncryptAESStreamCFB(SS, 0, AESKey192, AESIv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        EncryptAESStreamCFB(SS, 0, AESKey256, AESIv, DS);
+      end;
+    end;
+
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES CFB 模式解密字节数组
+function AESDecryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AESIv: TAESBuffer;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  FillChar(AESIv, SizeOF(AESIv), 0);
+  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        DecryptAESStreamCFB(SS, SS.Size - SS.Position, AESKey128, AESIv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        DecryptAESStreamCFB(SS, SS.Size - SS.Position, AESKey192, AESIv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        DecryptAESStreamCFB(SS, SS.Size - SS.Position, AESKey256, AESIv, DS);
+      end;
+    end;
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES OFB 模式加密字节数组
+function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AESIv: TAESBuffer;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  FillChar(AESIv, SizeOF(AESIv), 0);
+  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        EncryptAESStreamOFB(SS, 0, AESKey128, AESIv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        EncryptAESStreamOFB(SS, 0, AESKey192, AESIv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        EncryptAESStreamOFB(SS, 0, AESKey256, AESIv, DS);
+      end;
+    end;
+
+    SetLength(Result, DS.Size);
+    DS.Position := 0;
+    DS.Read(Result[0], DS.Size);
+  finally
+    SS.Free;
+    DS.Free;
+  end;
+end;
+
+// AES OFB 模式解密字节数组
+function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+var
+  SS, DS: TMemoryStream;
+  AESKey128: TAESKey128;
+  AESKey192: TAESKey192;
+  AESKey256: TAESKey256;
+  AESIv: TAESBuffer;
+begin
+  if Length(Value) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  SS := TMemoryStream.Create;
+  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+  SS.Position := 0;
+
+  FillChar(AESIv, SizeOF(AESIv), 0);
+  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+
+  DS := TMemoryStream.Create;
+  try
+    case KeyBit of
+    kbt128:
+      begin
+        FillChar(AESKey128, SizeOf(AESKey128), 0);
+        Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
+        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey128, AESIv, DS);
+      end;
+    kbt192:
+      begin
+        FillChar(AESKey192, SizeOf(AESKey192), 0);
+        Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
+        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey192, AESIv, DS);
+      end;
+    kbt256:
+      begin
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
+        Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
+        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey256, AESIv, DS);
       end;
     end;
     SetLength(Result, DS.Size);

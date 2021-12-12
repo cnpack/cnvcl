@@ -1140,10 +1140,12 @@ object FormCrypt: TFormCrypt
         object rbAesecb: TRadioButton
           Left = 168
           Top = 132
-          Width = 57
+          Width = 49
           Height = 17
           Caption = 'ECB'
+          Checked = True
           TabOrder = 4
+          TabStop = True
         end
         object rbAescbc: TRadioButton
           Left = 232
@@ -1151,9 +1153,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'CBC'
-          Checked = True
           TabOrder = 5
-          TabStop = True
         end
         object cbbAesKeyBitType: TComboBox
           Left = 72
@@ -1195,6 +1195,22 @@ object FormCrypt: TFormCrypt
           Items.Strings = (
             'Zero'
             'PKCS7')
+        end
+        object rbAescfb: TRadioButton
+          Left = 168
+          Top = 152
+          Width = 57
+          Height = 17
+          Caption = 'CFB'
+          TabOrder = 12
+        end
+        object rbAesofb: TRadioButton
+          Left = 232
+          Top = 152
+          Width = 57
+          Height = 17
+          Caption = 'OFB'
+          TabOrder = 13
         end
       end
     end
