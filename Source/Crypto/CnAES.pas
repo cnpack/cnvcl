@@ -2859,7 +2859,7 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
   Dest: TStream);
 var
   TempIn, TempOut: TAESBuffer;
-  Vector1: TAESBuffer;
+  Vector: TAESBuffer;
   Done: Cardinal;
 begin
   if Count = 0 then
@@ -2871,13 +2871,13 @@ begin
   if Count = 0 then Exit;
 
   // CFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
-  Vector1 := InitVector;
+  Vector := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
+    EncryptAES(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -2885,7 +2885,7 @@ begin
     Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
-    Vector1 := TempIn;                                // 保留密文取代 Iv 作为下一次加密再异或的内容
+    Vector := TempIn;                                 // 保留密文取代 Iv 作为下一次加密再异或的内容
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then                                   // 最后一块不为整
@@ -2893,7 +2893,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -2918,7 +2918,7 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
   Dest: TStream);
 var
   TempIn, TempOut: TAESBuffer;
-  Vector1: TAESBuffer;
+  Vector: TAESBuffer;
   Done: Cardinal;
 begin
   if Count = 0 then
@@ -2929,13 +2929,13 @@ begin
   else Count := Min(Count, Source.Size - Source.Position);
   if Count = 0 then Exit;
 
-  Vector1 := InitVector;
+  Vector := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -2943,7 +2943,7 @@ begin
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
-    Vector1 := TempIn;
+    Vector := TempIn;
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then
@@ -2951,7 +2951,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -2976,7 +2976,7 @@ procedure DecryptAESStreamCFB(Source: TStream; Count: Cardinal;
   Dest: TStream);
 var
   TempIn, TempOut: TAESBuffer;
-  Vector1: TAESBuffer;
+  Vector: TAESBuffer;
   Done: Cardinal;
 begin
   if Count = 0 then
@@ -2987,13 +2987,13 @@ begin
   else Count := Min(Count, Source.Size - Source.Position);
   if Count = 0 then Exit;
 
-  Vector1 := InitVector;
+  Vector := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3001,7 +3001,7 @@ begin
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
-    Vector1 := TempIn;
+    Vector := TempIn;
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then
@@ -3009,7 +3009,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3206,7 +3206,7 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
   Dest: TStream);
 var
   TempIn, TempOut: TAESBuffer;
-  Vector1: TAESBuffer;
+  Vector: TAESBuffer;
   Done: Cardinal;
 begin
   if Count = 0 then
@@ -3218,13 +3218,13 @@ begin
   if Count = 0 then Exit;
 
   // OFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
-  Vector1 := InitVector;
+  Vector := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
+    EncryptAES(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
     PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3232,7 +3232,7 @@ begin
     Done := Dest.Write(TempIn, SizeOf(TempIn));       // 明文写出去
     if Done < SizeOf(TempIn) then
       raise EStreamError(SWriteError);
-    Vector1 := TempOut;                               // 保留加密内容取代 Iv 作为下一次异或前的内容
+    Vector := TempOut;                               // 保留加密内容取代 Iv 作为下一次异或前的内容
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then                                   // 最后一块不为整
@@ -3240,7 +3240,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3265,7 +3265,7 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
   Dest: TStream);
 var
   TempIn, TempOut: TAESBuffer;
-  Vector1: TAESBuffer;
+  Vector: TAESBuffer;
   Done: Cardinal;
 begin
   if Count = 0 then
@@ -3276,13 +3276,13 @@ begin
   else Count := Min(Count, Source.Size - Source.Position);
   if Count = 0 then Exit;
 
-  Vector1 := InitVector;
+  Vector := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3290,7 +3290,7 @@ begin
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SWriteError);
-    Vector1 := TempOut;
+    Vector := TempOut;
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then
@@ -3298,7 +3298,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3323,7 +3323,7 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
   Dest: TStream);
 var
   TempIn, TempOut: TAESBuffer;
-  Vector1: TAESBuffer;
+  Vector: TAESBuffer;
   Done: Cardinal;
 begin
   if Count = 0 then
@@ -3334,13 +3334,13 @@ begin
   else Count := Min(Count, Source.Size - Source.Position);
   if Count = 0 then Exit;
 
-  Vector1 := InitVector;
+  Vector := InitVector;
   while Count >= SizeOf(TAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
@@ -3348,7 +3348,7 @@ begin
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SWriteError);
-    Vector1 := TempOut;
+    Vector := TempOut;
     Dec(Count, SizeOf(TAESBuffer));
   end;
   if Count > 0 then
@@ -3356,7 +3356,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SReadError);
-    EncryptAES(Vector1, ExpandedKey, TempOut);
+    EncryptAES(Vector, ExpandedKey, TempOut);
     PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
     PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
     PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;

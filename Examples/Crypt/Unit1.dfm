@@ -98,7 +98,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'DES Crypt'
-          TabOrder = 2
+          TabOrder = 3
           OnClick = btnDesCryptClick
         end
         object edtDESCode: TEdit
@@ -106,7 +106,7 @@ object FormCrypt: TFormCrypt
           Top = 160
           Width = 169
           Height = 21
-          TabOrder = 3
+          TabOrder = 7
         end
         object btnDesDecrypt: TButton
           Left = 72
@@ -114,7 +114,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'DES Decrypt'
-          TabOrder = 4
+          TabOrder = 9
           OnClick = btnDesDecryptClick
         end
         object edtDesOrigin: TEdit
@@ -122,14 +122,14 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 5
+          TabOrder = 10
         end
         object edtDESIv: TEdit
           Left = 264
           Top = 72
           Width = 225
           Height = 21
-          TabOrder = 6
+          TabOrder = 2
           Text = '0123456789ABCDEF'
         end
         object rbDESCbc: TRadioButton
@@ -139,7 +139,7 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'CBC'
           Checked = True
-          TabOrder = 7
+          TabOrder = 5
           TabStop = True
         end
         object rbDESEcb: TRadioButton
@@ -148,7 +148,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'ECB'
-          TabOrder = 8
+          TabOrder = 4
         end
         object chkDESUseTBytes: TCheckBox
           Left = 352
@@ -156,7 +156,7 @@ object FormCrypt: TFormCrypt
           Width = 97
           Height = 17
           Caption = 'Use TBytes'
-          TabOrder = 9
+          TabOrder = 6
         end
         object cbbDesPadding: TComboBox
           Left = 320
@@ -165,7 +165,7 @@ object FormCrypt: TFormCrypt
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 10
+          TabOrder = 8
           Items.Strings = (
             'Zero'
             'PKCS7')
@@ -247,7 +247,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = '3DES Crypt'
-          TabOrder = 2
+          TabOrder = 3
           OnClick = btn3DesCryptClick
         end
         object edt3DesCode: TEdit
@@ -255,7 +255,7 @@ object FormCrypt: TFormCrypt
           Top = 160
           Width = 169
           Height = 21
-          TabOrder = 3
+          TabOrder = 7
         end
         object btn3DesDecrypt: TButton
           Left = 72
@@ -263,7 +263,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = '3DES Decrypt'
-          TabOrder = 4
+          TabOrder = 9
           OnClick = btn3DesDecryptClick
         end
         object edt3DesOrigin: TEdit
@@ -271,14 +271,14 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 5
+          TabOrder = 10
         end
         object edt3DesIv: TEdit
           Left = 264
           Top = 72
           Width = 225
           Height = 21
-          TabOrder = 6
+          TabOrder = 2
           Text = '0123456789ABCDEF'
         end
         object rb3DesCBC: TRadioButton
@@ -288,7 +288,7 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'CBC'
           Checked = True
-          TabOrder = 7
+          TabOrder = 5
           TabStop = True
         end
         object rb3DesECB: TRadioButton
@@ -297,7 +297,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'ECB'
-          TabOrder = 8
+          TabOrder = 4
         end
         object chk3DESUseTBytes: TCheckBox
           Left = 352
@@ -305,7 +305,7 @@ object FormCrypt: TFormCrypt
           Width = 97
           Height = 17
           Caption = 'Use TBytes'
-          TabOrder = 9
+          TabOrder = 6
         end
         object cbb3DesPadding: TComboBox
           Left = 320
@@ -314,7 +314,7 @@ object FormCrypt: TFormCrypt
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 10
+          TabOrder = 8
           Items.Strings = (
             'Zero'
             'PKCS7')
@@ -463,7 +463,7 @@ object FormCrypt: TFormCrypt
           Top = 140
           Width = 169
           Height = 21
-          TabOrder = 3
+          TabOrder = 4
         end
         object btnBase64Decode: TButton
           Left = 72
@@ -471,7 +471,7 @@ object FormCrypt: TFormCrypt
           Width = 105
           Height = 25
           Caption = 'Base64 Decode'
-          TabOrder = 4
+          TabOrder = 5
           OnClick = btnBase64DecodeClick
         end
         object edtBase64Decode: TEdit
@@ -479,7 +479,7 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 6
+          TabOrder = 7
         end
         object btnBase64File: TButton
           Left = 288
@@ -487,7 +487,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File Base64'
-          TabOrder = 2
+          TabOrder = 3
           OnClick = btnBase64FileClick
         end
         object btnDeBase64File: TButton
@@ -496,7 +496,7 @@ object FormCrypt: TFormCrypt
           Width = 121
           Height = 25
           Caption = 'Base64 Decode to File'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnDeBase64FileClick
         end
         object chkBase64UseTBytes: TCheckBox
@@ -505,7 +505,7 @@ object FormCrypt: TFormCrypt
           Width = 97
           Height = 17
           Caption = 'Use TBytes'
-          TabOrder = 7
+          TabOrder = 2
         end
       end
     end
@@ -557,7 +557,7 @@ object FormCrypt: TFormCrypt
           Width = 369
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 4
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnFileCRC32: TButton
@@ -566,7 +566,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File CRC32'
-          TabOrder = 5
+          TabOrder = 7
           OnClick = btnFileCRC32Click
         end
         object edtCRC32HmacKey: TEdit
@@ -583,7 +583,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'CRC32 Hmac'
-          TabOrder = 3
+          TabOrder = 5
           OnClick = btnCRC32HmacClick
         end
         object btnCRC16: TButton
@@ -592,7 +592,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'CRC16'
-          TabOrder = 6
+          TabOrder = 3
           OnClick = btnCRC16Click
         end
         object btnFileCRC16: TButton
@@ -601,7 +601,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File CRC16'
-          TabOrder = 7
+          TabOrder = 8
           OnClick = btnFileCRC16Click
         end
         object btnCRC8: TButton
@@ -610,7 +610,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'CRC8'
-          TabOrder = 8
+          TabOrder = 4
           OnClick = btnCRC8Click
         end
         object btnFileCRC8: TButton
@@ -947,7 +947,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'SM4 Encrypt'
-          TabOrder = 2
+          TabOrder = 3
           OnClick = btnSm4Click
         end
         object edtSm4Key: TEdit
@@ -963,7 +963,7 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 7
+          TabOrder = 12
         end
         object btnSm4Dec: TButton
           Left = 72
@@ -971,7 +971,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'SM4 Decrypt'
-          TabOrder = 6
+          TabOrder = 11
           OnClick = btnSm4DecClick
         end
         object edtSm4Code: TEdit
@@ -979,7 +979,7 @@ object FormCrypt: TFormCrypt
           Top = 160
           Width = 169
           Height = 21
-          TabOrder = 5
+          TabOrder = 9
         end
         object rbSm4Ecb: TRadioButton
           Left = 168
@@ -987,24 +987,24 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'ECB'
-          TabOrder = 3
+          Checked = True
+          TabOrder = 4
+          TabStop = True
         end
-        object rbSm4CBC: TRadioButton
+        object rbSm4Cbc: TRadioButton
           Left = 232
           Top = 116
           Width = 57
           Height = 17
           Caption = 'CBC'
-          Checked = True
-          TabOrder = 4
-          TabStop = True
+          TabOrder = 5
         end
         object edtSM4Iv: TEdit
           Left = 264
           Top = 72
           Width = 225
           Height = 21
-          TabOrder = 8
+          TabOrder = 2
           Text = '0123456789ABCDEFFEDCBA9876543210'
         end
         object chkSM4UseTBytes: TCheckBox
@@ -1013,7 +1013,7 @@ object FormCrypt: TFormCrypt
           Width = 97
           Height = 17
           Caption = 'Use TBytes'
-          TabOrder = 9
+          TabOrder = 6
         end
         object cbbSm4Padding: TComboBox
           Left = 320
@@ -1026,6 +1026,22 @@ object FormCrypt: TFormCrypt
           Items.Strings = (
             'Zero'
             'PKCS7')
+        end
+        object rbSm4Cfb: TRadioButton
+          Left = 168
+          Top = 140
+          Width = 57
+          Height = 17
+          Caption = 'CFB'
+          TabOrder = 7
+        end
+        object rbSm4Ofb: TRadioButton
+          Left = 232
+          Top = 140
+          Width = 57
+          Height = 17
+          Caption = 'OFB'
+          TabOrder = 8
         end
       end
     end
@@ -1103,7 +1119,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'AES Encrypt'
-          TabOrder = 3
+          TabOrder = 4
           OnClick = btnAesEncryptClick
         end
         object edtAesKey: TEdit
@@ -1119,7 +1135,7 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 8
+          TabOrder = 13
         end
         object btnAesDecrypt: TButton
           Left = 72
@@ -1127,7 +1143,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'AES Decrypt'
-          TabOrder = 7
+          TabOrder = 12
           OnClick = btnAesDecryptClick
         end
         object edtAesResult: TEdit
@@ -1135,7 +1151,7 @@ object FormCrypt: TFormCrypt
           Top = 176
           Width = 169
           Height = 21
-          TabOrder = 6
+          TabOrder = 10
         end
         object rbAesecb: TRadioButton
           Left = 168
@@ -1144,7 +1160,7 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'ECB'
           Checked = True
-          TabOrder = 4
+          TabOrder = 5
           TabStop = True
         end
         object rbAescbc: TRadioButton
@@ -1153,7 +1169,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'CBC'
-          TabOrder = 5
+          TabOrder = 6
         end
         object cbbAesKeyBitType: TComboBox
           Left = 72
@@ -1162,7 +1178,7 @@ object FormCrypt: TFormCrypt
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 2
+          TabOrder = 3
           Items.Strings = (
             '128 Bit'
             '192 Bit'
@@ -1173,7 +1189,7 @@ object FormCrypt: TFormCrypt
           Top = 64
           Width = 225
           Height = 21
-          TabOrder = 9
+          TabOrder = 2
           Text = '0123456789ABCDEFFEDCBA9876543210'
         end
         object chkAESUseTBytes: TCheckBox
@@ -1182,7 +1198,7 @@ object FormCrypt: TFormCrypt
           Width = 97
           Height = 17
           Caption = 'Use TBytes'
-          TabOrder = 10
+          TabOrder = 7
         end
         object cbbAesPadding: TComboBox
           Left = 320
@@ -1202,7 +1218,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'CFB'
-          TabOrder = 12
+          TabOrder = 8
         end
         object rbAesofb: TRadioButton
           Left = 232
@@ -1210,7 +1226,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'OFB'
-          TabOrder = 13
+          TabOrder = 9
         end
       end
     end
@@ -2122,14 +2138,14 @@ object FormCrypt: TFormCrypt
           Top = 152
           Width = 82
           Height = 21
-          TabOrder = 7
+          TabOrder = 8
         end
         object edtTeaEnc2: TEdit
           Left = 220
           Top = 152
           Width = 82
           Height = 21
-          TabOrder = 8
+          TabOrder = 9
         end
         object btnTeaDec: TButton
           Left = 320
@@ -2137,7 +2153,7 @@ object FormCrypt: TFormCrypt
           Width = 79
           Height = 25
           Caption = 'Tea Decrypt'
-          TabOrder = 9
+          TabOrder = 7
           OnClick = btnTeaDecClick
         end
         object btnXTeaEnc: TButton
@@ -2154,14 +2170,14 @@ object FormCrypt: TFormCrypt
           Top = 192
           Width = 82
           Height = 21
-          TabOrder = 11
+          TabOrder = 12
         end
         object edtXTeaEnc2: TEdit
           Left = 220
           Top = 192
           Width = 82
           Height = 21
-          TabOrder = 12
+          TabOrder = 13
         end
         object btnXTeaDec: TButton
           Left = 320
@@ -2169,7 +2185,7 @@ object FormCrypt: TFormCrypt
           Width = 79
           Height = 25
           Caption = 'XTea Decrypt'
-          TabOrder = 13
+          TabOrder = 11
           OnClick = btnXTeaDecClick
         end
         object btnXXTeaEnc: TButton
@@ -2186,14 +2202,14 @@ object FormCrypt: TFormCrypt
           Top = 232
           Width = 82
           Height = 21
-          TabOrder = 15
+          TabOrder = 16
         end
         object edtXXTeaEnc2: TEdit
           Left = 220
           Top = 232
           Width = 82
           Height = 21
-          TabOrder = 16
+          TabOrder = 17
         end
         object btnXXTeaDec: TButton
           Left = 320
@@ -2201,7 +2217,7 @@ object FormCrypt: TFormCrypt
           Width = 79
           Height = 25
           Caption = 'XXTea Decrypt'
-          TabOrder = 17
+          TabOrder = 15
           OnClick = btnXXTeaDecClick
         end
       end
