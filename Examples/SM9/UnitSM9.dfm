@@ -1,6 +1,6 @@
 object FormSM9: TFormSM9
   Left = 232
-  Top = 179
+  Top = 180
   Width = 979
   Height = 563
   Caption = 'SM9 Test'
@@ -99,6 +99,35 @@ object FormSM9: TFormSM9
           OnClick = btnTestFP12Click
         end
         object mmoFP12: TMemo
+          Left = 16
+          Top = 72
+          Width = 897
+          Height = 377
+          ScrollBars = ssVertical
+          TabOrder = 1
+        end
+      end
+    end
+    object tsAffinePoint: TTabSheet
+      Caption = 'Affine Point'
+      ImageIndex = 3
+      object grpAP: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 465
+        Caption = 'Affine Point'
+        TabOrder = 0
+        object btnAP: TButton
+          Left = 16
+          Top = 24
+          Width = 89
+          Height = 25
+          Caption = 'Test Affine Point'
+          TabOrder = 0
+          OnClick = btnAPClick
+        end
+        object mmoAP: TMemo
           Left = 16
           Top = 72
           Width = 897

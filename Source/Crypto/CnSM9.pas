@@ -24,7 +24,9 @@ unit CnSM9;
 * 软件名称：开发包基础库
 * 单元名称：SM9 基于椭圆曲线双线性映射的身份认证算法单元
 * 单元作者：刘啸
-* 备    注：参考了 GmSSL/PBC 源码。二次、四次、十二次扩域分别有 U V W 乘法操作
+* 备    注：参考了 GmSSL/PBC/Federico2014 源码。
+*           二次、四次、十二次扩域分别有 U V W 乘法操作
+*           仿射坐标系里的三元点也有加、乘、求反、Frobenius 等操作。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -150,8 +152,8 @@ type
     procedure Recycle(Num: TCnFP12); reintroduce;
   end;
 
-  TCnSM9Point = class
-  {* 射影坐标系里的平面点，由三个坐标组成}
+  TCnAffinePoint = class
+  {* 仿射坐标系里的平面点，由三个坐标组成}
   private
     FY: TCnFP2;
     FX: TCnFP2;
@@ -160,9 +162,41 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
+    procedure SetZero;
+    {* 设置为全 0，似乎没啥用}
+    function IsAtInfinity: Boolean;
+    {* 是否位于无限远处}
+    function SetToInfinity: Boolean;
+    {* 坐标设为无限远}
+    function GetCoordinatesFP2(const FP2X, FP2Y: TCnFP2): Boolean;
+    {* 获取 XY 坐标值，内部采用复制}
+    function SetCoordinatesFP2(const FP2X, FP2Y: TCnFP2): Boolean;
+    {* 设置 XY 坐标值，内部采用复制}
+    function SetCoordinatesHex(const SX0, SX1, SY0, SY1: string): Boolean;
+    {* 设置 XY 坐标值，使用十六进制字符串}
+    function SetCoordinatesBigNumbers(const X0, X1, Y0, Y1: TCnBigNumber): Boolean;
+    {* 设置 XY 坐标值，使用大数对象，内部采用复制}
+    function GetExtCoordinatesFP12(const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber): Boolean;
+    {* 获取扩展 XY 坐标值，内部采用复制}
+    function SetExtCoordinatesFP12(const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber): Boolean;
+    {* 设置扩展 XY 坐标值，内部采用复制}
+    function IsOnCurve(Prime: TCnBigNumber): Boolean;
+    {* 判断是否在椭圆曲线 y^2 = x^3 + 5 上}
+
     property X: TCnFP2 read FX;
     property Y: TCnFP2 read FY;
     property Z: TCnFP2 read FZ;
+  end;
+
+  TCnAffinePointPool = class(TCnMathObjectPool)
+  {* 仿射坐标系里的平面点池实现类，允许使用到仿射坐标系里的平面点的地方自行创建池}
+  protected
+    function CreateObject: TObject; override;
+  public
+    function Obtain: TCnAffinePoint; reintroduce;
+    procedure Recycle(Num: TCnAffinePoint); reintroduce;
   end;
 
   TCnSM9 = class
@@ -423,13 +457,93 @@ function FP12Div(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber)
 function FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber): Boolean;
 {* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F，暂未测试}
 
+// ===================== 仿射坐标系里的三元点的运算函数 ========================
+
+function AffinePointNew: TCnAffinePoint;
+{* 创建一仿射坐标系里的三元点对象，等同于 TCnAffinePoint.Create}
+
+procedure AffinePointFree(P: TCnAffinePoint);
+{* 释放一仿射坐标系里的三元点对象，等同于 TCnAffinePoint.Free}
+
+procedure AffinePointSetZero(P: TCnAffinePoint);
+{* 将一个仿射坐标系里的三元点坐标设置为全 0}
+
+function AffinePointToString(const P: TCnAffinePoint): string;
+{* 将一仿射坐标系里的三元点对象转换为字符串}
+
+function AffinePointEqual(const P1, P2: TCnAffinePoint): Boolean;
+{* 判断两个仿射坐标系里的三元点对象值是否相等}
+
+function AffinePointCopy(const Dst, Src: TCnAffinePoint): TCnAffinePoint;
+{* 将一仿射坐标系里的三元点对象值复制到另一个仿射坐标系里的三元点对象中}
+
+function AffinePointIsAtInfinity(const P: TCnAffinePoint): Boolean;
+{* 判断一仿射坐标系里的三元点对象是否位于无限远处}
+
+function AffinePointSetToInfinity(const P: TCnAffinePoint): Boolean;
+{* 将一仿射坐标系里的三元点对象坐标设为无限远}
+
+function AffinePointGetCoordinatesFP2(const P: TCnAffinePoint; const FP2X, FP2Y: TCnFP2): Boolean;
+{* 获取一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制}
+
+function AffinePointSetCoordinatesFP2(const P: TCnAffinePoint; const FP2X, FP2Y: TCnFP2): Boolean;
+{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制}
+
+function AffinePointSetCoordinatesHex(const P: TCnAffinePoint;
+  const SX0, SX1, SY0, SY1: string): Boolean;
+{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用十六进制字符串}
+
+function AffinePointSetCoordinatesBigNumbers(const P: TCnAffinePoint;
+  const X0, X1, Y0, Y1: TCnBigNumber): Boolean;
+{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用大数对象，内部采用复制}
+
+function AffinePointGetExtCoordinatesFP12(const P: TCnAffinePoint;
+  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber): Boolean;
+{* 获取一仿射坐标系里的三元点对象的扩展 XY 坐标值，内部采用复制}
+
+function AffinePointSetExtCoordinatesFP12(const P: TCnAffinePoint;
+  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber): Boolean;
+{* 设置一仿射坐标系里的三元点对象的扩展 XY 坐标值，内部采用复制}
+
+function AffinePointIsOnCurve(const P: TCnAffinePoint; Prime: TCnBigNumber): Boolean;
+{* 判断一仿射坐标系里的三元点对象是否在椭圆曲线 y^2 = x^3 + 5 上}
+
+function AffinePointNegate(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+{* 一个仿射坐标系里的三元点对象的椭圆曲线求反，Res 可以是 P}
+
+function AffinePointDouble(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+{* 一个仿射坐标系里的三元点对象的椭圆曲线倍点法，Res 可以是 P}
+
+function AffinePointAdd(const Res: TCnAffinePoint; const P, Q: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+{* 两个仿射坐标系里的三元点对象的椭圆曲线加法，Res 可以是 P 或 Q，P 可以是 Q}
+
+function AffinePointSub(const Res: TCnAffinePoint; const P, Q: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+{* 两个仿射坐标系里的三元点对象的椭圆曲线减法，Res 可以是 P 或 Q，P 可以是 Q}
+
+function AffinePointMul(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Num: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+{* 一个仿射坐标系里的三元点对象的椭圆曲线 N 倍点法，Res 可以是 P}
+
+function AffinePointFrobenius(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+{* 计算一个仿射坐标系里的三元点对象的弗罗贝尼乌斯自同态值，Res 可以是 P
+  其实就是 P 的 Prime 次方的结果 mod Prime}
+
 implementation
+
+const
+  CRLF = #13#10;
 
 var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
   FLocalFP2Pool: TCnFP2Pool = nil;
   FLocalFP4Pool: TCnFP4Pool = nil;
   FLocalFP12Pool: TCnFP12Pool = nil;
+  FLocalAffinePointPool: TCnAffinePointPool = nil;
 
 { TCnSM9 }
 
@@ -590,28 +704,34 @@ end;
 
 function FP2Mul(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber): Boolean;
 var
-  T0, T1: TCnBigNumber;
+  T0, T1, R0: TCnBigNumber;
 begin
   // r0 = a0 * b0 - 2 * a1 * b1
   // r1 = a0 * b1 + a1 * b0
   T0 := nil;
   T1 := nil;
+  R0 := nil;
+
   try
     T0 := FLocalBigNumberPool.Obtain;
     T1 := FLocalBigNumberPool.Obtain;
+    R0 := FLocalBigNumberPool.Obtain;
 
     BigNumberMul(T0, F1[0], F2[0]);
     BigNumberMul(T1, F1[1], F2[1]);
     BigNumberAdd(T1, T1, T1);
     BigNumberSub(T0, T0, T1);
-    BigNumberNonNegativeMod(Res[0], T0, Prime);
+    BigNumberNonNegativeMod(R0, T0, Prime); // 不能直接给 Res[0] 赋值，万一 F1 和 Res 相同则会提前影响 F0
 
     BigNumberMul(T0, F1[0], F2[1]);
     BigNumberMul(T1, F1[1], F2[0]);
     BigNumberAdd(T1, T0, T1);
     BigNumberNonNegativeMod(Res[1], T1, Prime);
+
+    BigNumberCopy(Res[0], R0);
     Result := True;
   finally
+    FLocalBigNumberPool.Recycle(R0);
     FLocalBigNumberPool.Recycle(T1);
     FLocalBigNumberPool.Recycle(T0);
   end;
@@ -835,7 +955,7 @@ end;
 
 function FP4ToString(const FP4: TCnFP4): string;
 begin
-  Result := FP4[0].ToString + ',' + FP4[1].ToString;
+  Result := FP4[0].ToString + CRLF + FP4[1].ToString;
 end;
 
 function FP4SetWord(const FP4: TCnFP4; Value: Cardinal): Boolean;
@@ -1137,7 +1257,7 @@ end;
 
 function FP12ToString(const FP12: TCnFP12): string;
 begin
-  Result := FP12[0].ToString + ',' + FP12[1].ToString + ',' + FP12[2].ToString;
+  Result := FP12[0].ToString + CRLF + FP12[1].ToString + CRLF + FP12[2].ToString;
 end;
 
 function FP12SetWord(const FP12: TCnFP12; Value: Cardinal): Boolean;
@@ -1400,20 +1520,422 @@ begin
   end;
 
   N := Exponent.GetBitsCount;
-  T := FLocalFP12Pool.Obtain;
+  if Res = F then
+    T := FLocalFP12Pool.Obtain
+  else
+    T := Res;
+
   FP12Copy(T, F);
 
   try
-    for I := N - 2 downto 0 do
+    for I := N - 2 downto 0 do  // 指数粗略拿 6 和 13 验证过似乎是对的
     begin
       FP12Mul(T, T, T, Prime);
       if Exponent.IsBitSet(I) then
         FP12Mul(T, T, F, Prime);
     end;
-    FP12Copy(Res, T);
+
+    if Res = F then
+      FP12Copy(Res, T);
     Result := True;
   finally
-    FLocalFP12Pool.Recycle(T);
+    if Res = F then
+      FLocalFP12Pool.Recycle(T);
+  end;
+end;
+
+function AffinePointNew: TCnAffinePoint;
+begin
+  Result := TCnAffinePoint.Create;
+end;
+
+procedure AffinePointFree(P: TCnAffinePoint);
+begin
+  P.Free;
+end;
+
+procedure AffinePointSetZero(P: TCnAffinePoint);
+begin
+  P.X.SetZero;
+  P.Y.SetZero;
+  P.Z.SetZero;
+end;
+
+function AffinePointToString(const P: TCnAffinePoint): string;
+begin
+  Result := 'X: ' + P.X.ToString + CRLF + 'Y: ' + P.Y.ToString + CRLF + 'Z: ' + P.Z.ToString;
+end;
+
+function AffinePointEqual(const P1, P2: TCnAffinePoint): Boolean;
+begin
+  Result := FP2Equal(P1.X, P2.X) and FP2Equal(P1.Y, P2.Y) and FP2Equal(P1.Z, P2.Z);
+end;
+
+function AffinePointCopy(const Dst, Src: TCnAffinePoint): TCnAffinePoint;
+begin
+  FP2Copy(Dst.X, Src.X);
+  FP2Copy(Dst.Y, Src.Y);
+  FP2Copy(Dst.Z, Src.Z);
+  Result := Dst;
+end;
+
+function AffinePointIsAtInfinity(const P: TCnAffinePoint): Boolean;
+begin
+  Result := FP2IsZero(P.X) and FP2IsOne(P.Y) and FP2IsZero(P.Z);
+end;
+
+function AffinePointSetToInfinity(const P: TCnAffinePoint): Boolean;
+begin
+  P.X.SetZero;
+  P.Y.SetOne;
+  P.Z.SetZero;
+  Result := True;
+end;
+
+function AffinePointGetCoordinatesFP2(const P: TCnAffinePoint; const FP2X, FP2Y: TCnFP2): Boolean;
+begin
+  Result := False;
+  if P.Z.IsOne then
+  begin
+    FP2Copy(FP2X, P.X);
+    FP2Copy(FP2Y, P.Y);
+    Result := True;
+  end;
+end;
+
+function AffinePointSetCoordinatesFP2(const P: TCnAffinePoint; const FP2X, FP2Y: TCnFP2): Boolean;
+begin
+  FP2Copy(P.X, FP2X);
+  FP2Copy(P.Y, FP2Y);
+  FP2SetOne(P.Z);
+  Result := True;
+end;
+
+function AffinePointSetCoordinatesHex(const P: TCnAffinePoint;
+  const SX0, SX1, SY0, SY1: string): Boolean;
+begin
+  FP2SetHex(P.X, SX0, SX1);
+  FP2SetHex(P.Y, SY0, SY1);
+  FP2SetOne(P.Z);
+  Result := True;
+end;
+
+function AffinePointSetCoordinatesBigNumbers(const P: TCnAffinePoint;
+  const X0, X1, Y0, Y1: TCnBigNumber): Boolean;
+begin
+  FP2SetBigNumbers(P.X, X0, X1);
+  FP2SetBigNumbers(P.Y, X1, Y1);
+  FP2SetOne(P.Z);
+  Result := True;
+end;
+
+function AffinePointGetExtCoordinatesFP12(const P: TCnAffinePoint;
+  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber): Boolean;
+var
+  X, Y: TCnFP2;
+  W: TCnFP12;
+begin
+  X := nil;
+  Y := nil;
+  W := nil;
+
+  try
+    X := FLocalFP2Pool.Obtain;
+    Y := FLocalFP2Pool.Obtain;
+    W := FLocalFP12Pool.Obtain;
+
+    AffinePointGetCoordinatesFP2(P, X, Y);
+    FP12SetFP2(FP12X, X);
+    FP12SetFP2(FP12Y, Y);
+
+    // x = x * w^-2
+    FP12SetWSqr(W);
+    FP12Inverse(W, W, Prime);
+    FP12Mul(FP12X, FP12X, W, Prime);
+
+    // y = y * w^-3
+    FP12SetV(W);
+    FP12Inverse(W, W, Prime);
+    FP12Mul(FP12Y, FP12Y, W, Prime);
+
+    Result := True;
+  finally
+    FLocalFP2Pool.Recycle(Y);
+    FLocalFP2Pool.Recycle(X);
+    FLocalFP12Pool.Recycle(W);
+  end;
+end;
+
+function AffinePointSetExtCoordinatesFP12(const P: TCnAffinePoint;
+  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber): Boolean;
+var
+  TX, TY: TCnFP12;
+begin
+  TX := nil;
+  TY := nil;
+
+  try
+    TX := FLocalFP12Pool.Obtain;
+    TY := FLocalFP12Pool.Obtain;
+
+    FP12SetWSqr(TX);
+    FP12SetV(TY);
+    FP12Mul(TX, FP12X, TX, Prime);
+    FP12Mul(TY, FP12Y, TY, Prime);
+
+    AffinePointSetCoordinatesFP2(P, TX[0][0], TY[0][0]);
+    Result := True;
+  finally
+    FLocalFP12Pool.Recycle(TY);
+    FLocalFP12Pool.Recycle(TX);
+  end;
+end;
+
+function AffinePointIsOnCurve(const P: TCnAffinePoint; Prime: TCnBigNumber): Boolean;
+var
+  X, Y, B, T: TCnFP2;
+begin
+  X := nil;
+  Y := nil;
+  B := nil;
+  T := nil;
+
+  try
+    X := FLocalFP2Pool.Obtain;
+    Y := FLocalFP2Pool.Obtain;
+    B := FLocalFP2Pool.Obtain;
+    T := FLocalFP2Pool.Obtain;
+
+    B[0].SetZero;
+    B[1].SetWord(5);   // B 给 5
+
+    AffinePointGetCoordinatesFP2(P, X, Y);
+
+    // X^3 + 5 u
+    FP2Mul(T, X, X, Prime);
+    FP2Mul(X, X, T, Prime);
+    FP2Add(X, X, B, Prime);
+
+    // Y^2
+    FP2Mul(Y, Y, Y, Prime);
+
+    Result := FP2Equal(X, Y);
+  finally
+    FLocalFP2Pool.Recycle(T);
+    FLocalFP2Pool.Recycle(B);
+    FLocalFP2Pool.Recycle(Y);
+    FLocalFP2Pool.Recycle(X);
+  end;
+end;
+
+function AffinePointNegate(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+begin
+  FP2Copy(Res.X, P.X);
+  FP2Negate(Res.Y, P.Y, Prime);
+  FP2Copy(Res.Z, P.Z);
+  Result := True; 
+end;
+
+function AffinePointDouble(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+var
+  L, T, X1, Y1, X2, Y2: TCnFP2;
+begin
+  if P.IsAtInfinity then
+  begin
+    Result := Res.SetToInfinity;
+    Exit;
+  end;
+
+  L := nil;
+  T := nil;
+  X1 := nil;
+  Y1 := nil;
+  X2 := nil;
+  Y2 := nil;
+
+  try
+    L := FLocalFP2Pool.Obtain;
+    T := FLocalFP2Pool.Obtain;
+    X1 := FLocalFP2Pool.Obtain;
+    Y1 := FLocalFP2Pool.Obtain;
+    X2 := FLocalFP2Pool.Obtain;
+    Y2 := FLocalFP2Pool.Obtain;
+
+    AffinePointGetCoordinatesFP2(P, X1, Y1);
+
+    // L := 3 * x1^2 / (2 * y1)
+    FP2Mul(L, X1, X1, Prime);
+    FP2Mul3(L, L, Prime);
+    FP2Add(T, Y1, Y1, Prime);
+    FP2Inverse(T, T, Prime);
+    FP2Mul(L, L, T, Prime);
+
+    // X2 = L^2 - 2 * X1
+    FP2Mul(X2, L, L, Prime);
+    FP2Add(T, X1, X1, Prime);
+    FP2Sub(X2, X2, T, Prime);
+
+    // Y2 = L * (X1 - X2) - Y1
+    FP2Sub(Y2, X1, X2, Prime);
+    FP2Mul(Y2, L, Y2, Prime);
+    FP2Sub(Y2, Y2, Y1, Prime);
+
+    Result := AffinePointSetCoordinatesFP2(Res, X2, Y2);
+  finally
+    FLocalFP2Pool.Recycle(Y2);
+    FLocalFP2Pool.Recycle(X2);
+    FLocalFP2Pool.Recycle(Y1);
+    FLocalFP2Pool.Recycle(X1);
+    FLocalFP2Pool.Recycle(T);
+    FLocalFP2Pool.Recycle(L);
+  end;
+end;
+
+function AffinePointAdd(const Res: TCnAffinePoint; const P, Q: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+var
+  X1, Y1, X2, Y2, X3, Y3, L, T: TCnFP2;
+begin
+  if AffinePointIsAtInfinity(P) then
+    Result := AffinePointCopy(Res, Q) <> nil
+  else if AffinePointIsAtInfinity(Q) then
+    Result := AffinePointCopy(Res, P) <> nil
+  else if AffinePointEqual(P, Q) then
+    Result := AffinePointDouble(P, Q, Prime)
+  else
+  begin
+    T := nil;
+    L := nil;
+    X1 := nil;
+    Y1 := nil;
+    X2 := nil;
+    Y2 := nil;
+    X3 := nil;
+    Y3 := nil;
+
+    try
+      T := FLocalFP2Pool.Obtain;
+      L := FLocalFP2Pool.Obtain;
+      X1 := FLocalFP2Pool.Obtain;
+      Y1 := FLocalFP2Pool.Obtain;
+      X2 := FLocalFP2Pool.Obtain;
+      Y2 := FLocalFP2Pool.Obtain;
+      X3 := FLocalFP2Pool.Obtain;
+      Y3 := FLocalFP2Pool.Obtain;
+
+      AffinePointGetCoordinatesFP2(P, X1, Y1);
+      AffinePointGetCoordinatesFP2(Q, X2, Y2);
+      FP2Add(T, Y1, Y2, Prime);
+
+      if T.IsZero and FP2Equal(X1, X2) then // 正负点
+      begin
+        Result := Res.SetToInfinity; // 和为 0
+        Exit;
+      end;
+
+      // L = (Y2 - Y1)/(X2 - X1)
+      FP2Sub(L, Y2, Y1, Prime);
+      FP2Sub(T, X2, X1, Prime);
+      FP2Inverse(T, T, Prime);
+      FP2Mul(L, L, T, Prime);
+
+      // X3 = L^2 - X1 - X2
+      FP2Mul(X3, L, L, Prime);
+      FP2Sub(X3, X3, X1, Prime);
+      FP2Sub(X3, X3, X2, Prime);
+
+      // Y3 = L * (X1 - X3) - Y1
+      FP2Sub(Y3, X1, X3, Prime);
+      FP2Mul(Y3, L, Y3, Prime);
+      FP2Sub(Y3, Y3, Y1, Prime);
+
+      Result := AffinePointSetCoordinatesFP2(Res, X3, Y3);
+    finally
+      FLocalFP2Pool.Recycle(Y3);
+      FLocalFP2Pool.Recycle(X3);
+      FLocalFP2Pool.Recycle(Y2);
+      FLocalFP2Pool.Recycle(X2);
+      FLocalFP2Pool.Recycle(Y1);
+      FLocalFP2Pool.Recycle(X1);
+      FLocalFP2Pool.Recycle(L);
+      FLocalFP2Pool.Recycle(T);
+    end;
+  end;
+end;
+
+function AffinePointSub(const Res: TCnAffinePoint; const P, Q: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+var
+  T: TCnAffinePoint;
+begin
+  T := FLocalAffinePointPool.Obtain;
+  try
+    AffinePointNegate(T, Q, Prime);
+    Result := AffinePointAdd(Res, P, T, Prime);
+  finally
+    FLocalAffinePointPool.Recycle(T);
+  end;
+end;
+
+function AffinePointMul(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Num: TCnBigNumber; Prime: TCnBigNumber): Boolean;
+var
+  I, N: Integer;
+  T: TCnAffinePoint;
+begin
+  if Num.IsZero then
+    Result := AffinePointSetToInfinity(Res)
+  else if Num.IsOne then
+    Result := AffinePointCopy(Res, P) <> nil
+  else  // 乘对于加，等同于幂对于乘，所以和 Power 算法类似
+  begin
+    N := Num.GetBitsCount;
+    if Res = P then
+      T := FLocalAffinePointPool.Obtain
+    else
+      T := Res;
+        
+    try
+      AffinePointCopy(T, P);
+      for I := N - 2 downto 0 do
+      begin
+        AffinePointDouble(T, T, Prime);
+        if Num.IsBitSet(I) then
+          AffinePointAdd(T, T, P, Prime);
+      end;
+
+      if Res = P then
+        AffinePointCopy(Res, T);
+      Result := True;
+    finally
+      if Res = P then
+        FLocalAffinePointPool.Recycle(T);
+    end;
+  end;
+end;
+
+function AffinePointFrobenius(const Res: TCnAffinePoint; const P: TCnAffinePoint;
+  Prime: TCnBigNumber): Boolean;
+var
+  X, Y: TCnFP12;
+begin
+  X := nil;
+  Y := nil;
+
+  try
+    X := FLocalFP12Pool.Obtain;
+    Y := FLocalFP12Pool.Obtain;
+
+    AffinePointGetExtCoordinatesFP12(P, X, Y, Prime);
+    FP12Power(X, X, Prime, Prime);
+    FP12Power(Y, Y, Prime, Prime);
+    AffinePointSetExtCoordinatesFP12(Res, X, Y, Prime);
+    Result := True;
+  finally
+    FLocalFP12Pool.Recycle(Y);
+    FLocalFP12Pool.Recycle(X);
   end;
 end;
 
@@ -1683,24 +2205,6 @@ begin
   Result := FP12ToString(Self);
 end;
 
-{ TCnSM9Point }
-
-constructor TCnSM9Point.Create;
-begin
-  inherited;
-  FX := TCnFP2.Create;
-  FY := TCnFP2.Create;
-  FZ := TCnFP2.Create;
-end;
-
-destructor TCnSM9Point.Destroy;
-begin
-  FZ.Free;
-  FY.Free;
-  FX.Free;
-  inherited;
-end;
-
 { TCnFP2Pool }
 
 function TCnFP2Pool.CreateObject: TObject;
@@ -1755,13 +2259,112 @@ begin
   inherited Recycle(Num);
 end;
 
+{ TCnAffinePoint }
+
+constructor TCnAffinePoint.Create;
+begin
+  inherited;
+  FX := TCnFP2.Create;
+  FY := TCnFP2.Create;
+  FZ := TCnFP2.Create;
+end;
+
+destructor TCnAffinePoint.Destroy;
+begin
+  FZ.Free;
+  FY.Free;
+  FX.Free;
+  inherited;
+end;
+
+function TCnAffinePoint.GetCoordinatesFP2(const FP2X,
+  FP2Y: TCnFP2): Boolean;
+begin
+  Result := AffinePointGetCoordinatesFP2(Self, FP2X, FP2Y);
+end;
+
+function TCnAffinePoint.GetExtCoordinatesFP12(const FP12X, FP12Y: TCnFP12;
+  Prime: TCnBigNumber): Boolean;
+begin
+  Result := AffinePointGetExtCoordinatesFP12(Self, FP12X, FP12Y, Prime);
+end;
+
+function TCnAffinePoint.IsAtInfinity: Boolean;
+begin
+  Result := AffinePointIsAtInfinity(Self);
+end;
+
+function TCnAffinePoint.IsOnCurve(Prime: TCnBigNumber): Boolean;
+begin
+  Result := AffinePointIsOnCurve(Self, Prime);
+end;
+
+function TCnAffinePoint.SetCoordinatesBigNumbers(const X0, X1, Y0,
+  Y1: TCnBigNumber): Boolean;
+begin
+  Result := AffinePointSetCoordinatesBigNumbers(Self, X0, X1, Y0, Y1);
+end;
+
+function TCnAffinePoint.SetCoordinatesFP2(const FP2X,
+  FP2Y: TCnFP2): Boolean;
+begin
+  Result := AffinePointSetCoordinatesFP2(Self, FP2X, FP2Y);
+end;
+
+function TCnAffinePoint.SetCoordinatesHex(const SX0, SX1, SY0,
+  SY1: string): Boolean;
+begin
+  Result := AffinePointSetCoordinatesHex(Self, SX0, SX1, SY0, SY1);
+end;
+
+function TCnAffinePoint.SetExtCoordinatesFP12(const FP12X, FP12Y: TCnFP12;
+  Prime: TCnBigNumber): Boolean;
+begin
+  Result := AffinePointSetExtCoordinatesFP12(Self, FP12X, FP12Y, Prime);
+end;
+
+function TCnAffinePoint.SetToInfinity: Boolean;
+begin
+  Result := AffinePointSetToInfinity(Self);
+end;
+
+procedure TCnAffinePoint.SetZero;
+begin
+  AffinePointSetZero(Self);
+end;
+
+function TCnAffinePoint.ToString: string;
+begin
+  Result := AffinePointToString(Self);
+end;
+
+{ TCnAffinePointPool }
+
+function TCnAffinePointPool.CreateObject: TObject;
+begin
+  Result := TCnAffinePoint.Create;
+end;
+
+function TCnAffinePointPool.Obtain: TCnAffinePoint;
+begin
+  Result := TCnAffinePoint(inherited Obtain);
+//  Result.SetZero;
+end;
+
+procedure TCnAffinePointPool.Recycle(Num: TCnAffinePoint);
+begin
+  inherited Recycle(Num);
+end;
+
 initialization
   FLocalBigNumberPool := TCnBigNumberPool.Create;
   FLocalFP2Pool := TCnFP2Pool.Create;
   FLocalFP4Pool := TCnFP4Pool.Create;
   FLocalFP12Pool := TCnFP12Pool.Create;
+  FLocalAffinePointPool := TCnAffinePointPool.Create;
 
 finalization
+  FLocalAffinePointPool.Free;
   FLocalFP12Pool.Free;
   FLocalFP4Pool.Free;
   FLocalFP2Pool.Free;
