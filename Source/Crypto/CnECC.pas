@@ -182,7 +182,7 @@ type
     property Y: TCnBigNumber read FY write SetY;
   end;
 
-  TCnEccPublicKey = class(TCnEccPoint);
+  TCnEccPublicKey = TCnEccPoint;
   {* 椭圆曲线的公钥，G 点计算 k 次后的点坐标}
 
   TCnEccPrivateKey = TCnBigNumber;
@@ -207,6 +207,13 @@ type
     function GetBitsCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
+
+    procedure NormalPointAddPoint(P, Q, Sum: TCnEccPoint);
+    {* 使用原始的普通坐标系进行点加，默认实现，有取模开销}
+    procedure AffinePointAddPoint(P, Q, Sum: TCnEccPoint);
+    {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
+    procedure JacobianPointAddPoint(P, Q, Sum: TCnEccPoint);
+    {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
   public
     constructor Create; overload; virtual;
     constructor Create(Predefined: TCnEccCurveType); overload;
@@ -1938,7 +1945,7 @@ begin
   end;
 end;
 
-procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
+procedure TCnEcc.NormalPointAddPoint(P, Q, Sum: TCnEccPoint);
 var
   K, X, Y, A, SX, SY: TCnBigNumber;
 begin
@@ -1950,25 +1957,9 @@ begin
   SY := nil;
 
   try
-    if P.IsZero then
-    begin
-      Sum.Assign(Q);
-      Exit;
-    end
-    else if Q.IsZero then
-    begin
-      Sum.Assign(P);
-      Exit;
-    end
-    else if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) then
+    if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) then
     begin
       // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
-      if P.Y.IsZero then
-      begin
-        Sum.SetZero;
-        Exit;
-      end;
-
       X := FEccBigNumberPool.Obtain;
       Y := FEccBigNumberPool.Obtain;
       K := FEccBigNumberPool.Obtain;
@@ -1991,19 +1982,6 @@ begin
     end
     else // 是不同点
     begin
-      if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
-      begin
-        A := FEccBigNumberPool.Obtain;
-        BigNumberAdd(A, P.Y, Q.Y);
-        if BigNumberCompare(A, FFiniteFieldSize) = 0 then  // 互反，和为 0
-          Sum.SetZero
-        else                                               // 不互反，挂了
-          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
-            [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
-
-        Exit;
-      end;
-
       // 到这里，X 确定不同，斜率 K := ((Q.Y - P.Y) / (Q.X - P.X)) mod p
       X := FEccBigNumberPool.Obtain;
       Y := FEccBigNumberPool.Obtain;
@@ -2063,6 +2041,61 @@ begin
     FEccBigNumberPool.Recycle(SX);
     FEccBigNumberPool.Recycle(SY);
   end;
+end;
+
+procedure TCnEcc.AffinePointAddPoint(P, Q, Sum: TCnEccPoint);
+begin
+
+end;
+
+procedure TCnEcc.JacobianPointAddPoint(P, Q, Sum: TCnEccPoint);
+begin
+
+end;
+
+procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
+var
+  A: TCnBigNumber;
+begin
+  if P.IsZero then
+  begin
+    Sum.Assign(Q);
+    Exit;
+  end
+  else if Q.IsZero then
+  begin
+    Sum.Assign(P);
+    Exit;
+  end
+  else if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
+  begin
+    if BigNumberCompare(P.Y, Q.Y) = 0 then
+    begin
+      if P.Y.IsZero then  // 两点的 Y 都是 0，结果为 0
+      begin
+        Sum.SetZero;
+        Exit;
+      end;
+      // 如果都不为 0 但相等，跳出，进行下面的切线相乘
+    end
+    else
+    begin
+      // 判断是否互反
+      A := FEccBigNumberPool.Obtain;
+      BigNumberAdd(A, P.Y, Q.Y);
+      if BigNumberCompare(A, FFiniteFieldSize) = 0 then  // 互反，和为 0
+        Sum.SetZero
+      else                                               // 不互反，挂了
+        raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+          [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
+
+      Exit;
+    end;
+    // 只有 Y 相等且非 0 且不互反才跳出，进行下面的相乘
+  end;
+
+  NormalPointAddPoint(P, Q, Sum);
+  // 以后根据需要进行仿射或雅可比坐标加
 end;
 
 procedure TCnEcc.PointInverse(P: TCnEccPoint);

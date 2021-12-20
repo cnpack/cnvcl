@@ -236,6 +236,7 @@ type
     btnInt64CountOrder1: TButton;
     btnInt64CountEccPoints3: TButton;
     mmoBNEccPoints: TMemo;
+    cbbCurveTypes: TComboBox;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -308,6 +309,7 @@ type
     procedure btnInt64EccCountOrderClick(Sender: TObject);
     procedure btnInt64CountOrder1Click(Sender: TObject);
     procedure btnInt64CountEccPoints3Click(Sender: TObject);
+    procedure cbbCurveTypesChange(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -483,6 +485,8 @@ begin
 end;
 
 procedure TFormEcc.FormCreate(Sender: TObject);
+var
+  C: TCnEccCurveType;
 begin
   pgc1.ActivePageIndex := 0;
 
@@ -509,6 +513,10 @@ begin
   FPublicKey := TCnEccPublicKey.Create;
   FKeyEcc := TCnEcc.Create;
   cbbKeyHash.ItemIndex := 0;
+
+  cbbCurveTypes.Items.Clear;
+  for C := Low(TCnEccCurveType) to High(TCnEccCurveType) do
+    cbbCurveTypes.Items.Add(GetEnumName(TypeInfo(TCnEccCurveType), Ord(C)));
 
   CallUseless;
 end;
@@ -2439,6 +2447,29 @@ begin
   TIRP.Free;
   TRP.Free;
   TBRP.Free;
+end;
+
+procedure TFormEcc.cbbCurveTypesChange(Sender: TObject);
+begin
+  if cbbCurveTypes.ItemIndex > 0 then
+  begin
+    FKeyEcc.Load(TCnEccCurveType(cbbCurveTypes.ItemIndex));
+    lblCurveTypeText.Caption := GetEnumName(TypeInfo(TCnEccCurveType), cbbCurveTypes.ItemIndex);
+
+    edtKeyEccA.Text := FKeyEcc.CoefficientA.ToDec;
+    edtKeyEccB.Text := FKeyEcc.CoefficientB.ToDec;
+    edtKeyEccP.Text := FKeyEcc.FiniteFieldSize.ToDec;
+    edtKeyEccGX.Text := FKeyEcc.Generator.X.ToDec;
+    edtKeyEccGY.Text := FKeyEcc.Generator.Y.ToDec;
+    edtKeyEccOrder.Text := FKeyEcc.Order.ToDec;
+
+    edtKeyEccA.Hint := FKeyEcc.CoefficientA.ToHex;
+    edtKeyEccB.Hint := FKeyEcc.CoefficientB.ToHex;
+    edtKeyEccP.Hint := FKeyEcc.FiniteFieldSize.ToHex;
+    edtKeyEccGX.Hint := FKeyEcc.Generator.X.ToHex;
+    edtKeyEccGY.Hint := FKeyEcc.Generator.Y.ToHex;
+    edtKeyEccOrder.Hint := FKeyEcc.Order.ToHex;
+  end;
 end;
 
 end.

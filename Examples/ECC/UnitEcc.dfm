@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsWrapData
+    ActivePage = tsSimpleECC
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
@@ -1640,14 +1640,14 @@ object FormEcc: TFormEcc
         TabOrder = 0
         object lblCurveType: TLabel
           Left = 112
-          Top = 32
+          Top = 28
           Width = 58
           Height = 13
           Caption = 'Curve Type:'
         end
         object lblCurveTypeText: TLabel
           Left = 184
-          Top = 32
+          Top = 28
           Width = 46
           Height = 13
           Caption = 'Unknown'
@@ -1817,7 +1817,7 @@ object FormEcc: TFormEcc
           TabOrder = 8
         end
         object btnKeyCheckPublic: TButton
-          Left = 288
+          Left = 512
           Top = 24
           Width = 75
           Height = 25
@@ -1885,7 +1885,7 @@ object FormEcc: TFormEcc
             'SM3')
         end
         object btnKeyGenerate: TButton
-          Left = 392
+          Left = 600
           Top = 24
           Width = 75
           Height = 25
@@ -1901,6 +1901,16 @@ object FormEcc: TFormEcc
           Caption = 'Load Signature to Verify'
           TabOrder = 17
           OnClick = btnKeyLoadSigClick
+        end
+        object cbbCurveTypes: TComboBox
+          Left = 336
+          Top = 24
+          Width = 161
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 18
+          OnChange = cbbCurveTypesChange
         end
       end
     end
