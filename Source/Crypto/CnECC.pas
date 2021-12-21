@@ -29,7 +29,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.07 V1.8
+* 修改记录：2021.12.21 V1.9
+*               增加 In64 范围内仿射坐标与雅可比坐标的加法与乘法
+*           2021.12.07 V1.8
 *               增加 SM9 与 WAPI 的两条曲线定义
 *           2020.11.13 V1.7
 *               实现大数范围内的基础 Schoof 算法并初步小范围测试通过，
@@ -91,6 +93,13 @@ type
     Y: Int64;
   end;
 
+  TCnInt64Ecc3Point = packed record
+  {* Int64 范围内的射影/仿射/雅可比坐标点的描述结构，用于内部计算提速。Z = 0 时表示无穷远点也就是 0 点}
+    X: Int64;
+    Y: Int64;
+    Z: Int64;
+  end;
+
   TCnInt64PublicKey = TCnInt64EccPoint;
   {* Int64 范围内的椭圆曲线的公钥，G 点计算 k 次后的点坐标}
 
@@ -107,6 +116,7 @@ type
     FOrder: Int64;
     FSizeUFactor: Int64;
     FSizePrimeType: TCnEccPrimeType;
+    F2Inverse: Int64; // 2 针对 FFiniteFieldSize 的模反，供雅可比坐标计算
   protected
     // Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
     function TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
@@ -118,14 +128,27 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    procedure AffinePointAddPoint(var P, Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
+    {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
+    procedure JacobianPointAddPoint(var P, Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
+    {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
+
+    procedure AffineMultiplePoint(K: Int64; var Point: TCnInt64Ecc3Point);
+    {* 使用仿射坐标系进行点乘，避免取模导致的开销}
+    procedure JacobianMultiplePoint(K: Int64; var Point: TCnInt64Ecc3Point);
+    {* 使用雅可比坐标系进行点乘，避免取模导致的开销}
+
     procedure MultiplePoint(K: Int64; var Point: TCnInt64EccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure PointAddPoint(var P, Q, Sum: TCnInt64EccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointSubPoint(var P, Q, Diff: TCnInt64EccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointInverse(var P: TCnInt64EccPoint);
+    procedure PointInverse(var P: TCnInt64EccPoint); overload;
     {* 计算 P 点的逆元 -P，值重新放入 P}
+    procedure PointInverse(var P: TCnInt64Ecc3Point); overload;
+    {* 计算 P 点的逆元 -P，值重新放入 P}
+
     function IsPointOnCurve(var P: TCnInt64EccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
 
@@ -173,13 +196,33 @@ type
 
     procedure Assign(Source: TPersistent); override;
     function IsZero: Boolean;
+    {* 是否为无穷远点也即 0 点}
     procedure SetZero;
+    {* 设为无穷远点也即 0 点}
 
     procedure SetHex(const Buf: AnsiString);
     function ToHex: string;
 
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
+  end;
+
+  TCnEcc3Point = class(TPersistent)
+  {* 射影/仿射/雅可比坐标点，用于内部计算提速}
+  private
+    FX: TCnBigNumber;
+    FY: TCnBigNumber;
+    FZ: TCnBigNumber;
+    procedure SetX(const Value: TCnBigNumber);
+    procedure SetY(const Value: TCnBigNumber);
+    procedure SetZ(const Value: TCnBigNumber);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    property X: TCnBigNumber read FX write SetX;
+    property Y: TCnBigNumber read FY write SetY;
+    property Z: TCnBigNumber read FZ write SetZ;
   end;
 
   TCnEccPublicKey = TCnEccPoint;
@@ -207,13 +250,6 @@ type
     function GetBitsCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
-
-    procedure NormalPointAddPoint(P, Q, Sum: TCnEccPoint);
-    {* 使用原始的普通坐标系进行点加，默认实现，有取模开销}
-    procedure AffinePointAddPoint(P, Q, Sum: TCnEccPoint);
-    {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
-    procedure JacobianPointAddPoint(P, Q, Sum: TCnEccPoint);
-    {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
   public
     constructor Create; overload; virtual;
     constructor Create(Predefined: TCnEccCurveType); overload;
@@ -226,6 +262,16 @@ type
     procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload; virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
 
+    procedure AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
+    {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
+    procedure JacobianPointAddPoint(P, Q, Sum: TCnEcc3Point);
+    {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
+
+    procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+    {* 使用仿射坐标系进行点乘，避免取模拟元导致的开销}
+    procedure JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+    {* 使用雅可比坐标系进行点乘，避免取模拟元导致的开销}
+
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
@@ -234,7 +280,9 @@ type
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointInverse(P: TCnEccPoint);
+    procedure PointInverse(P: TCnEccPoint); overload;
+    {* 计算 P 点的逆元 -P，值重新放入 P}
+    procedure PointInverse(P: TCnEcc3Point); overload;
     {* 计算 P 点的逆元 -P，值重新放入 P}
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
@@ -538,6 +586,23 @@ function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivate
   OtherPublicKey: TCnEccPublicKey; SharedSecretKey: TCnEccPublicKey): Boolean;
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点，一般拿点的 X 坐标来做密钥
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
+
+function CnInt64EccPointToEcc3Point(var P: TCnInt64EccPoint; var P3: TCnInt64Ecc3Point): Boolean;
+{* Int64 范围内的普通坐标到仿射坐标的点转换}
+
+function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
+  var P: TCnInt64EccPoint; Prime: Int64): Boolean;
+{* Int64 范围内的仿射坐标到普通坐标的点转换}
+
+function CnInt64JacobianPointToEccPoint(var P3: TCnInt64Ecc3Point;
+  var P: TCnInt64EccPoint; Prime: Int64): Boolean;
+{* Int64 范围内的雅可比坐标到普通坐标的点转换}
+
+function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+{* 大数范围内的仿射坐标到普通坐标的点转换}
+
+function CnJacobianPointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+{* 大数范围内的雅可比坐标到普通坐标的点转换}
 
 // ======================= 椭圆曲线密钥 PEM 读写实现 ===========================
 
@@ -1005,6 +1070,181 @@ end;
 
 { TCnInt64Ecc }
 
+procedure TCnInt64Ecc.AffineMultiplePoint(K: Int64;
+  var Point: TCnInt64Ecc3Point);
+var
+  E, R: TCnInt64Ecc3Point;
+begin
+  if K < 0 then
+  begin
+    K := -K;
+    PointInverse(Point);
+  end;
+
+  if K = 0 then
+  begin
+    Point.X := 0;
+    Point.Y := 0;
+    Point.Z := 0;
+    Exit;
+  end;
+
+  if K > 1 then
+  begin
+    R.X := 0;
+    R.Y := 0;
+    R.Z := 0;
+
+    E := Point;
+
+    while K <> 0 do
+    begin
+      if (K and 1) <> 0 then
+        AffinePointAddPoint(R, E, R);
+
+      AffinePointAddPoint(E, E, E);
+      K := K shr 1;
+    end;
+
+    Point := R;
+  end;
+end;
+
+procedure TCnInt64Ecc.AffinePointAddPoint(var P, Q: TCnInt64Ecc3Point;
+  var Sum: TCnInt64Ecc3Point);
+var
+  T, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11: Int64;
+begin
+  if P.Z = 0 then
+  begin
+    Sum := Q;
+    Exit;
+  end
+  else if Q.Z = 0 then
+  begin
+    Sum := P;
+    Exit;
+  end;
+
+  // D1 := px * qz
+  D1 := Int64NonNegativeMulMod(P.X, Q.Z, FFiniteFieldSize);
+
+  // D2 := qx * pz
+  D2 := Int64NonNegativeMulMod(Q.X, P.Z, FFiniteFieldSize);
+
+  // D4 := py * qz
+  D4 := Int64NonNegativeMulMod(P.Y, Q.Z, FFiniteFieldSize);
+
+  // D5 := qy * pz
+  D5 := Int64NonNegativeMulMod(Q.Y, P.Z, FFiniteFieldSize);
+
+  if (D1 = D2) and (D4 = D5) then // P.X/P.Z = Q.X/Q.Z 并且 P.Y/P.Z = Q.Y/Q.Z，说明是同一个点
+  begin
+    // 同一个点，切线法
+    // D1 := 3 px^2 + A * pz^2
+    D1 := Int64NonNegativeMulMod(P.X, P.X, FFiniteFieldSize);
+    D1 := Int64NonNegativeMulMod(D1, 3, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(P.Z, P.Z, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, FCoefficientA, FFiniteFieldSize);
+    D1 := Int64NonNegativeAddMod(D1, T, FFiniteFieldSize);
+
+    // D2 := 2 * py * pz
+    D2 := Int64NonNegativeMulMod(P.Y, 2, FFiniteFieldSize);
+    D2 := Int64NonNegativeMulMod(D2, P.Z, FFiniteFieldSize);
+
+    // D3 := py^2
+    D3 := Int64NonNegativeMulMod(P.Y, P.Y, FFiniteFieldSize);
+
+    // D4 := D3 * px * pz
+    D4 := Int64NonNegativeMulMod(D3, P.X, FFiniteFieldSize);
+    D4 := Int64NonNegativeMulMod(D4, P.Z, FFiniteFieldSize);
+
+    // D5 := D2^2
+    D5 := Int64NonNegativeMulMod(D2, D2, FFiniteFieldSize);
+
+    // D6 := D1^2 - 8 * D4
+    D6 := Int64NonNegativeMulMod(D1, D1, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(D4, 8, FFiniteFieldSize);
+    D6 := Int64NonNegativeAddMod(D6, -T, FFiniteFieldSize);
+
+    // X := D2 * D6
+    Sum.X := Int64NonNegativeMulMod(D2, D6, FFiniteFieldSize);
+
+    // Y := D1 * (4 * D4 - D6) - 2 * D5 * D3
+    T := Int64NonNegativeMulMod(D4, 4, FFiniteFieldSize);
+    T := Int64NonNegativeAddMod(T, -D6, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, D1, FFiniteFieldSize);
+
+    Sum.Y := Int64NonNegativeMulMod(D3, D5, FFiniteFieldSize);
+    Sum.Y := Int64NonNegativeAddMod(Sum.Y, Sum.Y, FFiniteFieldSize);
+    Sum.Y := Int64NonNegativeAddMod(T, -Sum.Y, FFiniteFieldSize);
+
+    // Z := D2 * D5
+    Sum.Z := Int64NonNegativeMulMod(D2, D5, FFiniteFieldSize);
+  end
+  else  // 不同点，割线法
+  begin
+    // 因为有不同的 Z 存在，得这样判断，同样不用求逆
+    if D1 = D2 then
+    begin
+      if D4 + D5 = FFiniteFieldSize then // X 相等且 Y 互补
+      begin
+        Sum.X := 0;
+        Sum.Y := 0;
+        Sum.Z := 0;
+        Exit;
+      end
+      else // X 相等且 Y 不互补，没法相加
+        raise ECnEccException.CreateFmt('Can NOT Calucate Affine %d,%d,%d + %d,%d,%d',
+          [P.X, P.Y, P.Z, Q.X, Q.Y, Q.Z]);
+    end;
+
+    // D3 := D1 - D2
+    D3 := Int64NonNegativeAddMod(D1, -D2, FFiniteFieldSize);
+
+    // D6 := D4 - D5
+    D6 := Int64NonNegativeAddMod(D4, -D5, FFiniteFieldSize);
+
+    // D7 := D1 + D2
+    D7 := Int64NonNegativeAddMod(D1, D2, FFiniteFieldSize);
+
+    // D8 := pz * qz
+    D8 := Int64NonNegativeMulMod(P.Z, Q.Z, FFiniteFieldSize);
+
+    // D9 := D3 ^ 2
+    D9 := Int64NonNegativeMulMod(D3, D3, FFiniteFieldSize);
+
+    // D10 := D3 * D9
+    D10 := Int64NonNegativeMulMod(D3, D9, FFiniteFieldSize);
+
+    // D11 := D8 * D6 ^ 2 - D7 * D9
+    D11 := Int64NonNegativeMulMod(D6, D6, FFiniteFieldSize);
+    D11 := Int64NonNegativeMulMod(D11, D8, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(D7, D9, FFiniteFieldSize);
+    D11 := Int64NonNegativeAddMod(D11, -T, FFiniteFieldSize);
+
+    // Y := D6 * (D9 * D1 - D11) - D4 * D10
+    T := Int64NonNegativeMulMod(D9, D1, FFiniteFieldSize);
+    T := Int64NonNegativeAddMod(T, -D11, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, D6, FFiniteFieldSize);
+
+    Sum.Y := Int64NonNegativeMulMod(D4, D10, FFiniteFieldSize);
+    Sum.Y := Int64NonNegativeAddMod(T, -Sum.Y, FFiniteFieldSize);
+
+    // X := D3 * D11
+    Sum.X := Int64NonNegativeMulMod(D3, D11, FFiniteFieldSize);
+
+    // Z := D10 * D8
+    Sum.Z := Int64NonNegativeMulMod(D10, D8, FFiniteFieldSize);
+  end;
+
+  if Sum.Z = 0 then
+  begin
+    Sum.X := 0;
+    Sum.Y := 0;
+  end;
+end;
+
 constructor TCnInt64Ecc.Create(A, B, FieldPrime, GX, GY, Order: Int64);
 var
   R: Int64;
@@ -1121,6 +1361,174 @@ begin
   B := FCoefficientB mod FFiniteFieldSize;
 
   Result := ((Y2 - X3 - AX - B) mod FFiniteFieldSize) = 0;
+end;
+
+procedure TCnInt64Ecc.JacobianMultiplePoint(K: Int64;
+  var Point: TCnInt64Ecc3Point);
+var
+  E, R: TCnInt64Ecc3Point;
+begin
+  if K < 0 then
+  begin
+    K := -K;
+    PointInverse(Point);
+  end;
+
+  if K = 0 then
+  begin
+    Point.X := 0;
+    Point.Y := 0;
+    Exit;
+  end;
+
+  if K > 1 then
+  begin
+    R.X := 0;
+    R.Y := 0;
+    R.Z := 0;
+
+    E := Point;
+
+    while K <> 0 do
+    begin
+      if (K and 1) <> 0 then
+        JacobianPointAddPoint(R, E, R);
+
+      JacobianPointAddPoint(E, E, E);
+      K := K shr 1;
+    end;
+
+    Point := R;
+  end;
+end;
+
+procedure TCnInt64Ecc.JacobianPointAddPoint(var P, Q,
+  Sum: TCnInt64Ecc3Point);
+var
+  T, D1, D2, D3, D4, D5, D6, D7, D8, D9: Int64;
+begin
+  if P.Z = 0 then
+  begin
+    Sum := Q;
+    Exit;
+  end
+  else if Q.Z = 0 then
+  begin
+    Sum := P;
+    Exit;
+  end;
+
+  // D1 := PX * QZ^2
+  D1 := Int64NonNegativeMulMod(Q.Z, Q.Z, FFiniteFieldSize);
+  D1 := Int64NonNegativeMulMod(D1, P.X, FFiniteFieldSize);
+
+  // D2 := QX * PZ^2
+  D2 := Int64NonNegativeMulMod(P.Z, P.Z, FFiniteFieldSize);
+  D2 := Int64NonNegativeMulMod(D2, Q.X, FFiniteFieldSize);
+
+  // D4 := PY * QZ^3
+  D4 := Int64NonNegativeMulMod(Q.Z, Q.Z, FFiniteFieldSize);
+  D4 := Int64NonNegativeMulMod(D4, Q.Z, FFiniteFieldSize);
+  D4 := Int64NonNegativeMulMod(D4, P.Y, FFiniteFieldSize);
+
+  // D5 := QY * PZ^3
+  D5 := Int64NonNegativeMulMod(P.Z, P.Z, FFiniteFieldSize);
+  D5 := Int64NonNegativeMulMod(D5, P.Z, FFiniteFieldSize);
+  D5 := Int64NonNegativeMulMod(D5, Q.Y, FFiniteFieldSize);
+
+  if (D1 = D2) and (D4 = D5) then // P.X/P.Z^2 = Q.X/Q.Z^2 并且 P.Y/P.Z^3 = Q.Y/Q.Z^3，说明是同一个点
+  begin
+    // 同一个点，切线法
+    // D1 := 3 * PX^2 + A * PZ^4
+    T := Int64NonNegativeMulMod(P.Z, P.Z, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, T, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, FCoefficientA, FFiniteFieldSize);
+    D1 := Int64NonNegativeMulMod(P.X, P.X, FFiniteFieldSize);
+    D1 := Int64NonNegativeMulMod(D1, 3, FFiniteFieldSize);
+    D1 := Int64NonNegativeAddMod(D1, T, FFiniteFieldSize);
+
+    // D2 := 4 * PX * PY^2
+    D2 := Int64NonNegativeMulMod(P.Y, P.Y, FFiniteFieldSize);
+    D2 := Int64NonNegativeMulMod(D2, P.X, FFiniteFieldSize);
+    D2 := Int64NonNegativeMulMod(D2, 4, FFiniteFieldSize);
+
+    // D3 := 8 * PY^4
+    D3 := Int64NonNegativeMulMod(P.Y, P.Y, FFiniteFieldSize);
+    D3 := Int64NonNegativeMulMod(D3, D3, FFiniteFieldSize);
+    D3 := Int64NonNegativeMulMod(D3, 8, FFiniteFieldSize);
+
+    // X := D1^2 - 2 * D2
+    Sum.X := Int64NonNegativeMulMod(D1, D1, FFiniteFieldSize);
+    T := Int64NonNegativeAddMod(D2, D2, FFiniteFieldSize);
+    Sum.X := Int64NonNegativeAddMod(Sum.X, -T, FFiniteFieldSize);
+
+    // Y := D1 * (D2 - X) - D3
+    T := Int64NonNegativeAddMod(D2, -Sum.X, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(D1, T, FFiniteFieldSize);
+    T := Int64NonNegativeAddMod(T, -D3, FFiniteFieldSize); // 先不给 Sum.Y 赋值，免得可能影响 P.Y
+
+    // Z := 2 * PY * PZ
+    Sum.Z := Int64NonNegativeMulMod(P.Y, P.Z, FFiniteFieldSize);
+    Sum.Z := Int64NonNegativeAddMod(Sum.Z, Sum.Z, FFiniteFieldSize);
+
+    Sum.Y := T; // P.Y 和 P.Z 都用过后，再给 Sum.Y 赋值
+  end
+  else  // 不同点，割线法
+  begin
+    // 因为有不同的 Z 存在，得这样判断，同样不用求逆
+    if D1 = D2 then
+    begin
+      if D4 + D5 = FFiniteFieldSize then // X 相等且 Y 互补
+      begin
+        Sum.X := 0;
+        Sum.Y := 0;
+        Sum.Z := 0;
+        Exit;
+      end
+      else // X 相等且 Y 不互补，没法相加
+        raise ECnEccException.CreateFmt('Can NOT Calucate Jacobian %d,%d,%d + %d,%d,%d',
+          [P.X, P.Y, P.Z, Q.X, Q.Y, Q.Z]);
+    end;
+
+    // D3 := D1 - D2
+    D3 := Int64NonNegativeAddMod(D1, -D2, FFiniteFieldSize);
+
+    // D6 := D4 - D5
+    D6 := Int64NonNegativeAddMod(D4, -D5, FFiniteFieldSize);
+
+    // D7 := D1 + D2
+    D7 := Int64NonNegativeAddMod(D1, D2, FFiniteFieldSize);
+
+    // D8 := D4 + D5
+    D8 := Int64NonNegativeAddMod(D4, D5, FFiniteFieldSize);
+
+    // X := D6^2 - D7 * D3^2
+    Sum.X := Int64NonNegativeMulMod(D6, D6, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(D3, D3, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, D7, FFiniteFieldSize);
+    Sum.X := Int64NonNegativeAddMod(Sum.X, -T, FFiniteFieldSize);
+
+    // D9 := D7 * D3^2 - 2 * X
+    D9 := Int64NonNegativeMulMod(D3, D3, FFiniteFieldSize);
+    D9 := Int64NonNegativeMulMod(D9, D7, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(Sum.X, 2, FFiniteFieldSize);
+    D9 := Int64NonNegativeAddMod(D9, -T, FFiniteFieldSize);
+
+    // Y := (D9 * D6 - D8 * D3^3) / 2
+    T := Int64NonNegativeMulMod(D3, D3, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, D3, FFiniteFieldSize);
+    T := Int64NonNegativeMulMod(T, D8, FFiniteFieldSize);
+    Sum.Y := Int64NonNegativeMulMod(D6, D9, FFiniteFieldSize);
+    Sum.Y := Int64NonNegativeAddMod(Sum.Y, -T, FFiniteFieldSize);
+
+    if F2Inverse = 0 then
+      F2Inverse := Int64ModularInverse(2, FFiniteFieldSize); // 除以 2
+    Sum.Y := Int64NonNegativeMulMod(Sum.Y, F2Inverse, FFiniteFieldSize);
+
+    // Z := PZ * QZ * D3
+    Sum.Z := Int64NonNegativeMulMod(P.Z, Q.Z, FFiniteFieldSize);
+    Sum.Z := Int64NonNegativeMulMod(Sum.Z, D3, FFiniteFieldSize);
+  end;
 end;
 
 function TCnInt64Ecc.Lucas(X, P: Int64; out Y: Int64): Boolean;
@@ -1374,6 +1782,11 @@ begin
   P.Y := FFiniteFieldSize - (P.Y mod FFiniteFieldSize);
 end;
 
+procedure TCnInt64Ecc.PointInverse(var P: TCnInt64Ecc3Point);
+begin
+  P.Y := FFiniteFieldSize - (P.Y mod FFiniteFieldSize);
+end;
+
 procedure TCnInt64Ecc.PointSubPoint(var P, Q, Diff: TCnInt64EccPoint);
 var
   Inv: TCnInt64EccPoint;
@@ -1478,6 +1891,12 @@ begin
   begin
     BigNumberCopy(FX, (Source as TCnEccPoint).X);
     BigNumberCopy(FY, (Source as TCnEccPoint).Y);
+  end
+  else if Source is TCnEcc3Point then
+  begin
+    BigNumberCopy(FX, (Source as TCnEcc3Point).X);
+    BigNumberCopy(FY, (Source as TCnEcc3Point).Y);
+    (Source as TCnEcc3Point).Z.SetOne;
   end
   else
     inherited;
@@ -1771,7 +2190,9 @@ begin
   begin
     Point.SetZero;
     Exit;
-  end;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
 
   R := nil;
   E := nil;
@@ -1791,6 +2212,102 @@ begin
 
     Point.X := R.X;
     Point.Y := R.Y;
+  finally
+    R.Free;
+    E.Free;
+  end;
+end;
+
+procedure TCnEcc.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+var
+  I: Integer;
+  E, R: TCnEcc3Point;
+begin
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    PointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then
+  begin
+    Point.X.SetZero;
+    Point.Y.SetZero;
+    Point.Z.SetZero;
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  R := nil;
+  E := nil;
+
+  try
+    R := TCnEcc3Point.Create;
+    E := TCnEcc3Point.Create;
+
+    E.X := Point.X;
+    E.Y := Point.Y;
+    E.Z := Point.Z;
+
+    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    begin
+      if BigNumberIsBitSet(K, I) then
+        AffinePointAddPoint(R, E, R);
+      AffinePointAddPoint(E, E, E);
+    end;
+
+    Point.X := R.X;
+    Point.Y := R.Y;
+    Point.Z := R.Z;
+  finally
+    R.Free;
+    E.Free;
+  end;
+end;
+
+procedure TCnEcc.JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+var
+  I: Integer;
+  E, R: TCnEcc3Point;
+begin
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    PointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then
+  begin
+    Point.X.SetZero;
+    Point.Y.SetZero;
+    Point.Z.SetZero;
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  R := nil;
+  E := nil;
+
+  try
+    R := TCnEcc3Point.Create;
+    E := TCnEcc3Point.Create;
+
+    E.X := Point.X;
+    E.Y := Point.Y;
+    E.Z := Point.Z;
+
+    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    begin
+      if BigNumberIsBitSet(K, I) then
+        JacobianPointAddPoint(R, E, R);
+      JacobianPointAddPoint(E, E, E);
+    end;
+
+    Point.X := R.X;
+    Point.Y := R.Y;
+    Point.Z := R.Z;
   finally
     R.Free;
     E.Free;
@@ -1945,7 +2462,7 @@ begin
   end;
 end;
 
-procedure TCnEcc.NormalPointAddPoint(P, Q, Sum: TCnEccPoint);
+procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
 var
   K, X, Y, A, SX, SY: TCnBigNumber;
 begin
@@ -1957,9 +2474,25 @@ begin
   SY := nil;
 
   try
-    if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) then
+    if P.IsZero then
+    begin
+      Sum.Assign(Q);
+      Exit;
+    end
+    else if Q.IsZero then
+    begin
+      Sum.Assign(P);
+      Exit;
+    end
+    else if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) then
     begin
       // 俩加数是同一个点，切线斜率为两边求导，3 * X^2 + A / (2 * Y) 但如 Y = 0 则直接是无限远 0。
+      if P.Y.IsZero then
+      begin
+        Sum.SetZero;
+        Exit;
+      end;
+
       X := FEccBigNumberPool.Obtain;
       Y := FEccBigNumberPool.Obtain;
       K := FEccBigNumberPool.Obtain;
@@ -1982,6 +2515,19 @@ begin
     end
     else // 是不同点
     begin
+      if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
+      begin
+        A := FEccBigNumberPool.Obtain;
+        BigNumberAdd(A, P.Y, Q.Y);
+        if BigNumberCompare(A, FFiniteFieldSize) = 0 then  // 互反，和为 0
+          Sum.SetZero
+        else                                               // 不互反，挂了
+          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+            [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
+
+        Exit;
+      end;
+
       // 到这里，X 确定不同，斜率 K := ((Q.Y - P.Y) / (Q.X - P.X)) mod p
       X := FEccBigNumberPool.Obtain;
       Y := FEccBigNumberPool.Obtain;
@@ -2043,62 +2589,25 @@ begin
   end;
 end;
 
-procedure TCnEcc.AffinePointAddPoint(P, Q, Sum: TCnEccPoint);
+procedure TCnEcc.AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
 begin
 
 end;
 
-procedure TCnEcc.JacobianPointAddPoint(P, Q, Sum: TCnEccPoint);
+procedure TCnEcc.JacobianPointAddPoint(P, Q, Sum: TCnEcc3Point);
 begin
 
-end;
-
-procedure TCnEcc.PointAddPoint(P, Q, Sum: TCnEccPoint);
-var
-  A: TCnBigNumber;
-begin
-  if P.IsZero then
-  begin
-    Sum.Assign(Q);
-    Exit;
-  end
-  else if Q.IsZero then
-  begin
-    Sum.Assign(P);
-    Exit;
-  end
-  else if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
-  begin
-    if BigNumberCompare(P.Y, Q.Y) = 0 then
-    begin
-      if P.Y.IsZero then  // 两点的 Y 都是 0，结果为 0
-      begin
-        Sum.SetZero;
-        Exit;
-      end;
-      // 如果都不为 0 但相等，跳出，进行下面的切线相乘
-    end
-    else
-    begin
-      // 判断是否互反
-      A := FEccBigNumberPool.Obtain;
-      BigNumberAdd(A, P.Y, Q.Y);
-      if BigNumberCompare(A, FFiniteFieldSize) = 0 then  // 互反，和为 0
-        Sum.SetZero
-      else                                               // 不互反，挂了
-        raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
-          [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
-
-      Exit;
-    end;
-    // 只有 Y 相等且非 0 且不互反才跳出，进行下面的相乘
-  end;
-
-  NormalPointAddPoint(P, Q, Sum);
-  // 以后根据需要进行仿射或雅可比坐标加
 end;
 
 procedure TCnEcc.PointInverse(P: TCnEccPoint);
+begin
+  if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
+    raise ECnEccException.Create('Inverse Error.');
+
+  BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
+end;
+
+procedure TCnEcc.PointInverse(P: TCnEcc3Point);
 begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
     raise ECnEccException.Create('Inverse Error.');
@@ -2156,6 +2665,90 @@ begin
     SharedSecretKey.Assign(OtherPublicKey);
     Ecc.MultiplePoint(SelfPrivateKey, SharedSecretKey);
     Result := True;
+  end;
+end;
+
+// ============== 普通二元坐标点到三元仿射坐标/雅可比坐标点转换 ================
+
+function CnInt64EccPointToEcc3Point(var P: TCnInt64EccPoint; var P3: TCnInt64Ecc3Point): Boolean;
+begin
+  P3.X := P.X;
+  P3.Y := P.Y;
+  if (P3.X = 0) and (P3.Y = 0) then
+    P3.Z := 0
+  else
+    P3.Z := 1;
+  Result := True;
+end;
+
+function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
+  var P: TCnInt64EccPoint; Prime: Int64): Boolean;
+var
+  V: Int64;
+begin
+  V := Int64ModularInverse(P3.Z, Prime);
+  P.X := Int64NonNegativeMulMod(P3.X, V, Prime);
+  P.Y := Int64NonNegativeMulMod(P3.Y, V, Prime);
+  Result := True;
+end;
+
+function CnInt64JacobianPointToEccPoint(var P3: TCnInt64Ecc3Point;
+  var P: TCnInt64EccPoint; Prime: Int64): Boolean;
+var
+  T, V: Int64;
+begin
+  T := Int64NonNegativeMulMod(P3.Z, P3.Z, Prime); // Z^2
+  V := Int64ModularInverse(T, Prime);       // 1 / Z^2
+  P.X := Int64NonNegativeMulMod(P3.X, V, Prime);
+
+  T := Int64NonNegativeMulMod(P3.Z, T, Prime); // Z^3
+  V := Int64ModularInverse(T, Prime);       // 1 / Z^3
+  P.Y := Int64NonNegativeMulMod(P3.Y, V, Prime);
+  Result := True;
+end;
+
+function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+var
+  V: TCnBigNumber;
+begin
+  // X := X/Z   Y := Y/Z
+
+  V := FEccBigNumberPool.Obtain;
+  try
+    BigNumberModularInverse(V, P3.Z, Prime);
+    BigNumberDirectMulMod(P.X, P3.X, V, Prime);
+    BigNumberDirectMulMod(P.Y, P3.Y, V, Prime);
+
+    Result := True;
+  finally
+    FEccBigNumberPool.Recycle(V);
+  end;
+end;
+
+function CnJacobianPointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+var
+  T, V: TCnBigNumber;
+begin
+  // X := X/Z^2   Y := Y/Z^3
+  T := nil;
+  V := nil;
+
+  try
+    T := FEccBigNumberPool.Obtain;
+    V := FEccBigNumberPool.Obtain;
+
+    BigNumberDirectMulMod(T, P3.Z, P3.Z, Prime);
+    BigNumberModularInverse(V, T, Prime);
+    BigNumberDirectMulMod(P.X, P3.X, V, Prime);
+
+    BigNumberDirectMulMod(T, T, P3.Z, Prime);
+    BigNumberModularInverse(V, T, Prime);
+    BigNumberDirectMulMod(P.Y, P3.Y, V, Prime);
+
+    Result := True;
+  finally
+    FEccBigNumberPool.Recycle(V);
+    FEccBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -5661,6 +6254,38 @@ begin
     Pa.Free;
     Ta.Free;
   end;
+end;
+
+{ TCnEcc3Point }
+
+constructor TCnEcc3Point.Create;
+begin
+  FX := TCnBigNumber.Create;
+  FY := TCnBigNumber.Create;
+  FZ := TCnBigNumber.Create;
+end;
+
+destructor TCnEcc3Point.Destroy;
+begin
+  FZ.Free;
+  FY.Free;
+  FX.Free;
+  inherited;
+end;
+
+procedure TCnEcc3Point.SetX(const Value: TCnBigNumber);
+begin
+  BigNumberCopy(FX, Value);
+end;
+
+procedure TCnEcc3Point.SetY(const Value: TCnBigNumber);
+begin
+  BigNumberCopy(FY, Value);
+end;
+
+procedure TCnEcc3Point.SetZ(const Value: TCnBigNumber);
+begin
+  BigNumberCopy(FZ, Value);
 end;
 
 initialization

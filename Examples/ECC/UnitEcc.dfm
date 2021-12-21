@@ -201,7 +201,7 @@ object FormEcc: TFormEcc
           OnClick = btnTest1Click
         end
         object btnTest0: TButton
-          Left = 135
+          Left = 103
           Top = 28
           Width = 75
           Height = 21
@@ -210,7 +210,7 @@ object FormEcc: TFormEcc
           OnClick = btnTest0Click
         end
         object btnTestOn: TButton
-          Left = 250
+          Left = 186
           Top = 28
           Width = 75
           Height = 21
@@ -219,7 +219,7 @@ object FormEcc: TFormEcc
           OnClick = btnTestOnClick
         end
         object btnTestInverse: TButton
-          Left = 366
+          Left = 270
           Top = 28
           Width = 75
           Height = 21
@@ -228,7 +228,7 @@ object FormEcc: TFormEcc
           OnClick = btnTestInverseClick
         end
         object btnTest2P: TButton
-          Left = 481
+          Left = 353
           Top = 28
           Width = 75
           Height = 21
@@ -237,7 +237,7 @@ object FormEcc: TFormEcc
           OnClick = btnTest2PClick
         end
         object btnTestMul: TButton
-          Left = 596
+          Left = 436
           Top = 28
           Width = 75
           Height = 21
@@ -318,6 +318,24 @@ object FormEcc: TFormEcc
           Height = 21
           TabOrder = 13
           Text = '3'
+        end
+        object btnInt64Affine: TButton
+          Left = 520
+          Top = 28
+          Width = 75
+          Height = 21
+          Caption = 'Test Affine +'
+          TabOrder = 15
+          OnClick = btnInt64AffineClick
+        end
+        object btnTestJacobian: TButton
+          Left = 600
+          Top = 28
+          Width = 75
+          Height = 21
+          Caption = 'Test Jacobian +'
+          TabOrder = 16
+          OnClick = btnTestJacobianClick
         end
       end
       object chtE2311: TChart

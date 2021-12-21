@@ -237,6 +237,8 @@ type
     btnInt64CountEccPoints3: TButton;
     mmoBNEccPoints: TMemo;
     cbbCurveTypes: TComboBox;
+    btnInt64Affine: TButton;
+    btnTestJacobian: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -310,6 +312,8 @@ type
     procedure btnInt64CountOrder1Click(Sender: TObject);
     procedure btnInt64CountEccPoints3Click(Sender: TObject);
     procedure cbbCurveTypesChange(Sender: TObject);
+    procedure btnInt64AffineClick(Sender: TObject);
+    procedure btnTestJacobianClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -404,12 +408,28 @@ end;
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
   P, Q: TCnInt64EccPoint;
+  P3, Q3: TCnInt64Ecc3Point;
 begin
   P.X := 3; P.Y := 10;
   Q.X := 9; Q.Y := 7;
+  CnInt64EccPointToEcc3Point(P, P3);
+  CnInt64EccPointToEcc3Point(Q, Q3);
 
   FEcc64E2311.PointAddPoint(P, Q, P);
   ShowMessage(Format('3,10 + 9,7 = %d,%d',[P.X, P.Y]));
+
+  FEcc64E2311.AffinePointAddPoint(P3, Q3, P3);
+  CnInt64AffinePointToEccPoint(P3, Q, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('Affine Sum: ' + Format('%d,%d',[Q.X, Q.Y]));
+
+  P.X := 3; P.Y := 10;
+  Q.X := 9; Q.Y := 7;
+  CnInt64EccPointToEcc3Point(P, P3);
+  CnInt64EccPointToEcc3Point(Q, Q3);
+
+  FEcc64E2311.JacobianPointAddPoint(P3, Q3, P3);
+  CnInt64JacobianPointToEccPoint(P3, Q, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('Jacobian Sum: ' + Format('%d,%d',[Q.X, Q.Y]));
 end;
 
 procedure TFormEcc.btnTest0Click(Sender: TObject);
@@ -451,17 +471,78 @@ end;
 procedure TFormEcc.btnTest2PClick(Sender: TObject);
 var
   P: TCnInt64EccPoint;
+  P3: TCnInt64Ecc3Point;
 begin
   P.X := StrToInt(edtPX.Text);
   P.Y := StrToInt(edtPY.Text);
 
+  // 普通计算 P + P
+  CnInt64EccPointToEcc3Point(P, P3);
   FEcc64E2311.MultiplePoint(2, P);
   ShowMessage('P Multiple 2 is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  // 仿射坐标计算 P + P
+  FEcc64E2311.AffinePointAddPoint(P3, P3, P3);
+  CnInt64AffinePointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('P + P using Affine is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  P.X := StrToInt(edtPX.Text);
+  P.Y := StrToInt(edtPY.Text);
+
+  // 雅可比坐标计算 P + P
+  CnInt64EccPointToEcc3Point(P, P3);
+  FEcc64E2311.JacobianPointAddPoint(P3, P3, P3);
+  CnInt64JacobianPointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('P + P using Jacobian is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  P.X := StrToInt(edtPX.Text);
+  P.Y := StrToInt(edtPY.Text);
+
+  // 仿射坐标计算 P * 2
+  CnInt64EccPointToEcc3Point(P, P3);
+  FEcc64E2311.AffineMultiplePoint(2, P3);
+  CnInt64AffinePointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('P * 2  using Affine is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  P.X := StrToInt(edtPX.Text);
+  P.Y := StrToInt(edtPY.Text);
+
+  // 雅可比坐标计算 P * 2
+  CnInt64EccPointToEcc3Point(P, P3);
+  FEcc64E2311.JacobianMultiplePoint(2, P3);
+  CnInt64JacobianPointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('P * 2  using Jacobian is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  P.X := StrToInt(edtPX.Text);
+  P.Y := StrToInt(edtPY.Text);
+
+  // 普通坐标计算 P * 3
+  FEcc64E2311.MultiplePoint(3, P);
+  ShowMessage('P * 3 is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  P.X := StrToInt(edtPX.Text);
+  P.Y := StrToInt(edtPY.Text);
+
+  // 仿射坐标计算 P * 3
+  CnInt64EccPointToEcc3Point(P, P3);
+  FEcc64E2311.AffineMultiplePoint(3, P3);
+  CnInt64AffinePointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('P * 3  using Affine is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+
+  P.X := StrToInt(edtPX.Text);
+  P.Y := StrToInt(edtPY.Text);
+
+  // 雅可比坐标计算 P * 2
+  CnInt64EccPointToEcc3Point(P, P3);
+  FEcc64E2311.JacobianMultiplePoint(3, P3);
+  CnInt64JacobianPointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage('P * 3  using Jacobian is ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
 end;
 
 procedure TFormEcc.btnTestMulClick(Sender: TObject);
 var
   P: TCnInt64EccPoint;
+  P3: TCnInt64Ecc3Point;
   I: Integer;
   List: TStringList;
 begin
@@ -481,6 +562,51 @@ begin
   end;
 
   ShowMessage('P Multiple is '#13#10#13#10 + List.Text);
+
+  List.Clear;
+  for I := 0 to 30 do
+  begin
+    P.X := StrToInt(edtPX.Text);
+    P.Y := StrToInt(edtPY.Text);
+
+    CnInt64EccPointToEcc3Point(P, P3);
+    FEcc64E2311.AffineMultiplePoint(I, P3);
+    CnInt64AffinePointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+
+    List.Add(IntToStr(I) + '*: ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+    if FEcc64E2311.IsPointOnCurve(P) then
+      List[List.Count - 1] := List[List.Count - 1] + ' On Curve.'
+    else
+    begin
+      // ShowMessage(List[List.Count - 1] + ' NOT On Curve.');
+      List[List.Count - 1] := List[List.Count - 1] + ' NOT On Curve.'
+    end;
+  end;
+
+  ShowMessage('P Affine Multiple is '#13#10#13#10 + List.Text);
+
+  List.Clear;
+  for I := 0 to 30 do
+  begin
+    P.X := StrToInt(edtPX.Text);
+    P.Y := StrToInt(edtPY.Text);
+
+    CnInt64EccPointToEcc3Point(P, P3);
+    FEcc64E2311.JacobianMultiplePoint(I, P3);
+    CnInt64JacobianPointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+
+    List.Add(IntToStr(I) + '*: ' + IntToStr(P.X) + ',' + IntToStr(P.Y));
+    if FEcc64E2311.IsPointOnCurve(P) then
+      List[List.Count - 1] := List[List.Count - 1] + ' On Curve.'
+    else
+    begin
+      // ShowMessage(List[List.Count - 1] + ' NOT On Curve.');
+      List[List.Count - 1] := List[List.Count - 1] + ' NOT On Curve.'
+    end;
+  end;
+
+  ShowMessage('P Jacobian Multiple is '#13#10#13#10 + List.Text);
+
   List.Free;
 end;
 
@@ -2470,6 +2596,71 @@ begin
     edtKeyEccGY.Hint := FKeyEcc.Generator.Y.ToHex;
     edtKeyEccOrder.Hint := FKeyEcc.Order.ToHex;
   end;
+end;
+
+procedure TFormEcc.btnInt64AffineClick(Sender: TObject);
+var
+  P3, Q3, K3: TCnInt64Ecc3Point;
+  P, Q: TCnInt64EccPoint;
+begin
+  P3.X := 14;
+  P3.Y := 19;
+  P3.Z := 17;
+
+  Q3.X := 6;
+  Q3.Y := 18;
+  Q3.Z := 4;
+
+  CnInt64AffinePointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  CnInt64AffinePointToEccPoint(Q3, Q, FEcc64E2311.FiniteFieldSize);
+  ShowMessage(Format('P %d,%d. Q %d,%d.', [P.X, P.Y, Q.X, Q.Y]));
+
+  FEcc64E2311.AffinePointAddPoint(P3, Q3, K3);
+  ShowMessage(Format('Affine Sum: %d,%d,%d', [K3.X, K3.Y, K3.Z]));
+  CnInt64AffinePointToEccPoint(K3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage(Format('Affine Sum to P %d,%d.', [P.X, P.Y]));
+
+  P3.X := 14;
+  P3.Y := 19;
+  P3.Z := 17;
+
+  Q3.X := 6;
+  Q3.Y := 19;
+  Q3.Z := 1;
+
+  CnInt64AffinePointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  CnInt64AffinePointToEccPoint(Q3, Q, FEcc64E2311.FiniteFieldSize);
+  ShowMessage(Format('P %d,%d. Q %d,%d.', [P.X, P.Y, Q.X, Q.Y]));
+
+  FEcc64E2311.AffinePointAddPoint(P3, Q3, P3);
+end;
+
+procedure TFormEcc.btnTestJacobianClick(Sender: TObject);
+var
+  P3, Q3, K3: TCnInt64Ecc3Point;
+  P, Q: TCnInt64EccPoint;
+begin         
+  P3.X := 6;
+  P3.Y := 19;
+  P3.Z := 1;
+  FEcc64E2311.JacobianMultiplePoint(2, P3);  // 4 19 15
+
+  P3.X := 4;
+  P3.Y := 19;
+  P3.Z := 15;
+
+  Q3.X := 4;
+  Q3.Y := 19;
+  Q3.Z := 15;
+
+  CnInt64JacobianPointToEccPoint(P3, P, FEcc64E2311.FiniteFieldSize);
+  CnInt64JacobianPointToEccPoint(Q3, Q, FEcc64E2311.FiniteFieldSize);
+  ShowMessage(Format('P %d,%d. Q %d,%d.', [P.X, P.Y, Q.X, Q.Y]));
+
+  FEcc64E2311.JacobianPointAddPoint(P3, Q3, K3);
+
+  CnInt64JacobianPointToEccPoint(K3, P, FEcc64E2311.FiniteFieldSize);
+  ShowMessage(Format('Jacobian Sum to P %d,%d.', [P.X, P.Y]));
 end;
 
 end.
