@@ -144,10 +144,12 @@ type
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointSubPoint(var P, Q, Diff: TCnInt64EccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointInverse(var P: TCnInt64EccPoint); overload;
+    procedure PointInverse(var P: TCnInt64EccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
-    procedure PointInverse(var P: TCnInt64Ecc3Point); overload;
-    {* 计算 P 点的逆元 -P，值重新放入 P}
+    procedure AffinePointInverse(var P: TCnInt64Ecc3Point);
+    {* 计算以仿射坐标表示的 P 点的逆元 -P，值重新放入 P}
+    procedure JacobianPointInverse(var P: TCnInt64Ecc3Point);
+    {* 计算以雅可比坐标表示的 P 点的逆元 -P，值重新放入 P}
 
     function IsPointOnCurve(var P: TCnInt64EccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
@@ -247,6 +249,7 @@ type
     FSizeUFactor: TCnBigNumber;
     FSizePrimeType: TCnEccPrimeType;
     FCoFactor: Integer;
+    F2Inverse: TCnBigNumber;
     function GetBitsCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
@@ -280,10 +283,12 @@ type
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointInverse(P: TCnEccPoint); overload;
+    procedure PointInverse(P: TCnEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
-    procedure PointInverse(P: TCnEcc3Point); overload;
-    {* 计算 P 点的逆元 -P，值重新放入 P}
+    procedure AffinePointInverse(P: TCnEcc3Point);
+    {* 计算以仿射坐标表示的 P 点的逆元 -P，值重新放入 P}
+    procedure JacobianPointInverse(P: TCnEcc3Point);
+    {* 计算以雅可比坐标表示的 P 点的逆元 -P，值重新放入 P}
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
 
@@ -1078,7 +1083,7 @@ begin
   if K < 0 then
   begin
     K := -K;
-    PointInverse(Point);
+    AffinePointInverse(Point);
   end;
 
   if K = 0 then
@@ -1371,7 +1376,7 @@ begin
   if K < 0 then
   begin
     K := -K;
-    PointInverse(Point);
+    JacobianPointInverse(Point);
   end;
 
   if K = 0 then
@@ -1782,9 +1787,14 @@ begin
   P.Y := FFiniteFieldSize - (P.Y mod FFiniteFieldSize);
 end;
 
-procedure TCnInt64Ecc.PointInverse(var P: TCnInt64Ecc3Point);
+procedure TCnInt64Ecc.AffinePointInverse(var P: TCnInt64Ecc3Point);
 begin
-  P.Y := FFiniteFieldSize - (P.Y mod FFiniteFieldSize);
+  P.Y := (FFiniteFieldSize * P.Z - (P.Y mod FFiniteFieldSize)) mod FFiniteFieldSize;
+end;
+
+procedure TCnInt64Ecc.JacobianPointInverse(var P: TCnInt64Ecc3Point);
+begin
+  P.Y := (FFiniteFieldSize * P.Z * P.Z * P.Z - (P.Y mod FFiniteFieldSize)) mod FFiniteFieldSize;
 end;
 
 procedure TCnInt64Ecc.PointSubPoint(var P, Q, Diff: TCnInt64EccPoint);
@@ -2016,6 +2026,10 @@ begin
   FFiniteFieldSize := TCnBigNumber.Create;
 
   FSizeUFactor := TCnBigNumber.Create;
+
+  // 无需提前创建
+//  F2Inverse := TCnBigNumber.Create;
+//  F2Inverse.SetZero;
 end;
 
 constructor TCnEcc.Create(Predefined: TCnEccCurveType);
@@ -2045,6 +2059,7 @@ end;
 
 destructor TCnEcc.Destroy;
 begin
+  F2Inverse.Free; // 无需提前创建
   FSizeUFactor.Free;
 
   FGenerator.Free;
@@ -2226,7 +2241,7 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    PointInverse(Point);
+    AffinePointInverse(Point);
   end;
 
   if BigNumberIsZero(K) then
@@ -2274,7 +2289,7 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    PointInverse(Point);
+    JacobianPointInverse(Point);
   end;
 
   if BigNumberIsZero(K) then
@@ -2590,13 +2605,355 @@ begin
 end;
 
 procedure TCnEcc.AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
+var
+  T, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11: TCnBigNumber;
 begin
+  if P.Z.IsZero then
+  begin
+    BigNumberCopy(Sum.X, Q.X);
+    BigNumberCopy(Sum.Y, Q.Y);
+    BigNumberCopy(Sum.Z, Q.Z);
+    Exit;
+  end
+  else if Q.Z.IsZero then
+  begin
+    BigNumberCopy(Sum.X, P.X);
+    BigNumberCopy(Sum.Y, P.Y);
+    BigNumberCopy(Sum.Z, P.Z);
+    Exit;
+  end;
 
+  T := nil;
+  D1 := nil;
+  D2 := nil;
+  D3 := nil;
+  D4 := nil;
+  D5 := nil;
+  D6 := nil;
+  D7 := nil;
+  D8 := nil;
+  D9 := nil;
+  D10 := nil;
+  D11 := nil;
+
+  try
+    T := FEccBigNumberPool.Obtain;
+    D1 := FEccBigNumberPool.Obtain;
+    D2 := FEccBigNumberPool.Obtain;
+    D3 := FEccBigNumberPool.Obtain;
+    D4 := FEccBigNumberPool.Obtain;
+    D5 := FEccBigNumberPool.Obtain;
+    D6 := FEccBigNumberPool.Obtain;
+    D7 := FEccBigNumberPool.Obtain;
+    D8 := FEccBigNumberPool.Obtain;
+    D9 := FEccBigNumberPool.Obtain;
+    D10 := FEccBigNumberPool.Obtain;
+    D11 := FEccBigNumberPool.Obtain;
+
+    // D1 := px * qz
+    BigNumberDirectMulMod(D1, P.X, Q.Z, FFiniteFieldSize);
+
+    // D2 := qx * pz
+    BigNumberDirectMulMod(D2, Q.X, P.Z, FFiniteFieldSize);
+
+    // D4 := py * qz
+    BigNumberDirectMulMod(D4, P.Y, Q.Z, FFiniteFieldSize);
+
+    // D5 := qy * pz
+    BigNumberDirectMulMod(D5, Q.Y, P.Z, FFiniteFieldSize);
+
+    if BigNumberEqual(D1, D2) and BigNumberEqual(D4, D5) then
+    begin
+      // 同一个点，切线法
+
+      // D1 := 3 px^2 + A * pz^2
+      BigNumberDirectMulMod(D1, P.X, P.X, FFiniteFieldSize);
+      BigNumberMulWordNonNegativeMod(D1, D1, 3, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, P.Z, P.Z, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize);
+      BigNumberAddMod(D1, D1, T, FFiniteFieldSize);
+
+      // D2 := 2 * py * pz
+      BigNumberMulWordNonNegativeMod(D2, P.Y, 2, FFiniteFieldSize);
+      BigNumberDirectMulMod(D2, D2, P.Z, FFiniteFieldSize);
+
+      // D3 := py^2
+      BigNumberDirectMulMod(D3, P.Y, P.Y, FFiniteFieldSize);
+
+      // D4 := D3 * px * pz
+      BigNumberDirectMulMod(D4, D3, P.X, FFiniteFieldSize);
+      BigNumberDirectMulMod(D4, D4, P.Z, FFiniteFieldSize);
+
+      // D5 := D2^2
+      BigNumberDirectMulMod(D5, D2, D2, FFiniteFieldSize);
+
+      // D6 := D1^2 - 8 * D4
+      BigNumberDirectMulMod(D6, D1, D1, FFiniteFieldSize);
+      BigNumberMulWordNonNegativeMod(T, D4, 8, FFiniteFieldSize);
+      BigNumberSubMod(D6, D6, T, FFiniteFieldSize);
+
+      // X := D2 * D6
+      BigNumberDirectMulMod(Sum.X, D2, D6, FFiniteFieldSize);
+
+      // Y := D1 * (4 * D4 - D6) - 2 * D5 * D3
+      BigNumberMulWordNonNegativeMod(T, D4, 4, FFiniteFieldSize);
+      BigNumberSubMod(T, T, D6, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, D1, FFiniteFieldSize);
+
+      BigNumberDirectMulMod(Sum.Y, D3, D5, FFiniteFieldSize);
+      BigNumberAddMod(Sum.Y, Sum.Y, Sum.Y, FFiniteFieldSize);
+      BigNumberSubMod(Sum.Y, T, Sum.Y, FFiniteFieldSize);
+
+      // Z := D2 * D5
+      BigNumberDirectMulMod(Sum.Z, D2, D5, FFiniteFieldSize);
+    end
+    else // 不同点，割线法
+    begin
+      // 因为有不同的 Z 存在，得这样判断，同样不用求逆
+      if BigNumberEqual(D1, D2) then
+      begin
+        BigNumberAdd(T, D4, D5);
+        if BigNumberEqual(T, FFiniteFieldSize) then // X 相等且 Y 互补
+        begin
+          Sum.X.SetZero;
+          Sum.Y.SetZero;
+          Sum.Z.SetZero;
+          Exit;
+        end
+        else // X 相等且 Y 不互补，没法相加
+          raise ECnEccException.CreateFmt('Can NOT Calucate Affine %d,%d,%d + %d,%d,%d',
+            [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, Q.X.ToDec, Q.Y.ToDec, Q.Z.ToDec]);
+      end;
+
+      // D3 := D1 - D2
+      BigNumberSubMod(D3, D1, D2, FFiniteFieldSize);
+
+      // D6 := D4 - D5
+      BigNumberSubMod(D6, D4, D5, FFiniteFieldSize);
+
+      // D7 := D1 + D2
+      BigNumberAddMod(D7, D1, D2, FFiniteFieldSize);
+
+      // D8 := pz * qz
+      BigNumberDirectMulMod(D8, P.Z, Q.Z, FFiniteFieldSize);
+
+      // D9 := D3 ^ 2
+      BigNumberDirectMulMod(D9, D3, D3, FFiniteFieldSize);
+
+      // D10 := D3 * D9
+      BigNumberDirectMulMod(D10, D3, D9, FFiniteFieldSize);
+
+      // D11 := D8 * D6 ^ 2 - D7 * D9
+      BigNumberDirectMulMod(D11, D6, D6, FFiniteFieldSize);
+      BigNumberDirectMulMod(D11, D11, D8, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, D7, D9, FFiniteFieldSize);
+      BigNumberSubMod(D11, D11, T, FFiniteFieldSize);
+
+      // Y := D6 * (D9 * D1 - D11) - D4 * D10
+      BigNumberDirectMulMod(T, D9, D1, FFiniteFieldSize);
+      BigNumberSubMod(T, T, D11, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, D6, FFiniteFieldSize);
+
+      BigNumberDirectMulMod(Sum.Y, D4, D10, FFiniteFieldSize);
+      BigNumberSubMod(Sum.Y, T, Sum.Y, FFiniteFieldSize);
+
+      // X := D3 * D11
+      BigNumberDirectMulMod(Sum.X, D3, D11, FFiniteFieldSize);
+
+      // Z := D10 * D8
+      BigNumberDirectMulMod(Sum.Z, D10, D8, FFiniteFieldSize);
+    end;
+
+    if Sum.Z.IsZero then
+    begin
+      Sum.X.SetZero;
+      Sum.Y.SetZero;
+    end;
+  finally
+    FEccBigNumberPool.Recycle(D11);
+    FEccBigNumberPool.Recycle(D10);
+    FEccBigNumberPool.Recycle(D9);
+    FEccBigNumberPool.Recycle(D8);
+    FEccBigNumberPool.Recycle(D7);
+    FEccBigNumberPool.Recycle(D6);
+    FEccBigNumberPool.Recycle(D5);
+    FEccBigNumberPool.Recycle(D4);
+    FEccBigNumberPool.Recycle(D3);
+    FEccBigNumberPool.Recycle(D2);
+    FEccBigNumberPool.Recycle(D1);
+    FEccBigNumberPool.Recycle(T);
+  end;
 end;
 
 procedure TCnEcc.JacobianPointAddPoint(P, Q, Sum: TCnEcc3Point);
+var
+  T, D1, D2, D3, D4, D5, D6, D7, D8, D9: TCnBigNumber;
 begin
+  if P.Z.IsZero then
+  begin
+    BigNumberCopy(Sum.X, Q.X);
+    BigNumberCopy(Sum.Y, Q.Y);
+    BigNumberCopy(Sum.Z, Q.Z);
+    Exit;
+  end
+  else if Q.Z.IsZero then
+  begin
+    BigNumberCopy(Sum.X, P.X);
+    BigNumberCopy(Sum.Y, P.Y);
+    BigNumberCopy(Sum.Z, P.Z);
+    Exit;
+  end;
 
+  T := nil;
+  D1 := nil;
+  D2 := nil;
+  D3 := nil;
+  D4 := nil;
+  D5 := nil;
+  D6 := nil;
+  D7 := nil;
+  D8 := nil;
+  D9 := nil;
+
+  try
+    T := FEccBigNumberPool.Obtain;
+    D1 := FEccBigNumberPool.Obtain;
+    D2 := FEccBigNumberPool.Obtain;
+    D3 := FEccBigNumberPool.Obtain;
+    D4 := FEccBigNumberPool.Obtain;
+    D5 := FEccBigNumberPool.Obtain;
+    D6 := FEccBigNumberPool.Obtain;
+    D7 := FEccBigNumberPool.Obtain;
+    D8 := FEccBigNumberPool.Obtain;
+    D9 := FEccBigNumberPool.Obtain;
+
+    // D1 := PX * QZ^2
+    BigNumberDirectMulMod(D1, Q.Z, Q.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(D1, D1, P.X, FFiniteFieldSize);
+
+    // D2 := QX * PZ^2
+    BigNumberDirectMulMod(D2, P.Z, P.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(D2, D2, Q.X, FFiniteFieldSize);
+
+    // D4 := PY * QZ^3
+    BigNumberDirectMulMod(D4, Q.Z, Q.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(D4, D4, Q.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(D4, D4, P.Y, FFiniteFieldSize);
+
+    // D5 := QY * PZ^3
+    BigNumberDirectMulMod(D5, P.Z, P.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(D5, D5, P.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(D5, D5, Q.Y, FFiniteFieldSize);
+
+    if BigNumberEqual(D1, D2) and BigNumberEqual(D4, D5) then
+    begin
+      // 同一个点，切线法
+      // D1 := 3 * PX^2 + A * PZ^4
+      BigNumberDirectMulMod(T, P.Z, P.Z, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, T, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize);
+      BigNumberDirectMulMod(D1, P.X, P.X, FFiniteFieldSize);
+      BigNumberMulWordNonNegativeMod(D1, D1, 3, FFiniteFieldSize);
+      BigNumberAddMod(D1, D1, T, FFiniteFieldSize);
+
+      // D2 := 4 * PX * PY^2
+      BigNumberDirectMulMod(D2, P.Y, P.Y, FFiniteFieldSize);
+      BigNumberDirectMulMod(D2, D2, P.X, FFiniteFieldSize);
+      BigNumberMulWordNonNegativeMod(D2, D2, 4, FFiniteFieldSize);
+
+      // D3 := 8 * PY^4
+      BigNumberDirectMulMod(D3, P.Y, P.Y, FFiniteFieldSize);
+      BigNumberDirectMulMod(D3, D3, D3, FFiniteFieldSize);
+      BigNumberMulWordNonNegativeMod(D3, D3, 8, FFiniteFieldSize);
+
+      // X := D1^2 - 2 * D2
+      BigNumberDirectMulMod(Sum.X, D1, D1, FFiniteFieldSize);
+      BigNumberAddMod(T, D2, D2, FFiniteFieldSize);
+      BigNumberSubMod(Sum.X, Sum.X, T, FFiniteFieldSize);
+
+      // Y := D1 * (D2 - X) - D3
+      BigNumberSubMod(T, D2, Sum.X, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, D1, T, FFiniteFieldSize);
+      BigNumberSubMod(T, T, D3, FFiniteFieldSize); // 先不给 Sum.Y 赋值，免得可能影响 P.Y
+
+      // Z := 2 * PY * PZ
+      BigNumberDirectMulMod(Sum.Z, P.Y, P.Z, FFiniteFieldSize);
+      BigNumberAddMod(Sum.Z, Sum.Z, Sum.Z, FFiniteFieldSize);
+
+      BigNumberCopy(Sum.Y, T); // P.Y 和 P.Z 都用过后，再给 Sum.Y 赋值
+    end
+    else // 不同点，割线法
+    begin
+      if BigNumberEqual(D1, D2) then
+      begin
+        BigNumberAdd(T, D4, D5);
+        if BigNumberEqual(T, FFiniteFieldSize) then // X 相等且 Y 互补
+        begin
+          Sum.X.SetZero;
+          Sum.Y.SetZero;
+          Sum.Z.SetZero;
+          Exit;
+        end
+        else // X 相等且 Y 不互补，没法相加
+          raise ECnEccException.CreateFmt('Can NOT Calucate Jacobian %d,%d,%d + %d,%d,%d',
+            [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, Q.X.ToDec, Q.Y.ToDec, Q.Z.ToDec]);
+      end;
+
+      // D3 := D1 - D2
+      BigNumberSubMod(D3, D1, D2, FFiniteFieldSize);
+
+      // D6 := D4 - D5
+      BigNumberSubMod(D6, D4, D5, FFiniteFieldSize);
+
+      // D7 := D1 + D2
+      BigNumberAddMod(D7, D1, D2, FFiniteFieldSize);
+
+      // D8 := D4 + D5
+      BigNumberAddMod(D8, D4, D5, FFiniteFieldSize);
+
+      // X := D6^2 - D7 * D3^2
+      BigNumberDirectMulMod(Sum.X, D6, D6, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, D3, D3, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, D7, FFiniteFieldSize);
+      BigNumberSubMod(Sum.X, Sum.X, T, FFiniteFieldSize);
+
+      // D9 := D7 * D3^2 - 2 * X
+      BigNumberDirectMulMod(D9, D3, D3, FFiniteFieldSize);
+      BigNumberDirectMulMod(D9, D9, D7, FFiniteFieldSize);
+      BigNumberMulWordNonNegativeMod(T, Sum.X, 2, FFiniteFieldSize);
+      BigNumberSubMod(D9, D9, T, FFiniteFieldSize);
+
+      // Y := (D9 * D6 - D8 * D3^3) / 2
+      BigNumberDirectMulMod(T, D3, D3, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, D3, FFiniteFieldSize);
+      BigNumberDirectMulMod(T, T, D8, FFiniteFieldSize);
+      BigNumberDirectMulMod(Sum.Y, D6, D9, FFiniteFieldSize);
+      BigNumberSubMod(Sum.Y, Sum.Y, T, FFiniteFieldSize);
+
+      if F2Inverse = nil then
+      begin
+        F2Inverse := TCnBigNumber.Create;
+        T.SetWord(2);
+        BigNumberModularInverse(F2Inverse, T, FFiniteFieldSize);
+      end;
+      BigNumberDirectMulMod(Sum.Y, Sum.Y, F2Inverse, FFiniteFieldSize);
+
+      // Z := PZ * QZ * D3
+      BigNumberDirectMulMod(Sum.Z, P.Z, Q.Z, FFiniteFieldSize);
+      BigNumberDirectMulMod(Sum.Z, Sum.Z, D3, FFiniteFieldSize);
+    end;
+  finally
+    FEccBigNumberPool.Recycle(D9);
+    FEccBigNumberPool.Recycle(D8);
+    FEccBigNumberPool.Recycle(D7);
+    FEccBigNumberPool.Recycle(D6);
+    FEccBigNumberPool.Recycle(D5);
+    FEccBigNumberPool.Recycle(D4);
+    FEccBigNumberPool.Recycle(D3);
+    FEccBigNumberPool.Recycle(D2);
+    FEccBigNumberPool.Recycle(D1);
+    FEccBigNumberPool.Recycle(T);
+  end;
 end;
 
 procedure TCnEcc.PointInverse(P: TCnEccPoint);
@@ -2607,12 +2964,32 @@ begin
   BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
 
-procedure TCnEcc.PointInverse(P: TCnEcc3Point);
+procedure TCnEcc.AffinePointInverse(P: TCnEcc3Point);
+var
+  T: TCnBigNumber;
 begin
-  if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create('Inverse Error.');
+  T := FEccBigNumberPool.Obtain;
+  try
+    BigNumberDirectMulMod(T, P.Z, FFiniteFieldSize, FFiniteFieldSize);
+    BigNumberSubMod(P.Y, T, P.Y, FFiniteFieldSize);
+  finally
+    FEccBigNumberPool.Recycle(T);
+  end;
+end;
 
-  BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
+procedure TCnEcc.JacobianPointInverse(P: TCnEcc3Point);
+var
+  T: TCnBigNumber;
+begin
+  T := FEccBigNumberPool.Obtain;
+  try
+    BigNumberDirectMulMod(T, P.Z, P.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, P.Z, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, FFiniteFieldSize, FFiniteFieldSize);
+    BigNumberSubMod(P.Y, T, P.Y, FFiniteFieldSize);
+  finally
+    FEccBigNumberPool.Recycle(T);
+  end;
 end;
 
 procedure TCnEcc.PointSubPoint(P, Q, Diff: TCnEccPoint);
