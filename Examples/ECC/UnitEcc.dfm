@@ -331,7 +331,7 @@ object FormEcc: TFormEcc
         object btnTestJacobian: TButton
           Left = 600
           Top = 28
-          Width = 75
+          Width = 81
           Height = 21
           Caption = 'Test Jacobian +'
           TabOrder = 16
@@ -877,25 +877,33 @@ object FormEcc: TFormEcc
         end
         object lblBNEccPrivateKey: TLabel
           Left = 176
-          Top = 304
+          Top = 344
           Width = 42
           Height = 13
           Caption = 'Private: -'
         end
         object lblBNEccPublicKey: TLabel
           Left = 112
-          Top = 304
+          Top = 344
           Width = 40
           Height = 13
           Caption = 'Public:  |'
         end
         object lblBNEccDataPoint: TLabel
           Left = 16
-          Top = 376
+          Top = 416
           Width = 53
           Height = 13
           Caption = 'Data Point:'
           OnClick = lblBNEccDataPointClick
+        end
+        object bvl2: TBevel
+          Left = 424
+          Top = 304
+          Width = 337
+          Height = 17
+          Anchors = [akLeft, akTop, akRight]
+          Shape = bsTopLine
         end
         object edtBNEccA: TEdit
           Left = 104
@@ -1029,7 +1037,7 @@ object FormEcc: TFormEcc
         end
         object btnBNEccNewKey: TButton
           Left = 16
-          Top = 300
+          Top = 340
           Width = 75
           Height = 21
           Caption = 'New Key'
@@ -1038,7 +1046,7 @@ object FormEcc: TFormEcc
         end
         object edtBNEccPublicKey: TEdit
           Left = 16
-          Top = 336
+          Top = 376
           Width = 748
           Height = 21
           Anchors = [akLeft, akTop, akRight]
@@ -1046,7 +1054,7 @@ object FormEcc: TFormEcc
         end
         object edtBNEccPrivateKey: TEdit
           Left = 232
-          Top = 300
+          Top = 340
           Width = 532
           Height = 21
           Anchors = [akLeft, akTop, akRight]
@@ -1054,7 +1062,7 @@ object FormEcc: TFormEcc
         end
         object edtBNEccDataPoint: TEdit
           Left = 80
-          Top = 372
+          Top = 412
           Width = 588
           Height = 21
           Anchors = [akLeft, akTop, akRight]
@@ -1062,7 +1070,7 @@ object FormEcc: TFormEcc
         end
         object btnBNEccCrypt: TButton
           Left = 675
-          Top = 370
+          Top = 410
           Width = 91
           Height = 21
           Anchors = [akRight]
@@ -1087,6 +1095,41 @@ object FormEcc: TFormEcc
           Caption = '? * G'
           TabOrder = 21
           OnClick = btnBNEccCalcClick
+        end
+        object rbBNAddNormal: TRadioButton
+          Left = 16
+          Top = 296
+          Width = 113
+          Height = 17
+          Caption = 'Normal'
+          Checked = True
+          TabOrder = 22
+          TabStop = True
+        end
+        object rbBNAddAffine: TRadioButton
+          Left = 120
+          Top = 296
+          Width = 113
+          Height = 17
+          Caption = 'Affine'
+          TabOrder = 23
+        end
+        object rbBNAddJacobian: TRadioButton
+          Left = 216
+          Top = 296
+          Width = 113
+          Height = 17
+          Caption = 'Jacobian'
+          TabOrder = 24
+        end
+        object btnMulTime: TButton
+          Left = 342
+          Top = 296
+          Width = 75
+          Height = 21
+          Caption = '? * G Time'
+          TabOrder = 25
+          OnClick = btnMulTimeClick
         end
       end
     end
@@ -1321,6 +1364,24 @@ object FormEcc: TFormEcc
         Width = 217
         Height = 121
         TabOrder = 4
+      end
+      object btnBNEccAffineTest: TButton
+        Left = 536
+        Top = 368
+        Width = 75
+        Height = 21
+        Caption = 'Affine Test'
+        TabOrder = 5
+        OnClick = btnBNEccAffineTestClick
+      end
+      object btnBNJacobianTest: TButton
+        Left = 624
+        Top = 368
+        Width = 75
+        Height = 21
+        Caption = 'Jacobian Test'
+        TabOrder = 6
+        OnClick = btnBNJacobianTestClick
       end
     end
     object tsLucas: TTabSheet

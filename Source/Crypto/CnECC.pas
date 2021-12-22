@@ -29,8 +29,8 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.21 V1.9
-*               增加 In64 范围内仿射坐标与雅可比坐标的加法与乘法
+* 修改记录：2021.12.22 V1.9
+*               增加 In64 与大数范围内仿射坐标与雅可比坐标的加减法与乘法
 *           2021.12.07 V1.8
 *               增加 SM9 与 WAPI 的两条曲线定义
 *           2020.11.13 V1.7
@@ -267,8 +267,13 @@ type
 
     procedure AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
     {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
+    procedure AffinePointSubPoint(P, Q, Diff: TCnEcc3Point);
+    {* 使用仿射坐标系进行点减，避免取模拟元导致的开销}
+
     procedure JacobianPointAddPoint(P, Q, Sum: TCnEcc3Point);
     {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
+    procedure JacobianPointSubPoint(P, Q, Diff: TCnEcc3Point);
+    {* 使用雅可比坐标系进行点减，避免取模拟元导致的开销}
 
     procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
     {* 使用仿射坐标系进行点乘，避免取模拟元导致的开销}
@@ -553,6 +558,15 @@ function CnEccPointToString(const P: TCnEccPoint): string;
 function CnEccPointToHex(const P: TCnEccPoint): string;
 {* 将一个 TCnEccPoint 点坐标转换为十六进制字符串}
 
+function CnInt64Ecc3PointToString(var P: TCnInt64Ecc3Point): string;
+{* 将一个 TCnInt64Ecc3Point 点坐标转换为字符串}
+
+function CnEcc3PointToString(const P: TCnEcc3Point): string;
+{* 将一个 TCnEcc3Point 点坐标转换为十进制字符串}
+
+function CnEcc3PointToHex(const P: TCnEcc3Point): string;
+{* 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
+
 function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
 
@@ -593,7 +607,7 @@ function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivate
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
 function CnInt64EccPointToEcc3Point(var P: TCnInt64EccPoint; var P3: TCnInt64Ecc3Point): Boolean;
-{* Int64 范围内的普通坐标到仿射坐标的点转换}
+{* Int64 范围内的普通坐标到仿射或雅可比坐标的点转换}
 
 function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
   var P: TCnInt64EccPoint; Prime: Int64): Boolean;
@@ -602,6 +616,9 @@ function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
 function CnInt64JacobianPointToEccPoint(var P3: TCnInt64Ecc3Point;
   var P: TCnInt64EccPoint; Prime: Int64): Boolean;
 {* Int64 范围内的雅可比坐标到普通坐标的点转换}
+
+function CnEccPointToEcc3Point(P: TCnEccPoint; P3: TCnEcc3Point): Boolean;
+{* 大数范围内的普通坐标到仿射或雅可比坐标的点转换}
 
 function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的仿射坐标到普通坐标的点转换}
@@ -948,6 +965,24 @@ end;
 function CnEccPointToHex(const P: TCnEccPoint): string;
 begin
   Result := Format('%s,%s', [P.X.ToHex, P.Y.ToHex]);
+end;
+
+// 将一个 TCnInt64Ecc3Point 点坐标转换为字符串}
+function CnInt64Ecc3PointToString(var P: TCnInt64Ecc3Point): string;
+begin
+  Result := Format('%d,%d,%d', [P.X, P.Y, P.Z]);
+end;
+
+// 将一个 TCnEcc3Point 点坐标转换为十进制字符串
+function CnEcc3PointToString(const P: TCnEcc3Point): string;
+begin
+  Result := Format('%s,%s,%s', [P.X.ToDec, P.Y.ToDec, P.Z.ToDec]);
+end;
+
+// 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
+function CnEcc3PointToHex(const P: TCnEcc3Point): string;
+begin
+  Result := Format('%s,%s,%s', [P.X.ToHex, P.Y.ToHex, P.Z.ToHex]);
 end;
 
 // 将一个 TCnPolynomialEccPoint 点坐标转换为字符串
@@ -2956,6 +2991,40 @@ begin
   end;
 end;
 
+procedure TCnEcc.AffinePointSubPoint(P, Q, Diff: TCnEcc3Point);
+var
+  Inv: TCnEcc3Point;
+begin
+  Inv := TCnEcc3Point.Create;
+  try
+    Inv.X := Q.X;
+    Inv.Y := Q.Y;
+    Inv.Z := Q.Z;
+
+    AffinePointInverse(Inv);
+    AffinePointAddPoint(P, Inv, Diff);
+  finally
+    Inv.Free;
+  end;
+end;
+
+procedure TCnEcc.JacobianPointSubPoint(P, Q, Diff: TCnEcc3Point);
+var
+  Inv: TCnEcc3Point;
+begin
+  Inv := TCnEcc3Point.Create;
+  try
+    Inv.X := Q.X;
+    Inv.Y := Q.Y;
+    Inv.Z := Q.Z;
+
+    JacobianPointInverse(Inv);
+    JacobianPointAddPoint(P, Inv, Diff);
+  finally
+    Inv.Free;
+  end;
+end;
+
 procedure TCnEcc.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
@@ -3051,6 +3120,7 @@ function CnInt64EccPointToEcc3Point(var P: TCnInt64EccPoint; var P3: TCnInt64Ecc
 begin
   P3.X := P.X;
   P3.Y := P.Y;
+
   if (P3.X = 0) and (P3.Y = 0) then
     P3.Z := 0
   else
@@ -3081,6 +3151,18 @@ begin
   T := Int64NonNegativeMulMod(P3.Z, T, Prime); // Z^3
   V := Int64ModularInverse(T, Prime);       // 1 / Z^3
   P.Y := Int64NonNegativeMulMod(P3.Y, V, Prime);
+  Result := True;
+end;
+
+function CnEccPointToEcc3Point(P: TCnEccPoint; P3: TCnEcc3Point): Boolean;
+begin
+  BigNumberCopy(P3.X, P.X);
+  BigNumberCopy(P3.Y, P.Y);
+
+  if P3.X.IsZero and P3.Y.IsZero then
+    P3.Z.SetZero
+  else
+    P3.Z.SetOne;
   Result := True;
 end;
 
