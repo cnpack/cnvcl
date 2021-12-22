@@ -656,6 +656,14 @@ function BigNumberMulWordNonNegativeMod(const Res: TCnBigNumber;
 {* 大数对象乘以 32位有符号整型再非负求余，余数放 Res 中，0 <= Remain < |Divisor|
    Res 始终大于零，返回求余计算是否成功}
 
+function BigNumberAddMod(const Res: TCnBigNumber; const Num1, Num2: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
+{* 大数对象求和后非负求余，也就是 Res = (Num1 + Num2) mod Divisor 返回求余计算是否成功}
+
+function BigNumberSubMod(const Res: TCnBigNumber; const Num1, Num2: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
+{* 大数对象求差后非负求余，也就是 Res = (Num1 - Num2) mod Divisor 返回求余计算是否成功}
+
 function BigNumberDivFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
   F: Extended): Boolean;
 {* 计算大数对象与浮点数的商，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num}
@@ -4281,6 +4289,40 @@ begin
   try
     T.SetInteger(N);
     Result := BigNumberDirectMulMod(Res, Num, T, Divisor);
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+function BigNumberAddMod(const Res: TCnBigNumber; const Num1, Num2: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  Result := False;
+  T := FLocalBigNumberPool.Obtain;
+  try
+    if not BigNumberAdd(T, Num1, Num2) then
+      Exit;
+
+    Result := BigNumberNonNegativeMod(Res, T, Divisor);
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+function BigNumberSubMod(const Res: TCnBigNumber; const Num1, Num2: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  Result := False;
+  T := FLocalBigNumberPool.Obtain;
+  try
+    if not BigNumberSub(T, Num1, Num2) then
+      Exit;
+
+    Result := BigNumberNonNegativeMod(Res, T, Divisor);
   finally
     FLocalBigNumberPool.Recycle(T);
   end;
