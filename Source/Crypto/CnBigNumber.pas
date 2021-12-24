@@ -125,8 +125,8 @@ type
     function IsZero: Boolean;
     {* 返回大数是否为 0}
 
-    procedure SetZero;
-    {* 将大数设置为 0}
+    function SetZero: Boolean;
+    {* 将大数设置为 0，返回是否设置成功}
 
     function IsOne: Boolean;
     {* 返回大数是否为 1}
@@ -135,7 +135,7 @@ type
     {* 返回大数是否为 -1}
 
     function SetOne: Boolean;
-    {* 将大数设置为 1}
+    {* 将大数设置为 1，返回是否设置成功}
 
     function IsOdd: Boolean;
     {* 返回大数是否为奇数}
@@ -6638,9 +6638,9 @@ end;
 
 {$ENDIF}
 
-procedure TCnBigNumber.SetZero;
+function TCnBigNumber.SetZero: Boolean;
 begin
-  BigNumberSetZero(Self);
+  Result := BigNumberSetZero(Self);
 end;
 
 function TCnBigNumber.SubWord(W: TCnLongWord32): Boolean;

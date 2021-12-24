@@ -25,12 +25,17 @@ type
     grpAP: TGroupBox;
     btnAP: TButton;
     mmoAP: TMemo;
+    tsRate: TTabSheet;
+    grpRate: TGroupBox;
+    btnRateTest: TButton;
+    mmoRate: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
     procedure btnTestFp4Click(Sender: TObject);
     procedure btnTestFP12Click(Sender: TObject);
     procedure btnAPClick(Sender: TObject);
+    procedure btnRateTestClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -490,6 +495,29 @@ begin
   mmoAP.Lines.Add('');
 
   K.Free;
+end;
+
+procedure TFormSM9.btnRateTestClick(Sender: TObject);
+var
+  Pubs: TCnAffinePoint;
+  F: TCnFP12;
+begin
+  F := TCnFP12.Create;
+
+  Pubs := TCnAffinePoint.Create;
+  Pubs.SetCoordinatesHex('29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32',
+    '9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408',
+    '41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D',
+    '69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25');
+
+  if SM9RatePairing(F, Pubs, nil) then
+  begin
+    mmoRate.Lines.Clear;
+    mmoRate.Lines.Add(F.ToString);
+  end;
+
+  Pubs.Free;
+  F.Free;
 end;
 
 end.

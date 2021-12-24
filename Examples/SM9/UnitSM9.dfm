@@ -1,6 +1,6 @@
 object FormSM9: TFormSM9
   Left = 232
-  Top = 180
+  Top = 181
   Width = 979
   Height = 563
   Caption = 'SM9 Test'
@@ -20,7 +20,7 @@ object FormSM9: TFormSM9
     Top = 8
     Width = 953
     Height = 513
-    ActivePage = tsFP2
+    ActivePage = tsRate
     TabOrder = 0
     object tsFP2: TTabSheet
       Caption = 'FP2'
@@ -128,6 +128,35 @@ object FormSM9: TFormSM9
           OnClick = btnAPClick
         end
         object mmoAP: TMemo
+          Left = 16
+          Top = 72
+          Width = 897
+          Height = 377
+          ScrollBars = ssVertical
+          TabOrder = 1
+        end
+      end
+    end
+    object tsRate: TTabSheet
+      Caption = 'R-ate'
+      ImageIndex = 4
+      object grpRate: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 465
+        Caption = 'R-ate Pairing'
+        TabOrder = 0
+        object btnRateTest: TButton
+          Left = 16
+          Top = 24
+          Width = 89
+          Height = 25
+          Caption = 'Test R-ate'
+          TabOrder = 0
+          OnClick = btnRateTestClick
+        end
+        object mmoRate: TMemo
           Left = 16
           Top = 72
           Width = 897
