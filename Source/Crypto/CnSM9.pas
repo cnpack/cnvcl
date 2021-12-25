@@ -289,6 +289,9 @@ function FP2Inverse(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber): Bo
 function FP2Div(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber): Boolean;
 {* 有限域中二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
+function FP2ToStream(FP2: TCnFP2; Stream: TStream): Integer;
+{* 将一二次扩域大整系数元素对象的内容写入流，返回写入长度}
+
 // ====================== 四次扩域大整系数元素运算函数 =========================
 
 function FP4New: TCnFP4;
@@ -368,6 +371,9 @@ function FP4Inverse(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber): Bo
 
 function FP4Div(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber): Boolean;
 {* 有限域中四次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
+
+function FP4ToStream(FP4: TCnFP4; Stream: TStream): Integer;
+{* 将一四次扩域大整系数元素对象的内容写入流，返回写入长度}
 
 // ===================== 十二次扩域大整系数元素运算函数 ========================
 
@@ -459,6 +465,9 @@ function FP12Div(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber)
 
 function FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber): Boolean;
 {* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F，暂未测试}
+
+function FP12ToStream(FP12: TCnFP12; Stream: TStream): Integer;
+{* 将一十二次扩域大整系数元素对象的内容写入流，返回写入长度}
 
 // ===================== 仿射坐标系里的三元点的运算函数 ========================
 
@@ -732,7 +741,7 @@ end;
 
 function FP2ToString(const FP2: TCnFP2): string;
 begin
-  Result := FP2[0].ToHex + ',' + FP2[1].ToHex;
+  Result := FP2[1].ToHex + ',' + FP2[0].ToHex;
 end;
 
 function FP2SetWord(const FP2: TCnFP2; Value: Cardinal): Boolean;
@@ -968,6 +977,11 @@ begin
   end;
 end;
 
+function FP2ToStream(FP2: TCnFP2; Stream: TStream): Integer;
+begin
+  Result := BigNumberWriteBinaryToStream(FP2[0], Stream) + BigNumberWriteBinaryToStream(FP2[1], Stream);
+end;
+
 // ====================== 四次扩域大整系数元素运算函数 =========================
 
 function FP4New: TCnFP4;
@@ -1064,7 +1078,7 @@ end;
 
 function FP4ToString(const FP4: TCnFP4): string;
 begin
-  Result := FP4[0].ToString + CRLF + FP4[1].ToString;
+  Result := FP4[1].ToString + CRLF + FP4[0].ToString;
 end;
 
 function FP4SetWord(const FP4: TCnFP4; Value: Cardinal): Boolean;
@@ -1257,6 +1271,11 @@ begin
   end;
 end;
 
+function FP4ToStream(FP4: TCnFP4; Stream: TStream): Integer;
+begin
+  Result := FP2ToStream(FP4[0], Stream) + FP2ToStream(FP4[1], Stream);
+end;
+
 // ===================== 十二次扩域大整系数元素运算函数 ========================
 
 function FP12New: TCnFP12;
@@ -1390,7 +1409,7 @@ end;
 
 function FP12ToString(const FP12: TCnFP12): string;
 begin
-  Result := FP12[0].ToString + CRLF + FP12[1].ToString + CRLF + FP12[2].ToString;
+  Result := FP12[2].ToString + CRLF + FP12[1].ToString + CRLF + FP12[0].ToString;
 end;
 
 function FP12SetWord(const FP12: TCnFP12; Value: Cardinal): Boolean;
@@ -1687,6 +1706,12 @@ begin
     if Res = F then
       FLocalFP12Pool.Recycle(T);
   end;
+end;
+
+function FP12ToStream(FP12: TCnFP12; Stream: TStream): Integer;
+begin
+  Result := FP4ToStream(FP12[0], Stream) + FP4ToStream(FP12[1], Stream)
+    + FP4ToStream(FP12[2], Stream);
 end;
 
 // ===================== 仿射坐标系里的三元点的运算函数 ========================

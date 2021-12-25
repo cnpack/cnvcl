@@ -490,7 +490,7 @@ function BigNumberWordExpand(const Num: TCnBigNumber; Words: Integer): TCnBigNum
 
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-   返回 Buf 写入的长度，注意不处理正负号}
+   返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度}
 
 function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream): Integer;
 {* 将一个大数的二进制部分写入流，返回写入的长度}
@@ -1369,11 +1369,14 @@ end;
 
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 var
-  I, N: Integer;
+  I: Integer;
   L: TCnLongWord32;
 begin
-  N := BigNumberGetBytesCount(Num);
-  I := N;
+  Result := BigNumberGetBytesCount(Num);
+  if Buf = nil then
+    Exit;
+
+  I := Result;
   while I > 0 do
   begin
     Dec(I);
@@ -1382,7 +1385,6 @@ begin
 
     Buf := PAnsiChar(Integer(Buf) + 1);
   end;
-  Result := N;
 end;
 
 function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream): Integer;
@@ -1396,7 +1398,7 @@ begin
   begin
     SetLength(Buf, Len);
     BigNumberToBinary(Num, @Buf[0]);
-    Stream.Write(Buf[0], Len);
+    Result := Stream.Write(Buf[0], Len);
     SetLength(Buf, 0);
   end;
 end;
