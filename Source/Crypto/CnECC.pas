@@ -1941,7 +1941,10 @@ begin
   begin
     BigNumberCopy(FX, (Source as TCnEcc3Point).X);
     BigNumberCopy(FY, (Source as TCnEcc3Point).Y);
-    (Source as TCnEcc3Point).Z.SetOne;
+    if FX.IsZero and FY.IsZero then
+      (Source as TCnEcc3Point).Z.SetZero
+    else
+      (Source as TCnEcc3Point).Z.SetOne;
   end
   else
     inherited;

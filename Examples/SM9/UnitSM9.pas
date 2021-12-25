@@ -29,6 +29,7 @@ type
     grpRate: TGroupBox;
     btnRateTest: TButton;
     mmoRate: TMemo;
+    btnFP2PointMul: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -36,6 +37,7 @@ type
     procedure btnTestFP12Click(Sender: TObject);
     procedure btnAPClick(Sender: TObject);
     procedure btnRateTestClick(Sender: TObject);
+    procedure btnFP2PointMulClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -47,9 +49,9 @@ type
     FP121: TCnFP12;
     FP122: TCnFP12;
     FP123: TCnFP12;
-    FAP1: TCnAffinePoint;
-    FAP2: TCnAffinePoint;
-    FAP3: TCnAffinePoint;
+    FAP1: TCnFP2AffinePoint;
+    FAP2: TCnFP2AffinePoint;
+    FAP3: TCnFP2AffinePoint;
   public
     { Public declarations }
   end;
@@ -81,9 +83,9 @@ begin
   FP122 := TCnFP12.Create;
   FP123 := TCnFP12.Create;
 
-  FAP1 := TCnAffinePoint.Create;
-  FAP2 := TCnAffinePoint.Create;
-  FAP3 := TCnAffinePoint.Create;
+  FAP1 := TCnFP2AffinePoint.Create;
+  FAP2 := TCnFP2AffinePoint.Create;
+  FAP3 := TCnFP2AffinePoint.Create;
 end;
 
 procedure TFormSM9.FormDestroy(Sender: TObject);
@@ -373,14 +375,6 @@ begin
   mmoFP12.Lines.Add(FP123.ToString);
   mmoFP12.Lines.Add('');
 
-  mmoFP12.Lines.Add('Power:');
-  SetVars;
-  E := TCnBigNumber.FromHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
-  FP12Power(FP123, FP121, E, FP);
-  E.Free;
-  mmoFP12.Lines.Add(FP123.ToString);
-  mmoFP12.Lines.Add('');
-
   mmoFP12.Lines.Add('Inv:');
   SetVars;
   FP12Inverse(FP123, FP121, FP);
@@ -421,6 +415,26 @@ begin
   FP12Inverse(FP123, FP121, FP);
   mmoFP12.Lines.Add(FP123.ToString);
   mmoFP12.Lines.Add('');
+
+  mmoFP12.Lines.Add('Power:');
+  FP121.SetHex('4E378FB5561CD0668F906B731AC58FEE25738EDF09CADC7A29C0ABC0177AEA6D',
+    '28B3404A61908F5D6198815C99AF1990C8AF38655930058C28C21BB539CE0000',
+    '38BFFE40A22D529A0C66124B2C308DAC9229912656F62B4FACFCED408E02380F',
+    'A01F2C8BEE81769609462C69C96AA923FD863E209D3CE26DD889B55E2E3873DB',
+    '67E0E0C2EED7A6993DCE28FE9AA2EF56834307860839677F96685F2B44D0911F',
+    '5A1AE172102EFD95DF7338DBC577C66D8D6C15E0A0158C7507228EFB078F42A6',
+    '1604A3FCFA9783E667CE9FCB1062C2A5C6685C316DDA62DE0548BAA6BA30038B',
+    '93634F44FA13AF76169F3CC8FBEA880ADAFF8475D5FD28A75DEB83C44362B439',
+    'B3129A75D31D17194675A1BC56947920898FBF390A5BF5D931CE6CBB3340F66D',
+    '4C744E69C4A2E1C8ED72F796D151A17CE2325B943260FC460B9F73CB57C9014B',
+    '84B87422330D7936EABA1109FA5A7A7181EE16F2438B0AEB2F38FD5F7554E57A',
+    'AAB9F06A4EEBA4323A7833DB202E4E35639D93FA3305AF73F0F071D7D284FCFB');
+
+  E := TCnBigNumber.FromHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
+  FP12Power(FP123, FP121, E, FP);
+  E.Free;
+  mmoFP12.Lines.Add(FP123.ToString);
+  mmoFP12.Lines.Add('');
 end;
 
 procedure TFormSM9.btnAPClick(Sender: TObject);
@@ -451,11 +465,11 @@ begin
 
   mmoAP.Lines.Add('Neg:');
   SetVars;
-  AffinePointNegate(FAP3, FAP1, FP);  // 说明 P 是对的
+  FP2AffinePointNegate(FAP3, FAP1, FP);  // 说明 P 是对的
   mmoAP.Lines.Add(FAP3.ToString);
   mmoAP.Lines.Add('');
 
-  if AffinePointIsOnCurve(FAP1, FP) then
+  if FP2AffinePointIsOnCurve(FAP1, FP) then
     mmoAP.Lines.Add('Is ON Curve')
   else
     mmoAP.Lines.Add('NOT On Curve');
@@ -463,19 +477,19 @@ begin
 
   mmoAP.Lines.Add('Double:');
   SetVars;
-  AffinePointDouble(FAP1, FAP1, FP);
+  FP2AffinePointDouble(FAP1, FAP1, FP);
   mmoAP.Lines.Add(FAP1.ToString);  // 2 倍的 FAP1
   mmoAP.Lines.Add('');
 
   mmoAP.Lines.Add('Add:');
   SetVars;
-  AffinePointDouble(FAP3, FAP1, FP);
-  AffinePointAdd(FAP3, FAP1, FAP3, FP);
+  FP2AffinePointDouble(FAP3, FAP1, FP);
+  FP2AffinePointAdd(FAP3, FAP1, FAP3, FP);
   mmoAP.Lines.Add(FAP3.ToString); // 3 倍的 FAP1
   mmoAP.Lines.Add('');
 
   mmoAP.Lines.Add('Sub:');
-  AffinePointSub(FAP3, FAP3, FAP1, FP);
+  FP2AffinePointSub(FAP3, FAP3, FAP1, FP);
   mmoAP.Lines.Add(FAP3.ToString);
   mmoAP.Lines.Add('');
 
@@ -483,14 +497,14 @@ begin
   SetVars;
 
   K.SetWord(10);
-  AffinePointMul(FAP3, FAP1, K, FP);
+  FP2AffinePointMul(FAP3, FAP1, K, FP);
   mmoAP.Lines.Add(FAP3.ToString);
   mmoAP.Lines.Add('');
 
   mmoAP.Lines.Add('Mul K:');
   SetVars;
   K.SetHex('0130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4');
-  AffinePointMul(FAP1, FAP1, K, FP);
+  FP2AffinePointMul(FAP1, FAP1, K, FP);
   mmoAP.Lines.Add(FAP1.ToString);
   mmoAP.Lines.Add('');
 
@@ -499,12 +513,13 @@ end;
 
 procedure TFormSM9.btnRateTestClick(Sender: TObject);
 var
-  Pubs: TCnAffinePoint;
+  Pubs: TCnFP2AffinePoint;
   F: TCnFP12;
+  E: TCnBigNumber;
 begin
   F := TCnFP12.Create;
 
-  Pubs := TCnAffinePoint.Create;
+  Pubs := TCnFP2AffinePoint.Create;
   Pubs.SetCoordinatesHex('29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32',
     '9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408',
     '41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D',
@@ -513,11 +528,47 @@ begin
   if SM9RatePairing(F, Pubs, nil) then
   begin
     mmoRate.Lines.Clear;
+    mmoRate.Lines.Add('R-ate:');
     mmoRate.Lines.Add(F.ToString);
   end;
 
+  E := TCnBigNumber.FromHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
+
+  if FP12Power(F, F, E, FP) then
+  begin
+    mmoRate.Lines.Add('');
+    mmoRate.Lines.Add('Power:');
+    mmoRate.Lines.Add(F.ToString);
+  end;
+
+  E.Free;
   Pubs.Free;
   F.Free;
+end;
+
+procedure TFormSM9.btnFP2PointMulClick(Sender: TObject);
+var
+  E: TCnBigNumber;
+  P: TCnFP2Point;
+  PA: TCnFP2AffinePoint;
+begin
+  E := TCnBigNumber.FromHex('607CD1361FBEA46FF5F89A0BA0C6D2462D080452AD2EA22FAF9FB48CAB47ECBD');
+  P := TCnFP2Point.Create;
+  PA := TCnFP2AffinePoint.Create;
+
+  P.X.SetHex(CN_SM9_G2_P2X0, CN_SM9_G2_P2X1);
+  P.Y.SetHex(CN_SM9_G2_P2Y0, CN_SM9_G2_P2Y1);
+
+  FP2PointToFP2AffinePoint(PA, P);
+  FP2AffinePointMul(PA, PA, E, FP);
+  FP2AffinePointToFP2Point(P, PA, FP);
+
+  mmoAP.Lines.Add('G2 Mul:');
+  mmoAP.Lines.Add(P.ToString);
+
+  PA.Free;
+  P.Free;
+  E.Free;
 end;
 
 end.

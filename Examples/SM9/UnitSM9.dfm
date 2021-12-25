@@ -20,7 +20,7 @@ object FormSM9: TFormSM9
     Top = 8
     Width = 953
     Height = 513
-    ActivePage = tsRate
+    ActivePage = tsFP2
     TabOrder = 0
     object tsFP2: TTabSheet
       Caption = 'FP2'
@@ -109,21 +109,21 @@ object FormSM9: TFormSM9
       end
     end
     object tsAffinePoint: TTabSheet
-      Caption = 'Affine Point'
+      Caption = 'FP2 Affine Point'
       ImageIndex = 3
       object grpAP: TGroupBox
         Left = 8
         Top = 8
         Width = 929
         Height = 465
-        Caption = 'Affine Point'
+        Caption = 'FP2 Affine Point'
         TabOrder = 0
         object btnAP: TButton
           Left = 16
           Top = 24
-          Width = 89
+          Width = 121
           Height = 25
-          Caption = 'Test Affine Point'
+          Caption = 'Test FP2 Affine Point'
           TabOrder = 0
           OnClick = btnAPClick
         end
@@ -134,6 +134,15 @@ object FormSM9: TFormSM9
           Height = 377
           ScrollBars = ssVertical
           TabOrder = 1
+        end
+        object btnFP2PointMul: TButton
+          Left = 160
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'FP2 Point Mul'
+          TabOrder = 2
+          OnClick = btnFP2PointMulClick
         end
       end
     end
