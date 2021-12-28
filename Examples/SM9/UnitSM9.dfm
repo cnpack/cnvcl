@@ -175,5 +175,35 @@ object FormSM9: TFormSM9
         end
       end
     end
+    object tsSM9Hash: TTabSheet
+      Caption = 'SM9 Hash'
+      ImageIndex = 5
+      object grpSM9Hash: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 465
+        Caption = 'SM9 Hash'
+        TabOrder = 0
+        object btnTestHash: TButton
+          Left = 16
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Test Hash1'
+          TabOrder = 0
+          OnClick = btnTestHashClick
+        end
+        object btnTestHash2: TButton
+          Left = 112
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Test Hash2'
+          TabOrder = 1
+          OnClick = btnTestHash2Click
+        end
+      end
+    end
   end
 end

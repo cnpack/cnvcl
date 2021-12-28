@@ -699,10 +699,28 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterKey:
   OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，根据用户 ID 生成用户加密私钥}
 
+function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+  N: TCnBigNumber): Boolean;
+{* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的散列函数
+  输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
+
+function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+  N: TCnBigNumber): Boolean;
+{* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的散列函数
+  输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
+
 implementation
+
+uses
+  CnSM3;
 
 const
   CRLF = #13#10;
+
+  CN_SM9_HASH_PREFIX_1 = 1;
+  CN_SM9_HASH_PREFIX_2 = 2;
+
+  CN_SM3_DIGEST_BITS = SizeOf(TSM3Digest) * 8;
 
 var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
@@ -3022,6 +3040,95 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterKey: TCnSM9Encryption
   const AUserID: AnsiString; OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9): Boolean;
 begin
 
+end;
+
+function SM9Hash(const Res: TCnBigNumber; Prefix: Byte; Data: Pointer; DataLen: Integer;
+  N: TCnBigNumber): Boolean;
+var
+  CT, SCT, HLen: LongWord;
+  I, CeilLen: Integer;
+  IsInt: Boolean;
+  DArr, Ha: array of Byte; // Ha 长 HLen Bits
+  SM3D: TSM3Digest;
+  BH, BN: TCnBigNumber;
+
+  function SwapLongWord(Value: LongWord): LongWord;
+  begin
+    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+  end;
+
+begin
+  Result := False;
+  if (Data = nil) or (DataLen <= 0) then
+    Exit;
+
+  DArr := nil;
+  Ha := nil;
+  BH := nil;
+  BN := nil;
+
+  // 当 N 有 256 Bits 时
+
+  try
+    CT := 1;
+    HLen := ((N.GetBitsCount * 5 + 31) div 32);
+    HLen := 8 * HLen;
+    // HLen 是一个 Bits 数，等于最后 Ha 的比特长度，而且在 SM9 里应该能被 8 整除也就是符合整字节数
+    // N = 256 Bits 时 HLen = 320
+
+    IsInt := HLen mod CN_SM3_DIGEST_BITS = 0;
+    CeilLen := (HLen + CN_SM3_DIGEST_BITS - 1) div CN_SM3_DIGEST_BITS;
+
+    // CeilLen = 2，FloorLen = 1
+
+    SetLength(DArr, DataLen + SizeOf(Byte) + SizeOf(LongWord)); // 1 Byte Prefix + 4 Byte Cardinal CT
+    DArr[0] := Prefix;
+    Move(Data^, DArr[1], DataLen);
+
+    SetLength(Ha, HLen div 8);
+
+    for I := 1 to CeilLen do
+    begin
+      SCT := SwapLongWord(CT);  // 虽然文档中没说，但要倒序一下
+      Move(SCT, DArr[DataLen + 1], SizeOf(LongWord));
+      SM3D := SM3(@DArr[0], Length(DArr));
+
+      if (I = CeilLen) and not IsInt then
+      begin
+        // 是最后一个，不整除时只移动一部分
+        Move(SM3D[0], Ha[(I - 1) * SizeOf(TSM3Digest)], (HLen mod CN_SM3_DIGEST_BITS) div 8);
+      end
+      else
+        Move(SM3D[0], Ha[(I - 1) * SizeOf(TSM3Digest)], SizeOf(TSM3Digest));
+
+      Inc(CT);
+    end;
+
+    BN := BigNumberDuplicate(N);
+    BN.SubWord(1);
+
+    BH := TCnBigNumber.FromBinary(PAnsiChar(@Ha[0]), Length(Ha));
+    Result := BigNumberNonNegativeMod(Res, BH, BN);
+    Res.AddWord(1);
+  finally
+    BN.Free;
+    BH.Free;
+    SetLength(Ha, 0);
+    SetLength(DArr, 0);
+  end;
+end;
+
+function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+  N: TCnBigNumber): Boolean;
+begin
+  Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_1, Data, DataLen, N);
+end;
+
+function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+  N: TCnBigNumber): Boolean;
+begin
+  Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataLen, N);
 end;
 
 { TCnSM9EncryptionMasterKey }

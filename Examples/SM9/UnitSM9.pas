@@ -30,6 +30,10 @@ type
     btnRateTest: TButton;
     mmoRate: TMemo;
     btnFP2PointMul: TButton;
+    tsSM9Hash: TTabSheet;
+    grpSM9Hash: TGroupBox;
+    btnTestHash: TButton;
+    btnTestHash2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -38,6 +42,8 @@ type
     procedure btnAPClick(Sender: TObject);
     procedure btnRateTestClick(Sender: TObject);
     procedure btnFP2PointMulClick(Sender: TObject);
+    procedure btnTestHashClick(Sender: TObject);
+    procedure btnTestHash2Click(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -569,6 +575,28 @@ begin
   PA.Free;
   P.Free;
   E.Free;
+end;
+
+procedure TFormSM9.btnTestHashClick(Sender: TObject);
+var
+  S: AnsiString;
+  R: TCnBigNumber;
+  SM9: TCnSM9;
+begin
+  S := 'Alice' + #1;
+
+  R := TCnBigNumber.Create;
+  SM9 := TCnSM9.Create;
+  if CnSM9Hash1(R, @S[1], Length(S), SM9.Order) then
+    ShowMessage(R.ToHex);
+
+  SM9.Free;
+  R.Free;
+end;
+
+procedure TFormSM9.btnTestHash2Click(Sender: TObject);
+begin
+  // No Sample?
 end;
 
 end.
