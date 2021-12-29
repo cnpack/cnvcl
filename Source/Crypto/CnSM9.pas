@@ -34,7 +34,9 @@ unit CnSM9;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.04.04 V1.0
+* 修改记录：2021.12.29 V1.1
+*               实现签名验签的功能，计算速度略慢
+*           2020.04.04 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -97,7 +99,12 @@ const
   CN_SM9_FAST_EXP_PW22 = 'F300000002A3A6F2780272354F8B78F4D5FC11967BE65333';
   CN_SM9_FAST_EXP_PW23 = 'B640000002A3A6F0E303AB4FF2EB2052A9F02115CAEF75E70F738991676AF24A';
 
+  // 签名私钥生成函数识别符
+  CN_SM9_SIG_USER_HID = 1;
+
 type
+  ECnSM9Exception = class(Exception);
+
   TCnFP2 = class
   {* 二次扩域大整系数元素实现类}
   private
@@ -289,9 +296,23 @@ type
     property PublicKey: TCnSM9SignatureMasterPublicKey read FPublicKey;
   end;
 
-  TCnSM9SignatureUserPrivateKey = TCnFP2;
+  TCnSM9SignatureUserPrivateKey = TCnEccPoint;
   {* SM9 中的用户签名私钥，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
     或者说，用户验证签名时用的公钥就是用户标识与签名主公钥}
+
+  TCnSM9Signature = class
+  private
+    FH: TCnBigNumber;
+    FS: TCnEccPoint;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
+    property H: TCnBigNumber read FH;
+    property S: TCnEccPoint read FS;
+  end;
 
   TCnSm9EncryptionMasterPrivateKey = TCnBigNumber;
   {* SM9 中的加密主私钥，随机生成}
@@ -576,7 +597,7 @@ function FP12Div(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber)
 {* 有限域中十二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
 function FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber): Boolean;
-{* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F，暂未测试}
+{* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F}
 
 function FP12ToStream(FP12: TCnFP12; Stream: TStream): Integer;
 {* 将一十二次扩域大整系数元素对象的内容写入流，返回写入长度}
@@ -691,13 +712,25 @@ function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
 
 function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey:
   TCnSM9SignatureMasterPrivateKey; const AUserID: AnsiString;
-  OutSignatureUserKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
+  OutSignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，根据用户 ID 生成用户签名私钥}
 
 function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterKey:
   TCnSM9EncryptionUserPrivateKey; const AUserID: AnsiString;
   OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，根据用户 ID 生成用户加密私钥}
+
+function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
+  SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
+  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9 = nil): Boolean;
+{* 利用用户签名私钥与用户 ID 对数据进行签名，返回成功与否，签名值放在 OutSignature 中
+  注意因有用户私钥存在，用户 ID 无需参与签名}
+
+function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  InSignature: TCnSM9Signature; SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
+  SM9: TCnSM9 = nil): Boolean;
+{* 利用公开的签名公钥与用户 ID 对数据与签名进行验证，返回验证签名成功与否
+  注意用户 ID 需要参与签名验证}
 
 function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
   N: TCnBigNumber): Boolean;
@@ -1056,7 +1089,7 @@ end;
 
 function FP2ToStream(FP2: TCnFP2; Stream: TStream): Integer;
 begin
-  Result := BigNumberWriteBinaryToStream(FP2[0], Stream) + BigNumberWriteBinaryToStream(FP2[1], Stream);
+  Result := BigNumberWriteBinaryToStream(FP2[1], Stream) + BigNumberWriteBinaryToStream(FP2[0], Stream);
 end;
 
 // ====================== 四次扩域大整系数元素运算函数 =========================
@@ -1350,7 +1383,7 @@ end;
 
 function FP4ToStream(FP4: TCnFP4; Stream: TStream): Integer;
 begin
-  Result := FP2ToStream(FP4[0], Stream) + FP2ToStream(FP4[1], Stream);
+  Result := FP2ToStream(FP4[1], Stream) + FP2ToStream(FP4[0], Stream);
 end;
 
 // ===================== 十二次扩域大整系数元素运算函数 ========================
@@ -1787,8 +1820,8 @@ end;
 
 function FP12ToStream(FP12: TCnFP12; Stream: TStream): Integer;
 begin
-  Result := FP4ToStream(FP12[0], Stream) + FP4ToStream(FP12[1], Stream)
-    + FP4ToStream(FP12[2], Stream);
+  Result := FP4ToStream(FP12[2], Stream) + FP4ToStream(FP12[1], Stream)
+    + FP4ToStream(FP12[0], Stream);
 end;
 
 // ===================== 仿射坐标系里的三元点的运算函数 ========================
@@ -3006,6 +3039,196 @@ begin
   end;
 end;
 
+function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey: TCnSM9SignatureMasterPrivateKey;
+  const AUserID: AnsiString; OutSignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  T1, T2: TCnBigNumber;
+  S: AnsiString;
+begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  T1 := nil;
+  T2 := nil;
+
+  try
+    T1 := TCnBigNumber.Create;
+    T2 := TCnBigNumber.Create;
+
+    // 计算 T1 := Hash1(ID‖hid，SM9Order) + MasterPrivateKey，注意以下的有限域均是针对 Order 阶，而不是基域 P
+    S := AUserID + AnsiChar(CN_SM9_SIG_USER_HID);
+    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
+
+    if not BigNumberAddMod(T1, T1, SignatureMasterPrivateKey, SM9.Order) then Exit;
+
+    if T1.IsZero then
+      raise ECnSM9Exception.Create('Signature Master Key Zero!');
+
+    // 计算 T2 = PrivateKey / T1
+    if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
+    if not BigNumberDirectMulMod(T2, SignatureMasterPrivateKey, T1, SM9.Order) then Exit;
+
+    OutSignatureUserPrivateKey.Assign(SM9.Generator);
+    SM9.MultiplePoint(T2, OutSignatureUserPrivateKey); // 这里才是有限域 SM9 的 P
+    Result := True;
+  finally
+    T2.Free;
+    T1.Free;
+
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
+  SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
+  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  G: TCnFP12;
+  AP: TCnFP2AffinePoint;
+  R, L: TCnBigNumber;
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  G := nil;
+  AP := nil;
+  R := nil;
+  Stream := nil;
+  L := nil;
+
+  try
+    G := TCnFP12.Create;
+    AP := TCnFP2AffinePoint.Create;
+
+    // 先用公钥计算出一个线性对 FP12
+    FP2PointToFP2AffinePoint(AP, SignatureMasterPublicKey);
+    if not SM9RatePairing(G, AP, SM9.Generator) then Exit;
+
+    R := TCnBigNumber.Create;
+    Stream := TMemoryStream.Create;
+    L := TCnBigNumber.Create;
+
+    repeat
+      // 生成随机 R
+      if not BigNumberRandRange(R, SM9.Order) then Exit;
+      // 测试数据： R.SetHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
+      if R.IsZero then
+        R.SetOne;   // 确保范围在 [1, N-1]
+
+      // 计算 G^R 次方
+      if not FP12Power(G, G, R, SM9.FiniteFieldSize) then Exit;
+
+      Stream.Clear;
+      Stream.Write(PlainData^, DataLen);
+      FP12ToStream(G, Stream);
+
+      if not CnSM9Hash2(OutSignature.H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
+
+      if not BigNumberSub(L, R, OutSignature.H) then Exit;
+      if not BigNumberNonNegativeMod(L, L, SM9.Order) then Exit;
+    until not L.IsZero;
+
+    // 计算出了 L 和 H，再乘私钥点得到签名
+    OutSignature.S.Assign(SignatureUserPrivateKey);
+    SM9.MultiplePoint(L, OutSignature.S);
+    Result := True;
+  finally
+    L.Free;
+    Stream.Free;
+    AP.Free;
+    G.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+  InSignature: TCnSM9Signature; SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
+  SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  G, W: TCnFP12;
+  AP, TP: TCnFP2AffinePoint;
+  S: AnsiString;
+  H: TCnBigNumber;
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  if InSignature.H.IsZero or InSignature.H.IsNegative then Exit;
+
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  G := nil;
+  AP := nil;
+  H := nil;
+  TP := nil;
+  W := nil;
+  Stream := nil;
+
+  try
+    if BigNumberCompare(InSignature.H, SM9.Order) >= 0 then Exit;
+    if not SM9.IsPointOnCurve(InSignature.S) then Exit;
+
+    G := TCnFP12.Create;
+    AP := TCnFP2AffinePoint.Create;
+
+    // 先用公钥计算出一个线性对 FP12
+    FP2PointToFP2AffinePoint(AP, SignatureMasterPublicKey);
+    if not SM9RatePairing(G, AP, SM9.Generator) then Exit;
+
+    // 计算 FP12 的幂
+    if not FP12Power(G, G, InSignature.H, SM9.FiniteFieldSize) then Exit;
+
+    H := TCnBigNumber.Create;
+    // 计算 H1
+    S := AUserID + AnsiChar(CN_SM9_SIG_USER_HID);
+    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
+
+    // 计算 G2 域上的 H1*P2
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
+    if not FP2AffinePointMul(AP, AP, H, SM9.FiniteFieldSize) then Exit;
+
+    // 并加上 Pub，结果放 TP 里
+    TP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(TP, SignatureMasterPublicKey) then Exit;
+    if not FP2AffinePointAdd(TP, AP, TP, SM9.FiniteFieldSize) then Exit;
+
+    // 再计算一个双线性对 e(S, P)
+    W := TCnFP12.Create;
+    if not SM9RatePairing(W, TP, InSignature.S) then Exit;
+
+    // W 再和 G 相乘
+    if not FP12Mul(W, W, G, SM9.FiniteFieldSize) then Exit;
+
+    Stream := TMemoryStream.Create;
+    Stream.Write(PlainData^, DataLen);
+    FP12ToStream(W, Stream);
+
+    // 再次拼上原文与 FP12 计算 Hash2 并比对
+    if not CnSM9Hash2(H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
+    Result := BigNumberEqual(H, InSignature.H);
+  finally
+    Stream.Free;
+    W.Free;
+    TP.Free;
+    H.Free;
+    AP.Free;
+    G.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
 function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
   TCnSM9EncryptionMasterKey; SM9: TCnSM9): Boolean;
 var
@@ -3028,12 +3251,6 @@ begin
     if C then
       SM9.Free;
   end;
-end;
-
-function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey: TCnSM9SignatureMasterPrivateKey;
-  const AUserID: AnsiString; OutSignatureUserKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9): Boolean;
-begin
-
 end;
 
 function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterKey: TCnSM9EncryptionUserPrivateKey;
@@ -3210,6 +3427,27 @@ destructor TCnSM9.Destroy;
 begin
   FGenerator2.Free;
   inherited;
+end;
+
+{ TCnSM9Signature }
+
+constructor TCnSM9Signature.Create;
+begin
+  inherited;
+  FH := TCnBigNumber.Create;
+  FS := TCnEccPoint.Create;
+end;
+
+destructor TCnSM9Signature.Destroy;
+begin
+  FS.Free;
+  FH.Free;
+  inherited;
+end;
+
+function TCnSM9Signature.ToString: string;
+begin
+  Result := FH.ToHex + CRLF + FS.ToHex;
 end;
 
 initialization

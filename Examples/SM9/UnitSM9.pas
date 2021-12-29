@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnBigNumber, CnSM9;
+  StdCtrls, ComCtrls, CnBigNumber, CnSM9, ExtCtrls;
 
 type
   TFormSM9 = class(TForm)
@@ -34,6 +34,19 @@ type
     grpSM9Hash: TGroupBox;
     btnTestHash: TButton;
     btnTestHash2: TButton;
+    tsSM9Sign: TTabSheet;
+    grpSM9Sign: TGroupBox;
+    btnSM9GenMaster: TButton;
+    btnSM9GenUser: TButton;
+    lblUserID: TLabel;
+    edtSigUserId: TEdit;
+    mmoSig: TMemo;
+    bvl1: TBevel;
+    lbl1: TLabel;
+    edtSignData: TEdit;
+    btnSM9Sign: TButton;
+    btnSM9VerifyData: TButton;
+    btnSM9Sample: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -44,6 +57,11 @@ type
     procedure btnFP2PointMulClick(Sender: TObject);
     procedure btnTestHashClick(Sender: TObject);
     procedure btnTestHash2Click(Sender: TObject);
+    procedure btnSM9GenMasterClick(Sender: TObject);
+    procedure btnSM9GenUserClick(Sender: TObject);
+    procedure btnSM9SignClick(Sender: TObject);
+    procedure btnSM9VerifyDataClick(Sender: TObject);
+    procedure btnSM9SampleClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -58,6 +76,10 @@ type
     FAP1: TCnFP2AffinePoint;
     FAP2: TCnFP2AffinePoint;
     FAP3: TCnFP2AffinePoint;
+
+    FSigMasterKey: TCnSM9SignatureMasterKey;
+    FSigUserKey: TCnSM9SignatureUserPrivateKey;
+    FSig: TCnSM9Signature;
   public
     { Public declarations }
   end;
@@ -92,10 +114,18 @@ begin
   FAP1 := TCnFP2AffinePoint.Create;
   FAP2 := TCnFP2AffinePoint.Create;
   FAP3 := TCnFP2AffinePoint.Create;
+
+  FSigMasterKey := TCnSM9SignatureMasterKey.Create;
+  FSigUserKey := TCnSM9SignatureUserPrivateKey.Create;
+  FSig := TCnSM9Signature.Create;
 end;
 
 procedure TFormSM9.FormDestroy(Sender: TObject);
 begin
+  FSig.Free;
+  FSigUserKey.Free;
+  FSigMasterKey.Free;
+
   FAP3.Free;
   FAP2.Free;
   FAP1.Free;
@@ -597,6 +627,98 @@ end;
 procedure TFormSM9.btnTestHash2Click(Sender: TObject);
 begin
   // No Sample?
+end;
+
+procedure TFormSM9.btnSM9GenMasterClick(Sender: TObject);
+begin
+  CnSM9KGCGenerateSignatureMasterKey(FSigMasterKey);
+  mmoSig.Lines.Clear;
+  mmoSig.Lines.Add('Master Private Key:');
+  mmoSig.Lines.Add(FSigMasterKey.PrivateKey.ToString);
+  mmoSig.Lines.Add('Master Public Key:');
+  mmoSig.Lines.Add(FSigMasterKey.PublicKey.ToString);
+end;
+
+procedure TFormSM9.btnSM9GenUserClick(Sender: TObject);
+begin
+  CnSM9KGCGenerateSignatureUserKey(FSigMasterKey.PrivateKey, edtSigUserId.Text, FSigUserKey);
+  mmoSig.Lines.Add('User Private Key:');
+  mmoSig.Lines.Add(FSigUserKey.ToHex);
+end;
+
+procedure TFormSM9.btnSM9SignClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := edtSignData.Text;
+
+  if CnSM9UserSignData(FSigMasterKey.PublicKey, FSigUserKey, @S[1], Length(S), FSig) then
+  begin
+    mmoSig.Lines.Add('Signature:');
+    mmoSig.Lines.Add(FSig.ToString);
+  end;
+end;
+
+procedure TFormSM9.btnSM9VerifyDataClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := edtSignData.Text;
+
+  if CnSM9UserVerifyData(edtSigUserId.Text, @S[1], Length(S), FSig, FSigMasterKey.PublicKey) then
+    ShowMessage('Verify OK')
+  else
+    ShowMessage('Verify Fail');
+end;
+
+procedure TFormSM9.btnSM9SampleClick(Sender: TObject);
+var
+  AP: TCnFP2AffinePoint;
+  SM9: TCnSM9;
+  User, S: AnsiString;
+begin
+  mmoSig.Lines.Clear;
+  SM9 := TCnSM9.Create;
+
+  // 生成示例 Master Key
+  FSigMasterKey.PrivateKey.SetHex('0130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4');
+  AP := TCnFP2AffinePoint.Create;
+  FP2PointToFP2AffinePoint(AP, SM9.Generator2);
+
+  FP2AffinePointMul(AP, AP, FSigMasterKey.PrivateKey, SM9.FiniteFieldSize);
+  FP2AffinePointToFP2Point(FSigMasterKey.PublicKey, AP, SM9.FiniteFieldSize);
+
+  // 打印 Master Key
+  mmoSig.Lines.Add('Master Private Key:');
+  mmoSig.Lines.Add(FSigMasterKey.PrivateKey.ToString);
+  mmoSig.Lines.Add('Master Public Key:');
+  mmoSig.Lines.Add(FSigMasterKey.PublicKey.ToString);
+
+  // 生成示例 User Key
+  User := 'Alice';
+  CnSM9KGCGenerateSignatureUserKey(FSigMasterKey.PrivateKey, User, FSigUserKey);
+
+  // 打印 User Key
+  mmoSig.Lines.Add('User Private Key:');
+  mmoSig.Lines.Add(FSigUserKey.ToHex);
+
+  S := 'Chinese IBS standard';
+
+  // 签名，注意这里要通过验证得在 CnSM9UserSignData 中将随机数设为 033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE
+  if CnSM9UserSignData(FSigMasterKey.PublicKey, FSigUserKey, @S[1], Length(S), FSig) then
+  begin
+    mmoSig.Lines.Add('Signature:');
+    mmoSig.Lines.Add(FSig.ToString);
+  end;
+
+  // 验证
+  if CnSM9UserVerifyData(User, @S[1], Length(S), FSig, FSigMasterKey.PublicKey) then
+    mmoSig.Lines.Add('Verify OK')
+  else
+    mmoSig.Lines.Add('Verify Failed');
+
+  AP.Free;
+  SM9.Free;
 end;
 
 end.

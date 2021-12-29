@@ -756,7 +756,7 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
    X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
    （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
 
-procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
+function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
 
@@ -5375,11 +5375,12 @@ begin
 end;
 
 // 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。调用者须自行保证 X、Modulus 互质
-procedure BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber);
+function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
 var
   Neg: Boolean;
   X1, Y: TCnBigNumber;
 begin
+  Result := False;
   Neg := False;
 
   X1 := nil;
@@ -5389,7 +5390,7 @@ begin
     X1 := FLocalBigNumberPool.Obtain;
     Y := FLocalBigNumberPool.Obtain;
 
-    BigNumberCopy(X1, X);
+    if BigNumberCopy(X1, X) = nil then Exit;
     if BigNumberIsNegative(X1) then
     begin
       BigNumberSetNegative(X1, False);
@@ -5404,7 +5405,9 @@ begin
       BigNumberSetNegative(Res, not BigNumberIsNegative(Res));
 
     if BigNumberIsNegative(Res) then
-      BigNumberAdd(Res, Res, Modulus);
+      if not BigNumberAdd(Res, Res, Modulus) then Exit;
+
+    Result := True;
   finally
     FLocalBigNumberPool.Recycle(X1);
     FLocalBigNumberPool.Recycle(Y);
