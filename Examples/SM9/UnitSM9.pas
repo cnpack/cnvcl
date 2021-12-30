@@ -823,7 +823,7 @@ begin
     mmoKeyEnc.Lines.Add(FKeyEnc.ToString);
   end;
 
-  if CnSM9ReceiveKeyEncapsulation(User, FKeyEncUserKey, 32, FKeyEnc.C, S) then
+  if CnSM9ReceiveKeyEncapsulation(User, FKeyEncUserKey, 32, FKeyEnc.Code, S) then
   begin
     mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
     mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));
@@ -838,7 +838,7 @@ var
   S: AnsiString;
 begin
   KL := StrToInt(edtKeyEncLength.Text);
-  if CnSM9ReceiveKeyEncapsulation(edtDestUser.Text, FKeyEncUserKey, KL, FKeyEnc.C, S) then
+  if CnSM9ReceiveKeyEncapsulation(edtDestUser.Text, FKeyEncUserKey, KL, FKeyEnc.Code, S) then
   begin
     mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
     mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));

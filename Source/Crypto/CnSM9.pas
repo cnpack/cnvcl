@@ -46,8 +46,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Consts, SysConst,
-  CnContainers, CnBigNumber, CnECC, CnNativeDecl;
+  Classes, SysUtils,
+  CnContainers, CnBigNumber, CnECC, CnNativeDecl, CnSM3;
 
 const
   // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
@@ -343,15 +343,15 @@ type
   {* SM9 中的用户加密私钥，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
     或者说，用户解密时用的公钥就是用户标识与加密主公钥}
 
-  TCnSM9KeyEncapsulationC = class(TCnEccPoint);
+  TCnSM9KeyEncapsulationCode = class(TCnEccPoint);
   {* 密钥封装传输的内容}
 
   TCnSM9KeyEncapsulation = class
   {* 密钥封装结果类，注意往外传只需要传 C}
   private
-    FK: AnsiString;
+    FKey: AnsiString;
     FKeyLength: Integer;
-    FC: TCnSM9KeyEncapsulationC;
+    FCode: TCnSM9KeyEncapsulationCode;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -360,13 +360,17 @@ type
 
     property KeyLength: Integer read FKeyLength;
     {* 密文的字节长度}
-    property K: AnsiString read FK write FK;
+    property Key: AnsiString read FKey write FKey;
     {* 封装的密钥，无需往外传}
-    property C: TCnSM9KeyEncapsulationC read FC;
+    property Code: TCnSM9KeyEncapsulationCode read FCode;
     {* 封装的密文，需要往外传}
   end;
 
+  TCnSM9EncrytionMode = (semSM4, semXOR);
+  {* SM9 公钥加密的两种模式，用 SM4 分组加密或 KDF 序列密码异或}
+
   TCnSM9 = class(TCnEcc)
+  {* SM9 内容封装类}
   private
     FGenerator2: TCnFP2Point;
 
@@ -771,7 +775,7 @@ function CnSM9SendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Inte
 
 function CnSM9ReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
-  InKeyEncapsulationC: TCnSM9KeyEncapsulationC; out Key: AnsiString; SM9: TCnSM9 = nil): Boolean;
+  InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9 = nil): Boolean;
 {* 目标用户根据自身的 ID 与用户加密私钥钥，从 KeyEncapsulation 对象中还原 KeyLength
   长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
 
@@ -787,10 +791,20 @@ function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
 {* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的散列函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
+function SM9Mac(Key: Pointer; KeyLength: Integer; Z: Pointer; ZLength: Integer): TSM3Digest;
+{* 根据密钥 Key 与消息 Z，求消息认证码}
+
 implementation
 
 uses
-  CnSM3, CnKDF;
+  CnKDF;
+
+resourcestring
+  SListIndexError = 'List Index Out of Bounds (%d)';
+  SDivByZero = 'Division by Zero';
+  SErrorMacParams = 'Error Mac Params';
+  SSigMasterKeyZero = 'Signature Master Key Zero';
+  SEncMasterKeyZero = 'Encryption Master Key Zero';
 
 const
   CRLF = #13#10;
@@ -3111,7 +3125,7 @@ begin
     if not BigNumberAddMod(T1, T1, SignatureMasterPrivateKey, SM9.Order) then Exit;
 
     if T1.IsZero then
-      raise ECnSM9Exception.Create('Signature Master Key Zero!');
+      raise ECnSM9Exception.Create(SSigMasterKeyZero);
 
     // 计算 T2 = PrivateKey / T1
     if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
@@ -3303,7 +3317,7 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey: TCnSm9Enc
   const AUserID: AnsiString; OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
-  S: string;
+  S: AnsiString;
   T1: TCnBigNumber;
   AP: TCnFP2AffinePoint;
 begin
@@ -3324,7 +3338,7 @@ begin
     if not BigNumberAdd(T1, T1, EncryptionMasterPrivateKey) then Exit;
 
     if T1.IsZero then
-      raise ECnSM9Exception.Create('Encryption Master Key Zero!');
+      raise ECnSM9Exception.Create(SEncMasterKeyZero);
 
     if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
 
@@ -3372,9 +3386,9 @@ begin
 
     if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
 
-    OutKeyEncapsulation.C.Assign(SM9.Generator);
-    SM9.MultiplePoint(H, OutKeyEncapsulation.C);
-    SM9.PointAddPoint(EncryptionPublicKey, OutKeyEncapsulation.C, OutKeyEncapsulation.C);
+    OutKeyEncapsulation.Code.Assign(SM9.Generator);
+    SM9.MultiplePoint(H, OutKeyEncapsulation.Code);
+    SM9.PointAddPoint(EncryptionPublicKey, OutKeyEncapsulation.Code, OutKeyEncapsulation.Code);
 
     R := TCnBigNumber.Create;
     if not BigNumberRandRange(R, SM9.Order) then Exit;
@@ -3382,7 +3396,7 @@ begin
     if R.IsZero then
       R.SetOne;
 
-    SM9.MultiplePoint(R, OutKeyEncapsulation.C); // 得到封装密文 C
+    SM9.MultiplePoint(R, OutKeyEncapsulation.Code); // 得到封装密文 C
 
     AP := TCnFP2AffinePoint.Create;
     if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
@@ -3392,12 +3406,12 @@ begin
     if not FP12Power(G, G, R, SM9.FiniteFieldSize) then Exit;
 
     Stream := TMemoryStream.Create;
-    CnEccPointToStream(OutKeyEncapsulation.C, Stream);
+    CnEccPointToStream(OutKeyEncapsulation.Code, Stream);
     FP12ToStream(G, Stream);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
-    OutKeyEncapsulation.K := CnSM9KDF(Stream.Memory, Stream.Size, KeyLength); // 得到封装密钥 K
-    Result := KeyLength = Length(OutKeyEncapsulation.K);
+    OutKeyEncapsulation.Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyLength); // 得到封装密钥 K
+    Result := KeyLength = Length(OutKeyEncapsulation.Key);
   finally
     Stream.Free;
     G.Free;
@@ -3411,7 +3425,7 @@ end;
 
 function CnSM9ReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
-  InKeyEncapsulationC: TCnSM9KeyEncapsulationC; out Key: AnsiString; SM9: TCnSM9): Boolean;
+  InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   W: TCnFP12;
@@ -3551,6 +3565,20 @@ begin
   Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataLen, N);
 end;
 
+function SM9Mac(Key: Pointer; KeyLength: Integer; Z: Pointer; ZLength: Integer): TSM3Digest;
+var
+  Arr: array of Byte;
+begin
+  if (Key = nil) or (KeyLength <= 0) or (Z = nil) or (ZLength <= 0) then
+    raise ECnSM9Exception.Create(SErrorMacParams);
+
+  SetLength(Arr, KeyLength + ZLength);
+  Move(Key^, Arr[0], KeyLength);
+  Move(Z^, Arr[KeyLength], ZLength);
+  Result := SM3(@Arr[0], Length(Arr));
+  SetLength(Arr, 0);
+end;
+
 { TCnSM9EncryptionMasterKey }
 
 constructor TCnSM9EncryptionMasterKey.Create;
@@ -3658,18 +3686,18 @@ end;
 constructor TCnSM9KeyEncapsulation.Create;
 begin
   inherited;
-  FC := TCnSM9KeyEncapsulationC.Create;
+  FCode := TCnSM9KeyEncapsulationCode.Create;
 end;
 
 destructor TCnSM9KeyEncapsulation.Destroy;
 begin
-  FC.Free;
+  FCode.Free;
   inherited;
 end;
 
 function TCnSM9KeyEncapsulation.ToString: string;
 begin
-  Result := StrToHex(PAnsiChar(FK), Length(FK)) + CRLF + FC.ToHex;
+  Result := StrToHex(PAnsiChar(FKey), Length(FKey)) + CRLF + FCode.ToHex;
 end;
 
 initialization
