@@ -67,7 +67,12 @@ function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Int
    DerivedKeyLength 是所需的密钥字节数，长度可变，允许超长}
 
 function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
-{* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数}
+{* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
+  均不支持规范中说的非整字节数，行为可能和下面的 CnSM9KDF 等同}
+
+function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
+{* SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
+  均不支持规范中说的非整字节数，行为可能和上面的 CnSM2KDF 等同}
 
 implementation
 
@@ -323,6 +328,57 @@ begin
     Result := Result + SDig;
   end;
   Result := Copy(Result, 1, DerivedKeyLength);
+end;
+
+function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
+var
+  DArr: array of Byte;
+  CT, SCT: LongWord;
+  I, CeilLen: Integer;
+  IsInt: Boolean;
+  SM3D: TSM3Digest;
+
+  function SwapLongWord(Value: LongWord): LongWord;
+  begin
+    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+  end;
+
+begin
+  Result := '';
+  if (Data = nil) or (DataLen <= 0) or (DerivedKeyLength <= 0) then
+    raise ECnKDFException.Create(SCnKDFErrorParam);
+
+  DArr := nil;
+  CT := 1;
+
+  try
+    SetLength(DArr, DataLen + SizeOf(LongWord));
+    Move(Data^, DArr[0], DataLen);
+
+    IsInt := DerivedKeyLength mod SizeOf(TSM3Digest) = 0;
+    CeilLen := (DerivedKeyLength + SizeOf(TSM3Digest) - 1) div SizeOf(TSM3Digest);
+
+    SetLength(Result, DerivedKeyLength);
+    for I := 1 to CeilLen do
+    begin
+      SCT := SwapLongWord(CT);  // 虽然文档中没说，但要倒序一下
+      Move(SCT, DArr[DataLen], SizeOf(LongWord));
+      SM3D := SM3(@DArr[0], Length(DArr));
+
+      if (I = CeilLen) and not IsInt then
+      begin
+        // 是最后一个，不整除 32 时只移动一部分
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest) + 1], (DerivedKeyLength mod SizeOf(TSM3Digest)));
+      end
+      else
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest) + 1], SizeOf(TSM3Digest));
+
+      Inc(CT);
+    end;
+  finally
+    SetLength(DArr, 0);
+  end;
 end;
 
 end.

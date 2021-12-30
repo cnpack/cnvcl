@@ -3367,7 +3367,6 @@ begin
   end;
 end;
 
-
 function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
 var
   I: Integer;

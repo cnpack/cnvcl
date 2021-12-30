@@ -202,7 +202,9 @@ type
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
 
-    procedure SetHex(const Buf: AnsiString);
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
+    procedure SetHex(const Buf: AnsiString); // 有 03 04 前缀的处理
     function ToHex: string;
 
     property X: TCnBigNumber read FX write SetX;
@@ -227,10 +229,10 @@ type
     property Z: TCnBigNumber read FZ write SetZ;
   end;
 
-  TCnEccPublicKey = TCnEccPoint;
+  TCnEccPublicKey = class(TCnEccPoint);
   {* 椭圆曲线的公钥，G 点计算 k 次后的点坐标}
 
-  TCnEccPrivateKey = TCnBigNumber;
+  TCnEccPrivateKey = class(TCnBigNumber);
   {* 椭圆曲线的私钥，计算次数 k 次}
 
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
@@ -625,6 +627,9 @@ function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBig
 
 function CnJacobianPointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的雅可比坐标到普通坐标的点转换}
+
+function CnEccPointToStream(P: TCnEccPoint; Stream: TStream): Integer;
+{* 将一椭圆曲线点的内容写入流，返回写入长度}
 
 // ======================= 椭圆曲线密钥 PEM 读写实现 ===========================
 
@@ -2028,6 +2033,11 @@ begin
     Result := '04' + FX.ToHex + FY.ToHex;
 end;
 
+function TCnEccPoint.ToString: string;
+begin
+  Result := CnEccPointToHex(Self);
+end;
+
 { TCnEcc }
 
 procedure TCnEcc.CalcX3AddAXAddB(X: TCnBigNumber);
@@ -3212,6 +3222,12 @@ begin
     FEccBigNumberPool.Recycle(V);
     FEccBigNumberPool.Recycle(T);
   end;
+end;
+
+function CnEccPointToStream(P: TCnEccPoint; Stream: TStream): Integer;
+begin
+  Result := BigNumberWriteBinaryToStream(P.X, Stream)
+    + BigNumberWriteBinaryToStream(P.Y, Stream);
 end;
 
 function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
