@@ -781,7 +781,7 @@ var
   KL: Integer;
 begin
   KL := StrToInt(edtKeyEncLength.Text);
-  if CnSM9SendKeyEncapsulation(edtDestUser.Text, KL, FKeyEncMasterKey.PublicKey, FKeyEnc) then
+  if CnSM9UserSendKeyEncapsulation(edtDestUser.Text, KL, FKeyEncMasterKey.PublicKey, FKeyEnc) then
   begin
     mmoKeyEnc.Lines.Add('Key Encapsulation to Send:');
     mmoKeyEnc.Lines.Add(FKeyEnc.ToString);
@@ -817,13 +817,13 @@ begin
   mmoKeyEnc.Lines.Add(FKeyEncUserKey.ToString);
 
   // 注意这里要通过验证得在 CnSM9SendKeyEncapsulation 中将随机数设为 74015F8489C01EF4270456F9E6475BFB602BDE7F33FD482AB4E3684A6722
-  if CnSM9SendKeyEncapsulation(User, 32, FKeyEncMasterKey.PublicKey, FKeyEnc) then
+  if CnSM9UserSendKeyEncapsulation(User, 32, FKeyEncMasterKey.PublicKey, FKeyEnc) then
   begin
     mmoKeyEnc.Lines.Add('Key Encapsulation to Send:');
     mmoKeyEnc.Lines.Add(FKeyEnc.ToString);
   end;
 
-  if CnSM9ReceiveKeyEncapsulation(User, FKeyEncUserKey, 32, FKeyEnc.Code, S) then
+  if CnSM9UserReceiveKeyEncapsulation(User, FKeyEncUserKey, 32, FKeyEnc.Code, S) then
   begin
     mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
     mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));
@@ -838,7 +838,7 @@ var
   S: AnsiString;
 begin
   KL := StrToInt(edtKeyEncLength.Text);
-  if CnSM9ReceiveKeyEncapsulation(edtDestUser.Text, FKeyEncUserKey, KL, FKeyEnc.Code, S) then
+  if CnSM9UserReceiveKeyEncapsulation(edtDestUser.Text, FKeyEncUserKey, KL, FKeyEnc.Code, S) then
   begin
     mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
     mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));

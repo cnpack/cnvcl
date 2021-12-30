@@ -767,17 +767,28 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey:
   OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装}
 
-function CnSM9SendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
+function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
  EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey;
  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9 = nil): Boolean;
 {* 普通用户根据目标用户的 ID 与加密主公钥，生成 KeyLength 长度的字节串密钥封装内容，
   返回封装是否成功}
 
-function CnSM9ReceiveKeyEncapsulation(const DestUserID: AnsiString;
+function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
   InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9 = nil): Boolean;
 {* 目标用户根据自身的 ID 与用户加密私钥钥，从 KeyEncapsulation 对象中还原 KeyLength
   长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
+
+function CnSM9UserEncryptData(const DestUserID: AnsiString;
+  EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
+  DataLen: Integer; OutStream: TStream; EncryptionMode: TCnSM9EncrytionMode = semSM4;
+  SM9: TCnSM9 = nil): Boolean;
+{* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功}
+
+function CnSM9UserDecryptData(EncryptionUserKey: TCnSM9EncryptionUserPrivateKey;
+  EnData: Pointer; DataLen: Integer; OutStream: TStream;
+  EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
+{* 使用用户加密私钥解密数据并写入流，返回解密是否成功}
 
 // =================== SM9 具体实现函数：两种 Hash 算法 ========================
 
@@ -3203,6 +3214,7 @@ begin
   finally
     L.Free;
     Stream.Free;
+    R.Free;
     AP.Free;
     G.Free;
     if C then
@@ -3358,7 +3370,7 @@ begin
   end;
 end;
 
-function CnSM9SendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
+function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
  EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey;
  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9): Boolean;
 var
@@ -3423,15 +3435,13 @@ begin
   end;
 end;
 
-function CnSM9ReceiveKeyEncapsulation(const DestUserID: AnsiString;
+function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
   InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   W: TCnFP12;
   AP: TCnFP2AffinePoint;
-  S: AnsiString;
-  H, R: TCnBigNumber;
   Stream: TMemoryStream;
 begin
   Result := False;
@@ -3465,6 +3475,21 @@ begin
     if C then
       SM9.Free;
   end;
+end;
+
+function CnSM9UserEncryptData(const DestUserID: AnsiString;
+  EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
+  DataLen: Integer; OutStream: TStream; EncryptionMode: TCnSM9EncrytionMode;
+  SM9: TCnSM9): Boolean;
+begin
+
+end;
+
+function CnSM9UserDecryptData(EncryptionUserKey: TCnSM9EncryptionUserPrivateKey;
+  EnData: Pointer; DataLen: Integer; OutStream: TStream;
+  EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
+begin
+
 end;
 
 function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
