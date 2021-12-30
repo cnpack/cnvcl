@@ -308,5 +308,107 @@ object FormSM9: TFormSM9
         end
       end
     end
+    object tsSM9KeyEnc: TTabSheet
+      Caption = 'SM9 Enc'
+      ImageIndex = 7
+      object grpKeyEnc: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 465
+        Caption = 'Key Encapsulation'
+        TabOrder = 0
+        object lblKeyLength: TLabel
+          Left = 536
+          Top = 28
+          Width = 86
+          Height = 13
+          Caption = 'Key Bytes Length:'
+        end
+        object lbl2: TLabel
+          Left = 328
+          Top = 28
+          Width = 39
+          Height = 13
+          Caption = 'User ID:'
+        end
+        object bvl2: TBevel
+          Left = 488
+          Top = 16
+          Width = 9
+          Height = 41
+          Shape = bsLeftLine
+        end
+        object edtKeyEncLength: TEdit
+          Left = 640
+          Top = 24
+          Width = 105
+          Height = 21
+          TabOrder = 0
+          Text = '64'
+        end
+        object btnSM9KeyEncSend: TButton
+          Left = 752
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Send'
+          TabOrder = 1
+          OnClick = btnSM9KeyEncSendClick
+        end
+        object mmoKeyEnc: TMemo
+          Left = 16
+          Top = 72
+          Width = 897
+          Height = 105
+          ScrollBars = ssVertical
+          TabOrder = 2
+        end
+        object btnKeyEncGenMaster: TButton
+          Left = 168
+          Top = 24
+          Width = 137
+          Height = 25
+          Caption = 'Generate User Key'
+          TabOrder = 3
+          OnClick = btnKeyEncGenMasterClick
+        end
+        object btnKeyEncGenUser: TButton
+          Left = 16
+          Top = 24
+          Width = 137
+          Height = 25
+          Caption = 'Generate Master Key'
+          TabOrder = 4
+          OnClick = btnKeyEncGenUserClick
+        end
+        object edtDestUser: TEdit
+          Left = 376
+          Top = 24
+          Width = 97
+          Height = 21
+          TabOrder = 5
+          Text = 'CnPack Team'
+        end
+        object btnTestKeyEnc: TButton
+          Left = 504
+          Top = 24
+          Width = 25
+          Height = 25
+          Caption = 'Tst'
+          TabOrder = 6
+          OnClick = btnTestKeyEncClick
+        end
+        object btnSM9KeyEncRecv: TButton
+          Left = 840
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Receive'
+          TabOrder = 7
+          OnClick = btnSM9KeyEncRecvClick
+        end
+      end
+    end
   end
 end

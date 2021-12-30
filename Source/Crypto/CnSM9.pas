@@ -34,8 +34,8 @@ unit CnSM9;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.29 V1.1
-*               实现签名验签的功能，计算速度略慢
+* 修改记录：2021.12.30 V1.1
+*               实现签名验签与密钥封装的功能，计算速度略慢
 *           2020.04.04 V1.0
 *               创建单元，实现功能
 ================================================================================
@@ -100,7 +100,13 @@ const
   CN_SM9_FAST_EXP_PW23 = 'B640000002A3A6F0E303AB4FF2EB2052A9F02115CAEF75E70F738991676AF24A';
 
   // 签名私钥生成函数识别符
-  CN_SM9_SIG_USER_HID = 1;
+  CN_SM9_SIGNATURE_USER_HID = 1;
+
+  // 密钥交换时的加密私钥生成函数识别符
+  CN_SM9_KEY_EXCHANGE_USER_HID = 2;
+
+  // 密钥封装与加密时的加密私钥生成函数识别符
+  CN_SM9_KEY_ENCAPSULATION_USER_HID = 3;
 
 type
   ECnSM9Exception = class(Exception);
@@ -278,9 +284,9 @@ type
 
 // ============================ SM9 具体实现类 =================================
 
-  TCnSM9SignatureMasterPrivateKey = TCnBigNumber;
+  TCnSM9SignatureMasterPrivateKey = class(TCnBigNumber);
   {* SM9 中的签名主私钥，随机生成}
-  TCnSM9SignatureMasterPublicKey  = TCnFP2Point;
+  TCnSM9SignatureMasterPublicKey  = class(TCnFP2Point);
   {* SM9 中的签名主公钥，用签名主私钥乘以 G2 点而来}
 
   TCnSM9SignatureMasterKey = class
@@ -314,10 +320,10 @@ type
     property S: TCnEccPoint read FS;
   end;
 
-  TCnSm9EncryptionMasterPrivateKey = TCnBigNumber;
+  TCnSm9EncryptionMasterPrivateKey = class(TCnBigNumber);
   {* SM9 中的加密主私钥，随机生成}
 
-  TCnSm9EncryptionMasterPublicKey = TCnEccPoint;
+  TCnSm9EncryptionMasterPublicKey = class(TCnEccPoint);
   {* SM9 中的加密主公钥，用加密主私钥乘以 G1 点而来}
 
   TCnSM9EncryptionMasterKey = class
@@ -333,9 +339,32 @@ type
     property PublicKey: TCnSM9EncryptionMasterPublicKey read FPublicKey;
   end;
 
-  TCnSM9EncryptionUserPrivateKey = TCnFP4;
+  TCnSM9EncryptionUserPrivateKey = TCnFP2Point;
   {* SM9 中的用户加密私钥，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
     或者说，用户解密时用的公钥就是用户标识与加密主公钥}
+
+  TCnSM9KeyEncapsulationC = class(TCnEccPoint);
+  {* 密钥封装传输的内容}
+
+  TCnSM9KeyEncapsulation = class
+  {* 密钥封装结果类，注意往外传只需要传 C}
+  private
+    FK: AnsiString;
+    FKeyLength: Integer;
+    FC: TCnSM9KeyEncapsulationC;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
+    property KeyLength: Integer read FKeyLength;
+    {* 密文的字节长度}
+    property K: AnsiString read FK write FK;
+    {* 封装的密钥，无需往外传}
+    property C: TCnSM9KeyEncapsulationC read FC;
+    {* 封装的密文，需要往外传}
+  end;
 
   TCnSM9 = class(TCnEcc)
   private
@@ -700,25 +729,16 @@ function SM9RatePairing(const F: TCnFP12; const Q: TCnFP2AffinePoint; const P: T
 {* 根据 SM9 指定的 BN 曲线的参数以及指定点计算 R-ate 对，输入为一个 BN 曲线上的点
   一个 FP2 上的 XYZ 仿射坐标点，输出为一个 FP12 值}
 
-// =========================== SM9 具体实现函数 ================================
+// ===================== SM9 具体实现函数：签名与验证 ==========================
 
 function CnSM9KGCGenerateSignatureMasterKey(SignatureMasterKey:
   TCnSM9SignatureMasterKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，生成签名主密钥}
 
-function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
-  TCnSM9EncryptionMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成加密主密钥}
-
 function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey:
   TCnSM9SignatureMasterPrivateKey; const AUserID: AnsiString;
   OutSignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，根据用户 ID 生成用户签名私钥}
-
-function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterKey:
-  TCnSM9EncryptionUserPrivateKey; const AUserID: AnsiString;
-  OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用户加密私钥}
 
 function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
@@ -731,6 +751,31 @@ function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; Data
   SM9: TCnSM9 = nil): Boolean;
 {* 利用公开的签名公钥与用户 ID 对数据与签名进行验证，返回验证签名成功与否
   注意用户 ID 需要参与签名验证}
+
+// ================== SM9 具体实现函数：加解密与密钥封装 =======================
+
+function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
+  TCnSM9EncryptionMasterKey; SM9: TCnSM9 = nil): Boolean;
+{* 由 KCG 调用，生成加密主密钥，可用于加解密或密钥封装}
+
+function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey:
+  TCnSM9EncryptionMasterPrivateKey; const AUserID: AnsiString;
+  OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
+{* 由 KCG 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装}
+
+function CnSM9SendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
+ EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey;
+ OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9 = nil): Boolean;
+{* 普通用户根据目标用户的 ID 与加密主公钥，生成 KeyLength 长度的字节串密钥封装内容，
+  返回封装是否成功}
+
+function CnSM9ReceiveKeyEncapsulation(const DestUserID: AnsiString;
+  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
+  InKeyEncapsulationC: TCnSM9KeyEncapsulationC; out Key: AnsiString; SM9: TCnSM9 = nil): Boolean;
+{* 目标用户根据自身的 ID 与用户加密私钥钥，从 KeyEncapsulation 对象中还原 KeyLength
+  长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
+
+// =================== SM9 具体实现函数：两种 Hash 算法 ========================
 
 function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
   N: TCnBigNumber): Boolean;
@@ -745,7 +790,7 @@ function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
 implementation
 
 uses
-  CnSM3;
+  CnSM3, CnKDF;
 
 const
   CRLF = #13#10;
@@ -3015,21 +3060,22 @@ var
   C: Boolean;
   AP: TCnFP2AffinePoint;
 begin
+  Result := False;
   C := SM9 = nil;
   if C then
     SM9 := TCnSM9.Create;
 
   AP := nil;
   try
-    BigNumberRandRange(SignatureMasterKey.PrivateKey, SM9.Order);
+    if not BigNumberRandRange(SignatureMasterKey.PrivateKey, SM9.Order) then Exit;
     if SignatureMasterKey.PrivateKey.IsZero then
       SignatureMasterKey.PrivateKey.SetOne;
 
     AP := TCnFP2AffinePoint.Create;
-    FP2PointToFP2AffinePoint(AP, SM9.Generator2);
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
 
-    FP2AffinePointMul(AP, AP, SignatureMasterKey.PrivateKey, SM9.FiniteFieldSize);
-    FP2AffinePointToFP2Point(SignatureMasterKey.PublicKey, AP, SM9.FiniteFieldSize);
+    if not FP2AffinePointMul(AP, AP, SignatureMasterKey.PrivateKey, SM9.FiniteFieldSize) then Exit;
+    if not FP2AffinePointToFP2Point(SignatureMasterKey.PublicKey, AP, SM9.FiniteFieldSize) then Exit;
 
     Result := True;
   finally
@@ -3059,7 +3105,7 @@ begin
     T2 := TCnBigNumber.Create;
 
     // 计算 T1 := Hash1(ID‖hid，SM9Order) + MasterPrivateKey，注意以下的有限域均是针对 Order 阶，而不是基域 P
-    S := AUserID + AnsiChar(CN_SM9_SIG_USER_HID);
+    S := AUserID + AnsiChar(CN_SM9_SIGNATURE_USER_HID);
     if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
 
     if not BigNumberAddMod(T1, T1, SignatureMasterPrivateKey, SM9.Order) then Exit;
@@ -3191,7 +3237,7 @@ begin
 
     H := TCnBigNumber.Create;
     // 计算 H1
-    S := AUserID + AnsiChar(CN_SM9_SIG_USER_HID);
+    S := AUserID + AnsiChar(CN_SM9_SIGNATURE_USER_HID);
     if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
 
     // 计算 G2 域上的 H1*P2
@@ -3253,10 +3299,167 @@ begin
   end;
 end;
 
-function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterKey: TCnSM9EncryptionUserPrivateKey;
+function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey: TCnSm9EncryptionMasterPrivateKey;
   const AUserID: AnsiString; OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  S: string;
+  T1: TCnBigNumber;
+  AP: TCnFP2AffinePoint;
 begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
 
+  T1 := nil;
+  AP := nil;
+
+  try
+    S := AUserID + AnsiChar(CN_SM9_KEY_ENCAPSULATION_USER_HID);
+
+    T1 := TCnBigNumber.Create;
+    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
+
+    if not BigNumberAdd(T1, T1, EncryptionMasterPrivateKey) then Exit;
+
+    if T1.IsZero then
+      raise ECnSM9Exception.Create('Encryption Master Key Zero!');
+
+    if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
+
+    if not BigNumberDirectMulMod(T1, T1, EncryptionMasterPrivateKey, SM9.Order) then Exit;
+
+    AP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
+    if not FP2AffinePointMul(AP, AP, T1, SM9.FiniteFieldSize) then Exit;
+    if not FP2AffinePointToFP2Point(OutEncryptionUserKey, AP, SM9.FiniteFieldSize) then Exit;
+
+    Result := True;
+  finally
+    AP.Free;
+    T1.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9SendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
+ EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey;
+ OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  S: AnsiString;
+  H, R: TCnBigNumber;
+  AP: TCnFP2AffinePoint;
+  G: TCnFP12;
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  H := nil;
+  R := nil;
+  AP := nil;
+  G := nil;
+  Stream := nil;
+
+  try
+    S := DestUserID + AnsiChar(CN_SM9_KEY_ENCAPSULATION_USER_HID);
+    H := TCnBigNumber.Create;
+
+    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
+
+    OutKeyEncapsulation.C.Assign(SM9.Generator);
+    SM9.MultiplePoint(H, OutKeyEncapsulation.C);
+    SM9.PointAddPoint(EncryptionPublicKey, OutKeyEncapsulation.C, OutKeyEncapsulation.C);
+
+    R := TCnBigNumber.Create;
+    if not BigNumberRandRange(R, SM9.Order) then Exit;
+    // 测试数据 R.SetHex('74015F8489C01EF4270456F9E6475BFB602BDE7F33FD482AB4E3684A6722');
+    if R.IsZero then
+      R.SetOne;
+
+    SM9.MultiplePoint(R, OutKeyEncapsulation.C); // 得到封装密文 C
+
+    AP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
+
+    G := TCnFP12.Create;
+    if not SM9RatePairing(G, AP, EncryptionPublicKey) then Exit;
+    if not FP12Power(G, G, R, SM9.FiniteFieldSize) then Exit;
+
+    Stream := TMemoryStream.Create;
+    CnEccPointToStream(OutKeyEncapsulation.C, Stream);
+    FP12ToStream(G, Stream);
+    Stream.Write(DestUserID[1], Length(DestUserID));
+
+    OutKeyEncapsulation.K := CnSM9KDF(Stream.Memory, Stream.Size, KeyLength); // 得到封装密钥 K
+    Result := KeyLength = Length(OutKeyEncapsulation.K);
+  finally
+    Stream.Free;
+    G.Free;
+    AP.Free;
+    R.Free;
+    H.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9ReceiveKeyEncapsulation(const DestUserID: AnsiString;
+  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
+  InKeyEncapsulationC: TCnSM9KeyEncapsulationC; out Key: AnsiString; SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  W: TCnFP12;
+  AP: TCnFP2AffinePoint;
+  S: AnsiString;
+  H, R: TCnBigNumber;
+  Stream: TMemoryStream;
+begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  W := nil;
+  AP := nil;
+  Stream := nil;
+
+  try
+    if not SM9.IsPointOnCurve(InKeyEncapsulationC) then Exit;
+
+    W := TCnFP12.Create;
+    AP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(AP, EncryptionUserKey) then Exit;
+    if not SM9RatePairing(W, AP, InKeyEncapsulationC) then Exit;
+
+    Stream := TMemoryStream.Create;
+    CnEccPointToStream(InKeyEncapsulationC, Stream);
+    FP12ToStream(W, Stream);
+    Stream.Write(DestUserID[1], Length(DestUserID));
+
+    Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyLength);
+    Result := Key <> '';
+  finally
+    Stream.Free;
+    AP.Free;
+    W.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Len - 1 do
+    Result := Result + IntToHex(Ord(Value[I]), 2);
 end;
 
 function SM9Hash(const Res: TCnBigNumber; Prefix: Byte; Data: Pointer; DataLen: Integer;
@@ -3448,6 +3651,25 @@ end;
 function TCnSM9Signature.ToString: string;
 begin
   Result := FH.ToHex + CRLF + FS.ToHex;
+end;
+
+{ TCnSM9KeyEncapsulation }
+
+constructor TCnSM9KeyEncapsulation.Create;
+begin
+  inherited;
+  FC := TCnSM9KeyEncapsulationC.Create;
+end;
+
+destructor TCnSM9KeyEncapsulation.Destroy;
+begin
+  FC.Free;
+  inherited;
+end;
+
+function TCnSM9KeyEncapsulation.ToString: string;
+begin
+  Result := StrToHex(PAnsiChar(FK), Length(FK)) + CRLF + FC.ToHex;
 end;
 
 initialization

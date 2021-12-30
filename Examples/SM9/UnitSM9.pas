@@ -47,6 +47,19 @@ type
     btnSM9Sign: TButton;
     btnSM9VerifyData: TButton;
     btnSM9Sample: TButton;
+    tsSM9KeyEnc: TTabSheet;
+    grpKeyEnc: TGroupBox;
+    lblKeyLength: TLabel;
+    edtKeyEncLength: TEdit;
+    btnSM9KeyEncSend: TButton;
+    mmoKeyEnc: TMemo;
+    btnKeyEncGenMaster: TButton;
+    btnKeyEncGenUser: TButton;
+    lbl2: TLabel;
+    edtDestUser: TEdit;
+    bvl2: TBevel;
+    btnTestKeyEnc: TButton;
+    btnSM9KeyEncRecv: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -62,6 +75,11 @@ type
     procedure btnSM9SignClick(Sender: TObject);
     procedure btnSM9VerifyDataClick(Sender: TObject);
     procedure btnSM9SampleClick(Sender: TObject);
+    procedure btnKeyEncGenUserClick(Sender: TObject);
+    procedure btnKeyEncGenMasterClick(Sender: TObject);
+    procedure btnSM9KeyEncSendClick(Sender: TObject);
+    procedure btnTestKeyEncClick(Sender: TObject);
+    procedure btnSM9KeyEncRecvClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -80,6 +98,9 @@ type
     FSigMasterKey: TCnSM9SignatureMasterKey;
     FSigUserKey: TCnSM9SignatureUserPrivateKey;
     FSig: TCnSM9Signature;
+    FKeyEncMasterKey: TCnSM9EncryptionMasterKey;
+    FKeyEncUserKey: TCnSM9EncryptionUserPrivateKey;
+    FKeyEnc: TCnSM9KeyEncapsulation;
   public
     { Public declarations }
   end;
@@ -93,6 +114,15 @@ implementation
 
 const
   SM9_PRIME_HEX = 'B640000002A3A6F1D603AB4FF58EC74521F2934B1A7AEEDBE56F9B27E351457D';
+
+function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Len - 1 do
+    Result := Result + IntToHex(Ord(Value[I]), 2);
+end;
 
 procedure TFormSM9.FormCreate(Sender: TObject);
 begin
@@ -118,10 +148,18 @@ begin
   FSigMasterKey := TCnSM9SignatureMasterKey.Create;
   FSigUserKey := TCnSM9SignatureUserPrivateKey.Create;
   FSig := TCnSM9Signature.Create;
+
+  FKeyEncMasterKey := TCnSM9EncryptionMasterKey.Create;
+  FKeyEncUserKey := TCnSM9EncryptionUserPrivateKey.Create;
+  FKeyEnc := TCnSM9KeyEncapsulation.Create;
 end;
 
 procedure TFormSM9.FormDestroy(Sender: TObject);
 begin
+  FKeyEnc.Free;
+  FKeyEncUserKey.Free;
+  FKeyEncMasterKey.Free;
+
   FSig.Free;
   FSigUserKey.Free;
   FSigMasterKey.Free;
@@ -643,7 +681,7 @@ procedure TFormSM9.btnSM9GenUserClick(Sender: TObject);
 begin
   CnSM9KGCGenerateSignatureUserKey(FSigMasterKey.PrivateKey, edtSigUserId.Text, FSigUserKey);
   mmoSig.Lines.Add('User Private Key:');
-  mmoSig.Lines.Add(FSigUserKey.ToHex);
+  mmoSig.Lines.Add(FSigUserKey.ToString);
 end;
 
 procedure TFormSM9.btnSM9SignClick(Sender: TObject);
@@ -700,7 +738,7 @@ begin
 
   // 打印 User Key
   mmoSig.Lines.Add('User Private Key:');
-  mmoSig.Lines.Add(FSigUserKey.ToHex);
+  mmoSig.Lines.Add(FSigUserKey.ToString);
 
   S := 'Chinese IBS standard';
 
@@ -719,6 +757,92 @@ begin
 
   AP.Free;
   SM9.Free;
+end;
+
+procedure TFormSM9.btnKeyEncGenUserClick(Sender: TObject);
+begin
+  CnSM9KGCGenerateEncryptionMasterKey(FKeyEncMasterKey);
+  mmoKeyEnc.Lines.Clear;
+  mmoKeyEnc.Lines.Add('Master Private Key:');
+  mmoKeyEnc.Lines.Add(FKeyEncMasterKey.PrivateKey.ToString);
+  mmoKeyEnc.Lines.Add('Master Public Key:');
+  mmoKeyEnc.Lines.Add(FKeyEncMasterKey.PublicKey.ToString);
+end;
+
+procedure TFormSM9.btnKeyEncGenMasterClick(Sender: TObject);
+begin
+  CnSM9KGCGenerateEncryptionUserKey(FKeyEncMasterKey.PrivateKey, edtDestUser.Text, FKeyEncUserKey);
+  mmoKeyEnc.Lines.Add('User Private Key:');
+  mmoKeyEnc.Lines.Add(FKeyEncUserKey.ToString);
+end;
+
+procedure TFormSM9.btnSM9KeyEncSendClick(Sender: TObject);
+var
+  KL: Integer;
+begin
+  KL := StrToInt(edtKeyEncLength.Text);
+  if CnSM9SendKeyEncapsulation(edtDestUser.Text, KL, FKeyEncMasterKey.PublicKey, FKeyEnc) then
+  begin
+    mmoKeyEnc.Lines.Add('Key Encapsulation to Send:');
+    mmoKeyEnc.Lines.Add(FKeyEnc.ToString);
+  end;
+end;
+
+procedure TFormSM9.btnTestKeyEncClick(Sender: TObject);
+var
+  SM9: TCnSM9;
+  User, S: AnsiString;
+begin
+  mmoKeyEnc.Lines.Clear;
+  SM9 := TCnSM9.Create;
+
+  // 生成示例 Master Key
+  FKeyEncMasterKey.PrivateKey.SetHex('01EDEE3778F441F8DEA3D9FA0ACC4E07EE36C93F9A08618AF4AD85CEDE1C22');
+  FKeyEncMasterKey.PublicKey.X.SetHex('787ED7B8A51F3AB84E0A66003F32DA5C720B17ECA7137D39ABC66E3C80A892FF');
+  FKeyEncMasterKey.PublicKey.Y.SetHex('769DE61791E5ADC4B9FF85A31354900B202871279A8C49DC3F220F644C57A7B1');
+
+  // 打印 Master Key
+  mmoKeyEnc.Lines.Clear;
+  mmoKeyEnc.Lines.Add('Master Private Key:');
+  mmoKeyEnc.Lines.Add(FKeyEncMasterKey.PrivateKey.ToString);
+  mmoKeyEnc.Lines.Add('Master Public Key:');
+  mmoKeyEnc.Lines.Add(FKeyEncMasterKey.PublicKey.ToString);
+
+  // 生成示例 User Key
+  User := 'Bob';
+  CnSM9KGCGenerateEncryptionUserKey(FKeyEncMasterKey.PrivateKey, User, FKeyEncUserKey);
+
+  // 打印 User Key
+  mmoKeyEnc.Lines.Add('User Private Key:');
+  mmoKeyEnc.Lines.Add(FKeyEncUserKey.ToString);
+
+  // 注意这里要通过验证得在 CnSM9SendKeyEncapsulation 中将随机数设为 74015F8489C01EF4270456F9E6475BFB602BDE7F33FD482AB4E3684A6722
+  if CnSM9SendKeyEncapsulation(User, 32, FKeyEncMasterKey.PublicKey, FKeyEnc) then
+  begin
+    mmoKeyEnc.Lines.Add('Key Encapsulation to Send:');
+    mmoKeyEnc.Lines.Add(FKeyEnc.ToString);
+  end;
+
+  if CnSM9ReceiveKeyEncapsulation(User, FKeyEncUserKey, 32, FKeyEnc.C, S) then
+  begin
+    mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
+    mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));
+  end;
+
+  SM9.Free;
+end;
+
+procedure TFormSM9.btnSM9KeyEncRecvClick(Sender: TObject);
+var
+  KL: Integer;
+  S: AnsiString;
+begin
+  KL := StrToInt(edtKeyEncLength.Text);
+  if CnSM9ReceiveKeyEncapsulation(edtDestUser.Text, FKeyEncUserKey, KL, FKeyEnc.C, S) then
+  begin
+    mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
+    mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));
+  end;
 end;
 
 end.
