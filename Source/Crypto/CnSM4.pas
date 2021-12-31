@@ -61,6 +61,16 @@ type
   TSM4Iv     = array[0..SM4_BLOCKSIZE - 1] of Byte;
   {* SM4 的 CBC/CFB/OFB 等的初始化向量}
 
+procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+{* 原始的 SM4 加密数据块，ECB 模式，将 Input 内的明文内容加密搁到 Output 中
+  调用者自行保证 Key 指向内容至少 16 字节，Input 和 Output 指向内容长相等并且都为 Len 字节
+  且 Len 必须被 16 整除}
+
+procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+{* 原始的 SM4 解密数据块，ECB 模式，将 Input 内的密文内容解密搁到 Output 中
+  调用者自行保证 Key 指向内容至少需 16 字节，Input 和 Output 指向内容长相等并且都为 Len 字节
+  且 Len 必须被 16 整除}
+
 procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* SM4-ECB 封装好的针对 AnsiString 的加密方法
  |<PRE>
@@ -1448,6 +1458,22 @@ begin
     if Done < Count then
       raise EStreamError.Create(SWriteError);
   end;
+end;
+
+procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+var
+  Ctx: TSM4Context;
+begin
+  SM4SetKeyEnc(Ctx, Key);
+  SM4CryptEcb(Ctx, SM4_ENCRYPT, Len, Input, Output);
+end;
+
+procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+var
+  Ctx: TSM4Context;
+begin
+  SM4SetKeyDec(Ctx, Key);
+  SM4CryptEcb(Ctx, SM4_DECRYPT, Len, Input, Output);
 end;
 
 end.
