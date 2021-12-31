@@ -339,6 +339,13 @@ object FormSM9: TFormSM9
           Height = 41
           Shape = bsLeftLine
         end
+        object bvl3: TBevel
+          Left = 16
+          Top = 216
+          Width = 897
+          Height = 25
+          Shape = bsTopLine
+        end
         object edtKeyEncLength: TEdit
           Left = 640
           Top = 24
@@ -360,7 +367,7 @@ object FormSM9: TFormSM9
           Left = 16
           Top = 72
           Width = 897
-          Height = 105
+          Height = 129
           ScrollBars = ssVertical
           TabOrder = 2
         end
@@ -407,6 +414,23 @@ object FormSM9: TFormSM9
           Caption = 'Receive'
           TabOrder = 7
           OnClick = btnSM9KeyEncRecvClick
+        end
+        object btnTestEnc: TButton
+          Left = 16
+          Top = 232
+          Width = 25
+          Height = 25
+          Caption = 'Tst'
+          TabOrder = 8
+          OnClick = btnTestEncClick
+        end
+        object mmoEnc: TMemo
+          Left = 16
+          Top = 272
+          Width = 897
+          Height = 169
+          ScrollBars = ssVertical
+          TabOrder = 9
         end
       end
     end

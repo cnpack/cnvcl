@@ -60,6 +60,9 @@ type
     bvl2: TBevel;
     btnTestKeyEnc: TButton;
     btnSM9KeyEncRecv: TButton;
+    bvl3: TBevel;
+    btnTestEnc: TButton;
+    mmoEnc: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -80,6 +83,7 @@ type
     procedure btnSM9KeyEncSendClick(Sender: TObject);
     procedure btnTestKeyEncClick(Sender: TObject);
     procedure btnSM9KeyEncRecvClick(Sender: TObject);
+    procedure btnTestEncClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -843,6 +847,66 @@ begin
     mmoKeyEnc.Lines.Add('Key Encapsulation Get:');
     mmoKeyEnc.Lines.Add(StrToHex(PAnsiChar(S), Length(S)));
   end;
+end;
+
+procedure TFormSM9.btnTestEncClick(Sender: TObject);
+var
+  SM9: TCnSM9;
+  User, S: AnsiString;
+  Stream: TMemoryStream;
+
+  function StreamToHex(ST: TStream): string;
+  var
+    B: Byte;
+  begin
+    ST.Position := 0;
+    Result := '';
+    while ST.Read(B, 1) = 1 do
+      Result := Result + IntToHex(B, 2);
+  end;
+
+begin
+  mmoEnc.Lines.Clear;
+  SM9 := TCnSM9.Create;
+
+  // 生成示例 Master Key
+  FKeyEncMasterKey.PrivateKey.SetHex('01EDEE3778F441F8DEA3D9FA0ACC4E07EE36C93F9A08618AF4AD85CEDE1C22');
+  FKeyEncMasterKey.PublicKey.X.SetHex('787ED7B8A51F3AB84E0A66003F32DA5C720B17ECA7137D39ABC66E3C80A892FF');
+  FKeyEncMasterKey.PublicKey.Y.SetHex('769DE61791E5ADC4B9FF85A31354900B202871279A8C49DC3F220F644C57A7B1');
+
+  // 打印 Master Key
+  mmoEnc.Lines.Clear;
+  mmoEnc.Lines.Add('Master Private Key:');
+  mmoEnc.Lines.Add(FKeyEncMasterKey.PrivateKey.ToString);
+  mmoEnc.Lines.Add('Master Public Key:');
+  mmoEnc.Lines.Add(FKeyEncMasterKey.PublicKey.ToString);
+
+  // 生成示例 User Key
+  User := 'Bob';
+  CnSM9KGCGenerateEncryptionUserKey(FKeyEncMasterKey.PrivateKey, User, FKeyEncUserKey);
+
+  // 打印 User Key
+  mmoEnc.Lines.Add('User Private Key:');
+  mmoEnc.Lines.Add(FKeyEncUserKey.ToString);
+
+  S := 'Chinese IBE standard';
+  Stream := TMemoryStream.Create;
+
+  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, Stream) then
+  begin
+    mmoEnc.Lines.Add('SM9 with SM4 Encryption:');
+    mmoEnc.Lines.Add(StreamToHex(Stream));
+  end;
+
+  Stream.Clear;
+  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, Stream, semXOR) then
+  begin
+    mmoEnc.Lines.Add('SM9 with XOR Encryption:');
+    mmoEnc.Lines.Add(StreamToHex(Stream));
+  end;
+
+  Stream.Free;
+  SM9.Free;
 end;
 
 end.

@@ -105,8 +105,11 @@ const
   // 密钥交换时的加密私钥生成函数识别符
   CN_SM9_KEY_EXCHANGE_USER_HID = 2;
 
-  // 密钥封装与加密时的加密私钥生成函数识别符
+  // 密钥封装的加密私钥生成函数识别符
   CN_SM9_KEY_ENCAPSULATION_USER_HID = 3;
+
+  // 加密时的加密私钥生成函数识别符
+  CN_SM9_ENCRYPTION_USER_HID = 3;
 
 type
   ECnSM9Exception = class(Exception);
@@ -781,9 +784,10 @@ function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
 
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; OutStream: TStream; EncryptionMode: TCnSM9EncrytionMode = semSM4;
-  SM9: TCnSM9 = nil): Boolean;
-{* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功}
+  DataLen: Integer; K1Length, K2Length: Integer; OutStream: TStream;
+  EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
+{* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
+  EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节}
 
 function CnSM9UserDecryptData(EncryptionUserKey: TCnSM9EncryptionUserPrivateKey;
   EnData: Pointer; DataLen: Integer; OutStream: TStream;
@@ -808,7 +812,7 @@ function SM9Mac(Key: Pointer; KeyLength: Integer; Z: Pointer; ZLength: Integer):
 implementation
 
 uses
-  CnKDF;
+  CnKDF, CnSM4;
 
 resourcestring
   SListIndexError = 'List Index Out of Bounds (%d)';
@@ -3479,10 +3483,137 @@ end;
 
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; OutStream: TStream; EncryptionMode: TCnSM9EncrytionMode;
-  SM9: TCnSM9): Boolean;
-begin
+  DataLen: Integer; K1Length, K2Length: Integer; OutStream: TStream;
+  EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
+var
+  C: Boolean;
+  S, KDFKey: AnsiString;
+  H, R: TCnBigNumber;
+  Q: TCnEccPoint;
+  AP: TCnFP2AffinePoint;
+  G: TCnFP12;
+  Stream: TMemoryStream;
+  I, KLen: Integer;
+  P2, C2: array of Byte;
+  PD: PByteArray;
+  Mac: TSM3Digest;
 
+  procedure BytesAddPKCS7Padding(BlockSize: Byte);
+  var
+    Rb: Byte;
+    L, J: Integer;
+  begin
+    L := Length(P2);
+    Rb := L mod BlockSize;
+    Rb := BlockSize - Rb;
+    if Rb = 0 then
+      Rb := Rb + BlockSize;
+
+    SetLength(P2, L + Rb);
+    for J := 0 to Rb - 1 do
+      P2[L + J] := Rb;
+  end;
+
+begin
+  Result := False;
+  if (DestUserID = '') or (PlainData = nil) or (DataLen <= 0) or (K1Length <= 0)
+    or (K2Length <= 0) then
+    Exit;
+
+  // SM4 的 Key 长度只能 16
+  if EncryptionMode = semSM4 then
+    K1Length := SM4_KEYSIZE;
+
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  H := nil;
+  Q := nil;
+  R := nil;
+  AP := nil;
+  G := nil;
+  Stream := nil;
+  C2 := nil;
+  P2 := nil;
+
+  try
+    S := DestUserID + AnsiChar(CN_SM9_ENCRYPTION_USER_HID);
+    H := TCnBigNumber.Create;
+
+    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
+
+    Q := TCnEccPoint.Create;
+    Q.Assign(SM9.Generator);
+    SM9.MultiplePoint(H, Q);
+    SM9.PointAddPoint(EncryptionPublicKey, Q, Q);
+
+    R := TCnBigNumber.Create;
+    if not BigNumberRandRange(R, SM9.Order) then Exit;
+    // 测试数据
+    R.SetHex('AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
+    if R.IsZero then
+      R.SetOne;
+
+    SM9.MultiplePoint(R, Q); // Q 得到 C1
+
+    AP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
+
+    G := TCnFP12.Create;
+    if not SM9RatePairing(G, AP, EncryptionPublicKey) then Exit;
+    if not FP12Power(G, G, R, SM9.FiniteFieldSize) then Exit; // G 得到幂 w
+
+    Stream := TMemoryStream.Create;
+    CnEccPointToStream(Q, Stream);
+    FP12ToStream(G, Stream);
+    Stream.Write(DestUserID[1], Length(DestUserID));
+
+    if EncryptionMode = semSM4 then
+    begin
+      KLen := K1Length + K2Length;
+      KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
+
+      SetLength(P2, DataLen);
+      Move(PlainData^, P2[0], DataLen);
+      BytesAddPKCS7Padding(SM4_BLOCKSIZE); // 复制原始数据并在尾部加上几个几的 PKCS7 对齐
+
+      SetLength(C2, Length(P2));
+
+      // 使用 KDFKey 的 1 到 K1Length 作为密码来 SM4 加密对齐后的明文并放到 C2 中
+      SM4Encrypt(@KDFKey[1], @P2[0], @C2[0], Length(P2));
+    end
+    else if EncryptionMode = semXOR then
+    begin
+      KLen := DataLen + K2Length;
+      KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
+
+      // KDFKey 的 1 到 DataLen 与明文异或得到 C2，注意 KDFKey 的下标从 1 开始
+      PD := PByteArray(PlainData);
+      SetLength(C2, DataLen);
+
+      for I := 0 to DataLen - 1 do
+        C2[I] := Byte(KDFKey[I + 1]) xor PD^[I];
+    end;
+
+    Mac := SM9Mac(@(KDFKey[KLen - K2Length + 1]), K2Length, @C2[0], Length(C2)); // 用 K2 和 C2 算出 C3
+
+    CnEccPointToStream(Q, OutStream);             // 写 C1
+    OutStream.Write(Mac[0], SizeOf(TSM3Digest));  // 写 C3
+    OutStream.Write(C2[0], Length(C2));           // 写 C2
+
+    Result := True;
+  finally
+    SetLength(P2, 0);
+    SetLength(C2, 0);
+    Stream.Free;
+    G.Free;
+    AP.Free;
+    Q.Free;
+    H.Free;
+    if C then
+      SM9.Free;
+  end;
 end;
 
 function CnSM9UserDecryptData(EncryptionUserKey: TCnSM9EncryptionUserPrivateKey;
@@ -3598,8 +3729,8 @@ begin
     raise ECnSM9Exception.Create(SErrorMacParams);
 
   SetLength(Arr, KeyLength + ZLength);
-  Move(Key^, Arr[0], KeyLength);
-  Move(Z^, Arr[KeyLength], ZLength);
+  Move(Z^, Arr[0], ZLength);
+  Move(Key^, Arr[ZLength], KeyLength);
   Result := SM3(@Arr[0], Length(Arr));
   SetLength(Arr, 0);
 end;
