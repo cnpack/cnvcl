@@ -853,7 +853,7 @@ procedure TFormSM9.btnTestEncClick(Sender: TObject);
 var
   SM9: TCnSM9;
   User, S: AnsiString;
-  Stream: TMemoryStream;
+  EnStream, DeStream: TMemoryStream;
 
   function StreamToHex(ST: TStream): string;
   var
@@ -890,22 +890,43 @@ begin
   mmoEnc.Lines.Add(FKeyEncUserKey.ToString);
 
   S := 'Chinese IBE standard';
-  Stream := TMemoryStream.Create;
+  EnStream := TMemoryStream.Create;
+  DeStream := TMemoryStream.Create;
 
-  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, Stream) then
+  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, EnStream) then
   begin
     mmoEnc.Lines.Add('SM9 with SM4 Encryption:');
-    mmoEnc.Lines.Add(StreamToHex(Stream));
+    mmoEnc.Lines.Add(StreamToHex(EnStream));
   end;
 
-  Stream.Clear;
-  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, Stream, semXOR) then
+  if CnSM9UserDecryptData(User, FKeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream) then
+  begin
+    mmoEnc.Lines.Add('SM9 with SM4 Decryption:');
+    SetLength(S, DeStream.Size);
+    DeStream.Position := 0;
+    DeStream.Read(S[1], DeStream.Size);
+    mmoEnc.Lines.Add(S);
+  end;
+
+  EnStream.Clear;
+  DeStream.Clear;
+  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, EnStream, semXOR) then
   begin
     mmoEnc.Lines.Add('SM9 with XOR Encryption:');
-    mmoEnc.Lines.Add(StreamToHex(Stream));
+    mmoEnc.Lines.Add(StreamToHex(EnStream));
   end;
 
-  Stream.Free;
+  if CnSM9UserDecryptData(User, FKeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semXOR) then
+  begin
+    mmoEnc.Lines.Add('SM9 with SM4 Decryption:');
+    SetLength(S, DeStream.Size);
+    DeStream.Position := 0;
+    DeStream.Read(S[1], DeStream.Size);
+    mmoEnc.Lines.Add(S);
+  end;
+
+  EnStream.Free;
+  DeStream.Free;
   SM9.Free;
 end;
 

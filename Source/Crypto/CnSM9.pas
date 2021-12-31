@@ -34,7 +34,9 @@ unit CnSM9;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.30 V1.1
+* 修改记录：2022.01.01 V1.2
+*               实现加解密的功能
+*           2021.12.30 V1.1
 *               实现签名验签与密钥封装的功能，计算速度略慢
 *           2020.04.04 V1.0
 *               创建单元，实现功能
@@ -789,8 +791,9 @@ function CnSM9UserEncryptData(const DestUserID: AnsiString;
 {* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
   EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节}
 
-function CnSM9UserDecryptData(EncryptionUserKey: TCnSM9EncryptionUserPrivateKey;
-  EnData: Pointer; DataLen: Integer; OutStream: TStream;
+function CnSM9UserDecryptData(const DestUserID: AnsiString;
+  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
+  DataLen: Integer; K2Length: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
 {* 使用用户加密私钥解密数据并写入流，返回解密是否成功}
 
@@ -3481,6 +3484,12 @@ begin
   end;
 end;
 
+{
+   C1 是一个 EccPoint，长度为两个 32 字节共 64 字节
+   C2 是密文值，XOR 模式下长度等于明文值、SM4 模式下长度等于明文的 PKCS7 对齐长度
+   C3 是一个 Mac 值，用 SM3 计算，长度 32 字节
+   密文为：C1‖C3‖C2
+}
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
   DataLen: Integer; K1Length, K2Length: Integer; OutStream: TStream;
@@ -3609,6 +3618,7 @@ begin
     Stream.Free;
     G.Free;
     AP.Free;
+    R.Free;
     Q.Free;
     H.Free;
     if C then
@@ -3616,11 +3626,122 @@ begin
   end;
 end;
 
-function CnSM9UserDecryptData(EncryptionUserKey: TCnSM9EncryptionUserPrivateKey;
-  EnData: Pointer; DataLen: Integer; OutStream: TStream;
+function CnSM9UserDecryptData(const DestUserID: AnsiString;
+  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
+  DataLen: Integer; K2Length: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
-begin
+var
+  C: Boolean;
+  C1: TCnEccPoint;
+  C3, Mac: TSM3Digest;
+  P: PByteArray;
+  PC: PAnsiChar;
+  AP: TCnFP2AffinePoint;
+  W: TCnFP12;
+  Stream: TMemoryStream;
+  KLen, I, MLen: Integer;
+  KDFKey: AnsiString;
+  C2: array of Byte;
 
+  procedure BytesRemovePKCS7Padding;
+  var
+    L: Integer;
+    V: Byte;
+  begin
+    L := Length(C2);
+    if L = 0 then
+      Exit;
+
+    V := Ord(C2[L - 1]);  // 末是几表示加了几
+
+    if V <= L then
+      SetLength(C2, L - V);
+  end;
+
+begin
+  Result := False;
+  if (EnData = nil) or (K2Length <= 0) or (DataLen <= 0) then
+    Exit;
+
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  if DataLen <= (SM9.BitsCount div 4) + SizeOf(TSM3Digest) then
+    Exit;
+
+  C1 := nil;
+  AP := nil;
+  W := nil;
+  Stream := nil;
+  C2 := nil;
+
+  // 密文前 2 * SM9.BitsCount div 8 个字节是 C1 这个 EccPoint 的二进制形式
+
+  try
+    PC := PAnsiChar(EnData);
+    C1 := TCnEccPoint.Create;
+    C1.X.SetBinary(PC, SM9.BitsCount div 8);
+    Inc(PC, SM9.BitsCount div 8);
+    C1.Y.SetBinary(PC, SM9.BitsCount div 8);
+
+    // 先判断是否在曲线上
+    if not SM9.IsPointOnCurve(C1) then Exit;
+
+    Inc(PC, SM9.BitsCount div 8);
+    Move(PC^, C3[0], SizeOf(TSM3Digest)); // 取出 C3 以备比较
+    Inc(PC, SizeOf(TSM3Digest));  // PC 现在指向密文 C2
+
+    P := PByteArray(PC);
+    MLen := DataLen - SM9.BitsCount div 4 - SizeOf(TSM3Digest); // MLen 密文长度
+
+    AP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(AP, EncryptionUserKey) then Exit;
+    W := TCnFP12.Create;
+    if not SM9RatePairing(W, AP, C1) then Exit;
+
+    Stream := TMemoryStream.Create;
+    CnEccPointToStream(C1, Stream);
+    FP12ToStream(W, Stream);
+    Stream.Write(DestUserID[1], Length(DestUserID));
+
+    SetLength(C2, MLen);
+    if EncryptionMode = semSM4 then
+    begin
+      KLen := SM4_KEYSIZE + K2Length;
+      KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
+      Mac := SM9Mac(@(KDFKey[KLen - K2Length + 1]), K2Length, @P[0], MLen); // 用 K2 和 C2 算出 C3
+
+      // SK4 解出明文到 C2
+      SM4Decrypt(@KDFKey[1], @P[0], @C2[0], Length(C2));
+      // 去掉 C2 尾部的 PKCS7 内容即为明文
+      BytesRemovePKCS7Padding;
+    end
+    else if EncryptionMode = semXOR then
+    begin
+      KLen := MLen + K2Length;
+      KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
+      Mac := SM9Mac(@(KDFKey[KLen - K2Length + 1]), K2Length, @P[0], MLen); // 用 K2 和 C2 算出 C3
+
+      // KDFKey 的前面部分的长度与与密文相等，XOR 出结果即为明文
+      for I := 0 to Length(C2) - 1 do
+        C2[I] := Byte(KDFKey[I + 1]) xor P^[I];
+    end;
+
+    if CompareMem(@C3[0], @Mac[0], SizeOf(TSM3Digest)) then
+    begin
+      OutStream.Write(C2[0], Length(C2));
+      Result := True;
+    end;
+  finally
+    SetLength(C2, 0);
+    Stream.Free;
+    W.Free;
+    AP.Free;
+    C1.Free;
+    if C then
+      SM9.Free;
+  end;
 end;
 
 function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
