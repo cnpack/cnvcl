@@ -492,8 +492,11 @@ function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
    返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度}
 
-function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream): Integer;
-{* 将一个大数的二进制部分写入流，返回写入的长度}
+function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
+  FixedLen: Integer = 0): Integer;
+{* 将一个大数的二进制部分写入流，返回写入流的长度。
+  FixedLen 表示大数内容不够 FixedLen 长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 的长度
+  大数长度超过 FixedLen 时按大数实际长度写}
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 {* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
@@ -1387,7 +1390,8 @@ begin
   end;
 end;
 
-function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream): Integer;
+function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
+  FixedLen: Integer): Integer;
 var
   Buf: array of Byte;
   Len: Integer;
@@ -1396,9 +1400,18 @@ begin
   Len := BigNumberGetBytesCount(Num);
   if (Stream <> nil) and (Len > 0) then
   begin
-    SetLength(Buf, Len);
-    BigNumberToBinary(Num, @Buf[0]);
-    Result := Stream.Write(Buf[0], Len);
+    if FixedLen > Len then
+    begin
+      SetLength(Buf, FixedLen);
+      BigNumberToBinary(Num, @Buf[FixedLen - Len]);
+      Result := Stream.Write(Buf[0], FixedLen);
+    end
+    else
+    begin
+      SetLength(Buf, Len);
+      BigNumberToBinary(Num, @Buf[0]);
+      Result := Stream.Write(Buf[0], Len);
+    end;
     SetLength(Buf, 0);
   end;
 end;
