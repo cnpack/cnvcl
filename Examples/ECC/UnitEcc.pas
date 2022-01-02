@@ -1445,10 +1445,10 @@ procedure TFormEcc.btnTestECDHClick(Sender: TObject);
 var
   Priv1, Priv2: TCnEccPrivateKey;
   Pub1, Pub2: TCnEccPublicKey;
-  Sec: TCnEccPoint;
+  Sec: TCnEccPublicKey;
 begin
-  Priv1 := TCnEccPrivateKey.FromHex('E32868331FA8EF0138DE0DE85478346AEC5E3912B6029AE71691C384237A3EEB');
-  Priv2 := TCnEccPrivateKey.FromHex('CEF147652AA90162E1FFF9CF07F2605EA05529CA215A04350A98ECC24AA34342');
+  Priv1 := TCnEccPrivateKey(TCnBigNumber.FromHex('E32868331FA8EF0138DE0DE85478346AEC5E3912B6029AE71691C384237A3EEB'));
+  Priv2 := TCnEccPrivateKey(TCnBigNumber.FromHex('CEF147652AA90162E1FFF9CF07F2605EA05529CA215A04350A98ECC24AA34342'));
 
   Pub1 := TCnEccPublicKey.Create;
   Pub2 := TCnEccPublicKey.Create;
@@ -1462,7 +1462,7 @@ begin
   ShowMessage('Pub2 is:' + #13#10 + Pub2.X.ToHex + #13#10 + Pub2.Y.ToHex);
   // 4034127647BB7FDAB7F1526C7D10BE8B28174E2BBA35B06FFD8A26FC2C20134A, 9E773199EDC1EA792B150270EA3317689286C9FE239DD5B9C5CFD9E81B4B632
 
-  Sec := TCnEccPoint.Create;
+  Sec := TCnEccPublicKey.Create;
   CnEccDiffieHellmanComputeKey(FBNEcc, Priv1, Pub2, Sec);
   ShowMessage('A Compute Key is:' + #13#10 + Sec.X.ToHex + #13#10 + Sec.Y.ToHex);
   CnEccDiffieHellmanComputeKey(FBNEcc, Priv2, Pub1, Sec);
