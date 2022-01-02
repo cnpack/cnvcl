@@ -253,6 +253,7 @@ type
     FCoFactor: Integer;
     F2Inverse: TCnBigNumber;
     function GetBitsCount: Integer;
+    function GetBytesCount: Integer;
   protected
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
   public
@@ -328,6 +329,8 @@ type
     {* 辅助因子 H，也就是总点数 mod N，先用 Integer 表示，一般都是 1}
     property BitsCount: Integer read GetBitsCount;
     {* 该椭圆曲线的素数域位数}
+    property BytesCount: Integer read GetBytesCount;
+    {* 该椭圆曲线的素数域字节数}
   end;
 
   TCnEccKeyType = (cktPKCS1, cktPKCS8);
@@ -628,8 +631,10 @@ function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBig
 function CnJacobianPointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的雅可比坐标到普通坐标的点转换}
 
-function CnEccPointToStream(P: TCnEccPoint; Stream: TStream): Integer;
-{* 将一椭圆曲线点的内容写入流，返回写入长度}
+function CnEccPointToStream(P: TCnEccPoint; Stream: TStream; FixedLen: Integer = 0): Integer;
+{* 将一椭圆曲线点的内容写入流，返回写入长度
+  FixedLen 表示椭圆曲线点内大数内容不够 FixedLen 长度时高位补足 0
+  以保证 Stream 中输出固定 FixedLen 的长度，内部大数长度超过 FixedLen 时按大数实际长度写}
 
 // ======================= 椭圆曲线密钥 PEM 读写实现 ===========================
 
@@ -3224,10 +3229,10 @@ begin
   end;
 end;
 
-function CnEccPointToStream(P: TCnEccPoint; Stream: TStream): Integer;
+function CnEccPointToStream(P: TCnEccPoint; Stream: TStream; FixedLen: Integer): Integer;
 begin
-  Result := BigNumberWriteBinaryToStream(P.X, Stream)
-    + BigNumberWriteBinaryToStream(P.Y, Stream);
+  Result := BigNumberWriteBinaryToStream(P.X, Stream, FixedLen)
+    + BigNumberWriteBinaryToStream(P.Y, Stream, FixedLen);
 end;
 
 function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
@@ -4081,6 +4086,11 @@ begin
   else
     Result := '<Unknown>';
   end;
+end;
+
+function TCnEcc.GetBytesCount: Integer;
+begin
+  Result := FFiniteFieldSize.GetBytesCount;
 end;
 
 { TCnInt64PolynomialEccPoint }
