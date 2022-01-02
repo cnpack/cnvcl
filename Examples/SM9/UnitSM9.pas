@@ -67,6 +67,7 @@ type
     grpKeyExchange: TGroupBox;
     btnKeyExchangeTest: TButton;
     mmoKeyExchange: TMemo;
+    btnRateTime: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -89,6 +90,7 @@ type
     procedure btnSM9KeyEncRecvClick(Sender: TObject);
     procedure btnTestEncClick(Sender: TObject);
     procedure btnKeyExchangeTestClick(Sender: TObject);
+    procedure btnRateTimeClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -1060,6 +1062,31 @@ begin
     RA.Free;
     SM9.Free;
   end;
+end;
+
+procedure TFormSM9.btnRateTimeClick(Sender: TObject);
+var
+  Pubs: TCnFP2AffinePoint;
+  F: TCnFP12;
+  I: Integer;
+  T: Cardinal;
+begin
+  F := TCnFP12.Create;
+
+  Pubs := TCnFP2AffinePoint.Create;
+  Pubs.SetCoordinatesHex('29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32',
+    '9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408',
+    '41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D',
+    '69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25');
+
+  T := GetTickCount;
+  for I := 1 to 10 do // 10 ¥Œ“™ 6 √Î∂‡÷”
+    SM9RatePairing(F, Pubs, nil);
+  T := GetTickCount - T;
+  ShowMessage(IntToStr(T));
+
+  Pubs.Free;
+  F.Free;
 end;
 
 end.

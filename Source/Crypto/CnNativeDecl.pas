@@ -194,25 +194,29 @@ function GetUInt64PowerOf2GreaterEqual(N: TUInt64): TUInt64;
 {* 得到一比指定 64 位无符号整数数大或等的 2 的整数次幂，如溢出则返回 0}
 
 function IsInt32AddOverflow(A, B: Integer): Boolean;
-{* 判断两个 32 位有符号数相加是否溢出}
+{* 判断两个 32 位有符号数相加是否溢出 32 位有符号上限}
 
 function IsUInt32AddOverflow(A, B: Cardinal): Boolean;
-{* 判断两个 32 位无符号数相加是否溢出}
+{* 判断两个 32 位无符号数相加是否溢出 32 位无符号上限}
 
 function IsInt64AddOverflow(A, B: Int64): Boolean;
-{* 判断两个 64 位有符号数相加是否溢出}
+{* 判断两个 64 位有符号数相加是否溢出 64 位有符号上限}
 
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
-{* 判断两个 64 位无符号数相加是否溢出}
+{* 判断两个 64 位无符号数相加是否溢出 64 位无符号上限}
 
 function IsInt32MulOverflow(A, B: Integer): Boolean;
-{* 判断两个 32 位有符号数相乘是否溢出}
+{* 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限}
 
 function IsUInt32MulOverflow(A, B: Cardinal): Boolean;
-{* 判断两个 32 位无符号数相乘是否溢出}
+{* 判断两个 32 位无符号数相乘是否溢出 32 位无符号上限}
+
+function IsUInt32MulOverflowInt64(A, B: Cardinal; out R: TUInt64): Boolean;
+{* 判断两个 32 位无符号数相乘是否溢出 64 位有符号数，如未溢出也即返回 False 时，R 中直接返回结果
+  如溢出也即返回 True，外界需要重新调用 UInt64Mul 才能实施相乘}
 
 function IsInt64MulOverflow(A, B: Int64): Boolean;
-{* 判断两个 64 位有符号数相乘是否溢出}
+{* 判断两个 64 位有符号数相乘是否溢出 64 位有符号上限}
 
 function PointerToInteger(P: Pointer): Integer;
 {* 指针类型转换成整型，支持 32/64 位}
@@ -813,7 +817,7 @@ begin
   Inc(Result);
 end;
 
-// 判断两个 32 位有符号数相加是否溢出
+// 判断两个 32 位有符号数相加是否溢出 32 位有符号上限
 function IsInt32AddOverflow(A, B: Integer): Boolean;
 var
   C: Integer;
@@ -823,13 +827,13 @@ begin
     ((A < 0) and (B < 0) and (C > 0));
 end;
 
-// 判断两个 32 位无符号数相加是否溢出
+// 判断两个 32 位无符号数相加是否溢出 32 位无符号上限
 function IsUInt32AddOverflow(A, B: Cardinal): Boolean;
 begin
   Result := (A + B) < A; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
-// 判断两个 64 位有符号数相加是否溢出
+// 判断两个 64 位有符号数相加是否溢出 64 位有符号上限
 function IsInt64AddOverflow(A, B: Int64): Boolean;
 var
   C: Int64;
@@ -839,13 +843,13 @@ begin
     ((A < 0) and (B < 0) and (C > 0));
 end;
 
-// 判断两个 64 位无符号数相加是否溢出
+// 判断两个 64 位无符号数相加是否溢出 64 位无符号上限
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
-// 判断两个 32 位有符号数相乘是否溢出
+// 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限
 function IsInt32MulOverflow(A, B: Integer): Boolean;
 var
   T: Integer;
@@ -854,7 +858,7 @@ begin
   Result := (B <> 0) and ((T div B) <> A);
 end;
 
-// 判断两个 32 位无符号数相乘是否溢出
+// 判断两个 32 位无符号数相乘是否溢出 32 位无符号上限
 function IsUInt32MulOverflow(A, B: Cardinal): Boolean;
 var
   T: TUInt64;
@@ -863,7 +867,18 @@ begin
   Result := (T = Cardinal(T));
 end;
 
-// 判断两个 64 位有符号数相乘是否溢出
+// 判断两个 32 位无符号数相乘是否溢出 64 位有符号数，如未溢出也即返回 False 时，R 中直接返回结果
+function IsUInt32MulOverflowInt64(A, B: Cardinal; out R: TUInt64): Boolean;
+var
+  T: Int64;
+begin
+  T := Int64(A) * Int64(B);
+  Result := T < 0; // 如果出现 Int64 负值则说明溢出
+  if not Result then
+    R := TUInt64(T);
+end;
+
+// 判断两个 64 位有符号数相乘是否溢出 64 位有符号上限
 function IsInt64MulOverflow(A, B: Int64): Boolean;
 var
   T: Int64;

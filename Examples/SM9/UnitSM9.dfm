@@ -184,6 +184,15 @@ object FormSM9: TFormSM9
           ScrollBars = ssVertical
           TabOrder = 1
         end
+        object btnRateTime: TButton
+          Left = 120
+          Top = 24
+          Width = 89
+          Height = 25
+          Caption = 'R-ate Time'
+          TabOrder = 2
+          OnClick = btnRateTimeClick
+        end
       end
     end
     object tsSM9Hash: TTabSheet
