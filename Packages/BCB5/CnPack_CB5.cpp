@@ -67,6 +67,7 @@ USEUNIT("..\..\Source\Common\CnSkipList.pas");
 USEUNIT("..\..\Source\Crypto\CnSM2.pas");
 USEUNIT("..\..\Source\Crypto\CnSM3.pas");
 USEUNIT("..\..\Source\Crypto\CnSM4.pas");
+USEUNIT("..\..\Source\Crypto\CnSM9.pas");
 USEUNIT("..\..\Source\Common\CnSQLite.pas");
 USEUNIT("..\..\Source\Common\CnStrDiff.pas");
 USEUNIT("..\..\Source\Common\CnStream.pas");

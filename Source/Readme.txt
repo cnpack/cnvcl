@@ -9,7 +9,7 @@ cnpack\Source 目录内容说明：
     二进制差分与合并算法实现单元
 
   CnBloomFilter.pas
-    散花过滤实现单元，用多散列函数配合 bit 位记录字符串
+    散花过滤实现单元，用多散列函数配合 Bit 位记录字符串
 
   CnCalClass.pas
     历法计算类库
@@ -258,13 +258,16 @@ cnpack\Source 目录内容说明：
   CnSM4.pas
     中国国家密码管理局发布的 SM4 分组密码算法实现单元
 
+  CnSM9.pas
+    中国国家密码管理局发布的 SM9 标识密码算法实现单元
+
   CnTEA.pas
     TEA/XTEA/XXTEA 算法实现单元
 
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 27 文件
+                共 28 文件
 
 \DbReport －数据库组件与报表库目录
 
@@ -479,17 +482,26 @@ cnpack\Source 目录内容说明：
   CnIISCtrl.pas
     IIS 控制组件实现单元
 
-  CnIP.pas
-    IP 获取与计算组件实现单元
-
   CnInetUtils.pas
     WinInet 封装单元
+
+  CnIocpSimpleMemPool.pas
+    IOCP 完成端口配套的内存池实现单元
+
+  CnIocpSocketAdapter.pas
+    IOCP 完成端口实现单元
+
+  CnIP.pas
+    IP 获取与计算组件实现单元
 
   CnModem.pas
     CnModem 标准调制解调器组件单元
 
   CnNetConsts.pas
     网络部分的资源字符串定义单元
+
+  CnNetDecls.pas
+    网络部分的各种协议包头格式定义单元
 
   CnNetPropEditor.pas
     网络通讯类属性编辑器单元
@@ -499,6 +511,9 @@ cnpack\Source 目录内容说明：
 
   CnPing.pas
     Ping 功能实现组件单元
+
+  CnRedisClient.pas
+    Redis 客户端封装单元
 
   CnRS232.pas
     CnRS232 串口通讯组件单元
@@ -521,7 +536,7 @@ cnpack\Source 目录内容说明：
   CnUDP.pas
     UDP 通讯组件单元
 
-                17 文件
+                23 文件
 
 \NonVisual －不可视组件
 

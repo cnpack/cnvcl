@@ -150,6 +150,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnSM2.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSM3.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnSM4.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnSM9.pas"/>
         <DCCReference Include="..\..\Source\Common\CnSQLite.pas"/>
         <DCCReference Include="..\..\Source\Common\CnStrDiff.pas"/>
         <DCCReference Include="..\..\Source\Common\CnStream.pas"/>

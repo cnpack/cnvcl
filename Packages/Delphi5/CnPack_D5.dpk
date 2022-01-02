@@ -97,6 +97,7 @@ contains
   CnSM2 in '..\..\Source\Crypto\CnSM2.pas',
   CnSM3 in '..\..\Source\Crypto\CnSM3.pas',
   CnSM4 in '..\..\Source\Crypto\CnSM4.pas',
+  CnSM9 in '..\..\Source\Crypto\CnSM9.pas',
   CnSQLite in '..\..\Source\Common\CnSQLite.pas',
   CnStrDiff in '..\..\Source\Common\CnStrDiff.pas',
   CnStream in '..\..\Source\Common\CnStream.pas',

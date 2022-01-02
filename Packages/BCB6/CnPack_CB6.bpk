@@ -66,6 +66,7 @@
       ..\..\Source\Crypto\CnSM2.obj 
       ..\..\Source\Crypto\CnSM3.obj 
       ..\..\Source\Crypto\CnSM4.obj 
+      ..\..\Source\Crypto\CnSM9.obj 
       ..\..\Source\Common\CnSQLite.obj 
       ..\..\Source\Common\CnStrDiff.obj 
       ..\..\Source\Common\CnStream.obj 
@@ -339,6 +340,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnSM2.pas" FORMNAME="" UNITNAME="CnSM2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSM3.pas" FORMNAME="" UNITNAME="CnSM3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSM4.pas" FORMNAME="" UNITNAME="CnSM4" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSM9.pas" FORMNAME="" UNITNAME="CnSM9" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSQLite.pas" FORMNAME="" UNITNAME="CnSQLite" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnStrDiff.pas" FORMNAME="" UNITNAME="CnStrDiff" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnStream.pas" FORMNAME="" UNITNAME="CnStream" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

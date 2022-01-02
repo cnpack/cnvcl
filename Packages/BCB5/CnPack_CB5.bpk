@@ -62,6 +62,7 @@
       ..\..\Source\Crypto\CnSM2.obj 
       ..\..\Source\Crypto\CnSM3.obj 
       ..\..\Source\Crypto\CnSM4.obj 
+      ..\..\Source\Crypto\CnSM9.obj 
       ..\..\Source\Common\CnSQLite.obj 
       ..\..\Source\Common\CnStrDiff.obj 
       ..\..\Source\Common\CnStream.obj 
