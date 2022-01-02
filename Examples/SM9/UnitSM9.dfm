@@ -30,6 +30,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'FP2'
         TabOrder = 0
         object btnTestFP2: TButton
@@ -46,6 +47,7 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
           TabOrder = 1
         end
@@ -59,6 +61,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'FP4'
         TabOrder = 0
         object btnTestFp4: TButton
@@ -75,6 +78,7 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
           TabOrder = 1
         end
@@ -88,6 +92,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'FP12'
         TabOrder = 0
         object btnTestFP12: TButton
@@ -104,6 +109,7 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
           TabOrder = 1
         end
@@ -117,6 +123,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'FP2 Affine Point'
         TabOrder = 0
         object btnAP: TButton
@@ -133,8 +140,9 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
-          TabOrder = 1
+          TabOrder = 2
         end
         object btnFP2PointMul: TButton
           Left = 160
@@ -142,7 +150,7 @@ object FormSM9: TFormSM9
           Width = 75
           Height = 25
           Caption = 'FP2 Point Mul'
-          TabOrder = 2
+          TabOrder = 1
           OnClick = btnFP2PointMulClick
         end
       end
@@ -155,6 +163,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'R-ate Pairing'
         TabOrder = 0
         object btnRateTest: TButton
@@ -171,6 +180,7 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
           TabOrder = 1
         end
@@ -184,6 +194,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'SM9 Hash'
         TabOrder = 0
         object btnTestHash: TButton
@@ -214,6 +225,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'SM9 Hash'
         TabOrder = 0
         object lblUserID: TLabel
@@ -268,8 +280,9 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
-          TabOrder = 3
+          TabOrder = 7
         end
         object edtSignData: TEdit
           Left = 560
@@ -303,7 +316,7 @@ object FormSM9: TFormSM9
           Width = 25
           Height = 25
           Caption = 'Tst'
-          TabOrder = 7
+          TabOrder = 3
           OnClick = btnSM9SampleClick
         end
       end
@@ -316,6 +329,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Key Encapsulation'
         TabOrder = 0
         object lblKeyLength: TLabel
@@ -351,7 +365,7 @@ object FormSM9: TFormSM9
           Top = 24
           Width = 105
           Height = 21
-          TabOrder = 0
+          TabOrder = 4
           Text = '64'
         end
         object btnSM9KeyEncSend: TButton
@@ -360,7 +374,7 @@ object FormSM9: TFormSM9
           Width = 75
           Height = 25
           Caption = 'Send'
-          TabOrder = 1
+          TabOrder = 5
           OnClick = btnSM9KeyEncSendClick
         end
         object mmoKeyEnc: TMemo
@@ -368,8 +382,9 @@ object FormSM9: TFormSM9
           Top = 72
           Width = 897
           Height = 129
+          Anchors = [akLeft, akTop, akRight]
           ScrollBars = ssVertical
-          TabOrder = 2
+          TabOrder = 7
         end
         object btnKeyEncGenMaster: TButton
           Left = 168
@@ -377,7 +392,7 @@ object FormSM9: TFormSM9
           Width = 137
           Height = 25
           Caption = 'Generate User Key'
-          TabOrder = 3
+          TabOrder = 1
           OnClick = btnKeyEncGenMasterClick
         end
         object btnKeyEncGenUser: TButton
@@ -386,7 +401,7 @@ object FormSM9: TFormSM9
           Width = 137
           Height = 25
           Caption = 'Generate Master Key'
-          TabOrder = 4
+          TabOrder = 0
           OnClick = btnKeyEncGenUserClick
         end
         object edtDestUser: TEdit
@@ -394,7 +409,7 @@ object FormSM9: TFormSM9
           Top = 24
           Width = 97
           Height = 21
-          TabOrder = 5
+          TabOrder = 2
           Text = 'CnPack Team'
         end
         object btnTestKeyEnc: TButton
@@ -403,7 +418,7 @@ object FormSM9: TFormSM9
           Width = 25
           Height = 25
           Caption = 'Tst'
-          TabOrder = 6
+          TabOrder = 3
           OnClick = btnTestKeyEncClick
         end
         object btnSM9KeyEncRecv: TButton
@@ -412,7 +427,7 @@ object FormSM9: TFormSM9
           Width = 75
           Height = 25
           Caption = 'Receive'
-          TabOrder = 7
+          TabOrder = 6
           OnClick = btnSM9KeyEncRecvClick
         end
         object btnTestEnc: TButton
@@ -429,8 +444,39 @@ object FormSM9: TFormSM9
           Top = 272
           Width = 897
           Height = 169
+          Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
           TabOrder = 9
+        end
+      end
+    end
+    object tsSM9KeyExchange: TTabSheet
+      Caption = 'SM9 Key Exchange'
+      ImageIndex = 8
+      object grpKeyExchange: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 465
+        Caption = 'SM9 Hash'
+        TabOrder = 0
+        object btnKeyExchangeTest: TButton
+          Left = 16
+          Top = 24
+          Width = 73
+          Height = 25
+          Caption = 'Test Sample'
+          TabOrder = 0
+          OnClick = btnKeyExchangeTestClick
+        end
+        object mmoKeyExchange: TMemo
+          Left = 16
+          Top = 72
+          Width = 897
+          Height = 377
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          ScrollBars = ssVertical
+          TabOrder = 1
         end
       end
     end

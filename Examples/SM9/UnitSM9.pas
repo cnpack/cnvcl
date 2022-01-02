@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnBigNumber, CnSM9, ExtCtrls;
+  StdCtrls, ComCtrls, CnBigNumber, ExtCtrls, CnSM9, CnECC, CnSM3;
 
 type
   TFormSM9 = class(TForm)
@@ -63,6 +63,10 @@ type
     bvl3: TBevel;
     btnTestEnc: TButton;
     mmoEnc: TMemo;
+    tsSM9KeyExchange: TTabSheet;
+    grpKeyExchange: TGroupBox;
+    btnKeyExchangeTest: TButton;
+    mmoKeyExchange: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTestFP2Click(Sender: TObject);
@@ -84,6 +88,7 @@ type
     procedure btnTestKeyEncClick(Sender: TObject);
     procedure btnSM9KeyEncRecvClick(Sender: TObject);
     procedure btnTestEncClick(Sender: TObject);
+    procedure btnKeyExchangeTestClick(Sender: TObject);
   private
     FP: TCnBigNumber;
     FP21: TCnFP2;
@@ -104,6 +109,8 @@ type
     FSig: TCnSM9Signature;
     FKeyEncMasterKey: TCnSM9EncryptionMasterKey;
     FKeyEncUserKey: TCnSM9EncryptionUserPrivateKey;
+    FKeyExchangeMasterKey: TCnSM9KeyExchangeMasterKey;
+    FKeyExchangeUserA, FKeyExchangeUserB: TCnSM9KeyExchangeUserPrivateKey;
     FKeyEnc: TCnSM9KeyEncapsulation;
   public
     { Public declarations }
@@ -155,12 +162,21 @@ begin
 
   FKeyEncMasterKey := TCnSM9EncryptionMasterKey.Create;
   FKeyEncUserKey := TCnSM9EncryptionUserPrivateKey.Create;
+
+  FKeyExchangeMasterKey := TCnSM9KeyExchangeMasterKey.Create;
+  FKeyExchangeUserA := TCnSM9KeyExchangeUserPrivateKey.Create;
+  FKeyExchangeUserB := TCnSM9KeyExchangeUserPrivateKey.Create;
+
   FKeyEnc := TCnSM9KeyEncapsulation.Create;
 end;
 
 procedure TFormSM9.FormDestroy(Sender: TObject);
 begin
   FKeyEnc.Free;
+  FKeyExchangeUserB.Free;
+  FKeyExchangeUserA.Free;
+  FKeyExchangeMasterKey.Free;
+
   FKeyEncUserKey.Free;
   FKeyEncMasterKey.Free;
 
@@ -928,6 +944,122 @@ begin
   EnStream.Free;
   DeStream.Free;
   SM9.Free;
+end;
+
+procedure TFormSM9.btnKeyExchangeTestClick(Sender: TObject);
+const
+  KLEN = 16;
+var
+  AUser, BUser: AnsiString;
+  SM9: TCnSM9;
+  RA, RB: TCnEccPoint;
+  RandA, RandB: TCnBigNumber;
+  BG1, BG2, BG3: TCnFP12;
+  KeyA, KeyB: AnsiString;
+  SB, SA: TSM3Digest;
+begin
+  mmoKeyExchange.Lines.Clear;
+  SM9 := TCnSM9.Create;
+
+  // 生成示例 Master Key
+  FKeyExchangeMasterKey.PrivateKey.SetHex('02E65B0762D042F51F0D23542B13ED8CFA2E9A0E7206361E013A283905E31F');
+  FKeyExchangeMasterKey.PublicKey.X.SetHex('9174542668E8F14AB273C0945C3690C66E5DD09678B86F734C4350567ED06283');
+  FKeyExchangeMasterKey.PublicKey.Y.SetHex('54E598C6BF749A3DACC9FFFEDD9DB6866C50457CFC7AA2A4AD65C3168FF74210');
+
+  // 打印 Master Key
+  mmoKeyExchange.Lines.Clear;
+  mmoKeyExchange.Lines.Add('Master Private Key:');
+  mmoKeyExchange.Lines.Add(FKeyExchangeMasterKey.PrivateKey.ToString);
+  mmoKeyExchange.Lines.Add('Master Public Key:');
+  mmoKeyExchange.Lines.Add(FKeyExchangeMasterKey.PublicKey.ToString);
+
+  // 生成示例 User Key
+  AUser := 'Alice';
+  BUser := 'Bob';
+  CnSM9KGCGenerateKeyExchangeUserKey(FKeyExchangeMasterKey.PrivateKey, AUser, FKeyExchangeUserA);
+  CnSM9KGCGenerateKeyExchangeUserKey(FKeyExchangeMasterKey.PrivateKey, BUser, FKeyExchangeUserB);
+
+  // 打印 A User Key
+  mmoKeyExchange.Lines.Add('A User Private Key:');
+  mmoKeyExchange.Lines.Add(FKeyExchangeUserA.ToString);
+
+  // 打印 B User Key
+  mmoKeyExchange.Lines.Add('B User Private Key:');
+  mmoKeyExchange.Lines.Add(FKeyExchangeUserB.ToString);
+
+  RA := nil;
+  RandA := nil;
+  RB := nil;
+  RandB := nil;
+
+  BG1 := nil;
+  BG2 := nil;
+  BG3 := nil;
+
+  try
+    // 第一步，A 调用
+    RA := TCnEccPoint.Create;
+    RandA := TCnBigNumber.Create;
+
+    if CnSM9UserKeyExchangeAStep1(BUser, KLEN, FKeyExchangeMasterKey.PublicKey, RA, RandA) then
+    begin
+      mmoKeyExchange.Lines.Add('A User Step 1: RA & RandA');
+      mmoKeyExchange.Lines.Add(RA.ToString);
+      mmoKeyExchange.Lines.Add(RandA.ToHex);
+    end;
+
+    // 第二步，B 调用，使用了第一步里传来的 RA
+    RB := TCnEccPoint.Create;
+    BG1 := TCnFP12.Create;
+    BG2 := TCnFP12.Create;
+    BG3 := TCnFP12.Create;
+    if CnSM9UserKeyExchangeBStep1(AUser, BUser, KLEN, FKeyExchangeMasterKey.PublicKey,
+      FKeyExchangeUserB, RA, RB, KeyB, SB, BG1, BG2, BG3) then
+    begin
+      mmoKeyExchange.Lines.Add('B User Step 1: RB & SB & Key!');
+      mmoKeyExchange.Lines.Add(RB.ToString);
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SB[0]), SizeOf(TSM3Digest)));
+
+      mmoKeyExchange.Lines.Add('BG1:');
+      mmoKeyExchange.Lines.Add(BG1.ToString);
+      mmoKeyExchange.Lines.Add('BG2:');
+      mmoKeyExchange.Lines.Add(BG2.ToString);
+      mmoKeyExchange.Lines.Add('BG3:');
+      mmoKeyExchange.Lines.Add(BG3.ToString);
+
+      mmoKeyExchange.Lines.Add('B Key:');
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyB[1]), Length(KeyB)));
+    end;
+
+    // 第三步，A 调用，使用了第二步里传过来的 RB 和 SB 以及第一步自身的 RandA
+    if CnSM9UserKeyExchangeAStep2(AUser, BUser, KLEN, FKeyExchangeMasterKey.PublicKey,
+      FKeyExchangeUserA, RandA, RA, RB, SB, KeyA, SA) then
+    begin
+      mmoKeyExchange.Lines.Add('A User Step 2: Key! & SA');
+      mmoKeyExchange.Lines.Add('A Key:');
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyA[1]), Length(KeyA)));
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SA[0]), SizeOf(TSM3Digest)));
+    end;
+
+    // 第四步，B 调用，使用了第一步里传过来的 RA 以及第二步自身的 BG1、BG2、BG3、RB 以及第三步里传过来的 SA
+    if CnSM9UserKeyExchangeBStep2(AUser, BUser, RA, RB, SA, BG1, BG2, BG3) then
+    begin
+      mmoKeyExchange.Lines.Add('B User Step 2: Check SA OK');
+    end;
+
+    if KeyA = KeyB then
+      mmoKeyExchange.Lines.Add('KeyA = KeyB. Exchange OK.');
+
+  finally
+    BG3.Free;
+    BG2.Free;
+    BG1.Free;
+    RandB.Free;
+    RB.Free;
+    RandA.Free;
+    RA.Free;
+    SM9.Free;
+  end;
 end;
 
 end.

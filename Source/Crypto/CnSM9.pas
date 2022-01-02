@@ -22,19 +22,23 @@ unit CnSM9;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：SM9 基于椭圆曲线双线性映射的身份认证算法单元
+* 单元名称：SM9 基于椭圆曲线双线性映射的标识密码算法单元
 * 单元作者：刘啸
 * 备    注：参考了 GmSSL/PBC/Federico2014 源码。
 *           二次、四次、十二次扩域分别有 U V W 乘法操作，元素分别用 FP2、FP4、FP12 表示
 *           G1 与 G2 群里各用 TCnEccPoint 和 TCnFP2Point 类作为元素坐标点，包括 X Y
 *           仿射坐标系/雅可比坐标系里的三元点也有加、乘、求反、Frobenius 等操作
 *           并基于以上实现了基于 SM9 的 BN 曲线参数的基本 R-ate 计算
+*           以及进一步实现了常规的签名验签、密钥封装、加解密与密钥交换等典型功能
+*           均基于国密标准《SM9 标识密码算法》实现并通过示例数据验证
 *           注意 Miller 算法是定义在 F(q^k) 扩域上的椭圆曲线中的，因而一个元素是 k 维向量
 *           Miller 算法计算的现实意义是什么？
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.01.01 V1.2
+* 修改记录：2022.01.02 V1.3
+*               实现密钥交换的功能
+*           2022.01.01 V1.2
 *               实现加解密的功能
 *           2021.12.30 V1.1
 *               实现签名验签与密钥封装的功能，计算速度略慢
@@ -112,6 +116,10 @@ const
 
   // 加密时的加密私钥生成函数识别符
   CN_SM9_ENCRYPTION_USER_HID = 3;
+
+  // 密钥交换前后步骤中的两个前缀
+  CN_SM9_KEY_EXCHANGE_HASHID1 = $82;
+  CN_SM9_KEY_EXCHANGE_HASHID2 = $83;
 
 type
   ECnSM9Exception = class(Exception);
@@ -307,7 +315,7 @@ type
     property PublicKey: TCnSM9SignatureMasterPublicKey read FPublicKey;
   end;
 
-  TCnSM9SignatureUserPrivateKey = TCnEccPoint;
+  TCnSM9SignatureUserPrivateKey = class(TCnEccPoint);
   {* SM9 中的用户签名私钥，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
     或者说，用户验证签名时用的公钥就是用户标识与签名主公钥}
 
@@ -325,14 +333,14 @@ type
     property S: TCnEccPoint read FS;
   end;
 
-  TCnSm9EncryptionMasterPrivateKey = class(TCnBigNumber);
-  {* SM9 中的加密主私钥，随机生成}
+  TCnSM9EncryptionMasterPrivateKey = class(TCnBigNumber);
+  {* SM9 中用于密钥封装与加解密的加密主私钥，随机生成}
 
-  TCnSm9EncryptionMasterPublicKey = class(TCnEccPoint);
-  {* SM9 中的加密主公钥，用加密主私钥乘以 G1 点而来}
+  TCnSM9EncryptionMasterPublicKey = class(TCnEccPoint);
+  {* SM9 中用于密钥封装与加解密的加密主公钥，用加密主私钥乘以 G1 点而来}
 
   TCnSM9EncryptionMasterKey = class
-  {* SM9 中的加密主密钥，由 KGC 密钥管理中心生成，公钥可公开}
+  {* SM9 中用于密钥封装与加解密的加密主密钥，由 KGC 密钥管理中心生成，公钥可公开}
   private
     FPrivateKey: TCnSM9EncryptionMasterPrivateKey;
     FPublicKey: TCnSM9EncryptionMasterPublicKey;
@@ -344,15 +352,15 @@ type
     property PublicKey: TCnSM9EncryptionMasterPublicKey read FPublicKey;
   end;
 
-  TCnSM9EncryptionUserPrivateKey = TCnFP2Point;
-  {* SM9 中的用户加密私钥，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
+  TCnSM9EncryptionUserPrivateKey = class(TCnFP2Point);
+  {* SM9 中的用户加密私钥，用于密钥封装或加解密，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
     或者说，用户解密时用的公钥就是用户标识与加密主公钥}
 
   TCnSM9KeyEncapsulationCode = class(TCnEccPoint);
   {* 密钥封装传输的内容}
 
   TCnSM9KeyEncapsulation = class
-  {* 密钥封装结果类，注意往外传只需要传 C}
+  {* 密钥封装结果类，注意往外传只需要传 Code}
   private
     FKey: AnsiString;
     FKeyLength: Integer;
@@ -363,7 +371,7 @@ type
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
-    property KeyLength: Integer read FKeyLength;
+    property KeyByteLength: Integer read FKeyLength;
     {* 密文的字节长度}
     property Key: AnsiString read FKey write FKey;
     {* 封装的密钥，无需往外传}
@@ -373,6 +381,28 @@ type
 
   TCnSM9EncrytionMode = (semSM4, semXOR);
   {* SM9 公钥加密的两种模式，用 SM4 分组加密或 KDF 序列密码异或}
+
+  TCnSM9KeyExchangeUserPrivateKey = class(TCnFP2Point);
+  {* SM9 中的用户加密私钥，用于密钥交换，由 KGC 密钥管理中心根据用户标识生成，无对应公钥}
+
+  TCnSM9KeyExchangeMasterPrivateKey = class(TCnBigNumber);
+  {* SM9 中用于密钥交换的加密主私钥，随机生成}
+
+  TCnSM9KeyExchangeMasterPublicKey = class(TCnEccPoint);
+  {* SM9 中用于密钥交换的加密主公钥，用加密主私钥乘以 G1 点而来}
+
+  TCnSM9KeyExchangeMasterKey = class
+  {* SM9 中用于密钥交换的加密主密钥，由 KGC 密钥管理中心生成，公钥可公开}
+  private
+    FPrivateKey: TCnSM9KeyExchangeMasterPrivateKey;
+    FPublicKey: TCnSM9KeyExchangeMasterPublicKey;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    property PrivateKey: TCnSM9KeyExchangeMasterPrivateKey read FPrivateKey;
+    property PublicKey: TCnSM9KeyExchangeMasterPublicKey read FPublicKey;
+  end;
 
   TCnSM9 = class(TCnEcc)
   {* SM9 内容封装类}
@@ -460,7 +490,7 @@ function FP2Inverse(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber): Bo
 function FP2Div(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber): Boolean;
 {* 有限域中二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
-function FP2ToStream(FP2: TCnFP2; Stream: TStream): Integer;
+function FP2ToStream(FP2: TCnFP2; Stream: TStream; FixedLen: Integer = 0): Integer;
 {* 将一二次扩域大整系数元素对象的内容写入流，返回写入长度}
 
 // ====================== 四次扩域大整系数元素运算函数 =========================
@@ -543,7 +573,7 @@ function FP4Inverse(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber): Bo
 function FP4Div(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber): Boolean;
 {* 有限域中四次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
-function FP4ToStream(FP4: TCnFP4; Stream: TStream): Integer;
+function FP4ToStream(FP4: TCnFP4; Stream: TStream; FixedLen: Integer = 0): Integer;
 {* 将一四次扩域大整系数元素对象的内容写入流，返回写入长度}
 
 // ===================== 十二次扩域大整系数元素运算函数 ========================
@@ -637,7 +667,7 @@ function FP12Div(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber)
 function FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber): Boolean;
 {* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F}
 
-function FP12ToStream(FP12: TCnFP12; Stream: TStream): Integer;
+function FP12ToStream(FP12: TCnFP12; Stream: TStream; FixedLen: Integer = 0): Integer;
 {* 将一十二次扩域大整系数元素对象的内容写入流，返回写入长度}
 
 // ===================== 仿射坐标系里的三元点的运算函数 ========================
@@ -772,30 +802,75 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey:
   OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
 {* 由 KCG 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装}
 
-function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
- EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey;
+// ====================== SM9 具体实现函数：密钥封装 ===========================
+
+function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyByteLength: Integer;
+ EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey;
  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9 = nil): Boolean;
 {* 普通用户根据目标用户的 ID 与加密主公钥，生成 KeyLength 长度的字节串密钥封装内容，
   返回封装是否成功}
 
 function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
-  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
+  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyByteLength: Integer;
   InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9 = nil): Boolean;
 {* 目标用户根据自身的 ID 与用户加密私钥钥，从 KeyEncapsulation 对象中还原 KeyLength
   长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
 
+// ======================= SM9 具体实现函数：加解密 ============================
+
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
-  EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; K1Length, K2Length: Integer; OutStream: TStream;
+  EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
+  DataLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
 {* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
-  EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节}
+  EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
+  SM4 使用 ECB 模式与 PKCS7 对齐}
 
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
-  DataLen: Integer; K2Length: Integer; OutStream: TStream;
+  DataLen: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
 {* 使用用户加密私钥解密数据并写入流，返回解密是否成功}
+
+// ====================== SM9 具体实现函数：密钥交换 ===========================
+
+function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
+  TCnSM9KeyExchangeMasterKey; SM9: TCnSM9 = nil): Boolean;
+{* 由 KCG 调用，生成加密主密钥，可用于密钥交换，行为等同于 CnSM9KGCGenerateEncryptionMasterKey}
+
+function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
+  TCnSM9KeyExchangeMasterPrivateKey; const AUserID: AnsiString;
+  OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
+{* 由 KCG 调用，根据用户 ID 生成用于密钥交换的用户加密私钥}
+
+function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: Integer;
+  KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey; OutRA: TCnEccPoint;
+  OutRandA: TCnBigNumber; SM9: TCnSM9 = nil): Boolean;
+{* 密钥交换第一步，A 用 B 的 ID 以及加密主公钥生成一个椭圆曲线点 RA 给 B
+  同时记录中间计算结果 OutRandA，需要外部传入保存其值，在第三步中使用}
+
+function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
+  KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
+  KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
+  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TSM3Digest;
+  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
+{* 密钥交换第二步，B 用 A、B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA
+  生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A
+  同时记录 OutG1, OutG2, OutG3 三个中间计算结果，需要外部传入保存其值，在第四步中使用}
+
+function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
+  KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
+  KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
+  InRA, InRB: TCnEccPoint; InOptionalSB: TSM3Digest; out KeyA: AnsiString;
+  out OutOptionalSA: TSM3Digest; SM9: TCnSM9 = nil): Boolean;
+{* 密钥交换第三步，A 用 B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA、RB
+  生成协商密钥 KeyA，以及一个可选的校验结果 SA 给 B，此处 KeyA 应当等于 KeyB}
+
+function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
+  InRA, InRB: TCnEccPoint; InOptionalSA: TSM3Digest; InG1, InG2, InG3: TCnFP12;
+  SM9: TCnSM9 = nil): Boolean;
+{* 密钥交换第四步，可选。B 用 A、B 的 ID 以及第二步中的三个中间结果，根据 RA、RB
+  计算出校验结果并与 InOptionalSA 比较，不通过则校验失败}
 
 // =================== SM9 具体实现函数：两种 Hash 算法 ========================
 
@@ -809,7 +884,7 @@ function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
 {* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的散列函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
-function SM9Mac(Key: Pointer; KeyLength: Integer; Z: Pointer; ZLength: Integer): TSM3Digest;
+function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TSM3Digest;
 {* 根据密钥 Key 与消息 Z，求消息认证码}
 
 implementation
@@ -1164,9 +1239,10 @@ begin
   end;
 end;
 
-function FP2ToStream(FP2: TCnFP2; Stream: TStream): Integer;
+function FP2ToStream(FP2: TCnFP2; Stream: TStream; FixedLen: Integer): Integer;
 begin
-  Result := BigNumberWriteBinaryToStream(FP2[1], Stream) + BigNumberWriteBinaryToStream(FP2[0], Stream);
+  Result := BigNumberWriteBinaryToStream(FP2[1], Stream, FixedLen)
+    + BigNumberWriteBinaryToStream(FP2[0], Stream, FixedLen);
 end;
 
 // ====================== 四次扩域大整系数元素运算函数 =========================
@@ -1458,9 +1534,9 @@ begin
   end;
 end;
 
-function FP4ToStream(FP4: TCnFP4; Stream: TStream): Integer;
+function FP4ToStream(FP4: TCnFP4; Stream: TStream; FixedLen: Integer): Integer;
 begin
-  Result := FP2ToStream(FP4[1], Stream) + FP2ToStream(FP4[0], Stream);
+  Result := FP2ToStream(FP4[1], Stream, FixedLen) + FP2ToStream(FP4[0], Stream, FixedLen);
 end;
 
 // ===================== 十二次扩域大整系数元素运算函数 ========================
@@ -1895,10 +1971,10 @@ begin
   end;
 end;
 
-function FP12ToStream(FP12: TCnFP12; Stream: TStream): Integer;
+function FP12ToStream(FP12: TCnFP12; Stream: TStream; FixedLen: Integer): Integer;
 begin
-  Result := FP4ToStream(FP12[2], Stream) + FP4ToStream(FP12[1], Stream)
-    + FP4ToStream(FP12[0], Stream);
+  Result := FP4ToStream(FP12[2], Stream, FixedLen) + FP4ToStream(FP12[1], Stream, FixedLen)
+    + FP4ToStream(FP12[0], Stream, FixedLen);
 end;
 
 // ===================== 仿射坐标系里的三元点的运算函数 ========================
@@ -3197,7 +3273,7 @@ begin
     repeat
       // 生成随机 R
       if not BigNumberRandRange(R, SM9.Order) then Exit;
-      // 测试数据： R.SetHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
+      // 测试数据 R.SetHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
       if R.IsZero then
         R.SetOne;   // 确保范围在 [1, N-1]
 
@@ -3206,7 +3282,7 @@ begin
 
       Stream.Clear;
       Stream.Write(PlainData^, DataLen);
-      FP12ToStream(G, Stream);
+      FP12ToStream(G, Stream, SM9.BytesCount);
 
       if not CnSM9Hash2(OutSignature.H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
 
@@ -3291,7 +3367,7 @@ begin
 
     Stream := TMemoryStream.Create;
     Stream.Write(PlainData^, DataLen);
-    FP12ToStream(W, Stream);
+    FP12ToStream(W, Stream, SM9.BytesCount);
 
     // 再次拼上原文与 FP12 计算 Hash2 并比对
     if not CnSM9Hash2(H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
@@ -3377,8 +3453,8 @@ begin
   end;
 end;
 
-function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyLength: Integer;
- EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey;
+function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyByteLength: Integer;
+ EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey;
  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
@@ -3425,12 +3501,12 @@ begin
     if not FP12Power(G, G, R, SM9.FiniteFieldSize) then Exit;
 
     Stream := TMemoryStream.Create;
-    CnEccPointToStream(OutKeyEncapsulation.Code, Stream);
-    FP12ToStream(G, Stream);
+    CnEccPointToStream(OutKeyEncapsulation.Code, Stream, SM9.BytesCount);
+    FP12ToStream(G, Stream, SM9.BytesCount);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
-    OutKeyEncapsulation.Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyLength); // 得到封装密钥 K
-    Result := KeyLength = Length(OutKeyEncapsulation.Key);
+    OutKeyEncapsulation.Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength); // 得到封装密钥 K
+    Result := KeyByteLength = Length(OutKeyEncapsulation.Key);
   finally
     Stream.Free;
     G.Free;
@@ -3443,7 +3519,7 @@ begin
 end;
 
 function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
-  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyLength: Integer;
+  EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyByteLength: Integer;
   InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
@@ -3469,11 +3545,11 @@ begin
     if not SM9RatePairing(W, AP, InKeyEncapsulationC) then Exit;
 
     Stream := TMemoryStream.Create;
-    CnEccPointToStream(InKeyEncapsulationC, Stream);
-    FP12ToStream(W, Stream);
+    CnEccPointToStream(InKeyEncapsulationC, Stream, SM9.BytesCount);
+    FP12ToStream(W, Stream, SM9.BytesCount);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
-    Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyLength);
+    Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength);
     Result := Key <> '';
   finally
     Stream.Free;
@@ -3491,8 +3567,8 @@ end;
    密文为：C1‖C3‖C2
 }
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
-  EncryptionPublicKey: TCnSm9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; K1Length, K2Length: Integer; OutStream: TStream;
+  EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
+  DataLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
@@ -3525,13 +3601,13 @@ var
 
 begin
   Result := False;
-  if (DestUserID = '') or (PlainData = nil) or (DataLen <= 0) or (K1Length <= 0)
-    or (K2Length <= 0) then
+  if (DestUserID = '') or (PlainData = nil) or (DataLen <= 0) or (K1ByteLength <= 0)
+    or (K2ByteLength <= 0) then
     Exit;
 
   // SM4 的 Key 长度只能 16
   if EncryptionMode = semSM4 then
-    K1Length := SM4_KEYSIZE;
+    K1ByteLength := SM4_KEYSIZE;
 
   C := SM9 = nil;
   if C then
@@ -3559,8 +3635,7 @@ begin
 
     R := TCnBigNumber.Create;
     if not BigNumberRandRange(R, SM9.Order) then Exit;
-    // 测试数据
-    R.SetHex('AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
+    // 测试数据 R.SetHex('AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
     if R.IsZero then
       R.SetOne;
 
@@ -3574,13 +3649,14 @@ begin
     if not FP12Power(G, G, R, SM9.FiniteFieldSize) then Exit; // G 得到幂 w
 
     Stream := TMemoryStream.Create;
-    CnEccPointToStream(Q, Stream);
-    FP12ToStream(G, Stream);
+    CnEccPointToStream(Q, Stream, SM9.BytesCount);
+    FP12ToStream(G, Stream, SM9.BytesCount);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
+    KLen := 0; // 初始化一下
     if EncryptionMode = semSM4 then
     begin
-      KLen := K1Length + K2Length;
+      KLen := K1ByteLength + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
 
       SetLength(P2, DataLen);
@@ -3594,7 +3670,7 @@ begin
     end
     else if EncryptionMode = semXOR then
     begin
-      KLen := DataLen + K2Length;
+      KLen := DataLen + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
 
       // KDFKey 的 1 到 DataLen 与明文异或得到 C2，注意 KDFKey 的下标从 1 开始
@@ -3605,9 +3681,9 @@ begin
         C2[I] := Byte(KDFKey[I + 1]) xor PD^[I];
     end;
 
-    Mac := SM9Mac(@(KDFKey[KLen - K2Length + 1]), K2Length, @C2[0], Length(C2)); // 用 K2 和 C2 算出 C3
+    Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @C2[0], Length(C2)); // 用 K2 和 C2 算出 C3
 
-    CnEccPointToStream(Q, OutStream);             // 写 C1
+    CnEccPointToStream(Q, OutStream, SM9.BytesCount);             // 写 C1
     OutStream.Write(Mac[0], SizeOf(TSM3Digest));  // 写 C3
     OutStream.Write(C2[0], Length(C2));           // 写 C2
 
@@ -3628,7 +3704,7 @@ end;
 
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
-  DataLen: Integer; K2Length: Integer; OutStream: TStream;
+  DataLen: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
@@ -3660,7 +3736,7 @@ var
 
 begin
   Result := False;
-  if (EnData = nil) or (K2Length <= 0) or (DataLen <= 0) then
+  if (EnData = nil) or (K2ByteLength <= 0) or (DataLen <= 0) then
     Exit;
 
   C := SM9 = nil;
@@ -3701,16 +3777,16 @@ begin
     if not SM9RatePairing(W, AP, C1) then Exit;
 
     Stream := TMemoryStream.Create;
-    CnEccPointToStream(C1, Stream);
-    FP12ToStream(W, Stream);
+    CnEccPointToStream(C1, Stream, SM9.BytesCount);
+    FP12ToStream(W, Stream, SM9.BytesCount);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
     SetLength(C2, MLen);
     if EncryptionMode = semSM4 then
     begin
-      KLen := SM4_KEYSIZE + K2Length;
+      KLen := SM4_KEYSIZE + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
-      Mac := SM9Mac(@(KDFKey[KLen - K2Length + 1]), K2Length, @P[0], MLen); // 用 K2 和 C2 算出 C3
+      Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen); // 用 K2 和 C2 算出 C3
 
       // SK4 解出明文到 C2
       SM4Decrypt(@KDFKey[1], @P[0], @C2[0], Length(C2));
@@ -3719,9 +3795,9 @@ begin
     end
     else if EncryptionMode = semXOR then
     begin
-      KLen := MLen + K2Length;
+      KLen := MLen + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
-      Mac := SM9Mac(@(KDFKey[KLen - K2Length + 1]), K2Length, @P[0], MLen); // 用 K2 和 C2 算出 C3
+      Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen); // 用 K2 和 C2 算出 C3
 
       // KDFKey 的前面部分的长度与与密文相等，XOR 出结果即为明文
       for I := 0 to Length(C2) - 1 do
@@ -3739,6 +3815,363 @@ begin
     W.Free;
     AP.Free;
     C1.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+// ====================== SM9 具体实现函数：密钥协商 ===========================
+
+function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
+  TCnSM9KeyExchangeMasterKey; SM9: TCnSM9 = nil): Boolean;
+var
+  C: Boolean;
+begin
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  try
+    BigNumberRandRange(KeyExchangeMasterKey.PrivateKey, SM9.Order);
+    if KeyExchangeMasterKey.PrivateKey.IsZero then
+      KeyExchangeMasterKey.PrivateKey.SetOne;
+
+    KeyExchangeMasterKey.PublicKey.Assign(SM9.Generator);
+    SM9.MultiplePoint(KeyExchangeMasterKey.PrivateKey, KeyExchangeMasterKey.PublicKey);
+
+    Result := True;
+  finally
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
+  TCnSM9KeyExchangeMasterPrivateKey; const AUserID: AnsiString;
+  OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
+var
+  C: Boolean;
+  S: AnsiString;
+  T1: TCnBigNumber;
+  AP: TCnFP2AffinePoint;
+begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  T1 := nil;
+  AP := nil;
+
+  try
+    S := AUserID + AnsiChar(CN_SM9_KEY_EXCHANGE_USER_HID);
+
+    T1 := TCnBigNumber.Create;
+    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
+
+    if not BigNumberAdd(T1, T1, KeyExchangeMasterPrivateKey) then Exit;
+
+    if T1.IsZero then
+      raise ECnSM9Exception.Create(SEncMasterKeyZero);
+
+    if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
+
+    if not BigNumberDirectMulMod(T1, T1, KeyExchangeMasterPrivateKey, SM9.Order) then Exit;
+
+    AP := TCnFP2AffinePoint.Create;
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
+    if not FP2AffinePointMul(AP, AP, T1, SM9.FiniteFieldSize) then Exit;
+    if not FP2AffinePointToFP2Point(OutKeyExchangeUserKey, AP, SM9.FiniteFieldSize) then Exit;
+
+    Result := True;
+  finally
+    AP.Free;
+    T1.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: Integer;
+  KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey; OutRA: TCnEccPoint;
+  OutRandA: TCnBigNumber; SM9: TCnSM9 = nil): Boolean;
+var
+  C: Boolean;
+  S: AnsiString;
+  T: TCnBigNumber;
+begin
+  Result := False;
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  T := nil;
+
+  try
+    S := BUserID + AnsiChar(CN_SM9_KEY_EXCHANGE_USER_HID);
+    T := TCnBigNumber.Create;
+    if not CnSM9Hash1(T, @S[1], Length(S), SM9.Order) then Exit;
+
+    OutRA.Assign(SM9.Generator);
+    SM9.MultiplePoint(T, OutRA);
+    SM9.PointAddPoint(OutRA, KeyExchangePublicKey, OutRA);
+
+    if not BigNumberRandRange(OutRandA, SM9.Order) then Exit;
+    // 测试数据 OutRandA.SetHex('5879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8');
+    if OutRandA.IsZero then
+      OutRandA.SetOne;
+
+    SM9.MultiplePoint(OutRandA, OutRA);
+    Result := True;
+  finally
+    T.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
+  KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
+  KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
+  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TSM3Digest;
+  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
+var
+  C: Boolean;
+  S: AnsiString;
+  R, T: TCnBigNumber;
+  AP: TCnFP2AffinePoint;
+  Stream: TMemoryStream;
+  B: Byte;
+  D: TSM3Digest;
+begin
+  Result := False;
+
+  if (InRA = nil) or (KeyByteLength <= 0) or
+    (OutG1 = nil) or (OutG2 = nil) or (OutG3 = nil) then Exit;
+
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  T := nil;
+  R := nil;
+  AP := nil;
+  Stream := nil;
+
+  try
+    if not SM9.IsPointOnCurve(InRA) then Exit;
+
+    S := AUserID + AnsiChar(CN_SM9_KEY_EXCHANGE_USER_HID);
+    T := TCnBigNumber.Create;
+    if not CnSM9Hash1(T, @S[1], Length(S), SM9.Order) then Exit;
+
+    OutRB.Assign(SM9.Generator);
+    SM9.MultiplePoint(T, OutRB);
+    SM9.PointAddPoint(OutRB, KeyExchangePublicKey, OutRB);
+
+    R := TCnBigNumber.Create;
+    if not BigNumberRandRange(R, SM9.Order) then Exit;
+    // 测试数据 R.SetHex('018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE');
+    if R.IsZero then
+      R.SetOne;
+
+    SM9.MultiplePoint(R, OutRB);
+
+    AP := TCnFP2AffinePoint.Create;
+
+    if not FP2PointToFP2AffinePoint(AP, KeyExchangeBUserKey) then Exit;
+    if not SM9RatePairing(OutG1, AP, InRA) then Exit;
+
+    if not FP2PointToFP2AffinePoint(AP, SM9.Generator2) then Exit;
+    if not SM9RatePairing(OutG2, AP, KeyExchangePublicKey) then Exit;
+    if not FP12Power(OutG2, OutG2, R, SM9.FiniteFieldSize) then Exit;
+
+    if not FP12Power(OutG3, OutG1, R, SM9.FiniteFieldSize) then Exit; // 计算出了仨 G
+
+    Stream := TMemoryStream.Create;
+    Stream.Write(AUserID[1], Length(AUserID));
+    Stream.Write(BUserID[1], Length(BUserID));
+    CnEccPointToStream(InRA, Stream, SM9.BytesCount);
+    CnEccPointToStream(OutRB, Stream, SM9.BytesCount);
+    FP12ToStream(OutG1, Stream, SM9.BytesCount);
+    FP12ToStream(OutG2, Stream, SM9.BytesCount);
+    FP12ToStream(OutG3, Stream, SM9.BytesCount);
+
+    KeyB := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength); // 生成了协商密钥
+
+    // 再计算可选的校验值
+    Stream.Clear;
+    FP12ToStream(OutG2, Stream, SM9.BytesCount);
+    FP12ToStream(OutG3, Stream, SM9.BytesCount);
+    Stream.Write(AUserID[1], Length(AUserID));
+    Stream.Write(BUserID[1], Length(BUserID));
+    CnEccPointToStream(InRA, Stream, SM9.BytesCount);
+    CnEccPointToStream(OutRB, Stream, SM9.BytesCount);
+    D := SM3(Stream.Memory, Stream.Size);  // 第一次 Hash
+
+    Stream.Clear;
+    B := CN_SM9_KEY_EXCHANGE_HASHID1;
+    Stream.Write(B, 1);
+    FP12ToStream(OutG1, Stream, SM9.BytesCount);
+    Stream.Write(D[0], SizeOf(TSM3Digest));
+    OutOptionalSB := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
+
+    Result := True;
+  finally
+    Stream.Free;
+    AP.Free;
+    R.Free;
+    T.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
+  KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
+  KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
+  InRA, InRB: TCnEccPoint; InOptionalSB: TSM3Digest; out KeyA: AnsiString;
+  out OutOptionalSA: TSM3Digest; SM9: TCnSM9 = nil): Boolean;
+var
+  C: Boolean;
+  G1, G2, G3: TCnFP12;
+  AP: TCnFP2AffinePoint;
+  Stream: TMemoryStream;
+  B: Byte;
+  D: TSM3Digest;
+begin
+  Result := False;
+  if (InRA = nil) or (InRB = nil) or (InRandA = nil) then Exit;
+
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  AP := nil;
+  G1 := nil;
+  G2 := nil;
+  G3 := nil;
+  Stream := nil;
+
+  try
+    if not SM9.IsPointOnCurve(InRB) then Exit;
+
+    AP := TCnFP2AffinePoint.Create;
+    FP2PointToFP2AffinePoint(AP, SM9.Generator2);
+
+    G1 := TCnFP12.Create;
+    if not SM9RatePairing(G1, AP, KeyExchangePublicKey) then Exit;
+    if not FP12Power(G1, G1, InRandA, SM9.FiniteFieldSize) then Exit;
+
+    G2 := TCnFP12.Create;
+    FP2PointToFP2AffinePoint(AP, KeyExchangeAUserKey);
+    if not SM9RatePairing(G2, AP, InRB) then Exit;
+
+    G3 := TCnFP12.Create;
+    if not FP12Power(G3, G2, InRandA, SM9.FiniteFieldSize) then Exit; // 也计算出了仨 G
+
+    Stream := TMemoryStream.Create;
+    FP12ToStream(G2, Stream, SM9.BytesCount);
+    FP12ToStream(G3, Stream, SM9.BytesCount);
+    Stream.Write(AUserID[1], Length(AUserID));
+    Stream.Write(BUserID[1], Length(BUserID));
+    CnEccPointToStream(InRA, Stream, SM9.BytesCount);
+    CnEccPointToStream(InRB, Stream, SM9.BytesCount);
+    D := SM3(Stream.Memory, Stream.Size); // 第一次 Hash
+
+    Stream.Clear;
+    B := CN_SM9_KEY_EXCHANGE_HASHID1;
+    Stream.Write(B, 1);
+    FP12ToStream(G1, Stream, SM9.BytesCount);
+    Stream.Write(D[0], SizeOf(TSM3Digest));
+    D := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
+
+    if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TSM3Digest)) then Exit;
+
+    // 校验 SA SB 通过后，开始计算密钥
+    Stream.Clear;
+    Stream.Write(AUserID[1], Length(AUserID));
+    Stream.Write(BUserID[1], Length(BUserID));
+    CnEccPointToStream(InRA, Stream, SM9.BytesCount);
+    CnEccPointToStream(InRB, Stream, SM9.BytesCount);
+    FP12ToStream(G1, Stream, SM9.BytesCount);
+    FP12ToStream(G2, Stream, SM9.BytesCount);
+    FP12ToStream(G3, Stream, SM9.BytesCount);
+
+    KeyA := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength); // 生成了协商密钥
+
+    // 可选：再来一把校验
+    Stream.Clear;
+    FP12ToStream(G2, Stream, SM9.BytesCount);
+    FP12ToStream(G3, Stream, SM9.BytesCount);
+    Stream.Write(AUserID[1], Length(AUserID));
+    Stream.Write(BUserID[1], Length(BUserID));
+    CnEccPointToStream(InRA, Stream, SM9.BytesCount);
+    CnEccPointToStream(InRB, Stream, SM9.BytesCount);
+    D := SM3(Stream.Memory, Stream.Size); // 第一次 Hash
+
+    Stream.Clear;
+    B := CN_SM9_KEY_EXCHANGE_HASHID2;
+    Stream.Write(B, 1);
+    FP12ToStream(G1, Stream, SM9.BytesCount);
+    Stream.Write(D[0], SizeOf(TSM3Digest));
+    OutOptionalSA := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
+
+    Result := True;
+  finally
+    Stream.Free;
+    AP.Free;
+    G3.Free;
+    G2.Free;
+    G1.Free;
+    if C then
+      SM9.Free;
+  end;
+end;
+
+function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
+  InRA, InRB: TCnEccPoint; InOptionalSA: TSM3Digest; InG1, InG2, InG3: TCnFP12;
+  SM9: TCnSM9 = nil): Boolean;
+var
+  C: Boolean;
+  D: TSM3Digest;
+  Stream: TMemoryStream;
+  B: Byte;
+begin
+  Result := False;
+
+  if (InRA = nil) or (InRB = nil) or
+    (InG1 = nil) or (InG2 = nil) or (InG3 = nil) then Exit;
+
+  C := SM9 = nil;
+  if C then
+    SM9 := TCnSM9.Create;
+
+  Stream := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+
+    FP12ToStream(InG2, Stream, SM9.BytesCount);
+    FP12ToStream(InG3, Stream, SM9.BytesCount);
+    Stream.Write(AUserID[1], Length(AUserID));
+    Stream.Write(BUserID[1], Length(BUserID));
+    CnEccPointToStream(InRA, Stream, SM9.BytesCount);
+    CnEccPointToStream(InRB, Stream, SM9.BytesCount);
+
+    D := SM3(Stream.Memory, Stream.Size);
+    Stream.Clear;
+    B := CN_SM9_KEY_EXCHANGE_HASHID2;
+
+    Stream.Write(B, 1);
+    FP12ToStream(InG1, Stream, SM9.BytesCount);
+    Stream.Write(D[0], SizeOf(TSM3Digest));
+
+    // 第二次 Hash
+    D := SM3(Stream.Memory, Stream.Size);
+    Result := CompareMem(@D[0], @InOptionalSA[0], SizeOf(TSM3Digest));
+  finally
+    Stream.Free;
     if C then
       SM9.Free;
   end;
@@ -3842,16 +4275,16 @@ begin
   Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataLen, N);
 end;
 
-function SM9Mac(Key: Pointer; KeyLength: Integer; Z: Pointer; ZLength: Integer): TSM3Digest;
+function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TSM3Digest;
 var
   Arr: array of Byte;
 begin
-  if (Key = nil) or (KeyLength <= 0) or (Z = nil) or (ZLength <= 0) then
+  if (Key = nil) or (KeyByteLength <= 0) or (Z = nil) or (ZByteLength <= 0) then
     raise ECnSM9Exception.Create(SErrorMacParams);
 
-  SetLength(Arr, KeyLength + ZLength);
-  Move(Z^, Arr[0], ZLength);
-  Move(Key^, Arr[ZLength], KeyLength);
+  SetLength(Arr, KeyByteLength + ZByteLength);
+  Move(Z^, Arr[0], ZByteLength);
+  Move(Key^, Arr[ZByteLength], KeyByteLength);
   Result := SM3(@Arr[0], Length(Arr));
   SetLength(Arr, 0);
 end;
@@ -3862,7 +4295,7 @@ constructor TCnSM9EncryptionMasterKey.Create;
 begin
   inherited;
   FPrivateKey := TCnSM9EncryptionMasterPrivateKey.Create;
-  FPublicKey := TCnSm9EncryptionMasterPublicKey.Create;
+  FPublicKey := TCnSM9EncryptionMasterPublicKey.Create;
 end;
 
 destructor TCnSM9EncryptionMasterKey.Destroy;
@@ -3975,6 +4408,21 @@ end;
 function TCnSM9KeyEncapsulation.ToString: string;
 begin
   Result := StrToHex(PAnsiChar(FKey), Length(FKey)) + CRLF + FCode.ToHex;
+end;
+
+{ TCnSM9KeyExchangeMasterKey }
+
+constructor TCnSM9KeyExchangeMasterKey.Create;
+begin
+  FPrivateKey := TCnSM9KeyExchangeMasterPrivateKey.Create;
+  FPublicKey := TCnSM9KeyExchangeMasterPublicKey.Create;
+end;
+
+destructor TCnSM9KeyExchangeMasterKey.Destroy;
+begin
+  FPublicKey.Free;
+  FPrivateKey.Free;
+  inherited;
 end;
 
 initialization
