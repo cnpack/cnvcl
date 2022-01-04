@@ -454,7 +454,7 @@ begin
   repeat
     PrimeKey1 := CnGenerateUInt32Prime(HighBitSet);
 
-    N := Trunc(Random * 1000);
+    N := Trunc(Random * 100); // 以调整 CnGenerateUInt32Prime 内部的随机数发生器
     Sleep(N);
 
     PrimeKey2 := CnGenerateUInt32Prime(HighBitSet);
@@ -486,7 +486,8 @@ begin
   CnInt64ExtendedEuclideanGcd(PubKeyExponent, Product, PrivKeyExponent, Y);
   while UInt64IsNegative(PrivKeyExponent) do
   begin
-     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上 r，加到大于零为止
+     // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上倍数个 r，加到大于零为止
+     Product := (UInt64Div(-PrivKeyExponent, Product) + 1) * Product;
      PrivKeyExponent := PrivKeyExponent + Product;
   end;
   Result := True;
