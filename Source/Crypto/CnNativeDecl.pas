@@ -602,7 +602,7 @@ end;
 function UInt64IsNegative(N: TUInt64): Boolean;
 begin
 {$IFDEF SUPPORT_UINT64}
-  Result := (N and (1 shl 63)) <> 0;
+  Result := (N and (UInt64(1) shl 63)) <> 0;
 {$ELSE}
   Result := N < 0;
 {$ENDIF}

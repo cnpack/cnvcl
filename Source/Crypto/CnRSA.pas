@@ -487,8 +487,8 @@ begin
   while UInt64IsNegative(PrivKeyExponent) do
   begin
      // 如果求出来的 d 小于 0，则不符合条件，需要将 d 加上倍数个 r，加到大于零为止
-     Product := (UInt64Div(-PrivKeyExponent, Product) + 1) * Product;
-     PrivKeyExponent := PrivKeyExponent + Product;
+     Y := (UInt64Div(-PrivKeyExponent, Product) + 1) * Product;
+     PrivKeyExponent := PrivKeyExponent + Y;
   end;
   Result := True;
 end;

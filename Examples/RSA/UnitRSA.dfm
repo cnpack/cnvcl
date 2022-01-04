@@ -261,6 +261,15 @@ object FormRSA: TFormRSA
           TabOrder = 5
         end
       end
+      object btnInt64Sample: TButton
+        Left = 896
+        Top = 24
+        Width = 75
+        Height = 25
+        Caption = 'Int64 Sample'
+        TabOrder = 2
+        OnClick = btnInt64SampleClick
+      end
     end
     object tsRSA: TTabSheet
       Caption = 'Big Number RSA'
@@ -818,7 +827,7 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 676
+            Left = 674
             Top = 42
             Width = 94
             Height = 13
@@ -828,13 +837,13 @@ object FormRSA: TFormRSA
           object edtSignFile: TEdit
             Left = 88
             Top = 8
-            Width = 749
+            Width = 747
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object btnSignBrowse: TButton
-            Left = 844
+            Left = 842
             Top = 8
             Width = 75
             Height = 21
@@ -855,14 +864,14 @@ object FormRSA: TFormRSA
           object edtSigFile: TEdit
             Left = 88
             Top = 72
-            Width = 749
+            Width = 747
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             ReadOnly = True
             TabOrder = 3
           end
           object btnSignatureBrowse: TButton
-            Left = 844
+            Left = 842
             Top = 72
             Width = 75
             Height = 21
@@ -891,7 +900,7 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 780
+            Left = 778
             Top = 40
             Width = 65
             Height = 21

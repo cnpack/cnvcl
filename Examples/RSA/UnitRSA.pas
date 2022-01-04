@@ -180,6 +180,7 @@ type
     lblKeyHash: TLabel;
     cbbLoadKeyHash: TComboBox;
     chkOAEP: TCheckBox;
+    btnInt64Sample: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -223,6 +224,7 @@ type
     procedure btnDHBCKClick(Sender: TObject);
     procedure btnDHRandClick(Sender: TObject);
     procedure btnFastSqrtClick(Sender: TObject);
+    procedure btnInt64SampleClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -273,7 +275,6 @@ begin
     lblInt64MBits.Caption := 'n Bits: ' + IntToStr(GetInt64BitCount(FPrivKeyProduct));
   end;
 end;
-
 
 procedure TFormRSA.btnRSAEnClick(Sender: TObject);
 var
@@ -920,6 +921,21 @@ begin
     T := StrToInt64(edtFastSqrt.Text);
     ShowMessage('Integer Sqrt of Int64 ' + UInt64ToStr(T) + ' is ' + UInt64ToStr(FastSqrt64(T)))
   end;
+end;
+
+procedure TFormRSA.btnInt64SampleClick(Sender: TObject);
+var
+  R: TUInt64;
+begin
+  FPrivKeyProduct := StrToUInt64('14979008342806052453');
+  FPrivKeyExponent := 9033985129783743113;
+  FPubKeyProduct := StrToUInt64('14979008342806052453');;
+  FPubKeyExponent := 65537;
+
+  if CnInt64RSAEncrypt(12345678987654321, FPrivKeyProduct, FPrivKeyExponent, R) then
+    edtRes.Text := Format('%u', [R]);
+  if CnInt64RSADecrypt(R, FPubKeyProduct, FPubKeyExponent, R) then
+    edtDataBack.Text := Format('%u', [R]);
 end;
 
 end.
