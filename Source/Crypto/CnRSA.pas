@@ -436,9 +436,11 @@ var
   I: Integer;
 begin
   I := 0;
-  while (A shr I) <> 0 do
+  while A <> 0 do
+  begin
+    A := A shr 1;
     Inc(I);
-
+  end;
   Result := I;
 end;
 
