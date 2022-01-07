@@ -28,7 +28,9 @@ unit CnKDF;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.11.25 V1.1
+* 修改记录：2022.01.02 V1.2
+*               修正 CnPBKDF2 的一处问题以及在 Unicode 下的兼容性问题
+*           2021.11.25 V1.1
 *               修正 CnSM2KDF 在 Unicode 下的兼容性问题
 *           2020.03.30 V1.0
 *               创建单元，从 CnPemUtils 中独立出来
@@ -264,7 +266,11 @@ begin
   begin
     for I := 1 to D do
     begin
+{$IFDEF UNICODE}
+      S := Salt + AnsiChar(I shr 24) + AnsiChar(I shr 16) + AnsiChar(I shr 8) + AnsiChar(I);
+{$ELSE}
       S := Salt + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
+{$ENDIF}
       SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(S), Length(S), Sha1Dig1);
       T1 := Sha1Dig1;
 
@@ -285,7 +291,11 @@ begin
   begin
     for I := 1 to D do
     begin
+{$IFDEF UNICODE}
+      S := Salt + AnsiChar(I shr 24) + AnsiChar(I shr 16) + AnsiChar(I shr 8) + AnsiChar(I);
+{$ELSE}
       S := Salt + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
+{$ENDIF}
       SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(S), Length(S), Sha256Dig1);
       T256 := Sha256Dig1;
 
@@ -294,7 +304,7 @@ begin
         SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T256[0]), SizeOf(TSHA256Digest), Sha256Dig);
         T256 := Sha256Dig;
         for K := Low(TSHA256Digest) to High(TSHA256Digest) do
-          Sha256Dig1[K] := Sha256Dig1[K] xor T1[K];
+          Sha256Dig1[K] := Sha256Dig1[K] xor T256[K];
       end;
 
       Move(Sha256Dig1[0], S256[1], SizeOf(TSHA256Digest));
