@@ -633,8 +633,8 @@ begin
     if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey1, PB1) then
       Exit;
 
-    N := Trunc(Random * 1000);
-    Sleep(N);
+//    N := Trunc(Random * 1000);
+//    Sleep(N);
 
     if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey2, PB2) then
       Exit;
