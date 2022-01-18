@@ -48,8 +48,10 @@ type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
 
   TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1);
+  {* PBKDF1 规定的三种 Hash 途径}
 
   TCnPBKDF2KeyHash = (cpdfSha1Hmac, cpdfSha256Hmac);
+  {* PBKDF2 规定的两种 Hash 途径}
 
   ECnKDFException = class(Exception);
 
@@ -70,11 +72,13 @@ function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Int
 
 function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
 {* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
-  均不支持规范中说的非整字节数，行为可能和下面的 CnSM9KDF 等同}
+  均不支持规范中说的非整字节数，行为可能和下面的 CnSM9KDF 等同，
+  同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
 
 function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
 {* SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
-  均不支持规范中说的非整字节数，行为可能和上面的 CnSM2KDF 等同}
+  均不支持规范中说的非整字节数，行为可能和上面的 CnSM2KDF 等同，
+  同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
 
 implementation
 
