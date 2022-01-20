@@ -194,12 +194,14 @@ function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
 {* 生成 RSA 算法所需的公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
-   PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
+   PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。内部缺乏安全判断。
+   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
 
 function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
 {* 生成 RSA 算法所需的公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
-   ModulusBits 取值为 512/1024/2048等。PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
+   ModulusBits 取值为 512/1024/2048等。内部有安全判断。
+   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
 
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
@@ -608,9 +610,11 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
 var
   N, PB1, PB2, MinDB, MinW: Integer;
   Suc: Boolean;
+  Dif, MinD: TCnBigNumber;
   R, Y, Rem, S1, S2, One: TCnBigNumber;
 begin
   Result := False;
+  RSAErrorCode := ECN_RSA_BIGNUMBER_ERROR;
   if ModulusBits < 128 then
   begin
     RSAErrorCode := ECN_RSA_INVALID_BITS;
@@ -628,54 +632,60 @@ begin
     MinDB := ModulusBits div 3;
   MinW := ModulusBits shr 2;
 
-  while not Suc do
-  begin
-    if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey1, PB1) then
-      Exit;
+  Rem := nil;
+  Y := nil;
+  R := nil;
+  S1 := nil;
+  S2 := nil;
+  One := nil;
+  Dif := nil;
+  MinD := nil;
 
-//    N := Trunc(Random * 1000);
-//    Sleep(N);
+  try
+    Rem := TCnBigNumber.Create;
+    Y := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
+    S1 := TCnBigNumber.Create;
+    S2 := TCnBigNumber.Create;
+    One := TCnBigNumber.Create;
+    Dif := TCnBigNumber.Create;
+    MinD := TCnBigNumber.Create;
 
-    if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey2, PB2) then
-      Exit;
+    while not Suc do
+    begin
+      if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey1, PB1) then
+        Exit;
 
-    // TODO: p 和 q 的差不能过小，不满足时得 Continue
+      if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey2, PB2) then
+        Exit;
 
-    // 一般要求 Prime1 > Prime2 以便计算 CRT 等参数
-    if BigNumberCompare(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) < 0 then
-      BigNumberSwap(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
+      if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+        Exit;
 
-    if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
-      Exit;
+      // p、q 的积是否满足 Bit 数，不满足时得 Continue
+      if PrivateKey.PrivKeyProduct.GetBitsCount <> ModulusBits then
+        Continue;
 
-    // p、q 的积是否满足 Bit 数，不满足时得 Continue
-    if PrivateKey.PrivKeyProduct.GetBitsCount <> ModulusBits then
-      Continue;
+      // 如果乘积的位数为 n，则 |p-q| 的位数要求比 n/3 大，也比 n/2 - 100 大
+      if not BigNumberSub(Dif, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+        Exit;
 
-    // TODO: pq 的积的 NAF 系数是否满足条件，不满足时得 Continue
+      if Dif.GetBitsCount <= MinDB then
+        Continue;
 
-    if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
-      Exit;
+      // 一般要求 Prime1 > Prime2 以便计算 CRT 等参数
+      if BigNumberCompare(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) < 0 then
+        BigNumberSwap(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
 
-    if PublicKeyUse3 then
-      PublicKey.PubKeyExponent.SetDec('3')
-    else
-      PublicKey.PubKeyExponent.SetDec('65537');
+      // TODO: pq 的积的非相邻形式（Non-Adjacent Form）NAF 系数是否满足条件，不满足时得 Continue
 
-    Rem := nil;
-    Y := nil;
-    R := nil;
-    S1 := nil;
-    S2 := nil;
-    One := nil;
+      if not BigNumberMul(PublicKey.PubKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+        Exit;
 
-    try
-      Rem := TCnBigNumber.Create;
-      Y := TCnBigNumber.Create;
-      R := TCnBigNumber.Create;
-      S1 := TCnBigNumber.Create;
-      S2 := TCnBigNumber.Create;
-      One := TCnBigNumber.Create;
+      if PublicKeyUse3 then
+        PublicKey.PubKeyExponent.SetDec('3')
+      else
+        PublicKey.PubKeyExponent.SetDec('65537');
 
       BigNumberSetOne(One);
       BigNumberSub(S1, PrivateKey.PrimeKey1, One);
@@ -689,18 +699,25 @@ begin
       if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
 
-      // TODO: d 不能太小，不满足时得 Continue
-    finally
-      One.Free;
-      S2.Free;
-      S1.Free;
-      R.Free;
-      Y.Free;
-      Rem.Free;
-    end;
+      // d 不能太小，必须大于 2 的 n/2 次方
+      MinD.SetOne;
+      MinD.ShiftLeft(MinW);
+      if BigNumberCompare(PrivateKey.PrivKeyExponent, MinD) <= 0 then
+        Continue;
 
-    Suc := True;
+      Suc := True;
+    end;
+  finally
+    MinD.Free;
+    Dif.Free;
+    One.Free;
+    S2.Free;
+    S1.Free;
+    R.Free;
+    Y.Free;
+    Rem.Free;
   end;
+  RSAErrorCode := ECN_RSA_OK;
   Result := True;
 end;
 
