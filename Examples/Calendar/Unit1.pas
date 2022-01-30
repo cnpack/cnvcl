@@ -130,6 +130,7 @@ begin
   mmoResult.Lines.Add('财神' + GetJiShenFangWeiFromNumber(GetCaiShenFangWeiFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('喜神' + GetJiShenFangWeiFromNumber(GetXiShenFangWeiFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('贵神' + GetJiShenFangWeiFromNumber(GetGuiShenFangWeiFromDay(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('福神' + GetJiShenFangWeiFromNumber(GetFuShenFangWeiFromDay(AYear, AMonth, ADay)));
 
   mmoResult.Lines.Add('本日节气：' + GetJieQiFromNumber(GetJieQiFromDay(AYear, AMonth, ADay)));
   if GetJieQiFromDay(AYear, AMonth, ADay) >= 0 then

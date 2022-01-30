@@ -48,7 +48,7 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2022.01.29 V2.2
-*               根据日干增加每日吉神方位的计算，包括财神、喜神、贵神等，其中贵神包括阳贵阴贵，默认阳贵。
+*               根据日干增加每日吉神方位的计算，包括财神、喜神、福神、贵神等，其中贵神包括阳贵阴贵，默认阳贵。
 *           2018.08.22 V2.1
 *               罗建仁补充 2100 年到 2800 年的农历数据并协助修正三伏日计算的偏差
 *           2018.07.18 V2.0
@@ -514,6 +514,9 @@ function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 
 function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 {* 获得公历年月日的喜神方位，0-7}
+
+function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获得公历年月日的福神方位，0-7}
 
 function GetGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 {* 获得公历年月日的贵神方位，0-7，默认为阳贵}
@@ -2821,6 +2824,24 @@ begin
     2,7: Result := 5; // 丙辛在西南
     3,8: Result := 4; // 丁壬在正南
     4,9: Result := 3; // 戊癸在东南
+  end;
+end;
+
+// 获得公历年月日的福神方位，0-7
+function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+var
+  Gan, Zhi: Integer;
+begin
+  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  // 福神居然有两套口诀：一是此处用的甲己正北是福神，丙辛西北乾宫存。乙庚坤位戊癸艮，丁壬巽上妙追寻。
+  // 二是：甲乙东南是福神，丙丁正东是堪宜，戊北己南庚辛坤，壬在乾方癸在酉。筛查后弃用。
+
+  case Gan of
+    0,5: Result := 1; // 甲己在正北
+    1,6: Result := 7; // 乙庚在西南
+    2,7: Result := 5; // 丙辛在西北
+    3,8: Result := 4; // 丁壬在东南
+    4,9: Result := 3; // 戊癸在东北
   end;
 end;
 
