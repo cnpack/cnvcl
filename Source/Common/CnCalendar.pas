@@ -47,7 +47,9 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2018.08.22 V2.1
+* 修改记录：2022.01.29 V2.2
+*               根据日干增加每日吉神方位的计算，包括财神、喜神、贵神等，其中贵神包括阳贵阴贵，默认阳贵。
+*           2018.08.22 V2.1
 *               罗建仁补充 2100 年到 2800 年的农历数据并协助修正三伏日计算的偏差
 *           2018.07.18 V2.0
 *               根据通书算法更新九星的计算，增加节气至后甲子间的重排
@@ -249,6 +251,12 @@ const
       '桑柘木', '大溪水', '沙中土',
       '天上火', '石榴木', '大海水' );
   {* 纳音五行，与相邻一对六十干支对应}
+
+  SCnJiShenFangWeiArray: array[0..7] of string =
+    ( '正北', '东北', '正东', '东南',
+      '正南', '西南', '正西', '西北');
+  {* 吉神方位，对应八卦的八个方向。
+   吉神包括喜神、财神、贵神，贵神还包括阴贵、阳贵，默认指阳贵}
 
 type
   EDateException = class(Exception);
@@ -497,6 +505,24 @@ function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
 
 function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
 {* 获取公历时的时九星，0-8 对应一白到九紫}
+
+function GetJiShenFangWeiFromNumber(AFangWei: Integer): string;
+{* 根据吉神方位数字获得吉神方位名称}
+
+function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获得公历年月日的财神方位，0-7}
+
+function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获得公历年月日的喜神方位，0-7}
+
+function GetGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获得公历年月日的贵神方位，0-7，默认为阳贵}
+
+function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获得公历年月日的阳贵神方位，0-7}
+
+function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获得公历年月日的阴贵神方位，0-7}
 
 function GetAllDays(Year, Month, Day: Integer): Integer;
 {* 获得距公元元年 1 月 0 日的绝对天数}
@@ -2753,6 +2779,91 @@ begin
           Result := (SCH + 3) mod 9;
         end;
     end;
+  end;
+end;
+
+// 根据吉神方位数字获得吉神方位名称
+function GetJiShenFangWeiFromNumber(AFangWei: Integer): string;
+begin
+  Result := '';
+  if (AFangWei >= 0) and (AFangWei < 8) then
+    Result := SCnJiShenFangWeiArray[AFangWei];
+end;
+
+// 获得公历年月日的财神方位，0-7
+function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+var
+  Gan, Zhi: Integer;
+begin
+  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  // 口诀：甲乙东北是财神，丙丁向在西南寻。戊己正北坐方位，庚辛正东去安身。壬癸原来正南坐，便是财神方位真
+  case Gan of
+    0,1: Result := 1; // 甲乙在东北
+    2,3: Result := 5; // 丙丁在西南
+    4,5: Result := 0; // 戊己在正北
+    6,7: Result := 2; // 庚辛在正东
+    8,9: Result := 4; // 壬癸在正南
+  end;
+end;
+
+// 获得公历年月日的喜神方位，0-7
+function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+var
+  Gan, Zhi: Integer;
+begin
+  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+  // 口诀：己在艮乙庚乾，丙辛坤位喜神安；丁壬本在离宫坐，戊癸原来在巽间。
+  // 八卦对应方位：乾，西北；坎，正北；艮，东北；震，正东；巽，东南；离，正南；坤，西南；兑，正西
+
+  case Gan of
+    0,5: Result := 1; // 甲己在东北
+    1,6: Result := 7; // 乙庚在西北
+    2,7: Result := 5; // 丙辛在西南
+    3,8: Result := 4; // 丁壬在正南
+    4,9: Result := 3; // 戊癸在东南
+  end;
+end;
+
+// 获得公历年月日的贵神方位，0-7，默认为阳贵
+function GetGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay);
+end;
+
+// 获得公历年月日的阳贵神方位，0-7
+function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+var
+  Gan, Zhi: Integer;
+begin
+  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+
+  case Gan of
+    0,1: Result := 5; // 甲乙在西南
+    2:   Result := 6; // 丙在正西
+    3:   Result := 7; // 丁在西北
+    4,6,7: Result := 1; // 戊庚辛在东北
+    5:   Result := 0; // 己在正北
+    8:   Result := 2; // 壬在正东
+    9:   Result := 3; // 癸在东南
+  end;
+end;
+
+// 获得公历年月日的阴贵神方位，0-7
+function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
+var
+  Gan, Zhi: Integer;
+begin
+  ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
+
+  case Gan of
+    0:   Result := 1; // 甲在东北
+    1:   Result := 0; // 乙在正北
+    2:   Result := 7; // 丙在西北
+    3:   Result := 6; // 丁在正西
+    4,5,6: Result := 5; // 戊己庚在西南
+    7:   Result := 4; // 辛在正南
+    8:   Result := 3; // 壬在东南
+    9:   Result := 2; // 癸在正东
   end;
 end;
 

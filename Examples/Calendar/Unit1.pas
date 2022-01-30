@@ -125,6 +125,12 @@ begin
   mmoResult.Lines.Add('二十八宿：'+ Get28XiuFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)) + '/' + Get28XiuLongFromNumber(Get28XiuFromDay(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('本日纳音五行：'+ Get5XingFromNumber(Get5XingFromDay(AYear, AMonth, ADay)) + '/' + Get5XingLongFromDay(AYear, AMonth, ADay));
   mmoResult.Lines.Add('十二建：'+ Get12JianFromNumber(Get12JianFromDay(AYear, AMonth, ADay)));
+
+  mmoResult.Lines.Add('吉神方位：');
+  mmoResult.Lines.Add('财神' + GetJiShenFangWeiFromNumber(GetCaiShenFangWeiFromDay(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('喜神' + GetJiShenFangWeiFromNumber(GetXiShenFangWeiFromDay(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('贵神' + GetJiShenFangWeiFromNumber(GetGuiShenFangWeiFromDay(AYear, AMonth, ADay)));
+
   mmoResult.Lines.Add('本日节气：' + GetJieQiFromNumber(GetJieQiFromDay(AYear, AMonth, ADay)));
   if GetJieQiFromDay(AYear, AMonth, ADay) >= 0 then
   begin
