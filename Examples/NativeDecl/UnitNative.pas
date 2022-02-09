@@ -32,6 +32,7 @@ type
     bvl2: TBevel;
     bvl3: TBevel;
     btnInt64AddMod: TButton;
+    btnEndian: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -47,6 +48,7 @@ type
     procedure btnRootClick(Sender: TObject);
     procedure btnURootClick(Sender: TObject);
     procedure btnInt64AddModClick(Sender: TObject);
+    procedure btnEndianClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -320,6 +322,14 @@ begin
 
   mmoRes.Lines.Add(IntToStr(Int64NonNegativeAddMod(A, B, P)));
   // 应该和上面一致
+end;
+
+procedure TFormNative.btnEndianClick(Sender: TObject);
+begin
+  if CurrentByteOrderIsBigEndian then
+    ShowMessage('Big Endian')
+  else
+    ShowMessage('Little Endian');
 end;
 
 end.

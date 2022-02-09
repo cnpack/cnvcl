@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.09.05 V1.7
+* 修改记录：2022.02.09 V1.8
+*               加入运行期的大小端判断函数
+*           2021.09.05 V1.7
 *               加入 Int64/UInt64 的整数次幂与根的运算函数
 *           2020.10.28 V1.6
 *               加入 UInt64 溢出相关的判断与运算函数
@@ -251,10 +253,35 @@ function UInt64NonNegativPower(N: TUInt64; Exp: Integer): TUInt64;
 function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
 {* 求 UInt64 的非负整数次方根的整数部分，不考虑溢出的情况}
 
+function CurrentByteOrderIsBigEndian: Boolean;
+{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址}
+
+function CurrentByteOrderIsLittleEndian: Boolean;
+{* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址}
+
 implementation
 
 uses
   CnFloatConvert;
+
+function CurrentByteOrderIsBigEndian: Boolean;
+type
+  TByteOrder = packed record
+    case Boolean of
+      False: (C: array[0..1] of Byte);
+      True: (W: Word);
+  end;
+var
+  T: TByteOrder;
+begin
+  T.W := $00CC;
+  Result := T.C[1] = $CC;
+end;
+
+function CurrentByteOrderIsLittleEndian: Boolean;
+begin
+  Result := not CurrentByteOrderIsBigEndian;
+end;
 
 {$IFDEF CPUX64}
 

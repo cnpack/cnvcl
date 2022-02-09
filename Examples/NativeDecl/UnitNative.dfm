@@ -84,7 +84,7 @@ object FormNative: TFormNative
   object mmoRes: TMemo
     Left = 16
     Top = 104
-    Width = 704
+    Width = 633
     Height = 354
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
@@ -207,5 +207,14 @@ object FormNative: TFormNative
     Caption = 'Int64 AddMod'
     TabOrder = 15
     OnClick = btnInt64AddModClick
+  end
+  object btnEndian: TButton
+    Left = 664
+    Top = 104
+    Width = 75
+    Height = 25
+    Caption = 'Endian'
+    TabOrder = 16
+    OnClick = btnEndianClick
   end
 end
