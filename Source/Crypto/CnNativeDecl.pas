@@ -259,6 +259,24 @@ function CurrentByteOrderIsBigEndian: Boolean;
 function CurrentByteOrderIsLittleEndian: Boolean;
 {* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址}
 
+function Int64ToBigEndian(Value: Int64): Int64;
+{* 确保 Int64 值为大端，小端环境中进行转换}
+
+function Int32ToBigEndian(Value: Integer): Integer;
+{* 确保 Int32 值为大端，小端环境中进行转换}
+
+function Int16ToBigEndian(Value: SmallInt): SmallInt;
+{* 确保 Int16 值为大端，小端环境中进行转换}
+
+function Int64ToLittleEndian(Value: Int64): Int64;
+{* 确保 Int64 值为小端，大端环境中进行转换}
+
+function Int32ToLittleEndian(Value: Integer): Integer;
+{* 确保 Int32 值为小端，大端环境中进行转换}
+
+function Int16ToLittleEndian(Value: SmallInt): SmallInt;
+{* 确保 Int16 值为小端，大端环境中进行转换}
+
 implementation
 
 uses
@@ -281,6 +299,72 @@ end;
 function CurrentByteOrderIsLittleEndian: Boolean;
 begin
   Result := not CurrentByteOrderIsBigEndian;
+end;
+
+function SwapInt64(Value: Int64): Int64;
+var
+  Lo, Hi: LongWord;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := ((Lo and $000000FF) shl 24) or ((Lo and $0000FF00) shl 8)
+    or ((Lo and $00FF0000) shr 8) or ((Lo and $FF000000) shr 24);
+  Hi := ((Hi and $000000FF) shl 24) or ((Hi and $0000FF00) shl 8)
+    or ((Hi and $00FF0000) shr 8) or ((Hi and $FF000000) shr 24);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := Int64(Rec);
+end;
+
+function Int64ToBigEndian(Value: Int64): Int64;
+begin
+  if CurrentByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := SwapInt64(Value);
+end;
+
+function Int32ToBigEndian(Value: Integer): Integer;
+begin
+  if CurrentByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function Int16ToBigEndian(Value: SmallInt): SmallInt;
+begin
+  if CurrentByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+end;
+
+function Int64ToLittleEndian(Value: Int64): Int64;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Value
+  else
+    Result := SwapInt64(Value);
+end;
+
+function Int32ToLittleEndian(Value: Integer): Integer;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Value
+  else
+    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
+function Int16ToLittleEndian(Value: SmallInt): SmallInt;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Value
+  else
+    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
 {$IFDEF CPUX64}
