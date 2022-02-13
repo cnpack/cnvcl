@@ -372,6 +372,9 @@ function AnsiStartsText(const ASubText, AText: string): Boolean;
 function AnsiReplaceText(const AText, AFromText, AToText: string): string;
 {$ENDIF}
 
+function ReplaceAllInString(const S: string; OldPattern, NewPattern: string): string;
+{* StringReplace 无法处理字符串中的 #0，新写一个全替换的版本，不处理大小写}
+
 {$IFNDEF COMPILER7_UP}
 function AnsiContainsText(const AText, ASubText: string): Boolean;
 {* AText 是否包含 ASubText }
@@ -3801,6 +3804,31 @@ begin
   Result := StringReplace(AText, AFromText, AToText, [rfReplaceAll, rfIgnoreCase]);
 end;
 {$ENDIF}
+
+// StringReplace 无法处理字符串中的 #0，新写一个全替换的版本，不处理大小写}
+function ReplaceAllInString(const S: string; OldPattern, NewPattern: string): string;
+var
+  SchStr, PatStr, NewStr: string;
+  Offset: Integer;
+begin
+  Result := '';
+  SchStr := S;
+  PatStr := OldPattern;
+  NewStr := S;
+
+  while SchStr <> '' do
+  begin
+    Offset := Pos(PatStr, SchStr);
+    if Offset = 0 then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end;
+    Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+    NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+    SchStr := Copy(SchStr, Offset + Length(PatStr), MaxInt);
+  end;
+end;
 
 {$IFNDEF COMPILER7_UP}
 // AText 是否包含 ASubText
