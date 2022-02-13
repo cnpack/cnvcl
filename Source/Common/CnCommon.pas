@@ -1180,6 +1180,10 @@ function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer
    等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
    VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
+function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
+{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。
+   等于 Copy(1, WideOffset) 后的子串转 Utf8 取 Length，但不用实际转 Utf8，以节省开销。}
+
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
   VisualMode: Boolean = True; AllowExceedEnd: Boolean = False): Integer;
 {* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
@@ -1305,7 +1309,7 @@ begin
     Idx := 0;
     if VisualMode then
     begin
-      while (Text^ <> #0) and (Idx < WideOffset) do
+      while (Text^ <> #0) and (Idx < WideOffset) do // Idx 0 开始，WideOffset 1 开始，所以用 <
       begin
         if WideCharIsWideLength(Text^) then
           Inc(Result, SizeOf(WideChar))
@@ -1317,7 +1321,7 @@ begin
     end
     else
     begin
-      while (Text^ <> #0) and (Idx < WideOffset) do
+      while (Text^ <> #0) and (Idx < WideOffset) do // Idx 0 开始，WideOffset 1 开始，所以用 <
       begin
         if Ord(Text^) > $FF then
           Inc(Result, SizeOf(WideChar))
@@ -1326,6 +1330,24 @@ begin
         Inc(Text);
         Inc(Idx);
       end
+    end;
+  end;
+end;
+
+// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。
+function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
+var
+  Idx: Integer;
+begin
+  Result := 0;
+  if (Text <> nil) and (WideOffset > 0) then
+  begin
+    Idx := 0;
+    while (Text^ <> #0) and (Idx < WideOffset) do // Idx 0 开始，WideOffset 1 开始，所以用 <
+    begin
+      Inc(Result, CalcUtf8LengthFromWideChar(Text^));
+      Inc(Text);
+      Inc(Idx);
     end;
   end;
 end;
