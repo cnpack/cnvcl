@@ -1181,7 +1181,7 @@ function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer
    VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
 function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
-{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。
+{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。如果 WideOffset 是 0 则返回 0
    等于 Copy(1, WideOffset) 后的子串转 Utf8 取 Length，但不用实际转 Utf8，以节省开销。}
 
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
