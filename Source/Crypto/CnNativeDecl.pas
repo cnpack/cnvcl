@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.02.09 V1.8
+* 修改记录：2022.02.17
+*               增加 FPC 的编译支持，待测试
+*           2022.02.09 V1.8
 *               加入运行期的大小端判断函数
 *           2021.09.05 V1.7
 *               加入 Int64/UInt64 的整数次幂与根的运算函数
@@ -380,6 +382,20 @@ begin
 end;
 
 {$ELSE}
+
+{$IFDEF FPC}
+
+function UInt64Mod(A, B: TUInt64): TUInt64;
+begin
+  Result := A mod B;
+end;
+
+function UInt64Div(A, B: TUInt64): TUInt64;
+begin
+  Result := A div B;
+end;
+
+{$ELSE}
 {
   UInt64 求 A mod B
 
@@ -411,6 +427,8 @@ asm
         PUSH    DWORD PTR[EBP + $8]           // B Lo
         CALL    System.@_lludiv;
 end;
+
+{$ENDIF}
 
 {$ENDIF}
 

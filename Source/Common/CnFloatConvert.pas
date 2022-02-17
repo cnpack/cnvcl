@@ -52,7 +52,9 @@ unit CnFloatConvert;
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.09.05
+* 修改记录：2022.02.17
+*               增加 FPC 的编译支持，待测试
+*           2021.09.05
 *               加入三个将浮点数转换为 UInt64（不支持 UInt64 的以 Int64 代替）的函数
 *           2020.11.11
 *               加入三个将 UInt64（不支持 UInt64 的以 Int64 代替）转换为浮点数的函数
@@ -197,7 +199,8 @@ function DoubleIsNan(const AValue: Double): Boolean;
 function ExtendedIsNan(const AValue: Extended): Boolean;
 {* 扩展精度浮点数是否非实数}
 
-{$IFNDEF WIN64}        // 64 位以及 Delphi 5、6 不支持以下三个函数
+{$IFNDEF FPC}          // FPC、64 位以及 Delphi 5、6 不支持以下三个函数
+{$IFNDEF WIN64}
 {$IFNDEF COMPILER5}
 {$IFNDEF COMPILER6}
 
@@ -213,6 +216,7 @@ function FloatDecimalToOctExtended(fIn: Extended; DecimalExp,
 function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
 
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
@@ -232,6 +236,7 @@ type
   TExtendedWords = array[0..4] of Word;
   PExtendedWords = ^TExtendedWords;
 
+{$IFNDEF FPC}
 {$IFNDEF WIN64}
 {$IFNDEF COMPILER5}
 {$IFNDEF COMPILER6}
@@ -907,6 +912,7 @@ UseExponent:
   end;
 end;
 
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
