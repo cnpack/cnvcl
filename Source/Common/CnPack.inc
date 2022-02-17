@@ -29,6 +29,18 @@
 // 功能配置选项
 //==============================================================================
 
+{$IFDEF FPC}
+  // Free Pascal Compiler 3.x Up Definitions
+  {$DEFINE SUPPORT_PASCAL}    // Pascal
+  {$DEFINE SUPPORT_UINT64}    // UInt64
+  {$IFDEF SYSTEMINLINE}
+    {$DEFINE SUPPORT_INLINE}  // inline
+  {$ENDIF}
+  {$IFDEF WIN64}
+    {$DEFINE CPUX64}  // x64
+  {$ENDIF}
+{$ELSE FPC} // Below is for Delphi Compiler
+
 //{$DEFINE PERSONAL_EDITION}
 {$DEFINE ENTERPRISE_EDITION}
 
@@ -3300,3 +3312,6 @@
 {$ENDIF}
 
 {$DEFINE CN_USE_MSXML}
+
+{$ENDIF FPC}
+
