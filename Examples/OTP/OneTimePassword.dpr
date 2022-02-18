@@ -3,7 +3,7 @@ program OneTimePassword;
 uses
   Forms,
   UnitOneTimePassword in 'UnitOneTimePassword.pas' {FormOneTimePassword},
-  CnOneTimePassword in '..\..\Source\Crypto\CnOTP.pas';
+  CnOTP in '..\..\Source\Crypto\CnOTP.pas';
 
 {$R *.RES}
 
