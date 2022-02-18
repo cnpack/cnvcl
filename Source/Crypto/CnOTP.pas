@@ -18,7 +18,7 @@
 {                                                                              }
 {******************************************************************************}
 
-unit CnOneTimePassword;
+unit CnOTP;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
@@ -115,7 +115,7 @@ begin
   Result := Trunc(86400 * (Now - D));
 end;
 
-{ TCnOneTimePasswordGenerator }
+{ TCnDynamicToken }
 
 constructor TCnDynamicToken.Create;
 begin
@@ -311,4 +311,3 @@ begin
 end;
 
 end.
-

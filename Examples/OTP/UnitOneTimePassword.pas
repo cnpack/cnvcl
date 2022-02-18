@@ -22,7 +22,7 @@ var
 implementation
 
 uses
-  CnOneTimePassword;
+  CnOTP;
 
 {$R *.DFM}
 
