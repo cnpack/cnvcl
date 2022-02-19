@@ -380,8 +380,12 @@ begin
 {$ELSE}
   {$IFDEF BDS}
   Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
-  {$ELSE} // D567 下的 InterlockedCompareExchange 被声明为 Pointer
+  {$ELSE}
+  {$IFDEF FPC}
+  Result := Pointer(InterlockedCompareExchange(LongInt(Target), LongInt(NewValue), LongInt(Comperand)));
+  {$ELSE}// D567 下的 InterlockedCompareExchange 被声明为 Pointer
   Result := InterlockedCompareExchange(Target, NewValue, Comperand);
+  {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 end;
