@@ -167,7 +167,7 @@ const
 
 {$R-}
 
-function LRot16(X: Word; c: Integer): Word; assembler;
+function LRot16(X: Word; c: Integer): Word;
 begin
   Result := X shl (c and 15) + X shr (16 - c and 15);
 //        mov     ecx, &c
@@ -176,7 +176,7 @@ begin
 //        mov     &Result, ax
 end;
 
-function RRot16(X: Word; c: Integer): Word; assembler;
+function RRot16(X: Word; c: Integer): Word;
 begin
   Result := X shr (c and 15) + X shl (16 - c and 15);
 //        mov     ecx, &c
@@ -185,14 +185,14 @@ begin
 //        mov     &Result, ax
 end;
 
-function LRot32(X: LongWord; c: Integer): LongWord; register; assembler;
+function LRot32(X: LongWord; c: Integer): LongWord;
 begin
   Result := X shl (c and 31) + X shr (32 - c and 31);
 //        mov     ecx, edx
 //        rol     eax, cl
 end;
 
-function RRot32(X: LongWord; c: Integer): LongWord; register; assembler;
+function RRot32(X: LongWord; c: Integer): LongWord;
 begin
   Result := X shr (c and 31) + X shl (32 - c and 31);
 //        mov     ecx, edx
