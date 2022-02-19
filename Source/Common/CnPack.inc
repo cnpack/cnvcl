@@ -39,6 +39,10 @@
   {$IFDEF WIN64}
     {$DEFINE CPUX64}  // x64
   {$ENDIF}
+  {$IFDEF WINDOWS}
+    {$DEFINE MSWINDOWS}  // MS Windows
+  {$ENDIF}
+  {$DEFINE OBJECT_HAS_TOSTRING} // TObject.ToString
 {$ELSE FPC} // Below is for Delphi Compiler
 
 //{$DEFINE PERSONAL_EDITION}
