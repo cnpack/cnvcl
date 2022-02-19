@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Math, CnNativeDecl, CnComplex;
+  SysUtils, Classes, CnNativeDecl, CnComplex;
 
 procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
 {* 蝴蝶变换，调整复数数组内部元素的顺序以便奇偶分治}

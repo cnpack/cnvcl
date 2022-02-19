@@ -76,8 +76,9 @@ uses
   SysUtils, Classes, TypInfo, IniFiles,
 {$IFDEF MSWINDOWS}
   Windows, Messages, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, Math, Menus, PsAPI, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
-  MMSystem, StdCtrls, TLHelp32, ActiveX, ShlObj, CheckLst, MultiMon,
+  ComCtrls, Math, Menus, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
+  MMSystem, StdCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
+  {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,

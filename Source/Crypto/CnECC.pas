@@ -3557,6 +3557,7 @@ var
   OIDPtr: Pointer;
   OIDLen: Integer;
 begin
+  // TODO: PKCS8 待实现
   Result := False;
   if (PublicKey = nil) or (PublicKey.X.IsZero) then
     Exit;
@@ -5423,7 +5424,6 @@ var
   Q2Lo, Q2Hi: TUInt64;
   F, G, Y2, P1, P2, LDP: TCnInt64Polynomial;
   Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnInt64RationalPolynomial;
-  F1, F2, F3, F4, F5: TCnInt64Polynomial; // 可除多项式引用，不可改变
   DPs: TObjectList;
 begin
   // 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数
@@ -6522,11 +6522,10 @@ function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 var
   Pa, Ta: TCnInt64List;
   QMul, QMax, BQ: TCnBigNumber;
-  L, K, W: Int64;
+  L, K: Int64;
   I, J: Integer;
   F, G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
   Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnBigNumberRationalPolynomial;
-  F1, F2, F3, F4, F5: TCnBigNumberPolynomial; // 可除多项式引用，不可改变
   DPs: TObjectList;
 begin
   // 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数

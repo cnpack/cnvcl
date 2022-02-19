@@ -846,8 +846,6 @@ resourcestring
 const
   Hex: string = '0123456789ABCDEF';
 
-  BN_CTX_POOL_SIZE = 16;
-  BN_CTX_START_FRAMES = 32;
   BN_DEC_CONV = 1000000000;
   BN_DEC_FMT = '%u';
   BN_DEC_FMT2 = '%.9u';
