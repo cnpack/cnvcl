@@ -8,21 +8,23 @@
       <Unit>
         <Filename Value="BigNumTest.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="-1"/>
         <CursorPos X="45" Y="7"/>
         <UsageCount Value="20"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="UnitMain.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormBigNumber"/>
         <HasResources Value="True"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="130"/>
-        <CursorPos Y="172"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="189"/>
+        <CursorPos X="15" Y="192"/>
         <UsageCount Value="20"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="..\..\..\Source\Crypto\CnBigNumber.pas"/>
@@ -43,15 +45,167 @@
         <UsageCount Value="20"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Common\CnCommon.pas"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="5784"/>
+        <CursorPos Y="5796"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Common\CnConsts.pas"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="52"/>
+        <CursorPos X="3" Y="64"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\lcl\include\winapih.inc"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="140"/>
+        <CursorPos X="10" Y="152"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\types.pp"/>
+        <UnitName Value="Types"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="71"/>
+        <CursorPos X="3" Y="83"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
     </Units>
-    <General>
-      <ActiveWindowIndexAtStart Value="-1"/>
-    </General>
-    <JumpHistory HistoryIndex="-1"/>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="774" Column="9" TopLine="763"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="777" Column="9" TopLine="765"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="781" Column="9" TopLine="769"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="77" Column="33" TopLine="67"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="759" Column="22" TopLine="748"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="774" Column="9" TopLine="152"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="190" Column="17" TopLine="186"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="191" Column="21" TopLine="179"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="222" Column="22" TopLine="210"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="249" Column="11" TopLine="237"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="315" Column="24" TopLine="309"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="191" Column="41" TopLine="177"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="5918" Column="25" TopLine="5913"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="6010" Column="28" TopLine="5992"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="254" Column="31" TopLine="239"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="172" TopLine="159"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="11" Column="60"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="5953" Column="36" TopLine="5944"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="188" Column="5" TopLine="182"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="196" Column="49" TopLine="184"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="282" Column="11" TopLine="270"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="279" Column="9" TopLine="270"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="613" Column="16" TopLine="601"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="609" Column="13" TopLine="601"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="278" Column="12" TopLine="267"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="197" Column="21" TopLine="185"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="196" Column="51" TopLine="184"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\lcl\include\winapih.inc"/>
+        <Caret Line="152" Column="10" TopLine="140"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="11" Column="58"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitMain.pas"/>
+        <Caret Line="693" Column="25" TopLine="681"/>
+      </Position>
+    </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
       <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
-  <SkipCheckLCLInterfaces Value="True"/>
 </CONFIG>

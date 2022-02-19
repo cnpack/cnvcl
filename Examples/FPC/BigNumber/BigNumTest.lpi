@@ -38,7 +38,9 @@
       <Unit>
         <Filename Value="UnitMain.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormBigNumber"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit>
       <Unit>
         <Filename Value="..\..\..\Source\Crypto\CnBigNumber.pas"/>
