@@ -1315,7 +1315,11 @@ begin
       for I := 0 to ANode.Count - 1 do
       begin
         Leaf := Self.AddChild(ALeaf);
+{$IFDEF FPC}
+        LoadFromATreeNode(Leaf, ANode.Items[I]);
+{$ELSE}
         LoadFromATreeNode(Leaf, ANode.Item[I]);
+{$ENDIF}
       end;
     end
     else

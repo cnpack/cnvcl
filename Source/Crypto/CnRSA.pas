@@ -608,7 +608,7 @@ end;
 function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean): Boolean;
 var
-  N, PB1, PB2, MinDB, MinW: Integer;
+  PB1, PB2, MinDB, MinW: Integer;
   Suc: Boolean;
   Dif, MinD: TCnBigNumber;
   R, Y, Rem, S1, S2, One: TCnBigNumber;
