@@ -412,7 +412,11 @@ begin
       for PropIdx := 0 to Count - 1 do
       begin
         PropInfo := PropList^[PropIdx];
+{$IFDEF FPC}
+        case PropInfo^.PropType^.Kind of
+{$ELSE}
         case PropInfo^.PropType^^.Kind of
+{$ENDIF}
           tkInteger, tkChar, tkWChar, tkClass, tkEnumeration, tkSet:
             SetOrdProp(Dest, PropInfo, GetOrdProp(Source, PropInfo));
           tkFloat:
