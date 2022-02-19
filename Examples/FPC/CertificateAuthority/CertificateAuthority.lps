@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="CertificateAuthority.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="UnitCertificateAuthority.pas"/>
+        <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="21" Y="8"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Crypto\backup\CnRSA.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="20"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnCertificateAuthority.pas"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="2507"/>
+        <CursorPos X="18" Y="2519"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnECC.pas"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="52"/>
+        <CursorPos X="2" Y="64"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Common\CnTree.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnBerUtils.pas"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="435"/>
+        <CursorPos X="30" Y="447"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="9">
+      <Position>
+        <Filename Value="UnitCertificateAuthority.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Crypto\CnECC.pas"/>
+        <Caret Line="64" Column="2" TopLine="52"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Crypto\CnCertificateAuthority.pas"/>
+        <Caret Line="1272" Column="24" TopLine="1260"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Crypto\CnCertificateAuthority.pas"/>
+        <Caret Line="2519" Column="18" TopLine="2507"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitCertificateAuthority.pas"/>
+        <Caret Line="160" Column="23" TopLine="149"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitCertificateAuthority.pas"/>
+        <Caret Line="8" Column="21"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnTree.pas"/>
+        <Caret Line="255" Column="43" TopLine="244"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnTree.pas"/>
+        <Caret Line="71" Column="46" TopLine="57"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnTree.pas"/>
+        <Caret Line="255" Column="34" TopLine="243"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnTree.pas"/>
+        <Caret Line="71" Column="46" TopLine="60"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <SkipCheckLCLInterfaces Value="True"/>
+</CONFIG>

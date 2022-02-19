@@ -2888,7 +2888,7 @@ begin
   end;
 end;
 
-// 获得公历年月日在数九日中的第几九的第几日，1~9,1~9对应一九到九九，False 为不在数九日内
+// 获得公历年月日在数九日中的第几九的第几日，1~9,1~9 对应一九到九九，False 为不在数九日内
 function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDay: Integer): Boolean;
 var
   DongZhi, Days: Integer;

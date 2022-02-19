@@ -68,7 +68,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs {$IFDEF MSWINDOWS}, ComCtrls {$ENDIF}
-  {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}, Math;
+  {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF};
   // If ComCtrls not found, please add 'Vcl' to 'Unit Scope Names' in Project Options.
 
 type
