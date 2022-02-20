@@ -45,3 +45,4 @@ del /S %1*.o%2%3%4
 
 for /r . %%a in (__history\) do @if exist "%%a" rd /s /q "%%a"
 for /r . %%a in (__recovery\) do @if exist "%%a" rd /s /q "%%a"
+for /r . %%a in (backup\) do @if exist "%%a" rd /s /q "%%a"
