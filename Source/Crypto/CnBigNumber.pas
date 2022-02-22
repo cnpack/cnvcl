@@ -1873,8 +1873,14 @@ begin
 
   for I := (Src.Top shr 2) downto 1 do
   begin
-    A0 := B[0]; A1 := B[1]; A2 := B[2]; A3 := B[3];
-    A[0] := A0; A[1] := A1; A[2] := A2; A[3] := A3;
+    A0 := B^[0];
+    A1 := B^[1];
+    A2 := B^[2];
+    A3 := B^[3];
+    A^[0] := A0;
+    A^[1] := A1;
+    A^[2] := A2;
+    A^[3] := A3;
 
     A := PLongWordArray(Integer(A) + 4 * SizeOf(TCnLongWord32));
     B := PLongWordArray(Integer(B) + 4 * SizeOf(TCnLongWord32));
@@ -2054,24 +2060,24 @@ begin
       case Op of
         boAnd:
           begin
-            RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
-            RP[1] := TCnLongWord32((Int64(AP[1]) and Int64(BP[1])) and BN_MASK2);
-            RP[2] := TCnLongWord32((Int64(AP[2]) and Int64(BP[2])) and BN_MASK2);
-            RP[3] := TCnLongWord32((Int64(AP[3]) and Int64(BP[3])) and BN_MASK2);
+            RP^[0] := TCnLongWord32((Int64(AP^[0]) and Int64(BP^[0])) and BN_MASK2);
+            RP^[1] := TCnLongWord32((Int64(AP^[1]) and Int64(BP^[1])) and BN_MASK2);
+            RP^[2] := TCnLongWord32((Int64(AP^[2]) and Int64(BP^[2])) and BN_MASK2);
+            RP^[3] := TCnLongWord32((Int64(AP^[3]) and Int64(BP^[3])) and BN_MASK2);
           end;
         boOr:
           begin
-            RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
-            RP[1] := TCnLongWord32((Int64(AP[1]) or Int64(BP[1])) and BN_MASK2);
-            RP[2] := TCnLongWord32((Int64(AP[2]) or Int64(BP[2])) and BN_MASK2);
-            RP[3] := TCnLongWord32((Int64(AP[3]) or Int64(BP[3])) and BN_MASK2);
+            RP^[0] := TCnLongWord32((Int64(AP^[0]) or Int64(BP^[0])) and BN_MASK2);
+            RP^[1] := TCnLongWord32((Int64(AP^[1]) or Int64(BP^[1])) and BN_MASK2);
+            RP^[2] := TCnLongWord32((Int64(AP^[2]) or Int64(BP^[2])) and BN_MASK2);
+            RP^[3] := TCnLongWord32((Int64(AP^[3]) or Int64(BP^[3])) and BN_MASK2);
           end;
         boXor:
           begin
-            RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
-            RP[1] := TCnLongWord32((Int64(AP[1]) xor Int64(BP[1])) and BN_MASK2);
-            RP[2] := TCnLongWord32((Int64(AP[2]) xor Int64(BP[2])) and BN_MASK2);
-            RP[3] := TCnLongWord32((Int64(AP[3]) xor Int64(BP[3])) and BN_MASK2);
+            RP^[0] := TCnLongWord32((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
+            RP^[1] := TCnLongWord32((Int64(AP^[1]) xor Int64(BP^[1])) and BN_MASK2);
+            RP^[2] := TCnLongWord32((Int64(AP^[2]) xor Int64(BP^[2])) and BN_MASK2);
+            RP^[3] := TCnLongWord32((Int64(AP^[3]) xor Int64(BP^[3])) and BN_MASK2);
           end;
       end;
 
@@ -2086,11 +2092,11 @@ begin
     begin
       case Op of
         boAnd:
-          RP[0] := TCnLongWord32((Int64(AP[0]) and Int64(BP[0])) and BN_MASK2);
+          RP^[0] := TCnLongWord32((Int64(AP^[0]) and Int64(BP^[0])) and BN_MASK2);
         boOr:
-          RP[0] := TCnLongWord32((Int64(AP[0]) or Int64(BP[0])) and BN_MASK2);
+          RP^[0] := TCnLongWord32((Int64(AP^[0]) or Int64(BP^[0])) and BN_MASK2);
         boXor:
-          RP[0] := TCnLongWord32((Int64(AP[0]) xor Int64(BP[0])) and BN_MASK2);
+          RP^[0] := TCnLongWord32((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
       end;
 
       AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
@@ -2138,20 +2144,20 @@ begin
   LL := 0;
   while (N and (not 3)) <> 0 do
   begin
-    LL := LL + Int64(AP[0]) + Int64(BP[0]);
-    RP[0] := TCnLongWord32(LL) and BN_MASK2;
+    LL := LL + Int64(AP^[0]) + Int64(BP^[0]);
+    RP^[0] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    LL := LL + Int64(AP[1]) + Int64(BP[1]);
-    RP[1] := TCnLongWord32(LL) and BN_MASK2;
+    LL := LL + Int64(AP^[1]) + Int64(BP^[1]);
+    RP^[1] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    LL := LL + Int64(AP[2]) + Int64(BP[2]);
-    RP[2] := TCnLongWord32(LL) and BN_MASK2;
+    LL := LL + Int64(AP^[2]) + Int64(BP^[2]);
+    RP^[2] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    LL := LL + Int64(AP[3]) + Int64(BP[3]);
-    RP[3] := TCnLongWord32(LL) and BN_MASK2;
+    LL := LL + Int64(AP^[3]) + Int64(BP^[3]);
+    RP^[3] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
     AP := PLongWordArray(Integer(AP) + 4 * SizeOf(TCnLongWord32));
@@ -2163,8 +2169,8 @@ begin
 
   while N <> 0 do
   begin
-    LL := LL + Int64(AP[0]) + Int64(BP[0]);
-    RP[0] := TCnLongWord32(LL) and BN_MASK2;
+    LL := LL + Int64(AP^[0]) + Int64(BP^[0]);
+    RP^[0] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
     AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
@@ -2901,7 +2907,7 @@ begin
   begin
     for I := Num.Top - 1 downto 0 do
     begin
-      L := F[I];
+      L := F^[I];
       T^[NW + I + 1] := T^[NW + I + 1] or ((L shr RB) and BN_MASK2);
       T^[NW + I] := (L shl LB) and BN_MASK2;
     end;
@@ -3585,8 +3591,8 @@ begin
   Max := N * 2;
   AP := PLongWordArray(A);
   RP := PLongWordArray(R);
-  RP[0] := 0;
-  RP[Max - 1] := 0;
+  RP^[0] := 0;
+  RP^[Max - 1] := 0;
 
   RP := PLongWordArray(Integer(RP) + SizeOf(TCnLongWord32));
   J := N - 1;
@@ -3594,7 +3600,7 @@ begin
   if J > 0 then
   begin
     AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
-    RP[J] := BigNumberMulWords(RP, AP, J, PLongWordArray(Integer(AP) - SizeOf(TCnLongWord32))^[0]);
+    RP^[J] := BigNumberMulWords(RP, AP, J, PLongWordArray(Integer(AP) - SizeOf(TCnLongWord32))^[0]);
     RP := PLongWordArray(Integer(RP) + 2 * SizeOf(TCnLongWord32));
   end;
 
@@ -3602,7 +3608,7 @@ begin
   begin
     Dec(J);
     AP := PLongWordArray(Integer(AP) + SizeOf(TCnLongWord32));
-    RP[J] := BigNumberMulAddWords(RP, AP, J, PLongWordArray(Integer(AP) - SizeOf(TCnLongWord32))^[0]);
+    RP^[J] := BigNumberMulAddWords(RP, AP, J, PLongWordArray(Integer(AP) - SizeOf(TCnLongWord32))^[0]);
     RP := PLongWordArray(Integer(RP) + 2 * SizeOf(TCnLongWord32));
   end;
 
@@ -7115,16 +7121,16 @@ end;
 function TCnSparseBigNumberList.ToString: string;
 var
   I: Integer;
-  First: Boolean;
+  IsFirst: Boolean;
 begin
   Result := '';
-  First := True;
+  IsFirst := True;
   for I := Count - 1 downto 0 do
   begin
-    if First then
+    if IsFirst then
     begin
       Result := Items[I].ToString;
-      First := False;
+      IsFirst := False;
     end
     else
       Result := Result + CRLF + Items[I].ToString;
