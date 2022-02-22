@@ -55,7 +55,7 @@ type
     procedure SetRowCount(const Value: Integer);
     function GetValue(Row, Col: Integer): Int64;
   protected
-    procedure SetValue(Row, Col: Integer; const Value: Int64); virtual;
+    procedure SetValue(Row, Col: Integer; const AValue: Int64); virtual;
 
     function Add3(X, Y, Z: Int64): Int64; virtual;
     function Mul3(X, Y, Z: Int64): Int64; virtual;
@@ -1174,9 +1174,9 @@ begin
   end;
 end;
 
-procedure TCnIntMatrix.SetValue(Row, Col: Integer; const Value: Int64);
+procedure TCnIntMatrix.SetValue(Row, Col: Integer; const AValue: Int64);
 begin
-  FMatrix[Row, Col] := Value;
+  FMatrix[Row, Col] := AValue;
 end;
 
 procedure TCnIntMatrix.SetZero;

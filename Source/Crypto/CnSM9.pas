@@ -53,7 +53,7 @@ interface
 
 uses
   Classes, SysUtils,
-  CnContainers, CnBigNumber, CnECC, CnNativeDecl, CnSM3;
+  CnContainers, CnBigNumber, CnECC, CnSM3;
 
 const
   // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
@@ -917,7 +917,7 @@ var
   // SM9 运算的相关常数
   FSM9FiniteFieldSize: TCnBigNumber = nil;
   FSM9Order: TCnBigNumber = nil;
-  FSM9K: Integer = 12;
+
   FSM9G1P1X: TCnBigNumber = nil;
   FSM9G1P1Y: TCnBigNumber = nil;
   FSM9G2P2X0: TCnBigNumber = nil;

@@ -123,8 +123,8 @@ type
     FBerTag: Integer;
     FBerDataLength: Integer;
     FBerDataOffset: Integer;
-    function GetItems(Index: Integer): TCnBerReadNode;
-    procedure SetItems(Index: Integer; const Value: TCnBerReadNode);
+    function GetItems(AIndex: Integer): TCnBerReadNode;
+    procedure SetItems(AIndex: Integer; const Value: TCnBerReadNode);
 
     function InternalAsInteger(ByteSize: Integer): Integer;
     function InternalAsString(TagSet: TCnBerTagSet): AnsiString;
@@ -169,7 +169,7 @@ type
     function GetNextSibling: TCnBerReadNode;
     function GetPrevSibling: TCnBerReadNode;
 
-    property Items[Index: Integer]: TCnBerReadNode read GetItems write SetItems; default;
+    property Items[AIndex: Integer]: TCnBerReadNode read GetItems write SetItems; default;
 
     property BerOffset: Integer read FBerOffset write FBerOffset;
     {* 该节点对应的 ASN.1 内容编码在整体中的偏移}
@@ -253,8 +253,8 @@ type
     FBerTypeMask: Byte;
     function GetIsContainer: Boolean;
     procedure SetIsContainer(const Value: Boolean);
-    function GetItems(Index: Integer): TCnBerWriteNode;
-    procedure SetItems(Index: Integer; const Value: TCnBerWriteNode);
+    function GetItems(AIndex: Integer): TCnBerWriteNode;
+    procedure SetItems(AIndex: Integer; const Value: TCnBerWriteNode);
 
     procedure FillHeadCalcLen(ATag, ADataLen: Integer); // 计算并填充 FHead 与 FHeadLen
   public
@@ -274,11 +274,11 @@ type
     function GetNodeLength: Integer;
     {* 如果是基本类型就返回自身长度，如果是容器则自己头加各子节点长度}
 
-    procedure FillBasicNode(ATag: Integer; Data: PByte; DataLen: Integer);
+    procedure FillBasicNode(ATag: Integer; AData: PByte; DataLen: Integer);
     {* 外界创建此基本节点后用此方法填充基本数据，Container 节点不用，
        注意原始 BitString 不支持头字节，暂不需要自己填充}
 
-    property Items[Index: Integer]: TCnBerWriteNode read GetItems write SetItems;
+    property Items[AIndex: Integer]: TCnBerWriteNode read GetItems write SetItems;
 
     property Data: Pointer read FData write FData;
     property DataLength: Integer read FDataLength write FDataLength;
@@ -543,7 +543,7 @@ begin
 
   while Run < ADataLen do
   begin
-    B := AData[Run];
+    B := AData^[Run];
 
     if B = $FF then
       Exit;
@@ -561,7 +561,7 @@ begin
 
     // Run 指向长度，处理长度
     Delta := 1;  // 1 表示 Tag 所占字节
-    B := AData[Run];
+    B := AData^[Run];
     if (B and CN_BER_LENLEN_MASK) = 0 then
     begin
       // 本字节就是长度
@@ -583,9 +583,9 @@ begin
           [AStartOffset, Run, LenLen]);
 
       if LenLen = SizeOf(Byte) then
-        DataLen := AData[Run]
+        DataLen := AData^[Run]
       else if LenLen = SizeOf(Word) then
-        DataLen := (Cardinal(AData[Run]) shl 8) or Cardinal(AData[Run + 1])
+        DataLen := (Cardinal(AData^[Run]) shl 8) or Cardinal(AData^[Run + 1])
       else // if LenLen > SizeOf(Word) then
         raise Exception.CreateFmt('Length Too Long (Base %d) %d.', [AStartOffset, LenLen]);
 
@@ -728,14 +728,14 @@ begin
     Move(Pointer(Integer(FOriginData) + FBerDataOffset)^, DestBuf^, FBerDataLength);
 end;
 
-function TCnBerReadNode.GetItems(Index: Integer): TCnBerReadNode;
+function TCnBerReadNode.GetItems(AIndex: Integer): TCnBerReadNode;
 begin
-  Result := inherited GetItems(Index) as TCnBerReadNode;
+  Result := inherited GetItems(AIndex) as TCnBerReadNode;
 end;
 
-procedure TCnBerReadNode.SetItems(Index: Integer; const Value: TCnBerReadNode);
+procedure TCnBerReadNode.SetItems(AIndex: Integer; const Value: TCnBerReadNode);
 begin
-  inherited SetItems(Index, Value);
+  inherited SetItems(AIndex, Value);
 end;
 
 function TCnBerReadNode.GetBerDataAddress: Pointer;
@@ -1110,9 +1110,9 @@ begin
   Result := FIsContainer;
 end;
 
-function TCnBerWriteNode.GetItems(Index: Integer): TCnBerWriteNode;
+function TCnBerWriteNode.GetItems(AIndex: Integer): TCnBerWriteNode;
 begin
-  Result := TCnBerWriteNode(inherited GetItems(Index));
+  Result := TCnBerWriteNode(inherited GetItems(AIndex));
 end;
 
 function TCnBerWriteNode.SaveToStream(Stream: TStream): Integer;
@@ -1158,10 +1158,10 @@ begin
   FIsContainer := Value;
 end;
 
-procedure TCnBerWriteNode.SetItems(Index: Integer;
+procedure TCnBerWriteNode.SetItems(AIndex: Integer;
   const Value: TCnBerWriteNode);
 begin
-  inherited SetItems(Index, Value);
+  inherited SetItems(AIndex, Value);
 end;
 
 function TCnBerWriteNode.GetNodeLength: Integer;
@@ -1187,7 +1187,7 @@ begin
   end;
 end;
 
-procedure TCnBerWriteNode.FillBasicNode(ATag: Integer; Data: PByte;
+procedure TCnBerWriteNode.FillBasicNode(ATag: Integer; AData: PByte;
   DataLen: Integer);
 var
   B: Byte;
@@ -1196,7 +1196,7 @@ begin
   if FIsContainer then
     Exit;
 
-  FData := Data;
+  FData := AData;
   FDataLength := DataLen;
   FillHeadCalcLen(ATag, DataLen);
 

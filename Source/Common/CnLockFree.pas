@@ -415,6 +415,17 @@ end;
 
 {$ELSE}
 
+{$IFDEF FPC}
+
+// TODO: FPC 下面的实现
+function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
+  Comperand: Pointer): Boolean;
+begin
+  raise Exception.Create('NOT Implemented.');
+end;
+
+{$ELSE}
+
 // XE2 或以下版本的 Win32 实现
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
   Comperand: Pointer): Boolean; assembler;
@@ -427,6 +438,8 @@ asm
   SETZ AL
   AND EAX, $FF
 end;
+
+{$ENDIF}
 
 {$ENDIF}
 

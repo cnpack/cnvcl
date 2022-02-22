@@ -204,13 +204,13 @@ var
   I: Integer;
 begin
   for I := 0 to Len - 1 do
-    O1[I] := I1[I] xor I2[I];
+    O1^[I] := I1^[I] xor I2^[I];
 end;
 
 procedure IncBlock(P: PByteArray; Len: Integer);
 begin
-  Inc(P[Len - 1]);
-  if (P[Len - 1] = 0) and (Len > 1) then
+  Inc(P^[Len - 1]);
+  if (P^[Len - 1] = 0) and (Len > 1) then
     IncBlock(P, Len - 1);
 end;
 

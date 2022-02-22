@@ -77,7 +77,7 @@ type
   TCnGalois2Power8Matrix = class(TCnIntMatrix)
   {* 伽罗华域 GP(2^8) 里的多项式矩阵}
   protected
-    procedure SetValue(Row, Col: Integer; const Value: Int64); override;
+    procedure SetValue(Row, Col: Integer; const AValue: Int64); override;
     function NegativeOnePower(N: Integer): Integer; override;
     // 行列式计算中的加减替换动作因为加减均为异或，因此恒定返回 1
   public
@@ -458,9 +458,9 @@ begin
 end;
 
 procedure TCnGalois2Power8Matrix.SetValue(Row, Col: Integer;
-  const Value: Int64);
+  const AValue: Int64);
 begin
-  CheckGalois2Power8Value(Value);
+  CheckGalois2Power8Value(AValue);
   inherited;
 end;
 

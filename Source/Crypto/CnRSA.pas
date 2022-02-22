@@ -1810,7 +1810,7 @@ begin
 
       // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
       SetLength(BerBuf, Length(ResBuf));
-      if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+      if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), @BerBuf[0], BerLen) then
       begin
         RSAErrorCode := ECN_RSA_PADDING_ERROR;
         Exit;
@@ -1988,7 +1988,7 @@ begin
 
       // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
       SetLength(BerBuf, Length(ResBuf));
-      if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), BerBuf, BerLen) then
+      if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), @BerBuf[0], BerLen) then
       begin
         RSAErrorCode := ECN_RSA_PADDING_ERROR;
         Exit;
@@ -2217,7 +2217,7 @@ begin
 
   // To 区 DB 的前 20 字节先留着，后面到尾巴先填满 0
   FillChar(PByte(Integer(DB) + MdLen)^, EmLen - DataLen - 2 * MdLen - 1, 0);
-  DB[EmLen - DataLen - MdLen - 1] := 1;
+  DB^[EmLen - DataLen - MdLen - 1] := 1;
 
   // 明文搁后面
   Move(PlainData^, PByte(Integer(DB) + EmLen - DataLen - MdLen)^, DataLen);
@@ -2239,7 +2239,7 @@ begin
   end;
 
   for I := 0 to EmLen - MdLen - 1 do
-    DB[I] := DB[I] xor DBMask[I];        // 得到 Masked DB
+    DB^[I] := DB^[I] xor DBMask[I];        // 得到 Masked DB
 
   // XOR 过的 Masked DB 再算出 MGF 数据，准备和随机 Seed 做 XOR
   if not Pkcs1Sha1MGF(DB, EmLen - MdLen, @SeedMask[0], MdLen) then
@@ -2249,7 +2249,7 @@ begin
   end;
 
   for I := 0 to MdLen - 1 do
-    Seed[I] := Seed[I] xor SeedMask[I];  // 得到 Masked Seed
+    Seed^[I] := Seed^[I] xor SeedMask[I];  // 得到 Masked Seed
 
   SetLength(DBMask, 0);
   Result := True;
@@ -2299,7 +2299,7 @@ begin
   end;
 
   for I := 0 to MdLen - 1 do
-    Seed[I] := Seed[I] xor MaskedSeed[I];  // 得到 Seed
+    Seed[I] := Seed[I] xor MaskedSeed^[I];  // 得到 Seed
 
   SetLength(DB, DBLen);
   try
@@ -2310,7 +2310,7 @@ begin
     end;
 
     for I := 0 to DBLen - 1 do
-      DB[I] := DB[I] xor MaskedDB[I];  // 得到 DB
+      DB[I] := DB[I] xor MaskedDB^[I];  // 得到 DB
 
     // 这里 DB 的前 MdLen 字节应该等于 ParamHash，比较判断之
     if not CompareMem(@DB[0], @ParamHash[0], MdLen) then

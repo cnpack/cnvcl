@@ -657,8 +657,8 @@ begin
 
   for I := 0 to Len - 1 do
   begin
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P[I] shr 4) and $0F] +
-              Digits[P[I] and $0F]);
+    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P^[I] shr 4) and $0F] +
+              Digits[P^[I] and $0F]);
   end;
 end;
 
