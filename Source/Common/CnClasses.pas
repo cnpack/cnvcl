@@ -48,8 +48,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, TypInfo, SyncObjs,
-  {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} CnNativeDecl;
+  SysUtils, Classes, TypInfo, SyncObjs, {$IFDEF FPC} RTLConsts, {$ELSE}
+  {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} {$ENDIF} CnNativeDecl;
 
 type
 
@@ -805,12 +805,12 @@ end;
 
 { TSingletonInterfacedObject }
 
-function TSingletonInterfacedObject._AddRef: Integer;
+function TSingletonInterfacedObject._AddRef: Integer; stdcall;
 begin
   Result := 1;
 end;
 
-function TSingletonInterfacedObject._Release: Integer;
+function TSingletonInterfacedObject._Release: Integer; stdcall;
 begin
   Result := 1;
 end;

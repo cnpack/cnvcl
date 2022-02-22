@@ -494,7 +494,7 @@ begin
     Dec(FBackIdx);
     if FBackIdx < 0 then
       FBackIdx := FSize - 1;
-    Result := FList[FBackIdx];
+    Result := TObject(FList[FBackIdx]);
     FList[FBackIdx] := nil;
     Dec(FCount);
   finally
@@ -513,7 +513,7 @@ begin
     if FCount <= 0 then
       raise ECnRingBufferEmptyException.Create('Ring Buffer Empty. Can NOT Pop From Front.');
 
-    Result := FList[FFrontIdx];
+    Result := TObject(FList[FFrontIdx]);
     FList[FFrontIdx] := nil;
 
     Inc(FFrontIdx);

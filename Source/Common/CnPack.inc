@@ -43,6 +43,7 @@
     {$DEFINE MSWINDOWS}  // MS Windows
   {$ENDIF}
   {$DEFINE OBJECT_HAS_TOSTRING} // TObject.ToString
+  {$asmMode intel}
 {$ELSE FPC} // Below is for Delphi Compiler
 
 //{$DEFINE PERSONAL_EDITION}
