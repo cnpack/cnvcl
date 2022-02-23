@@ -2798,6 +2798,7 @@ function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
+  Result := -1;
   ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
   // 口诀：甲乙东北是财神，丙丁向在西南寻。戊己正北坐方位，庚辛正东去安身。壬癸原来正南坐，便是财神方位真
   case Gan of
@@ -2814,6 +2815,7 @@ function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
+  Result := -1;
   ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
   // 口诀：己在艮乙庚乾，丙辛坤位喜神安；丁壬本在离宫坐，戊癸原来在巽间。
   // 八卦对应方位：乾，西北；坎，正北；艮，东北；震，正东；巽，东南；离，正南；坤，西南；兑，正西
@@ -2832,6 +2834,7 @@ function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
+  Result := -1;
   ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
   // 福神居然有两套口诀：一是此处用的甲己正北是福神，丙辛西北乾宫存。乙庚坤位戊癸艮，丁壬巽上妙追寻。
   // 二是：甲乙东南是福神，丙丁正东是堪宜，戊北己南庚辛坤，壬在乾方癸在酉。筛查后弃用。
@@ -2856,6 +2859,7 @@ function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
+  Result := -1;
   ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
 
   case Gan of
@@ -2874,6 +2878,7 @@ function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
 var
   Gan, Zhi: Integer;
 begin
+  Result := -1;
   ExtractGanZhi(GetGanZhiFromDay(AYear, AMonth, ADay), Gan, Zhi);
 
   case Gan of
