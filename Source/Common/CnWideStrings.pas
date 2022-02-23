@@ -97,7 +97,7 @@ type
 
   TCnWideMemIniFile = class(TMemIniFile)
   public
-    constructor Create(const FileName: string);
+    constructor Create(const AFileName: string);
     procedure UpdateFile; override;
   end;
 
@@ -190,7 +190,7 @@ end;
 
 function TCnWideStringList.Get(Index: Integer): WideString;
 begin
-  Result := PCnWideStringItem(FList[Index]).FString;
+  Result := PCnWideStringItem(FList[Index])^.FString;
 end;
 
 function TCnWideStringList.GetCount: Integer;
@@ -211,17 +211,17 @@ end;
 
 function TCnWideStringList.GetTextStr: WideString;
 var
-  I, L, Size, Count: Integer;
+  I, L, Size, C: Integer;
   P: PwideChar;
   S, LB: WideString;
 begin
-  Count := GetCount;
+  C := GetCount;
   Size := 0;
   LB := #13#10;
-  for I := 0 to Count - 1 do Inc(Size, Length(Get(I)) + Length(LB));
+  for I := 0 to C - 1 do Inc(Size, Length(Get(I)) + Length(LB));
   SetString(Result, nil, Size);
   P := Pointer(Result);
-  for I := 0 to Count - 1 do
+  for I := 0 to C - 1 do
   begin
     S := Get(I);
     L := Length(S);
@@ -275,7 +275,7 @@ var
   P: PCnWideStringItem;
 begin
   New(P);
-  P.FString := S;
+  P^.FString := S;
   FList.Insert(Index, P);
 end;
 
@@ -339,7 +339,7 @@ var
   P: PCnWideStringItem;
 begin
   P := PCnWideStringItem(FList[Index]);
-  P.FString := S;
+  P^.FString := S;
 end;
 
 procedure TCnWideStringList.QuickSort(L, R: Integer;
@@ -447,8 +447,8 @@ end;
 
 function StringListCompareStrings(List: TCnWideStringList; Index1, Index2: Integer): Integer;
 begin
-  Result := WideCompareText(PCnWideStringItem(List.FList[Index1]).FString,
-                            PCnWideStringItem(List.FList[Index2]).FString);
+  Result := WideCompareText(PCnWideStringItem(List.FList[Index1])^.FString,
+                            PCnWideStringItem(List.FList[Index2])^.FString);
 end;
 
 procedure TCnWideStringList.Sort;
@@ -458,17 +458,17 @@ end;
 
 { TCnWideMemIniFile }
 
-constructor TCnWideMemIniFile.Create(const FileName: string);
+constructor TCnWideMemIniFile.Create(const AFileName: string);
 var
   WList: TCnWideStringList;
   List: TStringList;
 begin
-  inherited;
+  inherited Create(AFileName);
   WList := nil;
   List := nil;
   try
     WList := TCnWideStringList.Create;
-    WList.LoadFromFile(FileName);
+    WList.LoadFromFile(AFileName);
     List := TStringList.Create;
     List.Text := WList.Text;
     SetStrings(List);

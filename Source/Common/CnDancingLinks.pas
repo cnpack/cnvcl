@@ -151,7 +151,7 @@ type
   public
     function ExtractRow(ARow: Integer): TCnCrossLinkedNode;
     {* 拆除一行，返回该行的行头元素，该行所有元素与其他行脱离关系}
-    function RestoreRow(RowHead: TCnCrossLinkedNode): Boolean;
+    function RestoreRow(ARowHead: TCnCrossLinkedNode): Boolean;
     {* 将 ExtractRow 拆出的行重新放置回原位}
     function ExtractColumn(ACol: Integer): TCnCrossLinkedNode;
     {* 拆除一列，返回该列的列头元素，该行所有元素与其他列脱离关系}
@@ -621,16 +621,16 @@ begin
   until (P = ColHead) or (P = nil);
 end;
 
-function TCnDancingLinks.RestoreRow(RowHead: TCnCrossLinkedNode): Boolean;
+function TCnDancingLinks.RestoreRow(ARowHead: TCnCrossLinkedNode): Boolean;
 var
   Row, Col: Integer;
   P: TCnCrossLinkedNode;
 begin
   Result := False;
-  if RowHead = nil then
+  if ARowHead = nil then
     Exit;
 
-  Row := RowHead.Row;
+  Row := ARowHead.Row;
   if (Row < 0) or (Row >= RowCount) then
     Exit;
 
@@ -638,8 +638,8 @@ begin
     Exit;
 
   // 重新将本行元素插入
-  FRowHeads[Row] := RowHead; // 列头指向此列首元素
-  P := RowHead;
+  FRowHeads[Row] := ARowHead; // 列头指向此列首元素
+  P := ARowHead;
   repeat
     // 对每一个行元素，重建在列中的链接关系
     Col := P.Column;
@@ -662,7 +662,7 @@ begin
 
     Inc(FCount);
     P := P.Right;
-  until (P = RowHead) or (P = nil);
+  until (P = ARowHead) or (P = nil);
 end;
 
 end.

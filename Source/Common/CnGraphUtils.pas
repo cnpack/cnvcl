@@ -520,7 +520,7 @@ end;
 // 计算颜色亮度值
 // 算法来源：Graphic32
 // 算法修改：周劲羽
-function Intensity(Color: TColor): Byte;
+function Intensity(Color: TColor): Byte; assembler;
 asm
 // 输入:  RGB --> EAX
 // 输出:  (R * 61 + G * 174 + B * 20) / 256 --> AL
@@ -575,7 +575,7 @@ begin
     P := Result.ScanLine[y];
     for x := 0 to Width - 1 do
     begin
-      with P[x] do
+      with P^[x] do
       begin
         rgbtBlue := b;
         rgbtGreen := g;

@@ -286,8 +286,8 @@ begin
   //(recursively) find midpoints of the edit path...
   Delta := (x2 - x1) - (y2 - y1);
   //initialize forward and backward diagonal vectors...
-  FDiagVecF[0] := x1;
-  FDiagVecB[Delta] := x2;
+  FDiagVecF^[0] := x1;
+  FDiagVecB^[Delta] := x2;
   //OUTER LOOP ...
   //MAKE INCREASING OSCILLATIONS ABOUT CENTRE DIAGONAL UNTIL A FORWARD
   //DIAGONAL VECTOR IS GREATER THAN OR EQUAL TO A BACKWARD DIAGONAL.
@@ -301,9 +301,9 @@ begin
     while k <= D do
     begin
       //derive x from the larger of the adjacent vectors...
-      if (k = -D) or ((k < D) and (FDiagVecF[k - 1] < FDiagVecF[k + 1])) then
-        x := FDiagVecF[k + 1] else
-        x := FDiagVecF[k - 1] + 1;
+      if (k = -D) or ((k < D) and (FDiagVecF^[k - 1] < FDiagVecF^[k + 1])) then
+        x := FDiagVecF^[k + 1] else
+        x := FDiagVecF^[k - 1] + 1;
       y := x - x1 + y1 - k;
       //while (x+1,y+1) match - increment them...
       while (x < x2) and (y < y2) and (FArray1[x + 1] = FArray2[y + 1]) do
@@ -312,12 +312,12 @@ begin
         Inc(y);
       end;
       //update current vector ...
-      FDiagVecF[k] := x;
+      FDiagVecF^[k] := x;
 
       //check if midpoint reached (ie: when diagVecF[k] & diagVecB[k] vectors overlap)...
       //nb: if midpoint found in forward loop then there must be common sub-sequences ...
-      if odd(Delta) and (k > -D + Delta) and (k < D + Delta) and (FDiagVecF[k] >=
-        FDiagVecB[k]) then
+      if odd(Delta) and (k > -D + Delta) and (k < D + Delta) and (FDiagVecF^[k] >=
+        FDiagVecB^[k]) then
       begin
         //To avoid declaring 2 extra variables in this recursive function ..
         //Delta & k are simply reused to store the x & y values ...
@@ -354,10 +354,10 @@ begin
       else if (k > FMaxD) then Break;
 
       //derive x from the adjacent vectors...
-      if (k = D + Delta) or ((k > -D + Delta) and (FDiagVecB[k + 1] > FDiagVecB[k - 1]))
+      if (k = D + Delta) or ((k > -D + Delta) and (FDiagVecB^[k + 1] > FDiagVecB^[k - 1]))
         then
-        x := FDiagVecB[k - 1] else
-        x := FDiagVecB[k + 1] - 1;
+        x := FDiagVecB^[k - 1] else
+        x := FDiagVecB^[k + 1] - 1;
       y := x - x1 + y1 - k;
       //while (x,y) match - decrement them...
       while (x > x1) and (y > y1) and (FArray1[x] = FArray2[y]) do
@@ -366,10 +366,10 @@ begin
         Dec(y);
       end;
       //update current vector ...
-      FDiagVecB[k] := x;
+      FDiagVecB^[k] := x;
 
       //check if midpoint reached...
-      if not odd(Delta) and (k >= -D) and (k <= D) and (FDiagVecF[k] >= FDiagVecB[k])
+      if not odd(Delta) and (k >= -D) and (k <= D) and (FDiagVecF^[k] >= FDiagVecB^[k])
         then
       begin
         //if D == 1 then the smallest common subsequence must have been found ...
@@ -486,28 +486,28 @@ var
   procedure NewAdd(x1, y1: Integer);
   begin
     New(FLastAdd);
-    FLastAdd.Kind := ckAdd;
-    FLastAdd.x := x1;
-    FLastAdd.y := y1;
-    FLastAdd.Range := 1;
+    FLastAdd^.Kind := ckAdd;
+    FLastAdd^.x := x1;
+    FLastAdd^.y := y1;
+    FLastAdd^.Range := 1;
   end;
 
   procedure NewMod(x1, y1: Integer);
   begin
     New(FLastMod);
-    FLastMod.Kind := ckModify;
-    FLastMod.x := x1;
-    FLastMod.y := y1;
-    FLastMod.Range := 1;
+    FLastMod^.Kind := ckModify;
+    FLastMod^.x := x1;
+    FLastMod^.y := y1;
+    FLastMod^.Range := 1;
   end;
 
   procedure NewDel(x1: Integer);
   begin
     New(FLastDel);
-    FLastDel.Kind := ckDelete;
-    FLastDel.x := x1;
-    FLastDel.y := 0;
-    FLastDel.Range := 1;
+    FLastDel^.Kind := ckDelete;
+    FLastDel^.x := x1;
+    FLastDel^.y := 0;
+    FLastDel^.Range := 1;
   end;
 
   // 1. there can NEVER be concurrent fLastAdd and fLastDel record ranges.
@@ -517,9 +517,9 @@ var
   begin
     if Assigned(FLastAdd) then //OTHER ADDS PENDING
     begin
-      if (FLastAdd.x = x1) and
-        (FLastAdd.y + FLastAdd.Range = y1) then
-        Inc(FLastAdd.Range) //add in series
+      if (FLastAdd^.x = x1) and
+        (FLastAdd^.y + FLastAdd^.Range = y1) then
+        Inc(FLastAdd^.Range) //add in series
       else
       begin
         PushAdd;
@@ -528,22 +528,22 @@ var
     end
     else if Assigned(FLastDel) then //NO ADDS BUT DELETES PENDING
     begin
-      if x1 = FLastDel.x then //add matches pending del so modify ...
+      if x1 = FLastDel^.x then //add matches pending del so modify ...
       begin
-        if Assigned(FLastMod) and (FLastMod.x + FLastMod.Range - 1 = x1) and
-          (FLastMod.y + FLastMod.Range - 1 = y1) then
-          Inc(FLastMod.Range) //modify in series
+        if Assigned(FLastMod) and (FLastMod^.x + FLastMod^.Range - 1 = x1) and
+          (FLastMod^.y + FLastMod^.Range - 1 = y1) then
+          Inc(FLastMod^.Range) //modify in series
         else
         begin
           PushMod;
           NewMod(x1, y1);
         end; //start NEW modify
 
-        if FLastDel.Range = 1 then TrashDel //decrement or remove existing del
+        if FLastDel^.Range = 1 then TrashDel //decrement or remove existing del
         else
         begin
-          Dec(FLastDel.Range);
-          Inc(FLastDel.x);
+          Dec(FLastDel^.Range);
+          Inc(FLastDel^.x);
         end;
       end
       else
@@ -560,8 +560,8 @@ var
   begin
     if Assigned(FLastDel) then //OTHER DELS PENDING
     begin
-      if (FLastDel.x + FLastDel.Range = x1) then
-        Inc(FLastDel.Range) //del in series
+      if (FLastDel^.x + FLastDel^.Range = x1) then
+        Inc(FLastDel^.Range) //del in series
       else
       begin
         PushDel;
@@ -570,21 +570,21 @@ var
     end
     else if Assigned(FLastAdd) then //NO DELS BUT ADDS PENDING
     begin
-      if x1 = FLastAdd.x then //del matches pending add so modify ...
+      if x1 = FLastAdd^.x then //del matches pending add so modify ...
       begin
-        if Assigned(FLastMod) and (FLastMod.x + FLastMod.Range = x1) then
-          Inc(FLastMod.Range) //mod in series
+        if Assigned(FLastMod) and (FLastMod^.x + FLastMod^.Range = x1) then
+          Inc(FLastMod^.Range) //mod in series
         else
         begin
           PushMod;
-          NewMod(x1, FLastAdd.y);
+          NewMod(x1, FLastAdd^.y);
         end; //start NEW modify ...
-        if FLastAdd.Range = 1 then TrashAdd //decrement or remove existing add
+        if FLastAdd^.Range = 1 then TrashAdd //decrement or remove existing add
         else
         begin
-          Dec(FLastAdd.Range);
-          Inc(FLastAdd.x);
-          Inc(FLastAdd.y);
+          Dec(FLastAdd^.Range);
+          Inc(FLastAdd^.x);
+          Inc(FLastAdd^.y);
         end;
       end
       else

@@ -976,14 +976,14 @@ var
 begin
   try
     AItem := New(PCnLinkedNode);
-    AItem.Previous := nil;
-    AItem.Code := Item;
-    AItem.Next := FFirst;
+    AItem^.Previous := nil;
+    AItem^.Code := Item;
+    AItem^.Next := FFirst;
 
     if FFirst = nil then //如果是添加第一个节点
       FLast := AItem
     else
-      FFirst.Previous := AItem;
+      FFirst^.Previous := AItem;
 
     FFirst := AItem;
 
@@ -1005,14 +1005,14 @@ var
 begin
   try
     AItem := New(PCnLinkedNode);
-    AItem.Previous := FLast;
-    AItem.Code := Item;
-    AItem.Next := nil;
+    AItem^.Previous := FLast;
+    AItem^.Code := Item;
+    AItem^.Next := nil;
 
     if FLast = nil then //如果是添加第一个节点
       FFirst := AItem
     else
-      FLast.Next := AItem;
+      FLast^.Next := AItem;
 
     FLast := AItem;
 
@@ -1038,12 +1038,12 @@ begin
     Item_P := GetPrevious;
 
     AItem := New(PCnLinkedNode);
-    AItem.Previous := Item_P;
-    AItem.Code := Item;
-    AItem.Next := Item_N;
+    AItem^.Previous := Item_P;
+    AItem^.Code := Item;
+    AItem^.Next := Item_N;
 
-    Item_P.Next := AItem;
-    Item_N.Previous := AItem;
+    Item_P^.Next := AItem;
+    Item_N^.Previous := AItem;
 
     //if (FIndex <= Index) and (FIndex <> -1) then
     Inc(FIndex);
@@ -1140,8 +1140,8 @@ begin
     Exit;
 
   Item := FFirst;
-  FFirst := FFirst.Next;
-  FFirst.Previous := nil;
+  FFirst := FFirst^.Next;
+  FFirst^.Previous := nil;
 
   if FIndex = 0 then
     FNode := FFirst
@@ -1149,8 +1149,8 @@ begin
     Dec(FIndex);
 
   Dec(FCount);
-  if Item.Code <> nil then
-    Notify(Item.Code, lnDeleted);
+  if Item^.Code <> nil then
+    Notify(Item^.Code, lnDeleted);
   Dispose(Item);
 
   Result := True;
@@ -1166,8 +1166,8 @@ begin
     Exit;
 
   Item := FLast;
-  FLast := FLast.Previous;
-  FLast.Next := nil;
+  FLast := FLast^.Previous;
+  FLast^.Next := nil;
 
   if FIndex = FCount - 1 then
   begin
@@ -1176,8 +1176,8 @@ begin
   end;
 
   Dec(FCount);
-  if Item.Code <> nil then
-    Notify(Item.Code, lnDeleted);
+  if Item^.Code <> nil then
+    Notify(Item^.Code, lnDeleted);
   Dispose(Item);
 
   Result := True;
@@ -1199,8 +1199,8 @@ begin
   FIndex := -1;
 
   Dec(FCount);
-  if Item.Code <> nil then
-    Notify(Item.Code, lnDeleted);
+  if Item^.Code <> nil then
+    Notify(Item^.Code, lnDeleted);
   Dispose(Item);
 
   Result := True;
@@ -1219,8 +1219,8 @@ begin
   Item_P := GetPrevious; //上一节点
   Item_N := GetNext; //下一节点
 
-  Item_P.Next := Item_N;
-  Item_N.Previous := Item_P;
+  Item_P^.Next := Item_N;
+  Item_N^.Previous := Item_P;
 
   FNode := Item_N;
 {
@@ -1230,8 +1230,8 @@ begin
     Dec(FIndex);
 }
   Dec(FCount);
-  if Item.Code <> nil then
-    Notify(Item.Code, lnDeleted);
+  if Item^.Code <> nil then
+    Notify(Item^.Code, lnDeleted);
   DisPose(Item);
   Result := True;
 end;
@@ -1264,9 +1264,9 @@ begin
   if (Index2 < 0) or (Index2 >= FCount) then
     raise Exception.Create(Format(SListIndexError, [Index2]));
 
-  Item := GetItem(Index1).Code;
-  GetItem(Index1).Code := GetItem(Index2).Code;
-  GetItem(Index2).Code := Item;
+  Item := GetItem(Index1)^.Code;
+  GetItem(Index1)^.Code := GetItem(Index2)^.Code;
+  GetItem(Index2)^.Code := Item;
 end;
 
 function TCnCustomLinkedList.Extract(const Item: Pointer): Pointer;
@@ -1292,7 +1292,7 @@ function TCnCustomLinkedList.First: Pointer;
 begin
   if FFirst = nil then
     raise Exception.Create(Format(SListIndexError, [0]));
-  Result := FFirst.Code;
+  Result := FFirst^.Code;
 end;
 
 function TCnCustomLinkedList.Get(Index: Integer): Pointer;
@@ -1304,7 +1304,7 @@ begin
 
   Item := GetItem(Index);
   if Item <> nil then
-    Result := Item.Code
+    Result := Item^.Code
   else
     Result := nil;
 end;
@@ -1408,7 +1408,7 @@ begin
     I := IFirst;
     while I <> Index do
     begin
-      Result := Result.Next;
+      Result := Result^.Next;
       Inc(I);
     end;
   end
@@ -1418,7 +1418,7 @@ begin
     I := ILast;
     while I <> Index do
     begin
-      Result := Result.Previous;
+      Result := Result^.Previous;
       Dec(I);
     end;
   end;
@@ -1432,13 +1432,13 @@ begin
   if FNode = nil then
     raise Exception.Create(Format(SListIndexError, [FIndex]));
 
-  Result := FNode.Next;
+  Result := FNode^.Next;
   if Result = nil then
     raise Exception.Create(Format(SListIndexError, [FIndex + 1]));
   if Move then
   begin
     Inc(FIndex);
-    FNode := FNode.Next;
+    FNode := FNode^.Next;
   end;
 end;
 
@@ -1447,13 +1447,13 @@ begin
   if FNode = nil then
     raise Exception.Create(Format(SListIndexError, [FIndex]));
 
-  Result := FNode.Previous;
+  Result := FNode^.Previous;
   if Result = nil then
     raise Exception.Create(Format(SListIndexError, [FIndex - 1]));
   if Move then
   begin
     Dec(FIndex);
-    FNode := FNode.Previous;
+    FNode := FNode^.Previous;
   end;
 end;
 
@@ -1499,7 +1499,7 @@ function TCnCustomLinkedList.Last: Pointer;
 begin
   if FLast = nil then
     raise Exception.Create(Format(SListIndexError, [FCount - 1]));
-  Result := FLast.Code;
+  Result := FLast^.Code;
 end;
 
 procedure TCnCustomLinkedList.Lock;
@@ -1559,7 +1559,7 @@ begin
   Code := Get(Index);
   if Item <> Code then
   begin
-    GetItem(Index).Code := Item;
+    GetItem(Index)^.Code := Item;
     if Code <> nil then
       Notify(Code, lnDeleted);
     if Item <> nil then
@@ -1855,9 +1855,9 @@ procedure TCnLinkedObjectList.Notify(Ptr: Pointer;
 begin
   inherited Notify(Ptr, Action);
   case Action of
-    lnAdded: DoAddObject(Ptr);
-    lnDeleted: DoDeleteObject(Ptr);
-    lnExtracted: DoExtractObject(Ptr);
+    lnAdded: DoAddObject(TObject(Ptr));
+    lnDeleted: DoDeleteObject(TObject(Ptr));
+    lnExtracted: DoExtractObject(TObject(Ptr));
   end;
 end;
 
@@ -1963,9 +1963,9 @@ procedure TCnLinkedClassList.Notify(Ptr: Pointer; Action: TCnLinkedListNotificat
 begin
   inherited Notify(Ptr, Action);
   case Action of
-    lnAdded: DoAddClass(Ptr);
-    lnDeleted: DoDeleteClass(Ptr);
-    lnExtracted: DoExtractClass(Ptr);
+    lnAdded: DoAddClass(TClass(Ptr));
+    lnDeleted: DoDeleteClass(TClass(Ptr));
+    lnExtracted: DoExtractClass(TClass(Ptr));
   end;
 end;
 

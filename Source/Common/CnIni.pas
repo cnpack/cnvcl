@@ -76,7 +76,7 @@ type
        AIni: TCustomIniFile    - 被包装的 INI 对象
        AOwned: Boolean         - 在该对象释放时是否同时释放被包装的 INI 对象
      |</PRE>}
-    constructor Create(const FileName: string; MemIniFile: Boolean = True); overload;
+    constructor Create(const AFileName: string; MemIniFile: Boolean = True); overload;
     {* 普通 INI 文件构造器，使用该构造器创建实例，将实例当普通的 INI 对象使用。
      |<PRE>
        FileName: string        - INI 文件名
@@ -152,17 +152,17 @@ type
   protected
 
   public
-    constructor Create(const FileName: string = '');
+    constructor Create(const AFileName: string = '');
     {* 类构造器，参数为 INI 文件名，如果该文件存在则会自动装载文件 }
     destructor Destroy; override;
     {* 类析构器 }
-    function LoadFromFile(const FileName: string): Boolean;
+    function LoadFromFile(const AFileName: string): Boolean;
     {* 从文件中装载 INI 数据 }
-    function LoadFromStream(Stream: TStream): Boolean; virtual;
+    function LoadFromStream(AStream: TStream): Boolean; virtual;
     {* 从流中装载 INI 数据 }
-    function SaveToFile(const FileName: string): Boolean;
+    function SaveToFile(const AFileName: string): Boolean;
     {* 保存 INI 数据到文件 } 
-    function SaveToStream(Stream: TStream): Boolean; virtual;
+    function SaveToStream(AStream: TStream): Boolean; virtual;
     {* 保存 INI 数据到流 }
     procedure UpdateFile; override;
     {* 更新当前 INI 数据到文件 }
@@ -186,11 +186,11 @@ type
   protected
     function CreateEncryptStream(AStream: TStream): TCnEncryptStream; virtual; abstract;
   public
-    constructor Create(const FileName: string
+    constructor Create(const AFileName: string
       {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
-    function LoadFromStream(Stream: TStream): Boolean; override;
+    function LoadFromStream(AStream: TStream): Boolean; override;
     {* 从流中装载 INI 数据，流中的数据将自动解密 }
-    function SaveToStream(Stream: TStream): Boolean; override;
+    function SaveToStream(AStream: TStream): Boolean; override;
     {* 保存 INI 数据到流，流中的数据将自动加密 }
   {$IFDEF SUPPORT_ZLIB}
     property UseZLib: Boolean read FUseZLib;
@@ -211,7 +211,7 @@ type
   protected
     function CreateEncryptStream(AStream: TStream): TCnEncryptStream; override;
   public
-    constructor Create(const FileName: string; const XorStr: string
+    constructor Create(const AFileName: string; const XorStr: string
       {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
     {* 类构造器。
      |<PRE>
@@ -234,7 +234,7 @@ type
   protected
     function CreateEncryptStream(AStream: TStream): TCnEncryptStream; override;
   public
-    constructor Create(const FileName: string; const SeedStr: string
+    constructor Create(const AFileName: string; const SeedStr: string
       {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
     {* 类构造器。
      |<PRE>
@@ -320,12 +320,12 @@ begin
   FOwned := AOwned;
 end;
 
-constructor TCnIniFile.Create(const FileName: string; MemIniFile: Boolean);
+constructor TCnIniFile.Create(const AFileName: string; MemIniFile: Boolean);
 begin
   if MemIniFile then
-    Create(TMemIniFile.Create(FileName), True)
+    Create(TMemIniFile.Create(AFileName), True)
   else
-    Create(TIniFile.Create(FileName), True);
+    Create(TIniFile.Create(AFileName), True);
 end;
 
 destructor TCnIniFile.Destroy;
@@ -737,12 +737,12 @@ end;
 
 { TCnStreamIniFile }
 
-constructor TCnStreamIniFile.Create(const FileName: string);
+constructor TCnStreamIniFile.Create(const AFileName: string);
 var
   Strings: TStrings;
 begin
   inherited Create('');
-  FFileName := FileName;
+  FFileName := AFileName;
   if FileExists(FFileName) then
     LoadFromFile(FFileName);
 
@@ -777,12 +777,12 @@ begin
   inherited;
 end;
 
-function TCnStreamIniFile.LoadFromFile(const FileName: string): Boolean;
+function TCnStreamIniFile.LoadFromFile(const AFileName: string): Boolean;
 var
   Stream: TFileStream;
 begin
   try
-    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    Stream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
     try
       Result := LoadFromStream(Stream);
     finally
@@ -793,14 +793,14 @@ begin
   end;
 end;
 
-function TCnStreamIniFile.LoadFromStream(Stream: TStream): Boolean;
+function TCnStreamIniFile.LoadFromStream(AStream: TStream): Boolean;
 var
   Strings: TStrings;
 begin
   try
     Strings := TStringList.Create;
     try
-      Strings.LoadFromStream(Stream);
+      Strings.LoadFromStream(AStream);
       SetStrings(Strings);
     finally
       Strings.Free;
@@ -811,12 +811,12 @@ begin
   end;
 end;
 
-function TCnStreamIniFile.SaveToFile(const FileName: string): Boolean;
+function TCnStreamIniFile.SaveToFile(const AFileName: string): Boolean;
 var
   Stream: TFileStream;
 begin
   try
-    Stream := TFileStream.Create(FileName, fmCreate);
+    Stream := TFileStream.Create(AFileName, fmCreate);
     try
       Stream.Size := 0;
       Result := SaveToStream(Stream);
@@ -828,7 +828,7 @@ begin
   end;
 end;
 
-function TCnStreamIniFile.SaveToStream(Stream: TStream): Boolean;
+function TCnStreamIniFile.SaveToStream(AStream: TStream): Boolean;
 var
   Strings: TStrings;
 begin
@@ -836,7 +836,7 @@ begin
     Strings := TStringList.Create;
     try
       GetStrings(Strings);
-      Strings.SaveToStream(Stream);
+      Strings.SaveToStream(AStream);
     finally
       Strings.Free;
     end;
@@ -858,16 +858,16 @@ end;
 
 { TCnBaseEncryptIniFile }
 
-constructor TCnBaseEncryptIniFile.Create(const FileName: string
+constructor TCnBaseEncryptIniFile.Create(const AFileName: string
   {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
 begin
 {$IFDEF SUPPORT_ZLIB}
   FUseZLib := AUseZLib;
 {$ENDIF}
-  inherited Create(FileName);
+  inherited Create(AFileName);
 end;
 
-function TCnBaseEncryptIniFile.LoadFromStream(Stream: TStream): Boolean;
+function TCnBaseEncryptIniFile.LoadFromStream(AStream: TStream): Boolean;
 var
   EncryptStream: TCnEncryptStream;
 {$IFDEF SUPPORT_ZLIB}
@@ -884,7 +884,7 @@ begin
   {$IFDEF SUPPORT_ZLIB}
     if FUseZLib then
     begin
-      EncryptStream := CreateEncryptStream(Stream);
+      EncryptStream := CreateEncryptStream(AStream);
       MemStream := TMemoryStream.Create;
       MemStream.LoadFromStream(EncryptStream);
       DecompStream := TDecompressionStream.Create(MemStream);
@@ -893,7 +893,7 @@ begin
     else
   {$ENDIF}
     begin
-      EncryptStream := CreateEncryptStream(Stream);
+      EncryptStream := CreateEncryptStream(AStream);
       Result := inherited LoadFromStream(EncryptStream);
     end;
   finally
@@ -905,7 +905,7 @@ begin
   end;
 end;
 
-function TCnBaseEncryptIniFile.SaveToStream(Stream: TStream): Boolean;
+function TCnBaseEncryptIniFile.SaveToStream(AStream: TStream): Boolean;
 var
   EncryptStream: TCnEncryptStream;
 {$IFDEF SUPPORT_ZLIB}
@@ -934,13 +934,13 @@ begin
     {$ENDIF}
       Result := inherited SaveToStream(CompStream);
       FreeAndNil(CompStream); // 释放时才会完成压缩输出
-      EncryptStream := CreateEncryptStream(Stream);
+      EncryptStream := CreateEncryptStream(AStream);
       MemStream.SaveToStream(EncryptStream);
     end
     else
   {$ENDIF}
     begin
-      EncryptStream := CreateEncryptStream(Stream);
+      EncryptStream := CreateEncryptStream(AStream);
       Result := inherited SaveToStream(EncryptStream);
     end;
   finally
@@ -958,11 +958,11 @@ end;
 
 { TCnXorIniFile }
 
-constructor TCnXorIniFile.Create(const FileName, XorStr: string
+constructor TCnXorIniFile.Create(const AFileName, XorStr: string
   {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean{$ENDIF});
 begin
   FXorStr := XorStr;
-  inherited Create(FileName{$IFDEF SUPPORT_ZLIB}, AUseZLib{$ENDIF});
+  inherited Create(AFileName{$IFDEF SUPPORT_ZLIB}, AUseZLib{$ENDIF});
 end;
 
 function TCnXorIniFile.CreateEncryptStream(AStream: TStream): TCnEncryptStream;
@@ -976,11 +976,11 @@ end;
 
 { TCnEncryptIniFile }
 
-constructor TCnEncryptIniFile.Create(const FileName: string; const SeedStr: string
+constructor TCnEncryptIniFile.Create(const AFileName: string; const SeedStr: string
   {$IFDEF SUPPORT_ZLIB}; AUseZLib: Boolean = False{$ENDIF});
 begin
   FSeedStr := SeedStr;
-  inherited Create(FileName{$IFDEF SUPPORT_ZLIB}, AUseZLib{$ENDIF});
+  inherited Create(AFileName{$IFDEF SUPPORT_ZLIB}, AUseZLib{$ENDIF});
 end;
 
 function TCnEncryptIniFile.CreateEncryptStream(AStream: TStream): TCnEncryptStream;

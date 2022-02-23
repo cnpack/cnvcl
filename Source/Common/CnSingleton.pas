@@ -153,18 +153,18 @@ begin
     if _SingletonList.Find(GetClassBaseOffsetStr, i) then
     begin
       tmpSingletonInfo := PCnSingletonInfo(_SingletonList.Objects[i]);
-      tmpSingleton := tmpSingletonInfo.Instance;
+      tmpSingleton := tmpSingletonInfo^.Instance;
     end;
     if tmpSingleton = nil then
     begin
       New(tmpSingletonInfo);
       tmpSingleton := inherited NewInstance;
-      tmpSingletonInfo.Instance := tmpSingleton;
-      tmpSingletonInfo.RefCount := 0;
+      tmpSingletonInfo^.Instance := tmpSingleton;
+      tmpSingletonInfo^.RefCount := 0;
       _SingletonList.AddObject(GetClassBaseOffsetStr, TObject(tmpSingletonInfo));
     end;
     if tmpSingletonInfo <> nil then
-      Inc(tmpSingletonInfo.RefCount);
+      Inc(tmpSingletonInfo^.RefCount);
     Result := tmpSingleton;
   finally
     Unlock;
@@ -225,7 +225,7 @@ begin
   begin
     if Assigned(Objects[i]) then
     begin
-      tmpSingleton := PCnSingletonInfo(Objects[i]).Instance;
+      tmpSingleton := PCnSingletonInfo(Objects[i])^.Instance;
       if tmpSingleton <> nil then
         FreeAndNil(tmpSingleton);
     end;
