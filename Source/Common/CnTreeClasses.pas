@@ -623,12 +623,20 @@ begin
       if ANode.Count > 0 then
       begin
         Leaf := AddLeftChild(ALeaf as TCnBinaryLeaf);
+{$IFDEF FPC}
+        LoadFromATreeNode(Leaf, ANode.Items[0]);
+{$ELSE}
         LoadFromATreeNode(Leaf, ANode.Item[0]);
+{$ENDIF}
       end;
       if ANode.Count > 1 then
       begin
         Leaf := AddRightChild(ALeaf as TCnBinaryLeaf);
+{$IFDEF FPC}
+        LoadFromATreeNode(Leaf, ANode.Items[1]);
+{$ELSE}
         LoadFromATreeNode(Leaf, ANode.Item[1]);
+{$ENDIF}
       end;
     end
     else

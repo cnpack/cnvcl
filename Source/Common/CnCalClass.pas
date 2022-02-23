@@ -40,7 +40,7 @@ unit CnCalClass;
 interface
 
 uses
-  SysUtils, Classes, Windows, Math, CnCalendar;
+  SysUtils, Classes, CnCalendar;
 
 type
 

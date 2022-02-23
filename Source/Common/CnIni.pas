@@ -292,7 +292,11 @@ begin
   if (PropInfo^.GetProc <> nil) and
      (PropInfo^.SetProc <> nil) then
   begin
+{$IFDEF FPC}
+    PropType := PropInfo^.PropType;
+{$ELSE}
     PropType := PropInfo^.PropType^;
+{$ENDIF}
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         Result := IsDefaultOrdProp;
