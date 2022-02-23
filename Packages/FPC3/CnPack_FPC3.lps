@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <Units>
+      <Unit>
+        <Filename Value="..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
+        <TopLine Value="1259"/>
+        <CursorPos X="28" Y="1278"/>
+        <UsageCount Value="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnContainers.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="482"/>
+        <CursorPos Y="497"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\classes\classesh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="286"/>
+        <CursorPos X="3" Y="298"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnClasses.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="796"/>
+        <CursorPos X="64" Y="813"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Crypto\CnRandom.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="46"/>
+        <CursorPos X="3" Y="58"/>
+        <UsageCount Value="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnLockFree.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="405"/>
+        <CursorPos X="21" Y="424"/>
+        <UsageCount Value="5"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnPack.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="34"/>
+        <CursorPos X="46" Y="53"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Crypto\CnBigNumber.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="291"/>
+        <CursorPos X="28" Y="314"/>
+        <UsageCount Value="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\inc\objpash.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="225"/>
+        <CursorPos X="20" Y="256"/>
+        <UsageCount Value="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Crypto\CnAES.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2245"/>
+        <CursorPos X="45" Y="2257"/>
+        <UsageCount Value="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnLinkedList.pas"/>
+        <TopLine Value="3479"/>
+        <CursorPos X="15" Y="3491"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnCommon.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="1929"/>
+        <CursorPos X="3" Y="1941"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnBinaryDiffPatch.pas"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="627"/>
+        <CursorPos X="34" Y="641"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnCalClass.pas"/>
+        <EditorIndex Value="10"/>
+        <TopLine Value="265"/>
+        <CursorPos X="20" Y="43"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="235"/>
+        <CursorPos Y="251"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\typinfo.pp"/>
+        <UnitName Value="TypInfo"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="717"/>
+        <CursorPos X="7" Y="708"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnIniCfg.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="149"/>
+        <CursorPos X="34" Y="161"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnIniStrUtils.pas"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="73"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnTreeClasses.pas"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="653"/>
+        <CursorPos X="44" Y="636"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\lcl\comctrls.pp"/>
+        <UnitName Value="ComCtrls"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="3042"/>
+        <CursorPos X="3" Y="2967"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnWideStrings.pas"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="646"/>
+        <CursorPos Y="110"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\Source\Common\CnZip.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="1029"/>
+        <CursorPos X="17" Y="1041"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="1941" Column="3" TopLine="1930"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="17" Column="37" TopLine="31"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="248" TopLine="235"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="292" Column="26" TopLine="280"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="394" Column="19" TopLine="382"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="292" Column="25" TopLine="280"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="249" Column="52" TopLine="236"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\typinfo.pp"/>
+        <Caret Line="690" Column="7" TopLine="678"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\typinfo.pp"/>
+        <Caret Line="708" Column="7" TopLine="717"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="38" Column="8" TopLine="28"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="1938" Column="33" TopLine="1929"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="292" Column="35" TopLine="277"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="296" Column="9" TopLine="287"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="398" Column="19" TopLine="386"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="247" TopLine="235"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="36" TopLine="30"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="251" TopLine="235"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnBinaryDiffPatch.pas"/>
+        <Caret Line="641" Column="34" TopLine="627"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnCommon.pas"/>
+        <Caret Line="407" Column="10" TopLine="394"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\typinfo.pp"/>
+        <Caret Line="737" Column="7" TopLine="724"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\typinfo.pp"/>
+        <Caret Line="738" Column="7" TopLine="724"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\typinfo.pp"/>
+        <Caret Line="690" Column="7" TopLine="678"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIni.pas"/>
+        <Caret Line="251" TopLine="235"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnIniStrUtils.pas"/>
+        <Caret TopLine="73"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnTreeClasses.pas"/>
+        <Caret Line="626" Column="39" TopLine="608"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnTreeClasses.pas"/>
+        <Caret Line="615" Column="3" TopLine="608"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnTreeClasses.pas"/>
+        <Caret Line="639" TopLine="621"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnTreeClasses.pas"/>
+        <Caret Line="636" Column="44" TopLine="653"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnWideStrings.pas"/>
+        <Caret TopLine="280"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\Source\Common\CnZip.pas"/>
+        <Caret Line="55" TopLine="46"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <Name Value="CnPack_FPC3"/>
+    <AddToProjectUsesSection Value="True"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <IncludeFiles Value="../../Source/Crypto;../../Source/Common"/>
+        <Libraries Value="../../Source/Crypto;../../Source/Common"/>
+        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common"/>
+      </SearchPaths>
+      <Parsing>
+        <Style Value="1"/>
+      </Parsing>
+    </CompilerOptions>
+    <Files Count="59">
+      <Item1>
+        <Filename Value="../../Source/Crypto/CnAES.pas"/>
+        <UnitName Value="CnAES"/>
+      </Item1>
+      <Item2>
+        <Filename Value="../../Source/Crypto/CnBase64.pas"/>
+        <UnitName Value="CnBase64"/>
+      </Item2>
+      <Item3>
+        <Filename Value="../../Source/Crypto/CnBerUtils.pas"/>
+        <UnitName Value="CnBerUtils"/>
+      </Item3>
+      <Item4>
+        <Filename Value="../../Source/Crypto/CnBigNumber.pas"/>
+        <UnitName Value="CnBigNumber"/>
+      </Item4>
+      <Item5>
+        <Filename Value="../../Source/Crypto/CnCertificateAuthority.pas"/>
+        <UnitName Value="CnCertificateAuthority"/>
+      </Item5>
+      <Item6>
+        <Filename Value="../../Source/Crypto/CnComplex.pas"/>
+        <UnitName Value="CnComplex"/>
+      </Item6>
+      <Item7>
+        <Filename Value="../../Source/Crypto/CnCRC32.pas"/>
+        <UnitName Value="CnCRC32"/>
+      </Item7>
+      <Item8>
+        <Filename Value="../../Source/Crypto/CnDES.pas"/>
+        <UnitName Value="CnDES"/>
+      </Item8>
+      <Item9>
+        <Filename Value="../../Source/Crypto/CnDFT.pas"/>
+        <UnitName Value="CnDFT"/>
+      </Item9>
+      <Item10>
+        <Filename Value="../../Source/Crypto/CnECC.pas"/>
+        <UnitName Value="CnECC"/>
+      </Item10>
+      <Item11>
+        <Filename Value="../../Source/Crypto/CnFEC.pas"/>
+        <UnitName Value="CnFEC"/>
+      </Item11>
+      <Item12>
+        <Filename Value="../../Source/Crypto/CnKDF.pas"/>
+        <UnitName Value="CnKDF"/>
+      </Item12>
+      <Item13>
+        <Filename Value="../../Source/Crypto/CnMD5.pas"/>
+        <UnitName Value="CnMD5"/>
+      </Item13>
+      <Item14>
+        <Filename Value="../../Source/Crypto/CnNativeDecl.pas"/>
+        <UnitName Value="CnNativeDecl"/>
+      </Item14>
+      <Item15>
+        <Filename Value="../../Source/Crypto/CnOTP.pas"/>
+        <UnitName Value="CnOTP"/>
+      </Item15>
+      <Item16>
+        <Filename Value="../../Source/Crypto/CnPemUtils.pas"/>
+        <UnitName Value="CnPemUtils"/>
+      </Item16>
+      <Item17>
+        <Filename Value="../../Source/Crypto/CnPolynomial.pas"/>
+        <UnitName Value="CnPolynomial"/>
+      </Item17>
+      <Item18>
+        <Filename Value="../../Source/Crypto/CnPrimeNumber.pas"/>
+        <UnitName Value="CnPrimeNumber"/>
+      </Item18>
+      <Item19>
+        <Filename Value="../../Source/Crypto/CnRandom.pas"/>
+        <UnitName Value="CnRandom"/>
+      </Item19>
+      <Item20>
+        <Filename Value="../../Source/Crypto/CnRSA.pas"/>
+        <UnitName Value="CnRSA"/>
+      </Item20>
+      <Item21>
+        <Filename Value="../../Source/Crypto/CnSHA1.pas"/>
+        <UnitName Value="CnSHA1"/>
+      </Item21>
+      <Item22>
+        <Filename Value="../../Source/Crypto/CnSHA2.pas"/>
+        <UnitName Value="CnSHA2"/>
+      </Item22>
+      <Item23>
+        <Filename Value="../../Source/Crypto/CnSHA3.pas"/>
+        <UnitName Value="CnSHA3"/>
+      </Item23>
+      <Item24>
+        <Filename Value="../../Source/Crypto/CnSM2.pas"/>
+        <UnitName Value="CnSM2"/>
+      </Item24>
+      <Item25>
+        <Filename Value="../../Source/Crypto/CnSM3.pas"/>
+        <UnitName Value="CnSM3"/>
+      </Item25>
+      <Item26>
+        <Filename Value="../../Source/Crypto/CnSM4.pas"/>
+        <UnitName Value="CnSM4"/>
+      </Item26>
+      <Item27>
+        <Filename Value="../../Source/Crypto/CnSM9.pas"/>
+        <UnitName Value="CnSM9"/>
+      </Item27>
+      <Item28>
+        <Filename Value="../../Source/Crypto/CnTEA.pas"/>
+        <UnitName Value="CnTEA"/>
+      </Item28>
+      <Item29>
+        <Filename Value="../../Source/Crypto/CnZUC.pas"/>
+        <UnitName Value="CnZUC"/>
+      </Item29>
+      <Item30>
+        <Filename Value="../../Source/Common/CnPack.inc"/>
+        <Type Value="Include"/>
+      </Item30>
+      <Item31>
+        <Filename Value="../../Source/Common/CnLinkedList.pas"/>
+        <UnitName Value="CnLinkedList"/>
+      </Item31>
+      <Item32>
+        <Filename Value="../../Source/Common/CnBigDecimal.pas"/>
+        <UnitName Value="CnBigDecimal"/>
+      </Item32>
+      <Item33>
+        <Filename Value="../../Source/Common/CnBigRational.pas"/>
+        <UnitName Value="CnBigRational"/>
+      </Item33>
+      <Item34>
+        <Filename Value="../../Source/Common/CnBloomFilter.pas"/>
+        <UnitName Value="CnBloomFilter"/>
+      </Item34>
+      <Item35>
+        <Filename Value="../../Source/Common/CnCalClass.pas"/>
+        <UnitName Value="CnCalClass"/>
+      </Item35>
+      <Item36>
+        <Filename Value="../../Source/Common/CnCalendar.pas"/>
+        <UnitName Value="CnCalendar"/>
+      </Item36>
+      <Item37>
+        <Filename Value="../../Source/Common/CnClasses.pas"/>
+        <UnitName Value="CnClasses"/>
+      </Item37>
+      <Item38>
+        <Filename Value="../../Source/Common/CnConsts.pas"/>
+        <UnitName Value="CnConsts"/>
+      </Item38>
+      <Item39>
+        <Filename Value="../../Source/Common/CnContainers.pas"/>
+        <UnitName Value="CnContainers"/>
+      </Item39>
+      <Item40>
+        <Filename Value="../../Source/Common/CnDancingLinks.pas"/>
+        <UnitName Value="CnDancingLinks"/>
+      </Item40>
+      <Item41>
+        <Filename Value="../../Source/Common/CnFitCurve.pas"/>
+        <UnitName Value="CnFitCurve"/>
+      </Item41>
+      <Item42>
+        <Filename Value="../../Source/Common/CnFloatConvert.pas"/>
+        <UnitName Value="CnFloatConvert"/>
+      </Item42>
+      <Item43>
+        <Filename Value="../../Source/Common/CnGraph.pas"/>
+        <UnitName Value="CnGraph"/>
+      </Item43>
+      <Item44>
+        <Filename Value="../../Source/Common/CnGraphUtils.pas"/>
+        <UnitName Value="CnGraphUtils"/>
+      </Item44>
+      <Item45>
+        <Filename Value="../../Source/Common/CnHashMap.pas"/>
+        <UnitName Value="CnHashMap"/>
+      </Item45>
+      <Item46>
+        <Filename Value="../../Source/Common/CnHashTable.pas"/>
+        <UnitName Value="CnHashTable"/>
+      </Item46>
+      <Item47>
+        <Filename Value="../../Source/Common/CnLockFree.pas"/>
+        <UnitName Value="CnLockFree"/>
+      </Item47>
+      <Item48>
+        <Filename Value="../../Source/Common/CnMath.pas"/>
+        <UnitName Value="CnMath"/>
+      </Item48>
+      <Item49>
+        <Filename Value="../../Source/Common/CnMatrix.pas"/>
+        <UnitName Value="CnMatrix"/>
+      </Item49>
+      <Item50>
+        <Filename Value="../../Source/Common/CnRopes.pas"/>
+        <UnitName Value="CnRopes"/>
+      </Item50>
+      <Item51>
+        <Filename Value="../../Source/Common/CnSingleton.pas"/>
+        <UnitName Value="CnSingleton"/>
+      </Item51>
+      <Item52>
+        <Filename Value="../../Source/Common/CnSingletonComp.pas"/>
+        <UnitName Value="CnSingletonComp"/>
+      </Item52>
+      <Item53>
+        <Filename Value="../../Source/Common/CnSkipList.pas"/>
+        <UnitName Value="CnSkipList"/>
+      </Item53>
+      <Item54>
+        <Filename Value="../../Source/Common/CnStrDiff.pas"/>
+        <UnitName Value="CnStrDiff"/>
+      </Item54>
+      <Item55>
+        <Filename Value="../../Source/Common/CnStream.pas"/>
+        <UnitName Value="CnStream"/>
+      </Item55>
+      <Item56>
+        <Filename Value="../../Source/Common/CnStrings.pas"/>
+        <UnitName Value="CnStrings"/>
+      </Item56>
+      <Item57>
+        <Filename Value="../../Source/Common/CnTree.pas"/>
+        <UnitName Value="CnTree"/>
+      </Item57>
+      <Item58>
+        <Filename Value="../../Source/Common/CnTreeClasses.pas"/>
+        <UnitName Value="CnTreeClasses"/>
+      </Item58>
+      <Item59>
+        <Filename Value="../../Source/Common/CnWideStrings.pas"/>
+        <UnitName Value="CnWideStrings"/>
+      </Item59>
+    </Files>
+    <CompatibilityMode Value="True"/>
+    <RequiredPkgs Count="2">
+      <Item1>
+        <PackageName Value="LCLBase"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+    </RequiredPkgs>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>
