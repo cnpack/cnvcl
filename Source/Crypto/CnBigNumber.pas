@@ -246,7 +246,7 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串}
 
-    function ToHex: string;
+    function ToHex(FixedLen: Integer = 0): string;
     {* 将大数转成十六进制字符串}
 
     function SetHex(const Buf: AnsiString): Boolean;
@@ -495,8 +495,8 @@ function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
 function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
   FixedLen: Integer = 0): Integer;
 {* 将一个大数的二进制部分写入流，返回写入流的长度。
-  FixedLen 表示大数内容不够 FixedLen 长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 的长度
-  大数长度超过 FixedLen 时按大数实际长度写}
+  FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 字节的长度
+  大数长度超过 FixedLen 时按大数实际字节长度写}
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 {* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
@@ -506,10 +506,12 @@ function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
 {* 将一个二进制块赋值给指定大数对象，注意不处理正负号}
 
 function BigNumberToString(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成字符串，负以 - 表示}
+{* 将一个大数对象转成十进制字符串，负以 - 表示}
 
-function BigNumberToHex(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成十六进制字符串，负以 - 表示}
+function BigNumberToHex(const Num: TCnBigNumber; FixedLen: Integer = 0): string;
+{* 将一个大数对象转成十六进制字符串，负以 - 表示
+  FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证结果中输出固定 FixedLen 字节的长度（不包括负号）
+  内部大数长度超过 FixedLen 时按大数实际长度写}
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
 {* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行}
@@ -3215,18 +3217,19 @@ begin
   end;
 end;
 
-function BigNumberToHex(const Num: TCnBigNumber): string;
+function BigNumberToHex(const Num: TCnBigNumber; FixedLen: Integer): string;
 var
   I, J, V, Z: Integer;
 begin
   Result := '';
   if BigNumberIsZero(Num) then
   begin
-    Result := '0';
+    if FixedLen <= 0 then
+      Result := '0'
+    else
+      Result := StringOfChar('0', FixedLen);
     Exit;
   end;
-  if BigNumberIsNegative(Num) then
-    Result := '-';
 
   Z := 0;
   for I := Num.Top - 1 downto 0 do
@@ -3244,6 +3247,12 @@ begin
       Dec(J, 8);
     end;
   end;
+
+  if FixedLen > Length(Result) then
+    Result := StringOfChar('0', FixedLen - Length(Result)) + Result;
+
+  if BigNumberIsNegative(Num) then
+    Result := '-' + Result;
 end;
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
@@ -6680,9 +6689,9 @@ begin
   Result := string(BigNumberToDec(Self));
 end;
 
-function TCnBigNumber.ToHex: string;
+function TCnBigNumber.ToHex(FixedLen: Integer): string;
 begin
-  Result := BigNumberToHex(Self);
+  Result := BigNumberToHex(Self, FixedLen);
 end;
 
 function TCnBigNumber.ToString: string;
