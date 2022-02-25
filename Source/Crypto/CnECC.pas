@@ -205,7 +205,7 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     procedure SetHex(const Buf: AnsiString); // 有 03 04 前缀的处理
-    function ToHex: string;
+    function ToHex(FixedLen: Integer = 0): string;
 
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
@@ -2030,12 +2030,12 @@ begin
   FY.SetZero;
 end;
 
-function TCnEccPoint.ToHex: string;
+function TCnEccPoint.ToHex(FixedLen: Integer): string;
 begin
   if FY.IsZero then
-    Result := '03' + FY.ToHex
+    Result := '03' + FY.ToHex(FixedLen)
   else
-    Result := '04' + FX.ToHex + FY.ToHex;
+    Result := '04' + FX.ToHex(FixedLen) + FY.ToHex(FixedLen);
 end;
 
 function TCnEccPoint.ToString: string;
