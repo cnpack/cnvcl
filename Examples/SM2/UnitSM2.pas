@@ -340,8 +340,10 @@ begin
 
   SM2.GenerateKeys(PrivateKey, PublicKey);
 
-  edtSM2PublicKey.Text := '04' + PublicKey.X.ToHex + PublicKey.Y.ToHex;
-  edtSM2PrivateKey.Text := PrivateKey.ToHex;
+  // ToHex 如果数值较小，长度可能不够，导致后面解析不了，需要调整为固定尺寸
+  edtSM2PublicKey.Text := '04' + PublicKey.X.ToHex(CN_SM2_FINITEFIELD_BYTESIZE)
+    + PublicKey.Y.ToHex(CN_SM2_FINITEFIELD_BYTESIZE);
+  edtSM2PrivateKey.Text := PrivateKey.ToHex(CN_SM2_FINITEFIELD_BYTESIZE);
 
   PrivateKey.Free;
   PublicKey.Free;

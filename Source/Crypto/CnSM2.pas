@@ -44,6 +44,9 @@ interface
 uses
   SysUtils, Classes, CnECC, CnBigNumber, CnSM3;
 
+const
+  CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits
+
 type
   TCnSM2PrivateKey = TCnEccPrivateKey;
   {* SM2 的私钥就是普通椭圆曲线的私钥}
