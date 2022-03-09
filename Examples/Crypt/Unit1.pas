@@ -824,8 +824,6 @@ var
 begin
   if cbbSm4Padding.ItemIndex = 1 then
     S := StrAddPKCS7Padding(edtSm4.Text, SM4_BLOCKSIZE)
-  else if cbbSm4Padding.ItemIndex = 2 then
-    S := StrAddPKCS5Padding(edtSm4.Text)
   else
     S := edtSm4.Text;
 
@@ -845,9 +843,7 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
       DataBytes := TEncoding.Default.GetBytes(edtSm4.Text);
       if cbbSm4Padding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, SM4_BLOCKSIZE)
-      else if cbbSm4Padding.ItemIndex = 2 then
-        BytesAddPKCS5Padding(DataBytes)
+        BytesAddPKCS7Padding(DataBytes, SM4_BLOCKSIZE);
 
       ResBytes := SM4EncryptEcbBytes(KeyBytes, DataBytes);
       edtSm4Code.Text := BytesToHex(ResBytes);
@@ -879,9 +875,7 @@ begin
     if rbSm4Cbc.Checked then
     begin
       if cbbSm4Padding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, SM4_BLOCKSIZE)
-      else if cbbSm4Padding.ItemIndex = 2 then
-        BytesAddPKCS5Padding(DataBytes);
+        BytesAddPKCS7Padding(DataBytes, SM4_BLOCKSIZE);
     end;
 {$ENDIF}
 
@@ -899,14 +893,11 @@ begin
       Exit;
 {$ENDIF}
     end
-    else if rbSm4Cbc.Checked then
+    else if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
     begin
       if cbbSm4Padding.ItemIndex = 1 then
         SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])),
           StrAddPKCS7Padding(edtSm4.Text, SM4_BLOCKSIZE), @(Output[1]))
-      else if cbbSm4Padding.ItemIndex = 2 then
-        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])),
-          StrAddPKCS5Padding(edtSm4.Text), @(Output[1]))
       else
         SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
     end
@@ -949,9 +940,7 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
       ResBytes := SM4DecryptEcbBytes(KeyBytes, HexToBytes(edtSm4Code.Text));
       if cbbSm4Padding.ItemIndex = 1 then
-        BytesRemovePKCS7Padding(ResBytes)
-      else cbbSm4Padding.ItemIndex = 2 then
-        BytesRemovePKCS5Padding(ResBytes)
+        BytesRemovePKCS7Padding(ResBytes);
 
       edtSm4Dec.Text := TEncoding.Default.GetString(ResBytes);
       Exit;
@@ -961,9 +950,7 @@ begin
     begin
       SM4DecryptEcbStr(edtSm4Key.Text, S, @(Output[1]));
       if cbbSm4Padding.ItemIndex = 1 then
-        Output := StrRemovePKCS7Padding(Output)
-      else if cbbSm4Padding.ItemIndex = 2 then
-        Output := StrRemovePKCS5Padding(Output)
+        Output := StrRemovePKCS7Padding(Output);
     end;
   end
   else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked then
@@ -993,9 +980,7 @@ begin
       if rbSm4Cbc.Checked then
       begin
         if cbbSm4Padding.ItemIndex = 1 then
-          BytesRemovePKCS7Padding(ResBytes)
-        else cbbSm4Padding.ItemIndex = 2 then
-          BytesRemovePKCS5Padding(ResBytes)
+          BytesRemovePKCS7Padding(ResBytes);
       end;
 
       edtSm4Dec.Text := TEncoding.Default.GetString(ResBytes);
@@ -1004,13 +989,11 @@ begin
     end
     else
     begin
-      if rbSm4Cbc.Checked then
+      if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
       begin
         SM4DecryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
         if cbbSm4Padding.ItemIndex = 1 then
-          Output := StrRemovePKCS7Padding(Output)
-        else if cbbSm4Padding.ItemIndex = 2 then
-          Output := StrRemovePKCS5Padding(Output)
+          Output := StrRemovePKCS7Padding(Output);
       end
       else if rbSm4Cfb.Checked then
         SM4DecryptCfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
