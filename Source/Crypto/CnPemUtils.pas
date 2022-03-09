@@ -28,7 +28,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.05.14 V1.3
+* 修改记录：2022.03.09 V1.4
+*               增加六个 PKCS5 对齐的处理函数
+*           2021.05.14 V1.3
 *               增加四个 PKCS7 对齐的处理函数
 *           2020.03.27 V1.2
 *               模拟 Openssl 实现 PEM 的加密写入，只支持部分加密算法与机制
@@ -102,6 +104,18 @@ function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Byte): AnsiString;
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
 {* 去除 PKCS7 规定的字符串末尾填充“几个几”的填充数据}
 
+procedure AddPKCS5Padding(Stream: TMemoryStream);
+{* 给数据末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
+procedure RemovePKCS5Padding(Stream: TMemoryStream);
+{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
+function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
+{* 给字符串末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
+function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
+{* 去除 PKCS5 规定的字符串末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
 {$IFDEF TBYTES_DEFINED}
 
 procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
@@ -110,12 +124,19 @@ procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
 procedure BytesRemovePKCS7Padding(var Data: TBytes);
 {* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据}
 
+procedure BytesAddPKCS5Padding(var Data: TBytes);
+{* 给字节数组末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
+procedure BytesRemovePKCS5Padding(var Data: TBytes);
+{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
 {$ENDIF}
 
 implementation
 
 const
   PKCS1_PADDING_SIZE            = 11;
+  PKCS5_BLOCK_SIZE              = 8;
 
   ENC_HEAD_PROCTYPE = 'Proc-Type:';
   ENC_HEAD_PROCTYPE_NUM = '4';
@@ -373,6 +394,26 @@ begin
     Delete(Result, L - V + 1, V);
 end;
 
+procedure AddPKCS5Padding(Stream: TMemoryStream);
+begin
+  AddPKCS7Padding(Stream, PKCS5_BLOCK_SIZE);
+end;
+
+procedure RemovePKCS5Padding(Stream: TMemoryStream);
+begin
+  RemovePKCS5Padding(Stream);
+end;
+
+function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
+begin
+  Result := StrAddPKCS7Padding(Str, PKCS5_BLOCK_SIZE);
+end;
+
+function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
+begin
+  Result := StrRemovePKCS7Padding(Str);
+end;
+
 {$IFDEF TBYTES_DEFINED}
 
 procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
@@ -404,6 +445,16 @@ begin
 
   if V <= L then
     SetLength(Data, L - V);
+end;
+
+procedure BytesAddPKCS5Padding(var Data: TBytes);
+begin
+  BytesAddPKCS7Padding(Data, PKCS5_BLOCK_SIZE);
+end;
+
+procedure BytesRemovePKCS5Padding(var Data: TBytes);
+begin
+  BytesRemovePKCS7Padding(Data);
 end;
 
 {$ENDIF}

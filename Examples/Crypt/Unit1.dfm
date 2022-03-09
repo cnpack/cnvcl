@@ -1025,7 +1025,8 @@ object FormCrypt: TFormCrypt
           TabOrder = 10
           Items.Strings = (
             'Zero'
-            'PKCS7')
+            'PKCS7'
+            'PKCS5 (8bytes of PKCS7)')
         end
         object rbSm4Cfb: TRadioButton
           Left = 168
