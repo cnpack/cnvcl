@@ -386,7 +386,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPemUtils;
+  CnSHA3, CnTEA, CnPemUtils, CnNativeDecl;
 
 {$R *.DFM}
 
@@ -700,6 +700,12 @@ begin
   chk3DESUseTBytes.Visible := False;
   chkBase64UseTBytes.Visible := False;
   chkAESUseTBytes.Visible := False;
+{$ELSE}
+  chkSM4UseTBytes.Checked := True;
+  chkDESUseTBytes.Checked := True;
+  chk3DESUseTBytes.Checked := True;
+  chkBase64UseTBytes.Checked := True;
+  chkAESUseTBytes.Checked := True;
 {$ENDIF}
 end;
 
