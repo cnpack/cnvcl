@@ -279,6 +279,16 @@ function Int32ToLittleEndian(Value: Integer): Integer;
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 {* 确保 Int16 值为小端，大端环境中进行转换}
 
+{$IFDEF TBYTES_DEFINED}
+
+function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
+{* 字节数组转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+
+function HexToBytes(const Hex: string): TBytes;
+{* 十六进制字符串转换为字节数组，字符串长度为奇或转换失败时抛出异常}
+
+{$ENDIF}
+
 implementation
 
 uses
@@ -368,6 +378,89 @@ begin
   else
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
+
+function HexToInt(const Hex: string): Integer;
+var
+  I, Res: Integer;
+  C: Char;
+begin
+  Res := 0;
+  for I := 0 to Length(Hex) - 1 do
+  begin
+    C := Hex[I + 1];
+    if (C >= '0') and (C <= '9') then
+      Res := Res * 16 + Ord(C) - Ord('0')
+    else if (C >= 'A') and (C <= 'F') then
+      Res := Res * 16 + Ord(C) - Ord('A') + 10
+    else if (C >= 'a') and (C <= 'f') then
+      Res := Res * 16 + Ord(C) - Ord('a') + 10
+    else
+      raise Exception.Create('Error: not a Hex String');
+  end;
+  Result := Res;
+end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function BytesToHex(Data: TBytes; UseUpperCase: Boolean): string;
+const
+  HiDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+const
+  LoDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+
+var
+  I, L: Integer;
+  B: Byte;
+  Buffer: PAnsiChar;
+begin
+  Result := '';
+  L := Length(Data);
+  if L = 0 then
+    Exit;
+
+  SetLength(Result, L * 2);
+  Buffer := @Data[0];
+
+  if UseUpperCase then
+  begin
+    for I := 0 to L - 1 do
+    begin
+      B := PByte(Integer(Buffer) + I)^;
+      Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := HiDigits[B and $0F];
+    end;
+  end
+  else
+  begin
+    for I := 0 to L - 1 do
+    begin
+      B := PByte(Integer(Buffer) + I)^;
+      Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := LoDigits[B and $0F];
+    end;
+  end;
+end;
+
+function HexToBytes(const Hex: string): TBytes;
+var
+  I, L: Integer;
+  S: string;
+begin
+  L := Length(Hex);
+  if (L mod 2) <> 0 then
+    raise Exception.Create('Error: not a Hex String');
+
+  SetLength(Result, L div 2);
+  for I := 1 to L div 2 do
+  begin
+    S := Copy(Hex, I * 2 - 1, 2);
+    Result[I - 1] := Byte(HexToInt(S));
+  end;
+end;
+
+{$ENDIF}
 
 {$IFDEF CPUX64}
 

@@ -375,10 +375,6 @@ type
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
     function FromHex(const Hex: string): AnsiString;
-{$IFDEF TBYTES_DEFINED}
-    function BytesToHex(Data: TBytes): AnsiString;
-    function HexToBytes(const Hex: string): TBytes;
-{$ENDIF}
   public
     { Public declarations }
   end;
@@ -463,52 +459,6 @@ begin
       (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
   end;
 end;
-
-{$IFDEF TBYTES_DEFINED}
-
-function TFormCrypt.BytesToHex(Data: TBytes): AnsiString;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-var
-  I, Len: Integer;
-  B: Byte;
-  Buffer: PAnsiChar;
-begin
-  Result := '';
-  Len := Length(Data);
-  if Len = 0 then
-    Exit;
-
-  Buffer := @Data[0];
-  for I := 0 to Len - 1 do
-  begin
-    B := PByte(Integer(Buffer) + I)^;
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
-      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
-  end;
-end;
-
-function TFormCrypt.HexToBytes(const Hex: string): TBytes;
-var
-  S: string;
-  I: Integer;
-begin
-  if Hex = '' then
-  begin
-    Result := nil;
-    Exit;
-  end;
-
-  SetLength(Result, (Length(Hex) + 1) div 2);
-  for I := 0 to Length(Hex) div 2 - 1 do
-  begin
-    S := Copy(Hex, I * 2 + 1, 2);
-    Result[I] := HexToInt(S);
-  end;
-end;
-
-{$ENDIF}
 
 procedure TFormCrypt.btnMd5Click(Sender: TObject);
 begin
