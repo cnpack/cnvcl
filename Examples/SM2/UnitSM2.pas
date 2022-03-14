@@ -383,7 +383,9 @@ begin
     DeStream.Read(S[1], DeStream.Size);
     ShowMessage('Decrypt OK: ' + S);
     edtSM2Text.Text := S;
-  end;
+  end
+  else
+    ShowMessage('Decrypt Failed');
 
   PrivateKey.Free;
   EnStream.Free;
@@ -577,37 +579,37 @@ begin
   BPublicKey.SetHex(edtSM2BPublicKey.Text);
 
   try
-  // Step1
-  if not CnSM2KeyExchangeAStep1(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
-    APrivateKey, APublicKey, BPublicKey, RandA, OutRA, SM2) then
-    Exit;
+    // Step1
+    if not CnSM2KeyExchangeAStep1(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+      APrivateKey, APublicKey, BPublicKey, RandA, OutRA, SM2) then
+      Exit;
 
-  ShowMessage('A Send RA to B: ' + OutRA.ToHex);
+    ShowMessage('A Send RA to B: ' + OutRA.ToHex);
 
-  // Step2
-  if not CnSM2KeyExchangeBStep1(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
-    BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2) then
-    Exit;
+    // Step2
+    if not CnSM2KeyExchangeBStep1(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+      BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2) then
+      Exit;
 
-  ShowMessage('B Get KeyB [' + MyStrToHex(PAnsiChar(KB), Length(KB)) + '] and Send RB to A: ' + OutRB.ToHex);
+    ShowMessage('B Get KeyB [' + MyStrToHex(PAnsiChar(KB), Length(KB)) + '] and Send RB to A: ' + OutRB.ToHex);
 
-  // Step3
-  if not CnSM2KeyExchangeAStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
-    APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, SM2) then
-    Exit;
+    // Step3
+    if not CnSM2KeyExchangeAStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+      APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, SM2) then
+      Exit;
 
-  ShowMessage('A Get KeyA [' +  MyStrToHex(PAnsiChar(KA), Length(KA)) + '] and Send OpSA to A: ' + SM3Print(OpSA));
+    ShowMessage('A Get KeyA [' +  MyStrToHex(PAnsiChar(KA), Length(KA)) + '] and Send OpSA to A: ' + SM3Print(OpSA));
 
-  // Step4
-  if not CnSM2KeyExchangeBStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
-    BPrivateKey, APublicKey, BPublicKey, OpSA, OpS2, SM2) then
-    Exit;
+    // Step4
+    if not CnSM2KeyExchangeBStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
+      BPrivateKey, APublicKey, BPublicKey, OpSA, OpS2, SM2) then
+      Exit;
 
-  ShowMessage('B Optionally Check OpSA OK');
+    ShowMessage('B Optionally Check OpSA OK');
 
-  if KA = KB then
-    ShowMessage('Key Exchange OK: [' + MyStrToHex(PAnsiChar(KA), Length(KA)) + '] : ['
-      + MyStrToHex(PAnsiChar(KB), Length(KB)) + ']');
+    if KA = KB then
+      ShowMessage('Key Exchange OK: [' + MyStrToHex(PAnsiChar(KA), Length(KA)) + '] : ['
+        + MyStrToHex(PAnsiChar(KB), Length(KB)) + ']');
   finally
     OutRA.Free;
     OutRB.Free;

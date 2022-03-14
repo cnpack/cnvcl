@@ -366,7 +366,7 @@ object FormCrypt: TFormCrypt
         object pnlMd5: TPanel
           Left = 24
           Top = 136
-          Width = 369
+          Width = 377
           Height = 41
           BevelOuter = bvNone
           TabOrder = 5
@@ -554,7 +554,7 @@ object FormCrypt: TFormCrypt
         object pnlCRC32: TPanel
           Left = 24
           Top = 144
-          Width = 369
+          Width = 385
           Height = 41
           BevelOuter = bvNone
           TabOrder = 6
@@ -669,7 +669,7 @@ object FormCrypt: TFormCrypt
         object pnlCRC64: TPanel
           Left = 24
           Top = 144
-          Width = 233
+          Width = 345
           Height = 41
           BevelOuter = bvNone
           TabOrder = 4
@@ -812,7 +812,7 @@ object FormCrypt: TFormCrypt
         object lblSm3Result: TLabel
           Left = 16
           Top = 136
-          Width = 393
+          Width = 449
           Height = 41
           Alignment = taCenter
           AutoSize = False
