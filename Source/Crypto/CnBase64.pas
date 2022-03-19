@@ -534,13 +534,10 @@ begin
   Result := Base64Decode(AnsiString(InputData), OutStr, FixZero);
   if Result = BASE64_OK then
   begin
-{$IFDEF UNICODE}
-    OutputData := TEncoding.Default.GetBytes(OutStr);
-{$ELSE}
+    // 注意不能通过 Encoding 的 GetBytes 获得 TBytes 结果，免得截断，必须以下手工复制
     SetLength(OutputData, Length(OutStr));
     if Length(OutStr) > 0 then
       Move(OutStr[1], OutputData[0], Length(OutStr));
-{$ENDIF}
   end;
 end;
 
@@ -559,7 +556,7 @@ var
     I: Integer;
   begin
     SrcLen := Length(Source);
-    GetMem(P, Srclen);                   //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+    GetMem(P, Srclen);                   // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
     PP := P;
     FillChar(P^, Srclen, 0);
     for I := 1 to SrcLen do
@@ -570,7 +567,7 @@ var
         Inc(PP);
       end;
     end;
-    SetString(Result, P, PP - P);        //截取有效部分
+    SetString(Result, P, PP - P);        // 截取有效部分
     FreeMem(P, SrcLen);
   end;
 
