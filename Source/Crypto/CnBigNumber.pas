@@ -237,8 +237,9 @@ type
     function ToBinary(const Buf: PAnsiChar): Integer;
     {* 将大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
        返回 Buf 写入的长度}
+
     function SetBinary(Buf: PAnsiChar; Len: Integer): Boolean;
-    {* 根据一个二进制块给自身赋值}
+    {* 根据一个二进制块给自身赋值，内部采用复制}
 
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象}

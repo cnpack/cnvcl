@@ -34,7 +34,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.02.17
+* 修改记录：2022.03.14 V2.0
+*               增加几个十六进制转换函数
+*           2022.02.17 V1.9
 *               增加 FPC 的编译支持，待测试
 *           2022.02.09 V1.8
 *               加入运行期的大小端判断函数
@@ -279,6 +281,12 @@ function Int32ToLittleEndian(Value: Integer): Integer;
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 {* 确保 Int16 值为小端，大端环境中进行转换}
 
+function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
+{* 字符串转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+
+function HexToString(const Hex: string): string;
+{* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
+
 {$IFDEF TBYTES_DEFINED}
 
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
@@ -293,6 +301,9 @@ implementation
 
 uses
   CnFloatConvert;
+
+type
+  PCnByte = ^Byte; // 不引用 Windows 中的 PByte
 
 function CurrentByteOrderIsBigEndian: Boolean;
 type
@@ -379,6 +390,13 @@ begin
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
+const
+  HiDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+const
+  LoDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+
 function HexToInt(const Hex: string): Integer;
 var
   I, Res: Integer;
@@ -400,16 +418,60 @@ begin
   Result := Res;
 end;
 
+function StringToHex(const Data: string; UseUpperCase: Boolean): string;
+var
+  I, L: Integer;
+  B: Byte;
+  Buffer: PChar;
+begin
+  Result := '';
+  L := Length(Data);
+  if L = 0 then
+    Exit;
+
+  SetLength(Result, L * 2);
+  Buffer := @Data[1];
+
+  if UseUpperCase then
+  begin
+    for I := 0 to L - 1 do
+    begin
+      B := PCnByte(Integer(Buffer) + I * SizeOf(Char))^;
+      Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := HiDigits[B and $0F];
+    end;
+  end
+  else
+  begin
+    for I := 0 to L - 1 do
+    begin
+      B := PCnByte(Integer(Buffer) + I * SizeOf(Char))^;
+      Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := LoDigits[B and $0F];
+    end;
+  end;
+end;
+
+function HexToString(const Hex: string): string;
+var
+  I, L: Integer;
+  S: string;
+begin
+  L := Length(Hex);
+  if (L mod 2) <> 0 then
+    raise Exception.Create('Error: not a Hex String');
+
+  SetLength(Result, L div 2);
+  for I := 1 to L div 2 do
+  begin
+    S := Copy(Hex, I * 2 - 1, 2);
+    Result[I] := Chr(HexToInt(S));
+  end;
+end;
+
 {$IFDEF TBYTES_DEFINED}
 
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean): string;
-const
-  HiDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-const
-  LoDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
-
 var
   I, L: Integer;
   B: Byte;
