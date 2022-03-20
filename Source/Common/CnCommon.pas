@@ -766,7 +766,8 @@ function CnInputQuery(const ACaption, APrompt: string;
 {* 输入对话框}
 
 function CnInputBox(const ACaption, APrompt, ADefault: string;
-   Ini: TCustomIniFile = nil; const Section: string = csDefComboBoxSection): string;
+   Ini: TCustomIniFile = nil; const Section: string = csDefComboBoxSection;
+   FormCallBack: TCnSenderCallback = nil): string;
 {* 输入对话框}
 
 //------------------------------------------------------------------------------
@@ -6066,10 +6067,11 @@ end;
 
 // 输入对话框
 function CnInputBox(const ACaption, APrompt, ADefault: string;
-  Ini: TCustomIniFile; const Section: string): string;
+  Ini: TCustomIniFile; const Section: string;
+  FormCallBack: TCnSenderCallback): string;
 begin
   Result := ADefault;
-  CnInputQuery(ACaption, APrompt, Result, Ini, Section);
+  CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack);
 end;
 
 //------------------------------------------------------------------------------
