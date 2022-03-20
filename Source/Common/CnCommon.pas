@@ -113,6 +113,8 @@ type
   UTF8String = type string; // Delphi 5 has no UTF8String definition
 {$ENDIF}
 
+  TCnSenderCallback = procedure(Sender: TObject);
+
 const
 {$IFNDEF COMPILER6_UP}
   sLineBreak = {$IFDEF LINUX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
@@ -759,7 +761,8 @@ const
 
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string; Ini: TCustomIniFile = nil;
-  const Section: string = csDefComboBoxSection; APassword: Boolean = False): Boolean;
+  const Section: string = csDefComboBoxSection; APassword: Boolean = False;
+  FormCallBack: TCnSenderCallback = nil): Boolean;
 {* 输入对话框}
 
 function CnInputBox(const ACaption, APrompt, ADefault: string;
@@ -5921,7 +5924,7 @@ end;
 // 输入对话框
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string; Ini: TCustomIniFile; const Section: string;
-  APassword: Boolean): Boolean;
+  APassword: Boolean; FormCallBack: TCnSenderCallback): Boolean;
 var
   Form: TForm;
   Prompt: TLabel;
@@ -6036,6 +6039,9 @@ begin
           SetWindowLong(AHandle, GWL_EXSTYLE, OldLong and not WS_EX_TOOLWINDOW);
       end;
 {$ENDIF}
+
+      if Assigned(FormCallBack) then // 给外界一个处理界面的机会，如 HDPI 模式下放大等
+        FormCallBack(Form);
 
       if ShowModal = mrOk then
       begin
