@@ -953,14 +953,14 @@ function GetMultiMonitorDesktopRect: TRect;
 {* 获得多显示器情况下，整个桌面相对于主显示器原点的坐标}
 
 function TrimInt(Value, Min, Max: Integer): Integer;
-{* 输出限制在Min..Max之间}
+{* 输出限制在 Min..Max 之间}
 
 function CompareInt(V1, V2: Integer; Desc: Boolean = False): Integer;
 {* 比较两个整数，V1 > V2 返回 1，V1 < V2 返回 -1，V1 = V2 返回 0
    如果 Desc 为 True，返回结果反向 }
 
 function IntToByte(Value: Integer): Byte;
-{* 输出限制在0..255之间}
+{* 输出限制在 0..255 之间}
 
 function InBound(Value: Integer; V1, V2: Integer): Boolean;
 {* 判断整数Value是否在V1和V2之间}
@@ -973,6 +973,10 @@ function HalfFind(List: TList; P: Pointer; SCompare: TListSortCompare): Integer;
 
 function CheckChineseIDCardNumber(const IDNumber: string): Boolean;
 {* 检查中国大陆的 18 位身份证是否合法}
+
+procedure StretchDrawImageListToCanvas(ImageList: TImageList; ImageIndex: Integer;
+  DestCanvas: TCanvas; X, Y, AWidth, AHeight: Integer);
+{* 拉伸绘制 ImageList 中的指定图像至指定 Canvas 的指定矩形中，支持背景透明}
 
 type
   TFindRange = record
@@ -993,19 +997,19 @@ procedure CnSwap(var A, B: Double); overload;
 {* 交换两个数}
 
 function RectEqu(Rect1, Rect2: TRect): Boolean;
-{* 比较两个Rect是否相等}
+{* 比较两个 Rect 是否相等}
 
 procedure DeRect(Rect: TRect; var x, y, Width, Height: Integer);
-{* 分解一个TRect为左上角坐标x, y和宽度Width、高度Height}
+{* 分解一个 TRect 为左上角坐标 x, y 和宽度 Width、高度 Height}
 
 function EnSize(cx, cy: Integer): TSize;
-{* 返回一个TSize类型}
+{* 返回一个 TSize 类型}
 
 function RectWidth(Rect: TRect): Integer;
-{* 计算TRect的宽度}
+{* 计算 TRect 的宽度}
 
 function RectHeight(Rect: TRect): Integer;
-{* 计算TRect的高度}
+{* 计算 TRect 的高度}
 
 procedure Delay(const uDelay: DWORD);
 {* 延时}
@@ -1015,14 +1019,14 @@ procedure SetClipboardContent(Format: Word; var Buffer; Size: Integer);
 
 {$IFNDEF WIN64}
 procedure BeepEx(const Freq: WORD = 1200; const Delay: WORD = 1);
-{* 在Win9X下让喇叭发声}
+{* 在 Win9X 下让喇叭发声}
 {$ENDIF}
 
 function GetLastErrorMsg(IncludeErrorCode: Boolean = False): string;
 {* 取得最后一次错误信息}
 
 procedure ShowLastError;
-{* 显示Win32 Api运行结果信息}
+{* 显示 Win32 Api 运行结果信息}
 
 function GetHzPy(const AHzStr: AnsiString): AnsiString;
 {* 取汉字的拼音}
@@ -1039,7 +1043,7 @@ function TextHalfWidthToFullWidth(const Text: string): string;
 {* 半角字符转换为全角字符}
 
 function GetSelText(edt: TCustomEdit): string;
-{* 获得CustomEdit选中的字符串，可正确处理使用了XP样式的程序}
+{* 获得 CustomEdit 选中的字符串，可正确处理使用了 XP 样式的程序}
 
 function SoundCardExist: Boolean;
 {* 声卡是否存在}
@@ -6866,7 +6870,7 @@ begin
   end;
 end;
 
-// 输出限制在Min..Max之间
+// 输出限制在 Min..Max 之间
 function TrimInt(Value, Min, Max: Integer): Integer; overload;
 begin
   if Value > Max then
@@ -6906,7 +6910,7 @@ asm
 @@OK:
 end;
 
-// 由TRect分离出坐标、宽高
+// 由 TRect 分离出坐标、宽高
 procedure DeRect(Rect: TRect; var x, y, Width, Height: Integer);
 begin
   x := Rect.Left;
@@ -6915,27 +6919,27 @@ begin
   Height := Rect.Bottom - Rect.Top;
 end;
 
-// 比较两个Rect
+// 比较两个 Rect
 function RectEqu(Rect1, Rect2: TRect): Boolean;
 begin
   Result := (Rect1.Left = Rect2.Left) and (Rect1.Top = Rect2.Top) and
     (Rect1.Right = Rect2.Right) and (Rect1.Bottom = Rect2.Bottom);
 end;
 
-// 产生TSize类型
+// 产生 TSize 类型
 function EnSize(cx, cy: Integer): TSize;
 begin
   Result.cx := cx;
   Result.cy := cy;
 end;
 
-// 计算Rect的宽度
+// 计算 Rect 的宽度
 function RectWidth(Rect: TRect): Integer;
 begin
   Result := Rect.Right - Rect.Left;
 end;
 
-// 计算Rect的高度
+// 计算 Rect 的高度
 function RectHeight(Rect: TRect): Integer;
 begin
   Result := Rect.Bottom - Rect.Top;
@@ -7034,6 +7038,24 @@ begin
   Sum := Sum mod 11;
   if Remains[Sum] = UpperCase(IDNumber[18]) then
     Result := True;
+end;
+
+// 拉伸绘制 ImageList 中的指定图像至指定 Canvas 的指定矩形中
+procedure StretchDrawImageListToCanvas(ImageList: TImageList; ImageIndex: Integer;
+  DestCanvas: TCanvas; X, Y, AWidth, AHeight: Integer);
+var
+  Icon: TIcon;
+begin
+  if (ImageList = nil) or (ImageIndex >= ImageList.Count) then
+    Exit;
+
+  Icon := TIcon.Create;
+  try
+    ImageList.GetIcon(ImageIndex, Icon);
+    DrawIconEx(DestCanvas.Handle, X, Y, Icon.Handle, AWidth, AHeight, 0, 0, DI_NORMAL);
+  finally
+    Icon.Free;
+  end;
 end;
 
 // 交换两个数
@@ -7154,7 +7176,7 @@ begin
     Result := Result + #10#13 + SErrorCode + IntToStr(ErrNo);
 end;
 
-// 显示Win32 Api运行结果信息
+// 显示 Win32 Api 运行结果信息
 procedure ShowLastError;
 begin
   MessageBox(Application.Handle, PChar(GetLastErrorMsg),
@@ -7163,11 +7185,13 @@ end;
 
 
 {$IFDEF UNICODE}
+
 // 取汉字的拼音，参数为 Utf16
 function GetHzPyW(const AHzStr: string): string;
 begin
   Result := string(GetHzPy(AnsiString(AHzStr)));
 end;
+
 {$ENDIF}
 
 // 取汉字的拼音
@@ -7232,7 +7256,7 @@ begin
   Result := s2;
 end;
 
-// 获得CustomEdit选中的字符串，可以处理XP以上的系统
+// 获得 CustomEdit 选中的字符串，可以处理 XP 以上的系统
 function GetSelText(edt: TCustomEdit): string;
 var
   Ver: TDLLVERSIONINFO2;
@@ -7317,7 +7341,7 @@ begin
   Result := InheritsFromClassName(AObject.ClassType, AClass);
 end;
 
-// 提升自身权限到SeDebug或取消此权限
+// 提升自身权限到 SeDebug 或取消此权限
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
 var
   Token: THandle;
@@ -7460,7 +7484,8 @@ var
   PropInfo: PPropInfo;
 begin
   Result := Null;
-  if Instance = nil then Exit;
+  if Instance = nil then
+    Exit;
 
   Dot := Pos('.', PropName);
   if Dot = 0 then
