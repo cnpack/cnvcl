@@ -600,7 +600,7 @@ type
     csReplicatable, csNoStdEvents, csDisplayDragImage, csReflector,
     csActionClient, csMenuEvents, csNeedsBorderPaint, csParentBackground,
     csPannable, csAlignWithMargins, csGestures, csPaintBlackOpaqueOnGlass,
-    csOverrideStylePaint);
+    csOverrideStylePaint, csNeedsDesignDisabledState);
 
 {$IFNDEF SUPPORT_INTERFACE_AS_OBJECT}
   PPointer = ^Pointer;
