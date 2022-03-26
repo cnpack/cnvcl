@@ -37,13 +37,14 @@ unit CnEdit;
 *           -CnEdit 失去焦点时会检查 Text，如果不符合 TextType 的设置，则清空或置 0
 *            这样避免了粘贴进来不合法字符
 *
-*           -具备回车键替换成 Tab 键的功能，只要设置属性 EnterAsTab为True，
+*           -具备回车键替换成 Tab 键的功能，只要设置属性 EnterAsTab 为 True，
 *            则在 CnEdit 件中按回车键将自动跳至下一控件。
-*
 * 开发平台：PWinXP + Delphi 6.0
 * 兼容测试：PWin9X/2000/XP + Delphi 6.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2009.07.04 V1.3
+* 修改记录：2022.03.26 V1.4
+*               调整大尺寸时的按钮绘制细节
+*           2009.07.04 V1.3
 *               修正 tArightJustify 时绘制不正确的问题，感谢 jAmEs_
 *           2008.06.05 V1.2
 *               处理粘贴时的限制内容
@@ -69,7 +70,6 @@ type
 
   TCnEdit = class(TEdit)
   private
-    { Private declarations }
     FButtonWidth: Integer;
     FCanvas: TControlCanvas;
     FLinkStyle: TLinkStyle;
@@ -78,7 +78,7 @@ type
     FTracking: Boolean;
     FOnButtonClick: TNotifyEvent;
     FTextType: TTextType; // 文本类型、整形、浮点、文字
-    FEnterAsTab: Boolean; // 回车做为tab
+    FEnterAsTab: Boolean; // 回车做为 Tab
     FAcceptNegative: Boolean;
     FAcceptCharList: string;
     FButtonCursor: TCursor;
@@ -87,13 +87,13 @@ type
     procedure StopTracking; //同上。up 触发
     procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
     procedure WMPaste(var Message: TWMPaste); message WM_PASTE;
-    function GetTextMArgins: TPoint; // Text 编辑区边上的空白
+    function GetTextMargins: TPoint; // Text 编辑区边上的空白
     procedure WMSetCursor(var Msg: TWMSetCursor); message WM_SETCURSOR; // 设置鼠标在按钮上的箭头
     function GetValue: Variant;
     procedure SetButtonCursor(const Value: TCursor);
   protected
     procedure EditButtonClick; // 单击事件
-    procedure BoundSChanged;
+    procedure BoundsChanged;
     procedure CreateParams(var Params: TCreateParams); override; // 这个非常有用
     procedure DoEnter; override; // 获取焦点时选择全部文字
     procedure DoExit; override;
@@ -163,7 +163,7 @@ begin
   Invalidate;
 end;
 
-procedure TCnEdit.BoundSChanged;
+procedure TCnEdit.BoundsChanged;
 var
   R: TRect;
 begin
@@ -177,7 +177,7 @@ end;
 constructor TCnEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FButtonWidth := GetSystemMetrics(SM_CXVScROLL);
+  FButtonWidth := GetSystemMetrics(SM_CXVSCROLL);
   FAcceptNegative := True;
 end;
 
@@ -199,7 +199,7 @@ end;
 procedure TCnEdit.DoEnter;
 begin
   if (FLinkStyle <> lsNone) then
-    BoundSChanged;
+    BoundsChanged;
   inherited DoEnter;
   if AutoSelect then
     SelectAll;
@@ -211,7 +211,7 @@ begin
     FOnButtonClick(Self);
 end;
 
-function TCnEdit.GetTextMArgins: TPoint;
+function TCnEdit.GetTextMargins: TPoint;
 var
   DC: HDC;
   SaveFont: HFont;
@@ -227,13 +227,13 @@ begin
     else
       I := 2;
       
-    Result.X := SendMessage(Handle, EM_GETMArGINS, 0, 0) and $0000FFFF + I;
+    Result.X := SendMessage(Handle, EM_GETMARGINS, 0, 0) and $0000FFFF + I;
     Result.Y := I;
   end
   else
   begin
-    if BOrderStyle = bsNone then
-      I := 0    
+    if BorderStyle = bsNone then
+      I := 0
     else
     begin
       DC := GetDC(0);
@@ -297,7 +297,7 @@ begin
           Key := #0
         else
         begin
-          if (Key = '-') and ((Pos('-', Text) > 0) or (Self.SelStart > 0)) then Key := #0;
+          if (Key = '-') and ((Pos('-', Text) > 0) or (SelStart > 0)) then Key := #0;
         end;
       end
       else if FTextType = FloatText then
@@ -308,7 +308,7 @@ begin
           Key := #0
         else
         begin
-          if (Key = '-') and ((Pos('-', Text) > 0) or (Self.SelStart > 0)) then
+          if (Key = '-') and ((Pos('-', Text) > 0) or (SelStart > 0)) then
             Key := #0;
           if (Pos('.', Text) > 0) and (Key = '.') then
             Key := #0;
@@ -365,7 +365,7 @@ begin
   FLinkStyle := Value;
   if not HandleAllocated then
     Exit;
-  BoundSChanged;
+  BoundsChanged;
 end;
 
 procedure TCnEdit.StopTracking;
@@ -394,15 +394,14 @@ end;
 
 procedure TCnEdit.WMPaint(var Message: TWMPaint);
 var
-  Left: Integer;
-  MArgins: TPoint;
+  Margins: TPoint;
   R: TRect;
   DC: HDC;
   PS: TPaintStruct;
   S: string;
   Flags: Integer;
   W: Integer;
-  I: Integer;
+  L, I, Offset: Integer;
 begin
   if FCanvas = nil then
   begin
@@ -418,72 +417,93 @@ begin
   try
     FCanvas.Font := Font;
     with FCanvas do
+    begin
+      // 设置控件的范围
+      if (FLinkStyle <> lsNone) then
+        SetRect(R, ClientWidth - FButtonWidth, 0, ClientWidth, ClientHeight)
+      else
       begin
-        //设置控件的范围
-        if (FLinkStyle <> lsNone) then
-          SetRect(R, ClientWidth - FButtonWidth, 0, ClientWidth, ClientHeight)
-        else
+        R := ClientRect;
+        if not (NewStyleControls and Ctl3D) and (BOrderStyle = bsSingle) then
         begin
-          R := ClientRect;
-          if not (NewStyleControls and Ctl3D) and (BOrderStyle = bsSinGle) then
-          begin
-            Brush.Color := clWindowFrame;
-            FrameRect(R);
-            InflateRect(R, -1, -1);
-          end;
-          Brush.Color := Color;
+          Brush.Color := clWindowFrame;
+          FrameRect(R);
+          InflateRect(R, -1, -1);
         end;
+        Brush.Color := Color;
+      end;
 
-        //是否是密码型
-        S := Text;
-        if PasswordChAr <> #0 then
-          FillChAr(S[1], Length(S), PasswordChAr);
+      // 是否是密码型
+      S := Text;
+      if PasswordChar <> #0 then
+        FillChar(S[1], Length(S), PasswordChar);
 
-        //画文字
-        MArgins := GetTextMArgins;
-        if Focused then
-        begin
-          Left := MArgins.X;
-        end
+      // 画文字
+      Margins := GetTextMargins;
+      if Focused then
+      begin
+        L := Margins.X;
+      end
+      else
+      begin
+        case FAlignment of
+          taLeftJustify: L := Margins.X;
+          tArightJustify: L := ClientWidth - TextWidth(S) - Margins.X - 1;
         else
-        begin
-          case FAlignment of
-            taLeftJustify: Left := MArgins.X;
-            tArightJustify: Left := ClientWidth - TextWidth(S) - MArgins.X - 1;
-          else
-            Left := (ClientWidth - TextWidth(S)) div 2;
-          end;
+          L := (ClientWidth - TextWidth(S)) div 2;
         end;
+      end;
         
-        TextRect(R, Left, MArgins.Y, S);
+      TextRect(R, L, Margins.Y, S);
 
-        if (FLinkStyle <> lsNone) then   //画按钮
+      if FLinkStyle <> lsNone then   // 画按钮
+      begin
+        Flags := 0;
+        if FPressed then
+          Flags := BF_FLAT;
+        DrawEdge(DC, R, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
+        Flags := ((R.Right - R.Left) shr 1) - 1 + Ord(FPressed);
+        if FLinkStyle = lsEllipsis then // 画点
         begin
-          Flags := 0;
-          if FPressed then
-            Flags := BF_FLAT;
-          DrawEdge(DC, R, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
-          Flags := ((R.Right - R.Left) shr 1) - 1 + Ord(FPressed);
-          if FLinkStyle = lsEllipsis then
-          begin
-            W := 2;
-            PatBlt(DC, R.Left + Flags, R.Top + Round(ClientHeight / 2) - 1, W, W, BLACKNESS);
-            PatBlt(DC, R.Left + Flags - (W * 2), R.Top + Round(ClientHeight / 2) - 1, W, W, BLACKNESS);
-            PatBlt(DC, R.Left + Flags + (W * 2), R.Top + Round(ClientHeight / 2) - 1, W, W, BLACKNESS);
-          end
-          else if FLinkStyle = lsDropDown then
+          W := 2; // 点与点之间的横向距离
+          PatBlt(DC, R.Left + Flags, R.Top + Round(ClientHeight / 2) - 1, W, W, BLACKNESS);
+          PatBlt(DC, R.Left + Flags - (W * 2), R.Top + Round(ClientHeight / 2) - 1, W, W, BLACKNESS);
+          PatBlt(DC, R.Left + Flags + (W * 2), R.Top + Round(ClientHeight / 2) - 1, W, W, BLACKNESS);
+        end
+        else if FLinkStyle = lsDropDown then
+        begin
+          if FButtonWidth <= 16 then // 常规画法
           begin
             for I := 0 to 3 do // 画下拉箭头
             begin
+              // R 高 21 时顶上 7，起始 Y 坐标占三分之一
+              // 按钮宽 16 时从 4 开始，11 结束，起始 X 坐标四分之一到四分之三，画的高度是 X 的四分之一
               Windows.MoveToEx(DC, R.Left + 4 + I, R.Top + 7 + I, nil);
               Windows.LineTo(DC, R.Left + 4 + 7 - I, R.Top + 7 + I);
             end;
-          end;
+          end
+          else
+          begin
+            L := FButtonWidth div 4;
+            Offset := (FButtonWidth - 16) div 4 - 1;
+            if Offset < 0 then
+              Offset := 0;
+            W := (R.Bottom - R.Top) div 3 + 1;
 
-          ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
-          PaintWindow(DC);
+            for I := 0 to L - 1 do
+            begin
+              if R.Left + L + Offset + I >= R.Left + L + Offset + W - I then // 避免画过头
+                Break;
+              Windows.MoveToEx(DC, R.Left + L + Offset + I, R.Top + W + I, nil);
+              Windows.LineTo(DC, R.Left + L + Offset + W - I, R.Top + W + I);
+            end;
+          end;
         end;
+
+        ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
+        PaintWindow(DC);
       end;
+    end;
   finally
     FCanvas.Handle := 0;
     if Message.DC = 0 then
