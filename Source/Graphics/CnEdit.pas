@@ -490,9 +490,9 @@ begin
               Offset := 0;
             W := (R.Bottom - R.Top) div 3 + 1;
 
-            for I := 0 to L - 1 do
+            for I := 0 to L do
             begin
-              if R.Left + L + Offset + I >= R.Left + L + Offset + W - I then // 避免画过头
+              if R.Left + L + Offset + I > R.Left + L + Offset + W - I then // 避免画过头
                 Break;
               Windows.MoveToEx(DC, R.Left + L + Offset + I, R.Top + W + I, nil);
               Windows.LineTo(DC, R.Left + L + Offset + W - I, R.Top + W + I);
