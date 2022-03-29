@@ -29,7 +29,9 @@ unit CnZip;
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2018.08.26 V1.3
+* 修改记录：2022.03.30 V1.4
+*                支持删除 Zip 包中的指定文件
+*           2018.08.26 V1.3
 *                存储/Deflate 模式下支持 Zip 传统的密码压缩解压缩算法
 *           2018.08.22 V1.2
 *                存储模式下支持 Zip 传统的密码压缩解压缩算法，但 Deflate 模式仍不支持密码
@@ -219,6 +221,8 @@ type
       Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定内容，FileName 为具体文件，ArchiveFileName 为要写入
       Zip 内部的文件名}
+    procedure RemoveFile(const FileName: string);
+    {* 从 Zip 文件内删除一个文件}
 {$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定目录下的所有文件}
@@ -1313,6 +1317,20 @@ begin
 end;
 
 {$ENDIF}
+
+procedure TCnZipWriter.RemoveFile(const FileName: string);
+var
+  Idx: Integer;
+  H: PCnZipHeader;
+begin
+  Idx := IndexOf(FileName);
+  if Idx >= 0 then
+  begin
+    H := PCnZipHeader(FFileList[Idx]);
+    FFileList.Delete(Idx);
+    Dispose(H);
+  end;
+end;
 
 procedure TCnZipWriter.Save;
 var
