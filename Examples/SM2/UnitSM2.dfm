@@ -109,6 +109,28 @@ object FormSM2: TFormSM2
           TabOrder = 4
           OnClick = btnSM2DecryptClick
         end
+        object rgSequenceType: TRadioGroup
+          Left = 616
+          Top = 228
+          Width = 113
+          Height = 65
+          Caption = 'Sequence Type'
+          ItemIndex = 0
+          Items.Strings = (
+            'C1C3C2'
+            'C1C2C3')
+          TabOrder = 5
+        end
+        object chkPrefixByte: TCheckBox
+          Left = 256
+          Top = 56
+          Width = 97
+          Height = 17
+          Caption = '$04'
+          Checked = True
+          State = cbChecked
+          TabOrder = 6
+        end
       end
     end
     object tsSignVerify: TTabSheet

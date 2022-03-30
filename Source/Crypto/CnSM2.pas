@@ -30,7 +30,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.11.25 V1.1
+* 修改记录：2022.03.30 V1.2
+*               兼容加解密的 C1C3C2 与 C1C2C3 排列模式以及前导字节 04
+*           2021.11.25 V1.1
 *               增加封装的 SignFile 与 VerifyFile 函数
 *           2020.04.04 V1.0
 *               创建单元，实现功能
@@ -63,17 +65,27 @@ type
   TCnSM2Signature = class(TCnEccPoint);
   {* 签名是两个大数，X Y 分别代表 R S}
 
+  TCnSM2CryptSequenceType = (cstC1C3C2, cstC1C2C3);
+  {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有 C1C2C3 的版本，故此做兼容}
+
 // ========================= SM2 椭圆曲线加解密算法 ============================
 
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
-  TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
+  TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
+  IncludePrefixByte: Boolean = True): Boolean;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
-   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则}
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括}
 
 function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
-  PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil): Boolean;
+  PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 {* 用公钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
-   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则}
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
+   无需 IncludePrefixByte 参数，内部自动处理}
 
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
@@ -173,7 +185,8 @@ end;
   密文为：C1‖C3‖C2             // 总长 MLen + 97 字节
 }
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
-  TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
+  TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2;
+  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): Boolean;
 var
   Py, P1, P2: TCnEccPoint;
   K: TCnBigNumber;
@@ -219,10 +232,13 @@ begin
     P1.Assign(SM2.Generator);
     SM2.MultiplePoint(K, P1);  // 计算出 K * G 得到 X1 Y1
 
-    B := 4;
     OutStream.Position := 0;
+    if IncludePrefixByte then
+    begin
+      B := 4;
+      OutStream.Write(B, 1);
+    end;
 
-    OutStream.Write(B, 1);
     SetLength(Buf, P1.X.GetBytesCount);
     P1.X.ToBinary(@Buf[0]);
     OutStream.Write(Buf[0], P1.X.GetBytesCount);
@@ -249,8 +265,16 @@ begin
     P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + DataLen + 1]); // 拼成算 C3 的
     Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
-    OutStream.Write(Sm3Dig[0], SizeOf(TSM3Digest));        // 写入 C3
-    OutStream.Write(T[1], DataLen);                        // 写入 C2
+    if SequenceType = cstC1C3C2 then
+    begin
+      OutStream.Write(Sm3Dig[0], SizeOf(TSM3Digest));        // 写入 C3
+      OutStream.Write(T[1], DataLen);                        // 写入 C2
+    end
+    else
+    begin
+      OutStream.Write(T[1], DataLen);                        // 写入 C2
+      OutStream.Write(Sm3Dig[0], SizeOf(TSM3Digest));        // 写入 C3
+    end;
     Result := True;
   finally
     P2.Free;
@@ -274,7 +298,7 @@ end;
   还可对比 SM3(x2‖M‖y2) Hash 是否与 C3 相等
 }
 function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
-  PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2): Boolean;
+  PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): Boolean;
 var
   MLen: Integer;
   M: PAnsiChar;
@@ -282,7 +306,7 @@ var
   KDFStr, T, C3H: AnsiString;
   SM2IsNil: Boolean;
   P2: TCnEccPoint;
-  I: Integer;
+  I, PrefixLen: Integer;
   Sm3Dig: TSM3Digest;
 begin
   Result := False;
@@ -296,13 +320,25 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4) - 1;
+    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
     if MLen <= 0 then
       Exit;
 
     P2 := TCnEccPoint.Create;
     M := PAnsiChar(EnData);
-    Inc(M);
+    if M^ = #$04 then  // 跳过可能的前导字节 $04
+    begin
+      Dec(MLen);
+      if MLen <= 0 then
+        Exit;
+
+      PrefixLen := 1;
+      Inc(M);
+    end
+    else
+      PrefixLen := 0;
+
+    // 读出 C1
     P2.X.SetBinary(M, SM2.BitsCount div 8);
     Inc(M, SM2.BitsCount div 8);
     P2.Y.SetBinary(M, SM2.BitsCount div 8);
@@ -313,24 +349,50 @@ begin
     P2.Y.ToBinary(@KDFStr[P2.X.GetBytesCount + 1]);
     T := CnSM2KDF(KDFStr, MLen);
 
-    SetLength(MP, MLen);
-    M := PAnsiChar(EnData);
-    Inc(M, SizeOf(TSM3Digest) + (SM2.BitsCount div 4) + 1);
-    for I := 1 to MLen do
-      MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // MP 得到明文
-
-    SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
-    P2.X.ToBinary(@C3H[1]);
-    Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
-    P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
-    Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
-
-    M := PAnsiChar(EnData);
-    Inc(M, (SM2.BitsCount div 4) + 1);
-    if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+    if SequenceType = cstC1C3C2 then
     begin
-      OutStream.Write(MP[1], Length(MP));
-      Result := True;
+      SetLength(MP, MLen);
+      M := PAnsiChar(EnData);
+      Inc(M, SizeOf(TSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
+      for I := 1 to MLen do
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
+
+      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
+      P2.X.ToBinary(@C3H[1]);
+      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
+      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+
+      M := PAnsiChar(EnData);
+      Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // M 指向 C3
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      begin
+        OutStream.Write(MP[1], Length(MP));
+        Result := True;
+      end;
+    end
+    else // C1C2C3 的排列
+    begin
+      SetLength(MP, MLen);
+      M := PAnsiChar(EnData);
+      Inc(M, (SM2.BitsCount div 4) + PrefixLen);  // 指向 C2
+
+      for I := 1 to MLen do
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
+
+      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
+      P2.X.ToBinary(@C3H[1]);
+      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
+      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+
+      M := PAnsiChar(EnData);
+      Inc(M, (SM2.BitsCount div 4) + PrefixLen + MLen);      // 指向 C3
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      begin
+        OutStream.Write(MP[1], Length(MP));
+        Result := True;
+      end;
     end;
   finally
     P2.Free;

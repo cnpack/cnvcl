@@ -57,6 +57,8 @@ type
     btnSM2ABKeyExchange: TButton;
     btnLoadSM2Key: TButton;
     btnLoadSM2BKey: TButton;
+    rgSequenceType: TRadioGroup;
+    chkPrefixByte: TCheckBox;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -299,6 +301,7 @@ var
   SM2: TCnSM2;
   PublicKey: TCnEccPublicKey;
   EnStream: TMemoryStream;
+  ST: TCnSM2CryptSequenceType;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) then
     Exit;
@@ -317,7 +320,12 @@ begin
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   T := AnsiString(edtSM2Text.Text);
-  if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2) then
+  if rgSequenceType.ItemIndex = 0 then
+    ST := cstC1C3C2
+  else
+    ST := cstC1C2C3;
+
+  if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkPrefixByte.Checked) then
   begin
     ShowMessage('Encrypt OK');
     mmoSM2Results.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
@@ -356,6 +364,7 @@ var
   SM2: TCnSM2;
   PrivateKey: TCnEccPrivateKey;
   EnStream, DeStream: TMemoryStream;
+  ST: TCnSM2CryptSequenceType;
 begin
   if not CheckPrivateKeyStr(edtSM2PrivateKey) then
     Exit;
@@ -376,7 +385,12 @@ begin
 
   MyStreamFromHex(Trim(mmoSM2Results.Lines.Text), EnStream);
 
-  if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, PrivateKey, SM2) then
+  if rgSequenceType.ItemIndex = 0 then
+    ST := cstC1C3C2
+  else
+    ST := cstC1C2C3;
+
+  if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, PrivateKey, SM2, ST) then
   begin
     SetLength(S, DeStream.Size);
     DeStream.Position := 0;
