@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, FileCtrl, CnZip, ComCtrls;
+  StdCtrls, FileCtrl, CnZip, ComCtrls, CnCommon;
 
 type
   TFormZip = class(TForm)
@@ -31,6 +31,7 @@ type
     lblPass: TLabel;
     edtPass: TEdit;
     cbbMode: TComboBox;
+    btnRemoveFile: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure btnReadClick(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
@@ -39,6 +40,7 @@ type
     procedure btnSaveClick(Sender: TObject);
     procedure btnZipDirClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btnRemoveFileClick(Sender: TObject);
   private
     FWriter: TCnZipWriter;
   public
@@ -172,6 +174,33 @@ end;
 procedure TFormZip.FormCreate(Sender: TObject);
 begin
   cbbMode.ItemIndex := 1;
+end;
+
+procedure TFormZip.btnRemoveFileClick(Sender: TObject);
+var
+  S: string;
+  Idx: Integer;
+begin
+  if FWriter = nil then
+    Exit;
+
+  if not CnInputQuery('Enter', 'Enter a File Index to Remove (0 Based):', S) then
+    Exit;
+
+  Idx := StrToInt(S);
+
+  if (Idx >= 0) and (Idx < mmoFiles.Lines.Count) then
+  begin
+    if FWriter.RemoveFileByIndex(Idx) then
+      mmoFiles.Lines.Delete(Idx);
+//    S := mmoFiles.Lines[Idx];
+//    if S <> '' then
+//    begin
+//      FWriter.RemoveFile(S);
+//      mmoFiles.Lines.Delete(Idx);
+//    end;
+  end;
+
 end;
 
 end.

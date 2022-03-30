@@ -98,7 +98,7 @@ object FormZip: TFormZip
       Caption = 'Create a New Zip'
       ImageIndex = 1
       object lblPass: TLabel
-        Left = 528
+        Left = 552
         Top = 26
         Width = 49
         Height = 13
@@ -121,7 +121,7 @@ object FormZip: TFormZip
         OnClick = btnCreateClick
       end
       object btnAdd: TButton
-        Left = 104
+        Left = 96
         Top = 22
         Width = 75
         Height = 21
@@ -130,7 +130,7 @@ object FormZip: TFormZip
         OnClick = btnAddClick
       end
       object btnSave: TButton
-        Left = 192
+        Left = 256
         Top = 22
         Width = 75
         Height = 21
@@ -148,7 +148,7 @@ object FormZip: TFormZip
         OnClick = btnZipDirClick
       end
       object chkRemovePath: TCheckBox
-        Left = 280
+        Left = 360
         Top = 24
         Width = 97
         Height = 17
@@ -158,17 +158,17 @@ object FormZip: TFormZip
         TabOrder = 5
       end
       object edtPass: TEdit
-        Left = 592
+        Left = 608
         Top = 22
-        Width = 105
+        Width = 73
         Height = 21
         TabOrder = 6
         Text = '123'
       end
       object cbbMode: TComboBox
-        Left = 392
+        Left = 464
         Top = 22
-        Width = 105
+        Width = 73
         Height = 21
         Style = csDropDownList
         ItemHeight = 13
@@ -176,6 +176,15 @@ object FormZip: TFormZip
         Items.Strings = (
           'Stored'
           'Deflate')
+      end
+      object btnRemoveFile: TButton
+        Left = 176
+        Top = 22
+        Width = 75
+        Height = 21
+        Caption = 'Remove a File'
+        TabOrder = 8
+        OnClick = btnRemoveFileClick
       end
     end
   end
