@@ -23,7 +23,7 @@ unit CnZip;
 ================================================================================
 * 软件名称：CnPack 组件包
 * 单元名称：CnPack 组件包 Zip 实现单元
-* 单元作者：CnPack开发组 Liu Xiao
+* 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：使用 Delphi 自带的 Zlib 实现压缩解压与传统密码支持。
 *           但 XE2 以上的 Zlib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件
 * 开发平台：PWinXP + Delphi 5
@@ -221,8 +221,11 @@ type
       Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定内容，FileName 为具体文件，ArchiveFileName 为要写入
       Zip 内部的文件名}
-    procedure RemoveFile(const FileName: string);
-    {* 从 Zip 文件内删除一个文件}
+    function RemoveFile(const FileName: string): Boolean;
+    {* 从 Zip 文件内删除一个文件，返回删除是否成功
+      文件名参数需根据 RemovePath 的值以对应是否包含路径}
+    function RemoveFileByIndex(FileIndex: Integer): Boolean;
+    {* 从 Zip 文件内删除一个指定序号的文件，返回删除是否成功}
 {$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
     {* 向 Zip 文件中添加指定目录下的所有文件}
@@ -1318,17 +1321,33 @@ end;
 
 {$ENDIF}
 
-procedure TCnZipWriter.RemoveFile(const FileName: string);
+function TCnZipWriter.RemoveFile(const FileName: string): Boolean;
 var
   Idx: Integer;
   H: PCnZipHeader;
 begin
+  Result := False;
   Idx := IndexOf(FileName);
   if Idx >= 0 then
   begin
     H := PCnZipHeader(FFileList[Idx]);
     FFileList.Delete(Idx);
     Dispose(H);
+    Result := True;
+  end;
+end;
+
+function TCnZipWriter.RemoveFileByIndex(FileIndex: Integer): Boolean;
+var
+  H: PCnZipHeader;
+begin
+  Result := False;
+  if (FileIndex >= 0) and (FileIndex < FileCount) then
+  begin
+    H := PCnZipHeader(FFileList[FileIndex]);
+    FFileList.Delete(FileIndex);
+    Dispose(H);
+    Result := True;
   end;
 end;
 
