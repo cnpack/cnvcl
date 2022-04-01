@@ -867,9 +867,7 @@ var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
   FLocalBigBinaryPool: TCnBigBinaryPool = nil;
 
-
 {$OVERFLOWCHECKS OFF}
-
 // 必须关闭，否则部分无符号数相减时会出 Integer Overflow
 
 function BigNumberNew: TCnBigNumber;

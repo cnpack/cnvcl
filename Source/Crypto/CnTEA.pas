@@ -83,6 +83,9 @@ implementation
 const
   CN_TEA_DELTA = $9E3779B9;
 
+{$OVERFLOWCHECKS OFF}
+// 必须关闭，否则部分无符号数相减时会出 Integer Overflow
+
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 TEA 算法将明文 L/R 加密成密文
 procedure TeaEncrypt(K: TCnTeaKey; var L, R: LongWord;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
