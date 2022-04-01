@@ -1,23 +1,23 @@
 unit uFrmModem;
 
 {
-  程序名称：TCnModem演示程序
-  程序功能：测试TCnMode基本使用
+  程序名称：TCnModem 演示程序
+  程序功能：测试TCnModem 基本使用
   描述：
-     1、TCnModem中的Dial函数内部完成了初始化串口、Modem等工作。
+     1、TCnModem 中的 Dial 函数内部完成了初始化串口、Modem等工作。
 
-     2、用户使用TCnModem的InitAtCommand属性只可以事先定义一条AT指令。
-       如果用户想加入更多的AT指令，需要修改TCnModem的源代码。
-       InitModem中最好在最前面加上AT&F指令
+     2、用户使用 TCnModem 的 InitAtCommand 属性只可以事先定义一条 AT 指令。
+       如果用户想加入更多的 AT 指令，需要修改 TCnModem 的源代码。
+       InitModem 中最好在最前面加上 AT&F 指令
        if not SendATOk('AT&F') then exit;
        
-     3、疑问（已解决，是CnModem的bug，应该再乘以1000）：
+     3、疑问（已解决，是 CnModem 的 bug，应该再乘以 1000）：
      // 切换到在线命令状态
      procedure TCnModem.Escape; 中的下列语句让人摸不着头脑。
      Tick := Round(FWaitEscapeTime * 0.02 * 1.3);
      Sleep(Tick);
-     初始化时，已经设置 S12为 FWaitEscapeTime。
-     这里的Sleep(Tick);是不是有点短的出奇。而且Tick的值有经过了这么复杂的运算。
+     初始化时，已经设置 S12 为 FWaitEscapeTime。
+     这里的 Sleep(Tick); 是不是有点短的出奇。而且 Tick 的值有经过了这么复杂的运算。
 
   演示程序作者：
   Written By SkyJacker

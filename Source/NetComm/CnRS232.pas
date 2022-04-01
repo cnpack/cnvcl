@@ -23,10 +23,10 @@
 {  该串口通讯组件修改自 小猪工作室 Small-Pig Team （中国台湾）的               }
 {  SPCOMM V2.5 串口通讯组件，以下是原单元的原始声明：                          }
 {                                                                              }
-{  硂琌梆硄癟じン, ㄑ Delphi 2.0 莱ノ祘Αㄏノ. 続ノㄓ暗穨北の    }
-{  虏虫肚块. じン㊣ Win32 API ㄓ笷Θ┮惠, 叫ǎCommunications场     }
+{  這是一個序列埠通訊元件, 供 Delphi 2.0 應用程式使用. 適合用來做工業控制及    }
+{  簡單傳輸. 此元件呼叫 Win32 API 來達成所需功能, 請見Communications部份。     }
 {                                                                              }
-{  じン把σ David Wann. ┮籹 COMM32.PAS Version 1.0﹍弧      }
+{  此元件參考 David Wann. 所製作的 COMM32.PAS Version 1.0。原始說明如下：      }
 {  This Communications Component is implemented using separate Read and Write  }
 {  threads. Messages from the threads are posted to the Comm control which is  }
 {  an invisible window. To handle data from the comm port, simply              }
@@ -41,14 +41,14 @@
 {  davidwann@hunterlink.net.au                                                 }
 {                                                                              }
 {                                                                              }
-{  硂じンЧ禣, 舧ī' э┪暗ヴㄤウノ硚. 埃虫縒砪芥じン.       }
+{  這個元件完全免費, 歡迎拷貝' 修改或做任何其它用途. 除了單獨販賣此元件.       }
 {  This component is totally free(copyleft), you can do anything in any        }
 {  purpose EXCEPT SELL IT ALONE.                                               }
 {                                                                              }
 {                                                                              }
-{  Author?: 睫 Small-Pig Team         in Taiwan R.O.C.                }
+{  Author  : 小豬工作室 Small-Pig Team         in Taiwan R.O.C.                }
 {  Email   : spigteam@vlsi.ice.cycu.edu.tw                                     }
-{  Date ? : 1997/5/9                                                          }
+{  Date    : 1997/5/9                                                          }
 {                                                                              }
 {  Version 1.01   1996/9/4                                                     }
 {                 - Add setting Parity, Databits, StopBits                     }
@@ -105,7 +105,7 @@ unit CnRS232;
 {* |<PRE>
 ================================================================================
 * 软件名称：网络通讯组件包
-* 单元名称：CnRS232串口通讯组件单元
+* 单元名称：CnRS232 串口通讯组件单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：CnRS232串口通讯组件直接由 小猪工作室 Small-Pig Team （中国台湾）
 *           spigteam@vlsi.ice.cycu.edu.tw
@@ -117,8 +117,7 @@ unit CnRS232;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：
-*           2020.05.31 V1.3
+* 修改记录：2020.05.31 V1.3
 *                修正创建后立即发送数据失败的问题。
 *           2012.03.22 V1.2
 *                修正一处读入数据成功但长度为0而退出的问题，感谢大雄
@@ -159,48 +158,53 @@ type
      paMark:            - 传号校验方式
      paSpace:           - 空号校验方式
    |</PRE>}
+
   TStopBits = (_1, _1_5, _2);
   {* 串口通讯停止位长度
    |<PRE>
-     _1:                - 1位停止位
-     _1_5:              - 1.5位停止位
-     _2:                - 2位停止位
+     _1:                - 1 位停止位
+     _1_5:              - 1.5 位停止位
+     _2:                - 2 位停止位
    |</PRE>}
+
   TByteSize = (_5, _6, _7, _8);
   {* 串口通讯可用数据位数
    |<PRE>
-     _5:                - 5位数据
-     _6:                - 6位数据
-     _7:                - 7位数据
-     _8:                - 8位数据
+     _5:                - 5 位数据
+     _6:                - 6 位数据
+     _7:                - 7 位数据
+     _8:                - 8 位数据
    |</PRE>}
+
   TDtrControl = (DtrEnable, DtrDisable, DtrHandshake);
-  {* 串口通讯中使用DTR(数据终端就绪)信号进行流量控制的方式
+  {* 串口通讯中使用 DTR（数据终端就绪）信号进行流量控制的方式
    |<PRE>
-     DtrEnable:         - 允许DTR线并保持
-     DtrDisable:        - 禁止DTR线并保持
-     DtrHandshake:      - 允许DTR握手
+     DtrEnable:         - 允许 DTR 线并保持
+     DtrDisable:        - 禁止 DTR 线并保持
+     DtrHandshake:      - 允许 DTR 握手
    |</PRE>}
+
   TRtsControl = (RtsEnable, RtsDisable, RtsHandshake, RtsTransmissionAvailable);
-  {* 串口通讯中使用RTS(请求发送)信号进行流量控制的方式
+  {* 串口通讯中使用 RTS（请求发送）信号进行流量控制的方式
    |<PRE>
-     RtsEnable:         - 允许RTS并保持
-     RtsDisable:        - 禁止RTS并保持
-     RtsHandshake:      - 允许RTS握手
+     RtsEnable:         - 允许 RTS 并保持
+     RtsDisable:        - 禁止 RTS 并保持
+     RtsHandshake:      - 允许 RTS 握手
      RtsTransmissionAvailable: - 使用触发方式
    |</PRE>}
 
   ERS232Error = class(Exception);
+
   EInvalidXonXoffChar = class(Exception);
 
 //------------------------------------------------------------------------------
-// RS232串口通讯设置类
+// RS232 串口通讯设置类
 //------------------------------------------------------------------------------
 
 { TCnRS232Config }
 
   TCnRS232Config = class(TCnPersistent)
-  {* RS232串口通讯设置持久性类}
+  {* RS232 串口通讯设置持久性类}
   private
     FXoffChar: Char;
     FReplacedChar: Char;
@@ -247,47 +251,47 @@ type
     procedure Assign(Source: TPersistent); override;
     {* 在两个对象之间赋值}
     procedure GetDCB(var DCB: TDCB);
-    {* 从当前设置中取DCB结构}
+    {* 从当前设置中取 DCB 结构}
     procedure SetDCB(const DCB: TDCB);
-    {* 根据DCB结构进行设置}
+    {* 根据 DCB 结构进行设置}
   published
     property BaudRate: DWord read FBaudRate write SetBaudRate default 9600;
     {* 串口通讯波特率}
     property ParityCheck: Boolean read FParityCheck write SetParityCheck default False;
     {* 设置是否允许奇偶校验}
     property Outx_CtsFlow: Boolean read FOutx_CtsFlow write SetOutx_CtsFlow default False;
-    {* 设置是否使用CTS(清除发送)信号进行输出流量控制}
+    {* 设置是否使用 CTS（清除发送）信号进行输出流量控制}
     property Outx_DsrFlow: Boolean read FOutx_DsrFlow write SetOutx_DsrFlow default False;
-    {* 设置是否使用DSR(数据设备就绪)信号进行输出流量控制}
+    {* 设置是否使用 DSR（数据设备就绪）信号进行输出流量控制}
     property DtrControl: TDtrControl read FDtrControl write SetDtrControl default DtrEnable;
     {* 使用DTR(数据终端就绪)信号进行流量控制的方式}
     property DsrSensitivity: Boolean read FDsrSensitivity write SetDsrSensitivity default False;
-    {* 指定通信驱动程序对DSR信号的状态是否敏感。
-     |<BR> 如果为真，当Modem的DSR输入线为低时，驱动程序将忽略接收到的任何字节。}
+    {* 指定通信驱动程序对 DSR 信号的状态是否敏感。
+     |<BR> 如果为真，当 Modem 的 DSR 输入线为低时，驱动程序将忽略接收到的任何字节。}
     property TxContinueOnXoff: Boolean read FTxContinueOnXoff write SetTxContinueOnXoff default False;
     {* 指定当接收缓冲区已满，已发送“Xoff字符”后发送是否停止。
      |<BR> 如果为真，当被填满的接收缓冲区中的字节数未达到“Xoff阈值”并且驱动
        程序发送了“Xoff字符”后停止接收字节时，继续发送；
      |<BR> 如果为假，当被排空的缓冲区中的字节数不足“Xon阈值”个字节，
-       且驱动程序发送了“Xon字符”后恢复接收时，继续发送。}
+       且驱动程序发送了“Xon字符”后恢复接收时，继续发送}
     property Outx_XonXoffFlow: Boolean read FOutx_XonXoffFlow write SetOutx_XonXoffFlow default False;
-    {* 指定数据发送时是否使用Xon/Xoff信息流控制
+    {* 指定数据发送时是否使用 Xon/Xoff 信息流控制
      |<BR> 如果为真，当接收到“Xoff字符”时暂停发送，并在接收到“Xon字符”时恢复发送。}
     property Inx_XonXoffFlow: Boolean read FInx_XonXoffFlow write SetInx_XonXoffFlow default False;
-    {* 指定数据接收时是否使用Xon/Xoff信息流控制
+    {* 指定数据接收时是否使用 Xon/Xoff 信息流控制
      |<BR> 如果为真，当接收缓冲区快满，只剩“Xoff阈值”个字符空闲时发送“Xoff字符”；
-       当接收缓冲区中只有“Xon阈值”个字符时，发送“Xon字符”。}
+       当接收缓冲区中只有“Xon阈值”个字符时，发送“Xon字符”}
     property ReplaceWhenParityError: Boolean read FReplaceWhenParityError write SetReplaceWhenParityError default False;
-    {* 指定出现奇偶校验错时是否用指定字符ReplacedChar代替}
+    {* 指定出现奇偶校验错时是否用指定字符 ReplacedChar 代替}
     property IgnoreNullChar: Boolean read FIgnoreNullChar write SetIgnoreNullChar default False;
-    {* 指定是否丢弃接收到的NULL(ASCII 0)字符}
+    {* 指定是否丢弃接收到的 NULL（ASCII 0）字符}
     property RtsControl: TRtsControl read FRtsControl write SetRtsControl default RtsEnable;
-    {* 指定使用RTS(请求发送)信号进行流量控制的方式}
+    {* 指定使用 RTS（请求发送）信号进行流量控制的方式}
     property XonLimit: WORD read FXonLimit write SetXonLimit default 500;
     {* 指明在发送“Xon字符”之前，接收缓冲区中允许的最少字符数。}
     property XoffLimit: WORD read FXoffLimit write SetXoffLimit default 500;
     {* 指明在发送“Xoff字符”之前，接收缓冲区中允许的最多字符数。
-     |<BR> 接收缓冲区的长度减去该值，即允许的最多字符数。}
+     |<BR> 接收缓冲区的长度减去该值，即允许的最多字符数}
     property ByteSize: TByteSize read FByteSize write SetByteSize default _8;
     {* 可用数据位数}
     property Parity: TParity read FParity write FParity default paNone;
@@ -295,17 +299,17 @@ type
     property StopBits: TStopBits read FStopBits write SetStopBits default _1;
     {* 停止位数}
     property XonChar: Char read FXonChar write SetXonChar default chr($11);
-    {* 发送和接收的“Xon字符”的ASCII码，表示允许继续传输。
-     |<BR> 其值不能与XoffChar相同。}
+    {* 发送和接收的“Xon字符”的 ASCII 码，表示允许继续传输。
+     |<BR> 其值不能与 XoffChar 相同。}
     property XoffChar: Char read FXoffChar write SetXoffChar default chr($13);
-    {* 发送和接收的“Xoff字符”的ASCII码，表示允许暂停传输。
-     |<BR> 其值不能与XonChar相同。}
+    {* 发送和接收的“Xoff字符”的 ASCII 码，表示允许暂停传输。
+     |<BR> 其值不能与 XonChar 相同。}
     property ReplacedChar: Char read FReplacedChar write SetReplacedChar default chr(0);
-    {* 指定出现奇偶校验错时用来替换的字符的ASCII码，见ReplaceWhenParityError}
+    {* 指定出现奇偶校验错时用来替换的字符的 ASCII 码，见 ReplaceWhenParityError}
   end;
 
 //------------------------------------------------------------------------------
-// RS232串口通讯设置超时类
+// RS232 串口通讯设置超时类
 //------------------------------------------------------------------------------
 
 { TCnRS232Timeouts }
@@ -329,9 +333,9 @@ type
     procedure Assign(Source: TPersistent); override;
     {* 在两个对象之间赋值}
     function GetCommTimeouts: TCommTimeouts;
-    {* 从当前设置中取TCommTimeouts结构}
+    {* 从当前设置中取 TCommTimeouts 结构}
     procedure SetCommTimeouts(const Value: TCommTimeouts);
-    {* 根据TCommTimeouts结构进行设置}
+    {* 根据 TCommTimeouts 结构进行设置}
   published
     property ReadIntervalTimeout: DWord read FReadIntervalTimeout write SetReadIntervalTimeout default 10;
     {* 指定通信线路上两个字符到达之间的最大时间。
@@ -341,19 +345,19 @@ type
     property ReadTotalTimeoutMultiplier: DWord read FReadTotalTimeoutMultiplier write SetReadTotalTimeoutMultiplier default 0;
     {* 用于设定读总超时时间的系数。
      |<BR> 读总超时时间 = (总超时系数 X 接收字符数) + 总超时常量
-     |<BR> 常量和系数可分别为0。如果均为0，则不使用总超时设定。}
+     |<BR> 常量和系数可分别为 0。如果均为 0，则不使用总超时设定}
     property ReadTotalTimeoutConstant: DWord read FReadTotalTimeoutConstant write SetReadTotalTimeoutConstant default 0;
     {* 用于设定读总超时时间的常量值。
      |<BR> 读总超时时间 = (总超时系数 X 接收字符数) + 总超时常量
-     |<BR> 常量和系数可分别为0。如果均为0，则不使用总超时设定。}
+     |<BR> 常量和系数可分别为 0。如果均为 0，则不使用总超时设定}
     property WriteTotalTimeoutMultiplier: DWord read FWriteTotalTimeoutMultiplier write SetWriteTotalTimeoutMultiplier default 0;
     {* 用于设定写总超时时间的系数。
      |<BR> 写总超时时间 = (总超时系数 X 接收字符数) + 总超时常量
-     |<BR> 常量和系数可分别为0。如果均为0，则不使用总超时设定。}
+     |<BR> 常量和系数可分别为 0。如果均为 0，则不使用总超时设定}
     property WriteTotalTimeoutConstant: DWord read FWriteTotalTimeoutConstant write SetWriteTotalTimeoutConstant default 0;
     {* 用于设定写总超时时间的常量值。
      |<BR> 写总超时时间 = (总超时系数 X 接收字符数) + 总超时常量
-     |<BR> 常量和系数可分别为0。如果均为0，则不使用总超时设定。}
+     |<BR> 常量和系数可分别为 0。如果均为 0，则不使用总超时设定}
   end;
 
   TReceiveDataEvent = procedure(Sender: TObject; Buffer: Pointer;
@@ -364,21 +368,21 @@ type
      BufferLength: WORD 数据长度
    |</PRE>}
   TModemStateChangeEvent = procedure(Sender: TObject; ModemEvent: DWord) of object;
-  {* 串口通讯中Modem状态变更事件。
+  {* 串口通讯中 Modem 状态变更事件。
    |<PRE>
-     参数ModemEvent可取以下值：
+     参数 ModemEvent 可取以下值：
      ME_CTS = 1
      ME_DSR = 2
      ME_RING = 4
      ME_RLSD = 8
    |</PRE>}
   TReceiveErrorEvent = procedure(Sender: TObject; EventMask: DWord) of object;
-  {* 串口通讯错误事件。}
+  {* 串口通讯错误事件}
   TSendDataEmptyEvent = procedure(Sender: TObject) of object;
-  {* 串口通讯数据缓冲区空事件，该事件表明缓冲区数据已成功发送完成。}
+  {* 串口通讯数据缓冲区空事件，该事件表明缓冲区数据已成功发送完成}
 
 //------------------------------------------------------------------------------
-// RS232串口通讯读线程
+// RS232 串口通讯读线程
 //------------------------------------------------------------------------------
 
 { TReadThread }
@@ -387,8 +391,8 @@ type
   protected
     procedure Execute; override;
   public
-    hCommFile: THandle;
-    hCloseEvent: THandle;
+    FHCommFile: THandle;
+    FHCloseEvent: THandle;
     hComm32Window: THandle;
 
     function SetupCommEvent(lpOverlappedCommEvent: POverlapped;
@@ -409,7 +413,7 @@ type
   end;
 
 //------------------------------------------------------------------------------
-// RS232串口通讯写线程
+// RS232 串口通讯写线程
 //------------------------------------------------------------------------------
 
 { TWriteThread }
@@ -420,8 +424,8 @@ type
     function HandleWriteData(lpOverlappedWrite: POverlapped;
       pDataToWrite: PAnsiChar; dwNumberOfBytesToWrite: DWord): Boolean;
   public
-    hCommFile: THandle;
-    hCloseEvent: THandle;
+    FHCommFile: THandle;
+    FHCloseEvent: THandle;
     hComm32Window: THandle;
     pFSendDataEmpty: ^Boolean;
     MsgCreate:Boolean;
@@ -430,13 +434,13 @@ type
   end;
 
 //------------------------------------------------------------------------------
-// RS232串口通讯组件
+// RS232 串口通讯组件
 //------------------------------------------------------------------------------
 
 { TCnRS232 }
 
   TCnRS232 = class(TCnComponent)
-  {* RS232串口通讯组件。
+  {* RS232 串口通讯组件。
    |<PRE>
      * 组件采用单独的读写线程以overlapped方式进行串口通讯。
      * 使用时先要通过 StartComm 方法打开串口，通讯完成可使用 StopComm 关闭。
@@ -448,11 +452,10 @@ type
        方法，如果不能接收到预期长度的数据，请尝试调整该属性。
    |</PRE>}
   private
-    { Private declarations }
     ReadThread: TReadThread;
     WriteThread: TWriteThread;
-    hCommFile: THandle;
-    hCloseEvent: THandle;
+    FHCommFile: THandle;
+    FHCloseEvent: THandle;
     FHWnd: THandle;
     FSendDataEmpty: Boolean;
     FCommName: string;
@@ -470,7 +473,6 @@ type
     procedure SetTimeouts(const Value: TCnRS232Timeouts);
     function GetConnected: Boolean;
   protected
-    { Protected declarations }
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
 
     procedure ConfigChanged(Sender: TObject);
@@ -484,8 +486,7 @@ type
     procedure _SendDataEmpty; virtual;
     property OnModemStateChange: TModemStateChangeEvent read FOnModemStateChange write FOnModemStateChange;
   public
-    { Public declarations }
-    property Handle: THandle read hCommFile;
+    property Handle: THandle read FHCommFile;
     {* 串口设备句柄}
     property SendDataEmpty: Boolean read FSendDataEmpty;
     {* 当前发送数据缓冲区是否为空，运行期只读属性}
@@ -499,26 +500,25 @@ type
     {* 关闭已打开的串口设备}
     procedure ReadFromIni(Ini: TCustomIniFile; const Section: string); overload; virtual;
     {* 从INI配置对象中读取串口通讯设置，包含了组件的所有通讯参数，可重载
-     |<BR> 技巧：可以使用TRegIniFile对象来将设置保存到注册表中}
+     |<BR> 技巧：可以使用 TRegIniFile 对象来将设置保存到注册表中}
     procedure WriteToIni(Ini: TCustomIniFile; const Section: string); overload; virtual;
-    {* 将当前的串口通讯设置保存到INI配置对象，包含了组件的所有通讯参数，可重载
-     |<BR> 技巧：可以使用TRegIniFile对象来从注册表中读取}
+    {* 将当前的串口通讯设置保存到 INI 配置对象，包含了组件的所有通讯参数，可重载
+     |<BR> 技巧：可以使用 TRegIniFile 对象来从注册表中读取}
     procedure ReadFromIni(const FileName: string; const Section: string); overload;
     {* 从INI文件中读取串口通讯设置，包含了组件的所有通讯参数}
     procedure WriteToIni(const FileName: string; const Section: string); overload;
-    {* 将当前的串口通讯设置保存到INI文件中，包含了组件的所有通讯参数}
+    {* 将当前的串口通讯设置保存到 INI 文件中，包含了组件的所有通讯参数}
     function WriteCommData(pDataToWrite: PAnsiChar; dwSizeofDataToWrite: WORD): Boolean;
     {* 向串口写数据方法
      |<PRE>
-       pDataToWrite: PAnsiChar        - 要发送的数据缓冲区指针
+       pDataToWrite: PAnsiChar    - 要发送的数据缓冲区指针
        dwSizeofDataToWrite: WORD  - 数据块的长度
      |</PRE>}
     function GetModemState: DWord;
-    {* 取当前Modem状态}
+    {* 取当前 Modem 状态}
     property Connected: Boolean read GetConnected;
     {* 标识当前端口是否已打开 }
   published
-    { Published declarations }
     property CommName: string read FCommName write FCommName;
     {* 串口端口名，为类似 COM1、COM2 这样的字符串。
      |<BR> 如果指定错误的设备名，打开设备时将产生错误。}
@@ -581,14 +581,14 @@ begin
   end;
 
   // We will be waiting on these objects.
-  HandlesToWaitFor[0] := hCloseEvent;
+  HandlesToWaitFor[0] := FHCloseEvent;
   HandlesToWaitFor[1] := overlappedCommEvent.hEvent;
   HandlesToWaitFor[2] := overlappedRead.hEvent;
 
   // Setup CommEvent handling.
 
   // Set the comm mask so we receive error signals.
-  if not SetCommMask(hCommFile, EV_ERR or EV_RLSD or EV_RING) then
+  if not SetCommMask(FHCommFile, EV_ERR or EV_RLSD or EV_RING) then
   begin
     PostHangupCall;
     goto EndReadThread;
@@ -664,7 +664,7 @@ begin
   // Time to clean up Read Thread.
 EndReadThread:
 
-  PurgeComm(hCommFile, PURGE_RXABORT + PURGE_RXCLEAR);
+  PurgeComm(FHCommFile, PURGE_RXABORT + PURGE_RXCLEAR);
   CloseHandle(overlappedRead.hEvent);
   CloseHandle(overlappedCommEvent.hEvent)
 end;                                    {TReadThread.Execute}
@@ -683,11 +683,11 @@ StartSetupReadEvent:
 
   // Make sure the CloseEvent hasn't been signaled yet.
   // Check is needed because this function is potentially recursive.
-  if WAIT_TIMEOUT <> WaitForSingleObject(hCloseEvent, 0) then
+  if WAIT_TIMEOUT <> WaitForSingleObject(FHCloseEvent, 0) then
     Exit;
 
   // Start the overlapped ReadFile.
-  if ReadFile(hCommFile,
+  if ReadFile(FHCommFile,
     lpszInputBuffer^, dwSizeofBuffer,
     lpnNumberOfBytesRead, lpOverlappedRead) then
   begin
@@ -754,7 +754,7 @@ var
 begin
   Result := False;
 
-  if GetOverlappedResult(hCommFile,
+  if GetOverlappedResult(FHCommFile,
     lpOverlappedRead^, lpnNumberOfBytesRead, False) then
   begin
     Result := HandleReadData(lpszInputBuffer, lpnNumberOfBytesRead);
@@ -787,11 +787,11 @@ StartSetupCommEvent:
 
   // Make sure the CloseEvent hasn't been signaled yet.
   // Check is needed because this function is potentially recursive.
-  if WAIT_TIMEOUT <> WaitForSingleObject(hCloseEvent, 0) then
+  if WAIT_TIMEOUT <> WaitForSingleObject(FHCloseEvent, 0) then
     Exit;
 
   // Start waiting for Comm Errors.
-  if WaitCommEvent(hCommFile, lpfdwEvtMask, lpOverlappedCommEvent) then
+  if WaitCommEvent(FHCommFile, lpfdwEvtMask, lpOverlappedCommEvent) then
   begin
     // This could happen if there was an error waiting on the
     // comm port.  Lets try and handle it.
@@ -842,7 +842,7 @@ begin
   // either case (or any others) its a bug and return FALSE.
   if fRetrieveEvent then
   begin
-    if not GetOverlappedResult(hCommFile,
+    if not GetOverlappedResult(FHCommFile,
       lpOverlappedCommEvent^, dwDummy, False) then
     begin
       dwLastError := GetLastError;
@@ -861,7 +861,7 @@ begin
   if (lpfdwEvtMask and EV_ERR) <> 0 then
   begin
     // Which error was it?
-    if not ClearCommError(hCommFile, dwErrors, nil) then
+    if not ClearCommError(FHCommFile, dwErrors, nil) then
     begin
       dwLastError := GetLastError;
 
@@ -992,7 +992,7 @@ begin
 
       CompleteOneWriteRequire := False;
 
-      dwHandleSignaled := MsgWaitForMultipleObjects(1, hCloseEvent, False,
+      dwHandleSignaled := MsgWaitForMultipleObjects(1, FHCloseEvent, False,
         INFINITE, QS_ALLINPUT);
 
       case dwHandleSignaled of
@@ -1023,7 +1023,7 @@ begin
     end;
 
     // Make sure the CloseEvent isn't signaled while retrieving messages.
-    if WAIT_TIMEOUT <> WaitForSingleObject(hCloseEvent, 0) then
+    if WAIT_TIMEOUT <> WaitForSingleObject(FHCloseEvent, 0) then
       goto EndWriteThread;
 
     // Process the message.
@@ -1063,7 +1063,7 @@ begin
   // Thats the end.  Now clean up.
 EndWriteThread:
 
-  PurgeComm(hCommFile, PURGE_TXABORT + PURGE_TXCLEAR);
+  PurgeComm(FHCommFile, PURGE_TXABORT + PURGE_TXCLEAR);
   pFSendDataEmpty^ := True;
   CloseHandle(overlappedWrite.hEvent);
 end;                                    {TWriteThread.Execute}
@@ -1082,13 +1082,13 @@ begin
   dwNumberOfBytesWritten := 0;
   dwWhereToStartWriting := 0;           // Start at the beginning.
 
-  HandlesToWaitFor[0] := hCloseEvent;
+  HandlesToWaitFor[0] := FHCloseEvent;
   HandlesToWaitFor[1] := lpOverlappedWrite^.hEvent;
 
   // Keep looping until all characters have been written.
   repeat
     // Start the overlapped I/O.
-    if not WriteFile(hCommFile,
+    if not WriteFile(FHCommFile,
       pDataToWrite[dwWhereToStartWriting],
       dwNumberOfBytesToWrite, dwNumberOfBytesWritten,
       lpOverlappedWrite) then
@@ -1125,7 +1125,7 @@ begin
         WAIT_OBJECT_0 + 1:              // Wait finished.
           begin
             // Time to get the results of the WriteFile
-            if not GetOverlappedResult(hCommFile,
+            if not GetOverlappedResult(FHCommFile,
               lpOverlappedWrite^,
               dwNumberOfBytesWritten, True) then
             begin
@@ -1581,7 +1581,7 @@ var
 begin
   if Source is TCnRS232 then
   begin
-    Save := hCommFile <> 0;
+    Save := FHCommFile <> 0;
     if Save then StopComm;
     FCommName := TCnRS232(Source).FCommName;
     FCommConfig.Assign(TCnRS232(Source).FCommConfig);
@@ -1601,12 +1601,13 @@ begin
   FTimeouts := TCnRS232Timeouts.Create(TimeoutsChanged);
   ReadThread := nil;
   WriteThread := nil;
-  hCommFile := 0;
-  hCloseEvent := 0;
+  FHCommFile := 0;
+  FHCloseEvent := 0;
   FSendDataEmpty := True;
 
-  if not (csDesigning in ComponentState) then
-    FHWnd := AllocateHWnd(CommWndProc)
+//  窗口句柄待开启通讯时再创建
+//  if not (csDesigning in ComponentState) then
+//    FHWnd := AllocateHWnd(CommWndProc);
 end;
 
 destructor TCnRS232.Destroy;
@@ -1625,10 +1626,15 @@ procedure TCnRS232.StartComm;
 var
   hNewCommFile: THandle;
 begin
-  if (hCommFile <> 0) then
+  if not (csDesigning in ComponentState) then
+    DeallocateHWnd(FHWnd);
+  if not (csDesigning in ComponentState) then
+    FHWnd := AllocateHWnd(CommWndProc);
+
+  if FHCommFile <> 0 then
     raise ERS232Error.Create(SSerialPortAlreadyOpened);
 
-  // 解决串口号大于10无法识别的问题
+  // 解决串口号大于 10 无法识别的问题
   hNewCommFile := CreateFile(PChar('\\.\' + CommName), GENERIC_READ or GENERIC_WRITE,
     0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_FLAG_OVERLAPPED, 0);
 
@@ -1643,13 +1649,13 @@ begin
 
   if not SetupComm(hNewCommFile, 4096, 4096) then
   begin
-    CloseHandle(hCommFile);
+    CloseHandle(FHCommFile);
     raise ERS232Error.Create(SSetupBuffFail);
   end;
 
-  hCommFile := hNewCommFile;
+  FHCommFile := hNewCommFile;
 
-  PurgeComm(hCommFile, PURGE_TXABORT or PURGE_RXABORT or
+  PurgeComm(FHCommFile, PURGE_TXABORT or PURGE_RXABORT or
     PURGE_TXCLEAR or PURGE_RXCLEAR);
   FSendDataEmpty := True;
 
@@ -1657,12 +1663,12 @@ begin
 
   _SetCommState;
 
-  hCloseEvent := CreateEvent(nil, True, False, nil);
+  FHCloseEvent := CreateEvent(nil, True, False, nil);
 
-  if hCloseEvent = 0 then
+  if FHCloseEvent = 0 then
   begin
-    CloseHandle(hCommFile);
-    hCommFile := 0;
+    CloseHandle(FHCommFile);
+    FHCommFile := 0;
     raise ERS232Error.Create(SCreateEventFail);
   end;
 
@@ -1670,13 +1676,13 @@ begin
     ReadThread := TReadThread.Create(True {suspended});
   except
     ReadThread := nil;
-    CloseHandle(hCloseEvent);
-    CloseHandle(hCommFile);
-    hCommFile := 0;
+    CloseHandle(FHCloseEvent);
+    CloseHandle(FHCommFile);
+    FHCommFile := 0;
     raise ERS232Error.Create(SCreateReadFail)
   end;
-  ReadThread.hCommFile := hCommFile;
-  ReadThread.hCloseEvent := hCloseEvent;
+  ReadThread.FHCommFile := FHCommFile;
+  ReadThread.FHCloseEvent := FHCloseEvent;
   ReadThread.hComm32Window := FHWnd;
 
   ReadThread.Priority := tpHighest;
@@ -1686,14 +1692,14 @@ begin
   except
     CloseReadThread;
     WriteThread := nil;
-    CloseHandle(hCloseEvent);
-    CloseHandle(hCommFile);
-    hCommFile := 0;
+    CloseHandle(FHCloseEvent);
+    CloseHandle(FHCommFile);
+    FHCommFile := 0;
     raise ERS232Error.Create(SCreateWriteFail);
   end;
 
-  WriteThread.hCommFile := hCommFile;
-  WriteThread.hCloseEvent := hCloseEvent;
+  WriteThread.FHCommFile := FHCommFile;
+  WriteThread.FHCloseEvent := FHCloseEvent;
   WriteThread.hComm32Window := FHWnd;
   WriteThread.pFSendDataEmpty := @FSendDataEmpty;
 
@@ -1705,15 +1711,15 @@ end;
 
 procedure TCnRS232.StopComm;
 begin
-  if hCommFile = 0 then
+  if FHCommFile = 0 then
     Exit;
 
   CloseReadThread;
   CloseWriteThread;
 
-  CloseHandle(hCloseEvent);
-  CloseHandle(hCommFile);
-  hCommFile := 0;
+  CloseHandle(FHCloseEvent);
+  CloseHandle(FHCommFile);
+  FHCommFile := 0;
 end;
 
 function TCnRS232.WriteCommData(pDataToWrite: PAnsiChar; dwSizeofDataToWrite: WORD): Boolean;
@@ -1741,7 +1747,7 @@ function TCnRS232.GetModemState: DWord;
 var
   dwModemState: DWord;
 begin
-  if not GetCommModemStatus(hCommFile, dwModemState) then
+  if not GetCommModemStatus(FHCommFile, dwModemState) then
     Result := 0
   else
     Result := dwModemState;
@@ -1751,8 +1757,8 @@ procedure TCnRS232.CloseReadThread;
 begin
   if ReadThread <> nil then
   begin
-    SetEvent(hCloseEvent);
-    PurgeComm(hCommFile, PURGE_RXABORT + PURGE_RXCLEAR);
+    SetEvent(FHCloseEvent);
+    PurgeComm(FHCommFile, PURGE_RXABORT + PURGE_RXCLEAR);
     if (WaitForSingleObject(ReadThread.Handle, 10000) = WAIT_TIMEOUT) then
       ReadThread.Terminate;
     ReadThread.Free;
@@ -1764,8 +1770,8 @@ procedure TCnRS232.CloseWriteThread;
 begin
   if WriteThread <> nil then
   begin
-    SetEvent(hCloseEvent);
-    PurgeComm(hCommFile, PURGE_TXABORT + PURGE_TXCLEAR);
+    SetEvent(FHCloseEvent);
+    PurgeComm(FHCommFile, PURGE_TXABORT + PURGE_TXCLEAR);
     FSendDataEmpty := True;
     if WaitForSingleObject(WriteThread.Handle, 10000) = WAIT_TIMEOUT then
       WriteThread.Terminate;
@@ -1829,11 +1835,11 @@ var
   commprop: TCommProp;
   fdwEvtMask: DWord;
 begin
-  GetCommState(hCommFile, DCB);
-  GetCommProperties(hCommFile, commprop);
-  GetCommMask(hCommFile, fdwEvtMask);
+  GetCommState(FHCommFile, DCB);
+  GetCommProperties(FHCommFile, commprop);
+  GetCommMask(FHCommFile, fdwEvtMask);
   FCommConfig.GetDCB(DCB);
-  SetCommState(hCommFile, DCB);
+  SetCommState(FHCommFile, DCB);
 end;
 
 procedure TCnRS232._SetCommTimeout;
@@ -1842,7 +1848,7 @@ var
 begin
   //GetCommTimeouts(hCommFile, CommTimeouts);
   CommTimeouts := Timeouts.GetCommTimeouts;
-  SetCommTimeouts(hCommFile, CommTimeouts);
+  SetCommTimeouts(FHCommFile, CommTimeouts);
 end;
 
 procedure TCnRS232.ConfigChanged(Sender: TObject);
@@ -1857,7 +1863,7 @@ end;
 
 function TCnRS232.GetConnected: Boolean;
 begin
-  Result := hCommFile <> 0;
+  Result := FHCommFile <> 0;
 end;
 
 procedure TCnRS232.SetCommConfig(const Value: TCnRS232Config);
