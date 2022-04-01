@@ -839,6 +839,9 @@ implementation
 uses
   CnHashMap, CnPolynomial, CnBigNumber;
 
+{$OVERFLOWCHECKS OFF}
+// 必须关闭，否则部分无符号数相减时会出 Integer Overflow
+
 {$IFDEF MACOS}
 
 // MACOS 下的 TCnUInt32/64List 没有 IgnoreDuplicated 功能，需要手工去重
