@@ -2010,8 +2010,15 @@ begin
     FX.SetHex(S);
     FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，外部再去求解
   end
-  else
-    raise ECnEccException.Create(SCnEccErrorKeyData);
+  else if C = 0 then // 无前导字节
+  begin
+    if (Length(Buf) mod 4) <> 0 then // 一半公钥一半私钥，长度得相等
+      raise ECnEccException.Create(SCnEccErrorKeyData);
+
+    C := Length(Buf) div 2;
+    FX.SetHex(Copy(Buf, 1, C));
+    FY.SetHex(Copy(Buf, C + 1, MaxInt));
+  end;
 end;
 
 procedure TCnEccPoint.SetX(const Value: TCnBigNumber);
