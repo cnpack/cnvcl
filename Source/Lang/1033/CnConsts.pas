@@ -66,11 +66,15 @@ var
   SCnDisabled: string = 'Disabled';
   SCnMsgDlgOK: string = '&OK';
   SCnMsgDlgCancel: string = '&Cancel';
+  SCnMsgDlgYes: string = '&Yes';
+  SCnMsgDlgNo: string = '&No';
+  SCnMsgDlgYesToAll: string = 'Yes to &All';
+  SCnMsgDlgNoToAll: string = 'No to A&ll';
 
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.0.8.8';
+  SCnPackVer = 'Ver 0.1.2.1';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';

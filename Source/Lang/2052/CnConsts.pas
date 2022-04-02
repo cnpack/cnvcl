@@ -70,11 +70,15 @@ var
   SCnDisabled: string = '禁用';
   SCnMsgDlgOK: string = '确认(&O)';
   SCnMsgDlgCancel: string = '取消(&C)';
+  SCnMsgDlgYes: string = '是(&Y)';
+  SCnMsgDlgNo: string = '否(&N)';
+  SCnMsgDlgYesToAll: string = '全是(&A)';
+  SCnMsgDlgNoToAll: string = '全否(&l)';
 
 const
   // 开发包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.0.8.9';
+  SCnPackVer = 'Ver 0.1.2.1';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
