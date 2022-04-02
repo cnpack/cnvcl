@@ -68,6 +68,7 @@ contains
   CnEventHook in '..\..\Source\Common\CnEventHook.pas',
   CnFEC in '..\..\Source\Crypto\CnFEC.pas',
   CnFitCurve in '..\..\Source\Common\CnFitCurve.pas',
+  CnFloatConvert in '..\..\Source\Common\CnFloatConvert.pas',
   CnGraphUtils in '..\..\Source\Common\CnGraphUtils.pas',
   CnHardWareInfo in '..\..\Source\Common\CnHardWareInfo.pas',
   CnHashMap in '..\..\Source\Common\CnHashMap.pas',

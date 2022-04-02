@@ -156,9 +156,7 @@ type
     FFormFilterOptions: TLangTransFilterSet;
     FTransEditor: TCnTranslatorEditor;
     FContainer: TWinControl;
-    { Private declarations }
   public
-    { Public declarations }
     procedure WriteNameValueStringsToGrid(List: TStrings; Item: TCnLanguageItem);
     procedure LoadStorageFromList(List: TList);
     procedure SetBasicInfo(List: TStrings; Item: TCnLanguageItem);
