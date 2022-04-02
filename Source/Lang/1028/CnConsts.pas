@@ -70,6 +70,10 @@ var
   SCnDisabled: string = '禁用';
   SCnMsgDlgOK: string = '確認(&O)';
   SCnMsgDlgCancel: string = '取消(&C)';
+  SCnMsgDlgYes: string = '是(&Y)';
+  SCnMsgDlgNo: string = '否(&N)';
+  SCnMsgDlgYesToAll: string = '全是(&A)';
+  SCnMsgDlgNoToAll: string = '全否(&l)';
 
 const
   // 開發包信息
