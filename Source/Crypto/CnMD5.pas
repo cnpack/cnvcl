@@ -72,9 +72,6 @@ interface
 
 {$I CnPack.inc}
 
-{$OVERFLOWCHECKS OFF}
-{$RANGECHECKS OFF}
-
 uses
   Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 

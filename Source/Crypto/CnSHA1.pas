@@ -45,9 +45,6 @@ interface
 
 {$I CnPack.inc}
 
-{$OVERFLOWCHECKS OFF}
-{$RANGECHECKS OFF}
-
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
@@ -164,8 +161,6 @@ const
 
   HMAC_SHA1_BLOCK_SIZE_BYTE = 64;
   HMAC_SHA1_OUTPUT_LENGTH_BYTE = 20;
-
-{$R-}
 
 function LRot16(X: Word; c: Integer): Word;
 begin

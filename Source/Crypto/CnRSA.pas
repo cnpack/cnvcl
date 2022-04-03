@@ -419,9 +419,6 @@ const
 threadvar
   RSAErrorCode: Integer;
 
-{$OVERFLOWCHECKS OFF}
-// 必须关闭，否则部分无符号数相减时会出 Integer Overflow
-
 // 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
 function GetLastCnRSAError: Integer;
 begin

@@ -145,9 +145,6 @@ var
   BRC_X: array[0..3] of LongWord = (0, 0, 0, 0);
   // 以上四个变量均在 ZUCInitialization 中被初始化
 
-{$OVERFLOWCHECKS OFF}
-// 必须关闭，否则部分无符号数相减时会出 Integer Overflow
-
 // 32 位处理平台上，两个 31 比特字 a 和 b 模 2^31-1 加法运算 c =a + b mod(2^31-1)
 // 可以通过下面的两步计算实现：
 function AddM(A, B: LongWord): LongWord;

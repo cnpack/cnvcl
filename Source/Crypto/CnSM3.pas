@@ -175,9 +175,6 @@ const
 type
   TSM3ProcessData = array[0..63] of Byte;
 
-{$OVERFLOWCHECKS OFF}
-// 必须关闭，否则部分无符号数相减时会出 Integer Overflow
-
 procedure GetULongBe(var N: LongWord; B: PAnsiChar; I: Integer);
 var
   D: LongWord;

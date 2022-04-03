@@ -65,10 +65,6 @@ interface
 
 {$I CnPack.inc}
 
-{$OVERFLOWCHECKS OFF}
-
-{$RANGECHECKS OFF}
-
 uses
   Classes, SysUtils, SysConst, Math;
 
