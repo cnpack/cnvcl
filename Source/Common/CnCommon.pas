@@ -1117,7 +1117,12 @@ function TypeInfoName(TypeInfo: PTypeInfo): string;
 procedure GetAllPropNames(AComp: TObject; PropNames: TStrings;
   const BaseName: string = ''; IncludeType: Boolean = False);
 {* 获得某对象的所有属性的字符串值，包括子属性的属性
-   IncludeType 为 True 时，格式为 Name=TypeName，Object中放入 PropType }
+   IncludeType 为 True 时，格式为 Name=TypeName，Object 放入 PropType }
+
+procedure GetAllPropNamesFromClass(ACompClass: TClass; PropNames: TStrings;
+  IncludeType: Boolean = False);
+{* 获得某类的所有属性的字符串值，不包括子属性的属性，因为没有实例
+   IncludeType 为 True 时，格式为 Name=TypeName，Object 中放入 PropType }
 
 //==============================================================================
 // 其他杂项函数 by LiuXiao
@@ -7687,7 +7692,7 @@ begin
 end;
 
 // 获得某对象的所有属性的字符串值，包括子属性的属性
-// IncludeType 为 True 时，格式为 Name=TypeName，Object中放入 PropType
+// IncludeType 为 True 时，格式为 Name=TypeName，Object 中放入 PropType
 procedure GetAllPropNames(AComp: TObject; PropNames: TStrings;
   const BaseName: string; IncludeType: Boolean);
 var
@@ -7738,6 +7743,47 @@ begin
               if not (AObj is TComponent) or ((AObj as TComponent).Owner = AComp) then
                 GetAllPropNames(AObj, PropNames, PropInfoName(PropInfo), IncludeType);
           end;
+        end;
+      end;
+    finally
+      FreeMem(PropListPtr);
+    end;
+  end;
+end;
+
+{* 获得某类的所有属性的字符串值，不包括子属性的属性，因为没有实例
+   IncludeType 为 True 时，格式为 Name=TypeName，Object 中放入 PropType }
+procedure GetAllPropNamesFromClass(ACompClass: TClass; PropNames: TStrings;
+  IncludeType: Boolean);
+var
+  I, APropCount: Integer;
+  PropListPtr: PPropList;
+  PropInfo: PPropInfo;
+  AObj: TObject;
+begin
+  if PropNames = nil then
+    Exit;
+
+  APropCount := GetTypeData(PTypeInfo(ACompClass.ClassInfo))^.PropCount;
+  if APropCount > 0 then
+  begin
+    GetMem(PropListPtr, APropCount * SizeOf(Pointer));
+    GetPropList(PTypeInfo(ACompClass.ClassInfo), tkAny, PropListPtr);
+
+    try
+      for I := 0 to APropCount - 1 do
+      begin
+        PropInfo := PropListPtr^[I];
+        if PropInfo^.Name = '' then
+          Continue;
+
+        if PropInfo^.PropType^^.Kind in (tkProperties + tkMethods) then
+        begin
+          if not IncludeType then
+            PropNames.Add(PropInfoName(PropInfo))
+          else
+            PropNames.AddObject(PropInfoName(PropInfo) + '=' +
+              TypeInfoName(PropInfo^.PropType^), TObject(PropInfo^.PropType^^.Kind))
         end;
       end;
     finally
