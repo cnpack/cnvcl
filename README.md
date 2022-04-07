@@ -43,11 +43,11 @@ CnPack Team are Made up of Many Chinese Programmers and Delphi / C++ Builder Fan
     * Doc 开发包文档目录，里面包含了所有 CnPack 设计开发文档以及各种开发规范文档。
     * Packages 安装包目录，包含 Delphi 下的包安装文件。
     * Examples 演示程序目录，包含开发人员为代码编写的演示程序和源码。
-    * Source 开发包源代码目录，所有的 CnPack 源码放于该目录下。
+    * Source 开发包源代码目录，所有的 CnPack 源码放于该目录下。其中，Crypto 目录中实现了较为完整的纯 Pascal 的密码学算法库，包括常见的杂凑函数、对称加密、RSA、椭圆曲线等，并支持国家商用密码算法 SM2/SM3/SM4/SM9 等。
 
 ## 3. 安装使用
 
-开发包支持 Delphi 5/6/7/2005/2006/2007/2009/2010/XE/XE2/XE3/XE4/XE5/XE6/XE7/XE8/10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney 和 C++Builder 5/6。
+开发包支持 Delphi 5/6/7/2005/2006/2007/2009/2010/XE/XE2/XE3/XE4/XE5/XE6/XE7/XE8/10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney/11 Alexandria 和 C++Builder 5/6。
 用户需要在 IDE 中打开 Packages 目录下的包文件（注意版本号），再在包文件窗口中进行编译安装。其中带 dcl 前缀的为设计期包，无此前缀的为运行期包。注意应该先编译运行期包，再安装设计期包。
 
 点击 Delphi 的 Tools 菜单下的 Environment Options，进入设置对话框，点击 Library 页面中的 Library Path 项右边的按钮，将开发包 Source目录下各个子目录分别加入到搜索路径中。
