@@ -7759,7 +7759,6 @@ var
   I, APropCount: Integer;
   PropListPtr: PPropList;
   PropInfo: PPropInfo;
-  AObj: TObject;
 begin
   if PropNames = nil then
     Exit;
