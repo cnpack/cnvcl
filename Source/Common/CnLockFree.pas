@@ -240,8 +240,6 @@ const // MACOS 和 Linux 都用这个，TODO: 不确定 Mac 上行不
   kernel32  = 'libwine.borland.so';
 {$ENDIF}
 
-{$IFDEF DELPHI}
-
 // 注意 32 位 XP 上没有，需要动态获得
 
 type
@@ -256,8 +254,6 @@ resourcestring
 
 //function InterlockedCompareExchange64(var Destination: Int64; Exchange: Int64;
 //  Comparand: Int64): Int64 stdcall; external kernel32 name 'InterlockedCompareExchange64';
-
-{$ENDIF}
 
 function CnAtomicIncrement32(var Addend: Integer): Integer;
 begin
@@ -301,10 +297,8 @@ end;
 
 function CnAtomicIncrement64(var Addend: Int64): Int64;
 {$IFNDEF SUPPORT_ATOMIC}
-{$IFDEF DELPHI}
 var
   Tmp: Int64;
-{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ATOMIC}
@@ -322,10 +316,8 @@ end;
 
 function CnAtomicDecrement64(var Addend: Int64): Int64;
 {$IFNDEF SUPPORT_ATOMIC}
-{$IFDEF DELPHI}
 var
   Tmp: Int64;
-{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ATOMIC}
@@ -343,10 +335,8 @@ end;
 
 function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
 {$IFNDEF SUPPORT_ATOMIC}
-{$IFDEF DELPHI}
 var
   Tmp: Int64;
-{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ATOMIC}
