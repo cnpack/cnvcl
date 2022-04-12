@@ -245,7 +245,7 @@ const // MACOS 和 Linux 都用这个，TODO: 不确定 Mac 上行不
 // 注意 32 位 XP 上没有，需要动态获得
 
 type
-  TInterlockedCompareExchange64 = function InterlockedCompareExchange64(var Destination: Int64;
+  TInterlockedCompareExchange64 = function (var Destination: Int64;
     Exchange: Int64; Comparand: Int64): Int64 stdcall;
 
 var
