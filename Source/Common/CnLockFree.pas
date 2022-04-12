@@ -183,7 +183,8 @@ function CnAtomicExchange32(var Target: Integer; Value: Integer): Integer;
 function CnAtomicExchangeAdd32(var Addend: LongInt; Value: LongInt): Longint;
 {* 原子操作令 32 位值 Addend := Addend + Value，返回 Addend 原始值}
 
-// 以下 4 个 64 位函数由于引用了 API，在不支持 Atomic 的 C++Buider 平台上不支持，会抛出异常
+// 以下 4 个 64 位函数在不支持 Atomic 的低版本 Delphi 或 C++Buider 平台上会使用 API
+// 如果是 32 位 XP 系统或更老的，则运行期不支持，会抛出异常
 
 function CnAtomicIncrement64(var Addend: Int64): Int64;
 {* 原子操作令一 64 位值增 1，返回增加后的值}
@@ -197,7 +198,7 @@ function CnAtomicExchange64(var Target: Int64; Value: Int64): Int64;
 function CnAtomicExchangeAdd64(var Addend: Int64; Value: Int64): Int64;
 {* 原子操作令 64 位值 Addend := Addend + Value，返回 Addend 原始值}
 
-// 以上 4 个 64 位函数由于引用了 API，在不支持 Atomic 的 C++Buider 平台上不支持
+// 以上 4 个 64 位函数有部分情况不支持
 
 function CnAtomicCompareExchange(var Target: Pointer; NewValue: Pointer; Comperand: Pointer): Pointer;
 {* 原子操作比较 Target 与 Comperand 俩值，相等时则将 NewValue 赋值给 Target，返回旧的 Target 值
@@ -241,8 +242,20 @@ const // MACOS 和 Linux 都用这个，TODO: 不确定 Mac 上行不
 
 {$IFDEF DELPHI}
 
-function InterlockedCompareExchange64(var Destination: Int64; Exchange: Int64;
-  Comparand: Int64): Int64 stdcall; external kernel32 name 'InterlockedCompareExchange64';
+// 注意 32 位 XP 上没有，需要动态获得
+
+type
+  TInterlockedCompareExchange64 = function InterlockedCompareExchange64(var Destination: Int64;
+    Exchange: Int64; Comparand: Int64): Int64 stdcall;
+
+var
+  InterlockedCompareExchange64: TInterlockedCompareExchange64 = nil;
+
+resourcestring
+  SCnNotImplemented = 'NOT Implemented!';
+
+//function InterlockedCompareExchange64(var Destination: Int64; Exchange: Int64;
+//  Comparand: Int64): Int64 stdcall; external kernel32 name 'InterlockedCompareExchange64';
 
 {$ENDIF}
 
@@ -297,15 +310,13 @@ begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicIncrement(Addend);
 {$ELSE}
-  {$IFDEF DELPHI}
+  if not Assigned(InterlockedCompareExchange64) then
+    raise Exception.Create(SCnNotImplemented);
   repeat
     Tmp := Addend;
     Result := InterlockedCompareExchange64(Addend, Tmp + 1, Tmp);
   until Result = Tmp;
   Inc(Result);
-  {$ELSE}
-  raise Exception.Create('NOT Implemented.');
-  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -320,15 +331,13 @@ begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicDecrement(Addend);
 {$ELSE}
-  {$IFDEF DELPHI}
+  if not Assigned(InterlockedCompareExchange64) then
+    raise Exception.Create(SCnNotImplemented);
   repeat
     Tmp := Addend;
     Result := InterlockedCompareExchange64(Addend, Tmp - 1, Tmp);
   until Result = Tmp;
   Dec(Result);
-  {$ELSE}
-  raise Exception.Create('NOT Implemented.');
-  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -343,14 +352,12 @@ begin
 {$IFDEF SUPPORT_ATOMIC}
   Result := AtomicExchange(Target, Value);
 {$ELSE}
-  {$IFDEF DELPHI}
+  if not Assigned(InterlockedCompareExchange64) then
+    raise Exception.Create(SCnNotImplemented);
   repeat
     Tmp := Target;
     Result := InterlockedCompareExchange64(Target, Value, Tmp);
   until Result = Tmp;
-  {$ELSE}
-  raise Exception.Create('NOT Implemented.');
-  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -363,12 +370,10 @@ begin
     Tmp := Addend;
     Result := AtomicCmpExchange(Addend, Addend + Value, Tmp);
 {$ELSE}
-    {$IFDEF DELPHI}
+    if not Assigned(InterlockedCompareExchange64) then
+      raise Exception.Create(SCnNotImplemented);
     Tmp := Addend;
     Result := InterlockedCompareExchange64(Addend, Addend + Value, Tmp);
-    {$ELSE}
-    raise Exception.Create('NOT Implemented.');
-    {$ENDIF}
 {$ENDIF}
   until Result = Tmp;
 end;
@@ -421,7 +426,7 @@ end;
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
   Comperand: Pointer): Boolean;
 begin
-  raise Exception.Create('NOT Implemented.');
+  raise Exception.Create(SCnNotImplemented);
 end;
 
 {$ELSE}
@@ -913,5 +918,8 @@ procedure TCnLockFreeLinkedStack.Push(Key, Value: TObject);
 begin
   Append(Key, Value);
 end;
+
+initialization
+  InterlockedCompareExchange64 := GetProcAddress(GetModuleHandle(kernel32), 'InterlockedCompareExchange64');
 
 end.
