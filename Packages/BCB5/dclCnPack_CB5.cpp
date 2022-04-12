@@ -3,6 +3,7 @@
 #include <vcl.h>
 #pragma hdrstop
 USERES("dclCnPack_CB5.res");
+USERES("..\..\Source\Common\CnPack.dcr");
 USEPACKAGE("vcl50.bpi");
 USEPACKAGE("Vclx50.bpi");
 USEPACKAGE("Vcldb50.bpi");

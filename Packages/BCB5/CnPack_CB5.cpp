@@ -38,6 +38,7 @@ USEUNIT("..\..\Source\Common\CnEventBus.pas");
 USEUNIT("..\..\Source\Common\CnEventHook.pas");
 USEUNIT("..\..\Source\Crypto\CnFEC.pas");
 USEUNIT("..\..\Source\Common\CnFitCurve.pas");
+USEUNIT("..\..\Source\Common\CnFloatConvert.pas");
 USEUNIT("..\..\Source\Common\CnGraphUtils.pas");
 USEUNIT("..\..\Source\Common\CnHardWareInfo.pas");
 USEUNIT("..\..\Source\Common\CnHashMap.pas");
