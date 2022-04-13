@@ -1,6 +1,6 @@
 cnpack\Source 目录内容说明：
 
-\Common －公共库目录
+\Common －公共库目录。注：组件包主图标文件为 CnPack.dcr，但 BCB6 下不认识，因此复制了一份改名为 CnPack.res
 
   CnAntiCheater.pas
     使用内存变换防明文搜索的工具类

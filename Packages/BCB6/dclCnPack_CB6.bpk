@@ -72,7 +72,7 @@
   <FILELIST>
       <FILE FILENAME="dclCnPack_CB6.cpp" FORMNAME="" UNITNAME="dclCnPack_CB6" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="dclCnPack_CB6.res" FORMNAME="" UNITNAME="dclCnPack_CB6.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnPack.dcr" FORMNAME="" UNITNAME="CnPack.dcr" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnPack.res" FORMNAME="" UNITNAME="CnPack.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnPropEditors.pas" FORMNAME="" UNITNAME="CnPropEditors" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCompAboutFrm.pas" FORMNAME="CnCompAboutForm" UNITNAME="Cncompaboutfrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnPackRegister.pas" FORMNAME="" UNITNAME="CnPackRegister" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
