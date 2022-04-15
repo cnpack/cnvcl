@@ -28,7 +28,9 @@ unit CnBerUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.28 V1.3
+* 修改记录：2022.04.15 V1.4
+*               加入一 AsCommonInteger 方法允许自动根据数据长度 1、2、4 获取整型值。
+*           2020.03.28 V1.3
 *               允许外部给节点设置 TypeMask 以应对 ECC 的私钥父节点的情况。
 *           2019.04.19 V1.2
 *               支持 Win32/Win64/MacOS，支持 VCL 与 FMX 下的 TreeView 交互。
@@ -146,6 +148,11 @@ type
     function AsInteger: Integer;
     function AsCardinal: Cardinal;
     function AsInt64: Int64;
+    // 注意以上整型返回的方法，调用时应当与 BerDataLength 对应，否则倒序时会出错
+
+    function AsCommonInteger: Integer;
+    {* 该方法按 BerDataLength 的实际值返回整型并按实际倒序，BerDataLength 超出 Integer 时出错}
+
     procedure AsBigNumber(OutNum: TCnBigNumber);
     {* 按尺寸返回整型值或大数}
 
@@ -856,6 +863,28 @@ end;
 function TCnBerReadNode.AsRawString: string;
 begin
   Result := InternalAsString([]);
+end;
+
+function TCnBerReadNode.AsCommonInteger: Integer;
+var
+  IntValue: Integer;
+begin
+  if FBerTag <> CN_BER_TAG_INTEGER then
+    raise Exception.Create('Ber Tag Type Mismatch for Common Integer.');
+
+  if FBerDataLength > SizeOf(LongWord) then
+    raise Exception.CreateFmt('Data Length %d Overflow for Common Integer.',
+      [FBerDataLength]);
+
+  IntValue := 0;
+  CopyDataTo(@IntValue);
+
+  // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
+  if FBerDataLength = SizeOf(Word) then
+    IntValue := Integer(SwapWord(Word(IntValue)))
+  else if FBerDataLength = SizeOf(LongWord) then
+    IntValue := SwapLongWord(IntValue);
+  Result := IntValue;
 end;
 
 { TCnBerWriter }
