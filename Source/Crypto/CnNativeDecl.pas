@@ -281,6 +281,13 @@ function Int32ToLittleEndian(Value: Integer): Integer;
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 {* 确保 Int16 值为小端，大端环境中进行转换}
 
+function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
+{* 内存块转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+
+function HexToData(const Hex: string; OutData: Pointer): string;
+{* 十六进制字符串转换为内存块，十六进制字符串长度为奇或转换失败时抛出异常
+  注意 OutData 应该指向足够容纳转换内容的区域，长度至少为 Length(Hex) div 2}
+
 function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
 {* 字符串转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
 
@@ -416,6 +423,52 @@ begin
       raise Exception.Create('Error: not a Hex String');
   end;
   Result := Res;
+end;
+
+function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
+var
+  I: Integer;
+  B: Byte;
+begin
+  Result := '';
+  if ByteLength <= 0 then
+    Exit;
+
+  SetLength(Result, ByteLength * 2);
+  if UseUpperCase then
+  begin
+    for I := 0 to ByteLength - 1 do
+    begin
+      B := PCnByte(Integer(InData) + I * SizeOf(Byte))^;
+      Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := HiDigits[B and $0F];
+    end;
+  end
+  else
+  begin
+    for I := 0 to ByteLength - 1 do
+    begin
+      B := PCnByte(Integer(InData) + I * SizeOf(Byte))^;
+      Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := LoDigits[B and $0F];
+    end;
+  end;
+end;
+
+function HexToData(const Hex: string; OutData: Pointer): string;
+var
+  I, L: Integer;
+  S: string;
+begin
+  L := Length(Hex);
+  if (L mod 2) <> 0 then
+    raise Exception.Create('Error: not a Hex String');
+
+  for I := 1 to L div 2 do
+  begin
+    S := Copy(Hex, I * 2 - 1, 2);
+    PCnByte(Integer(OutData) + I)^ := Byte(HexToInt(S));
+  end;
 end;
 
 function StringToHex(const Data: string; UseUpperCase: Boolean): string;
