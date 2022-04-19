@@ -512,7 +512,7 @@ function BigNumberToString(const Num: TCnBigNumber): string;
 function BigNumberToHex(const Num: TCnBigNumber; FixedLen: Integer = 0): string;
 {* 将一个大数对象转成十六进制字符串，负以 - 表示
   FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证结果中输出固定 FixedLen 字节的长度（不包括负号）
-  内部大数长度超过 FixedLen 时按大数实际长度写}
+  内部大数长度超过 FixedLen 时按大数实际长度写。注意 FixedLen 不是十六进制字符串长度}
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
 {* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行}
@@ -3228,7 +3228,7 @@ begin
     if FixedLen <= 0 then
       Result := '0'
     else
-      Result := StringOfChar('0', FixedLen);
+      Result := StringOfChar('0', FixedLen * 2);
     Exit;
   end;
 
@@ -3249,8 +3249,8 @@ begin
     end;
   end;
 
-  if FixedLen > Length(Result) then
-    Result := StringOfChar('0', FixedLen - Length(Result)) + Result;
+  if FixedLen * 2 > Length(Result) then
+    Result := StringOfChar('0', FixedLen * 2 - Length(Result)) + Result;
 
   if BigNumberIsNegative(Num) then
     Result := '-' + Result;
