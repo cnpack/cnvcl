@@ -250,7 +250,7 @@ var
   S, S1, S256: AnsiString;
 begin
   Result := '';
-  if (Password = '') or (Salt = '') or (Count <= 0) or (DerivedKeyLength <=0) then
+  if {(Password = '') or} (Salt = '') or (Count <= 0) or (DerivedKeyLength <=0) then
     raise ECnKDFException.Create(SCnKDFErrorParam);
 
   case KeyHash of
