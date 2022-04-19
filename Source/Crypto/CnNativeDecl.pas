@@ -467,7 +467,7 @@ begin
   for I := 1 to L div 2 do
   begin
     S := Copy(Hex, I * 2 - 1, 2);
-    PCnByte(Integer(OutData) + I)^ := Byte(HexToInt(S));
+    PCnByte(Integer(OutData) + I - 1)^ := Byte(HexToInt(S));
   end;
 end;
 
