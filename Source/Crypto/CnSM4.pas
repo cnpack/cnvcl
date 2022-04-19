@@ -29,7 +29,9 @@ unit CnSM4;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.12.12 V1.3
+* 修改记录：2022.04.19 V1.4
+*               使用初始化向量时内部备份，不修改传入的内容
+*           2021.12.12 V1.3
 *               加入 CFB/OFB 模式的支持
 *           2020.03.24 V1.2
 *               增加部分封装函数包括流函数
@@ -92,7 +94,7 @@ procedure SM4EncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
 {* SM4-CBC 封装好的针对 AnsiString 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
@@ -102,7 +104,7 @@ procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
 {* SM4-CBC 封装好的针对 AnsiString 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
@@ -112,7 +114,7 @@ procedure SM4EncryptCfbStr(Key: AnsiString; Iv: PAnsiChar;
 {* SM4-CFB 封装好的针对 AnsiString 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
@@ -122,7 +124,7 @@ procedure SM4DecryptCfbStr(Key: AnsiString; Iv: PAnsiChar;
 {* SM4-CFB 封装好的针对 AnsiString 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
@@ -132,7 +134,7 @@ procedure SM4EncryptOfbStr(Key: AnsiString; Iv: PAnsiChar;
 {* SM4-OFB 封装好的针对 AnsiString 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
@@ -142,7 +144,7 @@ procedure SM4DecryptOfbStr(Key: AnsiString; Iv: PAnsiChar;
 {* SM4-OFB 封装好的针对 AnsiString 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       16 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
@@ -169,7 +171,7 @@ function SM4EncryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CBC 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 明文
   返回值   加密内容
  |</PRE>}
@@ -178,7 +180,7 @@ function SM4DecryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CBC 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 密文
   返回值   解密内容
  |</PRE>}
@@ -187,7 +189,7 @@ function SM4EncryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CFB 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 明文
   返回值   加密内容
  |</PRE>}
@@ -196,7 +198,7 @@ function SM4DecryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CFB 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 密文
   返回值   解密内容
  |</PRE>}
@@ -205,7 +207,7 @@ function SM4EncryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-OFB 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 明文
   返回值   加密内容
  |</PRE>}
@@ -214,7 +216,7 @@ function SM4DecryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-OFB 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 密文
   返回值   解密内容
  |</PRE>}
@@ -507,8 +509,10 @@ procedure SM4CryptCbc(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Iv: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar);
 var
   I: Integer;
-  EndBuf: array[0..SM4_BLOCKSIZE - 1] of Byte;
+  EndBuf: TSM4Buffer;
+  LocalIv: TSM4Iv;
 begin
+  Move(Iv^, LocalIv[0], SM4_BLOCKSIZE);
   if Mode = SM4_ENCRYPT then
   begin
     while Length > 0 do
@@ -517,10 +521,10 @@ begin
       begin
         for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
-            xor (PByte(Integer(Iv) + I))^;
+            xor LocalIv[I];
 
         SM4OneRound(@(Ctx.Sk[0]), Output, Output);
-        Move(Output[0], Iv[0], SM4_BLOCKSIZE);
+        Move(Output[0], LocalIv[0], SM4_BLOCKSIZE);
       end
       else
       begin
@@ -530,10 +534,10 @@ begin
 
         for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := EndBuf[I]
-            xor (PByte(Integer(Iv) + I))^;
+            xor LocalIv[I];
 
         SM4OneRound(@(Ctx.Sk[0]), Output, Output);
-        Move(Output[0], Iv[0], SM4_BLOCKSIZE);
+        Move(Output[0], LocalIv[0], SM4_BLOCKSIZE);
       end;
 
       Inc(Input, SM4_BLOCKSIZE);
@@ -551,9 +555,9 @@ begin
 
         for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
-            xor (PByte(Integer(Iv) + I))^;
+            xor LocalIv[I];
 
-        Move(Input^, Iv[0], SM4_BLOCKSIZE);
+        Move(Input^, LocalIv[0], SM4_BLOCKSIZE);
       end
       else
       begin
@@ -562,11 +566,11 @@ begin
         Move(Input^, EndBuf[0], Length);
         SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
 
-        for I := 0 to 15 do
+        for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
-            xor (PByte(Integer(Iv) + I))^;
+            xor LocalIv[I];
 
-        Move(EndBuf[0], Iv[0], SM4_BLOCKSIZE);
+        Move(EndBuf[0], LocalIv[0], SM4_BLOCKSIZE);
       end;
 
       Inc(Input, SM4_BLOCKSIZE);
@@ -580,24 +584,26 @@ procedure SM4CryptCfb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Iv: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar);
 var
   I: Integer;
+  LocalIv: TSM4Iv;
 begin
+  Move(Iv^, LocalIv[0], SM4_BLOCKSIZE);
   if Mode = SM4_ENCRYPT then
   begin
     while Length > 0 do
     begin
       if Length >= SM4_BLOCKSIZE then
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);  // 先加密 Iv
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);  // 先加密 Iv
 
         for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
             xor (PByte(Integer(Output) + I))^;  // 加密结果与明文异或作为输出密文
 
-        Move(Output[0], Iv[0], SM4_BLOCKSIZE);  // 密文取代 Iv 以备下一轮
+        Move(Output[0], LocalIv[0], SM4_BLOCKSIZE);  // 密文取代 Iv 以备下一轮
       end
       else
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);
 
         for I := 0 to Length - 1 do // 只需异或剩余长度，无需处理完整的 16 字节
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
@@ -615,17 +621,17 @@ begin
     begin
       if Length >= SM4_BLOCKSIZE then
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);   // 先加密 Iv
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);   // 先加密 Iv
 
         for I := 0 to SM4_BLOCKSIZE - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
             xor (PByte(Integer(Input) + I))^;    // 加密结果与密文异或得到明文
 
-        Move(Input[0], Iv[0], SM4_BLOCKSIZE);    // 密文取代 Iv 再拿去下一轮加密
+        Move(Input[0], LocalIv[0], SM4_BLOCKSIZE);    // 密文取代 Iv 再拿去下一轮加密
       end
       else
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);
 
         for I := 0 to Length - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
@@ -643,16 +649,18 @@ procedure SM4CryptOfb(var Ctx: TSM4Context; Mode: Integer; Length: Integer;
   Iv: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar);
 var
   I: Integer;
+  LocalIv: TSM4Iv;
 begin
+  Move(Iv^, LocalIv[0], SM4_BLOCKSIZE);
   if Mode = SM4_ENCRYPT then
   begin
     while Length > 0 do
     begin
       if Length >= SM4_BLOCKSIZE then
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);  // 先加密 Iv
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);  // 先加密 Iv
 
-        Move(Output[0], Iv[0], SM4_BLOCKSIZE);  // 加密结果先留存给下一步
+        Move(Output[0], LocalIv[0], SM4_BLOCKSIZE);  // 加密结果先留存给下一步
 
         for I := 0 to SM4_BLOCKSIZE - 1 do      // 加密结果与明文异或出密文
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
@@ -660,7 +668,7 @@ begin
       end
       else
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);  // 先加密 Iv
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);  // 先加密 Iv
 
         for I := 0 to Length - 1 do             // 无需完整 16 字节
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Input) + I))^
@@ -678,9 +686,9 @@ begin
     begin
       if Length >= SM4_BLOCKSIZE then
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);   // 先加密 Iv
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);   // 先加密 Iv
 
-        Move(Output[0], Iv[0], SM4_BLOCKSIZE);   // 加密结果先留存给下一步
+        Move(Output[0], LocalIv[0], SM4_BLOCKSIZE);   // 加密结果先留存给下一步
 
         for I := 0 to SM4_BLOCKSIZE - 1 do       // 加密内容与密文异或得到明文
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
@@ -688,7 +696,7 @@ begin
       end
       else
       begin
-        SM4OneRound(@(Ctx.Sk[0]), Iv, Output);   // 先加密 Iv
+        SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);   // 先加密 Iv
 
         for I := 0 to Length - 1 do
           (PByte(Integer(Output) + I))^ := (PByte(Integer(Output) + I))^
