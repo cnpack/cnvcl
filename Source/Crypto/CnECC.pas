@@ -69,7 +69,8 @@ interface
 // 比起 Lucas 序列慢 10 倍以上。
 
 uses
-  SysUtils, Classes, Contnrs, Windows, CnNativeDecl, CnPrimeNumber, CnBigNumber,
+  SysUtils, Classes, Contnrs, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
+  CnNativeDecl, CnPrimeNumber, CnBigNumber,
   CnPolynomial, CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const

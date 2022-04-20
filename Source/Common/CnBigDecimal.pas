@@ -765,7 +765,7 @@ function BigDecimalSetSingle(const Value: Single; const Res: TCnBigDecimal): Boo
 var
   N: Boolean;
   E: Integer;
-  S: LongWord;
+  S: Cardinal;
 begin
   if SingleIsInfinite(Value) or SingleIsNan(Value) then
     raise ECnBigDecimalException.Create(SInvalidOp);
@@ -2006,7 +2006,7 @@ function BigBinarySetSingle(const Value: Single; const Res: TCnBigBinary): Boole
 var
   N: Boolean;
   E: Integer;
-  S: LongWord;
+  S: Cardinal;
 begin
   if SingleIsInfinite(Value) or SingleIsNan(Value) then
     raise ECnBigBinaryException.Create(SInvalidOp);

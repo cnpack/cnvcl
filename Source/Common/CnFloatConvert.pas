@@ -70,7 +70,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, SysConst, CnNativeDecl;
+  SysUtils, Classes, SysConst, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNativeDecl;
 
 {
   IEEE 754 规定的三种浮点格式，有效数在低位 0：
@@ -201,6 +201,7 @@ function ExtendedIsNan(const AValue: Extended): Boolean;
 
 {$IFNDEF FPC}          // FPC、64 位以及 Delphi 5、6 不支持以下三个函数
 {$IFNDEF WIN64}
+{$IFNDEF MACOS}
 {$IFNDEF COMPILER5}
 {$IFNDEF COMPILER6}
 
@@ -216,6 +217,7 @@ function FloatDecimalToOctExtended(fIn: Extended; DecimalExp,
 function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
 
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
@@ -237,6 +239,7 @@ type
   PExtendedWords = ^TExtendedWords;
 
 {$IFNDEF FPC}
+{$IFNDEF MACOS}
 {$IFNDEF WIN64}
 {$IFNDEF COMPILER5}
 {$IFNDEF COMPILER6}
@@ -912,6 +915,7 @@ UseExponent:
   end;
 end;
 
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
