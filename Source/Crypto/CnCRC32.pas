@@ -471,7 +471,7 @@ begin
 
   GetMem(Buf, BufLen);
   try
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
     repeat
       ReadBytes := Stream.Read(Buf^, BufLen);
       if ReadBytes <> 0 then
@@ -630,7 +630,7 @@ begin
 
   GetMem(Buf, BufLen);
   try
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
     repeat
       ReadBytes := Stream.Read(Buf^, BufLen);
       if ReadBytes <> 0 then
@@ -788,7 +788,7 @@ begin
 
   GetMem(Buf, BufLen);
   try
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
     repeat
       ReadBytes := Stream.Read(Buf^, BufLen);
       if ReadBytes <> 0 then
@@ -960,7 +960,7 @@ begin
 
   GetMem(Buf, BufLen);
   try
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
     repeat
       ReadBytes := Stream.Read(Buf^, BufLen);
       if ReadBytes <> 0 then

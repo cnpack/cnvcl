@@ -2209,7 +2209,7 @@ end;
 
 procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer);
 var
-  R: DWORD;
+  R: Cardinal;
 begin
   FGenerator.X.SetHex(GX);
   FGenerator.Y.SetHex(GY);

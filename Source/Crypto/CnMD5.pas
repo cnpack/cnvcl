@@ -532,7 +532,7 @@ begin
   MD5Init(Context);
   GetMem(Buf, BufLen);
   try
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
     repeat
       ReadBytes := Stream.Read(Buf^, BufLen);
       if ReadBytes <> 0 then
