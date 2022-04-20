@@ -839,44 +839,6 @@ implementation
 uses
   CnHashMap, CnPolynomial, CnBigNumber;
 
-{$IFDEF MACOS}
-
-// MACOS 下的 TCnUInt32/64List 没有 IgnoreDuplicated 功能，需要手工去重
-
-type
-  TCnInternalList<T> = class(TList<T>)
-  public
-    procedure RemoveDuplictedElements;
-  end;
-
-{ TCnInternalList<T> }
-
-procedure TCnInternalList<T>.RemoveDuplictedElements;
-var
-  I, J: Integer;
-  V: NativeInt;
-  Dup: Boolean;
-begin
-  for I := Count - 1 downto 0 do
-  begin
-    V := ItemValue(Items[I]);
-    Dup := False;
-    for J := 0 to I - 1 do
-    begin
-      if V = ItemValue(Items[J]) then
-      begin
-        Dup := True;
-        Break;
-      end;
-    end;
-
-    if Dup then
-      Delete(I);
-  end;
-end;
-
-{$ENDIF}
-
 // 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
 function RandomUInt64: TUInt64;
 var

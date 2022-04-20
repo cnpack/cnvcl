@@ -70,7 +70,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, SyncObjs;
+  SysUtils, Classes, Contnrs, SyncObjs
+  {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
 
 {$DEFINE MULTI_THREAD} // 数学对象池支持多线程，性能略有下降，如不需要，注释此行即可
 
@@ -269,6 +270,21 @@ type
     property Items[Index: Integer]: TObject read Get write Put; default;
     property List: PRefObjectList read FList;
   end;
+
+{$IFDEF MACOS}
+
+  // MACOS 下的 TCnUInt32/64List 没有 IgnoreDuplicated 功能，需要手工去重
+  TCnInternalList<T> = class(TList<T>)
+  public
+    procedure RemoveDuplictedElements;
+  end;
+
+  // 以下俩定义只在 MACOS 下有效，不与 CnClasses 中的同名类冲突
+  TCnUInt32List = class(TCnInternalList<Cardinal>);
+
+  TCnUInt64List = class(TCnInternalList<UInt64>);
+
+{$ENDIF}
 
 procedure CnIntegerListCopy(Dst, Src: TCnIntegerList);
 {* 复制 TCnIntegerList}
@@ -1095,5 +1111,35 @@ begin
       Move(Src.List^, Dst.List^, Src.Count * SizeOf(TObject));
   end;
 end;
+
+{$IFDEF MACOS}
+
+{ TCnInternalList<T> }
+
+procedure TCnInternalList<T>.RemoveDuplictedElements;
+var
+  I, J: Integer;
+  V: NativeInt;
+  Dup: Boolean;
+begin
+  for I := Count - 1 downto 0 do
+  begin
+    V := ItemValue(Items[I]);
+    Dup := False;
+    for J := 0 to I - 1 do
+    begin
+      if V = ItemValue(Items[J]) then
+      begin
+        Dup := True;
+        Break;
+      end;
+    end;
+
+    if Dup then
+      Delete(I);
+  end;
+end;
+
+{$ENDIF}
 
 end.
