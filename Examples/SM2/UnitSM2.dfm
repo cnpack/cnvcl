@@ -410,6 +410,15 @@ object FormSM2: TFormSM2
     TabOrder = 4
     OnClick = btnLoadSM2KeyClick
   end
+  object btnVerifySm2Key: TButton
+    Left = 824
+    Top = 80
+    Width = 105
+    Height = 25
+    Caption = 'Verify SM2 Key'
+    TabOrder = 5
+    OnClick = btnVerifySm2KeyClick
+  end
   object dlgOpen1: TOpenDialog
     Left = 876
     Top = 136

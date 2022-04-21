@@ -59,6 +59,7 @@ type
     btnLoadSM2BKey: TButton;
     rgSequenceType: TRadioGroup;
     chkPrefixByte: TCheckBox;
+    btnVerifySm2Key: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -73,6 +74,7 @@ type
     procedure btnSM2ABKeyExchangeClick(Sender: TObject);
     procedure btnLoadSM2KeyClick(Sender: TObject);
     procedure btnLoadSM2BKeyClick(Sender: TObject);
+    procedure btnVerifySm2KeyClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -696,6 +698,31 @@ begin
     Priv.Free;
     Pub.Free;
   end;
+end;
+
+procedure TFormSM2.btnVerifySm2KeyClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PrivKey: TCnSM2PrivateKey;
+  PubKey: TCnSM2PublicKey;
+begin
+  SM2 := TCnSM2.Create;
+  PrivKey := TCnSM2PrivateKey.Create;
+  PubKey := TCnSM2PublicKey.Create;
+
+  PrivKey.SetHex(edtSM2PrivateKey.Text);
+
+  PubKey.Assign(SM2.Generator);
+  SM2.MultiplePoint(PrivKey, PubKey);
+
+  if UpperCase(PubKey.ToHex) = UpperCase(edtSM2PublicKey.Text) then
+    ShowMessage('Verify Keys OK')
+  else
+    ShowMessage('Verify Keys Fail');
+
+  SM2.Free;
+  PubKey.Free;
+  PrivKey.Free;
 end;
 
 end.

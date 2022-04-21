@@ -2000,18 +2000,39 @@ begin
   C := StrToIntDef(Copy(Buf, 1, 2), 0);
   S := Copy(Buf, 3, MaxInt);
 
-  if C = EC_PUBLICKEY_UNCOMPRESSED then
+  if (C = EC_PUBLICKEY_UNCOMPRESSED) or (C = EC_PUBLICKEY_COMPRESSED1) or
+    (C = EC_PUBLICKEY_COMPRESSED2) then
   begin
-    C := Length(S) div 2;
-    FX.SetHex(Copy(S, 1, C));
-    FY.SetHex(Copy(S, C + 1, MaxInt));
+    // 前导字节后面的内容，要不就是一半公钥一半私钥，长度得相等，要不就是公钥 X，均要求被 4 整除
+    if (Length(S) mod 4) <> 0 then
+    begin
+      // 前导字节后面的内容长度不对，这里重新把前导字节算进来，当公私钥一块判断
+      if (Length(Buf) mod 4) <> 0 then // 如果长度还不对，则出错
+        raise ECnEccException.Create(SCnEccErrorKeyData);
+
+      // 把前导字节算进来的长度是对的，直接劈开 Buf 赋值
+      C := Length(Buf) div 2;
+      FX.SetHex(Copy(Buf, 1, C));
+      FY.SetHex(Copy(Buf, C + 1, MaxInt));
+    end
+    else // 前导字节内容后的长度对
+    begin
+      if C = EC_PUBLICKEY_UNCOMPRESSED then
+      begin
+        C := Length(S) div 2;
+        FX.SetHex(Copy(S, 1, C));
+        FY.SetHex(Copy(S, C + 1, MaxInt));
+      end
+      else if (C = EC_PUBLICKEY_COMPRESSED1) or (C = EC_PUBLICKEY_COMPRESSED2) then
+      begin
+        FX.SetHex(S);
+        FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，外部再去求解
+      end
+      else  // 前导字节内容非法
+        raise ECnEccException.Create(SCnEccErrorKeyData);
+    end;
   end
-  else if (C = EC_PUBLICKEY_COMPRESSED1) or (C = EC_PUBLICKEY_COMPRESSED2) then
-  begin
-    FX.SetHex(S);
-    FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，外部再去求解
-  end
-  else if C = 0 then // 无前导字节
+  else // 前导字节非合法值，说明无前导字节
   begin
     if (Length(Buf) mod 4) <> 0 then // 一半公钥一半私钥，长度得相等
       raise ECnEccException.Create(SCnEccErrorKeyData);
