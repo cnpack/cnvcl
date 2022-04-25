@@ -27,12 +27,15 @@ unit CnStrings;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：AnsiStringList 移植自 Delphi 7 的 StringList
-* 最后更新：2017.01.09
+* 最后更新：2022.04.25
+*               增加三个字符串替换函数，支持整字匹配
+*           2017.01.09
 *               增加移植自 Forrest Smith 的字符串模糊匹配算法，
 *               并修正了最后一个匹配字符过于靠后的问题。
 *           2015.06.01
 *               增加快速搜索子串算法 FastPosition
 *           2013.03.04
+*               创建单元，实现功能
 ================================================================================
 |</PRE>}
 
@@ -240,6 +243,9 @@ type
     function IndexOfName(const Name: AnsiString): Integer; override;
   end;
 
+  TCnReplaceFlags = set of (crfReplaceAll, crfIgnoreCase, crfWholeWord);
+  {* 字符串替换标记}
+
 function FastPosition(const Str, Pattern: PChar; FromIndex: Integer = 0): Integer;
 {* 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1}
 
@@ -250,6 +256,24 @@ function FuzzyMatchStr(const Pattern: string; const Str: string; MatchedIndexes:
 function FuzzyMatchStrWithScore(const Pattern: string; const Str: string; out Score: Integer;
   MatchedIndexes: TList = nil; CaseSensitive: Boolean = False): Boolean;
 {* 模糊匹配子串，Score 返回匹配程度，MatchedIndexes 中返回 Str 中匹配的下标号，注意 Score 的比较只有子串以及大小写一致时才有意义}
+
+function CnStringReplace(const S, OldPattern, NewPattern: string;
+  Flags: TCnReplaceFlags): string;
+{* 支持整字匹配的字符串替换，在 Unicode 或非 Unicode 编译器下都有效}
+
+{$IFDEF UNICODE}
+
+function CnStringReplaceA(const S, OldPattern, NewPattern: AnsiString;
+  Flags: TCnReplaceFlags): AnsiString;
+{* 支持整字匹配的 Ansi 字符串替换，在 Unicode 编译器下有效}
+
+{$ELSE}
+
+function CnStringReplaceW(const S, OldPattern, NewPattern: WideString;
+  Flags: TCnReplaceFlags): WideString;
+{* 支持整字匹配的 Wide 字符串替换，在非 Unicode 编译器下有效}
+
+{$ENDIF}
 
 implementation
 
@@ -1564,5 +1588,238 @@ begin
       FValueHash.Add(Self[I], I);
   FValueHashValid := True;
 end;
+
+// 判断一个字符是否整字匹配的分隔符
+function IsSepChar(AChar: Char): Boolean;
+begin
+{$IFDEF UNICODE}
+  Result := not CharInSet(AChar, ['0'..'9', 'A'..'Z', 'a'..'z', '_']);
+{$ELSE}
+  Result := not (AChar in ['0'..'9', 'A'..'Z', 'a'..'z', '_']);
+{$ENDIF}
+end;
+
+function IsSepCharA(AChar: AnsiChar): Boolean;
+begin
+  Result := not (AChar in ['0'..'9', 'A'..'Z', 'a'..'z', '_']);
+end;
+
+function IsSepCharW(AChar: WideChar): Boolean;
+begin
+  Result := (Ord(AChar) < 127) and not (AnsiChar(AChar) in ['0'..'9', 'A'..'Z', 'a'..'z', '_']);
+end;
+
+function CnStringReplace(const S, OldPattern, NewPattern: string;
+  Flags: TCnReplaceFlags): string;
+var
+  SearchStr, Patt, NewStr: string;
+  Offset, TailOffset: Integer;
+  IsWhole: Boolean;
+begin
+  if crfIgnoreCase in Flags then
+  begin
+{$IFDEF UNICODE}
+    SearchStr := UpperCase(S);
+    Patt := UpperCase(OldPattern);
+{$ELSE}
+    SearchStr := AnsiUpperCase(S);
+    Patt := AnsiUpperCase(OldPattern);
+{$ENDIF}
+  end
+  else
+  begin
+    SearchStr := S;
+    Patt := OldPattern;
+  end;
+
+  NewStr := S;
+  Result := '';
+
+  while SearchStr <> '' do
+  begin
+{$IFDEF UNICODE}
+    Offset := Pos(Patt, SearchStr);
+{$ELSE}
+    Offset := AnsiPos(Patt, SearchStr);
+{$ENDIF}
+    IsWhole := True;
+    if Offset = 0 then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end
+    else if crfWholeWord in Flags then
+    begin
+      // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
+      // 有头且头非分隔符，或有尾且尾非分隔符，则非整字
+      if (Offset > 1) and not IsSepChar(SearchStr[Offset - 1]) then
+        IsWhole := False
+      else
+      begin
+        TailOffset := Offset + Length(Patt); // 指向匹配后的一个字符
+        if (TailOffset <= Length(SearchStr)) and not IsSepChar(SearchStr[TailOffset]) then
+          IsWhole := False;
+      end;
+
+      // 得到了是否整字匹配的结论
+    end;
+
+    if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
+    begin
+      // 替换一次
+      Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+      if not (crfReplaceAll in Flags) then
+      begin
+        Result := Result + NewStr;
+        Break;
+      end;
+    end
+    else // 整字匹配的要求下，未整字匹配，不能替换
+    begin
+      Result := Result + Copy(NewStr, 1, Offset - 1) + OldPattern; // 注意必须用 OldePattern，不能替换
+      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+    end;
+    SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
+end;
+
+{$IFDEF UNICODE}
+
+function CnStringReplaceA(const S, OldPattern, NewPattern: AnsiString;
+  Flags: TCnReplaceFlags): AnsiString;
+var
+  SearchStr, Patt, NewStr: AnsiString;
+  Offset, TailOffset: Integer;
+  IsWhole: Boolean;
+begin
+  if crfIgnoreCase in Flags then
+  begin
+    SearchStr := AnsiUpperCase(S);
+    Patt := AnsiUpperCase(OldPattern);
+  end
+  else
+  begin
+    SearchStr := S;
+    Patt := OldPattern;
+  end;
+
+  NewStr := S;
+  Result := '';
+
+  while SearchStr <> '' do
+  begin
+    Offset := AnsiPos(Patt, SearchStr);
+    IsWhole := True;
+    if Offset = 0 then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end
+    else if crfWholeWord in Flags then
+    begin
+      // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
+      // 有头且头非分隔符，或有尾且尾非分隔符，则非整字
+      if (Offset > 1) and not IsSepCharA(SearchStr[Offset - 1]) then
+        IsWhole := False
+      else
+      begin
+        TailOffset := Offset + Length(Patt); // 指向匹配后的一个字符
+        if (TailOffset <= Length(SearchStr)) and not IsSepCharA(SearchStr[TailOffset]) then
+          IsWhole := False;
+      end;
+
+      // 得到了是否整字匹配的结论
+    end;
+
+    if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
+    begin
+      // 替换一次
+      Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+      if not (crfReplaceAll in Flags) then
+      begin
+        Result := Result + NewStr;
+        Break;
+      end;
+    end
+    else // 整字匹配的要求下，未整字匹配，不能替换
+    begin
+      Result := Result + Copy(NewStr, 1, Offset - 1) + OldPattern; // 注意必须用 OldePattern，不能替换
+      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+    end;
+    SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
+end;
+
+{$ELSE}
+
+function CnStringReplaceW(const S, OldPattern, NewPattern: WideString;
+  Flags: TCnReplaceFlags): WideString;
+var
+  SearchStr, Patt, NewStr: WideString;
+  Offset, TailOffset: Integer;
+  IsWhole: Boolean;
+begin
+  if crfIgnoreCase in Flags then
+  begin
+    SearchStr := UpperCase(S);
+    Patt := UpperCase(OldPattern);
+  end
+  else
+  begin
+    SearchStr := S;
+    Patt := OldPattern;
+  end;
+
+  NewStr := S;
+  Result := '';
+
+  while SearchStr <> '' do
+  begin
+    Offset := Pos(Patt, SearchStr);
+    IsWhole := True;
+    if Offset = 0 then
+    begin
+      Result := Result + NewStr;
+      Break;
+    end
+    else if crfWholeWord in Flags then
+    begin
+      // 找到了子串且需要整字匹配，须进行整字判断，不符合则当
+      // 有头且头非分隔符，或有尾且尾非分隔符，则非整字
+      if (Offset > 1) and not IsSepCharW(SearchStr[Offset - 1]) then
+        IsWhole := False
+      else
+      begin
+        TailOffset := Offset + Length(Patt); // 指向匹配后的一个字符
+        if (TailOffset <= Length(SearchStr)) and not IsSepCharW(SearchStr[TailOffset]) then
+          IsWhole := False;
+      end;
+
+      // 得到了是否整字匹配的结论
+    end;
+
+    if not (crfWholeWord in Flags) or IsWhole then // 普通匹配或整字匹配了
+    begin
+      // 替换一次
+      Result := Result + Copy(NewStr, 1, Offset - 1) + NewPattern;
+      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+      if not (crfReplaceAll in Flags) then
+      begin
+        Result := Result + NewStr;
+        Break;
+      end;
+    end
+    else // 整字匹配的要求下，未整字匹配，不能替换
+    begin
+      Result := Result + Copy(NewStr, 1, Offset - 1) + OldPattern; // 注意必须用 OldePattern，不能替换
+      NewStr := Copy(NewStr, Offset + Length(OldPattern), MaxInt);
+    end;
+    SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
+  end;
+end;
+
+{$ENDIF}
 
 end.
