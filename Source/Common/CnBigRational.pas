@@ -71,7 +71,7 @@ type
     procedure SetOne;
     {* 设为 1}
 
-    function EqualInt(Value: LongWord): Boolean; overload;
+    function EqualInt(Value: Cardinal): Boolean; overload;
     {* 是否与另一值相等}
     function EqualInt(Value: TCnBigNumber): Boolean; overload;
     {* 是否与另一值相等}
@@ -103,7 +103,7 @@ type
     procedure Divide(Value: TCnBigRational); overload;
     {* 除以一个有理数}
 
-    procedure SetIntValue(Value: LongWord); overload;
+    procedure SetIntValue(Value: Cardinal); overload;
     {* 值设为一个整数}
     procedure SetIntValue(Value: TCnBigNumber); overload;
     {* 值设为一个整数}
@@ -471,7 +471,7 @@ begin
     Result := False;
 end;
 
-function TCnBigRational.EqualInt(Value: LongWord): Boolean;
+function TCnBigRational.EqualInt(Value: Cardinal): Boolean;
 begin
   if FDenominator.IsOne then
     Result := FNominator.IsWord(Value)
@@ -584,7 +584,7 @@ begin
     ReduceBigNumber(FNominator, FDenominator);
 end;
 
-procedure TCnBigRational.SetIntValue(Value: LongWord);
+procedure TCnBigRational.SetIntValue(Value: Cardinal);
 begin
   FNominator.SetWord(Value);
   FDenominator.SetOne;
