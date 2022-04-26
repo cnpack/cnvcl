@@ -30,7 +30,7 @@ unit CnZUC;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.04.26 V1.3
+* 修改记录：2022.04.26 V1.2
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS32
@@ -347,7 +347,7 @@ begin
 
   for I := 0 to L - 1 do
     (PCnLongWord32(TCnNativeInt(C) + I * SizeOf(TCnLongWord32)))^ := (PCnLongWord32(TCnNativeInt(M) + I * SizeOf(TCnLongWord32)))^
-      xor (PCnLongWord32(Integer(Z) + I * SizeOf(TCnLongWord32)))^;
+      xor (PCnLongWord32(TCnNativeInt(Z) + I * SizeOf(TCnLongWord32)))^;
 
   if LastBits <> 0 then
     (PCnLongWord32(TCnNativeInt(C) + L * SizeOf(TCnLongWord32)))^ := (PCnLongWord32(TCnNativeInt(C) + L * SizeOf(TCnLongWord32)))^

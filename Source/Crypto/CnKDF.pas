@@ -28,7 +28,9 @@ unit CnKDF;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.01.02 V1.2
+* 修改记录：2022.04.26 V1.3
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
+*           2022.01.02 V1.2
 *               修正 CnPBKDF2 的一处问题以及在 Unicode 下的兼容性问题
 *           2021.11.25 V1.1
 *               修正 CnSM2KDF 在 Unicode 下的兼容性问题
@@ -42,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnMD5, CnSHA1, CnSHA2, CnSM3;
+  SysUtils, Classes, CnNativeDecl, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
@@ -131,7 +133,7 @@ begin
     end;
 
     KeyLength := KeyLength - SizeOf(TMD5Digest);
-    OutKey := PAnsiChar(Integer(OutKey) + SizeOf(TMD5Digest));
+    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TMD5Digest));
 
     Move(Md5Dig[0], PSMD5[1], SizeOf(TMD5Digest));
     Md5Dig2 := MD5StringA(PSMD5);
@@ -156,7 +158,7 @@ begin
     end;
 
     KeyLength := KeyLength - SizeOf(TSHA256Digest);
-    OutKey := PAnsiChar(Integer(OutKey) + SizeOf(TSHA256Digest));
+    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TSHA256Digest));
 
     Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
     Sha256Dig2 := SHA256StringA(PSSHA256);
@@ -347,12 +349,12 @@ end;
 function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
 var
   DArr: array of Byte;
-  CT, SCT: LongWord;
+  CT, SCT: Cardinal;
   I, CeilLen: Integer;
   IsInt: Boolean;
   SM3D: TSM3Digest;
 
-  function SwapLongWord(Value: LongWord): LongWord;
+  function SwapCardinal(Value: Cardinal): Cardinal;
   begin
     Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
       or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
@@ -367,7 +369,7 @@ begin
   CT := 1;
 
   try
-    SetLength(DArr, DataLen + SizeOf(LongWord));
+    SetLength(DArr, DataLen + SizeOf(Cardinal));
     Move(Data^, DArr[0], DataLen);
 
     IsInt := DerivedKeyLength mod SizeOf(TSM3Digest) = 0;
@@ -376,8 +378,8 @@ begin
     SetLength(Result, DerivedKeyLength);
     for I := 1 to CeilLen do
     begin
-      SCT := SwapLongWord(CT);  // 虽然文档中没说，但要倒序一下
-      Move(SCT, DArr[DataLen], SizeOf(LongWord));
+      SCT := SwapCardinal(CT);  // 虽然文档中没说，但要倒序一下
+      Move(SCT, DArr[DataLen], SizeOf(Cardinal));
       SM3D := SM3(@DArr[0], Length(DArr));
 
       if (I = CeilLen) and not IsInt then
