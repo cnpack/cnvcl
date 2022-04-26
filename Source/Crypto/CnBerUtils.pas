@@ -28,7 +28,9 @@ unit CnBerUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.04.15 V1.4
+* 修改记录：2022.04.26 V1.5
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
+*           2022.04.15 V1.4
 *               加入一 AsCommonInteger 方法允许自动根据数据长度 1、2、4 获取整型值。
 *           2020.03.28 V1.3
 *               允许外部给节点设置 TypeMask 以应对 ECC 的私钥父节点的情况。
@@ -51,7 +53,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, TypInfo, CnBigNumber, CnTree
+  SysUtils, Classes, TypInfo, CnNativeDecl, CnBigNumber, CnTree
   {$IFDEF DEBUG}
     {$IFDEF MSWINDOWS}, ComCtrls  {$ENDIF}
     {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}
@@ -386,7 +388,7 @@ begin
   Result := ((Value and $FF00) shr 8) or ((Value and $00FF) shl 8);
 end;
 
-function SwapLongWord(Value: LongWord): LongWord;
+function SwapCardinal(Value: Cardinal): Cardinal;
 begin
   Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
     or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
@@ -394,13 +396,13 @@ end;
 
 function SwapInt64(Value: Int64): Int64;
 var
-  Lo, Hi: LongWord;
+  Lo, Hi: Cardinal;
   Rec: Int64Rec;
 begin
   Lo := Int64Rec(Value).Lo;
   Hi := Int64Rec(Value).Hi;
-  Lo := SwapLongWord(Lo);
-  Hi := SwapLongWord(Hi);
+  Lo := SwapCardinal(Lo);
+  Hi := SwapCardinal(Hi);
   Rec.Lo := Hi;
   Rec.Hi := Lo;
   Result := Int64(Rec);
@@ -450,7 +452,7 @@ begin
   D := C - Num.GetBytesCount;
 
   FillChar(P^, D, 0);
-  Num.ToBinary(PAnsiChar(Integer(P) + D));
+  Num.ToBinary(PAnsiChar(TCnNativeInt(P) + D));
 
   Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
   FreeMemory(P);
@@ -667,7 +669,7 @@ begin
   if FBerTag <> CN_BER_TAG_INTEGER then
     raise Exception.Create('Ber Tag Type Mismatch for ByteSize: ' + IntToStr(ByteSize));
 
-  if not (ByteSize in [SizeOf(Byte)..SizeOf(LongWord)]) then
+  if not (ByteSize in [SizeOf(Byte)..SizeOf(Cardinal)]) then
     raise Exception.Create('Invalid ByteSize: ' + IntToStr(ByteSize));
 
   if FBerDataLength > ByteSize then
@@ -680,8 +682,8 @@ begin
   // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
   if ByteSize = SizeOf(Word) then
     IntValue := Integer(SwapWord(Word(IntValue)))
-  else if ByteSize = SizeOf(LongWord) then
-    IntValue := SwapLongWord(IntValue);
+  else if ByteSize = SizeOf(Cardinal) then
+    IntValue := SwapCardinal(IntValue);
   Result := IntValue;
 end;
 
@@ -732,7 +734,7 @@ end;
 procedure TCnBerReadNode.CopyDataTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerDataLength > 0) then
-    Move(Pointer(Integer(FOriginData) + FBerDataOffset)^, DestBuf^, FBerDataLength);
+    Move(Pointer(TCnNativeInt(FOriginData) + FBerDataOffset)^, DestBuf^, FBerDataLength);
 end;
 
 function TCnBerReadNode.GetItems(AIndex: Integer): TCnBerReadNode;
@@ -750,7 +752,7 @@ begin
   if FOriginData = nil then
     Result := nil
   else
-    Result := Pointer(Integer(FOriginData) + FBerDataOffset);
+    Result := Pointer(TCnNativeInt(FOriginData) + FBerDataOffset);
 end;
 
 function TCnBerReadNode.GetNextSibling: TCnBerReadNode;
@@ -766,13 +768,13 @@ end;
 procedure TCnBerReadNode.CopyHeadTo(DestBuf: Pointer);
 begin
   if FOriginData <> nil then
-    Move(Pointer(Integer(FOriginData) + FBerOffset)^, DestBuf^, FBerLength - FBerDataLength);
+    Move(Pointer(TCnNativeInt(FOriginData) + FBerOffset)^, DestBuf^, FBerLength - FBerDataLength);
 end;
 
 procedure TCnBerReadNode.CopyTLVTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerLength > 0) then
-    Move(Pointer(Integer(FOriginData) + FBerOffset)^, DestBuf^, FBerLength);
+    Move(Pointer(TCnNativeInt(FOriginData) + FBerOffset)^, DestBuf^, FBerLength);
 end;
 
 function TCnBerReadNode.AsIA5String: string;
@@ -846,7 +848,7 @@ begin
   if FOriginData = nil then
     Result := nil
   else
-    Result := Pointer(Integer(FOriginData) + FBerOffset);
+    Result := Pointer(TCnNativeInt(FOriginData) + FBerOffset);
 end;
 
 function TCnBerReadNode.AsBoolean: Boolean;
@@ -872,7 +874,7 @@ begin
   if FBerTag <> CN_BER_TAG_INTEGER then
     raise Exception.Create('Ber Tag Type Mismatch for Common Integer.');
 
-  if FBerDataLength > SizeOf(LongWord) then
+  if FBerDataLength > SizeOf(Cardinal) then
     raise Exception.CreateFmt('Data Length %d Overflow for Common Integer.',
       [FBerDataLength]);
 
@@ -882,8 +884,8 @@ begin
   // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
   if FBerDataLength = SizeOf(Word) then
     IntValue := Integer(SwapWord(Word(IntValue)))
-  else if FBerDataLength = SizeOf(LongWord) then
-    IntValue := SwapLongWord(IntValue);
+  else if FBerDataLength = SizeOf(Cardinal) then
+    IntValue := SwapCardinal(IntValue);
   Result := IntValue;
 end;
 
@@ -1105,7 +1107,7 @@ begin
     begin
       LenLen := 3;
       D := ADataLen;
-      D := SwapLongWord(D);
+      D := SwapCardinal(D);
       D := D shr 8;
       Move(D, FHead[2], LenLen);
     end
@@ -1113,7 +1115,7 @@ begin
     begin
       LenLen := 4;
       D := ADataLen;
-      D := SwapLongWord(D);
+      D := SwapCardinal(D);
       Move(D, FHead[2], LenLen);
     end;
 
@@ -1272,7 +1274,7 @@ begin
   else
   begin
     if (FHeadLen > 0) and (FMem.Size > FHeadLen) then
-      Result := Stream.Write(Pointer(Integer(FMem.Memory) + FHeadLen)^, FMem.Size - FHeadLen);
+      Result := Stream.Write(Pointer(TCnNativeInt(FMem.Memory) + FHeadLen)^, FMem.Size - FHeadLen);
   end;
 end;
 
