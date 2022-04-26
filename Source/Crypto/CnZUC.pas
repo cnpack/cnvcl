@@ -30,8 +30,10 @@ unit CnZUC;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.1
-*               支持 Win32/Win64/MacOS
+* 修改记录：2022.04.26 V1.3
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
+*           2019.04.15 V1.1
+*               支持 Win32/Win64/MacOS32
 *           2017.04.20 V1.0
 *               移植并创建单元
 ================================================================================
@@ -42,14 +44,14 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl;
 
-procedure ZUCGenerateKeyStream(KeyStream: PLongWord; KeyStreamLen: LongWord);
+procedure ZUCGenerateKeyStream(KeyStream: PCnLongWord32; KeyStreamLen: Cardinal);
 
 procedure ZUCInitialization(Key: PByte; IV: PByte);
 
 // ZUC 算法
-procedure ZUC(Key: PByte; IV: PByte; KeyStream: PLongWord; KeyStreamLen: LongWord);
+procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCnLongWord32; KeyStreamLen: Cardinal);
 {*
   Key 和 IV 为输入的 16 字节数据。
   KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(DWORD)
@@ -57,8 +59,8 @@ procedure ZUC(Key: PByte; IV: PByte; KeyStream: PLongWord; KeyStreamLen: LongWor
 }
 
 // EEA3 机密性保护算法，一个流加密系统，使用机密性密钥 CK 来加解密数据块
-procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: LongWord;
-  M: PByte; BitLen: LongWord; C: PByte);
+procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
+  M: PByte; BitLen: Cardinal; C: PByte);
 {*
   输入：
   参数         规模（比特数）    说明
@@ -75,8 +77,8 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: LongWord;
 }
 
 // EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
-procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: LongWord;
-  M: PByte; BitLen: LongWord; Mac: PLongWord);
+procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
+  M: PByte; BitLen: Cardinal; Mac: PCnLongWord32);
 {*
   输入：
   参数         规模（比特数）    说明
@@ -133,36 +135,36 @@ const
     $64, $BE, $85, $9B, $2F, $59, $8A, $D7, $B0, $25, $AC, $AF, $12, $03, $E2, $F2
   );
 
-  EK_D: array[0..15] of LongWord = (
+  EK_D: array[0..15] of TCnLongWord32 = (
     $44D7,  $26BC,  $626B,  $135E,  $5789,  $35E2,  $7135,  $09AF,
     $4D78,  $2F13,  $6BC4,  $1AF1,  $5E26,  $3C4D,  $789A,  $47AC
   );
 
 var
-  LFSR_S: array[0..15] of LongWord = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-  F_R1: LongWord = 0;
-  F_R2: LongWord = 0;
-  BRC_X: array[0..3] of LongWord = (0, 0, 0, 0);
+  LFSR_S: array[0..15] of TCnLongWord32 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  F_R1: TCnLongWord32 = 0;
+  F_R2: TCnLongWord32 = 0;
+  BRC_X: array[0..3] of TCnLongWord32 = (0, 0, 0, 0);
   // 以上四个变量均在 ZUCInitialization 中被初始化
 
 // 32 位处理平台上，两个 31 比特字 a 和 b 模 2^31-1 加法运算 c =a + b mod(2^31-1)
 // 可以通过下面的两步计算实现：
-function AddM(A, B: LongWord): LongWord;
+function AddM(A, B: TCnLongWord32): TCnLongWord32;
 var
-  C: LongWord;
+  C: TCnLongWord32;
 begin
   C := A + B;
   Result := (C and $7FFFFFFF) + (C shr 31);
 end;
 
-function MulByPow2(X, K: LongWord): LongWord;
+function MulByPow2(X, K: TCnLongWord32): TCnLongWord32;
 begin
   Result :=  ((X shl K) or (X shr (31 - K))) and $7FFFFFFF;
 end;
 
-procedure ZUCLFSRWithInitializationMode(U: LongWord);
+procedure ZUCLFSRWithInitializationMode(U: TCnLongWord32);
 var
-  F, V, I: LongWord;
+  F, V, I: TCnLongWord32;
 begin
   F := LFSR_S[0];
   V := MulByPow2(LFSR_S[0], 8);
@@ -190,7 +192,7 @@ end;
 
 procedure ZUCLFSRWithWorkMode;
 var
-  F, V, I: LongWord;
+  F, V, I: TCnLongWord32;
 begin
   F := LFSR_S[0];
   V := MulByPow2(LFSR_S[0], 8);
@@ -222,30 +224,30 @@ begin
   BRC_X[3] := ((LFSR_S[2] and $FFFF) shl 16) or (LFSR_S[0] shr 15);
 end;
 
-function ROT(A: LongWord; K: LongWord): LongWord;
+function ROT(A: TCnLongWord32; K: TCnLongWord32): TCnLongWord32;
 begin
   Result := (A shl K) or (A shr (32 - k));
 end;
 
-function L1(X: LongWord): LongWord;
+function L1(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := (X xor ROT(X, 2) xor ROT(X, 10) xor ROT(X, 18) xor ROT(X, 24));
 end;
 
-function L2(X: LongWord): LongWord;
+function L2(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := (X xor ROT(X, 8) xor ROT(X, 14) xor ROT(X, 22) xor ROT(X, 30));;
 end;
 
-function MakeDWord(A, B, C, D: LongWord): LongWord;
+function MakeDWord(A, B, C, D: TCnLongWord32): TCnLongWord32;
 begin
   Result := (A shl 24) or (B shl 16) or (C shl 8) or D;
 end;
 
 // 非线性函数
-function F: LongWord;
+function F: TCnLongWord32;
 var
-  W, W1, W2, U, V: LongWord;
+  W, W1, W2, U, V: TCnLongWord32;
 begin
   W := (BRC_X[0] xor F_R1) + F_R2;
   W1 := F_R1 + BRC_X[1];
@@ -257,18 +259,18 @@ begin
   Result := W;
 end;
 
-function MakeUInt31(A, B, C: LongWord): LongWord;
+function MakeUInt31(A, B, C: TCnLongWord32): TCnLongWord32;
 begin
   Result := (A shl 23) or (B shl 8) or C;
 end;
 
 procedure ZUCInitialization(Key: PByte; IV: PByte);
 var
-  W, NC: LongWord;
+  W, NC: TCnLongWord32;
   I: Integer;
 begin
   for I := 0 to 16 do
-    LFSR_S[I] := MakeUInt31((PByte(Integer(Key) + I))^, EK_D[I], (PByte(Integer(IV) + I))^);
+    LFSR_S[I] := MakeUInt31((PByte(TCnNativeInt(Key) + I))^, EK_D[I], (PByte(TCnNativeInt(IV) + I))^);
 
   F_R1 := 0;
   F_R2 := 0;
@@ -282,7 +284,7 @@ begin
   end;
 end;
 
-procedure ZUCGenerateKeyStream(KeyStream: PLongWord; KeyStreamLen: LongWord);
+procedure ZUCGenerateKeyStream(KeyStream: PCnLongWord32; KeyStreamLen: Cardinal);
 var
   I: Integer;
 begin
@@ -296,31 +298,31 @@ begin
   for I := 0 to KeyStreamLen - 1 do
   begin
     ZUCBitReorganization();
-    (PLongWord(Integer(KeyStream) + SizeOf(LongWord) * I))^ := F() xor BRC_X[3];
+    (PCnLongWord32(TCnNativeInt(KeyStream) + SizeOf(TCnLongWord32) * I))^ := F() xor BRC_X[3];
     ZUCLFSRWithWorkMode();
   end;
 end;
 
-procedure ZUC(Key: PByte; IV: PByte; KeyStream: PLongWord; KeyStreamLen: LongWord);
+procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCnLongWord32; KeyStreamLen: Cardinal);
 begin
   ZUCInitialization(Key, IV);
   ZUCGenerateKeyStream(KeyStream, KeyStreamLen);
 end;
 
-procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: LongWord;
-  M: PByte; BitLen: LongWord; C: PByte);
+procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
+  M: PByte; BitLen: Cardinal; C: PByte);
 var
   IV: array[0..15] of Byte;
-  LastBits: LongWord;
+  LastBits: TCnLongWord32;
   I, L: Integer;
-  Z: PLongWord;
+  Z: PCnLongWord32;
 begin
   for I := 0 to 15 do
     IV[I] := 0;
 
   L := (BitLen + 31) div 32;                   // 四字节为单位的长度
   LastBits := (32 - (BitLen mod 32)) mod 32;   // 四字节为单位后剩下的 Bits 数
-  Z := PLongWord(GetMemory(L * SizeOf(LongWord)));
+  Z := PCnLongWord32(GetMemory(L * SizeOf(TCnLongWord32)));
 
   IV[0] := (Count shr 24) and $FF;
   IV[1] := (Count shr 16) and $FF;
@@ -344,45 +346,45 @@ begin
   ZUC(CK, PByte(@IV[0]), Z, L);
 
   for I := 0 to L - 1 do
-    (PLongWord(Integer(C) + I * SizeOf(LongWord)))^ := (PLongWord(Integer(M) + I * SizeOf(LongWord)))^
-      xor (PLongWord(Integer(Z) + I * SizeOf(LongWord)))^;
+    (PCnLongWord32(TCnNativeInt(C) + I * SizeOf(TCnLongWord32)))^ := (PCnLongWord32(TCnNativeInt(M) + I * SizeOf(TCnLongWord32)))^
+      xor (PCnLongWord32(Integer(Z) + I * SizeOf(TCnLongWord32)))^;
 
   if LastBits <> 0 then
-    (PLongWord(Integer(C) + L * SizeOf(LongWord)))^ := (PLongWord(Integer(C) + L * SizeOf(LongWord)))^
+    (PCnLongWord32(TCnNativeInt(C) + L * SizeOf(TCnLongWord32)))^ := (PCnLongWord32(TCnNativeInt(C) + L * SizeOf(TCnLongWord32)))^
       and ($100000000 - (1 shl LastBits));
 
   FreeMemory(Z);
 end;
 
 // 取内存块第 I 个 Bit 起的一个 DWORD，I 从 0 开始
-function GetDWord(Data: PLongWord; I: Integer): LongWord;
+function GetDWord(Data: PCnLongWord32; I: Integer): TCnLongWord32;
 var
   T: Integer;
 begin
   T := I mod 32;
   if T = 0 then
-    Result := (PLongWord(Integer(Data) + SizeOf(LongWord) * I div 32))^
+    Result := (PCnLongWord32(TCnNativeInt(Data) + SizeOf(TCnLongWord32) * I div 32))^
   else
-    Result := ((PLongWord(Integer(Data) + SizeOf(LongWord) * I div 32))^ shl T) or
-      ((PLongWord(Integer(Data) + SizeOf(LongWord) * ((I div 32) + 1)))^ shr (32 - T));
+    Result := ((PCnLongWord32(TCnNativeInt(Data) + SizeOf(TCnLongWord32) * I div 32))^ shl T) or
+      ((PCnLongWord32(TCnNativeInt(Data) + SizeOf(TCnLongWord32) * ((I div 32) + 1)))^ shr (32 - T));
 end;
 
 // 取内存块第 I 个 Bit 起的一个 Bit，I 从 0 开始，返回 0 或 1
-function GetBit(Data: PLongWord; I: Integer): Byte;
+function GetBit(Data: PCnLongWord32; I: Integer): Byte;
 begin
-  if (PLongWord(Integer(Data) + SizeOf(LongWord) * I div 32))^ and (1 shl (31 - (I mod 32))) <> 0 then
+  if (PCnLongWord32(TCnNativeInt(Data) + SizeOf(TCnLongWord32) * I div 32))^ and (1 shl (31 - (I mod 32))) <> 0 then
     Result := 1
   else
     Result := 0;
 end;
 
-procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: LongWord;
-  M: PByte; BitLen: LongWord; Mac: PLongWord);
+procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
+  M: PByte; BitLen: Cardinal; Mac: PCnLongWord32);
 var
   IV: array[0..15] of Byte;
-  T: LongWord;
+  T: TCnLongWord32;
   I, N, L: Integer;
-  Z: PLongWord;
+  Z: PCnLongWord32;
 begin
   IV[0] := (Count shr 24) and $FF;
   IV[1] := (Count shr 16) and $FF;
@@ -406,18 +408,18 @@ begin
 
   N := BitLen + 64;
   L := (N + 31) div 32;
-  Z := PLongWord(GetMemory(L * SizeOf(LongWord)));
+  Z := PCnLongWord32(GetMemory(L * SizeOf(TCnLongWord32)));
 
   ZUC(IK, PByte(@IV[0]), Z, L);
   T := 0;
   for I := 0 to BitLen - 1 do
   begin
-    if GetBit(PLongWord(M), I) <> 0 then
+    if GetBit(PCnLongWord32(M), I) <> 0 then
       T := T xor GetDWord(Z, I);
   end;
   T := T xor GetDWord(Z, BitLen);
 
-  Mac^ := T xor (PLongWord(Integer(Z) + SizeOf(LongWord) * (L - 1)))^;
+  Mac^ := T xor (PCnLongWord32(TCnNativeInt(Z) + SizeOf(TCnLongWord32) * (L - 1)))^;
   FreeMemory(Z);
 end;
 
