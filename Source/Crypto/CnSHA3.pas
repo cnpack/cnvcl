@@ -30,7 +30,9 @@ unit CnSHA3;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.12.12 V1.2
+* 修改记录：2022.04.26 V1.3
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
+*           2019.12.12 V1.2
 *               支持 TBytes
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
@@ -44,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl;
 
 type
   PSHA3GeneralDigest = ^TSHA3GeneralDigest;
@@ -64,10 +66,10 @@ type
 
   TSHA3Context = packed record
     State: array[0..24] of Int64;
-    Index: LongWord;
-    DigestLen: LongWord;
-    Round: LongWord;
-    BlockLen: LongWord;
+    Index: TCnLongWord32;
+    DigestLen: TCnLongWord32;
+    Round: TCnLongWord32;
+    BlockLen: TCnLongWord32;
     Block: array[0..255] of Byte;
     Ipad: array[0..143] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..143] of Byte;      {!< HMAC: outer padding        }
@@ -77,32 +79,32 @@ type
     Boolean) of object;
   {* 进度回调事件类型声明}
 
-function SHA3_224Buffer(const Buffer; Count: LongWord): TSHA3_224Digest;
+function SHA3_224Buffer(const Buffer; Count: Cardinal): TSHA3_224Digest;
 {* 对数据块进行 SHA3_224 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
+   Count: Cardinal  - 数据块长度
  |</PRE>}
 
-function SHA3_256Buffer(const Buffer; Count: LongWord): TSHA3_256Digest;
+function SHA3_256Buffer(const Buffer; Count: Cardinal): TSHA3_256Digest;
 {* 对数据块进行 SHA3_256 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
+   Count: Cardinal  - 数据块长度
  |</PRE>}
 
-function SHA3_384Buffer(const Buffer; Count: LongWord): TSHA3_384Digest;
+function SHA3_384Buffer(const Buffer; Count: Cardinal): TSHA3_384Digest;
 {* 对数据块进行 SHA3_384 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
+   Count: Cardinal  - 数据块长度
  |</PRE>}
 
-function SHA3_512Buffer(const Buffer; Count: LongWord): TSHA3_512Digest;
+function SHA3_512Buffer(const Buffer; Count: Cardinal): TSHA3_512Digest;
 {* 对数据块进行 SHA3_512 计算
  |<PRE>
   const Buffer     - 要计算的数据块，一般传个地址
-  Count: LongWord  - 数据块长度
+  Count: Cardinal  - 数据块长度
  |</PRE>}
 
 {$IFDEF TBYTES_DEFINED}
@@ -373,21 +375,21 @@ function SHA3_512DigestToStr(aDig: TSHA3_512Digest): string;
    aDig: TSHA3_512Digest   - 需要转换的 SHA3_512 计算值
  |</PRE>}
 
-//procedure SHA3Init(var Context: TSHA3Context; SHA3Type: TSHA3Type);
-//procedure SHA3Update(var Context: TSHA3Context; Buffer: PAnsiChar; Len: Cardinal);
-//procedure SHA3Final(var Context: TSHA3Context; var Digest: TSHA3GeneralDigest);
+// procedure SHA3Init(var Context: TSHA3Context; SHA3Type: TSHA3Type);
+// procedure SHA3Update(var Context: TSHA3Context; Buffer: PAnsiChar; Len: Cardinal);
+// procedure SHA3Final(var Context: TSHA3Context; var Digest: TSHA3GeneralDigest);
 
 procedure SHA3_224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_224Digest);
+  Length: Cardinal; var Output: TSHA3_224Digest);
 
 procedure SHA3_256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_256Digest);
+  Length: Cardinal; var Output: TSHA3_256Digest);
 
 procedure SHA3_384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_384Digest);
+  Length: Cardinal; var Output: TSHA3_384Digest);
 
 procedure SHA3_512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_512Digest);
+  Length: Cardinal; var Output: TSHA3_512Digest);
 
 {* Hash-based Message Authentication Code (based on SHA3 224/256/384/512) }
 
@@ -575,7 +577,7 @@ begin
   Context.Index := Idx;
 end;
 
-procedure SHA3UpdateW(var Context: TSHA3Context; Buffer: PWideChar; Len: LongWord);
+procedure SHA3UpdateW(var Context: TSHA3Context; Buffer: PWideChar; Len: TCnLongWord32);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -610,7 +612,7 @@ begin
 end;
 
 // 对数据块进行 SHA3_224 计算
-function SHA3_224Buffer(const Buffer; Count: LongWord): TSHA3_224Digest;
+function SHA3_224Buffer(const Buffer; Count: Cardinal): TSHA3_224Digest;
 var
   Context: TSHA3Context;
   Res: TSHA3GeneralDigest;
@@ -622,7 +624,7 @@ begin
 end;
 
 // 对数据块进行 SHA3_256 计算
-function SHA3_256Buffer(const Buffer; Count: LongWord): TSHA3_256Digest;
+function SHA3_256Buffer(const Buffer; Count: Cardinal): TSHA3_256Digest;
 var
   Context: TSHA3Context;
   Res: TSHA3GeneralDigest;
@@ -634,7 +636,7 @@ begin
 end;
 
 // 对数据块进行 SHA3_384 计算
-function SHA3_384Buffer(const Buffer; Count: LongWord): TSHA3_384Digest;
+function SHA3_384Buffer(const Buffer; Count: Cardinal): TSHA3_384Digest;
 var
   Context: TSHA3Context;
   Res: TSHA3GeneralDigest;
@@ -646,7 +648,7 @@ begin
 end;
 
 // 对数据块进行 SHA3_512 计算
-function SHA3_512Buffer(const Buffer; Count: LongWord): TSHA3_512Digest;
+function SHA3_512Buffer(const Buffer; Count: Cardinal): TSHA3_512Digest;
 var
   Context: TSHA3Context;
   Res: TSHA3GeneralDigest;
@@ -1363,26 +1365,26 @@ begin
   SHA3Update(Context, @(Context.Ipad[0]), HMAC_SHA3_512_BLOCK_SIZE_BYTE);
 end;
 
-procedure SHA3_224HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
-  LongWord);
+procedure SHA3_224HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar;
+  Length: Cardinal);
 begin
   SHA3Update(Context, Input, Length);
 end;
 
-procedure SHA3_256HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
-  LongWord);
+procedure SHA3_256HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar;
+  Length: Cardinal);
 begin
   SHA3Update(Context, Input, Length);
 end;
 
-procedure SHA3_384HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
-  LongWord);
+procedure SHA3_384HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar;
+  Length: Cardinal);
 begin
   SHA3Update(Context, Input, Length);
 end;
 
-procedure SHA3_512HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar; Length:
-  LongWord);
+procedure SHA3_512HmacUpdate(var Context: TSHA3Context; Input: PAnsiChar;
+  Length: Cardinal);
 begin
   SHA3Update(Context, Input, Length);
 end;
@@ -1440,7 +1442,7 @@ begin
 end;
 
 procedure SHA3_224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_224Digest);
+  Length: Cardinal; var Output: TSHA3_224Digest);
 var
   Context: TSHA3Context;
   Dig: TSHA3GeneralDigest;
@@ -1452,7 +1454,7 @@ begin
 end;
 
 procedure SHA3_256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_256Digest);
+  Length: Cardinal; var Output: TSHA3_256Digest);
 var
   Context: TSHA3Context;
   Dig: TSHA3GeneralDigest;
@@ -1464,7 +1466,7 @@ begin
 end;
 
 procedure SHA3_384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_384Digest);
+  Length: Cardinal; var Output: TSHA3_384Digest);
 var
   Context: TSHA3Context;
   Dig: TSHA3GeneralDigest;
@@ -1476,7 +1478,7 @@ begin
 end;
 
 procedure SHA3_512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA3_512Digest);
+  Length: Cardinal; var Output: TSHA3_512Digest);
 var
   Context: TSHA3Context;
   Dig: TSHA3GeneralDigest;

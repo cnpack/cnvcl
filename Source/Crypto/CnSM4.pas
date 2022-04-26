@@ -30,7 +30,7 @@ unit CnSM4;
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6 + MaxOS 64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2022.04.26 V1.5
-*               修改 LongWord 与 Integer 地址转换以支持 MacOS 64
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2022.04.19 V1.4
 *               使用初始化向量时内部备份，不修改传入的内容
 *           2021.12.12 V1.3

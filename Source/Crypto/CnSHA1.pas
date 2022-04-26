@@ -28,10 +28,12 @@ unit CnSHA1;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.12.12 V1.4
+* 修改记录：2022.04.26 V1.5
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
+*           2019.12.12 V1.4
 *               支持 TBytes
 *           2019.04.15 V1.3
-*               支持 Win32/Win64/MacOS
+*               支持 Win32/Win64/MacOS32
 *           2015.08.14 V1.2
 *               汇编切换至 Pascal 以支持跨平台
 *           2014.10.22 V1.1
@@ -46,15 +48,15 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl;
 
 type
   PSHA1Digest = ^TSHA1Digest;
   TSHA1Digest = array[0..19] of Byte;
 
   TSHA1Context = record
-    Hash: array[0..4] of LongWord;
-    Hi, Lo: LongWord;
+    Hash: array[0..4] of TCnLongWord32;
+    Hi, Lo: TCnLongWord32;
     Buffer: array[0..63] of Byte;
     Index: Integer;
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
@@ -65,7 +67,7 @@ type
     var Cancel: Boolean) of object;
   {* 进度回调事件类型声明}
 
-function SHA1Buffer(const Buffer; Count: LongWord): TSHA1Digest;
+function SHA1Buffer(const Buffer; Count: Cardinal): TSHA1Digest;
 {* 对数据块进行 SHA1 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
@@ -149,7 +151,7 @@ function SHA1DigestToStr(aDig: TSHA1Digest): string;
  |</PRE>}
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA1Digest);
+  Length: TCnLongWord32; var Output: TSHA1Digest);
 
 {* Hash-based Message Authentication Code (based on SHA1) }
 
@@ -180,14 +182,14 @@ begin
 //        mov     &Result, ax
 end;
 
-function LRot32(X: LongWord; c: Integer): LongWord;
+function LRot32(X: TCnLongWord32; c: Integer): TCnLongWord32;
 begin
   Result := X shl (c and 31) + X shr (32 - c and 31);
 //        mov     ecx, edx
 //        rol     eax, cl
 end;
 
-function RRot32(X: LongWord; c: Integer): LongWord;
+function RRot32(X: TCnLongWord32; c: Integer): TCnLongWord32;
 begin
   Result := X shr (c and 31) + X shl (32 - c and 31);
 //        mov     ecx, edx
@@ -209,30 +211,30 @@ begin
     IncBlock(P, Len - 1);
 end;
 
-function F1(x, y, z: LongWord): LongWord;
+function F1(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := z xor (x and (y xor z));
 end;
 
-function F2(x, y, z: LongWord): LongWord;
+function F2(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := x xor y xor z;
 end;
 
-function F3(x, y, z: LongWord): LongWord;
+function F3(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (x and y) or (z and (x or y));
 end;
 
-function RB(A: LongWord): LongWord;
+function RB(A: TCnLongWord32): TCnLongWord32;
 begin
   Result := (A shr 24) or ((A shr 8) and $FF00) or ((A shl 8) and $FF0000) or (A shl 24);
 end;
 
 procedure SHA1Compress(var Data: TSHA1Context);
 var
-  A, B, C, D, E, T: LongWord;
-  W: array[0..79] of LongWord;
+  A, B, C, D, E, T: TCnLongWord32;
+  W: array[0..79] of TCnLongWord32;
   i: Integer;
 begin
   Move(Data.Buffer, W, Sizeof(Data.Buffer));
@@ -305,7 +307,7 @@ end;
 
 procedure SHA1UpdateLen(var Context: TSHA1Context; Len: Integer);
 var
-  i, k: LongWord;
+  i, k: TCnLongWord32;
 begin
   for k := 0 to 7 do
   begin
@@ -335,7 +337,7 @@ begin
   end;
 end;
 
-procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; CharLength: LongWord);
+procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; CharLength: TCnLongWord32);
 var
 {$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
@@ -363,7 +365,7 @@ end;
 
 procedure SHA1Final(var Context: TSHA1Context; var Digest: TSHA1Digest);
 type
-  PDWord = ^LongWord;
+  PDWord = ^TCnLongWord32;
 begin
   Context.Buffer[Context.Index] := $80;
   if Context.Index >= 56 then
@@ -380,7 +382,7 @@ begin
 end;
 
 // 对数据块进行 SHA1 计算
-function SHA1Buffer(const Buffer; Count: Longword): TSHA1Digest;
+function SHA1Buffer(const Buffer; Count: Cardinal): TSHA1Digest;
 var
   Context: TSHA1Context;
 begin
@@ -653,7 +655,7 @@ begin
   SHA1Update(Ctx, @(Ctx.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
 end;
 
-procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: LongWord);
+procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: Cardinal);
 begin
   SHA1Update(Ctx, Input, Length);
 end;
@@ -672,7 +674,7 @@ begin
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA1Digest);
+  Length: TCnLongWord32; var Output: TSHA1Digest);
 var
   Ctx: TSHA1Context;
 begin
