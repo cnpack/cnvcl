@@ -28,7 +28,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.06.12 V2.1
+* 修改记录：2022.04.26 V2.4
+*               修改 Integer 地址转换以支持 MacOS64
+*           2021.06.12 V2.1
 *               加入 OAEP Padding 的处理
 *           2021.05.09 V2.0
 *               私钥载入时自动判断 PEM 内是 PKCS1 还是 PKCS8 格式，不依赖于头尾行的横杠注释
@@ -39,7 +41,7 @@ unit CnRSA;
 *           2020.03.13 V1.7
 *               加入详细的错误码。调用返回 False 时可通过 GetLastCnRSAError 获取 ECN_RSA_* 形式的错误码
 *           2019.04.19 V1.6
-*               支持 Win32/Win64/MacOS
+*               支持 Win32/Win64/MacOS32
 *           2018.06.15 V1.5
 *               支持文件签名与验证，类似于 Openssl 中的用法，有原始签名与散列签名两类：
 *               openssl rsautl -sign -in hello -inkey rsa.pem -out hello.default.sign.openssl
@@ -2171,13 +2173,13 @@ begin
 
     if OutLen + MdLen <= MaskLen then
     begin
-      SHA1Final(Ctx, PSHA1Digest(Integer(OutMask) + OutLen)^);
+      SHA1Final(Ctx, PSHA1Digest(TCnNativeInt(OutMask) + OutLen)^);
       OutLen := OutLen + MdLen;
     end
     else
     begin
       SHA1Final(Ctx, Dig);
-      Move(Dig[0], PSHA1Digest(Integer(OutMask) + OutLen)^, MaskLen - OutLen);
+      Move(Dig[0], PSHA1Digest(TCnNativeInt(OutMask) + OutLen)^, MaskLen - OutLen);
       OutLen := MaskLen;
     end;
 
@@ -2206,8 +2208,8 @@ begin
   end;
 
   ToBuf^ := 0;
-  Seed := PByteArray(Integer(ToBuf) + 1);
-  DB := PByteArray(Integer(ToBuf) + MdLen + 1);
+  Seed := PByteArray(TCnNativeInt(ToBuf) + 1);
+  DB := PByteArray(TCnNativeInt(ToBuf) + MdLen + 1);
 
   // 00 | 20 位 Seed | DB
   // 其中 DB := ParamHash || PS || 0x01 || Data，长度是 EmLen - MdLen
@@ -2216,11 +2218,11 @@ begin
   Move(SeedMask[0], DB^, MdLen);
 
   // To 区 DB 的前 20 字节先留着，后面到尾巴先填满 0
-  FillChar(PByte(Integer(DB) + MdLen)^, EmLen - DataLen - 2 * MdLen - 1, 0);
+  FillChar(PByte(TCnNativeInt(DB) + MdLen)^, EmLen - DataLen - 2 * MdLen - 1, 0);
   DB^[EmLen - DataLen - MdLen - 1] := 1;
 
   // 明文搁后面
-  Move(PlainData^, PByte(Integer(DB) + EmLen - DataLen - MdLen)^, DataLen);
+  Move(PlainData^, PByte(TCnNativeInt(DB) + EmLen - DataLen - MdLen)^, DataLen);
 
   // To[1] 开始的 20 个字节 Rand 一下
   if not CnRandomFillBytes(PAnsiChar(Seed), MdLen) then
@@ -2286,8 +2288,8 @@ begin
   end;
 
   // 找出密文中的 长 MdLen 的 MaskedSeed 以及后面长 DBLen 的 MaskedDB
-  MaskedSeed := PByteArray(Integer(EnData) + 1);
-  MaskedDB := PByteArray(Integer(EnData) + MdLen + 1);
+  MaskedSeed := PByteArray(TCnNativeInt(EnData) + 1);
+  MaskedDB := PByteArray(TCnNativeInt(EnData) + MdLen + 1);
 
   ParamHash := SHA1Buffer(DigestParam, ParamLen);
 
