@@ -28,8 +28,10 @@ unit CnTEA;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.04.15 V1.1
-*               支持 Win32/Win64/MacOS
+* 修改记录：2022.04.26 V1.3
+*               修改 LongWord 与 Integer 地址转换以支持 MacOS64
+*           2019.04.15 V1.1
+*               支持 Win32/Win64/MacOS32
 *           2018.09.03 V1.0
 *               创建单元
 ================================================================================
@@ -40,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils;
+  SysUtils, CnNativeDecl;
 
 const
   CN_TEA_ROUND_COUNT = 32;
@@ -48,11 +50,11 @@ const
 type
   ECnTeaException = class(Exception);
 
-  TCnTeaKey = array[0..3] of LongWord;  // TEA 算法的密钥格式，四个 32Bit 数
+  TCnTeaKey = array[0..3] of TCnLongWord32;  // TEA 算法的密钥格式，四个 32Bit 数
 
-  TCnTeaData = array[0..1] of LongWord; // TEA 算法的数据格式，二个 32Bit 数
+  TCnTeaData = array[0..1] of TCnLongWord32; // TEA 算法的数据格式，二个 32Bit 数
 
-  TCnXXTeaData = array[0..16383] of LongWord;
+  TCnXXTeaData = array[0..16383] of TCnLongWord32;
 
   PCnXXTeaData = ^TCnXXTeaData;         // XXTEA 算法支持更长的 LongWord 数组
 
@@ -84,10 +86,10 @@ const
   CN_TEA_DELTA = $9E3779B9;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 TEA 算法将明文 L/R 加密成密文
-procedure TeaEncrypt(K: TCnTeaKey; var L, R: LongWord;
+procedure TeaEncrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: LongWord;
+  D, S: TCnLongWord32;
   I: Integer;
 begin
   if RoundCount <= 0 then
@@ -104,10 +106,10 @@ begin
 end;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 TEA 算法将密文 L/R 解密成明文
-procedure TeaDecrypt(K: TCnTeaKey; var L, R: LongWord;
+procedure TeaDecrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: LongWord;
+  D, S: TCnLongWord32;
   I: Integer;
 begin
   if RoundCount <= 0 then
@@ -128,10 +130,10 @@ begin
 end;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 XTEA 算法将明文 L/R 加密成密文
-procedure XTeaEncrypt(K: TCnTeaKey; var L, R: LongWord;
+procedure XTeaEncrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: LongWord;
+  D, S: TCnLongWord32;
   I: Integer;
 begin
   if RoundCount <= 0 then
@@ -148,17 +150,17 @@ begin
 end;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 XTEA 算法将密文 L/R 解密成明文
-procedure XTeaDecrypt(K: TCnTeaKey; var L, R: LongWord;
+procedure XTeaDecrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: LongWord;
+  D, S: TCnLongWord32;
   I: Integer;
 begin
   if RoundCount <= 0 then
     raise ECnTeaException.Create('Error RountCount.');
 
   D := CN_TEA_DELTA;
-  S := D * LongWord(RoundCount);
+  S := D * TCnLongWord32(RoundCount);
   for I := 1 to RoundCount do
   begin
     R := R - ((((L shl 4) xor (L shr 5)) + L) xor (S + K[(S shr 11) and 3]));
@@ -167,7 +169,7 @@ begin
   end;
 end;
 
-function MX(Z, Y, S, P, E: LongWord; var Key: TCnTeaKey): LongWord;
+function MX(Z, Y, S, P, E: TCnLongWord32; var Key: TCnTeaKey): TCnLongWord32;
 begin
   Result := (((Z shr 5) xor (Y shl 2)) + ((Y shr 3) xor (Z shl 4))) xor
     ((S xor Y) + (Key[(P and 3) xor E] xor Z) );
@@ -200,7 +202,7 @@ end;
 // XXTEA 加密，128 Bits 密钥加密 4 字节整数倍长度的明文内容为密文
 procedure CnXXTeaEncrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
 var
-  Z, Y, X, Sum, E, P: LongWord;
+  Z, Y, X, Sum, E, P: TCnLongWord32;
   Q: Integer;
 begin
   if DataLongWordLength <= 0 then
@@ -233,7 +235,7 @@ end;
 // XXTEA 解密，128 Bits 密钥解密 4 字节整数倍长度的密文内容为明文
 procedure CnXXTeaDecrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
 var
-  Z, Y, X, Sum, E, P: LongWord;
+  Z, Y, X, Sum, E, P: TCnLongWord32;
   Q: Integer;
 begin
   if DataLongWordLength <= 0 then
@@ -242,7 +244,7 @@ begin
   Q := 6 + 52 div DataLongWordLength;
   Y := Data^[0];
 
-  Sum := LongWord(Q) * CN_TEA_DELTA;
+  Sum := TCnLongWord32(Q) * CN_TEA_DELTA;
   repeat
     E := (Sum shr 2) and 3;
     for P := DataLongWordLength - 1 downto 1 do
