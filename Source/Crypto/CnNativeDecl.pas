@@ -115,10 +115,11 @@ type
   TUInt64Array = array of TUInt64; // 这个动态数组声明似乎容易和静态数组声明有冲突
 
 {$IFDEF POSIX64}
-  TCnLongWord32 = Cardinal; // Linux64 (or POSIX64?) LongWord is 64 Bits
+  TCnLongWord32 = Cardinal; // Linux64/MacOS64 (or POSIX64?) LongWord is 64 Bits
 {$ELSE}
   TCnLongWord32 = LongWord;
 {$ENDIF}
+  PCnLongWord32 = ^TCnLongWord32;
 
 const
   MAX_SQRT_INT64: Cardinal               = 3037000499;
