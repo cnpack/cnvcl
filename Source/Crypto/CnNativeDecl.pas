@@ -31,6 +31,7 @@ unit CnNativeDecl;
 *           供同时在低版本和高版本的 Delphi 中使用。
 *           后来加入 UInt64 的包装，注意 D567 下不直接支持UInt64 的运算，需要用
 *           辅助函数实现，目前实现了 div 与 mod
+*           另外地址运算 Integer(APtr) 在 64 位下尤其是 MacOS 上容易出现截断，需要用 NativeInt
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -440,7 +441,7 @@ begin
   begin
     for I := 0 to ByteLength - 1 do
     begin
-      B := PCnByte(Integer(InData) + I * SizeOf(Byte))^;
+      B := PCnByte(TCnNativeInt(InData) + I * SizeOf(Byte))^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -449,7 +450,7 @@ begin
   begin
     for I := 0 to ByteLength - 1 do
     begin
-      B := PCnByte(Integer(InData) + I * SizeOf(Byte))^;
+      B := PCnByte(TCnNativeInt(InData) + I * SizeOf(Byte))^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -468,7 +469,7 @@ begin
   for I := 1 to L div 2 do
   begin
     S := Copy(Hex, I * 2 - 1, 2);
-    PCnByte(Integer(OutData) + I - 1)^ := Byte(HexToInt(S));
+    PCnByte(TCnNativeInt(OutData) + I - 1)^ := Byte(HexToInt(S));
   end;
 end;
 
@@ -490,7 +491,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PCnByte(Integer(Buffer) + I * SizeOf(Char))^;
+      B := PCnByte(TCnNativeInt(Buffer) + I * SizeOf(Char))^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -499,7 +500,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PCnByte(Integer(Buffer) + I * SizeOf(Char))^;
+      B := PCnByte(TCnNativeInt(Buffer) + I * SizeOf(Char))^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -543,7 +544,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(Integer(Buffer) + I)^;
+      B := PByte(TCnNativeInt(Buffer) + I)^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -552,7 +553,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(Integer(Buffer) + I)^;
+      B := PByte(TCnNativeInt(Buffer) + I)^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -1228,7 +1229,7 @@ end;
 // 指针类型转换成整型，支持 32/64 位
 function PointerToInteger(P: Pointer): Integer;
 begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
   // 先这么写，利用 Pointer 的低 32 位存 Integer
   Result := Integer(P);
 {$ELSE}
@@ -1239,7 +1240,7 @@ end;
 // 整型转换成指针类型，支持 32/64 位
 function IntegerToPointer(I: Integer): Pointer;
 begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
   // 先这么写，利用 Pointer 的低 32 位存 Integer
   Result := Pointer(I);
 {$ELSE}
