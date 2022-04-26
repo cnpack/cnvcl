@@ -46,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl;
 
 type
   PSHAGeneralDigest = ^TSHAGeneralDigest;
@@ -65,10 +65,10 @@ type
   TSHA512Digest = array[0..63] of Byte;
 
   TSHA256Context = packed record
-    DataLen: LongWord;
+    DataLen: TCnLongWord32;
     Data: array[0..63] of Byte;
     BitLen: Int64;
-    State: array[0..7] of LongWord;
+    State: array[0..7] of TCnLongWord32;
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
@@ -76,7 +76,7 @@ type
   TSHA224Context = TSHA256Context;
 
   TSHA512Context = packed record
-    DataLen: LongWord;
+    DataLen: TCnLongWord32;
     Data: array[0..127] of Byte;
     TotalLen: Int64;
     State: array[0..7] of Int64;
@@ -90,28 +90,28 @@ type
     Boolean) of object;
   {* 进度回调事件类型声明}
 
-function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
+function SHA224Buffer(const Buffer; Count: Cardinal): TSHA224Digest;
 {* 对数据块进行 SHA224 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
+function SHA256Buffer(const Buffer; Count: Cardinal): TSHA256Digest;
 {* 对数据块进行 SHA256 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-function SHA384Buffer(const Buffer; Count: LongWord): TSHA384Digest;
+function SHA384Buffer(const Buffer; Count: Cardinal): TSHA384Digest;
 {* 对数据块进行 SHA384 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-function SHA512Buffer(const Buffer; Count: LongWord): TSHA512Digest;
+function SHA512Buffer(const Buffer; Count: Cardinal): TSHA512Digest;
 {* 对数据块进行 SHA512 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
@@ -411,16 +411,16 @@ function SHA512DigestToStr(aDig: TSHA512Digest): string;
  |</PRE>}
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA224Digest);
+  Length: Cardinal; var Output: TSHA224Digest);
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA256Digest);
+  Length: Cardinal; var Output: TSHA256Digest);
 
 procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA384Digest);
+  Length: Cardinal; var Output: TSHA384Digest);
 
 procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA512Digest);
+  Length: Cardinal; var Output: TSHA512Digest);
 
 {* Hash-based Message Authentication Code (based on SHA224/256/384/512) }
 
@@ -449,7 +449,7 @@ const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
 
-  KEYS256: array[0..63] of LongWord = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
+  KEYS256: array[0..63] of TCnLongWord32 = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
     $3956C25B, $59F111F1, $923F82A4, $AB1C5ED5, $D807AA98, $12835B01, $243185BE,
     $550C7DC3, $72BE5D74, $80DEB1FE, $9BDC06A7, $C19BF174, $E49B69C1, $EFBE4786,
     $0FC19DC6, $240CA1CC, $2DE92C6F, $4A7484AA, $5CB0A9DC, $76F988DA, $983E5152,
@@ -482,12 +482,12 @@ const
     $3C9EBE0A15C9BEBC, $431D67C49C100D4C, $4CC5D4BECB3E42B6, $597F299CFC657E2A,
     $5FCB6FAB3AD6FAEC, $6C44198C4A475817);
 
-function ROTLeft256(A, B: LongWord): LongWord;
+function ROTLeft256(A, B: TCnLongWord32): TCnLongWord32;
 begin
   Result := (A shl B) or (A shr (32 - B));
 end;
 
-function ROTRight256(A, B: LongWord): LongWord;
+function ROTRight256(A, B: TCnLongWord32): TCnLongWord32;
 begin
   Result := (A shr B) or (A shl (32 - B));
 end;
@@ -502,7 +502,7 @@ begin
   Result := (X and $FFFFFFFFFFFFFFFF) shr Y;
 end;
 
-function CH256(X, Y, Z: LongWord): LongWord;
+function CH256(X, Y, Z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (X and Y) xor ((not X) and Z);
 end;
@@ -512,7 +512,7 @@ begin
   Result := (((Y xor Z) and X) xor Z);
 end;
 
-function MAJ256(X, Y, Z: LongWord): LongWord;
+function MAJ256(X, Y, Z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (X and Y) xor (X and Z) xor (Y and Z);
 end;
@@ -522,22 +522,22 @@ begin
   Result := ((X or Y) and Z) or (X and Y);
 end;
 
-function EP0256(X: LongWord): LongWord;
+function EP0256(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := ROTRight256(X, 2) xor ROTRight256(X, 13) xor ROTRight256(X, 22);
 end;
 
-function EP1256(X: LongWord): LongWord;
+function EP1256(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := ROTRight256(X, 6) xor ROTRight256(X, 11) xor ROTRight256(X, 25);
 end;
 
-function SIG0256(X: LongWord): LongWord;
+function SIG0256(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := ROTRight256(X, 7) xor ROTRight256(X, 18) xor (X shr 3);
 end;
 
-function SIG1256(X: LongWord): LongWord;
+function SIG1256(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := ROTRight256(X, 17) xor ROTRight256(X, 19) xor (X shr 10);
 end;
@@ -564,16 +564,16 @@ end;
 
 procedure SHA256Transform(var Context: TSHA256Context; Data: PAnsiChar);
 var
-  A, B, C, D, E, F, G, H, T1, T2: LongWord;
-  M: array[0..63] of LongWord;
+  A, B, C, D, E, F, G, H, T1, T2: TCnLongWord32;
+  M: array[0..63] of TCnLongWord32;
   I, J: Integer;
 begin
   I := 0;
   J := 0;
   while I < 16 do
   begin
-    M[I] := (LongWord(Data[J]) shl 24) or (LongWord(Data[J + 1]) shl 16) or (LongWord(Data
-      [J + 2]) shl 8) or LongWord(Data[J + 3]);
+    M[I] := (TCnLongWord32(Data[J]) shl 24) or (TCnLongWord32(Data[J + 1]) shl 16) or (TCnLongWord32(Data
+      [J + 2]) shl 8) or TCnLongWord32(Data[J + 3]);
     Inc(I);
     Inc(J, 4);
   end;
@@ -629,7 +629,7 @@ begin
   OrigData := Data;
   for K := 0 to BlockCount - 1 do
   begin
-    Data := PAnsiChar(Integer(OrigData) + (K shl 7));
+    Data := PAnsiChar(TCnNativeInt(OrigData) + (K shl 7));
 
     I := 0;
     J := 0;
@@ -705,9 +705,9 @@ begin
   SHA256Update(Context, Buffer, Len);
 end;
 
-procedure SHA256UpdateW(var Context: TSHA256Context; Buffer: PWideChar; Len: LongWord); forward;
+procedure SHA256UpdateW(var Context: TSHA256Context; Buffer: PWideChar; Len: Cardinal); forward;
 
-procedure SHA224UpdateW(var Context: TSHA224Context; Buffer: PWideChar; Len: LongWord);
+procedure SHA224UpdateW(var Context: TSHA224Context; Buffer: PWideChar; Len: Cardinal);
 begin
   SHA256UpdateW(Context, Buffer, Len);
 end;
@@ -752,7 +752,7 @@ begin
   end;
 end;
 
-procedure SHA256UpdateW(var Context: TSHA256Context; Buffer: PWideChar; Len: LongWord);
+procedure SHA256UpdateW(var Context: TSHA256Context; Buffer: PWideChar; Len: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -850,9 +850,9 @@ begin
   SHA512Update(Context, Buffer, Len);
 end;
 
-procedure SHA512UpdateW(var Context: TSHA512Context; Buffer: PWideChar; Len: LongWord); forward;
+procedure SHA512UpdateW(var Context: TSHA512Context; Buffer: PWideChar; Len: Cardinal); forward;
 
-procedure SHA384UpdateW(var Context: TSHA384Context; Buffer: PWideChar; Len: LongWord);
+procedure SHA384UpdateW(var Context: TSHA384Context; Buffer: PWideChar; Len: Cardinal);
 begin
   SHA512UpdateW(Context, Buffer, Len);
 end;
@@ -912,7 +912,7 @@ begin
   Inc(Context.TotalLen, (BlockCount + 1) shl 7);
 end;
 
-procedure SHA512UpdateW(var Context: TSHA512Context; Buffer: PWideChar; Len: LongWord);
+procedure SHA512UpdateW(var Context: TSHA512Context; Buffer: PWideChar; Len: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -973,8 +973,8 @@ begin
   end;
 end;
 
-// 对数据块进行SHA224计算
-function SHA224Buffer(const Buffer; Count: LongWord): TSHA224Digest;
+// 对数据块进行 SHA224 计算
+function SHA224Buffer(const Buffer; Count: Cardinal): TSHA224Digest;
 var
   Context: TSHA224Context;
 begin
@@ -984,7 +984,7 @@ begin
 end;
 
 // 对数据块进行 SHA256 计算
-function SHA256Buffer(const Buffer; Count: LongWord): TSHA256Digest;
+function SHA256Buffer(const Buffer; Count: Cardinal): TSHA256Digest;
 var
   Context: TSHA256Context;
 begin
@@ -994,7 +994,7 @@ begin
 end;
 
 // 对数据块进行 SHA384 计算
-function SHA384Buffer(const Buffer; Count: LongWord): TSHA384Digest;
+function SHA384Buffer(const Buffer; Count: Cardinal): TSHA384Digest;
 var
   Context: TSHA384Context;
 begin
@@ -1004,7 +1004,7 @@ begin
 end;
 
 // 对数据块进行 SHA512 计算
-function SHA512Buffer(const Buffer; Count: LongWord): TSHA512Digest;
+function SHA512Buffer(const Buffer; Count: Cardinal): TSHA512Digest;
 var
   Context: TSHA512Context;
 begin
@@ -1749,7 +1749,7 @@ begin
 end;
 
 procedure SHA224HmacUpdate(var Context: TSHA224Context; Input: PAnsiChar; Length:
-  LongWord);
+  TCnLongWord32);
 begin
   SHA224Update(Context, Input, Length);
 end;
@@ -1793,7 +1793,7 @@ begin
 end;
 
 procedure SHA256HmacUpdate(var Context: TSHA256Context; Input: PAnsiChar; Length:
-  LongWord);
+  TCnLongWord32);
 begin
   SHA256Update(Context, Input, Length);
 end;
@@ -1812,7 +1812,7 @@ begin
 end;
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA224Digest);
+  Length: Cardinal; var Output: TSHA224Digest);
 var
   Context: TSHA224Context;
 begin
@@ -1822,7 +1822,7 @@ begin
 end;
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA256Digest);
+  Length: Cardinal; var Output: TSHA256Digest);
 var
   Context: TSHA256Context;
 begin
@@ -1856,8 +1856,8 @@ begin
   SHA384Update(Context, @(Context.Ipad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
 end;
 
-procedure SHA384HmacUpdate(var Context: TSHA384Context; Input: PAnsiChar; Length:
-  LongWord);
+procedure SHA384HmacUpdate(var Context: TSHA384Context; Input: PAnsiChar;
+  Length: Cardinal);
 begin
   SHA384Update(Context, Input, Length);
 end;
@@ -1876,7 +1876,7 @@ begin
 end;
 
 procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA384Digest);
+  Length: Cardinal; var Output: TSHA384Digest);
 var
   Context: TSHA384Context;
 begin
@@ -1910,8 +1910,8 @@ begin
   SHA512Update(Context, @(Context.Ipad[0]), HMAC_SHA2_384_512_BLOCK_SIZE_BYTE);
 end;
 
-procedure SHA512HmacUpdate(var Context: TSHA512Context; Input: PAnsiChar; Length:
-  LongWord);
+procedure SHA512HmacUpdate(var Context: TSHA512Context; Input: PAnsiChar;
+  Length: Cardinal);
 begin
   SHA512Update(Context, Input, Length);
 end;
@@ -1930,7 +1930,7 @@ begin
 end;
 
 procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSHA512Digest);
+  Length: Cardinal; var Output: TSHA512Digest);
 var
   Context: TSHA512Context;
 begin
