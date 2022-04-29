@@ -1779,6 +1779,7 @@ begin
       Properties.Clear;
       Fields.Clear;
       Events.Clear;
+      Methods.Clear;
       Components.Clear;
       Controls.Clear;
       CollectionItems.Clear;
