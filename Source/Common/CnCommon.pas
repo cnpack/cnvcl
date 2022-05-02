@@ -881,13 +881,16 @@ procedure EndWait;
 {* 结束等待光标}
 
 function CheckWindows9598: Boolean;
-{* 检测是否 Win95/98 平台}
+{* 检测是否 Windows 95/98 平台}
 
 function CheckWinXP: Boolean;
-{* 检测是否 WinXP 或以上平台}
+{* 检测是否 Windows XP 或以上平台}
 
 function CheckWinVista: Boolean;
-{* 检查是否 Vista/Win7 或以上系统 }
+{* 检查是否 Vista/Windows 7 或以上系统}
+
+function CheckWin8: Boolean;
+{* 检查是否 Windows 8 或以上系统}
 
 function CheckWin10: Boolean;
 {* 检查是否 Windows 10 或以上系统}
@@ -6444,22 +6447,29 @@ begin
     Result := True;
 end;
 
-// 检测是否 WinXP 或以上平台
+// 检测是否 Windows XP 或以上平台
 function CheckWinXP: Boolean;
 begin
   Result := (Win32MajorVersion > 5) or
     ((Win32MajorVersion = 5) and (Win32MinorVersion >= 1));
 end;
 
-// 检查是否 Vista/Win7 或以上系统
+// 检查是否 Vista/Windows 7 或以上系统
 function CheckWinVista: Boolean;
 begin
   Result := Win32MajorVersion >= 6;
 end;
 
+// 检查是否 Windows 8 或以上系统
+function CheckWin8: Boolean;
+begin
+  Result := (Win32MajorVersion >= 6) and (Win32MinorVersion >= 2);
+end;
+
 // 检查是否 Windows 10 或以上系统
 function CheckWin10: Boolean;
 begin
+  // 注意 Windows 10 下如果 Manifest 中不写支持 Windows 10 的话，Win32MajorVersion 是 6。
   Result := Win32MajorVersion >= 10;
 end;
 
