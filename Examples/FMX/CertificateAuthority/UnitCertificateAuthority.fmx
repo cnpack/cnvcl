@@ -1,37 +1,38 @@
 object FormCA: TFormCA
-  Left = 218
-  Top = 85
+  Left = 360
+  Top = 126
   Caption = 'Certificate Authority'
-  ClientHeight = 503
-  ClientWidth = 705
+  ClientHeight = 613
+  ClientWidth = 889
   Position = ScreenCenter
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop, iPhone, iPad]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  Left = 218
-  Top = 85
+  Left = 360
+  Top = 126
   DesignerMasterStyle = 0
   object pgc1: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
     Position.X = 8.000000000000000000
     Position.Y = 8.000000000000000000
-    Size.Width = 681.000000000000000000
-    Size.Height = 457.000000000000000000
+    Size.Width = 865.000000000000000000
+    Size.Height = 567.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 0
     TabPosition = Top
     Sizes = (
-      681s
-      429s
-      681s
-      429s)
+      865s
+      539s
+      865s
+      539s)
     object tsRequest: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       Size.Width = 154.000000000000000000
       Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
@@ -41,9 +42,10 @@ object FormCA: TFormCA
       ExplicitSize.cx = 50.000000000000000000
       ExplicitSize.cy = 50.000000000000000000
       object grpGenRequest: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
         Position.X = 8.000000000000000000
         Position.Y = 8.000000000000000000
-        Size.Width = 657.000000000000000000
+        Size.Width = 1656.000000000000000000
         Size.Height = 185.000000000000000000
         Size.PlatformDefault = False
         Text = 'Generate Certificate Sign Request'
@@ -51,10 +53,10 @@ object FormCA: TFormCA
         object lblKey: TLabel
           Position.X = 16.000000000000000000
           Position.Y = 24.000000000000000000
-          Size.Width = 46.000000000000000000
+          Size.Width = 72.000000000000000000
           Size.Height = 13.000000000000000000
           Size.PlatformDefault = False
-          Text = 'Key:'
+          Text = 'RSA/ECC Key:'
         end
         object lblContryName: TLabel
           Position.X = 16.000000000000000000
@@ -122,15 +124,17 @@ object FormCA: TFormCA
         end
         object edtRSAECCKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Position.X = 88.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 457.000000000000000000
+          Size.Width = 641.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnBrowseKey: TButton
-          Position.X = 552.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 736.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 91.000000000000000000
           Size.Height = 21.000000000000000000
@@ -209,21 +213,24 @@ object FormCA: TFormCA
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
-        object cbbHash: TComboBox
+        object cbbHash: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 9
+          ItemHeight = 13.000000000000000000
           Items.Strings = (
             'MD5'
             'SHA1'
             'SHA256')
-          ItemHeight = 13.000000000000000000
+          ItemIndex = -1
           Position.X = 120.000000000000000000
           Position.Y = 144.000000000000000000
           Size.Width = 161.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 9
         end
         object btnGenerateCSR: TButton
-          Position.X = 304.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 1303.000000000000000000
           Position.Y = 144.000000000000000000
           Size.Width = 209.000000000000000000
           Size.Height = 21.000000000000000000
@@ -233,7 +240,8 @@ object FormCA: TFormCA
           OnClick = btnGenerateCSRClick
         end
         object btnSelfSign: TButton
-          Position.X = 528.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 1527.000000000000000000
           Position.Y = 144.000000000000000000
           Size.Width = 113.000000000000000000
           Size.Height = 21.000000000000000000
@@ -244,10 +252,11 @@ object FormCA: TFormCA
         end
       end
       object grpParse: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Position.X = 8.000000000000000000
         Position.Y = 200.000000000000000000
-        Size.Width = 657.000000000000000000
-        Size.Height = 217.000000000000000000
+        Size.Width = 1656.000000000000000000
+        Size.Height = 816.000000000000000000
         Size.PlatformDefault = False
         Text = 'Parse CSR File'
         TabOrder = 1
@@ -261,15 +270,17 @@ object FormCA: TFormCA
         end
         object edtCSR: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Position.X = 88.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 313.000000000000000000
+          Size.Width = 497.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnBrowseCSR: TButton
-          Position.X = 408.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 592.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
@@ -282,32 +293,35 @@ object FormCA: TFormCA
           Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
           DataDetectorTypes = []
           TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
           Position.X = 16.000000000000000000
           Position.Y = 56.000000000000000000
-          Size.Width = 625.000000000000000000
-          Size.Height = 145.000000000000000000
+          Size.Width = 809.000000000000000000
+          Size.Height = 255.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 2
-          Viewport.Width = 621.000000000000000000
-          Viewport.Height = 141.000000000000000000
+          TabOrder = 4
+          Viewport.Width = 805.000000000000000000
+          Viewport.Height = 251.000000000000000000
         end
         object btnParseCSR: TButton
-          Position.X = 488.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 672.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Parse CSR'
+          OnClick = btnParseCSRClick
+        end
+        object btnVerifyCSR: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 752.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 3
-          Text = 'Parse CSR'
-          OnClick = btnParseCSRClick
-        end
-        object btnVerifyCSR: TButton
-          Position.X = 568.000000000000000000
-          Position.Y = 20.000000000000000000
-          Size.Width = 73.000000000000000000
-          Size.Height = 21.000000000000000000
-          Size.PlatformDefault = False
-          TabOrder = 4
           Text = 'Verify CSR'
           OnClick = btnVerifyCSRClick
         end
@@ -317,7 +331,7 @@ object FormCA: TFormCA
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       ImageIndex = 1
       Size.Width = 107.000000000000000000
       Size.Height = 28.000000000000000000
@@ -328,9 +342,10 @@ object FormCA: TFormCA
       ExplicitSize.cx = 50.000000000000000000
       ExplicitSize.cy = 50.000000000000000000
       object grpSign: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
         Position.X = 8.000000000000000000
         Position.Y = 8.000000000000000000
-        Size.Width = 657.000000000000000000
+        Size.Width = 1656.000000000000000000
         Size.Height = 153.000000000000000000
         Size.PlatformDefault = False
         Text = 'Sign CSR File'
@@ -361,15 +376,17 @@ object FormCA: TFormCA
         end
         object edtSignCSR: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Position.X = 88.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 457.000000000000000000
+          Size.Width = 641.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnSignCSRBrowse: TButton
-          Position.X = 552.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 736.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 91.000000000000000000
           Size.Height = 21.000000000000000000
@@ -380,15 +397,17 @@ object FormCA: TFormCA
         end
         object edtSignKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
           Position.X = 88.000000000000000000
           Position.Y = 52.000000000000000000
-          Size.Width = 457.000000000000000000
+          Size.Width = 641.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnSignKeyBrowse: TButton
-          Position.X = 552.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 736.000000000000000000
           Position.Y = 52.000000000000000000
           Size.Width = 91.000000000000000000
           Size.Height = 21.000000000000000000
@@ -398,9 +417,10 @@ object FormCA: TFormCA
           OnClick = btnSignKeyBrowseClick
         end
         object btnSign: TButton
+          Anchors = [akLeft, akTop, akRight]
           Position.X = 16.000000000000000000
           Position.Y = 118.000000000000000000
-          Size.Width = 625.000000000000000000
+          Size.Width = 809.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 4
@@ -409,15 +429,17 @@ object FormCA: TFormCA
         end
         object edtRootCRT: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
           Position.X = 88.000000000000000000
           Position.Y = 84.000000000000000000
-          Size.Width = 457.000000000000000000
+          Size.Width = 641.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnRootCRTBrowse: TButton
-          Position.X = 552.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 736.000000000000000000
           Position.Y = 84.000000000000000000
           Size.Width = 91.000000000000000000
           Size.Height = 21.000000000000000000
@@ -428,10 +450,11 @@ object FormCA: TFormCA
         end
       end
       object grpParseCER: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Position.X = 8.000000000000000000
         Position.Y = 168.000000000000000000
-        Size.Width = 657.000000000000000000
-        Size.Height = 249.000000000000000000
+        Size.Width = 1656.000000000000000000
+        Size.Height = 848.000000000000000000
         Size.PlatformDefault = False
         Text = 'Parse CRT File'
         TabOrder = 1
@@ -445,15 +468,17 @@ object FormCA: TFormCA
         end
         object edtCRT: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           Position.X = 88.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 233.000000000000000000
+          Size.Width = 377.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
         object btnBrowseCRT: TButton
-          Position.X = 328.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 472.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
@@ -466,17 +491,19 @@ object FormCA: TFormCA
           Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
           DataDetectorTypes = []
           TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
           Position.X = 16.000000000000000000
           Position.Y = 56.000000000000000000
-          Size.Width = 625.000000000000000000
-          Size.Height = 177.000000000000000000
+          Size.Width = 1624.000000000000000000
+          Size.Height = 776.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 5
-          Viewport.Width = 621.000000000000000000
-          Viewport.Height = 173.000000000000000000
+          Viewport.Width = 1620.000000000000000000
+          Viewport.Height = 772.000000000000000000
         end
         object btnParseCRT: TButton
-          Position.X = 408.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 552.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
@@ -486,9 +513,10 @@ object FormCA: TFormCA
           OnClick = btnParseCRTClick
         end
         object btnVerifySelfSignedCRT: TButton
-          Position.X = 488.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 632.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 73.000000000000000000
+          Size.Width = 113.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 3
@@ -496,13 +524,14 @@ object FormCA: TFormCA
           OnClick = btnVerifySelfSignedCRTClick
         end
         object btnVerifyCRT: TButton
-          Position.X = 568.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 752.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 73.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 4
-          Text = 'Verify Self-Signed CRT'
+          Text = 'Verify CRT'
           OnClick = btnVerifyCRTClick
         end
       end

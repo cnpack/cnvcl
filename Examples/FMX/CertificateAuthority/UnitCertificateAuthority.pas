@@ -3,9 +3,9 @@ unit UnitCertificateAuthority;
 interface
 
 uses
-  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Controls, FMX.Dialogs, FMX.Edit, FMX.Forms, FMX.Graphics, FMX.ListBox, FMX.Memo, FMX.StdCtrls, FMX.TabControl, FMX.Types,
-  FMX.ScrollBox, FMX.Controls.Presentation, CnRSA, CnECC, CnCertificateAuthority;
+  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, CnECC, CnRSA, CnCertificateAuthority, FMX.ComboEdit, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
+  FMX.ScrollBox, FMX.Controls.Presentation;
 
 type
   TFormCA = class(TForm)
@@ -30,7 +30,7 @@ type
     edtOrgUnitName: TEdit;
     edtCommonName: TEdit;
     edtEmail: TEdit;
-    cbbHash: TComboBox;
+    cbbHash: TComboEdit;
     btnGenerateCSR: TButton;
     btnSelfSign: TButton;
     grpParse: TGroupBox;
@@ -59,9 +59,9 @@ type
     mmoCRT: TMemo;
     btnParseCRT: TButton;
     btnVerifySelfSignedCRT: TButton;
+    btnVerifyCRT: TButton;
     dlgOpen: TOpenDialog;
     dlgSave: TSaveDialog;
-    btnVerifyCRT: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
@@ -90,7 +90,7 @@ type
     FServerEccPub: TCnEccPublicKey;
     FServerCurveType: TCnEccCurveType;
   public
-
+    { Public declarations }
   end;
 
 var
@@ -115,14 +115,6 @@ begin
     Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P[I] shr 4) and $0F] +
               Digits[P[I] and $0F]);
   end;
-end;
-
-function ConvertItemIndexToCASignType(ItemIndex: Integer; IsRSA: Boolean): TCnCASignType;
-begin
-  if IsRSA then
-    Result := TCnCASignType(ItemIndex)
-  else
-    Result := TCnCASignType(ItemIndex + 3);
 end;
 
 procedure TFormCA.FormCreate(Sender: TObject);
@@ -174,13 +166,17 @@ begin
       end;
     end;
   end
-  else if not CSR.IsRSA then
-  begin
-    // ECC 没别的内容了
-  end
   else
     ShowMessage('Parse CSR Failed.');
   CSR.Free;
+end;
+
+function ConvertItemIndexToCASignType(ItemIndex: Integer; IsRSA: Boolean): TCnCASignType;
+begin
+  if IsRSA then
+    Result := TCnCASignType(ItemIndex)
+  else
+    Result := TCnCASignType(ItemIndex + 3);
 end;
 
 procedure TFormCA.btnGenerateCSRClick(Sender: TObject);
@@ -387,7 +383,7 @@ begin
             ShowMessage('Verify CRT using Ecc Parent CRT Fail.');
         end;
       end
-      else if CnRSALoadPublicKeyFromPem(dlgOpen.FileName, RSAPub) or
+      else if CnRSALoadPublicKeyFromPem(dlgOpen.FileName, RSAPub) or  
         CnRSALoadKeysFromPem(dlgOpen.FileName, nil ,RSAPub) then        // 是父 RSA 公钥
       begin
         if CnCAVerifyCertificateFile(edtCRT.Text, RSAPub) then

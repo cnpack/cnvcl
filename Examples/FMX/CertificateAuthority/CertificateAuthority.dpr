@@ -3,8 +3,7 @@ program CertificateAuthority;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  UnitCertificateAuthority in 'UnitCertificateAuthority.pas' {FormCA},
-  CnCertificateAuthority in '..\..\Source\Crypto\CnCertificateAuthority.pas';
+  UnitCertificateAuthority in 'UnitCertificateAuthority.pas' {FormCA};
 
 {$R *.res}
 
