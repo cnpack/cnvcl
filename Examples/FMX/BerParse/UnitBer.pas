@@ -2,13 +2,15 @@ unit UnitBer;
 
 interface
 
-{$I CnPack.inc}
-
 uses
-  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Controls, FMX.Dialogs, FMX.Edit, FMX.Forms, FMX.Graphics, FMX.Memo, FMX.StdCtrls, FMX.TreeView, FMX.Types,
-  FMX.Layouts, FMX.ScrollBox, FMX.Controls.Presentation, CnTree;
+  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, CnTree, CnBase64, FMX.Edit, FMX.Memo, FMX.TreeView, FMX.Types,
+  FMX.Layouts, FMX.ScrollBox, FMX.Controls.Presentation;
 
+{
+  测试的 bin 文件用 openssl 生成的 rsa key 经 base64 解码而来
+  openssl base64 -d -in private_pkcs8.pem -out private_pkcs8.bin
+}
 type
   TFormParseBer = class(TForm)
     lblBin: TLabel;
@@ -31,10 +33,10 @@ type
     procedure btnDeBase64ParseClick(Sender: TObject);
   private
     FReadHints: TStrings;
-    procedure SaveItem(ALeaf: TCnLeaf; ATreeViewItem: TTreeViewItem;
+    procedure SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeViewItem;
       var Valid: Boolean);
   public
-
+    { Public declarations }
   end;
 
 var
@@ -42,10 +44,10 @@ var
 
 implementation
 
-{$R *.fmx}
-
 uses
-  CnBerUtils, CnBase64;
+  CnBerUtils;
+
+{$R *.fmx}
 
 const
   PRIVATE_ARRAY: array[0..1191] of Byte = (
@@ -146,6 +148,47 @@ const
     $D7);
 
   PUBLIC_KEY_EXPONENT: array[0..2] of Byte = ($01, $00, $01);
+
+procedure TFormParseBer.btnParseClick(Sender: TObject);
+var
+  Reader: TCnBerReader;
+  Mem: TMemoryStream;
+begin
+  Reader := nil;
+  Mem := nil;
+
+  try
+    if not FileExists(edtFile.Text) then
+    begin
+      Reader := TCnBerReader.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
+    end
+    else
+    begin
+      Mem := TMemoryStream.Create;
+      Mem.LoadFromFile(edtFile.Text);
+      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, True);
+      Reader.ParseToTree;
+    end;
+
+    Reader.OnSaveItem := SaveNode;
+    FReadHints.Clear;
+    Reader.DumpToTreeView(tv1);
+    if tv1.GlobalCount > 0 then
+      tv1.ExpandAll;
+
+    mmoResult.Lines.Clear;
+    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Reader.TotalCount));
+  finally
+    Reader.Free;
+    Mem.Free;
+  end;
+end;
+
+procedure TFormParseBer.btnBrowseClick(Sender: TObject);
+begin
+  if dlgOpen.Execute then
+    edtFile.Text := dlgOpen.FileName;
+end;
 
 function HexDumpMemory(AMem: Pointer; Size: Integer): AnsiString;
 var
@@ -265,17 +308,7 @@ begin
   Result := Trim(Result);
 end;
 
-procedure TFormParseBer.FormCreate(Sender: TObject);
-begin
-  FReadHints := TStringList.Create;
-end;
-
-procedure TFormParseBer.FormDestroy(Sender: TObject);
-begin
-  FReadHints.Free;
-end;
-
-procedure TFormParseBer.SaveItem(ALeaf: TCnLeaf; ATreeViewItem: TTreeViewItem;
+procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeViewItem;
   var Valid: Boolean);
 var
   Head, Mem: Pointer;
@@ -286,12 +319,12 @@ begin
     Exit;
 
   BerNode := ALeaf as TCnBerReadNode;
-  ATreeViewItem.Text := BerNode.Text;
+  ATreeNode.Text := BerNode.Text;
 
   if BerNode.BerDataLength > 65536 then
   begin
     FReadHints.Add('Data Too Long');
-    ATreeViewItem.Tag := Integer(FReadHints.Count - 1);
+    ATreeNode.Data := Pointer(FReadHints.Count - 1);
     Exit;
   end
   else
@@ -317,58 +350,27 @@ begin
         S := S + #13#10#13#10 + BerNode.AsString;
 
       FReadHints.Add(S);
-      ATreeViewItem.Tag := Integer(FReadHints.Count - 1);
+      ATreeNode.Tag := Integer(FReadHints.Count - 1);
       FreeMemory(Mem);
       FreeMemory(Head);
     end;
   end;
 end;
 
-procedure TFormParseBer.btnParseClick(Sender: TObject);
-var
-  Reader: TCnBerReader;
-  Mem: TMemoryStream;
+procedure TFormParseBer.FormCreate(Sender: TObject);
 begin
-  Reader := nil;
-  Mem := nil;
+  FReadHints := TStringList.Create;
+end;
 
-  try
-    if not FileExists(edtFile.Text) then
-    begin
-      Reader := TCnBerReader.Create(@PRIVATE_ARRAY[0], SizeOf(PRIVATE_ARRAY));
-    end
-    else
-    begin
-      Mem := TMemoryStream.Create;
-      Mem.LoadFromFile(edtFile.Text);
-      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, True);
-      Reader.ParseToTree;
-    end;
-
-    Reader.OnSaveItem := SaveItem;
-    FReadHints.Clear;
-    Reader.DumpToTreeView(tv1);
-    if tv1.GlobalCount > 0 then
-      tv1.ExpandAll;
-
-    mmoResult.Lines.Clear;
-    mmoResult.Lines.Add('TotalCount: ' + IntToStr(Reader.TotalCount));
-  finally
-    Reader.Free;
-    Mem.Free;
-  end;
+procedure TFormParseBer.FormDestroy(Sender: TObject);
+begin
+  FReadHints.Free;
 end;
 
 procedure TFormParseBer.tv1DblClick(Sender: TObject);
 begin
   if tv1.Selected <> nil then
     ShowMessage(FReadHints[tv1.Selected.Tag]);
-end;
-
-procedure TFormParseBer.btnBrowseClick(Sender: TObject);
-begin
-  if dlgOpen.Execute then
-    edtFile.Text := dlgOpen.FileName;
 end;
 
 procedure TFormParseBer.btnWriteClick(Sender: TObject);
@@ -389,6 +391,7 @@ begin
   finally
     Writer.Free;
   end;
+
 end;
 
 function LoadPemFileAndBase64Decode(const FileName: string;
@@ -442,7 +445,7 @@ begin
     Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, chkParseInner.IsChecked);
     Reader.ParseToTree;
 
-    Reader.OnSaveItem := SaveItem;
+    Reader.OnSaveItem := SaveNode;
     FReadHints.Clear;
     Reader.DumpToTreeView(tv1);
     if tv1.GlobalCount > 0 then
