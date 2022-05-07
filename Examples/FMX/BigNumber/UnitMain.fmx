@@ -1,0 +1,884 @@
+object FormBigNumber: TFormBigNumber
+  Left = 217
+  Top = 85
+  Caption = 'Big Number Test'
+  ClientHeight = 720
+  ClientWidth = 1096
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 217
+  Top = 85
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 1057.000000000000000000
+    Size.Height = 657.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      1057s
+      629s
+      1057s
+      629s)
+    object tsBigNumber: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 87.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'BigNumber'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object lblNumber1: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Number 1'
+        TabOrder = 3
+      end
+      object lblNum2: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 208.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Number 2'
+        TabOrder = 4
+      end
+      object lblBytes: TLabel
+        Position.X = 528.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 55.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Byte Count:'
+        TabOrder = 6
+      end
+      object lblShift: TLabel
+        Position.X = 480.000000000000000000
+        Position.Y = 208.000000000000000000
+        Size.Width = 24.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Shift:'
+        TabOrder = 8
+      end
+      object lblIntPower: TLabel
+        Position.X = 904.000000000000000000
+        Position.Y = 84.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Exponent:'
+        TabOrder = 10
+      end
+      object mmoNum1: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        ReadOnly = True
+        TextSettings.WordWrap = True
+        Position.X = 16.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 873.000000000000000000
+        Size.Height = 153.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 15
+        Viewport.Width = 869.000000000000000000
+        Viewport.Height = 149.000000000000000000
+      end
+      object mmoNum2: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        ReadOnly = True
+        TextSettings.WordWrap = True
+        Position.X = 16.000000000000000000
+        Position.Y = 256.000000000000000000
+        Size.Width = 873.000000000000000000
+        Size.Height = 161.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 37
+        Viewport.Width = 869.000000000000000000
+        Viewport.Height = 157.000000000000000000
+      end
+      object btnGen1: TButton
+        Position.X = 816.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 14
+        Text = 'Generate'
+        OnClick = btnGen1Click
+      end
+      object btnGen2: TButton
+        Position.X = 816.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 26
+        Text = 'Generate'
+        OnClick = btnGen2Click
+      end
+      object mmoResult: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        ReadOnly = True
+        TextSettings.WordWrap = True
+        Position.X = 16.000000000000000000
+        Position.Y = 448.000000000000000000
+        Size.Width = 873.000000000000000000
+        Size.Height = 161.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 75
+        Viewport.Width = 869.000000000000000000
+        Viewport.Height = 157.000000000000000000
+      end
+      object btnDup: TButton
+        Position.X = 72.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 16
+        Text = 'Copy'
+        OnClick = btnDupClick
+      end
+      object btnSwap: TButton
+        Position.X = 152.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 17
+        Text = 'Swap'
+        OnClick = btnSwapClick
+      end
+      object btnCompare: TButton
+        Position.X = 232.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 18
+        Text = 'Compare'
+        OnClick = btnCompareClick
+      end
+      object btnInverseNeg1: TButton
+        Position.X = 680.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 81.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 12
+        Text = 'Inverse Neg'
+        OnClick = btnInverseNeg1Click
+      end
+      object btnInverseNeg2: TButton
+        Position.X = 712.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 99.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 25
+        Text = 'Inverse Negative'
+        OnClick = btnInverseNeg2Click
+      end
+      object cbbDigits: TComboEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 11
+        ItemHeight = 13.000000000000000000
+        Items.Strings = (
+          '4096'
+          '2048'
+          '1024'
+          '512'
+          '256'
+          '128'
+          '64'
+          '32'
+          '16'
+          '8'
+          '4')
+        ItemIndex = -1
+        Position.X = 584.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 93.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnUAdd: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 38
+        Text = 'Unsigned Add'
+        OnClick = btnUAddClick
+      end
+      object btnUsub: TButton
+        Position.X = 96.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 39
+        Text = 'Unsigned Sub'
+        OnClick = btnUsubClick
+      end
+      object btnSignedAdd: TButton
+        Position.X = 176.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 40
+        Text = 'Signed Add'
+        OnClick = btnSignedAddClick
+      end
+      object btnSignedSub: TButton
+        Position.X = 256.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 41
+        Text = 'Signed Sub'
+        OnClick = btnSignedSubClick
+      end
+      object btnShiftRightOne: TButton
+        Position.X = 392.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 20
+        Text = 'Shift Right 1'
+        OnClick = btnShiftRightOneClick
+      end
+      object btnShiftleftOne: TButton
+        Position.X = 312.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 19
+        Text = 'Shift Left 1'
+        OnClick = btnShiftleftOneClick
+      end
+      object seShift: TSpinBox
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 22
+        Cursor = crIBeam
+        Position.X = 512.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnShiftRight: TButton
+        Position.X = 632.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 24
+        Text = 'Shift Right'
+        OnClick = btnShiftRightClick
+      end
+      object btnShiftLeft: TButton
+        Position.X = 552.000000000000000000
+        Position.Y = 204.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 23
+        Text = 'Shift Left'
+        OnClick = btnShiftLeftClick
+      end
+      object btnSqr: TButton
+        Position.X = 336.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 42
+        Text = 'Sqr'
+        OnClick = btnSqrClick
+      end
+      object btnMul: TButton
+        Position.X = 384.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 43
+        Text = 'Mul'
+        OnClick = btnMulClick
+      end
+      object btnDiv: TButton
+        Position.X = 432.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 44
+        Text = 'Div'
+        OnClick = btnDivClick
+      end
+      object btnMod: TButton
+        Position.X = 480.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 65
+        Text = 'Mod'
+        OnClick = btnModClick
+      end
+      object btnExp: TButton
+        Position.X = 528.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 66
+        Text = 'Exp'
+        OnClick = btnExpClick
+      end
+      object seExponent: TSpinBox
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 70
+        Cursor = crIBeam
+        Position.X = 576.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object pnlDisplay: TPanel
+        Position.X = 80.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 137.000000000000000000
+        Size.Height = 33.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        object rbHex: TRadioButton
+          IsChecked = True
+          Position.X = 16.000000000000000000
+          Position.Y = 8.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Hex'
+          OnClick = rbDecClick
+        end
+        object rbDec: TRadioButton
+          Position.X = 64.000000000000000000
+          Position.Y = 8.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Dec'
+          OnClick = rbDecClick
+        end
+      end
+      object btnGcd: TButton
+        Position.X = 624.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 67
+        Text = 'Gcd'
+        OnClick = btnGcdClick
+      end
+      object btnGenWord: TButton
+        Position.X = 104.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 27
+        Text = 'Geneate Word'
+        OnClick = btnGenWordClick
+      end
+      object edtWord: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 28
+        Text = '0'
+        Position.X = 184.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 121.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnWordAdd: TButton
+        Position.X = 312.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 29
+        Text = 'Add Word'
+        OnClick = btnWordAddClick
+      end
+      object btnSubWord: TButton
+        Position.X = 392.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 30
+        Text = 'Sub Word'
+        OnClick = btnSubWordClick
+      end
+      object btnMulWord: TButton
+        Position.X = 472.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 31
+        Text = 'Mul Word'
+        OnClick = btnMulWordClick
+      end
+      object btnDivWord: TButton
+        Position.X = 552.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 32
+        Text = 'Div Word'
+        OnClick = btnDivWordClick
+      end
+      object btnModWord: TButton
+        Position.X = 632.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 33
+        Text = 'Mod Word'
+        OnClick = btnModWordClick
+      end
+      object btnVerifyDiv: TButton
+        Position.X = 712.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 97.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 34
+        Text = 'Verify Div Word'
+        OnClick = btnVerifyDivClick
+      end
+      object btnMultipleMod: TButton
+        Position.X = 672.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 68
+        Text = 'Multiple Mod'
+        OnClick = btnMultipleModClick
+      end
+      object btnPowerMod: TButton
+        Position.X = 752.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 69
+        Text = 'Power Mod'
+        OnClick = btnPowerModClick
+      end
+      object btnIsPrime: TButton
+        Position.X = 816.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 35
+        Text = 'Is Prime?'
+        OnClick = btnIsPrimeClick
+      end
+      object btnGenPrime: TButton
+        Position.X = 456.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 7
+        Text = 'Gen Prime'
+        OnClick = btnGenPrimeClick
+      end
+      object btnJudgeInt: TButton
+        Position.X = 376.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = 'U/Int 32/64?'
+        OnClick = btnJudgeIntClick
+      end
+      object btnRandRange: TButton
+        Position.X = 768.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 9
+        Text = 'Range'
+        OnClick = btnRandRangeClick
+      end
+      object btnEnterNum1: TButton
+        Position.X = 224.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 81.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Enter Num1'
+        OnClick = btnEnterNum1Click
+      end
+      object btnEnterNum2: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 230.000000000000000000
+        Size.Width = 81.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 21
+        Text = 'Enter Num2 '
+        OnClick = btnEnterNum2Click
+      end
+      object btnMInverse: TButton
+        Position.X = 832.000000000000000000
+        Position.Y = 422.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 45
+        Text = 'Mod Inv'
+        OnClick = btnMInverseClick
+      end
+      object btnSetUInt64: TButton
+        Position.X = 308.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Set (U)Int64'
+        OnClick = btnSetUInt64Click
+      end
+      object btnPowerModCompare: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 294.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 46
+        Text = 'Power Mod Compare'
+        OnClick = btnPowerModCompareClick
+      end
+      object btnMulModCompare: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 47
+        Text = 'Mul Mod Compare'
+        OnClick = btnMulModCompareClick
+      end
+      object btnCheckPrime: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 236.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 48
+        Text = 'Check Prime 1'
+        OnClick = btnCheckPrimeClick
+      end
+      object btnIntPower: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 44.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 49
+        Text = 'Integer Power'
+        OnClick = btnIntPowerClick
+      end
+      object seIntPower: TSpinBox
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 50
+        Cursor = crIBeam
+        Position.X = 976.000000000000000000
+        Position.Y = 80.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnGetTenCount: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 12.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 51
+        Text = '10 Precision'
+        OnClick = btnGetTenCountClick
+      end
+      object btnCheckPrime2: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 265.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 52
+        Text = 'Check Prime 2'
+        OnClick = btnCheckPrime2Click
+      end
+      object btnBNCRT: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 352.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 53
+        Text = 'Chinese Remainder '
+        OnClick = btnBNCRTClick
+      end
+      object btnBNSqrt: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 207.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 54
+        Text = 'Sqrt'
+        OnClick = btnBNSqrtClick
+      end
+      object btnBNNextPrime: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 178.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 55
+        Text = 'Next Prime'
+        OnClick = btnBNNextPrimeClick
+      end
+      object btnBNMulKaratsuba: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 381.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 56
+        Text = 'Mul Karatsuba'
+        OnClick = btnBNMulKaratsubaClick
+      end
+      object btnRoot: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 120.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 57
+        Text = 'Integer Root'
+        OnClick = btnRootClick
+      end
+      object btnIsPerfectPower: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 149.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 58
+        Text = 'Is Perfect Power'
+        OnClick = btnIsPerfectPowerClick
+      end
+      object btnComNum: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 410.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 59
+        Text = 'Combinatorial Numbers'
+        OnClick = btnComNumClick
+      end
+      object btnBNAKS: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 439.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 60
+        Text = 'AKS is Prime'
+        OnClick = btnBNAKSClick
+      end
+      object btnFloatToBigNumber: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 472.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 61
+        Text = 'Float To BigNumber'
+        OnClick = btnFloatToBigNumberClick
+      end
+      object btnBigNumberToFloat: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 504.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 62
+        Text = 'BigNumber To Float'
+        OnClick = btnBigNumberToFloatClick
+      end
+      object btnBNEuler: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 536.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 63
+        Text = 'BigNumber Euler'
+        OnClick = btnBNEulerClick
+      end
+      object btnMulDivFloat: TButton
+        Position.X = 904.000000000000000000
+        Position.Y = 568.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 64
+        Text = 'Mul Div Float'
+        OnClick = btnMulDivFloatClick
+      end
+    end
+    object tsSparseBigNumberList: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 148.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Sparse BigNumber List'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object btnSBNLTest1: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Text = 'Set Values'
+        OnClick = btnSBNLTest1Click
+      end
+      object edtSBNL: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 1
+        Position.X = 112.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 753.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object mmoSBNL: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 16.000000000000000000
+        Position.Y = 56.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 161.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Viewport.Width = 157.000000000000000000
+        Viewport.Height = 157.000000000000000000
+      end
+      object chkSparseUseSubMerge: TCheckBox
+        Position.X = 880.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 121.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = 'Use Subtract Merge'
+      end
+      object edtSparseList2: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 4
+        Position.X = 552.000000000000000000
+        Position.Y = 56.000000000000000000
+        Size.Width = 313.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnSparseMerge: TButton
+        Position.X = 888.000000000000000000
+        Position.Y = 56.000000000000000000
+        Size.Width = 113.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = 'Merge Sparse'
+        OnClick = btnSparseMergeClick
+      end
+      object mmoSBNL2: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 192.000000000000000000
+        Position.Y = 56.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 161.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Viewport.Width = 157.000000000000000000
+        Viewport.Height = 157.000000000000000000
+      end
+      object mmoSBNL3: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 368.000000000000000000
+        Position.Y = 56.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 161.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 7
+        Viewport.Width = 157.000000000000000000
+        Viewport.Height = 157.000000000000000000
+      end
+    end
+  end
+end
