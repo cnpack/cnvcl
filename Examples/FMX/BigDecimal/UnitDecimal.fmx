@@ -1,0 +1,470 @@
+object FormBigDecimal: TFormBigDecimal
+  Left = 192
+  Top = 109
+  Caption = 'Test Big Decimal'
+  ClientHeight = 563
+  ClientWidth = 975
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 192
+  Top = 109
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 945.000000000000000000
+    Size.Height = 513.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      945s
+      485s
+      945s
+      485s)
+    object tsBigDecimal: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 89.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Big Decimal'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBigDecimal: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 1816.000000000000000000
+        Size.Height = 900.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Big Decimal'
+        TabOrder = 0
+        object lblDecimal: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Decimal:'
+        end
+        object edtBigDecimal1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = '193289.02302002003020000000000000000000000000023828387188738238'
+          Position.X = 72.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 545.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSetAndGet: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Set Dec && Get String'
+          OnClick = btnSetAndGetClick
+        end
+        object edtBigDecimal2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '193289.02302002003020000000000000000000000000023828387188738238'
+          Position.X = 72.000000000000000000
+          Position.Y = 52.000000000000000000
+          Size.Width = 545.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnRandCmp: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 51.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Compare'
+          OnClick = btnRandCmpClick
+        end
+        object btnBigDecimalAdd: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Add'
+          OnClick = btnBigDecimalAddClick
+        end
+        object btnBigDecimalSub: TButton
+          Position.X = 208.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Subtract'
+          OnClick = btnBigDecimalSubClick
+        end
+        object btnBigDecimalMul: TButton
+          Position.X = 344.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Multiply'
+          OnClick = btnBigDecimalMulClick
+        end
+        object btnBigDecimalDivide: TButton
+          Position.X = 488.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Divide'
+          OnClick = btnBigDecimalDivideClick
+        end
+        object edtBigDecimalResult: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 8
+          Position.X = 8.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSetFloat: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Set Float'
+          OnClick = btnSetFloatClick
+        end
+        object edtFloat: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 10
+          Text = '-932.232401'
+          Position.X = 816.000000000000000000
+          Position.Y = 48.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnRoundToScale: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Round To:'
+          OnClick = btnRoundToScaleClick
+        end
+        object edtRoundDigits: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 12
+          Text = '4'
+          Position.X = 104.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object mmoRound: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Hint = 
+            #24448#32477#23545#20540#22823#30340#25968#21462#13#10#24448#32477#23545#20540#23567#30340#25968#21462#65292#31561#20110#21482#30041#25972#25968#37096#20998#30340' Trunc'#13#10#24448#27491#26080#31351#22823#21462#13#10#24448#36127#26080#31351#22823#21462#13#10#22235#33293#20116#20837#12289#20837#33267#32477#23545#20540#22823#30340 +
+            #25968#13#10#22235#33293#20845#20837#20116#25104#21452#12289#20837#33267#32477#23545#20540#22823#30340#25968
+          Position.X = 16.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 241.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          ParentShowHint = False
+          ShowHint = True
+          Viewport.Width = 221.000000000000000000
+          Viewport.Height = 237.000000000000000000
+        end
+        object btnGetDigits: TButton
+          Position.X = 184.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'Get Digits Counts'
+          OnClick = btnGetDigitsClick
+        end
+        object chkMulDivPrecision: TCheckBox
+          Position.X = 624.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Mul/Div Precision'
+        end
+        object edtMulDivRoundDigits: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 16
+          Text = '4'
+          Position.X = 744.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnGetHighScale: TButton
+          Position.X = 328.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Get High Point Value'
+          OnClick = btnGetHighScaleClick
+        end
+        object btnBigDecimalToFloat: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'To Float'
+          OnClick = btnBigDecimalToFloatClick
+        end
+        object btnBDSqrt: TButton
+          Position.X = 464.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Sqrt'
+          OnClick = btnBDSqrtClick
+        end
+        object btnDecimalToRational: TButton
+          Position.X = 656.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Decimal To Rational'
+          OnClick = btnDecimalToRationalClick
+        end
+        object btnRationalToDecimal: TButton
+          Position.X = 784.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'Rational To Decimal'
+          OnClick = btnRationalToDecimalClick
+        end
+        object btnSqrt2: TButton
+          Position.X = 560.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Sqrt2'
+          OnClick = btnSqrt2Click
+        end
+      end
+    end
+    object tsBigBinary: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 79.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Big Binary'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBigBinary: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 921.000000000000000000
+        Size.Height = 465.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'grpBigBinary'
+        TabOrder = 0
+        object lblBigBinary: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Decimal:'
+        end
+        object edtBigBinary1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = '193289.02'
+          Position.X = 72.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 545.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBigBinary2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = '193289.02302002003020000000000000000000000000023828387188738238'
+          Position.X = 72.000000000000000000
+          Position.Y = 52.000000000000000000
+          Size.Width = 545.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBigBinarySetGet: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Set Dec && Get String'
+          OnClick = btnBigBinarySetGetClick
+        end
+        object btnBigBinarySetFloat: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Set Float'
+          OnClick = btnBigBinarySetFloatClick
+        end
+        object btnBigBinaryCompare: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 51.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Compare'
+          OnClick = btnBigBinaryCompareClick
+        end
+        object edtBigBinaryFloat: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Text = '-932.232401'
+          Position.X = 816.000000000000000000
+          Position.Y = 48.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBigBinaryAdd: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Add'
+          OnClick = btnBigBinaryAddClick
+        end
+        object btnBigBinarySub: TButton
+          Position.X = 208.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Subtract'
+          OnClick = btnBigBinarySubClick
+        end
+        object btnBigBinaryMul: TButton
+          Position.X = 344.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Multiply'
+          OnClick = btnBigBinaryMulClick
+        end
+        object btnBigBinaryDiv: TButton
+          Position.X = 488.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Divide'
+          OnClick = btnBigBinaryDivClick
+        end
+        object chkBigBinaryPrecision: TCheckBox
+          Position.X = 624.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Mul/Div Precision'
+        end
+        object edtBBMulDivRoundDigits: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 11
+          Text = '4'
+          Position.X = 744.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBigBinaryResult: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 12
+          Position.X = 8.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBigBinaryToFloat: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'To Float'
+          OnClick = btnBigBinaryToFloatClick
+        end
+      end
+    end
+  end
+end
