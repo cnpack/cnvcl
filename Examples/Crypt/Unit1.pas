@@ -1415,7 +1415,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), 0);
   FillChar(IV[0], SizeOf(IV), 0);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCnLongWord32(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
@@ -1440,7 +1440,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), $FF);
   FillChar(IV[0], SizeOf(IV), $FF);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCnLongWord32(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
@@ -1467,7 +1467,7 @@ var
   List: TStringList;
   I: Integer;
 begin
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCnLongWord32(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
@@ -1495,7 +1495,7 @@ var
   KeyStream: array[0..1999] of DWORD;
   List: TStringList;
 begin
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2000);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCnLongWord32(@KeyStream[0]), 2000);
 
   List := TStringList.Create;
   List.Add('$' + IntToHex(KeyStream[0], 2));
