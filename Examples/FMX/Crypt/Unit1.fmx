@@ -1,85 +1,42 @@
 object FormCrypt: TFormCrypt
-  Left = 198
-  Top = 0
+  Left = 318
+  Top = 221
   BorderStyle = Single
-  Caption = 'Crypt/Decrypt DEMO'
-  ClientHeight = 417
-  ClientWidth = 1232
-  Fill.Color = xFFF0F0F0
-  Fill.Kind = Solid
+  Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
+  ClientHeight = 437
+  ClientWidth = 1309
   Position = ScreenCenter
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop, iPhone, iPad]
   OnCreate = FormCreate
-  Left = 198
+  Left = 318
+  Top = 221
   DesignerMasterStyle = 0
   object PageControl1: TTabControl
     Position.X = 24.000000000000000000
     Position.Y = 24.000000000000000000
-    Size.Width = 1169.000000000000000000
+    Size.Width = 1249.000000000000000000
     Size.Height = 385.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 7
+    TabIndex = 0
     TabOrder = 0
     TabPosition = Top
-    Sizes = (
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s
-      1169s
-      357s)
     object tsDES: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = False
-      Size.Width = 46.000000000000000000
-      Size.Height = 28.000000000000000000
+      IsSelected = True
+      Size.Width = 44.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'DES'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpdES: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1193.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'DES'
@@ -116,6 +73,22 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
           Text = 'Origin:'
         end
+        object lblDESIv: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 142.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object lblDesPadding: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 162.000000000000000000
+          Size.Width = 42.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Padding:'
+        end
         object edtDesFrom: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 0
@@ -126,7 +99,7 @@ object FormCrypt: TFormCrypt
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
-        object edtKey: TEdit
+        object edtDESKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 1
           Text = '123456'
@@ -142,13 +115,13 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 2
+          TabOrder = 3
           Text = 'DES Crypt'
           OnClick = btnDesCryptClick
         end
-        object edtCode: TEdit
+        object edtDESCode: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 3
+          TabOrder = 7
           Position.X = 72.000000000000000000
           Position.Y = 160.000000000000000000
           Size.Width = 169.000000000000000000
@@ -161,18 +134,244 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 4
+          TabOrder = 9
           Text = 'DES Decrypt'
           OnClick = btnDesDecryptClick
         end
-        object edtOrigin: TEdit
+        object edtDesOrigin: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 5
+          TabOrder = 10
           Position.X = 72.000000000000000000
           Position.Y = 244.000000000000000000
           Size.Width = 169.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
+        end
+        object edtDESIv: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '0123456789ABCDEF'
+          Position.X = 264.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object rbDESCbc: TRadioButton
+          Position.X = 232.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'CBC'
+        end
+        object rbDESEcb: TRadioButton
+          Position.X = 168.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'ECB'
+        end
+        object chkDESUseTBytes: TCheckBox
+          Position.X = 352.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Use TBytes'
+        end
+        object cbbDesPadding: TComboBox
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+          ItemHeight = 13.000000000000000000
+          Position.X = 320.000000000000000000
+          Position.Y = 160.000000000000000000
+          Size.Width = 145.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+        end
+      end
+    end
+    object ts3DES: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 19
+      Size.Width = 51.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = '3DES'
+      object grp3Des: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
+        Position.X = 24.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 1193.000000000000000000
+        Size.Height = 289.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'DES'
+        TabOrder = 0
+        object lbl3DesFrom: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 36.000000000000000000
+          Size.Width = 28.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'From:'
+        end
+        object lbl3DesKey: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 22.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Key:'
+        end
+        object lbl3DesCode: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 164.000000000000000000
+          Size.Width = 29.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Code:'
+        end
+        object lbl3DesOrigin: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 248.000000000000000000
+          Size.Width = 32.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Origin:'
+        end
+        object lbl3DesIv: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 142.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object lbl3DesPadding: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 162.000000000000000000
+          Size.Width = 42.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Padding:'
+        end
+        object edt3DesFrom: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'Sample Text'
+          Position.X = 72.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edt3DesKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = '123456'
+          Position.X = 72.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btn3DesCrypt: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 112.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = '3DES Crypt'
+          OnClick = btn3DesCryptClick
+        end
+        object edt3DesCode: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 7
+          Position.X = 72.000000000000000000
+          Position.Y = 160.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btn3DesDecrypt: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 200.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = '3DES Decrypt'
+          OnClick = btn3DesDecryptClick
+        end
+        object edt3DesOrigin: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 10
+          Position.X = 72.000000000000000000
+          Position.Y = 244.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edt3DesIv: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '0123456789ABCDEF'
+          Position.X = 264.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object rb3DesCBC: TRadioButton
+          Position.X = 232.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'CBC'
+        end
+        object rb3DesECB: TRadioButton
+          Position.X = 168.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'ECB'
+        end
+        object chk3DESUseTBytes: TCheckBox
+          Position.X = 352.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Use TBytes'
+        end
+        object cbb3DesPadding: TComboBox
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+          ItemHeight = 13.000000000000000000
+          Position.X = 320.000000000000000000
+          Position.Y = 160.000000000000000000
+          Size.Width = 145.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
         end
       end
     end
@@ -182,19 +381,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 1
-      Size.Width = 51.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 50.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'MD5'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpMd5: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'MD5'
@@ -238,7 +434,7 @@ object FormCrypt: TFormCrypt
         object pnlMd5: TPanel
           Position.X = 24.000000000000000000
           Position.Y = 136.000000000000000000
-          Size.Width = 369.000000000000000000
+          Size.Width = 377.000000000000000000
           Size.Height = 41.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 5
@@ -292,19 +488,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 2
-      Size.Width = 63.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 62.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'Base64'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object GroupBox1: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1193.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'Base64'
@@ -355,7 +548,7 @@ object FormCrypt: TFormCrypt
         end
         object edtBase64Result: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 3
+          TabOrder = 4
           Position.X = 72.000000000000000000
           Position.Y = 140.000000000000000000
           Size.Width = 169.000000000000000000
@@ -368,13 +561,13 @@ object FormCrypt: TFormCrypt
           Size.Width = 105.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 4
+          TabOrder = 5
           Text = 'Base64 Decode'
           OnClick = btnBase64DecodeClick
         end
         object edtBase64Decode: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 6
+          TabOrder = 7
           Position.X = 72.000000000000000000
           Position.Y = 244.000000000000000000
           Size.Width = 169.000000000000000000
@@ -387,7 +580,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 2
+          TabOrder = 3
           Text = 'File Base64'
           OnClick = btnBase64FileClick
         end
@@ -397,9 +590,18 @@ object FormCrypt: TFormCrypt
           Size.Width = 121.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 5
+          TabOrder = 6
           Text = 'Base64 Decode to File'
           OnClick = btnDeBase64FileClick
+        end
+        object chkBase64UseTBytes: TCheckBox
+          Position.X = 320.000000000000000000
+          Position.Y = 84.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Use TBytes'
         end
       end
     end
@@ -409,22 +611,19 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 3
-      Size.Width = 61.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 89.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
-      Text = 'CRC32'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
+      Text = 'CRC8/16/32'
       object grpCRC32: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
-        Text = 'CRC32'
+        Text = 'CRC8/16/32'
         TabOrder = 0
         object lblCRC: TLabel
           Position.X = 24.000000000000000000
@@ -465,10 +664,10 @@ object FormCrypt: TFormCrypt
         object pnlCRC32: TPanel
           Position.X = 24.000000000000000000
           Position.Y = 144.000000000000000000
-          Size.Width = 369.000000000000000000
+          Size.Width = 385.000000000000000000
           Size.Height = 41.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 4
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnFileCRC32: TButton
@@ -477,7 +676,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 5
+          TabOrder = 7
           Text = 'File CRC32'
           OnClick = btnFileCRC32Click
         end
@@ -497,9 +696,49 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 3
+          TabOrder = 5
           Text = 'CRC32 Hmac'
           OnClick = btnCRC32HmacClick
+        end
+        object btnCRC16: TButton
+          Position.X = 152.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'CRC16'
+          OnClick = btnCRC16Click
+        end
+        object btnFileCRC16: TButton
+          Position.X = 152.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'File CRC16'
+          OnClick = btnFileCRC16Click
+        end
+        object btnCRC8: TButton
+          Position.X = 232.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'CRC8'
+          OnClick = btnCRC8Click
+        end
+        object btnFileCRC8: TButton
+          Position.X = 232.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'File CRC8'
+          OnClick = btnFileCRC8Click
         end
       end
     end
@@ -509,19 +748,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 4
-      Size.Width = 61.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 59.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'CRC64'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grp1: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'CRC64'
@@ -565,7 +801,7 @@ object FormCrypt: TFormCrypt
         object pnlCRC64: TPanel
           Position.X = 24.000000000000000000
           Position.Y = 144.000000000000000000
-          Size.Width = 233.000000000000000000
+          Size.Width = 345.000000000000000000
           Size.Height = 41.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 4
@@ -609,19 +845,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 5
-      Size.Width = 54.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 53.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA1'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSha1: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1113.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA1'
@@ -719,19 +952,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 6
-      Size.Width = 49.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SM3'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSM3: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1193.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SM3'
@@ -747,7 +977,7 @@ object FormCrypt: TFormCrypt
         object lblSm3Result: TLabel
           Position.X = 16.000000000000000000
           Position.Y = 136.000000000000000000
-          Size.Width = 393.000000000000000000
+          Size.Width = 449.000000000000000000
           Size.Height = 41.000000000000000000
           Size.PlatformDefault = False
           OnDblClick = ResultDblClick
@@ -826,24 +1056,21 @@ object FormCrypt: TFormCrypt
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       ImageIndex = 7
-      Size.Width = 49.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SM4'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSM4: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1193.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
-        Text = 'SM3'
+        Text = 'SM4'
         TabOrder = 0
         object lblSm4: TLabel
           Position.X = 24.000000000000000000
@@ -877,6 +1104,22 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
           Text = 'Code:'
         end
+        object lblSM4Iv: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 148.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Iv for CBC: 32 Hex (16 Bytes):'
+        end
+        object lblSm4Padding: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 162.000000000000000000
+          Size.Width = 42.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Padding:'
+        end
         object edtSm4: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 0
@@ -893,7 +1136,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 2
+          TabOrder = 3
           Text = 'SM4 Encrypt'
           OnClick = btnSm4Click
         end
@@ -909,7 +1152,7 @@ object FormCrypt: TFormCrypt
         end
         object edtSm4Dec: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 7
+          TabOrder = 12
           Position.X = 72.000000000000000000
           Position.Y = 244.000000000000000000
           Size.Width = 169.000000000000000000
@@ -922,13 +1165,13 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 6
+          TabOrder = 11
           Text = 'SM4 Decrypt'
           OnClick = btnSm4DecClick
         end
         object edtSm4Code: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 5
+          TabOrder = 9
           Position.X = 72.000000000000000000
           Position.Y = 160.000000000000000000
           Size.Width = 169.000000000000000000
@@ -941,17 +1184,66 @@ object FormCrypt: TFormCrypt
           Size.Width = 57.000000000000000000
           Size.Height = 17.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 3
+          TabOrder = 4
           Text = 'ECB'
         end
-        object rbSm4CBC: TRadioButton
+        object rbSm4Cbc: TRadioButton
           Position.X = 232.000000000000000000
           Position.Y = 116.000000000000000000
           Size.Width = 57.000000000000000000
           Size.Height = 17.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 4
+          TabOrder = 5
           Text = 'CBC'
+        end
+        object edtSM4Iv: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '0123456789ABCDEFFEDCBA9876543210'
+          Position.X = 264.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object chkSM4UseTBytes: TCheckBox
+          Position.X = 352.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Use TBytes'
+        end
+        object cbbSm4Padding: TComboBox
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+          ItemHeight = 13.000000000000000000
+          Position.X = 320.000000000000000000
+          Position.Y = 160.000000000000000000
+          Size.Width = 145.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+        end
+        object rbSm4Cfb: TRadioButton
+          Position.X = 168.000000000000000000
+          Position.Y = 140.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'CFB'
+        end
+        object rbSm4Ofb: TRadioButton
+          Position.X = 232.000000000000000000
+          Position.Y = 140.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'OFB'
         end
       end
     end
@@ -961,19 +1253,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 8
-      Size.Width = 45.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 44.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'AES'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpAes: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1193.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'AES'
@@ -1018,6 +1307,22 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
           Text = 'KeyBit:'
         end
+        object lblAesIv: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 148.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Iv for CBC: 32 Hex (16 Bytes):'
+        end
+        object lblAesPadding: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 178.000000000000000000
+          Size.Width = 42.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Padding:'
+        end
         object edtAes: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 0
@@ -1034,7 +1339,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 3
+          TabOrder = 4
           Text = 'AES Encrypt'
           OnClick = btnAesEncryptClick
         end
@@ -1050,7 +1355,7 @@ object FormCrypt: TFormCrypt
         end
         object edtAesDecrypt: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 8
+          TabOrder = 13
           Position.X = 72.000000000000000000
           Position.Y = 244.000000000000000000
           Size.Width = 169.000000000000000000
@@ -1063,13 +1368,13 @@ object FormCrypt: TFormCrypt
           Size.Width = 75.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 7
+          TabOrder = 12
           Text = 'AES Decrypt'
           OnClick = btnAesDecryptClick
         end
         object edtAesResult: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 6
+          TabOrder = 10
           Position.X = 72.000000000000000000
           Position.Y = 176.000000000000000000
           Size.Width = 169.000000000000000000
@@ -1077,22 +1382,22 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
         end
         object rbAesecb: TRadioButton
+          IsChecked = True
           Position.X = 168.000000000000000000
           Position.Y = 132.000000000000000000
-          Size.Width = 57.000000000000000000
+          Size.Width = 49.000000000000000000
           Size.Height = 17.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 4
+          TabOrder = 5
           Text = 'ECB'
         end
         object rbAescbc: TRadioButton
-          IsChecked = True
           Position.X = 232.000000000000000000
           Position.Y = 132.000000000000000000
           Size.Width = 57.000000000000000000
           Size.Height = 17.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 5
+          TabOrder = 6
           Text = 'CBC'
         end
         object cbbAesKeyBitType: TComboBox
@@ -1106,7 +1411,56 @@ object FormCrypt: TFormCrypt
           Size.Width = 169.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
+          TabOrder = 3
+        end
+        object edtAesIv: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 2
+          Text = '0123456789ABCDEFFEDCBA9876543210'
+          Position.X = 264.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object chkAESUseTBytes: TCheckBox
+          Position.X = 352.000000000000000000
+          Position.Y = 132.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Use TBytes'
+        end
+        object cbbAesPadding: TComboBox
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+          ItemHeight = 13.000000000000000000
+          Position.X = 320.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 145.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+        end
+        object rbAescfb: TRadioButton
+          Position.X = 168.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'CFB'
+        end
+        object rbAesofb: TRadioButton
+          Position.X = 232.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'OFB'
         end
       end
     end
@@ -1117,18 +1471,15 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 10
       Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA224'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA224: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1177.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA224'
@@ -1226,19 +1577,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 9
-      Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 67.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA256'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA256: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA256'
@@ -1337,18 +1685,15 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 12
       Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA384'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA384: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA384'
@@ -1445,19 +1790,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 11
-      Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 67.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA512'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA512: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1113.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA512'
@@ -1555,18 +1897,15 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 10
       Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_224'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA3_224: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1113.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA3_224'
@@ -1664,19 +2003,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 9
-      Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 79.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_256'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA3_256: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA3_256'
@@ -1775,18 +2111,15 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 12
       Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_384'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA3_384: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1536.000000000000000000
+        Size.Width = 1097.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA3_384'
@@ -1883,19 +2216,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 11
-      Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 79.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_512'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpSHA3_512: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1113.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'SHA3_512'
@@ -1992,19 +2322,16 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 13
-      Size.Width = 48.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 46.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'ZUC'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpZuc: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 1552.000000000000000000
+        Size.Width = 1113.000000000000000000
         Size.Height = 289.000000000000000000
         Size.PlatformDefault = False
         Text = 'ZUC'
@@ -2095,14 +2422,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 18
-      Size.Width = 45.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 44.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'TEA'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpTea: TGroupBox
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
@@ -2223,7 +2547,7 @@ object FormCrypt: TFormCrypt
         end
         object edtTeaEnc1: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 7
+          TabOrder = 8
           Position.X = 122.000000000000000000
           Position.Y = 152.000000000000000000
           Size.Width = 82.000000000000000000
@@ -2232,7 +2556,7 @@ object FormCrypt: TFormCrypt
         end
         object edtTeaEnc2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 8
+          TabOrder = 9
           Position.X = 220.000000000000000000
           Position.Y = 152.000000000000000000
           Size.Width = 82.000000000000000000
@@ -2245,7 +2569,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 79.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 9
+          TabOrder = 7
           Text = 'Tea Decrypt'
           OnClick = btnTeaDecClick
         end
@@ -2261,7 +2585,7 @@ object FormCrypt: TFormCrypt
         end
         object edtXTeaEnc1: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 11
+          TabOrder = 12
           Position.X = 122.000000000000000000
           Position.Y = 192.000000000000000000
           Size.Width = 82.000000000000000000
@@ -2270,7 +2594,7 @@ object FormCrypt: TFormCrypt
         end
         object edtXTeaEnc2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 12
+          TabOrder = 13
           Position.X = 220.000000000000000000
           Position.Y = 192.000000000000000000
           Size.Width = 82.000000000000000000
@@ -2283,7 +2607,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 79.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 13
+          TabOrder = 11
           Text = 'XTea Decrypt'
           OnClick = btnXTeaDecClick
         end
@@ -2299,7 +2623,7 @@ object FormCrypt: TFormCrypt
         end
         object edtXXTeaEnc1: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 15
+          TabOrder = 16
           Position.X = 122.000000000000000000
           Position.Y = 232.000000000000000000
           Size.Width = 82.000000000000000000
@@ -2308,7 +2632,7 @@ object FormCrypt: TFormCrypt
         end
         object edtXXTeaEnc2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
-          TabOrder = 16
+          TabOrder = 17
           Position.X = 220.000000000000000000
           Position.Y = 232.000000000000000000
           Size.Width = 82.000000000000000000
@@ -2321,7 +2645,7 @@ object FormCrypt: TFormCrypt
           Size.Width = 79.000000000000000000
           Size.Height = 25.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 17
+          TabOrder = 15
           Text = 'XXTea Decrypt'
           OnClick = btnXXTeaDecClick
         end
