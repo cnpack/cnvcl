@@ -1,45 +1,46 @@
 object FormPrime: TFormPrime
-  Left = 237
-  Top = 137
+  Left = 294
+  Top = 183
   BorderStyle = Single
   Caption = 'Prime Number Test'
   ClientHeight = 464
-  ClientWidth = 687
-  Fill.Color = xFFF0F0F0
-  Fill.Kind = Solid
+  ClientWidth = 773
   Position = ScreenCenter
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop, iPhone, iPad]
-  Left = 237
-  Top = 137
+  OnCreate = FormCreate
+  Left = 294
+  Top = 183
   DesignerMasterStyle = 0
   object pgc1: TTabControl
     Anchors = [akLeft, akTop, akRight, akBottom]
     Position.X = 16.000000000000000000
     Position.Y = 16.000000000000000000
-    Size.Width = 657.000000000000000000
+    Size.Width = 743.000000000000000000
     Size.Height = 429.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 1
+    TabIndex = 2
     TabOrder = 0
     TabPosition = Top
     Sizes = (
-      657s
-      403s
-      657s
-      403s
-      657s
-      403s
-      657s
-      403s)
+      743s
+      401s
+      743s
+      401s
+      743s
+      401s
+      743s
+      401s
+      743s
+      401s)
     object tsGenPrime: TTabItem
       CustomIcon = <
         item
         end>
       IsSelected = False
-      Size.Width = 129.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 136.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -69,16 +70,17 @@ object FormPrime: TFormPrime
       object mmoResult: TMemo
         Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
         DataDetectorTypes = []
+        ReadOnly = True
         TextSettings.WordWrap = True
         Anchors = [akLeft, akTop, akRight, akBottom]
         Position.X = 16.000000000000000000
         Position.Y = 56.000000000000000000
-        Size.Width = 1224.000000000000000000
-        Size.Height = 678.000000000000000000
+        Size.Width = 703.000000000000000000
+        Size.Height = 297.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 2
-        Viewport.Width = 1220.000000000000000000
-        Viewport.Height = 674.000000000000000000
+        Viewport.Width = 699.000000000000000000
+        Viewport.Height = 293.000000000000000000
       end
       object chkQuickGen: TCheckBox
         IsChecked = True
@@ -95,10 +97,10 @@ object FormPrime: TFormPrime
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       ImageIndex = 1
-      Size.Width = 62.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 68.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -112,7 +114,7 @@ object FormPrime: TFormPrime
         Size.Height = 13.000000000000000000
         Size.PlatformDefault = False
         Text = 'Check'
-        TabOrder = 8
+        TabOrder = 11
       end
       object lblInt64: TLabel
         Position.X = 16.000000000000000000
@@ -121,7 +123,7 @@ object FormPrime: TFormPrime
         Size.Height = 13.000000000000000000
         Size.PlatformDefault = False
         Text = 'Check'
-        TabOrder = 9
+        TabOrder = 12
       end
       object edtToPrime: TEdit
         Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -136,7 +138,7 @@ object FormPrime: TFormPrime
       object btnIsPrime: TButton
         Position.X = 208.000000000000000000
         Position.Y = 24.000000000000000000
-        Size.Width = 75.000000000000000000
+        Size.Width = 57.000000000000000000
         Size.Height = 25.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 1
@@ -166,7 +168,7 @@ object FormPrime: TFormPrime
       object btnCarmichael: TButton
         Position.X = 336.000000000000000000
         Position.Y = 64.000000000000000000
-        Size.Width = 297.000000000000000000
+        Size.Width = 137.000000000000000000
         Size.Height = 25.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 4
@@ -176,16 +178,17 @@ object FormPrime: TFormPrime
       object mmoCar: TMemo
         Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
         DataDetectorTypes = []
+        ReadOnly = True
         TextSettings.WordWrap = True
         Anchors = [akLeft, akTop, akRight, akBottom]
         Position.X = 16.000000000000000000
         Position.Y = 112.000000000000000000
-        Size.Width = 1224.000000000000000000
-        Size.Height = 622.000000000000000000
+        Size.Width = 703.000000000000000000
+        Size.Height = 241.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 5
-        Viewport.Width = 1220.000000000000000000
-        Viewport.Height = 618.000000000000000000
+        Viewport.Width = 699.000000000000000000
+        Viewport.Height = 237.000000000000000000
       end
       object btnGen64: TButton
         Position.X = 488.000000000000000000
@@ -207,15 +210,44 @@ object FormPrime: TFormPrime
         Text = 'Generate a Int32 Prime'
         OnClick = btnGenInt32PrimeClick
       end
+      object btnInt64AKS: TButton
+        Position.X = 488.000000000000000000
+        Position.Y = 64.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 8
+        Text = 'Int64 AKS'
+        OnClick = btnInt64AKSClick
+      end
+      object chkRaw: TCheckBox
+        Position.X = 272.000000000000000000
+        Position.Y = 28.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 9
+        Text = 'Raw'
+      end
+      object btnMoreAKS: TButton
+        Position.X = 568.000000000000000000
+        Position.Y = 64.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 10
+        Text = 'More AKS'
+        OnClick = btnMoreAKSClick
+      end
     end
     object tsMontgomery: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       ImageIndex = 2
-      Size.Width = 154.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 162.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -345,9 +377,9 @@ object FormPrime: TFormPrime
         Size.PlatformDefault = False
       end
       object btnMonPowerMod64: TButton
-        Position.X = 544.000000000000000000
+        Position.X = 552.000000000000000000
         Position.Y = 72.000000000000000000
-        Size.Width = 91.000000000000000000
+        Size.Width = 83.000000000000000000
         Size.Height = 21.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 5
@@ -479,8 +511,8 @@ object FormPrime: TFormPrime
         end>
       IsSelected = False
       ImageIndex = 3
-      Size.Width = 135.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 142.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -704,6 +736,91 @@ object FormPrime: TFormPrime
         TabOrder = 16
         Text = 'Rand'
         OnClick = btnDHRandClick
+      end
+    end
+    object tsCRT: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 4
+      Size.Width = 183.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'CRT && BSGS && Perfect Power'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object btnCRTTest: TButton
+        Position.X = 24.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Text = 'CRT Test'
+        OnClick = btnCRTTestClick
+      end
+      object btnCheckPrime: TButton
+        Position.X = 192.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 129.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Check Prime'
+        OnClick = btnCheckPrimeClick
+      end
+      object btnInt64BSGS: TButton
+        Position.X = 416.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 121.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Int64 BSGS'
+        OnClick = btnInt64BSGSClick
+      end
+      object edtPower: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 3
+        Text = '1350851717672992089'
+        Position.X = 24.000000000000000000
+        Position.Y = 72.000000000000000000
+        Size.Width = 121.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnIsPerfectPower: TButton
+        Position.X = 160.000000000000000000
+        Position.Y = 72.000000000000000000
+        Size.Width = 105.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Text = 'Is Perfect Power'
+        OnClick = btnIsPerfectPowerClick
+      end
+      object btnCombinatorialNumber: TButton
+        Position.X = 288.000000000000000000
+        Position.Y = 72.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = 'Combinatorial Numbers'
+        OnClick = btnCombinatorialNumberClick
+      end
+      object btnComNumMod: TButton
+        Position.X = 472.000000000000000000
+        Position.Y = 72.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Text = 'Combinatorial Numbers Mod'
+        OnClick = btnComNumModClick
       end
     end
   end
