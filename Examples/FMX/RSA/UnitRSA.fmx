@@ -1,47 +1,47 @@
 object FormRSA: TFormRSA
-  Left = 230
-  Top = 101
+  Left = 252
+  Top = 153
   BorderStyle = Single
   Caption = 'RSA Demo'
-  ClientHeight = 572
-  ClientWidth = 851
+  ClientHeight = 627
+  ClientWidth = 1041
   Position = ScreenCenter
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop, iPhone, iPad]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  Left = 230
-  Top = 101
+  Left = 252
+  Top = 153
   DesignerMasterStyle = 0
   object pgc1: TTabControl
     Anchors = [akLeft, akTop, akRight, akBottom]
     Position.X = 16.000000000000000000
     Position.Y = 16.000000000000000000
-    Size.Width = 817.000000000000000000
-    Size.Height = 534.000000000000000000
+    Size.Width = 1007.000000000000000000
+    Size.Height = 589.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 0
     TabPosition = Top
     Sizes = (
-      817s
-      508s
-      817s
-      508s
-      817s
-      508s
-      817s
-      508s
-      817s
-      508s)
+      1007s
+      561s
+      1007s
+      561s
+      1007s
+      561s
+      1007s
+      561s
+      1007s
+      561s)
     object tsInt64RSA: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = False
-      Size.Width = 72.000000000000000000
-      Size.Height = 26.000000000000000000
+      IsSelected = True
+      Size.Width = 78.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -51,7 +51,7 @@ object FormRSA: TFormRSA
       object grpKeys: TGroupBox
         Position.X = 16.000000000000000000
         Position.Y = 16.000000000000000000
-        Size.Width = 777.000000000000000000
+        Size.Width = 857.000000000000000000
         Size.Height = 233.000000000000000000
         Size.PlatformDefault = False
         Text = 'Keys:'
@@ -127,11 +127,12 @@ object FormRSA: TFormRSA
         end
         object edtPrime2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 1
           ReadOnly = True
           Position.X = 480.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 281.000000000000000000
+          Size.Width = 361.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -140,11 +141,12 @@ object FormRSA: TFormRSA
         end
         object edtPrivProduct: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 52.000000000000000000
-          Size.Width = 633.000000000000000000
+          Size.Width = 713.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -153,11 +155,12 @@ object FormRSA: TFormRSA
         end
         object edtPrivExp: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 3
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 84.000000000000000000
-          Size.Width = 633.000000000000000000
+          Size.Width = 713.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -166,11 +169,12 @@ object FormRSA: TFormRSA
         end
         object edtPubProduct: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 4
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 124.000000000000000000
-          Size.Width = 633.000000000000000000
+          Size.Width = 713.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -179,11 +183,12 @@ object FormRSA: TFormRSA
         end
         object edtPubExp: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 156.000000000000000000
-          Size.Width = 633.000000000000000000
+          Size.Width = 713.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -223,8 +228,8 @@ object FormRSA: TFormRSA
       object grpCrypt: TGroupBox
         Anchors = [akLeft, akRight, akBottom]
         Position.X = 16.000000000000000000
-        Position.Y = 823.000000000000000000
-        Size.Width = 1544.000000000000000000
+        Position.Y = 392.000000000000000000
+        Size.Width = 967.000000000000000000
         Size.Height = 121.000000000000000000
         Size.PlatformDefault = False
         Text = 'Crypt'
@@ -313,15 +318,25 @@ object FormRSA: TFormRSA
           Text = 'UInt64'
         end
       end
+      object btnInt64Sample: TButton
+        Position.X = 896.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Int64 Sample'
+        OnClick = btnInt64SampleClick
+      end
     end
     object tsRSA: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       ImageIndex = 1
-      Size.Width = 109.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 115.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -331,7 +346,7 @@ object FormRSA: TFormRSA
       object grpBNKeys: TGroupBox
         Position.X = 16.000000000000000000
         Position.Y = 16.000000000000000000
-        Size.Width = 777.000000000000000000
+        Size.Width = 969.000000000000000000
         Size.Height = 321.000000000000000000
         Size.PlatformDefault = False
         Text = 'Big Number Keys'
@@ -393,7 +408,7 @@ object FormRSA: TFormRSA
           Text = 'Prime Bits:'
         end
         object lblSaveFormat: TLabel
-          Position.X = 656.000000000000000000
+          Position.X = 768.000000000000000000
           Position.Y = 284.000000000000000000
           Size.Width = 35.000000000000000000
           Size.Height = 13.000000000000000000
@@ -416,13 +431,30 @@ object FormRSA: TFormRSA
           Size.PlatformDefault = False
           Text = 'Modulus Bits:'
         end
+        object lblSaveCrypt: TLabel
+          Position.X = 878.000000000000000000
+          Position.Y = 284.000000000000000000
+          Size.Width = 4.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '*'
+        end
+        object lblKeyHash: TLabel
+          Position.X = 584.000000000000000000
+          Position.Y = 284.000000000000000000
+          Size.Width = 46.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'KeyHash:'
+        end
         object edtBNPrime1: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 20.000000000000000000
-          Size.Width = 561.000000000000000000
+          Size.Width = 745.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -431,11 +463,12 @@ object FormRSA: TFormRSA
         end
         object edtBNPrime2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 3
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 52.000000000000000000
-          Size.Width = 561.000000000000000000
+          Size.Width = 745.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -454,11 +487,12 @@ object FormRSA: TFormRSA
         end
         object edtBNPrivExp: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 148.000000000000000000
-          Size.Width = 633.000000000000000000
+          Size.Width = 825.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -467,11 +501,12 @@ object FormRSA: TFormRSA
         end
         object edtBNPubExp: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 8
           ReadOnly = True
           Position.X = 128.000000000000000000
           Position.Y = 244.000000000000000000
-          Size.Width = 569.000000000000000000
+          Size.Width = 761.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
           ParentShowHint = False
@@ -483,15 +518,16 @@ object FormRSA: TFormRSA
           DataDetectorTypes = []
           TextSettings.WordWrap = True
           OnChange = mmoBNChange
+          Anchors = [akLeft, akTop, akRight]
           Position.X = 128.000000000000000000
           Position.Y = 88.000000000000000000
-          Size.Width = 633.000000000000000000
+          Size.Width = 825.000000000000000000
           Size.Height = 45.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 4
           ParentShowHint = False
           ShowHint = True
-          Viewport.Width = 629.000000000000000000
+          Viewport.Width = 821.000000000000000000
           Viewport.Height = 41.000000000000000000
         end
         object mmoBNPubProduct: TMemo
@@ -499,18 +535,22 @@ object FormRSA: TFormRSA
           DataDetectorTypes = []
           TextSettings.WordWrap = True
           OnChange = mmoBNChange
+          Anchors = [akLeft, akTop, akRight]
           Position.X = 128.000000000000000000
           Position.Y = 184.000000000000000000
-          Size.Width = 569.000000000000000000
+          Size.Width = 761.000000000000000000
           Size.Height = 45.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 6
           ParentShowHint = False
           ShowHint = True
-          Viewport.Width = 565.000000000000000000
+          Viewport.Width = 757.000000000000000000
           Viewport.Height = 41.000000000000000000
         end
-        object cbbBits: TComboBox
+        object cbbBits: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          ItemHeight = 13.000000000000000000
           Items.Strings = (
             '4096'
             '2048'
@@ -519,13 +559,12 @@ object FormRSA: TFormRSA
             '256'
             '128'
             '64')
-          ItemHeight = 13.000000000000000000
+          ItemIndex = -1
           Position.X = 440.000000000000000000
           Position.Y = 280.000000000000000000
           Size.Width = 57.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 13
         end
         object btnBNLoadKeys: TButton
           Hint = 'Load Private and Public Keys from PKCS#1 or PKCS#8 PEM File'
@@ -542,7 +581,7 @@ object FormRSA: TFormRSA
         end
         object btnBNSaveKeys: TButton
           Hint = 'Save Private and Public Keys to PEM File'
-          Position.X = 584.000000000000000000
+          Position.X = 696.000000000000000000
           Position.Y = 280.000000000000000000
           Size.Width = 67.000000000000000000
           Size.Height = 21.000000000000000000
@@ -554,8 +593,9 @@ object FormRSA: TFormRSA
           OnClick = btnBNSaveKeysClick
         end
         object btnBNLoadPub: TButton
+          Anchors = [akTop, akRight]
           Hint = 'Load Public Keys from  PKCS#1 or PKCS#8 Public PEM File'
-          Position.X = 704.000000000000000000
+          Position.X = 896.000000000000000000
           Position.Y = 184.000000000000000000
           Size.Width = 57.000000000000000000
           Size.Height = 21.000000000000000000
@@ -567,8 +607,9 @@ object FormRSA: TFormRSA
           OnClick = btnBNLoadPubClick
         end
         object btnSavePub: TButton
+          Anchors = [akTop, akRight]
           Hint = 'Save Public Keys to Public PEM File'
-          Position.X = 704.000000000000000000
+          Position.X = 896.000000000000000000
           Position.Y = 244.000000000000000000
           Size.Width = 57.000000000000000000
           Size.Height = 21.000000000000000000
@@ -579,20 +620,23 @@ object FormRSA: TFormRSA
           ShowHint = True
           OnClick = btnSavePubClick
         end
-        object cbbSaveFormat: TComboBox
+        object cbbSaveFormat: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 16
+          ItemHeight = 13.000000000000000000
           Items.Strings = (
             'PKCS#1'
             'PKCS#8')
-          ItemHeight = 13.000000000000000000
-          Position.X = 696.000000000000000000
+          ItemIndex = -1
+          Position.X = 808.000000000000000000
           Position.Y = 280.000000000000000000
           Size.Width = 65.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 16
         end
         object btnBNSendR: TButton
-          Position.X = 696.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 888.000000000000000000
           Position.Y = 20.000000000000000000
           Size.Width = 65.000000000000000000
           Size.Height = 21.000000000000000000
@@ -602,7 +646,8 @@ object FormRSA: TFormRSA
           OnClick = btnBNSendRClick
         end
         object btnPQ: TButton
-          Position.X = 696.000000000000000000
+          Anchors = [akTop, akRight]
+          Position.X = 888.000000000000000000
           Position.Y = 50.000000000000000000
           Size.Width = 65.000000000000000000
           Size.Height = 21.000000000000000000
@@ -611,7 +656,10 @@ object FormRSA: TFormRSA
           Text = 'Send p, q'
           OnClick = btnPQClick
         end
-        object cbbMBits: TComboBox
+        object cbbMBits: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 11
+          ItemHeight = 13.000000000000000000
           Items.Strings = (
             '4096'
             '2048'
@@ -619,13 +667,12 @@ object FormRSA: TFormRSA
             '512'
             '256'
             '128')
-          ItemHeight = 13.000000000000000000
+          ItemIndex = -1
           Position.X = 200.000000000000000000
           Position.Y = 280.000000000000000000
           Size.Width = 57.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 11
         end
         object btnGenByM: TButton
           Position.X = 16.000000000000000000
@@ -637,30 +684,62 @@ object FormRSA: TFormRSA
           Text = 'Generate RSA Keys'
           OnClick = btnGenByMClick
         end
+        object cbbSaveCrypt: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 17
+          ItemHeight = 13.000000000000000000
+          Items.Strings = (
+            'NO Crypt'
+            'DES'
+            '3DES'
+            'AES128'
+            'AES192'
+            'AES256')
+          ItemIndex = -1
+          Position.X = 888.000000000000000000
+          Position.Y = 280.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object cbbLoadKeyHash: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 18
+          ItemHeight = 13.000000000000000000
+          Items.Strings = (
+            'MD5'
+            'SHA256')
+          ItemIndex = -1
+          Position.X = 632.000000000000000000
+          Position.Y = 280.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
       end
       object pgc2: TTabControl
         Anchors = [akLeft, akTop, akRight, akBottom]
         Images = ilCrypt
         Position.X = 16.000000000000000000
         Position.Y = 344.000000000000000000
-        Size.Width = 1544.000000000000000000
-        Size.Height = 608.000000000000000000
+        Size.Width = 967.000000000000000000
+        Size.Height = 177.000000000000000000
         Size.PlatformDefault = False
-        TabIndex = 2
+        TabIndex = 0
         TabOrder = 1
         TabPosition = None
         Sizes = (
-          1544s
-          608s
-          1544s
-          608s
-          1544s
-          608s)
+          967s
+          177s
+          967s
+          177s
+          967s
+          177s)
         object tsData: TTabItem
           CustomIcon = <
             item
             end>
-          IsSelected = False
+          IsSelected = True
           Size.Width = 8.000000000000000000
           Size.Height = 8.000000000000000000
           Size.PlatformDefault = False
@@ -767,7 +846,7 @@ object FormRSA: TFormRSA
             Size.Height = 13.000000000000000000
             Size.PlatformDefault = False
             Text = 'Original File:'
-            TabOrder = 8
+            TabOrder = 9
           end
           object lblFile2: TLabel
             Position.X = 10.000000000000000000
@@ -776,7 +855,7 @@ object FormRSA: TFormRSA
             Size.Height = 13.000000000000000000
             Size.PlatformDefault = False
             Text = 'Encrypted File:'
-            TabOrder = 9
+            TabOrder = 10
           end
           object edtFile1: TEdit
             Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -863,12 +942,21 @@ object FormRSA: TFormRSA
             TextSettings.FontColor = claGray
             OnClick = btnDePubClick
           end
+          object chkOAEP: TCheckBox
+            Position.X = 392.000000000000000000
+            Position.Y = 42.000000000000000000
+            Size.Width = 97.000000000000000000
+            Size.Height = 17.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 8
+            Text = 'OAEP Padding'
+          end
         end
         object tsSign: TTabItem
           CustomIcon = <
             item
             end>
-          IsSelected = True
+          IsSelected = False
           ImageIndex = 2
           Size.Width = 8.000000000000000000
           Size.Height = 8.000000000000000000
@@ -897,7 +985,8 @@ object FormRSA: TFormRSA
             TabOrder = 9
           end
           object lblSigMethod: TLabel
-            Position.X = 472.000000000000000000
+            Anchors = [akTop, akRight]
+            Position.X = 674.000000000000000000
             Position.Y = 42.000000000000000000
             Size.Width = 94.000000000000000000
             Size.Height = 13.000000000000000000
@@ -907,15 +996,17 @@ object FormRSA: TFormRSA
           end
           object edtSignFile: TEdit
             Touch.InteractiveGestures = [LongTap, DoubleTap]
+            Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
             Position.X = 88.000000000000000000
             Position.Y = 8.000000000000000000
-            Size.Width = 553.000000000000000000
+            Size.Width = 747.000000000000000000
             Size.Height = 21.000000000000000000
             Size.PlatformDefault = False
           end
           object btnSignBrowse: TButton
-            Position.X = 656.000000000000000000
+            Anchors = [akTop, akRight]
+            Position.X = 842.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 75.000000000000000000
             Size.Height = 21.000000000000000000
@@ -936,16 +1027,18 @@ object FormRSA: TFormRSA
           end
           object edtSigFile: TEdit
             Touch.InteractiveGestures = [LongTap, DoubleTap]
+            Anchors = [akLeft, akTop, akRight]
             TabOrder = 3
             ReadOnly = True
             Position.X = 88.000000000000000000
             Position.Y = 72.000000000000000000
-            Size.Width = 553.000000000000000000
+            Size.Width = 747.000000000000000000
             Size.Height = 21.000000000000000000
             Size.PlatformDefault = False
           end
           object btnSignatureBrowse: TButton
-            Position.X = 656.000000000000000000
+            Anchors = [akTop, akRight]
+            Position.X = 842.000000000000000000
             Position.Y = 72.000000000000000000
             Size.Width = 75.000000000000000000
             Size.Height = 21.000000000000000000
@@ -975,19 +1068,22 @@ object FormRSA: TFormRSA
             Text = 'Verify Using Public Key'
             OnClick = btnPubVerifyClick
           end
-          object cbbSig: TComboBox
+          object cbbSig: TComboEdit
+            Touch.InteractiveGestures = [LongTap, DoubleTap]
+            Anchors = [akTop, akRight]
+            TabOrder = 7
+            ItemHeight = 13.000000000000000000
             Items.Strings = (
               '<None>'
               'MD5'
               'SHA1'
               'SHA256')
-            ItemHeight = 13.000000000000000000
-            Position.X = 576.000000000000000000
+            ItemIndex = -1
+            Position.X = 778.000000000000000000
             Position.Y = 40.000000000000000000
             Size.Width = 65.000000000000000000
             Size.Height = 21.000000000000000000
             Size.PlatformDefault = False
-            TabOrder = 7
           end
         end
       end
@@ -998,8 +1094,8 @@ object FormRSA: TFormRSA
         end>
       IsSelected = False
       ImageIndex = 2
-      Size.Width = 147.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 155.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1151,8 +1247,8 @@ object FormRSA: TFormRSA
         end>
       IsSelected = False
       ImageIndex = 3
-      Size.Width = 180.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 189.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1361,8 +1457,8 @@ object FormRSA: TFormRSA
         end>
       IsSelected = False
       ImageIndex = 4
-      Size.Width = 96.000000000000000000
-      Size.Height = 26.000000000000000000
+      Size.Width = 102.000000000000000000
+      Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
@@ -1594,19 +1690,21 @@ object FormRSA: TFormRSA
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
-        object cbbDHBits: TComboBox
+        object cbbDHBits: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 15
+          ItemHeight = 13.000000000000000000
           Items.Strings = (
             '32'
             '64'
             '128'
             '256')
-          ItemHeight = 13.000000000000000000
+          ItemIndex = -1
           Position.X = 72.000000000000000000
           Position.Y = 172.000000000000000000
           Size.Width = 145.000000000000000000
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 15
         end
         object btnDHRand: TButton
           Position.X = 40.000000000000000000
@@ -1658,8 +1756,94 @@ object FormRSA: TFormRSA
     Top = 454
   end
   object ilCrypt: TImageList
-    Source = <>
-    Destination = <>
+    Source = <
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              007449444154384FED90B10D80300C04DF8829B302EB40499955188196D27471
+              473A780369111215524EB23F2F4576F2B2137C4042E85F0D88B18388DCEEC277
+              B77E18C60E390389CDE8B70D30FA4C9FA8531FFDDA49797019D6785BD430B35C
+              7531ACACA40AD504A33EF1F90B35C41AA2F3FB108103B91EBA2FC715C9760000
+              000049454E44AE426082}
+          end>
+        Name = 'Item 0'
+      end
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              015A49444154384F95932D57844014865F3D0668D02412D946C44824EA4FB01A
+              6D54F90946AB6D376E2442341227421BDA4ED37B670666503C1E9F73EE7CDDBD
+              1FEF0C7BF5498038F7131004BC742865663E9723BA7EC44B5D9A33CB264199DF
+              C286FC400C138E9D4048C9EAC7DC9E02D776A622812E14FD626023E421C7F3EB
+              87D9106B02B5B4BB83F6D0A0D48532CC18E2144F4DAF7D377AF4787B370E9F87
+              FB024112214D4228D121F66A7977205015A93E5CE0A66632AA6BF664B39C300A
+              81A197A8EBCA49587F65F18359DECC26394544DDB84BF424B0735FC27792C225
+              7012DA015599E9CA9C8A8B71655EEBD4D48AE9C6EC8753BB95C00E3DDBF55E30
+              4B9A9733CB46023B8EA7BF2520CBECC24B602E0AB82BF34D65A99D662F6D9B66
+              34B857607C8F6D7B2FD87E949AB5830B79B85AD7BACF740F1DEC49D876401C48
+              424ACFC44F15E73942320E509EF9FFDAF5199BE6AC0FFE435D57F80260B8B396
+              309BB7EE0000000049454E44AE426082}
+          end>
+        Name = 'Item 1'
+      end
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              01B549444154384FA5522170DB40105C770A6416330B062A4C6611145499C364
+              A8B09429CC862E6B59C362A83289D92C850A93989E59F0C35E4CCF2EF792E266
+              5A6B3AD3EECCEBEEFEE7F6F676342106FE031F86F8CF185550D702E23943A3FA
+              BAD52DB4D65C4B04AB08AEEB77F7E7099A03369B04DBED6CB860680B5A359052
+              213B70EDD8D00BFBCF159AE6055F36BBAE394B87F1A6B9D51C1566538D382861
+              4F158AFA2726EBC7E349C1E2923F2F1996BEC2C34EE0EECEC6A720479A785DB3
+              6672B44CDAD4D8491F07ABEE155C5D5DC25F4CBBE6C0D7B8DF94B8091CDCDE4B
+              EC0F1E562B01C99ED4550521B89957C8CB867DD13DC185C5E688049EAB79F71C
+              B6BBC2D78712EB68C6CD12E9AEC2CDE71ADEAD46F4AD81501EACF99C4D653579
+              51191F492949DB3824298F5D5D1439C5514055EAD0FCC2A2280CE9FB63D2BD19
+              244F0939D19C4E04E790A67B8A439FAAA324A988FC6039BCFC02F27C9CA06D59
+              D9708E23041F611917801FD97317C3E5F5297F0FD7BB1EB2DF30B682996A649B
+              C995ECCF790503FEA6C07147141445EFFA1B78F0E9F070929C5446C588079338
+              5E931025530D6618BCA5FCF7BE87299FF6695F74005E0192FEBBE267EDC8EC00
+              00000049454E44AE426082}
+          end>
+        Name = 'Item 2'
+      end>
+    Destination = <
+      item
+        Layers = <
+          item
+            Name = 'Item 0'
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'Item 1'
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'Item 2'
+          end>
+      end>
     Left = 228
     Top = 152
   end

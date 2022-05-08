@@ -3,11 +3,10 @@ unit UnitRSA;
 interface
 
 uses
-  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Controls, FMX.Dialogs, FMX.Edit, FMX.Forms, FMX.Graphics, FMX.ImgList,
-  FMX.ListBox, FMX.Memo, FMX.StdCtrls, FMX.TabControl, FMX.Types,
-  CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber, System.ImageList,
-  FMX.ScrollBox, FMX.Controls.Presentation {$IFNDEF MACOS}, CnCommon {$ENDIF};
+  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber,
+  ImgList, Buttons, CnCommon, CnPemUtils, FMX.ComboEdit, FMX.Edit, FMX.ImgList, FMX.Memo, FMX.TabControl, FMX.Types,
+  System.ImageList, FMX.ScrollBox, FMX.Controls.Presentation;
 
 type
   TFormRSA = class(TForm)
@@ -40,6 +39,7 @@ type
     btnRSAEn: TButton;
     btnRSADe: TButton;
     chkPureUInt64: TCheckBox;
+    btnInt64Sample: TButton;
     tsRSA: TTabItem;
     grpBNKeys: TGroupBox;
     lblBNP1: TLabel;
@@ -52,6 +52,8 @@ type
     lblSaveFormat: TLabel;
     lblModulusBits: TLabel;
     lblMBits: TLabel;
+    lblSaveCrypt: TLabel;
+    lblKeyHash: TLabel;
     edtBNPrime1: TEdit;
     edtBNPrime2: TEdit;
     btnBNGen: TButton;
@@ -59,16 +61,18 @@ type
     edtBNPubExp: TEdit;
     mmoBNPrivProduct: TMemo;
     mmoBNPubProduct: TMemo;
-    cbbBits: TComboBox;
+    cbbBits: TComboEdit;
     btnBNLoadKeys: TButton;
     btnBNSaveKeys: TButton;
     btnBNLoadPub: TButton;
     btnSavePub: TButton;
-    cbbSaveFormat: TComboBox;
+    cbbSaveFormat: TComboEdit;
     btnBNSendR: TButton;
     btnPQ: TButton;
-    cbbMBits: TComboBox;
+    cbbMBits: TComboEdit;
     btnGenByM: TButton;
+    cbbSaveCrypt: TComboEdit;
+    cbbLoadKeyHash: TComboEdit;
     pgc2: TTabControl;
     tsData: TTabItem;
     lblBNResult: TLabel;
@@ -86,8 +90,11 @@ type
     edtFile2: TEdit;
     btnBrowse1: TButton;
     btnBrowse2: TButton;
+    btnPrivCrypt: TButton;
     btnPubCrypt: TButton;
     btnDePrivate: TButton;
+    btnDePub: TButton;
+    chkOAEP: TCheckBox;
     tsSign: TTabItem;
     lblSignFile: TLabel;
     lblSignature: TLabel;
@@ -99,7 +106,7 @@ type
     btnSignatureBrowse: TButton;
     btnPrivVerify: TButton;
     btnPubVerify: TButton;
-    cbbSig: TComboBox;
+    cbbSig: TComboEdit;
     tsEuclid: TTabItem;
     grpEuclidean: TGroupBox;
     lblEqual: TLabel;
@@ -164,7 +171,7 @@ type
     btnDHACKey: TButton;
     edtAKey: TEdit;
     edtBKey: TEdit;
-    cbbDHBits: TComboBox;
+    cbbDHBits: TComboEdit;
     btnDHRand: TButton;
     edtFastSqrt: TEdit;
     btnFastSqrt: TButton;
@@ -180,6 +187,7 @@ type
     procedure btnSendRClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
+    procedure btnInt64SampleClick(Sender: TObject);
     procedure btnBNGenClick(Sender: TObject);
     procedure mmoBNChange(Sender: TObject);
     procedure btnBNLoadKeysClick(Sender: TObject);
@@ -245,9 +253,11 @@ var
     I: Integer;
   begin
     I := 0;
-    while (A shr I) <> 0 do
+    while A <> 0 do
+    begin
+      A := A shr 1;
       Inc(I);
-
+    end;
     Result := I;
   end;
 
@@ -266,7 +276,6 @@ begin
     lblInt64MBits.Text := 'n Bits: ' + IntToStr(GetInt64BitCount(FPrivKeyProduct));
   end;
 end;
-
 
 procedure TFormRSA.btnRSAEnClick(Sender: TObject);
 var
@@ -295,10 +304,12 @@ end;
 procedure TFormRSA.FormCreate(Sender: TObject);
 begin
   Application.Title := Caption;
-  pgc1.ActiveTab := tsInt64RSA;
+  pgc1.TabIndex := 0;
   cbbBits.ItemIndex := cbbBits.Items.Count - 1;
   cbbMBits.ItemIndex := 2;
+  cbbLoadKeyHash.ItemIndex := 0;
   cbbSaveFormat.ItemIndex := 0;
+  cbbSaveCrypt.ItemIndex := 0;
   cbbSig.ItemIndex := 0;
 
   FPrivateKey := TCnRSAPrivateKey.Create;
@@ -319,7 +330,7 @@ end;
 
 procedure TFormRSA.btnBNGenClick(Sender: TObject);
 begin
-  if CnRSAGenerateKeysByPrimeBits(StrToIntDef(cbbBits.Items[cbbBits.ItemIndex], 256), FPrivateKey, FPublicKey) then
+  if CnRSAGenerateKeysByPrimeBits(StrToIntDef(cbbBits.Text, 256), FPrivateKey, FPublicKey) then
   begin
     edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
     edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;
@@ -444,10 +455,13 @@ end;
 procedure TFormRSA.btnBNLoadKeysClick(Sender: TObject);
 var
   X, Y: TCnBigNumber;
+  Password: string;
 begin
   if dlgOpenPEM.Execute then
   begin
-    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey) then
+    Password := CnInputBox('Password', 'Enter Password here if the PEM has Password', '');
+    if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey,
+      TCnKeyHashMethod(cbbLoadKeyHash.ItemIndex), Password) then
     begin
       edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
       edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;
@@ -481,11 +495,17 @@ begin
 end;
 
 procedure TFormRSA.btnBNSaveKeysClick(Sender: TObject);
+var
+  Password: string;
 begin
   if dlgSavePEM.Execute then
   begin
+    if cbbSaveCrypt.ItemIndex > 0 then
+      Password := CnInputBox('Password', 'Enter Password here for Encryption', '');
+
     if CnRSASaveKeysToPem(dlgSavePEM.FileName, FPrivateKey, FPublicKey,
-      TCnRSAKeyType(cbbSaveFormat.ItemIndex)) then
+      TCnRSAKeyType(cbbSaveFormat.ItemIndex), TCnKeyEncryptMethod(cbbSaveCrypt.ItemIndex),
+      TCnKeyHashMethod(cbbLoadKeyHash.ItemIndex), Password) then
       ShowMessage('Saved to ' + dlgSavePEM.FileName);
   end;
 end;
@@ -493,7 +513,7 @@ end;
 procedure TFormRSA.btnSendRClick(Sender: TObject);
 begin
   edtB.Text := IntToStr(FR);
-  pgc1.ActiveTab := tsEuclid;
+  pgc1.TabIndex := 2;
   edtB.SetFocus;
 end;
 
@@ -501,7 +521,7 @@ procedure TFormRSA.btnBNSendRClick(Sender: TObject);
 begin
   CalcR;
   edtB.Text := FBNR.ToDec;
-  pgc1.ActiveTab := tsEuclid;
+  pgc1.TabIndex := 2;
   edtB.SetFocus;
 end;
 
@@ -552,12 +572,12 @@ procedure TFormRSA.btnPQClick(Sender: TObject);
 begin
   edtA.Text := FPrivateKey.PrimeKey2.ToDec;
   edtB.Text := FPrivateKey.PrimeKey1.ToDec;
-  pgc1.ActiveTab := tsEuclid;
+  pgc1.TabIndex := 2;
 end;
 
 procedure TFormRSA.btnGenByMClick(Sender: TObject);
 begin
-  if CnRSAGenerateKeys(StrToIntDef(cbbMBits.Items[cbbMBits.ItemIndex], 1024), FPrivateKey, FPublicKey) then
+  if CnRSAGenerateKeys(StrToIntDef(cbbMBits.Text, 1024), FPrivateKey, FPublicKey) then
   begin
     edtBNPrime1.Text := FPrivateKey.PrimeKey1.ToDec;
     edtBNPrime2.Text := FPrivateKey.PrimeKey2.ToDec;
@@ -609,7 +629,7 @@ end;
 procedure TFormRSA.btnBrowse1Click(Sender: TObject);
 begin
   if dlgOpenFile.Execute then
-    edtFile1.Text := dlgOpenFile.FileName;
+    edtFile1.Text := dlgOpenFile.FileName;  
 end;
 
 procedure TFormRSA.btnBrowse2Click(Sender: TObject);
@@ -632,10 +652,17 @@ begin
 end;
 
 procedure TFormRSA.btnPubCryptClick(Sender: TObject);
+var
+  R: Boolean;
 begin
   if dlgSaveFile.Execute then
   begin
-    if CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey) then
+    if chkOAEP.IsChecked then
+      R := CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey, cpmOAEP)
+    else
+      R := CnRSAEncryptFile(edtFile1.Text, dlgSaveFile.FileName, FPublicKey);
+
+    if R then
     begin
       ShowMessage('RSA Public Key Encrypt File Success.');
       if Trim(edtFile2.Text) = '' then
@@ -645,10 +672,16 @@ begin
 end;
 
 procedure TFormRSA.btnDePrivateClick(Sender: TObject);
+var
+  R: Boolean;
 begin
   if dlgSaveFile.Execute then
   begin
-    if CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey) then
+    if chkOAEP.IsChecked then
+      R := CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey, cpmOAEP)
+    else
+      R := CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey);
+    if R then
       ShowMessage('RSA Private Key Decrypt File Success.');
   end;
 end;
@@ -780,7 +813,7 @@ begin
   Prime := TCnBigNumber.Create;
   Root := TCnBigNumber.Create;
 
-  if CnDiffieHellmanGeneratePrimeRootByBitsCount(StrToIntDef(cbbDHBits.Items[cbbDHBits.ItemIndex], 64), Prime, Root) then
+  if CnDiffieHellmanGeneratePrimeRootByBitsCount(StrToIntDef(cbbDHBits.Text, 64), Prime, Root) then
   begin
     edtDHPrime.Text := Prime.ToDec;
     edtDHRoot.Text := Root.ToDec;
@@ -869,21 +902,18 @@ var
   R: TCnBigNumber;
 begin
   R := TCnBigNumber.Create;
-  BigNumberRandBits(R, StrToIntDef(cbbDHBits.Items[cbbDHBits.ItemIndex], 64));
+  BigNumberRandBits(R, StrToIntDef(cbbDHBits.Text, 64));
   edtDHXa.Text := R.ToDec;
-  BigNumberRandBits(R, StrToIntDef(cbbDHBits.Items[cbbDHBits.ItemIndex], 64));
+  BigNumberRandBits(R, StrToIntDef(cbbDHBits.Text, 64));
   edtDHXb.Text := R.ToDec;
   R.Free;
 end;
 
 procedure TFormRSA.btnFastSqrtClick(Sender: TObject);
-{$IFNDEF MACOS}
 var
   N: LongWord;
   T: Int64;
-{$ENDIF}
 begin
-{$IFNDEF MACOS}
   N := StrToUInt64(edtFastSqrt.Text);
   if IntToStr(N) = edtFastSqrt.Text then
     ShowMessage('Integer Sqrt of ' + UInt64ToStr(N) + ' is ' + UInt64ToStr(FastSqrt(N)))
@@ -892,7 +922,21 @@ begin
     T := StrToInt64(edtFastSqrt.Text);
     ShowMessage('Integer Sqrt of Int64 ' + UInt64ToStr(T) + ' is ' + UInt64ToStr(FastSqrt64(T)))
   end;
-{$ENDIF}
+end;
+
+procedure TFormRSA.btnInt64SampleClick(Sender: TObject);
+var
+  R: TUInt64;
+begin
+  FPrivKeyProduct := StrToUInt64('14979008342806052453');
+  FPrivKeyExponent := 9033985129783743113;
+  FPubKeyProduct := StrToUInt64('14979008342806052453');;
+  FPubKeyExponent := 65537;
+
+  if CnInt64RSAEncrypt(12345678987654321, FPrivKeyProduct, FPrivKeyExponent, R) then
+    edtRes.Text := Format('%u', [R]);
+  if CnInt64RSADecrypt(R, FPubKeyProduct, FPubKeyExponent, R) then
+    edtDataBack.Text := Format('%u', [R]);
 end;
 
 end.
