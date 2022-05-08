@@ -88,6 +88,9 @@ function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;
 // 为高版本语法的set赋值增加类名，如[seTop]变成[TSide.seTop]
 function CnFmxFixSetValue(const PType: string; const PValue: string): string;
 
+function CnInputQuery(const ACaption, APrompt: string;
+  var Value: string): Boolean;
+
 implementation
 
 {$IFDEF DEBUG}
@@ -392,6 +395,12 @@ begin
       end;
     end;
   end;
+end;
+
+function CnInputQuery(const ACaption, APrompt: string;
+  var Value: string): Boolean;
+begin
+  Result := InputQuery(ACaption, APrompt, Value);
 end;
 
 procedure CreateFmxSetFixArray;
