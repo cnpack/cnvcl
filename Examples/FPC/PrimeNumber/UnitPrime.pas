@@ -1,4 +1,4 @@
-unit UnitPrime;
+﻿unit UnitPrime;
 
 interface
 
@@ -139,11 +139,7 @@ uses
 
 {$R *.lfm}
 
-{$IFNDEF FPC}
-
-{$I Carmichael.inc}
-
-{$ENDIF}
+{$I ..\..\PrimeNumber\Carmichael.inc}
 
 function IsPrime(N: Cardinal): Boolean;
 var
@@ -305,11 +301,9 @@ var
   I: Integer;
 begin
   mmoCar.Clear;
-{$IFNDEF FPC}
   for I := Low(CN_CARMICHAEL_NUMBERS_GT_UINT32) to High(CN_CARMICHAEL_NUMBERS_GT_UINT32) do
     if CnInt64IsPrime(CN_CARMICHAEL_NUMBERS_GT_UINT32[I]) then
       mmoCar.Lines.Add(IntToStr(CN_CARMICHAEL_NUMBERS_GT_UINT32[I]));
-{$ENDIF}
 end;
 
 procedure TFormPrime.btnGen64Click(Sender: TObject);
