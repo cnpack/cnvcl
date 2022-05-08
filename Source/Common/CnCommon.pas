@@ -548,6 +548,9 @@ function StrRight(const Str: string; Len: Integer): string;
 function StrLeft(const Str: string; Len: Integer): string;
 {* 返回字符串左边的字符}
 
+function StrEndWith(const S, Tail: string): Boolean;
+{* 返回字符串是否以特定子串结尾}
+
 function GetLine(C: Char; Len: Integer): string;
 {* 返回字符串行}
 
@@ -4653,6 +4656,13 @@ begin
     Result := Str
   else
     Result := Copy(Str, 1, Len);
+end;
+
+function StrEndWith(const S, Tail: string): Boolean;
+begin
+  Result := False;
+  if (Tail <> '') and (S <> '') then
+    Result := Pos(Tail, S) = Length(S) - Length(Tail) + 1;
 end;
 
 // 字节转二进制串
