@@ -1,0 +1,2252 @@
+object FormEcc: TFormEcc
+  Left = 346
+  Top = 146
+  Caption = 'ECC Test'
+  ClientHeight = 598
+  ClientWidth = 860
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 346
+  Top = 146
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 820.000000000000000000
+    Size.Height = 535.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      820s
+      507s
+      820s
+      507s
+      820s
+      507s
+      820s
+      507s
+      820s
+      507s
+      820s
+      507s
+      820s
+      507s
+      820s
+      507s)
+    object tsSimpleECC: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 86.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Simple ECC'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object lblPrivateKey: TLabel
+        Position.X = 456.000000000000000000
+        Position.Y = 196.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Private:'
+        TabOrder = 1
+      end
+      object lblPublicKey: TLabel
+        Position.X = 584.000000000000000000
+        Position.Y = 196.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Public:'
+        TabOrder = 16
+      end
+      object lblData: TLabel
+        Position.X = 360.000000000000000000
+        Position.Y = 236.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Data:'
+        TabOrder = 17
+      end
+      object lblECDH: TLabel
+        Position.X = 360.000000000000000000
+        Position.Y = 312.000000000000000000
+        Size.Width = 33.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'ECDH:'
+        TabOrder = 18
+      end
+      object lblDHA: TLabel
+        Position.X = 360.000000000000000000
+        Position.Y = 352.000000000000000000
+        Size.Width = 10.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'A:'
+        TabOrder = 19
+      end
+      object lblDHB: TLabel
+        Position.X = 360.000000000000000000
+        Position.Y = 392.000000000000000000
+        Size.Width = 10.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'B:'
+        TabOrder = 25
+      end
+      object lblXb: TLabel
+        Position.X = 376.000000000000000000
+        Position.Y = 392.000000000000000000
+        Size.Width = 13.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Xb'
+        TabOrder = 26
+      end
+      object lblXA: TLabel
+        Position.X = 376.000000000000000000
+        Position.Y = 352.000000000000000000
+        Size.Width = 13.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Xa'
+        TabOrder = 27
+      end
+      object grpSimpleECC: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 780.000000000000000000
+        Size.Height = 161.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Simple E23(1,1) '#20063#23601#26159' Y^2 = X^3 + X + 1 mod 23'
+        TabOrder = 0
+        object lblPX: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 20.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'P.X:'
+        end
+        object lblPY: TLabel
+          Position.X = 112.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 20.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'P.Y:'
+        end
+        object lblAdd: TLabel
+          Position.X = 216.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 42.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '+     Q.X:'
+        end
+        object lblQY: TLabel
+          Position.X = 328.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 21.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Q.Y:'
+        end
+        object lblAddResult: TLabel
+          Position.X = 518.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 3.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object lblMPX: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 20.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'P.X:'
+        end
+        object lblMPY: TLabel
+          Position.X = 112.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 20.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'P.Y:'
+        end
+        object lblMul: TLabel
+          Position.X = 216.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 29.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '*      K'
+        end
+        object lblMResult: TLabel
+          Position.X = 518.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 3.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnPOn: TSpeedButton
+          Position.X = 194.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 16.000000000000000000
+          Size.Height = 16.000000000000000000
+          Size.PlatformDefault = False
+          Text = '.'
+          OnClick = btnPOnClick
+        end
+        object btnMPOn: TSpeedButton
+          Position.X = 194.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 16.000000000000000000
+          Size.Height = 16.000000000000000000
+          Size.PlatformDefault = False
+          Text = '.'
+          OnClick = btnMPOnClick
+        end
+        object btnQOn: TSpeedButton
+          Position.X = 410.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 16.000000000000000000
+          Size.Height = 16.000000000000000000
+          Size.PlatformDefault = False
+          Text = '.'
+          OnClick = btnQOnClick
+        end
+        object btnTest1: TButton
+          Position.X = 20.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test P+Q'
+          OnClick = btnTest1Click
+        end
+        object btnTest0: TButton
+          Position.X = 103.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Test 0+P'
+          OnClick = btnTest0Click
+        end
+        object btnTestOn: TButton
+          Position.X = 186.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Test On Curve'
+          OnClick = btnTestOnClick
+        end
+        object btnTestInverse: TButton
+          Position.X = 270.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Test Inverse'
+          OnClick = btnTestInverseClick
+        end
+        object btnTest2P: TButton
+          Position.X = 353.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Test 2*P'
+          OnClick = btnTest2PClick
+        end
+        object btnTestMul: TButton
+          Position.X = 436.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Test n*P'
+          OnClick = btnTestMulClick
+        end
+        object edtPX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 6
+          Text = '6'
+          Position.X = 56.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtPY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 7
+          Text = '19'
+          Position.X = 144.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtQX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 8
+          Text = '9'
+          Position.X = 272.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtQY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 9
+          Text = '7'
+          Position.X = 360.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnEqual: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = '='
+          OnClick = btnEqualClick
+        end
+        object edtMPX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 11
+          Text = '9'
+          Position.X = 56.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtMPY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 12
+          Text = '7'
+          Position.X = 144.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnMEqual: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = '='
+          OnClick = btnMEqualClick
+        end
+        object edtMK: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          Text = '3'
+          Position.X = 272.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnInt64Affine: TButton
+          Position.X = 520.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Test Affine +'
+          OnClick = btnInt64AffineClick
+        end
+        object btnTestJacobian: TButton
+          Position.X = 600.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 81.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Test Jacobian +'
+          OnClick = btnTestJacobianClick
+        end
+      end
+      object btnNewKey: TButton
+        Position.X = 360.000000000000000000
+        Position.Y = 192.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'New Key'
+        OnClick = btnNewKeyClick
+      end
+      object edtPrivateKey: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 3
+        Position.X = 504.000000000000000000
+        Position.Y = 192.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtPublicKey: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 4
+        Position.X = 624.000000000000000000
+        Position.Y = 192.000000000000000000
+        Size.Width = 89.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtData: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 5
+        Text = '7'
+        Position.X = 400.000000000000000000
+        Position.Y = 232.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnEncrypt: TButton
+        Position.X = 504.000000000000000000
+        Position.Y = 232.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Text = 'Encrypt'
+        OnClick = btnEncryptClick
+      end
+      object edtEncrypted: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 7
+        Position.X = 600.000000000000000000
+        Position.Y = 232.000000000000000000
+        Size.Width = 113.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnDecrypt: TButton
+        Position.X = 360.000000000000000000
+        Position.Y = 272.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 8
+        Text = 'Decrypt'
+        OnClick = btnDecryptClick
+      end
+      object edtDecrypted: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 9
+        Position.X = 448.000000000000000000
+        Position.Y = 272.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnBatchVerify: TButton
+        Position.X = 640.000000000000000000
+        Position.Y = 272.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 10
+        Text = 'Batch Verify'
+        OnClick = btnBatchVerifyClick
+      end
+      object edtDHXa: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 11
+        Text = '3'
+        Position.X = 400.000000000000000000
+        Position.Y = 348.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtDHXb: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 23
+        Text = '5'
+        Position.X = 400.000000000000000000
+        Position.Y = 388.000000000000000000
+        Size.Width = 41.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnCalcYb: TButton
+        Position.X = 450.000000000000000000
+        Position.Y = 388.000000000000000000
+        Size.Width = 49.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 24
+        Text = 'Calc Yb'
+        OnClick = btnCalcYbClick
+      end
+      object btnCalcXA: TButton
+        Position.X = 450.000000000000000000
+        Position.Y = 348.000000000000000000
+        Size.Width = 49.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 12
+        Text = 'Calc Ya'
+        OnClick = btnCalcXAClick
+      end
+      object edtDHYa: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 13
+        Position.X = 506.000000000000000000
+        Position.Y = 348.000000000000000000
+        Size.Width = 63.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtDHYb: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 21
+        Position.X = 506.000000000000000000
+        Position.Y = 388.000000000000000000
+        Size.Width = 63.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnDHBCK: TButton
+        Position.X = 582.000000000000000000
+        Position.Y = 388.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 22
+        Text = 'B Calc Key'
+        OnClick = btnDHBCKClick
+      end
+      object btnDHACKey: TButton
+        Position.X = 582.000000000000000000
+        Position.Y = 348.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 14
+        Text = 'A Calc Key'
+        OnClick = btnDHACKeyClick
+      end
+      object edtAKey: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 15
+        Position.X = 654.000000000000000000
+        Position.Y = 348.000000000000000000
+        Size.Width = 59.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtBKey: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 20
+        Position.X = 654.000000000000000000
+        Position.Y = 388.000000000000000000
+        Size.Width = 59.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+    end
+    object tsInt64ECC: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 81.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Intt64 ECC'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpGenEcc: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 780.000000000000000000
+        Size.Height = 443.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Generated Ecc'
+        TabOrder = 0
+        object lblEccY2: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 221.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Y ^ 2 = X ^ 3    +                X +                 mod  '
+        end
+        object lblEccG: TLabel
+          Position.X = 300.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 11.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'G:'
+        end
+        object lblEccOrder: TLabel
+          Position.X = 416.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 51.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'with Order:'
+        end
+        object btnGenEcc: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 651.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 106.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Generate Small Ecc'
+          OnClick = btnGenEccClick
+        end
+        object edtEccA: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = '12'
+          Position.X = 104.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 33.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEccB: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = '199'
+          Position.X = 168.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 33.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEccP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '73'
+          Position.X = 240.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEccGX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Text = '21'
+          Position.X = 316.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEccGY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = '21'
+          Position.X = 364.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEccOrder: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Text = '61'
+          Position.X = 480.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnCalcNG: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 651.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 106.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Calculate N*G'
+          OnClick = btnCalcNGClick
+        end
+        object mmoGenECCPoints: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 568.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 188.000000000000000000
+          Size.Height = 331.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Viewport.Width = 188.000000000000000000
+          Viewport.Height = 331.000000000000000000
+        end
+        object btnLeRanDe: TButton
+          Position.X = 483.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Legendre'
+          OnClick = btnLeRanDeClick
+        end
+        object btnBNGXtoPoint: TButton
+          Anchors = [akLeft, akBottom]
+          Position.X = 483.000000000000000000
+          Position.Y = 406.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'BN G.X to Pt'
+          OnClick = btnBNGXtoPointClick
+        end
+        object btnInt64GXtoPt: TButton
+          Position.X = 483.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'G.X to Pt'
+          OnClick = btnInt64GXtoPtClick
+        end
+        object cbbInt64EccPreset: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          ItemHeight = 13.000000000000000000
+          Items.Strings = (
+            'Preset 1'
+            'Preset 2')
+          ItemIndex = -1
+          Position.X = 568.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          OnChange = cbbInt64EccPresetChange
+        end
+        object btnEccTestAdd: TButton
+          Position.X = 483.000000000000000000
+          Position.Y = 156.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = '? * G'
+          OnClick = btnEccTestAddClick
+        end
+        object btnHassenTest: TButton
+          Position.X = 483.000000000000000000
+          Position.Y = 200.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Hasse Test 1'
+          OnClick = btnHassenTestClick
+        end
+        object btnHassenTest2: TButton
+          Position.X = 483.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Hasse Test 2'
+          OnClick = btnHassenTest2Click
+        end
+        object btnInt64SchoofTest: TButton
+          Position.X = 482.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Schoof Test'
+          OnClick = btnInt64SchoofTestClick
+        end
+        object btnInt64EccCountOrder: TButton
+          Position.X = 481.000000000000000000
+          Position.Y = 328.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Count Order1'
+          OnClick = btnInt64EccCountOrderClick
+        end
+        object btnInt64CountOrder1: TButton
+          Position.X = 481.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Count Order2'
+          OnClick = btnInt64CountOrder1Click
+        end
+        object btnInt64CountEccPoints3: TButton
+          Position.X = 481.000000000000000000
+          Position.Y = 392.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Count Order3'
+          OnClick = btnInt64CountEccPoints3Click
+        end
+      end
+    end
+    object tsECC: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 122.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'BigNumber ECC 1'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBNEcc: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 780.000000000000000000
+        Size.Height = 451.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BigNumber Ecc'
+        TabOrder = 0
+        ParentShowHint = False
+        ShowHint = True
+        object lblBNEqu: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 92.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Y ^ 2 = X ^ 3    +    '
+        end
+        object lblBNGX: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 18.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'GX:'
+        end
+        object lblBNGY: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 156.000000000000000000
+          Size.Width = 18.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'GY:'
+        end
+        object lblBNEccOrder: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 188.000000000000000000
+          Size.Width = 29.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Order:'
+        end
+        object lblBNEccB: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 60.000000000000000000
+          Size.Width = 19.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'X + '
+        end
+        object lblBNEccMod: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 20.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'mod'
+        end
+        object lblBNEccPrivateKey: TLabel
+          Position.X = 176.000000000000000000
+          Position.Y = 344.000000000000000000
+          Size.Width = 42.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Private: -'
+        end
+        object lblBNEccPublicKey: TLabel
+          Position.X = 112.000000000000000000
+          Position.Y = 344.000000000000000000
+          Size.Width = 40.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Public:  |'
+        end
+        object lblBNEccDataPoint: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 416.000000000000000000
+          Size.Width = 53.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Data Point:'
+          OnClick = lblBNEccDataPointClick
+        end
+        object edtBNEccA: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 0
+          Text = '0'
+          Position.X = 104.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 660.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccB: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 1
+          Text = '7'
+          Position.X = 56.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 2
+          Position.X = 56.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccGX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 3
+          Position.X = 56.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccGY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 4
+          Position.X = 56.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccOrder: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 5
+          Position.X = 56.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 665.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNEccInverseG: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Inverse G'
+          OnClick = btnBNEccInverseGClick
+        end
+        object edtBNEccResult: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 6
+          Position.X = 16.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 748.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNEccInverseAdd: TButton
+          Position.X = 98.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Inverse G + G'
+          OnClick = btnBNEccInverseAddClick
+        end
+        object btnBNEccGx2: TButton
+          Position.X = 180.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'G + G'
+          OnClick = btnBNEccGx2Click
+        end
+        object btnBNEccG2SubG: TButton
+          Position.X = 344.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'G * 2 - G'
+          OnClick = btnBNEccG2SubGClick
+        end
+        object btnBNEccGAddG: TButton
+          Position.X = 262.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'G * 2'
+          OnClick = btnBNEccGAddGClick
+        end
+        object btnBNEccGSubG: TButton
+          Position.X = 426.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'G - G'
+          OnClick = btnBNEccGSubGClick
+        end
+        object btnBNEccNG: TButton
+          Position.X = 508.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'n * G'
+          OnClick = btnBNEccNGClick
+        end
+        object btnBNEcc4G: TButton
+          Position.X = 590.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = '4 * G vs G++++'
+          OnClick = btnBNEcc4GClick
+        end
+        object btnBNEccNewKey: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 340.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'New Key'
+          OnClick = btnBNEccNewKeyClick
+        end
+        object edtBNEccPublicKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 17
+          Position.X = 16.000000000000000000
+          Position.Y = 376.000000000000000000
+          Size.Width = 748.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccPrivateKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 16
+          Position.X = 232.000000000000000000
+          Position.Y = 340.000000000000000000
+          Size.Width = 532.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNEccDataPoint: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 18
+          Position.X = 80.000000000000000000
+          Position.Y = 412.000000000000000000
+          Size.Width = 588.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNEccCrypt: TButton
+          Anchors = [akRight]
+          Position.X = 675.000000000000000000
+          Position.Y = 385.419616699218800000
+          Size.Width = 91.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Encrypt/Decrypt'
+          OnClick = btnBNEccCryptClick
+        end
+        object btnBNUpdate: TButton
+          Position.X = 728.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 35.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Set'
+          OnClick = btnBNUpdateClick
+        end
+        object btnBNEccCalc: TButton
+          Position.X = 678.000000000000000000
+          Position.Y = 264.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = '? * G'
+          OnClick = btnBNEccCalcClick
+        end
+        object rbBNAddNormal: TRadioButton
+          IsChecked = True
+          Position.X = 16.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Normal'
+        end
+        object rbBNAddAffine: TRadioButton
+          Position.X = 120.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Affine'
+        end
+        object rbBNAddJacobian: TRadioButton
+          Position.X = 216.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'Jacobian'
+        end
+        object btnMulTime: TButton
+          Position.X = 342.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = '? * G Time'
+          OnClick = btnMulTimeClick
+        end
+      end
+    end
+    object tsWrapData: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 3
+      Size.Width = 122.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'BigNumber ECC 2'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpWrap: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 780.000000000000000000
+        Size.Height = 301.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BigNumber Ecc'
+        TabOrder = 0
+        object lblWrapData: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 26.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Data:'
+        end
+        object lblBNECDH: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 33.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'ECDH:'
+        end
+        object lblBNECDHA: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'A:'
+        end
+        object lblBNECDHB: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'B:'
+        end
+        object lblBNECDHXb: TLabel
+          Position.X = 40.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 13.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Xb'
+        end
+        object lblBNECDHXa: TLabel
+          Position.X = 40.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 13.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Xa'
+        end
+        object edtWrapData: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 0
+          Text = '123321123456734234'
+          Position.X = 56.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 532.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnWrapData: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 595.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'X to Point'
+          OnClick = btnWrapDataClick
+        end
+        object edtWrapPoint: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 3
+          Position.X = 16.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 740.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNECDHXa: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 4
+          Text = '30954823978126165439807650540507823796164384908578170843'
+          Position.X = 70.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 598.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNECDHXb: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 9
+          Text = '554978037890271980743250435089743764116321467834980754709'
+          Position.X = 70.000000000000000000
+          Position.Y = 212.000000000000000000
+          Size.Width = 598.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNECDHYb: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 683.000000000000000000
+          Position.Y = 212.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Calc Yb'
+          OnClick = btnBNECDHYbClick
+        end
+        object btnBNECDHYa: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 683.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Calc Ya'
+          OnClick = btnBNECDHYaClick
+        end
+        object edtBNECDHA: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 6
+          Position.X = 70.000000000000000000
+          Position.Y = 148.000000000000000000
+          Size.Width = 598.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNECDHB: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 11
+          Position.X = 70.000000000000000000
+          Position.Y = 244.000000000000000000
+          Size.Width = 598.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNECDHBkey: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 683.000000000000000000
+          Position.Y = 244.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'B Calc Key'
+          OnClick = btnBNECDHBkeyClick
+        end
+        object btnBNECDHAKey: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 683.000000000000000000
+          Position.Y = 148.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'A Calc Key'
+          OnClick = btnBNECDHAKeyClick
+        end
+        object edtBNECDHResA: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 8
+          Position.X = 70.000000000000000000
+          Position.Y = 180.000000000000000000
+          Size.Width = 598.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNECDHResB: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 13
+          Position.X = 70.000000000000000000
+          Position.Y = 276.000000000000000000
+          Size.Width = 598.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTestECDH: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 683.000000000000000000
+          Position.Y = 276.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'ECDH Sample'
+          OnClick = btnTestECDHClick
+        end
+        object btnBNEccWrapRange: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 683.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Range to Point'
+          OnClick = btnBNEccWrapRangeClick
+        end
+      end
+      object btnEccSchoof: TButton
+        Position.X = 210.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Schoof Test'
+        OnClick = btnEccSchoofClick
+      end
+      object btnSimpleAttack: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Simple Attack'
+        OnClick = btnSimpleAttackClick
+      end
+      object btnTestCRT: TButton
+        Position.X = 112.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = 'CRT Sample'
+        OnClick = btnTestCRTClick
+      end
+      object mmoBNEccPoints: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 304.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 217.000000000000000000
+        Size.Height = 121.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Viewport.Width = 217.000000000000000000
+        Viewport.Height = 121.000000000000000000
+      end
+      object btnBNEccAffineTest: TButton
+        Position.X = 536.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = 'Affine Test'
+        OnClick = btnBNEccAffineTestClick
+      end
+      object btnBNJacobianTest: TButton
+        Position.X = 624.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Text = 'Jacobian Test'
+        OnClick = btnBNJacobianTestClick
+      end
+    end
+    object tsLucas: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 4
+      Size.Width = 179.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Lucas Sequence && Legendre'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpLucas: TGroupBox
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 361.000000000000000000
+        Size.Height = 409.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Lucas Sequence'
+        TabOrder = 0
+        object lblLucasX: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'X:'
+        end
+        object lblLucasY: TLabel
+          Position.X = 112.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Y:'
+        end
+        object lblLucasP: TLabel
+          Position.X = 208.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'P:'
+        end
+        object edtLucasX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = '2'
+          Position.X = 32.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtLucasY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = '3'
+          Position.X = 128.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtLucasP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '73'
+          Position.X = 224.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnLucasRecur: TButton
+          Position.X = 32.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Lucas Recur'
+          OnClick = btnLucasRecurClick
+        end
+        object mmoLucasRes: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Anchors = [akLeft, akTop, akBottom]
+          Position.X = 32.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 305.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Viewport.Width = 153.000000000000000000
+          Viewport.Height = 305.000000000000000000
+        end
+        object mmoLucasMod: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Anchors = [akLeft, akTop, akBottom]
+          Position.X = 192.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 153.000000000000000000
+          Size.Height = 305.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Viewport.Width = 153.000000000000000000
+          Viewport.Height = 305.000000000000000000
+        end
+        object btnLucasMod: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Lucas 2'
+          OnClick = btnLucasModClick
+        end
+        object chkLucasMod: TCheckBox
+          IsChecked = True
+          Position.X = 296.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 49.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Mod'
+        end
+        object btnBNLucasMod: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 81.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'BN Lucas Mod'
+          OnClick = btnBNLucasModClick
+        end
+      end
+      object grpLegendre: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 392.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 404.000000000000000000
+        Size.Height = 451.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Legendre Symbol'
+        TabOrder = 1
+        object btnCalcLegendre: TButton
+          Anchors = [akLeft, akTop, akRight]
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 372.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Calc Legendre'
+          OnClick = btnCalcLegendreClick
+        end
+        object mmoLegendre: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Anchors = [akLeft, akTop, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 193.000000000000000000
+          Size.Height = 379.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 193.000000000000000000
+          Viewport.Height = 379.000000000000000000
+        end
+        object mmoLegendreRes1: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Anchors = [akLeft, akTop, akBottom]
+          Position.X = 221.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 52.000000000000000000
+          Size.Height = 379.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Viewport.Width = 52.000000000000000000
+          Viewport.Height = 379.000000000000000000
+        end
+        object mmoLegendreRes2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Position.X = 280.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 407.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Viewport.Width = 57.000000000000000000
+          Viewport.Height = 407.000000000000000000
+        end
+      end
+    end
+    object tsTonelliShanks: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 5
+      Size.Width = 102.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Tonelli Shanks'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpTonelliShanks: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 780.000000000000000000
+        Size.Height = 427.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Tonelli Shanks'
+        TabOrder = 0
+        object lblTSX: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'X:'
+        end
+        object lblTSP: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 60.000000000000000000
+          Size.Width = 10.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'P:'
+        end
+        object edtTSX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 0
+          Text = '5'
+          Position.X = 40.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 588.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtTSP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 1
+          Text = '538879667'
+          Position.X = 40.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 588.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTSInt64: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 635.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 131.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Tonelli Shanks Int64'
+          OnClick = btnTSInt64Click
+        end
+        object btnBNTS: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 635.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 131.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Tonelli Shanks BigNumber'
+          OnClick = btnBNTSClick
+        end
+        object mmoTSData: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Position.X = 40.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 241.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Viewport.Width = 185.000000000000000000
+          Viewport.Height = 241.000000000000000000
+        end
+        object btnRandomTS: TButton
+          Position.X = 40.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 369.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Random Tonelli Shanks using Int64 and BigNumber to 538879667'
+        end
+      end
+    end
+    object tsSquareRoot: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 6
+      Size.Width = 92.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Square Root'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpSquareRoot: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 788.000000000000000000
+        Size.Height = 451.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Square Root'
+        TabOrder = 0
+        object lblSRY: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 19.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Y^2'
+        end
+        object lblSREqual: TLabel
+          Position.X = 184.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 6.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '='
+        end
+        object lblSRMod: TLabel
+          Position.X = 336.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 30.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'mod P'
+        end
+        object edtSRY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Position.X = 48.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtSRX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = '55'
+          Position.X = 200.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtSRP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = '103'
+          Position.X = 376.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSRLucas: TButton
+          Position.X = 520.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Calc Y and Check'
+          OnClick = btnSRLucasClick
+        end
+        object btnSRCompare: TButton
+          Position.X = 48.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 449.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 
+            'Compare Lucas Sequence and Toneli-Shanks for Int64 when P = 8*u ' +
+            '+ 1'
+          OnClick = btnSRCompareClick
+        end
+      end
+    end
+    object tsPem: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 7
+      Size.Width = 196.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Keys Load/Save and Sig / Verify'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpEccKeys: TGroupBox
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 777.000000000000000000
+        Size.Height = 473.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Ecc Keys'
+        TabOrder = 0
+        ParentShowHint = False
+        ShowHint = True
+        object lblCurveType: TLabel
+          Position.X = 112.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 58.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Curve Type:'
+        end
+        object lblCurveTypeText: TLabel
+          Position.X = 184.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 46.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Unknown'
+        end
+        object Label1: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 228.000000000000000000
+          Size.Width = 29.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Order:'
+        end
+        object Label2: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 196.000000000000000000
+          Size.Width = 18.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'GY:'
+        end
+        object Label3: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 164.000000000000000000
+          Size.Width = 18.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'GX:'
+        end
+        object Label4: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 132.000000000000000000
+          Size.Width = 20.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'mod'
+        end
+        object Label5: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 100.000000000000000000
+          Size.Width = 19.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'X + '
+        end
+        object Label6: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 68.000000000000000000
+          Size.Width = 92.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Y ^ 2 = X ^ 3    +    '
+        end
+        object lblKeyPrivate: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 276.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Private (Count):'
+        end
+        object lblKeyPublic: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 308.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Public (Point):'
+        end
+        object lblKeyData: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 356.000000000000000000
+          Size.Width = 26.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Data:'
+        end
+        object lblKeySign: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 422.000000000000000000
+          Size.Width = 18.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Sig:'
+        end
+        object lblKeyHash: TLabel
+          Position.X = 232.000000000000000000
+          Position.Y = 390.000000000000000000
+          Size.Width = 46.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'KeyHash:'
+        end
+        object btnLoad: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Load Key'
+          OnClick = btnLoadClick
+        end
+        object edtKeyEccA: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 1
+          Position.X = 104.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 660.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyEccB: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 2
+          Position.X = 56.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyEccP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 3
+          Position.X = 56.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyEccGX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 4
+          Position.X = 56.000000000000000000
+          Position.Y = 160.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyEccGY: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 5
+          Position.X = 56.000000000000000000
+          Position.Y = 192.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyEccOrder: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 6
+          Position.X = 56.000000000000000000
+          Position.Y = 224.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyPrivate: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 7
+          Position.X = 104.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 660.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtKeyPublic: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 8
+          Position.X = 104.000000000000000000
+          Position.Y = 304.000000000000000000
+          Size.Width = 660.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnKeyCheckPublic: TButton
+          Position.X = 512.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Check Public'
+          OnClick = btnKeyCheckPublicClick
+        end
+        object btnSaveKey: TButton
+          Position.X = 688.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Save Key'
+          OnClick = btnSaveKeyClick
+        end
+        object edtKeyData: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 11
+          Text = '1234567890ABCDEF'
+          Position.X = 56.000000000000000000
+          Position.Y = 352.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnKeySign: TButton
+          Position.X = 56.000000000000000000
+          Position.Y = 384.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Sign Using PrivateKey'
+          OnClick = btnKeySignClick
+        end
+        object edtKeySign: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 13
+          Position.X = 56.000000000000000000
+          Position.Y = 418.000000000000000000
+          Size.Width = 708.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnKeyVerify: TButton
+          Anchors = [akTop, akRight]
+          Position.X = 634.000000000000000000
+          Position.Y = 384.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'Verfiy Using PublicKey'
+          OnClick = btnKeyVerifyClick
+        end
+        object cbbKeyHash: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 15
+          ItemHeight = 13.000000000000000000
+          Items.Strings = (
+            'MD5'
+            'SHA1'
+            'SHA256'
+            'SM3')
+          ItemIndex = -1
+          Position.X = 288.000000000000000000
+          Position.Y = 384.000000000000000000
+          Size.Width = 145.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnKeyGenerate: TButton
+          Position.X = 600.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Key Generate'
+          OnClick = btnKeyGenerateClick
+        end
+        object btnKeyLoadSig: TButton
+          Position.X = 488.000000000000000000
+          Position.Y = 384.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Load Signature to Verify'
+          OnClick = btnKeyLoadSigClick
+        end
+        object cbbCurveTypes: TComboEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 18
+          ItemHeight = 13.000000000000000000
+          ItemIndex = -1
+          Position.X = 336.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          OnChange = cbbCurveTypesChange
+        end
+      end
+    end
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 364
+    Top = 248
+  end
+  object dlgSave1: TSaveDialog
+    Left = 468
+    Top = 152
+  end
+end
