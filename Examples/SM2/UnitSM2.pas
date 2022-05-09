@@ -57,9 +57,11 @@ type
     btnSM2ABKeyExchange: TButton;
     btnLoadSM2Key: TButton;
     btnLoadSM2BKey: TButton;
-    rgSequenceType: TRadioGroup;
     chkPrefixByte: TCheckBox;
     btnVerifySm2Key: TButton;
+    grpSeqType: TGroupBox;
+    rbC1C3C2: TRadioButton;
+    rbC1C2C3: TRadioButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -322,7 +324,7 @@ begin
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   T := AnsiString(edtSM2Text.Text);
-  if rgSequenceType.ItemIndex = 0 then
+  if rbC1C3C2.Checked then
     ST := cstC1C3C2
   else
     ST := cstC1C2C3;
@@ -387,7 +389,7 @@ begin
 
   MyStreamFromHex(Trim(mmoSM2Results.Lines.Text), EnStream);
 
-  if rgSequenceType.ItemIndex = 0 then
+  if rbC1C3C2.Checked then
     ST := cstC1C3C2
   else
     ST := cstC1C2C3;

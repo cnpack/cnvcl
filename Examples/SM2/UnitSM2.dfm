@@ -4,7 +4,7 @@ object FormSM2: TFormSM2
   BorderStyle = bsDialog
   Caption = 'SM2 Test'
   ClientHeight = 561
-  ClientWidth = 959
+  ClientWidth = 952
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -32,7 +32,7 @@ object FormSM2: TFormSM2
   object pgcSm2: TPageControl
     Left = 16
     Top = 88
-    Width = 921
+    Width = 914
     Height = 449
     ActivePage = tsEncDec
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -109,18 +109,6 @@ object FormSM2: TFormSM2
           TabOrder = 4
           OnClick = btnSM2DecryptClick
         end
-        object rgSequenceType: TRadioGroup
-          Left = 616
-          Top = 228
-          Width = 113
-          Height = 65
-          Caption = 'Sequence Type'
-          ItemIndex = 0
-          Items.Strings = (
-            'C1C3C2'
-            'C1C2C3')
-          TabOrder = 5
-        end
         object chkPrefixByte: TCheckBox
           Left = 256
           Top = 56
@@ -129,7 +117,33 @@ object FormSM2: TFormSM2
           Caption = '$04'
           Checked = True
           State = cbChecked
+          TabOrder = 5
+        end
+        object grpSeqType: TGroupBox
+          Left = 616
+          Top = 232
+          Width = 113
+          Height = 81
+          Caption = 'Sequence Type'
           TabOrder = 6
+          object rbC1C3C2: TRadioButton
+            Left = 24
+            Top = 24
+            Width = 65
+            Height = 17
+            Caption = 'C1C3C2'
+            Checked = True
+            TabOrder = 0
+            TabStop = True
+          end
+          object rbC1C2C3: TRadioButton
+            Left = 24
+            Top = 48
+            Width = 65
+            Height = 17
+            Caption = 'C1C2C3'
+            TabOrder = 1
+          end
         end
       end
     end
