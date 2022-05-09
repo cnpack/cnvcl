@@ -1,0 +1,497 @@
+object FormSM2: TFormSM2
+  Left = 277
+  Top = 167
+  BorderStyle = Single
+  Caption = 'SM2 Test'
+  ClientHeight = 561
+  ClientWidth = 952
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 277
+  Top = 167
+  DesignerMasterStyle = 0
+  object lblSM2PublicKey: TLabel
+    Position.X = 16.000000000000000000
+    Position.Y = 20.000000000000000000
+    Size.Width = 109.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'SM2 Public Key (Hex)::'
+  end
+  object lblSM2PrivateKey: TLabel
+    Position.X = 16.000000000000000000
+    Position.Y = 52.000000000000000000
+    Size.Width = 110.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'SM2 Private Key (Hex):'
+  end
+  object pgcSm2: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 16.000000000000000000
+    Position.Y = 88.000000000000000000
+    Size.Width = 914.000000000000000000
+    Size.Height = 449.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      914s
+      421s
+      914s
+      421s
+      914s
+      421s)
+    object tsEncDec: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 151.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Encryttion / Decryption'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpSm2Enc: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 889.000000000000000000
+        Size.Height = 403.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Encryption / Decryption'
+        TabOrder = 0
+        object lblSM2Text: TLabel
+          Position.X = 168.000000000000000000
+          Position.Y = 36.000000000000000000
+          Size.Width = 79.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Text To Encrypt:'
+        end
+        object btnSm2Example1: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Sm2 Example 192'
+          OnClick = btnSm2Example1Click
+        end
+        object edtSM2Text: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = '1234567890'
+          Position.X = 256.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 481.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSM2Encrypt: TButton
+          Position.X = 744.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Encrypt using Public Key'
+          OnClick = btnSM2EncryptClick
+        end
+        object mmoSM2Results: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Position.X = 16.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 857.000000000000000000
+          Size.Height = 113.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Viewport.Width = 853.000000000000000000
+          Viewport.Height = 109.000000000000000000
+        end
+        object btnSM2Decrypt: TButton
+          Position.X = 744.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Decrypt using Private Key'
+          OnClick = btnSM2DecryptClick
+        end
+        object chkPrefixByte: TCheckBox
+          IsChecked = True
+          Position.X = 256.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = '$04'
+        end
+        object grpSeqType: TGroupBox
+          Position.X = 616.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 81.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Sequence Type'
+          TabOrder = 6
+          object rbC1C3C2: TRadioButton
+            IsChecked = True
+            Position.X = 24.000000000000000000
+            Position.Y = 24.000000000000000000
+            Size.Width = 65.000000000000000000
+            Size.Height = 17.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 0
+            Text = 'C1C3C2'
+          end
+          object rbC1C2C3: TRadioButton
+            Position.X = 24.000000000000000000
+            Position.Y = 48.000000000000000000
+            Size.Width = 65.000000000000000000
+            Size.Height = 17.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 1
+            Text = 'C1C2C3'
+          end
+        end
+      end
+    end
+    object tsSignVerify: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 91.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Sign / Verify'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpSm2SignVerify: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 889.000000000000000000
+        Size.Height = 403.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Sign / Verify'
+        TabOrder = 0
+        object lblUserId: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 236.000000000000000000
+          Size.Width = 37.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'User Id:'
+        end
+        object lblSM2FileSign: TLabel
+          Position.X = 168.000000000000000000
+          Position.Y = 36.000000000000000000
+          Size.Width = 55.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'File to Sign:'
+        end
+        object btnSm2SignVerify: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Sm2 Example 256'
+          OnClick = btnSm2SignVerifyClick
+        end
+        object edtSM2UserId: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = 'CnPack Team'
+          Position.X = 64.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtSM2FileSign: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Position.X = 240.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 537.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSignBrowse: TButton
+          Position.X = 792.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Browse'
+          OnClick = btnSignBrowseClick
+        end
+        object mmoSignResult: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Position.X = 16.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 857.000000000000000000
+          Size.Height = 113.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Viewport.Width = 857.000000000000000000
+          Viewport.Height = 113.000000000000000000
+        end
+        object btnSM2Verify: TButton
+          Position.X = 536.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Verify using Public Key'
+          OnClick = btnSM2VerifyClick
+        end
+        object btnSM2SignFile: TButton
+          Position.X = 240.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 281.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Sign using Private Key and Public Key'
+          OnClick = btnSM2SignFileClick
+        end
+        object btnSignFile: TButton
+          Position.X = 696.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Sign File'
+          OnClick = btnSignFileClick
+        end
+        object btnVerifyFile: TButton
+          Position.X = 792.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Verify File'
+          OnClick = btnVerifyFileClick
+        end
+      end
+    end
+    object tsKeyExchange: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 99.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Key Exchange'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpSM2KeyExchange: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 889.000000000000000000
+        Size.Height = 403.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Key Exchange'
+        TabOrder = 0
+        object lblAId: TLabel
+          Position.X = 168.000000000000000000
+          Position.Y = 36.000000000000000000
+          Size.Width = 47.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'A User Id:'
+        end
+        object lblBUserId: TLabel
+          Position.X = 680.000000000000000000
+          Position.Y = 36.000000000000000000
+          Size.Width = 47.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'B User Id:'
+        end
+        object lblBSM2PublicKey: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 84.000000000000000000
+          Size.Width = 119.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'B SM2 Public Key (Hex)::'
+        end
+        object lblBSm2PrivateKey: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 116.000000000000000000
+          Size.Width = 120.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'B SM2 Private Key (Hex):'
+        end
+        object lbl1: TLabel
+          Position.X = 368.000000000000000000
+          Position.Y = 36.000000000000000000
+          Size.Width = 99.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'A SM2 Key is above.'
+        end
+        object btnSM2KeyExchange: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Sm2 Example 256'
+          OnClick = btnSM2KeyExchangeClick
+        end
+        object edtSM2AUserId: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = 'CnPack Team'
+          Position.X = 232.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtSM2BUserId: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = 'A Good User'
+          Position.X = 744.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtSM2BPrivateKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Text = '9751600494B8DCFD75ED60DD24C1A0C106E42BD52AE8C7B79A9456F10CFEBE9E'
+          Position.X = 136.000000000000000000
+          Position.Y = 112.000000000000000000
+          Size.Width = 729.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtSM2BPublicKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = 
+            '0487A5DF8AA17DA358519587F88F1F21877D5F52B3A49E2EC7D9DAA76C3E94BD' +
+            '19AC809BB986DDBBE6B7162BCD8FC5E1886D2DBEDC3A617421B2F213C4AB6C87' +
+            '25'
+          Position.X = 136.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 729.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSM2ABKeyExchange: TButton
+          Position.X = 136.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 281.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Key Exchange A and B'
+          OnClick = btnSM2ABKeyExchangeClick
+        end
+        object btnLoadSM2BKey: TButton
+          Position.X = 760.000000000000000000
+          Position.Y = 144.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Load SM2 Key'
+          OnClick = btnLoadSM2BKeyClick
+        end
+      end
+    end
+  end
+  object edtSM2PublicKey: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Text = 
+      '04450C442ADA3727DA5C61BED92AF9190B0C76F87473909DD573B7C46727CB88' +
+      '066630371AE32EF6CDE503E9AFD0EA9CD762B543E9F1A1733A0EA1D66C970C72' +
+      '1E'
+    Position.X = 136.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 673.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object edtSM2PrivateKey: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 2
+    Text = 'F0D75B33B825F32B39A0AA3E143E4AE0210CB23BBFAADB006211C5053E2399A0'
+    Position.X = 136.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 673.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnGenerateKey: TButton
+    Position.X = 824.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'Generate Key'
+    OnClick = btnGenerateKeyClick
+  end
+  object btnLoadSM2Key: TButton
+    Position.X = 824.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Load SM2 Key'
+    OnClick = btnLoadSM2KeyClick
+  end
+  object btnVerifySm2Key: TButton
+    Position.X = 824.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Verify SM2 Key'
+    OnClick = btnVerifySm2KeyClick
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 876
+    Top = 136
+  end
+end
