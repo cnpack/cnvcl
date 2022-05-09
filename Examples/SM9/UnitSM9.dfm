@@ -235,7 +235,7 @@ object FormSM9: TFormSM9
         Width = 929
         Height = 465
         Anchors = [akLeft, akTop, akRight, akBottom]
-        Caption = 'SM9 Hash'
+        Caption = 'SM9 Sign'
         TabOrder = 0
         object lblUserID: TLabel
           Left = 320
@@ -467,7 +467,7 @@ object FormSM9: TFormSM9
         Top = 8
         Width = 929
         Height = 465
-        Caption = 'SM9 Hash'
+        Caption = 'SM9 Key Exchange'
         TabOrder = 0
         object btnKeyExchangeTest: TButton
           Left = 16

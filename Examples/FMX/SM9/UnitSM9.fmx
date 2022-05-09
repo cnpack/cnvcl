@@ -1,0 +1,676 @@
+object FormSM9: TFormSM9
+  Left = 232
+  Top = 181
+  Caption = 'SM9 Test'
+  ClientHeight = 563
+  ClientWidth = 979
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 232
+  Top = 181
+  DesignerMasterStyle = 0
+  object pgcSM9: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 953.000000000000000000
+    Size.Height = 513.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s
+      953s
+      485s)
+    object tsFP2: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 44.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'FP2'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpFP2: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'FP2'
+        TabOrder = 0
+        object btnTestFP2: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test FP2'
+          OnClick = btnTestFP2Click
+        end
+        object mmoFP2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 349.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 345.000000000000000000
+        end
+      end
+    end
+    object tsFP4: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 44.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'FP4'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpFP4: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'FP4'
+        TabOrder = 0
+        object btnTestFp4: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test FP4'
+          OnClick = btnTestFp4Click
+        end
+        object mmoFP4: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 349.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 345.000000000000000000
+        end
+      end
+    end
+    object tsFP12: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 51.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'FP12'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpFP12: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'FP12'
+        TabOrder = 0
+        object btnTestFP12: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test FP12'
+          OnClick = btnTestFP12Click
+        end
+        object mmoFP12: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 349.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 345.000000000000000000
+        end
+      end
+    end
+    object tsAffinePoint: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 3
+      Size.Width = 111.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'FP2 Affine Point'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpAP: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'FP2 Affine Point'
+        TabOrder = 0
+        object btnAP: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 121.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test FP2 Affine Point'
+          OnClick = btnAPClick
+        end
+        object mmoAP: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 349.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 345.000000000000000000
+        end
+        object btnFP2PointMul: TButton
+          Position.X = 160.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'FP2 Point Mul'
+          OnClick = btnFP2PointMulClick
+        end
+      end
+    end
+    object tsRate: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 4
+      Size.Width = 54.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'R-ate'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpRate: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'R-ate Pairing'
+        TabOrder = 0
+        object btnRateTest: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test R-ate'
+          OnClick = btnRateTestClick
+        end
+        object mmoRate: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 349.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 345.000000000000000000
+        end
+        object btnRateTime: TButton
+          Position.X = 120.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'R-ate Time'
+          OnClick = btnRateTimeClick
+        end
+      end
+    end
+    object tsSM9Hash: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 5
+      Size.Width = 80.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'SM9 Hash'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpSM9Hash: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'SM9 Hash'
+        TabOrder = 0
+        object btnTestHash: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test Hash1'
+          OnClick = btnTestHashClick
+        end
+        object btnTestHash2: TButton
+          Position.X = 112.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Test Hash2'
+          OnClick = btnTestHash2Click
+        end
+      end
+    end
+    object tsSM9Sign: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 6
+      Size.Width = 76.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'SM9 Sign'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpSM9Sign: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'SM9 Sign'
+        TabOrder = 0
+        object lblUserID: TLabel
+          Position.X = 320.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 39.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'User ID:'
+        end
+        object lbl1: TLabel
+          Position.X = 520.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 26.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Data:'
+        end
+        object btnSM9GenMaster: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Generate Master Key'
+          OnClick = btnSM9GenMasterClick
+        end
+        object btnSM9GenUser: TButton
+          Position.X = 168.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Generate User Key'
+          OnClick = btnSM9GenUserClick
+        end
+        object edtSigUserId: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = 'CnPack Team'
+          Position.X = 368.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object mmoSig: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 349.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 345.000000000000000000
+        end
+        object edtSignData: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = 'Message to Sign'
+          Position.X = 560.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSM9Sign: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Sign Data'
+          OnClick = btnSM9SignClick
+        end
+        object btnSM9VerifyData: TButton
+          Position.X = 840.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Verify Data'
+          OnClick = btnSM9VerifyDataClick
+        end
+        object btnSM9Sample: TButton
+          Position.X = 488.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Tst'
+          OnClick = btnSM9SampleClick
+        end
+      end
+    end
+    object tsSM9KeyEnc: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 7
+      Size.Width = 71.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'SM9 Enc'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpKeyEnc: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Key Encapsulation'
+        TabOrder = 0
+        object lblKeyLength: TLabel
+          Position.X = 536.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 86.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Key Bytes Length:'
+        end
+        object lbl2: TLabel
+          Position.X = 328.000000000000000000
+          Position.Y = 28.000000000000000000
+          Size.Width = 39.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'User ID:'
+        end
+        object edtKeyEncLength: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = '64'
+          Position.X = 640.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSM9KeyEncSend: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Send'
+          OnClick = btnSM9KeyEncSendClick
+        end
+        object mmoKeyEnc: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 129.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 125.000000000000000000
+        end
+        object btnKeyEncGenMaster: TButton
+          Position.X = 168.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Generate User Key'
+          OnClick = btnKeyEncGenMasterClick
+        end
+        object btnKeyEncGenUser: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Generate Master Key'
+          OnClick = btnKeyEncGenUserClick
+        end
+        object edtDestUser: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = 'CnPack Team'
+          Position.X = 376.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTestKeyEnc: TButton
+          Position.X = 504.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Tst'
+          OnClick = btnTestKeyEncClick
+        end
+        object btnSM9KeyEncRecv: TButton
+          Position.X = 840.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Receive'
+          OnClick = btnSM9KeyEncRecvClick
+        end
+        object btnTestEnc: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 232.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Tst'
+          OnClick = btnTestEncClick
+        end
+        object mmoEnc: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 141.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 137.000000000000000000
+        end
+      end
+    end
+    object tsSM9KeyExchange: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 8
+      Size.Width = 127.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'SM9 Key Exchange'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpKeyExchange: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 465.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'SM9 Key Exchange'
+        TabOrder = 0
+        object btnKeyExchangeTest: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test Sample'
+          OnClick = btnKeyExchangeTestClick
+        end
+        object mmoKeyExchange: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Anchors = [akLeft, akTop, akRight, akBottom]
+          Position.X = 16.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 897.000000000000000000
+          Size.Height = 377.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 893.000000000000000000
+          Viewport.Height = 373.000000000000000000
+        end
+      end
+    end
+  end
+end
