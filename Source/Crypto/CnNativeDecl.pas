@@ -362,8 +362,8 @@ begin
   if CurrentByteOrderIsBigEndian then
     Result := Value
   else
-    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+    Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
+      or Integer((Value and $00FF0000) shr 8) or Integer((Value and $FF000000) shr 24);
 end;
 
 function Int16ToBigEndian(Value: SmallInt): SmallInt;
@@ -387,8 +387,8 @@ begin
   if CurrentByteOrderIsLittleEndian then
     Result := Value
   else
-    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+    Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
+      or Integer((Value and $00FF0000) shr 8) or Integer((Value and $FF000000) shr 24);
 end;
 
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
