@@ -676,6 +676,9 @@ const
   CN_MAX_PRIME_LESS_THAN_SQRT_INT64 = 3037000493;
   CN_MIN_PRIME_MORE_THAN_SQRT_INT64 = 3037000507;
 
+function CnPickRandomSmallPrime: Integer;
+{* 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数}
+
 function CnUInt32IsPrime(N: Cardinal): Boolean;
 {* 快速判断一 32 位无符号整数是否是素数}
 
@@ -734,6 +737,15 @@ function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
 
 function CnInt64GreatestCommonDivisor2(A, B: Int64): Int64;
 {* 求两个 64 位有符号数的最大公约数}
+
+function CnUInt32LeastCommonMultiple(A, B: Cardinal): Cardinal;
+{* 求两个 32 位无符号数的最小公倍数，不考虑溢出的情况}
+
+function CnInt64LeastCommonMultiple(A, B: TUInt64): TUInt64;
+{* 求两个 64 位无符号数的最小公倍数，不考虑溢出的情况}
+
+function CnInt64LeastCommonMultiple2(A, B: Int64): Int64;
+{* 求两个 64 位有符号数的最小公倍数，不考虑溢出的情况}
 
 procedure CnGenerateUInt32DiffieHellmanPrimeRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
 {* 生成 Diffie-Hellman 算法所需的素数与其最大原根，范围为 UInt32}
@@ -838,6 +850,17 @@ implementation
 
 uses
   CnHashMap, CnPolynomial, CnBigNumber, CnRandom;
+
+function CnPickRandomSmallPrime: Integer;
+var
+  D: Integer;
+begin
+  Randomize;
+  D := Random(High(CN_PRIME_NUMBERS_SQRT_UINT32)) + 1;
+  Result := CN_PRIME_NUMBERS_SQRT_UINT32[D];
+end;
+{* 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数}
+
 
 // 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
 function RandomUInt64: TUInt64;
@@ -1546,6 +1569,30 @@ begin
     Result := A
   else
     Result := CnInt64GreatestCommonDivisor2(B, A mod B);
+end;
+
+function CnUInt32LeastCommonMultiple(A, B: Cardinal): Cardinal;
+var
+  D: Cardinal;
+begin
+  D := CnUInt32GreatestCommonDivisor(A, B);
+  Result := (A div D) * B;
+end;
+
+function CnInt64LeastCommonMultiple(A, B: TUInt64): TUInt64;
+var
+  D: TUInt64;
+begin
+  D := CnInt64GreatestCommonDivisor(A, B);
+  Result := UInt64Mul(UInt64Div(A, D), B);
+end;
+
+function CnInt64LeastCommonMultiple2(A, B: Int64): Int64;
+var
+  D: Int64;
+begin
+  D := CnInt64GreatestCommonDivisor2(A, B);
+  Result := (A div D) * B;
 end;
 
 function PollardRho32(X: Cardinal; C: Cardinal): Cardinal;
