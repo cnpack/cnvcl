@@ -1725,7 +1725,7 @@ begin
     CnUInt32FindFactors(Num, F);
 {$IFNDEF MSWINDOWS}
     // 手工去重
-    TCnInternalList<LongWord>(F).RemoveDuplictedElements;
+    TCnInternalList<TCnLongWord32>(F).RemoveDuplictedElements;
 {$ENDIF}
 
     Result := Num;
