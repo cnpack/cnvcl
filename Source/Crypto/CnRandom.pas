@@ -43,6 +43,9 @@ uses
 type
   ECnRandomAPIError = class(Exception);
 
+function RandomInt64LessThan(HighValue: Int64): Int64;
+{* 返回大于等于 0 且小于指定 Int64 值的随机数}
+
 function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 或 /dev/random 设备实现区块随机填充}
 
@@ -117,6 +120,18 @@ begin
     F.Free;
   end;
 {$ENDIF}
+end;
+
+function RandomInt64LessThan(HighValue: Int64): Int64;
+var
+  Hi, Lo: Cardinal;
+begin
+  Randomize;
+  Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
+  Randomize;
+  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+  Result := (Int64(Hi) shl 32) + Lo;
+  Result := Result mod HighValue;
 end;
 
 end.

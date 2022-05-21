@@ -837,7 +837,7 @@ function CnInt64AKSIsPrime(N: Int64): Boolean;
 implementation
 
 uses
-  CnHashMap, CnPolynomial, CnBigNumber;
+  CnHashMap, CnPolynomial, CnBigNumber, CnRandom;
 
 // 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
 function RandomUInt64: TUInt64;
@@ -1979,19 +1979,6 @@ end;
 function SquareRootModPrimeLucas(X, P: Int64; out Y: Int64): Boolean;
 var
   G, Z, U, V: Int64;
-
-  function RandomInt64LessThan(HighValue: Int64): Int64;
-  var
-    Hi, Lo: Cardinal;
-  begin
-    Randomize;
-    Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
-    Randomize;
-    Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-    Result := (Int64(Hi) shl 32) + Lo;
-    Result := Result mod HighValue;
-  end;
-
 begin
   Result := False;
   G := X;
