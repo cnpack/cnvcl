@@ -242,7 +242,7 @@ function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
 {* Int64 范围内的相乘求余，不能直接计算，容易溢出。要求 N 大于 0}
 
 function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
-{* UInt64 范围内的相乘求余，不能直接计算，容易溢出。未完整测试}
+{* UInt64 范围内的相乘求余，不能直接计算，容易溢出。}
 
 function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
 {* 封装的 Int64 非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0}
@@ -1282,9 +1282,9 @@ begin
       // 如果还是溢出，说明模比两个加数都大，各自求模没用。
       // 至少有一个加数大于等于 2^63，N 至少是 2^63 + 1
       // 和 = 溢出结果 + 2^64
-      // 和 mod N = 溢出结果 mod N + (2^64 - 1) mod N) - 1
+      // 和 mod N = 溢出结果 mod N + (2^64 - 1) mod N) + 1
       // 这里 N 至少是 2^63 + 1，溢出结果最多是 2^64 - 2，所以前两项相加不会溢出，可以直接相加后减一再求模
-      Result := UInt64Mod(UInt64Mod(A + B, N) + UInt64Mod(MAX_TUINT64, N) - 1, N);
+      Result := UInt64Mod(UInt64Mod(A + B, N) + UInt64Mod(MAX_TUINT64, N) + 1, N);
     end
     else
       Result := UInt64Mod(C + D, N);
@@ -1362,11 +1362,10 @@ begin
     while B <> 0 do
     begin
       if (B and 1) <> 0 then
-        Result := UInt64Mod(UInt64Mod(Result, N) + UInt64Mod(A, N), N);
+        Result := UInt64NonNegativeAddMod(Result, A, N);
 
-      A := A shl 1;
-      if UInt64Compare(A, N) >= 0 then
-        A := UInt64Mod(A, N);
+      A := UInt64NonNegativeAddMod(A, A, N);
+      // 不能用传统算法里的 A := A shl 1，大于 N 后再 mod N，因为会溢出
 
       B := B shr 1;
     end;
