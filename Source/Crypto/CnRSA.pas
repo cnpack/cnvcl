@@ -464,6 +464,10 @@ begin
     Sleep(N);
 
     PrimeKey2 := CnGenerateUInt32Prime(HighBitSet);
+
+    if PrimeKey1 = PrimeKey2 then // 俩素数不能相等
+      Continue;
+
     if HighBitSet then
     begin
       Product := TUInt64(PrimeKey1) * TUInt64(PrimeKey2);
@@ -541,6 +545,10 @@ begin
 
     if not BigNumberGeneratePrime(PrivateKey.PrimeKey2, PrimeBits div 8) then
       Exit;
+
+    // 俩素数不能相等
+    if BigNumberEqual(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+      Continue;
 
     // TODO: p 和 q 的差不能过小，不满足时得 Continue
 
@@ -660,6 +668,10 @@ begin
 
       if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey2, PB2) then
         Exit;
+
+      // 俩素数不能相等
+      if BigNumberEqual(PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
+        Continue;
 
       if not BigNumberMul(PrivateKey.PrivKeyProduct, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2) then
         Exit;
