@@ -244,7 +244,14 @@ type
     {* 根据一个二进制块给自身赋值，内部采用复制}
 
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
-    {* 根据一个二进制块产生一个新的大数对象}
+    {* 根据一个二进制块产生一个新的大数对象，其内容为复制}
+
+{$IFDEF TBYTES_DEFINED}
+
+    class function FromBytes(Buf: TBytes): TCnBigNumber;
+    {* 根据一个字节数组产生一个新的大数对象，其内容为复制}
+
+{$ENDIF}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串}
@@ -504,9 +511,16 @@ function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 {* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
+{$IFDEF TBYTES_DEFINED}
+
+function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
+{* 将一个字节数组内容转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
+
+{$ENDIF}
+
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
-{* 将一个二进制块赋值给指定大数对象，注意不处理正负号}
+{* 将一个二进制块赋值给指定大数对象，注意不处理正负号，内部采用复制}
 
 function BigNumberToString(const Num: TCnBigNumber): string;
 {* 将一个大数对象转成十进制字符串，负以 - 表示}
@@ -1431,6 +1445,17 @@ begin
     Result := nil;
   end;
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
+begin
+  Result := nil;
+  if (Buf <> nil) and (Length(Buf) > 0) then
+    Result := BigNumberFromBinary(@Buf[0], Length(Buf) - 1);
+end;
+
+{$ENDIF}
 
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
@@ -6543,6 +6568,15 @@ class function TCnBigNumber.FromBinary(Buf: PAnsiChar;
 begin
   Result := BigNumberFromBinary(Buf, Len);
 end;
+
+{$IFDEF TBYTES_DEFINED}
+
+class function TCnBigNumber.FromBytes(Buf: TBytes): TCnBigNumber;
+begin
+  Result := BigNumberFromBytes(Buf);
+end;
+
+{$ENDIF}
 
 class function TCnBigNumber.FromDec(const Buf: AnsiString): TCnBigNumber;
 begin
