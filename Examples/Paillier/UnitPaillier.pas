@@ -72,6 +72,8 @@ type
     btnInt64PaillierSample2: TButton;
     btnInt64PaillierSample3: TButton;
     mmoBNResult: TMemo;
+    btnInt64PaillierSample4: TButton;
+    btnInt64PaillierSample5: TButton;
     procedure btnInt64PaillierSampleClick(Sender: TObject);
     procedure btnGenerateKeyClick(Sender: TObject);
     procedure btnInt64EncryptClick(Sender: TObject);
@@ -85,6 +87,8 @@ type
     procedure btnCheckAddHomoClick(Sender: TObject);
     procedure btnInt64PaillierSample2Click(Sender: TObject);
     procedure btnInt64PaillierSample3Click(Sender: TObject);
+    procedure btnInt64PaillierSample4Click(Sender: TObject);
+    procedure btnInt64PaillierSample5Click(Sender: TObject);
   private
     FPrivKey: TCnPaillierPrivateKey;
     FPubKey: TCnPaillierPublicKey;
@@ -351,9 +355,9 @@ begin
   if CnInt64PaillierEncrypt(PubKey, Data2, Enc2) then
     edtInt64Enc2.Text := UInt64ToStr(Enc2);
 
-  edtInt64Data3.Text := UInt64ToStr(UInt64Mod(Data1 + Data2, PubKey.N));
+  edtInt64Data3.Text := UInt64ToStr(CnInt64PaillierAddPlain(Data1, Data2, PubKey));
 
-  Enc3 := UInt64Mul(Enc1, Enc2);
+  Enc3 := CnInt64PaillierAddCipher(Enc1, Enc2, PubKey);
   edtInt64Enc3.Text := UInt64ToStr(Enc3);
 
   if CnInt64PaillierDecrypt(PrivKey, PubKey, Enc3, Data1) then
@@ -462,6 +466,68 @@ begin
     if NewData <> Data then
       ShowMessage(Format('#%d: %d -> %d -> %d', [I, Data, En, NewData]));
   end;
+end;
+
+procedure TFormPaillier.btnInt64PaillierSample4Click(Sender: TObject);
+var
+  Data1, Data2, Data3, Enc1, Enc2, Enc3, Dec3: Int64;
+  PrivKey: TCnInt64PaillierPrivateKey;
+  PubKey: TCnInt64PaillierPublicKey;
+  I: Integer;
+begin
+  PutInt64PaillierKeys(PrivKey, PubKey);
+
+  Data1 := StrToInt64(edtInt64Data1.Text);
+  Data2 := StrToInt64(edtInt64Data2.Text);
+
+  for I := 1 to 1000 do
+  begin
+    if CnInt64PaillierEncrypt(PubKey, Data1, Enc1, I) then
+      edtInt64Enc1.Text := UInt64ToStr(Enc1);
+
+    if CnInt64PaillierEncrypt(PubKey, Data2, Enc2, I) then
+      edtInt64Enc2.Text := UInt64ToStr(Enc2);
+
+    Data3 := CnInt64PaillierAddPlain(Data1, Data2, PubKey);
+    edtInt64Data3.Text := UInt64ToStr(Data3);
+
+    Enc3 := CnInt64PaillierAddCipher(Enc1, Enc2, PubKey);
+    edtInt64Enc3.Text := UInt64ToStr(Enc3);
+
+    if CnInt64PaillierDecrypt(PrivKey, PubKey, Enc3, Dec3) then
+    begin
+      if Dec3 <> Data3 then
+      begin
+        ShowMessage(IntToStr(I) + 'Decrypt Enc1*Enc2 to: ' + UInt64ToStr(Dec3));
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+procedure TFormPaillier.btnInt64PaillierSample5Click(Sender: TObject);
+var
+  Enc1, Enc2, Enc3, Dec3: Int64;
+  Prk: TCnInt64PaillierPrivateKey;
+  Puk: TCnInt64PaillierPublicKey;
+begin
+  Prk.P := 61723;
+  Prk.Q := 62053;
+  Prk.Lambda := 638328924;
+  Prk.Mu := 1352223169;
+
+  Puk.N := 3830097319;
+  Puk.G := 3830097320;
+
+  CnInt64PaillierEncrypt(Puk, 23, Enc1, 3);
+  CnInt64PaillierEncrypt(Puk, 74, Enc2, 3);
+  Enc3 := CnInt64PaillierAddCipher(Enc1, Enc2, Puk);
+
+  CnInt64PaillierDecrypt(Prk, Puk, Enc3, Dec3);
+  if Dec3 <> CnInt64PaillierAddPlain(23, 74, Puk) then
+    ShowMessage('Error')
+  else
+    ShowMessage('OK');
 end;
 
 end.

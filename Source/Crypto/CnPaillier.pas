@@ -112,24 +112,41 @@ function CnGenerateInt64PaillierKeys(var PrivateKey: TCnInt64PaillierPrivateKey;
 {* 随机生成一对 Int64 范围内的 Paillier 公私钥，返回生成是否成功}
 
 function CnInt64PaillierEncrypt(var PublicKey: TCnInt64PaillierPublicKey;
-  Data: Int64; out Res: Int64): Boolean;
-{* Int64 范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功}
+  Data: Int64; out Res: Int64; RandFactor: Int64 = 0): Boolean;
+{* Int64 范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功。
+  允许外部传入随机数，0 表示内部生成}
 
 function CnInt64PaillierDecrypt(var PrivateKey: TCnInt64PaillierPrivateKey;
   var PublicKey: TCnInt64PaillierPublicKey; EnData: Int64; out Res: Int64): Boolean;
 {* Int64 范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功}
+
+function CnInt64PaillierAddPlain(Data1, Data2: Int64;
+  var PublicKey: TCnInt64PaillierPublicKey): Int64;
+{* Int64 范围内 Paillier 加法同态的明文加法，内部是模 N 加}
+
+function CnInt64PaillierAddCipher(EnData1, EnData2: Int64;
+  var PublicKey: TCnInt64PaillierPublicKey): Int64;
+{* Int64 范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘}
 
 function CnGeneratePaillierKeys(PrivateKey: TCnPaillierPrivateKey;
   PublicKey: TCnPaillierPublicKey; PrimeBits: Integer = CN_PAILLIER_DEFAULT_PRIMEBITS): Boolean;
 {* 随机生成一对大数范围内的 Paillier 公私钥，返回生成是否成功}
 
 function CnPaillierEncrypt(PublicKey: TCnPaillierPublicKey;
-  Data: TCnBigNumber; Res: TCnBigNumber): Boolean;
+  Data: TCnBigNumber; Res: TCnBigNumber; RandFactor: TCnBigNumber = nil): Boolean;
 {* 大数范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功}
 
 function CnPaillierDecrypt(PrivateKey: TCnPaillierPrivateKey;
   PublicKey: TCnPaillierPublicKey; EnData: TCnBigNumber; Res: TCnBigNumber): Boolean;
 {* 大数范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功}
+
+function CnPaillierAddPlain(Data1, Data2: TCnBigNumber; Res: TCnBigNumber;
+  PublicKey: TCnPaillierPublicKey): Boolean;
+{* 大数范围内 Paillier 加法同态的明文加法，内部是模 N 加}
+
+function CnPaillierAddCipher(EnData1, EnData2: TCnBigNumber; Res: TCnBigNumber;
+  PublicKey: TCnPaillierPublicKey): Boolean;
+{* 大数范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘}
 
 implementation
 
@@ -177,7 +194,7 @@ begin
 end;
 
 function CnInt64PaillierEncrypt(var PublicKey: TCnInt64PaillierPublicKey;
-  Data: Int64; out Res: Int64): Boolean;
+  Data: Int64; out Res: Int64; RandFactor: Int64): Boolean;
 var
   T1, T2, R, N2, G: TUInt64;
 begin
@@ -187,7 +204,11 @@ begin
     Exit;
 
   N2 := UInt64Mul(PublicKey.N, PublicKey.N);
-  R := RandomInt64LessThan(PublicKey.N - 2); // 注意！R 必须和 N 互质！也就是不能是 P 或 Q 的倍数！
+  R := RandFactor;
+  if R = 0 then
+    R := RandomInt64LessThan(PublicKey.N - 2) // 注意！R 必须和 N 互质！也就是不能是 P 或 Q 的倍数！
+  else
+    R := UInt64Mod(R, PublicKey.N - 2); // 如果外面传的太大
 
   //  照理最多加 2 就能规避
   G := CnInt64GreatestCommonDivisor(R, PublicKey.N);
@@ -228,6 +249,18 @@ begin
   Res := Int64NonNegativeMulMod(T, PrivateKey.Mu, PublicKey.N);
 
   Result := True;
+end;
+
+function CnInt64PaillierAddPlain(Data1, Data2: Int64;
+  var PublicKey: TCnInt64PaillierPublicKey): Int64;
+begin
+  Result := UInt64NonNegativeAddMod(Data1, Data2, PublicKey.N);
+end;
+
+function CnInt64PaillierAddCipher(EnData1, EnData2: Int64;
+  var PublicKey: TCnInt64PaillierPublicKey): Int64;
+begin
+  Result := UInt64NonNegativeMulMod(EnData1, EnData2, UInt64Mul(PublicKey.N, PublicKey.N));
 end;
 
 { TCnPaillierPrivateKey }
@@ -375,7 +408,7 @@ begin
 end;
 
 function CnPaillierEncrypt(PublicKey: TCnPaillierPublicKey;
-  Data: TCnBigNumber; Res: TCnBigNumber): Boolean;
+  Data: TCnBigNumber; Res: TCnBigNumber; RandFactor: TCnBigNumber): Boolean;
 var
   R, T1, T2, G, M: TCnBigNumber;
 begin
@@ -402,8 +435,21 @@ begin
       Exit;
 
     M.SubWord(2); // 以备万一不互质时加二处理
-    if not BigNumberRandRange(R, M) then
-      Exit;
+
+    if (RandFactor <> nil) and not RandFactor.IsZero then // 有外界传入的随机数
+    begin
+      if BigNumberCopy(R, RandFactor) = nil then
+        Exit;
+
+      if R.IsNegative then // 预防为负
+        R.Negate;
+
+      if not BigNumberMod(R, R, M) then // 预防随机数过大
+        Exit;
+    end
+    else
+      if not BigNumberRandRange(R, M) then
+        Exit;
 
     G := TCnBigNumber.Create;
     if not BigNumberGcd(G, R, PublicKey.N) then
@@ -462,6 +508,18 @@ begin
   finally
     T.Free;
   end;
+end;
+
+function CnPaillierAddPlain(Data1, Data2: TCnBigNumber; Res: TCnBigNumber;
+  PublicKey: TCnPaillierPublicKey): Boolean;
+begin
+  Result := BigNumberAddMod(Res, Data1, Data2, PublicKey.N);
+end;
+
+function CnPaillierAddCipher(EnData1, EnData2: TCnBigNumber; Res: TCnBigNumber;
+  PublicKey: TCnPaillierPublicKey): Boolean;
+begin
+  Result := BigNumberDirectMulMod(Res, EnData1, EnData2, PublicKey.N2);
 end;
 
 end.

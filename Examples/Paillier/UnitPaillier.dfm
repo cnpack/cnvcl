@@ -3,7 +3,7 @@ object FormPaillier: TFormPaillier
   Top = 108
   Width = 979
   Height = 565
-  Caption = 'Paillier'
+  Caption = 'Test Paillier'
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
   Font.Color = clWindowText
@@ -101,6 +101,7 @@ object FormPaillier: TFormPaillier
           Top = 120
           Width = 897
           Height = 17
+          Anchors = [akLeft, akTop, akRight]
           Shape = bsTopLine
         end
         object lblInt64Data1: TLabel
@@ -307,6 +308,15 @@ object FormPaillier: TFormPaillier
           TabOrder = 19
           OnClick = btnInt64PaillierSample3Click
         end
+        object btnInt64PaillierSample4: TButton
+          Left = 264
+          Top = 432
+          Width = 105
+          Height = 25
+          Caption = 'Check3'
+          TabOrder = 20
+          OnClick = btnInt64PaillierSample4Click
+        end
       end
     end
     object tsBigNumberPaillier: TTabSheet
@@ -374,6 +384,7 @@ object FormPaillier: TFormPaillier
           Top = 160
           Width = 897
           Height = 17
+          Anchors = [akLeft, akTop, akRight]
           Shape = bsTopLine
         end
         object lbBNPublicN2: TLabel
@@ -406,6 +417,7 @@ object FormPaillier: TFormPaillier
           Top = 64
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
           Text = '3830097319'
           OnChange = edtBNPublicNChange
@@ -415,6 +427,7 @@ object FormPaillier: TFormPaillier
           Top = 96
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 3
           Text = '3830097320'
         end
@@ -423,6 +436,7 @@ object FormPaillier: TFormPaillier
           Top = 176
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 4
           Text = '61723'
         end
@@ -431,6 +445,7 @@ object FormPaillier: TFormPaillier
           Top = 208
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
           Text = '62053'
         end
@@ -439,6 +454,7 @@ object FormPaillier: TFormPaillier
           Top = 240
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 6
           Text = '638328924'
         end
@@ -447,14 +463,16 @@ object FormPaillier: TFormPaillier
           Top = 272
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 7
           Text = '1352223169'
         end
         object edtBNData: TEdit
           Left = 456
           Top = 24
-          Width = 289
+          Width = 457
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 8
           Text = '23333'
         end
@@ -472,6 +490,7 @@ object FormPaillier: TFormPaillier
           Top = 128
           Width = 841
           Height = 20
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 10
         end
         object mmoBNResult: TMemo
@@ -479,9 +498,19 @@ object FormPaillier: TFormPaillier
           Top = 304
           Width = 841
           Height = 153
+          Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 11
         end
       end
     end
+  end
+  object btnInt64PaillierSample5: TButton
+    Left = 408
+    Top = 472
+    Width = 105
+    Height = 25
+    Caption = 'Check4'
+    TabOrder = 1
+    OnClick = btnInt64PaillierSample5Click
   end
 end
