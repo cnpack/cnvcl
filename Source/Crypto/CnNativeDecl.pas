@@ -1353,7 +1353,7 @@ end;
 function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
 begin
   Result := 0;
-  if (A <= MAX_UINT32) and (B <= MAX_UINT32) then
+  if (UInt64Compare(A, MAX_UINT32) <= 0) and (UInt64Compare(B, MAX_UINT32) <= 0) then
   begin
     Result := UInt64Mod(A * B, N); // 足够小的话直接乘后求模
   end
