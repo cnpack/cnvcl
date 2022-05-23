@@ -2,7 +2,7 @@ object FormPaillier: TFormPaillier
   Left = 192
   Top = 108
   Width = 979
-  Height = 565
+  Height = 608
   Caption = 'Test Paillier'
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
@@ -19,7 +19,7 @@ object FormPaillier: TFormPaillier
     Left = 8
     Top = 8
     Width = 953
-    Height = 519
+    Height = 562
     ActivePage = tsInt64Paillier
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -29,7 +29,7 @@ object FormPaillier: TFormPaillier
         Left = 8
         Top = 8
         Width = 929
-        Height = 474
+        Height = 517
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Int64 Paillier'
         TabOrder = 0
@@ -281,41 +281,54 @@ object FormPaillier: TFormPaillier
           Height = 20
           TabOrder = 16
         end
-        object btnCheckAddHomo: TButton
+        object btnChecknt64AddHomo: TButton
           Left = 16
           Top = 224
           Width = 897
           Height = 25
           Caption = '验证加法同态'
           TabOrder = 17
-          OnClick = btnCheckAddHomoClick
+          OnClick = btnChecknt64AddHomoClick
         end
         object btnInt64PaillierSample2: TButton
           Left = 16
-          Top = 432
+          Top = 472
           Width = 105
           Height = 25
+          Anchors = [akLeft, akBottom]
           Caption = 'Sample Check1'
           TabOrder = 18
           OnClick = btnInt64PaillierSample2Click
         end
         object btnInt64PaillierSample3: TButton
           Left = 136
-          Top = 432
+          Top = 472
           Width = 105
           Height = 25
+          Anchors = [akLeft, akBottom]
           Caption = 'Sample Check2'
           TabOrder = 19
           OnClick = btnInt64PaillierSample3Click
         end
         object btnInt64PaillierSample4: TButton
           Left = 264
-          Top = 432
+          Top = 472
           Width = 105
           Height = 25
+          Anchors = [akLeft, akBottom]
           Caption = 'Check3'
           TabOrder = 20
           OnClick = btnInt64PaillierSample4Click
+        end
+        object btnInt64PaillierSample5: TButton
+          Left = 392
+          Top = 472
+          Width = 105
+          Height = 25
+          Anchors = [akLeft, akBottom]
+          Caption = 'Check4'
+          TabOrder = 21
+          OnClick = btnInt64PaillierSample5Click
         end
       end
     end
@@ -326,7 +339,7 @@ object FormPaillier: TFormPaillier
         Left = 8
         Top = 8
         Width = 929
-        Height = 474
+        Height = 517
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'BigNumber Paillier'
         TabOrder = 0
@@ -393,6 +406,56 @@ object FormPaillier: TFormPaillier
           Width = 24
           Height = 12
           Caption = 'N^2:'
+        end
+        object bvl111: TBevel
+          Left = 16
+          Top = 384
+          Width = 897
+          Height = 17
+          Anchors = [akLeft, akTop, akRight]
+          Shape = bsTopLine
+        end
+        object lblBNData1: TLabel
+          Left = 16
+          Top = 404
+          Width = 36
+          Height = 12
+          Caption = '明文1:'
+        end
+        object lblBNEnc1: TLabel
+          Left = 16
+          Top = 444
+          Width = 36
+          Height = 12
+          Caption = '密文1:'
+        end
+        object lblBNEnc2: TLabel
+          Left = 280
+          Top = 444
+          Width = 48
+          Height = 12
+          Caption = '* 密文2:'
+        end
+        object lblBNData2: TLabel
+          Left = 280
+          Top = 404
+          Width = 48
+          Height = 12
+          Caption = '+ 明文2:'
+        end
+        object lblBNData3: TLabel
+          Left = 584
+          Top = 404
+          Width = 54
+          Height = 12
+          Caption = '=  明文3:'
+        end
+        object lblBNEnc3: TLabel
+          Left = 584
+          Top = 444
+          Width = 54
+          Height = 12
+          Caption = '=  密文3:'
         end
         object btnBNPaillierSample: TButton
           Left = 16
@@ -497,20 +560,64 @@ object FormPaillier: TFormPaillier
           Left = 72
           Top = 304
           Width = 841
-          Height = 153
-          Anchors = [akLeft, akTop, akRight, akBottom]
+          Height = 65
+          Anchors = [akLeft, akTop, akRight]
           TabOrder = 11
+        end
+        object edtBNData1: TEdit
+          Left = 72
+          Top = 400
+          Width = 193
+          Height = 20
+          TabOrder = 12
+          Text = '6543209873'
+        end
+        object edtBNEnc1: TEdit
+          Left = 72
+          Top = 440
+          Width = 193
+          Height = 20
+          TabOrder = 13
+        end
+        object edtBNData2: TEdit
+          Left = 336
+          Top = 400
+          Width = 217
+          Height = 20
+          TabOrder = 14
+          Text = '744567897654321396234'
+        end
+        object edtBNEnc2: TEdit
+          Left = 336
+          Top = 440
+          Width = 217
+          Height = 20
+          TabOrder = 15
+        end
+        object edtBNEnc3: TEdit
+          Left = 656
+          Top = 440
+          Width = 257
+          Height = 20
+          TabOrder = 16
+        end
+        object edtBNData3: TEdit
+          Left = 656
+          Top = 400
+          Width = 257
+          Height = 20
+          TabOrder = 17
+        end
+        object btnCheckBNAddHomo: TButton
+          Left = 16
+          Top = 480
+          Width = 897
+          Height = 25
+          Caption = '验证加法同态'
+          TabOrder = 18
+          OnClick = btnCheckBNAddHomoClick
         end
       end
     end
-  end
-  object btnInt64PaillierSample5: TButton
-    Left = 408
-    Top = 472
-    Width = 105
-    Height = 25
-    Caption = 'Check4'
-    TabOrder = 1
-    OnClick = btnInt64PaillierSample5Click
   end
 end

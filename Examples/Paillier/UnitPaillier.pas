@@ -68,12 +68,26 @@ type
     edtInt64Enc2: TEdit;
     lblInt64Enc3: TLabel;
     edtInt64Enc3: TEdit;
-    btnCheckAddHomo: TButton;
+    btnChecknt64AddHomo: TButton;
     btnInt64PaillierSample2: TButton;
     btnInt64PaillierSample3: TButton;
     mmoBNResult: TMemo;
     btnInt64PaillierSample4: TButton;
     btnInt64PaillierSample5: TButton;
+    bvl111: TBevel;
+    edtBNData1: TEdit;
+    lblBNData1: TLabel;
+    lblBNEnc1: TLabel;
+    edtBNEnc1: TEdit;
+    lblBNEnc2: TLabel;
+    lblBNData2: TLabel;
+    edtBNData2: TEdit;
+    edtBNEnc2: TEdit;
+    lblBNData3: TLabel;
+    lblBNEnc3: TLabel;
+    edtBNEnc3: TEdit;
+    edtBNData3: TEdit;
+    btnCheckBNAddHomo: TButton;
     procedure btnInt64PaillierSampleClick(Sender: TObject);
     procedure btnGenerateKeyClick(Sender: TObject);
     procedure btnInt64EncryptClick(Sender: TObject);
@@ -84,11 +98,12 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure btnBNPaillierSampleClick(Sender: TObject);
     procedure btnBNEncryptClick(Sender: TObject);
-    procedure btnCheckAddHomoClick(Sender: TObject);
+    procedure btnChecknt64AddHomoClick(Sender: TObject);
     procedure btnInt64PaillierSample2Click(Sender: TObject);
     procedure btnInt64PaillierSample3Click(Sender: TObject);
     procedure btnInt64PaillierSample4Click(Sender: TObject);
     procedure btnInt64PaillierSample5Click(Sender: TObject);
+    procedure btnCheckBNAddHomoClick(Sender: TObject);
   private
     FPrivKey: TCnPaillierPrivateKey;
     FPubKey: TCnPaillierPublicKey;
@@ -339,7 +354,7 @@ begin
   Data.Free;
 end;
 
-procedure TFormPaillier.btnCheckAddHomoClick(Sender: TObject);
+procedure TFormPaillier.btnChecknt64AddHomoClick(Sender: TObject);
 var
   Data1, Data2, Enc1, Enc2, Enc3: Int64;
   PrivKey: TCnInt64PaillierPrivateKey;
@@ -528,6 +543,51 @@ begin
     ShowMessage('Error')
   else
     ShowMessage('OK');
+end;
+
+procedure TFormPaillier.btnCheckBNAddHomoClick(Sender: TObject);
+var
+  Data1, Data2, Data3, Enc1, Enc2, Enc3: TCnBigNumber;
+begin
+  PutBNPaillierKeys(FPrivKey, FPubKey);
+
+  Data1 := TCnBigNumber.Create;
+  Data2 := TCnBigNumber.Create;
+  Data3 := TCnBigNumber.Create;
+  Enc1 := TCnBigNumber.Create;
+  Enc2 := TCnBigNumber.Create;
+  Enc3 := TCnBigNumber.Create;
+
+  Data1.SetDec(edtBNData1.Text);
+  Data2.SetDec(edtBNData2.Text);
+  Data3.SetDec(edtBNData3.Text);
+
+  if CnPaillierEncrypt(FPubKey, Data1, Enc1) then
+    edtBNEnc1.Text := Enc1.ToDec;
+  if CnPaillierEncrypt(FPubKey, Data2, Enc2) then
+    edtBNEnc2.Text := Enc2.ToDec;
+
+  if CnPaillierAddPlain(Data3, Data1, Data2, FPubKey) then
+    edtBNData3.Text := Data3.ToDec;
+
+  if CnPaillierAddCipher(Enc3, Enc1, Enc2, FPubKey) then
+    edtBNEnc3.Text := Enc3.ToDec;
+
+
+  if CnPaillierDecrypt(FPrivKey, FPubKey, Enc3, Data1) then
+  begin
+    if BigNumberEqual(Data1, Data3) then
+      ShowMessage('OK')
+    else
+      ShowMessage('Fail');
+  end;
+
+  Enc3.Free;
+  Enc2.Free;
+  Enc1.Free;
+  Data3.Free;
+  Data2.Free;
+  Data1.Free;
 end;
 
 end.

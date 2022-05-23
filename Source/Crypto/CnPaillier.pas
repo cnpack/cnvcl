@@ -140,11 +140,11 @@ function CnPaillierDecrypt(PrivateKey: TCnPaillierPrivateKey;
   PublicKey: TCnPaillierPublicKey; EnData: TCnBigNumber; Res: TCnBigNumber): Boolean;
 {* 大数范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功}
 
-function CnPaillierAddPlain(Data1, Data2: TCnBigNumber; Res: TCnBigNumber;
+function CnPaillierAddPlain(const Res: TCnBigNumber; Data1, Data2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
 {* 大数范围内 Paillier 加法同态的明文加法，内部是模 N 加}
 
-function CnPaillierAddCipher(EnData1, EnData2: TCnBigNumber; Res: TCnBigNumber;
+function CnPaillierAddCipher(const Res: TCnBigNumber; EnData1, EnData2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
 {* 大数范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘}
 
@@ -510,13 +510,13 @@ begin
   end;
 end;
 
-function CnPaillierAddPlain(Data1, Data2: TCnBigNumber; Res: TCnBigNumber;
+function CnPaillierAddPlain(const Res: TCnBigNumber; Data1, Data2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
 begin
   Result := BigNumberAddMod(Res, Data1, Data2, PublicKey.N);
 end;
 
-function CnPaillierAddCipher(EnData1, EnData2: TCnBigNumber; Res: TCnBigNumber;
+function CnPaillierAddCipher(const Res: TCnBigNumber; EnData1, EnData2: TCnBigNumber; 
   PublicKey: TCnPaillierPublicKey): Boolean;
 begin
   Result := BigNumberDirectMulMod(Res, EnData1, EnData2, PublicKey.N2);
