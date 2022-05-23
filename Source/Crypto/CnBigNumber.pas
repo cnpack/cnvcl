@@ -251,6 +251,9 @@ type
     class function FromBytes(Buf: TBytes): TCnBigNumber;
     {* 根据一个字节数组产生一个新的大数对象，其内容为复制}
 
+    function ToBytes: TBytes;
+    {* 将大数内容换成字节数组}
+
 {$ENDIF}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
@@ -515,6 +518,9 @@ function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 
 function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
 {* 将一个字节数组内容转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
+
+function BigNumberToBytes(const Num: TCnBigNumber): TBytes;
+{* 将一个大数转换成二进制数据写入字节数组并返回，失败返回 nil}
 
 {$ENDIF}
 
@@ -1453,6 +1459,19 @@ begin
   Result := nil;
   if (Buf <> nil) and (Length(Buf) > 0) then
     Result := BigNumberFromBinary(@Buf[0], Length(Buf) - 1);
+end;
+
+function BigNumberToBytes(const Num: TCnBigNumber): TBytes;
+var
+  L: Integer;
+begin
+  Result := nil;
+  L := BigNumberGetBytesCount(Num);
+  if L > 0 then
+  begin
+    SetLength(Result, L);
+    BigNumberToBinary(Num, @Result[0]);
+  end;
 end;
 
 {$ENDIF}
@@ -6574,6 +6593,11 @@ end;
 class function TCnBigNumber.FromBytes(Buf: TBytes): TCnBigNumber;
 begin
   Result := BigNumberFromBytes(Buf);
+end;
+
+function TCnBigNumber.ToBytes: TBytes;
+begin
+  Result := BigNumberToBytes(Self);
 end;
 
 {$ENDIF}
