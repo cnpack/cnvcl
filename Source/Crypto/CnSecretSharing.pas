@@ -128,7 +128,7 @@ function CnInt64ShamirReconstruct(Prime: Int64; InOrders, InShares: TCnInt64List
   out Secret: Int64): Boolean;
 var
   I, J: Integer;
-  X, Y, Sum, N, D: Int64;
+  X, Y, N, D: Int64;
 begin
   Result := False;
   if (Prime < 2) or (InOrders.Count < 2) or (InOrders.Count <> InShares.Count) then
@@ -141,7 +141,7 @@ begin
   // 有 T 个 Shares，则要累加 T 项，每项针对一个 X Y 坐标，有以下计算方法：
   // 每项 = 本Y * (-其他所有 X 的积) / (本X - 其他所有X) 的积)
 
-  Sum := 0;
+  Secret := 0;
   for I := 0 to InOrders.Count - 1 do
   begin
     X := InOrders[I];
@@ -161,7 +161,7 @@ begin
     D := CnInt64ModularInverse2(D, Prime);
 
     N := Int64NonNegativeMulMod(N, D, Prime);
-    Sum := Int64AddMod(Sum, N, Prime);
+    Secret := Int64AddMod(Secret, N, Prime);
   end;
 
   Result := True;
@@ -236,7 +236,7 @@ function CnShamirReconstruct(Prime: TCnBigNumber; InOrders, InShares: TCnBigNumb
   OutSecret: TCnBigNumber): Boolean;
 var
   I, J: Integer;
-  X, Y, Sum, T, N, D: TCnBigNumber;
+  X, Y, T, N, D: TCnBigNumber;
 begin
   Result := False;
   if Prime.IsNegative or Prime.IsZero or (InOrders.Count < 2) or (InOrders.Count <> InShares.Count) then
@@ -249,14 +249,12 @@ begin
   // 有 T 个 Shares，则要累加 T 项，每项针对一个 X Y 坐标，有以下计算方法：
   // 每项 = 本Y * (-其他所有 X 的积) / (本X - 其他所有X) 的积)
 
-  Sum := nil;
   N := nil;
   D := nil;
   T := nil;
 
   try
-    Sum := TCnBigNumber.Create;
-    Sum.SetZero;
+    OutSecret.SetZero;
 
     T := TCnBigNumber.Create;
     N := TCnBigNumber.Create;
@@ -293,7 +291,7 @@ begin
       if not BigNumberMulMod(N, T, D, Prime) then
         Exit;
 
-      if not BigNumberAddMod(Sum, Sum, N, Prime) then
+      if not BigNumberAddMod(OutSecret, OutSecret, N, Prime) then
         Exit;
     end;
 
@@ -303,7 +301,6 @@ begin
     T.Free;
     D.Free;
     N.Free;
-    Sum.Free;
   end;
 end;
 
