@@ -977,11 +977,11 @@ function Int64AddMod(A, B, C: Int64): Int64;
 var
   T: Int64;
 begin
-  if (A > 0) and (B > 0) then // 都正，按 UInt64 处理
+  if (A >= 0) and (B >= 0) then // 都正，按 UInt64 处理
     Result := AddMod(A, B, C)
   else if (A < 0) and (B < 0) then // 都负，按 UInt64 处理后用 C 减
     Result := C - AddMod(-A, -B, C)
-  else if ((A > 0) and (B < 0)) or ((A < 0) and (B > 0)) then
+  else if ((A >= 0) and (B < 0)) or ((A < 0) and (B >= 0)) then
   begin
     // 异号，相加不会溢出
     T := A + B;
