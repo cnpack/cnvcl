@@ -790,7 +790,7 @@ procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K:
 implementation
 
 uses
-  CnContainers;
+  CnContainers, CnRandom;
 
 resourcestring
   SCnEccErrorCurveType = 'Invalid Curve Type.';
@@ -1105,18 +1105,6 @@ begin
 
   if Result < 0 then
     Result := Result + Modulus;
-end;
-
-function RandomInt64LessThan(HighValue: Int64): Int64;
-var
-  Hi, Lo: Cardinal;
-begin
-  Randomize;
-  Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
-  Randomize;
-  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-  Result := (Int64(Hi) shl 32) + Lo;
-  Result := Result mod HighValue;
 end;
 
 { TCnInt64Ecc }

@@ -861,24 +861,6 @@ begin
 end;
 {* 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数}
 
-
-// 直接 Random * High(TUint64) 可能会精度不够导致 Lo 全 FF，因此分开处理
-function RandomUInt64: TUInt64;
-var
-  Hi, Lo: Cardinal;
-begin
-  Randomize;
-  Hi := Trunc(Random * High(Cardinal) - 1) + 1;
-  Randomize;
-  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-  Result := (TUInt64(Hi) shl 32) + Lo;
-end;
-
-function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
-begin
-  Result := UInt64Mod(RandomUInt64, HighValue);
-end;
-
 function CnUInt32IsPrime(N: Cardinal): Boolean;
 var
   I, L, H, M: Cardinal;
