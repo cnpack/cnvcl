@@ -44,10 +44,19 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnECC, CnBigNumber, CnSM3;
+  SysUtils, Classes, CnECC, CnBigNumber, CnConsts, CnSM3;
 
 const
   CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits
+
+  // 错误码
+  ECN_SM2_OK                           = ECN_OK; // 没错
+  ECN_SM2_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $200; // SM2 错误码基准
+
+  ECN_SM2_INVALID_INPUT                = ECN_SM2_ERROR_BASE + 1; // 输入为空或长度不对
+  ECN_SM2_RANDOM_ERROR                 = ECN_SM2_ERROR_BASE + 2; // 随机数相关错误
+  ECN_SM2_BIGNUMBER_ERROR              = ECN_SM2_ERROR_BASE + 3; // 大数运算错误
+  ECN_SM2_KEYEXCHANGE_INFINITE_ERROR   = ECN_SM2_ERROR_BASE + 4; // 密钥交换碰上无穷远点
 
 type
   TCnSM2PrivateKey = TCnEccPrivateKey;
@@ -225,8 +234,10 @@ begin
 
     // 生成一个随机 K
     if not BigNumberRandRange(K, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
       Exit;
-    // K.SetHex('384F30353073AEECE7A1654330A96204D37982A3E15B2CB5');
+    end;
 
     P1 := TCnEccPoint.Create;
     P1.Assign(SM2.Generator);
@@ -472,7 +483,10 @@ begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or
     (PrivateKey = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   K := nil;
   P := nil;
@@ -495,8 +509,10 @@ begin
     begin
       // 生成一个随机 K
       if not BigNumberRandRange(K, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_RANDOM_ERROR);
         Exit;
-      // K.SetHex('6CB28D99385C175C94F94E934817663FC176D925DD72B727260DBAAE1FB2F96F');
+      end;
 
       P.Assign(SM2.Generator);
       SM2.MultiplePoint(K, P);
@@ -566,7 +582,10 @@ var
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (InSignature = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   K := nil;
   P := nil;
@@ -613,6 +632,7 @@ begin
       Exit;
 
     Result := BigNumberCompare(R, InSignature.X) = 0;
+    _CnSetLastError(ECN_SM2_OK); // 正常进行校验，即使校验不通过也清空错误码
   finally
     K.Free;
     P.Free;
@@ -632,7 +652,10 @@ var
 begin
   Result := '';
   if not FileExists(FileName) then
+  begin
+    _CnSetLastError(ECN_FILE_NOT_FOUND);
     Exit;
+  end;
 
   OutSign := nil;
   Stream := nil;
@@ -658,7 +681,10 @@ var
 begin
   Result := False;
   if not FileExists(FileName) then
+  begin
+    _CnSetLastError(ECN_FILE_NOT_FOUND);
     Exit;
+  end
 
   InSign := nil;
   Stream := nil;
@@ -751,7 +777,10 @@ begin
   Result := False;
   if (KeyByteLength <= 0) or (APrivateKey = nil) or (APublicKey = nil) or (OutRA = nil)
     or (OutARand = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   SM2IsNil := SM2 = nil;
   try
@@ -759,8 +788,10 @@ begin
       SM2 := TCnSM2.Create;
 
     if not BigNumberRandRange(OutARand, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
       Exit;
-    // OutARand.SetHex('83A2C9C8B96E5AF70BD480B472409A9A327257F1EBB73F5B073354B248668563');
+    end;
 
     OutRA.Assign(SM2.Generator);
     SM2.MultiplePoint(OutARand, OutRA);
@@ -796,7 +827,10 @@ begin
   Result := False;
   if (KeyByteLength <= 0) or (BPrivateKey = nil) or (APublicKey = nil) or
     (BPublicKey = nil) or (InRA = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   SM2IsNil := SM2 = nil;
   R := nil;
@@ -813,9 +847,11 @@ begin
 
     R := TCnBigNumber.Create;
     if not BigNumberRandRange(R, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
       Exit;
+    end;
 
-    // R.SetHex('33FE21940342161C55619C4A0C060293D543C80AF19748CE176D83477DE71C80');
     OutRB.Assign(SM2.Generator);
     SM2.MultiplePoint(R, OutRB);
 
@@ -846,7 +882,10 @@ begin
     SM2.MultiplePoint(T, V);
 
     if V.X.IsZero or V.Y.IsZero then // 如果是无穷远点则协商失败
+    begin
+      _CnSetLastError(ECN_SM2_KEYEXCHANGE_INFINITE_ERROR);
       Exit;
+    end;
 
     // 协商初步成功，计算 KB
     Za := CalcSM2UserHash(AUserID, APublicKey, SM2);
@@ -882,7 +921,10 @@ begin
   Result := False;
   if (KeyByteLength <= 0) or (APrivateKey = nil) or (APublicKey = nil) or
     (BPublicKey = nil) or (MyRA = nil) or (InRB = nil) or (MyARand = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   SM2IsNil := SM2 = nil;
   X := nil;
@@ -904,6 +946,7 @@ begin
       Exit;
     if not BigNumberAdd(X, X, APrivateKey) then
       Exit;
+
     T := TCnBigNumber.Create;
     if not BigNumberNonNegativeMod(T, X, SM2.Order) then // T = (APrivateKey + 随机值 * X1) mod N
       Exit;
@@ -919,7 +962,10 @@ begin
     SM2.MultiplePoint(T, U);
 
     if U.X.IsZero or U.Y.IsZero then // 如果是无穷远点则协商失败
+    begin
+      _CnSetLastError(ECN_SM2_KEYEXCHANGE_INFINITE_ERROR);
       Exit;
+    end;
 
     // 协商初步成功，计算 KA
     Za := CalcSM2UserHash(AUserID, APublicKey, SM2);
