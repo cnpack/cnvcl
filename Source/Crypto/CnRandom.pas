@@ -38,17 +38,19 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF},  Classes;
+  SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, Classes, CnNativeDecl;
 
 type
   ECnRandomAPIError = class(Exception);
 
-{$IFDEF SUPPORT_UINT64}
-
 function RandomUInt64: TUInt64;
-{* 返回 UInt64 范围内的随机数}
+{* 返回 UInt64 范围内的随机数，在不支持 UInt64 的平台上用 Int64 代替}
 
-{$ENDIF}
+function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
+{* 返回大于等于 0 且小于指定 UInt64 值的随机数}
+
+function RandomInt64: Int64;
+{* 返回大于等于 0 且小于 Int64 上限的随机数}
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
 {* 返回大于等于 0 且小于指定 Int64 值的随机数}
@@ -129,30 +131,37 @@ begin
 {$ENDIF}
 end;
 
-{$IFDEF SUPPORT_UINT64}
-
-function RandomUInt64: UInt64;
+function RandomUInt64: TUInt64;
 var
   Hi, Lo: Cardinal;
 begin
+  // 直接 Random * High(TUInt64) 可能会精度不够导致 Lo 全 FF，因此分开处理
   Randomize;
   Hi := Trunc(Random * High(Cardinal) - 1) + 1;
   Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-  Result := (UInt64(Hi) shl 32) + Lo;
+  Result := (TUInt64(Hi) shl 32) + Lo;
 end;
 
-{$ENDIF}
+function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
+begin
+  Result := UInt64Mod(RandomUInt64, HighValue);
+end;
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
 var
   Hi, Lo: Cardinal;
 begin
+  // 直接 Random * High(Int64) 可能会精度不够导致 Lo 全 FF，因此分开处理
   Randomize;
   Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
-  Randomize;
   Lo := Trunc(Random * High(Cardinal) - 1) + 1;
   Result := (Int64(Hi) shl 32) + Lo;
   Result := Result mod HighValue;
+end;
+
+function RandomInt64: Int64;
+begin
+  Result := RandomInt64LessThan(High(Int64));
 end;
 
 end.
