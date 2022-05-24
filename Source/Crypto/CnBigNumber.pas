@@ -590,10 +590,10 @@ procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 交换两个大数对象的内容}
 
 function BigNumberRandBytes(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
-{* 产生固定字节长度的随机大数}
+{* 产生固定字节长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0}
 
 function BigNumberRandBits(const Num: TCnBigNumber; BitsCount: Integer): Boolean;
-{* 产生固定位长度的随机大数}
+{* 产生固定位长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0}
 
 function BigNumberRandRange(const Num: TCnBigNumber; const Range: TCnBigNumber): Boolean;
 {* 产生 [0, Range) 之间的随机大数}
@@ -745,11 +745,11 @@ function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = 
 
 function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个指定字节位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+{* 生成一个指定字节位数的大素数，不保证最高位为 1。TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+{* 生成一个指定二进制位数的大素数，最高位确保为 1。TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberNextPrime(Res, Num: TCnBigNumber;
   TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
