@@ -290,7 +290,7 @@ end;
 
 procedure TFormPaillier.btnBNGenerateKeyClick(Sender: TObject);
 begin
-  if CnGeneratePaillierKeys(FPrivKey, FPubKey, 256) then
+  if CnGeneratePaillierKeys(FPrivKey, FPubKey, 1024) then
     ShowBNPaillierKeys(FPrivKey, FPubKey);
 end;
 

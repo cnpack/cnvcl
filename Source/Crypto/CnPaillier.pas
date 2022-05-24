@@ -44,10 +44,18 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl, CnBigNumber;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF},
+  CnConsts, CnNativeDecl, CnBigNumber;
 
 const
-  CN_PAILLIER_DEFAULT_PRIMEBITS = 1024;
+  CN_PAILLIER_DEFAULT_PRIMEBITS = 2048;
+
+  // 错误码
+  ECN_PAILLIER_OK                      = ECN_OK; // 没错
+  ECN_PAILLIER_ERROR_BASE              = ECN_CUSTOM_ERROR_BASE + $300; // Paillier 错误码基准
+
+  ECN_PAILLIER_INVALID_INPUT           = ECN_PAILLIER_ERROR_BASE + 1;  // 输入为空或值不对
+  ECN_PAILLIER_RANDOM_ERROR            = ECN_PAILLIER_ERROR_BASE + 2;  // 随机数相关错误
 
 type
   TCnInt64PaillierPrivateKey = packed record
@@ -333,7 +341,10 @@ var
 begin
   Result := False;
   if (PrivateKey = nil) or (PublicKey = nil) or (PrimeBits < 128) then
+  begin
+    _CnSetLastError(ECN_PAILLIER_INVALID_INPUT);
     Exit;
+  end;
 
   AP := nil;
   AQ := nil;
@@ -398,6 +409,7 @@ begin
       Exit;
 
     Result := True;
+    _CnSetLastError(ECN_PAILLIER_OK);
   finally
     Lam.Free;
     T.Free;
@@ -415,7 +427,10 @@ begin
   // 公钥加密：随机生成 R < N，然后密文 = (G^M * R^N) mod N^2
   Result := False;
   if BigNumberCompare(Data, PublicKey.N) >= 0 then // 待加密的明文数字不能比 N 大
+  begin
+    _CnSetLastError(ECN_PAILLIER_INVALID_INPUT);
     Exit;
+  end;;
 
   T1 := nil;
   R := nil;
@@ -466,8 +481,13 @@ begin
         Exit;
     end
     else
+    begin
       if not BigNumberRandRange(R, M) then
+      begin
+        _CnSetLastError(ECN_PAILLIER_RANDOM_ERROR);
         Exit;
+      end;
+    end;
 
     G := TCnBigNumber.Create;
     if not BigNumberGcd(G, R, PublicKey.N) then
@@ -479,6 +499,7 @@ begin
       R.AddWord(1);
       if not BigNumberGcd(G, R, PublicKey.N) then
         Exit;
+
       if not G.IsOne then
         R.AddWord(1);
     end;
@@ -491,6 +512,7 @@ begin
       Exit;
 
     Result := True;
+    _CnSetLastError(ECN_PAILLIER_OK);
   finally
     T2.Free;
     G.Free;
@@ -522,7 +544,8 @@ begin
     if not BigNumberDirectMulMod(Res, T, PrivateKey.Mu, PublicKey.N) then
       Exit;
 
-    Result := True;  
+    Result := True;
+    _CnSetLastError(ECN_PAILLIER_OK);
   finally
     T.Free;
   end;
