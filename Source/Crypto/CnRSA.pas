@@ -90,8 +90,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnPrimeNumber, CnBigNumber,
-  CnBase64, CnBerUtils, CnPemUtils, CnNativeDecl, CnMD5, CnSHA1, CnSHA2, CnSM3;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnConsts, CnPrimeNumber,
+  CnBigNumber, CnBase64, CnBerUtils, CnPemUtils, CnNativeDecl, CnMD5, CnSHA1,
+  CnSHA2, CnSM3;
 
 const
   // 以下 OID 都预先写死，不动态计算编码了
@@ -100,15 +101,17 @@ const
   );  // $2A = 40 * 1 + 2
 
   // 错误码
-  ECN_RSA_OK                           = 0; // 没错
-  ECN_RSA_INVALID_INPUT                = 1; // 输入为空或长度不对
-  ECN_RSA_INVALID_BITS                 = 2; // 密钥位数不对
-  ECN_RSA_BIGNUMBER_ERROR              = 3; // 大数运算错误
-  ECN_RSA_BER_ERROR                    = 4; // BER 格式编码错误
-  ECN_RSA_PADDING_ERROR                = 5; // PADDING 对齐错误
-  ECN_RSA_DIGEST_ERROR                 = 6; // 数字摘要错误
-  ECN_RSA_PEM_FORMAT_ERROR             = 7; // PEM 格式错误
-  ECN_RSA_PEM_CRYPT_ERROR              = 8; // PEM 加解密错误
+  ECN_RSA_OK                           = ECN_OK; // 没错
+  ECN_RSA_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $100; // RSA 错误码基准
+
+  ECN_RSA_INVALID_INPUT                = ECN_RSA_ERROR_BASE + 1; // 输入为空或长度不对
+  ECN_RSA_INVALID_BITS                 = ECN_RSA_ERROR_BASE + 2; // 密钥位数不对
+  ECN_RSA_BIGNUMBER_ERROR              = ECN_RSA_ERROR_BASE + 3; // 大数运算错误
+  ECN_RSA_BER_ERROR                    = ECN_RSA_ERROR_BASE + 4; // BER 格式编码错误
+  ECN_RSA_PADDING_ERROR                = ECN_RSA_ERROR_BASE + 5; // PADDING 对齐错误
+  ECN_RSA_DIGEST_ERROR                 = ECN_RSA_ERROR_BASE + 6; // 数字摘要错误
+  ECN_RSA_PEM_FORMAT_ERROR             = ECN_RSA_ERROR_BASE + 7; // PEM 格式错误
+  ECN_RSA_PEM_CRYPT_ERROR              = ECN_RSA_ERROR_BASE + 8; // PEM 加解密错误
 
 type
   TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3);
@@ -418,13 +421,10 @@ const
     $60, $86, $48, $01, $65, $03, $04, $02, $01
   );
 
-threadvar
-  RSAErrorCode: Integer;
-
 // 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
 function GetLastCnRSAError: Integer;
 begin
-  Result := RSAErrorCode;
+  Result := CnGetLastError;
 end;
 
 // 利用公私钥对数据进行加解密，注意加解密使用的是同一套机制，无需区分
@@ -457,6 +457,7 @@ var
   Succ: Boolean;
   Product, Y: TUInt64;
 begin
+  Succ := False;
   repeat
     PrimeKey1 := CnGenerateUInt32Prime(HighBitSet);
 
@@ -527,7 +528,7 @@ begin
   Result := False;
   if PrimeBits <= 16 then
   begin
-    RSAErrorCode := ECN_RSA_INVALID_BITS;
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
     Exit;
   end;
 
@@ -624,10 +625,10 @@ var
   R, Y, Rem, S1, S2, One: TCnBigNumber;
 begin
   Result := False;
-  RSAErrorCode := ECN_RSA_BIGNUMBER_ERROR;
+  _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
   if ModulusBits < 128 then
   begin
-    RSAErrorCode := ECN_RSA_INVALID_BITS;
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
     Exit;
   end;
 
@@ -731,8 +732,9 @@ begin
     Y.Free;
     Rem.Free;
   end;
-  RSAErrorCode := ECN_RSA_OK;
+
   Result := True;
+  _CnSetLastError(ECN_RSA_OK);
 end;
 
 // 从 PEM 格式文件中加载公私钥数据
@@ -830,7 +832,7 @@ begin
 
     if not LoadOK then
     begin
-      RSAErrorCode := ECN_RSA_PEM_FORMAT_ERROR;
+      _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
       Exit;
     end;
 
@@ -889,12 +891,15 @@ begin
           end;
 
           Result := True;
+          _CnSetLastError(ECN_RSA_OK);
         end;
       end;
     end;
 
-    if not Result then
-      RSAErrorCode := ECN_RSA_PEM_FORMAT_ERROR;
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
   finally
     MemStream.Free;
     Reader.Free;
@@ -984,7 +989,10 @@ begin
     end;
 
     if Result then
+    begin
+      _CnSetLastError(ECN_RSA_OK);
       Exit;
+    end;
 
     PemStream.Position := OldPos;
     if LoadPemStreamToMemory(PemStream, PEM_RSA_PUBLIC_HEAD, PEM_RSA_PUBLIC_TAIL,
@@ -1006,8 +1014,10 @@ begin
       end;
     end;
 
-    if not Result then
-      RSAErrorCode := ECN_RSA_PEM_FORMAT_ERROR;
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
   finally
     Mem.Free;
     Reader.Free;
@@ -1028,11 +1038,17 @@ begin
   Result := False;
   if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
     (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
     Exit;
+  end;
 
   if (PrivateKey = nil) or (PrivateKey.PrivKeyProduct.GetBytesCount <= 0) or
     (PrivateKey.PrivKeyExponent.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
     Exit;
+  end;
 
   Mem := nil;
   Writer := nil;
@@ -1115,6 +1131,11 @@ begin
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_PRIVATE_HEAD,
         PEM_PRIVATE_TAIL, Mem, KeyEncryptMethod, KeyHashMethod, Password);
+
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
   finally
     BigNumberFree(T);
     BigNumberFree(R1);
@@ -1140,7 +1161,10 @@ begin
   Result := False;
   if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
     (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
     Exit;
+  end;
 
   Mem := nil;
   Writer := nil;
@@ -1179,6 +1203,11 @@ begin
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_PUBLIC_HEAD,
         PEM_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password);
+
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
   finally
     Mem.Free;
     Writer.Free;
@@ -1191,7 +1220,7 @@ function RSACrypt(Data: TCnBigNumber; Product: TCnBigNumber; Exponent: TCnBigNum
 begin
   Result := BigNumberMontgomeryPowerMod(Res, Data, Exponent, Product);
   if not Result then
-    RSAErrorCode := ECN_RSA_BIGNUMBER_ERROR;
+    _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
 end;
 
 // 利用上面生成的私钥对数据进行加密，返回加密是否成功
@@ -1319,11 +1348,13 @@ begin
     begin
       R.ToBinary(OutBuf);
       OutLen := R.GetBytesCount;
+
       Result := True;
+      _CnSetLastError(ECN_RSA_OK);
     end;
   end
   else
-    RSAErrorCode := ECN_RSA_INVALID_INPUT;
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
 end;
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
@@ -1372,7 +1403,7 @@ begin
     begin
       if not AddPKCS1Padding(PaddingType, BlockSize, PlainData, DataLen, Stream) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
     end
@@ -1382,7 +1413,7 @@ begin
       Stream.Size := Product.GetBytesCount;
       if not AddOaepSha1MgfPadding(Stream.Memory, Stream.Size, PlainData, DataLen) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
     end;
@@ -1393,7 +1424,9 @@ begin
       Exit;
 
     Res.ToBinary(PAnsiChar(OutBuf));
+
     Result := True;
+    _CnSetLastError(ECN_RSA_OK);
   finally
     Stream.Free;
     Data.Free;
@@ -1435,7 +1468,9 @@ begin
     Stream.Clear;
     Stream.Write(Res[0], PublicKey.BytesCount);
     Stream.SaveToFile(OutFileName);
+
     Result := True;
+    _CnSetLastError(ECN_RSA_OK);
   finally
     Stream.Free;
     SetLength(Res, 0);
@@ -1461,7 +1496,9 @@ begin
     Stream.Clear;
     Stream.Write(Res[0], PrivateKey.BytesCount);
     Stream.SaveToFile(OutFileName);
+
     Result := True;
+    _CnSetLastError(ECN_RSA_OK);
   finally
     Stream.Free;
     SetLength(Res, 0);
@@ -1499,14 +1536,17 @@ begin
     begin
       Result := RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen);
       if not Result then
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
     end
     else if PaddingMode = cpmOAEP then
     begin
       // OAEP 解密，仅私钥的控制在调用者
       Result := RemoveOaepSha1MgfPadding(OutBuf, OutLen, @ResBuf[0], Length(ResBuf));
-      if not Result then
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+
+      if Result then
+        _CnSetLastError(ECN_RSA_OK)
+      else
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
     end;
   finally
     Stream.Free;
@@ -1546,7 +1586,10 @@ begin
     Stream.LoadFromFile(InFileName);
 
     if Stream.Size <> PublicKey.GetBytesCount then
+    begin
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
       Exit;
+    end;
 
     if not CnRSADecryptData(Stream.Memory, Stream.Size, @Res[0], OutLen, PublicKey) then
       Exit;
@@ -1554,7 +1597,9 @@ begin
     Stream.Clear;
     Stream.Write(Res[0], OutLen);
     Stream.SaveToFile(OutFileName);
+
     Result := True;
+    _CnSetLastError(ECN_RSA_OK);
   finally
     Stream.Free;
     SetLength(Res, 0);
@@ -1578,7 +1623,7 @@ begin
 
     if Stream.Size <> PrivateKey.GetBytesCount then
     begin
-      RSAErrorCode := ECN_RSA_INVALID_INPUT;
+      _CnSetLastError(ECN_RSA_INVALID_INPUT);
       Exit;
     end;
 
@@ -1588,7 +1633,9 @@ begin
     Stream.Clear;
     Stream.Write(Res[0], OutLen);
     Stream.SaveToFile(OutFileName);
+
     Result := True;
+    _CnSetLastError(ECN_RSA_OK);
   finally
     Stream.Free;
     SetLength(Res, 0);
@@ -1597,7 +1644,7 @@ end;
 
 // RSA 文件签名与验证实现
 
-// 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream
+// 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream，如果出错内部会设置错误码
 function CalcDigestStream(InStream: TStream; SignType: TCnRSASignDigestType;
   outStream: TStream): Boolean;
 var
@@ -1634,8 +1681,10 @@ begin
       end
   end;
 
-  if not Result then
-    RSAErrorCode := ECN_RSA_DIGEST_ERROR;
+  if Result then
+    _CnSetLastError(ECN_RSA_OK)
+  else
+    _CnSetLastError(ECN_RSA_DIGEST_ERROR);
 end;
 
 // 根据指定数字摘要算法计算文件的二进制散列值并写入 Stream
@@ -1675,8 +1724,10 @@ begin
       end;
   end;
 
-  if not Result then
-    RSAErrorCode := ECN_RSA_DIGEST_ERROR;
+  if Result then
+    _CnSetLastError(ECN_RSA_OK)
+  else
+    _CnSetLastError(ECN_RSA_DIGEST_ERROR);
 end;
 
 function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
@@ -1741,7 +1792,7 @@ begin
       if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBytesCount,
         InStream.Memory, InStream.Size, EnStream) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
     end
@@ -1765,7 +1816,7 @@ begin
       if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBytesCount,
         BerStream.Memory, BerStream.Size, EnStream) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
     end;
@@ -1783,7 +1834,9 @@ begin
       Stream.Clear;
       Stream.Write(ResBuf[0], Res.GetBytesCount);
       Stream.SaveToStream(OutSignStream);
+
       Result := True;
+      _CnSetLastError(ECN_RSA_OK);
     end;
   finally
     Stream.Free;
@@ -1828,7 +1881,7 @@ begin
       SetLength(BerBuf, Length(ResBuf));
       if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), @BerBuf[0], BerLen) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
 
@@ -1839,13 +1892,13 @@ begin
         if Result then
           Result := CompareMem(InStream.Memory, @BerBuf[0], InStream.Size);
 
-        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
+        _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end
       else
       begin
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
-          RSAErrorCode := ECN_RSA_BER_ERROR;
+          _CnSetLastError(ECN_RSA_BER_ERROR);
           Exit;
         end;
 
@@ -1854,7 +1907,7 @@ begin
         Reader.ParseToTree;
         if Reader.TotalCount < 5 then
         begin
-          RSAErrorCode := ECN_RSA_BER_ERROR;
+          _CnSetLastError(ECN_RSA_BER_ERROR);
           Exit;
         end;
 
@@ -1862,7 +1915,7 @@ begin
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = rsdtNone then
         begin
-          RSAErrorCode := ECN_RSA_BER_ERROR;
+          _CnSetLastError(ECN_RSA_BER_ERROR);
           Exit;
         end;
 
@@ -1875,7 +1928,7 @@ begin
         if Result then
           Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
 
-        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
+        _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end;
     end;
   finally
@@ -1916,7 +1969,7 @@ begin
       if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBytesCount,
         Stream.Memory, Stream.Size, EnStream) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
     end
@@ -1940,7 +1993,7 @@ begin
       if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBytesCount,
         BerStream.Memory, BerStream.Size, EnStream) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
     end;
@@ -1958,7 +2011,9 @@ begin
       Stream.Clear;
       Stream.Write(ResBuf[0], Res.GetBytesCount);
       Stream.SaveToFile(OutSignFileName);
+
       Result := True;
+      _CnSetLastError(ECN_RSA_OK);
     end;
   finally
     Stream.Free;
@@ -2006,7 +2061,7 @@ begin
       SetLength(BerBuf, Length(ResBuf));
       if not RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), @BerBuf[0], BerLen) then
       begin
-        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
       end;
 
@@ -2017,13 +2072,13 @@ begin
         if Result then
           Result := CompareMem(Stream.Memory, @BerBuf[0], Stream.Size);
 
-        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
+        _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end
       else
       begin
         if (BerLen <= 0) or (BerLen >= Length(ResBuf)) then
         begin
-          RSAErrorCode := ECN_RSA_BER_ERROR;
+          _CnSetLastError(ECN_RSA_BER_ERROR);
           Exit;
         end;
 
@@ -2032,7 +2087,7 @@ begin
         Reader.ParseToTree;
         if Reader.TotalCount < 5 then
         begin
-          RSAErrorCode := ECN_RSA_BER_ERROR;
+          _CnSetLastError(ECN_RSA_BER_ERROR);
           Exit;
         end;
 
@@ -2040,7 +2095,7 @@ begin
         SignType := GetDigestSignTypeFromBerOID(Node.BerDataAddress, Node.BerDataLength);
         if SignType = rsdtNone then
         begin
-          RSAErrorCode := ECN_RSA_BER_ERROR;
+          _CnSetLastError(ECN_RSA_BER_ERROR);
           Exit;
         end;
 
@@ -2053,7 +2108,7 @@ begin
         if Result then
           Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
 
-        RSAErrorCode := ECN_RSA_OK; // 正常进行校验，即使校验不通过也清空错误码
+        _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end;
     end;
   finally
@@ -2078,13 +2133,13 @@ begin
   Result := False;
   if BitsCount <= 16 then
   begin
-    RSAErrorCode := ECN_RSA_INVALID_BITS;
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
     Exit;
   end;
 
   if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
   begin
-    RSAErrorCode := ECN_RSA_BIGNUMBER_ERROR;
+    _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
     Exit;
   end;
 
@@ -2217,7 +2272,7 @@ begin
 
   if (DataLen > EmLen - 2 * MdLen - 1) or (EmLen < 2 * MdLen + 1) then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2241,7 +2296,7 @@ begin
   // To[1] 开始的 20 个字节 Rand 一下
   if not CnRandomFillBytes(PAnsiChar(Seed), MdLen) then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2250,7 +2305,7 @@ begin
   // 随机 Seed 算出 MGF 数据，准备和 DB 做 XOR
   if not Pkcs1Sha1MGF(Seed, MdLen, @DBMask[0], EmLen - MdLen) then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2260,7 +2315,7 @@ begin
   // XOR 过的 Masked DB 再算出 MGF 数据，准备和随机 Seed 做 XOR
   if not Pkcs1Sha1MGF(DB, EmLen - MdLen, @SeedMask[0], MdLen) then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2283,13 +2338,13 @@ begin
   Result := False;
   if (EnData = nil) or (ToBuf = nil) then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
   if EnData^ <> 0 then  // 首字节必须是 0
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2297,7 +2352,7 @@ begin
   DBLen := DataLen - MdLen - 1;
   if DBLen <= 0 then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2310,7 +2365,7 @@ begin
   // 把 MaskedDB 先算出来
   if not Pkcs1Sha1MGF(@MaskedDB[0], DBLen, @Seed[0], MdLen) then
   begin
-    RSAErrorCode := ECN_RSA_PADDING_ERROR;
+    _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
   end;
 
@@ -2321,7 +2376,7 @@ begin
   try
     if not Pkcs1Sha1MGF(@Seed[0], MdLen, @DB[0], DBLen) then
     begin
-      RSAErrorCode := ECN_RSA_PADDING_ERROR;
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
       Exit;
     end;
 
@@ -2331,7 +2386,7 @@ begin
     // 这里 DB 的前 MdLen 字节应该等于 ParamHash，比较判断之
     if not CompareMem(@DB[0], @ParamHash[0], MdLen) then
     begin
-      RSAErrorCode := ECN_RSA_PADDING_ERROR;
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
       Exit;
     end;
 
@@ -2343,7 +2398,7 @@ begin
       begin
         if DB[I] <> 1 then
         begin
-          RSAErrorCode := ECN_RSA_PADDING_ERROR;
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
           Exit;
         end
         else // 0 后的第一个 1
@@ -2361,7 +2416,7 @@ begin
 //      没法判断目标区域是否够不够容纳，因为 OutLen 没传进 ToBuf 的实际长度来
 //      if DBLen - MStart > OutLen then
 //      begin
-//        RSAErrorCode := ECN_RSA_PADDING_ERROR;
+//        _CnSetLastError(ECN_RSA_PADDING_ERROR);
 //        Exit;
 //      end;
 
