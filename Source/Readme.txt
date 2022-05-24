@@ -225,6 +225,12 @@ cnpack\Source 目录内容说明：
   CnNativeDecl.pas
     Win32/64 的部分通用声明单元
 
+  CnOTP.pas
+    动态口令实现单元
+
+  CnPaillier
+    加法同态 Paillier 算法实现单元
+
   CnPemUtils.pas
     PEM 格式处理工具单元
 
@@ -239,6 +245,9 @@ cnpack\Source 目录内容说明：
 
   CnRSA.pas
     RSA 算法实现单元
+
+  CnSecretSharing
+    秘密共享场景的 Shamir 门限方案实现单元
 
   CnSHA1.pas
     SHA1 算法实现单元
