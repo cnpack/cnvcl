@@ -43,6 +43,13 @@ uses
 type
   ECnRandomAPIError = class(Exception);
 
+{$IFDEF SUPPORT_UINT64}
+
+function RandomUInt64: TUInt64;
+{* 返回 UInt64 范围内的随机数}
+
+{$ENDIF}
+
 function RandomInt64LessThan(HighValue: Int64): Int64;
 {* 返回大于等于 0 且小于指定 Int64 值的随机数}
 
@@ -121,6 +128,20 @@ begin
   end;
 {$ENDIF}
 end;
+
+{$IFDEF SUPPORT_UINT64}
+
+function RandomUInt64: UInt64;
+var
+  Hi, Lo: Cardinal;
+begin
+  Randomize;
+  Hi := Trunc(Random * High(Cardinal) - 1) + 1;
+  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
+  Result := (UInt64(Hi) shl 32) + Lo;
+end;
+
+{$ENDIF}
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
 var
