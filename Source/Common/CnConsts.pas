@@ -37,6 +37,13 @@ interface
 
 {$I CnPack.inc}
 
+const
+  ECN_OK                              = 0;         // 错误码 OK，无错误
+
+  ECN_FILE_NOT_FOUND                  = $10;       // 文件不存在
+
+  ECN_CUSTOM_ERROR_BASE               = $1000;     // 供外界设定的错误码起始值
+
 //==============================================================================
 // Strings DO NOT Localize:
 //==============================================================================
@@ -208,7 +215,24 @@ const
   SCommaString = ',';
   SPeriodString = '.';
 
+function CnGetLastError: Integer;
+
+procedure _CnSetLastError(Err: Integer);
+
 implementation
+
+threadvar
+  CnErrorCode: Integer;
+
+function CnGetLastError: Integer;
+begin
+  Result := CnErrorCode
+end;
+
+procedure _CnSetLastError(Err: Integer);
+begin
+  CnErrorCode := Err;
+end;
 
 end.
 

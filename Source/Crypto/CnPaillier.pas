@@ -516,7 +516,7 @@ begin
   Result := BigNumberAddMod(Res, Data1, Data2, PublicKey.N);
 end;
 
-function CnPaillierAddCipher(const Res: TCnBigNumber; EnData1, EnData2: TCnBigNumber; 
+function CnPaillierAddCipher(const Res: TCnBigNumber; EnData1, EnData2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
 begin
   Result := BigNumberDirectMulMod(Res, EnData1, EnData2, PublicKey.N2);

@@ -573,7 +573,6 @@ begin
   if CnPaillierAddCipher(Enc3, Enc1, Enc2, FPubKey) then
     edtBNEnc3.Text := Enc3.ToDec;
 
-
   if CnPaillierDecrypt(FPrivKey, FPubKey, Enc3, Data1) then
   begin
     if BigNumberEqual(Data1, Data3) then

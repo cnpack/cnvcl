@@ -11,6 +11,7 @@ object FormPaillier: TFormPaillier
   Font.Name = 'ËÎÌו'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
