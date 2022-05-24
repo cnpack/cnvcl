@@ -425,8 +425,26 @@ begin
 
   try
     T1 := TCnBigNumber.Create;
-    if not BigNumberPowerMod(T1, PublicKey.G, Data, PublicKey.N2) then
+
+    // 可以简化。g = n + 1 的情况下，g^m mod n^2 = m*n + 1 mod n^2
+    if BigNumberCopy(T1, PublicKey.G) = nil then
       Exit;
+
+    T1.SubWord(1);
+    if BigNumberEqual(T1, PublicKey.N) then // 判断 g = n + 1
+    begin
+      if not BigNumberMul(T1, Data, PublicKey.N) then // Data * N
+        Exit;
+
+      T1.AddWord(1);                                     // Data * N + 1
+      if not BigNumberMod(T1, T1, PublicKey.N2) then     // 再 mod N^2
+        Exit;
+    end
+    else
+    begin
+      if not BigNumberPowerMod(T1, PublicKey.G, Data, PublicKey.N2) then
+        Exit;
+    end;
 
     // 生成随机值。注意！R 必须和 N 互质！也就是不能是 P 或 Q 的倍数！
     R := TCnBigNumber.Create;
