@@ -288,7 +288,7 @@ begin
       if not BigNumberModularInverse(T, D, Prime) then
         Exit;
 
-      if not BigNumberMulMod(N, T, D, Prime) then
+      if not BigNumberDirectMulMod(N, T, N, Prime) then
         Exit;
 
       if not BigNumberAddMod(OutSecret, OutSecret, N, Prime) then

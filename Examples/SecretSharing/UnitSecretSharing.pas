@@ -15,8 +15,12 @@ type
     mmoInt64Shamir: TMemo;
     btnBNShamirSample: TButton;
     mmoBNShamir: TMemo;
+    btnBNShamirSample2: TButton;
+    btnInt64ShamirSample2: TButton;
     procedure btnInt64ShamirSampleClick(Sender: TObject);
     procedure btnBNShamirSampleClick(Sender: TObject);
+    procedure btnBNShamirSample2Click(Sender: TObject);
+    procedure btnInt64ShamirSample2Click(Sender: TObject);
   private
 
   public
@@ -113,6 +117,58 @@ begin
   Orders.Free;
   P.Free;
   S.Free;
+end;
+
+procedure TFormSecretSharing.btnBNShamirSample2Click(Sender: TObject);
+var
+  S, P: TCnBigNumber;
+  X, Y: TCnBigNumberList;
+begin
+  S := TCnBigNumber.FromDec('0');
+  P := TCnBigNumber.FromDec('65537');
+
+  X := TCnBigNumberList.Create;
+  Y := TCnBigNumberList.Create;
+
+  X.Add.SetWord(1);
+  X.Add.SetWord(3);
+  X.Add.SetWord(5);
+  Y.Add.SetWord(12311);
+  Y.Add.SetWord(22738);
+  Y.Add.SetWord(54614);
+
+  if CnShamirReconstruct(P, X, Y, S) then
+    ShowMessage(S.ToDec);
+
+  Y.Free;
+  X.Free;
+  P.Free;
+  S.Free;
+end;
+
+procedure TFormSecretSharing.btnInt64ShamirSample2Click(Sender: TObject);
+var
+  S, P: Int64;
+  X, Y: TCnInt64List;
+begin
+  S := 23333;
+  P := 65537;
+
+  X := TCnInt64List.Create;
+  Y := TCnInt64List.Create;
+
+  X.Add(1);
+  X.Add(3);
+  X.Add(5);
+  Y.Add(12311);
+  Y.Add(22738);
+  Y.Add(54614);
+
+  if CnInt64ShamirReconstruct(P, X, Y, S) then
+    ShowMessage(IntToStr(S));
+
+  Y.Free;
+  X.Free;
 end;
 
 end.

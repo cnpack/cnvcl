@@ -28,7 +28,7 @@ object FormSecretSharing: TFormSecretSharing
         Top = 8
         Width = 929
         Height = 473
-        Caption = 'Int64 Shamir Threshold Schema'
+        Caption = 'Shamir Threshold Schema'
         TabOrder = 0
         object btnInt64ShamirSample: TButton
           Left = 16
@@ -61,6 +61,24 @@ object FormSecretSharing: TFormSecretSharing
           Width = 697
           Height = 393
           TabOrder = 3
+        end
+        object btnBNShamirSample2: TButton
+          Left = 304
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Sample2'
+          TabOrder = 4
+          OnClick = btnBNShamirSample2Click
+        end
+        object btnInt64ShamirSample2: TButton
+          Left = 104
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Sample2'
+          TabOrder = 5
+          OnClick = btnInt64ShamirSample2Click
         end
       end
     end
