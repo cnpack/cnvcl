@@ -5,34 +5,23 @@
     <VERSION value="BCB.06.00"/>
     <PROJECT value="CnPack_CB6.bpl"/>
     <OBJFILES value="CnPack_CB6.obj 
-      ..\..\Source\Crypto\CnAES.obj 
       ..\..\Source\Common\CnAntiCheater.obj 
-      ..\..\Source\Crypto\CnBase64.obj 
-      ..\..\Source\Crypto\CnBerUtils.obj 
       ..\..\Source\Common\CnBigDecimal.obj 
-      ..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\Source\Common\CnBigRational.obj 
       ..\..\Source\Common\CnBinaryDiffPatch.obj 
       ..\..\Source\Common\CnBloomFilter.obj 
       ..\..\Source\Common\CnCalClass.obj 
       ..\..\Source\Common\CnCalendar.obj 
       ..\..\Source\Common\CnCallBack.obj 
-      ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Common\CnClasses.obj 
       ..\..\Source\Common\CnCommon.obj 
-      ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Common\CnCompUtils.obj 
       ..\..\Source\Common\CnConsts.obj 
       ..\..\Source\Common\CnContainers.obj 
-      ..\..\Source\Crypto\CnCRC32.obj 
       ..\..\Source\Common\CnDancingLinks.obj 
-      ..\..\Source\Crypto\CnDES.obj 
-      ..\..\Source\Crypto\CnDFT.obj 
       ..\..\Source\Common\CnDynObjBuilder.obj 
-      ..\..\Source\Crypto\CnECC.obj 
       ..\..\Source\Common\CnEventBus.obj 
       ..\..\Source\Common\CnEventHook.obj 
-      ..\..\Source\Crypto\CnFEC.obj 
       ..\..\Source\Common\CnFitCurve.obj 
       ..\..\Source\Common\CnFloatConvert.obj 
       ..\..\Source\Common\CnGraphUtils.obj 
@@ -42,36 +31,20 @@
       ..\..\Source\Common\CnIni.obj 
       ..\..\Source\Common\CnIniCfg.obj 
       ..\..\Source\Common\CnIniStrUtils.obj 
-      ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnLockFree.obj 
       ..\..\Source\Common\CnMatrix.obj 
-      ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Common\CnMethodHook.obj 
       ..\..\Source\Common\CnMulticastEvent.obj 
-      ..\..\Source\Crypto\CnNativeDecl.obj 
-      ..\..\Source\Crypto\CnPemUtils.obj 
-      ..\..\Source\Crypto\CnPolynomial.obj 
-      ..\..\Source\Crypto\CnPrimeNumber.obj 
-      ..\..\Source\Crypto\CnRandom.obj 
       ..\..\Source\Common\CnRopes.obj 
-      ..\..\Source\Crypto\CnRSA.obj 
-      ..\..\Source\Crypto\CnSHA1.obj 
-      ..\..\Source\Crypto\CnSHA2.obj 
-      ..\..\Source\Crypto\CnSHA3.obj 
       ..\..\Source\Common\CnShellUtils.obj 
       ..\..\Source\Common\CnSingleton.obj 
       ..\..\Source\Common\CnSingletonComp.obj 
       ..\..\Source\Common\CnSkipList.obj 
-      ..\..\Source\Crypto\CnSM2.obj 
-      ..\..\Source\Crypto\CnSM3.obj 
-      ..\..\Source\Crypto\CnSM4.obj 
-      ..\..\Source\Crypto\CnSM9.obj 
       ..\..\Source\Common\CnSQLite.obj 
       ..\..\Source\Common\CnStrDiff.obj 
       ..\..\Source\Common\CnStream.obj 
       ..\..\Source\Common\CnStrings.obj 
-      ..\..\Source\Crypto\CnTEA.obj 
       ..\..\Source\Common\CnThreadTaskMgr.obj 
       ..\..\Source\Common\CnTree.obj 
       ..\..\Source\Common\CnVarList.obj 
@@ -79,6 +52,33 @@
       ..\..\Source\Common\CnVclFmxMixed.obj 
       ..\..\Source\Common\CnWideStrings.obj 
       ..\..\Source\Common\CnWinSvc.obj 
+      ..\..\Source\Crypto\CnAES.obj 
+      ..\..\Source\Crypto\CnBase64.obj 
+      ..\..\Source\Crypto\CnBerUtils.obj 
+      ..\..\Source\Crypto\CnBigNumber.obj 
+      ..\..\Source\Crypto\CnCertificateAuthority.obj 
+      ..\..\Source\Crypto\CnComplex.obj 
+      ..\..\Source\Crypto\CnCRC32.obj 
+      ..\..\Source\Crypto\CnDES.obj 
+      ..\..\Source\Crypto\CnDFT.obj 
+      ..\..\Source\Crypto\CnECC.obj 
+      ..\..\Source\Crypto\CnFEC.obj 
+      ..\..\Source\Crypto\CnKDF.obj 
+      ..\..\Source\Crypto\CnMD5.obj 
+      ..\..\Source\Crypto\CnNativeDecl.obj 
+      ..\..\Source\Crypto\CnPemUtils.obj 
+      ..\..\Source\Crypto\CnPolynomial.obj 
+      ..\..\Source\Crypto\CnPrimeNumber.obj 
+      ..\..\Source\Crypto\CnRandom.obj 
+      ..\..\Source\Crypto\CnRSA.obj 
+      ..\..\Source\Crypto\CnSHA1.obj 
+      ..\..\Source\Crypto\CnSHA2.obj 
+      ..\..\Source\Crypto\CnSHA3.obj 
+      ..\..\Source\Crypto\CnSM2.obj 
+      ..\..\Source\Crypto\CnSM3.obj 
+      ..\..\Source\Crypto\CnSM4.obj 
+      ..\..\Source\Crypto\CnSM9.obj 
+      ..\..\Source\Crypto\CnTEA.obj 
       ..\..\Source\Crypto\CnZUC.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj 
@@ -278,34 +278,23 @@
   <FILELIST>
       <FILE FILENAME="CnPack_CB6.cpp" FORMNAME="" UNITNAME="CnPack_CB6" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="CnPack_CB6.res" FORMNAME="" UNITNAME="CnPack_CB6.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnAES.pas" FORMNAME="" UNITNAME="CnAES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnAntiCheater.pas" FORMNAME="" UNITNAME="CnAntiCheater" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnBase64.pas" FORMNAME="" UNITNAME="CnBase64" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnBerUtils.pas" FORMNAME="" UNITNAME="CnBerUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBigDecimal.pas" FORMNAME="" UNITNAME="CnBigDecimal" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnBigNumber.pas" FORMNAME="" UNITNAME="CnBigNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBigRational.pas" FORMNAME="" UNITNAME="CnBigRational" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBinaryDiffPatch.pas" FORMNAME="" UNITNAME="CnBinaryDiffPatch" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnBloomFilter.pas" FORMNAME="" UNITNAME="CnBloomFilter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCalClass.pas" FORMNAME="" UNITNAME="CnCalClass" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCalendar.pas" FORMNAME="" UNITNAME="CnCalendar" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCallBack.pas" FORMNAME="" UNITNAME="CnCallBack" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnCertificateAuthority.pas" FORMNAME="" UNITNAME="CnCertificateAuthority" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnClasses.pas" FORMNAME="" UNITNAME="CnClasses" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCommon.pas" FORMNAME="" UNITNAME="CnCommon" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnCompUtils.pas" FORMNAME="" UNITNAME="CnCompUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnComplex.pas" FORMNAME="" UNITNAME="CnComplex" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnConsts.pas" FORMNAME="" UNITNAME="CnConsts" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnContainers.pas" FORMNAME="" UNITNAME="CnContainers" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnDancingLinks.pas" FORMNAME="" UNITNAME="CnDancingLinks" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnDES.pas" FORMNAME="" UNITNAME="CnDES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnDFT.pas" FORMNAME="" UNITNAME="CnDFT" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnDynObjBuilder.pas" FORMNAME="" UNITNAME="CnDynObjBuilder" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnECC.pas" FORMNAME="" UNITNAME="CnECC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnEventBus.pas" FORMNAME="" UNITNAME="CnEventBus" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnEventHook.pas" FORMNAME="" UNITNAME="CnEventHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnFEC.pas" FORMNAME="" UNITNAME="CnFEC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnFitCurve.pas" FORMNAME="" UNITNAME="CnFitCurve" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnFloatConvert.pas" FORMNAME="" UNITNAME="CnFloatConvert" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnGraphUtils.pas" FORMNAME="" UNITNAME="CnGraphUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
@@ -315,37 +304,21 @@
       <FILE FILENAME="..\..\Source\Common\CnIni.pas" FORMNAME="" UNITNAME="CnIni" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIniCfg.pas" FORMNAME="" UNITNAME="CnIniCfg" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIniStrUtils.pas" FORMNAME="" UNITNAME="CnIniStrUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnKDF.pas" FORMNAME="" UNITNAME="CnKDF" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLinkedList.pas" FORMNAME="" UNITNAME="CnLinkedList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLockFree.pas" FORMNAME="" UNITNAME="CnLockFree" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMatrix.pas" FORMNAME="" UNITNAME="CnMatrix" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMethodHook.pas" FORMNAME="" UNITNAME="CnMethodHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMulticastEvent.pas" FORMNAME="" UNITNAME="CnMulticastEvent" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnNativeDecl.pas" FORMNAME="" UNITNAME="CnNativeDecl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnObjAuto.pas" FORMNAME="" UNITNAME="CnObjAuto" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnPemUtils.pas" FORMNAME="" UNITNAME="CnPemUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnPolynomial.pas" FORMNAME="" UNITNAME="CnPolynomial" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnPrimeNumber.pas" FORMNAME="" UNITNAME="CnPrimeNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnRandom.pas" FORMNAME="" UNITNAME="CnRandom" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnRopes.pas" FORMNAME="" UNITNAME="CnRopes" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnRSA.pas" FORMNAME="" UNITNAME="CnRSA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSHA1.pas" FORMNAME="" UNITNAME="CnSHA1" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSHA2.pas" FORMNAME="" UNITNAME="CnSHA2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSHA3.pas" FORMNAME="" UNITNAME="CnSHA3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnShellUtils.pas" FORMNAME="" UNITNAME="CnShellUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSingleton.pas" FORMNAME="" UNITNAME="CnSingleton" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSingletonComp.pas" FORMNAME="" UNITNAME="CnSingletonComp" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSkipList.pas" FORMNAME="" UNITNAME="CnSkipList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSM2.pas" FORMNAME="" UNITNAME="CnSM2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSM3.pas" FORMNAME="" UNITNAME="CnSM3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSM4.pas" FORMNAME="" UNITNAME="CnSM4" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnSM9.pas" FORMNAME="" UNITNAME="CnSM9" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSQLite.pas" FORMNAME="" UNITNAME="CnSQLite" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnStrDiff.pas" FORMNAME="" UNITNAME="CnStrDiff" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnStream.pas" FORMNAME="" UNITNAME="CnStream" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnStrings.pas" FORMNAME="" UNITNAME="CnStrings" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Crypto\CnTEA.pas" FORMNAME="" UNITNAME="CnTEA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnThreadTaskMgr.pas" FORMNAME="" UNITNAME="CnThreadTaskMgr" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnTree.pas" FORMNAME="" UNITNAME="CnTree" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnVarList.pas" FORMNAME="" UNITNAME="CnVarList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
@@ -353,6 +326,33 @@
       <FILE FILENAME="..\..\Source\Common\CnVclFmxMixed.pas" FORMNAME="" UNITNAME="CnVclFmxMixed" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWideStrings.pas" FORMNAME="" UNITNAME="CnWideStrings" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnWinSvc.pas" FORMNAME="" UNITNAME="CnWinSvc" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnAES.pas" FORMNAME="" UNITNAME="CnAES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnBase64.pas" FORMNAME="" UNITNAME="CnBase64" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnBerUtils.pas" FORMNAME="" UNITNAME="CnBerUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnBigNumber.pas" FORMNAME="" UNITNAME="CnBigNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnCertificateAuthority.pas" FORMNAME="" UNITNAME="CnCertificateAuthority" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnComplex.pas" FORMNAME="" UNITNAME="CnComplex" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnDES.pas" FORMNAME="" UNITNAME="CnDES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnDFT.pas" FORMNAME="" UNITNAME="CnDFT" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnECC.pas" FORMNAME="" UNITNAME="CnECC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnFEC.pas" FORMNAME="" UNITNAME="CnFEC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnKDF.pas" FORMNAME="" UNITNAME="CnKDF" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnNativeDecl.pas" FORMNAME="" UNITNAME="CnNativeDecl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnPemUtils.pas" FORMNAME="" UNITNAME="CnPemUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnPolynomial.pas" FORMNAME="" UNITNAME="CnPolynomial" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnPrimeNumber.pas" FORMNAME="" UNITNAME="CnPrimeNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnRandom.pas" FORMNAME="" UNITNAME="CnRandom" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnRSA.pas" FORMNAME="" UNITNAME="CnRSA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSHA1.pas" FORMNAME="" UNITNAME="CnSHA1" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSHA2.pas" FORMNAME="" UNITNAME="CnSHA2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSHA3.pas" FORMNAME="" UNITNAME="CnSHA3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSM2.pas" FORMNAME="" UNITNAME="CnSM2" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSM3.pas" FORMNAME="" UNITNAME="CnSM3" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSM4.pas" FORMNAME="" UNITNAME="CnSM4" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnSM9.pas" FORMNAME="" UNITNAME="CnSM9" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnTEA.pas" FORMNAME="" UNITNAME="CnTEA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnZUC.pas" FORMNAME="" UNITNAME="CnZUC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnADOBinding.pas" FORMNAME="" UNITNAME="CnADOBinding" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnADOUpdateSQL.pas" FORMNAME="" UNITNAME="CnADOUpdateSQL" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
