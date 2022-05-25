@@ -64,6 +64,7 @@
       ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Crypto\CnNativeDecl.obj 
       ..\..\Source\Crypto\CnOTP.obj 
+      ..\..\Source\Crypto\CnPaillier.obj 
       ..\..\Source\Crypto\CnPemUtils.obj 
       ..\..\Source\Crypto\CnPolynomial.obj 
       ..\..\Source\Crypto\CnPrimeNumber.obj 

@@ -108,6 +108,7 @@ contains
   CnMD5 in '..\..\Source\Crypto\CnMD5.pas',
   CnNativeDecl in '..\..\Source\Crypto\CnNativeDecl.pas',
   CnOTP in '..\..\Source\Crypto\CnOTP.pas',
+  CnPaillier in '..\..\Source\Crypto\CnPaillier.pas',
   CnPemUtils in '..\..\Source\Crypto\CnPemUtils.pas',
   CnPolynomial in '..\..\Source\Crypto\CnPolynomial.pas',
   CnPrimeNumber in '..\..\Source\Crypto\CnPrimeNumber.pas',

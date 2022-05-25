@@ -177,6 +177,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnMD5.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnNativeDecl.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnOTP.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnPaillier.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnPemUtils.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnPolynomial.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnPrimeNumber.pas"/>
