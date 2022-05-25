@@ -4,34 +4,24 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="CnPack_CB5.bpl"/>
-    <OBJFILES value="..\..\Source\Crypto\CnAES.obj 
+    <OBJFILES value="CnPack_CB5.obj 
       ..\..\Source\Common\CnAntiCheater.obj 
-      ..\..\Source\Crypto\CnBase64.obj 
-      ..\..\Source\Crypto\CnBerUtils.obj 
       ..\..\Source\Common\CnBigDecimal.obj 
-      ..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\Source\Common\CnBigRational.obj 
       ..\..\Source\Common\CnBinaryDiffPatch.obj 
       ..\..\Source\Common\CnBloomFilter.obj 
       ..\..\Source\Common\CnCalClass.obj 
       ..\..\Source\Common\CnCalendar.obj 
       ..\..\Source\Common\CnCallBack.obj 
-      ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Common\CnClasses.obj 
       ..\..\Source\Common\CnCommon.obj 
-      ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Common\CnCompUtils.obj 
       ..\..\Source\Common\CnConsts.obj 
       ..\..\Source\Common\CnContainers.obj 
-      ..\..\Source\Crypto\CnCRC32.obj 
       ..\..\Source\Common\CnDancingLinks.obj 
-      ..\..\Source\Crypto\CnDES.obj 
-      ..\..\Source\Crypto\CnDFT.obj 
       ..\..\Source\Common\CnDynObjBuilder.obj 
-      ..\..\Source\Crypto\CnECC.obj 
       ..\..\Source\Common\CnEventBus.obj 
       ..\..\Source\Common\CnEventHook.obj 
-      ..\..\Source\Crypto\CnFEC.obj 
       ..\..\Source\Common\CnFitCurve.obj 
       ..\..\Source\Common\CnGraphUtils.obj 
       ..\..\Source\Common\CnHardWareInfo.obj 
@@ -39,35 +29,19 @@
       ..\..\Source\Common\CnIni.obj 
       ..\..\Source\Common\CnIniCfg.obj 
       ..\..\Source\Common\CnIniStrUtils.obj 
-      ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnLockFree.obj 
       ..\..\Source\Common\CnMatrix.obj 
-      ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Common\CnMethodHook.obj 
-      ..\..\Source\Crypto\CnNativeDecl.obj 
-      ..\..\Source\Crypto\CnPemUtils.obj 
-      ..\..\Source\Crypto\CnPolynomial.obj 
-      ..\..\Source\Crypto\CnPrimeNumber.obj 
-      ..\..\Source\Crypto\CnRandom.obj 
       ..\..\Source\Common\CnRopes.obj 
-      ..\..\Source\Crypto\CnRSA.obj 
-      ..\..\Source\Crypto\CnSHA1.obj 
-      ..\..\Source\Crypto\CnSHA2.obj 
-      ..\..\Source\Crypto\CnSHA3.obj 
       ..\..\Source\Common\CnShellUtils.obj 
       ..\..\Source\Common\CnSingleton.obj 
       ..\..\Source\Common\CnSingletonComp.obj 
       ..\..\Source\Common\CnSkipList.obj 
-      ..\..\Source\Crypto\CnSM2.obj 
-      ..\..\Source\Crypto\CnSM3.obj 
-      ..\..\Source\Crypto\CnSM4.obj 
-      ..\..\Source\Crypto\CnSM9.obj 
       ..\..\Source\Common\CnSQLite.obj 
       ..\..\Source\Common\CnStrDiff.obj 
       ..\..\Source\Common\CnStream.obj 
       ..\..\Source\Common\CnStrings.obj 
-      ..\..\Source\Crypto\CnTEA.obj 
       ..\..\Source\Common\CnThreadTaskMgr.obj 
       ..\..\Source\Common\CnTree.obj 
       ..\..\Source\Common\CnVarList.obj 
@@ -75,6 +49,33 @@
       ..\..\Source\Common\CnVclFmxMixed.obj 
       ..\..\Source\Common\CnWideStrings.obj 
       ..\..\Source\Common\CnWinSvc.obj 
+      ..\..\Source\Crypto\CnAES.obj 
+      ..\..\Source\Crypto\CnBase64.obj 
+      ..\..\Source\Crypto\CnBerUtils.obj 
+      ..\..\Source\Crypto\CnBigNumber.obj 
+      ..\..\Source\Crypto\CnCertificateAuthority.obj 
+      ..\..\Source\Crypto\CnComplex.obj 
+      ..\..\Source\Crypto\CnCRC32.obj 
+      ..\..\Source\Crypto\CnDES.obj 
+      ..\..\Source\Crypto\CnDFT.obj 
+      ..\..\Source\Crypto\CnECC.obj 
+      ..\..\Source\Crypto\CnFEC.obj 
+      ..\..\Source\Crypto\CnKDF.obj 
+      ..\..\Source\Crypto\CnMD5.obj 
+      ..\..\Source\Crypto\CnNativeDecl.obj 
+      ..\..\Source\Crypto\CnPemUtils.obj 
+      ..\..\Source\Crypto\CnPolynomial.obj 
+      ..\..\Source\Crypto\CnPrimeNumber.obj 
+      ..\..\Source\Crypto\CnRandom.obj 
+      ..\..\Source\Crypto\CnRSA.obj 
+      ..\..\Source\Crypto\CnSHA1.obj 
+      ..\..\Source\Crypto\CnSHA2.obj 
+      ..\..\Source\Crypto\CnSHA3.obj 
+      ..\..\Source\Crypto\CnSM2.obj 
+      ..\..\Source\Crypto\CnSM3.obj 
+      ..\..\Source\Crypto\CnSM4.obj 
+      ..\..\Source\Crypto\CnSM9.obj 
+      ..\..\Source\Crypto\CnTEA.obj 
       ..\..\Source\Crypto\CnZUC.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj 
@@ -192,7 +193,7 @@
       ..\..\Source\Skin\CnSkinTheme.obj 
       ..\..\Source\Skin\CnSkinXPBlueStyle.obj 
       ..\..\Source\Skin\CnSkinXPGreenStyle.obj 
-      ..\..\Source\Skin\CnSkinXPSilverStyle.obj CnPack_CB5.obj"/>
+      ..\..\Source\Skin\CnSkinXPSilverStyle.obj"/>
     <RESFILES value="CnPack_CB5.res ..\..\Source\Common\CnPack.dcr"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
