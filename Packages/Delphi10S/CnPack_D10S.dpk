@@ -117,6 +117,7 @@ contains
   CnPrimeNumber in '..\..\Source\Crypto\CnPrimeNumber.pas',
   CnRandom in '..\..\Source\Crypto\CnRandom.pas',
   CnRSA in '..\..\Source\Crypto\CnRSA.pas',
+  CnSecretSharing in '..\..\Source\Crypto\CnSecretSharing.pas',
   CnSHA1 in '..\..\Source\Crypto\CnSHA1.pas',
   CnSHA2 in '..\..\Source\Crypto\CnSHA2.pas',
   CnSHA3 in '..\..\Source\Crypto\CnSHA3.pas',

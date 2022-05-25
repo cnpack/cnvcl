@@ -70,6 +70,7 @@
       ..\..\Source\Crypto\CnPrimeNumber.obj 
       ..\..\Source\Crypto\CnRandom.obj 
       ..\..\Source\Crypto\CnRSA.obj 
+      ..\..\Source\Crypto\CnSecretSharing.obj 
       ..\..\Source\Crypto\CnSHA1.obj 
       ..\..\Source\Crypto\CnSHA2.obj 
       ..\..\Source\Crypto\CnSHA3.obj 
