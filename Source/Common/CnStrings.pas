@@ -246,6 +246,13 @@ type
   TCnReplaceFlags = set of (crfReplaceAll, crfIgnoreCase, crfWholeWord);
   {* 字符串替换标记}
 
+{$IFDEF COMPILER5}
+
+function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
+{* D5 中无 StrUtils 单元，移植其 PosEx 函数放这里}
+
+{$ENDIF}
+
 function FastPosition(const Str, Pattern: PChar; FromIndex: Integer = 0): Integer;
 {* 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1}
 
@@ -284,6 +291,41 @@ resourcestring
   SDuplicateString = 'AnsiString list does not allow duplicates';
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
+
+{$IFDEF COMPILER5}
+
+function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
+var
+  I,X: Integer;
+  Len, LenSubStr: Integer;
+begin
+  if Offset = 1 then
+    Result := Pos(SubStr, S)
+  else
+  begin
+    I := Offset;
+    LenSubStr := Length(SubStr);
+    Len := Length(S) - LenSubStr + 1;
+    while I <= Len do
+    begin
+      if S[I] = SubStr[1] then
+      begin
+        X := 1;
+        while (X < LenSubStr) and (S[I + X] = SubStr[X + 1]) do
+          Inc(X);
+        if (X = LenSubStr) then
+        begin
+          Result := I;
+          exit;
+        end;
+      end;
+      Inc(I);
+    end;
+    Result := 0;
+  end;
+end;
+
+{$ENDIF}
 
 // 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1
 function FastPosition(const Str, Pattern: PChar; FromIndex: Integer): Integer;
