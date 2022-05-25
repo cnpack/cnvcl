@@ -82,6 +82,8 @@ uses
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
+{$ELSE}
+  CnStrings,
 {$ENDIF}
   CnConsts, CnNativeDecl, CnIni, CnIniStrUtils, CnWideStrings;
 
@@ -551,6 +553,9 @@ function StrLeft(const Str: string; Len: Integer): string;
 function StrEndWith(const S, Tail: string): Boolean;
 {* 返回字符串是否以特定子串结尾}
 
+function StrReverse(const S: string): string;
+{* 翻转字符串}
+
 function GetLine(C: Char; Len: Integer): string;
 {* 返回字符串行}
 
@@ -570,6 +575,9 @@ procedure SeparateStrAndNum(const AInStr: string; var AOutStr: string;
 function UnQuotedStr(const Str: string; const Ch: Char;
   const Sep: string = ''): string;
 {* 去除被引用的字符串的引用}
+
+function LastStrPos(const SubStr, Str: string): Integer;
+{* 查找字符串中最后一次出现的子串位置}
 
 function LastCharPos(const S: string; C: Char): Integer;
 {* 查找字符串中最后一次出现某字符的位置，无则返回 0}
@@ -4658,11 +4666,27 @@ begin
     Result := Copy(Str, 1, Len);
 end;
 
+// 返回字符串是否以特定子串结尾
 function StrEndWith(const S, Tail: string): Boolean;
 begin
   Result := False;
   if (Tail <> '') and (S <> '') then
-    Result := Pos(Tail, S) = Length(S) - Length(Tail) + 1;
+    Result := LastStrPos(Tail, S) = Length(S) - Length(Tail) + 1;
+end;
+
+// 翻转字符串
+function StrReverse(const S: string): string;
+var
+  I: Integer;
+  P: PChar;
+begin
+  SetLength(Result, Length(S));
+  P := PChar(Result);
+  for I := Length(S) downto 1 do
+  begin
+    P^ := S[I];
+    Inc(P);
+  end;
 end;
 
 // 字节转二进制串
@@ -4794,6 +4818,23 @@ begin
       Result := Result + S
     else
       Result := Result + Sep + S;
+  end;
+end;
+
+// 查找字符串中最后一次出现的子串位置
+function LastStrPos(const SubStr, Str: string): Integer;
+var
+  Idx: Integer;
+begin
+  Result := 0;
+  Idx := PosEx(SubStr, Str);
+  if Idx = 0 then
+    Exit;
+
+  while Idx > 0 do
+  begin
+    Result := Idx;
+    Idx := PosEx(SubStr, Str, Idx + 1);
   end;
 end;
 
