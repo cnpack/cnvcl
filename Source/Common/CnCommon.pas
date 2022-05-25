@@ -82,8 +82,6 @@ uses
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
-{$ELSE}
-  CnStrings,
 {$ENDIF}
   CnConsts, CnNativeDecl, CnIni, CnIniStrUtils, CnWideStrings;
 
@@ -1246,6 +1244,9 @@ function GetSetElementCount(const ASet; ASetSize: Integer): Integer;
 {* 获取某集合内的元素数目，尺寸不对则返回 -1}
 
 implementation
+
+uses
+  CnStrings;
 
 const
   MINOR_DOUBLE = 1E-8;

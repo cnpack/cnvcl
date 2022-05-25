@@ -246,10 +246,10 @@ type
   TCnReplaceFlags = set of (crfReplaceAll, crfIgnoreCase, crfWholeWord);
   {* 字符串替换标记}
 
-{$IFDEF COMPILER5}
+{$IFNDEF COMPILER7_UP}
 
 function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
-{* D5 中无 StrUtils 单元，移植其 PosEx 函数放这里}
+{* D5/6 BCB5/6 中无 StrUtils 单元的此函数，移植其 PosEx 函数放这里}
 
 {$ENDIF}
 
@@ -292,7 +292,7 @@ resourcestring
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
 
-{$IFDEF COMPILER5}
+{$IFNDEF COMPILER7_UP}
 
 function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
 var
