@@ -684,7 +684,7 @@ begin
   begin
     _CnSetLastError(ECN_FILE_NOT_FOUND);
     Exit;
-  end
+  end;
 
   InSign := nil;
   Stream := nil;
