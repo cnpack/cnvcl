@@ -62,6 +62,14 @@ type
     grpSeqType: TGroupBox;
     rbC1C3C2: TRadioButton;
     rbC1C2C3: TRadioButton;
+    tsSchnorr: TTabSheet;
+    grpSchnorr: TGroupBox;
+    btnSchnorrProve: TButton;
+    lblSchnorrProveCheckR: TLabel;
+    edtSchnorrProveCheckR: TEdit;
+    lblSchnorrProveCheckZ: TLabel;
+    edtSchnorrProveCheckZ: TEdit;
+    btnSchnorrCheck: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -77,11 +85,13 @@ type
     procedure btnLoadSM2KeyClick(Sender: TObject);
     procedure btnLoadSM2BKeyClick(Sender: TObject);
     procedure btnVerifySm2KeyClick(Sender: TObject);
+    procedure btnSchnorrProveClick(Sender: TObject);
+    procedure btnSchnorrCheckClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
   public
-    { Public declarations }
+
   end;
 
 var
@@ -303,7 +313,7 @@ procedure TFormSM2.btnSM2EncryptClick(Sender: TObject);
 var
   T: AnsiString;
   SM2: TCnSM2;
-  PublicKey: TCnEccPublicKey;
+  PublicKey: TCnSM2PublicKey;
   EnStream: TMemoryStream;
   ST: TCnSM2CryptSequenceType;
 begin
@@ -317,7 +327,7 @@ begin
   end;
 
   SM2 := TCnSM2.Create(ctSM2);
-  PublicKey := TCnEccPublicKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
 
   EnStream := TMemoryStream.Create;
 
@@ -725,6 +735,60 @@ begin
   SM2.Free;
   PubKey.Free;
   PrivKey.Free;
+end;
+
+procedure TFormSM2.btnSchnorrProveClick(Sender: TObject);
+var
+  PrivKey: TCnSM2PrivateKey;
+  PubKey: TCnSM2PublicKey;
+  R: TCnEccPoint;
+  Z: TCnBigNumber;
+begin
+  PrivKey := TCnSM2PrivateKey.Create;
+  PubKey := TCnSM2PublicKey.Create;
+
+  PrivKey.SetHex(edtSM2PrivateKey.Text);
+  PubKey.SetHex(edtSM2PublicKey.Text);
+
+  R := TCnEccPoint.Create;
+  Z := TCnBigNumber.Create;
+
+  if CnSM2SchnorrProve(PrivKey, PubKey, R, Z) then
+  begin
+    edtSchnorrProveCheckR.Text := R.ToHex;
+    edtSchnorrProveCheckZ.Text := Z.ToHex;
+  end;
+
+  Z.Free;
+  R.Free;
+  PubKey.Free;
+  PrivKey.Free;
+end;
+
+procedure TFormSM2.btnSchnorrCheckClick(Sender: TObject);
+var
+  PubKey: TCnSM2PublicKey;
+  R: TCnEccPoint;
+  Z: TCnBigNumber;
+begin
+  PubKey := TCnSM2PublicKey.Create;
+
+  PubKey.SetHex(edtSM2PublicKey.Text);
+
+  R := TCnEccPoint.Create;
+  R.SetHex(edtSchnorrProveCheckR.Text);
+
+  Z := TCnBigNumber.Create;
+  Z.SetHex(edtSchnorrProveCheckZ.Text);
+
+  if CnSM2SchnorrCheck(PubKey, R, Z) then
+    ShowMessage('Schnorr Check OK. You have the Private Key!')
+  else
+    ShowMessage('Schnorr Check Fail.');
+
+  Z.Free;
+  R.Free;
+  PubKey.Free;
 end;
 
 end.
