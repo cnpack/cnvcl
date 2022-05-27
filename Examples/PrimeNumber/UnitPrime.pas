@@ -91,6 +91,8 @@ type
     btnComNumMod: TButton;
     chkRaw: TCheckBox;
     btnMoreAKS: TButton;
+    bvl3: TBevel;
+    btnDHCheck: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -123,6 +125,7 @@ type
     procedure btnCombinatorialNumberClick(Sender: TObject);
     procedure btnComNumModClick(Sender: TObject);
     procedure btnMoreAKSClick(Sender: TObject);
+    procedure btnDHCheckClick(Sender: TObject);
   private
 
   public
@@ -726,6 +729,45 @@ begin
     else
       ShowMessage(IntToStr(CN_PRIME_NUMBERS_SQRT_UINT32[I]));
   end;
+end;
+
+procedure TFormPrime.btnDHCheckClick(Sender: TObject);
+var
+  T: TCnBigNumber;
+begin
+  T := TCnBigNumber.Create;
+
+  T.SetHex(CN_PRIME_FFDHE_2048);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T) then
+    ShowMessage('(FFDHE_2048 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_3072);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 25) then
+    ShowMessage('(FFDHE_3072 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_4096);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 20) then
+    ShowMessage('(FFDHE_4096 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_6144);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 15) then
+    ShowMessage('(FFDHE_6144 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_8192);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 10) then
+    ShowMessage('(FFDHE_8192 - 1) / 2 is a Prime');
+
+  T.Free;
 end;
 
 end.

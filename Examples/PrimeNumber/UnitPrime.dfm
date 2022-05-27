@@ -411,7 +411,7 @@ object FormPrime: TFormPrime
       end
     end
     object tsDH: TTabSheet
-      Caption = 'Diffie-Hellman (Int64)'
+      Caption = 'Diffie-Hellman'
       ImageIndex = 3
       object lblInt64DHP: TLabel
         Left = 16
@@ -454,6 +454,13 @@ object FormPrime: TFormPrime
         Width = 10
         Height = 13
         Caption = 'B:'
+      end
+      object bvl3: TBevel
+        Left = 16
+        Top = 160
+        Width = 617
+        Height = 17
+        Shape = bsTopLine
       end
       object edtDHPrime: TEdit
         Left = 56
@@ -593,6 +600,15 @@ object FormPrime: TFormPrime
         Caption = 'Rand'
         TabOrder = 16
         OnClick = btnDHRandClick
+      end
+      object btnDHCheck: TButton
+        Left = 16
+        Top = 176
+        Width = 75
+        Height = 25
+        Caption = 'DH Check'
+        TabOrder = 17
+        OnClick = btnDHCheckClick
       end
     end
     object tsCRT: TTabSheet
