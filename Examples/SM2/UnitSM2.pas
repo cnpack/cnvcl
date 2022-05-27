@@ -70,6 +70,9 @@ type
     lblSchnorrProveCheckZ: TLabel;
     edtSchnorrProveCheckZ: TEdit;
     btnSchnorrCheck: TButton;
+    btnSM2EncryptFile: TButton;
+    btnSM2DecryptFile: TButton;
+    dlgSave1: TSaveDialog;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -87,6 +90,8 @@ type
     procedure btnVerifySm2KeyClick(Sender: TObject);
     procedure btnSchnorrProveClick(Sender: TObject);
     procedure btnSchnorrCheckClick(Sender: TObject);
+    procedure btnSM2EncryptFileClick(Sender: TObject);
+    procedure btnSM2DecryptFileClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -789,6 +794,64 @@ begin
   Z.Free;
   R.Free;
   PubKey.Free;
+end;
+
+procedure TFormSM2.btnSM2EncryptFileClick(Sender: TObject);
+var
+  PublicKey: TCnSM2PublicKey;
+  ST: TCnSM2CryptSequenceType;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKey) then
+    Exit;
+
+  PublicKey := TCnSM2PublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  if dlgOpen1.Execute then
+  begin
+    if dlgSave1.Execute then
+    begin
+      if rbC1C3C2.Checked then
+        ST := cstC1C3C2
+      else
+        ST := cstC1C2C3;
+
+      if CnSM2EncryptFile(dlgOpen1.FileName, dlgSave1.FileName, PublicKey, nil, ST) then
+        ShowMessage('File Encrypted: ' + dlgSave1.FileName)
+      else
+        ShowMessage('File Encrypt Fail.');
+    end;
+  end;
+  PublicKey.Free;
+end;
+
+procedure TFormSM2.btnSM2DecryptFileClick(Sender: TObject);
+var
+  PrivateKey: TCnSM2PrivateKey;
+  ST: TCnSM2CryptSequenceType;
+begin
+  if not CheckPrivateKeyStr(edtSM2PrivateKey) then
+    Exit;
+
+  PrivateKey := TCnSM2PrivateKey.Create;
+  PrivateKey.SetHex(edtSM2PrivateKey.Text);
+
+  if dlgOpen1.Execute then
+  begin
+    if dlgSave1.Execute then
+    begin
+      if rbC1C3C2.Checked then
+        ST := cstC1C3C2
+      else
+        ST := cstC1C2C3;
+
+      if CnSM2DecryptFile(dlgOpen1.FileName, dlgSave1.FileName, PrivateKey, nil, ST) then
+        ShowMessage('File Decrypted: ' + dlgSave1.FileName)
+      else
+        ShowMessage('File Decrypt Fail.');
+    end;
+  end;
+  PrivateKey.Free;
 end;
 
 end.

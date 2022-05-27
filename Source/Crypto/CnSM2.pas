@@ -30,7 +30,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.05.26 V1.3
+* 修改记录：2022.05.27 V1.4
+*               增加文件加解密的实现
+*           2022.05.26 V1.3
 *               增加非交互式 Schnorr 零知识证明验证过程的实现
 *           2022.03.30 V1.2
 *               兼容加解密的 C1C3C2 与 C1C2C3 排列模式以及前导字节 04
@@ -93,10 +95,18 @@ function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
 function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
-{* 用公钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
+{* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
    无需 IncludePrefixByte 参数，内部自动处理}
+
+function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+{* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功}
+
+function CnSM2DecryptFile(const InFile, OutFile: string; PrivateKey: TCnSM2PrivateKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+{* 用私钥解密 InFile 文件内容，解密结果存 OutFile 里，返回是否解密成功}
 
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
@@ -425,6 +435,48 @@ begin
     P2.Free;
     if SM2IsNil then
       SM2.Free;
+  end;
+end;
+
+function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+var
+  Stream: TMemoryStream;
+  F: TFileStream;
+begin
+  Stream := nil;
+  F := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(InFile);
+
+    F := TFileStream.Create(OutFile, fmCreate);
+    Result := CnSM2EncryptData(Stream.Memory, Stream.Size, F, PublicKey, SM2, SequenceType);
+  finally
+    F.Free;
+    Stream.Free;
+  end;
+end;
+
+function CnSM2DecryptFile(const InFile, OutFile: string; PrivateKey: TCnSM2PrivateKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+var
+  Stream: TMemoryStream;
+  F: TFileStream;
+begin
+  Stream := nil;
+  F := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(InFile);
+
+    F := TFileStream.Create(OutFile, fmCreate);
+    Result := CnSM2DecryptData(Stream.Memory, Stream.Size, F, PrivateKey, SM2, SequenceType);
+  finally
+    F.Free;
+    Stream.Free;
   end;
 end;
 

@@ -26,6 +26,8 @@ unit CnECC;
 * 单元作者：刘啸
 * 备    注：目前实现了 Int64 范围内以及大数形式的形如 y^2 = x^3 + Ax + B mod p
 *           这类椭圆曲线的计算，x 和 y 限于有限素域。
+*           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
+*           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -325,9 +327,9 @@ type
     property FiniteFieldSize: TCnBigNumber read FFiniteFieldSize;
     {* 有限域的上界，素数 p}
     property Order: TCnBigNumber read FOrder;
-    {* 基点的阶数 N}
+    {* 基点的阶数 N，注意它只在 H 为 1 时才等于本曲线的总点数}
     property CoFactor: Integer read FCoFactor;
-    {* 辅助因子 H，也就是总点数 mod N，先用 Integer 表示，一般都是 1}
+    {* 辅助因子 H，也就是总点数 = N * H，先用 Integer 表示，一般都是 1}
     property BitsCount: Integer read GetBitsCount;
     {* 该椭圆曲线的素数域位数}
     property BytesCount: Integer read GetBytesCount;

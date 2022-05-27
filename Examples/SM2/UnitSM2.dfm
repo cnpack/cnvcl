@@ -145,6 +145,24 @@ object FormSM2: TFormSM2
             TabOrder = 1
           end
         end
+        object btnSM2EncryptFile: TButton
+          Left = 16
+          Top = 232
+          Width = 169
+          Height = 25
+          Caption = 'Encrypt File using Public Key'
+          TabOrder = 7
+          OnClick = btnSM2EncryptFileClick
+        end
+        object btnSM2DecryptFile: TButton
+          Left = 16
+          Top = 272
+          Width = 169
+          Height = 25
+          Caption = 'Decrypt File using Private Key'
+          TabOrder = 8
+          OnClick = btnSM2DecryptFileClick
+        end
       end
     end
     object tsSignVerify: TTabSheet
@@ -494,5 +512,9 @@ object FormSM2: TFormSM2
   object dlgOpen1: TOpenDialog
     Left = 876
     Top = 136
+  end
+  object dlgSave1: TSaveDialog
+    Left = 228
+    Top = 392
   end
 end
