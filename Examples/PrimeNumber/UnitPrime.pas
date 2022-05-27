@@ -95,6 +95,7 @@ type
     btnDHCheck: TButton;
     btnGenDH2: TButton;
     btnGenDH3: TButton;
+    btnDHCheck2: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -127,7 +128,6 @@ type
     procedure btnCombinatorialNumberClick(Sender: TObject);
     procedure btnComNumModClick(Sender: TObject);
     procedure btnMoreAKSClick(Sender: TObject);
-    procedure btnDHCheckClick(Sender: TObject);
     procedure btnGenDH2Click(Sender: TObject);
     procedure btnGenDH3Click(Sender: TObject);
   private
@@ -412,15 +412,10 @@ end;
 procedure TFormPrime.btnGenInt64DHClick(Sender: TObject);
 var
   P, R: TUInt64;
-  //Rs: TCnUInt64List;
 begin
-  //Rs := TCnUInt64List.Create;
-  //CnGenerateInt64DiffieHellmanPrimeRoots(P, Rs);
-  CnGenerateInt64DiffieHellmanPrimeRoot(P, R);
+  CnGenerateInt64DiffieHellmanPrimeMaxRoot(P, R);
   edtDHPrime.Text := UInt64ToStr(P);
-  //ShowMessage('Found ' + IntToStr(Rs.Count) + 'Primetive Roots for ' + edtDHPrime.Text);
   edtDHRoot.Text := UInt64ToStr(R);
-  //Rs.Free;
 end;
 
 procedure TFormPrime.btnGenInt32PrimeClick(Sender: TObject);
@@ -434,15 +429,10 @@ end;
 procedure TFormPrime.btnGenInt32DHClick(Sender: TObject);
 var
   P, R: Cardinal;
-  //Rs: TCnUInt32List;
 begin
-  //Rs := TCnUInt32List.Create;
-  //CnGenerateUInt32DiffieHellmanPrimeRoots(P, Rs);
-  CnGenerateUInt32DiffieHellmanPrimeRoot(P, R);
+  CnGenerateUInt32DiffieHellmanPrimeMaxRoot(P, R);
   edtDHPrime.Text := UInt64ToStr(P);
-  //ShowMessage('Found ' + IntToStr(Rs.Count) + 'Primetive Roots for ' + edtDHPrime.Text);
   edtDHRoot.Text := UInt64ToStr(R);
-  //Rs.Free;
 end;
 
 procedure TFormPrime.FormCreate(Sender: TObject);
@@ -735,59 +725,35 @@ begin
   end;
 end;
 
-procedure TFormPrime.btnDHCheckClick(Sender: TObject);
-var
-  T: TCnBigNumber;
-begin
-  T := TCnBigNumber.Create;
-
-  T.SetHex(CN_PRIME_FFDHE_2048);
-  T.SubWord(1);
-  T.ShiftRightOne;
-  if BigNumberIsProbablyPrime(T) then
-    ShowMessage('(FFDHE_2048 - 1) / 2 is a Prime');
-
-  T.SetHex(CN_PRIME_FFDHE_3072);
-  T.SubWord(1);
-  T.ShiftRightOne;
-  if BigNumberIsProbablyPrime(T, 25) then
-    ShowMessage('(FFDHE_3072 - 1) / 2 is a Prime');
-
-  T.SetHex(CN_PRIME_FFDHE_4096);
-  T.SubWord(1);
-  T.ShiftRightOne;
-  if BigNumberIsProbablyPrime(T, 20) then
-    ShowMessage('(FFDHE_4096 - 1) / 2 is a Prime');
-
-  T.SetHex(CN_PRIME_FFDHE_6144);
-  T.SubWord(1);
-  T.ShiftRightOne;
-  if BigNumberIsProbablyPrime(T, 15) then
-    ShowMessage('(FFDHE_6144 - 1) / 2 is a Prime');
-
-  T.SetHex(CN_PRIME_FFDHE_8192);
-  T.SubWord(1);
-  T.ShiftRightOne;
-  if BigNumberIsProbablyPrime(T, 10) then
-    ShowMessage('(FFDHE_8192 - 1) / 2 is a Prime');
-
-  T.Free;
-end;
-
 procedure TFormPrime.btnGenDH2Click(Sender: TObject);
 var
   P, G: Cardinal;
 begin
-  if CnGenerateUInt32DiffieHellmanPrimeGenerator(P, G) then
+  if CnGenerateUInt32DiffieHellmanPrimeMinRoot(P, G) then
+  begin
     ShowMessage(Format('%u, %d', [P, G]));
+    if CnIsUInt32PrimitiveRoot(P, G) then
+      ShowMessage('Check OK')
+    else
+      ShowMessage('Check Fail');
+  end;
 end;
 
 procedure TFormPrime.btnGenDH3Click(Sender: TObject);
 var
   P, G: TUInt64;
 begin
-  if CnGenerateInt64DiffieHellmanPrimeGenerator(P, G) then
+  if CnGenerateInt64DiffieHellmanPrimeMinRoot(P, G) then
+  begin
     ShowMessage(Format('%s, %d', [UInt64ToStr(P), G]));
+    edtDHPrime.Text := UInt64ToStr(P);
+    edtDHRoot.Text := UInt64ToStr(G);
+
+    if CnIsInt64PrimitiveRoot(P, G) then
+      ShowMessage('Check OK')
+    else
+      ShowMessage('Check Fail');
+  end;
 end;
 
 end.

@@ -481,7 +481,7 @@ object FormPrime: TFormPrime
         Top = 16
         Width = 137
         Height = 21
-        Caption = 'Generate Int64 DH'
+        Caption = 'Gen Int64 DH Max Root'
         TabOrder = 2
         OnClick = btnGenInt64DHClick
       end
@@ -490,7 +490,7 @@ object FormPrime: TFormPrime
         Top = 48
         Width = 137
         Height = 21
-        Caption = 'Generate UInt32 DH'
+        Caption = 'Gen UInt32 DH Max Root'
         TabOrder = 3
         OnClick = btnGenInt32DHClick
       end
@@ -604,18 +604,17 @@ object FormPrime: TFormPrime
       object btnDHCheck: TButton
         Left = 16
         Top = 176
-        Width = 75
+        Width = 145
         Height = 25
-        Caption = 'DH Check'
+        Caption = 'DH Check Preset Prime'
         TabOrder = 17
-        OnClick = btnDHCheckClick
       end
       object btnGenDH2: TButton
-        Left = 192
-        Top = 176
+        Left = 424
+        Top = 216
         Width = 209
         Height = 25
-        Caption = 'Generate UInt32 DH2 for q  = (p - 1)/2'
+        Caption = 'Gen UInt32 DH Min Root'
         TabOrder = 18
         OnClick = btnGenDH2Click
       end
@@ -624,9 +623,17 @@ object FormPrime: TFormPrime
         Top = 176
         Width = 209
         Height = 25
-        Caption = 'Generate UInt64 DH2 for q  = (p - 1)/2'
+        Caption = 'Gen UInt64 DH2 Min Root'
         TabOrder = 19
         OnClick = btnGenDH3Click
+      end
+      object btnDHCheck2: TButton
+        Left = 16
+        Top = 216
+        Width = 145
+        Height = 25
+        Caption = 'DH Check Preset Generator'
+        TabOrder = 20
       end
     end
     object tsCRT: TTabSheet
