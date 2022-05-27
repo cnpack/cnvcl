@@ -703,8 +703,14 @@ function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 function CnGenerateUInt32Prime(HighBitSet: Boolean = False): Cardinal;
 {* 生成一个随机的 32 位无符号素数，HighBitSet 指明最高位是否必须为 1}
 
+function CnGenerateInt32Prime: Integer;
+{* 生成一个随机的 32 位无符号素数}
+
 function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
 {* 生成一个随机的 64 位无符号素数但允许用有符号的 Int64 表示，HighBitSet 指明最高位是否必须为 1}
+
+function CnGenerateInt64Prime2: Int64;
+{* 生成一个随机的 64 位有符号素数}
 
 {$IFDEF SUPPORT_UINT64}
 
@@ -1128,31 +1134,40 @@ end;
 function CnGenerateUInt32Prime(HighBitSet: Boolean): Cardinal;
 begin
   Randomize;
-  Result := Trunc(Random * High(Cardinal) - 1) + 1;
-  if HighBitSet then
-    Result := Result or $80000000;
-
-  while not CnUInt32IsPrime(Result) do
-  begin
-    Randomize;
+  repeat
     Result := Trunc(Random * High(Cardinal) - 1) + 1;
     if HighBitSet then
       Result := Result or $80000000;
-  end;
+  until CnUInt32IsPrime(Result);
 end;
 
-// 生成一个随机的 64 位无符号素数
+// 生成一个随机的 32 位无符号素数
+function CnGenerateInt32Prime: Integer;
+begin
+  Randomize;
+  repeat
+    Result := Trunc(Random * High(Cardinal) - 1) + 1;
+    Result := Result and $7FFFFFFF;
+  until CnUInt32IsPrime(Result);
+end;
+
+// 生成一个随机的 64 位无符号素数但允许用有符号的 Int64 表示，HighBitSet 指明最高位是否必须为 1
 function CnGenerateInt64Prime(HighBitSet: Boolean): TUInt64;
 begin
-  Result := RandomUInt64;
-  if HighBitSet then
-    Result := Result or $8000000000000000;
-  while not CnInt64IsPrime(Result) do
-  begin
+  repeat
     Result := RandomUInt64;
     if HighBitSet then
       Result := Result or $8000000000000000;
-  end;
+  until CnInt64IsPrime(Result);
+end;
+
+// 生成一个随机的 64 位有符号素数
+function CnGenerateInt64Prime2: Int64;
+begin
+  repeat
+    Result := RandomUInt64;
+    Result := Result and $7FFFFFFFFFFFFFFF;
+  until CnInt64IsPrime(Result);
 end;
 
 {$IFDEF SUPPORT_UINT64}
