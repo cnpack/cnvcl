@@ -899,6 +899,16 @@ procedure CnGenerateUInt32DiffieHellmanPrimeRoots(out Prime: Cardinal; OutRoots:
 procedure CnGenerateInt64DiffieHellmanPrimeRoots(out Prime: TUInt64; OutRoots: TCnUInt64List);
 {* 生成 Diffie-Hellman 算法所需的素数与其所有原根，范围为 UInt64，耗时极长}
 
+function CnGenerateUInt32DiffieHellmanPrimeGenerator(out Prime: Cardinal;
+  out Generator: Cardinal): Boolean;
+{* 生成 Diffie-Hellman 算法所需的素数 p 与其生成元，范围为 UInt32，返回生成是否成功。
+  满足 q = (p - 1) / 2 的 q 也是素数，且 q 是 g 的阶也就是 g^q mod p = 1}
+
+function CnGenerateInt64DiffieHellmanPrimeGenerator(out Prime: TUInt64;
+  out Generator: TUInt64): Boolean;
+{* 生成 Diffie-Hellman 算法所需的素数 p 与其生成元，范围为 UInt32，返回生成是否成功。
+  满足 q = (p - 1) / 2 的 q 也是素数，且 q 是 g 的阶也就是 g^q mod p = 1}
+
 function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
 {* 检验 Root 是否为 Num 的原根，范围为 UInt32}
 
@@ -1592,6 +1602,59 @@ begin
   finally
     Factors.Free;
   end;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数 p 与其生成元，范围为 UInt32，满足 q = (p - 1) / 2 也是素数，且是 g 的阶也就是 g^q mod p = 1
+function CnGenerateUInt32DiffieHellmanPrimeGenerator(out Prime: Cardinal;
+  out Generator: Cardinal): Boolean;
+var
+  I: Integer;
+  Q: Cardinal;
+begin
+  repeat
+    Prime := CnGenerateUInt32Prime;
+    Q := (Prime - 1) shr 1;
+
+    if not CnUInt32IsPrime(Q) then
+      Continue;
+
+    for I := 2 to MaxInt do
+    begin
+      if MontgomeryPowerMod(I, Q, Prime) = 1 then
+      begin
+        Generator := I;
+        Result := True;
+        Exit;
+      end;
+    end;
+  until False;
+end;
+
+// 生成 Diffie-Hellman 算法所需的素数 p 与其生成元，范围为 UInt64，返回生成是否成功。
+// 满足 q = (p - 1) / 2 的 q 也是素数，且 q 是 g 的阶也就是 g^q mod p = 1}
+function CnGenerateInt64DiffieHellmanPrimeGenerator(out Prime: TUInt64;
+  out Generator: TUInt64): Boolean;
+var
+  I: Integer;
+  Q: TUInt64;
+begin
+  repeat
+    Prime := CnGenerateInt64Prime;
+    Q := (Prime - 1) shr 1;
+
+    if not CnInt64IsPrime(Q) then
+      Continue;
+
+    for I := 2 to MaxInt do
+    begin
+      if MontgomeryPowerMod(I, Q, Prime) = 1 then
+      begin
+        Generator := I;
+        Result := True;
+        Exit;
+      end;
+    end;
+  until False;
 end;
 
 // 检验 Root 是否为 Num 的原根，范围为 UInt32

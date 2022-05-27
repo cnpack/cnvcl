@@ -610,6 +610,24 @@ object FormPrime: TFormPrime
         TabOrder = 17
         OnClick = btnDHCheckClick
       end
+      object btnGenDH2: TButton
+        Left = 192
+        Top = 176
+        Width = 209
+        Height = 25
+        Caption = 'Generate UInt32 DH2 for q  = (p - 1)/2'
+        TabOrder = 18
+        OnClick = btnGenDH2Click
+      end
+      object btnGenDH3: TButton
+        Left = 424
+        Top = 176
+        Width = 209
+        Height = 25
+        Caption = 'Generate UInt64 DH2 for q  = (p - 1)/2'
+        TabOrder = 19
+        OnClick = btnGenDH3Click
+      end
     end
     object tsCRT: TTabSheet
       Caption = 'CRT && BSGS && Perfect Power'

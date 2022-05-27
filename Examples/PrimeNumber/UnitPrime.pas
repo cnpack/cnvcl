@@ -93,6 +93,8 @@ type
     btnMoreAKS: TButton;
     bvl3: TBevel;
     btnDHCheck: TButton;
+    btnGenDH2: TButton;
+    btnGenDH3: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -126,6 +128,8 @@ type
     procedure btnComNumModClick(Sender: TObject);
     procedure btnMoreAKSClick(Sender: TObject);
     procedure btnDHCheckClick(Sender: TObject);
+    procedure btnGenDH2Click(Sender: TObject);
+    procedure btnGenDH3Click(Sender: TObject);
   private
 
   public
@@ -768,6 +772,22 @@ begin
     ShowMessage('(FFDHE_8192 - 1) / 2 is a Prime');
 
   T.Free;
+end;
+
+procedure TFormPrime.btnGenDH2Click(Sender: TObject);
+var
+  P, G: Cardinal;
+begin
+  if CnGenerateUInt32DiffieHellmanPrimeGenerator(P, G) then
+    ShowMessage(Format('%u, %d', [P, G]));
+end;
+
+procedure TFormPrime.btnGenDH3Click(Sender: TObject);
+var
+  P, G: TUInt64;
+begin
+  if CnGenerateInt64DiffieHellmanPrimeGenerator(P, G) then
+    ShowMessage(Format('%s, %d', [UInt64ToStr(P), G]));
 end;
 
 end.
