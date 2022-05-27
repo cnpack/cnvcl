@@ -760,6 +760,9 @@ function BigNumberCheckPrimitiveRoot(R, Prime: TCnBigNumber; Factors: TCnBigNumb
 {* 原根判断辅助函数。判断 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
    Factors 必须是 Prime - 1 的不重复的质因数列表，可从 BigNumberFindFactors 获取并去重而来}
 
+function BigNumberGetMinRootFromPrime(Res, Prime: TCnBigNumber): Boolean;
+{* 计算一素数的原根，返回计算是否成功}
+
 function BigNumberIsInt32(const Num: TCnBigNumber): Boolean;
 {* 大数是否是一个 32 位有符号整型范围内的数}
 
@@ -5278,6 +5281,46 @@ begin
     FLocalBigNumberPool.Recycle(T);
     FLocalBigNumberPool.Recycle(Remain);
     FLocalBigNumberPool.Recycle(SubOne);
+  end;
+end;
+
+// 计算一素数的原根，返回计算是否成功
+function BigNumberGetMinRootFromPrime(Res, Prime: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  Num, PrimeSubOne: TCnBigNumber;
+  Factors: TCnBigNumberList;
+begin
+  Result := False;
+  PrimeSubOne := nil;
+  Factors := nil;
+  Num := nil;
+
+  try
+    PrimeSubOne := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(PrimeSubOne, Prime);
+    BigNumberSubWord(PrimeSubOne, 1);
+
+    Factors := TCnBigNumberList.Create;
+    BigNumberFindFactors(PrimeSubOne, Factors);
+    Factors.RemoveDuplicated;
+
+    Num := FLocalBigNumberPool.Obtain;;
+    Res.SetZero;
+    for I := 2 to MaxInt do // 不查太大的大数
+    begin
+      Num.SetWord(I);
+      if BigNumberCheckPrimitiveRoot(Num, Prime, Factors) then
+      begin
+        Res.SetWord(I);
+        Result := True;
+        Exit;
+      end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(Num);
+    Factors.Free;
+    FLocalBigNumberPool.Recycle(PrimeSubOne);
   end;
 end;
 

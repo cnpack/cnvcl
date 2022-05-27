@@ -2125,10 +2125,6 @@ end;
 // 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime, MinRoot: TCnBigNumber): Boolean;
-var
-  I: Integer;
-  Num, PrimeSubOne: TCnBigNumber;
-  Factors: TCnBigNumberList;
 begin
   Result := False;
   if BitsCount <= 16 then
@@ -2143,32 +2139,8 @@ begin
     Exit;
   end;
 
-  Factors := TCnBigNumberList.Create;
-  PrimeSubOne := BigNumberNew;
-  Num := BigNumberNew;
-
-  try
-    BigNumberCopy(PrimeSubOne, Prime);
-    BigNumberSubWord(PrimeSubOne, 1);
-    BigNumberFindFactors(PrimeSubOne, Factors);
-    Factors.RemoveDuplicated;
-
-    MinRoot.SetZero;
-    for I := 2 to MaxInt do // 不查太大的大数
-    begin
-      Num.SetWord(I);
-      if BigNumberCheckPrimitiveRoot(Num, Prime, Factors) then
-      begin
-        MinRoot.SetWord(I);
-        Result := True;
-        Exit;
-      end;
-    end;
-  finally
-    Factors.Free;
-    BigNumberFree(PrimeSubOne);
-    BigNumberFree(Num);
-  end;
+  // TODO: Prime - 1 要保证有足够大的素数因子
+  Result := BigNumberGetMinRootFromPrime(MinRoot, Prime);
 end;
 
 // 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
