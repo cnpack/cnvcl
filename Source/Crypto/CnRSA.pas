@@ -362,17 +362,20 @@ function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PBy
 
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime, MinRoot: TCnBigNumber): Boolean;
-{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢}
+{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
+  且未做减一除 2 也是素数的要求，不是很安全}
 
 function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
   const OutPublicKey: TCnBigNumber): Boolean;
 {* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
-   其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime}
+   其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
+   要保证安全，可以使用 CnPrimeNumber 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
 
 function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   const SecretKey: TCnBigNumber): Boolean;
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
-   其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime}
+   其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
+   要保证安全，可以使用 CnPrimeNumber 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
 
 // ================================= 其他辅助函数 ==============================
 
@@ -2125,6 +2128,9 @@ end;
 // 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime, MinRoot: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  Q, R, T: TCnBigNumber;
 begin
   Result := False;
   if BitsCount <= 16 then
@@ -2133,14 +2139,55 @@ begin
     Exit;
   end;
 
-  if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
-  begin
-    _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
-    Exit;
-  end;
+  Q := nil;
+  T := nil;
+  R := nil;
 
-  // TODO: Prime - 1 要保证有足够大的素数因子
-  Result := BigNumberGetMinRootFromPrime(MinRoot, Prime);
+  try
+    Q := TCnBigNumber.Create;
+    repeat
+      if not BigNumberGeneratePrimeByBitsCount(Prime, BitsCount) then
+      begin
+        _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+        Exit;
+      end;
+
+      if BigNumberCopy(Q, Prime) = nil then
+        Exit;
+
+      Q.SubWord(1);
+      Q.ShiftRightOne;
+
+      if BigNumberIsProbablyPrime(Q) then // P = 2Q + 1，P 和 Q 都是素数，再用以下条件判断
+        Break;
+    until False;
+
+    T := TCnBigNumber.Create;
+    R := TCnBigNumber.Create;
+
+    for I := 2 to MaxInt do
+    begin
+      T.SetWord(I);
+      if not BigNumberDirectMulMod(R, T, T, Prime) then // G^2 mod P <> 1
+        Exit;
+
+      if not R.IsOne then
+      begin
+        if not BigNumberPowerMod(R, T, Q, Prime) then   // G^Q mod P <> 1
+          Exit;
+
+        if not R.IsOne then
+        begin
+          Result := BigNumberCopy(MinRoot, T) <> nil;
+          Exit;
+        end;
+      end;
+    end;
+  finally
+    R.Free;
+    T.Free;
+    Q.Free;
+  end;
 end;
 
 // 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
