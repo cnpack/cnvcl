@@ -17,12 +17,25 @@ type
     mmoBNShamir: TMemo;
     btnBNShamirSample2: TButton;
     btnInt64ShamirSample2: TButton;
+    tsFeldmanVSS: TTabSheet;
+    grpFeldman: TGroupBox;
+    btnFeldmanGen: TButton;
+    btnInt64FeldmanCheckParam: TButton;
+    btnFeldmanCheckParam2: TButton;
+    btnInt64FeldmanGen: TButton;
+    btnInt64Feldman: TButton;
+    mmoInt64Feldman: TMemo;
     procedure btnInt64ShamirSampleClick(Sender: TObject);
     procedure btnBNShamirSampleClick(Sender: TObject);
     procedure btnBNShamirSample2Click(Sender: TObject);
     procedure btnInt64ShamirSample2Click(Sender: TObject);
+    procedure btnFeldmanGenClick(Sender: TObject);
+    procedure btnInt64FeldmanCheckParamClick(Sender: TObject);
+    procedure btnFeldmanCheckParam2Click(Sender: TObject);
+    procedure btnInt64FeldmanGenClick(Sender: TObject);
+    procedure btnInt64FeldmanClick(Sender: TObject);
   private
-
+    function CheckDHGenerator(const HexPrime: string): Boolean;
   public
 
   end;
@@ -169,6 +182,184 @@ begin
 
   Y.Free;
   X.Free;
+end;
+
+procedure TFormSecretSharing.btnFeldmanGenClick(Sender: TObject);
+var
+  P, Q, G: TCnBigNumber;
+begin
+  P := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  G := TCnBigNumber.Create;
+
+//  if CnInt64FeldmanVssGeneratePrime(P, G) then
+//  begin
+//    ShowMessage('Get');
+//  end;
+
+  G.Free;
+  Q.Free;
+  P.Free;
+end;
+
+function TFormSecretSharing.CheckDHGenerator(
+  const HexPrime: string): Boolean;
+var
+  P, Q, G, R: TCnBigNumber;
+begin
+  P := TCnBigNumber.FromHex(HexPrime);
+  Q := TCnBigNumber.Create;
+
+  BigNumberCopy(Q, P);
+  Q.SubWord(1);
+  Q.ShiftRightOne;
+
+  G := TCnBigNumber.Create;
+  G.SetWord(2);
+
+  // 检查 G^Q mod P = 1
+  R := TCnBigNumber.Create;
+  BigNumberPowerMod(R, G, Q, P);
+
+  Result := R.IsOne;
+
+  R.Free;
+  G.Free;
+  Q.Free;
+  P.Free;
+end;
+
+procedure TFormSecretSharing.btnInt64FeldmanCheckParamClick(
+  Sender: TObject);
+var
+  T: TCnBigNumber;
+  R: TCnBigNumber;
+begin
+  T := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  T.SetHex(CN_PRIME_FFDHE_2048);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 30) then
+    ShowMessage('(FFDHE_2048 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_3072);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 25) then
+    ShowMessage('(FFDHE_3072 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_4096);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 20) then
+    ShowMessage('(FFDHE_4096 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_6144);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 15) then
+    ShowMessage('(FFDHE_6144 - 1) / 2 is a Prime');
+
+  T.SetHex(CN_PRIME_FFDHE_8192);
+  T.SubWord(1);
+  T.ShiftRightOne;
+  if BigNumberIsProbablyPrime(T, 10) then
+    ShowMessage('(FFDHE_8192 - 1) / 2 is a Prime');
+
+  T.Free;
+  R.Free;
+end;
+
+procedure TFormSecretSharing.btnFeldmanCheckParam2Click(Sender: TObject);
+begin
+  // RFC 7919 中定义的大素数 P 与生成元 2 并不符合 CnPrimeNumber 中的要求
+
+  // 对于 P = 11, Q = 5 的情况，2 符合本原根 2^5 mod 11 <> 1 的要求
+  // 3 符合生成元的 3^5 mod 11 = 1 的要求 ，
+  // DH 中到底（11，3）可用还是（11，2）可用？ 貌似是后者，但前者的意义是啥？
+
+  if CheckDHGenerator(CN_PRIME_FFDHE_2048) then
+    ShowMessage('FFDHE_2048 Generator is 2');
+
+  if CheckDHGenerator(CN_PRIME_FFDHE_3072) then
+    ShowMessage('FFDHE_3072 Generator is 2');
+
+  if CheckDHGenerator(CN_PRIME_FFDHE_4096) then
+    ShowMessage('FFDHE_4096 Generator is 2');
+
+  if CheckDHGenerator(CN_PRIME_FFDHE_6144) then
+    ShowMessage('FFDHE_6144 Generator is 2');
+
+  if CheckDHGenerator(CN_PRIME_FFDHE_8192) then
+    ShowMessage('FFDHE_8192 Generator is 2');
+end;
+
+procedure TFormSecretSharing.btnInt64FeldmanGenClick(Sender: TObject);
+var
+  P, G: Int64;
+begin
+  if CnInt64FeldmanVssGeneratePrime(P, G) then
+    ShowMessage(Format('Get Prime %u with Generator %d', [P, G]));
+end;
+
+procedure TFormSecretSharing.btnInt64FeldmanClick(Sender: TObject);
+var
+  I: Integer;
+  S, P, G: Int64;
+  Shares, Comms, X, Y: TCnInt64List;
+begin
+  S := 3; // 23333;
+  P := 11;
+  G := 3;
+
+  Shares := TCnInt64List.Create;
+  Comms := TCnInt64List.Create;
+  if CnInt64FeldmanVssSplit(S, 5, 3, Shares, Comms, P, G) then
+  begin
+    mmoInt64Feldman.Lines.Clear;
+    mmoInt64Feldman.Lines.Add('Prime: ' + IntToStr(P));
+    mmoInt64Feldman.Lines.Add('Secret: ' + IntToStr(S));
+    mmoInt64Feldman.Lines.Add('');
+
+    for I := 0 to Shares.Count - 1 do
+      mmoInt64Feldman.Lines.Add(IntToStr(I + 1) + ', ' + IntToStr(Shares[I]));
+
+    mmoInt64Feldman.Lines.Add('');
+    mmoInt64Feldman.Lines.Add('Commitments:');
+    for I := 0 to Comms.Count - 1 do
+      mmoInt64Feldman.Lines.Add(IntToStr(Comms[I]));
+  end
+  else
+    Exit;
+
+  mmoInt64Feldman.Lines.Add('');
+  mmoInt64Feldman.Lines.Add('Verify:');
+  for I := 0 to Shares.Count - 1 do
+  begin
+    if CnInt64FeldmanVssVerifyPiece(P, G, I + 1, Shares[I], Comms) then
+      mmoInt64Feldman.Lines.Add('Share #' + IntToStr(I + 1) + ' Verify OK')
+    else
+      mmoInt64Feldman.Lines.Add('Share #' + IntToStr(I + 1) + ' Verify Fail');
+  end;
+
+  X := TCnInt64List.Create;
+  Y := TCnInt64List.Create;
+
+  X.Add(1);
+  X.Add(3);
+  X.Add(5);
+  Y.Add(Shares[0]);
+  Y.Add(Shares[2]);
+  Y.Add(Shares[4]);
+
+  if CnInt64FeldmanVssReconstruct(P, G, X, Y, Comms, S) then
+    ShowMessage(IntToStr(S));
+
+  Y.Free;
+  X.Free;
+  Shares.Free;
 end;
 
 end.

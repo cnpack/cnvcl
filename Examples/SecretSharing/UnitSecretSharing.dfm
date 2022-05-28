@@ -82,5 +82,69 @@ object FormSecretSharing: TFormSecretSharing
         end
       end
     end
+    object tsFeldmanVSS: TTabSheet
+      Caption = 'Feldman VSS'
+      ImageIndex = 1
+      object grpFeldman: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 473
+        Caption = 'Feldman VSS'
+        TabOrder = 0
+        object btnFeldmanGen: TButton
+          Left = 832
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Gen Key'
+          TabOrder = 0
+          OnClick = btnFeldmanGenClick
+        end
+        object btnInt64FeldmanCheckParam: TButton
+          Left = 456
+          Top = 24
+          Width = 129
+          Height = 25
+          Caption = 'Feldman Check Param'
+          TabOrder = 1
+          OnClick = btnInt64FeldmanCheckParamClick
+        end
+        object btnFeldmanCheckParam2: TButton
+          Left = 600
+          Top = 24
+          Width = 129
+          Height = 25
+          Caption = 'Feldman Check Param2'
+          TabOrder = 2
+          OnClick = btnFeldmanCheckParam2Click
+        end
+        object btnInt64FeldmanGen: TButton
+          Left = 744
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Int64 Gen Key'
+          TabOrder = 3
+          OnClick = btnInt64FeldmanGenClick
+        end
+        object btnInt64Feldman: TButton
+          Left = 16
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Sample'
+          TabOrder = 4
+          OnClick = btnInt64FeldmanClick
+        end
+        object mmoInt64Feldman: TMemo
+          Left = 16
+          Top = 64
+          Width = 249
+          Height = 393
+          TabOrder = 5
+        end
+      end
+    end
   end
 end
