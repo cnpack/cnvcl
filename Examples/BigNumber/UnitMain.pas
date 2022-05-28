@@ -464,18 +464,21 @@ end;
 
 procedure TFormBigNumber.btnWordAddClick(Sender: TObject);
 begin
+  AWord := StrToInt(edtWord.Text);
   if BigNumberAddWord(Num1, AWord) then
     ShowNumbers;
 end;
 
 procedure TFormBigNumber.btnSubWordClick(Sender: TObject);
 begin
+  AWord := StrToInt(edtWord.Text);
   if BigNumberSubWord(Num1, AWord) then
     ShowNumbers;
 end;
 
 procedure TFormBigNumber.btnMulWordClick(Sender: TObject);
 begin
+  AWord := StrToInt(edtWord.Text);
   if BigNumberMulWord(Num1, AWord) then
     ShowNumbers;
 end;
@@ -484,6 +487,7 @@ procedure TFormBigNumber.btnDivWordClick(Sender: TObject);
 var
   Rem: DWORD;
 begin
+  AWord := StrToInt(edtWord.Text);
   Rem := BigNumberDivWord(Num1, AWord);
   ShowNumbers;
   if rbHex.Checked then
@@ -496,6 +500,7 @@ procedure TFormBigNumber.btnModWordClick(Sender: TObject);
 var
   Rem: DWORD;
 begin
+  AWord := StrToInt(edtWord.Text);
   Rem := BigNumberModWord(Num1, AWord);
   ShowNumbers;  
   if rbHex.Checked then
@@ -522,6 +527,7 @@ procedure TFormBigNumber.btnVerifyDivClick(Sender: TObject);
 var
   Rem: DWORD;
 begin
+  AWord := StrToInt(edtWord.Text);
   Rem := BigNumberDivWord(Num1, AWord);
   if BigNumberMulWord(Num1, AWord) then
     if BigNumberAddWord(Num1, Rem) then
