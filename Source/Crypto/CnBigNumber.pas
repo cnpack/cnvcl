@@ -728,8 +728,11 @@ function BigNumberDirectMulMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): 
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
 
-function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
+function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用}
+
+function BigNumberPowerPowerMod(const Res: TCnBigNumber; A, B, C, N: TCnBigNumber): Boolean;
+{* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出。Res 不能是 A、B、C、N 之一}
 
 function BigNumberLog2(const Num: TCnBigNumber): Extended;
 {* 返回大数的 2 为底的对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理}
@@ -4976,6 +4979,38 @@ begin
     FLocalBigNumberPool.Recycle(BB);
   end;
   Result := True;
+end;
+
+function BigNumberPowerPowerMod(const Res: TCnBigNumber; A, B, C, N: TCnBigNumber): Boolean;
+var
+  I: TCnBigNumber;
+begin
+  // A^(B^C) = A^(B*B*B*B...) 共 C 个 = ((A^B)^B)^B)^B 共 C 层 B
+  if C.IsZero then
+    Result := BigNumberCopy(Res, A) <> nil
+  else if C.IsOne then
+    Result := BigNumberPowerMod(Res, A, B, N)
+  else
+  begin
+    I := FLocalBigNumberPool.Obtain;
+    try
+      Result := False;
+      I.SetZero;
+      if BigNumberCopy(Res, A) = nil then
+        Exit;
+
+      while BigNumberCompare(I, C) < 0 do
+      begin
+        if not BigNumberPowerMod(Res, Res, B, N) then
+          Exit;
+
+        I.AddWord(1);
+      end;
+    finally
+      FLocalBigNumberPool.Recycle(I);
+    end;
+    Result := True;
+  end;
 end;
 
 procedure CheckLog(const Num: TCnBigNumber);
