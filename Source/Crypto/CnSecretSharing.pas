@@ -257,7 +257,7 @@ function CnInt64FeldmanVssVerifyPiece(Prime, Generator: Int64; InOrder, InShare:
   Commitments: TCnInt64List): Boolean;
 
 function CnInt64FeldmanVssReconstruct(Prime, Generator: Int64; InOrders, InShares,
-  Commitments: TCnInt64List; out Secret: Int64): Boolean;
+  Commitments: TCnInt64List; out Secret: Int64; Verify: Boolean = True): Boolean;
 
 implementation
 
@@ -577,7 +577,7 @@ end;
 function CnInt64FeldmanVssVerifyPiece(Prime, Generator: Int64; InOrder, InShare: Int64;
   Commitments: TCnInt64List): Boolean;
 var
-  I, J: Integer;
+  I: Integer;
   L, R, T: Int64;
 begin
   // 验证某分片是否正确，先计算 Generator^InShare mod Prime
@@ -587,18 +587,7 @@ begin
   R := 1;
   for I := 0 to Commitments.Count - 1 do
   begin
-    // A^(B^I) = A^(B*B*B*B...共 I 个) = ((A^B)^B)^B)^B 共 I 个 B
-    if I = 0 then
-      T := Commitments[I]
-    else
-    begin
-      T := Commitments[I];
-      for J := 1 to I do
-        T := MontgomeryPowerMod(T, InOrder, Prime);
-    end;
-
-//    T := Power(InOrder, I); // 此处不应该 mod Prime，指数不能随便模 P，但直接 Power 又容易溢出
-//    T := MontgomeryPowerMod(Commitments[I], T, Prime);
+    T := PowerPowerMod(Commitments[I], InOrder, I, Prime);
     R := MultipleMod(R, T, Prime);
   end;
 
@@ -607,7 +596,7 @@ begin
 end;
 
 function CnInt64FeldmanVssReconstruct(Prime, Generator: Int64; InOrders, InShares,
-  Commitments: TCnInt64List; out Secret: Int64): Boolean;
+  Commitments: TCnInt64List; out Secret: Int64; Verify: Boolean): Boolean;
 var
   I: Integer;
 begin
@@ -619,13 +608,16 @@ begin
     Exit;
   end;
 
-  for I := 0 to InOrders.Count - 1 do
+  if Verify then
   begin
-    if not CnInt64FeldmanVssVerifyPiece(Prime, Generator, InOrders[I],
-      InShares[I], Commitments) then
+    for I := 0 to InOrders.Count - 1 do
     begin
-      _CnSetLastError(ECN_SECRET_FELDMAN_CHECKERROR);
-      Exit;
+      if not CnInt64FeldmanVssVerifyPiece(Prime, Generator, InOrders[I],
+        InShares[I], Commitments) then
+      begin
+        _CnSetLastError(ECN_SECRET_FELDMAN_CHECKERROR);
+        Exit;
+      end;
     end;
   end;
 

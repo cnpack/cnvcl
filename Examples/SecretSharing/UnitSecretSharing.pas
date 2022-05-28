@@ -310,9 +310,12 @@ var
   S, P, G: Int64;
   Shares, Comms, X, Y: TCnInt64List;
 begin
-  S := 3; // 23333;
-  P := 11;
-  G := 3;
+//  S := 3; // 23333;
+//  P := 11;
+//  G := 3;
+  S := 23333;
+  P := 0;
+  G := 0;
 
   Shares := TCnInt64List.Create;
   Comms := TCnInt64List.Create;

@@ -701,7 +701,7 @@ function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
 function PowerPowerMod(A, B, C, N: TUInt64): TUInt64;
-{* 快速计算 A ^ (B ^ C)，更不能直接算，更容易溢出}
+{* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出}
 
 function CnGenerateUInt32Prime(HighBitSet: Boolean = False): Cardinal;
 {* 生成一个随机的 32 位无符号素数，HighBitSet 指明最高位是否必须为 1}
@@ -1074,7 +1074,7 @@ begin
     Result := A;
     while UInt64Compare(I, C) < 0 do
     begin
-      Result := MontgomeryPowerMod(A, B, N);
+      Result := MontgomeryPowerMod(Result, B, N);
       I := I + 1;
     end;
   end;
