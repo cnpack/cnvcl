@@ -144,6 +144,22 @@ object FormSecretSharing: TFormSecretSharing
           Height = 393
           TabOrder = 5
         end
+        object btnFeldmanSample: TButton
+          Left = 280
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'Sample'
+          TabOrder = 6
+          OnClick = btnFeldmanSampleClick
+        end
+        object mmoBNFeldman: TMemo
+          Left = 280
+          Top = 64
+          Width = 625
+          Height = 393
+          TabOrder = 7
+        end
       end
     end
   end

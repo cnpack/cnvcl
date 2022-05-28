@@ -25,6 +25,8 @@ type
     btnInt64FeldmanGen: TButton;
     btnInt64Feldman: TButton;
     mmoInt64Feldman: TMemo;
+    btnFeldmanSample: TButton;
+    mmoBNFeldman: TMemo;
     procedure btnInt64ShamirSampleClick(Sender: TObject);
     procedure btnBNShamirSampleClick(Sender: TObject);
     procedure btnBNShamirSample2Click(Sender: TObject);
@@ -34,6 +36,7 @@ type
     procedure btnFeldmanCheckParam2Click(Sender: TObject);
     procedure btnInt64FeldmanGenClick(Sender: TObject);
     procedure btnInt64FeldmanClick(Sender: TObject);
+    procedure btnFeldmanSampleClick(Sender: TObject);
   private
     function CheckDHGenerator(const HexPrime: string): Boolean;
   public
@@ -341,7 +344,7 @@ begin
   mmoInt64Feldman.Lines.Add('Verify:');
   for I := 0 to Shares.Count - 1 do
   begin
-    if CnInt64FeldmanVssVerifyPiece(P, G, I + 1, Shares[I], Comms) then
+    if CnInt64FeldmanVssVerify(P, G, I + 1, Shares[I], Comms) then
       mmoInt64Feldman.Lines.Add('Share #' + IntToStr(I + 1) + ' Verify OK')
     else
       mmoInt64Feldman.Lines.Add('Share #' + IntToStr(I + 1) + ' Verify Fail');
@@ -363,6 +366,70 @@ begin
   Y.Free;
   X.Free;
   Shares.Free;
+end;
+
+procedure TFormSecretSharing.btnFeldmanSampleClick(Sender: TObject);
+var
+  I: Integer;
+  S, P, G, O: TCnBigNumber;
+  Orders, Shares, Comms, X, Y: TCnBigNumberList;
+begin
+  S := TCnBigNumber.FromDec('23333333333333874874874874253253');
+  P := TCnBigNumber.FromHex(CN_PRIME_FFDHE_2048);
+  G := TCnBigNumber.FromDec('2');
+
+  Orders := TCnBigNumberList.Create;
+  Shares := TCnBigNumberList.Create;
+  Comms := TCnBigNumberList.Create;
+
+  if CnFeldmanVssSplit(S, 5, 3, Orders, Shares, Comms, P, G) then
+  begin
+    mmoBNFeldman.Lines.Clear;
+    mmoBNFeldman.Lines.Add('Prime: ' + P.ToString);
+    mmoBNFeldman.Lines.Add('Secret: ' + S.ToString);
+    mmoBNFeldman.Lines.Add('');
+
+    for I := 0 to Shares.Count - 1 do
+      mmoBNFeldman.Lines.Add(Orders[I].ToString + ', ' + Shares[I].ToString);
+
+    mmoBNFeldman.Lines.Add('');
+    mmoBNFeldman.Lines.Add('Verify:');
+
+    O := TCnBigNumber.Create;
+    for I := 0 to Shares.Count - 1 do
+    begin
+      O.SetWord(I + 1);
+      if CnFeldmanVssVerify(P, G, O, Shares[I], Comms) then
+        mmoBNFeldman.Lines.Add('Share #' + IntToStr(I + 1) + ' Verify OK')
+      else
+        mmoBNFeldman.Lines.Add('Share #' + IntToStr(I + 1) + ' Verify Fail');
+    end;
+    O.Free;
+  end
+  else
+    Exit;
+
+  X := TCnBigNumberList.Create;
+  Y := TCnBigNumberList.Create;
+
+  X.Add.SetWord(1);
+  X.Add.SetWord(3);
+  X.Add.SetWord(5);
+  BigNumberCopy(Y.Add, Shares[0]);
+  BigNumberCopy(Y.Add, Shares[2]);
+  BigNumberCopy(Y.Add, Shares[4]);
+
+  if CnFeldmanVssReconstruct(P, G, X, Y, Comms, S) then
+    ShowMessage(S.ToDec);
+
+  Y.Free;
+  X.Free;
+  Comms.Free;
+  Shares.Free;
+  Orders.Free;
+  P.Free;
+  S.Free;
+  G.Free;
 end;
 
 end.
