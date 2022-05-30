@@ -25,7 +25,9 @@ unit CnECC;
 * 单元名称：椭圆曲线算法单元
 * 单元作者：刘啸
 * 备    注：目前实现了 Int64 范围内以及大数形式的形如 y^2 = x^3 + Ax + B mod p
-*           这类椭圆曲线的计算，x 和 y 限于有限素域。
+*           这类 Weierstrass 椭圆曲线的计算，x 和 y 限于有限素域。
+*           不包括 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
+*           也没有 Edwards 椭圆曲线 x^2 + y^2 = 1 + d * x^2 * y^2
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
 * 开发平台：WinXP + Delphi 5.0
@@ -237,6 +239,21 @@ type
 
   TCnEccPrivateKey = class(TCnBigNumber);
   {* 椭圆曲线的私钥，计算次数 k 次}
+
+  TCnEccSignature = class
+  {* 椭圆曲线的签名，两个大数 R S}
+  private
+    FR: TCnBigNumber;
+    FS: TCnBigNumber;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    property R: TCnBigNumber read FR;
+    {* 签名 R 值，内部使用 X}
+    property S: TCnBigNumber read FS;
+    {* 签名 S 值，内部使用 Y}
+  end;
 
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
     ctRfc4754ECDSAExample256, ctSecp224r1, ctSecp224k1, ctSecp256k1, ctPrime256v1,
@@ -693,6 +710,16 @@ function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TC
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
    并比对两个二进制散列值是否相同，返回验证是否通过}
 
+function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+  Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* }
+
+function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+  CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* }
+
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
@@ -712,6 +739,16 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PublicKey: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定内存流}
+
+function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* }
+
+function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
+{* }
 
 // ===================== 基于有限扩域的多项式椭圆曲线运算 ======================
 
@@ -3610,7 +3647,7 @@ begin
   end;
 end;
 
-// ECC 签名与验证
+// ============================ ECC 签名与验证 =================================
 
 // 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream
 function CalcDigestStream(InStream: TStream; SignType: TCnEccSignDigestType;
@@ -3691,8 +3728,14 @@ end;
 {
   按维基百科上说明的 ECDSA 算法进行签名：
   https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
+
+  r = 随机k * G点（的 x）
+  s = (r * Private + 明文) / k
+
+  均对椭圆曲线的阶求模，并非对有限域求模
 }
-function EccSignValue(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey; InE, OutR, OutS: TCnBigNumber): Boolean;
+function EccSignValue(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey; InE: TCnBigNumber;
+  OutSignature: TCnEccSignature): Boolean;
 var
   K, X, KInv: TCnBigNumber;
   P: TCnEccPoint;
@@ -3716,29 +3759,28 @@ begin
       if not BigNumberRandRange(K, Ecc.Order) then // 生成重要的随机 K
         Exit;
 
-      // K.SetHex('9E56F509196784D963D1C0A401510EE7ADA3DCC5DEE04B154BF61AF1D5A6DECE');   // 指定随机值时做测试
-
       P.Assign(Ecc.Generator);
       Ecc.MultiplePoint(K, P);
 
-      if not BigNumberNonNegativeMod(OutR, P.X, Ecc.Order) then
+      if not BigNumberNonNegativeMod(OutSignature.R, P.X, Ecc.Order) then
         Exit;
 
-      if OutR.IsZero then
+      if OutSignature.R.IsZero then
         Continue;
       // 算出了签名的一部分 R
 
-      if not BigNumberMul(X, PrivateKey, OutR) then   // X <= r * PrivateKey
+      if not BigNumberMul(X, PrivateKey, OutSignature.R) then   // X <= r * PrivateKey
         Exit;
       if not BigNumberAdd(X, X, InE) then             // X <= X + z
         Exit;
-      BigNumberModularInverse(KInv, K, Ecc.Order);
+      if not BigNumberModularInverse(KInv, K, Ecc.Order) then
+        Exit;
       if not BigNumberMul(X, KInv, X) then            // X <= K^-1 * X
         Exit;
-      if not BigNumberNonNegativeMod(OutS, X, Ecc.Order) then  // OutS <= K^-1 * (z + r * PrivateKey) mod N
+      if not BigNumberNonNegativeMod(OutSignature.S, X, Ecc.Order) then  // OutS <= K^-1 * (z + r * PrivateKey) mod N
         Exit;
 
-      if OutS.IsZero then
+      if OutSignature.S.IsZero then
         Continue;
 
       Break;
@@ -3752,11 +3794,75 @@ begin
   end;
 end;
 
+{
+  从数据块与签名等信息还原出 SM2 公钥，返回是否还原成功。注意结果有两个，需要外部判断
+
+  因为 r = 随机k * G点（的 x），且 s = (r * Private + 明文z) / k
+
+  两边同时乘以 k 得 k*s*G = (r*Private + 明文)*G
+
+  组合 s*(k*G) = r*Private*G+ 明文*G
+
+  s*(kG) = r*Public + 明文*G
+
+  Public = r^-1 * (s*(kG) - 明文*G)，其中 k*G 的 x 坐标是 r，可求出两个 y 来
+}
+function CnEccRestorePublicKey(Ecc: TCnEcc; InE: TCnBigNumber; InSignature: TCnEccSignature;
+  OutPublicKey1, OutPublicKey2: TCnEccPublicKey): Boolean;
+var
+  P, Q, T: TCnEccPoint;
+  RInv: TCnBigNumber;
+begin
+  Result := False;
+
+  RInv := nil;
+  P := nil;
+  Q := nil;
+  T := nil;
+
+  try
+    RInv := TCnBigNumber.Create;
+    if not BigNumberModularInverse(RInv, InSignature.R, Ecc.Order) then
+      Exit;
+
+    P := TCnEccPoint.Create;
+    if not Ecc.PlainToPoint(InSignature.R, P) then  // P.Y 是一个 y ，所以此处 P 是 k*G 的一个取值
+      Exit;
+
+    Q := TCnEccPoint.Create;
+    Q.Assign(Ecc.Generator);
+    Ecc.MultiplePoint(InE, Q); // 得到明文*G
+    Ecc.PointInverse(Q);       // Q 得到 -明文 * G
+
+    T := TCnEccPoint.Create;
+    T.Assign(P);
+    Ecc.MultiplePoint(InSignature.S, T);    // T 得到 s*(k*G)
+
+    Ecc.PointAddPoint(Q, T, OutPublicKey1);
+    Ecc.MultiplePoint(RInv, OutPublicKey1); // PublicKey1 得到 r^-1 * (s*(kG) - 明文*G)
+
+    Ecc.PointInverse(P);
+    T.Assign(P);
+    Ecc.MultiplePoint(InSignature.S, T);    // T 再次得到 s* 另一个(k*G)
+
+    Ecc.PointAddPoint(Q, T, OutPublicKey2);
+    Ecc.MultiplePoint(RInv, OutPublicKey2); // PublicKey2 得到 r^-1 * (s*(kG) - 明文*G)
+
+    Result := True;
+  finally
+    T.Free;
+    Q.Free;
+    P.Free;
+    RInv.Free;
+  end;
+end;
+
 function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
 var
   Stream: TMemoryStream;
-  E, R, S: TCnBigNumber;
+  E: TCnBigNumber;
+  Sig: TCnEccSignature;
   Writer: TCnBerWriter;
   Root: TCnBerWriteNode;
 begin
@@ -3764,27 +3870,24 @@ begin
   Stream := nil;
   Writer := nil;
   E := nil;
-  R := nil;
-  S := nil;
+  Sig := nil;
 
   try
     Stream := TMemoryStream.Create;
-
     if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
       Exit;
+
     E := TCnBigNumber.Create;
     E.SetBinary(Stream.Memory, Stream.Size);
 
-    R := TCnBigNumber.Create;
-    S := TCnBigNumber.Create;
-
-    if EccSignValue(Ecc, PrivateKey, E, R, S) then
+    Sig := TCnEccSignature.Create;
+    if EccSignValue(Ecc, PrivateKey, E, Sig) then
     begin
       // 然后按格式进行 BER 编码
       Writer := TCnBerWriter.Create;
       Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-      AddBigNumberToWriter(Writer, R, Root);
-      AddBigNumberToWriter(Writer, S, Root);
+      AddBigNumberToWriter(Writer, Sig.R, Root);
+      AddBigNumberToWriter(Writer, Sig.S, Root);
 
       Writer.SaveToFile(OutSignFileName);
       Result := True;
@@ -3792,8 +3895,7 @@ begin
   finally
     Stream.Free;
     E.Free;
-    R.Free;
-    S.Free;
+    Sig.Free;
     Writer.Free;
   end;
 end;
@@ -3818,7 +3920,8 @@ end;
   按维基百科上说明的 ECDSA 算法进行签名验证：
   https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
 }
-function EccVerifyValue(Ecc: TCnEcc; PublicKey: TCnEccPublicKey; InE, InR, InS: TCnBigNumber): Boolean;
+function EccVerifyValue(Ecc: TCnEcc; PublicKey: TCnEccPublicKey; InE: TCnBigNumber;
+  InSignature: TCnEccSignature): Boolean;
 var
   U1, U2, SInv: TCnBigNumber;
   P1, P2: TCnEccPoint;
@@ -3837,7 +3940,7 @@ begin
 
   try
     SInv := TCnBigNumber.Create;
-    BigNumberModularInverse(SInv, InS, Ecc.Order);
+    BigNumberModularInverse(SInv, InSignature.S, Ecc.Order);
     U1 := TCnBigNumber.Create;
     if not BigNumberMul(U1, InE, SInv) then
       Exit;
@@ -3845,7 +3948,7 @@ begin
       Exit;
 
     U2 := TCnBigNumber.Create;
-    if not BigNumberMul(U2, InR, SInv) then
+    if not BigNumberMul(U2, InSignature.R, SInv) then
       Exit;
     if not BigNumberNonNegativeMod(U1, U1, Ecc.Order) then // u2 = (r * s^-1) mod N
       Exit;
@@ -3864,7 +3967,7 @@ begin
     if not BigNumberNonNegativeMod(P1.X, P1.X, Ecc.Order) then // 计算 P1.X mod N
       Exit;
 
-    if not BigNumberNonNegativeMod(P1.Y, InR, Ecc.Order) then  // 计算 r mod N
+    if not BigNumberNonNegativeMod(P1.Y, InSignature.R, Ecc.Order) then  // 计算 r mod N
       Exit;
 
     Result := BigNumberCompare(P1.X, P1.Y) = 0;
@@ -3878,18 +3981,18 @@ begin
 end;
 
 function CnEccVerifyFile(const InFileName, InSignFileName: string; Ecc: TCnEcc;
-  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType): Boolean;
 var
   Stream: TMemoryStream;
-  E, R, S: TCnBigNumber;
+  E: TCnBigNumber;
+  Sig: TCnEccSignature;
   Reader: TCnBerReader;
 begin
   Result := False;
   Stream := nil;
   Reader := nil;
   E := nil;
-  R := nil;
-  S := nil;
+  Sig := nil;
 
   try
     Stream := TMemoryStream.Create;
@@ -3908,23 +4011,21 @@ begin
     if Reader.TotalCount <> 3 then
       Exit;
 
-    R := TCnBigNumber.Create;
-    S := TCnBigNumber.Create;
-    PutIndexedBigIntegerToBigInt(Reader.Items[1], R);
-    PutIndexedBigIntegerToBigInt(Reader.Items[2], S);
+    Sig := TCnEccSignature.Create;
+    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
 
-    Result := EccVerifyValue(Ecc, PublicKey, E, R, S);
+    Result := EccVerifyValue(Ecc, PublicKey, E, Sig);
   finally
     Stream.Free;
     Reader.Free;
     E.Free;
-    R.Free;
-    S.Free;
+    Sig.Free
   end;
 end;
 
 function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TCnEccCurveType;
-  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType): Boolean;
 var
   Ecc: TCnEcc;
 begin
@@ -3939,6 +4040,69 @@ begin
   end;
 end;
 
+function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+  Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType): Boolean; overload;
+var
+  Stream: TMemoryStream;
+  E: TCnBigNumber;
+  Sig: TCnEccSignature;
+  Reader: TCnBerReader;
+begin
+  Result := False;
+  Stream := nil;
+  Reader := nil;
+  E := nil;
+  Sig := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+
+    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+      Exit;
+
+    E := TCnBigNumber.Create;
+    E.SetBinary(Stream.Memory, Stream.Size);
+
+    Stream.Clear;
+    Stream.LoadFromFile(InSignFileName);
+    Reader := TCnBerReader.Create(Stream.Memory, Stream.Size);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount <> 3 then
+      Exit;
+
+    Sig := TCnEccSignature.Create;
+    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
+
+    Result := CnEccRestorePublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
+  finally
+    Stream.Free;
+    Reader.Free;
+    E.Free;
+    Sig.Free
+  end;
+end;
+
+function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+  CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType): Boolean; overload;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccRestorePublicKeyFromFile(InFileName, InSignFileName, Ecc,
+      OutPublicKey1, OutPublicKey2, SignType);
+  finally
+    Ecc.Free;
+  end;
+end;
+
 {
   ECC 签名输出的 BER 格式如下，直接存成二进制文件即可
   SEQUENCE (2 elem)
@@ -3947,10 +4111,11 @@ end;
 }
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  SignType: TCnEccSignDigestType): Boolean;
 var
   Stream: TMemoryStream;
-  E, R, S: TCnBigNumber;
+  E: TCnBigNumber;
+  Sig: TCnEccSignature;
   Writer: TCnBerWriter;
   Root: TCnBerWriteNode;
 begin
@@ -3958,27 +4123,24 @@ begin
   Stream := nil;
   Writer := nil;
   E := nil;
-  R := nil;
-  S := nil;
+  Sig := nil;
 
   try
     Stream := TMemoryStream.Create;
-
     if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
       Exit;
+
     E := TCnBigNumber.Create;
     E.SetBinary(Stream.Memory, Stream.Size);
 
-    R := TCnBigNumber.Create;
-    S := TCnBigNumber.Create;
-
-    if EccSignValue(Ecc, PrivateKey, E, R, S) then
+    Sig := TCnEccSignature.Create;
+    if EccSignValue(Ecc, PrivateKey, E, Sig) then
     begin
       // 然后按格式进行 BER 编码
       Writer := TCnBerWriter.Create;
       Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-      AddBigNumberToWriter(Writer, R, Root);
-      AddBigNumberToWriter(Writer, S, Root);
+      AddBigNumberToWriter(Writer, Sig.R, Root);
+      AddBigNumberToWriter(Writer, Sig.S, Root);
 
       Writer.SaveToStream(OutSignStream);
       Result := True;
@@ -3986,8 +4148,7 @@ begin
   finally
     Stream.Free;
     E.Free;
-    R.Free;
-    S.Free;
+    Sig.Free;
     Writer.Free;
   end;
 end;
@@ -4011,22 +4172,21 @@ end;
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
-  SignType: TCnEccSignDigestType = esdtMD5): Boolean;
+  SignType: TCnEccSignDigestType): Boolean;
 var
   Stream: TMemoryStream;
-  E, R, S: TCnBigNumber;
+  E: TCnBigNumber;
+  Sig: TCnEccSignature;
   Reader: TCnBerReader;
 begin
   Result := False;
   Stream := nil;
   Reader := nil;
   E := nil;
-  R := nil;
-  S := nil;
+  Sig := nil;
 
   try
     Stream := TMemoryStream.Create;
-
     if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
       Exit;
 
@@ -4041,18 +4201,16 @@ begin
     if Reader.TotalCount <> 3 then
       Exit;
 
-    R := TCnBigNumber.Create;
-    S := TCnBigNumber.Create;
-    PutIndexedBigIntegerToBigInt(Reader.Items[1], R);
-    PutIndexedBigIntegerToBigInt(Reader.Items[2], S);
+    Sig := TCnEccSignature.Create;
+    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
 
-    Result := EccVerifyValue(Ecc, PublicKey, E, R, S);
+    Result := EccVerifyValue(Ecc, PublicKey, E, Sig);
   finally
     Stream.Free;
     Reader.Free;
     E.Free;
-    R.Free;
-    S.Free;
+    Sig.Free;
   end;
 end;
 
@@ -4068,6 +4226,68 @@ begin
   Ecc := TCnEcc.Create(CurveType);
   try
     Result := CnEccVerifyStream(InStream, InSignStream, Ecc, PublicKey, SignType);
+  finally
+    Ecc.Free;
+  end;
+end;
+
+function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType): Boolean; overload;
+var
+  Stream: TMemoryStream;
+  E: TCnBigNumber;
+  Sig: TCnEccSignature;
+  Reader: TCnBerReader;
+begin
+  Result := False;
+  Stream := nil;
+  Reader := nil;
+  E := nil;
+  Sig := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+      Exit;
+
+    E := TCnBigNumber.Create;
+    E.SetBinary(Stream.Memory, Stream.Size);
+
+    Stream.Clear;
+    Stream.LoadFromStream(InSignStream);
+    Reader := TCnBerReader.Create(Stream.Memory, Stream.Size);
+    Reader.ParseToTree;
+
+    if Reader.TotalCount <> 3 then
+      Exit;
+
+    Sig := TCnEccSignature.Create;
+    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
+
+    Result := CnEccRestorePublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
+  finally
+    Stream.Free;
+    Reader.Free;
+    E.Free;
+    Sig.Free;
+  end;
+end;
+
+function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  SignType: TCnEccSignDigestType): Boolean; overload;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccRestorePublicKeyFromStream(InStream, InSignStream, Ecc,
+      OutPublicKey1, OutPublicKey2, SignType);
   finally
     Ecc.Free;
   end;
@@ -6792,6 +7012,22 @@ end;
 procedure TCnEcc3Point.SetZ(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FZ, Value);
+end;
+
+{ TCnEccSignature }
+
+constructor TCnEccSignature.Create;
+begin
+  inherited;
+  FR := TCnBigNumber.Create;
+  FS := TCnBigNumber.Create;
+end;
+
+destructor TCnEccSignature.Destroy;
+begin
+  FS.Free;
+  FR.Free;
+  inherited;
 end;
 
 initialization

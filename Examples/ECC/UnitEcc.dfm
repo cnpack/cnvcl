@@ -250,7 +250,7 @@ object FormEcc: TFormEcc
           Top = 88
           Width = 49
           Height = 21
-          TabOrder = 6
+          TabOrder = 8
           Text = '6'
         end
         object edtPY: TEdit
@@ -258,7 +258,7 @@ object FormEcc: TFormEcc
           Top = 88
           Width = 49
           Height = 21
-          TabOrder = 7
+          TabOrder = 9
           Text = '19'
         end
         object edtQX: TEdit
@@ -266,7 +266,7 @@ object FormEcc: TFormEcc
           Top = 88
           Width = 49
           Height = 21
-          TabOrder = 8
+          TabOrder = 10
           Text = '9'
         end
         object edtQY: TEdit
@@ -274,7 +274,7 @@ object FormEcc: TFormEcc
           Top = 88
           Width = 49
           Height = 21
-          TabOrder = 9
+          TabOrder = 11
           Text = '7'
         end
         object btnEqual: TButton
@@ -283,7 +283,7 @@ object FormEcc: TFormEcc
           Width = 65
           Height = 21
           Caption = '='
-          TabOrder = 10
+          TabOrder = 12
           OnClick = btnEqualClick
         end
         object edtMPX: TEdit
@@ -291,7 +291,7 @@ object FormEcc: TFormEcc
           Top = 124
           Width = 49
           Height = 21
-          TabOrder = 11
+          TabOrder = 13
           Text = '9'
         end
         object edtMPY: TEdit
@@ -299,7 +299,7 @@ object FormEcc: TFormEcc
           Top = 124
           Width = 49
           Height = 21
-          TabOrder = 12
+          TabOrder = 14
           Text = '7'
         end
         object btnMEqual: TButton
@@ -308,7 +308,7 @@ object FormEcc: TFormEcc
           Width = 65
           Height = 21
           Caption = '='
-          TabOrder = 14
+          TabOrder = 16
           OnClick = btnMEqualClick
         end
         object edtMK: TEdit
@@ -316,7 +316,7 @@ object FormEcc: TFormEcc
           Top = 124
           Width = 49
           Height = 21
-          TabOrder = 13
+          TabOrder = 15
           Text = '3'
         end
         object btnInt64Affine: TButton
@@ -325,7 +325,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Test Affine +'
-          TabOrder = 15
+          TabOrder = 6
           OnClick = btnInt64AffineClick
         end
         object btnTestJacobian: TButton
@@ -334,7 +334,7 @@ object FormEcc: TFormEcc
           Width = 81
           Height = 21
           Caption = 'Test Jacobian +'
-          TabOrder = 16
+          TabOrder = 7
           OnClick = btnTestJacobianClick
         end
       end
@@ -586,7 +586,7 @@ object FormEcc: TFormEcc
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Generate Small Ecc'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnGenEccClick
         end
         object edtEccA: TEdit
@@ -644,7 +644,7 @@ object FormEcc: TFormEcc
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Calculate N*G'
-          TabOrder = 7
+          TabOrder = 8
           OnClick = btnCalcNGClick
         end
         object mmoGenECCPoints: TMemo
@@ -654,7 +654,7 @@ object FormEcc: TFormEcc
           Height = 359
           Anchors = [akLeft, akTop, akRight, akBottom]
           ScrollBars = ssVertical
-          TabOrder = 10
+          TabOrder = 11
           WantReturns = False
           WordWrap = False
         end
@@ -684,7 +684,7 @@ object FormEcc: TFormEcc
           View3D = False
           View3DWalls = False
           BevelOuter = bvNone
-          TabOrder = 8
+          TabOrder = 9
           object pntsrsSeries2: TPointSeries
             Marks.ArrowLength = 0
             Marks.Visible = False
@@ -712,7 +712,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Legendre'
-          TabOrder = 9
+          TabOrder = 10
           OnClick = btnLeRanDeClick
         end
         object btnBNGXtoPoint: TButton
@@ -722,7 +722,7 @@ object FormEcc: TFormEcc
           Height = 21
           Anchors = [akLeft, akBottom]
           Caption = 'BN G.X to Pt'
-          TabOrder = 12
+          TabOrder = 20
           OnClick = btnBNGXtoPointClick
         end
         object btnInt64GXtoPt: TButton
@@ -731,7 +731,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G.X to Pt'
-          TabOrder = 11
+          TabOrder = 12
           OnClick = btnInt64GXtoPtClick
         end
         object cbbInt64EccPreset: TComboBox
@@ -741,7 +741,7 @@ object FormEcc: TFormEcc
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 13
+          TabOrder = 6
           OnChange = cbbInt64EccPresetChange
           Items.Strings = (
             'Preset 1'
@@ -753,7 +753,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = '? * G'
-          TabOrder = 14
+          TabOrder = 13
           OnClick = btnEccTestAddClick
         end
         object btnHassenTest: TButton
@@ -762,7 +762,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Hasse Test 1'
-          TabOrder = 15
+          TabOrder = 14
           OnClick = btnHassenTestClick
         end
         object btnHassenTest2: TButton
@@ -771,7 +771,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Hasse Test 2'
-          TabOrder = 16
+          TabOrder = 15
           OnClick = btnHassenTest2Click
         end
         object btnInt64SchoofTest: TButton
@@ -780,7 +780,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Schoof Test'
-          TabOrder = 17
+          TabOrder = 16
           OnClick = btnInt64SchoofTestClick
         end
         object btnInt64EccCountOrder: TButton
@@ -789,7 +789,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Count Order1'
-          TabOrder = 18
+          TabOrder = 17
           OnClick = btnInt64EccCountOrderClick
         end
         object btnInt64CountOrder1: TButton
@@ -798,7 +798,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Count Order2'
-          TabOrder = 19
+          TabOrder = 18
           OnClick = btnInt64CountOrder1Click
         end
         object btnInt64CountEccPoints3: TButton
@@ -807,7 +807,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Count Order3'
-          TabOrder = 20
+          TabOrder = 19
           OnClick = btnInt64CountEccPoints3Click
         end
       end
@@ -961,7 +961,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Inverse G'
-          TabOrder = 7
+          TabOrder = 8
           OnClick = btnBNEccInverseGClick
         end
         object edtBNEccResult: TEdit
@@ -970,7 +970,7 @@ object FormEcc: TFormEcc
           Width = 748
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 6
+          TabOrder = 7
         end
         object btnBNEccInverseAdd: TButton
           Left = 98
@@ -978,7 +978,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'Inverse G + G'
-          TabOrder = 8
+          TabOrder = 9
           OnClick = btnBNEccInverseAddClick
         end
         object btnBNEccGx2: TButton
@@ -987,7 +987,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G + G'
-          TabOrder = 9
+          TabOrder = 10
           OnClick = btnBNEccGx2Click
         end
         object btnBNEccG2SubG: TButton
@@ -996,7 +996,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G * 2 - G'
-          TabOrder = 11
+          TabOrder = 12
           OnClick = btnBNEccG2SubGClick
         end
         object btnBNEccGAddG: TButton
@@ -1005,7 +1005,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G * 2'
-          TabOrder = 10
+          TabOrder = 11
           OnClick = btnBNEccGAddGClick
         end
         object btnBNEccGSubG: TButton
@@ -1014,7 +1014,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'G - G'
-          TabOrder = 12
+          TabOrder = 13
           OnClick = btnBNEccGSubGClick
         end
         object btnBNEccNG: TButton
@@ -1023,7 +1023,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'n * G'
-          TabOrder = 13
+          TabOrder = 14
           OnClick = btnBNEccNGClick
         end
         object btnBNEcc4G: TButton
@@ -1032,7 +1032,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = '4 * G vs G++++'
-          TabOrder = 14
+          TabOrder = 15
           OnClick = btnBNEcc4GClick
         end
         object btnBNEccNewKey: TButton
@@ -1041,7 +1041,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = 'New Key'
-          TabOrder = 15
+          TabOrder = 21
           OnClick = btnBNEccNewKeyClick
         end
         object edtBNEccPublicKey: TEdit
@@ -1050,7 +1050,7 @@ object FormEcc: TFormEcc
           Width = 748
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 17
+          TabOrder = 23
         end
         object edtBNEccPrivateKey: TEdit
           Left = 232
@@ -1058,7 +1058,7 @@ object FormEcc: TFormEcc
           Width = 532
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 16
+          TabOrder = 22
         end
         object edtBNEccDataPoint: TEdit
           Left = 80
@@ -1066,7 +1066,7 @@ object FormEcc: TFormEcc
           Width = 588
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 18
+          TabOrder = 25
         end
         object btnBNEccCrypt: TButton
           Left = 675
@@ -1075,7 +1075,7 @@ object FormEcc: TFormEcc
           Height = 21
           Anchors = [akRight]
           Caption = 'Encrypt/Decrypt'
-          TabOrder = 19
+          TabOrder = 24
           OnClick = btnBNEccCryptClick
         end
         object btnBNUpdate: TButton
@@ -1084,7 +1084,7 @@ object FormEcc: TFormEcc
           Width = 35
           Height = 21
           Caption = 'Set'
-          TabOrder = 20
+          TabOrder = 6
           OnClick = btnBNUpdateClick
         end
         object btnBNEccCalc: TButton
@@ -1093,7 +1093,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = '? * G'
-          TabOrder = 21
+          TabOrder = 16
           OnClick = btnBNEccCalcClick
         end
         object rbBNAddNormal: TRadioButton
@@ -1103,7 +1103,7 @@ object FormEcc: TFormEcc
           Height = 17
           Caption = 'Normal'
           Checked = True
-          TabOrder = 22
+          TabOrder = 17
           TabStop = True
         end
         object rbBNAddAffine: TRadioButton
@@ -1112,7 +1112,7 @@ object FormEcc: TFormEcc
           Width = 113
           Height = 17
           Caption = 'Affine'
-          TabOrder = 23
+          TabOrder = 18
         end
         object rbBNAddJacobian: TRadioButton
           Left = 216
@@ -1120,7 +1120,7 @@ object FormEcc: TFormEcc
           Width = 113
           Height = 17
           Caption = 'Jacobian'
-          TabOrder = 24
+          TabOrder = 19
         end
         object btnMulTime: TButton
           Left = 342
@@ -1128,7 +1128,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Caption = '? * G Time'
-          TabOrder = 25
+          TabOrder = 20
           OnClick = btnMulTimeClick
         end
       end
@@ -1337,7 +1337,7 @@ object FormEcc: TFormEcc
         Width = 75
         Height = 21
         Caption = 'Schoof Test'
-        TabOrder = 1
+        TabOrder = 3
         OnClick = btnEccSchoofClick
       end
       object btnSimpleAttack: TButton
@@ -1346,7 +1346,7 @@ object FormEcc: TFormEcc
         Width = 75
         Height = 21
         Caption = 'Simple Attack'
-        TabOrder = 2
+        TabOrder = 1
         OnClick = btnSimpleAttackClick
       end
       object btnTestCRT: TButton
@@ -1355,7 +1355,7 @@ object FormEcc: TFormEcc
         Width = 75
         Height = 21
         Caption = 'CRT Sample'
-        TabOrder = 3
+        TabOrder = 2
         OnClick = btnTestCRTClick
       end
       object mmoBNEccPoints: TMemo
@@ -1445,7 +1445,7 @@ object FormEcc: TFormEcc
           Width = 153
           Height = 21
           Caption = 'Lucas Recur'
-          TabOrder = 3
+          TabOrder = 4
           OnClick = btnLucasRecurClick
         end
         object mmoLucasRes: TMemo
@@ -1455,7 +1455,7 @@ object FormEcc: TFormEcc
           Height = 305
           Anchors = [akLeft, akTop, akBottom]
           ScrollBars = ssVertical
-          TabOrder = 4
+          TabOrder = 7
           WordWrap = False
         end
         object mmoLucasMod: TMemo
@@ -1465,7 +1465,7 @@ object FormEcc: TFormEcc
           Height = 305
           Anchors = [akLeft, akTop, akBottom]
           ScrollBars = ssVertical
-          TabOrder = 5
+          TabOrder = 8
           WordWrap = False
         end
         object btnLucasMod: TButton
@@ -1474,7 +1474,7 @@ object FormEcc: TFormEcc
           Width = 65
           Height = 21
           Caption = 'Lucas 2'
-          TabOrder = 6
+          TabOrder = 5
           OnClick = btnLucasModClick
         end
         object chkLucasMod: TCheckBox
@@ -1485,7 +1485,7 @@ object FormEcc: TFormEcc
           Caption = 'Mod'
           Checked = True
           State = cbChecked
-          TabOrder = 7
+          TabOrder = 3
         end
         object btnBNLucasMod: TButton
           Left = 264
@@ -1493,7 +1493,7 @@ object FormEcc: TFormEcc
           Width = 81
           Height = 21
           Caption = 'BN Lucas Mod'
-          TabOrder = 8
+          TabOrder = 6
           OnClick = btnBNLucasModClick
         end
       end
@@ -1586,7 +1586,7 @@ object FormEcc: TFormEcc
           Width = 588
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 1
+          TabOrder = 2
           Text = '538879667'
         end
         object btnTSInt64: TButton
@@ -1596,7 +1596,7 @@ object FormEcc: TFormEcc
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Tonelli Shanks Int64'
-          TabOrder = 2
+          TabOrder = 1
           OnClick = btnTSInt64Click
         end
         object btnBNTS: TButton
@@ -1615,7 +1615,7 @@ object FormEcc: TFormEcc
           Width = 185
           Height = 241
           ScrollBars = ssVertical
-          TabOrder = 4
+          TabOrder = 5
           WordWrap = False
         end
         object btnRandomTS: TButton
@@ -1624,7 +1624,7 @@ object FormEcc: TFormEcc
           Width = 369
           Height = 21
           Caption = 'Random Tonelli Shanks using Int64 and BigNumber to 538879667'
-          TabOrder = 5
+          TabOrder = 4
         end
       end
     end
@@ -1816,7 +1816,7 @@ object FormEcc: TFormEcc
           Caption = 'Sig:'
         end
         object lblKeyHash: TLabel
-          Left = 232
+          Left = 200
           Top = 390
           Width = 46
           Height = 13
@@ -1837,7 +1837,7 @@ object FormEcc: TFormEcc
           Width = 660
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 1
+          TabOrder = 5
         end
         object edtKeyEccB: TEdit
           Left = 56
@@ -1845,7 +1845,7 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 2
+          TabOrder = 6
         end
         object edtKeyEccP: TEdit
           Left = 56
@@ -1853,7 +1853,7 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 3
+          TabOrder = 7
         end
         object edtKeyEccGX: TEdit
           Left = 56
@@ -1861,7 +1861,7 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 4
+          TabOrder = 8
         end
         object edtKeyEccGY: TEdit
           Left = 56
@@ -1869,7 +1869,7 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 5
+          TabOrder = 9
         end
         object edtKeyEccOrder: TEdit
           Left = 56
@@ -1877,7 +1877,7 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 6
+          TabOrder = 10
         end
         object edtKeyPrivate: TEdit
           Left = 104
@@ -1885,7 +1885,7 @@ object FormEcc: TFormEcc
           Width = 660
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 7
+          TabOrder = 11
         end
         object edtKeyPublic: TEdit
           Left = 104
@@ -1893,7 +1893,7 @@ object FormEcc: TFormEcc
           Width = 660
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 8
+          TabOrder = 12
         end
         object btnKeyCheckPublic: TButton
           Left = 512
@@ -1901,7 +1901,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Check Public'
-          TabOrder = 9
+          TabOrder = 2
           OnClick = btnKeyCheckPublicClick
         end
         object btnSaveKey: TButton
@@ -1910,7 +1910,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Save Key'
-          TabOrder = 10
+          TabOrder = 4
           OnClick = btnSaveKeyClick
         end
         object edtKeyData: TEdit
@@ -1919,7 +1919,7 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 11
+          TabOrder = 13
           Text = '1234567890ABCDEF'
         end
         object btnKeySign: TButton
@@ -1928,7 +1928,7 @@ object FormEcc: TFormEcc
           Width = 129
           Height = 25
           Caption = 'Sign Using PrivateKey'
-          TabOrder = 12
+          TabOrder = 14
           OnClick = btnKeySignClick
         end
         object edtKeySign: TEdit
@@ -1937,22 +1937,22 @@ object FormEcc: TFormEcc
           Width = 708
           Height = 21
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 13
+          TabOrder = 18
         end
         object btnKeyVerify: TButton
-          Left = 634
+          Left = 490
           Top = 384
           Width = 129
           Height = 25
           Anchors = [akTop, akRight]
           Caption = 'Verfiy Using PublicKey'
-          TabOrder = 14
+          TabOrder = 17
           OnClick = btnKeyVerifyClick
         end
         object cbbKeyHash: TComboBox
-          Left = 288
-          Top = 384
-          Width = 145
+          Left = 256
+          Top = 386
+          Width = 89
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
@@ -1969,16 +1969,16 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 25
           Caption = 'Key Generate'
-          TabOrder = 16
+          TabOrder = 3
           OnClick = btnKeyGenerateClick
         end
         object btnKeyLoadSig: TButton
-          Left = 488
+          Left = 360
           Top = 384
           Width = 121
           Height = 25
           Caption = 'Load Signature to Verify'
-          TabOrder = 17
+          TabOrder = 16
           OnClick = btnKeyLoadSigClick
         end
         object cbbCurveTypes: TComboBox
@@ -1988,8 +1988,18 @@ object FormEcc: TFormEcc
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 18
+          TabOrder = 1
           OnChange = cbbCurveTypesChange
+        end
+        object btnRestorePubKey: TButton
+          Left = 634
+          Top = 384
+          Width = 129
+          Height = 25
+          Anchors = [akTop, akRight]
+          Caption = 'Restore PublicKey'
+          TabOrder = 19
+          OnClick = btnRestorePubKeyClick
         end
       end
     end

@@ -246,6 +246,7 @@ type
     rbBNAddAffine: TRadioButton;
     rbBNAddJacobian: TRadioButton;
     btnMulTime: TButton;
+    btnRestorePubKey: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -324,6 +325,7 @@ type
     procedure btnBNEccAffineTestClick(Sender: TObject);
     procedure btnBNJacobianTestClick(Sender: TObject);
     procedure btnMulTimeClick(Sender: TObject);
+    procedure btnRestorePubKeyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -2851,7 +2853,8 @@ procedure TFormEcc.cbbCurveTypesChange(Sender: TObject);
 begin
   if cbbCurveTypes.ItemIndex > 0 then
   begin
-    FKeyEcc.Load(TCnEccCurveType(cbbCurveTypes.ItemIndex));
+    FCurveType := TCnEccCurveType(cbbCurveTypes.ItemIndex);
+    FKeyEcc.Load(FCurveType);
     lblCurveTypeText.Caption := GetEnumName(TypeInfo(TCnEccCurveType), cbbCurveTypes.ItemIndex);
 
     edtKeyEccA.Text := FKeyEcc.CoefficientA.ToDec;
@@ -3067,6 +3070,43 @@ begin
   ShowMessage(IntToStr(T));
   P.Free;
   K.Free;
+end;
+
+procedure TFormEcc.btnRestorePubKeyClick(Sender: TObject);
+var
+  InStream, SignStream: TMemoryStream;
+  S: AnsiString;
+  Pub1, Pub2: TCnEccPublicKey;
+begin
+  // 从签名还原公钥
+  InStream := TMemoryStream.Create;
+  SignStream := TMemoryStream.Create;
+  S := edtKeyData.Text; // 'abc'
+  InStream.Write(S[1], Length(S));
+
+  S := MyHexToStr(edtKeySign.Text);
+  SignStream.Write(S[1], Length(S));
+  SignStream.Position := 0;
+
+  Pub1 := TCnEccPublicKey.Create;
+  Pub2 := TCnEccPublicKey.Create;
+
+  if CnEccRestorePublicKeyFromStream(InStream, SignStream, FKeyEcc, Pub1, Pub2,
+    TCnEccSignDigestType(cbbKeyHash.ItemIndex)) then
+  begin
+    if (Pub1.ToHex = FPublicKey.ToHex) or (Pub2.ToHex = FPublicKey.ToHex) then
+      ShowMessage('Restore OK.')
+    else
+      ShowMessage('Restore None.');
+  end
+  else
+    ShowMessage('Restore Fail.');
+
+  Pub2.Free;
+  Pub1.Free;
+  InStream.Free;
+  SignStream.Free;
+  SetLength(S, 0);
 end;
 
 end.
