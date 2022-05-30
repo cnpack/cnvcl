@@ -242,7 +242,7 @@ type
   TCnEccPrivateKey = class(TCnBigNumber);
   {* 椭圆曲线的私钥，计算次数 k 次}
 
-  TCnEccSignature = class
+  TCnEccSignature = class(TPersistent)
   {* 椭圆曲线的签名，两个大数 R S}
   private
     FR: TCnBigNumber;
@@ -251,10 +251,18 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
+
+    function ToHex(FixedLen: Integer = 0): string;
+    {* 转换为十六进制字符串，内部 R S 简单拼接，注意需要从十六进制中恢复时
+      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错 }
+    procedure SetHex(const Buf: AnsiString);
+    {* 从十六进制字符串中加载，内部对半拆分}
+
     property R: TCnBigNumber read FR;
-    {* 签名 R 值，内部使用 X}
+    {* 签名 R 值}
     property S: TCnBigNumber read FS;
-    {* 签名 S 值，内部使用 Y}
+    {* 签名 S 值}
   end;
 
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
@@ -2114,7 +2122,7 @@ end;
 function TCnEccPoint.ToHex(FixedLen: Integer): string;
 begin
   if FY.IsZero then
-    Result := '03' + FY.ToHex(FixedLen)
+    Result := '03' + FY.ToHex(FixedLen) // 不知道 Y 具体值，无法确定奇偶，暂时写 03
   else
     Result := '04' + FX.ToHex(FixedLen) + FY.ToHex(FixedLen);
 end;
@@ -7043,6 +7051,17 @@ end;
 
 { TCnEccSignature }
 
+procedure TCnEccSignature.Assign(Source: TPersistent);
+begin
+  if Source is TCnEccSignature then
+  begin
+    BigNumberCopy(FR, (Source as TCnEccSignature).R);
+    BigNumberCopy(FS, (Source as TCnEccSignature).S);
+  end
+  else
+    inherited;
+end;
+
 constructor TCnEccSignature.Create;
 begin
   inherited;
@@ -7055,6 +7074,24 @@ begin
   FS.Free;
   FR.Free;
   inherited;
+end;
+
+procedure TCnEccSignature.SetHex(const Buf: AnsiString);
+var
+  C: Integer;
+begin
+  if (Length(Buf) < 4) or ((Length(Buf) mod 4) <> 0) then
+    raise ECnEccException.Create(SCnEccErrorKeyData);
+
+  // 一半一半，长度得相等
+  C := Length(Buf) div 2;
+  FR.SetHex(Copy(Buf, 1, C));
+  FS.SetHex(Copy(Buf, C + 1, MaxInt));
+end;
+
+function TCnEccSignature.ToHex(FixedLen: Integer): string;
+begin
+  Result := FR.ToHex(FixedLen) + FS.ToHex(FixedLen);
 end;
 
 initialization

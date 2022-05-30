@@ -741,7 +741,7 @@ begin
 
     Stream.LoadFromFile(FileName);
     if CnSM2SignData(UserID, Stream.Memory, Stream.Size, OutSign, PrivateKey, PublicKey, SM2) then
-      Result := OutSign.ToHex;
+      Result := OutSign.ToHex(SM2.BytesCount);
   finally
     Stream.Free;
     OutSign.Free;
@@ -777,6 +777,7 @@ begin
     InSign.Free;
   end;
 end;
+
 {
   计算交换出的密钥：KDF(Xuv‖Yuv‖Za‖Zb, kLen)
 }
