@@ -188,6 +188,8 @@ type
     {* 基点的阶数}
   end;
 
+  TCnEcc = class;
+
   TCnEccPoint = class(TPersistent)
   {* 有限素域上的椭圆曲线上的点描述类}
   private
@@ -209,7 +211,7 @@ type
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
-    procedure SetHex(const Buf: AnsiString); // 有 03 04 前缀的处理
+    procedure SetHex(const Buf: AnsiString; Ecc: TCnEcc = nil); // 有 02 03 04 前缀的处理
     function ToHex(FixedLen: Integer = 0): string;
 
     property X: TCnBigNumber read FX write SetX;
@@ -710,15 +712,15 @@ function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TC
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
    并比对两个二进制散列值是否相同，返回验证是否通过}
 
-function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
   Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* }
+{* 从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。Ecc 中需要预先指定曲线。}
 
-function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
   CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* }
+{* 用预定义曲线从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个}
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
@@ -740,15 +742,17 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定内存流}
 
-function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* }
+{* 从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个
+  Ecc 中需要预先指定曲线。}
 
-function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* }
+{* 用预定义曲线从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个
+  Ecc 中需要预先指定曲线。}
 
 // ===================== 基于有限扩域的多项式椭圆曲线运算 ======================
 
@@ -954,9 +958,9 @@ const
   ECC_PRIVATEKEY_TYPE_MASK  = $80;
 
   // 公钥的存储形式
-  EC_PUBLICKEY_COMPRESSED1  = 02;
-  EC_PUBLICKEY_COMPRESSED2  = 03;
-  EC_PUBLICKEY_UNCOMPRESSED = 04;
+  EC_PUBLICKEY_COMPRESSED_EVEN  = 02; // 省略了 Y，其中 Y 是偶数
+  EC_PUBLICKEY_COMPRESSED_ODD   = 03; // 省略了 Y，其中 Y 是奇数
+  EC_PUBLICKEY_UNCOMPRESSED     = 04; // X Y 都有
 
   // 预定义的椭圆曲线类型的 OID 及其最大长度
   EC_CURVE_TYPE_OID_MAX_LENGTH = 8;
@@ -2016,10 +2020,11 @@ begin
   Result := FX.IsZero and FY.IsZero;
 end;
 
-procedure TCnEccPoint.SetHex(const Buf: AnsiString);
+procedure TCnEccPoint.SetHex(const Buf: AnsiString; Ecc: TCnEcc);
 var
   C: Integer;
   S: AnsiString;
+  P: TCnEccPoint;
 begin
   if Length(Buf) < 4 then
     raise ECnEccException.Create(SCnEccErrorKeyData);
@@ -2027,8 +2032,8 @@ begin
   C := StrToIntDef(Copy(Buf, 1, 2), 0);
   S := Copy(Buf, 3, MaxInt);
 
-  if (C = EC_PUBLICKEY_UNCOMPRESSED) or (C = EC_PUBLICKEY_COMPRESSED1) or
-    (C = EC_PUBLICKEY_COMPRESSED2) then
+  if (C = EC_PUBLICKEY_UNCOMPRESSED) or (C = EC_PUBLICKEY_COMPRESSED_ODD) or
+    (C = EC_PUBLICKEY_COMPRESSED_EVEN) then
   begin
     // 前导字节后面的内容，要不就是一半公钥一半私钥，长度得相等，要不就是公钥 X，均要求被 4 整除
     if (Length(S) mod 4) <> 0 then
@@ -2050,10 +2055,30 @@ begin
         FX.SetHex(Copy(S, 1, C));
         FY.SetHex(Copy(S, C + 1, MaxInt));
       end
-      else if (C = EC_PUBLICKEY_COMPRESSED1) or (C = EC_PUBLICKEY_COMPRESSED2) then
+      else if (C = EC_PUBLICKEY_COMPRESSED_EVEN) or (C = EC_PUBLICKEY_COMPRESSED_ODD) then
       begin
         FX.SetHex(S);
-        FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，外部再去求解
+        FY.SetZero;  // 压缩格式全是公钥 X，Y 先 0，再去求解
+
+        if Ecc <> nil then
+        begin
+          P := TCnEccPoint.Create;
+          try
+            // 将 Y 是奇偶的信息带出去供外界在求得的两个 Y 值中求解
+            if Ecc.PlainToPoint(FX, P) then
+            begin
+              if P.Y.IsOdd and (C = EC_PUBLICKEY_COMPRESSED_ODD) then
+                BigNumberCopy(FY, P.Y)
+              else
+              begin
+                Ecc.PointInverse(P);
+                BigNumberCopy(FY, P.Y);
+              end;
+            end;
+          finally
+            P.Free;
+          end;
+        end;
       end
       else  // 前导字节内容非法
         raise ECnEccException.Create(SCnEccErrorKeyData);
@@ -3371,7 +3396,7 @@ begin
 
     Result := True;
   end
-  else if (B^ = EC_PUBLICKEY_COMPRESSED1) or (B^ = EC_PUBLICKEY_COMPRESSED2) then
+  else if (B^ = EC_PUBLICKEY_COMPRESSED_ODD) or (B^ = EC_PUBLICKEY_COMPRESSED_EVEN) then
   begin
     Inc(B);
     // 压缩格式，全是公钥 X
@@ -3399,8 +3424,10 @@ begin
     Cnt := Cnt + PublicKey.Y.GetBytesCount;
     B := EC_PUBLICKEY_UNCOMPRESSED;
   end
+  else if PublicKey.Y.IsOdd then
+    B := EC_PUBLICKEY_COMPRESSED_ODD
   else
-    B := EC_PUBLICKEY_COMPRESSED2;
+    B := EC_PUBLICKEY_COMPRESSED_EVEN;
 
   OP := GetMemory(Cnt + 1);
   P := OP;
@@ -3807,7 +3834,7 @@ end;
 
   Public = r^-1 * (s*(kG) - 明文*G)，其中 k*G 的 x 坐标是 r，可求出两个 y 来
 }
-function CnEccRestorePublicKey(Ecc: TCnEcc; InE: TCnBigNumber; InSignature: TCnEccSignature;
+function CnEccRecoverPublicKey(Ecc: TCnEcc; InE: TCnBigNumber; InSignature: TCnEccSignature;
   OutPublicKey1, OutPublicKey2: TCnEccPublicKey): Boolean;
 var
   P, Q, T: TCnEccPoint;
@@ -4040,7 +4067,7 @@ begin
   end;
 end;
 
-function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
   Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType): Boolean; overload;
 var
@@ -4076,7 +4103,7 @@ begin
     PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
     PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
 
-    Result := CnEccRestorePublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
+    Result := CnEccRecoverPublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
   finally
     Stream.Free;
     Reader.Free;
@@ -4085,7 +4112,7 @@ begin
   end;
 end;
 
-function CnEccRestorePublicKeyFromFile(const InFileName, InSignFileName: string;
+function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
   CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType): Boolean; overload;
 var
@@ -4096,7 +4123,7 @@ begin
 
   Ecc := TCnEcc.Create(CurveType);
   try
-    Result := CnEccRestorePublicKeyFromFile(InFileName, InSignFileName, Ecc,
+    Result := CnEccRecoverPublicKeyFromFile(InFileName, InSignFileName, Ecc,
       OutPublicKey1, OutPublicKey2, SignType);
   finally
     Ecc.Free;
@@ -4231,7 +4258,7 @@ begin
   end;
 end;
 
-function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType): Boolean; overload;
 var
@@ -4266,7 +4293,7 @@ begin
     PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
     PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
 
-    Result := CnEccRestorePublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
+    Result := CnEccRecoverPublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
   finally
     Stream.Free;
     Reader.Free;
@@ -4275,7 +4302,7 @@ begin
   end;
 end;
 
-function CnEccRestorePublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType): Boolean; overload;
 var
@@ -4286,7 +4313,7 @@ begin
 
   Ecc := TCnEcc.Create(CurveType);
   try
-    Result := CnEccRestorePublicKeyFromStream(InStream, InSignStream, Ecc,
+    Result := CnEccRecoverPublicKeyFromStream(InStream, InSignStream, Ecc,
       OutPublicKey1, OutPublicKey2, SignType);
   finally
     Ecc.Free;

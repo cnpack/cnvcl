@@ -1991,15 +1991,15 @@ object FormEcc: TFormEcc
           TabOrder = 1
           OnChange = cbbCurveTypesChange
         end
-        object btnRestorePubKey: TButton
+        object btnRecoverPubKey: TButton
           Left = 634
           Top = 384
           Width = 129
           Height = 25
           Anchors = [akTop, akRight]
-          Caption = 'Restore PublicKey'
+          Caption = 'Recover PublicKey'
           TabOrder = 19
-          OnClick = btnRestorePubKeyClick
+          OnClick = btnRecoverPubKeyClick
         end
       end
     end

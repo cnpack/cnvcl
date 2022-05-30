@@ -246,7 +246,7 @@ type
     rbBNAddAffine: TRadioButton;
     rbBNAddJacobian: TRadioButton;
     btnMulTime: TButton;
-    btnRestorePubKey: TButton;
+    btnRecoverPubKey: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -325,7 +325,7 @@ type
     procedure btnBNEccAffineTestClick(Sender: TObject);
     procedure btnBNJacobianTestClick(Sender: TObject);
     procedure btnMulTimeClick(Sender: TObject);
-    procedure btnRestorePubKeyClick(Sender: TObject);
+    procedure btnRecoverPubKeyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -3072,7 +3072,7 @@ begin
   K.Free;
 end;
 
-procedure TFormEcc.btnRestorePubKeyClick(Sender: TObject);
+procedure TFormEcc.btnRecoverPubKeyClick(Sender: TObject);
 var
   InStream, SignStream: TMemoryStream;
   S: AnsiString;
@@ -3091,7 +3091,7 @@ begin
   Pub1 := TCnEccPublicKey.Create;
   Pub2 := TCnEccPublicKey.Create;
 
-  if CnEccRestorePublicKeyFromStream(InStream, SignStream, FKeyEcc, Pub1, Pub2,
+  if CnEccRecoverPublicKeyFromStream(InStream, SignStream, FKeyEcc, Pub1, Pub2,
     TCnEccSignDigestType(cbbKeyHash.ItemIndex)) then
   begin
     if (Pub1.ToHex = FPublicKey.ToHex) or (Pub2.ToHex = FPublicKey.ToHex) then
