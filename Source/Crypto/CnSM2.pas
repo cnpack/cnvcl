@@ -27,6 +27,11 @@ unit CnSM2;
 * 备    注：实现了 GM/T0003.x-2012《SM2椭圆曲线公钥密码算法》
 *           规范中的基于 SM2 的数据加解密、签名验签、密钥交换
 *           注意其签名规范完全不同于 Openssl 中的 Ecc 签名，并且杂凑函数只能使用 SM3
+*           另外，注意 SM2 椭圆曲线签名无法从签名与原始值中恢复公钥
+*           虽然有 PublicKey = (s + r)^-1 * (k*G - s*G)
+*           且尽管 k 对外未知但 k*G 的坐标 x1 是可用 r 反推出来，因为 r <= (e + x1) mod n
+*           所以 x1 <= (r - e) mod n，因而 y1 也能算出来，但 e 使用了公钥的杂凑值
+*           导致先有蛋还是先有鸡的问题了
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
@@ -75,8 +80,8 @@ type
     constructor Create; override;
   end;
 
-  TCnSM2Signature = class(TCnEccPoint);
-  {* 签名是两个大数，X Y 分别代表 R S}
+  TCnSM2Signature = class(TCnEccSignature);
+  {* SM2 椭圆曲线签名的内容就是普通椭圆曲线的签名的内容（注意算法与文件格式不同）}
 
   TCnSM2CryptSequenceType = (cstC1C3C2, cstC1C2C3);
   {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有 C1C2C3 的版本，故此做兼容}
@@ -535,9 +540,10 @@ end;
 
   k * G => (x1, y1)
 
-  r <= (e + x1) mod n
+  输出签名 r <= (e + x1) mod n
 
-  s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
+  输出签名 s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
+
 }
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
@@ -600,14 +606,14 @@ begin
       if BigNumberCompare(E, SM2.Order) = 0 then // R + K = N 也不行
         Continue;
 
-      BigNumberCopy(OutSignature.X, R);  // 得到一个签名值 R
+      BigNumberCopy(OutSignature.R, R);  // 得到一个签名值 R
 
       BigNumberCopy(E, PrivateKey);
       BigNumberAddWord(E, 1);
       BigNumberModularInverse(R, E, SM2.Order);      // 求逆元得到 (1 + PrivateKey)^-1，放在 R 里
 
       // 求 K - R * PrivateKey，又用起 E 来
-      if not BigNumberMul(E, OutSignature.X, PrivateKey) then
+      if not BigNumberMul(E, OutSignature.R, PrivateKey) then
         Exit;
       if not BigNumberSub(E, K, E) then
         Exit;
@@ -615,7 +621,7 @@ begin
       if not BigNumberMul(R, E, R) then // (1 + PrivateKey)^-1 * (K - R * PrivateKey) 放在 R 里
         Exit;
 
-      if not BigNumberNonNegativeMod(OutSignature.Y, R, SM2.Order) then // 注意余数不能为负
+      if not BigNumberNonNegativeMod(OutSignature.S, R, SM2.Order) then // 注意余数不能为负
         Exit;
 
       Result := True;
@@ -632,6 +638,7 @@ begin
 end;
 
 {
+  s 和 r 是签名值
   ZA = Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
   e <= Hash(ZA‖M)
 
@@ -641,7 +648,7 @@ end;
   比对 r' 和 r
 }
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
+  InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
 var
   K, R, E: TCnBigNumber;
   P, Q: TCnEccPoint;
@@ -666,9 +673,9 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    if BigNumberCompare(InSignature.X, SM2.Order) >= 0 then
+    if BigNumberCompare(InSignature.R, SM2.Order) >= 0 then
       Exit;
-    if BigNumberCompare(InSignature.Y, SM2.Order) >= 0 then
+    if BigNumberCompare(InSignature.S, SM2.Order) >= 0 then
       Exit;
 
     Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e
@@ -679,7 +686,7 @@ begin
     R := TCnBigNumber.Create;
     K := TCnBigNumber.Create;
 
-    if not BigNumberAdd(K, InSignature.X, InSignature.Y) then
+    if not BigNumberAdd(K, InSignature.R, InSignature.S) then
       Exit;
     if not BigNumberNonNegativeMod(R, K, SM2.Order) then
       Exit;
@@ -687,7 +694,7 @@ begin
       Exit;
 
     P.Assign(SM2.Generator);
-    SM2.MultiplePoint(InSignature.Y, P);
+    SM2.MultiplePoint(InSignature.S, P);
     Q.Assign(PublicKey);
     SM2.MultiplePoint(R, Q);
     SM2.PointAddPoint(P, Q, P);   // s * G + t * PublicKey => P
@@ -699,7 +706,7 @@ begin
     if not BigNumberNonNegativeMod(R, E, SM2.Order) then
       Exit;
 
-    Result := BigNumberCompare(R, InSignature.X) = 0;
+    Result := BigNumberCompare(R, InSignature.R) = 0;
     _CnSetLastError(ECN_SM2_OK); // 正常进行校验，即使校验不通过也清空错误码
   finally
     K.Free;
@@ -713,7 +720,7 @@ begin
 end;
 
 function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
-  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): string;
+  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): string;
 var
   OutSign: TCnSM2Signature;
   Stream: TMemoryStream;
@@ -742,7 +749,7 @@ begin
 end;
 
 function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
-  const InHexSignature: string; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
+  const InHexSignature: string; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
 var
   InSign: TCnSM2Signature;
   Stream: TMemoryStream;

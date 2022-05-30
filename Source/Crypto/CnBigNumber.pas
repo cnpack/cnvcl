@@ -5557,12 +5557,13 @@ begin
       BigNumberSetNegative(Res, not BigNumberIsNegative(Res));
 
     if BigNumberIsNegative(Res) then
-      if not BigNumberAdd(Res, Res, Modulus) then Exit;
+      if not BigNumberAdd(Res, Res, Modulus) then
+        Exit;
 
     Result := True;
   finally
-    FLocalBigNumberPool.Recycle(X1);
     FLocalBigNumberPool.Recycle(Y);
+    FLocalBigNumberPool.Recycle(X1);
   end;
 end;
 
