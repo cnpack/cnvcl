@@ -1,6 +1,6 @@
 object FormSM2: TFormSM2
-  Left = 277
-  Top = 167
+  Left = 293
+  Top = 169
   BorderStyle = bsDialog
   Caption = 'SM2 Test'
   ClientHeight = 561
@@ -36,7 +36,7 @@ object FormSM2: TFormSM2
     Height = 449
     ActivePage = tsEncDec
     Anchors = [akLeft, akTop, akRight, akBottom]
-    TabOrder = 0
+    TabOrder = 5
     object tsEncDec: TTabSheet
       Caption = 'Encryttion / Decryption'
       object grpSm2Enc: TGroupBox
@@ -93,12 +93,12 @@ object FormSM2: TFormSM2
           TabOrder = 2
           OnClick = btnSM2EncryptClick
         end
-        object mmoSM2Results: TMemo
+        object mmoSM2Result: TMemo
           Left = 16
           Top = 104
           Width = 857
           Height = 113
-          TabOrder = 3
+          TabOrder = 6
         end
         object btnSM2Decrypt: TButton
           Left = 744
@@ -106,7 +106,7 @@ object FormSM2: TFormSM2
           Width = 129
           Height = 25
           Caption = 'Decrypt using Private Key'
-          TabOrder = 4
+          TabOrder = 8
           OnClick = btnSM2DecryptClick
         end
         object chkPrefixByte: TCheckBox
@@ -117,33 +117,7 @@ object FormSM2: TFormSM2
           Caption = '$04'
           Checked = True
           State = cbChecked
-          TabOrder = 5
-        end
-        object grpSeqType: TGroupBox
-          Left = 616
-          Top = 232
-          Width = 113
-          Height = 81
-          Caption = 'Sequence Type'
-          TabOrder = 6
-          object rbC1C3C2: TRadioButton
-            Left = 24
-            Top = 24
-            Width = 65
-            Height = 17
-            Caption = 'C1C3C2'
-            Checked = True
-            TabOrder = 0
-            TabStop = True
-          end
-          object rbC1C2C3: TRadioButton
-            Left = 24
-            Top = 48
-            Width = 65
-            Height = 17
-            Caption = 'C1C2C3'
-            TabOrder = 1
-          end
+          TabOrder = 3
         end
         object btnSM2EncryptFile: TButton
           Left = 16
@@ -160,8 +134,26 @@ object FormSM2: TFormSM2
           Width = 169
           Height = 25
           Caption = 'Decrypt File using Private Key'
-          TabOrder = 8
+          TabOrder = 9
           OnClick = btnSM2DecryptFileClick
+        end
+        object rbC1C3C2: TRadioButton
+          Left = 608
+          Top = 56
+          Width = 65
+          Height = 17
+          Caption = 'C1C3C2'
+          Checked = True
+          TabOrder = 4
+          TabStop = True
+        end
+        object rbC1C2C3: TRadioButton
+          Left = 672
+          Top = 56
+          Width = 65
+          Height = 17
+          Caption = 'C1C2C3'
+          TabOrder = 5
         end
       end
     end
@@ -204,7 +196,7 @@ object FormSM2: TFormSM2
           Caption = 'File to Sign:'
         end
         object bvl5: TBevel
-          Left = 680
+          Left = 684
           Top = 224
           Width = 9
           Height = 41
@@ -224,7 +216,7 @@ object FormSM2: TFormSM2
           Top = 232
           Width = 161
           Height = 21
-          TabOrder = 1
+          TabOrder = 4
           Text = 'CnPack Team'
         end
         object edtSM2FileSign: TEdit
@@ -232,7 +224,7 @@ object FormSM2: TFormSM2
           Top = 32
           Width = 537
           Height = 21
-          TabOrder = 2
+          TabOrder = 1
         end
         object btnSignBrowse: TButton
           Left = 792
@@ -240,7 +232,7 @@ object FormSM2: TFormSM2
           Width = 75
           Height = 25
           Caption = 'Browse'
-          TabOrder = 3
+          TabOrder = 2
           OnClick = btnSignBrowseClick
         end
         object mmoSignResult: TMemo
@@ -248,7 +240,7 @@ object FormSM2: TFormSM2
           Top = 104
           Width = 857
           Height = 113
-          TabOrder = 4
+          TabOrder = 3
         end
         object btnSM2Verify: TButton
           Left = 536
@@ -256,7 +248,7 @@ object FormSM2: TFormSM2
           Width = 129
           Height = 25
           Caption = 'Verify using Public Key'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnSM2VerifyClick
         end
         object btnSM2SignFile: TButton
@@ -265,11 +257,11 @@ object FormSM2: TFormSM2
           Width = 281
           Height = 25
           Caption = 'Sign using Private Key and Public Key'
-          TabOrder = 6
+          TabOrder = 5
           OnClick = btnSM2SignFileClick
         end
         object btnSignFile: TButton
-          Left = 696
+          Left = 704
           Top = 232
           Width = 75
           Height = 25
@@ -278,7 +270,7 @@ object FormSM2: TFormSM2
           OnClick = btnSignFileClick
         end
         object btnVerifyFile: TButton
-          Left = 792
+          Left = 800
           Top = 232
           Width = 75
           Height = 25
@@ -370,7 +362,7 @@ object FormSM2: TFormSM2
           Top = 112
           Width = 729
           Height = 21
-          TabOrder = 3
+          TabOrder = 4
           Text = '9751600494B8DCFD75ED60DD24C1A0C106E42BD52AE8C7B79A9456F10CFEBE9E'
         end
         object edtSM2BPublicKey: TEdit
@@ -378,7 +370,7 @@ object FormSM2: TFormSM2
           Top = 80
           Width = 729
           Height = 21
-          TabOrder = 4
+          TabOrder = 3
           Text = 
             '0487A5DF8AA17DA358519587F88F1F21877D5F52B3A49E2EC7D9DAA76C3E94BD' +
             '19AC809BB986DDBBE6B7162BCD8FC5E1886D2DBEDC3A617421B2F213C4AB6C87' +
@@ -390,7 +382,7 @@ object FormSM2: TFormSM2
           Width = 281
           Height = 25
           Caption = 'Key Exchange A and B'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnSM2ABKeyExchangeClick
         end
         object btnLoadSM2BKey: TButton
@@ -399,7 +391,7 @@ object FormSM2: TFormSM2
           Width = 105
           Height = 25
           Caption = 'Load SM2 Key'
-          TabOrder = 6
+          TabOrder = 5
           OnClick = btnLoadSM2BKeyClick
         end
       end
@@ -449,7 +441,7 @@ object FormSM2: TFormSM2
           Top = 56
           Width = 729
           Height = 21
-          TabOrder = 2
+          TabOrder = 3
         end
         object btnSchnorrCheck: TButton
           Left = 16
@@ -457,8 +449,209 @@ object FormSM2: TFormSM2
           Width = 75
           Height = 25
           Caption = 'Check'
-          TabOrder = 3
+          TabOrder = 2
           OnClick = btnSchnorrCheckClick
+        end
+      end
+    end
+    object tsCollaborative: TTabSheet
+      Caption = 'Collaborative'
+      ImageIndex = 4
+      object grpCollaborative: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 889
+        Height = 401
+        Caption = 'Collaborative'
+        TabOrder = 0
+        object lblSM2PrivateKeyA: TLabel
+          Left = 16
+          Top = 28
+          Width = 98
+          Height = 13
+          Caption = 'SM2 Private Key (A):'
+        end
+        object lblSM2PrivateKeyB: TLabel
+          Left = 16
+          Top = 60
+          Width = 98
+          Height = 13
+          Caption = 'SM2 Private Key (B):'
+        end
+        object lblSM2PublicKeyAB: TLabel
+          Left = 16
+          Top = 92
+          Width = 78
+          Height = 13
+          Caption = 'SM2 Public Key:'
+        end
+        object lblCollId: TLabel
+          Left = 16
+          Top = 140
+          Width = 85
+          Height = 13
+          Caption = 'Signature User Id:'
+        end
+        object lblSM2CollFileSign: TLabel
+          Left = 264
+          Top = 140
+          Width = 68
+          Height = 13
+          Caption = 'File to Handle:'
+        end
+        object bvl7: TBevel
+          Left = 16
+          Top = 120
+          Width = 857
+          Height = 9
+          Shape = bsTopLine
+        end
+        object bvl8: TBevel
+          Left = 16
+          Top = 312
+          Width = 857
+          Height = 9
+          Shape = bsTopLine
+        end
+        object lblSM2CollText: TLabel
+          Left = 16
+          Top = 332
+          Width = 79
+          Height = 13
+          Caption = 'Text To Encrypt:'
+        end
+        object edtSM2PrivateKeyA: TEdit
+          Left = 128
+          Top = 24
+          Width = 673
+          Height = 21
+          TabOrder = 0
+        end
+        object edtSM2PrivateKeyB: TEdit
+          Left = 128
+          Top = 56
+          Width = 673
+          Height = 21
+          TabOrder = 2
+        end
+        object edtSM2PublicKeyAB: TEdit
+          Left = 128
+          Top = 88
+          Width = 673
+          Height = 21
+          TabOrder = 3
+        end
+        object btnSM2CollaborativeGen: TButton
+          Left = 816
+          Top = 24
+          Width = 57
+          Height = 81
+          Caption = 'Generate'
+          TabOrder = 1
+          OnClick = btnSM2CollaborativeGenClick
+        end
+        object edtSM2CollUserId: TEdit
+          Left = 128
+          Top = 136
+          Width = 121
+          Height = 21
+          TabOrder = 4
+          Text = 'CnPack Team'
+        end
+        object edtSM2CollFileSign: TEdit
+          Left = 336
+          Top = 136
+          Width = 465
+          Height = 21
+          TabOrder = 5
+        end
+        object btnCollSignBrowse: TButton
+          Left = 816
+          Top = 136
+          Width = 57
+          Height = 25
+          Caption = 'Browse'
+          TabOrder = 6
+          OnClick = btnCollSignBrowseClick
+        end
+        object btnSM2CollSignFile: TButton
+          Left = 16
+          Top = 272
+          Width = 281
+          Height = 25
+          Caption = 'Sign using 2 Private Keys and Public Key'
+          TabOrder = 8
+          OnClick = btnSM2CollSignFileClick
+        end
+        object btnSM2CollVerify: TButton
+          Left = 744
+          Top = 272
+          Width = 129
+          Height = 25
+          Caption = 'Verify using Public Key'
+          TabOrder = 9
+          OnClick = btnSM2CollVerifyClick
+        end
+        object mmoSM2CollResult: TMemo
+          Left = 16
+          Top = 176
+          Width = 857
+          Height = 81
+          TabOrder = 7
+        end
+        object chkCollPrefixByte: TCheckBox
+          Left = 688
+          Top = 332
+          Width = 49
+          Height = 17
+          Caption = '$04'
+          Checked = True
+          State = cbChecked
+          TabOrder = 12
+        end
+        object edtSM2CollText: TEdit
+          Left = 104
+          Top = 328
+          Width = 577
+          Height = 21
+          TabOrder = 10
+          Text = '1234567890'
+        end
+        object btnSM2CollEncrypt: TButton
+          Left = 744
+          Top = 328
+          Width = 129
+          Height = 25
+          Caption = 'Encrypt using Public Key'
+          TabOrder = 11
+          OnClick = btnSM2CollEncryptClick
+        end
+        object btnSM2CollDecrypt: TButton
+          Left = 104
+          Top = 360
+          Width = 217
+          Height = 25
+          Caption = 'Decrypt using 2 Private Keys'
+          TabOrder = 13
+          OnClick = btnSM2CollDecryptClick
+        end
+        object rbCollC1C2C3: TRadioButton
+          Left = 616
+          Top = 360
+          Width = 65
+          Height = 17
+          Caption = 'C1C2C3'
+          TabOrder = 15
+        end
+        object rbCollC1C3C2: TRadioButton
+          Left = 536
+          Top = 360
+          Width = 65
+          Height = 17
+          Caption = 'C1C3C2'
+          Checked = True
+          TabOrder = 14
+          TabStop = True
         end
       end
     end
@@ -468,7 +661,7 @@ object FormSM2: TFormSM2
     Top = 16
     Width = 673
     Height = 21
-    TabOrder = 1
+    TabOrder = 0
     Text = 
       '04450C442ADA3727DA5C61BED92AF9190B0C76F87473909DD573B7C46727CB88' +
       '066630371AE32EF6CDE503E9AFD0EA9CD762B543E9F1A1733A0EA1D66C970C72' +
@@ -488,7 +681,7 @@ object FormSM2: TFormSM2
     Width = 105
     Height = 25
     Caption = 'Generate Key'
-    TabOrder = 3
+    TabOrder = 1
     OnClick = btnGenerateKeyClick
   end
   object btnLoadSM2Key: TButton
@@ -497,7 +690,7 @@ object FormSM2: TFormSM2
     Width = 105
     Height = 25
     Caption = 'Load SM2 Key'
-    TabOrder = 4
+    TabOrder = 3
     OnClick = btnLoadSM2KeyClick
   end
   object btnVerifySm2Key: TButton
@@ -506,7 +699,7 @@ object FormSM2: TFormSM2
     Width = 105
     Height = 25
     Caption = 'Verify SM2 Key'
-    TabOrder = 5
+    TabOrder = 4
     OnClick = btnVerifySm2KeyClick
   end
   object dlgOpen1: TOpenDialog
@@ -515,6 +708,6 @@ object FormSM2: TFormSM2
   end
   object dlgSave1: TSaveDialog
     Left = 228
-    Top = 392
+    Top = 432
   end
 end

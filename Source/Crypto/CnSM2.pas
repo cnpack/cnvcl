@@ -31,11 +31,13 @@ unit CnSM2;
 *           虽然有 PublicKey = (s + r)^-1 * (k*G - s*G)
 *           且尽管 k 对外未知但 k*G 的坐标 x1 是可用 r 反推出来，因为 r <= (e + x1) mod n
 *           所以 x1 <= (r - e) mod n，因而 y1 也能算出来，但 e 使用了公钥的杂凑值
-*           导致先有蛋还是先有鸡的问题了
+*           导致出现了先有蛋还是先有鸡的问题
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.05.27 V1.4
+* 修改记录：2022.06.01 V1.5
+*               增加简易的协同解密与签名的实现
+*           2022.05.27 V1.4
 *               增加文件加解密的实现
 *           2022.05.26 V1.3
 *               增加非交互式 Schnorr 零知识证明验证过程的实现
@@ -65,7 +67,8 @@ const
   ECN_SM2_INVALID_INPUT                = ECN_SM2_ERROR_BASE + 1; // 输入为空或长度不对
   ECN_SM2_RANDOM_ERROR                 = ECN_SM2_ERROR_BASE + 2; // 随机数相关错误
   ECN_SM2_BIGNUMBER_ERROR              = ECN_SM2_ERROR_BASE + 3; // 大数运算错误
-  ECN_SM2_KEYEXCHANGE_INFINITE_ERROR   = ECN_SM2_ERROR_BASE + 4; // 密钥交换碰上无穷远点
+  ECN_SM2_DECRYPT_INFINITE_ERROR       = ECN_SM2_ERROR_BASE + 4; // 解密时碰上无穷远点
+  ECN_SM2_KEYEXCHANGE_INFINITE_ERROR   = ECN_SM2_ERROR_BASE + 5; // 密钥交换碰上无穷远点
 
 type
   TCnSM2PrivateKey = TCnEccPrivateKey;
@@ -196,6 +199,58 @@ function CnSM2SchnorrCheck(PublicKey: TCnSM2PublicKey; InR: TCnEccPoint;
   验证对方发来的 R 和 Z，如果成功，说明对方拥有该公钥对应的私钥
   该函数用于验证对方是否拥有某 SM2 公钥对应的私钥}
 
+// ========== SM2 椭圆曲线双方互相信任的简易协同算法之协同密钥生成 =============
+
+{
+  本协同模式下，A B 双方互相信任，因而不对对方做认证，无条件相信对方发来的数据。
+}
+function CnSM2CollaborativeGenerateKeyAStep1(PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  PointToB: TCnEccPoint; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同算法，A 第一步生成自己的私钥 PrivateKeyA，并产出中间结果 PointToB，
+  该点值需要传输至 B，返回是否生成成功}
+
+function CnSM2CollaborativeGenerateKeyBStep1(PrivateKeyB: TCnSM2CollaborativePrivateKey;
+  InPointFromA: TCnEccPoint; PublicKey: TCnSM2CollaborativePublicKey; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同算法，B 第二步生成自己的私钥 PrivateKeyB，并根据 A 传来的中间结果 InPointFromA，
+  生成公用的公钥 PublicKey，返回是否生成成功
+  公钥 PublicKey 后面需要传给 A 并公布出去}
+
+// =============== SM2 椭圆曲线双方互相信任的简易协同签名算法 ==================
+
+function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Pointer;
+  DataLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandK: TCnBigNumber;
+  PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同签名，A 第一步根据原始数据签出中间值 E 和 Q，发送给 B，返回该步签名是否成功
+  注意 OutRandK 不要发给 B！}
+
+function CnSM2CollaborativeSignBStep1(InHashEFromA: TCnBigNumber; InQFromA: TCnEccPoint;
+  OutRToB, OutS1ToB, OutS2ToB: TCnBigNumber; PrivateKeyB: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同签名，B 第二步根据 A 签出的中间值 E 和 Q，生成 R S1 S2 发送回 A，返回该步签名是否成功}
+
+function CnSM2CollaborativeSignAStep2(InRandK, InRFromB, InS1FromB, InS2FromB: TCnBigNumber;
+  OutSignature: TCnSM2Signature; PrivateKeyA: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同签名，A 第三步根据 A 第一步的 OutRandK 随机值与 B 签出的中间值 R S1 S2，生成最终签名，返回该步签名是否成功}
+
+// =============== SM2 椭圆曲线双方互相信任的简易协同解密算法 ==================
+
+function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataLen: Integer;
+  OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功}
+
+function CnSM2CollaborativeDecryptBStep1(InTFromA: TCnEccPoint; OutTToA: TCnEccPoint;
+  PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的协同解密，B 第二步根据 A 解出的中间值 T，生成另一个中间值 T 发送回 A，
+  返回该步解密是否成功}
+
+function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataLen: Integer;
+  InTFromB: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+{* 基于 SM2 椭圆曲线的协同解密，A 第三步根据 B 解出的中间值 T 算出最终解密结果写入 Stream，
+  返回该步最终解密是否成功
+  注意密文与 SequenceType 须保持和 AStep1 中的完全一致}
+
 implementation
 
 uses
@@ -230,7 +285,10 @@ var
 begin
   Result := False;
   if (PrivateKey = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   SM2IsNil := SM2 = nil;
 
@@ -240,6 +298,7 @@ begin
 
     SM2.GenerateKeys(PrivateKey, PublicKey);
     Result := True;
+    _CnSetLastError(ECN_SM2_OK);
   finally
     if SM2IsNil then
       SM2.Free;
@@ -252,7 +311,7 @@ end;
   C1 = k * G => (x1, y1)         // 非压缩存储，长度为两个数字位长加 1，在 SM2 中也就是 32 * 2 + 1 = 65 字节
 
   k * PublicKey => (x2, y2)
-  t <= KDF(x2‖y2, Mlen)
+  t <= KDF(x2‖y2, MLen)
   C2 <= M xor t                  // 长度 MLen
 
   C3 <= SM3(x2‖M‖y2)           // 长度 32 字节
@@ -275,7 +334,10 @@ var
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (OutStream = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   Py := nil;
   P1 := nil;
@@ -352,7 +414,9 @@ begin
       OutStream.Write(T[1], DataLen);                        // 写入 C2
       OutStream.Write(Sm3Dig[0], SizeOf(TSM3Digest));        // 写入 C3
     end;
+
     Result := True;
+    _CnSetLastError(ECN_SM2_OK);
   finally
     P2.Free;
     P1.Free;
@@ -388,7 +452,10 @@ var
 begin
   Result := False;
   if (EnData = nil) or (DataLen <= 0) or (OutStream = nil) or (PrivateKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
+  end;
 
   P2 := nil;
   SM2IsNil := SM2 = nil;
@@ -399,7 +466,10 @@ begin
 
     MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
     if MLen <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     P2 := TCnEccPoint.Create;
     M := PAnsiChar(EnData);
@@ -407,7 +477,10 @@ begin
     begin
       Dec(MLen);
       if MLen <= 0 then
+      begin
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
         Exit;
+      end;
 
       PrefixLen := 1;
       Inc(M);
@@ -419,6 +492,12 @@ begin
     P2.X.SetBinary(M, SM2.BitsCount div 8);
     Inc(M, SM2.BitsCount div 8);
     P2.Y.SetBinary(M, SM2.BitsCount div 8);
+    if P2.IsZero then
+    begin
+      _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
+      Exit;
+    end;
+
     SM2.MultiplePoint(PrivateKey, P2);
 
     SetLength(KDFStr, P2.X.GetBytesCount + P2.Y.GetBytesCount);
@@ -445,7 +524,9 @@ begin
       if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
+
         Result := True;
+        _CnSetLastError(ECN_SM2_OK);
       end;
     end
     else // C1C2C3 的排列
@@ -468,7 +549,9 @@ begin
       if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
+
         Result := True;
+        _CnSetLastError(ECN_SM2_OK);
       end;
     end;
   finally
@@ -660,6 +743,8 @@ begin
         Exit;
 
       Result := True;
+      _CnSetLastError(ECN_SM2_OK);
+
       Break;
     end;
   finally
@@ -1232,6 +1317,515 @@ begin
     P1.Free;
     C.Free;
     Stream.Free;
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+// ========== SM2 椭圆曲线双方互相信任的简易协同算法之协同密钥生成 =============
+
+function CnSM2CollaborativeGenerateKeyAStep1(PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  PointToB: TCnEccPoint; SM2: TCnSM2): Boolean;
+var
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKeyA = nil) or (PointToB = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    if not BigNumberRandRange(PrivateKeyA, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+      Exit;
+    end;
+    if PrivateKeyA.IsZero then // 万一真拿到 0，就加 1
+      PrivateKeyA.SetOne;
+
+    PointToB.Assign(SM2.Generator);
+    SM2.MultiplePoint(PrivateKeyA, PointToB); // 基点乘 PrivateKeyA 次给 B
+
+    Result := True;
+    _CnSetLastError(ECN_SM2_OK);
+  finally
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+function CnSM2CollaborativeGenerateKeyBStep1(PrivateKeyB: TCnSM2CollaborativePrivateKey;
+  InPointFromA: TCnEccPoint; PublicKey: TCnSM2CollaborativePublicKey; SM2: TCnSM2): Boolean;
+var
+  P: TCnEccPoint;
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKeyB = nil) or (InPointFromA = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  P := nil;
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    if not BigNumberRandRange(PrivateKeyB, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+      Exit;
+    end;
+    if PrivateKeyB.IsZero then // 万一真拿到 0，就加 1
+      PrivateKeyB.SetOne;
+
+    PublicKey.Assign(InPointFromA);
+    SM2.MultiplePoint(PrivateKeyB, PublicKey); // 得到的 PublicKey 还要减 G
+
+    P := TCnEccPoint.Create;
+    P.Assign(SM2.Generator);
+    SM2.PointInverse(P);
+    SM2.PointAddPoint(PublicKey, P, PublicKey);
+
+    Result := True;
+    _CnSetLastError(ECN_SM2_OK);
+  finally
+    P.Free;
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+// =============== SM2 椭圆曲线双方互相信任的简易协同签名算法 ==================
+
+function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Pointer;
+  DataLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandK: TCnBigNumber;
+  PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
+var
+  Sm3Dig: TSM3Digest;
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKeyA = nil) or (OutHashEToB = nil) or (OutQToB = nil) or
+    (OutRandK = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e 要给 B
+    OutHashEToB.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
+
+    if not BigNumberRandRange(OutRandK, SM2.Order) then
+    begin
+      _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+      Exit;
+    end;
+    if OutRandK.IsZero then // 万一真拿到 0，就加 1
+      OutRandK.SetOne;
+
+    OutQToB.Assign(SM2.Generator);
+    SM2.MultiplePoint(OutRandK, OutQToB); // K 要留着给 A 签名的下一步
+
+    Result := True;
+    _CnSetLastError(ECN_SM2_OK);
+  finally
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+function CnSM2CollaborativeSignBStep1(InHashEFromA: TCnBigNumber; InQFromA: TCnEccPoint;
+  OutRToB, OutS1ToB, OutS2ToB: TCnBigNumber; PrivateKeyB: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2): Boolean;
+var
+  K1, K2, Inv: TCnBigNumber;
+  P, Q: TCnEccPoint;
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKeyB = nil) or (InHashEFromA = nil) or (InQFromA = nil)
+    or (OutRToB = nil) or (OutS1ToB = nil) or (OutS2ToB = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  K1 := nil;
+  K2 := nil;
+  Q := nil;
+  P := nil;
+  Inv := nil;
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    K1 := TCnBigNumber.Create;
+    K2 := TCnBigNumber.Create;
+    Q := TCnEccPoint.Create;
+    P := TCnEccPoint.Create;
+    Inv := TCnBigNumber.Create;
+
+    while True do
+    begin
+      if not BigNumberRandRange(K1, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+        Exit;
+      end;
+      if K1.IsZero then // 万一真拿到 0，就加 1
+        K1.SetOne;
+
+      Q.Assign(SM2.Generator);
+      SM2.MultiplePoint(K1, Q); // 先计算出一个自己的 Q 点
+
+      // 再生成一次随机 K
+      if not BigNumberRandRange(K2, SM2.Order) then
+      begin
+        _CnSetLastError(ECN_SM2_RANDOM_ERROR);
+        Exit;
+      end;
+      if K2.IsZero then // 万一真拿到 0，就加 1
+        K2.SetOne;
+
+      P.Assign(InQFromA);
+      SM2.MultiplePoint(K2, P);   // 对方的 Q 点乘以自己的 K
+      SM2.PointAddPoint(P, Q, Q); // 再加上自己的 Q
+
+      // r = (Q.x + e) mod N
+      if not BigNumberAddMod(OutRToB, Q.X, InHashEFromA, SM2.Order) then
+        Exit;
+
+      if OutRToB.IsZero then
+        Continue;
+
+      if not BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order) then
+        Exit;
+
+      if not BigNumberDirectMulMod(OutS1ToB, Inv, K2, SM2.Order) then // 算出 s1 = k2 / PrivateKeyB
+        Exit;
+
+      if not BigNumberAddMod(K1, K1, OutRToB, SM2.Order) then // K1 + r
+        Exit;
+
+      if not BigNumberDirectMulMod(OutS2ToB, K1, Inv, SM2.Order) then // K1 + r / PrivateKeyB
+        Exit;
+
+      Result := True;
+      _CnSetLastError(ECN_SM2_OK);
+
+      Break;
+    end;
+  finally
+    Inv.Free;
+    P.Free;
+    Q.Free;
+    K2.Free;
+    K1.Free;
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+function CnSM2CollaborativeSignAStep2(InRandK, InRFromB, InS1FromB, InS2FromB: TCnBigNumber;
+  OutSignature: TCnSM2Signature; PrivateKeyA: TCnSM2CollaborativePrivateKey; SM2: TCnSM2): Boolean;
+var
+  Inv, T: TCnBigNumber;
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKeyA = nil) or (OutSignature = nil) or
+    (InRFromB = nil) or (InS1FromB = nil) or (InS2FromB = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  Inv := nil;
+  T := nil;
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    Inv := TCnBigNumber.Create;
+    if not BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order) then
+      Exit;
+
+    T := TCnBigNumber.Create;
+    if not BigNumberDirectMulMod(T, Inv, InS2FromB, SM2.Order) then // T := S2 / PrivateKeyA
+      Exit;
+
+    if not BigNumberDirectMulMod(OutSignature.S, InRandK, Inv, SM2.Order) then // K / PrivateKeyA
+      Exit;
+
+    if not BigNumberDirectMulMod(OutSignature.S, OutSignature.S, InS1FromB, SM2.Order) then // K * S1 / PrivateKeyA
+      Exit;
+
+    if not BigNumberAddMod(OutSignature.S, OutSignature.S, T, SM2.Order) then
+      Exit;
+
+    if not BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromB, SM2.Order) then
+      Exit;
+
+    if not OutSignature.S.IsZero then
+    begin
+      if not BigNumberAdd(T, OutSignature.S, InRFromB) then
+        Exit;
+
+      if not BigNumberEqual(T, SM2.Order) then
+      begin
+        if BigNumberCopy(OutSignature.R, InRFromB) = nil then
+          Exit;
+      end;
+
+      Result := True;
+      _CnSetLastError(ECN_SM2_OK);
+    end;
+  finally
+    T.Free;
+    Inv.Free;
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+// =============== SM2 椭圆曲线双方互相信任的简易协同解密算法 ==================
+
+function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataLen: Integer;
+  OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2): Boolean;
+var
+  MLen: Integer;
+  M: PAnsiChar;
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (EnData = nil) or (DataLen <= 0) or (PrivateKeyA = nil)
+    or (OutTToB = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
+    if MLen <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    M := PAnsiChar(EnData);
+    if M^ = #$04 then  // 跳过可能的前导字节 $04
+    begin
+      Dec(MLen);
+      if MLen <= 0 then
+      begin
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
+        Exit;
+      end;
+
+      Inc(M);
+    end;
+
+    // 读出 C1
+    OutTToB.X.SetBinary(M, SM2.BitsCount div 8);
+    Inc(M, SM2.BitsCount div 8);
+    OutTToB.Y.SetBinary(M, SM2.BitsCount div 8);
+    if OutTToB.IsZero then
+    begin
+      _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
+      Exit;
+    end;
+
+    SM2.MultiplePoint(PrivateKeyA, OutTToB); // C1 点乘私钥发给 B
+
+    Result := True;
+    _CnSetLastError(ECN_SM2_OK);
+  finally
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+function CnSM2CollaborativeDecryptBStep1(InTFromA: TCnEccPoint; OutTToA: TCnEccPoint;
+  PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2): Boolean;
+var
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKeyB = nil) or (InTFromA = nil) or (OutTToA = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    OutTToA.Assign(InTFromA);
+    SM2.MultiplePoint(PrivateKeyB, OutTToA);
+
+     Result := True;
+    _CnSetLastError(ECN_SM2_OK);
+  finally
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataLen: Integer;
+  InTFromB: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): Boolean;
+var
+  MLen: Integer;
+  M: PAnsiChar;
+  MP: AnsiString;
+  KDFStr, T, C3H: AnsiString;
+  P2: TCnEccPoint;
+  I, PrefixLen: Integer;
+  Sm3Dig: TSM3Digest;
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (EnData = nil) or (DataLen <= 0) or (PrivateKeyA = nil)
+    or (InTFromB = nil) or (OutStream = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
+    if MLen <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    P2 := TCnEccPoint.Create;
+    M := PAnsiChar(EnData);
+    if M^ = #$04 then  // 跳过可能的前导字节 $04
+    begin
+      Dec(MLen);
+      if MLen <= 0 then
+      begin
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
+        Exit;
+      end;
+
+      PrefixLen := 1;
+      Inc(M);
+    end
+    else
+      PrefixLen := 0;
+
+    // 读出 C1
+    P2.X.SetBinary(M, SM2.BitsCount div 8);
+    Inc(M, SM2.BitsCount div 8);
+    P2.Y.SetBinary(M, SM2.BitsCount div 8);
+    if P2.IsZero then
+    begin
+      _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
+      Exit;
+    end;
+
+    // P2 <= InTFromB - C1
+    SM2.PointSubPoint(InTFromB, P2, P2);
+
+    // 以下同常规解密
+
+    SetLength(KDFStr, P2.X.GetBytesCount + P2.Y.GetBytesCount);
+    P2.X.ToBinary(@KDFStr[1]);
+    P2.Y.ToBinary(@KDFStr[P2.X.GetBytesCount + 1]);
+    T := CnSM2KDF(KDFStr, MLen);
+
+    if SequenceType = cstC1C3C2 then
+    begin
+      SetLength(MP, MLen);
+      M := PAnsiChar(EnData);
+      Inc(M, SizeOf(TSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
+      for I := 1 to MLen do
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
+
+      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
+      P2.X.ToBinary(@C3H[1]);
+      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
+      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+
+      M := PAnsiChar(EnData);
+      Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // M 指向 C3
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      begin
+        OutStream.Write(MP[1], Length(MP));
+
+        Result := True;
+        _CnSetLastError(ECN_SM2_OK);
+      end;
+    end
+    else // C1C2C3 的排列
+    begin
+      SetLength(MP, MLen);
+      M := PAnsiChar(EnData);
+      Inc(M, (SM2.BitsCount div 4) + PrefixLen);  // 指向 C2
+
+      for I := 1 to MLen do
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
+
+      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
+      P2.X.ToBinary(@C3H[1]);
+      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
+      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+
+      M := PAnsiChar(EnData);
+      Inc(M, (SM2.BitsCount div 4) + PrefixLen + MLen);      // 指向 C3
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      begin
+        OutStream.Write(MP[1], Length(MP));
+
+        Result := True;
+        _CnSetLastError(ECN_SM2_OK);
+      end;
+    end;
+
+
+
+  finally
     if SM2IsNil then
       SM2.Free;
   end;

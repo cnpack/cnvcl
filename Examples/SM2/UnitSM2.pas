@@ -28,7 +28,7 @@ type
     edtSM2Text: TEdit;
     btnSM2Encrypt: TButton;
     btnGenerateKey: TButton;
-    mmoSM2Results: TMemo;
+    mmoSM2Result: TMemo;
     btnSM2Decrypt: TButton;
     bvl3: TBevel;
     bvl4: TBevel;
@@ -59,9 +59,6 @@ type
     btnLoadSM2BKey: TButton;
     chkPrefixByte: TCheckBox;
     btnVerifySm2Key: TButton;
-    grpSeqType: TGroupBox;
-    rbC1C3C2: TRadioButton;
-    rbC1C2C3: TRadioButton;
     tsSchnorr: TTabSheet;
     grpSchnorr: TGroupBox;
     btnSchnorrProve: TButton;
@@ -73,6 +70,34 @@ type
     btnSM2EncryptFile: TButton;
     btnSM2DecryptFile: TButton;
     dlgSave1: TSaveDialog;
+    tsCollaborative: TTabSheet;
+    grpCollaborative: TGroupBox;
+    lblSM2PrivateKeyA: TLabel;
+    lblSM2PrivateKeyB: TLabel;
+    edtSM2PrivateKeyA: TEdit;
+    edtSM2PrivateKeyB: TEdit;
+    lblSM2PublicKeyAB: TLabel;
+    edtSM2PublicKeyAB: TEdit;
+    btnSM2CollaborativeGen: TButton;
+    lblCollId: TLabel;
+    edtSM2CollUserId: TEdit;
+    lblSM2CollFileSign: TLabel;
+    edtSM2CollFileSign: TEdit;
+    btnCollSignBrowse: TButton;
+    btnSM2CollSignFile: TButton;
+    btnSM2CollVerify: TButton;
+    mmoSM2CollResult: TMemo;
+    bvl7: TBevel;
+    bvl8: TBevel;
+    lblSM2CollText: TLabel;
+    chkCollPrefixByte: TCheckBox;
+    edtSM2CollText: TEdit;
+    btnSM2CollEncrypt: TButton;
+    btnSM2CollDecrypt: TButton;
+    rbCollC1C2C3: TRadioButton;
+    rbCollC1C3C2: TRadioButton;
+    rbC1C3C2: TRadioButton;
+    rbC1C2C3: TRadioButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -92,6 +117,13 @@ type
     procedure btnSchnorrCheckClick(Sender: TObject);
     procedure btnSM2EncryptFileClick(Sender: TObject);
     procedure btnSM2DecryptFileClick(Sender: TObject);
+    procedure btnSM2CollaborativeGenClick(Sender: TObject);
+    procedure btnCollSignBrowseClick(Sender: TObject);
+    procedure btnSM2CollVerifyClick(Sender: TObject);
+    procedure btnSM2CollSignFileClick(Sender: TObject);
+    procedure btnSM2CollEncryptFileClick(Sender: TObject);
+    procedure btnSM2CollEncryptClick(Sender: TObject);
+    procedure btnSM2CollDecryptClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -347,7 +379,7 @@ begin
   if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkPrefixByte.Checked) then
   begin
     ShowMessage('Encrypt OK');
-    mmoSM2Results.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
+    mmoSM2Result.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
   end;
 
   PublicKey.Free;
@@ -388,7 +420,7 @@ begin
   if not CheckPrivateKeyStr(edtSM2PrivateKey) then
     Exit;
 
-  if Length(Trim(mmoSM2Results.Lines.Text)) < 2 then
+  if Length(Trim(mmoSM2Result.Lines.Text)) < 2 then
   begin
     ShowMessage('SM2 Decrypted Hex Invalid.');
     Exit;
@@ -402,7 +434,7 @@ begin
 
   PrivateKey.SetHex(edtSM2PrivateKey.Text);
 
-  MyStreamFromHex(Trim(mmoSM2Results.Lines.Text), EnStream);
+  MyStreamFromHex(Trim(mmoSM2Result.Lines.Text), EnStream);
 
   if rbC1C3C2.Checked then
     ST := cstC1C3C2
@@ -852,6 +884,291 @@ begin
     end;
   end;
   PrivateKey.Free;
+end;
+
+procedure TFormSM2.btnSM2CollaborativeGenClick(Sender: TObject);
+var
+  PrivKeyA, PrivKeyB: TCnSM2CollaborativePrivateKey;
+  PubKey: TCnSM2CollaborativePublicKey;
+  P: TCnEccPoint;
+begin
+  PrivKeyA := nil;
+  PrivKeyB := nil;
+  PubKey := nil;
+  P := nil;
+
+  try
+    PrivKeyA := TCnSM2CollaborativePrivateKey.Create;
+    PrivKeyB := TCnSM2CollaborativePrivateKey.Create;
+    PubKey := TCnSM2CollaborativePublicKey.Create;
+
+    P := TCnEccPoint.Create;
+    if CnSM2CollaborativeGenerateKeyAStep1(PrivKeyA, P) then
+    begin
+      if CnSM2CollaborativeGenerateKeyBStep1(PrivKeyB, P, PubKey) then
+      begin
+        edtSM2PublicKeyAB.Text := PubKey.ToHex;
+        edtSM2PrivateKeyA.Text := PrivKeyA.ToHex;
+        edtSM2PrivateKeyB.Text := PrivKeyB.ToHex;
+      end;
+    end;
+  finally
+    P.Free;
+    PubKey.Free;
+    PrivKeyB.Free;
+    PrivKeyA.Free;
+  end;
+end;
+
+procedure TFormSM2.btnCollSignBrowseClick(Sender: TObject);
+begin
+  if dlgOpen1.Execute then
+    edtSM2CollFileSign.Text := dlgOpen1.FileName;
+end;
+
+procedure TFormSM2.btnSM2CollVerifyClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyAB) then
+    Exit;
+
+  if not FileExists(edtSM2CollFileSign.Text) then
+    Exit;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKeyAB.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2CollFileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+  SignRes.SetHex(mmoSM2CollResult.Lines.Text);
+
+  if CnSM2VerifyData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+    PublicKey, SM2) then
+  begin
+    ShowMessage('Verify File OK.');
+  end
+  else
+    ShowMessage('Verify File Failed.');
+
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2CollSignFileClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PrivateKeyA, PrivateKeyB: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+  E, K, R, S1, S2: TCnBigNumber;
+  Q: TCnEccPoint;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyAB) or not CheckPrivateKeyStr(edtSM2PrivateKeyA)
+    or not CheckPrivateKeyStr(edtSM2PrivateKeyB) then
+    Exit;
+
+  if not FileExists(edtSM2CollFileSign.Text) then
+    Exit;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PrivateKeyA := TCnEccPrivateKey.Create;
+  PrivateKeyA.SetHex(edtSM2PrivateKeyA.Text);
+  PrivateKeyB := TCnEccPrivateKey.Create;
+  PrivateKeyB.SetHex(edtSM2PrivateKeyB.Text);
+
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKeyAB.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2CollFileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+
+  E := TCnBigNumber.Create;
+  K := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+  S1 := TCnBigNumber.Create;
+  S2 := TCnBigNumber.Create;
+  Q := TCnEccPoint.Create;
+
+  if CnSM2CollaborativeSignAStep1(edtSM2CollUserId.Text, FileStream.Memory, FileStream.Size,
+    E, Q, K, PrivateKeyA, PublicKey, SM2) then
+  begin
+    if CnSM2CollaborativeSignBStep1(E, Q, R, S1, S2, PrivateKeyB, SM2) then
+    begin
+      if CnSM2CollaborativeSignAStep2(K, R, S1, S2, SignRes, PrivateKeyA, SM2) then
+      begin
+        mmoSM2CollResult.Lines.Text := SignRes.ToHex;
+        ShowMessage('A B Collabrative Sign OK.');
+      end
+      else
+        ShowMessage('Sign A Step 3 Failed.');
+    end
+    else
+      ShowMessage('Sign B Step 2 Failed.');
+  end
+  else
+    ShowMessage('Sign A Step 1 Failed.');
+
+  Q.Free;
+  S2.Free;
+  S1.Free;
+  R.Free;
+  K.Free;
+  E.Free;
+
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
+  PrivateKeyB.Free;
+  PrivateKeyA.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2CollEncryptFileClick(Sender: TObject);
+var
+  PublicKey: TCnSM2PublicKey;
+  ST: TCnSM2CryptSequenceType;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyAB) then
+    Exit;
+
+  PublicKey := TCnSM2PublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKeyAB.Text);
+
+  if dlgOpen1.Execute then
+  begin
+    if dlgSave1.Execute then
+    begin
+      if rbC1C3C2.Checked then
+        ST := cstC1C3C2
+      else
+        ST := cstC1C2C3;
+
+      if CnSM2EncryptFile(dlgOpen1.FileName, dlgSave1.FileName, PublicKey, nil, ST) then
+        ShowMessage('File Encrypted: ' + dlgSave1.FileName)
+      else
+        ShowMessage('File Encrypt Fail.');
+    end;
+  end;
+  PublicKey.Free;
+end;
+
+procedure TFormSM2.btnSM2CollEncryptClick(Sender: TObject);
+var
+  T: AnsiString;
+  SM2: TCnSM2;
+  PublicKey: TCnSM2PublicKey;
+  EnStream: TMemoryStream;
+  ST: TCnSM2CryptSequenceType;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyAB) then
+    Exit;
+
+  if Length(edtSM2CollText.Text) = 0 then
+  begin
+    ShowMessage('Please Enter some Text');
+    Exit;
+  end;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PublicKey := TCnSM2PublicKey.Create;
+
+  EnStream := TMemoryStream.Create;
+
+  PublicKey.SetHex(edtSM2PublicKeyAB.Text);
+
+  T := AnsiString(edtSM2CollText.Text);
+  if rbC1C3C2.Checked then
+    ST := cstC1C3C2
+  else
+    ST := cstC1C2C3;
+
+  if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkCollPrefixByte.Checked) then
+  begin
+    mmoSM2CollResult.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
+    ShowMessage('Encrypt OK');
+  end;
+
+  PublicKey.Free;
+  EnStream.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2CollDecryptClick(Sender: TObject);
+var
+  S: AnsiString;
+  SM2: TCnSM2;
+  PrivateKeyA, PrivateKeyB: TCnSM2CollaborativePrivateKey;
+  EnStream, DeStream: TMemoryStream;
+  ST: TCnSM2CryptSequenceType;
+  T: TCnEccPoint;
+begin
+  if not CheckPrivateKeyStr(edtSM2PrivateKeyA) or not CheckPrivateKeyStr(edtSM2PrivateKeyB) then
+    Exit;
+
+  if Length(Trim(mmoSM2CollResult.Lines.Text)) < 2 then
+  begin
+    ShowMessage('SM2 Decrypted Hex Invalid.');
+    Exit;
+  end;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PrivateKeyA := TCnSM2CollaborativePrivateKey.Create;
+  PrivateKeyB := TCnSM2CollaborativePrivateKey.Create;
+
+  EnStream := TMemoryStream.Create;
+  DeStream := TMemoryStream.Create;
+
+  PrivateKeyA.SetHex(edtSM2PrivateKeyA.Text);
+  PrivateKeyB.SetHex(edtSM2PrivateKeyB.Text);
+
+  T := TCnEccPoint.Create;
+
+  MyStreamFromHex(Trim(mmoSM2CollResult.Lines.Text), EnStream);
+
+  if rbCollC1C3C2.Checked then
+    ST := cstC1C3C2
+  else
+    ST := cstC1C2C3;
+
+  if CnSM2CollaborativeDecryptAStep1(EnStream.Memory, EnStream.Size, T, PrivateKeyA, SM2) then
+  begin
+    if CnSM2CollaborativeDecryptBStep1(T, T, PrivateKeyB) then
+    begin
+      if CnSM2CollaborativeDecryptAStep2(EnStream.Memory, EnStream.Size, T, DeStream, PrivateKeyA, SM2, ST) then
+      begin
+        SetLength(S, DeStream.Size);
+        DeStream.Position := 0;
+        DeStream.Read(S[1], DeStream.Size);
+        ShowMessage('Decrypt OK: ' + S);
+        edtSM2CollText.Text := S;
+      end
+      else
+        ShowMessage('Decrypt A Step 3 Failed.');
+    end
+    else
+      ShowMessage('Decrypt B Step 2 Failed.');
+  end
+  else
+    ShowMessage('Decrypt A Step 1 Failed.');
+
+  T.Free;
+  PrivateKeyB.Free;
+  PrivateKeyA.Free;
+  EnStream.Free;
+  DeStream.Free;
+  SM2.Free;
 end;
 
 end.

@@ -3174,9 +3174,7 @@ var
 begin
   Inv := TCnEccPoint.Create;
   try
-    Inv.X := Q.X;
-    Inv.Y := Q.Y;
-
+    Inv.Assign(Q);
     PointInverse(Inv);
     PointAddPoint(P, Inv, Diff);
   finally
