@@ -86,6 +86,18 @@ type
   TCnSM2CryptSequenceType = (cstC1C3C2, cstC1C2C3);
   {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有 C1C2C3 的版本，故此做兼容}
 
+  TCnSM2CollaborativePrivateKey = TCnEccPrivateKey;
+  {* SM2 协同私钥就是普通椭圆曲线的私钥，但有至少两个}
+
+  TCnSM2CollaborativePublicKey = TCnEccPublicKey;
+  {* SM2 协同私钥就是普通椭圆曲线的公钥，同样是一个}
+
+// ========================== SM2 椭圆曲线密钥生成 =============================
+
+function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2 = nil): Boolean;
+{* 生成一对 SM2 公私钥}
+
 // ========================= SM2 椭圆曲线加解密算法 ============================
 
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
@@ -209,6 +221,29 @@ constructor TCnSM2.Create;
 begin
   inherited;
   Load(ctSM2);
+end;
+
+function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2): Boolean;
+var
+  SM2IsNil: Boolean;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (PublicKey = nil) then
+    Exit;
+
+  SM2IsNil := SM2 = nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    SM2.GenerateKeys(PrivateKey, PublicKey);
+    Result := True;
+  finally
+    if SM2IsNil then
+      SM2.Free;
+  end;
 end;
 
 {
