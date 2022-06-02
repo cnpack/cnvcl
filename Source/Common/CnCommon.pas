@@ -1253,6 +1253,10 @@ function CnUnMapFileFromPointer(var FileHandle, MapHandle: THandle;
   var Address: Pointer): Boolean;
 {* 释放映射的内存文件，与 CnMapFileToPointer 对应}
 
+function ExtractPEDataDirectory(const FileName: string; DirectoryIndex: Integer;
+  OutStream: TStream): Boolean;
+{* 处理一个 PE 文件，提取出其中第 DirectoryIndex 个 DataDirectory 的内容并写到流中，返回提取是否成功}
+
 implementation
 
 uses
@@ -7956,6 +7960,7 @@ begin
   end;
 end;
 
+// 将文件映射为内存文件并返回文件句柄、映射句柄与映射的内存起始地址，成功返回 True
 function CnMapFileToPointer(const FileName: string; out FileHandle, MapHandle: THandle;
   out Address: Pointer): Boolean;
 begin
@@ -7990,6 +7995,7 @@ begin
   end;
 end;
 
+// 释放映射的内存文件，与 CnMapFileToPointer 对应
 function CnUnMapFileFromPointer(var FileHandle, MapHandle: THandle;
   var Address: Pointer): Boolean;
 begin
@@ -8003,6 +8009,48 @@ begin
   FileHandle := INVALID_HANDLE_VALUE;
 
   Result := True;
+end;
+
+// 处理一个 PE 文件，提取出其中第 DirectoryIndex 个 DataDirectory 的内容并写到流中，返回提取是否成功
+function ExtractPEDataDirectory(const FileName: string; DirectoryIndex: Integer;
+  OutStream: TStream): Boolean;
+var
+  F, M: THandle;
+  P: Pointer;
+  Ptr: PByte;
+  DH: PImageDosHeader;
+  NH: PImageNtHeaders;
+begin
+  Result := False;
+  if (DirectoryIndex < 0) or (DirectoryIndex >= IMAGE_NUMBEROF_DIRECTORY_ENTRIES)
+    or (OutStream = nil) then
+    Exit;
+
+  if CnMapFileToPointer(FileName, F, M, P) then
+  begin
+    try
+      Ptr := PByte(P);
+
+      DH := PImageDosHeader(Ptr);
+      if DH^.e_magic <> IMAGE_DOS_SIGNATURE then
+        Exit;
+
+      Inc(Ptr, DH^._lfanew);
+
+      NH := PImageNtHeaders(Ptr);
+      if NH^.Signature <> IMAGE_NT_SIGNATURE then
+        Exit;
+
+      Ptr := PByte(P);
+      Inc(Ptr, NH^.OptionalHeader.DataDirectory[DirectoryIndex].VirtualAddress);
+
+      if NH^.OptionalHeader.DataDirectory[DirectoryIndex].Size > 0 then
+        Result := OutStream.Write(Ptr^, NH^.OptionalHeader.DataDirectory[DirectoryIndex].Size)
+          = NH^.OptionalHeader.DataDirectory[DirectoryIndex].Size;
+    finally
+      CnUnMapFileFromPointer(F, M, P);
+    end;
+  end;
 end;
 
 initialization
