@@ -25,7 +25,6 @@ unit CnMath;
 * 单元名称：数学计算的算法单元
 * 单元作者：刘啸
 * 备    注：旨在脱离 Math 库，先不太管运行效率
-*           遗留问题：高斯勒让德大数精度不够
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -114,6 +113,7 @@ begin
   if N < 0 then
     raise ERangeError.Create(SCN_SQRT_RANGE_ERROR);
 
+  Result := 0;
   if (N = 0) or (N = 1) then
   begin
     Result := N;
@@ -138,6 +138,7 @@ begin
   if F < 0 then
     raise ERangeError.Create(SCN_SQRT_RANGE_ERROR);
 
+  Result := 0;
   if (F = 0) or (F = 1) then
   begin
     Result := F;
@@ -282,85 +283,101 @@ var
   X1, X2: TCnBigDecimal;
   Res: TCnBigDecimal;
 begin
-  A0 := TCnBigDecimal.Create;
-  B0 := TCnBigDecimal.Create;
-  T0 := TCnBigDecimal.Create;
-  P0 := TCnBigDecimal.Create;
+  A0 := nil;
+  B0 := nil;
+  T0 := nil;
+  P0 := nil;
 
-  A1 := TCnBigDecimal.Create;
-  B1 := TCnBigDecimal.Create;
-  T1 := TCnBigDecimal.Create;
-  P1 := TCnBigDecimal.Create;
+  A1 := nil;
+  B1 := nil;
+  T1 := nil;
+  P1 := nil;
 
-  Res := TCnBigDecimal.Create;
+  Res := nil;
+  X1 := nil;
+  X2 := nil;
 
-  // 临时变量
-  X1 := TCnBigDecimal.Create;
-  X1.SetWord(2);
-  X2 := TCnBigDecimal.Create;
+  try
+    A0 := TCnBigDecimal.Create;
+    B0 := TCnBigDecimal.Create;
+    T0 := TCnBigDecimal.Create;
+    P0 := TCnBigDecimal.Create;
 
-  P := 1 shl RoundCount;  // 根据 Round 数量提前确定精度
-  if P < 16 then
-    P := 16;
+    A1 := TCnBigDecimal.Create;
+    B1 := TCnBigDecimal.Create;
+    T1 := TCnBigDecimal.Create;
+    P1 := TCnBigDecimal.Create;
 
-  A0.SetOne;
-  B0.SetWord(2);
-  BigDecimalSqrt(B0, B0, P);  
-  BigDecimalDiv(B0, B0, X1, P);
-  T0.SetExtended(0.25);
-  P0.SetOne;
+    Res := TCnBigDecimal.Create;
 
-  Res.SetZero;
-  for I := 1 to RoundCount do
-  begin
-    // A1 := (A0 + B0) / 2;
-    BigDecimalAdd(A1, A0, B0);
-    BigDecimalDiv(A1, A1, X1, P);
+    // 临时变量
+    X1 := TCnBigDecimal.Create;
+    X1.SetWord(2);
+    X2 := TCnBigDecimal.Create;
 
-    // B1 := Sqrt(A0 * B0);
-    BigDecimalMul(B1, A0, B0);
-    BigDecimalSqrt(B1, B1, P);
+    P := 1 shl RoundCount;  // 根据 Round 数量提前确定精度
+    if P < 16 then
+      P := 16;
 
-    // T1 := T0 - P0 * (A0 - A1) * (A0 - A1);
-    BigDecimalSub(T1, A0, A1);
-    BigDecimalMul(T1, T1, T1);
-    BigDecimalMul(T1, T1, P0);
-    BigDecimalSub(T1, T0, T1);
+    A0.SetOne;
+    B0.SetWord(2);
+    BigDecimalSqrt(B0, B0, P);
+    BigDecimalDiv(B0, B0, X1, P);
+    T0.SetExtended(0.25);
+    P0.SetOne;
 
-    // P1 := P0 * 2;
-    BigDecimalAdd(P1, P0, P0);
+    Res.SetZero;
+    for I := 1 to RoundCount do
+    begin
+      // A1 := (A0 + B0) / 2;
+      BigDecimalAdd(A1, A0, B0);
+      BigDecimalDiv(A1, A1, X1, P);
 
-    // Res := (A1 + B1) * (A1 + B1) / (T1 * 4);
-    BigDecimalAdd(Res, A1, B1);
-    BigDecimalMul(Res, Res, Res);
-    BigDecimalAdd(X2, T1, T1);
-    BigDecimalAdd(X2, X2, X2);
+      // B1 := Sqrt(A0 * B0);
+      BigDecimalMul(B1, A0, B0);
+      BigDecimalSqrt(B1, B1, P);
 
-    BigDecimalDiv(Res, Res, X2, P);
+      // T1 := T0 - P0 * (A0 - A1) * (A0 - A1);
+      BigDecimalSub(T1, A0, A1);
+      BigDecimalMul(T1, T1, T1);
+      BigDecimalMul(T1, T1, P0);
+      BigDecimalSub(T1, T0, T1);
 
-    // 准备下一轮迭代
-    BigDecimalCopy(A0, A1);
-    BigDecimalCopy(B0, B1);
-    BigDecimalCopy(T0, T1);
-    BigDecimalCopy(P0, P1);
+      // P1 := P0 * 2;
+      BigDecimalAdd(P1, P0, P0);
+
+      // Res := (A1 + B1) * (A1 + B1) / (T1 * 4);
+      BigDecimalAdd(Res, A1, B1);
+      BigDecimalMul(Res, Res, Res);
+      BigDecimalAdd(X2, T1, T1);
+      BigDecimalAdd(X2, X2, X2);
+
+      BigDecimalDiv(Res, Res, X2, P);
+
+      // 准备下一轮迭代
+      BigDecimalCopy(A0, A1);
+      BigDecimalCopy(B0, B1);
+      BigDecimalCopy(T0, T1);
+      BigDecimalCopy(P0, P1);
+    end;
+
+    Result := Res.ToString;
+  finally
+    X1.Free;
+    X2.Free;
+
+    Res.Free;
+
+    A1.Free;
+    B1.Free;
+    T1.Free;
+    P1.Free;
+
+    A0.Free;
+    B0.Free;
+    T0.Free;
+    P0.Free;
   end;
-
-  Result := Res.ToString;
-
-  X1.Free;
-  X2.Free;
-
-  Res.Free;
-
-  A1.Free;
-  B1.Free;
-  T1.Free;
-  P1.Free;
-
-  A0.Free;
-  B0.Free;
-  T0.Free;
-  P0.Free;
 end;
 
 end.
