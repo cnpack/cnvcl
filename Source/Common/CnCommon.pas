@@ -1243,6 +1243,16 @@ function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '):
 function GetSetElementCount(const ASet; ASetSize: Integer): Integer;
 {* 获取某集合内的元素数目，尺寸不对则返回 -1}
 
+function CnMapFileToPointer(const FileName: string; out FileHandle, MapHandle: THandle;
+  out Address: Pointer): Boolean;
+{* 将文件映射为内存文件并返回文件句柄、映射句柄与映射的内存起始地址，成功返回 True
+  如果返回 True，必须在使用完 Address 后调用 CnUnMapFileFromPointer
+  以释放 Address MapHandle 和 FileHandle}
+
+function CnUnMapFileFromPointer(var FileHandle, MapHandle: THandle;
+  var Address: Pointer): Boolean;
+{* 释放映射的内存文件，与 CnMapFileToPointer 对应}
+
 implementation
 
 uses
@@ -7944,6 +7954,55 @@ begin
     if I in S then
       Inc(Result);
   end;
+end;
+
+function CnMapFileToPointer(const FileName: string; out FileHandle, MapHandle: THandle;
+  out Address: Pointer): Boolean;
+begin
+  // 打开文件、创建映射、映射地址
+  Result := False;
+  FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
+                FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
+                FILE_FLAG_SEQUENTIAL_SCAN, 0);
+
+  if FileHandle <> INVALID_HANDLE_VALUE then
+  begin
+    MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
+    if MapHandle <> 0 then
+    begin
+      Address := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
+      if Address <> nil then
+      begin
+        Result := True; // 成功返回时，三个值都是有效的
+        Exit;
+      end
+      else // 如果创建映射成功，但地址映射失败，就需要关闭创建映射
+      begin
+        CloseHandle(MapHandle);
+        MapHandle := INVALID_HANDLE_VALUE;
+      end;
+    end
+    else // 如果打开文件成功，但创建映射失败，就需要关闭文件
+    begin
+      CloseHandle(FileHandle);
+      MapHandle := INVALID_HANDLE_VALUE;
+    end;
+  end;
+end;
+
+function CnUnMapFileFromPointer(var FileHandle, MapHandle: THandle;
+  var Address: Pointer): Boolean;
+begin
+  UnmapViewOfFile(Address);
+  Address := nil;
+
+  CloseHandle(MapHandle);
+  MapHandle := INVALID_HANDLE_VALUE;
+
+  CloseHandle(FileHandle);
+  FileHandle := INVALID_HANDLE_VALUE;
+
+  Result := True;
 end;
 
 initialization
