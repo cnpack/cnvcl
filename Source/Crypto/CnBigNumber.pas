@@ -725,6 +725,16 @@ function BigNumberDirectMulMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): 
 {* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
   注意：位数较少时，该方法比上面的 BigNumberMulMod 方法要快不少，另外内部执行的是 NonNegativeMod，余数为正}
 
+function BigNumberMontgomeryReduction(const Res: TCnBigNumber;
+  const T, R, N, NNegInv: TCnBigNumber): Boolean;
+{* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂，
+  NNegInv 是预先计算好的 N 对 R 的负模逆元，T 不能为负且小于 N * R}
+
+function BigNumberMontgomeryMulMod(const Res: TCnBigNumber;
+  const A, B, R, R2ModN, N, NNegInv: TCnBigNumber): Boolean;
+{* 蒙哥马利模乘法（内部使用四次蒙哥马利约简法）快速计算 A * B mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
+  R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元}
+
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
 
@@ -1576,6 +1586,7 @@ begin
   Result := True;
 end;
 
+// 给一个大数对象只保留第 0 到 Count - 1 个 Bit 位，高位清零，返回成功与否
 function BigNumberKeepLowBits(const Num: TCnBigNumber; Count: Integer): Boolean;
 var
   I, J: Integer;
@@ -1601,13 +1612,15 @@ begin
     Exit;
   end;
 
-  Num.Top := I + 1;
-  if J > 0 then // 要保留最高一个 LongWord 中的 0 到 J - 1 位，共 J 位，J 最多 31
+  if J > 0 then // 要多保留最高一个 LongWord 中的 0 到 J - 1 位，共 J 位，J 最多 31
   begin
+    Num.Top := I + 1;
     B := 1 shl J;         // 0000100000 如果 J 是 31 也不会溢出
     B := B - 1;           // 0000011111
     PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] and B;
-  end;
+  end
+  else
+    Num.Top := I; // 如果 J 为 0，无需多最高一个 LongWord 了
 
   BigNumberCorrectTop(Num);
   Result := True;
@@ -4801,6 +4814,110 @@ begin
     Exit;
   Result := True;
 end;
+
+// 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂，
+// NNegInv 是预先计算好的 N 对 R 的负模逆元，T 不能为负且小于 N * R
+function BigNumberMontgomeryReduction(const Res: TCnBigNumber;
+  const T, R, N, NNegInv: TCnBigNumber): Boolean;
+var
+  M: TCnBigNumber;
+begin
+  Result := False;
+  M := nil;
+
+  try
+    M := FLocalBigNumberPool.Obtain;
+
+    if not BigNumberMul(M, T, NNegInv) then // M := T * N'
+      Exit;
+
+    // M := T * N' mod R 因为 R 是 2 次幂，所以可以快速保留低位，得到的 M < R
+    if not BigNumberKeepLowBits(M, R.GetBitsCount - 1) then
+      Exit;
+
+    // 复用 M := (T + M * N) / R
+    if not BigNumberMul(M, M, N) then
+      Exit;
+
+    if not BigNumberAdd(M, T, M) then
+      Exit;
+
+    // 因为 R 是 2 次幂，所以可以 M 快速右移做除法，且结果必为整数
+    if not BigNumberShiftRight(M, M, R.GetBitsCount - 1) then
+      Exit;
+
+    // M >= N 则减 N
+    if BigNumberCompare(M, N) >= 0 then
+      Result := BigNumberSub(Res, M, N)
+    else
+      Result := BigNumberCopy(Res, M) <> nil;
+  finally
+    FLocalBigNumberPool.Recycle(M);
+  end;
+end;
+
+// 蒙哥马利法快速计算 A * B mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
+// R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元
+function BigNumberMontgomeryMulMod(const Res: TCnBigNumber;
+  const A, B, R, R2ModN, N, NNegInv: TCnBigNumber): Boolean;
+var
+  AA, BB, RA, RB, M: TCnBigNumber;
+begin
+  Result := False;
+
+  AA := nil;
+  RA := nil;
+  BB := nil;
+  RB := nil;
+  M := nil;
+
+  try
+    AA := FLocalBigNumberPool.Obtain;
+    RA := FLocalBigNumberPool.Obtain;
+
+    // AA := A * (R * R mod N) 不超过 N * R
+    if not BigNumberMul(AA, A, R2ModN) then
+      Exit;
+    // 蒙哥马利算得 RA := A*(R*R)*R^-1 mod N = A * R mod N
+    if not BigNumberMontgomeryReduction(RA, AA, R, N, NNegInv) then
+      Exit;
+
+    BB := FLocalBigNumberPool.Obtain;
+    RB := FLocalBigNumberPool.Obtain;
+
+    // BB := B * (R * R mod N) 不超过 N * R
+    if not BigNumberMul(BB, B, R2ModN) then
+      Exit;
+    // 蒙哥马利算得 RB := B*(R*R)*R^-1 mod N = B * R mod N
+    if not BigNumberMontgomeryReduction(RB, BB, R, N, NNegInv) then
+      Exit;
+
+    // M := (A*R * B*R) 不超过 N^2，因为 R 比 N 大，更确保 M < N * R
+    M := FLocalBigNumberPool.Obtain;
+    if not BigNumberMul(M, RA, RB) then
+      Exit;
+
+    // 蒙哥马利算得 Res := (A*R * B*R) * R^-1 mod N = A*B*R mod N
+    if not BigNumberMontgomeryReduction(Res, M, R, N, NNegInv) then
+      Exit;
+
+    // Res 中间值给 M
+    if BigNumberCopy(M, Res) = nil then
+      Exit;
+
+    // 再次蒙哥马利算得 A*B*R * R^-1 mod N = A*B mod N
+    if not BigNumberMontgomeryReduction(Res, M, R, N, NNegInv) then
+      Exit;
+
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(M);
+    FLocalBigNumberPool.Recycle(RB);
+    FLocalBigNumberPool.Recycle(BB);
+    FLocalBigNumberPool.Recycle(RA);
+    FLocalBigNumberPool.Recycle(AA);
+  end;
+end;  
 
 // 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;

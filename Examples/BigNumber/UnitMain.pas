@@ -94,6 +94,8 @@ type
     btnBNEuler: TButton;
     btnMulDivFloat: TButton;
     btnNegModInv: TButton;
+    btnMontReduct: TButton;
+    btnMontReduct1: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -156,6 +158,8 @@ type
     procedure btnBNEulerClick(Sender: TObject);
     procedure btnMulDivFloatClick(Sender: TObject);
     procedure btnNegModInvClick(Sender: TObject);
+    procedure btnMontReductClick(Sender: TObject);
+    procedure btnMontReduct1Click(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1126,6 +1130,112 @@ begin
 
   BigNumberFree(R);
   BigNumberFree(Res);
+end;
+
+procedure TFormBigNumber.btnMontReductClick(Sender: TObject);
+var
+  R, N, R2ModN, NNegInv: TCnBigNumber;
+begin
+  // 测试蒙哥马利约简与蒙哥马利模乘，先用小的数
+
+  N := TCnBigNumber.FromDec('53');
+  R := TCnBigNumber.Create;
+  R.SetBit(N.GetBitsCount); // 64
+
+  R2ModN := TCnBigNumber.Create;
+  NNegInv := TCnBigNumber.Create;
+
+  BigNumberNegativeModularInverse(NNegInv, N, R);
+
+  BigNumberMulMod(R2ModN, R, R, N);
+
+  Num1.SetWord(18);
+  Num2.SetWord(48);
+
+  if BigNumberMontgomeryMulMod(Num3, Num1, Num2, R, R2ModN, N, NNegInv) then
+  begin
+    ShowNumbers;
+    ShowResult(Num3); // 18 * 48 mod 53 = 16
+  end;
+
+  NNegInv.Free;
+  R2ModN.Free;
+  R.Free;
+  N.Free;
+end;
+
+procedure TFormBigNumber.btnMontReduct1Click(Sender: TObject);
+var
+  R, N, R2ModN, NNegInv: TCnBigNumber;
+begin
+  // 测试蒙哥马利约简与蒙哥马利模乘，R 用大的素数
+
+  N := TCnBigNumber.FromDec('12550844042077551148644259270604032741055959212145823469311684782060253184499937617056889721462511207045689755920646150143846052328485880703118997163734347');
+  //N := TCnBigNumber.FromDec('65537');  // 比较小没问题
+  //N := TCnBigNumber.FromDec('15456967440729873067'); // 太大出问题了
+  //N := TCnBigNumber.FromDec('831365771'); // 比较小也没问题
+
+  R := TCnBigNumber.Create;
+  R.SetBit(N.GetBitsCount);
+  ShowMessage('R: ' + R.ToHex);
+  ShowMessage('R Bits: ' + IntToStr(R.GetBitsCount));
+
+  R2ModN := TCnBigNumber.Create;
+  NNegInv := TCnBigNumber.Create;
+
+  BigNumberNegativeModularInverse(NNegInv, N, R);
+  ShowMessage('-N^-1 :' + NNegInv.ToDec);
+
+  BigNumberMulMod(R2ModN, R, R, N);
+  ShowMessage('R^2 mod N: ' + R2ModN.ToDec);
+
+  // Test 1, a single T
+  Num1.SetWord(864);
+  if BigNumberMontgomeryReduction(Num3, Num1, R, N, NNegInv) then
+  begin
+    BigNumberMulMod(Num3, Num3, R, N);
+    ShowNumbers;
+    ShowResult(Num3);
+    if Num3.IsWord(864) then
+      ShowMessage('Test 1 OK')
+    else
+      ShowMessage('Test 1 Fail');
+  end;
+
+  // Test 2，18 * R^2 mod N 去 Mont，得到 18 * R mod N
+  Num1.SetWord(18);
+  BigNumberMul(Num1, Num1, R2ModN);
+  if BigNumberMontgomeryReduction(Num3, Num1, R, N, NNegInv) then
+  begin
+    // Num3 得到 18 * R mod N，再用 R2 直接计算验证
+    Num2.SetWord(18);
+    BigNumberMul(Num2, Num2, R);
+    BigNumberNonNegativeMod(Num2, Num2, N);
+
+    if BigNumberEqual(Num3, Num2) then
+      ShowMessage('Test 2 OK')
+    else
+      ShowMessage('Test 2 Fail');
+  end;
+
+  Num1.SetDec('50844042077551148644259270604032741055959212145623469311684742060253184499937617056839721462511207045689755925646150143846752328485882703118997163734349');
+  Num2.SetDec('48234598764323456789098765431234567890');
+  if BigNumberMontgomeryMulMod(Num3, Num1, Num2, R, R2ModN, N, NNegInv) then
+  begin
+    ShowNumbers;
+    ShowResult(Num3);
+
+    BigNumberDirectMulMod(R, Num1, Num2, N);
+    if BigNumberEqual(R, Num3) then
+      ShowMessage('Test 3 OK')
+    else
+      ShowMessage('Test 3 Fail');
+  end;
+
+  NNegInv.Free;
+  R2ModN.Free;
+  R.Free;
+  N.Free;
 end;
 
 end.
