@@ -507,7 +507,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnPowerModCompare: TButton
         Left = 904
-        Top = 294
+        Top = 286
         Width = 129
         Height = 25
         Caption = 'Power Mod Compare'
@@ -516,7 +516,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnMulModCompare: TButton
         Left = 904
-        Top = 323
+        Top = 315
         Width = 129
         Height = 25
         Caption = 'Mul Mod Compare'
@@ -525,7 +525,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnCheckPrime: TButton
         Left = 904
-        Top = 236
+        Top = 228
         Width = 129
         Height = 25
         Caption = 'Check Prime 1'
@@ -562,7 +562,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnCheckPrime2: TButton
         Left = 904
-        Top = 265
+        Top = 257
         Width = 129
         Height = 25
         Caption = 'Check Prime 2'
@@ -571,7 +571,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNCRT: TButton
         Left = 904
-        Top = 352
+        Top = 344
         Width = 129
         Height = 25
         Caption = 'Chinese Remainder '
@@ -580,7 +580,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNSqrt: TButton
         Left = 904
-        Top = 207
+        Top = 199
         Width = 129
         Height = 25
         Caption = 'Sqrt'
@@ -589,7 +589,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNNextPrime: TButton
         Left = 904
-        Top = 178
+        Top = 170
         Width = 129
         Height = 25
         Caption = 'Next Prime'
@@ -598,7 +598,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNMulKaratsuba: TButton
         Left = 904
-        Top = 381
+        Top = 373
         Width = 129
         Height = 25
         Caption = 'Mul Karatsuba'
@@ -607,7 +607,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnRoot: TButton
         Left = 904
-        Top = 120
+        Top = 112
         Width = 129
         Height = 25
         Caption = 'Integer Root'
@@ -616,7 +616,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnIsPerfectPower: TButton
         Left = 904
-        Top = 149
+        Top = 141
         Width = 129
         Height = 25
         Caption = 'Is Perfect Power'
@@ -625,7 +625,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnComNum: TButton
         Left = 904
-        Top = 410
+        Top = 402
         Width = 129
         Height = 25
         Caption = 'Combinatorial Numbers'
@@ -634,7 +634,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNAKS: TButton
         Left = 904
-        Top = 439
+        Top = 431
         Width = 129
         Height = 25
         Caption = 'AKS is Prime'
@@ -643,7 +643,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnFloatToBigNumber: TButton
         Left = 904
-        Top = 472
+        Top = 464
         Width = 129
         Height = 25
         Caption = 'Float To BigNumber'
@@ -652,7 +652,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBigNumberToFloat: TButton
         Left = 904
-        Top = 504
+        Top = 496
         Width = 129
         Height = 25
         Caption = 'BigNumber To Float'
@@ -661,7 +661,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNEuler: TButton
         Left = 904
-        Top = 536
+        Top = 528
         Width = 129
         Height = 25
         Caption = 'BigNumber Euler'
@@ -670,12 +670,21 @@ object FormBigNumber: TFormBigNumber
       end
       object btnMulDivFloat: TButton
         Left = 904
-        Top = 568
+        Top = 560
         Width = 129
         Height = 25
         Caption = 'Mul Div Float'
         TabOrder = 64
         OnClick = btnMulDivFloatClick
+      end
+      object btnNegModInv: TButton
+        Left = 904
+        Top = 592
+        Width = 129
+        Height = 25
+        Caption = 'Neg Mod Inv'
+        TabOrder = 65
+        OnClick = btnNegModInvClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

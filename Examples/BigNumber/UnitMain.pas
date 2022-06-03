@@ -93,6 +93,7 @@ type
     btnBigNumberToFloat: TButton;
     btnBNEuler: TButton;
     btnMulDivFloat: TButton;
+    btnNegModInv: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -154,6 +155,7 @@ type
     procedure btnBigNumberToFloatClick(Sender: TObject);
     procedure btnBNEulerClick(Sender: TObject);
     procedure btnMulDivFloatClick(Sender: TObject);
+    procedure btnNegModInvClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1101,6 +1103,29 @@ begin
   BigNumberMulFloat(Num2, Num1, Pi);
   BigNumberDivFloat(Num1, Num2, Pi);
   ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnNegModInvClick(Sender: TObject);
+var
+  Res, R: TCnBigNumber;
+begin
+  Res := BigNumberNew;
+  // 如何保证这俩互质？
+  BigNumberNegativeModularInverse(Res, Num1, Num2);
+  ShowResult(Res);
+
+  // 验证 Res * Num1 mod Num2 = -1
+  R := BigNumberNew;
+  BigNumberMulMod(R, Res, Num1, Num2);
+  if not R.IsNegative then
+    BigNumberSub(R, R, Num2);
+  if R.IsNegOne then
+    ShowMessage('Negative Modular Inverse Check OK')
+  else
+    ShowMessage('Negative Modular Inverse Check Error: ' + R.ToDec);
+
+  BigNumberFree(R);
+  BigNumberFree(Res);
 end;
 
 end.

@@ -481,7 +481,7 @@ procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
 {* 给一个大数对象设置是否负值}
 
 function BigNumberIsNegative(const Num: TCnBigNumber): Boolean;
-{* 返回一个大数对象是否负值}
+{* 返回一个大数对象是否负值，注意不判断 0，也就是说负 0 也返回 True}
 
 procedure BigNumberNegate(const Num: TCnBigNumber);
 {* 给一个大数对象设置正负反号}
@@ -792,6 +792,10 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
 
 function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
+
+function BigNumberNegativeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+{* 求 X 针对 Modulus 的负模反或叫负模逆元 Y，满足 (X * Y) mod M = -1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
 
 procedure BigNumberModularInverseWord(const Res: TCnBigNumber; X: Integer; Modulus: TCnBigNumber);
@@ -5567,6 +5571,15 @@ begin
   end;
 end;
 
+// 求 X 针对 Modulus 的负模反或叫负模逆元 Y，满足 (X * Y) mod M = -1，X 可为负值，Y 求出正值
+function BigNumberNegativeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+begin
+  Result := BigNumberModularInverse(Res, X, Modulus);
+  if Result then
+    Result := BigNumberSub(Res, Modulus, Res); // 负逆元等于模数减逆元
+end;
+
+// 求 32 位有符号数 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值
 procedure BigNumberModularInverseWord(const Res: TCnBigNumber; X: Integer;
   Modulus: TCnBigNumber);
 var
