@@ -704,6 +704,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 67
         OnClick = btnMontReduct1Click
       end
+      object btnMontReductTime: TButton
+        Left = 1040
+        Top = 76
+        Width = 129
+        Height = 25
+        Caption = 'Mont Reduct Time'
+        TabOrder = 68
+        OnClick = btnMontReductTimeClick
+      end
     end
     object tsSparseBigNumberList: TTabSheet
       Caption = 'Sparse BigNumber List'

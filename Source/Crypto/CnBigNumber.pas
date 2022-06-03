@@ -24,14 +24,18 @@ unit CnBigNumber;
 * 软件名称：开发包基础库
 * 单元名称：大数算法单元
 * 单元作者：刘啸
-* 备    注：大部分从 Openssl 的 C 代码移植而来，大数池不支持多线程
+* 备    注：部分从 Openssl 的 C 代码移植而来，大数池默认支持多线程
 *           Word 系列操作函数指大数与 DWORD 进行运算，而 Words 系列操作函数指
 *           大数中间的运算过程。
-*           ======== !!! D5/D6/CB5/CB6 下可能遇上编译器 Bug 无法修复 !!! =======
+*           注：D5/D6/CB5/CB6 下可能遇上编译器 Bug 无法修复，
+*               譬如写 Int64(AInt64Var) 这样的强制类型转换时
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.04.26 V2.4
+* 修改记录：2022.06.04 V2.5
+*               增加负模逆元与蒙哥马利约简以及基于此实现的快速模乘算法
+*               但在 2048 Bits 范围内似乎比直接乘再模要慢不少
+*           2022.04.26 V2.4
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2021.12.08 V2.3
 *               实现与 Extended 扩展精度浮点数相乘除，增加一批对数函数，完善 AKS
@@ -110,7 +114,7 @@ type
     function GetHexString: string;
     function GetDebugDump: string;
   public
-    D: PCnLongWord32;       // 一个 array[0..Top-1] of LongWord 数组，越往后越代表高位
+    D: PCnLongWord32;   // 一个 array[0..Top-1] of LongWord 数组，越往后越代表高位
     Top: Integer;       // Top 表示数字上限，也即有 Top 个有效 LongWord，D[Top] 值为 0，D[Top - 1] 是最高位有效数所在的 LongWord
     DMax: Integer;      // D 数组已分配的存储上限，单位是 LongWord 个，大于或等于 Top，不参与运算
     Neg: Integer;       // 1 为负，0 为正
