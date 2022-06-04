@@ -262,6 +262,13 @@ object FormPrime: TFormPrime
         Height = 13
         Caption = 'mod'
       end
+      object bvl21: TBevel
+        Left = 24
+        Top = 336
+        Width = 609
+        Height = 9
+        Shape = bsTopLine
+      end
       object edtMonA: TEdit
         Left = 24
         Top = 24
@@ -408,6 +415,33 @@ object FormPrime: TFormPrime
         Width = 401
         Height = 21
         TabOrder = 17
+      end
+      object btnMontReduct: TButton
+        Left = 24
+        Top = 352
+        Width = 81
+        Height = 21
+        Caption = 'Mont Reduct'
+        TabOrder = 18
+        OnClick = btnMontReductClick
+      end
+      object btnMontMulMod: TButton
+        Left = 128
+        Top = 352
+        Width = 81
+        Height = 21
+        Caption = 'Mont MulMod'
+        TabOrder = 19
+        OnClick = btnMontMulModClick
+      end
+      object btnMontMulModTime: TButton
+        Left = 232
+        Top = 352
+        Width = 81
+        Height = 21
+        Caption = 'Mont MulMod'
+        TabOrder = 20
+        OnClick = btnMontMulModTimeClick
       end
     end
     object tsDH: TTabSheet

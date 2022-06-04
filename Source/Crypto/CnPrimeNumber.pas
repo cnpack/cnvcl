@@ -36,7 +36,9 @@ unit CnPrimeNumber;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.11.20 V1.6
+* 修改记录：2022.06.04 V1.7
+*               增加负模逆元与蒙哥马利约简以及基于此实现的快速模乘算法，能快一些
+*           2021.11.20 V1.6
 *               实现 AKS 精确素性判断算法。
 *           2018.08.30 V1.5
 *               修正 Random 精度不够导致 Int64 生成素数末尾可能连续出现 $FF 的问题
@@ -807,6 +809,12 @@ function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
 function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
 {* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
 
+function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、M 必须互质，否则返回 0}
+
+function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
+
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
@@ -826,6 +834,16 @@ function CnInt64ExtendedEuclideanGcd1(A, B: Int64; out X: Int64; out Y: Int64): 
 procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+
+function CnInt64MontgomeryReduction(T, RExp, N, NNegInv: TUInt64): TUInt64;
+{* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂
+  参数 RExp 为指数，比如 R 为 2^31 时，RExp 值传 31，
+  NNegInv 是预先计算好的 N 对 R 的负模逆元（不是针对指数的），T 不能为负且小于 N * R}
+
+function CnInt64MontgomeryMulMod(A, B, RExp, R2ModN, N, NNegInv: TUInt64): TUInt64;
+{* 蒙哥马利法快速计算 A * B mod N，范围是 UInt64，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数
+   R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元
+   比起 MultipleMod 实现，有一定提速作用}
 
 function CnInt64Legendre(A, P: Int64): Integer;
 {* 计算勒让德符号 ( A / P) 的值，范围为 Int64}
@@ -1923,6 +1941,18 @@ begin
     Result := Result + Modulus;
 end;
 
+// 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、M 必须互质，否则返回 0
+function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
+begin
+  Result := Modulus - CnInt64ModularInverse(X, Modulus);
+end;
+
+// 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
+function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
+begin
+  Result := Modulus - CnInt64ModularInverse2(X, Modulus);
+end;
+
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 var
@@ -2017,6 +2047,42 @@ begin
     CnInt64ExtendedEuclideanGcd2(B, UInt64Mod(A, B), Y, X);
     Y := Y - X * UInt64Div(A, B);
   end;
+end;
+
+// 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂，
+// NNegInv 是预先计算好的 N 对 R 的负模逆元，T 不能为负且小于 N * R}
+function CnInt64MontgomeryReduction(T, RExp, N, NNegInv: TUInt64): TUInt64;
+var
+  M: TUInt64;
+  R: TUInt64;
+begin
+  // 先计算 M := T * N' mod R 因为 R 是 2 次幂，所以可以快速保留低位，得到的 M < R
+  M := UInt64Mul(T, NNegInv);
+
+  R := (not 0) shr (64 - RExp);
+  M := M and R;
+
+  // 再复用 M 计算 M := (T + M * N) / R 因为 R 是 2 次幂，所以可以 M 快速右移做除法，且结果必为整数
+  M := UInt64Mul(M, N) + T;
+  M := M shr RExp;
+
+  if M >= N then
+    Result := M - N
+  else
+    Result := M;
+end;
+
+// 蒙哥马利法快速计算 A * B mod N，范围是 UInt64，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数
+// R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元
+function CnInt64MontgomeryMulMod(A, B, RExp, R2ModN, N, NNegInv: TUInt64): TUInt64;
+var
+  RA, RB, MM: TUInt64;
+begin
+  // 四次蒙哥马利约简，前两次让俩乘数进入域，第三次计算，第四次退出域
+  RA := CnInt64MontgomeryReduction(UInt64Mul(A, R2ModN), RExp, N, NNegInv);
+  RB := CnInt64MontgomeryReduction(UInt64Mul(B, R2ModN), RExp, N, NNegInv);
+  MM := CnInt64MontgomeryReduction(UInt64Mul(RA, RB), RExp, N, NNegInv);
+  Result := CnInt64MontgomeryReduction(MM, RExp, N, NNegInv);
 end;
 
 // 计算勒让德符号 ( A / P) 的值

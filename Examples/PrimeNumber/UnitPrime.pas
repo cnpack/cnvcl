@@ -96,6 +96,10 @@ type
     btnGenDH2: TButton;
     btnGenDH3: TButton;
     btnDHCheck2: TButton;
+    bvl21: TBevel;
+    btnMontReduct: TButton;
+    btnMontMulMod: TButton;
+    btnMontMulModTime: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -130,6 +134,9 @@ type
     procedure btnMoreAKSClick(Sender: TObject);
     procedure btnGenDH2Click(Sender: TObject);
     procedure btnGenDH3Click(Sender: TObject);
+    procedure btnMontReductClick(Sender: TObject);
+    procedure btnMontMulModClick(Sender: TObject);
+    procedure btnMontMulModTimeClick(Sender: TObject);
   private
 
   public
@@ -754,6 +761,85 @@ begin
     else
       ShowMessage('Check Fail');
   end;
+end;
+
+procedure TFormPrime.btnMontReductClick(Sender: TObject);
+var
+  NNegInv, N, R, RInv, T, Res: TUInt64;
+begin
+  // N = 53, R = 64  T = 864
+  N := 53;
+  R := 64;
+  RInv := CnInt64ModularInverse(N, R);
+  ShowMessage(UInt64ToStr(RInv)); // 29
+  T := 864;
+  NNegInv := CnInt64NegativeModularInverse(N, R);
+  ShowMessage(UInt64ToStr(NNegInv)); // 35
+
+  Res := CnInt64MontgomeryReduction(T, 6, N, NNegInv); // 2^6 = 64
+  // 快速计算 864 * 29 mod 53 = 25056 mod 53 = 40
+  ShowMessage(UInt64ToStr(Res));
+end;
+
+procedure TFormPrime.btnMontMulModClick(Sender: TObject);
+var
+  NNegInv, N, R, R2ModN, RInv, T, A, B: TUInt64;
+begin
+  // N = 53, R = 64  T = 18 * 48
+  N := 53;
+  R := 64;
+  RInv := CnInt64ModularInverse(N, R);
+  ShowMessage(UInt64ToStr(RInv)); // 29
+
+  NNegInv := CnInt64NegativeModularInverse(N, R);
+  ShowMessage(UInt64ToStr(NNegInv)); // 35
+
+  R2ModN := UInt64NonNegativeMulMod(R, R, N);
+
+  A := 18;
+  B := 48;
+  T := CnInt64MontgomeryMulMod(A, B, 6, R2ModN, N, NNegInv);
+  ShowMessage(UInt64ToStr(T)); // 18 * 48 mod 53 = 16
+end;
+
+procedure TFormPrime.btnMontMulModTimeClick(Sender: TObject);
+var
+  I: Integer;
+  T1, T2: Cardinal;
+  NNegInv, N, R, RExp, R2ModN, RInv, T, A, B: TUInt64;
+begin
+  N := 3294619793;
+  RExp := (GetUInt32HighBits(N) + 1);
+  R := TUInt64(1) shl RExp;
+  ShowMessage(UInt64ToHex(R)); // $1 00000000  EExp 为 32
+
+  RInv := CnInt64ModularInverse(N, R);
+  ShowMessage(UInt64ToStr(RInv)); // 1181800561
+
+  NNegInv := CnInt64NegativeModularInverse(N, R);
+  ShowMessage(UInt64ToStr(NNegInv)); // 3113166735
+
+  R2ModN := UInt64NonNegativeMulMod(R, R, N);
+  ShowMessage(UInt64ToStr(R2ModN));  // 1707957645
+
+  A := 1737946195;
+  B := 2974637459;
+  ShowMessage(UInt64ToStr(MultipleMod(A, B, N))); // 3148701007
+  ShowMessage(UInt64ToStr(CnInt64MontgomeryMulMod(A, B, RExp, R2ModN, N, NNegInv))); // 3148701007
+
+  T := 0;
+  T1 := GetTickCount;
+  for I := 1 to 100000 do
+    T := T + CnInt64MontgomeryMulMod(A, B, RExp, R2ModN, N, NNegInv);
+  T1 := GetTickCount - T1;
+
+  T := 0;
+  T2 := GetTickCount;
+  for I := 1 to 100000 do
+    T := T + MultipleMod(A, B, N);
+  T2 := GetTickCount - T2;
+
+  ShowMessage(Format('Mont %d, Direct %d', [T1, T2])); // 有一定提速作用
 end;
 
 end.
