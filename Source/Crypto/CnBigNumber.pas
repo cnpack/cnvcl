@@ -740,6 +740,9 @@ function BigNumberMontgomeryMulMod(const Res: TCnBigNumber;
 {* 蒙哥马利模乘法（内部使用四次蒙哥马利约简法）快速计算 A * B mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
   R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元}
 
+function BigNumberPowerWordMod(const Res: TCnBigNumber; A: TCnBigNumber; B: TCnLongWord32; C: TCnBigNumber): Boolean;
+{* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod}
+
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
 
@@ -2433,7 +2436,7 @@ begin
 {$ENDIF}
 end;
 
-{*  Words 系列内部计算函数结束}
+{* Words 系列内部计算函数结束}
 
 function BigNumberAnd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
@@ -4922,7 +4925,22 @@ begin
     FLocalBigNumberPool.Recycle(RA);
     FLocalBigNumberPool.Recycle(AA);
   end;
-end;  
+end;
+
+// 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod
+function BigNumberPowerWordMod(const Res: TCnBigNumber; A: TCnBigNumber;
+  B: TCnLongWord32; C: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  T := FLocalBigNumberPool.Obtain;
+  try
+    T.SetWord(B);
+    Result := BigNumberPowerMod(Res, A, T, C);
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
 
 // 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
