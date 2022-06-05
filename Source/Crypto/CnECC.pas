@@ -2363,6 +2363,8 @@ begin
   try
     R := TCnEccPoint.Create;
     E := TCnEccPoint.Create;
+
+    // R 被创建时默认为无穷远点
     E.X := Point.X;
     E.Y := Point.Y;
 
@@ -2376,8 +2378,8 @@ begin
     Point.X := R.X;
     Point.Y := R.Y;
   finally
-    R.Free;
     E.Free;
+    R.Free;
   end;
 end;
 
