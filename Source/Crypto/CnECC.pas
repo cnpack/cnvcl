@@ -22,12 +22,12 @@ unit CnECC;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：椭圆曲线算法单元
+* 单元名称：Weierstrass 椭圆曲线算法单元
 * 单元作者：刘啸
 * 备    注：目前实现了 Int64 范围内以及大数形式的形如 y^2 = x^3 + Ax + B mod p
 *           这类 Weierstrass 椭圆曲线的计算，x 和 y 限于有限素域。
 *           不包括 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
-*           也没有 Edwards 椭圆曲线 x^2 + y^2 = 1 + d * x^2 * y^2
+*           也没有扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
 * 开发平台：WinXP + Delphi 5.0
@@ -2257,26 +2257,32 @@ end;
 
 function TCnEcc.IsPointOnCurve(P: TCnEccPoint): Boolean;
 var
-  X, Y, A: TCnBigNumber;
+  X, Y: TCnBigNumber;
 begin
-  X := FEccBigNumberPool.Obtain;
-  Y := FEccBigNumberPool.Obtain;
-  A := FEccBigNumberPool.Obtain;
+  Result := False;
+  X := nil;
+  Y := nil;
 
   try
-    BigNumberCopy(X, P.X);
-    BigNumberCopy(Y, P.Y);
+    X := FEccBigNumberPool.Obtain;
+    if BigNumberCopy(X, P.X) = nil then
+      Exit;
 
-    BigNumberMul(Y, Y, Y);                // Y: Y^2
-    BigNumberMod(Y, Y, FFiniteFieldSize); // Y^2 mod P
+    Y := FEccBigNumberPool.Obtain;
+    if BigNumberCopy(Y, P.Y) = nil then
+      Exit;
+
+    if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then // Y: Y^2 mod P
+      Exit;
 
     CalcX3AddAXAddB(X);                   // X: X^3 + A*X + B
-    BigNumberMod(X, X, FFiniteFieldSize); // X: (X^3 + A*X + B) mod P
+    if not BigNumberMod(X, X, FFiniteFieldSize) then // X: (X^3 + A*X + B) mod P
+      Exit;
+
     Result := BigNumberCompare(X, Y) = 0;
   finally
-    FEccBigNumberPool.Recycle(X);
     FEccBigNumberPool.Recycle(Y);
-    FEccBigNumberPool.Recycle(A);
+    FEccBigNumberPool.Recycle(X);
   end;
 end;
 
