@@ -89,9 +89,6 @@ type
 
   ECnEccException = class(Exception);
 
-  TCnEccPrimeType = (pt4U3, pt8U5, pt8U1);
-  {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于椭圆曲线方程中快速求 Y}
-
   TCnInt64EccPoint = packed record
   {* Int64 范围内的椭圆曲线上的点描述结构}
     X: Int64;
@@ -120,7 +117,7 @@ type
     FFiniteFieldSize: Int64;
     FOrder: Int64;
     FSizeUFactor: Int64;
-    FSizePrimeType: TCnEccPrimeType;
+    FSizePrimeType: TCnPrimeType;
     F2Inverse: Int64; // 2 针对 FFiniteFieldSize 的模反，供雅可比坐标计算
   protected
     // Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
@@ -283,7 +280,7 @@ type
     FFiniteFieldSize: TCnBigNumber;
     FGenerator: TCnEccPoint;
     FSizeUFactor: TCnBigNumber;
-    FSizePrimeType: TCnEccPrimeType;
+    FSizePrimeType: TCnPrimeType;
     FCoFactor: Integer;
     F2Inverse: TCnBigNumber;
     function GetBitsCount: Integer;
@@ -2499,7 +2496,7 @@ end;
 function TCnEcc.PlainToPoint(Plain: TCnBigNumber;
   OutPoint: TCnEccPoint): Boolean;
 var
-  X, Y, Z, U, R, T, L, X3, C, M: TCnBigNumber;
+  X, Y, Z, U, R, T, X3: TCnBigNumber;
 begin
   Result := False;
   if Plain.IsNegative then
@@ -2514,10 +2511,7 @@ begin
   Z := nil;
   R := nil;
   T := nil;
-  L := nil;
   X3 := nil;
-  C := nil;
-  M := nil;
 
   try
     X := FEccBigNumberPool.Obtain;
@@ -2624,10 +2618,7 @@ begin
     FEccBigNumberPool.Recycle(U);
     FEccBigNumberPool.Recycle(R);
     FEccBigNumberPool.Recycle(T);
-    FEccBigNumberPool.Recycle(L);
     FEccBigNumberPool.Recycle(X3);
-    FEccBigNumberPool.Recycle(C);
-    FEccBigNumberPool.Recycle(M);
   end;
 end;
 

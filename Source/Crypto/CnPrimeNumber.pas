@@ -678,6 +678,10 @@ const
   CN_MAX_PRIME_LESS_THAN_SQRT_INT64 = 3037000493;
   CN_MIN_PRIME_MORE_THAN_SQRT_INT64 = 3037000507;
 
+type
+  TCnPrimeType = (pt4U3, pt8U5, pt8U1);
+  {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于二次剩余模素数求解}
+
 function CnPickRandomSmallPrime: Integer;
 {* 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数}
 
