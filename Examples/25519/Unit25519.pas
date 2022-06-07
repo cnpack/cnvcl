@@ -24,6 +24,7 @@ type
     btnEd25519GenKey: TButton;
     bvl1: TBevel;
     btnEd25519SignSample: TButton;
+    btnEd25519PointData: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -38,6 +39,7 @@ type
     procedure btnEd25519ExtendedMulClick(Sender: TObject);
     procedure btnEd25519GenKeyClick(Sender: TObject);
     procedure btnEd25519SignSampleClick(Sender: TObject);
+    procedure btnEd25519PointDataClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -365,6 +367,42 @@ begin
     Sig.ToArray(SigData);
   end;
   Sig.Free;
+end;
+
+procedure TForm25519.btnEd25519PointDataClick(Sender: TObject);
+var
+  Data: TCnEd25519Data;
+  P, Q: TCnEccPoint;
+  I, K: Integer;
+begin
+  FEd25519.PointToPlain(FEd25519.Generator, Data);
+
+  P := TCnEccPoint.Create;
+  FEd25519.PlainToPoint(Data, P);
+
+  if CnEccPointsEqual(P, FEd25519.Generator) then
+    ShowMessage('OK for G');
+
+  Q := TCnEccPoint.Create;
+  for I := 1 to 1000 do
+  begin
+    P.Assign(FEd25519.Generator);
+    K := Random(65536);
+    FEd25519.MultiplePoint(K, P);
+
+    FEd25519.PointToPlain(P, Data);
+    FEd25519.PlainToPoint(Data, Q);
+
+    if not CnEccPointsEqual(P, Q) then
+    begin
+      ShowMessage('Fail. ' + IntToStr(K));
+      Exit;
+    end;
+  end;
+  ShowMessage('OK');
+
+  Q.Free;
+  P.Free;
 end;
 
 end.

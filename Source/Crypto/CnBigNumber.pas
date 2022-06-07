@@ -509,11 +509,12 @@ function BigNumberWordExpand(const Num: TCnBigNumber; Words: Integer): TCnBigNum
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: Integer = 0): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
    返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度
-   大数长度超过 FixedLen 时按大数实际字节长度写，否则先写字节 0 补齐长度}
+   大数长度超过 FixedLen 时按大数实际字节长度写，否则先写字节 0 补齐长度
+   注意内部有个倒序的过程，也就是说低内存被写入的是大数内部的高位数据，符合阅读习惯}
 
 function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
   FixedLen: Integer = 0): Integer;
-{* 将一个大数的二进制部分写入流，返回写入流的长度。
+{* 将一个大数的二进制部分写入流，返回写入流的长度。注意内部有个倒序的过程
   FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 字节的长度
   大数长度超过 FixedLen 时按大数实际字节长度写}
 

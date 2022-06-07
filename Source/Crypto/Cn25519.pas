@@ -248,6 +248,9 @@ function CnEcc4PointToString(const P: TCnEcc4Point): string;
 function CnEcc4PointToHex(const P: TCnEcc4Point): string;
 {* 将一个 TCnEcc4Point 点坐标转换为十六进制字符串}
 
+function CnEcc4PointEqual(const P, Q: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+{* 判断两个 TCnEcc4Point 是否同一个点}
+
 function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的普通坐标到扩展仿射坐标的点转换}
 
@@ -256,6 +259,10 @@ function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNu
 
 function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
 {* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，返回转换是否成功}
+
+function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean): Boolean;
+{* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式，返回转换是否成功，
+  如果成功，P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数}
 
 function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Boolean;
 {* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
@@ -1029,8 +1036,7 @@ begin
     G := F25519BigNumberPool.Obtain;
     H := F25519BigNumberPool.Obtain;
 
-    if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) and
-      (BigNumberCompare(P.Z, Q.Z) = 0) then
+    if CnEcc4PointEqual(P, Q, FFiniteFieldSize) then
     begin
       // 是同一个点
       if not BigNumberDirectMulMod(A, P.X, P.X, FFiniteFieldSize) then // A = X1^2
@@ -1214,6 +1220,44 @@ begin
   Result := Format('%s,%s,%s,%s', [P.X.ToHex, P.Y.ToHex, P.Z.ToHex, P.T.ToHex]);
 end;
 
+function CnEcc4PointEqual(const P, Q: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+var
+  T1, T2: TCnBigNumber;
+begin
+  // X1Z2 = X2Z1 且 Y1Z2 = Y2Z1
+  Result := False;
+  if P = Q then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  T1 := nil;
+  T2 := nil;
+
+  try
+    T1 := F25519BigNumberPool.Obtain;
+    T2 := F25519BigNumberPool.Obtain;
+
+    BigNumberDirectMulMod(T1, P.X, Q.Z, Prime);
+    BigNumberDirectMulMod(T2, Q.X, P.Z, Prime);
+
+    if not BigNumberEqual(T1, T2) then
+      Exit;
+
+    BigNumberDirectMulMod(T1, P.Y, Q.Z, Prime);
+    BigNumberDirectMulMod(T2, Q.Y, P.Z, Prime);
+
+    if not BigNumberEqual(T1, T2) then
+      Exit;
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(T2);
+    F25519BigNumberPool.Recycle(T1);
+  end;
+end;
+
 function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
 begin
   Result := False;
@@ -1235,13 +1279,34 @@ begin
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   P.Y.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
-  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序，需要
+  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序，需要倒一下
 
   if P.X.IsOdd then // X 是奇数，最低位是 1
     Data[CN_ED25519_BLOCK_BYTESIZE - 1] := Data[CN_ED25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
   else
     Data[CN_ED25519_BLOCK_BYTESIZE - 1] := Data[CN_ED25519_BLOCK_BYTESIZE - 1] and $7F; // 高位清 0
 
+  Result := True;
+end;
+
+function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint;
+  out XOdd: Boolean): Boolean;
+var
+  D: TCnEd25519Data;
+begin
+  Result := False;
+  if P = nil then
+    Exit;
+
+  Move(Data[0], D[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  P.Y.SetBinary(@D[0], SizeOf(TCnEd25519Data));
+
+  // 最高位是否是 0 表示了 X 的奇偶
+  XOdd := P.Y.IsBitSet(8 * CN_ED25519_BLOCK_BYTESIZE - 1);
+
+  // 最高位得清零
+  P.Y.ClearBit(8 * CN_ED25519_BLOCK_BYTESIZE - 1);
   Result := True;
 end;
 
@@ -1393,9 +1458,60 @@ end;
 
 function TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
   OutPoint: TCnEccPoint): Boolean;
+var
+  XOdd: Boolean;
+  T, Y, Inv: TCnBigNumber;
 begin
   Result := False;
-  raise Exception.Create('NOT Implemented');
+  if OutPoint = nil then
+    Exit;
+
+  // 先从 Plain 中还原 Y 坐标以及 X 点的奇偶性
+  if not CnEd25519DataToPoint(Plain, OutPoint, XOdd) then
+    Exit;
+
+  // 得到 Y 后求解 x 的方程 x^2 = (Y^2 - 1) / (D*Y^2 + 1) mod P
+  // 注意素数 25519 是 8u5 的形式
+
+  T := nil;
+  Y := nil;
+  Inv := nil;
+
+  try
+    T := F25519BigNumberPool.Obtain;
+    Y := F25519BigNumberPool.Obtain;
+
+    if not BigNumberDirectMulMod(Y, OutPoint.Y, OutPoint.Y, FFiniteFieldSize) then
+      Exit;
+    Y.SubWord(1); // Y := Y^2 - 1
+
+    if not BigNumberDirectMulMod(T, OutPoint.Y, OutPoint.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize) then
+      Exit;
+    T.AddWord(1); // T := D*Y^2 + 1
+
+    Inv := F25519BigNumberPool.Obtain;
+    if not BigNumberModularInverse(Inv, T, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberDirectMulMod(Y, Y, Inv, FFiniteFieldSize) then // Y 得到方程右边的值
+      Exit;
+
+    if not BigNumberSquareRootModPrime(OutPoint.X, Y, FFiniteFieldSize) then
+      Exit;
+
+    // 算出 X 了
+    if OutPoint.X.IsBitSet(0) <> XOdd then
+      if BigNumberSub(OutPoint.X, FFiniteFieldSize, OutPoint.X) then
+        Exit;
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(Inv);
+    F25519BigNumberPool.Recycle(Y);
+    F25519BigNumberPool.Recycle(T);
+  end;
 end;
 
 function TCnEd25519.PointToPlain(Point: TCnEccPoint;
@@ -1479,8 +1595,10 @@ var
   Data: TCnEd25519Data;
 begin
   FillChar(Sig[0], SizeOf(TCnEd25519SignatureData), 0);
+
   CnEd25519PointToData(FR, Data);
   Move(Data[0], Sig[0], SizeOf(TCnEd25519Data));
+
   CnEd25519BigNumberToData(FS, Data);
   Move(Data[0], Sig[SizeOf(TCnEd25519Data)], SizeOf(TCnEd25519Data));
 end;

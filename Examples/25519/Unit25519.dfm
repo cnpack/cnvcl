@@ -146,6 +146,15 @@ object Form25519: TForm25519
           TabOrder = 11
           OnClick = btnEd25519SignSampleClick
         end
+        object btnEd25519PointData: TButton
+          Left = 432
+          Top = 176
+          Width = 185
+          Height = 25
+          Caption = 'Ed25519 G Point Data'
+          TabOrder = 12
+          OnClick = btnEd25519PointDataClick
+        end
       end
     end
   end
