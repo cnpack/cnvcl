@@ -103,6 +103,24 @@ object Form25519: TForm25519
           TabOrder = 7
           OnClick = btnEd25519GMulClick
         end
+        object btnEd25519ExtendedAdd: TButton
+          Left = 224
+          Top = 104
+          Width = 185
+          Height = 25
+          Caption = 'Ed25519 G Extended Add'
+          TabOrder = 8
+          OnClick = btnEd25519ExtendedAddClick
+        end
+        object btnEd25519ExtendedMul: TButton
+          Left = 640
+          Top = 104
+          Width = 185
+          Height = 25
+          Caption = 'Ed25519 G Extended Mul'
+          TabOrder = 9
+          OnClick = btnEd25519ExtendedMulClick
+        end
       end
     end
   end

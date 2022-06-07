@@ -27,10 +27,13 @@ unit Cn25519;
 * 备    注：目前实现了 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
 *           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 的点加减乘
 *           暂未实现仅基于 X 以及蒙哥马利阶梯的快速计算
+*           签名基于 rfc 8032 的说明
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.05 V1.0
+* 修改记录：2022.06.07 V1.1
+*               实现 Ed25519 扩展四元坐标的快速点加与标量乘实现，速度快十倍以上
+*           2022.06.05 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -40,9 +43,28 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl, CnBigNumber, CnECC;
+  Classes, SysUtils, CnNativeDecl, CnBigNumber, CnECC, CnSHA2;
+
+const
+  CN_ED25519_PRIVATE_KEY_BYTESIZE = 32;
 
 type
+  TCnEcc4Point = class(TCnEcc3Point)
+  {* 扩展的射影/仿射/雅可比坐标点，增加了 T 用于记录中间结果}
+  private
+    FT: TCnBigNumber;
+    procedure SetT(const Value: TCnBigNumber);
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
+
+    function ToString: string; override; // 基类有 ToString
+
+    property T: TCnBigNumber read FT write SetT;
+  end;
+
   TCnTwistedEdwardsCurve = class
   {* 有限域上的扭曲爱德华曲线 au^2 + v^2 = 1 + du^2v^2 (其中 u v 与蒙哥马利曲线的 x y 有映射关系)}
   private
@@ -167,7 +189,65 @@ type
   {* rfc 7748/8032 中规定的 Ed25519 曲线}
   public
     constructor Create; override;
+
+    function GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey): Boolean;
+    {* 生成一对 Ed25519 椭圆曲线的公私钥}
+
+    function IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
+    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同}
+    procedure SetNeutualExtendedPoint(P: TCnEcc4Point);
+    {* 将点设为中性点，也就是 X := 0 且 Y := 1}
+
+    function ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point): Boolean;
+    {* 使用扩展扭曲爱德华坐标（四元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    function ExtendedPointSubPoint(P, Q, Diff: TCnEcc4Point): Boolean;
+    {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    procedure ExtendedPointInverse(P: TCnEcc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
+    function IsExtendedPointOnCurve(P: TCnEcc4Point): Boolean;
+    {* 判断扩展扭曲爱德华坐标（四元） P 点是否在本曲线上}
+
+    procedure ExtendedMultiplePoint(K: Int64; Point: TCnEcc4Point); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    procedure ExtendedMultiplePoint(K: TCnBigNumber; Point: TCnEcc4Point); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入 P，速度比普通标量乘快十倍以上}
+
   end;
+
+  TCnEd25519Sigature = class(TPersistent)
+  {* Ed25519 的签名，是一个点与一个大数，与 TCnEccSignature 不同}
+  private
+    FR: TCnEccPoint;
+    FS: TCnBigNumber;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
+
+    property R: TCnEccPoint read FR;
+    property S: TCnBigNumber read FS;
+  end;
+
+function CnEcc4PointToString(const P: TCnEcc4Point): string;
+{* 将一个 TCnEcc4Point 点坐标转换为十进制字符串}
+
+function CnEcc4PointToHex(const P: TCnEcc4Point): string;
+{* 将一个 TCnEcc4Point 点坐标转换为十六进制字符串}
+
+function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+{* 大数范围内的普通坐标到扩展仿射坐标的点转换}
+
+function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+{* 大数范围内的扩展仿射坐标到普通坐标的点转换}
+
+function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Sigature; Ed25519: TCnEd25519 = nil): Boolean;
+{* Ed25519 用公私钥对数据块进行签名，返回签名是否成功}
+
+function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Sigature;
+  PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519 = nil): Boolean;
+{* Ed25519 用公钥对数据块与签名进行验证，返回验证是否成功}
 
 implementation
 
@@ -210,6 +290,50 @@ const
 
 var
   F25519BigNumberPool: TCnBigNumberPool = nil;
+
+function CalcBigNumberDigest(const Num: TCnBigNumber; FixedLen: Integer): TSHA512Digest;
+var
+  Stream: TStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    FillChar(Result[0], SizeOf(TSHA512Digest), 0);
+    if BigNumberWriteBinaryToStream(Num, Stream, FixedLen) <> FixedLen then
+      Exit;
+
+    Result := SHA512Stream(Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+// 根据随机私钥，生成公钥与 Ed25519 签名使用的 Hash 种子
+function CalcBigNumbersFromPrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+  OutMulFactor, OutHashPrefix: TCnBigNumber): Boolean;
+var
+  Dig: TSHA512Digest;
+begin
+  // 拿 PrivateKey 做 Sha512，得到 64 字节结果 Dig
+  Dig := CalcBigNumberDigest(InPrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE);
+
+  // 拿它做 Sha512，得到 64 字节结果，前 32 字节取来做乘数，但低 3 位得清零，
+  // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1
+  if OutMulFactor <> nil then
+  begin
+    OutMulFactor.SetBinary(@Dig[0], CN_ED25519_PRIVATE_KEY_BYTESIZE);
+    OutMulFactor.ClearBit(0);                                       // 低三位置 0
+    OutMulFactor.ClearBit(1);
+    OutMulFactor.ClearBit(2);
+    OutMulFactor.ClearBit(CN_ED25519_PRIVATE_KEY_BYTESIZE * 8 - 1); // 最高位置 0
+    OutMulFactor.SetBit(CN_ED25519_PRIVATE_KEY_BYTESIZE * 8 - 2);   // 次高位置 1
+  end;
+
+  // 后 32 字节作为 Hash 的入口参数
+  if OutHashPrefix <> nil then
+    OutHashPrefix.SetBinary(@Dig[CN_ED25519_PRIVATE_KEY_BYTESIZE], CN_ED25519_PRIVATE_KEY_BYTESIZE);
+
+  Result := True;
+end;
 
 { TCnTwistedEdwardsCurve }
 
@@ -368,7 +492,7 @@ function TCnTwistedEdwardsCurve.PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
 var
   X, Y, T, D1, D2, N1, N2: TCnBigNumber;
 begin
-//            x1 * y2 + x2 * y1                y1 * y2 - a * x1 * x2
+//            x1 * y2 + x2 * y1                 y1 * y2 - a * x1 * x2
 //   x3 = --------------------------,   y3 = ---------------------------  并且无需考虑 P/Q 是否同一点
 //         1 + d * x1 * x2 * y1 * y2          1 - d * x1 * x2 * y1 * y2
 
@@ -794,6 +918,452 @@ begin
   inherited;
   Load(SCN_25519_EDWARDS_A, SCN_25519_EDWARDS_D, SCN_25519_PRIME, SCN_25519_EDWARDS_GX,
     SCN_25519_EDWARDS_GY, SCN_25519_ORDER, 8);
+end;
+
+procedure TCnEd25519.ExtendedMultiplePoint(K: Int64; Point: TCnEcc4Point);
+var
+  BK: TCnBigNumber;
+begin
+  BK := F25519BigNumberPool.Obtain;
+  try
+    BK.SetInt64(K);
+    ExtendedMultiplePoint(BK, Point);
+  finally
+    F25519BigNumberPool.Recycle(BK);
+  end;
+end;
+
+procedure TCnEd25519.ExtendedMultiplePoint(K: TCnBigNumber;
+  Point: TCnEcc4Point);
+var
+  I: Integer;
+  E, R: TCnEcc4Point;
+begin
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    ExtendedPointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then
+  begin
+    SetNeutualExtendedPoint(Point);
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  R := nil;
+  E := nil;
+
+  try
+    R := TCnEcc4Point.Create;
+    E := TCnEcc4Point.Create;
+
+    // R 要是中性点
+    SetNeutualExtendedPoint(R);
+
+    E.X := Point.X;
+    E.Y := Point.Y;
+    E.Z := Point.Z;
+    E.T := Point.T;
+
+    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    begin
+      if BigNumberIsBitSet(K, I) then
+        ExtendedPointAddPoint(R, E, R);
+      ExtendedPointAddPoint(E, E, E);
+    end;
+
+    Point.X := R.X;
+    Point.Y := R.Y;
+    Point.Z := R.Z;
+  finally
+    R.Free;
+    E.Free;
+  end;
+end;
+
+function TCnEd25519.ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point): Boolean;
+var
+  A, B, C, D, E, F, G, H: TCnBigNumber;
+begin
+  Result := False;
+  A := nil;
+  B := nil;
+  C := nil;
+  D := nil;
+  E := nil;
+  F := nil;
+  G := nil;
+  H := nil;
+
+  try
+    A := F25519BigNumberPool.Obtain;
+    B := F25519BigNumberPool.Obtain;
+    C := F25519BigNumberPool.Obtain;
+    D := F25519BigNumberPool.Obtain;
+    E := F25519BigNumberPool.Obtain;
+    F := F25519BigNumberPool.Obtain;
+    G := F25519BigNumberPool.Obtain;
+    H := F25519BigNumberPool.Obtain;
+
+    if (BigNumberCompare(P.X, Q.X) = 0) and (BigNumberCompare(P.Y, Q.Y) = 0) and
+      (BigNumberCompare(P.Z, Q.Z) = 0) then
+    begin
+      // 是同一个点
+      if not BigNumberDirectMulMod(A, P.X, P.X, FFiniteFieldSize) then // A = X1^2
+        Exit;
+
+      if not BigNumberDirectMulMod(B, P.Y, P.Y, FFiniteFieldSize) then // B = Y1^2
+        Exit;
+
+      if not BigNumberDirectMulMod(C, P.Z, P.Z, FFiniteFieldSize) then 
+        Exit;
+      if not BigNumberAddMod(C, C, C, FFiniteFieldSize) then     // C = 2*Z1^2
+        Exit;
+
+      if not BigNumberAddMod(H, A, B, FFiniteFieldSize) then     // H = A+B
+        Exit;
+
+      if not BigNumberAddMod(E, P.X, P.Y, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberDirectMulMod(E, E, E, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberSubMod(E, H, E, FFiniteFieldSize) then     // E = H-(X1+Y1)^2
+        Exit;
+
+      if not BigNumberSubMod(G, A, B, FFiniteFieldSize) then     // G = A-B
+        Exit;
+
+      if not BigNumberAddMod(F, C, G, FFiniteFieldSize) then     // F = C+G
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.X, E, F, FFiniteFieldSize) then // X3 = E*F
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.Y, G, H, FFiniteFieldSize) then // Y3 = G*H
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.T, E, H, FFiniteFieldSize) then // T3 = E*H
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.Z, F, G, FFiniteFieldSize) then // Z3 = F*G
+        Exit;
+
+      Result := True;
+    end
+    else
+    begin
+      // 不是同一个点。先用 G H 做临时变量
+      if not BigNumberSubMod(G, P.Y, P.X, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberSubMod(H, Q.Y, Q.X, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberDirectMulMod(A, G, H, FFiniteFieldSize) then // A = (Y1-X1)*(Y2-X2)
+        Exit;
+
+      if not BigNumberAddMod(G, P.Y, P.X, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberAddMod(H, Q.Y, Q.X, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberDirectMulMod(B, G, H, FFiniteFieldSize) then  // B = (Y1+X1)*(Y2+X2)
+        Exit;
+
+      if not BigNumberAdd(C, FCoefficientD, FCoefficientD) then
+        Exit;
+      if not BigNumberDirectMulMod(C, P.T, C, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberDirectMulMod(C, Q.T, C, FFiniteFieldSize) then  // C = T1*2*d*T2
+        Exit;
+
+      if not BigNumberAdd(D, P.Z, P.Z) then
+        Exit;
+      if not BigNumberDirectMulMod(D, Q.Z, D, FFiniteFieldSize) then  // D = Z1*2*Z2
+        Exit;
+
+      if not BigNumberSubMod(E, B, A, FFiniteFieldSize) then  // E = B-A
+        Exit;
+
+      if not BigNumberSubMod(F, D, C, FFiniteFieldSize) then  // F = D-C
+        Exit;
+
+      if not BigNumberAddMod(G, D, C, FFiniteFieldSize) then  // G = D+C
+        Exit;
+      if not BigNumberAddMod(H, B, A, FFiniteFieldSize) then  // H = B+A
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.X, E, F, FFiniteFieldSize) then  // X3 = E*F
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.Y, G, H, FFiniteFieldSize) then  // Y3 = G*H
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.T, E, H, FFiniteFieldSize) then  // T3 = E*H
+        Exit;
+
+      if not BigNumberDirectMulMod(Sum.Z, F, G, FFiniteFieldSize) then  // Z3 = F*G
+        Exit;
+
+      Result := True;
+    end;
+  finally
+    F25519BigNumberPool.Recycle(H);
+    F25519BigNumberPool.Recycle(G);
+    F25519BigNumberPool.Recycle(F);
+    F25519BigNumberPool.Recycle(E);
+    F25519BigNumberPool.Recycle(D);
+    F25519BigNumberPool.Recycle(C);
+    F25519BigNumberPool.Recycle(B);
+    F25519BigNumberPool.Recycle(A);
+  end;
+end;
+
+procedure TCnEd25519.ExtendedPointInverse(P: TCnEcc4Point);
+var
+  T: TCnBigNumber;
+begin
+  T := F25519BigNumberPool.Obtain;
+  try
+    BigNumberDirectMulMod(T, P.Z, FFiniteFieldSize, FFiniteFieldSize);
+    BigNumberSubMod(P.X, T, P.X, FFiniteFieldSize);
+
+    // T := X * Y / Z^3
+    BigNumberPowerWordMod(T, P.Z, 3, FFiniteFieldSize);
+    BigNumberModularInverse(T, T, FFiniteFieldSize); // T 是 Z^3 的逆元
+    BigNumberDirectMulMod(P.T, P.X, P.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(P.T, P.T, T, FFiniteFieldSize);
+  finally
+    F25519BigNumberPool.Recycle(T);
+  end;
+end;
+
+function TCnEd25519.ExtendedPointSubPoint(P, Q,
+  Diff: TCnEcc4Point): Boolean;
+var
+  Inv: TCnEcc4Point;
+begin
+  Inv := TCnEcc4Point.Create;
+  try
+    Inv.Assign(Q);
+    ExtendedPointInverse(Inv);
+    Result := ExtendedPointAddPoint(P, Inv, Diff);
+  finally
+    Inv.Free;
+  end;
+end;
+
+function TCnEd25519.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean;
+var
+  K: TCnBigNumber;
+begin
+  Result := False;
+
+  // 随机 32 字节做 PrivateKey
+  if not BigNumberRandBytes(PrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE) then
+    Exit;
+
+  K := F25519BigNumberPool.Obtain;
+  try
+
+    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE,
+      K, nil) then
+      Exit;
+
+    // 该乘数 K 乘以 G 点得到公钥
+    PublicKey.Assign(FGenerator);
+    MultiplePoint(K, PublicKey);                         // 基点乘 K 次
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(K);
+  end;
+end;
+
+function CnEcc4PointToString(const P: TCnEcc4Point): string;
+begin
+  Result := Format('%s,%s,%s,%s', [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, P.T.ToDec]);
+end;
+
+function CnEcc4PointToHex(const P: TCnEcc4Point): string;
+begin
+  Result := Format('%s,%s,%s,%s', [P.X.ToHex, P.Y.ToHex, P.Z.ToHex, P.T.ToHex]);
+end;
+
+function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+begin
+  Result := False;
+  if not CnEccPointToEcc3Point(P, P4) then
+    Exit;
+  Result := BigNumberDirectMulMod(P4.T, P.X, P.Y, Prime);
+end;
+
+function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+begin
+  Result := CnAffinePointToEccPoint(P4, P, Prime);
+end;
+
+function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Sigature; Ed25519: TCnEd25519): Boolean;
+var
+  Is25519Nil: Boolean;
+  Stream: TMemoryStream;
+  K, HP: TCnBigNumber;
+  Dig: TSHA512Digest;
+begin
+  Result := False;
+  if (PlainData = nil) or (DataLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
+    or (OutSignature = nil) then
+    Exit;
+
+  K := nil;
+  HP := nil;
+  Stream := nil;
+  Is25519Nil := Ed25519 = nil;
+
+  try
+    if Is25519Nil then
+      Ed25519 := TCnEd25519.Create;
+
+    K := F25519BigNumberPool.Obtain;
+    HP := F25519BigNumberPool.Obtain;
+
+    // 根据私钥得到乘数与杂凑前缀
+    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE, nil, HP) then
+      Exit;
+
+    // 杂凑前缀拼上原始文字
+    Stream := TMemoryStream.Create;
+    BigNumberWriteBinaryToStream(HP, Stream, CN_ED25519_PRIVATE_KEY_BYTESIZE);
+    Stream.Write(PlainData^, DataLen);
+
+    // 计算出 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
+    K.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    if not BigNumberNonNegativeMod(K, K, Ed25519.Order) then // 乘数太大先 mod 一下阶
+      Exit;
+
+    OutSignature.R.Assign(Ed25519.Generator);
+    Ed25519.MultiplePoint(K, OutSignature.R);      // 计算得到签名值 R，该值是一个点坐标
+
+    // 再 Hash 计算 S，但 R 转换为字节还没搞懂，没法 Hash
+    raise Exception.Create('NOT Implemented');
+  finally
+    Stream.Free;
+    F25519BigNumberPool.Recycle(HP);
+    F25519BigNumberPool.Recycle(K);
+    if Is25519Nil then
+      Ed25519.Free;
+  end;
+end;
+
+function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Sigature;
+  PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519): Boolean;
+var
+  Is25519Nil: Boolean;
+begin
+  Result := False;
+  if (PlainData = nil) or (DataLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
+    Exit;
+
+  Is25519Nil := Ed25519 = nil;
+
+  try
+    if Is25519Nil then
+      Ed25519 := TCnEd25519.Create;
+
+    raise Exception.Create('NOT Implemented');
+  finally
+
+    if Is25519Nil then
+      Ed25519.Free;
+  end;
+end;
+
+function TCnEd25519.IsExtendedPointOnCurve(P: TCnEcc4Point): Boolean;
+var
+  Q: TCnEccPoint;
+begin
+  Q := TCnEccPoint.Create;
+  try
+    CnEcc4PointToEccPoint(P, Q, FFiniteFieldSize);
+    Result := IsPointOnCurve(Q);
+  finally
+    Q.Free;
+  end;
+end;
+
+function TCnEd25519.IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
+begin
+  Result := P.X.IsZero and P.T.IsZero and not P.Y.IsZero and not P.Z.IsZero
+    and BigNumberEqual(P.Y, P.Z);
+end;
+
+procedure TCnEd25519.SetNeutualExtendedPoint(P: TCnEcc4Point);
+begin
+  P.X.SetZero;
+  P.Y.SetOne;
+  P.Z.SetOne;
+  P.T.SetZero;
+end;
+
+{ TCnEd25519Sigature }
+
+procedure TCnEd25519Sigature.Assign(Source: TPersistent);
+begin
+  if Source is TCnEd25519Sigature then
+  begin
+    FR.Assign((Source as TCnEd25519Sigature).R);
+    BigNumberCopy(FS, (Source as TCnEd25519Sigature).S);
+  end
+  else
+    inherited;
+end;
+
+constructor TCnEd25519Sigature.Create;
+begin
+  inherited;
+  FR := TCnEccPoint.Create;
+  FS := TCnBigNumber.Create;
+end;
+
+destructor TCnEd25519Sigature.Destroy;
+begin
+  FS.Free;
+  FR.Free;
+  inherited;
+end;
+
+{ TCnEcc4Point }
+
+procedure TCnEcc4Point.Assign(Source: TPersistent);
+begin
+  if Source is TCnEcc4Point then
+    BigNumberCopy(FT, (Source as TCnEcc4Point).T);
+  inherited;
+end;
+
+constructor TCnEcc4Point.Create;
+begin
+  inherited;
+  FT := TCnBigNumber.Create;
+end;
+
+destructor TCnEcc4Point.Destroy;
+begin
+  FT.Free;
+  inherited;
+end;
+
+procedure TCnEcc4Point.SetT(const Value: TCnBigNumber);
+begin
+  BigNumberCopy(FT, Value);
+end;
+
+function TCnEcc4Point.ToString: string;
+begin
+  Result := CnEcc4PointToHex(Self);
 end;
 
 initialization

@@ -231,6 +231,10 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ELSE} virtual; {$ENDIF}
+
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
     property Z: TCnBigNumber read FZ write SetZ;
@@ -7025,8 +7029,21 @@ end;
 
 { TCnEcc3Point }
 
+procedure TCnEcc3Point.Assign(Source: TPersistent);
+begin
+  if Source is TCnEcc3Point then
+  begin
+    BigNumberCopy(FX, (Source as TCnEcc3Point).X);
+    BigNumberCopy(FY, (Source as TCnEcc3Point).Y);
+    BigNumberCopy(FZ, (Source as TCnEcc3Point).Z);
+  end
+  else
+    inherited;
+end;
+
 constructor TCnEcc3Point.Create;
 begin
+  inherited;
   FX := TCnBigNumber.Create;
   FY := TCnBigNumber.Create;
   FZ := TCnBigNumber.Create;
@@ -7053,6 +7070,11 @@ end;
 procedure TCnEcc3Point.SetZ(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FZ, Value);
+end;
+
+function TCnEcc3Point.ToString: string;
+begin
+  Result := CnEcc3PointToHex(Self);
 end;
 
 { TCnEccSignature }
