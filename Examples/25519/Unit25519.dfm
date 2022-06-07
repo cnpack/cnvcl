@@ -31,6 +31,13 @@ object Form25519: TForm25519
         Height = 473
         Caption = '25519 Basic'
         TabOrder = 0
+        object bvl1: TBevel
+          Left = 16
+          Top = 152
+          Width = 897
+          Height = 25
+          Shape = bsTopLine
+        end
         object btnCurve25519G: TButton
           Left = 16
           Top = 24
@@ -120,6 +127,24 @@ object Form25519: TForm25519
           Caption = 'Ed25519 G Extended Mul'
           TabOrder = 9
           OnClick = btnEd25519ExtendedMulClick
+        end
+        object btnEd25519GenKey: TButton
+          Left = 16
+          Top = 176
+          Width = 185
+          Height = 25
+          Caption = 'Ed25519 Gen Key'
+          TabOrder = 10
+          OnClick = btnEd25519GenKeyClick
+        end
+        object btnEd25519SignSample: TButton
+          Left = 224
+          Top = 176
+          Width = 185
+          Height = 25
+          Caption = 'Ed25519 Sign Sample'
+          TabOrder = 11
+          OnClick = btnEd25519SignSampleClick
         end
       end
     end

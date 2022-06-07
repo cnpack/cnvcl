@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnECC, Cn25519;
+  StdCtrls, ComCtrls, CnECC, Cn25519, ExtCtrls;
 
 type
   TForm25519 = class(TForm)
@@ -21,6 +21,9 @@ type
     btnEd25519GMul: TButton;
     btnEd25519ExtendedAdd: TButton;
     btnEd25519ExtendedMul: TButton;
+    btnEd25519GenKey: TButton;
+    bvl1: TBevel;
+    btnEd25519SignSample: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -33,9 +36,13 @@ type
     procedure btnEd25519GMulClick(Sender: TObject);
     procedure btnEd25519ExtendedAddClick(Sender: TObject);
     procedure btnEd25519ExtendedMulClick(Sender: TObject);
+    procedure btnEd25519GenKeyClick(Sender: TObject);
+    procedure btnEd25519SignSampleClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
+    FPrivKey: TCnEccPrivateKey;
+    FPubKey: TCnEccPublicKey;
   public
 
   end;
@@ -51,10 +58,14 @@ procedure TForm25519.FormCreate(Sender: TObject);
 begin
   FCurve25519 := TCnCurve25519.Create;
   FEd25519 := TCnEd25519.Create;
+  FPrivKey := TCnEccPrivateKey.Create;
+  FPubKey := TCnEccPublicKey.Create;
 end;
 
 procedure TForm25519.FormDestroy(Sender: TObject);
 begin
+  FPubKey.Free;
+  FPrivKey.Free;
   FEd25519.Free;
   FCurve25519.Free;
 end;
@@ -329,6 +340,31 @@ begin
   Q.Free;
   P4.Free;
   P.Free;
+end;
+
+procedure TForm25519.btnEd25519GenKeyClick(Sender: TObject);
+var
+  Data: TCnEd25519Data;
+begin
+  FEd25519.GenerateKeys(FPrivKey, FPubKey);
+  FEd25519.PointToPlain(FPubKey, Data);
+  ShowMessage(FPubKey.ToString);
+end;
+
+procedure TForm25519.btnEd25519SignSampleClick(Sender: TObject);
+var
+  B: Byte;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+begin
+  B := $72;
+  Sig := TCnEd25519Signature.Create;
+  if CnEd25519SignData(@B, 1, FPrivKey, FPubKey, Sig) then
+  begin
+    ShowMessage('Sign OK');
+    Sig.ToArray(SigData);
+  end;
+  Sig.Free;
 end;
 
 end.

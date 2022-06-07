@@ -46,7 +46,7 @@ uses
   Classes, SysUtils, CnNativeDecl, CnBigNumber, CnECC, CnSHA2;
 
 const
-  CN_ED25519_PRIVATE_KEY_BYTESIZE = 32;
+  CN_ED25519_BLOCK_BYTESIZE = 32;
 
 type
   TCnEcc4Point = class(TCnEcc3Point)
@@ -185,6 +185,10 @@ type
     constructor Create; override;
   end;
 
+  TCnEd25519Data = array[0..CN_ED25519_BLOCK_BYTESIZE - 1] of Byte;
+
+  TCnEd25519SignatureData = array[0..2 * CN_ED25519_BLOCK_BYTESIZE - 1] of Byte;
+
   TCnEd25519 = class(TCnTwistedEdwardsCurve)
   {* rfc 7748/8032 中规定的 Ed25519 曲线}
   public
@@ -192,6 +196,11 @@ type
 
     function GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey): Boolean;
     {* 生成一对 Ed25519 椭圆曲线的公私钥}
+
+    function PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint): Boolean;
+    {* 将 32 字节值转换为坐标点，涉及到求解}
+    function PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data): Boolean;
+    {* 将点坐标转换成 32 字节值，拼 Y 并放 X 正负一位}
 
     function IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
     {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同}
@@ -211,10 +220,9 @@ type
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure ExtendedMultiplePoint(K: TCnBigNumber; Point: TCnEcc4Point); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P，速度比普通标量乘快十倍以上}
-
   end;
 
-  TCnEd25519Sigature = class(TPersistent)
+  TCnEd25519Signature = class(TPersistent)
   {* Ed25519 的签名，是一个点与一个大数，与 TCnEccSignature 不同}
   private
     FR: TCnEccPoint;
@@ -225,8 +233,13 @@ type
 
     procedure Assign(Source: TPersistent); override;
 
+    procedure ToArray(var Sig: TCnEd25519SignatureData);
+    {* 内容转换成 64 字节签名数组供存储与传输}
+
     property R: TCnEccPoint read FR;
+    {* 签名点 R}
     property S: TCnBigNumber read FS;
+    {* 签名数 S}
   end;
 
 function CnEcc4PointToString(const P: TCnEcc4Point): string;
@@ -241,11 +254,17 @@ function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNu
 function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的扩展仿射坐标到普通坐标的点转换}
 
+function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
+{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，返回转换是否成功}
+
+function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Boolean;
+{* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
+
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Sigature; Ed25519: TCnEd25519 = nil): Boolean;
+  PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公私钥对数据块进行签名，返回签名是否成功}
 
-function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Sigature;
+function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公钥对数据块与签名进行验证，返回验证是否成功}
 
@@ -314,23 +333,25 @@ var
   Dig: TSHA512Digest;
 begin
   // 拿 PrivateKey 做 Sha512，得到 64 字节结果 Dig
-  Dig := CalcBigNumberDigest(InPrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE);
+  Dig := CalcBigNumberDigest(InPrivateKey, CN_ED25519_BLOCK_BYTESIZE);
 
-  // 拿它做 Sha512，得到 64 字节结果，前 32 字节取来做乘数，但低 3 位得清零，
+  // 拿它做 Sha512，得到 64 字节结果，前 32 字节取来做乘数，先倒序，低 3 位得清零，
   // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1
   if OutMulFactor <> nil then
   begin
-    OutMulFactor.SetBinary(@Dig[0], CN_ED25519_PRIVATE_KEY_BYTESIZE);
-    OutMulFactor.ClearBit(0);                                       // 低三位置 0
+    ReverseMemory(@Dig[0], CN_ED25519_BLOCK_BYTESIZE);         // 得倒个序
+    OutMulFactor.SetBinary(@Dig[0], CN_ED25519_BLOCK_BYTESIZE);
+
+    OutMulFactor.ClearBit(0);                                        // 低三位置 0
     OutMulFactor.ClearBit(1);
     OutMulFactor.ClearBit(2);
-    OutMulFactor.ClearBit(CN_ED25519_PRIVATE_KEY_BYTESIZE * 8 - 1); // 最高位置 0
-    OutMulFactor.SetBit(CN_ED25519_PRIVATE_KEY_BYTESIZE * 8 - 2);   // 次高位置 1
+    OutMulFactor.ClearBit(CN_ED25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
+    OutMulFactor.SetBit(CN_ED25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
   end;
 
   // 后 32 字节作为 Hash 的入口参数
   if OutHashPrefix <> nil then
-    OutHashPrefix.SetBinary(@Dig[CN_ED25519_PRIVATE_KEY_BYTESIZE], CN_ED25519_PRIVATE_KEY_BYTESIZE);
+    OutHashPrefix.SetBinary(@Dig[CN_ED25519_BLOCK_BYTESIZE], CN_ED25519_BLOCK_BYTESIZE);
 
   Result := True;
 end;
@@ -1161,13 +1182,15 @@ begin
   Result := False;
 
   // 随机 32 字节做 PrivateKey
-  if not BigNumberRandBytes(PrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE) then
+  if not BigNumberRandBytes(PrivateKey, CN_ED25519_BLOCK_BYTESIZE) then
     Exit;
+
+  PrivateKey.SetHex('4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb');
 
   K := F25519BigNumberPool.Obtain;
   try
 
-    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE,
+    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_BLOCK_BYTESIZE,
       K, nil) then
       Exit;
 
@@ -1204,19 +1227,52 @@ begin
   Result := CnAffinePointToEccPoint(P4, P, Prime);
 end;
 
+function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
+begin
+  Result := False;
+  if P = nil then
+    Exit;
+
+  FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
+  P.Y.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序，需要
+
+  if P.X.IsOdd then // X 是奇数，最低位是 1
+    Data[CN_ED25519_BLOCK_BYTESIZE - 1] := Data[CN_ED25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
+  else
+    Data[CN_ED25519_BLOCK_BYTESIZE - 1] := Data[CN_ED25519_BLOCK_BYTESIZE - 1] and $7F; // 高位清 0
+
+  Result := True;
+end;
+
+function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Boolean;
+begin
+  Result := False;
+  if (N = nil) or (N.GetBytesCount > SizeOf(TCnEd25519Data)) then
+    Exit;
+
+  FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
+  N.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  Result := True;
+end;
+
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Sigature; Ed25519: TCnEd25519): Boolean;
+  PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519): Boolean;
 var
   Is25519Nil: Boolean;
   Stream: TMemoryStream;
-  K, HP: TCnBigNumber;
+  R, S, K, HP: TCnBigNumber;
   Dig: TSHA512Digest;
+  Data: TCnEd25519Data;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
     or (OutSignature = nil) then
     Exit;
 
+  R := nil;
+  S := nil;
   K := nil;
   HP := nil;
   Stream := nil;
@@ -1226,39 +1282,74 @@ begin
     if Is25519Nil then
       Ed25519 := TCnEd25519.Create;
 
+    R := F25519BigNumberPool.Obtain;
+    S := F25519BigNumberPool.Obtain;
     K := F25519BigNumberPool.Obtain;
     HP := F25519BigNumberPool.Obtain;
 
-    // 根据私钥得到乘数与杂凑前缀
-    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_PRIVATE_KEY_BYTESIZE, nil, HP) then
+    // 根据私钥得到私钥乘数 s 与杂凑前缀
+    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_BLOCK_BYTESIZE, S, HP) then
       Exit;
 
     // 杂凑前缀拼上原始文字
     Stream := TMemoryStream.Create;
-    BigNumberWriteBinaryToStream(HP, Stream, CN_ED25519_PRIVATE_KEY_BYTESIZE);
+    BigNumberWriteBinaryToStream(HP, Stream, CN_ED25519_BLOCK_BYTESIZE);
     Stream.Write(PlainData^, DataLen);
 
     // 计算出 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
-    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
-    K.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
-    if not BigNumberNonNegativeMod(K, K, Ed25519.Order) then // 乘数太大先 mod 一下阶
+    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+
+    ReverseMemory(@Dig[0], SizeOf(TSHA512Digest)); // 需要倒转一次
+    R.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    if not BigNumberNonNegativeMod(R, R, Ed25519.Order) then // r 乘数太大先 mod 一下阶
       Exit;
 
     OutSignature.R.Assign(Ed25519.Generator);
-    Ed25519.MultiplePoint(K, OutSignature.R);      // 计算得到签名值 R，该值是一个点坐标
+    Ed25519.MultiplePoint(R, OutSignature.R);      // 计算得到签名值 R，该值是一个点坐标
 
-    // 再 Hash 计算 S，但 R 转换为字节还没搞懂，没法 Hash
-    raise Exception.Create('NOT Implemented');
+    // 再 Hash 计算 S，先点 R 转换为字节数组
+    if not Ed25519.PointToPlain(OutSignature.R, Data) then
+      Exit;
+
+    // 拼起来
+    Stream.Clear;
+    Stream.Write(Data[0], SizeOf(TCnEd25519Data));
+
+    // 公钥点也转换为字节数组
+    if not Ed25519.PointToPlain(PublicKey, Data) then
+      Exit;
+    Stream.Write(Data[0], SizeOf(TCnEd25519Data));
+
+    // 写明文，拼凑完毕
+    Stream.Write(PlainData^, DataLen);
+
+    // 再次杂凑 R||PublicKey||明文
+    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+
+    ReverseMemory(@Dig[0], SizeOf(TSHA512Digest)); // 又需要倒转一次
+    K.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    if not BigNumberNonNegativeMod(K, K, Ed25519.Order) then // 乘数太大再先 mod 一下阶
+      Exit;
+
+    // 计算乘数 R + K * S mod Order
+    if not BigNumberDirectMulMod(OutSignature.S, K, S, Ed25519.Order) then
+      Exit;
+    if not BigNumberAddMod(OutSignature.S, R, OutSignature.S, Ed25519.Order) then
+      Exit;
+
+    Result := True;
   finally
     Stream.Free;
     F25519BigNumberPool.Recycle(HP);
     F25519BigNumberPool.Recycle(K);
+    F25519BigNumberPool.Recycle(S);
+    F25519BigNumberPool.Recycle(R);
     if Is25519Nil then
       Ed25519.Free;
   end;
 end;
 
-function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Sigature;
+function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519): Boolean;
 var
   Is25519Nil: Boolean;
@@ -1300,6 +1391,23 @@ begin
     and BigNumberEqual(P.Y, P.Z);
 end;
 
+function TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
+  OutPoint: TCnEccPoint): Boolean;
+begin
+  Result := False;
+  raise Exception.Create('NOT Implemented');
+end;
+
+function TCnEd25519.PointToPlain(Point: TCnEccPoint;
+  var OutPlain: TCnEd25519Data): Boolean;
+begin
+  Result := False;
+  if (Point = nil) or (BigNumberCompare(Point.Y, FFiniteFieldSize) >= 0) then
+    Exit;
+
+  Result := CnEd25519PointToData(Point, OutPlain);
+end;
+
 procedure TCnEd25519.SetNeutualExtendedPoint(P: TCnEcc4Point);
 begin
   P.X.SetZero;
@@ -1310,25 +1418,25 @@ end;
 
 { TCnEd25519Sigature }
 
-procedure TCnEd25519Sigature.Assign(Source: TPersistent);
+procedure TCnEd25519Signature.Assign(Source: TPersistent);
 begin
-  if Source is TCnEd25519Sigature then
+  if Source is TCnEd25519Signature then
   begin
-    FR.Assign((Source as TCnEd25519Sigature).R);
-    BigNumberCopy(FS, (Source as TCnEd25519Sigature).S);
+    FR.Assign((Source as TCnEd25519Signature).R);
+    BigNumberCopy(FS, (Source as TCnEd25519Signature).S);
   end
   else
     inherited;
 end;
 
-constructor TCnEd25519Sigature.Create;
+constructor TCnEd25519Signature.Create;
 begin
   inherited;
   FR := TCnEccPoint.Create;
   FS := TCnBigNumber.Create;
 end;
 
-destructor TCnEd25519Sigature.Destroy;
+destructor TCnEd25519Signature.Destroy;
 begin
   FS.Free;
   FR.Free;
@@ -1364,6 +1472,17 @@ end;
 function TCnEcc4Point.ToString: string;
 begin
   Result := CnEcc4PointToHex(Self);
+end;
+
+procedure TCnEd25519Signature.ToArray(var Sig: TCnEd25519SignatureData);
+var
+  Data: TCnEd25519Data;
+begin
+  FillChar(Sig[0], SizeOf(TCnEd25519SignatureData), 0);
+  CnEd25519PointToData(FR, Data);
+  Move(Data[0], Sig[0], SizeOf(TCnEd25519Data));
+  CnEd25519BigNumberToData(FS, Data);
+  Move(Data[0], Sig[SizeOf(TCnEd25519Data)], SizeOf(TCnEd25519Data));
 end;
 
 initialization
