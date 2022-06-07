@@ -283,6 +283,9 @@ function Int32ToLittleEndian(Value: Integer): Integer;
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 {* 确保 Int16 值为小端，大端环境中进行转换}
 
+procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
+{* 按字节顺序倒置一块内存块}
+
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
 {* 内存块转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
 
@@ -303,6 +306,9 @@ function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
 
 function HexToBytes(const Hex: string): TBytes;
 {* 十六进制字符串转换为字节数组，字符串长度为奇或转换失败时抛出异常}
+
+procedure ReverseBytes(Data: TBytes);
+{* 按字节顺序倒置一字节数组}
 
 {$ENDIF}
 
@@ -397,6 +403,26 @@ begin
     Result := Value
   else
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+end;
+
+procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
+var
+  I, L: Integer;
+  P: PByteArray;
+  T: Byte;
+begin
+  if (AMem = nil) or (MemLen < 2) then
+    Exit;
+
+  L := MemLen div 2;
+  P := PByteArray(AMem);
+  for I := 0 to L - 1 do
+  begin
+    // 交换第 I 和第 MemLen - I - 1
+    T := P^[I];
+    P^[I] := P^[MemLen - I - 1];
+    P^[MemLen - I - 1] := T;
+  end;
 end;
 
 const
@@ -574,6 +600,24 @@ begin
   begin
     S := Copy(Hex, I * 2 - 1, 2);
     Result[I - 1] := Byte(HexToInt(S));
+  end;
+end;
+
+procedure ReverseBytes(Data: TBytes);
+var
+  I, L, M: Integer;
+  T: Byte;
+begin
+  if (Data = nil) or (Length(Data) <= 1) then
+    Exit;
+  L := Length(Data);
+  M := L div 2;
+  for I := 0 to M - 1 do
+  begin
+    // 交换 I 和 L - I - 1
+    T := Data[I];
+    Data[I] := Data[L - I - 1];
+    Data[L - I - 1] := T;
   end;
 end;
 
