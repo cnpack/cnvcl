@@ -241,7 +241,7 @@ type
     function WordExpand(Words: Integer): TCnBigNumber;
     {* 将大数扩展成支持 Words 个 DWORD，成功返回扩展的大数对象本身 Self，失败返回 nil}
 
-    function ToBinary(const Buf: PAnsiChar): Integer;
+    function ToBinary(const Buf: PAnsiChar; FixedLen: Integer = 0): Integer;
     {* 将大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
        返回 Buf 写入的长度}
 
@@ -506,9 +506,10 @@ function BigNumberIsBitSet(const Num: TCnBigNumber; N: Integer): Boolean;
 function BigNumberWordExpand(const Num: TCnBigNumber; Words: Integer): TCnBigNumber;
 {* 将一个大数对象扩展成支持 Words 个 DWORD，成功返回扩展的大数对象地址，失败返回 nil}
 
-function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
+function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: Integer = 0): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-   返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度}
+   返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度
+   大数长度超过 FixedLen 时按大数实际字节长度写，否则先写字节 0 补齐长度}
 
 function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
   FixedLen: Integer = 0): Integer;
@@ -1421,7 +1422,7 @@ begin
   Num.Top := Top;
 end;
 
-function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar): Integer;
+function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: Integer): Integer;
 var
   I: Integer;
   L: TCnLongWord32;
@@ -1429,6 +1430,17 @@ begin
   Result := BigNumberGetBytesCount(Num);
   if Buf = nil then
     Exit;
+
+  if FixedLen > Result then // 要往高处靠
+  begin
+    I := FixedLen - Result;
+    while I > 0 do
+    begin
+      Dec(I);
+      Buf^ := #0;
+      Buf := PAnsiChar(TCnNativeInt(Buf) + 1); // 先补 0
+    end;
+  end;
 
   I := Result;
   while I > 0 do
@@ -6974,9 +6986,9 @@ begin
   Result := BigNumberSubWord(Self, W);
 end;
 
-function TCnBigNumber.ToBinary(const Buf: PAnsiChar): Integer;
+function TCnBigNumber.ToBinary(const Buf: PAnsiChar; FixedLen: Integer): Integer;
 begin
-  Result := BigNumberToBinary(Self, Buf);
+  Result := BigNumberToBinary(Self, Buf, FixedLen);
 end;
 
 function TCnBigNumber.ToDec: string;
