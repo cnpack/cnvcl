@@ -834,6 +834,9 @@ function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Bo
 function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
 {* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解}
 
+function BigNumberSquareRootModPrime(const Res: TCnBigNumber; A, Prime: TCnBigNumber): Boolean;
+{* 求 X^2 mod P = A 的解，返回是否求解成功，如成功，Res 是其中一个正值的解}
+
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
 
@@ -6003,20 +6006,161 @@ begin
   end;
 end;
 
+function BigNumberSquareRootModPrime(const Res: TCnBigNumber; A, Prime: TCnBigNumber): Boolean;
+var
+  PrimeType: TCnPrimeType;
+  Rem: TCnLongWord32;
+  T, U, X, Y, Z, OldU, R: TCnBigNumber;
+begin
+  Result := False;
+  if A.IsZero then // 0 的平方 mod P = 0
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  U := nil;
+  OldU := nil;
+  X := nil;
+  Y := nil;
+  Z := nil;
+  R := nil;
+  T := nil;
+
+  try
+    U := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(U, Prime);
+
+    Rem := BigNumberModWord(Prime, 4);
+    if Rem = 3 then
+    begin
+      PrimeType := pt4U3;
+
+      BigNumberDivWord(U, 4);
+    end
+    else
+    begin
+      Rem := BigNumberModWord(Prime, 8);
+      if Rem = 1 then
+      begin
+        PrimeType := pt8U1;
+      end
+      else if Rem = 5 then
+      begin
+        PrimeType := pt8U5;
+      end
+      else
+        Exit;
+      BigNumberDivWord(U, 8);
+    end;
+
+    OldU := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(OldU, U); // 备份一个 U
+
+    X := FLocalBigNumberPool.Obtain;
+    Y := FLocalBigNumberPool.Obtain;
+    Z := FLocalBigNumberPool.Obtain;
+
+    // 得到了 Prime 的素数类型以及整除 4 或 8 后的 U
+    case PrimeType of
+      pt4U3:
+        begin
+          // 结果是 g^(u+1) mod p
+          BigNumberAddWord(U, 1);
+          BigNumberMontgomeryPowerMod(Y, A, U, Prime);
+          BigNumberMulMod(Z, Y, Y, Prime);
+          if BigNumberCompare(Z, A) = 0 then
+          begin
+            BigNumberCopy(Res, Y);
+            Result := True;
+            Exit;
+          end;
+        end;
+      pt8U1:
+        begin
+          if BigNumberLucas(Res, A, Prime) then
+            Result := True;
+        end;
+      pt8U5:
+        begin
+          BigNumberMulWord(U, 2);
+          BigNumberAddWord(U, 1);
+          BigNumberMontgomeryPowerMod(Z, A, U, Prime);
+
+          R := FLocalBigNumberPool.Obtain;
+          BigNumberMod(R, Z, Prime);
+
+          if R.IsOne then
+          begin
+            // 结果是 g^(u+1) mod p
+            BigNumberCopy(U, OldU);
+            BigNumberAddWord(U, 1);
+            BigNumberMontgomeryPowerMod(Y, A, U, Prime);
+
+            BigNumberCopy(Res, Y);
+            Result := True;
+          end
+          else
+          begin
+            if R.IsNegative then
+              BigNumberAdd(R, R, Prime);
+            BigNumberSub(R, Prime, R);
+
+            if R.IsOne then
+            begin
+              // 结果是(2g ·(4g)^u) mod p = (2g mod p * (4g)^u mod p) mod p
+              BigNumberCopy(X, A);
+              BigNumberMulWord(X, 2);
+              BigNumberMod(R, X, Prime);  // R: 2g mod p
+
+              BigNumberCopy(X, A);
+              BigNumberMulWord(X, 4);
+
+              T := FLocalBigNumberPool.Obtain;
+              BigNumberMontgomeryPowerMod(T, X, OldU, Prime); // T: (4g)^u mod p
+              BigNumberMulMod(Y, R, T, Prime);
+
+              BigNumberCopy(Res, Y);
+              Result := True;
+            end;
+          end;
+        end;
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(Z);
+    FLocalBigNumberPool.Recycle(Y);
+    FLocalBigNumberPool.Recycle(X);
+    FLocalBigNumberPool.Recycle(OldU);
+    FLocalBigNumberPool.Recycle(U);
+  end;
+end;
+
 procedure BigNumberPollardRho(X: TCnBigNumber; C: TCnBigNumber; Res: TCnBigNumber);
 var
   I, K, X0, Y0, Y, D, X1, R: TCnBigNumber;
 begin
-  I := FLocalBigNumberPool.Obtain;
-  K := FLocalBigNumberPool.Obtain;
-  X0 := FLocalBigNumberPool.Obtain;
-  X1 := FLocalBigNumberPool.Obtain;
-  Y0 := FLocalBigNumberPool.Obtain;
-  Y := FLocalBigNumberPool.Obtain;
-  D := FLocalBigNumberPool.Obtain;
-  R := FLocalBigNumberPool.Obtain;
+  I := nil;
+  K := nil;
+  X0 := nil;
+  X1 := nil;
+  Y0 := nil;
+  Y := nil;
+  D := nil;
+  R := nil;
 
   try
+    I := FLocalBigNumberPool.Obtain;
+    K := FLocalBigNumberPool.Obtain;
+    X0 := FLocalBigNumberPool.Obtain;
+    X1 := FLocalBigNumberPool.Obtain;
+    Y0 := FLocalBigNumberPool.Obtain;
+    Y := FLocalBigNumberPool.Obtain;
+    D := FLocalBigNumberPool.Obtain;
+    R := FLocalBigNumberPool.Obtain;
+
     I.SetOne;
     K.SetZero;
     BigNumberAddWord(K, 2);
