@@ -233,8 +233,11 @@ type
 
     procedure Assign(Source: TPersistent); override;
 
-    procedure ToArray(var Sig: TCnEd25519SignatureData);
+    procedure SaveToData(var Sig: TCnEd25519SignatureData);
     {* 内容转换成 64 字节签名数组供存储与传输}
+
+    procedure LoadFromData(Sig: TCnEd25519SignatureData);
+    {* 从64 字节签名数组 中加载签名}
 
     property R: TCnEccPoint read FR;
     {* 签名点 R}
@@ -262,10 +265,13 @@ function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean
 
 function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean): Boolean;
 {* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式，返回转换是否成功，
-  如果成功，P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数}
+  如果成功，P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X}
 
 function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Boolean;
 {* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
+
+function CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber): Boolean;
+{* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
 
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519 = nil): Boolean;
@@ -1322,6 +1328,20 @@ begin
   Result := True;
 end;
 
+function CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber): Boolean;
+var
+  D: TCnEd25519Data;
+begin
+  Result := False;
+  if N = nil then
+    Exit;
+
+  Move(Data[0], D[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  N.SetBinary(@D[0], SizeOf(TCnEd25519Data));
+  Result := True;
+end;
+
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519): Boolean;
 var
@@ -1590,15 +1610,37 @@ begin
   Result := CnEcc4PointToHex(Self);
 end;
 
-procedure TCnEd25519Signature.ToArray(var Sig: TCnEd25519SignatureData);
+procedure TCnEd25519Signature.LoadFromData(Sig: TCnEd25519SignatureData);
+var
+  Data: TCnEd25519Data;
+  Ed25519: TCnEd25519;
+begin
+  Move(Sig[0], Data[0], SizeOf(TCnEd25519Data));
+
+  // 从 Data 中加载 R 点
+  Ed25519 := TCnEd25519.Create;
+  try
+    Ed25519.PlainToPoint(Data, FR);
+  finally
+    Ed25519.Free;
+  end;
+
+  Move(Sig[SizeOf(TCnEd25519Data)], Data[0], SizeOf(TCnEd25519Data));
+  // 从 Data 中加载 S 数
+  CnEd25519DataToBigNumber(Data, FS);
+end;
+
+procedure TCnEd25519Signature.SaveToData(var Sig: TCnEd25519SignatureData);
 var
   Data: TCnEd25519Data;
 begin
   FillChar(Sig[0], SizeOf(TCnEd25519SignatureData), 0);
 
+  // 把 R 点写入 Data
   CnEd25519PointToData(FR, Data);
   Move(Data[0], Sig[0], SizeOf(TCnEd25519Data));
 
+  // 把 S 数写入 Data
   CnEd25519BigNumberToData(FS, Data);
   Move(Data[0], Sig[SizeOf(TCnEd25519Data)], SizeOf(TCnEd25519Data));
 end;

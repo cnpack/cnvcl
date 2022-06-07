@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnECC, Cn25519, ExtCtrls;
+  StdCtrls, ComCtrls, CnBigNumber, CnECC, Cn25519, ExtCtrls;
 
 type
   TForm25519 = class(TForm)
@@ -356,7 +356,7 @@ end;
 procedure TForm25519.btnEd25519SignSampleClick(Sender: TObject);
 var
   B: Byte;
-  Sig: TCnEd25519Signature;
+  Sig, ASig: TCnEd25519Signature;
   SigData: TCnEd25519SignatureData;
 begin
   B := $72;
@@ -364,7 +364,15 @@ begin
   if CnEd25519SignData(@B, 1, FPrivKey, FPubKey, Sig) then
   begin
     ShowMessage('Sign OK');
-    Sig.ToArray(SigData);
+    Sig.SaveToData(SigData);
+
+    ASig := TCnEd25519Signature.Create;
+    ASig.LoadFromData(SigData);
+
+    // 比较 Sig 和 ASig 是否相同
+    if CnEccPointsEqual(Sig.R, ASig.R) and BigNumberEqual(Sig.S, ASig.S) then
+      ShowMessage('Sig Save/Load OK');
+    ASig.Free;
   end;
   Sig.Free;
 end;
