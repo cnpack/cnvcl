@@ -97,6 +97,7 @@ type
     btnMontReduct: TButton;
     btnMontReduct1: TButton;
     btnMontReductTime: TButton;
+    btnSquareRootMod: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -162,6 +163,7 @@ type
     procedure btnMontReductClick(Sender: TObject);
     procedure btnMontReduct1Click(Sender: TObject);
     procedure btnMontReductTimeClick(Sender: TObject);
+    procedure btnSquareRootModClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1300,12 +1302,12 @@ begin
 //  end;
 
   T1 := GetTickCount;
-  for I := 1 to 1000 do
+  for I := 1 to 2000 do
     BigNumberMontgomeryMulMod(Num3, Num1, Num2, R, R2ModN, N, NNegInv);
   T1 := GetTickCount - T1;
 
   T2 := GetTickCount;
-  for I := 1 to 1000 do
+  for I := 1 to 2000 do
     BigNumberDirectMulMod(Num3, Num1, Num2, N);
   T2 := GetTickCount - T2;
 
@@ -1315,6 +1317,41 @@ begin
   R2ModN.Free;
   R.Free;
   N.Free;
+end;
+
+procedure TFormBigNumber.btnSquareRootModClick(Sender: TObject);
+
+  function TestSquareRootMod: Boolean;
+  begin
+    Result := False;
+    if BigNumberSquareRootModPrime(Num1, Num2, Num3) then
+    begin
+      ShowNumbers;
+      ShowResult(Num1);
+
+      BigNumberDirectMulMod(Num1, Num1, Num1, Num3);
+      Result := BigNumberEqual(Num1, Num2);
+    end;
+  end;
+
+begin
+  Num3.SetWord(65537);
+  Num2.SetWord(2);
+  if TestSquareRootMod then ShowMessage('OK 1'); // 8u1 的用 Lucas 没问题
+  Num3.SetWord(65537);
+  Num2.SetWord(200);
+  if TestSquareRootMod then ShowMessage('OK 2'); // 8u1 的用 Lucas 没问题
+
+  Num3.SetWord(2147483647);
+  Num2.SetWord(202421);
+  if TestSquareRootMod then ShowMessage('OK 3'); // 4u3 的没问题，但 202420 似乎就无解
+  Num3.SetWord(4294967291);
+  Num2.SetWord(202421);
+  if TestSquareRootMod then ShowMessage('OK 4'); // 4u3 的没问题
+
+  Num3.SetDec('13');
+  Num2.SetWord(3);
+  if TestSquareRootMod then ShowMessage('OK 5'); // 8u5 的没问题 9^2 mod 13 = 3
 end;
 
 end.

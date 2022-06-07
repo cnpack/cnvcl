@@ -713,6 +713,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 68
         OnClick = btnMontReductTimeClick
       end
+      object btnSquareRootMod: TButton
+        Left = 1040
+        Top = 108
+        Width = 129
+        Height = 25
+        Caption = 'X^2 mod Prime = A'
+        TabOrder = 69
+        OnClick = btnSquareRootModClick
+      end
     end
     object tsSparseBigNumberList: TTabSheet
       Caption = 'Sparse BigNumber List'

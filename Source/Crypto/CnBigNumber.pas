@@ -6036,7 +6036,6 @@ begin
     if Rem = 3 then
     begin
       PrimeType := pt4U3;
-
       BigNumberDivWord(U, 4);
     end
     else
@@ -6069,7 +6068,7 @@ begin
           // ½á¹ûÊÇ g^(u+1) mod p
           BigNumberAddWord(U, 1);
           BigNumberMontgomeryPowerMod(Y, A, U, Prime);
-          BigNumberMulMod(Z, Y, Y, Prime);
+          BigNumberDirectMulMod(Z, Y, Y, Prime);
           if BigNumberCompare(Z, A) = 0 then
           begin
             BigNumberCopy(Res, Y);
