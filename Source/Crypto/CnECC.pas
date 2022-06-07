@@ -2542,7 +2542,7 @@ begin
           // 结果是 g^(u+1) mod p
           BigNumberAddWord(U, 1);
           BigNumberMontgomeryPowerMod(Y, X, U, FFiniteFieldSize);
-          BigNumberMulMod(Z, Y, Y, FFiniteFieldSize);
+          BigNumberDirectMulMod(Z, Y, Y, FFiniteFieldSize);
           if BigNumberCompare(Z, X) = 0 then
           begin
             BigNumberCopy(OutPoint.X, Plain);
@@ -2586,7 +2586,7 @@ begin
               BigNumberMulWord(X, 4);
               T := FEccBigNumberPool.Obtain;
               BigNumberMontgomeryPowerMod(T, X, FSizeUFactor, FFiniteFieldSize); // T: (4g)^u mod p
-              BigNumberMulMod(Y, R, T, FFiniteFieldSize);
+              BigNumberDirectMulMod(Y, R, T, FFiniteFieldSize);
 
               BigNumberCopy(OutPoint.X, Plain);
               BigNumberCopy(OutPoint.Y, Y);
@@ -2671,7 +2671,7 @@ begin
       BigNumberModularInverse(Y, A, FFiniteFieldSize); // Y := Y^-1
 
       // K := X * Y mod FFiniteFieldSize;
-      BigNumberMulMod(K, X, Y, FFiniteFieldSize);      // 得到斜率
+      BigNumberDirectMulMod(K, X, Y, FFiniteFieldSize);      // 得到斜率
     end
     else // 是不同点
     begin
@@ -2701,7 +2701,7 @@ begin
       A := FEccBigNumberPool.Obtain;
       BigNumberCopy(A, X);
       BigNumberModularInverse(X, A, FFiniteFieldSize);
-      BigNumberMulMod(K, Y, X, FFiniteFieldSize);      // 得到斜率
+      BigNumberDirectMulMod(K, Y, X, FFiniteFieldSize);      // 得到斜率
     end;
 
     BigNumberCopy(X, K);
