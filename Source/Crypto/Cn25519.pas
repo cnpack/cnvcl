@@ -832,11 +832,11 @@ var
   K, X, Y, T, SX, SY: TCnBigNumber;
 begin
   // 先计算斜率，当两点 X 不等或相等时，斜率分别为
-  //          (y2 - y1)^2          (3*x1^2 + 2*A*x1 + 1)^2
-  // 斜率 K = ------------  或 =  -------------------------
-  //          (x2 - x1)^2                (2*y1)^2
+  //          (y2 - y1)           3*x1^2 + 2*A*x1 + 1
+  // 斜率 K = ----------  或 =  ----------------------
+  //          (x2 - x1)                2*y1
   //
-  // x3 = K^2 - A - x1 - x2
+  // x3 = B*K^2 - A - x1 - x2
   // y3 = -(y1 + K * (x3 - x1))
   Result := True;
   K := nil;
@@ -874,7 +874,7 @@ begin
       end;
 
       // 同一个点，求切线斜率
-      // 分子是 (3*x1^2 + 2*A*x1 + 1)^2
+      // 分子是 (3*x1^2 + 2*A*x1 + 1)
       if not BigNumberDirectMulMod(Y, FCoefficientA, P.X, FFiniteFieldSize) then
         Exit;
       if not BigNumberAddMod(Y, Y, Y, FFiniteFieldSize) then
@@ -887,14 +887,10 @@ begin
       if not BigNumberAddMod(Y, T, Y, FFiniteFieldSize) then // Y 得到 3*x1^2 + 2*A*x1 + 1，释放 T
         Exit;
 
-      if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then // Y 再平方
-        Exit;
-
       if not BigNumberAddMod(X, P.Y, P.Y, FFiniteFieldSize) then  // 2Y
         Exit;
-      if not BigNumberDirectMulMod(X, X, X, FFiniteFieldSize) then // 4Y^2
-        Exit;
-      if not BigNumberModularInverse(T, X, FFiniteFieldSize) then // 得到分母 (2*y1)^2
+
+      if not BigNumberModularInverse(T, X, FFiniteFieldSize) then // 得到分母 2*y1
         Exit;
 
       if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到切线斜率
@@ -914,22 +910,22 @@ begin
         Exit;
       end;
 
-      if not BigNumberSubMod(Y, Q.Y, P.Y, FFiniteFieldSize) then
+      if not BigNumberSubMod(Y, Q.Y, P.Y, FFiniteFieldSize) then   // 得到分子 (y2 - y1)
         Exit;
-      if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then // 得到分子 (y2 - y1)^2
+
+      if not BigNumberSubMod(X, Q.X, P.X, FFiniteFieldSize) then   // 得到分母 (x2 - x1)
         Exit;
-      if not BigNumberSubMod(X, Q.X, P.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(X, X, X, FFiniteFieldSize) then // 得到分母 (x2 - x1)^2
-        Exit;
+
       if not BigNumberModularInverse(T, X, FFiniteFieldSize) then
         Exit;
       if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到割线斜率
         Exit;
     end;
 
-    // x3 = K^2 - A - x1 - x2
+    // x3 = B * K^2 - A - x1 - x2
     if not BigNumberDirectMulMod(SX, K, K, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(SX, FCoefficientB, SX, FFiniteFieldSize) then
       Exit;
     if not BigNumberSubMod(SX, SX, FCoefficientA, FFiniteFieldSize) then
       Exit;
