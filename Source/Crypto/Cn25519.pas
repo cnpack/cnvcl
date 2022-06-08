@@ -1202,8 +1202,6 @@ begin
   if not BigNumberRandBytes(PrivateKey, CN_ED25519_BLOCK_BYTESIZE) then
     Exit;
 
-  PrivateKey.SetHex('4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb');
-
   K := F25519BigNumberPool.Obtain;
   try
 
