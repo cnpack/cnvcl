@@ -45,6 +45,7 @@ type
     FEd25519: TCnEd25519;
     FPrivKey: TCnEccPrivateKey;
     FPubKey: TCnEccPublicKey;
+    FSigData: TCnEd25519SignatureData;
   public
 
   end;
@@ -357,21 +358,25 @@ procedure TForm25519.btnEd25519SignSampleClick(Sender: TObject);
 var
   B: Byte;
   Sig, ASig: TCnEd25519Signature;
-  SigData: TCnEd25519SignatureData;
 begin
   B := $72;
   Sig := TCnEd25519Signature.Create;
   if CnEd25519SignData(@B, 1, FPrivKey, FPubKey, Sig) then
   begin
     ShowMessage('Sign OK');
-    Sig.SaveToData(SigData);
+    Sig.SaveToData(FSigData);
 
     ASig := TCnEd25519Signature.Create;
-    ASig.LoadFromData(SigData);
+    ASig.LoadFromData(FSigData);
 
     // 比较 Sig 和 ASig 是否相同
     if CnEccPointsEqual(Sig.R, ASig.R) and BigNumberEqual(Sig.S, ASig.S) then
       ShowMessage('Sig Save/Load OK');
+
+    if CnEd25519VerifyData(@B, 1, Sig, FPubKey) then
+      ShowMessage('Verify OK')
+    else
+      ShowMessage('Verify Fail');
     ASig.Free;
   end;
   Sig.Free;

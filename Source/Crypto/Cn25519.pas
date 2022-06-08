@@ -31,7 +31,9 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.07 V1.1
+* 修改记录：2022.06.08 V1.1
+*               实现 Ed25519 签名与验证
+*           2022.06.07 V1.1
 *               实现 Ed25519 扩展四元坐标的快速点加与标量乘实现，速度快十倍以上
 *           2022.06.05 V1.0
 *               创建单元
@@ -88,7 +90,7 @@ type
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
     {* 计算某点 P 的 k * P 值，值重新放入 P，内部实现等同于 CnECC 中同名方法}
 
     function PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
@@ -202,6 +204,9 @@ type
     function PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data): Boolean;
     {* 将点坐标转换成 32 字节值，拼 Y 并放 X 正负一位}
 
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
+    {* 重载父类的普通点乘，内部改用扩展四元快速乘}
+
     function IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
     {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同}
     procedure SetNeutualExtendedPoint(P: TCnEcc4Point);
@@ -237,7 +242,7 @@ type
     {* 内容转换成 64 字节签名数组供存储与传输}
 
     procedure LoadFromData(Sig: TCnEd25519SignatureData);
-    {* 从64 字节签名数组 中加载签名}
+    {* 从64 字节签名数组中加载签名}
 
     property R: TCnEccPoint read FR;
     {* 签名点 R}
@@ -1438,20 +1443,68 @@ function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: 
   PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519): Boolean;
 var
   Is25519Nil: Boolean;
+  L, R, M: TCnEccPoint;
+  T: TCnBigNumber;
+  Stream: TMemoryStream;
+  Data: TCnEd25519Data;
+  Dig: TSHA512Digest;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
     Exit;
 
+  L := nil;
+  R := nil;
+  Stream := nil;
+  T := nil;
+  M := nil;
   Is25519Nil := Ed25519 = nil;
 
   try
     if Is25519Nil then
       Ed25519 := TCnEd25519.Create;
 
-    raise Exception.Create('NOT Implemented');
-  finally
+    // 验证 8*S*基点 是否 = 8*R点 + 8*Hash(R32位||公钥点32位||明文) * 公钥点
+    L := TCnEccPoint.Create;
+    R := TCnEccPoint.Create;
 
+    L.Assign(Ed25519.Generator);
+    Ed25519.MultiplePoint(InSignature.S, L);
+    Ed25519.MultiplePoint(8, L);  // 算到左边点
+
+    R.Assign(InSignature.R);
+    Ed25519.MultiplePoint(8, R);  // 算到 8*R点待加
+
+    Stream := TMemoryStream.Create;
+    if not CnEd25519PointToData(InSignature.R, Data) then
+      Exit;
+    Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼 R 点
+    if not CnEd25519PointToData(PublicKey, Data) then
+      Exit;
+    Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼公钥点
+    Stream.Write(PlainData^, DataLen);                    // 拼明文
+
+    Dig := SHA512Buffer(Stream.Memory, Stream.Size);      // 计算 Hash 作为值
+    ReverseMemory(@Dig[0], SizeOf(TSHA512Digest));        // 需要倒转一次
+
+    T := F25519BigNumberPool.Obtain;
+    T.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    T.MulWord(8);
+    if not BigNumberNonNegativeMod(T, T, Ed25519.Order) then // T 乘数太大先 mod 一下阶
+      Exit;
+
+    M := TCnEccPoint.Create;
+    M.Assign(PublicKey);
+    Ed25519.MultiplePoint(T, M);      // T 乘公钥点
+    Ed25519.PointAddPoint(R, M, R);   // 点加
+
+    Result := CnEccPointsEqual(L, R);
+  finally
+    M.Free;
+    F25519BigNumberPool.Recycle(T);
+    Stream.Free;
+    R.Free;
+    L.Free;
     if Is25519Nil then
       Ed25519.Free;
   end;
@@ -1474,6 +1527,20 @@ function TCnEd25519.IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
 begin
   Result := P.X.IsZero and P.T.IsZero and not P.Y.IsZero and not P.Z.IsZero
     and BigNumberEqual(P.Y, P.Z);
+end;
+
+procedure TCnEd25519.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+var
+  P4: TCnEcc4Point;
+begin
+  P4 := TCnEcc4Point.Create;
+  try
+    CnEccPointToEcc4Point(Point, P4, FFiniteFieldSize);
+    ExtendedMultiplePoint(K, P4);
+    CnEcc4PointToEccPoint(P4, Point, FFiniteFieldSize);
+  finally
+    P4.Free;
+  end;
 end;
 
 function TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
