@@ -48,7 +48,7 @@ uses
   Classes, SysUtils, CnNativeDecl, CnBigNumber, CnECC, CnSHA2;
 
 const
-  CN_ED25519_BLOCK_BYTESIZE = 32;
+  CN_25519_BLOCK_BYTESIZE = 32;
 
 type
   TCnEcc4Point = class(TCnEcc3Point)
@@ -144,6 +144,9 @@ type
     procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
 
+    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); virtual;
+    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
+
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
@@ -185,11 +188,14 @@ type
   {* rfc 7748/8032 中规定的 Curve25519 曲线}
   public
     constructor Create; override;
+
+    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
+    {* 生成公私钥，其中私钥有特殊处理}
   end;
 
-  TCnEd25519Data = array[0..CN_ED25519_BLOCK_BYTESIZE - 1] of Byte;
+  TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
 
-  TCnEd25519SignatureData = array[0..2 * CN_ED25519_BLOCK_BYTESIZE - 1] of Byte;
+  TCnEd25519SignatureData = array[0..2 * CN_25519_BLOCK_BYTESIZE - 1] of Byte;
 
   TCnEd25519 = class(TCnTwistedEdwardsCurve)
   {* rfc 7748/8032 中规定的 Ed25519 曲线}
@@ -278,6 +284,8 @@ function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Bo
 function CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber): Boolean;
 {* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
 
+// ===================== Ed25519 椭圆曲线数字签名验证算法 ======================
+
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公私钥对数据块进行签名，返回签名是否成功}
@@ -285,6 +293,19 @@ function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCn
 function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公钥对数据块与签名进行验证，返回验证是否成功}
+
+// ================= Ed25519 椭圆曲线 Diffie-Hellman 密钥交换  =================
+
+function CnCurve25519KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
+  OutPointToAnother: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
+{* 基于 25519 的 Diffie-Hellman 密钥交换算法，A 与 B 均先调用此方法，
+  根据各自私钥生成点坐标，该点坐标需发给对方。返回生成是否成功}
+
+function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
+  InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
+{* 基于 25519 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
+  根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
+  返回生成是否成功}
 
 implementation
 
@@ -351,25 +372,25 @@ var
   Dig: TSHA512Digest;
 begin
   // 拿 PrivateKey 做 Sha512，得到 64 字节结果 Dig
-  Dig := CalcBigNumberDigest(InPrivateKey, CN_ED25519_BLOCK_BYTESIZE);
+  Dig := CalcBigNumberDigest(InPrivateKey, CN_25519_BLOCK_BYTESIZE);
 
   // 拿它做 Sha512，得到 64 字节结果，前 32 字节取来做乘数，先倒序，低 3 位得清零，
   // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1
   if OutMulFactor <> nil then
   begin
-    ReverseMemory(@Dig[0], CN_ED25519_BLOCK_BYTESIZE);         // 得倒个序
-    OutMulFactor.SetBinary(@Dig[0], CN_ED25519_BLOCK_BYTESIZE);
+    ReverseMemory(@Dig[0], CN_25519_BLOCK_BYTESIZE);         // 得倒个序
+    OutMulFactor.SetBinary(@Dig[0], CN_25519_BLOCK_BYTESIZE);
 
-    OutMulFactor.ClearBit(0);                                        // 低三位置 0
+    OutMulFactor.ClearBit(0);                                // 低三位置 0
     OutMulFactor.ClearBit(1);
     OutMulFactor.ClearBit(2);
-    OutMulFactor.ClearBit(CN_ED25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
-    OutMulFactor.SetBit(CN_ED25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+    OutMulFactor.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
+    OutMulFactor.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
   end;
 
   // 后 32 字节作为 Hash 的入口参数
   if OutHashPrefix <> nil then
-    OutHashPrefix.SetBinary(@Dig[CN_ED25519_BLOCK_BYTESIZE], CN_ED25519_BLOCK_BYTESIZE);
+    OutHashPrefix.SetBinary(@Dig[CN_25519_BLOCK_BYTESIZE], CN_25519_BLOCK_BYTESIZE);
 
   Result := True;
 end;
@@ -669,6 +690,17 @@ begin
   inherited;
 end;
 
+procedure TCnMontgomeryCurve.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey);
+begin
+  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
+    PrivateKey.SetOne;
+
+  PublicKey.Assign(FGenerator);
+  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
+end;
+
 function TCnMontgomeryCurve.IsPointOnCurve(P: TCnEccPoint): Boolean;
 var
   X, Y, T: TCnBigNumber;
@@ -833,34 +865,6 @@ begin
       end;
 
       // 同一个点，求切线斜率
-      if not BigNumberSubMod(Y, Q.Y, P.Y, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then // 得到分子 (y2 - y1)^2
-        Exit;
-      if not BigNumberSubMod(X, Q.X, P.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(X, X, X, FFiniteFieldSize) then // 得到分母 (x2 - x1)^2
-        Exit;
-      if not BigNumberModularInverse(T, X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到切线斜率
-        Exit;
-    end
-    else
-    begin
-      if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
-      begin
-        BigNumberAdd(T, P.Y, Q.Y);
-        if BigNumberCompare(T, FFiniteFieldSize) = 0 then  // 互反，和为 0
-          Sum.SetZero
-        else                                               // 不互反，挂了
-          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
-            [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
-
-        Exit;
-      end;
-
-      // 计算连线斜率
       // 分子是 (3*x1^2 + 2*A*x1 + 1)^2
       if not BigNumberDirectMulMod(Y, FCoefficientA, P.X, FFiniteFieldSize) then
         Exit;
@@ -884,6 +888,33 @@ begin
       if not BigNumberModularInverse(T, X, FFiniteFieldSize) then // 得到分母 (2*y1)^2
         Exit;
 
+      if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到切线斜率
+        Exit;
+    end
+    else
+    begin
+      if BigNumberCompare(P.X, Q.X) = 0 then // 如果 X 相等，要判断 Y 是不是互反，是则和为 0，不是则挂了
+      begin
+        BigNumberAdd(T, P.Y, Q.Y);
+        if BigNumberCompare(T, FFiniteFieldSize) = 0 then  // 互反，和为 0
+          Sum.SetZero
+        else                                               // 不互反，挂了
+          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+            [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
+
+        Exit;
+      end;
+
+      if not BigNumberSubMod(Y, Q.Y, P.Y, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then // 得到分子 (y2 - y1)^2
+        Exit;
+      if not BigNumberSubMod(X, Q.X, P.X, FFiniteFieldSize) then
+        Exit;
+      if not BigNumberDirectMulMod(X, X, X, FFiniteFieldSize) then // 得到分母 (x2 - x1)^2
+        Exit;
+      if not BigNumberModularInverse(T, X, FFiniteFieldSize) then
+        Exit;
       if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到割线斜率
         Exit;
     end;
@@ -906,6 +937,11 @@ begin
     if not BigNumberAddMod(SY, SY, P.Y, FFiniteFieldSize) then
       Exit;
     if not BigNumberSub(SY, FFiniteFieldSize, SY) then
+      Exit;
+
+    if BigNumberCopy(Sum.X, SX) = nil then
+      Exit;
+    if BigNumberCopy(Sum.Y, SY) = nil then
       Exit;
 
     Result := True;
@@ -948,6 +984,23 @@ begin
   inherited;
   Load(SCN_25519_MONT_A, SCN_25519_MONT_B, SCN_25519_PRIME, SCN_25519_MONT_GX,
     SCN_25519_MONT_GY, SCN_25519_ORDER, 8);
+end;
+
+procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey);
+begin
+  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
+    PrivateKey.SetOne;
+
+  PrivateKey.ClearBit(0);                                // 低三位置 0
+  PrivateKey.ClearBit(1);
+  PrivateKey.ClearBit(2);
+  PrivateKey.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
+  PrivateKey.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+
+  PublicKey.Assign(FGenerator);
+  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
 end;
 
 { TCnEd25519 }
@@ -1199,13 +1252,13 @@ begin
   Result := False;
 
   // 随机 32 字节做 PrivateKey
-  if not BigNumberRandBytes(PrivateKey, CN_ED25519_BLOCK_BYTESIZE) then
+  if not BigNumberRandBytes(PrivateKey, CN_25519_BLOCK_BYTESIZE) then
     Exit;
 
   K := F25519BigNumberPool.Obtain;
   try
 
-    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_BLOCK_BYTESIZE,
+    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE,
       K, nil) then
       Exit;
 
@@ -1291,9 +1344,9 @@ begin
   ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序，需要倒一下
 
   if P.X.IsOdd then // X 是奇数，最低位是 1
-    Data[CN_ED25519_BLOCK_BYTESIZE - 1] := Data[CN_ED25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
+    Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
   else
-    Data[CN_ED25519_BLOCK_BYTESIZE - 1] := Data[CN_ED25519_BLOCK_BYTESIZE - 1] and $7F; // 高位清 0
+    Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] and $7F; // 高位清 0
 
   Result := True;
 end;
@@ -1312,10 +1365,10 @@ begin
   P.Y.SetBinary(@D[0], SizeOf(TCnEd25519Data));
 
   // 最高位是否是 0 表示了 X 的奇偶
-  XOdd := P.Y.IsBitSet(8 * CN_ED25519_BLOCK_BYTESIZE - 1);
+  XOdd := P.Y.IsBitSet(8 * CN_25519_BLOCK_BYTESIZE - 1);
 
   // 最高位得清零
-  P.Y.ClearBit(8 * CN_ED25519_BLOCK_BYTESIZE - 1);
+  P.Y.ClearBit(8 * CN_25519_BLOCK_BYTESIZE - 1);
   Result := True;
 end;
 
@@ -1376,12 +1429,12 @@ begin
     HP := F25519BigNumberPool.Obtain;
 
     // 根据私钥得到私钥乘数 s 与杂凑前缀
-    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_ED25519_BLOCK_BYTESIZE, S, HP) then
+    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, S, HP) then
       Exit;
 
     // 杂凑前缀拼上原始文字
     Stream := TMemoryStream.Create;
-    BigNumberWriteBinaryToStream(HP, Stream, CN_ED25519_BLOCK_BYTESIZE);
+    BigNumberWriteBinaryToStream(HP, Stream, CN_25519_BLOCK_BYTESIZE);
     Stream.Write(PlainData^, DataLen);
 
     // 计算出 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
@@ -1505,6 +1558,56 @@ begin
     L.Free;
     if Is25519Nil then
       Ed25519.Free;
+  end;
+end;
+
+function CnCurve25519KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
+  OutPointToAnother: TCnEccPoint; Curve25519: TCnCurve25519): Boolean;
+var
+  Is25519Nil: Boolean;
+begin
+  Result := False;
+  if (SelfPrivateKey = nil) or (OutPointToAnother = nil) then
+    Exit;
+
+  Is25519Nil := Curve25519 = nil;
+
+  try
+    if Is25519Nil then
+      Curve25519 := TCnCurve25519.Create;
+
+    OutPointToAnother.Assign(Curve25519.Generator);
+    Curve25519.MultiplePoint(SelfPrivateKey, OutPointToAnother);
+
+    Result := True;
+  finally
+    if Is25519Nil then
+      Curve25519.Free;
+  end;
+end;
+
+function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
+  InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve25519: TCnCurve25519): Boolean;
+var
+  Is25519Nil: Boolean;
+begin
+  Result := False;
+  if (SelfPrivateKey = nil) or (InPointFromAnother = nil) or (OutKey = nil) then
+    Exit;
+
+  Is25519Nil := Curve25519 = nil;
+
+  try
+    if Is25519Nil then
+      Curve25519 := TCnCurve25519.Create;
+
+    OutKey.Assign(InPointFromAnother);
+    Curve25519.MultiplePoint(SelfPrivateKey, OutKey);
+
+    Result := True;
+  finally
+    if Is25519Nil then
+      Curve25519.Free;
   end;
 end;
 

@@ -155,6 +155,15 @@ object Form25519: TForm25519
           TabOrder = 12
           OnClick = btnEd25519PointDataClick
         end
+        object btnCurve25519DHKeyExchange: TButton
+          Left = 640
+          Top = 176
+          Width = 185
+          Height = 25
+          Caption = 'Curve 25519 DH Key Exchange'
+          TabOrder = 13
+          OnClick = btnCurve25519DHKeyExchangeClick
+        end
       end
     end
   end

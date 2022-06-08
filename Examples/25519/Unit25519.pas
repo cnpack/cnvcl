@@ -25,6 +25,7 @@ type
     bvl1: TBevel;
     btnEd25519SignSample: TButton;
     btnEd25519PointData: TButton;
+    btnCurve25519DHKeyExchange: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -40,6 +41,7 @@ type
     procedure btnEd25519GenKeyClick(Sender: TObject);
     procedure btnEd25519SignSampleClick(Sender: TObject);
     procedure btnEd25519PointDataClick(Sender: TObject);
+    procedure btnCurve25519DHKeyExchangeClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -416,6 +418,57 @@ begin
 
   Q.Free;
   P.Free;
+end;
+
+procedure TForm25519.btnCurve25519DHKeyExchangeClick(Sender: TObject);
+var
+  Priv1, Priv2: TCnEccPrivateKey;
+  Pub1, Pub2: TCnEccPublicKey;
+  Key1, Key2, Key1O, Key2O: TCnEccPoint;
+begin
+  Priv1 := nil;
+  Priv2 := nil;
+  Pub1 := nil;
+  Pub2 := nil;
+  Key1 := nil;
+  Key2 := nil;
+  Key1O := nil;
+  Key2O := nil;
+
+  try
+    Priv1 := TCnEccPrivateKey.Create;
+    Priv2 := TCnEccPrivateKey.Create;
+    Pub1 := TCnEccPublicKey.Create;
+    Pub2 := TCnEccPublicKey.Create;
+    Key1 := TCnEccPoint.Create;
+    Key2 := TCnEccPoint.Create;
+    Key1O := TCnEccPoint.Create;
+    Key2O := TCnEccPoint.Create;
+
+    Priv1.SetHex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
+    Priv2.SetHex('5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb');
+
+    CnCurve25519KeyExchangeStep1(Priv1, Key1); // 第一方调用，产生 Key 1
+    CnCurve25519KeyExchangeStep1(Priv2, Key2); // 另一方调用，产生 Key 2
+
+    // Key2 给一，Key1 给另一方
+
+    CnCurve25519KeyExchangeStep2(Priv1, Key2, Key1O); // 第一方调用，产生公有 Key 1O
+    CnCurve25519KeyExchangeStep2(Priv2, Key1, Key2O); // 第一方调用，产生公有 Key 2O
+
+    if CnEccPointsEqual(Key1O, Key2O) then
+      ShowMessage('Key Exchange OK '+ Key1O.ToString);
+  finally
+    Key2O.Free;
+    Key1O.Free;
+    Key2.Free;
+    Key1.Free;
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
+  end;
+
 end;
 
 end.
