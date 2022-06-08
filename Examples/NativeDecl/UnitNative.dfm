@@ -6,7 +6,7 @@ object FormNative: TFormNative
     'Test some Native Declarations and Methods - Run on D567 and can ' +
     'be verified in BDS.'
   ClientHeight = 477
-  ClientWidth = 741
+  ClientWidth = 747
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -84,7 +84,7 @@ object FormNative: TFormNative
   object mmoRes: TMemo
     Left = 16
     Top = 104
-    Width = 633
+    Width = 639
     Height = 354
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
@@ -216,5 +216,22 @@ object FormNative: TFormNative
     Caption = 'Endian'
     TabOrder = 16
     OnClick = btnEndianClick
+  end
+  object chkSwap: TCheckBox
+    Left = 672
+    Top = 144
+    Width = 65
+    Height = 17
+    Caption = 'Swap'
+    TabOrder = 17
+  end
+  object btnConstTimeCondSwap: TButton
+    Left = 664
+    Top = 168
+    Width = 75
+    Height = 25
+    Caption = 'Const Time'
+    TabOrder = 18
+    OnClick = btnConstTimeCondSwapClick
   end
 end

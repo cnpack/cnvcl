@@ -33,6 +33,8 @@ type
     bvl3: TBevel;
     btnInt64AddMod: TButton;
     btnEndian: TButton;
+    chkSwap: TCheckBox;
+    btnConstTimeCondSwap: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -49,6 +51,7 @@ type
     procedure btnURootClick(Sender: TObject);
     procedure btnInt64AddModClick(Sender: TObject);
     procedure btnEndianClick(Sender: TObject);
+    procedure btnConstTimeCondSwapClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -330,6 +333,34 @@ begin
     ShowMessage('Big Endian')
   else
     ShowMessage('Little Endian');
+end;
+
+procedure TFormNative.btnConstTimeCondSwapClick(Sender: TObject);
+var
+  A8, B8: Byte;
+  A16, B16: Word;
+  A32, B32: Cardinal;
+  A64, B64: TUInt64;
+begin
+  A8 := 45;
+  B8 := 247;
+  ConstantTimeConditionalSwap8(chkSwap.Checked, A8, B8);
+  mmoRes.Lines.Add(Format('%d, %d', [A8, B8]));
+
+  A16 := 4502;
+  B16 := 24701;
+  ConstantTimeConditionalSwap16(chkSwap.Checked, A16, B16);
+  mmoRes.Lines.Add(Format('%d, %d', [A16, B16]));
+
+  A32 := 45020001;
+  B32 := 247010002;
+  ConstantTimeConditionalSwap32(chkSwap.Checked, A32, B32);
+  mmoRes.Lines.Add(Format('%d, %d', [A32, B32]));
+
+  A64 := 4502000199999283434;
+  B64 := 4701000299999283434;
+  ConstantTimeConditionalSwap64(chkSwap.Checked, A64, B64);
+  mmoRes.Lines.Add(Format('%d, %d', [A64, B64]));
 end;
 
 end.

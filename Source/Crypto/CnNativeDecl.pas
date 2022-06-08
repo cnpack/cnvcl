@@ -35,10 +35,12 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.03.14 V2.0
+* 修改记录：2022.06.08 V2.1
+*               增加四个时间固定的交换函数以及内存倒排函数
+*           2022.03.14 V2.0
 *               增加几个十六进制转换函数
 *           2022.02.17 V1.9
-*               增加 FPC 的编译支持，待测试
+*               增加 FPC 的编译支持
 *           2022.02.09 V1.8
 *               加入运行期的大小端判断函数
 *           2021.09.05 V1.7
@@ -311,6 +313,18 @@ procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
 
 {$ENDIF}
+
+procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
+{* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+
+procedure ConstantTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
+{* 针对两个双字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+
+procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
+{* 针对两个四字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+
+procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
+{* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
 implementation
 
@@ -622,6 +636,62 @@ begin
 end;
 
 {$ENDIF}
+
+procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
+var
+  T, V: Byte;
+begin
+  if CanSwap then
+    T := $FF
+  else
+    T := 0;
+
+  V := (A xor B) and T;
+  A := A xor V;
+  B := B xor V;
+end;
+
+procedure ConstantTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
+var
+  T, V: Word;
+begin
+  if CanSwap then
+    T := $FFFF
+  else
+    T := 0;
+
+  V := (A xor B) and T;
+  A := A xor V;
+  B := B xor V;
+end;
+
+procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
+var
+  T, V: Cardinal;
+begin
+  if CanSwap then
+    T := $FFFFFFFF
+  else
+    T := 0;
+
+  V := (A xor B) and T;
+  A := A xor V;
+  B := B xor V;
+end;
+
+procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
+var
+  T, V: TUInt64;
+begin
+  if CanSwap then
+    T := not 0
+  else
+    T := 0;
+
+  V := (A xor B) and T;
+  A := A xor V;
+  B := B xor V;
+end;
 
 {$IFDEF CPUX64}
 
