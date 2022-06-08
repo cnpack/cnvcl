@@ -132,6 +132,13 @@ type
     FFiniteFieldSize: TCnBigNumber;
     FGenerator: TCnEccPoint;
     FCoFactor: Integer;
+    FLadderConst: TCnBigNumber;
+    procedure CheckLadderConst;
+  protected
+    procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用}
+    procedure MontgomeryLadderPointXAdd(Sum, P, Q, PMinusQ: TCnEccPoint);
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
   public
     constructor Create; overload; virtual;
     {* 普通构造函数，未初始化参数}
@@ -148,9 +155,9 @@ type
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 Point}
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P，内部实现等同于 CnECC 中同名方法}
+    {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现等同于 CnECC 中同名方法}
 
     function PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
@@ -161,6 +168,11 @@ type
     {* 计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
+
+    function MontgomeryLadderMultiplePoint(K: Int64; Point: TCnEccPoint): Boolean; overload;
+    {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
+    function MontgomeryLadderMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint): Boolean; overload;
+    {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
 
     property Generator: TCnEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -687,10 +699,13 @@ begin
   FFiniteFieldSize := TCnBigNumber.Create;
   FGenerator := TCnEccPoint.Create;
   FCoFactor := 1;
+
+  FLadderConst := TCnBigNumber.Create;
 end;
 
 destructor TCnMontgomeryCurve.Destroy;
 begin
+  FLadderConst.Free;
   FGenerator.Free;
   FFiniteFieldSize.Free;
   FOrder.Free;
@@ -766,6 +781,9 @@ begin
   FGenerator.Y.SetHex(GY);
   FOrder.SetHex(Order);
   FCoFactor := H;
+
+  // 提前计算 (A+2)/4 以备蒙哥马利阶梯算法中使用
+
 end;
 
 procedure TCnMontgomeryCurve.MultiplePoint(K: Int64; Point: TCnEccPoint);
@@ -778,6 +796,158 @@ begin
     MultiplePoint(BK, Point);
   finally
     F25519BigNumberPool.Recycle(BK);
+  end;
+end;
+
+function TCnMontgomeryCurve.MontgomeryLadderMultiplePoint(K: TCnBigNumber;
+  Point: TCnEccPoint): Boolean;
+var
+  I, C: Integer;
+  X0, X1: TCnEccPoint;
+begin
+  Result := False;
+  if BigNumberIsZero(K) then // 不考虑 K 为负值的情况
+  begin
+    Point.SetZero;
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  X0 := nil;
+  X1 := nil;
+
+  try
+    X0 := TCnEccPoint.Create;
+    X1 := TCnEccPoint.Create;
+
+    X0.Assign(Point);
+    MontgomeryLadderPointXDouble(X1, Point);
+
+    C := K.GetBitsCount;
+    for I := C - 2 downto 0 do // 先不考虑 Time Constant 执行时间固定的要求
+    begin
+      if K.IsBitSet(I) then
+      begin
+        MontgomeryLadderPointXAdd(X1, X0, X1, Point);
+        MontgomeryLadderPointXDouble(X0, X0);
+      end
+      else
+      begin
+        MontgomeryLadderPointXAdd(X0, X0, X1, Point);
+        MontgomeryLadderPointXDouble(X1, X1);
+      end;
+    end;
+
+    Point.Assign(X0);
+    Result := True;
+  finally
+    X1.Free;
+    X0.Free;
+  end;
+end;
+
+procedure TCnMontgomeryCurve.MontgomeryLadderPointXAdd(Sum, P, Q,
+  PMinusQ: TCnEccPoint);
+var
+  V0, V1, V2, V3, V4: TCnBigNumber;
+begin
+  V0 := nil;
+  V1 := nil;
+  V2 := nil;
+  V3 := nil;
+  V4 := nil;
+
+  try
+    V0 := F25519BigNumberPool.Obtain;
+    V1 := F25519BigNumberPool.Obtain;
+    V2 := F25519BigNumberPool.Obtain;
+    V3 := F25519BigNumberPool.Obtain;
+    V4 := F25519BigNumberPool.Obtain;
+
+    if not BigNumberAddMod(V0, P.X, P.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberSubMod(V1, Q.X, Q.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V1, V1, V0, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberSubMod(V0, P.X, P.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberAddMod(V2, Q.X, Q.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V2, V2, V0, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberAddMod(V3, V1, V2, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V3, V3, V3, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberSubMod(V4, V1, V2, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V4, V4, V4, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberDirectMulMod(Sum.X, PMinusQ.Y, V3, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(Sum.Y, PMinusQ.Y, V4, FFiniteFieldSize) then
+      Exit;
+  finally
+    F25519BigNumberPool.Recycle(V4);
+    F25519BigNumberPool.Recycle(V3);
+    F25519BigNumberPool.Recycle(V2);
+    F25519BigNumberPool.Recycle(V1);
+    F25519BigNumberPool.Recycle(V0);
+  end;
+end;
+
+procedure TCnMontgomeryCurve.MontgomeryLadderPointXDouble(Dbl,
+  P: TCnEccPoint);
+var
+  V1, V2, V3, V4: TCnBigNumber;
+begin
+  V1 := nil;
+  V2 := nil;
+  V3 := nil;
+  V4 := nil;
+
+  try
+    V1 := F25519BigNumberPool.Obtain;
+    V2 := F25519BigNumberPool.Obtain;
+    V3 := F25519BigNumberPool.Obtain;
+    V4 := F25519BigNumberPool.Obtain;
+
+    CheckLadderConst;
+
+    if not BigNumberAddMod(V1, P.X, P.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V1, V1, V1, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberSubMod(V2, P.X, P.Y, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V2, V2, V2, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberDirectMulMod(Dbl.X, V1, V2, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberSubMod(V1, V1, V2, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(V3, V1, FLadderConst, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberAddMod(V3, V3, V2, FFiniteFieldSize) then
+      Exit;
+
+    if not BigNumberDirectMulMod(Dbl.Y, V1, V3, FFiniteFieldSize) then
+      Exit;
+  finally
+    F25519BigNumberPool.Recycle(V4);
+    F25519BigNumberPool.Recycle(V3);
+    F25519BigNumberPool.Recycle(V2);
+    F25519BigNumberPool.Recycle(V1);
   end;
 end;
 
@@ -979,6 +1149,42 @@ begin
     Result := PointAddPoint(P, Inv, Diff);
   finally
     Inv.Free;
+  end;
+end;
+
+procedure TCnMontgomeryCurve.CheckLadderConst;
+var
+  T: TCnBigNumber;
+begin
+  if FLadderConst.IsZero then
+  begin
+    FLadderConst.SetWord(4);
+    T := F25519BigNumberPool.Obtain;
+
+    try
+      BigNumberModularInverse(T, FLadderConst, FFiniteFieldSize); // 先求 4 的逆元
+
+      BigNumberCopy(FLadderConst, FCoefficientA); // 再算 A+2
+      FLadderConst.AddWord(2);
+
+      BigNumberDirectMulMod(FLadderConst, FLadderConst, T, FFiniteFieldSize); // 乘逆元等于除
+    finally
+      F25519BigNumberPool.Recycle(T);
+    end;
+  end;
+end;
+
+function TCnMontgomeryCurve.MontgomeryLadderMultiplePoint(K: Int64;
+  Point: TCnEccPoint): Boolean;
+var
+  BK: TCnBigNumber;
+begin
+  BK := F25519BigNumberPool.Obtain;
+  try
+    BK.SetInt64(K);
+    Result := MontgomeryLadderMultiplePoint(K, Point);
+  finally
+    F25519BigNumberPool.Recycle(BK);
   end;
 end;
 
