@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnBigNumber, CnECC, Cn25519, ExtCtrls;
+  StdCtrls, ComCtrls, Clipbrd, CnBigNumber, CnECC, Cn25519, ExtCtrls;
 
 type
   TForm25519 = class(TForm)
@@ -26,6 +26,8 @@ type
     btnEd25519SignSample: TButton;
     btnEd25519PointData: TButton;
     btnCurve25519DHKeyExchange: TButton;
+    btnCalcSqrt: TButton;
+    btn25519PointConvert: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -42,6 +44,8 @@ type
     procedure btnEd25519SignSampleClick(Sender: TObject);
     procedure btnEd25519PointDataClick(Sender: TObject);
     procedure btnCurve25519DHKeyExchangeClick(Sender: TObject);
+    procedure btnCalcSqrtClick(Sender: TObject);
+    procedure btn25519PointConvertClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -469,6 +473,79 @@ begin
     Priv1.Free;
   end;
 
+end;
+
+procedure TForm25519.btnCalcSqrtClick(Sender: TObject);
+var
+  Prime, P, R, Inv: TCnBigNumber;
+begin
+  // 检查 Curve25519 曲线 By^2 = x^3 + Ax^2 + x 与 Ed25519 曲线 au^2 + v^2 = 1 + du^2v^2
+  // 的参数符合关系 B = 4 /(a-d) （没法验证）  A = 2(a+d)/(a-d) 已验证
+
+  Prime := TCnBigNumber.Create;
+  Prime.SetHex('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED');
+
+  P := TCnBigNumber.Create;
+  BigNumberSubMod(P, FEd25519.CoefficientA, FEd25519.CoefficientD, Prime);
+  Inv := TCnBigNumber.Create;
+  BigNumberModularInverse(Inv, P, Prime);
+  BigNumberMulWord(Inv, 4);
+  BigNumberNonNegativeMod(P, Inv, Prime);
+  ShowMessage(P.ToDec);
+
+  BigNumberDirectMulMod(P, P, FCurve25519.CoefficientB, Prime);
+  if P.IsWord(4) then
+    ShowMessage('OK')
+  else
+    ShowMessage('B = 4 /(a-d) Fail');
+
+  R := TCnBigNumber.Create;
+  BigNumberSubMod(R, FEd25519.CoefficientA, FEd25519.CoefficientD, Prime);
+  BigNumberModularInverse(Inv, R, Prime);
+
+  BigNumberAddMod(P, FEd25519.CoefficientA, FEd25519.CoefficientD, Prime);
+  BigNumberAddMod(P, P, P, Prime);
+
+  BigNumberDirectMulMod(P, P, Inv, Prime);
+  if BigNumberEqual(P, FCurve25519.CoefficientA) then
+    ShowMessage('OK: A = 2(a+d)/(a-d) = ' + P.ToDec); // 486662
+
+  Inv.Free;
+  R.Free;
+  P.Free;
+  Prime.Free;
+end;
+
+procedure TForm25519.btn25519PointConvertClick(Sender: TObject);
+var
+  P, Q: TCnEccPoint;
+begin
+  P := nil;
+  Q := nil;
+
+  try
+    P := TCnEccPoint.Create;
+    Q := TCnEccPoint.Create;
+
+    P.Assign(FCurve25519.Generator);
+    if CnCurve25519PointToEd25519Point(Q, P) then
+    begin
+      ShowMessage(Q.ToString);
+      if FEd25519.IsPointOnCurve(Q) then
+        ShowMessage('Converted Ed25519 Point is on Curve');
+    end;
+
+    P.Assign(FEd25519.Generator);
+    if CnEd25519PointToCurve25519Point(Q, P) then
+    begin
+      ShowMessage(Q.ToString);
+      if FCurve25519.IsPointOnCurve(Q) then
+        ShowMessage('Converted Curve25519 Point is on Curve');
+    end;
+  finally
+    Q.Free;
+    P.Free;
+  end;
 end;
 
 end.

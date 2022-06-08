@@ -164,6 +164,24 @@ object Form25519: TForm25519
           TabOrder = 13
           OnClick = btnCurve25519DHKeyExchangeClick
         end
+        object btnCalcSqrt: TButton
+          Left = 16
+          Top = 104
+          Width = 185
+          Height = 25
+          Caption = 'Mont/Ed 25519 Check'
+          TabOrder = 14
+          OnClick = btnCalcSqrtClick
+        end
+        object btn25519PointConvert: TButton
+          Left = 16
+          Top = 216
+          Width = 185
+          Height = 25
+          Caption = 'Curve/Ed 25519 PointConvert'
+          TabOrder = 15
+          OnClick = btn25519PointConvertClick
+        end
       end
     end
   end

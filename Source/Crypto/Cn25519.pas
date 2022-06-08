@@ -176,21 +176,13 @@ type
     {* 辅助因子 H，也就是总点数 = N * H，先用 Integer 表示}
   end;
 
-// =============================================================================
-//
-//       Curve25519 的 x y 和 Ed25519 的 u v 的双向映射关系为：
-//           (u, v) = ((1+y)/(1-y), sqrt(-486664)*u/x)
-//           (x, y) = (sqrt(-486664)*u/v, (u-1)/(u+1))
-//
-// =============================================================================
-
   TCnCurve25519 = class(TCnMontgomeryCurve)
   {* rfc 7748/8032 中规定的 Curve25519 曲线}
   public
     constructor Create; override;
 
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
-    {* 生成公私钥，其中私钥有特殊处理}
+    {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
   end;
 
   TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
@@ -203,7 +195,7 @@ type
     constructor Create; override;
 
     function GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey): Boolean;
-    {* 生成一对 Ed25519 椭圆曲线的公私钥}
+    {* 生成一对 Ed25519 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHA512 运算而来}
 
     function PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint): Boolean;
     {* 将 32 字节值转换为坐标点，涉及到求解}
@@ -270,6 +262,12 @@ function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNu
 
 function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的扩展仿射坐标到普通坐标的点转换}
+
+function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+{* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点}
+
+function CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+{* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点}
 
 function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
 {* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，返回转换是否成功}
@@ -343,8 +341,19 @@ const
   SCN_25519_MONT_GX = '09';
   // 9
   SCN_25519_MONT_GY = '20AE19A1B8A086B4E01EDD2C7748D14C923D4D7E6D7C61B229E9C5A27ECED3D9';
-  // 4/5，也就是 5 * Y mod P = 4  y = 14781619447589544791020593568409986887264606134616475288964881837755586237401? 似乎不对
-  // 可能是 46316835694926478169428394003475163141307993866256225615783033603165251855960 才对？
+  // 等于 RFC 中的 y = 14781619447589544791020593568409986887264606134616475288964881837755586237401，但似乎不是 4/5，也就是 5 * Y mod P = 4
+  // 可能是 5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14 才符合 4/5 并且和 Ed25519 的 GY 对应
+
+  SCN_25519_SQRT_NEG_486664 = '0F26EDF460A006BBD27B08DC03FC4F7EC5A1D3D14B7D1A82CC6E04AAFF457E06';
+  // 提前算好的 sqrt(-486664)，供点坐标转换计算
+
+// =============================================================================
+// 蒙哥马利曲线 By^2 = x^3 + Ax^2 + x 与扭曲爱德华曲线 au^2 + v^2 = 1 + du^2v^2
+// 照理有等价的一一映射关系，其中 A = 2(a+d)/(a-d) （已验证） 且 B = 4 /(a-d)
+// 但 Curve25519 曲线与 Ed25519 曲线又经过了参数调整，B = 4 /(a-d) 不成立
+// 同样，(x, y) 与 (u, v) 的对应关系也因为 A B a d 关系的调整而不满足标准映射
+// =============================================================================
+
 
 var
   F25519BigNumberPool: TCnBigNumberPool = nil;
@@ -1331,6 +1340,123 @@ end;
 function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 begin
   Result := CnAffinePointToEccPoint(P4, P, Prime);
+end;
+
+// =============================================================================
+//
+//          Curve25519 的 u v 和 Ed25519 的 x y 的双向映射关系为：
+//
+//              (u, v) = ((1+y)/(1-y), sqrt(-486664)*u/x)
+//              (x, y) = (sqrt(-486664)*u/v, (u-1)/(u+1))
+//
+// =============================================================================
+
+function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+var
+  S, T, Inv, Prime: TCnBigNumber;
+begin
+  // x = sqrt(-486664)*u/v
+  // y = (u-1)/(u+1)
+  Result := False;
+
+  S := nil;
+  T := nil;
+  Prime := nil;
+  Inv := nil;
+
+  try
+    S := F25519BigNumberPool.Obtain;
+    T := F25519BigNumberPool.Obtain;
+
+    S.SetHex(SCN_25519_SQRT_NEG_486664);
+    Prime := F25519BigNumberPool.Obtain;
+    Prime.SetHex(SCN_25519_PRIME);
+
+    if not BigNumberDirectMulMod(T, S, SourcePoint.X, Prime) then // sqrt * u
+      Exit;
+
+    Inv := F25519BigNumberPool.Obtain;
+    if not BigNumberModularInverse(Inv, SourcePoint.Y, Prime) then // v^-1
+      Exit;
+
+    if not BigNumberDirectMulMod(DestPoint.X, T, Inv, Prime) then // 算到 X
+      Exit;
+
+    if BigNumberCopy(T, SourcePoint.X) = nil then
+      Exit;
+    if BigNumberCopy(S, SourcePoint.X) = nil then
+      Exit;
+
+    T.SubWord(1);  // u - 1
+    S.AddWord(1);  // u + 1
+
+    if not BigNumberModularInverse(Inv, S, Prime) then // (u + 1)^1
+      Exit;
+    if not BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime) then
+      Exit;
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(Inv);
+    F25519BigNumberPool.Recycle(Prime);
+    F25519BigNumberPool.Recycle(T);
+    F25519BigNumberPool.Recycle(S);
+  end;
+end;
+
+function CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+var
+  S, T, Inv, Prime: TCnBigNumber;
+begin
+  // u = (1+y)/(1-y)
+  // v = sqrt(-486664)*u/x
+  Result := False;
+
+  S := nil;
+  T := nil;
+  Prime := nil;
+  Inv := nil;
+
+  try
+    S := F25519BigNumberPool.Obtain;
+    T := F25519BigNumberPool.Obtain;
+
+    if BigNumberCopy(T, SourcePoint.Y) = nil then
+      Exit;
+    if BigNumberCopy(S, SourcePoint.Y) = nil then
+      Exit;
+    T.AddWord(1);  // T 是分子 1+y
+
+    Prime := F25519BigNumberPool.Obtain;
+    Prime.SetHex(SCN_25519_PRIME);
+
+    if not BigNumberSubMod(S, CnBigNumberOne, SourcePoint.Y, Prime) then
+      Exit;        // S 是分母 1-y
+
+    Inv := F25519BigNumberPool.Obtain;
+    if not BigNumberModularInverse(Inv, S, Prime) then // Inv 是分母负倒数供乘
+      Exit;
+
+    if not BigNumberDirectMulMod(DestPoint.X, T, Inv, Prime) then // 得到 U
+      Exit;
+
+    S.SetHex(SCN_25519_SQRT_NEG_486664);
+    if not BigNumberDirectMulMod(T, S, DestPoint.X, Prime) then
+      Exit;
+
+    if not BigNumberModularInverse(Inv, SourcePoint.X, Prime) then
+      Exit;
+
+    if not BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime) then
+      Exit;
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(Inv);
+    F25519BigNumberPool.Recycle(Prime);
+    F25519BigNumberPool.Recycle(T);
+    F25519BigNumberPool.Recycle(S);
+  end;
 end;
 
 function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
