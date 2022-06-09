@@ -183,6 +183,9 @@ cnpack\Source 目录内容说明：
 
 \Crypto - 加解密算法目录
 
+  Cn25519.pas
+    Curve25519/Ed25519 系列椭圆曲线实现单元
+
   CnAES.pas
     AES 算法单元
 
