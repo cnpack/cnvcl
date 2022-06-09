@@ -684,7 +684,11 @@ var
   T, V: TUInt64;
 begin
   if CanSwap then
+{$IFDEF SUPPORT_UINT64}
+    T := $FFFFFFFFFFFFFFFF
+{$ELSE}
     T := not 0
+{$ENDIF}
   else
     T := 0;
 
