@@ -598,9 +598,21 @@ end;
 procedure TForm25519.btnCurv25519MontLadderAddClick(Sender: TObject);
 var
   P, Q: TCnEccPoint;
+  T: TCnBigNumber;
 begin
   P := TCnEccPoint.Create;
   Q := TCnEccPoint.Create;
+
+  P.Assign(FCurve25519.Generator);
+  Q.SetZero;
+  FCurve25519.PointToXAffinePoint(P, P);
+  ShowMessage(P.ToString);                // 9, 1
+  FCurve25519.PointToXAffinePoint(Q, Q);  // Q 0
+  ShowMessage(Q.ToString);                // 0, 1
+  FCurve25519.MontgomeryLadderPointXAdd(P, P, Q, P); // 理论上 P 要得到自身
+  ShowMessage(P.ToString); // 结果不是 9, 1，而是 4 $510(1296)
+  FCurve25519.XAffinePointToPoint(P, P);
+  ShowMessage(P.ToString); // 转换回来
 
   P.Assign(FCurve25519.Generator);
   FCurve25519.PointToXAffinePoint(P, P); // P 转换为射影点 G
@@ -618,7 +630,18 @@ begin
 
   // P 是 X Y 形式的 3*G，Q 是普通形式的 3*G，判断其 X 是否相等
   if BigNumberEqual(P.X, Q.X) then
-    ShowMessage('Montgomery Ladder Add OK');
+  begin
+    if BigNumberEqual(P.Y, Q.Y) then
+      ShowMessage('Montgomery Ladder Add OK. X, Y Both Equals.')
+    else
+    begin
+      T := TCnBigNumber.Create;
+      BigNumberAdd(T, P.Y, Q.Y);
+      if BigNumberEqual(T, FCurve25519.FiniteFieldSize) then
+        ShowMessage('Montgomery Ladder Add OK. X Equals. Y +-');
+      T.Free;
+    end;
+  end;
 
   Q.Free;
   P.Free;

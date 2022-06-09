@@ -896,9 +896,11 @@ begin
     if not BigNumberDirectMulMod(V4, V4, V4, FFiniteFieldSize) then
       Exit;
 
+    if BigNumberCopy(V0, PMinusQ.X) = nil then // V0 备份，避免 Sum 和 PMinusQ 是同一个点时被改动
+      Exit;
     if not BigNumberDirectMulMod(Sum.X, PMinusQ.Y, V3, FFiniteFieldSize) then
       Exit;
-    if not BigNumberDirectMulMod(Sum.Y, PMinusQ.Y, V4, FFiniteFieldSize) then
+    if not BigNumberDirectMulMod(Sum.Y, V0, V4, FFiniteFieldSize) then
       Exit;
   finally
     F25519BigNumberPool.Recycle(V4);
@@ -1201,7 +1203,14 @@ begin
   Result := False;
   if BigNumberCopy(DestPoint.X, SourcePoint.X) = nil then
     Exit;
-  DestPoint.Y.SetOne;
+  if SourcePoint.X.IsZero and SourcePoint.Y.IsZero then
+  begin
+    DestPoint.X.SetOne;
+    DestPoint.Y.SetZero;
+  end
+  else
+    DestPoint.Y.SetOne;
+
   Result := True;
 end;
 
