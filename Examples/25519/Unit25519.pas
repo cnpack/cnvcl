@@ -388,7 +388,7 @@ begin
     if CnEd25519VerifyData(@B, 1, Sig, FPubKey) then
       ShowMessage('Verify OK')
     else
-      ShowMessage('Verify Fail');
+      ShowMessage('Verify Fail. Maybe Key needs to be Re-Generated?');
     ASig.Free;
   end;
   Sig.Free;
