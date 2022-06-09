@@ -182,6 +182,24 @@ object Form25519: TForm25519
           TabOrder = 15
           OnClick = btn25519PointConvertClick
         end
+        object btnCurv25519MontLadderDouble: TButton
+          Left = 224
+          Top = 216
+          Width = 185
+          Height = 25
+          Caption = 'Curv25519 Mont Ladder Double'
+          TabOrder = 16
+          OnClick = btnCurv25519MontLadderDoubleClick
+        end
+        object btnCurv25519MontLadderAdd: TButton
+          Left = 432
+          Top = 216
+          Width = 185
+          Height = 25
+          Caption = 'Curv25519 Mont Ladder Add'
+          TabOrder = 17
+          OnClick = btnCurv25519MontLadderAddClick
+        end
       end
     end
   end

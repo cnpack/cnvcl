@@ -172,7 +172,7 @@ type
       SourcePoint 和 DestPoint 可以相同}
 
     procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
-    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用}
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
     procedure MontgomeryLadderPointXAdd(Sum, P, Q, PMinusQ: TCnEccPoint);
     {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
 
@@ -1210,9 +1210,14 @@ function TCnMontgomeryCurve.XAffinePointToPoint(DestPoint,
 var
   T, X: TCnBigNumber;
 begin
+  // 输入为射影 (X, Z)，先 x = (X/Z)，再求 y
   Result := False;
-  if BigNumberCopy(DestPoint.X, SourcePoint.X) = nil then
+  if SourcePoint.Y.IsZero then
+  begin
+    DestPoint.SetZero;
+    Result := True;
     Exit;
+  end;
 
   T := nil;
   X := nil;
@@ -1220,6 +1225,14 @@ begin
   try
     T := F25519BigNumberPool.Obtain;
     X := F25519BigNumberPool.Obtain;
+
+    if not BigNumberModularInverse(T, SourcePoint.Y, FFiniteFieldSize) then // Z^-1
+      Exit;
+    if not BigNumberDirectMulMod(DestPoint.X, SourcePoint.X, T, FFiniteFieldSize) then
+      Exit;
+
+    if BigNumberCopy(X, DestPoint.X) = nil then // DestPoint.X = X/Z
+      Exit;
 
     // 求 X^3+A*X^2+X mod P
     if not BigNumberPowerWordMod(X, SourcePoint.X, 3, FFiniteFieldSize) then // X^3
@@ -1235,7 +1248,7 @@ begin
     if not BigNumberAddMod(X, X, SourcePoint.X, FFiniteFieldSize) then // 得到 X^3+A*X^2+X mod P
       Exit;
 
-    if not BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize) then
+    if not BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize) then // 求模平方根
       Exit;
 
     Result := True;
