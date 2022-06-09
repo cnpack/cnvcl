@@ -92,6 +92,7 @@ contains
   CnWinSvc in '..\..\Source\Common\CnWinSvc.pas',
   CnXMLPersistent in '..\..\Source\Common\CnXMLPersistent.pas',
   CnZip in '..\..\Source\Common\CnZip.pas',
+  Cn25519 in '..\..\Source\Crypto\Cn25519.pas',
   CnAES in '..\..\Source\Crypto\CnAES.pas',
   CnBase64 in '..\..\Source\Crypto\CnBase64.pas',
   CnBerUtils in '..\..\Source\Crypto\CnBerUtils.pas',

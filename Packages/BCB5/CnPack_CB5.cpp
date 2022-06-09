@@ -54,6 +54,7 @@ USEUNIT("..\..\Source\Common\CnVCLBase.pas");
 USEUNIT("..\..\Source\Common\CnVclFmxMixed.pas");
 USEUNIT("..\..\Source\Common\CnWideStrings.pas");
 USEUNIT("..\..\Source\Common\CnWinSvc.pas");
+USEUNIT("..\..\Source\Crypto\Cn25519.pas");
 USEUNIT("..\..\Source\Crypto\CnAES.pas");
 USEUNIT("..\..\Source\Crypto\CnBase64.pas");
 USEUNIT("..\..\Source\Crypto\CnBerUtils.pas");
