@@ -134,11 +134,6 @@ type
     FCoFactor: Integer;
     FLadderConst: TCnBigNumber;
     procedure CheckLadderConst;
-  protected
-    procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
-    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用}
-    procedure MontgomeryLadderPointXAdd(Sum, P, Q, PMinusQ: TCnEccPoint);
-    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
   public
     constructor Create; overload; virtual;
     {* 普通构造函数，未初始化参数}
@@ -168,6 +163,18 @@ type
     {* 计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
     {* 判断 P 点是否在本曲线上}
+
+    function PointToXAffinePoint(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+    {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 供蒙哥马利阶梯算法使用，
+      其实就是 Y 置 1，SourcePoint 和 DestPoint 可以相同}
+    function XAffinePointToPoint(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+    {* 将只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点，其实就是求解 Y 并替换 Z，
+      SourcePoint 和 DestPoint 可以相同}
+
+    procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用}
+    procedure MontgomeryLadderPointXAdd(Sum, P, Q, PMinusQ: TCnEccPoint);
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
 
     function MontgomeryLadderMultiplePoint(K: Int64; Point: TCnEccPoint): Boolean; overload;
     {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
@@ -1182,9 +1189,59 @@ begin
   BK := F25519BigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    Result := MontgomeryLadderMultiplePoint(K, Point);
+    Result := MontgomeryLadderMultiplePoint(BK, Point);
   finally
     F25519BigNumberPool.Recycle(BK);
+  end;
+end;
+
+function TCnMontgomeryCurve.PointToXAffinePoint(DestPoint,
+  SourcePoint: TCnEccPoint): Boolean;
+begin
+  Result := False;
+  if BigNumberCopy(DestPoint.X, SourcePoint.X) = nil then
+    Exit;
+  DestPoint.Y.SetOne;
+  Result := True;
+end;
+
+function TCnMontgomeryCurve.XAffinePointToPoint(DestPoint,
+  SourcePoint: TCnEccPoint): Boolean;
+var
+  T, X: TCnBigNumber;
+begin
+  Result := False;
+  if BigNumberCopy(DestPoint.X, SourcePoint.X) = nil then
+    Exit;
+
+  T := nil;
+  X := nil;
+
+  try
+    T := F25519BigNumberPool.Obtain;
+    X := F25519BigNumberPool.Obtain;
+
+    // 求 X^3+A*X^2+X mod P
+    if not BigNumberPowerWordMod(X, SourcePoint.X, 3, FFiniteFieldSize) then // X^3
+      Exit;
+
+    if not BigNumberDirectMulMod(T, SourcePoint.X, SourcePoint.X, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize) then // A*X^2
+      Exit;
+
+    if not BigNumberAddMod(X, T, X, FFiniteFieldSize) then
+      Exit;
+    if not BigNumberAddMod(X, X, SourcePoint.X, FFiniteFieldSize) then // 得到 X^3+A*X^2+X mod P
+      Exit;
+
+    if not BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize) then
+      Exit;
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(X);
+    F25519BigNumberPool.Recycle(T);
   end;
 end;
 
