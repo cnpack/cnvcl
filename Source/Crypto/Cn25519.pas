@@ -153,7 +153,7 @@ type
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 Point}
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
     {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现等同于 CnECC 中同名方法}
 
     function PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
@@ -204,6 +204,9 @@ type
 
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
     {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
+
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
+    {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现使用蒙哥马利阶梯算法}
   end;
 
   TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
@@ -1302,6 +1305,20 @@ begin
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
+end;
+
+procedure TCnCurve25519.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+var
+  M: TCnEccPoint;
+begin
+  M := TCnEccPoint.Create;
+  try
+    PointToXAffinePoint(M, Point);
+    MontgomeryLadderMultiplePoint(K, M);
+    XAffinePointToPoint(Point, M);
+  finally
+    M.Free;
+  end;
 end;
 
 { TCnEd25519 }

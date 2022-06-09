@@ -339,7 +339,7 @@ begin
 
   T1 := GetTickCount;
   for I := 1 to 1000 do
-    FEd25519.MultiplePoint(M, P);
+    FEd25519.MultiplePoint(M, P); // 已经改造成 Extended 的了
   T1 := GetTickCount - T1;
 
   T2 := GetTickCount;
@@ -347,7 +347,7 @@ begin
     FEd25519.ExtendedMultiplePoint(M, P4);
   T2 := GetTickCount - T2;
 
-  ShowMessage(Format('Normal %d, Extended %d', [T1, T2])); // Extended 快十倍以上！
+  ShowMessage(Format('Normal %d, Extended %d', [T1, T2])); // Extended 比常规的快十倍以上！
   CnEcc4PointToEccPoint(P4, Q, FEd25519.FiniteFieldSize);
   if CnEccPointsEqual(P, Q) then
     ShowMessage('Ed 25519 1000 Mul/ExtendedMul Equal OK');
@@ -689,7 +689,7 @@ begin
   for I := 1 to 1000 do
   begin
     P.Assign(Q);
-    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P 自乘
+    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P 自乘，蒙哥马利阶梯法比常规的快十倍以上！
   end;
   T1 := GetTickCount - T1;
 
@@ -697,7 +697,7 @@ begin
   for I := 1 to 1000 do
   begin
     P.Assign(FCurve25519.Generator);
-    FCurve25519.MultiplePoint(MUL_COUNT, P); // P 自乘
+    FCurve25519.MultiplePoint(MUL_COUNT, P); // P 自乘，也已经改成蒙哥马利阶梯法了
   end;
   T2 := GetTickCount - T2;
 
