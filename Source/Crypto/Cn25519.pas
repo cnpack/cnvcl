@@ -31,10 +31,12 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.08 V1.1
+* 修改记录：2022.06.09 V1.2
+*               实现 Curve25510 曲线的蒙哥马利阶梯加速标量乘，速度快十倍以上
+*           2022.06.08 V1.1
 *               实现 Ed25519 签名与验证
 *           2022.06.07 V1.1
-*               实现 Ed25519 扩展四元坐标的快速点加与标量乘实现，速度快十倍以上
+*               实现 Ed25519 扩展四元坐标的快速点加与标量乘，速度快十倍以上
 *           2022.06.05 V1.0
 *               创建单元
 ================================================================================
@@ -283,10 +285,10 @@ function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNu
 {* 大数范围内的扩展仿射坐标到普通坐标的点转换}
 
 function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
-{* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点}
+{* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点，Source 和 Dest 可以相同}
 
 function CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
-{* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点}
+{* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点，Source 和 Dest 可以相同}
 
 function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
 {* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，返回转换是否成功}
@@ -376,6 +378,15 @@ const
 
 var
   F25519BigNumberPool: TCnBigNumberPool = nil;
+
+procedure ConditionalSwapPoint(Swap: Boolean; A, B: TCnEccPoint);
+begin
+  if Swap then
+  begin
+    BigNumberSwap(A.X, B.X);
+    BigNumberSwap(A.Y, B.Y);
+  end;
+end;
 
 function CalcBigNumberDigest(const Num: TCnBigNumber; FixedLen: Integer): TSHA512Digest;
 var
@@ -790,7 +801,7 @@ begin
   FCoFactor := H;
 
   // 提前计算 (A+2)/4 以备蒙哥马利阶梯算法中使用
-
+  CheckLadderConst;
 end;
 
 procedure TCnMontgomeryCurve.MultiplePoint(K: Int64; Point: TCnEccPoint);
@@ -828,24 +839,19 @@ begin
     X0 := TCnEccPoint.Create;
     X1 := TCnEccPoint.Create;
 
-    X0.Assign(Point);
-    MontgomeryLadderPointXDouble(X1, Point);
+    X1.Assign(Point);
+    MontgomeryLadderPointXDouble(X0, Point);
 
     C := K.GetBitsCount;
-    for I := C - 2 downto 0 do // 先不考虑 Time Constant 执行时间固定的要求
+    for I := C - 2 downto 0 do // 内部先不考虑 Time Constant 执行时间固定的要求
     begin
-      if K.IsBitSet(I) then
-      begin
-        MontgomeryLadderPointXAdd(X1, X0, X1, Point);
-        MontgomeryLadderPointXDouble(X0, X0);
-      end
-      else
-      begin
-        MontgomeryLadderPointXAdd(X0, X0, X1, Point);
-        MontgomeryLadderPointXDouble(X1, X1);
-      end;
+      ConditionalSwapPoint(K.IsBitSet(I + 1) <> K.IsBitSet(I), X0, X1); // 换
+
+      MontgomeryLadderPointXAdd(X1, X0, X1, Point);
+      MontgomeryLadderPointXDouble(X0, X0);
     end;
 
+    ConditionalSwapPoint(K.IsBitSet(0), X0, X1);
     Point.Assign(X0);
     Result := True;
   finally
@@ -1217,7 +1223,7 @@ end;
 function TCnMontgomeryCurve.XAffinePointToPoint(DestPoint,
   SourcePoint: TCnEccPoint): Boolean;
 var
-  T, X: TCnBigNumber;
+  T, X, DX: TCnBigNumber;
 begin
   // 输入为射影 (X, Z)，先 x = (X/Z)，再求 y
   Result := False;
@@ -1230,38 +1236,43 @@ begin
 
   T := nil;
   X := nil;
+  DX := nil;
 
   try
     T := F25519BigNumberPool.Obtain;
     X := F25519BigNumberPool.Obtain;
+    DX := F25519BigNumberPool.Obtain;
 
     if not BigNumberModularInverse(T, SourcePoint.Y, FFiniteFieldSize) then // Z^-1
       Exit;
-    if not BigNumberDirectMulMod(DestPoint.X, SourcePoint.X, T, FFiniteFieldSize) then
+    if not BigNumberDirectMulMod(DX, SourcePoint.X, T, FFiniteFieldSize) then // 算出 DX 但先不赋值避免影响
       Exit;
 
-    if BigNumberCopy(X, DestPoint.X) = nil then // DestPoint.X = X/Z
+    if BigNumberCopy(X, DX) = nil then // DestPoint.X = X/Z
       Exit;
 
     // 求 X^3+A*X^2+X mod P
-    if not BigNumberPowerWordMod(X, SourcePoint.X, 3, FFiniteFieldSize) then // X^3
+    if not BigNumberPowerWordMod(X, DX, 3, FFiniteFieldSize) then // X^3
       Exit;
 
-    if not BigNumberDirectMulMod(T, SourcePoint.X, SourcePoint.X, FFiniteFieldSize) then
+    if not BigNumberDirectMulMod(T, DX, DX, FFiniteFieldSize) then
       Exit;
     if not BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize) then // A*X^2
       Exit;
 
     if not BigNumberAddMod(X, T, X, FFiniteFieldSize) then
       Exit;
-    if not BigNumberAddMod(X, X, SourcePoint.X, FFiniteFieldSize) then // 得到 X^3+A*X^2+X mod P
+    if not BigNumberAddMod(X, X, DX, FFiniteFieldSize) then // 得到 X^3+A*X^2+X mod P
       Exit;
 
     if not BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize) then // 求模平方根
       Exit;
+    if BigNumberCopy(DestPoint.X, DX) = nil then
+      Exit;
 
     Result := True;
   finally
+    F25519BigNumberPool.Recycle(DX);
     F25519BigNumberPool.Recycle(X);
     F25519BigNumberPool.Recycle(T);
   end;
@@ -1634,7 +1645,7 @@ end;
 
 function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
 var
-  S, T, Inv, Prime: TCnBigNumber;
+  S, T, Inv, Prime, TX: TCnBigNumber;
 begin
   // x = sqrt(-486664)*u/v
   // y = (u-1)/(u+1)
@@ -1644,6 +1655,7 @@ begin
   T := nil;
   Prime := nil;
   Inv := nil;
+  TX := nil;
 
   try
     S := F25519BigNumberPool.Obtain;
@@ -1660,7 +1672,8 @@ begin
     if not BigNumberModularInverse(Inv, SourcePoint.Y, Prime) then // v^-1
       Exit;
 
-    if not BigNumberDirectMulMod(DestPoint.X, T, Inv, Prime) then // 算到 X
+    TX := F25519BigNumberPool.Obtain;
+    if not BigNumberDirectMulMod(TX, T, Inv, Prime) then // 算到 X，但先不赋值，避免源目标同对象造成影响
       Exit;
 
     if BigNumberCopy(T, SourcePoint.X) = nil then
@@ -1675,9 +1688,12 @@ begin
       Exit;
     if not BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime) then
       Exit;
+    if BigNumberCopy(DestPoint.X, TX) = nil then
+      Exit;
 
     Result := True;
   finally
+    F25519BigNumberPool.Recycle(TX);
     F25519BigNumberPool.Recycle(Inv);
     F25519BigNumberPool.Recycle(Prime);
     F25519BigNumberPool.Recycle(T);
@@ -1687,7 +1703,7 @@ end;
 
 function CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
 var
-  S, T, Inv, Prime: TCnBigNumber;
+  S, T, Inv, Prime, TX: TCnBigNumber;
 begin
   // u = (1+y)/(1-y)
   // v = sqrt(-486664)*u/x
@@ -1697,6 +1713,7 @@ begin
   T := nil;
   Prime := nil;
   Inv := nil;
+  TX := nil;
 
   try
     S := F25519BigNumberPool.Obtain;
@@ -1718,11 +1735,12 @@ begin
     if not BigNumberModularInverse(Inv, S, Prime) then // Inv 是分母负倒数供乘
       Exit;
 
-    if not BigNumberDirectMulMod(DestPoint.X, T, Inv, Prime) then // 得到 U
+    TX := F25519BigNumberPool.Obtain;
+    if not BigNumberDirectMulMod(TX, T, Inv, Prime) then // 得到 U，但不赋值，先暂存，避免源目标同对象的影响
       Exit;
 
     S.SetHex(SCN_25519_SQRT_NEG_486664);
-    if not BigNumberDirectMulMod(T, S, DestPoint.X, Prime) then
+    if not BigNumberDirectMulMod(T, S, TX, Prime) then
       Exit;
 
     if not BigNumberModularInverse(Inv, SourcePoint.X, Prime) then
@@ -1731,8 +1749,12 @@ begin
     if not BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime) then
       Exit;
 
+    if BigNumberCopy(DestPoint.X, TX) = nil then // 将暂存的 TX 整回目标点
+      Exit;
+
     Result := True;
   finally
+    F25519BigNumberPool.Recycle(TX);
     F25519BigNumberPool.Recycle(Inv);
     F25519BigNumberPool.Recycle(Prime);
     F25519BigNumberPool.Recycle(T);

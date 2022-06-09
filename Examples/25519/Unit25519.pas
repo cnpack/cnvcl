@@ -30,6 +30,7 @@ type
     btn25519PointConvert: TButton;
     btnCurv25519MontLadderDouble: TButton;
     btnCurv25519MontLadderAdd: TButton;
+    btnCurv25519MontLadderMul: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -50,6 +51,7 @@ type
     procedure btn25519PointConvertClick(Sender: TObject);
     procedure btnCurv25519MontLadderDoubleClick(Sender: TObject);
     procedure btnCurv25519MontLadderAddClick(Sender: TObject);
+    procedure btnCurv25519MontLadderMulClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -642,6 +644,64 @@ begin
       T.Free;
     end;
   end;
+
+  Q.Free;
+  P.Free;
+end;
+
+procedure TForm25519.btnCurv25519MontLadderMulClick(Sender: TObject);
+const
+  MUL_COUNT = 9876577987898;
+var
+  P, Q: TCnEccPoint;
+  T: TCnBigNumber;
+  T1, T2: Cardinal;
+  I: Integer;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+
+  P.Assign(FCurve25519.Generator);
+  FCurve25519.PointToXAffinePoint(P, P); // P 转换为射影点 G
+  FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P 自乘
+  FCurve25519.XAffinePointToPoint(P, P); // nG 转换为普通点
+
+  Q.Assign(FCurve25519.Generator);
+  FCurve25519.MultiplePoint(MUL_COUNT, Q);
+
+  if BigNumberEqual(P.X, Q.X) then
+  begin
+    if BigNumberEqual(P.Y, Q.Y) then
+      ShowMessage('Montgomery Ladder Mul OK. X, Y Both Equals.')
+    else
+    begin
+      T := TCnBigNumber.Create;
+      BigNumberAdd(T, P.Y, Q.Y);
+      if BigNumberEqual(T, FCurve25519.FiniteFieldSize) then
+        ShowMessage('Montgomery Ladder Mul OK. X Equals. Y +-');
+      T.Free;
+    end;
+  end;
+
+  Q.Assign(FCurve25519.Generator);
+  FCurve25519.PointToXAffinePoint(Q, Q); // Q 转换为射影点 G
+  T1 := GetTickCount;
+  for I := 1 to 1000 do
+  begin
+    P.Assign(Q);
+    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P 自乘
+  end;
+  T1 := GetTickCount - T1;
+
+  T2 := GetTickCount;
+  for I := 1 to 1000 do
+  begin
+    P.Assign(FCurve25519.Generator);
+    FCurve25519.MultiplePoint(MUL_COUNT, P); // P 自乘
+  end;
+  T2 := GetTickCount - T2;
+
+  ShowMessage(Format('Curve 25519 1000 Mul %d, MontgomeryLadder %d', [T2, T1]));
 
   Q.Free;
   P.Free;
