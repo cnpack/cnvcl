@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 346
-  Top = 146
+  Left = 188
+  Top = 130
   Width = 860
   Height = 598
   Caption = 'ECC Test'
@@ -1244,7 +1244,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Anchors = [akTop, akRight]
-          Caption = 'Calc Yb'
+          Caption = '2. Calc Yb'
           TabOrder = 10
           OnClick = btnBNECDHYbClick
         end
@@ -1254,7 +1254,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Anchors = [akTop, akRight]
-          Caption = 'Calc Ya'
+          Caption = '1. Calc Ya'
           TabOrder = 5
           OnClick = btnBNECDHYaClick
         end
@@ -1280,7 +1280,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Anchors = [akTop, akRight]
-          Caption = 'B Calc Key'
+          Caption = '4. B Calc Key'
           TabOrder = 12
           OnClick = btnBNECDHBkeyClick
         end
@@ -1290,7 +1290,7 @@ object FormEcc: TFormEcc
           Width = 75
           Height = 21
           Anchors = [akTop, akRight]
-          Caption = 'A Calc Key'
+          Caption = '3. A Calc Key'
           TabOrder = 7
           OnClick = btnBNECDHAKeyClick
         end

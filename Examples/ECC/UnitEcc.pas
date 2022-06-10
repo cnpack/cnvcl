@@ -3038,7 +3038,7 @@ begin
   begin
     T := GetTickCount;
     for I := 1 to COUNT do
-      FBNEcc.MultiplePoint(K, P);
+      FBNEcc.NormalMultiplePoint(K, P);
     T := GetTickCount - T;
   end
   else
