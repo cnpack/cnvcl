@@ -33,7 +33,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.22 V1.9
+* 修改记录：2022.06.10 V2.0
+*               点乘改为默认使用仿射坐标以加速，点加不变
+*           2021.12.22 V1.9
 *               增加 In64 与大数范围内仿射坐标与雅可比坐标的加减法与乘法
 *           2021.12.07 V1.8
 *               增加 SM9 与 WAPI 的两条曲线定义
@@ -317,9 +319,12 @@ type
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入 P，内部用仿射坐标点乘进行加速}
+
+    procedure NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
-    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同，内部普通实现}
     procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnEccPoint);
@@ -2339,7 +2344,12 @@ begin
   end;
 end;
 
-procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+function TCnEcc.GetBytesCount: Integer;
+begin
+  Result := FFiniteFieldSize.GetBytesCount;
+end;
+
+procedure TCnEcc.NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
   I: Integer;
   E, R: TCnEccPoint;
@@ -2490,6 +2500,20 @@ begin
     MultiplePoint(BK, Point);
   finally
     FEccBigNumberPool.Recycle(BK);
+  end;
+end;
+
+procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+var
+  P3: TCnEcc3Point;
+begin
+  P3 := TCnEcc3Point.Create;
+  try
+    CnEccPointToEcc3Point(Point, P3);
+    AffineMultiplePoint(K, P3);
+    CnAffinePointToEccPoint(P3, Point, FFiniteFieldSize);
+  finally
+    P3.Free;
   end;
 end;
 
@@ -4362,11 +4386,6 @@ begin
   else
     Result := '<Unknown>';
   end;
-end;
-
-function TCnEcc.GetBytesCount: Integer;
-begin
-  Result := FFiniteFieldSize.GetBytesCount;
 end;
 
 { TCnInt64PolynomialEccPoint }
