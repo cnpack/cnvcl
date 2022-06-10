@@ -1,6 +1,6 @@
 object FormBigNumber: TFormBigNumber
-  Left = 138
-  Top = 0
+  Left = 121
+  Top = 55
   Width = 1222
   Height = 713
   Caption = 'Big Number Test'
@@ -706,7 +706,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnMontReductTime: TButton
         Left = 1040
-        Top = 76
+        Top = 74
         Width = 129
         Height = 25
         Caption = 'Mont Reduct Time'
@@ -715,12 +715,30 @@ object FormBigNumber: TFormBigNumber
       end
       object btnSquareRootMod: TButton
         Left = 1040
-        Top = 108
+        Top = 110
         Width = 129
         Height = 25
         Caption = 'X^2 mod Prime = A'
         TabOrder = 69
         OnClick = btnSquareRootModClick
+      end
+      object btnBNRawDump: TButton
+        Left = 1040
+        Top = 140
+        Width = 129
+        Height = 25
+        Caption = 'Raw Dump Num1'
+        TabOrder = 70
+        OnClick = btnBNRawDumpClick
+      end
+      object btnBNDebugDump: TButton
+        Left = 1040
+        Top = 170
+        Width = 129
+        Height = 25
+        Caption = 'Debug Dump Num1'
+        TabOrder = 71
+        OnClick = btnBNDebugDumpClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

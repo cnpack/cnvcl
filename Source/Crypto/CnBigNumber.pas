@@ -105,8 +105,8 @@ type
   PUInt64Array = ^TUInt64Array;
 {$ENDIF}
 
-  {* 用来代表一个大数的对象}
   TCnBigNumber = class(TObject)
+  {* 用来代表一个大数的对象}
   private
 {$IFDEF DEBUG}
     FIsFromPool: Boolean;
@@ -115,10 +115,18 @@ type
     function GetHexString: string;
     function GetDebugDump: string;
   public
-    D: PCnLongWord32;   // 一个 array[0..Top-1] of LongWord 数组，越往后越代表高位
-    Top: Integer;       // Top 表示数字上限，也即有 Top 个有效 LongWord，D[Top] 值为 0，D[Top - 1] 是最高位有效数所在的 LongWord
-    DMax: Integer;      // D 数组已分配的存储上限，单位是 LongWord 个，大于或等于 Top，不参与运算
-    Neg: Integer;       // 1 为负，0 为正
+    D: PCnLongWord32;
+    // 一个 array[0..Top-1] of LongWord32 数组，越往后越代表高位。
+    // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数
+
+    Top: Integer;
+    // Top 表示数字上限，也即有 Top 个有效 LongWord32，D[Top - 1] 是最高位有效数所在的 LongWord32
+
+    DMax: Integer;
+    // D 数组已分配的存储上限，单位是 LongWord32 个，大于或等于 Top，不参与运算
+
+    Neg: Integer;
+    // 1 为负，0 为正
 
     constructor Create; virtual;
     destructor Destroy; override;
@@ -281,6 +289,9 @@ type
 
     class function FromDec(const Buf: AnsiString): TCnBigNumber;
     {* 根据一串十进制字符串产生个新的大数对象}
+
+    function RawDump(Mem: Pointer = nil): Integer;
+    {* Dump 出原始内存内容，返回 Dump 的字节长度。如 Mem 传 nil，只返回所需字节长度}
 
     property DecString: string read GetDecString;
     property HexString: string read GetHexString;
@@ -874,6 +885,9 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
 
+function BigNumberRawDump(const Num: TCnBigNumber; Mem: Pointer = nil): Integer;
+{* 将大数内部信息原封不动 Dump 至 Mem 所指的内存区，如果 Mem 传 nil，则返回所需的字节长度}
+
 function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
 {* 判断 SparseBigNumberList 是否为 0，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理}
 
@@ -1116,6 +1130,7 @@ begin
   Result := Trunc(LOG_10_2 * B) + 1;
 end;
 
+// 确保 Num 内分配的数组长度有 Words 个 LongWord32
 function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PCnLongWord32;
 var
   A, B, TmpA: PCnLongWord32;
@@ -6713,8 +6728,23 @@ begin
 
   Result := Format('Neg %d. DMax %d. Top %d.', [Num.Neg, Num.DMax, Num.Top]);
   if (Num.D <> nil) and (Num.Top > 0) then
-    for I := 0 to Num.Top do
+    for I := 0 to Num.Top - 1 do
       Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
+end;
+
+// 将大数内部信息原封不动 Dump 至 Mem 所指的内存区
+function BigNumberRawDump(const Num: TCnBigNumber; Mem: Pointer): Integer;
+begin
+  if Num.D = nil then
+  begin
+    Result := 0;
+    Exit;
+  end
+  else
+    Result := Num.Top * SizeOf(TCnLongWord32);
+
+  if Mem <> nil then
+    Move(Num.D^, Mem^, Num.Top * SizeOf(TCnLongWord32));
 end;
 
 function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
@@ -7169,6 +7199,11 @@ end;
 function TCnBigNumber.GetDebugDump: string;
 begin
   Result := BigNumberDebugDump(Self);
+end;
+
+function TCnBigNumber.RawDump(Mem: Pointer): Integer;
+begin
+  Result := BigNumberRawDump(Self, Mem);
 end;
 
 function TCnBigNumber.GetInt64: Int64;

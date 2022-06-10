@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon, ComCtrls;
+  StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon, ComCtrls, CnNativeDecl;
 
 type
   TFormBigNumber = class(TForm)
@@ -98,6 +98,8 @@ type
     btnMontReduct1: TButton;
     btnMontReductTime: TButton;
     btnSquareRootMod: TButton;
+    btnBNRawDump: TButton;
+    btnBNDebugDump: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -164,6 +166,8 @@ type
     procedure btnMontReduct1Click(Sender: TObject);
     procedure btnMontReductTimeClick(Sender: TObject);
     procedure btnSquareRootModClick(Sender: TObject);
+    procedure btnBNDebugDumpClick(Sender: TObject);
+    procedure btnBNRawDumpClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1352,6 +1356,26 @@ begin
   Num3.SetDec('13');
   Num2.SetWord(3);
   if TestSquareRootMod then ShowMessage('OK 5'); // 8u5 的没问题 9^2 mod 13 = 3
+end;
+
+procedure TFormBigNumber.btnBNDebugDumpClick(Sender: TObject);
+begin
+  ShowMessage(Num1.DebugDump);
+end;
+
+procedure TFormBigNumber.btnBNRawDumpClick(Sender: TObject);
+var
+  L: Integer;
+  B: array of Byte;
+begin
+  L := BigNumberRawDump(Num1);
+  if L > 0 then
+  begin
+    SetLength(B, L);
+    BigNumberRawDump(Num1, @B[0]);
+    ShowMessage(DataToHex(@B[0], Length(B), True));
+    SetLength(B, 0);
+  end;
 end;
 
 end.
