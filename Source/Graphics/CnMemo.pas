@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Windows, Classes, Messages, Controls, Graphics, StdCtrls, ExtCtrls,
-  Dialogs, SysConst, Forms, Clipbrd, CnTextControl, CnCommon;
+  Dialogs, SysConst, Forms, Clipbrd, CnNativeDecl, CnTextControl, CnCommon;
 
 type
 {$IFDEF UNICODE}
@@ -345,16 +345,16 @@ end;
 
 procedure TCnEditorStringList.ExchangeItems(Index1, Index2: Integer);
 var
-  Temp: Integer;
+  Temp: TCnNativeInt;
   Item1, Item2: PCnEditorStringItem;
   TempMark: TCnEditorStringMark;
 begin
   Item1 := @FList^[Index1];
   Item2 := @FList^[Index2];
-  Temp := Integer(Item1^.FString);
+  Temp := TCnNativeInt(Item1^.FString);
 
-  Integer(Item1^.FString) := Integer(Item2^.FString);
-  Integer(Item2^.FString) := Temp;
+  TCnNativeInt(Item1^.FString) := TCnNativeInt(Item2^.FString);
+  TCnNativeInt(Item2^.FString) := Temp;
 
   TempMark := Item1^.FMark;
   Item1^.FMark := Item2^.FMark;
