@@ -215,6 +215,12 @@ function IsInt64AddOverflow(A, B: Int64): Boolean;
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 {* 判断两个 64 位无符号数相加是否溢出 64 位无符号上限}
 
+procedure UInt64Add(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+{* 两个 64 位无符号数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零}
+
+procedure UInt64Sub(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+{* 两个 64 位无符号数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零}
+
 function IsInt32MulOverflow(A, B: Integer): Boolean;
 {* 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限}
 
@@ -1304,6 +1310,26 @@ end;
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
+end;
+
+// 两个 64 位无符号数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零
+procedure UInt64Add(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+begin
+  R := A + B;
+  if UInt64Compare(R, A) < 0 then // 无符号相加，结果只要小于任一个数就说明溢出了
+    Carry := 1
+  else
+    Carry := 0;
+end;
+
+// 两个 64 位无符号数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零
+procedure UInt64Sub(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+begin
+  R := A - B;
+  if UInt64Compare(R, A) > 0 then // 无符号相减，结果只要大于被减数就说明借位了
+    Carry := 1
+  else
+    Carry := 0;
 end;
 
 // 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限
