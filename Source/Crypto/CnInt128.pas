@@ -66,20 +66,19 @@ procedure Int128SetZero(var N: TCnInt128);
 {* 将一 128 位有符号数置 0}
 
 procedure Int128Add(var R, A, B: TCnInt128); overload;
-{* 128 位有符号数相加，不考虑溢出的情况。R、A、B可以相同。A B 使用补码无需分开考虑正负值}
+{* 128 位有符号数相加，不考虑溢出的情况。R、A、B 可以相同。A B 使用补码无需分开考虑正负值}
 
 procedure Int128Add(var R, A: TCnInt128; V: Int64); overload;
 {* 给一 128 位有符号数加上一个 64 位有符号数。考虑了 B 为负值的情况}
 
 procedure Int128Sub(var R, A, B: TCnInt128); overload;
-{* 128 位有符号数相减，不考虑溢出的情况。R、A、B可以相同}
+{* 128 位有符号数相减，不考虑溢出的情况。R、A、B 可以相同}
 
 procedure Int128Sub(var R, A: TCnInt128; V: Int64); overload;
 {* 给一 128 位有符号数减去一个 64 位有符号数。考虑了 B 为负值的情况}
 
 procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128 = nil);
-{* 128 位有符号数相乘，有溢出则超过 128 位的放 ResHi 中
-  如传 nil 且溢出则抛异常。R、A、B可以相同}
+{* 128 位有符号数相乘，有溢出则抛异常（ResHi 参数暂不起作用）。R、A、B 可以相同}
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
 {* 128 位有符号数按位左移}
@@ -516,7 +515,7 @@ begin
   else
   begin
     // 取出 Lo 的高 S 位
-    M := (not 0) shl (64 - S);
+    M := (not TUInt64(0)) shl (64 - S);
     T := N.Lo64 and M;
     T := T shr (64 - S);
 
@@ -553,7 +552,7 @@ begin
   else
   begin
     // 取出 Hi 的低 S 位
-    M := (not 0) shr (64 - S);
+    M := (not TUInt64(0)) shr (64 - S);
     T := N.Hi64 and M;
     T := T shl (64 - S);
 

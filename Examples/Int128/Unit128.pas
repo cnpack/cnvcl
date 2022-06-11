@@ -240,6 +240,26 @@ begin
   Int128Set(FInt128A, -13);
   Int128Sub(FInt128R, FInt128A, 20);
   ShowMessage(Int128ToHex(FInt128R)); // -$21
+
+  // 正负相乘
+  Int128Set(FInt128A, 4);
+  Int128Set(FInt128B, -3);
+  Int128Mul(FInt128R, FInt128A, FInt128B);
+  ShowMessage(Int128ToHex(FInt128R)); // -$C
+
+  // 负负相乘
+  Int128Set(FInt128A, -10);
+  Int128Set(FInt128B, -3);
+  Int128Mul(FInt128R, FInt128A, FInt128B);
+  ShowMessage(Int128ToHex(FInt128R)); // -$1E
+
+  // 正负相乘溢出
+  Int128Set(FInt128A, $F0000000F0000000, 1);
+  Int128Set(FInt128B, $7F000000F0000000, 2);
+  Int128Negate(FInt128B);
+  ShowMessage(Int128ToHex(FInt128B));
+  Int128Mul(FInt128R, FInt128A, FInt128B);
+  ShowMessage(Int128ToHex(FInt128R)); // 抛异常
 end;
 
 end.
