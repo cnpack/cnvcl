@@ -147,7 +147,8 @@ function UInt64Mul(A, B: Cardinal): TUInt64;
   如果结果直接使用 Int64 计算则有可能溢出}
 
 procedure UInt64AddUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
-{* 两个无符号 64 位整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中}
+{* 两个无符号 64 位整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中
+  注：内部实现按算法来看较为复杂，实际上如果溢出，ResHi 必然是 1，直接判断溢出并将其设 1 即可}
 
 procedure UInt64MulUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
 {* 两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中}
