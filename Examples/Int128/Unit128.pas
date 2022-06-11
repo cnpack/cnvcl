@@ -39,12 +39,14 @@ type
     bvl5: TBevel;
     edtU128R: TEdit;
     lblHexU128R: TLabel;
+    btnSample2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnSample1Click(Sender: TObject);
     procedure btn128ShlClick(Sender: TObject);
     procedure btn128ShrClick(Sender: TObject);
     procedure btnU128ShlClick(Sender: TObject);
     procedure btnU128ShrClick(Sender: TObject);
+    procedure btnSample2Click(Sender: TObject);
   private
     FInt128A, FInt128B, FInt128R: TCnInt128;
     FUInt128A, FUInt128B, FUInt128R: TCnUInt128;
@@ -200,6 +202,44 @@ procedure TForm128.btnU128ShrClick(Sender: TObject);
 begin
   UInt128ShiftRight(FUInt128R, 1);
   edtU128R.Text := UInt128ToHex(FUInt128R);
+end;
+
+procedure TForm128.btnSample2Click(Sender: TObject);
+begin
+  // 正负号混合运算
+  // 有符号正负加
+  Int128Set(FInt128A, 3);
+  Int128Set(FInt128B, -2);
+  ShowMessage(Int128ToHex(FInt128B)); // -2
+  Int128Add(FInt128R, FInt128A, FInt128B);
+  ShowMessage(Int128ToHex(FInt128R)); // 1
+
+  // 正直接加负 Int64 值
+  Int128Set(FInt128A, 3);
+  Int128Add(FInt128R, FInt128A, -2);
+  ShowMessage(Int128ToHex(FInt128R)); // 1
+
+  // 负负相加
+  Int128Set(FInt128A, -33);
+  Int128Set(FInt128B, -2);
+  Int128Add(FInt128R, FInt128A, FInt128B);
+  ShowMessage(Int128ToHex(FInt128R)); // -$23
+
+  // 负直接加负 Int64 值
+  Int128Set(FInt128A, -13);
+  Int128Add(FInt128R, FInt128A, -2);
+  ShowMessage(Int128ToHex(FInt128R)); // -$F
+
+  // 负负相减
+  Int128Set(FInt128A, -33);
+  Int128Set(FInt128B, -20);
+  Int128Sub(FInt128R, FInt128A, FInt128B);
+  ShowMessage(Int128ToHex(FInt128R)); // -$D
+
+  // 负直接加负 Int64 值
+  Int128Set(FInt128A, -13);
+  Int128Sub(FInt128R, FInt128A, 20);
+  ShowMessage(Int128ToHex(FInt128R)); // -$21
 end;
 
 end.

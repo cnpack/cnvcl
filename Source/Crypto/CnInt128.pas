@@ -54,19 +54,28 @@ type
 // ========================= Int128 计算函数 ===================================
 
 procedure Int128Set(var R: TCnInt128; Lo, Hi: Int64); overload;
-{* 分别设置 128 位有符号数的高低 64 位值}
+{* 分别设置 128 位有符号数的高低 64 位原始值，不额外处理正负号}
 
 procedure Int128Set(var R: TCnInt128; Lo: Int64); overload;
-{* 设置 128 位有符号数的低 64 位值，高位置 0}
+{* 设置 128 位有符号数的低 64 位值，高位根据正负情况置全 0 或全 F}
 
 procedure Int128Copy(var D, S: TCnInt128);
 {* 复制 128 位有符号数}
 
-procedure Int128Add(var R, A, B: TCnInt128);
-{* 128 位有符号数相加，不考虑溢出的情况。R、A、B可以相同}
+procedure Int128SetZero(var N: TCnInt128);
+{* 将一 128 位有符号数置 0}
 
-procedure Int128Sub(var R, A, B: TCnInt128);
+procedure Int128Add(var R, A, B: TCnInt128); overload;
+{* 128 位有符号数相加，不考虑溢出的情况。R、A、B可以相同。A B 使用补码无需分开考虑正负值}
+
+procedure Int128Add(var R, A: TCnInt128; V: Int64); overload;
+{* 给一 128 位有符号数加上一个 64 位有符号数。考虑了 B 为负值的情况}
+
+procedure Int128Sub(var R, A, B: TCnInt128); overload;
 {* 128 位有符号数相减，不考虑溢出的情况。R、A、B可以相同}
+
+procedure Int128Sub(var R, A: TCnInt128; V: Int64); overload;
+{* 给一 128 位有符号数减去一个 64 位有符号数。考虑了 B 为负值的情况}
 
 procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128 = nil);
 {* 128 位有符号数相乘，有溢出则超过 128 位的放 ResHi 中
@@ -113,7 +122,13 @@ procedure UInt128Set(var R: TCnUInt128; Lo: TUInt64); overload;
 procedure UInt128Copy(var D, S: TCnUInt128);
 {* 复制 128 位无符号数}
 
-procedure UInt128Add(var R, A, B: TCnUInt128);
+procedure UInt128SetZero(var N: TCnUInt128);
+{* 将一 128 位无符号数置 0}
+
+procedure UInt128Add(var R: TCnUInt128; V: TUInt64); overload;
+{* 给一 128 位无符号数加上一个 64 位无符号数}
+
+procedure UInt128Add(var R, A, B: TCnUInt128); overload;
 {* 128 位无符号数相加，不考虑溢出的情况。R、A、B可以相同}
 
 procedure UInt128Sub(var R, A, B: TCnUInt128);
@@ -168,13 +183,22 @@ end;
 procedure Int128Set(var R: TCnInt128; Lo: Int64);
 begin
   R.Lo64 := Lo;
-  R.Hi64 := 0;
+  if Lo >= 0 then
+    R.Hi64 := 0
+  else
+    R.Hi64 := not 0;
 end;
 
 procedure Int128Copy(var D, S: TCnInt128);
 begin
   D.Lo64 := S.Lo64;
   D.Hi64 := S.Hi64;
+end;
+
+procedure Int128SetZero(var N: TCnInt128);
+begin
+  N.Lo64 := 0;
+  N.Hi64 := 0;
 end;
 
 procedure Int128Add(var R, A, B: TCnInt128);
@@ -189,6 +213,30 @@ begin
   R.Hi64 := A.Hi64 + B.Hi64 + C;
 end;
 
+procedure Int128Add(var R, A: TCnInt128; V: Int64); overload;
+var
+  C: Integer;
+begin
+  if V < 0 then
+  begin
+    V := (not V) + 1; // 求反加一变正值然后减
+{$IFDEF SUPPORT_UINT64}
+    UInt64Sub(UInt64(R.Lo64), UInt64(A.Lo64), UInt64(V), C);
+{$ELSE}
+    UInt64Sub(R.Lo64, A.Lo64, V, C);
+{$ENDIF}
+  end
+  else // V >= 0，和 UInt64 同样处理
+  begin
+{$IFDEF SUPPORT_UINT64}
+    UInt64Add(UInt64(R.Lo64), UInt64(A.Lo64), UInt64(V), C);
+{$ELSE}
+    UInt64Add(R.Lo64, A.Lo64, V, C);
+{$ENDIF}
+  end;
+  R.Hi64 := A.Hi64 + C;
+end;
+
 procedure Int128Sub(var R, A, B: TCnInt128);
 var
   C: Integer;
@@ -199,6 +247,30 @@ begin
   UInt64Sub(R.Lo64, A.Lo64, B.Lo64, C);
 {$ENDIF}
   R.Hi64 := A.Hi64 - B.Hi64 - C;
+end;
+
+procedure Int128Sub(var R, A: TCnInt128; V: Int64);
+var
+  C: Integer;
+begin
+  if V < 0 then
+  begin
+    V := (not V) + 1; // 求反加一变正值然后加
+{$IFDEF SUPPORT_UINT64}
+    UInt64Add(UInt64(R.Lo64), UInt64(A.Lo64), UInt64(V), C);
+{$ELSE}
+    UInt64Add(R.Lo64, A.Lo64, V, C);
+{$ENDIF}
+  end
+  else // V >= 0，和 UInt64 同样处理
+  begin
+{$IFDEF SUPPORT_UINT64}
+    UInt64Sub(UInt64(R.Lo64), UInt64(A.Lo64), UInt64(V), C);
+{$ELSE}
+    UInt64Sub(R.Lo64, A.Lo64, V, C);
+{$ENDIF}
+  end;
+  R.Hi64 := A.Hi64 - C;
 end;
 
 procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128);
@@ -343,12 +415,26 @@ begin
   D.Hi64 := S.Hi64;
 end;
 
+procedure UInt128SetZero(var N: TCnUInt128);
+begin
+  N.Lo64 := 0;
+  N.Hi64 := 0;
+end;
+
 procedure UInt128Add(var R, A, B: TCnUInt128);
 var
   C: Integer;
 begin
   UInt64Add(R.Lo64, A.Lo64, B.Lo64, C);
   R.Hi64 := A.Hi64 + B.Hi64 + C;
+end;
+
+procedure UInt128Add(var R: TCnUInt128; V: TUInt64);
+var
+  C: Integer;
+begin
+  UInt64Add(R.Lo64, R.Lo64, V, C);
+  R.Hi64 := R.Hi64 + C;
 end;
 
 // 两个 128 位无符号数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零

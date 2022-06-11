@@ -366,4 +366,13 @@ object Form128: TForm128
       Text = '1111111122222222333333334444444455555555666666667777777788888888'
     end
   end
+  object btnSample2: TButton
+    Left = 96
+    Top = 360
+    Width = 75
+    Height = 25
+    Caption = 'Sample 2'
+    TabOrder = 3
+    OnClick = btnSample2Click
+  end
 end
