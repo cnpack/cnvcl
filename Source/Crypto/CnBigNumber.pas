@@ -319,6 +319,9 @@ type
     procedure Insert(Index: Integer; ABigNumber: TCnBigNumber);
     procedure RemoveDuplicated;
     {* 去重，也就是删除并释放重复的大数值对象只留一个}
+    procedure SumTo(Sum: TCnBigNumber);
+    {* 列表内所有数求和}
+
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
   end;
 
@@ -7326,6 +7329,15 @@ procedure TCnBigNumberList.SetItem(Index: Integer;
   ABigNumber: TCnBigNumber);
 begin
   inherited SetItem(Index, ABigNumber);
+end;
+
+procedure TCnBigNumberList.SumTo(Sum: TCnBigNumber);
+var
+  I: Integer;
+begin
+  Sum.SetZero;
+  for I := 0 to Count - 1 do
+    BigNumberAdd(Sum, Sum, Items[I]);
 end;
 
 { TCnBigNumberPool }
