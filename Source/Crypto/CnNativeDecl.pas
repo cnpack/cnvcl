@@ -92,7 +92,7 @@ type
   TCnUInt64 = packed record  // 只能用这样的结构代替
     case Boolean of
       True:  (Value: Int64);
-      False: (Low32, Hi32: Cardinal);
+      False: (Lo32, Hi32: Cardinal);
   end;
   {$ENDIF}
   TCnInt64         = Int64;
@@ -833,7 +833,7 @@ var
   P, R1Lo, R1Hi, R2Lo, R2Hi: TUInt64;
 begin
   // 基本思想：2^32 是系数 M，拆成 (xM+y)*(zM+t) = xzM^2 + (xt+yz)M + yt
-  // 各项系数都是 UInt64，xz 占 2、3、4，xt+yz 占 1、2、3，yt 占0、1，然后累加
+  // 各项系数都是 UInt64，xz 占 2、3、4，xt+yz 占 1、2、3，yt 占 0、1，然后累加
   X := Int64Rec(A).Hi;
   Y := Int64Rec(A).Lo;
   Z := Int64Rec(B).Hi;
