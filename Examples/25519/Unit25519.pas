@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, Clipbrd, CnBigNumber, CnECC, Cn25519, ExtCtrls;
+  StdCtrls, ComCtrls, Clipbrd, CnBigNumber, CnECC, Cn25519, ExtCtrls, CnNativeDecl;
 
 type
   TForm25519 = class(TForm)
@@ -31,6 +31,10 @@ type
     btnCurv25519MontLadderDouble: TButton;
     btnCurv25519MontLadderAdd: TButton;
     btnCurv25519MontLadderMul: TButton;
+    bvl11: TBevel;
+    btnBigNumberToField: TButton;
+    btnField64Mul: TButton;
+    btnField64MulTime: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -52,6 +56,9 @@ type
     procedure btnCurv25519MontLadderDoubleClick(Sender: TObject);
     procedure btnCurv25519MontLadderAddClick(Sender: TObject);
     procedure btnCurv25519MontLadderMulClick(Sender: TObject);
+    procedure btnBigNumberToFieldClick(Sender: TObject);
+    procedure btnField64MulClick(Sender: TObject);
+    procedure btnField64MulTimeClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -705,6 +712,116 @@ begin
 
   Q.Free;
   P.Free;
+end;
+
+procedure TForm25519.btnBigNumberToFieldClick(Sender: TObject);
+var
+  B, C: TCnBigNumber;
+  L: TCnBigNumberList;
+  D: TCn25519Field64;
+begin
+  B := TCnBigNumber.FromHex('8888888877777777666666665555555544444444333333332222222211111111');
+  Cn25519BigNumberToField64(B, D);
+
+  ShowMessage(UInt64ToHex(D[0]));
+  ShowMessage(UInt64ToHex(D[1]));
+  ShowMessage(UInt64ToHex(D[2]));
+  ShowMessage(UInt64ToHex(D[3]));
+  ShowMessage(UInt64ToHex(D[4]));
+
+  L := TCnBigNumberList.Create;
+  L.Add.SetInt64(D[0]);
+  L.Add.SetInt64(D[1]);
+  L.Add.SetInt64(D[2]);
+  L.Add.SetInt64(D[3]);
+  L.Add.SetInt64(D[4]);
+
+  L[1].ShiftLeft(51);
+  L[2].ShiftLeft(102);
+  L[3].ShiftLeft(153);
+  L[4].ShiftLeft(204);
+
+  C := TCnBigNumber.Create;
+  L.SumTo(C);
+  ShowMessage(C.ToHex);
+
+  Cn25519Field64ToBigNumber(C, D);
+  ShowMessage(C.ToHex);
+
+  C.Free;
+  L.Free;
+  B.Free;
+end;
+
+procedure TForm25519.btnField64MulClick(Sender: TObject);
+var
+  A, B, C: TCnBigNumber;
+  FA, FB, FC: TCn25519Field64;
+begin
+  A := TCnBigNumber.FromHex('11111111222222223333333344444444555555556666666677777777');
+  B := TCnBigNumber.FromHex('66666666555555554444444433333333222222221111111100000000');
+
+//  A := TCnBigNumber.FromHex('F00000000000000000000000');
+//  B := TCnBigNumber.FromHex('F00000000000000000000000'); // 测试数据
+
+//  A := TCnBigNumber.FromHex('1000000000000000000000000'); // 多个 0 就出错了，乘积变成全 0 了，该问题已修复
+//  B := TCnBigNumber.FromHex('100000000000000000000000'); 
+
+  Cn25519BigNumberToField64(A, FA);
+  Cn25519BigNumberToField64(B, FB);
+
+  Cn25519Field64Mul(FC, FA, FB);
+
+  C := TCnBigNumber.Create;
+  Cn25519Field64ToBigNumber(C, FC);
+  ShowMessage(C.ToHex());  // 这里和下面要相等
+
+  BigNumberDirectMulMod(C, A, B, FEd25519.FiniteFieldSize);
+  ShowMessage(C.ToHex());  // 这里和上面要相等
+
+  C.Free;
+  B.Free;
+  A.Free;
+end;
+
+procedure TForm25519.btnField64MulTimeClick(Sender: TObject);
+var
+  I: Integer;
+  A, B, C: TCnBigNumber;
+  FA, FB, FC: TCn25519Field64;
+  T1, T2: Cardinal;
+begin
+  A := TCnBigNumber.FromHex('11111111222222223333333344444444555555556666666677777777');
+  B := TCnBigNumber.FromHex('66666666555555554444444433333333222222221111111100000000');
+
+//  A := TCnBigNumber.FromHex('F00000000000000000000000');
+//  B := TCnBigNumber.FromHex('F00000000000000000000000'); // 测试数据
+
+//  A := TCnBigNumber.FromHex('1000000000000000000000000'); // 多个 0 就出错了，乘积变成全 0 了，该问题已修复
+//  B := TCnBigNumber.FromHex('100000000000000000000000');
+
+  Cn25519BigNumberToField64(A, FA);
+  Cn25519BigNumberToField64(B, FB);
+
+  T1 := GetTickCount;
+  for I := 1 to 50000 do
+    Cn25519Field64Mul(FC, FA, FB);
+  T1 := GetTickCount - T1;
+
+  C := TCnBigNumber.Create;
+  Cn25519Field64ToBigNumber(C, FC);
+  // ShowMessage(C.ToHex());  // 这里和下面要相等
+
+  T2 := GetTickCount;
+  for I := 1 to 50000 do
+    BigNumberDirectMulMod(C, A, B, FEd25519.FiniteFieldSize);
+  T2 := GetTickCount - T2;
+
+  ShowMessage(Format('Field %d. DirectMulMod %d', [T1, T2])); // 前者稍微快一点点
+
+  C.Free;
+  B.Free;
+  A.Free;
 end;
 
 end.

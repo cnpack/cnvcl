@@ -38,6 +38,13 @@ object Form25519: TForm25519
           Height = 25
           Shape = bsTopLine
         end
+        object bvl11: TBevel
+          Left = 16
+          Top = 256
+          Width = 897
+          Height = 25
+          Shape = bsTopLine
+        end
         object btnCurve25519G: TButton
           Left = 16
           Top = 24
@@ -208,6 +215,33 @@ object Form25519: TForm25519
           Caption = 'Curv25519 Mont Ladder Mul'
           TabOrder = 18
           OnClick = btnCurv25519MontLadderMulClick
+        end
+        object btnBigNumberToField: TButton
+          Left = 16
+          Top = 272
+          Width = 185
+          Height = 25
+          Caption = 'BigNumber To Field64'
+          TabOrder = 19
+          OnClick = btnBigNumberToFieldClick
+        end
+        object btnField64Mul: TButton
+          Left = 224
+          Top = 272
+          Width = 185
+          Height = 25
+          Caption = 'Field64 Mul'
+          TabOrder = 20
+          OnClick = btnField64MulClick
+        end
+        object btnField64MulTime: TButton
+          Left = 432
+          Top = 272
+          Width = 185
+          Height = 25
+          Caption = 'Field64 Mul Time'
+          TabOrder = 21
+          OnClick = btnField64MulTimeClick
         end
       end
     end

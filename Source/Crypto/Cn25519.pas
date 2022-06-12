@@ -26,7 +26,7 @@ unit Cn25519;
 * 单元作者：刘啸
 * 备    注：目前实现了 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
 *           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 的点加减乘
-*           暂未实现仅基于 X 以及蒙哥马利阶梯的快速计算
+*           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
 *           签名基于 rfc 8032 的说明
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
@@ -47,12 +47,15 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl, CnBigNumber, CnECC, CnSHA2;
+  Classes, SysUtils, CnNativeDecl, CnBigNumber, CnInt128, CnECC, CnSHA2;
 
 const
   CN_25519_BLOCK_BYTESIZE = 32;
 
 type
+  TCn25519Field64 = array[0..4] of TUInt64;
+  {* 用多项式拆项法表示一个 2^255-19 范围内的有限域元素，f0 + 2*51*f1 + 2^102*f2 + 2^153*f3 + 2^204*f4}
+
   TCnEcc4Point = class(TCnEcc3Point)
   {* 扩展的射影/仿射/雅可比坐标点，增加了 T 用于记录中间结果}
   private
@@ -329,6 +332,39 @@ function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
   返回生成是否成功}
 
+// ============================== 多项式加速算法 ===============================
+
+procedure Cn25519BigNumberToField64(const Num: TCnBigNumber; var Field: TCn25519Field64);
+{* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数}
+
+procedure Cn25519Field64ToBigNumber(const Res: TCnBigNumber; var Field: TCn25519Field64);
+{* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数}
+
+procedure Cn25519Field64Reduce(var Field: TCn25519Field64);
+{* 将一个 64 位多项式系数在 2^255-19 有限域范围内正规化，
+  也就是把每个系数确保比 2^51 小，大的部分进位到下一个}
+
+procedure Cn25519Field64Zero(var Field: TCn25519Field64);
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 0}
+
+procedure Cn25519Field64One(var Field: TCn25519Field64);
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 1}
+
+procedure Cn25519Field64NegOne(var Field: TCn25519Field64);
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 -1}
+
+procedure Cn25519Field64Negate(var Field: TCn25519Field64);
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为相反数}
+
+procedure Cn25519Field64Add(var Res, A, B: TCn25519Field64);
+{* 两个 2^255-19 有限域范围内的 64 位多项式系数相加，A + B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
+
+procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
+{* 两个 2^255-19 有限域范围内的 64 位多项式系数相减，A - B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
+
+procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
+{* 两个 2^255-19 有限域范围内的 64 位多项式系数相乘，A * B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
+
 implementation
 
 const
@@ -371,6 +407,8 @@ const
   SCN_25519_SQRT_NEG_486664 = '0F26EDF460A006BBD27B08DC03FC4F7EC5A1D3D14B7D1A82CC6E04AAFF457E06';
   // 提前算好的 sqrt(-486664)，供点坐标转换计算
 
+  SCN_LOW51_MASK = $7FFFFFFFFFFFF;
+
 // =============================================================================
 // 蒙哥马利曲线 By^2 = x^3 + Ax^2 + x 与扭曲爱德华曲线 au^2 + v^2 = 1 + du^2v^2
 // 照理有等价的一一映射关系，其中 A = 2(a+d)/(a-d) （已验证） 且 B = 4 /(a-d)
@@ -378,9 +416,14 @@ const
 // 同样，(x, y) 与 (u, v) 的对应关系也因为 A B a d 关系的调整而不满足标准映射
 // =============================================================================
 
-
 var
   F25519BigNumberPool: TCnBigNumberPool = nil;
+  FPrime25519: TCnBigNumber = nil;
+
+  // 仨常量
+  F25519Field64Zero: TCn25519Field64 = (0, 0, 0, 0, 0);
+  F25519Field64One: TCn25519Field64 = (1, 0, 0, 0, 0);
+  F25519Field64NegOne: TCn25519Field64 = (2251799813685228, 2251799813685247, 2251799813685247, 2251799813685247, 2251799813685247);
 
 procedure ConditionalSwapPoint(Swap: Boolean; A, B: TCnEccPoint);
 begin
@@ -1427,7 +1470,7 @@ begin
       if not BigNumberDirectMulMod(B, P.Y, P.Y, FFiniteFieldSize) then // B = Y1^2
         Exit;
 
-      if not BigNumberDirectMulMod(C, P.Z, P.Z, FFiniteFieldSize) then 
+      if not BigNumberDirectMulMod(C, P.Z, P.Z, FFiniteFieldSize) then
         Exit;
       if not BigNumberAddMod(C, C, C, FFiniteFieldSize) then     // C = 2*Z1^2
         Exit;
@@ -2259,10 +2302,243 @@ begin
   Move(Data[0], Sig[SizeOf(TCnEd25519Data)], SizeOf(TCnEd25519Data));
 end;
 
+procedure Cn25519BigNumberToField64(const Num: TCnBigNumber; var Field: TCn25519Field64);
+var
+  D: TCn25519Field64;
+begin
+  if Num.IsNegative or (BigNumberUnsignedCompare(Num, FPrime25519) > 0) then
+    BigNumberNonNegativeMod(Num, Num, FPrime25519);
+
+  // 如果 Num 是 SetHex 8888888877777777666666665555555544444444333333332222222211111111
+  // 那么其真实值确实是 8888888877777777666666665555555544444444333333332222222211111111
+  // 内存中低到高是 11111111 22222222 33333333 44444444 55555555 66666666 77777777 88888888
+  // 共八组四字节，每组四字节内部按大小端不同有区别，但这里无需处理
+  // 拆成 64 位的值则 D0=2222222211111111 D1=4444444433333333 D3=6666666655555555 D4=8888888877777777
+
+  FillChar(D[0], SizeOf(TCn25519Field64), 0);
+  BigNumberRawDump(Num, @D[0]);
+
+  Field[0] := D[0] and $7FFFFFFFFFFFF;  // D0 保留低 51 位（0 到 50，与1）
+  Field[1] := (D[0] shr 51) or ((D[1] and $3FFFFFFFFF) shl 13); // D0 的高 13 位（64 减 51）与 D1 的低 38 位（与1）拼起来
+  Field[2] := (D[1] shr 38) or ((D[2] and $1FFFFFF) shl 26); // D1 的高 26 位（64 减 38）与 D2 的低 25 位（与1）拼起来
+  Field[3] := (D[2] shr 25) or ((D[3] and $0FFF) shl 39); // D2 的高 39 位（64 减 25）与 D2 的低 12 位（与1）拼起来
+  Field[4] := D[3] shr 12;                             // D3 的高 52 位（64 减 12）
+end;
+
+procedure Cn25519Field64ToBigNumber(const Res: TCnBigNumber; var Field: TCn25519Field64);
+var
+  B0, B1, B2, B3, B4: TCnBigNumber;
+begin
+  B0 := nil;
+  B1 := nil;
+  B2 := nil;
+  B3 := nil;
+  B4 := nil;
+
+  try
+    B0 := F25519BigNumberPool.Obtain;
+    B1 := F25519BigNumberPool.Obtain;
+    B2 := F25519BigNumberPool.Obtain;
+    B3 := F25519BigNumberPool.Obtain;
+    B4 := F25519BigNumberPool.Obtain;
+
+    B0.SetInt64(Field[0]);
+    B1.SetInt64(Field[1]);
+    B2.SetInt64(Field[2]);
+    B3.SetInt64(Field[3]);
+    B4.SetInt64(Field[4]);
+
+    B1.ShiftLeft(51);
+    B2.ShiftLeft(102);
+    B3.ShiftLeft(153);
+    B4.ShiftLeft(204);
+
+    Res.SetZero;
+    BigNumberAdd(Res, B1, B0);
+    BigNumberAdd(Res, Res, B2);
+    BigNumberAdd(Res, Res, B3);
+    BigNumberAdd(Res, Res, B4);
+
+    BigNumberNonNegativeMod(Res, Res, FPrime25519);
+  finally
+    F25519BigNumberPool.Recycle(B4);
+    F25519BigNumberPool.Recycle(B3);
+    F25519BigNumberPool.Recycle(B2);
+    F25519BigNumberPool.Recycle(B1);
+    F25519BigNumberPool.Recycle(B0);
+  end;
+end;
+
+procedure Cn25519Field64Reduce(var Field: TCn25519Field64);
+var
+  I: Integer;
+  C: TCn25519Field64;
+begin
+  for I := Low(TCn25519Field64) to High(TCn25519Field64) do
+  begin
+    C[I] := Field[I] shr 51;
+    Field[I] := Field[I] and SCN_LOW51_MASK;
+  end;
+
+  Field[0] := Field[0] + C[4] * 19; // 最高位的进位被 mod 后剩下的搁在最低位
+  for I := Low(TCn25519Field64) + 1 to High(TCn25519Field64) do
+    Field[I] := Field[I] + C[I];
+end;
+
+procedure Cn25519Field64Zero(var Field: TCn25519Field64);
+begin
+  Move(F25519Field64Zero[0], Field[0], SizeOf(TCn25519Field64));
+end;
+
+procedure Cn25519Field64One(var Field: TCn25519Field64);
+begin
+  Move(F25519Field64One[0], Field[0], SizeOf(TCn25519Field64));
+end;
+
+procedure Cn25519Field64NegOne(var Field: TCn25519Field64);
+begin
+  Move(F25519Field64NegOne[0], Field[0], SizeOf(TCn25519Field64));
+end;
+
+procedure Cn25519Field64Negate(var Field: TCn25519Field64);
+begin
+  Field[0] := 36028797018963664 - Field[0];
+  Field[1] := 36028797018963952 - Field[1];
+  Field[2] := 36028797018963952 - Field[2];
+  Field[3] := 36028797018963952 - Field[3];
+  Field[4] := 36028797018963952 - Field[4];
+  Cn25519Field64Reduce(Field);
+end;
+
+procedure Cn25519Field64Add(var Res, A, B: TCn25519Field64);
+var
+  I: Integer;
+begin
+  for I := Low(TCn25519Field64) to High(TCn25519Field64) do
+    Res[I] := A[I] + B[I];
+end;
+
+procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
+var
+  I: Integer;
+begin
+  for I := Low(TCn25519Field64) to High(TCn25519Field64) do
+    Res[I] := A[I] - B[I];
+end;
+
+procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
+var
+  B1, B2, B3, B4, C: TUInt64;
+  C0, C1, C2, C3, C4, T: TCnUInt128;
+begin
+  B1 := B[1] * 19;
+  B2 := B[2] * 19;
+  B3 := B[3] * 19;
+  B4 := B[4] * 19;
+
+  UInt128SetZero(C0);
+  // c0 = m(a[0],b[0]) + m(a[4],b1_19) + m(a[3],b2_19) + m(a[2],b3_19) + m(a[1],b4_19);
+  UInt64MulUInt64(A[0], B[0], T.Lo64, T.Hi64);
+  UInt128Add(C0, C0, T);
+  UInt64MulUInt64(A[4], B1, T.Lo64, T.Hi64);
+  UInt128Add(C0, C0, T);
+  UInt64MulUInt64(A[3], B2, T.Lo64, T.Hi64);
+  UInt128Add(C0, C0, T);
+  UInt64MulUInt64(A[2], B3, T.Lo64, T.Hi64);
+  UInt128Add(C0, C0, T);
+  UInt64MulUInt64(A[1], B4, T.Lo64, T.Hi64);
+  UInt128Add(C0, C0, T);
+
+  UInt128SetZero(C1);
+  // c1 = m(a[1],b[0]) + m(a[0],b[1])  + m(a[4],b2_19) + m(a[3],b3_19) + m(a[2],b4_19);
+  UInt64MulUInt64(A[1], B[0], T.Lo64, T.Hi64);
+  UInt128Add(C1, C1, T);
+  UInt64MulUInt64(A[0], B[1], T.Lo64, T.Hi64);
+  UInt128Add(C1, C1, T);
+  UInt64MulUInt64(A[4], B2, T.Lo64, T.Hi64);
+  UInt128Add(C1, C1, T);
+  UInt64MulUInt64(A[3], B3, T.Lo64, T.Hi64);
+  UInt128Add(C1, C1, T);
+  UInt64MulUInt64(A[2], B4, T.Lo64, T.Hi64);
+  UInt128Add(C1, C1, T);
+
+  UInt128SetZero(C2);
+  // c2 = m(a[2],b[0]) + m(a[1],b[1])  + m(a[0],b[2])  + m(a[4],b3_19) + m(a[3],b4_19);
+  UInt64MulUInt64(A[2], B[0], T.Lo64, T.Hi64);
+  UInt128Add(C2, C2, T);
+  UInt64MulUInt64(A[1], B[1], T.Lo64, T.Hi64);
+  UInt128Add(C2, C2, T);
+  UInt64MulUInt64(A[0], B[2], T.Lo64, T.Hi64);
+  UInt128Add(C2, C2, T);
+  UInt64MulUInt64(A[4], B3, T.Lo64, T.Hi64);
+  UInt128Add(C2, C2, T);
+  UInt64MulUInt64(A[3], B4, T.Lo64, T.Hi64);
+  UInt128Add(C2, C2, T);
+
+  UInt128SetZero(C3);
+  // c3 = m(a[3],b[0]) + m(a[2],b[1])  + m(a[1],b[2])  + m(a[0],b[3])  + m(a[4],b4_19);
+  UInt64MulUInt64(A[3], B[0], T.Lo64, T.Hi64);
+  UInt128Add(C3, C3, T);
+  UInt64MulUInt64(A[2], B[1], T.Lo64, T.Hi64);
+  UInt128Add(C3, C3, T);
+  UInt64MulUInt64(A[1], B[2], T.Lo64, T.Hi64);
+  UInt128Add(C3, C3, T);
+  UInt64MulUInt64(A[0], B[3], T.Lo64, T.Hi64);
+  UInt128Add(C3, C3, T);
+  UInt64MulUInt64(A[4], B4, T.Lo64, T.Hi64);
+  UInt128Add(C3, C3, T);
+
+  UInt128SetZero(C4);
+  // c4 = m(a[4],b[0]) + m(a[3],b[1])  + m(a[2],b[2])  + m(a[1],b[3])  + m(a[0],b[4]);
+  UInt64MulUInt64(A[4], B[0], T.Lo64, T.Hi64);
+  UInt128Add(C4, C4, T);
+  UInt64MulUInt64(A[3], B[1], T.Lo64, T.Hi64);
+  UInt128Add(C4, C4, T);
+  UInt64MulUInt64(A[2], B[2], T.Lo64, T.Hi64);
+  UInt128Add(C4, C4, T);
+  UInt64MulUInt64(A[1], B[3], T.Lo64, T.Hi64);
+  UInt128Add(C4, C4, T);
+  UInt64MulUInt64(A[0], B[4], T.Lo64, T.Hi64);
+  UInt128Add(C4, C4, T);
+
+  // 拼结果
+  UInt128Copy(T, C0);
+  UInt128ShiftRight(T, 51);
+  UInt128Add(C1, T.Lo64);
+  Res[0] := C0.Lo64 and SCN_LOW51_MASK;
+
+  UInt128Copy(T, C1);
+  UInt128ShiftRight(T, 51);
+  UInt128Add(C2, T.Lo64);
+  Res[1] := C1.Lo64 and SCN_LOW51_MASK;
+
+  UInt128Copy(T, C2);
+  UInt128ShiftRight(T, 51);
+  UInt128Add(C3, T.Lo64);
+  Res[2] := C2.Lo64 and SCN_LOW51_MASK;
+
+  UInt128Copy(T, C3);
+  UInt128ShiftRight(T, 51);
+  UInt128Add(C4, T.Lo64);
+  Res[3] := C3.Lo64 and SCN_LOW51_MASK;
+
+  UInt128Copy(T, C4);
+  UInt128ShiftRight(T, 51);
+  C := T.Lo64;
+  Res[4] := C4.Lo64 and SCN_LOW51_MASK;
+
+  Res[0] := Res[0] + C * 19;
+  Res[1] := Res[1] + (Res[0] shr 51);
+
+  Res[0] := Res[0] and SCN_LOW51_MASK;
+end;
+
 initialization
   F25519BigNumberPool := TCnBigNumberPool.Create;
+  FPrime25519 := TCnBigNumber.FromHex(SCN_25519_PRIME);
 
 finalization
+  FPrime25519.Free;
   F25519BigNumberPool.Free;
 
 end.
