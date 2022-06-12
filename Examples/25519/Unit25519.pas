@@ -38,6 +38,8 @@ type
     btnCurv25519MontLadderField64Double: TButton;
     btnCurv25519MontLadderField64Add: TButton;
     btnCurv25519MontLadderField64Mul: TButton;
+    btnField64Sub: TButton;
+    btnField64Reduce: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -64,6 +66,8 @@ type
     procedure btnField64MulTimeClick(Sender: TObject);
     procedure btnCurv25519MontLadderField64DoubleClick(Sender: TObject);
     procedure btnCurv25519MontLadderField64AddClick(Sender: TObject);
+    procedure btnField64SubClick(Sender: TObject);
+    procedure btnField64ReduceClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -725,7 +729,8 @@ var
   L: TCnBigNumberList;
   D: TCn25519Field64;
 begin
-  B := TCnBigNumber.FromHex('8888888877777777666666665555555544444444333333332222222211111111');
+  // B := TCnBigNumber.FromHex('8888888877777777666666665555555544444444333333332222222211111111');
+  B := TCnBigNumber.FromHex('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEC');
   Cn25519BigNumberToField64(B, D);
 
   ShowMessage(UInt64ToHex(D[0]));
@@ -799,12 +804,6 @@ begin
   A := TCnBigNumber.FromHex('11111111222222223333333344444444555555556666666677777777');
   B := TCnBigNumber.FromHex('66666666555555554444444433333333222222221111111100000000');
 
-//  A := TCnBigNumber.FromHex('F00000000000000000000000');
-//  B := TCnBigNumber.FromHex('F00000000000000000000000'); // 测试数据
-
-//  A := TCnBigNumber.FromHex('1000000000000000000000000'); // 多个 0 就出错了，乘积变成全 0 了，该问题已修复
-//  B := TCnBigNumber.FromHex('100000000000000000000000');
-
   Cn25519BigNumberToField64(A, FA);
   Cn25519BigNumberToField64(B, FB);
 
@@ -815,7 +814,6 @@ begin
 
   C := TCnBigNumber.Create;
   Cn25519Field64ToBigNumber(C, FC);
-  // ShowMessage(C.ToHex());  // 这里和下面要相等
 
   T2 := GetTickCount;
   for I := 1 to 50000 do
@@ -883,16 +881,6 @@ begin
   Q := TCnEccPoint.Create;
 
   P.Assign(FCurve25519.Generator);
-  Q.SetZero;
-  FCurve25519.PointToField64XAffinePoint(PF, P);
-  FCurve25519.PointToField64XAffinePoint(QF, Q);
-  ShowMessage(Cn25519Field64EccPointToHex(PF));
-  FCurve25519.MontgomeryLadderField64PointXAdd(PF, PF, QF, PF); // 理论上 P 要得到自身
-  ShowMessage(Cn25519Field64EccPointToHex(PF));
-  FCurve25519.Field64XAffinePointToPoint(P, PF);
-  ShowMessage(P.ToString); // 转换回来应该得到 G 点坐标 OK
-
-  P.Assign(FCurve25519.Generator);
   FCurve25519.PointToField64XAffinePoint(PF, P); // PF 转换为多项式射影点 G
   FCurve25519.MontgomeryLadderField64PointXDouble(QF, PF); // QF 多项式射影 2*G
   FCurve25519.MontgomeryLadderField64PointXAdd(PF, QF, PF, PF); // PF 得到多项式射影 3*G
@@ -921,6 +909,51 @@ begin
 
   Q.Free;
   P.Free;
+end;
+
+procedure TForm25519.btnField64SubClick(Sender: TObject);
+var
+  A, B, C: TCnBigNumber;
+  FA, FB, FC: TCn25519Field64;
+begin
+  A := TCnBigNumber.FromHex('64');
+  B := TCnBigNumber.FromHex('40');
+
+  Cn25519BigNumberToField64(A, FA);
+  Cn25519BigNumberToField64(B, FB);
+
+  Cn25519Field64Sub(FC, FA, FB);
+
+  C := TCnBigNumber.Create;
+  Cn25519Field64ToBigNumber(C, FC);
+  ShowMessage(C.ToHex());  // 这里和下面要相等
+
+  C.Free;
+  B.Free;
+  A.Free;
+end;
+
+procedure TForm25519.btnField64ReduceClick(Sender: TObject);
+var
+  FA: TCn25519Field64;
+  R: TCnBigNumber;
+begin
+  FA[0] := 45;
+  FA[1] := 2251799813685248;
+  FA[2] := 2251799813685247;
+  FA[3] := 2251799813685247;
+  FA[4] := 2251799813685247;
+
+  R := TCnBigNumber.Create;
+  Cn25519Field64ToBigNumber(R, FA);
+  ShowMessage(R.ToHex); // 得到 40
+
+  Cn25519Field64Reduce(FA);
+  ShowMessage(Cn25519Field64ToHex(FA));
+  Cn25519Field64ToBigNumber(R, FA);
+  ShowMessage(R.ToHex); // 不知道得到了个啥
+
+  R.Free;
 end;
 
 end.

@@ -380,7 +380,7 @@ procedure Cn25519Field64ToBigNumber(const Res: TCnBigNumber; var Field: TCn25519
 
 procedure Cn25519Field64Reduce(var Field: TCn25519Field64);
 {* 将一个 64 位多项式系数在 2^255-19 有限域范围内正规化，
-  也就是把每个系数确保比 2^51 小，大的部分进位到下一个}
+  也就是把每个系数确保比 2^51 小，大的部分进位到下一个，总值如超出有限域上界也会自动求模}
 
 function Cn25519Field64ToHex(var Field: TCn25519Field64): string;
 {* 将一个 64 位多项式系数转换为十六进制字符串}
@@ -1057,12 +1057,10 @@ begin
       Exit;
     if not BigNumberDirectMulMod(V1, V1, V1, FFiniteFieldSize) then
       Exit;
-
     if not BigNumberSubMod(V2, P.X, P.Y, FFiniteFieldSize) then
       Exit;
     if not BigNumberDirectMulMod(V2, V2, V2, FFiniteFieldSize) then
       Exit;
-
     if not BigNumberDirectMulMod(Dbl.X, V1, V2, FFiniteFieldSize) then
       Exit;
 
@@ -1070,7 +1068,6 @@ begin
       Exit;
     if not BigNumberDirectMulMod(V3, V1, FLadderConst, FFiniteFieldSize) then
       Exit;
-
     if not BigNumberAddMod(V3, V3, V2, FFiniteFieldSize) then
       Exit;
 
@@ -2582,18 +2579,25 @@ end;
 
 procedure Cn25519Field64Reduce(var Field: TCn25519Field64);
 var
-  I: Integer;
   C: TCn25519Field64;
 begin
-  for I := Low(TCn25519Field64) to High(TCn25519Field64) do
-  begin
-    C[I] := Field[I] shr 51;
-    Field[I] := Field[I] and SCN_LOW51_MASK;
-  end;
+  C[0] := Field[0] shr 51;
+  C[1] := Field[1] shr 51;
+  C[2] := Field[2] shr 51;
+  C[3] := Field[3] shr 51;
+  C[4] := Field[4] shr 51;
+
+  Field[0] := Field[0] and SCN_LOW51_MASK;
+  Field[1] := Field[1] and SCN_LOW51_MASK;
+  Field[2] := Field[2] and SCN_LOW51_MASK;
+  Field[3] := Field[3] and SCN_LOW51_MASK;
+  Field[4] := Field[4] and SCN_LOW51_MASK;
 
   Field[0] := Field[0] + C[4] * 19; // 最高位的进位被 mod 后剩下的搁在最低位
-  for I := Low(TCn25519Field64) + 1 to High(TCn25519Field64) do
-    Field[I] := Field[I] + C[I];
+  Field[1] := Field[1] + C[0];
+  Field[2] := Field[2] + C[1];
+  Field[3] := Field[3] + C[2];
+  Field[4] := Field[4] + C[3];
 end;
 
 function Cn25519Field64ToHex(var Field: TCn25519Field64): string;
@@ -2654,11 +2658,13 @@ begin
 end;
 
 procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
-var
-  I: Integer;
 begin
-  for I := Low(TCn25519Field64) to High(TCn25519Field64) do
-    Res[I] := A[I] - B[I];
+  Res[0] := A[0] + 36028797018963664 - B[0];
+  Res[1] := A[1] + 36028797018963952 - B[1];
+  Res[2] := A[2] + 36028797018963952 - B[2];
+  Res[3] := A[3] + 36028797018963952 - B[3];
+  Res[4] := A[4] + 36028797018963952 - B[4];
+  Cn25519Field64Reduce(Res);
 end;
 
 procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
