@@ -42,6 +42,21 @@ type
     btnField64Reduce: TButton;
     btnEd25519ExtendedField64Add: TButton;
     btnEd25519ExtendedField64Mul: TButton;
+    ts25519Sign: TTabSheet;
+    grpEd25519Sign: TGroupBox;
+    lblEd25519Priv: TLabel;
+    lblEd25519Pub: TLabel;
+    edtEd25519Priv: TEdit;
+    edtEd25519Pub: TEdit;
+    btnEd25519Gen: TButton;
+    lblEd25519Msg: TLabel;
+    edtEd25519Message: TEdit;
+    btnEd25519Sign: TButton;
+    edtEd25519Sig: TEdit;
+    lblEd25519Sig: TLabel;
+    btnEd25519Verify: TButton;
+    btnSignTime: TButton;
+    btnVerifyTime: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -73,6 +88,11 @@ type
     procedure btnCurv25519MontLadderField64MulClick(Sender: TObject);
     procedure btnEd25519ExtendedField64AddClick(Sender: TObject);
     procedure btnEd25519ExtendedField64MulClick(Sender: TObject);
+    procedure btnEd25519GenClick(Sender: TObject);
+    procedure btnEd25519SignClick(Sender: TObject);
+    procedure btnEd25519VerifyClick(Sender: TObject);
+    procedure btnSignTimeClick(Sender: TObject);
+    procedure btnVerifyTimeClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -1148,6 +1168,146 @@ begin
   Q.Free;
   P.Free;
   Ed.Free;
+end;
+
+procedure TForm25519.btnEd25519GenClick(Sender: TObject);
+var
+  Pub: TCnEd25519Data;
+begin
+  if FEd25519.GenerateKeys(FPrivKey, FPubKey) then
+  begin
+    edtEd25519Priv.Text := FPrivKey.ToHex(CN_25519_BLOCK_BYTESIZE);
+    FEd25519.PointToPlain(FPubKey, Pub);
+    edtEd25519Pub.Text := DataToHex(@Pub[0], CN_25519_BLOCK_BYTESIZE);
+  end;
+end;
+
+procedure TForm25519.btnEd25519SignClick(Sender: TObject);
+var
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  PubData: TCnEd25519Data;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+  S: AnsiString;
+begin
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+
+  HexToData(edtEd25519Pub.Text, @PubData[0]);
+  FEd25519.PlainToPoint(PubData, Pub);
+
+  Priv.SetHex(edtEd25519Priv.Text);
+
+  Sig := TCnEd25519Signature.Create;
+
+  S := edtEd25519Message.Text;
+  if CnEd25519SignData(@S[1], Length(S), Priv, Pub, Sig) then
+  begin
+    Sig.SaveToData(SigData);
+    edtEd25519Sig.Text := DataToHex(@SigData[0], CN_25519_BLOCK_BYTESIZE * 2);
+    ShowMessage('Sign OK');
+  end;
+
+  Sig.Free;
+
+  Pub.Free;
+  Priv.Free;
+end;
+
+procedure TForm25519.btnEd25519VerifyClick(Sender: TObject);
+var
+  Pub: TCnEccPublicKey;
+  PubData: TCnEd25519Data;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+  S: AnsiString;
+begin
+  Pub := TCnEccPublicKey.Create;
+
+  HexToData(edtEd25519Pub.Text, @PubData[0]);
+  FEd25519.PlainToPoint(PubData, Pub);
+
+  Sig := TCnEd25519Signature.Create;
+  HexToData(edtEd25519Sig.Text, @SigData[0]);
+  Sig.LoadFromData(SigData);
+
+  S := edtEd25519Message.Text;
+  if CnEd25519VerifyData(@S[1], Length(S), Sig, Pub) then
+    ShowMessage('Verify OK');
+
+  Sig.Free;
+  Pub.Free;
+end;
+
+procedure TForm25519.btnSignTimeClick(Sender: TObject);
+var
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  PubData: TCnEd25519Data;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+  S: AnsiString;
+  T: Cardinal;
+  I: Integer;
+begin
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+
+  HexToData(edtEd25519Pub.Text, @PubData[0]);
+  FEd25519.PlainToPoint(PubData, Pub);
+
+  Priv.SetHex(edtEd25519Priv.Text);
+
+  Sig := TCnEd25519Signature.Create;
+
+  S := edtEd25519Message.Text;
+  T := GetTickCount;
+  for I := 1 to 1000 do
+  begin
+    if CnEd25519SignData(@S[1], Length(S), Priv, Pub, Sig) then
+      Sig.SaveToData(SigData);
+  end;
+  T := GetTickCount - T;
+  ShowMessage('Sign OK ' + IntToStr(T)); // 7 秒签一千次，一次 7 毫秒
+
+  Sig.Free;
+
+  Pub.Free;
+  Priv.Free;
+end;
+
+procedure TForm25519.btnVerifyTimeClick(Sender: TObject);
+var
+  Pub: TCnEccPublicKey;
+  PubData: TCnEd25519Data;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+  S: AnsiString;
+  T: Cardinal;
+  I: Integer;
+begin
+  Pub := TCnEccPublicKey.Create;
+
+  HexToData(edtEd25519Pub.Text, @PubData[0]);
+  FEd25519.PlainToPoint(PubData, Pub);
+
+  Sig := TCnEd25519Signature.Create;
+  HexToData(edtEd25519Sig.Text, @SigData[0]);
+  Sig.LoadFromData(SigData);
+
+  S := edtEd25519Message.Text;
+  T := GetTickCount;
+  for I := 1 to 1000 do
+  begin
+    if CnEd25519VerifyData(@S[1], Length(S), Sig, Pub) then
+      ;
+  end;
+  T := GetTickCount - T;
+  ShowMessage('Verify OK ' + IntToStr(T)); // 15 秒验证一千次，一次 15 毫秒
+
+  Sig.Free;
+  Pub.Free;
 end;
 
 end.

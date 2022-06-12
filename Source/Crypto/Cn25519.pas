@@ -2025,7 +2025,6 @@ begin
 
   K := F25519BigNumberPool.Obtain;
   try
-
     if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE,
       K, nil) then
       Exit;

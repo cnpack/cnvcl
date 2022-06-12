@@ -308,5 +308,119 @@ object Form25519: TForm25519
         end
       end
     end
+    object ts25519Sign: TTabSheet
+      Caption = 'Ed25519 Sign/Verify'
+      ImageIndex = 1
+      object grpEd25519Sign: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 473
+        Caption = 'Ed25519 Sign/Verify'
+        TabOrder = 0
+        object lblEd25519Priv: TLabel
+          Left = 16
+          Top = 24
+          Width = 57
+          Height = 13
+          Caption = 'Private Key:'
+        end
+        object lblEd25519Pub: TLabel
+          Left = 16
+          Top = 56
+          Width = 53
+          Height = 13
+          Caption = 'Public Key:'
+        end
+        object lblEd25519Msg: TLabel
+          Left = 16
+          Top = 92
+          Width = 46
+          Height = 13
+          Caption = 'Message:'
+        end
+        object lblEd25519Sig: TLabel
+          Left = 16
+          Top = 124
+          Width = 48
+          Height = 13
+          Caption = 'Signature:'
+        end
+        object edtEd25519Priv: TEdit
+          Left = 88
+          Top = 22
+          Width = 473
+          Height = 21
+          TabOrder = 0
+        end
+        object edtEd25519Pub: TEdit
+          Left = 88
+          Top = 50
+          Width = 473
+          Height = 21
+          TabOrder = 1
+        end
+        object btnEd25519Gen: TButton
+          Left = 576
+          Top = 24
+          Width = 75
+          Height = 49
+          Caption = 'Gen Keys'
+          TabOrder = 2
+          OnClick = btnEd25519GenClick
+        end
+        object edtEd25519Message: TEdit
+          Left = 88
+          Top = 88
+          Width = 473
+          Height = 21
+          TabOrder = 3
+          Text = 'My Message to be Sign.'
+        end
+        object btnEd25519Sign: TButton
+          Left = 576
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Sign'
+          TabOrder = 4
+          OnClick = btnEd25519SignClick
+        end
+        object edtEd25519Sig: TEdit
+          Left = 88
+          Top = 120
+          Width = 817
+          Height = 21
+          TabOrder = 5
+        end
+        object btnEd25519Verify: TButton
+          Left = 664
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Verify'
+          TabOrder = 6
+          OnClick = btnEd25519VerifyClick
+        end
+        object btnSignTime: TButton
+          Left = 752
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Sign Time'
+          TabOrder = 7
+          OnClick = btnSignTimeClick
+        end
+        object btnVerifyTime: TButton
+          Left = 840
+          Top = 88
+          Width = 75
+          Height = 21
+          Caption = 'Verify Time'
+          TabOrder = 8
+          OnClick = btnVerifyTimeClick
+        end
+      end
+    end
   end
 end
