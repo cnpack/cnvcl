@@ -73,7 +73,8 @@ type
   end;
 
   TCnEcc4Point = class(TCnEcc3Point)
-  {* 扩展的射影/仿射/雅可比坐标点，增加了 T 用于记录中间结果}
+  {* 扩展的射影/仿射/雅可比坐标点，增加了 T 用于记录中间结果
+     其中有 x = X/Z  y = Y/Z  x*y = T/Z，中性点是 （0, 1, 1, 0）}
   private
     FT: TCnBigNumber;
     procedure SetT(const Value: TCnBigNumber);
@@ -86,6 +87,7 @@ type
     function ToString: string; override; // 基类有 ToString
 
     property T: TCnBigNumber read FT write SetT;
+    {* 中间结果 T}
   end;
 
   TCnTwistedEdwardsCurve = class
@@ -195,6 +197,10 @@ type
     {* 将只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点，其实就是求解 Y 并替换 Z，
       SourcePoint 和 DestPoint 可以相同}
 
+    procedure XAffinePointInverse(P: TCnEccPoint);
+    {* 计算仅 X 的射影坐标点 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负
+      实际内部因为没有 Y，啥都不需做}
+
     procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
     {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
     procedure MontgomeryLadderPointXAdd(Sum, P, Q, PMinusQ: TCnEccPoint);
@@ -245,7 +251,7 @@ type
     {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
-    {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现使用蒙哥马利阶梯算法}
+    {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法}
   end;
 
   TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
@@ -269,9 +275,9 @@ type
     {* 重载父类的普通点乘，内部改用扩展四元快速乘}
 
     function IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
-    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同}
+    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = Z <> 0 且 T = 0，与 Weierstrass 的无限远点全 0 不同}
     procedure SetNeutualExtendedPoint(P: TCnEcc4Point);
-    {* 将点设为中性点，也就是 X := 0 且 Y := 1}
+    {* 将点设为中性点，也就是 X := 0 且 Y := 1 且 Z := 1 且 T := 0}
 
     // ================= 扩展扭曲爱德华坐标（四元）点加速算法 ==================
 
@@ -288,6 +294,20 @@ type
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure ExtendedMultiplePoint(K: TCnBigNumber; Point: TCnEcc4Point); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P，速度比普通标量乘快十倍以上}
+
+    // ============= 扩展扭曲爱德华坐标（四元）点的多项式加速算法 ==============
+
+    function ExtendedField64PointAddPoint(var P, Q, Sum: TCn25519Field64Ecc4Point): Boolean;
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    function ExtendedField64PointSubPoint(var P, Q, Diff: TCn25519Field64Ecc4Point): Boolean;
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    procedure ExtendedField64PointInverse(var P: TCn25519Field64Ecc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
+
+    procedure ExtendedField64MultiplePoint(K: Int64; var Point: TCn25519Field64Ecc4Point); overload;
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入 P}
+    procedure ExtendedField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64Ecc4Point); overload;
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入 P}
   end;
 
   TCnEd25519Signature = class(TPersistent)
@@ -322,10 +342,12 @@ function CnEcc4PointToHex(const P: TCnEcc4Point): string;
 function CnEcc4PointEqual(const P, Q: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
 {* 判断两个 TCnEcc4Point 是否同一个点}
 
-function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+function CnEccPointToEcc4Point(DestPoint: TCnEcc4Point; SourcePoint: TCnEccPoint;
+  Prime: TCnBigNumber): Boolean;
 {* 大数范围内的普通坐标到扩展仿射坐标的点转换}
 
-function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+function CnEcc4PointToEccPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEcc4Point;
+  Prime: TCnBigNumber): Boolean;
 {* 大数范围内的扩展仿射坐标到普通坐标的点转换}
 
 function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
@@ -372,7 +394,7 @@ function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
 
 // ============================== 多项式加速算法 ===============================
 
-procedure Cn25519BigNumberToField64(const Num: TCnBigNumber; var Field: TCn25519Field64);
+procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; const Num: TCnBigNumber);
 {* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数}
 
 procedure Cn25519Field64ToBigNumber(const Res: TCnBigNumber; var Field: TCn25519Field64);
@@ -387,6 +409,9 @@ function Cn25519Field64ToHex(var Field: TCn25519Field64): string;
 
 procedure Cn25519Field64Copy(var Dest, Source: TCn25519Field64);
 {* 复制一个 2^255-19 有限域范围内的 64 位多项式系数}
+
+function Cn25519Field64Equal(var A, B: TCn25519Field64): Boolean;
+{* 判断两个 2^255-19 有限域范围内的 64 位多项式系数是否相等}
 
 procedure Cn25519Field64Swap(var A, B: TCn25519Field64);
 {* 交换两个 2^255-19 有限域范围内的 64 位多项式系数}
@@ -423,6 +448,9 @@ procedure Cn25519Field64EccPointCopy(var DestPoint, SourcePoint: TCn25519Field64
 function Cn25519Field64EccPointToHex(var Point: TCn25519Field64EccPoint): string;
 {* 将一多项式拆项法表示的 25519 椭圆曲线上的点转换为十六进制字符串}
 
+function Cn25519Field64EccPointEqual(var A, B: TCn25519Field64EccPoint): Boolean;
+{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等}
+
 procedure Cn25519Field64Ecc4PointNeutual(var Point: TCn25519Field64Ecc4Point);
 {* 将一多项式拆项法表示的 25519 椭圆曲线上的四元扩展点置为中性点}
 
@@ -431,6 +459,25 @@ procedure Cn25519Field64Ecc4PointCopy(var DestPoint, SourcePoint: TCn25519Field6
 
 function Cn25519Field64Ecc4PointToHex(var Point: TCn25519Field64Ecc4Point): string;
 {* 将一多项式拆项法表示的 25519 椭圆曲线上的四元扩展点转换为十六进制字符串}
+
+function Cn25519Field64Ecc4PointEqual(var A, B: TCn25519Field64Ecc4Point): Boolean;
+{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等}
+
+function CnEccPointToField64Ecc4Point(var DestPoint: TCn25519Field64Ecc4Point;
+  SourcePoint: TCnEccPoint): Boolean;
+{* 大数范围内的普通坐标到扩展仿射多项式坐标的点转换}
+
+function CnField64Ecc4PointToEccPoint(DestPoint: TCnEccPoint;
+  var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
+{* 大数范围内的扩展仿射多项式坐标到普通坐标的点转换}
+
+function CnEcc4PointToField64Ecc4Point(var DestPoint: TCn25519Field64Ecc4Point;
+  SourcePoint: TCnEcc4Point): Boolean;
+{* 大数范围内的扩展仿射坐标到扩展仿射多项式坐标的点转换}
+
+function CnField64Ecc4PointToEcc4Point(DestPoint: TCnEcc4Point;
+  var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
+{* 大数范围内的扩展仿射多项式坐标到扩展仿射坐标的点转换}
 
 implementation
 
@@ -945,7 +992,13 @@ var
   I, C: Integer;
   X0, X1: TCnEccPoint;
 begin
-  if BigNumberIsZero(K) then // 不考虑 K 为负值的情况
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    XAffinePointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then 
   begin
     Point.SetZero;
     Exit;
@@ -1298,7 +1351,7 @@ begin
 
       BigNumberDirectMulMod(FLadderConst, FLadderConst, T, FFiniteFieldSize); // 乘逆元等于除
 
-      Cn25519BigNumberToField64(FLadderConst, FLadderField64);
+      Cn25519BigNumberToField64(FLadderField64, FLadderConst);
     finally
       F25519BigNumberPool.Recycle(T);
     end;
@@ -1522,12 +1575,17 @@ begin
     if not PointToXAffinePoint(T, SourcePoint) then // 普通点转换为射影坐标 X Z 点
       Exit;
 
-    Cn25519BigNumberToField64(T.X, DestPoint.X);    // 射影坐标 X Z 点转换为多项式点
-    Cn25519BigNumberToField64(T.Y, DestPoint.Y);
+    Cn25519BigNumberToField64(DestPoint.X, T.X);    // 射影坐标 X Z 点转换为多项式点
+    Cn25519BigNumberToField64(DestPoint.Y, T.Y);
     Result := True;
   finally
     T.Free;
   end;
+end;
+
+procedure TCnMontgomeryCurve.XAffinePointInverse(P: TCnEccPoint);
+begin
+  // P 不用动
 end;
 
 { TCnCurve25519 }
@@ -1558,16 +1616,11 @@ end;
 
 procedure TCnCurve25519.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
-  M: TCnEccPoint;
+  M: TCn25519Field64EccPoint;
 begin
-  M := TCnEccPoint.Create;
-  try
-    PointToXAffinePoint(M, Point);
-    MontgomeryLadderMultiplePoint(K, M);
-    XAffinePointToPoint(Point, M);
-  finally
-    M.Free;
-  end;
+  PointToField64XAffinePoint(M, Point);
+  MontgomeryLadderField64MultiplePoint(K, M);
+  Field64XAffinePointToPoint(Point, M);
 end;
 
 { TCnEd25519 }
@@ -1590,6 +1643,146 @@ begin
   finally
     F25519BigNumberPool.Recycle(BK);
   end;
+end;
+
+procedure TCnEd25519.ExtendedField64MultiplePoint(K: Int64;
+  var Point: TCn25519Field64Ecc4Point);
+var
+  BK: TCnBigNumber;
+begin
+  BK := F25519BigNumberPool.Obtain;
+  try
+    BK.SetInt64(K);
+    ExtendedField64MultiplePoint(BK, Point);
+  finally
+    F25519BigNumberPool.Recycle(BK);
+  end;
+end;
+
+procedure TCnEd25519.ExtendedField64MultiplePoint(K: TCnBigNumber;
+  var Point: TCn25519Field64Ecc4Point);
+var
+  I: Integer;
+  E, R: TCn25519Field64Ecc4Point;
+begin
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    ExtendedField64PointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then
+  begin
+    Cn25519Field64Ecc4PointNeutual(Point);
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  // R 要是中性点
+  Cn25519Field64Ecc4PointNeutual(R);
+  Cn25519Field64Ecc4PointCopy(E, Point);
+
+  for I := 0 to BigNumberGetBitsCount(K) - 1 do
+  begin
+    if BigNumberIsBitSet(K, I) then
+      ExtendedField64PointAddPoint(R, E, R);
+    ExtendedField64PointAddPoint(E, E, E);
+  end;
+
+  Cn25519Field64Ecc4PointCopy(Point, R);
+end;
+
+function TCnEd25519.ExtendedField64PointAddPoint(var P, Q,
+  Sum: TCn25519Field64Ecc4Point): Boolean;
+var
+  A, B, C, D, E, F, G, H: TCn25519Field64;
+  CoD: TCn25519Field64;
+begin
+  if Cn25519Field64Ecc4PointEqual(P, Q) then
+  begin
+    // 是同一个点
+    Cn25519Field64Mul(A, P.X, P.X);   // A = X1^2
+    Cn25519Field64Mul(B, P.Y, P.Y);   // B = Y1^2
+
+    Cn25519Field64Mul(C, P.Z, P.Z);
+    Cn25519Field64Add(C, C, C);       // C = 2*Z1^2
+
+    Cn25519Field64Add(H, A, B);       // H = A+B
+
+    Cn25519Field64Add(E, P.X, P.Y);
+    Cn25519Field64Mul(E, E, E);
+    Cn25519Field64Sub(E, H, E);       // E = H-(X1+Y1)^2
+
+    Cn25519Field64Sub(G, A, B);       // G = A-B
+    Cn25519Field64Add(F, C, G);       // F = C+G
+
+    Cn25519Field64Mul(Sum.X, E, F);   // X3 = E*F
+    Cn25519Field64Mul(Sum.Y, G, H);   // Y3 = G*H
+    Cn25519Field64Mul(Sum.T, E, H);   // T3 = E*H
+    Cn25519Field64Mul(Sum.Z, F, G);   // Z3 = F*G
+
+    Result := True;
+  end
+  else
+  begin
+    // 不是同一个点。先用 G H 做临时变量
+    Cn25519Field64Sub(G, P.Y, P.X);
+    Cn25519Field64Sub(H, Q.Y, Q.X);
+    Cn25519Field64Mul(A, G, H); // A = (Y1-X1)*(Y2-X2)
+
+    Cn25519Field64Add(G, P.Y, P.X);
+    Cn25519Field64Add(H, Q.Y, Q.X);
+    Cn25519Field64Mul(B, G, H);  // B = (Y1+X1)*(Y2+X2)
+
+    Cn25519BigNumberToField64(CoD, FCoefficientD);
+    Cn25519Field64Add(C, CoD, CoD);
+    Cn25519Field64Mul(C, P.T, C);
+    Cn25519Field64Mul(C, Q.T, C);   // C = T1*2*d*T2
+
+    Cn25519Field64Add(D, P.Z, P.Z);
+    Cn25519Field64Mul(D, Q.Z, D);   // D = Z1*2*Z2
+
+    Cn25519Field64Sub(E, B, A);   // E = B-A
+    Cn25519Field64Sub(F, D, C);   // F = D-C
+    Cn25519Field64Add(G, D, C);   // G = D+C
+    Cn25519Field64Add(H, B, A);   // H = B+A
+
+    Cn25519Field64Mul(Sum.X, E, F);   // X3 = E*F
+    Cn25519Field64Mul(Sum.Y, G, H);   // Y3 = G*H
+    Cn25519Field64Mul(Sum.T, E, H);   // T3 = E*H
+    Cn25519Field64Mul(Sum.Z, F, G);   // Z3 = F*G
+
+    Result := True;
+  end;
+end;
+
+procedure TCnEd25519.ExtendedField64PointInverse(
+  var P: TCn25519Field64Ecc4Point);
+var
+  T: TCn25519Field64;
+begin
+  // X -> Prime - X
+  Cn25519Field64Sub(P.X, F25519Field64Zero, P.X);
+
+  // T := X * Y / Z^3
+  Cn25519Field64Mul(T, P.Z, P.Z);
+  Cn25519Field64Mul(T, T, P.Z);
+
+  raise Exception.Create('NOT Implemented');
+  // Cn25519Field64ModularInverse(T, T); // T 是 Z^3 的逆元
+  Cn25519Field64Mul(P.T, P.X, P.Y);
+  Cn25519Field64Mul(P.T, P.T, P.T);
+end;
+
+function TCnEd25519.ExtendedField64PointSubPoint(var P, Q,
+  Diff: TCn25519Field64Ecc4Point): Boolean;
+var
+  Inv: TCn25519Field64Ecc4Point;
+begin
+  Cn25519Field64Ecc4PointCopy(Inv, Q);
+  ExtendedField64PointInverse(Inv);
+  Result := ExtendedField64PointAddPoint(P, Inv, Diff);
 end;
 
 procedure TCnEd25519.ExtendedMultiplePoint(K: TCnBigNumber;
@@ -1783,8 +1976,9 @@ var
 begin
   T := F25519BigNumberPool.Obtain;
   try
+    // x -> -x，意味着 X/Z -> P - X/Z，也就是 (P*Z - X)/Z，所以新 X = P*Z - X，前者是 0，因而还是 P - X
     BigNumberDirectMulMod(T, P.Z, FFiniteFieldSize, FFiniteFieldSize);
-    BigNumberSubMod(P.X, T, P.X, FFiniteFieldSize);
+    BigNumberSubMod(P.X, T, P.X, FFiniteFieldSize); // 释放 T
 
     // T := X * Y / Z^3
     BigNumberPowerWordMod(T, P.Z, 3, FFiniteFieldSize);
@@ -1887,17 +2081,19 @@ begin
   end;
 end;
 
-function CnEccPointToEcc4Point(P: TCnEccPoint; P4: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+function CnEccPointToEcc4Point(DestPoint: TCnEcc4Point; SourcePoint: TCnEccPoint;
+  Prime: TCnBigNumber): Boolean;
 begin
   Result := False;
-  if not CnEccPointToEcc3Point(P, P4) then
+  if not CnEccPointToEcc3Point(SourcePoint, DestPoint) then
     Exit;
-  Result := BigNumberDirectMulMod(P4.T, P.X, P.Y, Prime);
+  Result := BigNumberDirectMulMod(DestPoint.T, SourcePoint.X, SourcePoint.Y, Prime);
 end;
 
-function CnEcc4PointToEccPoint(P4: TCnEcc4Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
+function CnEcc4PointToEccPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEcc4Point;
+  Prime: TCnBigNumber): Boolean;
 begin
-  Result := CnAffinePointToEccPoint(P4, P, Prime);
+  Result := CnAffinePointToEccPoint(SourcePoint, DestPoint, Prime);
 end;
 
 // =============================================================================
@@ -2312,7 +2508,7 @@ var
 begin
   Q := TCnEccPoint.Create;
   try
-    CnEcc4PointToEccPoint(P, Q, FFiniteFieldSize);
+    CnEcc4PointToEccPoint(Q, P, FFiniteFieldSize);
     Result := IsPointOnCurve(Q);
   finally
     Q.Free;
@@ -2331,9 +2527,9 @@ var
 begin
   P4 := TCnEcc4Point.Create;
   try
-    CnEccPointToEcc4Point(Point, P4, FFiniteFieldSize);
+    CnEccPointToEcc4Point(P4, Point, FFiniteFieldSize);
     ExtendedMultiplePoint(K, P4);
-    CnEcc4PointToEccPoint(P4, Point, FFiniteFieldSize);
+    CnEcc4PointToEccPoint(Point, P4, FFiniteFieldSize);
   finally
     P4.Free;
   end;
@@ -2508,7 +2704,7 @@ begin
   Move(Data[0], Sig[SizeOf(TCnEd25519Data)], SizeOf(TCnEd25519Data));
 end;
 
-procedure Cn25519BigNumberToField64(const Num: TCnBigNumber; var Field: TCn25519Field64);
+procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; const Num: TCnBigNumber);
 var
   D: TCn25519Field64;
 begin
@@ -2607,6 +2803,24 @@ end;
 procedure Cn25519Field64Copy(var Dest, Source: TCn25519Field64);
 begin
   Move(Source[0], Dest[0], SizeOf(TCn25519Field64));
+end;
+
+function Cn25519Field64Equal(var A, B: TCn25519Field64): Boolean;
+begin
+  Result := (A[0] = B[0]) and (A[1] = B[1]) and (A[2] = B[2])
+    and (A[3] = B[3]) and (A[4] = B[4]);
+  // 只简单判别对应值，不做 Reduce 判断
+
+//  if not Result then
+//  begin
+//    Cn25519Field64Copy(T1, A);
+//    Cn25519Field64Copy(T2, B);
+//
+//    Cn25519Field64Reduce(T1);
+//    Cn25519Field64Reduce(T2);
+//    Result := (T1[0] = T2[0]) and (T1[1] = T2[1]) and (T1[2] = T2[2])
+//      and (T1[3] = T2[3]) and (T1[4] = T2[4]);
+//  end;
 end;
 
 procedure Cn25519Field64Swap(var A, B: TCn25519Field64);
@@ -2791,6 +3005,11 @@ begin
   Result := 'X: ' + Cn25519Field64ToHex(Point.X) + ' Y: ' + Cn25519Field64ToHex(Point.Y);
 end;
 
+function Cn25519Field64EccPointEqual(var A, B: TCn25519Field64EccPoint): Boolean;
+begin
+  Result := Cn25519Field64Equal(A.X, B.X) and  Cn25519Field64Equal(A.Y, B.Y);
+end;
+
 procedure Cn25519Field64Ecc4PointNeutual(var Point: TCn25519Field64Ecc4Point);
 begin
   Cn25519Field64Zero(Point.X);
@@ -2811,6 +3030,76 @@ function Cn25519Field64Ecc4PointToHex(var Point: TCn25519Field64Ecc4Point): stri
 begin
   Result := 'X: ' + Cn25519Field64ToHex(Point.X) + ' Y: ' + Cn25519Field64ToHex(Point.Y)
     + ' Z: ' + Cn25519Field64ToHex(Point.Z) + ' T: ' + Cn25519Field64ToHex(Point.T);
+end;
+
+function Cn25519Field64Ecc4PointEqual(var A, B: TCn25519Field64Ecc4Point): Boolean;
+var
+  T1, T2: TCn25519Field64;
+begin
+  // X1Z2 = X2Z1 且 Y1Z2 = Y2Z1
+  Result := False;
+
+  Cn25519Field64Mul(T1, A.X, B.Z);
+  Cn25519Field64Mul(T2, B.X, A.Z);
+
+  if not Cn25519Field64Equal(T1, T2) then
+    Exit;
+
+  Cn25519Field64Mul(T1, A.Y, B.Z);
+  Cn25519Field64Mul(T2, B.Y, A.Z);
+
+  if not Cn25519Field64Equal(T1, T2) then
+    Exit;
+
+  Result := True;
+end;
+
+function CnEccPointToField64Ecc4Point(var DestPoint: TCn25519Field64Ecc4Point;
+  SourcePoint: TCnEccPoint): Boolean;
+var
+  P4: TCnEcc4Point;
+begin
+  P4 := TCnEcc4Point.Create;
+  try
+    CnEccPointToEcc4Point(P4, SourcePoint, FPrime25519);
+    Result := CnEcc4PointToField64Ecc4Point(DestPoint, P4);
+  finally
+    P4.Free;
+  end;
+end;
+
+function CnField64Ecc4PointToEccPoint(DestPoint: TCnEccPoint;
+  var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
+var
+  P4: TCnEcc4Point;
+begin
+  P4 := TCnEcc4Point.Create;
+  try
+    CnField64Ecc4PointToEcc4Point(P4, SourcePoint);
+    Result := CnEcc4PointToEccPoint(DestPoint, P4, FPrime25519);
+  finally
+    P4.Free;
+  end;
+end;
+
+function CnEcc4PointToField64Ecc4Point(var DestPoint: TCn25519Field64Ecc4Point;
+  SourcePoint: TCnEcc4Point): Boolean;
+begin
+  Cn25519BigNumberToField64(DestPoint.X, SourcePoint.X);
+  Cn25519BigNumberToField64(DestPoint.Y, SourcePoint.Y);
+  Cn25519BigNumberToField64(DestPoint.Z, SourcePoint.Z);
+  Cn25519BigNumberToField64(DestPoint.T, SourcePoint.T);
+  Result := True;
+end;
+
+function CnField64Ecc4PointToEcc4Point(DestPoint: TCnEcc4Point;
+  var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
+begin
+  Cn25519Field64ToBigNumber(DestPoint.X, SourcePoint.X);
+  Cn25519Field64ToBigNumber(DestPoint.Y, SourcePoint.Y);
+  Cn25519Field64ToBigNumber(DestPoint.Z, SourcePoint.Z);
+  Cn25519Field64ToBigNumber(DestPoint.T, SourcePoint.T);
+  Result := True;
 end;
 
 initialization

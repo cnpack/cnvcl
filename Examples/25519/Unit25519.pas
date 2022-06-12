@@ -40,6 +40,7 @@ type
     btnCurv25519MontLadderField64Mul: TButton;
     btnField64Sub: TButton;
     btnField64Reduce: TButton;
+    btnEd25519ExtendedField64Add: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -69,6 +70,7 @@ type
     procedure btnField64SubClick(Sender: TObject);
     procedure btnField64ReduceClick(Sender: TObject);
     procedure btnCurv25519MontLadderField64MulClick(Sender: TObject);
+    procedure btnEd25519ExtendedField64AddClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -285,15 +287,15 @@ begin
 //  FEd25519.SetNeutualPoint(Q);
   // ============ 相同点的点加 ================
   // P 是 G , Q 是 G
-  CnEccPointToEcc4Point(P, P4, FEd25519.FiniteFieldSize);
-  CnEccPointToEcc4Point(Q, Q4, FEd25519.FiniteFieldSize);
+  CnEccPointToEcc4Point(P4, P, FEd25519.FiniteFieldSize);
+  CnEccPointToEcc4Point(Q4, Q, FEd25519.FiniteFieldSize);
 
   FEd25519.ExtendedPointAddPoint(P4, Q4, S4);
   // ShowMessage(S4.ToString);
   FEd25519.PointAddPoint(P, Q, S);
 
   // 验证 S 和 S4 是否相等
-  CnEcc4PointToEccPoint(S4, P, FEd25519.FiniteFieldSize);
+  CnEcc4PointToEccPoint(P, S4, FEd25519.FiniteFieldSize);
   //ShowMessage(P.ToString);
   //ShowMessage(S.ToString);
   if CnEccPointsEqual(P, S) then
@@ -306,15 +308,15 @@ begin
   FEd25519.PointAddPoint(P, Q, P);
 
   // P 是 2*G , Q 是 G
-  CnEccPointToEcc4Point(P, P4, FEd25519.FiniteFieldSize);
-  CnEccPointToEcc4Point(Q, Q4, FEd25519.FiniteFieldSize);
+  CnEccPointToEcc4Point(P4, P, FEd25519.FiniteFieldSize);
+  CnEccPointToEcc4Point(Q4, Q, FEd25519.FiniteFieldSize);
 
   FEd25519.ExtendedPointAddPoint(P4, Q4, S4);
   FEd25519.PointAddPoint(P, Q, S);
   // ShowMessage(S.ToString);
 
   // 验证 S 和 S4 是否相等
-  CnEcc4PointToEccPoint(S4, P, FEd25519.FiniteFieldSize);
+  CnEcc4PointToEccPoint(P, S4, FEd25519.FiniteFieldSize);
   // ShowMessage(S4.ToString);
   if CnEccPointsEqual(P, S) then
     ShowMessage('Extended Add G+2G OK');
@@ -340,7 +342,7 @@ begin
   P.Assign(FEd25519.Generator);
 
   P4 := TCnEcc4Point.Create;
-  CnEccPointToEcc4Point(P, P4, FEd25519.FiniteFieldSize);
+  CnEccPointToEcc4Point(P4, P, FEd25519.FiniteFieldSize);
 
   FEd25519.MultiplePoint(M, P);
   FEd25519.ExtendedMultiplePoint(M, P4);
@@ -349,7 +351,7 @@ begin
     ShowMessage('Ed 25519 Extended Random * G is on this Curve');
 
   Q := TCnEccPoint.Create;
-  CnEcc4PointToEccPoint(P4, Q, FEd25519.FiniteFieldSize);
+  CnEcc4PointToEccPoint(Q, P4, FEd25519.FiniteFieldSize);
 
   if CnEccPointsEqual(P, Q) then
     ShowMessage('Ed 25519 Mul/ExtendedMul Equal OK');
@@ -365,7 +367,7 @@ begin
   T2 := GetTickCount - T2;
 
   ShowMessage(Format('Normal %d, Extended %d', [T1, T2])); // Extended 比常规的快十倍以上！
-  CnEcc4PointToEccPoint(P4, Q, FEd25519.FiniteFieldSize);
+  CnEcc4PointToEccPoint(Q, P4, FEd25519.FiniteFieldSize);
   if CnEccPointsEqual(P, Q) then
     ShowMessage('Ed 25519 1000 Mul/ExtendedMul Equal OK');
 
@@ -732,7 +734,7 @@ var
 begin
   // B := TCnBigNumber.FromHex('8888888877777777666666665555555544444444333333332222222211111111');
   B := TCnBigNumber.FromHex('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEC');
-  Cn25519BigNumberToField64(B, D);
+  Cn25519BigNumberToField64(D, B);
 
   ShowMessage(UInt64ToHex(D[0]));
   ShowMessage(UInt64ToHex(D[1]));
@@ -778,8 +780,8 @@ begin
 //  A := TCnBigNumber.FromHex('1000000000000000000000000'); // 多个 0 就出错了，乘积变成全 0 了，该问题已修复
 //  B := TCnBigNumber.FromHex('100000000000000000000000'); 
 
-  Cn25519BigNumberToField64(A, FA);
-  Cn25519BigNumberToField64(B, FB);
+  Cn25519BigNumberToField64(FA, A);
+  Cn25519BigNumberToField64(FB, B);
 
   Cn25519Field64Mul(FC, FA, FB);
 
@@ -805,8 +807,8 @@ begin
   A := TCnBigNumber.FromHex('11111111222222223333333344444444555555556666666677777777');
   B := TCnBigNumber.FromHex('66666666555555554444444433333333222222221111111100000000');
 
-  Cn25519BigNumberToField64(A, FA);
-  Cn25519BigNumberToField64(B, FB);
+  Cn25519BigNumberToField64(FA, A);
+  Cn25519BigNumberToField64(FB, B);
 
   T1 := GetTickCount;
   for I := 1 to 50000 do
@@ -920,8 +922,8 @@ begin
   A := TCnBigNumber.FromHex('64');
   B := TCnBigNumber.FromHex('40');
 
-  Cn25519BigNumberToField64(A, FA);
-  Cn25519BigNumberToField64(B, FB);
+  Cn25519BigNumberToField64(FA, A);
+  Cn25519BigNumberToField64(FB, B);
 
   Cn25519Field64Sub(FC, FA, FB);
 
@@ -1020,6 +1022,52 @@ begin
 
   ShowMessage(Format('Curve 25519 5000 Field Mul %d, MontgomeryLadder %d', [T2, T1]));
 
+  Q.Free;
+  P.Free;
+end;
+
+procedure TForm25519.btnEd25519ExtendedField64AddClick(Sender: TObject);
+var
+  P, Q, S: TCnEccPoint;
+  P4, Q4, S4: TCn25519Field64Ecc4Point;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+  S := TCnEccPoint.Create;
+
+  P.Assign(FEd25519.Generator);
+  Q.Assign(FEd25519.Generator);
+
+  // ============ 相同点的点加 ================
+  CnEccPointToField64Ecc4Point(P4, P);
+  CnEccPointToField64Ecc4Point(Q4, Q);
+
+  FEd25519.ExtendedField64PointAddPoint(P4, Q4, S4);
+  FEd25519.PointAddPoint(P, Q, S);
+
+  // 验证 S 和 S4 是否相等
+  CnField64Ecc4PointToEccPoint(P, S4);
+  if CnEccPointsEqual(P, S) then
+    ShowMessage('Extended Add G+G OK');
+
+  // ============ 不同点的点加 ================
+  P.Assign(FEd25519.Generator);
+  Q.Assign(FEd25519.Generator);
+  FEd25519.PointAddPoint(P, Q, P);
+
+  // P 是 2*G , Q 是 G
+  CnEccPointToField64Ecc4Point(P4, P);
+  CnEccPointToField64Ecc4Point(Q4, Q);
+
+  FEd25519.ExtendedField64PointAddPoint(P4, Q4, S4);
+  FEd25519.PointAddPoint(P, Q, S);
+
+  // 验证 S 和 S4 是否相等
+  CnField64Ecc4PointToEccPoint(P, S4);
+  if CnEccPointsEqual(P, S) then
+    ShowMessage('Extended Add G+2G OK');
+
+  S.Free;
   Q.Free;
   P.Free;
 end;
