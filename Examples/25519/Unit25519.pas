@@ -57,6 +57,12 @@ type
     btnEd25519Verify: TButton;
     btnSignTime: TButton;
     btnVerifyTime: TButton;
+    btnEd25519SignFile: TButton;
+    btnEd25519VerifyFile: TButton;
+    dlgOpen1: TOpenDialog;
+    dlgSave1: TSaveDialog;
+    btnEd25519LoadKeys: TButton;
+    btnEd25519SaveKeys: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -93,6 +99,8 @@ type
     procedure btnEd25519VerifyClick(Sender: TObject);
     procedure btnSignTimeClick(Sender: TObject);
     procedure btnVerifyTimeClick(Sender: TObject);
+    procedure btnEd25519SignFileClick(Sender: TObject);
+    procedure btnEd25519VerifyFileClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -1269,7 +1277,9 @@ begin
       Sig.SaveToData(SigData);
   end;
   T := GetTickCount - T;
-  ShowMessage('Sign OK ' + IntToStr(T)); // 7 秒签一千次，一次 7 毫秒
+  ShowMessage('Sign OK ' + IntToStr(T));
+  // 32 位：7 秒签一千次，一次 7 毫秒
+  // 64 位：2.5 秒签一千次，一次 2.5 毫秒
 
   Sig.Free;
 
@@ -1304,10 +1314,83 @@ begin
       ;
   end;
   T := GetTickCount - T;
-  ShowMessage('Verify OK ' + IntToStr(T)); // 15 秒验证一千次，一次 15 毫秒
+  ShowMessage('Verify OK ' + IntToStr(T));
+  // 32 位：15 秒验证一千次，一次 15 毫秒
+  // 64 位：4.5 秒验证一千次，一次 4.5 毫秒
 
   Sig.Free;
   Pub.Free;
+end;
+
+procedure TForm25519.btnEd25519SignFileClick(Sender: TObject);
+var
+  Ed: TCnEd25519;
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  PubData: TCnEd25519Data;
+  SigStream: TMemoryStream;
+begin
+  dlgOpen1.Title := 'Open a File to Sign';
+  if dlgOpen1.Execute then
+  begin
+    Ed := TCnEd25519.Create;
+    Priv := TCnEccPrivateKey.Create;
+    Pub := TCnEccPublicKey.Create;
+
+    HexToData(edtEd25519Pub.Text, @PubData[0]);
+    Ed.PlainToPoint(PubData, Pub);
+
+    Priv.SetHex(edtEd25519Priv.Text);
+
+    SigStream := TMemoryStream.Create;
+    if CnEd25519SignFile(dlgOpen1.FileName, Priv, Pub, SigStream, Ed) then
+    begin
+      dlgSave1.Title := 'Save Signature to a File';
+      dlgSave1.FileName := 'Sig.bin';
+      if dlgSave1.Execute then
+      begin
+        SigStream.SaveToFile(dlgSave1.FileName);
+        ShowMessage('Sign OK. Signature Saved to ' + dlgSave1.FileName);
+      end;
+    end;
+
+    SigStream.Free;
+    Pub.Free;
+    Priv.Free;
+    Ed.Free;
+  end;
+end;
+
+procedure TForm25519.btnEd25519VerifyFileClick(Sender: TObject);
+var
+  Ed: TCnEd25519;
+  Pub: TCnEccPublicKey;
+  PubData: TCnEd25519Data;
+  SigStream: TMemoryStream;
+begin
+  dlgOpen1.Title := 'Open a File to Verify';
+  dlgSave1.Title := 'Open a Signature File';
+  if dlgOpen1.Execute and dlgSave1.Execute then
+  begin
+    Ed := TCnEd25519.Create;
+    Pub := TCnEccPublicKey.Create;
+
+    HexToData(edtEd25519Pub.Text, @PubData[0]);
+    Ed.PlainToPoint(PubData, Pub);
+
+    SigStream := TMemoryStream.Create;
+    SigStream.LoadFromFile(dlgSave1.FileName);
+    SigStream.Position := 0;
+
+    if CnEd25519VerifyFile(dlgOpen1.FileName, SigStream, Pub, Ed) then
+      ShowMessage('Verify OK')
+    else
+      ShowMessage('Verify Fail');
+
+    SigStream.Free;
+    Pub.Free;
+    Ed.Free;
+  end;
 end;
 
 end.

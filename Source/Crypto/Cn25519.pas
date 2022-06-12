@@ -32,12 +32,14 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.12 V1.3
+* 修改记录：2022.06.14 V1.4
+*               实现 Ed25519 对文件的签名与验证
+*           2022.06.12 V1.3
 *               实现 Field64 多项式拆项的有限域快速算法，
 *               并基于此改造蒙哥马利阶梯加速标量乘与扩展四元坐标的快速点加与标量乘，
 *               速度再次提高一倍以上，如果 64 位下，还能再次提高一倍
 *           2022.06.09 V1.2
-*               实现 Curve25510 曲线的蒙哥马利阶梯加速标量乘，速度快十倍以上
+*               实现 Curve25519 曲线的蒙哥马利阶梯加速标量乘，速度快十倍以上
 *           2022.06.08 V1.1
 *               实现 Ed25519 签名与验证
 *           2022.06.07 V1.1
@@ -385,6 +387,14 @@ function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCn
 function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公钥对数据块与签名进行验证，返回验证是否成功}
+
+function CnEd25519SignFile(const FileName: string; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; OutSignatureStream: TStream; Ed25519: TCnEd25519 = nil): Boolean;
+{* Ed25519 用公私钥对文件进行签名，签名值 64 字节写入 OutSignatureStream 中，返回签名是否成功}
+
+function CnEd25519VerifyFile(const FileName: string; InSignatureStream: TStream;
+  PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519 = nil): Boolean;
+{* Ed25519 用公钥对文件与签名进行验证，InSignatureStream 内部须是 64 字节签名值，返回验证是否成功}
 
 // ================= Ed25519 椭圆曲线 Diffie-Hellman 密钥交换  =================
 
@@ -2387,8 +2397,8 @@ begin
   end;
 end;
 
-function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
-  PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519): Boolean;
+function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer;
+  InSignature: TCnEd25519Signature; PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519): Boolean;
 var
   Is25519Nil: Boolean;
   L, R, M: TCnEccPoint;
@@ -2455,6 +2465,72 @@ begin
     L.Free;
     if Is25519Nil then
       Ed25519.Free;
+  end;
+end;
+
+function CnEd25519SignFile(const FileName: string; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey; OutSignatureStream: TStream; Ed25519: TCnEd25519): Boolean;
+var
+  Stream: TMemoryStream;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (PublicKey = nil) or (OutSignatureStream = nil)
+    or not FileExists(FileName) then
+    Exit;
+
+  Stream := nil;
+  Sig := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(FileName);
+
+    Sig := TCnEd25519Signature.Create;
+
+    Result := CnEd25519SignData(Stream.Memory, Stream.Size, PrivateKey, PublicKey, Sig, Ed25519);
+    if Result then
+    begin
+      Sig.SaveToData(SigData);
+      Result := OutSignatureStream.Write(SigData[0], SizeOf(TCnEd25519SignatureData))
+        = SizeOf(TCnEd25519SignatureData);
+    end;
+  finally
+    Sig.Free;
+    Stream.Free;
+  end;
+end;
+
+function CnEd25519VerifyFile(const FileName: string; InSignatureStream: TStream;
+  PublicKey: TCnEccPublicKey; Ed25519: TCnEd25519 = nil): Boolean;
+var
+  Stream: TMemoryStream;
+  Sig: TCnEd25519Signature;
+  SigData: TCnEd25519SignatureData;
+begin
+  Result := False;
+  if (PublicKey = nil) or (InSignatureStream = nil) or not FileExists(FileName) then
+    Exit;
+
+  Stream := nil;
+  Sig := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(FileName);
+
+    if InSignatureStream.Read(SigData[0], SizeOf(TCnEd25519SignatureData)) <>
+      SizeOf(TCnEd25519SignatureData) then
+      Exit;
+
+    Sig := TCnEd25519Signature.Create;
+    Sig.LoadFromData(SigData);
+
+    Result := CnEd25519VerifyData(Stream.Memory, Stream.Size, Sig, PublicKey, Ed25519);
+  finally
+    Sig.Free;
+    Stream.Free;
   end;
 end;
 

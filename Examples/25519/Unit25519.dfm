@@ -420,7 +420,49 @@ object Form25519: TForm25519
           TabOrder = 8
           OnClick = btnVerifyTimeClick
         end
+        object btnEd25519SignFile: TButton
+          Left = 752
+          Top = 24
+          Width = 75
+          Height = 49
+          Caption = 'Sign File'
+          TabOrder = 9
+          OnClick = btnEd25519SignFileClick
+        end
+        object btnEd25519VerifyFile: TButton
+          Left = 840
+          Top = 24
+          Width = 75
+          Height = 49
+          Caption = 'Verify File'
+          TabOrder = 10
+          OnClick = btnEd25519VerifyFileClick
+        end
+        object btnEd25519LoadKeys: TButton
+          Left = 664
+          Top = 24
+          Width = 75
+          Height = 21
+          Caption = 'Load Keys'
+          TabOrder = 11
+        end
+        object btnEd25519SaveKeys: TButton
+          Left = 664
+          Top = 52
+          Width = 75
+          Height = 21
+          Caption = 'Save Keys'
+          TabOrder = 12
+        end
       end
     end
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 788
+    Top = 184
+  end
+  object dlgSave1: TSaveDialog
+    Left = 828
+    Top = 184
   end
 end
