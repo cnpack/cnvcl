@@ -297,6 +297,15 @@ object Form25519: TForm25519
           TabOrder = 27
           OnClick = btnEd25519ExtendedField64AddClick
         end
+        object btnEd25519ExtendedField64Mul: TButton
+          Left = 224
+          Top = 360
+          Width = 185
+          Height = 25
+          Caption = 'Ed25519 G Extended Field Mul'
+          TabOrder = 28
+          OnClick = btnEd25519ExtendedField64MulClick
+        end
       end
     end
   end

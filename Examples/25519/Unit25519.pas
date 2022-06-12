@@ -41,6 +41,7 @@ type
     btnField64Sub: TButton;
     btnField64Reduce: TButton;
     btnEd25519ExtendedField64Add: TButton;
+    btnEd25519ExtendedField64Mul: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -71,6 +72,7 @@ type
     procedure btnField64ReduceClick(Sender: TObject);
     procedure btnCurv25519MontLadderField64MulClick(Sender: TObject);
     procedure btnEd25519ExtendedField64AddClick(Sender: TObject);
+    procedure btnEd25519ExtendedField64MulClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -87,6 +89,31 @@ var
 implementation
 
 {$R *.DFM}
+
+const
+  SCN_25519_PRIME = '7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED';
+  // 2^255 - 19
+
+  SCN_25519_COFACTOR = 8;
+  // 余因子均为 8，也就是椭圆曲线总点数是 G 点阶数的八倍
+
+  SCN_25519_ORDER = '1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED';
+  // 基点阶数均为 2^252 + 27742317777372353535851937790883648493
+
+  // 25519 扭曲爱德华曲线参数
+  SCN_25519_EDWARDS_A = '-01';
+  // -1
+
+  SCN_25519_EDWARDS_D = '52036CEE2B6FFE738CC740797779E89800700A4D4141D8AB75EB4DCA135978A3';
+  // -121655/121656，也就是 121656 * D mod P = P - 121655 算得 D =
+  // 37095705934669439343138083508754565189542113879843219016388785533085940283555
+
+  SCN_25519_EDWARDS_GX = '216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A';
+  // 15112221349535400772501151409588531511454012693041857206046113283949847762202
+
+  SCN_25519_EDWARDS_GY = '6666666666666666666666666666666666666666666666666666666666666658';
+  // 46316835694926478169428394003475163141307993866256225615783033603165251855960
+
 
 procedure TForm25519.FormCreate(Sender: TObject);
 begin
@@ -1070,6 +1097,57 @@ begin
   S.Free;
   Q.Free;
   P.Free;
+end;
+
+procedure TForm25519.btnEd25519ExtendedField64MulClick(Sender: TObject);
+const
+  M = 809926145687654876;
+var
+  P, Q: TCnEccPoint;
+  P4: TCn25519Field64Ecc4Point;
+  T1, T2: Cardinal;
+  I: Integer;
+  Ed: TCnTwistedEdwardsCurve;
+begin
+  Ed := TCnTwistedEdwardsCurve.Create;
+  Ed.Load(SCN_25519_EDWARDS_A, SCN_25519_EDWARDS_D, SCN_25519_PRIME, SCN_25519_EDWARDS_GX,
+    SCN_25519_EDWARDS_GY, SCN_25519_ORDER, 8);
+
+  P := TCnEccPoint.Create;
+  P.Assign(FEd25519.Generator);
+
+  CnEccPointToField64Ecc4Point(P4, P);
+
+  FEd25519.MultiplePoint(M, P);
+  FEd25519.ExtendedField64MultiplePoint(M, P4);
+
+  if FEd25519.IsExtendedField64PointOnCurve(P4) then
+    ShowMessage('Ed 25519 Extended Random * G is on this Curve');
+
+  Q := TCnEccPoint.Create;
+  CnField64Ecc4PointToEccPoint(Q, P4);
+
+  if CnEccPointsEqual(P, Q) then
+    ShowMessage('Ed 25519 Mul/ExtendedMul Equal OK');
+
+  T1 := GetTickCount;
+  for I := 1 to 1000 do
+    Ed.MultiplePoint(M, P); // 走原始的点加
+  T1 := GetTickCount - T1;
+
+  T2 := GetTickCount;
+  for I := 1 to 1000 do
+    FEd25519.ExtendedField64MultiplePoint(M, P4);
+  T2 := GetTickCount - T2;
+
+  ShowMessage(Format('Normal %d, Field64 Extended %d', [T1, T2])); // Field64 Extended 比 Extended 的还要快一倍以上！
+  CnField64Ecc4PointToEccPoint(Q, P4);
+  if CnEccPointsEqual(P, Q) then
+    ShowMessage('Ed 25519 1000 Mul/ Field64 Extended Mul Equal OK');
+
+  Q.Free;
+  P.Free;
+  Ed.Free;
 end;
 
 end.

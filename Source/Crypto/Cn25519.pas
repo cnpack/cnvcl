@@ -27,11 +27,16 @@ unit Cn25519;
 * 备    注：目前实现了 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
 *           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 的点加减乘
 *           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
+*           以及结合多项式约减代替模运算所进行的加速算法，是原始点加算法速度的五十倍以上
 *           签名基于 rfc 8032 的说明
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.09 V1.2
+* 修改记录：2022.06.12 V1.3
+*               实现 Field64 多项式拆项的有限域快速算法，
+*               并基于此改造蒙哥马利阶梯加速标量乘与扩展四元坐标的快速点加与标量乘，
+*               速度再次提高一倍以上，如果 64 位下，还能再次提高一倍
+*           2022.06.09 V1.2
 *               实现 Curve25510 曲线的蒙哥马利阶梯加速标量乘，速度快十倍以上
 *           2022.06.08 V1.1
 *               实现 Ed25519 签名与验证
@@ -303,6 +308,8 @@ type
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure ExtendedField64PointInverse(var P: TCn25519Field64Ecc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
+    function IsExtendedField64PointOnCurve(var P: TCn25519Field64Ecc4Point): Boolean;
+    {* 判断扩展扭曲爱德华坐标（四元）有限域多项式 P 点是否在本曲线上}
 
     procedure ExtendedField64MultiplePoint(K: Int64; var Point: TCn25519Field64Ecc4Point); overload;
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入 P}
@@ -2515,6 +2522,20 @@ begin
   end;
 end;
 
+function TCnEd25519.IsExtendedField64PointOnCurve(
+  var P: TCn25519Field64Ecc4Point): Boolean;
+var
+  Q: TCnEccPoint;
+begin
+  Q := TCnEccPoint.Create;
+  try
+    CnField64Ecc4PointToEccPoint(Q, P);
+    Result := IsPointOnCurve(Q);
+  finally
+    Q.Free;
+  end;
+end;
+
 function TCnEd25519.IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
 begin
   Result := P.X.IsZero and P.T.IsZero and not P.Y.IsZero and not P.Z.IsZero
@@ -2523,16 +2544,11 @@ end;
 
 procedure TCnEd25519.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
-  P4: TCnEcc4Point;
+  P4: TCn25519Field64Ecc4Point;
 begin
-  P4 := TCnEcc4Point.Create;
-  try
-    CnEccPointToEcc4Point(P4, Point, FFiniteFieldSize);
-    ExtendedMultiplePoint(K, P4);
-    CnEcc4PointToEccPoint(Point, P4, FFiniteFieldSize);
-  finally
-    P4.Free;
-  end;
+  CnEccPointToField64Ecc4Point(P4, Point);
+  ExtendedField64MultiplePoint(K, P4);
+  CnField64Ecc4PointToEccPoint(Point, P4);
 end;
 
 function TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
