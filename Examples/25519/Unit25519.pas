@@ -35,6 +35,9 @@ type
     btnBigNumberToField: TButton;
     btnField64Mul: TButton;
     btnField64MulTime: TButton;
+    btnCurv25519MontLadderField64Double: TButton;
+    btnCurv25519MontLadderField64Add: TButton;
+    btnCurv25519MontLadderField64Mul: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -59,6 +62,8 @@ type
     procedure btnBigNumberToFieldClick(Sender: TObject);
     procedure btnField64MulClick(Sender: TObject);
     procedure btnField64MulTimeClick(Sender: TObject);
+    procedure btnCurv25519MontLadderField64DoubleClick(Sender: TObject);
+    procedure btnCurv25519MontLadderField64AddClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -619,9 +624,9 @@ begin
   FCurve25519.PointToXAffinePoint(Q, Q);  // Q 0
   ShowMessage(Q.ToString);                // 0, 1
   FCurve25519.MontgomeryLadderPointXAdd(P, P, Q, P); // 理论上 P 要得到自身
-  ShowMessage(P.ToString); // 结果不是 9, 1，而是 4 $510(1296)
+  ShowMessage(P.ToString); // 结果不是 9, 1
   FCurve25519.XAffinePointToPoint(P, P);
-  ShowMessage(P.ToString); // 转换回来
+  ShowMessage(P.ToString); // 转换回来才是 9, xxxxxxx 等于 FCurve25519.Generator
 
   P.Assign(FCurve25519.Generator);
   FCurve25519.PointToXAffinePoint(P, P); // P 转换为射影点 G
@@ -822,6 +827,100 @@ begin
   C.Free;
   B.Free;
   A.Free;
+end;
+
+procedure TForm25519.btnCurv25519MontLadderField64DoubleClick(
+  Sender: TObject);
+var
+  P, Q: TCnEccPoint;
+  PF: TCn25519Field64EccPoint;
+  T: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+
+  P.Assign(FCurve25519.Generator);
+  FCurve25519.PointToField64XAffinePoint(PF, P); // 转换为多项式点
+  FCurve25519.Field64XAffinePointToPoint(P, PF); // 再转换回来
+  ShowMessage(P.ToString); // 和 G 相等
+
+  FCurve25519.PointToField64XAffinePoint(PF, FCurve25519.Generator); // PF 得到射影 G 点
+  FCurve25519.MontgomeryLadderField64PointXDouble(PF, PF); // P 得到射影 2*G 点
+  FCurve25519.Field64XAffinePointToPoint(P, PF);
+  ShowMessage(P.ToString); // P 得到普通 2*G 点
+
+  Q.Assign(FCurve25519.Generator);
+  FCurve25519.PointAddPoint(Q, Q, Q);
+  ShowMessage(Q.ToString);
+
+  // P 是 X Y 形式的 2*G，Q 是普通形式的 2*G，判断其 X 是否相等
+  if BigNumberEqual(P.X, Q.X) then
+  begin
+    if BigNumberEqual(P.Y, Q.Y) then
+      ShowMessage('Montgomery Ladder Field64 Double OK. X, Y Both Equals.')
+    else
+    begin
+      T := TCnBigNumber.Create;
+      BigNumberAdd(T, P.Y, Q.Y);
+      if BigNumberEqual(T, FCurve25519.FiniteFieldSize) then
+        ShowMessage('Montgomery Ladder Field64 Double OK. X Equals. Y +-');
+      T.Free;
+    end;
+  end;
+
+  Q.Free;
+  P.Free;
+end;
+
+procedure TForm25519.btnCurv25519MontLadderField64AddClick(
+  Sender: TObject);
+var
+  P, Q: TCnEccPoint;
+  PF, QF: TCn25519Field64EccPoint;
+  T: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+
+  P.Assign(FCurve25519.Generator);
+  Q.SetZero;
+  FCurve25519.PointToField64XAffinePoint(PF, P);
+  FCurve25519.PointToField64XAffinePoint(QF, Q);
+  ShowMessage(Cn25519Field64EccPointToHex(PF));
+  FCurve25519.MontgomeryLadderField64PointXAdd(PF, PF, QF, PF); // 理论上 P 要得到自身
+  ShowMessage(Cn25519Field64EccPointToHex(PF));
+  FCurve25519.Field64XAffinePointToPoint(P, PF);
+  ShowMessage(P.ToString); // 转换回来应该得到 G 点坐标 OK
+
+  P.Assign(FCurve25519.Generator);
+  FCurve25519.PointToField64XAffinePoint(PF, P); // PF 转换为多项式射影点 G
+  FCurve25519.MontgomeryLadderField64PointXDouble(QF, PF); // QF 多项式射影 2*G
+  FCurve25519.MontgomeryLadderField64PointXAdd(PF, QF, PF, PF); // PF 得到多项式射影 3*G
+  FCurve25519.Field64XAffinePointToPoint(P, PF);
+  ShowMessage(P.ToString); // P 得到普通 3*G 点，似乎算得不对
+
+  Q.Assign(FCurve25519.Generator);
+  FCurve25519.PointAddPoint(Q, Q, Q);
+  FCurve25519.PointAddPoint(Q, FCurve25519.Generator, Q); // Q 直接加出普通 3*G 点
+  ShowMessage(Q.ToString);
+
+  // P 是 X Y 形式的 3*G，Q 是普通形式的 3*G，判断其 X 是否相等
+  if BigNumberEqual(P.X, Q.X) then
+  begin
+    if BigNumberEqual(P.Y, Q.Y) then
+      ShowMessage('Montgomery Ladder Add OK. X, Y Both Equals.')
+    else
+    begin
+      T := TCnBigNumber.Create;
+      BigNumberAdd(T, P.Y, Q.Y);
+      if BigNumberEqual(T, FCurve25519.FiniteFieldSize) then
+        ShowMessage('Montgomery Ladder Add OK. X Equals. Y +-');
+      T.Free;
+    end;
+  end;
+
+  Q.Free;
+  P.Free;
 end;
 
 end.

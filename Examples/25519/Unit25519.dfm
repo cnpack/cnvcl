@@ -243,6 +243,33 @@ object Form25519: TForm25519
           TabOrder = 21
           OnClick = btnField64MulTimeClick
         end
+        object btnCurv25519MontLadderField64Double: TButton
+          Left = 16
+          Top = 312
+          Width = 185
+          Height = 25
+          Caption = 'Curv25519 Mont Ladder Field Double'
+          TabOrder = 22
+          OnClick = btnCurv25519MontLadderField64DoubleClick
+        end
+        object btnCurv25519MontLadderField64Add: TButton
+          Left = 224
+          Top = 312
+          Width = 185
+          Height = 25
+          Caption = 'Curv25519 Mont Ladder Field Add'
+          TabOrder = 23
+          OnClick = btnCurv25519MontLadderField64AddClick
+        end
+        object btnCurv25519MontLadderField64Mul: TButton
+          Left = 432
+          Top = 312
+          Width = 185
+          Height = 25
+          Caption = 'Curv25519 Mont Ladder Field Mul'
+          TabOrder = 24
+          OnClick = btnCurv25519MontLadderMulClick
+        end
       end
     end
   end
