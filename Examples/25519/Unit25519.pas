@@ -68,6 +68,7 @@ type
     procedure btnCurv25519MontLadderField64AddClick(Sender: TObject);
     procedure btnField64SubClick(Sender: TObject);
     procedure btnField64ReduceClick(Sender: TObject);
+    procedure btnCurv25519MontLadderField64MulClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -954,6 +955,73 @@ begin
   ShowMessage(R.ToHex); // 不知道得到了个啥
 
   R.Free;
+end;
+
+procedure TForm25519.btnCurv25519MontLadderField64MulClick(
+  Sender: TObject);
+const
+  MUL_COUNT = 9823454363465987;
+var
+  P, Q: TCnEccPoint;
+  PF, QF: TCn25519Field64EccPoint;
+  T: TCnBigNumber;
+  T1, T2: Cardinal;
+  I: Integer;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+
+  P.Assign(FCurve25519.Generator);
+  FCurve25519.PointToField64XAffinePoint(PF, P); // P 转换为多项式点 G
+  FCurve25519.MontgomeryLadderField64MultiplePoint(MUL_COUNT, PF); // P 自乘
+  FCurve25519.Field64XAffinePointToPoint(P, PF); // nG 转换为普通点
+
+  P.Assign(FCurve25519.Generator);
+  FCurve25519.PointToXAffinePoint(P, P); // P 转换为射影点 G
+  FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P 自乘
+  FCurve25519.XAffinePointToPoint(P, P); // nG 转换为普通点
+
+  Q.Assign(FCurve25519.Generator);
+  FCurve25519.MultiplePoint(MUL_COUNT, Q);
+
+  if BigNumberEqual(P.X, Q.X) then
+  begin
+    if BigNumberEqual(P.Y, Q.Y) then
+      ShowMessage('Montgomery Ladder Mul OK. X, Y Both Equals.')
+    else
+    begin
+      T := TCnBigNumber.Create;
+      BigNumberAdd(T, P.Y, Q.Y);
+      if BigNumberEqual(T, FCurve25519.FiniteFieldSize) then
+        ShowMessage('Montgomery Ladder Mul OK. X Equals. Y +-');
+      T.Free;
+    end;
+  end;
+
+  Q.Assign(FCurve25519.Generator);
+  FCurve25519.PointToXAffinePoint(Q, Q); // Q 转换为射影点 G
+  T1 := GetTickCount;
+  for I := 1 to 5000 do
+  begin
+    P.Assign(Q);
+    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P 自乘，蒙哥马利阶梯法
+  end;
+  T1 := GetTickCount - T1;
+
+  P.Assign(FCurve25519.Generator);
+  FCurve25519.PointToField64XAffinePoint(QF, P);
+  T2 := GetTickCount;
+  for I := 1 to 5000 do
+  begin
+    Cn25519Field64EccPointCopy(PF, QF);
+    FCurve25519.MontgomeryLadderField64MultiplePoint(MUL_COUNT, PF); // PF 多项式拆项法自乘，又快了近一倍！
+  end;
+  T2 := GetTickCount - T2;
+
+  ShowMessage(Format('Curve 25519 5000 Field Mul %d, MontgomeryLadder %d', [T2, T1]));
+
+  Q.Free;
+  P.Free;
 end;
 
 end.

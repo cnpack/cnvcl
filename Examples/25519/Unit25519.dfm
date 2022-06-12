@@ -268,6 +268,7 @@ object Form25519: TForm25519
           Height = 25
           Caption = 'Curv25519 Mont Ladder Field Mul'
           TabOrder = 24
+          OnClick = btnCurv25519MontLadderField64MulClick
         end
         object btnField64Sub: TButton
           Left = 640

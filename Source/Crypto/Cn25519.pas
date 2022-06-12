@@ -217,9 +217,9 @@ type
     procedure MontgomeryLadderField64PointXAdd(var Sum, P, Q, PMinusQ: TCn25519Field64EccPoint);
     {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
 
-    function MontgomeryLadderField64MultiplePoint(K: Int64; var Point: TCn25519Field64EccPoint): Boolean; overload;
+    procedure MontgomeryLadderField64MultiplePoint(K: Int64; var Point: TCn25519Field64EccPoint); overload;
     {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
-    function MontgomeryLadderField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64EccPoint): Boolean; overload;
+    procedure MontgomeryLadderField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64EccPoint); overload;
     {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
 
     property Generator: TCnEccPoint read FGenerator;
@@ -501,7 +501,7 @@ begin
   end;
 end;
 
-procedure ConditionalSwapField64Point(Swap: Boolean; A, B: TCn25519Field64EccPoint);
+procedure ConditionalSwapField64Point(Swap: Boolean; var A, B: TCn25519Field64EccPoint);
 begin
   if Swap then
   begin
@@ -1417,13 +1417,12 @@ begin
   end;
 end;
 
-function TCnMontgomeryCurve.MontgomeryLadderField64MultiplePoint(
-  K: TCnBigNumber; var Point: TCn25519Field64EccPoint): Boolean;
+procedure TCnMontgomeryCurve.MontgomeryLadderField64MultiplePoint(
+  K: TCnBigNumber; var Point: TCn25519Field64EccPoint);
 var
   I, C: Integer;
   X0, X1: TCn25519Field64EccPoint;
 begin
-  Result := False;
   if BigNumberIsZero(K) then // 不考虑 K 为负值的情况
   begin
     Cn25519Field64Zero(Point.X);
@@ -1447,18 +1446,17 @@ begin
 
   ConditionalSwapField64Point(K.IsBitSet(0), X0, X1);
   Cn25519Field64EccPointCopy(Point, X0);
-  Result := True;
 end;
 
-function TCnMontgomeryCurve.MontgomeryLadderField64MultiplePoint(K: Int64;
-  var Point: TCn25519Field64EccPoint): Boolean;
+procedure TCnMontgomeryCurve.MontgomeryLadderField64MultiplePoint(K: Int64;
+  var Point: TCn25519Field64EccPoint);
 var
   BK: TCnBigNumber;
 begin
   BK := F25519BigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    Result := MontgomeryLadderField64MultiplePoint(BK, Point);
+    MontgomeryLadderField64MultiplePoint(BK, Point);
   finally
     F25519BigNumberPool.Recycle(BK);
   end;
