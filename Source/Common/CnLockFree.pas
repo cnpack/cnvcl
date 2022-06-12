@@ -374,7 +374,16 @@ begin
   Result := AtomicCmpExchange(Target, NewValue, Comperand);
 {$ELSE}
   {$IFDEF BDS}
-  Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
+    // XE2 下 Win64 时会出错，必须改用 64 位版本，XE3 后的版本声明调整一致了
+    {$IFDEF DELPHIXE2}
+      {$IFDEF WIN64}
+       Result := Pointer(InterlockedCompareExchange64(Int64(Target), Int64(NewValue), Int64(Comperand)));
+      {$ELSE}
+       Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
+      {$ENDIF}
+    {$ELSE}
+       Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
+    {$ENDIF}
   {$ELSE}
   {$IFDEF FPC}
   Result := Pointer(InterlockedCompareExchange(LongInt(Target), LongInt(NewValue), LongInt(Comperand)));
