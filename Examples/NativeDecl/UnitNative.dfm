@@ -252,4 +252,22 @@ object FormNative: TFormNative
     TabOrder = 20
     OnClick = btnUInt64DivModClick
   end
+  object btnInt128DivMod: TButton
+    Left = 664
+    Top = 288
+    Width = 75
+    Height = 25
+    Caption = 'Int128 Div Mod'
+    TabOrder = 21
+    OnClick = btnInt128DivModClick
+  end
+  object btnUInt128DivMod: TButton
+    Left = 664
+    Top = 328
+    Width = 75
+    Height = 25
+    Caption = 'UInt128 Div Mod'
+    TabOrder = 22
+    OnClick = btnUInt128DivModClick
+  end
 end

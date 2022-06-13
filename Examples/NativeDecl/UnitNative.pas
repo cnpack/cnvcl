@@ -37,6 +37,8 @@ type
     btnConstTimeCondSwap: TButton;
     btnInt64DivMod: TButton;
     btnUInt64DivMod: TButton;
+    btnInt128DivMod: TButton;
+    btnUInt128DivMod: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -56,6 +58,8 @@ type
     procedure btnConstTimeCondSwapClick(Sender: TObject);
     procedure btnInt64DivModClick(Sender: TObject);
     procedure btnUInt64DivModClick(Sender: TObject);
+    procedure btnInt128DivModClick(Sender: TObject);
+    procedure btnUInt128DivModClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -389,6 +393,38 @@ begin
   B := 10000000;
   UInt64DivUInt32Mod(A, B, D, R);
   mmoRes.Lines.Add(Format('%d / %d = %d ... %d', [A, B, D, R]));
+end;
+
+procedure TFormNative.btnInt128DivModClick(Sender: TObject);
+{$IFDEF CPUX64}
+var
+  L, H, B, D, R: Int64;
+{$ENDIF}
+begin
+{$IFDEF CPUX64}
+  L := $F0000000E0000000;
+  H := $0000000007770000;
+  B := $99999999999;
+  Int128DivInt64Mod(L, H, B, D, R);
+
+  mmoRes.Lines.Add(IntToStr(H)+IntToStr(L) + ' / ' + IntToStr(B) + ' = ' + IntToStr(D) + ' ... ' + IntToStr(R));
+{$ENDIF}
+end;
+
+procedure TFormNative.btnUInt128DivModClick(Sender: TObject);
+{$IFDEF CPUX64}
+var
+  L, H, B, D, R: TUInt64;
+{$ENDIF}
+begin
+{$IFDEF CPUX64}
+  L := $F0000000E0000000;
+  H := $0000000007770000;
+  B := $99999999999;
+  UInt128DivUInt64Mod(L, H, B, D, R);
+
+  mmoRes.Lines.Add(IntToStr(H)+IntToStr(L) + ' / ' + IntToStr(B) + ' = ' + IntToStr(D) + ' ... ' + IntToStr(R));
+{$ENDIF}
 end;
 
 end.
