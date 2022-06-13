@@ -234,4 +234,22 @@ object FormNative: TFormNative
     TabOrder = 18
     OnClick = btnConstTimeCondSwapClick
   end
+  object btnInt64DivMod: TButton
+    Left = 664
+    Top = 208
+    Width = 75
+    Height = 25
+    Caption = 'Int64 Div Mod'
+    TabOrder = 19
+    OnClick = btnInt64DivModClick
+  end
+  object btnUInt64DivMod: TButton
+    Left = 664
+    Top = 248
+    Width = 75
+    Height = 25
+    Caption = 'UInt64 Div Mod'
+    TabOrder = 20
+    OnClick = btnUInt64DivModClick
+  end
 end

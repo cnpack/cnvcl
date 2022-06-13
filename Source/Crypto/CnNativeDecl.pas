@@ -333,6 +333,14 @@ procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
 procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
 {* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
+procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
+{* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
+
+procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal);
+{* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
+
 implementation
 
 uses
@@ -703,6 +711,64 @@ begin
   A := A xor V;
   B := B xor V;
 end;
+
+{$IFDEF CPUX64}
+
+// 64 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在 RCX 里，B 在 EDX/RDX 里，DivRes 地址在 R8 里，ModRes 地址在 R9 里
+procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler
+asm
+        PUSH    RCX                           // RCX 是 A
+        MOV     RCX, RDX                      // 除数 B 放入 RCX
+        POP     RAX                           // 被除数 A 放入 RAX
+        XOR     RDX, RDX                      // 被除数高 64 位清零
+        IDIV    RCX
+        MOV     [R8], EAX                     // 商放入 R8 所指的 DivRes
+        MOV     [R9], EDX                     // 余数放入 R9 所指的 ModRes
+end;
+
+procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal); assembler;
+asm
+        PUSH    RCX                           // RCX 是 A
+        MOV     RCX, RDX                      // 除数 B 放入 RCX
+        POP     RAX                           // 被除数 A 放入 RAX
+        XOR     RDX, RDX                      // 被除数高 64 位清零
+        DIV     RCX
+        MOV     [R8], EAX                     // 商放入 R8 所指的 DivRes
+        MOV     [R9], EDX                     // 余数放入 R9 所指的 ModRes
+end;
+
+{$ELSE}
+
+// 32 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在堆栈上，B 在 EAX，DivRes 地址在 EDX，ModRes 地址在 ECX
+procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler;
+asm
+        PUSH    ECX                           // ECX 是 ModRes 地址，先保存
+        MOV     ECX, B                        // B 在 EAX 中，搬移到 ECX 中
+        PUSH    EDX                           // DivRes 的地址在 EDX 中，也保存
+        MOV     EAX, [EBP + $8]               // A Lo
+        MOV     EDX, [EBP + $C]               // A Hi
+        IDIV    ECX
+        POP     ECX                           // 弹出 ECX，拿到 DivRes 地址
+        MOV     [ECX], EAX
+        POP     ECX                           // 弹出 ECX，拿到 ModRes 地址
+        MOV     [ECX], EDX
+end;
+
+procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal); assembler;
+asm
+        PUSH    ECX                           // ECX 是 ModRes 地址，先保存
+        MOV     ECX, B                        // B 在 EAX 中，搬移到 ECX 中
+        PUSH    EDX                           // DivRes 的地址在 EDX 中，也保存
+        MOV     EAX, [EBP + $8]               // A Lo
+        MOV     EDX, [EBP + $C]               // A Hi
+        DIV     ECX
+        POP     ECX                           // 弹出 ECX，拿到 DivRes 地址
+        MOV     [ECX], EAX
+        POP     ECX                           // 弹出 ECX，拿到 ModRes 地址
+        MOV     [ECX], EDX
+end;
+
+{$ENDIF}
 
 {$IFDEF CPUX64}
 

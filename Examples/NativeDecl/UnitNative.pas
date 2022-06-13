@@ -35,6 +35,8 @@ type
     btnEndian: TButton;
     chkSwap: TCheckBox;
     btnConstTimeCondSwap: TButton;
+    btnInt64DivMod: TButton;
+    btnUInt64DivMod: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -52,6 +54,8 @@ type
     procedure btnInt64AddModClick(Sender: TObject);
     procedure btnEndianClick(Sender: TObject);
     procedure btnConstTimeCondSwapClick(Sender: TObject);
+    procedure btnInt64DivModClick(Sender: TObject);
+    procedure btnUInt64DivModClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -361,6 +365,30 @@ begin
   B64 := 4701000299999283434;
   ConstantTimeConditionalSwap64(chkSwap.Checked, A64, B64);
   mmoRes.Lines.Add(Format('%d, %d', [A64, B64]));
+end;
+
+procedure TFormNative.btnInt64DivModClick(Sender: TObject);
+var
+  A: Int64;
+  B: Integer;
+  D, R: Integer;
+begin
+  A := $DDDDFFFFFFFF;
+  B := 10000000;
+  Int64DivInt32Mod(A, B, D, R);
+  mmoRes.Lines.Add(Format('%d / %d = %d ... %d', [A, B, D, R]));
+end;
+
+procedure TFormNative.btnUInt64DivModClick(Sender: TObject);
+var
+  A: TUInt64;
+  B: Cardinal;
+  D, R: Cardinal;
+begin
+  A := $DDDDFFFFFFFF;
+  B := 10000000;
+  UInt64DivUInt32Mod(A, B, D, R);
+  mmoRes.Lines.Add(Format('%d / %d = %d ... %d', [A, B, D, R]));
 end;
 
 end.
