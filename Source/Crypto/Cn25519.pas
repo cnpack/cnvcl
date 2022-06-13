@@ -1783,13 +1783,13 @@ begin
   Cn25519Field64Sub(P.X, F25519Field64Zero, P.X);
 
   // T := X * Y / Z^3
-  Cn25519Field64Mul(T, P.Z, P.Z);
-  Cn25519Field64Mul(T, T, P.Z);
-
-  raise Exception.Create('NOT Implemented');
-  // Cn25519Field64ModularInverse(T, T); // T 是 Z^3 的逆元
-  Cn25519Field64Mul(P.T, P.X, P.Y);
-  Cn25519Field64Mul(P.T, P.T, P.T);
+  if Cn25519Field64Equal(P.Z, Cn25519Field64One) then
+  begin
+    // Z = 1 则直接乘
+    Cn25519Field64Mul(P.T, P.X, P.Y);
+  end
+  else // Z <> 1 还没实现
+    raise Exception.Create('NOT Implemented');
 end;
 
 function TCnEd25519.ExtendedField64PointSubPoint(var P, Q,
