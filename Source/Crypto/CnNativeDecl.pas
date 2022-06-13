@@ -338,8 +338,20 @@ procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
 
 procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal);
-{* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
+{* 64 位无符号数除以 32 位无符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
+
+{$IFDEF CPUX64}
+
+procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+{* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
+
+procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64);
+{* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
+
+{$ENDIF}
 
 implementation
 
@@ -735,6 +747,27 @@ asm
         DIV     RCX
         MOV     [R8], EAX                     // 商放入 R8 所指的 DivRes
         MOV     [R9], EDX                     // 余数放入 R9 所指的 ModRes
+end;
+
+// 64 位汇编用 IDIV 和 IDIV 指令实现，ALo 在 RCX，AHi 在 RDX，B 在 R8，DivRes 的地址在 R9，
+procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+asm
+        MOV     RAX, RCX                      // ALo 放入 RAX，AHi 已经在 RDX 了
+        MOV     RCX, R8                       // B 放入 RCX
+        IDIV    RCX
+        MOV     [R9], RAX                     // 商放入 R9 所指的 DivRes
+        MOV     RAX, [RBP + $30]              // ModRes 地址放入 RAX
+        MOV     [RAX], RDX                    // 余数放入 RAX 所指的 ModRes
+end;
+
+procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64);
+asm
+        MOV     RAX, RCX                      // ALo 放入 RAX，AHi 已经在 RDX 了
+        MOV     RCX, R8                       // B 放入 RCX
+        DIV     RCX
+        MOV     [R9], RAX                     // 商放入 R9 所指的 DivRes
+        MOV     RAX, [RBP + $30]              // ModRes 地址放入 RAX
+        MOV     [RAX], RDX                    // 余数放入 RAX 所指的 ModRes
 end;
 
 {$ELSE}
