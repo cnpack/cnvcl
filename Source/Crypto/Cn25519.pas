@@ -1611,7 +1611,7 @@ constructor TCnCurve25519.Create;
 begin
   inherited;
   Load(SCN_25519_MONT_A, SCN_25519_MONT_B, SCN_25519_PRIME, SCN_25519_MONT_GX,
-    SCN_25519_MONT_GY, SCN_25519_ORDER, 8);
+    SCN_25519_MONT_GY, SCN_25519_ORDER, SCN_25519_COFACTOR);
 end;
 
 procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnEccPrivateKey;
@@ -1776,14 +1776,12 @@ end;
 
 procedure TCnEd25519.ExtendedField64PointInverse(
   var P: TCn25519Field64Ecc4Point);
-var
-  T: TCn25519Field64;
 begin
   // X -> Prime - X
   Cn25519Field64Sub(P.X, F25519Field64Zero, P.X);
 
   // T := X * Y / Z^3
-  if Cn25519Field64Equal(P.Z, Cn25519Field64One) then
+  if Cn25519Field64Equal(P.Z, F25519Field64One) then
   begin
     // Z = 1 ‘Ú÷±Ω”≥À
     Cn25519Field64Mul(P.T, P.X, P.Y);
