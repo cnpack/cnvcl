@@ -24,11 +24,13 @@ unit CnInt128;
 * 软件名称：CnPack 组件包
 * 单元名称：128 位有无符号整数的运算实现
 * 单元作者：刘啸 (liuxiao@cnpack.org)
-* 备    注：缺除法与取模等，并且待完整测试
+* 备    注：实现基本四则运算功能，待完整测试
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.06.11 V1.0
+* 修改记录：2022.06.14 V1.1
+*               实现除法与求余，待测试
+*           2022.06.11 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -84,13 +86,13 @@ procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128 = nil);
 {* 128 位有符号数相乘，有溢出则抛异常（ResHi 参数暂不起作用）。R、A、B 可以相同}
 
 procedure Int128DivMod(var A, B, R, M: TCnInt128);
-{* 128 位有符号数整除求余，A / B = R ... M。A、B、R、M 均不能相同}
+{* 128 位有符号数整除求余，A / B = R ... M。A、B、R、M 可以相同}
 
 procedure Int128Div(var R, A, B: TCnInt128);
-{* 128 位有符号数整除，R = A div B。R、A、B可以相同}
+{* 128 位有符号数整除，R = A div B。R、A、B 均不能相同}
 
 procedure Int128Mod(var R, A, B: TCnInt128);
-{* 128 位有符号数求余，R = A mod B。R、A、B可以相同}
+{* 128 位有符号数求余，R = A mod B。R、A、B 均不能相同}
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
 {* 128 位有符号数按位左移}
@@ -125,8 +127,11 @@ function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
 function Int128IsNegative(var N: TCnInt128): Boolean;
 {* 判断一 128 位有符号数是否是负数}
 
-function Int128Equal(var A, B: TCnInt128): Boolean;
+function Int128Equal(var A, B: TCnInt128): Boolean; overload;
 {* 判断两个 128 位有符号数是否相等}
+
+function Int128Equal(var A: TCnInt128; B: Int64): Boolean; overload;
+{* 判断一个 128 位有符号数与一个 Int64 是否相等}
 
 function Int128Compare(var A, B: TCnInt128): Integer;
 {* 比较两个 128 位有符号数，大于等于小于分别返回 1、0、-1}
@@ -155,23 +160,23 @@ procedure UInt128Add(var R: TCnUInt128; V: TUInt64); overload;
 {* 给一 128 位无符号数加上一个 64 位无符号数}
 
 procedure UInt128Add(var R, A, B: TCnUInt128); overload;
-{* 128 位无符号数相加，不考虑溢出的情况。R、A、B可以相同}
+{* 128 位无符号数相加，不考虑溢出的情况。R、A、B 可以相同}
 
 procedure UInt128Sub(var R, A, B: TCnUInt128);
-{* 128 位无符号数相减，不考虑溢出的情况。R、A、B可以相同}
+{* 128 位无符号数相减，不考虑溢出的情况。R、A、B 可以相同}
 
 procedure UInt128Mul(var R, A, B: TCnUInt128; ResHi: PCnUInt128 = nil);
 {* 128 位无符号数相乘，有溢出则超过 128 位的放 ResHi 中
   如传 nil 且溢出则抛异常。R、A、B可以相同}
 
 procedure UInt128DivMod(var A, B, R, M: TCnUInt128);
-{* 128 位无符号数整除求余，A / B = R ... M。A、B、R、M 均不能相同}
+{* 128 位无符号数整除求余，A / B = R ... M。A、B、R、M 可以相同}
 
 procedure UInt128Div(var R, A, B: TCnUInt128);
-{* 128 位无符号数整除，R = A div B。R、A、B可以相同}
+{* 128 位无符号数整除，R = A div B。R、A、B 均不能相同}
 
 procedure UInt128Mod(var R, A, B: TCnUInt128);
-{* 128 位无符号数求余，R = A mod B。R、A、B可以相同}
+{* 128 位无符号数求余，R = A mod B。R、A、B 均不能相同}
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
 {* 128 位无符号数按位左移}
@@ -200,8 +205,11 @@ procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
 function UInt128IsBitSet(var N: TCnUInt128; Bit: Integer): Boolean;
 {* 返回一　128 位无符号数的某一位是否是 0，Bit 从 0 到 127}
 
-function UInt128Equal(var A, B: TCnUInt128): Boolean;
+function UInt128Equal(var A, B: TCnUInt128): Boolean; overload;
 {* 判断两个 128 位无符号数是否相等}
+
+function UInt128Equal(var A: TCnUInt128; B: TUInt64): Boolean; overload;
+{* 判断一个 128 位无符号数与一个 Int64/UInt64 是否相等}
 
 function UInt128Compare(var A, B: TCnUInt128): Integer;
 {* 比较两个 128 位无符号数，大于等于小于分别返回 1、0、-1}
@@ -356,8 +364,85 @@ begin
 end;
 
 procedure Int128DivMod(var A, B, R, M: TCnInt128);
+var
+  Sft: Integer;
+  AA, BB: TCnInt128;
+  NA, NB: Boolean;
 begin
+  if Int128IsZero(B) then
+    raise EDivByZero.Create(SDivByZero);
 
+  if Int128IsZero(A) then
+  begin
+    Int128SetZero(R);
+    Int128SetZero(M);
+    Exit;
+  end;
+
+  Int128Copy(AA, A);
+  Int128Copy(BB, B);
+  NA := Int128IsNegative(AA);
+  NB := Int128IsNegative(BB);
+
+  if NA then
+    Int128Negate(AA);
+  if NB then
+    Int128Negate(BB);  // 全转正
+
+  Int128SetZero(R);
+  Int128Copy(M, AA);
+
+  if Int128Compare(AA, BB) < 0 then
+  begin
+    if NA <> NB then
+      Int128Negate(M); // 异号商为负
+    Exit;
+  end;
+
+  Sft := 0;
+
+  // 扩大除数至和被除数最高位相同且比被除数小
+  while (Int128Compare(BB, M) < 0) and not GetUInt64BitSet(BB.Hi64, 62) do
+  begin
+    if Sft = 127 then
+      Break;
+
+    Int128ShiftLeft(BB, 1);
+    Inc(Sft);
+    if Int128Compare(BB, M) > 0 then
+    begin
+      Int128ShiftRight(BB, 1);
+      Dec(Sft);
+      Break;
+    end;
+  end;
+
+  // 逐步除
+  while True do
+  begin
+    if Int128Compare(BB, M) <= 0 then // 二进制，只需要减一次，D 无需乘
+    begin
+      Int128Sub(M, M, BB);
+      Int128SetBit(R, Sft);
+
+      // 如果此时 M 为 0，貌似可以跳出，都没余数了
+      if Int128IsZero(M) then
+        Exit;
+    end;
+
+    if Sft > 0 then
+    begin
+      Int128ShiftRight(BB, 1);
+      Dec(Sft);
+    end
+    else
+      Break;
+  end;
+
+  if NA <> NB then
+    Int128Negate(R);
+  if Int128IsNegative(A) then
+    Int128Negate(M);
 end;
 
 procedure Int128Div(var R, A, B: TCnInt128);
@@ -427,18 +512,32 @@ end;
 
 procedure Int128SetBit(var N: TCnInt128; Bit: Integer);
 begin
+{$IFDEF SUPPORT_UINT64}
+  if Bit > 63 then
+    UInt64SetBit(TUInt64(N.Hi64), Bit - 64)
+  else
+    UInt64SetBit(TUInt64(N.Lo64), Bit);
+{$ELSE}
   if Bit > 63 then
     UInt64SetBit(N.Hi64, Bit - 64)
   else
     UInt64SetBit(N.Lo64, Bit);
+{$ENDIF}
 end;
 
 procedure Int128ClearBit(var N: TCnInt128; Bit: Integer);
 begin
+{$IFDEF SUPPORT_UINT64}
+  if Bit > 63 then
+    UInt64ClearBit(TUInt64(N.Hi64), Bit - 64)
+  else
+    UInt64ClearBit(TUInt64(N.Lo64), Bit);
+{$ELSE}
   if Bit > 63 then
     UInt64ClearBit(N.Hi64, Bit - 64)
   else
     UInt64ClearBit(N.Lo64, Bit);
+{$ENDIF}
 end;
 
 function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
@@ -457,6 +556,11 @@ end;
 function Int128Equal(var A, B: TCnInt128): Boolean;
 begin
   Result := (A.Lo64 = B.Lo64) and (A.Hi64 = B.Hi64);
+end;
+
+function Int128Equal(var A: TCnInt128; B: Int64): Boolean; overload;
+begin
+  Result := (A.Hi64 = 0) and (A.Lo64 = B);
 end;
 
 function Int128Compare(var A, B: TCnInt128): Integer;
@@ -601,6 +705,7 @@ end;
 procedure UInt128DivMod(var A, B, R, M: TCnUInt128);
 var
   Sft: Integer;
+  BB: TCnUInt128;
 begin
   if UInt128IsZero(B) then
     raise EDivByZero.Create(SDivByZero);
@@ -619,18 +724,19 @@ begin
     Exit;
 
   Sft := 0;
+  UInt128Copy(BB, B);  // 用 BB 做中间变量，避免 R M 等可能是 A B 导致修改过程中出错
 
   // 扩大除数至和被除数最高位相同且比被除数小
-  while (UInt128Compare(B, M) < 0) and not GetUInt64BitSet(B.Hi64, 63) do
+  while (UInt128Compare(BB, M) < 0) and not GetUInt64BitSet(BB.Hi64, 63) do
   begin
-    if Sft = 124 then
+    if Sft = 127 then
       Break;
 
-    UInt128ShiftLeft(B, 1);
+    UInt128ShiftLeft(BB, 1);
     Inc(Sft);
-    if UInt128Compare(B, M) > 0 then
+    if UInt128Compare(BB, M) > 0 then
     begin
-      UInt128ShiftRight(B, 1);
+      UInt128ShiftRight(BB, 1);
       Dec(Sft);
       Break;
     end;
@@ -639,9 +745,9 @@ begin
   // 逐步除
   while True do
   begin
-    if UInt128Compare(B, M) <= 0 then // 二进制，只需要减一次，D 无需乘
+    if UInt128Compare(BB, M) <= 0 then // 二进制，只需要减一次，D 无需乘
     begin
-      UInt128Sub(M, M, B);
+      UInt128Sub(M, M, BB);
       UInt128SetBit(R, Sft);
 
       // 如果此时 M 为 0，貌似可以跳出，都没余数了
@@ -651,7 +757,7 @@ begin
 
     if Sft > 0 then
     begin
-      UInt128ShiftRight(B, 1);
+      UInt128ShiftRight(BB, 1);
       Dec(Sft);
     end
     else
@@ -798,6 +904,11 @@ end;
 function UInt128Equal(var A, B: TCnUInt128): Boolean;
 begin
   Result := (A.Lo64 = B.Lo64) and (A.Hi64 = B.Hi64);
+end;
+
+function UInt128Equal(var A: TCnUInt128; B: TUInt64): Boolean;
+begin
+  Result := (A.Lo64 = B) and (A.Hi64 = 0);
 end;
 
 function UInt128Compare(var A, B: TCnUInt128): Integer;

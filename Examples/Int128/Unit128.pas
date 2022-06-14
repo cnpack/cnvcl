@@ -42,6 +42,7 @@ type
     btnSample2: TButton;
     btnSample3: TButton;
     btnSample4: TButton;
+    btnSample5: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnSample1Click(Sender: TObject);
     procedure btn128ShlClick(Sender: TObject);
@@ -51,6 +52,7 @@ type
     procedure btnSample2Click(Sender: TObject);
     procedure btnSample3Click(Sender: TObject);
     procedure btnSample4Click(Sender: TObject);
+    procedure btnSample5Click(Sender: TObject);
   private
     FInt128A, FInt128B, FInt128R: TCnInt128;
     FUInt128A, FUInt128B, FUInt128R: TCnUInt128;
@@ -283,6 +285,17 @@ begin
   UInt128Set(B, $FFFFFFFE);
   UInt128DivMod(A, B, R, M);
   ShowMessage(UInt128ToHex(R) + ' ... ' + UInt128ToHex(M));
+end;
+
+procedure TForm128.btnSample5Click(Sender: TObject);
+var
+  A, B, R, M: TCnInt128;
+begin
+  Int128Set(A, 10, $0);
+  Int128Negate(A);
+  Int128Set(B, $FFFFFFFE);
+  Int128DivMod(A, B, R, M);
+  ShowMessage(Int128ToHex(A) + ' / ' + Int128ToHex(B) + ' = ' + Int128ToHex(R) + ' ... ' + Int128ToHex(M));
 end;
 
 end.
