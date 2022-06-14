@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl;
+  SysUtils, Classes, SysConst, CnNativeDecl;
 
 type
   TCnInt128 = packed record   // 128 位有符号整数结构
@@ -62,6 +62,9 @@ procedure Int128Set(var R: TCnInt128; Lo: Int64); overload;
 procedure Int128Copy(var D, S: TCnInt128);
 {* 复制 128 位有符号数}
 
+function Int128IsZero(var N: TCnInt128): Boolean;
+{* 判断 一 128 位有符号数是否是 0}
+
 procedure Int128SetZero(var N: TCnInt128);
 {* 将一 128 位有符号数置 0}
 
@@ -79,6 +82,15 @@ procedure Int128Sub(var R, A: TCnInt128; V: Int64); overload;
 
 procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128 = nil);
 {* 128 位有符号数相乘，有溢出则抛异常（ResHi 参数暂不起作用）。R、A、B 可以相同}
+
+procedure Int128DivMod(var A, B, R, M: TCnInt128);
+{* 128 位有符号数整除求余，A / B = R ... M。A、B、R、M 均不能相同}
+
+procedure Int128Div(var R, A, B: TCnInt128);
+{* 128 位有符号数整除，R = A div B。R、A、B可以相同}
+
+procedure Int128Mod(var R, A, B: TCnInt128);
+{* 128 位有符号数求余，R = A mod B。R、A、B可以相同}
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
 {* 128 位有符号数按位左移}
@@ -133,6 +145,9 @@ procedure UInt128Set(var R: TCnUInt128; Lo: TUInt64); overload;
 procedure UInt128Copy(var D, S: TCnUInt128);
 {* 复制 128 位无符号数}
 
+function UInt128IsZero(var N: TCnUInt128): Boolean;
+{* 判断 一 128 位无符号数是否是 0}
+
 procedure UInt128SetZero(var N: TCnUInt128);
 {* 将一 128 位无符号数置 0}
 
@@ -148,6 +163,15 @@ procedure UInt128Sub(var R, A, B: TCnUInt128);
 procedure UInt128Mul(var R, A, B: TCnUInt128; ResHi: PCnUInt128 = nil);
 {* 128 位无符号数相乘，有溢出则超过 128 位的放 ResHi 中
   如传 nil 且溢出则抛异常。R、A、B可以相同}
+
+procedure UInt128DivMod(var A, B, R, M: TCnUInt128);
+{* 128 位无符号数整除求余，A / B = R ... M。A、B、R、M 均不能相同}
+
+procedure UInt128Div(var R, A, B: TCnUInt128);
+{* 128 位无符号数整除，R = A div B。R、A、B可以相同}
+
+procedure UInt128Mod(var R, A, B: TCnUInt128);
+{* 128 位无符号数求余，R = A mod B。R、A、B可以相同}
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
 {* 128 位无符号数按位左移}
@@ -216,6 +240,11 @@ procedure Int128Copy(var D, S: TCnInt128);
 begin
   D.Lo64 := S.Lo64;
   D.Hi64 := S.Hi64;
+end;
+
+function Int128IsZero(var N: TCnInt128): Boolean;
+begin
+  Result := (N.Lo64 = 0) and (N.Hi64 = 0);
 end;
 
 procedure Int128SetZero(var N: TCnInt128);
@@ -324,6 +353,25 @@ begin
     Int128Negate(A);
   if N2 then
     Int128Negate(B);
+end;
+
+procedure Int128DivMod(var A, B, R, M: TCnInt128);
+begin
+
+end;
+
+procedure Int128Div(var R, A, B: TCnInt128);
+var
+  T: TCnInt128;
+begin
+  Int128DivMod(A, B, R, T);
+end;
+
+procedure Int128Mod(var R, A, B: TCnInt128);
+var
+  T: TCnInt128;
+begin
+  Int128DivMod(A, B, T, R);
 end;
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
@@ -468,6 +516,11 @@ begin
   D.Hi64 := S.Hi64;
 end;
 
+function UInt128IsZero(var N: TCnUInt128): Boolean;
+begin
+  Result := (N.Lo64 = 0) and (N.Hi64 = 0);
+end;
+
 procedure UInt128SetZero(var N: TCnUInt128);
 begin
   N.Lo64 := 0;
@@ -543,6 +596,81 @@ begin
     T.Lo64 := C1 + C2;
     UInt128Add(ResHi^, ResHi^, T); // 加进位，不会再朝上溢出了
   end;
+end;
+
+procedure UInt128DivMod(var A, B, R, M: TCnUInt128);
+var
+  Sft: Integer;
+begin
+  if UInt128IsZero(B) then
+    raise EDivByZero.Create(SDivByZero);
+
+  if UInt128IsZero(A) then
+  begin
+    UInt128SetZero(R);
+    UInt128SetZero(M);
+    Exit;
+  end;
+
+  UInt128SetZero(R);
+  UInt128Copy(M, A);
+
+  if UInt128Compare(A, B) < 0 then
+    Exit;
+
+  Sft := 0;
+
+  // 扩大除数至和被除数最高位相同且比被除数小
+  while (UInt128Compare(B, M) < 0) and not GetUInt64BitSet(B.Hi64, 63) do
+  begin
+    if Sft = 124 then
+      Break;
+
+    UInt128ShiftLeft(B, 1);
+    Inc(Sft);
+    if UInt128Compare(B, M) > 0 then
+    begin
+      UInt128ShiftRight(B, 1);
+      Dec(Sft);
+      Break;
+    end;
+  end;
+
+  // 逐步除
+  while True do
+  begin
+    if UInt128Compare(B, M) <= 0 then // 二进制，只需要减一次，D 无需乘
+    begin
+      UInt128Sub(M, M, B);
+      UInt128SetBit(R, Sft);
+
+      // 如果此时 M 为 0，貌似可以跳出，都没余数了
+      if UInt128IsZero(M) then
+        Exit;
+    end;
+
+    if Sft > 0 then
+    begin
+      UInt128ShiftRight(B, 1);
+      Dec(Sft);
+    end
+    else
+      Break;
+  end;
+end;
+
+procedure UInt128Div(var R, A, B: TCnUInt128);
+var
+  T: TCnUInt128;
+begin
+  UInt128DivMod(A, B, R, T);
+end;
+
+procedure UInt128Mod(var R, A, B: TCnUInt128);
+var
+  T: TCnUInt128;
+begin
+  UInt128DivMod(A, B, T, R);
 end;
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
@@ -673,16 +801,20 @@ begin
 end;
 
 function UInt128Compare(var A, B: TCnUInt128): Integer;
+var
+  T: Integer;
 begin
-  if A.Hi64 > B.Hi64 then
+  T := UInt64Compare(A.Hi64, B.Hi64);
+  if T > 0 then
     Result := 1
-  else if A.Hi64 < B.Hi64 then
+  else if T < 0 then
     Result := -1
   else
   begin
-    if A.Lo64 > B.Lo64 then
+    T := UInt64Compare(A.Lo64, B.Lo64);
+    if T > 0 then
       Result := 1
-    else if A.Lo64 < B.Lo64 then
+    else if T < 0 then
       Result := -1
     else
       Result := 0;

@@ -384,4 +384,13 @@ object Form128: TForm128
     TabOrder = 4
     OnClick = btnSample3Click
   end
+  object btnSample4: TButton
+    Left = 280
+    Top = 360
+    Width = 75
+    Height = 25
+    Caption = 'Sample 4'
+    TabOrder = 5
+    OnClick = btnSample4Click
+  end
 end

@@ -41,6 +41,7 @@ type
     lblHexU128R: TLabel;
     btnSample2: TButton;
     btnSample3: TButton;
+    btnSample4: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnSample1Click(Sender: TObject);
     procedure btn128ShlClick(Sender: TObject);
@@ -49,6 +50,7 @@ type
     procedure btnU128ShrClick(Sender: TObject);
     procedure btnSample2Click(Sender: TObject);
     procedure btnSample3Click(Sender: TObject);
+    procedure btnSample4Click(Sender: TObject);
   private
     FInt128A, FInt128B, FInt128R: TCnInt128;
     FUInt128A, FUInt128B, FUInt128R: TCnUInt128;
@@ -271,6 +273,16 @@ begin
   UInt128Set(T, 0, 4194304);
   UInt128ShiftRight(T, 51);
   ShowMessage(UInt128ToHex(T));
+end;
+
+procedure TForm128.btnSample4Click(Sender: TObject);
+var
+  A, B, R, M: TCnUInt128;
+begin
+  UInt128Set(A, 0, $FFFFFFFF);
+  UInt128Set(B, $FFFFFFFE);
+  UInt128DivMod(A, B, R, M);
+  ShowMessage(UInt128ToHex(R) + ' ... ' + UInt128ToHex(M));
 end;
 
 end.
