@@ -174,10 +174,10 @@ function UInt32IsNegative(N: Cardinal): Boolean;
 function UInt64IsNegative(N: TUInt64): Boolean;
 {* 该 UInt64 被当成 Int64 时是否小于 0}
 
-procedure UInt64SetBit(B: TUInt64; Index: Integer);
+procedure UInt64SetBit(var B: TUInt64; Index: Integer);
 {* 给 UInt64 的某一位置 1，位 Index 从 0 开始}
 
-procedure UInt64ClearBit(B: TUInt64; Index: Integer);
+procedure UInt64ClearBit(var B: TUInt64; Index: Integer);
 {* 给 UInt64 的某一位置 0，位 Index 从 0 开始}
 
 function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
@@ -1224,13 +1224,13 @@ begin
 end;
 
 // 给 UInt64 的某一位置 1，位 Index 从 0 开始
-procedure UInt64SetBit(B: TUInt64; Index: Integer);
+procedure UInt64SetBit(var B: TUInt64; Index: Integer);
 begin
   B := B or (TUInt64(1) shl Index);
 end;
 
 // 给 UInt64 的某一位置 0，位 Index 从 0 开始
-procedure UInt64ClearBit(B: TUInt64; Index: Integer);
+procedure UInt64ClearBit(var B: TUInt64; Index: Integer);
 begin
   B := B and not (TUInt64(1) shl Index);
 end;
