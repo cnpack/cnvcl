@@ -98,6 +98,18 @@ procedure Int128Xor(var R, A, B: TCnInt128);
 procedure Int128Negate(var N: TCnInt128);
 {* 将一 128 位有符号数置为其相反数}
 
+procedure Int128Not(var N: TCnInt128);
+{* 将一 128 位有符号数求反}
+
+procedure Int128SetBit(var N: TCnInt128; Bit: Integer);
+{* 将一 128 位有符号数的某一位置 1，Bit 从 0 到 127}
+
+procedure Int128ClearBit(var N: TCnInt128; Bit: Integer);
+{* 将一 128 位有符号数的某一位置 0，Bit 从 0 到 127}
+
+function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
+{* 返回一　128 位有符号数的某一位是否是 0，Bit 从 0 到 127}
+
 function Int128IsNegative(var N: TCnInt128): Boolean;
 {* 判断一 128 位有符号数是否是负数}
 
@@ -151,6 +163,18 @@ procedure UInt128Or(var R, A, B: TCnUInt128);
 
 procedure UInt128Xor(var R, A, B: TCnUInt128);
 {* 两个 128 位无符号数按位异或}
+
+procedure UInt128Not(var N: TCnUInt128);
+{* 128 位无符号数求反}
+
+procedure UInt128SetBit(var N: TCnUInt128; Bit: Integer);
+{* 将一 128 位无符号数的某一位置 1，Bit 从 0 到 127}
+
+procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
+{* 将一 128 位无符号数的某一位置 0，Bit 从 0 到 127}
+
+function UInt128IsBitSet(var N: TCnUInt128; Bit: Integer): Boolean;
+{* 返回一　128 位无符号数的某一位是否是 0，Bit 从 0 到 127}
 
 function UInt128Equal(var A, B: TCnUInt128): Boolean;
 {* 判断两个 128 位无符号数是否相等}
@@ -345,6 +369,36 @@ begin
 {$ENDIF}
   if C > 0 then
     N.Hi64 := N.Hi64 + C;
+end;
+
+procedure Int128Not(var N: TCnInt128);
+begin
+  N.Lo64 := not N.Lo64;
+  N.Hi64 := not N.Hi64;
+end;
+
+procedure Int128SetBit(var N: TCnInt128; Bit: Integer);
+begin
+  if Bit > 63 then
+    UInt64SetBit(N.Hi64, Bit - 64)
+  else
+    UInt64SetBit(N.Lo64, Bit);
+end;
+
+procedure Int128ClearBit(var N: TCnInt128; Bit: Integer);
+begin
+  if Bit > 63 then
+    UInt64ClearBit(N.Hi64, Bit - 64)
+  else
+    UInt64ClearBit(N.Lo64, Bit);
+end;
+
+function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
+begin
+  if Bit > 63 then
+    Result := GetUInt64BitSet(N.Hi64, Bit - 64)
+  else
+    Result := GetUInt64BitSet(N.Hi64, Bit);
 end;
 
 function Int128IsNegative(var N: TCnInt128): Boolean;
@@ -581,6 +635,36 @@ procedure UInt128Xor(var R, A, B: TCnUInt128);
 begin
   R.Lo64 := A.Lo64 xor B.Lo64;
   R.Hi64 := A.Hi64 xor B.Hi64;
+end;
+
+procedure UInt128Not(var N: TCnUInt128);
+begin
+  N.Lo64 := not N.Lo64;
+  N.Hi64 := not N.Hi64;
+end;
+
+procedure UInt128SetBit(var N: TCnUInt128; Bit: Integer);
+begin
+  if Bit > 63 then
+    UInt64SetBit(N.Hi64, Bit - 64)
+  else
+    UInt64SetBit(N.Lo64, Bit);
+end;
+
+procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
+begin
+  if Bit > 63 then
+    UInt64ClearBit(N.Hi64, Bit - 64)
+  else
+    UInt64ClearBit(N.Lo64, Bit);
+end;
+
+function UInt128IsBitSet(var N: TCnUInt128; Bit: Integer): Boolean;
+begin
+  if Bit > 63 then
+    Result := GetUInt64BitSet(N.Hi64, Bit - 64)
+  else
+    Result := GetUInt64BitSet(N.Hi64, Bit);
 end;
 
 function UInt128Equal(var A, B: TCnUInt128): Boolean;

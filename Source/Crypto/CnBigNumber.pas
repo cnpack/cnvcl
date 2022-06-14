@@ -3112,7 +3112,6 @@ var
   L: TCnLongWord32;
 begin
   Result := False;
-  W := W and BN_MASK2;
 
   if W = 0 then
   begin
@@ -3161,8 +3160,6 @@ function BigNumberSubWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
 var
   I: Integer;
 begin
-  W := W and BN_MASK2;
-
   if W = 0 then
   begin
     Result := True;
@@ -3219,7 +3216,7 @@ var
   L: TCnLongWord32;
 begin
   Result := False;
-  W := W and BN_MASK2;
+
   if Num.Top <> 0 then
   begin
     if W = 0 then
@@ -3250,7 +3247,6 @@ begin
   end;
 
   Result := 0;
-  W := W and BN_MASK2;
   for I := Num.Top - 1 downto 0 do
   begin
     Result := ((Result shl BN_BITS4) or ((PLongWordArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
@@ -3263,7 +3259,6 @@ var
   I, J: Integer;
   L, D: TCnLongWord32;
 begin
-  W := W and BN_MASK2;
   if W = 0 then
   begin
     Result := TCnLongWord32(-1);

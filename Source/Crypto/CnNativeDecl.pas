@@ -174,11 +174,17 @@ function UInt32IsNegative(N: Cardinal): Boolean;
 function UInt64IsNegative(N: TUInt64): Boolean;
 {* 该 UInt64 被当成 Int64 时是否小于 0}
 
+procedure UInt64SetBit(B: TUInt64; Index: Integer);
+{* 给 UInt64 的某一位置 1，位 Index 从 0 开始}
+
+procedure UInt64ClearBit(B: TUInt64; Index: Integer);
+{* 给 UInt64 的某一位置 0，位 Index 从 0 开始}
+
 function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
-{* 返回 Int64 的某一位是否是 1，位 Index 从 0 开始}
+{* 返回 UInt64 的某一位是否是 1，位 Index 从 0 开始}
 
 function GetUInt64HighBits(B: TUInt64): Integer;
-{* 返回 Int64 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 UInt64 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
 
 function GetUInt32HighBits(B: Cardinal): Integer;
 {* 返回 Cardinal 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
@@ -341,17 +347,17 @@ procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardin
 {* 64 位无符号数除以 32 位无符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
 
-{$IFDEF CPUX64}
+//{$IFDEF CPUX64}
 
 procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
 {* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
-procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64);
+procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
 {* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
-{$ENDIF}
+//{$ENDIF}
 
 implementation
 
@@ -750,7 +756,7 @@ asm
 end;
 
 // 64 位汇编用 IDIV 和 IDIV 指令实现，ALo 在 RCX，AHi 在 RDX，B 在 R8，DivRes 的地址在 R9，
-procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64); assembler;
 asm
         MOV     RAX, RCX                      // ALo 放入 RAX，AHi 已经在 RDX 了
         MOV     RCX, R8                       // B 放入 RCX
@@ -760,7 +766,7 @@ asm
         MOV     [RAX], RDX                    // 余数放入 RAX 所指的 ModRes
 end;
 
-procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64);
+procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64); assembler
 asm
         MOV     RAX, RCX                      // ALo 放入 RAX，AHi 已经在 RDX 了
         MOV     RCX, R8                       // B 放入 RCX
@@ -800,6 +806,35 @@ asm
         POP     ECX                           // 弹出 ECX，拿到 ModRes 地址
         MOV     [ECX], EDX
 end;
+
+// 32 位下的实现
+procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+begin
+  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then // 高 64 位为 0
+  begin
+    DivRes := ALo div B;
+    ModRes := ALo mod B;
+  end
+  else
+  begin
+    raise Exception.Create('NOT Implemented');
+  end;
+end;
+
+procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
+begin
+  if AHi = 0 then
+  begin
+    DivRes := UInt64Div(ALo, B);
+    ModRes := UInt64Mod(ALo, B);
+  end
+  else
+  begin
+    // 有高位有低位咋办？先判断是否会溢出
+    raise Exception.Create('NOT Implemented');
+  end;
+end;
+
 
 {$ENDIF}
 
@@ -1186,6 +1221,18 @@ begin
 {$ELSE}
   Result := N < 0;
 {$ENDIF}
+end;
+
+// 给 UInt64 的某一位置 1，位 Index 从 0 开始
+procedure UInt64SetBit(B: TUInt64; Index: Integer);
+begin
+  B := B or (TUInt64(1) shl Index);
+end;
+
+// 给 UInt64 的某一位置 0，位 Index 从 0 开始
+procedure UInt64ClearBit(B: TUInt64; Index: Integer);
+begin
+  B := B and not (TUInt64(1) shl Index);
 end;
 
 // 返回 UInt64 的第几位是否是 1，0 开始
