@@ -1417,6 +1417,15 @@ begin
 
   ShowMessage(B.ToHex());  // B 和 C 相等
 
+  Cn25519BigNumberToField64(D, B);
+  Cn25519Field64Power(D, D, K);
+  Cn25519Field64ToBigNumber(C, D);
+  ShowMessage(C.ToHex());
+
+  C.SetWord(K);
+  BigNumberPowerMod(B, B, C, P);
+  ShowMessage(B.ToHex());  // B 和 C 相等
+
   P.Free;
   C.Free;
   B.Free;

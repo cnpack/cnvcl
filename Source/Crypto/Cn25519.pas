@@ -454,6 +454,9 @@ procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
 procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
 {* 两个 2^255-19 有限域范围内的 64 位多项式系数相乘，A * B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
 
+procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: Cardinal);
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K) => Res，Res 可以是 A}
+
 procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
 {* 计算一个 2^255-19 有限域范围内的 64 位多项式的 2^K 次方值，A^(2^K) => Res，Res 可以是 A}
 
@@ -3078,18 +3081,40 @@ begin
   Res[0] := Res[0] and SCN_LOW51_MASK;
 end;
 
-procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
+procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: Cardinal);
+var
+  T: TCn25519Field64;
 begin
   if K = 0 then
     Cn25519Field64One(Res)
+  else if K = 1 then
+    Cn25519Field64Copy(Res, A)
   else
   begin
-    Cn25519Field64Copy(Res, A);
+    Cn25519Field64Copy(T, A);
+    Cn25519Field64One(Res);
+
     while K > 0 do
     begin
-      Cn25519Field64Mul(Res, Res, Res);
-      Dec(K);
+      if (K and 1) <> 0 then
+        Cn25519Field64Mul(Res, Res, T);
+
+      K := K shr 1;
+      Cn25519Field64Mul(T, T, T);
     end;
+  end;
+end;
+
+procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
+begin
+  Cn25519Field64Copy(Res, A);
+  if K = 0 then
+    Exit;
+
+  while K > 0 do
+  begin
+    Cn25519Field64Mul(Res, Res, Res);
+    Dec(K);
   end;
 end;
 

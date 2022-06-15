@@ -311,7 +311,7 @@ object Form25519: TForm25519
           Top = 360
           Width = 185
           Height = 25
-          Caption = 'Field64 Power 2k'
+          Caption = 'Field64 Power && Power 2k'
           TabOrder = 29
           OnClick = btn25519Field64Power2kClick
         end
