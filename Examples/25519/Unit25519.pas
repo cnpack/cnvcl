@@ -64,6 +64,7 @@ type
     btnEd25519LoadKeys: TButton;
     btnEd25519SaveKeys: TButton;
     btn25519Field64Power2k: TButton;
+    btn25519Field64PowerPMinus2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -103,6 +104,7 @@ type
     procedure btnEd25519SignFileClick(Sender: TObject);
     procedure btnEd25519VerifyFileClick(Sender: TObject);
     procedure btn25519Field64Power2kClick(Sender: TObject);
+    procedure btn25519Field64PowerPMinus2Click(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -1398,12 +1400,13 @@ end;
 procedure TForm25519.btn25519Field64Power2kClick(Sender: TObject);
 const
   K = 17;
+  DATA = '7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0FFFFFFFFFFFFFFFFFFFFFFEC';
 var
   B, C, P: TCnBigNumber;
   L: Integer;
   D: TCn25519Field64;
 begin
-  B := TCnBigNumber.FromHex('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEC');
+  B := TCnBigNumber.FromHex(DATA);
   Cn25519BigNumberToField64(D, B);
   Cn25519Field64Power2K(D, D, K);
 
@@ -1415,16 +1418,57 @@ begin
   P := TCnBigNumber.FromHex(SCN_25519_PRIME);
   BigNumberPowerWordMod(B, B, L, P);
 
-  ShowMessage(B.ToHex());  // B 和 C 相等
+  ShowMessage(B.ToHex());  // 以上俩 B 和 C 相等
 
+  C.SetWord(K);
+  B.SetHex(DATA);
+  BigNumberPowerMod(B, B, C, P);
+  ShowMessage(B.ToHex());          // 大数算出正确值
+
+  B.SetHex(DATA);
   Cn25519BigNumberToField64(D, B);
   Cn25519Field64Power(D, D, K);
   Cn25519Field64ToBigNumber(C, D);
+  ShowMessage(C.ToHex());          // 以下仨 B 和 C 相等
+
+  B.SetHex(DATA);
+  Cn25519BigNumberToField64(D, B);
+  P.SetWord(K);
+  Cn25519Field64Power(D, D, P);
+  Cn25519Field64ToBigNumber(C, D);
   ShowMessage(C.ToHex());
 
-  C.SetWord(K);
-  BigNumberPowerMod(B, B, C, P);
-  ShowMessage(B.ToHex());  // B 和 C 相等
+  P.Free;
+  C.Free;
+  B.Free;
+end;
+
+procedure TForm25519.btn25519Field64PowerPMinus2Click(Sender: TObject);
+const
+  DATA = '345678909876543456fe1234567098';
+var
+  B, C, P: TCnBigNumber;
+  D: TCn25519Field64;
+begin
+  P := TCnBigNumber.FromHex(SCN_25519_PRIME);
+  B := TCnBigNumber.Create;
+  BigNumberCopy(B, P);
+  B.SubWord(2);
+
+  C := TCnBigNumber.Create;
+  C.SetHex(DATA);
+  BigNumberPowerMod(C, C, B, P);  // 计算 C 的 p-2 次方，两者相等
+  ShowMessage(C.ToHex());
+
+  C.SetHex(DATA);
+  Cn25519BigNumberToField64(D, C);
+  Cn25519Field64Power(D, D, B);    // 计算 C 的 p-2 次方
+  Cn25519Field64ToBigNumber(C, D);
+  ShowMessage(C.ToHex());
+
+  B.SetHex(DATA);
+  BigNumberDirectMulMod(C, B, C, P);
+  ShowMessage(C.ToHex());          // 得到 1
 
   P.Free;
   C.Free;

@@ -315,6 +315,15 @@ object Form25519: TForm25519
           TabOrder = 29
           OnClick = btn25519Field64Power2kClick
         end
+        object btn25519Field64PowerPMinus2: TButton
+          Left = 640
+          Top = 360
+          Width = 185
+          Height = 25
+          Caption = 'Field64 Power p-2'
+          TabOrder = 30
+          OnClick = btn25519Field64PowerPMinus2Click
+        end
       end
     end
     object ts25519Sign: TTabSheet

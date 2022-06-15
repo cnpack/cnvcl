@@ -454,7 +454,10 @@ procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
 procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
 {* 两个 2^255-19 有限域范围内的 64 位多项式系数相乘，A * B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
 
-procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: Cardinal);
+procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: Cardinal); overload;
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K) => Res，Res 可以是 A}
+
+procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: TCnBigNumber); overload;
 {* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K) => Res，Res 可以是 A}
 
 procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
@@ -3100,6 +3103,30 @@ begin
         Cn25519Field64Mul(Res, Res, T);
 
       K := K shr 1;
+      Cn25519Field64Mul(T, T, T);
+    end;
+  end;
+end;
+
+procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: TCnBigNumber);
+var
+  T: TCn25519Field64;
+  I, B: Integer;
+begin
+  if K.IsZero then
+    Cn25519Field64One(Res)
+  else if K.IsOne then
+    Cn25519Field64Copy(Res, A)
+  else
+  begin
+    Cn25519Field64Copy(T, A);
+    Cn25519Field64One(Res);
+
+    B := K.GetBitsCount;
+    for I := 0 to B - 1 do
+    begin
+      if K.IsBitSet(I) then
+        Cn25519Field64Mul(Res, Res, T);
       Cn25519Field64Mul(T, T, T);
     end;
   end;
