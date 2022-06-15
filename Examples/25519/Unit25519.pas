@@ -63,6 +63,7 @@ type
     dlgSave1: TSaveDialog;
     btnEd25519LoadKeys: TButton;
     btnEd25519SaveKeys: TButton;
+    btn25519Field64Power2k: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -101,6 +102,7 @@ type
     procedure btnVerifyTimeClick(Sender: TObject);
     procedure btnEd25519SignFileClick(Sender: TObject);
     procedure btnEd25519VerifyFileClick(Sender: TObject);
+    procedure btn25519Field64Power2kClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -1391,6 +1393,33 @@ begin
     Pub.Free;
     Ed.Free;
   end;
+end;
+
+procedure TForm25519.btn25519Field64Power2kClick(Sender: TObject);
+const
+  K = 17;
+var
+  B, C, P: TCnBigNumber;
+  L: Integer;
+  D: TCn25519Field64;
+begin
+  B := TCnBigNumber.FromHex('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEC');
+  Cn25519BigNumberToField64(D, B);
+  Cn25519Field64Power2K(D, D, K);
+
+  C := TCnBigNumber.Create;
+  Cn25519Field64ToBigNumber(C, D);
+  ShowMessage(C.ToHex());
+
+  L := 1 shl K;
+  P := TCnBigNumber.FromHex(SCN_25519_PRIME);
+  BigNumberPowerWordMod(B, B, L, P);
+
+  ShowMessage(B.ToHex());  // B ∫Õ C œ‡µ»
+
+  P.Free;
+  C.Free;
+  B.Free;
 end;
 
 end.

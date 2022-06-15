@@ -454,6 +454,9 @@ procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
 procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
 {* 两个 2^255-19 有限域范围内的 64 位多项式系数相乘，A * B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
 
+procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 2^K 次方值，A^(2^K) => Res，Res 可以是 A}
+
 // =========================== 多项式点处理函数 ================================
 
 procedure Cn25519Field64EccPointZero(var Point: TCn25519Field64EccPoint);
@@ -3073,6 +3076,21 @@ begin
   Res[1] := Res[1] + (Res[0] shr 51);
 
   Res[0] := Res[0] and SCN_LOW51_MASK;
+end;
+
+procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
+begin
+  if K = 0 then
+    Cn25519Field64One(Res)
+  else
+  begin
+    Cn25519Field64Copy(Res, A);
+    while K > 0 do
+    begin
+      Cn25519Field64Mul(Res, Res, Res);
+      Dec(K);
+    end;
+  end;
 end;
 
 // =========================== 多项式点处理函数 ================================
