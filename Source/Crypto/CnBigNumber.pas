@@ -828,6 +828,10 @@ function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumb
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
 
+function BigNumberPrimeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+{* 求 X 针对素数 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   调用者须自行保证 Modulus 为素数，且 Res 不能是 X 或 Modulus，内部用费马小定理求值，略慢}
+
 function BigNumberNegativeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
 {* 求 X 针对 Modulus 的负模反或叫负模逆元 Y，满足 (X * Y) mod M = -1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互质，且 Res 不能是 X 或 Modulus}
@@ -5737,6 +5741,23 @@ begin
   finally
     FLocalBigNumberPool.Recycle(Y);
     FLocalBigNumberPool.Recycle(X1);
+  end;
+end;
+
+{* 求 X 针对素数 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   调用者须自行保证 Modulus 为素数，且 Res 不能是 X 或 Modulus}
+function BigNumberPrimeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+var
+  P: TCnBigNumber;
+begin
+  // 由费马小定理知 x^(p-1) = 1 mod p，所以 x 的逆元是 x^(p-2) mod p
+  P := FLocalBigNumberPool.Obtain;
+  try
+    BigNumberCopy(P, Modulus);
+    P.SubWord(2);
+    Result := BigNumberPowerMod(Res, X, P, Modulus);
+  finally
+    FLocalBigNumberPool.Recycle(P);
   end;
 end;
 
