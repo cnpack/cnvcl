@@ -43,6 +43,9 @@ type
     btnSample3: TButton;
     btnSample4: TButton;
     btnSample5: TButton;
+    btnSample6: TButton;
+    bvl21: TBevel;
+    bvl22: TBevel;
     procedure FormCreate(Sender: TObject);
     procedure btnSample1Click(Sender: TObject);
     procedure btn128ShlClick(Sender: TObject);
@@ -53,6 +56,15 @@ type
     procedure btnSample3Click(Sender: TObject);
     procedure btnSample4Click(Sender: TObject);
     procedure btnSample5Click(Sender: TObject);
+    procedure btnSample6Click(Sender: TObject);
+    procedure btn128AddClick(Sender: TObject);
+    procedure btn128SubClick(Sender: TObject);
+    procedure btn128MulClick(Sender: TObject);
+    procedure btn128DivClick(Sender: TObject);
+    procedure btnU128AddClick(Sender: TObject);
+    procedure btnU128SubClick(Sender: TObject);
+    procedure btnU128MulClick(Sender: TObject);
+    procedure btnU128DivClick(Sender: TObject);
   private
     FInt128A, FInt128B, FInt128R: TCnInt128;
     FUInt128A, FUInt128B, FUInt128R: TCnUInt128;
@@ -296,6 +308,119 @@ begin
   Int128Set(B, $FFFFFFFE);
   Int128DivMod(A, B, R, M);
   ShowMessage(Int128ToHex(A) + ' / ' + Int128ToHex(B) + ' = ' + Int128ToHex(R) + ' ... ' + Int128ToHex(M));
+end;
+
+procedure TForm128.btnSample6Click(Sender: TObject);
+var
+  A: TCnInt128;
+  B: TCnUInt128;
+begin
+  A := StrToInt128('999888777');
+  ShowMessage(Int128ToStr(A));
+  A := StrToInt128('-999888777');
+  ShowMessage(Int128ToStr(A));
+
+  B := StrToUInt128('999888777');
+  ShowMessage(UInt128ToStr(B));
+
+  A := HexToInt128('9F9888A77');
+  ShowMessage(Int128ToHex(A));
+  A := HexToInt128('-C9988877C');
+  ShowMessage(Int128ToHex(A));
+
+  B := HexToUInt128('FFF999888777FF');
+  ShowMessage(UInt128ToHex(B));
+end;
+
+procedure TForm128.btn128AddClick(Sender: TObject);
+var
+  A, B, R: TCnInt128;
+begin
+  A := HexToInt128(edt128A.Text);
+  B := HexToInt128(edt128B.Text);
+
+  Int128Add(R, A, B);
+  edt128R.Text := Int128ToHex(R);
+end;
+
+procedure TForm128.btn128SubClick(Sender: TObject);
+var
+  A, B, R: TCnInt128;
+begin
+  A := HexToInt128(edt128A.Text);
+  B := HexToInt128(edt128B.Text);
+
+  Int128Sub(R, A, B);
+  edt128R.Text := Int128ToHex(R);
+end;
+
+procedure TForm128.btn128MulClick(Sender: TObject);
+var
+  A, B, R: TCnInt128;
+begin
+  A := HexToInt128(edt128A.Text);
+  B := HexToInt128(edt128B.Text);
+
+  Int128Mul(R, A, B);
+  edt128R.Text := Int128ToHex(R);
+end;
+
+procedure TForm128.btn128DivClick(Sender: TObject);
+var
+  A, B, R: TCnInt128;
+begin
+  A := HexToInt128(edt128A.Text);
+  B := HexToInt128(edt128B.Text);
+
+  Int128Div(R, A, B);
+  edt128R.Text := Int128ToHex(R);
+end;
+
+procedure TForm128.btnU128AddClick(Sender: TObject);
+var
+  A, B, R: TCnUInt128;
+begin
+  A := HexToUInt128(edtU128A.Text);
+  B := HexToUInt128(edtU128B.Text);
+
+  UInt128Add(R, A, B);
+  edtU128R.Text := UInt128ToHex(R);
+end;
+
+procedure TForm128.btnU128SubClick(Sender: TObject);
+var
+  A, B, R: TCnUInt128;
+begin
+  A := HexToUInt128(edtU128A.Text);
+  B := HexToUInt128(edtU128B.Text);
+
+  UInt128Sub(R, A, B);
+  edtU128R.Text := UInt128ToHex(R);
+end;
+
+procedure TForm128.btnU128MulClick(Sender: TObject);
+var
+  A, B, R, H: TCnUInt128;
+begin
+  A := HexToUInt128(edtU128A.Text);
+  B := HexToUInt128(edtU128B.Text);
+
+  UInt128Mul(R, A, B, @H);
+  if UInt128IsZero(H) then
+    edtU128R.Text := UInt128ToHex(R)
+  else
+    edtU128R.Text := UInt128ToHex(H) + UInt128ToHex(R);
+end;
+
+procedure TForm128.btnU128DivClick(Sender: TObject);
+var
+  A, B, R: TCnUInt128;
+begin
+  A := HexToUInt128(edtU128A.Text);
+  B := HexToUInt128(edtU128B.Text);
+
+  UInt128Div(R, A, B);
+  edtU128R.Text := UInt128ToHex(R);
 end;
 
 end.

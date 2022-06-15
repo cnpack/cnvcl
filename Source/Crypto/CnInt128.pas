@@ -82,17 +82,17 @@ procedure Int128Sub(var R, A, B: TCnInt128); overload;
 procedure Int128Sub(var R, A: TCnInt128; V: Int64); overload;
 {* 给一 128 位有符号数减去一个 64 位有符号数。考虑了 B 为负值的情况}
 
-procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128 = nil);
+procedure Int128Mul(var R, A, B: TCnInt128);
 {* 128 位有符号数相乘，有溢出则抛异常（ResHi 参数暂不起作用）。R、A、B 可以相同}
 
 procedure Int128DivMod(var A, B, R, M: TCnInt128);
-{* 128 位有符号数整除求余，A / B = R ... M。A、B、R、M 可以相同}
+{* 128 位有符号数整除求余，A / B = R ... M。A、B、R、M 可以复用但 R M 不能相同}
 
 procedure Int128Div(var R, A, B: TCnInt128);
-{* 128 位有符号数整除，R = A div B。R、A、B 均不能相同}
+{* 128 位有符号数整除，R = A div B。R、A、B 可以相同}
 
 procedure Int128Mod(var R, A, B: TCnInt128);
-{* 128 位有符号数求余，R = A mod B。R、A、B 均不能相同}
+{* 128 位有符号数求余，R = A mod B。R、A、B 可以相同}
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
 {* 128 位有符号数按位左移}
@@ -139,6 +139,15 @@ function Int128Compare(var A, B: TCnInt128): Integer;
 function Int128ToHex(var N: TCnInt128): string;
 {* 将 128 位有符号数转换为十六进制字符串}
 
+function HexToInt128(const S: string): TCnInt128;
+{* 将十六进制字符串转换为 128 位有符号数}
+
+function Int128ToStr(var N: TCnInt128): string;
+{* 将 128 位有符号数转换为十进制字符串}
+
+function StrToInt128(const S: string): TCnInt128;
+{* 将十进制字符串转换为 128 位有符号数}
+
 // ======================== UInt128 计算函数 ===================================
 
 procedure UInt128Set(var R: TCnUInt128; Lo, Hi: TUInt64); overload;
@@ -167,16 +176,16 @@ procedure UInt128Sub(var R, A, B: TCnUInt128);
 
 procedure UInt128Mul(var R, A, B: TCnUInt128; ResHi: PCnUInt128 = nil);
 {* 128 位无符号数相乘，有溢出则超过 128 位的放 ResHi 中
-  如传 nil 且溢出则抛异常。R、A、B可以相同}
+  如传 nil 且溢出则抛异常。R、A、B 可以相同}
 
 procedure UInt128DivMod(var A, B, R, M: TCnUInt128);
-{* 128 位无符号数整除求余，A / B = R ... M。A、B、R、M 可以相同}
+{* 128 位无符号数整除求余，A / B = R ... M。A、B、R、M 可以复用但 R M 不能相同}
 
 procedure UInt128Div(var R, A, B: TCnUInt128);
-{* 128 位无符号数整除，R = A div B。R、A、B 均不能相同}
+{* 128 位无符号数整除，R = A div B。R、A、B 可以相同}
 
 procedure UInt128Mod(var R, A, B: TCnUInt128);
-{* 128 位无符号数求余，R = A mod B。R、A、B 均不能相同}
+{* 128 位无符号数求余，R = A mod B。R、A、B 可以相同}
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
 {* 128 位无符号数按位左移}
@@ -219,6 +228,15 @@ function IsUInt128AddOverflow(var A, B: TCnUInt128): Boolean;
 
 function UInt128ToHex(var N: TCnUInt128): string;
 {* 将 128 位无符号数转换为十六进制字符串}
+
+function HexToUInt128(const S: string): TCnUInt128;
+{* 将十进制字符串转换为 128 位无符号数}
+
+function UInt128ToStr(var N: TCnUInt128): string;
+{* 将 128 位无符号数转换为十进制字符串}
+
+function StrToUInt128(const S: string): TCnUInt128;
+{* 将十进制字符串转换为 128 位无符号数}
 
 implementation
 
@@ -333,7 +351,7 @@ begin
   R.Hi64 := A.Hi64 - C;
 end;
 
-procedure Int128Mul(var R, A, B: TCnInt128; ResHi: PCnInt128);
+procedure Int128Mul(var R, A, B: TCnInt128);
 var
   N1, N2: Boolean;
 begin
@@ -351,10 +369,7 @@ begin
     raise EIntOverflow.Create('Int128 Mul Overflow');
 
   if N1 <> N2 then // 只要有一个变过
-  begin
     Int128Negate(R);
-    // TODO: ResHi 如何变？先不传
-  end;
 
   // 变回去
   if N1 then
@@ -389,16 +404,17 @@ begin
   if NB then
     Int128Negate(BB);  // 全转正
 
-  Int128SetZero(R);
-  Int128Copy(M, AA);
-
   if Int128Compare(AA, BB) < 0 then
   begin
+    Int128Copy(M, AA);
     if NA <> NB then
       Int128Negate(M); // 异号商为负
+    Int128SetZero(R);
     Exit;
   end;
 
+  Int128SetZero(R);
+  Int128Copy(M, AA);
   Sft := 0;
 
   // 扩大除数至和被除数最高位相同且比被除数小
@@ -588,16 +604,123 @@ end;
 
 function Int128ToHex(var N: TCnInt128): string;
 var
-  T: TCnInt128;
+  T, M, Mask: TCnInt128;
+  Neg: Boolean;
 begin
-  if N.Hi64 < 0 then
+  if Int128IsZero(N) then
   begin
-    Int128Copy(T, N);
+    Result := '0';
+    Exit;
+  end;
+
+  Int128Copy(T, N);
+  Neg := Int128IsNegative(T);
+  if Neg then
     Int128Negate(T);
-    Result := '-' + UInt64ToHex(T.Hi64) + UInt64ToHex(T.Lo64);
-  end
-  else
-    Result := UInt64ToHex(N.Hi64) + UInt64ToHex(N.Lo64);
+
+  Result := '';
+  Int128Set(Mask, $F);
+  while not Int128IsZero(T) do
+  begin
+    Int128And(M, T, Mask);
+    Int128ShiftRight(T, 4);
+    Result := IntToHex(M.Lo64, 1) + Result;
+  end;
+
+  if Neg then
+    Result := '-' + Result;
+end;
+
+function HexToInt128(const S: string): TCnInt128;
+var
+  I, K: Integer;
+  St, T: TCnInt128;
+  Neg: Boolean;
+begin
+  Int128SetZero(Result);
+  Int128Set(St, 16);
+
+  Neg := False;
+  for I := 1 to Length(S) do
+  begin
+    if S[I] in ['0'..'9', 'a'..'f', 'A'..'F'] then
+    begin
+      Int128Mul(Result, Result, St);
+      K := 0;
+      if (S[I] >= '0') and (S[I] <= '9') then
+        K := Ord(S[I]) - Ord('0')
+      else if (S[I] >= 'A') and (S[I] <= 'F') then
+        K := Ord(S[I]) - Ord('A') + 10
+      else if (S[I] >= 'a') and (S[I] <= 'f') then
+        K := Ord(S[I]) - Ord('a') + 10;
+
+      Int128Set(T, K);
+      Int128Add(Result, Result, T);
+    end
+    else if (I = 1) and (S[I] = '-') then
+      Neg := True
+    else
+      raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
+  end;
+
+  if Neg then
+    Int128Negate(Result);
+end;
+
+function Int128ToStr(var N: TCnInt128): string;
+var
+  T, Ten, M: TCnInt128;
+  Neg: Boolean;
+begin
+  if Int128IsZero(N) then
+  begin
+    Result := '0';
+    Exit;
+  end;
+
+  Int128Copy(T, N);
+  Int128Set(Ten, 10);
+
+  Neg := Int128IsNegative(T);
+  if Neg then
+    Int128Negate(T);
+
+  Result := '';
+  while not Int128IsZero(T) do
+  begin
+    Int128DivMod(T, Ten, T, M);
+    Result := IntToStr(M.Lo64) + Result;
+  end;
+
+  if Neg then
+    Result := '-' + Result;
+end;
+
+function StrToInt128(const S: string): TCnInt128;
+var
+  I: Integer;
+  Ten, T: TCnInt128;
+  Neg: Boolean;
+begin
+  Int128SetZero(Result);
+  Int128Set(Ten, 10);
+
+  Neg := False;
+  for I := 1 to Length(S) do
+  begin
+    if S[I] in ['0'..'9'] then
+    begin
+      Int128Mul(Result, Result, Ten);
+      Int128Set(T, Ord(S[I]) - Ord('0'));
+      Int128Add(Result, Result, T);
+    end
+    else if (I = 1) and (S[I] = '-') then
+      Neg := True
+    else
+      raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
+  end;
+  if Neg then
+    Int128Negate(Result);
 end;
 
 // ======================== UInt128 计算函数 ===================================
@@ -717,14 +840,16 @@ begin
     Exit;
   end;
 
-  UInt128SetZero(R);
-  UInt128Copy(M, A);
-
   if UInt128Compare(A, B) < 0 then
+  begin
+    UInt128SetZero(R);
     Exit;
+  end;
 
   Sft := 0;
   UInt128Copy(BB, B);  // 用 BB 做中间变量，避免 R M 等可能是 A B 导致修改过程中出错
+  UInt128Copy(M, A);   // 修改了 M，要确保后面没动 A B
+  UInt128SetZero(R);   // 修改了 R
 
   // 扩大除数至和被除数最高位相同且比被除数小
   while (UInt128Compare(BB, M) < 0) and not GetUInt64BitSet(BB.Hi64, 63) do
@@ -941,8 +1066,96 @@ begin
 end;
 
 function UInt128ToHex(var N: TCnUInt128): string;
+var
+  T, M, Mask: TCnUInt128;
 begin
-  Result := UInt64ToHex(N.Hi64) + UInt64ToHex(N.Lo64);
+  if UInt128IsZero(N) then
+  begin
+    Result := '0';
+    Exit;
+  end;
+
+  UInt128Copy(T, N);
+  Result := '';
+
+  UInt128Set(Mask, $F);
+  while not UInt128IsZero(T) do
+  begin
+    UInt128And(M, T, Mask);
+    UInt128ShiftRight(T, 4);
+    Result := IntToHex(M.Lo64, 1) + Result;
+  end;
+end;
+
+function HexToUInt128(const S: string): TCnUInt128;
+var
+  I, K: Integer;
+  St, T: TCnUInt128;
+begin
+  UInt128SetZero(Result);
+  UInt128Set(St, 16);
+
+  for I := 1 to Length(S) do
+  begin
+    if S[I] in ['0'..'9', 'a'..'f', 'A'..'F'] then
+    begin
+      UInt128Mul(Result, Result, St);
+      K := 0;
+      if (S[I] >= '0') and (S[I] <= '9') then
+        K := Ord(S[I]) - Ord('0')
+      else if (S[I] >= 'A') and (S[I] <= 'F') then
+        K := Ord(S[I]) - Ord('A') + 10
+      else if (S[I] >= 'a') and (S[I] <= 'f') then
+        K := Ord(S[I]) - Ord('a') + 10;
+
+      UInt128Set(T, K);
+      UInt128Add(Result, Result, T);
+    end
+    else
+      raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
+  end;
+end;
+
+function UInt128ToStr(var N: TCnUInt128): string;
+var
+  T, Ten, M: TCnUInt128;
+begin
+  if UInt128IsZero(N) then
+  begin
+    Result := '0';
+    Exit;
+  end;
+
+  UInt128Copy(T, N);
+  UInt128Set(Ten, 10);
+  Result := '';
+
+  while not UInt128IsZero(T) do
+  begin
+    UInt128DivMod(T, Ten, T, M);
+    Result := IntToStr(M.Lo64) + Result;
+  end;
+end;
+
+function StrToUInt128(const S: string): TCnUInt128;
+var
+  I: Integer;
+  Ten, T: TCnUInt128;
+begin
+  UInt128SetZero(Result);
+  UInt128Set(Ten, 10);
+
+  for I := 1 to Length(S) do
+  begin
+    if S[I] in ['0'..'9'] then
+    begin
+      UInt128Mul(Result, Result, Ten);
+      UInt128Set(T, Ord(S[I]) - Ord('0'));
+      UInt128Add(Result, Result, T);
+    end
+    else
+      raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
+  end;
 end;
 
 end.

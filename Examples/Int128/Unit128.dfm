@@ -64,6 +64,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btn128AddClick
     end
     object btn128Sub: TSpeedButton
       Left = 648
@@ -77,6 +78,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btn128SubClick
     end
     object btn128Mul: TSpeedButton
       Left = 680
@@ -90,6 +92,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btn128MulClick
     end
     object btn128Div: TSpeedButton
       Left = 680
@@ -103,6 +106,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btn128DivClick
     end
     object btn128Shl: TSpeedButton
       Left = 56
@@ -146,6 +150,13 @@ object Form128: TForm128
       Height = 13
       Caption = 'R Hex:'
     end
+    object bvl21: TBevel
+      Left = 526
+      Top = 56
+      Width = 25
+      Height = 65
+      Shape = bsLeftLine
+    end
     object edt128A: TEdit
       Left = 56
       Top = 48
@@ -160,7 +171,7 @@ object Form128: TForm128
       ParentBiDiMode = False
       ParentFont = False
       TabOrder = 0
-      Text = '1111111122222222333333334444444455555555666666667777777788888888'
+      Text = '11111111222222223333333344444444'
     end
     object edt128B: TEdit
       Left = 56
@@ -176,7 +187,7 @@ object Form128: TForm128
       ParentBiDiMode = False
       ParentFont = False
       TabOrder = 1
-      Text = '1111111122222222333333334444444455555555666666667777777788888888'
+      Text = '44444444555555556666666677777777'
     end
     object edt128R: TEdit
       Left = 56
@@ -192,7 +203,6 @@ object Form128: TForm128
       ParentBiDiMode = False
       ParentFont = False
       TabOrder = 2
-      Text = '1111111122222222333333334444444455555555666666667777777788888888'
     end
   end
   object grpUInt128: TGroupBox
@@ -249,6 +259,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btnU128AddClick
     end
     object btnU128Mul: TSpeedButton
       Left = 680
@@ -262,6 +273,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btnU128MulClick
     end
     object btnU128Div: TSpeedButton
       Left = 680
@@ -275,6 +287,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btnU128DivClick
     end
     object btnU128Sub: TSpeedButton
       Left = 648
@@ -288,6 +301,7 @@ object Form128: TForm128
       Font.Name = 'MS Sans Serif'
       Font.Style = []
       ParentFont = False
+      OnClick = btnU128SubClick
     end
     object lblHexU128B: TLabel
       Left = 8
@@ -317,6 +331,13 @@ object Form128: TForm128
       Height = 13
       Caption = 'R Hex:'
     end
+    object bvl22: TBevel
+      Left = 526
+      Top = 48
+      Width = 25
+      Height = 65
+      Shape = bsLeftLine
+    end
     object edtU128A: TEdit
       Left = 56
       Top = 48
@@ -331,7 +352,7 @@ object Form128: TForm128
       ParentBiDiMode = False
       ParentFont = False
       TabOrder = 0
-      Text = '1111111122222222333333334444444455555555666666667777777788888888'
+      Text = '22222222333333334444444455555555'
     end
     object edtU128B: TEdit
       Left = 56
@@ -347,7 +368,7 @@ object Form128: TForm128
       ParentBiDiMode = False
       ParentFont = False
       TabOrder = 1
-      Text = '1111111122222222333333334444444455555555666666667777777788888888'
+      Text = 'FFFFFFFF333333335555555566666666'
     end
     object edtU128R: TEdit
       Left = 56
@@ -363,7 +384,6 @@ object Form128: TForm128
       ParentBiDiMode = False
       ParentFont = False
       TabOrder = 2
-      Text = '1111111122222222333333334444444455555555666666667777777788888888'
     end
   end
   object btnSample2: TButton
@@ -401,5 +421,14 @@ object Form128: TForm128
     Caption = 'Sample 5'
     TabOrder = 6
     OnClick = btnSample5Click
+  end
+  object btnSample6: TButton
+    Left = 464
+    Top = 360
+    Width = 75
+    Height = 25
+    Caption = 'Sample6'
+    TabOrder = 7
+    OnClick = btnSample6Click
   end
 end
