@@ -463,6 +463,9 @@ procedure Cn25519Field64Power(var Res, A: TCn25519Field64; K: TCnBigNumber); ove
 procedure Cn25519Field64Power2K(var Res, A: TCn25519Field64; K: Cardinal);
 {* 计算一个 2^255-19 有限域范围内的 64 位多项式的 2^K 次方值，A^(2^K) => Res，Res 可以是 A}
 
+procedure Cn25519Field64ModularInverse(var Res, A: TCn25519Field64);
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的模逆元，A * Res mod P = 1，Res 可以是 A}
+
 // =========================== 多项式点处理函数 ================================
 
 procedure Cn25519Field64EccPointZero(var Point: TCn25519Field64EccPoint);
@@ -1785,6 +1788,8 @@ end;
 
 procedure TCnEd25519.ExtendedField64PointInverse(
   var P: TCn25519Field64Ecc4Point);
+var
+  T: TCn25519Field64;
 begin
   // X -> Prime - X
   Cn25519Field64Sub(P.X, F25519Field64Zero, P.X);
@@ -1795,8 +1800,18 @@ begin
     // Z = 1 则直接乘
     Cn25519Field64Mul(P.T, P.X, P.Y);
   end
-  else // Z <> 1 还没实现
-    raise Exception.Create('NOT Implemented');
+  else // Z <> 1 
+  begin
+    // 计算 Z^3 的模逆元
+    Cn25519Field64Mul(T, P.Z, P.Z);
+    Cn25519Field64Mul(T, T, P.Z);
+
+    Cn25519Field64ModularInverse(T, T);
+
+    // 再乘以 X * Y
+    Cn25519Field64Mul(P.T, P.X, P.Y);
+    Cn25519Field64Mul(P.T, P.T, T);
+  end;
 end;
 
 function TCnEd25519.ExtendedField64PointSubPoint(var P, Q,
@@ -3142,6 +3157,22 @@ begin
   begin
     Cn25519Field64Mul(Res, Res, Res);
     Dec(K);
+  end;
+end;
+
+procedure Cn25519Field64ModularInverse(var Res, A: TCn25519Field64);
+var
+  P: TCnBigNumber;
+begin
+  // 用费马小定理，求 A 的 P - 2 次方
+  P := F25519BigNumberPool.Obtain;
+  try
+    BigNumberCopy(P, FPrime25519);
+    P.SubWord(2);
+
+    Cn25519Field64Power(Res, A, P);
+  finally
+    F25519BigNumberPool.Recycle(P);
   end;
 end;
 
