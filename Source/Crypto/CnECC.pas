@@ -2351,7 +2351,7 @@ end;
 
 procedure TCnEcc.NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
-  I: Integer;
+  I, C: Integer;
   E, R: TCnEccPoint;
 begin
   if BigNumberIsNegative(K) then
@@ -2379,11 +2379,14 @@ begin
     E.X := Point.X;
     E.Y := Point.Y;
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
         PointAddPoint(R, E, R);
-      PointAddPoint(E, E, E);
+
+      if I < C - 1 then
+        PointAddPoint(E, E, E);
     end;
 
     Point.X := R.X;
@@ -2396,7 +2399,7 @@ end;
 
 procedure TCnEcc.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
-  I: Integer;
+  I, C: Integer;
   E, R: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
@@ -2426,11 +2429,14 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
         AffinePointAddPoint(R, E, R);
-      AffinePointAddPoint(E, E, E);
+
+      if I < C - 1 then // 最后一次循环无需加 E
+        AffinePointAddPoint(E, E, E);
     end;
 
     Point.X := R.X;
@@ -2444,7 +2450,7 @@ end;
 
 procedure TCnEcc.JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
-  I: Integer;
+  I, C: Integer;
   E, R: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
@@ -2474,11 +2480,14 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
         JacobianPointAddPoint(R, E, R);
-      JacobianPointAddPoint(E, E, E);
+
+      if I < C - 1 then
+        JacobianPointAddPoint(E, E, E);
     end;
 
     Point.X := R.X;
@@ -6190,7 +6199,7 @@ end;
 procedure TCnPolynomialEcc.MultiplePoint(K: TCnBigNumber;
   Point: TCnPolynomialEccPoint);
 var
-  I: Integer;
+  I, C: Integer;
   E, R: TCnPolynomialEccPoint;
 begin
   if K.IsZero then
@@ -6214,12 +6223,14 @@ begin
     R.SetZero;
     E.Assign(Point);
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
         PointAddPoint(R, E, R);
 
-      PointAddPoint(E, E, E);
+      if I < C - 1 then
+        PointAddPoint(E, E, E);
     end;
 
     Point.Assign(R);
