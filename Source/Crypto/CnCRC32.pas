@@ -52,7 +52,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  SysUtils, Classes, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 //------------------------------------------------------------------------------
 // CRC8 系列函数（CCITT），初始值 00，结果异或值 00，多项式为 x8+x2+x+1
@@ -76,12 +76,8 @@ function StrCRC8(const OrgCRC8: Byte; const Text: string): Byte;
 function StrCRC8A(const OrgCRC8: Byte; const Text: AnsiString): Byte;
 {* 计算 AnsiString 字符串的 CRC8 值 }
 
-{$IFDEF TBYTES_DEFINED}
-
 function BytesCRC8(const OrgCRC8: Byte; Data: TBytes): Byte;
 {* 计算 TBytes 的 CRC8 值}
-
-{$ENDIF}
 
 function FileCRC8(const FileName: string; var CRC: Byte; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
@@ -116,12 +112,8 @@ function StrCRC16(const OrgCRC16: Word; const Text: string): Word;
 function StrCRC16A(const OrgCRC16: Word; const Text: AnsiString): Word;
 {* 计算 AnsiString 字符串的 CRC16 值 }
 
-{$IFDEF TBYTES_DEFINED}
-
 function BytesCRC16(const OrgCRC16: Word; Data: TBytes): Word;
 {* 计算 TBytes 的 CRC16 值}
-
-{$ENDIF}
 
 function FileCRC16(const FileName: string; var CRC: Word; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
@@ -157,12 +149,8 @@ function StrCRC32(const OrgCRC32: LongWord; const Text: string): LongWord;
 function StrCRC32A(const OrgCRC32: LongWord; const Text: AnsiString): LongWord;
 {* 计算 AnsiString 字符串的 CRC32 值 }
 
-{$IFDEF TBYTES_DEFINED}
-
 function BytesCRC32(const OrgCRC32: LongWord; Data: TBytes): LongWord;
 {* 计算 TBytes 的 CRC32 值}
-
-{$ENDIF}
 
 function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
@@ -197,12 +185,8 @@ function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
 function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
 {* 计算 AnsiString 字符串的 CRC64 值 }
 
-{$IFDEF TBYTES_DEFINED}
-
 function BytesCRC64(const OrgCRC64: LongWord; Data: TBytes): LongWord;
 {* 计算 TBytes 的 CRC64 值}
-
-{$ENDIF}
 
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
@@ -436,15 +420,11 @@ begin
   Result := CRC8Calc(OrgCRC8, PAnsiChar(Text)^, Length(Text));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // 计算 TBytes 的 CRC8 值
 function BytesCRC8(const OrgCRC8: Byte; Data: TBytes): Byte;
 begin
   Result := CRC8Calc(OrgCRC8, PAnsiChar(Data[0])^, Length(Data));
 end;
-
-{$ENDIF}
 
 function InternalCRC8Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Byte): Boolean;
@@ -595,15 +575,11 @@ begin
   Result := CRC16Calc(OrgCRC16, PAnsiChar(Text)^, Length(Text));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // 计算 TBytes 的 CRC16 值
 function BytesCRC16(const OrgCRC16: Word; Data: TBytes): Word;
 begin
   Result := CRC16Calc(OrgCRC16, PAnsiChar(Data[0])^, Length(Data));
 end;
-
-{$ENDIF}
 
 function InternalCRC16Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Word): Boolean;
@@ -753,15 +729,11 @@ begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // 计算 TBytes 的 CRC32 值
 function BytesCRC32(const OrgCRC32: LongWord; Data: TBytes): LongWord;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
 end;
-
-{$ENDIF}
 
 function InternalCRC32Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: LongWord): Boolean;
@@ -925,15 +897,11 @@ begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Text)^, Length(Text));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // 计算 TBytes 的 CRC64 值
 function BytesCRC64(const OrgCRC64: LongWord; Data: TBytes): LongWord;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
 end;
-
-{$ENDIF}
 
 function InternalCRC64Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Int64): Boolean;

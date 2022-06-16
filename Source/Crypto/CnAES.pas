@@ -49,7 +49,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, CnNativeDecl;
 
 const
   AES_BLOCKSIZE = 16;
@@ -304,8 +304,6 @@ function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
 function AESDecryptOfbStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
 
-{$IFDEF TBYTES_DEFINED}
-
 // AES ECB 模式加密字节数组
 function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
 
@@ -329,8 +327,6 @@ function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128
 
 // AES OFB 模式解密字节数组
 function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
-
-{$ENDIF}
 
 implementation
 
@@ -3761,8 +3757,6 @@ begin
   end;
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // AES ECB 模式加密字节数组
 function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
 var
@@ -4182,8 +4176,6 @@ begin
     DS.Free;
   end;
 end;
-
-{$ENDIF}
 
 end.
 

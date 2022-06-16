@@ -259,15 +259,11 @@ type
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象，其内容为复制}
 
-{$IFDEF TBYTES_DEFINED}
-
     class function FromBytes(Buf: TBytes): TCnBigNumber;
     {* 根据一个字节数组产生一个新的大数对象，其内容为复制}
 
     function ToBytes: TBytes;
     {* 将大数内容换成字节数组}
-
-{$ENDIF}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串}
@@ -888,6 +884,9 @@ procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Intege
 
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒}
+
+//function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer): TShortInts;
+{* 返回大数的 Width 宽度的 NAF 非零值不相邻形式，每个字节是有符号一项，绝对值小于 2^(Width-1)，所以 W 最大为 7}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -1518,8 +1517,6 @@ begin
   end;
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
 begin
   Result := nil;
@@ -1539,8 +1536,6 @@ begin
     BigNumberToBinary(Num, @Result[0]);
   end;
 end;
-
-{$ENDIF}
 
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
@@ -7027,8 +7022,6 @@ begin
   Result := BigNumberFromBinary(Buf, Len);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 class function TCnBigNumber.FromBytes(Buf: TBytes): TCnBigNumber;
 begin
   Result := BigNumberFromBytes(Buf);
@@ -7038,8 +7031,6 @@ function TCnBigNumber.ToBytes: TBytes;
 begin
   Result := BigNumberToBytes(Self);
 end;
-
-{$ENDIF}
 
 class function TCnBigNumber.FromDec(const Buf: AnsiString): TCnBigNumber;
 begin

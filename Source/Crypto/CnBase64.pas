@@ -59,7 +59,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes, CnNativeDecl;
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 {* 对流进行 Base64 编码，如编码成功返回 BASE64_OK
@@ -82,16 +82,12 @@ function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: stri
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
 {* 对 TBytes 进行 Base64 编码，如编码成功返回 BASE64_OK
 |<PRE>
   InputData: TBytes           - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
-
-{$ENDIF}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
   FixZero: Boolean = True): Byte; overload;
@@ -111,8 +107,6 @@ function Base64Decode(const InputData: AnsiString; OutputData: TStream;
   FixZero: Boolean             - 是否移去尾部的 #0
 |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function Base64Decode(InputData: string; var OutputData: TBytes;
   FixZero: Boolean = True): Byte; overload;
 {* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
@@ -121,8 +115,6 @@ function Base64Decode(InputData: string; var OutputData: TBytes;
   var OutputData: TBytes       - 解码后的数据
   FixZero: Boolean             - 是否移去尾部的 0
 |</PRE>}
-
-{$ENDIF}
 
 // 原始移植的版本，比较慢
 function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;
@@ -501,8 +493,6 @@ begin
     Result := BASE64_LENGTH;
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
 begin
   if Length(InputData) > 0 then
@@ -510,8 +500,6 @@ begin
   else
     Result := BASE64_LENGTH;
 end;
-
-{$ENDIF}
 
 function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte; overload;
 var
@@ -524,12 +512,10 @@ begin
     OutputData.Write(Str[1], Length(Str));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function Base64Decode(InputData: string; var OutputData: TBytes;
   FixZero: Boolean): Byte; overload;
 var
-  InStr, OutStr: AnsiString;
+  OutStr: AnsiString;
 begin
   Result := Base64Decode(AnsiString(InputData), OutStr, FixZero);
   if Result = BASE64_OK then
@@ -540,8 +526,6 @@ begin
       Move(OutStr[1], OutputData[0], Length(OutStr));
   end;
 end;
-
-{$ENDIF}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Byte;
 var

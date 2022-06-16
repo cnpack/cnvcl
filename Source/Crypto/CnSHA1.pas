@@ -74,15 +74,11 @@ function SHA1Buffer(const Buffer; Count: Cardinal): TSHA1Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function SHA1Bytes(Data: TBytes): TSHA1Digest;
 {* 对 TBytes 进行 SHA1 计算
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
-
-{$ENDIF}
 
 function SHA1String(const Str: string): TSHA1Digest;
 {* 对 String 类型数据进行 SHA1 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -391,8 +387,6 @@ begin
   SHA1Final(Context, Result);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function SHA1Bytes(Data: TBytes): TSHA1Digest;
 var
   Context: TSHA1Context;
@@ -401,8 +395,6 @@ begin
   SHA1Update(Context, PAnsiChar(@Data[0]), Length(Data));
   SHA1Final(Context, Result);
 end;
-
-{$ENDIF}
 
 // 对 String 类型数据进行 SHA1 计算
 function SHA1String(const Str: string): TSHA1Digest;

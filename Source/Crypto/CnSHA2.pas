@@ -120,8 +120,6 @@ function SHA512Buffer(const Buffer; Count: Cardinal): TSHA512Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function SHA224Bytes(Data: TBytes): TSHA224Digest;
 {* 对字节数组进行 SHA224 计算
  |<PRE>
@@ -145,8 +143,6 @@ function SHA512Bytes(Data: TBytes): TSHA512Digest;
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
-
-{$ENDIF}
 
 function SHA224String(const Str: string): TSHA224Digest;
 {* 对 String 类型数据进行 SHA224 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -1015,8 +1011,6 @@ begin
   SHA512Final(Context, Result);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // 对字节数组进行 SHA224 计算
 function SHA224Bytes(Data: TBytes): TSHA224Digest;
 var
@@ -1056,8 +1050,6 @@ begin
   SHA512Update(Context, PAnsiChar(@Data[0]), Length(Data));
   SHA512Final(Context, Result);
 end;
-
-{$ENDIF}
 
 // 对 String 类型数据进行 SHA224 计算
 function SHA224String(const Str: string): TSHA224Digest;

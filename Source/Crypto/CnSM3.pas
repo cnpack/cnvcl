@@ -44,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  Classes, SysUtils, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   TSM3Context = packed record
@@ -93,15 +93,11 @@ function SM3Buffer(const Buffer; Count: LongWord): TSM3Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function SM3Bytes(Data: TBytes): TSM3Digest;
 {* 对 TBytes 进行 MD5 计算
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
-
-{$ENDIF}
 
 function SM3String(const Str: string): TSM3Digest;
 {* 对 String 类型数据进行 SM3 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -514,8 +510,6 @@ begin
   SM3Finish(Context, Result);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function SM3Bytes(Data: TBytes): TSM3Digest;
 var
   Context: TSM3Context;
@@ -524,8 +518,6 @@ begin
   SM3Update(Context, PAnsiChar(@Data[0]), Length(Data));
   SM3Finish(Context, Result);
 end;
-
-{$ENDIF}
 
 // 对 String 类型数据进行 SM3 转换
 function SM3String(const Str: string): TSM3Digest;

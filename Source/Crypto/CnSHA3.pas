@@ -107,8 +107,6 @@ function SHA3_512Buffer(const Buffer; Count: Cardinal): TSHA3_512Digest;
   Count: Cardinal  - 数据块长度
  |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function SHA3_224Bytes(Data: TBytes): TSHA3_224Digest;
 {* 对字节数组进行 SHA3_224 计算
  |<PRE>
@@ -132,8 +130,6 @@ function SHA3_512Bytes(Data: TBytes): TSHA3_512Digest;
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
-
-{$ENDIF}
 
 function SHA3_224String(const Str: string): TSHA3_224Digest;
 {* 对 String 类型数据进行 SHA3_224 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -659,8 +655,6 @@ begin
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 // 对字节数组进行 SHA3_224 计算
 function SHA3_224Bytes(Data: TBytes): TSHA3_224Digest;
 var
@@ -708,8 +702,6 @@ begin
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
-
-{$ENDIF}
 
 // 对 String 类型数据进行 SHA3_224 计算
 function SHA3_224String(const Str: string): TSHA3_224Digest;

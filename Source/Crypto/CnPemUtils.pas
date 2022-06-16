@@ -116,8 +116,6 @@ function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
 function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
 {* 去除 PKCS5 规定的字符串末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
 
-{$IFDEF TBYTES_DEFINED}
-
 procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
 {* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据}
 
@@ -129,8 +127,6 @@ procedure BytesAddPKCS5Padding(var Data: TBytes);
 
 procedure BytesRemovePKCS5Padding(var Data: TBytes);
 {* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
-
-{$ENDIF}
 
 implementation
 
@@ -414,8 +410,6 @@ begin
   Result := StrRemovePKCS7Padding(Str);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
 var
   R: Byte;
@@ -456,8 +450,6 @@ procedure BytesRemovePKCS5Padding(var Data: TBytes);
 begin
   BytesRemovePKCS7Padding(Data);
 end;
-
-{$ENDIF}
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;
   Stream: TStream; const Password: string; out EncryptedHead: string): Boolean;

@@ -73,7 +73,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  Classes, SysUtils, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   PMD5Digest = ^TMD5Digest;
@@ -108,15 +108,11 @@ function MD5Buffer(const Buffer; Count: LongWord): TMD5Digest;
    Count: LongWord  - 数据块长度
  |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function MD5Bytes(Data: TBytes): TMD5Digest;
 {* 对 TBytes 进行 MD5 计算
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
-
-{$ENDIF}
 
 function MD5String(const Str: string): TMD5Digest;
 {* 对 String 类型数据进行 MD5 计算。注意 D2009 或以上版本的 string 为 UnicodeString，
@@ -568,8 +564,6 @@ begin
   MD5Final(Context, Result);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function MD5Bytes(Data: TBytes): TMD5Digest;
 var
   Context: TMD5Context;
@@ -578,8 +572,6 @@ begin
   MD5Update(Context, PAnsiChar(@Data[0]), Length(Data));
   MD5Final(Context, Result);
 end;
-
-{$ENDIF}
 
 // 对 String 类型数据进行 MD5 计算
 function MD5String(const Str: string): TMD5Digest;

@@ -151,8 +151,6 @@ procedure SM4DecryptOfbStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
  |</PRE>}
 
-{$IFDEF TBYTES_DEFINED}
-
 function SM4EncryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
 {* SM4-ECB 封装好的针对 TBytes 的加密方法
  |<PRE>
@@ -222,8 +220,6 @@ function SM4DecryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   Input    input 密文
   返回值   解密内容
  |</PRE>}
-
-{$ENDIF}
 
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TSM4Key; Dest: TStream); overload;
@@ -824,8 +820,6 @@ begin
   SM4CryptOfbStr(SM4_DECRYPT, Key, Iv, Input, Output);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function SM4CryptEcbBytes(Mode: Integer; Key: TBytes;
   const Input: TBytes): TBytes;
 var
@@ -1029,8 +1023,6 @@ function SM4DecryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
 begin
   Result := SM4CryptOfbBytes(SM4_DECRYPT, Key, Iv, Input);
 end;
-
-{$ENDIF}
 
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TSM4Key; Dest: TStream); overload;

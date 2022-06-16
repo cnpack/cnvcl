@@ -124,6 +124,14 @@ type
 {$ENDIF}
   PCnLongWord32 = ^TCnLongWord32;
 
+{$IFNDEF TBYTES_DEFINED}
+  TBytes = array of Byte;
+  {* 无符号字节数组，未定义时定义上}
+{$ENDIF}
+
+  TShortInts = array of ShortInt;
+  {* 有符号字节数组}
+
 const
   MAX_SQRT_INT64: Cardinal               = 3037000499;
   MAX_UINT16: Word                       = $FFFF;
@@ -314,8 +322,6 @@ function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
 function HexToString(const Hex: string): string;
 {* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
 
-{$IFDEF TBYTES_DEFINED}
-
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
 {* 字节数组转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
 
@@ -324,8 +330,6 @@ function HexToBytes(const Hex: string): TBytes;
 
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
-
-{$ENDIF}
 
 procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
 {* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
@@ -597,8 +601,6 @@ begin
   end;
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean): string;
 var
   I, L: Integer;
@@ -617,7 +619,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeInt(Buffer) + I)^;
+      B := PCnByte(TCnNativeInt(Buffer) + I)^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -626,7 +628,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeInt(Buffer) + I)^;
+      B := PCnByte(TCnNativeInt(Buffer) + I)^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -667,8 +669,6 @@ begin
     Data[L - I - 1] := T;
   end;
 end;
-
-{$ENDIF}
 
 procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
 var

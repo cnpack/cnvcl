@@ -46,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes, CnNativeDecl;
 
 const
   DES_KEYSIZE = 8;
@@ -118,8 +118,6 @@ function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
 
-{$IFDEF TBYTES_DEFINED}
-
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 {* DES-ECB 封装好的针对 TBytes 的加解密方法
  |<PRE>
@@ -153,8 +151,6 @@ function DESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   Input    待解密密文
   返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
-
-{$ENDIF}
 
 procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TDESKey; Dest: TStream); overload;
@@ -216,8 +212,6 @@ function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
 
-{$IFDEF TBYTES_DEFINED}
-
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 {* 3DES-ECB 封装好的针对 TBytes 的加解密方法
  |<PRE>
@@ -251,8 +245,6 @@ function TripleDESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   Input    待解密密文
   返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
-
-{$ENDIF}
 
 procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: T3DESKey; Dest: TStream); overload;
@@ -578,8 +570,6 @@ begin
     Str := Str + Chr(0);
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 procedure MakeKeyBytesAlign(var Key: TBytes);
 var
   I, Len: Integer;
@@ -606,8 +596,6 @@ begin
       Input[I] := 0;
   end;
 end;
-
-{$ENDIF}
 
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
@@ -793,8 +781,6 @@ begin
   DESDecryptECBStr(Key, Str, @(Result[1]));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 var
   StrByte, OutByte: TDESBuffer;
@@ -930,8 +916,6 @@ begin
     Move(TV[0], Vector[0], SizeOf(TDESIv));
   end;
 end;
-
-{$ENDIF}
 
 procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TDESKey; Dest: TStream); overload;
@@ -1151,8 +1135,6 @@ begin
   end;
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 procedure Make3DESKeys(Keys: TBytes; var K1, K2, K3: TDESKey); overload;
 var
   I, Len: Integer;
@@ -1172,8 +1154,6 @@ begin
     K3[I] := Ord(Keys[I + DES_KEYSIZE * 2]);
   end;
 end;
-
-{$ENDIF}
 
 procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 var
@@ -1341,8 +1321,6 @@ begin
   TripleDESDecryptECBStr(Key, Str, @(Result[1]));
 end;
 
-{$IFDEF TBYTES_DEFINED}
-
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 var
   StrByte, OutByte: TDESBuffer;
@@ -1492,8 +1470,6 @@ begin
     Move(TV[0], Vector[0], SizeOf(TDESIv));
   end;
 end;
-
-{$ENDIF}
 
 procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: T3DESKey; Dest: TStream); overload;
