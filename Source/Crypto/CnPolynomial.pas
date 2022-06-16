@@ -2594,7 +2594,8 @@ begin
         Int64PolynomialMul(Res, Res, T);
 
       Exponent := Exponent shr 1;
-      Int64PolynomialMul(T, T, T);
+      if Exponent > 0 then
+        Int64PolynomialMul(T, T, T);
     end;
     Result := True;
   finally
@@ -5221,13 +5222,14 @@ begin
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetOne;
-    while not E.IsNegative and not E.IsZero do
+    while not E.IsZero do // E 大于 0 无需判断
     begin
       if BigNumberIsBitSet(E, 0) then
         BigNumberPolynomialMul(Res, Res, T);
 
       BigNumberShiftRightOne(E, E);
-      BigNumberPolynomialMul(T, T, T);
+      if not E.IsZero then // 最后一次无需乘了
+        BigNumberPolynomialMul(T, T, T);
     end;
     Result := True;
   finally
@@ -7842,7 +7844,8 @@ begin
         Int64BiPolynomialMul(Res, Res, T);
 
       Exponent := Exponent shr 1;
-      Int64BiPolynomialMul(T, T, T);
+      if Exponent > 0 then
+        Int64BiPolynomialMul(T, T, T);
     end;
     Result := True;
   finally
@@ -9167,13 +9170,14 @@ begin
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetOne;
-    while not E.IsNegative and not E.IsZero do
+    while not E.IsZero do
     begin
       if BigNumberIsBitSet(E, 0) then
         BigNumberBiPolynomialMul(Res, Res, T);
 
       BigNumberShiftRightOne(E, E);
-      BigNumberBiPolynomialMul(T, T, T);
+      if not E.IsZero then // 最后一次不用乘了
+        BigNumberBiPolynomialMul(T, T, T);
     end;
     Result := True;
   finally

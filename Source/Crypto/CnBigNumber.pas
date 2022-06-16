@@ -756,7 +756,7 @@ function BigNumberPowerWordMod(const Res: TCnBigNumber; A: TCnBigNumber; B: TCnL
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod}
 
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
-{* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
+{* 滑动窗口法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十}
 
 function BigNumberMontgomeryPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用}
@@ -4506,7 +4506,8 @@ begin
         BigNumberMul(Res, Res, T);
 
       Exponent := Exponent shr 1;
-      BigNumberMul(T, T, T);
+      if Exponent > 0 then // 最后等于 0 时要跳出，不需要多乘一次了
+        BigNumberMul(T, T, T);
     end;
     Result := True;
   finally
