@@ -3043,7 +3043,8 @@ begin
         Int64PolynomialGaloisMul(Res, Res, T, Prime, Primitive);
 
       ExponentShiftRightOne(Exponent, ExponentHi);
-      Int64PolynomialGaloisMul(T, T, T, Prime, Primitive);
+      if not Exponent128IsZero(Exponent, ExponentHi) then
+        Int64PolynomialGaloisMul(T, T, T, Prime, Primitive);
     end;
     Result := True;
   finally
@@ -5707,13 +5708,14 @@ begin
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetOne;
-    while not E.IsNegative and not E.IsZero do
+    while not E.IsZero do
     begin
       if BigNumberIsBitSet(E, 0) then
         BigNumberPolynomialGaloisMul(Res, Res, T, Prime, Primitive);
 
       BigNumberShiftRightOne(E, E);
-      BigNumberPolynomialGaloisMul(T, T, T, Prime, Primitive);
+      if not E.IsZero then
+        BigNumberPolynomialGaloisMul(T, T, T, Prime, Primitive);
     end;
     Result := True;
   finally
@@ -8217,7 +8219,8 @@ begin
         Int64BiPolynomialGaloisMul(Res, Res, T, Prime, Primitive);
 
       ExponentShiftRightOne(Exponent, ExponentHi);
-      Int64BiPolynomialGaloisMul(T, T, T, Prime, Primitive);
+      if not Exponent128IsZero(Exponent, ExponentHi) then
+        Int64BiPolynomialGaloisMul(T, T, T, Prime, Primitive);
     end;
     Result := True;
   finally
@@ -9681,13 +9684,14 @@ begin
   try
     // 二进制形式快速计算 T 的次方，值给 Res
     Res.SetOne;
-    while not E.IsNegative and not E.IsZero do
+    while not E.IsZero do
     begin
       if BigNumberIsBitSet(E, 0) then
         BigNumberBiPolynomialGaloisMul(Res, Res, T, Prime, Primitive);
 
       BigNumberShiftRightOne(E, E);
-      BigNumberBiPolynomialGaloisMul(T, T, T, Prime, Primitive);
+      if not E.IsZero then
+        BigNumberBiPolynomialGaloisMul(T, T, T, Prime, Primitive);
     end;
     Result := True;
   finally
