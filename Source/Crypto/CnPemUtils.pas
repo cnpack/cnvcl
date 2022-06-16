@@ -48,7 +48,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnRandom, CnKDF, CnBase64, CnAES, CnDES;
+  SysUtils, Classes, CnNativeDecl, CnRandom, CnKDF, CnBase64, CnAES, CnDES;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
