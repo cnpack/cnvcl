@@ -42,6 +42,7 @@ del /S %1*.ppu%2%3%4
 del /S %1*.compiled%2%3%4
 del /S %1*.or%2%3%4
 del /S %1*.o%2%3%4
+del /S %1*.rsj%2%3%4
 
 for /r . %%a in (__history\) do @if exist "%%a" rd /s /q "%%a"
 for /r . %%a in (__recovery\) do @if exist "%%a" rd /s /q "%%a"
