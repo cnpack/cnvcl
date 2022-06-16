@@ -61,6 +61,7 @@
       ..\..\Source\Crypto\CnDFT.obj 
       ..\..\Source\Crypto\CnECC.obj 
       ..\..\Source\Crypto\CnFEC.obj 
+      ..\..\Source\Crypto\CnInt128.obj 
       ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Crypto\CnNativeDecl.obj 

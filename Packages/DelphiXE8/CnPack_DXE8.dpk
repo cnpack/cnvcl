@@ -108,6 +108,7 @@ contains
   CnDFT in '..\..\Source\Crypto\CnDFT.pas',
   CnECC in '..\..\Source\Crypto\CnECC.pas',
   CnFEC in '..\..\Source\Crypto\CnFEC.pas',
+  CnInt128 in '..\..\Source\Crypto\CnInt128.pas',
   CnKDF in '..\..\Source\Crypto\CnKDF.pas',
   CnMD5 in '..\..\Source\Crypto\CnMD5.pas',
   CnNativeDecl in '..\..\Source\Crypto\CnNativeDecl.pas',
