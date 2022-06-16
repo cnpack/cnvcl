@@ -98,6 +98,8 @@ type
     rbCollC1C3C2: TRadioButton;
     rbC1C3C2: TRadioButton;
     rbC1C2C3: TRadioButton;
+    btnSm2SignTime: TButton;
+    btnSM2VerifyTime: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -124,6 +126,8 @@ type
     procedure btnSM2CollEncryptFileClick(Sender: TObject);
     procedure btnSM2CollEncryptClick(Sender: TObject);
     procedure btnSM2CollDecryptClick(Sender: TObject);
+    procedure btnSm2SignTimeClick(Sender: TObject);
+    procedure btnSM2VerifyTimeClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -1168,6 +1172,89 @@ begin
   PrivateKeyA.Free;
   EnStream.Free;
   DeStream.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSm2SignTimeClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+  I: Integer;
+  T: Cardinal;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPrivateKeyStr(edtSM2PrivateKey) then
+    Exit;
+
+  if not FileExists(edtSM2FileSign.Text) then
+    Exit;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PrivateKey := TCnEccPrivateKey.Create;
+  PrivateKey.SetHex(edtSM2PrivateKey.Text);
+
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2FileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+
+  T := GetTickCount;
+  for I := 1 to 1000 do
+    CnSM2SignData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+      PrivateKey, PublicKey, SM2);
+  T := GetTickCount - T;
+
+  mmoSignResult.Lines.Text := SignRes.ToHex;
+  ShowMessage('Sign 1000 Time: ' + IntToStr(T));  // 常规仿射坐标计算下，签名一千次要二十秒，一次 20 毫秒
+                                                  // 改成预计算 2^K 点后，6.5 秒，一次 6.5 毫秒
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
+  PrivateKey.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2VerifyTimeClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+  I: Integer;
+  T: Cardinal;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKey) then
+    Exit;
+
+  if not FileExists(edtSM2FileSign.Text) then
+    Exit;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKey.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2FileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+  SignRes.SetHex(mmoSignResult.Lines.Text);
+
+  T := GetTickCount;
+  for I := 1 to 1000 do
+    CnSM2VerifyData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+      PublicKey, SM2);
+  T := GetTickCount - T;
+
+  ShowMessage('Verify 1000 Time: ' + IntToStr(T));  // 常规仿射坐标计算下，验证一千次要三十五秒，一次 35 毫秒
+                                                    // 改成预计算 2^K 点后，24 秒，一次 24 毫秒
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
   SM2.Free;
 end;
 

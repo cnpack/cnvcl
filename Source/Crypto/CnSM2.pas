@@ -35,7 +35,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.01 V1.5
+* 修改记录：2022.06.16 V1.5
+*               使用预计算 2 次幂点来加速 SM2 点乘计算
+*           2022.06.01 V1.5
 *               增加简易的协同解密与签名的实现
 *           2022.05.27 V1.4
 *               增加文件加解密的实现
@@ -55,7 +57,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnECC, CnBigNumber, CnConsts, CnSM3;
+  SysUtils, Classes, Contnrs, CnECC, CnBigNumber, CnConsts, CnSM3;
 
 const
   CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits
@@ -81,6 +83,9 @@ type
   {* SM2 椭圆曲线运算类，具体实现在指定曲线类型的基类 TCnEcc 中}
   public
     constructor Create; override;
+
+    procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); override;
+    {* 使用预计算的仿射坐标点进行加速}
   end;
 
   TCnSM2Signature = class(TCnEccSignature);
@@ -256,6 +261,9 @@ implementation
 uses
   CnKDF;
 
+var
+  FSM2AffineGPower2KList: TObjectList = nil; // SM2 的 G 点的预计算坐标，第 n 个表示 2^n 次方倍点
+
 {* X <= 2^W + (x and (2^W - 1) 表示把 x 的第 W 位置 1，第 W + 1 及以上全塞 0
    简而言之就是取 X 的低 W 位并保证再一位的第 W 位是 1，位从 0 开始数
   其中 W 是 N 的 BitsCount 的一半少点儿，该函数用于密钥交换
@@ -271,6 +279,62 @@ begin
 end;
 
 { TCnSM2 }
+
+procedure TCnSM2.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+var
+  I: Integer;
+  E, R: TCnEcc3Point;
+  IsG: Boolean;
+begin
+  if BigNumberIsNegative(K) then
+  begin
+    BigNumberSetNegative(K, False);
+    AffinePointInverse(Point);
+  end;
+
+  if BigNumberIsZero(K) then
+  begin
+    Point.X.SetZero;
+    Point.Y.SetZero;
+    Point.Z.SetZero;
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  IsG := Point.Z.IsOne and BigNumberEqual(Point.X, Generator.X) and BigNumberEqual(Point.Y, Generator.Y);
+
+  R := nil;
+  E := nil;
+
+  try
+    R := TCnEcc3Point.Create;
+    E := TCnEcc3Point.Create;
+
+    E.X := Point.X;
+    E.Y := Point.Y;
+    E.Z := Point.Z;
+
+    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    begin
+      if BigNumberIsBitSet(K, I) then
+        AffinePointAddPoint(R, E, R);
+
+      // 如果 P 是 G 点，则无需点加，直接取出
+      if IsG and (I < FSM2AffineGPower2KList.Count - 1) then
+        E.Assign(TCnEcc3Point(FSM2AffineGPower2KList[I + 1]))
+      else // 如果此次没有预置点，则 E 自加
+        AffinePointAddPoint(E, E, E);
+    end;
+
+    Point.X := R.X;
+    Point.Y := R.Y;
+    Point.Z := R.Z;
+  finally
+    R.Free;
+    E.Free;
+  end;
+end;
 
 constructor TCnSM2.Create;
 begin
@@ -1822,14 +1886,55 @@ begin
         _CnSetLastError(ECN_SM2_OK);
       end;
     end;
-
-
-
   finally
     if SM2IsNil then
       SM2.Free;
   end;
 end;
+
+procedure CheckPrePower2Points;
+var
+  SM2: TCnSM2;
+  P, Q: TCnEcc3Point;
+  I: Integer;
+begin
+  if FSM2AffineGPower2KList.Count > 0 then
+    Exit;
+
+  SM2 := TCnSM2.Create;
+  try
+    P := TCnEcc3Point.Create;
+    CnEccPointToEcc3Point(SM2.Generator, P);
+
+    FSM2AffineGPower2KList.Add(P);      // 第 0 个是 2 的 0 次方也就是 1 倍就是自身
+    for I := 1 to 255 do
+    begin
+      Q := TCnEcc3Point.Create;
+      SM2.AffinePointAddPoint(P, P, Q); // Q 变成 2P
+      FSM2AffineGPower2KList.Add(Q);    // 加入列表
+      P.Assign(Q);                      // P 变成 2P 准备下次循环
+    end;
+  finally
+    SM2.Free;
+  end;
+end;
+
+procedure InitSM2;
+begin
+  FSM2AffineGPower2KList := TObjectList.Create(True);
+  CheckPrePower2Points;
+end;
+
+procedure FintSM2;
+begin
+  FSM2AffineGPower2KList.Free;
+end;
+
+initialization
+  InitSM2;
+
+finalization
+  FintSM2;
 
 end.
 

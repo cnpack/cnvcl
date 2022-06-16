@@ -278,6 +278,24 @@ object FormSM2: TFormSM2
           TabOrder = 8
           OnClick = btnVerifyFileClick
         end
+        object btnSm2SignTime: TButton
+          Left = 240
+          Top = 272
+          Width = 281
+          Height = 25
+          Caption = 'Sign Time'
+          TabOrder = 9
+          OnClick = btnSm2SignTimeClick
+        end
+        object btnSM2VerifyTime: TButton
+          Left = 536
+          Top = 272
+          Width = 129
+          Height = 25
+          Caption = 'Verify Time'
+          TabOrder = 10
+          OnClick = btnSM2VerifyTimeClick
+        end
       end
     end
     object tsKeyExchange: TTabSheet

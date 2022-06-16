@@ -311,9 +311,9 @@ type
     procedure JacobianPointSubPoint(P, Q, Diff: TCnEcc3Point);
     {* 使用雅可比坐标系进行点减，避免取模拟元导致的开销}
 
-    procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+    procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); virtual;
     {* 使用仿射坐标系进行点乘，避免取模拟元导致的开销}
-    procedure JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+    procedure JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); virtual;
     {* 使用雅可比坐标系进行点乘，避免取模拟元导致的开销}
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
