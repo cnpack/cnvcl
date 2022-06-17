@@ -644,6 +644,9 @@ function CnEcc3PointToString(const P: TCnEcc3Point): string;
 function CnEcc3PointToHex(const P: TCnEcc3Point): string;
 {* 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
 
+function CnEcc3PointEqual(P1, P2: TCnEcc3Point): Boolean;
+{* 判断两个 TCnEcc3Point 点是否相等，暂时只判断值，不做 Z 的除法}
+
 function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
 
@@ -1087,6 +1090,16 @@ end;
 function CnEcc3PointToHex(const P: TCnEcc3Point): string;
 begin
   Result := Format('%s,%s,%s', [P.X.ToHex, P.Y.ToHex, P.Z.ToHex]);
+end;
+
+// 判断两个 TCnEcc3Point 点是否相等，暂时只判断值，不做 Z 的除法
+function CnEcc3PointEqual(P1, P2: TCnEcc3Point): Boolean;
+begin
+  if P1 = P2 then
+    Result := True
+  else
+    Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0)
+      and (BigNumberCompare(P1.Z, P2.Z) = 0);
 end;
 
 // 将一个 TCnPolynomialEccPoint 点坐标转换为字符串
@@ -7136,8 +7149,8 @@ end;
 
 procedure TCnEcc3Point.SetZero;
 begin
-  X.SetOne;
-  Y.SetOne;
+  X.SetZero;
+  Y.SetZero;
   Z.SetZero;
 end;
 
