@@ -361,7 +361,7 @@ begin
         end;
       end;
     end
-    else // 不是 G 点，常规加
+    else // 不是 G 点，常规加（验证签名时常用，也需要加速）
     begin
       for I := 0 to C - 1 do
       begin

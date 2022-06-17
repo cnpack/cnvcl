@@ -34,7 +34,7 @@ object FormSM2: TFormSM2
     Top = 88
     Width = 914
     Height = 449
-    ActivePage = tsTest
+    ActivePage = tsEncDec
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
     object tsEncDec: TTabSheet
