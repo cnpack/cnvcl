@@ -35,8 +35,8 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.16 V1.5
-*               使用预计算 2 次幂点来加速 SM2 点乘计算
+* 修改记录：2022.06.17 V1.5
+*               使用预计算 2 次幂点以及基于 16 的固定基来加速 SM2 点乘计算
 *           2022.06.01 V1.5
 *               增加简易的协同解密与签名的实现
 *           2022.05.27 V1.4
@@ -263,6 +263,7 @@ uses
 
 var
   FSM2AffineGPower2KList: TObjectList = nil; // SM2 的 G 点的预计算坐标，第 n 个表示 2^n 次方倍点
+  FSM2AffinePreMatrix: TCnEcc3Matrix = nil;  // SM2 的 G 点的 2^4 固定基预计算坐标，第 Row 行第 Col 列的值是 Col * (2^4)^Row 倍点
 
 {* X <= 2^W + (x and (2^W - 1) 表示把 x 的第 W 位置 1，第 W + 1 及以上全塞 0
    简而言之就是取 X 的低 W 位并保证再一位的第 W 位是 1，位从 0 开始数
@@ -282,9 +283,10 @@ end;
 
 procedure TCnSM2.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
-  I: Integer;
+  I, C, Row, Col: Integer;
   E, R: TCnEcc3Point;
   IsG: Boolean;
+  M, S, F: TCnBigNumber;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -306,6 +308,9 @@ begin
 
   R := nil;
   E := nil;
+  M := nil;
+  S := nil;
+  F := nil;
 
   try
     R := TCnEcc3Point.Create;
@@ -315,24 +320,68 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    if IsG then
     begin
-      if BigNumberIsBitSet(K, I) then
-        AffinePointAddPoint(R, E, R);
+      // 判断是 G 点的话，可以查表减少乘法与加法次数
+      if C <= BitsCount then
+      begin
+        // 小于 256 的乘数，直接固定基查表加，最多 64 次加法
+        Row := 0;
 
-      // 如果 P 是 G 点，则无需点加，直接取出
-      if IsG and (I < FSM2AffineGPower2KList.Count - 1) then
-        E.Assign(TCnEcc3Point(FSM2AffineGPower2KList[I + 1]))
-      else // 如果此次没有预置点，则 E 自加
-        AffinePointAddPoint(E, E, E);
+        M := TCnBigNumber.Create;
+        S := TCnBigNumber.Create;
+        BigNumberCopy(M, K);
+        F := TCnBigNumber.Create;
+        F.SetHex('F');
+
+        while not M.IsZero do
+        begin
+          BigNumberAnd(S, M, F); // 留下最低四位
+          Col := S.GetWord;
+
+          AffinePointAddPoint(R, FSM2AffinePreMatrix[Row, Col], R);
+          // 第几块，块内几，定位到矩阵元素，累加
+          BigNumberShiftRight(M, M, 4);
+          Inc(Row);
+        end;
+      end
+      else // 大于 256 的，按每个 2 次幂查表点加
+      begin
+        for I := 0 to C - 1 do
+        begin
+          if BigNumberIsBitSet(K, I) then
+            AffinePointAddPoint(R, E, R);
+
+          // P 是 G 点，无需点加，直接取出
+          if I < FSM2AffineGPower2KList.Count - 1 then
+            E.Assign(TCnEcc3Point(FSM2AffineGPower2KList[I + 1]))
+          else if I < C - 1 then // 如果此次没有预置点，则 E 自加，最后一轮不用自加
+            AffinePointAddPoint(E, E, E);
+        end;
+      end;
+    end
+    else // 不是 G 点，常规加
+    begin
+      for I := 0 to C - 1 do
+      begin
+        if BigNumberIsBitSet(K, I) then
+          AffinePointAddPoint(R, E, R);
+
+        if I < C - 1 then // 最后一轮不用自加
+          AffinePointAddPoint(E, E, E);
+      end;
     end;
 
     Point.X := R.X;
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
-    R.Free;
+    F.Free;
+    S.Free;
+    M.Free;
     E.Free;
+    R.Free;
   end;
 end;
 
@@ -1892,17 +1941,21 @@ begin
   end;
 end;
 
-procedure CheckPrePower2Points;
+procedure CheckPrePoints;
+const
+  M_WIDTH = 4;
 var
   SM2: TCnSM2;
   P, Q: TCnEcc3Point;
-  I: Integer;
+  R, C, I: Integer;
+  MRows, MCols: Integer;
 begin
   if FSM2AffineGPower2KList.Count > 0 then
     Exit;
 
   SM2 := TCnSM2.Create;
   try
+    // 创建预计算的 2^n 列表
     P := TCnEcc3Point.Create;
     CnEccPointToEcc3Point(SM2.Generator, P);
 
@@ -1914,6 +1967,35 @@ begin
       FSM2AffineGPower2KList.Add(Q);    // 加入列表
       P.Assign(Q);                      // P 变成 2P 准备下次循环
     end;
+
+    // 创建预计算的固定基矩阵
+    if FSM2AffinePreMatrix <> nil then
+      Exit;
+
+    MRows := SM2.BitsCount div M_WIDTH;
+    MCols := 1 shl M_WIDTH;
+
+    FSM2AffinePreMatrix := TCnEcc3Matrix.Create(MRows, MCols);
+    CnEccPointToEcc3Point(SM2.Generator, P); // P 拿到射影 G
+    FSM2AffinePreMatrix.ValueObject[0, 0].SetZero;
+
+    // 算第 0 行的倍点
+    for C := 0 to MCols - 2 do
+      SM2.AffinePointAddPoint(FSM2AffinePreMatrix.ValueObject[0, C], P,
+        FSM2AffinePreMatrix.ValueObject[0, C + 1]);
+
+    for R := 1 to MRows - 1 do
+    begin
+      for C := 0 to MCols - 1 do
+      begin
+        SM2.AffinePointAddPoint(FSM2AffinePreMatrix.ValueObject[R - 1, C],
+          FSM2AffinePreMatrix.ValueObject[R - 1, C], FSM2AffinePreMatrix.ValueObject[R, C]);
+        for I := 1 to M_WIDTH - 1 do
+          SM2.AffinePointAddPoint(FSM2AffinePreMatrix.ValueObject[R, C],
+            FSM2AffinePreMatrix.ValueObject[R, C], FSM2AffinePreMatrix.ValueObject[R, C]);
+          // 自加二次 = 乘以 4，自加四次 = 乘以 16
+      end;
+    end;
   finally
     SM2.Free;
   end;
@@ -1922,11 +2004,12 @@ end;
 procedure InitSM2;
 begin
   FSM2AffineGPower2KList := TObjectList.Create(True);
-  CheckPrePower2Points;
+  CheckPrePoints;
 end;
 
 procedure FintSM2;
 begin
+  FSM2AffinePreMatrix.Free;
   FSM2AffineGPower2KList.Free;
 end;
 
