@@ -644,8 +644,9 @@ function CnEcc3PointToString(const P: TCnEcc3Point): string;
 function CnEcc3PointToHex(const P: TCnEcc3Point): string;
 {* 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
 
-function CnEcc3PointEqual(P1, P2: TCnEcc3Point): Boolean;
-{* 判断两个 TCnEcc3Point 点是否相等，暂时只判断值，不做 Z 的除法}
+function CnAffineEcc3PointEqual(P1, P2: TCnEcc3Point; Prime: TCnBigNumber = nil): Boolean;
+{* 判断两个 TCnEcc3Point 点是否相等，如 Prime 为 nil 则只判断值，不做 Z 的除法
+  否则根据射影坐标点计算判断}
 
 function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
@@ -1093,13 +1094,55 @@ begin
 end;
 
 // 判断两个 TCnEcc3Point 点是否相等，暂时只判断值，不做 Z 的除法
-function CnEcc3PointEqual(P1, P2: TCnEcc3Point): Boolean;
+function CnAffineEcc3PointEqual(P1, P2: TCnEcc3Point; Prime: TCnBigNumber): Boolean;
+var
+  T1, T2, Z1, Z2: TCnBigNumber;
 begin
   if P1 = P2 then
     Result := True
   else
+  begin
     Result := (BigNumberCompare(P1.X, P2.X) = 0) and (BigNumberCompare(P1.Y, P2.Y) = 0)
       and (BigNumberCompare(P1.Z, P2.Z) = 0);
+    if Result or (Prime = nil) then
+      Exit;
+
+    // 算 X/Z 和 Y/Z 是否相等
+    Z1 := nil;
+    Z2 := nil;
+    T1 := nil;
+    T2 := nil;
+
+    try
+      Z1 := FEccBigNumberPool.Obtain;
+      Z2 := FEccBigNumberPool.Obtain;
+
+      BigNumberModularInverse(Z1, P1.Z, Prime);
+      BigNumberModularInverse(Z2, P2.Z, Prime);
+
+      T1 := FEccBigNumberPool.Obtain;
+      T2 := FEccBigNumberPool.Obtain;
+
+      BigNumberDirectMulMod(T1, P1.X, Z1, Prime);
+      BigNumberDirectMulMod(T2, P2.X, Z2, Prime);
+
+      if not BigNumberEqual(T1, T2) then // X 不等
+        Exit;
+
+      BigNumberDirectMulMod(T1, P1.Y, Z1, Prime);
+      BigNumberDirectMulMod(T2, P2.Y, Z2, Prime);
+
+      if not BigNumberEqual(T1, T2) then // Y 不等
+        Exit;
+
+      Result := True;
+    finally
+      FEccBigNumberPool.Recycle(T2);
+      FEccBigNumberPool.Recycle(T1);
+      FEccBigNumberPool.Recycle(Z2);
+      FEccBigNumberPool.Recycle(Z1);
+    end;
+  end;
 end;
 
 // 将一个 TCnPolynomialEccPoint 点坐标转换为字符串
