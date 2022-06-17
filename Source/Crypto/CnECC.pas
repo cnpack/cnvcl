@@ -76,7 +76,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
-  CnNativeDecl, CnPrimeNumber, CnBigNumber,
+  CnNativeDecl, CnPrimeNumber, CnBigNumber, CnMatrix,
   CnPolynomial, CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const
@@ -232,11 +232,17 @@ type
 
     procedure Assign(Source: TPersistent); override;
 
+    function IsZero: Boolean;
+    {* 是否为无穷远点也即 0 点}
+    procedure SetZero;
+    {* 设为无穷远点也即 0 点}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ELSE} virtual; {$ENDIF}
 
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
     property Z: TCnBigNumber read FZ write SetZ;
+    {* Z 如果为 0 则表示是无穷远点}
   end;
 
   TCnEccPublicKey = class(TCnEccPoint);
@@ -371,6 +377,36 @@ type
 
   TCnEccKeyType = (cktPKCS1, cktPKCS8);
   {* ECC 密钥文件格式}
+
+  TCnEcc2Matrix = class(TCn2DObjectList)
+  {* 容纳 TCnEccPoint 的二维数组对象}
+  private
+    function GetValueObject(Row, Col: Integer): TCnEccPoint;
+    procedure SetValueObject(Row, Col: Integer; const Value: TCnEccPoint);
+
+  protected
+
+  public
+    constructor Create(ARow, ACol: Integer); override;
+
+    property ValueObject[Row, Col: Integer]: TCnEccPoint read GetValueObject write SetValueObject; default;
+    {* 二维数组值}
+  end;
+
+  TCnEcc3Matrix = class(TCn2DObjectList)
+  {* 容纳 TCnEcc3Point 的二维数组对象}
+  private
+    function GetValueObject(Row, Col: Integer): TCnEcc3Point;
+    procedure SetValueObject(Row, Col: Integer; const Value: TCnEcc3Point);
+
+  protected
+
+  public
+    constructor Create(ARow, ACol: Integer); override;
+
+    property ValueObject[Row, Col: Integer]: TCnEcc3Point read GetValueObject write SetValueObject; default;
+    {* 二维数组值}
+  end;
 
   TCnInt64PolynomialEccPoint = class(TPersistent)
   {* 有限扩域上的椭圆曲线上的多项式点描述类}
@@ -7078,6 +7114,11 @@ begin
   inherited;
 end;
 
+function TCnEcc3Point.IsZero: Boolean;
+begin
+  Result := Z.IsZero;
+end;
+
 procedure TCnEcc3Point.SetX(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FX, Value);
@@ -7091,6 +7132,13 @@ end;
 procedure TCnEcc3Point.SetZ(const Value: TCnBigNumber);
 begin
   BigNumberCopy(FZ, Value);
+end;
+
+procedure TCnEcc3Point.SetZero;
+begin
+  X.SetOne;
+  Y.SetOne;
+  Z.SetZero;
 end;
 
 function TCnEcc3Point.ToString: string;
@@ -7141,6 +7189,52 @@ end;
 function TCnEccSignature.ToHex(FixedLen: Integer): string;
 begin
   Result := FR.ToHex(FixedLen) + FS.ToHex(FixedLen);
+end;
+
+{ TCnEcc2Matrix }
+
+constructor TCnEcc2Matrix.Create(ARow, ACol: Integer);
+var
+  I, J: Integer;
+begin
+  inherited;
+  for I := 0 to RowCount - 1 do
+    for J := 0 to ColCount - 1 do
+      ValueObject[I, J] := TCnEccPoint.Create;
+end;
+
+function TCnEcc2Matrix.GetValueObject(Row, Col: Integer): TCnEccPoint;
+begin
+  Result := TCnEccPoint(inherited GetValueObject(Row, Col));
+end;
+
+procedure TCnEcc2Matrix.SetValueObject(Row, Col: Integer;
+  const Value: TCnEccPoint);
+begin
+  inherited SetValueObject(Row, Col, Value);
+end;
+
+{ TCnEcc3Matrix }
+
+constructor TCnEcc3Matrix.Create(ARow, ACol: Integer);
+var
+  I, J: Integer;
+begin
+  inherited;
+  for I := 0 to RowCount - 1 do
+    for J := 0 to ColCount - 1 do
+      ValueObject[I, J] := TCnEcc3Point.Create;
+end;
+
+function TCnEcc3Matrix.GetValueObject(Row, Col: Integer): TCnEcc3Point;
+begin
+  Result := TCnEcc3Point(inherited GetValueObject(Row, Col));
+end;
+
+procedure TCnEcc3Matrix.SetValueObject(Row, Col: Integer;
+  const Value: TCnEcc3Point);
+begin
+  inherited SetValueObject(Row, Col, Value);
 end;
 
 initialization

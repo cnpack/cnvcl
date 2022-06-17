@@ -185,19 +185,20 @@ type
   end;
 
   TCn2DObjectList = class
-  {* 二维对象数组}
+  {* 二维对象数组，拥有其中的对象}
   private
     FRowCount: Integer;
     FColCount: Integer;
     FRows: TObjectList;
     function GetColCount: Integer;
     function GetRowCount: Integer;
-    function GetValueObject(Row, Col: Integer): TObject;
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
+  protected
+    function GetValueObject(Row, Col: Integer): TObject;
     procedure SetValueObject(Row, Col: Integer; const Value: TObject); // 一组 TObjectList
   public
-    constructor Create(ARow, ACol: Integer);
+    constructor Create(ARow, ACol: Integer); virtual;
     destructor Destroy; override;
 
     procedure DeleteRow(Row: Integer);

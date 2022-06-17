@@ -894,6 +894,8 @@ function BigNumberDebugDump(const Num: TCnBigNumber): string;
 function BigNumberRawDump(const Num: TCnBigNumber; Mem: Pointer = nil): Integer;
 {* 将大数内部信息原封不动 Dump 至 Mem 所指的内存区，如果 Mem 传 nil，则返回所需的字节长度}
 
+// ========================= 稀疏大数列表操作函数 ==============================
+
 function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
 {* 判断 SparseBigNumberList 是否为 0，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理}
 
