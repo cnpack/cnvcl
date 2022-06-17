@@ -100,6 +100,8 @@ type
     rbC1C2C3: TRadioButton;
     btnSm2SignTime: TButton;
     btnSM2VerifyTime: TButton;
+    tsTest: TTabSheet;
+    btnSM2CreateMatrix: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -128,6 +130,7 @@ type
     procedure btnSM2CollDecryptClick(Sender: TObject);
     procedure btnSm2SignTimeClick(Sender: TObject);
     procedure btnSM2VerifyTimeClick(Sender: TObject);
+    procedure btnSM2CreateMatrixClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -1212,6 +1215,7 @@ begin
   mmoSignResult.Lines.Text := SignRes.ToHex;
   ShowMessage('Sign 1000 Time: ' + IntToStr(T));  // 常规仿射坐标计算下，签名一千次要二十秒，一次 20 毫秒
                                                   // 改成预计算 2^K 点后，6.5 秒，一次 6.5 毫秒
+                                                  // 改成预计算 2^4 的固定基后，4 秒，一次 4 毫秒
   SignRes.Free;
   FileStream.Free;
   PublicKey.Free;
@@ -1252,9 +1256,117 @@ begin
 
   ShowMessage('Verify 1000 Time: ' + IntToStr(T));  // 常规仿射坐标计算下，验证一千次要三十五秒，一次 35 毫秒
                                                     // 改成预计算 2^K 点后，24 秒，一次 24 毫秒
+                                                    // 改成预计算 2^4 的固定基后，21 秒，一次 21 毫秒
   SignRes.Free;
   FileStream.Free;
   PublicKey.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2CreateMatrixClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  Matrix: TCnEcc3Matrix;
+  MWidth, MRows, MCols: Integer;
+  R, C, I: Integer;
+  P: TCnEcc3Point;
+  Q: TCnEccPoint;
+  T: Cardinal;
+  K, Mask, S: TCnBigNumber;
+begin
+  SM2 := TCnSM2.Create;
+  P := TCnEcc3Point.Create;
+
+  MWidth := 4; // 如果改成 2，则下面 AffinePointAddPoint 会少加两次
+
+  MRows := 256 div MWidth;
+  MCols := 1 shl MWidth;
+
+  Matrix := TCnEcc3Matrix.Create(MRows, MCols);
+
+  T := GetTickCount;
+
+  // 第 0 Row 的第 0 到 15 Col 分别是  Col * G
+  CnEccPointToEcc3Point(SM2.Generator, P); // P 拿到射影 G
+  Matrix.ValueObject[0, 0].SetZero;
+
+  for C := 0 to MCols - 2 do
+    SM2.AffinePointAddPoint(Matrix.ValueObject[0, C], P, Matrix.ValueObject[0, C + 1]);
+
+  for R := 1 to MRows - 1 do
+  begin
+    for C := 0 to MCols - 1 do
+    begin
+      SM2.AffinePointAddPoint(Matrix.ValueObject[R - 1, C], Matrix.ValueObject[R - 1, C], Matrix.ValueObject[R, C]);
+      for I := 1 to MWidth - 1 do
+        SM2.AffinePointAddPoint(Matrix.ValueObject[R, C], Matrix.ValueObject[R, C], Matrix.ValueObject[R, C]);
+        // 自加二次 = 乘以 4，自加四次 = 乘以 16
+    end;
+  end;
+
+  T := GetTickCount - T; // Width 是 4 时耗时 200 毫秒左右，是 2 时 50 毫秒左右
+
+  ShowMessage('Create Matrix Time: ' + IntToStr(T));
+
+  // 验证 [Row, Col] 的值是 Col * (2^Width)^Row，其中 Row 是第 Row 片，Col 是该片值（片宽 Width）
+  K := TCnBigNumber.Create;
+  for R := 0 to MRows - 1 do
+  begin
+    for C := 0 to MCols - 1 do
+    begin
+      K.SetOne;
+      K.ShiftLeft(MWidth * R);
+      K.MulWord(C);
+
+      CnEccPointToEcc3Point(SM2.Generator, P); // P 拿到射影 G
+      SM2.AffineMultiplePoint(K, P);
+
+      if not CnAffineEcc3PointEqual(P, Matrix.ValueObject[R, C], SM2.FiniteFieldSize) then
+      begin
+        ShowMessage(Format('NOT Equal Row %d, Col %d', [R, C]));
+
+        Matrix.Free;
+        P.Free;
+        SM2.Free;
+        Exit; // 没释放但是先不管
+      end;
+    end;
+  end;
+  ShowMessage('Matrix Verify OK');
+
+  Q := TCnEccPoint.Create;
+
+  // 根据 Matrix 求值
+  K.SetHex('367ABD41981255BFACE42567BEC23456789872BFFFEACD3295');
+  // K.SetHex('3');
+  CnEccPointToEcc3Point(SM2.Generator, P); // P 拿到射影 G
+  SM2.AffineMultiplePoint(K, P);
+  CnAffinePointToEccPoint(P, Q, SM2.FiniteFieldSize);
+  ShowMessage(Q.ToString); // 应该等于下面
+
+  Mask := TCnBigNumber.FromHex('F');
+  S := TCnBigNumber.Create;
+  R := 0;
+  P.SetZero;
+  while not K.IsZero do
+  begin
+    BigNumberAnd(S, K, Mask); // 留下最低四位
+    C := S.GetWord;
+
+    SM2.AffinePointAddPoint(P, Matrix[R, C], P);
+    BigNumberShiftRight(K, K, 4);
+    Inc(R);
+  end;
+
+  CnAffinePointToEccPoint(P, Q, SM2.FiniteFieldSize);
+  ShowMessage(Q.ToString);   // 应该等于上面
+
+  K.Free;
+  S.Free;
+
+  Matrix.Free; // 创建完毕后占大约 200k 内存
+  Q.Free;
+  P.Free;
   SM2.Free;
 end;
 

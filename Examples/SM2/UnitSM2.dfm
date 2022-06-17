@@ -1,6 +1,6 @@
 object FormSM2: TFormSM2
   Left = 293
-  Top = 169
+  Top = 149
   BorderStyle = bsDialog
   Caption = 'SM2 Test'
   ClientHeight = 561
@@ -34,7 +34,7 @@ object FormSM2: TFormSM2
     Top = 88
     Width = 914
     Height = 449
-    ActivePage = tsEncDec
+    ActivePage = tsTest
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
     object tsEncDec: TTabSheet
@@ -671,6 +671,19 @@ object FormSM2: TFormSM2
           TabOrder = 14
           TabStop = True
         end
+      end
+    end
+    object tsTest: TTabSheet
+      Caption = 'Other Test'
+      ImageIndex = 5
+      object btnSM2CreateMatrix: TButton
+        Left = 16
+        Top = 16
+        Width = 193
+        Height = 25
+        Caption = 'Test Create Matrix  and Mul Point'
+        TabOrder = 0
+        OnClick = btnSM2CreateMatrixClick
       end
     end
   end
