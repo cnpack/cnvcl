@@ -492,6 +492,18 @@ function BigNumberModWord(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWor
 function BigNumberDivWord(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
 {* 大数除以一个 DWORD，商重新放在 Num 中，返回余数}
 
+procedure BigNumberAndWord(const Num: TCnBigNumber; W: TCnLongWord32);
+{* 大数与一个 DWORD 做按位与，结果仍放 Num 中，返回按位与是否成功}
+
+procedure BigNumberOrWord(const Num: TCnBigNumber; W: TCnLongWord32);
+{* 大数与一个 DWORD 做按位或，结果仍放 Num 中，返回按位或是否成功}
+
+procedure BigNumberXorWord(const Num: TCnBigNumber; W: TCnLongWord32);
+{* 大数与一个 DWORD 做按位异或，结果仍放 Num 中，返回按位异或是否成功}
+
+function BigNumberAndWordTo(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+{* 大数与一个 DWORD 做按位与，返回低 32 位结果，大数自身不变。注意或、异或不适合}
+
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
 {* 给一个大数对象设置是否负值}
 
@@ -885,8 +897,9 @@ procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Intege
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒}
 
-//function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer): TShortInts;
-{* 返回大数的 Width 宽度的 NAF 非零值不相邻形式，每个字节是有符号一项，绝对值小于 2^(Width-1)，所以 W 最大为 7}
+function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 2): TShortInts;
+{* 返回大数的 Width 宽度（也就是 Width 进制）的 NAF 非零值不相邻形式，
+  每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -3291,6 +3304,42 @@ begin
   if (Num.Top > 0) and (PLongWordArray(Num.D)^[Num.Top - 1] = 0) then
     Dec(Num.Top);
   Result := Result shr J;
+end;
+
+procedure BigNumberAndWord(const Num: TCnBigNumber; W: TCnLongWord32);
+begin
+  if Num.Top >= 1 then
+  begin
+    PLongWordArray(Num.D)^[0] := PLongWordArray(Num.D)^[0] and W;
+    if PLongWordArray(Num.D)^[0] <> 0 then // 32 位以上的都是 0
+      Num.Top := 1
+    else
+      Num.Top := 0;
+  end;
+end;
+
+procedure BigNumberOrWord(const Num: TCnBigNumber; W: TCnLongWord32);
+begin
+  if Num.Top > 0 then
+    PLongWordArray(Num.D)^[0] := PLongWordArray(Num.D)^[0] and W
+  else
+    Num.SetWord(W);
+end;
+
+procedure BigNumberXorWord(const Num: TCnBigNumber; W: TCnLongWord32);
+begin
+  if Num.Top > 0 then // 32 位以上的 xor 0，都不变
+    PLongWordArray(Num.D)^[0] := PLongWordArray(Num.D)^[0] xor W
+  else
+    Num.SetWord(W); // 0 异或 W 等于 W
+end;
+
+function BigNumberAndWordTo(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+begin
+  if Num.Top >= 1 then
+    Result := PLongWordArray(Num.D)^[0] and W
+  else
+    Result := 0;
 end;
 
 {* 大数与 Word 运算系列函数结束}
@@ -6731,6 +6780,50 @@ begin
     FLocalBigNumberPool.Recycle(C);
     FLocalBigNumberPool.Recycle(Q);
     FLocalBigNumberPool.Recycle(BK);
+  end;
+end;
+
+function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer): TShortInts;
+var
+  K: TCnBigNumber;
+  M: TCnLongWord32;
+  I: Integer;
+begin
+  Result := nil;
+  if (Width <= 1) or (Width > 7) then
+    Exit;
+
+  K := nil;
+
+  try
+    K := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(K, N);
+    SetLength(Result, K.GetBitsCount + 1);
+
+    I := 0;
+    M := not ((not 0) shl Width); // 0 到 W-1 位全 1
+
+    while not K.IsZero do
+    begin
+      if K.IsOdd then
+      begin
+        Result[I] := 2 - BigNumberAndWordTo(K, M); // 低几位是 Mod 2^W 值
+        if Result[I] > 0 then
+          K.SubWord(Result[I])
+        else if Result[I] < 0 then // SubWord 的参数是无符号，因而得求负再加
+          K.AddWord(-Result[I]);
+      end
+      else
+        Result[I] := 0;
+
+      Inc(I);
+      K.ShiftRightOne;
+    end;
+
+    if I < Length(Result) then // 去除多余长度
+      SetLength(Result, I);
+  finally
+    FLocalBigNumberPool.Recycle(K);
   end;
 end;
 

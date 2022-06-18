@@ -749,6 +749,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 72
         OnClick = btnBNFieldModInvClick
       end
+      object btnBNNaf: TButton
+        Left = 1040
+        Top = 234
+        Width = 129
+        Height = 25
+        Caption = 'NAF'
+        TabOrder = 73
+        OnClick = btnBNNafClick
+      end
     end
     object tsSparseBigNumberList: TTabSheet
       Caption = 'Sparse BigNumber List'

@@ -101,6 +101,7 @@ type
     btnBNRawDump: TButton;
     btnBNDebugDump: TButton;
     btnBNFieldModInv: TButton;
+    btnBNNaf: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -170,6 +171,7 @@ type
     procedure btnBNDebugDumpClick(Sender: TObject);
     procedure btnBNRawDumpClick(Sender: TObject);
     procedure btnBNFieldModInvClick(Sender: TObject);
+    procedure btnBNNafClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1410,6 +1412,20 @@ begin
   T2 := GetTickCount - T2;
 
   ShowMessage(Format('Modular Inverse: Prime %d, Normal %d', [T1, T2]));
+end;
+
+procedure TFormBigNumber.btnBNNafClick(Sender: TObject);
+var
+  Naf: TShortInts;
+  S: string;
+begin
+  Naf := BigNumberNonAdjanceFormWidth(Num1, 2);
+  ShowMessage(IntToStr(Length(Naf)));
+  if Length(Naf) > 0 then
+  begin
+    S := DataToHex(@Naf[0], Length(Naf), True);
+    ShowMessage(S);
+  end;
 end;
 
 end.
