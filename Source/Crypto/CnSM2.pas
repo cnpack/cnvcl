@@ -286,7 +286,7 @@ var
   I, C, Row, Col: Integer;
   E, R: TCnEcc3Point;
   IsG: Boolean;
-  M, S, F: TCnBigNumber;
+  M: TCnBigNumber;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -309,8 +309,6 @@ begin
   R := nil;
   E := nil;
   M := nil;
-  S := nil;
-  F := nil;
 
   try
     R := TCnEcc3Point.Create;
@@ -330,18 +328,14 @@ begin
         Row := 0;
 
         M := TCnBigNumber.Create;
-        S := TCnBigNumber.Create;
         BigNumberCopy(M, K);
-        F := TCnBigNumber.Create;
-        F.SetHex('F');
 
         while not M.IsZero do
         begin
-          BigNumberAnd(S, M, F); // 留下最低四位
-          Col := S.GetWord;
-
+          Col := BigNumberAndWordTo(M, $000F); // 留下最低四位
           AffinePointAddPoint(R, FSM2AffinePreMatrix[Row, Col], R);
           // 第几块，块内几，定位到矩阵元素，累加
+
           BigNumberShiftRight(M, M, 4);
           Inc(Row);
         end;
@@ -361,7 +355,7 @@ begin
         end;
       end;
     end
-    else // 不是 G 点，常规加（验证签名时常用，也需要加速）
+    else // 不是 G 点，常规加（验证签名时常用，TODO: 也需要加速）
     begin
       for I := 0 to C - 1 do
       begin
@@ -377,8 +371,6 @@ begin
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
-    F.Free;
-    S.Free;
     M.Free;
     E.Free;
     R.Free;
