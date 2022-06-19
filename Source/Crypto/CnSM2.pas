@@ -35,8 +35,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.17 V1.5
-*               使用预计算 2 次幂点以及基于 16 的固定基来加速 SM2 点乘计算
+* 修改记录：2022.06.18 V1.6
+*               使用预计算 2 次幂点以及基于 16 的固定基来加速 SM2 的 G 点标量乘计算
+*               使用 NAF 来加速 SM2 的非 G 点标量乘计算
 *           2022.06.01 V1.5
 *               增加简易的协同解密与签名的实现
 *           2022.05.27 V1.4
@@ -57,7 +58,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, CnECC, CnBigNumber, CnConsts, CnSM3;
+  SysUtils, Classes, Contnrs, CnNativeDecl, CnECC, CnBigNumber, CnConsts, CnSM3;
 
 const
   CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits
@@ -287,6 +288,7 @@ var
   E, R: TCnEcc3Point;
   IsG: Boolean;
   M: TCnBigNumber;
+  Naf: TShortInts;
 begin
   if BigNumberIsNegative(K) then
   begin
@@ -309,6 +311,7 @@ begin
   R := nil;
   E := nil;
   M := nil;
+  Naf := nil;
 
   try
     R := TCnEcc3Point.Create;
@@ -355,22 +358,35 @@ begin
         end;
       end;
     end
-    else // 不是 G 点，常规加（验证签名时常用，TODO: 也需要加速）
+    else // 不是 G 点，常规加（验证签名时常用，改用 NAF 加速，大概少六分之一的点加法）
     begin
-      for I := 0 to C - 1 do
+      // R 初始为 0，E 是原始点
+      Naf := BigNumberNonAdjanceFormWidth(K);
+      for I := High(Naf) downto Low(Naf) do
       begin
-        if BigNumberIsBitSet(K, I) then
-          AffinePointAddPoint(R, E, R);
-
-        if I < C - 1 then // 最后一轮不用自加
-          AffinePointAddPoint(E, E, E);
+        AffinePointAddPoint(R, R, R);
+        if Naf[I] = 1 then
+          AffinePointAddPoint(R, E, R)
+        else if Naf[I] = -1 then
+          AffinePointSubPoint(R, E, R)
       end;
+
+//      原始点乘平均一半，改用 NAF 缩小到大概 1/3
+//      for I := 0 to C - 1 do
+//      begin
+//        if BigNumberIsBitSet(K, I) then
+//          AffinePointAddPoint(R, E, R);
+//
+//        if I < C - 1 then // 最后一轮不用自加
+//          AffinePointAddPoint(E, E, E);
+//      end;
     end;
 
     Point.X := R.X;
     Point.Y := R.Y;
     Point.Z := R.Z;
   finally
+    SetLength(Naf, 0);
     M.Free;
     E.Free;
     R.Free;

@@ -1256,7 +1256,8 @@ begin
 
   ShowMessage('Verify 1000 Time: ' + IntToStr(T));  // 常规仿射坐标计算下，验证一千次要三十五秒，一次 35 毫秒
                                                     // 改成预计算 2^K 点后，24 秒，一次 24 毫秒
-                                                    // 改成预计算 2^4 的固定基后，21 秒，一次 21 毫秒
+                                                    // 改成预计算 2^4 的固定基后，21 秒，一次 21 毫秒（因为验签里有非 G 点标量乘）
+                                                    // 又改成 NAF 以加速公钥点乘后，19 秒，一次 19 毫秒
   SignRes.Free;
   FileStream.Free;
   PublicKey.Free;

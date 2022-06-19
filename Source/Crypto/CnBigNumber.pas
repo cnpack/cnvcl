@@ -897,9 +897,9 @@ procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Intege
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒}
 
-function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 2): TShortInts;
+function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 1): TShortInts;
 {* 返回大数的 Width 宽度（也就是 2^Width 进制）的 NAF 非零值不相邻形式，Width 为 1 时为普通 NAF 形式
-  每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7}
+  Width 1 和 2 等价。每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
