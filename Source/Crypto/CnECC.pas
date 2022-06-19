@@ -2448,7 +2448,7 @@ var
 begin
   if BigNumberIsNegative(K) then
   begin
-    BigNumberSetNegative(K, False);
+    // BigNumberSetNegative(K, False);
     PointInverse(Point);
   end;
 
@@ -2496,7 +2496,7 @@ var
 begin
   if BigNumberIsNegative(K) then
   begin
-    BigNumberSetNegative(K, False);
+    // BigNumberSetNegative(K, False);
     AffinePointInverse(Point);
   end;
 
@@ -2547,7 +2547,7 @@ var
 begin
   if BigNumberIsNegative(K) then
   begin
-    BigNumberSetNegative(K, False);
+    // BigNumberSetNegative(K, False);
     JacobianPointInverse(Point);
   end;
 
