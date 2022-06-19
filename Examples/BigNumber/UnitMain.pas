@@ -1416,15 +1416,34 @@ end;
 
 procedure TFormBigNumber.btnBNNafClick(Sender: TObject);
 var
+  I: Integer;
   Naf: TShortInts;
   S: string;
-begin
-  Naf := BigNumberNonAdjanceFormWidth(Num1, 2);
-  ShowMessage(IntToStr(Length(Naf)));
-  if Length(Naf) > 0 then
+
+  function ShortIntsToStr(SI: TShortInts): string;
+  var
+    J: Integer;
   begin
-    S := DataToHex(@Naf[0], Length(Naf), True);
-    ShowMessage(S);
+    Result := '';
+    for J := High(SI) downto Low(SI) do
+    begin
+      if J = Low(SI) then
+        Result := Result + IntToStr(SI[J])
+      else
+        Result := Result + IntToStr(SI[J]) + ', '
+    end;
+  end;
+
+begin
+  for I := 1 to 7 do // ²âÊÔÊý¾Ý 987654321
+  begin
+    Naf := BigNumberNonAdjanceFormWidth(Num1, I);
+    // ShowMessage(IntToStr(Length(Naf)));
+    if Length(Naf) > 0 then
+    begin
+      S := ShortIntsToStr(Naf);
+      ShowMessage(IntToStr(I) + '(i-0): ' + S);
+    end;
   end;
 end;
 

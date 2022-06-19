@@ -898,7 +898,7 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒}
 
 function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 2): TShortInts;
-{* 返回大数的 Width 宽度（也就是 Width 进制）的 NAF 非零值不相邻形式，
+{* 返回大数的 Width 宽度（也就是 2^Width 进制）的 NAF 非零值不相邻形式，Width 为 1 时为普通 NAF 形式
   每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
@@ -6786,11 +6786,11 @@ end;
 function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer): TShortInts;
 var
   K: TCnBigNumber;
-  M: TCnLongWord32;
+  M, R, B1: TCnLongWord32;
   I: Integer;
 begin
   Result := nil;
-  if (Width <= 1) or (Width > 7) then
+  if (Width < 1) or (Width > 7) then
     Exit;
 
   K := nil;
@@ -6801,13 +6801,27 @@ begin
     SetLength(Result, K.GetBitsCount + 1);
 
     I := 0;
-    M := not ((not 0) shl Width); // 0 到 W-1 位全 1
+    if Width = 1 then
+      M := 3                        // 1 时需要 mod 4，等于保留低 2 位
+    else
+      M := not ((not 0) shl Width); // 0 到 W-1 位全 1
+    B1 := 1 shl (Width - 1);        // 2^(W-1)
 
     while not K.IsZero do
     begin
       if K.IsOdd then
       begin
-        Result[I] := 2 - BigNumberAndWordTo(K, M); // 低几位是 Mod 2^W 值
+        R := BigNumberAndWordTo(K, M); // R 是低几位，也是 Mod 2^W 或 4 的值，但大于 0
+        if Width = 1 then
+          Result[I] := 2 - R
+        else
+        begin
+          if R > B1 then
+            Result[I] := R - B1 - B1   // 低几位是 Mod 2^W 值，再用 2^W 减之
+          else
+            Result[I] := R;
+        end;
+
         if Result[I] > 0 then
           K.SubWord(Result[I])
         else if Result[I] < 0 then // SubWord 的参数是无符号，因而得求负再加
