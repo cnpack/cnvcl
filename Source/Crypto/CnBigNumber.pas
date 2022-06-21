@@ -287,7 +287,10 @@ type
     {* 根据一串十进制字符串给自身赋值}
 
     class function FromDec(const Buf: AnsiString): TCnBigNumber;
-    {* 根据一串十进制字符串产生个新的大数对象}
+    {* 根据一串十进制字符串产生一个新的大数对象}
+
+    class function FromFloat(F: Extended): TCnBigNumber;
+    {* 根据一个浮点数产生一个新的大数对象}
 
     function RawDump(Mem: Pointer = nil): Integer;
     {* Dump 出原始内存内容，返回 Dump 的字节长度。如 Mem 传 nil，只返回所需字节长度}
@@ -409,6 +412,8 @@ type
     {* AOwnsKey 为 True 时，Key 作为持有处理，节点删除时会释放这个 Key 对象
       AOwnsValue 为 True 时，Value 也作为持有处理，节点删除时会释放这个 Value 对象
       注意：设为 True 时，Key 和 Value 不允许传 Object 外的内容}
+
+    function Find(Key: TCnBigNumber): TCnBigNumber;
   end;
 
 function BigNumberNew: TCnBigNumber;
@@ -920,6 +925,9 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 1): TShortInts;
 {* 返回大数的 Width 宽度（也就是 2^Width 进制）的 NAF 非零值不相邻形式，Width 为 1 时为普通 NAF 形式
   Width 1 和 2 等价。每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7}
+
+function BigNumberBigStepGiantStep(const Res: TCnBigNumber; A, B, M: TCnBigNumber): Boolean;
+{* 大步小步算法求离散对数问题 A^X mod M = B 的解 Res，要求 A 和 M 互素}
 
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 {* 打印大数内部信息}
@@ -6861,6 +6869,72 @@ begin
   end;
 end;
 
+// 大步小步算法求离散对数问题 A^X mod M = B 的解 Res，要求 A 和 M 互素
+function BigNumberBigStepGiantStep(const Res: TCnBigNumber; A, B, M: TCnBigNumber): Boolean;
+var
+  Map: TCnBigNumberHashMap;
+  T, C, Q, N, K, V: TCnBigNumber;
+begin
+  Result := False;
+  if A.IsNegative or B.IsNegative or M.IsNegative then
+    Exit;
+
+  T := nil;
+  C := nil;
+  K := nil;
+  Q := nil;
+  N := nil;
+  Map := nil;
+
+  try
+    T := FLocalBigNumberPool.Obtain;
+    BigNumberSqrt(T, M);
+    T.AddWord(1);
+
+    C := FLocalBigNumberPool.Obtain;
+    BigNumberDirectMulMod(C, A, B, M);
+
+    Map := TCnBigNumberHashMap.Create(True, True);
+    K := FLocalBigNumberPool.Obtain;
+    K.SetOne;
+
+    while BigNumberCompare(K, T) < 0 do
+    begin
+      Map.Add(BigNumberDuplicate(C), BigNumberDuplicate(K));
+      BigNumberDirectMulMod(C, A, C, M);
+      K.AddWord(1);
+    end;
+
+    Q := FLocalBigNumberPool.Obtain;
+    BigNumberPowerMod(Q, A, T, M);
+    N := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(N, Q);
+
+    K.SetOne;
+    while BigNumberCompare(K, T) < 0 do
+    begin
+      if Map.HasKey(N) then
+      begin
+        V := Map.Find(N); // V 是引用
+        BigNumberMul(Res, K, T);
+        BigNumberSub(Res, Res, V);
+
+        Result := True;
+        Exit;
+      end;
+      BigNumberDirectMulMod(N, Q, N, M);
+      K.AddWord(1);
+    end;
+  finally
+    FLocalBigNumberPool.Recycle(N);
+    FLocalBigNumberPool.Recycle(Q);
+    FLocalBigNumberPool.Recycle(K);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPool.Recycle(C);
+    Map.Free;
+  end;
+end;
+
 // 打印大数内部信息
 function BigNumberDebugDump(const Num: TCnBigNumber): string;
 var
@@ -7416,6 +7490,11 @@ begin
     Result := Result + Integer(PLongWordArray(D)^[I]);
 end;
 
+class function TCnBigNumber.FromFloat(F: Extended): TCnBigNumber;
+begin
+  Result := BigNumberFromFloat(F);
+end;
+
 { TCnBigNumberList }
 
 function TCnBigNumberList.Add(ABigNumber: TCnBigNumber): Integer;
@@ -7814,6 +7893,11 @@ begin
   end;
 
   inherited;
+end;
+
+function TCnBigNumberHashMap.Find(Key: TCnBigNumber): TCnBigNumber;
+begin
+  Result := TCnBigNumber(inherited Find(Key));
 end;
 
 function TCnBigNumberHashMap.HashCodeFromObject(Obj: TObject): Integer;

@@ -742,7 +742,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNFieldModInv: TButton
         Left = 1040
-        Top = 202
+        Top = 200
         Width = 129
         Height = 25
         Caption = 'Field Modular Inverse'
@@ -751,7 +751,7 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNNaf: TButton
         Left = 1040
-        Top = 234
+        Top = 228
         Width = 129
         Height = 25
         Caption = 'NAF'
@@ -760,12 +760,21 @@ object FormBigNumber: TFormBigNumber
       end
       object btnBNHashMap: TButton
         Left = 1040
-        Top = 266
+        Top = 257
         Width = 129
         Height = 25
         Caption = 'Hash Map'
         TabOrder = 74
         OnClick = btnBNHashMapClick
+      end
+      object btnBSGS: TButton
+        Left = 1040
+        Top = 286
+        Width = 129
+        Height = 25
+        Caption = 'BSGS'
+        TabOrder = 75
+        OnClick = btnBSGSClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

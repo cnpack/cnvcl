@@ -103,6 +103,7 @@ type
     btnBNFieldModInv: TButton;
     btnBNNaf: TButton;
     btnBNHashMap: TButton;
+    btnBSGS: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -174,6 +175,7 @@ type
     procedure btnBNFieldModInvClick(Sender: TObject);
     procedure btnBNNafClick(Sender: TObject);
     procedure btnBNHashMapClick(Sender: TObject);
+    procedure btnBSGSClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1473,6 +1475,33 @@ begin
 
   N.Free;
   Map.Free;
+end;
+
+procedure TFormBigNumber.btnBSGSClick(Sender: TObject);
+var
+  A, B, M, R, T: TCnBigNumber;
+begin
+  A := TCnBigNumber.FromFloat(8723);
+  B := TCnBigNumber.FromFloat(3623);
+  M := TCnBigNumber.FromFloat(65537);
+
+  R := TCnBigNumber.Create;
+
+  if BigNumberBigStepGiantStep(R, A, B, M) then
+    ShowMessage(R.ToDec);
+
+  T := TCnBigNumber.Create;
+  BigNumberPowerMod(T, A, R, M);
+  if BigNumberEqual(T, B) then
+    ShowMessage('Verify OK')
+  else
+    ShowMessage('Verify Fail');
+
+  T.Free;
+  R.Free;
+  M.Free;
+  B.Free;
+  A.Free;
 end;
 
 end.
