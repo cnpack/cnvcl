@@ -28,7 +28,9 @@ unit CnKDF;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.04.26 V1.3
+* 修改记录：2022.06.21 V1.4
+*               合并出一个基于字节数组的 CnSM2SM9KDF 函数，避免 AnsiString 在高版本 Delphi 下可能乱码
+*           2022.04.26 V1.3
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2022.01.02 V1.2
 *               修正 CnPBKDF2 的一处问题以及在 Unicode 下的兼容性问题
@@ -81,6 +83,10 @@ function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): A
 {* SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
   均不支持规范中说的非整字节数，行为可能和上面的 CnSM2KDF 等同，
   同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
+
+function CnSM2SM9KDF(Data: TBytes; DerivedKeyLength: Integer): TBytes;
+{* 字节数组形式的 SM2 椭圆曲线公钥密码算法与 SM9 标识密码算法中规定的密钥派生函数，
+   DerivedKeyLength 是所需的密钥字节数，返回派生的密钥字节数组}
 
 implementation
 
@@ -346,20 +352,19 @@ begin
   Result := Copy(Result, 1, DerivedKeyLength);
 end;
 
+function SwapCardinal(Value: Cardinal): Cardinal;
+begin
+  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
+    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
+end;
+
 function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
 var
-  DArr: array of Byte;
+  DArr: TBytes;
   CT, SCT: Cardinal;
   I, CeilLen: Integer;
   IsInt: Boolean;
   SM3D: TSM3Digest;
-
-  function SwapCardinal(Value: Cardinal): Cardinal;
-  begin
-    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
-  end;
-
 begin
   Result := '';
   if (Data = nil) or (DataLen <= 0) or (DerivedKeyLength <= 0) then
@@ -389,6 +394,51 @@ begin
       end
       else
         Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest) + 1], SizeOf(TSM3Digest));
+
+      Inc(CT);
+    end;
+  finally
+    SetLength(DArr, 0);
+  end;
+end;
+
+function CnSM2SM9KDF(Data: TBytes; DerivedKeyLength: Integer): TBytes;
+var
+  DArr: TBytes;
+  CT, SCT: Cardinal;
+  L, I, CeilLen: Integer;
+  IsInt: Boolean;
+  SM3D: TSM3Digest;
+begin
+  Result := nil;
+  L := Length(Data);
+  if (L <= 0) or (DerivedKeyLength <= 0) then
+    raise ECnKDFException.Create(SCnKDFErrorParam);
+
+  DArr := nil;
+  CT := 1;
+
+  try
+    SetLength(DArr, L + SizeOf(Cardinal));
+    Move(Data[0], DArr[0], L);
+
+    IsInt := DerivedKeyLength mod SizeOf(TSM3Digest) = 0;
+    CeilLen := (DerivedKeyLength + SizeOf(TSM3Digest) - 1) div SizeOf(TSM3Digest);
+
+    SetLength(Result, DerivedKeyLength);
+    for I := 1 to CeilLen do
+    begin
+      SCT := SwapCardinal(CT);  // 虽然文档中没说，但要倒序一下
+      Move(SCT, DArr[L], SizeOf(Cardinal));
+      SM3D := SM3(@DArr[0], Length(DArr));
+
+      if (I = CeilLen) and not IsInt then
+      begin
+        // 是最后一个，不整除 32 时只移动一部分
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest)], (DerivedKeyLength mod SizeOf(TSM3Digest)));
+      end
+      else
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest)], SizeOf(TSM3Digest));
 
       Inc(CT);
     end;
