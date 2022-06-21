@@ -33,9 +33,14 @@ unit CnAES;
 * 单元名称：AES 实现单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：从 EldoS, Alexander Ionov 的单元移植而来，保留原有版权信息
-*           对齐方式均在末尾补 0，单元内部暂不支持 PKCS 之类的，需要外部处理
-* 开发平台：Win 7
-* 修改记录：2021.12.11 V1.2
+*           对齐方式均在末尾补 0，单元内部不支持 PKCS 之类的，如需要，请在外部调用
+*           CnPemUtils 中的 PKCS 处理函数
+*           另外高版本 Delphi 中请尽量避免使用 AnsiString 参数版本的函数（十六进制除外），
+*           避免不可视字符出现乱码影响加解密结果。
+* 开发平台：Delphi5 + Win 7
+* 修改记录：2022.06.21 V1.1
+*               加入几个字节数组到十六进制字符串之间的加解密函数
+*           2021.12.11 V1.2
 *               加入 CFB/OFB 模式的支持
 *           2019.04.15 V1.1
 *               支持 Win32/Win64/MacOS
@@ -272,6 +277,8 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
   const ExpandedKey: TAESExpandedKey256; const InitVector: TAESBuffer;
   Dest: TStream); overload;
 
+// ============== 明文字符串与密文十六进制字符串之间的加解密 ===================
+
 // AES ECB 模式加密字符串并将其转换成十六进制
 function AESEncryptEcbStrToHex(Value: AnsiString; Key: AnsiString;
   KeyBit: TKeyBitType = kbt128): AnsiString;
@@ -304,6 +311,8 @@ function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
 function AESDecryptOfbStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
 
+// ================= 明文字节数组与密文字节数组之间的加解密 ====================
+
 // AES ECB 模式加密字节数组
 function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
 
@@ -327,6 +336,32 @@ function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128
 
 // AES OFB 模式解密字节数组
 function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// ============== 明文字节数组与密文十六进制字符串之间的加解密 =================
+
+// AES ECB 模式加密字节数组并将其转换成十六进制
+function AESEncryptEcbBytesToHex(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES ECB 解密十六进制字符串并返回字节数组
+function AESDecryptEcbBytesFromHex(Value: AnsiString; Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES CBC 模式加密字节数组并将其转换成十六进制
+function AESEncryptCbcBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES CBC 解密十六进制字符串并返回字节数组
+function AESDecryptCbcBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES CFB 模式加密字节数组并将其转换成十六进制
+function AESEncryptCfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES CFB 解密十六进制字符串并返回字节数组
+function AESDecryptCfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+
+// AES OFB 模式加密字节数组并将其转换成十六进制
+function AESEncryptOfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): AnsiString;
+
+// AES OFB 解密十六进制字符串并返回字节数组
+function AESDecryptOfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
 
 implementation
 
@@ -3583,7 +3618,7 @@ end;
 
 // AES CFB 模式加密字符串并将其转换成十六进制
 function AESEncryptCfbStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3625,7 +3660,7 @@ end;
 
 // AES CFB 解密十六进制字符串
 function AESDecryptCfbStrFromHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3671,7 +3706,7 @@ end;
 
 // AES OFB 模式加密字符串并将其转换成十六进制
 function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3713,7 +3748,7 @@ end;
 
 // AES OFB 解密十六进制字符串
 function AESDecryptOfbStrFromHex(Value: AnsiString; Key: AnsiString;
-  const Iv: TAESBuffer; KeyBit: TKeyBitType = kbt128): AnsiString;
+  const Iv: TAESBuffer; KeyBit: TKeyBitType): AnsiString;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3758,7 +3793,7 @@ begin
 end;
 
 // AES ECB 模式加密字节数组
-function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3807,7 +3842,7 @@ begin
 end;
 
 // AES ECB 模式解密字节数组
-function AESDecryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESDecryptEcbBytes(Value, Key: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3857,7 +3892,7 @@ begin
 end;
 
 // AES CBC 模式加密字节数组
-function AESEncryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESEncryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3911,7 +3946,7 @@ begin
 end;
 
 // AES CBC 模式解密字节数组
-function AESDecryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESDecryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -3964,7 +3999,7 @@ begin
 end;
 
 // AES CFB 模式加密字节数组
-function AESEncryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESEncryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -4018,7 +4053,7 @@ begin
 end;
 
 // AES CFB 模式解密字节数组
-function AESDecryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESDecryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -4071,7 +4106,7 @@ begin
 end;
 
 // AES OFB 模式加密字节数组
-function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -4125,7 +4160,7 @@ begin
 end;
 
 // AES OFB 模式解密字节数组
-function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType = kbt128): TBytes;
+function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 var
   SS, DS: TMemoryStream;
   AESKey128: TAESKey128;
@@ -4175,6 +4210,54 @@ begin
     SS.Free;
     DS.Free;
   end;
+end;
+
+// AES ECB 模式加密字节数组并将其转换成十六进制
+function AESEncryptEcbBytesToHex(Value, Key: TBytes; KeyBit: TKeyBitType): AnsiString;
+begin
+  Result := BytesToHex(AESEncryptEcbBytes(Value, Key, KeyBit));
+end;
+
+// AES ECB 解密十六进制字符串并返回字节数组
+function AESDecryptEcbBytesFromHex(Value: AnsiString; Key: TBytes; KeyBit: TKeyBitType): TBytes;
+begin
+  Result := AESDecryptEcbBytes(HexToBytes(Value), Key, KeyBit);
+end;
+
+// AES CBC 模式加密字节数组并将其转换成十六进制
+function AESEncryptCbcBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): AnsiString;
+begin
+  Result := BytesToHex(AESEncryptCbcBytes(Value, Key, Iv, KeyBit));
+end;
+
+// AES CBC 解密十六进制字符串并返回字节数组
+function AESDecryptCbcBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
+begin
+  Result := AESDecryptCbcBytes(HexToBytes(Value), Key, Iv, KeyBit);
+end;
+
+// AES CFB 模式加密字节数组并将其转换成十六进制
+function AESEncryptCfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): AnsiString;
+begin
+  Result := BytesToHex(AESEncryptCfbBytes(Value, Key, Iv, KeyBit));
+end;
+
+// AES CFB 解密十六进制字符串并返回字节数组
+function AESDecryptCfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
+begin
+  Result := AESDecryptCfbBytes(HexToBytes(Value), Key, Iv, KeyBit);
+end;
+
+// AES OFB 模式加密字节数组并将其转换成十六进制
+function AESEncryptOfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): AnsiString;
+begin
+  Result := BytesToHex(AESEncryptOfbBytes(Value, Key, Iv, KeyBit));
+end;
+
+// AES OFB 解密十六进制字符串并返回字节数组
+function AESDecryptOfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
+begin
+  Result := AESDecryptOfbBytes(HexToBytes(Value), Key, Iv, KeyBit);
 end;
 
 end.
