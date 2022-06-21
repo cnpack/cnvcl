@@ -102,6 +102,7 @@ type
     btnBNDebugDump: TButton;
     btnBNFieldModInv: TButton;
     btnBNNaf: TButton;
+    btnBNHashMap: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -172,6 +173,7 @@ type
     procedure btnBNRawDumpClick(Sender: TObject);
     procedure btnBNFieldModInvClick(Sender: TObject);
     procedure btnBNNafClick(Sender: TObject);
+    procedure btnBNHashMapClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1445,6 +1447,32 @@ begin
       ShowMessage(IntToStr(I) + '(i-0): ' + S);
     end;
   end;
+end;
+
+procedure TFormBigNumber.btnBNHashMapClick(Sender: TObject);
+var
+  I: Integer;
+  Map: TCnBigNumberHashMap;
+  N: TCnBigNumber;
+begin
+  Map := TCnBigNumberHashMap.Create(True, False);
+
+  for I := 0 to 10 do
+  begin
+    N := TCnBigNumber.Create;
+    N.SetWord(I * 100);
+    Map.Add(N, N);
+  end;
+
+  ShowMessage(IntToStr(Map.Size));
+
+  N := TCnBigNumber.Create;
+  N.SetWord(200);
+  if Map.HasKey(N) then
+    ShowMessage('Has ' + N.ToString);
+
+  N.Free;
+  Map.Free;
 end;
 
 end.

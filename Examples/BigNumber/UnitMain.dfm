@@ -758,6 +758,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 73
         OnClick = btnBNNafClick
       end
+      object btnBNHashMap: TButton
+        Left = 1040
+        Top = 266
+        Width = 129
+        Height = 25
+        Caption = 'Hash Map'
+        TabOrder = 74
+        OnClick = btnBNHashMapClick
+      end
     end
     object tsSparseBigNumberList: TTabSheet
       Caption = 'Sparse BigNumber List'
