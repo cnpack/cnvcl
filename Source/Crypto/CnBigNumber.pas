@@ -77,7 +77,7 @@ interface
 
 uses
   Classes, SysUtils, Math, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
-  Contnrs, CnContainers, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
+  Contnrs, CnContainers, CnHashMap, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
   BN_BITS_UINT_32       = 32;
@@ -268,6 +268,9 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将大数转成字符串}
 
+    function GetHashCode: Integer; {$IFDEF OBJECT_HAS_GETHASHCODE} override; {$ENDIF}
+    {* 生成散列值}
+
     function ToHex(FixedLen: Integer = 0): string;
     {* 将大数转成十六进制字符串}
 
@@ -389,6 +392,23 @@ type
     {* 只读的根据参数 Exponent 获取大数的方法，读时如内部查不到，会返回一固定的零值 TCnBigNumber 对象，切勿修改其值}
     property Items[Index: Integer]: TCnExponentBigNumberPair read GetItem write SetItem; default;
     {* 重载的 Items 方法}
+  end;
+
+  TCnBigNumberHashMap = class(TCnHashMap)
+  {* 存储大数对象的散列表，允许以值为比对内容来查找，而不是对象引用本身}
+  private
+    FOwnsKey: Boolean;
+    FOwnsValue: Boolean;
+  protected
+    function HashCodeFromObject(Obj: TObject): Integer; override;
+    function KeyEqual(Key1, Key2: TObject
+      {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean; override;
+    procedure DoFreeNode(Node: TCnHashNode); override;
+  public
+    constructor Create(AOwnsKey, AOwnsValue: Boolean); reintroduce; virtual;
+    {* AOwnsKey 为 True 时，Key 作为持有处理，节点删除时会释放这个 Key 对象
+      AOwnsValue 为 True 时，Value 也作为持有处理，节点删除时会释放这个 Value 对象
+      注意：设为 True 时，Key 和 Value 不允许传 Object 外的内容}
   end;
 
 function BigNumberNew: TCnBigNumber;
@@ -7386,6 +7406,16 @@ begin
   Result := BigNumberGetWordsCount(Self);
 end;
 
+function TCnBigNumber.GetHashCode: Integer;
+var
+  I: Integer;
+begin
+  // 把 32 位的内容全不管溢出地加起来
+  Result := 0;
+  for I := 0 to Top - 1 do
+    Result := Result + Integer(PLongWordArray(D)^[I]);
+end;
+
 { TCnBigNumberList }
 
 function TCnBigNumberList.Add(ABigNumber: TCnBigNumber): Integer;
@@ -7759,6 +7789,45 @@ begin
     else
       Result := Result + CRLF + Items[I].ToString;
   end;
+end;
+
+{ TCnBigNumberHashMap }
+
+constructor TCnBigNumberHashMap.Create(AOwnsKey, AOwnsValue: Boolean);
+begin
+  inherited Create;
+  FOwnsKey := AOwnsKey;
+  FOwnsValue := AOwnsValue;
+end;
+
+procedure TCnBigNumberHashMap.DoFreeNode(Node: TCnHashNode);
+begin
+  if FOwnsKey then
+  begin
+    Node.Key.Free;
+    Node.Key := nil;
+  end;
+  if FOwnsValue then
+  begin
+    Node.Value.Free;
+    Node.Value := nil;
+  end;
+
+  inherited;
+end;
+
+function TCnBigNumberHashMap.HashCodeFromObject(Obj: TObject): Integer;
+begin
+  if Obj is TCnBigNumber then // 显式写明，以保证低版本手动调用 GetHashCode
+    Result := TCnBigNumber(Obj).GetHashCode
+  else                        // 其余情况让父类根据编译器版本决定是否调用 GetHashCode
+    Result := inherited HashCodeFromObject(Obj)
+end;
+
+function TCnBigNumberHashMap.KeyEqual(Key1, Key2: TObject
+  {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean;
+begin
+  Result := BigNumberEqual(TCnBigNumber(Key1), TCnBigNumber(Key2));
 end;
 
 initialization
