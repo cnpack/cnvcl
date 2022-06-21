@@ -287,9 +287,13 @@ type
     {* 实质的删除操作，HashCode 由外界计算好了，返回是否找到并删除，False 时表示没找到}
   protected
     function IndexForHash(H, L: Integer): Integer;
-    function HashCodeFromObject(Obj: TObject): Integer;
-    function HashCodeFromInteger(I: Integer): Integer;
-    function HashCodeFromInt64(I64: Int64): Integer;
+    function HashCodeFromObject(Obj: TObject): Integer; virtual;
+    function HashCodeFromInteger(I: Integer): Integer; virtual;
+    function HashCodeFromInt64(I64: Int64): Integer; virtual;
+
+    function KeyEqual(Key1, Key2: TObject {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean; virtual;
+    {* 内部比较 Key 的方法，默认为引用地址比对，子类可重载。
+      注意 Key 是 TObject 时，俩 Key32 固定为 0，因为无论 32 还是 64 位下均一个 Key 就够了}
 
     procedure DoFreeNode(Node: TCnHashNode); virtual;
   public
@@ -975,7 +979,7 @@ begin
     Exit;
 
   repeat
-    if (Key = Node.Key) {$IFNDEF CPUX64} and (KeyHigh32 = Node.Key32) {$ENDIF} then
+    if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, KeyHigh32, Node.Key32 {$ENDIF}) then
     begin
       Result := Node;
       Exit;
@@ -1021,7 +1025,7 @@ begin
 
   Prev := nil;
   repeat
-    if (Key = Node.Key) {$IFNDEF CPUX64} and (KeyHigh32 = Node.Key32) {$ENDIF} then
+    if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, KeyHigh32, Node.Key32 {$ENDIF}) then
     begin
       // 是这个 Node，要删
       if FTable[Idx] = Node then
@@ -1114,7 +1118,7 @@ begin
     Exit;
 
   repeat
-    if (Key = Node.Key) {$IFNDEF CPUX64} and (Key32 = Node.Key32) {$ENDIF} then
+    if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, Key32, Node.Key32 {$ENDIF}) then
     begin
       Result := True;
       Value := Node.Value;
@@ -1210,7 +1214,7 @@ begin
   else
   begin
     repeat
-      if (Key = Node.Key) {$IFNDEF CPUX64} and (KeyHigh32 = Node.Key32) {$ENDIF} then // 找到了 Key，直接塞 Value
+      if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, KeyHigh32, Node.Key32 {$ENDIF}) then // 找到了 Key，直接塞 Value
       begin
         Result := PutKeyValueToNode(Node);
         Inc(FModCount);
@@ -1324,6 +1328,12 @@ begin
     SetLength(FTable, FCapacity);
     FThreshold := Trunc(FLoadFactor * FCapacity);
   end;
+end;
+
+function TCnHashMap.KeyEqual(Key1, Key2: TObject
+  {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean;
+begin
+  Result := (Key1 = Key2) {$IFNDEF CPUX64} and (Key132 = Key232) {$ENDIF};
 end;
 
 { TCnHashNode }
