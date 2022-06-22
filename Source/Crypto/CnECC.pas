@@ -5826,8 +5826,8 @@ begin
   // 求 x^q -x 与 x^3 + Ax + B 的公因式，如果是 1 则 t2 = 1，否则 t2 = 0，
   // 这里 t2 是 List 中针对素数 2 的元素，并非下标，后面同
 
-  Pa := TCnInt64List.Create;
-  Ta := TCnInt64List.Create;
+  Pa := nil;
+  Ta := nil;
 
   Y2 := FEccInt64PolynomialPool.Obtain;
   P1 := FEccInt64PolynomialPool.Obtain;
@@ -6934,8 +6934,8 @@ begin
   if Q.IsZero or Q.IsNegative then
     Exit;
 
-  Pa := TCnInt64List.Create;
-  Ta := TCnInt64List.Create;
+  Pa := nil;
+  Ta := nil;
 
   Y2 := FEccPolynomialPool.Obtain;
   P1 := FEccPolynomialPool.Obtain;
