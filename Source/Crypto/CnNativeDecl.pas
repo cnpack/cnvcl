@@ -343,6 +343,8 @@ procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
 procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
 {* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
+{$IFDEF MSWINDOWS}
+
 procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
 {* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
@@ -350,8 +352,6 @@ procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
 procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal);
 {* 64 位无符号数除以 32 位无符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
-
-//{$IFDEF CPUX64}
 
 procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
 {* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
@@ -361,7 +361,7 @@ procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes:
 {* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
-//{$ENDIF}
+{$ENDIF}
 
 implementation
 
@@ -730,6 +730,8 @@ begin
   B := B xor V;
 end;
 
+{$IFDEF MSWINDOWS}
+
 {$IFDEF CPUX64}
 
 // 64 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在 RCX 里，B 在 EDX/RDX 里，DivRes 地址在 R8 里，ModRes 地址在 R9 里
@@ -835,6 +837,7 @@ begin
   end;
 end;
 
+{$ENDIF}
 
 {$ENDIF}
 
@@ -966,7 +969,7 @@ begin
   end;
 end;
 
-{$IFDEF CPUX64}
+{$IFDEF WIN64}
 
 // 64 位下两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中，直接用汇编实现，比下面快了一倍以上
 procedure UInt64MulUInt64(A, B: UInt64; var ResLo, ResHi: UInt64); assembler;
