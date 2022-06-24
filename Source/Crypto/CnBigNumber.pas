@@ -881,13 +881,14 @@ function BigNumberLegendre2(A, P: TCnBigNumber): Integer;
 
 function BigNumberTonelliShanks(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
 {* 使用 Tonelli-Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
-   调用者需自行保证 P 为奇素数或奇素数的整数次方}
+   调用者需自行保证 P 为奇素数或奇素数的整数次方，该方法略慢，不推荐使用}
 
 function BigNumberLucas(const Res: TCnBigNumber; A, P: TCnBigNumber): Boolean;
-{* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解}
+{* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
+  似乎 P 应该是模 8 余 1 型素数}
 
 function BigNumberSquareRootModPrime(const Res: TCnBigNumber; A, Prime: TCnBigNumber): Boolean;
-{* 求 X^2 mod P = A 的解，返回是否求解成功，如成功，Res 是其中一个正值的解}
+{* 总入口函数，求 X^2 mod P = A 的解，返回是否求解成功，如成功，Res 是其中一个正值的解}
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
