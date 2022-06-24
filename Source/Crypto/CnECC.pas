@@ -7396,22 +7396,24 @@ begin
           // W 是偶数，P18 = 4*(x^3 + Ax + B)^(Q+3)/2) * DPs[W]^3 - DPs[W+2]^2 * DPs[W-1] + DPs[W-2]^2 * DPs[W+1]
           BigNumberPolynomialGaloisPower(T1, Y2, Q32, Q, LDP);
         end;
-        BigNumberPolynomialGaloisMulWord(T1, 4);
-        BigNumberPolynomialGaloisPower(T2, DPs[W], 3, Q, LDP);
+        BigNumberPolynomialGaloisMulWord(T1, 4, Q);
+        BigNumberPolynomialGaloisPower(T2, TCnBigNumberPolynomial(DPs[W]), 3, Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // T1 得到第一项大乘
 
-        BigNumberPolynomialGaloisMul(T2, DPs[W + 2], DPs[W + 2], Q, LDP);  // T2 得到减项
-        BigNumberPolynomialGaloisMul(T2, T2, DPs[W - 1], Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[W + 2]),
+          TCnBigNumberPolynomial(DPs[W + 2]), Q, LDP);  // T2 得到减项
+        BigNumberPolynomialGaloisMul(T2, T2, TCnBigNumberPolynomial(DPs[W - 1]), Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T3, DPs[W - 2], DPs[W - 2], Q, LDP);  // T3 得到加项
-        BigNumberPolynomialGaloisMul(T3, T3, DPs[W + 1], Q, LDP);
+        BigNumberPolynomialGaloisMul(T3, TCnBigNumberPolynomial(DPs[W - 2]),
+          TCnBigNumberPolynomial(DPs[W - 2]), Q, LDP);  // T3 得到加项
+        BigNumberPolynomialGaloisMul(T3, T3, TCnBigNumberPolynomial(DPs[W + 1]), Q, LDP);
 
         BigNumberPolynomialGaloisSub(P18, T1, T2, Q, LDP);
         BigNumberPolynomialGaloisAdd(P18, P18, T3, Q, LDP);
 
         // 得到 P18 后计算公因式
         BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P17, LDP, Q);
-        if T1.IsOne
+        if T1.IsOne then
           Ta[I] := -2 * W
         else
           Ta[I] := 2 * W;
