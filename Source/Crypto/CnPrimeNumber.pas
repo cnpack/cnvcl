@@ -858,13 +858,15 @@ procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
 function CnInt64SquareRoot(X, P: Int64): Int64;
-{*  计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持}
+{* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持}
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64; overload;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 UInt64
+  也就是说不支持负余数。调用者须确保 Factors 均为正且两两互素，Remainers 均为正或 0}
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: TCnInt64List): Int64; overload;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，暂时只支持 Int64}
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 Int64
+  也就是说支持负余数。调用者须确保 Factors 均为正且两两互素}
 
 function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
 {* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素}
@@ -2377,6 +2379,8 @@ begin
   for J := 0 to Factors.Count - 1 do
     G := G * Factors[J];
   Result := Sum mod G;
+  if (Result < 0) and (G > 0) then
+    Result := Result + G;
 end;
 
 function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;

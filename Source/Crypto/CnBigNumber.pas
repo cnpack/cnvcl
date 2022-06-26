@@ -904,7 +904,7 @@ function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber)
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
   Remainers, Factors: TCnBigNumberList): Boolean; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
-  参数为大数列表}
+  参数为大数列表。Remainers 支持负余数，调用者须确保 Factors 均为正且两两互素}
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
   Remainers, Factors: TCnInt64List): Boolean; overload;
@@ -6577,7 +6577,7 @@ begin
       if not BigNumberMul(G, G, Factors[J]) then
         Exit;
 
-    Result := BigNumberMod(Res, Sum, G);
+    Result := BigNumberNonNegativeMod(Res, Sum, G);
   finally
     FLocalBigNumberPool.Recycle(N);
     FLocalBigNumberPool.Recycle(G);
