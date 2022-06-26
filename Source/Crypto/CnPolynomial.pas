@@ -904,7 +904,7 @@ function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: 
   outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
 {* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
-   本结果只给出 x 的多项式部分。
+   本结果只给出 x 的多项式部分，也就是 f 的形式（偶数时已经除了 y），不是 Ψ的形式。
    其中 A B 是 32 位有符号整数}
 
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: TCnBigNumber; Degree: Integer;
