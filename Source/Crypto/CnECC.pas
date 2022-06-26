@@ -7315,9 +7315,6 @@ begin
       // 算得 K * P 的 X Y 坐标，这里 K 相当于 Wikepedia 步骤中的 q 杆
       TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, Q, LDP);
 
-      // 求 π^2(P) + K * (P) 的和点 SX SY
-      TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
-
       // 此处 Wikipedia 上增加了 KPX 与 Pi2PX 是否相同的判断，相同则可以用二次剩余判断
       if BigNumberRationalPolynomialGaloisEqual(KPX, Pi2PX, Q) then
       begin
@@ -7367,6 +7364,9 @@ begin
       else
       begin
         // 不同，还是要累加
+        // 求 π^2(P) + K * (P) 的和点 SX SY
+        TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
+
         PiPX.SetOne;                            // 原始点
         PiPX.Nominator.SetCoefficents([0, 1]);  // x
         PiPY.Setone;                            // 1 * y
