@@ -652,7 +652,8 @@ function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
 
 function CnEccSchoof2(Res, A, B, Q: TCnBigNumber): Boolean;
-{* 用 Wikipedia 上的改进型 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
+{* 用 Wikipedia 上的改进型 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
+  运算速度较上面的原始版本无明显提升}
 
 function CnEccFastSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
 {* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
@@ -6927,7 +6928,7 @@ var
   QMul, QMax, BQ: TCnBigNumber;
   L, K: Int64;
   I, J: Integer;
-  F, G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
+  G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
   Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnBigNumberRationalPolynomial;
   DPs: TObjectList;
 begin
@@ -6960,7 +6961,6 @@ begin
   P1 := nil;
   P2 := nil;
 
-  F := nil;
   G := nil;
 
   QMax := nil;
@@ -6975,7 +6975,6 @@ begin
     P1 := FEccPolynomialPool.Obtain;
     P2 := FEccPolynomialPool.Obtain;
 
-    F := FEccPolynomialPool.Obtain;
     G := FEccPolynomialPool.Obtain;
 
     QMax := FEccBigNumberPool.Obtain;
@@ -7144,7 +7143,6 @@ begin
     FEccPolynomialPool.Recycle(P2);
 
     FEccPolynomialPool.Recycle(G);
-    FEccPolynomialPool.Recycle(F);
 
     FEccBigNumberPool.Recycle(QMax);
     FEccBigNumberPool.Recycle(QMul);
@@ -7175,7 +7173,7 @@ var
   QMul, QMax, BQ: TCnBigNumber;
   L, W, K: Int64;
   I, J: Integer;
-  F, G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
+  G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
   Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY, WPiPX, WPiPY: TCnBigNumberRationalPolynomial;
   DPs: TObjectList;
 begin
@@ -7210,7 +7208,6 @@ begin
   P1 := nil;
   P2 := nil;
 
-  F := nil;
   G := nil;
 
   QMax := nil;
@@ -7225,7 +7222,6 @@ begin
     P1 := FEccPolynomialPool.Obtain;
     P2 := FEccPolynomialPool.Obtain;
 
-    F := FEccPolynomialPool.Obtain;
     G := FEccPolynomialPool.Obtain;
 
     QMax := FEccBigNumberPool.Obtain;
@@ -7353,7 +7349,7 @@ begin
           begin
            BigNumberRationalPolynomialGaloisNegate(WPiPY, Q);
            if BigNumberRationalPolynomialGaloisEqual(WPiPY, Pi2PY, Q, LDP) then
-             Ta[I] := -2 * W
+             Ta[I] := L - 2 * W
            else
              Ta[I] := 0;
           end;
@@ -7439,7 +7435,6 @@ begin
     FEccPolynomialPool.Recycle(P2);
 
     FEccPolynomialPool.Recycle(G);
-    FEccPolynomialPool.Recycle(F);
 
     FEccBigNumberPool.Recycle(QMax);
     FEccBigNumberPool.Recycle(QMul);
@@ -7472,10 +7467,15 @@ var
   QMul, QMax, BQ, Q12, Q32, Q23: TCnBigNumber;
   L, K, W: Int64;
   I, J, T: Integer;
-  F, G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
+  G, Y2, P1, P2, LDP: TCnBigNumberPolynomial;
   PXP2X, PXPX, NPXP2X, PXP2XPX, P16, P17, P18, P19X, P19Y, T1, T2, T3, T4, PAlpha, PBeta: TCnBigNumberPolynomial;
-  // Pi2PX, Pi2PY, PiPX, PiPY, KPX, KPY, LSX, LSY, RSX, RSY, TSX, TSY: TCnBigNumberRationalPolynomial;
   DPs: TObjectList;
+
+  function F(DPIdx: Integer): TCnBigNumberPolynomial; // 简化的得到 Division Polynomial 的
+  begin
+    Result := TCnBigNumberPolynomial(DPs[DPIdx]);
+  end;
+
 begin
   // 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数
   // 先建个 List，存所需的 2 ~ lmax 的素数，其中 3 * ... * lmax 刚好 > 4 倍根号 q
@@ -7494,7 +7494,6 @@ begin
   P1 := nil;
   P2 := nil;
 
-  F := nil;
   G := nil;
 
   QMax := nil;
@@ -7525,7 +7524,6 @@ begin
     P1 := FEccPolynomialPool.Obtain;
     P2 := FEccPolynomialPool.Obtain;
 
-    F := FEccPolynomialPool.Obtain;
     G := FEccPolynomialPool.Obtain;
 
     QMax := FEccBigNumberPool.Obtain;
@@ -7596,7 +7594,7 @@ begin
       K := BigNumberModWord(Q, L);
 
       // 先得到 L 阶可除多项式，作为后续计算的模多项式
-      LDP := TCnBigNumberPolynomial(DPs[L]);
+      LDP := F(L);
 
       // 准备好 PXP2X 和 Y2，分别等于 x^(q^2) - x 和 x^3 + Ax + B
       PXP2X.SetCoefficents([0, 1]); // PXP2X := X
@@ -7614,27 +7612,25 @@ begin
       // 判断是否存在 L 阶扭点 P，使得 π^2(P) = 正负 K * (P)，分 K 是奇偶来分别计算 P16
       if K and 1 <> 0 then
       begin
-        // K 是奇数，P16 = (X^(q^2) - X) * DPs[K]^2 + DPs[K-1] * DPs[K+1] * (x^3 + Ax + B)
-        BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K]),
-          TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+        // K 是奇数，P16 = (X^(q^2) - X) * F[K]^2 + F[K-1] * F[K+1] * (x^3 + Ax + B)
+        BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, PXP2X, Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K - 1]),
-          TCnBigNumberPolynomial(DPs[K + 1]), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(K - 1), F(K + 1), Q, LDP);
         BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
 
         BigNumberPolynomialGaloisAdd(P16, T1, T2, Q, LDP);
       end
       else
       begin
-        // K 是偶数，P16 = (X^(q^2) - X) * DPs[K]^2 * (x^3 + Ax + B) + DPs[K-1] * DPs[K+1]
-        BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K]),
-          TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+        // K 是偶数，P16 = (X^(q^2) - X) * F[K]^2 * (x^3 + Ax + B) + F[K-1] * F[K+1]
+        BigNumberPolynomialGaloisMul(T1, F(K),
+          F(K), Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, PXP2X, Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K - 1]),
-          TCnBigNumberPolynomial(DPs[K + 1]), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(K - 1),
+          F(K + 1), Q, LDP);
 
         BigNumberPolynomialGaloisAdd(P16, T1, T2, Q, LDP);
       end;
@@ -7655,27 +7651,23 @@ begin
         // 存在二次剩余，t 为正负 2W，判断其符号，要计算 P17
         if W and 1 <> 0 then
         begin
-          // W 是奇数，P17 = (X^q - X) * DPs[W]^2 + DPs[W-1] * DPs[W+1] * (x^3 + Ax + B)
-          BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[W]),
-            TCnBigNumberPolynomial(DPs[W]), Q, LDP);
+          // W 是奇数，P17 = (X^q - X) * F[W]^2 + F[W-1] * F[W+1] * (x^3 + Ax + B)
+          BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
 
-          BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[W - 1]),
-            TCnBigNumberPolynomial(DPs[W + 1]), Q, LDP);
+          BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
           BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
 
           BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
         end
         else
         begin
-          // W 是偶数，P17 = (X^q - X) * DPs[W]^2 * (x^3 + Ax + B) + DPs[W-1] * DPs[W+1]
-          BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[W]),
-            TCnBigNumberPolynomial(DPs[W]), Q, LDP);
+          // W 是偶数，P17 = (X^q - X) * F[W]^2 * (x^3 + Ax + B) + F[W-1] * F[W+1]
+          BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
 
-          BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[W - 1]),
-            TCnBigNumberPolynomial(DPs[W + 1]), Q, LDP);
+          BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
 
           BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
         end;
@@ -7699,25 +7691,25 @@ begin
 
         if W and 1 <> 0 then
         begin
-          // W 是奇数，P18 = 4*(x^3 + Ax + B)^(Q-1)/2) * DPs[W]^3 - DPs[W+2]^2 * DPs[W-1] + DPs[W-2]^2 * DPs[W+1]
+          // W 是奇数，P18 = 4*(x^3 + Ax + B)^(Q-1)/2) * F[W]^3 - F[W+2]^2 * F[W-1] + F[W-2]^2 * F[W+1]
           BigNumberPolynomialGaloisPower(T1, Y2, Q12, Q, LDP);
         end
         else
         begin
-          // W 是偶数，P18 = 4*(x^3 + Ax + B)^(Q+3)/2) * DPs[W]^3 - DPs[W+2]^2 * DPs[W-1] + DPs[W-2]^2 * DPs[W+1]
+          // W 是偶数，P18 = 4*(x^3 + Ax + B)^(Q+3)/2) * F[W]^3 - F[W+2]^2 * F[W-1] + F[W-2]^2 * F[W+1]
           BigNumberPolynomialGaloisPower(T1, Y2, Q32, Q, LDP);
         end;
         BigNumberPolynomialGaloisMulWord(T1, 4, Q);
-        BigNumberPolynomialGaloisPower(T2, TCnBigNumberPolynomial(DPs[W]), 3, Q, LDP);
+        BigNumberPolynomialGaloisPower(T2, F(W), 3, Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // T1 得到第一项大乘
 
-        BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[W + 2]),
-          TCnBigNumberPolynomial(DPs[W + 2]), Q, LDP);  // T2 得到减项
-        BigNumberPolynomialGaloisMul(T2, T2, TCnBigNumberPolynomial(DPs[W - 1]), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(W + 2),
+          F(W + 2), Q, LDP);  // T2 得到减项
+        BigNumberPolynomialGaloisMul(T2, T2, F(W - 1), Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T3, TCnBigNumberPolynomial(DPs[W - 2]),
-          TCnBigNumberPolynomial(DPs[W - 2]), Q, LDP);  // T3 得到加项
-        BigNumberPolynomialGaloisMul(T3, T3, TCnBigNumberPolynomial(DPs[W + 1]), Q, LDP);
+        BigNumberPolynomialGaloisMul(T3, F(W - 2),
+          F(W - 2), Q, LDP);  // T3 得到加项
+        BigNumberPolynomialGaloisMul(T3, T3, F(W + 1), Q, LDP);
 
         BigNumberPolynomialGaloisSub(P18, T1, T2, Q, LDP);
         BigNumberPolynomialGaloisAdd(P18, P18, T3, Q, LDP);
@@ -7725,7 +7717,7 @@ begin
         // 得到 P18 后计算公因式
         BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P17, LDP, Q);
         if T1.IsOne then
-          Ta[I] := -2 * W
+          Ta[I] := L - 2 * W
         else
           Ta[I] := 2 * W;
       end
@@ -7734,13 +7726,11 @@ begin
         PAlpha := FEccPolynomialPool.Obtain;
         PBeta := FEccPolynomialPool.Obtain;
 
-        BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K - 1]),
-          TCnBigNumberPolynomial(DPs[K - 1]), Q, LDP);
-        BigNumberPolynomialGaloisMul(T1, T1, TCnBigNumberPolynomial(DPs[K + 2]), Q, LDP);
+        BigNumberPolynomialGaloisMul(T1, F(K - 1), F(K - 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T1, T1, F(K + 2), Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K + 1]),
-          TCnBigNumberPolynomial(DPs[K + 1]), Q, LDP);
-        BigNumberPolynomialGaloisMul(T2, T2, TCnBigNumberPolynomial(DPs[K - 2]), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(K + 1), F(K + 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, T2, F(K - 2), Q, LDP);
 
         BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 是减式，释放 T2
 
@@ -7750,7 +7740,7 @@ begin
         Q23.ShiftRightOne;  // 得到 (Q^2 + 3)/2，用来做 Y^2 的指数
 
         BigNumberPolynomialGaloisPower(T2, Y2, Q23, Q, LDP);
-        BigNumberPolynomialGaloisPower(T3, TCnBigNumberPolynomial(DPs[K]), 3, Q, LDP);
+        BigNumberPolynomialGaloisPower(T3, F(K), 3, Q, LDP);
         BigNumberPolynomialGaloisMul(T2, T2, T3, Q, LDP);
         BigNumberPolynomialGaloisMulWord(T2, 4, Q); // 得到第三个减式
 
@@ -7760,12 +7750,10 @@ begin
         BigNumberPolynomialCopy(NPXP2X, PXP2X);
         BigNumberPolynomialGaloisNegate(NPXP2X, Q); // NPXPX 得到 x - x^(q^2)
 
-        BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K]),
-          TCnBigNumberPolynomial(DPs[K]), Q, LDP); // T1 得到 Fk^2
+        BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP); // T1 得到 Fk^2
         BigNumberPolynomialGaloisMul(T1, NPXP2X, T1, Q, LDP); // T1 得到 Fk^2 * (x - x^(q^2))，备下面使用
 
-        BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K - 1]),
-          TCnBigNumberPolynomial(DPs[K + 1]), Q, LDP); // T2 得到 F(k-1)* F(k+1)
+        BigNumberPolynomialGaloisMul(T2, F(K - 1), F(K + 1), Q, LDP); // T2 得到 F(k-1)* F(k+1)
 
         // 另外准备好 x^(p^2) + x^p + x
         PXP2XPX := FEccPolynomialPool.Obtain;
@@ -7788,7 +7776,7 @@ begin
           BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 得到减的结果
 
           // 再乘以 4Fk
-          BigNumberPolynomialGaloisMul(PBeta, T1, TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+          BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
           BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);
           // 得到的 PBeta 在使用时需要乘以一个 y，同时释放 T1 T2 T3 等
 
@@ -7802,14 +7790,12 @@ begin
 
             // 先计算前后各项，但不包括前后的 Y^2p，之后再根据 T 的奇偶性各自乘上
             // 先计算 Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p 放到 T3 里
-            BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K]),
-              TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, PBeta, PBeta, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP); // T1 得到 Fk^2 * b^2 * Y^2
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[T - 1]),
-              TCnBigNumberPolynomial(DPs[T + 1]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T2, F(T - 1), F(T + 1), Q, LDP);
             BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);
 
             BigNumberPolynomialGaloisMul(T3, T1, T2, Q, LDP); // T3 得到 Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p，释放 T1 T2
@@ -7820,17 +7806,15 @@ begin
             end;
 
             // 计算前面的加项，不能用 T3
-            BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K - 1]),
-              TCnBigNumberPolynomial(DPs[K + 1]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T1, F(K - 1), F(K + 1), Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP); // T1 得到 Y^2 * Fk-1 * Fk+1
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K]),
-              TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T2, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, PXP2XPX, Q, LDP); // T2 得到 Fk^2 *(x^(p^2) + x^p + x)
 
             BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 减后释放 T2
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K]), PAlpha, Q, LDP);
+            BigNumberPolynomialGaloisMul(T2, F(K), PAlpha, Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, T2, Q, LDP); // T2 得到 a^2 * Fk^2
 
             BigNumberPolynomialGaloisAdd(T1, T1, T2, Q, LDP); // T1 得到全减式，释放 T2
@@ -7840,8 +7824,7 @@ begin
 
             BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // 全减式乘后放入 T1，释放 T2
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[T]),
-              TCnBigNumberPolynomial(DPs[T]), Q, LDP);        // T2 得到 Ft^2
+            BigNumberPolynomialGaloisMul(T2, F(T), F(T), Q, LDP);        // T2 得到 Ft^2
 
             BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);// T2 得到 (Ft^2)^p = Ft^2p
 
@@ -7856,10 +7839,11 @@ begin
 
             BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P19X, LDP, Q);
 
-            if T1.IsOne then // 不为 1 时不存在，本轮 T 不符合要求，下一循环
+            if T1.IsOne then // 不为 1 时存在符合要求的点。为 1 时不存在，本轮 T 不符合要求，下一循环
               Continue;
 
-            // 为 1 时，正负 T 都符合要求，再求 P19Y
+            // 不为 1 时，正负 T 都符合要求，再求 P19Y
+            raise ECnEccException.Create('NOT Implemented');
 
           end;
         end
@@ -7872,8 +7856,9 @@ begin
           BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
 
           BigNumberPolynomialGaloisAdd(T1, T1, T2, Q, LDP); // T1 得到加的结果
+
           // 再乘以 4Fk
-          BigNumberPolynomialGaloisMul(PBeta, T1, TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+          BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
           BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);
 
           BigNumberPolynomialGaloisMul(PBeta, PBeta, Y2, Q, LDP);
@@ -7888,14 +7873,12 @@ begin
 
             // 先计算前后各项，但不包括前后的 Y^2p，之后再根据 T 的奇偶性各自乘上
             // 先计算 Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p 放到 T3 里
-            BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K]),
-              TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, PBeta, PBeta, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP); // T1 得到 Fk^2 * b^2 * Y^2
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[T - 1]),
-              TCnBigNumberPolynomial(DPs[T + 1]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T2, F(T - 1), F(T + 1), Q, LDP);
             BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);
 
             BigNumberPolynomialGaloisMul(T3, T1, T2, Q, LDP); // T3 得到 Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p，释放 T1 T2
@@ -7906,18 +7889,16 @@ begin
             end;
 
             // 计算前面的加项，不能用 T3
-            BigNumberPolynomialGaloisMul(T1, TCnBigNumberPolynomial(DPs[K - 1]),
-              TCnBigNumberPolynomial(DPs[K + 1]), Q, LDP);    // T1 得到 Fk-1 * Fk+1
+            BigNumberPolynomialGaloisMul(T1, F(K - 1),
+              F(K + 1), Q, LDP);    // T1 得到 Fk-1 * Fk+1
 
-
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K]),
-              TCnBigNumberPolynomial(DPs[K]), Q, LDP);
+            BigNumberPolynomialGaloisMul(T2, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, PXP2XPX, Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);  // T2 得到 y^2 * Fk^2 *(x^(p^2) + x^p + x)
 
             BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 减后释放 T2
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[K]), PAlpha, Q, LDP);
+            BigNumberPolynomialGaloisMul(T2, F(K), PAlpha, Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, T2, Q, LDP); // T2 得到 a^2 * Fk^2
             BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP); // T2 得到 (Y^2)^2 * a^2 * Fk^2
@@ -7927,8 +7908,7 @@ begin
             BigNumberPolynomialGaloisMul(T2, PBeta, PBeta, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // 全减式乘 Beta^2 后放入 T1，释放 T2
 
-            BigNumberPolynomialGaloisMul(T2, TCnBigNumberPolynomial(DPs[T]),
-              TCnBigNumberPolynomial(DPs[T]), Q, LDP);        // T2 得到 Ft^2
+            BigNumberPolynomialGaloisMul(T2, F(T), F(T), Q, LDP);        // T2 得到 Ft^2
 
             BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);// T2 得到 (Ft^2)^p = Ft^2p
 
@@ -7943,10 +7923,11 @@ begin
 
             BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P19X, LDP, Q);
 
-            if T1.IsOne then // 不为 1 时不存在，本轮 T 不符合要求，下一循环
+            if T1.IsOne then // 不为 1 时存在符合要求的点。为 1 时不存在，本轮 T 不符合要求，下一循环
               Continue;
 
-            // 为 1 时，正负 T 都符合要求，再求 P19Y
+            // 不为 1 时，正负 T 都符合要求，再求 P19Y
+            raise ECnEccException.Create('NOT Implemented');
 
           end;
         end;
@@ -8003,7 +7984,6 @@ begin
     FEccPolynomialPool.Recycle(P2);
 
     FEccPolynomialPool.Recycle(G);
-    FEccPolynomialPool.Recycle(F);
 
     FEccBigNumberPool.Recycle(QMax);
     FEccBigNumberPool.Recycle(QMul);
