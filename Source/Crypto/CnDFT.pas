@@ -31,7 +31,9 @@ unit CnDFT;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.08.29 V1.1
+* 修改记录：2022.06.29 V1.2
+*               增加一二维离散余弦变换及其逆变换
+*           2021.08.29 V1.1
 *               增加快速数论变换，使用特定素数
 *           2020.11.23 V1.0
 *               创建单元，实现功能
@@ -43,7 +45,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl, CnComplex;
+  SysUtils, Classes, CnNativeDecl, CnComplex, CnMatrix;
 
 procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
 {* 蝴蝶变换，调整复数数组内部元素的顺序以便奇偶分治}
@@ -72,6 +74,21 @@ function CnDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
 function CnIDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
 {* 一维逆 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维逆离散余弦变换，
   结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回逆变换是否成功}
+
+function CnGenerateDCT2Matrix(M: TCnFloatMatrix; N: Integer): Boolean;
+{* 生成 N 阶二维 DCT 变换矩阵，该矩阵为方阵}
+
+function CnDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
+  DCTMT: TCnFloatMatrix = nil): Boolean;
+{* 二维 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维离散余弦变换，
+  结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
+  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，返回变换是否成功}
+
+function CnIDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
+  DCTMT: TCnFloatMatrix = nil): Boolean;
+{* 二维逆 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维逆离散余弦变换，
+  结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
+  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，返回变换是否成功}
 
 implementation
 
@@ -336,6 +353,125 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function CnGenerateDCT2Matrix(M: TCnFloatMatrix; N: Integer): Boolean;
+var
+  I, J: Integer;
+  A1, A2: Extended;
+begin
+  Result := False;
+  if (M = nil) or (N < 2) then
+    Exit;
+
+  M.RowCount := N;
+  M.ColCount := N;
+
+  A1 := 1.0 / Sqrt(N);
+  A2 := Sqrt(2.0 / N);
+
+  for I := 0 to M.RowCount - 1 do
+  begin
+    for J := 0 to M.ColCount - 1 do
+    begin
+      M.Value[I, J] := Cos(I * (J + 0.5) * Pi / N);
+
+      if I = 0 then
+        M.Value[I, J] := M.Value[I, J] * A1
+      else
+        M.Value[I, J] := M.Value[I, J] * A2;
+    end;
+  end;
+end;
+
+function CnDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix;
+  DCTMT: TCnFloatMatrix): Boolean;
+var
+  MIsNil, TIsNil: Boolean;
+  T: TCnFloatMatrix;
+begin
+  // Res := M * Data * M'
+  Result := False;
+  if (Data = nil) or (Res = nil) then
+    Exit;
+
+  if Data.RowCount <> Data.ColCount then
+    Exit;
+
+  MIsNil := DCTM = nil;
+  TIsNil := DCTMT = nil;
+  T := nil;
+
+  try
+    if MIsNil then
+    begin
+      DCTM := TCnFloatMatrix.Create;
+      CnGenerateDCT2Matrix(DCTM, Data.RowCount);
+    end;
+
+    if TIsNil then
+    begin
+      DCTMT := TCnFloatMatrix.Create;
+      CnMatrixTranspose(DCTM, DCTMT);
+    end;
+
+    T := TCnFloatMatrix.Create;
+    CnMatrixMul(DCTM, Data, T);
+    CnMatrixMul(T, DCTMT, Res);
+
+    Result := True;
+  finally
+    T.Free;
+    if MIsNil then
+      DCTM.Free;
+    if TIsNil then
+      DCTMT.Free;
+  end;
+end;
+
+function CnIDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix;
+  DCTMT: TCnFloatMatrix): Boolean;
+var
+  MIsNil, TIsNil: Boolean;
+  T: TCnFloatMatrix;
+begin
+  // Res := M' * Data * M
+  Result := False;
+  if (Data = nil) or (Res = nil) then
+    Exit;
+
+  if Data.RowCount <> Data.ColCount then
+    Exit;
+
+  MIsNil := DCTM = nil;
+  TIsNil := DCTMT = nil;
+  T := nil;
+
+  try
+    if MIsNil then
+    begin
+      DCTM := TCnFloatMatrix.Create;
+      CnGenerateDCT2Matrix(DCTM, Data.RowCount);
+    end;
+
+    if TIsNil then
+    begin
+      DCTMT := TCnFloatMatrix.Create;
+      CnMatrixTranspose(DCTM, DCTMT);
+    end;
+
+    T := TCnFloatMatrix.Create;
+    CnMatrixMul(DCTMT, Data, T);
+    CnMatrixMul(T, DCTM, Res);
+
+    Result := True;
+  finally
+    T.Free;
+    if MIsNil then
+      DCTM.Free;
+    if TIsNil then
+      DCTMT.Free;
+  end;
 end;
 
 end.

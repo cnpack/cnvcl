@@ -159,7 +159,7 @@ object FormDFT: TFormDFT
         Left = 8
         Top = 8
         Width = 913
-        Height = 153
+        Height = 129
         Caption = 'DCT'
         TabOrder = 0
         object btnDCT: TButton
@@ -193,6 +193,30 @@ object FormDFT: TFormDFT
           Width = 753
           Height = 21
           TabOrder = 3
+        end
+      end
+      object grpDCT2: TGroupBox
+        Left = 8
+        Top = 144
+        Width = 913
+        Height = 369
+        Caption = 'DCT2'
+        TabOrder = 1
+        object btnDCT2: TButton
+          Left = 24
+          Top = 24
+          Width = 75
+          Height = 25
+          Caption = 'DCT2 / IDCT2'
+          TabOrder = 0
+          OnClick = btnDCT2Click
+        end
+        object mmoDCT2: TMemo
+          Left = 128
+          Top = 24
+          Width = 753
+          Height = 329
+          TabOrder = 1
         end
       end
     end

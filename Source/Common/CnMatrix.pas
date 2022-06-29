@@ -110,7 +110,7 @@ type
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
     {* 输出到字符串}
 
-    property Value[Row, Col: Integer]: Int64 read GetValue write SetValue;
+    property Value[Row, Col: Integer]: Int64 read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
   published
     property ColCount: Integer read FColCount write SetColCount;
@@ -182,7 +182,7 @@ type
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
     {* 输出到字符串}
 
-    property Value[Row, Col: Integer]: Extended read GetValue write SetValue;
+    property Value[Row, Col: Integer]: Extended read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
   published
     property ColCount: Integer read FColCount write SetColCount;
@@ -348,7 +348,7 @@ type
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
     {* 输出到字符串}
 
-    property Value[Row, Col: Integer]: TCnRationalNumber read GetValue write SetValue;
+    property Value[Row, Col: Integer]: TCnRationalNumber read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
   published
     property ColCount: Integer read GetColCount write SetColCount;

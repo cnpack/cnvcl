@@ -222,6 +222,9 @@ cnpack\Source 目录内容说明：
   CnKDF.pas
     密码生成算法单元
 
+  CnInt128.pas
+    128 位整数及其运算实现单元
+
   CnMD5.pas
     MD5 算法单元
 

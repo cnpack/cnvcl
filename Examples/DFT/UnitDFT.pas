@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, CnComplex,
-  StdCtrls, CnDFT, CnNativeDecl, ComCtrls;
+  StdCtrls, CnDFT, CnNativeDecl, ComCtrls, CnMatrix;
 
 type
   TFormDFT = class(TForm)
@@ -32,6 +32,9 @@ type
     btnIDCT: TButton;
     edtDCT: TEdit;
     edtIDCT: TEdit;
+    grpDCT2: TGroupBox;
+    btnDCT2: TButton;
+    mmoDCT2: TMemo;
     procedure btnDFTButterFlyClick(Sender: TObject);
     procedure btnTwiddleFactorsClick(Sender: TObject);
     procedure btnTestDFTClick(Sender: TObject);
@@ -40,10 +43,11 @@ type
     procedure btnTestNttClick(Sender: TObject);
     procedure btnDCTClick(Sender: TObject);
     procedure btnIDCTClick(Sender: TObject);
+    procedure btnDCT2Click(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
 var
@@ -242,6 +246,38 @@ begin
   end;
 
   edtIDCT.Text := S;
+end;
+
+procedure TFormDFT.btnDCT2Click(Sender: TObject);
+var
+  D, R: TCnFloatMatrix;
+  L: TStrings;
+begin
+  D := TCnFloatMatrix.Create(4, 4);
+  R := TCnFloatMatrix.Create(4, 4);
+
+  D[0, 0] := 61; D[0, 1] := 19; D[0, 2] := 50; D[0, 3] := 20;
+  D[1, 0] := 82; D[1, 1] := 26; D[1, 2] := 61; D[1, 3] := 45;
+  D[2, 0] := 89; D[2, 1] := 90; D[2, 2] := 82; D[2, 3] := 43;
+  D[3, 0] := 93; D[3, 1] := 59; D[3, 2] := 53; D[3, 3] := 97;
+
+  L := TStringList.Create;
+  D.DumpToStrings(L);
+  mmoDCT2.Lines.AddStrings(L);
+  mmoDCT2.Lines.Add('');
+
+  CnDCT2(D, R);
+  R.DumpToStrings(L);
+  mmoDCT2.Lines.AddStrings(L);
+  mmoDCT2.Lines.Add('');
+
+  CnIDCT2(R, D);
+  D.DumpToStrings(L);
+  mmoDCT2.Lines.AddStrings(L);
+
+  L.Free;
+  R.Free;
+  D.Free;
 end;
 
 end.
