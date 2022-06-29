@@ -28,7 +28,9 @@ unit CnMatrix;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.06.12 V1.1
+* 修改记录：2022.06.29 V1.2
+*               加入浮点矩阵计算
+*           2019.06.12 V1.1
 *               加入有理数矩阵计算
 *           2019.06.05 V1.0
 *               创建单元，实现功能
@@ -40,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs;
+  SysUtils, Classes, Contnrs, CnMath;
 
 type
   ECnMatrixException = class(Exception);
@@ -109,6 +111,78 @@ type
     {* 输出到字符串}
 
     property Value[Row, Col: Integer]: Int64 read GetValue write SetValue;
+    {* 根据行列下标访问矩阵元素，下标都从 0 开始}
+  published
+    property ColCount: Integer read FColCount write SetColCount;
+    {* 矩阵列数}
+    property RowCount: Integer read FRowCount write SetRowCount;
+    {* 矩阵行数}
+  end;
+
+  TCnFloatMatrix = class(TPersistent)
+  {* 浮点数范围内的整数矩阵的实现类}
+  private
+    FMatrix: array of array of Extended;
+    FColCount: Integer;
+    FRowCount: Integer;
+    procedure SetColCount(const Value: Integer);
+    procedure SetRowCount(const Value: Integer);
+    function GetValue(Row, Col: Integer): Extended;
+  protected
+    procedure SetValue(Row, Col: Integer; const AValue: Extended); virtual;
+
+    function Add3(X, Y, Z: Extended): Extended; virtual;
+    function Mul3(X, Y, Z: Extended): Extended; virtual;
+    function NegativeOnePower(N: Integer): Integer; virtual;
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
+    destructor Destroy; override;
+
+    // 供子类重载实现自定义的加减乘除操作
+    function OperationAdd(X, Y: Extended): Extended; virtual;
+    function OperationSub(X, Y: Extended): Extended; virtual;
+    function OperationMul(X, Y: Extended): Extended; virtual;
+    function OperationDiv(X, Y: Extended): Extended; virtual;
+
+    procedure Mul(Factor: Extended);
+    {* 矩阵各元素乘以一个常数}
+    procedure Add(Factor: Extended);
+    {* 矩阵各元素加上一个常数}
+    procedure Divide(Factor: Extended); virtual;
+    {* 矩阵各元素除以一个常数，基类因为是整数，未实现除法}
+
+    procedure SetE(Size: Integer);
+    {* 设置为 Size 阶单位矩阵}
+    procedure SetZero;
+    {* 设置为全 0 矩阵}
+    procedure Transpose;
+    {* 矩阵转置，也就是行列互换}
+
+    function Determinant: Extended; virtual;
+    {* 求方阵行列式值}
+    function Trace: Extended;
+    {* 求方阵的迹，也就是对角线元素的和}
+    function IsSquare: Boolean;
+    {* 是否方阵}
+    function IsZero: Boolean;
+    {* 是否全 0 方阵}
+    function IsE: Boolean;
+    {* 是否单位方阵}
+    function IsSymmetrical: Boolean;
+    {* 是否对称方阵}
+    function IsSingular: Boolean;
+    {* 是否奇异方阵，也就是行列式是否等于 0}
+
+    procedure DeleteRow(Row: Integer);
+    {* 删除其中一行}
+    procedure DeleteCol(Col: Integer);
+    {* 删除其中一列}
+
+    procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
+    {* 输出到字符串}
+
+    property Value[Row, Col: Integer]: Extended read GetValue write SetValue;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
   published
     property ColCount: Integer read FColCount write SetColCount;
@@ -313,6 +387,35 @@ procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式，注意 TCnIntMatrix 不直接支持逆矩阵，
   因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵}
 
+// =========================== 浮点数矩阵运算方法 ==============================
+
+procedure CnMatrixMul(Matrix1, Matrix2: TCnFloatMatrix; MulResult: TCnFloatMatrix); overload;
+{* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
+  MulResult 不能是 Matrix1 或 Matrix2}
+
+procedure CnMatrixPower(Matrix: TCnFloatMatrix; K: Integer; PowerResult: TCnFloatMatrix); overload;
+{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
+
+procedure CnMatrixAdd(Matrix1, Matrix2: TCnFloatMatrix; AddResult: TCnFloatMatrix); overload;
+{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
+  AddResult 可以是 Matrix1 或 Matrix2 或其他}
+
+procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnFloatMatrix; ProductResult: TCnFloatMatrix); overload;
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
+  ProductResult 可以是 Matrix1 或 Matrix2 或其他}
+
+procedure CnMatrixTranspose(Matrix1, Matrix2: TCnFloatMatrix); overload;
+{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
+
+procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row, Col: Integer; MinorResult: TCnFloatMatrix); overload;
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
+
+procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnFloatMatrix); overload;
+{* 求方阵的伴随阵}
+
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix); overload;
+{* 求方阵的逆矩阵，也就是伴随阵除以行列式}
+
 // =========================== 有理数矩阵运算方法 ==============================
 
 procedure CnIntToRationalMatrix(Int: TCnIntMatrix; Rational: TCnRationalMatrix);
@@ -430,6 +533,36 @@ begin
   end;
 end;
 
+procedure CnMatrixMul(Matrix1, Matrix2: TCnFloatMatrix; MulResult: TCnFloatMatrix);
+var
+  I, J, K: Integer;
+  T, Sum: Extended;
+begin
+  if (MulResult = Matrix1) or (MulResult = Matrix2) then
+    raise ECnMatrixException.Create('Matrix Result can not Be Factors.');
+
+  if Matrix1.ColCount <> Matrix2.RowCount then
+    raise ECnMatrixException.Create('Matrix 1 Col Count must Equal to Matrix 2 Row Count.');
+
+  MulResult.RowCount := Matrix1.RowCount;
+  MulResult.ColCount := Matrix2.ColCount;
+
+  // Value[I, J] := 矩阵 1 第 I 行与矩阵 2 第 J 列对应乘并相加
+  for I := 0 to Matrix1.RowCount - 1 do
+  begin
+    for J := 0 to Matrix2.ColCount - 1 do
+    begin
+      Sum := 0;
+      for K := 0 to Matrix1.ColCount - 1 do
+      begin
+        T := Matrix1.OperationMul(Matrix1.Value[I, K], Matrix2.Value[K, J]);
+        Sum := Matrix1.OperationAdd(Sum, T);
+      end;
+      MulResult.Value[I, J] := Sum;
+    end;
+  end;
+end;
+
 procedure CnMatrixMul(Matrix1, Matrix2: TCnRationalMatrix; MulResult: TCnRationalMatrix);
 var
   I, J, K: Integer;
@@ -502,6 +635,41 @@ begin
   end;
 end;
 
+procedure CnMatrixPower(Matrix: TCnFloatMatrix; K: Integer; PowerResult: TCnFloatMatrix);
+var
+  I: Integer;
+  T: TCnFloatMatrix;
+begin
+  if not Matrix.IsSquare then
+    raise ECnMatrixException.Create('Matrix Power Must Be Square.');
+
+  if K < 0 then
+    raise ECnMatrixException.Create('Invalid Matrix Power.');
+
+  if K = 0 then
+  begin
+    PowerResult.SetE(Matrix.RowCount);
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    PowerResult.Assign(Matrix);
+    Exit;
+  end;
+
+  T := TCnFloatMatrix.Create(Matrix.RowCount, Matrix.ColCount);
+  try
+    T.Assign(Matrix);
+    for I := 0 to K - 2 do
+    begin
+      CnMatrixMul(Matrix, T, PowerResult);
+      T.Assign(PowerResult);
+    end;
+  finally
+    T.Free;
+  end;
+end;
+
 procedure CnMatrixPower(Matrix: TCnRationalMatrix; K: Integer; PowerResult: TCnRationalMatrix);
 var
   I: Integer;
@@ -551,6 +719,20 @@ begin
       AddResult.Value[I, J] := Matrix1.OperationAdd(Matrix1.Value[I, J], Matrix2.Value[I, J]);
 end;
 
+procedure CnMatrixAdd(Matrix1, Matrix2: TCnFloatMatrix; AddResult: TCnFloatMatrix);
+var
+  I, J: Integer;
+begin
+  if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
+    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+
+  AddResult.RowCount := Matrix1.RowCount;
+  AddResult.ColCount := Matrix1.ColCount;
+  for I := 0 to Matrix1.RowCount - 1 do
+    for J := 0 to Matrix1.ColCount - 1 do
+      AddResult.Value[I, J] := Matrix1.OperationAdd(Matrix1.Value[I, J], Matrix2.Value[I, J]);
+end;
+
 procedure CnMatrixAdd(Matrix1, Matrix2: TCnRationalMatrix; AddResult: TCnRationalMatrix);
 var
   I, J: Integer;
@@ -566,6 +748,20 @@ begin
 end;
 
 procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnIntMatrix; ProductResult: TCnIntMatrix);
+var
+  I, J: Integer;
+begin
+  if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
+    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+
+  ProductResult.RowCount := Matrix1.RowCount;
+  ProductResult.ColCount := Matrix1.ColCount;
+  for I := 0 to Matrix1.RowCount - 1 do
+    for J := 0 to Matrix1.ColCount - 1 do
+      ProductResult.Value[I, J] := Matrix1.OperationMul(Matrix1.Value[I, J], Matrix2.Value[I, J]);
+end;
+
+procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnFloatMatrix; ProductResult: TCnFloatMatrix);
 var
   I, J: Integer;
 begin
@@ -624,6 +820,37 @@ begin
   end;
 end;
 
+procedure CnMatrixTranspose(Matrix1, Matrix2: TCnFloatMatrix);
+var
+  I, J: Integer;
+  Tmp: TCnFloatMatrix;
+begin
+  if Matrix1 = Matrix2 then
+  begin
+    Tmp := TCnFloatMatrix.Create(1, 1);
+    try
+      Tmp.Assign(Matrix1);
+      Matrix2.ColCount := Tmp.RowCount;
+      Matrix2.RowCount := Tmp.ColCount;
+
+      for I := 0 to Tmp.RowCount - 1 do
+        for J := 0 to Tmp.ColCount - 1 do
+          Matrix2.Value[J, I] := Tmp.Value[I, J];
+    finally
+      Tmp.Free;
+    end;
+  end
+  else
+  begin
+    Matrix2.ColCount := Matrix1.RowCount;
+    Matrix2.RowCount := Matrix1.ColCount;
+
+    for I := 0 to Matrix1.RowCount - 1 do
+      for J := 0 to Matrix1.ColCount - 1 do
+        Matrix2.Value[J, I] := Matrix1.Value[I, J];
+  end;
+end;
+
 procedure CnMatrixTranspose(Matrix1, Matrix2: TCnRationalMatrix);
 var
   I, J: Integer;
@@ -656,6 +883,50 @@ begin
 end;
 
 procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TCnIntMatrix);
+var
+  SR, SC, DR, DC: Integer;
+begin
+  if ((Row < 0) or (Row >= Matrix.RowCount)) or
+    ((Col < 0) or (Col >= Matrix.ColCount)) then
+    raise ECnMatrixException.Create('Invalid Minor Row or Col.');
+
+  MinorResult.ColCount := Matrix.ColCount - 1;
+  MinorResult.RowCount := Matrix.RowCount - 1;
+
+  SR := 0;
+  DR := 0;
+
+  while SR < Matrix.RowCount do
+  begin
+    if SR = Row then
+    begin
+      Inc(SR);
+      if SR = Matrix.RowCount then
+        Break;
+    end;
+
+    SC := 0;
+    DC := 0;
+    while SC < Matrix.ColCount do
+    begin
+      if SC = Col then
+      begin
+        Inc(SC);
+        if SC = Matrix.ColCount then
+          Break;
+      end;
+
+      MinorResult.Value[DR, DC] := Matrix.Value[SR, SC];
+      Inc(SC);
+      Inc(DC);
+    end;
+
+    Inc(SR);
+    Inc(DR);
+  end;
+end;
+
+procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row, Col: Integer; MinorResult: TCnFloatMatrix);
 var
   SR, SC, DR, DC: Integer;
 begin
@@ -772,6 +1043,35 @@ begin
   end;
 end;
 
+procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnFloatMatrix);
+var
+  I, J: Integer;
+  Minor: TCnFloatMatrix;
+begin
+  if not Matrix1.IsSquare then
+    raise ECnMatrixException.Create('Only Square can Adjoint.');
+
+  Matrix2.RowCount := Matrix1.RowCount;
+  Matrix2.ColCount := Matrix1.ColCount;
+
+  Minor := TCnFloatMatrix(Matrix1.ClassType.NewInstance);
+  Minor.Create(Matrix1.RowCount - 1, Matrix1.ColCount - 1); // 用子类实现
+
+  try
+    for I := 0 to Matrix1.RowCount - 1 do
+    begin
+      for J := 0 to Matrix2.ColCount - 1 do
+      begin
+        CnMatrixMinor(Matrix1, I, J, Minor);
+        Matrix2.Value[I, J] := Matrix1.NegativeOnePower(I + J) * Minor.Determinant;
+      end;
+    end;
+    CnMatrixTranspose(Matrix2, Matrix2);
+  finally
+    Minor.Free;
+  end;
+end;
+
 procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnRationalMatrix);
 var
   I, J: Integer;
@@ -810,6 +1110,18 @@ var
 begin
   D := Matrix1.Determinant;
   if D = 0 then
+    raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
+
+  CnMatrixAdjoint(Matrix1, Matrix2);
+  Matrix2.Divide(D);
+end;
+
+procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix);
+var
+  D: Extended;
+begin
+  D := Matrix1.Determinant;
+  if FloatAlmostZero(D) then
     raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
 
   CnMatrixAdjoint(Matrix1, Matrix2);
@@ -1202,6 +1514,383 @@ begin
 end;
 
 procedure TCnIntMatrix.Transpose;
+begin
+  CnMatrixTranspose(Self, Self);
+end;
+
+{ TCnFloatMatrix }
+
+procedure TCnFloatMatrix.Add(Factor: Extended);
+var
+  I, J: Integer;
+begin
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to FColCount - 1 do
+      FMatrix[I, J] := OperationAdd(FMatrix[I, J], Factor);
+end;
+
+function TCnFloatMatrix.Add3(X, Y, Z: Extended): Extended;
+begin
+  Result := OperationAdd(OperationAdd(X, Y), Z);
+end;
+
+procedure TCnFloatMatrix.AssignTo(Dest: TPersistent);
+var
+  I, J: Integer;
+begin
+  if Dest is TCnFloatMatrix then
+  begin
+    TCnFloatMatrix(Dest).RowCount := FRowCount;
+    TCnFloatMatrix(Dest).ColCount := FColCount;
+
+    for I := 0 to FRowCount - 1 do
+      for J := 0 to FColCount - 1 do
+        TCnFloatMatrix(Dest).Value[I, J] := FMatrix[I, J];
+  end
+  else
+    inherited;
+end;
+
+constructor TCnFloatMatrix.Create(ARowCount, AColCount: Integer);
+begin
+  inherited Create;
+  CheckCount(ARowCount);
+  CheckCount(AColCount);
+
+  FRowCount := ARowCount;
+  FColCount := AColCount;
+  SetLength(FMatrix, FRowCount, FColCount);
+end;
+
+procedure TCnFloatMatrix.DeleteCol(Col: Integer);
+var
+  T: array of array of Extended;
+  I, J, SJ, DJ: Integer;
+begin
+  if (Col >= 0) or (Col < FColCount) then
+  begin
+    // 把每 Row 的元素取出来放到临时 T 里，剔除第 Col 个
+    SetLength(T, FRowCount, FColCount - 1);
+
+    for I := 0 to FRowCount - 1 do
+    begin
+      SJ := 0;
+      DJ := 0;
+      while SJ < FColCount do
+      begin
+        if SJ = Col then
+        begin
+          Inc(SJ);
+          Continue;
+        end;
+        T[I, DJ] := FMatrix[I, SJ];
+        Inc(SJ);
+        Inc(DJ);
+      end;
+    end;
+
+    Dec(FColCount);
+    SetLength(FMatrix, FRowCount, FColCount);
+    for I := 0 to FRowCount - 1 do
+      for J := 0 to FColCount - 1 do
+        FMatrix[I, J] := T[I, J];
+
+    SetLength(T, 0);
+  end;
+end;
+
+procedure TCnFloatMatrix.DeleteRow(Row: Integer);
+var
+  I, J: Integer;
+begin
+  if (Row >= 0) or (Row < FRowCount) then
+  begin
+    // 把第 Row + 1 行到 FRowCount - 1 行的一维数组朝前移动一格，末行时无需移
+    if Row < FRowCount - 1 then
+    begin
+      for I := Row + 1 to FRowCount - 1 do
+      begin
+        for J := 0 to FColCount - 1 do
+        begin
+          FMatrix[I - 1, J] := FMatrix[I, J];
+        end;
+      end;
+    end;
+    Dec(FRowCount);
+    SetLength(FMatrix, FRowCount, FColCount);
+  end;
+end;
+
+destructor TCnFloatMatrix.Destroy;
+begin
+  SetLength(FMatrix, 0);
+  inherited;
+end;
+
+function TCnFloatMatrix.Determinant: Extended;
+var
+  I: Integer;
+  Minor: TCnFloatMatrix;
+begin
+  if not IsSquare then
+    raise ECnMatrixException.Create('Only Square can Determinant.');
+
+  if FRowCount = 1 then
+    Result := FMatrix[0, 0]
+  else if FRowCount = 2 then
+    Result := FMatrix[0, 0] * FMatrix[1, 1] - FMatrix[0, 1] * FMatrix[1, 0]
+  else if RowCount = 3 then
+  begin
+    Result := OperationSub(Add3(Mul3(FMatrix[0, 0], FMatrix[1, 1], FMatrix[2, 2]),
+      Mul3(FMatrix[0, 1], FMatrix[1, 2], FMatrix[2, 0]),
+      Mul3(FMatrix[0, 2], FMatrix[1, 0], FMatrix[2, 1])),
+      Add3(Mul3(FMatrix[0, 0], FMatrix[1, 2], FMatrix[2, 1]),
+        Mul3(FMatrix[0, 1], FMatrix[1, 0], FMatrix[2, 2]),
+        Mul3(FMatrix[0, 2], FMatrix[1, 1], FMatrix[2, 0])));
+  end
+  else
+  begin
+    // 利用代数余子式 Minor/Cofactor 计算高阶行列式
+    Result := 0;
+    Minor := TCnFloatMatrix(ClassType.NewInstance); // 需要用子类进行统一的运算
+    Minor.Create(FRowCount - 1, FColCount - 1);
+
+    // Minor := Self.clas TCnFloatMatrix.Create(FRowCount - 1, FColCount - 1);
+    try
+      for I := 0 to FColCount - 1 do
+      begin
+        CnMatrixMinor(Self, 0, I, Minor);
+        Result := OperationAdd(Result, Mul3(FMatrix[0, I], NegativeOnePower(I), Minor.Determinant));
+      end;
+    finally
+      Minor.Free;
+    end;
+  end;
+end;
+
+procedure TCnFloatMatrix.Divide(Factor: Extended);
+var
+  I, J: Integer;
+begin
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to FColCount - 1 do
+      FMatrix[I, J] := OperationDiv(FMatrix[I, J], Factor);
+end;
+
+procedure TCnFloatMatrix.DumpToStrings(List: TStrings; Sep: Char = ' ');
+var
+  I, J: Integer;
+  S: string;
+begin
+  if List = nil then
+    Exit;
+
+  List.Clear;
+  for I := 0 to FRowCount - 1 do
+  begin
+    S := '';
+    for J := 0 to FColCount - 1 do
+    begin
+      if J = 0 then
+        S := FloatToStr(FMatrix[I, J])
+      else
+        S := S + Sep + FloatToStr(FMatrix[I, J]);
+    end;
+    List.Add(S);
+  end;
+end;
+
+function TCnFloatMatrix.GetValue(Row, Col: Integer): Extended;
+begin
+  Result := FMatrix[Row, Col];
+end;
+
+function TCnFloatMatrix.IsE: Boolean;
+var
+  I, J: Integer;
+begin
+  if not IsSquare then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  for I := 0 to FRowCount - 1 do
+  begin
+    for J := 0 to FColCount - 1 do
+    begin
+      if (I = J) and (FMatrix[I, J] <> 1) then
+      begin
+        Result := False;
+        Exit;
+      end
+      else if (I <> J) and (FMatrix[I, J] <> 0) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  end;
+  Result := True;
+end;
+
+function TCnFloatMatrix.IsSingular: Boolean;
+begin
+  if not IsSquare then
+    Result := False
+  else
+    Result := Determinant = 0;
+end;
+
+function TCnFloatMatrix.IsSquare: Boolean;
+begin
+  Result := (FColCount = FRowCount);
+end;
+
+function TCnFloatMatrix.IsSymmetrical: Boolean;
+var
+  I, J: Integer;
+begin
+  if not IsSquare then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to I do
+      if FMatrix[I, J] <> FMatrix[J, I] then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+  Result := True;
+end;
+
+function TCnFloatMatrix.IsZero: Boolean;
+var
+  I, J: Integer;
+begin
+  if not IsSquare then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to FColCount - 1 do
+      if FMatrix[I, J] <> 0 then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+  Result := True;
+end;
+
+procedure TCnFloatMatrix.Mul(Factor: Extended);
+var
+  I, J: Integer;
+begin
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to FColCount - 1 do
+      FMatrix[I, J] := OperationMul(FMatrix[I, J], Factor);
+end;
+
+function TCnFloatMatrix.Mul3(X, Y, Z: Extended): Extended;
+begin
+  Result := OperationMul(OperationMul(X, Y), Z);
+end;
+
+function TCnFloatMatrix.NegativeOnePower(N: Integer): Integer;
+begin
+  Result := InternalNegativeOnePower(N);
+end;
+
+function TCnFloatMatrix.OperationAdd(X, Y: Extended): Extended;
+begin
+  Result := X + Y;
+end;
+
+function TCnFloatMatrix.OperationDiv(X, Y: Extended): Extended;
+begin
+  Result := X / Y;
+end;
+
+function TCnFloatMatrix.OperationMul(X, Y: Extended): Extended;
+begin
+  Result := X * Y;
+end;
+
+function TCnFloatMatrix.OperationSub(X, Y: Extended): Extended;
+begin
+  Result := X - Y;
+end;
+
+procedure TCnFloatMatrix.SetColCount(const Value: Integer);
+begin
+  if FColCount <> Value then
+  begin
+    CheckCount(Value);
+    FColCount := Value;
+    SetLength(FMatrix, FRowCount, FColCount);
+  end;
+end;
+
+procedure TCnFloatMatrix.SetE(Size: Integer);
+var
+  I, J: Integer;
+begin
+  CheckCount(Size);
+
+  RowCount := Size;
+  ColCount := Size;
+  for I := 0 to Size - 1 do
+    for J := 0 to Size - 1 do
+      if I = J then
+        FMatrix[I, J] := 1
+      else
+        FMatrix[I, J] := 0;
+end;
+
+procedure TCnFloatMatrix.SetRowCount(const Value: Integer);
+begin
+  if FRowCount <> Value then
+  begin
+    CheckCount(Value);
+    FRowCount := Value;
+    SetLength(FMatrix, FRowCount, FColCount);
+  end;
+end;
+
+procedure TCnFloatMatrix.SetValue(Row, Col: Integer; const AValue: Extended);
+begin
+  FMatrix[Row, Col] := AValue;
+end;
+
+procedure TCnFloatMatrix.SetZero;
+var
+  I, J: Integer;
+begin
+  for I := 0 to FRowCount - 1 do
+    for J := 0 to FColCount - 1 do
+      FMatrix[I, J] := 0;
+end;
+
+function TCnFloatMatrix.Trace: Extended;
+var
+  I: Integer;
+begin
+  if not IsSquare then
+    raise ECnMatrixException.Create('Only Square Matrix can Trace.');
+
+  Result := 0;
+  for I := 0 to FRowCount - 1 do
+    Result := OperationAdd(Result, FMatrix[I, I]);
+end;
+
+procedure TCnFloatMatrix.Transpose;
 begin
   CnMatrixTranspose(Self, Self);
 end;
