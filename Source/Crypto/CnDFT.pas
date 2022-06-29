@@ -79,16 +79,16 @@ function CnGenerateDCT2Matrix(M: TCnFloatMatrix; N: Integer): Boolean;
 {* 生成 N 阶二维 DCT 变换矩阵，该矩阵为方阵}
 
 function CnDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
-  DCTMT: TCnFloatMatrix = nil): Boolean;
+  DCTMT: TCnFloatMatrix = nil; T: TCnFloatMatrix = nil): Boolean;
 {* 二维 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维离散余弦变换，
   结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
-  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，返回变换是否成功}
+  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回变换是否成功}
 
 function CnIDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
-  DCTMT: TCnFloatMatrix = nil): Boolean;
+  DCTMT: TCnFloatMatrix = nil; T: TCnFloatMatrix = nil): Boolean;
 {* 二维逆 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维逆离散余弦变换，
   结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
-  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，返回变换是否成功}
+  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回变换是否成功}
 
 implementation
 
@@ -385,10 +385,9 @@ begin
 end;
 
 function CnDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix;
-  DCTMT: TCnFloatMatrix): Boolean;
+  DCTMT: TCnFloatMatrix; T: TCnFloatMatrix): Boolean;
 var
-  MIsNil, TIsNil: Boolean;
-  T: TCnFloatMatrix;
+  MIsNil, MTIsNil, TIsNil: Boolean;
 begin
   // Res := M * Data * M'
   Result := False;
@@ -399,8 +398,8 @@ begin
     Exit;
 
   MIsNil := DCTM = nil;
-  TIsNil := DCTMT = nil;
-  T := nil;
+  MTIsNil := DCTMT = nil;
+  TIsNil := T = nil;
 
   try
     if MIsNil then
@@ -409,31 +408,33 @@ begin
       CnGenerateDCT2Matrix(DCTM, Data.RowCount);
     end;
 
-    if TIsNil then
+    if MTIsNil then
     begin
       DCTMT := TCnFloatMatrix.Create;
       CnMatrixTranspose(DCTM, DCTMT);
     end;
 
-    T := TCnFloatMatrix.Create;
+    if TIsNil then
+      T := TCnFloatMatrix.Create;
+
     CnMatrixMul(DCTM, Data, T);
     CnMatrixMul(T, DCTMT, Res);
 
     Result := True;
   finally
-    T.Free;
+    if TIsNil then
+      T.Free;
     if MIsNil then
       DCTM.Free;
-    if TIsNil then
+    if MTIsNil then
       DCTMT.Free;
   end;
 end;
 
 function CnIDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix;
-  DCTMT: TCnFloatMatrix): Boolean;
+  DCTMT: TCnFloatMatrix; T: TCnFloatMatrix): Boolean;
 var
-  MIsNil, TIsNil: Boolean;
-  T: TCnFloatMatrix;
+  MIsNil, MTIsNil, TIsNil: Boolean;
 begin
   // Res := M' * Data * M
   Result := False;
@@ -444,8 +445,8 @@ begin
     Exit;
 
   MIsNil := DCTM = nil;
-  TIsNil := DCTMT = nil;
-  T := nil;
+  MTIsNil := DCTMT = nil;
+  TIsNil := T = nil;
 
   try
     if MIsNil then
@@ -454,22 +455,25 @@ begin
       CnGenerateDCT2Matrix(DCTM, Data.RowCount);
     end;
 
-    if TIsNil then
+    if MTIsNil then
     begin
       DCTMT := TCnFloatMatrix.Create;
       CnMatrixTranspose(DCTM, DCTMT);
     end;
 
-    T := TCnFloatMatrix.Create;
+    if TIsNil then
+      T := TCnFloatMatrix.Create;
+
     CnMatrixMul(DCTMT, Data, T);
     CnMatrixMul(T, DCTM, Res);
 
     Result := True;
   finally
-    T.Free;
+    if TIsNil then
+      T.Free;
     if MIsNil then
       DCTM.Free;
-    if TIsNil then
+    if MTIsNil then
       DCTMT.Free;
   end;
 end;
