@@ -695,19 +695,19 @@ function BigNumberPolynomialEqual(const A, B: TCnBigNumberPolynomial): Boolean;
 
 // ======================== 一元大整系数多项式普通运算 =============================
 
-procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 {* 将一个一元大整系数多项式对象的常系数加上 N}
 
-procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 {* 将一个一元大整系数多项式对象的常系数减去 N}
 
-procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 {* 将一个一元大整系数多项式对象的各个系数都乘以 N}
 
-procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 {* 将一个一元大整系数多项式对象的各个系数都除以 N，如不能整除则取整}
 
-procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 {* 将一个一元大整系数多项式对象的各个系数都对 N 非负求余，可以用于有限域化}
 
 procedure BigNumberPolynomialAddBigNumber(const P: TCnBigNumberPolynomial; N: TCnBigNumber);
@@ -833,26 +833,26 @@ function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
    返回计算是否成功，Res 可以是 P}
 
 function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
-  const P: TCnBigNumberPolynomial; Exponent: LongWord; Prime: TCnBigNumber;
+  const P: TCnBigNumberPolynomial; Exponent: TCnLongWord32; Prime: TCnBigNumber;
   Primitive: TCnBigNumberPolynomial = nil): Boolean; overload;
 {* 计算一元大整系数多项式在 Prime 次方阶有限域上的 Exponent 次幂，
    调用者需自行保证 Prime 是素数且本原多项式 Primitive 为不可约多项式
    返回计算是否成功，Res 可以是 P}
 
 function BigNumberPolynomialGaloisAddWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数加上 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisSubWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的一元大整系数多项式的常系数减去 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisMulWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的一元大整系数多项式各项系数乘以 N 再 mod Prime}
 
 function BigNumberPolynomialGaloisDivWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 {* 将 Prime 次方阶有限域上的整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 procedure BigNumberPolynomialGaloisAddBigNumber(const P: TCnBigNumberPolynomial;
@@ -4899,19 +4899,19 @@ end;
 
 // ======================== 一元大整系数多项式普通运算 =============================
 
-procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialAddWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 begin
   if N <> 0 then
     BigNumberAddWord(P[0], N);
 end;
 
-procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialSubWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 begin
   if N <> 0 then
     BigNumberSubWord(P[0], N);
 end;
 
-procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialMulWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 var
   I: Integer;
 begin
@@ -4924,7 +4924,7 @@ begin
   end;
 end;
 
-procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialDivWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 var
   I: Integer;
 begin
@@ -4935,7 +4935,7 @@ begin
       BigNumberDivWord(P[I], N);
 end;
 
-procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: LongWord);
+procedure BigNumberPolynomialNonNegativeModWord(const P: TCnBigNumberPolynomial; N: TCnLongWord32);
 var
   I: Integer;
 begin
@@ -5725,7 +5725,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisPower(const Res: TCnBigNumberPolynomial;
-  const P: TCnBigNumberPolynomial; Exponent: LongWord; Prime: TCnBigNumber;
+  const P: TCnBigNumberPolynomial; Exponent: TCnLongWord32; Prime: TCnBigNumber;
   Primitive: TCnBigNumberPolynomial = nil): Boolean; overload;
 var
   T: TCnBigNumber;
@@ -5740,7 +5740,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisAddWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 begin
   if N <> 0 then
   begin
@@ -5751,7 +5751,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisSubWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 begin
   if N <> 0 then
   begin
@@ -5762,7 +5762,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisMulWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 var
   I: Integer;
 begin
@@ -5782,7 +5782,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisDivWord(const P: TCnBigNumberPolynomial;
-  N: LongWord; Prime: TCnBigNumber): Boolean;
+  N: TCnLongWord32; Prime: TCnBigNumber): Boolean;
 var
   I: Integer;
   K, T: TCnBigNumber;
