@@ -4,10 +4,12 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, CnComplex,
-  StdCtrls, CnDFT, CnNativeDecl;
+  StdCtrls, CnDFT, CnNativeDecl, ComCtrls;
 
 type
   TFormDFT = class(TForm)
+    pgc1: TPageControl;
+    tsDFTNTT: TTabSheet;
     grpDFT: TGroupBox;
     btnDFTButterFly: TButton;
     edtDftButterFly: TEdit;
@@ -24,12 +26,20 @@ type
     btnTestNtt: TButton;
     edtNTT: TEdit;
     edtINTT: TEdit;
+    tsDCT: TTabSheet;
+    grpDCT: TGroupBox;
+    btnDCT: TButton;
+    btnIDCT: TButton;
+    edtDCT: TEdit;
+    edtIDCT: TEdit;
     procedure btnDFTButterFlyClick(Sender: TObject);
     procedure btnTwiddleFactorsClick(Sender: TObject);
     procedure btnTestDFTClick(Sender: TObject);
     procedure btnNTTButterFlyClick(Sender: TObject);
     procedure btnNttFactorsClick(Sender: TObject);
     procedure btnTestNttClick(Sender: TObject);
+    procedure btnDCTClick(Sender: TObject);
+    procedure btnIDCTClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -184,6 +194,54 @@ begin
   for I := Low(IA) to High(IA) do
     S := S + IntToStr(IA[I]) + ' ; ';
   edtINTT.Text := S;
+end;
+
+procedure TFormDFT.btnDCTClick(Sender: TObject);
+var
+  X, U: array[0..7] of Extended;
+  I: Integer;
+  S: string;
+begin
+  for I := Low(X) to High(X) do
+    X[I] := 5 * I;
+
+  CnDCT(@X[0], @U[0], 8);
+
+  S := '';
+  for I := Low(U) to High(U) do
+  begin
+    if I = High(U) then
+      S := S + FloatToStr(U[I])
+    else
+      S := S + FloatToStr(U[I]) + ','
+  end;
+
+  edtDCT.Text := S;
+  CnIDCT(@U[0], @X[0], 8);
+end;
+
+procedure TFormDFT.btnIDCTClick(Sender: TObject);
+var
+  X, U: array[0..7] of Extended;
+  I: Integer;
+  S: string;
+begin
+  for I := Low(X) to High(X) do
+    X[I] := 5 * I;
+
+  CnDCT(@X[0], @U[0], 8);
+  CnIDCT(@U[0], @X[0], 8);
+
+  S := '';
+  for I := Low(X) to High(X) do
+  begin
+    if I = High(X) then
+      S := S + IntToStr(Round(X[I]))
+    else
+      S := S + IntToStr(Round(X[I])) + ','
+  end;
+
+  edtIDCT.Text := S;
 end;
 
 end.

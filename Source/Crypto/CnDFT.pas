@@ -49,7 +49,7 @@ procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
 {* 蝴蝶变换，调整复数数组内部元素的顺序以便奇偶分治}
 
 procedure ButterflyChangeInt64(IA: PInt64Array; Len: Integer);
-{* 蝴蝶变换，调整 int64 数组内部元素的顺序以便奇偶分治}
+{* 蝴蝶变换，调整 Int64 数组内部元素的顺序以便奇偶分治}
 
 function CnFFT(Data: PCnComplexArray; Len: Integer): Boolean;
 {* 快速傅立叶变换，将多项式的系数复数数组转换为点值向量复数数组，要确保 Len 为 2 的整数次幂}
@@ -64,6 +64,14 @@ function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
 function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
 {* 快速数论逆变换，将点值向量 int 64 数组转换为多项式的系数 int 64 数组，
   注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P}
+
+function CnDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
+{* 一维 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维离散余弦变换，
+  结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回变换是否成功}
+
+function CnIDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
+{* 一维逆 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维逆离散余弦变换，
+  结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回逆变换是否成功}
 
 implementation
 
@@ -271,6 +279,63 @@ end;
 function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
 begin
   Result := NTT(Data, Len, True);
+end;
+
+function CnDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
+var
+  X, U: Integer;
+  C: Extended;
+begin
+  Result := False;
+  if (Len <= 0) or (Data = nil) or (Res = nil) then
+    Exit;
+
+  Res^[0] := 0;
+  for X := 0 to Len - 1 do
+    Res^[0] := Res^[0] + Data^[X];
+
+  Res^[0] := Res^[0] / Sqrt(Len); // 额外求得 F0
+
+  for U := 1 to Len - 1 do
+  begin
+    // 求 FU
+    Res^[U] := 0;
+    for X := 0 to Len - 1 do
+    begin
+      C := Cos(Pi * U * (2 * X + 1) / (2 * Len));
+      Res^[U] := Res^[U] + Data^[X] * C;
+    end;
+    Res^[U] := Res^[U] * Sqrt(2.0 / Len);
+  end;
+  Result := True;
+end;
+
+function CnIDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
+var
+  X, U: Integer;
+  A1, A2, C: Extended;
+begin
+  Result := False;
+  if (Len <= 0) or (Data = nil) or (Res = nil) then
+    Exit;
+
+  A1 := 1.0 / Sqrt(Len);
+  A2 := Sqrt(2.0 / Len);
+
+  for X := 0 to Len - 1 do
+  begin
+    // 求 fx
+    Res^[X] := 0;
+    for U := 0 to Len - 1 do
+    begin
+      C := Cos(Pi * U * (2 * X + 1) / (2 * Len));
+      if U = 0 then
+        Res^[X] := Res^[X] + Data^[U] * C * A1
+      else
+        Res^[X] := Res^[X] + Data^[U] * C * A2;
+    end;
+  end;
+  Result := True;
 end;
 
 end.
