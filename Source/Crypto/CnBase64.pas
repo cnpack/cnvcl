@@ -19,8 +19,8 @@
 {******************************************************************************}
 
 {******************************************************************************}
-{        该单元部分内容基于Dennis D. Spreen的UTBASE64.pas改写。                }
-{        下面是UTBASE64.pas的声明:                                             }
+{        该单元部分内容基于 Dennis D. Spreen 的 UTBASE64.pas 改写。            }
+{        下面是 UTBASE64.pas 的声明:                                           }
 { -----------------------------------------------------------------------------}
 { uTBase64 v1.0 - Simple Base64 encoding/decoding class                        }
 { Base64 described in RFC2045, Page 24, (w) 1996 Freed & Borenstein            }
@@ -32,10 +32,10 @@ unit CnBase64;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：Base64编码算法单元
+* 单元名称：Base64 编码算法单元
 * 单元作者：詹葵（Solin） solin@21cn.com; http://www.ilovezhuzhu.net
 *           wr960204
-* 备    注：该单元有两个版本的Base64实现，分别属移植改进而来。
+* 备    注：该单元有两个版本的 Base64 实现，分别属移植改进而来。
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -46,7 +46,7 @@ unit CnBase64;
 *           2018.06.22 V1.3
 *               修正解出的原始内容可能包含多余 #0 或原始尾部 #0 被错误移除的问题
 *           2016.05.03 V1.2
-*               修正字符串中包含#0时可能会被截断的问题
+*               修正字符串中包含 #0 时可能会被截断的问题
 *           2006.10.25 V1.1
 *               增加 wr960204 的优化版本
 *           2003.10.14 V1.0
@@ -59,7 +59,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl;
+  SysUtils, Classes, CnNativeDecl, CnConsts;
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 {* 对流进行 Base64 编码，如编码成功返回 BASE64_OK
@@ -117,13 +117,13 @@ function Base64Decode(InputData: string; var OutputData: TBytes;
 |</PRE>}
 
 // 原始移植的版本，比较慢
-function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;
+function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 
 // 原始移植的版本，比较慢
-function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;
+function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 
 const
-  BASE64_OK       = 0; // 转换成功
+  BASE64_OK       = ECN_OK; // 转换成功
   BASE64_ERROR    = 1; // 转换错误（未知错误） (e.g. can't encode octet in input stream) -> error in implementation
   BASE64_INVALID  = 2; // 输入的字符串中有非法字符 (在 FilterDecodeInput=False 时可能出现)
   BASE64_LENGTH   = 3; // 数据长度非法
@@ -426,7 +426,7 @@ begin
   end;
 end;
 
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte;
 var
   Times, I: Integer;
   x1, x2, x3, x4: AnsiChar;
@@ -485,7 +485,7 @@ begin
   Result := BASE64_OK;
 end;
 
-function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
+function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte;
 begin
   if InputData <> '' then
     Result := Base64Encode(@InputData[1], Length(InputData), OutputData)
@@ -493,7 +493,7 @@ begin
     Result := BASE64_LENGTH;
 end;
 
-function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
+function Base64Encode(InputData: TBytes; var OutputData: string): Byte;
 begin
   if Length(InputData) > 0 then
     Result := Base64Encode(@InputData[0], Length(InputData), OutputData)
@@ -501,33 +501,21 @@ begin
     Result := BASE64_LENGTH;
 end;
 
-function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte; overload;
+function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte;
 var
-  Str: AnsiString;
+  Data: TBytes;
 begin
-  Result := Base64Decode(InputData, Str, FixZero);
-  OutputData.Size := Length(Str);
-  OutputData.Position := 0;
-  if Str <> '' then
-    OutputData.Write(Str[1], Length(Str));
-end;
-
-function Base64Decode(InputData: string; var OutputData: TBytes;
-  FixZero: Boolean): Byte; overload;
-var
-  OutStr: AnsiString;
-begin
-  Result := Base64Decode(AnsiString(InputData), OutStr, FixZero);
-  if Result = BASE64_OK then
+  Result := Base64Decode(InputData, Data, FixZero);
+  if (Result = BASE64_OK) and (Length(Data) > 0) then
   begin
-    // 注意不能通过 Encoding 的 GetBytes 获得 TBytes 结果，免得截断，必须以下手工复制
-    SetLength(OutputData, Length(OutStr));
-    if Length(OutStr) > 0 then
-      Move(OutStr[1], OutputData[0], Length(OutStr));
+    OutputData.Size := Length(Data);
+    OutputData.Position := 0;
+    OutputData.Write(Data[0], Length(Data));
   end;
 end;
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Byte;
+function Base64Decode(InputData: string; var OutputData: TBytes;
+  FixZero: Boolean): Byte;
 var
   SrcLen, DstLen, Times, i: Integer;
   x1, x2, x3, x4, xt: Byte;
@@ -561,7 +549,7 @@ begin
     Result := BASE64_OK;
     Exit;
   end;
-  OutPutData := '';
+  OutPutData := nil;
 
   if FilterDecodeInput then
     Data := FilterLine(InputData)
@@ -583,7 +571,7 @@ begin
 
   SetLength(OutputData, DstLen);  // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
   Times := SrcLen div 4;
-  C := 1;
+  C := 0;
 
   for i := 0 to Times - 1 do
   begin
@@ -595,24 +583,24 @@ begin
     xt := x2 shr 4;
     x1 := x1 or xt;
     x2 := x2 shl 4;
-    OutputData[C] := AnsiChar(Chr(x1));
+    OutputData[C] := x1;
     Inc(C);
     if x3 = 64 then
       Break;
     xt := x3 shr 2;
     x2 := x2 or xt;
     x3 := x3 shl 6;
-    OutputData[C] := AnsiChar(Chr(x2));
+    OutputData[C] := x2;
     Inc(C);
     if x4 = 64 then
       Break;
     x3 := x3 or x4;
-    OutputData[C] := AnsiChar(Chr(x3));
+    OutputData[C] := x3;
     Inc(C);
   end;
 
   // 根据补的等号数目决定是否删除尾部 #0
-  while (ToDec > 0) and (OutputData[DstLen] = #0) do
+  while (ToDec > 0) and (OutputData[DstLen - 1] = 0) do
   begin
     Dec(ToDec);
     Dec(DstLen);
@@ -622,12 +610,24 @@ begin
   // 再根据外部要求删除尾部的 #0，其实无太大的实质性作用
   if FixZero then
   begin
-    while (DstLen > 0) and (OutputData[DstLen] = #0) do
+    while (DstLen > 0) and (OutputData[DstLen - 1] = 0) do
       Dec(DstLen);
     SetLength(OutputData, DstLen);
   end;
 
   Result := BASE64_OK;
+end;
+
+function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Byte;
+var
+  Data: TBytes;
+begin
+  Result := Base64Decode(InputData, Data, FixZero);
+  if (Result = BASE64_OK) and (Length(Data) > 0) then
+  begin
+    SetLength(OutputData, Length(Data));
+    Move(Data[0], OutputData[1], Length(Data));
+  end;
 end;
 
 end.
