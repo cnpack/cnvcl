@@ -28,7 +28,9 @@ unit CnMatrix;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.29 V1.2
+* 修改记录：2022.07.01 V1.3
+*               加入矩阵斜角索引的计算
+*           2022.06.29 V1.2
 *               加入浮点矩阵计算
 *           2019.06.12 V1.1
 *               加入有理数矩阵计算
@@ -56,6 +58,8 @@ type
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
     function GetValue(Row, Col: Integer): Int64;
+    function GetZigZagValue(Index: Integer): Int64;
+    procedure SetZigZagValue(Index: Integer; const Value: Int64);
   protected
     procedure SetValue(Row, Col: Integer; const AValue: Int64); virtual;
 
@@ -112,6 +116,8 @@ type
 
     property Value[Row, Col: Integer]: Int64 read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
+    property ZigZagValue[Index: Integer]: Int64 read GetZigZagValue write SetZigZagValue;
+    {* 方阵中左上角开始斜排的单值索引}
   published
     property ColCount: Integer read FColCount write SetColCount;
     {* 矩阵列数}
@@ -128,6 +134,8 @@ type
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
     function GetValue(Row, Col: Integer): Extended;
+    function GetZigZagValue(Index: Integer): Extended;
+    procedure SetZigZagValue(Index: Integer; const Value: Extended);
   protected
     procedure SetValue(Row, Col: Integer; const AValue: Extended); virtual;
 
@@ -184,6 +192,8 @@ type
 
     property Value[Row, Col: Integer]: Extended read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
+    property ZigZagValue[Index: Integer]: Extended read GetZigZagValue write SetZigZagValue;
+    {* 方阵中左上角开始斜排的单值索引}
   published
     property ColCount: Integer read FColCount write SetColCount;
     {* 矩阵列数}
@@ -298,6 +308,9 @@ type
     function GetValue(Row, Col: Integer): TCnRationalNumber;
     function GetColCount: Integer;
     function GetRowCount: Integer;
+    function GetZigZagValue(Index: Integer): TCnRationalNumber;
+    procedure SetZigZagValue(Index: Integer;
+      const Value: TCnRationalNumber);
   protected
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -350,6 +363,8 @@ type
 
     property Value[Row, Col: Integer]: TCnRationalNumber read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
+    property ZigZagValue[Index: Integer]: TCnRationalNumber read GetZigZagValue write SetZigZagValue;
+    {* 方阵中左上角开始斜排的单值索引}
   published
     property ColCount: Integer read GetColCount write SetColCount;
     {* 矩阵列数}
@@ -474,12 +489,155 @@ function CnRationalNumberCompare(Number1, Number2: TCnRationalNumber): Integer;
 procedure CnReduceInt64(var X, Y: Int64);
 {* 尽量比例缩小，也就是约分}
 
+function RowColToZigZag(ARow, ACol: Integer; N: Integer): Integer;
+{* 将 N 阶方阵中的行列值转换为左上角斜排的索引值，均 0 开始}
+
+procedure ZigZagToRowCol(Index: Integer; out ARow, ACol: Integer; N: Integer);
+{* 将 N 阶方阵中的左上角斜排的索引值转换为行列值，均 0 开始}
+
 implementation
 
-procedure CheckCount(Value: Int64);
+resourcestring
+  SCnErrorRowColCountFmt = 'Error Row or Col Count: %d';
+  SCnErrorRowColIndexFmt = 'Error Row or Col: %d';
+  SCnErrorRowColIndex2Fmt = 'Error Row or Col: %d, %d';
+  SCnErrorZigZagIndexFmt = 'Error ZigZag Index: %d';
+  SCnErrorZigZagRowColCount = 'ZigZag Row Col Count must Equal';
+  SCnErrorResultFactors = 'Matrix Result can not Be Factors';
+  SCnErrorMulRowCount = 'Matrix 1 Col Count must Equal to Matrix 2 Row Count';
+
+procedure CheckCount(Value: Integer);
 begin
   if Value <= 0 then
-    raise ECnMatrixException.Create('Error Row or Col Count: ' + IntToStr(Value));
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColCountFmt, [Value]);
+end;
+
+procedure CheckIndex(Value: Integer);
+begin
+  if Value < 0 then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndexFmt, [Value]);
+end;
+
+{
+  0  1  5  6
+  2  4  7 12
+  3  8 11 13
+  9 10 14 15
+}
+// 将 N 阶方阵中的行列值转换为左上角斜排的索引值，均 0 开始
+function RowColToZigZag(ARow, ACol: Integer; N: Integer): Integer;
+var
+  L, A, T: Integer;
+begin
+  CheckIndex(ARow);
+  CheckIndex(ACol);
+  if (ARow >= N) or (ACol >= N) then
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColIndex2Fmt, [ARow, ACol]);
+
+  // 在第 Row + Col + 1 斜层（左上角为第 1 斜层），先求之前完整斜层的数量和，再求本斜层内的偏移
+  // 最长的斜层是第 N 层（共 N(N+1)/2 个），总共有 2N - 1 层
+  L := ARow + ACol;
+  if L <= N then
+    A := L * (L + 1) div 2 // A 是之前完整斜层的数量和
+  else
+  begin
+    A := N * (N + 1) div 2;  // 1 到 N 的斜层和
+    T := 2 * N - 1 - (ARow + ACol);
+    A := A + (A - N - (T * (T + 1) div 2)); // N + 1 后的斜层和
+  end;
+  // A 是之前完整斜层的数量和
+
+  if L and 1 = 0 then
+  begin
+    // 本身奇数斜层，左下往右上排
+    if L < N then
+      Result := A + ACol
+    else
+    Result := A + ACol - (L + 1 - N);
+  end
+  else
+  begin
+    // 本身偶数斜层，右上往左下排
+    if L < N then
+      Result := A + ARow
+    else
+      Result := A + ARow - (L + 1 - N);
+  end;
+end;
+
+// 将 N 阶方阵中的左上角斜排的索引值转换为行列值，均 0 开始
+procedure ZigZagToRowCol(Index: Integer; out ARow, ACol: Integer; N: Integer);
+var
+  L, A: Integer;
+
+  procedure FindLevelIndex(var Level, IndexLevel: Integer);
+  var
+    TA: Integer;
+  begin
+    TA := Trunc(Sqrt(IndexLevel * 2 + 2));
+    if TA * TA + TA < IndexLevel * 2 + 2 then
+    begin
+      Level := TA;
+      IndexLevel := IndexLevel - (TA * TA + TA) div 2;
+    end
+    else
+    begin
+      Level := TA - 1;
+      if Level < 0 then
+        Level := 0;
+      IndexLevel := IndexLevel - (Level * Level + Level) div 2;
+    end;
+  end;
+
+begin
+  CheckIndex(Index);
+  if Index > (N * N - 1) then
+    raise ECnMatrixException.CreateFmt(SCnErrorZigZagIndexFmt, [Index]);
+
+  A := N * (N + 1) div 2; // A 是从左上到包括对角线在内的所有数量
+
+  L := 0;
+  if Index < A then
+  begin
+    // 在左上区，包括对角线
+    FindLevelIndex(L, Index);
+    // L 是左上不包括自己的完整层数（可以为 0），且有 Row + Col = L，Index 是本层中的偏移，0 开始（方向待判断）
+
+    if L and 1 = 0 then
+    begin
+      // 本身在左上区的奇数斜层，左下往右上排
+      ACol := Index;
+      ARow := L - Index;
+    end
+    else
+    begin
+      // 本身在左上区的偶数斜层，右上往左下排
+      ARow := Index;
+      ACol := L - Index;
+    end;
+  end
+  else
+  begin
+    // 在右下区，不包括对角线
+    Index := N * N - 1 - Index;
+    FindLevelIndex(L, Index);
+    Index := L - Index;
+    // L 是右下不包括自己的完整层数（可以为 0），且有 (N - 1 - Row) + (N - 1 - Col) = L，
+    // 也就是 (Row + Col = 2N - 2 - L)，且 Index 是本层中的偏移，0 开始（方向待判断）
+
+    if L and 1 = 0 then
+    begin
+      // 本身在右下区的奇数斜层，左下往右上排
+      ARow := N - 1 - Index;
+      ACol := 2 * N - 2 - L - ARow;
+    end
+    else
+    begin
+      // 本身在右下区的偶数斜层，右上往左下排
+      ACol := N - 1 - Index;
+      ARow := 2 * N - 2 - L - ACol;
+    end;
+  end;
 end;
 
 // 计算 -1 的 N 次方，供求代数余子式用
@@ -509,10 +667,10 @@ var
   T, Sum: Int64;
 begin
   if (MulResult = Matrix1) or (MulResult = Matrix2) then
-    raise ECnMatrixException.Create('Matrix Result can not Be Factors.');
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
 
   if Matrix1.ColCount <> Matrix2.RowCount then
-    raise ECnMatrixException.Create('Matrix 1 Col Count must Equal to Matrix 2 Row Count.');
+    raise ECnMatrixException.Create(SCnErrorMulRowCount);
 
   MulResult.RowCount := Matrix1.RowCount;
   MulResult.ColCount := Matrix2.ColCount;
@@ -539,10 +697,10 @@ var
   T, Sum: Extended;
 begin
   if (MulResult = Matrix1) or (MulResult = Matrix2) then
-    raise ECnMatrixException.Create('Matrix Result can not Be Factors.');
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
 
   if Matrix1.ColCount <> Matrix2.RowCount then
-    raise ECnMatrixException.Create('Matrix 1 Col Count must Equal to Matrix 2 Row Count.');
+    raise ECnMatrixException.Create(SCnErrorMulRowCount);
 
   MulResult.RowCount := Matrix1.RowCount;
   MulResult.ColCount := Matrix2.ColCount;
@@ -569,10 +727,10 @@ var
   T, Sum: TCnRationalNumber;
 begin
   if (MulResult = Matrix1) or (MulResult = Matrix2) then
-    raise ECnMatrixException.Create('Matrix Result can not Be Factors.');
+    raise ECnMatrixException.Create(SCnErrorResultFactors);
 
   if Matrix1.ColCount <> Matrix2.RowCount then
-    raise ECnMatrixException.Create('Matrix 1 Col Count must Equal to Matrix 2 Row Count.');
+    raise ECnMatrixException.Create(SCnErrorMulRowCount);
 
   MulResult.RowCount := Matrix1.RowCount;
   MulResult.ColCount := Matrix2.ColCount;
@@ -1328,6 +1486,17 @@ begin
   Result := FMatrix[Row, Col];
 end;
 
+function TCnIntMatrix.GetZigZagValue(Index: Integer): Int64;
+var
+  R, C: Integer;
+begin
+  if RowCount <> ColCount then
+    raise ECnMatrixException.Create(SCnErrorZigZagRowColCount);
+
+  ZigZagToRowCol(Index, R, C, RowCount);
+  Result := GetValue(R, C);
+end;
+
 function TCnIntMatrix.IsE: Boolean;
 var
   I, J: Integer;
@@ -1499,6 +1668,17 @@ begin
   for I := 0 to FRowCount - 1 do
     for J := 0 to FColCount - 1 do
       FMatrix[I, J] := 0;
+end;
+
+procedure TCnIntMatrix.SetZigZagValue(Index: Integer; const Value: Int64);
+var
+  R, C: Integer;
+begin
+  if RowCount <> ColCount then
+    raise ECnMatrixException.Create(SCnErrorZigZagRowColCount);
+
+  ZigZagToRowCol(Index, R, C, RowCount);
+  SetValue(R, C, Value);
 end;
 
 function TCnIntMatrix.Trace: Int64;
@@ -1705,6 +1885,17 @@ begin
   Result := FMatrix[Row, Col];
 end;
 
+function TCnFloatMatrix.GetZigZagValue(Index: Integer): Extended;
+var
+  R, C: Integer;
+begin
+  if RowCount <> ColCount then
+    raise ECnMatrixException.Create(SCnErrorZigZagRowColCount);
+
+  ZigZagToRowCol(Index, R, C, RowCount);
+  Result := GetValue(R, C);
+end;
+
 function TCnFloatMatrix.IsE: Boolean;
 var
   I, J: Integer;
@@ -1876,6 +2067,18 @@ begin
   for I := 0 to FRowCount - 1 do
     for J := 0 to FColCount - 1 do
       FMatrix[I, J] := 0;
+end;
+
+procedure TCnFloatMatrix.SetZigZagValue(Index: Integer;
+  const Value: Extended);
+var
+  R, C: Integer;
+begin
+  if RowCount <> ColCount then
+    raise ECnMatrixException.Create(SCnErrorZigZagRowColCount);
+
+  ZigZagToRowCol(Index, R, C, RowCount);
+  SetValue(R, C, Value);
 end;
 
 function TCnFloatMatrix.Trace: Extended;
@@ -2590,6 +2793,17 @@ begin
   end;
 end;
 
+function TCnRationalMatrix.GetZigZagValue(Index: Integer): TCnRationalNumber;
+var
+  R, C: Integer;
+begin
+  if RowCount <> ColCount then
+    raise ECnMatrixException.Create(SCnErrorZigZagRowColCount);
+
+  ZigZagToRowCol(Index, R, C, RowCount);
+  Result := GetValue(R, C);
+end;
+
 function TCnRationalMatrix.IsE: Boolean;
 var
   I, J: Integer;
@@ -2743,6 +2957,17 @@ begin
   for I := 0 to RowCount - 1 do
     for J := 0 to ColCount - 1 do
       Value[I, J].SetZero;
+end;
+
+procedure TCnRationalMatrix.SetZigZagValue(Index: Integer; const Value: TCnRationalNumber);
+var
+  R, C: Integer;
+begin
+  if RowCount <> ColCount then
+    raise ECnMatrixException.Create(SCnErrorZigZagRowColCount);
+
+  ZigZagToRowCol(Index, R, C, RowCount);
+  SetValue(R, C, Value);
 end;
 
 procedure TCnRationalMatrix.Trace(T: TCnRationalNumber);

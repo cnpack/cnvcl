@@ -52,6 +52,8 @@ type
     btnGInverse: TButton;
     btnDeleteRow: TButton;
     btnDeleteCol: TButton;
+    btnIntZigZag: TButton;
+    btnIntZigZag2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnEqualClick(Sender: TObject);
@@ -92,6 +94,8 @@ type
     procedure btnGInverseClick(Sender: TObject);
     procedure btnDeleteRowClick(Sender: TObject);
     procedure btnDeleteColClick(Sender: TObject);
+    procedure btnIntZigZagClick(Sender: TObject);
+    procedure btnIntZigZag2Click(Sender: TObject);
   private
     FM1, FM2, FMR: TCnIntMatrix;
     FR1, FR2, FRR: TCnRationalMatrix;
@@ -567,6 +571,36 @@ end;
 procedure TFormMatrix.btnDeleteColClick(Sender: TObject);
 begin
   FM1.DeleteCol(StringGrid1.Col);
+  MatrixToStringGrid(FM1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnIntZigZagClick(Sender: TObject);
+var
+  I, J: Integer;
+begin
+  FM1.RowCount := 5;
+  FM1.ColCount := 5;
+  for I := 0 to FM1.RowCount - 1 do
+    for J := 0 to FM1.ColCount - 1 do
+      FM1[I, J] := RowColToZigZag(I, J, FM1.RowCount);
+  MatrixToStringGrid(FM1, StringGrid1);
+end;
+
+procedure TFormMatrix.btnIntZigZag2Click(Sender: TObject);
+var
+  I, R, C: Integer;
+begin
+  FM1.RowCount := 6;
+  FM1.ColCount := 6;
+  try
+    for I := 0 to FM1.RowCount * FM1.RowCount - 1 do
+    begin
+      ZigZagToRowCol(I, R, C, FM1.RowCount);
+      FM1[R, C] := I;
+    end;
+  except
+    ;
+  end;
   MatrixToStringGrid(FM1, StringGrid1);
 end;
 

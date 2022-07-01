@@ -255,6 +255,24 @@ object FormMatrix: TFormMatrix
       TabOrder = 9
       OnClick = btnDeleteColClick
     end
+    object btnIntZigZag: TButton
+      Left = 32
+      Top = 248
+      Width = 75
+      Height = 25
+      Caption = 'ZigZag'
+      TabOrder = 10
+      OnClick = btnIntZigZagClick
+    end
+    object btnIntZigZag2: TButton
+      Left = 152
+      Top = 248
+      Width = 75
+      Height = 25
+      Caption = 'ZigZag'
+      TabOrder = 11
+      OnClick = btnIntZigZag2Click
+    end
   end
   object grpRational: TGroupBox
     Left = 376
