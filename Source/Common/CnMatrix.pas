@@ -505,6 +505,15 @@ resourcestring
   SCnErrorZigZagRowColCount = 'ZigZag Row Col Count must Equal';
   SCnErrorResultFactors = 'Matrix Result can not Be Factors';
   SCnErrorMulRowCount = 'Matrix 1 Col Count must Equal to Matrix 2 Row Count';
+  SCnErrorPowerSquare = 'Matrix Power Must Be Square';
+  SCnErrorDivNotImplInt = 'Operation Div NOT Implemented in Int Matrix';
+  SCnErrorTraceSquare = 'Only Square Matrix can Trace';
+  SCnErrorInvalidPower = 'Invalid Matrix Power';
+  SCnErrorRowColMustEqual = 'Matrix 1/2 Row/Col Count must Equal';
+  SCnErrorRowColMinorFmt = 'Invalid Minor Row or Col %d, %d';
+  SCnErrorAdjointSquare = 'Only Square can Adjoint';
+  SCnErrorInverseZeroDeteminant = 'NO Inverse Matrix for Deteminant is 0';
+  SCnErrorDeterminantSquare = 'Only Square can Determinant';
 
 procedure CheckCount(Value: Integer);
 begin
@@ -764,10 +773,10 @@ var
   T: TCnIntMatrix;
 begin
   if not Matrix.IsSquare then
-    raise ECnMatrixException.Create('Matrix Power Must Be Square.');
+    raise ECnMatrixException.Create(SCnErrorPowerSquare);
 
   if K < 0 then
-    raise ECnMatrixException.Create('Invalid Matrix Power.');
+    raise ECnMatrixException.Create(SCnErrorInvalidPower);
 
   if K = 0 then
   begin
@@ -799,10 +808,10 @@ var
   T: TCnFloatMatrix;
 begin
   if not Matrix.IsSquare then
-    raise ECnMatrixException.Create('Matrix Power Must Be Square.');
+    raise ECnMatrixException.Create(SCnErrorPowerSquare);
 
   if K < 0 then
-    raise ECnMatrixException.Create('Invalid Matrix Power.');
+    raise ECnMatrixException.Create(SCnErrorInvalidPower);
 
   if K = 0 then
   begin
@@ -834,10 +843,10 @@ var
   T: TCnRationalMatrix;
 begin
   if not Matrix.IsSquare then
-    raise ECnMatrixException.Create('Matrix Power Must Be Square.');
+    raise ECnMatrixException.Create(SCnErrorPowerSquare);
 
   if K < 0 then
-    raise ECnMatrixException.Create('Invalid Matrix Power.');
+    raise ECnMatrixException.Create(SCnErrorInvalidPower);
 
   if K = 0 then
   begin
@@ -868,7 +877,7 @@ var
   I, J: Integer;
 begin
   if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
-    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+    raise ECnMatrixException.Create(SCnErrorRowColMustEqual);
 
   AddResult.RowCount := Matrix1.RowCount;
   AddResult.ColCount := Matrix1.ColCount;
@@ -882,7 +891,7 @@ var
   I, J: Integer;
 begin
   if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
-    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+    raise ECnMatrixException.Create(SCnErrorRowColMustEqual);
 
   AddResult.RowCount := Matrix1.RowCount;
   AddResult.ColCount := Matrix1.ColCount;
@@ -896,7 +905,7 @@ var
   I, J: Integer;
 begin
   if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
-    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+    raise ECnMatrixException.Create(SCnErrorRowColMustEqual);
 
   AddResult.RowCount := Matrix1.RowCount;
   AddResult.ColCount := Matrix1.ColCount;
@@ -910,7 +919,7 @@ var
   I, J: Integer;
 begin
   if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
-    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+    raise ECnMatrixException.Create(SCnErrorRowColMustEqual);
 
   ProductResult.RowCount := Matrix1.RowCount;
   ProductResult.ColCount := Matrix1.ColCount;
@@ -924,7 +933,7 @@ var
   I, J: Integer;
 begin
   if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
-    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+    raise ECnMatrixException.Create(SCnErrorRowColMustEqual);
 
   ProductResult.RowCount := Matrix1.RowCount;
   ProductResult.ColCount := Matrix1.ColCount;
@@ -938,7 +947,7 @@ var
   I, J: Integer;
 begin
   if (Matrix1.ColCount <> Matrix2.ColCount) or (Matrix1.RowCount <> Matrix2.RowCount) then
-    raise ECnMatrixException.Create('Matrix 1/2 Row/Col Count must Equal.');
+    raise ECnMatrixException.Create(SCnErrorRowColMustEqual);
 
   ProductResult.RowCount := Matrix1.RowCount;
   ProductResult.ColCount := Matrix1.ColCount;
@@ -1046,7 +1055,7 @@ var
 begin
   if ((Row < 0) or (Row >= Matrix.RowCount)) or
     ((Col < 0) or (Col >= Matrix.ColCount)) then
-    raise ECnMatrixException.Create('Invalid Minor Row or Col.');
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColMinorFmt, [Row, Col]);
 
   MinorResult.ColCount := Matrix.ColCount - 1;
   MinorResult.RowCount := Matrix.RowCount - 1;
@@ -1090,7 +1099,7 @@ var
 begin
   if ((Row < 0) or (Row >= Matrix.RowCount)) or
     ((Col < 0) or (Col >= Matrix.ColCount)) then
-    raise ECnMatrixException.Create('Invalid Minor Row or Col.');
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColMinorFmt, [Row, Col]);
 
   MinorResult.ColCount := Matrix.ColCount - 1;
   MinorResult.RowCount := Matrix.RowCount - 1;
@@ -1134,7 +1143,7 @@ var
 begin
   if ((Row < 0) or (Row >= Matrix.RowCount)) or
     ((Col < 0) or (Col >= Matrix.ColCount)) then
-    raise ECnMatrixException.Create('Invalid Minor Row or Col.');
+    raise ECnMatrixException.CreateFmt(SCnErrorRowColMinorFmt, [Row, Col]);
 
   MinorResult.ColCount := Matrix.ColCount - 1;
   MinorResult.RowCount := Matrix.RowCount - 1;
@@ -1178,7 +1187,7 @@ var
   Minor: TCnIntMatrix;
 begin
   if not Matrix1.IsSquare then
-    raise ECnMatrixException.Create('Only Square can Adjoint.');
+    raise ECnMatrixException.Create(SCnErrorAdjointSquare);
 
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
@@ -1207,7 +1216,7 @@ var
   Minor: TCnFloatMatrix;
 begin
   if not Matrix1.IsSquare then
-    raise ECnMatrixException.Create('Only Square can Adjoint.');
+    raise ECnMatrixException.Create(SCnErrorAdjointSquare);
 
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
@@ -1237,7 +1246,7 @@ var
   T: TCnRationalNumber;
 begin
   if not Matrix1.IsSquare then
-    raise ECnMatrixException.Create('Only Square can Adjoint.');
+    raise ECnMatrixException.Create(SCnErrorAdjointSquare);
 
   Matrix2.RowCount := Matrix1.RowCount;
   Matrix2.ColCount := Matrix1.ColCount;
@@ -1268,7 +1277,7 @@ var
 begin
   D := Matrix1.Determinant;
   if D = 0 then
-    raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
+    raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
 
   CnMatrixAdjoint(Matrix1, Matrix2);
   Matrix2.Divide(D);
@@ -1280,7 +1289,7 @@ var
 begin
   D := Matrix1.Determinant;
   if FloatAlmostZero(D) then
-    raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
+    raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
 
   CnMatrixAdjoint(Matrix1, Matrix2);
   Matrix2.Divide(D);
@@ -1294,7 +1303,7 @@ begin
   try
     Matrix1.Determinant(D);
     if D.IsZero then
-      raise ECnMatrixException.Create('NO Inverse Matrix for Deteminant is 0');
+      raise ECnMatrixException.Create(SCnErrorInverseZeroDeteminant);
 
     CnMatrixAdjoint(Matrix1, Matrix2);
     Matrix2.Divide(D);
@@ -1418,7 +1427,7 @@ var
   Minor: TCnIntMatrix;
 begin
   if not IsSquare then
-    raise ECnMatrixException.Create('Only Square can Determinant.');
+    raise ECnMatrixException.Create(SCnErrorDeterminantSquare);
 
   if FRowCount = 1 then
     Result := FMatrix[0, 0]
@@ -1455,7 +1464,7 @@ end;
 
 procedure TCnIntMatrix.Divide(Factor: Int64);
 begin
-  raise ECnMatrixException.Create('Divide NOT Implemented in Int Matrix.');
+  raise ECnMatrixException.Create(SCnErrorDivNotImplInt);
 end;
 
 procedure TCnIntMatrix.DumpToStrings(List: TStrings; Sep: Char = ' ');
@@ -1607,7 +1616,7 @@ end;
 
 function TCnIntMatrix.OperationDiv(X, Y: Int64): Int64;
 begin
-  raise ECnMatrixException.Create('Operation Div NOT Implemented in Int Matrix.');
+  raise ECnMatrixException.Create(SCnErrorDivNotImplInt);
 end;
 
 function TCnIntMatrix.OperationMul(X, Y: Int64): Int64;
@@ -1686,7 +1695,7 @@ var
   I: Integer;
 begin
   if not IsSquare then
-    raise ECnMatrixException.Create('Only Square Matrix can Trace.');
+    raise ECnMatrixException.Create(SCnErrorTraceSquare);
 
   Result := 0;
   for I := 0 to FRowCount - 1 do
@@ -1813,7 +1822,7 @@ var
   Minor: TCnFloatMatrix;
 begin
   if not IsSquare then
-    raise ECnMatrixException.Create('Only Square can Determinant.');
+    raise ECnMatrixException.Create(SCnErrorDeterminantSquare);
 
   if FRowCount = 1 then
     Result := FMatrix[0, 0]
@@ -1857,7 +1866,7 @@ begin
       FMatrix[I, J] := OperationDiv(FMatrix[I, J], Factor);
 end;
 
-procedure TCnFloatMatrix.DumpToStrings(List: TStrings; Sep: Char = ' ');
+procedure TCnFloatMatrix.DumpToStrings(List: TStrings; Sep: Char);
 var
   I, J: Integer;
   S: string;
@@ -2086,7 +2095,7 @@ var
   I: Integer;
 begin
   if not IsSquare then
-    raise ECnMatrixException.Create('Only Square Matrix can Trace.');
+    raise ECnMatrixException.Create(SCnErrorTraceSquare);
 
   Result := 0;
   for I := 0 to FRowCount - 1 do
@@ -2665,7 +2674,7 @@ var
   T: TCnRationalNumber;
 begin
   if not IsSquare then
-    raise ECnMatrixException.Create('Only Square can Determinant.');
+    raise ECnMatrixException.Create(SCnErrorDeterminantSquare);
 
   if RowCount = 1 then
     D.Assign(Value[0, 0])
@@ -2975,7 +2984,7 @@ var
   I: Integer;
 begin
   if not IsSquare then
-    raise ECnMatrixException.Create('Only Square Matrix can Trace.');
+    raise ECnMatrixException.Create(SCnErrorTraceSquare);
 
   T.SetZero;
   for I := 0 to RowCount - 1 do

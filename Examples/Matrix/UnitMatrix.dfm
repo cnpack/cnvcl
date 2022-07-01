@@ -260,7 +260,7 @@ object FormMatrix: TFormMatrix
       Top = 248
       Width = 75
       Height = 25
-      Caption = 'ZigZag'
+      Caption = 'ZigZag 1'
       TabOrder = 10
       OnClick = btnIntZigZagClick
     end
@@ -269,7 +269,7 @@ object FormMatrix: TFormMatrix
       Top = 248
       Width = 75
       Height = 25
-      Caption = 'ZigZag'
+      Caption = 'ZigZag 2'
       TabOrder = 11
       OnClick = btnIntZigZag2Click
     end
