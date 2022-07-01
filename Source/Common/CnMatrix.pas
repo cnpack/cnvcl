@@ -1739,7 +1739,7 @@ begin
   if not IsSquare then
     Result := False
   else
-    Result := Determinant = 0;
+    Result := FloatAlmostZero(Determinant);
 end;
 
 function TCnFloatMatrix.IsSquare: Boolean;
