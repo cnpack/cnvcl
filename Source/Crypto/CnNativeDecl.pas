@@ -117,6 +117,9 @@ type
 
   TUInt64Array = array of TUInt64; // 这个动态数组声明似乎容易和静态数组声明有冲突
 
+  ExtendedArray = array[0..65537] of Extended;
+  PExtendedArray = ^ExtendedArray;
+
 {$IFDEF POSIX64}
   TCnLongWord32 = Cardinal; // Linux64/MacOS64 (or POSIX64?) LongWord is 64 Bits
 {$ELSE}

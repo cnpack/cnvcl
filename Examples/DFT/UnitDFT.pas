@@ -4,10 +4,12 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, CnComplex,
-  StdCtrls, CnDFT, CnNativeDecl;
+  StdCtrls, CnDFT, CnNativeDecl, ComCtrls, CnMatrix;
 
 type
   TFormDFT = class(TForm)
+    pgc1: TPageControl;
+    tsDFTNTT: TTabSheet;
     grpDFT: TGroupBox;
     btnDFTButterFly: TButton;
     edtDftButterFly: TEdit;
@@ -24,16 +26,28 @@ type
     btnTestNtt: TButton;
     edtNTT: TEdit;
     edtINTT: TEdit;
+    tsDCT: TTabSheet;
+    grpDCT: TGroupBox;
+    btnDCT: TButton;
+    btnIDCT: TButton;
+    edtDCT: TEdit;
+    edtIDCT: TEdit;
+    grpDCT2: TGroupBox;
+    btnDCT2: TButton;
+    mmoDCT2: TMemo;
     procedure btnDFTButterFlyClick(Sender: TObject);
     procedure btnTwiddleFactorsClick(Sender: TObject);
     procedure btnTestDFTClick(Sender: TObject);
     procedure btnNTTButterFlyClick(Sender: TObject);
     procedure btnNttFactorsClick(Sender: TObject);
     procedure btnTestNttClick(Sender: TObject);
+    procedure btnDCTClick(Sender: TObject);
+    procedure btnIDCTClick(Sender: TObject);
+    procedure btnDCT2Click(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
 var
@@ -184,6 +198,86 @@ begin
   for I := Low(IA) to High(IA) do
     S := S + IntToStr(IA[I]) + ' ; ';
   edtINTT.Text := S;
+end;
+
+procedure TFormDFT.btnDCTClick(Sender: TObject);
+var
+  X, U: array[0..7] of Extended;
+  I: Integer;
+  S: string;
+begin
+  for I := Low(X) to High(X) do
+    X[I] := 5 * I;
+
+  CnDCT(@X[0], @U[0], 8);
+
+  S := '';
+  for I := Low(U) to High(U) do
+  begin
+    if I = High(U) then
+      S := S + FloatToStr(U[I])
+    else
+      S := S + FloatToStr(U[I]) + ','
+  end;
+
+  edtDCT.Text := S;
+  CnIDCT(@U[0], @X[0], 8);
+end;
+
+procedure TFormDFT.btnIDCTClick(Sender: TObject);
+var
+  X, U: array[0..7] of Extended;
+  I: Integer;
+  S: string;
+begin
+  for I := Low(X) to High(X) do
+    X[I] := 5 * I;
+
+  CnDCT(@X[0], @U[0], 8);
+  CnIDCT(@U[0], @X[0], 8);
+
+  S := '';
+  for I := Low(X) to High(X) do
+  begin
+    if I = High(X) then
+      S := S + IntToStr(Round(X[I]))
+    else
+      S := S + IntToStr(Round(X[I])) + ','
+  end;
+
+  edtIDCT.Text := S;
+end;
+
+procedure TFormDFT.btnDCT2Click(Sender: TObject);
+var
+  D, R: TCnFloatMatrix;
+  L: TStrings;
+begin
+  D := TCnFloatMatrix.Create(4, 4);
+  R := TCnFloatMatrix.Create(4, 4);
+
+  D[0, 0] := 61; D[0, 1] := 19; D[0, 2] := 50; D[0, 3] := 20;
+  D[1, 0] := 82; D[1, 1] := 26; D[1, 2] := 61; D[1, 3] := 45;
+  D[2, 0] := 89; D[2, 1] := 90; D[2, 2] := 82; D[2, 3] := 43;
+  D[3, 0] := 93; D[3, 1] := 59; D[3, 2] := 53; D[3, 3] := 97;
+
+  L := TStringList.Create;
+  D.DumpToStrings(L);
+  mmoDCT2.Lines.AddStrings(L);
+  mmoDCT2.Lines.Add('');
+
+  CnDCT2(D, R);
+  R.DumpToStrings(L);
+  mmoDCT2.Lines.AddStrings(L);
+  mmoDCT2.Lines.Add('');
+
+  CnIDCT2(R, D);
+  D.DumpToStrings(L);
+  mmoDCT2.Lines.AddStrings(L);
+
+  L.Free;
+  R.Free;
+  D.Free;
 end;
 
 end.

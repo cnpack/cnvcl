@@ -240,7 +240,7 @@ begin
     Root := Trunc(Sqrt(N));
     for I := 2 to Root do  // 时间复杂度为 O(根号n)
     begin
-      if N mod I = 0 then
+      if N mod Cardinal(I) = 0 then
       begin
         ShowMessage('Not Prime Number. One Factor is: ' + IntToStr(I));
         Exit;
@@ -552,6 +552,7 @@ procedure TFormPrime.btnCRTTestClick(Sender: TObject);
 var
   R, F: array of TUInt64;
   C: TUInt64;
+  Rl, Fl: TCnInt64List;
 begin
   SetLength(R, 3);
   SetLength(F, 3);
@@ -560,6 +561,14 @@ begin
   F[0] := 3; F[1] := 5; F[2] := 7;
   R[0] := 2; R[1] := 3; R[2] := 2;
   C := ChineseRemainderTheoremInt64(R, F);
+  ShowMessage(IntToStr(C));
+
+  Rl := TCnInt64List.Create;
+  Fl := TCnInt64List.Create;
+
+  Fl.Add(3); Fl.Add(5); Fl.Add(7);
+  Rl.Add(-1); Rl.Add(-2); Rl.Add(-5);
+  C := ChineseRemainderTheoremInt64(Rl, Fl);
   ShowMessage(IntToStr(C));
 end;
 

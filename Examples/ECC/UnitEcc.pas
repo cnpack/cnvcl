@@ -247,6 +247,8 @@ type
     rbBNAddJacobian: TRadioButton;
     btnMulTime: TButton;
     btnRecoverPubKey: TButton;
+    btnEccFastSchoof: TButton;
+    btnEccSchoof2: TButton;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -326,6 +328,8 @@ type
     procedure btnBNJacobianTestClick(Sender: TObject);
     procedure btnMulTimeClick(Sender: TObject);
     procedure btnRecoverPubKeyClick(Sender: TObject);
+    procedure btnEccFastSchoofClick(Sender: TObject);
+    procedure btnEccSchoof2Click(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -2653,7 +2657,7 @@ begin
   Q.SetWord(13);
 
   if CnEccSchoof(R, A, B, Q) then
-    ShowMsg(R.ToDec); // 得到 8，成功！
+    ShowMsg(R.ToDec); // 得到 8，成功！ T2 = 0，T3 的和点是 0 所以 0，T5 = 1
 
   A.SetWord(7);
   B.SetWord(1);
@@ -3107,6 +3111,99 @@ begin
   InStream.Free;
   SignStream.Free;
   SetLength(S, 0);
+end;
+
+procedure TFormEcc.btnEccFastSchoofClick(Sender: TObject);
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  A.SetWord(46);
+  B.SetWord(74);
+  Q.SetWord(97);
+
+  if CnEccFastSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec);
+
+  R.Free;
+  Q.Free;
+  B.Free;
+  A.Free;
+end;
+
+procedure TFormEcc.btnEccSchoof2Click(Sender: TObject);
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  A.SetWord(2);
+  B.SetWord(1);
+  Q.SetWord(13);
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 8，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetWord(65537);
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 65751，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('2147483629');
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 2147464597，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetWord(3037000493);
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 3036927405，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('4294967291');
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 4294994984
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('6074000687');
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 6074024457
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('6074001169');
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到  6074123004
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('9223372036854775783');
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
+
+  R.Free;
+  Q.Free;
+  B.Free;
+  A.Free;
 end;
 
 end.

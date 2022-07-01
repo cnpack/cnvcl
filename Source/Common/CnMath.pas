@@ -84,6 +84,9 @@ function FloatGaussLegendrePi(RoundCount: Integer = 3): string;
 function GaussLegendrePi(RoundCount: Integer = 8): string;
 {* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒}
 
+function FloatAlmostZero(F: Extended): Boolean;
+{* 判断一浮点数是否离 0 足够近}
+
 implementation
 
 uses
@@ -378,6 +381,11 @@ begin
     T0.Free;
     P0.Free;
   end;
+end;
+
+function FloatAlmostZero(F: Extended): Boolean;
+begin
+  Result := CnAbs(F) < SCN_EXTEND_GAP;
 end;
 
 end.

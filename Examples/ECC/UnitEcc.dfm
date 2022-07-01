@@ -1383,6 +1383,24 @@ object FormEcc: TFormEcc
         TabOrder = 6
         OnClick = btnBNJacobianTestClick
       end
+      object btnEccFastSchoof: TButton
+        Left = 210
+        Top = 432
+        Width = 75
+        Height = 21
+        Caption = 'Fast Schoof'
+        TabOrder = 7
+        OnClick = btnEccFastSchoofClick
+      end
+      object btnEccSchoof2: TButton
+        Left = 210
+        Top = 400
+        Width = 75
+        Height = 21
+        Caption = 'Schoof2 Test'
+        TabOrder = 8
+        OnClick = btnEccSchoof2Click
+      end
     end
     object tsLucas: TTabSheet
       Caption = 'Lucas Sequence && Legendre'
