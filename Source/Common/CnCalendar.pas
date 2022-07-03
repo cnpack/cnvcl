@@ -47,8 +47,10 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.01.29 V2.2
-*               根据日干增加每日吉神方位的计算，包括财神、喜神、福神、贵神等，其中贵神包括阳贵阴贵，默认阳贵。
+* 修改记录：2022.07.03 V2.3
+*               根据罗建仁的报告与查证，修正 1582 年及之前节气有十天偏差的问题
+*           2022.01.29 V2.2
+*               根据日干增加每日吉神方位的计算，包括财神、喜神、福神、贵神等，其中贵神包括阳贵阴贵，默认阳贵
 *           2018.08.22 V2.1
 *               罗建仁补充 2100 年到 2800 年的农历数据并协助修正三伏日计算的偏差
 *           2018.07.18 V2.0
@@ -278,11 +280,11 @@ type
   TSunRiseSetType = (stNormal, stAllwaysUp, stAllwaysDown, stError);
   {* 日出日落类型，  普通，    日不落，     日不出，       数据错误 }
 
-function GetSunRiseSetTime(Date: TDateTime; Longitude, Latitude: Extended;
+function GetSunRiseSetTime(ADate: TDateTime; Longitude, Latitude: Extended;
   ZoneTime: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
   TSunRiseSetType;
 {* 计算日出日落时间
-   Date         - 日期
+   ADate        - 日期
    Longitude    - 经度
    Latitude     - 纬度
    ZoneTime     - 时区
@@ -939,33 +941,33 @@ var
 // 以下是日出日落计算的内容
 //==============================================================================
 
-function hrsmin(hours: Extended): TDateTime;
+function HoursMin(Hours: Extended): TDateTime;
 begin
-  Result := hours / 24;
+  Result := Hours / 24;
 end;
 
-function ipart(x: Extended): Extended;
+function IntPart(X: Extended): Extended;
 begin
-  if x > 0 then
-    Result := Floor(x)
+  if X > 0 then
+    Result := Floor(X)
   else
-    Result := Ceil(x);
+    Result := Ceil(X);
 end;
 
-function range(x: Extended): Extended;
+function Range360(X: Extended): Extended;
 var
-  a: Extended;
+  A: Extended;
 begin
-  a := x / 360;
-  Result := 360 * (a - ipart(a));
+  A := X / 360;
+  Result := 360 * (A - IntPart(A));
   if Result < 0 then
     Result := Result + 360;
 end;
 
 // 计算约化儒略日
-function mjd(Year, Month, Day, Hour: Integer): Extended;
+function Mjd(Year, Month, Day, Hour: Integer): Extended;
 var
-  a, b: Extended;
+  A, B: Extended;
 begin
   if Month <= 2 then
   begin
@@ -973,34 +975,34 @@ begin
     Year := Year - 1;
   end;
 
-  a := 10000.0 * Year + 100.0 * Month + Day;
-  if a <= 15821004.1 then
+  A := 10000.0 * Year + 100.0 * Month + Day;
+  if A <= 15821004.1 then
   begin
-    b := -2 * Floor((Year + 4716) / 4) - 1179;
+    B := -2 * Floor((Year + 4716) / 4) - 1179;
   end
   else
   begin
-    b := Floor(Year / 400) - Floor(Year / 100) + Floor(Year / 4);
+    B := Floor(Year / 400) - Floor(Year / 100) + Floor(Year / 4);
   end;
 
-  a := 365.0 * Year - 679004.0;
-  Result := a + b + Floor(30.6001 * (Month + 1)) + Day + Hour / 24.0;
+  A := 365.0 * Year - 679004.0;
+  Result := A + B + Floor(30.6001 * (Month + 1)) + Day + Hour / 24.0;
 end;
 
-procedure quad(ym, yz, yp: Extended; var nz, z1, z2, xe, ye: Extended);
+procedure Quad(ym, yz, yp: Extended; var nz, z1, z2, xe, ye: Extended);
 var
-  a, b, c, dis, dx: Extended;
+  A, B, c, dis, dx: Extended;
 begin
   nz := 0;
-  a := 0.5 * (ym + yp) - yz;
-  b := 0.5 * (yp - ym);
+  A := 0.5 * (ym + yp) - yz;
+  B := 0.5 * (yp - ym);
   c := yz;
-  xe := -b / (2 * a);
-  ye := (a * xe + b) * xe + c;
-  dis := b * b - 4.0 * a * c;
+  xe := -B / (2 * A);
+  ye := (A * xe + B) * xe + c;
+  dis := B * B - 4.0 * A * c;
   if dis > 0 then
   begin
-    dx := 0.5 * Sqrt(dis) / Abs(a);
+    dx := 0.5 * Sqrt(dis) / Abs(A);
     z1 := xe - dx;
     z2 := xe + dx;
     if Abs(z1) <= 1.0 then
@@ -1012,68 +1014,68 @@ begin
   end;
 end;
 
-function lmst(mjd, glong: Extended): Extended;
+function Lmst(AMjd, Glong: Extended): Extended;
 var
-  lst, t, d: Extended;
+  Lst, T, D: Extended;
 begin
-  d := mjd - 51544.5;
-  t := d / 36525.0;
-  lst := range(280.46061837 + 360.98564736629 * d + 0.000387933 * t * t -
-    t * t * t / 38710000);
-  Result := lst / 15.0 + glong / 15;
+  D := AMjd - 51544.5;
+  T := D / 36525.0;
+  Lst := Range360(280.46061837 + 360.98564736629 * D + 0.000387933 * T * T -
+    T * T * T / 38710000);
+  Result := Lst / 15.0 + Glong / 15;
 end;
 
-procedure minisun(t: Extended; var dec, ra: Extended);
+procedure MiniSun(T: Extended; var ADec, Ra: Extended);
 const
-  p2 = 6.283185307;
-  coseps = 0.91748;
-  sineps = 0.39778;
+  P2 = 6.283185307;
+  CosEps = 0.91748;
+  SinEps = 0.39778;
 var
   L, M, DL, SL, X, Y, Z, RHO: Extended;
 begin
-  M := p2 * Frac(0.993133 + 99.997361 * t);
+  M := P2 * Frac(0.993133 + 99.997361 * T);
   DL := 6893.0 * Sin(M) + 72.0 * Sin(2 * M);
-  L := p2 * Frac(0.7859453 + M / p2 + (6191.2 * t + DL) / 1296000);
+  L := P2 * Frac(0.7859453 + M / P2 + (6191.2 * T + DL) / 1296000);
   SL := Sin(L);
   X := Cos(L);
-  Y := coseps * SL;
-  Z := sineps * SL;
+  Y := CosEps * SL;
+  Z := SinEps * SL;
   RHO := Sqrt(1 - Z * Z);
-  dec := (360.0 / p2) * ArcTan2(Z, RHO);
-  ra := (48.0 / p2) * ArcTan2(Y, (X + RHO));
-  if ra < 0 then
-    ra := ra + 24;
+  ADec := (360.0 / P2) * ArcTan2(Z, RHO);
+  Ra := (48.0 / P2) * ArcTan2(Y, (X + RHO));
+  if Ra < 0 then
+    Ra := Ra + 24;
 end;
 
-function sin_alt(mjd0, hour, glong, cglat, sglat: Extended): Extended;
+function SinAlt(Mjd0, hour, Glong, Cglat, Sglat: Extended): Extended;
 var
-  mjd, t, ra, dec, tau, salt: Extended;
+  AMjd, T, Ra, ADec, Tau, Salt: Extended;
 begin
-  mjd := mjd0 + hour / 24.0;
-  t := (mjd - 51544.5) / 36525.0;
-  minisun(t, dec, ra);
-  tau := 15.0 * (lmst(mjd, glong) - ra);
-  salt := sglat * Sin(RADS * dec) + cglat * Cos(RADS * dec) * Cos(RADS * tau);
-  Result := salt;
+  AMjd := Mjd0 + hour / 24.0;
+  T := (AMjd - 51544.5) / 36525.0;
+  MiniSun(T, ADec, Ra);
+  Tau := 15.0 * (Lmst(AMjd, Glong) - Ra);
+  Salt := Sglat * Sin(RADS * ADec) + Cglat * Cos(RADS * ADec) * Cos(RADS * Tau);
+  Result := Salt;
 end;
 
-function getzttime(mjd, tz, glong: Extended): Extended;
+function GetZTTime(Mjd, Tz, Glong: Extended): Extended;
 var
   sinho, date, ym, yz, utrise, utset: Extended;
   yp, ye, nz, hour, z1, z2, xe: Extended;
 begin
   sinho := Sin(RADS * -0.833);
-  date := mjd - tz / 24;
+  date := Mjd - Tz / 24;
   hour := 1.0;
-  ym := sin_alt(date, hour - 1.0, glong, 1, 0) - sinho;
+  ym := SinAlt(date, hour - 1.0, Glong, 1, 0) - sinho;
 
   utrise := 0;
   utset := 0;
   while hour < 25 do
   begin
-    yz := sin_alt(date, hour, glong, 1, 0) - sinho;
-    yp := sin_alt(date, hour + 1.0, glong, 1, 0) - sinho;
-    quad(ym, yz, yp, nz, z1, z2, xe, ye);
+    yz := SinAlt(date, hour, Glong, 1, 0) - sinho;
+    yp := SinAlt(date, hour + 1.0, Glong, 1, 0) - sinho;
+    Quad(ym, yz, yp, nz, z1, z2, xe, ye);
 
     if nz = 1 then
     begin
@@ -1081,7 +1083,6 @@ begin
         utrise := hour + z1
       else
         utset := hour + z1;
-
     end;
 
     if nz = 2 then
@@ -1108,8 +1109,8 @@ begin
     Result := Result - 24;
 end;
 
-function DoSunCalc(mjd: Extended; glong, glat: Extended;
-  tz: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
+function DoSunCalc(AMjd: Extended; Glong, Glat: Extended;
+  Tz: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
   TSunRiseSetType;
 var
   sinho, sglat, cglat: Extended;
@@ -1119,9 +1120,9 @@ var
   rise, sett, above: Boolean;
 begin
   sinho := Sin(RADS * -0.833);
-  sglat := Sin(RADS * glat);
-  cglat := Cos(RADS * glat);
-  Date := mjd - tz / 24;
+  sglat := Sin(RADS * Glat);
+  cglat := Cos(RADS * Glat);
+  Date := AMjd - Tz / 24;
 
   rise := False;
   sett := False;
@@ -1129,15 +1130,15 @@ begin
   hour := 1.0;
   utrise := 0;
   utset := 0;
-  ym := sin_alt(date, hour - 1.0, glong, cglat, sglat) - sinho;
+  ym := SinAlt(date, hour - 1.0, Glong, cglat, sglat) - sinho;
   if ym > 0.0 then
     above := True;
 
   while (hour < 25) and (not sett or not rise) do
   begin
-    yz := sin_alt(date, hour, glong, cglat, sglat) - sinho;
-    yp := sin_alt(date, hour + 1.0, glong, cglat, sglat) - sinho;
-    quad(ym, yz, yp, nz, z1, z2, xe, ye);
+    yz := SinAlt(date, hour, Glong, cglat, sglat) - sinho;
+    yp := SinAlt(date, hour + 1.0, Glong, cglat, sglat) - sinho;
+    Quad(ym, yz, yp, nz, z1, z2, xe, ye);
     if nz = 1 then
     begin
       if ym < 0.0 then
@@ -1176,20 +1177,20 @@ begin
   if rise or sett then
   begin
     if rise then
-      RiseTime := hrsmin(utrise);
+      RiseTime := HoursMin(utrise);
 
-    zt := getzttime(mjd, tz, glong);
-    TransitTime := hrsmin(zt);
+    zt := GetZTTime(AMjd, Tz, Glong);
+    TransitTime := HoursMin(zt);
 
     if sett then
-      SetTime := hrsmin(utset);
+      SetTime := HoursMin(utset);
       
     Result := stNormal;
   end
   else if above then
   begin
-    zt := getzttime(mjd, tz, glong);
-    TransitTime := hrsmin(zt);
+    zt := GetZTTime(AMjd, Tz, Glong);
+    TransitTime := HoursMin(zt);
     
     Result := stAllwaysUp;
   end
@@ -1200,17 +1201,17 @@ begin
 end;
 
 // 计算日出日落时间
-function GetSunRiseSetTime(Date: TDateTime; Longitude, Latitude: Extended;
+function GetSunRiseSetTime(ADate: TDateTime; Longitude, Latitude: Extended;
   ZoneTime: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
   TSunRiseSetType;
 var
   Year, Month, Day: Word;
-  mj: Extended;
+  Mg: Extended;
 begin
   try
-    DecodeDate(Date, Year, Month, Day);
-    mj := mjd(Year, Month, Day, 0);
-    Result := DoSunCalc(mj, Longitude, Latitude, ZoneTime, RiseTime, TransitTime, SetTime);
+    DecodeDate(ADate, Year, Month, Day);
+    Mg := Mjd(Year, Month, Day, 0);
+    Result := DoSunCalc(Mg, Longitude, Latitude, ZoneTime, RiseTime, TransitTime, SetTime);
   except
     Result := stError;
   end;          
@@ -2033,10 +2034,10 @@ begin
     Result := SCnWeekNumberArray[AValue];
 end;  
 
-// 获得某公历年内的第 N 个节气距年初的天数，1-24，对应小寒到冬至
+// 获得某公历年内的第 N 个节气距年初的天数，1-24，对应小寒到冬至。考虑了 1582 年之前公历有十天偏差的情况
 function GetJieQiDayTimeFromYear(AYear, N: Integer): Extended;
 var
-  juD, tht, yrD, shuoD: Extended;
+  JuD, Tht, YrD, ShuoD: Extended;
 begin
   { 由于进动章动等造成的岁差的影响，太阳两次通过各个定气点的时间并不是一精确回归年
     所以没法以 365.2422 为周期来直接计算各个节气的时刻。下面这个公式属移植而来。
@@ -2045,13 +2046,15 @@ begin
   if AYear <= 0 then // 对没有公元 0 年的调整
     Inc(AYear);
 
-  juD := AYear * (365.2423112 - 6.4e-14 * (AYear-100) * (AYear - 100)
+  JuD := AYear * (365.2423112 - 6.4e-14 * (AYear-100) * (AYear - 100)
     - 3.047e-8 * (AYear-100)) + 15.218427 * N + 1721050.71301;
-  tht := 3e-4 * AYear - 0.372781384 - 0.2617913325 * N;
-  yrD := (1.945 * sin(tht) - 0.01206 * sin(2*tht)) * (1.048994 - 2.583e-5 * AYear);
-  shuoD := -18e-4 * sin(2.313908653 * AYear- 0.439822951 - 3.0443 * N);
-  Result := juD + yrD + shuoD - GetEquStandardDays(AYear, 1, 0) - 1721425; // 定气
+  Tht := 3e-4 * AYear - 0.372781384 - 0.2617913325 * N;
+  YrD := (1.945 * sin(Tht) - 0.01206 * sin(2 * Tht)) * (1.048994 - 2.583e-5 * AYear);
+  ShuoD := -18e-4 * sin(2.313908653 * AYear - 0.439822951 - 3.0443 * N);
+  Result := JuD + YrD + ShuoD - GetEquStandardDays(AYear, 1, 0) - 1721425; // 定气
   // (juD - GetEquStandardDays(AYear, 1, 0) - 1721425); 平气
+  if AYear <= 1582 then // 1582 年被删掉了 10 天，要加回来
+    Result := Result + 10;
 end;
 
 // 获得某公历年的第 N 个节气的交节月日时分，0-23，对应小寒到冬至
@@ -2488,6 +2491,8 @@ begin
     for I := 1 to 12 do // I 是以节气为分界的月份数
     begin
       // 如果 I 月首节气的距年头的日数小于此日
+      // TODO: 本应该加上判断且 I 月首节气属于本月，前提是节气算法有较大偏差可能不落在本月，
+      // 之前 1582 年及以前存在 10 天偏差，修正后暂未发现了，因此此处暂时不改
       if Days >= GetJieQiDayTimeFromYear(AYear, 2 * I + 1) then
         AMonth := I
       else
@@ -3112,7 +3117,7 @@ end;
 // 某角度计算函数，移植自中国日历类
 function GetAng(X, T, C1, T0, T2, T3: Real): Real;
 begin
-  Result := GetTail(C1 * X) * 2 * Pi + T0 - T2 * t * T - T3 * T * T * T;
+  Result := GetTail(C1 * X) * 2 * Pi + T0 - T2 * T * T - T3 * T * T * T;
 end;
 
 // 获得某公历年月日的农历日数和该日月相以及日月食类型和时刻
@@ -3132,7 +3137,7 @@ begin
   Zone := 8;
   F0 := GetAng(Ms, T, 0, 0.75933, 2.172e-4, 1.55e-7)
     + 0.53058868 * Ms - 8.37e-4 * T + Zone / 24 + 0.5;
-  Fc := 0.1734 - 3.93e-4 * t;
+  Fc := 0.1734 - 3.93e-4 * T;
   J0 := 693595 + 29 * Ms;
   Aa0 := GetAng(Ms, T, 0.08084821133, 359.2242/Rpi, 0.0000333/Rpi, 0.00000347/Rpi);
   Ab0 := GetAng(Ms, T, 7.171366127999999e-2, 306.0253/Rpi, -0.0107306/Rpi, -0.00001236/Rpi);
