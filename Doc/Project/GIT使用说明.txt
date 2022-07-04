@@ -20,7 +20,6 @@ http://www.cnpack.org
 
 CnPack 的 GitHub 项目首页：
 http://github.com/cnpack/
-（说明：GitHub 只提供英文版界面）
 
 CnPack 代码分两个库，cnvcl与cnwizards。
 
@@ -30,9 +29,9 @@ http://github.com/cnpack/cnvcl/commits/master
 
 欲直接匿名获得代码，可以在安装了 Git 命令行的情况下，直接运行：
 
-git clone http://github.com/cnpack/cnvcl.git
+git clone https://github.com/cnpack/cnvcl.git
 与
-git clone http://github.com/cnpack/cnwizards.git
+git clone https://github.com/cnpack/cnwizards.git
 
 便可获得 CnPack 的最新代码。
 
