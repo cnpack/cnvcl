@@ -832,16 +832,13 @@ begin
 
       // 计算 R = (e + x) mod N
       E.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
-      if not BigNumberAdd(E, E, P.X) then
-        Exit;
-      if not BigNumberMod(R, E, SM2.Order) then // 算出 R 后 E 不用了
-        Exit;
+      BigNumberAdd(E, E, P.X);
+      BigNumberMod(R, E, SM2.Order); // 算出 R 后 E 不用了
 
       if R.IsZero then  // R 不能为 0
         Continue;
 
-      if not BigNumberAdd(E, R, K) then
-        Exit;
+      BigNumberAdd(E, R, K);
       if BigNumberCompare(E, SM2.Order) = 0 then // R + K = N 也不行
         Continue;
 
@@ -852,16 +849,10 @@ begin
       BigNumberModularInverse(R, E, SM2.Order);      // 求逆元得到 (1 + PrivateKey)^-1，放在 R 里
 
       // 求 K - R * PrivateKey，又用起 E 来
-      if not BigNumberMul(E, OutSignature.R, PrivateKey) then
-        Exit;
-      if not BigNumberSub(E, K, E) then
-        Exit;
-
-      if not BigNumberMul(R, E, R) then // (1 + PrivateKey)^-1 * (K - R * PrivateKey) 放在 R 里
-        Exit;
-
-      if not BigNumberNonNegativeMod(OutSignature.S, R, SM2.Order) then // 注意余数不能为负
-        Exit;
+      BigNumberMul(E, OutSignature.R, PrivateKey);
+      BigNumberSub(E, K, E);
+      BigNumberMul(R, E, R); // (1 + PrivateKey)^-1 * (K - R * PrivateKey) 放在 R 里
+      BigNumberNonNegativeMod(OutSignature.S, R, SM2.Order); // 注意余数不能为负
 
       Result := True;
       _CnSetLastError(ECN_SM2_OK);
@@ -927,10 +918,8 @@ begin
     R := TCnBigNumber.Create;
     K := TCnBigNumber.Create;
 
-    if not BigNumberAdd(K, InSignature.R, InSignature.S) then
-      Exit;
-    if not BigNumberNonNegativeMod(R, K, SM2.Order) then
-      Exit;
+    BigNumberAdd(K, InSignature.R, InSignature.S);
+    BigNumberNonNegativeMod(R, K, SM2.Order);
     if R.IsZero then  // (r + s) mod n = 0 则失败，这里 R 是文中的 T
       Exit;
 
@@ -941,11 +930,9 @@ begin
     SM2.PointAddPoint(P, Q, P);   // s * G + t * PublicKey => P
 
     E.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
-    if not BigNumberAdd(E, E, P.X) then
-      Exit;
+    BigNumberAdd(E, E, P.X);
 
-    if not BigNumberNonNegativeMod(R, E, SM2.Order) then
-      Exit;
+    BigNumberNonNegativeMod(R, E, SM2.Order);
 
     Result := BigNumberCompare(R, InSignature.R) = 0;
     _CnSetLastError(ECN_SM2_OK); // 正常进行校验，即使校验不通过也清空错误码
@@ -1179,14 +1166,11 @@ begin
     // X2 = 2^W + (x2 and (2^W - 1) 表示把 x2 的第 W 位置 1，W + 1 以上全塞 0，x2 是 RB.X
     BuildShortXValue(X, SM2.Order);
 
-    if not BigNumberMul(X, R, X) then
-      Exit;
-    if not BigNumberAdd(X, X, BPrivateKey) then
-      Exit;
+    BigNumberMul(X, R, X);
+    BigNumberAdd(X, X, BPrivateKey);
 
     T := TCnBigNumber.Create;
-    if not BigNumberNonNegativeMod(T, X, SM2.Order) then // T = (BPrivateKey + 随机值 * X2) mod N
-      Exit;
+    BigNumberNonNegativeMod(T, X, SM2.Order); // T = (BPrivateKey + 随机值 * X2) mod N
 
     BigNumberCopy(X, InRA.X);
     BuildShortXValue(X, SM2.Order);
@@ -1259,14 +1243,11 @@ begin
     BigNumberCopy(X, MyRA.X);
     BuildShortXValue(X, SM2.Order);     // 从 RA 里整出 X1
 
-    if not BigNumberMul(X, MyARand, X) then
-      Exit;
-    if not BigNumberAdd(X, X, APrivateKey) then
-      Exit;
+    BigNumberMul(X, MyARand, X);
+    BigNumberAdd(X, X, APrivateKey);
 
     T := TCnBigNumber.Create;
-    if not BigNumberNonNegativeMod(T, X, SM2.Order) then // T = (APrivateKey + 随机值 * X1) mod N
-      Exit;
+    BigNumberNonNegativeMod(T, X, SM2.Order); // T = (APrivateKey + 随机值 * X1) mod N
 
     BigNumberCopy(X, InRB.X);
     BuildShortXValue(X, SM2.Order);
@@ -1364,11 +1345,8 @@ begin
     OutZ.SetBinary(@Dig[0], SizeOf(TSM3Digest));
 
     // 注意，此处无需也不能 mod P！
-    if not BigNumberMul(OutZ, OutZ, PrivateKey) then
-      Exit;
-
-    if not BigNumberAdd(OutZ, OutZ, R) then
-      Exit;
+    BigNumberMul(OutZ, OutZ, PrivateKey);
+    BigNumberAdd(OutZ, OutZ, R);
 
     Result := True;
     _CnSetLastError(ECN_SM2_OK);
@@ -1632,23 +1610,15 @@ begin
       SM2.PointAddPoint(P, Q, Q); // 再加上自己的 Q
 
       // r = (Q.x + e) mod N
-      if not BigNumberAddMod(OutRToB, Q.X, InHashEFromA, SM2.Order) then
-        Exit;
+      BigNumberAddMod(OutRToB, Q.X, InHashEFromA, SM2.Order);
 
       if OutRToB.IsZero then
         Continue;
 
-      if not BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order) then
-        Exit;
-
-      if not BigNumberDirectMulMod(OutS1ToB, Inv, K2, SM2.Order) then // 算出 s1 = k2 / PrivateKeyB
-        Exit;
-
-      if not BigNumberAddMod(K1, K1, OutRToB, SM2.Order) then // K1 + r
-        Exit;
-
-      if not BigNumberDirectMulMod(OutS2ToB, K1, Inv, SM2.Order) then // K1 + r / PrivateKeyB
-        Exit;
+      BigNumberModularInverse(Inv, PrivateKeyB, SM2.Order);
+      BigNumberDirectMulMod(OutS1ToB, Inv, K2, SM2.Order); // 算出 s1 = k2 / PrivateKeyB
+      BigNumberAddMod(K1, K1, OutRToB, SM2.Order); // K1 + r
+      BigNumberDirectMulMod(OutS2ToB, K1, Inv, SM2.Order); // K1 + r / PrivateKeyB
 
       Result := True;
       _CnSetLastError(ECN_SM2_OK);
@@ -1689,29 +1659,18 @@ begin
       SM2 := TCnSM2.Create;
 
     Inv := TCnBigNumber.Create;
-    if not BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order) then
-      Exit;
+    BigNumberModularInverse(Inv, PrivateKeyA, SM2.Order);
 
     T := TCnBigNumber.Create;
-    if not BigNumberDirectMulMod(T, Inv, InS2FromB, SM2.Order) then // T := S2 / PrivateKeyA
-      Exit;
-
-    if not BigNumberDirectMulMod(OutSignature.S, InRandK, Inv, SM2.Order) then // K / PrivateKeyA
-      Exit;
-
-    if not BigNumberDirectMulMod(OutSignature.S, OutSignature.S, InS1FromB, SM2.Order) then // K * S1 / PrivateKeyA
-      Exit;
-
-    if not BigNumberAddMod(OutSignature.S, OutSignature.S, T, SM2.Order) then
-      Exit;
-
-    if not BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromB, SM2.Order) then
-      Exit;
+    BigNumberDirectMulMod(T, Inv, InS2FromB, SM2.Order); // T := S2 / PrivateKeyA
+    BigNumberDirectMulMod(OutSignature.S, InRandK, Inv, SM2.Order); // K / PrivateKeyA
+    BigNumberDirectMulMod(OutSignature.S, OutSignature.S, InS1FromB, SM2.Order); // K * S1 / PrivateKeyA
+    BigNumberAddMod(OutSignature.S, OutSignature.S, T, SM2.Order);
+    BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromB, SM2.Order) then;
 
     if not OutSignature.S.IsZero then
     begin
-      if not BigNumberAdd(T, OutSignature.S, InRFromB) then
-        Exit;
+      BigNumberAdd(T, OutSignature.S, InRFromB);
 
       if not BigNumberEqual(T, SM2.Order) then
       begin
