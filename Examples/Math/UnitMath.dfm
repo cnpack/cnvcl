@@ -119,12 +119,21 @@ object FormMath: TFormMath
     TabOrder = 10
     Wrap = False
   end
-  object mmoPi: TMemo
+  object mmoRes: TMemo
     Left = 16
     Top = 88
     Width = 889
     Height = 241
     ScrollBars = ssVertical
     TabOrder = 11
+  end
+  object btnXGEuler: TButton
+    Left = 16
+    Top = 352
+    Width = 137
+    Height = 25
+    Caption = 'Xavier Gourdon Euler'
+    TabOrder = 12
+    OnClick = btnXGEulerClick
   end
 end

@@ -84,6 +84,9 @@ function FloatGaussLegendrePi(RoundCount: Integer = 3): string;
 function GaussLegendrePi(RoundCount: Integer = 8): string;
 {* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒}
 
+function XavierGourdonEuler(BlockSize: Integer = 1000): string;
+{* 用 Xavier Gourdon 法计算欧拉常数 e 的值，参数为计算轮数}
+
 function FloatAlmostZero(F: Extended): Boolean;
 {* 判断一浮点数是否离 0 足够近}
 
@@ -381,6 +384,46 @@ begin
     T0.Free;
     P0.Free;
   end;
+end;
+
+function XavierGourdonEuler(BlockSize: Integer = 1000): string;
+var
+  N, M, X: Integer;
+  A: array of Integer;
+begin
+  if BlockSize <= 0 then
+    Exit;
+
+  SetLength(A, BlockSize);
+  N := BlockSize;
+  M := BlockSize;
+  Dec(N);
+  A[0] := 0;
+  while N <> 0 do
+  begin
+    A[N] := 1;
+    Dec(N);
+  end;
+  A[1] := 2;
+  X := 65536; // X 竟然随便是几甚至没初始化貌似都行？
+
+  while M > 9 do
+  begin
+    N := M;
+    Dec(M);
+    Dec(N);
+    while N <> 0 do
+    begin
+      A[N] := X mod N;
+      X := 10 * A[N - 1] + X div N;
+      Dec(N);
+    end;
+
+    Result := Result + IntToStr(X);
+  end;
+
+  if Length(Result) > 2 then
+    Insert('.', Result, 2);
 end;
 
 function FloatAlmostZero(F: Extended): Boolean;

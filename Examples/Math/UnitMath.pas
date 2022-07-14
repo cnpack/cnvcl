@@ -20,7 +20,8 @@ type
     lblRound: TLabel;
     edtGLRound: TEdit;
     udGL: TUpDown;
-    mmoPi: TMemo;
+    mmoRes: TMemo;
+    btnXGEuler: TButton;
     procedure btnInt64SqrtClick(Sender: TObject);
     procedure btnSqrtClick(Sender: TObject);
     procedure btnLogNClick(Sender: TObject);
@@ -28,6 +29,7 @@ type
     procedure btnLog10Click(Sender: TObject);
     procedure btnFloatPiClick(Sender: TObject);
     procedure btnGaussLegendrePiClick(Sender: TObject);
+    procedure btnXGEulerClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -73,7 +75,12 @@ end;
 
 procedure TFormMath.btnGaussLegendrePiClick(Sender: TObject);
 begin
-  mmoPi.Lines.Text := GaussLegendrePi(udGL.Position);
+  mmoRes.Lines.Text := GaussLegendrePi(udGL.Position);
+end;
+
+procedure TFormMath.btnXGEulerClick(Sender: TObject);
+begin
+  mmoRes.Lines.Text := XavierGourdonEuler(5000);
 end;
 
 end.
