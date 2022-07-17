@@ -23,7 +23,7 @@ unit CnNetDecls;
 ================================================================================
 * 软件名称：网络通讯组件包
 * 单元名称：网络通讯组件包网络结构定义单元
-* 单元作者：CnPack开发组 Liu Xiao
+* 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：
 * 开发平台：PWinXP + Delphi XE
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
@@ -450,6 +450,74 @@ const
   CN_BGP_ERRORSUBCODE_UPDATE_OPTIONAL_ATTRIBUTE_ERROR            = $09; // Optional Attribute Error
   CN_BGP_ERRORSUBCODE_UPDATE_INVALID_NETWORK_FIELD               = $0A; // Invalid Network Field
   CN_BGP_ERRORSUBCODE_UPDATE_MALFORMED_AS_PATH                   = $0B; // Malformed AS_PATH
+
+  {* TLS/SSL 协议中的内容类型}
+  CN_TLS_CONTENT_TYPE_HANDSHAKE                                  = 22;  // 握手协议
+  CN_TLS_CONTENT_TYPE_ALERT                                      = 21;  // 告警协议
+  CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC                         = 20;  // 改变密码格式协议
+  CN_TLS_CONTENT_TYPE_APPLICATION_DATA                           = 23;  // 应用数据协议
+
+  {* TLS/SSL 协议中的握手协议的报文类型}
+  CN_TLS_HANDSHAKE_TYPE_HELLO_REQUEST_RESERVED                   = 0;   //
+  CN_TLS_HANDSHAKE_TYPE_CLIENT_HELLO                             = 1;   //
+  CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO                             = 2;   //
+  CN_TLS_HANDSHAKE_TYPE_HELLO_VERIFY_REQUEST_RESERVED            = 3;   //
+  CN_TLS_HANDSHAKE_TYPE_NEW_SESSION_TICKET                       = 4;   //
+  CN_TLS_HANDSHAKE_TYPE_END_OF_EARLY_DATA                        = 5;   //
+  CN_TLS_HANDSHAKE_TYPE_HELLO_RETRY_REQUEST_RESERVED             = 6;   //
+  CN_TLS_HANDSHAKE_TYPE_ENCRYPTED_EXTENSIONS                     = 8;   //
+  CN_TLS_HANDSHAKE_TYPE_CERTIFICATE                              = 11;  //
+  CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED             = 12;  //
+  CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_REQUEST                      = 13;  //
+  CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED               = 14;  //
+  CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_VERIFY                       = 15;  //
+  CN_TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE_RESERVED             = 16;  //
+  CN_TLS_HANDSHAKE_TYPE_FINISHED                                 = 20;  //
+  CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_URL_RESERVED                 = 21;  //
+  CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS_RESERVED              = 22;  //
+  CN_TLS_HANDSHAKE_TYPE_SUPPLEMENTAL_DATA_RESERVED               = 23;  //
+  CN_TLS_HANDSHAKE_TYPE_KEY_UPDATE                               = 24;  //
+  CN_TLS_HANDSHAKE_TYPE_MESSAGE_HASH                             = 254; //
+
+  {* TLS/SSL 协议中的告警协议的告警级别}
+  CN_TLS_ALERT_LEVEL_WARNING                                     = 1;   // 警告，可记录并继续
+  CN_TLS_ALERT_LEVEL_FATAL                                       = 2;   // 致命错误
+
+  {* TLS/SSL 协议中的告警协议的错误描述代码}
+  CN_TLS_ALERT_DESC_CLOSE_NOTIFY                                 = 0;   //
+  CN_TLS_ALERT_DESC_UNEXPECTED_MESSAGE                           = 10;  // 收到了未知的报文
+  CN_TLS_ALERT_DESC_BAD_RECORD_MAC                               = 20;  // 收到了不正确的 MAC
+  CN_TLS_ALERT_DESC_DECRYPTION_FAILED_RESERVED                   = 21;  // 解密失败
+  CN_TLS_ALERT_DESC_RECORD_OVERFLOW                              = 22;  // 记录溢出
+  CN_TLS_ALERT_DESC_DECOMPRESSION_FAILURE_RESERVED               = 30;  // 解压缩失败
+  CN_TLS_ALERT_DESC_HANDSHAKE_FAILURE                            = 40;  // 握手失败
+  CN_TLS_ALERT_DESC_NO_CERTIFICATE_RESERVED                      = 41;  // 未提供证书
+  CN_TLS_ALERT_DESC_BAD_CERTIFICATE                              = 42;  // 证书格式错误
+  CN_TLS_ALERT_DESC_UNSUPPORTED_CERTIFICATE                      = 43;  // 证书类型不支持
+  CN_TLS_ALERT_DESC_CERTIFICATE_REVOKED                          = 44;  // 证书已被废弃
+  CN_TLS_ALERT_DESC_CERTIFICATE_EXPIRED                          = 45;  // 证书已过期
+  CN_TLS_ALERT_DESC_CERTIFICATE_UNKNOWN                          = 46;  // 未知证书
+  CN_TLS_ALERT_DESC_ILLEGAL_PARAMETER                            = 47;  // 握手报文中的字段超出范围或与其他字段不兼容
+  CN_TLS_ALERT_DESC_UNKNOWN_CA                                   = 48;  // 未知 CA
+  CN_TLS_ALERT_DESC_ACCESS_DENIED                                = 49;  // 拒绝访问
+  CN_TLS_ALERT_DESC_DECODE_ERROR                                 = 50;  // 解码错误
+  CN_TLS_ALERT_DESC_DECRYPT_ERROR                                = 51;  // 解密错误
+  CN_TLS_ALERT_DESC_EXPORT_RESTRICTION_RESERVED                  = 60;  //
+  CN_TLS_ALERT_DESC_PROTOCOL_VERSION                             = 70;  //
+  CN_TLS_ALERT_DESC_INSUFFICIENT_SECURITY                        = 71;  //
+  CN_TLS_ALERT_DESC_INTERNAL_ERROR                               = 80;  //
+  CN_TLS_ALERT_DESC_INAPPROPRIATE_FALLBACK                       = 86;  //
+  CN_TLS_ALERT_DESC_USER_CANCELED                                = 90;  //
+  CN_TLS_ALERT_DESC_NO_RENEGOTIATION_RESERVED                    = 100; //
+  CN_TLS_ALERT_DESC_MISSING_EXTENSION                            = 109; //
+  CN_TLS_ALERT_DESC_UNSUPPORTED_EXTENSION                        = 110; //
+  CN_TLS_ALERT_DESC_CERTIFICATE_UNOBTAINABLE_RESERVED            = 111; //
+  CN_TLS_ALERT_DESC_UNRECOGNIZED_NAME                            = 112; //
+  CN_TLS_ALERT_DESC_BAD_CERTIFICATE_STATUS_RESPONSE              = 113; //
+  CN_TLS_ALERT_DESC_BAD_CERTIFICATE_HASH_VALUE_RESERVED          = 114; //
+  CN_TLS_ALERT_DESC_UNKNOWN_PSK_IDENTITY                         = 115; //
+  CN_TLS_ALERT_DESC_CERTIFICATE_REQUIRED                         = 116; //
+  CN_TLS_ALERT_DESC_NO_APPLICATION_PROTOCOL                      = 120; //
 
 type
 
@@ -1005,6 +1073,101 @@ type
 
   PCnBGPHeader = ^TCnBGPHeader;
 
+{
+  TLS/SSL 记录层协议包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意它跑在 TCP 协议上，因而本包头是 TCP 包头后的负载内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | Content Type  | Major Version | Minor Version | Body Length H |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | Body Length L |     Body      |           ......              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |           Mac                 |                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSRecordLayer = packed record
+    ContentType:           Byte;                      // 内容类型，对应常量 CN_TLS_CONTENT_TYPE_*
+    MajorVersion:          Byte;                      // 主要版本，SSLv3 则为 3
+    MinorVersion:          Byte;                      // 次要版本，TLS 1.0 则为 1
+    BodyLength:            Word;                      // Body 的数据长度
+    Body:                  array[0..0] of Byte;       // Body 数据，是 SSL/TLS 协议报文
+  end;
+
+  PCnTLSRecordLayer = ^TCnTLSRecordLayer;
+
+{
+  TLS/SSL 握手协议包头示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意它跑在 TLS/SSL 记录层协议上，因而本包头是 TLS/SSL 记录层协议包头后的 Body 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | HandShakeType |                 Content Length                |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |   Content     |                     ......                    |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeHeader = packed record
+    HandShakeType:         Byte;                      // 握手类型，对应常量 CN_TLS_HANDSHAKE_TYPE_*
+    LengthHi:              Byte;
+    LengthLo:              Word;                      // 3 字节长度的报文长度
+    Content:               array[0..0] of Byte;       // 不同握手类型对应不同的握手报文
+  end;
+
+  PCnTLSHandShakeHeader = ^TCnTLSHandShakeHeader;
+
+{
+  TLS/SSL 改变密码格式协议包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意它跑在 TLS/SSL 记录层协议上，因而本包头是 TLS/SSL 记录层协议包头后的 Body 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+
+  | Content 为 1  |
+  +-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSChangeCipherSpecPacket = packed record
+    Content:               Byte;                      // 内容固定为 1
+  end;
+
+  PCnTLSChangeCipherSpecPacket = ^TCnTLSChangeCipherSpecPacket;
+
+{
+  TLS/SSL 告警协议包示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意它跑在 TLS/SSL 记录层协议上，因而本包头是 TLS/SSL 记录层协议包头后的 Body 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  Alert Level  |  Alert Code   |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSAlertPacket = packed record
+    AlertLevel:               Byte;                  // 告警级别，对应常量 CN_TLS_ALERT_LEVEL_*
+    AlertDescription:         Byte;                  // 错误代码，对应常量 CN_TLS_ALERT_DESC_*
+  end;
+
+  PCnTLSAlertPacket = ^TCnTLSAlertPacket;
+
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -1266,6 +1429,20 @@ function CnGetBGPHeaderLength(const BGPHeader: PCnBGPHeader): Word;
 
 procedure CnSetBGPHeaderLength(const BGPHeader: PCnBGPHeader; Length: Word);
 {* 设置 BGP 边界网关协议包头中的长度}
+
+// ===================== TLS/SSL 记录层协议包系列函数 ==========================
+
+function CnGetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer): Word;
+{* 返回 TLS/SSL 记录层协议包头中的数据长度}
+
+procedure CnSetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer; BodyLength: Word);
+{* 设置 TLS/SSL 记录层协议包头中的数据长度}
+
+function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): LongWord;
+{* 返回 TLS/SSL 握手协议报文的内容长度}
+
+procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: LongWord);
+{* 设置 TLS/SSL 握手协议报文的内容长度}
 
 // ========================= 字节顺序调换函数 ==================================
 
@@ -1999,6 +2176,27 @@ end;
 procedure CnSetBGPHeaderLength(const BGPHeader: PCnBGPHeader; Length: Word);
 begin
   BGPHeader^.Length := CnHostToNetworkWord(Length);
+end;
+
+function CnGetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer): Word;
+begin
+  Result := CnNetworkToHostWord(RecordLayer^.BodyLength);
+end;
+
+procedure CnSetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer; BodyLength: Word);
+begin
+  RecordLayer^.BodyLength := CnHostToNetworkWord(BodyLength);
+end;
+
+function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): LongWord;
+begin
+  Result := HandShakeHeader^.LengthHi shl 24 + CnNetworkToHostWord(HandShakeHeader^.LengthLo);
+end;
+
+procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: LongWord);
+begin
+  HandShakeHeader^.LengthHi := (ContentLength shr 16) and $00FF;
+  HandShakeHeader^.LengthLo := CnHostToNetworkWord(ContentLength and $FFFF);
 end;
 
 end.
