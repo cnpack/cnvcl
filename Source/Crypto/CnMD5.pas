@@ -78,9 +78,9 @@ uses
 type
   PMD5Digest = ^TMD5Digest;
 
-  TMD5Count = array[0..1] of LongWord;
-  TMD5State = array[0..3] of LongWord;
-  TMD5Block = array[0..15] of LongWord;
+  TMD5Count = array[0..1] of TCnLongWord32;
+  TMD5State = array[0..3] of TCnLongWord32;
+  TMD5Block = array[0..15] of TCnLongWord32;
   TMD5CBits = array[0..7] of Byte;
   TMD5Digest = array[0..15] of Byte;
   TMD5Buffer = array[0..63] of Byte;
@@ -101,11 +101,11 @@ type
 // 用户 API 函数定义
 //----------------------------------------------------------------
 
-function MD5Buffer(const Buffer; Count: LongWord): TMD5Digest;
+function MD5Buffer(const Buffer; Count: Cardinal): TMD5Digest;
 {* 对数据块进行 MD5 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
+   Count: Cardinal  - 数据块长度
  |</PRE>}
 
 function MD5Bytes(Data: TBytes): TMD5Digest;
@@ -175,7 +175,7 @@ function MD5DigestToStr(aDig: TMD5Digest): string;
  |</PRE>}
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TMD5Digest);
+  Length: Cardinal; var Output: TMD5Digest);
 
 {* Hash-based Message Authentication Code (based on MD5) }
 
@@ -200,78 +200,54 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-function F(x, y, z: LongWord): LongWord;
+function F(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (x and y) or ((not x) and z);
-//  AND EDX, EAX
-//  NOT EAX
-//  AND EAX, ECX
-//  OR EAX, EDX
 end;
 
-function G(x, y, z: LongWord): LongWord;
+function G(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (x and z) or (y and (not z));
-//  AND EAX, ECX
-//  NOT ECX
-//  AND EDX, ECX
-//  OR EAX, EDX
 end;
 
-function H(x, y, z: LongWord): LongWord;
+function H(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := x xor y xor z;
-//  XOR EAX, EDX
-//  XOR EAX, ECX
 end;
 
-function I(x, y, z: LongWord): LongWord;
+function I(x, y, z: TCnLongWord32): TCnLongWord32;
 begin
   Result := y xor (x or (not z));
-//  NOT ECX
-//  OR EAX, ECX
-//  XOR EAX, EDX
 end;
 
 
-procedure ROT(var x: LongWord; n: BYTE);
+procedure ROT(var x: TCnLongWord32; n: BYTE);
 begin
   x := (x shl n) or (x shr (32 - n));
-//  PUSH EBX
-//  MOV CL, $20
-//  SUB CL, DL
-//  MOV EBX, [EAX]
-//  SHR EBX, CL
-//  MOV ECX, EDX
-//  MOV EDX, [EAX]
-//  SHL EDX, CL
-//  OR EBX, EDX
-//  MOV [EAX], EBX
-//  POP EBX
 end;
 
-procedure FF(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
+procedure FF(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
 begin
   Inc(a, F(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure GG(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
+procedure GG(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
 begin
   Inc(a, G(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure HH(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
+procedure HH(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
 begin
   Inc(a, H(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure II(var a: LongWord; b, c, d, x: LongWord; s: BYTE; ac: LongWord);
+procedure II(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
 begin
   Inc(a, I(b, c, d) + x + ac);
   ROT(a, s);
@@ -279,11 +255,11 @@ begin
 end;
 
 // Encode Count bytes at Source into (Count / 4) DWORDs at Target
-procedure Encode(Source, Target: pointer; Count: LongWord);
+procedure Encode(Source, Target: Pointer; Count: Cardinal);
 var
   S: PByte;
-  T: PLongWord;
-  I: LongWord;
+  T: PCnLongWord32;
+  I: Cardinal;
 begin
   S := Source;
   T := Target;
@@ -302,11 +278,11 @@ begin
 end;
 
 // Decode Count DWORDs at Source into (Count * 4) Bytes at Target
-procedure Decode(Source, Target: pointer; Count: LongWord);
+procedure Decode(Source, Target: Pointer; Count: Cardinal);
 var
-  S: PLongWord;
+  S: PCnLongWord32;
   T: PByte;
-  I: LongWord;
+  I: Cardinal;
 begin
   S := Source;
   T := Target;
@@ -325,9 +301,9 @@ begin
 end;
 
 // Transform State according to first 64 bytes at Buffer
-procedure Transform(Buffer: pointer; var State: TMD5State);
+procedure Transform(Buffer: Pointer; var State: TMD5State);
 var
-  a, b, c, d: LongWord;
+  a, b, c, d: TCnLongWord32;
   Block: TMD5Block;
 begin
   Encode(Buffer, @Block, 64);
@@ -422,11 +398,11 @@ begin
 end;
 
 // Update given Context to include Length bytes of Input
-procedure MD5Update(var Context: TMD5Context; Input: PAnsiChar; Length: LongWord);
+procedure MD5Update(var Context: TMD5Context; Input: PAnsiChar; Length: Cardinal);
 var
-  Index: LongWord;
-  PartLen: LongWord;
-  I: LongWord;
+  Index: Cardinal;
+  PartLen: Cardinal;
+  I: Cardinal;
 begin
   with Context do
   begin
@@ -455,7 +431,7 @@ begin
   Move(Input[I], Context.Buffer[Index], Length - I);
 end;
 
-procedure MD5UpdateW(var Context: TMD5Context; Input: PWideChar; CharLength: LongWord);
+procedure MD5UpdateW(var Context: TMD5Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
@@ -485,8 +461,8 @@ end;
 procedure MD5Final(var Context: TMD5Context; var Digest: TMD5Digest);
 var
   Bits: TMD5CBits;
-  Index: LongWord;
-  PadLen: LongWord;
+  Index: Cardinal;
+  PadLen: Cardinal;
 begin
   Decode(@Context.Count, @Bits, 2);
   Index := (Context.Count[0] shr 3) and $3f;
@@ -555,7 +531,7 @@ end;
 //----------------------------------------------------------------
 
 // 对数据块进行 MD5 计算
-function MD5Buffer(const Buffer; Count: Longword): TMD5Digest;
+function MD5Buffer(const Buffer; Count: Cardinal): TMD5Digest;
 var
   Context: TMD5Context;
 begin
@@ -779,7 +755,7 @@ begin
   MD5Update(Ctx, @(Ctx.Ipad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
 end;
 
-procedure MD5HmacUpdate(var Ctx: TMD5Context; Input: PAnsiChar; Length: LongWord);
+procedure MD5HmacUpdate(var Ctx: TMD5Context; Input: PAnsiChar; Length: Cardinal);
 begin
   MD5Update(Ctx, Input, Length);
 end;
@@ -798,7 +774,7 @@ begin
 end;
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TMD5Digest);
+  Length: Cardinal; var Output: TMD5Digest);
 var
   Ctx: TMD5Context;
 begin
