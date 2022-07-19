@@ -70,9 +70,9 @@ type
   TAESKey128 = array [0..15] of Byte;
   TAESKey192 = array [0..23] of Byte;
   TAESKey256 = array [0..31] of Byte;
-  TAESExpandedKey128 = array [0..43] of LongWord;
-  TAESExpandedKey192 = array [0..53] of LongWord;
-  TAESExpandedKey256 = array [0..63] of LongWord;
+  TAESExpandedKey128 = array [0..43] of TCnLongWord32;
+  TAESExpandedKey192 = array [0..53] of TCnLongWord32;
+  TAESExpandedKey256 = array [0..63] of TCnLongWord32;
 
   PAESBuffer = ^TAESBuffer;
   PAESKey128 = ^TAESKey128;
@@ -370,9 +370,6 @@ resourcestring
   SReadError = 'Stream Read Error';
   SWriteError = 'Stream Write Error';
 
-type
-  PLongWord = ^LongWord;
-
 function Min(A, B: Integer): Integer;
 begin
   if A < B then
@@ -382,7 +379,7 @@ begin
 end;
 
 const
-  Rcon: array [1..30] of LongWord = (
+  Rcon: array [1..30] of TCnLongWord32 = (
     $00000001, $00000002, $00000004, $00000008, $00000010, $00000020,
     $00000040, $00000080, $0000001B, $00000036, $0000006C, $000000D8,
     $000000AB, $0000004D, $0000009A, $0000002F, $0000005E, $000000BC,
@@ -390,7 +387,7 @@ const
     $000000B3, $0000007D, $000000FA, $000000EF, $000000C5, $00000091
   );
 
-  ForwardTable: array [0..255] of LongWord = (
+  ForwardTable: array [0..255] of TCnLongWord32 = (
     $A56363C6, $847C7CF8, $997777EE, $8D7B7BF6, $0DF2F2FF, $BD6B6BD6, $B16F6FDE, $54C5C591,
     $50303060, $03010102, $A96767CE, $7D2B2B56, $19FEFEE7, $62D7D7B5, $E6ABAB4D, $9A7676EC,
     $45CACA8F, $9D82821F, $40C9C989, $877D7DFA, $15FAFAEF, $EB5959B2, $C947478E, $0BF0F0FB,
@@ -425,7 +422,7 @@ const
     $C3414182, $B0999929, $772D2D5A, $110F0F1E, $CBB0B07B, $FC5454A8, $D6BBBB6D, $3A16162C
   );
 
-  LastForwardTable: array [0..255] of LongWord = (
+  LastForwardTable: array [0..255] of TCnLongWord32 = (
     $00000063, $0000007C, $00000077, $0000007B, $000000F2, $0000006B, $0000006F, $000000C5,
     $00000030, $00000001, $00000067, $0000002B, $000000FE, $000000D7, $000000AB, $00000076,
     $000000CA, $00000082, $000000C9, $0000007D, $000000FA, $00000059, $00000047, $000000F0,
@@ -460,7 +457,7 @@ const
     $00000041, $00000099, $0000002D, $0000000F, $000000B0, $00000054, $000000BB, $00000016
   );
 
-  InverseTable: array [0..255] of LongWord = (
+  InverseTable: array [0..255] of TCnLongWord32 = (
     $50A7F451, $5365417E, $C3A4171A, $965E273A, $CB6BAB3B, $F1459D1F, $AB58FAAC, $9303E34B,
     $55FA3020, $F66D76AD, $9176CC88, $254C02F5, $FCD7E54F, $D7CB2AC5, $80443526, $8FA362B5,
     $495AB1DE, $671BBA25, $980EEA45, $E1C0FE5D, $02752FC3, $12F04C81, $A397468D, $C6F9D36B,
@@ -495,7 +492,7 @@ const
     $7101A839, $DEB30C08, $9CE4B4D8, $90C15664, $6184CB7B, $70B632D5, $745C6C48, $4257B8D0
   );
 
-  LastInverseTable: array [0..255] of LongWord = (
+  LastInverseTable: array [0..255] of TCnLongWord32 = (
     $00000052, $00000009, $0000006A, $000000D5, $00000030, $00000036, $000000A5, $00000038,
     $000000BF, $00000040, $000000A3, $0000009E, $00000081, $000000F3, $000000D7, $000000FB,
     $0000007C, $000000E3, $00000039, $00000082, $0000009B, $0000002F, $000000FF, $00000087,
@@ -534,13 +531,13 @@ procedure ExpandAESKeyForEncryption(const Key: TAESKey128; var ExpandedKey:
   TAESExpandedKey128); overload;
 var
   I, J: Integer;
-  T: LongWord;
-  W0, W1, W2, W3: LongWord;
+  T: TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
-  ExpandedKey[0] := PLongWord(@Key[0])^;
-  ExpandedKey[1] := PLongWord(@Key[4])^;
-  ExpandedKey[2] := PLongWord(@Key[8])^;
-  ExpandedKey[3] := PLongWord(@Key[12])^;
+  ExpandedKey[0] := PCnLongWord32(@Key[0])^;
+  ExpandedKey[1] := PCnLongWord32(@Key[4])^;
+  ExpandedKey[2] := PCnLongWord32(@Key[8])^;
+  ExpandedKey[3] := PCnLongWord32(@Key[12])^;
   I := 0; J := 1;
   repeat
     T := (ExpandedKey[I + 3] shl 24) or (ExpandedKey[I + 3] shr 8);
@@ -561,15 +558,15 @@ procedure ExpandAESKeyForEncryption(const Key: TAESKey192; var ExpandedKey:
   TAESExpandedKey192); overload;
 var
   I, J: Integer;
-  T: LongWord;
-  W0, W1, W2, W3: LongWord;
+  T: TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
-  ExpandedKey[0] := PLongWord(@Key[0])^;
-  ExpandedKey[1] := PLongWord(@Key[4])^;
-  ExpandedKey[2] := PLongWord(@Key[8])^;
-  ExpandedKey[3] := PLongWord(@Key[12])^;
-  ExpandedKey[4] := PLongWord(@Key[16])^;
-  ExpandedKey[5] := PLongWord(@Key[20])^;
+  ExpandedKey[0] := PCnLongWord32(@Key[0])^;
+  ExpandedKey[1] := PCnLongWord32(@Key[4])^;
+  ExpandedKey[2] := PCnLongWord32(@Key[8])^;
+  ExpandedKey[3] := PCnLongWord32(@Key[12])^;
+  ExpandedKey[4] := PCnLongWord32(@Key[16])^;
+  ExpandedKey[5] := PCnLongWord32(@Key[20])^;
   I := 0; J := 1;
   repeat
     T := (ExpandedKey[I + 5] shl 24) or (ExpandedKey[I + 5] shr 8);
@@ -592,17 +589,17 @@ procedure ExpandAESKeyForEncryption(const Key: TAESKey256; var ExpandedKey:
   TAESExpandedKey256); overload;
 var
   I, J: Integer;
-  T: LongWord;
-  W0, W1, W2, W3: LongWord;
+  T: TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
-  ExpandedKey[0] := PLongWord(@Key[0])^;
-  ExpandedKey[1] := PLongWord(@Key[4])^;
-  ExpandedKey[2] := PLongWord(@Key[8])^;
-  ExpandedKey[3] := PLongWord(@Key[12])^;
-  ExpandedKey[4] := PLongWord(@Key[16])^;
-  ExpandedKey[5] := PLongWord(@Key[20])^;
-  ExpandedKey[6] := PLongWord(@Key[24])^;
-  ExpandedKey[7] := PLongWord(@Key[28])^;
+  ExpandedKey[0] := PCnLongWord32(@Key[0])^;
+  ExpandedKey[1] := PCnLongWord32(@Key[4])^;
+  ExpandedKey[2] := PCnLongWord32(@Key[8])^;
+  ExpandedKey[3] := PCnLongWord32(@Key[12])^;
+  ExpandedKey[4] := PCnLongWord32(@Key[16])^;
+  ExpandedKey[5] := PCnLongWord32(@Key[20])^;
+  ExpandedKey[6] := PCnLongWord32(@Key[24])^;
+  ExpandedKey[7] := PCnLongWord32(@Key[28])^;
   I := 0; J := 1;
   repeat
     T := (ExpandedKey[I + 7] shl 24) or (ExpandedKey[I + 7] shr 8);
@@ -632,14 +629,14 @@ end;
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey128;
   var OutBuf: TAESBuffer); overload;
 var
-  T0, T1: array [0..3] of LongWord;
-  W0, W1, W2, W3: LongWord;
+  T0, T1: array [0..3] of TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
   // initializing
-  T0[0] := PLongWord(@InBuf[0])^ xor Key[0];
-  T0[1] := PLongWord(@InBuf[4])^ xor Key[1];
-  T0[2] := PLongWord(@InBuf[8])^ xor Key[2];
-  T0[3] := PLongWord(@InBuf[12])^ xor Key[3];
+  T0[0] := PCnLongWord32(@InBuf[0])^ xor Key[0];
+  T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[1];
+  T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[2];
+  T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[3];
   // performing transformation 9 times
   // round 1
   W0 := ForwardTable[Byte(T0[0])]; W1 := ForwardTable[Byte(T0[1] shr 8)];
@@ -812,21 +809,21 @@ begin
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[43];
   // finalizing
-  PLongWord(@OutBuf[0])^ := T0[0]; PLongWord(@OutBuf[4])^ := T0[1];
-  PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey192;
   var OutBuf: TAESBuffer); overload;
 var
-  T0, T1: array [0..3] of LongWord;
-  W0, W1, W2, W3: LongWord;
+  T0, T1: array [0..3] of TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
   // initializing
-  T0[0] := PLongWord(@InBuf[0])^ xor Key[0];
-  T0[1] := PLongWord(@InBuf[4])^ xor Key[1];
-  T0[2] := PLongWord(@InBuf[8])^ xor Key[2];
-  T0[3] := PLongWord(@InBuf[12])^ xor Key[3];
+  T0[0] := PCnLongWord32(@InBuf[0])^ xor Key[0];
+  T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[1];
+  T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[2];
+  T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[3];
   // performing transformation 11 times
   // round 1
   W0 := ForwardTable[Byte(T0[0])]; W1 := ForwardTable[Byte(T0[1] shr 8)];
@@ -1033,21 +1030,21 @@ begin
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[51];
   // finalizing
-  PLongWord(@OutBuf[0])^ := T0[0]; PLongWord(@OutBuf[4])^ := T0[1];
-  PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey256;
   var OutBuf: TAESBuffer); overload;
 var
-  T0, T1: array [0..3] of LongWord;
-  W0, W1, W2, W3: LongWord;
+  T0, T1: array [0..3] of TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
   // initializing
-  T0[0] := PLongWord(@InBuf[0])^ xor Key[0];
-  T0[1] := PLongWord(@InBuf[4])^ xor Key[1];
-  T0[2] := PLongWord(@InBuf[8])^ xor Key[2];
-  T0[3] := PLongWord(@InBuf[12])^ xor Key[3];
+  T0[0] := PCnLongWord32(@InBuf[0])^ xor Key[0];
+  T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[1];
+  T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[2];
+  T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[3];
   // performing transformation 13 times
   // round 1
   W0 := ForwardTable[Byte(T0[0])]; W1 := ForwardTable[Byte(T0[1] shr 8)];
@@ -1288,14 +1285,14 @@ begin
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[59];
   // finalizing
-  PLongWord(@OutBuf[0])^ := T0[0]; PLongWord(@OutBuf[4])^ := T0[1];
-  PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure ExpandAESKeyForDecryption(var ExpandedKey: TAESExpandedKey128); overload;
 var
   I: Integer;
-  U, F2, F4, F8, F9: LongWord;
+  U, F2, F4, F8, F9: TCnLongWord32;
 begin
   for I := 1 to 9 do
   begin
@@ -1356,7 +1353,7 @@ end;
 procedure ExpandAESKeyForDecryption(var ExpandedKey: TAESExpandedKey192); overload;
 var
   I: Integer;
-  U, F2, F4, F8, F9: LongWord;
+  U, F2, F4, F8, F9: TCnLongWord32;
 begin
   for I := 1 to 11 do
   begin
@@ -1417,7 +1414,7 @@ end;
 procedure ExpandAESKeyForDecryption(var ExpandedKey: TAESExpandedKey256); overload;
 var
   I: Integer;
-  U, F2, F4, F8, F9: LongWord;
+  U, F2, F4, F8, F9: TCnLongWord32;
 begin
   for I := 1 to 13 do
   begin
@@ -1478,14 +1475,14 @@ end;
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey128;
   var OutBuf: TAESBuffer); overload;
 var
-  T0, T1: array [0..3] of LongWord;
-  W0, W1, W2, W3: LongWord;
+  T0, T1: array [0..3] of TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
   // initializing
-  T0[0] := PLongWord(@InBuf[0])^ xor Key[40];
-  T0[1] := PLongWord(@InBuf[4])^ xor Key[41];
-  T0[2] := PLongWord(@InBuf[8])^ xor Key[42];
-  T0[3] := PLongWord(@InBuf[12])^ xor Key[43];
+  T0[0] := PCnLongWord32(@InBuf[0])^ xor Key[40];
+  T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[41];
+  T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[42];
+  T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[43];
   // performing transformations 9 times
   // round 1
   W0 := InverseTable[Byte(T0[0])]; W1 := InverseTable[Byte(T0[3] shr 8)];
@@ -1658,21 +1655,21 @@ begin
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
   // finalizing
-  PLongWord(@OutBuf[0])^ := T0[0]; PLongWord(@OutBuf[4])^ := T0[1];
-  PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey192;
   var OutBuf: TAESBuffer); overload;
 var
-  T0, T1: array [0..3] of LongWord;
-  W0, W1, W2, W3: LongWord;
+  T0, T1: array [0..3] of TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
   // initializing
-  T0[0] := PLongWord(@InBuf[0])^ xor Key[48];
-  T0[1] := PLongWord(@InBuf[4])^ xor Key[49];
-  T0[2] := PLongWord(@InBuf[8])^ xor Key[50];
-  T0[3] := PLongWord(@InBuf[12])^ xor Key[51];
+  T0[0] := PCnLongWord32(@InBuf[0])^ xor Key[48];
+  T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[49];
+  T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[50];
+  T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[51];
   // performing transformations 11 times
   // round 1
   W0 := InverseTable[Byte(T0[0])]; W1 := InverseTable[Byte(T0[3] shr 8)];
@@ -1879,21 +1876,21 @@ begin
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
   // finalizing
-  PLongWord(@OutBuf[0])^ := T0[0]; PLongWord(@OutBuf[4])^ := T0[1];
-  PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey256;
   var OutBuf: TAESBuffer);
 var
-  T0, T1: array [0..3] of LongWord;
-  W0, W1, W2, W3: LongWord;
+  T0, T1: array [0..3] of TCnLongWord32;
+  W0, W1, W2, W3: TCnLongWord32;
 begin
   // initializing
-  T0[0] := PLongWord(@InBuf[0])^ xor Key[56];
-  T0[1] := PLongWord(@InBuf[4])^ xor Key[57];
-  T0[2] := PLongWord(@InBuf[8])^ xor Key[58];
-  T0[3] := PLongWord(@InBuf[12])^ xor Key[59];
+  T0[0] := PCnLongWord32(@InBuf[0])^ xor Key[56];
+  T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[57];
+  T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[58];
+  T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[59];
   // performing transformations 13 times
   // round 1
   W0 := InverseTable[Byte(T0[0])]; W1 := InverseTable[Byte(T0[3] shr 8)];
@@ -2134,8 +2131,8 @@ begin
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
   // finalizing
-  PLongWord(@OutBuf[0])^ := T0[0]; PLongWord(@OutBuf[4])^ := T0[1];
-  PLongWord(@OutBuf[8])^ := T0[2]; PLongWord(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 // Stream Encryption Routines (ECB mode)
@@ -2422,10 +2419,10 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError); // 要求每一块都是整块
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^; // 原始块内容与 IV 先异或
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^; // 原始块内容与 IV 先异或
     EncryptAES(TempIn, ExpandedKey, TempOut);                                       // 异或结果再加密
     Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 加密内容写入结果
     if Done < SizeOf(TempOut) then
@@ -2439,10 +2436,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
     EncryptAES(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -2479,10 +2476,10 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
     EncryptAES(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -2496,10 +2493,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
     EncryptAES(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -2536,10 +2533,10 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
     EncryptAES(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -2553,10 +2550,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@Vector[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@Vector[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
     EncryptAES(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -2600,10 +2597,10 @@ begin
       raise EStreamError(SReadError);
     Vector2 := TempIn;
     DecryptAES(TempIn, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@Vector1[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@Vector1[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@Vector1[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@Vector1[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
@@ -2646,10 +2643,10 @@ begin
       raise EStreamError(SReadError);
     Vector2 := TempIn;
     DecryptAES(TempIn, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@Vector1[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@Vector1[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@Vector1[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@Vector1[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
@@ -2692,10 +2689,10 @@ begin
       raise EStreamError(SReadError);
     Vector2 := TempIn;
     DecryptAES(TempIn, ExpandedKey, TempOut);         // 读出密文先解密
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;   // 解密后的内容和 Iv 异或得到明文
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@Vector1[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@Vector1[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;   // 解密后的内容和 Iv 异或得到明文
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@Vector1[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@Vector1[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
@@ -2736,10 +2733,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);                                       // Key 先加密 Iv
-    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;  // 加密结果与明文异或
-    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;  // 加密结果与明文异或
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 异或的结果写进密文结果
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
@@ -2752,10 +2749,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SWriteError);
@@ -2792,10 +2789,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
@@ -2808,10 +2805,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError.Create(SWriteError);
@@ -2848,10 +2845,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SWriteError);
@@ -2864,10 +2861,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError.Create(SWriteError);
@@ -2909,10 +2906,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
@@ -2925,10 +2922,10 @@ begin
     if Done < Count then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempOut, Count);      // 明文写出去
     if Done < Count then
       raise EStreamError(SWriteError);
@@ -2967,10 +2964,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
@@ -2983,10 +2980,10 @@ begin
     if Done < Count then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError(SWriteError);
@@ -3025,10 +3022,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SWriteError);
@@ -3041,10 +3038,10 @@ begin
     if Done < Count then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempOut[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempOut[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError(SWriteError);
@@ -3083,10 +3080,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);                                      // Key 先加密 Iv
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;  // 加密结果与明文异或
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;  // 加密结果与明文异或
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));                                    // 异或的结果写进密文结果
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SWriteError);
@@ -3099,10 +3096,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SWriteError);
@@ -3139,10 +3136,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SWriteError);
@@ -3155,10 +3152,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SWriteError);
@@ -3195,10 +3192,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SWriteError);
@@ -3211,10 +3208,10 @@ begin
     if Done < Count then
       raise EStreamError.Create(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@TempOut[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@TempOut[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempIn[8])^ xor PLongWord(@TempOut[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempIn[12])^ xor PLongWord(@TempOut[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SWriteError);
@@ -3256,10 +3253,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
-    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
-    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));       // 明文写出去
     if Done < SizeOf(TempIn) then
       raise EStreamError(SWriteError);
@@ -3272,10 +3269,10 @@ begin
     if Done < Count then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
-    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempIn, Count);      // 明文写出去
     if Done < Count then
       raise EStreamError(SWriteError);
@@ -3314,10 +3311,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SWriteError);
@@ -3330,10 +3327,10 @@ begin
     if Done < Count then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError(SWriteError);
@@ -3372,10 +3369,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SWriteError);
@@ -3388,10 +3385,10 @@ begin
     if Done < Count then
       raise EStreamError(SReadError);
     EncryptAES(Vector, ExpandedKey, TempOut);
-    PLongWord(@TempIn[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@TempIn[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@TempIn[4])^;
-    PLongWord(@TempIn[8])^ := PLongWord(@TempOut[8])^ xor PLongWord(@TempIn[8])^;
-    PLongWord(@TempIn[12])^ := PLongWord(@TempOut[12])^ xor PLongWord(@TempIn[12])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
+    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
+    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError(SWriteError);

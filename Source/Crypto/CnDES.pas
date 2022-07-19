@@ -270,7 +270,6 @@ resourcestring
   SWriteError = 'Stream Write Error';
 
 type
-  PLongWord = ^LongWord;
   TKeyByte = array[0..5] of Byte;
   TDesMode = (dmEncry, dmDecry);
   TSubKey = array[0..15] of TKeyByte;
@@ -666,8 +665,8 @@ begin
     Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey, StrByte, OutByte);
@@ -702,8 +701,8 @@ begin
     DesData(dmDecry, SubKey, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -864,8 +863,8 @@ begin
     Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey, StrByte, OutByte);
@@ -907,8 +906,8 @@ begin
     DesData(dmDecry, SubKey, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -1031,8 +1030,8 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
 
     DesData(dmEncry, SubKey, TempIn, TempOut);
 
@@ -1051,8 +1050,8 @@ begin
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
 
     DesData(dmEncry, SubKey, TempIn, TempOut);
 
@@ -1095,8 +1094,8 @@ begin
     Move(TempIn[0], Vector2[0], SizeOf(TDESIv));
     DesData(dmDecry, SubKey, TempIn, TempOut);
 
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -1233,8 +1232,8 @@ begin
     Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey1, StrByte, OutByte);
@@ -1275,8 +1274,8 @@ begin
     DesData(dmDecry, SubKey1, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -1413,8 +1412,8 @@ begin
     Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PLongWord(@StrByte[0])^ := PLongWord(@StrByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@StrByte[4])^ := PLongWord(@StrByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey1, StrByte, OutByte);
@@ -1461,8 +1460,8 @@ begin
     DesData(dmDecry, SubKey1, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PLongWord(@OutByte[0])^ := PLongWord(@OutByte[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@OutByte[4])^ := PLongWord(@OutByte[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
 
     Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -1605,8 +1604,8 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
 
     DesData(dmEncry, SubKey1, TempIn, TempOut);
     DesData(dmDecry, SubKey2, TempOut, TempIn);
@@ -1627,8 +1626,8 @@ begin
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
-    PLongWord(@TempIn[0])^ := PLongWord(@TempIn[0])^ xor PLongWord(@Vector[0])^;
-    PLongWord(@TempIn[4])^ := PLongWord(@TempIn[4])^ xor PLongWord(@Vector[4])^;
+    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
+    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
 
     DesData(dmEncry, SubKey1, TempIn, TempOut);
     DesData(dmDecry, SubKey2, TempOut, TempIn);
@@ -1680,8 +1679,8 @@ begin
     DesData(dmEncry, SubKey2, TempOut, TempIn);
     DesData(dmDecry, SubKey1, TempIn, TempOut);
 
-    PLongWord(@TempOut[0])^ := PLongWord(@TempOut[0])^ xor PLongWord(@Vector1[0])^;
-    PLongWord(@TempOut[4])^ := PLongWord(@TempOut[4])^ xor PLongWord(@Vector1[4])^;
+    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
+    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
