@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl, CnBigNumber;
+  Classes, SysUtils, CnNativeDecl, CnBigNumber;
 
 const
   POLY1305_KEYSIZE   = 32;       // 输入 32 字节也就是 256 位的 Key

@@ -15,7 +15,8 @@ uses
   CnZUC in '..\..\Source\Crypto\CnZUC.pas',
   CnSHA3 in '..\..\Source\Crypto\CnSHA3.pas',
   CnTEA in '..\..\Source\Crypto\CnTEA.pas',
-  CnPoly1305 in '..\..\Source\Crypto\CnPoly1305.pas';
+  CnPoly1305 in '..\..\Source\Crypto\CnPoly1305.pas',
+  CnChaCha20 in '..\..\Source\Crypto\CnChaCha20.pas';
 
 {$R *.RES}
 

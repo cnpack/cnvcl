@@ -297,6 +297,14 @@ type
     edtPoly1305: TEdit;
     btnPoly1305: TButton;
     edtPoly1305Key: TEdit;
+    tsChaCha20: TTabSheet;
+    grpChaCha20: TGroupBox;
+    lblChaCha20: TLabel;
+    lblChaCha20Result: TLabel;
+    lblChaCha20Key: TLabel;
+    edtChaCha20: TEdit;
+    btnChaCha20Block: TButton;
+    edtChaCha20Key: TEdit;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -379,6 +387,7 @@ type
     procedure btnCRC8Click(Sender: TObject);
     procedure btnFileCRC8Click(Sender: TObject);
     procedure btnPoly1305Click(Sender: TObject);
+    procedure btnChaCha20BlockClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -395,7 +404,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnPemUtils, CnNativeDecl;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha, CnPemUtils, CnNativeDecl;
 
 {$R *.DFM}
 
@@ -2201,6 +2210,28 @@ begin
   Move(K[1], Key[0], L);
   Dig := Poly1305Data(@S[1], Length(S), Key);
   lblPoly1305Result.Caption := Poly1305Print(Dig);
+end;
+
+procedure TFormCrypt.btnChaCha20BlockClick(Sender: TObject);
+var
+  SKey, SNonce: AnsiString;
+  Key: TChaChaKey;
+  Nonce: TChaChaNonce;
+  Cnt: TChaChaCounter;
+  State: TChaChaState;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000090000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  Cnt[0] := 1;
+  Cnt[1] := 0;
+  Cnt[2] := 0;
+  Cnt[3] := 0;
+
+  ChaCha20Block(Key, Nonce, Cnt, State);
 end;
 
 end.

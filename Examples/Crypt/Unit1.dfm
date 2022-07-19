@@ -2284,6 +2284,67 @@ object FormCrypt: TFormCrypt
         end
       end
     end
+    object tsChaCha20: TTabSheet
+      Caption = 'ChaCha20'
+      ImageIndex = 21
+      object grpChaCha20: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 433
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'ChaCha20'
+        TabOrder = 0
+        object lblChaCha20: TLabel
+          Left = 24
+          Top = 44
+          Width = 22
+          Height = 13
+          Caption = 'Text'
+        end
+        object lblChaCha20Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblChaCha20Key: TLabel
+          Left = 264
+          Top = 44
+          Width = 22
+          Height = 13
+          Caption = 'Key:'
+        end
+        object edtChaCha20: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnChaCha20Block: TButton
+          Left = 280
+          Top = 80
+          Width = 113
+          Height = 25
+          Caption = 'ChaCha20 Block'
+          TabOrder = 2
+          OnClick = btnChaCha20BlockClick
+        end
+        object edtChaCha20Key: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 1
+        end
+      end
+    end
   end
   object OpenDialog1: TOpenDialog
     Left = 220

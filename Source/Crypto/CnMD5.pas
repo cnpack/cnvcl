@@ -220,7 +220,6 @@ begin
   Result := y xor (x or (not z));
 end;
 
-
 procedure ROT(var x: TCnLongWord32; n: BYTE);
 begin
   x := (x shl n) or (x shr (32 - n));
