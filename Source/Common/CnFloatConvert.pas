@@ -199,9 +199,9 @@ function DoubleIsNan(const AValue: Double): Boolean;
 function ExtendedIsNan(const AValue: Extended): Boolean;
 {* 扩展精度浮点数是否非实数}
 
-{$IFNDEF FPC}          // FPC、64 位以及 Delphi 5、6 不支持以下三个函数
-{$IFNDEF WIN64}
+{$IFNDEF FPC}          // FPC、Windows 64/Linux 64 以及 Delphi 5、6 不支持以下三个函数
 {$IFNDEF MACOS}
+{$IFNDEF CPUX64}
 {$IFNDEF COMPILER5}
 {$IFNDEF COMPILER6}
 
@@ -240,7 +240,7 @@ type
 
 {$IFNDEF FPC}
 {$IFNDEF MACOS}
-{$IFNDEF WIN64}
+{$IFNDEF CPUX64}
 {$IFNDEF COMPILER5}
 {$IFNDEF COMPILER6}
 
