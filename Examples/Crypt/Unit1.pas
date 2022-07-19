@@ -404,7 +404,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha, CnPemUtils, CnNativeDecl;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnPemUtils, CnNativeDecl;
 
 {$R *.DFM}
 
@@ -2226,10 +2226,7 @@ begin
   HexToData(SKey, @Key[0]);
   HexToData(SNonce, @Nonce[0]);
 
-  Cnt[0] := 1;
-  Cnt[1] := 0;
-  Cnt[2] := 0;
-  Cnt[3] := 0;
+  Cnt := 1;
 
   ChaCha20Block(Key, Nonce, Cnt, State);
 end;

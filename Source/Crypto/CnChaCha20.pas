@@ -52,7 +52,7 @@ const
   {* ChaCha20 算法的 Nonce 字节长度}
 
   CHACHA_COUNT_SIZE   = 4;
-  {* ChaCha20 算法的计数器字节长度}
+  {* ChaCha20 算法的计数器字节长度，实际运算时使用 TCnLongWord32 代替}
 
 type
   TChaChaKey = array[0..CHACHA_KEY_SIZE - 1] of Byte;
@@ -61,14 +61,14 @@ type
   TChaChaNonce = array[0..CHACHA_NONCE_SIZE - 1] of Byte;
   {* ChaCha20 算法的 Nonce}
 
-  TChaChaCounter = array[0..CHACHA_COUNT_SIZE - 1] of Byte;
+  TChaChaCounter = TCnLongWord32;
   {* ChaCha20 算法的计数器}
 
   TChaChaState = array[0..CHACHA_STATE_SIZE - 1] of TCnLongWord32;
   {* ChaCha20 算法的状态块}
 
 procedure ChaCha20Block(var Key: TChaChaKey; var Nonce: TChaChaNonce;
-  var Counter: TChaChaCounter; var OutState: TChaChaState);
+  Counter: TChaChaCounter; var OutState: TChaChaState);
 {* 进行一次块运算，包括 20 轮的子运算}
 
 implementation
@@ -109,7 +109,7 @@ begin
 end;
 
 procedure BuildState(var State: TChaChaState; var Key: TChaChaKey;
-  var Nonce: TChaChaNonce; var Counter: TChaChaCounter);
+  var Nonce: TChaChaNonce; Counter: TChaChaCounter);
 begin
   State[0] := CHACHA20_CONST0;
   State[1] := CHACHA20_CONST1;
@@ -125,7 +125,7 @@ begin
   State[10] := PCnLongWord32(@Key[24])^;
   State[11] := PCnLongWord32(@Key[28])^;
 
-  State[12] := PCnLongWord32(@Counter[0])^;
+  State[12] := Counter;
 
   State[13] := PCnLongWord32(@Nonce[0])^;
   State[14] := PCnLongWord32(@Nonce[4])^;
@@ -146,7 +146,7 @@ begin
 end;
 
 procedure ChaCha20Block(var Key: TChaChaKey; var Nonce: TChaChaNonce;
-  var Counter: TChaChaCounter; var OutState: TChaChaState);
+  Counter: TChaChaCounter; var OutState: TChaChaState);
 var
   I: Integer;
   State: TChaChaState;
