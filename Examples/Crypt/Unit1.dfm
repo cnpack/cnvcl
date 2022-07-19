@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
   Left = 318
-  Top = 221
+  Top = 222
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 437
@@ -2219,6 +2219,68 @@ object FormCrypt: TFormCrypt
           Caption = 'XXTea Decrypt'
           TabOrder = 15
           OnClick = btnXXTeaDecClick
+        end
+      end
+    end
+    object tsPoly1305: TTabSheet
+      Caption = 'Poly1305'
+      ImageIndex = 20
+      object grpPoly1305: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 433
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'Poly1305'
+        TabOrder = 0
+        object lblPoly1305: TLabel
+          Left = 24
+          Top = 44
+          Width = 22
+          Height = 13
+          Caption = 'Text'
+        end
+        object lblPoly1305Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblPoly1305Key: TLabel
+          Left = 264
+          Top = 44
+          Width = 22
+          Height = 13
+          Caption = 'Key:'
+        end
+        object edtPoly1305: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnPoly1305: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Poly1305'
+          TabOrder = 2
+          OnClick = btnPoly1305Click
+        end
+        object edtPoly1305Key: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 1
+          Text = 'Poly1305Key'
         end
       end
     end

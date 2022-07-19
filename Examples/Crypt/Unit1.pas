@@ -289,6 +289,14 @@ type
     rbAesofb: TRadioButton;
     rbSm4Cfb: TRadioButton;
     rbSm4Ofb: TRadioButton;
+    tsPoly1305: TTabSheet;
+    grpPoly1305: TGroupBox;
+    lblPoly1305: TLabel;
+    lblPoly1305Result: TLabel;
+    lblPoly1305Key: TLabel;
+    edtPoly1305: TEdit;
+    btnPoly1305: TButton;
+    edtPoly1305Key: TEdit;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -370,6 +378,7 @@ type
     procedure btnFileCRC16Click(Sender: TObject);
     procedure btnCRC8Click(Sender: TObject);
     procedure btnFileCRC8Click(Sender: TObject);
+    procedure btnPoly1305Click(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -386,7 +395,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPemUtils, CnNativeDecl;
+  CnSHA3, CnTEA, CnPoly1305, CnPemUtils, CnNativeDecl;
 
 {$R *.DFM}
 
@@ -2168,6 +2177,30 @@ begin
   if OpenDialog1.Execute then
     if FileCRC8(OpenDialog1.FileName, Crc) then
       pnlCRC32.Caption := IntToHex(Crc, 2);
+end;
+
+procedure TFormCrypt.btnPoly1305Click(Sender: TObject);
+var
+  L: Integer;
+  S: AnsiString;
+  K: AnsiString;
+  Key: TPoly1305Key;
+  Dig: TPoly1305Digest;
+begin
+//  S := 'Cryptographic Forum Research Group';
+//  K := '85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b';
+//  HexToData(K, @Key[0]);
+
+  S := edtPoly1305.Text;
+  K := edtPoly1305Key.Text;
+  FillChar(Key[0], SizeOf(TPoly1305Key), 0);
+  L := Length(K);
+  if L > SizeOf(TPoly1305Key) then
+    L := SizeOf(TPoly1305Key);
+
+  Move(K[1], Key[0], L);
+  Dig := Poly1305Data(@S[1], Length(S), Key);
+  lblPoly1305Result.Caption := Poly1305Print(Dig);
 end;
 
 end.
