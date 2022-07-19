@@ -2343,6 +2343,15 @@ object FormCrypt: TFormCrypt
           Height = 21
           TabOrder = 1
         end
+        object btnChaCha20Data: TButton
+          Left = 280
+          Top = 112
+          Width = 113
+          Height = 25
+          Caption = 'ChaCha20 Data'
+          TabOrder = 3
+          OnClick = btnChaCha20DataClick
+        end
       end
     end
   end

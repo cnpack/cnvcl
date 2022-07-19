@@ -24,8 +24,10 @@ unit CnChaCha20;
 * 软件名称：开发包基础库
 * 单元名称：ChaCha20 流密码算法实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
-* 备    注：根据 RFC 7539 实现
+* 备    注：根据 RFC 7539 实现，其中 nonce 类似于初始化向量
 *           块运算；输入 32 字节 Key、12 字节 nonce、4 字节 Counter，输出 64 字节内容
+*           流运算：输入 32 字节 Key、12 字节 nonce、4 字节 Counter，任意长度明/密文
+*                   输出相同长度密/明文
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -43,7 +45,7 @@ uses
 
 const
   CHACHA_STATE_SIZE   = 16;
-  {* ChaCha20 算法的状态块字节数}
+  {* ChaCha20 算法的状态块数，64 字节}
 
   CHACHA_KEY_SIZE     = 32;
   {* ChaCha20 算法的 Key 字节长度}
@@ -70,6 +72,24 @@ type
 procedure ChaCha20Block(var Key: TChaChaKey; var Nonce: TChaChaNonce;
   Counter: TChaChaCounter; var OutState: TChaChaState);
 {* 进行一次块运算，包括 20 轮的子运算}
+
+function ChaCha20EncryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  Data: TBytes): TBytes;
+{* 对字节数组进行 ChaCha20 加密}
+
+function ChaCha20DecryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  EnData: TBytes): TBytes;
+{* 对字节数组进行 ChaCha20 解密}
+
+function ChaCha20EncryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
+{* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，
+  密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
+
+function ChaCha20DecryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
+{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，
+  明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 implementation
 
@@ -159,6 +179,101 @@ begin
 
   for I := Low(TChaChaState) to High(TChaChaState) do
     OutState[I] := OutState[I] + State[I];
+end;
+
+function ChaCha20Data(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
+var
+  I, J, L, B: Integer;
+  Cnt: TChaChaCounter;
+  Stream: TChaChaState;
+  P, Q, M: PByteArray;
+begin
+  Result := False;
+  if (Data = nil) or (DataByteLength <= 0) or (Output = nil) then
+    Exit;
+
+  Cnt := 1;
+  B := DataByteLength div (SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE); // 有 B 个完整块
+  P := PByteArray(Data);
+  Q := PByteArray(Output);
+  M := PByteArray(@Stream[0]);
+
+  if B > 0 then
+  begin
+    for I := 1 to B do
+    begin
+      ChaCha20Block(Key, Nonce, Cnt, Stream);
+
+      // P、Q 已各指向要处理的原始块与密文块
+      for J := 0 to SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE - 1 do
+        Q^[J] := P^[J] xor M[J];
+
+      // 指向下一块
+      P := PByteArray(TCnNativeInt(P) + SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE);
+      Q := PByteArray(TCnNativeInt(Q) + SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE);
+
+      Inc(Cnt);
+    end;
+  end;
+
+  L := DataByteLength mod (SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE);
+  if L > 0 then // 还有剩余块，长度为 L
+  begin
+    ChaCha20Block(Key, Nonce, Cnt, Stream);
+
+    // P、Q 已各指向要处理的原始块与密文块
+    for J := 0 to L - 1 do
+      Q^[J] := P^[J] xor M[J];
+  end;
+end;
+
+function ChaCha20EncryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  Data: TBytes): TBytes;
+var
+  L: Integer;
+begin
+  Result := nil;
+  if Data = nil then
+    Exit;
+
+  L := Length(Data);
+  if L > 0 then
+  begin
+    SetLength(Result, L);
+    if not ChaCha20Data(Key, Nonce, @Data[0], L, @Result[0]) then
+      SetLength(Result, 0);
+  end;
+end;
+
+function ChaCha20DecryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  EnData: TBytes): TBytes;
+var
+  L: Integer;
+begin
+  Result := nil;
+  if EnData = nil then
+    Exit;
+
+  L := Length(EnData);
+  if L > 0 then
+  begin
+    SetLength(Result, L);
+    if not ChaCha20Data(Key, Nonce, @EnData[0], L, @Result[0]) then
+      SetLength(Result, 0);
+  end;
+end;
+
+function ChaCha20EncryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
+begin
+  Result := ChaCha20Data(Key, Nonce, Data, DataByteLength, Output);
+end;
+
+function ChaCha20DecryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+  EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
+begin
+  Result := ChaCha20Data(Key, Nonce, EnData, DataByteLength, Output);
 end;
 
 end.

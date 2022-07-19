@@ -305,6 +305,7 @@ type
     edtChaCha20: TEdit;
     btnChaCha20Block: TButton;
     edtChaCha20Key: TEdit;
+    btnChaCha20Data: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -388,6 +389,7 @@ type
     procedure btnFileCRC8Click(Sender: TObject);
     procedure btnPoly1305Click(Sender: TObject);
     procedure btnChaCha20BlockClick(Sender: TObject);
+    procedure btnChaCha20DataClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -2229,6 +2231,29 @@ begin
   Cnt := 1;
 
   ChaCha20Block(Key, Nonce, Cnt, State);
+end;
+
+procedure TFormCrypt.btnChaCha20DataClick(Sender: TObject);
+var
+  S, SKey, SNonce: AnsiString;
+  Key: TChaChaKey;
+  Nonce: TChaChaNonce;
+  EnRes: TBytes;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000000000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  S := 'Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.';
+  SetLength(EnRes, Length(S));
+
+  ChaCha20EncryptData(Key, Nonce, @S[1], Length(S), @EnRes[0]);
+  ChaCha20DecryptData(Key, Nonce, @EnRes[0], Length(EnRes), @S[1]);
+  ShowMessage(S);
+
+  SetLength(EnRes, 0);
 end;
 
 end.
