@@ -61,7 +61,7 @@ uses
 function CalcCRC8Byte(OrgCRC8: Byte; B: Byte): Byte;
 {* CRC8 计算单个字节，供特殊需求使用}
 
-function CRC8Calc(const OrgCRC8: Byte; const Data; Len: LongWord): Byte;
+function CRC8Calc(const OrgCRC8: Byte; const Data; Len: Cardinal): Byte;
 {* 计算 CRC8 值
  |<PRE>
    OrgCRC8: Byte    - 起始 CRC8 值，默认可传 0
@@ -97,7 +97,7 @@ function FileCRC8(const FileName: string; var CRC: Byte; StartPos: Int64 = 0;
 function CalcCRC16Byte(OrgCRC16: Word; B: Byte): Word;
 {* CRC16 计算单个字节，供特殊需求使用}
 
-function CRC16Calc(const OrgCRC16: Word; const Data; Len: LongWord): Word;
+function CRC16Calc(const OrgCRC16: Word; const Data; Len: Cardinal): Word;
 {* 计算 CRC16 值
  |<PRE>
    OrgCRC16: WORD  - 起始 CRC16 值，默认可传 0
@@ -131,10 +131,10 @@ function FileCRC16(const FileName: string; var CRC: Word; StartPos: Int64 = 0;
 // 多项式为 x32+x26+x23+x22+x16+x12+x11+x10+x8+x7+x5+x4+x2+x+1
 //------------------------------------------------------------------------------
 
-function CalcCRC32Byte(OrgCRC32: LongWord; B: Byte): LongWord;
+function CalcCRC32Byte(OrgCRC32: TCnLongWord32; B: Byte): TCnLongWord32;
 {* CRC32 计算单个字节，供特殊需求使用}
 
-function CRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWord;
+function CRC32Calc(const OrgCRC32: TCnLongWord32; const Data; Len: Cardinal): TCnLongWord32;
 {* 计算 CRC32 值
  |<PRE>
    OrgCRC32: DWORD  - 起始 CRC32 值，默认可传 0
@@ -143,16 +143,16 @@ function CRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWor
    Result: DWORD    - 返回 CRC32 计算结果
  |</PRE>}
 
-function StrCRC32(const OrgCRC32: LongWord; const Text: string): LongWord;
+function StrCRC32(const OrgCRC32: TCnLongWord32; const Text: string): TCnLongWord32;
 {* 计算字符串的 CRC32 值 }
 
-function StrCRC32A(const OrgCRC32: LongWord; const Text: AnsiString): LongWord;
+function StrCRC32A(const OrgCRC32: TCnLongWord32; const Text: AnsiString): TCnLongWord32;
 {* 计算 AnsiString 字符串的 CRC32 值 }
 
-function BytesCRC32(const OrgCRC32: LongWord; Data: TBytes): LongWord;
+function BytesCRC32(const OrgCRC32: TCnLongWord32; Data: TBytes): TCnLongWord32;
 {* 计算 TBytes 的 CRC32 值}
 
-function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 0;
+function FileCRC32(const FileName: string; var CRC: TCnLongWord32; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 {* 计算文件 CRC32 值，支持超过 4G 的大文件
  |<PRE>
@@ -170,7 +170,7 @@ function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 
 // x32+x31+x29+x27+x24+x23+x22+x21+x19+x17+x13+x12+x10+x9+x7+x4+x+1
 //------------------------------------------------------------------------------
 
-function CRC64Calc(const OrgCRC64: Int64; const Data; Len: LongWord): Int64;
+function CRC64Calc(const OrgCRC64: Int64; const Data; Len: Cardinal): Int64;
 {* 计算 CRC64 值
  |<PRE>
    OrgCRC64: Int64  - 起始 CRC64 值，默认可传 0
@@ -185,7 +185,7 @@ function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
 function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
 {* 计算 AnsiString 字符串的 CRC64 值 }
 
-function BytesCRC64(const OrgCRC64: LongWord; Data: TBytes): LongWord;
+function BytesCRC64(const OrgCRC64: TCnLongWord32; Data: TBytes): TCnLongWord32;
 {* 计算 TBytes 的 CRC64 值}
 
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
@@ -200,10 +200,10 @@ function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
  |</PRE>}
 
 function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord): LongWord;
+  Length: Cardinal): TCnLongWord32;
 
 function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord): Int64;
+  Length: Cardinal): Int64;
 
 {* Hash-based Message Authentication Code (based on CRC32/CRC64) }
 
@@ -231,7 +231,7 @@ type
   TCRC16Table = array[0..255] of Word;
 
   // CRC32 表
-  TCRC32Table = array[0..255] of LongWord;
+  TCRC32Table = array[0..255] of TCnLongWord32;
 
   // CRC64 表
   TCRC64Table = array[0..255] of Int64;
@@ -384,7 +384,7 @@ begin
 end;
 
 // 计算 CRC8 值
-function DoCRC8Calc(const OrgCRC8: Byte; const Data; Len: LongWord): Byte;
+function DoCRC8Calc(const OrgCRC8: Byte; const Data; Len: Cardinal): Byte;
 var
   P: PByte;
 begin
@@ -403,7 +403,7 @@ begin
 end;
 
 // 计算 CRC8 值
-function CRC8Calc(const OrgCRC8: Byte; const Data; Len: LongWord): Byte;
+function CRC8Calc(const OrgCRC8: Byte; const Data; Len: Cardinal): Byte;
 begin
   Result := DoCRC8Calc(OrgCRC8, Data, Len); // CRC8 初始值为 0，无需求反
 end;
@@ -508,7 +508,7 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, LongWord(ReadCount), nil);
+      ReadFile(Handle, Buff, ReadCount, TCnLongWord32(ReadCount), nil);
       CRC := DoCrc8Calc(CRC, Buff, ReadCount);
       Dec(Count, ReadCount);
     end;
@@ -536,7 +536,7 @@ begin
 end;
 
 // 计算 CRC16 值
-function DoCRC16Calc(const OrgCRC16: Word; const Data; Len: LongWord): Word;
+function DoCRC16Calc(const OrgCRC16: Word; const Data; Len: Cardinal): Word;
 var
   P: PByte;
 begin
@@ -557,7 +557,7 @@ begin
 end;
 
 // 计算 CRC16 值
-function CRC16Calc(const OrgCRC16: Word; const Data; Len: LongWord): Word;
+function CRC16Calc(const OrgCRC16: Word; const Data; Len: Cardinal): Word;
 begin
   Result := not OrgCRC16;   // 该 CRC16 初始值为 FFFF
   Result := DoCRC16Calc(Result, Data, Len);
@@ -663,7 +663,7 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, LongWord(ReadCount), nil);
+      ReadFile(Handle, Buff, ReadCount, TCnLongWord32(ReadCount), nil);
       CRC := DoCrc16Calc(CRC, Buff, ReadCount);
       Dec(Count, ReadCount);
     end;
@@ -685,13 +685,13 @@ end;
 // CRC32 系列函数
 //------------------------------------------------------------------------------
 
-function CalcCRC32Byte(OrgCRC32: LongWord; B: Byte): LongWord;
+function CalcCRC32Byte(OrgCRC32: TCnLongWord32; B: Byte): TCnLongWord32;
 begin
   Result := ((OrgCRC32 shr 8) and $FFFFFF) xor CRC32Table[(OrgCRC32 and $FF) xor B];
 end;
 
 // 计算 CRC32 值
-function DoCRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWord;
+function DoCRC32Calc(const OrgCRC32: TCnLongWord32; const Data; Len: Cardinal): TCnLongWord32;
 var
   P: PByte;
 begin
@@ -710,7 +710,7 @@ begin
 end;
 
 // 计算 CRC32 值
-function CRC32Calc(const OrgCRC32: LongWord; const Data; Len: LongWord): LongWord;
+function CRC32Calc(const OrgCRC32: TCnLongWord32; const Data; Len: Cardinal): TCnLongWord32;
 begin
   Result := not OrgCRC32;   // 该 CRC32 算法起始值 FFFFFFFF
   Result := DoCRC32Calc(Result, Data, Len);
@@ -718,25 +718,25 @@ begin
 end;
 
 // 计算字符串的 CRC32 值
-function StrCRC32(const OrgCRC32: LongWord; const Text: string): LongWord;
+function StrCRC32(const OrgCRC32: TCnLongWord32; const Text: string): TCnLongWord32;
 begin
   Result := CRC32Calc(OrgCRC32, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的 CRC32 值
-function StrCRC32A(const OrgCRC32: LongWord; const Text: AnsiString): LongWord;
+function StrCRC32A(const OrgCRC32: TCnLongWord32; const Text: AnsiString): TCnLongWord32;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
 
 // 计算 TBytes 的 CRC32 值
-function BytesCRC32(const OrgCRC32: LongWord; Data: TBytes): LongWord;
+function BytesCRC32(const OrgCRC32: TCnLongWord32; Data: TBytes): TCnLongWord32;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
 end;
 
 function InternalCRC32Stream(Stream: TStream; const BufSize: Cardinal;
-  var CRC: LongWord): Boolean;
+  var CRC: TCnLongWord32): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
@@ -777,7 +777,7 @@ begin
 end;
 
 // 计算文件 CRC 值，参数分别为：文件名、CRC 值、起始地址、计算长度
-function FileCRC32(const FileName: string; var CRC: LongWord; StartPos: Int64 = 0;
+function FileCRC32(const FileName: string; var CRC: TCnLongWord32; StartPos: Int64 = 0;
   Len: Int64 = 0): Boolean;
 var
 {$IFDEF MSWINDOWS}
@@ -817,7 +817,7 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, LongWord(ReadCount), nil);
+      ReadFile(Handle, Buff, ReadCount, TCnLongWord32(ReadCount), nil);
       CRC := DoCrc32Calc(CRC, Buff, ReadCount);
       Dec(Count, ReadCount);
     end;
@@ -859,7 +859,7 @@ begin
   end;
 end;
 
-function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: LongWord): Int64;
+function DoCRC64Calc(const OrgCRC64: Int64; const Data; Len: Cardinal): Int64;
 var
   I: Integer;
   P: PByte;
@@ -878,7 +878,7 @@ begin
 end;
 
 // 计算 CRC64 值
-function CRC64Calc(const OrgCRC64: Int64; const Data; Len: LongWord): Int64;
+function CRC64Calc(const OrgCRC64: Int64; const Data; Len: Cardinal): Int64;
 begin
   Result := not OrgCRC64;   // 该 CRC64 算法起始值 FFFFFFFFFFFFFFFF
   Result := DoCRC64Calc(Result, Data, Len);
@@ -898,7 +898,7 @@ begin
 end;
 
 // 计算 TBytes 的 CRC64 值
-function BytesCRC64(const OrgCRC64: LongWord; Data: TBytes): LongWord;
+function BytesCRC64(const OrgCRC64: TCnLongWord32; Data: TBytes): TCnLongWord32;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -985,7 +985,7 @@ begin
         ReadCount := SizeOf(Buff)
       else
         ReadCount := Count;
-      ReadFile(Handle, Buff, ReadCount, LongWord(ReadCount), nil);
+      ReadFile(Handle, Buff, ReadCount, TCnLongWord32(ReadCount), nil);
       CRC := DoCrc64Calc(CRC, Buff, ReadCount);
       Dec(Count, ReadCount);
     end;
@@ -1005,11 +1005,11 @@ begin
 end;
 
 function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord): LongWord;
+  Length: Cardinal): TCnLongWord32;
 var
   I: Integer;
   Ipad, Opad: array[0..3] of Byte;
-  Sum, Res: LongWord;
+  Sum, Res: TCnLongWord32;
 begin
   if KeyLength > HMAC_CRC32_BLOCK_SIZE_BYTE then
   begin
@@ -1039,7 +1039,7 @@ begin
 end;
 
 function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord): Int64;
+  Length: Cardinal): Int64;
 var
   I: Integer;
   Ipad, Opad: array[0..7] of Byte;
