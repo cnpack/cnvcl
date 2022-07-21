@@ -621,21 +621,19 @@ begin
     '41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D',
     '69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25');
 
-  if SM9RatePairing(F, Pubs, nil) then
-  begin
-    mmoRate.Lines.Clear;
-    mmoRate.Lines.Add('R-ate:');
-    mmoRate.Lines.Add(F.ToString);
-  end;
+  SM9RatePairing(F, Pubs, nil);
+
+  mmoRate.Lines.Clear;
+  mmoRate.Lines.Add('R-ate:');
+  mmoRate.Lines.Add(F.ToString);
 
   E := TCnBigNumber.FromHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
 
-  if FP12Power(F, F, E, FP) then
-  begin
-    mmoRate.Lines.Add('');
-    mmoRate.Lines.Add('Power:');
-    mmoRate.Lines.Add(F.ToString);
-  end;
+  FP12Power(F, F, E, FP);
+
+  mmoRate.Lines.Add('');
+  mmoRate.Lines.Add('Power:');
+  mmoRate.Lines.Add(F.ToString);
 
   E.Free;
   Pubs.Free;
