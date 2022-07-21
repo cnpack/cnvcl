@@ -306,6 +306,7 @@ type
     btnChaCha20Block: TButton;
     edtChaCha20Key: TEdit;
     btnChaCha20Data: TButton;
+    rbSm4Ctr: TRadioButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -832,7 +833,7 @@ begin
       SM4EncryptEcbStr(edtSm4Key.Text, S, @(Output[1]))
     end;
   end
-  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked then
+  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
   begin
     IvStr := FromHex(edtSM4Iv.Text);
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
@@ -863,7 +864,9 @@ begin
       else if rbSm4Cfb.Checked then
         ResBytes := SM4EncryptCfbBytes(KeyBytes, IvBytes, DataBytes)
       else if rbSm4Ofb.Checked then
-        ResBytes := SM4EncryptOfbBytes(KeyBytes, IvBytes, DataBytes);
+        ResBytes := SM4EncryptOfbBytes(KeyBytes, IvBytes, DataBytes)
+      else if rbSm4Ctr.Checked then
+        ResBytes := SM4EncryptCtrBytes(KeyBytes, IvBytes, DataBytes);
 
       edtSm4Code.Text := BytesToHex(ResBytes);
       Exit;
@@ -875,16 +878,14 @@ begin
         SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])),
           StrAddPKCS7Padding(edtSm4.Text, SM4_BLOCKSIZE), @(Output[1]))
       else
-        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
+        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
     end
     else if rbSm4Cfb.Checked then
-    begin
       SM4EncryptCfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
-    end
     else if rbSm4Ofb.Checked then
-    begin
       SM4EncryptOfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
-    end
+    else if rbSm4Ctr.Checked then
+      SM4EncryptCtrStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
   end;
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
@@ -929,7 +930,7 @@ begin
         Output := StrRemovePKCS7Padding(Output);
     end;
   end
-  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked then
+  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
   begin
     IvStr := FromHex(edtSM4Iv.Text);
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
@@ -951,7 +952,9 @@ begin
       else if rbSm4Cfb.Checked then
         ResBytes := SM4DecryptCfbBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text))
       else if rbSm4Ofb.Checked then
-        ResBytes := SM4DecryptOfbBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text));
+        ResBytes := SM4DecryptOfbBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text))
+      else if rbSm4Ctr.Checked then
+        ResBytes := SM4DecryptCtrBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text));
 
       if rbSm4Cbc.Checked then
       begin
@@ -974,7 +977,9 @@ begin
       else if rbSm4Cfb.Checked then
         SM4DecryptCfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
       else if rbSm4Ofb.Checked then
-        SM4DecryptOfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
+        SM4DecryptOfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
+      else if rbSm4Ctr.Checked then
+        SM4DecryptCtrStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
     end;
   end;
   edtSm4Dec.Text := Output;

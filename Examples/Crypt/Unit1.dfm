@@ -1043,6 +1043,14 @@ object FormCrypt: TFormCrypt
           Caption = 'OFB'
           TabOrder = 8
         end
+        object rbSm4Ctr: TRadioButton
+          Left = 288
+          Top = 140
+          Width = 57
+          Height = 17
+          Caption = 'CTR'
+          TabOrder = 13
+        end
       end
     end
     object tsAES: TTabSheet
