@@ -135,6 +135,8 @@ type
   TShortInts = array of ShortInt;
   {* 有符号字节数组}
 
+  PCnByte = ^Byte; // 不引用 Windows 中的 PByte
+
 const
   MAX_SQRT_INT64: Cardinal               = 3037000499;
   MAX_UINT16: Word                       = $FFFF;
@@ -370,9 +372,6 @@ implementation
 
 uses
   CnFloatConvert;
-
-type
-  PCnByte = ^Byte; // 不引用 Windows 中的 PByte
 
 function CurrentByteOrderIsBigEndian: Boolean;
 type
