@@ -127,6 +127,10 @@ type
 {$ENDIF}
   PCnLongWord32 = ^TCnLongWord32;
 
+  TCnLongWord32Array = array [0..MaxInt div SizeOf(Integer) - 1] of TCnLongWord32;
+
+  PCnLongWord32Array = ^TCnLongWord32Array;
+
 {$IFNDEF TBYTES_DEFINED}
   TBytes = array of Byte;
   {* 无符号字节数组，未定义时定义上}
@@ -136,6 +140,9 @@ type
   {* 有符号字节数组}
 
   PCnByte = ^Byte; // 不引用 Windows 中的 PByte
+
+  TCnBitOperation = (boAnd, boOr, boXor, boNot);
+  {* 位操作类型}
 
 const
   MAX_SQRT_INT64: Cardinal               = 3037000499;
@@ -314,6 +321,18 @@ function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
 {* 按字节顺序倒置一块内存块}
 
+procedure MemoryAnd(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+{* 两块长度相同的内存 AMem 和 BMem 按位与，结果放 ResMem 中，三者可相同}
+
+procedure MemoryOr(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+{* 两块长度相同的内存 AMem 和 BMem 按位或，结果放 ResMem 中，三者可相同}
+
+procedure MemoryXor(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+{* 两块长度相同的内存 AMem 和 BMem 按位异或，结果放 ResMem 中，三者可相同}
+
+procedure MemoryNot(AMem: Pointer; MemLen: Integer; ResMem: Pointer);
+{* 一块内存 AMem 取反，结果放 ResMem 中，两者可相同}
+
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
 {* 内存块转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
 
@@ -476,6 +495,100 @@ begin
     P^[I] := P^[MemLen - I - 1];
     P^[MemLen - I - 1] := T;
   end;
+end;
+
+procedure MemoryBitOperation(AMem, BMem, RMem: Pointer; N: Integer; Op: TCnBitOperation);
+var
+  A, B, R: PCnLongWord32Array;
+begin
+  if N <= 0 then
+    Exit;
+
+  if (AMem = nil) or ((BMem = nil) and (Op <> boNot)) or (RMem = nil) then
+    Exit;
+
+  A := PCnLongWord32Array(AMem);
+  B := PCnLongWord32Array(BMem);
+  R := PCnLongWord32Array(RMem);
+
+  while (N and (not 3)) <> 0 do
+  begin
+    case Op of
+      boAnd:
+        begin
+          R^[0] := A^[0] and B^[0];
+          R^[1] := A^[1] and B^[1];
+          R^[2] := A^[2] and B^[2];
+          R^[3] := A^[3] and B^[3];
+        end;
+      boOr:
+        begin
+          R^[0] := A^[0] or B^[0];
+          R^[1] := A^[1] or B^[1];
+          R^[2] := A^[2] or B^[2];
+          R^[3] := A^[3] or B^[3];
+        end;
+      boXor:
+        begin
+          R^[0] := A^[0] xor B^[0];
+          R^[1] := A^[1] xor B^[1];
+          R^[2] := A^[2] xor B^[2];
+          R^[3] := A^[3] xor B^[3];
+        end;
+      boNot: // 求反时忽略 B
+        begin
+          R^[0] := not A^[0];
+          R^[1] := not A^[1];
+          R^[2] := not A^[2];
+          R^[3] := not A^[3];
+        end;
+    end;
+
+    A := PCnLongWord32Array(TCnNativeInt(A) + 4 * SizeOf(TCnLongWord32));
+    B := PCnLongWord32Array(TCnNativeInt(B) + 4 * SizeOf(TCnLongWord32));
+    R := PCnLongWord32Array(TCnNativeInt(R) + 4 * SizeOf(TCnLongWord32));
+
+    Dec(N, 4);
+  end;
+
+  while N <> 0 do
+  begin
+    case Op of
+      boAnd:
+        R^[0] := A^[0] and B^[0];
+      boOr:
+        R^[0] := A^[0] or B^[0];
+      boXor:
+        R^[0] := A^[0] xor B^[0];
+      boNot:
+        R^[0] := not A^[0];
+    end;
+
+    A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(TCnLongWord32));
+    B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(TCnLongWord32));
+    R := PCnLongWord32Array(TCnNativeInt(R) + SizeOf(TCnLongWord32));
+    Dec(N);
+  end;
+end;
+
+procedure MemoryAnd(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+begin
+  MemoryBitOperation(AMem, BMem, ResMem, MemLen, boAnd);
+end;
+
+procedure MemoryOr(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+begin
+  MemoryBitOperation(AMem, BMem, ResMem, MemLen, boOr);
+end;
+
+procedure MemoryXor(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+begin
+  MemoryBitOperation(AMem, BMem, ResMem, MemLen, boXor);
+end;
+
+procedure MemoryNot(AMem: Pointer; MemLen: Integer; ResMem: Pointer);
+begin
+  MemoryBitOperation(AMem, nil, ResMem, MemLen, boNot);
 end;
 
 const

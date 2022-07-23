@@ -2200,9 +2200,6 @@ begin
   C := TCnLongWord32(T shr BN_BITS2) and BN_MASK2;
 end;
 
-type
-  TCnBitOperation = (boAnd, boOr, boXor);
-
 // N 个 TCnLongWord32 长的数组内容进行位运算，如果 BP 为 nil，表示不够长，作为 0 处理
 procedure BigNumberBitOperation(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray;
   N: Integer; Op: TCnBitOperation);
