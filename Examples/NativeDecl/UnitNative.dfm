@@ -1,12 +1,12 @@
 object FormNative: TFormNative
   Left = 236
-  Top = 153
+  Top = 133
   BorderStyle = bsDialog
   Caption = 
     'Test some Native Declarations and Methods - Run on D567 and can ' +
     'be verified in BDS.'
-  ClientHeight = 477
-  ClientWidth = 747
+  ClientHeight = 596
+  ClientWidth = 954
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -84,8 +84,8 @@ object FormNative: TFormNative
   object mmoRes: TMemo
     Left = 16
     Top = 104
-    Width = 639
-    Height = 354
+    Width = 846
+    Height = 473
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -209,65 +209,82 @@ object FormNative: TFormNative
     OnClick = btnInt64AddModClick
   end
   object btnEndian: TButton
-    Left = 664
+    Left = 871
     Top = 104
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'Endian'
     TabOrder = 16
     OnClick = btnEndianClick
   end
   object chkSwap: TCheckBox
-    Left = 672
+    Left = 879
     Top = 144
     Width = 65
     Height = 17
+    Anchors = [akTop, akRight]
     Caption = 'Swap'
     TabOrder = 17
   end
   object btnConstTimeCondSwap: TButton
-    Left = 664
+    Left = 871
     Top = 168
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'Const Time'
     TabOrder = 18
     OnClick = btnConstTimeCondSwapClick
   end
   object btnInt64DivMod: TButton
-    Left = 664
+    Left = 871
     Top = 208
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'Int64 Div Mod'
     TabOrder = 19
     OnClick = btnInt64DivModClick
   end
   object btnUInt64DivMod: TButton
-    Left = 664
+    Left = 871
     Top = 248
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'UInt64 Div Mod'
     TabOrder = 20
     OnClick = btnUInt64DivModClick
   end
   object btnInt128DivMod: TButton
-    Left = 664
+    Left = 871
     Top = 288
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'Int128 Div Mod'
     TabOrder = 21
     OnClick = btnInt128DivModClick
   end
   object btnUInt128DivMod: TButton
-    Left = 664
+    Left = 871
     Top = 328
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'UInt128 Div Mod'
     TabOrder = 22
     OnClick = btnUInt128DivModClick
+  end
+  object btnToBinTest: TButton
+    Left = 871
+    Top = 368
+    Width = 75
+    Height = 25
+    Anchors = [akTop, akRight]
+    Caption = 'To Binary Str'
+    TabOrder = 23
+    OnClick = btnToBinTestClick
   end
 end

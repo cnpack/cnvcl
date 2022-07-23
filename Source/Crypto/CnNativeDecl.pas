@@ -35,7 +35,9 @@ unit CnNativeDecl;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.06.08 V2.1
+* 修改记录：2022.07.23 V2.2
+*               增加几个内存位运算函数与二进制转换字符串函数，并改名为 CnNative
+*           2022.06.08 V2.1
 *               增加四个时间固定的交换函数以及内存倒排函数
 *           2022.03.14 V2.0
 *               增加几个十六进制转换函数
@@ -333,6 +335,27 @@ procedure MemoryXor(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
 procedure MemoryNot(AMem: Pointer; MemLen: Integer; ResMem: Pointer);
 {* 一块内存 AMem 取反，结果放 ResMem 中，两者可相同}
 
+procedure MemoryShiftLeft(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+{* AMem 整块内存左移 BitCount 位至 BMem，往内存地址低位移，空位补 0，两者可相等}
+
+procedure MemoryShiftRight(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+{* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等}
+
+function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean = False): string;
+{* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
+
+function UInt8ToBinStr(V: Byte): string;
+{* 将一字节转换为二进制字符串}
+
+function UInt16ToBinStr(V: Word): string;
+{* 将一字转换为二进制字符串}
+
+function UInt32ToBinStr(V: Cardinal): string;
+{* 将一四字节整数转换为二进制字符串}
+
+function UInt64ToBinStr(V: TUInt64): string;
+{* 将一无符号 64 字节整数转换为二进制字符串}
+
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
 {* 内存块转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
 
@@ -589,6 +612,243 @@ end;
 procedure MemoryNot(AMem: Pointer; MemLen: Integer; ResMem: Pointer);
 begin
   MemoryBitOperation(AMem, nil, ResMem, MemLen, boNot);
+end;
+
+procedure MemoryShiftLeft(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+var
+  I, L, N, LB, RB: Integer;
+  PF, PT: PByteArray;
+begin
+  if (AMem = nil) or (MemLen <= 0) or (BitCount = 0) then
+    Exit;
+
+  if BitCount < 0 then
+  begin
+    MemoryShiftRight(AMem, BMem, MemLen, -BitCount);
+    Exit;
+  end;
+
+  if BMem = nil then
+    BMem := AMem;
+
+  if (MemLen * 8) <= BitCount then // 移太多不够，全 0
+  begin
+    FillChar(BMem^, MemLen, 0);
+    Exit;
+  end;
+
+  N := BitCount div 8;  // 移位超过的整字节数
+  RB := BitCount mod 8; // 去除整字节后剩下的位数
+  LB := 8 - RB;         // 上面剩下的位数在一字节内再剩下的位数
+
+  PF := PByteArray(AMem);
+  PT := PByteArray(BMem);
+
+  if RB = 0 then // 整块，好办，要移位的字节数是 MemLen - NW
+  begin
+    Move(PF^[N], PT^[0], MemLen - N);
+    FillChar(PT^[MemLen - N], N, 0);
+  end
+  else
+  begin
+    // 起点是 PF^[N] 和 PT^[0]，长度 MemLen - N 个字节，但相邻字节间有交叉
+    L := MemLen - N;
+    PF := PByteArray(TCnNativeInt(PF) + N);
+
+    for I := 1 to L do // 从低位往低移动，先处理低的
+    begin
+      PT^[0] := Byte(PF^[0] shl RB);
+      if I < L then    // 最高一个字节 PF^[1] 会超界
+        PT^[0] := (PF^[1] shr LB) or PT^[0];
+
+      PF := PByteArray(TCnNativeInt(PF) + 1);
+      PT := PByteArray(TCnNativeInt(PT) + 1);
+    end;
+
+    // 剩下的要填 0
+    if N > 0 then
+      FillChar(PT^[0], N, 0);
+  end;
+end;
+
+procedure MemoryShiftRight(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+var
+  I, L, N, LB, RB: Integer;
+  PF, PT: PByteArray;
+begin
+  if (AMem = nil) or (MemLen <= 0) or (BitCount = 0) then
+    Exit;
+
+  if BitCount < 0 then
+  begin
+    MemoryShiftLeft(AMem, BMem, MemLen, -BitCount);
+    Exit;
+  end;
+
+  if BMem = nil then
+    BMem := AMem;
+
+  if (MemLen * 8) <= BitCount then // 移太多不够，全 0
+  begin
+    FillChar(BMem^, MemLen, 0);
+    Exit;
+  end;
+
+  N := BitCount div 8;  // 移位超过的整字节数
+  RB := BitCount mod 8; // 去除整字节后剩下的位数
+  LB := 8 - RB;         // 上面剩下的位数在一字节内再剩下的位数
+
+  if RB = 0 then // 整块，好办，要移位的字节数是 MemLen - N
+  begin
+    PF := PByteArray(AMem);
+    PT := PByteArray(BMem);
+
+    Move(PF^[0], PT^[N], MemLen - N);
+    FillChar(PT^[0], N, 0);
+  end
+  else
+  begin
+    // 起点是 PF^[0] 和 PT^[N]，长度 MemLen - N 个字节，但得从高处开始，且相邻字节间有交叉
+    L := MemLen - N;
+
+    PF := PByteArray(TCnNativeInt(AMem) + L - 1);
+    PT := PByteArray(TCnNativeInt(BMem) + MemLen - 1);
+
+    for I := L downto 1 do // 从高位往高位移动，先处理后面的
+    begin
+      PT^[0] := Byte(PF^[0] shr RB);
+      if I > 1 then        // 最低一个字节 PF^[-1] 会超界
+      begin
+        PF := PByteArray(TCnNativeInt(PF) - 1);
+        PT^[0] := (PF^[0] shl LB) or PT^[0];
+      end
+      else
+        PF := PByteArray(TCnNativeInt(PF) - 1);
+
+      PT := PByteArray(TCnNativeInt(PT) - 1);
+    end;
+
+    // 剩下的最前面的要填 0
+    if N > 0 then
+      FillChar(BMem^, N, 0);
+  end;
+end;
+
+function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean): string;
+var
+  J, L: Integer;
+  P: PByteArray;
+  B: PChar;
+
+  procedure FillAByteToBuf(V: Byte; Buf: PChar);
+  const
+    M = $80;
+  var
+    I: Integer;
+  begin
+    for I := 0 to 7 do
+    begin
+      if (V and M) <> 0 then
+        Buf[I] := '1'
+      else
+        Buf[I] := '0';
+      V := V shl 1;
+    end;
+  end;
+
+begin
+  Result := '';
+  if (AMem = nil) or (MemLen <= 0) then
+    Exit;
+
+  L := MemLen * 8;
+  if Sep then
+    L := L + MemLen - 1; // 中间用空格分隔
+
+  SetLength(Result, L);
+  B := PChar(@Result[1]);
+  P := PByteArray(AMem);
+
+  for J := 0 to MemLen - 1 do
+  begin
+    FillAByteToBuf(P^[J], B);
+    if Sep then
+    begin
+      B[8] := ' ';
+      Inc(B, 9);
+    end
+    else
+      Inc(B, 8);
+  end;
+end;
+
+function UInt8ToBinStr(V: Byte): string;
+const
+  M = $80;
+var
+  I: Integer;
+begin
+  SetLength(Result, 8 * SizeOf(V));
+  for I := 1 to 8 * SizeOf(V) do
+  begin
+    if (V and M) <> 0 then
+      Result[I] := '1'
+    else
+      Result[I] := '0';
+    V := V shl 1;
+  end;
+end;
+
+function UInt16ToBinStr(V: Word): string;
+const
+  M = $8000;
+var
+  I: Integer;
+begin
+  SetLength(Result, 8 * SizeOf(V));
+  for I := 1 to 8 * SizeOf(V) do
+  begin
+    if (V and M) <> 0 then
+      Result[I] := '1'
+    else
+      Result[I] := '0';
+    V := V shl 1;
+  end;
+end;
+
+function UInt32ToBinStr(V: Cardinal): string;
+const
+  M = $80000000;
+var
+  I: Integer;
+begin
+  SetLength(Result, 8 * SizeOf(V));
+  for I := 1 to 8 * SizeOf(V) do
+  begin
+    if (V and M) <> 0 then
+      Result[I] := '1'
+    else
+      Result[I] := '0';
+    V := V shl 1;
+  end;
+end;
+
+function UInt64ToBinStr(V: TUInt64): string;
+const
+  M = $8000000000000000;
+var
+  I: Integer;
+begin
+  SetLength(Result, 8 * SizeOf(V));
+
+  for I := 1 to 8 * SizeOf(V) do
+  begin
+    if (V and M) <> 0 then
+      Result[I] := '1'
+    else
+      Result[I] := '0';
+    V := V shl 1;
+  end;
 end;
 
 const

@@ -39,6 +39,7 @@ type
     btnUInt64DivMod: TButton;
     btnInt128DivMod: TButton;
     btnUInt128DivMod: TButton;
+    btnToBinTest: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -60,10 +61,11 @@ type
     procedure btnUInt64DivModClick(Sender: TObject);
     procedure btnInt128DivModClick(Sender: TObject);
     procedure btnUInt128DivModClick(Sender: TObject);
+    procedure btnToBinTestClick(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
 var
@@ -425,6 +427,39 @@ begin
 
   mmoRes.Lines.Add(IntToStr(H)+IntToStr(L) + ' / ' + IntToStr(B) + ' = ' + IntToStr(D) + ' ... ' + IntToStr(R));
 {$ENDIF}
+end;
+
+procedure TFormNative.btnToBinTestClick(Sender: TObject);
+var
+  V1: Byte;
+  V2: Word;
+  V3: Cardinal;
+  V4: TUInt64;
+  V5: array[0..1] of TUInt64;
+begin
+  V1 := 56;
+  V2 := 65531;
+  V3 := 987654456;
+  V4 := 3409732345677742456;
+  V5[0] := $FFEEDDCC000000FF;
+  V5[1] := $1100000099887766;
+
+  mmoRes.Lines.Add(UInt8ToBinStr(V1));
+  mmoRes.Lines.Add(UInt16ToBinStr(V2));
+  mmoRes.Lines.Add(UInt32ToBinStr(V3));
+  mmoRes.Lines.Add(UInt64ToBinStr(V4));
+  mmoRes.Lines.Add('');
+  mmoRes.Lines.Add(MemoryToBinStr(@(V5[0]), SizeOf(V5), True));
+
+  MemoryShiftLeft(@(V5[0]), nil, SizeOf(V5), 15);
+  mmoRes.Lines.Add(MemoryToBinStr(@(V5[0]), SizeOf(V5), True));
+
+  V5[0] := $FFEEDDCC000000FF;
+  V5[1] := $1100000099887766;
+  mmoRes.Lines.Add('');
+  mmoRes.Lines.Add(MemoryToBinStr(@(V5[0]), SizeOf(V5), True));
+  MemoryShiftRight(@(V5[0]), nil, SizeOf(V5), 9);
+  mmoRes.Lines.Add(MemoryToBinStr(@(V5[0]), SizeOf(V5), True));
 end;
 
 end.
