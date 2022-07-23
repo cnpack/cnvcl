@@ -46,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl, CnMD5, CnSHA1, CnSHA2, CnSM3;
+  SysUtils, Classes, CnNative, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);

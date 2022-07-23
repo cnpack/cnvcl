@@ -41,7 +41,7 @@
         <HasResources Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnNative.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>

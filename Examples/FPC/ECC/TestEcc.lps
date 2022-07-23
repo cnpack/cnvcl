@@ -114,7 +114,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnNative.pas"/>
         <EditorIndex Value="15"/>
         <TopLine Value="1014"/>
         <CursorPos X="13" Y="1026"/>

@@ -8,7 +8,7 @@ interface
 
 uses
   LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, CnFloatConvert, CnNativeDecl, StdCtrls;
+  Dialogs, CnFloatConvert, CnNative, StdCtrls;
 
 type
   TFormFloat = class(TForm)

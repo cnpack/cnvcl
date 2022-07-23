@@ -46,7 +46,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl;
+  SysUtils, Classes, CnNative;
 
 const
   DES_KEYSIZE = 8;

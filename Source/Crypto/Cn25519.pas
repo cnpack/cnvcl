@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl, CnBigNumber, CnInt128, CnECC, CnSHA2;
+  Classes, SysUtils, CnNative, CnBigNumber, CnInt128, CnECC, CnSHA2;
 
 const
   CN_25519_BLOCK_BYTESIZE = 32;

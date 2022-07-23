@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, CnNativeDecl;
+  SysUtils, Classes, SysConst, CnNative;
 
 type
   TCnInt128 = packed record   // 128 位有符号整数结构

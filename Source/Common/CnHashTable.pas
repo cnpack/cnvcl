@@ -155,7 +155,7 @@ type
 implementation
 
 uses
-  CnNativeDecl;
+  CnNative;
 
 type
   QWORD = array[0..1] of LongWord;

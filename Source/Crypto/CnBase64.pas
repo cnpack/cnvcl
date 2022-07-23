@@ -59,7 +59,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl, CnConsts;
+  SysUtils, Classes, CnNative, CnConsts;
 
 function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
 {* 对流进行 Base64 编码，如编码成功返回 BASE64_OK

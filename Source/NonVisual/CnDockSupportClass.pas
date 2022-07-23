@@ -47,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, Messages, Controls, Forms, CnNativeDecl;
+  Classes, Windows, SysUtils, Messages, Controls, Forms, CnNative;
 
 type
 

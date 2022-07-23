@@ -9,7 +9,7 @@ interface
 
 uses
   CnAES, CnBase64, CnBerUtils, CnBigNumber, CnCertificateAuthority, CnComplex, 
-  CnCRC32, CnDES, CnDFT, CnECC, CnFEC, CnKDF, CnMD5, CnNativeDecl, CnOTP, 
+  CnCRC32, CnDES, CnDFT, CnECC, CnFEC, CnKDF, CnMD5, CnNative, CnOTP, 
   CnPemUtils, CnPolynomial, CnPrimeNumber, CnRandom, CnRSA, CnSHA1, CnSHA2, 
   CnSHA3, CnSM2, CnSM3, CnSM4, CnSM9, CnTEA, CnZUC, CnLinkedList, 
   CnBigDecimal, CnBigRational, CnBloomFilter, CnCalClass, CnCalendar, 

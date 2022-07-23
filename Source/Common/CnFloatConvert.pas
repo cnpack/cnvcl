@@ -70,7 +70,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNativeDecl;
+  SysUtils, Classes, SysConst, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative;
 
 {
   IEEE 754 规定的三种浮点格式，有效数在低位 0：

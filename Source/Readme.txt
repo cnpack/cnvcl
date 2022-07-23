@@ -228,7 +228,7 @@ cnpack\Source 目录内容说明：
   CnMD5.pas
     MD5 算法单元
 
-  CnNativeDecl.pas
+  CnNative.pas
     Win32/64 的部分通用声明单元
 
   CnOTP.pas

@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnNativeDecl, ExtCtrls, Buttons;
+  StdCtrls, CnNative, ExtCtrls, Buttons;
 
 type
   TFormNative = class(TForm)

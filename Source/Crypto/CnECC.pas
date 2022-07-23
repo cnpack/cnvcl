@@ -76,7 +76,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
-  CnNativeDecl, CnPrimeNumber, CnBigNumber, CnMatrix,
+  CnNative, CnPrimeNumber, CnBigNumber, CnMatrix,
   CnPolynomial, CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const

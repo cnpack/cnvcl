@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNativeDecl, CnPrimeNumber,
+  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrimeNumber,
   ImgList, Buttons, CnCommon, CnPemUtils, FMX.ComboEdit, FMX.Edit, FMX.ImgList, FMX.Memo, FMX.TabControl, FMX.Types,
   System.ImageList, FMX.ScrollBox, FMX.Controls.Presentation;
 

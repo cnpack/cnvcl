@@ -68,8 +68,8 @@
         <UnitName Value="CnMD5"/>
       </Item13>
       <Item14>
-        <Filename Value="../../Source/Crypto/CnNativeDecl.pas"/>
-        <UnitName Value="CnNativeDecl"/>
+        <Filename Value="../../Source/Crypto/CnNative.pas"/>
+        <UnitName Value="CnNative"/>
       </Item14>
       <Item15>
         <Filename Value="../../Source/Crypto/CnOTP.pas"/>

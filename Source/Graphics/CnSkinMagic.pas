@@ -40,7 +40,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  CnNativeDecl, CnClasses, CnConsts, CnCompConsts, CnGraphConsts;
+  CnNative, CnClasses, CnConsts, CnCompConsts, CnGraphConsts;
 
 type
 

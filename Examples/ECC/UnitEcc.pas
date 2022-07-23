@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils, CnPolynomial;
+  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNative, CnCommon, CnPemUtils, CnPolynomial;
 
 type
   TFormEcc = class(TForm)

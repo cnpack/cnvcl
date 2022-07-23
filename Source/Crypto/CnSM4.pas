@@ -57,7 +57,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl;
+  Classes, SysUtils, CnNative;
 
 const
   SM4_KEYSIZE = 16;

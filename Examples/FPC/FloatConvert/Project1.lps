@@ -24,7 +24,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\backup\CnNativeDecl.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\backup\CnNative.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="49"/>
         <CursorPos X="12" Y="373"/>
@@ -40,7 +40,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnNative.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <WindowIndex Value="-1"/>

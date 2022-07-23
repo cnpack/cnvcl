@@ -4,7 +4,7 @@ uses
   Forms,
   fMainUnit in 'fMainUnit.pas' {Form3},
   CnHashTable in '..\..\Source\Common\CnHashTable.pas',
-  CnNativeDecl in '..\..\Source\Crypto\CnNativeDecl.pas';
+  CnNative in '..\..\Source\Crypto\CnNative.pas';
 
 {$R *.res}
 

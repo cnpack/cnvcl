@@ -53,7 +53,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, TypInfo, CnNativeDecl, CnBigNumber, CnTree
+  SysUtils, Classes, TypInfo, CnNative, CnBigNumber, CnTree
   {$IFDEF DEBUG}
     {$IFDEF MSWINDOWS}, ComCtrls  {$ENDIF}
     {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}

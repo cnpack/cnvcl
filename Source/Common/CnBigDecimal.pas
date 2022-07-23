@@ -47,7 +47,7 @@ interface
 
 uses
   SysUtils, Classes, SysConst,
-  CnNativeDecl, CnFloatConvert, CnContainers, CnBigRational, CnBigNumber;
+  CnNative, CnFloatConvert, CnContainers, CnBigRational, CnBigNumber;
 
 const
   CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;         // 大浮点数乘除法的小数点后的默认精度

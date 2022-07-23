@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, Classes, CnNativeDecl;
+  SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, Classes, CnNative;
 
 type
   ECnRandomAPIError = class(Exception);

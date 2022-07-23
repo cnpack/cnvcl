@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, Buttons, ExtCtrls, CnNativeDecl, CnBigNumber;
+  StdCtrls, ComCtrls, Buttons, ExtCtrls, CnNative, CnBigNumber;
 
 type
   TFormPrime = class(TForm)

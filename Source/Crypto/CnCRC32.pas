@@ -52,7 +52,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  SysUtils, Classes, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 //------------------------------------------------------------------------------
 // CRC8 系列函数（CCITT），初始值 00，结果异或值 00，多项式为 x8+x2+x+1

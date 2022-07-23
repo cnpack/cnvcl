@@ -76,7 +76,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Math, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF},
+  Classes, SysUtils, Math, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   Contnrs, CnContainers, CnHashMap, CnRandom {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const

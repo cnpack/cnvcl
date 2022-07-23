@@ -5,7 +5,7 @@
     <Version Value="12"/>
     <Units>
       <Unit>
-        <Filename Value="..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <Filename Value="..\..\Source\Crypto\CnNative.pas"/>
         <EditorIndex Value="-1"/>
         <WindowIndex Value="-1"/>
         <TopLine Value="1259"/>

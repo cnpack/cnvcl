@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, CnComplex,
-  StdCtrls, CnDFT, CnNativeDecl, ComCtrls, CnMatrix;
+  StdCtrls, CnDFT, CnNative, ComCtrls, CnMatrix;
 
 type
   TFormDFT = class(TForm)

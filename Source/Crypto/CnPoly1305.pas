@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl, CnBigNumber;
+  Classes, SysUtils, CnNative, CnBigNumber;
 
 const
   POLY1305_KEYSIZE   = 32;       // 输入 32 字节也就是 256 位的 Key

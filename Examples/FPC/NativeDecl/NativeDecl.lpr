@@ -5,7 +5,7 @@ program NativeDecl;
 uses
   Forms, Interfaces,
   UnitNative in 'UnitNative.pas' {FormNative},
-  CnNativeDecl in '..\..\..\Source\Crypto\CnNativeDecl.pas';
+  CnNative in '..\..\..\Source\Crypto\CnNative.pas';
 
 {$R *.res}
 

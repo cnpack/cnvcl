@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl;
+  Classes, SysUtils, CnNative;
 
 const
   CHACHA_STATE_SIZE   = 16;

@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls, FMX.ExtCtrls, CnNativeDecl, CnBigNumber, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
+  FMX.StdCtrls, FMX.ExtCtrls, CnNative, CnBigNumber, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
   FMX.ScrollBox, FMX.Controls.Presentation;
 
 type

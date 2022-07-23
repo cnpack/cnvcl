@@ -63,7 +63,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Math, CnNativeDecl, CnContainers
+  SysUtils, Classes, Math, CnNative, CnContainers
   {$IFDEF MSWINDOWS}, CnClasses {$ENDIF}
   {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
 

@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon, ComCtrls, CnNativeDecl;
+  StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon, ComCtrls, CnNative;
 
 type
   TFormBigNumber = class(TForm)

@@ -45,7 +45,7 @@ interface
 
 uses
   Windows, Classes, SysUtils,
-  CnNativeDecl, CnCommon, CnClasses, CnConsts, CnCompConsts;
+  CnNative, CnCommon, CnClasses, CnConsts, CnCompConsts;
 
 type
   TFileOperation = (foAdded, foRemoved, foModified, foRenamed);

@@ -1174,7 +1174,7 @@ const
       'CnMemProf.pas',
       'CnMethodHook.pas',
       'CnMulticastEvent.pas',
-      'CnNativeDecl.pas',
+      'CnNative.pas',
       'CnOTAUtils.pas',
       'CnObjAuto.pas',
       'CnPack.dcr',

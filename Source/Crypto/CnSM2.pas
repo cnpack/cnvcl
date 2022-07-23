@@ -58,7 +58,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, CnNativeDecl, CnECC, CnBigNumber, CnConsts, CnSM3;
+  SysUtils, Classes, Contnrs, CnNative, CnECC, CnBigNumber, CnConsts, CnSM3;
 
 const
   CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits

@@ -44,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNativeDecl;
+  Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
 
 procedure ZUCGenerateKeyStream(KeyStream: PCnLongWord32; KeyStreamLen: Cardinal);
 

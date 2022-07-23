@@ -49,7 +49,7 @@ interface
 
 uses
   SysUtils, Classes, TypInfo, SyncObjs, {$IFDEF FPC} RTLConsts, {$ELSE}
-  {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} {$ENDIF} CnNativeDecl;
+  {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} {$ENDIF} CnNative;
 
 type
 

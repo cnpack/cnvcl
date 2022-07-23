@@ -44,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows, CnNativeDecl;
+  Classes, SysUtils, Windows, CnNative;
 
 type
   TCnAnsiStrings = class;

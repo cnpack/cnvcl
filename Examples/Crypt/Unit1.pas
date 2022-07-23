@@ -407,7 +407,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnPemUtils, CnNativeDecl;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnPemUtils, CnNative;
 
 {$R *.DFM}
 

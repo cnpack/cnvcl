@@ -65,7 +65,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, WinSock, CnNativeDecl, CnIocpSimpleMemPool;
+  Windows, SysUtils, Classes, WinSock, CnNative, CnIocpSimpleMemPool;
 
 const
   CN_MAX_WSABUF_COUNT = 8;

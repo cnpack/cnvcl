@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, Math, Contnrs, CnPrimeNumber, CnNativeDecl,
+  SysUtils, Classes, SysConst, Math, Contnrs, CnPrimeNumber, CnNative,
   CnMatrix, CnContainers, CnBigNumber, CnBigRational, CnComplex, CnDFT;
 
 type

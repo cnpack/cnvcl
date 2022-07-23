@@ -47,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, ActiveX, ComObj, ShellApi, ShlObj, CnCommon, CnNativeDecl;
+  Windows, Messages, SysUtils, ActiveX, ComObj, ShellApi, ShlObj, CnCommon, CnNative;
 
 type
   TUnicodePath = array[0..MAX_PATH-1] of WideChar;

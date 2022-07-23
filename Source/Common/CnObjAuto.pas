@@ -40,7 +40,7 @@ interface
 {$IFDEF WIN32}
 
 uses
-  TypInfo, CnNativeDecl;
+  TypInfo, CnNative;
 
 {$IFDEF VER130}
   Not Support Delphi 5

@@ -40,7 +40,7 @@ interface
 
 uses
   Windows, Classes, Messages, SysUtils, Forms, ShellAPI, CommCtrl, Graphics,
-  CnNativeDecl;
+  CnNative;
 
 type               
   TCnSysToolBarBtn = class(TPersistent)

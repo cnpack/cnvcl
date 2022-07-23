@@ -40,7 +40,7 @@ interface
 {$IFDEF WIN32}
 
 uses
-  Classes, SysUtils, Tlhelp32, Windows, CnNativeDecl;
+  Classes, SysUtils, Tlhelp32, Windows, CnNative;
 
 type
   TSearchMethodList = (smlSearchMemory, smlSearchFile); //ËÑË÷·½·¨

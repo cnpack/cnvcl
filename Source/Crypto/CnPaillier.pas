@@ -45,7 +45,7 @@ interface
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF},
-  CnConsts, CnNativeDecl, CnBigNumber;
+  CnConsts, CnNative, CnBigNumber;
 
 const
   CN_PAILLIER_DEFAULT_PRIMEBITS = 2048;

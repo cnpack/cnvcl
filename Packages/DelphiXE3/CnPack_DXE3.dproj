@@ -164,7 +164,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnInt128.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnKDF.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnMD5.pas"/>
-        <DCCReference Include="..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnNative.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnOTP.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnPaillier.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnPemUtils.pas"/>

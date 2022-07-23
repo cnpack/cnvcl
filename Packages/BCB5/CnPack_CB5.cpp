@@ -68,7 +68,7 @@ USEUNIT("..\..\Source\Crypto\CnECC.pas");
 USEUNIT("..\..\Source\Crypto\CnFEC.pas");
 USEUNIT("..\..\Source\Crypto\CnKDF.pas");
 USEUNIT("..\..\Source\Crypto\CnMD5.pas");
-USEUNIT("..\..\Source\Crypto\CnNativeDecl.pas");
+USEUNIT("..\..\Source\Crypto\CnNative.pas");
 USEUNIT("..\..\Source\Crypto\CnPemUtils.pas");
 USEUNIT("..\..\Source\Crypto\CnPolynomial.pas");
 USEUNIT("..\..\Source\Crypto\CnPrimeNumber.pas");

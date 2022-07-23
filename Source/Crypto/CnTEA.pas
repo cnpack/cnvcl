@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, CnNativeDecl;
+  SysUtils, CnNative;
 
 const
   CN_TEA_ROUND_COUNT = 32;

@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, ExtCtrls, CnNativeDecl, CnCommon;
+  Classes, Windows, SysUtils, ExtCtrls, CnNative, CnCommon;
 
 const
   RelationCache = 2;

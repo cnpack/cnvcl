@@ -35,7 +35,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnNativeDecl.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnNative.pas"/>
         <EditorIndex Value="8"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>

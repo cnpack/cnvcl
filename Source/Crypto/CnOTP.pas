@@ -100,7 +100,7 @@ type
 implementation
 
 uses
-  CnSM3, CnSM4, CnNativeDecl;
+  CnSM3, CnSM4, CnNative;
 
 resourcestring
   SCnInvalidDataLength = 'Invalid Data or Length';

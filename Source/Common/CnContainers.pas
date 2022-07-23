@@ -298,7 +298,7 @@ procedure CnRefObjectListCopy(Dst, Src: TCnRefObjectList);
 implementation
 
 uses
-  CnNativeDecl;
+  CnNative;
 
 resourcestring
   SCnInt64ListError = 'Int64 List Error. %d';

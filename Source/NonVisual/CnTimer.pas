@@ -54,7 +54,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, Forms, MMSystem, CnClasses, CnConsts, CnCompConsts,
-  CnNativeDecl;
+  CnNative;
 
 type
 

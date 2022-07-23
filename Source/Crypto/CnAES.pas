@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl;
+  Classes, SysUtils, CnNative;
 
 const
   AES_BLOCKSIZE = 16;

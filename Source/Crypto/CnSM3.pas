@@ -44,7 +44,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNativeDecl {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  Classes, SysUtils, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   TSM3Context = packed record

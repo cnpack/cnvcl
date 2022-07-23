@@ -44,7 +44,7 @@ interface
 
 uses
   Classes, SysUtils,
-  CnConsts, CnNativeDecl, CnPrimeNumber, CnContainers, CnPolynomial, CnRandom,
+  CnConsts, CnNative, CnPrimeNumber, CnContainers, CnPolynomial, CnRandom,
   CnBigNumber;
 
 const

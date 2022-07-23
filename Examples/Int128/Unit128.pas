@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, CnInt128, CnNativeDecl;
+  ExtCtrls, StdCtrls, Buttons, CnInt128, CnNative;
 
 type
   TForm128 = class(TForm)
