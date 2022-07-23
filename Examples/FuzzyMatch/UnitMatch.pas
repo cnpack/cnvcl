@@ -1364,7 +1364,7 @@ const
       'CnIocpSocketAdapter.pas',
       'CnModem.pas',
       'CnNetConsts.pas',
-      'CnNetDecls.pas',
+      'CnNetwork.pas',
       'CnNetPropEditor.pas',
       'CnNetRegister.pas',
       'CnPing.pas',

@@ -248,7 +248,7 @@
 			<DCCReference Include="..\..\Source\NetComm\CnIP.pas"/>
 			<DCCReference Include="..\..\Source\NetComm\CnModem.pas"/>
 			<DCCReference Include="..\..\Source\NetComm\CnNetConsts.pas"/>
-			<DCCReference Include="..\..\Source\NetComm\CnNetDecls.pas"/>
+			<DCCReference Include="..\..\Source\NetComm\CnNetwork.pas"/>
 			<DCCReference Include="..\..\Source\NetComm\CnPing.pas"/>
 			<DCCReference Include="..\..\Source\NetComm\CnRedisClient.pas"/>
 			<DCCReference Include="..\..\Source\NetComm\CnRS232.pas"/>

@@ -140,7 +140,7 @@
       ..\..\Source\NetComm\CnIP.obj 
       ..\..\Source\NetComm\CnModem.obj 
       ..\..\Source\NetComm\CnNetConsts.obj 
-      ..\..\Source\NetComm\CnNetDecls.obj 
+      ..\..\Source\NetComm\CnNetwork.obj 
       ..\..\Source\NetComm\CnPing.obj 
       ..\..\Source\NetComm\CnRS232.obj 
       ..\..\Source\NetComm\CnRS232Dialog.obj 

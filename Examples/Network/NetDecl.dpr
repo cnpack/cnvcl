@@ -3,7 +3,7 @@ program NetDecl;
 uses
   Forms,
   UnitNetDecl in 'UnitNetDecl.pas' {FormNetDecl},
-  CnNetDecls in '..\..\Source\NetComm\CnNetDecls.pas';
+  CnNetwork in '..\..\Source\NetComm\CnNetwork.pas';
 
 {$R *.RES}
 

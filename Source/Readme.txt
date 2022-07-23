@@ -515,7 +515,7 @@ cnpack\Source 目录内容说明：
   CnNetConsts.pas
     网络部分的资源字符串定义单元
 
-  CnNetDecls.pas
+  CnNetwork.pas
     网络部分的各种协议包头格式定义单元
 
   CnNetPropEditor.pas

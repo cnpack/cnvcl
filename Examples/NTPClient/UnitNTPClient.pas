@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnUDP, CnNetDecls;
+  StdCtrls, CnUDP, CnNetwork;
 
 type
   TFormNTP = class(TForm)

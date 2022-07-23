@@ -210,7 +210,7 @@ contains
   CnIP in '..\..\Source\NetComm\CnIP.pas',
   CnModem in '..\..\Source\NetComm\CnModem.pas',
   CnNetConsts in '..\..\Source\NetComm\CnNetConsts.pas',
-  CnNetDecls in '..\..\Source\NetComm\CnNetDecls.pas',
+  CnNetwork in '..\..\Source\NetComm\CnNetwork.pas',
   CnPing in '..\..\Source\NetComm\CnPing.pas',
   CnRedisClient in '..\..\Source\NetComm\CnRedisClient.pas',
   CnRS232 in '..\..\Source\NetComm\CnRS232.pas',

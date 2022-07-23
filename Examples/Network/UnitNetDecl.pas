@@ -83,7 +83,7 @@ var
 implementation
 
 uses
-  CnNetDecls;
+  CnNetwork;
 
 {$R *.DFM}
 

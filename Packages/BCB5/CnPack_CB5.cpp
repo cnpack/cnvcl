@@ -141,7 +141,7 @@ USEUNIT("..\..\Source\NetComm\CnIocpSocketAdapter.pas");
 USEUNIT("..\..\Source\NetComm\CnIP.pas");
 USEUNIT("..\..\Source\NetComm\CnModem.pas");
 USEUNIT("..\..\Source\NetComm\CnNetConsts.pas");
-USEUNIT("..\..\Source\NetComm\CnNetDecls.pas");
+USEUNIT("..\..\Source\NetComm\CnNetwork.pas");
 USEUNIT("..\..\Source\NetComm\CnPing.pas");
 USEUNIT("..\..\Source\NetComm\CnRS232.pas");
 USEUNIT("..\..\Source\NetComm\CnRS232Dialog.pas");

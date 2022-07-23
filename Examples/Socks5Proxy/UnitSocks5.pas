@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnTCPClient, CnThreadingTCPServer, ExtCtrls, CnNetDecls, WinSock;
+  StdCtrls, CnTCPClient, CnThreadingTCPServer, ExtCtrls, CnNetwork, WinSock;
 
 type
   TFormSocks5 = class(TForm)

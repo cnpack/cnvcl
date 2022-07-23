@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnUDP, CnNetDecls, CnDNS, CnClasses;
+  StdCtrls, CnUDP, CnNetwork, CnDNS, CnClasses;
 
 type
   TFormDNS = class(TForm)

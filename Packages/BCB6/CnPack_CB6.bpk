@@ -168,7 +168,7 @@
       ..\..\Source\NetComm\CnIP.obj 
       ..\..\Source\NetComm\CnModem.obj 
       ..\..\Source\NetComm\CnNetConsts.obj 
-      ..\..\Source\NetComm\CnNetDecls.obj 
+      ..\..\Source\NetComm\CnNetwork.obj 
       ..\..\Source\NetComm\CnPing.obj 
       ..\..\Source\NetComm\CnRS232.obj 
       ..\..\Source\NetComm\CnRS232Dialog.obj 
@@ -447,7 +447,7 @@
       <FILE FILENAME="..\..\Source\NetComm\CnIP.pas" FORMNAME="" UNITNAME="CnIP" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NetComm\CnModem.pas" FORMNAME="" UNITNAME="CnModem" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NetComm\CnNetConsts.pas" FORMNAME="" UNITNAME="CnNetConsts" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\NetComm\CnNetDecls.pas" FORMNAME="" UNITNAME="CnNetDecls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\NetComm\CnNetwork.pas" FORMNAME="" UNITNAME="CnNetwork" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NetComm\CnPing.pas" FORMNAME="" UNITNAME="CnPing" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NetComm\CnRS232.pas" FORMNAME="" UNITNAME="CnRS232" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\NetComm\CnRS232Dialog.pas" FORMNAME="" UNITNAME="CnRS232Dialog" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

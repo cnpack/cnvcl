@@ -177,7 +177,7 @@ contains
   CnIP in '..\..\Source\NetComm\CnIP.pas',
   CnModem in '..\..\Source\NetComm\CnModem.pas',
   CnNetConsts in '..\..\Source\NetComm\CnNetConsts.pas',
-  CnNetDecls in '..\..\Source\NetComm\CnNetDecls.pas',
+  CnNetwork in '..\..\Source\NetComm\CnNetwork.pas',
   CnPing in '..\..\Source\NetComm\CnPing.pas',
   CnRS232 in '..\..\Source\NetComm\CnRS232.pas',
   CnRS232Dialog in '..\..\Source\NetComm\CnRS232Dialog.pas' {CnRS232Dlg},

@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, Contnrs,
-  CnClasses, CnConsts, CnNetConsts, CnIP, CnUDP, CnNetDecls;
+  CnClasses, CnConsts, CnNetConsts, CnIP, CnUDP, CnNetwork;
 
 type
 {$IFNDEF TBYTES_DEFINED}
