@@ -1666,7 +1666,7 @@ begin
     BigNumberDirectMulMod(OutSignature.S, InRandK, Inv, SM2.Order); // K / PrivateKeyA
     BigNumberDirectMulMod(OutSignature.S, OutSignature.S, InS1FromB, SM2.Order); // K * S1 / PrivateKeyA
     BigNumberAddMod(OutSignature.S, OutSignature.S, T, SM2.Order);
-    BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromB, SM2.Order) then;
+    BigNumberSubMod(OutSignature.S, OutSignature.S, InRFromB, SM2.Order);
 
     if not OutSignature.S.IsZero then
     begin

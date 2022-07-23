@@ -134,7 +134,7 @@ end;
 
 function TCnDynamicToken.OneTimePassword: string;
 var
-  L, Cnt, KC, IC: Integer;
+  L, Cnt: Integer;
   T: Int64;
   ID, S, KID, SM4K, SM4ID: array of Byte;
   OD, TD: LongWord;
