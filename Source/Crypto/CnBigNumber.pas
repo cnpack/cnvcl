@@ -97,9 +97,6 @@ const
   BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
 type
-  TLongWordArray = array [0..MaxInt div SizeOf(Integer) - 1] of TCnLongWord32;
-  PLongWordArray = ^TLongWordArray;
-
 {$IFDEF SUPPORT_UINT64}
   TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
   PUInt64Array = ^TUInt64Array;
@@ -1024,7 +1021,7 @@ begin
   Result := True;
   if (W = 0) and (Num.Top = 0) then
     Exit;
-  if (Num.Top = 1) and (PLongWordArray(Num.D)^[0] = W) then
+  if (Num.Top = 1) and (PCnLongWord32Array(Num.D)^[0] = W) then
     Exit;
   Result := False;
 end;
@@ -1046,7 +1043,7 @@ end;
 
 function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  if (Num.Top > 0) and ((PLongWordArray(Num.D)^[0] and 1) <> 0) then
+  if (Num.Top > 0) and ((PCnLongWord32Array(Num.D)^[0] and 1) <> 0) then
     Result := True
   else
     Result := False;
@@ -1098,7 +1095,7 @@ begin
     Exit;
 
   I := Num.Top - 1;
-  Result := ((I * BN_BITS2) + BigNumberGetWordBitsCount(PLongWordArray(Num.D)^[I]));
+  Result := ((I * BN_BITS2) + BigNumberGetWordBitsCount(PCnLongWord32Array(Num.D)^[I]));
 end;
 
 function BigNumberGetBytesCount(const Num: TCnBigNumber): Integer;
@@ -1205,15 +1202,15 @@ begin
     I :=  Num.Top shr 2;
     while I > 0 do
     begin
-      A0 := PLongWordArray(B)^[0];
-      A1 := PLongWordArray(B)^[1];
-      A2 := PLongWordArray(B)^[2];
-      A3 := PLongWordArray(B)^[3];
+      A0 := PCnLongWord32Array(B)^[0];
+      A1 := PCnLongWord32Array(B)^[1];
+      A2 := PCnLongWord32Array(B)^[2];
+      A3 := PCnLongWord32Array(B)^[3];
 
-      PLongWordArray(TmpA)^[0] := A0;
-      PLongWordArray(TmpA)^[1] := A1;
-      PLongWordArray(TmpA)^[2] := A2;
-      PLongWordArray(TmpA)^[3] := A3;
+      PCnLongWord32Array(TmpA)^[0] := A0;
+      PCnLongWord32Array(TmpA)^[1] := A1;
+      PCnLongWord32Array(TmpA)^[2] := A2;
+      PCnLongWord32Array(TmpA)^[3] := A3;
 
       Dec(I);
       TmpA := PCnLongWord32(TCnNativeInt(TmpA) + 4 * SizeOf(TCnLongWord32));
@@ -1223,18 +1220,18 @@ begin
     case Num.Top and 3 of
       3:
         begin
-          PLongWordArray(TmpA)^[2] := PLongWordArray(B)^[2];
-          PLongWordArray(TmpA)^[1] := PLongWordArray(B)^[1];
-          PLongWordArray(TmpA)^[0] := PLongWordArray(B)^[0];
+          PCnLongWord32Array(TmpA)^[2] := PCnLongWord32Array(B)^[2];
+          PCnLongWord32Array(TmpA)^[1] := PCnLongWord32Array(B)^[1];
+          PCnLongWord32Array(TmpA)^[0] := PCnLongWord32Array(B)^[0];
         end;
       2:
         begin
-          PLongWordArray(TmpA)^[1] := PLongWordArray(B)^[1];
-          PLongWordArray(TmpA)^[0] := PLongWordArray(B)^[0];
+          PCnLongWord32Array(TmpA)^[1] := PCnLongWord32Array(B)^[1];
+          PCnLongWord32Array(TmpA)^[0] := PCnLongWord32Array(B)^[0];
         end;
       1:
         begin
-          PLongWordArray(TmpA)^[0] := PLongWordArray(B)^[0];
+          PCnLongWord32Array(TmpA)^[0] := PCnLongWord32Array(B)^[0];
         end;
       0:
         begin
@@ -1298,7 +1295,7 @@ begin
   if Num.Top > 1 then
     Result := BN_MASK2
   else if Num.Top = 1 then
-    Result := PLongWordArray(Num.D)^[0]
+    Result := PCnLongWord32Array(Num.D)^[0]
   else
     Result := 0;
 end;
@@ -1309,7 +1306,7 @@ begin
   if BigNumberExpandBits(Num, SizeOf(TCnLongWord32) * 8) = nil then
     Exit;
   Num.Neg := 0;
-  PLongWordArray(Num.D)^[0] := W;
+  PCnLongWord32Array(Num.D)^[0] := W;
   if W <> 0 then
     Num.Top := 1
   else
@@ -1323,7 +1320,7 @@ begin
     Result := BN_MASK2S
   else if Num.Top = 1 then
   begin
-    Result := Integer(PLongWordArray(Num.D)^[0]);
+    Result := Integer(PCnLongWord32Array(Num.D)^[0]);
     if Result < 0 then        // UInt32 最高位有值，说明已经超出了 Integer 的范围，返回 Max Integer
       Result := BN_MASK2S
     else if Num.Neg <> 0 then // 负则求反加一
@@ -1358,7 +1355,7 @@ begin
       Result := (not Result) + 1;
   end
   else if Num.Top = 1 then
-    Result := Int64(PLongWordArray(Num.D)^[0])
+    Result := Int64(PCnLongWord32Array(Num.D)^[0])
   else
     Result := 0;
 end;
@@ -1407,7 +1404,7 @@ begin
 {$ENDIF}
   end
   else if Num.Top = 1 then
-    Result := TUInt64(PLongWordArray(Num.D)^[0])
+    Result := TUInt64(PCnLongWord32Array(Num.D)^[0])
   else
     Result := 0;
 end;
@@ -1439,7 +1436,7 @@ begin
   else if Num.Top = 2 then
     Result := PUInt64Array(Num.D)^[0]
   else if Num.Top = 1 then
-    Result := UInt64(PLongWordArray(Num.D)^[0])
+    Result := UInt64(PCnLongWord32Array(Num.D)^[0])
   else
     Result := 0;
 end;
@@ -1479,7 +1476,7 @@ var
   Top: Integer;
 begin
   Top := Num.Top;
-  Ftl := @(PLongWordArray(Num.D)^[Top - 1]);
+  Ftl := @(PCnLongWord32Array(Num.D)^[Top - 1]);
   while Top > 0 do
   begin
     if Ftl^ <> 0 then
@@ -1515,7 +1512,7 @@ begin
   while I > 0 do
   begin
     Dec(I);
-    L := PLongWordArray(Num.D)^[I div BN_BYTES];
+    L := PCnLongWord32Array(Num.D)^[I div BN_BYTES];
     Buf^ := AnsiChar(Chr(L shr (8 * (I mod BN_BYTES)) and $FF));
 
     Buf := PAnsiChar(TCnNativeInt(Buf) + 1);
@@ -1614,7 +1611,7 @@ begin
     if M = 0 then
     begin
       Dec(I);
-      PLongWordArray(Res.D)^[I] := L;
+      PCnLongWord32Array(Res.D)^[I] := L;
       L := 0;
       M := BN_BYTES - 1;
     end
@@ -1666,7 +1663,7 @@ begin
   if Num.Top <= I then
     Exit;
 
-  PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] and TCnLongWord32(not (1 shl J));
+  PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] and TCnLongWord32(not (1 shl J));
   BigNumberCorrectTop(Num);
   Result := True;
 end;
@@ -1702,7 +1699,7 @@ begin
     Num.Top := I + 1;
     B := 1 shl J;         // 0000100000 如果 J 是 31 也不会溢出
     B := B - 1;           // 0000011111
-    PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] and B;
+    PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] and B;
   end
   else
     Num.Top := I; // 如果 J 为 0，无需多最高一个 LongWord 了
@@ -1728,12 +1725,12 @@ begin
       Exit;
 
     for K := Num.Top to I do
-      PLongWordArray(Num.D)^[K] := 0;
+      PCnLongWord32Array(Num.D)^[K] := 0;
 
     Num.Top := I + 1;
   end;
 
-  PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] or TCnLongWord32(1 shl J);
+  PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] or TCnLongWord32(1 shl J);
   Result := True;
 end;
 
@@ -1751,7 +1748,7 @@ begin
   if Num.Top <= I then
     Exit;
 
-  if (TCnLongWord32(PLongWordArray(Num.D)^[I] shr J) and TCnLongWord32(1)) <> 0 then
+  if (TCnLongWord32(PCnLongWord32Array(Num.D)^[I] shr J) and TCnLongWord32(1)) <> 0 then
     Result := True;
 end;
 
@@ -1761,8 +1758,8 @@ var
   I: Integer;
   A, B: TCnLongWord32;
 begin
-  A := PLongWordArray(Num1.D)^[N - 1];
-  B := PLongWordArray(Num2.D)^[N - 1];
+  A := PCnLongWord32Array(Num1.D)^[N - 1];
+  B := PCnLongWord32Array(Num2.D)^[N - 1];
 
   if A <> B then
   begin
@@ -1775,8 +1772,8 @@ begin
 
   for I := N - 2 downto 0 do
   begin
-    A := PLongWordArray(Num1.D)^[I];
-    B := PLongWordArray(Num2.D)^[I];
+    A := PCnLongWord32Array(Num1.D)^[I];
+    B := PCnLongWord32Array(Num2.D)^[I];
 
     if A <> B then
     begin
@@ -1851,8 +1848,8 @@ begin
 
   for I := Num1.Top - 1 downto 0 do
   begin
-    T1 := PLongWordArray(Num1.D)^[I];
-    T2 := PLongWordArray(Num2.D)^[I];
+    T1 := PCnLongWord32Array(Num1.D)^[I];
+    T2 := PCnLongWord32Array(Num2.D)^[I];
     if T1 > T2 then
     begin
       Result := Gt;
@@ -1891,8 +1888,8 @@ begin
 
   for I := Num1.Top - 1 downto 0 do
   begin
-    T1 := PLongWordArray(Num1.D)^[I];
-    T2 := PLongWordArray(Num2.D)^[I];
+    T1 := PCnLongWord32Array(Num1.D)^[I];
+    T2 := PCnLongWord32Array(Num2.D)^[I];
     if T1 > T2 then
     begin
       Result := 1;
@@ -2010,7 +2007,7 @@ end;
 function BigNumberCopy(const Dst: TCnBigNumber; const Src: TCnBigNumber): TCnBigNumber;
 var
   I: Integer;
-  A, B: PLongWordArray;
+  A, B: PCnLongWord32Array;
   A0, A1, A2, A3: TCnLongWord32;
 begin
   if Dst = Src then
@@ -2025,8 +2022,8 @@ begin
     Exit;
   end;
 
-  A := PLongWordArray(Dst.D);
-  B := PLongWordArray(Src.D);
+  A := PCnLongWord32Array(Dst.D);
+  B := PCnLongWord32Array(Src.D);
 
   for I := (Src.Top shr 2) downto 1 do
   begin
@@ -2039,8 +2036,8 @@ begin
     A^[2] := A2;
     A^[3] := A3;
 
-    A := PLongWordArray(TCnNativeInt(A) + 4 * SizeOf(TCnLongWord32));
-    B := PLongWordArray(TCnNativeInt(B) + 4 * SizeOf(TCnLongWord32));
+    A := PCnLongWord32Array(TCnNativeInt(A) + 4 * SizeOf(TCnLongWord32));
+    B := PCnLongWord32Array(TCnNativeInt(B) + 4 * SizeOf(TCnLongWord32));
   end;
 
   case Src.Top and 3 of
@@ -2074,7 +2071,7 @@ function BigNumberCopyLow(const Dst: TCnBigNumber; const Src: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 var
   I: Integer;
-  A, B: PLongWordArray;
+  A, B: PCnLongWord32Array;
 begin
   if WordCount <= 0 then
   begin
@@ -2095,8 +2092,8 @@ begin
       Exit;
     end;
 
-    A := PLongWordArray(Dst.D);
-    B := PLongWordArray(Src.D);
+    A := PCnLongWord32Array(Dst.D);
+    B := PCnLongWord32Array(Src.D);
 
     Result := Dst;
     for I := 0 to WordCount - 1 do // 从 Src 的 0 到 WordCount - 1 赋值给 Dst 的 0 到 WordCount - 1
@@ -2111,7 +2108,7 @@ function BigNumberCopyHigh(const Dst: TCnBigNumber; const Src: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 var
   I: Integer;
-  A, B: PLongWordArray;
+  A, B: PCnLongWord32Array;
 begin
   if WordCount <= 0 then
   begin
@@ -2132,8 +2129,8 @@ begin
       Exit;
     end;
 
-    A := PLongWordArray(Dst.D);
-    B := PLongWordArray(Src.D);
+    A := PCnLongWord32Array(Dst.D);
+    B := PCnLongWord32Array(Src.D);
 
     Result := Dst;
     for I := 0 to WordCount - 1 do // 从 Src 的 Top - WordCount 到 Top - 1 赋值给 Dst 的 0 到 WordCount - 1
@@ -2201,7 +2198,7 @@ begin
 end;
 
 // N 个 TCnLongWord32 长的数组内容进行位运算，如果 BP 为 nil，表示不够长，作为 0 处理
-procedure BigNumberBitOperation(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray;
+procedure BigNumberBitOperation(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array;
   N: Integer; Op: TCnBitOperation);
 begin
   if N <= 0 then
@@ -2235,9 +2232,9 @@ begin
           end;
       end;
 
-      AP := PLongWordArray(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-      BP := PLongWordArray(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
-      RP := PLongWordArray(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+      AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
+      BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
+      RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
 
       Dec(N, 4);
     end;
@@ -2253,9 +2250,9 @@ begin
           RP^[0] := TCnLongWord32((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
       end;
 
-      AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      BP := PLongWordArray(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
-      RP := PLongWordArray(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+      BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
+      RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
       Dec(N);
     end;
   end
@@ -2272,22 +2269,22 @@ end;
 
 {* Words 系列内部计算函数开始}
 
-procedure BigNumberAndWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer);
+procedure BigNumberAndWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer);
 begin
   BigNumberBitOperation(RP, AP, BP, N, boAnd);
 end;
 
-procedure BigNumberOrWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer);
+procedure BigNumberOrWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer);
 begin
   BigNumberBitOperation(RP, AP, BP, N, boOr);
 end;
 
-procedure BigNumberXorWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer);
+procedure BigNumberXorWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer);
 begin
   BigNumberBitOperation(RP, AP, BP, N, boXor);
 end;
 
-function BigNumberAddWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer): TCnLongWord32;
+function BigNumberAddWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer): TCnLongWord32;
 var
   LL: Int64;
 begin
@@ -2314,9 +2311,9 @@ begin
     RP^[3] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    AP := PLongWordArray(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    BP := PLongWordArray(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
 
     Dec(N, 4);
   end;
@@ -2327,15 +2324,15 @@ begin
     RP^[0] := TCnLongWord32(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    BP := PLongWordArray(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
     Dec(N);
   end;
   Result := TCnLongWord32(LL);
 end;
 
-function BigNumberSubWords(RP: PLongWordArray; AP: PLongWordArray; BP: PLongWordArray; N: Integer): TCnLongWord32;
+function BigNumberSubWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer): TCnLongWord32;
 var
   T1, T2, C: TCnLongWord32;
 begin
@@ -2370,9 +2367,9 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PLongWordArray(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    BP := PLongWordArray(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
 
     Dec(N, 4);
   end;
@@ -2385,15 +2382,15 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    BP := PLongWordArray(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
     Dec(N);
   end;
   Result := C;
 end;
 
-function BigNumberMulAddWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer; W: TCnLongWord32): TCnLongWord32;
+function BigNumberMulAddWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer; W: TCnLongWord32): TCnLongWord32;
 begin
   Result := 0;
   if N <= 0 then
@@ -2406,22 +2403,22 @@ begin
     MulAdd(RP^[2], AP^[2], W, Result);
     MulAdd(RP^[3], AP^[3], W, Result);
 
-    AP := PLongWordArray(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     MulAdd(RP^[0], AP^[0], W, Result);
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
     Dec(N);
   end;
 end;
 
 // AP 指向的 N 个数字都乘以 W，结果的低 N 位放 RP 中，高位放返回值
-function BigNumberMulWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer; W: TCnLongWord32): TCnLongWord32;
+function BigNumberMulWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer; W: TCnLongWord32): TCnLongWord32;
 begin
   Result := 0;
   if N <= 0 then
@@ -2434,8 +2431,8 @@ begin
     Mul(RP^[2], AP^[2], W, Result);
     Mul(RP^[3], AP^[3], W, Result);
 
-    AP := PLongWordArray(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
 
     Dec(N, 4);
   end;
@@ -2444,14 +2441,14 @@ begin
   begin
     Mul(RP^[0], AP^[0], W, Result);
 
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
 
     Dec(N);
   end;
 end;
 
-procedure BigNumberSqrWords(RP: PLongWordArray; AP: PLongWordArray; N: Integer);
+procedure BigNumberSqrWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer);
 begin
   if N = 0 then
     Exit;
@@ -2463,16 +2460,16 @@ begin
     Sqr(RP^[4], RP^[5], AP^[2]);
     Sqr(RP^[6], RP^[7], AP^[3]);
 
-    AP := PLongWordArray(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + 8 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 8 * SizeOf(TCnLongWord32));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     Sqr(RP^[0], RP^[1], AP^[0]);
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP := PLongWordArray(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
     Dec(N);
   end;
 end;
@@ -2542,12 +2539,12 @@ begin
   BP := PCnLongWord32(B.D);
   RP := PCnLongWord32(Res.D);
 
-  BigNumberAndWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  BigNumberAndWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
   // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
   Inc(AP, Min);
   Inc(RP, Min);
-  BigNumberAndWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
+  BigNumberAndWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), nil, Dif);
 
   BigNumberCorrectTop(Res);
   Result := True;
@@ -2583,12 +2580,12 @@ begin
   BP := PCnLongWord32(B.D);
   RP := PCnLongWord32(Res.D);
 
-  BigNumberOrWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  BigNumberOrWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
   // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
   Inc(AP, Min);
   Inc(RP, Min);
-  BigNumberOrWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
+  BigNumberOrWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), nil, Dif);
 
   BigNumberCorrectTop(Res);
   Result := True;
@@ -2624,12 +2621,12 @@ begin
   BP := PCnLongWord32(B.D);
   RP := PCnLongWord32(Res.D);
 
-  BigNumberXorWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  BigNumberXorWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
   // AP 长的后头还有 Dif 一段没有处理，需要当成和 0 一块运算
   Inc(AP, Min);
   Inc(RP, Min);
-  BigNumberXorWords(PLongWordArray(RP), PLongWordArray(AP), nil, Dif);
+  BigNumberXorWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), nil, Dif);
 
   BigNumberCorrectTop(Res);
   Result := True;
@@ -2666,7 +2663,7 @@ begin
   BP := PCnLongWord32(B.D);
   RP := PCnLongWord32(Res.D);
 
-  Carry := BigNumberAddWords(PLongWordArray(RP), PLongWordArray(AP), PLongWordArray(BP), Min);
+  Carry := BigNumberAddWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
   AP := PCnLongWord32(TCnNativeInt(AP) + Min * SizeOf(TCnLongWord32));
   RP := PCnLongWord32(TCnNativeInt(RP) + Min * SizeOf(TCnLongWord32));
@@ -2990,7 +2987,7 @@ begin
   I := Num.Top;
   AP := Num.D;
 
-  if PLongWordArray(AP)^[I - 1] = 1 then
+  if PCnLongWord32Array(AP)^[I - 1] = 1 then
     J := I - 1
   else
     J := I;
@@ -3004,7 +3001,7 @@ begin
 
   RP := Res.D;
   Dec(I);
-  T := PLongWordArray(AP)^[I];
+  T := PCnLongWord32Array(AP)^[I];
 
   if (T and 1) <> 0 then
     C := BN_TBIT
@@ -3013,13 +3010,13 @@ begin
 
   T := T shr 1;
   if T <> 0 then
-    PLongWordArray(RP)^[I] := T;
+    PCnLongWord32Array(RP)^[I] := T;
 
   while I > 0 do
   begin
     Dec(I);
-    T := PLongWordArray(AP)^[I];
-    PLongWordArray(RP)^[I] := ((T shr 1) and BN_MASK2) or C;
+    T := PCnLongWord32Array(AP)^[I];
+    PCnLongWord32Array(RP)^[I] := ((T shr 1) and BN_MASK2) or C;
 
     if (T and 1) <> 0 then
       C := BN_TBIT
@@ -3036,7 +3033,7 @@ function BigNumberShiftLeft(const Res: TCnBigNumber; const Num: TCnBigNumber;
 var
   I, NW, LB, RB: Integer;
   L: TCnLongWord32;
-  T, F: PLongWordArray;
+  T, F: PCnLongWord32Array;
 begin
   Result := False;
   Res.Neg := Num.Neg;
@@ -3048,8 +3045,8 @@ begin
   LB := N mod BN_BITS2;
   RB := BN_BITS2 - LB;
 
-  F := PLongWordArray(Num.D);
-  T := PLongWordArray(Res.D);
+  F := PCnLongWord32Array(Num.D);
+  T := PCnLongWord32Array(Res.D);
 
   T^[Num.Top + NW] := 0;
   if LB = 0 then
@@ -3078,7 +3075,7 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
 var
   I, J, NW, LB, RB: Integer;
   L, Tmp: TCnLongWord32;
-  T, F: PLongWordArray;
+  T, F: PCnLongWord32Array;
 begin
   Result := False;
 
@@ -3109,8 +3106,8 @@ begin
     end;
   end;
 
-  F := PLongWordArray(TCnNativeInt(Num.D) + NW * SizeOf(TCnLongWord32));
-  T := PLongWordArray(Res.D);
+  F := PCnLongWord32Array(TCnNativeInt(Num.D) + NW * SizeOf(TCnLongWord32));
+  T := PCnLongWord32Array(Res.D);
   J := Num.Top - NW;
   Res.Top := I;
 
@@ -3119,22 +3116,22 @@ begin
     for I := J downto 1 do
     begin
       T^[0] := F^[0];
-      F := PLongWordArray(TCnNativeInt(F) + SizeOf(TCnLongWord32));
-      T := PLongWordArray(TCnNativeInt(T) + SizeOf(TCnLongWord32));
+      F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(TCnLongWord32));
+      T := PCnLongWord32Array(TCnNativeInt(T) + SizeOf(TCnLongWord32));
     end;
   end
   else
   begin
     L := F^[0];
-    F := PLongWordArray(TCnNativeInt(F) + SizeOf(TCnLongWord32));
+    F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(TCnLongWord32));
     for I := J - 1 downto 1 do
     begin
       Tmp := (L shr RB) and BN_MASK2;
       L := F^[0];
       T^[0] := (Tmp or (L shl LB)) and BN_MASK2;
 
-      F := PLongWordArray(TCnNativeInt(F) + SizeOf(TCnLongWord32));
-      T := PLongWordArray(TCnNativeInt(T) + SizeOf(TCnLongWord32));
+      F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(TCnLongWord32));
+      T := PCnLongWord32Array(TCnNativeInt(T) + SizeOf(TCnLongWord32));
     end;
 
     L := (L shr RB) and BN_MASK2;
@@ -3177,8 +3174,8 @@ begin
   I := 0;
   while (W <> 0) and (I < Num.Top) do
   begin
-    L := (PLongWordArray(Num.D)^[I] + W) and BN_MASK2;
-    PLongWordArray(Num.D)^[I] := L;
+    L := (PCnLongWord32Array(Num.D)^[I] + W) and BN_MASK2;
+    PCnLongWord32Array(Num.D)^[I] := L;
     if W > L then // 结果比加数小，说明溢出或者进位了，把进位置给 W，继续加
       W := 1
     else
@@ -3191,7 +3188,7 @@ begin
     if BigNumberWordExpand(Num, Num.Top + 1) = nil then
       Exit;
     Inc(Num.Top);
-    PLongWordArray(Num.D)^[I] := W;
+    PCnLongWord32Array(Num.D)^[I] := W;
   end;
   Result := True;
 end;
@@ -3222,9 +3219,9 @@ begin
     Exit;
   end;
 
-  if (Num.Top = 1) and (PLongWordArray(Num.D)^[0] < W) then // 不够减
+  if (Num.Top = 1) and (PCnLongWord32Array(Num.D)^[0] < W) then // 不够减
   begin
-    PLongWordArray(Num.D)^[0] := W - PLongWordArray(Num.D)^[0];
+    PCnLongWord32Array(Num.D)^[0] := W - PCnLongWord32Array(Num.D)^[0];
     Num.Neg := 1;
     Result := True;
     Exit;
@@ -3233,20 +3230,20 @@ begin
   I := 0;
   while True do
   begin
-    if PLongWordArray(Num.D)^[I] >= W then // 够减直接减
+    if PCnLongWord32Array(Num.D)^[I] >= W then // 够减直接减
     begin
-      PLongWordArray(Num.D)^[I] := PLongWordArray(Num.D)^[I] - W;
+      PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] - W;
       Break;
     end
     else
     begin
-      PLongWordArray(Num.D)^[I] := (PLongWordArray(Num.D)^[I] - W) and BN_MASK2;
+      PCnLongWord32Array(Num.D)^[I] := (PCnLongWord32Array(Num.D)^[I] - W) and BN_MASK2;
       Inc(I);
       W := 1;  // 不够减有借位
     end;
   end;
 
-  if (PLongWordArray(Num.D)^[I] = 0) and (I = Num.Top - 1) then
+  if (PCnLongWord32Array(Num.D)^[I] = 0) and (I = Num.Top - 1) then
     Dec(Num.Top);
   Result := True;
 end;
@@ -3263,12 +3260,12 @@ begin
       BigNumberSetZero(Num)
     else
     begin
-      L := BigNumberMulWords(PLongWordArray(Num.D), PLongWordArray(Num.D), Num.Top, W);
+      L := BigNumberMulWords(PCnLongWord32Array(Num.D), PCnLongWord32Array(Num.D), Num.Top, W);
       if L <> 0 then
       begin
         if BigNumberWordExpand(Num, Num.Top + 1) = nil then
           Exit;
-        PLongWordArray(Num.D)^[Num.Top] := L;
+        PCnLongWord32Array(Num.D)^[Num.Top] := L;
         Inc(Num.Top);
       end;
     end;
@@ -3289,8 +3286,8 @@ begin
   Result := 0;
   for I := Num.Top - 1 downto 0 do
   begin
-    Result := ((Result shl BN_BITS4) or ((PLongWordArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
-    Result := ((Result shl BN_BITS4) or (PLongWordArray(Num.D)^[I] and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or ((PCnLongWord32Array(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
+    Result := ((Result shl BN_BITS4) or (PCnLongWord32Array(Num.D)^[I] and BN_MASK2l)) mod W;
   end;
 end;
 
@@ -3320,14 +3317,14 @@ begin
 
   for I := Num.Top - 1 downto 0 do
   begin
-    L := PLongWordArray(Num.D)^[I];
+    L := PCnLongWord32Array(Num.D)^[I];
     D := InternalDivWords(Result, L, W); // W 保证了最高位为 1，结果才是 32 位
     Result := (L - ((D * W) and BN_MASK2)) and BN_MASK2;
 
-    PLongWordArray(Num.D)^[I] := D;
+    PCnLongWord32Array(Num.D)^[I] := D;
   end;
 
-  if (Num.Top > 0) and (PLongWordArray(Num.D)^[Num.Top - 1] = 0) then
+  if (Num.Top > 0) and (PCnLongWord32Array(Num.D)^[Num.Top - 1] = 0) then
     Dec(Num.Top);
   Result := Result shr J;
 end;
@@ -3336,8 +3333,8 @@ procedure BigNumberAndWord(const Num: TCnBigNumber; W: TCnLongWord32);
 begin
   if Num.Top >= 1 then
   begin
-    PLongWordArray(Num.D)^[0] := PLongWordArray(Num.D)^[0] and W;
-    if PLongWordArray(Num.D)^[0] <> 0 then // 32 位以上的都是 0
+    PCnLongWord32Array(Num.D)^[0] := PCnLongWord32Array(Num.D)^[0] and W;
+    if PCnLongWord32Array(Num.D)^[0] <> 0 then // 32 位以上的都是 0
       Num.Top := 1
     else
       Num.Top := 0;
@@ -3347,7 +3344,7 @@ end;
 procedure BigNumberOrWord(const Num: TCnBigNumber; W: TCnLongWord32);
 begin
   if Num.Top > 0 then
-    PLongWordArray(Num.D)^[0] := PLongWordArray(Num.D)^[0] and W
+    PCnLongWord32Array(Num.D)^[0] := PCnLongWord32Array(Num.D)^[0] and W
   else
     Num.SetWord(W);
 end;
@@ -3355,7 +3352,7 @@ end;
 procedure BigNumberXorWord(const Num: TCnBigNumber; W: TCnLongWord32);
 begin
   if Num.Top > 0 then // 32 位以上的 xor 0，都不变
-    PLongWordArray(Num.D)^[0] := PLongWordArray(Num.D)^[0] xor W
+    PCnLongWord32Array(Num.D)^[0] := PCnLongWord32Array(Num.D)^[0] xor W
   else
     Num.SetWord(W); // 0 异或 W 等于 W
 end;
@@ -3363,7 +3360,7 @@ end;
 function BigNumberAndWordTo(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
 begin
   if Num.Top >= 1 then
-    Result := PLongWordArray(Num.D)^[0] and W
+    Result := PCnLongWord32Array(Num.D)^[0] and W
   else
     Result := 0;
 end;
@@ -3389,7 +3386,7 @@ begin
     J := BN_BITS2 - 4;
     while J >= 0 do
     begin
-      V := ((PLongWordArray(Num.D)^[I]) shr TCnLongWord32(J)) and $0F;
+      V := ((PCnLongWord32Array(Num.D)^[I]) shr TCnLongWord32(J)) and $0F;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[V + 1];
@@ -3420,7 +3417,7 @@ begin
     J := BN_BITS2 - 8;
     while J >= 0 do
     begin
-      V := ((PLongWordArray(Num.D)^[I]) shr TCnLongWord32(J)) and $FF;
+      V := ((PCnLongWord32Array(Num.D)^[I]) shr TCnLongWord32(J)) and $FF;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[(V shr 4) + 1];
@@ -3497,7 +3494,7 @@ begin
       Dec(M);
       if M <= 0 then
       begin
-        PLongWordArray(Res.D)^[H] := L;
+        PCnLongWord32Array(Res.D)^[H] := L;
         Inc(H);
         Break;
       end;
@@ -3778,35 +3775,35 @@ end;
 procedure BigNumberSqrNormal(R: PCnLongWord32; A: PCnLongWord32; N: Integer; Tmp: PCnLongWord32);
 var
   I, J, Max: Integer;
-  AP, RP: PLongWordArray;
+  AP, RP: PCnLongWord32Array;
 begin
   Max := N * 2;
-  AP := PLongWordArray(A);
-  RP := PLongWordArray(R);
+  AP := PCnLongWord32Array(A);
+  RP := PCnLongWord32Array(R);
   RP^[0] := 0;
   RP^[Max - 1] := 0;
 
-  RP := PLongWordArray(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+  RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
   J := N - 1;
 
   if J > 0 then
   begin
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP^[J] := BigNumberMulWords(RP, AP, J, PLongWordArray(TCnNativeInt(AP) - SizeOf(TCnLongWord32))^[0]);
-    RP := PLongWordArray(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    RP^[J] := BigNumberMulWords(RP, AP, J, PCnLongWord32Array(TCnNativeInt(AP) - SizeOf(TCnLongWord32))^[0]);
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
   end;
 
   for I := N - 2 downto 1 do
   begin
     Dec(J);
-    AP := PLongWordArray(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP^[J] := BigNumberMulAddWords(RP, AP, J, PLongWordArray(TCnNativeInt(AP) - SizeOf(TCnLongWord32))^[0]);
-    RP := PLongWordArray(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    RP^[J] := BigNumberMulAddWords(RP, AP, J, PCnLongWord32Array(TCnNativeInt(AP) - SizeOf(TCnLongWord32))^[0]);
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
   end;
 
-  BigNumberAddWords(PLongWordArray(R), PLongWordArray(R), PLongWordArray(R), Max);
-  BigNumberSqrWords(PLongWordArray(Tmp), PLongWordArray(A), N);
-  BigNumberAddWords(PLongWordArray(R), PLongWordArray(R), PLongWordArray(Tmp), Max);
+  BigNumberAddWords(PCnLongWord32Array(R), PCnLongWord32Array(R), PCnLongWord32Array(R), Max);
+  BigNumberSqrWords(PCnLongWord32Array(Tmp), PCnLongWord32Array(A), N);
+  BigNumberAddWords(PCnLongWord32Array(R), PCnLongWord32Array(R), PCnLongWord32Array(Tmp), Max);
 end;
 
 function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
@@ -3863,7 +3860,7 @@ begin
     end;
 
     RR.Neg := 0;
-    if PLongWordArray(Num.D)^[AL - 1] = (PLongWordArray(Num.D)^[AL - 1] and BN_MASK2l) then
+    if PCnLongWord32Array(Num.D)^[AL - 1] = (PCnLongWord32Array(Num.D)^[AL - 1] and BN_MASK2l) then
       RR.Top := Max - 1
     else
       RR.Top := Max;
@@ -4068,11 +4065,11 @@ begin
   RR := PCnLongWord32(TCnNativeInt(R) + NA * SizeOf(TCnLongWord32));
   if NB <= 0 then
   begin
-    BigNumberMulWords(PLongWordArray(R), PLongWordArray(A), NA, 0);
+    BigNumberMulWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, 0);
     Exit;
   end
   else
-    RR^ := BigNumberMulWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
+    RR^ := BigNumberMulWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
   while True do
   begin
@@ -4083,7 +4080,7 @@ begin
     R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
     B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
 
-    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
+    RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
@@ -4091,7 +4088,7 @@ begin
     RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
     R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
     B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
-    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
+    RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
@@ -4099,7 +4096,7 @@ begin
     RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
     R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
     B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
-    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
+    RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
@@ -4107,7 +4104,7 @@ begin
     RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
     R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
     B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
-    RR^ := BigNumberMulAddWords(PLongWordArray(R), PLongWordArray(A), NA, B^);
+    RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
   end;
 end;
 
@@ -4287,7 +4284,7 @@ var
   T2: TUInt64;
 begin
   Result := False;
-  if (Num.Top > 0) and (PLongWordArray(Num.D)^[Num.Top - 1] = 0) then
+  if (Num.Top > 0) and (PCnLongWord32Array(Num.D)^[Num.Top - 1] = 0) then
     Exit;
 
   if BigNumberIsZero(Divisor) then
@@ -4349,11 +4346,11 @@ begin
     WNum.Top := DivN;
     WNum.DMax := SNum.DMax - Loop;
 
-    D0 := PLongWordArray(SDiv.D)^[DivN - 1];
+    D0 := PCnLongWord32Array(SDiv.D)^[DivN - 1];
     if DivN = 1 then
       D1 := 0
     else
-      D1 := PLongWordArray(SDiv.D)^[DivN - 2];
+      D1 := PCnLongWord32Array(SDiv.D)^[DivN - 2];
     // D0 D1 是 SDiv 的最高俩 DWORD
 
     WNump := PCnLongWord32(TCnNativeInt(SNum.D) + (NumN - 1) * SizeOf(TCnLongWord32));
@@ -4374,8 +4371,8 @@ begin
 
     if BigNumberUnsignedCompare(WNum, SDiv) >= 0 then
     begin
-      BigNumberSubWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
-        PLongWordArray(SDiv.D), DivN);
+      BigNumberSubWords(PCnLongWord32Array(WNum.D), PCnLongWord32Array(WNum.D),
+        PCnLongWord32Array(SDiv.D), DivN);
       Resp^ := 1;
     end
     else
@@ -4419,16 +4416,16 @@ begin
         end;
       end;
 
-      L0 := BigNumberMulWords(PLongWordArray(Tmp.D), PLongWordArray(SDiv.D), DivN, Q);
-      PLongWordArray(Tmp.D)^[DivN] := L0;
+      L0 := BigNumberMulWords(PCnLongWord32Array(Tmp.D), PCnLongWord32Array(SDiv.D), DivN, Q);
+      PCnLongWord32Array(Tmp.D)^[DivN] := L0;
       WNum.D := PCnLongWord32(TCnNativeInt(WNum.D) - SizeOf(TCnLongWord32));
 
-      if BigNumberSubWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
-        PLongWordArray(Tmp.D), DivN + 1) <> 0 then
+      if BigNumberSubWords(PCnLongWord32Array(WNum.D), PCnLongWord32Array(WNum.D),
+        PCnLongWord32Array(Tmp.D), DivN + 1) <> 0 then
       begin
         Dec(Q);
-        if BigNumberAddWords(PLongWordArray(WNum.D), PLongWordArray(WNum.D),
-          PLongWordArray(SDiv.D), DivN) <> 0 then
+        if BigNumberAddWords(PCnLongWord32Array(WNum.D), PCnLongWord32Array(WNum.D),
+          PCnLongWord32Array(SDiv.D), DivN) <> 0 then
           WNump^ := WNump^ + 1;
       end;
 
@@ -6945,7 +6942,7 @@ begin
   Result := Format('Neg %d. DMax %d. Top %d.', [Num.Neg, Num.DMax, Num.Top]);
   if (Num.D <> nil) and (Num.Top > 0) then
     for I := 0 to Num.Top - 1 do
-      Result := Result + Format(' $%8.8x', [PLongWordArray(Num.D)^[I]]);
+      Result := Result + Format(' $%8.8x', [PCnLongWord32Array(Num.D)^[I]]);
 end;
 
 // 将大数内部信息原封不动 Dump 至 Mem 所指的内存区
@@ -7485,7 +7482,7 @@ begin
   // 把 32 位的内容全不管溢出地加起来
   Result := 0;
   for I := 0 to Top - 1 do
-    Result := Result + Integer(PLongWordArray(D)^[I]);
+    Result := Result + Integer(PCnLongWord32Array(D)^[I]);
 end;
 
 class function TCnBigNumber.FromFloat(F: Extended): TCnBigNumber;
