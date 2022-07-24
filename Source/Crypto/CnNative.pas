@@ -341,6 +341,15 @@ procedure MemoryShiftLeft(AMem, BMem: Pointer; MemLen: Integer; BitCount: Intege
 procedure MemoryShiftRight(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
 {* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等}
 
+function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
+{* 返回内存块某 Bit 位是否置 1，内存地址低位是 0}
+
+procedure MemorySetBit(AMem: Pointer; N: Integer);
+{* 给内存块某 Bit 位置 1，内存地址低位是 0}
+
+procedure MemoryClearBit(AMem: Pointer; N: Integer);
+{* 给内存块某 Bit 位置 0，内存地址低位是 0}
+
 function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean = False): string;
 {* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
 
@@ -357,7 +366,7 @@ function UInt64ToBinStr(V: TUInt64): string;
 {* 将一无符号 64 字节整数转换为二进制字符串}
 
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
-{* 内存块转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+{* 内存块转换为十六进制字符串，低位出现在字符串左方，UseUpperCase 控制输出内容的大小写}
 
 function HexToData(const Hex: string; OutData: Pointer): string;
 {* 十六进制字符串转换为内存块，十六进制字符串长度为奇或转换失败时抛出异常
@@ -370,7 +379,7 @@ function HexToString(const Hex: string): string;
 {* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
 
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
-{* 字节数组转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+{* 字节数组转换为十六进制字符串，低位出现在字符串左方，UseUpperCase 控制输出内容的大小写}
 
 function HexToBytes(const Hex: string): TBytes;
 {* 十六进制字符串转换为字节数组，字符串长度为奇或转换失败时抛出异常}
@@ -520,9 +529,11 @@ begin
   end;
 end;
 
+// N 字节长度的内存块的位操作
 procedure MemoryBitOperation(AMem, BMem, RMem: Pointer; N: Integer; Op: TCnBitOperation);
 var
   A, B, R: PCnLongWord32Array;
+  BA, BB, BR: PByteArray;
 begin
   if N <= 0 then
     Exit;
@@ -538,59 +549,46 @@ begin
   begin
     case Op of
       boAnd:
-        begin
-          R^[0] := A^[0] and B^[0];
-          R^[1] := A^[1] and B^[1];
-          R^[2] := A^[2] and B^[2];
-          R^[3] := A^[3] and B^[3];
-        end;
-      boOr:
-        begin
-          R^[0] := A^[0] or B^[0];
-          R^[1] := A^[1] or B^[1];
-          R^[2] := A^[2] or B^[2];
-          R^[3] := A^[3] or B^[3];
-        end;
-      boXor:
-        begin
-          R^[0] := A^[0] xor B^[0];
-          R^[1] := A^[1] xor B^[1];
-          R^[2] := A^[2] xor B^[2];
-          R^[3] := A^[3] xor B^[3];
-        end;
-      boNot: // 求反时忽略 B
-        begin
-          R^[0] := not A^[0];
-          R^[1] := not A^[1];
-          R^[2] := not A^[2];
-          R^[3] := not A^[3];
-        end;
-    end;
-
-    A := PCnLongWord32Array(TCnNativeInt(A) + 4 * SizeOf(TCnLongWord32));
-    B := PCnLongWord32Array(TCnNativeInt(B) + 4 * SizeOf(TCnLongWord32));
-    R := PCnLongWord32Array(TCnNativeInt(R) + 4 * SizeOf(TCnLongWord32));
-
-    Dec(N, 4);
-  end;
-
-  while N <> 0 do
-  begin
-    case Op of
-      boAnd:
         R^[0] := A^[0] and B^[0];
       boOr:
         R^[0] := A^[0] or B^[0];
       boXor:
         R^[0] := A^[0] xor B^[0];
-      boNot:
+      boNot: // 求反时忽略 B
         R^[0] := not A^[0];
     end;
 
     A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(TCnLongWord32));
     B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(TCnLongWord32));
     R := PCnLongWord32Array(TCnNativeInt(R) + SizeOf(TCnLongWord32));
-    Dec(N);
+
+    Dec(N, 4);
+  end;
+
+  if N > 0 then
+  begin
+    BA := PByteArray(A);
+    BB := PByteArray(B);
+    BR := PByteArray(R);
+
+    while N <> 0 do
+    begin
+      case Op of
+        boAnd:
+          BR^[0] := BA^[0] and BB^[0];
+        boOr:
+          BR^[0] := BA^[0] or BB^[0];
+        boXor:
+          BR^[0] := BA^[0] xor BB^[0];
+        boNot:
+          BR^[0] := not BA^[0];
+      end;
+
+      BA := PByteArray(TCnNativeInt(BA) + SizeOf(Byte));
+      BB := PByteArray(TCnNativeInt(BB) + SizeOf(Byte));
+      BR := PByteArray(TCnNativeInt(BR) + SizeOf(Byte));
+      Dec(N);
+    end;
   end;
 end;
 
@@ -732,6 +730,57 @@ begin
     if N > 0 then
       FillChar(BMem^, N, 0);
   end;
+end;
+
+function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
+var
+  P: PCnByte;
+  A, B: Integer;
+  V: Byte;
+begin
+  if (AMem = nil) or (N < 0) then
+    raise Exception.Create(SRangeError);
+
+  A := N div 8;
+  B := N mod 8;
+  P := PCnByte(TCnNativeInt(AMem) + A);
+
+  V := Byte(1 shl B);
+  Result := (P^ and V) <> 0;
+end;
+
+procedure MemorySetBit(AMem: Pointer; N: Integer);
+var
+  P: PCnByte;
+  A, B: Integer;
+  V: Byte;
+begin
+  if (AMem = nil) or (N < 0) then
+    raise Exception.Create(SRangeError);
+
+  A := N div 8;
+  B := N mod 8;
+  P := PCnByte(TCnNativeInt(AMem) + A);
+
+  V := Byte(1 shl B);
+  P^ := P^ or V;
+end;
+
+procedure MemoryClearBit(AMem: Pointer; N: Integer);
+var
+  P: PCnByte;
+  A, B: Integer;
+  V: Byte;
+begin
+  if (AMem = nil) or (N < 0) then
+    raise Exception.Create(SRangeError);
+
+  A := N div 8;
+  B := N mod 8;
+  P := PCnByte(TCnNativeInt(AMem) + A);
+
+  V := not Byte(1 shl B);
+  P^ := P^ and V;
 end;
 
 function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean): string;
