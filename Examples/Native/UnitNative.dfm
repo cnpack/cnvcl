@@ -287,4 +287,13 @@ object FormNative: TFormNative
     TabOrder = 23
     OnClick = btnToBinTestClick
   end
+  object btnReverseBit: TButton
+    Left = 872
+    Top = 408
+    Width = 75
+    Height = 25
+    Caption = 'Reverse Bit'
+    TabOrder = 24
+    OnClick = btnReverseBitClick
+  end
 end

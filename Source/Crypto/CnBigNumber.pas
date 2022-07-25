@@ -114,7 +114,7 @@ type
   public
     D: PCnLongWord32;
     // 一个 array[0..Top-1] of LongWord32 数组，越往后越代表高位。
-    // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数
+    // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数，大端没测过，行为八成不靠谱
 
     Top: Integer;
     // Top 表示数字上限，也即有 Top 个有效 LongWord32，D[Top - 1] 是最高位有效数所在的 LongWord32
@@ -588,7 +588,8 @@ function BigNumberToHex(const Num: TCnBigNumber; FixedLen: Integer = 0): string;
   内部大数长度超过 FixedLen 时按大数实际长度写。注意 FixedLen 不是十六进制字符串长度}
 
 function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
-{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行}
+{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行
+  注意由于通常字符串的左边表示高位，而大数内部高位在高地址方向，因而内部有个倒序过程}
 
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十六进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放}

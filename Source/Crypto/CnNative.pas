@@ -22,14 +22,14 @@ unit CnNative;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack 组件包
-* 单元名称：32 位和 64 位的一些统一声明
+* 单元名称：32 位和 64 位的一些统一声明以及一堆基础实现
 * 单元作者：刘啸 (liuxiao@cnpack.org)
 * 备    注：Delphi XE 2 支持 32 和 64 以来，开放出的 NativeInt 和 NativeUInt 随
 *           当前是 32 位还是 64 而动态变化，影响到的是 Pointer、Reference等东西。
 *           考虑到兼容性，固定长度的 32 位 Cardinal/Integer 等和 Pointer 这些就
 *           不能再通用了，即使 32 位下也被编译器禁止。因此本单元声明了几个类型，
 *           供同时在低版本和高版本的 Delphi 中使用。
-*           后来加入 UInt64 的包装，注意 D567 下不直接支持UInt64 的运算，需要用
+*           后来加入 UInt64 的包装，注意 D567 下不直接支持 UInt64 的运算，需要用
 *           辅助函数实现，目前实现了 div 与 mod
 *           另外地址运算 Integer(APtr) 在 64 位下尤其是 MacOS 上容易出现截断，需要用 NativeInt
 * 开发平台：PWin2000 + Delphi 5.0
@@ -321,7 +321,13 @@ function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 {* 确保 Int16 值为小端，大端环境中进行转换}
 
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
-{* 按字节顺序倒置一块内存块}
+{* 按字节顺序倒置一块内存块，字节内部不变}
+
+function ReverseBitsInByte(B: Byte): Byte;
+{* 倒置一字节内容}
+
+procedure ReverseMemoryWithBits(AMem: Pointer; MemLen: Integer);
+{* 按字节顺序倒置一块内存块，并且每个字节也倒过来}
 
 procedure MemoryAnd(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位与，结果放 ResMem 中，三者可相同}
@@ -342,13 +348,13 @@ procedure MemoryShiftRight(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integ
 {* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等}
 
 function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
-{* 返回内存块某 Bit 位是否置 1，内存地址低位是 0}
+{* 返回内存块某 Bit 位是否置 1，内存地址低位是 0，字节内还是右边为 0}
 
 procedure MemorySetBit(AMem: Pointer; N: Integer);
-{* 给内存块某 Bit 位置 1，内存地址低位是 0}
+{* 给内存块某 Bit 位置 1，内存地址低位是 0，字节内还是右边为 0}
 
 procedure MemoryClearBit(AMem: Pointer; N: Integer);
-{* 给内存块某 Bit 位置 0，内存地址低位是 0}
+{* 给内存块某 Bit 位置 0，内存地址低位是 0，字节内还是右边为 0}
 
 function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean = False): string;
 {* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
@@ -509,6 +515,17 @@ begin
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
+function ReverseBitsInByte(B: Byte): Byte;
+begin
+  // 0 和 1 交换、2 和 3 交换、4 和 5 交换、6 和 7 交换
+  B := ((B and $AA) shr 1) or ((B and $55) shl 1);
+  // 01 和 23 交换、45 和 67 交换
+  B := ((B and $CC) shr 2) or ((B and $33) shl 2);
+  // 0123 和 4567 交换
+  B := (B shr 4) or (B shl 4);
+  Result := B;
+end;
+
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
 var
   I, L: Integer;
@@ -527,6 +544,21 @@ begin
     P^[I] := P^[MemLen - I - 1];
     P^[MemLen - I - 1] := T;
   end;
+end;
+
+procedure ReverseMemoryWithBits(AMem: Pointer; MemLen: Integer);
+var
+  I: Integer;
+  P: PByteArray;
+begin
+  if (AMem = nil) or (MemLen <= 0) then
+    Exit;
+
+  ReverseMemory(AMem, MemLen);
+  P := PByteArray(AMem);
+
+  for I := 0 to MemLen - 1 do
+    P^[I] := ReverseBitsInByte(P^[I]);
 end;
 
 // N 字节长度的内存块的位操作

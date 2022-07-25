@@ -40,6 +40,7 @@ type
     btnInt128DivMod: TButton;
     btnUInt128DivMod: TButton;
     btnToBinTest: TButton;
+    btnReverseBit: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -62,6 +63,7 @@ type
     procedure btnInt128DivModClick(Sender: TObject);
     procedure btnUInt128DivModClick(Sender: TObject);
     procedure btnToBinTestClick(Sender: TObject);
+    procedure btnReverseBitClick(Sender: TObject);
   private
 
   public
@@ -460,6 +462,16 @@ begin
   mmoRes.Lines.Add(MemoryToBinStr(@(V5[0]), SizeOf(V5), True));
   MemoryShiftRight(@(V5[0]), nil, SizeOf(V5), 9);
   mmoRes.Lines.Add(MemoryToBinStr(@(V5[0]), SizeOf(V5), True));
+end;
+
+procedure TFormNative.btnReverseBitClick(Sender: TObject);
+var
+  B: Byte;
+begin
+  B := $53;
+  mmoRes.Lines.Add(MemoryToBinStr(@B, SizeOf(B)));
+  B := ReverseBitsInByte(B);
+  mmoRes.Lines.Add(MemoryToBinStr(@B, SizeOf(B)));
 end;
 
 end.
