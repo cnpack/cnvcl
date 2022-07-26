@@ -323,8 +323,17 @@ function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
 {* 按字节顺序倒置一块内存块，字节内部不变}
 
-function ReverseBitsInByte(B: Byte): Byte;
+function ReverseBitsInInt8(V: Byte): Byte;
 {* 倒置一字节内容}
+
+function ReverseBitsInInt16(V: Word): Word;
+{* 倒置二字节内容}
+
+function ReverseBitsInInt32(V: Cardinal): Cardinal;
+{* 倒置四字节内容}
+
+function ReverseBitsInInt64(V: Int64): Int64;
+{* 倒置八字节内容}
 
 procedure ReverseMemoryWithBits(AMem: Pointer; MemLen: Integer);
 {* 按字节顺序倒置一块内存块，并且每个字节也倒过来}
@@ -515,15 +524,33 @@ begin
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
 end;
 
-function ReverseBitsInByte(B: Byte): Byte;
+function ReverseBitsInInt8(V: Byte): Byte;
 begin
   // 0 和 1 交换、2 和 3 交换、4 和 5 交换、6 和 7 交换
-  B := ((B and $AA) shr 1) or ((B and $55) shl 1);
+  V := ((V and $AA) shr 1) or ((V and $55) shl 1);
   // 01 和 23 交换、45 和 67 交换
-  B := ((B and $CC) shr 2) or ((B and $33) shl 2);
+  V := ((V and $CC) shr 2) or ((V and $33) shl 2);
   // 0123 和 4567 交换
-  B := (B shr 4) or (B shl 4);
-  Result := B;
+  V := (V shr 4) or (V shl 4);
+  Result := V;
+end;
+
+function ReverseBitsInInt16(V: Word): Word;
+begin
+  Result := (ReverseBitsInInt8(V and $00FF) shl 8)
+    or ReverseBitsInInt8((V and $FF00) shr 8);
+end;
+
+function ReverseBitsInInt32(V: Cardinal): Cardinal;
+begin
+  Result := (ReverseBitsInInt16(V and $0000FFFF) shl 16)
+    or ReverseBitsInInt16((V and $FFFF0000) shr 16);
+end;
+
+function ReverseBitsInInt64(V: Int64): Int64;
+begin
+  Result := (Int64(ReverseBitsInInt32(V and $00000000FFFFFFFF)) shl 32)
+    or ReverseBitsInInt32((V and $FFFFFFFF00000000) shr 32);
 end;
 
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
@@ -558,7 +585,7 @@ begin
   P := PByteArray(AMem);
 
   for I := 0 to MemLen - 1 do
-    P^[I] := ReverseBitsInByte(P^[I]);
+    P^[I] := ReverseBitsInInt8(P^[I]);
 end;
 
 // N 字节长度的内存块的位操作

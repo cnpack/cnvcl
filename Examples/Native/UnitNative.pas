@@ -467,11 +467,29 @@ end;
 procedure TFormNative.btnReverseBitClick(Sender: TObject);
 var
   B: Byte;
+  W: Word;
+  C: Cardinal;
+  I: Int64;
 begin
   B := $53;
   mmoRes.Lines.Add(MemoryToBinStr(@B, SizeOf(B)));
-  B := ReverseBitsInByte(B);
+  B := ReverseBitsInInt8(B);
   mmoRes.Lines.Add(MemoryToBinStr(@B, SizeOf(B)));
+
+  W := $57EA;  // x86 …œ « EA 57£¨µπ÷√
+  mmoRes.Lines.Add(MemoryToBinStr(@W, SizeOf(W)));
+  W := ReverseBitsInInt16(W);
+  mmoRes.Lines.Add(MemoryToBinStr(@W, SizeOf(W)));
+
+  C := $8D3906E4;
+  mmoRes.Lines.Add(MemoryToBinStr(@C, SizeOf(C)));
+  C := ReverseBitsInInt32(C);
+  mmoRes.Lines.Add(MemoryToBinStr(@C, SizeOf(C)));
+
+  I := $1122334455667788;  // $8D3906E40923EB10;
+  mmoRes.Lines.Add(MemoryToBinStr(@I, SizeOf(I)));
+  I := ReverseBitsInInt64(I);
+  mmoRes.Lines.Add(MemoryToBinStr(@I, SizeOf(I)));
 end;
 
 end.
