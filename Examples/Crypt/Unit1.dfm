@@ -1,10 +1,10 @@
 object FormCrypt: TFormCrypt
-  Left = 318
-  Top = 222
+  Left = 263
+  Top = 175
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
-  ClientHeight = 437
-  ClientWidth = 624
+  ClientHeight = 500
+  ClientWidth = 800
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -19,9 +19,9 @@ object FormCrypt: TFormCrypt
   object PageControl1: TPageControl
     Left = 24
     Top = 24
-    Width = 569
-    Height = 385
-    ActivePage = tsDES
+    Width = 745
+    Height = 457
+    ActivePage = TabSheet1
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -29,7 +29,7 @@ object FormCrypt: TFormCrypt
       object grpdES: TGroupBox
         Left = 24
         Top = 24
-        Width = 513
+        Width = 689
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'DES'
@@ -178,7 +178,7 @@ object FormCrypt: TFormCrypt
       object grp3Des: TGroupBox
         Left = 24
         Top = 24
-        Width = 513
+        Width = 689
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'DES'
@@ -886,7 +886,7 @@ object FormCrypt: TFormCrypt
       object grpSM4: TGroupBox
         Left = 24
         Top = 24
-        Width = 513
+        Width = 689
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SM4'
@@ -1059,7 +1059,7 @@ object FormCrypt: TFormCrypt
       object grpAes: TGroupBox
         Left = 24
         Top = 24
-        Width = 513
+        Width = 689
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'AES'
@@ -1598,7 +1598,7 @@ object FormCrypt: TFormCrypt
       object grpSHA3_224: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 609
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA3_224'
@@ -1686,7 +1686,7 @@ object FormCrypt: TFormCrypt
       object grpSHA3_256: TGroupBox
         Left = 24
         Top = 24
-        Width = 417
+        Width = 593
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA3_256'
@@ -2236,7 +2236,7 @@ object FormCrypt: TFormCrypt
       object grpPoly1305: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 609
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Poly1305'
@@ -2298,7 +2298,7 @@ object FormCrypt: TFormCrypt
       object grpChaCha20: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 609
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'ChaCha20'
@@ -2309,6 +2309,7 @@ object FormCrypt: TFormCrypt
           Width = 22
           Height = 13
           Caption = 'Text'
+          Visible = False
         end
         object lblChaCha20Result: TLabel
           Left = 8
@@ -2326,6 +2327,7 @@ object FormCrypt: TFormCrypt
           Width = 22
           Height = 13
           Caption = 'Key:'
+          Visible = False
         end
         object edtChaCha20: TEdit
           Left = 72
@@ -2334,6 +2336,7 @@ object FormCrypt: TFormCrypt
           Height = 21
           TabOrder = 0
           Text = 'Sample Text'
+          Visible = False
         end
         object btnChaCha20Block: TButton
           Left = 280
@@ -2350,6 +2353,7 @@ object FormCrypt: TFormCrypt
           Width = 73
           Height = 21
           TabOrder = 1
+          Visible = False
         end
         object btnChaCha20Data: TButton
           Left = 280
@@ -2359,6 +2363,36 @@ object FormCrypt: TFormCrypt
           Caption = 'ChaCha20 Data'
           TabOrder = 3
           OnClick = btnChaCha20DataClick
+        end
+      end
+    end
+    object TabSheet1: TTabSheet
+      Caption = 'AEAD'
+      ImageIndex = 22
+      object grpAEAD: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 689
+        Height = 369
+        Caption = 'AEAD'
+        TabOrder = 0
+        object btnGHash: TButton
+          Left = 24
+          Top = 72
+          Width = 75
+          Height = 25
+          Caption = 'GHash Test'
+          TabOrder = 0
+          OnClick = btnGHashClick
+        end
+        object btnGMulBlock: TButton
+          Left = 24
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'GMul Block'
+          TabOrder = 1
+          OnClick = btnGMulBlockClick
         end
       end
     end
