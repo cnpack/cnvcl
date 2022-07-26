@@ -48,11 +48,11 @@ uses
 
 type
   TSM3Context = packed record
-    Total: array[0..1] of LongWord;     {!< number of bytes processed  }
-    State: array[0..8] of LongWord;     {!< intermediate digest state  }
-    Buffer: array[0..63] of Byte;    {!< data block being processed }
-    Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
-    Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
+    Total: array[0..1] of TCnLongWord32;     {!< number of bytes processed  }
+    State: array[0..8] of TCnLongWord32;     {!< intermediate digest state  }
+    Buffer: array[0..63] of Byte;            {!< data block being processed }
+    Ipad: array[0..63] of Byte;              {!< HMAC: inner padding        }
+    Opad: array[0..63] of Byte;              {!< HMAC: outer padding        }
   end;
   PSM3Context = ^TSM3Context;
 
@@ -64,29 +64,29 @@ type
 
 procedure SM3Start(var Ctx: TSM3Context);
 
-procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: LongWord);
+procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: Cardinal);
 
 procedure SM3Finish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
-function SM3(Input: PAnsiChar; Length: LongWord): TSM3Digest;
+function SM3(Input: PAnsiChar; Length: Cardinal): TSM3Digest;
 {* 对数据块进行 SM3 计算
  |<PRE>
    Input: PAnsiChar  - 要计算的数据块
-   Length: LongWord  - 数据块长度
+   Length: Cardinal  - 数据块长度
  |</PRE>}
 
 //procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
 //
-//procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
+//procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: Cardinal);
 //
 //procedure SM3HmacFinish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
 procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSM3Digest);
+  Length: Cardinal; var Output: TSM3Digest);
 
 {* Hash-based Message Authentication Code (based on SM3) }
 
-function SM3Buffer(const Buffer; Count: LongWord): TSM3Digest;
+function SM3Buffer(const Buffer; Count: Cardinal): TSM3Digest;
 {* 对数据块进行 SM3 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
@@ -171,16 +171,16 @@ const
 type
   TSM3ProcessData = array[0..63] of Byte;
 
-procedure GetULongBe(var N: LongWord; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: TCnLongWord32; B: PAnsiChar; I: Integer);
 var
-  D: LongWord;
+  D: TCnLongWord32;
 begin
-  D := (LongWord(B[I]) shl 24) or (LongWord(B[I + 1]) shl 16) or
-    (LongWord(B[I + 2]) shl 8) or (LongWord(B[I + 3]));
+  D := (TCnLongWord32(B[I]) shl 24) or (TCnLongWord32(B[I + 1]) shl 16) or
+    (TCnLongWord32(B[I + 2]) shl 8) or (TCnLongWord32(B[I + 3]));
   N := D;
 end;
 
-procedure PutULongBe(N: LongWord; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: TCnLongWord32; B: PAnsiChar; I: Integer);
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);
@@ -188,42 +188,42 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function FF0(X, Y, Z: LongWord): LongWord;
+function FF0(X, Y, Z: TCnLongWord32): TCnLongWord32;
 begin
   Result := X xor Y xor Z;
 end;
 
-function FF1(X, Y, Z: LongWord): LongWord;
+function FF1(X, Y, Z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (X and Y) or (Y and Z) or (X and Z);
 end;
 
-function GG0(X, Y, Z: LongWord): LongWord;
+function GG0(X, Y, Z: TCnLongWord32): TCnLongWord32;
 begin
   Result := X xor Y xor Z;
 end;
 
-function GG1(X, Y, Z: LongWord): LongWord;
+function GG1(X, Y, Z: TCnLongWord32): TCnLongWord32;
 begin
   Result := (X and Y) or ((not X) and Z);
 end;
 
-function SM3Shl(X: LongWord; N: Integer): LongWord;
+function SM3Shl(X: TCnLongWord32; N: Integer): TCnLongWord32;
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
-function ROTL(X: LongWord; N: Integer): LongWord;
+function ROTL(X: TCnLongWord32; N: Integer): TCnLongWord32;
 begin
   Result := SM3Shl(X, N) or (X shr (32 - N));
 end;
 
-function P0(X: LongWord): LongWord;
+function P0(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := X xor ROTL(X, 9) xor ROTL(X, 17);
 end;
 
-function P1(X: LongWord): LongWord;
+function P1(X: TCnLongWord32): TCnLongWord32;
 begin
   Result := X xor ROTL(X, 15) xor ROTL(X, 23);
 end;
@@ -248,12 +248,12 @@ end;
 // 一次处理 64byte 也就是512bit 数据块
 procedure SM3Process(var Ctx: TSM3Context; Data: PAnsiChar);
 var
-  SS1, SS2, TT1, TT2: LongWord;
-  W: array[0..67] of LongWord;
-  W1: array[0..63] of LongWord;
-  T: array[0..63] of LongWord;
-  A, B, C, D, E, F, G, H: LongWord;
-  Temp1, Temp2, Temp3, Temp4, Temp5: LongWord;
+  SS1, SS2, TT1, TT2: TCnLongWord32;
+  W: array[0..67] of TCnLongWord32;
+  W1: array[0..63] of TCnLongWord32;
+  T: array[0..63] of TCnLongWord32;
+  A, B, C, D, E, F, G, H: TCnLongWord32;
+  Temp1, Temp2, Temp3, Temp4, Temp5: TCnLongWord32;
   J: Integer;
 begin
   for J := 0 to 15 do
@@ -346,7 +346,7 @@ begin
   // 本轮无误
 end;
 
-procedure SM3UpdateW(var Context: TSM3Context; Input: PWideChar; CharLength: LongWord);
+procedure SM3UpdateW(var Context: TSM3Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
@@ -372,9 +372,9 @@ begin
 {$ENDIF}
 end;
 
-procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: LongWord);
+procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: Cardinal);
 var
-  Fill, Left: LongWord;
+  Fill, Left: Cardinal;
 begin
   if (Input = nil) or (CharLength <= 0) then
     Exit;
@@ -385,7 +385,7 @@ begin
   Ctx.Total[0] := Ctx.Total[0] + CharLength;
   Ctx.Total[0] := Ctx.Total[0] and $FFFFFFFF;
 
-  if Ctx.Total[0] < LongWord(CharLength) then
+  if Ctx.Total[0] < CharLength then
     Ctx.Total[1] := Ctx.Total[1] + 1;
 
   if (Left <> 0) and (CharLength >= Fill) then
@@ -410,8 +410,8 @@ end;
 
 procedure SM3Finish(var Ctx: TSM3Context; var Output: TSM3Digest);
 var
-  Last, Padn: LongWord;
-  High, Low: LongWord;
+  Last, Padn: Cardinal;
+  High, Low: Cardinal;
   MsgLen: array[0..7] of Byte;
 begin
   High := (Ctx.Total[0] shr 29) or (Ctx.Total[1] shl 3);
@@ -439,7 +439,7 @@ begin
   PutULongBe(Ctx.State[7], @Output, 28);
 end;
 
-function SM3(Input: PAnsiChar; Length: LongWord): TSM3Digest;
+function SM3(Input: PAnsiChar; Length: Cardinal): TSM3Digest;
 var
   Ctx: TSM3Context;
 begin
@@ -473,7 +473,7 @@ begin
   SM3Update(Ctx, @(Ctx.Ipad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
 end;
 
-procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: LongWord);
+procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: Cardinal);
 begin
   SM3Update(Ctx, Input, Length);
 end;
@@ -492,7 +492,7 @@ begin
 end;
 
 procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: LongWord; var Output: TSM3Digest);
+  Length: Cardinal; var Output: TSM3Digest);
 var
   Ctx: TSM3Context;
 begin
@@ -501,7 +501,7 @@ begin
   SM3HmacFinish(Ctx, Output);
 end;
 
-function SM3Buffer(const Buffer; Count: LongWord): TSM3Digest;
+function SM3Buffer(const Buffer; Count: Cardinal): TSM3Digest;
 var
   Context: TSM3Context;
 begin
