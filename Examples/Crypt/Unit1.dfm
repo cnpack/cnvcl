@@ -2394,6 +2394,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 1
           OnClick = btnGMulBlockClick
         end
+        object btnGHash1: TButton
+          Left = 24
+          Top = 112
+          Width = 75
+          Height = 25
+          Caption = 'GHash Test 2'
+          TabOrder = 2
+          OnClick = btnGHash1Click
+        end
       end
     end
   end

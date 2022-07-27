@@ -27,10 +27,11 @@ unit CnAEAD;
 * 备    注：AEAD 是关联数据认证加密的简称。可以用密码、关联数据与初始化向量等对
 *           数据进行加密与生成验证内容，解密时如果验证内容通不过则失败。
 *           注：字节串转换为大整数时相当于大端表达法，且大下标指向高位地址
+*           目前实现了 GHash128（似乎也叫 GMAC）
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.07.23 V1.0
+* 修改记录：2022.07.27 V1.0
 *               创建单元。
 ================================================================================
 |</PRE>}
@@ -47,12 +48,21 @@ const
 
 type
   TGHash128Buffer = array[0..GHASH_BLOCK - 1] of Byte;
+  {* GHash128 的分块}
 
   TGHash128Key = array[0..GHASH_BLOCK - 1] of Byte;
-
-  TGHash128Iv  = array[0..GHASH_BLOCK - 1] of Byte;
+  {* GHash128 的密钥}
 
   TGHash128Tag    = array[0..GHASH_BLOCK - 1] of Byte;
+  {* GHash128 的计算结果}
+
+  TGHash128Context = packed record
+  {* 用于多次分块计算的 GHash128 上下文结构}
+    HashKey:  TGHash128Buffer;
+    State:    TGHash128Buffer;
+    AADByteLen: Integer;
+    DataByteLen: Integer;
+  end;
 
 procedure GMulBlock128(var X, Y: TGHash128Buffer; var R: TGHash128Buffer);
 {* 实现 GHash 中的伽罗华域 (2^128) 上的块乘法操作。基本测试通过，也符合交换律
@@ -67,6 +77,16 @@ function GHash128(var HashKey: TGHash128Key; Data: Pointer; DataByteLength: Inte
 function GHash128Bytes(var HashKey: TGHash128Key; Data, AAD: TBytes): TGHash128Tag;
 {* 字节数组方式进行 GHash 计算，内部调用 GHash128}
 
+// 以下三个函数用于外部持续对数据进行零散的 GHash128 计算，GHash128Update 可多次被调用
+// 注意 GHash128Update 中 Data 需要尽量传整块，如不整块，末尾会补 0 计算，
+// 而不是类似于其他杂凑函数那样留存着等下一轮凑足后再整
+
+procedure GHash128Start(var Ctx: TGHash128Context; var HashKey: TGHash128Key;
+  AAD: Pointer; AADByteLength: Integer);
+
+procedure GHash128Update(var Ctx: TGHash128Context; Data: Pointer; DataByteLength: Integer);
+
+procedure GHash128Finish(var Ctx: TGHash128Context; var Output: TGHash128Tag);
 
 implementation
 
@@ -216,6 +236,93 @@ begin
     A := @AAD[0];
 
   Result := GHash128(HashKey, C, Length(Data), A, Length(AAD));
+end;
+
+procedure GHash128Start(var Ctx: TGHash128Context; var HashKey: TGHash128Key;
+  AAD: Pointer; AADByteLength: Integer);
+var
+  Y: TGHash128Buffer;
+begin
+  FillChar(Ctx.State[0], SizeOf(TGHash128Buffer), 0);  // 初始全 0
+  Move(HashKey[0], Ctx.HashKey[0], SizeOf(TGHash128Buffer));
+
+  Ctx.DataByteLen := 0;
+  Ctx.AADByteLen := AADByteLength;
+  if AAD = nil then
+    Ctx.AADByteLen := 0;
+
+  // 算整块 A
+  while AADByteLength >= GHASH_BLOCK do
+  begin
+    Move(AAD^, Y[0], GHASH_BLOCK);
+
+    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TGHash128Buffer), @Y[0]);
+    GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
+
+    AAD := Pointer(TCnNativeInt(AAD) + GHASH_BLOCK);
+    Dec(AADByteLength, GHASH_BLOCK);
+  end;
+
+  // 算余块 A，如果有的话
+  if AADByteLength > 0 then
+  begin
+    FillChar(Y[0], SizeOf(TGHash128Buffer), 0);
+    Move(AAD^, Y[0], AADByteLength);
+
+    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TGHash128Buffer), @Y[0]);
+    GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+  end;
+end;
+
+procedure GHash128Update(var Ctx: TGHash128Context; Data: Pointer; DataByteLength: Integer);
+var
+  Y: TGHash128Buffer;
+begin
+  if (Data = nil) or (DataByteLength <= 0) then
+    Exit;
+
+  Ctx.DataByteLen := Ctx.DataByteLen + DataByteLength;
+
+  // 算整块 C
+  while DataByteLength >= GHASH_BLOCK do
+  begin
+    Move(Data^, Y[0], GHASH_BLOCK);
+
+    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TGHash128Buffer), @Y[0]);
+    GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
+
+    Data := Pointer(TCnNativeInt(Data) + GHASH_BLOCK);
+    Dec(DataByteLength, GHASH_BLOCK);
+  end;
+
+  // 算余块 C，如果有的话
+  if DataByteLength > 0 then
+  begin
+    FillChar(Y[0], SizeOf(TGHash128Buffer), 0);
+    Move(Data^, Y[0], DataByteLength);
+
+    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TGHash128Buffer), @Y[0]);
+    GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+  end;
+end;
+
+procedure GHash128Finish(var Ctx: TGHash128Context; var Output: TGHash128Tag);
+var
+  Y: TGHash128Buffer;
+  AL64, DL64: Int64;
+begin
+  // 最后再算一轮长度，A 和 C 各四字节拼起来
+  FillChar(Y[0], SizeOf(TGHash128Buffer), 0);
+  AL64 := Int64ToBigEndian(Ctx.AADByteLen * 8);
+  DL64 := Int64ToBigEndian(Ctx.DataByteLen * 8);
+
+  Move(AL64, Y[0], SizeOf(Int64));
+  Move(DL64, Y[SizeOf(Int64)], SizeOf(Int64));
+
+  MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TGHash128Buffer), @Y[0]);
+  GMulBlock128(Y, Ctx.HashKey, Ctx.State); // 再乘一轮，
+
+  Move(Ctx.State[0], Output[0], SizeOf(TGHash128Tag)); // 结果放 Output
 end;
 
 end.

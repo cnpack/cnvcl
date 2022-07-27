@@ -79,6 +79,11 @@ type
   TSM4Nonce  = array[0..SM4_NONCESIZE - 1] of Byte;
   {* SM4 的 CTR 模式下的初始化向量，与一个八字节计数器拼在一起作为真正的 Iv}
 
+  TSM4Context = packed record
+    Mode: Integer;                                       {!<  encrypt/decrypt }
+    Sk: array[0..SM4_KEYSIZE * 2 - 1] of TCnLongWord32;  {!<  SM4 subkeys     }
+  end;
+
 procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
 {* 原始的 SM4 加密数据块，ECB 模式，将 Input 内的明文内容加密搁到 Output 中
   调用者自行保证 Key 指向内容至少 16 字节，Input 和 Output 指向内容长相等并且都为 Len 字节
@@ -409,6 +414,18 @@ procedure SM4DecryptStreamCTR(Source: TStream; Count: Cardinal;
   const Key: TSM4Key; const InitVector: TSM4Nonce; Dest: TStream);
 {* SM4-CTR 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
 
+// 以下仨函数为底层加密函数，开放出来供外部挨块加密使用
+
+procedure SM4SetKeyEnc(var Ctx: TSM4Context; Key: PAnsiChar);
+{* 将 16 字节 Key 塞进 Context 并设置为加密模式}
+
+procedure SM4SetKeyDec(var Ctx: TSM4Context; Key: PAnsiChar);
+{* 将 16 字节 Key 塞进 Context 并设置为解密模式}
+
+procedure SM4OneRound(SK: PCnLongWord32; Input: PAnsiChar; Output: PAnsiChar);
+{* 加解密一个块，内容从 Input 至 Output，长度 16 字节，两者可以是同一个区域
+  SK是 TSM4Context 的 Sk，加还是解由其决定}
+
 implementation
 
 resourcestring
@@ -450,12 +467,6 @@ const
     $30373E45, $4C535A61, $686F767D, $848B9299,
     $A0A7AEB5, $BCC3CAD1, $D8DFE6ED, $F4FB0209,
     $10171E25, $2C333A41, $484F565D, $646B7279 );
-
-type
-  TSM4Context = packed record
-    Mode: Integer;              {!<  encrypt/decrypt   }
-    Sk: array[0..SM4_KEYSIZE * 2 - 1] of TCnLongWord32;  {!<  SM4 subkeys       }
-  end;
 
 function Min(A, B: Integer): Integer;
 begin
@@ -881,7 +892,7 @@ begin
     if Length >= SM4_BLOCKSIZE then
     begin
       Move(Nonce^, LocalIv[0], SizeOf(TSM4Nonce));
-      T := Int64ToLittleEndian(Cnt);
+      T := Int64ToBigEndian(Cnt);
       Move(T, LocalIv[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
       SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @LocalIv[0]);  // 先加密 Iv
@@ -893,7 +904,7 @@ begin
     else
     begin
       Move(Nonce^, LocalIv[0], SizeOf(TSM4Nonce));
-      T := Int64ToLittleEndian(Cnt);
+      T := Int64ToBigEndian(Cnt);
       Move(T, LocalIv[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
       SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @LocalIv[0]);  // 先加密 Iv
@@ -989,12 +1000,12 @@ begin
   if Mode = SM4_ENCRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[1]));
-    SM4CryptOfb(Ctx, SM4_ENCRYPT, Length(Input), @(Nonce[0]), @(Input[1]), @(Output[0]));
+    SM4CryptCtr(Ctx, SM4_ENCRYPT, Length(Input), @(Nonce[0]), @(Input[1]), @(Output[0]));
   end
   else if Mode = SM4_DECRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[1])); // 注意 CTR 的解密也用的是加密！
-    SM4CryptOfb(Ctx, SM4_DECRYPT, Length(Input), @(Nonce[0]), @(Input[1]), @(Output[0]));
+    SM4CryptCtr(Ctx, SM4_DECRYPT, Length(Input), @(Nonce[0]), @(Input[1]), @(Output[0]));
   end;
 end;
 
@@ -1831,7 +1842,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToLittleEndian(Cnt);
+    T := Int64ToBigEndian(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
@@ -1857,7 +1868,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToLittleEndian(Cnt);
+    T := Int64ToBigEndian(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
@@ -1904,7 +1915,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToLittleEndian(Cnt);
+    T := Int64ToBigEndian(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
@@ -1930,7 +1941,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToLittleEndian(Cnt);
+    T := Int64ToBigEndian(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 

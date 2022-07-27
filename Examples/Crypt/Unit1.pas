@@ -311,6 +311,7 @@ type
     grpAEAD: TGroupBox;
     btnGHash: TButton;
     btnGMulBlock: TButton;
+    btnGHash1: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -397,6 +398,7 @@ type
     procedure btnChaCha20DataClick(Sender: TObject);
     procedure btnGHashClick(Sender: TObject);
     procedure btnGMulBlockClick(Sender: TObject);
+    procedure btnGHash1Click(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -2297,7 +2299,7 @@ procedure TFormCrypt.btnGMulBlockClick(Sender: TObject);
 var
   Sk, SIv, SX: string;
   Key: TGHash128Key;
-  Iv: TGHash128Iv;
+  Iv: TGHash128Buffer;
   X, Y, Z: TGHash128Buffer;
 begin
   Sk := '00BA5F76F3D8982B199920E3221ED05F';
@@ -2314,6 +2316,24 @@ begin
   GMulBlock128(X, Y, Z);  // 至少符合交换律了
 
   ShowMessage(DataToHex(@Z[0], SizeOf(TGHash128Buffer)));
+end;
+
+procedure TFormCrypt.btnGHash1Click(Sender: TObject);
+var
+  H: TGHash128Key;
+  C, A: TBytes;
+  T: TGHash128Tag;
+  Ctx: TGHash128Context;
+begin
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091');
+  A := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  GHash128Start(Ctx, H, @A[0], Length(A));
+  GHash128Update(Ctx, @C[0], Length(C));
+  GHash128Finish(Ctx, T);
+
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f 多块非整 C 和 多块非整 A
 end;
 
 end.

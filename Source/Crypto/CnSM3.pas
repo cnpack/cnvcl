@@ -62,6 +62,8 @@ type
   TSM3CalcProgressFunc = procedure (ATotal, AProgress: Int64;
     var Cancel: Boolean) of object;
 
+// 以下三个函数用于外部持续对数据进行零散的 SM3 计算，SM3Update 可多次被调用
+
 procedure SM3Start(var Ctx: TSM3Context);
 
 procedure SM3Update(var Ctx: TSM3Context; Input: PAnsiChar; CharLength: Cardinal);
