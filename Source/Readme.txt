@@ -186,6 +186,9 @@ cnpack\Source 目录内容说明：
   Cn25519.pas
     Curve25519/Ed25519 系列椭圆曲线实现单元
 
+  CnAEAD.pas
+    AEAD 关联数据认证加密算法单元
+
   CnAES.pas
     AES 算法单元
 

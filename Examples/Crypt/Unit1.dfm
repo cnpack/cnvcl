@@ -2404,8 +2404,8 @@ object FormCrypt: TFormCrypt
           OnClick = btnGHash1Click
         end
         object btnGCMEnTest: TButton
-          Left = 24
-          Top = 160
+          Left = 128
+          Top = 32
           Width = 75
           Height = 25
           Caption = 'GCM Encrypt'
@@ -2413,8 +2413,8 @@ object FormCrypt: TFormCrypt
           OnClick = btnGCMEnTestClick
         end
         object btnGCMDeTest: TButton
-          Left = 24
-          Top = 200
+          Left = 128
+          Top = 72
           Width = 75
           Height = 25
           Caption = 'GCM Decrypt'
@@ -2422,13 +2422,22 @@ object FormCrypt: TFormCrypt
           OnClick = btnGCMDeTestClick
         end
         object btnSM4GCM: TButton
-          Left = 24
-          Top = 248
+          Left = 128
+          Top = 112
           Width = 75
           Height = 25
           Caption = 'SM4 GCM'
           TabOrder = 5
           OnClick = btnSM4GCMClick
+        end
+        object btnAESCMAC: TButton
+          Left = 224
+          Top = 32
+          Width = 75
+          Height = 25
+          Caption = 'AES CMAC'
+          TabOrder = 6
+          OnClick = btnAESCMACClick
         end
       end
     end

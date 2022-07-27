@@ -315,6 +315,7 @@ type
     btnGCMEnTest: TButton;
     btnGCMDeTest: TButton;
     btnSM4GCM: TButton;
+    btnAESCMAC: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -405,6 +406,7 @@ type
     procedure btnGCMEnTestClick(Sender: TObject);
     procedure btnGCMDeTestClick(Sender: TObject);
     procedure btnSM4GCMClick(Sender: TObject);
+    procedure btnAESCMACClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -2305,8 +2307,8 @@ procedure TFormCrypt.btnGMulBlockClick(Sender: TObject);
 var
   Sk, SIv, SX: string;
   Key: TGHash128Key;
-  Iv: TGHash128Buffer;
-  X, Y, Z: TGHash128Buffer;
+  Iv: T128BitsBuffer;
+  X, Y, Z: T128BitsBuffer;
 begin
   Sk := '00BA5F76F3D8982B199920E3221ED05F';
   SIv := '384C3CEDE5CBC5560F002F94A8E4205A';
@@ -2316,12 +2318,12 @@ begin
   HexToData(SIv, @Iv[0]);
   HexToData(SX, @X[0]);
 
-  MemoryXor(@X[0], @Iv[0], SizeOf(TGHash128Buffer), @X[0]);
+  MemoryXor(@X[0], @Iv[0], SizeOf(T128BitsBuffer), @X[0]);
 
-  Move(Key[0], Y[0], SizeOf(TGHash128Buffer));
+  Move(Key[0], Y[0], SizeOf(T128BitsBuffer));
   GMulBlock128(X, Y, Z);  // 至少符合交换律了
 
-  ShowMessage(DataToHex(@Z[0], SizeOf(TGHash128Buffer)));
+  ShowMessage(DataToHex(@Z[0], SizeOf(T128BitsBuffer)));
 end;
 
 procedure TFormCrypt.btnGHash1Click(Sender: TObject);
@@ -2402,6 +2404,28 @@ begin
   C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // 例子数据来源于 RFC 8998
   ShowMessage(DataToHex(@C[0], Length(C)));  // 17F399F08C67D5EE19D0DC9969C4BB7D5FD46FD3756489069157B282BB200735D82710CA5C22F0CCFA7CBF93D496AC15A56834CBCF98C397B4024A2691233B8D
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 83DE3541E4C2B58177E065A9BF7B62EC
+end;
+
+procedure TFormCrypt.btnAESCMACClick(Sender: TObject);
+var
+  Key, M: TBytes;
+  T: TCMAC128Tag;
+begin
+  Key := HexToBytes('2b7e151628aed2a6abf7158809cf4f3c');
+  T := AES128CMAC128Bytes(Key, nil);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // bb1d6929 e9593728 7fa37d12 9b756746
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172a');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 070a16b4 6b4d4144 f79bdd9d d04a287c
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // dfa66747 de9ae630 30ca3261 1497c827
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 51f0bebf 7e3b9d92 fc497417 79363cfe
 end;
 
 end.
