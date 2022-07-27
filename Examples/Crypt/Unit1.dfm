@@ -2421,6 +2421,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 4
           OnClick = btnGCMDeTestClick
         end
+        object btnSM4GCM: TButton
+          Left = 24
+          Top = 248
+          Width = 75
+          Height = 25
+          Caption = 'SM4 GCM'
+          TabOrder = 5
+          OnClick = btnSM4GCMClick
+        end
       end
     end
   end

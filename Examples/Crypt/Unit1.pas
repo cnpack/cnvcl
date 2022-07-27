@@ -314,6 +314,7 @@ type
     btnGHash1: TButton;
     btnGCMEnTest: TButton;
     btnGCMDeTest: TButton;
+    btnSM4GCM: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -403,6 +404,7 @@ type
     procedure btnGHash1Click(Sender: TObject);
     procedure btnGCMEnTestClick(Sender: TObject);
     procedure btnGCMDeTestClick(Sender: TObject);
+    procedure btnSM4GCMClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -2385,6 +2387,21 @@ begin
 
   P := AES128GCMDecryptBytes(Key, Iv, C, AD, T);
   ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnSM4GCMClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Iv := HexToBytes('00001234567800000000ABCD');
+  Plain := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // 例子数据来源于 RFC 8998
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 17F399F08C67D5EE19D0DC9969C4BB7D5FD46FD3756489069157B282BB200735D82710CA5C22F0CCFA7CBF93D496AC15A56834CBCF98C397B4024A2691233B8D
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 83DE3541E4C2B58177E065A9BF7B62EC
 end;
 
 end.
