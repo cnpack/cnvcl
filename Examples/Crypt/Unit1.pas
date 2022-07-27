@@ -312,6 +312,8 @@ type
     btnGHash: TButton;
     btnGMulBlock: TButton;
     btnGHash1: TButton;
+    btnGCMEnTest: TButton;
+    btnGCMDeTest: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -399,6 +401,8 @@ type
     procedure btnGHashClick(Sender: TObject);
     procedure btnGMulBlockClick(Sender: TObject);
     procedure btnGHash1Click(Sender: TObject);
+    procedure btnGCMEnTestClick(Sender: TObject);
+    procedure btnGCMDeTestClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -2276,11 +2280,11 @@ var
   T: TGHash128Tag;
 begin
   HexToData('66E94BD4EF8A2C3B884CFA59CA342B2E', @H[0]);
-  T := GHash128(H, nil, 0, nil, 0);
+  GHash128(H, nil, 0, nil, 0, T);
   ShowMessage(DataToHex(@T[0], SizeOf(T))); // C、A 均为空，结果全 0
 
   C := HexToBytes('0388DACE60B6A392F328C2B971B2FE78');
-  T := GHash128(H, @C[0], Length(C), nil, 0);
+  GHash128(H, @C[0], Length(C), nil, 0, T);
   ShowMessage(DataToHex(@T[0], SizeOf(T))); // F38CBB1AD69223DCC3457AE5B6B0F885，一块整 C，没 A
 
   HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
@@ -2334,6 +2338,53 @@ begin
   GHash128Finish(Ctx, T);
 
   ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f 多块非整 C 和 多块非整 A
+end;
+
+procedure TFormCrypt.btnGCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 58e2fccefa7e3061367f1d57a4e7455a
+
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  ShowMessage(DataToHex(@C[0], Length(T)));  // 0388dace60b6a392f328c2b971b2fe78
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // ab6e47d42cec13bdf53a67b21257bddf
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbad');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 3612d2e79e3b0785561be14aaca2fccb
+end;
+
+procedure TFormCrypt.btnGCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbad');
+  C := HexToBytes('61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+  HexToData('3612d2e79e3b0785561be14aaca2fccb', @T[0]);
+
+  P := AES128GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
 end;
 
 end.

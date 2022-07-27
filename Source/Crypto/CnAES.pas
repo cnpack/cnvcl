@@ -91,7 +91,7 @@ procedure ExpandAESKeyForEncryption(const Key: TAESKey192;
 procedure ExpandAESKeyForEncryption(const Key: TAESKey256;
   var ExpandedKey: TAESExpandedKey256); overload;
 
-// Block Encryption Routines 独立块加密
+// Block Encryption Routines 独立块加密，InBuf 和 OutBuf 可以是同一块区域
 
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey128;
   var OutBuf: TAESBuffer); overload;
@@ -637,6 +637,7 @@ begin
   T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[1];
   T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[2];
   T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[3];
+
   // performing transformation 9 times
   // round 1
   W0 := ForwardTable[Byte(T0[0])]; W1 := ForwardTable[Byte(T0[1] shr 8)];
@@ -808,9 +809,12 @@ begin
   W2 := LastForwardTable[Byte(T1[1] shr 16)]; W3 := LastForwardTable[Byte(T1[2] shr 24)];
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[43];
+
   // finalizing
-  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
-  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0];
+  PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2];
+  PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey192;
@@ -824,6 +828,7 @@ begin
   T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[1];
   T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[2];
   T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[3];
+
   // performing transformation 11 times
   // round 1
   W0 := ForwardTable[Byte(T0[0])]; W1 := ForwardTable[Byte(T0[1] shr 8)];
@@ -1029,9 +1034,12 @@ begin
   W2 := LastForwardTable[Byte(T1[1] shr 16)]; W3 := LastForwardTable[Byte(T1[2] shr 24)];
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[51];
+
   // finalizing
-  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
-  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0];
+  PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2];
+  PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure EncryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey256;
@@ -1045,6 +1053,7 @@ begin
   T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[1];
   T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[2];
   T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[3];
+
   // performing transformation 13 times
   // round 1
   W0 := ForwardTable[Byte(T0[0])]; W1 := ForwardTable[Byte(T0[1] shr 8)];
@@ -1284,9 +1293,12 @@ begin
   W2 := LastForwardTable[Byte(T1[1] shr 16)]; W3 := LastForwardTable[Byte(T1[2] shr 24)];
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[59];
+
   // finalizing
-  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
-  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0];
+  PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2];
+  PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure ExpandAESKeyForDecryption(var ExpandedKey: TAESExpandedKey128); overload;
@@ -1483,6 +1495,7 @@ begin
   T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[41];
   T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[42];
   T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[43];
+
   // performing transformations 9 times
   // round 1
   W0 := InverseTable[Byte(T0[0])]; W1 := InverseTable[Byte(T0[3] shr 8)];
@@ -1654,9 +1667,12 @@ begin
   W2 := LastInverseTable[Byte(T1[1] shr 16)]; W3 := LastInverseTable[Byte(T1[0] shr 24)];
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
+
   // finalizing
-  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
-  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0];
+  PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2];
+  PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey192;
@@ -1670,6 +1686,7 @@ begin
   T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[49];
   T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[50];
   T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[51];
+
   // performing transformations 11 times
   // round 1
   W0 := InverseTable[Byte(T0[0])]; W1 := InverseTable[Byte(T0[3] shr 8)];
@@ -1875,9 +1892,12 @@ begin
   W2 := LastInverseTable[Byte(T1[1] shr 16)]; W3 := LastInverseTable[Byte(T1[0] shr 24)];
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
+
   // finalizing
-  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
-  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0];
+  PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2];
+  PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 procedure DecryptAES(const InBuf: TAESBuffer; const Key: TAESExpandedKey256;
@@ -1891,6 +1911,7 @@ begin
   T0[1] := PCnLongWord32(@InBuf[4])^ xor Key[57];
   T0[2] := PCnLongWord32(@InBuf[8])^ xor Key[58];
   T0[3] := PCnLongWord32(@InBuf[12])^ xor Key[59];
+
   // performing transformations 13 times
   // round 1
   W0 := InverseTable[Byte(T0[0])]; W1 := InverseTable[Byte(T0[3] shr 8)];
@@ -2130,9 +2151,12 @@ begin
   W2 := LastInverseTable[Byte(T1[1] shr 16)]; W3 := LastInverseTable[Byte(T1[0] shr 24)];
   T0[3] := (W0 xor ((W1 shl 8) or (W1 shr 24)) xor ((W2 shl 16) or (W2 shr 16))
     xor ((W3 shl 24) or (W3 shr 8))) xor Key[3];
+
   // finalizing
-  PCnLongWord32(@OutBuf[0])^ := T0[0]; PCnLongWord32(@OutBuf[4])^ := T0[1];
-  PCnLongWord32(@OutBuf[8])^ := T0[2]; PCnLongWord32(@OutBuf[12])^ := T0[3];
+  PCnLongWord32(@OutBuf[0])^ := T0[0];
+  PCnLongWord32(@OutBuf[4])^ := T0[1];
+  PCnLongWord32(@OutBuf[8])^ := T0[2];
+  PCnLongWord32(@OutBuf[12])^ := T0[3];
 end;
 
 // Stream Encryption Routines (ECB mode)

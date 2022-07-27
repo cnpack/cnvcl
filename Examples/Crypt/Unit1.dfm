@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 745
     Height = 457
-    ActivePage = TabSheet1
+    ActivePage = tsDES
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -2402,6 +2402,24 @@ object FormCrypt: TFormCrypt
           Caption = 'GHash Test 2'
           TabOrder = 2
           OnClick = btnGHash1Click
+        end
+        object btnGCMEnTest: TButton
+          Left = 24
+          Top = 160
+          Width = 75
+          Height = 25
+          Caption = 'GCM Encrypt'
+          TabOrder = 3
+          OnClick = btnGCMEnTestClick
+        end
+        object btnGCMDeTest: TButton
+          Left = 24
+          Top = 200
+          Width = 75
+          Height = 25
+          Caption = 'GCM Decrypt'
+          TabOrder = 4
+          OnClick = btnGCMDeTestClick
         end
       end
     end
