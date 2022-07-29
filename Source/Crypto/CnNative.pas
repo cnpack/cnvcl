@@ -303,22 +303,40 @@ function CurrentByteOrderIsLittleEndian: Boolean;
 {* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址}
 
 function Int64ToBigEndian(Value: Int64): Int64;
-{* 确保 Int64 值为大端，小端环境中进行转换}
+{* 确保 Int64 值为大端，在小端环境中会进行转换}
 
 function Int32ToBigEndian(Value: Integer): Integer;
-{* 确保 Int32 值为大端，小端环境中进行转换}
+{* 确保 Int32 值为大端，在小端环境中会进行转换}
 
 function Int16ToBigEndian(Value: SmallInt): SmallInt;
-{* 确保 Int16 值为大端，小端环境中进行转换}
+{* 确保 Int16 值为大端，在小端环境中会进行转换}
 
 function Int64ToLittleEndian(Value: Int64): Int64;
-{* 确保 Int64 值为小端，大端环境中进行转换}
+{* 确保 Int64 值为小端，在大端环境中会进行转换}
 
 function Int32ToLittleEndian(Value: Integer): Integer;
-{* 确保 Int32 值为小端，大端环境中进行转换}
+{* 确保 Int32 值为小端，在大端环境中会进行转换}
 
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
-{* 确保 Int16 值为小端，大端环境中进行转换}
+{* 确保 Int16 值为小端，在大端环境中会进行转换}
+
+function Int64HostToNetwork(Value: Int64): Int64;
+{* 将 Int64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
+function Int32HostToNetwork(Value: Integer): Integer;
+{* 将 Int32 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
+function Int16HostToNetwork(Value: SmallInt): SmallInt;
+{* 将 Int16 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
+function Int64NetworkToHost(Value: Int64): Int64;
+{* 将 Int64 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+
+function Int32NetworkToHost(Value: Integer): Integer;
+{* 将 Int32值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+
+function Int16NetworkToHost(Value: SmallInt): SmallInt;
+{* 将 Int16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
 
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
 {* 按字节顺序倒置一块内存块，字节内部不变}
@@ -401,6 +419,9 @@ function HexToBytes(const Hex: string): TBytes;
 
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
+
+procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
+{* 从 Source 移动最多 MostLen 个字节到 Dest 中}
 
 procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
 {* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
@@ -522,6 +543,56 @@ begin
     Result := Value
   else
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+end;
+
+function Int64HostToNetwork(Value: Int64): Int64;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    SwapInt64(Value)
+  else
+    Result := Value;
+end;
+
+function Int32HostToNetwork(Value: Integer): Integer;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
+      or Integer((Value and $00FF0000) shr 8) or Integer((Value and $FF000000) shr 24)
+  else
+    Result := Value;
+end;
+
+function Int16HostToNetwork(Value: SmallInt): SmallInt;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
+  else
+    Result := Value;
+end;
+
+function Int64NetworkToHost(Value: Int64): Int64;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    SwapInt64(Value)
+  else
+    Result := Value;
+end;
+
+function Int32NetworkToHost(Value: Integer): Integer;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
+      or Integer((Value and $00FF0000) shr 8) or Integer((Value and $FF000000) shr 24)
+  else
+    Result := Value;
+end;
+
+function Int16NetworkToHost(Value: SmallInt): SmallInt;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
+  else
+    Result := Value;
 end;
 
 function ReverseBitsInInt8(V: Byte): Byte;
@@ -1151,6 +1222,19 @@ begin
     Data[I] := Data[L - I - 1];
     Data[L - I - 1] := T;
   end;
+end;
+
+procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
+begin
+  if MostLen <= 0 then
+    Exit;
+
+  if ByteLen > MostLen then
+    ByteLen := MostLen
+  else if ByteLen < MostLen then
+    FillChar(Dest, MostLen, 0);
+
+  Move(Source, Dest, ByteLen);
 end;
 
 procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
