@@ -27,7 +27,7 @@ unit CnAEAD;
 * 备    注：AEAD 是关联数据认证加密的简称。可以用密码、关联数据与初始化向量等对
 *           数据进行加密与生成验证内容，解密时如果验证内容通不过则失败。
 *           注：字节串转换为大整数时相当于大端表达法，且大下标指向高位地址
-*           目前实现了 GHash128（似乎也叫 GMAC）以及 AES128/192/256/SM4 的 GCM
+*           目前实现了 GHash128（似乎也叫 GMAC）以及 AES128/192/256/SM4 的 GCM/CCM
 *           GCM 参考文档《The Galois/Counter Mode of Operation (GCM)》以及
 *           《NIST Special Publication 800-38D》以及 RFC 8998 的例子数据
 *           CMAC 参考文档 NIST Special Publication 800-38B:
@@ -36,6 +36,9 @@ unit CnAEAD;
 *           CCM 参考文档 NIST Special Publication 800-38C:
 *          《Recommendation for Block Cipher Modes of Operation:
 *           The CCM Mode for Authentication and Confidentiality》以及 RFC 3610 的例子数据(AES-128)
+*           注意 CCM 有两个编译期的参数，摘要长度 CCM_M_LEN 和明文长度的字节长度 CCM_L_LEN
+*           NIST 800-38C 例子中是 4、8，RFC 3610 例子中是 8、2，RFC 8998 是 16、？
+*           俩参数不同是无法通过 CCM 正确加解密的。
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -268,35 +271,83 @@ function SM4CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM
 {* 使用密码、临时数据、额外数据对明文进行 SM4-CCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
+// ======================= AES/SM4-CCM 字节数组解密函数 ========================
+
+function AES128CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文
+  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+
+function AES192CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文
+  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+
+function AES256CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文
+  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+
+function SM4CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对密文进行 SM4-GCM 解密并验证，成功则返回明文
+  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+
 // ======================== AES/SM4-CCM 数据块加密函数 =========================
 
 procedure AES128CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 AES-128-CCM 加密，返回密文至 OutEnData 所指的区域中
+{* 使用密码、临时数据、额外数据对明文进行 AES-128-CCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
 procedure AES192CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 AES-192-CCM 加密，返回密文至 OutEnData 所指的区域中
+{* 使用密码、临时数据、额外数据对明文进行 AES-192-CCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
 procedure AES256CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 AES-256-CCM 加密，返回密文至 OutEnData 所指的区域中
+{* 使用密码、临时数据、额外数据对明文进行 AES-256-CCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
 procedure SM4CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 SM4-CCM 加密，返回密文至 OutEnData 所指的区域中
+{* 使用密码、临时数据、额外数据对明文进行 SM4-CCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+
+// ======================== AES/SM4-GCM 数据块解密函数 =========================
+
+function AES128CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+{* 使用密码、临时数据、额外数据对密文进行 AES-128-CCM 解密并验证，
+  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+
+function AES192CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+{* 使用密码、临时数据、额外数据对密文进行 AES-192-CCM 解密并验证，
+  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+
+function AES256CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+{* 使用密码、临时数据、额外数据对密文进行 AES-256-CCM 解密并验证，
+  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+
+function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+{* 使用密码、临时数据、额外数据对密文进行 SM4-CCM 解密并验证，
+  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
 implementation
 
@@ -1383,6 +1434,284 @@ procedure SM4CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; No
 begin
   CCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
     AAD, AADByteLength, OutEnData, OutTag, aetSM4);
+end;
+
+function CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; PlainData: Pointer; var InTag: TCCM128Tag;
+  EncryptType: TAEADEncryptType): Boolean;
+var
+  CMacCtx: TAEADContext;
+  CtrCtx: TAEADContext;
+  B0: T128BitsBuffer;   // CMAC 认证时的 Iv
+  CX: T128BitsBuffer;   // CMAC 的计算结果存放的中间块
+  A0: T128BitsBuffer;   // 附加数据块的第一块，以及后面做 CMAC 过程中的原始数据的中间块
+  S0: T128BitsBuffer;   // 第一个加密块用于验证，不参与明文异或
+  SX: T128BitsBuffer;   // CTR 的计算结果存放的中间块
+  Ctr: T128BitsBuffer;  // CTR 的计数块
+  Cnt, T: Int64;
+  P: PCnByte;
+  Tag: TCCM128Tag;
+begin
+  if Key = nil then
+    KeyByteLength := 0;
+  if Nonce = nil then
+    NonceByteLength := 0;
+  if EnData = nil then
+    EnByteLength := 0;
+  if AAD = nil then
+    AADByteLength := 0;
+
+  FillChar(B0[0], SizeOf(T128BitsBuffer), 0);
+  FillChar(Ctr[0], SizeOf(T128BitsBuffer), 0);
+
+//   +----+-+-+-+-+-+-+-+-+    |L'(L) 决定
+//   | 位 |7|6|5|4|3|2|1|0|    |Nonce 的长度
+//   +----+-+-+-+-+-+-+-+-+
+//   |    |0|A|  M' |  L' |
+//   +----+-+-+-+-+-+-+-+-+
+
+  B0[0] := 4 * (CCM_M_LEN - 2) + CCM_L_LEN - 1;
+  if (AAD <> nil) and (AADByteLength > 0) then
+    B0[0] := B0[0] + 64;   // B0 块的第一个字节准备好，A 位是 1 表示有 AAD
+
+  Ctr[0] := CCM_L_LEN - 1;
+
+  // 填充 15 - L 个 Nonce
+  MoveMost(Nonce^, B0[1], NonceByteLength, CCM_NONCE);
+  MoveMost(Nonce^, Ctr[1], NonceByteLength, CCM_NONCE);
+
+  // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
+  P := PCnByte(@T);
+  Inc(P, SizeOf(Int64) - CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
+
+  T := Int64HostToNetwork(EnByteLength);
+  Move(P^, B0[CCM_NONCE + 1], CCM_L_LEN);
+
+  // 初始化 CMAC/CTR 的 Key 等，准备做 CMAC/CTR
+  AEADEncryptInit(CMacCtx, Key, KeyByteLength, EncryptType);
+  AEADEncryptInit(CtrCtx, Key, KeyByteLength, EncryptType);
+
+  // Ctr 的后八个字节是计数器，现初始化为 0，并且计算 S0 作为验证字段之一
+  Cnt := 0;
+  AEADEncryptBlock(CtrCtx, Ctr, S0, EncryptType);
+
+  // CMAC 先算 B0，中间结果放 CX，也就是 RFC 中的 CBC Iv Out
+  AEADEncryptBlock(CMacCtx, B0, CX, EncryptType);
+
+  // 有 AAD 的话接着造 A0
+  if (B0[0] and $40 <> 0) then
+  begin
+    FillChar(A0[0], AEAD_BLOCK, 0);
+
+    if AADByteLength < $1000 - $100 then
+    begin
+      PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
+
+      // 第一块准备好，可能有塞不满、满以及超，三种情况
+      MoveMost(AAD^, A0[2], AADByteLength, AEAD_BLOCK - 2);
+
+      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      AAD := Pointer(TCnNativeInt(AAD) + AEAD_BLOCK - 2);
+      Dec(AADByteLength, AEAD_BLOCK - 2);
+    end
+    else
+    begin
+      // A0[0] 前俩字节准备好
+      A0[0] := $FF;
+      A0[1] := $FE;
+      PCnLongWord32(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
+
+      // 第一块准备好，可能有塞不满、满以及超，三种情况
+      MoveMost(AAD^, A0[6], AADByteLength, AEAD_BLOCK - 6);
+
+      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      AAD := Pointer(TCnNativeInt(AAD) + AEAD_BLOCK - 6);
+      Dec(AADByteLength, AEAD_BLOCK - 6);
+    end;
+
+    // 不满或刚满的话，AADByteLength 此时小于等于 0，不继续
+    while AADByteLength >= AEAD_BLOCK do
+    begin
+      Move(AAD^, A0[0], AEAD_BLOCK);
+
+      // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      AAD := Pointer(TCnNativeInt(AAD) + AEAD_BLOCK);
+      Dec(AADByteLength, AEAD_BLOCK);
+    end;
+
+    if AADByteLength > 0 then // 还有剩余时才再多一块
+    begin
+      FillChar(A0[0], AEAD_BLOCK, 0);
+      Move(AAD^, A0[0], AADByteLength);
+
+      // CMAC 最后一块
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+    end;
+  end;
+
+  // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
+  // 并且开始加密块并异或解密
+  while EnByteLength >= AEAD_BLOCK do
+  begin
+    Move(EnData^, A0[0], AEAD_BLOCK); // 密文放 A0
+
+    // 计数器加一并生成加密块
+    Inc(Cnt);
+    T := Int64HostToNetwork(Cnt);
+    Move(P^, Ctr[CCM_NONCE + 1], CCM_L_LEN);
+
+    // 得到本块的加密结果，放 SX 中
+    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+    // 并与密文异或得到明文
+    MemoryXor(@SX[0], @A0[0], AEAD_BLOCK, PlainData);
+
+    // 后续块（也可能是最后一块）明文和 CX 异或，再 CMAC 之，结果放回 CX
+    MemoryXor(PlainData, @CX[0], AEAD_BLOCK, @CX[0]);
+    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+    // 递增准备处理后面的
+    EnData := Pointer(TCnNativeInt(EnData) + AEAD_BLOCK);
+    PlainData := Pointer(TCnNativeInt(PlainData) + AEAD_BLOCK);
+    Dec(EnByteLength, AEAD_BLOCK);
+  end;
+
+  if EnByteLength > 0 then // 还有剩余时才再多一块
+  begin
+    FillChar(A0[0], AEAD_BLOCK, 0);
+    Move(EnData^, A0[0], EnByteLength);
+
+    // 计数器加一并生成加密块
+    Inc(Cnt);
+    T := Int64HostToNetwork(Cnt);
+    Move(P^, Ctr[CCM_NONCE + 1], CCM_L_LEN);
+
+    // 得到本块的加密结果，放 SX 中
+    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+    // 并与最后一块密文异或得到明文先放 A0 里供整块计算
+    MemoryXor(@SX[0], @A0[0], EnByteLength, @A0[0]);
+
+    // CMAC 最后一块
+    MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+    // 存下最后一块明文
+    Move(A0[0], PlainData^, EnByteLength);
+  end;
+
+  // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
+  MemoryXor(@CX[0], @S0[0], AEAD_BLOCK, @CX[0]);
+
+  // CMAC 结果移动至 Tag 中
+  FillChar(Tag[0], SizeOf(TCCM128Tag), 0);
+  Move(CX[0], Tag[0], CCM_M_LEN);
+
+  // 比对 Tag 是否相同
+  Result := CompareMem(@Tag[0], @InTag[0], CCM_M_LEN);
+end;
+
+function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag;
+  EncryptType: TAEADEncryptType): TBytes;
+var
+  K, N, P, A: Pointer;
+begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
+
+  if Nonce = nil then
+    N := nil
+  else
+    N := @Nonce[0];
+
+  if EnData = nil then
+    P := nil
+  else
+    P := @EnData[0];
+
+  if AAD = nil then
+    A := nil
+  else
+    A := @AAD[0];
+
+  if Length(EnData) > 0 then
+  begin
+    SetLength(Result, Length(EnData));
+    if not CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
+      Length(AAD), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
+      SetLength(Result, 0);
+  end
+  else
+  begin
+    CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
+      Length(AAD), nil, InTag, EncryptType); // 没密文，其实 Tag 比对成功与否都没用
+  end;
+end;
+
+function AES128CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetAES128);
+end;
+
+function AES192CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetAES192);
+end;
+
+function AES256CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetAES256);
+end;
+
+function SM4CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMDecryptBytes(Key, Nonce, EnData, AAD, InTag, aetSM4);
+end;
+
+function AES128CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+begin
+  Result := CCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength,
+    AAD, AADByteLength, OutPlainData, InTag, aetAES128);
+end;
+
+function AES192CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+begin
+  Result := CCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength,
+    AAD, AADByteLength, OutPlainData, InTag, aetAES192);
+end;
+
+function AES256CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+begin
+  Result := CCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength,
+    AAD, AADByteLength, OutPlainData, InTag, aetAES256);
+end;
+
+function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCCM128Tag): Boolean;
+begin
+  Result := CCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength,
+    AAD, AADByteLength, OutPlainData, InTag, aetSM4);
 end;
 
 end.

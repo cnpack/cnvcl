@@ -2374,7 +2374,7 @@ object FormCrypt: TFormCrypt
         Top = 24
         Width = 689
         Height = 369
-        Caption = 'AEAD'
+        Caption = 'AEAD Test'
         TabOrder = 0
         object btnGHash: TButton
           Left = 24
@@ -2439,14 +2439,23 @@ object FormCrypt: TFormCrypt
           TabOrder = 6
           OnClick = btnAESCMACClick
         end
-        object btnAESCCM: TButton
+        object btnAESCCMEnc: TButton
           Left = 224
           Top = 72
           Width = 75
           Height = 25
-          Caption = 'AES CCM'
+          Caption = 'AES CCM Enc'
           TabOrder = 7
-          OnClick = btnAESCCMClick
+          OnClick = btnAESCCMEncClick
+        end
+        object btnAESCCMDec: TButton
+          Left = 224
+          Top = 112
+          Width = 75
+          Height = 25
+          Caption = 'AES CCM Dec'
+          TabOrder = 8
+          OnClick = btnAESCCMDecClick
         end
       end
     end

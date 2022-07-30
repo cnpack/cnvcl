@@ -316,7 +316,8 @@ type
     btnGCMDeTest: TButton;
     btnSM4GCM: TButton;
     btnAESCMAC: TButton;
-    btnAESCCM: TButton;
+    btnAESCCMEnc: TButton;
+    btnAESCCMDec: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -408,14 +409,14 @@ type
     procedure btnGCMDeTestClick(Sender: TObject);
     procedure btnSM4GCMClick(Sender: TObject);
     procedure btnAESCMACClick(Sender: TObject);
-    procedure btnAESCCMClick(Sender: TObject);
+    procedure btnAESCCMEncClick(Sender: TObject);
+    procedure btnAESCCMDecClick(Sender: TObject);
   private
-    { Private declarations }
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
     function FromHex(const Hex: string): AnsiString;
   public
-    { Public declarations }
+
   end;
 
 var
@@ -2430,7 +2431,7 @@ begin
   ShowMessage(DataToHex(@T[0], SizeOf(T))); // 51f0bebf 7e3b9d92 fc497417 79363cfe
 end;
 
-procedure TFormCrypt.btnAESCCMClick(Sender: TObject);
+procedure TFormCrypt.btnAESCCMEncClick(Sender: TObject);
 var
   Key, Nonce, AAD, P, C: TBytes;
   T: TCCM128Tag;
@@ -2457,6 +2458,35 @@ begin
   C := AES128CCMEncryptBytes(Key, Nonce, P, AAD, T);
   ShowMessage(DataToHex(@T[0], SizeOf(T))); // 17E8D12CFDF926E0
   ShowMessage(DataToHex(@C[0], Length(C))); // 588C979A 61C663D2 F066D0C2 C0F98980 6D5F6B61 DAC384
+end;
+
+procedure TFormCrypt.btnAESCCMDecClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCCM128Tag;
+begin
+  // NIST 例子。注意从例子数据中倒推，须保证 CnAEAD 头部声明中的 Tag 4 字节，长 8 字节，也就是 CCM_M_LEN = 4; CCM_L_LEN = 8;
+  Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
+  Nonce := HexToBytes('10111213141516');
+  C := HexToBytes('7162015b');
+  AAD := HexToBytes('0001020304050607');
+  HexToData('4dac255d', @T[0]);
+
+  SetLength(P, Length(C));
+  if AES128CCMDecrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce), @C[0],
+    Length(C), @AAD[0], Length(AAD), @P[0], T) then
+    ShowMessage(DataToHex(@P[0], Length(P)));   // 20212223
+
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  C := HexToBytes('588C979A61C663D2F066D0C2C0F989806D5F6B61DAC384');
+  AAD := HexToBytes('0001020304050607');
+  HexToData('17E8D12CFDF926E0', @T[0]); // 这句在 CnAEAD 头部未正确声明 CCM_M_LEN 和 CCM_L_LEN 时会出错
+
+  P := AES128CCMEncryptBytes(Key, Nonce, C, AAD, T);
+  if P <> nil then
+    ShowMessage(DataToHex(@P[0], Length(P))); // 08090A0B0C0D0E0F101112131415161718191A1B1C1D1E
 end;
 
 end.
