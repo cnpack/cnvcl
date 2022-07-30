@@ -2366,7 +2366,7 @@ object FormCrypt: TFormCrypt
         end
       end
     end
-    object TabSheet1: TTabSheet
+    object tsAEAD: TTabSheet
       Caption = 'AEAD'
       ImageIndex = 22
       object grpAEAD: TGroupBox
@@ -2438,6 +2438,15 @@ object FormCrypt: TFormCrypt
           Caption = 'AES CMAC'
           TabOrder = 6
           OnClick = btnAESCMACClick
+        end
+        object btnAESCCM: TButton
+          Left = 224
+          Top = 72
+          Width = 75
+          Height = 25
+          Caption = 'AES CCM'
+          TabOrder = 7
+          OnClick = btnAESCCMClick
         end
       end
     end

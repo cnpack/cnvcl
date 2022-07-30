@@ -142,6 +142,7 @@ type
   {* 有符号字节数组}
 
   PCnByte = ^Byte; // 不引用 Windows 中的 PByte
+  PCnWord = ^Word;
 
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
   {* 位操作类型}
@@ -421,7 +422,8 @@ procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
 
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
-{* 从 Source 移动最多 MostLen 个字节到 Dest 中}
+{* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
+  如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
 
 procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
 {* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
@@ -548,7 +550,7 @@ end;
 function Int64HostToNetwork(Value: Int64): Int64;
 begin
   if CurrentByteOrderIsLittleEndian then
-    SwapInt64(Value)
+    Result := SwapInt64(Value)
   else
     Result := Value;
 end;
@@ -573,7 +575,7 @@ end;
 function Int64NetworkToHost(Value: Int64): Int64;
 begin
   if CurrentByteOrderIsLittleEndian then
-    SwapInt64(Value)
+    REsult := SwapInt64(Value)
   else
     Result := Value;
 end;

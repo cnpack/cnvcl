@@ -30,9 +30,12 @@ unit CnAEAD;
 *           目前实现了 GHash128（似乎也叫 GMAC）以及 AES128/192/256/SM4 的 GCM
 *           GCM 参考文档《The Galois/Counter Mode of Operation (GCM)》以及
 *           《NIST Special Publication 800-38D》以及 RFC 8998 的例子数据
-*           CMAC 参考文档《NIST Special Publication 800-38B：
-*           Recommendation for Block Cipher Modes of Operation:
+*           CMAC 参考文档 NIST Special Publication 800-38B:
+*           《Recommendation for Block Cipher Modes of Operation:
 *           The CMAC Mode for Authentication》 以及 RFC 4993 的例子数据(AES-128)
+*           CCM 参考文档 NIST Special Publication 800-38C:
+*          《Recommendation for Block Cipher Modes of Operation:
+*           The CCM Mode for Authentication and Confidentiality》以及 RFC 3610 的例子数据(AES-128)
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -52,6 +55,12 @@ const
   AEAD_BLOCK  = 16;       // GHASH/GCM/CMAC 以及 AES/SM4 等的分组都是 16 字节
 
   GCM_NONCE_LENGTH = 12;  // 12 字节的 Nonce 与计数器拼成完整 Iv
+
+  CCM_M_LEN = 8;         // CCM 认证 Tag 默认长 12 字节，取值范围 4 到 16，实际存放的是 (M - 2) / 2
+
+  CCM_L_LEN = 2;         // 明文长度所占的字节数，取值范围 2 到 8，8 代表 Int64，实际存放的是 L - 1
+
+  CCM_NONCE = 15 - CCM_L_LEN;
 
 type
   T128BitsBuffer = array[0..AEAD_BLOCK - 1] of Byte;
@@ -83,6 +92,9 @@ type
   TCMAC128Tag    = array[0..AEAD_BLOCK - 1] of Byte;
   {* CMAC 的计算结果}
 
+  TCCM128Tag = array[0..CCM_M_LEN - 1] of Byte;
+  {* CCM 的计算结果}
+
 procedure GMulBlock128(var X, Y: T128BitsBuffer; var R: T128BitsBuffer);
 {* 实现 GHash 中的伽罗华域 (2^128) 上的块乘法操作。基本测试通过，也符合交换律
   注意 2 次幂有限域乘法里的加法是模 2 加也就是异或（也等同于模 2 减）
@@ -112,47 +124,47 @@ procedure GHash128Finish(var Ctx: TGHash128Context; var Output: TGHash128Tag);
 
 // ======================= AES/SM4-GCM 字节数组加密函数 ========================
 
-function AES128GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function AES128GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 AES-128-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function AES192GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function AES192GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 AES-192-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function AES256GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function AES256GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 AES-256-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function SM4GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function SM4GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
 // ======================== AES/SM4-GCM 数据块加密函数 =========================
 
 procedure AES128GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 {* 使用密码、初始化向量、额外数据对明文进行 AES-128-GCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
 procedure AES192GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 {* 使用密码、初始化向量、额外数据对明文进行 AES-192-GCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
 procedure AES256GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 {* 使用密码、初始化向量、额外数据对明文进行 AES-256-GCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
 procedure SM4GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 {* 使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
@@ -160,47 +172,47 @@ procedure SM4GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByt
 
 // ======================= AES/SM4-GCM 字节数组解密函数 ========================
 
-function AES128GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function AES192GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function AES192GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function AES256GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function AES256GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function SM4GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function SM4GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 SM4-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 // ======================== AES/SM4-GCM 数据块解密函数 =========================
 
 function AES128GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-128-GCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
 function AES192GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-192-GCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
 function AES256GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-256-GCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
 function SM4GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 {* 使用密码、初始化向量、额外数据对密文进行 SM4-GCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
@@ -238,6 +250,54 @@ function SM4CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCMAC128Tag;
 {* 以指定的 Key 对数据进行 SM4-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
 
+// ======================= AES/SM4-CCM 字节数组加密函数 ========================
+
+function AES128CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对明文进行 AES-128-CCM 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+
+function AES192CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对明文进行 AES-192-CCM 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+
+function AES256CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对明文进行 AES-256-CCM 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+
+function SM4CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+{* 使用密码、临时数据、额外数据对明文进行 SM4-CCM 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+
+// ======================== AES/SM4-CCM 数据块加密函数 =========================
+
+procedure AES128CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+{* 使用密码、初始化向量、额外数据对明文进行 AES-128-CCM 加密，返回密文至 OutEnData 所指的区域中
+  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
+  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+
+procedure AES192CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+{* 使用密码、初始化向量、额外数据对明文进行 AES-192-CCM 加密，返回密文至 OutEnData 所指的区域中
+  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
+  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+
+procedure AES256CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+{* 使用密码、初始化向量、额外数据对明文进行 AES-256-CCM 加密，返回密文至 OutEnData 所指的区域中
+  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
+  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+
+procedure SM4CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+{* 使用密码、初始化向量、额外数据对明文进行 SM4-CCM 加密，返回密文至 OutEnData 所指的区域中
+  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
+  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+
 implementation
 
 uses
@@ -245,6 +305,7 @@ uses
 
 const
   GHASH_POLY: T128BitsBuffer = ($E1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
   CMAC_POLY: T128BitsBuffer =  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, $87);
 
 type
@@ -276,12 +337,7 @@ end;
 
 procedure MoveMost128(const Source; var Dest; ByteLen: Integer);
 begin
-  if ByteLen > AEAD_BLOCK then
-    ByteLen := AEAD_BLOCK
-  else if ByteLen < AEAD_BLOCK then
-    FillChar(Dest, AEAD_BLOCK, 0);
-
-  Move(Source, Dest, ByteLen);
+  MoveMost(Source, Dest, ByteLen, AEAD_BLOCK);
 end;
 
 {
@@ -549,12 +605,12 @@ end;
 
 // 根据 Key、Iv、明文和额外数据，计算 GCM 加密密文与认证结果
 procedure GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer;
-  AuthDataByteLength: Integer; EnData: Pointer; var OutTag: TGCM128Tag;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; EnData: Pointer; var OutTag: TGCM128Tag;
   EncryptType: TAEADEncryptType);
 var
   H: TGHash128Key;
-  Y, Y0: T128BitsBuffer;// Y 拼合了计数器的内容
+  Y, Y0: T128BitsBuffer; // Y 拼合了计数器的内容
   Cnt, M: Cardinal;      // 计数器
   C: T128BitsBuffer;      // 加密中间数据存储地
   AeadCtx: TAEADContext;
@@ -564,8 +620,8 @@ begin
     KeyByteLength := 0;
   if Iv = nil then
     IvByteLength := 0;
-  if AuthData = nil then
-    AuthDataByteLength := 0;
+  if AAD = nil then
+    AADByteLength := 0;
 
   AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
@@ -592,7 +648,7 @@ begin
   AEADEncryptBlock(AeadCtx, T128BitsBuffer(Y), T128BitsBuffer(Y0), EncryptType);
 
   // 初始化 GHash
-  GHash128Start(GHashCtx, H, AuthData, AuthDataByteLength);
+  GHash128Start(GHashCtx, H, AAD, AADByteLength);
 
   // 开始循环加密整块
   while PlainByteLength >= AEAD_BLOCK do
@@ -649,8 +705,8 @@ end;
 
 // 根据 Key、Iv、明文和额外数据，计算 GCM 加密密文与认证结果
 function GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer;
-  AuthDataByteLength: Integer; PlainData: Pointer; var InTag: TGCM128Tag;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; PlainData: Pointer; var InTag: TGCM128Tag;
   EncryptType: TAEADEncryptType): Boolean;
 var
   H: TGHash128Key;
@@ -665,8 +721,8 @@ begin
     KeyByteLength := 0;
   if Iv = nil then
     IvByteLength := 0;
-  if AuthData = nil then
-    AuthDataByteLength := 0;
+  if AAD = nil then
+    AADByteLength := 0;
 
   AEADEncryptInit(AeadCtx, Key, KeyByteLength, EncryptType);
 
@@ -693,7 +749,7 @@ begin
   AEADEncryptBlock(AeadCtx, T128BitsBuffer(Y), T128BitsBuffer(Y0), EncryptType);
 
   // 初始化 GHash
-  GHash128Start(GHashCtx, H, AuthData, AuthDataByteLength);
+  GHash128Start(GHashCtx, H, AAD, AADByteLength);
 
   // 开始循环加密整块
   while EnByteLength >= AEAD_BLOCK do
@@ -750,7 +806,7 @@ begin
   Result := CompareMem(@Tag[0], @InTag[0], SizeOf(TGHash128Tag));
 end;
 
-function GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag;
+function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag;
   EncryptType: TAEADEncryptType): TBytes;
 var
   K, I, P, A: Pointer;
@@ -770,25 +826,25 @@ begin
   else
     P := @PlainData[0];
 
-  if AuthData = nil then
+  if AAD = nil then
     A := nil
   else
-    A := @AuthData[0];
+    A := @AAD[0];
 
   if Length(PlainData) > 0 then
   begin
     SetLength(Result, Length(PlainData));
     GCMEncrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
-      Length(AuthData), @Result[0], OutTag, EncryptType);
+      Length(AAD), @Result[0], OutTag, EncryptType);
   end
   else
   begin
     GCMEncrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
-      Length(AuthData), nil, OutTag, EncryptType);
+      Length(AAD), nil, OutTag, EncryptType);
   end;
 end;
 
-function GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag;
+function GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag;
   EncryptType: TAEADEncryptType): TBytes;
 var
   K, I, P, A: Pointer;
@@ -808,127 +864,127 @@ begin
   else
     P := @EnData[0];
 
-  if AuthData = nil then
+  if AAD = nil then
     A := nil
   else
-    A := @AuthData[0];
+    A := @AAD[0];
 
   if Length(EnData) > 0 then
   begin
     SetLength(Result, Length(EnData));
     if not GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AuthData), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
+      Length(AAD), @Result[0], InTag, EncryptType) then // Tag 比对失败则返回
       SetLength(Result, 0);
   end
   else
   begin
     GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AuthData), nil, InTag, EncryptType); // 没密文，其实 Tag 比对成功与否都没用
+      Length(AAD), nil, InTag, EncryptType); // 没密文，其实 Tag 比对成功与否都没用
   end;
 end;
 
-function AES128GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function AES128GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMEncryptBytes(Key, Iv, PlainData, AuthData, OutTag, aetAES128);
+  Result := GCMEncryptBytes(Key, Iv, PlainData, AAD, OutTag, aetAES128);
 end;
 
-function AES192GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function AES192GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMEncryptBytes(Key, Iv, PlainData, AuthData, OutTag, aetAES192);
+  Result := GCMEncryptBytes(Key, Iv, PlainData, AAD, OutTag, aetAES192);
 end;
 
-function AES256GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function AES256GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMEncryptBytes(Key, Iv, PlainData, AuthData, OutTag, aetAES256);
+  Result := GCMEncryptBytes(Key, Iv, PlainData, AAD, OutTag, aetAES256);
 end;
 
-function SM4GCMEncryptBytes(Key, Iv, PlainData, AuthData: TBytes; var OutTag: TGCM128Tag): TBytes;
+function SM4GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMEncryptBytes(Key, Iv, PlainData, AuthData, OutTag, aetSM4);
+  Result := GCMEncryptBytes(Key, Iv, PlainData, AAD, OutTag, aetSM4);
 end;
 
 procedure AES128GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 begin
   GCMEncrypt(Key, KeyByteLength, Iv, IvByteLength, PlainData, PlainByteLength,
-    AuthData, AuthDataByteLength, OutEnData, OutTag, aetAES128);
+    AAD, AADByteLength, OutEnData, OutTag, aetAES128);
 end;
 
 procedure AES192GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 begin
   GCMEncrypt(Key, KeyByteLength, Iv, IvByteLength, PlainData, PlainByteLength,
-    AuthData, AuthDataByteLength, OutEnData, OutTag, aetAES192);
+    AAD, AADByteLength, OutEnData, OutTag, aetAES192);
 end;
 
 procedure AES256GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 begin
   GCMEncrypt(Key, KeyByteLength, Iv, IvByteLength, PlainData, PlainByteLength,
-    AuthData, AuthDataByteLength, OutEnData, OutTag, aetAES256);
+    AAD, AADByteLength, OutEnData, OutTag, aetAES256);
 end;
 
 procedure SM4GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TGCM128Tag);
 begin
   GCMEncrypt(Key, KeyByteLength, Iv, IvByteLength, PlainData, PlainByteLength,
-    AuthData, AuthDataByteLength, OutEnData, OutTag, aetSM4);
+    AAD, AADByteLength, OutEnData, OutTag, aetSM4);
 end;
 
-function AES128GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMDecryptBytes(Key, Iv, EnData, AuthData, InTag, aetAES128);
+  Result := GCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES128);
 end;
 
-function AES192GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function AES192GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMDecryptBytes(Key, Iv, EnData, AuthData, InTag, aetAES192);
+  Result := GCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES192);
 end;
 
-function AES256GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function AES256GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMDecryptBytes(Key, Iv, EnData, AuthData, InTag, aetAES256);
+  Result := GCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES256);
 end;
 
-function SM4GCMDecryptBytes(Key, Iv, EnData, AuthData: TBytes; var InTag: TGCM128Tag): TBytes;
+function SM4GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 begin
-  Result := GCMDecryptBytes(Key, Iv, EnData, AuthData, InTag, aetSM4);
+  Result := GCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetSM4);
 end;
 
 function AES128GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 begin
   Result := GCMDecrypt(Key, KeyByteLength, Iv, IvByteLength, EnData, EnByteLength,
-    AuthData, AuthDataByteLength, OutPlainData, InTag, aetAES128);
+    AAD, AADByteLength, OutPlainData, InTag, aetAES128);
 end;
 
 function AES192GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 begin
   Result := GCMDecrypt(Key, KeyByteLength, Iv, IvByteLength, EnData, EnByteLength,
-    AuthData, AuthDataByteLength, OutPlainData, InTag, aetAES192);
+    AAD, AADByteLength, OutPlainData, InTag, aetAES192);
 end;
 
 function AES256GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 begin
   Result := GCMDecrypt(Key, KeyByteLength, Iv, IvByteLength, EnData, EnByteLength,
-    AuthData, AuthDataByteLength, OutPlainData, InTag, aetAES256);
+    AAD, AADByteLength, OutPlainData, InTag, aetAES256);
 end;
 
 function SM4GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AuthData: Pointer; AuthDataByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TGCM128Tag): Boolean;
 begin
   Result := GCMDecrypt(Key, KeyByteLength, Iv, IvByteLength, EnData, EnByteLength,
-    AuthData, AuthDataByteLength, OutPlainData, InTag, aetSM4);
+    AAD, AADByteLength, OutPlainData, InTag, aetSM4);
 end;
 
 procedure CMAC128(var Key: TCMAC128Key; Data: Pointer; DataByteLength: Integer;
@@ -1055,6 +1111,278 @@ var
 begin
   MoveMost128(Key^, Key128[0], KeyByteLength);
   CMAC128(Key128, Data, DataByteLength, aetSM4, Result);
+end;
+
+procedure CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
+  NonceByteLength: Integer; Data: Pointer; DataByteLength: Integer;
+  AAD: Pointer; AADByteLength: Integer; EnData: Pointer; var OutTag: TCCM128Tag;
+  EncryptType: TAEADEncryptType);
+var
+  CMacCtx: TAEADContext;
+  CtrCtx: TAEADContext;
+  B0: T128BitsBuffer;   // CMAC 认证时的 Iv
+  CX: T128BitsBuffer;   // CMAC 的计算结果存放的中间块
+  A0: T128BitsBuffer;   // 附加数据块的第一块，以及后面做 CMAC 过程中的原始数据的中间块
+  S0: T128BitsBuffer;   // 第一个加密块用于验证，不参与明文异或
+  SX: T128BitsBuffer;   // CTR 的计算结果存放的中间块
+  Ctr: T128BitsBuffer;  // CTR 的计数块
+  Cnt, T: Int64;
+  P: PCnByte;
+begin
+  if Key = nil then
+    KeyByteLength := 0;
+  if Nonce = nil then
+    NonceByteLength := 0;
+  if Data = nil then
+    DataByteLength := 0;
+  if AAD = nil then
+    AADByteLength := 0;
+
+  FillChar(B0[0], SizeOf(T128BitsBuffer), 0);
+  FillChar(Ctr[0], SizeOf(T128BitsBuffer), 0);
+
+//   +----+-+-+-+-+-+-+-+-+    |L'(L) 决定
+//   | 位 |7|6|5|4|3|2|1|0|    |Nonce 的长度
+//   +----+-+-+-+-+-+-+-+-+
+//   |    |0|A|  M' |  L' |
+//   +----+-+-+-+-+-+-+-+-+
+
+  B0[0] := 4 * (CCM_M_LEN - 2) + CCM_L_LEN - 1;
+  if (AAD <> nil) and (AADByteLength > 0) then
+    B0[0] := B0[0] + 64;   // B0 块的第一个字节准备好，A 位是 1 表示有 AAD
+
+  Ctr[0] := CCM_L_LEN - 1;
+
+  // 填充 15 - L 个 Nonce
+  MoveMost(Nonce^, B0[1], NonceByteLength, CCM_NONCE);
+  MoveMost(Nonce^, Ctr[1], NonceByteLength, CCM_NONCE);
+
+  // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
+  P := PCnByte(@T);
+  Inc(P, SizeOf(Int64) - CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
+
+  T := Int64HostToNetwork(DataByteLength);
+  Move(P^, B0[CCM_NONCE + 1], CCM_L_LEN);
+
+  // 初始化 CMAC/CTR 的 Key 等，准备做 CMAC/CTR
+  AEADEncryptInit(CMacCtx, Key, KeyByteLength, EncryptType);
+  AEADEncryptInit(CtrCtx, Key, KeyByteLength, EncryptType);
+
+  // Ctr 的后八个字节是计数器，现初始化为 0，并且计算 S0 作为验证字段之一
+  Cnt := 0;
+  AEADEncryptBlock(CtrCtx, Ctr, S0, EncryptType);
+
+  // CMAC 先算 B0，中间结果放 CX，也就是 RFC 中的 CBC Iv Out
+  AEADEncryptBlock(CMacCtx, B0, CX, EncryptType);
+
+  // 有 AAD 的话接着造 A0
+  if (B0[0] and $40 <> 0) then
+  begin
+    FillChar(A0[0], AEAD_BLOCK, 0);
+
+    if AADByteLength < $1000 - $100 then
+    begin
+      PCnWord(@A0[0])^ := Int16HostToNetwork(SmallInt(AADByteLength)); // 共俩字节
+
+      // 第一块准备好，可能有塞不满、满以及超，三种情况
+      MoveMost(AAD^, A0[2], AADByteLength, AEAD_BLOCK - 2);
+
+      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      AAD := Pointer(TCnNativeInt(AAD) + AEAD_BLOCK - 2);
+      Dec(AADByteLength, AEAD_BLOCK - 2);
+    end
+    else
+    begin
+      // A0[0] 前俩字节准备好
+      A0[0] := $FF;
+      A0[1] := $FE;
+      PCnLongWord32(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
+
+      // 第一块准备好，可能有塞不满、满以及超，三种情况
+      MoveMost(AAD^, A0[6], AADByteLength, AEAD_BLOCK - 6);
+
+      // 这一块和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      AAD := Pointer(TCnNativeInt(AAD) + AEAD_BLOCK - 6);
+      Dec(AADByteLength, AEAD_BLOCK - 6);
+    end;
+
+    // 不满或刚满的话，AADByteLength 此时小于等于 0，不继续
+    while AADByteLength >= AEAD_BLOCK do
+    begin
+      Move(AAD^, A0[0], AEAD_BLOCK);
+
+      // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+      // 递增准备处理后面的
+      AAD := Pointer(TCnNativeInt(AAD) + AEAD_BLOCK);
+      Dec(AADByteLength, AEAD_BLOCK);
+    end;
+
+    if AADByteLength > 0 then // 还有剩余时才再多一块
+    begin
+      FillChar(A0[0], AEAD_BLOCK, 0);
+      Move(AAD^, A0[0], AADByteLength);
+
+      // CMAC 最后一块
+      MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+      AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+    end;
+  end;
+
+  // 算完了 AAD 的 CMAC 值，开始算 Data 的，继续用 A0
+  // 并且开始加密块
+  while DataByteLength >= AEAD_BLOCK do
+  begin
+    Move(Data^, A0[0], AEAD_BLOCK); // 明文放 A0
+
+    // 计数器加一并生成加密块
+    Inc(Cnt);
+    T := Int64HostToNetwork(Cnt);
+    Move(P^, Ctr[CCM_NONCE + 1], CCM_L_LEN);
+
+    // 得到本块的加密结果，放 SX 中
+    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+    // 并与明文异或得到密文
+    MemoryXor(@SX[0], @A0[0], AEAD_BLOCK, EnData);
+
+    // 后续块（也可能是最后一块）和 CX 异或，再 CMAC 之，结果放回 CX
+    MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+
+    // 递增准备处理后面的
+    Data := Pointer(TCnNativeInt(Data) + AEAD_BLOCK);
+    EnData := Pointer(TCnNativeInt(EnData) + AEAD_BLOCK);
+    Dec(DataByteLength, AEAD_BLOCK);
+  end;
+
+  if DataByteLength > 0 then // 还有剩余时才再多一块
+  begin
+    FillChar(A0[0], AEAD_BLOCK, 0);
+    Move(Data^, A0[0], DataByteLength);
+
+    // 计数器加一并生成加密块
+    Inc(Cnt);
+    T := Int64HostToNetwork(Cnt);
+    Move(P^, Ctr[CCM_NONCE + 1], CCM_L_LEN);
+
+    // 得到本块的加密结果，放 SX 中
+    AEADEncryptBlock(CtrCtx, Ctr, SX, EncryptType);
+    // 并与最后一块明文异或得到密文
+    MemoryXor(@SX[0], @A0[0], DataByteLength, EnData);
+
+    // CMAC 最后一块
+    MemoryXor(@A0[0], @CX[0], AEAD_BLOCK, @CX[0]);
+    AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
+  end;
+
+  // 取出最后 CMAC 的结果与 CTR 0 的加密结果异或
+  MemoryXor(@CX[0], @S0[0], AEAD_BLOCK, @CX[0]);
+
+  // 移动至 OutTag 中返回
+  FillChar(OutTag[0], SizeOf(TCCM128Tag), 0);
+  Move(CX[0], OutTag[0], CCM_M_LEN);
+end;
+
+function CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag;
+  EncryptType: TAEADEncryptType): TBytes;
+var
+  K, N, P, A: Pointer;
+begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
+
+  if Nonce = nil then
+    N := nil
+  else
+    N := @Nonce[0];
+
+  if PlainData = nil then
+    P := nil
+  else
+    P := @PlainData[0];
+
+  if AAD = nil then
+    A := nil
+  else
+    A := @AAD[0];
+
+  if Length(PlainData) > 0 then
+  begin
+    SetLength(Result, Length(PlainData));
+    CCMEncrypt(K, Length(Key), N, Length(Nonce), P, Length(PlainData), A,
+      Length(AAD), @Result[0], OutTag, EncryptType);
+    if Length(Result) > 0 then
+      Exit;
+  end
+  else
+  begin
+    CCMEncrypt(K, Length(Key), N, Length(Nonce), P, Length(PlainData), A,
+      Length(AAD), nil, OutTag, EncryptType);
+  end;
+end;
+
+function AES128CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMEncryptBytes(Key, Nonce, PlainData, AAD, OutTag, aetAES128);
+end;
+
+function AES192CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMEncryptBytes(Key, Nonce, PlainData, AAD, OutTag, aetAES192);
+end;
+
+function AES256CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMEncryptBytes(Key, Nonce, PlainData, AAD, OutTag, aetAES256);
+end;
+
+function SM4CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM128Tag): TBytes;
+begin
+  Result := CCMEncryptBytes(Key, Nonce, PlainData, AAD, OutTag, aetSM4);
+end;
+
+procedure AES128CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+begin
+  CCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
+    AAD, AADByteLength, OutEnData, OutTag, aetAES128);
+end;
+
+procedure AES192CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+begin
+  CCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
+    AAD, AADByteLength, OutEnData, OutTag, aetAES192);
+end;
+
+procedure AES256CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+begin
+  CCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
+    AAD, AADByteLength, OutEnData, OutTag, aetAES256);
+end;
+
+procedure SM4CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCCM128Tag);
+begin
+  CCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
+    AAD, AADByteLength, OutEnData, OutTag, aetSM4);
 end;
 
 end.

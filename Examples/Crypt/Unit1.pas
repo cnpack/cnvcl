@@ -307,7 +307,7 @@ type
     edtChaCha20Key: TEdit;
     btnChaCha20Data: TButton;
     rbSm4Ctr: TRadioButton;
-    TabSheet1: TTabSheet;
+    tsAEAD: TTabSheet;
     grpAEAD: TGroupBox;
     btnGHash: TButton;
     btnGMulBlock: TButton;
@@ -316,6 +316,7 @@ type
     btnGCMDeTest: TButton;
     btnSM4GCM: TButton;
     btnAESCMAC: TButton;
+    btnAESCCM: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -407,6 +408,7 @@ type
     procedure btnGCMDeTestClick(Sender: TObject);
     procedure btnSM4GCMClick(Sender: TObject);
     procedure btnAESCMACClick(Sender: TObject);
+    procedure btnAESCCMClick(Sender: TObject);
   private
     { Private declarations }
     procedure InitTeaKeyData;
@@ -2426,6 +2428,35 @@ begin
   M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710');
   T := AES128CMAC128Bytes(Key, M);
   ShowMessage(DataToHex(@T[0], SizeOf(T))); // 51f0bebf 7e3b9d92 fc497417 79363cfe
+end;
+
+procedure TFormCrypt.btnAESCCMClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCCM128Tag;
+begin
+  // NIST 例子。注意从例子数据中倒推，须保证 CnAEAD 头部声明中的 Tag 4 字节，长 8 字节，也就是 CCM_M_LEN = 4; CCM_L_LEN = 8;
+  Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
+  Nonce := HexToBytes('10111213141516');
+  P := HexToBytes('20212223');
+  AAD := HexToBytes('0001020304050607');
+
+  SetLength(C, Length(P));
+  AES128CCMEncrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce), @P[0],
+    Length(P), @AAD[0], Length(AAD), @C[0], T);
+
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));   // 4dac255d
+  ShowMessage(DataToHex(@C[0], Length(C)));   // 7162015b
+
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  P := HexToBytes('08090A0B0C0D0E0F101112131415161718191A1B1C1D1E');
+  AAD := HexToBytes('0001020304050607');
+
+  C := AES128CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 17E8D12CFDF926E0
+  ShowMessage(DataToHex(@C[0], Length(C))); // 588C979A 61C663D2 F066D0C2 C0F98980 6D5F6B61 DAC384
 end;
 
 end.
