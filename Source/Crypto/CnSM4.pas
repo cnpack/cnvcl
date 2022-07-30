@@ -892,7 +892,7 @@ begin
     if Length >= SM4_BLOCKSIZE then
     begin
       Move(Nonce^, LocalIv[0], SizeOf(TSM4Nonce));
-      T := Int64ToBigEndian(Cnt);
+      T := Int64HostToNetwork(Cnt);
       Move(T, LocalIv[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
       SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @LocalIv[0]);  // 先加密 Iv
@@ -904,7 +904,7 @@ begin
     else
     begin
       Move(Nonce^, LocalIv[0], SizeOf(TSM4Nonce));
-      T := Int64ToBigEndian(Cnt);
+      T := Int64HostToNetwork(Cnt);
       Move(T, LocalIv[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
       SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @LocalIv[0]);  // 先加密 Iv
@@ -1842,7 +1842,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToBigEndian(Cnt);
+    T := Int64HostToNetwork(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
@@ -1868,7 +1868,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToBigEndian(Cnt);
+    T := Int64HostToNetwork(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
@@ -1915,7 +1915,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToBigEndian(Cnt);
+    T := Int64HostToNetwork(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 
@@ -1941,7 +1941,7 @@ begin
       raise EStreamError.Create(SReadError);
 
     // Nonce 和计数器拼成 Iv
-    T := Int64ToBigEndian(Cnt);
+    T := Int64HostToNetwork(Cnt);
     Move(InitVector[0], Vector[0], SizeOf(TSM4Nonce));
     Move(T, Vector[SizeOf(TSM4Nonce)], SizeOf(Int64));
 

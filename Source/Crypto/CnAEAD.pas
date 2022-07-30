@@ -491,8 +491,8 @@ begin
 
   // 最后再算一轮长度，A 和 C 各四字节拼起来，拼接要求符合网络标准与阅读习惯也就是 BigEndian
   FillChar(Y[0], SizeOf(T128BitsBuffer), 0);
-  AL64 := Int64ToBigEndian(AADByteLength * 8);
-  DL64 := Int64ToBigEndian(DataByteLength * 8);
+  AL64 := Int64HostToNetwork(AADByteLength * 8);
+  DL64 := Int64HostToNetwork(DataByteLength * 8);
 
   Move(AL64, Y[0], SizeOf(Int64));
   Move(DL64, Y[SizeOf(Int64)], SizeOf(Int64));
@@ -595,8 +595,8 @@ var
 begin
   // 最后再算一轮长度，A 和 C 各四字节拼起来
   FillChar(Y[0], SizeOf(T128BitsBuffer), 0);
-  AL64 := Int64ToBigEndian(Ctx.AADByteLen * 8);
-  DL64 := Int64ToBigEndian(Ctx.DataByteLen * 8);
+  AL64 := Int64HostToNetwork(Ctx.AADByteLen * 8);
+  DL64 := Int64HostToNetwork(Ctx.DataByteLen * 8);
 
   Move(AL64, Y[0], SizeOf(Int64));
   Move(DL64, Y[SizeOf(Int64)], SizeOf(Int64));
@@ -685,7 +685,7 @@ begin
   begin
     Move(Iv^, Y[0], GCM_NONCE_LENGTH);
     Cnt := 1;
-    M := Int32ToBigEndian(Cnt);
+    M := Int32HostToNetwork(Cnt);
     Move(M, Y[GCM_NONCE_LENGTH], SizeOf(M));
   end
   else
@@ -706,7 +706,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32ToBigEndian(Cnt);
+    M := Int32HostToNetwork(Cnt);
     Move(M, Y[GCM_NONCE_LENGTH], SizeOf(M));
 
     // 对 Y 加密 C 暂时得到本块的加密结果
@@ -731,7 +731,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32ToBigEndian(Cnt);
+    M := Int32HostToNetwork(Cnt);
     Move(M, Y[GCM_NONCE_LENGTH], SizeOf(M));
 
     // 对 Y 加密 C 暂时得到本块的加密结果
@@ -786,7 +786,7 @@ begin
   begin
     Move(Iv^, Y[0], GCM_NONCE_LENGTH);
     Cnt := 1;
-    M := Int32ToBigEndian(Cnt);
+    M := Int32HostToNetwork(Cnt);
     Move(M, Y[GCM_NONCE_LENGTH], SizeOf(M));
   end
   else
@@ -807,7 +807,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32ToBigEndian(Cnt);
+    M := Int32HostToNetwork(Cnt);
     Move(M, Y[GCM_NONCE_LENGTH], SizeOf(M));
 
     // 密文先进行 GHash
@@ -832,7 +832,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32ToBigEndian(Cnt);
+    M := Int32HostToNetwork(Cnt);
     Move(M, Y[GCM_NONCE_LENGTH], SizeOf(M));
 
     // 密文先进行 GHash

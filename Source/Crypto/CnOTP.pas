@@ -161,7 +161,7 @@ var
 
 begin
   // 计算动态口令过程
-  T := Int64ToBigEndian(EpochSeconds div FPeriod);
+  T := Int64HostToNetwork(EpochSeconds div FPeriod);
 
   L := SizeOf(Int64) + SizeOf(Integer) + Length(FChallengeCode);
   if L < CN_ID_MIN_LENGTH then
@@ -170,7 +170,7 @@ begin
   SetLength(ID, L);
   Move(T, ID[0], SizeOf(Int64));
 
-  Cnt := Int32ToBigEndian(FCounter);
+  Cnt := Int32HostToNetwork(FCounter);
   Move(Cnt, ID[SizeOf(Int64)], SizeOf(Integer));
   if Length(FChallengeCode) > 0 then
     Move(FChallengeCode[0], ID[SizeOf(Int64) + SizeOf(Integer)], Length(FChallengeCode));
@@ -197,21 +197,21 @@ begin
 
       // 拆成 8 个 Cardinal 相加
       Move(S[0], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[4], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[8], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[12], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[16], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[20], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[24], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[28], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
     end
     else // SM4 计算
     begin
@@ -251,13 +251,13 @@ begin
 
       // 拆成 4 个 Cardinal 相加
       Move(S[0], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[4], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[8], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
       Move(S[12], TD, SizeOf(LongWord));
-      OD := OD + Int32ToBigEndian(TD);
+      OD := OD + Int32HostToNetwork(TD);
     end;
 
     TenPow := Trunc(IntPower(10, FDigits));
