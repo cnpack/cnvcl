@@ -185,27 +185,23 @@ begin
   P.Assign(FCurve25519.Generator);
   Q.Assign(FCurve25519.Generator);
 
-  if FCurve25519.PointAddPoint(P, Q, P) then
-  begin
-    // P 是 2*G
-    if FCurve25519.IsPointOnCurve(P) then
-      ShowMessage('Curve 25519 G + G is on this Curve');
-  end;
+  FCurve25519.PointAddPoint(P, Q, P);
+  // P 是 2*G
+  if FCurve25519.IsPointOnCurve(P) then
+    ShowMessage('Curve 25519 G + G is on this Curve');
 
-  if FCurve25519.PointAddPoint(P, Q, P) then
-  begin
-    // P 是 3*G
-    if FCurve25519.IsPointOnCurve(P) then
-      ShowMessage('Curve 25519 G + 2*G is on this Curve');
-  end;
+  FCurve25519.PointAddPoint(P, Q, P);
+  // P 是 3*G
+  if FCurve25519.IsPointOnCurve(P) then
+    ShowMessage('Curve 25519 G + 2*G is on this Curve');
 
   P.Assign(FCurve25519.Generator);
   Q.Assign(FCurve25519.Generator);
   FCurve25519.PointInverse(Q);
 
-  if FCurve25519.PointAddPoint(P, Q, P) then
-    if P.IsZero then
-      ShowMessage('Curve 25519 G + -G is Zero');
+  FCurve25519.PointAddPoint(P, Q, P);
+  if P.IsZero then
+    ShowMessage('Curve 25519 G + -G is Zero');
 
   Q.Free;
   P.Free;
@@ -221,27 +217,23 @@ begin
   P.Assign(FEd25519.Generator);
   Q.Assign(FEd25519.Generator);
 
-  if FEd25519.PointAddPoint(P, Q, P) then
-  begin
-    // P 是 2*G
-    if FEd25519.IsPointOnCurve(P) then
-      ShowMessage('Curve 25519 G + G is on this Curve');
-  end;
+  FEd25519.PointAddPoint(P, Q, P);
+  // P 是 2*G
+  if FEd25519.IsPointOnCurve(P) then
+    ShowMessage('Curve 25519 G + G is on this Curve');
 
-  if FEd25519.PointAddPoint(P, Q, P) then
-  begin
-    // P 是 3*G
-    if FEd25519.IsPointOnCurve(P) then
-      ShowMessage('Ed 25519 G + 2*G is on this Curve');
-  end;
+  FEd25519.PointAddPoint(P, Q, P);
+  // P 是 3*G
+  if FEd25519.IsPointOnCurve(P) then
+    ShowMessage('Ed 25519 G + 2*G is on this Curve');
 
   P.Assign(FEd25519.Generator);
   Q.Assign(FEd25519.Generator);
   FEd25519.PointInverse(Q);
 
-  if FEd25519.PointAddPoint(P, Q, P) then
-    if FEd25519.IsNeutualPoint(P) then
-      ShowMessage('Ed 25519 G + -G is Zero');
+  FEd25519.PointAddPoint(P, Q, P);
+  if FEd25519.IsNeutualPoint(P) then
+    ShowMessage('Ed 25519 G + -G is Zero');
 
   Q.Free;
   P.Free;
@@ -261,13 +253,13 @@ begin
   FCurve25519.PointAddPoint(P, Q, P);
 
   // P 是 3*G，Q 是 G
-  if FCurve25519.PointSubPoint(P, Q, Q) then // Q 是 2*G
-    if FCurve25519.IsPointOnCurve(Q) then
-      ShowMessage('Curve 25519 3*G - G is on this Curve');
+  FCurve25519.PointSubPoint(P, Q, Q); // Q 是 2*G
+  if FCurve25519.IsPointOnCurve(Q) then
+    ShowMessage('Curve 25519 3*G - G is on this Curve');
 
-  if FCurve25519.PointSubPoint(P, P, Q) then // Q 是无限远点
-    if Q.IsZero then
-      ShowMessage('Curve 25519 G - G is Zero');
+  FCurve25519.PointSubPoint(P, P, Q); // Q 是无限远点
+  if Q.IsZero then
+    ShowMessage('Curve 25519 G - G is Zero');
 
   Q.Free;
   P.Free;
@@ -287,13 +279,13 @@ begin
   FEd25519.PointAddPoint(P, Q, P);
 
   // P 是 3*G，Q 是 G
-  if FEd25519.PointSubPoint(P, Q, Q) then // Q 是 2*G
-    if FEd25519.IsPointOnCurve(Q) then
-      ShowMessage('Curve 25519 3*G - G is on this Curve');
+  FEd25519.PointSubPoint(P, Q, Q); // Q 是 2*G
+  if FEd25519.IsPointOnCurve(Q) then
+    ShowMessage('Curve 25519 3*G - G is on this Curve');
 
-  if FEd25519.PointSubPoint(P, P, Q) then // Q 是无限远点
-    if FEd25519.IsNeutualPoint(Q) then
-      ShowMessage('Curve 25519 G - G is Zero');
+  FEd25519.PointSubPoint(P, P, Q); // Q 是无限远点
+  if FEd25519.IsNeutualPoint(Q) then
+    ShowMessage('Curve 25519 G - G is Zero');
 
   Q.Free;
   P.Free;
@@ -612,20 +604,17 @@ begin
     Q := TCnEccPoint.Create;
 
     P.Assign(FCurve25519.Generator);
-    if CnCurve25519PointToEd25519Point(Q, P) then
-    begin
-      ShowMessage(Q.ToString);
-      if FEd25519.IsPointOnCurve(Q) then
-        ShowMessage('Converted Ed25519 Point is on Curve');
-    end;
+    CnCurve25519PointToEd25519Point(Q, P);
+    ShowMessage(Q.ToString);
+    if FEd25519.IsPointOnCurve(Q) then
+      ShowMessage('Converted Ed25519 Point is on Curve');
 
     P.Assign(FEd25519.Generator);
-    if CnEd25519PointToCurve25519Point(Q, P) then
-    begin
-      ShowMessage(Q.ToString);
-      if FCurve25519.IsPointOnCurve(Q) then
-        ShowMessage('Converted Curve25519 Point is on Curve');
-    end;
+    CnEd25519PointToCurve25519Point(Q, P);
+    ShowMessage(Q.ToString);
+
+    if FCurve25519.IsPointOnCurve(Q) then
+      ShowMessage('Converted Curve25519 Point is on Curve');
   finally
     Q.Free;
     P.Free;

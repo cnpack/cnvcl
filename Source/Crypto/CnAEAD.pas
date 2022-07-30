@@ -27,7 +27,8 @@ unit CnAEAD;
 * 备    注：AEAD 是关联数据认证加密的简称。可以用密码、关联数据与初始化向量等对
 *           数据进行加密与生成验证内容，解密时如果验证内容通不过则失败。
 *           注：字节串转换为大整数时相当于大端表达法，且大下标指向高位地址
-*           目前实现了 GHash128（似乎也叫 GMAC）以及 AES128/192/256/SM4 的 GCM/CCM
+*           目前实现了 GHash128（似乎也叫 GMAC）以及 CMAC，并基于两者实现了
+*           AES128/192/256/SM4 的 GCM/CCM（但 CCM 里的 CMAC 和单纯的 CMAC 还不同）
 *           GCM 参考文档《The Galois/Counter Mode of Operation (GCM)》以及
 *           《NIST Special Publication 800-38D》以及 RFC 8998 的例子数据
 *           CMAC 参考文档 NIST Special Publication 800-38B:

@@ -32,7 +32,9 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.14 V1.4
+* 修改记录：2022.07.30 V1.5
+*               去除部分无用的判断
+*           2022.06.14 V1.4
 *               实现 Ed25519 对文件的签名与验证
 *           2022.06.12 V1.3
 *               实现 Field64 多项式拆项的有限域快速算法，
@@ -123,11 +125,11 @@ type
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
     {* 计算某点 P 的 k * P 值，值重新放入 P，内部实现等同于 CnECC 中同名方法}
 
-    function PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
+    procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
       此处的加法的几何意义相当于单位圆上的与正 Y 轴的夹角角度相加法则，
       中性点(0, 1)，等同于 Weierstrass 曲线中的无穷远点}
-    function PointSubPoint(P, Q, Diff: TCnEccPoint): Boolean;
+    procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P，也就是 X 值取负}
@@ -185,10 +187,10 @@ type
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
     {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现等同于 CnECC 中同名方法}
 
-    function PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
+    procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
       此处的加法的几何意义类似于 Weierstrass 椭圆曲线上的连线或切线交点再取负，同样存在无穷远点(0, 0)}
-    function PointSubPoint(P, Q, Diff: TCnEccPoint): Boolean;
+    procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
@@ -197,10 +199,10 @@ type
 
     // ============ 蒙哥马利阶梯算法中的仅 X 的射影坐标点加速算法 ==============
 
-    function PointToXAffinePoint(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+    procedure PointToXAffinePoint(DestPoint, SourcePoint: TCnEccPoint);
     {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 供蒙哥马利阶梯算法使用，
       其实就是 Y 置 1，SourcePoint 和 DestPoint 可以相同}
-    function XAffinePointToPoint(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+    procedure XAffinePointToPoint(DestPoint, SourcePoint: TCnEccPoint);
     {* 将只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点，其实就是求解 Y 并替换 Z，
       SourcePoint 和 DestPoint 可以相同}
 
@@ -220,9 +222,9 @@ type
 
     // ======= 蒙哥马利阶梯算法中的仅 X 的射影坐标点 2^51 多项式加速算法 =======
 
-    function PointToField64XAffinePoint(var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint): Boolean;
+    procedure PointToField64XAffinePoint(var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
     {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 并转换为多项式点，供蒙哥马利阶梯算法使用}
-    function Field64XAffinePointToPoint(DestPoint: TCnEccPoint; var SourcePoint: TCn25519Field64EccPoint): Boolean;
+    procedure Field64XAffinePointToPoint(DestPoint: TCnEccPoint; var SourcePoint: TCn25519Field64EccPoint);
     {* 将多项式形式的只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点}
 
     procedure MontgomeryLadderField64PointXDouble(var Dbl: TCn25519Field64EccPoint; var P: TCn25519Field64EccPoint);
@@ -273,9 +275,9 @@ type
     function GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey): Boolean;
     {* 生成一对 Ed25519 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHA512 运算而来}
 
-    function PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint): Boolean;
+    procedure PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint);
     {* 将 32 字节值转换为坐标点，涉及到求解}
-    function PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data): Boolean;
+    procedure PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data);
     {* 将点坐标转换成 32 字节值，拼 Y 并放 X 正负一位}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
@@ -288,9 +290,9 @@ type
 
     // ================= 扩展扭曲爱德华坐标（四元）点加速算法 ==================
 
-    function ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point): Boolean;
+    procedure ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    function ExtendedPointSubPoint(P, Q, Diff: TCnEcc4Point): Boolean;
+    procedure ExtendedPointSubPoint(P, Q, Diff: TCnEcc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure ExtendedPointInverse(P: TCnEcc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
@@ -359,23 +361,23 @@ function CnEcc4PointToEccPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEcc4Point
   Prime: TCnBigNumber): Boolean;
 {* 大数范围内的扩展仿射坐标到普通坐标的点转换}
 
-function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+procedure CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint);
 {* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点，Source 和 Dest 可以相同}
 
-function CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+procedure CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint);
 {* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点，Source 和 Dest 可以相同}
 
-function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
-{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，返回转换是否成功}
+procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);
+{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组}
 
-function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean): Boolean;
-{* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式，返回转换是否成功，
-  如果成功，P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X}
+procedure CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean);
+{* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式
+  P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X}
 
-function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Boolean;
+procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
 {* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
 
-function CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber): Boolean;
+procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
 {* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
 
 // ===================== Ed25519 椭圆曲线数字签名验证算法 ======================
@@ -603,8 +605,8 @@ begin
 end;
 
 // 根据随机私钥，生成公钥与 Ed25519 签名使用的 Hash 种子
-function CalcBigNumbersFromPrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
-  OutMulFactor, OutHashPrefix: TCnBigNumber): Boolean;
+procedure CalcBigNumbersFromPrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+  OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
   Dig: TSHA512Digest;
 begin
@@ -628,8 +630,6 @@ begin
   // 后 32 字节作为 Hash 的入口参数
   if OutHashPrefix <> nil then
     OutHashPrefix.SetBinary(@Dig[CN_25519_BLOCK_BYTESIZE], CN_25519_BLOCK_BYTESIZE);
-
-  Result := True;
 end;
 
 { TCnTwistedEdwardsCurve }
@@ -672,7 +672,7 @@ var
   X, Y, L, R: TCnBigNumber;
 begin
   // 判断 au^2 + v^2 是否等于 1 + du^2v^2，其中 U 用 X 代替，V 用 Y 代替
-  Result := False;
+
   X := nil;
   Y := nil;
   L := nil;
@@ -680,28 +680,20 @@ begin
 
   try
     X := F25519BigNumberPool.Obtain;
-    if BigNumberCopy(X, P.X) = nil then
-      Exit;
-    if not BigNumberDirectMulMod(X, X, X, FFiniteFieldSize) then
-      Exit;
+    BigNumberCopy(X, P.X);
+    BigNumberDirectMulMod(X, X, X, FFiniteFieldSize);
 
     Y := F25519BigNumberPool.Obtain;
-    if BigNumberCopy(Y, P.Y) = nil then
-      Exit;
-    if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then
-      Exit;
+    BigNumberCopy(Y, P.Y);
+    BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize);
 
     L := F25519BigNumberPool.Obtain;
-    if not BigNumberDirectMulMod(L, FCoefficientA, X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberAddMod(L, L, Y, FFiniteFieldSize) then
-      Exit; // 此时 L := A * X^2 + Y^2
+    BigNumberDirectMulMod(L, FCoefficientA, X, FFiniteFieldSize);
+    BigNumberAddMod(L, L, Y, FFiniteFieldSize); // 此时 L := A * X^2 + Y^2
 
     R := F25519BigNumberPool.Obtain;
-    if not BigNumberDirectMulMod(R, X, Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(R, FCoefficientD, R, FFiniteFieldSize) then
-      Exit;
+    BigNumberDirectMulMod(R, X, Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(R, FCoefficientD, R, FFiniteFieldSize);
     R.AddWord(1); // 此时 R := 1 + D * X^2 * Y^2
 
     Result := BigNumberEqual(L, R);
@@ -785,15 +777,13 @@ begin
   end;
 end;
 
-function TCnTwistedEdwardsCurve.PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
+procedure TCnTwistedEdwardsCurve.PointAddPoint(P, Q, Sum: TCnEccPoint);
 var
   X, Y, T, D1, D2, N1, N2: TCnBigNumber;
 begin
 //            x1 * y2 + x2 * y1                 y1 * y2 - a * x1 * x2
 //   x3 = --------------------------,   y3 = ---------------------------  并且无需考虑 P/Q 是否同一点
 //         1 + d * x1 * x2 * y1 * y2          1 - d * x1 * x2 * y1 * y2
-
-  Result := False;
 
   X := nil;
   Y := nil;
@@ -812,52 +802,31 @@ begin
     N1 := F25519BigNumberPool.Obtain;
     N2 := F25519BigNumberPool.Obtain;
 
-    if not BigNumberDirectMulMod(T, P.X, Q.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(N1, Q.X, P.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberAddMod(N1, N1, T, FFiniteFieldSize) then // N1 得到 x1 * y2 + x2 * y1，释放 T
-      Exit;
+    BigNumberDirectMulMod(T, P.X, Q.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(N1, Q.X, P.Y, FFiniteFieldSize);
+    BigNumberAddMod(N1, N1, T, FFiniteFieldSize); // N1 得到 x1 * y2 + x2 * y1，释放 T
 
-    if not BigNumberDirectMulMod(T, P.X, Q.X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(N2, P.Y, Q.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSubMod(N2, N2, T, FFiniteFieldSize) then // N2 得到 y1 * y2 - a * x1 * x2，释放 T
-      Exit;
+    BigNumberDirectMulMod(T, P.X, Q.X, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize);
+    BigNumberDirectMulMod(N2, P.Y, Q.Y, FFiniteFieldSize);
+    BigNumberSubMod(N2, N2, T, FFiniteFieldSize); // N2 得到 y1 * y2 - a * x1 * x2，释放 T
 
-    if not BigNumberDirectMulMod(T, P.Y, Q.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(T, T, Q.X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(T, T, P.X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize) then // T 得到 d * x1 * x2 * y1 * y2
-      Exit;
+    BigNumberDirectMulMod(T, P.Y, Q.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, Q.X, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, P.X, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize); // T 得到 d * x1 * x2 * y1 * y2
 
-    if not BigNumberAddMod(D1, T, CnBigNumberOne, FFiniteFieldSize) then // D1 得到 1 + d * x1 * x2 * y1 * y2
-      Exit;
-    if not BigNumberSubMod(D2, CnBigNumberOne, T, FFiniteFieldSize) then // D2 得到 1 - d * x1 * x2 * y1 * y2
-      Exit;
+    BigNumberAddMod(D1, T, CnBigNumberOne, FFiniteFieldSize); // D1 得到 1 + d * x1 * x2 * y1 * y2
+    BigNumberSubMod(D2, CnBigNumberOne, T, FFiniteFieldSize); // D2 得到 1 - d * x1 * x2 * y1 * y2
 
-    if not BigNumberModularInverse(T, D1, FFiniteFieldSize) then  // T 得到 D1 逆元
-      Exit;
-    if not BigNumberDirectMulMod(X, N1, T, FFiniteFieldSize) then // 得到 Sum.X
-      Exit;
+    BigNumberModularInverse(T, D1, FFiniteFieldSize);  // T 得到 D1 逆元
+    BigNumberDirectMulMod(X, N1, T, FFiniteFieldSize); // 得到 Sum.X
 
-    if not BigNumberModularInverse(T, D2, FFiniteFieldSize) then  // T 得到 D2 逆元
-      Exit;
-    if not BigNumberDirectMulMod(Y, N2, T, FFiniteFieldSize) then // 得到 Sum.Y
-      Exit;
+    BigNumberModularInverse(T, D2, FFiniteFieldSize);  // T 得到 D2 逆元
+    BigNumberDirectMulMod(Y, N2, T, FFiniteFieldSize); // 得到 Sum.Y
 
-    if BigNumberCopy(Sum.X, X) = nil then
-      Exit;
-    if BigNumberCopy(Sum.Y, Y) = nil then
-      Exit;
-
-    Result := True;
+    BigNumberCopy(Sum.X, X);
+    BigNumberCopy(Sum.Y, Y);
   finally
     F25519BigNumberPool.Recycle(N2);
     F25519BigNumberPool.Recycle(N1);
@@ -877,7 +846,7 @@ begin
   BigNumberSub(P.X, FFiniteFieldSize, P.X);
 end;
 
-function TCnTwistedEdwardsCurve.PointSubPoint(P, Q, Diff: TCnEccPoint): Boolean;
+procedure TCnTwistedEdwardsCurve.PointSubPoint(P, Q, Diff: TCnEccPoint);
 var
   Inv: TCnEccPoint;
 begin
@@ -885,7 +854,7 @@ begin
   try
     Inv.Assign(Q);
     PointInverse(Inv);
-    Result := PointAddPoint(P, Inv, Diff);
+    PointAddPoint(P, Inv, Diff);
   finally
     Inv.Free;
   end;
@@ -946,38 +915,28 @@ var
   X, Y, T: TCnBigNumber;
 begin
   // 判断 B*y^2 是否等于 x^3 + A*x^2 + x mod P
-  Result := False;
+
   X := nil;
   Y := nil;
   T := nil;
 
   try
     X := F25519BigNumberPool.Obtain;
-    if BigNumberCopy(X, P.X) = nil then
-      Exit;
+    BigNumberCopy(X, P.X);
 
     Y := F25519BigNumberPool.Obtain;
-    if BigNumberCopy(Y, P.Y) = nil then
-      Exit;
+    BigNumberCopy(Y, P.Y);
 
-    if not BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(Y, FCoefficientB, Y, FFiniteFieldSize) then  // Y := B * y^2 mod P
-      Exit;
+    BigNumberDirectMulMod(Y, Y, Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(Y, FCoefficientB, Y, FFiniteFieldSize);  // Y := B * y^2 mod P
 
     T := F25519BigNumberPool.Obtain;
-    if not BigNumberDirectMulMod(T, FCoefficientA, X, FFiniteFieldSize) then
-      Exit;  // T := A*X
+    BigNumberDirectMulMod(T, FCoefficientA, X, FFiniteFieldSize);  // T := A*X
 
     T.AddWord(1); // T := A*X + 1
-    if not BigNumberDirectMulMod(T, X, T, FFiniteFieldSize) then
-      Exit;       // T := X * (A*X + 1) = AX^2 + X
-
-    if not BigNumberPowerWordMod(X, X, 3, FFiniteFieldSize) then  // X^3
-      Exit;
-
-    if not BigNumberAddMod(X, X, T, FFiniteFieldSize) then // X := x^3 + Ax^2 + x mod P
-      Exit;
+    BigNumberDirectMulMod(T, X, T, FFiniteFieldSize);       // T := X * (A*X + 1) = AX^2 + X
+    BigNumberPowerWordMod(X, X, 3, FFiniteFieldSize);  // X^3
+    BigNumberAddMod(X, X, T, FFiniteFieldSize); // X := x^3 + Ax^2 + x mod P
 
     Result := BigNumberEqual(X, Y);
   finally
@@ -1080,36 +1039,23 @@ begin
     V3 := F25519BigNumberPool.Obtain;
     V4 := F25519BigNumberPool.Obtain;
 
-    if not BigNumberAddMod(V0, P.X, P.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSubMod(V1, Q.X, Q.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V1, V1, V0, FFiniteFieldSize) then
-      Exit;
+    BigNumberAddMod(V0, P.X, P.Y, FFiniteFieldSize);
+    BigNumberSubMod(V1, Q.X, Q.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(V1, V1, V0, FFiniteFieldSize);
 
-    if not BigNumberSubMod(V0, P.X, P.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberAddMod(V2, Q.X, Q.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V2, V2, V0, FFiniteFieldSize) then
-      Exit;
+    BigNumberSubMod(V0, P.X, P.Y, FFiniteFieldSize);
+    BigNumberAddMod(V2, Q.X, Q.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(V2, V2, V0, FFiniteFieldSize);
 
-    if not BigNumberAddMod(V3, V1, V2, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V3, V3, V3, FFiniteFieldSize) then
-      Exit;
+    BigNumberAddMod(V3, V1, V2, FFiniteFieldSize);
+    BigNumberDirectMulMod(V3, V3, V3, FFiniteFieldSize);
 
-    if not BigNumberSubMod(V4, V1, V2, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V4, V4, V4, FFiniteFieldSize) then
-      Exit;
+    BigNumberSubMod(V4, V1, V2, FFiniteFieldSize);
+    BigNumberDirectMulMod(V4, V4, V4, FFiniteFieldSize);
 
-    if BigNumberCopy(V0, PMinusQ.X) = nil then // V0 备份，避免 Sum 和 PMinusQ 是同一个点时被改动
-      Exit;
-    if not BigNumberDirectMulMod(Sum.X, PMinusQ.Y, V3, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(Sum.Y, V0, V4, FFiniteFieldSize) then
-      Exit;
+    BigNumberCopy(V0, PMinusQ.X); // V0 备份，避免 Sum 和 PMinusQ 是同一个点时被改动
+    BigNumberDirectMulMod(Sum.X, PMinusQ.Y, V3, FFiniteFieldSize);
+    BigNumberDirectMulMod(Sum.Y, V0, V4, FFiniteFieldSize);
   finally
     F25519BigNumberPool.Recycle(V4);
     F25519BigNumberPool.Recycle(V3);
@@ -1135,26 +1081,17 @@ begin
 
     CheckLadderConst;
 
-    if not BigNumberAddMod(V1, P.X, P.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V1, V1, V1, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSubMod(V2, P.X, P.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V2, V2, V2, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(Dbl.X, V1, V2, FFiniteFieldSize) then
-      Exit;
+    BigNumberAddMod(V1, P.X, P.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(V1, V1, V1, FFiniteFieldSize);
+    BigNumberSubMod(V2, P.X, P.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(V2, V2, V2, FFiniteFieldSize);
+    BigNumberDirectMulMod(Dbl.X, V1, V2, FFiniteFieldSize);
 
-    if not BigNumberSubMod(V1, V1, V2, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(V3, V1, FLadderConst, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberAddMod(V3, V3, V2, FFiniteFieldSize) then
-      Exit;
+    BigNumberSubMod(V1, V1, V2, FFiniteFieldSize);
+    BigNumberDirectMulMod(V3, V1, FLadderConst, FFiniteFieldSize);
+    BigNumberAddMod(V3, V3, V2, FFiniteFieldSize);
 
-    if not BigNumberDirectMulMod(Dbl.Y, V1, V3, FFiniteFieldSize) then
-      Exit;
+    BigNumberDirectMulMod(Dbl.Y, V1, V3, FFiniteFieldSize);
   finally
     F25519BigNumberPool.Recycle(V3);
     F25519BigNumberPool.Recycle(V2);
@@ -1208,7 +1145,7 @@ begin
   end;
 end;
 
-function TCnMontgomeryCurve.PointAddPoint(P, Q, Sum: TCnEccPoint): Boolean;
+procedure TCnMontgomeryCurve.PointAddPoint(P, Q, Sum: TCnEccPoint);
 var
   K, X, Y, T, SX, SY: TCnBigNumber;
 begin
@@ -1219,7 +1156,7 @@ begin
   //
   // x3 = B*K^2 - A - x1 - x2
   // y3 = -(y1 + K * (x3 - x1))
-  Result := True;
+
   K := nil;
   X := nil;
   Y := nil;
@@ -1256,26 +1193,18 @@ begin
 
       // 同一个点，求切线斜率
       // 分子是 (3*x1^2 + 2*A*x1 + 1)
-      if not BigNumberDirectMulMod(Y, FCoefficientA, P.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberAddMod(Y, Y, Y, FFiniteFieldSize) then
-        Exit;
+      BigNumberDirectMulMod(Y, FCoefficientA, P.X, FFiniteFieldSize);
+      BigNumberAddMod(Y, Y, Y, FFiniteFieldSize);
       Y.AddWord(1); // Y 得到 2*A*x1 + 1
 
-      if not BigNumberDirectMulMod(T, P.X, P.X, FFiniteFieldSize) then
-        Exit;
+      BigNumberDirectMulMod(T, P.X, P.X, FFiniteFieldSize);
       T.MulWord(3);
-      if not BigNumberAddMod(Y, T, Y, FFiniteFieldSize) then // Y 得到 3*x1^2 + 2*A*x1 + 1，释放 T
-        Exit;
+      BigNumberAddMod(Y, T, Y, FFiniteFieldSize); // Y 得到 3*x1^2 + 2*A*x1 + 1，释放 T
 
-      if not BigNumberAddMod(X, P.Y, P.Y, FFiniteFieldSize) then  // 2Y
-        Exit;
+      BigNumberAddMod(X, P.Y, P.Y, FFiniteFieldSize);  // 2Y
+      BigNumberModularInverse(T, X, FFiniteFieldSize); // 得到分母 2*y1
 
-      if not BigNumberModularInverse(T, X, FFiniteFieldSize) then // 得到分母 2*y1
-        Exit;
-
-      if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到切线斜率
-        Exit;
+      BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize); // K 得到切线斜率
     end
     else
     begin
@@ -1291,46 +1220,28 @@ begin
         Exit;
       end;
 
-      if not BigNumberSubMod(Y, Q.Y, P.Y, FFiniteFieldSize) then   // 得到分子 (y2 - y1)
-        Exit;
+      BigNumberSubMod(Y, Q.Y, P.Y, FFiniteFieldSize);   // 得到分子 (y2 - y1)
+      BigNumberSubMod(X, Q.X, P.X, FFiniteFieldSize);   // 得到分母 (x2 - x1)
 
-      if not BigNumberSubMod(X, Q.X, P.X, FFiniteFieldSize) then   // 得到分母 (x2 - x1)
-        Exit;
-
-      if not BigNumberModularInverse(T, X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize) then // K 得到割线斜率
-        Exit;
+      BigNumberModularInverse(T, X, FFiniteFieldSize);
+      BigNumberDirectMulMod(K, Y, T, FFiniteFieldSize); // K 得到割线斜率
     end;
 
     // x3 = B * K^2 - A - x1 - x2
-    if not BigNumberDirectMulMod(SX, K, K, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(SX, FCoefficientB, SX, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSubMod(SX, SX, FCoefficientA, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSubMod(SX, SX, P.X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSubMod(SX, SX, Q.X, FFiniteFieldSize) then
-      Exit;
+    BigNumberDirectMulMod(SX, K, K, FFiniteFieldSize);
+    BigNumberDirectMulMod(SX, FCoefficientB, SX, FFiniteFieldSize);
+    BigNumberSubMod(SX, SX, FCoefficientA, FFiniteFieldSize);
+    BigNumberSubMod(SX, SX, P.X, FFiniteFieldSize);
+    BigNumberSubMod(SX, SX, Q.X, FFiniteFieldSize);
 
     // y3 = -(y1 + K * (x3 - x1))
-    if not BigNumberSubMod(SY, SX, P.X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(SY, SY, K, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberAddMod(SY, SY, P.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberSub(SY, FFiniteFieldSize, SY) then
-      Exit;
+    BigNumberSubMod(SY, SX, P.X, FFiniteFieldSize);
+    BigNumberDirectMulMod(SY, SY, K, FFiniteFieldSize);
+    BigNumberAddMod(SY, SY, P.Y, FFiniteFieldSize);
+    BigNumberSub(SY, FFiniteFieldSize, SY);
 
-    if BigNumberCopy(Sum.X, SX) = nil then
-      Exit;
-    if BigNumberCopy(Sum.Y, SY) = nil then
-      Exit;
-
-    Result := True;
+    BigNumberCopy(Sum.X, SX);
+    BigNumberCopy(Sum.Y, SY);
   finally
     F25519BigNumberPool.Recycle(SY);
     F25519BigNumberPool.Recycle(SX);
@@ -1349,7 +1260,7 @@ begin
   BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
 
-function TCnMontgomeryCurve.PointSubPoint(P, Q, Diff: TCnEccPoint): Boolean;
+procedure TCnMontgomeryCurve.PointSubPoint(P, Q, Diff: TCnEccPoint);
 var
   Inv: TCnEccPoint;
 begin
@@ -1357,7 +1268,7 @@ begin
   try
     Inv.Assign(Q);
     PointInverse(Inv);
-    Result := PointAddPoint(P, Inv, Diff);
+    PointAddPoint(P, Inv, Diff);
   finally
     Inv.Free;
   end;
@@ -1401,12 +1312,10 @@ begin
   end;
 end;
 
-function TCnMontgomeryCurve.PointToXAffinePoint(DestPoint,
-  SourcePoint: TCnEccPoint): Boolean;
+procedure TCnMontgomeryCurve.PointToXAffinePoint(DestPoint,
+  SourcePoint: TCnEccPoint);
 begin
-  Result := False;
-  if BigNumberCopy(DestPoint.X, SourcePoint.X) = nil then
-    Exit;
+  BigNumberCopy(DestPoint.X, SourcePoint.X);
   if SourcePoint.X.IsZero and SourcePoint.Y.IsZero then
   begin
     DestPoint.X.SetOne;
@@ -1414,21 +1323,17 @@ begin
   end
   else
     DestPoint.Y.SetOne;
-
-  Result := True;
 end;
 
-function TCnMontgomeryCurve.XAffinePointToPoint(DestPoint,
-  SourcePoint: TCnEccPoint): Boolean;
+procedure TCnMontgomeryCurve.XAffinePointToPoint(DestPoint,
+  SourcePoint: TCnEccPoint);
 var
   T, X, DX: TCnBigNumber;
 begin
   // 输入为射影 (X, Z)，先 x = (X/Z)，再求 y
-  Result := False;
   if SourcePoint.Y.IsZero then
   begin
     DestPoint.SetZero;
-    Result := True;
     Exit;
   end;
 
@@ -1441,34 +1346,22 @@ begin
     X := F25519BigNumberPool.Obtain;
     DX := F25519BigNumberPool.Obtain;
 
-    if not BigNumberModularInverse(T, SourcePoint.Y, FFiniteFieldSize) then // Z^-1
-      Exit;
-    if not BigNumberDirectMulMod(DX, SourcePoint.X, T, FFiniteFieldSize) then // 算出 DX 但先不赋值避免影响
-      Exit;
+    BigNumberModularInverse(T, SourcePoint.Y, FFiniteFieldSize); // Z^-1
+    BigNumberDirectMulMod(DX, SourcePoint.X, T, FFiniteFieldSize); // 算出 DX 但先不赋值避免影响
 
-    if BigNumberCopy(X, DX) = nil then // DestPoint.X = X/Z
-      Exit;
+    BigNumberCopy(X, DX); // DestPoint.X = X/Z
 
     // 求 X^3+A*X^2+X mod P
-    if not BigNumberPowerWordMod(X, DX, 3, FFiniteFieldSize) then // X^3
-      Exit;
+    BigNumberPowerWordMod(X, DX, 3, FFiniteFieldSize);  // X^3
 
-    if not BigNumberDirectMulMod(T, DX, DX, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize) then // A*X^2
-      Exit;
+    BigNumberDirectMulMod(T, DX, DX, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, FCoefficientA, FFiniteFieldSize);  // A*X^2
 
-    if not BigNumberAddMod(X, T, X, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberAddMod(X, X, DX, FFiniteFieldSize) then // 得到 X^3+A*X^2+X mod P
-      Exit;
+    BigNumberAddMod(X, T, X, FFiniteFieldSize);
+    BigNumberAddMod(X, X, DX, FFiniteFieldSize);  // 得到 X^3+A*X^2+X mod P
 
-    if not BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize) then // 求模平方根
-      Exit;
-    if BigNumberCopy(DestPoint.X, DX) = nil then
-      Exit;
-
-    Result := True;
+    BigNumberSquareRootModPrime(DestPoint.Y, X, FFiniteFieldSize);  // 求模平方根
+    BigNumberCopy(DestPoint.X, DX);
   finally
     F25519BigNumberPool.Recycle(DX);
     F25519BigNumberPool.Recycle(X);
@@ -1476,12 +1369,11 @@ begin
   end;
 end;
 
-function TCnMontgomeryCurve.Field64XAffinePointToPoint(DestPoint: TCnEccPoint;
-  var SourcePoint: TCn25519Field64EccPoint): Boolean;
+procedure TCnMontgomeryCurve.Field64XAffinePointToPoint(DestPoint: TCnEccPoint;
+  var SourcePoint: TCn25519Field64EccPoint);
 var
   T: TCnEccPoint;
 begin
-  Result := False;
   if DestPoint = nil then
     Exit;
 
@@ -1490,10 +1382,7 @@ begin
     Cn25519Field64ToBigNumber(T.X, SourcePoint.X);  // 多项式点转换为射影坐标 X Z 点
     Cn25519Field64ToBigNumber(T.Y, SourcePoint.Y);
 
-    if not XAffinePointToPoint(DestPoint, T) then   // 多项式点转换为射影坐标 X Z 点
-      Exit;
-
-    Result := True;
+    XAffinePointToPoint(DestPoint, T);   // 多项式点转换为射影坐标 X Z 点
   finally
     T.Free;
   end;
@@ -1590,23 +1479,20 @@ begin
   Cn25519Field64Mul(Dbl.Y, V1, V3);
 end;
 
-function TCnMontgomeryCurve.PointToField64XAffinePoint(
-  var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint): Boolean;
+procedure TCnMontgomeryCurve.PointToField64XAffinePoint(
+  var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
 var
   T: TCnEccPoint;
 begin
-  Result := False;
   if SourcePoint = nil then
     Exit;
 
   T := TCnEccPoint.Create;
   try
-    if not PointToXAffinePoint(T, SourcePoint) then // 普通点转换为射影坐标 X Z 点
-      Exit;
+    PointToXAffinePoint(T, SourcePoint); // 普通点转换为射影坐标 X Z 点
 
     Cn25519BigNumberToField64(DestPoint.X, T.X);    // 射影坐标 X Z 点转换为多项式点
     Cn25519BigNumberToField64(DestPoint.Y, T.Y);
-    Result := True;
   finally
     T.Free;
   end;
@@ -1875,11 +1761,10 @@ begin
   end;
 end;
 
-function TCnEd25519.ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point): Boolean;
+procedure TCnEd25519.ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point);
 var
   A, B, C, D, E, F, G, H: TCnBigNumber;
 begin
-  Result := False;
   A := nil;
   B := nil;
   C := nil;
@@ -1902,100 +1787,53 @@ begin
     if CnEcc4PointEqual(P, Q, FFiniteFieldSize) then
     begin
       // 是同一个点
-      if not BigNumberDirectMulMod(A, P.X, P.X, FFiniteFieldSize) then // A = X1^2
-        Exit;
+      BigNumberDirectMulMod(A, P.X, P.X, FFiniteFieldSize); // A = X1^2
+      BigNumberDirectMulMod(B, P.Y, P.Y, FFiniteFieldSize);  // B = Y1^2
 
-      if not BigNumberDirectMulMod(B, P.Y, P.Y, FFiniteFieldSize) then // B = Y1^2
-        Exit;
+      BigNumberDirectMulMod(C, P.Z, P.Z, FFiniteFieldSize);
+      BigNumberAddMod(C, C, C, FFiniteFieldSize);      // C = 2*Z1^2
 
-      if not BigNumberDirectMulMod(C, P.Z, P.Z, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberAddMod(C, C, C, FFiniteFieldSize) then     // C = 2*Z1^2
-        Exit;
+      BigNumberAddMod(H, A, B, FFiniteFieldSize);      // H = A+B
 
-      if not BigNumberAddMod(H, A, B, FFiniteFieldSize) then     // H = A+B
-        Exit;
+      BigNumberAddMod(E, P.X, P.Y, FFiniteFieldSize);
+      BigNumberDirectMulMod(E, E, E, FFiniteFieldSize);
+      BigNumberSubMod(E, H, E, FFiniteFieldSize);      // E = H-(X1+Y1)^2
 
-      if not BigNumberAddMod(E, P.X, P.Y, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(E, E, E, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberSubMod(E, H, E, FFiniteFieldSize) then     // E = H-(X1+Y1)^2
-        Exit;
+      BigNumberSubMod(G, A, B, FFiniteFieldSize);      // G = A-B
+      BigNumberAddMod(F, C, G, FFiniteFieldSize);      // F = C+G
 
-      if not BigNumberSubMod(G, A, B, FFiniteFieldSize) then     // G = A-B
-        Exit;
-
-      if not BigNumberAddMod(F, C, G, FFiniteFieldSize) then     // F = C+G
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.X, E, F, FFiniteFieldSize) then // X3 = E*F
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.Y, G, H, FFiniteFieldSize) then // Y3 = G*H
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.T, E, H, FFiniteFieldSize) then // T3 = E*H
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.Z, F, G, FFiniteFieldSize) then // Z3 = F*G
-        Exit;
-
-      Result := True;
+      BigNumberDirectMulMod(Sum.X, E, F, FFiniteFieldSize);  // X3 = E*F
+      BigNumberDirectMulMod(Sum.Y, G, H, FFiniteFieldSize);  // Y3 = G*H
+      BigNumberDirectMulMod(Sum.T, E, H, FFiniteFieldSize);  // T3 = E*H
+      BigNumberDirectMulMod(Sum.Z, F, G, FFiniteFieldSize);  // Z3 = F*G
     end
     else
     begin
       // 不是同一个点。先用 G H 做临时变量
-      if not BigNumberSubMod(G, P.Y, P.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberSubMod(H, Q.Y, Q.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(A, G, H, FFiniteFieldSize) then // A = (Y1-X1)*(Y2-X2)
-        Exit;
+      BigNumberSubMod(G, P.Y, P.X, FFiniteFieldSize);
+      BigNumberSubMod(H, Q.Y, Q.X, FFiniteFieldSize);
+      BigNumberDirectMulMod(A, G, H, FFiniteFieldSize); // A = (Y1-X1)*(Y2-X2)
 
-      if not BigNumberAddMod(G, P.Y, P.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberAddMod(H, Q.Y, Q.X, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(B, G, H, FFiniteFieldSize) then  // B = (Y1+X1)*(Y2+X2)
-        Exit;
+      BigNumberAddMod(G, P.Y, P.X, FFiniteFieldSize);
+      BigNumberAddMod(H, Q.Y, Q.X, FFiniteFieldSize);
+      BigNumberDirectMulMod(B, G, H, FFiniteFieldSize);  // B = (Y1+X1)*(Y2+X2)
 
-      if not BigNumberAdd(C, FCoefficientD, FCoefficientD) then
-        Exit;
-      if not BigNumberDirectMulMod(C, P.T, C, FFiniteFieldSize) then
-        Exit;
-      if not BigNumberDirectMulMod(C, Q.T, C, FFiniteFieldSize) then  // C = T1*2*d*T2
-        Exit;
+      BigNumberAdd(C, FCoefficientD, FCoefficientD);
+      BigNumberDirectMulMod(C, P.T, C, FFiniteFieldSize);
+      BigNumberDirectMulMod(C, Q.T, C, FFiniteFieldSize);  // C = T1*2*d*T2
 
-      if not BigNumberAdd(D, P.Z, P.Z) then
-        Exit;
-      if not BigNumberDirectMulMod(D, Q.Z, D, FFiniteFieldSize) then  // D = Z1*2*Z2
-        Exit;
+      BigNumberAdd(D, P.Z, P.Z);
+      BigNumberDirectMulMod(D, Q.Z, D, FFiniteFieldSize);  // D = Z1*2*Z2
 
-      if not BigNumberSubMod(E, B, A, FFiniteFieldSize) then  // E = B-A
-        Exit;
+      BigNumberSubMod(E, B, A, FFiniteFieldSize);  // E = B-A
+      BigNumberSubMod(F, D, C, FFiniteFieldSize);  // F = D-C
+      BigNumberAddMod(G, D, C, FFiniteFieldSize);  // G = D+C
+      BigNumberAddMod(H, B, A, FFiniteFieldSize);  // H = B+A
 
-      if not BigNumberSubMod(F, D, C, FFiniteFieldSize) then  // F = D-C
-        Exit;
-
-      if not BigNumberAddMod(G, D, C, FFiniteFieldSize) then  // G = D+C
-        Exit;
-      if not BigNumberAddMod(H, B, A, FFiniteFieldSize) then  // H = B+A
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.X, E, F, FFiniteFieldSize) then  // X3 = E*F
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.Y, G, H, FFiniteFieldSize) then  // Y3 = G*H
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.T, E, H, FFiniteFieldSize) then  // T3 = E*H
-        Exit;
-
-      if not BigNumberDirectMulMod(Sum.Z, F, G, FFiniteFieldSize) then  // Z3 = F*G
-        Exit;
-
-      Result := True;
+      BigNumberDirectMulMod(Sum.X, E, F, FFiniteFieldSize);  // X3 = E*F
+      BigNumberDirectMulMod(Sum.Y, G, H, FFiniteFieldSize);  // Y3 = G*H
+      BigNumberDirectMulMod(Sum.T, E, H, FFiniteFieldSize);  // T3 = E*H
+      BigNumberDirectMulMod(Sum.Z, F, G, FFiniteFieldSize);  // Z3 = F*G
     end;
   finally
     F25519BigNumberPool.Recycle(H);
@@ -2029,8 +1867,7 @@ begin
   end;
 end;
 
-function TCnEd25519.ExtendedPointSubPoint(P, Q,
-  Diff: TCnEcc4Point): Boolean;
+procedure TCnEd25519.ExtendedPointSubPoint(P, Q, Diff: TCnEcc4Point);
 var
   Inv: TCnEcc4Point;
 begin
@@ -2038,7 +1875,7 @@ begin
   try
     Inv.Assign(Q);
     ExtendedPointInverse(Inv);
-    Result := ExtendedPointAddPoint(P, Inv, Diff);
+    ExtendedPointAddPoint(P, Inv, Diff);
   finally
     Inv.Free;
   end;
@@ -2057,9 +1894,7 @@ begin
 
   K := F25519BigNumberPool.Obtain;
   try
-    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE,
-      K, nil) then
-      Exit;
+    CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, K, nil);
 
     // 该乘数 K 乘以 G 点得到公钥
     PublicKey.Assign(FGenerator);
@@ -2085,7 +1920,7 @@ function CnEcc4PointEqual(const P, Q: TCnEcc4Point; Prime: TCnBigNumber): Boolea
 var
   T1, T2: TCnBigNumber;
 begin
-  // X1Z2 = X2Z1 且 Y1Z2 = Y2Z1
+  // X1*Z2 = X2*Z1 且 Y1*Z2 = Y2*Z1
   Result := False;
   if P = Q then
   begin
@@ -2143,13 +1978,12 @@ end;
 //
 // =============================================================================
 
-function CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+procedure CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint);
 var
   S, T, Inv, Prime, TX: TCnBigNumber;
 begin
   // x = sqrt(-486664)*u/v
   // y = (u-1)/(u+1)
-  Result := False;
 
   S := nil;
   T := nil;
@@ -2165,33 +1999,23 @@ begin
     Prime := F25519BigNumberPool.Obtain;
     Prime.SetHex(SCN_25519_PRIME);
 
-    if not BigNumberDirectMulMod(T, S, SourcePoint.X, Prime) then // sqrt * u
-      Exit;
+    BigNumberDirectMulMod(T, S, SourcePoint.X, Prime); // sqrt * u
 
     Inv := F25519BigNumberPool.Obtain;
-    if not BigNumberModularInverse(Inv, SourcePoint.Y, Prime) then // v^-1
-      Exit;
+    BigNumberModularInverse(Inv, SourcePoint.Y, Prime); // v^-1
 
     TX := F25519BigNumberPool.Obtain;
-    if not BigNumberDirectMulMod(TX, T, Inv, Prime) then // 算到 X，但先不赋值，避免源目标同对象造成影响
-      Exit;
+    BigNumberDirectMulMod(TX, T, Inv, Prime); // 算到 X，但先不赋值，避免源目标同对象造成影响
 
-    if BigNumberCopy(T, SourcePoint.X) = nil then
-      Exit;
-    if BigNumberCopy(S, SourcePoint.X) = nil then
-      Exit;
+    BigNumberCopy(T, SourcePoint.X);
+    BigNumberCopy(S, SourcePoint.X);
 
     T.SubWord(1);  // u - 1
     S.AddWord(1);  // u + 1
 
-    if not BigNumberModularInverse(Inv, S, Prime) then // (u + 1)^1
-      Exit;
-    if not BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime) then
-      Exit;
-    if BigNumberCopy(DestPoint.X, TX) = nil then
-      Exit;
-
-    Result := True;
+    BigNumberModularInverse(Inv, S, Prime); // (u + 1)^1
+    BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime);
+    BigNumberCopy(DestPoint.X, TX);
   finally
     F25519BigNumberPool.Recycle(TX);
     F25519BigNumberPool.Recycle(Inv);
@@ -2201,13 +2025,12 @@ begin
   end;
 end;
 
-function CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint): Boolean;
+procedure CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint);
 var
   S, T, Inv, Prime, TX: TCnBigNumber;
 begin
   // u = (1+y)/(1-y)
   // v = sqrt(-486664)*u/x
-  Result := False;
 
   S := nil;
   T := nil;
@@ -2219,40 +2042,28 @@ begin
     S := F25519BigNumberPool.Obtain;
     T := F25519BigNumberPool.Obtain;
 
-    if BigNumberCopy(T, SourcePoint.Y) = nil then
-      Exit;
-    if BigNumberCopy(S, SourcePoint.Y) = nil then
-      Exit;
+    BigNumberCopy(T, SourcePoint.Y);
+    BigNumberCopy(S, SourcePoint.Y);
     T.AddWord(1);  // T 是分子 1+y
 
     Prime := F25519BigNumberPool.Obtain;
     Prime.SetHex(SCN_25519_PRIME);
 
-    if not BigNumberSubMod(S, CnBigNumberOne, SourcePoint.Y, Prime) then
-      Exit;        // S 是分母 1-y
+    BigNumberSubMod(S, CnBigNumberOne, SourcePoint.Y, Prime); // S 是分母 1-y
 
     Inv := F25519BigNumberPool.Obtain;
-    if not BigNumberModularInverse(Inv, S, Prime) then // Inv 是分母负倒数供乘
-      Exit;
+    BigNumberModularInverse(Inv, S, Prime); // Inv 是分母负倒数供乘
 
     TX := F25519BigNumberPool.Obtain;
-    if not BigNumberDirectMulMod(TX, T, Inv, Prime) then // 得到 U，但不赋值，先暂存，避免源目标同对象的影响
-      Exit;
+    BigNumberDirectMulMod(TX, T, Inv, Prime); // 得到 U，但不赋值，先暂存，避免源目标同对象的影响
 
     S.SetHex(SCN_25519_SQRT_NEG_486664);
-    if not BigNumberDirectMulMod(T, S, TX, Prime) then
-      Exit;
+    BigNumberDirectMulMod(T, S, TX, Prime);
 
-    if not BigNumberModularInverse(Inv, SourcePoint.X, Prime) then
-      Exit;
+    BigNumberModularInverse(Inv, SourcePoint.X, Prime);
+    BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime);
 
-    if not BigNumberDirectMulMod(DestPoint.Y, T, Inv, Prime) then
-      Exit;
-
-    if BigNumberCopy(DestPoint.X, TX) = nil then // 将暂存的 TX 整回目标点
-      Exit;
-
-    Result := True;
+    BigNumberCopy(DestPoint.X, TX); // 将暂存的 TX 整回目标点
   finally
     F25519BigNumberPool.Recycle(TX);
     F25519BigNumberPool.Recycle(Inv);
@@ -2262,9 +2073,8 @@ begin
   end;
 end;
 
-function CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data): Boolean;
+procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);
 begin
-  Result := False;
   if P = nil then
     Exit;
 
@@ -2276,16 +2086,13 @@ begin
     Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
   else
     Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] and $7F; // 高位清 0
-
-  Result := True;
 end;
 
-function CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint;
-  out XOdd: Boolean): Boolean;
+procedure CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint;
+  out XOdd: Boolean);
 var
   D: TCnEd25519Data;
 begin
-  Result := False;
   if P = nil then
     Exit;
 
@@ -2298,33 +2105,28 @@ begin
 
   // 最高位得清零
   P.Y.ClearBit(8 * CN_25519_BLOCK_BYTESIZE - 1);
-  Result := True;
 end;
 
-function CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data): Boolean;
+procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
 begin
-  Result := False;
   if (N = nil) or (N.GetBytesCount > SizeOf(TCnEd25519Data)) then
     Exit;
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   N.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
   ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
-  Result := True;
 end;
 
-function CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber): Boolean;
+procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
 var
   D: TCnEd25519Data;
 begin
-  Result := False;
   if N = nil then
     Exit;
 
   Move(Data[0], D[0], SizeOf(TCnEd25519Data));
   ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
   N.SetBinary(@D[0], SizeOf(TCnEd25519Data));
-  Result := True;
 end;
 
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEccPrivateKey;
@@ -2358,8 +2160,7 @@ begin
     HP := F25519BigNumberPool.Obtain;
 
     // 根据私钥得到私钥乘数 s 与杂凑前缀
-    if not CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, S, HP) then
-      Exit;
+    CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, S, HP);
 
     // 杂凑前缀拼上原始文字
     Stream := TMemoryStream.Create;
@@ -2371,23 +2172,20 @@ begin
 
     ReverseMemory(@Dig[0], SizeOf(TSHA512Digest)); // 需要倒转一次
     R.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
-    if not BigNumberNonNegativeMod(R, R, Ed25519.Order) then // r 乘数太大先 mod 一下阶
-      Exit;
+    BigNumberNonNegativeMod(R, R, Ed25519.Order);  // r 乘数太大先 mod 一下阶
 
     OutSignature.R.Assign(Ed25519.Generator);
     Ed25519.MultiplePoint(R, OutSignature.R);      // 计算得到签名值 R，该值是一个点坐标
 
     // 再 Hash 计算 S，先点 R 转换为字节数组
-    if not Ed25519.PointToPlain(OutSignature.R, Data) then
-      Exit;
+    Ed25519.PointToPlain(OutSignature.R, Data);
 
     // 拼起来
     Stream.Clear;
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));
 
     // 公钥点也转换为字节数组
-    if not Ed25519.PointToPlain(PublicKey, Data) then
-      Exit;
+    Ed25519.PointToPlain(PublicKey, Data);
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));
 
     // 写明文，拼凑完毕
@@ -2398,14 +2196,11 @@ begin
 
     ReverseMemory(@Dig[0], SizeOf(TSHA512Digest)); // 又需要倒转一次
     K.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
-    if not BigNumberNonNegativeMod(K, K, Ed25519.Order) then // 乘数太大再先 mod 一下阶
-      Exit;
+    BigNumberNonNegativeMod(K, K, Ed25519.Order); // 乘数太大再先 mod 一下阶
 
     // 计算乘数 R + K * S mod Order
-    if not BigNumberDirectMulMod(OutSignature.S, K, S, Ed25519.Order) then
-      Exit;
-    if not BigNumberAddMod(OutSignature.S, R, OutSignature.S, Ed25519.Order) then
-      Exit;
+    BigNumberDirectMulMod(OutSignature.S, K, S, Ed25519.Order);
+    BigNumberAddMod(OutSignature.S, R, OutSignature.S, Ed25519.Order);
 
     Result := True;
   finally
@@ -2456,11 +2251,10 @@ begin
     Ed25519.MultiplePoint(8, R);  // 算到 8*R点待加
 
     Stream := TMemoryStream.Create;
-    if not CnEd25519PointToData(InSignature.R, Data) then
-      Exit;
+    CnEd25519PointToData(InSignature.R, Data);
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼 R 点
-    if not CnEd25519PointToData(PublicKey, Data) then
-      Exit;
+
+    CnEd25519PointToData(PublicKey, Data);
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼公钥点
     Stream.Write(PlainData^, DataLen);                    // 拼明文
 
@@ -2470,8 +2264,7 @@ begin
     T := F25519BigNumberPool.Obtain;
     T.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
     T.MulWord(8);
-    if not BigNumberNonNegativeMod(T, T, Ed25519.Order) then // T 乘数太大先 mod 一下阶
-      Exit;
+    BigNumberNonNegativeMod(T, T, Ed25519.Order); // T 乘数太大先 mod 一下阶
 
     M := TCnEccPoint.Create;
     M.Assign(PublicKey);
@@ -2511,8 +2304,7 @@ begin
 
     Sig := TCnEd25519Signature.Create;
 
-    Result := CnEd25519SignData(Stream.Memory, Stream.Size, PrivateKey, PublicKey, Sig, Ed25519);
-    if Result then
+    if CnEd25519SignData(Stream.Memory, Stream.Size, PrivateKey, PublicKey, Sig, Ed25519) then
     begin
       Sig.SaveToData(SigData);
       Result := OutSignatureStream.Write(SigData[0], SizeOf(TCnEd25519SignatureData))
@@ -2648,19 +2440,17 @@ begin
   CnField64Ecc4PointToEccPoint(Point, P4);
 end;
 
-function TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
-  OutPoint: TCnEccPoint): Boolean;
+procedure TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
+  OutPoint: TCnEccPoint);
 var
   XOdd: Boolean;
   T, Y, Inv: TCnBigNumber;
 begin
-  Result := False;
   if OutPoint = nil then
     Exit;
 
   // 先从 Plain 中还原 Y 坐标以及 X 点的奇偶性
-  if not CnEd25519DataToPoint(Plain, OutPoint, XOdd) then
-    Exit;
+  CnEd25519DataToPoint(Plain, OutPoint, XOdd);
 
   // 得到 Y 后求解 x 的方程 x^2 = (Y^2 - 1) / (D*Y^2 + 1) mod P
   // 注意素数 25519 是 8u5 的形式
@@ -2673,32 +2463,23 @@ begin
     T := F25519BigNumberPool.Obtain;
     Y := F25519BigNumberPool.Obtain;
 
-    if not BigNumberDirectMulMod(Y, OutPoint.Y, OutPoint.Y, FFiniteFieldSize) then
-      Exit;
+    BigNumberDirectMulMod(Y, OutPoint.Y, OutPoint.Y, FFiniteFieldSize);
     Y.SubWord(1); // Y := Y^2 - 1
 
-    if not BigNumberDirectMulMod(T, OutPoint.Y, OutPoint.Y, FFiniteFieldSize) then
-      Exit;
-    if not BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize) then
-      Exit;
+    BigNumberDirectMulMod(T, OutPoint.Y, OutPoint.Y, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize);
     T.AddWord(1); // T := D*Y^2 + 1
 
     Inv := F25519BigNumberPool.Obtain;
-    if not BigNumberModularInverse(Inv, T, FFiniteFieldSize) then
-      Exit;
+    BigNumberModularInverse(Inv, T, FFiniteFieldSize);
 
-    if not BigNumberDirectMulMod(Y, Y, Inv, FFiniteFieldSize) then // Y 得到方程右边的值
-      Exit;
+    BigNumberDirectMulMod(Y, Y, Inv, FFiniteFieldSize);  // Y 得到方程右边的值
 
-    if not BigNumberSquareRootModPrime(OutPoint.X, Y, FFiniteFieldSize) then
-      Exit;
+    BigNumberSquareRootModPrime(OutPoint.X, Y, FFiniteFieldSize); 
 
     // 算出 X 了
     if OutPoint.X.IsBitSet(0) <> XOdd then
-      if BigNumberSub(OutPoint.X, FFiniteFieldSize, OutPoint.X) then
-        Exit;
-
-    Result := True;
+      BigNumberSub(OutPoint.X, FFiniteFieldSize, OutPoint.X);
   finally
     F25519BigNumberPool.Recycle(Inv);
     F25519BigNumberPool.Recycle(Y);
@@ -2706,14 +2487,13 @@ begin
   end;
 end;
 
-function TCnEd25519.PointToPlain(Point: TCnEccPoint;
-  var OutPlain: TCnEd25519Data): Boolean;
+procedure TCnEd25519.PointToPlain(Point: TCnEccPoint;
+  var OutPlain: TCnEd25519Data);
 begin
-  Result := False;
   if (Point = nil) or (BigNumberCompare(Point.Y, FFiniteFieldSize) >= 0) then
     Exit;
 
-  Result := CnEd25519PointToData(Point, OutPlain);
+  CnEd25519PointToData(Point, OutPlain);
 end;
 
 procedure TCnEd25519.SetNeutualExtendedPoint(P: TCnEcc4Point);
