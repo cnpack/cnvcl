@@ -407,7 +407,7 @@ type
   end;
 
   TCnSM9 = class(TCnEcc)
-  {* SM9 内容封装类}
+  {* SM9 内容封装类，本身也是一个椭圆曲线子类}
   private
     FGenerator2: TCnFP2Point;
 
@@ -3048,14 +3048,14 @@ begin
     S := AUserID + AnsiChar(CN_SM9_SIGNATURE_USER_HID);
     if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
 
-    if not BigNumberAddMod(T1, T1, SignatureMasterPrivateKey, SM9.Order) then Exit;
+    BigNumberAddMod(T1, T1, SignatureMasterPrivateKey, SM9.Order);
 
     if T1.IsZero then
       raise ECnSM9Exception.Create(SSigMasterKeyZero);
 
     // 计算 T2 = PrivateKey / T1
     if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
-    if not BigNumberDirectMulMod(T2, SignatureMasterPrivateKey, T1, SM9.Order) then Exit;
+    BigNumberDirectMulMod(T2, SignatureMasterPrivateKey, T1, SM9.Order);
 
     OutSignatureUserPrivateKey.Assign(SM9.Generator);
     SM9.MultiplePoint(T2, OutSignatureUserPrivateKey); // 这里才是有限域 SM9 的 P
@@ -3118,8 +3118,8 @@ begin
 
       if not CnSM9Hash2(OutSignature.H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
 
-      if not BigNumberSub(L, R, OutSignature.H) then Exit;
-      if not BigNumberNonNegativeMod(L, L, SM9.Order) then Exit;
+      BigNumberSub(L, R, OutSignature.H);
+      BigNumberNonNegativeMod(L, L, SM9.Order);
     until not L.IsZero;
 
     // 计算出了 L 和 H，再乘私钥点得到签名
@@ -3262,14 +3262,13 @@ begin
     T1 := TCnBigNumber.Create;
     if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
 
-    if not BigNumberAdd(T1, T1, EncryptionMasterPrivateKey) then Exit;
+    BigNumberAdd(T1, T1, EncryptionMasterPrivateKey);
 
     if T1.IsZero then
       raise ECnSM9Exception.Create(SEncMasterKeyZero);
 
     if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
-
-    if not BigNumberDirectMulMod(T1, T1, EncryptionMasterPrivateKey, SM9.Order) then Exit;
+    BigNumberDirectMulMod(T1, T1, EncryptionMasterPrivateKey, SM9.Order);
 
     AP := TCnFP2AffinePoint.Create;
     FP2PointToFP2AffinePoint(AP, SM9.Generator2);
@@ -3701,14 +3700,13 @@ begin
     T1 := TCnBigNumber.Create;
     if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
 
-    if not BigNumberAdd(T1, T1, KeyExchangeMasterPrivateKey) then Exit;
+    BigNumberAdd(T1, T1, KeyExchangeMasterPrivateKey);
 
     if T1.IsZero then
       raise ECnSM9Exception.Create(SEncMasterKeyZero);
 
     if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
-
-    if not BigNumberDirectMulMod(T1, T1, KeyExchangeMasterPrivateKey, SM9.Order) then Exit;
+    BigNumberDirectMulMod(T1, T1, KeyExchangeMasterPrivateKey, SM9.Order);
 
     AP := TCnFP2AffinePoint.Create;
     FP2PointToFP2AffinePoint(AP, SM9.Generator2);
@@ -4085,8 +4083,9 @@ begin
     BN.SubWord(1);
 
     BH := TCnBigNumber.FromBinary(PAnsiChar(@Ha[0]), Length(Ha));
-    Result := BigNumberNonNegativeMod(Res, BH, BN);
+    BigNumberNonNegativeMod(Res, BH, BN);
     Res.AddWord(1);
+    Result := True;
   finally
     BN.Free;
     BH.Free;
