@@ -33,7 +33,7 @@ unit Cn25519;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2022.07.30 V1.5
-*               去除部分无用的判断
+*               去除部分无用的判断以精简代码
 *           2022.06.14 V1.4
 *               实现 Ed25519 对文件的签名与验证
 *           2022.06.12 V1.3
@@ -512,6 +512,10 @@ function CnField64Ecc4PointToEcc4Point(DestPoint: TCnEcc4Point;
 
 implementation
 
+resourcestring
+  SCnEInverseError = 'Point Inverse Error.';
+  SCnECanNOTCalcErrorFmt = 'Can NOT Calucate %s,%s + %s,%s';
+
 const
   SCN_25519_PRIME = '7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED';
   // 2^255 - 19
@@ -841,7 +845,7 @@ end;
 procedure TCnTwistedEdwardsCurve.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.X) or (BigNumberCompare(P.X, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create('Inverse Error.');
+    raise ECnEccException.Create(SCnEInverseError);
 
   BigNumberSub(P.X, FFiniteFieldSize, P.X);
 end;
@@ -1214,7 +1218,7 @@ begin
         if BigNumberCompare(T, FFiniteFieldSize) = 0 then  // 互反，和为 0
           Sum.SetZero
         else                                               // 不互反，挂了
-          raise ECnEccException.CreateFmt('Can NOT Calucate %s,%s + %s,%s',
+          raise ECnEccException.CreateFmt(SCnECanNOTCalcErrorFmt,
             [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
 
         Exit;
@@ -1255,7 +1259,7 @@ end;
 procedure TCnMontgomeryCurve.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create('Inverse Error.');
+    raise ECnEccException.Create(SCnEInverseError);
 
   BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
@@ -2475,7 +2479,7 @@ begin
 
     BigNumberDirectMulMod(Y, Y, Inv, FFiniteFieldSize);  // Y 得到方程右边的值
 
-    BigNumberSquareRootModPrime(OutPoint.X, Y, FFiniteFieldSize); 
+    BigNumberSquareRootModPrime(OutPoint.X, Y, FFiniteFieldSize);
 
     // 算出 X 了
     if OutPoint.X.IsBitSet(0) <> XOdd then
