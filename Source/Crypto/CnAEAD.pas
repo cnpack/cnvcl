@@ -375,13 +375,13 @@ type
 // 注意此处判断字节内 Bit 的顺序也是字节内的高位是 0
 function AeadIsBitSet(AMem: Pointer; N: Integer): Boolean;
 var
-  P: PCnByte;
+  P: PByte;
   A1, B1: Integer;
   V: Byte;
 begin
   A1 := N div 8;
   B1 := 7 - (N mod 8);
-  P := PCnByte(TCnNativeInt(AMem) + A1);
+  P := PByte(TCnNativeInt(AMem) + A1);
 
   V := Byte(1 shl B1);
   Result := (P^ and V) <> 0;
@@ -1179,7 +1179,7 @@ var
   SX: T128BitsBuffer;   // CTR 的计算结果存放的中间块
   Ctr: T128BitsBuffer;  // CTR 的计数块
   Cnt, T: Int64;
-  P: PCnByte;
+  P: PByte;
 begin
   if Key = nil then
     KeyByteLength := 0;
@@ -1210,7 +1210,7 @@ begin
   MoveMost(Nonce^, Ctr[1], NonceByteLength, CCM_NONCE);
 
   // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
-  P := PCnByte(@T);
+  P := PByte(@T);
   Inc(P, SizeOf(Int64) - CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
 
   T := Int64HostToNetwork(DataByteLength);
@@ -1451,7 +1451,7 @@ var
   SX: T128BitsBuffer;   // CTR 的计算结果存放的中间块
   Ctr: T128BitsBuffer;  // CTR 的计数块
   Cnt, T: Int64;
-  P: PCnByte;
+  P: PByte;
   Tag: TCCM128Tag;
 begin
   if Key = nil then
@@ -1483,7 +1483,7 @@ begin
   MoveMost(Nonce^, Ctr[1], NonceByteLength, CCM_NONCE);
 
   // 放上网络字节顺序的明文长度，且从高位截断至 CCM_L_LEN 字节，这样才造好了 B0
-  P := PCnByte(@T);
+  P := PByte(@T);
   Inc(P, SizeOf(Int64) - CCM_L_LEN);  // 这两句建立 P 和 T 的高几位的地址关系，后面持续使用
 
   T := Int64HostToNetwork(EnByteLength);

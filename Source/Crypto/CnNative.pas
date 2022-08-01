@@ -71,8 +71,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst, Math;
-
+  Classes, SysUtils, SysConst, Math {$IFDEF COMPILER5}, Windows {$ENDIF};
+                                    // D5 下需要引用 Windows 中的 PByte
 type
 {$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
@@ -141,12 +141,15 @@ type
   TShortInts = array of ShortInt;
   {* 有符号字节数组}
 
-  PCnByte = ^Byte; // 不引用 Windows 中的 PByte
+  PCnByte = ^Byte;
   PCnWord = ^Word;
 
 {$IFDEF COMPILER5}
   PCardinal = ^Cardinal;
   {* D5 下 System 单元中未定义，定义上}
+  PByte = Windows.PByte;
+  {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
+    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台}
 {$ENDIF}
 
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
@@ -955,7 +958,7 @@ end;
 
 function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
 var
-  P: PCnByte;
+  P: PByte;
   A, B: Integer;
   V: Byte;
 begin
@@ -964,7 +967,7 @@ begin
 
   A := N div 8;
   B := N mod 8;
-  P := PCnByte(TCnNativeInt(AMem) + A);
+  P := PByte(TCnNativeInt(AMem) + A);
 
   V := Byte(1 shl B);
   Result := (P^ and V) <> 0;
@@ -972,7 +975,7 @@ end;
 
 procedure MemorySetBit(AMem: Pointer; N: Integer);
 var
-  P: PCnByte;
+  P: PByte;
   A, B: Integer;
   V: Byte;
 begin
@@ -981,7 +984,7 @@ begin
 
   A := N div 8;
   B := N mod 8;
-  P := PCnByte(TCnNativeInt(AMem) + A);
+  P := PByte(TCnNativeInt(AMem) + A);
 
   V := Byte(1 shl B);
   P^ := P^ or V;
@@ -989,7 +992,7 @@ end;
 
 procedure MemoryClearBit(AMem: Pointer; N: Integer);
 var
-  P: PCnByte;
+  P: PByte;
   A, B: Integer;
   V: Byte;
 begin
@@ -998,7 +1001,7 @@ begin
 
   A := N div 8;
   B := N mod 8;
-  P := PCnByte(TCnNativeInt(AMem) + A);
+  P := PByte(TCnNativeInt(AMem) + A);
 
   V := not Byte(1 shl B);
   P^ := P^ and V;
@@ -1163,7 +1166,7 @@ begin
   begin
     for I := 0 to ByteLength - 1 do
     begin
-      B := PCnByte(TCnNativeInt(InData) + I * SizeOf(Byte))^;
+      B := PByte(TCnNativeInt(InData) + I * SizeOf(Byte))^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -1172,7 +1175,7 @@ begin
   begin
     for I := 0 to ByteLength - 1 do
     begin
-      B := PCnByte(TCnNativeInt(InData) + I * SizeOf(Byte))^;
+      B := PByte(TCnNativeInt(InData) + I * SizeOf(Byte))^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -1191,7 +1194,7 @@ begin
   for I := 1 to L div 2 do
   begin
     S := Copy(Hex, I * 2 - 1, 2);
-    PCnByte(TCnNativeInt(OutData) + I - 1)^ := Byte(HexToInt(S));
+    PByte(TCnNativeInt(OutData) + I - 1)^ := Byte(HexToInt(S));
   end;
 end;
 
@@ -1213,7 +1216,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PCnByte(TCnNativeInt(Buffer) + I * SizeOf(Char))^;
+      B := PByte(TCnNativeInt(Buffer) + I * SizeOf(Char))^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -1222,7 +1225,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PCnByte(TCnNativeInt(Buffer) + I * SizeOf(Char))^;
+      B := PByte(TCnNativeInt(Buffer) + I * SizeOf(Char))^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -1264,7 +1267,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PCnByte(TCnNativeInt(Buffer) + I)^;
+      B := PByte(TCnNativeInt(Buffer) + I)^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -1273,7 +1276,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PCnByte(TCnNativeInt(Buffer) + I)^;
+      B := PByte(TCnNativeInt(Buffer) + I)^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -1393,7 +1396,7 @@ end;
 {$IFDEF CPUX64}
 
 // 64 位汇编用 IDIV 和 IDIV 指令实现，其中 A 在 RCX 里，B 在 EDX/RDX 里，DivRes 地址在 R8 里，ModRes 地址在 R9 里
-procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler
+procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer); assembler;
 asm
         PUSH    RCX                           // RCX 是 A
         MOV     RCX, RDX                      // 除数 B 放入 RCX
@@ -1470,7 +1473,7 @@ end;
 // 32 位下的实现
 procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
 begin
-  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then // 高 64 位为 0
+  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then // 高 64 位为 0 的正值或负值
   begin
     DivRes := ALo div B;
     ModRes := ALo mod B;
