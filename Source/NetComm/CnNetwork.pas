@@ -556,8 +556,8 @@ type
     TTL:                Byte;           // 生存时间
     Protocol:           Byte;           // 协议
     Checksum:           Word;           // 包头校验和
-    SourceIp:           LongWord;       // 源 IP 地址
-    DestIp:             LongWord;       // 目的 IP 地址
+    SourceIp:           Cardinal;       // 源 IP 地址
+    DestIp:             Cardinal;       // 目的 IP 地址
   end;
 
   PCnIPHeader = ^TCnIPHeader;
@@ -591,8 +591,8 @@ type
   TCnTCPHeader = packed record
     SourcePort:            Word;        // 源端口
     DestPort:              Word;        // 目的端口
-    SequenceNumber:        LongWord;    // 序列号
-    AcknowledgementNumber: LongWord;    // 响应序列号
+    SequenceNumber:        Cardinal;    // 序列号
+    AcknowledgementNumber: Cardinal;    // 响应序列号
     Offset:                Byte;        // 数据偏移，仅最左 4 bit，等同于包头长度
     Flags:                 Byte;        // TCP 包头标记
     Window:                Word;        // 窗口大小
@@ -646,11 +646,11 @@ type
     Code:                  Byte;         // 包的消息代码
     Checksum:              Word;         // 校验和
     case Integer of
-      0: (Unused:          LongWord);
+      0: (Unused:          Cardinal);
       1: (Ptr:             Byte;         // 指针
           Unused1:         Byte;
           Unused2:         Word);
-      2: (GatewayAddress:  LongWord);    // 网关地址
+      2: (GatewayAddress:  Cardinal);    // 网关地址
       3: (Identifier:      Word;         // 标识
           SequenceNumber:  Word);        // 序列号
   end;
@@ -718,9 +718,9 @@ type
     Stratum:               Byte;         // 系统时钟层数
     Poll:                  Byte;         // 轮询间隔
     Precision:             Byte;         // 系统时钟精度
-    RootDelay:             LongWord;
-    RootDispersion:        LongWord;
-    ReferenceID:           LongWord;
+    RootDelay:             Cardinal;
+    RootDispersion:        Cardinal;
+    ReferenceID:           Cardinal;
     ReferenceTimestamp:    Int64;
     OriginateTimestamp:    Int64;        // 客户端发送请求时的时间戳 T1
     ReceiveTimestamp:      Int64;        // 服务器接收到请求的时间戳 T2
@@ -813,7 +813,7 @@ type
   TCnDNSResourceRecordAfterName = packed record
     RType:                 Word;     // 资源类型
     RClass:                Word;     // 资源类
-    TTL:                   LongWord; // 存活时间
+    TTL:                   Cardinal; // 存活时间
     RDLength:              Word;     // 资源数据长度
     RData:                 array[0..0] of Byte;  // 资源数据，如 IP 等
   end;
@@ -844,9 +844,9 @@ type
   Socks 代理协议服务端握手回应包示意图，字节内左边是高位，右边是低位。
   字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
 
-   0                   1           
-   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 
-   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 
+   0                   1
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |    Version    |    Method     |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -887,9 +887,9 @@ type
   Socks 代理协议客户端用户名密码验证回应包示意图，字节内左边是高位，右边是低位。
   字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
 
-   0                   1           
-   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 
-   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 
+   0                   1
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |    Version    |    Status     |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -1032,11 +1032,11 @@ type
       Padding3:            Word;
     HoldTime:              Word;                      // 单位秒，默认 180，0 表示不发 Keepalive
       Padding4:            Word;
-    BGPIdentifier:         LongWord;                  // 发送者的 Router ID
+    BGPIdentifier:         Cardinal;                  // 发送者的 Router ID
     OptParamLen:           Byte;                      // OptionalParameters 的长度
       Padding5:            Byte;
       Padding6:            Word;
-    OptionalParameters:    LongWord;
+    OptionalParameters:    Cardinal;
   end;
   PCnBGPOpenData = ^TCnBGPOpenData;
 
@@ -1208,10 +1208,10 @@ function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 function CnGetIPChecksum(const IPHeader: PCnIPHeader): Word;
 {* 获得 IP 包头内的校验和，存在网络字节转换}
 
-function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
+function CnGetIPSourceIP(const IPHeader: PCnIPHeader): Cardinal;
 {* 获得 IP 包头内的源 IP 地址，存在网络字节转换}
 
-function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
+function CnGetIPDestIP(const IPHeader: PCnIPHeader): Cardinal;
 {* 获得 IP 包头内的目的 IP 地址，存在网络字节转换}
 
 // ======================== TCP 包头系列函数 ===================================
@@ -1222,10 +1222,10 @@ function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
 function CnGetTCPDestPort(const TCPHeader: PCnTCPHeader): Integer;
 {* 获得 TCP 包头内的目的端口号，存在网络字节转换}
 
-function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): LongWord;
+function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): Cardinal;
 {* 获得 TCP 包头内的序列号，存在网络字节转换}
 
-function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): LongWord;
+function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): Cardinal;
 {* 获得 TCP 包头内的响应号，存在网络字节转换}
 
 function CnGetTCPOffset(const TCPHeader: PCnTCPHeader): Integer;
@@ -1286,7 +1286,7 @@ function CnGetICMPChecksum(const ICMPHeader: PCnICMPHeader): Word;
 function CnGetICMPPointer(const ICMPHeader: PCnICMPHeader): Integer;
 {* 获得 ICMP 包头内的指针字段值}
 
-function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): LongWord;
+function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): Cardinal;
 {* 获得 ICMP 包头内的网关地址}
 
 function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
@@ -1440,25 +1440,11 @@ function CnGetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer): Wo
 procedure CnSetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer; BodyLength: Word);
 {* 设置 TLS/SSL 记录层协议包头中的数据长度}
 
-function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): LongWord;
+function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): Cardinal;
 {* 返回 TLS/SSL 握手协议报文的内容长度}
 
-procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: LongWord);
+procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: Cardinal);
 {* 设置 TLS/SSL 握手协议报文的内容长度}
-
-// ========================= 字节顺序调换函数 ==================================
-
-function CnNetworkToHostWord(Value: Word): Word;
-
-function CnHostToNetworkWord(Value: Word): Word;
-
-function CnNetworkToHostLongWord(Value: LongWord): LongWord;
-
-function CnHostToNetworkLongWord(Value: LongWord): LongWord;
-
-function CnNetworkToHostInt64(Value: Int64): Int64;
-
-function CnHostToNetworkInt64(Value: Int64): Int64;
 
 // =========================== IP 地址转换函数 =================================
 
@@ -1470,55 +1456,8 @@ function IPStringToCardinal(const IP: string): Cardinal;
 
 implementation
 
-function CnNetworkToHostWord(Value: Word): Word;
-begin
-  Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
-end;
-
-function CnHostToNetworkWord(Value: Word): Word;
-begin
-  Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
-end;
-
-function CnNetworkToHostLongWord(Value: LongWord): LongWord;
-begin
-  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
-end;
-
-function CnHostToNetworkLongWord(Value: LongWord): LongWord;
-begin
-  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
-end;
-
-function CnNetworkToHostInt64(Value: Int64): Int64;
-var
-  Lo, Hi: LongWord;
-  Rec: Int64Rec;
-begin
-  Lo := Int64Rec(Value).Lo;
-  Hi := Int64Rec(Value).Hi;
-  Lo := CnNetworkToHostLongWord(Lo);
-  Hi := CnNetworkToHostLongWord(Hi);
-  Rec.Lo := Hi;
-  Rec.Hi := Lo;
-  Result := Int64(Rec);
-end;
-
-function CnHostToNetworkInt64(Value: Int64): Int64;
-var
-  Lo, Hi: LongWord;
-  Rec: Int64Rec;
-begin
-  Lo := Int64Rec(Value).Lo;
-  Hi := Int64Rec(Value).Hi;
-  Lo := CnNetworkToHostLongWord(Lo);
-  Hi := CnNetworkToHostLongWord(Hi);
-  Rec.Lo := Hi;
-  Rec.Hi := Lo;
-  Result := Int64(Rec);
-end;
+uses
+  CnNative;
 
 function CardinalToIPString(const IP: Cardinal): string;
 var
@@ -1607,62 +1546,62 @@ end;
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(IPHeader^.TotalLength);
+  Result := UInt16NetworkToHost(IPHeader^.TotalLength);
 end;
 
 function CnGetIPIdentification(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(IPHeader^.Identification);
+  Result := UInt16NetworkToHost(IPHeader^.Identification);
 end;
 
 function CnGetIPFlagDontFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (CnNetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
+  Result := (UInt16NetworkToHost(IPHeader^.FlagOffset) and CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFlagMoreFragment(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (CnNetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
+  Result := (UInt16NetworkToHost(IPHeader^.FlagOffset) and CN_IP_FLAG_MORE_FRAGMENT_WORD_MASK) <> 0;
 end;
 
 function CnGetIPFragmentOffset(const IPHeader: PCnIPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
+  Result := UInt16NetworkToHost(IPHeader^.FlagOffset) and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK;
 end;
 
 function CnGetIPChecksum(const IPHeader: PCnIPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(IPHeader^.Checksum);
+  Result := UInt16NetworkToHost(IPHeader^.Checksum);
 end;
 
-function CnGetIPSourceIP(const IPHeader: PCnIPHeader): LongWord;
+function CnGetIPSourceIP(const IPHeader: PCnIPHeader): Cardinal;
 begin
-  Result := CnNetworkToHostLongWord(IPHeader^.SourceIp);
+  Result := UInt32NetworkToHost(IPHeader^.SourceIp);
 end;
 
-function CnGetIPDestIP(const IPHeader: PCnIPHeader): LongWord;
+function CnGetIPDestIP(const IPHeader: PCnIPHeader): Cardinal;
 begin
-  Result := CnNetworkToHostLongWord(IPHeader^.DestIp);
+  Result := UInt32NetworkToHost(IPHeader^.DestIp);
 end;
 
 function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(TCPHeader^.SourcePort);
+  Result := UInt16NetworkToHost(TCPHeader^.SourcePort);
 end;
 
 function CnGetTCPDestPort(const TCPHeader: PCnTCPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(TCPHeader^.DestPort);
+  Result := UInt16NetworkToHost(TCPHeader^.DestPort);
 end;
 
-function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): LongWord;
+function CnGetTCPSequenceNumber(const TCPHeader: PCnTCPHeader): Cardinal;
 begin
-  Result := CnNetworkToHostLongWord(TCPHeader^.SequenceNumber);
+  Result := UInt32NetworkToHost(TCPHeader^.SequenceNumber);
 end;
 
-function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): LongWord;
+function CnGetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader): Cardinal;
 begin
-  Result := CnNetworkToHostLongWord(TCPHeader^.AcknowledgementNumber);
+  Result := UInt32NetworkToHost(TCPHeader^.AcknowledgementNumber);
 end;
 
 function CnGetTCPOffset(const TCPHeader: PCnTCPHeader): Integer;
@@ -1702,37 +1641,37 @@ end;
 
 function CnGetTCPWindow(const TCPHeader: PCnTCPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(TCPHeader^.Window);
+  Result := UInt16NetworkToHost(TCPHeader^.Window);
 end;
 
 function CnGetTCPChecksum(const TCPHeader: PCnTCPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(TCPHeader^.Checksum);
+  Result := UInt16NetworkToHost(TCPHeader^.Checksum);
 end;
 
 function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(TCPHeader^.UrgentPointer);
+  Result := UInt16NetworkToHost(TCPHeader^.UrgentPointer);
 end;
 
 function CnGetUDPSourcePort(const UDPHeader: PCnUDPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(UDPHeader^.SourcePort);
+  Result := UInt16NetworkToHost(UDPHeader^.SourcePort);
 end;
 
 function CnGetUDPDestPort(const UDPHeader: PCnUDPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(UDPHeader^.DestPort);
+  Result := UInt16NetworkToHost(UDPHeader^.DestPort);
 end;
 
 function CnGetUDPLength(const UDPHeader: PCnUDPHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(UDPHeader^.Length);
+  Result := UInt16NetworkToHost(UDPHeader^.Length);
 end;
 
 function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(UDPHeader^.Checksum);
+  Result := UInt16NetworkToHost(UDPHeader^.Checksum);
 end;
 
 function CnGetICMPType(const ICMPHeader: PCnICMPHeader): Integer;
@@ -1747,7 +1686,7 @@ end;
 
 function CnGetICMPChecksum(const ICMPHeader: PCnICMPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(ICMPHeader^.Checksum);
+  Result := UInt16NetworkToHost(ICMPHeader^.Checksum);
 end;
 
 function CnGetICMPPointer(const ICMPHeader: PCnICMPHeader): Integer;
@@ -1755,19 +1694,19 @@ begin
   Result := ICMPHeader^.Ptr;
 end;
 
-function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): LongWord;
+function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): Cardinal;
 begin
-  Result := CnNetworkToHostLongWord(ICMPHeader^.GatewayAddress);
+  Result := UInt32NetworkToHost(ICMPHeader^.GatewayAddress);
 end;
 
 function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(ICMPHeader^.Identifier);
+  Result := UInt16NetworkToHost(ICMPHeader^.Identifier);
 end;
 
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(ICMPHeader^.SequenceNumber);
+  Result := UInt16NetworkToHost(ICMPHeader^.SequenceNumber);
 end;
 
 function CnGetNTPLeapIndicator(const NTPPacket: PCnNTPPacket): Integer;
@@ -1804,7 +1743,7 @@ function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
 var
   Sec, Frac: DWORD;
 begin
-  Stamp := CnNetworkToHostInt64(Stamp);
+  Stamp := Int64NetworkToHost(Stamp);
   Sec := Int64Rec(Stamp).Hi;
   Frac := Int64Rec(Stamp).Lo;
 
@@ -1826,12 +1765,12 @@ begin
 
   Int64Rec(Result).Lo := Frac;
   Int64Rec(Result).Hi := Sec;
-  Result := CnHostToNetworkInt64(Result); // 互相转换
+  Result := Int64HostToNetwork(Result); // 互相转换
 end;
 
 function CnGetDNSHeaderId(const DNSHeader: PCnDNSHeader): Word;
 begin
-  Result := CnNetworkToHostWord(DNSHeader^.Id);
+  Result := UInt16NetworkToHost(DNSHeader^.Id);
 end;
 
 function CnGetDNSHeaderQR(const DNSHeader: PCnDNSHeader): Integer;
@@ -1871,27 +1810,27 @@ end;
 
 function CnGetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(DNSHeader^.QDCount);
+  Result := UInt16NetworkToHost(DNSHeader^.QDCount);
 end;
 
 function CnGetDNSHeaderANCount(const DNSHeader: PCnDNSHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(DNSHeader^.ANCount);
+  Result := UInt16NetworkToHost(DNSHeader^.ANCount);
 end;
 
 function CnGetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(DNSHeader^.NSCount);
+  Result := UInt16NetworkToHost(DNSHeader^.NSCount);
 end;
 
 function CnGetDNSHeaderARCount(const DNSHeader: PCnDNSHeader): Integer;
 begin
-  Result := CnNetworkToHostWord(DNSHeader^.ARCount);
+  Result := UInt16NetworkToHost(DNSHeader^.ARCount);
 end;
 
 procedure CnSetDNSHeaderId(const DNSHeader: PCnDNSHeader; Id: Word);
 begin
-  DNSHeader^.Id := CnHostToNetworkWord(Id);
+  DNSHeader^.Id := UInt16HostToNetwork(Id);
 end;
 
 procedure CnSetDNSHeaderQR(const DNSHeader: PCnDNSHeader; IsQuery: Boolean);
@@ -1946,22 +1885,22 @@ end;
 
 procedure CnSetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader; Count: Word);
 begin
-  DNSHeader^.QDCount := CnHostToNetworkWord(Count);
+  DNSHeader^.QDCount := UInt16HostToNetwork(Count);
 end;
 
 procedure CnSetDNSHeaderANCount(const DNSHeader: PCnDNSHeader; Count: Word);
 begin
-  DNSHeader^.ANCount := CnHostToNetworkWord(Count);
+  DNSHeader^.ANCount := UInt16HostToNetwork(Count);
 end;
 
 procedure CnSetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader; Count: Word);
 begin
-  DNSHeader^.NSCount := CnHostToNetworkWord(Count);
+  DNSHeader^.NSCount := UInt16HostToNetwork(Count);
 end;
 
 procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
 begin
-  DNSHeader^.ARCount := CnHostToNetworkWord(Count);
+  DNSHeader^.ARCount := UInt16HostToNetwork(Count);
 end;
 
 function CnGetSocksRequestDestinationAddress(const SocksReq: PCnSocksRequest): string;
@@ -1973,7 +1912,7 @@ begin
   case SocksReq^.AddressType of
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       begin
-        Result := CardinalToIPString(CnNetworkToHostLongWord(SocksReq^.DestionationAddress.IpV4Address));
+        Result := CardinalToIPString(UInt32NetworkToHost(SocksReq^.DestionationAddress.IpV4Address));
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
@@ -2012,7 +1951,7 @@ begin
   if Len > 0 then
   begin
     PortAddr := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
-    Result := CnNetworkToHostWord(PortAddr^);
+    Result := UInt16NetworkToHost(PortAddr^);
   end;
 end;
 
@@ -2025,7 +1964,7 @@ begin
   case SocksResp^.AddressType of
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       begin
-        Result := CardinalToIPString(CnNetworkToHostLongWord(SocksResp^.BindAddress.IpV4Address));
+        Result := CardinalToIPString(UInt32NetworkToHost(SocksResp^.BindAddress.IpV4Address));
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
@@ -2064,7 +2003,7 @@ begin
   if Len > 0 then
   begin
     PortAddr := PWORD(Integer(@(SocksResp^.BindAddress)) + Len);
-    Result := CnNetworkToHostWord(PortAddr^);
+    Result := UInt16NetworkToHost(PortAddr^);
   end;
 end;
 
@@ -2073,7 +2012,7 @@ var
   IP: Cardinal;
   AnsiAddress: AnsiString;
 begin
-  IP := CnHostToNetworkLongWord(IPStringToCardinal(Address));
+  IP := UInt32HostToNetwork(IPStringToCardinal(Address));
   if IP = 0 then // 非法 IP，表示是域名
   begin
     SocksReq^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
@@ -2112,7 +2051,7 @@ begin
   if Len > 0 then
   begin
     PortAddr := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
-    PortAddr^ := CnHostToNetworkWord(Port);
+    PortAddr^ := UInt16HostToNetwork(Port);
   end;
   Result := Len + 4 + SizeOf(Word);
 end;
@@ -2122,7 +2061,7 @@ var
   IP: Cardinal;
   AnsiAddress: AnsiString;
 begin
-  IP := CnHostToNetworkLongWord(IPStringToCardinal(Address));
+  IP := UInt32HostToNetwork(IPStringToCardinal(Address));
   if IP = 0 then // 非法 IP，表示是域名
   begin
     SocksResp^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
@@ -2160,7 +2099,7 @@ begin
   if Len > 0 then
   begin
     PortAddr := PWORD(Integer(@(SocksResp^.BindAddress)) + Len);
-    PortAddr^ := CnHostToNetworkWord(Port);
+    PortAddr^ := UInt16HostToNetwork(Port);
   end;
   Result := Len + 4 + SizeOf(Word);
 end;
@@ -2172,33 +2111,33 @@ end;
 
 function CnGetBGPHeaderLength(const BGPHeader: PCnBGPHeader): Word;
 begin
-  Result := CnNetworkToHostWord(BGPHeader^.Length);
+  Result := UInt16NetworkToHost(BGPHeader^.Length);
 end;
 
 procedure CnSetBGPHeaderLength(const BGPHeader: PCnBGPHeader; Length: Word);
 begin
-  BGPHeader^.Length := CnHostToNetworkWord(Length);
+  BGPHeader^.Length := UInt16HostToNetwork(Length);
 end;
 
 function CnGetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer): Word;
 begin
-  Result := CnNetworkToHostWord(RecordLayer^.BodyLength);
+  Result := UInt16NetworkToHost(RecordLayer^.BodyLength);
 end;
 
 procedure CnSetTLSRecordLayerBodyLength(const RecordLayer: PCnTLSRecordLayer; BodyLength: Word);
 begin
-  RecordLayer^.BodyLength := CnHostToNetworkWord(BodyLength);
+  RecordLayer^.BodyLength := UInt16HostToNetwork(BodyLength);
 end;
 
-function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): LongWord;
+function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): Cardinal;
 begin
-  Result := HandShakeHeader^.LengthHi shl 24 + CnNetworkToHostWord(HandShakeHeader^.LengthLo);
+  Result := HandShakeHeader^.LengthHi shl 24 + UInt16NetworkToHost(HandShakeHeader^.LengthLo);
 end;
 
-procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: LongWord);
+procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: Cardinal);
 begin
   HandShakeHeader^.LengthHi := (ContentLength shr 16) and $00FF;
-  HandShakeHeader^.LengthLo := CnHostToNetworkWord(ContentLength and $FFFF);
+  HandShakeHeader^.LengthLo := UInt16HostToNetwork(ContentLength and $FFFF);
 end;
 
 end.
