@@ -339,6 +339,24 @@ function Int32NetworkToHost(Value: Integer): Integer;
 function Int16NetworkToHost(Value: SmallInt): SmallInt;
 {* 将 Int16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
 
+function UInt64HostToNetwork(Value: TUInt64): TUInt64;
+{* 将 UInt64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
+function UInt32HostToNetwork(Value: Cardinal): Cardinal;
+{* 将 UInt32 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
+function UInt16HostToNetwork(Value: Word): Word;
+{* 将 UInt16 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
+function UInt64NetworkToHost(Value: TUInt64): TUInt64;
+{* 将 UInt64 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+
+function UInt32NetworkToHost(Value: Cardinal): Cardinal;
+{* 将 UInt32值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+
+function UInt16NetworkToHost(Value: Word): Word;
+{* 将 UInt16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+
 procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
 {* 按字节顺序倒置一块内存块，字节内部不变}
 
@@ -483,7 +501,7 @@ end;
 
 function SwapInt64(Value: Int64): Int64;
 var
-  Lo, Hi: LongWord;
+  Lo, Hi: Cardinal;
   Rec: Int64Rec;
 begin
   Lo := Int64Rec(Value).Lo;
@@ -495,6 +513,22 @@ begin
   Rec.Lo := Hi;
   Rec.Hi := Lo;
   Result := Int64(Rec);
+end;
+
+function SwapUInt64(Value: TUInt64): TUInt64;
+var
+  Lo, Hi: Cardinal;
+  Rec: Int64Rec;
+begin
+  Lo := Int64Rec(Value).Lo;
+  Hi := Int64Rec(Value).Hi;
+  Lo := ((Lo and $000000FF) shl 24) or ((Lo and $0000FF00) shl 8)
+    or ((Lo and $00FF0000) shr 8) or ((Lo and $FF000000) shr 24);
+  Hi := ((Hi and $000000FF) shl 24) or ((Hi and $0000FF00) shl 8)
+    or ((Hi and $00FF0000) shr 8) or ((Hi and $FF000000) shr 24);
+  Rec.Lo := Hi;
+  Rec.Hi := Lo;
+  Result := TUInt64(Rec);
 end;
 
 function Int64ToBigEndian(Value: Int64): Int64;
@@ -590,6 +624,56 @@ begin
 end;
 
 function Int16NetworkToHost(Value: SmallInt): SmallInt;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
+  else
+    Result := Value;
+end;
+
+function UInt64HostToNetwork(Value: TUInt64): TUInt64;
+begin
+  if CurrentByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := SwapUInt64(Value);
+end;
+
+function UInt32HostToNetwork(Value: Cardinal): Cardinal;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Cardinal((Value and $000000FF) shl 24) or Cardinal((Value and $0000FF00) shl 8)
+      or Cardinal((Value and $00FF0000) shr 8) or Cardinal((Value and $FF000000) shr 24)
+  else
+    Result := Value;
+end;
+
+function UInt16HostToNetwork(Value: Word): Word;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
+  else
+    Result := Value;
+end;
+
+function UInt64NetworkToHost(Value: TUInt64): TUInt64;
+begin
+  if CurrentByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := SwapUInt64(Value);
+end;
+
+function UInt32NetworkToHost(Value: Cardinal): Cardinal;
+begin
+  if CurrentByteOrderIsLittleEndian then
+    Result := Cardinal((Value and $000000FF) shl 24) or Cardinal((Value and $0000FF00) shl 8)
+      or Cardinal((Value and $00FF0000) shr 8) or Cardinal((Value and $FF000000) shr 24)
+  else
+    Result := Value;
+end;
+
+function UInt16NetworkToHost(Value: Word): Word;
 begin
   if CurrentByteOrderIsLittleEndian then
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
