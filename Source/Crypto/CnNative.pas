@@ -144,6 +144,11 @@ type
   PCnByte = ^Byte; // 不引用 Windows 中的 PByte
   PCnWord = ^Word;
 
+{$IFDEF COMIPLER5}
+  PCardinal = ^Cardinal;
+  {* D5 下 System 单元中未定义，定义上}
+{$ENDIF}
+
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
   {* 位操作类型}
 
