@@ -195,6 +195,9 @@ type
 
 implementation
 
+uses
+  CnNative;
+
 type
   TCnUDPHack = class(TCnUDP);
 
@@ -404,9 +407,9 @@ begin
     Exit;
   end;
 
-  PW^ := CnHostToNetworkWord(QueryType);
+  PW^ := UInt16HostToNetwork(QueryType);
   Inc(PW);
-  PW^ := CnHostToNetworkWord(QueryClass);
+  PW^ := UInt16HostToNetwork(QueryClass);
 end;
 
 class function TCnDNS.ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar; MaxLen: Integer): Integer;
@@ -544,8 +547,8 @@ var
       Inc(QuestionData, Len);
 
       H := PCnDNSQuestionSectionAfterName(QuestionData);
-      Question.QType := CnNetworkToHostWord(H^.QType);
-      Question.QClass := CnNetworkToHostWord(H^.QClass);
+      Question.QType := UInt16NetworkToHost(H^.QType);
+      Question.QClass := UInt16NetworkToHost(H^.QClass);
       Result := QuestionData + SizeOf(TCnDNSQuestionSectionAfterName);
     end;
   end;
@@ -566,14 +569,14 @@ var
       Inc(ResourceRecordData, Len);
 
       H := PCnDNSResourceRecordAfterName(ResourceRecordData);
-      Resource.RType := CnNetworkToHostWord(H^.RType);
-      Resource.RClass := CnNetworkToHostWord(H^.RClass);
-      Resource.TTL := CnNetworkToHostLongWord(H^.TTL);
-      Resource.RDLength := CnNetworkToHostWord(H^.RDLength);
+      Resource.RType := UInt16NetworkToHost(H^.RType);
+      Resource.RClass := UInt16NetworkToHost(H^.RClass);
+      Resource.TTL := UInt32NetworkToHost(H^.TTL);
+      Resource.RDLength := UInt16NetworkToHost(H^.RDLength);
       if Resource.RDLength = SizeOf(LongWord) then
       begin
         // 4 字节的应答数据是 IP 地址
-        Resource.IP := CnNetworkToHostLongWord((PDWORD(@H^.RData[0]))^);
+        Resource.IP := UInt32NetworkToHost((PDWORD(@H^.RData[0]))^);
       end
       else
       begin
