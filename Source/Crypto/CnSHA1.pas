@@ -55,8 +55,8 @@ type
   TSHA1Digest = array[0..19] of Byte;
 
   TSHA1Context = record
-    Hash: array[0..4] of TCnLongWord32;
-    Hi, Lo: TCnLongWord32;
+    Hash: array[0..4] of Cardinal;
+    Hi, Lo: Cardinal;
     Buffer: array[0..63] of Byte;
     Index: Integer;
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
@@ -147,7 +147,7 @@ function SHA1DigestToStr(aDig: TSHA1Digest): string;
  |</PRE>}
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: TCnLongWord32; var Output: TSHA1Digest);
+  Length: Cardinal; var Output: TSHA1Digest);
 
 {* Hash-based Message Authentication Code (based on SHA1) }
 
@@ -178,14 +178,14 @@ begin
 //        mov     &Result, ax
 end;
 
-function LRot32(X: TCnLongWord32; c: Integer): TCnLongWord32;
+function LRot32(X: Cardinal; c: Integer): Cardinal;
 begin
   Result := X shl (c and 31) + X shr (32 - c and 31);
 //        mov     ecx, edx
 //        rol     eax, cl
 end;
 
-function RRot32(X: TCnLongWord32; c: Integer): TCnLongWord32;
+function RRot32(X: Cardinal; c: Integer): Cardinal;
 begin
   Result := X shr (c and 31) + X shl (32 - c and 31);
 //        mov     ecx, edx
@@ -207,30 +207,30 @@ begin
     IncBlock(P, Len - 1);
 end;
 
-function F1(x, y, z: TCnLongWord32): TCnLongWord32;
+function F1(x, y, z: Cardinal): Cardinal;
 begin
   Result := z xor (x and (y xor z));
 end;
 
-function F2(x, y, z: TCnLongWord32): TCnLongWord32;
+function F2(x, y, z: Cardinal): Cardinal;
 begin
   Result := x xor y xor z;
 end;
 
-function F3(x, y, z: TCnLongWord32): TCnLongWord32;
+function F3(x, y, z: Cardinal): Cardinal;
 begin
   Result := (x and y) or (z and (x or y));
 end;
 
-function RB(A: TCnLongWord32): TCnLongWord32;
+function RB(A: Cardinal): Cardinal;
 begin
   Result := (A shr 24) or ((A shr 8) and $FF00) or ((A shl 8) and $FF0000) or (A shl 24);
 end;
 
 procedure SHA1Compress(var Data: TSHA1Context);
 var
-  A, B, C, D, E, T: TCnLongWord32;
-  W: array[0..79] of TCnLongWord32;
+  A, B, C, D, E, T: Cardinal;
+  W: array[0..79] of Cardinal;
   i: Integer;
 begin
   Move(Data.Buffer, W, Sizeof(Data.Buffer));
@@ -303,7 +303,7 @@ end;
 
 procedure SHA1UpdateLen(var Context: TSHA1Context; Len: Integer);
 var
-  i, k: TCnLongWord32;
+  i, k: Cardinal;
 begin
   for k := 0 to 7 do
   begin
@@ -333,7 +333,7 @@ begin
   end;
 end;
 
-procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; CharLength: TCnLongWord32);
+procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
@@ -361,7 +361,7 @@ end;
 
 procedure SHA1Final(var Context: TSHA1Context; var Digest: TSHA1Digest);
 type
-  PDWord = ^TCnLongWord32;
+  PDWord = ^Cardinal;
 begin
   Context.Buffer[Context.Index] := $80;
   if Context.Index >= 56 then
@@ -666,7 +666,7 @@ begin
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: TCnLongWord32; var Output: TSHA1Digest);
+  Length: Cardinal; var Output: TSHA1Digest);
 var
   Ctx: TSHA1Context;
 begin

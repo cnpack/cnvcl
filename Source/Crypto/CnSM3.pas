@@ -48,8 +48,8 @@ uses
 
 type
   TSM3Context = packed record
-    Total: array[0..1] of TCnLongWord32;     {!< number of bytes processed  }
-    State: array[0..8] of TCnLongWord32;     {!< intermediate digest state  }
+    Total: array[0..1] of Cardinal;     {!< number of bytes processed  }
+    State: array[0..8] of Cardinal;     {!< intermediate digest state  }
     Buffer: array[0..63] of Byte;            {!< data block being processed }
     Ipad: array[0..63] of Byte;              {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;              {!< HMAC: outer padding        }
@@ -173,16 +173,16 @@ const
 type
   TSM3ProcessData = array[0..63] of Byte;
 
-procedure GetULongBe(var N: TCnLongWord32; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: Cardinal; B: PAnsiChar; I: Integer);
 var
-  D: TCnLongWord32;
+  D: Cardinal;
 begin
-  D := (TCnLongWord32(B[I]) shl 24) or (TCnLongWord32(B[I + 1]) shl 16) or
-    (TCnLongWord32(B[I + 2]) shl 8) or (TCnLongWord32(B[I + 3]));
+  D := (Cardinal(B[I]) shl 24) or (Cardinal(B[I + 1]) shl 16) or
+    (Cardinal(B[I + 2]) shl 8) or (Cardinal(B[I + 3]));
   N := D;
 end;
 
-procedure PutULongBe(N: TCnLongWord32; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: Cardinal; B: PAnsiChar; I: Integer);
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);
@@ -190,42 +190,42 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function FF0(X, Y, Z: TCnLongWord32): TCnLongWord32;
+function FF0(X, Y, Z: Cardinal): Cardinal;
 begin
   Result := X xor Y xor Z;
 end;
 
-function FF1(X, Y, Z: TCnLongWord32): TCnLongWord32;
+function FF1(X, Y, Z: Cardinal): Cardinal;
 begin
   Result := (X and Y) or (Y and Z) or (X and Z);
 end;
 
-function GG0(X, Y, Z: TCnLongWord32): TCnLongWord32;
+function GG0(X, Y, Z: Cardinal): Cardinal;
 begin
   Result := X xor Y xor Z;
 end;
 
-function GG1(X, Y, Z: TCnLongWord32): TCnLongWord32;
+function GG1(X, Y, Z: Cardinal): Cardinal;
 begin
   Result := (X and Y) or ((not X) and Z);
 end;
 
-function SM3Shl(X: TCnLongWord32; N: Integer): TCnLongWord32;
+function SM3Shl(X: Cardinal; N: Integer): Cardinal;
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
-function ROTL(X: TCnLongWord32; N: Integer): TCnLongWord32;
+function ROTL(X: Cardinal; N: Integer): Cardinal;
 begin
   Result := SM3Shl(X, N) or (X shr (32 - N));
 end;
 
-function P0(X: TCnLongWord32): TCnLongWord32;
+function P0(X: Cardinal): Cardinal;
 begin
   Result := X xor ROTL(X, 9) xor ROTL(X, 17);
 end;
 
-function P1(X: TCnLongWord32): TCnLongWord32;
+function P1(X: Cardinal): Cardinal;
 begin
   Result := X xor ROTL(X, 15) xor ROTL(X, 23);
 end;
@@ -250,12 +250,12 @@ end;
 // 一次处理 64byte 也就是512bit 数据块
 procedure SM3Process(var Ctx: TSM3Context; Data: PAnsiChar);
 var
-  SS1, SS2, TT1, TT2: TCnLongWord32;
-  W: array[0..67] of TCnLongWord32;
-  W1: array[0..63] of TCnLongWord32;
-  T: array[0..63] of TCnLongWord32;
-  A, B, C, D, E, F, G, H: TCnLongWord32;
-  Temp1, Temp2, Temp3, Temp4, Temp5: TCnLongWord32;
+  SS1, SS2, TT1, TT2: Cardinal;
+  W: array[0..67] of Cardinal;
+  W1: array[0..63] of Cardinal;
+  T: array[0..63] of Cardinal;
+  A, B, C, D, E, F, G, H: Cardinal;
+  Temp1, Temp2, Temp3, Temp4, Temp5: Cardinal;
   J: Integer;
 begin
   for J := 0 to 15 do

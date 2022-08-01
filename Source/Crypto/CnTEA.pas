@@ -50,11 +50,11 @@ const
 type
   ECnTeaException = class(Exception);
 
-  TCnTeaKey = array[0..3] of TCnLongWord32;  // TEA 算法的密钥格式，四个 32Bit 数
+  TCnTeaKey = array[0..3] of Cardinal;  // TEA 算法的密钥格式，四个 32Bit 数
 
-  TCnTeaData = array[0..1] of TCnLongWord32; // TEA 算法的数据格式，二个 32Bit 数
+  TCnTeaData = array[0..1] of Cardinal; // TEA 算法的数据格式，二个 32Bit 数
 
-  TCnXXTeaData = array[0..16383] of TCnLongWord32;
+  TCnXXTeaData = array[0..16383] of Cardinal;
 
   PCnXXTeaData = ^TCnXXTeaData;         // XXTEA 算法支持更长的 LongWord 数组
 
@@ -86,10 +86,10 @@ const
   CN_TEA_DELTA = $9E3779B9;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 TEA 算法将明文 L/R 加密成密文
-procedure TeaEncrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
+procedure TeaEncrypt(K: TCnTeaKey; var L, R: Cardinal;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: TCnLongWord32;
+  D, S: Cardinal;
   I: Integer;
 begin
   if RoundCount <= 0 then
@@ -106,10 +106,10 @@ begin
 end;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 TEA 算法将密文 L/R 解密成明文
-procedure TeaDecrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
+procedure TeaDecrypt(K: TCnTeaKey; var L, R: Cardinal;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: TCnLongWord32;
+  D, S: Cardinal;
   I: Integer;
 begin
   if RoundCount <= 0 then
@@ -130,10 +130,10 @@ begin
 end;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 XTEA 算法将明文 L/R 加密成密文
-procedure XTeaEncrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
+procedure XTeaEncrypt(K: TCnTeaKey; var L, R: Cardinal;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: TCnLongWord32;
+  D, S: Cardinal;
   I: Integer;
 begin
   if RoundCount <= 0 then
@@ -150,17 +150,17 @@ begin
 end;
 
 // 以 K[0]/K[1]/K[2]/K[3] 为密钥，用 XTEA 算法将密文 L/R 解密成明文
-procedure XTeaDecrypt(K: TCnTeaKey; var L, R: TCnLongWord32;
+procedure XTeaDecrypt(K: TCnTeaKey; var L, R: Cardinal;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
 var
-  D, S: TCnLongWord32;
+  D, S: Cardinal;
   I: Integer;
 begin
   if RoundCount <= 0 then
     raise ECnTeaException.Create('Error RountCount.');
 
   D := CN_TEA_DELTA;
-  S := D * TCnLongWord32(RoundCount);
+  S := D * Cardinal(RoundCount);
   for I := 1 to RoundCount do
   begin
     R := R - ((((L shl 4) xor (L shr 5)) + L) xor (S + K[(S shr 11) and 3]));
@@ -169,7 +169,7 @@ begin
   end;
 end;
 
-function MX(Z, Y, S, P, E: TCnLongWord32; var Key: TCnTeaKey): TCnLongWord32;
+function MX(Z, Y, S, P, E: Cardinal; var Key: TCnTeaKey): Cardinal;
 begin
   Result := (((Z shr 5) xor (Y shl 2)) + ((Y shr 3) xor (Z shl 4))) xor
     ((S xor Y) + (Key[(P and 3) xor E] xor Z) );
@@ -202,7 +202,7 @@ end;
 // XXTEA 加密，128 Bits 密钥加密 4 字节整数倍长度的明文内容为密文
 procedure CnXXTeaEncrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
 var
-  Z, Y, X, Sum, E, P: TCnLongWord32;
+  Z, Y, X, Sum, E, P: Cardinal;
   Q: Integer;
 begin
   if DataLongWordLength <= 0 then
@@ -235,7 +235,7 @@ end;
 // XXTEA 解密，128 Bits 密钥解密 4 字节整数倍长度的密文内容为明文
 procedure CnXXTeaDecrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
 var
-  Z, Y, X, Sum, E, P: TCnLongWord32;
+  Z, Y, X, Sum, E, P: Cardinal;
   Q: Integer;
 begin
   if DataLongWordLength <= 0 then
@@ -244,7 +244,7 @@ begin
   Q := 6 + 52 div DataLongWordLength;
   Y := Data^[0];
 
-  Sum := TCnLongWord32(Q) * CN_TEA_DELTA;
+  Sum := Cardinal(Q) * CN_TEA_DELTA;
   repeat
     E := (Sum shr 2) and 3;
     for P := DataLongWordLength - 1 downto 1 do

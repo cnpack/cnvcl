@@ -81,7 +81,7 @@ type
 
   TSM4Context = packed record
     Mode: Integer;                                       {!<  encrypt/decrypt }
-    Sk: array[0..SM4_KEYSIZE * 2 - 1] of TCnLongWord32;  {!<  SM4 subkeys     }
+    Sk: array[0..SM4_KEYSIZE * 2 - 1] of Cardinal;  {!<  SM4 subkeys     }
   end;
 
 procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
@@ -422,7 +422,7 @@ procedure SM4SetKeyEnc(var Ctx: TSM4Context; Key: PAnsiChar);
 procedure SM4SetKeyDec(var Ctx: TSM4Context; Key: PAnsiChar);
 {* 将 16 字节 Key 塞进 Context 并设置为解密模式}
 
-procedure SM4OneRound(SK: PCnLongWord32; Input: PAnsiChar; Output: PAnsiChar);
+procedure SM4OneRound(SK: PCardinal; Input: PAnsiChar; Output: PAnsiChar);
 {* 加解密一个块，内容从 Input 至 Output，长度 16 字节，两者可以是同一个区域
   SK是 TSM4Context 的 Sk，加还是解由其决定}
 
@@ -456,9 +456,9 @@ const
     ($18, $F0, $7D, $EC, $3A, $DC, $4D, $20, $79, $EE, $5F, $3E, $D7, $CB, $39, $48)
   );
 
-  FK: array[0..3] of TCnLongWord32 = ($A3B1BAC6, $56AA3350, $677D9197, $B27022DC);
+  FK: array[0..3] of Cardinal = ($A3B1BAC6, $56AA3350, $677D9197, $B27022DC);
 
-  CK: array[0..SM4_KEYSIZE * 2 - 1] of TCnLongWord32 = (
+  CK: array[0..SM4_KEYSIZE * 2 - 1] of Cardinal = (
     $00070E15, $1C232A31, $383F464D, $545B6269,
     $70777E85, $8C939AA1, $A8AFB6BD, $C4CBD2D9,
     $E0E7EEF5, $FC030A11, $181F262D, $343B4249,
@@ -476,16 +476,16 @@ begin
     Result := B;
 end;
 
-procedure GetULongBe(var N: TCnLongWord32; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: Cardinal; B: PAnsiChar; I: Integer);
 var
-  D: TCnLongWord32;
+  D: Cardinal;
 begin
-  D := (TCnLongWord32(B[I]) shl 24) or (TCnLongWord32(B[I + 1]) shl 16) or
-    (TCnLongWord32(B[I + 2]) shl 8) or (TCnLongWord32(B[I + 3]));
+  D := (Cardinal(B[I]) shl 24) or (Cardinal(B[I + 1]) shl 16) or
+    (Cardinal(B[I + 2]) shl 8) or (Cardinal(B[I + 3]));
   N := D;
 end;
 
-procedure PutULongBe(N: TCnLongWord32; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: Cardinal; B: PAnsiChar; I: Integer);
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);
@@ -493,19 +493,19 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function SM4Shl(X: TCnLongWord32; N: Integer): TCnLongWord32;
+function SM4Shl(X: Cardinal; N: Integer): Cardinal;
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
-function ROTL(X: TCnLongWord32; N: Integer): TCnLongWord32;
+function ROTL(X: Cardinal; N: Integer): Cardinal;
 begin
   Result := SM4Shl(X, N) or (X shr (32 - N));
 end;
 
-procedure Swap(var A: TCnLongWord32; var B: TCnLongWord32);
+procedure Swap(var A: Cardinal; var B: Cardinal);
 var
-  T: TCnLongWord32;
+  T: Cardinal;
 begin
   T := A;
   A := B;
@@ -520,9 +520,9 @@ begin
   Result := PCnByte(TCnNativeInt(PTable) + Inch)^;
 end;
 
-function SM4Lt(Ka: TCnLongWord32): TCnLongWord32;
+function SM4Lt(Ka: Cardinal): Cardinal;
 var
-  BB: TCnLongWord32;
+  BB: Cardinal;
   A: array[0..3] of Byte;
   B: array[0..3] of Byte;
 begin
@@ -538,14 +538,14 @@ begin
     xor (ROTL(BB, 24));
 end;
 
-function SM4F(X0: TCnLongWord32; X1: TCnLongWord32; X2: TCnLongWord32; X3: TCnLongWord32; RK: TCnLongWord32): TCnLongWord32;
+function SM4F(X0: Cardinal; X1: Cardinal; X2: Cardinal; X3: Cardinal; RK: Cardinal): Cardinal;
 begin
   Result := X0 xor SM4Lt(X1 xor X2 xor X3 xor RK);
 end;
 
-function SM4CalciRK(Ka: TCnLongWord32): TCnLongWord32;
+function SM4CalciRK(Ka: Cardinal): Cardinal;
 var
-  BB: TCnLongWord32;
+  BB: Cardinal;
   A: array[0..3] of Byte;
   B: array[0..3] of Byte;
 begin
@@ -559,10 +559,10 @@ begin
 end;
 
 // SK Points to 32 DWord Array; Key Points to 16 Byte Array
-procedure SM4SetKey(SK: PCnLongWord32; Key: PAnsiChar);
+procedure SM4SetKey(SK: PCardinal; Key: PAnsiChar);
 var
-  MK: array[0..3] of TCnLongWord32;
-  K: array[0..35] of TCnLongWord32;
+  MK: array[0..3] of Cardinal;
+  K: array[0..35] of Cardinal;
   I: Integer;
 begin
   GetULongBe(MK[0], Key, 0);
@@ -578,16 +578,16 @@ begin
   for I := 0 to 31 do
   begin
     K[I + 4] := K[I] xor SM4CalciRK(K[I + 1] xor K[I + 2] xor K[I + 3] xor CK[I]);
-      (PCnLongWord32(TCnNativeInt(SK) + I * SizeOf(TCnLongWord32)))^ := K[I + 4];
+      (PCardinal(TCnNativeInt(SK) + I * SizeOf(Cardinal)))^ := K[I + 4];
   end;
 end;
 
 // SK Points to 32 DWord Array; Input/Output Points to 16 Byte Array
 // Input 和 Output 可以是同一处区域
-procedure SM4OneRound(SK: PCnLongWord32; Input: PAnsiChar; Output: PAnsiChar);
+procedure SM4OneRound(SK: PCardinal; Input: PAnsiChar; Output: PAnsiChar);
 var
   I: Integer;
-  UlBuf: array[0..35] of TCnLongWord32;
+  UlBuf: array[0..35] of Cardinal;
 begin
   FillChar(UlBuf[0], SizeOf(UlBuf), 0);
 
@@ -599,7 +599,7 @@ begin
   for I := 0 to 31 do
   begin
     UlBuf[I + 4] := SM4F(UlBuf[I], UlBuf[I + 1], UlBuf[I + 2], UlBuf[I + 3],
-      (PCnLongWord32(TCnNativeInt(SK) + I * SizeOf(TCnLongWord32)))^);
+      (PCardinal(TCnNativeInt(SK) + I * SizeOf(Cardinal)))^);
   end;
 
   PutULongBe(UlBuf[35], Output, 0);
@@ -1488,10 +1488,10 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
 
     SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
 
@@ -1510,10 +1510,10 @@ begin
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@Vector[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@Vector[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
 
     SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
 
@@ -1556,10 +1556,10 @@ begin
     Move(TempIn[0], Vector2[0], SizeOf(TSM4Iv));
     SM4OneRound(@(Ctx.Sk[0]), @(TempIn[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
-    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@Vector1[8])^;
-    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@Vector1[12])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
+    PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
+    PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
+    PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@Vector1[12])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -1600,10 +1600,10 @@ begin
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));     // Key 先加密 Iv
 
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;  // 加密结果与明文异或
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
+    PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));   // 异或的结果写进密文结果
     if Done < SizeOf(TempOut) then
@@ -1620,10 +1620,10 @@ begin
       raise EStreamError.Create(SReadError);
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
+    PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
@@ -1661,10 +1661,10 @@ begin
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0])); // Iv 先加密至 TempOut
 
     // 加密后的内容 TempOut 和密文 TempIn 异或得到明文 TempOut
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
-    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
-    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
+    PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
+    PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
+    PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文 TempOut 写出去
     if Done < SizeOf(TempOut) then
@@ -1680,10 +1680,10 @@ begin
       raise EStreamError.Create(SReadError);
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempOut[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempOut[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
+    PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
@@ -1721,10 +1721,10 @@ begin
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));     // Key 先加密 Iv
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;  // 加密结果与明文异或
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempIn, SizeOf(TempIn));     // 异或的结果写进密文结果
     if Done < SizeOf(TempIn) then
@@ -1741,10 +1741,10 @@ begin
       raise EStreamError.Create(SReadError);
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
@@ -1782,10 +1782,10 @@ begin
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));  // Iv 先加密至 TempOut
 
     // 加密后的内容 TempOut 和密文 TempIn 异或得到明文 TempIn
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@TempIn[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@TempIn[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempOut[8])^ xor PCnLongWord32(@TempIn[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempOut[12])^ xor PCnLongWord32(@TempIn[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
 
     Done := Dest.Write(TempIn, SizeOf(TempIn));        // 明文 TempIn 写出去
     if Done < SizeOf(TempIn) then
@@ -1801,10 +1801,10 @@ begin
       raise EStreamError.Create(SReadError);
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
@@ -1848,10 +1848,10 @@ begin
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));     // Key 先加密 Iv
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;  // 加密结果与明文异或
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempIn, SizeOf(TempIn));   // 异或的结果写进密文结果
     if Done < SizeOf(TempIn) then
@@ -1874,10 +1874,10 @@ begin
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
@@ -1921,10 +1921,10 @@ begin
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));     // Key 先加密 Iv
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;  // 加密结果与密文异或
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与密文异或
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempIn, SizeOf(TempIn));   // 异或的结果写进明文结果
     if Done < SizeOf(TempIn) then
@@ -1947,10 +1947,10 @@ begin
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@TempOut[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@TempOut[4])^;
-    PCnLongWord32(@TempIn[8])^ := PCnLongWord32(@TempIn[8])^ xor PCnLongWord32(@TempOut[8])^;
-    PCnLongWord32(@TempIn[12])^ := PCnLongWord32(@TempIn[12])^ xor PCnLongWord32(@TempOut[12])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
+    PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
+    PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then

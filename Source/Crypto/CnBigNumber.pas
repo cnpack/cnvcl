@@ -112,7 +112,7 @@ type
     function GetHexString: string;
     function GetDebugDump: string;
   public
-    D: PCnLongWord32;
+    D: PCardinal;
     // 一个 array[0..Top-1] of LongWord32 数组，越往后越代表高位。
     // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数，大端没测过，行为八成不靠谱
 
@@ -164,10 +164,10 @@ type
     function GetTenPrecision: Integer;
     {* 返回大数有多少个十进制位}
 
-    function GetWord: TCnLongWord32;
+    function GetWord: Cardinal;
     {* 取 DWORD 型首值}
 
-    function SetWord(W: TCnLongWord32): Boolean;
+    function SetWord(W: Cardinal): Boolean;
     {* 给大数赋 DWORD 型首值}
 
     function GetInteger: Integer;
@@ -192,25 +192,25 @@ type
 
 {$ENDIF}
 
-    function IsWord(W: TCnLongWord32): Boolean;
+    function IsWord(W: Cardinal): Boolean;
     {* 大数是否等于指定 DWORD}
 
-    function AddWord(W: TCnLongWord32): Boolean;
+    function AddWord(W: Cardinal): Boolean;
     {* 大数加上一个 DWORD，结果仍放自身中，返回相加是否成功}
 
-    function SubWord(W: TCnLongWord32): Boolean;
+    function SubWord(W: Cardinal): Boolean;
     {* 大数减去一个 DWORD，结果仍放自身中，返回相减是否成功}
 
-    function MulWord(W: TCnLongWord32): Boolean;
+    function MulWord(W: Cardinal): Boolean;
     {* 大数乘以一个 DWORD，结果仍放自身中，返回相乘是否成功}
 
-    function ModWord(W: TCnLongWord32): TCnLongWord32;
+    function ModWord(W: Cardinal): Cardinal;
     {* 大数对一个 DWORD 求余，返回余数}
 
-    function DivWord(W: TCnLongWord32): TCnLongWord32;
+    function DivWord(W: Cardinal): Cardinal;
     {* 大数除以一个 DWORD，商重新放在自身中，返回余数}
 
-    function PowerWord(W: TCnLongWord32): Boolean;
+    function PowerWord(W: Cardinal): Boolean;
     {* 大数乘方，结果重新放在自身中，返回乘方是否成功}
 
     procedure SetNegative(Negative: Boolean);
@@ -459,10 +459,10 @@ function BigNumberGetTenPrecision(const Num: TCnBigNumber): Integer;
 function BigNumberGetTenPrecision2(const Num: TCnBigNumber): Integer;
 {* 粗略返回一个大数对象里的大数有多少个有效十进制位数，可能有 1 位误差但较快}
 
-function BigNumberGetWord(const Num: TCnBigNumber): TCnLongWord32;
+function BigNumberGetWord(const Num: TCnBigNumber): Cardinal;
 {* 取一个大数对象的首值，也就是低 32 位无符号值}
 
-function BigNumberSetWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberSetWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 {* 给一个大数对象赋首值，也就是低 32 位无符号值}
 
 function BigNumberGetInteger(const Num: TCnBigNumber): Integer;
@@ -493,37 +493,37 @@ function BigNumberSetUInt64(const Num: TCnBigNumber; W: UInt64): Boolean;
 
 {$ENDIF}
 
-function BigNumberIsWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberIsWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 {* 某大数是否等于指定 DWORD}
 
-function BigNumberAbsIsWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberAbsIsWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 {* 某大数绝对值是否等于指定 DWORD}
 
-function BigNumberAddWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberAddWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 {* 大数加上一个 DWORD，结果仍放 Num 中，返回相加是否成功}
 
-function BigNumberSubWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberSubWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 {* 大数减去一个 DWORD，结果仍放 Num 中，返回相减是否成功}
 
-function BigNumberMulWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberMulWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 {* 大数乘以一个 DWORD，结果仍放 Num 中，返回相乘是否成功}
 
-function BigNumberModWord(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+function BigNumberModWord(const Num: TCnBigNumber; W: Cardinal): Cardinal;
 {* 大数对一个 DWORD 求余，返回余数}
 
-function BigNumberDivWord(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+function BigNumberDivWord(const Num: TCnBigNumber; W: Cardinal): Cardinal;
 {* 大数除以一个 DWORD，商重新放在 Num 中，返回余数}
 
-procedure BigNumberAndWord(const Num: TCnBigNumber; W: TCnLongWord32);
+procedure BigNumberAndWord(const Num: TCnBigNumber; W: Cardinal);
 {* 大数与一个 DWORD 做按位与，结果仍放 Num 中，返回按位与是否成功}
 
-procedure BigNumberOrWord(const Num: TCnBigNumber; W: TCnLongWord32);
+procedure BigNumberOrWord(const Num: TCnBigNumber; W: Cardinal);
 {* 大数与一个 DWORD 做按位或，结果仍放 Num 中，返回按位或是否成功}
 
-procedure BigNumberXorWord(const Num: TCnBigNumber; W: TCnLongWord32);
+procedure BigNumberXorWord(const Num: TCnBigNumber; W: Cardinal);
 {* 大数与一个 DWORD 做按位异或，结果仍放 Num 中，返回按位异或是否成功}
 
-function BigNumberAndWordTo(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+function BigNumberAndWordTo(const Num: TCnBigNumber; W: Cardinal): Cardinal;
 {* 大数与一个 DWORD 做按位与，返回低 32 位结果，大数自身不变。注意或、异或不适合}
 
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
@@ -749,7 +749,7 @@ function BigNumberDivFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
 {* 计算大数对象与浮点数的商，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num}
 
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  Exponent: TCnLongWord32): Boolean;
+  Exponent: Cardinal): Boolean;
 {* 求大数的整数次方，返回计算是否成功，Res 可以是 Num}
 
 function BigNumberExp(const Res: TCnBigNumber; const Num: TCnBigNumber;
@@ -787,7 +787,7 @@ function BigNumberMontgomeryMulMod(const Res: TCnBigNumber;
 {* 蒙哥马利模乘法（内部使用四次蒙哥马利约简法）快速计算 A * B mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
   R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元}
 
-function BigNumberPowerWordMod(const Res: TCnBigNumber; A: TCnBigNumber; B: TCnLongWord32; C: TCnBigNumber): Boolean;
+function BigNumberPowerWordMod(const Res: TCnBigNumber; A: TCnBigNumber; B: Cardinal; C: TCnBigNumber): Boolean;
 {* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod}
 
 function BigNumberPowerMod(const Res: TCnBigNumber; A, B, C: TCnBigNumber): Boolean;
@@ -977,7 +977,7 @@ const
   SPARSE_BINARY_SEARCH_THRESHOLD = 4;
 
 {$IFNDEF MSWINDOWS}
-  MAXDWORD = TCnLongWord32($FFFFFFFF);
+  MAXDWORD = Cardinal($FFFFFFFF);
 {$ENDIF}
 
 var
@@ -1017,7 +1017,7 @@ begin
 end;
 
 // 返回一个大数结构里的大数的绝对值是否为指定的 DWORD 值
-function BigNumberAbsIsWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberAbsIsWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 begin
   Result := True;
   if (W = 0) and (Num.Top = 0) then
@@ -1050,7 +1050,7 @@ begin
     Result := False;
 end;
 
-function BigNumberGetWordBitsCount(L: TCnLongWord32): Integer;
+function BigNumberGetWordBitsCount(L: Cardinal): Integer;
 const
   Bits: array[0..255] of Byte = (
     0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -1179,17 +1179,17 @@ begin
 end;
 
 // 确保 Num 内分配的数组长度有 Words 个 LongWord32
-function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PCnLongWord32;
+function BigNumberExpandInternal(const Num: TCnBigNumber; Words: Integer): PCardinal;
 var
-  A, B, TmpA: PCnLongWord32;
+  A, B, TmpA: PCardinal;
   I: Integer;
-  A0, A1, A2, A3: TCnLongWord32;
+  A0, A1, A2, A3: Cardinal;
 begin
   Result := nil;
   if Words > (MaxInt div (4 * BN_BITS2)) then
     Exit;
 
-  A := PCnLongWord32(GetMemory(SizeOf(MAXDWORD) * Words));
+  A := PCardinal(GetMemory(SizeOf(MAXDWORD) * Words));
   if A = nil then
     Exit;
 
@@ -1214,8 +1214,8 @@ begin
       PCnLongWord32Array(TmpA)^[3] := A3;
 
       Dec(I);
-      TmpA := PCnLongWord32(TCnNativeInt(TmpA) + 4 * SizeOf(TCnLongWord32));
-      B := PCnLongWord32(TCnNativeInt(B) + 4 * SizeOf(TCnLongWord32));
+      TmpA := PCardinal(TCnNativeInt(TmpA) + 4 * SizeOf(Cardinal));
+      B := PCardinal(TCnNativeInt(B) + 4 * SizeOf(Cardinal));
     end;
 
     case Num.Top and 3 of
@@ -1246,7 +1246,7 @@ end;
 
 function BigNumberExpand2(const Num: TCnBigNumber; Words: Integer): TCnBigNumber;
 var
-  P: PCnLongWord32;
+  P: PCardinal;
 begin
   Result := nil;
   if Words > Num.DMax then
@@ -1286,12 +1286,12 @@ begin
     Exit;
 
   if Num.D <> nil then
-    FillChar(Num.D^, Num.DMax * SizeOf(TCnLongWord32), 0);
+    FillChar(Num.D^, Num.DMax * SizeOf(Cardinal), 0);
   Num.Top := 0;
   Num.Neg := 0;
 end;
 
-function BigNumberGetWord(const Num: TCnBigNumber): TCnLongWord32;
+function BigNumberGetWord(const Num: TCnBigNumber): Cardinal;
 begin
   if Num.Top > 1 then
     Result := BN_MASK2
@@ -1301,10 +1301,10 @@ begin
     Result := 0;
 end;
 
-function BigNumberSetWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberSetWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 begin
   Result := False;
-  if BigNumberExpandBits(Num, SizeOf(TCnLongWord32) * 8) = nil then
+  if BigNumberExpandBits(Num, SizeOf(Cardinal) * 8) = nil then
     Exit;
   Num.Neg := 0;
   PCnLongWord32Array(Num.D)^[0] := W;
@@ -1462,7 +1462,7 @@ end;
 {$ENDIF}
 
 // 某大数是否等于指定 DWORD
-function BigNumberIsWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberIsWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 begin
   Result := False;
   if (W = 0) or (Num.Neg = 0) then
@@ -1473,7 +1473,7 @@ end;
 // 调整 Top 保证 D[Top - 1] 指向最高位非 0 处
 procedure BigNumberCorrectTop(const Num: TCnBigNumber);
 var
-  Ftl: PCnLongWord32;
+  Ftl: PCardinal;
   Top: Integer;
 begin
   Top := Num.Top;
@@ -1483,7 +1483,7 @@ begin
     if Ftl^ <> 0 then
       Break;
 
-    Ftl := PCnLongWord32(TCnNativeInt(Ftl) - SizeOf(TCnLongWord32));
+    Ftl := PCardinal(TCnNativeInt(Ftl) - SizeOf(Cardinal));
     Dec(Top);
   end;
   Num.Top := Top;
@@ -1492,7 +1492,7 @@ end;
 function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: Integer): Integer;
 var
   I: Integer;
-  L: TCnLongWord32;
+  L: Cardinal;
 begin
   Result := BigNumberGetBytesCount(Num);
   if Buf = nil then
@@ -1582,7 +1582,7 @@ end;
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
 var
-  I, M, N, L: TCnLongWord32;
+  I, M, N, L: Cardinal;
 begin
   Result := False;
   L := 0;
@@ -1664,7 +1664,7 @@ begin
   if Num.Top <= I then
     Exit;
 
-  PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] and TCnLongWord32(not (1 shl J));
+  PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] and Cardinal(not (1 shl J));
   BigNumberCorrectTop(Num);
   Result := True;
 end;
@@ -1673,7 +1673,7 @@ end;
 function BigNumberKeepLowBits(const Num: TCnBigNumber; Count: Integer): Boolean;
 var
   I, J: Integer;
-  B: TCnLongWord32;
+  B: Cardinal;
 begin
   Result := False;
   if Count < 0 then
@@ -1731,7 +1731,7 @@ begin
     Num.Top := I + 1;
   end;
 
-  PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] or TCnLongWord32(1 shl J);
+  PCnLongWord32Array(Num.D)^[I] := PCnLongWord32Array(Num.D)^[I] or Cardinal(1 shl J);
   Result := True;
 end;
 
@@ -1749,7 +1749,7 @@ begin
   if Num.Top <= I then
     Exit;
 
-  if (TCnLongWord32(PCnLongWord32Array(Num.D)^[I] shr J) and TCnLongWord32(1)) <> 0 then
+  if (Cardinal(PCnLongWord32Array(Num.D)^[I] shr J) and Cardinal(1)) <> 0 then
     Result := True;
 end;
 
@@ -1757,7 +1757,7 @@ function BigNumberCompareWords(var Num1: TCnBigNumber; var Num2: TCnBigNumber;
   N: Integer): Integer;
 var
   I: Integer;
-  A, B: TCnLongWord32;
+  A, B: Cardinal;
 begin
   A := PCnLongWord32Array(Num1.D)^[N - 1];
   B := PCnLongWord32Array(Num2.D)^[N - 1];
@@ -1796,7 +1796,7 @@ end;
 function BigNumberCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 var
   I, Gt, Lt: Integer;
-  T1, T2: TCnLongWord32;
+  T1, T2: Cardinal;
 begin
   if Num1 = Num2 then
   begin
@@ -1881,7 +1881,7 @@ end;
 function BigNumberUnsignedCompare(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Integer;
 var
   I: Integer;
-  T1, T2: TCnLongWord32;
+  T1, T2: Cardinal;
 begin
   Result := Num1.Top - Num2.Top;
   if Result <> 0 then
@@ -2009,7 +2009,7 @@ function BigNumberCopy(const Dst: TCnBigNumber; const Src: TCnBigNumber): TCnBig
 var
   I: Integer;
   A, B: PCnLongWord32Array;
-  A0, A1, A2, A3: TCnLongWord32;
+  A0, A1, A2, A3: Cardinal;
 begin
   if Dst = Src then
   begin
@@ -2037,8 +2037,8 @@ begin
     A^[2] := A2;
     A^[3] := A3;
 
-    A := PCnLongWord32Array(TCnNativeInt(A) + 4 * SizeOf(TCnLongWord32));
-    B := PCnLongWord32Array(TCnNativeInt(B) + 4 * SizeOf(TCnLongWord32));
+    A := PCnLongWord32Array(TCnNativeInt(A) + 4 * SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnNativeInt(B) + 4 * SizeOf(Cardinal));
   end;
 
   case Src.Top and 3 of
@@ -2144,7 +2144,7 @@ end;
 
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 var
-  TmpD: PCnLongWord32;
+  TmpD: PCardinal;
   TmpTop, TmpDMax, TmpNeg: Integer;
 begin
   TmpD := Num1.D;
@@ -2166,39 +2166,39 @@ end;
 // ============================ 低阶运算定义开始 ===============================
 
 // UInt64 的方式计算 N 平方
-procedure Sqr(var L: TCnLongWord32; var H: TCnLongWord32; N: TCnLongWord32); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure Sqr(var L: Cardinal; var H: Cardinal; N: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   T: TUInt64;
 begin
   T := UInt64Mul(N, N);
   // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
-  L := TCnLongWord32(T) and BN_MASK2;
-  H := TCnLongWord32(T shr BN_BITS2) and BN_MASK2;
+  L := Cardinal(T) and BN_MASK2;
+  H := Cardinal(T shr BN_BITS2) and BN_MASK2;
 end;
 
 // UInt64 的方式计算 A * B + R + C
-procedure MulAdd(var R: TCnLongWord32; A: TCnLongWord32; B: TCnLongWord32; var C: TCnLongWord32); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure MulAdd(var R: Cardinal; A: Cardinal; B: Cardinal; var C: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   T: TUInt64;
 begin
   T := UInt64Mul(A, B) + R + C;
   // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
-  R := TCnLongWord32(T) and BN_MASK2;
-  C := TCnLongWord32(T shr BN_BITS2) and BN_MASK2;
+  R := Cardinal(T) and BN_MASK2;
+  C := Cardinal(T shr BN_BITS2) and BN_MASK2;
 end;
 
 // UInt64 的方式计算 A * B + C
-procedure Mul(var R: TCnLongWord32; A: TCnLongWord32; B: TCnLongWord32; var C: TCnLongWord32); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+procedure Mul(var R: Cardinal; A: Cardinal; B: Cardinal; var C: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   T: TUInt64;
 begin
   T := UInt64Mul(A, B) + C;
   // 无符号 32 位整型如果直接相乘，得到的 Int64 可能溢出得到负值，用封装的运算代替。
-  R := TCnLongWord32(T) and BN_MASK2;
-  C := TCnLongWord32(T shr BN_BITS2) and BN_MASK2;
+  R := Cardinal(T) and BN_MASK2;
+  C := Cardinal(T shr BN_BITS2) and BN_MASK2;
 end;
 
-// N 个 TCnLongWord32 长的数组内容进行位运算，如果 BP 为 nil，表示不够长，作为 0 处理
+// N 个 Cardinal 长的数组内容进行位运算，如果 BP 为 nil，表示不够长，作为 0 处理
 procedure BigNumberBitOperation(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array;
   N: Integer; Op: TCnBitOperation);
 begin
@@ -2212,30 +2212,30 @@ begin
       case Op of
         boAnd:
           begin
-            RP^[0] := TCnLongWord32((Int64(AP^[0]) and Int64(BP^[0])) and BN_MASK2);
-            RP^[1] := TCnLongWord32((Int64(AP^[1]) and Int64(BP^[1])) and BN_MASK2);
-            RP^[2] := TCnLongWord32((Int64(AP^[2]) and Int64(BP^[2])) and BN_MASK2);
-            RP^[3] := TCnLongWord32((Int64(AP^[3]) and Int64(BP^[3])) and BN_MASK2);
+            RP^[0] := Cardinal((Int64(AP^[0]) and Int64(BP^[0])) and BN_MASK2);
+            RP^[1] := Cardinal((Int64(AP^[1]) and Int64(BP^[1])) and BN_MASK2);
+            RP^[2] := Cardinal((Int64(AP^[2]) and Int64(BP^[2])) and BN_MASK2);
+            RP^[3] := Cardinal((Int64(AP^[3]) and Int64(BP^[3])) and BN_MASK2);
           end;
         boOr:
           begin
-            RP^[0] := TCnLongWord32((Int64(AP^[0]) or Int64(BP^[0])) and BN_MASK2);
-            RP^[1] := TCnLongWord32((Int64(AP^[1]) or Int64(BP^[1])) and BN_MASK2);
-            RP^[2] := TCnLongWord32((Int64(AP^[2]) or Int64(BP^[2])) and BN_MASK2);
-            RP^[3] := TCnLongWord32((Int64(AP^[3]) or Int64(BP^[3])) and BN_MASK2);
+            RP^[0] := Cardinal((Int64(AP^[0]) or Int64(BP^[0])) and BN_MASK2);
+            RP^[1] := Cardinal((Int64(AP^[1]) or Int64(BP^[1])) and BN_MASK2);
+            RP^[2] := Cardinal((Int64(AP^[2]) or Int64(BP^[2])) and BN_MASK2);
+            RP^[3] := Cardinal((Int64(AP^[3]) or Int64(BP^[3])) and BN_MASK2);
           end;
         boXor:
           begin
-            RP^[0] := TCnLongWord32((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
-            RP^[1] := TCnLongWord32((Int64(AP^[1]) xor Int64(BP^[1])) and BN_MASK2);
-            RP^[2] := TCnLongWord32((Int64(AP^[2]) xor Int64(BP^[2])) and BN_MASK2);
-            RP^[3] := TCnLongWord32((Int64(AP^[3]) xor Int64(BP^[3])) and BN_MASK2);
+            RP^[0] := Cardinal((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
+            RP^[1] := Cardinal((Int64(AP^[1]) xor Int64(BP^[1])) and BN_MASK2);
+            RP^[2] := Cardinal((Int64(AP^[2]) xor Int64(BP^[2])) and BN_MASK2);
+            RP^[3] := Cardinal((Int64(AP^[3]) xor Int64(BP^[3])) and BN_MASK2);
           end;
       end;
 
-      AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-      BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
-      RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+      AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(Cardinal));
+      BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(Cardinal));
+      RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(Cardinal));
 
       Dec(N, 4);
     end;
@@ -2244,25 +2244,25 @@ begin
     begin
       case Op of
         boAnd:
-          RP^[0] := TCnLongWord32((Int64(AP^[0]) and Int64(BP^[0])) and BN_MASK2);
+          RP^[0] := Cardinal((Int64(AP^[0]) and Int64(BP^[0])) and BN_MASK2);
         boOr:
-          RP^[0] := TCnLongWord32((Int64(AP^[0]) or Int64(BP^[0])) and BN_MASK2);
+          RP^[0] := Cardinal((Int64(AP^[0]) or Int64(BP^[0])) and BN_MASK2);
         boXor:
-          RP^[0] := TCnLongWord32((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
+          RP^[0] := Cardinal((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
       end;
 
-      AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
-      RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+      BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(Cardinal));
+      RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(Cardinal));
       Dec(N);
     end;
   end
   else // BP 为 nil，代表数组不够长，当成 0 处理
   begin
     if Op = boAnd then
-      FillChar(RP[0], N * SizeOf(TCnLongWord32), 0)
+      FillChar(RP[0], N * SizeOf(Cardinal), 0)
     else if Op in [boOr, boXor] then
-      Move(AP[0], RP[0], N * SizeOf(TCnLongWord32));
+      Move(AP[0], RP[0], N * SizeOf(Cardinal));
   end;
 end;
 
@@ -2285,7 +2285,7 @@ begin
   BigNumberBitOperation(RP, AP, BP, N, boXor);
 end;
 
-function BigNumberAddWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer): TCnLongWord32;
+function BigNumberAddWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer): Cardinal;
 var
   LL: Int64;
 begin
@@ -2297,24 +2297,24 @@ begin
   while (N and (not 3)) <> 0 do
   begin
     LL := LL + Int64(AP^[0]) + Int64(BP^[0]);
-    RP^[0] := TCnLongWord32(LL) and BN_MASK2;
+    RP^[0] := Cardinal(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
     LL := LL + Int64(AP^[1]) + Int64(BP^[1]);
-    RP^[1] := TCnLongWord32(LL) and BN_MASK2;
+    RP^[1] := Cardinal(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
     LL := LL + Int64(AP^[2]) + Int64(BP^[2]);
-    RP^[2] := TCnLongWord32(LL) and BN_MASK2;
+    RP^[2] := Cardinal(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
     LL := LL + Int64(AP^[3]) + Int64(BP^[3]);
-    RP^[3] := TCnLongWord32(LL) and BN_MASK2;
+    RP^[3] := Cardinal(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(Cardinal));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(Cardinal));
 
     Dec(N, 4);
   end;
@@ -2322,20 +2322,20 @@ begin
   while N <> 0 do
   begin
     LL := LL + Int64(AP^[0]) + Int64(BP^[0]);
-    RP^[0] := TCnLongWord32(LL) and BN_MASK2;
+    RP^[0] := Cardinal(LL) and BN_MASK2;
     LL := LL shr BN_BITS2;
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(Cardinal));
     Dec(N);
   end;
-  Result := TCnLongWord32(LL);
+  Result := Cardinal(LL);
 end;
 
-function BigNumberSubWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer): TCnLongWord32;
+function BigNumberSubWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; BP: PCnLongWord32Array; N: Integer): Cardinal;
 var
-  T1, T2, C: TCnLongWord32;
+  T1, T2, C: Cardinal;
 begin
   Result := 0;
   if N <= 0 then
@@ -2368,9 +2368,9 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(Cardinal));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + 4 * SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(Cardinal));
 
     Dec(N, 4);
   end;
@@ -2383,15 +2383,15 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    BP := PCnLongWord32Array(TCnNativeInt(BP) + SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(Cardinal));
     Dec(N);
   end;
   Result := C;
 end;
 
-function BigNumberMulAddWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer; W: TCnLongWord32): TCnLongWord32;
+function BigNumberMulAddWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer; W: Cardinal): Cardinal;
 begin
   Result := 0;
   if N <= 0 then
@@ -2404,22 +2404,22 @@ begin
     MulAdd(RP^[2], AP^[2], W, Result);
     MulAdd(RP^[3], AP^[3], W, Result);
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(Cardinal));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     MulAdd(RP^[0], AP^[0], W, Result);
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(Cardinal));
     Dec(N);
   end;
 end;
 
 // AP 指向的 N 个数字都乘以 W，结果的低 N 位放 RP 中，高位放返回值
-function BigNumberMulWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer; W: TCnLongWord32): TCnLongWord32;
+function BigNumberMulWords(RP: PCnLongWord32Array; AP: PCnLongWord32Array; N: Integer; W: Cardinal): Cardinal;
 begin
   Result := 0;
   if N <= 0 then
@@ -2432,8 +2432,8 @@ begin
     Mul(RP^[2], AP^[2], W, Result);
     Mul(RP^[3], AP^[3], W, Result);
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 4 * SizeOf(Cardinal));
 
     Dec(N, 4);
   end;
@@ -2442,8 +2442,8 @@ begin
   begin
     Mul(RP^[0], AP^[0], W, Result);
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(Cardinal));
 
     Dec(N);
   end;
@@ -2461,23 +2461,23 @@ begin
     Sqr(RP^[4], RP^[5], AP^[2]);
     Sqr(RP^[6], RP^[7], AP^[3]);
 
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 8 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + 4 * SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 8 * SizeOf(Cardinal));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     Sqr(RP^[0], RP^[1], AP^[0]);
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(Cardinal));
     Dec(N);
   end;
 end;
 
 // 64 位被除数整除 32 位除数，返回商，Result := H L div D，不管商的高 32 位
 // 因此要保证 D 的最高位为 1，商的高 32 位才会为 0，此函数调用才不会出错，所以 32 位下才可以用 DIV 指令优化
-function InternalDivWords(H: TCnLongWord32; L: TCnLongWord32; D: TCnLongWord32): TCnLongWord32;
+function InternalDivWords(H: Cardinal; L: Cardinal; D: Cardinal): Cardinal;
 begin
   if D = 0 then
   begin
@@ -2486,7 +2486,7 @@ begin
   end;
 
 {$IFDEF CPUX64}
-  Result := TCnLongWord32(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
+  Result := Cardinal(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
 {$ELSE}
   Result := 0;
   asm
@@ -2514,7 +2514,7 @@ function BigNumberAnd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif: Integer;
-  AP, BP, RP: PCnLongWord32;
+  AP, BP, RP: PCardinal;
   A, B, Tmp: TCnBigNumber;
 begin
   Result := False;
@@ -2536,9 +2536,9 @@ begin
     Exit;
 
   Res.Top := Max;
-  AP := PCnLongWord32(A.D);
-  BP := PCnLongWord32(B.D);
-  RP := PCnLongWord32(Res.D);
+  AP := PCardinal(A.D);
+  BP := PCardinal(B.D);
+  RP := PCardinal(Res.D);
 
   BigNumberAndWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
@@ -2555,7 +2555,7 @@ function BigNumberOr(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif: Integer;
-  AP, BP, RP: PCnLongWord32;
+  AP, BP, RP: PCardinal;
   A, B, Tmp: TCnBigNumber;
 begin
   Result := False;
@@ -2577,9 +2577,9 @@ begin
     Exit;
 
   Res.Top := Max;
-  AP := PCnLongWord32(A.D);
-  BP := PCnLongWord32(B.D);
-  RP := PCnLongWord32(Res.D);
+  AP := PCardinal(A.D);
+  BP := PCardinal(B.D);
+  RP := PCardinal(Res.D);
 
   BigNumberOrWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
@@ -2596,7 +2596,7 @@ function BigNumberXor(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif: Integer;
-  AP, BP, RP: PCnLongWord32;
+  AP, BP, RP: PCardinal;
   A, B, Tmp: TCnBigNumber;
 begin
   Result := False;
@@ -2618,9 +2618,9 @@ begin
     Exit;
 
   Res.Top := Max;
-  AP := PCnLongWord32(A.D);
-  BP := PCnLongWord32(B.D);
-  RP := PCnLongWord32(Res.D);
+  AP := PCardinal(A.D);
+  BP := PCardinal(B.D);
+  RP := PCardinal(Res.D);
 
   BigNumberXorWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
@@ -2637,8 +2637,8 @@ function BigNumberUnsignedAdd(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif: Integer;
-  AP, BP, RP: PCnLongWord32;
-  Carry, T1, T2: TCnLongWord32;
+  AP, BP, RP: PCardinal;
+  Carry, T1, T2: Cardinal;
   A, B, Tmp: TCnBigNumber;
 begin
   Result := False;
@@ -2660,14 +2660,14 @@ begin
     Exit;
 
   Res.Top := Max;
-  AP := PCnLongWord32(A.D);
-  BP := PCnLongWord32(B.D);
-  RP := PCnLongWord32(Res.D);
+  AP := PCardinal(A.D);
+  BP := PCardinal(B.D);
+  RP := PCardinal(Res.D);
 
   Carry := BigNumberAddWords(PCnLongWord32Array(RP), PCnLongWord32Array(AP), PCnLongWord32Array(BP), Min);
 
-  AP := PCnLongWord32(TCnNativeInt(AP) + Min * SizeOf(TCnLongWord32));
-  RP := PCnLongWord32(TCnNativeInt(RP) + Min * SizeOf(TCnLongWord32));
+  AP := PCardinal(TCnNativeInt(AP) + Min * SizeOf(Cardinal));
+  RP := PCardinal(TCnNativeInt(RP) + Min * SizeOf(Cardinal));
 
   if Carry <> 0 then
   begin
@@ -2675,11 +2675,11 @@ begin
     begin
       Dec(Dif);
       T1 := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
       T2 := (T1 + 1) and BN_MASK2;
 
       RP^ := T2;
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
 
       if T2 <> 0 then
       begin
@@ -2701,8 +2701,8 @@ begin
     begin
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
     end;
   end;
 
@@ -2714,8 +2714,8 @@ function BigNumberUnsignedSub(const Res: TCnBigNumber; const Num1: TCnBigNumber;
   const Num2: TCnBigNumber): Boolean;
 var
   Max, Min, Dif, I: Integer;
-  AP, BP, RP: PCnLongWord32;
-  Carry, T1, T2: TCnLongWord32;
+  AP, BP, RP: PCardinal;
+  Carry, T1, T2: Cardinal;
 begin
   Result := False;
 
@@ -2729,17 +2729,17 @@ begin
   if BigNumberWordExpand(Res, Max) = nil then
     Exit;
 
-  AP := PCnLongWord32(Num1.D);
-  BP := PCnLongWord32(Num2.D);
-  RP := PCnLongWord32(Res.D);
+  AP := PCardinal(Num1.D);
+  BP := PCardinal(Num2.D);
+  RP := PCardinal(Res.D);
 
   Carry := 0;
   for I := Min downto 1 do
   begin
     T1 := AP^;
     T2 := BP^;
-    AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    BP := PCnLongWord32(TCnNativeInt(BP) + SizeOf(TCnLongWord32));
+    AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
+    BP := PCardinal(TCnNativeInt(BP) + SizeOf(Cardinal));
     if Carry <> 0 then
     begin
       if T1 <= T2 then
@@ -2757,7 +2757,7 @@ begin
       T1 := (T1 - T2) and BN_MASK2;
     end;
     RP^ := T1 and BN_MASK2;
-    RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
   end;
 
   if Carry <> 0 then
@@ -2769,11 +2769,11 @@ begin
     begin
       Dec(Dif);
       T1 := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
       T2 := (T1 - 1) and BN_MASK2;
 
       RP^ := T2;
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
       if T1 <> 0 then
         Break;
     end;
@@ -2786,26 +2786,26 @@ begin
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-      RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+      AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
+      RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
     end;
   end;
 
@@ -2927,9 +2927,9 @@ end;
 
 function BigNumberShiftLeftOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
-  RP, AP: PCnLongWord32;
+  RP, AP: PCardinal;
   I: Integer;
-  T, C: TCnLongWord32;
+  T, C: Cardinal;
 begin
   Result := False;
 
@@ -2953,9 +2953,9 @@ begin
   for I := 0 to Num.Top - 1 do
   begin
     T := AP^;
-    AP := PCnLongWord32(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
+    AP := PCardinal(TCnNativeInt(AP) + SizeOf(Cardinal));
     RP^ := ((T shl 1) or C) and BN_MASK2;
-    RP := PCnLongWord32(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+    RP := PCardinal(TCnNativeInt(RP) + SizeOf(Cardinal));
 
     if (T and BN_TBIT) <> 0 then
       C := 1
@@ -2973,9 +2973,9 @@ end;
 
 function BigNumberShiftRightOne(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 var
-  RP, AP: PCnLongWord32;
+  RP, AP: PCardinal;
   I, J: Integer;
-  T, C: TCnLongWord32;
+  T, C: Cardinal;
 begin
   Result := False;
   if BigNumberIsZero(Num) then
@@ -3033,7 +3033,7 @@ function BigNumberShiftLeft(const Res: TCnBigNumber; const Num: TCnBigNumber;
   N: Integer): Boolean;
 var
   I, NW, LB, RB: Integer;
-  L: TCnLongWord32;
+  L: Cardinal;
   T, F: PCnLongWord32Array;
 begin
   Result := False;
@@ -3065,7 +3065,7 @@ begin
     end;
   end;
 
-  FillChar(Pointer(T)^, NW * SizeOf(TCnLongWord32), 0);
+  FillChar(Pointer(T)^, NW * SizeOf(Cardinal), 0);
   Res.Top := Num.Top + NW + 1;
   BigNumberCorrectTop(Res);
   Result := True;
@@ -3075,7 +3075,7 @@ function BigNumberShiftRight(const Res: TCnBigNumber; const Num: TCnBigNumber;
   N: Integer): Boolean;
 var
   I, J, NW, LB, RB: Integer;
-  L, Tmp: TCnLongWord32;
+  L, Tmp: Cardinal;
   T, F: PCnLongWord32Array;
 begin
   Result := False;
@@ -3107,7 +3107,7 @@ begin
     end;
   end;
 
-  F := PCnLongWord32Array(TCnNativeInt(Num.D) + NW * SizeOf(TCnLongWord32));
+  F := PCnLongWord32Array(TCnNativeInt(Num.D) + NW * SizeOf(Cardinal));
   T := PCnLongWord32Array(Res.D);
   J := Num.Top - NW;
   Res.Top := I;
@@ -3117,22 +3117,22 @@ begin
     for I := J downto 1 do
     begin
       T^[0] := F^[0];
-      F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(TCnLongWord32));
-      T := PCnLongWord32Array(TCnNativeInt(T) + SizeOf(TCnLongWord32));
+      F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(Cardinal));
+      T := PCnLongWord32Array(TCnNativeInt(T) + SizeOf(Cardinal));
     end;
   end
   else
   begin
     L := F^[0];
-    F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(TCnLongWord32));
+    F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(Cardinal));
     for I := J - 1 downto 1 do
     begin
       Tmp := (L shr RB) and BN_MASK2;
       L := F^[0];
       T^[0] := (Tmp or (L shl LB)) and BN_MASK2;
 
-      F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(TCnLongWord32));
-      T := PCnLongWord32Array(TCnNativeInt(T) + SizeOf(TCnLongWord32));
+      F := PCnLongWord32Array(TCnNativeInt(F) + SizeOf(Cardinal));
+      T := PCnLongWord32Array(TCnNativeInt(T) + SizeOf(Cardinal));
     end;
 
     L := (L shr RB) and BN_MASK2;
@@ -3144,10 +3144,10 @@ end;
 
 {* 大数与 Word 运算系列函数开始}
 
-function BigNumberAddWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberAddWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 var
   I: Integer;
-  L: TCnLongWord32;
+  L: Cardinal;
 begin
   Result := False;
 
@@ -3194,7 +3194,7 @@ begin
   Result := True;
 end;
 
-function BigNumberSubWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberSubWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 var
   I: Integer;
 begin
@@ -3249,9 +3249,9 @@ begin
   Result := True;
 end;
 
-function BigNumberMulWord(const Num: TCnBigNumber; W: TCnLongWord32): Boolean;
+function BigNumberMulWord(const Num: TCnBigNumber; W: Cardinal): Boolean;
 var
-  L: TCnLongWord32;
+  L: Cardinal;
 begin
   Result := False;
 
@@ -3274,13 +3274,13 @@ begin
   Result := True;
 end;
 
-function BigNumberModWord(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+function BigNumberModWord(const Num: TCnBigNumber; W: Cardinal): Cardinal;
 var
   I: Integer;
 begin
   if W = 0 then
   begin
-    Result := TCnLongWord32(-1);
+    Result := Cardinal(-1);
     Exit;
   end;
 
@@ -3292,14 +3292,14 @@ begin
   end;
 end;
 
-function BigNumberDivWord(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+function BigNumberDivWord(const Num: TCnBigNumber; W: Cardinal): Cardinal;
 var
   I, J: Integer;
-  L, D: TCnLongWord32;
+  L, D: Cardinal;
 begin
   if W = 0 then
   begin
-    Result := TCnLongWord32(-1);
+    Result := Cardinal(-1);
     Exit;
   end;
 
@@ -3312,7 +3312,7 @@ begin
   W := W shl J; // 保证 W 最高位为 1
   if not BigNumberShiftLeft(Num, Num, J) then
   begin
-    Result := TCnLongWord32(-1);
+    Result := Cardinal(-1);
     Exit;
   end;
 
@@ -3330,7 +3330,7 @@ begin
   Result := Result shr J;
 end;
 
-procedure BigNumberAndWord(const Num: TCnBigNumber; W: TCnLongWord32);
+procedure BigNumberAndWord(const Num: TCnBigNumber; W: Cardinal);
 begin
   if Num.Top >= 1 then
   begin
@@ -3342,7 +3342,7 @@ begin
   end;
 end;
 
-procedure BigNumberOrWord(const Num: TCnBigNumber; W: TCnLongWord32);
+procedure BigNumberOrWord(const Num: TCnBigNumber; W: Cardinal);
 begin
   if Num.Top > 0 then
     PCnLongWord32Array(Num.D)^[0] := PCnLongWord32Array(Num.D)^[0] and W
@@ -3350,7 +3350,7 @@ begin
     Num.SetWord(W);
 end;
 
-procedure BigNumberXorWord(const Num: TCnBigNumber; W: TCnLongWord32);
+procedure BigNumberXorWord(const Num: TCnBigNumber; W: Cardinal);
 begin
   if Num.Top > 0 then // 32 位以上的 xor 0，都不变
     PCnLongWord32Array(Num.D)^[0] := PCnLongWord32Array(Num.D)^[0] xor W
@@ -3358,7 +3358,7 @@ begin
     Num.SetWord(W); // 0 异或 W 等于 W
 end;
 
-function BigNumberAndWordTo(const Num: TCnBigNumber; W: TCnLongWord32): TCnLongWord32;
+function BigNumberAndWordTo(const Num: TCnBigNumber; W: Cardinal): Cardinal;
 begin
   if Num.Top >= 1 then
     Result := PCnLongWord32Array(Num.D)^[0] and W
@@ -3387,7 +3387,7 @@ begin
     J := BN_BITS2 - 4;
     while J >= 0 do
     begin
-      V := ((PCnLongWord32Array(Num.D)^[I]) shr TCnLongWord32(J)) and $0F;
+      V := ((PCnLongWord32Array(Num.D)^[I]) shr Cardinal(J)) and $0F;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[V + 1];
@@ -3418,7 +3418,7 @@ begin
     J := BN_BITS2 - 8;
     while J >= 0 do
     begin
-      V := ((PCnLongWord32Array(Num.D)^[I]) shr TCnLongWord32(J)) and $FF;
+      V := ((PCnLongWord32Array(Num.D)^[I]) shr Cardinal(J)) and $FF;
       if (Z <> 0) or (V <> 0) then
       begin
         Result := Result + Hex[(V shr 4) + 1];
@@ -3440,7 +3440,7 @@ function BigNumberSetHex(const Buf: AnsiString; const Res: TCnBigNumber): Boolea
 var
   P: PAnsiChar;
   Neg, H, M, J, I, K, C: Integer;
-  L: TCnLongWord32;
+  L: Cardinal;
 begin
   Result := False;
   if (Buf = '') or (Res = nil) then
@@ -3490,7 +3490,7 @@ begin
       else
         K := 0;
 
-      L := (L shl 4) or TCnLongWord32(K);
+      L := (L shl 4) or Cardinal(K);
 
       Dec(M);
       if M <= 0 then
@@ -3525,7 +3525,7 @@ end;
 function BigNumberToDec(const Num: TCnBigNumber): AnsiString;
 var
   I, N, R, Len: Integer;
-  BnData, LP: PCnLongWord32;
+  BnData, LP: PCardinal;
   T: TCnBigNumber;
   P: PAnsiChar;
 
@@ -3543,7 +3543,7 @@ begin
   BnData := nil;
   T := nil;
   try
-    BnData := PCnLongWord32(GetMemory(((N div 9) + 1) * SizeOf(TCnLongWord32)));
+    BnData := PCardinal(GetMemory(((N div 9) + 1) * SizeOf(Cardinal)));
     if BnData = nil then
       Exit;
 
@@ -3574,9 +3574,9 @@ begin
       while not BigNumberIsZero(T) do
       begin
         LP^ := BigNumberDivWord(T, BN_DEC_CONV);
-        LP := PCnLongWord32(TCnNativeInt(LP) + SizeOf(TCnLongWord32));
+        LP := PCardinal(TCnNativeInt(LP) + SizeOf(Cardinal));
       end;
-      LP := PCnLongWord32(TCnNativeInt(LP) - SizeOf(TCnLongWord32));
+      LP := PCardinal(TCnNativeInt(LP) - SizeOf(Cardinal));
 
       R := BufRemain(N, P, @(Result[1]));
 {$IFDEF UNICODE}
@@ -3588,7 +3588,7 @@ begin
         Inc(P);
       while LP <> BnData do
       begin
-        LP := PCnLongWord32(TCnNativeInt(LP) - SizeOf(TCnLongWord32));
+        LP := PCardinal(TCnNativeInt(LP) - SizeOf(Cardinal));
         R := BufRemain(N, P, @(Result[1]));
 {$IFDEF UNICODE}
         AnsiStrings.AnsiFormatBuf(P^, R, AnsiString(BN_DEC_FMT2), Length(BN_DEC_FMT2), [LP^]);
@@ -3615,7 +3615,7 @@ function BigNumberSetDec(const Buf: AnsiString; const Res: TCnBigNumber): Boolea
 var
   P: PAnsiChar;
   Neg, J, I: Integer;
-  L: TCnLongWord32;
+  L: Cardinal;
 begin
   Result := False;
   if (Buf = '') or (Res = nil) then
@@ -3773,7 +3773,7 @@ begin
 end;
 
 // Tmp should have 2 * N DWORDs
-procedure BigNumberSqrNormal(R: PCnLongWord32; A: PCnLongWord32; N: Integer; Tmp: PCnLongWord32);
+procedure BigNumberSqrNormal(R: PCardinal; A: PCardinal; N: Integer; Tmp: PCardinal);
 var
   I, J, Max: Integer;
   AP, RP: PCnLongWord32Array;
@@ -3784,22 +3784,22 @@ begin
   RP^[0] := 0;
   RP^[Max - 1] := 0;
 
-  RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(TCnLongWord32));
+  RP := PCnLongWord32Array(TCnNativeInt(RP) + SizeOf(Cardinal));
   J := N - 1;
 
   if J > 0 then
   begin
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP^[J] := BigNumberMulWords(RP, AP, J, PCnLongWord32Array(TCnNativeInt(AP) - SizeOf(TCnLongWord32))^[0]);
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    RP^[J] := BigNumberMulWords(RP, AP, J, PCnLongWord32Array(TCnNativeInt(AP) - SizeOf(Cardinal))^[0]);
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(Cardinal));
   end;
 
   for I := N - 2 downto 1 do
   begin
     Dec(J);
-    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(TCnLongWord32));
-    RP^[J] := BigNumberMulAddWords(RP, AP, J, PCnLongWord32Array(TCnNativeInt(AP) - SizeOf(TCnLongWord32))^[0]);
-    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(TCnLongWord32));
+    AP := PCnLongWord32Array(TCnNativeInt(AP) + SizeOf(Cardinal));
+    RP^[J] := BigNumberMulAddWords(RP, AP, J, PCnLongWord32Array(TCnNativeInt(AP) - SizeOf(Cardinal))^[0]);
+    RP := PCnLongWord32Array(TCnNativeInt(RP) + 2 * SizeOf(Cardinal));
   end;
 
   BigNumberAddWords(PCnLongWord32Array(R), PCnLongWord32Array(R), PCnLongWord32Array(R), Max);
@@ -3811,7 +3811,7 @@ function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean
 var
   Max, AL: Integer;
   Tmp, RR: TCnBigNumber;
-  T: array[0..15] of TCnLongWord32;
+  T: array[0..15] of Cardinal;
   IsFromPool: Boolean;
 begin
   Result := False;
@@ -4046,10 +4046,10 @@ begin
   end;
 end;
 
-procedure BigNumberMulNormal(R: PCnLongWord32; A: PCnLongWord32; NA: Integer; B: PCnLongWord32;
+procedure BigNumberMulNormal(R: PCardinal; A: PCardinal; NA: Integer; B: PCardinal;
   NB: Integer);
 var
-  RR: PCnLongWord32;
+  RR: PCardinal;
   Tmp: Integer;
 begin
   if NA < NB then
@@ -4063,7 +4063,7 @@ begin
     A := RR;
   end;
 
-  RR := PCnLongWord32(TCnNativeInt(R) + NA * SizeOf(TCnLongWord32));
+  RR := PCardinal(TCnNativeInt(R) + NA * SizeOf(Cardinal));
   if NB <= 0 then
   begin
     BigNumberMulWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, 0);
@@ -4077,34 +4077,34 @@ begin
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
-    R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
-    B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
+    RR := PCardinal(TCnNativeInt(RR) + SizeOf(Cardinal));
+    R := PCardinal(TCnNativeInt(R) + SizeOf(Cardinal));
+    B := PCardinal(TCnNativeInt(B) + SizeOf(Cardinal));
 
     RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
-    R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
-    B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
+    RR := PCardinal(TCnNativeInt(RR) + SizeOf(Cardinal));
+    R := PCardinal(TCnNativeInt(R) + SizeOf(Cardinal));
+    B := PCardinal(TCnNativeInt(B) + SizeOf(Cardinal));
     RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
-    R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
-    B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
+    RR := PCardinal(TCnNativeInt(RR) + SizeOf(Cardinal));
+    R := PCardinal(TCnNativeInt(R) + SizeOf(Cardinal));
+    B := PCardinal(TCnNativeInt(B) + SizeOf(Cardinal));
     RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnLongWord32(TCnNativeInt(RR) + SizeOf(TCnLongWord32));
-    R := PCnLongWord32(TCnNativeInt(R) + SizeOf(TCnLongWord32));
-    B := PCnLongWord32(TCnNativeInt(B) + SizeOf(TCnLongWord32));
+    RR := PCardinal(TCnNativeInt(RR) + SizeOf(Cardinal));
+    R := PCardinal(TCnNativeInt(R) + SizeOf(Cardinal));
+    B := PCardinal(TCnNativeInt(B) + SizeOf(Cardinal));
     RR^ := BigNumberMulAddWords(PCnLongWord32Array(R), PCnLongWord32Array(A), NA, B^);
   end;
 end;
@@ -4279,8 +4279,8 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
 var
   Tmp, SNum, SDiv, SRes: TCnBigNumber;
   I, NormShift, Loop, NumN, DivN, Neg, BackupTop, BackupDMax, BackupNeg: Integer;
-  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H: TCnLongWord32;
-  Resp, WNump, BackupD: PCnLongWord32;
+  D0, D1, Q, L0, N0, N1, Rem, T2L, T2H: Cardinal;
+  Resp, WNump, BackupD: PCardinal;
   WNum: TCnBigNumber;
   T2: TUInt64;
 begin
@@ -4343,7 +4343,7 @@ begin
 
     // 注意 WNum 需要使用外部的 D，把池子里拿出来的东西先备份
     WNum.Neg := 0;
-    WNum.D := PCnLongWord32(TCnNativeInt(SNum.D) + Loop * SizeOf(TCnLongWord32));
+    WNum.D := PCardinal(TCnNativeInt(SNum.D) + Loop * SizeOf(Cardinal));
     WNum.Top := DivN;
     WNum.DMax := SNum.DMax - Loop;
 
@@ -4354,7 +4354,7 @@ begin
       D1 := PCnLongWord32Array(SDiv.D)^[DivN - 2];
     // D0 D1 是 SDiv 的最高俩 DWORD
 
-    WNump := PCnLongWord32(TCnNativeInt(SNum.D) + (NumN - 1) * SizeOf(TCnLongWord32));
+    WNump := PCardinal(TCnNativeInt(SNum.D) + (NumN - 1) * SizeOf(Cardinal));
 
     if Num.Neg <> Divisor.Neg then
       SRes.Neg := 1
@@ -4365,7 +4365,7 @@ begin
       Exit;
 
     SRes.Top := Loop;
-    Resp := PCnLongWord32(TCnNativeInt(SRes.D) + (Loop - 1) * SizeOf(TCnLongWord32));
+    Resp := PCardinal(TCnNativeInt(SRes.D) + (Loop - 1) * SizeOf(Cardinal));
 
     if BigNumberWordExpand(Tmp, DivN + 1) = nil then
       Exit;
@@ -4382,14 +4382,14 @@ begin
     if SRes.Top = 0 then
       SRes.Neg := 0
     else
-      Resp := PCnLongWord32(TCnNativeInt(Resp) - SizeOf(TCnLongWord32));
+      Resp := PCardinal(TCnNativeInt(Resp) - SizeOf(Cardinal));
 
     for I := 0 to Loop - 2 do
     begin
 //    Rem := 0;
       // 用 N0/N1/D0/D1 计算出一个 Q 使 | WNum - SDiv * Q | < SDiv
       N0 := WNump^;
-      N1 := (PCnLongWord32(TCnNativeInt(WNump) - SizeOf(TCnLongWord32)))^;
+      N1 := (PCardinal(TCnNativeInt(WNump) - SizeOf(Cardinal)))^;
 
       if N0 = D0 then
         Q := BN_MASK2
@@ -4405,7 +4405,7 @@ begin
         while True do
         begin
           if (T2H < Rem) or ((T2H = Rem) and
-             (T2L <= (PCnLongWord32(TCnNativeInt(WNump) - 2 * SizeOf(TCnLongWord32)))^)) then
+             (T2L <= (PCardinal(TCnNativeInt(WNump) - 2 * SizeOf(Cardinal)))^)) then
              Break;
           Dec(Q);
           Inc(Rem, D0);
@@ -4419,7 +4419,7 @@ begin
 
       L0 := BigNumberMulWords(PCnLongWord32Array(Tmp.D), PCnLongWord32Array(SDiv.D), DivN, Q);
       PCnLongWord32Array(Tmp.D)^[DivN] := L0;
-      WNum.D := PCnLongWord32(TCnNativeInt(WNum.D) - SizeOf(TCnLongWord32));
+      WNum.D := PCardinal(TCnNativeInt(WNum.D) - SizeOf(Cardinal));
 
       if BigNumberSubWords(PCnLongWord32Array(WNum.D), PCnLongWord32Array(WNum.D),
         PCnLongWord32Array(Tmp.D), DivN + 1) <> 0 then
@@ -4431,8 +4431,8 @@ begin
       end;
 
       Resp^ := Q;
-      WNump := PCnLongWord32(TCnNativeInt(WNump) - SizeOf(TCnLongWord32));
-      Resp := PCnLongWord32(TCnNativeInt(Resp) - SizeOf(TCnLongWord32));
+      WNump := PCardinal(TCnNativeInt(WNump) - SizeOf(Cardinal));
+      Resp := PCardinal(TCnNativeInt(Resp) - SizeOf(Cardinal));
     end;
 
     BigNumberCorrectTop(SNum);
@@ -4548,7 +4548,7 @@ begin
 end;
 
 function BigNumberPower(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  Exponent: TCnLongWord32): Boolean;
+  Exponent: Cardinal): Boolean;
 var
   T: TCnBigNumber;
 begin
@@ -5033,7 +5033,7 @@ end;
 
 // 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod
 function BigNumberPowerWordMod(const Res: TCnBigNumber; A: TCnBigNumber;
-  B: TCnLongWord32; C: TCnBigNumber): Boolean;
+  B: Cardinal; C: TCnBigNumber): Boolean;
 var
   T: TCnBigNumber;
 begin
@@ -6115,7 +6115,7 @@ end;
 function BigNumberSquareRootModPrime(const Res: TCnBigNumber; A, Prime: TCnBigNumber): Boolean;
 var
   PrimeType: TCnPrimeType;
-  Rem: TCnLongWord32;
+  Rem: Cardinal;
   T, U, X, Y, Z, OldU, R: TCnBigNumber;
 begin
   Result := False;
@@ -6810,7 +6810,7 @@ end;
 function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer): TShortInts;
 var
   K: TCnBigNumber;
-  M, R, B1: TCnLongWord32;
+  M, R, B1: Cardinal;
   I: Integer;
 begin
   Result := nil;
@@ -6955,10 +6955,10 @@ begin
     Exit;
   end
   else
-    Result := Num.Top * SizeOf(TCnLongWord32);
+    Result := Num.Top * SizeOf(Cardinal);
 
   if Mem <> nil then
-    Move(Num.D^, Mem^, Num.Top * SizeOf(TCnLongWord32));
+    Move(Num.D^, Mem^, Num.Top * SizeOf(Cardinal));
 end;
 
 function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
@@ -7173,7 +7173,7 @@ end;
 
 { TCnBigNumber }
 
-function TCnBigNumber.AddWord(W: TCnLongWord32): Boolean;
+function TCnBigNumber.AddWord(W: Cardinal): Boolean;
 begin
   Result := BigNumberAddWord(Self, W);
 end;
@@ -7211,7 +7211,7 @@ begin
   inherited;
 end;
 
-function TCnBigNumber.DivWord(W: TCnLongWord32): TCnLongWord32;
+function TCnBigNumber.DivWord(W: Cardinal): Cardinal;
 begin
   Result := BigNumberDivWord(Self, W);
 end;
@@ -7252,7 +7252,7 @@ begin
   Result := BigNumberGetBytesCount(Self);
 end;
 
-function TCnBigNumber.GetWord: TCnLongWord32;
+function TCnBigNumber.GetWord: Cardinal;
 begin
   Result := BigNumberGetWord(Self);
 end;
@@ -7296,7 +7296,7 @@ begin
   Result := BigNumberIsNegOne(Self);
 end;
 
-function TCnBigNumber.IsWord(W: TCnLongWord32): Boolean;
+function TCnBigNumber.IsWord(W: Cardinal): Boolean;
 begin
   Result := BigNumberIsWord(Self, W);
 end;
@@ -7306,12 +7306,12 @@ begin
   Result := BigNumberIsZero(Self);
 end;
 
-function TCnBigNumber.ModWord(W: TCnLongWord32): TCnLongWord32;
+function TCnBigNumber.ModWord(W: Cardinal): Cardinal;
 begin
   Result := BigNumberModWord(Self, W);
 end;
 
-function TCnBigNumber.MulWord(W: TCnLongWord32): Boolean;
+function TCnBigNumber.MulWord(W: Cardinal): Boolean;
 begin
   Result := BigNumberMulWord(Self, W);
 end;
@@ -7346,7 +7346,7 @@ begin
   Result := BigNumberSetOne(Self);
 end;
 
-function TCnBigNumber.SetWord(W: TCnLongWord32): Boolean;
+function TCnBigNumber.SetWord(W: Cardinal): Boolean;
 begin
   Result := BigNumberSetWord(Self, W);
 end;
@@ -7365,7 +7365,7 @@ begin
   Result := BigNumberSetZero(Self);
 end;
 
-function TCnBigNumber.SubWord(W: TCnLongWord32): Boolean;
+function TCnBigNumber.SubWord(W: Cardinal): Boolean;
 begin
   Result := BigNumberSubWord(Self, W);
 end;
@@ -7431,7 +7431,7 @@ begin
   BigNumberNegate(Self);
 end;
 
-function TCnBigNumber.PowerWord(W: TCnLongWord32): Boolean;
+function TCnBigNumber.PowerWord(W: Cardinal): Boolean;
 begin
   Result := BigNumberPower(Self, Self, W);
 end;

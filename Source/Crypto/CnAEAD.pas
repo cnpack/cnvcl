@@ -1252,7 +1252,7 @@ begin
       // A0[0] 前俩字节准备好
       A0[0] := $FF;
       A0[1] := $FE;
-      PCnLongWord32(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
+      PCardinal(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
 
       // 第一块准备好，可能有塞不满、满以及超，三种情况
       MoveMost(AAD^, A0[6], AADByteLength, AEAD_BLOCK - 6);
@@ -1525,7 +1525,7 @@ begin
       // A0[0] 前俩字节准备好
       A0[0] := $FF;
       A0[1] := $FE;
-      PCnLongWord32(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
+      PCardinal(@A0[2])^ := Int32HostToNetwork(AADByteLength); // 共六字节
 
       // 第一块准备好，可能有塞不满、满以及超，三种情况
       MoveMost(AAD^, A0[6], AADByteLength, AEAD_BLOCK - 6);

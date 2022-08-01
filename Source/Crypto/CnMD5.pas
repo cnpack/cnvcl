@@ -78,9 +78,9 @@ uses
 type
   PMD5Digest = ^TMD5Digest;
 
-  TMD5Count = array[0..1] of TCnLongWord32;
-  TMD5State = array[0..3] of TCnLongWord32;
-  TMD5Block = array[0..15] of TCnLongWord32;
+  TMD5Count = array[0..1] of Cardinal;
+  TMD5State = array[0..3] of Cardinal;
+  TMD5Block = array[0..15] of Cardinal;
   TMD5CBits = array[0..7] of Byte;
   TMD5Digest = array[0..15] of Byte;
   TMD5Buffer = array[0..63] of Byte;
@@ -200,53 +200,53 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-function F(x, y, z: TCnLongWord32): TCnLongWord32;
+function F(x, y, z: Cardinal): Cardinal;
 begin
   Result := (x and y) or ((not x) and z);
 end;
 
-function G(x, y, z: TCnLongWord32): TCnLongWord32;
+function G(x, y, z: Cardinal): Cardinal;
 begin
   Result := (x and z) or (y and (not z));
 end;
 
-function H(x, y, z: TCnLongWord32): TCnLongWord32;
+function H(x, y, z: Cardinal): Cardinal;
 begin
   Result := x xor y xor z;
 end;
 
-function I(x, y, z: TCnLongWord32): TCnLongWord32;
+function I(x, y, z: Cardinal): Cardinal;
 begin
   Result := y xor (x or (not z));
 end;
 
-procedure ROT(var x: TCnLongWord32; n: BYTE);
+procedure ROT(var x: Cardinal; n: BYTE);
 begin
   x := (x shl n) or (x shr (32 - n));
 end;
 
-procedure FF(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
+procedure FF(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
 begin
   Inc(a, F(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure GG(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
+procedure GG(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
 begin
   Inc(a, G(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure HH(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
+procedure HH(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
 begin
   Inc(a, H(b, c, d) + x + ac);
   ROT(a, s);
   Inc(a, b);
 end;
 
-procedure II(var a: TCnLongWord32; b, c, d, x: TCnLongWord32; s: BYTE; ac: TCnLongWord32);
+procedure II(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
 begin
   Inc(a, I(b, c, d) + x + ac);
   ROT(a, s);
@@ -257,7 +257,7 @@ end;
 procedure Encode(Source, Target: Pointer; Count: Cardinal);
 var
   S: PByte;
-  T: PCnLongWord32;
+  T: PCardinal;
   I: Cardinal;
 begin
   S := Source;
@@ -279,7 +279,7 @@ end;
 // Decode Count DWORDs at Source into (Count * 4) Bytes at Target
 procedure Decode(Source, Target: Pointer; Count: Cardinal);
 var
-  S: PCnLongWord32;
+  S: PCardinal;
   T: PByte;
   I: Cardinal;
 begin
@@ -302,7 +302,7 @@ end;
 // Transform State according to first 64 bytes at Buffer
 procedure Transform(Buffer: Pointer; var State: TMD5State);
 var
-  a, b, c, d: TCnLongWord32;
+  a, b, c, d: Cardinal;
   Block: TMD5Block;
 begin
   Encode(Buffer, @Block, 64);

@@ -54,7 +54,7 @@ const
   {* ChaCha20 算法的 Nonce 字节长度}
 
   CHACHA_COUNT_SIZE   = 4;
-  {* ChaCha20 算法的计数器字节长度，实际运算时使用 TCnLongWord32 代替}
+  {* ChaCha20 算法的计数器字节长度，实际运算时使用 Cardinal 代替}
 
 type
   TChaChaKey = array[0..CHACHA_KEY_SIZE - 1] of Byte;
@@ -63,10 +63,10 @@ type
   TChaChaNonce = array[0..CHACHA_NONCE_SIZE - 1] of Byte;
   {* ChaCha20 算法的 Nonce}
 
-  TChaChaCounter = TCnLongWord32;
+  TChaChaCounter = Cardinal;
   {* ChaCha20 算法的计数器}
 
-  TChaChaState = array[0..CHACHA_STATE_SIZE - 1] of TCnLongWord32;
+  TChaChaState = array[0..CHACHA_STATE_SIZE - 1] of Cardinal;
   {* ChaCha20 算法的状态块}
 
 procedure ChaCha20Block(var Key: TChaChaKey; var Nonce: TChaChaNonce;
@@ -99,12 +99,12 @@ const
   CHACHA20_CONST2 = $79622D32;
   CHACHA20_CONST3 = $6B206574;
 
-procedure ROT(var X: TCnLongWord32; N: BYTE);
+procedure ROT(var X: Cardinal; N: BYTE);
 begin
   X := (X shl N) or (X shr (32 - N));
 end;
 
-procedure QuarterRound(var A, B, C, D: TCnLongWord32);
+procedure QuarterRound(var A, B, C, D: Cardinal);
 begin
   A := A + B;
   D := D xor A;
@@ -136,20 +136,20 @@ begin
   State[2] := CHACHA20_CONST2;
   State[3] := CHACHA20_CONST3;
 
-  State[4] := PCnLongWord32(@Key[0])^;
-  State[5] := PCnLongWord32(@Key[4])^;
-  State[6] := PCnLongWord32(@Key[8])^;
-  State[7] := PCnLongWord32(@Key[12])^;
-  State[8] := PCnLongWord32(@Key[16])^;
-  State[9] := PCnLongWord32(@Key[20])^;
-  State[10] := PCnLongWord32(@Key[24])^;
-  State[11] := PCnLongWord32(@Key[28])^;
+  State[4] := PCardinal(@Key[0])^;
+  State[5] := PCardinal(@Key[4])^;
+  State[6] := PCardinal(@Key[8])^;
+  State[7] := PCardinal(@Key[12])^;
+  State[8] := PCardinal(@Key[16])^;
+  State[9] := PCardinal(@Key[20])^;
+  State[10] := PCardinal(@Key[24])^;
+  State[11] := PCardinal(@Key[28])^;
 
   State[12] := Counter;
 
-  State[13] := PCnLongWord32(@Nonce[0])^;
-  State[14] := PCnLongWord32(@Nonce[4])^;
-  State[15] := PCnLongWord32(@Nonce[8])^;
+  State[13] := PCardinal(@Nonce[0])^;
+  State[14] := PCardinal(@Nonce[4])^;
+  State[15] := PCardinal(@Nonce[8])^;
 end;
 
 procedure ChaCha20InnerBlock(var State: TChaChaState);
@@ -194,7 +194,7 @@ begin
     Exit;
 
   Cnt := 1;
-  B := DataByteLength div (SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE); // 有 B 个完整块
+  B := DataByteLength div (SizeOf(Cardinal) * CHACHA_STATE_SIZE); // 有 B 个完整块
   P := PByteArray(Data);
   Q := PByteArray(Output);
   M := PByteArray(@Stream[0]);
@@ -206,18 +206,18 @@ begin
       ChaCha20Block(Key, Nonce, Cnt, Stream);
 
       // P、Q 已各指向要处理的原始块与密文块
-      for J := 0 to SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE - 1 do
+      for J := 0 to SizeOf(Cardinal) * CHACHA_STATE_SIZE - 1 do
         Q^[J] := P^[J] xor M[J];
 
       // 指向下一块
-      P := PByteArray(TCnNativeInt(P) + SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE);
-      Q := PByteArray(TCnNativeInt(Q) + SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE);
+      P := PByteArray(TCnNativeInt(P) + SizeOf(Cardinal) * CHACHA_STATE_SIZE);
+      Q := PByteArray(TCnNativeInt(Q) + SizeOf(Cardinal) * CHACHA_STATE_SIZE);
 
       Inc(Cnt);
     end;
   end;
 
-  L := DataByteLength mod (SizeOf(TCnLongWord32) * CHACHA_STATE_SIZE);
+  L := DataByteLength mod (SizeOf(Cardinal) * CHACHA_STATE_SIZE);
   if L > 0 then // 还有剩余块，长度为 L
   begin
     ChaCha20Block(Key, Nonce, Cnt, Stream);

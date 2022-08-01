@@ -67,10 +67,10 @@ type
   TSHA512Digest = array[0..63] of Byte;
 
   TSHA256Context = packed record
-    DataLen: TCnLongWord32;
+    DataLen: Cardinal;
     Data: array[0..63] of Byte;
     BitLen: Int64;
-    State: array[0..7] of TCnLongWord32;
+    State: array[0..7] of Cardinal;
     Ipad: array[0..63] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
@@ -78,7 +78,7 @@ type
   TSHA224Context = TSHA256Context;
 
   TSHA512Context = packed record
-    DataLen: TCnLongWord32;
+    DataLen: Cardinal;
     Data: array[0..127] of Byte;
     TotalLen: Int64;
     State: array[0..7] of Int64;
@@ -447,7 +447,7 @@ const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
 
-  KEYS256: array[0..63] of TCnLongWord32 = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
+  KEYS256: array[0..63] of Cardinal = ($428A2F98, $71374491, $B5C0FBCF, $E9B5DBA5,
     $3956C25B, $59F111F1, $923F82A4, $AB1C5ED5, $D807AA98, $12835B01, $243185BE,
     $550C7DC3, $72BE5D74, $80DEB1FE, $9BDC06A7, $C19BF174, $E49B69C1, $EFBE4786,
     $0FC19DC6, $240CA1CC, $2DE92C6F, $4A7484AA, $5CB0A9DC, $76F988DA, $983E5152,
@@ -480,12 +480,12 @@ const
     $3C9EBE0A15C9BEBC, $431D67C49C100D4C, $4CC5D4BECB3E42B6, $597F299CFC657E2A,
     $5FCB6FAB3AD6FAEC, $6C44198C4A475817);
 
-function ROTLeft256(A, B: TCnLongWord32): TCnLongWord32;
+function ROTLeft256(A, B: Cardinal): Cardinal;
 begin
   Result := (A shl B) or (A shr (32 - B));
 end;
 
-function ROTRight256(A, B: TCnLongWord32): TCnLongWord32;
+function ROTRight256(A, B: Cardinal): Cardinal;
 begin
   Result := (A shr B) or (A shl (32 - B));
 end;
@@ -500,7 +500,7 @@ begin
   Result := (X and $FFFFFFFFFFFFFFFF) shr Y;
 end;
 
-function CH256(X, Y, Z: TCnLongWord32): TCnLongWord32;
+function CH256(X, Y, Z: Cardinal): Cardinal;
 begin
   Result := (X and Y) xor ((not X) and Z);
 end;
@@ -510,7 +510,7 @@ begin
   Result := (((Y xor Z) and X) xor Z);
 end;
 
-function MAJ256(X, Y, Z: TCnLongWord32): TCnLongWord32;
+function MAJ256(X, Y, Z: Cardinal): Cardinal;
 begin
   Result := (X and Y) xor (X and Z) xor (Y and Z);
 end;
@@ -520,22 +520,22 @@ begin
   Result := ((X or Y) and Z) or (X and Y);
 end;
 
-function EP0256(X: TCnLongWord32): TCnLongWord32;
+function EP0256(X: Cardinal): Cardinal;
 begin
   Result := ROTRight256(X, 2) xor ROTRight256(X, 13) xor ROTRight256(X, 22);
 end;
 
-function EP1256(X: TCnLongWord32): TCnLongWord32;
+function EP1256(X: Cardinal): Cardinal;
 begin
   Result := ROTRight256(X, 6) xor ROTRight256(X, 11) xor ROTRight256(X, 25);
 end;
 
-function SIG0256(X: TCnLongWord32): TCnLongWord32;
+function SIG0256(X: Cardinal): Cardinal;
 begin
   Result := ROTRight256(X, 7) xor ROTRight256(X, 18) xor (X shr 3);
 end;
 
-function SIG1256(X: TCnLongWord32): TCnLongWord32;
+function SIG1256(X: Cardinal): Cardinal;
 begin
   Result := ROTRight256(X, 17) xor ROTRight256(X, 19) xor (X shr 10);
 end;
@@ -562,16 +562,16 @@ end;
 
 procedure SHA256Transform(var Context: TSHA256Context; Data: PAnsiChar);
 var
-  A, B, C, D, E, F, G, H, T1, T2: TCnLongWord32;
-  M: array[0..63] of TCnLongWord32;
+  A, B, C, D, E, F, G, H, T1, T2: Cardinal;
+  M: array[0..63] of Cardinal;
   I, J: Integer;
 begin
   I := 0;
   J := 0;
   while I < 16 do
   begin
-    M[I] := (TCnLongWord32(Data[J]) shl 24) or (TCnLongWord32(Data[J + 1]) shl 16) or (TCnLongWord32(Data
-      [J + 2]) shl 8) or TCnLongWord32(Data[J + 3]);
+    M[I] := (Cardinal(Data[J]) shl 24) or (Cardinal(Data[J + 1]) shl 16) or (Cardinal(Data
+      [J + 2]) shl 8) or Cardinal(Data[J + 3]);
     Inc(I);
     Inc(J, 4);
   end;
@@ -1743,7 +1743,7 @@ begin
 end;
 
 procedure SHA224HmacUpdate(var Context: TSHA224Context; Input: PAnsiChar; Length:
-  TCnLongWord32);
+  Cardinal);
 begin
   SHA224Update(Context, Input, Length);
 end;
@@ -1787,7 +1787,7 @@ begin
 end;
 
 procedure SHA256HmacUpdate(var Context: TSHA256Context; Input: PAnsiChar; Length:
-  TCnLongWord32);
+  Cardinal);
 begin
   SHA256Update(Context, Input, Length);
 end;

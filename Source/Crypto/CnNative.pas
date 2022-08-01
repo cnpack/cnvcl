@@ -144,7 +144,7 @@ type
   PCnByte = ^Byte; // 不引用 Windows 中的 PByte
   PCnWord = ^Word;
 
-{$IFDEF COMIPLER5}
+{$IFDEF COMPILER5}
   PCardinal = ^Cardinal;
   {* D5 下 System 单元中未定义，定义上}
 {$ENDIF}
@@ -779,9 +779,9 @@ begin
         R^[0] := not A^[0];
     end;
 
-    A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(TCnLongWord32));
-    B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(TCnLongWord32));
-    R := PCnLongWord32Array(TCnNativeInt(R) + SizeOf(TCnLongWord32));
+    A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(Cardinal));
+    R := PCnLongWord32Array(TCnNativeInt(R) + SizeOf(Cardinal));
 
     Dec(N, 4);
   end;

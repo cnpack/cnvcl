@@ -66,10 +66,10 @@ type
 
   TSHA3Context = packed record
     State: array[0..24] of Int64;
-    Index: TCnLongWord32;
-    DigestLen: TCnLongWord32;
-    Round: TCnLongWord32;
-    BlockLen: TCnLongWord32;
+    Index: Cardinal;
+    DigestLen: Cardinal;
+    Round: Cardinal;
+    BlockLen: Cardinal;
     Block: array[0..255] of Byte;
     Ipad: array[0..143] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..143] of Byte;      {!< HMAC: outer padding        }
@@ -573,7 +573,7 @@ begin
   Context.Index := Idx;
 end;
 
-procedure SHA3UpdateW(var Context: TSHA3Context; Buffer: PWideChar; Len: TCnLongWord32);
+procedure SHA3UpdateW(var Context: TSHA3Context; Buffer: PWideChar; Len: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;

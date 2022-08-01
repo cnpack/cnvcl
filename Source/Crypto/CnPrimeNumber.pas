@@ -1860,7 +1860,7 @@ begin
     CnUInt32FindFactors(Num, F);
 {$IFNDEF MSWINDOWS}
     // 手工去重
-    TCnInternalList<TCnLongWord32>(F).RemoveDuplictedElements;
+    TCnInternalList<Cardinal>(F).RemoveDuplictedElements;
 {$ENDIF}
 
     Result := Num;

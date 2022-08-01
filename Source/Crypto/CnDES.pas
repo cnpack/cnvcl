@@ -665,8 +665,8 @@ begin
     Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@StrByte[0])^ := PCardinal(@StrByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@StrByte[4])^ := PCardinal(@StrByte[4])^ xor PCardinal(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey, StrByte, OutByte);
@@ -701,8 +701,8 @@ begin
     DesData(dmDecry, SubKey, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@OutByte[0])^ := PCardinal(@OutByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@OutByte[4])^ := PCardinal(@OutByte[4])^ xor PCardinal(@Vector[4])^;
 
     Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -863,8 +863,8 @@ begin
     Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@StrByte[0])^ := PCardinal(@StrByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@StrByte[4])^ := PCardinal(@StrByte[4])^ xor PCardinal(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey, StrByte, OutByte);
@@ -906,8 +906,8 @@ begin
     DesData(dmDecry, SubKey, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@OutByte[0])^ := PCardinal(@OutByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@OutByte[4])^ := PCardinal(@OutByte[4])^ xor PCardinal(@Vector[4])^;
 
     Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -1030,8 +1030,8 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
 
     DesData(dmEncry, SubKey, TempIn, TempOut);
 
@@ -1050,8 +1050,8 @@ begin
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
 
     DesData(dmEncry, SubKey, TempIn, TempOut);
 
@@ -1094,8 +1094,8 @@ begin
     Move(TempIn[0], Vector2[0], SizeOf(TDESIv));
     DesData(dmDecry, SubKey, TempIn, TempOut);
 
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
+    PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
@@ -1232,8 +1232,8 @@ begin
     Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@StrByte[0])^ := PCardinal(@StrByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@StrByte[4])^ := PCardinal(@StrByte[4])^ xor PCardinal(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey1, StrByte, OutByte);
@@ -1274,8 +1274,8 @@ begin
     DesData(dmDecry, SubKey1, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@OutByte[0])^ := PCardinal(@OutByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@OutByte[4])^ := PCardinal(@OutByte[4])^ xor PCardinal(@Vector[4])^;
 
     Move(OutByte[0], Output[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -1412,8 +1412,8 @@ begin
     Move(Input[I * DES_BLOCKSIZE], StrByte[0], SizeOf(TDESBuffer));
 
     // CBC 数据块的值先跟 Iv 异或
-    PCnLongWord32(@StrByte[0])^ := PCnLongWord32(@StrByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@StrByte[4])^ := PCnLongWord32(@StrByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@StrByte[0])^ := PCardinal(@StrByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@StrByte[4])^ := PCardinal(@StrByte[4])^ xor PCardinal(@Vector[4])^;
 
     // 再加密
     DesData(dmEncry, SubKey1, StrByte, OutByte);
@@ -1460,8 +1460,8 @@ begin
     DesData(dmDecry, SubKey1, StrByte, OutByte);
 
     // CBC 数据块解密后的值再跟 Iv 异或
-    PCnLongWord32(@OutByte[0])^ := PCnLongWord32(@OutByte[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@OutByte[4])^ := PCnLongWord32(@OutByte[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@OutByte[0])^ := PCardinal(@OutByte[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@OutByte[4])^ := PCardinal(@OutByte[4])^ xor PCardinal(@Vector[4])^;
 
     Move(OutByte[0], Result[I * DES_BLOCKSIZE], SizeOf(TDESBuffer));
 
@@ -1604,8 +1604,8 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SReadError);
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
 
     DesData(dmEncry, SubKey1, TempIn, TempOut);
     DesData(dmDecry, SubKey2, TempOut, TempIn);
@@ -1626,8 +1626,8 @@ begin
       raise EStreamError.Create(SReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
-    PCnLongWord32(@TempIn[0])^ := PCnLongWord32(@TempIn[0])^ xor PCnLongWord32(@Vector[0])^;
-    PCnLongWord32(@TempIn[4])^ := PCnLongWord32(@TempIn[4])^ xor PCnLongWord32(@Vector[4])^;
+    PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
+    PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
 
     DesData(dmEncry, SubKey1, TempIn, TempOut);
     DesData(dmDecry, SubKey2, TempOut, TempIn);
@@ -1679,8 +1679,8 @@ begin
     DesData(dmEncry, SubKey2, TempOut, TempIn);
     DesData(dmDecry, SubKey1, TempIn, TempOut);
 
-    PCnLongWord32(@TempOut[0])^ := PCnLongWord32(@TempOut[0])^ xor PCnLongWord32(@Vector1[0])^;
-    PCnLongWord32(@TempOut[4])^ := PCnLongWord32(@TempOut[4])^ xor PCnLongWord32(@Vector1[4])^;
+    PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
+    PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
