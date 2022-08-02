@@ -30,7 +30,7 @@ unit CnSM9;
 *           仿射坐标系/雅可比坐标系里的三元点也有加、乘、求反、Frobenius 等操作
 *           并基于以上实现了基于 SM9 的 BN 曲线参数的基本 R-ate 计算
 *           以及进一步实现了常规的签名验签、密钥封装、加解密与密钥交换等典型功能
-*           均基于国密标准《SM9 标识密码算法》实现并通过示例数据验证
+*           均基于国密标准 GM/T 0044-2016《SM9 标识密码算法》实现并通过示例数据验证
 *           注意 Miller 算法是定义在 F(q^k) 扩域上的椭圆曲线中的，因而一个元素是 k 维向量
 *           Miller 算法计算的现实意义是什么？
 * 开发平台：Win7 + Delphi 5.0
@@ -54,8 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils,
-  CnContainers, CnBigNumber, CnECC, CnSM3;
+  Classes, SysUtils, CnContainers, CnBigNumber, CnECC, CnSM3;
 
 const
   // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
@@ -235,7 +234,7 @@ type
   end;
 
   TCnFP2Point = class(TPersistent)
-  {* 普通坐标系里的 FP2 平面点，由两个坐标组成，这里不直接参与计算，均转换成仿射坐标系计算}
+  {* 普通坐标系里的 FP2 平面点，由两个坐标 X Y组成，这里不直接参与计算，均转换成仿射坐标系计算}
   private
     FX: TCnFP2;
     FY: TCnFP2;
@@ -251,7 +250,7 @@ type
   end;
 
   TCnFP2AffinePoint = class
-  {* 仿射坐标系里的 FP2 平面点，由三个坐标组成}
+  {* 仿射坐标系里的 FP2 平面点，由三个坐标 X Y Z 组成}
   private
     FX: TCnFP2;
     FY: TCnFP2;
@@ -322,6 +321,7 @@ type
     或者说，用户验证签名时用的公钥就是用户标识与签名主公钥}
 
   TCnSM9Signature = class
+  {* SM9 的签名值表示类，包含 H 大数和 S 点}
   private
     FH: TCnBigNumber;
     FS: TCnEccPoint;

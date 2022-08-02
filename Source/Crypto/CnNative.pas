@@ -488,6 +488,9 @@ implementation
 uses
   CnFloatConvert;
 
+var
+  FByteOrderIsBigEndian: Boolean = False;
+
 function CurrentByteOrderIsBigEndian: Boolean;
 type
   TByteOrder = packed record
@@ -541,7 +544,7 @@ end;
 
 function Int64ToBigEndian(Value: Int64): Int64;
 begin
-  if CurrentByteOrderIsBigEndian then
+  if FByteOrderIsBigEndian then
     Result := Value
   else
     Result := SwapInt64(Value);
@@ -549,7 +552,7 @@ end;
 
 function Int32ToBigEndian(Value: Integer): Integer;
 begin
-  if CurrentByteOrderIsBigEndian then
+  if FByteOrderIsBigEndian then
     Result := Value
   else
     Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
@@ -558,7 +561,7 @@ end;
 
 function Int16ToBigEndian(Value: SmallInt): SmallInt;
 begin
-  if CurrentByteOrderIsBigEndian then
+  if FByteOrderIsBigEndian then
     Result := Value
   else
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
@@ -566,7 +569,7 @@ end;
 
 function Int64ToLittleEndian(Value: Int64): Int64;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Value
   else
     Result := SwapInt64(Value);
@@ -574,7 +577,7 @@ end;
 
 function Int32ToLittleEndian(Value: Integer): Integer;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Value
   else
     Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
@@ -583,7 +586,7 @@ end;
 
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Value
   else
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
@@ -591,7 +594,7 @@ end;
 
 function Int64HostToNetwork(Value: Int64): Int64;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := SwapInt64(Value)
   else
     Result := Value;
@@ -599,7 +602,7 @@ end;
 
 function Int32HostToNetwork(Value: Integer): Integer;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
       or Integer((Value and $00FF0000) shr 8) or Integer((Value and $FF000000) shr 24)
   else
@@ -608,7 +611,7 @@ end;
 
 function Int16HostToNetwork(Value: SmallInt): SmallInt;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
   else
     Result := Value;
@@ -616,7 +619,7 @@ end;
 
 function Int64NetworkToHost(Value: Int64): Int64;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     REsult := SwapInt64(Value)
   else
     Result := Value;
@@ -624,7 +627,7 @@ end;
 
 function Int32NetworkToHost(Value: Integer): Integer;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Integer((Value and $000000FF) shl 24) or Integer((Value and $0000FF00) shl 8)
       or Integer((Value and $00FF0000) shr 8) or Integer((Value and $FF000000) shr 24)
   else
@@ -633,7 +636,7 @@ end;
 
 function Int16NetworkToHost(Value: SmallInt): SmallInt;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
   else
     Result := Value;
@@ -649,7 +652,7 @@ end;
 
 function UInt32HostToNetwork(Value: Cardinal): Cardinal;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Cardinal((Value and $000000FF) shl 24) or Cardinal((Value and $0000FF00) shl 8)
       or Cardinal((Value and $00FF0000) shr 8) or Cardinal((Value and $FF000000) shr 24)
   else
@@ -658,7 +661,7 @@ end;
 
 function UInt16HostToNetwork(Value: Word): Word;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
   else
     Result := Value;
@@ -674,7 +677,7 @@ end;
 
 function UInt32NetworkToHost(Value: Cardinal): Cardinal;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := Cardinal((Value and $000000FF) shl 24) or Cardinal((Value and $0000FF00) shl 8)
       or Cardinal((Value and $00FF0000) shr 8) or Cardinal((Value and $FF000000) shr 24)
   else
@@ -683,7 +686,7 @@ end;
 
 function UInt16NetworkToHost(Value: Word): Word;
 begin
-  if CurrentByteOrderIsLittleEndian then
+  if not FByteOrderIsBigEndian then
     Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
   else
     Result := Value;
@@ -2498,5 +2501,8 @@ begin
     end;
   end;
 end;
+
+initialization
+  FByteOrderIsBigEndian := CurrentByteOrderIsBigEndian;
 
 end.
