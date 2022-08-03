@@ -41,6 +41,7 @@ type
     btnUInt128DivMod: TButton;
     btnToBinTest: TButton;
     btnReverseBit: TButton;
+    btn128Bit: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -64,6 +65,7 @@ type
     procedure btnUInt128DivModClick(Sender: TObject);
     procedure btnToBinTestClick(Sender: TObject);
     procedure btnReverseBitClick(Sender: TObject);
+    procedure btn128BitClick(Sender: TObject);
   private
 
   public
@@ -490,6 +492,56 @@ begin
   mmoRes.Lines.Add(MemoryToBinStr(@I, SizeOf(I)));
   I := ReverseBitsInInt64(I);
   mmoRes.Lines.Add(MemoryToBinStr(@I, SizeOf(I)));
+end;
+
+procedure TFormNative.btn128BitClick(Sender: TObject);
+var
+  L, H: TUInt64;
+
+  procedure PrintValue;
+  var
+    LL, HH: TUInt64;
+  begin
+    LL := Int64HostToNetwork(L);
+    HH := Int64HostToNetwork(H);
+    mmoRes.Lines.Add(MemoryToBinStr(@HH, SizeOf(HH)) + MemoryToBinStr(@LL, SizeOf(LL)));
+  end;
+
+  procedure PrintSet(N: Integer; BitSet: Boolean);
+  begin
+    if BitSet then
+      mmoRes.Lines.Add(Format('%d Bit is set', [N]))
+    else
+      mmoRes.Lines.Add(Format('%d Bit Cleared', [N]));
+  end;
+
+begin
+  L := 0;
+  H := 0;
+
+  SetUInt128Bit(L, H, 64);
+  PrintValue;
+  SetUInt128Bit(L, H, 63);
+  PrintValue;
+  SetUInt128Bit(L, H, 127);
+  PrintValue;
+  SetUInt128Bit(L, H, 0);
+  PrintValue;
+
+  PrintSet(0, IsUInt128BitSet(L, H, 0));
+  PrintSet(62, IsUInt128BitSet(L, H, 62));
+  PrintSet(64, IsUInt128BitSet(L, H, 64));
+  PrintSet(123, IsUInt128BitSet(L, H, 123));
+  PrintSet(127, IsUInt128BitSet(L, H, 127));
+
+  ClearUInt128Bit(L, H, 0);
+  PrintValue;
+  ClearUInt128Bit(L, H, 63);
+  PrintValue;
+  ClearUInt128Bit(L, H, 64);
+  PrintValue;
+  ClearUInt128Bit(L, H, 127);
+  PrintValue;
 end;
 
 end.

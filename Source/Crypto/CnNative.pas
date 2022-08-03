@@ -483,6 +483,15 @@ procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes:
 
 {$ENDIF}
 
+function IsUInt128BitSet(Lo, Hi: TUInt64; N: Integer): Boolean;
+{* 针对两个 Int64 拼成的 128 位数字，返回第 N 位是否为 1，N 从 0 到 127}
+
+procedure SetUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
+{* 针对两个 Int64 拼成的 128 位数字，设置第 N 位为 1，N 从 0 到 127}
+
+procedure ClearUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
+{* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127}
+
 implementation
 
 uses
@@ -1488,6 +1497,9 @@ begin
 end;
 
 procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
+var
+  I, Cnt: Integer;
+  Q, R: TUInt64;
 begin
   if AHi = 0 then
   begin
@@ -1496,8 +1508,27 @@ begin
   end
   else
   begin
-    // 有高位有低位咋办？先判断是否会溢出
-    raise Exception.Create('NOT Implemented');
+    // 有高位有低位咋办？先判断是否会溢出，如果 AHi >= B，则表示商要超 64 位，溢出
+    if UInt64Compare(AHi, B) >= 0 then
+      raise Exception.Create(SIntOverflow);
+
+    Q := 0;
+    R := 0;
+    Cnt := GetUInt64LowBits(AHi) + 64;
+    for I := Cnt - 1 downto 0 do
+    begin
+      R := R shl 1;
+      if IsUInt128BitSet(ALo, AHi, I) then  // 被除数的第 I 位是否是 0
+        R := R or 1
+      else
+        R := R and TUInt64(not 1);
+
+      if UInt64Compare(R, B) >= 0 then
+      begin
+        R := R - B;
+        Q := Q or (TUInt64(1) shl I);
+      end;
+    end;
   end;
 end;
 
@@ -2499,6 +2530,39 @@ begin
       X0 := X1;
       X1 := X0 - (Power(X0, Exp) - XN) / (Exp * Power(X0, Exp - 1));
     end;
+  end;
+end;
+
+function IsUInt128BitSet(Lo, Hi: TUInt64; N: Integer): Boolean;
+begin
+  if N < 64 then
+    Result := (Lo and (TUInt64(1) shl N)) <> 0
+  else
+  begin
+    Dec(N, 64);
+    Result := (Hi and (TUInt64(1) shl N)) <> 0;
+  end;
+end;
+
+procedure SetUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
+begin
+  if N < 64 then
+    Lo := Lo or (TUInt64(1) shl N)
+  else
+  begin
+    Dec(N, 64);
+    Hi := Hi or (TUInt64(1) shl N);
+  end;
+end;
+
+procedure ClearUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
+begin
+  if N < 64 then
+    Lo := Lo and not (TUInt64(1) shl N)
+  else
+  begin
+    Dec(N, 64);
+    Hi := Hi and not (TUInt64(1) shl N);
   end;
 end;
 

@@ -296,4 +296,13 @@ object FormNative: TFormNative
     TabOrder = 24
     OnClick = btnReverseBitClick
   end
+  object btn128Bit: TButton
+    Left = 872
+    Top = 448
+    Width = 75
+    Height = 25
+    Caption = '128 Bit Test'
+    TabOrder = 25
+    OnClick = btn128BitClick
+  end
 end
