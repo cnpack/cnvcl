@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnNative, ExtCtrls, Buttons;
+  StdCtrls, CnNative, ExtCtrls, Buttons, SysConst;
 
 type
   TFormNative = class(TForm)
@@ -42,6 +42,8 @@ type
     btnToBinTest: TButton;
     btnReverseBit: TButton;
     btn128Bit: TButton;
+    btnU12864DivMod: TButton;
+    btn12864DivMod: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -66,6 +68,8 @@ type
     procedure btnToBinTestClick(Sender: TObject);
     procedure btnReverseBitClick(Sender: TObject);
     procedure btn128BitClick(Sender: TObject);
+    procedure btnU12864DivModClick(Sender: TObject);
+    procedure btn12864DivModClick(Sender: TObject);
   private
 
   public
@@ -542,6 +546,181 @@ begin
   PrintValue;
   ClearUInt128Bit(L, H, 127);
   PrintValue;
+end;
+
+// 需严格等同于 UInt128DivUInt64Mod 的实现
+procedure MyUInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
+var
+  I, Cnt: Integer;
+  Q, R: TUInt64;
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if AHi = 0 then
+  begin
+    DivRes := UInt64Div(ALo, B);
+    ModRes := UInt64Mod(ALo, B);
+  end
+  else
+  begin
+    // 有高位有低位咋办？先判断是否会溢出，如果 AHi >= B，则表示商要超 64 位，溢出
+    if UInt64Compare(AHi, B) >= 0 then
+      raise Exception.Create(SIntOverflow);
+
+    Q := 0;
+    R := 0;
+    Cnt := GetUInt64LowBits(AHi) + 64;
+    for I := Cnt downto 0 do
+    begin
+      R := R shl 1;
+      if IsUInt128BitSet(ALo, AHi, I) then  // 被除数的第 I 位是否是 0
+        R := R or 1
+      else
+        R := R and not TUInt64(1);
+
+      if UInt64Compare(R, B) >= 0 then
+      begin
+        R := R - B;
+        Q := Q or (TUInt64(1) shl I);
+      end;
+    end;
+    DivRes := Q;
+    ModRes := R;
+  end;
+end;
+
+procedure TFormNative.btnU12864DivModClick(Sender: TObject);
+var
+  L, H, B, Q, R: TUInt64;
+
+  procedure Print;
+  var
+    S: string;
+  begin
+    if H = 0 then
+      S := Format('%s / %s = %s ... %s',[UInt64ToStr(L), UInt64ToStr(B),
+        UInt64ToStr(Q), UInt64ToStr(R)])
+    else
+    S := Format('%s|%s / %s = %s ... %s',[UInt64ToStr(H), UInt64ToStr(L), UInt64ToStr(B),
+      UInt64ToStr(Q), UInt64ToStr(R)]);
+    mmoRes.Lines.Add(S);
+  end;
+
+begin
+  L := 0;
+  H := 0;
+  B := 1;
+  MyUInt128DivUInt64Mod(L, H, B, Q, R);
+  Print;
+
+  L := 13;
+  H := 0;
+  B := 4;
+  MyUInt128DivUInt64Mod(L, H, B, Q, R);
+  Print;
+
+  // 18446744073709551616 + 5000000000000000004
+  L := 5000000000000000004;
+  H := 1;
+  B := 10;
+  MyUInt128DivUInt64Mod(L, H, B, Q, R);
+  Print;
+
+  L := 5000000000000000004;
+  H := 1;
+  B := 12;
+  MyUInt128DivUInt64Mod(L, H, B, Q, R);
+  Print;
+end;
+
+// 需严格等同于 Int128DivUInt64Mod 的实现，除了内部递归调用自身的 My
+procedure MyInt128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+var
+  C: Integer;
+begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then // 高 64 位为 0 的正值或负值
+  begin
+    DivRes := ALo div B;
+    ModRes := ALo mod B;
+  end
+  else
+  begin
+    if B < 0 then // 除数是负数
+    begin
+      MyInt128DivInt64Mod(ALo, AHi, -B, DivRes, ModRes);
+      DivRes := -DivRes;
+      Exit;
+    end;
+
+    if AHi < 0 then // 被除数是负数
+    begin
+      // AHi, ALo 求反加 1，以得到正值
+      AHi := not AHi;
+      ALo := not ALo;
+{$IFDEF SUPPORT_UINT64}
+      UInt64Add(UInt64(ALo), UInt64(ALo), 1, C);
+{$ELSE}
+      UInt64Add(ALo, ALo, 1, C);
+{$ENDIF}
+      if C > 0 then
+        AHi := AHi + C;
+
+      // 被除数转正了
+      MyInt128DivInt64Mod(ALo, AHi, B, DivRes, ModRes);
+
+      // 结果再调整
+      if ModRes = 0 then
+        DivRes := -DivRes
+      else
+      begin
+        DivRes := -DivRes - 1;
+        ModRes := B - ModRes;
+      end;
+      Exit;
+    end;
+
+    // 全正后，按无符号来除
+{$IFDEF SUPPORT_UINT64}
+    UInt128DivUInt64Mod(TUInt64(ALo), TUInt64(AHi), TUInt64(B), TUInt64(DivRes), TUInt64(ModRes));
+{$ELSE}
+    UInt128DivUInt64Mod(ALo, AHi, B, DivRes, ModRes);
+{$ENDIF}
+  end;
+end;
+
+procedure TFormNative.btn12864DivModClick(Sender: TObject);
+var
+  L, H, B, Q, R: Int64;
+
+  procedure Print;
+  var
+    S: string;
+  begin
+    if H = 0 then
+      S := Format('%s / %s = %s ... %s',[IntToStr(L), IntToStr(B),
+        IntToStr(Q), IntToStr(R)])
+    else
+    S := Format('%s|%s / %s = %s ... %s',[IntToStr(H), UInt64ToStr(L), IntToStr(B),
+      IntToStr(Q), IntToStr(R)]);
+    mmoRes.Lines.Add(S);
+  end;
+
+begin
+  L := 13;
+  H := 0;
+  B := -4;
+  MyInt128DivInt64Mod(L, H, B, Q, R);
+  Print;
+
+  L := -5000000000000000004;
+  H := not 0;
+  B := 10;
+  MyInt128DivInt64Mod(L, H, B, Q, R);
+  Print;
 end;
 
 end.

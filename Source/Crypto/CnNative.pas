@@ -1484,7 +1484,12 @@ end;
 
 // 32 位下的实现
 procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+var
+  C: Integer;
 begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
   if (AHi = 0) or (AHi = $FFFFFFFFFFFFFFFF) then // 高 64 位为 0 的正值或负值
   begin
     DivRes := ALo div B;
@@ -1492,7 +1497,46 @@ begin
   end
   else
   begin
-    raise Exception.Create('NOT Implemented');
+    if B < 0 then // 除数是负数
+    begin
+      Int128DivInt64Mod(ALo, AHi, -B, DivRes, ModRes);
+      DivRes := -DivRes;
+      Exit;
+    end;
+
+    if AHi < 0 then // 被除数是负数
+    begin
+      // AHi, ALo 求反加 1，以得到正值
+      AHi := not AHi;
+      ALo := not ALo;
+{$IFDEF SUPPORT_UINT64}
+      UInt64Add(UInt64(ALo), UInt64(ALo), 1, C);
+{$ELSE}
+      UInt64Add(ALo, ALo, 1, C);
+{$ENDIF}
+      if C > 0 then
+        AHi := AHi + C;
+
+      // 被除数转正了
+      Int128DivInt64Mod(ALo, AHi, B, DivRes, ModRes);
+
+      // 结果再调整
+      if ModRes = 0 then
+        DivRes := -DivRes
+      else
+      begin
+        DivRes := -DivRes - 1;
+        ModRes := B - ModRes;
+      end;
+      Exit;
+    end;
+
+    // 全正后，按无符号来除
+{$IFDEF SUPPORT_UINT64}
+    UInt128DivUInt64Mod(TUInt64(ALo), TUInt64(AHi), TUInt64(B), TUInt64(DivRes), TUInt64(ModRes));
+{$ELSE}
+    UInt128DivUInt64Mod(ALo, AHi, B, DivRes, ModRes);
+{$ENDIF}
   end;
 end;
 
@@ -1501,6 +1545,9 @@ var
   I, Cnt: Integer;
   Q, R: TUInt64;
 begin
+  if B = 0 then
+    raise EDivByZero.Create(SDivByZero);
+
   if AHi = 0 then
   begin
     DivRes := UInt64Div(ALo, B);
@@ -1515,7 +1562,7 @@ begin
     Q := 0;
     R := 0;
     Cnt := GetUInt64LowBits(AHi) + 64;
-    for I := Cnt - 1 downto 0 do
+    for I := Cnt downto 0 do
     begin
       R := R shl 1;
       if IsUInt128BitSet(ALo, AHi, I) then  // 被除数的第 I 位是否是 0
@@ -1529,6 +1576,8 @@ begin
         Q := Q or (TUInt64(1) shl I);
       end;
     end;
+    DivRes := Q;
+    ModRes := R;
   end;
 end;
 
