@@ -318,6 +318,7 @@ type
     btnAESCMAC: TButton;
     btnAESCCMEnc: TButton;
     btnAESCCMDec: TButton;
+    btnSM4CCM: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -411,6 +412,7 @@ type
     procedure btnAESCMACClick(Sender: TObject);
     procedure btnAESCCMEncClick(Sender: TObject);
     procedure btnAESCCMDecClick(Sender: TObject);
+    procedure btnSM4CCMClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -2487,6 +2489,21 @@ begin
   P := AES128CCMEncryptBytes(Key, Nonce, C, AAD, T);
   if P <> nil then
     ShowMessage(DataToHex(@P[0], Length(P))); // 08090A0B0C0D0E0F101112131415161718191A1B1C1D1E
+end;
+
+procedure TFormCrypt.btnSM4CCMClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCCM128Tag;
+begin
+  // RFC 8998 例子，注意须保证 CnAEAD 头部声明中的 Tag 16 字节，长 3 字节，也就是 CCM_M_LEN = 16; CCM_L_LEN = 3;
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Nonce := HexToBytes('00001234567800000000ABCD');
+  AAD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+  P := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  C := SM4CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 48AF93501FA62ADBCD414CCE6034D895DDA1BF8F132F042098661572E7483094 FD12E518CE062C98ACEE28D95DF4416BED31A2F04476C18BB40C84A74B97DC5B
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 16842D4FA186F56AB33256971FA110F4
 end;
 
 end.

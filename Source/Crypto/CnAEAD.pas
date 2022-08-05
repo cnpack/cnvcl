@@ -36,7 +36,8 @@ unit CnAEAD;
 *           The CMAC Mode for Authentication》 以及 RFC 4993 的例子数据(AES-128)
 *           CCM 参考文档 NIST Special Publication 800-38C:
 *          《Recommendation for Block Cipher Modes of Operation:
-*           The CCM Mode for Authentication and Confidentiality》以及 RFC 3610 的例子数据(AES-128)
+*           The CCM Mode for Authentication and Confidentiality》
+*           以及 RFC 3610 的例子数据(AES-128)、RFC 8998 的例子数据 SM4-CCM
 *           注意 CCM 有两个编译期的参数，摘要长度 CCM_M_LEN 和明文长度的字节长度 CCM_L_LEN
 *           NIST 800-38C 例子中是 4、8，RFC 3610 例子中是 8、2，RFC 8998 是 16、？
 *           俩参数不同是无法通过 CCM 正确加解密的。

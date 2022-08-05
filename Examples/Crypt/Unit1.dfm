@@ -2422,8 +2422,8 @@ object FormCrypt: TFormCrypt
           OnClick = btnGCMDeTestClick
         end
         object btnSM4GCM: TButton
-          Left = 128
-          Top = 112
+          Left = 320
+          Top = 32
           Width = 75
           Height = 25
           Caption = 'SM4 GCM'
@@ -2456,6 +2456,15 @@ object FormCrypt: TFormCrypt
           Caption = 'AES CCM Dec'
           TabOrder = 8
           OnClick = btnAESCCMDecClick
+        end
+        object btnSM4CCM: TButton
+          Left = 320
+          Top = 72
+          Width = 75
+          Height = 25
+          Caption = 'SM4 CCM'
+          TabOrder = 9
+          OnClick = btnSM4CCMClick
         end
       end
     end
