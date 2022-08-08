@@ -129,7 +129,7 @@ uses
   {$ELSE}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts,
   Posix.Unistd, Posix.Pthread, FMX.Controls, FMX.Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
-  {$IFDEF USE_JCL}, JclDebug, CnRtlUtils {$ENDIF USE_JCL};
+  {$IFDEF USE_JCL}, JclDebug, CnRTL {$ENDIF USE_JCL};
 
 const
   CnMaxTagLength = 8; // 不可改变
