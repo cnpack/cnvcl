@@ -779,6 +779,10 @@ function CnInputBox(const ACaption, APrompt, ADefault: string;
    FormCallBack: TCnSenderCallback = nil): string;
 {* 输入对话框}
 
+procedure CnShowHexData(Data: Pointer; DataByteLength: Integer;
+  const ACaption: string = ''; Modal: Boolean = True);
+{* 以十六进制的方式显示一块数据，Modal 参数控制对话框模态或非模态}
+
 //------------------------------------------------------------------------------
 // 扩展日期时间操作函数
 //------------------------------------------------------------------------------
@@ -1260,7 +1264,7 @@ function ExtractPEDataDirectory(const FileName: string; DirectoryIndex: Integer;
 implementation
 
 uses
-  CnStrings;
+  CnStrings, CnHexEditor;
 
 const
   MINOR_DOUBLE = 1E-8;
@@ -6150,6 +6154,44 @@ function CnInputBox(const ACaption, APrompt, ADefault: string;
 begin
   Result := ADefault;
   CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack);
+end;
+
+procedure CnShowHexData(Data: Pointer; DataByteLength: Integer;
+  const ACaption: string = ''; Modal: Boolean = True);
+var
+  F: TForm;
+  H: TCnHexEditor;
+begin
+  F := TForm.Create(Application);
+  with F do
+  begin
+    Width := Screen.Width div 2;
+    Height := Screen.Height div 2;
+    Position := poScreenCenter;
+
+    if ACaption = '' then
+      Caption := SCnPackAbout
+    else
+      Caption := ACaption;
+
+    H := TCnHexEditor.Create(F);
+    H.Parent := F;
+
+    H.Font.Name := 'FixedSys';
+    H.Align := alClient;
+    H.LoadFromBuffer(Data^, DataByteLength);
+
+    if Modal then
+    begin
+      try
+        ShowModal;
+      finally
+        Free;
+      end;
+    end
+    else
+      Show; // 显示出来后供外部关闭释放
+  end;
 end;
 
 //------------------------------------------------------------------------------

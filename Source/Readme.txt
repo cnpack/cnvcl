@@ -116,6 +116,9 @@ cnpack\Source 目录内容说明：
   CnPackRegister.pas
     组件包注册单元
 
+  CnPE.pas
+    PE 文件解析实现单元
+
   CnPropEditors.pas
     开发包属性组件编辑器
 

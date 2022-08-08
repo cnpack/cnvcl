@@ -31,7 +31,7 @@ unit CnHexEditor;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2012.09.26 V1.2
-*               增加一DataChange方法供修改MemoryStream后更新界面用，感谢veket
+*               增加一 DataChange 方法供修改 MemoryStream 后更新界面用，感谢 veket
 *           2012.03.03 V1.1
 *               暂时屏蔽CMFONTCHANGED的第一次消息以免画错，原因不详
 *           2008.01.15 V1.0 by Guye
@@ -119,7 +119,6 @@ type
     procedure WMIMECHAR(var Msg: TCnWMImeChar); message WM_IME_CHAR;
     procedure WMCHAR(var Msg: TWMChar); message WM_CHAR;
   protected
-    { Protected declarations }
     function GetSelText: string; virtual;
     procedure SetSelText(const Value: string); virtual;
     procedure DoChange; virtual;
@@ -136,7 +135,6 @@ type
     function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
     function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure LoadFromBuffer(const Buffer; Size: Integer);
@@ -146,19 +144,18 @@ type
     procedure SaveToFile(FileName: TFileName);
     procedure SaveToBuffer(var Buffer; Size: Integer);
     property MemoryStream: TMemoryStream read FMemoryStream;
-    property BaseAddress: Integer read FBaseAddress write SetBaseAddress; //基地址
-    property RowIndex: Integer read FRowIndex write SetRowIndex;          //当前行数
-    property ColIndex: Integer read FColIndex write SetColIndex;          //当前列数
-    property ColType: TCnMouseObject read FColType write SetColType;      //当前列是否十六进制
-    property SelStart: Integer read FSelStart write SetSelStart;          //选择文本的开始位置
-    property SelLength: Integer read FSelLength write SetSelLength;       //选择文本的长度
-    property SelText: string read GetSelText write SetSelText;            //选中的文本
+    property BaseAddress: Integer read FBaseAddress write SetBaseAddress; // 基地址
+    property RowIndex: Integer read FRowIndex write SetRowIndex;          // 当前行数
+    property ColIndex: Integer read FColIndex write SetColIndex;          // 当前列数
+    property ColType: TCnMouseObject read FColType write SetColType;      // 当前列是否十六进制
+    property SelStart: Integer read FSelStart write SetSelStart;          // 选择文本的开始位置
+    property SelLength: Integer read FSelLength write SetSelLength;       // 选择文本的长度
+    property SelText: string read GetSelText write SetSelText;            // 选中的文本
     property AnchorOffset: Integer read FAnchorOffset write SetAnchorOffset;
     function ScrollIntoView: Boolean;
     procedure UpdateCaret;
     procedure DataChange;
   published
-    { Published declarations }
     property Align;
     property Anchors;
     property Enabled;
