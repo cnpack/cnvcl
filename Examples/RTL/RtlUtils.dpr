@@ -3,7 +3,7 @@ program RtlUtils;
 uses
   Forms,
   UnitRtlUtils in 'UnitRtlUtils.pas' {FormRtlUtils},
-  CnRtlUtils in '..\..\Source\Common\CnRtlUtils.pas'
+  CnRTL in '..\..\Source\Common\CnRTL.pas'
 {$IFDEF USE_JCL},
   Jcl8087 in '..\..\..\cnwizards\Source\ThirdParty\JCL\Jcl8087.pas',
   JclAnsiStrings in '..\..\..\cnwizards\Source\ThirdParty\JCL\JclAnsiStrings.pas',
