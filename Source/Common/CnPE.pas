@@ -145,12 +145,26 @@ type
     function GetDataDirectorySize(Index: Integer): DWORD;
     function GetDataDirectory(Index: Integer): PImageDataDirectory;
     function GetDataDirectoryVirtualAddress(Index: Integer): DWORD;
+    function GetDataDirectoryContent(Index: Integer): Pointer;
     function GetSectionHeader(Index: Integer): PImageSectionHeader;
     function GetIsDll: Boolean;
     function GetIsExe: Boolean;
     function GetIsWin32: Boolean;
     function GetIsWin64: Boolean;
     function GetIsSys: Boolean;
+    function GetDataDirectoryCount: Integer;
+    function GetSectionCount: Integer;
+    function GetSectionCharacteristics(Index: Integer): DWORD;
+    function GetSectionContent(Index: Integer): Pointer;
+    function GetSectionMisc(Index: Integer): DWORD;
+    function GetSectionName(Index: Integer): AnsiString;
+    function GetSectionNumberOfLinenumbers(Index: Integer): Word;
+    function GetSectionNumberOfRelocations(Index: Integer): Word;
+    function GetSectionPointerToLinenumbers(Index: Integer): DWORD;
+    function GetSectionPointerToRawData(Index: Integer): DWORD;
+    function GetSectionPointerToRelocations(Index: Integer): DWORD;
+    function GetSectionSizeOfRawData(Index: Integer): DWORD;
+    function GetSectionVirtualAddress(Index: Integer): DWORD;
 
   public
     constructor Create(const APEFileName: string); overload;
@@ -263,24 +277,58 @@ type
     {* DataDirectory 的 Size，一般为 16}
 
     // 接下来是 DataDirectory
+    property DataDirectoryCount: Integer read GetDataDirectoryCount;
+    {* DataDirectory 的数量，内部是 NumberOfRvaAndSizes}
     property DataDirectory[Index: Integer]: PImageDataDirectory read GetDataDirectory;
     {* 第 Index 个 DataDirectory 的指针，0 到 15}
+    property DataDirectoryContent[Index: Integer]: Pointer read GetDataDirectoryContent;
+    {* 第 Index 个 DataDirectory 的实际地址，通过此地址可以直接访问其内容}
+
     property DataDirectoryVirtualAddress[Index: Integer]: DWORD read GetDataDirectoryVirtualAddress;
-    {* 第 Index 个 DataDirectory 的具体地址}
+    {* 第 Index 个 DataDirectory 的偏移地址}
     property DataDirectorySize[Index: Integer]: DWORD read GetDataDirectorySize;
     {* 第 Index 个 DataDirectory 的尺寸，单位字节}
 
     // 以及 Sections 信息
+    property SectionCount: Integer read GetSectionCount;
+    {* Section 的数量，内部是 NumberOfSections}
     property SectionHeader[Index: Integer]: PImageSectionHeader read GetSectionHeader;
     {* 第 Index 个 SectionHeader 的指针，0 开始}
+    property SectionContent[Index: Integer]: Pointer read GetSectionContent;
+    {* 第 Index 个 Section 的实际地址，通过此地址可以直接访问其内容}
+
+    property SectionName[Index: Integer]: AnsiString read GetSectionName;
+    {* 第 Index 个 Section 的名称}
+    property SectionMisc[Index: Integer]: DWORD read GetSectionMisc;
+    {* 第 Index 个 Section 的 Misc 复用字段的内容}
+    property SectionVirtualAddress[Index: Integer]: DWORD read GetSectionVirtualAddress;
+    {* 第 Index 个 Section 的 VirtualAddress}
+    property SectionSizeOfRawData[Index: Integer]: DWORD read GetSectionSizeOfRawData;
+    {* 第 Index 个 Section 的 SizeOfRawData}
+    property SectionPointerToRawData[Index: Integer]: DWORD read GetSectionPointerToRawData;
+    {* 第 Index 个 Section 的 PointerToRawData}
+    property SectionPointerToRelocations[Index: Integer]: DWORD read GetSectionPointerToRelocations;
+    {* 第 Index 个 Section 的 PointerToRelocations}
+    property SectionPointerToLinenumbers[Index: Integer]: DWORD read GetSectionPointerToLinenumbers;
+    {* 第 Index 个 Section 的 PointerToLinenumbers}
+    property SectionNumberOfRelocations[Index: Integer]: Word read GetSectionNumberOfRelocations;
+    {* 第 Index 个 Section 的 NumberOfRelocations}
+    property SectionNumberOfLinenumbers[Index: Integer]: Word read GetSectionNumberOfLinenumbers;
+    {* 第 Index 个 Section 的 NumberOfLinenumbers}
+    property SectionCharacteristics[Index: Integer]: DWORD read GetSectionCharacteristics;
+    {* 第 Index 个 Section 的 Characteristics}
 
     // 接下来细化一些特定的如 32 还是 64、属性、输入表、输出表、调试信息等
     property IsWin32: Boolean read GetIsWin32;
+    {* 本 PE 文件是否 Win32 格式}
     property IsWin64: Boolean read GetIsWin64;
+    {* 本 PE 文件是否 Win64 格式}
     property IsExe: Boolean read GetIsExe;
+    {* 本 PE 文件是否为独立运行的 EXE}
     property IsDll: Boolean read GetIsDll;
+    {* 本 PE 文件是否 DLL}
     property IsSys: Boolean read GetIsSys;
-    
+    {* 本 PE 文件是否 SYS 文件}
   end;
 
 implementation
@@ -411,41 +459,6 @@ begin
   if FParseMode = ppmFile then
     UnMapFileFromPointer(FFileHandle, FMapHandle, FBaseAddress);
   inherited;
-end;
-
-function TCnPE.GetDataDirectory(Index: Integer): PImageDataDirectory;
-begin
-  if (Index < 0) or (DWORD(Index) >= FOptionalNumberOfRvaAndSizes) then
-    raise ECnPEException.CreateFmt(SCnPEDataDirectoryIndexErrorFmt, [Index]);
-
-  if IsWin32 then
-    Result := @(PImageOptionalHeader(FOptionalHeader)^.DataDirectory[Index])
-  else if IsWin64 then
-    Result := @(PImageOptionalHeader64(FOptionalHeader)^.DataDirectory[Index])
-  else
-    Result := nil;
-end;
-
-function TCnPE.GetDataDirectoryVirtualAddress(Index: Integer): DWORD;
-var
-  P: PImageDataDirectory;
-begin
-  P := DataDirectory[Index];
-  if P <> nil then
-    Result := P^.VirtualAddress
-  else
-    Result := 0;
-end;
-
-function TCnPE.GetDataDirectorySize(Index: Integer): DWORD;
-var
-  P: PImageDataDirectory;
-begin
-  P := DataDirectory[Index];
-  if P <> nil then
-    Result := P^.Size
-  else
-    Result := 0;
 end;
 
 function TCnPE.GetIsDll: Boolean;
@@ -620,6 +633,182 @@ begin
   end;
 
   FSectionHeader := PImageSectionHeader(TCnNativeInt(FOptionalHeader) + FFileSizeOfOptionalHeader);
+end;
+
+
+function TCnPE.GetDataDirectory(Index: Integer): PImageDataDirectory;
+begin
+  if (Index < 0) or (DWORD(Index) >= FOptionalNumberOfRvaAndSizes) then
+    raise ECnPEException.CreateFmt(SCnPEDataDirectoryIndexErrorFmt, [Index]);
+
+  if IsWin32 then
+    Result := @(PImageOptionalHeader(FOptionalHeader)^.DataDirectory[Index])
+  else if IsWin64 then
+    Result := @(PImageOptionalHeader64(FOptionalHeader)^.DataDirectory[Index])
+  else
+    Result := nil;
+end;
+
+function TCnPE.GetDataDirectoryVirtualAddress(Index: Integer): DWORD;
+var
+  P: PImageDataDirectory;
+begin
+  P := DataDirectory[Index];
+  if P <> nil then
+    Result := P^.VirtualAddress
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetDataDirectorySize(Index: Integer): DWORD;
+var
+  P: PImageDataDirectory;
+begin
+  P := DataDirectory[Index];
+  if P <> nil then
+    Result := P^.Size
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetDataDirectoryContent(Index: Integer): Pointer;
+var
+  D: DWORD;
+begin
+  D := GetDataDirectoryVirtualAddress(Index);
+  Result := Pointer(TCnNativeUInt(FBaseAddress) + D);
+end;
+
+function TCnPE.GetDataDirectoryCount: Integer;
+begin
+  Result := FOptionalNumberOfRvaAndSizes;
+end;
+
+function TCnPE.GetSectionCount: Integer;
+begin
+  Result := FFileNumberOfSections;
+end;
+
+function TCnPE.GetSectionCharacteristics(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.Characteristics
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionContent(Index: Integer): Pointer;
+var
+  D: DWORD;
+begin
+  D := GetSectionVirtualAddress(Index);
+  Result := Pointer(TCnNativeUInt(FBaseAddress) + D);
+end;
+
+function TCnPE.GetSectionMisc(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.Misc.VirtualSize
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionName(Index: Integer): AnsiString;
+var
+  P: PImageSectionHeader;
+  L: Integer;
+begin
+  Result := '';
+  P := SectionHeader[Index];
+  if P <> nil then
+  begin
+    L := StrLen(@P^.Name[0]);
+    if L > 0 then
+      Result := StrNew(@P^.Name[0]);
+  end;
+end;
+
+function TCnPE.GetSectionNumberOfLinenumbers(Index: Integer): Word;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.NumberOfLinenumbers
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionNumberOfRelocations(Index: Integer): Word;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.NumberOfRelocations
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionPointerToLinenumbers(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.PointerToLinenumbers
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionPointerToRawData(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.PointerToRawData
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionPointerToRelocations(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.PointerToRelocations
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionSizeOfRawData(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.SizeOfRawData
+  else
+    Result := 0;
+end;
+
+function TCnPE.GetSectionVirtualAddress(Index: Integer): DWORD;
+var
+  P: PImageSectionHeader;
+begin
+  P := SectionHeader[Index];
+  if P <> nil then
+    Result := P^.VirtualAddress
+  else
+    Result := 0;
 end;
 
 end.

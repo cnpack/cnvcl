@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, ExtCtrls, StdCtrls, Psapi, CnPE, CnNative;
+  ComCtrls, ExtCtrls, StdCtrls, ToolWin, Psapi, CnPE, CnNative, CnCommon;
 
 type
   TFormPE = class(TForm)
@@ -24,14 +24,34 @@ type
     mmoOptional: TMemo;
     tsSectionHeader: TTabSheet;
     mmoSection: TMemo;
+    tlb1: TToolBar;
+    btn0: TToolButton;
+    btn1: TToolButton;
+    btn2: TToolButton;
+    btn3: TToolButton;
+    btn4: TToolButton;
+    btn5: TToolButton;
+    btn6: TToolButton;
+    btn7: TToolButton;
+    btn8: TToolButton;
+    btn9: TToolButton;
+    btn10: TToolButton;
+    btn11: TToolButton;
+    btn12: TToolButton;
+    btn13: TToolButton;
+    btn14: TToolButton;
+    btn15: TToolButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
     procedure btnParsePEClick(Sender: TObject);
+    procedure btn0Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
+    FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
   public
-    { Public declarations }
+    property PE: TCnPE read FPE write FPE;
   end;
 
 var
@@ -75,21 +95,17 @@ begin
 end;
 
 procedure TFormPE.btnParsePEFileClick(Sender: TObject);
-var
-  PE: TCnPE;
 begin
   mmoDos.Clear;
   mmoFile.Clear;
   mmoOptional.Clear;
   mmoSection.Clear;
 
+  FreeAndNil(FPE);
+
   PE := TCnPE.Create(edtPEFile.Text);
-  try
-    PE.ParsePE;
-    DumpPE(PE);
-  finally
-    PE.Free;
-  end;
+  PE.ParsePE;
+  DumpPE(PE);
 end;
 
 procedure TFormPE.DumpPE(PE: TCnPE);
@@ -233,13 +249,22 @@ begin
   for I := 0 to PE.FileNumberOfSections - 1 do
   begin
     D(mmoSection, Format('Section %d Address', [I]), DumpPointer(PE.SectionHeader[I]));
+    D(mmoSection, '    Name', PE.SectionName[I]);
+    D(mmoSection, '    Misc', DumpDWord(PE.SectionMisc[I]));
+    D(mmoSection, '    VirtualAddress', DumpDWord(PE.SectionVirtualAddress[I]));
+    D(mmoSection, '    SizeOfRawData', DumpDWord(PE.SectionSizeOfRawData[I]));
+    D(mmoSection, '    PointerToRawData', DumpDWord(PE.SectionPointerToRawData[I]));
+    D(mmoSection, '    PointerToRelocations', DumpDWord(PE.SectionPointerToRelocations[I]));
+    D(mmoSection, '    PointerToLinenumbers', DumpDWord(PE.SectionPointerToLinenumbers[I]));
+    D(mmoSection, '    NumberOfRelocations', DumpWord(PE.SectionNumberOfRelocations[I]));
+    D(mmoSection, '    NumberOfLinenumbers', DumpWord(PE.SectionNumberOfLinenumbers[I]));
+    D(mmoSection, '    Characteristics', DumpDWord(PE.SectionCharacteristics[I]));
   end;
 end;
 
 procedure TFormPE.btnParsePEClick(Sender: TObject);
 var
   H: HMODULE;
-  PE: TCnPE;
 begin
   if cbbRunModule.ItemIndex < 0 then
     Exit;
@@ -250,13 +275,37 @@ begin
   mmoSection.Clear;
 
   H := HMODULE(cbbRunModule.Items.Objects[cbbRunModule.ItemIndex]);
+  FreeAndNil(FPE);
+
   PE := TCnPE.Create(H);
-  try
-    PE.ParsePE;
-    DumpPE(PE);
-  finally
-    PE.Free;
-  end;
+  PE.ParsePE;
+  DumpPE(PE);
+end;
+
+procedure TFormPE.btn0Click(Sender: TObject);
+var
+  P: Pointer;
+  S: DWORD;
+  Idx: Integer;
+begin
+  if PE = nil then
+    Exit;
+
+  // Data Directory ÄÚÈÝÐã
+  if Sender is TToolButton then
+    Idx := (Sender as TToolButton).Tag
+  else
+    Idx := 0;
+
+  P := PE.DataDirectoryContent[Idx];
+  S := PE.DataDirectorySize[Idx];
+
+  CnShowHexData(P, S);
+end;
+
+procedure TFormPE.FormDestroy(Sender: TObject);
+begin
+  FPE.Free;
 end;
 
 end.

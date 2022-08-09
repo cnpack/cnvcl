@@ -1,6 +1,6 @@
 object FormPE: TFormPE
-  Left = 192
-  Top = 107
+  Left = 340
+  Top = 198
   Width = 967
   Height = 563
   Caption = 'PE File Test'
@@ -12,6 +12,7 @@ object FormPE: TFormPE
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object lblPEFile: TLabel
@@ -105,6 +106,161 @@ object FormPE: TFormPE
         Width = 377
         Height = 409
         TabOrder = 1
+      end
+      object tlb1: TToolBar
+        Left = 784
+        Top = 16
+        Width = 137
+        Height = 429
+        Align = alNone
+        ButtonHeight = 21
+        ButtonWidth = 88
+        Caption = 'tlb1'
+        EdgeBorders = []
+        ShowCaptions = True
+        TabOrder = 2
+        object btn0: TToolButton
+          Left = 0
+          Top = 2
+          Caption = '0. Export'
+          ImageIndex = 0
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn1: TToolButton
+          Tag = 1
+          Left = 0
+          Top = 23
+          Caption = '1. Import'
+          ImageIndex = 1
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn2: TToolButton
+          Tag = 2
+          Left = 0
+          Top = 44
+          Caption = '2. Resource'
+          ImageIndex = 2
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn3: TToolButton
+          Tag = 3
+          Left = 0
+          Top = 65
+          Caption = '3. Exception'
+          ImageIndex = 3
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn4: TToolButton
+          Tag = 4
+          Left = 0
+          Top = 86
+          Caption = '4. Security'
+          ImageIndex = 4
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn5: TToolButton
+          Tag = 5
+          Left = 0
+          Top = 107
+          Caption = '5. Base Reloc'
+          ImageIndex = 5
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn6: TToolButton
+          Tag = 6
+          Left = 0
+          Top = 128
+          Caption = '6. Debug'
+          ImageIndex = 6
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn7: TToolButton
+          Tag = 7
+          Left = 0
+          Top = 149
+          Caption = '7. Copyright'
+          ImageIndex = 7
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn8: TToolButton
+          Tag = 8
+          Left = 0
+          Top = 170
+          Caption = '8. Global Ptr'
+          ImageIndex = 8
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn9: TToolButton
+          Tag = 9
+          Left = 0
+          Top = 191
+          Caption = '9. TLS'
+          ImageIndex = 9
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn10: TToolButton
+          Tag = 10
+          Left = 0
+          Top = 212
+          Caption = '10. Load Config'
+          ImageIndex = 10
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn11: TToolButton
+          Tag = 11
+          Left = 0
+          Top = 233
+          Caption = '11. Bound Import'
+          ImageIndex = 11
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn12: TToolButton
+          Tag = 12
+          Left = 0
+          Top = 254
+          Caption = '12. IAT'
+          ImageIndex = 12
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn13: TToolButton
+          Tag = 13
+          Left = 0
+          Top = 275
+          Caption = '13. Delay Import'
+          ImageIndex = 13
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn14: TToolButton
+          Tag = 14
+          Left = 0
+          Top = 296
+          Caption = '14. COM Desc'
+          ImageIndex = 14
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn15: TToolButton
+          Tag = 15
+          Left = 0
+          Top = 317
+          Caption = '15. ?'
+          ImageIndex = 15
+          OnClick = btn0Click
+        end
       end
     end
     object tsSectionHeader: TTabSheet

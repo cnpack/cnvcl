@@ -37,7 +37,7 @@ uses
   Snmp in '..\..\..\cnwizards\Source\ThirdParty\JCL\Snmp.pas',
 {$ENDIF}
   UnitThread in 'UnitThread.pas',
-  CnRtlUtils in '..\..\Source\Common\CnRtlUtils.pas',
+  CnRTL in '..\..\Source\Common\CnRTL.pas',
   CnSampleComponent in '..\..\..\cnwizards\Source\Examples\CnSampleComponent.pas';
 
 {$R *.res}
