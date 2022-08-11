@@ -105,6 +105,7 @@ object FormPE: TFormPE
         Top = 16
         Width = 377
         Height = 409
+        ScrollBars = ssVertical
         TabOrder = 1
       end
       object tlb1: TToolBar
@@ -271,7 +272,36 @@ object FormPE: TFormPE
         Top = 16
         Width = 313
         Height = 409
+        ScrollBars = ssVertical
         TabOrder = 0
+      end
+      object btnViewSection: TButton
+        Left = 352
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'View Section'
+        TabOrder = 1
+        OnClick = btnViewSectionClick
+      end
+      object edtSectionIndex: TEdit
+        Left = 440
+        Top = 16
+        Width = 41
+        Height = 21
+        TabOrder = 2
+        Text = '0'
+      end
+      object udSection: TUpDown
+        Left = 481
+        Top = 16
+        Width = 15
+        Height = 21
+        Associate = edtSectionIndex
+        Min = 0
+        Position = 0
+        TabOrder = 3
+        Wrap = False
       end
     end
   end

@@ -41,12 +41,16 @@ type
     btn13: TToolButton;
     btn14: TToolButton;
     btn15: TToolButton;
+    btnViewSection: TButton;
+    edtSectionIndex: TEdit;
+    udSection: TUpDown;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
     procedure btnParsePEClick(Sender: TObject);
     procedure btn0Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btnViewSectionClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -104,13 +108,14 @@ begin
   FreeAndNil(FPE);
 
   PE := TCnPE.Create(edtPEFile.Text);
-  PE.ParsePE;
+  PE.Parse;
   DumpPE(PE);
 end;
 
 procedure TFormPE.DumpPE(PE: TCnPE);
 var
   I: Integer;
+  E: PCnPEExportItem;
 
   function DumpByte(AB: Byte): string;
   begin
@@ -240,17 +245,30 @@ begin
   D(mmoFile, 'IsDll', DumpBoolean(PE.IsDll));
 
   D(mmoOptional, '----', '----');
-  for I := 0 to PE.OptionalNumberOfRvaAndSizes - 1 do
+  for I := 0 to PE.DataDirectoryCount - 1 do
   begin
     D(mmoOptional, Format('DataDirectory %d VirtualAddress', [I]), DumpDWord(PE.DataDirectoryVirtualAddress[I]));
     D(mmoOptional, Format('DataDirectory %d Size', [I]), DumpDWord(PE.DataDirectorySize[I]));
   end;
 
-  for I := 0 to PE.FileNumberOfSections - 1 do
+  D(mmoOptional, '----', '----');
+  D(mmoOptional, '----', 'Export Functions');
+  D(mmoOptional, 'Base', DumpDWord(PE.ExportBase));
+  D(mmoOptional, 'Names Count', DumpDWord(PE.ExportNumberOfNames));
+  D(mmoOptional, 'Functions Count', DumpDWord(PE.ExportNumberOfFunctions));
+
+  for I := 0 to PE.ExportNumberOfFunctions - 1 do
+  begin
+    E := PE.ExportFunctionItem[I];
+    if E <> nil then
+      D(mmoOptional, Format('  Function %d %s: %s', [E.Ordinal, E.Name, DumpPointer(E.Address)]), '');
+  end;
+
+  for I := 0 to PE.SectionCount - 1 do
   begin
     D(mmoSection, Format('Section %d Address', [I]), DumpPointer(PE.SectionHeader[I]));
     D(mmoSection, '    Name', PE.SectionName[I]);
-    D(mmoSection, '    Misc', DumpDWord(PE.SectionMisc[I]));
+    D(mmoSection, '    VirtualSize', DumpDWord(PE.SectionVirtualSize[I]));
     D(mmoSection, '    VirtualAddress', DumpDWord(PE.SectionVirtualAddress[I]));
     D(mmoSection, '    SizeOfRawData', DumpDWord(PE.SectionSizeOfRawData[I]));
     D(mmoSection, '    PointerToRawData', DumpDWord(PE.SectionPointerToRawData[I]));
@@ -260,6 +278,8 @@ begin
     D(mmoSection, '    NumberOfLinenumbers', DumpWord(PE.SectionNumberOfLinenumbers[I]));
     D(mmoSection, '    Characteristics', DumpDWord(PE.SectionCharacteristics[I]));
   end;
+
+  udSection.Max := PE.SectionCount - 1;
 end;
 
 procedure TFormPE.btnParsePEClick(Sender: TObject);
@@ -278,7 +298,7 @@ begin
   FreeAndNil(FPE);
 
   PE := TCnPE.Create(H);
-  PE.ParsePE;
+  PE.Parse;
   DumpPE(PE);
 end;
 
@@ -306,6 +326,14 @@ end;
 procedure TFormPE.FormDestroy(Sender: TObject);
 begin
   FPE.Free;
+end;
+
+procedure TFormPE.btnViewSectionClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  Idx := udSection.Position;
+  CnShowHexData(PE.SectionContent[Idx], PE.SectionContentSize[Idx]);
 end;
 
 end.
