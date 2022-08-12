@@ -323,4 +323,13 @@ object FormNative: TFormNative
     TabOrder = 27
     OnClick = btn12864DivModClick
   end
+  object btnMemSort: TButton
+    Left = 872
+    Top = 568
+    Width = 75
+    Height = 25
+    Caption = 'Mem Sort'
+    TabOrder = 28
+    OnClick = btnMemSortClick
+  end
 end

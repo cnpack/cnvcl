@@ -420,6 +420,13 @@ function MemoryToBinStr(AMem: Pointer; MemByteLen: Integer; Sep: Boolean = False
 procedure MemorySwap(AMem, BMem: Pointer; MemByteLen: Integer);
 {* 交换两块相同长度的内存块的内容}
 
+function MemoryCompare(AMem, BMem: Pointer; MemByteLen: Integer): Integer;
+{* 以无符号数的方式比较两块内存，返回 1、0、-1}
+
+procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
+{* 针对固定大小的元素的数组进行排序}
+
 function UInt8ToBinStr(V: Byte): string;
 {* 将一字节转换为二进制字符串}
 
@@ -498,10 +505,6 @@ procedure SetUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
 
 procedure ClearUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
 {* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127}
-
-procedure QuickSortMemory(Mem: Pointer; ElementByteSize: Integer;
-  ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
-{* 针对固定大小的元素的数组进行排序}
 
 implementation
 
@@ -1113,6 +1116,76 @@ begin
       TB := BA[0];
       BA[0] := BB[0];
       BB[0] := TB;
+
+      BA := PByteArray(TCnNativeInt(BA) + SizeOf(Byte));
+      BB := PByteArray(TCnNativeInt(BB) + SizeOf(Byte));
+
+      Dec(MemByteLen);
+    end;
+  end;
+end;
+
+function MemoryCompare(AMem, BMem: Pointer; MemByteLen: Integer): Integer;
+var
+  A, B: PCnLongWord32Array;
+  BA, BB: PByteArray;
+begin
+  Result := 0;
+  if (AMem = nil) and (BMem = nil) then
+    Exit;
+  if MemByteLen <= 0 then
+    Exit;
+
+  if AMem = nil then
+  begin
+    Result := -1;
+    Exit;
+  end;
+  if BMem = nil then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  A := PCnLongWord32Array(AMem);
+  B := PCnLongWord32Array(BMem);
+
+  while (MemByteLen and (not 3)) <> 0 do
+  begin
+    if A[0] > B[0] then
+    begin
+      Result := 1;
+      Exit;
+    end
+    else if A[0] < B[0] then
+    begin
+      Result := -1;
+      Exit;
+    end;
+
+    A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(Cardinal));
+
+    Dec(MemByteLen, 4);
+  end;
+
+  if MemByteLen > 0 then
+  begin
+    BA := PByteArray(A);
+    BB := PByteArray(B);
+
+    while MemByteLen <> 0 do
+    begin
+      if BA[0] > BB[0] then
+      begin
+        Result := 1;
+        Exit;
+      end
+      else if BA[0] < BB[0] then
+      begin
+        Result := -1;
+        Exit;
+      end;
 
       BA := PByteArray(TCnNativeInt(BA) + SizeOf(Byte));
       BB := PByteArray(TCnNativeInt(BB) + SizeOf(Byte));
@@ -2680,17 +2753,17 @@ begin
     J := R;
     P := (L + R) shr 1;
     repeat
-      while CompareProc(Pointer(TCnNativeUInt(Mem) + I * ElementByteSize),
-        Pointer(TCnNativeUInt(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
+      while CompareProc(Pointer(TCnNativeInt(Mem) + I * ElementByteSize),
+        Pointer(TCnNativeInt(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
         Inc(I);
-      while CompareProc(Pointer(TCnNativeUInt(Mem) + J * ElementByteSize),
-        Pointer(TCnNativeUInt(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
+      while CompareProc(Pointer(TCnNativeInt(Mem) + J * ElementByteSize),
+        Pointer(TCnNativeInt(Mem) + P * ElementByteSize), ElementByteSize) > 0 do
         Dec(J);
 
       if I <= J then
       begin
-        MemorySwap(Pointer(TCnNativeUInt(Mem) + I * ElementByteSize),
-          Pointer(TCnNativeUInt(Mem) + J * ElementByteSize), ElementByteSize);
+        MemorySwap(Pointer(TCnNativeInt(Mem) + I * ElementByteSize),
+          Pointer(TCnNativeInt(Mem) + J * ElementByteSize), ElementByteSize);
 
         if P = I then
           P := J
@@ -2707,10 +2780,21 @@ begin
   until I >= R;
 end;
 
-procedure QuickSortMemory(Mem: Pointer; ElementByteSize: Integer;
-  ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
+function DefaultCompareProc(P1, P2: Pointer; ElementByteSize: Integer): Integer;
 begin
-  InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, CompareProc);
+  Result := MemoryCompare(P1, P2, ElementByteSize);
+end;
+
+procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer; CompareProc: TMemSortCompareProc);
+begin
+  if (Mem <> nil) and (ElementCount > 0) and (ElementCount > 0) then
+  begin
+    if Assigned(CompareProc) then
+      InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, CompareProc)
+    else
+      InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, DefaultCompareProc);
+  end;
 end;
 
 initialization

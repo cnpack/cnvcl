@@ -44,6 +44,7 @@ type
     btn128Bit: TButton;
     btnU12864DivMod: TButton;
     btn12864DivMod: TButton;
+    btnMemSort: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -70,6 +71,7 @@ type
     procedure btn128BitClick(Sender: TObject);
     procedure btnU12864DivModClick(Sender: TObject);
     procedure btn12864DivModClick(Sender: TObject);
+    procedure btnMemSortClick(Sender: TObject);
   private
 
   public
@@ -721,6 +723,67 @@ begin
   B := 10;
   MyInt128DivInt64Mod(L, H, B, Q, R);
   Print;
+end;
+
+procedure QuickSort(B: PByteArray; L, R: Integer);
+var
+  I, J, P: Integer;
+  T: Byte;
+begin
+  repeat
+    I := L;
+    J := R;
+    P := (L + R) shr 1;
+    repeat
+      while B^[I] < B^[P] do Inc(I);
+      while B^[J] > B^[P] do Dec(J);
+      if I <= J then
+      begin
+        T := B^[I];
+        B^[I] := B^[J];
+        B^[J] := T;
+
+        if P = I then
+          P := J
+        else if P = J then
+          P := I;
+        Inc(I);
+        Dec(J);
+      end;
+    until I > J;
+    if L < J then QuickSort(B, L, J);
+    L := I;
+  until I >= R;
+end;
+
+procedure TFormNative.btnMemSortClick(Sender: TObject);
+var
+  D: array[0..8] of Byte;
+begin
+  D[0] := 0;
+  D[1] := 1;
+  D[2] := 2;
+  D[3] := 9;
+  D[4] := 4;
+  D[5] := 5;
+  D[6] := 6;
+  D[7] := 7;
+  D[8] := 8;
+  QuickSort(@D[0], 0, SizeOf(D) - 1);
+  mmoRes.Lines.Add(DataToHex(@D[0], SizeOf(D)));
+
+  D[0] := 8;
+  D[1] := 7;
+  D[2] := 6;
+  D[3] := 5;
+  D[4] := 4;
+  D[5] := 3;
+  D[6] := 2;
+  D[7] := 1;
+  D[8] := 0;
+
+  MemoryQuickSort(@D[0], 1, SizeOf(D));
+  mmoRes.Lines.Add(DataToHex(@D[0], SizeOf(D)));
 end;
 
 end.
