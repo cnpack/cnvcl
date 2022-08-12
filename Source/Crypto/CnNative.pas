@@ -155,6 +155,10 @@ type
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
   {* 位操作类型}
 
+type
+  TMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
+  {* 内存固定块尺寸的数组排序比较函数原型}
+
 const
   MAX_SQRT_INT64: Cardinal               = 3037000499;
   MAX_UINT16: Word                       = $FFFF;
@@ -365,7 +369,7 @@ function UInt32NetworkToHost(Value: Cardinal): Cardinal;
 function UInt16NetworkToHost(Value: Word): Word;
 {* 将 UInt16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
 
-procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
+procedure ReverseMemory(AMem: Pointer; MemByteLen: Integer);
 {* 按字节顺序倒置一块内存块，字节内部不变}
 
 function ReverseBitsInInt8(V: Byte): Byte;
@@ -380,25 +384,25 @@ function ReverseBitsInInt32(V: Cardinal): Cardinal;
 function ReverseBitsInInt64(V: Int64): Int64;
 {* 倒置八字节内容}
 
-procedure ReverseMemoryWithBits(AMem: Pointer; MemLen: Integer);
+procedure ReverseMemoryWithBits(AMem: Pointer; MemByteLen: Integer);
 {* 按字节顺序倒置一块内存块，并且每个字节也倒过来}
 
-procedure MemoryAnd(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryAnd(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位与，结果放 ResMem 中，三者可相同}
 
-procedure MemoryOr(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryOr(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位或，结果放 ResMem 中，三者可相同}
 
-procedure MemoryXor(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryXor(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位异或，结果放 ResMem 中，三者可相同}
 
-procedure MemoryNot(AMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryNot(AMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 一块内存 AMem 取反，结果放 ResMem 中，两者可相同}
 
-procedure MemoryShiftLeft(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+procedure MemoryShiftLeft(AMem, BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
 {* AMem 整块内存左移 BitCount 位至 BMem，往内存地址低位移，空位补 0，两者可相等}
 
-procedure MemoryShiftRight(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+procedure MemoryShiftRight(AMem, BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
 {* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等}
 
 function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
@@ -410,8 +414,11 @@ procedure MemorySetBit(AMem: Pointer; N: Integer);
 procedure MemoryClearBit(AMem: Pointer; N: Integer);
 {* 给内存块某 Bit 位置 0，内存地址低位是 0，字节内还是右边为 0}
 
-function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean = False): string;
+function MemoryToBinStr(AMem: Pointer; MemByteLen: Integer; Sep: Boolean = False): string;
 {* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
+
+procedure MemorySwap(AMem, BMem: Pointer; MemByteLen: Integer);
+{* 交换两块相同长度的内存块的内容}
 
 function UInt8ToBinStr(V: Byte): string;
 {* 将一字节转换为二进制字符串}
@@ -491,6 +498,10 @@ procedure SetUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
 
 procedure ClearUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
 {* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127}
+
+procedure QuickSortMemory(Mem: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
+{* 针对固定大小的元素的数组进行排序}
 
 implementation
 
@@ -730,38 +741,38 @@ begin
     or ReverseBitsInInt32((V and $FFFFFFFF00000000) shr 32);
 end;
 
-procedure ReverseMemory(AMem: Pointer; MemLen: Integer);
+procedure ReverseMemory(AMem: Pointer; MemByteLen: Integer);
 var
   I, L: Integer;
   P: PByteArray;
   T: Byte;
 begin
-  if (AMem = nil) or (MemLen < 2) then
+  if (AMem = nil) or (MemByteLen < 2) then
     Exit;
 
-  L := MemLen div 2;
+  L := MemByteLen div 2;
   P := PByteArray(AMem);
   for I := 0 to L - 1 do
   begin
     // 交换第 I 和第 MemLen - I - 1
     T := P^[I];
-    P^[I] := P^[MemLen - I - 1];
-    P^[MemLen - I - 1] := T;
+    P^[I] := P^[MemByteLen - I - 1];
+    P^[MemByteLen - I - 1] := T;
   end;
 end;
 
-procedure ReverseMemoryWithBits(AMem: Pointer; MemLen: Integer);
+procedure ReverseMemoryWithBits(AMem: Pointer; MemByteLen: Integer);
 var
   I: Integer;
   P: PByteArray;
 begin
-  if (AMem = nil) or (MemLen <= 0) then
+  if (AMem = nil) or (MemByteLen <= 0) then
     Exit;
 
-  ReverseMemory(AMem, MemLen);
+  ReverseMemory(AMem, MemByteLen);
   P := PByteArray(AMem);
 
-  for I := 0 to MemLen - 1 do
+  for I := 0 to MemByteLen - 1 do
     P^[I] := ReverseBitsInInt8(P^[I]);
 end;
 
@@ -828,46 +839,46 @@ begin
   end;
 end;
 
-procedure MemoryAnd(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryAnd(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 begin
-  MemoryBitOperation(AMem, BMem, ResMem, MemLen, boAnd);
+  MemoryBitOperation(AMem, BMem, ResMem, MemByteLen, boAnd);
 end;
 
-procedure MemoryOr(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryOr(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 begin
-  MemoryBitOperation(AMem, BMem, ResMem, MemLen, boOr);
+  MemoryBitOperation(AMem, BMem, ResMem, MemByteLen, boOr);
 end;
 
-procedure MemoryXor(AMem, BMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryXor(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 begin
-  MemoryBitOperation(AMem, BMem, ResMem, MemLen, boXor);
+  MemoryBitOperation(AMem, BMem, ResMem, MemByteLen, boXor);
 end;
 
-procedure MemoryNot(AMem: Pointer; MemLen: Integer; ResMem: Pointer);
+procedure MemoryNot(AMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 begin
-  MemoryBitOperation(AMem, nil, ResMem, MemLen, boNot);
+  MemoryBitOperation(AMem, nil, ResMem, MemByteLen, boNot);
 end;
 
-procedure MemoryShiftLeft(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+procedure MemoryShiftLeft(AMem, BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
 var
   I, L, N, LB, RB: Integer;
   PF, PT: PByteArray;
 begin
-  if (AMem = nil) or (MemLen <= 0) or (BitCount = 0) then
+  if (AMem = nil) or (MemByteLen <= 0) or (BitCount = 0) then
     Exit;
 
   if BitCount < 0 then
   begin
-    MemoryShiftRight(AMem, BMem, MemLen, -BitCount);
+    MemoryShiftRight(AMem, BMem, MemByteLen, -BitCount);
     Exit;
   end;
 
   if BMem = nil then
     BMem := AMem;
 
-  if (MemLen * 8) <= BitCount then // 移太多不够，全 0
+  if (MemByteLen * 8) <= BitCount then // 移太多不够，全 0
   begin
-    FillChar(BMem^, MemLen, 0);
+    FillChar(BMem^, MemByteLen, 0);
     Exit;
   end;
 
@@ -880,13 +891,13 @@ begin
 
   if RB = 0 then // 整块，好办，要移位的字节数是 MemLen - NW
   begin
-    Move(PF^[N], PT^[0], MemLen - N);
-    FillChar(PT^[MemLen - N], N, 0);
+    Move(PF^[N], PT^[0], MemByteLen - N);
+    FillChar(PT^[MemByteLen - N], N, 0);
   end
   else
   begin
     // 起点是 PF^[N] 和 PT^[0]，长度 MemLen - N 个字节，但相邻字节间有交叉
-    L := MemLen - N;
+    L := MemByteLen - N;
     PF := PByteArray(TCnNativeInt(PF) + N);
 
     for I := 1 to L do // 从低位往低移动，先处理低的
@@ -905,26 +916,26 @@ begin
   end;
 end;
 
-procedure MemoryShiftRight(AMem, BMem: Pointer; MemLen: Integer; BitCount: Integer);
+procedure MemoryShiftRight(AMem, BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
 var
   I, L, N, LB, RB: Integer;
   PF, PT: PByteArray;
 begin
-  if (AMem = nil) or (MemLen <= 0) or (BitCount = 0) then
+  if (AMem = nil) or (MemByteLen <= 0) or (BitCount = 0) then
     Exit;
 
   if BitCount < 0 then
   begin
-    MemoryShiftLeft(AMem, BMem, MemLen, -BitCount);
+    MemoryShiftLeft(AMem, BMem, MemByteLen, -BitCount);
     Exit;
   end;
 
   if BMem = nil then
     BMem := AMem;
 
-  if (MemLen * 8) <= BitCount then // 移太多不够，全 0
+  if (MemByteLen * 8) <= BitCount then // 移太多不够，全 0
   begin
-    FillChar(BMem^, MemLen, 0);
+    FillChar(BMem^, MemByteLen, 0);
     Exit;
   end;
 
@@ -937,16 +948,16 @@ begin
     PF := PByteArray(AMem);
     PT := PByteArray(BMem);
 
-    Move(PF^[0], PT^[N], MemLen - N);
+    Move(PF^[0], PT^[N], MemByteLen - N);
     FillChar(PT^[0], N, 0);
   end
   else
   begin
     // 起点是 PF^[0] 和 PT^[N]，长度 MemLen - N 个字节，但得从高处开始，且相邻字节间有交叉
-    L := MemLen - N;
+    L := MemByteLen - N;
 
     PF := PByteArray(TCnNativeInt(AMem) + L - 1);
-    PT := PByteArray(TCnNativeInt(BMem) + MemLen - 1);
+    PT := PByteArray(TCnNativeInt(BMem) + MemByteLen - 1);
 
     for I := L downto 1 do // 从高位往高位移动，先处理后面的
     begin
@@ -1019,7 +1030,7 @@ begin
   P^ := P^ and V;
 end;
 
-function MemoryToBinStr(AMem: Pointer; MemLen: Integer; Sep: Boolean): string;
+function MemoryToBinStr(AMem: Pointer; MemByteLen: Integer; Sep: Boolean): string;
 var
   J, L: Integer;
   P: PByteArray;
@@ -1043,18 +1054,18 @@ var
 
 begin
   Result := '';
-  if (AMem = nil) or (MemLen <= 0) then
+  if (AMem = nil) or (MemByteLen <= 0) then
     Exit;
 
-  L := MemLen * 8;
+  L := MemByteLen * 8;
   if Sep then
-    L := L + MemLen - 1; // 中间用空格分隔
+    L := L + MemByteLen - 1; // 中间用空格分隔
 
   SetLength(Result, L);
   B := PChar(@Result[1]);
   P := PByteArray(AMem);
 
-  for J := 0 to MemLen - 1 do
+  for J := 0 to MemByteLen - 1 do
   begin
     FillAByteToBuf(P^[J], B);
     if Sep then
@@ -1064,6 +1075,50 @@ begin
     end
     else
       Inc(B, 8);
+  end;
+end;
+
+procedure MemorySwap(AMem, BMem: Pointer; MemByteLen: Integer);
+var
+  A, B: PCnLongWord32Array;
+  BA, BB: PByteArray;
+  TC: Cardinal;
+  TB: Byte;
+begin
+  if (AMem = nil) or (BMem = nil) or (MemByteLen <= 0) then
+    Exit;
+
+  A := PCnLongWord32Array(AMem);
+  B := PCnLongWord32Array(BMem);
+
+  while (MemByteLen and (not 3)) <> 0 do
+  begin
+    TC := A[0];
+    A[0] := B[0];
+    B[0] := TC;
+
+    A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(Cardinal));
+
+    Dec(MemByteLen, 4);
+  end;
+
+  if MemByteLen > 0 then
+  begin
+    BA := PByteArray(A);
+    BB := PByteArray(B);
+
+    while MemByteLen <> 0 do
+    begin
+      TB := BA[0];
+      BA[0] := BB[0];
+      BB[0] := TB;
+
+      BA := PByteArray(TCnNativeInt(BA) + SizeOf(Byte));
+      BB := PByteArray(TCnNativeInt(BB) + SizeOf(Byte));
+
+      Dec(MemByteLen);
+    end;
   end;
 end;
 
@@ -2613,6 +2668,49 @@ begin
     Dec(N, 64);
     Hi := Hi and not (TUInt64(1) shl N);
   end;
+end;
+
+procedure InternalQuickSort(Mem: Pointer; L, R: Integer; ElementByteSize: Integer;
+  CompareProc: TMemSortCompareProc = nil);
+var
+  I, J, P: Integer;
+begin
+  repeat
+    I := L;
+    J := R;
+    P := (L + R) shr 1;
+    repeat
+      while CompareProc(Pointer(TCnNativeUInt(Mem) + I * ElementByteSize),
+        Pointer(TCnNativeUInt(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
+        Inc(I);
+      while CompareProc(Pointer(TCnNativeUInt(Mem) + J * ElementByteSize),
+        Pointer(TCnNativeUInt(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
+        Dec(J);
+
+      if I <= J then
+      begin
+        MemorySwap(Pointer(TCnNativeUInt(Mem) + I * ElementByteSize),
+          Pointer(TCnNativeUInt(Mem) + J * ElementByteSize), ElementByteSize);
+
+        if P = I then
+          P := J
+        else if P = J then
+          P := I;
+        Inc(I);
+        Dec(J);
+      end;
+    until I > J;
+
+    if L < J then
+      InternalQuickSort(Mem, L, J, ElementByteSize, CompareProc);
+    L := I;
+  until I >= R;
+end;
+
+procedure QuickSortMemory(Mem: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
+begin
+  InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, CompareProc);
 end;
 
 initialization
