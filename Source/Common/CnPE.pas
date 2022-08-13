@@ -101,6 +101,8 @@ type
     FDirectoryExport: PImageExportDirectory; // 输出表的结构
     FExportItems: array of TCnPEExportItem;  // 所有输出表的内容，外部可能需要排序
 
+    FDirectoryDebug: PImageDebugDirectory;   // 调试信息表的结构
+
     FOptionalMajorLinkerVersion: Byte;
     FOptionalMinorLinkerVersion: Byte;
     FOptionalCheckSum: DWORD;
@@ -165,6 +167,10 @@ type
     FExportNumberOfNames: DWORD;
     FExportNumberOfFunctions: DWORD;
     FExportBase: DWORD;
+    FDebugType: DWORD;
+    FDebugPointerToRawData: DWORD;
+    FDebugAddressOfRawData: DWORD;
+    FDebugSizeOfData: DWORD;
     function GetDataDirectorySize(Index: Integer): DWORD;
     function GetDataDirectory(Index: Integer): PImageDataDirectory;
     function GetDataDirectoryVirtualAddress(Index: Integer): DWORD;
@@ -190,6 +196,8 @@ type
     function GetSectionVirtualAddress(Index: Integer): DWORD;
     function GetSectionContentSize(Index: Integer): DWORD;
     function GetExportFunctionItem(Index: Integer): PCnPEExportItem;
+    function GetDebugContent: Pointer;
+    function GetIsDebug: Boolean;
 
   protected
     function RvaToActual(Rva: DWORD): Pointer;
@@ -199,7 +207,7 @@ type
 
     procedure ParseHeaders;
     procedure ParseExports;
-
+    procedure ParseDebugData;
   public
     constructor Create(const APEFileName: string); overload; virtual;
     constructor Create(AModuleHandle: HMODULE); overload; virtual;
@@ -317,18 +325,18 @@ type
     property OptionalNumberOfRvaAndSizes: DWORD read FOptionalNumberOfRvaAndSizes;
     {* DataDirectory 的 Size，一般为 16}
 
-    // 接下来是 DataDirectory 信息
+    // 接下来是 DataDirectory 信息。注意这批只是 Directory，并非指向的实际内容
     property DataDirectoryCount: Integer read GetDataDirectoryCount;
     {* DataDirectory 的数量，内部是 NumberOfRvaAndSizes}
     property DataDirectory[Index: Integer]: PImageDataDirectory read GetDataDirectory;
-    {* 第 Index 个 DataDirectory 的指针，0 到 15}
+    {* 第 Index 个 DataDirectory 的指针，0 到 15，始终都存在}
     property DataDirectoryContent[Index: Integer]: Pointer read GetDataDirectoryContent;
     {* 第 Index 个 DataDirectory 的实际地址，通过此地址可以直接访问其内容}
 
     property DataDirectoryVirtualAddress[Index: Integer]: DWORD read GetDataDirectoryVirtualAddress;
     {* 第 Index 个 DataDirectory 的偏移地址}
     property DataDirectorySize[Index: Integer]: DWORD read GetDataDirectorySize;
-    {* 第 Index 个 DataDirectory 的尺寸，单位字节}
+    {* 第 Index 个 DataDirectory 的尺寸，单位字节，似乎对于固定内容来说不重要}
 
     // Sections 信息。其中 PE 加载器应该将 Section 的物理文件偏移 PointerToRawData 处的数据映射入内存的 VritualAddress 处
     property SectionCount: Integer read GetSectionCount;
@@ -373,6 +381,8 @@ type
     {* 本 PE 文件是否 DLL}
     property IsSys: Boolean read GetIsSys;
     {* 本 PE 文件是否 SYS 文件}
+    property IsDebug: Boolean read GetIsDebug;
+    {* 本 PE 文件是否包含调试信息}
 
     // 输出表信息
     property ExportName: AnsiString read FExportName;
@@ -385,6 +395,18 @@ type
     {* 以有名字方式输出的函数总数}
     property ExportFunctionItem[Index: Integer]: PCnPEExportItem read GetExportFunctionItem;
     {* 获取第 Index 个输出函数的记录指针，Index 从 0 到 FExportNumberOfFunctions - 1，注意 Index 不等于 Ordinal}
+
+    // 调试信息
+    property DebugType: DWORD read FDebugType;
+    {* 调试信息类型}
+    property DebugSizeOfData: DWORD read FDebugSizeOfData;
+    {* 调试数据大小}
+    property DebugAddressOfRawData: DWORD read FDebugAddressOfRawData;
+    {* 调试数据在内存中的 RVA}
+    property DebugPointerToRawData: DWORD read FDebugPointerToRawData;
+    {* 调试数据在文件中的偏移}
+    property DebugContent: Pointer read GetDebugContent;
+    {* 调试数据的真实指针，可拿去直接解析，尺寸为 DebugSizeOfData}
   end;
 
   TCnModuleDebugInfo = class
@@ -459,6 +481,8 @@ const
 type
 {$IFDEF SUPPORT_32_AND_64}
   PImageOptionalHeader = PImageOptionalHeader32;
+{$ELSE}
+  TImageOptionalHeader32 = TImageOptionalHeader;
 {$ENDIF}
 
   PImageOptionalHeader64 = ^TImageOptionalHeader64;
@@ -684,8 +708,31 @@ begin
 
   // 解析输出表
   ParseExports;
+
+  // 解析内部调试信息
+  ParseDebugData;
 end;
 
+
+procedure TCnPE.ParseDebugData;
+begin
+  FDirectoryDebug := nil;
+  try
+    FDirectoryDebug := PImageDebugDirectory(DataDirectoryContent[IMAGE_DIRECTORY_ENTRY_DEBUG]);
+  except
+    ;
+  end;
+
+  if FDirectoryDebug = nil then
+    Exit;
+
+  FDebugType := FDirectoryDebug^._Type;
+  FDebugSizeOfData := FDirectoryDebug^.SizeOfData;
+  FDebugAddressOfRawData := FDirectoryDebug^.AddressOfRawData;
+  FDebugPointerToRawData := FDirectoryDebug^.PointerToRawData;
+
+
+end;
 
 function TCnPE.GetDataDirectory(Index: Integer): PImageDataDirectory;
 begin
@@ -709,6 +756,26 @@ begin
     Result := P^.VirtualAddress
   else
     Result := 0;
+end;
+
+function TCnPE.GetDebugContent: Pointer;
+var
+  D: DWORD;
+begin
+  if FMode = ppmFile then
+  begin
+    D := FDebugPointerToRawData;   // 拿文件偏移
+    if D = 0 then
+      D := FDebugAddressOfRawData; // 可能存在文件偏移为 0 的情况？
+    Result := RvaToActual(D);
+  end
+  else if FMode = ppmMemoryModule then
+  begin
+    D := FDebugAddressOfRawData;   // 拿已加载展开后的内存偏移
+    Result := RvaToActual(D);
+  end
+  else
+    Result := nil;
 end;
 
 function TCnPE.GetDataDirectorySize(Index: Integer): DWORD;
@@ -1158,6 +1225,11 @@ procedure TCnPE.SortExports;
 begin
   // 根据输出地址排序
   MemoryQuickSort(@FExportItems[0], SizeOf(TCnPEExportItem), Length(FExportItems), ExportItemCompare);
+end;
+
+function TCnPE.GetIsDebug: Boolean;
+begin
+  Result := DataDirectoryContent[IMAGE_DIRECTORY_ENTRY_DEBUG] <> nil;
 end;
 
 { TCnInProcessModuleList }

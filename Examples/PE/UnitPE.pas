@@ -251,6 +251,7 @@ begin
   D(mmoFile, 'IsWin64', DumpBoolean(PE.IsWin64));
   D(mmoFile, 'IsExe', DumpBoolean(PE.IsExe));
   D(mmoFile, 'IsDll', DumpBoolean(PE.IsDll));
+  D(mmoFile, 'IsDebug', DumpBoolean(PE.IsDebug));
 
   D(mmoOptional, '----', '----');
   for I := 0 to PE.DataDirectoryCount - 1 do
@@ -265,6 +266,7 @@ begin
   D(mmoOptional, 'Names Count', DumpDWord(PE.ExportNumberOfNames));
   D(mmoOptional, 'Functions Count', DumpDWord(PE.ExportNumberOfFunctions));
 
+  // 输出内容
   for I := 0 to PE.ExportNumberOfFunctions - 1 do
   begin
     E := PE.ExportFunctionItem[I];
@@ -272,6 +274,15 @@ begin
       D(mmoOptional, Format('  Function %d %s: %s', [E.Ordinal, E.Name, DumpPointer(E.Address)]), '');
   end;
 
+  // 调试信息
+  D(mmoOptional, '----', '----');
+  D(mmoOptional, '----', 'Debug Information');
+  D(mmoOptional, 'Type', DumpDWord(PE.DebugType));
+  D(mmoOptional, 'SizeOfData', DumpDWord(PE.DebugSizeOfData));
+  D(mmoOptional, 'AddressOfRawData', DumpDWord(PE.DebugAddressOfRawData));
+  D(mmoOptional, 'PointerToRawData', DumpDWord(PE.DebugPointerToRawData));
+
+  // 节内容
   for I := 0 to PE.SectionCount - 1 do
   begin
     D(mmoSection, Format('Section %d Address', [I]), DumpPointer(PE.SectionHeader[I]));
@@ -330,7 +341,7 @@ begin
   P := PE.DataDirectoryContent[Idx];
   S := PE.DataDirectorySize[Idx];
 
-  CnShowHexData(P, S);
+  CnShowHexData(P, S, Integer(P));
 end;
 
 procedure TFormPE.FormDestroy(Sender: TObject);

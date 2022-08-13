@@ -779,7 +779,7 @@ function CnInputBox(const ACaption, APrompt, ADefault: string;
    FormCallBack: TCnSenderCallback = nil): string;
 {* 输入对话框}
 
-procedure CnShowHexData(Data: Pointer; DataByteLength: Integer;
+procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer = 0;
   const ACaption: string = ''; Modal: Boolean = True);
 {* 以十六进制的方式显示一块数据，Modal 参数控制对话框模态或非模态}
 
@@ -6156,8 +6156,8 @@ begin
   CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack);
 end;
 
-procedure CnShowHexData(Data: Pointer; DataByteLength: Integer;
-  const ACaption: string = ''; Modal: Boolean = True);
+procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer;
+  const ACaption: string; Modal: Boolean);
 var
   F: TForm;
   H: TCnHexEditor;
@@ -6180,6 +6180,9 @@ begin
     H.Font.Name := 'FixedSys';
     H.Align := alClient;
     H.LoadFromBuffer(Data^, DataByteLength);
+
+    if BaseAddr > 0 then
+      H.BaseAddress := BaseAddr;
 
     if Modal then
     begin
