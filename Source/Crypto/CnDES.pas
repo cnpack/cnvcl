@@ -28,7 +28,9 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.02.07 V1.4
+* 修改记录：2022.08.13 V1.5
+*               对空内容加密返回空
+*           2021.02.07 V1.4
 *               增加对 TBytes 的支持
 *           2020.03.25 V1.3
 *               增加 3DES 的支持
@@ -519,6 +521,7 @@ begin
   for I := 0 to 3 do OutData[I] := OutBuf[I];
 end;
 
+// InData 和 OutData 要求都是 8 字节数组
 procedure DesData(DesMode: TDesMode; SubKey: TSubKey; InData: array of Byte;
   var OutData: array of Byte);
 var
@@ -556,6 +559,7 @@ begin
   ConversePermutation(OutData);
 end;
 
+// 将 Key 补 #0 凑成 8 字节
 procedure MakeKeyAlign(var Key: AnsiString);
 begin
   if Length(Key) < DES_KEYSIZE then
@@ -563,12 +567,14 @@ begin
       Key := Key + Chr(0);
 end;
 
+// 将字符串补 #0 凑成 8 的倍数，注意空串不补
 procedure MakeInputAlign(var Str: AnsiString);
 begin
   while Length(Str) mod DES_KEYSIZE <> 0 do
     Str := Str + Chr(0);
 end;
 
+// 将 Key 补 #0 凑成 8 字节
 procedure MakeKeyBytesAlign(var Key: TBytes);
 var
   I, Len: Integer;
@@ -582,6 +588,7 @@ begin
   end;
 end;
 
+// 将字节数组补 0 凑成 8 的倍数，注意空数组不补
 procedure MakeInputBytesAlign(var Input: TBytes);
 var
   I, Len, NL: Integer;
@@ -607,7 +614,14 @@ begin
   MakeKeyAlign(Key);
 
   Str := Input;
-  MakeInputAlign(Str);
+  MakeInputAlign(Str);  // Str 凑齐成 8 的倍数
+
+  if Str = '' then      // 空串直接返回空
+  begin
+    if Output <> nil then
+      Output[0] := #0;
+    Exit;
+  end;
 
   Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
@@ -655,6 +669,13 @@ begin
 
   Str := Input;
   MakeInputAlign(Str);
+
+  if Str = '' then      // 空串直接返回空
+  begin
+    if Output <> nil then
+      Output[0] := #0;
+    Exit;
+  end;
 
   Move(Key[1], KeyByte[0], SizeOf(TDESKey));
   MakeKey(KeyByte, SubKey);
@@ -730,10 +751,13 @@ var
   TempResult, Temp: AnsiString;
   I: Integer;
 begin
+  Result := '';
+  if Str = '' then
+    Exit;
+
   SetResultLengthUsingInput(Str, TempResult);
   DESEncryptECBStr(Key, Str, @TempResult[1]);
 
-  Result := '';
   for I := 0 to Length(TempResult) - 1 do
   begin
     Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
@@ -1170,6 +1194,13 @@ begin
   Str := Input;
   MakeInputAlign(Str);
 
+  if Str = '' then      // 空串直接返回空
+  begin
+    if Output <> nil then
+      Output[0] := #0;
+    Exit;
+  end;
+
   for I := 0 to Length(Str) div DES_BLOCKSIZE - 1 do
   begin
     Move(Str[I * DES_BLOCKSIZE + 1], StrByte[0], SizeOf(TDESBuffer));
@@ -1225,6 +1256,14 @@ begin
 
   Str := Input;
   MakeInputAlign(Str);
+
+  if Str = '' then      // 空串直接返回空
+  begin
+    if Output <> nil then
+      Output[0] := #0;
+    Exit;
+  end;
+
   Move(Iv^, Vector[0], SizeOf(TDESIv));
 
   for I := 0 to Length(Str) div DES_BLOCKSIZE - 1 do
