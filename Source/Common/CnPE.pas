@@ -61,7 +61,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnNative;
+  SysUtils, Classes, Windows, Psapi, Contnrs, CnNative;
+
+const
+  CN_INVALID_LINENUMBER_OFFSET = -1;
 
 type
   ECnPEException = class(Exception);
@@ -96,7 +99,7 @@ type
     FSectionHeader: PImageSectionHeader; // 紧接着 OptionalHeader 后
 
     FDirectoryExport: PImageExportDirectory; // 输出表的结构
-    FExportItems: array of TCnPEExportItem;  // 所有输出表的内容
+    FExportItems: array of TCnPEExportItem;  // 所有输出表的内容，外部可能需要排序
 
     FOptionalMajorLinkerVersion: Byte;
     FOptionalMinorLinkerVersion: Byte;
@@ -196,14 +199,18 @@ type
 
     procedure ParseHeaders;
     procedure ParseExports;
+
   public
-    constructor Create(const APEFileName: string); overload;
-    constructor Create(AModuleHandle: HMODULE); overload;
+    constructor Create(const APEFileName: string); overload; virtual;
+    constructor Create(AModuleHandle: HMODULE); overload; virtual;
 
     destructor Destroy; override;
 
     procedure Parse;
     {* 分析 PE 文件，调用成功后才能使用内部各属性}
+
+    procedure SortExports;
+    {* 内部针对输出函数的地址进行排序}
 
     property Mode: TCnPEParseMode read FMode;
     {* PE 加载模式}
@@ -377,8 +384,61 @@ type
     property ExportNumberOfNames: DWORD read FExportNumberOfNames;
     {* 以有名字方式输出的函数总数}
     property ExportFunctionItem[Index: Integer]: PCnPEExportItem read GetExportFunctionItem;
-    {* 获取第 Index 个输出函数的记录指针，Index 从 0 到 FExportNumberOfFunctions，注意 Index 不等于 Ordinal}
+    {* 获取第 Index 个输出函数的记录指针，Index 从 0 到 FExportNumberOfFunctions - 1，注意 Index 不等于 Ordinal}
   end;
+
+  TCnModuleDebugInfo = class
+  {* 描述本进程内一模块的调试信息的基类，默认实现根据输出表追踪的功能}
+  private
+    FModuleFile: string;
+    FModuleHandle: HMODULE;
+  protected
+    FPE: TCnPE;
+  public
+    constructor Create(AModuleHandle: HMODULE); virtual;
+    destructor Destroy; override;
+
+    function Init: Boolean; virtual;
+    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo节等}
+
+    function GetDebugInfoFromAddr(Address: Pointer; out ModuleFile, UnitName, ProcName: string;
+      out LineNumber, OffsetLineNumber, OffsetProc: Integer): Boolean; virtual;
+    {* 从地址返回其模块文件名（不包含路径）、单元名（如果有的话）、当前函数名、
+      当前行号、离行号的字节位置、离当前函数开始的字节位置}
+
+    property ModuleHandle: HMODULE read FModuleHandle;
+    {* 当前模块的 Handle}
+    property ModuleFile: string read FModuleFile;
+    {* 完整文件名包括路径}
+  end;
+
+  TCnInProcessModuleList = class(TObjectList)
+  {* 描述本进程内所有模块的调试信息列表类，内部持有 TCnModuleDebugInfo 及其子类}
+  private
+    function GetItem(Index: Integer): TCnModuleDebugInfo;
+    procedure SetItem(Index: Integer; const Value: TCnModuleDebugInfo);
+
+  protected
+    function CreateDebugInfoFromModule(AModuleHandle: HMODULE): TCnModuleDebugInfo;
+    {* 从某模块句柄创建各具体类的调试信息对象}
+  public
+    constructor Create; reintroduce; virtual;
+    destructor Destroy; override;
+
+    function GetDebugInfoFromAddress(Address: Pointer): TCnModuleDebugInfo;
+    {* 从某地址返回该模块的调试信息}
+    function GetDebugInfoFromModule(AModuleHandle: HMODULE): TCnModuleDebugInfo;
+    {* 从某模块句柄返回该模块的调试信息}
+
+    function CreateDebugInfoFromAddress(Address: Pointer): TCnModuleDebugInfo;
+    {* 从某地址创建各具体类的调试信息对象并添加到列表中，如果已存在则不重复创建但仍返回}
+
+    property Items[Index: Integer]: TCnModuleDebugInfo read GetItem write SetItem; default;
+    {* 本进程内的调试信息列表}
+  end;
+
+function CreateInProcessAllModulesList: TCnInProcessModuleList;
+{* 创建当前进程中所有模块的 TCnInProcessModuleList，调用者自行释放}
 
 implementation
 
@@ -436,6 +496,48 @@ type
     NumberOfRvaAndSizes: DWORD;
     DataDirectory: packed array[0..IMAGE_NUMBEROF_DIRECTORY_ENTRIES-1] of TImageDataDirectory;
   end;
+
+function CreateInProcessAllModulesList: TCnInProcessModuleList;
+var
+  HP: array of THandle;
+  I, L: Integer;
+  Cnt: DWORD;
+  Info: TCnModuleDebugInfo;
+begin
+  Result := nil;
+
+  // 获取 Module 列表
+  if not EnumProcessModules(GetCurrentProcess, nil, 0, Cnt) then
+    Exit;
+
+  if Cnt = 0 then
+    Exit;
+
+  L := Cnt div SizeOf(THandle);
+  SetLength(HP, L);
+  if EnumProcessModules(GetCurrentProcess, @HP[0], Cnt, Cnt) then
+  begin
+    Result := TCnInProcessModuleList.Create;
+    for I := 0 to L - 1 do
+    begin
+      Info := Result.CreateDebugInfoFromModule(HP[I]);
+      if Info <> nil then
+        Result.Add(Info);
+    end;
+  end;
+end;
+
+// 得到本进程某虚拟地址所属的 Module，也就是模块基地址。如不属于模块则返回 0
+function ModuleFromAddr(const Addr: Pointer): HMODULE;
+var
+  MBI: TMemoryBasicInformation;
+begin
+  VirtualQuery(Addr, MBI, SizeOf(MBI));
+  if MBI.State <> MEM_COMMIT then
+    Result := 0
+  else
+    Result := HMODULE(MBI.AllocationBase);
+end;
 
 function ExtractNewString(Ptr: Pointer; MaxLen: Integer = 0): AnsiString;
 var
@@ -830,7 +932,13 @@ var
   PAddress, PName: PDWORD;
   POrd: PWORD;
 begin
-  FDirectoryExport := PImageExportDirectory(DataDirectoryContent[IMAGE_DIRECTORY_ENTRY_EXPORT]);
+  FDirectoryExport := nil;
+  try
+    FDirectoryExport := PImageExportDirectory(DataDirectoryContent[IMAGE_DIRECTORY_ENTRY_EXPORT]);
+  except
+    ;
+  end;
+
   if FDirectoryExport = nil then
     Exit;
 
@@ -946,8 +1054,8 @@ begin
   FFileSizeOfOptionalHeader := FFileHeader^.SizeOfOptionalHeader;
   FFileCharacteristics := FFileHeader^.Characteristics;
 
-  // 然后是 OptionalHeader
-  if FFileSizeOfOptionalHeader = SizeOf(TImageOptionalHeader) then // 32 位
+  // 然后是 OptionalHeader，注意 TImageOptionalHeader在 64 位编译器下具体是 TImageOptionalHeader64，此处需显式写明 32
+  if FFileSizeOfOptionalHeader = SizeOf(TImageOptionalHeader32) then // 32 位
   begin
     OH32 := PImageOptionalHeader(FOptionalHeader);
 
@@ -1029,6 +1137,157 @@ begin
     raise ECnPEException.CreateFmt(SCnPEExportIndexErrorFmt, [Index]);
 
   Result := @FExportItems[Index];
+end;
+
+function ExportItemCompare(P1, P2: Pointer; ElementByteSize: Integer): Integer;
+var
+  E1, E2: PCnPEExportItem;
+begin
+  E1 := PCnPEExportItem(P1);
+  E2 := PCnPEExportItem(P2);
+
+  if TCnNativeUInt(E1^.Address) > TCnNativeUInt(E2^.Address) then
+    Result := 1
+  else if TCnNativeUInt(E1^.Address) < TCnNativeUInt(E2^.Address) then
+    Result := -1
+  else
+    Result := 0;
+end;
+
+procedure TCnPE.SortExports;
+begin
+  // 根据输出地址排序
+  MemoryQuickSort(@FExportItems[0], SizeOf(TCnPEExportItem), Length(FExportItems), ExportItemCompare);
+end;
+
+{ TCnInProcessModuleList }
+
+constructor TCnInProcessModuleList.Create;
+begin
+  inherited Create(True);
+end;
+
+function TCnInProcessModuleList.CreateDebugInfoFromAddress(
+  Address: Pointer): TCnModuleDebugInfo;
+var
+  M: HMODULE;
+begin
+  M := ModuleFromAddr(Address);
+  Result := GetDebugInfoFromModule(M);
+
+  if Result = nil then
+  begin
+    Result := CreateDebugInfoFromModule(M);
+    if Result <> nil then
+      Add(Result);
+  end;
+end;
+
+function TCnInProcessModuleList.CreateDebugInfoFromModule(AModuleHandle: HMODULE): TCnModuleDebugInfo;
+begin
+  // TODO: 根据各种情况创建不同的子类
+  Result := TCnModuleDebugInfo.Create(AModuleHandle);
+  if not Result.Init then
+    FreeAndNil(Result);
+end;
+
+destructor TCnInProcessModuleList.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnInProcessModuleList.GetDebugInfoFromAddress(
+  Address: Pointer): TCnModuleDebugInfo;
+begin
+  Result := GetDebugInfoFromModule(ModuleFromAddr(Address));
+end;
+
+function TCnInProcessModuleList.GetDebugInfoFromModule(
+  AModuleHandle: HMODULE): TCnModuleDebugInfo;
+var
+  I: Integer;
+  Info: TCnModuleDebugInfo;
+begin
+  for I := 0 to Count - 1 do
+  begin
+    Info := Items[I];
+    if (Info <> nil) and (Info.ModuleHandle = AModuleHandle) then
+    begin
+      Result := Info;
+      Exit;
+    end;
+  end;
+  Result := nil;
+end;
+
+function TCnInProcessModuleList.GetItem(Index: Integer): TCnModuleDebugInfo;
+begin
+  Result := TCnModuleDebugInfo(inherited GetItem(Index));
+end;
+
+procedure TCnInProcessModuleList.SetItem(Index: Integer;
+  const Value: TCnModuleDebugInfo);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+{ TCnModuleDebugInfo }
+
+constructor TCnModuleDebugInfo.Create(AModuleHandle: HMODULE);
+var
+  F: array[0..MAX_PATH - 1] of Char;
+begin
+  inherited Create;
+  FModuleHandle := AModuleHandle;
+  if GetModuleFileName(FModuleHandle, @F[0], SizeOf(F)) > 0 then;
+    FModuleFile := StrNew(PChar(@F[0]));
+end;
+
+destructor TCnModuleDebugInfo.Destroy;
+begin
+  FPE.Free;
+  inherited;
+end;
+
+function TCnModuleDebugInfo.GetDebugInfoFromAddr(Address: Pointer;
+  out ModuleFile, UnitName, ProcName: string; out LineNumber, OffsetLineNumber,
+  OffsetProc: Integer): Boolean;
+var
+  I: Integer;
+  Item: PCnPEExportItem;
+begin
+  Result := False;
+  ModuleFile := ExtractFileName(FModuleFile);
+  UnitName := '';
+
+  for I := FPE.ExportNumberOfFunctions - 1 downto 0 do
+  begin
+    Item := FPE.ExportFunctionItem[I];
+    if TCnNativeUInt(Item^.Address) < TCnNativeUInt(Address) then
+    begin
+      ProcName := Item^.Name;
+      OffsetProc := TCnNativeUInt(Address) - TCnNativeUInt(Item^.Address);
+
+      LineNumber := CN_INVALID_LINENUMBER_OFFSET;
+      OffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function TCnModuleDebugInfo.Init: Boolean;
+begin
+  Result := (FModuleHandle <> 0) and (FModuleHandle <> INVALID_HANDLE_VALUE)
+    and FileExists(FModuleFile);
+  if Result then
+  begin
+    FPE := TCnPE.Create(FModuleHandle);
+    FPE.Parse;
+    FPE.SortExports;
+  end;
 end;
 
 end.

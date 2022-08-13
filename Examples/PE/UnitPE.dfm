@@ -304,6 +304,27 @@ object FormPE: TFormPE
         Wrap = False
       end
     end
+    object tsStackTrace: TTabSheet
+      Caption = 'Stack Trace'
+      ImageIndex = 3
+      object btnStackTrace: TButton
+        Left = 568
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Stack Trace'
+        TabOrder = 0
+        OnClick = btnStackTraceClick
+      end
+      object mmoStack: TMemo
+        Left = 16
+        Top = 16
+        Width = 537
+        Height = 409
+        TabOrder = 1
+        WordWrap = False
+      end
+    end
   end
   object dlgOpen1: TOpenDialog
     Left = 264

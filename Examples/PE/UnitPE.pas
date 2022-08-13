@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, ExtCtrls, StdCtrls, ToolWin, Psapi, CnPE, CnNative, CnCommon;
+  ComCtrls, ExtCtrls, StdCtrls, ToolWin, Psapi, CnPE, CnNative, CnCommon, CnRTL;
 
 type
   TFormPE = class(TForm)
@@ -44,6 +44,9 @@ type
     btnViewSection: TButton;
     edtSectionIndex: TEdit;
     udSection: TUpDown;
+    tsStackTrace: TTabSheet;
+    btnStackTrace: TButton;
+    mmoStack: TMemo;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -51,6 +54,7 @@ type
     procedure btn0Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnViewSectionClick(Sender: TObject);
+    procedure btnStackTraceClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -90,7 +94,11 @@ begin
         for I := 0 to L - 1 do
         begin
           GetModuleFileName(HP[I], @F[0], MAX_PATH);
-          cbbRunModule.Items.AddObject(IntToHex(HP[I], 8) + ' - ' + F, Pointer(HP[I]));
+{$IFDEF CPUX64}
+          cbbRunModule.Items.AddObject(Format('%16.16x', [HP[I]]) + ' - ' + F, Pointer(HP[I]));
+{$ELSE}
+          cbbRunModule.Items.AddObject(Format('%8.8x', [HP[I]]) + ' - ' + F, Pointer(HP[I]));
+{$ENDIF}
         end;
       end;
       cbbRunModule.ItemIndex := 0;
@@ -299,6 +307,8 @@ begin
 
   PE := TCnPE.Create(H);
   PE.Parse;
+
+  PE.SortExports;
   DumpPE(PE);
 end;
 
@@ -334,6 +344,43 @@ var
 begin
   Idx := udSection.Position;
   CnShowHexData(PE.SectionContent[Idx], PE.SectionContentSize[Idx]);
+end;
+
+procedure TFormPE.btnStackTraceClick(Sender: TObject);
+var
+  I, LN, OL, OP: Integer;
+  SL: TCnStackInfoList;
+  ML: TCnInProcessModuleList;
+  Info: TCnModuleDebugInfo;
+  MN, UN, PN: string;
+begin
+  mmoStack.Lines.Clear;
+
+  SL := nil;
+  ML := nil;
+  try
+    SL := TCnCurrentStackInfoList.Create;
+    ML := TCnInProcessModuleList.Create;
+
+    for I := 0 to SL.Count - 1 do
+    begin
+      Info := ML.GetDebugInfoFromAddress(SL.Items[I].CallerAddr);
+      if Info = nil then
+      begin
+        ML.CreateDebugInfoFromAddress(SL.Items[I].CallerAddr);
+        Info := ML.GetDebugInfoFromAddress(SL.Items[I].CallerAddr);
+      end;
+
+      if Info.GetDebugInfoFromAddr(SL.Items[I].CallerAddr, MN, UN, PN, LN, OL, OP) then
+        mmoStack.Lines.Add(Format('#%2.2d %p - Module: %s Unit: %s Procedure %s. Line %d, +%x +%x',
+          [I, SL.Items[I].CallerAddr, MN, UN, PN, LN, OL, OP]))
+      else
+        mmoStack.Lines.Add(Format('#%2.2d %p', [I, SL.Items[I].CallerAddr]));
+    end;
+  finally
+    ML.Free;
+    SL.Free;
+  end;
 end;
 
 end.
