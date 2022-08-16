@@ -263,6 +263,15 @@ object FormPE: TFormPE
           OnClick = btn0Click
         end
       end
+      object btnDebugInfo: TButton
+        Left = 728
+        Top = 400
+        Width = 75
+        Height = 25
+        Caption = 'Debug Info'
+        TabOrder = 3
+        OnClick = btnDebugInfoClick
+      end
     end
     object tsSectionHeader: TTabSheet
       Caption = 'SectionHeader'
@@ -323,6 +332,23 @@ object FormPE: TFormPE
         Height = 409
         TabOrder = 1
         WordWrap = False
+      end
+      object mmoNames: TMemo
+        Left = 568
+        Top = 56
+        Width = 337
+        Height = 369
+        ScrollBars = ssVertical
+        TabOrder = 2
+      end
+      object btnNames: TButton
+        Left = 656
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Names'
+        TabOrder = 3
+        OnClick = btnNamesClick
       end
     end
   end

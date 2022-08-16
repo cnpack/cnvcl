@@ -47,6 +47,9 @@ type
     tsStackTrace: TTabSheet;
     btnStackTrace: TButton;
     mmoStack: TMemo;
+    btnDebugInfo: TButton;
+    mmoNames: TMemo;
+    btnNames: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -55,6 +58,8 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure btnViewSectionClick(Sender: TObject);
     procedure btnStackTraceClick(Sender: TObject);
+    procedure btnDebugInfoClick(Sender: TObject);
+    procedure btnNamesClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -391,6 +396,43 @@ begin
   finally
     ML.Free;
     SL.Free;
+  end;
+end;
+
+procedure TFormPE.btnDebugInfoClick(Sender: TObject);
+var
+  L: Integer;
+begin
+  if FPE <> nil then
+  begin
+    if FPE.DebugContent <> nil then
+    begin
+      L := FPE.DebugSizeOfData;
+      if L > 65536 then
+        L := 65536;
+      CnShowHexData(FPE.DebugContent, L, Integer(FPE.DebugContent));
+    end;
+  end;
+end;
+
+procedure TFormPE.btnNamesClick(Sender: TObject);
+var
+  I: Integer;
+  H: HMODULE;
+  TD32: TCnModuleDebugInfoTD32;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    try
+      if TD32.Init then
+        for I := 0 to TD32.Names.Count - 1 do
+          mmoNames.Lines.Add(TD32.Names[I]);
+    finally
+      TD32.Free;
+    end;
   end;
 end;
 

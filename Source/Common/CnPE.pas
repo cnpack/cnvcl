@@ -421,7 +421,7 @@ type
     destructor Destroy; override;
 
     function Init: Boolean; virtual;
-    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo节等}
+    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo 节等}
 
     function GetDebugInfoFromAddr(Address: Pointer; out ModuleFile, UnitName, ProcName: string;
       out LineNumber, OffsetLineNumber, OffsetProc: Integer): Boolean; virtual;
@@ -432,6 +432,26 @@ type
     {* 当前模块的 Handle}
     property ModuleFile: string read FModuleFile;
     {* 完整文件名包括路径}
+  end;
+
+  TCnModuleDebugInfoTD32 = class(TCnModuleDebugInfo)
+  {* 解析 TD32 Debugger Info 的调试信息类}
+  private
+    FData: Pointer;
+    FSize: DWORD;
+    FNames: TStringList;
+    procedure ParseSubSection(DSE: Pointer);
+  public
+    constructor Create(AModuleHandle: HMODULE); override;
+    destructor Destroy; override;
+
+    function Init: Boolean; override;
+
+    function GetDebugInfoFromAddr(Address: Pointer; out ModuleFile, UnitName, ProcName: string;
+      out LineNumber, OffsetLineNumber, OffsetProc: Integer): Boolean; override;
+
+    property Names: TStringList read FNames;
+    {* 内部的名字列表}
   end;
 
   TCnInProcessModuleList = class(TObjectList)
@@ -478,6 +498,57 @@ const
   IMAGE_NT_OPTIONAL_HDR32_MAGIC            = $010B;
   IMAGE_NT_OPTIONAL_HDR64_MAGIC            = $020B;
 
+  { Turbo Debugger 调试信息头标记}
+  TD_SIGNATURE_DELPHI = $39304246; // 'FB09'
+  TD_SIGNATURE_BCB    = $41304246; // 'FB0A'
+
+  { Turbo Debugger 调试信息 Entry 中的 Subsection Types}
+  TD_SUBSECTION_TYPE_MODULE         = $120;
+  TD_SUBSECTION_TYPE_TYPES          = $121;
+  TD_SUBSECTION_TYPE_SYMBOLS        = $124;
+  TD_SUBSECTION_TYPE_ALIGN_SYMBOLS  = $125;
+  TD_SUBSECTION_TYPE_SOURCE_MODULE  = $127;
+  TD_SUBSECTION_TYPE_GLOBAL_SYMBOLS = $129;
+  TD_SUBSECTION_TYPE_GLOBAL_TYPES   = $12B;
+  TD_SUBSECTION_TYPE_NAMES          = $130;
+
+  { Turbo Debugger 调试信息 中的 Symbol type defines}
+  SYMBOL_TYPE_COMPILE        = $0001; // Compile flags symbol
+  SYMBOL_TYPE_REGISTER       = $0002; // Register variable
+  SYMBOL_TYPE_CONST          = $0003; // Constant symbol
+  SYMBOL_TYPE_UDT            = $0004; // User-defined Type
+  SYMBOL_TYPE_SSEARCH        = $0005; // Start search
+  SYMBOL_TYPE_END            = $0006; // End block, procedure, with, or thunk
+  SYMBOL_TYPE_SKIP           = $0007; // Skip - Reserve symbol space
+  SYMBOL_TYPE_CVRESERVE      = $0008; // Reserved for Code View internal use
+  SYMBOL_TYPE_OBJNAME        = $0009; // Specify name of object file
+
+  SYMBOL_TYPE_BPREL16        = $0100; // BP relative 16:16
+  SYMBOL_TYPE_LDATA16        = $0101; // Local data 16:16
+  SYMBOL_TYPE_GDATA16        = $0102; // Global data 16:16
+  SYMBOL_TYPE_PUB16          = $0103; // Public symbol 16:16
+  SYMBOL_TYPE_LPROC16        = $0104; // Local procedure start 16:16
+  SYMBOL_TYPE_GPROC16        = $0105; // Global procedure start 16:16
+  SYMBOL_TYPE_THUNK16        = $0106; // Thunk start 16:16
+  SYMBOL_TYPE_BLOCK16        = $0107; // Block start 16:16
+  SYMBOL_TYPE_WITH16         = $0108; // With start 16:16
+  SYMBOL_TYPE_LABEL16        = $0109; // Code label 16:16
+  SYMBOL_TYPE_CEXMODEL16     = $010A; // Change execution model 16:16
+  SYMBOL_TYPE_VFTPATH16      = $010B; // Virtual function table path descriptor 16:16
+
+  SYMBOL_TYPE_BPREL32        = $0200; // BP relative 16:32
+  SYMBOL_TYPE_LDATA32        = $0201; // Local data 16:32
+  SYMBOL_TYPE_GDATA32        = $0202; // Global data 16:32
+  SYMBOL_TYPE_PUB32          = $0203; // Public symbol 16:32
+  SYMBOL_TYPE_LPROC32        = $0204; // Local procedure start 16:32
+  SYMBOL_TYPE_GPROC32        = $0205; // Global procedure start 16:32
+  SYMBOL_TYPE_THUNK32        = $0206; // Thunk start 16:32
+  SYMBOL_TYPE_BLOCK32        = $0207; // Block start 16:32
+  SYMBOL_TYPE_WITH32         = $0208; // With start 16:32
+  SYMBOL_TYPE_LABEL32        = $0209; // Label 16:32
+  SYMBOL_TYPE_CEXMODEL32     = $020A; // Change execution model 16:32
+  SYMBOL_TYPE_VFTPATH32      = $020B; // Virtual function table path descriptor 16:32
+
 type
 {$IFDEF SUPPORT_32_AND_64}
   PImageOptionalHeader = PImageOptionalHeader32;
@@ -485,7 +556,6 @@ type
   TImageOptionalHeader32 = TImageOptionalHeader;
 {$ENDIF}
 
-  PImageOptionalHeader64 = ^TImageOptionalHeader64;
   TImageOptionalHeader64 = record
     { Standard fields. }
     Magic: Word;
@@ -520,6 +590,94 @@ type
     NumberOfRvaAndSizes: DWORD;
     DataDirectory: packed array[0..IMAGE_NUMBEROF_DIRECTORY_ENTRIES-1] of TImageDataDirectory;
   end;
+  PImageOptionalHeader64 = ^TImageOptionalHeader64;
+
+// ==================== Turbo Debugger 调试信息相关声明 ========================
+
+  TTDFileSignature = packed record
+  { TD 调试信息最头部的结构}
+    Signature: DWORD;
+    Offset: DWORD;        // 指向 TTDDirectoryHeader，大块的调试信息头部，大概叫 Section
+  end;
+  PTDFileSignature = ^TTDFileSignature;
+
+  TTDDirectoryEntry = packed record
+  {* TD 调试信息的元素，属于一个大块调试信息头的后部数组}
+    SubsectionType: Word; // SubSection 类型，对应 TD_SUBSECTION_TYPE_* 常量
+    ModuleIndex: Word;    // Module index
+    Offset: DWORD;        // Offset from the base offset lfoBase，指向具体的调试信息 SubSection
+    Size: DWORD;          // Number of bytes in subsection
+  end;
+  PTDDirectoryEntry = ^TTDDirectoryEntry;
+
+  TTDDirectoryHeader = packed record
+  {* 每大块 TD 调试信息的 Section 的头部，后面紧跟 DirEntryCount 个 TTDDirectoryEntry，
+    每个大小 DirEntrySize，也等于 SizeOf(TTDDirectoryEntry)
+    然后 lfoNextDir 指向下一个调试信息 Section 的头}
+    Size: Word;           // Length of this structure
+    DirEntrySize: Word;   // Length of each directory entry
+    DirEntryCount: DWORD; // Number of directory entries
+    lfoNextDir: DWORD;    // Offset from lfoBase of next directory.
+    Flags: DWORD;         // Flags describing directory and subsection tables.
+    DirEntries: array [0..0] of TTDDirectoryEntry;
+  end;
+  PTDDirectoryHeader = ^TTDDirectoryHeader;
+
+  TSymbolProcInfo = packed record
+  {* TD 调试信息的 Subsection 中的过程类型的符号项结构}
+    pParent: DWORD;
+    pEnd: DWORD;
+    pNext: DWORD;
+    Size: DWORD;        // Length in bytes of this procedure
+    DebugStart: DWORD;  // Offset in bytes from the start of the procedure to
+                        // the point where the stack frame has been set up.
+    DebugEnd: DWORD;    // Offset in bytes from the start of the procedure to
+                        // the point where the  procedure is  ready to  return
+                        // and has calculated its return value, if any.
+                        // Frame and register variables an still be viewed.
+    Offset: DWORD;      // Offset portion of  the segmented address of
+                        // the start of the procedure in the code segment
+    Segment: Word;      // Segment portion of the segmented address of
+                        // the start of the procedure in the code segment
+    ProcType: DWORD;    // Type of the procedure type record
+    NearFar: Byte;      // Type of return the procedure makes:
+                        //   0       near
+                        //   4       far
+    Reserved: Byte;
+    NameIndex: DWORD;   // Name index of procedure
+  end;
+
+  TTDSymbolInfo = packed record
+  {* TD 调试信息的 Subsection 中的符号表结构}
+    Size: Word;
+    SymbolType: Word;
+    case Word of
+      SYMBOL_TYPE_LPROC32, SYMBOL_TYPE_GPROC32:
+        (Proc: TSymbolProcInfo);
+      // 后面的不解析，因而不使用
+//      SYMBOL_TYPE_OBJNAME:
+//        (ObjName: TSymbolObjNameInfo);
+//      SYMBOL_TYPE_LDATA32, SYMBOL_TYPE_GDATA32, SYMBOL_TYPE_PUB32:
+//        (Data: TSymbolDataInfo);
+//      SYMBOL_TYPE_WITH32:
+//        (With32: TSymbolWithInfo);
+//      SYMBOL_TYPE_LABEL32:
+//        (Label32: TSymbolLabelInfo);
+//      SYMBOL_TYPE_CONST:
+//        (Constant: TSymbolConstantInfo);
+//      SYMBOL_TYPE_UDT:
+//        (Udt: TSymbolUdtInfo);
+//      SYMBOL_TYPE_VFTPATH32:
+//        (VftPath: TSymbolVftPathInfo);
+  end;
+  PTDSymbolInfo = ^TTDSymbolInfo;
+
+  {* TD 调试信息的 Subsection 中的符号表结构列表}
+  TTDSymbolInfos = packed record
+    Signature: DWORD;
+    Symbols: array [0..0] of TTDSymbolInfo;
+  end;
+  PTDSymbolInfos = ^TTDSymbolInfos;
 
 function CreateInProcessAllModulesList: TCnInProcessModuleList;
 var
@@ -1257,7 +1415,13 @@ end;
 
 function TCnInProcessModuleList.CreateDebugInfoFromModule(AModuleHandle: HMODULE): TCnModuleDebugInfo;
 begin
-  // TODO: 根据各种情况创建不同的子类
+  // 根据各种情况创建不同的子类，后面加上 64 位、Map 和 tds 文件等
+  Result := TCnModuleDebugInfoTD32.Create(AModuleHandle);
+  if not Result.Init then
+    FreeAndNil(Result)
+  else
+    Exit;
+
   Result := TCnModuleDebugInfo.Create(AModuleHandle);
   if not Result.Init then
     FreeAndNil(Result);
@@ -1359,6 +1523,104 @@ begin
     FPE := TCnPE.Create(FModuleHandle);
     FPE.Parse;
     FPE.SortExports;
+  end;
+end;
+
+{ TCnModuleDebugInfoTD32 }
+
+constructor TCnModuleDebugInfoTD32.Create(AModuleHandle: HMODULE);
+begin
+  inherited;
+  FNames := TStringList.Create;
+end;
+
+destructor TCnModuleDebugInfoTD32.Destroy;
+begin
+  FNames.Free;
+  inherited;
+end;
+
+function TCnModuleDebugInfoTD32.GetDebugInfoFromAddr(Address: Pointer;
+  out ModuleFile, UnitName, ProcName: string; out LineNumber,
+  OffsetLineNumber, OffsetProc: Integer): Boolean;
+begin
+
+end;
+
+function TCnModuleDebugInfoTD32.Init: Boolean;
+var
+  I: Integer;
+  Sig: PTDFileSignature;
+  DH: PTDDirectoryHeader;
+begin
+  Result := inherited Init;
+  if not Result then
+    Exit;
+
+  // 父类创建了 PE 对象，读出其 Debug Information 指针与尺寸
+  Result := False;
+  FData := FPE.DebugContent;
+  FSize := FPE.DebugSizeOfData;
+
+  if (FPE.DebugType <> IMAGE_DEBUG_TYPE_UNKNOWN) or (FData = nil) or (FSize <= SizeOf(TTDFileSignature)) then
+    Exit;  // 无调试信息或不合法则退出
+
+  Sig := PTDFileSignature(FData);
+  if (Sig^.Signature <> TD_SIGNATURE_DELPHI) and (Sig^.Signature <> TD_SIGNATURE_BCB) then
+    Exit;  // 标记值不对则退出
+
+  DH := PTDDirectoryHeader(TCnNativeUInt(Sig) + Sig^.Offset);
+  while True do
+  begin
+    for I := 0 to DH^.DirEntryCount - 1 do
+    begin
+      // 处理 DH^.DirEntries[I];
+      ParseSubSection(@DH^.DirEntries[I]);
+    end;
+
+    // 寻找下一个 Header
+    if DH^.lfoNextDir = 0 then
+      Break;
+    DH := PTDDirectoryHeader(TCnNativeUInt(DH) + DH^.lfoNextDir);
+  end;
+  Result := True;
+end;
+
+procedure TCnModuleDebugInfoTD32.ParseSubSection(DSE: Pointer);
+var
+  DE: PTDDirectoryEntry;
+  DS: Pointer;
+  C: DWORD;
+  I, L: Integer;
+  PName: PAnsiChar;
+  S: string;
+begin
+  DE := PTDDirectoryEntry(DSE); // 参数是 Entry
+  DS := Pointer(TCnNativeUInt(FData) + DE^.Offset); // 找到真正的 SubSection 内容
+  case DE^.SubsectionType of
+    TD_SUBSECTION_TYPE_NAMES:
+      begin
+        C := PDWORD(DS)^; // 第一个 DWORD 是数量
+        PName := PAnsiChar(DS);
+        Inc(PName, SizeOf(DWORD));
+
+        for I := 0 to C - 1 do // 后面是一字节长度加字符串内容加 #0
+        begin
+          L := Ord(PName^);
+          Inc(PName);
+          S := StrNew(PName);
+          FNames.Add(S);
+          Inc(PName, L + 1);
+        end;
+      end;
+    TD_SUBSECTION_TYPE_SOURCE_MODULE:
+      begin
+
+      end;
+    TD_SUBSECTION_TYPE_ALIGN_SYMBOLS:
+      begin
+
+      end;
   end;
 end;
 
