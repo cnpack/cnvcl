@@ -1,8 +1,8 @@
 object FormPE: TFormPE
-  Left = 340
-  Top = 198
-  Width = 967
-  Height = 563
+  Left = 158
+  Top = 134
+  Width = 1110
+  Height = 614
   Caption = 'PE File Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -75,9 +75,9 @@ object FormPE: TFormPE
   object pgcPE: TPageControl
     Left = 16
     Top = 48
-    Width = 929
-    Height = 473
-    ActivePage = tsDosHeader
+    Width = 1072
+    Height = 524
+    ActivePage = tsStackTrace
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
     object tsDosHeader: TTabSheet
@@ -86,7 +86,8 @@ object FormPE: TFormPE
         Left = 16
         Top = 16
         Width = 313
-        Height = 409
+        Height = 460
+        Anchors = [akLeft, akTop, akBottom]
         TabOrder = 0
       end
     end
@@ -97,14 +98,16 @@ object FormPE: TFormPE
         Left = 16
         Top = 16
         Width = 313
-        Height = 409
+        Height = 460
+        Anchors = [akLeft, akTop, akBottom]
         TabOrder = 0
       end
       object mmoOptional: TMemo
         Left = 336
         Top = 16
         Width = 377
-        Height = 409
+        Height = 460
+        Anchors = [akLeft, akTop, akBottom]
         ScrollBars = ssVertical
         TabOrder = 1
       end
@@ -280,7 +283,8 @@ object FormPE: TFormPE
         Left = 16
         Top = 16
         Width = 313
-        Height = 409
+        Height = 460
+        Anchors = [akLeft, akTop, akBottom]
         ScrollBars = ssVertical
         TabOrder = 0
       end
@@ -329,17 +333,20 @@ object FormPE: TFormPE
         Left = 16
         Top = 16
         Width = 537
-        Height = 409
+        Height = 460
+        Anchors = [akLeft, akTop, akBottom]
         TabOrder = 1
         WordWrap = False
       end
       object mmoNames: TMemo
         Left = 568
         Top = 56
-        Width = 337
-        Height = 369
+        Width = 480
+        Height = 420
+        Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 2
+        WordWrap = False
       end
       object btnNames: TButton
         Left = 656
@@ -349,6 +356,24 @@ object FormPE: TFormPE
         Caption = 'Names'
         TabOrder = 3
         OnClick = btnNamesClick
+      end
+      object btnSourceModules: TButton
+        Left = 744
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Source'
+        TabOrder = 4
+        OnClick = btnSourceModulesClick
+      end
+      object btnProc: TButton
+        Left = 832
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Procedure'
+        TabOrder = 5
+        OnClick = btnProcClick
       end
     end
   end

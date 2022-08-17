@@ -50,6 +50,8 @@ type
     btnDebugInfo: TButton;
     mmoNames: TMemo;
     btnNames: TButton;
+    btnSourceModules: TButton;
+    btnProc: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -60,6 +62,8 @@ type
     procedure btnStackTraceClick(Sender: TObject);
     procedure btnDebugInfoClick(Sender: TObject);
     procedure btnNamesClick(Sender: TObject);
+    procedure btnSourceModulesClick(Sender: TObject);
+    procedure btnProcClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -73,6 +77,51 @@ var
 implementation
 
 {$R *.DFM}
+
+function DumpByte(AB: Byte): string;
+begin
+  Result := Format('%2.2x', [AB]);
+end;
+
+function DumpWord(AW: Word): string;
+begin
+  Result := Format('%4.4x', [AW]);
+end;
+
+function DumpDWord(AD: DWORD): string;
+begin
+  Result := Format('%8.8x', [AD]);
+end;
+
+function DumpTUInt64(AU: TUInt64): string;
+begin
+  Result := Format('%16.16x', [AU]);
+end;
+
+function DumpBoolean(AB: Boolean): string;
+begin
+  if AB then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
+function DumpPointer(AP: Pointer): string;
+begin
+{$IFDEF CPUX64}
+  Result := Format('%16.16x', [TCnNativeUInt(AP)]);
+{$ELSE}
+  Result := Format('%8.8x', [TCnNativeUInt(AP)]);
+{$ENDIF}
+end;
+
+procedure D(M: TMemo; const N, V: string);
+begin
+  if N <> '' then
+    M.Lines.Add(N + ': ' + V)
+  else
+    M.Lines.Add(V);
+end;
 
 procedure TFormPE.btnBrowseClick(Sender: TObject);
 begin
@@ -129,49 +178,6 @@ procedure TFormPE.DumpPE(PE: TCnPE);
 var
   I: Integer;
   E: PCnPEExportItem;
-
-  function DumpByte(AB: Byte): string;
-  begin
-    Result := Format('%2.2x', [AB]);
-  end;
-
-  function DumpWord(AW: Word): string;
-  begin
-    Result := Format('%4.4x', [AW]);
-  end;
-
-  function DumpDWord(AD: DWORD): string;
-  begin
-    Result := Format('%8.8x', [AD]);
-  end;
-
-  function DumpTUInt64(AU: TUInt64): string;
-  begin
-    Result := Format('%16.16x', [AU]);
-  end;
-
-  function DumpBoolean(AB: Boolean): string;
-  begin
-    if AB then
-      Result := 'True'
-    else
-      Result := 'False';
-  end;
-
-  function DumpPointer(AP: Pointer): string;
-  begin
-{$IFDEF CPUX64}
-    Result := Format('%16.16x', [TCnNativeUInt(AP)]);
-{$ELSE}
-    Result := Format('%8.8x', [TCnNativeUInt(AP)]);
-{$ENDIF}
-  end;
-
-  procedure D(M: TMemo; const N, V: string);
-  begin
-    M.Lines.Add(N + ': ' + V);
-  end;
-
 begin
   D(mmoDos, 'DosMagic', DumpWord(PE.DosMagic));
   D(mmoDos, 'DosCblp', DumpWord(PE.DosCblp));
@@ -430,6 +436,69 @@ begin
       if TD32.Init then
         for I := 0 to TD32.Names.Count - 1 do
           mmoNames.Lines.Add(TD32.Names[I]);
+    finally
+      TD32.Free;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnSourceModulesClick(Sender: TObject);
+var
+  I, J: Integer;
+  H: HMODULE;
+  TD32: TCnModuleDebugInfoTD32;
+  SM: TCnTDSourceModule;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    try
+      if TD32.Init then
+      begin
+        for I := 0 to TD32.SourceModuleNames.Count - 1 do
+          mmoNames.Lines.Add(TD32.SourceModuleNames[I]);
+        mmoNames.Lines.Add('--------');
+        for I := 0 to TD32.SourceModuleCount - 1 do
+        begin
+          SM := TD32.SourceModules[I];
+          for J := 0 to SM.SegmentCount - 1 do
+            D(mmoNames, '', Format('%s: Seg %d from %s to %s', [SM.Name, J,
+              DumpDWORD(SM.SegmentStart[J]), DumpDWORD(SM.SegmentEnd[J])]));
+        end;
+      end;
+    finally
+      TD32.Free;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnProcClick(Sender: TObject);
+var
+  I: Integer;
+  H: HMODULE;
+  TD32: TCnModuleDebugInfoTD32;
+  PS: TCnTDProcSymbol;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    try
+      if TD32.Init then
+      begin
+        for I := 0 to TD32.ProcedureNames.Count - 1 do
+          mmoNames.Lines.Add(TD32.ProcedureNames[I]);
+        mmoNames.Lines.Add('--------');
+        for I := 0 to TD32.ProcedureCount - 1 do
+        begin
+          PS := TD32.Procedures[I];
+          D(mmoNames, '', Format('%s: from %s to %s', [PS.Name,
+              DumpDWORD(PS.Offset), DumpDWORD(PS.Offset + PS.Size)]));
+        end;
+      end;
     finally
       TD32.Free;
     end;

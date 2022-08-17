@@ -434,13 +434,56 @@ type
     {* 完整文件名包括路径}
   end;
 
+  TCnTDSourceModule = class
+  {* 描述一 TD 调试信息中源文件的类}
+  private
+    FSegmentCount: Integer;
+    FName: string;
+    FSegmentArray: PDWORD;  // 指向一对 Start/End 的双 DWORD 数组
+    FNameIndex: Integer;
+    function GetSegmentEnd(Index: Integer): DWORD;
+    function GetSegmentStart(Index: Integer): DWORD;
+  public
+    function IsAddressInModule(Address: DWORD): Boolean;
+    {* 返回一个地址是否在本模块内}
+
+    property NameIndex: Integer read FNameIndex write FNameIndex;
+    property Name: string read FName write FName;
+    property SegmentCount: Integer read FSegmentCount write FSegmentCount;
+
+    property SegmentArray: PDWORD read FSegmentArray write FSegmentArray;
+    property SegmentStart[Index: Integer]: DWORD read GetSegmentStart;
+    property SegmentEnd[Index: Integer]: DWORD read GetSegmentEnd;
+  end;
+
+  TCnTDProcSymbol = class
+  {* 描述一 TD 调试信息中函数或过程的类}
+  private
+    FNameIndex: DWORD;
+    FOffset: DWORD;
+    FSize: DWORD;
+    FName: string;
+  public
+    property Name: string read FName write FName;
+    property NameIndex: DWORD read FNameIndex write FNameIndex;
+    property Offset: DWORD read FOffset write FOffset;
+    property Size: DWORD read FSize write FSize;
+  end;
+
   TCnModuleDebugInfoTD32 = class(TCnModuleDebugInfo)
   {* 解析 TD32 Debugger Info 的调试信息类}
   private
     FData: Pointer;
     FSize: DWORD;
     FNames: TStringList;
+    FSourceModuleNames: TStringList;
+    FProcedureNames: TStringList;
+    procedure SyncNames; // 把 NameIndex 转换为 Name
     procedure ParseSubSection(DSE: Pointer);
+    function GetSourceModules(Index: Integer): TCnTDSourceModule;
+    function GetSourceModuleCount: Integer;
+    function GetProcedureCount: Integer;
+    function GetProcedures(Index: Integer): TCnTDProcSymbol;
   public
     constructor Create(AModuleHandle: HMODULE); override;
     destructor Destroy; override;
@@ -452,6 +495,20 @@ type
 
     property Names: TStringList read FNames;
     {* 内部的名字列表}
+
+    property SourceModuleNames: TStringList read FSourceModuleNames;
+    {* 内部的源文件名列表}
+    property SourceModuleCount: Integer read GetSourceModuleCount;
+    {* 内部的源文件对象数量}
+    property SourceModules[Index: Integer]: TCnTDSourceModule read GetSourceModules;
+    {* 内部的源文件对象列表}
+
+    property ProcedureNames: TStringList read FProcedureNames;
+    {* 内部的函数过程名列表}
+    property ProcedureCount: Integer read GetProcedureCount;
+    {* 内部的函数过程对象数量}
+    property Procedures[Index: Integer]: TCnTDProcSymbol read GetProcedures;
+    {* 内部的函数过程对象列表}
   end;
 
   TCnInProcessModuleList = class(TObjectList)
@@ -592,7 +649,7 @@ type
   end;
   PImageOptionalHeader64 = ^TImageOptionalHeader64;
 
-// ==================== Turbo Debugger 调试信息相关声明 ========================
+// ==================== Turbo Debugger 调试信息相关结构声明 ====================
 
   TTDFileSignature = packed record
   { TD 调试信息最头部的结构}
@@ -672,12 +729,37 @@ type
   end;
   PTDSymbolInfo = ^TTDSymbolInfo;
 
-  {* TD 调试信息的 Subsection 中的符号表结构列表}
   TTDSymbolInfos = packed record
+  {* TD 调试信息的 Subsection 中的符号表结构列表}
     Signature: DWORD;
     Symbols: array [0..0] of TTDSymbolInfo;
   end;
   PTDSymbolInfos = ^TTDSymbolInfos;
+
+  TTDSourceModuleInfo = packed record
+  {* TD 调试信息的 Subsection 中的源码文件头结构}
+    FileCount: Word;    // The number of source file scontributing code to segments
+    SegmentCount: Word; // The number of code segments receiving code from this module
+
+    BaseSrcFiles: array [0..0] of DWORD;
+  end;
+  PTDSourceModuleInfo = ^TTDSourceModuleInfo;
+
+  TTDSourceFileEntry = packed record
+  {* TD 调试信息的 Subsection 中的单个源码文件结构}
+    SegmentCount: Word; // Number of segments that receive code from this source file.
+    NameIndex: DWORD;   // Name index of Source file name.
+    BaseSrcLines: array [0..0] of DWORD; // 这里有 SegmentCount 个，0 到 SegmentCount - 1
+    // BaseSrcLines[SegmentCount] 是 TTDOffsetPair 的数组，指示当前文件的代码在每个 Segment 中的偏移头尾
+  end;
+  PTDSourceFileEntry = ^TTDSourceFileEntry;
+
+  TTDOffsetPair = packed record
+    StartOffset: DWORD;
+    EndOffset: DWORD;
+  end;
+  PTDOffsetPairArray = ^TTDOffsetPairArray;
+  TTDOffsetPairArray = array [0..32767] of TTDOffsetPair;
 
 function CreateInProcessAllModulesList: TCnInProcessModuleList;
 var
@@ -1532,10 +1614,24 @@ constructor TCnModuleDebugInfoTD32.Create(AModuleHandle: HMODULE);
 begin
   inherited;
   FNames := TStringList.Create;
+  FSourceModuleNames := TStringList.Create;
+  FProcedureNames := TStringList.Create;
+
+  FNames.Add('');  // NameIndex 从 1 开始
 end;
 
 destructor TCnModuleDebugInfoTD32.Destroy;
+var
+  I: Integer;
 begin
+  for I := 0 to FProcedureNames.Count - 1 do
+    FProcedureNames.Objects[I].Free;
+  FProcedureNames.Free;
+
+  for I := 0 to FSourceModuleNames.Count - 1 do
+    FSourceModuleNames.Objects[I].Free;
+  FSourceModuleNames.Free;
+
   FNames.Free;
   inherited;
 end;
@@ -1545,6 +1641,26 @@ function TCnModuleDebugInfoTD32.GetDebugInfoFromAddr(Address: Pointer;
   OffsetLineNumber, OffsetProc: Integer): Boolean;
 begin
 
+end;
+
+function TCnModuleDebugInfoTD32.GetProcedureCount: Integer;
+begin
+  Result := FProcedureNames.Count;
+end;
+
+function TCnModuleDebugInfoTD32.GetProcedures(Index: Integer): TCnTDProcSymbol;
+begin
+  Result := TCnTDProcSymbol(FProcedureNames.Objects[Index]);
+end;
+
+function TCnModuleDebugInfoTD32.GetSourceModuleCount: Integer;
+begin
+  Result := FSourceModuleNames.Count;
+end;
+
+function TCnModuleDebugInfoTD32.GetSourceModules(Index: Integer): TCnTDSourceModule;
+begin
+  Result := TCnTDSourceModule(FSourceModuleNames.Objects[Index]);
 end;
 
 function TCnModuleDebugInfoTD32.Init: Boolean;
@@ -1583,6 +1699,8 @@ begin
       Break;
     DH := PTDDirectoryHeader(TCnNativeUInt(DH) + DH^.lfoNextDir);
   end;
+  SyncNames;
+
   Result := True;
 end;
 
@@ -1590,13 +1708,19 @@ procedure TCnModuleDebugInfoTD32.ParseSubSection(DSE: Pointer);
 var
   DE: PTDDirectoryEntry;
   DS: Pointer;
-  C: DWORD;
+  C, O: DWORD;
   I, L: Integer;
   PName: PAnsiChar;
   S: string;
+  MI: PTDSourceModuleInfo;
+  SE: PTDSourceFileEntry;
+  SM: TCnTDSourceModule;
+  SIS: PTDSymbolInfos;
+  SI: PTDSymbolInfo;
+  PS: TCnTDProcSymbol;
 begin
   DE := PTDDirectoryEntry(DSE); // 参数是 Entry
-  DS := Pointer(TCnNativeUInt(FData) + DE^.Offset); // 找到真正的 SubSection 内容
+  DS := Pointer(TCnNativeUInt(FData) + DE^.Offset); // 找到真正的 SubSection 内容，其尺寸是 DE^.Size
   case DE^.SubsectionType of
     TD_SUBSECTION_TYPE_NAMES:
       begin
@@ -1615,12 +1739,104 @@ begin
       end;
     TD_SUBSECTION_TYPE_SOURCE_MODULE:
       begin
-
+        MI := PTDSourceModuleInfo(DS);
+        for I := 0 to MI^.FileCount - 1 do
+        begin
+          SE := PTDSourceFileEntry(TCnNativeUInt(MI) + MI^.BaseSrcFiles[I]);
+          if SE^.NameIndex > 0 then
+          begin
+            // 一个 SourceFileEntry 有文件名索引、段数、每段对应的 LineMappingEntry 结构与段起始结构
+            SM := TCnTDSourceModule.Create;
+            SM.NameIndex := SE^.NameIndex;
+            SM.SegmentCount := SE^.SegmentCount;
+            SM.SegmentArray := @SE^.BaseSrcLines[SE^.SegmentCount];
+            FSourceModuleNames.AddObject('', SM); // 名称事后再补充
+          end;
+        end;
       end;
     TD_SUBSECTION_TYPE_ALIGN_SYMBOLS:
       begin
-
+        SIS := PTDSymbolInfos(DS);
+        O := SizeOf(SIS^.Signature);
+        while O < DE^.Size do
+        begin
+          SI := PTDSymbolInfo(TCnNativeUInt(SIS) + O);
+          if (SI^.SymbolType = SYMBOL_TYPE_LPROC32) or (SI^.SymbolType = SYMBOL_TYPE_GPROC32) then
+          begin
+            PS := TCnTDProcSymbol.Create;
+            PS.NameIndex := SI^.Proc.NameIndex;
+            PS.Offset := SI^.Proc.Offset;
+            PS.Size := SI^.Proc.Size;
+            FProcedureNames.AddObject('', PS);
+          end;
+          Inc(O, SI^.Size + SizeOf(SI^.Size));
+        end;
       end;
+  end;
+end;
+
+procedure TCnModuleDebugInfoTD32.SyncNames;
+var
+  I: Integer;
+  SM: TCnTDSourceModule;
+  PS: TCnTDProcSymbol;
+begin
+  for I := 0 to FSourceModuleNames.Count - 1 do
+  begin
+    SM := TCnTDSourceModule(FSourceModuleNames.Objects[I]);
+    if (SM <> nil) and (SM.Name = '') then
+    begin
+      SM.Name := FNames[SM.NameIndex];
+      FSourceModuleNames[I] := SM.Name;
+    end;
+  end;
+
+  for I := 0 to FProcedureNames.Count - 1 do
+  begin
+    PS := TCnTDProcSymbol(FProcedureNames.Objects[I]);
+    if (PS <> nil) and (PS.Name = '') then
+    begin
+      PS.Name := FNames[PS.NameIndex];
+      FProcedureNames[I] := PS.Name;
+    end;
+  end;
+end;
+
+{ TCnTDSourceModule }
+
+function TCnTDSourceModule.GetSegmentEnd(Index: Integer): DWORD;
+var
+  P: PDWORD;
+begin
+  P := FSegmentArray;
+  Inc(P, 2 * Index + 1);
+  Result := P^;
+end;
+
+function TCnTDSourceModule.GetSegmentStart(Index: Integer): DWORD;
+var
+  P: PDWORD;
+begin
+  P := FSegmentArray;
+  Inc(P, 2 * Index);
+  Result := P^;
+end;
+
+function TCnTDSourceModule.IsAddressInModule(Address: DWORD): Boolean;
+var
+  I: Integer;
+  S, E: DWORD;
+begin
+  Result := False;
+  for I := 0 to FSegmentCount - 1 do
+  begin
+    S := SegmentStart[I];
+    E := SegmentEnd[I];
+    if (Address >= S) and (Address <= E) then
+    begin
+      Result := True;
+      Exit;
+    end;
   end;
 end;
 
