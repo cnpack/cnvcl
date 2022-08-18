@@ -513,7 +513,7 @@ end;
 
 procedure TFormCrypt.btnDesCryptClick(Sender: TObject);
 var
-  Output: AnsiString;
+  S, Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
   IvStr: AnsiString;
@@ -521,7 +521,12 @@ var
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
-  Len := Length(AnsiString(edtDesFrom.Text));
+  if cbbDesPadding.ItemIndex = 1 then
+    S := StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE)
+  else
+    S := edtDesFrom.Text;
+
+  Len := Length(AnsiString(S));
   if Len < 8 then
     Len := 8
   else
@@ -546,12 +551,9 @@ begin
     end
     else
     begin
-      if cbbDesPadding.ItemIndex = 1 then
-        DESEncryptEcbStr(edtDESKey.Text, StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE), @(Output[1]))
-      else
-        DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]));
+      // 已经处理好了 PKCS7 对齐
+      DESEncryptEcbStr(edtDESKey.Text, S, @(Output[1]));
     end;
-      
   end
   else
   begin
@@ -581,15 +583,12 @@ begin
     else
     begin
       if cbbDesPadding.ItemIndex = 1 then
-        DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])),
-          StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE), @(Output[1]))
+        DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]))
       else
         DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
     end;
   end;
   edtDESCode.Text := ToHex(@(Output[1]), Length(Output));
-
-  // edtDESCode.Text := DESEncryptStrToHex(edtDesFrom.Text, edtDESKey.Text);
 end;
 
 procedure TFormCrypt.btnDesDecryptClick(Sender: TObject);
@@ -893,11 +892,10 @@ begin
       Exit;
 {$ENDIF}
     end
-    else if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
+    else if rbSm4Cbc.Checked then
     begin
       if cbbSm4Padding.ItemIndex = 1 then
-        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])),
-          StrAddPKCS7Padding(edtSm4.Text, SM4_BLOCKSIZE), @(Output[1]))
+        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
       else
         SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
     end
@@ -2025,7 +2023,7 @@ end;
 
 procedure TFormCrypt.btn3DesCryptClick(Sender: TObject);
 var
-  Output: AnsiString;
+  S, Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..7] of Byte;
   IvStr: AnsiString;
@@ -2033,7 +2031,12 @@ var
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
-  Len := Length(AnsiString(edt3DesFrom.Text));
+  if cbb3DesPadding.ItemIndex = 1 then
+    S := StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE)
+  else
+    S := edt3DesFrom.Text;
+
+  Len := Length(AnsiString(S));
   if Len < 8 then
     Len := 8
   else
@@ -2058,11 +2061,8 @@ begin
     end
     else
     begin
-      if cbb3DesPadding.ItemIndex = 1 then
-        TripleDESEncryptEcbStr(edt3DESKey.Text,
-          StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE), @(Output[1]))
-      else
-        TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]));
+      // 已经处理好了 PKCS7 对齐
+      TripleDESEncryptEcbStr(edt3DESKey.Text, S, @(Output[1]));
     end;
   end
   else
@@ -2093,15 +2093,12 @@ begin
     else
     begin
       if cbb3DesPadding.ItemIndex = 1 then
-        TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])),
-          StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE), @(Output[1]))
+        TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]))
       else
         TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
     end;
   end;
   edt3DESCode.Text := ToHex(@(Output[1]), Length(Output));
-
-  // edt3DESCode.Text := TripleDESEncryptStrToHex(edt3DesFrom.Text, edt3DESKey.Text);
 end;
 
 procedure TFormCrypt.btn3DesDecryptClick(Sender: TObject);

@@ -122,6 +122,9 @@ type
   ExtendedArray = array[0..65537] of Extended;
   PExtendedArray = ^ExtendedArray;
 
+  PCnWord16Array = ^TCnWord16Array;
+  TCnWord16Array = array [0..0] of Word;
+
 {$IFDEF POSIX64}
   TCnLongWord32 = Cardinal; // Linux64/MacOS64 (or POSIX64?) LongWord is 64 Bits
 {$ELSE}
