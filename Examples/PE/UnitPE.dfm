@@ -375,6 +375,15 @@ object FormPE: TFormPE
         TabOrder = 5
         OnClick = btnProcClick
       end
+      object btnLineNumbers: TButton
+        Left = 920
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Line/Offset'
+        TabOrder = 6
+        OnClick = btnLineNumbersClick
+      end
     end
   end
   object dlgOpen1: TOpenDialog

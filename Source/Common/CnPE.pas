@@ -61,7 +61,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Psapi, Contnrs, CnNative;
+  SysUtils, Classes, Windows, Psapi, Contnrs, CnContainers, CnNative;
 
 const
   CN_INVALID_LINENUMBER_OFFSET = -1;
@@ -423,10 +423,13 @@ type
     function Init: Boolean; virtual;
     {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo 节等}
 
-    function GetDebugInfoFromAddr(Address: Pointer; out ModuleFile, UnitName, ProcName: string;
-      out LineNumber, OffsetLineNumber, OffsetProc: Integer): Boolean; virtual;
-    {* 从地址返回其模块文件名（不包含路径）、单元名（如果有的话）、当前函数名、
+    function GetDebugInfoFromAddr(Address: Pointer; out OutModuleFile, OutUnitName, OutProcName: string;
+      out OutLineNumber, OutOffsetLineNumber, OutOffsetProc: Integer): Boolean; virtual;
+    {* 从当前进程内的虚拟地址返回其模块文件名（不包含路径）、单元名（如果有的话）、当前函数名、
       当前行号、离行号的字节位置、离当前函数开始的字节位置}
+
+    function VAFromAddr(Address: Pointer): DWORD;
+    {* 根据真实地址返回模块内偏移，其实是减去模块基地址再减去代码基地址}
 
     property ModuleHandle: HMODULE read FModuleHandle;
     {* 当前模块的 Handle}
@@ -444,7 +447,7 @@ type
     function GetSegmentEnd(Index: Integer): DWORD;
     function GetSegmentStart(Index: Integer): DWORD;
   public
-    function IsAddressInModule(Address: DWORD): Boolean;
+    function IsAddressInSource(Address: DWORD): Boolean;
     {* 返回一个地址是否在本模块内}
 
     property NameIndex: Integer read FNameIndex write FNameIndex;
@@ -456,7 +459,7 @@ type
     property SegmentEnd[Index: Integer]: DWORD read GetSegmentEnd;
   end;
 
-  TCnTDProcSymbol = class
+  TCnTDProcedureSymbol = class
   {* 描述一 TD 调试信息中函数或过程的类}
   private
     FNameIndex: DWORD;
@@ -464,6 +467,9 @@ type
     FSize: DWORD;
     FName: string;
   public
+    function IsAddressInProcedure(Address: DWORD): Boolean;
+    {* 返回一个地址是否在本过程内}
+
     property Name: string read FName write FName;
     property NameIndex: DWORD read FNameIndex write FNameIndex;
     property Offset: DWORD read FOffset write FOffset;
@@ -471,27 +477,34 @@ type
   end;
 
   TCnModuleDebugInfoTD32 = class(TCnModuleDebugInfo)
-  {* 解析 TD32 Debugger Info 的调试信息类}
+  {* 解析 TD32 Debugger Info 的调试信息类，注意只解析部分堆栈所需内容}
   private
     FData: Pointer;
     FSize: DWORD;
+    FStream: TMemoryStream;
     FNames: TStringList;
     FSourceModuleNames: TStringList;
     FProcedureNames: TStringList;
+    FOffsets: TCnIntegerList;
+    FLineNumbers: TCnIntegerList;
     procedure SyncNames; // 把 NameIndex 转换为 Name
     procedure ParseSubSection(DSE: Pointer);
     function GetSourceModules(Index: Integer): TCnTDSourceModule;
     function GetSourceModuleCount: Integer;
     function GetProcedureCount: Integer;
-    function GetProcedures(Index: Integer): TCnTDProcSymbol;
+    function GetProcedures(Index: Integer): TCnTDProcedureSymbol;
+    function GetLineNumberCount: Integer;
+    function GetOffsetCount: Integer;
+    function GetLineNumbers(Index: Integer): Integer;
+    function GetOffsets(Index: Integer): Integer;
   public
     constructor Create(AModuleHandle: HMODULE); override;
     destructor Destroy; override;
 
     function Init: Boolean; override;
 
-    function GetDebugInfoFromAddr(Address: Pointer; out ModuleFile, UnitName, ProcName: string;
-      out LineNumber, OffsetLineNumber, OffsetProc: Integer): Boolean; override;
+    function GetDebugInfoFromAddr(Address: Pointer; out OutModuleFile, OutUnitName, OutProcName: string;
+      out OutLineNumber, OutOffsetLineNumber, OutOffsetProc: Integer): Boolean; override;
 
     property Names: TStringList read FNames;
     {* 内部的名字列表}
@@ -507,8 +520,17 @@ type
     {* 内部的函数过程名列表}
     property ProcedureCount: Integer read GetProcedureCount;
     {* 内部的函数过程对象数量}
-    property Procedures[Index: Integer]: TCnTDProcSymbol read GetProcedures;
+    property Procedures[Index: Integer]: TCnTDProcedureSymbol read GetProcedures;
     {* 内部的函数过程对象列表}
+
+    property LineNumberCount: Integer read GetLineNumberCount;
+    {* 行号数量}
+    property LineNumbers[Index: Integer]: Integer read GetLineNumbers;
+    {* 行号}
+    property OffsetCount: Integer read GetOffsetCount;
+    {* 偏移量数量}
+    property Offsets[Index: Integer]: Integer read GetOffsets;
+    {* 偏移量，原始数据已从低到高排序好的}
   end;
 
   TCnInProcessModuleList = class(TObjectList)
@@ -712,20 +734,6 @@ type
       SYMBOL_TYPE_LPROC32, SYMBOL_TYPE_GPROC32:
         (Proc: TSymbolProcInfo);
       // 后面的不解析，因而不使用
-//      SYMBOL_TYPE_OBJNAME:
-//        (ObjName: TSymbolObjNameInfo);
-//      SYMBOL_TYPE_LDATA32, SYMBOL_TYPE_GDATA32, SYMBOL_TYPE_PUB32:
-//        (Data: TSymbolDataInfo);
-//      SYMBOL_TYPE_WITH32:
-//        (With32: TSymbolWithInfo);
-//      SYMBOL_TYPE_LABEL32:
-//        (Label32: TSymbolLabelInfo);
-//      SYMBOL_TYPE_CONST:
-//        (Constant: TSymbolConstantInfo);
-//      SYMBOL_TYPE_UDT:
-//        (Udt: TSymbolUdtInfo);
-//      SYMBOL_TYPE_VFTPATH32:
-//        (VftPath: TSymbolVftPathInfo);
   end;
   PTDSymbolInfo = ^TTDSymbolInfo;
 
@@ -755,11 +763,21 @@ type
   PTDSourceFileEntry = ^TTDSourceFileEntry;
 
   TTDOffsetPair = packed record
+  {* TD 调试信息中的代码段起始地址}
     StartOffset: DWORD;
     EndOffset: DWORD;
   end;
   PTDOffsetPairArray = ^TTDOffsetPairArray;
   TTDOffsetPairArray = array [0..32767] of TTDOffsetPair;
+
+  TTDLineMappingEntry = packed record
+  {* TD 调试信息中的行号与偏移量对应关系}
+    SegmentIndex: Word;  // Segment index for this table
+    PairCount: Word;     // Count of the number of source line pairs to follow
+    Offsets: array [0..0] of DWORD; // PairCount 个 DWORD 表示偏移
+    // LineNumbers: array [0..PairCount - 1] of Word; // PairCount 个 Word 表示行号（行号超过 65536咋办？)
+  end;
+  PTDLineMappingEntry = ^TTDLineMappingEntry;
 
 function CreateInProcessAllModulesList: TCnInProcessModuleList;
 var
@@ -1569,26 +1587,26 @@ begin
 end;
 
 function TCnModuleDebugInfo.GetDebugInfoFromAddr(Address: Pointer;
-  out ModuleFile, UnitName, ProcName: string; out LineNumber, OffsetLineNumber,
-  OffsetProc: Integer): Boolean;
+  out OutModuleFile, OutUnitName, OutProcName: string; out OutLineNumber, OutOffsetLineNumber,
+  OutOffsetProc: Integer): Boolean;
 var
   I: Integer;
   Item: PCnPEExportItem;
 begin
   Result := False;
-  ModuleFile := ExtractFileName(FModuleFile);
-  UnitName := '';
+  OutModuleFile := ExtractFileName(FModuleFile);
+  OutUnitName := '';
 
   for I := FPE.ExportNumberOfFunctions - 1 downto 0 do
   begin
     Item := FPE.ExportFunctionItem[I];
     if TCnNativeUInt(Item^.Address) < TCnNativeUInt(Address) then
     begin
-      ProcName := Item^.Name;
-      OffsetProc := TCnNativeUInt(Address) - TCnNativeUInt(Item^.Address);
+      OutProcName := Item^.Name;
+      OutOffsetProc := TCnNativeUInt(Address) - TCnNativeUInt(Item^.Address);
 
-      LineNumber := CN_INVALID_LINENUMBER_OFFSET;
-      OffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+      OutLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+      OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
 
       Result := True;
       Exit;
@@ -1608,6 +1626,12 @@ begin
   end;
 end;
 
+function TCnModuleDebugInfo.VAFromAddr(Address: Pointer): DWORD;
+begin
+  Result := DWORD(TCnNativeUInt(Address) - TCnNativeUInt(FModuleHandle)
+    - TCnNativeUInt(FPE.FOptionalBaseOfCode));
+end;
+
 { TCnModuleDebugInfoTD32 }
 
 constructor TCnModuleDebugInfoTD32.Create(AModuleHandle: HMODULE);
@@ -1617,6 +1641,9 @@ begin
   FSourceModuleNames := TStringList.Create;
   FProcedureNames := TStringList.Create;
 
+  FLineNumbers := TCnIntegerList.Create;
+  FOffsets := TCnIntegerList.Create;
+
   FNames.Add('');  // NameIndex 从 1 开始
 end;
 
@@ -1624,6 +1651,11 @@ destructor TCnModuleDebugInfoTD32.Destroy;
 var
   I: Integer;
 begin
+  FStream.Free;
+
+  FOffsets.Free;
+  FLineNumbers.Free;
+
   for I := 0 to FProcedureNames.Count - 1 do
     FProcedureNames.Objects[I].Free;
   FProcedureNames.Free;
@@ -1637,10 +1669,88 @@ begin
 end;
 
 function TCnModuleDebugInfoTD32.GetDebugInfoFromAddr(Address: Pointer;
-  out ModuleFile, UnitName, ProcName: string; out LineNumber,
-  OffsetLineNumber, OffsetProc: Integer): Boolean;
+  out OutModuleFile, OutUnitName, OutProcName: string; out OutLineNumber,
+  OutOffsetLineNumber, OutOffsetProc: Integer): Boolean;
+var
+  I: Integer;
+  VA: DWORD;
 begin
+  VA := VAFromAddr(Address);
 
+  // 模块名
+  OutModuleFile := ExtractFileName(FModuleFile);
+
+  // 源码文件名
+  OutUnitName := '';
+  for I := 0 to SourceModuleCount - 1 do
+  begin
+    if SourceModules[I].IsAddressInSource(VA) then
+    begin
+      OutUnitName := SourceModules[I].Name;
+      Break;
+    end;
+  end;
+
+  // 方法名
+  for I := 0 to ProcedureCount - 1 do
+  begin
+    if Procedures[I].IsAddressInProcedure(VA) then
+    begin
+      OutProcName := Procedures[I].Name;
+      OutOffsetProc := VA - Procedures[I].Offset;
+      Break;
+    end;
+  end;
+
+  // 行号与偏移
+  if OutUnitName <> '' then
+  begin
+    // 有源文件才有行号和行号间偏移
+    for I := 0 to FLineNumbers.Count - 1 do
+    begin
+      if VA = DWORD(FOffsets[I]) then
+      begin
+        OutLineNumber := FLineNumbers[I];
+        OutOffsetLineNumber := 0;
+        Break;
+      end
+      else if (I > 0) and (DWORD(FOffsets[I - 1]) <= VA) and (DWORD(FOffsets[I]) > VA) then
+      begin
+        OutLineNumber := FLineNumbers[I - 1];
+        OutOffsetLineNumber := VA - DWORD(FOffsets[I - 1]);
+        Break;
+      end;
+
+      OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+    end;
+  end
+  else
+  begin
+    OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+    OutLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+  end;
+
+  Result := True;
+end;
+
+function TCnModuleDebugInfoTD32.GetLineNumberCount: Integer;
+begin
+  Result := FLineNumbers.Count;
+end;
+
+function TCnModuleDebugInfoTD32.GetLineNumbers(Index: Integer): Integer;
+begin
+  Result := FLineNumbers[Index];
+end;
+
+function TCnModuleDebugInfoTD32.GetOffsetCount: Integer;
+begin
+  Result := FOffsets.Count;
+end;
+
+function TCnModuleDebugInfoTD32.GetOffsets(Index: Integer): Integer;
+begin
+  Result := FOffsets[Index];
 end;
 
 function TCnModuleDebugInfoTD32.GetProcedureCount: Integer;
@@ -1648,9 +1758,9 @@ begin
   Result := FProcedureNames.Count;
 end;
 
-function TCnModuleDebugInfoTD32.GetProcedures(Index: Integer): TCnTDProcSymbol;
+function TCnModuleDebugInfoTD32.GetProcedures(Index: Integer): TCnTDProcedureSymbol;
 begin
-  Result := TCnTDProcSymbol(FProcedureNames.Objects[Index]);
+  Result := TCnTDProcedureSymbol(FProcedureNames.Objects[Index]);
 end;
 
 function TCnModuleDebugInfoTD32.GetSourceModuleCount: Integer;
@@ -1668,6 +1778,7 @@ var
   I: Integer;
   Sig: PTDFileSignature;
   DH: PTDDirectoryHeader;
+  Tds: string;
 begin
   Result := inherited Init;
   if not Result then
@@ -1679,7 +1790,19 @@ begin
   FSize := FPE.DebugSizeOfData;
 
   if (FPE.DebugType <> IMAGE_DEBUG_TYPE_UNKNOWN) or (FData = nil) or (FSize <= SizeOf(TTDFileSignature)) then
-    Exit;  // 无调试信息或不合法则退出
+  begin
+    Tds := ChangeFileExt(FModuleFile, '.tds');  // 无调试信息或不合法则判断 tds 文件
+    if FileExists(Tds) then
+    begin
+      FStream := TMemoryStream.Create;
+      FStream.LoadFromFile(Tds);
+
+      FData := FStream.Memory;
+      FSize := FStream.Size;
+    end
+    else
+      Exit;  
+  end;
 
   Sig := PTDFileSignature(FData);
   if (Sig^.Signature <> TD_SIGNATURE_DELPHI) and (Sig^.Signature <> TD_SIGNATURE_BCB) then
@@ -1709,15 +1832,16 @@ var
   DE: PTDDirectoryEntry;
   DS: Pointer;
   C, O: DWORD;
-  I, L: Integer;
+  I, J, L: Integer;
   PName: PAnsiChar;
   S: string;
   MI: PTDSourceModuleInfo;
   SE: PTDSourceFileEntry;
+  LM: PTDLineMappingEntry;
   SM: TCnTDSourceModule;
   SIS: PTDSymbolInfos;
   SI: PTDSymbolInfo;
-  PS: TCnTDProcSymbol;
+  PS: TCnTDProcedureSymbol;
 begin
   DE := PTDDirectoryEntry(DSE); // 参数是 Entry
   DS := Pointer(TCnNativeUInt(FData) + DE^.Offset); // 找到真正的 SubSection 内容，其尺寸是 DE^.Size
@@ -1750,6 +1874,17 @@ begin
             SM.NameIndex := SE^.NameIndex;
             SM.SegmentCount := SE^.SegmentCount;
             SM.SegmentArray := @SE^.BaseSrcLines[SE^.SegmentCount];
+
+            for J := 0 to SM.SegmentCount - 1 do
+            begin
+              LM := PTDLineMappingEntry(TCnNativeUInt(MI) + SE^.BaseSrcLines[J]);
+              for L := 0 to LM^.PairCount - 1 do
+              begin
+                FOffsets.Add(Integer(LM^.Offsets[L]));
+                FLineNumbers.Add(Integer(PCnWord16Array(@LM^.Offsets[LM^.PairCount])^[L]));
+              end;
+            end;
+
             FSourceModuleNames.AddObject('', SM); // 名称事后再补充
           end;
         end;
@@ -1763,7 +1898,7 @@ begin
           SI := PTDSymbolInfo(TCnNativeUInt(SIS) + O);
           if (SI^.SymbolType = SYMBOL_TYPE_LPROC32) or (SI^.SymbolType = SYMBOL_TYPE_GPROC32) then
           begin
-            PS := TCnTDProcSymbol.Create;
+            PS := TCnTDProcedureSymbol.Create;
             PS.NameIndex := SI^.Proc.NameIndex;
             PS.Offset := SI^.Proc.Offset;
             PS.Size := SI^.Proc.Size;
@@ -1779,7 +1914,7 @@ procedure TCnModuleDebugInfoTD32.SyncNames;
 var
   I: Integer;
   SM: TCnTDSourceModule;
-  PS: TCnTDProcSymbol;
+  PS: TCnTDProcedureSymbol;
 begin
   for I := 0 to FSourceModuleNames.Count - 1 do
   begin
@@ -1793,7 +1928,7 @@ begin
 
   for I := 0 to FProcedureNames.Count - 1 do
   begin
-    PS := TCnTDProcSymbol(FProcedureNames.Objects[I]);
+    PS := TCnTDProcedureSymbol(FProcedureNames.Objects[I]);
     if (PS <> nil) and (PS.Name = '') then
     begin
       PS.Name := FNames[PS.NameIndex];
@@ -1822,7 +1957,7 @@ begin
   Result := P^;
 end;
 
-function TCnTDSourceModule.IsAddressInModule(Address: DWORD): Boolean;
+function TCnTDSourceModule.IsAddressInSource(Address: DWORD): Boolean;
 var
   I: Integer;
   S, E: DWORD;
@@ -1838,6 +1973,13 @@ begin
       Exit;
     end;
   end;
+end;
+
+{ TCnTDProcSymbol }
+
+function TCnTDProcedureSymbol.IsAddressInProcedure(Address: DWORD): Boolean;
+begin
+  Result := (Address >= FOffset) and (Address <= FOffset + FSize);
 end;
 
 end.

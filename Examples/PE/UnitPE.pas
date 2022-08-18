@@ -52,6 +52,7 @@ type
     btnNames: TButton;
     btnSourceModules: TButton;
     btnProc: TButton;
+    btnLineNumbers: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -64,6 +65,7 @@ type
     procedure btnNamesClick(Sender: TObject);
     procedure btnSourceModulesClick(Sender: TObject);
     procedure btnProcClick(Sender: TObject);
+    procedure btnLineNumbersClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -394,7 +396,7 @@ begin
       end;
 
       if Info.GetDebugInfoFromAddr(SL.Items[I].CallerAddr, MN, UN, PN, LN, OL, OP) then
-        mmoStack.Lines.Add(Format('#%2.2d %p - Module: %s Unit: %s Procedure %s. Line %d, +%x +%x',
+        mmoStack.Lines.Add(Format('#%2.2d %p - Module: %s Unit: %s Procedure %s. Line %d, +%d +%x',
           [I, SL.Items[I].CallerAddr, MN, UN, PN, LN, OL, OP]))
       else
         mmoStack.Lines.Add(Format('#%2.2d %p', [I, SL.Items[I].CallerAddr]));
@@ -479,7 +481,7 @@ var
   I: Integer;
   H: HMODULE;
   TD32: TCnModuleDebugInfoTD32;
-  PS: TCnTDProcSymbol;
+  PS: TCnTDProcedureSymbol;
 begin
   H := GetModuleHandle(nil);
   mmoNames.Clear;
@@ -496,7 +498,36 @@ begin
         begin
           PS := TD32.Procedures[I];
           D(mmoNames, '', Format('%s: from %s to %s', [PS.Name,
-              DumpDWORD(PS.Offset), DumpDWORD(PS.Offset + PS.Size)]));
+            DumpDWORD(PS.Offset), DumpDWORD(PS.Offset + PS.Size)]));
+        end;
+
+        mmoNames.Lines.Add('--------');
+        D(mmoNames, 'TFormPE.btnSourceModulesClick', DumpPointer(@TFormPE.btnSourceModulesClick));
+      end;
+    finally
+      TD32.Free;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnLineNumbersClick(Sender: TObject);
+var
+  I: Integer;
+  H: HMODULE;
+  TD32: TCnModuleDebugInfoTD32;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    try
+      if TD32.Init then
+      begin
+        for I := 0 to TD32.LineNumberCount - 1 do
+        begin
+          D(mmoNames, '', Format('Line %d: Offset %s', [TD32.LineNumbers[I],
+            DumpDWORD(TD32.Offsets[I])]));
         end;
       end;
     finally
