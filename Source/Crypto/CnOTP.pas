@@ -137,7 +137,7 @@ var
   L, Cnt: Integer;
   T: Int64;
   ID, S, KID, SM4K, SM4ID: array of Byte;
-  OD, TD: LongWord;
+  OD, TD: Cardinal;
   TenPow: Integer;
   Fmt: string;
   SM3Dig: TSM3Digest;
@@ -170,7 +170,7 @@ begin
   SetLength(ID, L);
   Move(T, ID[0], SizeOf(Int64));
 
-  Cnt := Int32HostToNetwork(FCounter);
+  Cnt := UInt32HostToNetwork(FCounter);
   Move(Cnt, ID[SizeOf(Int64)], SizeOf(Integer));
   if Length(FChallengeCode) > 0 then
     Move(FChallengeCode[0], ID[SizeOf(Int64) + SizeOf(Integer)], Length(FChallengeCode));
@@ -196,22 +196,22 @@ begin
       end;
 
       // 拆成 8 个 Cardinal 相加
-      Move(S[0], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[4], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[8], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[12], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[16], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[20], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[24], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[28], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
+      Move(S[0], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[4], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[8], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[12], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[16], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[20], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[24], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[28], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
     end
     else // SM4 计算
     begin
@@ -250,19 +250,19 @@ begin
       end;
 
       // 拆成 4 个 Cardinal 相加
-      Move(S[0], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[4], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[8], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
-      Move(S[12], TD, SizeOf(LongWord));
-      OD := OD + Int32HostToNetwork(TD);
+      Move(S[0], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[4], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[8], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
+      Move(S[12], TD, SizeOf(Cardinal));
+      OD := OD + UInt32HostToNetwork(TD);
     end;
 
     TenPow := Trunc(IntPower(10, FDigits));
     Fmt := Format('%%%d.%dd', [FDigits, FDigits]);
-    Result := Format(Fmt, [OD mod TenPow]);
+    Result := Format(Fmt, [OD mod Cardinal(TenPow)]);
   finally
     SetLength(S, 0);
     SetLength(ID, 0);
