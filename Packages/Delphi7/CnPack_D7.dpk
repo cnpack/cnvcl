@@ -68,6 +68,7 @@ contains
   CnLinkedList in '..\..\Source\Common\CnLinkedList.pas',
   CnLockFree in '..\..\Source\Common\CnLockFree.pas',
   CnMatrix in '..\..\Source\Common\CnMatrix.pas',
+  CnMath in '..\..\Source\Common\CnMath.pas',
   CnMethodHook in '..\..\Source\Common\CnMethodHook.pas',
   CnMulticastEvent in '..\..\Source\Common\CnMulticastEvent.pas',
   CnObjAuto in '..\..\Source\Common\CnObjAuto.pas',

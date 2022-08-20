@@ -92,6 +92,9 @@ cnpack\Source 目录内容说明：
   CnLinkedList.pas
     双向链表实现单元
 
+  CnMath.pas
+    数学计算库
+
   CnMatrix.pas
     整数以及有理数矩阵运算的实现单元
 
