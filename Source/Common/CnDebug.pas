@@ -30,8 +30,10 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.05.08
-*               用 CnRTLUtils 取代 JCL 的堆栈捕获功能，留行号获取功能，待测试
+* 修改记录：2022.08.18
+*               用 CnPE 取代 JCL 的行号获取功能，待测试
+*           2020.05.08
+*               用 CnRTL 取代 JCL 的堆栈捕获功能，留行号获取功能，待测试
 *           2019.03.25
 *               移植部分功能包括写文件到 MACOS
 *           2018.07.29
@@ -102,6 +104,9 @@ interface
 // 自动启动相应的 DebugViewer 时也将通过命令行参数指定非全局。
 // Define this flag to use local session, not global.
 
+{$DEFINE CAPTURE_STACK}
+// 定义此条件可启用堆栈抓取与行号获取功能，之前的 USE_JCL 废止
+
 {$IFDEF NDEBUG}
   {$UNDEF DEBUG}
   {$UNDEF USE_JCL}
@@ -116,11 +121,8 @@ interface
 {$ENDIF}
 
 {$IFDEF MACOS}
-  {$UNDEF USE_JCL} // JCL Does NOT Support MACOS.
+  {$UNDEF CAPTURE_STACK} // CnRTL Does NOT Support MACOS.
   {$UNDEF SUPPORT_EVALUATE}
-{$ENDIF}
-{$IFDEF WIN64}
-  {$UNDEF USE_JCL} // JCL Does NOT Support WIN64.
 {$ENDIF}
 
 uses
@@ -129,7 +131,7 @@ uses
   {$ELSE}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts,
   Posix.Unistd, Posix.Pthread, FMX.Controls, FMX.Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
-  {$IFDEF USE_JCL}, JclDebug, CnRTL {$ENDIF USE_JCL};
+  {$IFDEF CAPTURE_STACK}, CnPE, CnRTL {$ENDIF};
 
 const
   CnMaxTagLength = 8; // 不可改变
@@ -326,7 +328,7 @@ type
 {$IFDEF MSWINDOWS}
     procedure InternalFindControl(AControl: TControl);
 {$ENDIF}
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
      procedure ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
       IsOSException: Boolean; StackList: TCnStackInfoList);
 {$ENDIF}
@@ -781,6 +783,11 @@ var
 
   FUseLocalSession: Boolean = {$IFDEF LOCAL_SESSION}True{$ELSE}False{$ENDIF};
 
+{$IFDEF CAPTURE_STACK}
+  FInProcessCriticalSection: TCnCriticalSection;
+  FInProcessModuleList: TCnInProcessModuleList = nil;
+{$ENDIF}
+
 procedure CnEnterCriticalSection(Section: TCnCriticalSection);
 begin
 {$IFDEF MSWINDOWS}
@@ -923,6 +930,62 @@ begin
       Result := Result + ' <- ';
   end;
 end;
+
+{$IFDEF CAPTURE_STACK}
+
+function GetLocationInfoStr(const Address: Pointer): string;
+var
+  Info: TCnModuleDebugInfo;
+  MN, UN, PN: string;
+  LN, OL, OP: Integer;
+begin
+  Result := '';
+  if FInProcessModuleList = nil then
+  begin
+    CnEnterCriticalSection(FInProcessCriticalSection);
+    try
+      if FInProcessModuleList = nil then
+        FInProcessModuleList := CreateInProcessAllModulesList;
+    finally
+      CnLeaveCriticalSection(FInProcessCriticalSection);
+    end;
+  end;
+
+  Info := FInProcessModuleList.CreateDebugInfoFromAddress(Address);
+  if Info = nil then
+    Exit;
+
+  // (地址) [模块名| 基址]
+{$IFDEF CPUX64}
+  Result := Format('(%16.16x) [%-14s | $%16.16x] ', [TCnNativeInt(Address),
+    ExtractFileName(Info.ModuleFile), Info.ModuleHandle]);
+{$ELSE}
+  Result := Format('(%8.8x) [%-14s | $%8.8x] ', [TCnNativeInt(Address),
+    ExtractFileName(Info.ModuleFile), Info.ModuleHandle]);
+{$ENDIF}
+
+  if Info.GetDebugInfoFromAddr(Address, MN, UN, PN, LN, OL, OP) then
+  begin
+    if PN <> '' then
+    begin
+      Result := Result + PN;
+      if OP > 0 then
+        Result := Result + Format(' + $%x', [OP]);
+    end;
+
+    if UN <> '' then
+    begin
+      Result := Result + ' (' + UN;
+      if LN > 0 then
+        Result := Result + Format(' #%d', [LN]);
+      if OL > 0 then
+        Result := Result + Format(' + $%x', [OL]);
+      Result := Result + ')';
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 // 移植自 uDbg
 procedure AddObjectToStringList(PropOwner: TObject; List: TStrings; Level: Integer);
@@ -1315,7 +1378,7 @@ begin
   FFilter := TCnDebugFilter.Create;
   FFilter.FLevel := CurrentLevel;
 
-  {$IFDEF USE_JCL}
+  {$IFDEF CAPTURE_STACK}
   FExceptTracking := True;
   FExceptFilter := TStringList.Create;
   FExceptFilter.Duplicates := dupIgnore;
@@ -2293,14 +2356,14 @@ end;
 
 procedure TCnDebugger.LogCurrentStack(const AMsg: string);
 {$IFDEF DEBUG}
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 var
   Strings: TStrings;
 {$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   Strings := nil;
 
   try
@@ -2393,7 +2456,7 @@ procedure TCnDebugger.SetExceptTracking(const Value: Boolean);
 begin
 {$IFNDEF NDEBUG}
   FExceptTracking := Value;
-  {$IFDEF USE_JCL}
+  {$IFDEF CAPTURE_STACK}
   if FExceptTracking then
     CnHookException
   else
@@ -3024,12 +3087,12 @@ end;
 {$ENDIF}
 
 procedure TCnDebugger.TraceCurrentStack(const AMsg: string);
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 var
   Strings: TStrings;
 {$ENDIF}
 begin
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   Strings := nil;
 
   try
@@ -4006,7 +4069,7 @@ begin
 end;
 
 procedure TCnDebugger.GetCurrentTrace(Strings: TStrings);
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 var
   I: Integer;
   List: TCnStackInfoList;
@@ -4016,7 +4079,7 @@ begin
     Exit;
   Strings.Clear;
 
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   List := nil;
   try
     List := TCnCurrentStackInfoList.Create;
@@ -4027,7 +4090,7 @@ begin
     end;
 
     for I := 0 to List.Count - 1 do
-      Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr, True, True, True, False));
+      Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr));
   finally
     List.Free;
   end;
@@ -4037,7 +4100,7 @@ begin
 end;
 
 procedure TCnDebugger.GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 var
   I: Integer;
   List: TCnStackInfoList;
@@ -4053,12 +4116,12 @@ begin
     Exit;
   end;
 
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   List := nil;
   try
     List := TCnManualStackInfoList.Create(StackBaseAddr, nil);
     for I := 0 to List.Count - 1 do
-      Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr, True, True, True, False));
+      Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr));
   finally
     List.Free;
   end;
@@ -4070,18 +4133,18 @@ end;
 procedure TCnDebugger.LogStackFromAddress(Addr: Pointer;
   const AMsg: string);
 {$IFDEF DEBUG}
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 var
   Strings: TStringList;
 {$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   Strings := nil;
   try
     Strings := TStringList.Create;
-    Strings.Add(GetLocationInfoStr(Addr, True, True, True, False));
+    Strings.Add(GetLocationInfoStr(Addr));
     GetTraceFromAddr(Addr, Strings);
     LogMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
   finally
@@ -4095,16 +4158,16 @@ end;
 
 procedure TCnDebugger.TraceStackFromAddress(Addr: Pointer;
   const AMsg: string);
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 var
   Strings: TStringList;
 {$ENDIF}
 begin
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   Strings := nil;
   try
     Strings := TStringList.Create;
-    Strings.Add(GetLocationInfoStr(Addr, True, True, True, False));
+    Strings.Add(GetLocationInfoStr(Addr));
     GetTraceFromAddr(Addr, Strings);
     TraceMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
   finally
@@ -4333,7 +4396,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
 
 procedure TCnDebugger.ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
   IsOSException: Boolean; StackList: TCnStackInfoList);
@@ -4357,7 +4420,7 @@ begin
   Strings := TStringList.Create;
   try
     for I := 0 to StackList.Count - 1 do
-      Strings.Add(GetLocationInfoStr(StackList.Items[I].CallerAddr, True, True, True));
+      Strings.Add(GetLocationInfoStr(StackList.Items[I].CallerAddr));
     FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
       Strings.Text, cmtException);
   finally
@@ -4771,14 +4834,16 @@ initialization
 
   InitializeCriticalSection(FStartCriticalSection);
   InitializeCriticalSection(FCnDebuggerCriticalSection);
+  InitializeCriticalSection(FInProcessCriticalSection);
   {$ELSE}
   FStartCriticalSection := TCnCriticalSection.Create;
   FCnDebuggerCriticalSection := TCnCriticalSection.Create;
+  FInProcessCriticalSection := TCnCriticalSection.Create;
   {$ENDIF}
   FCnDebugger := TCnDebugger.Create;
   FixCallingCPUPeriod;
 
-  {$IFDEF USE_JCL}
+  {$IFDEF CAPTURE_STACK}
   CnSetAdditionalExceptionRecorder(FCnDebugger.ExceptionRecorder);
   CnHookException;
   {$ENDIF}
@@ -4788,13 +4853,15 @@ initialization
 
 finalization
   {$IFDEF MSWINDOWS}
+  DeleteCriticalSection(FInProcessCriticalSection);
   DeleteCriticalSection(FCnDebuggerCriticalSection);
   DeleteCriticalSection(FStartCriticalSection);
   {$ELSE}
+  FInProcessCriticalSection.Free;
   FCnDebuggerCriticalSection.Free;
   FStartCriticalSection.Free;
   {$ENDIF}
-{$IFDEF USE_JCL}
+{$IFDEF CAPTURE_STACK}
   CnUnHookException;
 {$ENDIF}
   FreeAndNil(FCnDebugger);

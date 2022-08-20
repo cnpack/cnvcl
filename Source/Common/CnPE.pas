@@ -988,8 +988,6 @@ begin
   FDebugSizeOfData := FDirectoryDebug^.SizeOfData;
   FDebugAddressOfRawData := FDirectoryDebug^.AddressOfRawData;
   FDebugPointerToRawData := FDirectoryDebug^.PointerToRawData;
-
-
 end;
 
 function TCnPE.GetDataDirectory(Index: Integer): PImageDataDirectory;
@@ -1703,6 +1701,9 @@ begin
   end;
 
   // 行号与偏移
+  OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+  OutLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+
   if OutUnitName <> '' then
   begin
     // 有源文件才有行号和行号间偏移
@@ -1720,14 +1721,7 @@ begin
         OutOffsetLineNumber := VA - DWORD(FOffsets[I - 1]);
         Break;
       end;
-
-      OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
     end;
-  end
-  else
-  begin
-    OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
-    OutLineNumber := CN_INVALID_LINENUMBER_OFFSET;
   end;
 
   Result := True;
@@ -1921,7 +1915,7 @@ begin
     SM := TCnTDSourceModule(FSourceModuleNames.Objects[I]);
     if (SM <> nil) and (SM.Name = '') then
     begin
-      SM.Name := FNames[SM.NameIndex];
+      SM.Name := ExtractFileName(FNames[SM.NameIndex]);
       FSourceModuleNames[I] := SM.Name;
     end;
   end;
@@ -1933,6 +1927,8 @@ begin
     begin
       PS.Name := FNames[PS.NameIndex];
       FProcedureNames[I] := PS.Name;
+      // TODO: Win32 下只取第一个 @ 后的部分且把后面的 @ 替换成 .
+      // Win64 下去掉 __Zn 前缀并把表示长度的数字替换成 .
     end;
   end;
 end;
