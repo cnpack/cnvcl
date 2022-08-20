@@ -950,6 +950,8 @@ begin
 end;
 
 procedure TCnPE.Parse;
+var
+  ModName: array[0..MAX_PATH] of Char;
 begin
   if FMode = ppmFile then
   begin
@@ -959,6 +961,7 @@ begin
   else if FMode = ppmMemoryModule then
   begin
     FBaseAddress := Pointer(FModule);
+    SetString(FPEFile, ModName, GetModuleFileName(FModule, ModName, Length(ModName)));
   end;
 
   // 解析各头
@@ -1250,7 +1253,7 @@ end;
 
 procedure TCnPE.ParseExports;
 var
-  I, J, T: DWORD;
+  I, T: DWORD;
   O: WORD;
   PAddress, PName: PDWORD;
   POrd: PWORD;
@@ -1278,7 +1281,14 @@ begin
 {
   AddressOfFunctions: ^PDWORD;     指向地址数组，下标从 AddressOfNameOrdinals 中获取，一共 NumberOfFunctions 个
   AddressOfNames: ^PDWORD;         指向名字数组  下标与序号数组内的对应，值是名字字符串的 RVA，一共 NumberOfNames 个，
-  AddressOfNameOrdinals: ^PWord;   指向序号数组，下标与名字数组内的对应，值是 AddressOfFunctions 里的下标，一共 NumberOfFunctions
+  AddressOfNameOrdinals: ^PWord;   指向序号数组，下标与名字数组内的对应，值是 AddressOfFunctions 里的下标，一共 NumberOfNames
+
+  也就是说：
+  地址表第 0 个地址，是 base 序号函数的输出地址。可能有名字……
+  地址表第 1 个地址，是 base + 1 序号函数的输出地址。可能有名字……
+  地址表第 2 个地址，是 base + 2 序号函数的输出地址。可能有名字……
+  地址表第 3 个地址，是 base + 3 序号函数的输出地址。可能有名字……
+  地址表第 4 个地址，是 base + 4 序号函数的输出地址。可能有名字……
 
   NumberOfFunctions 可能大于 NumberOfNames，多的部分是没名字、仅序号输出的函数。
   序号是 AddressOfNameOrdinals 里的值加 Base
@@ -1290,37 +1300,26 @@ begin
   POrd := PWORD(RvaToActual(DWORD(FDirectoryExport^.AddressOfNameOrdinals)));
 
   I := 0;
-  while I < FExportNumberOfNames do
+  while I < FExportNumberOfFunctions do  // 先取出所有函数序号与地址，其中 I 与 AddressOfFunctions 里的下标对应
   begin
-    FExportItems[I].Name := ExtractNewString(RvaToActual(PName^));  // 取名字、序号和地址
+    FExportItems[I].Ordinal := FExportBase + I; // 序号
 
-    O := POrd^;
-    FExportItems[I].Ordinal := O + FExportBase;
-
-    T := PDWORD(TCnNativeUInt(PAddress) + O * SizeOf(DWORD))^;
+    T := PDWORD(TCnNativeUInt(PAddress) + I * SizeOf(DWORD))^; // 地址
     if T <> 0 then
       FExportItems[I].Address := RvaToActual(T)
     else
       FExportItems[I].Address := nil;
 
-    Inc(PName);
-    Inc(POrd);
     Inc(I);
   end;
 
-  J := I;
   I := 0;
-  while I < FExportNumberOfFunctions - FExportNumberOfNames do
+  while I < FExportNumberOfNames do // 再补充名字
   begin
-    O := POrd^;                                                    // 没名字的，取序号和地址
-    FExportItems[J + I].Ordinal := O + FExportBase;
+    O := POrd^; // 取出序号表中的内容，是 AddressOfFunctions 里的下标
+    FExportItems[O].Name := ExtractNewString(RvaToActual(PName^));  // 取名字与序号对应的下标
 
-    T := PDWORD(TCnNativeUInt(PAddress) + O * SizeOf(DWORD))^;
-    if T <> 0 then
-      FExportItems[J + I].Address := RvaToActual(T)
-    else
-      FExportItems[J + I].Address := nil;
-
+    Inc(PName);
     Inc(POrd);
     Inc(I);
   end;
@@ -1616,11 +1615,16 @@ function TCnModuleDebugInfo.Init: Boolean;
 begin
   Result := (FModuleHandle <> 0) and (FModuleHandle <> INVALID_HANDLE_VALUE)
     and FileExists(FModuleFile);
+
   if Result then
   begin
     FPE := TCnPE.Create(FModuleHandle);
-    FPE.Parse;
-    FPE.SortExports;
+    try
+      FPE.Parse;
+      FPE.SortExports;
+    except
+      Result := False;
+    end;
   end;
 end;
 
