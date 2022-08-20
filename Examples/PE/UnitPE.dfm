@@ -23,7 +23,7 @@ object FormPE: TFormPE
     Caption = 'PE File:'
   end
   object bvl1: TBevel
-    Left = 520
+    Left = 640
     Top = 16
     Width = 49
     Height = 25
@@ -37,7 +37,7 @@ object FormPE: TFormPE
     TabOrder = 0
   end
   object btnParsePE: TButton
-    Left = 536
+    Left = 672
     Top = 16
     Width = 75
     Height = 25
@@ -46,7 +46,7 @@ object FormPE: TFormPE
     OnClick = btnParsePEClick
   end
   object cbbRunModule: TComboBox
-    Left = 616
+    Left = 752
     Top = 16
     Width = 329
     Height = 21
@@ -77,7 +77,7 @@ object FormPE: TFormPE
     Top = 48
     Width = 1072
     Height = 524
-    ActivePage = tsStackTrace
+    ActivePage = tsDosHeader
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
     object tsDosHeader: TTabSheet
@@ -385,6 +385,15 @@ object FormPE: TFormPE
         OnClick = btnLineNumbersClick
       end
     end
+  end
+  object btnLoad: TButton
+    Left = 520
+    Top = 16
+    Width = 75
+    Height = 25
+    Caption = 'Load'
+    TabOrder = 6
+    OnClick = btnLoadClick
   end
   object dlgOpen1: TOpenDialog
     Left = 264

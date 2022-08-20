@@ -200,8 +200,8 @@ type
     function GetIsDebug: Boolean;
 
   protected
-    function RvaToActual(Rva: DWORD): Pointer;
-    {* RVA 转换成内存中的真实地址，可以直接访问}
+    function RvaToActual(Rva: DWORD; ZeroIsNil: Boolean = True): Pointer;
+    {* RVA 转换成内存中的真实地址，可以直接访问。ZeroIsNil 控制当 Rva 是 0 时返回 Base 还是 nil}
     function GetSectionHeaderFromRva(Rva: DWORD): PImageSectionHeader;
     {* 根据 RVA 找到它落在哪个 Section 里，返回其 SectionHeader}
 
@@ -800,6 +800,7 @@ begin
   if EnumProcessModules(GetCurrentProcess, @HP[0], Cnt, Cnt) then
   begin
     Result := TCnInProcessModuleList.Create;
+
     for I := 0 to L - 1 do
     begin
       Info := Result.CreateDebugInfoFromModule(HP[I]);
@@ -1206,11 +1207,13 @@ begin
     Result := T;
 end;
 
-function TCnPE.RvaToActual(Rva: DWORD): Pointer;
+function TCnPE.RvaToActual(Rva: DWORD; ZeroIsNil: Boolean): Pointer;
 var
   SH: PImageSectionHeader;
 begin
   Result := nil;
+  if (Rva = 0) and ZeroIsNil then
+    Exit;
 
   // PE 加载入内存展开后，全部符合此规则
   if FMode = ppmMemoryModule then
@@ -1305,10 +1308,7 @@ begin
     FExportItems[I].Ordinal := FExportBase + I; // 序号
 
     T := PDWORD(TCnNativeUInt(PAddress) + I * SizeOf(DWORD))^; // 地址
-    if T <> 0 then
-      FExportItems[I].Address := RvaToActual(T)
-    else
-      FExportItems[I].Address := nil;
+    FExportItems[I].Address := RvaToActual(T);
 
     Inc(I);
   end;

@@ -53,6 +53,7 @@ type
     btnSourceModules: TButton;
     btnProc: TButton;
     btnLineNumbers: TButton;
+    btnLoad: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -66,9 +67,11 @@ type
     procedure btnSourceModulesClick(Sender: TObject);
     procedure btnProcClick(Sender: TObject);
     procedure btnLineNumbersClick(Sender: TObject);
+    procedure btnLoadClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
+    procedure LoadModuleList;
   public
     property PE: TCnPE read FPE write FPE;
   end;
@@ -132,34 +135,8 @@ begin
 end;
 
 procedure TFormPE.FormCreate(Sender: TObject);
-var
-  HP: array of THandle;
-  I, L: Integer;
-  Cnt: DWORD;
-  F: array[0..MAX_PATH] of Char;
 begin
-  // 获取 Module 列表
-  if EnumProcessModules(GetCurrentProcess, nil, 0, Cnt) then
-  begin
-    if Cnt > 0 then
-    begin
-      L := Cnt div SizeOf(THandle);
-      SetLength(HP, L);
-      if EnumProcessModules(GetCurrentProcess, @HP[0], Cnt, Cnt) then
-      begin
-        for I := 0 to L - 1 do
-        begin
-          GetModuleFileName(HP[I], @F[0], MAX_PATH);
-{$IFDEF CPUX64}
-          cbbRunModule.Items.AddObject(Format('%16.16x', [HP[I]]) + ' - ' + F, Pointer(HP[I]));
-{$ELSE}
-          cbbRunModule.Items.AddObject(Format('%8.8x', [HP[I]]) + ' - ' + F, Pointer(HP[I]));
-{$ENDIF}
-        end;
-      end;
-      cbbRunModule.ItemIndex := 0;
-    end;
-  end;
+  LoadModuleList;
 end;
 
 procedure TFormPE.btnParsePEFileClick(Sender: TObject);
@@ -532,6 +509,48 @@ begin
       end;
     finally
       TD32.Free;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnLoadClick(Sender: TObject);
+begin
+  if FileExists(edtPEFile.Text) then
+  begin
+    LoadLibrary(PChar(edtPEFile.Text));
+    LoadModuleList;
+  end;
+end;
+
+procedure TFormPE.LoadModuleList;
+var
+  HP: array of THandle;
+  I, L: Integer;
+  Cnt: DWORD;
+  F: array[0..MAX_PATH] of Char;
+begin
+  cbbRunModule.Items.Clear;
+
+  // 获取 Module 列表
+  if EnumProcessModules(GetCurrentProcess, nil, 0, Cnt) then
+  begin
+    if Cnt > 0 then
+    begin
+      L := Cnt div SizeOf(THandle);
+      SetLength(HP, L);
+      if EnumProcessModules(GetCurrentProcess, @HP[0], Cnt, Cnt) then
+      begin
+        for I := 0 to L - 1 do
+        begin
+          GetModuleFileName(HP[I], @F[0], MAX_PATH);
+{$IFDEF CPUX64}
+          cbbRunModule.Items.AddObject(Format('%16.16x', [HP[I]]) + ' - ' + F, Pointer(HP[I]));
+{$ELSE}
+          cbbRunModule.Items.AddObject(Format('%8.8x', [HP[I]]) + ' - ' + F, Pointer(HP[I]));
+{$ENDIF}
+        end;
+      end;
+      cbbRunModule.ItemIndex := 0;
     end;
   end;
 end;
