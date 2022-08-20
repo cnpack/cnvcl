@@ -975,7 +975,7 @@ begin
 
     if UN <> '' then
     begin
-      Result := Result + ' (' + UN;
+      Result := Result + ' ("' + UN + '"';
       if LN > 0 then
         Result := Result + Format(' #%d', [LN]);
       if OL > 0 then
