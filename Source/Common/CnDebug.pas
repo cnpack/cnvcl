@@ -294,6 +294,9 @@ type
     FControlFindList: TList;
     FOnFindControl: TCnFindControlEvent;
 {$ENDIF}
+{$IFDEF CAPTURE_STACK}
+    FIsInExcption: Boolean;
+{$ENDIF}
     procedure CreateChannel;
 
     function GetActive: Boolean;
@@ -4417,13 +4420,21 @@ begin
     FCnDebugger.TraceMsgWithType(ExceptObj.ClassName + ': ' + ExceptObj.Message,
       cmtError);
 
+  if FIsInExcption then
+  begin
+    FCnDebugger.TraceMsgWithType('!!! Exception Reraised in CnDebug Handler !!!', cmtError);
+    Exit;
+  end;
+
   Strings := TStringList.Create;
+  FIsInExcption := True;
   try
     for I := 0 to StackList.Count - 1 do
       Strings.Add(GetLocationInfoStr(StackList.Items[I].CallerAddr));
     FCnDebugger.TraceMsgWithType('Exception call stack:' + SCnCRLF +
       Strings.Text, cmtException);
   finally
+    FIsInExcption := False;
     Strings.Free;
   end;
 end;
@@ -4834,7 +4845,9 @@ initialization
 
   InitializeCriticalSection(FStartCriticalSection);
   InitializeCriticalSection(FCnDebuggerCriticalSection);
+  {$IFDEF CAPTURE_STACK}
   InitializeCriticalSection(FInProcessCriticalSection);
+  {$ENDIF}
   {$ELSE}
   FStartCriticalSection := TCnCriticalSection.Create;
   FCnDebuggerCriticalSection := TCnCriticalSection.Create;
@@ -4853,7 +4866,9 @@ initialization
 
 finalization
   {$IFDEF MSWINDOWS}
+  {$IFDEF CAPTURE_STACK}
   DeleteCriticalSection(FInProcessCriticalSection);
+  {$ENDIF}
   DeleteCriticalSection(FCnDebuggerCriticalSection);
   DeleteCriticalSection(FStartCriticalSection);
   {$ELSE}
