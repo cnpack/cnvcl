@@ -13,6 +13,7 @@ CD %ROOTDIR%
 SET DPR="NOVALUE"
 SET DIRNAME="NODIR"
 FOR /D %%D IN (.\*) DO (
+  ECHO =====================================
   ECHO Enter %%D
   CD %%D
   SET DIRNAME=%%D
@@ -35,7 +36,8 @@ FOR /D %%D IN (.\*) DO (
             IF "!DIRNAME!" == ".\XMLPersistent" (
               REM Can NOT Compile This Project.
             ) ELSE (
-              %DCC32% "%%F"
+CALL :CLEANTMP
+              %DCC32% "%%F" < "!DPR:~0,-3!cfg"
               IF !ERRORLEVEL! NEQ 0 GOTO END
             )
           )
@@ -49,3 +51,15 @@ ECHO Build Examples Complete.
 :END
 CD %ROOTDIR%
 PAUSE
+EXIT
+
+REM 删除编译中的临时文件
+:CLEANTMP
+  DEL *.dcu 2> NUL
+  DEL ..\..\Source\Crypto\*.dcu 2> NUL
+  DEL ..\..\Source\Common\*.dcu 2> NUL
+  DEL ..\..\Source\Graphics\*.dcu 2> NUL
+  DEL ..\..\Source\DbReport\*.dcu 2> NUL
+  DEL ..\..\Source\NetComm\*.dcu 2> NUL
+  DEL ..\..\Source\NonVisual\*.dcu 2> NUL
+GOTO :EOF
