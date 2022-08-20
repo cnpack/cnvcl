@@ -69,6 +69,7 @@ contains
   CnMatrix in '..\..\Source\Common\CnMatrix.pas',
   CnMath in '..\..\Source\Common\CnMath.pas',
   CnMethodHook in '..\..\Source\Common\CnMethodHook.pas',
+  CnPE in '..\..\Source\Common\CnPE.pas',
   CnRopes in '..\..\Source\Common\CnRopes.pas',
   CnShellUtils in '..\..\Source\Common\CnShellUtils.pas',
   CnSingleton in '..\..\Source\Common\CnSingleton.pas',

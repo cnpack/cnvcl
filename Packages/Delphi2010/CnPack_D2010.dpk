@@ -74,6 +74,7 @@ contains
   CnMethodHook in '..\..\Source\Common\CnMethodHook.pas',
   CnMulticastEvent in '..\..\Source\Common\CnMulticastEvent.pas',
   CnObjAuto in '..\..\Source\Common\CnObjAuto.pas',
+  CnPE in '..\..\Source\Common\CnPE.pas',
   CnRopes in '..\..\Source\Common\CnRopes.pas',
   CnShellUtils in '..\..\Source\Common\CnShellUtils.pas',
   CnSingleton in '..\..\Source\Common\CnSingleton.pas',

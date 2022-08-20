@@ -133,6 +133,7 @@
         <DCCReference Include="..\..\Source\Common\CnMethodHook.pas"/>
         <DCCReference Include="..\..\Source\Common\CnMulticastEvent.pas"/>
         <DCCReference Include="..\..\Source\Common\CnObjAuto.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnPE.pas"/>
         <DCCReference Include="..\..\Source\Common\CnRopes.pas"/>
         <DCCReference Include="..\..\Source\Common\CnShellUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnSingleton.pas"/>

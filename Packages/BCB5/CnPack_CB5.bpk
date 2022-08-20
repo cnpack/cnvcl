@@ -34,6 +34,7 @@
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Common\CnMath.obj 
       ..\..\Source\Common\CnMethodHook.obj 
+      ..\..\Source\Common\CnPE.obj 
       ..\..\Source\Common\CnRopes.obj 
       ..\..\Source\Common\CnShellUtils.obj 
       ..\..\Source\Common\CnSingleton.obj 
