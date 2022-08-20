@@ -114,10 +114,6 @@ type
 
   TCnBerTags = set of TCnBerTag;
 
-{$IFNDEF COMPILER6_UP}
-  PByte         = ^Byte;
-{$ENDIF}
-
   TCnBerReadNode = class(TCnLeaf)
   {* 描述一解析出来的 ASN.1 节点}
   private
