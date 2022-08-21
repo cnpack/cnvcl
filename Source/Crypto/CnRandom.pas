@@ -28,7 +28,9 @@ unit CnRandom;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.03.27 V1.0
+* 修改记录：2022.08.22 V1.1
+*               优先使用操作系统提供的随机数发生器
+*           2020.03.27 V1.0
 *               创建单元，从 CnPrimeNumber 中独立出来
 ================================================================================
 |</PRE>}
@@ -56,7 +58,11 @@ function RandomInt64LessThan(HighValue: Int64): Int64;
 {* 返回大于等于 0 且小于指定 Int64 值的随机数}
 
 function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
-{* 使用 Windows API 或 /dev/random 设备实现区块随机填充}
+{* 使用 Windows API 或 /dev/random 设备实现区块随机填充，内部单次初始化随机数引擎并释放}
+
+function CnRandomFillBytes2(Buf: PAnsiChar; Len: Integer): Boolean;
+{* 使用 Windows API 或 /dev/urandom 设备实现区块随机填充，
+  Windows 下使用已预先初始化好的引擎以提速}
 
 implementation
 
@@ -82,13 +88,16 @@ function CryptReleaseContext(hProv: ULONG; dwFlags: LongWord): BOOL;
 function CryptGenRandom(hProv: ULONG; dwLen: LongWord; pbBuffer: PAnsiChar): BOOL;
   stdcall; external ADVAPI32 name 'CryptGenRandom';
 
+var
+  FHProv: THandle;
+
 {$ENDIF}
 
 function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 var
 {$IFDEF MSWINDOWS}
   HProv: THandle;
-  Res: LongWord;
+  Res: DWORD;
 {$ELSE}
   F: TFileStream;
 {$ENDIF}
@@ -131,15 +140,40 @@ begin
 {$ENDIF}
 end;
 
+function CnRandomFillBytes2(Buf: PAnsiChar; Len: Integer): Boolean;
+{$IFNDEF MSWINDOWS}
+var
+  F: TFileStream;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  Result := CryptGenRandom(FHProv, Len, Buf);
+{$ELSE}
+  // MacOS 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
+  F := nil;
+  try
+    F := TFileStream.Create('/dev/urandom', fmOpenRead);
+    Result := F.Read(Buf^, Len) = Len;
+  finally
+    F.Free;
+  end;
+{$ENDIF}
+end;
+
 function RandomUInt64: TUInt64;
 var
-  Hi, Lo: Cardinal;
+  HL: array[0..1] of Cardinal;
 begin
-  // 直接 Random * High(TUInt64) 可能会精度不够导致 Lo 全 FF，因此分开处理
-  Randomize;
-  Hi := Trunc(Random * High(Cardinal) - 1) + 1;
-  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-  Result := (TUInt64(Hi) shl 32) + Lo;
+  // 优先用系统的随机数发生器
+  if not CnRandomFillBytes2(@HL[0], SizeOf(TUInt64)) then
+  begin
+    // 直接 Random * High(TUInt64) 可能会精度不够导致 Lo 全 FF，因此分开处理
+    Randomize;
+    HL[0] := Trunc(Random * High(Cardinal) - 1) + 1;
+    HL[1] := Trunc(Random * High(Cardinal) - 1) + 1;
+  end;
+
+  Result := (TUInt64(HL[0]) shl 32) + HL[1];
 end;
 
 function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
@@ -149,13 +183,20 @@ end;
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
 var
-  Hi, Lo: Cardinal;
+  HL: array[0..1] of Cardinal;
 begin
-  // 直接 Random * High(Int64) 可能会精度不够导致 Lo 全 FF，因此分开处理
-  Randomize;
-  Hi := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
-  Lo := Trunc(Random * High(Cardinal) - 1) + 1;
-  Result := (Int64(Hi) shl 32) + Lo;
+  // 优先用系统的随机数发生器
+  if not CnRandomFillBytes2(@HL[0], SizeOf(Int64)) then
+  begin
+    // 直接 Random * High(Int64) 可能会精度不够导致 Lo 全 FF，因此分开处理
+    Randomize;
+    HL[0] := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
+    HL[1] := Trunc(Random * High(Cardinal) - 1) + 1;
+  end
+  else
+    HL[0] := HL[0] mod (Cardinal(High(Integer)) + 1);    // Int64 最高位不能是 1，避免负数
+
+  Result := (Int64(HL[0]) shl 32) + HL[1];
   Result := Result mod HighValue;
 end;
 
@@ -163,5 +204,39 @@ function RandomInt64: Int64;
 begin
   Result := RandomInt64LessThan(High(Int64));
 end;
+
+{$IFDEF MSWINDOWS}
+
+procedure StartRandom;
+var
+  Res: DWORD;
+begin
+  FHProv := 0;
+  if not CryptAcquireContext(@FHProv, nil, nil, PROV_RSA_FULL, 0) then
+  begin
+    Res := GetLastError;
+    if Res = NTE_BAD_KEYSET then // KeyContainer 不存在，用新建的方式
+    begin
+      if not CryptAcquireContext(@FHProv, nil, nil, PROV_RSA_FULL, CRYPT_NEWKEYSET) then
+        raise ECnRandomAPIError.CreateFmt('Error CryptAcquireContext NewKeySet $%8.8x', [GetLastError]);
+    end
+    else
+        raise ECnRandomAPIError.CreateFmt('Error CryptAcquireContext $%8.8x', [Res]);
+  end;
+end;
+
+procedure StopRandom;
+begin
+  CryptReleaseContext(FHProv, 0);
+  FHProv := 0;
+end;
+
+initialization
+  StartRandom;
+
+finalization
+  StopRandom;
+
+{$ENDIF}
 
 end.
