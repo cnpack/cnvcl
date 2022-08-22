@@ -586,16 +586,8 @@ end;
 
 // 以十六进制格式输出 SHA1 计算值
 function SHA1Print(const Digest: TSHA1Digest): string;
-var
-  I: Byte;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 begin
-  Result := '';
-  for I := 0 to 19 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4) and $0f] +
-      Digits[Digest[I] and $0f]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA1Digest));
 end;
 
 // 比较两个 SHA1 计算值是否相等

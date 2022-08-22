@@ -711,16 +711,8 @@ begin
 end;
 
 function SM3Print(const Digest: TSM3Digest): string;
-var
-  I: Integer;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 begin
-  Result := '';
-  for I := 0 to 31 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4) and $0f] +
-              Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSM3Digest));
 end;
 
 function SM3Match(const D1, D2: TSM3Digest): Boolean;

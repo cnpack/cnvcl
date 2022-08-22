@@ -1579,46 +1579,26 @@ const
 
 // 以十六进制格式输出 SHA224 计算值
 function SHA224Print(const Digest: TSHA224Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to 27 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA224Digest));
 end;
 
 // 以十六进制格式输出 SHA256 计算值
 function SHA256Print(const Digest: TSHA256Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to 31 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA256Digest));
 end;
 
 // 以十六进制格式输出 SHA384 计算值
 function SHA384Print(const Digest: TSHA384Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to 47 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA384Digest));
 end;
 
 // 以十六进制格式输出 SHA512 计算值
 function SHA512Print(const Digest: TSHA512Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to 63 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA512Digest));
 end;
 
 // 比较两个 SHA224 计算值是否相等

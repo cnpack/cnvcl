@@ -693,16 +693,8 @@ end;
 
 // 以十六进制格式输出 MD5 计算值
 function MD5Print(const Digest: TMD5Digest): string;
-var
-  I: Byte;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 begin
-  Result := '';
-  for I := 0 to 15 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4) and $0F] +
-              Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TMD5Digest));
 end;
 
 // 比较两个 MD5 计算值是否相等

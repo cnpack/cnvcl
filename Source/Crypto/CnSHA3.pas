@@ -1119,46 +1119,26 @@ const
 
 // 以十六进制格式输出 SHA3_224 计算值
 function SHA3_224Print(const Digest: TSHA3_224Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to SHA3_224_OUTPUT_LENGTH_BYTE - 1 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA3_224Digest));
 end;
 
 // 以十六进制格式输出 SHA3_256 计算值
 function SHA3_256Print(const Digest: TSHA3_256Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to SHA3_256_OUTPUT_LENGTH_BYTE - 1 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA3_256Digest));
 end;
 
 // 以十六进制格式输出 SHA3_384 计算值
 function SHA3_384Print(const Digest: TSHA3_384Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to SHA3_384_OUTPUT_LENGTH_BYTE - 1 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA3_384Digest));
 end;
 
 // 以十六进制格式输出 SHA3_512 计算值
 function SHA3_512Print(const Digest: TSHA3_512Digest): string;
-var
-  I: Byte;
 begin
-  Result := '';
-  for I := 0 to SHA3_512_OUTPUT_LENGTH_BYTE - 1 do
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(Digest[I] shr 4)
-      and $0F] + Digits[Digest[I] and $0F]);
+  Result := DataToHex(@Digest[0], SizeOf(TSHA3_512Digest));
 end;
 
 // 比较两个 SHA3_224 计算值是否相等
