@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnContainers, CnBigNumber, CnECC, CnSM3;
+  Classes, SysUtils, CnContainers, CnNative, CnBigNumber, CnECC, CnSM3;
 
 const
   // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
@@ -4019,19 +4019,12 @@ end;
 function SM9Hash(const Res: TCnBigNumber; Prefix: Byte; Data: Pointer; DataLen: Integer;
   N: TCnBigNumber): Boolean;
 var
-  CT, SCT, HLen: LongWord;
+  CT, SCT, HLen: Cardinal;
   I, CeilLen: Integer;
   IsInt: Boolean;
   DArr, Ha: array of Byte; // Ha 长 HLen Bits
   SM3D: TSM3Digest;
   BH, BN: TCnBigNumber;
-
-  function SwapLongWord(Value: LongWord): LongWord;
-  begin
-    Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-      or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
-  end;
-
 begin
   Result := False;
   if (Data = nil) or (DataLen <= 0) then
@@ -4056,7 +4049,7 @@ begin
 
     // CeilLen = 2，FloorLen = 1
 
-    SetLength(DArr, DataLen + SizeOf(Byte) + SizeOf(LongWord)); // 1 Byte Prefix + 4 Byte Cardinal CT
+    SetLength(DArr, DataLen + SizeOf(Byte) + SizeOf(Cardinal)); // 1 Byte Prefix + 4 Byte Cardinal CT
     DArr[0] := Prefix;
     Move(Data^, DArr[1], DataLen);
 
@@ -4064,8 +4057,8 @@ begin
 
     for I := 1 to CeilLen do
     begin
-      SCT := SwapLongWord(CT);  // 虽然文档中没说，但要倒序一下
-      Move(SCT, DArr[DataLen + 1], SizeOf(LongWord));
+      SCT := UInt32HostToNetwork(CT);  // 虽然文档中没说，但要倒序一下
+      Move(SCT, DArr[DataLen + 1], SizeOf(Cardinal));
       SM3D := SM3(@DArr[0], Length(DArr));
 
       if (I = CeilLen) and not IsInt then
