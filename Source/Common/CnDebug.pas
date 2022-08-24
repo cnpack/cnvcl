@@ -104,8 +104,8 @@ interface
 // 自动启动相应的 DebugViewer 时也将通过命令行参数指定非全局。
 // Define this flag to use local session, not global.
 
-{$DEFINE CAPTURE_STACK}
-// 定义此条件可启用堆栈抓取与行号获取功能，之前的 USE_JCL 废止
+// {$DEFINE CAPTURE_STACK}
+// 定义此条件可启用堆栈抓取与行号获取功能，之前的 USE_JCL 废止。专家包可按需在工程选项中定义
 
 {$IFDEF NDEBUG}
   {$UNDEF DEBUG}
