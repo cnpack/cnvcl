@@ -75,17 +75,17 @@ type
     RequiredVersion:    Word;     // Start of Local Header
     Flag:               Word;
     CompressionMethod:  Word;
-    ModifiedDateTime:   LongWord;
-    CRC32:              LongWord;
-    CompressedSize:     LongWord;
-    UncompressedSize:   LongWord;
+    ModifiedDateTime:   Cardinal;
+    CRC32:              Cardinal;
+    CompressedSize:     Cardinal;
+    UncompressedSize:   Cardinal;
     FileNameLength:     Word;
     ExtraFieldLength:   Word;     // End of Local Header
     FileCommentLength:  Word;
     DiskNumberStart:    Word;
     InternalAttributes: Word;
-    ExternalAttributes: LongWord;
-    LocalHeaderOffset:  LongWord; // End of Central Header
+    ExternalAttributes: Cardinal;
+    LocalHeaderOffset:  Cardinal; // End of Central Header
     FileName:           AnsiString;
     ExtraField:         AnsiString;
     FileComment:        AnsiString;
@@ -97,8 +97,8 @@ type
     CentralDirStartDisk: Word;
     NumEntriesThisDisk:  Word;
     CentralDirEntries:   Word;
-    CentralDirSize:      LongWord;
-    CentralDirOffset:    LongWord;
+    CentralDirSize:      Cardinal;
+    CentralDirOffset:    Cardinal;
     CommentLength:       Word;
     {Comment: RawByteString}
   end;
@@ -271,14 +271,14 @@ uses
 {$ENDIF}
 
 const
-  CN_SIGNATURE_ZIPENDOFHEADER: LongWord = $06054B50;
-  CN_SIGNATURE_CENTRALHEADER:  LongWord = $02014B50;
-  CN_SIGNATURE_LOCALHEADER:    LongWord = $04034B50;
+  CN_SIGNATURE_ZIPENDOFHEADER: Cardinal = $06054B50;
+  CN_SIGNATURE_CENTRALHEADER:  Cardinal = $02014B50;
+  CN_SIGNATURE_LOCALHEADER:    Cardinal = $04034B50;
 
-  CN_KEY0_INIT: LongWord = 305419896;
-  CN_KEY1_INIT: LongWord = 591751049;
-  CN_KEY2_INIT: LongWord = 878082192;
-  CN_KEY_UPDATE: LongWord = 134775813;
+  CN_KEY0_INIT: Cardinal = 305419896;
+  CN_KEY1_INIT: Cardinal = 591751049;
+  CN_KEY2_INIT: Cardinal = 878082192;
+  CN_KEY_UPDATE: Cardinal = 134775813;
 
   CN_LOCAL_HEADERSIZE = 26;
   CN_CENTRAL_HEADERSIZE = 42;
@@ -334,7 +334,7 @@ type
   TCnZipCryptKeys = class(TObject)
   {* 用来给 Zip 内容流加密解密的工具类}
   private
-    FKey0, FKey1, FKey2: LongWord;
+    FKey0, FKey1, FKey2: Cardinal;
   protected
     function CalcDecryptByte: Byte;
   public
@@ -716,7 +716,7 @@ end;
 function TCnZipReader.PrepareStream(Index: Integer;
   LocalHeader: PCnZipHeader): TStream;
 var
-  Sig: LongWord;
+  Sig: Cardinal;
 begin
   if (Index < 0) or (Index > FileCount) then
     raise ECnZipException.CreateRes(@SFileNotFound);
@@ -737,10 +737,10 @@ begin
   FInStream.Read(LocalHeader^.RequiredVersion,    Sizeof(Word));
   FInStream.Read(LocalHeader^.Flag,               Sizeof(Word));
   FInStream.Read(LocalHeader^.CompressionMethod,  Sizeof(Word));
-  FInStream.Read(LocalHeader^.ModifiedDateTime,   Sizeof(LongWord));
-  FInStream.Read(LocalHeader^.CRC32,              Sizeof(LongWord));
-  FInStream.Read(LocalHeader^.CompressedSize,     Sizeof(LongWord));
-  FInStream.Read(LocalHeader^.UncompressedSize,   Sizeof(LongWord));
+  FInStream.Read(LocalHeader^.ModifiedDateTime,   Sizeof(Cardinal));
+  FInStream.Read(LocalHeader^.CRC32,              Sizeof(Cardinal));
+  FInStream.Read(LocalHeader^.CompressedSize,     Sizeof(Cardinal));
+  FInStream.Read(LocalHeader^.UncompressedSize,   Sizeof(Cardinal));
   FInStream.Read(LocalHeader^.FileNameLength,     Sizeof(Word));
   FInStream.Read(LocalHeader^.ExtraFieldLength,   Sizeof(Word));
 
@@ -867,7 +867,7 @@ end;
 procedure TCnZipReader.ReadCentralHeader;
 var
   I: Integer;
-  Signature: LongWord;
+  Signature: Cardinal;
   EndHeader: TCnZipEndOfCentralHeader;
   Header: PCnZipHeader;
 begin
@@ -893,17 +893,17 @@ begin
       VerifyRead(FInStream, Header^.RequiredVersion,    Sizeof(Word));
       VerifyRead(FInStream, Header^.Flag,               Sizeof(Word));
       VerifyRead(FInStream, Header^.CompressionMethod,  Sizeof(Word));
-      VerifyRead(FInStream, Header^.ModifiedDateTime,   Sizeof(LongWord));
-      VerifyRead(FInStream, Header^.CRC32,              Sizeof(LongWord));
-      VerifyRead(FInStream, Header^.CompressedSize,     Sizeof(LongWord));
-      VerifyRead(FInStream, Header^.UncompressedSize,   Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.ModifiedDateTime,   Sizeof(Cardinal));
+      VerifyRead(FInStream, Header^.CRC32,              Sizeof(Cardinal));
+      VerifyRead(FInStream, Header^.CompressedSize,     Sizeof(Cardinal));
+      VerifyRead(FInStream, Header^.UncompressedSize,   Sizeof(Cardinal));
       VerifyRead(FInStream, Header^.FileNameLength,     Sizeof(Word));
       VerifyRead(FInStream, Header^.ExtraFieldLength,   Sizeof(Word));
       VerifyRead(FInStream, Header^.FileCommentLength,  Sizeof(Word));
       VerifyRead(FInStream, Header^.DiskNumberStart,    Sizeof(Word));
       VerifyRead(FInStream, Header^.InternalAttributes, Sizeof(Word));
-      VerifyRead(FInStream, Header^.ExternalAttributes, Sizeof(LongWord));
-      VerifyRead(FInStream, Header^.LocalHeaderOffset,  Sizeof(LongWord));
+      VerifyRead(FInStream, Header^.ExternalAttributes, Sizeof(Cardinal));
+      VerifyRead(FInStream, Header^.LocalHeaderOffset,  Sizeof(Cardinal));
 
       if Header^.FileNameLength > 0 then
       begin
@@ -1216,7 +1216,7 @@ procedure TCnZipWriter.AddStream(Data: TStream; LocalHeader: PCnZipHeader);
 var
   DataStart: Int64;
   CompressStream: TStream;
-  Signature: LongWord;
+  Signature: Cardinal;
   LStartPos: Int64;
   C: Integer;
   Buffer: array of Byte;
@@ -1238,10 +1238,10 @@ begin
   VerifyWrite(FOutStream, LocalHeader^.RequiredVersion,    Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.Flag,               Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.CompressionMethod,  Sizeof(Word));
-  VerifyWrite(FOutStream, LocalHeader^.ModifiedDateTime,   Sizeof(LongWord));
-  VerifyWrite(FOutStream, LocalHeader^.CRC32,              Sizeof(LongWord));
-  VerifyWrite(FOutStream, LocalHeader^.CompressedSize,     Sizeof(LongWord));
-  VerifyWrite(FOutStream, LocalHeader^.UncompressedSize,   Sizeof(LongWord));
+  VerifyWrite(FOutStream, LocalHeader^.ModifiedDateTime,   Sizeof(Cardinal));
+  VerifyWrite(FOutStream, LocalHeader^.CRC32,              Sizeof(Cardinal));
+  VerifyWrite(FOutStream, LocalHeader^.CompressedSize,     Sizeof(Cardinal));
+  VerifyWrite(FOutStream, LocalHeader^.UncompressedSize,   Sizeof(Cardinal));
   VerifyWrite(FOutStream, LocalHeader^.FileNameLength,     Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.ExtraFieldLength,   Sizeof(Word));
 
@@ -1273,14 +1273,14 @@ begin
   LocalHeader^.CompressedSize := FOutStream.Position - LStartPos;
 
   FEndFileData := FOutStream.Position;
-  FOutStream.Position := LocalHeader^.LocalHeaderOffset + SizeOf(LongWord);
+  FOutStream.Position := LocalHeader^.LocalHeaderOffset + SizeOf(Cardinal);
   VerifyWrite(FOutStream, LocalHeader^.RequiredVersion,    Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.Flag,               Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.CompressionMethod,  Sizeof(Word));
-  VerifyWrite(FOutStream, LocalHeader^.ModifiedDateTime,   Sizeof(LongWord));
-  VerifyWrite(FOutStream, LocalHeader^.CRC32,              Sizeof(LongWord));
-  VerifyWrite(FOutStream, LocalHeader^.CompressedSize,     Sizeof(LongWord));
-  VerifyWrite(FOutStream, LocalHeader^.UncompressedSize,   Sizeof(LongWord));
+  VerifyWrite(FOutStream, LocalHeader^.ModifiedDateTime,   Sizeof(Cardinal));
+  VerifyWrite(FOutStream, LocalHeader^.CRC32,              Sizeof(Cardinal));
+  VerifyWrite(FOutStream, LocalHeader^.CompressedSize,     Sizeof(Cardinal));
+  VerifyWrite(FOutStream, LocalHeader^.UncompressedSize,   Sizeof(Cardinal));
   VerifyWrite(FOutStream, LocalHeader^.FileNameLength,     Sizeof(Word));
   VerifyWrite(FOutStream, LocalHeader^.ExtraFieldLength,   Sizeof(Word));
 
@@ -1356,7 +1356,7 @@ var
   Header: PCnZipHeader;
   EndOfHeader: TCnZipEndOfCentralHeader;
   I: Integer;
-  Sig: LongWord;
+  Sig: Cardinal;
 begin
   FOutStream.Position := FEndFileData;
   Sig := CN_SIGNATURE_CENTRALHEADER;
@@ -1369,17 +1369,17 @@ begin
     VerifyWrite(FOutStream, Header^.RequiredVersion,    Sizeof(Word));
     VerifyWrite(FOutStream, Header^.Flag,               Sizeof(Word));
     VerifyWrite(FOutStream, Header^.CompressionMethod,  Sizeof(Word));
-    VerifyWrite(FOutStream, Header^.ModifiedDateTime,   Sizeof(LongWord));
-    VerifyWrite(FOutStream, Header^.CRC32,              Sizeof(LongWord));
-    VerifyWrite(FOutStream, Header^.CompressedSize,     Sizeof(LongWord));
-    VerifyWrite(FOutStream, Header^.UncompressedSize,   Sizeof(LongWord));
+    VerifyWrite(FOutStream, Header^.ModifiedDateTime,   Sizeof(Cardinal));
+    VerifyWrite(FOutStream, Header^.CRC32,              Sizeof(Cardinal));
+    VerifyWrite(FOutStream, Header^.CompressedSize,     Sizeof(Cardinal));
+    VerifyWrite(FOutStream, Header^.UncompressedSize,   Sizeof(Cardinal));
     VerifyWrite(FOutStream, Header^.FileNameLength,     Sizeof(Word));
     VerifyWrite(FOutStream, Header^.ExtraFieldLength,   Sizeof(Word));
     VerifyWrite(FOutStream, Header^.FileCommentLength,  Sizeof(Word));
     VerifyWrite(FOutStream, Header^.DiskNumberStart,    Sizeof(Word));
     VerifyWrite(FOutStream, Header^.InternalAttributes, Sizeof(Word));
-    VerifyWrite(FOutStream, Header^.ExternalAttributes, Sizeof(LongWord));
-    VerifyWrite(FOutStream, Header^.LocalHeaderOffset,  Sizeof(LongWord));
+    VerifyWrite(FOutStream, Header^.ExternalAttributes, Sizeof(Cardinal));
+    VerifyWrite(FOutStream, Header^.LocalHeaderOffset,  Sizeof(Cardinal));
 
     if Header^.FileNameLength <> 0 then
       VerifyWrite(FOutStream, Header^.FileName[1], Header^.FileNameLength);
@@ -1405,8 +1405,8 @@ begin
   VerifyWrite(FOutStream, EndOfHeader.CentralDirStartDisk, SizeOf(Word));
   VerifyWrite(FOutStream, EndOfHeader.NumEntriesThisDisk,  SizeOf(Word));
   VerifyWrite(FOutStream, EndOfHeader.CentralDirEntries,   SizeOf(Word));
-  VerifyWrite(FOutStream, EndOfHeader.CentralDirSize,      SizeOf(LongWord));
-  VerifyWrite(FOutStream, EndOfHeader.CentralDirOffset,    SizeOf(LongWord));
+  VerifyWrite(FOutStream, EndOfHeader.CentralDirSize,      SizeOf(Cardinal));
+  VerifyWrite(FOutStream, EndOfHeader.CentralDirOffset,    SizeOf(Cardinal));
   VerifyWrite(FOutStream, EndOfHeader.CommentLength,       SizeOf(Word));
 
   if EndOfHeader.CommentLength > 0 then
