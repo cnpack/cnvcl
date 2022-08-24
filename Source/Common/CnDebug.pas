@@ -170,15 +170,15 @@ type
   {* 放入数据区的每条信息的头描述结构 }
     Level:     Integer;                            // 自定义 Level 数，供用户过滤用
     Indent:    Integer;                            // 缩进数目，由 Enter 和 Leave 控制
-    ProcessId: LongWord;                           // 调用者的进程 ID
-    ThreadId:  LongWord;                           // 调用者的线程 ID
+    ProcessId: Cardinal;                           // 调用者的进程 ID
+    ThreadId:  Cardinal;                           // 调用者的线程 ID
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar; // 自定义 Tag 值，供用户过滤用
-    MsgType:   LongWord;                           // 消息类型
+    MsgType:   Cardinal;                           // 消息类型
     MsgCPInterval: Int64;                          // 计时结束时的 CPU 周期数
-    TimeStampType: LongWord;                       // 消息输出的时间戳类型
+    TimeStampType: Cardinal;                       // 消息输出的时间戳类型
     case Integer of
       1: (MsgDateTime:   TDateTime);               // 消息输出的时间戳值 DateTime
-      2: (MsgTickCount:  LongWord);                // 消息输出的时间戳值 TickCount
+      2: (MsgTickCount:  Cardinal);                // 消息输出的时间戳值 TickCount
       3: (MsgCPUPeriod:  Int64);                   // 消息输出的时间戳值 CPU 周期
   end;
 
@@ -196,13 +196,13 @@ type
   {$NODEFINE PCnMapFilter}
   TCnMapFilter = packed record
   {* 用内存映射文件传送数据时的内存区头中的过滤器格式}
-    NeedRefresh: LongWord;                         // 非 0 时需要更新
+    NeedRefresh: Cardinal;                         // 非 0 时需要更新
     Enabled: Integer;                              // 非 0 时表示使能
     Level: Integer;                                // 限定的 Level
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar; // 限定的 Tag
     case Integer of
       0: (MsgTypes: TCnMsgTypes);                  // 限定的 MsgTypes
-      1: (DummyPlace: LongWord);
+      1: (DummyPlace: Cardinal);
   end;
   PCnMapFilter = ^TCnMapFilter;
 
@@ -211,8 +211,8 @@ type
   TCnMapHeader = packed record
   {* 用内存映射文件传送数据时的内存区头格式}
     MagicName:  array[0..CnDebugMagicLength - 1] of AnsiChar;  // 'CNDEBUG'
-    MapEnabled: LongWord;           // 为一 CnDebugMapEnabled 时，表示区域可用
-    MapSize:    LongWord;           // 整个 Map 的大小，不包括尾保护区
+    MapEnabled: Cardinal;           // 为一 CnDebugMapEnabled 时，表示区域可用
+    MapSize:    Cardinal;           // 整个 Map 的大小，不包括尾保护区
     DataOffset: Integer;            // 数据区相对于头部的偏移量，目前定为 64
     QueueFront: Integer;            // 队列头指针，是相对于数据区的偏移量
     QueueTail:  Integer;            // 队列尾指针，是相对于数据区的偏移量
@@ -342,9 +342,9 @@ type
     {* 检测当前输出信息是否被允许输出，True 允许，False 允许 }
 
     // 处理 Indent
-    function GetCurrentIndent(ThrdID: LongWord): Integer;
-    function IncIndent(ThrdID: LongWord): Integer;
-    function DecIndent(ThrdID: LongWord): Integer;
+    function GetCurrentIndent(ThrdID: Cardinal): Integer;
+    function IncIndent(ThrdID: Cardinal): Integer;
+    function DecIndent(ThrdID: Cardinal): Integer;
 
     // 处理计时
     function IndexOfTime(const ATag: string): PCnTimeDesc;
@@ -362,7 +362,7 @@ type
     procedure GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
 
     procedure InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer; const ATag: AnsiString;
-      ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: LongWord; CPUPeriod: Int64);
+      ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: Cardinal; CPUPeriod: Int64);
     procedure InternalOutput(var Data; Size: Integer);
   public
     constructor Create;
@@ -1415,7 +1415,7 @@ begin
   end;
 end;
 
-function TCnDebugger.DecIndent(ThrdID: LongWord): Integer;
+function TCnDebugger.DecIndent(ThrdID: Cardinal): Integer;
 var
   Indent, Index: Integer;
 begin
@@ -1488,7 +1488,7 @@ begin
 {$ENDIF}
 end;
 
-function TCnDebugger.GetCurrentIndent(ThrdID: LongWord): Integer;
+function TCnDebugger.GetCurrentIndent(ThrdID: Cardinal): Integer;
 var
   Index: Integer;
 begin
@@ -1516,7 +1516,7 @@ begin
 {$ENDIF}
 end;
 
-function TCnDebugger.IncIndent(ThrdID: LongWord): Integer;
+function TCnDebugger.IncIndent(ThrdID: Cardinal): Integer;
 var
   Indent, Index: Integer;
 begin
@@ -1582,7 +1582,7 @@ end;
 
 procedure TCnDebugger.InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer;
   const ATag: AnsiString; ALevel, AIndent: Integer; AType: TCnMsgType;
-  ThreadID: LongWord; CPUPeriod: Int64);
+  ThreadID: Cardinal; CPUPeriod: Int64);
 var
   TagLen, MsgLen: Integer;
   MsgDesc: TCnMsgDesc;
@@ -1626,7 +1626,7 @@ var
     Move(Pointer(ATag)^, MsgDesc.Annex.Tag, TagLen);
     Move(Pointer(MsgBuf)^, MsgDesc.Msg, MsgLen);
 
-    MsgLen := MsgLen + SizeOf(MsgDesc.Annex) + SizeOf(LongWord);
+    MsgLen := MsgLen + SizeOf(MsgDesc.Annex) + SizeOf(Cardinal);
     MsgDesc.Length := MsgLen;
   end;
 
@@ -1809,7 +1809,7 @@ procedure TCnDebugger.LogComponentWithTag(AComponent: TComponent;
 {$IFDEF DEBUG}
 var
   InStream, OutStream: TMemoryStream;
-  ThrdID: LongWord;
+  ThrdID: Cardinal;
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
@@ -1939,7 +1939,7 @@ procedure TCnDebugger.LogFull(const AMsg, ATag: string; ALevel: Integer;
 {$IFDEF DEBUG}
 {$IFNDEF NDEBUG}
 var
-  ThrdID: LongWord;
+  ThrdID: Cardinal;
 {$IFDEF UNICODE}
   Msg: AnsiString;
 {$ENDIF}
@@ -2094,7 +2094,7 @@ end;
 procedure TCnDebugger.LogMemDump(AMem: Pointer; Size: Integer);
 {$IFDEF DEBUG}
 var
-  ThrdID: LongWord;
+  ThrdID: Cardinal;
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
@@ -2620,7 +2620,7 @@ procedure TCnDebugger.TraceComponentWithTag(AComponent: TComponent;
 {$IFNDEF NDEBUG}
 var
   InStream, OutStream: TMemoryStream;
-  ThrdID: LongWord;
+  ThrdID: Cardinal;
 {$ENDIF}
 begin
 {$IFNDEF NDEBUG}
@@ -2716,7 +2716,7 @@ procedure TCnDebugger.TraceFull(const AMsg, ATag: string; ALevel: Integer;
   AType: TCnMsgType; CPUPeriod: Int64 = 0);
 {$IFNDEF NDEBUG}
 var
-  ThrdID: LongWord;
+  ThrdID: Cardinal;
 {$IFDEF UNICODE}
   Msg: AnsiString;
 {$ENDIF}
@@ -2850,7 +2850,7 @@ end;
 procedure TCnDebugger.TraceMemDump(AMem: Pointer; Size: Integer);
 {$IFNDEF NDEBUG}
 var
-  ThrdID: LongWord;
+  ThrdID: Cardinal;
 {$ENDIF}
 begin
 {$IFNDEF NDEBUG}
@@ -4641,7 +4641,7 @@ end;
 procedure TCnMapFileChannel.SendContent(var MsgDesc; Size: Integer);
 var
   Mutex: THandle;
-  Res: LongWord;
+  Res: Cardinal;
   MsgLen, RestLen: Integer;
   IsFull: Boolean;
   MsgBuf : array[0..255] of Char;
