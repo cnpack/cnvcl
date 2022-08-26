@@ -49,11 +49,15 @@ type
     mmoStack: TMemo;
     btnDebugInfo: TButton;
     mmoNames: TMemo;
-    btnNames: TButton;
-    btnSourceModules: TButton;
-    btnProc: TButton;
-    btnLineNumbers: TButton;
+    btnTDNames: TButton;
+    btnTDSourceModules: TButton;
+    btnTDProc: TButton;
+    btnTDLineNumbers: TButton;
     btnLoad: TButton;
+    btnMapNames: TButton;
+    btnMapSourceModules: TButton;
+    btnMapProc: TButton;
+    btnMapLineNumbers: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -63,11 +67,14 @@ type
     procedure btnViewSectionClick(Sender: TObject);
     procedure btnStackTraceClick(Sender: TObject);
     procedure btnDebugInfoClick(Sender: TObject);
-    procedure btnNamesClick(Sender: TObject);
-    procedure btnSourceModulesClick(Sender: TObject);
-    procedure btnProcClick(Sender: TObject);
-    procedure btnLineNumbersClick(Sender: TObject);
+    procedure btnTDNamesClick(Sender: TObject);
+    procedure btnTDSourceModulesClick(Sender: TObject);
+    procedure btnTDProcClick(Sender: TObject);
+    procedure btnTDLineNumbersClick(Sender: TObject);
     procedure btnLoadClick(Sender: TObject);
+    procedure btnMapSourceModulesClick(Sender: TObject);
+    procedure btnMapProcClick(Sender: TObject);
+    procedure btnMapLineNumbersClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -400,7 +407,7 @@ begin
   end;
 end;
 
-procedure TFormPE.btnNamesClick(Sender: TObject);
+procedure TFormPE.btnTDNamesClick(Sender: TObject);
 var
   I: Integer;
   H: HMODULE;
@@ -421,7 +428,7 @@ begin
   end;
 end;
 
-procedure TFormPE.btnSourceModulesClick(Sender: TObject);
+procedure TFormPE.btnTDSourceModulesClick(Sender: TObject);
 var
   I, J: Integer;
   H: HMODULE;
@@ -453,7 +460,7 @@ begin
   end;
 end;
 
-procedure TFormPE.btnProcClick(Sender: TObject);
+procedure TFormPE.btnTDProcClick(Sender: TObject);
 var
   I: Integer;
   H: HMODULE;
@@ -479,7 +486,7 @@ begin
         end;
 
         mmoNames.Lines.Add('--------');
-        D(mmoNames, 'TFormPE.btnSourceModulesClick', DumpPointer(@TFormPE.btnSourceModulesClick));
+        D(mmoNames, 'TFormPE.btnSourceModulesClick', DumpPointer(@TFormPE.btnTDSourceModulesClick));
       end;
     finally
       TD32.Free;
@@ -487,7 +494,7 @@ begin
   end;
 end;
 
-procedure TFormPE.btnLineNumbersClick(Sender: TObject);
+procedure TFormPE.btnTDLineNumbersClick(Sender: TObject);
 var
   I: Integer;
   H: HMODULE;
@@ -551,6 +558,96 @@ begin
         end;
       end;
       cbbRunModule.ItemIndex := 0;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnMapSourceModulesClick(Sender: TObject);
+var
+  I, J: Integer;
+  H: HMODULE;
+  Map: TCnModuleDebugInfoMap;
+  SM: TCnMapSourceModule;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    Map := TCnModuleDebugInfoMap.Create(H);
+    try
+      if Map.Init then
+      begin
+        for I := 0 to Map.SourceModuleNames.Count - 1 do
+          mmoNames.Lines.Add(Map.SourceModuleNames[I]);
+        mmoNames.Lines.Add('--------');
+        for I := 0 to Map.SourceModuleCount - 1 do
+        begin
+          SM := Map.SourceModules[I];
+          for J := 0 to SM.SegmentCount - 1 do
+            D(mmoNames, '', Format('%s: Seg %d from %s to %s', [SM.Name, J,
+              DumpDWORD(SM.SegmentStart[J]), DumpDWORD(SM.SegmentEnd[J])]));
+        end;
+      end;
+    finally
+      Map.Free;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnMapProcClick(Sender: TObject);
+var
+  I: Integer;
+  H: HMODULE;
+  Map: TCnModuleDebugInfoMap;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    Map := TCnModuleDebugInfoMap.Create(H);
+    try
+      if Map.Init then
+      begin
+        for I := 0 to Map.ProcedureCount - 1 do
+          mmoNames.Lines.Add(Map.ProcedureNames[I] + ' ' + DumpDWORD(Map.ProcedureAddress[I]));
+      end;
+    finally
+      Map.Free;
+    end;
+  end;
+end;
+
+procedure TFormPE.btnMapLineNumbersClick(Sender: TObject);
+var
+  I, J: Integer;
+  H: HMODULE;
+  Map: TCnModuleDebugInfoMap;
+  SM: TCnMapSourceModule;
+begin
+  H := GetModuleHandle(nil);
+  mmoNames.Clear;
+  if H <> 0 then
+  begin
+    Map := TCnModuleDebugInfoMap.Create(H);
+    try
+      if Map.Init then
+      begin
+        for I := 0 to Map.SourceModuleCount - 1 do
+        begin
+          SM := Map.SourceModules[I];
+
+          mmoNames.Lines.Add('--------');
+          mmoNames.Lines.Add(Format('%s(%s)', [SM.Name, SM.FileName]));
+
+          for J := 0 to SM.LineNumberCount - 1 do
+          begin
+            D(mmoNames, '', Format('Line %d: Offset %s', [SM.LineNumbers[J],
+              DumpDWORD(SM.Offsets[J])]));
+          end;
+        end;
+      end;
+    finally
+      Map.Free;
     end;
   end;
 end;

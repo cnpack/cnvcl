@@ -324,7 +324,7 @@ object FormPE: TFormPE
         Left = 568
         Top = 16
         Width = 75
-        Height = 25
+        Height = 57
         Caption = 'Stack Trace'
         TabOrder = 0
         OnClick = btnStackTraceClick
@@ -340,49 +340,85 @@ object FormPE: TFormPE
       end
       object mmoNames: TMemo
         Left = 568
-        Top = 56
+        Top = 88
         Width = 480
-        Height = 420
+        Height = 388
         Anchors = [akLeft, akTop, akRight, akBottom]
         ScrollBars = ssVertical
         TabOrder = 2
         WordWrap = False
       end
-      object btnNames: TButton
+      object btnTDNames: TButton
         Left = 656
         Top = 16
         Width = 75
         Height = 25
-        Caption = 'Names'
+        Caption = 'TD Names'
         TabOrder = 3
-        OnClick = btnNamesClick
+        OnClick = btnTDNamesClick
       end
-      object btnSourceModules: TButton
+      object btnTDSourceModules: TButton
         Left = 744
         Top = 16
         Width = 75
         Height = 25
-        Caption = 'Source'
+        Caption = 'TD Source'
         TabOrder = 4
-        OnClick = btnSourceModulesClick
+        OnClick = btnTDSourceModulesClick
       end
-      object btnProc: TButton
+      object btnTDProc: TButton
         Left = 832
         Top = 16
         Width = 75
         Height = 25
-        Caption = 'Procedure'
+        Caption = 'TD Procedure'
         TabOrder = 5
-        OnClick = btnProcClick
+        OnClick = btnTDProcClick
       end
-      object btnLineNumbers: TButton
+      object btnTDLineNumbers: TButton
         Left = 920
         Top = 16
         Width = 75
         Height = 25
-        Caption = 'Line/Offset'
+        Caption = 'TD Line/Offset'
         TabOrder = 6
-        OnClick = btnLineNumbersClick
+        OnClick = btnTDLineNumbersClick
+      end
+      object btnMapNames: TButton
+        Left = 656
+        Top = 48
+        Width = 75
+        Height = 25
+        Caption = 'Map Names'
+        Enabled = False
+        TabOrder = 7
+      end
+      object btnMapSourceModules: TButton
+        Left = 744
+        Top = 48
+        Width = 75
+        Height = 25
+        Caption = 'Map Source'
+        TabOrder = 8
+        OnClick = btnMapSourceModulesClick
+      end
+      object btnMapProc: TButton
+        Left = 832
+        Top = 48
+        Width = 75
+        Height = 25
+        Caption = 'Map Procedure'
+        TabOrder = 9
+        OnClick = btnMapProcClick
+      end
+      object btnMapLineNumbers: TButton
+        Left = 920
+        Top = 48
+        Width = 75
+        Height = 25
+        Caption = 'Map Line/Offset'
+        TabOrder = 10
+        OnClick = btnMapLineNumbersClick
       end
     end
   end

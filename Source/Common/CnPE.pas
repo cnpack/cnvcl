@@ -451,12 +451,18 @@ type
     {* 返回一个地址是否在本模块内}
 
     property NameIndex: Integer read FNameIndex write FNameIndex;
+    {* 本源文件的名字索引}
     property Name: string read FName write FName;
+    {* 本源文件的名字}
     property SegmentCount: Integer read FSegmentCount write FSegmentCount;
+    {* 本源文件的对应段数}
 
     property SegmentArray: PDWORD read FSegmentArray write FSegmentArray;
+    {* 每个段的起始地址的数组指针}
     property SegmentStart[Index: Integer]: DWORD read GetSegmentStart;
+    {* 每个段的起始地址}
     property SegmentEnd[Index: Integer]: DWORD read GetSegmentEnd;
+    {* 每个段的结束地址}
   end;
 
   TCnTDProcedureSymbol = class
@@ -471,9 +477,13 @@ type
     {* 返回一个地址是否在本过程内}
 
     property Name: string read FName write FName;
+    {* 过程名字}
     property NameIndex: DWORD read FNameIndex write FNameIndex;
+    {* 过程名字索引}
     property Offset: DWORD read FOffset write FOffset;
+    {* 过程起始地址的偏移量}
     property Size: DWORD read FSize write FSize;
+    {* 过程本身的大小}
   end;
 
   TCnModuleDebugInfoTD32 = class(TCnModuleDebugInfo)
@@ -531,6 +541,95 @@ type
     {* 偏移量数量}
     property Offsets[Index: Integer]: Integer read GetOffsets;
     {* 偏移量，原始数据已从低到高排序好的}
+  end;
+
+  TCnMapSourceModule = class
+  {* Map 文件中的模块文件描述类，包括文件名与一大堆内部行号和偏移量的对应关系，
+    另有段起止地址，组织结构和 TCnTDSourceModule 不同，不宜复用}
+  private
+    FSegStarts: TCnIntegerList;
+    FSegEnds: TCnIntegerList;
+    FOffsets: TCnIntegerList;       // 内部偏移量，按此排序
+    FLineNumbers: TCnIntegerList;
+    FName: string;
+    FFileName: string;
+    function GetLineNumberCount: Integer;
+    function GetLineNumbers(Index: Integer): Integer;
+    function GetOffsetCount: Integer;
+    function GetOffsets(Index: Integer): Integer;
+    function GetSegmentEnd(Index: Integer): DWORD;
+    function GetSegmentStart(Index: Integer): DWORD;
+    function GetSegmentCount: Integer;   // 行号列表
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure AddLineOffset(ALineNumber: Integer; AnOffset: DWORD);
+    {* 添加行号与偏移对应值}
+    procedure AddSegment(ASegStart: DWORD; ASegEnd: DWORD);
+    {* 添加一个新段的起始地址和结束地址}
+
+    property Name: string read FName write FName;
+    {* 本源文件的模块名字}
+    property FileName: string read FFileName write FFileName;
+    {* 本源文件的文件名（可能包含路径）}
+
+    property LineNumberCount: Integer read GetLineNumberCount;
+    {* 本源文件中的行号数量}
+    property LineNumbers[Index: Integer]: Integer read GetLineNumbers;
+    {* 本源文件中的行号}
+    property OffsetCount: Integer read GetOffsetCount;
+    {* 本源文件中的偏移量数量}
+    property Offsets[Index: Integer]: Integer read GetOffsets;
+    {* 本源文件中的偏移量，原始数据已从低到高排序好的}
+
+    property SegmentCount: Integer read GetSegmentCount;
+    {* 本源文件的对应段数}
+    property SegmentStart[Index: Integer]: DWORD read GetSegmentStart;
+    {* 每个段的起始地址}
+    property SegmentEnd[Index: Integer]: DWORD read GetSegmentEnd;
+    {* 每个段的结束地址}
+  end;
+
+  TCnModuleDebugInfoMap = class(TCnModuleDebugInfo)
+  {* 解析 Map 文件中的调试信息的类}
+  private
+    // 一个源文件信息包含段与其内部行号和偏移量的对应关系（多组，需组合而来，按偏移量排序）
+    // 一个函数信息包含段与其内部偏移量，与下一个偏移量之差就是本函数信息的尺寸
+    FSourceModuleNames: TStringList; // 存储模块名字（不是完整文件名），其 Objects 是 TCnMapSourceModule
+    FProcedureNames: TStringList;    // 其 Objects 是起始地址
+    function GetSourceModuleCount: Integer;
+    function GetSourceModules(Index: Integer): TCnMapSourceModule;
+    function GetProcedureAddress(Index: Integer): DWORD;
+    function GetProcedureCount: Integer;
+    function GetProcedures(Index: Integer): string;
+  protected
+    function MakeSureModuleExists(const SourceName: string;
+      const SourceFile: string = ''): TCnMapSourceModule;
+  public
+    constructor Create(AModuleHandle: HMODULE); override;
+    destructor Destroy; override;
+
+    function Init: Boolean; override;
+
+    function GetDebugInfoFromAddr(Address: Pointer; out OutModuleFile, OutUnitName, OutProcName: string;
+      out OutLineNumber, OutOffsetLineNumber, OutOffsetProc: Integer): Boolean; override;
+
+    property SourceModuleNames: TStringList read FSourceModuleNames;
+    {* 内部的源文件名列表}
+    property SourceModuleCount: Integer read GetSourceModuleCount;
+    {* 内部的源文件对象数量}
+    property SourceModules[Index: Integer]: TCnMapSourceModule read GetSourceModules;
+    {* 内部的源文件对象列表}
+
+    property ProcedureNames: TStringList read FProcedureNames;
+    {* 内部的函数过程名列表}
+    property ProcedureCount: Integer read GetProcedureCount;
+    {* 内部的函数过程对象数量}
+    property Procedures[Index: Integer]: string read GetProcedures;
+    {* 内部的函数过程名}
+    property ProcedureAddress[Index: Integer]: DWORD read GetProcedureAddress;
+    {* 内部的函数起始地址}
   end;
 
   TCnInProcessModuleList = class(TObjectList)
@@ -808,6 +907,27 @@ begin
         Result.Add(Info);
     end;
   end;
+end;
+
+function HexStrToDWord(const S: string): Cardinal;
+var
+  R: TBytes;
+  T: array[0..3] of Byte;
+begin
+  R := HexToBytes(S);
+  if Length(R) >= SizeOf(Cardinal) then
+  begin
+    // 把末四个复制进 T
+    Move(R[Length(R) - SizeOf(Cardinal)], T[0], SizeOf(Cardinal));
+  end
+  else
+  begin
+    PDWORD(@T[0])^ := 0;                                    // 先清零
+    Move(R[0], T[SizeOf(Cardinal) - Length(R)], Length(R)); // 再把内容往高对齐复制
+  end;
+
+  Result := UInt32NetworkToHost(PDWORD(@T[0])^);
+  SetLength(R, 0);
 end;
 
 // 得到本进程某虚拟地址所属的 Module，也就是模块基地址。如不属于模块则返回 0
@@ -1519,6 +1639,12 @@ begin
   else
     Exit;
 
+  Result := TCnModuleDebugInfoMap.Create(AModuleHandle);
+  if not Result.Init then
+    FreeAndNil(Result)
+  else
+    Exit;
+
   Result := TCnModuleDebugInfo.Create(AModuleHandle);
   if not Result.Init then
     FreeAndNil(Result);
@@ -1980,6 +2106,344 @@ end;
 function TCnTDProcedureSymbol.IsAddressInProcedure(Address: DWORD): Boolean;
 begin
   Result := (Address >= FOffset) and (Address <= FOffset + FSize);
+end;
+
+{ TCnMapSourceModule }
+
+procedure TCnMapSourceModule.AddLineOffset(ALineNumber: Integer;
+  AnOffset: DWORD);
+begin
+  FLineNumbers.Add(ALineNumber);
+  FOffsets.Add(Integer(AnOffset));
+end;
+
+procedure TCnMapSourceModule.AddSegment(ASegStart, ASegEnd: DWORD);
+begin
+  FSegStarts.Add(Integer(ASegStart));
+  FSegEnds.Add(Integer(ASegEnd));
+end;
+
+constructor TCnMapSourceModule.Create;
+begin
+  inherited;
+  FSegStarts := TCnIntegerList.Create;
+  FSegEnds := TCnIntegerList.Create;
+  FOffsets := TCnIntegerList.Create;
+  FLineNumbers := TCnIntegerList.Create;
+end;
+
+destructor TCnMapSourceModule.Destroy;
+begin
+  FLineNumbers.Free;
+  FOffsets.Free;
+  FSegEnds.Free;
+  FSegStarts.Free;
+  inherited;
+end;
+
+function TCnMapSourceModule.GetLineNumberCount: Integer;
+begin
+  Result := FLineNumbers.Count;
+end;
+
+function TCnMapSourceModule.GetLineNumbers(Index: Integer): Integer;
+begin
+  Result := FLineNumbers[Index];
+end;
+
+function TCnMapSourceModule.GetOffsetCount: Integer;
+begin
+  Result := FOffsets.Count;
+end;
+
+function TCnMapSourceModule.GetOffsets(Index: Integer): Integer;
+begin
+  Result := FOffsets[Index];
+end;
+
+function TCnMapSourceModule.GetSegmentCount: Integer;
+begin
+  Result := FSegStarts.Count;
+end;
+
+function TCnMapSourceModule.GetSegmentEnd(Index: Integer): DWORD;
+begin
+  Result := DWORD(FSegEnds[Index]);
+end;
+
+function TCnMapSourceModule.GetSegmentStart(Index: Integer): DWORD;
+begin
+  Result := DWORD(FSegStarts[Index]);
+end;
+
+{ TCnModuleDebugInfoMap }
+
+constructor TCnModuleDebugInfoMap.Create(AModuleHandle: HMODULE);
+begin
+  inherited;
+  FSourceModuleNames := TStringList.Create;
+  FProcedureNames := TStringList.Create;
+end;
+
+destructor TCnModuleDebugInfoMap.Destroy;
+var
+  I: Integer;
+begin
+  for I := 0 to FSourceModuleNames.Count - 1 do
+    FSourceModuleNames.Objects[I].Free;
+
+  FProcedureNames.Free;
+  inherited;
+end;
+
+function TCnModuleDebugInfoMap.GetDebugInfoFromAddr(Address: Pointer;
+  out OutModuleFile, OutUnitName, OutProcName: string; out OutLineNumber,
+  OutOffsetLineNumber, OutOffsetProc: Integer): Boolean;
+begin
+
+end;
+
+function TCnModuleDebugInfoMap.GetProcedureAddress(Index: Integer): DWORD;
+begin
+  Result := DWORD(FProcedureNames.Objects[Index]);
+end;
+
+function TCnModuleDebugInfoMap.GetProcedureCount: Integer;
+begin
+  Result := FProcedureNames.Count;
+end;
+
+function TCnModuleDebugInfoMap.GetProcedures(Index: Integer): string;
+begin
+  Result := FProcedureNames[Index];
+end;
+
+function TCnModuleDebugInfoMap.GetSourceModuleCount: Integer;
+begin
+  Result := FSourceModuleNames.Count;
+end;
+
+function TCnModuleDebugInfoMap.GetSourceModules(
+  Index: Integer): TCnMapSourceModule;
+begin
+  Result := TCnMapSourceModule(FSourceModuleNames.Objects[Index]);
+end;
+
+function TCnModuleDebugInfoMap.Init: Boolean;
+const
+  LINE_NUMBER_PREFIX = 'Line numbers for ';
+  ADDRESS_PREFIX = 'Address ';
+  PUBLIC_BY_NAME_SUBFIX = 'Publics by Name';
+  PUBLIC_BY_VALUE_SUBFIX = 'Publics by Value';
+  SEGMENT_PREFIX = 'Detailed map of segments';
+var
+  I, LB, RB: Integer;
+  S, N, F, MF: string;
+  SL: TStringList;
+  SM: TCnMapSourceModule;
+
+  function ReadNextLine: string;
+  begin
+    Result := Trim(SL[I]);
+    Inc(I);
+  end;
+
+  // 解析 S，形式类似于一个 0005:00035388       CnDebug.$pdata$_ZN7Cndebug10CnDebuggerEv
+  procedure ParseProcedure(const Proc: string);
+  var
+    CP, SP: Integer;
+    O, P: string;
+  begin
+    CP := Pos(':', Proc);
+    SP := Pos(' ', Proc);
+    if (CP > 1) and (SP > CP + 1) then
+    begin
+      O := Copy(Proc, CP + 1, SP - CP - 1);
+      P := Trim(Copy(Proc, SP + 1, MaxInt));
+
+      CP := HexStrToDWord(O);
+      FProcedureNames.AddObject(P, TObject(CP));
+    end;
+  end;
+
+  // 解析 S，形式类似于多个 387 0001:003DD9F5   388 0001:003DDA05 ……
+  procedure ParseLineOffset(Module: TCnMapSourceModule; const LineOffset: string);
+  var
+    LO, SL, SO: string;
+    SP, CP, SSP: Integer;
+  begin
+    LO := LineOffset;
+    while LO <> '' do
+    begin
+      SP := Pos(' ', LO);
+      CP := Pos(':', LO);
+      if (CP > 1) and (SP > 1) and (CP > SP + 1) then
+      begin
+        SL := Copy(LO, 1, SP - 1);
+        Delete(LO, 1, CP); // 删去分号以及之前的内容
+
+        SSP := Pos(' ', LO);
+        if SSP > 1 then // 后面还有
+        begin
+          SO := Copy(LO, 1, SSP - 1);
+          Module.AddLineOffset(StrToInt(SL), HexStrToDWord(SO));
+          Delete(LO, 1, SSP);
+
+          LO := Trim(LO); // 可能还有空格分隔
+        end
+        else // 后面没了
+        begin
+          Module.AddLineOffset(StrToInt(SL), HexStrToDWord(LO));
+          Exit;
+        end;
+      end
+      else
+        Exit;
+    end;
+  end;
+
+  // 解析 S，形式类似于一个 0001:00005994 00000174 C=CODE     S=.text    G=(none)   M=SysInit  ACBP=A9
+  procedure ParseSegement(const Seg: string);
+  const
+    CODE_NAME = ' C=CODE ';
+    NAME_PREFIX = ' M=';
+  var
+    CP, SP, NP: Integer;
+    LS, SO, SS, SN: string;
+    SM: TCnMapSourceModule;
+  begin
+    if Pos(CODE_NAME, Seg) <= 0 then // 只处理 Code 段
+      Exit;
+
+    LS := Seg;
+    CP := Pos(':', LS);
+    SP := Pos(' ', LS);
+    if (CP > 1) and (SP > CP + 1) then
+    begin
+      SO := Copy(LS, CP + 1, SP - CP - 1);
+      LS := Trim(Copy(LS, SP + 1, MaxInt));
+
+      SP := Pos(' ', LS);
+      if SP > 1 then
+      begin
+        SS := Copy(LS, 1, SP - 1);
+        Delete(LS, 1, SP);
+        LS := Trim(LS);
+
+        NP := Pos(NAME_PREFIX, LS);
+        if NP > 1 then
+        begin
+          Delete(LS, 1, NP + Length(NAME_PREFIX) - 1);
+          SP := Pos(' ', LS);
+          if SP > 0 then
+          begin
+            SN := Copy(LS, 1, SP - 1);
+            SM := MakeSureModuleExists(SN);
+            SM.AddSegment(HexStrToDWord(SO), HexStrToDWord(SO) + HexStrToDWord(SS));
+          end;
+        end;
+      end;
+    end;
+  end;
+
+begin
+  Result := False;
+
+  MF := ChangeFileExt(FModuleFile, '.map');  // 判断 map 文件
+  if not FileExists(MF) then
+    Exit;
+
+  // 读入 map 文件挨行解析
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(MF);
+
+    I := 0;
+    while I < SL.Count do
+    begin
+      S := ReadNextLine;
+
+      // 根据 S 的不同分块处理
+      if Pos(LINE_NUMBER_PREFIX, S) = 1 then
+      begin
+        Delete(S, 1, Length(LINE_NUMBER_PREFIX));
+        S := Trim(S);
+
+        LB := Pos('(', S);
+        RB := Pos(')', S);
+        if (LB > 1) and (RB > 1) and (RB > LB + 1) then
+        begin
+          N := Copy(S, 1, LB - 1);
+          F := Copy(S, LB + 1, RB - LB - 1);
+          SM := MakeSureModuleExists(N, F);
+
+          // 往下越过空行
+          repeat
+            S := ReadNextLine;
+          until S <> '';
+
+          // 读行号偏移量映射
+          while S <> '' do
+          begin
+            ParseLineOffset(SM, S);
+            S := ReadNextLine;
+          end;
+        end;
+      end
+      else if (Pos(ADDRESS_PREFIX, S) = 1) and (Pos(PUBLIC_BY_VALUE_SUBFIX, S) > 0) then
+      begin
+        // 往下越过空行
+        repeat
+          S := ReadNextLine;
+        until S <> '';
+
+        // 解析函数与其偏移量
+        while S <> '' do
+        begin
+          ParseProcedure(S);
+          S := ReadNextLine;
+        end;
+      end
+      else if Pos(SEGMENT_PREFIX, S) > 0 then // 解析不带源码文件行号信息的单元文件名
+      begin
+        // 往下越过空行
+        repeat
+          S := ReadNextLine;
+        until S <> '';
+
+        // 解析段
+        while S <> '' do
+        begin
+          ParseSegement(S);
+          S := ReadNextLine;
+        end;
+      end;
+    end;
+    Result := True;
+  finally
+    SL.Free;
+  end;
+end;
+
+function TCnModuleDebugInfoMap.MakeSureModuleExists(const SourceName: string;
+  const SourceFile: string): TCnMapSourceModule;
+var
+  Idx: Integer;
+begin
+  Idx := FSourceModuleNames.IndexOf(SourceName);
+  if Idx >= 0 then
+  begin
+    Result := TCnMapSourceModule(FSourceModuleNames.Objects[Idx]);
+    if SourceFile <> '' then
+      Result.FileName := SourceFile;
+  end
+  else
+  begin
+    Result := TCnMapSourceModule.Create;
+    Result.Name := SourceName;
+    Result.FileName := SourceFile;
+    FSourceModuleNames.AddObject(SourceName, Result);
+  end;
 end;
 
 end.
