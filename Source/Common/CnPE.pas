@@ -421,7 +421,8 @@ type
     destructor Destroy; override;
 
     function Init: Boolean; virtual;
-    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo 节等}
+    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo 节等
+      子类实现时需 inherited 以内部提前解析 PE 获取基地址}
 
     function GetDebugInfoFromAddr(Address: Pointer; out OutModuleFile, OutUnitName, OutProcName: string;
       out OutLineNumber, OutOffsetLineNumber, OutOffsetProc: Integer): Boolean; virtual;
@@ -563,6 +564,9 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
+
+    function IsAddressInSource(Address: DWORD): Boolean;
+    {* 返回一个地址是否在本模块内}
 
     procedure AddLineOffset(ALineNumber: Integer; AnOffset: DWORD);
     {* 添加行号与偏移对应值}
@@ -2176,6 +2180,24 @@ begin
   Result := DWORD(FSegStarts[Index]);
 end;
 
+function TCnMapSourceModule.IsAddressInSource(Address: DWORD): Boolean;
+var
+  I: Integer;
+  S, E: DWORD;
+begin
+  Result := False;
+  for I := 0 to GetSegmentCount - 1 do
+  begin
+    S := SegmentStart[I];
+    E := SegmentEnd[I];
+    if (Address >= S) and (Address <= E) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 { TCnModuleDebugInfoMap }
 
 constructor TCnModuleDebugInfoMap.Create(AModuleHandle: HMODULE);
@@ -2199,8 +2221,71 @@ end;
 function TCnModuleDebugInfoMap.GetDebugInfoFromAddr(Address: Pointer;
   out OutModuleFile, OutUnitName, OutProcName: string; out OutLineNumber,
   OutOffsetLineNumber, OutOffsetProc: Integer): Boolean;
+var
+  I: Integer;
+  VA: DWORD;
+  SM: TCnMapSourceModule;
 begin
+  VA := VAFromAddr(Address);
 
+  // 模块名
+  OutModuleFile := ExtractFileName(FModuleFile);
+
+  // 源码文件名
+  OutUnitName := '';
+  SM := nil;
+  for I := 0 to SourceModuleCount - 1 do
+  begin
+    if SourceModules[I].IsAddressInSource(VA) then
+    begin
+      OutUnitName := SourceModules[I].FileName;
+      SM := SourceModules[I];
+      Break;
+    end;
+  end;
+
+  // 方法名
+  for I := 0 to ProcedureCount - 1 do
+  begin
+    if ProcedureAddress[I] = VA then
+    begin
+      OutProcName := Procedures[I];
+      OutOffsetProc := 0;
+      Break;
+    end
+    else if (ProcedureAddress[I] < VA) and (I < ProcedureCount - 1) and (ProcedureAddress[I + 1] > VA) then
+    begin
+      OutProcName := Procedures[I];
+      OutOffsetProc := VA - ProcedureAddress[I];
+      Break;
+    end;
+  end;
+
+  // 行号与偏移
+  OutOffsetLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+  OutLineNumber := CN_INVALID_LINENUMBER_OFFSET;
+
+  if (OutUnitName <> '') and (SM <> nil) then
+  begin
+    // 有源文件才有行号和行号间偏移
+    for I := 0 to SM.LineNumberCount - 1 do
+    begin
+      if VA = DWORD(SM.Offsets[I]) then
+      begin
+        OutLineNumber := SM.LineNumbers[I];
+        OutOffsetLineNumber := 0;
+        Break;
+      end
+      else if (I > 0) and (DWORD(SM.Offsets[I - 1]) <= VA) and (DWORD(SM.Offsets[I]) > VA) then
+      begin
+        OutLineNumber := SM.LineNumbers[I - 1];
+        OutOffsetLineNumber := VA - DWORD(SM.Offsets[I - 1]);
+        Break;
+      end;
+    end;
+  end;
+
+  Result := True;
 end;
 
 function TCnModuleDebugInfoMap.GetProcedureAddress(Index: Integer): DWORD;
@@ -2347,8 +2432,11 @@ var
   end;
 
 begin
-  Result := False;
+  Result := inherited Init;
+  if not Result then
+    Exit;
 
+  Result := False;
   MF := ChangeFileExt(FModuleFile, '.map');  // 判断 map 文件
   if not FileExists(MF) then
     Exit;

@@ -313,10 +313,10 @@ function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
 {* 求 UInt64 的非负整数次方根的整数部分，不考虑溢出的情况}
 
 function CurrentByteOrderIsBigEndian: Boolean;
-{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址}
+{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址，如部分指定的 ARM 和 MIPS}
 
 function CurrentByteOrderIsLittleEndian: Boolean;
-{* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址}
+{* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址，如 x86 与部分默认 arm}
 
 function Int64ToBigEndian(Value: Int64): Int64;
 {* 确保 Int64 值为大端，在小端环境中会进行转换}
@@ -443,10 +443,12 @@ function UInt64ToBinStr(V: TUInt64): string;
 {* 将一无符号 64 字节整数转换为二进制字符串}
 
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
-{* 内存块转换为十六进制字符串，低位出现在字符串左方，UseUpperCase 控制输出内容的大小写}
+{* 内存块转换为十六进制字符串，内存低位的内容出现在字符串左方，相当于网络字节顺序，
+  UseUpperCase 控制输出内容的大小写}
 
 function HexToData(const Hex: string; OutData: Pointer): string;
-{* 十六进制字符串转换为内存块，十六进制字符串长度为奇或转换失败时抛出异常
+{* 十六进制字符串转换为内存块，字符串左方的内容出现在内存低位，相当于网络字节顺序，
+  十六进制字符串长度为奇或转换失败时抛出异常
   注意 OutData 应该指向足够容纳转换内容的区域，长度至少为 Length(Hex) div 2}
 
 function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
@@ -456,10 +458,12 @@ function HexToString(const Hex: string): string;
 {* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
 
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
-{* 字节数组转换为十六进制字符串，低位出现在字符串左方，UseUpperCase 控制输出内容的大小写}
+{* 字节数组转换为十六进制字符串，下标低位的内容出现在字符串左方，相当于网络字节顺序，
+  UseUpperCase 控制输出内容的大小写}
 
 function HexToBytes(const Hex: string): TBytes;
-{* 十六进制字符串转换为字节数组，字符串长度为奇或转换失败时抛出异常}
+{* 十六进制字符串转换为字节数组，字符串左边的内容出现在下标低位，相当于网络字节顺序，
+  字符串长度为奇或转换失败时抛出异常}
 
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
