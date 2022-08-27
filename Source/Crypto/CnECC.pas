@@ -268,6 +268,10 @@ type
     procedure SetHex(const Buf: AnsiString);
     {* 从十六进制字符串中加载，内部对半拆分}
 
+    function ToBase64(FixedLen: Integer = 0): string;
+    {* 转换为 Base64 字符串，内部 R S 简单拼接后转换，
+      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而被截断}
+
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
     property S: TCnBigNumber read FS;
@@ -894,7 +898,7 @@ procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K:
 implementation
 
 uses
-  CnContainers, CnRandom;
+  CnContainers, CnRandom, CnBase64;
 
 resourcestring
   SCnEccErrorCurveType = 'Invalid Curve Type.';
@@ -8098,6 +8102,20 @@ begin
   C := Length(Buf) div 2;
   FR.SetHex(Copy(Buf, 1, C));
   FS.SetHex(Copy(Buf, C + 1, MaxInt));
+end;
+
+function TCnEccSignature.ToBase64(FixedLen: Integer): string;
+var
+  M: TMemoryStream;
+begin
+  M := TMemoryStream.Create;
+  try
+    FR.SaveToStream(M, FixedLen);
+    FS.SaveToStream(M, FixedLen);
+    Base64Encode(M.Memory, M.Size, Result);
+  finally
+    M.Free;
+  end;
 end;
 
 function TCnEccSignature.ToHex(FixedLen: Integer): string;
