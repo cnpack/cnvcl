@@ -176,10 +176,10 @@ const
 // 原始移植的版本，比较慢
 function Base64Encode_Slow(const InputData: AnsiString; var OutputData:AnsiString): Byte;
 var
-  i: Integer;
+  I: Integer;
   CurrentB,PrevB: Byte;
-  c: Byte;
-  s: AnsiChar;
+  C: Byte;
+  S: AnsiChar;
   InputLength: Integer;
 
   function ValueToCharacter(Value: Byte; var Character: AnsiChar): Boolean;
@@ -198,7 +198,7 @@ var
 begin
   OutPutData := '';
   InputLength := Length(InputData);
-  i:=1;
+  I:=1;
   if (InputLength = 0) then
   begin
     Result := BASE64_OK;
@@ -207,16 +207,16 @@ begin
 
   repeat
     // 第一次转换
-    CurrentB := Ord(InputData[i]);
-    Inc(i);
+    CurrentB := Ord(InputData[I]);
+    Inc(I);
     InputLength := InputLength-1;
-    c := (CurrentB shr 2);
-    if not ValueToCharacter(c, s) then
+    C := (CurrentB shr 2);
+    if not ValueToCharacter(C, S) then
     begin
       Result := BASE64_ERROR;
       Exit;
     end;
-    OutPutData := OutPutData + s;
+    OutPutData := OutPutData + S;
     PrevB := CurrentB;
 
     // 第二次转换
@@ -224,68 +224,68 @@ begin
       CurrentB := 0
     else
     begin
-      CurrentB := Ord(InputData[i]);
-      Inc(i);
+      CurrentB := Ord(InputData[I]);
+      Inc(I);
     end;
 
     InputLength := InputLength-1;
-    c:=(PrevB and $03) shl 4 + (CurrentB shr 4);  //取出 XX 后 4 位并将其左移4位与 XX 右移 4 位合并成六位
-    if not ValueToCharacter(c,s) then             //检测取得的字符是否在 Base64Table 内
+    C:=(PrevB and $03) shl 4 + (CurrentB shr 4);  //取出 XX 后 4 位并将其左移4位与 XX 右移 4 位合并成六位
+    if not ValueToCharacter(C,S) then             //检测取得的字符是否在 Base64Table 内
     begin
       Result := BASE64_ERROR;
       Exit;
     end;
-    OutPutData := OutPutData+s;
+    OutPutData := OutPutData+S;
     PrevB := CurrentB;
 
     // 第三次转换
     if InputLength<0 then
-      s := pad
+      S := Pad
     else
     begin
       if InputLength = 0 then
         CurrentB := 0
       else
       begin
-        CurrentB := Ord(InputData[i]);
-        Inc(i);
+        CurrentB := Ord(InputData[I]);
+        Inc(I);
       end;
       InputLength := InputLength - 1;
-      c := (PrevB and $0F) shl 2 + (CurrentB shr 6); //取出 XX 后 4 位并将其左移 2 位与 XX 右移 6 位合并成六位
-      if not ValueToCharacter(c, s) then             //检测取得的字符是否在 Base64Table 内
+      C := (PrevB and $0F) shl 2 + (CurrentB shr 6); //取出 XX 后 4 位并将其左移 2 位与 XX 右移 6 位合并成六位
+      if not ValueToCharacter(C, S) then             //检测取得的字符是否在 Base64Table 内
       begin
         Result := BASE64_ERROR;
         Exit;
       end;
     end;
-    OutPutData:=OutPutData+s;
+    OutPutData:=OutPutData+S;
 
     // 第四次转换
     if InputLength < 0 then
-      s := pad
+      S := Pad
     else
     begin
-      c := (CurrentB and $3F);                      //取出 XX 后6位
-      if not ValueToCharacter(c, s) then            //检测取得的字符是否在 Base64Table 内
+      C := (CurrentB and $3F);                      //取出 XX 后6位
+      if not ValueToCharacter(C, S) then            //检测取得的字符是否在 Base64Table 内
       begin
         Result := BASE64_ERROR;
         Exit;
       end;
     end;
-    OutPutData := OutPutData + s;
+    OutPutData := OutPutData + S;
   until InputLength <= 0;
 
-  Result:=BASE64_OK;
+  Result := BASE64_OK;
 end;
 
 // 原始移植的版本，比较慢
 function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;
 var
-  i: Integer;
+  I: Integer;
   InputLength: Integer;
   CurrentB, PrevB: Byte;
-  c: Byte;
-  s: AnsiChar;
+  C: Byte;
+  S: AnsiChar;
   Data: AnsiString;
 
   function CharacterToValue(Character: AnsiChar; var Value: Byte): Boolean;
@@ -296,7 +296,7 @@ var
   begin
     Result := True;
     Value := Pos(Character, Base64Table);
-    if Value=0 then
+    if Value = 0 then
       Result := False
     else
       Value := Value - 1;
@@ -307,13 +307,13 @@ var
   // 过滤所有不在 Base64Table 中的字符，返回值为过滤后的字符
   //******************************************************************
   var
-    f: Byte;
-    i: Integer;
+    F: Byte;
+    I: Integer;
   begin
     Result := '';
-    for i := 1 to Length(InputData) do
-      if CharacterToValue(inputData[i], f) or (InputData[i] = Pad) then
-        Result:=Result + InputData[i];
+    for I := 1 to Length(InputData) do
+      if CharacterToValue(inputData[I], F) or (InputData[I] = Pad) then
+        Result := Result + InputData[I];
   end;
 
 begin
@@ -336,40 +336,40 @@ begin
     Exit;
   end;
 
-  i := 0;
+  I := 0;
   repeat
     // 第一次转换
-    Inc(i);
-    s := Data[i];
-    if not CharacterToValue(s, CurrentB) then
+    Inc(I);
+    S := Data[I];
+    if not CharacterToValue(S, CurrentB) then
     begin
       Result := BASE64_INVALID;
       Exit;
     end;
 
-    Inc(i);
-    s := Data[i];
-    if not CharacterToValue(s, PrevB) then
+    Inc(I);
+    S := Data[I];
+    if not CharacterToValue(S, PrevB) then
     begin
       Result := BASE64_INVALID;
       Exit;
     end;
 
-    c := (CurrentB shl 2) + (PrevB shr 4);
-    OutPutData := {$IFDEF UNICODE}AnsiString{$ENDIF}(OutPutData + {$IFDEF UNICODE}AnsiString{$ENDIF}(Chr(c)));
+    C := (CurrentB shl 2) + (PrevB shr 4);
+    OutPutData := {$IFDEF UNICODE}AnsiString{$ENDIF}(OutPutData + {$IFDEF UNICODE}AnsiString{$ENDIF}(Chr(C)));
 
     // 第二次转换
-    Inc(i);
-    s := Data[i];
-    if s = pad then
+    Inc(I);
+    S := Data[I];
+    if S = pad then
     begin
-      if (i <> InputLength-1) then
+      if (I <> InputLength-1) then
       begin
         Result := BASE64_DATALEFT;
         Exit;
       end
       else
-      if Data[i + 1] <> pad then
+      if Data[I + 1] <> pad then
       begin
         Result := BASE64_PADDING;
         Exit;
@@ -377,21 +377,21 @@ begin
     end
     else
     begin
-      if not CharacterToValue(s,CurrentB) then
+      if not CharacterToValue(S,CurrentB) then
       begin
         Result:=BASE64_INVALID;
         Exit;
       end;
-      c:=(PrevB shl 4) + (CurrentB shr 2);
-      OutPutData := OutPutData+{$IFDEF UNICODE}AnsiString{$ENDIF}(chr(c));
+      C:=(PrevB shl 4) + (CurrentB shr 2);
+      OutPutData := OutPutData+{$IFDEF UNICODE}AnsiString{$ENDIF}(chr(C));
     end;
 
     // 第三次转换
-    Inc(i);
-    s := Data[i];
-    if s = pad then
+    Inc(I);
+    S := Data[I];
+    if S = pad then
     begin
-      if (i <> InputLength) then
+      if (I <> InputLength) then
       begin
         Result := BASE64_DATALEFT;
         Exit;
@@ -399,17 +399,17 @@ begin
     end
     else
     begin
-     if not CharacterToValue(s, PrevB) then
+     if not CharacterToValue(S, PrevB) then
      begin
        Result := BASE64_INVALID;
        Exit;
      end;
-     c := (CurrentB shl 6) + (PrevB);
-     OutPutData := OutPutData + {$IFDEF UNICODE}AnsiString{$ENDIF}(Chr(c));
+     C := (CurrentB shl 6) + (PrevB);
+     OutPutData := OutPutData + {$IFDEF UNICODE}AnsiString{$ENDIF}(Chr(C));
     end;
-  until (i >= InputLength);
+  until (I >= InputLength);
 
-  Result:=BASE64_OK;
+  Result := BASE64_OK;
 end;
 
 // 以下为 wr960204 改进的快速 Base64 编解码算法
@@ -430,7 +430,7 @@ function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: stri
 var
   Times, I: Integer;
   x1, x2, x3, x4: AnsiChar;
-  xt: byte;
+  Xt: Byte;
 begin
   if (InputData = nil) or (DataLen <= 0) then
   begin
@@ -449,30 +449,30 @@ begin
     if DataLen >= (3 + I * 3) then
     begin
       x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
-      xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-      xt := xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-      x2 := EnCodeTab[xt];
-      xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
-      xt := xt or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
-      x3 := EnCodeTab[xt];
-      xt := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
-      x4 := EnCodeTab[xt];
+      Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+      Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
+      x2 := EnCodeTab[Xt];
+      Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+      Xt := Xt or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
+      x3 := EnCodeTab[Xt];
+      Xt := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
+      x4 := EnCodeTab[Xt];
     end
     else if DataLen >= (2 + I * 3) then
     begin
       x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
-      xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-      xt := xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-      x2 := EnCodeTab[xt];
-      xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
-      x3 := EnCodeTab[xt ];
+      Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+      Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
+      x2 := EnCodeTab[Xt];
+      Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+      x3 := EnCodeTab[Xt ];
       x4 := '=';
     end
     else
     begin
       x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
-      xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-      x2 := EnCodeTab[xt];
+      Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+      x2 := EnCodeTab[Xt];
       x3 := '=';
       x4 := '=';
     end;
@@ -517,7 +517,7 @@ end;
 function Base64Decode(InputData: string; var OutputData: TBytes;
   FixZero: Boolean): Byte;
 var
-  SrcLen, DstLen, Times, i: Integer;
+  SrcLen, DstLen, Times, I: Integer;
   x1, x2, x3, x4, xt: Byte;
   C, ToDec: Integer;
   Data: AnsiString;
@@ -573,12 +573,12 @@ begin
   Times := SrcLen div 4;
   C := 0;
 
-  for i := 0 to Times - 1 do
+  for I := 0 to Times - 1 do
   begin
-    x1 := DecodeTable[Data[1 + i shl 2]];
-    x2 := DecodeTable[Data[2 + i shl 2]];
-    x3 := DecodeTable[Data[3 + i shl 2]];
-    x4 := DecodeTable[Data[4 + i shl 2]];
+    x1 := DecodeTable[Data[1 + I shl 2]];
+    x2 := DecodeTable[Data[2 + I shl 2]];
+    x3 := DecodeTable[Data[3 + I shl 2]];
+    x4 := DecodeTable[Data[4 + I shl 2]];
     x1 := x1 shl 2;
     xt := x2 shr 4;
     x1 := x1 or xt;
