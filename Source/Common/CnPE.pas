@@ -421,7 +421,7 @@ type
     destructor Destroy; override;
 
     function Init: Boolean; virtual;
-    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32/DebugInfo 节等
+    {* 初始化动作，供子类重载以处理各种格式的调试信息如 map/tds/td32节等
       子类实现时需 inherited 以内部提前解析 PE 获取基地址}
 
     function GetDebugInfoFromAddr(Address: Pointer; out OutModuleFile, OutUnitName, OutProcName: string;
@@ -487,8 +487,8 @@ type
     {* 过程本身的大小}
   end;
 
-  TCnModuleDebugInfoTD32 = class(TCnModuleDebugInfo)
-  {* 解析 TD32 Debugger Info 的调试信息类，注意只解析部分堆栈所需内容}
+  TCnModuleDebugInfoTD = class(TCnModuleDebugInfo)
+  {* 解析 Turbo Debugger 类型的 Debugger Info 的调试信息类，注意只解析部分堆栈所需内容}
   private
     FData: Pointer;
     FSize: DWORD;
@@ -1637,7 +1637,7 @@ end;
 function TCnInProcessModuleList.CreateDebugInfoFromModule(AModuleHandle: HMODULE): TCnModuleDebugInfo;
 begin
   // 根据各种情况创建不同的子类，后面加上 64 位、Map 和 tds 文件等
-  Result := TCnModuleDebugInfoTD32.Create(AModuleHandle);
+  Result := TCnModuleDebugInfoTD.Create(AModuleHandle);
   if not Result.Init then
     FreeAndNil(Result)
   else
@@ -1764,9 +1764,9 @@ begin
     - TCnNativeUInt(FPE.FOptionalBaseOfCode));
 end;
 
-{ TCnModuleDebugInfoTD32 }
+{ TCnModuleDebugInfoTD }
 
-constructor TCnModuleDebugInfoTD32.Create(AModuleHandle: HMODULE);
+constructor TCnModuleDebugInfoTD.Create(AModuleHandle: HMODULE);
 begin
   inherited;
   FNames := TStringList.Create;
@@ -1779,7 +1779,7 @@ begin
   FNames.Add('');  // NameIndex 从 1 开始
 end;
 
-destructor TCnModuleDebugInfoTD32.Destroy;
+destructor TCnModuleDebugInfoTD.Destroy;
 var
   I: Integer;
 begin
@@ -1800,7 +1800,7 @@ begin
   inherited;
 end;
 
-function TCnModuleDebugInfoTD32.GetDebugInfoFromAddr(Address: Pointer;
+function TCnModuleDebugInfoTD.GetDebugInfoFromAddr(Address: Pointer;
   out OutModuleFile, OutUnitName, OutProcName: string; out OutLineNumber,
   OutOffsetLineNumber, OutOffsetProc: Integer): Boolean;
 var
@@ -1861,47 +1861,47 @@ begin
   Result := True;
 end;
 
-function TCnModuleDebugInfoTD32.GetLineNumberCount: Integer;
+function TCnModuleDebugInfoTD.GetLineNumberCount: Integer;
 begin
   Result := FLineNumbers.Count;
 end;
 
-function TCnModuleDebugInfoTD32.GetLineNumbers(Index: Integer): Integer;
+function TCnModuleDebugInfoTD.GetLineNumbers(Index: Integer): Integer;
 begin
   Result := FLineNumbers[Index];
 end;
 
-function TCnModuleDebugInfoTD32.GetOffsetCount: Integer;
+function TCnModuleDebugInfoTD.GetOffsetCount: Integer;
 begin
   Result := FOffsets.Count;
 end;
 
-function TCnModuleDebugInfoTD32.GetOffsets(Index: Integer): Integer;
+function TCnModuleDebugInfoTD.GetOffsets(Index: Integer): Integer;
 begin
   Result := FOffsets[Index];
 end;
 
-function TCnModuleDebugInfoTD32.GetProcedureCount: Integer;
+function TCnModuleDebugInfoTD.GetProcedureCount: Integer;
 begin
   Result := FProcedureNames.Count;
 end;
 
-function TCnModuleDebugInfoTD32.GetProcedures(Index: Integer): TCnTDProcedureSymbol;
+function TCnModuleDebugInfoTD.GetProcedures(Index: Integer): TCnTDProcedureSymbol;
 begin
   Result := TCnTDProcedureSymbol(FProcedureNames.Objects[Index]);
 end;
 
-function TCnModuleDebugInfoTD32.GetSourceModuleCount: Integer;
+function TCnModuleDebugInfoTD.GetSourceModuleCount: Integer;
 begin
   Result := FSourceModuleNames.Count;
 end;
 
-function TCnModuleDebugInfoTD32.GetSourceModules(Index: Integer): TCnTDSourceModule;
+function TCnModuleDebugInfoTD.GetSourceModules(Index: Integer): TCnTDSourceModule;
 begin
   Result := TCnTDSourceModule(FSourceModuleNames.Objects[Index]);
 end;
 
-function TCnModuleDebugInfoTD32.Init: Boolean;
+function TCnModuleDebugInfoTD.Init: Boolean;
 var
   I: Integer;
   Sig: PTDFileSignature;
@@ -1955,7 +1955,7 @@ begin
   Result := True;
 end;
 
-procedure TCnModuleDebugInfoTD32.ParseSubSection(DSE: Pointer);
+procedure TCnModuleDebugInfoTD.ParseSubSection(DSE: Pointer);
 var
   DE: PTDDirectoryEntry;
   DS: Pointer;
@@ -2038,7 +2038,7 @@ begin
   end;
 end;
 
-procedure TCnModuleDebugInfoTD32.SyncNames;
+procedure TCnModuleDebugInfoTD.SyncNames;
 var
   I: Integer;
   SM: TCnTDSourceModule;

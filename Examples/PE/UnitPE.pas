@@ -411,13 +411,13 @@ procedure TFormPE.btnTDNamesClick(Sender: TObject);
 var
   I: Integer;
   H: HMODULE;
-  TD32: TCnModuleDebugInfoTD32;
+  TD32: TCnModuleDebugInfoTD;
 begin
   H := GetModuleHandle(nil);
   mmoNames.Clear;
   if H <> 0 then
   begin
-    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    TD32 := TCnModuleDebugInfoTD.Create(H);
     try
       if TD32.Init then
         for I := 0 to TD32.Names.Count - 1 do
@@ -432,14 +432,14 @@ procedure TFormPE.btnTDSourceModulesClick(Sender: TObject);
 var
   I, J: Integer;
   H: HMODULE;
-  TD32: TCnModuleDebugInfoTD32;
+  TD32: TCnModuleDebugInfoTD;
   SM: TCnTDSourceModule;
 begin
   H := GetModuleHandle(nil);
   mmoNames.Clear;
   if H <> 0 then
   begin
-    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    TD32 := TCnModuleDebugInfoTD.Create(H);
     try
       if TD32.Init then
       begin
@@ -464,14 +464,14 @@ procedure TFormPE.btnTDProcClick(Sender: TObject);
 var
   I: Integer;
   H: HMODULE;
-  TD32: TCnModuleDebugInfoTD32;
+  TD32: TCnModuleDebugInfoTD;
   PS: TCnTDProcedureSymbol;
 begin
   H := GetModuleHandle(nil);
   mmoNames.Clear;
   if H <> 0 then
   begin
-    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    TD32 := TCnModuleDebugInfoTD.Create(H);
     try
       if TD32.Init then
       begin
@@ -498,13 +498,13 @@ procedure TFormPE.btnTDLineNumbersClick(Sender: TObject);
 var
   I: Integer;
   H: HMODULE;
-  TD32: TCnModuleDebugInfoTD32;
+  TD32: TCnModuleDebugInfoTD;
 begin
   H := GetModuleHandle(nil);
   mmoNames.Clear;
   if H <> 0 then
   begin
-    TD32 := TCnModuleDebugInfoTD32.Create(H);
+    TD32 := TCnModuleDebugInfoTD.Create(H);
     try
       if TD32.Init then
       begin
