@@ -31,7 +31,7 @@ object FormSM2: TFormSM2
   end
   object pgcSm2: TPageControl
     Left = 16
-    Top = 88
+    Top = 96
     Width = 914
     Height = 449
     ActivePage = tsEncDec
@@ -473,14 +473,14 @@ object FormSM2: TFormSM2
       end
     end
     object tsCollaborative: TTabSheet
-      Caption = 'Collaborative'
+      Caption = 'Collaborative 2'
       ImageIndex = 4
       object grpCollaborative: TGroupBox
         Left = 8
         Top = 8
         Width = 889
         Height = 401
-        Caption = 'Collaborative'
+        Caption = 'Collaborative 2'
         TabOrder = 0
         object lblSM2PrivateKeyA: TLabel
           Left = 16
@@ -673,9 +673,224 @@ object FormSM2: TFormSM2
         end
       end
     end
+    object tsCollaborative3: TTabSheet
+      Caption = 'Collaborative 3'
+      ImageIndex = 5
+      object grpCollaborative3: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 889
+        Height = 401
+        Caption = 'Collaborative 2'
+        TabOrder = 0
+        object lblSM2Private3KeyA: TLabel
+          Left = 16
+          Top = 28
+          Width = 98
+          Height = 13
+          Caption = 'SM2 Private Key (A):'
+        end
+        object lblSM2Private3KeyB: TLabel
+          Left = 16
+          Top = 56
+          Width = 98
+          Height = 13
+          Caption = 'SM2 Private Key (B):'
+        end
+        object lblSM2PublicKeyABC: TLabel
+          Left = 16
+          Top = 112
+          Width = 78
+          Height = 13
+          Caption = 'SM2 Public Key:'
+        end
+        object lblColl3Id1: TLabel
+          Left = 16
+          Top = 156
+          Width = 85
+          Height = 13
+          Caption = 'Signature User Id:'
+        end
+        object lblSM2Coll3FileSign: TLabel
+          Left = 264
+          Top = 156
+          Width = 68
+          Height = 13
+          Caption = 'File to Handle:'
+        end
+        object bvl9: TBevel
+          Left = 16
+          Top = 138
+          Width = 857
+          Height = 9
+          Shape = bsTopLine
+        end
+        object bvl10: TBevel
+          Left = 16
+          Top = 312
+          Width = 857
+          Height = 9
+          Shape = bsTopLine
+        end
+        object lblSM2Coll3Text: TLabel
+          Left = 16
+          Top = 332
+          Width = 79
+          Height = 13
+          Caption = 'Text To Encrypt:'
+        end
+        object lblSM2Private3KeyC: TLabel
+          Left = 16
+          Top = 84
+          Width = 98
+          Height = 13
+          Caption = 'SM2 Private Key (C):'
+        end
+        object edtSM2Private3KeyA: TEdit
+          Left = 128
+          Top = 24
+          Width = 673
+          Height = 21
+          TabOrder = 0
+        end
+        object edtSM2Private3KeyB: TEdit
+          Left = 128
+          Top = 52
+          Width = 673
+          Height = 21
+          TabOrder = 2
+        end
+        object edtSM2PublicKeyABC: TEdit
+          Left = 128
+          Top = 108
+          Width = 673
+          Height = 21
+          TabOrder = 4
+        end
+        object btnSM2Collaborative3Gen: TButton
+          Left = 816
+          Top = 24
+          Width = 57
+          Height = 105
+          Caption = 'Generate'
+          TabOrder = 1
+          OnClick = btnSM2Collaborative3GenClick
+        end
+        object edtSM2Coll3UserId: TEdit
+          Left = 128
+          Top = 152
+          Width = 121
+          Height = 21
+          TabOrder = 5
+          Text = 'CnPack Team'
+        end
+        object edtSM2Coll3FileSign: TEdit
+          Left = 336
+          Top = 152
+          Width = 465
+          Height = 21
+          TabOrder = 6
+        end
+        object btnColl3SignBrowse: TButton
+          Left = 816
+          Top = 152
+          Width = 57
+          Height = 25
+          Caption = 'Browse'
+          TabOrder = 7
+          OnClick = btnColl3SignBrowseClick
+        end
+        object btnSM2Coll3SignFile: TButton
+          Left = 16
+          Top = 272
+          Width = 281
+          Height = 25
+          Caption = 'Sign using 3 Private Keys and Public Key'
+          TabOrder = 9
+          OnClick = btnSM2Coll3SignFileClick
+        end
+        object btnSM2Coll3Verify: TButton
+          Left = 744
+          Top = 272
+          Width = 129
+          Height = 25
+          Caption = 'Verify using Public Key'
+          TabOrder = 10
+          OnClick = btnSM2Coll3VerifyClick
+        end
+        object mmoSM2Coll3Result: TMemo
+          Left = 16
+          Top = 184
+          Width = 857
+          Height = 73
+          TabOrder = 8
+        end
+        object chkCollPrefixByte3: TCheckBox
+          Left = 688
+          Top = 332
+          Width = 49
+          Height = 17
+          Caption = '$04'
+          Checked = True
+          State = cbChecked
+          TabOrder = 13
+        end
+        object edtSM2Coll3Text: TEdit
+          Left = 104
+          Top = 328
+          Width = 577
+          Height = 21
+          TabOrder = 11
+          Text = '1234567890'
+        end
+        object btnSM2Coll3Encrypt: TButton
+          Left = 744
+          Top = 328
+          Width = 129
+          Height = 25
+          Caption = 'Encrypt using Public Key'
+          TabOrder = 12
+          OnClick = btnSM2CollEncryptClick
+        end
+        object btnSM2Coll3Decrypt: TButton
+          Left = 104
+          Top = 360
+          Width = 217
+          Height = 25
+          Caption = 'Decrypt using 3 Private Keys'
+          TabOrder = 14
+          OnClick = btnSM2CollDecryptClick
+        end
+        object rbColl3C1C2C3: TRadioButton
+          Left = 616
+          Top = 360
+          Width = 65
+          Height = 17
+          Caption = 'C1C2C3'
+          TabOrder = 16
+        end
+        object rbColl3C1C3C2: TRadioButton
+          Left = 536
+          Top = 360
+          Width = 65
+          Height = 17
+          Caption = 'C1C3C2'
+          Checked = True
+          TabOrder = 15
+          TabStop = True
+        end
+        object edtSM2Private3KeyC: TEdit
+          Left = 128
+          Top = 80
+          Width = 673
+          Height = 21
+          TabOrder = 3
+        end
+      end
+    end
     object tsTest: TTabSheet
       Caption = 'Other Test'
-      ImageIndex = 5
+      ImageIndex = 6
       object btnSM2CreateMatrix: TButton
         Left = 16
         Top = 16

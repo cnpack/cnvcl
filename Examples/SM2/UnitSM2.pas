@@ -100,8 +100,36 @@ type
     rbC1C2C3: TRadioButton;
     btnSm2SignTime: TButton;
     btnSM2VerifyTime: TButton;
+    tsCollaborative3: TTabSheet;
     tsTest: TTabSheet;
     btnSM2CreateMatrix: TButton;
+    grpCollaborative3: TGroupBox;
+    lblSM2Private3KeyA: TLabel;
+    lblSM2Private3KeyB: TLabel;
+    lblSM2PublicKeyABC: TLabel;
+    lblColl3Id1: TLabel;
+    lblSM2Coll3FileSign: TLabel;
+    bvl9: TBevel;
+    bvl10: TBevel;
+    lblSM2Coll3Text: TLabel;
+    edtSM2Private3KeyA: TEdit;
+    edtSM2Private3KeyB: TEdit;
+    edtSM2PublicKeyABC: TEdit;
+    btnSM2Collaborative3Gen: TButton;
+    edtSM2Coll3UserId: TEdit;
+    edtSM2Coll3FileSign: TEdit;
+    btnColl3SignBrowse: TButton;
+    btnSM2Coll3SignFile: TButton;
+    btnSM2Coll3Verify: TButton;
+    mmoSM2Coll3Result: TMemo;
+    chkCollPrefixByte3: TCheckBox;
+    edtSM2Coll3Text: TEdit;
+    btnSM2Coll3Encrypt: TButton;
+    btnSM2Coll3Decrypt: TButton;
+    rbColl3C1C2C3: TRadioButton;
+    rbColl3C1C3C2: TRadioButton;
+    edtSM2Private3KeyC: TEdit;
+    lblSM2Private3KeyC: TLabel;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -131,6 +159,10 @@ type
     procedure btnSm2SignTimeClick(Sender: TObject);
     procedure btnSM2VerifyTimeClick(Sender: TObject);
     procedure btnSM2CreateMatrixClick(Sender: TObject);
+    procedure btnColl3SignBrowseClick(Sender: TObject);
+    procedure btnSM2Collaborative3GenClick(Sender: TObject);
+    procedure btnSM2Coll3SignFileClick(Sender: TObject);
+    procedure btnSM2Coll3VerifyClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -897,12 +929,19 @@ procedure TFormSM2.btnSM2CollaborativeGenClick(Sender: TObject);
 var
   PrivKeyA, PrivKeyB: TCnSM2CollaborativePrivateKey;
   PubKey: TCnSM2CollaborativePublicKey;
-  P: TCnEccPoint;
+  PrivKey: TCnSM2PrivateKey;
+  P, R: TCnEccPoint;
+  SM2: TCnSM2;
+  Z: TCnBigNumber;
 begin
   PrivKeyA := nil;
   PrivKeyB := nil;
   PubKey := nil;
+  PrivKey := nil;
   P := nil;
+  R := nil;
+  Z := nil;
+  SM2 := nil;
 
   try
     PrivKeyA := TCnSM2CollaborativePrivateKey.Create;
@@ -917,10 +956,27 @@ begin
         edtSM2PublicKeyAB.Text := PubKey.ToHex;
         edtSM2PrivateKeyA.Text := PrivKeyA.ToHex;
         edtSM2PrivateKeyB.Text := PrivKeyB.ToHex;
+
+        // 验证 PrivateKeyA * PrivateKeyB - 1
+        PrivKey := TCnSM2PrivateKey.Create;
+        SM2 := TCnSM2.Create;
+        BigNumberDirectMulMod(PrivKey, PrivKeyA, PrivKeyB, SM2.Order);
+        BigNumberSubWord(PrivKey, 1);
+
+        R := TCnEccPoint.Create;
+        Z := TCnBigNumber.Create;
+        CnSM2SchnorrProve(PrivKey, PubKey, R, Z, SM2);
+
+        if CnSM2SchnorrCheck(PubKey, R, Z, SM2) then
+          ShowMessage('2 Keys Check OK');
       end;
     end;
   finally
+    SM2.Free;
+    Z.Free;
+    R.Free;
     P.Free;
+    PrivKey.Free;
     PubKey.Free;
     PrivKeyB.Free;
     PrivKeyA.Free;
@@ -956,7 +1012,7 @@ begin
   SignRes := TCnSM2Signature.Create;
   SignRes.SetHex(mmoSM2CollResult.Lines.Text);
 
-  if CnSM2VerifyData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+  if CnSM2VerifyData(edtSM2CollUserId.Text, FileStream.Memory, FileStream.Size, SignRes,
     PublicKey, SM2) then
   begin
     ShowMessage('Verify File OK.');
@@ -1368,6 +1424,207 @@ begin
   Matrix.Free; // 创建完毕后占大约 200k 内存
   Q.Free;
   P.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnColl3SignBrowseClick(Sender: TObject);
+begin
+  if dlgOpen1.Execute then
+    edtSM2Coll3FileSign.Text := dlgOpen1.FileName;
+end;
+
+procedure TFormSM2.btnSM2Collaborative3GenClick(Sender: TObject);
+var
+  PrivKeyA, PrivKeyB, PrivKeyC: TCnSM2CollaborativePrivateKey;
+  PubKey: TCnSM2CollaborativePublicKey;
+  PrivKey: TCnSM2PrivateKey;
+  P, R: TCnEccPoint;
+  SM2: TCnSM2;
+  Z: TCnBigNumber;
+begin
+  PrivKeyA := nil;
+  PrivKeyB := nil;
+  PrivKeyC := nil;
+  PubKey := nil;
+  PrivKey := nil;
+  P := nil;
+  R := nil;
+  Z := nil;
+  SM2 := nil;
+
+  try
+    PrivKeyA := TCnSM2CollaborativePrivateKey.Create;
+    PrivKeyB := TCnSM2CollaborativePrivateKey.Create;
+    PrivKeyC := TCnSM2CollaborativePrivateKey.Create;
+    PubKey := TCnSM2CollaborativePublicKey.Create;
+
+    P := TCnEccPoint.Create;
+    if CnSM2Collaborative3GenerateKeyAStep1(PrivKeyA, P) then
+    begin
+      if CnSM2Collaborative3GenerateKeyBStep1(PrivKeyB, P, P) then
+      begin
+        if CnSM2Collaborative3GenerateKeyCStep1(PrivKeyC, P, PubKey) then
+        begin
+          edtSM2PublicKeyABC.Text := PubKey.ToHex;
+          edtSM2Private3KeyA.Text := PrivKeyA.ToHex;
+          edtSM2Private3KeyB.Text := PrivKeyB.ToHex;
+          edtSM2Private3KeyC.Text := PrivKeyC.ToHex;
+
+          // 验证 PrivateKeyA * PrivateKeyB * PrivateKeyC - 1
+          PrivKey := TCnSM2PrivateKey.Create;
+          SM2 := TCnSM2.Create;
+          BigNumberDirectMulMod(PrivKey, PrivKeyA, PrivKeyB, SM2.Order);
+          BigNumberDirectMulMod(PrivKey, PrivKey, PrivKeyC, SM2.Order);
+          BigNumberSubWord(PrivKey, 1);
+
+          R := TCnEccPoint.Create;
+          Z := TCnBigNumber.Create;
+          CnSM2SchnorrProve(PrivKey, PubKey, R, Z, SM2);
+
+          if CnSM2SchnorrCheck(PubKey, R, Z, SM2) then
+            ShowMessage('3 Keys Check OK');
+        end;
+      end;
+    end;
+  finally
+    SM2.Free;
+    Z.Free;
+    R.Free;
+    P.Free;
+    PrivKey.Free;
+    PubKey.Free;
+    PrivKeyC.Free;
+    PrivKeyB.Free;
+    PrivKeyA.Free;
+  end;
+end;
+
+procedure TFormSM2.btnSM2Coll3SignFileClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PrivateKeyA, PrivateKeyB, PrivateKeyC: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+  E, KA, KB, R, S1, S2: TCnBigNumber;
+  Q: TCnEccPoint;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyABC) or not CheckPrivateKeyStr(edtSM2Private3KeyA)
+    or not CheckPrivateKeyStr(edtSM2Private3KeyB) or not CheckPrivateKeyStr(edtSM2Private3KeyC) then
+    Exit;
+
+  if not FileExists(edtSM2Coll3FileSign.Text) then
+    Exit;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PrivateKeyA := TCnEccPrivateKey.Create;
+  PrivateKeyA.SetHex(edtSM2Private3KeyA.Text);
+  PrivateKeyB := TCnEccPrivateKey.Create;
+  PrivateKeyB.SetHex(edtSM2Private3KeyB.Text);
+  PrivateKeyC := TCnEccPrivateKey.Create;
+  PrivateKeyC.SetHex(edtSM2Private3KeyC.Text);
+
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKeyABC.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2Coll3FileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+
+  E := TCnBigNumber.Create;
+  KA := TCnBigNumber.Create;
+  KB := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+  S1 := TCnBigNumber.Create;
+  S2 := TCnBigNumber.Create;
+  Q := TCnEccPoint.Create;
+
+  try
+    if not CnSM2Collaborative3SignAStep1(edtSM2Coll3UserId.Text, FileStream.Memory, FileStream.Size,
+      E, Q, KA, PrivateKeyA, PublicKey, SM2) then
+    begin
+      ShowMessage('A 3Sign 1 Fail.');
+      Exit;
+    end;
+
+    if not CnSM2Collaborative3SignBStep1(E, Q, Q, KB, PrivateKeyB, SM2) then
+    begin
+      ShowMessage('B 3Sign 1 Fail.');
+      Exit;
+    end;
+
+    if not CnSM2Collaborative3SignCStep1(E, Q, R, S1, S2, PrivateKeyC, SM2) then
+    begin
+      ShowMessage('C 3Sign 1 Fail.');
+      Exit;
+    end;
+
+    if not CnSM2Collaborative3SignBStep2(KB, R, S1, S2, S1, S2, PrivateKeyB, SM2) then
+    begin
+      ShowMessage('B 3Sign 2 Fail.');
+      Exit;
+    end;
+
+    if not CnSM2Collaborative3SignAStep2(KA, R, S1, S2, SignRes, PrivateKeyA, SM2) then
+    begin
+      ShowMessage('A 3Sign 2 Fail.');
+      Exit;
+    end;
+
+    mmoSM2Coll3Result.Lines.Text := SignRes.ToHex;
+    ShowMessage('A B C Collabrative Sign OK.');
+  finally
+    Q.Free;
+    S1.Free;
+    R.Free;
+    KB.Free;
+    KA.Free;
+    E.Free;
+
+    SignRes.Free;
+    FileStream.Free;
+    PublicKey.Free;
+    PrivateKeyB.Free;
+    PrivateKeyA.Free;
+    SM2.Free;
+  end;
+end;
+
+procedure TFormSM2.btnSM2Coll3VerifyClick(Sender: TObject);
+var
+  SM2: TCnSM2;
+  PublicKey: TCnEccPublicKey;
+  FileStream: TMemoryStream;
+  SignRes: TCnSM2Signature;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyABC) then
+    Exit;
+
+  if not FileExists(edtSM2Coll3FileSign.Text) then
+    Exit;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PublicKey := TCnEccPublicKey.Create;
+  PublicKey.SetHex(edtSM2PublicKeyABC.Text);
+
+  FileStream := TMemoryStream.Create;
+  FileStream.LoadFromFile(edtSM2Coll3FileSign.Text);
+
+  SignRes := TCnSM2Signature.Create;
+  SignRes.SetHex(mmoSM2Coll3Result.Lines.Text);
+
+  if CnSM2VerifyData(edtSM2Coll3UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
+    PublicKey, SM2) then
+  begin
+    ShowMessage('Verify File OK.');
+  end
+  else
+    ShowMessage('Verify File Failed.');
+
+  SignRes.Free;
+  FileStream.Free;
+  PublicKey.Free;
   SM2.Free;
 end;
 
