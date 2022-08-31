@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3, CnBigNumber, ExtCtrls;
+  ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3, CnBigNumber, ExtCtrls, CnNative;
 
 type
   TFormSM2 = class(TForm)
@@ -163,6 +163,8 @@ type
     procedure btnSM2Collaborative3GenClick(Sender: TObject);
     procedure btnSM2Coll3SignFileClick(Sender: TObject);
     procedure btnSM2Coll3VerifyClick(Sender: TObject);
+    procedure btnSM2Coll3EncryptClick(Sender: TObject);
+    procedure btnSM2Coll3DecryptClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -183,23 +185,6 @@ const
 
   USER_A: AnsiString = 'ALICE123@YAHOO.COM';
   USER_B: AnsiString = 'BILL456@YAHOO.COM';
-
-function MyStrToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-var
-  I: Integer;
-  B: Byte;
-begin
-  Result := '';
-  for I := 0 to Length - 1 do
-  begin
-    B := PByte(Integer(Buffer) + I)^;
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
-      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
-  end;
-end;
 
 function HexToInt(const Hex: AnsiString): Integer;
 var
@@ -353,8 +338,8 @@ begin
 
     if CnSM2KeyExchangeBStep2(USER_A, USER_B, KEY_LENGTH, BPrivateKey, APublicKey,
       BPublicKey, OpSA, OpS2, SM2) then
-      ShowMessage('Key Exchange OK: ' + MyStrToHex(PAnsiChar(KA), Length(KA)) + ' : '
-        + MyStrToHex(PAnsiChar(KB), Length(KB)));
+      ShowMessage('Key Exchange OK: ' + DataToHex(PAnsiChar(KA), Length(KA)) + ' : '
+        + DataToHex(PAnsiChar(KB), Length(KB)));
 
   finally
     OutRA.Free;
@@ -418,7 +403,7 @@ begin
   if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkPrefixByte.Checked) then
   begin
     ShowMessage('Encrypt OK');
-    mmoSM2Result.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
+    mmoSM2Result.Lines.Text := DataToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
   end;
 
   PublicKey.Free;
@@ -695,14 +680,14 @@ begin
       BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2) then
       Exit;
 
-    ShowMessage('B Get KeyB [' + MyStrToHex(PAnsiChar(KB), Length(KB)) + '] and Send RB to A: ' + OutRB.ToHex);
+    ShowMessage('B Get KeyB [' + DataToHex(PAnsiChar(KB), Length(KB)) + '] and Send RB to A: ' + OutRB.ToHex);
 
     // Step3
     if not CnSM2KeyExchangeAStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
       APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, SM2) then
       Exit;
 
-    ShowMessage('A Get KeyA [' +  MyStrToHex(PAnsiChar(KA), Length(KA)) + '] and Send OpSA to A: ' + SM3Print(OpSA));
+    ShowMessage('A Get KeyA [' +  DataToHex(PAnsiChar(KA), Length(KA)) + '] and Send OpSA to A: ' + SM3Print(OpSA));
 
     // Step4
     if not CnSM2KeyExchangeBStep2(edtSM2AUserId.Text, edtSM2BUserId.Text, KEY_LENGTH,
@@ -712,8 +697,8 @@ begin
     ShowMessage('B Optionally Check OpSA OK');
 
     if KA = KB then
-      ShowMessage('Key Exchange OK: [' + MyStrToHex(PAnsiChar(KA), Length(KA)) + '] : ['
-        + MyStrToHex(PAnsiChar(KB), Length(KB)) + ']');
+      ShowMessage('Key Exchange OK: [' + DataToHex(PAnsiChar(KA), Length(KA)) + '] : ['
+        + DataToHex(PAnsiChar(KB), Length(KB)) + ']');
   finally
     OutRA.Free;
     OutRB.Free;
@@ -1159,7 +1144,7 @@ begin
 
   if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkCollPrefixByte.Checked) then
   begin
-    mmoSM2CollResult.Lines.Text := MyStrToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
+    mmoSM2CollResult.Lines.Text := DataToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
     ShowMessage('Encrypt OK');
   end;
 
@@ -1625,6 +1610,121 @@ begin
   SignRes.Free;
   FileStream.Free;
   PublicKey.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2Coll3EncryptClick(Sender: TObject);
+var
+  T: AnsiString;
+  SM2: TCnSM2;
+  PublicKey: TCnSM2PublicKey;
+  EnStream: TMemoryStream;
+  ST: TCnSM2CryptSequenceType;
+begin
+  if not CheckPublicKeyStr(edtSM2PublicKeyABC) then
+    Exit;
+
+  if Length(edtSM2Coll3Text.Text) = 0 then
+  begin
+    ShowMessage('Please Enter some Text');
+    Exit;
+  end;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PublicKey := TCnSM2PublicKey.Create;
+
+  EnStream := TMemoryStream.Create;
+
+  PublicKey.SetHex(edtSM2PublicKeyABC.Text);
+
+  T := AnsiString(edtSM2Coll3Text.Text);
+  if rbColl3C1C3C2.Checked then
+    ST := cstC1C3C2
+  else
+    ST := cstC1C2C3;
+
+  if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkCollPrefixByte.Checked) then
+  begin
+    mmoSM2Coll3Result.Lines.Text := DataToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
+    ShowMessage('Encrypt OK');
+  end;
+
+  PublicKey.Free;
+  EnStream.Free;
+  SM2.Free;
+end;
+
+procedure TFormSM2.btnSM2Coll3DecryptClick(Sender: TObject);
+var
+  S: AnsiString;
+  SM2: TCnSM2;
+  PrivateKeyA, PrivateKeyB, PrivateKeyC: TCnSM2CollaborativePrivateKey;
+  EnStream, DeStream: TMemoryStream;
+  ST: TCnSM2CryptSequenceType;
+  T: TCnEccPoint;
+begin
+  if not CheckPrivateKeyStr(edtSM2Private3KeyA) or not CheckPrivateKeyStr(edtSM2Private3KeyB)
+    or not CheckPrivateKeyStr(edtSM2Private3KeyC) then
+    Exit;
+
+  if Length(Trim(mmoSM2Coll3Result.Lines.Text)) < 2 then
+  begin
+    ShowMessage('SM2 Decrypted Hex Invalid.');
+    Exit;
+  end;
+
+  SM2 := TCnSM2.Create(ctSM2);
+  PrivateKeyA := TCnSM2CollaborativePrivateKey.Create;
+  PrivateKeyB := TCnSM2CollaborativePrivateKey.Create;
+  PrivateKeyC := TCnSM2CollaborativePrivateKey.Create;
+
+  EnStream := TMemoryStream.Create;
+  DeStream := TMemoryStream.Create;
+
+  PrivateKeyA.SetHex(edtSM2Private3KeyA.Text);
+  PrivateKeyB.SetHex(edtSM2Private3KeyB.Text);
+  PrivateKeyC.SetHex(edtSM2Private3KeyC.Text);
+
+  T := TCnEccPoint.Create;
+
+  MyStreamFromHex(Trim(mmoSM2Coll3Result.Lines.Text), EnStream);
+
+  if rbCollC1C3C2.Checked then
+    ST := cstC1C3C2
+  else
+    ST := cstC1C2C3;
+
+  if CnSM2Collaborative3DecryptAStep1(EnStream.Memory, EnStream.Size, T, PrivateKeyA, SM2) then
+  begin
+    if CnSM2Collaborative3DecryptBStep1(T, T, PrivateKeyB) then
+    begin
+      if CnSM2Collaborative3DecryptCStep1(T, T, PrivateKeyC) then
+      begin
+        if CnSM2Collaborative3DecryptAStep2(EnStream.Memory, EnStream.Size, T, DeStream, PrivateKeyA, SM2, ST) then
+        begin
+          SetLength(S, DeStream.Size);
+          DeStream.Position := 0;
+          DeStream.Read(S[1], DeStream.Size);
+          ShowMessage('Decrypt OK: ' + S);
+          edtSM2CollText.Text := S;
+        end
+        else
+          ShowMessage('3Decrypt A Step 4 Failed.');
+      end
+      else
+        ShowMessage('3Decrypt C Step 3 Failed.');
+    end
+    else
+      ShowMessage('3Decrypt B Step 2 Failed.');
+  end
+  else
+    ShowMessage('3Decrypt A Step 1 Failed.');
+
+  T.Free;
+  PrivateKeyB.Free;
+  PrivateKeyA.Free;
+  EnStream.Free;
+  DeStream.Free;
   SM2.Free;
 end;
 

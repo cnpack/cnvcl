@@ -36,7 +36,7 @@ unit CnSM2;
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2022.08.31 V1.7
-*               根据双方协同签名机制推理出三方协同签名机制并实现
+*               根据双方协同签名机制推理出三方协同签名机制并实现，并顺手实现三方协同解密
 *           2022.06.18 V1.6
 *               使用预计算 2 次幂点以及基于 16 的固定基来加速 SM2 的 G 点标量乘计算
 *               使用 NAF 来加速 SM2 的非 G 点标量乘计算
@@ -265,7 +265,7 @@ function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataLen: Integer;
 // ======== SM2 椭圆曲线三方或更多方互相信任的简易协同算法之协同密钥生成 =======
 {
   本协同模式下，A B C 三方或更多方互相信任，因而不对对方做认证，无条件相信对方发来的数据。
-  多方模式下，允许中间的非头尾方沿用 CnSM2Collaborative3GenerateKeyBStep1 的调用进行多次
+  多方模式下，允许中间的非头尾方沿用 CnSM2Collaborative3*BStep1 这类调用进行多次
   内部本质上等同于双方协同，只是中间步骤存在 0 步 ～ 多步之分
 
   其中：公钥 = （私钥分量A * 私钥分量B * 私钥分量C - 1）* G
@@ -339,6 +339,31 @@ function CnSM2Collaborative3SignAStep2(InRandKA, InRFromC, InS1FromB, InS2FromB:
   - InS2FromB 来源于上一步的 OutS2ToA
   最终签名值在 OutSignature 中
 }
+
+// =========== SM2 椭圆曲线三方或更多方互相信任的简易协同解密算法 ==============
+{
+  原理较签名简单多了，A B C 各自用自身的私钥分量叠加乘一个点，C 乘完后返回给 A 解密即可，无需再次过 B
+}
+function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataLen: Integer;
+  OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的三方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功}
+
+function CnSM2Collaborative3DecryptBStep1(InTFromA: TCnEccPoint; OutTToC: TCnEccPoint;
+  PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的三方协同解密，B 第二步根据 A 发来的中间值 T 算出自己的中间值 T，发送给 C，返回该步解密是否成功}
+
+function CnSM2Collaborative3DecryptCStep1(InTFromB: TCnEccPoint; OutTToA: TCnEccPoint;
+  PrivateKeyC: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
+{* 基于 SM2 椭圆曲线的双方协同解密，C 第三步根据 B 解出的中间值 T，生成最终值 T 发送回 A，（注意不用过 B 了）
+  返回该步解密是否成功}
+
+function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataLen: Integer;
+  InTFromC: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+{* 基于 SM2 椭圆曲线的双方协同解密，A 第四步根据 C 解出的中间值 T 算出最终解密结果写入 Stream，
+  返回该步最终解密是否成功
+  注意密文与 SequenceType 须保持和 AStep1 中的完全一致}
 
 implementation
 
@@ -2076,13 +2101,18 @@ begin
 end;
 
 // ======== SM2 椭圆曲线三方或更多方互相信任的简易协同算法之协同密钥生成 =======
-
+{
+  dA * G => B
+}
 function CnSM2Collaborative3GenerateKeyAStep1(PrivateKeyA: TCnSM2CollaborativePrivateKey;
   OutPointToB: TCnEccPoint; SM2: TCnSM2): Boolean;
 begin
   Result := CnSM2CollaborativeGenerateKeyAStep1(PrivateKeyA, OutPointToB, SM2);
 end;
 
+{
+  dA * dB * G => C
+}
 function CnSM2Collaborative3GenerateKeyBStep1(PrivateKeyB: TCnSM2CollaborativePrivateKey;
   InPointFromA: TCnEccPoint; OutPointToC: TCnEccPoint; SM2: TCnSM2): Boolean;
 var
@@ -2120,12 +2150,19 @@ begin
   end;
 end;
 
+{
+  (dA * dB * dC - 1) * G
+}
 function CnSM2Collaborative3GenerateKeyCStep1(PrivateKeyC: TCnSM2CollaborativePrivateKey;
   InPointFromB: TCnEccPoint; PublicKey: TCnSM2CollaborativePublicKey; SM2: TCnSM2): Boolean;
 begin
   Result := CnSM2CollaborativeGenerateKeyBStep1(PrivateKeyC, InPointFromB, PublicKey, SM2); // 有减一操作
 end;
 
+{
+  ka * G => B
+  e => B
+}
 function CnSM2Collaborative3SignAStep1(const UserID: AnsiString; PlainData: Pointer;
   DataLen: Integer; OutHashEToBC: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
@@ -2134,6 +2171,10 @@ begin
     OutQToB, OutRandKA, PrivateKeyA, PublicKey, SM2);
 end;
 
+{
+  kb * ka * G => C
+  e => C
+}
 function CnSM2Collaborative3SignBStep1(InHashEFromA: TCnBigNumber; InQFromA: TCnEccPoint;
   OutQToC: TCnEccPoint; OutRandKB: TCnBigNumber; PrivateKeyB: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
@@ -2174,6 +2215,11 @@ begin
   end;
 end;
 
+{
+  Q = kc * kb * ka * G + k1 * G，其 x 坐标 + e => r，r 相对比较固定地传递给 A 和 B
+  S1 = kc / dC         => B
+  S2 = (k1 + r) / dC   => B
+}
 function CnSM2Collaborative3SignCStep1(InHashEFromA: TCnBigNumber; InQFromB: TCnEccPoint;
   OutRToBA, OutS1ToB, OutS2ToB: TCnBigNumber; PrivateKeyC: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
@@ -2259,6 +2305,10 @@ begin
   end;
 end;
 
+{
+  S1 = (kc * kb) / (dC * dB)  => A
+  S2 = (k1 + r) / (dC * dB)   => A
+}
 function CnSM2Collaborative3SignBStep2(InRandKB, InRFromC, InS1FromC, InS2FromC: TCnBigNumber;
   OutS1ToA, OutS2ToA: TCnBigNumber; PrivateKeyB: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
@@ -2303,6 +2353,14 @@ begin
   end;
 end;
 
+{
+  S1 = (kc * kb * ka) / (dC * dB * dA)
+  S2 = (k1 + r) / (dC * dB * dA)
+
+  S = S1 + S2 - r
+
+  验证 S 的过程类似于 P 的计算化简，最后得到单纯的 k = (k1 + ka*kb*kc)
+}
 function CnSM2Collaborative3SignAStep2(InRandKA, InRFromC, InS1FromB, InS2FromB: TCnBigNumber;
   OutSignature: TCnSM2Signature; PrivateKeyA: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 var
@@ -2352,6 +2410,35 @@ begin
     if SM2IsNil then
       SM2.Free;
   end;
+end;
+
+// =========== SM2 椭圆曲线三方或更多方互相信任的简易协同解密算法 ==============
+
+function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataLen: Integer;
+  OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil): Boolean;
+begin
+  Result := CnSM2CollaborativeDecryptAStep1(EnData, DataLen, OutTToB, PrivateKeyA, SM2);
+end;
+
+function CnSM2Collaborative3DecryptBStep1(InTFromA: TCnEccPoint; OutTToC: TCnEccPoint;
+  PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
+begin
+  Result := CnSM2CollaborativeDecryptBStep1(InTFromA, OutTToC, PrivateKeyB, SM2);
+end;
+
+function CnSM2Collaborative3DecryptCStep1(InTFromB: TCnEccPoint; OutTToA: TCnEccPoint;
+  PrivateKeyC: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
+begin
+  Result := CnSM2CollaborativeDecryptBStep1(InTFromB, OutTToA, PrivateKeyC, SM2);
+end;
+
+function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataLen: Integer;
+  InTFromC: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+begin
+  Result := CnSM2CollaborativeDecryptAStep2(EnData, DataLen, InTFromC, OutStream,
+    PrivateKeyA, SM2, SequenceType);
 end;
 
 procedure InitSM2;

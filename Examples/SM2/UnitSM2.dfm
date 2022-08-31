@@ -850,7 +850,7 @@ object FormSM2: TFormSM2
           Height = 25
           Caption = 'Encrypt using Public Key'
           TabOrder = 12
-          OnClick = btnSM2CollEncryptClick
+          OnClick = btnSM2Coll3EncryptClick
         end
         object btnSM2Coll3Decrypt: TButton
           Left = 104
@@ -859,7 +859,7 @@ object FormSM2: TFormSM2
           Height = 25
           Caption = 'Decrypt using 3 Private Keys'
           TabOrder = 14
-          OnClick = btnSM2CollDecryptClick
+          OnClick = btnSM2Coll3DecryptClick
         end
         object rbColl3C1C2C3: TRadioButton
           Left = 616
