@@ -41,9 +41,6 @@ interface
 
 {$I CnPack.inc}
 
-uses
-  Windows;
-
 const
   ECN_OK                              = 0;         // 錯誤碼 OK，無錯誤
 
@@ -85,11 +82,12 @@ var
 const
   // 開發包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.2.2';
+  SCnPackVer = 'Ver 0.1.2.4';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
   SCnPackNewsUrl = 'news://news.cnpack.org';
+  SCnPackSourceUrl = 'http://github.com/cnpack';
   SCnPackEmail = 'master@cnpack.org';
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
@@ -130,6 +128,7 @@ var
   SCnPack_Wyb_star: string = '王玉寶';
   SCnPack_Licwing: string = '朱磊(Licwing Zue)';
   SCnPack_Alan: string = '張偉(Alan)';
+  SCnPack_GuYueChunQiu: string = '古月春秋';
   SCnPack_Aimingoo: string = '周愛民(Aimingoo)';
   SCnPack_QSoft: string = '何清(QSoft)';
   SCnPack_Hospitality: string = '張炅軒(Hospitality)';
@@ -151,6 +150,8 @@ var
   SCnPack_BuDeXian: string = '不得閒';
   SCnPack_XiaoXia: string = '小夏';
   SCnPack_ZiMin: string = '子旻';
+  SCnPack_rarnu: string = 'rarnu';
+  SCnPack_dejoy: string = 'dejoy';
 
   // CnCommon
   SUnknowError: string = '未知錯誤';
@@ -167,6 +168,7 @@ const
   SCnPack_Wyb_starMail = 'wyb_star@sina.com';
   SCnPack_LicwingEmail = 'licwing@chinasystemsn.com';
   SCnPack_AlanEmail = 'BeyondStudio@163.com';
+  SCnPack_GuYueChunQiuEmail = 'guyuechunqiu@cnpack.org';
   SCnPack_AimingooEmail = 'aim@263.net';
   SCnPack_QSoftEmail = 'hq.com@263.net';
   SCnPack_HospitalityEmail = 'Hospitality_ZJX@msn.com';
@@ -187,7 +189,9 @@ const
   SCnPack_SesameEmail = 'sesamehch@163.com';
   SCnPack_BuDeXianEmail = 'appleak46@yahoo.com.cn';
   SCnPack_XiaoXiaEmail = 'summercore@163.com';
-  SCnPack_ZiMinEmail: string = '441414288@qq.com';
+  SCnPack_ZiMinEmail = '441414288@qq.com';
+  SCnPack_rarnuEmail = 'rarnu@cnpack.org';
+  SCnPack_dejoyEmail = 'dejoybbs@163.com';
 
   // CnMemProf
   SCnPackMemMgr = '內存管理監視器';
@@ -215,7 +219,21 @@ const
   SCommaString = '，';
   SPeriodString = '。';
 
+function CnGetLastError: Integer;
+
+procedure _CnSetLastError(Err: Integer);
+
 implementation
+
+function CnGetLastError: Integer;
+begin
+  Result := CnErrorCode
+end;
+
+procedure _CnSetLastError(Err: Integer);
+begin
+  CnErrorCode := Err;
+end;
 
 end.
 

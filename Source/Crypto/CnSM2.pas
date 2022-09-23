@@ -2359,7 +2359,11 @@ end;
 
   S = S1 + S2 - r
 
-  验证 S 的过程类似于 P 的计算化简，最后得到单纯的 k = (k1 + ka*kb*kc)
+  验证 S 的过程类似于 P 的计算化简，
+  为简化，令 k = (k1 + ka*kb*kc)  令 d = dA*dB*dC
+  因为 P = [s +(r+s)(d-1)]*G
+  其中 s = (k+r-dr)/d   得到 s+r = (k+r)/d
+  最后 P 点展开得到单纯的 k*G = (k1 + ka*kb*kc)*G
 }
 function CnSM2Collaborative3SignAStep2(InRandKA, InRFromC, InS1FromB, InS2FromB: TCnBigNumber;
   OutSignature: TCnSM2Signature; PrivateKeyA: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;

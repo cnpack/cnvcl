@@ -37,9 +37,6 @@ interface
 
 {$I CnPack.inc}
 
-uses
-  Windows;
-
 const
   ECN_OK                              = 0;         // ´íÎóÂë OK£¬ÎÞ´íÎó
 
@@ -81,11 +78,12 @@ var
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.2.2';
+  SCnPackVer = 'Ver 0.1.2.4';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
   SCnPackNewsUrl = 'news://news.cnpack.org';
+  SCnPackSourceUrl = 'http://github.com/cnpack';
   SCnPackEmail = 'master@cnpack.org';
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
@@ -126,6 +124,7 @@ var
   SCnPack_Wyb_star: string = 'wyb_star';
   SCnPack_Licwing: string = 'Licwing zue';
   SCnPack_Alan: string = 'Alan';
+  SCnPack_GuYueChunQiu: string = 'GuYueChunQiu';
   SCnPack_Aimingoo: string = 'Aimingoo';
   SCnPack_QSoft: string = 'QSoft';
   SCnPack_Hospitality: string = 'ZhangJiongXuan (Hospitality)';
@@ -147,7 +146,9 @@ var
   SCnPack_BuDeXian: string = 'BuDeXian';
   SCnPack_XiaoXia: string = 'Summer';
   SCnPack_ZiMin: string = 'ZiMin';
-    
+  SCnPack_rarnu: string = 'rarnu';
+  SCnPack_dejoy: string = 'dejoy';
+
   // CnCommon
   SUnknowError: string = 'Unknow error';
   SErrorCode: string = 'Error code:';
@@ -163,6 +164,7 @@ const
   SCnPack_Wyb_starMail = 'wyb_star@sina.com';
   SCnPack_LicwingEmail = 'licwing@chinasystemsn.com';
   SCnPack_AlanEmail = 'BeyondStudio@163.com';
+  SCnPack_GuYueChunQiuEmail = 'guyuechunqiu@cnpack.org';
   SCnPack_AimingooEmail = 'aim@263.net';
   SCnPack_QSoftEmail = 'hq.com@263.net';
   SCnPack_HospitalityEmail = 'Hospitality_ZJX@msn.com';
@@ -183,7 +185,9 @@ const
   SCnPack_SesameEmail = 'sesamehch@163.com';
   SCnPack_BuDeXianEmail = 'appleak46@yahoo.com.cn';
   SCnPack_XiaoXiaEmail = 'summercore@163.com';
-  SCnPack_ZiMinEmail: string = '441414288@qq.com';
+  SCnPack_ZiMinEmail = '441414288@qq.com';
+  SCnPack_rarnuEmail = 'rarnu@cnpack.org';
+  SCnPack_dejoyEmail = 'dejoybbs@163.com';
 
   // CnMemProf
   SCnPackMemMgr = 'CnMemProf';
@@ -211,7 +215,24 @@ const
   SCommaString = ',';
   SPeriodString = '.';
 
+function CnGetLastError: Integer;
+
+procedure _CnSetLastError(Err: Integer);
+
 implementation
+
+threadvar
+  CnErrorCode: Integer;
+
+function CnGetLastError: Integer;
+begin
+  Result := CnErrorCode
+end;
+
+procedure _CnSetLastError(Err: Integer);
+begin
+  CnErrorCode := Err;
+end;
 
 end.
 

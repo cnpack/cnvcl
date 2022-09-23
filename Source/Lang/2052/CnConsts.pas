@@ -41,9 +41,6 @@ interface
 
 {$I CnPack.inc}
 
-uses
-  Windows;
-
 const
   ECN_OK                              = 0;         // 错误码 OK，无错误
 
@@ -85,12 +82,12 @@ var
 const
   // 开发包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.2.2';
+  SCnPackVer = 'Ver 0.1.2.4';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'http://www.cnpack.org';
   SCnPackBbsUrl = 'http://bbs.cnpack.org';
   SCnPackNewsUrl = 'news://news.cnpack.org';
-  SCnPackSourceUrl = 'http://cnpack.googlecode.com';
+  SCnPackSourceUrl = 'http://github.com/cnpack';
   SCnPackEmail = 'master@cnpack.org';
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
@@ -131,6 +128,7 @@ var
   SCnPack_Wyb_star: string = '王玉宝';
   SCnPack_Licwing: string = '朱磊(Licwing Zue)';
   SCnPack_Alan: string = '张伟(Alan)';
+  SCnPack_GuYueChunQiu: string = '古月春秋';
   SCnPack_Aimingoo: string = '周爱民(Aimingoo)';
   SCnPack_QSoft: string = '何清(QSoft)';
   SCnPack_Hospitality: string = '张炅轩(Hospitality)';
@@ -170,6 +168,7 @@ const
   SCnPack_Wyb_starMail = 'wyb_star@sina.com';
   SCnPack_LicwingEmail = 'licwing@chinasystemsn.com';
   SCnPack_AlanEmail = 'BeyondStudio@163.com';
+  SCnPack_GuYueChunQiuEmail = 'guyuechunqiu@cnpack.org';
   SCnPack_AimingooEmail = 'aim@263.net';
   SCnPack_QSoftEmail = 'hq.com@263.net';
   SCnPack_HospitalityEmail = 'Hospitality_ZJX@msn.com';
@@ -220,7 +219,21 @@ const
   SCommaString = '，';
   SPeriodString = '。';
 
+function CnGetLastError: Integer;
+
+procedure _CnSetLastError(Err: Integer);
+
 implementation
+
+function CnGetLastError: Integer;
+begin
+  Result := CnErrorCode
+end;
+
+procedure _CnSetLastError(Err: Integer);
+begin
+  CnErrorCode := Err;
+end;
 
 end.
 
