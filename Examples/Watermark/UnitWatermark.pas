@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, jpeg,
-  StdCtrls, ExtCtrls, CnNativeDecl, CnMatrix, CnDFT;
+  StdCtrls, ExtCtrls, CnNative, CnMatrix, CnDFT;
 
 type
   TFormWatermark = class(TForm)
