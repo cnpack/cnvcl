@@ -28,7 +28,9 @@ unit CnGraphics;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2002.03.14 V0.11Alpha
+* 修改记录：2022.09.25 V0.12
+*               增加 Win64 位的支持
+*           2002.03.14 V0.11Alpha
 *               原图像处理库最后版本
 *               新库正在制作中
 ================================================================================
@@ -40,7 +42,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, Graphics, ExtCtrls, Math, Controls, Messages,
-  CnClasses, CnCommon, CnGraphConsts;
+  CnNative, CnClasses, CnCommon, CnGraphConsts;
 
 type
 
@@ -1723,28 +1725,28 @@ end;
 // 按位置排序
 procedure TCnMiddleColor.Sort;
 var
-  i, j, Idx, Pos: Integer;
+  I, J, Idx, Pos: Integer;
   Item: TCnMiddleColorItem;
 begin
   if FSorting then Exit;
   FSorting := True;
   BeginUpdate;
   try
-    for i := 0 to Count - 1 do
+    for I := 0 to Count - 1 do
     begin
-      Pos := Items[i].FPos;
-      Idx := i;
-      for j := i + 1 to Count - 1 do
+      Pos := Items[I].FPos;
+      Idx := I;
+      for J := I + 1 to Count - 1 do
       begin
-        Item := Items[j];
+        Item := Items[J];
         if Item.FPos < Pos then
         begin
           Pos := Item.FPos;
-          Idx := j;
+          Idx := J;
         end;
       end;
-      if Idx <> i then
-        Items[Idx].Index := i;
+      if Idx <> I then
+        Items[Idx].Index := I;
     end;
     if GetOwner is TCnPersistent then // 通知更新
       TCnPersistentAccess(GetOwner).Changed;
@@ -2333,11 +2335,11 @@ end;
 // 高斯模糊处理
 procedure TCnFontMask.Blur(Amount: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
   if Amount > 0 then
-    for i := Amount downto 1 do
-      SplitBlur(i);
+    for I := Amount downto 1 do
+      SplitBlur(I);
 end;
 
 // 喷溅效果
@@ -2408,7 +2410,7 @@ end;
 // 扫描线
 function TCnFontMask.GetScanLine(Row: Integer): PByteArray;
 begin
-  Result := PByteArray(Integer(FBuff) + Row * FRowInc);
+  Result := PByteArray(TCnNativePointer(FBuff) + Row * FRowInc);
 end;
 
 // 设置大小
@@ -2527,14 +2529,14 @@ end;
 // 释放所有内存DC
 procedure FreeBmpDC;
 var
-  i: Integer;
+  I: Integer;
   Canvas: TCnCanvas;
 begin
   with CnCanvasList.LockList do // 如果其它线程也在访问则等待
   try
-    for i := Count - 1 downto 0 do
+    for I := Count - 1 downto 0 do
     begin
-      Canvas := TCnCanvas(Items[i]);
+      Canvas := TCnCanvas(Items[I]);
       if Canvas.TryLock then
       try
         Canvas.FreeContext;   // 释放DC
@@ -2550,14 +2552,14 @@ end;
 // 释放位图句柄
 procedure FreeBmpHandle(All: Boolean);
 var
-  i: Integer;
+  I: Integer;
   Bmp: TCnBitmap;
 begin
   with BitmapList.LockList do // 如果其它线程也在访问则等待
   try
-    for i := Count - 1 downto 0 do
+    for I := Count - 1 downto 0 do
     begin
-      Bmp := TCnBitmap(Items[i]);
+      Bmp := TCnBitmap(Items[I]);
       if (All or (Bmp.GdiAllocStyle = gsInternal) or (Bmp.GdiAllocStyle =
         gsNormal) and (GetTickCount - Bmp.FGdiLastAccess > FreeGdiWaitTime))
         and Bmp.HandleAllocated then
@@ -2627,13 +2629,14 @@ end;
 // 更新扫描线指针数组
 procedure TCnBitmap.UpdateScanLine;
 var
-  x, i: Integer;
+  I: Integer;
+  x: TCnNativePointer;
 begin
   ReallocMem(FScanLine, FHeight * SizeOf(PCnLine)); // 重新分配扫描线指针数组空间
-  x := Integer(FBits);
-  for i := 0 to Height - 1 do
+  x := TCnNativePointer(FBits);
+  for I := 0 to Height - 1 do
   begin
-    FScanLine[i] := Pointer(x); // 初始化扫描线指针数组内容
+    FScanLine[I] := Pointer(x); // 初始化扫描线指针数组内容
     Inc(x, FRowInc);
   end;
 end;
@@ -2837,12 +2840,13 @@ end;
 // 算法：周劲羽
 procedure TCnBitmap.FillRect(Rect: TRect; Color: TColor);
 var
-  x, y, w, h, i, lw: Integer;
+  x, y, w, h, I, lw: Integer;
   ARect: TRect;
   Tmp: PCnColor;
   ARGB: TCnColor;
 begin
-  if Empty then Exit;         // 无有效区域
+  if Empty then
+    Exit;         // 无有效区域
   if not IntersectRect(ARect, Rect, ClientRect) then Exit;
   Changing;
   if (Color = clBlack) and RectEqu(ARect, ClientRect) then
@@ -2857,15 +2861,15 @@ begin
       FillChar(Tmp^, lw, 0)
     else
     begin
-      for i := 0 to w - 1 do  // 填充第一行扫描线
+      for I := 0 to w - 1 do  // 填充第一行扫描线
       begin
         Tmp^ := ARGB;
         Inc(Tmp);
       end;
     end;
     Tmp := @FScanLine[y][x];
-    for i := y + 1 to y + h - 1 do // 复制到其它扫描线
-      Move(Tmp^, (@FScanLine[i][x])^, lw);
+    for I := y + 1 to y + h - 1 do // 复制到其它扫描线
+      Move(Tmp^, (@FScanLine[I][x])^, lw);
   end;
   Changed;
 end;
@@ -2904,7 +2908,9 @@ end;
 // 以指定色画矩形
 procedure TCnBitmap.FrameRect(Rect: TRect; Color: TColor);
 begin
-  if Empty then Exit;
+  if Empty then
+    Exit;
+
   with Rect do
   begin
     DrawLine(Left, Top, Left, Bottom, Color);
@@ -2925,7 +2931,9 @@ var
   TranColor, c: TCnColor;
 begin
   Result := 0;
-  if Empty then Exit;
+  if Empty then
+    Exit;
+
   Count := 0;
   TranColor := GetTranColor;
   for y := 0 to Height - 1 do
@@ -3405,7 +3413,7 @@ procedure TCnBitmap.DoDraw(DstX, DstY: Integer; Src: TCnBitmap;
   SrcRect: TRect; Tran: Boolean);
 var
   n1, n2: Pointer;
-  i, j: Integer;
+  I, J: Integer;
   p1, p2: PCnColor;
   x, y, sx, sy, w, h: Integer;
   TranColor: TCnColor;
@@ -3417,11 +3425,11 @@ begin
   if Tran then                // 透明绘制
   begin
     TranColor := Src.GetTranColor;
-    for i := 0 to h - 1 do
+    for I := 0 to h - 1 do
     begin
-      p1 := @FScanLine[y + i][x];
-      P2 := @Src.FScanLine[sy + i][sx];
-      for j := 0 to w - 1 do
+      p1 := @FScanLine[y + I][x];
+      P2 := @Src.FScanLine[sy + I][sx];
+      for J := 0 to w - 1 do
       begin                   // 透明判断
         if (p2.b <> TranColor.b) or (p2.g <> TranColor.g) or (p2.r <> TranColor.r) then
           p1^ := p2^;
@@ -3434,11 +3442,11 @@ begin
   begin
     n1 := @FScanLine[y][x];   // 目标位图左上角象素地址
     n2 := @Src.FScanLine[sy][sx]; // 源位图左上角象素地址
-    for i := 0 to h - 1 do
+    for I := 0 to h - 1 do
     begin
       Move(n2^, n1^, w * 3);  // 复制图像数据
-      n1 := Pointer(Integer(n1) + RowInc); // 增长一行扫描线
-      n2 := Pointer(Integer(n2) + Src.RowInc);
+      n1 := Pointer(TCnNativePointer(n1) + RowInc); // 增长一行扫描线
+      n2 := Pointer(TCnNativePointer(n2) + Src.RowInc);
     end;
   end;
   Changed;
@@ -3663,15 +3671,15 @@ end;
 // 平铺绘制TCnBitmap位图增强版
 procedure TCnBitmap.TileDrawEx(DstRect: TRect; Src: TCnBitmap);
 var
-  i, j, x, y, w, h: Integer;
+  I, J, x, y, w, h: Integer;
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
   BeginUpdate;
   try
     DeRect(DstRect, x, y, w, h);
-    for i := 0 to w div Src.Width do
-      for j := 0 to h div Src.Height do
-        Draw(x + i * Src.Width, y + j * Src.Height, Src);
+    for I := 0 to w div Src.Width do
+      for J := 0 to h div Src.Height do
+        Draw(x + I * Src.Width, y + J * Src.Height, Src);
   finally
     EndUpdate;
   end;
@@ -3686,15 +3694,15 @@ end;
 // 平铺绘制TGraphic增强版
 procedure TCnBitmap.TileDrawEx(DstRect: TRect; Src: TGraphic);
 var
-  i, j, x, y, w, h: Integer;
+  I, J, x, y, w, h: Integer;
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
   BeginUpdate;
   try
     DeRect(DstRect, x, y, w, h);
-    for i := 0 to w div Src.Width do
-      for j := 0 to h div Src.Height do
-        Draw(x + i * Src.Width, y + j * Src.Height, Src);
+    for I := 0 to w div Src.Width do
+      for J := 0 to h div Src.Height do
+        Draw(x + I * Src.Width, y + J * Src.Height, Src);
   finally
     EndUpdate;
   end;
@@ -3703,7 +3711,7 @@ end;
 // 平铺绘制自身到DC
 procedure TCnBitmap.TileDrawTo(hDst: HDC; DstRect: TRect);
 var
-  i, j, x, y, w, h: Integer;
+  I, J, x, y, w, h: Integer;
   Bmp: TCnBitmap;
 begin
   if Empty then Exit;
@@ -3722,9 +3730,9 @@ begin
   else
   begin
     DeRect(DstRect, x, y, w, h);
-    for i := 0 to w div Width do
-      for j := 0 to h div Height do
-        DrawTo(hDst, x + i * Width, y + j * Height);
+    for I := 0 to w div Width do
+      for J := 0 to h div Height do
+        DrawTo(hDst, x + I * Width, y + J * Height);
   end;
 end;
 
@@ -4138,7 +4146,7 @@ end;
 procedure TCnBitmap.AlphaDraw(Src: TCnBitmap; Alpha: TCnAlpha;
   Stretch: Boolean);
 var
-  x, y, i: Integer;
+  x, y, I: Integer;
   c1, c2: PCnColor;
   Table: array[-255..255] of Integer;
   Bmp: TCnBitmap;
@@ -4158,8 +4166,8 @@ begin
       Exit;
     end;
 
-    for i := -255 to 255 do   // 建立Alpha混合表
-      Table[i] := (FAlpha * i) shr 8;
+    for I := -255 to 255 do   // 建立Alpha混合表
+      Table[I] := (FAlpha * I) shr 8;
 
     c1 := Bits;
     c2 := Bmp.Bits;
@@ -4180,8 +4188,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(Integer(c1) + Gap);
-        c2 := Pointer(Integer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativePointer(c1) + Gap);
+        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
       end;
     end
     else
@@ -4196,8 +4204,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(Integer(c1) + Gap);
-        c2 := Pointer(Integer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativePointer(c1) + Gap);
+        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
       end;
     end;
   finally
@@ -4211,7 +4219,7 @@ end;
 procedure TCnBitmap.AlphaDraw(DstX, DstY: Integer; Src: TCnBitmap;
   SrcRect: TRect; Alpha: TCnAlpha);
 var
-  i, j: Integer;
+  I, J: Integer;
   p1, p2: PCnColor;
   x, y, sx, sy, w, h: Integer;
   Tran: Boolean;
@@ -4231,15 +4239,15 @@ begin
   end;
 
   Changing;
-  for i := -255 to 255 do     // 建立Alpha混合表
-    Table[i] := (FAlpha * i) shr 8;
+  for I := -255 to 255 do     // 建立Alpha混合表
+    Table[I] := (FAlpha * I) shr 8;
   Tran := Src.Transparent;
   TranColor := Src.GetTranColor;
-  for i := 0 to h - 1 do
+  for I := 0 to h - 1 do
   begin
-    p1 := @FScanLine[y + i][x];
-    P2 := @Src.FScanLine[sy + i][sx];
-    for j := 0 to w - 1 do
+    p1 := @FScanLine[y + I][x];
+    P2 := @Src.FScanLine[sy + I][sx];
+    for J := 0 to w - 1 do
     begin                     // 透明判断
       if not Tran or (p2.b <> TranColor.b) or (p2.g <> TranColor.g) or (p2.r <>
         TranColor.r) then
@@ -4260,7 +4268,7 @@ end;
 procedure TCnBitmap.AlphaDrawGrad(Src: TCnBitmap; Style: TCnGradStyle;
   Stretch: Boolean; StartAlpha: TCnAlpha; EndAlpha: TCnAlpha);
 var
-  x, y, i: Integer;
+  x, y, I: Integer;
   c1, c2: PCnColor;
   Bmp: TCnBitmap;
   Tran: Boolean;
@@ -4307,15 +4315,15 @@ begin
     end;
     AddA := Round((EA - SA) / Len); // 每象素增量
     CurA := SA;
-    for i := 0 to Len - 1 do
+    for I := 0 to Len - 1 do
     begin
-      Alpha[i] := CurA shr 16; // 小数转整数优化
+      Alpha[I] := CurA shr 16; // 小数转整数优化
       Inc(CurA, AddA);
     end;
 
     if Style in [gsCenterToLR, gsCenterToTB] then // 对称渐变
-      for i := 0 to Len - 1 do
-        Alpha[BufLen - 1 - i] := Alpha[i];
+      for I := 0 to Len - 1 do
+        Alpha[BufLen - 1 - I] := Alpha[I];
 
     c1 := Bits;
     c2 := Bmp.Bits;
@@ -4335,8 +4343,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(Integer(c1) + Gap);
-        c2 := Pointer(Integer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativePointer(c1) + Gap);
+        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
       end;
     end else if Style in [gsTopToBottom, gsBottomToTop, gsCenterToTB] then
     begin                     // 垂直方向渐变
@@ -4354,8 +4362,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(Integer(c1) + Gap);
-        c2 := Pointer(Integer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativePointer(c1) + Gap);
+        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
       end;
     end
     else if Style = gsRadial then
@@ -4389,8 +4397,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(Integer(c1) + Gap);
-        c2 := Pointer(Integer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativePointer(c1) + Gap);
+        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
       end
     end;
   finally
@@ -4405,7 +4413,7 @@ end;
 procedure TCnBitmap.AlphaDrawEx(DstRect: TRect; Front, Back: TCnBitmap;
   Alpha: TCnAlpha; Stretch: Boolean);
 var
-  x, y, i: Integer;
+  x, y, I: Integer;
   c1, c2, c3: PCnColor;
   cFt, cBk: PCnColor;
   Table: array[-255..255] of Integer;
@@ -4448,8 +4456,8 @@ begin
     TranColorBk := Back.GetTranColor;
 
     FAlpha := AlphaToInt(Alpha);
-    for i := -255 to 255 do   // 建立Alpha混合表
-      Table[i] := (FAlpha * i) shr 8;
+    for I := -255 to 255 do   // 建立Alpha混合表
+      Table[I] := (FAlpha * I) shr 8;
 
     if TranFt or TranBk then  // 需要处理透明（速度下降约20%）
     begin
@@ -4527,7 +4535,7 @@ var
   Bd: TCnColor;
   BdWeight: Integer;
   BufSize: Integer;
-  x, y, i, j, Cur, SPos, EPos, Added, Head: Integer;
+  x, y, I, J, Cur, SPos, EPos, Added, Head: Integer;
   ARect: TRect;
   Table: array[-255..255] of Integer;
   FAlpha: Integer;
@@ -4544,8 +4552,8 @@ begin
   BeginUpdate;
   try
     if FAlpha < 255 then
-      for i := -255 to 255 do // 建立Alpha混合表
-        Table[i] := (FAlpha * i) shr 8;
+      for I := -255 to 255 do // 建立Alpha混合表
+        Table[I] := (FAlpha * I) shr 8;
 
     if GradColor.FStyle in [gsLeftToRight, gsRightToLeft, gsCenterToLR] then
       BufLen := RectWidth(Rect) // 缓冲区长度
@@ -4565,15 +4573,15 @@ begin
       // 创建渐变色带缓冲区
       IsInvert := GradColor.FStyle in [gsRightToLeft, gsBottomToTop,
         gsCenterToLR, gsCenterToTB]; // 反序
-      i := 0;
+      I := 0;
       SCol := CnColor(GradColor.FColorStart); // 起始色
       SPos := 0;              // 起始位置
       repeat
-        if Assigned(GradColor.FColorMiddle) and (i < GradColor.FColorMiddle.Count) then
+        if Assigned(GradColor.FColorMiddle) and (I < GradColor.FColorMiddle.Count) then
         begin                 // 从中间色中查找
-          ECol := CnColor(GradColor.FColorMiddle[i].FColor);
-          EPos := GradColor.FColorMiddle[i].FPos;
-          Inc(i);
+          ECol := CnColor(GradColor.FColorMiddle[I].FColor);
+          EPos := GradColor.FColorMiddle[I].FPos;
+          Inc(I);
         end
         else
         begin
@@ -4582,23 +4590,23 @@ begin
         end;
         Head := SPos * Len div csMaxGradPos; // 开始位置及增量
         Added := Min((EPos - SPos) * Len div csMaxGradPos + 1, Len - Head);
-        for j := 0 to Added - 1 do
+        for J := 0 to Added - 1 do
         begin
           if IsInvert then    // 检查反序
-            Cur := Len - 1 - (j + Head)
+            Cur := Len - 1 - (J + Head)
           else
-            Cur := j + Head;
-          Buf[Cur].r := SCol.r + (ECol.r - SCol.r) * j div Added;
-          Buf[Cur].g := SCol.g + (ECol.g - SCol.g) * j div Added;
-          Buf[Cur].b := SCol.b + (ECol.b - SCol.b) * j div Added;
+            Cur := J + Head;
+          Buf[Cur].r := SCol.r + (ECol.r - SCol.r) * J div Added;
+          Buf[Cur].g := SCol.g + (ECol.g - SCol.g) * J div Added;
+          Buf[Cur].b := SCol.b + (ECol.b - SCol.b) * J div Added;
         end;
         SCol := ECol;
         SPos := EPos;
       until EPos = csMaxGradPos;
 
       if GradColor.FStyle in [gsCenterToLR, gsCenterToTB] then // 对称渐变
-        for i := 0 to Len - 1 do
-          Buf[BufLen - 1 - i] := Buf[i];
+        for I := 0 to Len - 1 do
+          Buf[BufLen - 1 - I] := Buf[I];
 
       OffX := ARect.Left - Rect.Left;
       OffY := ARect.Top - Rect.Top;
@@ -4607,8 +4615,8 @@ begin
         if FAlpha = 255 then  // 不透明
         begin
           LineSize := RectWidth(ARect) * 3;
-          for i := ARect.Top to ARect.Bottom - 1 do
-            Move(Buf[OffX], FScanLine[i][ARect.Left], LineSize);
+          for I := ARect.Top to ARect.Bottom - 1 do
+            Move(Buf[OffX], FScanLine[I][ARect.Left], LineSize);
         end
         else
         begin                 // 透明度
@@ -4857,7 +4865,7 @@ end;
 procedure TCnBitmap.RGB(ra, ga, ba: TAdjustRange);
 var
   Table: array[0..255] of TCnColor;
-  x, y, i: Integer;
+  x, y, I: Integer;
   CurBits: PCnColor;
   r, g, b: Integer;
 begin
@@ -4866,11 +4874,11 @@ begin
   b := RangeToInt(ba, -255, 255);
   g := RangeToInt(ga, -255, 255);
   r := RangeToInt(ra, -255, 255);
-  for i := 0 to 255 do
+  for I := 0 to 255 do
   begin
-    Table[i].b := IntToByte(i + b);
-    Table[i].g := IntToByte(i + g);
-    Table[i].r := IntToByte(i + r);
+    Table[I].b := IntToByte(I + b);
+    Table[I].g := IntToByte(I + g);
+    Table[I].r := IntToByte(I + r);
   end;
   CurBits := Bits;
   for y := 0 to Height - 1 do
@@ -4882,7 +4890,7 @@ begin
       CurBits.r := Table[CurBits.r].r;
       Inc(CurBits);
     end;
-    CurBits := Pointer(Integer(CurBits) + Gap);
+    CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
   end;
   Changed;
 end;
@@ -4920,7 +4928,7 @@ begin
         CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end
   else
@@ -4934,7 +4942,7 @@ begin
         if ccRed in Channels then CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -4982,7 +4990,7 @@ begin
         pc.r := IntToByte(Alpha[CurBits.r] + ag);
         Inc(pc);
       end;
-      pc := Pointer(Integer(pc) + Gap);
+      pc := Pointer(TCnNativePointer(pc) + Gap);
     end;
   end
   else
@@ -4999,7 +5007,7 @@ begin
         if ccRed in Channels then pc.r := IntToByte(Alpha[CurBits.r] + ag);
         Inc(pc);
       end;
-      pc := Pointer(Integer(pc) + Gap);
+      pc := Pointer(TCnNativePointer(pc) + Gap);
     end;
   end;
   Changed;
@@ -5030,7 +5038,7 @@ begin
         CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end
   else
@@ -5044,7 +5052,7 @@ begin
         if ccRed in Channels then CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5059,7 +5067,9 @@ var
   Table: array[0..255] of Byte;
   CurBits: PCnColor;
 begin
-  if Empty or (InHigh <= InLow) then Exit;
+  if Empty or (InHigh <= InLow) then
+    Exit;
+
   Changing;
   for x := 0 to InLow - 1 do
     Table[x] := OutLow;
@@ -5080,7 +5090,7 @@ begin
         CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end
   else
@@ -5094,7 +5104,7 @@ begin
         if ccRed in Channels then CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5104,14 +5114,14 @@ end;
 procedure TCnBitmap.Grayscale(Channels: TColorChannels);
 var
   Grays: array[0..256] of Byte;
-  i, x, y: Integer;
+  I, x, y: Integer;
   CurBits: PCnColor;
 begin
   if Empty then Exit;
   Changing;
   x := 0;
   y := 0;
-  for i := 0 to 85 do
+  for I := 0 to 85 do
   begin
     Grays[x + 0] := y;        // Grays[i] := i div 3
     Grays[x + 1] := y;
@@ -5126,13 +5136,13 @@ begin
     begin
       for x := 0 to FWidth - 1 do
       begin                   // Gray := (r + g + b) div 3
-        i := Grays[CurBits.b] + Grays[CurBits.g] + Grays[CurBits.r];
-        CurBits.b := i;
-        CurBits.g := i;
-        CurBits.r := i;
+        I := Grays[CurBits.b] + Grays[CurBits.g] + Grays[CurBits.r];
+        CurBits.b := I;
+        CurBits.g := I;
+        CurBits.r := I;
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end
   else
@@ -5141,13 +5151,13 @@ begin
     begin
       for x := 0 to FWidth - 1 do
       begin                   // Gray := (r + g + b) div 3
-        i := Grays[CurBits.b] + Grays[CurBits.g] + Grays[CurBits.r];
-        if ccBlue in Channels then CurBits.b := i;
-        if ccGreen in Channels then CurBits.g := i;
-        if ccRed in Channels then CurBits.r := i;
+        I := Grays[CurBits.b] + Grays[CurBits.g] + Grays[CurBits.r];
+        if ccBlue in Channels then CurBits.b := I;
+        if ccGreen in Channels then CurBits.g := I;
+        if ccRed in Channels then CurBits.r := I;
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5173,7 +5183,7 @@ begin
         CurBits.r := not CurBits.r;
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end
   else
@@ -5187,7 +5197,7 @@ begin
         if ccRed in Channels then CurBits.r := not CurBits.r;
         Inc(CurBits);
       end;
-      CurBits := Pointer(Integer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5228,7 +5238,7 @@ begin
         end;
       Inc(CurBits);
     end;
-    CurBits := Pointer(Integer(CurBits) + Gap);
+    CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
   end;
   Changed;
 end;
@@ -5273,12 +5283,12 @@ begin
         end
       else
       begin                   // 垂直翻转
-        TmPLine2 := Pointer(Integer(Bits) + (h - y) * RowInc);
+        TmPLine2 := Pointer(TCnNativePointer(Bits) + (h - y) * RowInc);
         CopyMemory(TmPLine, Line, RowInc);
         CopyMemory(Line, TmPLine2, RowInc);
         CopyMemory(TmPLine2, TmPLine, RowInc);
       end;
-      Line := Pointer(Integer(Line) + RowInc);
+      Line := Pointer(TCnNativePointer(Line) + RowInc);
     end;
   finally
     if not Horizontal then FreeMem(TmPLine);
@@ -5352,10 +5362,10 @@ begin
     p := Bits;
     for y := 0 to Height - 1 do
     begin                     // 复制左半部分到临时缓冲区
-      CopyMemory(Line, Pointer(Integer(p) + ((Width - Amount) * 3)), Amount * 3);
-      MoveMemory(Pointer(Integer(p) + (Amount * 3)), p, (Width - Amount) * 3);
+      CopyMemory(Line, Pointer(TCnNativePointer(p) + ((Width - Amount) * 3)), Amount * 3);
+      MoveMemory(Pointer(TCnNativePointer(p) + (Amount * 3)), p, (Width - Amount) * 3);
       CopyMemory(p, Line, Amount * 3);
-      p := Pointer(Integer(p) + RowInc);
+      p := Pointer(TCnNativePointer(p) + RowInc);
     end;
   finally
     FreeMem(Line);
@@ -5367,18 +5377,22 @@ end;
 procedure TCnBitmap.HShift(Amount: Integer);
 var
   Buff: Pointer;
-  p, y: Integer;
+  p, y: TCnNativePointer;
 begin
-  if Empty then Exit;
+  if Empty then
+    Exit;
+
   if Amount < 0 then Amount := Height mod Abs(Amount);
   if Amount >= Height then Amount := Amount mod Height;
-  if Amount = 0 then Exit;
+  if Amount = 0 then
+    Exit;
 
   Changing;
-  p := Integer(Bits) + (Height * (Gap)) + ((Height * Width) * 3);
-  p := p - Integer(FScanLine[Amount]);
-  y := Integer(FScanLine[Amount]) - Integer(Bits);
+  p := TCnNativePointer(Bits) + (Height * (Gap)) + ((Height * Width) * 3);
+  p := p - TCnNativePointer(FScanLine[Amount]);
+  y := TCnNativePointer(FScanLine[Amount]) - TCnNativePointer(Bits);
   GetMem(Buff, y);            // 临时缓冲区
+
   try
     CopyMemory(Buff, FScanLine[Height - Amount], y);
     MoveMemory(FScanLine[Amount], Bits, p);
@@ -5546,9 +5560,9 @@ begin
       if Sum = 0 then Sum := 1;
     end;
 
-    p1 := Pointer(Integer(Buff) - RowInc);
+    p1 := Pointer(TCnNativePointer(Buff) - RowInc);
     p2 := Buff;
-    p3 := Pointer(Integer(Buff) + RowInc);
+    p3 := Pointer(TCnNativePointer(Buff) + RowInc);
     Dst := Bits;              // 目标象素
     for y := 0 to Height - 1 do
     begin
@@ -5585,10 +5599,10 @@ begin
           y2[x3].r * Core[1, 2] + y3[x1].r * Core[2, 0] + y3[x2].r * Core[2, 1] +
           y3[x3].r * Core[2, 2]) div Sum);
       end;
-      p1 := Pointer(Integer(p1) + RowInc);
-      p2 := Pointer(Integer(p2) + RowInc);
-      p3 := Pointer(Integer(p3) + RowInc);
-      Dst := Pointer(Integer(Dst) + RowInc);
+      p1 := Pointer(TCnNativePointer(p1) + RowInc);
+      p2 := Pointer(TCnNativePointer(p2) + RowInc);
+      p3 := Pointer(TCnNativePointer(p3) + RowInc);
+      Dst := Pointer(TCnNativePointer(Dst) + RowInc);
     end;
   finally
     FreeMem(Buff);
@@ -5666,7 +5680,7 @@ begin
       pc.r := (Buf[0].r + Buf[1].r + Buf[2].r + Buf[3].r) shr 2;
       Inc(pc);
     end;
-    pc := Pointer(Integer(pc) + Gap);
+    pc := Pointer(TCnNativePointer(pc) + Gap);
   end;
   Changed;
 end;
@@ -5674,13 +5688,13 @@ end;
 // 快速高斯模糊
 procedure TCnBitmap.GaussianBlur(Amount: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
   if Empty or (Amount <= 0) then Exit;
   BeginUpdate;
   try
-    for i := Amount downto 1 do
-      SplitBlur(i);
+    for I := Amount downto 1 do
+      SplitBlur(I);
   finally
     EndUpdate;
   end;
@@ -5729,7 +5743,7 @@ begin
         Buf[3].r + Buf[5].r + Buf[6].r + Buf[7].r + Buf[8].r)) div 8);
       Inc(pc);
     end;
-    pc := Pointer(Integer(pc) + Gap);
+    pc := Pointer(TCnNativePointer(pc) + Gap);
   end;
   Changed;
 end;
@@ -5737,13 +5751,13 @@ end;
 // 增强锐化
 procedure TCnBitmap.SharpenMore(Amount: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
   if Empty or (Amount <= 0) then Exit;
   BeginUpdate;
   try
-    for i := Amount downto 1 do
-      SplitSharpen(i);
+    for I := Amount downto 1 do
+      SplitSharpen(I);
   finally
     EndUpdate;
   end;
@@ -5777,7 +5791,7 @@ begin
   if Empty then Exit;
   Changing;
   p1 := Bits;                 // 第一行
-  p2 := Pointer(Integer(p1) + RowInc + 3); // 右下各加一象素
+  p2 := Pointer(TCnNativePointer(p1) + RowInc + 3); // 右下各加一象素
   GetMem(Line, RowInc);       // 临时行保存最后一行扫描线内容
   try
     CopyMemory(Line, FScanLine[FHeight - 1], RowInc);
@@ -5791,11 +5805,11 @@ begin
         Inc(p1);
         if (y < FHeight - 2) and (x < FWidth - 2) then Inc(p2);
       end;
-      p1 := Pointer(Integer(p1) + FGap);
+      p1 := Pointer(TCnNativePointer(p1) + FGap);
       if y < FHeight - 2 then // 最后两行
-        p2 := Pointer(Integer(p2) + Gap + 6)
+        p2 := Pointer(TCnNativePointer(p2) + Gap + 6)
       else
-        p2 := Pointer(Integer(Line) + 3);
+        p2 := Pointer(TCnNativePointer(Line) + 3);
     end;
   finally
     FreeMem(Line);
@@ -5824,7 +5838,7 @@ begin
       CurBits.r := Table[CurBits.r];
       Inc(CurBits);
     end;
-    CurBits := Pointer(Integer(CurBits) + Gap);
+    CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
   end;
   Changed;
 end;
@@ -5853,7 +5867,7 @@ begin
         if c >= 0 then FScanLine[c][x] := Src^;
         Inc(Src);
       end;
-      Src := Pointer(Integer(Src) + Gap);
+      Src := Pointer(TCnNativePointer(Src) + Gap);
     end;
   finally
     Bmp.Free;
@@ -5894,7 +5908,7 @@ begin
           FScanLine[ym][xm] := Src^;
         Inc(Src);
       end;
-      Src := Pointer(Integer(Src) + Gap);
+      Src := Pointer(TCnNativePointer(Src) + Gap);
     end;
   finally
     Buf := nil;
@@ -5909,15 +5923,16 @@ type
   TArray = array[0..0] of Integer;
   PArray = ^TArray;
 var
-  i, j, XSrc, YSrc: Integer;
+  I, J, XSrc, YSrc: Integer;
   st: PArray;
   Pix: PCnColor;
   Line: PCnLine;
   Dst: TCnBitmap;
-  Max: Integer;
+  Max: TCnNativePointer;
   PInt: PInteger;
 begin
-  if Empty or (YDiv <= 0) or (XDiv <= 0) or (RatioVal <= 0) then Exit;
+  if Empty or (YDiv <= 0) or (XDiv <= 0) or (RatioVal <= 0) then
+    Exit;
 
   Changing;
   Line := nil;
@@ -5927,14 +5942,15 @@ begin
   try
     Dst.LoadBlank(FWidth, FHeight);
     GetMem(st, 4 * FHeight);
-    for j := 0 to FHeight - 1 do
-      st[j] := Round(RatioVal * Sin(j / YDiv));
+    for J := 0 to FHeight - 1 do
+      st[J] := Round(RatioVal * Sin(J / YDiv));
 
-    if Wrap then Max := Integer(FScanLine[FHeight - 1]) + RowInc;
+    if Wrap then
+      Max := TCnNativePointer(FScanLine[FHeight - 1]) + RowInc;
 
-    for i := 0 to FWidth - 1 do
+    for I := 0 to FWidth - 1 do
     begin
-      YSrc := Round(RatioVal * Sin(i / XDiv));
+      YSrc := Round(RatioVal * Sin(I / XDiv));
 
       if Wrap then
       begin
@@ -5944,47 +5960,50 @@ begin
           YSrc := YSrc mod (FHeight - 1);
       end;
 
-      Pix := Pointer(Integer(Dst.Bits) + i * 3);
-      if ((YSrc >= 0) and (YSrc < FHeight)) or Wrap then Line := FScanLine[YSrc];
+      Pix := Pointer(TCnNativePointer(Dst.Bits) + I * 3);
+      if ((YSrc >= 0) and (YSrc < FHeight)) or Wrap then
+        Line := FScanLine[YSrc];
       PInt := PInteger(st);
 
-      for j := 0 to FHeight - 1 do
+      for J := 0 to FHeight - 1 do
       begin
         if Wrap then
         begin
-          XSrc := i + PInt^;
+          XSrc := I + PInt^;
           Inc(PInt);
           if XSrc < 0 then
             XSrc := FWidth - 1 - (-XSrc mod FWidth)
           else if XSrc >= FWidth then
             XSrc := XSrc mod FWidth;
           Pix^ := Line[XSrc];
-          Pix := Pointer(Integer(Pix) + Dst.RowInc);
-          Line := Pointer(Integer(Line) + FRowInc);
-          if Integer(Line) >= Max then Line := FBits;
+          Pix := Pointer(TCnNativePointer(Pix) + Dst.RowInc);
+          Line := Pointer(TCnNativePointer(Line) + FRowInc);
+          if TCnNativePointer(Line) >= Max then
+            Line := FBits;
         end
         else
         begin
           if (YSrc >= FHeight) then Break;
-          XSrc := i + st[j];
+          XSrc := I + st[J];
           if (XSrc > -1) and (XSrc < FWidth) and (YSrc > -1) then
             Pix^ := Line^[XSrc]
           else if YSrc = -1 then
           begin
-            Pix := Pointer(Integer(Pix) + Dst.RowInc);
+            Pix := Pointer(TCnNativePointer(Pix) + Dst.RowInc);
             Line := FBits;
             YSrc := 0;
             Continue;
           end;
-          Pix := Pointer(Integer(Pix) + Dst.RowInc);
-          Line := Pointer(Integer(Line) + RowInc);
+          Pix := Pointer(TCnNativePointer(Pix) + Dst.RowInc);
+          Line := Pointer(TCnNativePointer(Line) + RowInc);
           Inc(YSrc);
         end;
       end;
     end;
     CopyMemory(FBits, Dst.Bits, FSize);
   finally
-    if st <> nil then FreeMem(st);
+    if st <> nil then
+      FreeMem(st);
     Dst.Free;
   end;
   Changed;
@@ -5999,7 +6018,9 @@ var
   Pix: PCnColor;
   Line: PCnLine;
 begin
-  if Empty or (xAmount < 1) or (yAmount < 1) then Exit;
+  if Empty or (xAmount < 1) or (yAmount < 1) then
+    Exit;
+
   Changing;
   ix := (xAmount shr 1) + (xAmount and 1);
   iy := (yAmount shr 1) + (yAmount and 1);
@@ -6028,7 +6049,7 @@ begin
       else
         tx := xAmount;
       Delta := RowInc - tx * 3;
-      Pix := PTR(Integer(FScanLine[y]) + x * 3);
+      Pix := PTR(TCnNativePointer(FScanLine[y]) + x * 3);
       for cy := 1 to ty do
       begin
         for cx := 1 to tx do
@@ -6036,7 +6057,7 @@ begin
           Pix^ := Col;
           Inc(Pix);
         end;
-        Pix := PTR(Integer(Pix) + Delta);
+        Pix := PTR(TCnNativePointer(Pix) + Delta);
       end;
       Inc(x, xAmount);
     end;
@@ -6067,7 +6088,7 @@ var
   ix, iy: Integer;
   sli, slo: PCnLine;
   Buff: Pointer;
-  BuffOff: Integer;
+  BuffOff: TCnNativePointer;
 
   function ArcTan2(xt, yt: Single): Single;
   begin
@@ -6090,7 +6111,7 @@ begin
   GetMem(Buff, Size);
   try
     Move(Bits^, Buff^, Size);
-    BuffOff := Integer(Buff) - Integer(Bits);
+    BuffOff := TCnNativePointer(Buff) - TCnNativePointer(Bits);
     OFFSET := -(Pi / 2);
     dx := Width - 1;
     dy := Height - 1;
@@ -6166,9 +6187,9 @@ begin
           for iy := 0 to 1 do
           begin
             if ify + iy < Height then
-              sli := Pointer(Integer(FScanLine[ify + iy]) + BuffOff)
+              sli := Pointer(TCnNativePointer(FScanLine[ify + iy]) + BuffOff)
             else
-              sli := Pointer(Integer(FScanLine[Height - ify - iy]) + BuffOff);
+              sli := Pointer(TCnNativePointer(FScanLine[Height - ify - iy]) + BuffOff);
             if ifx + ix < Width then
             begin
               new_red := sli^[ifx + ix].r;
@@ -6209,7 +6230,7 @@ var
   FAlpha: Integer;
   ARect: TRect;
   Table: array[0..90] of Integer; // 光照椭圆范围90度内半径长度
-  i, x, y: Integer;
+  I, x, y: Integer;
   r, g, b: Byte;
   tx, ty, tz, ta, tb, tab: Double;
   Len, MLen, beta, Weight: Integer;
@@ -6228,12 +6249,12 @@ begin
   tab := ta * tb;
   Table[0] := OffX;           // 0 度时为长轴
   Table[90] := OffY;          // 90 度时为短轴
-  for i := 1 to 89 do
+  for I := 1 to 89 do
   begin
-    tz := Tan(i * PI / 180);
+    tz := Tan(I * PI / 180);
     tx := Sqrt(tab / (tb + ta * Sqr(tz))); // i 度时 X 坐标
     ty := tx * tz;            // i 度时 Y 坐标
-    Table[i] := Round(Hypot(tx, ty)); // 中心距（i 度半径）
+    Table[I] := Round(Hypot(tx, ty)); // 中心距（i 度半径）
   end;
 
   DeRGB(Color, r, g, b);
@@ -6319,7 +6340,7 @@ begin
         Col^ := BackColor;
       Inc(Col);
     end;
-    Col := Pointer(Integer(Col) + FGap);
+    Col := Pointer(TCnNativePointer(Col) + FGap);
   end;
   Changed;
 end;
@@ -6348,7 +6369,7 @@ begin
       pc.r := IntToByte(pc.r + (Random(Amount) - (Amount shr 1)));
       Inc(pc);
     end;
-    pc := Pointer(Integer(pc) + Gap);
+    pc := Pointer(TCnNativePointer(pc) + Gap);
   end;
   Changed;
 end;
@@ -6373,7 +6394,7 @@ begin
       pc.r := IntToByte(pc.r + a);
       Inc(pc);
     end;
-    pc := Pointer(Integer(pc) + Gap);
+    pc := Pointer(TCnNativePointer(pc) + Gap);
   end;
   Changed;
 end;
@@ -6394,8 +6415,8 @@ begin
   try
     CopyMemory(Buff, Bits, Size);
     y1 := Buff;
-    y2 := Pointer(Integer(y1) + RowInc);
-    y3 := Pointer(Integer(y2) + RowInc);
+    y2 := Pointer(TCnNativePointer(y1) + RowInc);
+    y3 := Pointer(TCnNativePointer(y2) + RowInc);
     Dst := FScanLine[1];
     for y := 1 to Height - 2 do
     begin
@@ -6416,10 +6437,10 @@ begin
           Dst[x].r := dr;
         end;
       end;
-      y1 := Pointer(Integer(y1) + RowInc);
-      y2 := Pointer(Integer(y2) + RowInc);
-      y3 := Pointer(Integer(y3) + RowInc);
-      Dst := Pointer(Integer(Dst) + RowInc);
+      y1 := Pointer(TCnNativePointer(y1) + RowInc);
+      y2 := Pointer(TCnNativePointer(y2) + RowInc);
+      y3 := Pointer(TCnNativePointer(y3) + RowInc);
+      Dst := Pointer(TCnNativePointer(Dst) + RowInc);
     end;
   finally
     FreeMem(Buff);
@@ -6436,7 +6457,7 @@ end;
 // 增加蒙板色（指定区域）
 procedure TCnBitmap.AddMiddleColorEx(Color: TColor; Rect: TRect);
 var
-  i, j: Integer;
+  I, J: Integer;
   r, g, b: Byte;
   pc: PCnColor;
   ARect: TRect;
@@ -6447,10 +6468,10 @@ begin
   Changing;
   DeRect(ARect, x, y, w, h);
   DeRGB(Color, r, g, b);
-  for i := y to y + h - 1 do
+  for I := y to y + h - 1 do
   begin
-    pc := @FScanLine[i][x];
-    for j := x to x + w - 1 do
+    pc := @FScanLine[I][x];
+    for J := x to x + w - 1 do
     begin
       pc.b := (pc.b + b) shr 1; // 颜色平均值
       pc.g := (pc.g + g) shr 1;
@@ -6718,7 +6739,7 @@ end;
 // 绘制直线
 procedure TCnBitmap.DrawLineF(X1, Y1, X2, Y2: Single; Color: TColor);
 var
-  n, i: Integer;
+  n, I: Integer;
   px, py, ex, ey, nx, ny, hyp: Integer;
   ARGB: TCnColor;
 begin
@@ -6747,7 +6768,7 @@ begin
   begin
     nx := Round(nx / hyp * $8000);
     ny := Round(ny / hyp * $8000);
-    for i := 0 to n - 1 do
+    for I := 0 to n - 1 do
     begin
       DoSetPixelF(px, py, ARGB); // 绘制点
       px := px + nx;
@@ -6798,7 +6819,7 @@ end;
 // 绘制折线
 procedure TCnBitmap.PolylineF(const Points: TPointFArray);
 var
-  i: Integer;
+  I: Integer;
   SavePenPos: TPointF;
 begin
   if Empty or (Length(Points) < 2) then Exit;
@@ -6806,8 +6827,8 @@ begin
   try
     SavePenPos := FPenPosF;
     FPenPosF := Points[Low(Points)];
-    for i := Low(Points) + 1 to High(Points) do
-      LineToF(Points[i]);
+    for I := Low(Points) + 1 to High(Points) do
+      LineToF(Points[I]);
     FPenPosF := SavePenPos;
   finally
     EndUpdate;
@@ -6965,16 +6986,16 @@ end;
 // 初始化灰度调化板数据
 procedure InitGrayPal;
 var
-  i: Integer;
+  I: Integer;
 begin
   GrayLogPal.lpal.palVersion := $300;
   GrayLogPal.lpal.palNumEntries := 256;
-  for i := 0 to 255 do
+  for I := 0 to 255 do
   begin
-    GrayLogPal.dummy[i].peRed := i;
-    GrayLogPal.dummy[i].peGreen := i;
-    GrayLogPal.dummy[i].peBlue := i;
-    GrayLogPal.dummy[i].peFlags := 0;
+    GrayLogPal.dummy[I].peRed := I;
+    GrayLogPal.dummy[I].peGreen := I;
+    GrayLogPal.dummy[I].peBlue := I;
+    GrayLogPal.dummy[I].peFlags := 0;
   end;
 end;
 
@@ -7010,7 +7031,7 @@ end;
 // 绘制平滑字体蒙板
 procedure TCnBitmap.DrawFontMaskEx(const Text: string; Extend: TSize; Point: TPoint);
 var
-  i, j: Integer;
+  I, J: Integer;
   pS1, pS2, pS3, pS4: PByteArray;
   pDst: PByteArray;
   GrayRowInc: Integer;
@@ -7030,73 +7051,73 @@ begin
 
   GrayRowInc := (FGrayBmp.Width + 3) div 4 * 4; // 扫描线宽度
   pS1 := FGrayBmp.ScanLine[0]; // 源灰度图
-  pS2 := PByteArray(Integer(pS1) - GrayRowInc);
-  pS3 := PByteArray(Integer(pS2) - GrayRowInc);
-  pS4 := PByteArray(Integer(pS3) - GrayRowInc);
+  pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
+  pS3 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
+  pS4 := PByteArray(TCnNativePointer(pS3) - GrayRowInc);
   pDst := FFontMask.ScanLine[0];
   // 目标灰度为源矩形块的平均值
   case Font.Quality of
     fqHigh:
       begin                   // 高精度4X4采样
-        for i := 0 to Extend.cy - 1 do
+        for I := 0 to Extend.cy - 1 do
         begin
-          for j := 0 to Extend.cx - 1 do
+          for J := 0 to Extend.cx - 1 do
           begin
-            x := j * 4;
-            pDst^[j] :=
+            x := J * 4;
+            pDst^[J] :=
               (pS1^[x] + pS1^[x + 1] + pS1^[x + 2] + pS1^[x + 3] +
               pS2^[x] + pS2^[x + 1] + pS2^[x + 2] + pS2^[x + 3] +
               pS3^[x] + pS3^[x + 1] + pS3^[x + 2] + pS3^[x + 3] +
               pS4^[x] + pS4^[x + 1] + pS4^[x + 2] + pS4^[x + 3]) shr 4;
           end;
-          pS1 := PByteArray(Integer(pS4) - GrayRowInc);
-          pS2 := PByteArray(Integer(pS1) - GrayRowInc);
-          pS3 := PByteArray(Integer(pS2) - GrayRowInc);
-          pS4 := PByteArray(Integer(pS3) - GrayRowInc);
-          pDst := PByteArray(Integer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativePointer(pS4) - GrayRowInc);
+          pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
+          pS3 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
+          pS4 := PByteArray(TCnNativePointer(pS3) - GrayRowInc);
+          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
         end;
       end;
     fqNormal:
       begin                   // 普通精度3X3采样
-        for i := 0 to Extend.cy - 1 do
+        for I := 0 to Extend.cy - 1 do
         begin
-          for j := 0 to Extend.cx - 1 do
+          for J := 0 to Extend.cx - 1 do
           begin
-            x := j * 3;
-            pDst^[j] :=
+            x := J * 3;
+            pDst^[J] :=
               (pS1^[x] + pS1^[x + 1] + pS1^[x + 2] shr 1 +
               pS2^[x] + pS2^[x + 1] + pS2^[x + 2] +
               pS3^[x] shr 1 + pS3^[x + 1] + pS3^[x + 2]) shr 3;
           end;
-          pS1 := PByteArray(Integer(pS3) - GrayRowInc);
-          pS2 := PByteArray(Integer(pS1) - GrayRowInc);
-          pS3 := PByteArray(Integer(pS2) - GrayRowInc);
-          pDst := PByteArray(Integer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativePointer(pS3) - GrayRowInc);
+          pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
+          pS3 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
+          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
         end;
       end;
     fqLow:
       begin                   // 低精度2X2采样
-        for i := 0 to Extend.cy - 1 do
+        for I := 0 to Extend.cy - 1 do
         begin
-          for j := 0 to Extend.cx - 1 do
+          for J := 0 to Extend.cx - 1 do
           begin
-            x := j * 2;
-            pDst^[j] :=
+            x := J * 2;
+            pDst^[J] :=
               (pS1^[x] + pS1^[x + 1] +
               pS2^[x] + pS2^[x + 1]) shr 2;
           end;
-          pS1 := PByteArray(Integer(pS2) - GrayRowInc);
-          pS2 := PByteArray(Integer(pS1) - GrayRowInc);
-          pDst := PByteArray(Integer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
+          pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
+          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
         end;
       end;
     fqNone:
       begin                   // 无平滑效果
-        for i := 0 to Extend.cy - 1 do
+        for I := 0 to Extend.cy - 1 do
         begin
           CopyMemory(pDst, pS1, Extend.cx);
-          pS1 := PByteArray(Integer(pS1) - GrayRowInc);
-          pDst := PByteArray(Integer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
+          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
         end;
       end;
   end;
@@ -7159,7 +7180,7 @@ var
   Dst: PCnLine;
   Weight: Byte;
   dx, dy, sx, sy, w, h: Integer;
-  i, j: Integer;
+  I, J: Integer;
   FAlpha: Integer;
 begin
   if Empty or not CalcDrawRect(x, y, Rect(0, 0, Mask.Width, Mask.Height),
@@ -7168,26 +7189,26 @@ begin
   if FAlpha = 0 then Exit;
 
   DeRGB(AColor, r, g, b);     // 色彩分量
-  for j := 0 to h - 1 do
+  for J := 0 to h - 1 do
   begin
-    Src := @Mask.ScanLine[sy + j][sx];
-    Dst := @ScanLine[dy + j][dx];
-    for i := 0 to w - 1 do
+    Src := @Mask.ScanLine[sy + J][sx];
+    Dst := @ScanLine[dy + J][dx];
+    for I := 0 to w - 1 do
     begin
-      Weight := Src[i] * FAlpha shr 8; // 混合系数
+      Weight := Src[I] * FAlpha shr 8; // 混合系数
       if Weight <> 0 then
       begin
         if Weight = 255 then
         begin                 // 前景色
-          Dst[i].b := b;
-          Dst[i].g := g;
-          Dst[i].r := r;
+          Dst[I].b := b;
+          Dst[I].g := g;
+          Dst[I].r := r;
         end
         else
         begin                 // 混合
-          Inc(Dst[i].b, Weight * (b - Dst[i].b) shr 8);
-          Inc(Dst[i].g, Weight * (g - Dst[i].g) shr 8);
-          Inc(Dst[i].r, Weight * (r - Dst[i].r) shr 8);
+          Inc(Dst[I].b, Weight * (b - Dst[I].b) shr 8);
+          Inc(Dst[I].g, Weight * (g - Dst[I].g) shr 8);
+          Inc(Dst[I].r, Weight * (r - Dst[I].r) shr 8);
         end;
       end;
     end;
@@ -7202,7 +7223,7 @@ var
   Fore, Dst: PCnLine;
   Weight: Byte;
   dx, dy, sx, sy, w, h: Integer;
-  i, j: Integer;
+  I, J: Integer;
   FAlpha: Integer;
 begin
   if Empty or not CalcDrawRect(x, y, Rect(0, 0, Mask.Width, Mask.Height),
@@ -7214,23 +7235,23 @@ begin
   FAlpha := AlphaToInt(Alpha);
   if FAlpha = 0 then Exit;
 
-  for j := 0 to h - 1 do
+  for J := 0 to h - 1 do
   begin
-    Src := @Mask.ScanLine[j + sy][sx];
-    Fore := @ForeBmp.ScanLine[j + sy][sx];
-    Dst := @ScanLine[j + dy][dx];
-    for i := 0 to w - 1 do
+    Src := @Mask.ScanLine[J + sy][sx];
+    Fore := @ForeBmp.ScanLine[J + sy][sx];
+    Dst := @ScanLine[J + dy][dx];
+    for I := 0 to w - 1 do
     begin
-      Weight := Src[i] * FAlpha shr 8; // 混合系数
+      Weight := Src[I] * FAlpha shr 8; // 混合系数
       if Weight <> 0 then
       begin
         if Weight = 255 then
-          Dst[i] := Fore[i]   // 前景色
+          Dst[I] := Fore[I]   // 前景色
         else
         begin                 // 混合
-          Inc(Dst[i].b, Weight * (Fore[i].b - Dst[i].b) shr 8);
-          Inc(Dst[i].g, Weight * (Fore[i].g - Dst[i].g) shr 8);
-          Inc(Dst[i].r, Weight * (Fore[i].r - Dst[i].r) shr 8);
+          Inc(Dst[I].b, Weight * (Fore[I].b - Dst[I].b) shr 8);
+          Inc(Dst[I].g, Weight * (Fore[I].g - Dst[I].g) shr 8);
+          Inc(Dst[I].r, Weight * (Fore[I].r - Dst[I].r) shr 8);
         end;
       end;
     end;
@@ -7244,7 +7265,7 @@ var
   ShadowMask: TCnFontMask;
   Fore: TCnBitmap;
   IsTexture, IsGrad, IsLight, IsNoise: Boolean;
-  i, ABlur: Integer;
+  I, ABlur: Integer;
 begin
   if Empty or (Text = '') then Exit;
   BeginUpdate;
@@ -7283,8 +7304,8 @@ begin
             4 * ABlur);
           with ShadowMask do
             FillChar(FBuff^, FRowInc * FHeight, 0);
-          for i := 0 to FFontMask.FHeight - 1 do
-            Move(FFontMask.ScanLine[i][0], ShadowMask.ScanLine[2 * ABlur + i][2 *
+          for I := 0 to FFontMask.FHeight - 1 do
+            Move(FFontMask.ScanLine[I][0], ShadowMask.ScanLine[2 * ABlur + I][2 *
               ABlur],
                 FFontMask.Width);
           ShadowMask.Blur(ABlur); // 阴影模糊
