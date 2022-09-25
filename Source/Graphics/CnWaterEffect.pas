@@ -47,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Graphics, Math;
+  Windows, SysUtils, Graphics, Math, CnNative;
 
 const
   csDefDamping = 20;
@@ -207,7 +207,7 @@ procedure TCnWaterEffect.DrawWater(ALightModifier: Integer; Src, Dst:
   TBitmap);
 var
   dx, dy: Integer;
-  i, c, x, y: Integer;
+  I, c, x, y: Integer;
   P1, P2, P3: PIntArray;
   PDst: PRGBArray;
   PSrcDot, PDstDot: PRGBTriple;
@@ -219,12 +219,12 @@ begin
   BitBlt(Dst.Canvas.Handle, 0, 0, Src.Width, Src.Height, Src.Canvas.Handle, 0, 0, SRCCOPY);
 
   FScanLineSrc[0] := Src.ScanLine[0];
-  BytesPerLine1 := Integer(Src.ScanLine[1]) - Integer(FScanLineSrc[0]);
-  for i := 1 to FHeight - 1 do
-    FScanLineSrc[i] := PRGBArray(Integer(FScanLineSrc[i - 1]) + BytesPerLine1);
+  BytesPerLine1 := TCnNativePointer(Src.ScanLine[1]) - TCnNativePointer(FScanLineSrc[0]);
+  for I := 1 to FHeight - 1 do
+    FScanLineSrc[I] := PRGBArray(TCnNativePointer(FScanLineSrc[I - 1]) + BytesPerLine1);
 
   PDst := Dst.ScanLine[0];
-  BytesPerLine2 := Integer(Dst.ScanLine[1]) - Integer(PDst);
+  BytesPerLine2 := TCnNativePointer(Dst.ScanLine[1]) - TCnNativePointer(PDst);
 
   for y := 0 to FHeight - 1 do
   begin
@@ -262,7 +262,7 @@ begin
           PDstDot.rgbtGreen := 255
         else
           PDstDot.rgbtGreen := c;
-          
+
         c := PSrcDot.rgbtRed - dx;
         if c < 0 then
           PDstDot.rgbtRed := 0
@@ -272,7 +272,7 @@ begin
           PDstDot.rgbtRed := c;
       end;
     end;
-    PDst := PRGBArray(Integer(PDst) + BytesPerLine2);
+    PDst := PRGBArray(TCnNativePointer(PDst) + BytesPerLine2);
   end;
 end;
 
@@ -293,14 +293,14 @@ end;
 
 procedure TCnWaterEffect.SetSize(AWidth, AHeight: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
   if (AWidth <= 0) or (AHeight <= 0) then
   begin
     AWidth := 0;
     AHeight := 0;
   end;
-  
+
   FWidth := AWidth;
   FHeight := AHeight;
   ReallocMem(FBuff1, FWidth * FHeight * SizeOf(Integer));
@@ -318,24 +318,24 @@ begin
   begin
     FScanLine1[0] := FBuff1;
     FScanLine2[0] := FBuff2;
-    for i := 1 to FHeight - 1 do
+    for I := 1 to FHeight - 1 do
     begin
-      FScanLine1[i] := @FScanLine1[i - 1][FWidth];
-      FScanLine2[i] := @FScanLine2[i - 1][FWidth];
+      FScanLine1[I] := @FScanLine1[I - 1][FWidth];
+      FScanLine2[I] := @FScanLine2[I - 1][FWidth];
     end;
-    for i := 0 to FHeight - 1 do
+    for I := 0 to FHeight - 1 do
     begin
-      FYUp[i] := Max(i - 1, 0);
-      FYDown[i] := Min(i + 1, FHeight - 1);
+      FYUp[I] := Max(I - 1, 0);
+      FYDown[I] := Min(I + 1, FHeight - 1);
     end;
   end;
 
   if FWidth > 0 then
   begin
-    for i := 0 to FWidth - 1 do
+    for I := 0 to FWidth - 1 do
     begin
-      FXLeft[i] := Max(i - 1, 0);
-      FXRight[i] := Min(i + 1, FWidth - 1);
+      FXLeft[I] := Max(I - 1, 0);
+      FXRight[I] := Min(I + 1, FWidth - 1);
     end;
   end;     
 end;
