@@ -22,14 +22,16 @@ unit CnTrayIcon;
 {* |<PRE>
 ================================================================================
 * 软件名称：不可视工具组件包
-* 单元名称：TCnTrayIcon 单元
+* 单元名称：系统托盘 CnTrayIcon 单元
 * 单元作者：刘啸 liuxiao@cnpack.org; http://www.cnpack.org
 * 备    注：在 Explorer 非法结束重启后能自动恢复图标的系统托盘组件单元
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2012.06.21 V1.3
-*               恢复显示时加入一句BringToFront
+* 修改记录：2022.09.25 V1.4
+*               修正对 Unicode 编译器的支持
+*           2012.06.21 V1.3
+*               恢复显示时加入一句 BringToFront
 *           2005.02.05 V1.2
 *               修正显示气泡提示后弹出菜单和提示失效的问题
 *           2004.03.07 V1.1
@@ -502,6 +504,7 @@ var
   ShortHint: string;
 {$IFDEF UNICODE}
   Len: Integer;
+  AShort: AnsiString;
 {$ENDIF}
 begin
   FIconData.cbSize := SizeOf(TNotifyIconData);
@@ -512,11 +515,13 @@ begin
 {$IFDEF UNICODE}
   if ShortHint <> '' then
   begin
-    Len := Length(ShortHint);
+    AShort := AnsiString(ShortHint);
+    Len := Length(AShort);
     if Len > SizeOf(FIconData.szTip) - 1 then
       Len := SizeOf(FIconData.szTip) - 1;
 
-    CopyMemory(@FIconData.szTip, Pointer(ShortHint), Len);
+    FillChar(FIconData.szTip, SizeOf(FIconData.szTip), 0);
+    Move(AShort[1], FIconData.szTip, Len);
   end
   else
     FIconData.szTip[0] := #0;

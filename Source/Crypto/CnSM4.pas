@@ -578,7 +578,7 @@ begin
   for I := 0 to 31 do
   begin
     K[I + 4] := K[I] xor SM4CalciRK(K[I + 1] xor K[I + 2] xor K[I + 3] xor CK[I]);
-      (PCardinal(TCnNativeInt(SK) + I * SizeOf(Cardinal)))^ := K[I + 4];
+    (PCardinal(TCnNativeInt(SK) + I * SizeOf(Cardinal)))^ := K[I + 4];
   end;
 end;
 
