@@ -23,13 +23,15 @@ unit CnSkinMagic;
 ================================================================================
 * 软件名称：不可视工具组件包单元
 * 单元名称：运行期换皮肤框架，皮肤效果需自实现
-* 单元作者：CnPack开发组 savetime
+* 单元作者：CnPack 开发组 savetime
             (savetime2k@hotmail.com, http://savetime.delphibbs.com)
 * 备    注：本单元由原作者授权 CnPack 开发组移植，已保留原作者版权信息
 * 开发平台：
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2007.07.27 V1.0
+* 修改记录：2022.09.25 V1.1
+*                支持 Win64
+*           2007.07.27 V1.0
 *                移植单元
 ================================================================================
 |</PRE>}
@@ -139,7 +141,8 @@ begin
   for I := 0 to FClassList.Count - 1 do
   begin
     Result := PClassData(FClassList.Items[I]);
-    if AClass = Result.ClassType then Exit;
+    if AClass = Result.ClassType then
+      Exit;
   end;
   raise Exception.Create(SCNE_FINDCLASSDATAFAILED);
 end;
@@ -294,16 +297,16 @@ var
   ClassDataPtr: PClassData;
 begin
   // 取原始 AfterConstruction vmt 指针
-  ConstructionPtr := Pointer(Integer(AClass) + vmtAfterConstruction);
+  ConstructionPtr := Pointer(TCnNativePointer(AClass) + vmtAfterConstruction);
   // 取原始 AfterConstruction 地址
-  OldConstruction := Pointer(PInteger(ConstructionPtr)^);
+  OldConstruction := Pointer(TCnNativeIntPtr(ConstructionPtr)^);
   // 改写 vmt 指针
   WriteVmtPtr(ConstructionPtr, @CnAfterConstruction);
 
   // 取原始 BeforeDestruction vmt 指针
-  DestructionPtr := Pointer(Integer(AClass) + vmtBeforeDestruction);
+  DestructionPtr := Pointer(TCnNativePointer(AClass) + vmtBeforeDestruction);
   // 取原始 BeforeDestruction 地址
-  OldDestruction := Pointer(PInteger(DestructionPtr)^);
+  OldDestruction := Pointer(TCnNativeIntPtr(DestructionPtr)^);
   // 改写 vmt 指针
   WriteVmtPtr(DestructionPtr, @CnBeforeDestruction);
 
@@ -322,16 +325,21 @@ var
   Form: TForm;          // 使用临时变量减少类属性访问的开销
   Control: TControl;
 begin
-  if not Assigned(Screen) then Exit;
+  if not Assigned(Screen) then
+    Exit;
 
   for I := 0 to Screen.FormCount - 1 do
   begin
     Form := Screen.Forms[I];
-    if not Form.Visible then Continue;
+    if not Form.Visible then
+      Continue;
+
     for J := 0 to Form.ControlCount - 1 do
     begin
       Control := Form.Controls[J];
-      if not Control.Visible then Continue;
+      if not Control.Visible then
+        Continue;
+
       Control.Visible := False;
       Control.Visible := True;
     end;

@@ -78,10 +78,14 @@ type
   TCnNativeInt     = NativeInt;
   TCnNativeUInt    = NativeUInt;
   TCnNativePointer = NativeUInt;
+  TCnNativeIntPtr  = PNativeInt;
+  TCnNativeUIntPtr = PNativeUInt;
 {$ELSE}
   TCnNativeInt     = Integer;
   TCnNativeUInt    = Cardinal;
   TCnNativePointer = Cardinal;
+  TCnNativeIntPtr  = PInteger;
+  TCnNativeUIntPtr = PCardinal;
 {$ENDIF}
 
 {$IFDEF CPUX64}
