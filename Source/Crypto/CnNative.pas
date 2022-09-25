@@ -74,6 +74,14 @@ uses
   Classes, SysUtils, SysConst, Math {$IFDEF COMPILER5}, Windows {$ENDIF};
                                     // D5 下需要引用 Windows 中的 PByte
 type
+{$IFDEF COMPILER5}
+  PCardinal = ^Cardinal;
+  {* D5 下 System 单元中未定义，定义上}
+  PByte = Windows.PByte;
+  {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
+    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台}
+{$ENDIF}
+
 {$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
   TCnNativeUInt    = NativeUInt;
@@ -150,14 +158,6 @@ type
 
   PCnByte = ^Byte;
   PCnWord = ^Word;
-
-{$IFDEF COMPILER5}
-  PCardinal = ^Cardinal;
-  {* D5 下 System 单元中未定义，定义上}
-  PByte = Windows.PByte;
-  {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
-    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台}
-{$ENDIF}
 
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
   {* 位操作类型}
