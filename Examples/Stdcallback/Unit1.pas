@@ -60,7 +60,9 @@ end;
 procedure TForm1.CallABack;
 begin
   if @AFunc <> nil then
-    Self.Caption := IntToStr(AFunc(3, 4));
+    Self.Caption := IntToStr(AFunc(3, 4))
+  else
+    Self.Caption := IntToStr(ToCallback(3, 4));
 end;
 
 end.
