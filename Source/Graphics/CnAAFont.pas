@@ -53,7 +53,7 @@ interface
 
 uses
   Windows, Messages, Classes, Graphics, SysUtils, Consts, Controls, Forms,
-  Registry, StdCtrls, ExtCtrls, Math, IniFiles, CnClasses;
+  Registry, StdCtrls, ExtCtrls, Math, IniFiles, CnNative, CnClasses;
 
 type
 
@@ -1382,10 +1382,10 @@ begin
   ReAllocMem(FPMaskBuff, BytesLineMask * Height);
 
   pS1 := FGrayBmp.ScanLine[0];           // 源灰度图
-  pS2 := PByteArray(Integer(pS1) - BytesLineGray);
-  pS3 := PByteArray(Integer(pS2) - BytesLineGray);
-  pS4 := PByteArray(Integer(pS3) - BytesLineGray);
-  pDes := PByteArray(Integer(pMaskBuff) + (Height - 1) * BytesLineMask);
+  pS2 := PByteArray(TCnNativePointer(pS1) - BytesLineGray);
+  pS3 := PByteArray(TCnNativePointer(pS2) - BytesLineGray);
+  pS4 := PByteArray(TCnNativePointer(pS3) - BytesLineGray);
+  pDes := PByteArray(TCnNativePointer(pMaskBuff) + (Height - 1) * BytesLineMask);
   // 目标灰度为源矩形块的平均值
 
   case Quality of
@@ -1402,11 +1402,11 @@ begin
               pS3^[X] + pS3^[X + 1] + pS3^[X + 2] + pS3^[X + 3] +
               pS4^[X] + pS4^[X + 1] + pS4^[X + 2] + pS4^[X + 3]) shr 4;
           end;
-          pS1 := PByteArray(Integer(pS4) - BytesLineGray);
-          pS2 := PByteArray(Integer(pS1) - BytesLineGray);
-          pS3 := PByteArray(Integer(pS2) - BytesLineGray);
-          pS4 := PByteArray(Integer(pS3) - BytesLineGray);
-          pDes := PByteArray(Integer(pDes) - BytesLineMask);
+          pS1 := PByteArray(TCnNativePointer(pS4) - BytesLineGray);
+          pS2 := PByteArray(TCnNativePointer(pS1) - BytesLineGray);
+          pS3 := PByteArray(TCnNativePointer(pS2) - BytesLineGray);
+          pS4 := PByteArray(TCnNativePointer(pS3) - BytesLineGray);
+          pDes := PByteArray(TCnNativePointer(pDes) - BytesLineMask);
         end;
       end;
     aqNormal:
@@ -1421,10 +1421,10 @@ begin
               pS2^[X] + pS2^[X + 1] + pS2^[X + 2] +
               pS3^[X] shr 1 + pS3^[X + 1] + pS3^[X + 2]) shr 3;
           end;
-          pS1 := PByteArray(Integer(pS3) - BytesLineGray);
-          pS2 := PByteArray(Integer(pS1) - BytesLineGray);
-          pS3 := PByteArray(Integer(pS2) - BytesLineGray);
-          pDes := PByteArray(Integer(pDes) - BytesLineMask);
+          pS1 := PByteArray(TCnNativePointer(pS3) - BytesLineGray);
+          pS2 := PByteArray(TCnNativePointer(pS1) - BytesLineGray);
+          pS3 := PByteArray(TCnNativePointer(pS2) - BytesLineGray);
+          pDes := PByteArray(TCnNativePointer(pDes) - BytesLineMask);
         end;
       end;
     aqLow:
@@ -1438,9 +1438,9 @@ begin
               (pS1^[X] + pS1^[X + 1] +
               pS2^[X] + pS2^[X + 1]) shr 2;
           end;
-          pS1 := PByteArray(Integer(pS2) - BytesLineGray);
-          pS2 := PByteArray(Integer(pS1) - BytesLineGray);
-          pDes := PByteArray(Integer(pDes) - BytesLineMask);
+          pS1 := PByteArray(TCnNativePointer(pS2) - BytesLineGray);
+          pS2 := PByteArray(TCnNativePointer(pS1) - BytesLineGray);
+          pDes := PByteArray(TCnNativePointer(pDes) - BytesLineMask);
         end;
       end;
     aqNone:
@@ -1448,8 +1448,8 @@ begin
         for I := 0 to Height - 1 do
         begin
           CopyMemory(pDes, pS1, Width);
-          pS1 := PByteArray(Integer(pS1) - BytesLineGray);
-          pDes := PByteArray(Integer(pDes) - BytesLineMask);
+          pS1 := PByteArray(TCnNativePointer(pS1) - BytesLineGray);
+          pDes := PByteArray(TCnNativePointer(pDes) - BytesLineMask);
         end;
       end;
   end;
@@ -1587,7 +1587,7 @@ begin
         ay := FHeight - 1;
       pDes^[X] := PByteArray(ScanLine(ay))[ax];
     end;
-    pDes := PByteArray(Integer(pDes) - BytesLineMask);
+    pDes := PByteArray(TCnNativePointer(pDes) - BytesLineMask);
   end;
 end;
 
@@ -1637,7 +1637,7 @@ begin
   if (X < 0) or (X > Width - 1) or (Y < 0) or (Y > Height - 1) then
     raise EInvalidPixel.Create('Invalid pixel!')
   else
-    Result := Pointer(Integer(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask + X);
+    Result := Pointer(TCnNativePointer(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask + X);
 end;
 
 // 象素
@@ -1646,7 +1646,7 @@ begin
   if (X < 0) or (X > Width - 1) or (Y < 0) or (Y > Height - 1) then
     raise EInvalidPixel.Create('Invalid pixel!')
   else
-    Result := PByteArray(Integer(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask)[X];
+    Result := PByteArray(TCnNativePointer(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask)[X];
 end;
 
 // 扫描线地址
@@ -1655,12 +1655,12 @@ begin
   if (Line < 0) or (Line > Height - 1) then
     raise EInvalidLine.Create('Invalid line!')
   else
-    Result := Pointer(Integer(FPMaskBuff) + (Height - 1 - Line) * BytesLineMask);
+    Result := Pointer(TCnNativePointer(FPMaskBuff) + (Height - 1 - Line) * BytesLineMask);
 end;
 
 function TCnAAMask.ScanLine(Line: Integer; pAData: PByteArray): PByteArray;
 begin
-  Result := PByteArray(Integer(pAData) + (Height - 1 - Line) * BytesLineMask);
+  Result := PByteArray(TCnNativePointer(pAData) + (Height - 1 - Line) * BytesLineMask);
 end;
 
 // 设置精度
