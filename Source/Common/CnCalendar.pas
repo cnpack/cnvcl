@@ -329,8 +329,9 @@ function GetIsLeapYear(AYear: Integer): Boolean;
 function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
 {* 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况 }
 
-function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer): Extended; overload;
-{* 取某日期到年初的天数，小时数折算入小数，不考虑 1582 年 10 月的特殊情况 }
+function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
+  AMinute: Integer = 0; ASecond: Integer = 0): Extended; overload;
+{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况 }
 
 function ExtractMonthDay(Days: Integer; AYear: Integer; out AMonth: Integer;
   out ADay: Integer): Boolean;
@@ -1833,11 +1834,12 @@ begin
   Result := MonthAbsDays[GetIsLeapYear(AYear)][AMonth] + ADay;
 end;
 
-// 取某日期到年初的天数，小时数折算入小数，不考虑 1582 年 10 月的特殊情况
-function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer): Extended;
+// 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况
+function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
+  AMinute, ASecond: Integer): Extended;
 begin
   Result := GetDayFromYearBegin(AYear, AMonth, ADay);
-  Result := Result + (AHour / 24.0);
+  Result := Result + (AHour / 24.0) + (AMinute / 1440.0) + (ASecond / 86400.0);
 end;
 
 // 从距年首天数返回月和日数，年份用来判断是否是闰年，返回 False 表示不合法日期

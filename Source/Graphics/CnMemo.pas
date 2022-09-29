@@ -679,10 +679,13 @@ end;
 function TCnStringsControl.CalcColumnFromPixelOffsetInLine(ARow, VirtualX: Integer;
   out Col: Integer; out LeftHalf, DoubleWidth: Boolean): Boolean;
 var
-  I, L, X, OldX, W2, T: Integer;
+  I, L, X, OldX, W2: Integer;
   W, DirectCalc: Boolean;
   S: string;
+{$IFNDEF UNICODE}
+  T: Integer;
   SW: WideString;
+{$ENDIF}
   C: WideChar;
   Size: TSize;
 begin
@@ -786,9 +789,12 @@ function TCnStringsControl.CalcPixelOffsetFromColumnInLine(ARow, ACol: Integer;
   out Rect: TRect; out DoubleWidth: Boolean): Boolean;
 var
   W, DirectCalc: Boolean;
-  I, W2, X, OldX, Col, OldCol, T, L: Integer;
+  I, W2, X, OldX, Col, OldCol, L: Integer;
   S: string;
+{$IFNDEF UNICODE}
+  T: Integer;
   SW: WideString;
+{$ENDIF}
   C: WideChar;
   Size: TSize;
 begin
