@@ -153,6 +153,8 @@ begin
     else
       mmoResult.Lines.Add(Format('农历 %d 年 %d 月 %s', [LunarYear, LunarMonth, GetLunarDayFromNumber(LunarDay)]));
   end;
+
+  mmoResult.Lines.Add(Format('公历%d年各节气交接时刻：', [AYear]));
   for I := 0 to 11 do
   begin
     GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1);
