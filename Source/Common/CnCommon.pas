@@ -723,6 +723,9 @@ function IsNumLockDown: Boolean;
 function IsScrollLockDown: Boolean;
 {* 判断当前 Scroll Lock 是否按下 }
 
+function HandleEditShortCut(AControl: TWinControl; AShortCut: TShortCut): Boolean;
+{* 使控件处理标准编辑快捷键}
+
 function RemoveClassPrefix(const ClassName: string): string;
 {* 删除类名前缀 T}
 
@@ -5715,6 +5718,47 @@ var
 begin
   GetKeyboardState(KeyState);
   Result := Odd(KeyState[VK_SCROLL]);
+end;
+
+// 使控件处理标准编辑快捷键
+function HandleEditShortCut(AControl: TWinControl; AShortCut: TShortCut): Boolean;
+
+  function SendMessageToActiveControl(Msg: Cardinal): Boolean;
+  begin
+    if (AControl is TCustomEdit) or (AControl is TCustomComboBox) then
+    begin
+      SendMessage(AControl.Handle, Msg, 0, 0);
+      Result := True;
+    end
+    else
+      Result := False;
+  end;
+begin
+  if AControl = nil then
+  begin
+    Result := False;
+    Exit;
+  end;
+  Result := True;
+  if AShortCut = ShortCut(Word('C'), [ssCtrl]) then
+    Result := SendMessageToActiveControl(WM_COPY)
+  else if AShortCut = ShortCut(Word('X'), [ssCtrl]) then
+    Result := SendMessageToActiveControl(WM_CUT)
+  else if AShortCut = ShortCut(Word('V'), [ssCtrl]) then
+    Result := SendMessageToActiveControl(WM_PASTE)
+  else if AShortCut = ShortCut(Word('Z'), [ssCtrl]) then
+    Result := SendMessageToActiveControl(WM_UNDO)
+  else if AShortCut = ShortCut(Word('A'), [ssCtrl]) then
+  begin
+    if AControl is TCustomEdit then
+      TCustomEdit(AControl).SelectAll
+    else if AControl is TCustomComboBox then
+      TCustomComboBox(AControl).SelectAll
+    else
+      Result := False;
+  end
+  else
+    Result := False;
 end;
 
 // 删除类名前缀 T
