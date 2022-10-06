@@ -22,7 +22,7 @@ unit CnEdit;
 {* |<PRE>
 ================================================================================
 * 软件名称：界面控件包
-* 单元名称：CnEdit控件单元
+* 单元名称：CnEdit 控件单元
 * 单元作者：盛小青  chbsxq@163.com   QQ:822154
 *           jAmEs_
 * 备    注：-使 CnEdit 带有一个按钮，按钮拥有单击事件。
@@ -92,7 +92,7 @@ type
     function GetValue: Variant;
     procedure SetButtonCursor(const Value: TCursor);
   protected
-    procedure EditButtonClick; // 单击事件
+    procedure EditButtonClick; virtual; // 单击事件
     procedure BoundsChanged;
     procedure CreateParams(var Params: TCreateParams); override; // 这个非常有用
     procedure DoEnter; override; // 获取焦点时选择全部文字
