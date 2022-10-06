@@ -90,7 +90,10 @@ object FormSearchCombo: TFormSearchCombo
       Width = 15
       Height = 21
       Associate = edtBoxIndent
+      Min = 0
+      Position = 0
       TabOrder = 5
+      Wrap = False
     end
   end
   object cbb1: TComboBox
@@ -180,7 +183,10 @@ object FormSearchCombo: TFormSearchCombo
       Width = 15
       Height = 21
       Associate = edtComboIndent
+      Min = 0
+      Position = 0
       TabOrder = 3
+      Wrap = False
     end
     object btnCreateCombo: TButton
       Left = 24

@@ -43,6 +43,7 @@ type
   private
     FBox: TCnDropDownBox;
     procedure ComboChange(Sender: TObject);
+    procedure ComboSelect(Sender: TObject);
   public
     FCombo: TCnSearchComboBox;
   end;
@@ -130,6 +131,7 @@ begin
     FCombo.Items.Add('_DynArrayLength');
 
     FCombo.OnChange := ComboChange;
+    FCombo.OnSelect := ComboSelect;
   end;
 end;
 
@@ -160,6 +162,12 @@ procedure TFormSearchCombo.ComboChange(Sender: TObject);
 begin
   if FCombo <> nil then
     Caption := DateTimeToStr(Now) + ' ' + FCombo.Text;
+end;
+
+procedure TFormSearchCombo.ComboSelect(Sender: TObject);
+begin
+  if FCombo <> nil then
+    Caption := DateTimeToStr(Now) + ' Select: ' + FCombo.Text;
 end;
 
 end.

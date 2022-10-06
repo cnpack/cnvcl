@@ -148,6 +148,7 @@ type
     FOnKillFocus: TNotifyEvent;
     FDropDownList: TCnDropDownBox;
     FEvents: TApplicationEvents;
+    FOnSelect: TNotifyEvent;
     procedure DropDownListDblClick(Sender: TObject);
     procedure DropDownListClick(Sender: TObject);
     procedure UpdateDropPosition;
@@ -181,6 +182,7 @@ type
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     procedure WndProc(var Message: TMessage); override;
     procedure Change; override;
+    procedure DoSelect; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -217,6 +219,8 @@ type
 
     property OnKillFocus: TNotifyEvent read FOnKillFocus write FOnKillFocus;
     {* 失焦事件}
+    property OnSelect: TNotifyEvent read FOnSelect write FOnSelect;
+    {* 选中条目的事件，此时 Text 内容是选中的条目}
   end;
 
 implementation
@@ -435,12 +439,10 @@ constructor TCnDropDownBox.Create(AOwner: TComponent);
 const
   csMinDispItems = 6;
   csDefDispItems = 12;
-  csMinDispWidth = 450;
   csDefDispWidth = 300;
 begin
   inherited;
   Constraints.MinHeight := ItemHeight * csMinDispItems + 4;
-  Constraints.MinWidth := csMinDispWidth;
   Height := ItemHeight * csDefDispItems + 8;
   Width := csDefDispWidth;
   Font.Size := 8;
@@ -767,6 +769,7 @@ begin
   FDropDownList := TCnDropDownBox.Create(Self);
   FDropDownList.Name := 'CnDropDownList';
   FDropDownList.Parent := Application.MainForm;
+  FDropDownList.Width := Width;
   FDropDownList.OnDblClick := DropDownListDblClick;
   FDropDownList.OnClick := DropDownListClick;
   // 注意上下移动选中时也会触发，不光是单击
@@ -780,6 +783,12 @@ destructor TCnSearchComboBox.Destroy;
 begin
   FEvents.Free;
   inherited;
+end;
+
+procedure TCnSearchComboBox.DoSelect;
+begin
+  if Assigned(FOnSelect) then
+    FOnSelect(Self);
 end;
 
 procedure TCnSearchComboBox.DropDownListClick(Sender: TObject);
@@ -815,13 +824,18 @@ begin
 {$IFDEF DEBUG}
   CnDebugger.LogMsg('EditButtonClick.');
 {$ENDIF}
-  if Text <> '' then
+  if FDropDownList.Visible then
+    FDropDownList.CloseUp
+  else
   begin
-    Text := '';
-    FDropDownList.MatchStr := '';
-  end;
+    if Text <> '' then
+    begin
+      Text := '';
+      FDropDownList.MatchStr := '';
+    end;
 
-  ShowDropBox;
+    ShowDropBox;
+  end;
   inherited;
 end;
 
@@ -847,7 +861,11 @@ end;
 
 function TCnSearchComboBox.GetItemIndex: Integer;
 begin
-  Result := FDropDownList.ItemIndex;
+  if Text = '' then
+    Result := FDropDownList.ItemIndex
+  else
+    Result := FDropDownList.Items.IndexOf(Text);
+    // 过滤后 DropDownList 的 ItemIndex 并不能反映真实情况，需要用 Text 去内部查找
 end;
 
 function TCnSearchComboBox.GetItems: TStrings;
@@ -902,6 +920,8 @@ begin
       try
         Text := FDropDownList.DisplayItems[FDropDownList.ItemIndex];
         Change; // 触发 inherited 的 Change，但用 FDisableChange 控制不继续自身的 Change，因为自身的 Change 是下拉查找用的
+                                                                                                                           ;
+        DoSelect; // 触发选中事件
       finally
         FDisableChange := False;
       end;
@@ -932,7 +952,10 @@ procedure TCnSearchComboBox.SetBounds(ALeft, ATop, AWidth,
 begin
   inherited;
   if (Parent <> nil) and FDropDownList.Visible then
+  begin
+    FDropDownList.Width := AWidth;
     UpdateDropPosition;
+  end;
 end;
 
 procedure TCnSearchComboBox.SetCaseSensitive(const Value: Boolean);
