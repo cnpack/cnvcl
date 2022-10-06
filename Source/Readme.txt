@@ -356,11 +356,14 @@ cnpack\Source 目录内容说明：
   CnAutoOption.pas
     自动参数设置类定义单元
 
-  CnCheckTreeView.pas
-    带复选框的 TreeView 组件实现单元
+  CnButtonEdit.pas
+    带按钮的编辑框控件实现单元
 
   CnButtons.pas
     CnButton 和 CnBitBtn 的自画按钮实现单元
+
+  CnCheckTreeView.pas
+    带复选框的 TreeView 组件实现单元
 
   CnColorGrid.pas
     颜色网格实现单元
@@ -389,6 +392,12 @@ cnpack\Source 目录内容说明：
   CnHexEditor.pas
     CnHexEditor 十六进制查看编辑单元
 
+  CnHint.pas
+    CnHint 提示控件实现单元
+
+  CnIconUtils.pas
+    Ico 图标处理辅助单元
+
   CnImage.pas
     调试用界面控件 TCnImage、TCnPaintBox 单元
 
@@ -398,11 +407,23 @@ cnpack\Source 目录内容说明：
   CnListBox.pas
     支持自画效果的 CnListBox 控件实现单元
 
+  CnMandelbrotImage.pas
+    曼德布罗集图实现单元
+
+  CnMemo.pas
+    CnMemo 控件实现单元
+
   CnMonthCalendar.pas
     中文月历的界面组件实现单元
 
+  CnOpenGLPaintBox.pas
+    利用 OpenGL 硬件加速的画布控件实现单元
+
   CnPanel.pas
     带透明效果的Panel实现单元
+
+  CnSearchCombo.pas
+    带下拉搜索匹配的 ComboBox 控件单元
 
   CnShellCtrls.pas
     移植的 ShellCtrls 控件单元
@@ -412,6 +433,15 @@ cnpack\Source 目录内容说明：
 
   CnSpin.pas
     CnSpin 控件单元
+
+  CnSplitter.pas
+    CnSplitter 分隔条实现单元
+
+  CnTabSet.pas
+    CnTabSet 组件实现单元
+
+  CnTextControl.pas
+    基础文本编辑控件实现单元
 
   CnValidateImage.pas
     简单的验证码生成图片单元
@@ -425,7 +455,7 @@ cnpack\Source 目录内容说明：
   CnWizardImage.pas
     向导界面图像控件
 
-               28 文件
+               39 文件
 
 \Lang\2052
 \Lang\1028

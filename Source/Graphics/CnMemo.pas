@@ -136,7 +136,6 @@ type
     property OnChanging: TNotifyEvent read FOnChanging write FOnChanging;
   end;
 
-type
   TCnStringsControl = class(TCnVirtualTextControl)
   {* 有具体字符串列表显示功能的文本组件}
   private

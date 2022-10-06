@@ -832,6 +832,7 @@ begin
     begin
       Text := '';
       FDropDownList.MatchStr := '';
+      DoSelect;
     end;
 
     ShowDropBox;
@@ -903,7 +904,15 @@ begin
   if (Key = VK_ESCAPE) and (Shift = []) then
   begin
     if FDropDownList.Visible then
+    begin
       FDropDownList.Hide;
+      if Text <> '' then
+      begin
+        Text := '';
+        FDropDownList.MatchStr := '';
+        DoSelect;
+      end;
+    end;
     Key := 0;
   end
   else if (Key = VK_RETURN) and (Shift = []) then
