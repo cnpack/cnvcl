@@ -47,6 +47,9 @@ uses
   Classes, SysUtils, Windows, CnNative;
 
 type
+  // 匹配模式，开头匹配，中间匹配，全范围模糊匹配
+  TCnMatchMode = (mmStart, mmAnywhere, mmFuzzy);
+
   TCnAnsiStrings = class;
   
   ICnStringsAdapter = interface
