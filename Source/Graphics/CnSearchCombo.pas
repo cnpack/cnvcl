@@ -188,6 +188,7 @@ type
     destructor Destroy; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
     procedure ShowDropBox;
+    procedure CloseUp;
     procedure SetTextWithoutChange(const AText: string);
 
     property DropDownList: TCnDropDownBox read FDropDownList;
@@ -748,6 +749,11 @@ begin
 
   SelStart := OldSel;
   SelLength := OldSelLength;
+end;
+
+procedure TCnSearchComboBox.CloseUp;
+begin
+  FDropDownList.CloseUp;
 end;
 
 procedure TCnSearchComboBox.CNKeyDown(var Message: TWMKeyDown);
