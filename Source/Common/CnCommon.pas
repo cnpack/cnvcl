@@ -28,7 +28,9 @@ unit CnCommon;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.06.22 by LiuXiao
+* 修改记录：2022.10.07 by LiuXiao
+*               增加多行文本输入框函数
+*           2021.06.22 by LiuXiao
 *               增加多按钮提示框的函数，暂不支持图标
 *           2019.02.25 by LiuXiao
 *               增加检查中国大陆 18 位身份证号是否正确的函数
@@ -41,9 +43,9 @@ unit CnCommon;
 *           2007.01.31 by LiuXiao
 *               增加获取一对象所有属性列表的函数
 *           2006.11.29 by shenloqi
-*               修改了  ShortNameToLongName 函数，使其支持 Win95/NT（不支持 Linux）
+*               修改了 ShortNameToLongName 函数，使其支持 Win95/NT（不支持 Linux）
 *           2005.08.02 by shenloqi
-*               增加了SameCharCounts，CharCounts ，RelativePath函数，重写了
+*               增加了 SameCharCounts，CharCounts ，RelativePath函数，重写了
 *               GetRelativePath函数
 *           2005.07.08 by shenloqi
 *               修改了 GetRelativePath 函数，修改了 FileMatchesExts 函数，增加了
@@ -775,12 +777,20 @@ function CnInputQuery(const ACaption, APrompt: string;
   var Value: string; Ini: TCustomIniFile = nil;
   const Section: string = csDefComboBoxSection; APassword: Boolean = False;
   FormCallBack: TCnSenderCallback = nil): Boolean;
-{* 输入对话框}
+{* 输入单行字符串的对话框}
 
 function CnInputBox(const ACaption, APrompt, ADefault: string;
-   Ini: TCustomIniFile = nil; const Section: string = csDefComboBoxSection;
-   FormCallBack: TCnSenderCallback = nil): string;
-{* 输入对话框}
+  Ini: TCustomIniFile = nil; const Section: string = csDefComboBoxSection;
+  FormCallBack: TCnSenderCallback = nil): string;
+{* 输入单行字符串的对话框}
+
+function CnInputMultiLineQuery(const ACaption, APrompt: string;
+  var Value: string; FormCallBack: TCnSenderCallback = nil): Boolean;
+{* 输入多行字符串的对话框}
+
+function CnInputMultiLineBox(const ACaption, APrompt, ADefault: string;
+  FormCallBack: TCnSenderCallback = nil): string;
+{* 输入多行字符串的对话框}
 
 procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer = 0;
   const ACaption: string = ''; Modal: Boolean = True);
@@ -6198,6 +6208,123 @@ function CnInputBox(const ACaption, APrompt, ADefault: string;
 begin
   Result := ADefault;
   CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack);
+end;
+
+function CnInputMultiLineQuery(const ACaption, APrompt: string;
+  var Value: string; FormCallBack: TCnSenderCallback = nil): Boolean;
+var
+  Form: TForm;
+  Prompt: TLabel;
+  Memo: TMemo;
+  DialogUnits: TPoint;
+  ButtonTop, ButtonWidth, ButtonHeight: Integer;
+{$IFDEF CREATE_PARAMS_BUG}
+  OldLong: Longint;
+  AHandle: THandle;
+  NeedChange: Boolean;
+{$ENDIF}
+begin
+  Result := False;
+
+{$IFDEF CREATE_PARAMS_BUG}
+  NeedChange := False;
+  OldLong := 0;
+  AHandle := Application.ActiveFormHandle;
+{$ENDIF}
+
+  Form := TForm.Create(Application);
+  with Form do
+  try
+    Scaled := False;
+    Font.Handle := GetStockObject(DEFAULT_GUI_FONT);
+    Canvas.Font := Font;
+    DialogUnits := GetAveCharSize(Canvas);
+    BorderStyle := bsDialog;
+    Caption := ACaption;
+    ClientWidth := MulDiv(360, DialogUnits.X, 4);
+    ClientHeight := MulDiv(128, DialogUnits.Y, 8);
+    Position := poScreenCenter;
+
+    Prompt := TLabel.Create(Form);
+    with Prompt do
+    begin
+      Parent := Form;
+      AutoSize := True;
+      Left := MulDiv(8, DialogUnits.X, 4);
+      Top := MulDiv(8, DialogUnits.Y, 8);
+      Caption := APrompt;
+    end;
+
+    Memo := TMemo.Create(Form);
+    with Memo do
+    begin
+      Parent := Form;
+      Left := Prompt.Left;
+      Top := MulDiv(19, DialogUnits.Y, 8);
+      Width := MulDiv(344, DialogUnits.X, 4);
+      Height := MulDiv(80, DialogUnits.Y, 8);
+      ScrollBars := ssBoth;
+
+      Text := Value;
+      SelectAll;
+    end;
+
+    ButtonTop := MulDiv(108, DialogUnits.Y, 8);
+    ButtonWidth := MulDiv(50, DialogUnits.X, 4);
+    ButtonHeight := MulDiv(14, DialogUnits.Y, 8);
+
+    with TButton.Create(Form) do
+    begin
+      Parent := Form;
+      Caption := SCnMsgDlgOK;
+      ModalResult := mrOk;
+      Default := True;
+      SetBounds(MulDiv(130, DialogUnits.X, 4), ButtonTop, ButtonWidth,
+        ButtonHeight);
+    end;
+
+    with TButton.Create(Form) do
+    begin
+      Parent := Form;
+      Caption := SCnMsgDlgCancel;
+      ModalResult := mrCancel;
+      Cancel := True;
+      SetBounds(MulDiv(185, DialogUnits.X, 4), ButtonTop, ButtonWidth,
+        ButtonHeight);
+    end;
+
+{$IFDEF CREATE_PARAMS_BUG}
+    if AHandle <> 0 then
+    begin
+      OldLong := GetWindowLong(AHandle, GWL_EXSTYLE);
+      NeedChange := OldLong and WS_EX_TOOLWINDOW = WS_EX_TOOLWINDOW;
+      if NeedChange then
+        SetWindowLong(AHandle, GWL_EXSTYLE, OldLong and not WS_EX_TOOLWINDOW);
+    end;
+{$ENDIF}
+
+    if Assigned(FormCallBack) then // 给外界一个处理界面的机会，如 HDPI 模式下放大等
+      FormCallBack(Form);
+
+    if ShowModal = mrOk then
+    begin
+      Value := Memo.Text;
+      Result := True;
+    end;
+  finally
+{$IFDEF CREATE_PARAMS_BUG}
+    if NeedChange and (OldLong <> 0) then
+      SetWindowLong(AHandle, GWL_EXSTYLE, OldLong);
+{$ENDIF}
+    Form.Free;
+  end;
+end;
+
+function CnInputMultiLineBox(const ACaption, APrompt, ADefault: string;
+  FormCallBack: TCnSenderCallback = nil): string;
+begin
+  Result := ADefault;
+  CnInputMultiLineQuery(ACaption, APrompt, Result, FormCallBack);
 end;
 
 procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer;
