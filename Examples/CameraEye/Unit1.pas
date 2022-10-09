@@ -12,8 +12,16 @@ type
     Panel1: TPanel;
     Button1: TButton;
     Button2: TButton;
+    btnVideoFormat: TButton;
+    btnVideoSource: TButton;
+    btnVideoDisplay: TButton;
+    btnVideoCompression: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure btnVideoFormatClick(Sender: TObject);
+    procedure btnVideoSourceClick(Sender: TObject);
+    procedure btnVideoDisplayClick(Sender: TObject);
+    procedure btnVideoCompressionClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -35,6 +43,26 @@ end;
 procedure TForm1.Button2Click(Sender: TObject);
 begin
   CnCameraEye1.Stop;
+end;
+
+procedure TForm1.btnVideoFormatClick(Sender: TObject);
+begin
+  CnCameraEye1.ShowVideoFormatDialog;
+end;
+
+procedure TForm1.btnVideoSourceClick(Sender: TObject);
+begin
+  CnCameraEye1.ShowVideoSourceDialog;
+end;
+
+procedure TForm1.btnVideoDisplayClick(Sender: TObject);
+begin
+  CnCameraEye1.ShowVideoDisplayDialog;
+end;
+
+procedure TForm1.btnVideoCompressionClick(Sender: TObject);
+begin
+  CnCameraEye1.ShowVideoCompressionDialog;
 end;
 
 end.
