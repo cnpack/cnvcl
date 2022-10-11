@@ -786,11 +786,11 @@ function CnInputBox(const ACaption, APrompt, ADefault: string;
 
 function CnInputMultiLineQuery(const ACaption, APrompt: string;
   var Value: string; FormCallBack: TCnSenderCallback = nil): Boolean;
-{* 输入多行字符串的对话框}
+{* 输入多行字符串的对话框，返回 True 表示用户输入后点击 OK 了，输入内容在 Value 中}
 
 function CnInputMultiLineBox(const ACaption, APrompt, ADefault: string;
   FormCallBack: TCnSenderCallback = nil): string;
-{* 输入多行字符串的对话框}
+{* 输入多行字符串的对话框，用户输入内容为空或 Cancel 时返回空字符串}
 
 procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer = 0;
   const ACaption: string = ''; Modal: Boolean = True);
@@ -6207,9 +6207,11 @@ function CnInputBox(const ACaption, APrompt, ADefault: string;
   FormCallBack: TCnSenderCallback): string;
 begin
   Result := ADefault;
-  CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack);
+  if not CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack) then
+    Result := '';
 end;
 
+// 输入多行字符串的对话框，返回 True 表示用户输入后点击 OK 了，输入内容在 Value 中
 function CnInputMultiLineQuery(const ACaption, APrompt: string;
   var Value: string; FormCallBack: TCnSenderCallback = nil): Boolean;
 var
@@ -6320,11 +6322,13 @@ begin
   end;
 end;
 
+// 输入多行字符串的对话框，用户输入内容为空或 Cancel 时返回空字符串
 function CnInputMultiLineBox(const ACaption, APrompt, ADefault: string;
   FormCallBack: TCnSenderCallback = nil): string;
 begin
   Result := ADefault;
-  CnInputMultiLineQuery(ACaption, APrompt, Result, FormCallBack);
+  if not CnInputMultiLineQuery(ACaption, APrompt, Result, FormCallBack) then
+    Result := '';
 end;
 
 procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer;
