@@ -328,7 +328,7 @@ begin
     FTimerRes := tc.wPeriodMin;
     if timeBeginPeriod(FTimerRes) = TIMERR_NOERROR then
     begin
-      FTimerID := timeSetEvent(tc.wPeriodMin, 0, MMTimerProc, TCnNativePointer(Self),
+      FTimerID := timeSetEvent(tc.wPeriodMin, 0, MMTimerProc, TCnNativeUInt(Self),
         TIME_PERIODIC);
       Result := FTimerID <> 0;
     end

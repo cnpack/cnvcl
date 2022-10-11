@@ -143,7 +143,7 @@ begin
         raise ECnCallBackException.Create('Callback Pool Overflow!');
 
       Inc(FEmptyPtr);
-      Instance := PCnCallback(TCnNativePointer(FCallBackPool) + FEmptyPtr * SizeOf(TCnCallback));
+      Instance := PCnCallback(TCnNativeInt(FCallBackPool) + FEmptyPtr * SizeOf(TCnCallback));
     end;
   finally
     LeaveCriticalSection(FCS);

@@ -2410,7 +2410,7 @@ end;
 // 扫描线
 function TCnFontMask.GetScanLine(Row: Integer): PByteArray;
 begin
-  Result := PByteArray(TCnNativePointer(FBuff) + Row * FRowInc);
+  Result := PByteArray(TCnNativeInt(FBuff) + Row * FRowInc);
 end;
 
 // 设置大小
@@ -2630,10 +2630,10 @@ end;
 procedure TCnBitmap.UpdateScanLine;
 var
   I: Integer;
-  x: TCnNativePointer;
+  x: TCnNativeInt;
 begin
   ReallocMem(FScanLine, FHeight * SizeOf(PCnLine)); // 重新分配扫描线指针数组空间
-  x := TCnNativePointer(FBits);
+  x := TCnNativeInt(FBits);
   for I := 0 to Height - 1 do
   begin
     FScanLine[I] := Pointer(x); // 初始化扫描线指针数组内容
@@ -3445,8 +3445,8 @@ begin
     for I := 0 to h - 1 do
     begin
       Move(n2^, n1^, w * 3);  // 复制图像数据
-      n1 := Pointer(TCnNativePointer(n1) + RowInc); // 增长一行扫描线
-      n2 := Pointer(TCnNativePointer(n2) + Src.RowInc);
+      n1 := Pointer(TCnNativeInt(n1) + RowInc); // 增长一行扫描线
+      n2 := Pointer(TCnNativeInt(n2) + Src.RowInc);
     end;
   end;
   Changed;
@@ -4188,8 +4188,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(TCnNativePointer(c1) + Gap);
-        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativeInt(c1) + Gap);
+        c2 := Pointer(TCnNativeInt(c2) + Bmp.Gap);
       end;
     end
     else
@@ -4204,8 +4204,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(TCnNativePointer(c1) + Gap);
-        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativeInt(c1) + Gap);
+        c2 := Pointer(TCnNativeInt(c2) + Bmp.Gap);
       end;
     end;
   finally
@@ -4343,8 +4343,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(TCnNativePointer(c1) + Gap);
-        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativeInt(c1) + Gap);
+        c2 := Pointer(TCnNativeInt(c2) + Bmp.Gap);
       end;
     end else if Style in [gsTopToBottom, gsBottomToTop, gsCenterToTB] then
     begin                     // 垂直方向渐变
@@ -4362,8 +4362,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(TCnNativePointer(c1) + Gap);
-        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativeInt(c1) + Gap);
+        c2 := Pointer(TCnNativeInt(c2) + Bmp.Gap);
       end;
     end
     else if Style = gsRadial then
@@ -4397,8 +4397,8 @@ begin
           Inc(c1);
           Inc(c2);
         end;
-        c1 := Pointer(TCnNativePointer(c1) + Gap);
-        c2 := Pointer(TCnNativePointer(c2) + Bmp.Gap);
+        c1 := Pointer(TCnNativeInt(c1) + Gap);
+        c2 := Pointer(TCnNativeInt(c2) + Bmp.Gap);
       end
     end;
   finally
@@ -4890,7 +4890,7 @@ begin
       CurBits.r := Table[CurBits.r].r;
       Inc(CurBits);
     end;
-    CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+    CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
   end;
   Changed;
 end;
@@ -4928,7 +4928,7 @@ begin
         CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end
   else
@@ -4942,7 +4942,7 @@ begin
         if ccRed in Channels then CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -4990,7 +4990,7 @@ begin
         pc.r := IntToByte(Alpha[CurBits.r] + ag);
         Inc(pc);
       end;
-      pc := Pointer(TCnNativePointer(pc) + Gap);
+      pc := Pointer(TCnNativeInt(pc) + Gap);
     end;
   end
   else
@@ -5007,7 +5007,7 @@ begin
         if ccRed in Channels then pc.r := IntToByte(Alpha[CurBits.r] + ag);
         Inc(pc);
       end;
-      pc := Pointer(TCnNativePointer(pc) + Gap);
+      pc := Pointer(TCnNativeInt(pc) + Gap);
     end;
   end;
   Changed;
@@ -5038,7 +5038,7 @@ begin
         CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end
   else
@@ -5052,7 +5052,7 @@ begin
         if ccRed in Channels then CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5090,7 +5090,7 @@ begin
         CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end
   else
@@ -5104,7 +5104,7 @@ begin
         if ccRed in Channels then CurBits.r := Table[CurBits.r];
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5142,7 +5142,7 @@ begin
         CurBits.r := I;
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end
   else
@@ -5157,7 +5157,7 @@ begin
         if ccRed in Channels then CurBits.r := I;
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5183,7 +5183,7 @@ begin
         CurBits.r := not CurBits.r;
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end
   else
@@ -5197,7 +5197,7 @@ begin
         if ccRed in Channels then CurBits.r := not CurBits.r;
         Inc(CurBits);
       end;
-      CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+      CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
     end;
   end;
   Changed;
@@ -5238,7 +5238,7 @@ begin
         end;
       Inc(CurBits);
     end;
-    CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+    CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
   end;
   Changed;
 end;
@@ -5283,12 +5283,12 @@ begin
         end
       else
       begin                   // 垂直翻转
-        TmPLine2 := Pointer(TCnNativePointer(Bits) + (h - y) * RowInc);
+        TmPLine2 := Pointer(TCnNativeInt(Bits) + (h - y) * RowInc);
         CopyMemory(TmPLine, Line, RowInc);
         CopyMemory(Line, TmPLine2, RowInc);
         CopyMemory(TmPLine2, TmPLine, RowInc);
       end;
-      Line := Pointer(TCnNativePointer(Line) + RowInc);
+      Line := Pointer(TCnNativeInt(Line) + RowInc);
     end;
   finally
     if not Horizontal then FreeMem(TmPLine);
@@ -5362,10 +5362,10 @@ begin
     p := Bits;
     for y := 0 to Height - 1 do
     begin                     // 复制左半部分到临时缓冲区
-      CopyMemory(Line, Pointer(TCnNativePointer(p) + ((Width - Amount) * 3)), Amount * 3);
-      MoveMemory(Pointer(TCnNativePointer(p) + (Amount * 3)), p, (Width - Amount) * 3);
+      CopyMemory(Line, Pointer(TCnNativeInt(p) + ((Width - Amount) * 3)), Amount * 3);
+      MoveMemory(Pointer(TCnNativeInt(p) + (Amount * 3)), p, (Width - Amount) * 3);
       CopyMemory(p, Line, Amount * 3);
-      p := Pointer(TCnNativePointer(p) + RowInc);
+      p := Pointer(TCnNativeInt(p) + RowInc);
     end;
   finally
     FreeMem(Line);
@@ -5377,7 +5377,7 @@ end;
 procedure TCnBitmap.HShift(Amount: Integer);
 var
   Buff: Pointer;
-  p, y: TCnNativePointer;
+  p, y: TCnNativeInt;
 begin
   if Empty then
     Exit;
@@ -5388,9 +5388,9 @@ begin
     Exit;
 
   Changing;
-  p := TCnNativePointer(Bits) + (Height * (Gap)) + ((Height * Width) * 3);
-  p := p - TCnNativePointer(FScanLine[Amount]);
-  y := TCnNativePointer(FScanLine[Amount]) - TCnNativePointer(Bits);
+  p := TCnNativeInt(Bits) + (Height * (Gap)) + ((Height * Width) * 3);
+  p := p - TCnNativeInt(FScanLine[Amount]);
+  y := TCnNativeInt(FScanLine[Amount]) - TCnNativeInt(Bits);
   GetMem(Buff, y);            // 临时缓冲区
 
   try
@@ -5560,9 +5560,9 @@ begin
       if Sum = 0 then Sum := 1;
     end;
 
-    p1 := Pointer(TCnNativePointer(Buff) - RowInc);
+    p1 := Pointer(TCnNativeInt(Buff) - RowInc);
     p2 := Buff;
-    p3 := Pointer(TCnNativePointer(Buff) + RowInc);
+    p3 := Pointer(TCnNativeInt(Buff) + RowInc);
     Dst := Bits;              // 目标象素
     for y := 0 to Height - 1 do
     begin
@@ -5599,10 +5599,10 @@ begin
           y2[x3].r * Core[1, 2] + y3[x1].r * Core[2, 0] + y3[x2].r * Core[2, 1] +
           y3[x3].r * Core[2, 2]) div Sum);
       end;
-      p1 := Pointer(TCnNativePointer(p1) + RowInc);
-      p2 := Pointer(TCnNativePointer(p2) + RowInc);
-      p3 := Pointer(TCnNativePointer(p3) + RowInc);
-      Dst := Pointer(TCnNativePointer(Dst) + RowInc);
+      p1 := Pointer(TCnNativeInt(p1) + RowInc);
+      p2 := Pointer(TCnNativeInt(p2) + RowInc);
+      p3 := Pointer(TCnNativeInt(p3) + RowInc);
+      Dst := Pointer(TCnNativeInt(Dst) + RowInc);
     end;
   finally
     FreeMem(Buff);
@@ -5680,7 +5680,7 @@ begin
       pc.r := (Buf[0].r + Buf[1].r + Buf[2].r + Buf[3].r) shr 2;
       Inc(pc);
     end;
-    pc := Pointer(TCnNativePointer(pc) + Gap);
+    pc := Pointer(TCnNativeInt(pc) + Gap);
   end;
   Changed;
 end;
@@ -5743,7 +5743,7 @@ begin
         Buf[3].r + Buf[5].r + Buf[6].r + Buf[7].r + Buf[8].r)) div 8);
       Inc(pc);
     end;
-    pc := Pointer(TCnNativePointer(pc) + Gap);
+    pc := Pointer(TCnNativeInt(pc) + Gap);
   end;
   Changed;
 end;
@@ -5791,7 +5791,7 @@ begin
   if Empty then Exit;
   Changing;
   p1 := Bits;                 // 第一行
-  p2 := Pointer(TCnNativePointer(p1) + RowInc + 3); // 右下各加一象素
+  p2 := Pointer(TCnNativeInt(p1) + RowInc + 3); // 右下各加一象素
   GetMem(Line, RowInc);       // 临时行保存最后一行扫描线内容
   try
     CopyMemory(Line, FScanLine[FHeight - 1], RowInc);
@@ -5805,11 +5805,11 @@ begin
         Inc(p1);
         if (y < FHeight - 2) and (x < FWidth - 2) then Inc(p2);
       end;
-      p1 := Pointer(TCnNativePointer(p1) + FGap);
+      p1 := Pointer(TCnNativeInt(p1) + FGap);
       if y < FHeight - 2 then // 最后两行
-        p2 := Pointer(TCnNativePointer(p2) + Gap + 6)
+        p2 := Pointer(TCnNativeInt(p2) + Gap + 6)
       else
-        p2 := Pointer(TCnNativePointer(Line) + 3);
+        p2 := Pointer(TCnNativeInt(Line) + 3);
     end;
   finally
     FreeMem(Line);
@@ -5838,7 +5838,7 @@ begin
       CurBits.r := Table[CurBits.r];
       Inc(CurBits);
     end;
-    CurBits := Pointer(TCnNativePointer(CurBits) + Gap);
+    CurBits := Pointer(TCnNativeInt(CurBits) + Gap);
   end;
   Changed;
 end;
@@ -5867,7 +5867,7 @@ begin
         if c >= 0 then FScanLine[c][x] := Src^;
         Inc(Src);
       end;
-      Src := Pointer(TCnNativePointer(Src) + Gap);
+      Src := Pointer(TCnNativeInt(Src) + Gap);
     end;
   finally
     Bmp.Free;
@@ -5908,7 +5908,7 @@ begin
           FScanLine[ym][xm] := Src^;
         Inc(Src);
       end;
-      Src := Pointer(TCnNativePointer(Src) + Gap);
+      Src := Pointer(TCnNativeInt(Src) + Gap);
     end;
   finally
     Buf := nil;
@@ -5928,7 +5928,7 @@ var
   Pix: PCnColor;
   Line: PCnLine;
   Dst: TCnBitmap;
-  Max: TCnNativePointer;
+  Max: TCnNativeInt;
   PInt: PInteger;
 begin
   if Empty or (YDiv <= 0) or (XDiv <= 0) or (RatioVal <= 0) then
@@ -5946,7 +5946,7 @@ begin
       st[J] := Round(RatioVal * Sin(J / YDiv));
 
     if Wrap then
-      Max := TCnNativePointer(FScanLine[FHeight - 1]) + RowInc;
+      Max := TCnNativeInt(FScanLine[FHeight - 1]) + RowInc;
 
     for I := 0 to FWidth - 1 do
     begin
@@ -5960,7 +5960,7 @@ begin
           YSrc := YSrc mod (FHeight - 1);
       end;
 
-      Pix := Pointer(TCnNativePointer(Dst.Bits) + I * 3);
+      Pix := Pointer(TCnNativeInt(Dst.Bits) + I * 3);
       if ((YSrc >= 0) and (YSrc < FHeight)) or Wrap then
         Line := FScanLine[YSrc];
       PInt := PInteger(st);
@@ -5976,9 +5976,9 @@ begin
           else if XSrc >= FWidth then
             XSrc := XSrc mod FWidth;
           Pix^ := Line[XSrc];
-          Pix := Pointer(TCnNativePointer(Pix) + Dst.RowInc);
-          Line := Pointer(TCnNativePointer(Line) + FRowInc);
-          if TCnNativePointer(Line) >= Max then
+          Pix := Pointer(TCnNativeInt(Pix) + Dst.RowInc);
+          Line := Pointer(TCnNativeInt(Line) + FRowInc);
+          if TCnNativeInt(Line) >= Max then
             Line := FBits;
         end
         else
@@ -5989,13 +5989,13 @@ begin
             Pix^ := Line^[XSrc]
           else if YSrc = -1 then
           begin
-            Pix := Pointer(TCnNativePointer(Pix) + Dst.RowInc);
+            Pix := Pointer(TCnNativeInt(Pix) + Dst.RowInc);
             Line := FBits;
             YSrc := 0;
             Continue;
           end;
-          Pix := Pointer(TCnNativePointer(Pix) + Dst.RowInc);
-          Line := Pointer(TCnNativePointer(Line) + RowInc);
+          Pix := Pointer(TCnNativeInt(Pix) + Dst.RowInc);
+          Line := Pointer(TCnNativeInt(Line) + RowInc);
           Inc(YSrc);
         end;
       end;
@@ -6049,7 +6049,7 @@ begin
       else
         tx := xAmount;
       Delta := RowInc - tx * 3;
-      Pix := PTR(TCnNativePointer(FScanLine[y]) + x * 3);
+      Pix := PTR(TCnNativeInt(FScanLine[y]) + x * 3);
       for cy := 1 to ty do
       begin
         for cx := 1 to tx do
@@ -6057,7 +6057,7 @@ begin
           Pix^ := Col;
           Inc(Pix);
         end;
-        Pix := PTR(TCnNativePointer(Pix) + Delta);
+        Pix := PTR(TCnNativeInt(Pix) + Delta);
       end;
       Inc(x, xAmount);
     end;
@@ -6088,7 +6088,7 @@ var
   ix, iy: Integer;
   sli, slo: PCnLine;
   Buff: Pointer;
-  BuffOff: TCnNativePointer;
+  BuffOff: TCnNativeInt;
 
   function ArcTan2(xt, yt: Single): Single;
   begin
@@ -6111,7 +6111,7 @@ begin
   GetMem(Buff, Size);
   try
     Move(Bits^, Buff^, Size);
-    BuffOff := TCnNativePointer(Buff) - TCnNativePointer(Bits);
+    BuffOff := TCnNativeInt(Buff) - TCnNativeInt(Bits);
     OFFSET := -(Pi / 2);
     dx := Width - 1;
     dy := Height - 1;
@@ -6187,9 +6187,9 @@ begin
           for iy := 0 to 1 do
           begin
             if ify + iy < Height then
-              sli := Pointer(TCnNativePointer(FScanLine[ify + iy]) + BuffOff)
+              sli := Pointer(TCnNativeInt(FScanLine[ify + iy]) + BuffOff)
             else
-              sli := Pointer(TCnNativePointer(FScanLine[Height - ify - iy]) + BuffOff);
+              sli := Pointer(TCnNativeInt(FScanLine[Height - ify - iy]) + BuffOff);
             if ifx + ix < Width then
             begin
               new_red := sli^[ifx + ix].r;
@@ -6340,7 +6340,7 @@ begin
         Col^ := BackColor;
       Inc(Col);
     end;
-    Col := Pointer(TCnNativePointer(Col) + FGap);
+    Col := Pointer(TCnNativeInt(Col) + FGap);
   end;
   Changed;
 end;
@@ -6369,7 +6369,7 @@ begin
       pc.r := IntToByte(pc.r + (Random(Amount) - (Amount shr 1)));
       Inc(pc);
     end;
-    pc := Pointer(TCnNativePointer(pc) + Gap);
+    pc := Pointer(TCnNativeInt(pc) + Gap);
   end;
   Changed;
 end;
@@ -6394,7 +6394,7 @@ begin
       pc.r := IntToByte(pc.r + a);
       Inc(pc);
     end;
-    pc := Pointer(TCnNativePointer(pc) + Gap);
+    pc := Pointer(TCnNativeInt(pc) + Gap);
   end;
   Changed;
 end;
@@ -6415,8 +6415,8 @@ begin
   try
     CopyMemory(Buff, Bits, Size);
     y1 := Buff;
-    y2 := Pointer(TCnNativePointer(y1) + RowInc);
-    y3 := Pointer(TCnNativePointer(y2) + RowInc);
+    y2 := Pointer(TCnNativeInt(y1) + RowInc);
+    y3 := Pointer(TCnNativeInt(y2) + RowInc);
     Dst := FScanLine[1];
     for y := 1 to Height - 2 do
     begin
@@ -6437,10 +6437,10 @@ begin
           Dst[x].r := dr;
         end;
       end;
-      y1 := Pointer(TCnNativePointer(y1) + RowInc);
-      y2 := Pointer(TCnNativePointer(y2) + RowInc);
-      y3 := Pointer(TCnNativePointer(y3) + RowInc);
-      Dst := Pointer(TCnNativePointer(Dst) + RowInc);
+      y1 := Pointer(TCnNativeInt(y1) + RowInc);
+      y2 := Pointer(TCnNativeInt(y2) + RowInc);
+      y3 := Pointer(TCnNativeInt(y3) + RowInc);
+      Dst := Pointer(TCnNativeInt(Dst) + RowInc);
     end;
   finally
     FreeMem(Buff);
@@ -7051,9 +7051,9 @@ begin
 
   GrayRowInc := (FGrayBmp.Width + 3) div 4 * 4; // 扫描线宽度
   pS1 := FGrayBmp.ScanLine[0]; // 源灰度图
-  pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
-  pS3 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
-  pS4 := PByteArray(TCnNativePointer(pS3) - GrayRowInc);
+  pS2 := PByteArray(TCnNativeInt(pS1) - GrayRowInc);
+  pS3 := PByteArray(TCnNativeInt(pS2) - GrayRowInc);
+  pS4 := PByteArray(TCnNativeInt(pS3) - GrayRowInc);
   pDst := FFontMask.ScanLine[0];
   // 目标灰度为源矩形块的平均值
   case Font.Quality of
@@ -7070,11 +7070,11 @@ begin
               pS3^[x] + pS3^[x + 1] + pS3^[x + 2] + pS3^[x + 3] +
               pS4^[x] + pS4^[x + 1] + pS4^[x + 2] + pS4^[x + 3]) shr 4;
           end;
-          pS1 := PByteArray(TCnNativePointer(pS4) - GrayRowInc);
-          pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
-          pS3 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
-          pS4 := PByteArray(TCnNativePointer(pS3) - GrayRowInc);
-          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativeInt(pS4) - GrayRowInc);
+          pS2 := PByteArray(TCnNativeInt(pS1) - GrayRowInc);
+          pS3 := PByteArray(TCnNativeInt(pS2) - GrayRowInc);
+          pS4 := PByteArray(TCnNativeInt(pS3) - GrayRowInc);
+          pDst := PByteArray(TCnNativeInt(pDst) + FFontMask.FRowInc);
         end;
       end;
     fqNormal:
@@ -7089,10 +7089,10 @@ begin
               pS2^[x] + pS2^[x + 1] + pS2^[x + 2] +
               pS3^[x] shr 1 + pS3^[x + 1] + pS3^[x + 2]) shr 3;
           end;
-          pS1 := PByteArray(TCnNativePointer(pS3) - GrayRowInc);
-          pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
-          pS3 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
-          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativeInt(pS3) - GrayRowInc);
+          pS2 := PByteArray(TCnNativeInt(pS1) - GrayRowInc);
+          pS3 := PByteArray(TCnNativeInt(pS2) - GrayRowInc);
+          pDst := PByteArray(TCnNativeInt(pDst) + FFontMask.FRowInc);
         end;
       end;
     fqLow:
@@ -7106,9 +7106,9 @@ begin
               (pS1^[x] + pS1^[x + 1] +
               pS2^[x] + pS2^[x + 1]) shr 2;
           end;
-          pS1 := PByteArray(TCnNativePointer(pS2) - GrayRowInc);
-          pS2 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
-          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativeInt(pS2) - GrayRowInc);
+          pS2 := PByteArray(TCnNativeInt(pS1) - GrayRowInc);
+          pDst := PByteArray(TCnNativeInt(pDst) + FFontMask.FRowInc);
         end;
       end;
     fqNone:
@@ -7116,8 +7116,8 @@ begin
         for I := 0 to Extend.cy - 1 do
         begin
           CopyMemory(pDst, pS1, Extend.cx);
-          pS1 := PByteArray(TCnNativePointer(pS1) - GrayRowInc);
-          pDst := PByteArray(TCnNativePointer(pDst) + FFontMask.FRowInc);
+          pS1 := PByteArray(TCnNativeInt(pS1) - GrayRowInc);
+          pDst := PByteArray(TCnNativeInt(pDst) + FFontMask.FRowInc);
         end;
       end;
   end;

@@ -1113,10 +1113,6 @@ begin
   Move(Dig[0], Result[0], SizeOf(TSHA3_512Digest));
 end;
 
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-
 // 以十六进制格式输出 SHA3_224 计算值
 function SHA3_224Print(const Digest: TSHA3_224Digest): string;
 begin

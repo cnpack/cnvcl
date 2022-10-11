@@ -1685,9 +1685,8 @@ implementation
 
 resourcestring
   SCnInvalidDegree = 'Invalid Degree %d';
-  SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
+  // SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
   SCnInvalidExponent = 'Invalid Exponent %d';
-  SCnInvalidModulus = 'Can NOT Mod a Negative or Zero Value.';
   SCnDegreeTooLarge = 'Degree Too Large';
 
 var

@@ -177,7 +177,7 @@ begin
   CopyMemory(@_DosHead, aFileStream.Memory, Sizeof(_DosHead));
   if _DosHead.e_magic = IMAGE_DOS_SIGNATURE then
   begin
-    CopyMemory(@_NtHead, Pointer(DWORD(aFileStream.Memory) + _DosHead._lfanew), SizeOf(_NtHead));
+    CopyMemory(@_NtHead, Pointer(TCnNativeInt(aFileStream.Memory) + _DosHead._lfanew), SizeOf(_NtHead));
     Result.CodeHeadSize := _NtHead.OptionalHeader.SizeOfHeaders;
     Result.CodeStartAddr := _NtHead.OptionalHeader.SizeOfHeaders + 1;
     Result.CodeSize := _NtHead.OptionalHeader.SizeOfCode;
@@ -222,7 +222,7 @@ begin
           begin
 
             ReadProcessMemory(_Handle,
-              Pointer(DWORD(_Me32.modBaseAddr) + _DosHead._lfanew),
+              Pointer(TCnNativeInt(_Me32.modBaseAddr) + _DosHead._lfanew),
               @_NtHead, SizeOf(_NtHead),
               _lpr);
 
