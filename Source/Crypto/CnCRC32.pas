@@ -100,17 +100,17 @@ function CalcCRC16Byte(OrgCRC16: Word; B: Byte): Word;
 function CRC16Calc(const OrgCRC16: Word; const Data; Len: Cardinal): Word;
 {* 计算 CRC16 值
  |<PRE>
-   OrgCRC16: WORD  - 起始 CRC16 值，默认可传 0
+   OrgCRC16: WORD   - 起始 CRC16 值，默认应传 0，内部会求反变成 FFFF 以符合 CCITT 的要求
    const Data       - 要计算的数据块，一般不传地址
    Len: DWORD       - 数据块长度
-   Result: WORD    - 返回 CRC16 计算结果
+   Result: WORD     - 返回 CRC16 计算结果
  |</PRE>}
 
 function StrCRC16(const OrgCRC16: Word; const Text: string): Word;
-{* 计算字符串的 CRC16 值 }
+{* 计算字符串的 CRC16 值}
 
 function StrCRC16A(const OrgCRC16: Word; const Text: AnsiString): Word;
-{* 计算 AnsiString 字符串的 CRC16 值 }
+{* 计算 AnsiString 字符串的 CRC16 值}
 
 function BytesCRC16(const OrgCRC16: Word; Data: TBytes): Word;
 {* 计算 TBytes 的 CRC16 值}
@@ -137,17 +137,17 @@ function CalcCRC32Byte(OrgCRC32: Cardinal; B: Byte): Cardinal;
 function CRC32Calc(const OrgCRC32: Cardinal; const Data; Len: Cardinal): Cardinal;
 {* 计算 CRC32 值
  |<PRE>
-   OrgCRC32: DWORD  - 起始 CRC32 值，默认可传 0
+   OrgCRC32: DWORD  - 起始 CRC32 值，默认应传 0，内部会求反变成 FFFFFFFF 以符合 CCITT 的要求
    const Data       - 要计算的数据块，一般不传地址
    Len: DWORD       - 数据块长度
-   Result: DWORD    - 返回 CRC32 计算结果
+   Result: DWORD    - 返回 CRC32 计算结果，已与 FFFFFFFF 异或过了以符合 CCITT 的要求
  |</PRE>}
 
 function StrCRC32(const OrgCRC32: Cardinal; const Text: string): Cardinal;
-{* 计算字符串的 CRC32 值 }
+{* 计算字符串的 CRC32 值}
 
 function StrCRC32A(const OrgCRC32: Cardinal; const Text: AnsiString): Cardinal;
-{* 计算 AnsiString 字符串的 CRC32 值 }
+{* 计算 AnsiString 字符串的 CRC32 值}
 
 function BytesCRC32(const OrgCRC32: Cardinal; Data: TBytes): Cardinal;
 {* 计算 TBytes 的 CRC32 值}
@@ -173,10 +173,10 @@ function FileCRC32(const FileName: string; var CRC: Cardinal; StartPos: Int64 = 
 function CRC64Calc(const OrgCRC64: Int64; const Data; Len: Cardinal): Int64;
 {* 计算 CRC64 值
  |<PRE>
-   OrgCRC64: Int64  - 起始 CRC64 值，默认可传 0
+   OrgCRC64: Int64  - 起始 CRC64 值，默认应传 0，内部会求反变成 FFFFFFFFFFFFFFFF 以符合 CCITT 的要求
    const Data       - 要计算的数据块
    Len: DWORD       - 数据块长度
-   Result: Int64    - 返回 CRC64 计算结果
+   Result: Int64    - 返回 CRC64 计算结果，已与 FFFFFFFFFFFFFFFF 异或过了以符合 CCITT 的要求
  |</PRE>}
 
 function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;

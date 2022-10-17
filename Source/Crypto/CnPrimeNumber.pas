@@ -912,6 +912,16 @@ var
   I, L, H, M: Cardinal;
 begin
   Result := False;
+  if N < 2 then            // 0、1 不是
+    Exit
+  else if N = 2 then       // 2 是
+  begin
+    Result := True;
+    Exit;
+  end
+  else if N and 1 = 0 then // 偶数不是
+    Exit;
+
   if N <= CN_MAX_SQRT_UINT32 then
   begin
     // 二分法查找现成的素数数组
@@ -935,24 +945,12 @@ begin
   else
   begin
     // 以现成的素数数组来除
-    if N < 2 then            // 0、1 不是
-      Exit
-    else if N = 2 then       // 2 是
+    for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1 to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
     begin
-      Result := True;
-      Exit;
-    end
-    else if N and 1 = 0 then // 偶数不是
-      Exit
-    else
-    begin
-      for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1 to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
-      begin
-        if N mod CN_PRIME_NUMBERS_SQRT_UINT32[I] = 0 then
-          Exit;
-        if CN_PRIME_NUMBERS_SQRT_UINT32[I] * CN_PRIME_NUMBERS_SQRT_UINT32[I] > N then
-          Break;
-      end;
+      if N mod CN_PRIME_NUMBERS_SQRT_UINT32[I] = 0 then
+        Exit;
+      if CN_PRIME_NUMBERS_SQRT_UINT32[I] * CN_PRIME_NUMBERS_SQRT_UINT32[I] > N then
+        Break;
     end;
     Result := True;
   end;
