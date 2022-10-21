@@ -276,19 +276,19 @@ function SM4CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCCM
 // ======================= AES/SM4-CCM 字节数组解密函数 ========================
 
 function AES128CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文
+{* 使用密码、临时数据、额外数据对密文进行 AES-128-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 function AES192CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文
+{* 使用密码、临时数据、额外数据对密文进行 AES-192-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 function AES256CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文
+{* 使用密码、临时数据、额外数据对密文进行 AES-256-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 function SM4CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 SM4-GCM 解密并验证，成功则返回明文
+{* 使用密码、临时数据、额外数据对密文进行 SM4-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 // ======================== AES/SM4-CCM 数据块加密函数 =========================
