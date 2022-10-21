@@ -479,7 +479,7 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 7
+          TabOrder = 8
         end
         object btnBase64File: TButton
           Left = 288
@@ -506,6 +506,14 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'Use TBytes'
           TabOrder = 2
+        end
+        object chkBase64ShowHex: TCheckBox
+          Left = 72
+          Top = 224
+          Width = 97
+          Height = 17
+          Caption = 'Show Hex'
+          TabOrder = 7
         end
       end
     end

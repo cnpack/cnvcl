@@ -319,6 +319,7 @@ type
     btnAESCCMEnc: TButton;
     btnAESCCMDec: TButton;
     btnSM4CCM: TButton;
+    chkBase64ShowHex: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -428,7 +429,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnPemUtils, CnNative;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnPemUtils, CnNative, CnCommon;
 
 {$R *.DFM}
 
@@ -697,6 +698,17 @@ begin
   else
     Base64Decode(edtBase64Result.Text, S);
   edtbase64Decode.Text := S;
+
+  if chkBase64ShowHex.Checked then
+  begin
+{$IFDEF TBYTES_DEFINED}
+    if Res <> nil then
+      CnShowHexData(@Res[0], Length(Res));
+{$ELSE}
+    if S <> '' then
+      CnShowHexData(@S[1], Length(S));
+{$ENDIF}
+  end;
 end;
 
 procedure TFormCrypt.btnCRC32Click(Sender: TObject);
