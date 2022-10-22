@@ -41,10 +41,16 @@ unit CnAEAD;
 *           注意 CCM 有两个编译期的参数，摘要长度 CCM_M_LEN 和明文长度的字节长度 CCM_L_LEN
 *           NIST 800-38C 例子中是 4、8，RFC 3610 例子中是 8、2，RFC 8998 是 16、？
 *           俩参数不同是无法通过 CCM 正确加解密的。
+*
+*           补充：Java 等语言中 AES/GCM/NoPadding 的加密方式具体使用 AES256-GCM，
+*           并会把 16 字节的 Tag 拼在密文后一起输出
+*
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.07.27 V1.0
+* 修改记录：2022.10.22 V1.1
+*               修正 AES192/256 的 Key 可能被错误截断的问题
+*           2022.07.27 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -623,22 +629,22 @@ begin
   case EncryptType of
     aetAES128:
       begin
-        MoveMost128(Key^, Key128[0], KeyByteLength);
+        MoveMost(Key^, Key128[0], KeyByteLength, SizeOf(TAESKey128));
         ExpandAESKeyForEncryption(Key128, Context.ExpandedKey128);
       end;
     aetAES192:
       begin
-        MoveMost128(Key^, Key192[0], KeyByteLength);
+        MoveMost(Key^, Key192[0], KeyByteLength, SizeOf(TAESKey192));
         ExpandAESKeyForEncryption(Key192, Context.ExpandedKey192);
       end;
     aetAES256:
       begin
-        MoveMost128(Key^, Key256[0], KeyByteLength);
+        MoveMost(Key^, Key256[0], KeyByteLength, SizeOf(TAESKey256));
         ExpandAESKeyForEncryption(Key256, Context.ExpandedKey256);
       end;
     aetSM4:
       begin
-        MoveMost128(Key^, SM4Key[0], KeyByteLength);
+        MoveMost(Key^, SM4Key[0], KeyByteLength, SizeOf(TSM4Key));
         SM4SetKeyEnc(Context.SM4Context, @SM4Key[0]);
       end;
   end;
@@ -665,7 +671,7 @@ var
   H: TGHash128Key;
   Y, Y0: T128BitsBuffer; // Y 拼合了计数器的内容
   Cnt, M: Cardinal;      // 计数器
-  C: T128BitsBuffer;      // 加密中间数据存储地
+  C: T128BitsBuffer;     // 加密中间数据存储地
   AeadCtx: TAEADContext;
   GHashCtx: TGHash128Context;
 begin
@@ -763,9 +769,9 @@ function GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLen
   EncryptType: TAEADEncryptType): Boolean;
 var
   H: TGHash128Key;
-  Y, Y0: T128BitsBuffer;// Y 拼合了计数器的内容
+  Y, Y0: T128BitsBuffer; // Y 拼合了计数器的内容
   Cnt, M: Cardinal;      // 计数器
-  C: T128BitsBuffer;      // 加密中间数据存储地
+  C: T128BitsBuffer;     // 加密中间数据存储地
   AeadCtx: TAEADContext;
   GHashCtx: TGHash128Context;
   Tag: TGCM128Tag;

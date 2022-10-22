@@ -2411,26 +2411,26 @@ object FormCrypt: TFormCrypt
           TabOrder = 2
           OnClick = btnGHash1Click
         end
-        object btnGCMEnTest: TButton
-          Left = 128
-          Top = 32
-          Width = 75
+        object btnAES128GCMEnTest: TButton
+          Left = 24
+          Top = 160
+          Width = 113
           Height = 25
-          Caption = 'GCM Encrypt'
+          Caption = 'AES128/GCM Encrypt'
           TabOrder = 3
-          OnClick = btnGCMEnTestClick
+          OnClick = btnAES128GCMEnTestClick
         end
-        object btnGCMDeTest: TButton
-          Left = 128
-          Top = 72
-          Width = 75
+        object btnAES128GCMDeTest: TButton
+          Left = 152
+          Top = 160
+          Width = 113
           Height = 25
-          Caption = 'GCM Decrypt'
+          Caption = 'AES128/GCM Decrypt'
           TabOrder = 4
-          OnClick = btnGCMDeTestClick
+          OnClick = btnAES128GCMDeTestClick
         end
         object btnSM4GCM: TButton
-          Left = 320
+          Left = 216
           Top = 32
           Width = 75
           Height = 25
@@ -2439,7 +2439,7 @@ object FormCrypt: TFormCrypt
           OnClick = btnSM4GCMClick
         end
         object btnAESCMAC: TButton
-          Left = 224
+          Left = 120
           Top = 32
           Width = 75
           Height = 25
@@ -2448,7 +2448,7 @@ object FormCrypt: TFormCrypt
           OnClick = btnAESCMACClick
         end
         object btnAESCCMEnc: TButton
-          Left = 224
+          Left = 120
           Top = 72
           Width = 75
           Height = 25
@@ -2457,7 +2457,7 @@ object FormCrypt: TFormCrypt
           OnClick = btnAESCCMEncClick
         end
         object btnAESCCMDec: TButton
-          Left = 224
+          Left = 120
           Top = 112
           Width = 75
           Height = 25
@@ -2466,13 +2466,58 @@ object FormCrypt: TFormCrypt
           OnClick = btnAESCCMDecClick
         end
         object btnSM4CCM: TButton
-          Left = 320
+          Left = 216
           Top = 72
           Width = 75
           Height = 25
           Caption = 'SM4 CCM'
           TabOrder = 9
           OnClick = btnSM4CCMClick
+        end
+        object btnWXAPI: TButton
+          Left = 504
+          Top = 32
+          Width = 163
+          Height = 25
+          Caption = 'WXAPI AES/GCM/NoPadding'
+          TabOrder = 10
+          OnClick = btnWXAPIClick
+        end
+        object btnAES192GCMEnTest: TButton
+          Left = 24
+          Top = 184
+          Width = 113
+          Height = 25
+          Caption = 'AES192/GCM Encrypt'
+          TabOrder = 11
+          OnClick = btnAES192GCMEnTestClick
+        end
+        object btnAES192GCMDeTest: TButton
+          Left = 152
+          Top = 184
+          Width = 113
+          Height = 25
+          Caption = 'AES192/GCM Decrypt'
+          TabOrder = 12
+          OnClick = btnAES192GCMDeTestClick
+        end
+        object btnAES256GCMEnTest: TButton
+          Left = 24
+          Top = 208
+          Width = 113
+          Height = 25
+          Caption = 'AES256/GCM Encrypt'
+          TabOrder = 13
+          OnClick = btnAES256GCMEnTestClick
+        end
+        object btnAES256GCMDeTest: TButton
+          Left = 152
+          Top = 208
+          Width = 113
+          Height = 25
+          Caption = 'AES256/GCM Decrypt'
+          TabOrder = 14
+          OnClick = btnAES256GCMDeTestClick
         end
       end
     end
