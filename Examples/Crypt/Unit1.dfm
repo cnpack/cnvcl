@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
   Left = 263
-  Top = 175
+  Top = 177
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 500
@@ -2475,11 +2475,11 @@ object FormCrypt: TFormCrypt
           OnClick = btnSM4CCMClick
         end
         object btnWXAPI: TButton
-          Left = 504
+          Left = 496
           Top = 32
-          Width = 163
+          Width = 171
           Height = 25
-          Caption = 'WXAPI AES/GCM/NoPadding'
+          Caption = 'WXAPI AES/GCM/NoPadding Dec'
           TabOrder = 10
           OnClick = btnWXAPIClick
         end
@@ -2518,6 +2518,15 @@ object FormCrypt: TFormCrypt
           Caption = 'AES256/GCM Decrypt'
           TabOrder = 14
           OnClick = btnAES256GCMDeTestClick
+        end
+        object btnAESGCMNoPaddingJava: TButton
+          Left = 496
+          Top = 72
+          Width = 169
+          Height = 25
+          Caption = 'AES/GCM/NoPadding Enc/Dec'
+          TabOrder = 15
+          OnClick = btnAESGCMNoPaddingJavaClick
         end
       end
     end

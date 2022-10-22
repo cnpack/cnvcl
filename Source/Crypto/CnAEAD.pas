@@ -49,7 +49,7 @@ unit CnAEAD;
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2022.10.22 V1.1
-*               修正 AES192/256 的 Key 可能被错误截断的问题
+*               修正 AES192/256 的 Key 可能被错误截断的问题，并增加 Tag 拼接在密文后的处理
 *           2022.07.27 V1.0
 *               创建单元
 ================================================================================
@@ -67,9 +67,9 @@ const
 
   GCM_NONCE_LENGTH = 12;  // 12 字节的 Nonce 与计数器拼成完整 Iv
 
-  CCM_M_LEN = 8;         // CCM 认证 Tag 默认长 12 字节，取值范围 4 到 16，实际存放的是 (M - 2) / 2
+  CCM_M_LEN = 8;          // CCM 认证 Tag 默认长 12 字节，取值范围 4 到 16，实际存放的是 (M - 2) / 2
 
-  CCM_L_LEN = 2;         // 明文长度所占的字节数，取值范围 2 到 8，8 代表 Int64，实际存放的是 L - 1
+  CCM_L_LEN = 2;          // 明文长度所占的字节数，取值范围 2 到 8，8 代表 Int64，实际存放的是 L - 1
 
   CCM_NONCE = 15 - CCM_L_LEN;
 
@@ -181,6 +181,12 @@ procedure SM4GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByt
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
+procedure AESGCMNoPaddingEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
+  NonceByteLength: Integer; PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; OutEnData: Pointer);
+{* 符合 Java/Kotlin/OpenSSL 等规范的 AES/GCM/NoPadding 加密函数，内部使用 AES256。
+  其中 Nonce 即初始化向量。Tag 被直接拼在密文后，因而要求 OutEnData 所指的区域比 PlainByteLength 长出至少 16 字节}
+
 // ======================= AES/SM4-GCM 字节数组解密函数 ========================
 
 function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
@@ -228,6 +234,12 @@ function SM4GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByte
 {* 使用密码、初始化向量、额外数据对密文进行 SM4-GCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+
+function AESGCMNoPaddingDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
+  NonceByteLength: Integer; EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; OutPlainData: Pointer): Boolean;
+{* 符合 Java/Kotlin/OpenSSL 等规范的 AES/GCM/NoPadding 解密函数，内部使用 AES256。
+  其中 Nonce 即初始化向量。另外要求 Tag 被直接拼在密文后，也就是将密文后 16 字节当成 Tag 进行解密后的比对}
 
 // ======================= AES/SM4-CMAC 字节数组杂凑函数 =======================
 
@@ -327,7 +339,7 @@ procedure SM4CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; No
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
 
-// ======================== AES/SM4-GCM 数据块解密函数 =========================
+// ======================== AES/SM4-CCM 数据块解密函数 =========================
 
 function AES128CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
@@ -994,6 +1006,17 @@ begin
     AAD, AADByteLength, OutEnData, OutTag, aetSM4);
 end;
 
+procedure AESGCMNoPaddingEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
+  NonceByteLength: Integer; PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; OutEnData: Pointer);
+var
+  OutTag: TGCM128Tag;
+begin
+  GCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
+    AAD, AADByteLength, OutEnData, OutTag, aetAES256);
+  Move(OutTag[0], Pointer(TCnNativeInt(OutEnData) +PlainByteLength)^, SizeOf(TGCM128Tag));
+end;
+
 function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TGCM128Tag): TBytes;
 begin
   Result := GCMDecryptBytes(Key, Iv, EnData, AAD, InTag, aetAES128);
@@ -1044,6 +1067,23 @@ function SM4GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByte
 begin
   Result := GCMDecrypt(Key, KeyByteLength, Iv, IvByteLength, EnData, EnByteLength,
     AAD, AADByteLength, OutPlainData, InTag, aetSM4);
+end;
+
+function AESGCMNoPaddingDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
+  NonceByteLength: Integer; EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; OutPlainData: Pointer): Boolean;
+var
+  InTag: TGCM128Tag;
+begin
+  if EnByteLength < SizeOf(TGCM128Tag) then // 太短说明没 Tag
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  Move(Pointer(TCnNativeInt(EnData) + EnByteLength - SizeOf(TGCM128Tag))^, InTag[0], SizeOf(TGCM128Tag));
+  Result := GCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength - SizeOf(TGCM128Tag),
+    AAD, AADByteLength, OutPlainData, InTag, aetAES256);
 end;
 
 procedure CMAC128(var Key: TCMAC128Key; Data: Pointer; DataByteLength: Integer;

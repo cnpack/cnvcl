@@ -325,6 +325,7 @@ type
     btnAES192GCMDeTest: TButton;
     btnAES256GCMEnTest: TButton;
     btnAES256GCMDeTest: TButton;
+    btnAESGCMNoPaddingJava: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -424,6 +425,7 @@ type
     procedure btnAES192GCMDeTestClick(Sender: TObject);
     procedure btnAES256GCMEnTestClick(Sender: TObject);
     procedure btnAES256GCMDeTestClick(Sender: TObject);
+    procedure btnAESGCMNoPaddingJavaClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -2659,6 +2661,29 @@ begin
 
   P := AES256GCMDecryptBytes(Key, Iv, C, AD, T);
   ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnAESGCMNoPaddingJavaClick(Sender: TObject);
+var
+  Key, Nonce, Text, AAD: AnsiString;
+  Res, Plain: TBytes;
+begin
+  Key := '0J7tEZyI4g41mfXCj2CkdUIKIsxc7xzE';
+  Nonce := 'AkSawJd1VOlx';
+  Text := '1234567890123456789';
+  AAD := 'question';
+
+  SetLength(Res, Length(Text) + SizeOf(TGCM128Tag));
+
+  AESGCMNoPaddingEncrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Text[1], Length(Text), @AAD[1], Length(AAD), @Res[0]);
+
+  ShowMessage(BytesToHex(Res)); // Java 里得到 e099392707bbf678fc457972872b8716082950a581c888e65642f382ebb648fb8d8a0c，一致
+
+  SetLength(Plain, Length(Res) - SizeOf(TGCM128Tag));
+  if AESGCMNoPaddingDecrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Res[0], Length(Res), @AAD[1], Length(AAD), @Plain[0]) then
+    ShowMessage(BytesToHex(Plain))
+  else
+    ShowMessage('Decrypt Failed');
 end;
 
 end.
