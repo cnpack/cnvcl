@@ -320,7 +320,6 @@ type
     btnAESCCMDec: TButton;
     btnSM4CCM: TButton;
     chkBase64ShowHex: TCheckBox;
-    btnWXAPI: TButton;
     btnAES192GCMEnTest: TButton;
     btnAES192GCMDeTest: TButton;
     btnAES256GCMEnTest: TButton;
@@ -420,7 +419,6 @@ type
     procedure btnAESCCMEncClick(Sender: TObject);
     procedure btnAESCCMDecClick(Sender: TObject);
     procedure btnSM4CCMClick(Sender: TObject);
-    procedure btnWXAPIClick(Sender: TObject);
     procedure btnAES192GCMEnTestClick(Sender: TObject);
     procedure btnAES192GCMDeTestClick(Sender: TObject);
     procedure btnAES256GCMEnTestClick(Sender: TObject);
@@ -2525,46 +2523,6 @@ begin
   C := SM4CCMEncryptBytes(Key, Nonce, P, AAD, T);
   ShowMessage(DataToHex(@C[0], Length(C)));  // 48AF93501FA62ADBCD414CCE6034D895DDA1BF8F132F042098661572E7483094 FD12E518CE062C98ACEE28D95DF4416BED31A2F04476C18BB40C84A74B97DC5B
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 16842D4FA186F56AB33256971FA110F4
-end;
-
-procedure TFormCrypt.btnWXAPIClick(Sender: TObject);
-var
-  S, Sk, Sn, Sa: string;
-  B, Key, Nonce, AAD, C: TBytes;
-  Tag: TGCM128Tag;
-  Res: AnsiString;
-begin
-  Sn := 'AkSawJdlVO1x';
-  Sk := 'oJ7tEZyI4g41mfXCj2CkdUIKIsxc6xzE';
-  Sa := 'transaction';
-
-  S := 'r3iSCU+qH88O9+9CSLfyGRcXAiNsjqzPUrBhllAXOcFUdRl8b8mxSKP65VeGnHL8E8OnkGzx'
-   + 'UlSpukiuNLSsNeZBopxfbtOyvu/7xUrPLain3UAf1iHHQDhCcGIfuRRizeXDlYwD9651z20koC'
-   + 'm7hMiwdsDIMvFzWEr4xqExPrxO1Mpo7haZoOA+XSAlJth9OkM044mycdWwW8UiRuIHxzJbLj7G'
-   + 'rJRiQn0KxvXQDUZXlspYCuzDfo1FAoYrxkK4P1U9Z92r0bR/vixy4fntQFmQSuAg4yruRfxugf'
-   + 'CCA8GL35Ne5sKgQrRF66odiniUYJU2NDTbcQth768IpiV/hP/TFCGOBCVIJUEQFkQk3dwv+NBHf'
-   + '8pajb5S5/9IACzafM0T1mUzUUVtDp9Vopkyxczvsr/kIuQQPJXjYGErZZ8cp1qhn/d/N8IqdoOS'
-   + '4oIkxGJddmhqm/lMK7rPwLFnQ0SZvgOQs7kX10/RgWNpyxiAedBr2BmyQ0GPidzQnIgnW5//U9I'
-   + '1Urmpb2TddMw2jTFXOGzWczaJjB8Bq/LlxSyf37EdTNeq2ZalPPazTQcPvzD0HZOccoOh284yxhA=';
-  Base64Decode(S, B);
-
-  SetLength(Key, Length(Sk));
-  SetLength(Nonce, Length(Sn));
-  SetLength(AAD, Length(Sa));
-
-  Move(Sk[1], Key[0], Length(Sk));
-  Move(Sn[1], Nonce[0], Length(Sn));
-  Move(Sa[1], AAD[0], Length(Sa));
-
-  Move(B[Length(B) - SizeOf(TGCM128Tag)], Tag[0], SizeOf(TGCM128Tag));
-  SetLength(B, Length(B) - SizeOf(TGCM128Tag));
-
-  C := AES256GCMDecryptBytes(Key, Nonce, B, AAD, Tag);
-
-  SetLength(Res, Length(C));
-  Move(C[0], Res[1], Length(C));
-  S := CnUtf8ToAnsi(Res);
-  ShowMessage(S);
 end;
 
 procedure TFormCrypt.btnAES192GCMEnTestClick(Sender: TObject);

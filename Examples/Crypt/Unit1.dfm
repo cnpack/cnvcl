@@ -2474,22 +2474,13 @@ object FormCrypt: TFormCrypt
           TabOrder = 9
           OnClick = btnSM4CCMClick
         end
-        object btnWXAPI: TButton
-          Left = 496
-          Top = 32
-          Width = 171
-          Height = 25
-          Caption = 'WXAPI AES/GCM/NoPadding Dec'
-          TabOrder = 10
-          OnClick = btnWXAPIClick
-        end
         object btnAES192GCMEnTest: TButton
           Left = 24
           Top = 184
           Width = 113
           Height = 25
           Caption = 'AES192/GCM Encrypt'
-          TabOrder = 11
+          TabOrder = 10
           OnClick = btnAES192GCMEnTestClick
         end
         object btnAES192GCMDeTest: TButton
@@ -2498,7 +2489,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES192/GCM Decrypt'
-          TabOrder = 12
+          TabOrder = 11
           OnClick = btnAES192GCMDeTestClick
         end
         object btnAES256GCMEnTest: TButton
@@ -2507,7 +2498,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES256/GCM Encrypt'
-          TabOrder = 13
+          TabOrder = 12
           OnClick = btnAES256GCMEnTestClick
         end
         object btnAES256GCMDeTest: TButton
@@ -2516,16 +2507,16 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES256/GCM Decrypt'
-          TabOrder = 14
+          TabOrder = 13
           OnClick = btnAES256GCMDeTestClick
         end
         object btnAESGCMNoPaddingJava: TButton
           Left = 496
-          Top = 72
+          Top = 32
           Width = 169
           Height = 25
           Caption = 'AES/GCM/NoPadding Enc/Dec'
-          TabOrder = 15
+          TabOrder = 14
           OnClick = btnAESGCMNoPaddingJavaClick
         end
       end
