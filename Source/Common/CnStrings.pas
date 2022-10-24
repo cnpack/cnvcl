@@ -27,7 +27,9 @@ unit CnStrings;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备　　注：AnsiStringList 移植自 Delphi 7 的 StringList
-* 最后更新：2022.04.25
+* 最后更新：2022.10.25
+*               增加 StringBuilder 的实现，支持 Ansi 和 Unicode 模式
+*           2022.04.25
 *               增加三个字符串替换函数，支持整字匹配
 *           2017.01.09
 *               增加移植自 Forrest Smith 的字符串模糊匹配算法，
@@ -246,6 +248,93 @@ type
     function IndexOfName(const Name: AnsiString): Integer; override;
   end;
 
+  TCnStringBuilder = class
+  {* 输出灵活的 StringBuilder，暂时只支持添加，不支持删除
+    非 Unicode 版本支持 string 和 WideString，Unicode 版本支持 AnsiString 和 string}
+  private
+    FModeIsFromOut: Boolean;
+    FOutMode: Boolean;
+    FAnsiMode: Boolean;      // 非 Unicode 版本默认 True，Unicode 版本默认 False，可创建时指定
+    FCharLength: Integer;    // 以字符为单位的长度
+    FMaxCharCapacity: Integer;
+{$IFDEF UNICODE}
+    FAnsiData: AnsiString;   // AnsiMode True 时使用
+    FData: string;           // AnsiMode False 时使用
+{$ELSE}
+    FData: string;           // AnsiMode True 时使用
+    FWideData: WideString;   // AnsiMode False 时使用
+{$ENDIF}
+    function GetCharCapacity: Integer;
+    procedure SetCharCapacity(const Value: Integer);
+    procedure SetCharLength(const Value: Integer);
+  protected
+    procedure ExpandCharCapacity;
+
+    function AppendString(const Value: string): TCnStringBuilder;
+    {* 将 string 添加到 FData，无论是否 Unicode 环境。由调用者根据 AnsiMode 控制}
+{$IFDEF UNICODE}
+    function AppendAnsi(const Value: AnsiString): TCnStringBuilder;
+    {* 将 AnsiString 添加到 Unicode 环境下的 FAnsiData。由调用者根据 AnsiMode 控制}
+{$ELSE}
+    function AppendWide(const Value: WideString): TCnStringBuilder;
+    {* 将 WideString 添加到 FWideData，非 Unicode 环境中使用。由调用者根据 AnsiMode 控制}
+{$ENDIF}
+  public
+    constructor Create; overload;
+    {* 构造函数，内部实现默认 string}
+    constructor Create(IsAnsi: Boolean); overload;
+    {* 可指定内部是 Ansi 还是 Wided 的构造函数}
+
+    destructor Destroy; override;
+
+    procedure Clear;
+    {* 清空内容}
+
+    function Append(const Value: string): TCnStringBuilder; overload;
+    {* 添加通用字符串，是所有其他参数类型 Append 的总入口，内部根据当前编译器以及 AnsiMode 决定用何种实现来拼}
+
+    function Append(const Value: Boolean): TCnStringBuilder; overload;
+    function Append(const Value: Byte): TCnStringBuilder; overload;
+    function Append(const Value: Char): TCnStringBuilder; overload;
+    function AppendCurrency(const Value: Currency): TCnStringBuilder; overload;
+    // Currency 低版本 Delphi 中和 Double 是混淆的，因而改名，不用 overload
+    function Append(const Value: Double): TCnStringBuilder; overload;
+    function Append(const Value: SmallInt): TCnStringBuilder; overload;
+    function Append(const Value: Integer): TCnStringBuilder; overload;
+    function Append(const Value: Int64): TCnStringBuilder; overload;
+    function Append(const Value: TObject): TCnStringBuilder; overload;
+    function Append(const Value: ShortInt): TCnStringBuilder; overload;
+    function Append(const Value: Single): TCnStringBuilder; overload;
+{$IFDEF SUPPORT_UINT64}
+    function Append(const Value: UInt64): TCnStringBuilder; overload;
+{$ENDIF}
+    function Append(const Value: Word): TCnStringBuilder; overload;
+    function Append(const Value: Cardinal): TCnStringBuilder; overload;
+    function Append(const Value: PAnsiChar): TCnStringBuilder; overload;
+    function Append(const Value: Char; RepeatCount: Integer): TCnStringBuilder; overload;
+    function Append(const Value: string; StartIndex: Integer; Count: Integer): TCnStringBuilder; overload;
+    function Append(const AFormat: string; const Args: array of const): TCnStringBuilder; overload;
+
+    function AppendLine: TCnStringBuilder; overload;
+    function AppendLine(const Value: string): TCnStringBuilder; overload;
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 返回内容的 string 形式，无论是否 Unicode 环境。
+      换句话说非 Unicode 环境中返回 AnsiString，Unicode 环境中返回 UnicodeString}
+
+    function ToAnsiString: AnsiString;
+    {* 返回内容的 AnsiString 形式，应在 Unicode 环境中使用}
+    function ToWideString: WideString;
+    {* 返回内容的 WideString 形式，应在非 Unicode 环境中使用}
+
+    property CharCapacity: Integer read GetCharCapacity write SetCharCapacity;
+    {* 以字符为单位的内部缓冲区的容量}
+    property CharLength: Integer read FCharLength write SetCharLength;
+    {* 以字符为单位的内部已经拼凑的内容长度}
+    property MaxCharCapacity: Integer read FMaxCharCapacity;
+    {* 以字符为单位的可设置的最大容量长度}
+  end;
+
   TCnReplaceFlags = set of (crfReplaceAll, crfIgnoreCase, crfWholeWord);
   {* 字符串替换标记}
 
@@ -288,12 +377,14 @@ function CnStringReplaceW(const S, OldPattern, NewPattern: WideString;
 implementation
 
 const
-  sLineBreak = #13#10;
+  SLineBreak = #13#10;
+  STRING_BUILDER_DEFAULT_CAPACITY = 16;
 
 resourcestring
   SDuplicateString = 'AnsiString list does not allow duplicates';
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
+  SListCapacityError = 'Error New Capacity or Length Value %d';
 
 {$IFNDEF COMPILER7_UP}
 
@@ -793,7 +884,7 @@ var
 begin
   Count := GetCount;
   Size := 0;
-  LB := sLineBreak;
+  LB := SLineBreak;
   for I := 0 to Count - 1 do Inc(Size, Length(Get(I)) + Length(LB));
   SetString(Result, nil, Size);
   P := Pointer(Result);
@@ -1866,5 +1957,358 @@ begin
 end;
 
 {$ENDIF}
+
+{ TCnStringBuilder }
+
+constructor TCnStringBuilder.Create;
+begin
+  inherited;
+  if not FModeIsFromOut then // 外部未指定时自动设置模式
+  begin
+{$IFDEF UNICODE}
+    FAnsiMode := False;
+{$ELSE}
+    FAnsiMode := True;
+{$ENDIF}
+  end
+  else
+    FAnsiMode := FOutMode;
+
+  if FAnsiMode then
+    FMaxCharCapacity := MaxInt
+  else
+    FMaxCharCapacity := MaxInt div 2;
+
+  CharCapacity := STRING_BUILDER_DEFAULT_CAPACITY;
+  FCharLength := 0;
+end;
+
+function TCnStringBuilder.Append(const Value: string): TCnStringBuilder;
+begin
+{$IFDEF UNICODE}
+   if FAnsiMode then
+     Result := AppendAnsi(AnsiString(Value))
+   else
+     Result := AppendString(Value);
+{$ELSE}
+   if FAnsiMode then
+     Result := AppendString(Value)
+   else
+     Result := AppendWide(WideString(Value));
+{$ENDIF}
+end;
+
+{$IFDEF UNICODE}
+
+function TCnStringBuilder.AppendAnsi(const Value: AnsiString): TCnStringBuilder;
+var
+  Delta, OL: Integer;
+begin
+  Delta := Length(Value);
+  if Delta <> 0 then
+  begin
+    OL := CharLength;
+    CharLength := CharLength + Delta;
+    if CharLength > CharCapacity then
+      ExpandCharCapacity;
+    Move(Pointer(Value)^, (PAnsiChar(Pointer(FAnsiData)) + OL)^, Delta * SizeOf(AnsiChar));
+  end;
+  Result := Self;
+end;
+
+{$ELSE}
+
+function TCnStringBuilder.AppendWide(const Value: WideString): TCnStringBuilder;
+var
+  Delta, OL: Integer;
+begin
+  Delta := Length(Value);
+  if Delta <> 0 then
+  begin
+    OL := CharLength;
+    CharLength := CharLength + Delta;
+    if CharLength > CharCapacity then
+      ExpandCharCapacity;
+    Move(Pointer(Value)^, (PWideChar(Pointer(FWideData)) + OL)^, Delta * SizeOf(WideChar));
+  end;
+  Result := Self;
+end;
+
+{$ENDIF}
+
+constructor TCnStringBuilder.Create(IsAnsi: Boolean);
+begin
+  FModeIsFromOut := True;
+  FOutMode := IsAnsi;     // 标记由外部指定 AnsiMode
+  Create;
+end;
+
+destructor TCnStringBuilder.Destroy;
+begin
+  inherited;
+
+end;
+
+procedure TCnStringBuilder.ExpandCharCapacity;
+var
+  NC: Integer;
+begin
+  NC := (CharCapacity * 3) div 2;
+  if CharLength > NC then
+    NC := CharLength * 2;
+  if NC > FMaxCharCapacity then
+    NC := FMaxCharCapacity;
+  if NC < 0 then
+    NC := CharLength;
+
+  CharCapacity := NC;
+end;
+
+function TCnStringBuilder.GetCharCapacity: Integer;
+begin
+{$IFDEF UNICODE}
+   if FAnsiMode then
+     Result := Length(FData)
+   else
+     Result := Length(FAnsiData);
+{$ELSE}
+   if FAnsiMode then
+     Result := Length(FData)
+   else
+     Result := Length(FWideData);
+{$ENDIF}
+end;
+
+procedure TCnStringBuilder.SetCharCapacity(const Value: Integer);
+begin
+  if (Value < FCharLength) or (Value > FMaxCharCapacity) then
+    raise ERangeError.CreateResFmt(@SListCapacityError, [Value]);
+
+{$IFDEF UNICODE}
+   if FAnsiMode then  
+     SetLength(FAnsiData, Value)   // FAnsiData
+   else
+     SetLength(FData, Value);      // FData
+{$ELSE}
+   if FAnsiMode then
+     SetLength(FData, Value)       // FData
+   else
+     SetLength(FWideData, Value);  // FWideData
+{$ENDIF}
+end;
+
+procedure TCnStringBuilder.SetCharLength(const Value: Integer);
+var
+  OL: Integer;
+begin
+  if (Value < 0) or (Value > FMaxCharCapacity) then
+    raise ERangeError.CreateResFmt(@SListCapacityError, [Value]);
+
+  OL := FCharLength;
+  try
+    FCharLength := Value;
+    if FCharLength > CharCapacity then
+      ExpandCharCapacity;
+  except
+    on E: EOutOfMemory do
+    begin
+      FCharLength := OL;
+      raise;
+    end;
+  end;
+end;
+
+function TCnStringBuilder.AppendString(const Value: string): TCnStringBuilder;
+var
+  Delta, OL: Integer;
+begin
+  Delta := Length(Value);
+  if Delta <> 0 then
+  begin
+    OL := CharLength;
+    FCharLength := CharLength + Delta;
+    if CharLength > CharCapacity then
+      ExpandCharCapacity;
+
+    Move(Pointer(Value)^, (PChar(Pointer(FData)) + OL)^, Delta * SizeOf(Char));
+  end;
+  Result := Self;
+end;
+
+function TCnStringBuilder.ToString: string;
+begin
+  if FCharLength = CharCapacity then
+    Result := FData
+  else
+    Result := Copy(FData, 1, FCharLength);
+end;
+
+function TCnStringBuilder.ToAnsiString: AnsiString;
+begin
+{$IFDEF UNICODE}
+  if FAnsiMode then // Unicode 环境下如果是 Ansi 模式，用 FAnsiData
+  begin
+    if FCharLength = CharCapacity then
+      Result := FAnsiData
+    else
+      Result := Copy(FAnsiData, 1, FCharLength);
+  end
+  else  // Unicode 环境下如果是非 Ansi 模式，用 FData
+  begin
+    if FCharLength = CharCapacity then
+      Result := AnsiString(FData)
+    else
+      Result := AnsiString(Copy(FData, 1, FCharLength));
+  end;
+{$ELSE}
+  Result := ToString; // 非 Unicode 环境下等于 ToString
+{$ENDIF}
+end;
+
+function TCnStringBuilder.ToWideString: WideString;
+begin
+{$IFNDEF UNICODE}
+  if FAnsiMode then // 非 Unicode 环境下如果是 Ansi 模式，用 FData
+  begin
+    if FCharLength = CharCapacity then
+      Result := FData
+    else
+      Result := Copy(FData, 1, FCharLength);
+  end
+  else // Unicode 环境下如果是非 Ansi 模式，用 FWideData
+  begin
+    if FCharLength = CharCapacity then
+      Result := FWideData
+    else
+      Result := Copy(FWideData, 1, FCharLength);
+  end;
+{$ELSE}
+  Result := ToString; // Unicode 环境下等于 ToString
+{$ENDIF}
+end;
+
+function TCnStringBuilder.Append(const Value: Integer): TCnStringBuilder;
+begin
+  Result := Append(IntToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: SmallInt): TCnStringBuilder;
+begin
+  Result := Append(IntToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: TObject): TCnStringBuilder;
+begin
+{$IFDEF OBJECT_HAS_TOSTRING}
+  Result := Append(Value.ToString);
+{$ELSE}
+  Result := Append(IntToHex(Integer(Value), 2));
+{$ENDIF}
+end;
+
+function TCnStringBuilder.Append(const Value: Int64): TCnStringBuilder;
+begin
+  Result := Append(IntToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: Double): TCnStringBuilder;
+begin
+  Result := Append(FloatToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: Byte): TCnStringBuilder;
+begin
+  Result := Append(IntToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: Boolean): TCnStringBuilder;
+begin
+  if Value then
+    Result := Append('True')
+  else
+    Result := Append('False');
+end;
+
+function TCnStringBuilder.AppendCurrency(const Value: Currency): TCnStringBuilder;
+begin
+  Result := Append(CurrToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: Char): TCnStringBuilder;
+var
+  S: string;
+begin
+  SetLength(S, 1);
+  Move(Value, S[1], SizeOf(Char));
+  Result := Append(S);
+end;
+
+function TCnStringBuilder.Append(const Value: ShortInt): TCnStringBuilder;
+begin
+  Result := Append(IntToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: Char;
+  RepeatCount: Integer): TCnStringBuilder;
+begin
+  Result := Append(StringOfChar(Value, RepeatCount));
+end;
+
+function TCnStringBuilder.Append(const Value: PAnsiChar): TCnStringBuilder;
+begin
+  Result := Append(string(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: string; StartIndex,
+  Count: Integer): TCnStringBuilder;
+begin
+  Result := Append(Copy(Value, StartIndex, Count));
+end;
+
+function TCnStringBuilder.Append(const Value: Cardinal): TCnStringBuilder;
+begin
+  Result := Append(UInt32ToStr(Value));
+end;
+
+{$IFDEF SUPPORT_UINT64}
+
+function TCnStringBuilder.Append(const Value: UInt64): TCnStringBuilder;
+begin
+  Result := Append(UIntToStr(Value));
+end;
+
+{$ENDIF}
+
+function TCnStringBuilder.Append(const Value: Single): TCnStringBuilder;
+begin
+  Result := Append(FloatToStr(Value));
+end;
+
+function TCnStringBuilder.Append(const Value: Word): TCnStringBuilder;
+begin
+  Result := Append(IntToStr(Value));
+end;
+
+procedure TCnStringBuilder.Clear;
+begin
+  CharLength := 0;
+  CharCapacity := STRING_BUILDER_DEFAULT_CAPACITY;
+end;
+
+function TCnStringBuilder.AppendLine: TCnStringBuilder;
+begin
+  Result := Append(SLineBreak);
+end;
+
+function TCnStringBuilder.AppendLine(const Value: string): TCnStringBuilder;
+begin
+  Result := Append(Value + SLineBreak);
+end;
+
+function TCnStringBuilder.Append(const AFormat: string;
+  const Args: array of const): TCnStringBuilder;
+begin
+  Result := Append(Format(AFormat, Args));
+end;
 
 end.
