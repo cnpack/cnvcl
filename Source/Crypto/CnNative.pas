@@ -435,13 +435,16 @@ procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
 {* 针对固定大小的元素的数组进行排序}
 
 function UInt8ToBinStr(V: Byte): string;
-{* 将一字节转换为二进制字符串}
+{* 将一无符号字节转换为二进制字符串}
 
 function UInt16ToBinStr(V: Word): string;
-{* 将一字转换为二进制字符串}
+{* 将一无符号字转换为二进制字符串}
 
 function UInt32ToBinStr(V: Cardinal): string;
-{* 将一四字节整数转换为二进制字符串}
+{* 将一四字节无符号整数转换为二进制字符串}
+
+function UInt32ToStr(V: Cardinal): string;
+{* 将一四字节无符号整数转换为字符串}
 
 function UInt64ToBinStr(V: TUInt64): string;
 {* 将一无符号 64 字节整数转换为二进制字符串}
@@ -1255,6 +1258,11 @@ begin
       Result[I] := '0';
     V := V shl 1;
   end;
+end;
+
+function UInt32ToStr(V: Cardinal): string;
+begin
+  Result := Format('%u', [V]);
 end;
 
 function UInt64ToBinStr(V: TUInt64): string;

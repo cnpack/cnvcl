@@ -45,6 +45,7 @@ type
     btnU12864DivMod: TButton;
     btn12864DivMod: TButton;
     btnMemSort: TButton;
+    btnUInt32ToStr: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -72,6 +73,7 @@ type
     procedure btnU12864DivModClick(Sender: TObject);
     procedure btn12864DivModClick(Sender: TObject);
     procedure btnMemSortClick(Sender: TObject);
+    procedure btnUInt32ToStrClick(Sender: TObject);
   private
 
   public
@@ -784,6 +786,11 @@ begin
 
   MemoryQuickSort(@D[0], 1, SizeOf(D));
   mmoRes.Lines.Add(DataToHex(@D[0], SizeOf(D)));
+end;
+
+procedure TFormNative.btnUInt32ToStrClick(Sender: TObject);
+begin
+  mmoRes.Lines.Add(UInt32ToStr(Cardinal(-1)));
 end;
 
 end.

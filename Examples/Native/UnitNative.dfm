@@ -332,4 +332,13 @@ object FormNative: TFormNative
     TabOrder = 28
     OnClick = btnMemSortClick
   end
+  object btnUInt32ToStr: TButton
+    Left = 872
+    Top = 16
+    Width = 75
+    Height = 25
+    Caption = 'UInt32 ToStr'
+    TabOrder = 29
+    OnClick = btnUInt32ToStrClick
+  end
 end
