@@ -222,6 +222,9 @@ procedure OpenUrl(const Url: string; UseCmd: Boolean = False);
 procedure MailTo(const Addr: string; const Subject: string = ''; UseCmd: Boolean = False);
 {* 发送邮件}
 
+procedure SendMailTo(const Subject, Body, Addr: string; Attachs: array of string);
+{* 使用 MSAPI 发送邮件，支持附件，但要求系统安装了 MSAPI}
+
 function WinExecute(const FileName: string; Visibility: Integer = SW_NORMAL): Boolean;
 {* 运行一个文件并立即返回 }
 
@@ -2662,6 +2665,43 @@ begin
     RunFile(Url)
   else
     ShellExecute(0, 'open', 'cmd.exe', PChar('/c start ' + Url), '', SW_HIDE);
+end;
+
+procedure SendMailTo(const Subject, Body, Addr: string; Attachs: array of string);
+var
+  MM, MS: Variant;
+  I: Integer;
+begin
+  MS := CreateOleObject('MSMAPI.MAPISession');
+  try
+    MM := CreateOleObject('MSMAPI.MAPIMessages');
+    try
+      MS.DownLoadMail := False;
+      MS.NewSession := False;
+      MS.LogonUI := True;
+      MS.SignOn;
+      MM.SessionID := MS.SessionID;
+
+      MM.Compose;
+
+      MM.RecipIndex := 0;
+      MM.RecipAddress := Addr;
+      MM.MsgSubject := Subject;
+      MM.MsgNoteText := Body;
+
+      for I := Low(Attachs) to High(Attachs) do
+      begin
+        MM.AttachmentIndex := I;
+        MM.AttachmentPathName := Attachs[I];
+      end;
+      MM.Send(True);
+      MS.SignOff;
+    finally
+      VarClear(MS);
+    end;
+  finally
+    VarClear(MM);
+  end;
 end;
 
 // 运行一个文件并立即返回
