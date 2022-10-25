@@ -85,13 +85,13 @@ type
 {$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
   TCnNativeUInt    = NativeUInt;
-  TCnNativePointer = NativeUInt;
+  TCnNativePointer = NativeInt;
   TCnNativeIntPtr  = PNativeInt;
   TCnNativeUIntPtr = PNativeUInt;
 {$ELSE}
   TCnNativeInt     = Integer;
   TCnNativeUInt    = Cardinal;
-  TCnNativePointer = Cardinal;
+  TCnNativePointer = Integer;
   TCnNativeIntPtr  = PInteger;
   TCnNativeUIntPtr = PCardinal;
 {$ENDIF}
