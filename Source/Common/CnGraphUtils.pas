@@ -679,23 +679,8 @@ end;
 
 procedure CnStartUpGdiPlus;
 begin
-  if not GdiPlusInit then
+  if not GdiPlusInit and (GdiPlusHandle <> 0) then
   begin
-    GdiPlusHandle := LoadLibrary(WINGDIPDLL);
-    if GdiPlusHandle = 0 then
-      Exit;
-
-    GdiplusStartup := TGdiplusStartup(GetProcAddress(GdiPlusHandle, 'GdiplusStartup'));
-    GdiplusShutdown := TGdiplusShutdown(GetProcAddress(GdiPlusHandle, 'GdiplusShutdown'));
-    GdipCreateFromHDC:= TGdipCreateFromHDC(GetProcAddress(GdiPlusHandle, 'TGdipCreateFromHDC'));
-    GdipDeleteGraphics:= TGdipDeleteGraphics(GetProcAddress(GdiPlusHandle, 'TGdipDeleteGraphics'));
-    GdipSetSmoothingMode:= TGdipSetSmoothingMode(GetProcAddress(GdiPlusHandle, 'TGdipSetSmoothingMode'));
-    GdipGetSmoothingMode:= TGdipGetSmoothingMode(GetProcAddress(GdiPlusHandle, 'TGdipGetSmoothingMode'));
-    GdipCreateBitmapFromHBITMAP:= TGdipCreateBitmapFromHBITMAP(GetProcAddress(GdiPlusHandle, 'TGdipCreateBitmapFromHBITMAP'));
-    GdipDisposeImage:= TGdipDisposeImage(GetProcAddress(GdiPlusHandle, 'TGdipDisposeImage'));
-    GdipDrawImageRect:= TGdipDrawImageRect(GetProcAddress(GdiPlusHandle, 'TGdipDrawImageRect'));
-    GdipDrawImageRectI:= TGdipDrawImageRectI(GetProcAddress(GdiPlusHandle, 'TGdipDrawImageRectI'));
-
     StartupInput.DebugEventCallback := nil;
     StartupInput.SuppressBackgroundThread := False;
     StartupInput.SuppressExternalCodecs   := False;
@@ -712,13 +697,54 @@ begin
   if GdiPlusInit then
   begin
     GdiplusShutdown(GdiplusToken);
-    FreeLibrary(GdiPlusHandle);
-    GdiPlusHandle := 0;
 
     GdiplusToken := 0;
     GdiPlusInit := False;
   end;
 end;
+
+{$ENDIF}
+
+{$IFNDEF SUPPORT_GDIPLUS}
+
+initialization
+  GdiPlusHandle := LoadLibrary(WINGDIPDLL);
+  if GdiPlusHandle <> 0 then
+  begin
+    GdiplusStartup := TGdiplusStartup(GetProcAddress(GdiPlusHandle, 'GdiplusStartup'));
+    Assert(Assigned(GdiplusStartup), 'Load GdiplusStartup from GDI+ DLL.');
+
+    GdiplusShutdown := TGdiplusShutdown(GetProcAddress(GdiPlusHandle, 'GdiplusShutdown'));
+    Assert(Assigned(GdiplusShutdown), 'Load GdiplusShutdown from GDI+ DLL.');
+
+    GdipCreateFromHDC:= TGdipCreateFromHDC(GetProcAddress(GdiPlusHandle, 'GdipCreateFromHDC'));
+    Assert(Assigned(GdipCreateFromHDC), 'Load GdipCreateFromHDC from GDI+ DLL.');
+
+    GdipDeleteGraphics:= TGdipDeleteGraphics(GetProcAddress(GdiPlusHandle, 'GdipDeleteGraphics'));
+    Assert(Assigned(GdipDeleteGraphics), 'Load GdipDeleteGraphics from GDI+ DLL.');
+
+    GdipSetSmoothingMode:= TGdipSetSmoothingMode(GetProcAddress(GdiPlusHandle, 'GdipSetSmoothingMode'));
+    Assert(Assigned(GdipSetSmoothingMode), 'Load GdipSetSmoothingMode from GDI+ DLL.');
+
+    GdipGetSmoothingMode:= TGdipGetSmoothingMode(GetProcAddress(GdiPlusHandle, 'GdipGetSmoothingMode'));
+    Assert(Assigned(GdipGetSmoothingMode), 'Load GdipGetSmoothingMode from GDI+ DLL.');
+
+    GdipCreateBitmapFromHBITMAP:= TGdipCreateBitmapFromHBITMAP(GetProcAddress(GdiPlusHandle, 'GdipCreateBitmapFromHBITMAP'));
+    Assert(Assigned(GdipCreateBitmapFromHBITMAP), 'Load GdipCreateBitmapFromHBITMAP from GDI+ DLL.');
+
+    GdipDisposeImage:= TGdipDisposeImage(GetProcAddress(GdiPlusHandle, 'GdipDisposeImage'));
+    Assert(Assigned(GdipDisposeImage), 'Load GdipDisposeImage from GDI+ DLL.');
+
+    GdipDrawImageRect:= TGdipDrawImageRect(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRect'));
+    Assert(Assigned(GdipDrawImageRect), 'Load GdipDrawImageRect from GDI+ DLL.');
+
+    GdipDrawImageRectI:= TGdipDrawImageRectI(GetProcAddress(GdiPlusHandle, 'GdipDrawImageRectI'));
+    Assert(Assigned(GdipDrawImageRectI), 'Load GdipDrawImageRectI from GDI+ DLL.');
+  end;
+
+finalization
+  if GdiPlusHandle <> 0 then
+    FreeLibrary(GdiPlusHandle);
 
 {$ENDIF}
 
