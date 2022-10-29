@@ -2274,7 +2274,7 @@ end;
 
 function TCnStringBuilder.Append(const Value: UInt64): TCnStringBuilder;
 begin
-  Result := Append(UIntToStr(Value));
+  Result := Append(UInt64ToStr(Value));
 end;
 
 {$ENDIF}
