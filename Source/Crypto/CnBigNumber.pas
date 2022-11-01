@@ -1679,7 +1679,6 @@ var
   B: TBytes;
 begin
   Result := False;
-  B := nil;
   if Base64Decode(Buf, B) = BASE64_OK then
     Result := BigNumberSetBinary(@B[0], Length(B), Res);
 end;

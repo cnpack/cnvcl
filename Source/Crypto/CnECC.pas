@@ -213,6 +213,9 @@ type
     procedure SetHex(const Buf: AnsiString; Ecc: TCnEcc = nil); // 有 02 03 04 前缀的处理
     function ToHex(FixedLen: Integer = 0): string;
 
+    procedure SetBase64(const Buf: AnsiString; Ecc: TCnEcc = nil); // 有 02 03 04 前缀的处理
+    function ToBase64(FixedLen: Integer = 0): string;
+
     property X: TCnBigNumber read FX write SetX;
     property Y: TCnBigNumber read FY write SetY;
   end;
@@ -2137,6 +2140,14 @@ begin
   Result := FX.IsZero and FY.IsZero;
 end;
 
+procedure TCnEccPoint.SetBase64(const Buf: AnsiString; Ecc: TCnEcc);
+var
+  B: TBytes;
+begin
+  if Base64Decode(Buf, B) = BASE64_OK then
+    SetHex(BytesToHex(B), Ecc);
+end;
+
 procedure TCnEccPoint.SetHex(const Buf: AnsiString; Ecc: TCnEcc);
 var
   C: Integer;
@@ -2228,10 +2239,34 @@ begin
   FY.SetZero;
 end;
 
+function TCnEccPoint.ToBase64(FixedLen: Integer): string;
+var
+  B: Byte;
+  Stream: TMemoryStream;
+begin
+  if FY.IsZero then
+    B := 3          // 不知道 Y 具体值，无法确定奇偶，暂时写 03
+  else
+    B := 4;
+
+  Stream := TMemoryStream.Create;
+  try
+    Stream.Write(B, SizeOf(B));
+    BigNumberWriteBinaryToStream(FX, Stream, FixedLen);
+
+    if not FY.IsZero then
+      BigNumberWriteBinaryToStream(FY, Stream, FixedLen);
+
+    Base64Encode(Stream.Memory, Stream.Size, Result);
+  finally
+    Stream.Free;
+  end;
+end;
+
 function TCnEccPoint.ToHex(FixedLen: Integer): string;
 begin
   if FY.IsZero then
-    Result := '03' + FY.ToHex(FixedLen) // 不知道 Y 具体值，无法确定奇偶，暂时写 03
+    Result := '03' + FX.ToHex(FixedLen) // 不知道 Y 具体值，无法确定奇偶，暂时写 03
   else
     Result := '04' + FX.ToHex(FixedLen) + FY.ToHex(FixedLen);
 end;
