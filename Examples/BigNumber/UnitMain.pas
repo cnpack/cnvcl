@@ -104,6 +104,7 @@ type
     btnBNNaf: TButton;
     btnBNHashMap: TButton;
     btnBSGS: TButton;
+    btnBase64: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -176,6 +177,7 @@ type
     procedure btnBNNafClick(Sender: TObject);
     procedure btnBNHashMapClick(Sender: TObject);
     procedure btnBSGSClick(Sender: TObject);
+    procedure btnBase64Click(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1502,6 +1504,16 @@ begin
   M.Free;
   B.Free;
   A.Free;
+end;
+
+procedure TFormBigNumber.btnBase64Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := Num1.ToBase64;
+  ShowMessage(S);
+  Num2.SetBase64(S);
+  ShowNumbers;
 end;
 
 end.

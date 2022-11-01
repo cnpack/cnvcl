@@ -283,6 +283,15 @@ type
     class function FromHex(const Buf: AnsiString): TCnBigNumber;
     {* 根据一串十六进制字符串产生一个新的大数对象}
 
+    function ToBase64: string;
+    {* 将大数转成 Base64 字符串}
+
+    function SetBase64(const Buf: AnsiString): Boolean;
+    {* 根据一串 Base64 字符串给自身赋值}
+
+    class function FromBase64(const Buf: AnsiString): TCnBigNumber;
+    {* 根据一串 Base64 字符串产生一个新的大数对象}
+
     function ToDec: string;
     {* 将大数转成十进制字符串}
 
@@ -574,19 +583,24 @@ function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
   FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 字节的长度
   大数长度超过 FixedLen 时按大数实际字节长度写}
 
-{$IFDEF TBYTES_DEFINED}
-
 function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
 {* 将一个字节数组内容转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToBytes(const Num: TCnBigNumber): TBytes;
 {* 将一个大数转换成二进制数据写入字节数组并返回，失败返回 nil}
 
-{$ENDIF}
-
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
 {* 将一个二进制块赋值给指定大数对象，注意不处理正负号，内部采用复制}
+
+function BigNumberToBase64(const Num: TCnBigNumber): string;
+{* 将一个大数对象转成 Base64 字符串，不处理正负号}
+
+function BigNumberSetBase64(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
+{* 将一串 Base64 字符串赋值给指定大数对象，不处理正负号}
+
+function BigNumberFromBase64(const Buf: AnsiString): TCnBigNumber;
+{* 将一串 Base64 字符串转换为大数对象，不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToString(const Num: TCnBigNumber): string;
 {* 将一个大数对象转成十进制字符串，负以 - 表示}
@@ -965,7 +979,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnBigDecimal, CnFloatConvert;
+  CnPrimeNumber, CnBigDecimal, CnFloatConvert, CnBase64;
 
 resourcestring
   SCN_BN_LOG_RANGE_ERROR = 'Log Range Error';
@@ -1645,6 +1659,42 @@ begin
   end;
   BigNumberCorrectTop(Res);
   Result := True;
+end;
+
+function BigNumberToBase64(const Num: TCnBigNumber): string;
+var
+  B: TBytes;
+begin
+  Result := '';
+  if Num <> nil then
+  begin
+    B := BigNumberToBytes(Num);
+    if B <> nil then
+      Base64Encode(@B[0], Length(B), Result);
+  end;
+end;
+
+function BigNumberSetBase64(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
+var
+  B: TBytes;
+begin
+  Result := False;
+  B := nil;
+  if Base64Decode(Buf, B) = BASE64_OK then
+    Result := BigNumberSetBinary(@B[0], Length(B), Res);
+end;
+
+function BigNumberFromBase64(const Buf: AnsiString): TCnBigNumber;
+begin
+  Result := BigNumberNew;
+  if Result = nil then
+    Exit;
+
+  if not BigNumberSetBase64(Buf, Result) then
+  begin
+    BigNumberFree(Result);
+    Result := nil;
+  end;
 end;
 
 procedure BigNumberSetNegative(const Num: TCnBigNumber; Negative: Boolean);
@@ -7522,6 +7572,21 @@ end;
 function TCnBigNumber.LoadFromStream(Stream: TStream): Boolean;
 begin
   Result := BigNumberReadBinaryFromStream(Self, Stream);
+end;
+
+class function TCnBigNumber.FromBase64(const Buf: AnsiString): TCnBigNumber;
+begin
+  Result := BigNumberFromBase64(Buf);
+end;
+
+function TCnBigNumber.SetBase64(const Buf: AnsiString): Boolean;
+begin
+  Result := BigNumberSetBase64(Buf, Self);
+end;
+
+function TCnBigNumber.ToBase64: string;
+begin
+  Result := BigNumberToBase64(Self);
 end;
 
 { TCnBigNumberList }

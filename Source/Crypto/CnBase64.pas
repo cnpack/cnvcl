@@ -107,12 +107,12 @@ function Base64Decode(const InputData: AnsiString; OutputData: TStream;
   FixZero: Boolean             - 是否移去尾部的 #0
 |</PRE>}
 
-function Base64Decode(InputData: string; var OutputData: TBytes;
+function Base64Decode(InputData: string; out OutputData: TBytes;
   FixZero: Boolean = True): Byte; overload;
 {* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
 |<PRE>
   InputData: string            - 要编码的数据流
-  var OutputData: TBytes       - 解码后的数据
+  out OutputData: TBytes       - 解码后的数据
   FixZero: Boolean             - 是否移去尾部的 0
 |</PRE>}
 
@@ -514,7 +514,7 @@ begin
   end;
 end;
 
-function Base64Decode(InputData: string; var OutputData: TBytes;
+function Base64Decode(InputData: string; out OutputData: TBytes;
   FixZero: Boolean): Byte;
 var
   SrcLen, DstLen, Times, I: Integer;
