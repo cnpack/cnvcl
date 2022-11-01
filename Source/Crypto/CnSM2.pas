@@ -35,7 +35,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.08.31 V1.7
+* 修改记录：2022.11.01 V1.8
+*               签名时允许公钥传 nil，内部通过私钥计算出公钥进行签名
+*           2022.08.31 V1.7
 *               根据双方协同签名机制推理出三方协同签名机制并实现，并顺手实现三方协同解密
 *           2022.06.18 V1.6
 *               使用预计算 2 次幂点以及基于 16 的固定基来加速 SM2 的 G 点标量乘计算
@@ -139,10 +141,11 @@ function CnSM2DecryptFile(const InFile, OutFile: string; PrivateKey: TCnSM2Priva
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
   SM2: TCnSM2 = nil): Boolean;
-{* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
-   第2部分:数字签名算法》中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要}
+{* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
+  中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功
+  说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
 
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
@@ -150,9 +153,10 @@ function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: 
    第2部分:数字签名算法》中的运算规则来}
 
 function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
-  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): string;
+  PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil; SM2: TCnSM2 = nil): string;
 {* 封装的私钥对文件签名操作，返回签名值的十六进制字符串，注意内部操作是将文件全部加载入内存
-  如签名出错则返回空值}
+  如签名出错则返回空值
+  说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
 
 function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
   const InHexSignature: string; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
@@ -899,11 +903,12 @@ var
   K, R, E: TCnBigNumber;
   P: TCnEccPoint;
   SM2IsNil: Boolean;
+  PubIsNil: Boolean;
   Sm3Dig: TSM3Digest;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or
-    (PrivateKey = nil) or (PublicKey = nil) then
+    (PrivateKey = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
@@ -914,10 +919,18 @@ begin
   E := nil;
   R := nil;
   SM2IsNil := SM2 = nil;
+  PubIsNil := PublicKey = nil;
 
   try
     if SM2IsNil then
       SM2 := TCnSM2.Create;
+
+    if PubIsNil then
+    begin
+      PublicKey := TCnSM2PublicKey.Create;
+      PublicKey.Assign(SM2.Generator);
+      SM2.MultiplePoint(PrivateKey, PublicKey);
+    end;
 
     Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e
 
@@ -972,6 +985,8 @@ begin
     P.Free;
     R.Free;
     E.Free;
+    if PubIsNil then
+      PublicKey.Free;
     if SM2IsNil then
       SM2.Free;
   end;
