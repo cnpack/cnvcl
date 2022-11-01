@@ -33,7 +33,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.10 V2.0
+* 修改记录：2022.11.01 V2.1
+*               增加校验公私钥是否配对的函数
+*           2022.06.10 V2.0
 *               点乘改为默认使用仿射坐标以加速，点加不变
 *           2021.12.22 V1.9
 *               增加 In64 与大数范围内仿射坐标与雅可比坐标的加减法与乘法
@@ -725,6 +727,14 @@ function CnEccPointToStream(P: TCnEccPoint; Stream: TStream; FixedLen: Integer =
 {* 将一椭圆曲线点的内容写入流，返回写入长度
   FixedLen 表示椭圆曲线点内大数内容不够 FixedLen 长度时高位补足 0
   以保证 Stream 中输出固定 FixedLen 的长度，内部大数长度超过 FixedLen 时按大数实际长度写}
+
+function CnEccVerifyKeys(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean; overload;
+{* 校验某曲线的公私钥是否配对}
+
+function CnEccVerifyKeys(CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean; overload;
+{* 校验某曲线的公私钥是否配对}
 
 // ======================= 椭圆曲线密钥 PEM 读写实现 ===========================
 
@@ -3494,6 +3504,41 @@ function CnEccPointToStream(P: TCnEccPoint; Stream: TStream; FixedLen: Integer):
 begin
   Result := BigNumberWriteBinaryToStream(P.X, Stream, FixedLen)
     + BigNumberWriteBinaryToStream(P.Y, Stream, FixedLen);
+end;
+
+function CnEccVerifyKeys(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean;
+var
+  P: TCnEccPoint;
+begin
+  Result := False;
+  if (Ecc = nil) or (PrivateKey = nil) or (PublicKey = nil) then
+    Exit;
+
+  P := TCnEccPoint.Create;
+  try
+    P.Assign(Ecc.Generator);
+    Ecc.MultiplePoint(PrivateKey, P);
+    Result := CnEccPointsEqual(P, PublicKey);
+  finally
+    P.Free;
+  end;
+end;
+
+function CnEccVerifyKeys(CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey): Boolean;
+var
+  Ecc: TCnEcc;
+begin
+  if CurveType = ctCustomized then
+    raise ECnEccException.Create(SCnEccErrorCurveType);
+
+  Ecc := TCnEcc.Create(CurveType);
+  try
+    Result := CnEccVerifyKeys(Ecc, PrivateKey, PublicKey);
+  finally
+    Ecc.Free;
+  end;
 end;
 
 function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
