@@ -142,8 +142,15 @@ function CnSM2DecryptFile(const InFile, OutFile: string; PrivateKey: TCnSM2Priva
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
-  SM2: TCnSM2 = nil): Boolean;
+  SM2: TCnSM2 = nil): Boolean; overload;
 {* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
+  中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功
+  说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
+
+function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
+  SM2: TCnSM2 = nil): Boolean; overload;
+{* 私钥对字节数组签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
   中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功
   说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
 
@@ -990,6 +997,14 @@ begin
     if SM2IsNil then
       SM2.Free;
   end;
+end;
+
+function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
+  SM2: TCnSM2 = nil): Boolean;
+begin
+  Result := CnSM2SignData(UserID, @PlainData[0], Length(PlainData), OutSignature,
+    PrivateKey, PublicKey, SM2);
 end;
 
 {
