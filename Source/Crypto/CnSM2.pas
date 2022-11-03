@@ -130,15 +130,24 @@ function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TC
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
    IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括
-   返回密文字节数组，如果失败则返回空}
+   返回密文字节数组，如果加密失败则返回空}
 
 function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil;
-  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean; overload;
 {* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   无需 IncludePrefixByte 参数，内部自动处理}
+   无需 IncludePrefixByte 参数，内部自动处理
+   返回解密是否成功，解出的明文写入 OutStream 中}
+
+function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): TBytes; overload;
+{* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
+   无需 IncludePrefixByte 参数，内部自动处理
+   返回解密后的明文字节数组，如果解密失败则返回空}
 
 function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
@@ -832,6 +841,25 @@ begin
     P2.Free;
     if SM2IsNil then
       SM2.Free;
+  end;
+end;
+
+function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
+  SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): TBytes;
+var
+  Stream: TMemoryStream;
+begin
+  Result := nil;
+  Stream := TMemoryStream.Create;
+  try
+    if CnSM2DecryptData(@EnData[0], Length(EnData), Stream, PrivateKey, SM2,
+      SequenceType) then
+    begin
+      SetLength(Result, Stream.Size);
+      Move(Stream.Memory^, Result[0], Stream.Size);
+    end;
+  finally
+    Stream.Free;
   end;
 end;
 
