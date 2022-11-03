@@ -165,8 +165,13 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
   说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
 
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
+  InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean; overload;
 {* 公钥验证数据块的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
+   第2部分:数字签名算法》中的运算规则来}
+
+function CnSM2VerifyData(const UserID: AnsiString; PlainData: TBytes;
+  InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean; overload;
+{* 公钥验证字节数组的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则来}
 
 function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
@@ -1118,6 +1123,12 @@ begin
     if SM2IsNil then
       SM2.Free;
   end;
+end;
+
+function CnSM2VerifyData(const UserID: AnsiString; PlainData: TBytes;
+  InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
+begin
+  Result := CnSM2VerifyData(UserID, @PlainData[0], Length(PlainData), InSignature, PublicKey, SM2);
 end;
 
 function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
