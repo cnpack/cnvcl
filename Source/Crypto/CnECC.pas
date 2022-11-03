@@ -277,6 +277,9 @@ type
     {* 转换为 Base64 字符串，内部 R S 简单拼接后转换，
       宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而被截断}
 
+    function SetBase64(const Buf: AnsiString): Boolean;
+    {* 从 Base64 字符串中加载，内部对半拆分。返回设置是否成功}
+
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
     property S: TCnBigNumber read FS;
@@ -8169,6 +8172,18 @@ begin
   FS.Free;
   FR.Free;
   inherited;
+end;
+
+function TCnEccSignature.SetBase64(const Buf: AnsiString): Boolean;
+var
+  B: TBytes;
+begin
+  Result := False;
+  if Base64Decode(Buf, B) = BASE64_OK then
+  begin
+    SetHex(BytesToHex(B));
+    Result := True;
+  end;
 end;
 
 procedure TCnEccSignature.SetHex(const Buf: AnsiString);
