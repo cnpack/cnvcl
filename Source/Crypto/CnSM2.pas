@@ -116,11 +116,21 @@ function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2Public
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True): Boolean;
+  IncludePrefixByte: Boolean = True): Boolean; overload;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括}
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括
+   返回加密是否成功，加密结果写入 OutStream 中}
+
+function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
+  IncludePrefixByte: Boolean = True): TBytes; overload;
+{* 用公钥对字节数组进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括
+   返回密文字节数组，如果失败则返回空}
 
 function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil;
@@ -667,6 +677,25 @@ begin
   end;
 end;
 
+function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2;
+  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): TBytes;
+var
+  Stream: TMemoryStream;
+begin
+  Result := nil;
+  Stream := TMemoryStream.Create;
+  try
+    if CnSM2EncryptData(@PlainData[0], Length(PlainData), Stream, PublicKey, SM2,
+      SequenceType, IncludePrefixByte) then
+    begin
+      SetLength(Result, Stream.Size);
+      Move(Stream.Memory^, Result[0], Stream.Size);
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
 {
   MLen <= DataLen - SM3DigLength - 2 * Sm2 Byte Length - 1，劈开拿到 C1 C2 C3
 
@@ -1000,8 +1029,8 @@ begin
 end;
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
-  OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
-  SM2: TCnSM2 = nil): Boolean;
+  OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2): Boolean;
 begin
   Result := CnSM2SignData(UserID, @PlainData[0], Length(PlainData), OutSignature,
     PrivateKey, PublicKey, SM2);
