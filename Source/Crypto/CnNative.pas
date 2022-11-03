@@ -449,6 +449,9 @@ function UInt32ToStr(V: Cardinal): string;
 function UInt64ToBinStr(V: TUInt64): string;
 {* 将一无符号 64 字节整数转换为二进制字符串}
 
+function IsHexString(const Hex: string): Boolean;
+{* 判断一字符串是否合法的十六进制字符串，不区分大小写}
+
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
 {* 内存块转换为十六进制字符串，内存低位的内容出现在字符串左方，相当于网络字节顺序，
   UseUpperCase 控制输出内容的大小写}
@@ -1309,6 +1312,23 @@ begin
       raise Exception.Create('Error: not a Hex String');
   end;
   Result := Res;
+end;
+
+function IsHexString(const Hex: string): Boolean;
+var
+  I, L: Integer;
+begin
+  Result := False;
+  L := Length(Hex);
+  if (L <= 0) or ((L and 1) <> 0) then // 空或非偶长度都不是
+    Exit;
+
+  for I := 1 to L do
+  begin
+    if not (Hex[I] in ['0'..'9', 'A'..'F', 'a'..'f']) then
+      Exit;
+  end;
+  Result := True;
 end;
 
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
