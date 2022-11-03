@@ -926,7 +926,7 @@ object FormSM2: TFormSM2
     Top = 16
     Width = 105
     Height = 25
-    Caption = 'Generate Key'
+    Caption = 'Generate 2 Keys'
     TabOrder = 1
     OnClick = btnGenerateKeyClick
   end
