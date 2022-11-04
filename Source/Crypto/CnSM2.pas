@@ -465,7 +465,7 @@ begin
     E.Z := Point.Z;
 
     C := BigNumberGetBitsCount(K);
-    if IsG then
+    if False then // FIXME: 以下查表乘法优化有问题，暂时禁用，待调试
     begin
       // 判断是 G 点的话，可以查表减少乘法与加法次数
       if C <= BitsCount then
@@ -1017,6 +1017,7 @@ begin
         Exit;
       end;
 
+      // 测试数据 K.SetHex('6CB28D99385C175C94F94E934817663FC176D925DD72B727260DBAAE1FB2F96F');
       P.Assign(SM2.Generator);
       SM2.MultiplePoint(K, P);
 
