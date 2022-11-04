@@ -32,6 +32,11 @@ unit CnSM2;
 *           且尽管 k 对外未知但 k*G 的坐标 x1 是可用 r 反推出来，因为 r <= (e + x1) mod n
 *           所以 x1 <= (r - e) mod n，因而 y1 也能算出来，但 e 使用了公钥的杂凑值
 *           导致出现了先有蛋还是先有鸡的问题
+*
+*           注意：Java 的高版本 BC 库里的 SM2 签名，当 UserId 传空时内部默认会使用字符串
+*           1234567812345678
+*           我们不会做此处理，因而如果出现签名和外界对不上号时，可以查查是否是 UserId 的问题
+*
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
@@ -406,6 +411,7 @@ uses
   CnKDF;
 
 var
+  FLocalSM2Generator: TCnEccPoint = nil;     // SM2 的 G 点供比较用
   FSM2AffineGPower2KList: TObjectList = nil; // SM2 的 G 点的预计算坐标，第 n 个表示 2^n 次方倍点
   FSM2AffinePreMatrix: TCnEcc3Matrix = nil;  // SM2 的 G 点的 2^4 固定基预计算坐标，第 Row 行第 Col 列的值是 Col * (2^4)^Row 倍点
 
@@ -449,7 +455,9 @@ begin
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
-  IsG := Point.Z.IsOne and BigNumberEqual(Point.X, Generator.X) and BigNumberEqual(Point.Y, Generator.Y);
+  // 须判断是否标准 SM2 曲线的 G 点，而不是本曲线的 G 点
+  IsG := Point.Z.IsOne and BigNumberEqual(Point.X, FLocalSM2Generator.X) and
+    BigNumberEqual(Point.Y, FLocalSM2Generator.Y);
 
   R := nil;
   E := nil;
@@ -465,7 +473,7 @@ begin
     E.Z := Point.Z;
 
     C := BigNumberGetBitsCount(K);
-    if False then // FIXME: 以下查表乘法优化有问题，暂时禁用，待调试
+    if IsG then // 注意，以下查表乘法优化必须保证本曲线是 SM2 标准曲线
     begin
       // 判断是 G 点的话，可以查表减少乘法与加法次数
       if C <= BitsCount then
@@ -1017,7 +1025,6 @@ begin
         Exit;
       end;
 
-      // 测试数据 K.SetHex('6CB28D99385C175C94F94E934817663FC176D925DD72B727260DBAAE1FB2F96F');
       P.Assign(SM2.Generator);
       SM2.MultiplePoint(K, P);
 
@@ -2151,8 +2158,11 @@ begin
   if FSM2AffineGPower2KList.Count > 0 then
     Exit;
 
+  FLocalSM2Generator := TCnEccPoint.Create;
   SM2 := TCnSM2.Create;
   try
+    FLocalSM2Generator.Assign(SM2.Generator);
+
     // 创建预计算的 2^n 列表
     P := TCnEcc3Point.Create;
     CnEccPointToEcc3Point(SM2.Generator, P);
@@ -2552,6 +2562,7 @@ end;
 
 procedure FintSM2;
 begin
+  FLocalSM2Generator.Free;
   FSM2AffinePreMatrix.Free;
   FSM2AffineGPower2KList.Free;
 end;

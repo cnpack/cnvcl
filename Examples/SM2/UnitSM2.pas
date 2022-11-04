@@ -273,7 +273,7 @@ var
   PublicKey: TCnSM2PublicKey;
   Sig: TCnSM2Signature;
 begin
-  SM2 := TCnSM2.Create(ctSM2Example256);
+  SM2 := TCnSM2.Create(ctSM2Example256); // 注意这里不是标准 SM2 曲线参数，内部不能用预计算的加速算法
   PrivateKey := TCnSM2PrivateKey.Create;
   PublicKey := TCnSM2PublicKey.Create;
   Sig := TCnSM2Signature.Create;
