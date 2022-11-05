@@ -241,7 +241,7 @@ end;
 procedure TCnShellChangeThread.Execute;
 var
   numBytes: DWORD;
-  CompletionKey: TCnNativePointer;
+  CompletionKey: TCnNativeUInt;
   PFOverlapped: POverlapped;
   TempDirectoryHandle: Cardinal;
   TempCompletionPort: Cardinal;

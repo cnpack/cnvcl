@@ -313,7 +313,7 @@ begin
   inherited Destroy;
 end;
 
-procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: TCnNativePointer) stdcall;
+procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: TCnNativeUInt) stdcall;
 begin
   TCnTimerMgr(dwUser).Timer;
 end;  

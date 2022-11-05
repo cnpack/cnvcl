@@ -502,7 +502,7 @@ var
   NumberOfBytesTransferred: Cardinal;
   SocketOverlapped: PSocketOverlapped;
   Error: Cardinal;
-  Tmp: TCnNativePointer;
+  Tmp: TCnNativeUInt;
   IsFreeOverlapped: Boolean;
 
   procedure CallbackEvent;
