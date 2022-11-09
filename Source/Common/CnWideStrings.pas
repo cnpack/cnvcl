@@ -102,10 +102,12 @@ type
   end;
 
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
-{* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符}
+{* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
+  TODO: 支持四字节 UTF16 字符与 UTF8-MB4}
 
 function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
-{* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符}
+{* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符
+  TODO: 支持四字节 UTF16 字符与 UTF8-MB4}
 
 implementation
 
@@ -497,7 +499,7 @@ begin
   end;   
 end;
 
-// D5 下没有内置 UTF8/Ansi 转换函数
+// D5 下没有内置 UTF8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4
 
 function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
   Source: PWideChar; SourceChars: Cardinal): Cardinal;
@@ -506,7 +508,9 @@ var
   C: Cardinal;
 begin
   Result := 0;
-  if Source = nil then Exit;
+  if Source = nil then
+    Exit;
+
   Cnt := 0;
   I := 0;
   if Dest <> nil then
@@ -523,7 +527,7 @@ begin
       else if C > $7FF then
       begin
         if Cnt + 3 > MaxDestBytes then
-          break;
+          Break;
         Dest[Cnt] := AnsiChar($E0 or (C shr 12));
         Dest[Cnt + 1] := AnsiChar($80 or ((C shr 6) and $3F));
         Dest[Cnt + 2] := AnsiChar($80 or (C and $3F));
@@ -532,13 +536,15 @@ begin
       else //  $7F < Source[i] <= $7FF
       begin
         if Cnt + 2 > MaxDestBytes then
-          break;
+          Break;
         Dest[Cnt] := AnsiChar($C0 or (C shr 6));
         Dest[Cnt + 1] := AnsiChar($80 or (C and $3F));
         Inc(Cnt,2);
       end;
     end;
-    if Cnt >= MaxDestBytes then Cnt := MaxDestBytes - 1;
+
+    if Cnt >= MaxDestBytes then
+      Cnt := MaxDestBytes - 1;
     Dest[Cnt] := #0;
   end
   else
