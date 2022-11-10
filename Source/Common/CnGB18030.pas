@@ -72,6 +72,20 @@ type
 
   TCnCodePoint = type Cardinal;
 
+  TCn2CharRec = packed record
+    P1: AnsiChar;
+    P2: AnsiChar;
+  end;
+  PCn2CharRec = ^TCn2CharRec;
+
+  TCn4CharRec = packed record
+    P1: AnsiChar;
+    P2: AnsiChar;
+    P3: AnsiChar;
+    P4: AnsiChar;
+  end;
+  PCn4CharRec = ^TCn4CharRec;
+
 function GetCharLengthFromUtf8(Utf8Str: PAnsiChar): Integer;
 {* 计算一 UTF8（可能是 UTF8MB4）字符串的字符数}
 
@@ -121,6 +135,12 @@ function GetUnicodeCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
 function GetUnicodeCodePointFrom4Char(PtrTo4Char: PAnsiChar): TCnCodePoint;
 {* 计算一个四字节 Utf16 字符的编码值（也叫代码位置）}
 
+function GetUtf16HighByte(Rec: PCn2CharRec): Byte;
+{* 得到一个 UTF 16 双字节字符的高位字节值}
+
+function GetUtf16LowByte(Rec: PCn2CharRec): Byte;
+{* 得到一个 UTF 16 双字节字符的低位字节值}
+
 implementation
 
 const
@@ -133,22 +153,7 @@ const
 
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
 
-type
-  TCn2CharRec = packed record
-    P1: AnsiChar;
-    P2: AnsiChar;
-  end;
-  PCn2CharRec = ^TCn2CharRec;
-
-  TCn4CharRec = packed record
-    P1: AnsiChar;
-    P2: AnsiChar;
-    P3: AnsiChar;
-    P4: AnsiChar;
-  end;
-  PCn4CharRec = ^TCn4CharRec;
-
-function GetHighByte(Rec: PCn2CharRec): Byte;
+function GetUtf16HighByte(Rec: PCn2CharRec): Byte;
 begin
 {$IFDEF UTF16_BE}
   Result := Byte(Rec^.P1);
@@ -157,7 +162,7 @@ begin
 {$ENDIF}
 end;
 
-function GetLowByte(Rec: PCn2CharRec): Byte;
+function GetUtf16LowByte(Rec: PCn2CharRec): Byte;
 begin
 {$IFDEF UTF16_BE}
   Result := Byte(Rec^.P2);
@@ -232,13 +237,13 @@ begin
   Result := 2;
 
   P := PCn2CharRec(Utf16Str);
-  B1 := GetHighByte(P);
+  B1 := GetUtf16HighByte(P);
 
   if (B1 >= CN_UTF16_4CHAR_PREFIX1_LOW) and (B1 < CN_UTF16_4CHAR_PREFIX1_HIGH) then
   begin
     // 如果两个单字节字符，其值分别在 $D800 到 $DBFF 之间
     Inc(P);
-    B2 := GetHighByte(P);
+    B2 := GetUtf16HighByte(P);
 
     // 那么紧跟在后面的两个单字节字符应该在 $DC00 到 $DFFF 之间，
     if (B2 >= CN_UTF16_4CHAR_PREFIX2_LOW) and (B2 < CN_UTF16_4CHAR_PREFIX2_HIGH) then
@@ -359,11 +364,11 @@ begin
   C2 := PCn2CharRec(PtrTo4Char);
 
   // 第一个字节，去掉高位的 110110；第二个字节留着，共 2 + 8 = 10 位
-  T1 := (GetHighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetLowByte(C2);
+  T1 := (GetUtf16HighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetUtf16LowByte(C2);
   Inc(C2);
 
   // 第三个字节，去掉高位的 110111，第四个字节留着，共 2 + 8 = 10 位
-  T2 := (GetHighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetLowByte(C2);
+  T2 := (GetUtf16HighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetUtf16LowByte(C2);
 
   // 高 10 位拼低 10 位
   Result := T1 shl 10 + T2 + $10000;
