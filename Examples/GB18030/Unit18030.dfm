@@ -76,4 +76,13 @@ object FormGB18030: TFormGB18030
     TabOrder = 6
     OnClick = btnCodePointUtf162Click
   end
+  object btnUtf8Decode: TButton
+    Left = 320
+    Top = 56
+    Width = 121
+    Height = 25
+    Caption = 'Decode from Utf8-MB4'
+    TabOrder = 7
+    OnClick = btnUtf8DecodeClick
+  end
 end

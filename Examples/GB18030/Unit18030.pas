@@ -15,6 +15,7 @@ type
     btnUtf8Encode: TButton;
     btnCodePointUtf16: TButton;
     btnCodePointUtf162: TButton;
+    btnUtf8Decode: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -22,6 +23,7 @@ type
     procedure btnUtf8EncodeClick(Sender: TObject);
     procedure btnCodePointUtf16Click(Sender: TObject);
     procedure btnCodePointUtf162Click(Sender: TObject);
+    procedure btnUtf8DecodeClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -125,6 +127,21 @@ begin
   SetLength(S, 2);
   GetUtf16CharFromCodePoint(C, @S[1]);
   ShowMessage(DataToHex(@S[1], Length(S) * SizeOf(WideChar))); // $3DD802DE
+end;
+
+procedure TFormGB18030.btnUtf8DecodeClick(Sender: TObject);
+var
+  S: AnsiString;
+  R: WideString;
+begin
+  SetLength(S, 4);
+  Move(FACE_UTF8[0], S[1], 4);
+
+  R := CnUtf8DecodeToWideString(S);
+  if R <> '' then
+    ShowMessage(DataToHex(@R[1], Length(R) * SizeOf(WideChar)))  // 3DD802DE
+  else
+    ShowMessage('Error');
 end;
 
 end.

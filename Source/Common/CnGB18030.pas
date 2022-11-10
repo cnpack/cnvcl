@@ -135,9 +135,10 @@ function GetCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
 function GetCodePointFromUtf164Char(PtrTo4Char: Pointer): TCnCodePoint;
 {* 计算一个四字节 Utf16 字符的编码值（也叫代码位置）}
 
-procedure GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer);
+function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
 {* 计算一个 Unicode 编码值的二字节或四字节表示，结果放在 PtrTo4Char 所指的二字节或四字节区域
-  调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可}
+  调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可
+  返回 1 或 2，分别表示处理的是二字节或四字节}
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的高位字节值}
@@ -406,7 +407,7 @@ begin
   // 码点减去 $10000 后的值，前 10 位映射到 $D800 到 $DBFF 之间，后 10 位映射到 $DC00 到 $DFFF 之间
 end;
 
-procedure GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer);
+function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
 var
   C2: PCn2CharRec;
   L, H: Byte;
@@ -435,12 +436,14 @@ begin
 
     SetUtf16LowByte(L, C2);
     SetUtf16HighByte(H, C2);
+    Result := 2;
   end
   else
   begin
     C2 := PCn2CharRec(PtrToChars);
     SetUtf16LowByte(Byte(CP and $00FF), C2);
     SetUtf16HighByte(Byte(CP shr 8), C2);
+    Result := 1;
   end;
 end;
 
