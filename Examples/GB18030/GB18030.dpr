@@ -3,7 +3,8 @@ program GB18030;
 uses
   Forms,
   Unit18030 in 'Unit18030.pas' {FormGB18030},
-  CnGB18030 in '..\..\Source\Common\CnGB18030.pas';
+  CnGB18030 in '..\..\Source\Common\CnGB18030.pas',
+  CnWideStrings in '..\..\Source\Common\CnWideStrings.pas';
 
 {$R *.RES}
 

@@ -129,17 +129,27 @@ function GetUtf16FromGB18130(GB18130Str: TCnGB18130String): WideString;
 
 {$ENDIF}
 
-function GetUnicodeCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
+function GetCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
 {* 计算一个 Utf16 字符的编码值（也叫代码位置），注意 Utf16Str 可能指向一个双字节字符，也可能指向一个四字节字符}
 
-function GetUnicodeCodePointFrom4Char(PtrTo4Char: PAnsiChar): TCnCodePoint;
+function GetCodePointFromUtf164Char(PtrTo4Char: Pointer): TCnCodePoint;
 {* 计算一个四字节 Utf16 字符的编码值（也叫代码位置）}
 
-function GetUtf16HighByte(Rec: PCn2CharRec): Byte;
+procedure GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer);
+{* 计算一个 Unicode 编码值的二字节或四字节表示，结果放在 PtrTo4Char 所指的二字节或四字节区域
+  调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可}
+
+function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的高位字节值}
 
-function GetUtf16LowByte(Rec: PCn2CharRec): Byte;
+function GetUtf16LowByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的低位字节值}
+
+procedure SetUtf16HighByte(B: Byte; Rec: PCn2CharRec); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 设置一个 UTF 16 双字节字符的高位字节值}
+
+procedure SetUtf16LowByte(B: Byte; Rec: PCn2CharRec); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 设置一个 UTF 16 双字节字符的低位字节值}
 
 implementation
 
@@ -150,6 +160,9 @@ const
   CN_UTF16_4CHAR_PREFIX2_HIGH = $E0;
 
   CN_UTF16_4CHAR_HIGH_MASK    = $3;
+  CN_UTF16_4CHAR_SPLIT_MASK   = $3FF;
+
+  CN_UTF16_EXT_BASE           = $10000;
 
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
 
@@ -168,6 +181,24 @@ begin
   Result := Byte(Rec^.P2);
 {$ELSE}
   Result := Byte(Rec^.P1); // UTF16-LE 的高低位会置换
+{$ENDIF}
+end;
+
+procedure SetUtf16HighByte(B: Byte; Rec: PCn2CharRec);
+begin
+{$IFDEF UTF16_BE}
+  Rec^.P1 := AnsiChar(B);
+{$ELSE}
+  Rec^.P2 := AnsiChar(B); // UTF16-LE 的高低位会置换
+{$ENDIF}
+end;
+
+procedure SetUtf16LowByte(B: Byte; Rec: PCn2CharRec);
+begin
+{$IFDEF UTF16_BE}
+  Rec^.P2 := AnsiChar(B);
+{$ELSE}
+  Rec^.P1 := AnsiChar(B); // UTF16-LE 的高低位会置换
 {$ENDIF}
 end;
 
@@ -336,13 +367,13 @@ end;
 
 {$ENDIF}
 
-function GetUnicodeCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
+function GetCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
 var
   R: Word;
   C2: PCn2CharRec;
 begin
   if GetByteWidthFromUtf16(Utf16Str) = 4 then // 四字节字符
-    Result := GetUnicodeCodePointFrom4Char(PAnsiChar(Utf16Str))
+    Result := GetCodePointFromUtf164Char(PAnsiChar(Utf16Str))
   else  // 普通双字节字符
   begin
     C2 := PCn2CharRec(Utf16Str);
@@ -356,23 +387,61 @@ begin
   end;
 end;
 
-function GetUnicodeCodePointFrom4Char(PtrTo4Char: PAnsiChar): TCnCodePoint;
+function GetCodePointFromUtf164Char(PtrTo4Char: Pointer): TCnCodePoint;
 var
-  T1, T2: Word;
+  TH, TL: Word;
   C2: PCn2CharRec;
 begin
   C2 := PCn2CharRec(PtrTo4Char);
 
   // 第一个字节，去掉高位的 110110；第二个字节留着，共 2 + 8 = 10 位
-  T1 := (GetUtf16HighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetUtf16LowByte(C2);
+  TH := (GetUtf16HighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetUtf16LowByte(C2);
   Inc(C2);
 
   // 第三个字节，去掉高位的 110111，第四个字节留着，共 2 + 8 = 10 位
-  T2 := (GetUtf16HighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetUtf16LowByte(C2);
+  TL := (GetUtf16HighByte(C2) and CN_UTF16_4CHAR_HIGH_MASK) shl 8 + GetUtf16LowByte(C2);
 
   // 高 10 位拼低 10 位
-  Result := T1 shl 10 + T2 + $10000;
+  Result := TH shl 10 + TL + CN_UTF16_EXT_BASE;
   // 码点减去 $10000 后的值，前 10 位映射到 $D800 到 $DBFF 之间，后 10 位映射到 $DC00 到 $DFFF 之间
+end;
+
+procedure GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer);
+var
+  C2: PCn2CharRec;
+  L, H: Byte;
+  LW, HW: Word;
+begin
+  if CP >= CN_UTF16_EXT_BASE then
+  begin
+    CP := CP - CN_UTF16_EXT_BASE;
+    // 拆出高 10 位放前两字节，拆出低 10 位放后两字节
+
+    LW := CP and CN_UTF16_4CHAR_SPLIT_MASK;          // 低 10 位，放三、四字节
+    HW := (CP shr 10) and CN_UTF16_4CHAR_SPLIT_MASK; // 高 10 位，放一、二字节
+
+    L := HW and $FF;
+    H := (HW shr 8) and CN_UTF16_4CHAR_HIGH_MASK;
+    H := H or CN_UTF16_4CHAR_PREFIX1_LOW;              // 1101 1000
+    C2 := PCn2CharRec(PtrToChars);
+
+    SetUtf16LowByte(L, C2);
+    SetUtf16HighByte(H, C2);
+
+    L := LW and $FF;
+    H := (LW shr 8) and CN_UTF16_4CHAR_HIGH_MASK;
+    H := H or CN_UTF16_4CHAR_PREFIX1_HIGH;              // 1101 1100
+    Inc(C2);
+
+    SetUtf16LowByte(L, C2);
+    SetUtf16HighByte(H, C2);
+  end
+  else
+  begin
+    C2 := PCn2CharRec(PtrToChars);
+    SetUtf16LowByte(Byte(CP and $00FF), C2);
+    SetUtf16HighByte(Byte(CP shr 8), C2);
+  end;
 end;
 
 end.

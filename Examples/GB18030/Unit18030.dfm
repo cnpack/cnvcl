@@ -58,4 +58,22 @@ object FormGB18030: TFormGB18030
     TabOrder = 4
     OnClick = btnUtf8EncodeClick
   end
+  object btnCodePointUtf16: TButton
+    Left = 16
+    Top = 96
+    Width = 121
+    Height = 25
+    Caption = 'CodePoint Utf16 1'
+    TabOrder = 5
+    OnClick = btnCodePointUtf16Click
+  end
+  object btnCodePointUtf162: TButton
+    Left = 16
+    Top = 136
+    Width = 121
+    Height = 25
+    Caption = 'CodePoint Utf16 2'
+    TabOrder = 6
+    OnClick = btnCodePointUtf162Click
+  end
 end

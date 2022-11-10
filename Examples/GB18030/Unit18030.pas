@@ -13,11 +13,15 @@ type
     btnUtf16CharLength: TButton;
     btnUtf8CharLength: TButton;
     btnUtf8Encode: TButton;
+    btnCodePointUtf16: TButton;
+    btnCodePointUtf162: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
     procedure btnUtf8CharLengthClick(Sender: TObject);
     procedure btnUtf8EncodeClick(Sender: TObject);
+    procedure btnCodePointUtf16Click(Sender: TObject);
+    procedure btnCodePointUtf162Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -46,7 +50,7 @@ var
 begin
   A := '吃饭'; // 内存中是 B3D4B7B9，GB18030内码也是 B3D4 和 B7B9符合阅读顺序
   S := '吃饭'; // 内存中是 03546D99，但 Unicode 内码却是 5403 和 996D，有反置
-  C := GetUnicodeCodePointFromUtf16Char(PWideChar(S));
+  C := GetCodePointFromUtf16Char(PWideChar(S));
   ShowMessage(IntToHex(C, 2));
 end;
 
@@ -58,7 +62,7 @@ begin
   SetLength(S, 2);
   Move(FACE[0], S[1], 4);
 
-  C := GetUnicodeCodePointFromUtf16Char(PWideChar(S));
+  C := GetCodePointFromUtf16Char(PWideChar(S));
   ShowMessage(IntToHex(C, 2)); // 应得到 $1F602
 end;
 
@@ -96,9 +100,31 @@ begin
 
   R := CnUtf8EncodeWideString(S);
   if R <> '' then
-    ShowMessage(DataToHex(@R[1], Length(R)))
+    ShowMessage(DataToHex(@R[1], Length(R)))  // F09F9882
   else
     ShowMessage('Error');
+end;
+
+procedure TFormGB18030.btnCodePointUtf16Click(Sender: TObject);
+var
+  S: WideString;
+  C: Cardinal;
+begin
+  C := $5403;  // 吃的 Unicode 码点
+  SetLength(S, 1);
+  GetUtf16CharFromCodePoint(C, @S[1]);
+  ShowMessage(S);
+end;
+
+procedure TFormGB18030.btnCodePointUtf162Click(Sender: TObject);
+var
+  S: WideString;
+  C: Cardinal;
+begin
+  C := $1F602;  // 笑哭了的表情符的 Unicode 码点
+  SetLength(S, 2);
+  GetUtf16CharFromCodePoint(C, @S[1]);
+  ShowMessage(DataToHex(@S[1], Length(S) * SizeOf(WideChar))); // $3DD802DE
 end;
 
 end.
