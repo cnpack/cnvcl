@@ -317,7 +317,7 @@ function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
 {* 求 UInt64 的非负整数次方根的整数部分，不考虑溢出的情况}
 
 function CurrentByteOrderIsBigEndian: Boolean;
-{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址，如部分指定的 ARM 和 MIPS}
+{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址，符合从左到右的阅读习惯，如部分指定的 ARM 和 MIPS}
 
 function CurrentByteOrderIsLittleEndian: Boolean;
 {* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址，如 x86 与部分默认 arm}

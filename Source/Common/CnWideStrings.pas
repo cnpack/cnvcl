@@ -111,6 +111,9 @@ function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
 
 implementation
 
+uses
+  CnGB18030;
+
 { TCnWideStringList }
 
 function WideCompareText(const S1, S2: WideString): Integer;
@@ -500,7 +503,7 @@ begin
 end;
 
 // D5 下没有内置 UTF8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4
-
+// 为调用者简明起见，SourceChars 传宽字符个数即可
 function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
   Source: PWideChar; SourceChars: Cardinal): Cardinal;
 var
@@ -517,12 +520,33 @@ begin
   begin
     while (I < SourceChars) and (Cnt < MaxDestBytes) do
     begin
-      C := Cardinal(Source[I]);
-      Inc(I);
+      if (SourceChars - I >= 2) and (GetByteWidthFromUtf16(@(Source[I])) = 4) then
+      begin
+        // 本字符是四字节，要特殊编码
+        C := GetUnicodeCodePointFrom4Char(PAnsiChar(@(Source[I])));
+        Inc(I, 2); // 步进两个 WideChar
+      end
+      else
+      begin
+        C := Cardinal(Source[I]);
+        Inc(I); // 步进一个 WideChar
+      end;
+
       if C <= $7F then
       begin
         Dest[Cnt] := AnsiChar(C);
         Inc(Cnt);
+      end
+      else if C > $FFFF then
+      begin
+        if Cnt + 4 > MaxDestBytes then
+          Break;
+
+        Dest[Cnt] := AnsiChar($F0 or (C shr 18));
+        Dest[Cnt + 1] := AnsiChar($80 or ((C shr 12) and $3F));
+        Dest[Cnt + 2] := AnsiChar($80 or ((C shr 6) and $3F));
+        Dest[Cnt + 3] := AnsiChar($80 or (C and $3F));
+        Inc(Cnt, 4);
       end
       else if C > $7FF then
       begin
@@ -539,7 +563,7 @@ begin
           Break;
         Dest[Cnt] := AnsiChar($C0 or (C shr 6));
         Dest[Cnt + 1] := AnsiChar($80 or (C and $3F));
-        Inc(Cnt,2);
+        Inc(Cnt, 2);
       end;
     end;
 
@@ -551,18 +575,32 @@ begin
   begin
     while I < SourceChars do
     begin
-      C := Integer(Source[I]);
-      Inc(I);
+      if (SourceChars - I >= 2) and (GetByteWidthFromUtf16(@(Source[I])) = 4) then
+      begin
+        // 本字符是四字节，要特殊编码
+        C := GetUnicodeCodePointFrom4Char(PAnsiChar(@(Source[I])));
+        Inc(I, 2); // 步进两个 WideChar
+      end
+      else
+      begin
+        C := Cardinal(Source[I]);
+        Inc(I);
+      end;
+
       if C > $7F then
       begin
         if C > $7FF then
+        begin
+          if C > $FFFF then
+            Inc(Cnt);
           Inc(Cnt);
+        end;
         Inc(Cnt);
       end;
       Inc(Cnt);
     end;
   end;
-  Result := Cnt + 1;  // convert zero based index to byte count
+  Result := Cnt + 1;
 end;
 
 function InternalUtf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal;
@@ -618,20 +656,61 @@ begin
     begin
       C := Byte(Source[I]);
       Inc(I);
+
+//      if (C and $80) = $80 then                 // 最高位是 1，后续有，后面做精确多少个字符的判断
+//      begin
+//        if I >= SourceBytes then                // incomplete multibyte char
+//          Exit;
+//
+//        if (C and $C0) = $C0 then               // 最高两位 11，有一个
+//        begin
+//          D := Byte(Source[I]);                 // 读第二个字节
+//          Inc(I);
+//          if (D and $C0) <> $80 then            // 第二个字节最高两位得是 10
+//            Exit;                               // malformed trail byte or out of range char
+//          if I >= SourceBytes then
+//            Exit;                               // incomplete multibyte char
+//
+//          if (C and $E0) = $E0 then             // 最高三位 111，还有一个
+//          begin
+//            D := Byte(Source[I]);               // 读第三个字节
+//            Inc(I);
+//            if (D and $C0) <> $80 then          // 第三个字节最高两位得是 10
+//              Exit;
+//            if I >= SourceBytes then
+//              Exit;
+//
+//            if (C and $F0) = $F0 then           // 最高四位 1111，还有一个
+//            begin
+//              D := Byte(Source[I]);             // 读第四个字节
+//              Inc(I);
+//              if (D and $C0) <> $80 then        // 第四个字节最高两位得是 10
+//                Exit;
+//              if I >= SourceBytes then
+//                Exit;
+//            end;
+//          end;
+//        end;
+
       if (C and $80) <> 0 then
       begin
         if I >= SourceBytes then Exit;          // incomplete multibyte char
-        C := C and $3F;
+
+        C := C and $3F;                         // 留下第一个字节的低六位
         if (C and $20) <> 0 then
         begin
-          C := Byte(Source[I]);
+          C := Byte(Source[I]);                 // 读第二个字节
           Inc(I);
-          if (C and $C0) <> $80 then Exit;      // malformed trail byte or out of range char
-          if I >= SourceBytes then Exit;        // incomplete multibyte char
+          if (C and $C0) <> $80 then            // 第二个字节最高两位得是 10
+            Exit;                               // malformed trail byte or out of range char
+          if I >= SourceBytes then
+            Exit;                               // incomplete multibyte char
         end;
-        C := Byte(Source[I]);
+
+        C := Byte(Source[I]);                   // 读第二个或第三个字节
         Inc(I);
-        if (C and $C0) <> $80 then Exit;       // malformed trail byte
+        if (C and $C0) <> $80 then              // 第二个或第三个字节最高两位得是 10
+          Exit;                                 // malformed trail byte
       end;
       Inc(Cnt);
     end;
