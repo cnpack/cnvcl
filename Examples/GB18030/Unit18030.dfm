@@ -1,7 +1,7 @@
 object FormGB18030: TFormGB18030
   Left = 192
   Top = 107
-  Width = 979
+  Width = 982
   Height = 563
   Caption = 'Unicode and GB18030'
   Color = clBtnFace
@@ -87,7 +87,7 @@ object FormGB18030: TFormGB18030
   end
   object btnGenUtf16: TButton
     Left = 792
-    Top = 8
+    Top = 16
     Width = 169
     Height = 25
     Caption = 'Generate Utf16 Table'
@@ -102,6 +102,69 @@ object FormGB18030: TFormGB18030
     Caption = 'CodePoint Utf16 3'
     TabOrder = 9
     OnClick = btnCodePointUtf163Click
+  end
+  object btnGB18030ToUtf16: TButton
+    Left = 464
+    Top = 16
+    Width = 121
+    Height = 25
+    Caption = 'GB18030 to/from Utf16'
+    TabOrder = 10
+    OnClick = btnGB18030ToUtf16Click
+  end
+  object btn18030CodePoint1: TButton
+    Left = 600
+    Top = 16
+    Width = 121
+    Height = 25
+    Caption = 'GB18030 CodePoint 1'
+    TabOrder = 11
+    OnClick = btn18030CodePoint1Click
+  end
+  object btn18030CodePoint2: TButton
+    Left = 600
+    Top = 56
+    Width = 121
+    Height = 25
+    Caption = 'GB18030 CodePoint 2'
+    TabOrder = 12
+    OnClick = btn18030CodePoint2Click
+  end
+  object btn18030CodePoint3: TButton
+    Left = 600
+    Top = 96
+    Width = 121
+    Height = 25
+    Caption = 'GB18030 CodePoint 3'
+    TabOrder = 13
+    OnClick = btn18030CodePoint3Click
+  end
+  object btnCodePoint180301: TButton
+    Left = 600
+    Top = 136
+    Width = 121
+    Height = 25
+    Caption = 'CodePoint 18030 1'
+    TabOrder = 14
+    OnClick = btnCodePoint180301Click
+  end
+  object btnCodePoint180302: TButton
+    Left = 600
+    Top = 176
+    Width = 121
+    Height = 25
+    Caption = 'CodePoint 18030 2'
+    TabOrder = 15
+    OnClick = btnCodePoint180302Click
+  end
+  object btnCodePoint180303: TButton
+    Left = 600
+    Top = 216
+    Width = 121
+    Height = 25
+    Caption = 'CodePoint 18030 3'
+    TabOrder = 16
+    OnClick = btnCodePoint180303Click
   end
   object dlgSave1: TSaveDialog
     FileName = 'UTF16.txt'

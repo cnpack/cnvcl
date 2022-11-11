@@ -40,7 +40,7 @@ unit CnGB18030;
 *
 *           GB18030 的编码取值范围（十六进制）
 *           注意 AABB~CCDD 的范围代表前一个字节 AA 到 CC，后一个字节 CC 到 DD，不包括 AAFF 这种
-*           单字节：00~FF
+*           单字节：00~7F
 *           双字节：A1A9~A1FE                     1 区
 *                   A840~A97E, A880~A9A0          5 区
 *                   B0A1~F7FE                     2 区汉字
@@ -152,6 +152,12 @@ function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integ
 {* 计算一个 Unicode 编码值的二字节或四字节表示，结果放在 PtrTo4Char 所指的二字节或四字节区域
   调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可
   返回 1 或 2，分别表示处理的是二字节或四字节}
+
+function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18130StringPtr): TCnCodePoint;
+{* 计算一个 GB18030 字符的编码值（也叫代码位置），注意 PtrToGB18030Chars 可能指向一个单、双、四字节字符}
+
+function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
+{* 计算一个 GB18030 编码值的一字节或二字节或四字节表示，返回值 1 或 2 或 4}
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的高位字节值}
@@ -457,6 +463,75 @@ begin
     SetUtf16LowByte(Byte(CP and $00FF), C2);
     SetUtf16HighByte(Byte(CP shr 8), C2);
     Result := 1;
+  end;
+end;
+
+function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18130StringPtr): TCnCodePoint;
+var
+  C1, C2, C3, C4: Byte;
+begin
+  Result := 0;
+  C1 := Byte(PtrToGB18030Chars^);
+  if C1 < $80 then
+    Result := C1                                // 单字节
+  else if (C1 >= $81) and (C1 <= $FE) then
+  begin
+    Inc(PtrToGB18030Chars);
+    C2 := Byte(PtrToGB18030Chars^);
+    if ((C2 >= $40) and (C2 <= $7E)) or ((C2 >= $90) and (C2 <= $FE)) then 
+      Result := C1 shl 8 + C2                   // 双字节
+    else if (C2 >= $30) and (C2 <= $39) then    // 四字节
+    begin
+      Inc(PtrToGB18030Chars);
+      C3 := Byte(PtrToGB18030Chars^);
+      Inc(PtrToGB18030Chars);                   // 不判断三字节的 81 到 F3 以及四字节的 30 到 39 了
+      C4 := Byte(PtrToGB18030Chars^);
+
+      Result := C1 shl 24 + C2 shl 16 + C3 shl 8 + C4;
+    end;
+  end;
+end;
+
+function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
+var
+  P: PByte;
+  C1, C2, C3, C4: Byte;
+begin
+  Result := 0;
+  P := PByte(PtrToChars);
+  if CP < $80 then
+  begin
+    P^ := Byte(CP);
+    Result := 1;
+  end
+  else
+  begin
+    C1 := CP and $FF000000 shr 24;
+    C2 := CP and $00FF0000 shr 16;
+    C3 := CP and $0000FF00 shr 8;
+    C4 := CP and $000000FF;
+
+    if (C1 = 0) and (C2 = 0) and ((C3 >= $81) and (C3 <= $FE)) and
+      (((C4 >= $40) and (C4 <= $7E)) or ((C4 >= $80) and (C4 <= $FE))) then
+    begin
+      // 是两字节字符
+      P^ := C3;
+      Inc(P);
+      P^ := C4;
+      Result := 2;
+    end
+    else if ((C1 >= $81) and (C1 <= $FE)) and ((C2 >= $30) and (C2 <= $39)) then
+    begin
+      // 是四字节字符，暂不判断 C3 和 C4
+      P^ := C1;
+      Inc(P);
+      P^ := C2;
+      Inc(P);
+      P^ := C3;
+      Inc(P);
+      P^ := C4;
+      Result := 4;
+    end;
   end;
 end;
 
