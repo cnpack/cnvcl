@@ -38,6 +38,19 @@ unit CnGB18030;
 *           系统的 UtfEncode 函数能够正确处理四字节 UTF16-LE，注意 UTF8 转换的是
 *           四字节 UTF16 字符的编码值，不是转换四字节本身，因而 UTF8-MB4 足够容纳
 *
+*           GB18030 的编码取值范围（十六进制）
+*           注意 AABB~CCDD 的范围代表前一个字节 AA 到 CC，后一个字节 CC 到 DD，不包括 AAFF 这种
+*           单字节：00~FF
+*           双字节：A1A9~A1FE                     1 区
+*                   A840~A97E, A880~A9A0          5 区
+*                   B0A1~F7FE                     2 区汉字
+*                   8140~A07E, 8180~A0FE          3 区汉字
+*                   AA40~FE7E, AA80~FEA0          4 区汉字
+*                   AAA1~AFFE                     用户 1 区
+*                   F8A1~FEFE                     用户 2 区
+*                   A140~A77E, A180~A7A0          用户 3 区
+*           四字节：
+*
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -104,7 +117,7 @@ function GetByteWidthFromUtf16(Utf16Str: PWideChar): Integer;
 function GetByteWidthFromGB18130(GB18130Str: PCnGB18130StringPtr): Integer;
 {* 计算一 GB18130 字符串的当前字符占多少字节}
 
-function UnicodeToGB18130(Utf16Str: PWideChar; GB18130Str: PCnGB18130StringPtr): Integer;
+function Utf16ToGB18130(Utf16Str: PWideChar; GB18130Str: PCnGB18130StringPtr): Integer;
 {* 将一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串转换为 GB18130 字符串
   GB18130Str 所指区域用来容纳转换的结果，如传 nil，则不进行转换
   返回值返回 GB18130Str 所需的比特长度或转换后的比特长度，不包括末尾的 #0}
@@ -316,7 +329,7 @@ begin
   end;
 end;
 
-function UnicodeToGB18130(Utf16Str: PWideChar; GB18130Str: PCnGB18130StringPtr): Integer;
+function Utf16ToGB18130(Utf16Str: PWideChar; GB18130Str: PCnGB18130StringPtr): Integer;
 begin
 
 end;
@@ -330,11 +343,11 @@ function GetGB18130FromUtf16(Utf16Str: PWideChar): TCnGB18130String;
 var
   L: Integer;
 begin
-  L := UnicodeToGB18130(Utf16Str, nil);
+  L := Utf16ToGB18130(Utf16Str, nil);
   if L > 0 then
   begin
     SetLength(Result, L);
-    UnicodeToGB18130(Utf16Str, @Result[1]);
+    Utf16ToGB18130(Utf16Str, @Result[1]);
   end;
 end;
 

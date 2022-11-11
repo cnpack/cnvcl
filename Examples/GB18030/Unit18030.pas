@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls;
+  StdCtrls, CnWideStrings;
 
 type
   TFormGB18030 = class(TForm)
@@ -16,6 +16,9 @@ type
     btnCodePointUtf16: TButton;
     btnCodePointUtf162: TButton;
     btnUtf8Decode: TButton;
+    btnGenUtf16: TButton;
+    dlgSave1: TSaveDialog;
+    btnCodePointUtf163: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -24,10 +27,12 @@ type
     procedure btnCodePointUtf16Click(Sender: TObject);
     procedure btnCodePointUtf162Click(Sender: TObject);
     procedure btnUtf8DecodeClick(Sender: TObject);
+    procedure btnGenUtf16Click(Sender: TObject);
+    procedure btnCodePointUtf163Click(Sender: TObject);
   private
-    { Private declarations }
+    procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
   public
-    { Public declarations }
+
   end;
 
 var
@@ -36,7 +41,7 @@ var
 implementation
 
 uses
-  CnGB18030, CnWideStrings, CnNative;
+  CnGB18030, CnNative;
 
 {$R *.DFM}
 
@@ -142,6 +147,64 @@ begin
     ShowMessage(DataToHex(@R[1], Length(R) * SizeOf(WideChar)))  // 3DD802DE
   else
     ShowMessage('Error');
+end;
+
+procedure TFormGB18030.btnGenUtf16Click(Sender: TObject);
+var
+  I: Integer;
+  WS: TCnWideStringList;
+begin
+  // 0000 ~ FFFF，一行 0~F，一页 0~F，共 255 页
+  WS := TCnWideStringList.Create;
+  Screen.Cursor := crHourGlass;
+
+  try
+    for I := 0 to 255 do
+    begin
+      WS.Add('');
+      GenUtf16Page(I, WS);
+    end;
+
+    if dlgSave1.Execute then
+      WS.SaveToFile(dlgSave1.FileName);
+  finally
+    Screen.Cursor := crDefault;
+    WS.Free;
+  end;
+end;
+
+procedure TFormGB18030.GenUtf16Page(Page: Byte; Content: TCnWideStringList);
+var
+  R, C: Byte;
+  S, T: WideString;
+begin
+  S := '    ';
+  for C := 0 to $F do
+    S := S + ' ' + IntToHex(C, 2);
+  Content.Add(S);
+
+  SetLength(T, 1);
+  for R := 0 to $F do
+  begin
+    S := IntToHex(Page, 2) + IntToHex(16 * R, 2);
+    for C := 0 to $F do
+    begin
+      GetUtf16CharFromCodePoint(Page * 256 + R * 16 + C, @T[1]);
+      S := S + ' ' + T;
+    end;
+    Content.Add(S);
+  end;
+end;
+
+procedure TFormGB18030.btnCodePointUtf163Click(Sender: TObject);
+var
+  S: WideString;
+  C: Cardinal;
+begin
+  C := $20BB7;  // 上土下口 的 Unicode 码点
+  SetLength(S, 2);
+  GetUtf16CharFromCodePoint(C, @S[1]);
+  ShowMessage(DataToHex(@S[1], Length(S) * SizeOf(WideChar))); // $42D8B7DF
 end;
 
 end.

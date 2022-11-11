@@ -85,4 +85,27 @@ object FormGB18030: TFormGB18030
     TabOrder = 7
     OnClick = btnUtf8DecodeClick
   end
+  object btnGenUtf16: TButton
+    Left = 792
+    Top = 8
+    Width = 169
+    Height = 25
+    Caption = 'Generate Utf16 Table'
+    TabOrder = 8
+    OnClick = btnGenUtf16Click
+  end
+  object btnCodePointUtf163: TButton
+    Left = 16
+    Top = 176
+    Width = 121
+    Height = 25
+    Caption = 'CodePoint Utf16 3'
+    TabOrder = 9
+    OnClick = btnCodePointUtf163Click
+  end
+  object dlgSave1: TSaveDialog
+    FileName = 'UTF16.txt'
+    Left = 928
+    Top = 40
+  end
 end
