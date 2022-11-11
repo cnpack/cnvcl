@@ -46,6 +46,7 @@ type
     btn12864DivMod: TButton;
     btnMemSort: TButton;
     btnUInt32ToStr: TButton;
+    btnInt16ToLE: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -74,6 +75,7 @@ type
     procedure btn12864DivModClick(Sender: TObject);
     procedure btnMemSortClick(Sender: TObject);
     procedure btnUInt32ToStrClick(Sender: TObject);
+    procedure btnInt16ToLEClick(Sender: TObject);
   private
 
   public
@@ -791,6 +793,19 @@ end;
 procedure TFormNative.btnUInt32ToStrClick(Sender: TObject);
 begin
   mmoRes.Lines.Add(UInt32ToStr(Cardinal(-1)));
+end;
+
+procedure TFormNative.btnInt16ToLEClick(Sender: TObject);
+var
+  C: Cardinal;
+begin
+  C := 28057;
+  C := Int16ToBigEndian(C);
+  ShowMessage(IntToStr(C));
+
+  C := 28057;
+  C := UInt16ToBigEndian(C);
+  ShowMessage(IntToStr(C));
 end;
 
 end.

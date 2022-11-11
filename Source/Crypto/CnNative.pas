@@ -35,7 +35,9 @@ unit CnNative;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.07.23 V2.2
+* 修改记录：2022.11.11 V2.3
+*               补上几个无符号数的字节顺序调换函数
+*           2022.07.23 V2.2
 *               增加几个内存位运算函数与二进制转换字符串函数，并改名为 CnNative
 *           2022.06.08 V2.1
 *               增加四个时间固定的交换函数以及内存倒排函数
@@ -340,6 +342,24 @@ function Int32ToLittleEndian(Value: Integer): Integer;
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
 {* 确保 Int16 值为小端，在大端环境中会进行转换}
 
+function UInt64ToBigEndian(Value: TUInt64): TUInt64;
+{* 确保 UInt64 值为大端，在小端环境中会进行转换}
+
+function UInt32ToBigEndian(Value: Cardinal): Cardinal;
+{* 确保 UInt32 值为大端，在小端环境中会进行转换}
+
+function UInt16ToBigEndian(Value: Word): Word;
+{* 确保 UInt16 值为大端，在小端环境中会进行转换}
+
+function UInt64ToLittleEndian(Value: TUInt64): TUInt64;
+{* 确保 UInt64 值为小端，在大端环境中会进行转换}
+
+function UInt32ToLittleEndian(Value: Cardinal): Cardinal;
+{* 确保 UInt32 值为小端，在大端环境中会进行转换}
+
+function UInt16ToLittleEndian(Value: Word): Word;
+{* 确保 UInt16 值为小端，在大端环境中会进行转换}
+
 function Int64HostToNetwork(Value: Int64): Int64;
 {* 将 Int64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
 
@@ -604,7 +624,7 @@ begin
   if FByteOrderIsBigEndian then
     Result := Value
   else
-    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+    Result := SmallInt((Value and $00FF) shl 8) or SmallInt((Value and $FF00) shr 8);
 end;
 
 function Int64ToLittleEndian(Value: Int64): Int64;
@@ -629,7 +649,57 @@ begin
   if not FByteOrderIsBigEndian then
     Result := Value
   else
-    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8);
+    Result := SmallInt((Value and $00FF) shl 8) or SmallInt((Value and $FF00) shr 8);
+end;
+
+function UInt64ToBigEndian(Value: TUInt64): TUInt64;
+begin
+  if FByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := SwapUInt64(Value);
+end;
+
+function UInt32ToBigEndian(Value: Cardinal): Cardinal;
+begin
+  if FByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := Cardinal((Value and $000000FF) shl 24) or Cardinal((Value and $0000FF00) shl 8)
+      or Cardinal((Value and $00FF0000) shr 8) or Cardinal((Value and $FF000000) shr 24);
+end;
+
+function UInt16ToBigEndian(Value: Word): Word;
+begin
+  if FByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := Word((Value and $00FF) shl 8) or Word((Value and $FF00) shr 8);
+end;
+
+function UInt64ToLittleEndian(Value: TUInt64): TUInt64;
+begin
+  if not FByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := SwapUInt64(Value);
+end;
+
+function UInt32ToLittleEndian(Value: Cardinal): Cardinal;
+begin
+  if not FByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := Cardinal((Value and $000000FF) shl 24) or Cardinal((Value and $0000FF00) shl 8)
+      or Cardinal((Value and $00FF0000) shr 8) or Cardinal((Value and $FF000000) shr 24);
+end;
+
+function UInt16ToLittleEndian(Value: Word): Word;
+begin
+  if not FByteOrderIsBigEndian then
+    Result := Value
+  else
+    Result := Word((Value and $00FF) shl 8) or Word((Value and $FF00) shr 8);
 end;
 
 function Int64HostToNetwork(Value: Int64): Int64;
@@ -652,7 +722,7 @@ end;
 function Int16HostToNetwork(Value: SmallInt): SmallInt;
 begin
   if not FByteOrderIsBigEndian then
-    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
+    Result := SmallInt((Value and $00FF) shl 8) or SmallInt((Value and $FF00) shr 8)
   else
     Result := Value;
 end;
@@ -677,7 +747,7 @@ end;
 function Int16NetworkToHost(Value: SmallInt): SmallInt;
 begin
   if not FByteOrderIsBigEndian then
-    Result := ((Value and $00FF) shl 8) or ((Value and $FF00) shr 8)
+    Result := SmallInt((Value and $00FF) shl 8) or SmallInt((Value and $FF00) shr 8)
   else
     Result := Value;
 end;

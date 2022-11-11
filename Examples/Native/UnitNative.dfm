@@ -341,4 +341,13 @@ object FormNative: TFormNative
     TabOrder = 29
     OnClick = btnUInt32ToStrClick
   end
+  object btnInt16ToLE: TButton
+    Left = 872
+    Top = 72
+    Width = 75
+    Height = 25
+    Caption = 'Int16 To LE'
+    TabOrder = 30
+    OnClick = btnInt16ToLEClick
+  end
 end
