@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnWideStrings;
+  StdCtrls, CnWideStrings, CnGB18030;
 
 type
   TFormGB18030 = class(TForm)
@@ -26,6 +26,8 @@ type
     btnCodePoint180301: TButton;
     btnCodePoint180302: TButton;
     btnCodePoint180303: TButton;
+    btnMultiUtf16ToGB18130: TButton;
+    btnMultiGB18131ToUtf16: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -43,8 +45,12 @@ type
     procedure btnCodePoint180301Click(Sender: TObject);
     procedure btnCodePoint180302Click(Sender: TObject);
     procedure btnCodePoint180303Click(Sender: TObject);
+    procedure btnMultiUtf16ToGB18130Click(Sender: TObject);
+    procedure btnMultiGB18131ToUtf16Click(Sender: TObject);
   private
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
+    function CodePointUtf16ToGB18130(UCP: TCnCodePoint): TCnCodePoint;
+    function CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
   public
 
   end;
@@ -55,7 +61,7 @@ var
 implementation
 
 uses
-  CnGB18030, CnNative;
+  CnNative;
 
 {$R *.DFM}
 
@@ -319,6 +325,109 @@ begin
   C := $8139EF34;  // 一个大叉 GB18030 码点
   SetLength(S, 4);
   GetGB18030CharsFromCodePoint(C, @S[1]);   // 内存中得到 8139EF34
+  ShowMessage(S);
+end;
+
+function TFormGB18030.CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
+var
+  S: AnsiString;
+  W: WideString;
+  C, T: Integer;
+begin
+  Result := CN_INVALID_CODEPOINT;
+
+  SetLength(S, 4); // 最多 4
+  C := GetGB18030CharsFromCodePoint(GBCP, @S[1]);  // S 是该 GB18030 字符，C 是其字节长度
+
+  T := MultiByteToWideChar(CP_GB18030, 0, @S[1], C, nil, 0);
+  if T > 0 then
+  begin
+    SetLength(W, T);
+    T := MultiByteToWideChar(CP_GB18030, 0, @S[1], C, @W[1], Length(W));
+    if T > 0 then
+      Result := GetCodePointFromUtf16Char(@W[1]);
+  end;
+end;
+
+function TFormGB18030.CodePointUtf16ToGB18130(UCP: TCnCodePoint): TCnCodePoint;
+var
+  S: AnsiString;
+  W: WideString;
+  C, T: Integer;
+begin
+  Result := CN_INVALID_CODEPOINT;
+
+  SetLength(W, 2); // 最多 2 个宽字符也就是四字节
+  C := GetUtf16CharFromCodePoint(UCP, @W[1]);  // W 是该 Utf16 字符，C 是其宽字符长度
+
+  T := WideCharToMultiByte(CP_GB18030, 0, @W[1], C, nil, 0, nil, nil);
+  if T > 0 then
+  begin
+    SetLength(S, T);
+
+    T := WideCharToMultiByte(CP_GB18030, 0, @W[1], C, @S[1], Length(S), nil, nil);
+    if T > 0 then
+      Result := GetCodePointFromGB18030Char(@S[1]);
+  end;
+end;
+
+procedure TFormGB18030.btnMultiUtf16ToGB18130Click(Sender: TObject);
+var
+  S: WideString;
+  A, T: AnsiString;
+  I: Integer;
+  C: TCnCodePoint;
+begin
+  S := '吃饭一半少，睡觉三周多';
+  A := '';
+  for I := 1 to Length(S) do
+  begin
+    C := GetCodePointFromUtf16Char(@S[I]);   // Utf16 值
+    if C = CN_INVALID_CODEPOINT then
+      Exit;
+
+    C := CodePointUtf16ToGB18130(C);         // 转成 GB18030
+    if C = CN_INVALID_CODEPOINT then
+      Exit;
+
+    SetLength(T, 4);
+    C := GetGB18030CharsFromCodePoint(C, @T[1]);
+    if C > 0 then
+      SetLength(T, C);
+
+    A := A + T;
+  end;
+  ShowMessage(A);
+end;
+
+procedure TFormGB18030.btnMultiGB18131ToUtf16Click(Sender: TObject);
+var
+  S, T: WideString;
+  A: AnsiString;
+  I: Integer;
+  C: TCnCodePoint;
+begin
+  A := '吃饭一半少，睡觉三周多';
+  S := '';
+  I := 1;
+
+  while I <= Length(A) do
+  begin
+    C := GetCodePointFromGB18030Char(@A[I]);   // GB18030 值
+    Inc(I, 2);
+
+    if C = CN_INVALID_CODEPOINT then
+      Exit;
+
+    C := CodePointGB18130ToUtf16(C);           // 转成 Utf16
+    if C = CN_INVALID_CODEPOINT then
+      Exit;
+
+    SetLength(T, 1);
+    GetUtf16CharFromCodePoint(C, @T[1]);
+
+    S := S + T;
+  end;
   ShowMessage(S);
 end;
 

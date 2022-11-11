@@ -166,6 +166,24 @@ object FormGB18030: TFormGB18030
     TabOrder = 16
     OnClick = btnCodePoint180303Click
   end
+  object btnMultiUtf16ToGB18130: TButton
+    Left = 464
+    Top = 56
+    Width = 121
+    Height = 25
+    Caption = 'Utf16s To GB18130s'
+    TabOrder = 17
+    OnClick = btnMultiUtf16ToGB18130Click
+  end
+  object btnMultiGB18131ToUtf16: TButton
+    Left = 464
+    Top = 96
+    Width = 121
+    Height = 25
+    Caption = 'GB18030s to Utf16s'
+    TabOrder = 18
+    OnClick = btnMultiGB18131ToUtf16Click
+  end
   object dlgSave1: TSaveDialog
     FileName = 'UTF16.txt'
     Left = 928

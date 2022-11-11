@@ -39,7 +39,8 @@ unit CnGB18030;
 *           四字节 UTF16 字符的编码值，不是转换四字节本身，因而 UTF8-MB4 足够容纳
 *
 *           GB18030 的编码取值范围（十六进制）
-*           注意 AABB~CCDD 的范围代表前一个字节 AA 到 CC，后一个字节 CC 到 DD，不包括 AAFF 这种
+*             注意 AABB~CCDD 的范围不是通常意义上的增到 FF 再进位，
+*             而是代表前一个字节 AA 到 CC，且后一个字节 CC 到 DD，并不包括 AAFF 这种
 *           单字节：00~7F
 *           双字节：A1A9~A1FE                     1 区
 *                   A840~A97E, A880~A9A0          5 区
@@ -69,6 +70,9 @@ interface
 
 uses
   SysUtils, Classes, CnNative;
+
+const
+  CN_INVALID_CODEPOINT = $FFFFFFFF;
 
 type
 {$IFDEF SUPPORT_ANSISTRING_CODEPAGE}
@@ -157,7 +161,8 @@ function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18130StringPtr): TC
 {* 计算一个 GB18030 字符的编码值（也叫代码位置），注意 PtrToGB18030Chars 可能指向一个单、双、四字节字符}
 
 function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
-{* 计算一个 GB18030 编码值的一字节或二字节或四字节表示，返回值 1 或 2 或 4}
+{* 计算一个 GB18030 编码值的一字节或二字节或四字节表示，如果 PtrToChars 指向的位置不为空则将转换后的内容放里头
+   返回值是转换的字节数，1 或 2 或 4}
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的高位字节值}
@@ -402,7 +407,7 @@ begin
 {$IFDEF UTF16_BE}
     Result := TCnCodePoint(R);
 {$ELSE}
-    Result := TCnCodePoint(Int16ToBigEndian(R));  // UTF16-LE 要交换值
+    Result := TCnCodePoint(UInt16ToBigEndian(R)); // UTF16-LE 要交换值
 {$ENDIF}
   end;
 end;
@@ -501,7 +506,8 @@ begin
   P := PByte(PtrToChars);
   if CP < $80 then
   begin
-    P^ := Byte(CP);
+    if P <> nil then
+      P^ := Byte(CP);
     Result := 1;
   end
   else
@@ -515,21 +521,27 @@ begin
       (((C4 >= $40) and (C4 <= $7E)) or ((C4 >= $80) and (C4 <= $FE))) then
     begin
       // 是两字节字符
-      P^ := C3;
-      Inc(P);
-      P^ := C4;
+      if P <> nil then
+      begin
+        P^ := C3;
+        Inc(P);
+        P^ := C4;
+      end;
       Result := 2;
     end
     else if ((C1 >= $81) and (C1 <= $FE)) and ((C2 >= $30) and (C2 <= $39)) then
     begin
       // 是四字节字符，暂不判断 C3 和 C4
-      P^ := C1;
-      Inc(P);
-      P^ := C2;
-      Inc(P);
-      P^ := C3;
-      Inc(P);
-      P^ := C4;
+      if P <> nil then
+      begin
+        P^ := C1;
+        Inc(P);
+        P^ := C2;
+        Inc(P);
+        P^ := C3;
+        Inc(P);
+        P^ := C4;
+      end;
       Result := 4;
     end;
   end;
