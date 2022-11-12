@@ -1,6 +1,6 @@
 object FormGB18030: TFormGB18030
   Left = 192
-  Top = 107
+  Top = 110
   Width = 982
   Height = 563
   Caption = 'Unicode and GB18030'

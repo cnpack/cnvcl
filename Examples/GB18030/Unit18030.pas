@@ -57,6 +57,8 @@ type
     function CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
     procedure Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnWideStringList; H2: Word = 0);
     procedure Gen2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
+
+    procedure Gen4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnWideStringList);
   public
 
   end;
@@ -475,25 +477,77 @@ begin
 //         F8A1~FEFE                     用户 2 区
 //         A140~A77E, A180~A7A0          用户 3 区
 
+  WS.Add('区：双字节一');
   Gen2GB18030ToUtf16Page($A1, $A9, $A1, $FE, WS);
-  WS.Add('');
+  WS.Add('区：双字节五');
   Gen2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
   Gen2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
-  WS.Add('');
+  WS.Add('区：双字节汉字二');
   Gen2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
-  WS.Add('');
+  WS.Add('区：双字节汉字三');
   Gen2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
   Gen2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
-  WS.Add('');
+  WS.Add('区：双字节汉字四');
   Gen2GB18030ToUtf16Page($AA, $40, $FE, $7E, WS);
   Gen2GB18030ToUtf16Page($AA, $80, $FE, $A0, WS);
-  WS.Add(''); // 双字节用户区
+
+  WS.Add('区：双字节用户一'); // 三个双字节用户区
   Gen2GB18030ToUtf16Page($AA, $A1, $AF, $FE, WS);
-  WS.Add('');
+  WS.Add('区：双字节用户二');
   Gen2GB18030ToUtf16Page($F8, $A1, $FE, $FE, WS);
-  WS.Add('');
+  WS.Add('区：双字节用户三');
   Gen2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
   Gen2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
+
+  // 四字节
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文一');
+  Gen4GB18030ToUtf16Page($81318132, $81319934, WS);
+  WS.Add('区：四字节藏文');
+  Gen4GB18030ToUtf16Page($8132E834, $8132FD31, WS);
+  WS.Add('区：四字节朝鲜文字母');
+  Gen4GB18030ToUtf16Page($81339D36, $8133B635, WS);
+  WS.Add('区：四字节蒙古文（包括满文、托忒文、锡伯文和阿礼嘎礼字）');
+  Gen4GB18030ToUtf16Page($8134D238, $8134E337, WS);
+  WS.Add('区：四字节德宏傣文');
+  Gen4GB18030ToUtf16Page($8134F434, $8134F830, WS);
+  WS.Add('区：四字节西双版纳新傣文');
+  Gen4GB18030ToUtf16Page($8134F932, $81358437, WS);
+  WS.Add('区：四字节西双版纳老傣文');
+  Gen4GB18030ToUtf16Page($81358B32, $81359935, WS);
+  WS.Add('区：四字节康熙部首');
+  Gen4GB18030ToUtf16Page($81398B32, $8139A135, WS);
+  WS.Add('区：四字节朝鲜文兼容字母');
+  Gen4GB18030ToUtf16Page($8139A933, $8139B734, WS);
+  WS.Add('区：四字节 CJK 统一汉字扩充 A');
+  Gen4GB18030ToUtf16Page($8139EE39, $82358738, WS);
+  WS.Add('区：四字节 CJK 统一汉字');
+  Gen4GB18030ToUtf16Page($82358F33, $82359636, WS);
+  WS.Add('区：四字节彝文');
+  Gen4GB18030ToUtf16Page($82359833, $82369435, WS);
+  WS.Add('区：四字节傈僳文');
+  Gen4GB18030ToUtf16Page($82369535, $82369A32, WS);
+  WS.Add('区：四字节朝鲜文音节');
+  Gen4GB18030ToUtf16Page($8237CF35, $8336BE36, WS);
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文二');
+  Gen4GB18030ToUtf16Page($8430BA32, $8430FE35, WS);
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文三');
+  Gen4GB18030ToUtf16Page($84318730, $84319530, WS);
+  WS.Add('区：四字节蒙古文 BIRGA');
+  Gen4GB18030ToUtf16Page($9034C538, $9034C730, WS);
+  WS.Add('区：四字节滇东北苗文');
+  Gen4GB18030ToUtf16Page($9232C636, $9232D635, WS);
+  WS.Add('区：四字节 CJK 统一汉字扩充 B');
+  Gen4GB18030ToUtf16Page($95328236, $9835F336, WS);
+  WS.Add('区：四字节 CJK 统一汉字扩充 C');
+  Gen4GB18030ToUtf16Page($9835F738, $98399E36, WS);
+  WS.Add('区：四字节 CJK 统一汉字扩充 D');
+  Gen4GB18030ToUtf16Page($98399F38, $9839B539, WS);
+  WS.Add('区：四字节 CJK 统一汉字扩充 E');
+  Gen4GB18030ToUtf16Page($9839B632, $9933FE33, WS);
+  WS.Add('区：四字节 CJK 统一汉字扩充 F');
+  Gen4GB18030ToUtf16Page($99348138, $9939F730, WS);
+  WS.Add('区：四字节用户扩展');
+  Gen4GB18030ToUtf16Page($FD308130, $FE39FE39, WS);
 
   dlgSave1.FileName := 'GB18030_UTF16.txt';
   if dlgSave1.Execute then
@@ -541,6 +595,39 @@ begin
 
       Content.Add(S);
     end;
+  end;
+end;
+
+procedure TFormGB18030.Gen4GB18030ToUtf16Page(From4, To4: TCnCodePoint;
+  Content: TCnWideStringList);
+var
+  GBCP, UCP: TCnCodePoint;
+  T: Integer;
+  S, C: WideString;
+
+  procedure Step4GB18030CodePoint(var CP: TCnCodePoint);
+  var
+    B: Byte;
+  begin
+    repeat
+      Inc(CP);
+      B := Byte(CP);
+    until B in [$30..$39];
+  end;
+
+begin
+  GBCP := From4;
+  while GBCP <= To4 do
+  begin
+    UCP := CodePointGB18130ToUtf16(GBCP);
+    T := GetUtf16CharFromCodePoint(UCP, nil);
+    SetLength(C, T);
+    GetUtf16CharFromCodePoint(UCP, @C[1]);
+
+    S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C;
+    Content.Add(S);
+
+    Step4GB18030CodePoint(GBCP);
   end;
 end;
 
